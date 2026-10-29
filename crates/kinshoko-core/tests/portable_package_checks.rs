@@ -401,7 +401,7 @@ fn a_carried_seed_identity_can_attach_to_two_library_local_ids_in_one_applicatio
 }
 
 #[test]
-fn publishing_a_sealed_dependency_keeps_current_raw_definition_without_exposing_its_mapping() {
+fn publishing_a_sealed_dependency_keeps_current_raw_definition_without_exposing_it() {
     let dir = tempfile::tempdir().unwrap();
     let (known, _, _) = named_library(dir.path(), "known");
     let mut definition = known
@@ -457,8 +457,9 @@ fn publishing_a_sealed_dependency_keeps_current_raw_definition_without_exposing_
     let id = target.info().id.clone();
     let root = target.info().root.clone();
     app.publish_library_definitions(&target).unwrap();
+    // 统一标签目录不按安全模式过滤（#335），记下了对应；安全模式下的词表仍看不到这个标签。
     assert!(
-        !app.inspect()
+        app.inspect()
             .unwrap()
             .mappings
             .iter()

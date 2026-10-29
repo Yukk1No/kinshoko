@@ -223,13 +223,12 @@ pub struct TagCatalog {
     name_defaults: Option<crate::library::TagTranslations>,
     /// 每个资料库上次同步时的词表与目录修订号（#158）：都没变时读一张图的标签不必重新同步整份词表。
     synchronized: std::collections::HashMap<String, Synchronized>,
+    /// 真正逐个标签核对过的次数，测试用来确认没有变化时不重做（#335）。
+    full_synchronizations: u64,
 }
 
-#[derive(PartialEq)]
 struct Synchronized {
     root: std::path::PathBuf,
-    safe_mode: bool,
-    scope: crate::library::SafeModeScope,
     vocabulary: i64,
     catalog: i64,
 }
@@ -272,6 +271,7 @@ impl TagCatalog {
             conn,
             name_defaults: None,
             synchronized: Default::default(),
+            full_synchronizations: 0,
         })
     }
 
@@ -360,9 +360,7 @@ impl TagCatalog {
             .query_map([], |row| row.get::<_, String>(0))?
             .map(|row| Ok(serde_json::from_str(&row?)?))
             .collect::<Result<Vec<_>, CatalogError>>()?;
-        for tag in &mut tags {
-            names::resolve(&self.conn, tag)?;
-        }
+        names::resolve_all(&self.conn, &mut tags)?;
         let mut stmt = self.conn.prepare("SELECT m.library_id,m.local_tag_id,m.catalog_id,m.legacy,m.basis,m.name_provenance,coalesce(s.names,'[]') FROM library_tag_mapping m LEFT JOIN library_tag_source_name s ON s.library_id=m.library_id AND s.local_tag_id=m.local_tag_id ORDER BY m.library_id,m.local_tag_id")?;
         let rows = stmt.query_map([], |row| {
             Ok((

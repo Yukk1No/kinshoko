@@ -101,6 +101,12 @@ impl Library {
         tags::vocabulary(&self.inner)
     }
 
+    /// 统一标签目录同步读的词表：不按安全模式过滤，含只在被封印的图上出现的标签（#335）。
+    /// 同步写下的只是对应关系，各入口仍按自己的视角读词表来投影，所以各种视角共用一次同步。
+    pub(crate) fn catalog_vocabulary(&self) -> Result<Vocabulary, Error> {
+        tags::vocabulary_in(&self.inner, SafeMode::new(false, self.inner.safe().scope))
+    }
+
     /// 当前的词表修订号：可见词表变化时前进，安全模式另计。供缓存核对快照是否过期。
     pub fn vocabulary_revision(&self) -> Result<i64, Error> {
         tags::revision(&self.inner)

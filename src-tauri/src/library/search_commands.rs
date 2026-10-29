@@ -108,7 +108,7 @@ pub(super) async fn set_safe_mode<R: Runtime>(
             );
         }
         // 可写库与导入仍持有的库都跟着设置（ADR-0008：可写句柄会按需切换）。
-        if let Some(libraries) = lock(&state.libraries).as_ref() {
+        if let Some(libraries) = lock_libraries(&state).as_ref() {
             libraries.set_safe_mode(on);
         }
         // Do not let delayed/reordered event workers preserve a reveal across off -> on.
@@ -152,7 +152,7 @@ pub(super) async fn set_safe_mode_scope<R: Runtime>(
             },
         )?;
         state.detached.set_safe_mode_scope(scope);
-        if let Some(libraries) = lock(&state.libraries).as_mut()
+        if let Some(libraries) = lock_libraries(&state).as_mut()
             && let Err(error) = libraries.set_safe_mode_scope(scope)
         {
             // 视角已换上；只是修订号没写成，游标与工作区快照仍按视角作废。

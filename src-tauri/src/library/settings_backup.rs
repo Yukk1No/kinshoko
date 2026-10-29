@@ -102,7 +102,7 @@ pub(super) async fn restore_application_settings<R: Runtime>(
         state.release_readers();
         let scope = view.safe_mode_scope;
         state.detached.set_safe_mode_scope(scope);
-        if let Some(libraries) = lock(&state.libraries).as_mut() {
+        if let Some(libraries) = lock_libraries(&state).as_mut() {
             libraries.set_safe_mode(safe);
             if let Err(error) = libraries.set_safe_mode_scope(scope) {
                 problems.push(format!("安全模式范围未完全生效：{error}"));

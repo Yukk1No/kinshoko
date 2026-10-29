@@ -22,17 +22,30 @@ pub(super) fn forward_events<R: Runtime>(
         return info;
     }
     *forwarded = Some(weak.clone());
+    // 各步耗时记进运行日志（#313）：画师电脑上这里曾用 8 秒。
+    use kinshoko_core::diagnostics::took;
+    let started = std::time::Instant::now();
     library.set_safe_mode(saved_safe_mode(app));
-    if let Err(error) = with_catalog(&state.search, |catalog| catalog.synchronize(&library)) {
+    took("装配：安全模式", started, None);
+    let started = std::time::Instant::now();
+    if let Err(error) = with_catalog(&state.search, |catalog| {
+        took("装配：等统一标签目录", started, None);
+        catalog.synchronize(&library)
+    }) {
         crate::run_log::error("接入统一标签目录失败", error);
     }
+    took("装配：接入统一标签目录", started, None);
+    let started = std::time::Instant::now();
     state.configure_library(&library);
     let events = library.events();
     *lock(&state.reference) = library.take_reference_lens();
     // 刚成为活动库的库不再经只读视角读取；其他库按需重开。
     state.release_readers();
     state.search.invalidate();
+    took("装配：设置与放掉只读句柄", started, None);
+    let started = std::time::Instant::now();
     crate::tagging::attach(app, library);
+    took("装配：启动自动打标", started, None);
     let mut handles = lock(&state.forwarded_handles);
     handles.retain(|handle| handle.strong_count() > 0);
     if handles.iter().any(|handle| Weak::ptr_eq(handle, &weak)) {

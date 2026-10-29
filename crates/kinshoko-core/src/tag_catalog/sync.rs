@@ -3,12 +3,19 @@
 use super::*;
 
 impl TagCatalog {
-    /// Attach visible local definitions. Repeated attachment retains explicit corrections and
-    /// the original names awaiting migration. A matching name or alias is never evidence of identity.
+    /// Attach every local definition, whatever the handle's safe mode. Repeated attachment retains
+    /// explicit corrections and the original names awaiting migration. A matching name or alias is
+    /// never evidence of identity.
+    ///
+    /// 自上次同步以来词表与目录都没变时不再逐个标签核对，直接读出目录（#335）。
     pub fn synchronize(&mut self, library: &Library) -> Result<CatalogInspection, CatalogError> {
-        let safe_mode = library.safe_mode();
-        let scope = library.safe_mode_scope();
-        let vocabulary = library.vocabulary()?;
+        if self.is_synchronized(library)? {
+            return self.inspect();
+        }
+        let started = std::time::Instant::now();
+        // 不按安全模式过滤（#335）：同步写下的对应关系与视角无关，开着安全模式的可写句柄与总是
+        // 不过滤的只读句柄（`ImageGate`）共用一次同步。被藏起的标签由各入口按自己的视角投影掉。
+        let vocabulary = library.catalog_vocabulary()?;
         let vocabulary_revision = vocabulary.revision;
         let dependencies = library.tag_definition_dependencies()?;
         let dependency_bindings = dependencies
@@ -149,30 +156,33 @@ impl TagCatalog {
             library.info().id.clone(),
             Synchronized {
                 root: library.info().root.clone(),
-                safe_mode,
-                scope,
                 vocabulary: vocabulary_revision,
                 catalog: inspection.revision,
             },
         );
+        self.full_synchronizations += 1;
+        crate::diagnostics::took_if_slow(
+            "统一标签目录：同步一个资料库",
+            started,
+            Some(inspection.tags.len()),
+        );
         Ok(inspection)
     }
 
-    /// 自上次同步这个资料库以来，它的词表、安全模式（开关与范围）与统一标签目录都没有变化。
+    /// 自上次同步这个资料库以来，它的词表与统一标签目录都没有变化。安全模式不是同步的输入
+    /// （见 [`Library::catalog_vocabulary`]）。
     pub(super) fn is_synchronized(&self, library: &Library) -> Result<bool, CatalogError> {
         let Some(last) = self.synchronized.get(&library.info().id) else {
             return Ok(false);
         };
-        Ok(*last
-            == Synchronized {
-                root: library.info().root.clone(),
-                safe_mode: library.safe_mode(),
-                scope: library.safe_mode_scope(),
-                vocabulary: library.vocabulary_revision()?,
-                catalog: self.revision()?,
-            })
+        Ok(last.root == library.info().root
+            && last.vocabulary == library.vocabulary_revision()?
+            && last.catalog == self.revision()?)
     }
 }
+
+#[cfg(test)]
+mod tests;
 
 pub(super) fn insert_tag(
     tx: &Transaction<'_>,
