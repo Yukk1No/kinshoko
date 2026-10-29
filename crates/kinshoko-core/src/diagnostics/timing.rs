@@ -56,7 +56,7 @@ impl HeldLock {
         {
             sink(LogEvent::LockWaited {
                 lock,
-                at: file_stem(site),
+                source: file_stem(site),
                 line: site.line(),
                 ms: waited.min(u32::MAX as u128) as u32,
             });
@@ -77,7 +77,7 @@ impl Drop for HeldLock {
         {
             sink(LogEvent::LockHeld {
                 lock: self.lock,
-                at: file_stem(self.site),
+                source: file_stem(self.site),
                 line: self.site.line(),
                 ms: held.min(u32::MAX as u128) as u32,
             });
