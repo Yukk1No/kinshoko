@@ -1,6 +1,5 @@
-//! 占位图存在资料库里（#313）。过渡期（expand）：同时仍存成文件，不改资料库的版本号，旧版本照样
-//! 能打开；旧资料库打开后把文件读进库里，文件留着；永久删除原图时两处一并删掉。读写数据库文件检查
-//! 存储、模拟旧格式，其余经 `Library` 的对外接口。
+//! 占位图存在资料库里（#313）：不另存文件；#313 之前存成文件的旧资料库升级后读进库里再删掉文件；
+//! 永久删除原图时一并删掉。读写数据库文件检查存储、模拟旧格式，其余经 `Library` 的对外接口。
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -82,14 +81,8 @@ fn wait_until(what: &str, mut done: impl FnMut() -> bool) {
     }
 }
 
-fn user_version(root: &Path) -> i64 {
-    db(root)
-        .query_row("PRAGMA user_version", [], |r| r.get(0))
-        .unwrap()
-}
-
 #[test]
-fn imported_placeholders_are_stored_in_the_database_and_still_as_files() {
+fn imported_placeholders_live_in_the_library_database_not_in_files() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().join("lib");
     let library = Library::create(&root, "库").unwrap();
@@ -97,15 +90,14 @@ fn imported_placeholders_are_stored_in_the_database_and_still_as_files() {
     import(&library, dir.path(), 2);
 
     assert_eq!(stored(&root).len(), 2);
-    assert_eq!(placeholder_files(&root).len(), 2, "过渡期仍存文件");
+    assert_eq!(placeholder_files(&root), Vec::<PathBuf>::new());
     assert!(cards(&library).iter().all(|c| c.placeholder.is_some()));
 }
 
-/// #313 之前的资料库：占位图只有 `cache/thumbs/<管线>/sdr/<前两位>/<sha>-p32.<webp|png>` 文件，没有
-/// `placeholder` 表。只读打开照样能浏览（从文件读）；打开后后台把文件原样读进库里，文件留着，
-/// 版本号不变，旧版本仍能打开。
+/// #313 之前的资料库：占位图是 `cache/thumbs/<管线>/sdr/<前两位>/<sha>-p32.<webp|png>` 文件，没有
+/// `placeholder` 表。只读打开要先升级；打开（升级）后后台把这些文件原样读进库里，再删掉文件。
 #[test]
-fn a_library_from_before_the_table_stays_compatible_and_imports_its_files() {
+fn a_library_from_before_the_move_imports_its_placeholder_files_once() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().join("lib");
     let library = Library::create(&root, "库").unwrap();
@@ -115,7 +107,7 @@ fn a_library_from_before_the_table_stays_compatible_and_imports_its_files() {
     }
     drop(library);
 
-    // 退回旧格式：占位图只有文件（导入时已同时存了，这里照旧格式再写一遍），去掉表。
+    // 退回旧格式：占位图写成升级前的文件，去掉表，版本号退一。
     let before = stored(&root);
     assert_eq!(before.len(), 3);
     let sdr = std::fs::read_dir(root.join("cache/thumbs"))
@@ -131,17 +123,27 @@ fn a_library_from_before_the_table_stays_compatible_and_imports_its_files() {
         std::fs::create_dir_all(file.parent().unwrap()).unwrap();
         std::fs::write(file, bytes).unwrap();
     }
-    db(&root).execute_batch("DROP TABLE placeholder;").unwrap();
-    let version = user_version(&root);
+    {
+        let conn = db(&root);
+        let version: i64 = conn
+            .query_row("PRAGMA user_version", [], |r| r.get(0))
+            .unwrap();
+        conn.execute_batch(&format!(
+            "DROP TABLE placeholder; PRAGMA user_version = {};",
+            version - 1
+        ))
+        .unwrap();
+    }
     assert_eq!(placeholder_files(&root).len(), 3);
-    let read_only = Library::open_read_only(&root, &library_id).unwrap();
-    assert!(cards(&read_only).iter().all(|c| c.placeholder.is_some()));
-    drop(read_only);
+    assert!(matches!(
+        Library::open_read_only(&root, &library_id),
+        Err(kinshoko_core::library::Error::OutdatedLibrary)
+    ));
 
     let library = Library::open(&root).unwrap();
-    wait_until("旧文件读进库里", || stored(&root).len() == 3);
-    assert_eq!(placeholder_files(&root).len(), 3, "文件留着");
-    assert_eq!(user_version(&root), version, "不改版本号，旧版本照样能打开");
+    wait_until("旧文件读进库里并删掉", || {
+        placeholder_files(&root).is_empty() && stored(&root).len() == 3
+    });
     assert_eq!(stored(&root), before, "原样读进来，不重新生成");
     for card in cards(&library) {
         let url = card.placeholder.expect("有占位图");
@@ -151,6 +153,54 @@ fn a_library_from_before_the_table_stays_compatible_and_imports_its_files() {
             .unwrap();
         assert!(before.values().any(|(_, b)| *b == bytes));
     }
+}
+
+/// expand 过渡期打开过的资料库：表已经有了、占位图都在表里，同时还留着文件，版本号没前进。
+/// 迁移后补齐不必再读它们，但剩下的文件照样删掉，表里的不动。
+#[test]
+fn a_library_from_the_expand_step_drops_its_leftover_files() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("lib");
+    let library = Library::create(&root, "库").unwrap();
+    for seed in 0..3 {
+        import(&library, dir.path(), seed);
+    }
+    drop(library);
+
+    // 退回 expand 时的样子：表留着、行都在，另存一份文件，标记表还没有，版本号退一。
+    let before = stored(&root);
+    let sdr = std::fs::read_dir(root.join("cache/thumbs"))
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path()
+        .join("sdr");
+    for (sha, (mime, bytes)) in &before {
+        let ext = if mime == "image/png" { "png" } else { "webp" };
+        let file = sdr.join(&sha[..2]).join(format!("{sha}-p32.{ext}"));
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(file, bytes).unwrap();
+    }
+    {
+        let conn = db(&root);
+        let version: i64 = conn
+            .query_row("PRAGMA user_version", [], |r| r.get(0))
+            .unwrap();
+        conn.execute_batch(&format!(
+            "DROP TABLE IF EXISTS placeholder_files_pending; PRAGMA user_version = {};",
+            version - 1
+        ))
+        .unwrap();
+    }
+    assert_eq!(placeholder_files(&root).len(), 3);
+
+    let library = Library::open(&root).unwrap();
+    wait_until("剩下的文件删掉", || {
+        placeholder_files(&root).is_empty()
+    });
+    assert_eq!(stored(&root), before, "表里的不动");
+    assert!(cards(&library).iter().all(|c| c.placeholder.is_some()));
 }
 
 struct NoGroups;
@@ -177,6 +227,5 @@ fn permanently_deleting_an_image_removes_its_placeholder() {
         .unwrap();
 
     assert_eq!(stored(&root).len(), 1);
-    assert_eq!(placeholder_files(&root).len(), 1);
     assert!(cards(&library)[0].placeholder.is_some());
 }
