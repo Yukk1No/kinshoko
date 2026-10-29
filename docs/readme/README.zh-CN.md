@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Yukk1No/kinshoko/releases"><img alt="最新预发布版" src="https://img.shields.io/github/v/release/Yukk1No/kinshoko?include_prereleases&label=pre-release"></a>
+  <a href="https://github.com/Yukk1No/kinshoko/releases"><img alt="最新版本" src="https://img.shields.io/github/v/release/Yukk1No/kinshoko?label=release"></a>
   <a href="../../LICENSE"><img alt="许可证：GPL-3.0-or-later" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue"></a>
   <img alt="平台：Windows 10/11 x64" src="https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey">
 </p>
