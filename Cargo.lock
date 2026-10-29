@@ -2630,7 +2630,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
 name = "kinshoko"
-version = "1.0.0-beta.8"
+version = "1.0.0-beta.9"
 dependencies = [
  "arboard",
  "chrono",
@@ -2659,7 +2659,7 @@ dependencies = [
 
 [[package]]
 name = "kinshoko-core"
-version = "1.0.0-beta.8"
+version = "1.0.0-beta.9"
 dependencies = [
  "base64 0.22.1",
  "bytemuck",
@@ -2689,7 +2689,7 @@ dependencies = [
 
 [[package]]
 name = "kinshoko-tagger"
-version = "1.0.0-beta.8"
+version = "1.0.0-beta.9"
 dependencies = [
  "csv",
  "image",
@@ -3778,7 +3778,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pin-render"
-version = "1.0.0-beta.8"
+version = "1.0.0-beta.9"
 dependencies = [
  "bytemuck",
  "image",
@@ -3789,7 +3789,7 @@ dependencies = [
 
 [[package]]
 name = "pin-shell"
-version = "1.0.0-beta.8"
+version = "1.0.0-beta.9"
 dependencies = [
  "kinshoko-core",
  "wgpu",
