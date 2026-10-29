@@ -229,3 +229,23 @@ fn permanently_deleting_an_image_removes_its_placeholder() {
     assert_eq!(stored(&root).len(), 1);
     assert!(cards(&library)[0].placeholder.is_some());
 }
+
+/// 占位图是可重建的缓存，不是整理结果：备份快照的整理信息摘要不含它。恢复后打开资料库时后台补齐
+/// 会改这张表，算进去就会让恢复核对误报不一致。
+#[test]
+fn backup_curation_digests_leave_out_the_placeholder_cache() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("lib");
+    let library = Library::create(&root, "库").unwrap();
+    import(&library, dir.path(), 1);
+    let id = library.info().id.clone();
+    drop(library);
+
+    let snapshot = Library::snapshot_at(&root, &id, &dir.path().join("snapshot")).unwrap();
+    let tables: Vec<&str> = snapshot.curation.iter().map(|d| d.table.as_str()).collect();
+    assert!(tables.contains(&"image"), "{tables:?}");
+    assert!(
+        !tables.iter().any(|t| t.starts_with("placeholder")),
+        "{tables:?}"
+    );
+}
