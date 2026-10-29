@@ -18,6 +18,9 @@ use ts_rs::TS;
 
 use super::{DB_FILE, Error, Library, LibraryInfo, ORIGINALS_DIR, STAGING_DIR, store};
 
+mod curation;
+use curation::{NOT_CURATION, curation};
+
 /// 依赖清单里的一个原文件。`key` 只在资料库内部有意义，备份原样记下、恢复时原样交回。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -162,14 +165,6 @@ pub(super) fn leased(library_id: &str) -> bool {
         .unwrap_or_else(|e| e.into_inner())
         .contains_key(library_id)
 }
-
-/// 不进整理信息核对的表：资料库身份、恢复来源、未完成导入与待清除原文件的对账记录。
-const NOT_CURATION: &[&str] = &[
-    "library",
-    "restore_provenance",
-    "import_pending",
-    "original_removal",
-];
 
 impl Library {
     /// 有备份正在复制这个资料库的原文件（原文件租约）。持有期间不得清理原文件。
@@ -366,6 +361,8 @@ impl Library {
             .filter(|digest| {
                 !["tag_group", "tag_group_member", "personal_approx"]
                     .contains(&digest.table.as_str())
+                    // 较早的快照可能还记着后来才不核对的表。
+                    && !NOT_CURATION.contains(&digest.table.as_str())
             })
             .cloned()
             .collect::<Vec<_>>();
@@ -441,103 +438,6 @@ pub(crate) fn hash_file(path: &Path) -> std::io::Result<String> {
 
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
-}
-
-/// 整理信息摘要。`like` 给出时按它的表与列（快照里的列；之后的迁移只会加列）计算，顺序一致。
-fn curation(conn: &Connection, like: Option<&[TableDigest]>) -> Result<Vec<TableDigest>, Error> {
-    let specs: Vec<(String, Vec<String>)> = match like {
-        Some(like) => like
-            .iter()
-            .map(|d| (d.table.clone(), d.columns.clone()))
-            .collect(),
-        None => {
-            let mut stmt = conn.prepare(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
-                 ORDER BY name",
-            )?;
-            let tables: Vec<String> = stmt
-                .query_map([], |r| r.get(0))?
-                .collect::<Result<_, _>>()?;
-            let mut specs = Vec::new();
-            for table in tables {
-                if NOT_CURATION.contains(&table.as_str()) {
-                    continue;
-                }
-                let columns = columns(conn, &table)?;
-                specs.push((table, columns));
-            }
-            specs
-        }
-    };
-    let mut out = Vec::new();
-    for (table, cols) in specs {
-        out.push(digest(conn, &table, &cols).unwrap_or_else(|_| TableDigest {
-            table: table.clone(),
-            columns: cols.clone(),
-            rows: 0,
-            sha256: "缺少这张表或列".into(),
-        }));
-    }
-    Ok(out)
-}
-
-fn columns(conn: &Connection, table: &str) -> Result<Vec<String>, Error> {
-    let mut stmt = conn.prepare(&format!("PRAGMA table_info({})", quote(table)))?;
-    let cols = stmt
-        .query_map([], |r| r.get::<_, String>(1))?
-        .collect::<Result<_, _>>()?;
-    Ok(cols)
-}
-
-fn quote(name: &str) -> String {
-    format!("\"{}\"", name.replace('"', "\"\""))
-}
-
-fn digest(conn: &Connection, table: &str, cols: &[String]) -> Result<TableDigest, Error> {
-    let list = cols.iter().map(|c| quote(c)).collect::<Vec<_>>().join(", ");
-    let order = (1..=cols.len())
-        .map(|i| i.to_string())
-        .collect::<Vec<_>>()
-        .join(", ");
-    let mut stmt = conn.prepare(&format!(
-        "SELECT {list} FROM {} ORDER BY {order}",
-        quote(table)
-    ))?;
-    let mut rows = stmt.query([])?;
-    let mut hasher = Sha256::new();
-    let mut count = 0u64;
-    while let Some(row) = rows.next()? {
-        count += 1;
-        for i in 0..cols.len() {
-            match row.get_ref(i)? {
-                ValueRef::Null => hasher.update([0u8]),
-                ValueRef::Integer(v) => {
-                    hasher.update([1u8]);
-                    hasher.update(v.to_le_bytes());
-                }
-                ValueRef::Real(v) => {
-                    hasher.update([2u8]);
-                    hasher.update(v.to_le_bytes());
-                }
-                ValueRef::Text(t) => {
-                    hasher.update([3u8]);
-                    hasher.update((t.len() as u64).to_le_bytes());
-                    hasher.update(t);
-                }
-                ValueRef::Blob(b) => {
-                    hasher.update([4u8]);
-                    hasher.update((b.len() as u64).to_le_bytes());
-                    hasher.update(b);
-                }
-            }
-        }
-    }
-    Ok(TableDigest {
-        table: table.to_owned(),
-        columns: cols.to_vec(),
-        rows: count,
-        sha256: hex(&hasher.finalize()),
-    })
 }
 
 /// 把 `source` 复制到 `target`，边复制边算哈希并落盘；返回写入内容的哈希。备份复制原文件用。
