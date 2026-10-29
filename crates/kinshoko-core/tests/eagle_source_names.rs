@@ -416,8 +416,11 @@ fn catalog_defaults_copied_from_beta1_eagle_names_are_dropped_after_the_upgrade(
     let before = catalog.synchronize(&library).unwrap();
     assert_eq!(before.tags[0].default_names, [n(ZH, "cyberpunk")]);
     drop(library);
-    // 升级后原文只是来源名称。
+    // 升级后原文只是来源名称。升级由新版本在下次启动时做，目录也是新打开的：这里直接改库，
+    // 词表修订号不动，同一个目录对象会当作没有变化（#335）。
     edit("DELETE FROM tag_name;");
+    drop(catalog);
+    let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
     let library = Library::open(&root).unwrap();
 
     let after = catalog.synchronize(&library).unwrap();

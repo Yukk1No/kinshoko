@@ -223,9 +223,10 @@ pub struct TagCatalog {
     name_defaults: Option<crate::library::TagTranslations>,
     /// 每个资料库上次同步时的词表与目录修订号（#158）：都没变时读一张图的标签不必重新同步整份词表。
     synchronized: std::collections::HashMap<String, Synchronized>,
+    /// 真正逐个标签核对过的次数，测试用来确认没有变化时不重做（#335）。
+    full_synchronizations: u64,
 }
 
-#[derive(PartialEq)]
 struct Synchronized {
     root: std::path::PathBuf,
     safe_mode: bool,
@@ -272,6 +273,7 @@ impl TagCatalog {
             conn,
             name_defaults: None,
             synchronized: Default::default(),
+            full_synchronizations: 0,
         })
     }
 
