@@ -327,3 +327,71 @@ fn the_old_usage_log_is_merged_away_and_other_files_are_left_alone() {
 
     assert_eq!(files(dir.path()), ["notes.txt"]);
 }
+
+static CAPTURED: std::sync::Mutex<Vec<LogEvent>> = std::sync::Mutex::new(Vec::new());
+
+fn capture(event: LogEvent) {
+    CAPTURED.lock().unwrap().push(event);
+}
+
+/// 等锁、持锁 100 毫秒以上各记一条，带取锁处的源文件名（不含目录）与行号；短的不记（#337）。
+#[test]
+fn long_lock_waits_and_holds_are_recorded_with_where_the_lock_was_taken() {
+    use kinshoko_core::diagnostics::{HeldLock, set_timing_sink};
+    use std::time::{Duration, Instant};
+    set_timing_sink(capture);
+    let site = std::panic::Location::caller();
+
+    drop(HeldLock::acquired("测试锁：短", site, Instant::now()));
+    {
+        let _held = HeldLock::acquired(
+            "测试锁：长",
+            site,
+            Instant::now() - Duration::from_millis(150),
+        );
+        std::thread::sleep(Duration::from_millis(120));
+    }
+
+    let events: Vec<serde_json::Value> = CAPTURED
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|e| serde_json::to_value(e).unwrap())
+        .filter(|e| {
+            e["lock"]
+                .as_str()
+                .is_some_and(|lock| lock.starts_with("测试锁"))
+        })
+        .collect();
+    assert_eq!(events.len(), 2, "{events:?}");
+    assert_eq!(events[0]["event"], "lockWaited");
+    assert_eq!(events[1]["event"], "lockHeld");
+    for event in &events {
+        assert_eq!(event["lock"], "测试锁：长");
+        assert_eq!(event["source"], "run_log");
+        assert_eq!(event["line"], site.line());
+        assert!(event["ms"].as_u64().unwrap() >= 100, "{event}");
+    }
+}
+
+/// 写进日志文件的锁事件仍带着这一行的时间（`at`），取锁处另起一个字段（#337）。
+#[test]
+fn a_lock_event_in_the_file_keeps_its_timestamp() {
+    let dir = tempfile::tempdir().unwrap();
+    let clock = TestClock::at(OCT_21_AFTERNOON);
+    let log = open(dir.path(), &clock);
+
+    log.record(LogEvent::LockHeld {
+        lock: "统一标签目录",
+        source: "workspace",
+        line: 212,
+        ms: 1380,
+    });
+
+    let text = std::fs::read_to_string(dir.path().join("run-2026-10-21.jsonl")).unwrap();
+    assert_eq!(text.matches("\"at\"").count(), 1, "{text}");
+    let lines = lines(&dir.path().join("run-2026-10-21.jsonl"));
+    assert_eq!(lines[0]["at"], "2026-10-21T14:03:05.123+08:00");
+    assert_eq!(lines[0]["source"], "workspace");
+    assert_eq!(lines[0]["line"], 212);
+}

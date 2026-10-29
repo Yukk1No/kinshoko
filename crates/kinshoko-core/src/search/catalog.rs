@@ -47,6 +47,7 @@ impl CatalogSearch {
     }
 
     /// `library` 当前词表经统一标签目录投影后的 Search；`view_on` 是界面当前的视角。
+    #[track_caller]
     pub fn search(
         &self,
         library: &Arc<Library>,
@@ -69,11 +70,23 @@ impl CatalogSearch {
     }
 
     /// 持目录锁调用 `action`；目录第一次用到时在这里打开。
+    #[track_caller]
     pub fn with_catalog<T>(
         &self,
         action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,
     ) -> Result<T, CatalogError> {
+        self.with_catalog_at(std::panic::Location::caller(), action)
+    }
+
+    /// 同 [`Self::with_catalog`]；`site` 是记进运行日志的取锁处（#337），调用方自己在闭包里时传进来。
+    pub fn with_catalog_at<T>(
+        &self,
+        site: &'static std::panic::Location<'static>,
+        action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,
+    ) -> Result<T, CatalogError> {
+        let waiting = std::time::Instant::now();
         let mut slot = self.catalog.lock().unwrap_or_else(|e| e.into_inner());
+        let _held = crate::diagnostics::HeldLock::acquired("统一标签目录", site, waiting);
         if slot.is_none() {
             let started = std::time::Instant::now();
             let mut catalog = TagCatalog::open(&self.device_dir)?;

@@ -20,7 +20,7 @@ use crate::fidelity::inspect::summarise;
 pub use log_event::{Detail, Level, LibraryNo, LogEvent, PauseReason, PinSource, WindowKind};
 pub use run_log::{Clock, Moment, RunLog, run_log_default_for_version};
 pub use runtime::{CapabilityCheck, RuntimeAssessment, RuntimeCapabilities, RuntimeStatus};
-pub use timing::{set_timing_sink, took, took_if_slow};
+pub use timing::{HeldLock, set_timing_sink, took, took_if_slow};
 
 /// Tauri（wry）在没有指定启动参数时给 WebView2 的参数：关掉迷你菜单与 SmartScreen 检查。
 /// 自己指定参数时 wry 不再补上，这里照抄（wry 0.57 `webview2/mod.rs`）。
