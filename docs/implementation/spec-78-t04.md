@@ -19,7 +19,7 @@
 
 ## 正式界面与原型
 
-直接读取并适配已接受的 [`tag-name-model.html`](../../prototype/spec78-alignment/tag-name-model.html) 旧来源表、明确选择与结果表达，以及固定认可 SettingsDialog 的 fieldset／legend／明确动作结构。正式 [`LegacyNameMigrationPanel`](../../src/library/LegacyNameMigrationPanel.tsx) 接入设置；打开含待确认名称的活动库时，主界面通知可直接打开向导。
+直接读取并适配已接受的 [`tag-name-model.html`](../../design/prototype/spec78-alignment/tag-name-model.html) 旧来源表、明确选择与结果表达，以及固定认可 SettingsDialog 的 fieldset／legend／明确动作结构。正式 [`LegacyNameMigrationPanel`](../../src/library/LegacyNameMigrationPanel.tsx) 接入设置；打开含待确认名称的活动库时，主界面通知可直接打开向导。
 
 向导每次显示一个身份和语言，提供跟随默认、保留指定旧文字、保留既有全局偏好。不同旧文字和旧文字与已有偏好的冲突均明确显示。来源表保留库名、本地身份和原文字。影响说明覆盖全部关联库及以后接入的库。
 

@@ -14,7 +14,7 @@
 - 实际通过脚本：`5bd6c20b05491fd1332824dcb8939acfbc375039` 的 `e2e/source-actions.mjs`。脚本 SHA256 单列于原生结果。
 - 原生完成后的低影响界面整理：`32ef871ecf80ee0795af8a34b31134e84dabf8c8`。将两处长内部 ID 行移到 title，稳定引用不变。受影响界面 74 项和 TypeScript 通过；没有把 25 项原生结果改标为这次界面提交。
 
-实际参考固定原稿 [资料库工作区](../../prototype/spec78-alignment/library-workspace.html) 的来源选择、独立备注和来源使用动作。正式界面适配 `WorkspaceSources`，并复用正式 `SelectionPanel`、`TagPanel`、删除预览、钉图与参考组存储。原稿没有修改，也不充当正式存储证据。
+实际参考固定原稿 [资料库工作区](../../design/prototype/spec78-alignment/library-workspace.html) 的来源选择、独立备注和来源使用动作。正式界面适配 `WorkspaceSources`，并复用正式 `SelectionPanel`、`TagPanel`、删除预览、钉图与参考组存储。原稿没有修改，也不充当正式存储证据。
 
 ## 实现边界
 

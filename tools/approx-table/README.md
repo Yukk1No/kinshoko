@@ -1,6 +1,6 @@
 # 内置近似对应表生成脚本
 
-生成 [`data/builtin-approx-table.json`](../../data/README.md)。对应 [#55](https://github.com/Yukk1No/kinshoko/issues/55)。只用 Python 标准库（3.9 及以上）。
+生成 [`crates/kinshoko-core/data/builtin-approx-table.json`](../../crates/kinshoko-core/data/README.md)。对应 [#55](https://github.com/Yukk1No/kinshoko/issues/55)。只用 Python 标准库（3.9 及以上）。
 
 ## 流程
 
@@ -11,7 +11,7 @@
 ```bash
 cd tools/approx-table
 python approx_table.py pending   # 列出尚未审核的候选（结论与理由两列留空），审核后追加到 review.tsv
-python approx_table.py build     # 写 data/builtin-approx-table.json
+python approx_table.py build     # 写 crates/kinshoko-core/data/builtin-approx-table.json
 python approx_table.py check     # 确认数据文件与词表、审核记录一致（可放进 CI）
 python -m unittest               # 测试
 ```

@@ -1,6 +1,6 @@
 # 内置翻译表生成脚本
 
-生成 [`data/builtin-translation-table.json`](../../data/README.md)：外部名称（打标模型输出的 Danbooru 名称）首次进库时的简体中文初始名称与别名。对应 [#76](https://github.com/Yukk1No/kinshoko/issues/76) Core3 / [#77](https://github.com/Yukk1No/kinshoko/issues/77) C1，规则见 [ADR-0003](../../docs/adr/0003-tag-identity-and-approximate-search.md)。只用 Python 标准库（3.9 及以上）。
+生成 [`crates/kinshoko-core/data/builtin-translation-table.json`](../../crates/kinshoko-core/data/README.md)：外部名称（打标模型输出的 Danbooru 名称）首次进库时的简体中文初始名称与别名。对应 [#76](https://github.com/Yukk1No/kinshoko/issues/76) Core3 / [#77](https://github.com/Yukk1No/kinshoko/issues/77) C1，规则见 [ADR-0003](../../docs/adr/0003-tag-identity-and-approximate-search.md)。只用 Python 标准库（3.9 及以上）。
 
 ## 流程
 
@@ -14,7 +14,7 @@
 ```bash
 cd tools/translation-table
 python translation_table.py pending   # 列出还没有译名的候选，翻译后追加到 translations.tsv
-python translation_table.py build     # 写 data/builtin-translation-table.json 与 review.tsv
+python translation_table.py build     # 写 crates/kinshoko-core/data/builtin-translation-table.json 与 review.tsv
 python translation_table.py check     # 确认两者与词表、译名记录一致（可放进 CI）
 python -m unittest                    # 测试
 ```

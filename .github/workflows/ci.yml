@@ -11,14 +11,12 @@ on:
       - "docs/**"
       - "design/**"
       - "tools/**"
-      - "prototype/**"
       - "**/*.md"
   pull_request:
     paths-ignore:
       - "docs/**"
       - "design/**"
       - "tools/**"
-      - "prototype/**"
       - "**/*.md"
   workflow_dispatch:
 

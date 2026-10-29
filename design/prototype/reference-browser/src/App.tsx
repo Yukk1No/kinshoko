@@ -505,7 +505,7 @@ export default function App() {
   const empty = seedInfo.missing && !library.images.length ? <div>
     <h2>还没有样本图片</h2>
     <p>样稿使用验收样本清单中的 pixiv 作品，图片不进仓库。先按清单下载并校验，再生成样稿资料库：</p>
-    <pre>python scripts/samples/fetch_pixiv.py{'\n'}cd prototype/reference-browser{'\n'}npm run library</pre>
+    <pre>python scripts/samples/fetch_pixiv.py{'\n'}cd design/prototype/reference-browser{'\n'}npm run library</pre>
     <p>也可以把自己的图片拖进窗口，只在这次运行中显示。</p>
   </div> : scope.trash ? <div><h2>回收站是空的</h2><p>移到回收站的图片会出现在这里，可以恢复。</p></div>
     : <div>

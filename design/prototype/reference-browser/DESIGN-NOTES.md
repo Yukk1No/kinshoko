@@ -1,6 +1,6 @@
 # 设计说明
 
-最后更新 2026-10-06（首版 2026-10-05）。这版样稿从整个仓库出发，而不是只从界面简报出发：[领域对齐记录](../../docs/discovery/alignment.md)（到第十三轮）、两份 ADR、[验收约定](../../docs/validation/acceptance.md)、[#7 钉图原型](https://github.com/Yukk1No/kinshoko/pull/21)的试用结论、[logo kit v1.1](../../design/logo-kit/README.md) 和验收样本清单。下表每一行写明界面上的做法和它的依据。
+最后更新 2026-10-06（首版 2026-10-05）。这版样稿从整个仓库出发，而不是只从界面简报出发：[领域对齐记录](../../../docs/discovery/alignment.md)（到第十三轮）、两份 ADR、[验收约定](../../../docs/validation/acceptance.md)、[#7 钉图原型](https://github.com/Yukk1No/kinshoko/pull/21)的试用结论、[logo kit v1.1](../../logo-kit/README.md) 和验收样本清单。下表每一行写明界面上的做法和它的依据。
 
 ## 一种结构，不再三选一
 
@@ -86,7 +86,7 @@
 
 ## 封印书（#27）
 
-2026-10-06。按第十四轮 Q97～Q111 与选定的封印书设计（[`design/seal-book-concepts/round5-a1-round-lock`](../../design/seal-book-concepts/README.md)）改写安全模式。
+2026-10-06。按第十四轮 Q97～Q111 与选定的封印书设计（[`design/seal-book-concepts/round5-a1-round-lock`](../../seal-book-concepts/README.md)）改写安全模式。
 
 | 依据 | 做法 |
 |---|---|

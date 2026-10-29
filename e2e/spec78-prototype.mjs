@@ -10,7 +10,7 @@ const output = resolve(outputArg);
 const formal = JSON.parse(readFileSync(join(output, "report.json"), "utf8"));
 const work = mkdtempSync(join(tmpdir(), "kinshoko-spec78-prototype-"));
 const port = 4470;
-const vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "4180", "--strictPort"], { cwd: resolve("prototype/reference-browser"), windowsHide: true, stdio: ["ignore", "inherit", "inherit"] });
+const vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "4180", "--strictPort"], { cwd: resolve("design/prototype/reference-browser"), windowsHide: true, stdio: ["ignore", "inherit", "inherit"] });
 const driver = spawn(resolve(driverArg), ["--port=" + port], { windowsHide: true, stdio: ["ignore", "inherit", "inherit"] });
 const DRIVER = "http://127.0.0.1:" + port;
 let base;
