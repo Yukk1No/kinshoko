@@ -1287,7 +1287,7 @@ dependencies = [
 
 [[package]]
 name = "kinshoko-core"
-version = "1.0.0-beta.13"
+version = "1.0.0-rc.1"
 dependencies = [
  "base64",
  "bytemuck",
