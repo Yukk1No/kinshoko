@@ -180,10 +180,15 @@ pub(in crate::library) fn counts(
     inner: &Inner,
     conn: &rusqlite::Connection,
 ) -> Result<HashMap<String, u32>, Error> {
+    counts_in(conn, inner.safe())
+}
+
+/// 视角 `safe` 下每个标签的有效张数。
+fn counts_in(conn: &rusqlite::Connection, safe: SafeMode) -> Result<HashMap<String, u32>, Error> {
     let mut stmt = conn.prepare_cached(&format!(
         "SELECT e.tag_id, COUNT(*) FROM effective_tag e
          JOIN image ON image.id = e.image_id WHERE {LIVE} AND {} GROUP BY e.tag_id",
-        inner.lens_filter()
+        lens::lens_filter(safe)
     ))?;
     let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
     Ok(rows.collect::<Result<_, _>>()?)
@@ -195,12 +200,19 @@ pub(in crate::library) fn revision(inner: &Inner) -> Result<i64, Error> {
 }
 
 pub(in crate::library) fn vocabulary(inner: &Inner) -> Result<Vocabulary, Error> {
+    vocabulary_in(inner, inner.safe())
+}
+
+/// 视角 `safe` 下的词表快照；句柄自己的视角不变。
+pub(in crate::library) fn vocabulary_in(
+    inner: &Inner,
+    safe: SafeMode,
+) -> Result<Vocabulary, Error> {
     let mut conn = inner.readers.get();
     // 修订号与内容取自同一个读事务，保证快照一致。
     let tx = conn.transaction()?;
     let revision: i64 = tx.query_row("SELECT value FROM vocabulary_revision", [], |r| r.get(0))?;
-    let safe = inner.safe();
-    let counts = counts(inner, &tx)?;
+    let counts = counts_in(&tx, safe)?;
     let hidden = lens::sealed_only_tags(&tx, safe)?;
     let mut tags: BTreeMap<String, VocabularyTag> = BTreeMap::new();
     {

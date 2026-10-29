@@ -1,5 +1,5 @@
-//! 没有变化时不重新同步（#335）：不过滤的同步之后，安全模式开着的句柄不再核对；反过来要补一次，
-//! 且开着安全模式的同步不写入被藏起的标签。词表、目录或视角真的变了时照常重新同步。
+//! 没有变化时不重新同步（#335）：同步不按安全模式过滤，开着安全模式的可写句柄与不过滤的只读句柄
+//! 轮流、只改视角、多个资料库轮流时都只核对一次；词表或目录真的变了时照常重新同步。
 
 use super::*;
 use crate::Library;
@@ -73,54 +73,43 @@ fn mapped(inspection: &CatalogInspection, library: &Library) -> usize {
 }
 
 #[test]
-fn unfiltered_synchronization_covers_the_safe_mode_view() {
+fn both_views_share_one_synchronization() {
     let dir = tempfile::tempdir().unwrap();
     let writable = library_with_sealed_tag(dir.path(), "a");
+    assert_eq!(writable.vocabulary().unwrap().tags.len(), 1);
     let reader = unfiltered_reader(&writable);
     let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
 
-    let first = catalog.synchronize(&reader).unwrap();
+    // 启动时的次序：装配（开着安全模式）、图片墙快照（不过滤）、查找（开着安全模式）。
+    let first = catalog.synchronize(&writable).unwrap();
     assert_eq!(mapped(&first, &writable), 2);
-    for library in [&writable, &reader, &writable, &reader] {
+    for library in [&reader, &writable, &reader, &writable] {
         assert_eq!(catalog.synchronize(library).unwrap(), first);
     }
     assert_eq!(catalog.full_synchronizations, 1);
 }
 
 #[test]
-fn safe_mode_synchronization_neither_covers_nor_exposes_hidden_tags() {
+fn changing_only_the_view_does_not_resynchronize() {
     let dir = tempfile::tempdir().unwrap();
     let writable = library_with_sealed_tag(dir.path(), "a");
     let reader = unfiltered_reader(&writable);
     let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
+    let first = catalog.synchronize(&reader).unwrap();
 
-    let filtered = catalog.synchronize(&writable).unwrap();
-    assert_eq!(mapped(&filtered, &writable), 1);
-    let all = catalog.synchronize(&reader).unwrap();
-    assert_eq!(mapped(&all, &writable), 2);
-    // 启动时的次序：装配（开着安全模式）、图片墙快照（不过滤）、查找（开着安全模式）。
-    for library in [&writable, &reader, &writable] {
-        assert_eq!(catalog.synchronize(library).unwrap(), all);
-    }
-    assert_eq!(catalog.full_synchronizations, 2);
-}
-
-#[test]
-fn a_different_safe_mode_scope_resynchronizes() {
-    let dir = tempfile::tempdir().unwrap();
-    let writable = library_with_sealed_tag(dir.path(), "a");
-    let reader = unfiltered_reader(&writable);
+    // 只读句柄换视角不写数据库，词表修订号不动。
     reader.set_safe_mode(true);
-    let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
-    catalog.synchronize(&reader).unwrap();
-    catalog.synchronize(&writable).unwrap();
+    reader.set_safe_mode_scope(SafeModeScope::Explicit).unwrap();
+    writable.set_safe_mode(false);
+    assert_eq!(catalog.synchronize(&reader).unwrap(), first);
+    assert_eq!(catalog.synchronize(&writable).unwrap(), first);
     assert_eq!(catalog.full_synchronizations, 1);
 
-    // 只读句柄换范围不写数据库，词表修订号不动；藏起的标签可能不同，要重新核对。
-    reader.set_safe_mode_scope(SafeModeScope::Explicit).unwrap();
-    catalog.synchronize(&reader).unwrap();
-    assert_eq!(catalog.full_synchronizations, 2);
-    catalog.synchronize(&reader).unwrap();
+    // 可写句柄换范围让词表修订号前进：重新核对一次，结果不变。
+    writable
+        .set_safe_mode_scope(SafeModeScope::Explicit)
+        .unwrap();
+    assert_eq!(catalog.synchronize(&writable).unwrap().tags, first.tags);
     assert_eq!(catalog.full_synchronizations, 2);
 }
 

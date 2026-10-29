@@ -151,7 +151,7 @@ mod source_actions;
 mod source_batch;
 #[path = "tag_catalog.rs"]
 mod tag_catalog;
-#[path = "tag_names.rs"]
+#[path = "tag_names/mod.rs"]
 mod tag_names;
 #[path = "tagging/main.rs"]
 mod tagging;

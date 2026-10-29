@@ -3,18 +3,19 @@
 use super::*;
 
 impl TagCatalog {
-    /// Attach visible local definitions. Repeated attachment retains explicit corrections and
-    /// the original names awaiting migration. A matching name or alias is never evidence of identity.
+    /// Attach every local definition, whatever the handle's safe mode. Repeated attachment retains
+    /// explicit corrections and the original names awaiting migration. A matching name or alias is
+    /// never evidence of identity.
     ///
-    /// 上次的同步仍然覆盖这个句柄时（见 [`Self::is_synchronized`]）不再逐个标签核对（#335）。
+    /// 自上次同步以来词表与目录都没变时不再逐个标签核对，直接读出目录（#335）。
     pub fn synchronize(&mut self, library: &Library) -> Result<CatalogInspection, CatalogError> {
         if self.is_synchronized(library)? {
             return self.inspect();
         }
         let started = std::time::Instant::now();
-        let safe_mode = library.safe_mode();
-        let scope = library.safe_mode_scope();
-        let vocabulary = library.vocabulary()?;
+        // 不按安全模式过滤（#335）：同步写下的对应关系与视角无关，开着安全模式的可写句柄与总是
+        // 不过滤的只读句柄（`ImageGate`）共用一次同步。被藏起的标签由各入口按自己的视角投影掉。
+        let vocabulary = library.catalog_vocabulary()?;
         let vocabulary_revision = vocabulary.revision;
         let dependencies = library.tag_definition_dependencies()?;
         let dependency_bindings = dependencies
@@ -155,8 +156,6 @@ impl TagCatalog {
             library.info().id.clone(),
             Synchronized {
                 root: library.info().root.clone(),
-                safe_mode,
-                scope,
                 vocabulary: vocabulary_revision,
                 catalog: inspection.revision,
             },
@@ -170,20 +169,13 @@ impl TagCatalog {
         Ok(inspection)
     }
 
-    /// 自上次同步这个资料库以来，它的词表与统一标签目录都没有变化，且上次同步看到的标签包含
-    /// 这个句柄能看到的：视角（安全模式开关与范围）相同，或上次没开安全模式（#335）。
-    ///
-    /// 不开安全模式时词表不藏任何标签，按任何视角再同步一遍都只是重做同样的核对：图片墙用的
-    /// 只读句柄总是不过滤（`ImageGate`），可写句柄开着安全模式，两者轮流时由此只同步一次。
-    /// 反过来不成立：开着安全模式的同步没碰被藏起的标签，不能替不过滤的视角作数；也不能为了
-    /// 共用而让它同步被藏起的标签，那会把只在被封印的图上出现的标签写进应用目录。
+    /// 自上次同步这个资料库以来，它的词表与统一标签目录都没有变化。安全模式不是同步的输入
+    /// （见 [`Library::catalog_vocabulary`]）。
     pub(super) fn is_synchronized(&self, library: &Library) -> Result<bool, CatalogError> {
         let Some(last) = self.synchronized.get(&library.info().id) else {
             return Ok(false);
         };
-        let (safe_mode, scope) = (library.safe_mode(), library.safe_mode_scope());
         Ok(last.root == library.info().root
-            && (!last.safe_mode || (last.safe_mode, last.scope) == (safe_mode, scope))
             && last.vocabulary == library.vocabulary_revision()?
             && last.catalog == self.revision()?)
     }
