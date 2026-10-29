@@ -16,14 +16,44 @@ pub fn library_no<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Option<Li
 }
 
 /// 活动资料库；还没有时打开本设备上次打开的资料库并装配。会读文件，不要在主线程上调用。
+/// 启动时的这几步记下耗时（#313）；之后再调用时资料库已经打开，不再记。
 pub(super) fn restore<R: Runtime>(app: &AppHandle<R>) -> Result<Option<Arc<Library>>, String> {
+    use kinshoko_core::diagnostics::took;
+    let started = std::time::Instant::now();
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
+    let first = state.libraries.try_lock().map_or(true, |libraries| {
+        libraries.as_ref().is_none_or(|l| l.current().is_none())
+    });
+    if first {
+        took("打开资料库：等切换锁", started, None);
+    }
+    let opening = std::time::Instant::now();
     let opened = with_visibility_commit(app, |_| {
-        with_libraries(&state, DeviceLibraries::restore_last_opened)
+        with_libraries(&state, |libraries| {
+            if first {
+                took("打开资料库：等登记表", opening, None);
+            }
+            let switching = std::time::Instant::now();
+            let opened = libraries.restore_last_opened();
+            if first {
+                took("打开资料库：打开上次的库", switching, None);
+            }
+            opened
+        })
     })?;
+    if first {
+        took("打开资料库：打开并核对可见性", opening, None);
+    }
     if let Some(library) = &opened {
+        let forwarding = std::time::Instant::now();
         forward_events(app, &state, library.clone());
+        if first {
+            took("打开资料库：装配（安全模式、打标、事件）", forwarding, None);
+        }
+    }
+    if first {
+        took("打开资料库：合计", started, None);
     }
     Ok(opened)
 }

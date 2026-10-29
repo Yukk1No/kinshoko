@@ -80,6 +80,7 @@ pub fn run() {
             run_log::set_run_log,
             run_log::clear_run_log,
             run_log::log_frontend,
+            run_log::log_timing,
             commands::set_viewer_background,
             commands::migrate_viewer_background,
             commands::ui_scale,

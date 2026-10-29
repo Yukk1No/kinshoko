@@ -12,6 +12,7 @@ import { safeTiming } from "../shell/safeTiming";
 import type { Anchor } from "./layout";
 import { thumbnailTier } from "./thumbnailTier";
 import { PAGE, type BrowserCard } from "./wallShared";
+import { markStartup } from "../startupTiming";
 
 /** 报上已有占位图时，在原有卡片里往后多看几张：前面新进来几张图时，这一页仍大多报得上。 */
 const KNOWN_MARGIN = 100;
@@ -104,6 +105,7 @@ export function useWallPages({
                 : { page: await browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx: px.current }), status: null };
               const page = result.page;
               if (!current()) return;
+              markStartup("wallFirstPage");
               acceptedStatus = result.status;
               for (const card of page.cards) {
                 const kept = card.placeholder ? undefined : held.get(card.id);

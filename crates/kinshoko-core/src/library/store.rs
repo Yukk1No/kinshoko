@@ -90,8 +90,10 @@ fn connect(path: &Path) -> Result<Connection, Error> {
 
 /// 打开（必要时升级）数据库。比本程序新的数据库版本会被拒绝。
 pub(super) fn open_db(path: &Path) -> Result<Connection, Error> {
+    let started = std::time::Instant::now();
     let mut conn = connect(path)?;
     migrations().to_latest(&mut conn)?;
+    crate::diagnostics::took("资料库：打开数据库并迁移", started, None);
     // 占位图表（#313）先不经迁移、不改版本号：旧版本照样能打开这个资料库，只是不认识这张表。
     // 占位图同时仍存成文件，回退到旧版本不丢任何东西。
     conn.execute_batch(include_str!("placeholder_table.sql"))?;

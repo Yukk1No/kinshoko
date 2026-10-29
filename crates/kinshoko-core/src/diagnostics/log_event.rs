@@ -171,6 +171,13 @@ pub enum LogEvent {
     TaggerOutput {
         detail: Detail,
     },
+    /// 打开资料库、首屏等一步用了多久（#313）；`step` 是代码里写死的步骤名，`count` 是处理了多少项。
+    Took {
+        step: &'static str,
+        ms: u32,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        count: Option<u32>,
+    },
     /// 应用壳里的错误或警告；`site` 是代码里写死的出错位置。
     Problem {
         #[serde(skip)]
