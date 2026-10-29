@@ -34,8 +34,8 @@
   --on-solid: #ffffff;
   --warn: #8a5e08; --warn-strong: #5e4510; --warn-soft: #fbf1d9;
   --ok: #2f6b3e; --ok-strong: #2f6b3e; --ok-soft: #e3f1e6;
-  /* icons and actions on an `ink` card (toast): the other theme's colour */
-  --inverse-ok: #8fcb9c; --inverse-danger: #f08a8a; --inverse-accent: #f3a5b7;
+  /* danger text on an `ink` bar (the floating selection bar): the other theme's colour */
+  --inverse-danger: #f08a8a;
   /* 模型标签的可信度高档底色（#160）：比 --surface-2（中档）深一档；低档不填底色。 */
   --tag-conf-high: #e2d6bf;
   /* 精确查找开启时的金色浅槽、图片大小滑条（#102 方案 C3） */
@@ -53,6 +53,11 @@
   --shadow-raise: 0 1px 2px rgba(43, 39, 71, 0.08);
   --shadow-pop: 0 0 0 1px rgba(43, 39, 71, 0.06), 0 2px 4px rgba(43, 39, 71, 0.06), 0 12px 32px rgba(43, 39, 71, 0.14);
   --shadow-dialog: 0 24px 64px rgba(30, 28, 44, 0.3);
+  /* a frosted toast: a hairline, a near drop, a far drop pulled in, and a lit top edge */
+  --shadow-toast: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 0 0.5px rgba(43, 39, 71, 0.1), 0 1px 2px rgba(43, 39, 71, 0.07),
+    0 4px 8px -2px rgba(43, 39, 71, 0.06), 0 16px 32px -8px rgba(43, 39, 71, 0.2);
+  /* a sunken well for an icon (toast) */
+  --well-inset: inset 0 1px 1.5px rgba(43, 39, 71, 0.12), inset 0 0 0 0.5px rgba(43, 39, 71, 0.08);
   --shadow-pin: 0 2px 6px rgba(0, 0, 0, 0.25), 0 12px 32px rgba(0, 0, 0, 0.22);
   --overlay: rgba(30, 28, 44, 0.38);      /* behind dialogs, outside a crop */
   /* over images and the frozen screen, the same in both themes */
@@ -82,7 +87,7 @@
     --wall: #161618; --card: #222224; --danger: #f08a8a; --danger-solid: #c94a4a;
     --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
     --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
-    --inverse-ok: #2f6b3e; --inverse-danger: #b23a3a; --inverse-accent: #a63a55;
+    --inverse-danger: #b23a3a;
     --tag-conf-high: #48426a;
     --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
     --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
@@ -94,6 +99,9 @@
     --shadow-raise: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
     --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
+    --shadow-toast: inset 0 1px 0 rgba(244, 236, 220, 0.08), 0 0 0 0.5px rgba(244, 236, 220, 0.1), 0 1px 2px rgba(0, 0, 0, 0.45),
+      0 4px 8px -2px rgba(0, 0, 0, 0.3), 0 16px 32px -8px rgba(0, 0, 0, 0.6);
+    --well-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.5), inset 0 0 0 0.5px rgba(244, 236, 220, 0.06);
     color-scheme: dark;
   }
 }
@@ -106,7 +114,7 @@
   --wall: #161618; --card: #222224; --danger: #f08a8a; --danger-solid: #c94a4a;
   --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
   --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
-  --inverse-ok: #2f6b3e; --inverse-danger: #b23a3a; --inverse-accent: #a63a55;
+  --inverse-danger: #b23a3a;
   --tag-conf-high: #48426a;
   --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
   --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
@@ -118,6 +126,9 @@
   --shadow-raise: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
   --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
+  --shadow-toast: inset 0 1px 0 rgba(244, 236, 220, 0.08), 0 0 0 0.5px rgba(244, 236, 220, 0.1), 0 1px 2px rgba(0, 0, 0, 0.45),
+    0 4px 8px -2px rgba(0, 0, 0, 0.3), 0 16px 32px -8px rgba(0, 0, 0, 0.6);
+  --well-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.5), inset 0 0 0 0.5px rgba(244, 236, 220, 0.06);
   color-scheme: dark;
 }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
