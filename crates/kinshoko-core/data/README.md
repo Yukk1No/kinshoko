@@ -2,7 +2,7 @@
 
 ## `builtin-approx-table.json`：内置近似对应表
 
-由 [`tools/approx-table`](../tools/approx-table/README.md) 生成，不要手改。core crate 可以用 `include_str!` 嵌入。
+由 [`tools/approx-table`](../../../tools/approx-table/README.md) 生成，不要手改。core crate 可以用 `include_str!` 嵌入。
 
 ```json
 {
@@ -35,7 +35,7 @@
 
 ## `builtin-translation-table.json`：内置翻译表
 
-由 [`tools/translation-table`](../tools/translation-table/README.md) 生成，不要手改。core crate 用 `include_str!` 嵌入（`TagTranslations::bundled()`）。
+由 [`tools/translation-table`](../../../tools/translation-table/README.md) 生成，不要手改。core crate 用 `include_str!` 嵌入（`TagTranslations::bundled()`）。
 
 ```json
 {
@@ -69,7 +69,7 @@
 - 本表更新（或首次装上本表）时，库里仍尚未翻译（没有任何语言名称）的标签按新表补上初始名称与别名，这是它们的首次初始化；与库内其他标签冲突的名称或别名跳过，留给画师处理。
 - 一个文字只是一个条目的名称或别名。
 
-应用统一目录自 #78 起使用 [ADR-0006](../docs/adr/0006-application-tag-catalog.md) 的名称规则：
+应用统一目录自 #78 起使用 [ADR-0006](../../../docs/adr/0006-application-tag-catalog.md) 的名称规则：
 
 - 通过明确的 Danbooru 外部对应，取得本表中一般标签的默认名称。默认名称与别名单独保存。
 - 显式偏好按统一标签身份与语言保存。偏好优先，即使文字等于当前默认也保留；恢复默认删除该语言的偏好。

@@ -16,7 +16,7 @@ import argparse, hashlib, json, os, re, subprocess, sys, time, urllib.request
 from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REPO = os.path.dirname(os.path.dirname(HERE))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 OUT = os.path.join(HERE, ".local")
 MEDIA = os.path.join(OUT, "media")
 THUMB_WIDTH = 512

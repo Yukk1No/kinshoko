@@ -1,5 +1,5 @@
 /**
- * 封印书的小圆锁（品牌不变项，design/ui-system/README.md）：原型 `prototype/reference-browser/src/sealbook.ts`
+ * 封印书的小圆锁（品牌不变项，design/ui-system/README.md）：原型 `design/prototype/reference-browser/src/sealbook.ts`
  * 的 `lockSVG(0, …)` 静止帧，按原几何原样输出（U 形锁梁 + 圆锁身 + 书签锁孔），颜色用 `--seal-acc`。
  */
 export function SealLock({ size = 10, className = "" }: { size?: number; className?: string }) {

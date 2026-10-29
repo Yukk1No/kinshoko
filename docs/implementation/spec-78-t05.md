@@ -28,7 +28,7 @@
 
 ## 正式界面与原型
 
-直接读取并适配固定认可 `bd8aea44c4a311571ee3c07382cb7755f87f3153` 的 [`TagGroupBar.tsx`](../../prototype/reference-browser/src/components/TagGroupBar.tsx)：保留标签弹层、计数、点击／Ctrl 点击／右键条件手势，增加明确的“任一成员”整组查找动作。认可基线未改动。
+直接读取并适配固定认可 `bd8aea44c4a311571ee3c07382cb7755f87f3153` 的 [`TagGroupBar.tsx`](../../design/prototype/reference-browser/src/components/TagGroupBar.tsx)：保留标签弹层、计数、点击／Ctrl 点击／右键条件手势，增加明确的“任一成员”整组查找动作。认可基线未改动。
 
 正式 [`TagGroupsPane`](../../src/library/TagGroupsPane.tsx) 同时用于侧栏与程序设置。显示旧库来源、明确的改名／删除／排序动作、成员顺序和工作区标签选择。设置中的全局分组不要求活动库，空分组也能改名。模式或工作区代次变化清空旧视图，拒绝迟到响应；同一视角内刷新期间保留已显示结果。
 

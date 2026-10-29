@@ -84,12 +84,12 @@ export function createCombinationFixture(output) {
     db.close();
     return {info:{id,name,root:libraryRoot},imageId,tags,original,sha256:old.sha256,databaseInputSha256:sha256(readFileSync(database))};
   }
-  const defaultsSource=new URL("../data/builtin-translation-table.json",import.meta.url),defaultsBytes=readFileSync(defaultsSource);
+  const defaultsSource=new URL("../crates/kinshoko-core/data/builtin-translation-table.json",import.meta.url),defaultsBytes=readFileSync(defaultsSource);
   const defaultName=JSON.parse(defaultsBytes).entries.find(entry=>entry.external==="parted_hair")?.names["zh-CN"];
   if(!defaultName)throw Error("The installed bundled default for parted_hair is required for equal-default migration");
   const a=legacy("A","同名资料库",{parted_hair:"分发",blue_eyes:"蓝色眼睛",aqua_eyes:"水色眼睛",provider_a_meaning:"同名异义",sample_character:{label:"分发",namespace:"character"}});
   const b=legacy("B","同名资料库",{parted_hair:defaultName,blue_eyes:"蓝瞳旧名",aqua_eyes:"水色瞳旧名",provider_b_meaning:"同名异义",sample_character:{label:"分发",namespace:"character"}});
-  const fixture={kind:"spec78-t20-two-provider-input",generatedAt:new Date().toISOString(),generatorSha256:sha256(readFileSync(new URL(import.meta.url))),schemaSha256:sha256(schema),root,libraries,a,b,eagle,migrationEqualDefault:{external:"parted_hair",name:defaultName,libraryId:b.info.id,localTagId:b.tags.parted_hair,defaultsSource:"data/builtin-translation-table.json",defaultsSourceSha256:sha256(defaultsBytes)},inputs:{old,visible,sealed,unknown,incoming,virtual,eagleFirst,eagleNew},longImportCount:2000};
+  const fixture={kind:"spec78-t20-two-provider-input",generatedAt:new Date().toISOString(),generatorSha256:sha256(readFileSync(new URL(import.meta.url))),schemaSha256:sha256(schema),root,libraries,a,b,eagle,migrationEqualDefault:{external:"parted_hair",name:defaultName,libraryId:b.info.id,localTagId:b.tags.parted_hair,defaultsSource:"crates/kinshoko-core/data/builtin-translation-table.json",defaultsSourceSha256:sha256(defaultsBytes)},inputs:{old,visible,sealed,unknown,incoming,virtual,eagleFirst,eagleNew},longImportCount:2000};
   writeFileSync(join(root,"generator.mjs"),readFileSync(new URL(import.meta.url)));
   writeFileSync(join(root,"legacy-v16.sql"),schema);
   writeFileSync(join(root,"fixture.json"),JSON.stringify(fixture,null,2));

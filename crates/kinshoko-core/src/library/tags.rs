@@ -184,7 +184,7 @@ pub struct TagTranslations {
 
 const BUNDLED_FORMAT: &str = "kinshoko.builtin-translation-table";
 const BUNDLED_FORMAT_VERSION: u32 = 1;
-const BUNDLED: &str = include_str!("../../../../data/builtin-translation-table.json");
+const BUNDLED: &str = include_str!("../../data/builtin-translation-table.json");
 
 /// `data/builtin-translation-table.json` 的文件结构（格式见 `data/README.md`）。
 #[derive(Deserialize)]

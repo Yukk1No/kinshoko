@@ -68,11 +68,11 @@ Kinshoko 在你自己的电脑上离线工作，不需要账号，也没有遥�
 - **标签识别错误**：自动标签或内容分级明显不对。
 - **兼容性结果**：钉图在你的数位板、显示器和绘画软件组合上的表现。
 
-中文或英文都可以。安全问题请按 [SECURITY.md](SECURITY.md) 报告。
+中文或英文都可以。安全问题请按 [SECURITY.md](.github/SECURITY.md) 报告。
 
 ## 参与开发
 
-开发环境、目录结构和提交改动的流程见 [CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md)。领域术语见 [GLOSSARY.md](GLOSSARY.md)，重要决定记录在 [docs/adr/](docs/adr/)。
+开发环境、目录结构和提交改动的流程见 [CONTRIBUTING.zh-CN.md](docs/CONTRIBUTING.zh-CN.md)。领域术语见 [GLOSSARY.md](GLOSSARY.md)，重要决定记录在 [docs/adr/](docs/adr/)。
 
 ## 许可证
 

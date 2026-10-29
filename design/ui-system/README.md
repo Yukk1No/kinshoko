@@ -2,7 +2,7 @@
 
 **状态：方向已认可 · 2026-10-10；设计系统 v3 · 2026-10-23。** 负责人认可了视觉方向与改版预览（`preview/`）。v2 把字号收为 16 / 13 / 12 三档、圆角改为同心、去掉中点分隔与解释性描述；v3 把颜色从 v2 试用的 Radix Colors 换回原型的米黄纸底与墨紫字，只为文字对比度调深了几个值。颜色、圆角与动效令牌以 `src/styles/tokens.css` 为准（见下文“令牌来源”）。下文与 v3 冲突处以 v3 为准。
 
-本文件记录组件选型、品牌不变项、窗口框架、视觉与动效、文案规则。体验基线仍是认可原型 `prototype/reference-browser/`（固定提交 `bd8aea44`）及其 [设计说明](../../prototype/reference-browser/DESIGN-NOTES.md)；本文件只补正式程序需要、原型没有覆盖的部分。
+本文件记录组件选型、品牌不变项、窗口框架、视觉与动效、文案规则。体验基线仍是认可原型 `design/prototype/reference-browser/`（固定提交 `bd8aea44`）及其 [设计说明](../prototype/reference-browser/DESIGN-NOTES.md)；本文件只补正式程序需要、原型没有覆盖的部分。
 
 ## 令牌来源
 
@@ -56,7 +56,7 @@
 
 - 图标轨顶部的书签标（锁孔书签，`design/logo-kit/`，32 px 像素对齐，`fill: var(--ink)`）。
 - 图标轨：56 px 宽、选中项左侧 3 px 樱粉指示条（跟随选中项滑动）、选中态 `--accent-soft` 底、深色数字角标。
-- 封印书（安全模式开关，`prototype/reference-browser/src/sealbook.ts`，第五轮 A1 圆锁）与 `--seal-acc`（v3：日间深樱 `#c85672`，夜间金 `#e3b34f`；图形与动画不变）。
+- 封印书（安全模式开关，`design/prototype/reference-browser/src/sealbook.ts`，第五轮 A1 圆锁）与 `--seal-acc`（v3：日间深樱 `#c85672`，夜间金 `#e3b34f`；图形与动画不变）。
 - 封印遮罩上的小圆锁（`lockSVG`），以及原型的封印 / 释放演出。
 
 ## 窗口框架

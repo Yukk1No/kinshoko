@@ -15,7 +15,7 @@ use ts_rs::TS;
 
 const FORMAT: &str = "kinshoko.builtin-approx-table";
 const FORMAT_VERSION: u32 = 1;
-const BUNDLED: &str = include_str!("../../../data/builtin-approx-table.json");
+const BUNDLED: &str = include_str!("../data/builtin-approx-table.json");
 
 /// 内置近似对应表：相近的外部名称对。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
