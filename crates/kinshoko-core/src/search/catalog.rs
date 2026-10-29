@@ -75,8 +75,10 @@ impl CatalogSearch {
     ) -> Result<T, CatalogError> {
         let mut slot = self.catalog.lock().unwrap_or_else(|e| e.into_inner());
         if slot.is_none() {
+            let started = std::time::Instant::now();
             let mut catalog = TagCatalog::open(&self.device_dir)?;
             catalog.install_name_defaults(self.name_defaults.clone())?;
+            crate::diagnostics::took("统一标签目录：打开并装内置名称", started, None);
             *slot = Some(catalog);
         }
         action(slot.as_mut().expect("统一目录已打开"))
