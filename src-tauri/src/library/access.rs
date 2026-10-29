@@ -144,7 +144,7 @@ pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> R
             Ok(())
         })
     })?;
-    state.detached.clear();
+    state.release_readers();
     Ok(())
 }
 

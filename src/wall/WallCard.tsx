@@ -6,6 +6,7 @@ import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { thumbnailUrl } from "../ipc";
 import type { Box } from "./layout";
+import { cardThumbnail } from "./thumbnailTier";
 import type { BrowserCard } from "./wallShared";
 
 /**
@@ -37,8 +38,9 @@ export type CardHandlers = {
   inspect?: (card: WorkspaceCard) => void;
 };
 
-export function wallCardNode({ card, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened }: {
+export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened }: {
   card: BrowserCard;
+  thumbnailPx: number;
   b: Box;
   landing: boolean;
   veiled: boolean;
@@ -65,7 +67,7 @@ export function wallCardNode({ card, b, landing, veiled, leaving, selected, work
       onDragStart={(e) => cardHandlers.current.dragStart(card.id, e)}
       style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}
     >
-      <img src={thumbnailUrl(card.thumbnail)} alt="参考图" decoding="async" draggable={false}
+      <img src={thumbnailUrl(cardThumbnail(card, thumbnailPx))} alt="参考图" decoding="async" draggable={false}
         ref={markCachedThumbnail} onLoad={markThumbnailLoaded} />
       {/* 占位图（#110）：缩略图到达前放大模糊显示；遮蔽中的图不露出它的色彩。 */}
       {card.placeholder && !veiled && <div className="card-placeholder" aria-hidden="true"

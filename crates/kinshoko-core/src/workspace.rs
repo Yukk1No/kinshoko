@@ -11,8 +11,10 @@ pub use source::{
 };
 mod browse;
 use browse::BrowseCache;
+pub use browse::PendingPage;
+mod gate;
+pub use gate::ImageGate;
 mod snapshot;
-pub use snapshot::ProviderReaders;
 mod vocabulary;
 use vocabulary::*;
 
@@ -56,7 +58,9 @@ pub struct WorkspaceQuery {
     #[serde(default)]
     pub cursor: Option<String>,
     pub limit: u32,
-    pub thumbnail_px: u32,
+    /// 调用方已经有占位图的卡片 id（#313）：占位图按内容寻址、永远不变，这些卡片不再带它。
+    #[serde(default)]
+    pub known_placeholders: Vec<String>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -77,8 +81,9 @@ pub struct WorkspaceCard {
     pub id: String,
     pub width: u32,
     pub height: u32,
-    pub thumbnail: String,
-    /// 占位图（#110）的 `data:` 地址，取自显示用的来源；还没生成时为空。
+    /// 占位图（#110）的 `data:` 地址，取自显示用的来源；还没生成时、或请求时报为已有的
+    /// （[`WorkspaceQuery::known_placeholders`]）为空。缩略图地址由界面按 `libraryId`、`imageId`
+    /// 与档位拼出（#313），与 `thumb` 协议的路径相同。
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub placeholder: Option<String>,
@@ -161,9 +166,17 @@ pub struct Workspace {
     conn: Connection,
     cache: Option<std::sync::Arc<Snapshot>>,
     browse_cache: BrowseCache,
+    gate: std::sync::Arc<ImageGate>,
 }
 impl Workspace {
     pub fn open(dir: &Path) -> Result<Self, CatalogError> {
+        Self::open_with_gate(dir, Default::default())
+    }
+    /// 与 [`Self::open`] 相同，快照发布到调用方握着的 `gate`（应用壳的缩略图请求不拿工作区的锁）。
+    pub fn open_with_gate(
+        dir: &Path,
+        gate: std::sync::Arc<ImageGate>,
+    ) -> Result<Self, CatalogError> {
         std::fs::create_dir_all(dir)?;
         let conn = Connection::open(dir.join("workspace.sqlite"))?;
         conn.busy_timeout(std::time::Duration::from_secs(5))?;
@@ -172,7 +185,13 @@ impl Workspace {
             conn,
             cache: None,
             browse_cache: BrowseCache::default(),
+            gate,
         })
+    }
+    /// 放掉长期只读打开的提供方（[`ImageGate::clear`]）。Windows 上握着句柄时资料库文件夹改不了名、
+    /// 删不掉；应用壳在切换、登记变化时经它握着的放行清掉，这里给只持有工作区的调用方用。
+    pub fn release_readers(&self) {
+        self.gate.clear();
     }
     /// Names and group management share browse safety, while unused definitions remain manageable.
     pub(crate) fn inspect_catalog(
@@ -283,9 +302,7 @@ impl Workspace {
         for provider in &snapshot.providers {
             let (sidebar, unassigned, descendants) = if provider.registration.unavailable.is_none()
             {
-                let library = device
-                    .read(&provider.registration.library.id)
-                    .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
+                let library = self.provider(device, &provider.registration.library)?;
                 let (sidebar, descendants) =
                     directory_sidebar(&snapshot, provider, &library, safe)?;
                 if library.provider_revision()? != (provider.list, provider.revision) {
@@ -339,19 +356,18 @@ impl Workspace {
         Ok(directory_sidebar(&snapshot, provider, &library, safe)?.0)
     }
     /// Authorize one image read for a thumbnail or display request (#123) and return its provider
-    /// reader. Same checks as `contains` bracketed by an unchanged revision, but the snapshot is built
-    /// once and each provider is opened at most once per `opened`; call again with the same `opened`
-    /// after reading the file to re-check without reopening anything.
+    /// reader: the slow path behind [`ImageGate::authorize`]. Same checks as `contains` bracketed by
+    /// an unchanged revision; the snapshot it takes is published to the gate, so the next requests
+    /// take the fast path again. The reader is the shared unfiltered one (see `ImageGate`).
     pub fn image_reader(
         &mut self,
         device: &DeviceLibraries,
         catalog: &mut TagCatalog,
-        opened: &mut ProviderReaders,
         library_id: &str,
         image_id: &str,
         safe: bool,
     ) -> Result<std::sync::Arc<crate::library::Library>, CatalogError> {
-        let snapshot = self.snapshot_reusing(device, catalog, opened)?;
+        let snapshot = self.snapshot(device, catalog)?;
         let allowed = snapshot
             .identities
             .get(&(library_id.into(), image_id.into()))
@@ -359,19 +375,27 @@ impl Workspace {
         if !allowed {
             return Err(Error::UnknownImage.into());
         }
-        let library = opened
-            .read(device, library_id)
-            .map_err(|e| CatalogError::Io(std::io::Error::other(e)))?;
-        if self
-            .snapshot_reusing(device, catalog, opened)?
-            .status
-            .revision
-            != snapshot.status.revision
-        {
+        let registration = device
+            .libraries()
+            .iter()
+            .find(|r| r.id == library_id)
+            .ok_or(Error::UnknownImage)?
+            .clone();
+        let library = self.provider(device, &registration)?;
+        if self.snapshot(device, catalog)?.status.revision != snapshot.status.revision {
             return Err(Error::CursorExpired.into());
         }
-        library.set_safe_mode(safe);
         Ok(library)
+    }
+    /// 登记的提供方的长期只读句柄（[`ImageGate`]）：不按安全模式过滤，调用方按快照判断封印。
+    fn provider(
+        &self,
+        device: &DeviceLibraries,
+        registration: &crate::RegisteredLibrary,
+    ) -> Result<std::sync::Arc<crate::library::Library>, CatalogError> {
+        self.gate
+            .reader(registration, device.safe_mode_scope())
+            .map_err(|e| CatalogError::Io(std::io::Error::other(e)))
     }
     /// O(log n) authorization after bounded provider/catalog revision checks, including trash views.
     pub fn contains(

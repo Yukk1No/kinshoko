@@ -104,7 +104,7 @@ pub(super) async fn unregister_library<R: Runtime>(
             // Registry revocation has committed and released that gate before this join.
             crate::tagging::detach(&app);
         }
-        state.detached.clear();
+        state.release_readers();
         Ok(())
     })
     .await

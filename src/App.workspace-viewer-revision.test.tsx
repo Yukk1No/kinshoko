@@ -44,7 +44,7 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
       if (state.nextBrowse) { const next = state.nextBrowse; state.nextBrowse = null; return next(); }
       if (state.browseReply) return state.browseReply;
       return {
-        cards: state.available ? [{ id: state.contentId, libraryId: "A", imageId: state.imageId, width: 100, height: 100, thumbnail: `A/${state.imageId}/128`, adult: false,
+        cards: state.available ? [{ id: state.contentId, libraryId: "A", imageId: state.imageId, width: 100, height: 100, adult: false,
           sources: [{ libraryId: "A", libraryName: "甲库", imageId: state.imageId, unavailable: null, matches: true, deleted: state.deleted },
             // 来源按钮只在两个及以上图库时出现（#221）：需要按钮的用例再挂一份离线来源。
             ...(state.inTwoLibraries ? [{ libraryId: "B", libraryName: "乙库", imageId: "b", unavailable: "离线", matches: false, deleted: false }] : [])] }] : [],
@@ -125,11 +125,11 @@ it("旧浏览响应与较新通知同批到达，也不能放回旧图片或回�
   Object.assign(state, { initialRevision: "r3", wallRevision: "r3", contentId: "new-bytes", imageId: "new" });
   await act(async () => {
     await emit("workspace-changed", status("r3"));
-    resolveOld({ cards: [{ id: "old-bytes", libraryId: "A", imageId: "old", width: 100, height: 100, thumbnail: "A/old/128", adult: false,
+    resolveOld({ cards: [{ id: "old-bytes", libraryId: "A", imageId: "old", width: 100, height: 100, adult: false,
       sources: [{ libraryId: "A", libraryName: "甲库", imageId: "old", unavailable: null, matches: true, deleted: false }] }],
       total: 1, nextCursor: null, status: status("r2") });
   });
-  await waitFor(() => expect(screen.getByRole("img", { name: "参考图" }).getAttribute("src")).toBe("http://thumb.localhost/A/new/128"));
+  await waitFor(() => expect(screen.getByRole("img", { name: "参考图" }).getAttribute("src")).toBe("http://thumb.localhost/A/new/384"));
   doubleClick(screen.getByRole("img", { name: "参考图" }).closest<HTMLElement>('[role="option"]')!);
   const currentViewer = await screen.findByRole("region", { name: "原图查看器" });
   await waitFor(() => expect(currentViewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/A/new/full"));
@@ -172,12 +172,12 @@ it("首个修订通知先于初始状态和浏览响应到达时，图片墙重�
     await emit("workspace-changed", status("r3"));
     resolveInitial(status("r1"));
     resolveOld({ cards: [{ id: "old-bytes", libraryId: "A", imageId: "old", width: 100, height: 100,
-      thumbnail: "A/old/128", adult: false,
+      adult: false,
       sources: [{ libraryId: "A", libraryName: "甲库", imageId: "old", unavailable: null, matches: true, deleted: false }] }],
       total: 1, nextCursor: null, status: status("r1") });
   });
   const image = await screen.findByRole("img", { name: "参考图" });
-  expect(image.getAttribute("src")).toBe("http://thumb.localhost/A/new/128");
+  expect(image.getAttribute("src")).toBe("http://thumb.localhost/A/new/384");
   doubleClick(image.closest<HTMLElement>('[role="option"]')!);
   const viewer = await screen.findByRole("region", { name: "原图查看器" });
   await act(() => emit("workspace-changed", status("r3")));

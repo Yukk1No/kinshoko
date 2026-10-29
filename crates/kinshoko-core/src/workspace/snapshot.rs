@@ -1,78 +1,31 @@
 //! 工作区快照：各提供方的清单、标签计数与安全索引，提供方与标签目录的修订号不变时复用（从 workspace.rs 原样搬出）。
 use super::*;
 
-/// Detached provider readers opened during one request (#123). Scope it to a single request:
-/// each registered provider is opened (identity-checked) at most once while it lives. Entries are
-/// keyed by registration (id and root), so a provider re-registered elsewhere mid-request is reopened.
-#[derive(Default)]
-pub struct ProviderReaders(
-    BTreeMap<
-        String,
-        (
-            std::path::PathBuf,
-            Result<std::sync::Arc<crate::library::Library>, String>,
-        ),
-    >,
-);
-impl ProviderReaders {
-    /// Open these registrations now, typically before taking the registry/catalog/workspace locks,
-    /// so the locked section only reads revisions. Every check still runs under the locks.
-    pub fn open_all(&mut self, registrations: &[crate::RegisteredLibrary]) {
-        for registration in registrations {
-            // 打不开的提供方照常记下原因，锁里的核对按原因报告。
-            let _ = self.opened(registration);
-        }
-    }
-    fn opened(
-        &mut self,
-        registration: &crate::RegisteredLibrary,
-    ) -> Result<std::sync::Arc<crate::library::Library>, String> {
-        let entry = self.0.get(&registration.id);
-        if entry.is_none_or(|(root, _)| *root != registration.root) {
-            let library = DeviceLibraries::read_registered(registration).map_err(|e| e.to_string());
-            self.0.insert(
-                registration.id.clone(),
-                (registration.root.clone(), library),
-            );
-        }
-        self.0[&registration.id].1.clone()
-    }
-    pub(super) fn read(
-        &mut self,
-        device: &DeviceLibraries,
-        library_id: &str,
-    ) -> Result<std::sync::Arc<crate::library::Library>, String> {
-        let library = match device.libraries().iter().find(|r| r.id == library_id) {
-            Some(registration) => self.opened(&registration.clone()),
-            None => device.read(library_id).map_err(|e| e.to_string()),
-        }?;
-        // 只读句柄按本设备的安全模式范围给出浏览视角（#223）。
-        library.init_safe_mode_scope(device.safe_mode_scope());
-        Ok(library)
-    }
-}
 impl Workspace {
     /// Only provider/catalog revisions and availability are read on a cache hit.
     /// Inventory, tag counts and source safety indexes rebuild only after those facts change.
+    /// 提供方经长期打开的只读句柄读（[`ImageGate`]，#313），修订号每次都读，复用的句柄不掩盖变化。
+    /// 取到的快照发布给缩略图请求的放行。
     pub(super) fn snapshot(
         &mut self,
         device: &DeviceLibraries,
         catalog: &mut TagCatalog,
     ) -> Result<std::sync::Arc<Snapshot>, CatalogError> {
-        self.snapshot_reusing(device, catalog, &mut ProviderReaders::default())
+        let registry = device.registry_generation();
+        let snapshot = self.build_snapshot(device, catalog)?;
+        self.gate.publish(snapshot.clone(), registry);
+        Ok(snapshot)
     }
-    /// Same as [`Self::snapshot`], opening each registered provider at most once per `opened`.
-    /// Revisions are still read on every call, so a reused reader never hides a change.
-    pub(super) fn snapshot_reusing(
+    fn build_snapshot(
         &mut self,
         device: &DeviceLibraries,
         catalog: &mut TagCatalog,
-        opened: &mut ProviderReaders,
     ) -> Result<std::sync::Arc<Snapshot>, CatalogError> {
         let mut readers = BTreeMap::new();
         let mut observed = Vec::new();
+        let scope = device.safe_mode_scope();
         for registration in device.libraries() {
-            let result = opened.read(device, &registration.id).and_then(|library| {
+            let result = self.gate.reader(registration, scope).and_then(|library| {
                 let revisions = library.provider_revision().map_err(|e| e.to_string())?;
                 Ok((library, revisions))
             });
@@ -86,7 +39,6 @@ impl Workspace {
         }
         observed.sort_by(|a, b| a.0.id.cmp(&b.0.id));
         // 安全模式范围变了，被封印的图跟着变：修订号不同，旧游标与界面的结果都作废（#223）。
-        let scope = device.safe_mode_scope();
         let fingerprint = |revision| -> Result<String, CatalogError> {
             Ok(digest(&serde_json::to_vec(&(revision, &observed, scope))?))
         };
@@ -128,8 +80,7 @@ impl Workspace {
                 continue;
             }
             let (images, vocabulary) = if let Some(library) = readers.get(&registration.id) {
-                // Detached reader only. Current Library's safe mode is never modified.
-                library.set_safe_mode(false);
+                // Detached reader only, always unfiltered (see `ImageGate`).
                 catalog.synchronize(library)?;
                 let snapshot = library.provider_snapshot()?;
                 let vocabulary = library.vocabulary()?;

@@ -1,10 +1,9 @@
 //! 工作区的图片墙浏览与单张卡片。
 use super::*;
 
-/// 一组浏览结果里的一张卡片。缩略图地址与占位图不属于结果，按页现取，所以这里的 `card`
-/// 不带它们（`thumbnail` 为空、`placeholder` 为 `None`），不能直接交出去。
+/// 一组浏览结果里的一张卡片。占位图不属于结果，按页现取，所以这里的 `card` 不带它
+/// （`placeholder` 为 `None`）。
 struct BrowseRow {
-    root: std::path::PathBuf,
     card: WorkspaceCard,
 }
 
@@ -36,6 +35,8 @@ impl Workspace {
     pub fn browse_builds(&self) -> usize {
         self.browse_cache.builds
     }
+    /// 浏览一页：[`Self::browse_rows`]、读占位图、[`Self::confirm`] 连着做。应用壳在锁外读占位图，
+    /// 分开调用这三步。
     pub fn browse(
         &mut self,
         device: &DeviceLibraries,
@@ -43,6 +44,19 @@ impl Workspace {
         query: &WorkspaceQuery,
         safe: bool,
     ) -> Result<WorkspacePage, CatalogError> {
+        let mut pending = self.browse_rows(device, catalog, query, safe)?;
+        pending.fill_placeholders(&self.gate);
+        self.confirm(device, catalog, pending)
+    }
+    /// 浏览一页的行，还不带占位图（#313）：只切出当页的卡片，占位图由调用方在锁外读
+    /// （[`PendingPage::fill_placeholders`]），读完交给 [`Self::confirm`] 复核。
+    pub fn browse_rows(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        query: &WorkspaceQuery,
+        safe: bool,
+    ) -> Result<PendingPage, CatalogError> {
         // 分段耗时（#288）：开发构建在控制台输出，与 Tauri 层的总耗时一行对照。
         #[cfg(debug_assertions)]
         let started = std::time::Instant::now();
@@ -87,7 +101,9 @@ impl Workspace {
             Some(rows) => rows,
             None => {
                 self.browse_cache.builds += 1;
-                std::sync::Arc::new(collect_rows(device, &snapshot, query, safe)?)
+                std::sync::Arc::new(collect_rows(&snapshot, query, safe, |r| {
+                    self.provider(device, r)
+                })?)
             }
         };
         #[cfg(debug_assertions)]
@@ -100,26 +116,18 @@ impl Workspace {
             .iter()
             .skip(offset)
             .take(limit)
-            // 只为这一页读占位图文件；卡片 id 就是原图字节的 SHA-256。
-            .map(|row| WorkspaceCard {
-                thumbnail: crate::library::provider::thumbnail_address(
-                    &row.card.library_id,
-                    &row.card.image_id,
-                    query.thumbnail_px,
-                ),
-                placeholder: crate::library::placeholder(&row.root, &row.card.id),
-                ..row.card.clone()
-            })
+            .map(|row| row.card.clone())
             .collect::<Vec<_>>();
-        // 做完整页（含读占位图）再复核一次，复用结果时也一样：这期间某张图被封印，就不能带着
-        // 旧的 `adult` 和占位图交出去。Includes registration, catalog and changes in providers
-        // that did not match this query.
-        if self.snapshot(device, catalog)?.status.revision != snapshot.status.revision {
-            return Err(Error::CursorExpired.into());
-        }
-        if reuse && !hit {
-            self.browse_cache.put(key.clone(), rows);
-        }
+        let sources = snapshot
+            .providers
+            .iter()
+            .filter(|p| {
+                cards
+                    .iter()
+                    .any(|c| c.library_id == p.registration.library.id)
+            })
+            .map(|p| p.registration.library.clone())
+            .collect();
         #[cfg(debug_assertions)]
         eprintln!(
             "workspace.browse.phases snapshot={snapshot_ms:.1} rows={rows_ms:.1}({}) page={:.1} cards={}",
@@ -127,14 +135,35 @@ impl Workspace {
             started.elapsed().as_secs_f64() * 1e3 - snapshot_ms - rows_ms,
             cards.len()
         );
-        #[cfg(not(debug_assertions))]
-        let _ = hit;
-        Ok(WorkspacePage {
-            cards,
-            total,
-            next_cursor,
-            status,
+        Ok(PendingPage {
+            page: WorkspacePage {
+                cards,
+                total,
+                next_cursor,
+                status,
+            },
+            revision: snapshot.status.revision.clone(),
+            sources,
+            known: query.known_placeholders.iter().cloned().collect(),
+            built: (reuse && !hit).then_some((key, rows)),
         })
+    }
+    /// 读完占位图再复核一次，复用结果时也一样：这期间某张图被封印，就不能带着旧的 `adult` 和
+    /// 占位图交出去。Includes registration, catalog and changes in providers that did not match
+    /// this query.
+    pub fn confirm(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        pending: PendingPage,
+    ) -> Result<WorkspacePage, CatalogError> {
+        if self.snapshot(device, catalog)?.status.revision != pending.revision {
+            return Err(Error::CursorExpired.into());
+        }
+        if let Some((key, rows)) = pending.built {
+            self.browse_cache.put(key, rows);
+        }
+        Ok(pending.page)
     }
     /// 一张图的卡片，与图片墙（[`Self::browse`]）同样构成：id 是字节身份，带全部来源，显示所请求的
     /// 那份来源。给不经图片墙打开的入口用（钉图“在 Kinshoko 中打开”），查看器里的整理据此核对来源。
@@ -146,7 +175,6 @@ impl Workspace {
         library_id: &str,
         image_id: &str,
         safe: bool,
-        thumbnail_px: u32,
     ) -> Result<WorkspaceCard, CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
         let hash = snapshot
@@ -181,18 +209,55 @@ impl Workspace {
         Ok(WorkspaceCard {
             width: image.width,
             height: image.height,
-            thumbnail: crate::library::provider::thumbnail_address(
-                library_id,
-                image_id,
-                thumbnail_px,
-            ),
-            placeholder: crate::library::placeholder(&provider.registration.library.root, &hash),
+            placeholder: self
+                .provider(device, &provider.registration.library)?
+                .placeholders(&[&hash])?
+                .remove(&hash),
             adult,
             library_id: library_id.into(),
             image_id: image_id.into(),
             sources,
             id: hash,
         })
+    }
+}
+
+/// 浏览的一页，还不带占位图（#313），见 [`Workspace::browse_rows`]。
+pub struct PendingPage {
+    page: WorkspacePage,
+    /// 取这一页时的快照修订号，[`Workspace::confirm`] 按它复核。
+    revision: String,
+    /// 当页卡片显示用的来源。
+    sources: Vec<crate::RegisteredLibrary>,
+    /// 调用方已经有占位图的卡片，不再读。
+    known: BTreeSet<String>,
+    /// 新算出的一组结果，复核通过后才留着复用。
+    built: Option<(String, std::sync::Arc<Vec<BrowseRow>>)>,
+}
+
+impl PendingPage {
+    /// 只为这一页读占位图：按显示用的来源分组，每个资料库一条查询，用 `gate` 长期握着的只读句柄，
+    /// 不拿全局锁；调用方已有的不读。卡片 id 就是原图字节的 SHA-256。句柄不在手里或读不出时这些卡片不带占位图
+    /// （界面退回中性底色），不影响这一页。
+    pub fn fill_placeholders(&mut self, gate: &ImageGate) {
+        let cards = &mut self.page.cards;
+        let mut found = std::collections::HashMap::new();
+        for source in &self.sources {
+            let Some(library) = gate.held(source) else {
+                continue;
+            };
+            let shas = cards
+                .iter()
+                .filter(|c| c.library_id == source.id && !self.known.contains(&c.id))
+                .map(|c| c.id.as_str())
+                .collect::<Vec<_>>();
+            if let Ok(placeholders) = library.placeholders(&shas) {
+                found.extend(placeholders);
+            }
+        }
+        for card in cards.iter_mut() {
+            card.placeholder = found.remove(&card.id);
+        }
     }
 }
 
@@ -210,10 +275,12 @@ fn reads_ratings(tree: &ConditionTree) -> bool {
 
 /// 一组浏览结果：每个来源各自跑完整的查找，再按字节身份合并，按最新加入排序。
 fn collect_rows(
-    device: &DeviceLibraries,
     snapshot: &Snapshot,
     query: &WorkspaceQuery,
     safe: bool,
+    reader: impl Fn(
+        &crate::RegisteredLibrary,
+    ) -> Result<std::sync::Arc<crate::library::Library>, CatalogError>,
 ) -> Result<Vec<BrowseRow>, CatalogError> {
     let mut matches = BTreeMap::<String, BTreeSet<String>>::new();
     for provider in &snapshot.providers {
@@ -227,9 +294,7 @@ fn collect_rows(
             WorkspaceScope::All => BrowseScope::All,
         };
         let tree = local_tree(&query.conditions, &snapshot.catalog, id);
-        let library = device
-            .read(id)
-            .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
+        let library = reader(&provider.registration.library)?;
         let found = library.provider_matches(&scope, &tree)?;
         if library.provider_revision()? != (provider.list, provider.revision) {
             return Err(Error::CursorExpired.into());
@@ -269,14 +334,11 @@ fn collect_rows(
         rows.push((
             newest,
             BrowseRow {
-                root: provider.registration.library.root.clone(),
                 card: WorkspaceCard {
                     id,
                     width: image.width,
                     height: image.height,
                     adult,
-                    // 按页现取（[`Workspace::browse`]）：缩略图尺寸不属于这组结果。
-                    thumbnail: String::new(),
                     placeholder: None,
                     library_id: source_library.clone(),
                     image_id: image.id.clone(),

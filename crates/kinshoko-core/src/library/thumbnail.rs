@@ -4,8 +4,12 @@
 //! `full` 是不直接显示的原图在 1:1 与放大时用的原尺寸派生图。
 //! 管线版本变化时旧目录整体作废：打开资料库时在后台删除，缩略图按需在新目录重建。
 //!
-//! 占位图（#110）是同一管线、同一目录下的另一份派生图：`<sha>-p32.<webp|png>`，长边约 32 px。
-//! 导入时生成，打开资料库时在后台为缺少的补齐；浏览只读已有的，缺少时界面退回中性底色。
+//! 占位图（#110）是同一管线的另一份派生图，长边约 32 px，存在资料库的 `placeholder` 表里（#313）：
+//! 只有几百字节，单独存成文件时打开、杀毒扫描与占用的簇都比数据本身大得多。导入时生成，打开资料库
+//! 时在后台为缺少的补齐；浏览一页一条查询读出已有的，缺少时界面退回中性底色。
+//!
+//! 过渡期（#313 的 expand 一步）：占位图同时仍存成 `<sha>-p32.<webp|png>` 文件，表里没有的（旧版本
+//! 写的、还没补齐的、只读打开还没有这张表的库）从文件读。回退到旧版本时文件都还在。
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Condvar, Mutex, Weak};
@@ -234,87 +238,66 @@ fn placeholder_dir(root: &Path, sha: &str) -> PathBuf {
         .join(&sha[..2])
 }
 
-/// 已生成的占位图文件；容器随来源分档（`webp` 或 `png`），两种都找。
-fn placeholder_file(root: &Path, sha: &str) -> Option<PathBuf> {
+/// 存成文件的占位图；容器随来源分档（`webp` 或 `png`），两种都找。
+fn placeholder_file(root: &Path, sha: &str) -> Option<(PathBuf, &'static str)> {
     if sha.len() < 2 {
         return None;
     }
     let dir = placeholder_dir(root, sha);
-    ["webp", "png"]
+    [("webp", "image/webp"), ("png", "image/png")]
         .into_iter()
-        .map(|ext| dir.join(format!("{sha}-{PLACEHOLDER}.{ext}")))
-        .find(|path| path.is_file())
+        .map(|(ext, mime)| (dir.join(format!("{sha}-{PLACEHOLDER}.{ext}")), mime))
+        .find(|(path, _)| path.is_file())
 }
 
-/// 读过的占位图 `data:` 地址（#212、#200）。
-///
-/// 图片墙每次重新浏览（自动打标每写一批图、换缩略图档位）都要带回已加载的全部卡片的占位图；
-/// 5000 张时逐个查找、读取文件约占重新浏览耗时的八成，其中查文件属性与读取各占一半。占位图的内容
-/// 只由原图字节（文件名里的 SHA-256）和管线版本（目录名）决定，所以命中时不碰磁盘。
-/// 失效：删除某张图的派生图时去掉它；整个缓存目录被删掉或换掉时以 `sdr` 目录的创建时间为准，
-/// 每次只读打开资料库（工作区浏览、缩略图请求都会）后重新查看一次这个时间
-/// （[`forget_placeholder_stamps`]）。条目到上限后不再记新的。
-static PLACEHOLDERS: Mutex<Option<PlaceholderCache>> = Mutex::new(None);
-
-const PLACEHOLDER_CACHE_LIMIT: usize = 50_000;
-
-#[derive(Default)]
-struct PlaceholderCache {
-    /// 各资料库 `sdr` 目录的创建时间；没有这个目录时为 `None`。
-    stamps: std::collections::HashMap<PathBuf, Option<std::time::SystemTime>>,
-    /// （资料库根目录，SHA-256）→（读取时的目录创建时间，`data:` 地址）。
-    urls: std::collections::HashMap<(PathBuf, String), (Option<std::time::SystemTime>, String)>,
-}
-
-fn placeholders() -> std::sync::MutexGuard<'static, Option<PlaceholderCache>> {
-    PLACEHOLDERS.lock().unwrap_or_else(|e| e.into_inner())
-}
-
-/// 只读打开资料库时调用：之后每个资料库的 `sdr` 目录各重新查看一次，缓存目录被删掉或换掉的不再命中。
-pub(super) fn forget_placeholder_stamps() {
-    if let Some(cache) = placeholders().as_mut() {
-        cache.stamps.clear();
-    }
-}
-
-/// 已生成的占位图，作为 `data:` 地址随浏览页返回；还没有时为 `None`。只读，不生成。
-pub(crate) fn placeholder(root: &Path, sha: &str) -> Option<String> {
+/// 这些原图（按 SHA-256）已生成的占位图，作为 `data:` 地址；还没有的不在结果里。表里一条查询，
+/// 表里没有的再找文件（过渡期，见模块说明）。只读，不生成。只认当前管线版本生成的。
+pub(super) fn placeholders(
+    conn: &rusqlite::Connection,
+    root: &Path,
+    shas: &[&str],
+) -> Result<std::collections::HashMap<String, String>, Error> {
     use base64::Engine;
-    let key = (root.to_path_buf(), sha.to_owned());
-    let stamp = {
-        let mut guard = placeholders();
-        let cache = guard.get_or_insert_with(Default::default);
-        let stamp = *cache.stamps.entry(root.to_path_buf()).or_insert_with(|| {
-            let sdr = root
-                .join(CACHE_DIR)
-                .join(THUMBS_DIR)
-                .join(PIPELINE)
-                .join(SDR);
-            std::fs::metadata(sdr).ok().and_then(|m| m.created().ok())
-        });
-        if let Some((at, url)) = cache.urls.get(&key)
-            && *at == stamp
-        {
-            return Some(url.clone());
+    let mut found = stored_placeholders(conn, shas)?;
+    for sha in shas {
+        if found.contains_key(*sha) {
+            continue;
         }
-        stamp
-    };
-    let path = placeholder_file(root, sha)?;
-    let bytes = std::fs::read(&path).ok()?;
-    let mime = match path.extension()?.to_str()? {
-        "png" => "image/png",
-        _ => "image/webp",
-    };
-    let payload = base64::engine::general_purpose::STANDARD.encode(bytes);
-    let url = format!("data:{mime};base64,{payload}");
-    let mut guard = placeholders();
-    let cache = guard.get_or_insert_with(Default::default);
-    // 满了就不再记新的，已记下的留着：图片墙重新浏览总是从头按同一顺序读，清空或淘汰最旧的都会让
-    // 超过上限的大墙每次都从头读文件；不收新条目时至少前 PLACEHOLDER_CACHE_LIMIT 张一直命中。
-    if cache.urls.len() < PLACEHOLDER_CACHE_LIMIT {
-        cache.urls.insert(key, (stamp, url.clone()));
+        if let Some((path, mime)) = placeholder_file(root, sha)
+            && let Ok(bytes) = std::fs::read(path)
+        {
+            let payload = base64::engine::general_purpose::STANDARD.encode(bytes);
+            found.insert((*sha).to_owned(), format!("data:{mime};base64,{payload}"));
+        }
     }
-    Some(url)
+    Ok(found)
+}
+
+/// 表里的那部分。只读打开、还没被新版本打开过的库没有这张表。
+fn stored_placeholders(
+    conn: &rusqlite::Connection,
+    shas: &[&str],
+) -> Result<std::collections::HashMap<String, String>, Error> {
+    use base64::Engine;
+    let has_table: bool = conn.query_row(
+        "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'placeholder')",
+        [],
+        |r| r.get(0),
+    )?;
+    if shas.is_empty() || !has_table {
+        return Ok(Default::default());
+    }
+    let mut stmt = conn.prepare_cached(
+        "SELECT sha256, mime, bytes FROM placeholder
+         WHERE pipeline = ?2 AND sha256 IN (SELECT value FROM json_each(?1))",
+    )?;
+    let wanted = serde_json::to_string(shas).map_err(std::io::Error::other)?;
+    let rows = stmt.query_map(rusqlite::params![wanted, PIPELINE], |row| {
+        let (sha, mime, bytes): (String, String, Vec<u8>) = (row.get(0)?, row.get(1)?, row.get(2)?);
+        let payload = base64::engine::general_purpose::STANDARD.encode(bytes);
+        Ok((sha, format!("data:{mime};base64,{payload}")))
+    })?;
+    Ok(rows.collect::<Result<_, _>>()?)
 }
 
 /// 生成占位图要知道的事实：原图位置与转正后的尺寸。只涉及文件，不占用资料库连接。
@@ -325,25 +308,32 @@ struct PlaceholderSource {
     height: u32,
 }
 
+/// 一行要写进 `placeholder` 表的占位图：SHA-256、内容类型、字节。
+type PlaceholderRow = (String, &'static str, Vec<u8>);
+
 /// 与缩略图同一管线（ADR-0005）：同样的色彩声明规则、f32 预乘缩放与按来源分档的无损容器。
-fn render_placeholder(root: &Path, source: &PlaceholderSource) -> Result<(), Error> {
-    if placeholder_file(root, &source.sha).is_some() {
-        return Ok(());
+/// 已存成文件的直接读进来；现场生成的也存一份文件（过渡期）。
+fn load_placeholder(root: &Path, source: &PlaceholderSource) -> Result<PlaceholderRow, Error> {
+    if let Some((path, mime)) = placeholder_file(root, &source.sha)
+        && let Ok(bytes) = std::fs::read(&path)
+    {
+        return Ok((source.sha.clone(), mime, bytes));
     }
     let bytes = std::fs::read(root.join(&source.rel_path))?;
     let max_width = placeholder_width(source.width, source.height);
     let rendered =
         render::render_sdr(&bytes, max_width, DEFAULT_DOWNSCALE).map_err(Error::Undecodable)?;
-    store_placeholder(root, &source.sha, &rendered)
+    store_placeholder_file(root, &source.sha, &rendered)?;
+    Ok((source.sha.clone(), rendered.mime, rendered.bytes))
 }
 
-/// 保存导入时已经生成好的占位图（与校验像素共用一次解码，#120）。已有时什么也不做。
-pub(super) fn store_placeholder(
+/// 占位图存成文件（过渡期，见模块说明）。已有时什么也不做。
+fn store_placeholder_file(
     root: &Path,
     sha: &str,
     rendered: &render::SdrDerivative,
 ) -> Result<(), Error> {
-    if placeholder_file(root, sha).is_some() {
+    if sha.len() < 2 || placeholder_file(root, sha).is_some() {
         return Ok(());
     }
     let ext = if rendered.mime == "image/png" {
@@ -355,8 +345,52 @@ pub(super) fn store_placeholder(
     write_atomic(&path, &rendered.bytes)
 }
 
-/// 为缺少占位图的参考图补生成，从新到旧（先补最可能在眼前的）。在后台线程里调用。
-/// 只持有弱引用：资料库关闭后在下一张之前停下，不让数据库连接活得比资料库久。
+/// 写进 `placeholder` 表，已有的（包括旧管线版本的）换掉。占位图是可重建的缓存，这个事务不等
+/// 落盘（WAL 下 `synchronous=NORMAL`）：断电时最多丢掉最近几张，下次打开资料库补齐；导入每张图
+/// 也就不多一次刷盘。
+fn insert_placeholders(
+    conn: &mut rusqlite::Connection,
+    rows: &[PlaceholderRow],
+) -> Result<(), Error> {
+    conn.pragma_update(None, "synchronous", "NORMAL")?;
+    let written = (|| {
+        let tx = conn.transaction()?;
+        {
+            let mut stmt = tx.prepare_cached(
+                "INSERT INTO placeholder (sha256, pipeline, mime, bytes) VALUES (?1, ?2, ?3, ?4)
+                 ON CONFLICT (sha256) DO UPDATE SET pipeline = excluded.pipeline,
+                     mime = excluded.mime, bytes = excluded.bytes",
+            )?;
+            for (sha, mime, bytes) in rows {
+                stmt.execute(rusqlite::params![sha, PIPELINE, mime, bytes])?;
+            }
+        }
+        tx.commit()
+    })();
+    conn.pragma_update(None, "synchronous", "FULL")?;
+    Ok(written?)
+}
+
+/// 保存导入时已经生成好的占位图（与校验像素共用一次解码，#120）。表里已有时换成这一份；
+/// 过渡期同时存一份文件。
+pub(super) fn store_placeholder(
+    inner: &Inner,
+    sha: &str,
+    rendered: &render::SdrDerivative,
+) -> Result<(), Error> {
+    store_placeholder_file(&inner.root, sha, rendered)?;
+    let row = (sha.to_owned(), rendered.mime, rendered.bytes.clone());
+    inner
+        .writer
+        .run(move |conn| insert_placeholders(conn, std::slice::from_ref(&row)))
+}
+
+/// 后台补齐时每攒这么多张写一次库。
+const FILL_BATCH: usize = 32;
+
+/// 为缺少占位图（或只有旧管线版本的）参考图补齐，从新到旧（先补最可能在眼前的）。在后台线程里
+/// 调用。已存成文件的读进来（文件留着，过渡期）；没有的现场生成。
+/// 只持有弱引用：资料库关闭后在下一批之前停下，不让数据库连接活得比资料库久。
 /// 失败只是这张图继续退回中性底色，下次打开再试。
 pub(super) fn fill_placeholders(inner: Weak<Inner>) {
     let (root, sources) = {
@@ -367,10 +401,11 @@ pub(super) fn fill_placeholders(inner: Weak<Inner>) {
         let sources = conn
             .prepare(
                 "SELECT sha256, rel_path, width, height FROM image
+                 WHERE sha256 NOT IN (SELECT sha256 FROM placeholder WHERE pipeline = ?1)
                  GROUP BY sha256 ORDER BY MAX(seq) DESC",
             )
             .and_then(|mut stmt| {
-                stmt.query_map([], |row| {
+                stmt.query_map([PIPELINE], |row| {
                     Ok(PlaceholderSource {
                         sha: row.get(0)?,
                         rel_path: row.get(1)?,
@@ -385,11 +420,26 @@ pub(super) fn fill_placeholders(inner: Weak<Inner>) {
             Err(_) => return,
         }
     };
-    for source in sources {
-        if inner.strong_count() == 0 {
+    for batch in sources.chunks(FILL_BATCH) {
+        let mut rows = Vec::new();
+        for source in batch {
+            if inner.strong_count() == 0 {
+                return;
+            }
+            if let Ok(row) = load_placeholder(&root, source) {
+                rows.push(row);
+            }
+        }
+        let Some(inner) = inner.upgrade() else {
+            return;
+        };
+        if inner
+            .writer
+            .run(move |conn| insert_placeholders(conn, &rows))
+            .is_err()
+        {
             return;
         }
-        let _ = render_placeholder(&root, &source);
     }
 }
 
@@ -408,9 +458,6 @@ pub(super) fn remove_for(root: &Path, sha: &str) {
     let Some(prefix) = sha.get(..2) else {
         return;
     };
-    if let Some(cache) = placeholders().as_mut() {
-        cache.urls.remove(&(root.to_path_buf(), sha.to_owned()));
-    }
     let dir = root
         .join(CACHE_DIR)
         .join(THUMBS_DIR)

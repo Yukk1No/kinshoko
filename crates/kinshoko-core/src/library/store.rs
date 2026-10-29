@@ -61,7 +61,7 @@ pub(super) fn read_only_writer(path: &Path) -> Result<Writer, Error> {
     Ok(Writer::spawn(conn))
 }
 
-pub(super) const DB_FILE: &str = "library.sqlite";
+pub(crate) const DB_FILE: &str = "library.sqlite";
 
 /// SQLite 不会自己处理超过 260 个字符的 Windows 路径；换成 `\\?\` 形式的绝对路径交给它。
 /// 标准库的文件操作已经会自动这样做。
@@ -92,6 +92,9 @@ fn connect(path: &Path) -> Result<Connection, Error> {
 pub(super) fn open_db(path: &Path) -> Result<Connection, Error> {
     let mut conn = connect(path)?;
     migrations().to_latest(&mut conn)?;
+    // 占位图表（#313）先不经迁移、不改版本号：旧版本照样能打开这个资料库，只是不认识这张表。
+    // 占位图同时仍存成文件，回退到旧版本不丢任何东西。
+    conn.execute_batch(include_str!("placeholder_table.sql"))?;
     Ok(conn)
 }
 

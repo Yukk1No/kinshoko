@@ -80,7 +80,7 @@ fn ordinary_name_settings_do_not_expose_tags_from_globally_vetoed_copies() {
                 conditions: Default::default(),
                 cursor: None,
                 limit: 20,
-                thumbnail_px: 240,
+                known_placeholders: Vec::new(),
             },
             true,
         )

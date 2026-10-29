@@ -17,7 +17,7 @@ import { useViewerSource } from "./useViewerSource";
 type Props = {
   workspace?: boolean;
   libraryId: string;
-  card: ImageCard;
+  card: Omit<ImageCard, "thumbnail"> & Partial<Pick<ImageCard, "thumbnail">>;
   onClose: () => void;
   /** 资料库报告列表过期时递增：重新确认这张图还在（可能被删除或被安全模式封印）。 */
   reloadKey?: number;

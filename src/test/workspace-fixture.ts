@@ -42,7 +42,8 @@ export function workspaceFixture(handler: Handler): Handler {
       } })).then((page) => {
         const result = page as BrowsePage;
         return { ...result, status: { revision: "fixture", libraries: [] },
-          cards: result.cards.map((card) => ({ ...card, libraryId, imageId: card.id, sources: [{
+          // 工作区的卡片不带缩略图地址，图片墙按来源与档位自己拼（#313）。
+          cards: result.cards.map(({ thumbnail: _, ...card }) => ({ ...card, libraryId, imageId: card.id, sources: [{
             libraryId, libraryName: library?.name ?? "fixture", imageId: card.id, matches: true, unavailable: null, deleted: false,
           }] })),
         } satisfies WorkspacePage;

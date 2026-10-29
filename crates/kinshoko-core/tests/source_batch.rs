@@ -23,7 +23,7 @@ fn several_sources_of_one_library_are_edited_in_one_action() {
                 conditions: Default::default(),
                 cursor: None,
                 limit: 10,
-                thumbnail_px: 256,
+                known_placeholders: Vec::new(),
             },
             true,
         )

@@ -14,7 +14,10 @@ pub(super) fn with_resources<T>(
         Ok(with_catalog(&state.search, |catalog| {
             let mut slot = lock(&state.workspace);
             if slot.is_none() {
-                *slot = Some(Workspace::open(&state.device_dir)?);
+                *slot = Some(Workspace::open_with_gate(
+                    &state.device_dir,
+                    state.gate.clone(),
+                )?);
             }
             f(slot.as_mut().expect("workspace opened"), device, catalog)
         }))
@@ -107,23 +110,39 @@ pub(super) async fn workspace_browse<R: Runtime>(
     safe_mode: bool,
 ) -> Result<WorkspacePage, String> {
     blocking(move || {
-        // 浏览耗时（#183）：开发构建在控制台输出，`wait` 是等资源锁的时间，core 另有分段（#288）。
+        // 浏览耗时（#183）：开发构建在控制台输出，`wait` 是等资源锁的时间，`placeholders` 是锁外读
+        // 占位图的时间，core 另有锁里的分段（#288）。
         #[cfg(debug_assertions)]
         let started = std::time::Instant::now();
         #[cfg(debug_assertions)]
         let mut waited = 0.0;
-        // 不用 `stable`：`browse` 做完整页（含读占位图）后自己复核修订号，复用结果时也复核（#288），
-        // 前后再各取一次状态只是多开几遍资料库。
-        let page = guarded(&app, safe_mode, |w, d, c| {
+        // 锁里只取当页的行；占位图在锁外读，读完再按修订号复核（#313）。读盘慢时不拖住缩略图请求。
+        // 不用 `stable`：`confirm` 自己复核修订号，前后再各取一次状态只是多做几遍核对。
+        let expected = generation(&app);
+        let pending = action(&app, safe_mode, |w, d, c| {
             #[cfg(debug_assertions)]
             {
                 waited = started.elapsed().as_secs_f64() * 1e3;
             }
-            w.browse(d, c, &query, safe_mode)
+            w.browse_rows(d, c, &query, safe_mode)
+        });
+        #[cfg(debug_assertions)]
+        let mut placeholders = 0.0;
+        let page = pending.and_then(|mut pending| {
+            #[cfg(debug_assertions)]
+            let reading = std::time::Instant::now();
+            pending.fill_placeholders(&app.state::<LibraryState>().gate);
+            #[cfg(debug_assertions)]
+            {
+                placeholders = reading.elapsed().as_secs_f64() * 1e3;
+            }
+            let page = action(&app, safe_mode, |w, d, c| w.confirm(d, c, pending))?;
+            current(&app, safe_mode, expected)?;
+            Ok(page)
         });
         #[cfg(debug_assertions)]
         eprintln!(
-            "workspace.browse safe={safe_mode} ok={} cards={} wait={waited:.1} ms={:.1}",
+            "workspace.browse safe={safe_mode} ok={} cards={} wait={waited:.1} placeholders={placeholders:.1} ms={:.1}",
             page.is_ok(),
             page.as_ref().map_or(0, |p| p.cards.len()),
             started.elapsed().as_secs_f64() * 1e3
@@ -189,26 +208,33 @@ pub(super) fn read<R: Runtime>(
         Ok(library)
     })
 }
-/// One authorized image read for the `thumb` protocol (#123). Same safety boundary as [`read`]
-/// (registration, identity, global safe-mode veto, unchanged revision and safe-mode generation), but
-/// the providers opened for the check live in `opened` and are reused when the caller re-checks after
-/// reading the file. Scope `opened` to one request; nothing is cached across requests.
+/// One authorized image read for the `thumb` protocol (#123, #313). The published snapshot answers
+/// without any global lock or reopened provider ([`kinshoko_core::workspace::ImageGate`]); when it
+/// cannot (registry, scope or a provider revision moved), the locked path re-checks and republishes.
+/// Same safety boundary as [`read`]: registration, identity, global safe-mode veto, unchanged
+/// revisions and safe-mode generation. `slow` reports whether the locked path ran.
 pub(super) fn read_image<R: Runtime>(
     app: &AppHandle<R>,
-    opened: &mut kinshoko_core::workspace::ProviderReaders,
     library_id: &str,
     image_id: &str,
+    slow: &mut bool,
 ) -> Result<Arc<Library>, String> {
-    let safe = saved_safe_mode(app);
-    let expected = generation(app);
-    // 先在锁外打开这次请求要核对的提供方（只短暂持有登记表的锁取登记），锁里只读修订与核对。
     let state = app.state::<LibraryState>();
-    let registrations = with_libraries(&state, |device| Ok(device.libraries().to_vec()))?;
-    opened.open_all(&registrations);
-    let library = action(app, safe, |workspace, device, catalog| {
-        workspace.image_reader(device, catalog, opened, library_id, image_id, safe)
-    })?;
-    current(app, safe, expected)?;
+    let expected = generation(app);
+    let mode = saved_mode(app);
+    let library = match state
+        .gate
+        .authorize(library_id, image_id, mode.on, mode.scope)
+    {
+        Some(result) => result.map_err(|e| e.to_string())?,
+        None => {
+            *slow = true;
+            action(app, mode.on, |workspace, device, catalog| {
+                workspace.image_reader(device, catalog, library_id, image_id, mode.on)
+            })?
+        }
+    };
+    current(app, mode.on, expected)?;
     Ok(library)
 }
 #[tauri::command]
@@ -236,12 +262,11 @@ pub(super) async fn workspace_card<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     image_id: String,
-    thumbnail_px: u32,
     safe_mode: bool,
 ) -> Result<WorkspaceCard, String> {
     blocking(move || {
         stable(&app, safe_mode, |w, d, c| {
-            w.card(d, c, &library_id, &image_id, safe_mode, thumbnail_px)
+            w.card(d, c, &library_id, &image_id, safe_mode)
         })
     })
     .await

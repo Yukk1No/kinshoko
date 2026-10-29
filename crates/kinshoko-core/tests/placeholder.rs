@@ -1,5 +1,6 @@
-//! 占位图（#110）：导入时生成约 32 px 的极小 `sdr` 派生图，随浏览页一起返回。
-//! 全部通过 `Library` 与 `Workspace` 的对外接口，用临时目录里的真 SQLite 与真文件。
+//! 占位图（#110）：导入时生成约 32 px 的极小 `sdr` 派生图，存在资料库里（#313），随浏览页一起返回。
+//! 通过 `Library` 与 `Workspace` 的对外接口，用临时目录里的真 SQLite 与真文件；模拟缺少或过期的
+//! 占位图时直接改数据库文件。存储与旧资料库的迁移见 `placeholder_storage.rs`。
 
 use std::path::{Path, PathBuf};
 
@@ -135,6 +136,10 @@ fn opening_a_library_fills_in_missing_placeholders_in_the_background() {
         })
         .collect();
     drop(library);
+    rusqlite::Connection::open(root.join("library.sqlite"))
+        .unwrap()
+        .execute("DELETE FROM placeholder", [])
+        .unwrap();
     std::fs::remove_dir_all(root.join("cache")).unwrap();
 
     let before = Library::open_read_only(&root, &library_id).unwrap();
@@ -182,7 +187,7 @@ fn workspace_cards_carry_the_placeholder_of_their_display_source() {
                 conditions: Default::default(),
                 cursor: None,
                 limit: 100,
-                thumbnail_px: 256,
+                known_placeholders: Vec::new(),
             },
             true,
         )
@@ -200,7 +205,7 @@ fn workspace_cards_carry_the_placeholder_of_their_display_source() {
     }
 }
 
-/// 管线版本是缓存键的一部分：旧版本目录里的占位图不再使用。
+/// 管线版本是占位图的一部分：旧版本生成的不再使用，打开资料库时换成当前版本的。
 #[test]
 fn placeholders_of_an_older_pipeline_version_are_not_shown() {
     let dir = tempfile::tempdir().unwrap();
@@ -210,7 +215,11 @@ fn placeholders_of_an_older_pipeline_version_are_not_shown() {
     import(&library, &write_png(&dir.path().join("a.png"), 64, 48, 1));
     assert!(cards(&library)[0].placeholder.is_some());
     drop(library);
-
+    rusqlite::Connection::open(root.join("library.sqlite"))
+        .unwrap()
+        .execute("UPDATE placeholder SET pipeline = 'v0'", [])
+        .unwrap();
+    // 过渡期同时存的文件也按管线版本分目录：一起换成旧版本的。
     let thumbs = root.join("cache/thumbs");
     let current = std::fs::read_dir(&thumbs)
         .unwrap()
@@ -222,40 +231,12 @@ fn placeholders_of_an_older_pipeline_version_are_not_shown() {
 
     let library = Library::open_read_only(&root, &library_id).unwrap();
     assert!(cards(&library)[0].placeholder.is_none());
-}
+    drop(library);
 
-/// 读过的占位图记在内存里，之后的浏览不再打开文件（#212、#200）：图片墙每次重新浏览都要带回全部
-/// 已加载卡片的占位图，逐个读文件是重新浏览的主要开销。只删掉这一个文件看不出来，照样带回；
-/// 整个缓存目录被删掉或换掉时不再带回（见上面两条）。
-#[test]
-fn a_placeholder_once_read_is_browsed_again_without_reading_its_file() {
-    let dir = tempfile::tempdir().unwrap();
-    let root = dir.path().join("lib");
-    let library = Library::create(&root, "库").unwrap();
-    import(&library, &write_png(&dir.path().join("a.png"), 64, 48, 3));
-    let first = cards(&library)[0].placeholder.clone().expect("有占位图");
-
-    let file = walk(&root.join("cache"))
-        .into_iter()
-        .find(|p| p.to_string_lossy().contains("-p32."))
-        .expect("占位图文件");
-    std::fs::remove_file(file).unwrap();
-
-    assert_eq!(
-        cards(&library)[0].placeholder.as_deref(),
-        Some(first.as_str())
-    );
-}
-
-fn walk(dir: &Path) -> Vec<PathBuf> {
-    let mut out = Vec::new();
-    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
-        let path = entry.path();
-        if path.is_dir() {
-            out.extend(walk(&path));
-        } else {
-            out.push(path);
-        }
+    let library = Library::open(&root).unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while cards(&library)[0].placeholder.is_none() {
+        assert!(std::time::Instant::now() < deadline, "没有换成当前管线版本");
+        std::thread::sleep(std::time::Duration::from_millis(20));
     }
-    out
 }

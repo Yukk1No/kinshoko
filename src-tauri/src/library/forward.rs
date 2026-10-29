@@ -30,7 +30,7 @@ pub(super) fn forward_events<R: Runtime>(
     let events = library.events();
     *lock(&state.reference) = library.take_reference_lens();
     // 刚成为活动库的库不再经只读视角读取；其他库按需重开。
-    state.detached.clear();
+    state.release_readers();
     state.search.invalidate();
     crate::tagging::attach(app, library);
     let mut handles = lock(&state.forwarded_handles);

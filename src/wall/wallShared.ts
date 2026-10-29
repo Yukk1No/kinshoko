@@ -58,7 +58,9 @@ export type WallHandle = {
 /** 卡片上的快捷键（与右键菜单同一选择规则）：P 钉住、F1 进入查看器框选、Del 移到回收站、Ctrl+C 复制图片。 */
 export type CardCommand = "pin" | "crop" | "trash" | "copy";
 
-export type BrowserCard = ImageCard & Partial<Pick<WorkspaceCard, "libraryId" | "imageId" | "sources">>;
+/** 图片墙上的卡片：工作区的卡片（不带缩略图地址，按来源与档位拼，见 `cardThumbnail`），或只浏览单个资料库的旧卡片。 */
+export type BrowserCard = Omit<ImageCard, "thumbnail"> & Partial<Pick<ImageCard, "thumbnail">>
+  & Partial<Pick<WorkspaceCard, "libraryId" | "imageId" | "sources">>;
 
 export type WallProps = {
   workspaceScope?: WorkspaceScope;

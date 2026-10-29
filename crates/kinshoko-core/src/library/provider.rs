@@ -25,11 +25,6 @@ pub(crate) struct ProviderImage {
     #[serde(skip)]
     pub folders: Vec<String>,
 }
-/// 工作区卡片的缩略图地址 `<资料库 id>/<参考图 id>/<档位>`：与 `Library::browse` 一样把请求的像素
-/// 取整到档位（#200）。图片墙缩放时请求的像素在同一档位内变化，地址不变，WebView 不必重新请求。
-pub(crate) fn thumbnail_address(library_id: &str, image_id: &str, px: u32) -> String {
-    format!("{library_id}/{image_id}/{}", super::thumbnail::tier(px))
-}
 impl ProviderImage {
     /// 有效分级；旧缓存只知道是否含成人内容，按最严的一档（成人）算，任何范围下都遮蔽、不会漏出。
     pub(crate) fn effective_rating(&self) -> Option<ContentRating> {
@@ -66,6 +61,14 @@ impl Library {
         Ok(stmt
             .query_map(params_from_iter(&args), |r| r.get(0))?
             .collect::<Result<_, _>>()?)
+    }
+
+    /// 这些原图（按 SHA-256）已生成的占位图（#313），一条查询读出；还没有的不在结果里。
+    pub(crate) fn placeholders(
+        &self,
+        shas: &[&str],
+    ) -> Result<std::collections::HashMap<String, String>, Error> {
+        super::thumbnail::placeholders(&self.inner.readers.get(), &self.inner.root, shas)
     }
 
     pub(crate) fn provider_snapshot(&self) -> Result<ProviderSnapshot, Error> {

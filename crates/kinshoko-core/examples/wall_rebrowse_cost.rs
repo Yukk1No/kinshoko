@@ -53,7 +53,7 @@ fn main() {
                         conditions: Default::default(),
                         cursor: cursor.take(),
                         limit: std::env::var("PAGE").map_or(500, |v| v.parse().unwrap()),
-                        thumbnail_px: 384,
+                        known_placeholders: Vec::new(),
                     },
                     false,
                 )

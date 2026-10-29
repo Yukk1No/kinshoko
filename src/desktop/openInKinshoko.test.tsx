@@ -48,13 +48,13 @@ it("主窗口开着时收到事件再取；没有请求时什么都不做", asyn
 it("参考图的查看器卡片与图片墙同样构成：id 是字节身份，查看器里的整理按它核对来源", async () => {
   // 图片墙的卡片 id 是内容的字节身份，不是图库里的图片 id；整理时 contentId = card.id。
   const card: WorkspaceCard = {
-    id: "sha-of-I1", width: 1200, height: 800, thumbnail: "L1/I1/256", adult: false,
+    id: "sha-of-I1", width: 1200, height: 800, adult: false,
     libraryId: "L1", imageId: "I1",
     sources: [{ libraryId: "L1", libraryName: "工作参考", imageId: "I1", unavailable: null, matches: true, deleted: false }],
   };
   ipc.workspaceCard.mockResolvedValueOnce(card);
   const opened = await referenceCard("L1", "I1", true);
-  expect(ipc.workspaceCard).toHaveBeenCalledWith("L1", "I1", 256, true);
+  expect(ipc.workspaceCard).toHaveBeenCalledWith("L1", "I1", true);
   expect(opened).toEqual(card);
   expect(opened.id).not.toBe(opened.imageId);
 });

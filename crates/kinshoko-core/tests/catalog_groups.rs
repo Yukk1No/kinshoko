@@ -292,7 +292,7 @@ fn shared_group_query_is_visible_or_for_each_source_and_missing_mapping_is_not_d
         conditions: or,
         cursor: None,
         limit: 10,
-        thumbnail_px: 240,
+        known_placeholders: Vec::new(),
     };
     assert_eq!(
         w.browse(&device, &mut catalog, &query, true).unwrap().total,

@@ -116,6 +116,9 @@ struct LibraryState {
     /// Serialize visibility revocation with the final externally visible side effect.
     visibility_commit: Arc<Mutex<()>>,
     workspace: Mutex<Option<kinshoko_core::workspace::Workspace>>,
+    /// 缩略图请求的放行（#313）：工作区每次取快照发布到这里，各登记的资料库在这里长期只读打开。
+    /// 缩略图请求先问它，不拿上面三把锁；与 [`Self::detached`] 同时清掉，释放数据库文件。
+    gate: Arc<kinshoko_core::workspace::ImageGate>,
     /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
     /// 与桌面钉图（#65），不经任何命令交给前端。
     reference: Mutex<Option<ReferenceLens>>,
@@ -146,6 +149,7 @@ impl LibraryState {
             import_preview_generation: AtomicU64::new(0),
             visibility_commit: Arc::new(Mutex::new(())),
             workspace: Mutex::default(),
+            gate: Arc::default(),
             reference: Mutex::new(None),
             detached: DetachedLenses::default(),
             translations: Arc::new(translations),
@@ -158,6 +162,12 @@ impl LibraryState {
     fn configure_library(&self, library: &Library) {
         library.use_translations_for_new_tags((*self.translations).clone());
         library.use_package_publication_gate(self.visibility_commit.clone());
+    }
+
+    /// 放掉只读打开的资料库（参考视角与缩略图放行的句柄）：切换、登记变化、设置整份替换时。
+    fn release_readers(&self) {
+        self.detached.clear();
+        self.gate.clear();
     }
 
     /// 活动资料库，不核对身份。只给不经界面请求的入口用（缩略图协议、安全模式开关）。

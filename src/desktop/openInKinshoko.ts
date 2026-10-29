@@ -8,7 +8,7 @@ import type { BrowserCard } from "../wall/Wall";
  * （id 是字节身份、带全部来源），查看器里的整理（移到回收站等）按它核对来源。按当前安全模式读。
  */
 export function referenceCard(libraryId: string, imageId: string, safe: boolean): Promise<BrowserCard> {
-  return workspaceCard(libraryId, imageId, 256, safe);
+  return workspaceCard(libraryId, imageId, safe);
 }
 
 /**

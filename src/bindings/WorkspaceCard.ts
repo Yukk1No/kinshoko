@@ -5,9 +5,11 @@ export type WorkspaceCard = {
 /**
  * Stable byte identity, also used for scroll anchors.
  */
-id: string, width: number, height: number, thumbnail: string, 
+id: string, width: number, height: number, 
 /**
- * 占位图（#110）的 `data:` 地址，取自显示用的来源；还没生成时为空。
+ * 占位图（#110）的 `data:` 地址，取自显示用的来源；还没生成时、或请求时报为已有的
+ * （[`WorkspaceQuery::known_placeholders`]）为空。缩略图地址由界面按 `libraryId`、`imageId`
+ * 与档位拼出（#313），与 `thumb` 协议的路径相同。
  */
 placeholder?: string, adult: boolean, 
 /**

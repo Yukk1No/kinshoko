@@ -13,6 +13,9 @@ import type { Anchor } from "./layout";
 import { thumbnailTier } from "./thumbnailTier";
 import { PAGE, type BrowserCard } from "./wallShared";
 
+/** 报上已有占位图时，在原有卡片里往后多看几张：前面新进来几张图时，这一页仍大多报得上。 */
+const KNOWN_MARGIN = 100;
+
 export function useWallPages({
   cards, setCards, cursor, setCursor, setTotal, setError, generation, inflight, view, restoring, anchor, shownCards,
   measureBeforeReflow, onWorkspaceStatus, releasePage, thumbnailPx, reloadKey, loadMoreRef, workspaceScope, safeMode,
@@ -64,9 +67,9 @@ export function useWallPages({
     setTotal(null);
     setCursor(null);
   }, [reloadKey, safeMode, workspaceKey]);
-  // 按档位而不是原始像素决定何时重新浏览（#200）：同一档位内缩放时后端给出的地址不变，不必把
-  // 已加载的卡片全部重读一遍。请求仍带原始像素，由后端取整。
-  const tier = thumbnailTier(thumbnailPx);
+  // 工作区的卡片不带缩略图地址，图片墙按档位自己拼（#313），换档位不重新浏览。只浏览单个资料库的
+  // 旧路径按档位而不是原始像素决定何时重新浏览（#200）：请求带原始像素，由后端取整。
+  const tier = workspaceScope ? null : thumbnailTier(thumbnailPx);
   const px = useRef(thumbnailPx);
   px.current = thumbnailPx;
   const loaded = useRef(0);
@@ -80,6 +83,13 @@ export function useWallPages({
       const { libraryId, scope, conditions, workspaceScope, safeMode } = view.current;
       const current = () => gen === generation.current;
       if (!safeMode) safeTiming.mark("开始重新浏览");
+      // 墙上已有的占位图（#313）：按内容寻址、永远不变。每页请求报上这一段原有卡片里已有的，
+      // 后端只给其余的卡片带，回来后从这里补上；顺序变了的卡片只是多带一次，不会缺。
+      const shown = shownCards.current;
+      const held = new Map<string, string>();
+      for (const card of shown) if (card.placeholder) held.set(card.id, card.placeholder);
+      const knownFrom = (start: number) => shown.slice(start, start + PAGE + KNOWN_MARGIN)
+        .filter((card) => card.placeholder).map((card) => card.id);
       try {
         // 取到一半结果集变了（游标过期）：从头再取，最多几次，仍不稳定才报错。
         for (let attempt = 0; ; attempt++) {
@@ -90,12 +100,15 @@ export function useWallPages({
           try {
             do {
               const result: { page: BrowsePage | WorkspacePage; status: WorkspaceStatus | null } = workspaceScope
-                ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, thumbnailPx: px.current }, safeMode).then(page => ({ page, status: page.status }))
+                ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, knownPlaceholders: knownFrom(next.length) }, safeMode).then(page => ({ page, status: page.status }))
                 : { page: await browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx: px.current }), status: null };
               const page = result.page;
               if (!current()) return;
               acceptedStatus = result.status;
-              next.push(...page.cards);
+              for (const card of page.cards) {
+                const kept = card.placeholder ? undefined : held.get(card.id);
+                next.push(kept ? { ...card, placeholder: kept } : card);
+              }
               after = page.nextCursor;
               count = page.total;
               // 恢复位置时一直取到锚定的那张图为止。
@@ -144,7 +157,7 @@ export function useWallPages({
     let expired = false;
     try {
       const result: { page: BrowsePage | WorkspacePage; status: WorkspaceStatus | null } = workspaceScope
-        ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, thumbnailPx: px.current }, safeMode).then(page => ({ page, status: page.status }))
+        ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, knownPlaceholders: [] }, safeMode).then(page => ({ page, status: page.status }))
         : { page: await browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx: px.current }), status: null };
       const page = result.page;
       if (gen !== generation.current) return;
