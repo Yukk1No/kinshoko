@@ -205,6 +205,8 @@ impl Library {
         std::fs::create_dir_all(root.join(STAGING_DIR))?;
 
         let conn = store::open_db(&root.join(DB_FILE))?;
+        // 新库没有旧的占位图文件要清（#313），不留清理标记：打开时后台不必再扫、再写库。
+        conn.execute_batch("DROP TABLE IF EXISTS placeholder_files_pending;")?;
         conn.execute(
             "INSERT INTO library (id, name, format_version, created_at) VALUES (?1, ?2, ?3, ?4)",
             params![

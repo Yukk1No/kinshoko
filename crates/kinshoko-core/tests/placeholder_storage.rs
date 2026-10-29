@@ -233,7 +233,11 @@ fn a_leftover_file_that_cannot_be_removed_is_retried_on_the_next_open() {
     // 占着这个名字的是一个文件夹：删文件必然失败（任何系统上都一样）。
     let stuck = sdr.join(format!("{sha}-p32.webp"));
     std::fs::create_dir_all(stuck.join("busy")).unwrap();
-    assert!(sweep_pending(&root), "新建的库带着标记");
+    assert!(!sweep_pending(&root), "新建的库没有旧文件要清，不带标记");
+    // 当作刚从旧版本升级上来的库：带着标记。
+    db(&root)
+        .execute_batch("CREATE TABLE placeholder_files_pending (pending INTEGER);")
+        .unwrap();
 
     let library = Library::open(&root).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(500));

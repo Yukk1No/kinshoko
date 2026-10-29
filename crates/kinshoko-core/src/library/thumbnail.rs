@@ -406,16 +406,19 @@ pub(super) fn fill_placeholders(inner: Weak<Inner>) {
 /// 表里（expand 过渡期同时存的文件，表里本来就有，补齐不会再碰）；万一有没读进去的，表里没有，
 /// 下次打开补齐现场生成。补齐中途停下（资料库关了）时不扫，留到下次。有目录读不出或文件删不掉
 /// （例如别的程序正开着它）时标记留着，下次打开再扫；本来就不在的算删掉了。
+/// 扫目录时不握着资料库：Windows 上握着时资料库文件夹改不了名。
 fn sweep_placeholder_files(inner: &Weak<Inner>, root: &Path) {
-    let Some(inner) = inner.upgrade() else {
-        return;
+    let pending = {
+        let Some(inner) = inner.upgrade() else {
+            return;
+        };
+        inner.readers.get().query_row(
+            "SELECT EXISTS (SELECT 1 FROM sqlite_master
+                            WHERE type = 'table' AND name = 'placeholder_files_pending')",
+            [],
+            |r| r.get::<_, bool>(0),
+        )
     };
-    let pending = inner.readers.get().query_row(
-        "SELECT EXISTS (SELECT 1 FROM sqlite_master
-                        WHERE type = 'table' AND name = 'placeholder_files_pending')",
-        [],
-        |r| r.get::<_, bool>(0),
-    );
     if !matches!(pending, Ok(true)) {
         return;
     }
@@ -452,7 +455,9 @@ fn sweep_placeholder_files(inner: &Weak<Inner>, root: &Path) {
         }
         Ok(all)
     })();
-    if matches!(swept, Ok(true)) {
+    if matches!(swept, Ok(true))
+        && let Some(inner) = inner.upgrade()
+    {
         let _ = inner
             .writer
             .run(|conn| conn.execute_batch("DROP TABLE placeholder_files_pending;"));
