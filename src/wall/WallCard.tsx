@@ -8,6 +8,7 @@ import { thumbnailUrl } from "../ipc";
 import type { Box } from "./layout";
 import { cardThumbnail } from "./thumbnailTier";
 import type { BrowserCard } from "./wallShared";
+import { markThumbnailShown } from "../startupTiming";
 
 /**
  * 缩略图到达的标记直接写在节点上，不经 React 渲染（滚动时不为每张图重渲染）。
@@ -23,6 +24,7 @@ export const markCachedThumbnail = (img: HTMLImageElement | null) => {
 };
 export const markThumbnailLoaded = (e: { currentTarget: HTMLImageElement }) => {
   if (!e.currentTarget.dataset.loaded) e.currentTarget.dataset.loaded = "fade";
+  markThumbnailShown();
 };
 
 

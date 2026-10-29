@@ -33,6 +33,7 @@ pub fn start(app: &AppHandle, settings: &AppSettings) {
     if LOG.set(log).is_err() {
         return;
     }
+    kinshoko_core::diagnostics::set_timing_sink(record);
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         let message = info
@@ -135,5 +136,38 @@ pub fn log_frontend(level: Level, message: String) {
     record(LogEvent::Frontend {
         level,
         detail: Detail::new(message),
+    });
+}
+
+/// 首屏的几个时刻（#313），界面记下；写进日志时换成写死的说明文字。
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum StartupStep {
+    ScriptStarted,
+    LibraryOpened,
+    WallFirstPage,
+    FirstThumbnail,
+    TwentyThumbnails,
+}
+
+impl StartupStep {
+    fn label(self) -> &'static str {
+        match self {
+            StartupStep::ScriptStarted => "首屏：页面脚本开始执行",
+            StartupStep::LibraryOpened => "首屏：资料库打开（“正在打开图库”结束）",
+            StartupStep::WallFirstPage => "首屏：图片墙拿到第一页",
+            StartupStep::FirstThumbnail => "首屏：第 1 张缩略图显示",
+            StartupStep::TwentyThumbnails => "首屏：第 20 张缩略图显示",
+        }
+    }
+}
+
+/// 界面记下首屏的一个时刻；`ms` 从主窗口开始加载页面算起。
+#[tauri::command]
+pub fn log_timing(step: StartupStep, ms: u32) {
+    record(LogEvent::Took {
+        step: step.label(),
+        ms,
+        count: None,
     });
 }

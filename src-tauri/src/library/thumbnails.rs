@@ -1,6 +1,14 @@
 //! 缩略图协议 `thumb` 与原图的内容类型。
 
+use std::sync::atomic::{AtomicU32, Ordering};
+
+use kinshoko_core::diagnostics::took;
+
 use super::*;
+
+/// 运行日志只记本次运行的前这么多个缩略图请求：首屏够看，滚动时不刷屏。
+const LOGGED_THUMBNAILS_LIMIT: u32 = 80;
+static LOGGED_THUMBNAILS: AtomicU32 = AtomicU32::new(0);
 
 pub(super) fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> Response<Vec<u8>> {
     let not_found = || {
@@ -20,15 +28,22 @@ pub(super) fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> 
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(app);
     // 核对与读文件前后各一次（#123）。平常按发布的快照放行，不拿全局锁、不重开资料库（#313）；
-    // 开发构建在控制台输出分段耗时，与 `workspace.browse … wait=` 对照。
-    #[cfg(debug_assertions)]
+    // 本次运行的前若干个请求把分段耗时记进运行日志（#313），与浏览的耗时对照。
     let started = std::time::Instant::now();
+    let logged = LOGGED_THUMBNAILS.fetch_add(1, Ordering::Relaxed) < LOGGED_THUMBNAILS_LIMIT;
     let mut slow = false;
     let Ok(library) = workspace::read_image(app, library_id, image_id, &mut slow) else {
         return not_found();
     };
-    #[cfg(debug_assertions)]
-    let checked = started.elapsed();
+    if logged {
+        let path = if slow {
+            "缩略图：核对（加锁路径）"
+        } else {
+            "缩略图：核对（快路径）"
+        };
+        took(path, started, None);
+    }
+    let reading = std::time::Instant::now();
     // `full`：1:1 与放大时显示的文件（Library::display，ADR-0005）。看图界面只用这条路，
     // 不直接读原文件——动图、HDR、Chromium 不能精确表示的 ICC 与 CMYK 要换成 sdr 派生图。
     // `fit-<像素>`：查看器缩小显示（适应窗口等）的精确尺寸派生图（Library::display_scaled，#47）。
@@ -52,25 +67,17 @@ pub(super) fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> 
         Ok(bytes) => bytes,
         Err(_) => return not_found(),
     };
-    #[cfg(debug_assertions)]
-    let read = started.elapsed();
+    if logged {
+        took("缩略图：取文件（含生成）", reading, None);
+    }
     if !state.safe_mode.still(&generation)
         || saved_safe_mode(app) != safe
         || workspace::read_image(app, library_id, image_id, &mut slow).is_err()
     {
         return not_found();
     }
-    #[cfg(debug_assertions)]
-    {
-        let ms = |d: std::time::Duration| d.as_secs_f64() * 1e3;
-        let done = started.elapsed();
-        eprintln!(
-            "thumb px={px} slow={slow} check={:.1} file={:.1} recheck={:.1} ms={:.1}",
-            ms(checked),
-            ms(read - checked),
-            ms(done - read),
-            ms(done)
-        );
+    if logged {
+        took("缩略图：一张", started, None);
     }
     match Ok::<_, std::io::Error>(bytes) {
         Ok(bytes) => Response::builder()

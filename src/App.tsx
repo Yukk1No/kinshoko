@@ -43,6 +43,7 @@ import { TagDisplayContext } from "./tags/TagDisplayContext";
 import { OpenTagNameSettings } from "./tags/TagNameSettings";
 
 import { LibraryWorkspace } from "./workspace/LibraryWorkspace";
+import { markStartup } from "./startupTiming";
 
 /**
  * 主窗口：本设备登记的资料库与一个活动资料库（#49）；上次的库不可用时仍可选择其他库、
@@ -198,7 +199,10 @@ function MainWindow() {
       () => undefined,
     );
     currentLibrary().then(
-      (value) => alive && setLibrary(value),
+      (value) => {
+        markStartup("libraryOpened");
+        if (alive) setLibrary(value);
+      },
       (e) => {
         if (!alive) return;
         setOpenError(String(e));

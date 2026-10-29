@@ -57,12 +57,10 @@ impl Workspace {
         query: &WorkspaceQuery,
         safe: bool,
     ) -> Result<PendingPage, CatalogError> {
-        // 分段耗时（#288）：开发构建在控制台输出，与 Tauri 层的总耗时一行对照。
-        #[cfg(debug_assertions)]
+        // 分段耗时（#288、#313）：记进运行日志，与应用壳的总耗时对照。
         let started = std::time::Instant::now();
         let snapshot = self.snapshot(device, catalog)?;
-        #[cfg(debug_assertions)]
-        let snapshot_ms = started.elapsed().as_secs_f64() * 1e3;
+        crate::diagnostics::took("浏览：取快照", started, None);
         let status = snapshot.status(safe);
         if let WorkspaceScope::Library { library_id, .. } = &query.scope {
             let provider = snapshot
@@ -97,17 +95,16 @@ impl Workspace {
         let reuse = !reads_ratings(&query.conditions);
         let cached = reuse.then(|| self.browse_cache.get(&key)).flatten();
         let hit = cached.is_some();
+        let collecting = std::time::Instant::now();
         let rows = match cached {
             Some(rows) => rows,
             None => {
                 self.browse_cache.builds += 1;
-                std::sync::Arc::new(collect_rows(&snapshot, query, safe, |r| {
-                    self.provider(device, r)
-                })?)
+                let rows = collect_rows(&snapshot, query, safe, |r| self.provider(device, r))?;
+                crate::diagnostics::took("浏览：排出结果", collecting, Some(rows.len()));
+                std::sync::Arc::new(rows)
             }
         };
-        #[cfg(debug_assertions)]
-        let rows_ms = started.elapsed().as_secs_f64() * 1e3 - snapshot_ms;
         let total = rows.len() as u32;
         let limit = query.limit.clamp(1, 1000) as usize;
         let next = offset.saturating_add(limit);
@@ -128,13 +125,6 @@ impl Workspace {
             })
             .map(|p| p.registration.library.clone())
             .collect();
-        #[cfg(debug_assertions)]
-        eprintln!(
-            "workspace.browse.phases snapshot={snapshot_ms:.1} rows={rows_ms:.1}({}) page={:.1} cards={}",
-            if hit { "hit" } else { "build" },
-            started.elapsed().as_secs_f64() * 1e3 - snapshot_ms - rows_ms,
-            cards.len()
-        );
         Ok(PendingPage {
             page: WorkspacePage {
                 cards,

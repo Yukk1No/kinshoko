@@ -1,5 +1,6 @@
 //! Workspace adapter: detached provider reads, revisions and global safe-mode boundaries.
 use super::*;
+use kinshoko_core::diagnostics::took;
 use kinshoko_core::workspace::{
     Workspace, WorkspaceCard, WorkspaceDirectories, WorkspacePage, WorkspaceQuery, WorkspaceStatus,
 };
@@ -110,43 +111,28 @@ pub(super) async fn workspace_browse<R: Runtime>(
     safe_mode: bool,
 ) -> Result<WorkspacePage, String> {
     blocking(move || {
-        // 浏览耗时（#183）：开发构建在控制台输出，`wait` 是等资源锁的时间，`placeholders` 是锁外读
-        // 占位图的时间，core 另有锁里的分段（#288）。
-        #[cfg(debug_assertions)]
+        // 浏览耗时（#183、#313）：记进运行日志，分等资源锁、锁外读占位图与总耗时；core 另有锁里的
+        // 分段（#288）。
         let started = std::time::Instant::now();
-        #[cfg(debug_assertions)]
-        let mut waited = 0.0;
         // 锁里只取当页的行；占位图在锁外读，读完再按修订号复核（#313）。读盘慢时不拖住缩略图请求。
         // 不用 `stable`：`confirm` 自己复核修订号，前后再各取一次状态只是多做几遍核对。
         let expected = generation(&app);
         let pending = action(&app, safe_mode, |w, d, c| {
-            #[cfg(debug_assertions)]
-            {
-                waited = started.elapsed().as_secs_f64() * 1e3;
-            }
+            took("浏览：等资源锁", started, None);
             w.browse_rows(d, c, &query, safe_mode)
         });
-        #[cfg(debug_assertions)]
-        let mut placeholders = 0.0;
         let page = pending.and_then(|mut pending| {
-            #[cfg(debug_assertions)]
             let reading = std::time::Instant::now();
             pending.fill_placeholders(&app.state::<LibraryState>().gate);
-            #[cfg(debug_assertions)]
-            {
-                placeholders = reading.elapsed().as_secs_f64() * 1e3;
-            }
+            took("浏览：读占位图", reading, None);
             let page = action(&app, safe_mode, |w, d, c| w.confirm(d, c, pending))?;
             current(&app, safe_mode, expected)?;
             Ok(page)
         });
-        #[cfg(debug_assertions)]
-        eprintln!(
-            "workspace.browse safe={safe_mode} ok={} cards={} wait={waited:.1} placeholders={placeholders:.1} ms={:.1}",
-            page.is_ok(),
-            page.as_ref().map_or(0, |p| p.cards.len()),
-            started.elapsed().as_secs_f64() * 1e3
-        );
+        match &page {
+            Ok(page) => took("浏览：一页", started, Some(page.cards.len())),
+            Err(_) => took("浏览：失败", started, None),
+        }
         page
     })
     .await
