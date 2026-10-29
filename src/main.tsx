@@ -6,6 +6,7 @@ import { DesktopMenuView } from "./desktop/PinMenu";
 import { FidelityGate } from "./fidelity/FidelityGate";
 import { RuntimeProvider } from "./RuntimeSupport";
 import { recordUncaughtErrors } from "./runLog";
+import { markStartup } from "./startupTiming";
 import { blockBrowserMenu } from "./ui/browserMenu";
 import "./styles.css";
 import "./ui/ui.css";
@@ -29,6 +30,8 @@ document.documentElement.dataset.view = view ?? "main";
 blockBrowserMenu(window);
 // 没有接住的错误记进运行日志（#219）。
 recordUncaughtErrors(window);
+// 首屏耗时（#313）：页面脚本开始执行。
+if (view === null) markStartup("scriptStarted");
 
 // #102 T7：开发模式的帧时间探针，只挂在主窗口。启用条件是 Vite 开发服务器，或构建时显式设置
 // VITE_KINSHOKO_PERF=1（用生产构建量帧时间）。条件在构建时折叠为常量，发行构建不含 ./perf。

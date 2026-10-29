@@ -75,6 +75,33 @@ fn each_event_is_one_line_in_the_file_for_the_local_day_with_local_time_and_leve
     assert_eq!(lines[1]["paths"], 3);
 }
 
+/// 首屏各步的耗时（#313）：步骤名、毫秒数，有数量时带上数量。
+#[test]
+fn a_timing_is_one_line_with_its_step_and_milliseconds() {
+    let dir = tempfile::tempdir().unwrap();
+    let clock = TestClock::at(OCT_21_AFTERNOON);
+    let log = open(dir.path(), &clock);
+
+    log.record(LogEvent::Took {
+        step: "浏览：一页",
+        ms: 42,
+        count: Some(120),
+    });
+    log.record(LogEvent::Took {
+        step: "打开资料库：合计",
+        ms: 6500,
+        count: None,
+    });
+
+    let lines = lines(&dir.path().join("run-2026-10-21.jsonl"));
+    assert_eq!(lines[0]["event"], "took");
+    assert_eq!(lines[0]["step"], "浏览：一页");
+    assert_eq!(lines[0]["ms"], 42);
+    assert_eq!(lines[0]["count"], 120);
+    assert_eq!(lines[1]["ms"], 6500);
+    assert!(lines[1].get("count").is_none());
+}
+
 #[test]
 fn a_disabled_log_writes_nothing_and_turning_it_off_keeps_what_was_written() {
     let dir = tempfile::tempdir().unwrap();

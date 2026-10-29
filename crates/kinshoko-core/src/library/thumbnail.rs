@@ -393,6 +393,7 @@ const FILL_BATCH: usize = 32;
 /// 只持有弱引用：资料库关闭后在下一批之前停下，不让数据库连接活得比资料库久。
 /// 失败只是这张图继续退回中性底色，下次打开再试。
 pub(super) fn fill_placeholders(inner: Weak<Inner>) {
+    let started = std::time::Instant::now();
     let (root, sources) = {
         let Some(inner) = inner.upgrade() else {
             return;
@@ -420,14 +421,20 @@ pub(super) fn fill_placeholders(inner: Weak<Inner>) {
             Err(_) => return,
         }
     };
+    crate::diagnostics::took("占位图补齐：查缺", started, Some(sources.len()));
+    if sources.is_empty() {
+        return;
+    }
+    let mut failed = 0;
     for batch in sources.chunks(FILL_BATCH) {
         let mut rows = Vec::new();
         for source in batch {
             if inner.strong_count() == 0 {
                 return;
             }
-            if let Ok(row) = load_placeholder(&root, source) {
-                rows.push(row);
+            match load_placeholder(&root, source) {
+                Ok(row) => rows.push(row),
+                Err(_) => failed += 1,
             }
         }
         let Some(inner) = inner.upgrade() else {
@@ -440,6 +447,10 @@ pub(super) fn fill_placeholders(inner: Weak<Inner>) {
         {
             return;
         }
+    }
+    crate::diagnostics::took("占位图补齐：完成", started, Some(sources.len()));
+    if failed > 0 {
+        crate::diagnostics::took("占位图补齐：失败张数", started, Some(failed));
     }
 }
 

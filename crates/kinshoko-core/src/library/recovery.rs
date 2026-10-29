@@ -17,6 +17,7 @@ use super::types::RecoveryReport;
 use super::{Error, ORIGINALS_DIR, STAGING_DIR};
 
 pub(super) fn reconcile(conn: &mut Connection, root: &Path) -> Result<RecoveryReport, Error> {
+    let started = std::time::Instant::now();
     let pending = {
         let mut stmt = conn.prepare(
             "SELECT id, sha256, size, staging_path, rel_path, target_existed, location
@@ -61,7 +62,14 @@ pub(super) fn reconcile(conn: &mut Connection, root: &Path) -> Result<RecoveryRe
         super::thumbnail::remove_for(root, &sha);
     }
 
+    crate::diagnostics::took(
+        "资料库：对账（中断的导入、暂存、待清原文件）",
+        started,
+        None,
+    );
+    let scanning = std::time::Instant::now();
     report.orphans = orphans(conn, root)?;
+    crate::diagnostics::took("资料库：对账（找孤立原文件）", scanning, None);
     Ok(report)
 }
 
