@@ -80,6 +80,9 @@ use tauri::{AppHandle, Emitter, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::shell::ShellState;
+use std::panic::Location;
+
+use kinshoko_core::diagnostics::HeldLock;
 
 const EVENT: &str = "library-event";
 /// 连续的列表、图片与词表变化合并推送的窗口（#142）。
@@ -171,8 +174,9 @@ impl LibraryState {
     }
 
     /// 活动资料库，不核对身份。只给不经界面请求的入口用（缩略图协议、安全模式开关）。
+    #[track_caller]
     fn active(&self) -> Result<Arc<Library>, String> {
-        lock(&self.libraries)
+        lock_libraries(self)
             .as_ref()
             .and_then(DeviceLibraries::current)
             .ok_or_else(|| "还没有打开资料库".to_owned())
@@ -180,11 +184,21 @@ impl LibraryState {
 }
 
 /// 本设备登记表与活动资料库；登记表第一次用到时才打开，打开时按设置里的安全模式范围设好。
+#[track_caller]
 fn with_libraries<T>(
     state: &LibraryState,
     action: impl FnOnce(&mut DeviceLibraries) -> Result<T, DeviceLibraryError>,
 ) -> Result<T, String> {
-    let mut libraries = lock(&state.libraries);
+    with_libraries_at(state, Location::caller(), action)
+}
+
+/// 同 [`with_libraries`]；`site` 是记进运行日志的取锁处（#337）。
+fn with_libraries_at<T>(
+    state: &LibraryState,
+    site: &'static Location<'static>,
+    action: impl FnOnce(&mut DeviceLibraries) -> Result<T, DeviceLibraryError>,
+) -> Result<T, String> {
+    let mut libraries = lock_libraries_at(state, site);
     if libraries.is_none() {
         let mut opened =
             DeviceLibraries::open(&state.device_dir).map_err(|error| error.to_string())?;
@@ -197,11 +211,50 @@ fn with_libraries<T>(
     action(libraries.as_mut().expect("登记表已打开")).map_err(|error| error.to_string())
 }
 
+#[track_caller]
 fn with_catalog<T>(
     catalog: &CatalogSearch,
     action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,
 ) -> Result<T, String> {
-    catalog.with_catalog(action).map_err(|e| e.to_string())
+    catalog
+        .with_catalog_at(Location::caller(), action)
+        .map_err(|e| e.to_string())
+}
+
+/// 登记表的锁，等锁、持锁久了记进运行日志（#337）。
+struct LibrariesGuard<'a> {
+    guard: std::sync::MutexGuard<'a, Option<DeviceLibraries>>,
+    _held: HeldLock,
+}
+
+impl std::ops::Deref for LibrariesGuard<'_> {
+    type Target = Option<DeviceLibraries>;
+    fn deref(&self) -> &Self::Target {
+        &self.guard
+    }
+}
+
+impl std::ops::DerefMut for LibrariesGuard<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.guard
+    }
+}
+
+#[track_caller]
+fn lock_libraries(state: &LibraryState) -> LibrariesGuard<'_> {
+    lock_libraries_at(state, Location::caller())
+}
+
+fn lock_libraries_at<'a>(
+    state: &'a LibraryState,
+    site: &'static Location<'static>,
+) -> LibrariesGuard<'a> {
+    let waiting = std::time::Instant::now();
+    let guard = lock(&state.libraries);
+    LibrariesGuard {
+        guard,
+        _held: HeldLock::acquired("登记表", site, waiting),
+    }
 }
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {

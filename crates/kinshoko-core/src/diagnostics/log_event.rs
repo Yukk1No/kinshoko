@@ -178,6 +178,20 @@ pub enum LogEvent {
         #[serde(skip_serializing_if = "Option::is_none")]
         count: Option<u32>,
     },
+    /// 等一把锁等了 100 毫秒以上（#337）；`at`、`line` 是取锁处的源文件名与行号。
+    LockWaited {
+        lock: &'static str,
+        at: &'static str,
+        line: u32,
+        ms: u32,
+    },
+    /// 拿着一把锁 100 毫秒以上才放开（#337）。
+    LockHeld {
+        lock: &'static str,
+        at: &'static str,
+        line: u32,
+        ms: u32,
+    },
     /// 应用壳里的错误或警告；`site` 是代码里写死的出错位置。
     Problem {
         #[serde(skip)]

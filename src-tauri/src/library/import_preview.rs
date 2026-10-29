@@ -15,7 +15,7 @@ pub(super) fn revoke<R: Runtime>(app: &AppHandle<R>) {
     state
         .import_preview_generation
         .fetch_add(1, Ordering::SeqCst);
-    if let Some(device) = lock(&state.libraries).as_mut() {
+    if let Some(device) = lock_libraries(&state).as_mut() {
         device.close_import_preview(None);
     }
 }
@@ -54,7 +54,7 @@ pub(super) async fn open_import_preview<R: Runtime>(
                 || workspace::current(&app, true, mode_generation).is_err()
             {
                 let state = app.state::<LibraryState>();
-                if let Some(device) = lock(&state.libraries).as_mut() {
+                if let Some(device) = lock_libraries(&state).as_mut() {
                     device.close_import_preview(Some(&session.id));
                 }
                 return Err(kinshoko_core::library::Error::LensChanged.to_string());
@@ -73,7 +73,7 @@ pub(super) async fn close_import_preview<R: Runtime>(
         with_visibility_commit(&app, |_| {
             let state = app.state::<LibraryState>();
             // A late close for an older session must not revoke newer explicit consent.
-            let revoked = lock(&state.libraries)
+            let revoked = lock_libraries(&state)
                 .as_mut()
                 .is_some_and(|device| device.close_import_preview(session_id.as_deref()));
             if revoked || session_id.is_none() {

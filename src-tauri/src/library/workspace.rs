@@ -7,24 +7,33 @@ use kinshoko_core::workspace::{
 
 pub(super) const EVENT: &str = "workspace-changed";
 /// Acquire device, catalog, then workspace. Callers retain their lens and visibility guards.
+#[track_caller]
 pub(super) fn with_resources<T>(
     state: &LibraryState,
     f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
 ) -> Result<T, String> {
-    with_libraries(state, |device| {
-        Ok(with_catalog(&state.search, |catalog| {
-            let mut slot = lock(&state.workspace);
-            if slot.is_none() {
-                *slot = Some(Workspace::open_with_gate(
-                    &state.device_dir,
-                    state.gate.clone(),
-                )?);
-            }
-            f(slot.as_mut().expect("workspace opened"), device, catalog)
-        }))
+    // 三把锁都记在调用方的位置上（#337）：日志里看得出是哪个命令占着它们。
+    let site = std::panic::Location::caller();
+    with_libraries_at(state, site, |device| {
+        Ok(state
+            .search
+            .with_catalog_at(site, |catalog| {
+                let waiting = std::time::Instant::now();
+                let mut slot = lock(&state.workspace);
+                let _held = kinshoko_core::diagnostics::HeldLock::acquired("工作区", site, waiting);
+                if slot.is_none() {
+                    *slot = Some(Workspace::open_with_gate(
+                        &state.device_dir,
+                        state.gate.clone(),
+                    )?);
+                }
+                f(slot.as_mut().expect("workspace opened"), device, catalog)
+            })
+            .map_err(|e| e.to_string()))
     })?
 }
 
+#[track_caller]
 pub(super) fn action<R: Runtime, T>(
     app: &AppHandle<R>,
     safe: bool,
@@ -53,6 +62,7 @@ pub(super) fn current<R: Runtime>(
     }
 }
 /// [`action`] 加上代次复核：做完时安全模式变过就丢弃结果。
+#[track_caller]
 pub(super) fn guarded<R: Runtime, T>(
     app: &AppHandle<R>,
     safe: bool,
@@ -64,6 +74,7 @@ pub(super) fn guarded<R: Runtime, T>(
     Ok(value)
 }
 /// [`guarded`] 再加上前后修订号复核，给自己不复核修订号的读取用。
+#[track_caller]
 pub(super) fn stable<R: Runtime, T>(
     app: &AppHandle<R>,
     safe: bool,

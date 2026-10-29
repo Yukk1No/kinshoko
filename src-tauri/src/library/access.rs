@@ -130,7 +130,7 @@ pub fn with_references<R: Runtime, T>(
     f: impl FnOnce(&References<'_>) -> T,
 ) -> T {
     let state = app.state::<LibraryState>();
-    let registry = lock(&state.libraries)
+    let registry = lock_libraries(&state)
         .as_ref()
         .map(|libraries| libraries.libraries().to_vec())
         .or_else(|| {
