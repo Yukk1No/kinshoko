@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  A local reference library and desktop pinning tool for anime-style illustrators.
+  Keep, find and pin your drawing references.
 </p>
 
 <p align="center">
@@ -21,22 +21,22 @@
 
 ---
 
-Kinshoko collects, organizes and finds the reference images an illustrator draws from, then pins them on top of the painting app. It aims to replace two tools at once: an image library such as Eagle for storing and finding, and Snipaste for pinning references to the screen.
+Kinshoko is a reference tool for illustrators. Save images you like as you come across them and Kinshoko tags them for you; when you sit down to draw, search for what you need and pin it next to your canvas.
 
 > [!NOTE]
-> Kinshoko is in **beta** (`1.0.0-beta.1`). It runs on Windows 10/11 x64 only, and the interface is in Simplified Chinese. Keep your own copy of your images until backups are verified on your machine.
+> Kinshoko is in **beta**. It runs on Windows 10/11 x64 only, and the interface is in Simplified Chinese. Keep your own copy of your images until backups are verified on your machine.
 
 ## Features
 
-- **Bring your Eagle library over.** Kinshoko finds Eagle 1.8.x and 4.x libraries on your computer and imports images with their tags, folder tree, source links and notes. Re-importing updates what Eagle provides and keeps what you organized in Kinshoko.
-- **Collect from anywhere.** Import files or whole folders, drag and drop, paste from the clipboard, or save a screenshot into a library. Identical files are stored once and keep every source.
-- **Automatic tags and content ratings.** Each image gets suggested tags and a rating from a local tagging model ([PixAI Tagger v1.0](https://huggingface.co/Mexes/pixai-tagger-v1.0-onnx-fp32-fp16-int8)), on the GPU through DirectML or on the CPU. Your manual corrections always win.
-- **Find by what you want to draw.** Search by tags, text and Chinese aliases. Approximate search expands to related tags, such as blue eyes and aqua eyes, and shows you what it added so you can switch back to exact matching.
-- **Pin to the screen.** Pin a whole image, a region or any part of the screen above your painting app. Pins can be flipped, rotated, faded and locked, and slide to the screen edge to hand focus back to the painting app. Pins stay up after you close the main window.
-- **Reference groups.** Save regions and images as a reusable group, even across libraries.
-- **Safe mode.** On by default. Adult content stays out of browsing and search, and is covered in place in groups and pins.
-- **Multiple libraries.** Create, register, switch and move libraries. Kinshoko never modifies your original files.
-- **Local backup with restore checks.** Back up to another drive and verify that originals, organization and groups come back intact.
+- **Pin next to your canvas.** Pin a whole image, part of one, or anything on screen above your painting app. Flip, rotate, fade or lock a pin so you don't click it by accident, and push it to the screen edge when it's in the way. Pins stay up after you close the main window.
+- **Save images in a moment.** Drag them in, paste, take a screenshot, or import a whole folder. The same image is only stored once.
+- **Automatic tags.** New images are tagged with things like hair color, outfit and pose, so you don't have to type them in. Fix any tag whenever you like.
+- **Find what you want to draw.** Search in Chinese. A search for blue eyes also brings in close matches such as aqua eyes, and you can switch back to exact matching.
+- **Reference groups.** Keep the references for one piece together as a group and bring them back next time.
+- **Safe mode.** On by default. Adult images won't pop up on your screen, so streaming or sharing your screen stays safe.
+- **Your images stay on your computer.** No account, works offline, and your original files are never changed. Back up to another drive and check that everything comes back.
+- **Separate libraries.** Keep work and personal references apart and switch between them.
+- **Move over from Eagle.** Bring an existing Eagle library over with its tags and folders.
 
 Planned directions, such as image similarity search, semantic search, color search and multi-device sync, are listed in the [roadmap](docs/discovery/roadmap.md) (in Chinese).
 
