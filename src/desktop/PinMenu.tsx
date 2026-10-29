@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BookmarkPlus, Copy, Eye, ExternalLink, FlipHorizontal2, FlipVertical2, Layers, PanelRightClose,
   RotateCcw, RotateCw, Save, Scan, SunDim, X,
 } from "lucide-react";
-import { Menu, MenuCheckboxItem, MenuItem, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuTip } from "../ui/Menu";
+import { Menu, MenuCheckboxItem, MenuItem, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuTip, PointerMenu } from "../ui/Menu";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { PinMenu } from "../bindings/PinMenu";
 import type { PinMenuOpen } from "../bindings/PinMenuOpen";
@@ -93,8 +93,8 @@ export function menuAnchor(open: PinMenuOpen, dpr: number): { x: number; y: numb
 
 /**
  * 钉图菜单窗口（`?view=desktop-menu`）：一个置顶、无边框、透明的窗口，盖住指针所在的显示器（让出最下面一行，#230）。
- * 钉图窗口小且透明，菜单不在钉图里渲染，而在这里从指针处弹出；Base UI 的碰撞规则让菜单与子菜单
- * 留在窗口（即这台显示器）之内。Esc、点外部、窗口失去焦点都关闭菜单；选中一项后由应用壳先收起
+ * 钉图窗口小且透明，菜单不在钉图里渲染，而在这里从指针处弹出（`PointerMenu`，主菜单与子菜单作为整体开关）；
+ * Base UI 的碰撞规则让菜单与子菜单留在窗口（即这台显示器）之内。Esc、点外部、窗口失去焦点都关闭菜单；选中一项后由应用壳先收起
  * 菜单窗口再做这件事，提示显示在钉图上。窗口用完只隐藏，下次右键直接复用。
  */
 export function DesktopMenuView() {
@@ -146,28 +146,13 @@ export function DesktopMenuView() {
     return () => cancelAnimationFrame(frame);
   }, [open]);
 
-  const point = open ? menuAnchor(open, dpr) : null;
-  const anchor = useMemo(() => point && {
-    getBoundingClientRect: () => DOMRect.fromRect({ x: point.x, y: point.y, width: 0, height: 0 }),
-  }, [point?.x, point?.y]);
-
   return <>
     {/* 点在菜单外（同一台显示器上）就关闭；别的显示器上的点击经窗口失去焦点关闭。 */}
     <div className="desktop-menu-backdrop" onPointerDown={dismiss} onContextMenu={(e) => { e.preventDefault(); dismiss(); }} />
-    {open && anchor && (
-      <Menu.Root key={open.generation} open modal={false} onOpenChange={(next, details) => {
-        // 根菜单没有同级菜单：没有触发元素的根菜单会把自己的子菜单当成同级，子菜单一打开就把整个菜单关掉（#309）。
-        if (!next && details.reason === "sibling-open") { details.cancel(); return; }
-        if (!next) dismiss();
-      }}>
-        <Menu.Portal>
-          <Menu.Positioner className="k-positioner" anchor={anchor} side="bottom" align="start" sideOffset={2} collisionPadding={4}>
-            <Menu.Popup className="k-popup" aria-label="钉图菜单" onContextMenu={(e) => e.preventDefault()}>
-              <PinMenuItems menu={open.menu} act={act} dismiss={dismiss} />
-            </Menu.Popup>
-          </Menu.Positioner>
-        </Menu.Portal>
-      </Menu.Root>
+    {open && (
+      <PointerMenu key={open.generation} point={menuAnchor(open, dpr)} label="钉图菜单" onClose={dismiss}>
+        <PinMenuItems menu={open.menu} act={act} dismiss={dismiss} />
+      </PointerMenu>
     )}
   </>;
 }

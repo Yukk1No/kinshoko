@@ -226,6 +226,53 @@ describe("菜单窗口", () => {
     expect(await screen.findByRole("menu", { name: "加入参考组" })).toBeTruthy();
   });
 
+  it("从触发项移进子菜单再选一档：子菜单与主菜单都不收（#309）", async () => {
+    // 触发项在左，子菜单贴在它右边；jsdom 没有布局，按真实摆放给出矩形，让悬停的安全区按几何判断。
+    const rect = (x: number, y: number, w: number, h: number) => DOMRect.fromRect({ x, y, width: w, height: h });
+    const boxes = new Map<Element, DOMRect>();
+    const spy = vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      for (const [el, box] of boxes) if (el === this || (el.parentElement === this && this.classList.contains("k-positioner"))) return box;
+      return rect(0, 0, 0, 0);
+    });
+    try {
+      render(<DesktopMenuView />);
+      await settle();
+      act(() => ipc.next!(open(11, reference)));
+      const trigger = await screen.findByRole("menuitem", { name: /透明度/ });
+      boxes.set(trigger, rect(0, 100, 200, 30));
+      const wait = (ms: number) => act(async () => { await new Promise((r) => setTimeout(r, ms)); });
+      const at = (x: number, y: number) => ({ clientX: x, clientY: y, pointerType: "mouse" as const });
+      fireEvent.pointerEnter(trigger, at(100, 115));
+      fireEvent.mouseEnter(trigger, at(100, 115));
+      fireEvent.pointerMove(trigger, at(150, 115));
+      fireEvent.mouseMove(trigger, at(150, 115));
+      await wait(150);
+      const sub = await screen.findByRole("menu", { name: /^透明度/ });
+      boxes.set(sub, rect(202, 100, 120, 300));
+      const backdrop = document.querySelector(".desktop-menu-backdrop")!;
+      fireEvent.pointerLeave(trigger, { ...at(201, 116), relatedTarget: backdrop });
+      fireEvent.mouseLeave(trigger, { ...at(201, 116), relatedTarget: backdrop });
+      fireEvent.mouseMove(backdrop, at(202, 118));
+      const item = within(sub).getByRole("menuitemradio", { name: "40%" });
+      boxes.set(item, rect(202, 250, 120, 28));
+      for (const target of [sub, item]) {
+        fireEvent.pointerEnter(target, at(220, 260));
+        fireEvent.mouseEnter(target, at(220, 260));
+        fireEvent.pointerMove(target, at(220, 262));
+        fireEvent.mouseMove(target, at(220, 262));
+      }
+      await wait(300);
+      expect(screen.getByRole("menu", { name: "钉图菜单" })).toBeTruthy();
+      expect(screen.getByRole("menu", { name: /^透明度/ })).toBeTruthy();
+      fireEvent.click(within(sub).getByRole("menuitemradio", { name: "40%" }));
+      await settle();
+      expect(ipc.action).toHaveBeenCalledWith("P2", "opacity:40", 11);
+      expect(ipc.close).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("又右键了别的钉图：换成新的菜单", async () => {
     render(<DesktopMenuView />);
     await settle();
