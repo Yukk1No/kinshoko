@@ -21,9 +21,9 @@ Take screenshots you check yourself at `scale` 0.5, or zoom into the region in q
 ## Source and maintenance
 
 - Upstream: https://github.com/pbakaus/impeccable
-- Commit: `c74755d920985f7a92cef691ca970ba95f90126e`
-- Skill version: `4.4.0`
-- Engine version: `0.1.9`
+- Commit: not recorded (updated with `npx impeccable update` on 2026-10-28)
+- Skill version: `4.8.0`
+- Engine version: `0.1.18`
 - Distribution: upstream `.agents/skills/impeccable/`, copied with the Codex skill installer.
 - Licensing: upstream `LICENSE` and `NOTICE.md` are included in the installed skill directory.
 
