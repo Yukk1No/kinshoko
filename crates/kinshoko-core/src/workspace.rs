@@ -11,6 +11,7 @@ pub use source::{
 };
 mod browse;
 use browse::BrowseCache;
+pub use browse::PendingPage;
 mod gate;
 pub use gate::ImageGate;
 mod snapshot;
@@ -57,7 +58,9 @@ pub struct WorkspaceQuery {
     #[serde(default)]
     pub cursor: Option<String>,
     pub limit: u32,
-    pub thumbnail_px: u32,
+    /// 调用方已经有占位图的卡片 id（#313）：占位图按内容寻址、永远不变，这些卡片不再带它。
+    #[serde(default)]
+    pub known_placeholders: Vec<String>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -78,8 +81,9 @@ pub struct WorkspaceCard {
     pub id: String,
     pub width: u32,
     pub height: u32,
-    pub thumbnail: String,
-    /// 占位图（#110）的 `data:` 地址，取自显示用的来源；还没生成时为空。
+    /// 占位图（#110）的 `data:` 地址，取自显示用的来源；还没生成时、或请求时报为已有的
+    /// （[`WorkspaceQuery::known_placeholders`]）为空。缩略图地址由界面按 `libraryId`、`imageId`
+    /// 与档位拼出（#313），与 `thumb` 协议的路径相同。
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub placeholder: Option<String>,

@@ -142,7 +142,7 @@ it("跨库视角下，一次选中只调用一次 workspaceSourceInspection", as
     if (cmd === "plugin:desktop|reference_groups") return [];
     return undefined;
   });
-  const card: WorkspaceCard = { id: "same-bytes", width: 10, height: 10, thumbnail: "B/b/256", adult: false, libraryId: "B", imageId: "b", sources: [
+  const card: WorkspaceCard = { id: "same-bytes", width: 10, height: 10, adult: false, libraryId: "B", imageId: "b", sources: [
     { libraryId: "B", libraryName: "移动盘参考", imageId: "b", matches: true, unavailable: null, deleted: false },
   ] };
   render(<WorkspaceSources card={card} onClose={() => {}} onView={() => {}} />);

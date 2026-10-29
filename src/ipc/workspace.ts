@@ -64,8 +64,8 @@ export function workspaceImage(libraryId: string, imageId: string): Promise<Imag
   return invoke<ImageDetail>(lib("workspace_image"), { libraryId, imageId });
 }
 /** 一张图的卡片，与图片墙同样构成（id 是字节身份、带全部来源）；不经图片墙打开的入口用。 */
-export function workspaceCard(libraryId: string, imageId: string, thumbnailPx: number, safeMode: boolean): Promise<WorkspaceCard> {
-  return invoke<WorkspaceCard>(lib("workspace_card"), { libraryId, imageId, thumbnailPx, safeMode });
+export function workspaceCard(libraryId: string, imageId: string, safeMode: boolean): Promise<WorkspaceCard> {
+  return invoke<WorkspaceCard>(lib("workspace_card"), { libraryId, imageId, safeMode });
 }
 export function workspaceSidebar(libraryId: string, safeMode: boolean): Promise<Sidebar> {
   return invoke<Sidebar>(lib("workspace_sidebar"), { libraryId, safeMode });

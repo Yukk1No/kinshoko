@@ -8,7 +8,7 @@ import { DRAG_IMAGE_SOURCES, Wall } from "./Wall";
 
 type Call = { query: WorkspaceQuery; safeMode: boolean; resolve: (page: WorkspacePage) => void };
 let calls: Call[];
-const card: WorkspaceCard = { id: "bytes", width: 120, height: 90, adult: false, thumbnail: "A/a/256",
+const card: WorkspaceCard = { id: "bytes", width: 120, height: 90, adult: false,
   libraryId: "A", imageId: "a", sources: [
     { libraryId: "A", libraryName: "甲库", imageId: "a", unavailable: null, matches: true, deleted: false },
     { libraryId: "B", libraryName: "乙库", imageId: "b", unavailable: "离线", matches: false, deleted: false },

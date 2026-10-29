@@ -27,7 +27,7 @@ fn query(library: &Library, scope: BrowseScope) -> WorkspaceQuery {
         conditions: Default::default(),
         cursor: None,
         limit: 100,
-        thumbnail_px: 240,
+        known_placeholders: Vec::new(),
     }
 }
 #[test]

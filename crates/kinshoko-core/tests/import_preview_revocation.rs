@@ -201,7 +201,7 @@ fn mixed_receipt_coarsens_all_successes_keeps_real_failures_and_does_not_change_
                 conditions: Default::default(),
                 cursor: None,
                 limit: 30,
-                thumbnail_px: 240,
+                known_placeholders: Vec::new(),
             },
             true,
         )

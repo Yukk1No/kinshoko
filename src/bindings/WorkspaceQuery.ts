@@ -2,4 +2,8 @@
 import type { ConditionTree } from "./ConditionTree";
 import type { WorkspaceScope } from "./WorkspaceScope";
 
-export type WorkspaceQuery = { scope: WorkspaceScope, conditions: ConditionTree, cursor: string | null, limit: number, thumbnailPx: number, };
+export type WorkspaceQuery = { scope: WorkspaceScope, conditions: ConditionTree, cursor: string | null, limit: number, 
+/**
+ * 调用方已经有占位图的卡片 id（#313）：占位图按内容寻址、永远不变，这些卡片不再带它。
+ */
+knownPlaceholders: Array<string>, };

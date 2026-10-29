@@ -1,4 +1,4 @@
-//! 工作区（全部图片）浏览返回的缩略图地址（#200）。
+//! 工作区（全部图片）浏览页里的缩略图地址与占位图（#200、#313）。
 
 use image::{Rgba, RgbaImage};
 use kinshoko_core::DeviceLibraries;
@@ -6,47 +6,58 @@ use kinshoko_core::library::ImportSource;
 use kinshoko_core::tag_catalog::TagCatalog;
 use kinshoko_core::workspace::{Workspace, WorkspaceQuery, WorkspaceScope};
 
-/// 缩略图地址按档位取整，与单库浏览相同：图片墙缩放时请求的像素在同一档位内变化，
-/// 卡片的地址不变，WebView 不必把已显示的缩略图全部重新请求一遍。
+fn query(known: Vec<String>) -> WorkspaceQuery {
+    WorkspaceQuery {
+        scope: WorkspaceScope::All,
+        conditions: Default::default(),
+        cursor: None,
+        limit: 10,
+        known_placeholders: known,
+    }
+}
+
+/// 卡片不带缩略图地址：界面按显示用的来源与档位拼（`<资料库 id>/<参考图 id>/<档位>`），换档位不必
+/// 重新浏览。占位图按内容寻址、永远不变：请求时报为已有的卡片不再带，其余照常带。
 #[test]
-fn thumbnail_addresses_round_to_the_tier_like_library_browse() {
+fn known_placeholders_are_not_sent_again() {
     let dir = tempfile::tempdir().unwrap();
-    let mut device = DeviceLibraries::open(&dir.path().join("app")).unwrap();
+    let app = dir.path().join("app");
+    let mut device = DeviceLibraries::open(&app).unwrap();
     let library = device.create(&dir.path().join("a"), "A").unwrap();
-    let file = dir.path().join("one.png");
-    RgbaImage::from_pixel(4, 3, Rgba([12, 34, 56, 255]))
-        .save(&file)
+    for red in [12, 34] {
+        let file = dir.path().join(format!("{red}.png"));
+        RgbaImage::from_pixel(4, 3, Rgba([red, 34, 56, 255]))
+            .save(&file)
+            .unwrap();
+        library.import(ImportSource { paths: vec![file] }).wait();
+    }
+    let mut catalog = TagCatalog::open(&app).unwrap();
+    let mut workspace = Workspace::open(&app).unwrap();
+
+    let first = workspace
+        .browse(&device, &mut catalog, &query(Vec::new()), true)
         .unwrap();
-    let id = library
-        .import(ImportSource { paths: vec![file] })
-        .wait()
-        .items[0]
-        .outcome
-        .image_id()
-        .unwrap()
-        .to_owned();
-    let library_id = library.info().id.clone();
-    let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
-    let mut workspace = Workspace::open(&dir.path().join("app")).unwrap();
-    for px in [360, 375] {
-        let page = workspace
-            .browse(
+    assert_eq!(first.cards.len(), 2);
+    assert!(first.cards.iter().all(|c| c.placeholder.is_some()));
+    for card in &first.cards {
+        assert_eq!(card.library_id, library.info().id);
+        let shown = workspace
+            .card(
                 &device,
                 &mut catalog,
-                &WorkspaceQuery {
-                    scope: WorkspaceScope::All,
-                    conditions: Default::default(),
-                    cursor: None,
-                    limit: 1,
-                    thumbnail_px: px,
-                },
+                &card.library_id,
+                &card.image_id,
                 true,
             )
             .unwrap();
-        assert_eq!(page.cards[0].thumbnail, format!("{library_id}/{id}/384"));
-        let card = workspace
-            .card(&device, &mut catalog, &library_id, &id, true, px)
-            .unwrap();
-        assert_eq!(card.thumbnail, format!("{library_id}/{id}/384"));
+        assert_eq!(shown.placeholder, card.placeholder, "单张卡片照常带占位图");
+    }
+
+    let known = first.cards[0].id.clone();
+    let again = workspace
+        .browse(&device, &mut catalog, &query(vec![known.clone()]), true)
+        .unwrap();
+    for card in &again.cards {
+        assert_eq!(card.placeholder.is_none(), card.id == known, "{}", card.id);
     }
 }

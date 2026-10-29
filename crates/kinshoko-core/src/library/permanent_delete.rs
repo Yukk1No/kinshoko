@@ -271,10 +271,17 @@ pub(super) fn clear_removals(conn: &Connection, root: &Path) -> Result<Vec<Strin
         }
         if !image_uses {
             match std::fs::remove_file(root.join(&rel_path)) {
-                Ok(()) => removed.push(sha),
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => removed.push(sha),
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
                 Err(_) => continue,
             }
+            // 占位图跟着原图走（#313）；缩略图等派生图文件由调用方按返回的 SHA-256 删除。
+            conn.execute(
+                "DELETE FROM placeholder WHERE sha256 = ?1
+                 AND NOT EXISTS (SELECT 1 FROM image WHERE sha256 = ?1)",
+                [&sha],
+            )?;
+            removed.push(sha);
         }
         conn.execute(
             "DELETE FROM original_removal WHERE rel_path = ?1",

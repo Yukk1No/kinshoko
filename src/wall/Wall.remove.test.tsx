@@ -6,7 +6,7 @@ import type { WorkspacePage } from "../bindings/WorkspacePage";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import { Wall, type WallHandle } from "./Wall";
 
-const card = (id: string): WorkspaceCard => ({ id, width: 120, height: 90, adult: false, thumbnail: `A/${id}/256`,
+const card = (id: string): WorkspaceCard => ({ id, width: 120, height: 90, adult: false,
   libraryId: "A", imageId: id, sources: [] });
 const settle = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
 let browses = 0;

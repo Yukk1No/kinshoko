@@ -1,3 +1,4 @@
+import { thumbnailTier } from "./wall/thumbnailTier";
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { App } from "./App";
@@ -26,7 +27,7 @@ describe("主窗口", () => {
     await waitFor(() => expect(result.textContent).toBe("1 张"));
   });
 
-  it("图片墙上 Ctrl+滚轮：滑条同步移动，停手后提交并按新尺寸取缩略图（#111）", async () => {
+  it("图片墙上 Ctrl+滚轮：滑条同步移动，停手后提交并按新尺寸取缩略图（#111），不重新浏览（#313）", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
@@ -40,10 +41,9 @@ describe("主窗口", () => {
     fireEvent.wheel(wall, { deltaY: -100, ctrlKey: true, clientX: 50, clientY: 50 });
     expect(slider.value).toBe("320");
     expect(parseFloat(wall.querySelector<HTMLElement>(".card")!.style.width)).toBeGreaterThan(before);
-    expect(calls.some((c) => c.cmd === "plugin:library|browse")).toBe(false);
-    await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:library|browse")).toBe(true));
-    const browsed = calls.filter((c) => c.cmd === "plugin:library|browse").at(-1)!.args as { query: { thumbnailPx: number } };
-    expect(browsed.query.thumbnailPx).toBe(Math.ceil(320 * 1.5 * (window.devicePixelRatio || 1)));
+    const tier = thumbnailTier(Math.ceil(320 * 1.5 * (window.devicePixelRatio || 1)));
+    await waitFor(() => expect(wall.querySelector("img")!.getAttribute("src")).toMatch(new RegExp(`/${tier}$`)));
+    expect(calls.some((c) => c.cmd === "plugin:library|workspace_browse" || c.cmd === "plugin:library|browse")).toBe(false);
     expect(slider.value).toBe("320");
   });
 

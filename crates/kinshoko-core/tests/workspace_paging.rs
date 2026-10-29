@@ -15,7 +15,7 @@ fn query() -> WorkspaceQuery {
         conditions: Default::default(),
         cursor: None,
         limit: 1,
-        thumbnail_px: 240,
+        known_placeholders: Vec::new(),
     }
 }
 /// 同一份字节导入到每个资料库，返回各自的图片 id。
@@ -132,40 +132,31 @@ fn pages_and_reloads_of_one_result_reuse_it_until_a_revision_changes() {
     let id = files(dir.path(), &[&b], 33).remove(0);
     let mut catalog = TagCatalog::open(&app).unwrap();
     let mut workspace = Workspace::open(&app).unwrap();
-    let mut browse = |workspace: &mut Workspace, cursor, thumbnail_px, safe| {
+    let mut browse = |workspace: &mut Workspace, cursor, safe| {
         workspace
             .browse(
                 &device,
                 &mut catalog,
-                &WorkspaceQuery {
-                    cursor,
-                    thumbnail_px,
-                    ..query()
-                },
+                &WorkspaceQuery { cursor, ..query() },
                 safe,
             )
             .unwrap()
     };
-    let first = browse(&mut workspace, None, 240, true);
-    let second = browse(&mut workspace, first.next_cursor.clone(), 240, true);
-    let again = browse(&mut workspace, None, 240, true);
+    let first = browse(&mut workspace, None, true);
+    let second = browse(&mut workspace, first.next_cursor.clone(), true);
+    let again = browse(&mut workspace, None, true);
     assert_eq!(workspace.browse_builds(), 1);
     assert_eq!(again.cards, first.cards);
     assert_ne!(second.cards[0].id, first.cards[0].id);
 
-    let larger = browse(&mut workspace, None, 480, true);
-    assert_eq!(workspace.browse_builds(), 1);
-    assert_eq!(larger.cards[0].id, first.cards[0].id);
-    assert_ne!(larger.cards[0].thumbnail, first.cards[0].thumbnail);
-
     // 安全模式换一下是另一组结果；换回来时原来那组还留着。
-    browse(&mut workspace, None, 240, false);
+    browse(&mut workspace, None, false);
     assert_eq!(workspace.browse_builds(), 2);
-    browse(&mut workspace, None, 240, true);
+    browse(&mut workspace, None, true);
     assert_eq!(workspace.browse_builds(), 2);
 
     b.edit(&[id], &[ImageEdit::Delete]).unwrap();
-    let after = browse(&mut workspace, None, 240, true);
+    let after = browse(&mut workspace, None, true);
     assert_eq!(workspace.browse_builds(), 3);
     assert_eq!(after.total, 2);
 }

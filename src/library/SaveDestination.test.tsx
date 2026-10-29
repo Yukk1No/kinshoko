@@ -139,7 +139,7 @@ it("copy keeps its confirmation during a source refresh and closes it after the 
     detail: { id: "a", originalName: "same.png", width: 100, height: 200, folders: [], note: { manual: "原来源备注", sources: [] }, collectedAt: 0, sourceLinks: [], deletedAt: null, rating: { imageId: "a", suggested: null, manual: null, effective: null }, versions: { previous: null, newer: [] } },
     tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 1, trash: 0, folders: [] },
   };
-  const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, thumbnail: "A/a/256", adult: false, libraryId: "A", imageId: "a", sources: [{ libraryId: "A", libraryName: "浏览库", imageId: "a", matches: true, unavailable: null, deleted: false }] };
+  const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, adult: false, libraryId: "A", imageId: "a", sources: [{ libraryId: "A", libraryName: "浏览库", imageId: "a", matches: true, unavailable: null, deleted: false }] };
   mockIPC(cmd => {
     if (cmd === "plugin:library|workspace_directories") return { status: { revision: "test", libraries }, providers: libraries.map(registration => ({ registration, sidebar: inspection.sidebar, unassigned: 0, descendants: {} })) };
     if (cmd === "plugin:library|workspace_source_inspection") return refreshed ? pendingInspection : inspection;
@@ -188,7 +188,7 @@ it("pinning whose own change reloads the source leaves the source actions usable
     detail: { id: "a", originalName: "same.png", width: 100, height: 200, folders: [], note: { manual: "原来源备注", sources: [] }, collectedAt: 0, sourceLinks: [], deletedAt: null, rating: { imageId: "a", suggested: null, manual: null, effective: null }, versions: { previous: null, newer: [] } },
     tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 1, trash: 0, folders: [] },
   };
-  const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, thumbnail: "A/a/256", adult: false, libraryId: "A", imageId: "a", sources: [{ libraryId: "A", libraryName: "浏览库", imageId: "a", matches: true, unavailable: null, deleted: false }] };
+  const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, adult: false, libraryId: "A", imageId: "a", sources: [{ libraryId: "A", libraryName: "浏览库", imageId: "a", matches: true, unavailable: null, deleted: false }] };
   mockIPC(cmd => {
     if (cmd === "plugin:library|workspace_directories") return { status: { revision: "test", libraries }, providers: libraries.map(registration => ({ registration, sidebar: inspection.sidebar, unassigned: 0, descendants: {} })) };
     if (cmd === "plugin:library|workspace_source_inspection") return inspection;

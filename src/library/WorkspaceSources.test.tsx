@@ -4,7 +4,7 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { WorkspaceSources } from "./WorkspacePane";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 
-const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, thumbnail: "A/a/256", adult: false, libraryId: "A", imageId: "a", sources: [
+const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, adult: false, libraryId: "A", imageId: "a", sources: [
   { libraryId: "A", libraryName: "工作参考", imageId: "a", matches: true, unavailable: null, deleted: false },
   { libraryId: "B", libraryName: "移动盘参考", imageId: "b", matches: true, unavailable: null, deleted: false },
 ] };

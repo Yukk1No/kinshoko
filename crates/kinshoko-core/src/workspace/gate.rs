@@ -104,7 +104,7 @@ impl ImageGate {
     }
 
     /// 已经握着、身份没变的句柄；不打开新的。
-    fn held(
+    pub(super) fn held(
         &self,
         registration: &crate::RegisteredLibrary,
     ) -> Option<Arc<crate::library::Library>> {

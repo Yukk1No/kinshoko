@@ -44,6 +44,7 @@ fn migration_list() -> Vec<M<'static>> {
             include_str!("migrations/0217_tag_source_name.sql"),
             super::eagle_tags::upgrade_source_names,
         ),
+        M::up(include_str!("migrations/0313_placeholders.sql")),
     ]
 }
 

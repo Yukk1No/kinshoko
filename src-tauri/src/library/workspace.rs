@@ -110,23 +110,39 @@ pub(super) async fn workspace_browse<R: Runtime>(
     safe_mode: bool,
 ) -> Result<WorkspacePage, String> {
     blocking(move || {
-        // 浏览耗时（#183）：开发构建在控制台输出，`wait` 是等资源锁的时间，core 另有分段（#288）。
+        // 浏览耗时（#183）：开发构建在控制台输出，`wait` 是等资源锁的时间，`placeholders` 是锁外读
+        // 占位图的时间，core 另有锁里的分段（#288）。
         #[cfg(debug_assertions)]
         let started = std::time::Instant::now();
         #[cfg(debug_assertions)]
         let mut waited = 0.0;
-        // 不用 `stable`：`browse` 做完整页（含读占位图）后自己复核修订号，复用结果时也复核（#288），
-        // 前后再各取一次状态只是多开几遍资料库。
-        let page = guarded(&app, safe_mode, |w, d, c| {
+        // 锁里只取当页的行；占位图在锁外读，读完再按修订号复核（#313）。读盘慢时不拖住缩略图请求。
+        // 不用 `stable`：`confirm` 自己复核修订号，前后再各取一次状态只是多做几遍核对。
+        let expected = generation(&app);
+        let pending = action(&app, safe_mode, |w, d, c| {
             #[cfg(debug_assertions)]
             {
                 waited = started.elapsed().as_secs_f64() * 1e3;
             }
-            w.browse(d, c, &query, safe_mode)
+            w.browse_rows(d, c, &query, safe_mode)
+        });
+        #[cfg(debug_assertions)]
+        let mut placeholders = 0.0;
+        let page = pending.and_then(|mut pending| {
+            #[cfg(debug_assertions)]
+            let reading = std::time::Instant::now();
+            pending.fill_placeholders(&app.state::<LibraryState>().gate);
+            #[cfg(debug_assertions)]
+            {
+                placeholders = reading.elapsed().as_secs_f64() * 1e3;
+            }
+            let page = action(&app, safe_mode, |w, d, c| w.confirm(d, c, pending))?;
+            current(&app, safe_mode, expected)?;
+            Ok(page)
         });
         #[cfg(debug_assertions)]
         eprintln!(
-            "workspace.browse safe={safe_mode} ok={} cards={} wait={waited:.1} ms={:.1}",
+            "workspace.browse safe={safe_mode} ok={} cards={} wait={waited:.1} placeholders={placeholders:.1} ms={:.1}",
             page.is_ok(),
             page.as_ref().map_or(0, |p| p.cards.len()),
             started.elapsed().as_secs_f64() * 1e3
@@ -246,12 +262,11 @@ pub(super) async fn workspace_card<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     image_id: String,
-    thumbnail_px: u32,
     safe_mode: bool,
 ) -> Result<WorkspaceCard, String> {
     blocking(move || {
         stable(&app, safe_mode, |w, d, c| {
-            w.card(d, c, &library_id, &image_id, safe_mode, thumbnail_px)
+            w.card(d, c, &library_id, &image_id, safe_mode)
         })
     })
     .await

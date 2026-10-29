@@ -107,7 +107,6 @@ use events::Hub;
 pub(crate) use store::DB_FILE;
 use store::{Readers, Writer};
 pub(crate) use tags::display_label;
-pub(crate) use thumbnail::placeholder;
 
 /// 资料库格式版本，写在 `library.format_version`。
 const FORMAT_VERSION: i64 = 1;

@@ -20,6 +20,7 @@ import { useWallPages } from "./useWallPages";
 import { useReleaseLanding, useSealRelease } from "./useSealRelease";
 import { useMeasureBeforeReflow, useReflowAfterLayout, useWidthSync } from "./useReflow";
 import { usePrefetchThumbnails } from "./usePrefetchThumbnails";
+import { thumbnailTier } from "./thumbnailTier";
 import { useReturnFocus, useViewerLeave } from "./useViewerReturn";
 import { useWallCaptureSources } from "./useWallCaptureSources";
 import { useWallZoom, type ZoomState } from "./useWallZoom";
@@ -225,6 +226,8 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
     () => Math.ceil((density / uiScale) * 1.5 * dpr),
     [density, uiScale, dpr],
   );
+  // 换档位时卡片的缩略图地址跟着变（工作区的卡片在这里拼地址，#313），沿用的卡片元素要重建。
+  const tier = thumbnailTier(thumbnailPx);
 
   useEffect(() => { onCardsChange?.(cards); }, [cards, onCardsChange]);
   useWallCaptureSources({ viewerOpen, scroller, cards, libraryId });
@@ -310,10 +313,10 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   useReturnFocus({ returnTo, scroller, position, layout, syncMount });
 
   /** 上次渲染的卡片元素，按 id；布局、选择、遮蔽都没变的卡片原样沿用。 */
-  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; leaving: boolean; landing: boolean; node: ReactNode }>());
+  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; leaving: boolean; landing: boolean; tier: number; node: ReactNode }>());
   useLayoutEffect(() => { renderedCards.current = nextRendered; });
   const cardHandlers = useRef<CardHandlers>(null!);
-  usePrefetchThumbnails({ layout, mount, cards, scrollDirection });
+  usePrefetchThumbnails({ layout, mount, cards, scrollDirection, thumbnailPx });
 
   const [menuTarget, setMenuTarget] = useState<WallMenuTarget | null>(null);
   const { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart } = wallInteractions({
@@ -351,12 +354,12 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
             const landing = arriving.has(card.id);
             // 没变的卡片沿用上次的元素，React 跳过整张卡片的比对（#109）。
             const kept = renderedCards.current.get(card.id);
-            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.leaving === leaving && kept.landing === landing) {
+            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.leaving === leaving && kept.landing === landing && kept.tier === tier) {
               nextRendered.set(card.id, kept);
               return kept.node;
             }
-            const node = wallCardNode({ card, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened });
-            nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, node });
+            const node = wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened });
+            nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, tier, node });
             return node;
           })}
         </div>

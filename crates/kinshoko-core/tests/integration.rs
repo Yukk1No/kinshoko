@@ -105,6 +105,8 @@ mod pin_restore;
 mod pin_veil;
 #[path = "placeholder.rs"]
 mod placeholder;
+#[path = "placeholder_storage.rs"]
+mod placeholder_storage;
 #[path = "rating.rs"]
 mod rating;
 #[path = "rating_search.rs"]

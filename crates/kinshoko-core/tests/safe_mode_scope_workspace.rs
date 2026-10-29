@@ -42,7 +42,7 @@ fn query(limit: u32, cursor: Option<String>) -> WorkspaceQuery {
         conditions: Default::default(),
         cursor,
         limit,
-        thumbnail_px: 256,
+        known_placeholders: Vec::new(),
     }
 }
 

@@ -77,7 +77,7 @@ fn default_receipt_does_not_expose_sealed_duplicate_ids_or_success_totals() {
                 conditions: Default::default(),
                 cursor: None,
                 limit: 30,
-                thumbnail_px: 240,
+                known_placeholders: Vec::new(),
             },
             true,
         )

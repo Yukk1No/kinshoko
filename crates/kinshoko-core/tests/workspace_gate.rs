@@ -48,7 +48,7 @@ fn refresh(workspace: &mut Workspace, device: &DeviceLibraries, catalog: &mut Ta
                 conditions: Default::default(),
                 cursor: None,
                 limit: 10,
-                thumbnail_px: 256,
+                known_placeholders: Vec::new(),
             },
             false,
         )

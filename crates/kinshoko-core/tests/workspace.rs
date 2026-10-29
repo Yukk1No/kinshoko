@@ -58,7 +58,7 @@ fn each_source_must_match_all_conditions_before_identical_bytes_are_aggregated()
         conditions: Default::default(),
         cursor: None,
         limit: 1,
-        thumbnail_px: 240,
+        known_placeholders: Vec::new(),
     };
     let page = workspace.browse(&device, &mut catalog, &all, true).unwrap();
     assert_eq!(page.total, 1);
@@ -126,7 +126,7 @@ fn query() -> WorkspaceQuery {
         conditions: Default::default(),
         cursor: None,
         limit: 1,
-        thumbnail_px: 240,
+        known_placeholders: Vec::new(),
     }
 }
 fn files(dir: &std::path::Path, libraries: &[&Library], red: u8) -> Vec<String> {

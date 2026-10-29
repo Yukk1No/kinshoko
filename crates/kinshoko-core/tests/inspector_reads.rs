@@ -88,7 +88,7 @@ fn selection_reads_for_the_inspector() {
                 conditions: Default::default(),
                 cursor: None,
                 limit: SAMPLES as u32,
-                thumbnail_px: 256,
+                known_placeholders: Vec::new(),
             },
             true,
         )

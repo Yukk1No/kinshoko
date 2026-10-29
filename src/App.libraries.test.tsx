@@ -250,8 +250,8 @@ describe("主窗口", () => {
 
     const images = await screen.findAllByRole("img");
     expect(images.map((i) => i.getAttribute("src"))).toEqual([
-      "http://thumb.localhost/L1/a/256",
-      "http://thumb.localhost/L1/b/256",
+      "http://thumb.localhost/L1/a/384",
+      "http://thumb.localhost/L1/b/384",
     ]);
     const box = (el: HTMLElement) => el.closest<HTMLElement>("[data-id]")!.style;
     const ratio = (s: CSSStyleDeclaration) => parseFloat(s.height) / parseFloat(s.width);

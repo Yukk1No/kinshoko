@@ -100,7 +100,7 @@ fn an_explicit_aggregate_source_edits_only_its_curation_and_rejects_a_changed_by
                 conditions: Default::default(),
                 cursor: None,
                 limit: 10,
-                thumbnail_px: 256,
+                known_placeholders: Vec::new(),
             },
             true,
         )
@@ -226,7 +226,7 @@ fn unavailable_or_sealed_selected_sources_are_rejected_without_using_a_duplicate
                 conditions: Default::default(),
                 cursor: None,
                 limit: 10,
-                thumbnail_px: 256,
+                known_placeholders: Vec::new(),
             },
             true,
         )
@@ -321,7 +321,7 @@ fn pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnec
         conditions: Default::default(),
         cursor: None,
         limit: 10,
-        thumbnail_px: 256,
+        known_placeholders: Vec::new(),
     };
     let page = workspace
         .browse(&device, &mut catalog, &query, true)
@@ -421,7 +421,7 @@ pub(crate) fn wall_card(
                 conditions: Default::default(),
                 cursor: None,
                 limit: 10,
-                thumbnail_px: 256,
+                known_placeholders: Vec::new(),
             },
             true,
         )
@@ -488,13 +488,12 @@ fn a_single_source_card_is_built_like_the_wall_card() {
     let bid = source_in(&wall, &b);
 
     let card = workspace
-        .card(&device, &mut catalog, &b.info().id, &bid, true, 256)
+        .card(&device, &mut catalog, &b.info().id, &bid, true)
         .unwrap();
     assert_eq!(card.id, wall.id, "卡片 id 是字节身份，不是图库里的图片 id");
     assert_ne!(card.id, bid);
     assert_eq!(card.library_id, b.info().id);
     assert_eq!(card.image_id, bid);
-    assert_eq!(card.thumbnail, format!("{}/{bid}/256", b.info().id));
     assert_eq!((card.width, card.height), (wall.width, wall.height));
     assert_eq!(card.sources.len(), 2);
     assert!(!card.adult);
@@ -512,7 +511,7 @@ fn a_single_source_card_is_built_like_the_wall_card() {
 
     assert!(
         workspace
-            .card(&device, &mut catalog, &b.info().id, "没有这张", true, 256)
+            .card(&device, &mut catalog, &b.info().id, "没有这张", true)
             .is_err()
     );
     a.replace_source_rating(
@@ -526,13 +525,13 @@ fn a_single_source_card_is_built_like_the_wall_card() {
     .unwrap();
     assert!(
         workspace
-            .card(&device, &mut catalog, &b.info().id, &bid, true, 256)
+            .card(&device, &mut catalog, &b.info().id, &bid, true)
             .is_err(),
         "安全模式下任何一份来源是成人内容就不给"
     );
     assert!(
         workspace
-            .card(&device, &mut catalog, &b.info().id, &bid, false, 256)
+            .card(&device, &mut catalog, &b.info().id, &bid, false)
             .unwrap()
             .adult
     );
