@@ -14,6 +14,7 @@ export type StartupGate = {
 
 let opened = false;
 let target: number | null = null;
+let mounted: number | null = null;
 let shown = 0;
 let state: StartupGate = { progress: 0.08, released: false };
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -27,8 +28,10 @@ function publish(next: StartupGate) {
 
 function update() {
   if (state.released) return;
-  if (target !== null && shown >= target) return publish({ progress: 1, released: true });
-  const progress = target === null ? (opened ? 0.4 : 0.08) : 0.5 + (0.5 * shown) / target;
+  // 只有挂上墙的卡片会加载缩略图：窗口小、图很竖时首屏不到 20 张，按挂上的张数等。
+  const goal = target === null ? null : Math.min(target, mounted ?? target);
+  if (goal !== null && shown >= goal) return publish({ progress: 1, released: true });
+  const progress = goal === null ? (opened ? 0.4 : 0.08) : 0.5 + (0.5 * shown) / goal;
   publish({ progress, released: false });
 }
 
@@ -43,6 +46,13 @@ export function startupWallPage(cards: number): void {
   if (target !== null) return;
   opened = true;
   target = Math.min(FIRST_SCREEN, Math.max(0, cards));
+  update();
+}
+
+/** 图片墙此刻挂上的卡片数（只有它们会加载缩略图）。布局稳定前会变，取最新的一次。 */
+export function startupWallMounted(cards: number): void {
+  if (cards <= 0) return;
+  mounted = cards;
   update();
 }
 
@@ -73,6 +83,7 @@ export function useStartupGate(): StartupGate {
 export function resetStartupGate(): void {
   opened = false;
   target = null;
+  mounted = null;
   shown = 0;
   state = { progress: 0.08, released: false };
   if (timer) clearTimeout(timer);

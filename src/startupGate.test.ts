@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   FIRST_SCREEN, STARTUP_TIMEOUT_MS, releaseStartup, resetStartupGate, startupLibraryOpened, startupThumbnailShown,
-  startupWallPage, useStartupGate,
+  startupWallMounted, startupWallPage, useStartupGate,
 } from "./startupGate";
 
 beforeEach(() => {
@@ -36,6 +36,24 @@ describe("startup gate (#338)", () => {
     const { result } = renderHook(() => useStartupGate());
     act(() => startupWallPage(3));
     act(() => shown(3));
+    expect(result.current.released).toBe(true);
+  });
+
+  it("waits only for the cards the wall actually mounted when fewer than the first screen fit", () => {
+    const { result } = renderHook(() => useStartupGate());
+    act(() => { startupWallPage(500); startupWallMounted(12); });
+    act(() => shown(11));
+    expect(result.current.released).toBe(false);
+    act(() => shown(1));
+    expect(result.current.released).toBe(true);
+  });
+
+  it("follows the latest mounted count while the layout settles", () => {
+    const { result } = renderHook(() => useStartupGate());
+    act(() => { startupWallPage(500); startupWallMounted(3); startupWallMounted(16); });
+    act(() => shown(3));
+    expect(result.current.released).toBe(false);
+    act(() => shown(13));
     expect(result.current.released).toBe(true);
   });
 
