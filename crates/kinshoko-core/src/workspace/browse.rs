@@ -87,7 +87,9 @@ impl Workspace {
             Some(rows) => rows,
             None => {
                 self.browse_cache.builds += 1;
-                std::sync::Arc::new(collect_rows(device, &snapshot, query, safe)?)
+                std::sync::Arc::new(collect_rows(&snapshot, query, safe, |r| {
+                    self.provider(device, r)
+                })?)
             }
         };
         #[cfg(debug_assertions)]
@@ -210,10 +212,12 @@ fn reads_ratings(tree: &ConditionTree) -> bool {
 
 /// 一组浏览结果：每个来源各自跑完整的查找，再按字节身份合并，按最新加入排序。
 fn collect_rows(
-    device: &DeviceLibraries,
     snapshot: &Snapshot,
     query: &WorkspaceQuery,
     safe: bool,
+    reader: impl Fn(
+        &crate::RegisteredLibrary,
+    ) -> Result<std::sync::Arc<crate::library::Library>, CatalogError>,
 ) -> Result<Vec<BrowseRow>, CatalogError> {
     let mut matches = BTreeMap::<String, BTreeSet<String>>::new();
     for provider in &snapshot.providers {
@@ -227,9 +231,7 @@ fn collect_rows(
             WorkspaceScope::All => BrowseScope::All,
         };
         let tree = local_tree(&query.conditions, &snapshot.catalog, id);
-        let library = device
-            .read(id)
-            .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
+        let library = reader(&provider.registration.library)?;
         let found = library.provider_matches(&scope, &tree)?;
         if library.provider_revision()? != (provider.list, provider.revision) {
             return Err(Error::CursorExpired.into());

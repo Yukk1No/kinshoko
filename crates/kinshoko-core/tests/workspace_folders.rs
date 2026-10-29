@@ -213,6 +213,8 @@ fn invalid_or_unavailable_scopes_are_explicit_and_never_expand_to_another_provid
     );
     let a_id = a.info().id.clone();
     drop(a);
+    // 长期只读句柄（#313）握着时 Windows 上改不了名：模拟断开前先放掉，同应用壳登记变化时。
+    workspace.release_readers();
     std::fs::rename(dir.path().join("a"), dir.path().join("disconnected-a")).unwrap();
     let forest = workspace.directories(&device, &mut catalog, true).unwrap();
     let missing = forest

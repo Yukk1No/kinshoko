@@ -104,7 +104,8 @@ pub use types::{
 use crate::approx::ApproxRelation;
 pub(crate) use eagle_tags::same_spelling;
 use events::Hub;
-use store::{DB_FILE, Readers, Writer};
+pub(crate) use store::DB_FILE;
+use store::{Readers, Writer};
 pub(crate) use tags::display_label;
 pub(crate) use thumbnail::placeholder;
 

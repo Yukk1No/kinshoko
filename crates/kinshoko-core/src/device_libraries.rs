@@ -118,6 +118,11 @@ impl DeviceLibraries {
         self.device.libraries()
     }
 
+    /// 登记表的改动计数与它现在的值（#313）。
+    pub(crate) fn registry_generation(&self) -> (Arc<std::sync::atomic::AtomicU64>, u64) {
+        self.device.generation()
+    }
+
     pub fn registrations(&self) -> Vec<LibraryRegistration> {
         Self::inspect_registrations(self.libraries())
     }

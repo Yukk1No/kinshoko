@@ -61,7 +61,7 @@ pub(super) fn read_only_writer(path: &Path) -> Result<Writer, Error> {
     Ok(Writer::spawn(conn))
 }
 
-pub(super) const DB_FILE: &str = "library.sqlite";
+pub(crate) const DB_FILE: &str = "library.sqlite";
 
 /// SQLite 不会自己处理超过 260 个字符的 Windows 路径；换成 `\\?\` 形式的绝对路径交给它。
 /// 标准库的文件操作已经会自动这样做。

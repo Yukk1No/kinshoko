@@ -3,6 +3,8 @@
 //! 登记表只记录资料库在哪里，不保存任何整理结果，丢失后可以重新登记。
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -37,6 +39,9 @@ struct State {
 pub struct DeviceRegistry {
     path: PathBuf,
     state: State,
+    /// 改过几次（#313）：缩略图请求不拿登记表的锁，按它判断发布出去的工作区快照是否还对应
+    /// 当前的登记。
+    generation: Arc<AtomicU64>,
 }
 
 impl DeviceRegistry {
@@ -52,7 +57,11 @@ impl DeviceRegistry {
             },
             Err(e) => return Err(e),
         };
-        Ok(DeviceRegistry { path, state })
+        Ok(DeviceRegistry {
+            path,
+            state,
+            generation: Arc::default(),
+        })
     }
 
     pub fn libraries(&self) -> &[RegisteredLibrary] {
@@ -112,7 +121,17 @@ impl DeviceRegistry {
         Ok(())
     }
 
+    /// 登记表的改动计数与它现在的值，见 [`DeviceRegistry::generation`] 字段。
+    pub(crate) fn generation(&self) -> (Arc<AtomicU64>, u64) {
+        (
+            self.generation.clone(),
+            self.generation.load(Ordering::SeqCst),
+        )
+    }
+
     fn save(&self, state: &State) -> std::io::Result<()> {
+        // 先于写文件前进：写到一半失败也只是多走一次慢路。
+        self.generation.fetch_add(1, Ordering::SeqCst);
         if let Some(dir) = self.path.parent() {
             std::fs::create_dir_all(dir)?;
         }

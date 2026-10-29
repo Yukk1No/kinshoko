@@ -274,6 +274,8 @@ fn unavailable_or_sealed_selected_sources_are_rejected_without_using_a_duplicate
     assert_eq!(b.image(&bid).unwrap().deleted_at, None);
     let b_root = b.info().root.clone();
     drop(b);
+    // 长期只读句柄（#313）握着时 Windows 上改不了名：模拟断开前先放掉，同应用壳登记变化时。
+    workspace.release_readers();
     std::fs::rename(&b_root, temp.path().join("disconnected-B")).unwrap();
     let error = workspace
         .write_source(&mut device, &mut catalog, &target, false, |l| {
@@ -361,6 +363,8 @@ fn pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnec
     );
     assert_eq!(group.members[0].image_id(), Some(target.image_id.as_str()));
     drop(b);
+    // 长期只读句柄（#313）握着时 Windows 上改不了名：模拟断开前先放掉，同应用壳登记变化时。
+    workspace.release_readers();
     std::fs::rename(&binfo.root, temp.path().join("disconnected-B")).unwrap();
     assert!(
         workspace
