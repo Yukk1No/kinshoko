@@ -177,6 +177,7 @@ pub(in crate::library) fn browse(inner: &Inner, query: &BrowseQuery) -> Result<B
     // 这一页的占位图一条查询读出，与结果同一个读事务。
     let mut placeholders = thumbnail::placeholders(
         &tx,
+        &inner.root,
         &rows
             .iter()
             .map(|(_, sha, _)| sha.as_str())

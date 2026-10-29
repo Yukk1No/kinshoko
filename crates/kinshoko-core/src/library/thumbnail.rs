@@ -6,8 +6,10 @@
 //!
 //! 占位图（#110）是同一管线的另一份派生图，长边约 32 px，存在资料库的 `placeholder` 表里（#313）：
 //! 只有几百字节，单独存成文件时打开、杀毒扫描与占用的簇都比数据本身大得多。导入时生成，打开资料库
-//! 时在后台为缺少的补齐（之前存成 `<sha>-p32.<webp|png>` 文件的，读进来后删掉文件）；浏览一页一条
-//! 查询读出已有的，缺少时界面退回中性底色。
+//! 时在后台为缺少的补齐；浏览一页一条查询读出已有的，缺少时界面退回中性底色。
+//!
+//! 过渡期（#313 的 expand 一步）：占位图同时仍存成 `<sha>-p32.<webp|png>` 文件，表里没有的（旧版本
+//! 写的、还没补齐的、只读打开还没有这张表的库）从文件读。回退到旧版本时文件都还在。
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Condvar, Mutex, Weak};
@@ -236,7 +238,7 @@ fn placeholder_dir(root: &Path, sha: &str) -> PathBuf {
         .join(&sha[..2])
 }
 
-/// #313 之前存成文件的占位图；容器随来源分档（`webp` 或 `png`），两种都找。
+/// 存成文件的占位图；容器随来源分档（`webp` 或 `png`），两种都找。
 fn placeholder_file(root: &Path, sha: &str) -> Option<(PathBuf, &'static str)> {
     if sha.len() < 2 {
         return None;
@@ -248,14 +250,41 @@ fn placeholder_file(root: &Path, sha: &str) -> Option<(PathBuf, &'static str)> {
         .find(|(path, _)| path.is_file())
 }
 
-/// 这些原图（按 SHA-256）已生成的占位图，作为 `data:` 地址；还没有的不在结果里。一条查询，只读，
-/// 不生成。只认当前管线版本生成的。
+/// 这些原图（按 SHA-256）已生成的占位图，作为 `data:` 地址；还没有的不在结果里。表里一条查询，
+/// 表里没有的再找文件（过渡期，见模块说明）。只读，不生成。只认当前管线版本生成的。
 pub(super) fn placeholders(
+    conn: &rusqlite::Connection,
+    root: &Path,
+    shas: &[&str],
+) -> Result<std::collections::HashMap<String, String>, Error> {
+    use base64::Engine;
+    let mut found = stored_placeholders(conn, shas)?;
+    for sha in shas {
+        if found.contains_key(*sha) {
+            continue;
+        }
+        if let Some((path, mime)) = placeholder_file(root, sha)
+            && let Ok(bytes) = std::fs::read(path)
+        {
+            let payload = base64::engine::general_purpose::STANDARD.encode(bytes);
+            found.insert((*sha).to_owned(), format!("data:{mime};base64,{payload}"));
+        }
+    }
+    Ok(found)
+}
+
+/// 表里的那部分。只读打开、还没被新版本打开过的库没有这张表。
+fn stored_placeholders(
     conn: &rusqlite::Connection,
     shas: &[&str],
 ) -> Result<std::collections::HashMap<String, String>, Error> {
     use base64::Engine;
-    if shas.is_empty() {
+    let has_table: bool = conn.query_row(
+        "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'placeholder')",
+        [],
+        |r| r.get(0),
+    )?;
+    if shas.is_empty() || !has_table {
         return Ok(Default::default());
     }
     let mut stmt = conn.prepare_cached(
@@ -283,21 +312,37 @@ struct PlaceholderSource {
 type PlaceholderRow = (String, &'static str, Vec<u8>);
 
 /// 与缩略图同一管线（ADR-0005）：同样的色彩声明规则、f32 预乘缩放与按来源分档的无损容器。
-/// 之前存成文件的直接读进来，第二个值是读进来后要删掉的文件。
-fn load_placeholder(
-    root: &Path,
-    source: &PlaceholderSource,
-) -> Result<(PlaceholderRow, Option<PathBuf>), Error> {
+/// 已存成文件的直接读进来；现场生成的也存一份文件（过渡期）。
+fn load_placeholder(root: &Path, source: &PlaceholderSource) -> Result<PlaceholderRow, Error> {
     if let Some((path, mime)) = placeholder_file(root, &source.sha)
         && let Ok(bytes) = std::fs::read(&path)
     {
-        return Ok(((source.sha.clone(), mime, bytes), Some(path)));
+        return Ok((source.sha.clone(), mime, bytes));
     }
     let bytes = std::fs::read(root.join(&source.rel_path))?;
     let max_width = placeholder_width(source.width, source.height);
     let rendered =
         render::render_sdr(&bytes, max_width, DEFAULT_DOWNSCALE).map_err(Error::Undecodable)?;
-    Ok(((source.sha.clone(), rendered.mime, rendered.bytes), None))
+    store_placeholder_file(root, &source.sha, &rendered)?;
+    Ok((source.sha.clone(), rendered.mime, rendered.bytes))
+}
+
+/// 占位图存成文件（过渡期，见模块说明）。已有时什么也不做。
+fn store_placeholder_file(
+    root: &Path,
+    sha: &str,
+    rendered: &render::SdrDerivative,
+) -> Result<(), Error> {
+    if sha.len() < 2 || placeholder_file(root, sha).is_some() {
+        return Ok(());
+    }
+    let ext = if rendered.mime == "image/png" {
+        "png"
+    } else {
+        "webp"
+    };
+    let path = placeholder_dir(root, sha).join(format!("{sha}-{PLACEHOLDER}.{ext}"));
+    write_atomic(&path, &rendered.bytes)
 }
 
 /// 写进 `placeholder` 表，已有的（包括旧管线版本的）换掉。占位图是可重建的缓存，这个事务不等
@@ -326,12 +371,14 @@ fn insert_placeholders(
     Ok(written?)
 }
 
-/// 保存导入时已经生成好的占位图（与校验像素共用一次解码，#120）。已有时换成这一份。
+/// 保存导入时已经生成好的占位图（与校验像素共用一次解码，#120）。表里已有时换成这一份；
+/// 过渡期同时存一份文件。
 pub(super) fn store_placeholder(
     inner: &Inner,
     sha: &str,
     rendered: &render::SdrDerivative,
 ) -> Result<(), Error> {
+    store_placeholder_file(&inner.root, sha, rendered)?;
     let row = (sha.to_owned(), rendered.mime, rendered.bytes.clone());
     inner
         .writer
@@ -342,7 +389,7 @@ pub(super) fn store_placeholder(
 const FILL_BATCH: usize = 32;
 
 /// 为缺少占位图（或只有旧管线版本的）参考图补齐，从新到旧（先补最可能在眼前的）。在后台线程里
-/// 调用。之前存成文件的读进来，写进库后删掉文件；没有的现场生成。
+/// 调用。已存成文件的读进来（文件留着，过渡期）；没有的现场生成。
 /// 只持有弱引用：资料库关闭后在下一批之前停下，不让数据库连接活得比资料库久。
 /// 失败只是这张图继续退回中性底色，下次打开再试。
 pub(super) fn fill_placeholders(inner: Weak<Inner>) {
@@ -375,14 +422,12 @@ pub(super) fn fill_placeholders(inner: Weak<Inner>) {
     };
     for batch in sources.chunks(FILL_BATCH) {
         let mut rows = Vec::new();
-        let mut files = Vec::new();
         for source in batch {
             if inner.strong_count() == 0 {
                 return;
             }
-            if let Ok((row, file)) = load_placeholder(&root, source) {
+            if let Ok(row) = load_placeholder(&root, source) {
                 rows.push(row);
-                files.extend(file);
             }
         }
         let Some(inner) = inner.upgrade() else {
@@ -394,9 +439,6 @@ pub(super) fn fill_placeholders(inner: Weak<Inner>) {
             .is_err()
         {
             return;
-        }
-        for file in files {
-            let _ = std::fs::remove_file(file);
         }
     }
 }

@@ -68,7 +68,7 @@ impl Library {
         &self,
         shas: &[&str],
     ) -> Result<std::collections::HashMap<String, String>, Error> {
-        super::thumbnail::placeholders(&self.inner.readers.get(), shas)
+        super::thumbnail::placeholders(&self.inner.readers.get(), &self.inner.root, shas)
     }
 
     pub(crate) fn provider_snapshot(&self) -> Result<ProviderSnapshot, Error> {
