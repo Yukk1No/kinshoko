@@ -28,13 +28,15 @@ pub(super) async fn edit_tag_name<R: Runtime>(
     catalog_id: String,
     edit: CatalogNameEdit,
 ) -> Result<TagCatalogWorkspace, String> {
-    let (reader, catalog) = (app.clone(), state.search.clone());
+    let reader = app.clone();
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
+    // 经共享的工作区读可见目录（#337）：复用它的快照。
     let result = blocking(move || {
-        with_libraries(&reader.state::<LibraryState>(), |libraries| {
-            Ok(with_catalog(&catalog, |catalog| {
-                let visible = catalog.inspect_libraries(libraries, safe)?;
+        workspace::with_resources(
+            &reader.state::<LibraryState>(),
+            |workspace, libraries, catalog| {
+                let visible = workspace.inspect_catalog(libraries, catalog, safe)?;
                 if !visible.catalog.tags.iter().any(|tag| tag.id == catalog_id) {
                     return Err(CatalogError::UnknownTag);
                 }
@@ -52,9 +54,9 @@ pub(super) async fn edit_tag_name<R: Runtime>(
                         catalog.remove_alias(&catalog_id, &alias)?;
                     }
                 }
-                catalog.inspect_libraries(libraries, safe)
-            }))
-        })?
+                workspace.inspect_catalog(libraries, catalog, safe)
+            },
+        )
     })
     .await?;
     refresh_labels(&app, &state)?;

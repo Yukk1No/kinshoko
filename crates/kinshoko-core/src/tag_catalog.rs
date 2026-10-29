@@ -222,6 +222,7 @@ pub struct TagCatalog {
     conn: Connection,
     name_defaults: Option<crate::library::TagTranslations>,
     /// 每个资料库上次同步时的词表与目录修订号（#158）：都没变时读一张图的标签不必重新同步整份词表。
+    /// 也写进 `catalog_library_synchronized`，重启后从那里读回（#337）。
     synchronized: std::collections::HashMap<String, Synchronized>,
     /// 真正逐个标签核对过的次数，测试用来确认没有变化时不重做（#335）。
     full_synchronizations: u64,
@@ -260,6 +261,10 @@ impl TagCatalog {
             CREATE TABLE IF NOT EXISTS library_tag_source_name (
                 library_id TEXT NOT NULL, local_tag_id TEXT NOT NULL, names TEXT NOT NULL,
                 PRIMARY KEY(library_id, local_tag_id));
+            -- 每个资料库上次同步时的词表与目录修订号（#337）：重启后没有变化也不必整份重新同步。
+            CREATE TABLE IF NOT EXISTS catalog_library_synchronized (
+                library_id TEXT PRIMARY KEY, root TEXT NOT NULL, vocabulary INTEGER NOT NULL,
+                catalog INTEGER NOT NULL, program TEXT NOT NULL);
             COMMIT;",
         )?;
         names::initialize(&conn, version)?;

@@ -163,3 +163,51 @@ fn libraries_in_turn_synchronize_once_each() {
     }
     assert_eq!(catalog.full_synchronizations, 3);
 }
+
+#[test]
+fn reopening_the_catalog_does_not_resynchronize() {
+    let dir = tempfile::tempdir().unwrap();
+    let library = library_with_sealed_tag(dir.path(), "a");
+    let first = TagCatalog::open(&dir.path().join("app"))
+        .unwrap()
+        .synchronize(&library)
+        .unwrap();
+
+    // 重启应用：新打开的目录从数据库里读回上次同步（#337）。
+    let mut reopened = TagCatalog::open(&dir.path().join("app")).unwrap();
+    assert_eq!(reopened.synchronize(&library).unwrap(), first);
+    assert_eq!(reopened.full_synchronizations, 0);
+
+    // 重启前词表变了：照常重新同步。
+    let image = import(&library, dir.path(), "later", 3);
+    tag(&library, &image, "later");
+    let mut reopened = TagCatalog::open(&dir.path().join("app")).unwrap();
+    assert_eq!(
+        mapped(&reopened.synchronize(&library).unwrap(), &library),
+        3
+    );
+    assert_eq!(reopened.full_synchronizations, 1);
+}
+
+#[test]
+fn a_record_from_another_program_version_resynchronizes() {
+    let dir = tempfile::tempdir().unwrap();
+    let library = library_with_sealed_tag(dir.path(), "a");
+    let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
+    catalog.synchronize(&library).unwrap();
+    catalog
+        .conn
+        .execute(
+            "UPDATE catalog_library_synchronized SET program='0.0.0'",
+            [],
+        )
+        .unwrap();
+
+    // 升级后同步规则可能变了：旧版本写下的记录不算数。
+    let mut reopened = TagCatalog::open(&dir.path().join("app")).unwrap();
+    reopened.synchronize(&library).unwrap();
+    assert_eq!(reopened.full_synchronizations, 1);
+    let mut reopened = TagCatalog::open(&dir.path().join("app")).unwrap();
+    reopened.synchronize(&library).unwrap();
+    assert_eq!(reopened.full_synchronizations, 0);
+}
