@@ -13,6 +13,13 @@ pub fn set_timing_sink(sink: fn(LogEvent)) {
     let _ = SINK.set(sink);
 }
 
+/// 同 [`took`]，但只记用了 20 毫秒以上的：常被调用、平常很快的步骤只在慢的时候留痕。
+pub fn took_if_slow(step: &'static str, started: Instant, count: Option<usize>) {
+    if started.elapsed().as_millis() >= 20 {
+        took(step, started, count);
+    }
+}
+
 /// 记下 `step` 从 `started` 到现在用了多久；`count` 是这一步处理了多少项（张数、行数）。
 pub fn took(step: &'static str, started: Instant, count: Option<usize>) {
     if let Some(sink) = SINK.get() {

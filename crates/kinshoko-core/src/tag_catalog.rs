@@ -360,9 +360,7 @@ impl TagCatalog {
             .query_map([], |row| row.get::<_, String>(0))?
             .map(|row| Ok(serde_json::from_str(&row?)?))
             .collect::<Result<Vec<_>, CatalogError>>()?;
-        for tag in &mut tags {
-            names::resolve(&self.conn, tag)?;
-        }
+        names::resolve_all(&self.conn, &mut tags)?;
         let mut stmt = self.conn.prepare("SELECT m.library_id,m.local_tag_id,m.catalog_id,m.legacy,m.basis,m.name_provenance,coalesce(s.names,'[]') FROM library_tag_mapping m LEFT JOIN library_tag_source_name s ON s.library_id=m.library_id AND s.local_tag_id=m.local_tag_id ORDER BY m.library_id,m.local_tag_id")?;
         let rows = stmt.query_map([], |row| {
             Ok((

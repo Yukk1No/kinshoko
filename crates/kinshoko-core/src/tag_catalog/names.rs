@@ -49,6 +49,48 @@ pub(super) fn resolve(conn: &Connection, tag: &mut CatalogTag) -> Result<(), Cat
     Ok(())
 }
 
+/// 与逐个 [`resolve`] 相同，但全部标签只查两次库（#313）：逐个查时每个标签要解析两条语句、各查一次，
+/// 几千个标签时一次 [`TagCatalog::inspect`] 要几百毫秒，打开资料库与首屏会反复调用它。
+pub(super) fn resolve_all(conn: &Connection, tags: &mut [CatalogTag]) -> Result<(), CatalogError> {
+    let mut preferences = std::collections::HashMap::<String, Vec<LocalizedName>>::new();
+    let mut stmt = conn.prepare(
+        "SELECT catalog_id,lang,name FROM catalog_name_preference ORDER BY catalog_id,lang",
+    )?;
+    for row in stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            LocalizedName {
+                lang: row.get(1)?,
+                name: row.get(2)?,
+            },
+        ))
+    })? {
+        let (id, name) = row?;
+        preferences.entry(id).or_default().push(name);
+    }
+    let mut sources = std::collections::HashMap::<String, Vec<LocalizedName>>::new();
+    let mut stmt = conn.prepare(
+        "SELECT m.catalog_id,s.names FROM library_tag_mapping m JOIN library_tag_source_name s
+         ON s.library_id=m.library_id AND s.local_tag_id=m.local_tag_id
+         ORDER BY m.catalog_id,m.library_id,m.local_tag_id",
+    )?;
+    for row in stmt.query_map([], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    })? {
+        let (id, names) = row?;
+        sources
+            .entry(id)
+            .or_default()
+            .extend(serde_json::from_str::<Vec<LocalizedName>>(&names)?);
+    }
+    for tag in tags {
+        tag.default_names = tag.names.clone();
+        tag.name_preferences = preferences.remove(&tag.id).unwrap_or_default();
+        fill_names(tag, sources.get(&tag.id).into_iter().flatten());
+    }
+    Ok(())
+}
+
 /// 显示名称：名称偏好 > 默认名称 > 按资料库顺序第一个来源名称；不分语言的来源名称排在最后（ADR-0012）。
 /// `sources` 按资料库顺序给出参与显示的映射的来源名称。
 pub(crate) fn fill_names<'a>(
@@ -430,3 +472,7 @@ pub(super) fn adopt_existing_choice(
 ) -> Result<bool, CatalogError> {
     Ok(tx.execute("UPDATE library_tag_mapping SET name_provenance='catalog' WHERE library_id=?1 AND local_tag_id=?2 AND name_provenance<>'catalog' AND EXISTS (SELECT 1 FROM catalog_name_adoption WHERE catalog_id=?3)", params![library_id, local_id, catalog_id])? > 0)
 }
+
+#[cfg(test)]
+#[path = "names/tests.rs"]
+mod tests;

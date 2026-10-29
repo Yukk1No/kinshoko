@@ -6,6 +6,7 @@ impl TagCatalog {
     /// Attach visible local definitions. Repeated attachment retains explicit corrections and
     /// the original names awaiting migration. A matching name or alias is never evidence of identity.
     pub fn synchronize(&mut self, library: &Library) -> Result<CatalogInspection, CatalogError> {
+        let started = std::time::Instant::now();
         let safe_mode = library.safe_mode();
         let scope = library.safe_mode_scope();
         let vocabulary = library.vocabulary()?;
@@ -154,6 +155,11 @@ impl TagCatalog {
                 vocabulary: vocabulary_revision,
                 catalog: inspection.revision,
             },
+        );
+        crate::diagnostics::took_if_slow(
+            "统一标签目录：同步一个资料库",
+            started,
+            Some(inspection.tags.len()),
         );
         Ok(inspection)
     }
