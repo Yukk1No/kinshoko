@@ -140,7 +140,6 @@ fn opening_a_library_fills_in_missing_placeholders_in_the_background() {
         .unwrap()
         .execute("DELETE FROM placeholder", [])
         .unwrap();
-    std::fs::remove_dir_all(root.join("cache")).unwrap();
 
     let before = Library::open_read_only(&root, &library_id).unwrap();
     assert!(cards(&before).iter().all(|c| c.placeholder.is_none()));
@@ -219,15 +218,6 @@ fn placeholders_of_an_older_pipeline_version_are_not_shown() {
         .unwrap()
         .execute("UPDATE placeholder SET pipeline = 'v0'", [])
         .unwrap();
-    // 过渡期同时存的文件也按管线版本分目录：一起换成旧版本的。
-    let thumbs = root.join("cache/thumbs");
-    let current = std::fs::read_dir(&thumbs)
-        .unwrap()
-        .next()
-        .unwrap()
-        .unwrap()
-        .path();
-    std::fs::rename(current, thumbs.join("v0")).unwrap();
 
     let library = Library::open_read_only(&root, &library_id).unwrap();
     assert!(cards(&library)[0].placeholder.is_none());

@@ -3,13 +3,14 @@
 use super::*;
 
 /// 不进整理信息核对的表：资料库身份、恢复来源、未完成导入与待清除原文件的对账记录，以及可重建的
-/// 占位图（#313：恢复后打开资料库时后台补齐会改它）。
+/// 占位图与清理旧占位图文件的一次性标记（#313：恢复后打开资料库时后台补齐会改它们）。
 pub(super) const NOT_CURATION: &[&str] = &[
     "library",
     "restore_provenance",
     "import_pending",
     "original_removal",
     "placeholder",
+    "placeholder_files_pending",
 ];
 
 /// 整理信息摘要。`like` 给出时按它的表与列（快照里的列；之后的迁移只会加列）计算，顺序一致。
