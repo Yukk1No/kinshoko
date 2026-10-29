@@ -1,0 +1,87 @@
+/* 启动加载页（#338）：盖住整个主窗口，放行后从星形开口里露出主界面。 */
+.startup-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--bg);
+  overflow: hidden;
+}
+.startup-splash[data-phase="leaving"] { pointer-events: none; }
+.startup-splash[data-phase="leaving"][data-reduced] { opacity: 0; transition: opacity 200ms var(--ease); }
+
+/* 背景：七列淡色矩形，相邻列反向缓慢漂动；只在上下边缘渐隐，字标周围不留白。 */
+.startup-wall {
+  position: absolute;
+  inset: 0;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 16px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 22%, black 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, black 22%, black 78%, transparent 100%);
+}
+.startup-col { height: 100%; overflow: hidden; }
+.startup-col-run {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* 两份同样的卡片：底部补一个间距，-50% 正好是一份，循环无缝。 */
+  padding-bottom: 16px;
+  animation: startup-up linear infinite;
+  will-change: transform;
+}
+.startup-col-run.is-down { animation-name: startup-down; }
+.startup-col-run > span { display: block; flex-shrink: 0; border-radius: var(--r-xs); background: var(--splash-card); }
+@keyframes startup-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+@keyframes startup-down { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+
+.startup-head {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 12px;
+}
+.startup-center {
+  position: absolute;
+  inset: 56px 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  padding-bottom: 56px;
+}
+.startup-logo { width: 192px; height: auto; overflow: visible; }
+.startup-ink-fill { fill: var(--ink); }
+.startup-ink-stroke { fill: none; stroke: var(--ink); stroke-width: 22; stroke-linecap: round; stroke-linejoin: round; }
+.startup-star { fill: var(--accent); }
+.startup-logo-rest { transition: opacity 360ms var(--ease); }
+.startup-splash[data-phase="leaving"] .startup-logo-rest,
+.startup-splash[data-phase="leaving"] .startup-head { opacity: 0; transition: opacity 360ms var(--ease) 250ms; }
+
+.startup-bar {
+  width: 200px;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--line);
+  overflow: hidden;
+  transition: opacity 200ms var(--ease);
+}
+.startup-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transform-origin: left center;
+  transition: transform 260ms var(--ease);
+}
+.startup-splash[data-phase="leaving"] .startup-bar { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .startup-col-run { animation: none; }
+  .startup-bar > span { transition: none; }
+}
+:root[data-reduced-motion] .startup-col-run { animation: none; }
