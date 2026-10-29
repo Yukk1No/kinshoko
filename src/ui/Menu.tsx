@@ -1,4 +1,5 @@
-import type { ComponentProps, ReactNode } from "react";
+import { useMemo, type ComponentProps, type ReactNode } from "react";
+import { ContextMenu } from "@base-ui/react/context-menu";
 import { Menu } from "@base-ui/react/menu";
 import { Check, ChevronRight } from "lucide-react";
 
@@ -68,6 +69,29 @@ export function MenuLabel({ children }: { children: ReactNode }) {
 /** A non-interactive hint row aligned with the items above it. */
 export function MenuTip({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
   return <div className="k-item is-tip" role="note"><span className="k-item-ind" aria-hidden="true">{icon}</span><span className="k-item-label">{children}</span></div>;
+}
+
+/**
+ * 一个从页面上某一点弹出、没有触发元素的菜单（钉图菜单窗口用它，#309）。主菜单和它的子菜单是一棵树，
+ * 作为整体打开和关闭：在树里移动指针、焦点在主菜单与子菜单之间来回都不算离开；Esc、点在树外、
+ * 焦点离开整棵树时调一次 `onClose`。
+ *
+ * 用 ContextMenu 的根而不是 Menu 的根：没有触发元素的 Menu 根不登记成菜单树的根节点，子菜单一打开
+ * 或焦点一移进子菜单，它就当成别处的菜单把自己关掉。
+ */
+export function PointerMenu({ point, label, onClose, children }: {
+  point: { x: number; y: number }; label: string; onClose: () => void; children: ReactNode;
+}) {
+  const anchor = useMemo(() => ({
+    getBoundingClientRect: () => DOMRect.fromRect({ x: point.x, y: point.y, width: 0, height: 0 }),
+  }), [point.x, point.y]);
+  return <ContextMenu.Root open onOpenChange={(next) => { if (!next) onClose(); }}>
+    <Menu.Portal>
+      <Menu.Positioner className="k-positioner" anchor={anchor} side="bottom" align="start" sideOffset={2} collisionPadding={4}>
+        <Menu.Popup className="k-popup" aria-label={label} onContextMenu={(e) => e.preventDefault()}>{children}</Menu.Popup>
+      </Menu.Positioner>
+    </Menu.Portal>
+  </ContextMenu.Root>;
 }
 
 export { Menu };
