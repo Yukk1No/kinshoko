@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  Keep, find and pin your drawing references.
+  Your forbidden library: hoard every reference, find any of them.
 </p>
 
 <p align="center">
@@ -16,27 +16,38 @@
 </p>
 
 <p align="center">
-  <b>English</b> · <a href="README.zh-CN.md">简体中文</a>
+  <b>English</b> · <a href="docs/readme/README.zh-CN.md">简体中文</a>
 </p>
 
 ---
 
-Kinshoko is a reference tool for illustrators. Save images you like as you come across them and Kinshoko tags them for you; when you sit down to draw, search for what you need and pin it next to your canvas.
+Kinshoko is a reference library for illustrators: images are tagged as you save them, a search finds what you want to draw, and what you find pins next to your canvas.
 
 > [!NOTE]
-> Kinshoko is in **beta**. It runs on Windows 10/11 x64 only, and the interface is in Simplified Chinese. Keep your own copy of your images until backups are verified on your machine.
+> Kinshoko runs on Windows 10/11 x64. The interface is in Simplified Chinese for now.
 
-## Features
+## Tagged for you, found in seconds
 
-- **Pin next to your canvas.** Pin a whole image, part of one, or anything on screen above your painting app. Flip, rotate, fade or lock a pin so you don't click it by accident, and push it to the screen edge when it's in the way. Pins stay up after you close the main window.
-- **Save images in a moment.** Drag them in, paste, take a screenshot, or import a whole folder. The same image is only stored once.
-- **Automatic tags.** New images are tagged with things like hair color, outfit and pose, so you don't have to type them in. Fix any tag whenever you like.
-- **Find what you want to draw.** Search in Chinese. A search for blue eyes also brings in close matches such as aqua eyes, and you can switch back to exact matching.
-- **Reference groups.** Keep the references for one piece together as a group and bring them back next time.
-- **Safe mode.** On by default. Adult images won't pop up on your screen, so streaming or sharing your screen stays safe.
-- **Your images stay on your computer.** No account, works offline, and your original files are never changed. Back up to another drive and check that everything comes back.
-- **Separate libraries.** Keep work and personal references apart and switch between them.
-- **Move over from Eagle.** Bring an existing Eagle library over with its tags and folders.
+Hair color, outfit, pose and more are tagged automatically. Search for pink hair, umbrella and squatting, and the matches come up out of thousands of images; pink hair also brings in close matches such as purple hair. Fix any tag whenever you like.
+
+<p align="center"><img alt="A search and its results" src="docs/readme/search.png" width="800"></p>
+
+## Pinned next to your canvas
+
+Pin a whole image, part of one, or anything on screen above your painting app. Flip, rotate, fade it, or tuck it against the screen edge.
+
+Pins are the original: select part of an image in Kinshoko and you get it at full resolution, sharp when you zoom in, with colors the eyedropper reads exactly.
+
+<p align="center"><img alt="A photo of a Switch pinned next to the canvas as a reference" src="docs/readme/pin.jpg" width="800"></p>
+<p align="center"><sub>Switch photo in the pin: Evan-Amos, public domain, via <a href="https://commons.wikimedia.org/wiki/File:Nintendo-Switch-wJoyCons-BlRd-Standing-FL.jpg">Wikimedia Commons</a>.</sub></p>
+
+## Also
+
+- **Save in a moment**: drag in, paste, take a screenshot, or import a folder.
+- **Reference groups**: keep one piece's references together and bring them back anytime.
+- **Safe mode**: on by default, so adult images don't pop up on your screen.
+- **All local**: no account, works offline, never changes your originals.
+- **Move over from Eagle**: tags and folders come along.
 
 Planned directions, such as image similarity search, semantic search, color search and multi-device sync, are listed in the [roadmap](docs/discovery/roadmap.md) (in Chinese).
 
