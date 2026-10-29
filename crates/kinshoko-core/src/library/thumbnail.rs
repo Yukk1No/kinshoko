@@ -404,7 +404,8 @@ pub(super) fn fill_placeholders(inner: Weak<Inner>) {
 
 /// 迁移 0313 留下的标记还在时，删掉缓存目录里剩下的占位图文件，再删掉标记。补齐已经把它们读进
 /// 表里（expand 过渡期同时存的文件，表里本来就有，补齐不会再碰）；万一有没读进去的，表里没有，
-/// 下次打开补齐现场生成。补齐中途停下（资料库关了）时不扫，留到下次。
+/// 下次打开补齐现场生成。补齐中途停下（资料库关了）时不扫，留到下次。有目录读不出或文件删不掉
+/// （例如别的程序正开着它）时标记留着，下次打开再扫；本来就不在的算删掉了。
 fn sweep_placeholder_files(inner: &Weak<Inner>, root: &Path) {
     let Some(inner) = inner.upgrade() else {
         return;
@@ -418,27 +419,44 @@ fn sweep_placeholder_files(inner: &Weak<Inner>, root: &Path) {
     if !matches!(pending, Ok(true)) {
         return;
     }
+    let gone = |result: std::io::Result<()>| match result {
+        Ok(()) => true,
+        Err(e) => e.kind() == std::io::ErrorKind::NotFound,
+    };
     let sdr = root
         .join(CACHE_DIR)
         .join(THUMBS_DIR)
         .join(PIPELINE)
         .join(SDR);
-    for dir in std::fs::read_dir(sdr).into_iter().flatten().flatten() {
-        for entry in std::fs::read_dir(dir.path())
-            .into_iter()
-            .flatten()
-            .flatten()
-        {
-            let name = entry.file_name();
-            let name = name.to_string_lossy();
-            if name.contains(&format!("-{PLACEHOLDER}.")) {
-                let _ = std::fs::remove_file(entry.path());
+    let swept = (|| -> std::io::Result<bool> {
+        let mut all = true;
+        let dirs = match std::fs::read_dir(sdr) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(true),
+            dirs => dirs?,
+        };
+        for dir in dirs {
+            let dir = dir?.path();
+            if !dir.is_dir() {
+                continue;
+            }
+            for entry in std::fs::read_dir(&dir)? {
+                let entry = entry?;
+                if entry
+                    .file_name()
+                    .to_string_lossy()
+                    .contains(&format!("-{PLACEHOLDER}."))
+                {
+                    all &= gone(std::fs::remove_file(entry.path()));
+                }
             }
         }
+        Ok(all)
+    })();
+    if matches!(swept, Ok(true)) {
+        let _ = inner
+            .writer
+            .run(|conn| conn.execute_batch("DROP TABLE placeholder_files_pending;"));
     }
-    let _ = inner
-        .writer
-        .run(|conn| conn.execute_batch("DROP TABLE placeholder_files_pending;"));
 }
 
 fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), Error> {

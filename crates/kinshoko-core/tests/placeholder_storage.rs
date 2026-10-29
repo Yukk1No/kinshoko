@@ -203,6 +203,51 @@ fn a_library_from_the_expand_step_drops_its_leftover_files() {
     assert!(cards(&library).iter().all(|c| c.placeholder.is_some()));
 }
 
+fn sweep_pending(root: &Path) -> bool {
+    db(root)
+        .query_row(
+            "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE name = 'placeholder_files_pending')",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap()
+}
+
+/// 清理旧占位图文件时有删不掉的：标记留着，下次打开再扫，不会永远留下文件。
+#[test]
+fn a_leftover_file_that_cannot_be_removed_is_retried_on_the_next_open() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("lib");
+    let library = Library::create(&root, "库").unwrap();
+    import(&library, dir.path(), 1);
+    drop(library);
+    let sha = stored(&root).into_keys().next().unwrap();
+    let sdr = std::fs::read_dir(root.join("cache/thumbs"))
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path()
+        .join("sdr")
+        .join(&sha[..2]);
+    // 占着这个名字的是一个文件夹：删文件必然失败（任何系统上都一样）。
+    let stuck = sdr.join(format!("{sha}-p32.webp"));
+    std::fs::create_dir_all(stuck.join("busy")).unwrap();
+    assert!(sweep_pending(&root), "新建的库带着标记");
+
+    let library = Library::open(&root).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    assert!(sweep_pending(&root), "没删掉：标记留着");
+    drop(library);
+
+    std::fs::remove_dir_all(&stuck).unwrap();
+    std::fs::write(&stuck, b"left over").unwrap();
+    let _library = Library::open(&root).unwrap();
+    wait_until("下次打开删掉并去掉标记", || {
+        placeholder_files(&root).is_empty() && !sweep_pending(&root)
+    });
+}
+
 struct NoGroups;
 
 impl ReferenceGroupUsage for NoGroups {
