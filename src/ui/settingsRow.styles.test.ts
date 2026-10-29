@@ -32,6 +32,6 @@ describe("设置行垂直居中（#218，设计系统 v2）", () => {
   });
 
   it("什么都没渲染的行下区域不占位，不把整行内容顶偏（“检查更新”一行偏上）", () => {
-    expect(rule(settings, ".k-set-row-below:empty").display).toBe("none");
+    expect(rule(settings, ".k-set-row-below-body:empty").display).toBe("none");
   });
 });

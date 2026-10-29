@@ -95,7 +95,7 @@ export function RuntimeDetails() {
     : failed ? <StatusPill tone="warn">未通过</StatusPill>
     : <StatusPill tone="ok" icon={<CircleCheck size={12} aria-hidden="true" />}>正常</StatusPill>;
   return <section className="runtime-details" aria-label="运行环境">
-    <SettingsGroup title="运行环境">
+    <SettingsGroup label="运行环境">
       <SettingsRow icon={<Monitor size={16} />} title="图片显示" meta={`WebView2 ${status?.webview2 ?? "未查询到"}`}>{state}</SettingsRow>
       <SettingsRow icon={<RefreshCw size={16} />} title="重新检查" hint="更新组件后点一下">
         <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch(() => {})}><span className="k-label">检查</span></button>

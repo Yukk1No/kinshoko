@@ -1,6 +1,6 @@
 import { afterEach, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { SettingsRow } from "./SettingsList";
+import { SettingsGroup, SettingsRow } from "./SettingsList";
 import settings from "./settings.css?raw";
 
 afterEach(cleanup);
@@ -21,4 +21,22 @@ it("行下方的控件（例如备份的文件输入与按钮）同样读到补�
 
 it("键盘聚焦到这一行的控件时显示补充说明", () => {
   expect(settings).toMatch(/\.k-set-row:has\(:focus-visible\) \.k-set-hint \{ display: block; \}/);
+});
+
+// #310：组名不再显示（会和页面标题重复、对不齐），只作无障碍名称；整组的说明放进组的容器里。
+it("一组设置不显示组名，说明和行在同一个容器里", () => {
+  const { container } = render(<SettingsGroup label="图库" note="恢复不改当前设置。"><SettingsRow title="备份位置" /></SettingsGroup>);
+  expect(container.querySelector("h4")).toBeNull();
+  const list = screen.getByRole("list", { name: "图库" });
+  const group = list.parentElement!;
+  expect(group.classList.contains("k-set-group")).toBe(true);
+  expect(group.querySelector(".k-set-note")?.textContent).toBe("恢复不改当前设置。");
+});
+
+// #310：行下方的内容出现时展开、消失时收起；没有过渡可等（减弱动效）时立刻卸掉，不留看不见的控件。
+it("行下方的内容消失后不留在页面里", () => {
+  const { rerender } = render(<ul><SettingsRow title="状态" below={<progress aria-label="下载进度" />} /></ul>);
+  expect(screen.getByLabelText("下载进度").closest(".k-set-row-below")?.hasAttribute("data-open")).toBe(true);
+  rerender(<ul><SettingsRow title="状态" /></ul>);
+  expect(screen.queryByLabelText("下载进度")).toBeNull();
 });
