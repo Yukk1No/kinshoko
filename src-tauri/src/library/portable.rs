@@ -39,11 +39,9 @@ pub(super) async fn publish_tag_definitions<R: Runtime>(
             "标签定义未保存到资料库：{error}。程序中的对应和名称选择已保留；资料库可写后，请重试保存标签定义。"
         ))?;
         let state = worker.state::<LibraryState>();
-        with_libraries(&state, |libraries| {
-            Ok(with_catalog(&state.search, |catalog| {
-                catalog.inspect_libraries(libraries, safe)
-            }))
-        })?
+        workspace::with_resources(&state, |workspace, libraries, catalog| {
+            workspace.inspect_catalog(libraries, catalog, safe)
+        })
     }).await?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
         return Err("安全模式已变化，请重新检查标签对应".into());

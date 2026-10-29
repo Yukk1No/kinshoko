@@ -44,15 +44,15 @@ pub(super) async fn inspect_tag_catalog<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
 ) -> Result<TagCatalogWorkspace, String> {
-    let (reader, catalog) = (app.clone(), state.search.clone());
+    let reader = app.clone();
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
+    // 经共享的工作区读（#337）：复用它的快照。
     let result = blocking(move || {
-        with_libraries(&reader.state::<LibraryState>(), |libraries| {
-            Ok(with_catalog(&catalog, |catalog| {
-                catalog.inspect_libraries(libraries, safe)
-            }))
-        })?
+        workspace::with_resources(
+            &reader.state::<LibraryState>(),
+            |workspace, libraries, catalog| workspace.inspect_catalog(libraries, catalog, safe),
+        )
     })
     .await?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
@@ -69,19 +69,22 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
     local_tag_id: String,
     correction: CatalogCorrection,
 ) -> Result<TagCatalogWorkspace, String> {
-    let (reader, catalog) = (app.clone(), state.search.clone());
+    let reader = app.clone();
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let publish_library_id = library_id.clone();
     let result = blocking(move || {
-        with_libraries(&reader.state::<LibraryState>(), |libraries| {
-            let library = libraries.read(&library_id)?;
-            library.set_safe_mode(safe);
-            Ok(with_catalog(&catalog, |catalog| {
+        workspace::with_resources(
+            &reader.state::<LibraryState>(),
+            |workspace, libraries, catalog| {
+                let library = libraries
+                    .read(&library_id)
+                    .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
+                library.set_safe_mode(safe);
                 catalog.correct(&library, &local_tag_id, correction)?;
-                catalog.inspect_libraries(libraries, safe)
-            }))
-        })?
+                workspace.inspect_catalog(libraries, catalog, safe)
+            },
+        )
     })
     .await?;
     let publish_app = app.clone();

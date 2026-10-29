@@ -152,14 +152,14 @@ impl TagCatalog {
             self.inspect()?
         };
         // 修订号取自同步开始时的词表快照：同步期间词表又变了，下次读仍会重新同步。
-        self.synchronized.insert(
-            library.info().id.clone(),
+        self.remember_synchronized(
+            library,
             Synchronized {
                 root: library.info().root.clone(),
                 vocabulary: vocabulary_revision,
                 catalog: inspection.revision,
             },
-        );
+        )?;
         self.full_synchronizations += 1;
         crate::diagnostics::took_if_slow(
             "统一标签目录：同步一个资料库",
@@ -171,15 +171,62 @@ impl TagCatalog {
 
     /// 自上次同步这个资料库以来，它的词表与统一标签目录都没有变化。安全模式不是同步的输入
     /// （见 [`Library::catalog_vocabulary`]）。
-    pub(super) fn is_synchronized(&self, library: &Library) -> Result<bool, CatalogError> {
-        let Some(last) = self.synchronized.get(&library.info().id) else {
-            return Ok(false);
-        };
+    ///
+    /// 上次同步记在目录数据库里（#337）：重启后第一次用到也不必整份重新核对。换了程序版本时
+    /// 同步规则可能变了，仍重新同步一次。
+    pub(super) fn is_synchronized(&mut self, library: &Library) -> Result<bool, CatalogError> {
+        let library_id = &library.info().id;
+        if !self.synchronized.contains_key(library_id) {
+            let saved = self
+                .conn
+                .query_row(
+                    "SELECT root,vocabulary,catalog FROM catalog_library_synchronized
+                     WHERE library_id=?1 AND program=?2",
+                    params![library_id, PROGRAM],
+                    |row| {
+                        Ok(Synchronized {
+                            root: std::path::PathBuf::from(row.get::<_, String>(0)?),
+                            vocabulary: row.get(1)?,
+                            catalog: row.get(2)?,
+                        })
+                    },
+                )
+                .optional()?;
+            let Some(saved) = saved else {
+                return Ok(false);
+            };
+            self.synchronized.insert(library_id.clone(), saved);
+        }
+        let last = &self.synchronized[library_id];
         Ok(last.root == library.info().root
             && last.vocabulary == library.vocabulary_revision()?
             && last.catalog == self.revision()?)
     }
+
+    fn remember_synchronized(
+        &mut self,
+        library: &Library,
+        synchronized: Synchronized,
+    ) -> Result<(), CatalogError> {
+        self.conn.execute(
+            "INSERT OR REPLACE INTO catalog_library_synchronized
+             (library_id,root,vocabulary,catalog,program) VALUES (?1,?2,?3,?4,?5)",
+            params![
+                library.info().id,
+                synchronized.root.to_string_lossy(),
+                synchronized.vocabulary,
+                synchronized.catalog,
+                PROGRAM
+            ],
+        )?;
+        self.synchronized
+            .insert(library.info().id.clone(), synchronized);
+        Ok(())
+    }
 }
+
+/// 写下同步记录的程序版本（#337）：升级后同步规则可能变了，旧记录不算数。
+const PROGRAM: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg(test)]
 mod tests;

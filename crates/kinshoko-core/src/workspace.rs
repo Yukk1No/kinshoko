@@ -194,7 +194,8 @@ impl Workspace {
         self.gate.clear();
     }
     /// Names and group management share browse safety, while unused definitions remain manageable.
-    pub(crate) fn inspect_catalog(
+    /// 复用这个工作区的快照（#337）：应用壳经共享的工作区读，不必每次从头装配各提供方。
+    pub fn inspect_catalog(
         &mut self,
         device: &DeviceLibraries,
         catalog: &mut TagCatalog,
@@ -345,14 +346,13 @@ impl Workspace {
         safe: bool,
     ) -> Result<crate::library::Sidebar, CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
-        let library = device
-            .read(library_id)
-            .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
         let provider = snapshot
             .providers
             .iter()
             .find(|p| p.registration.library.id == library_id)
             .ok_or(CatalogError::UnknownMapping)?;
+        // 与 `directories` 一样经长期打开的只读句柄读（#337）：不再每次重新打开资料库。
+        let library = self.provider(device, &provider.registration.library)?;
         Ok(directory_sidebar(&snapshot, provider, &library, safe)?.0)
     }
     /// Authorize one image read for a thumbnail or display request (#123) and return its provider

@@ -4,12 +4,14 @@ use kinshoko_core::tag_catalog::{
     LegacyNameDecision, LegacyNameMigrationPreview, LegacyNameMigrationWorkspace,
 };
 
+/// 经共享的工作区读可见目录（#337）：复用它的快照，不再每次从头装配各提供方、长时间占着锁。
 fn view(
+    workspace: &mut kinshoko_core::workspace::Workspace,
     catalog: &mut TagCatalog,
     libraries: &DeviceLibraries,
     safe: bool,
 ) -> Result<LegacyNameMigrationWorkspace, CatalogError> {
-    let visible = catalog.inspect_libraries(libraries, safe)?;
+    let visible = workspace.inspect_catalog(libraries, catalog, safe)?;
     Ok(LegacyNameMigrationWorkspace {
         plan: catalog.plan_name_migration(&visible.catalog)?,
         libraries: visible.libraries,
@@ -21,15 +23,14 @@ pub(super) async fn plan_legacy_names<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
 ) -> Result<LegacyNameMigrationWorkspace, String> {
-    let (reader, catalog) = (app.clone(), state.search.clone());
+    let reader = app.clone();
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {
-        with_libraries(&reader.state::<LibraryState>(), |libraries| {
-            Ok(with_catalog(&catalog, |catalog| {
-                view(catalog, libraries, safe)
-            }))
-        })?
+        workspace::with_resources(
+            &reader.state::<LibraryState>(),
+            |workspace, libraries, catalog| view(workspace, catalog, libraries, safe),
+        )
     })
     .await?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
@@ -45,20 +46,21 @@ pub(super) async fn confirm_legacy_names<R: Runtime>(
     revision: i64,
     decisions: Vec<LegacyNameDecision>,
 ) -> Result<LegacyNameMigrationWorkspace, String> {
-    let (reader, catalog) = (app.clone(), state.search.clone());
+    let reader = app.clone();
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {
-        with_libraries(&reader.state::<LibraryState>(), |libraries| {
-            Ok(with_catalog(&catalog, |catalog| {
-                let current = view(catalog, libraries, safe)?;
+        workspace::with_resources(
+            &reader.state::<LibraryState>(),
+            |workspace, libraries, catalog| {
+                let current = view(workspace, catalog, libraries, safe)?;
                 if current.plan.revision != revision {
                     return Err(CatalogError::StaleNameMigration);
                 }
                 catalog.confirm_name_migration(&current.plan, &decisions)?;
-                view(catalog, libraries, safe)
-            }))
-        })?
+                view(workspace, catalog, libraries, safe)
+            },
+        )
     })
     .await?;
     names::refresh_labels(&app, &state)?;
@@ -75,19 +77,20 @@ pub(super) async fn preview_legacy_names<R: Runtime>(
     revision: i64,
     decisions: Vec<LegacyNameDecision>,
 ) -> Result<LegacyNameMigrationPreview, String> {
-    let (reader, catalog) = (app.clone(), state.search.clone());
+    let reader = app.clone();
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let result = blocking(move || {
-        with_libraries(&reader.state::<LibraryState>(), |libraries| {
-            Ok(with_catalog(&catalog, |catalog| {
-                let current = view(catalog, libraries, safe)?;
+        workspace::with_resources(
+            &reader.state::<LibraryState>(),
+            |workspace, libraries, catalog| {
+                let current = view(workspace, catalog, libraries, safe)?;
                 if current.plan.revision != revision {
                     return Err(CatalogError::StaleNameMigration);
                 }
                 catalog.preview_name_migration(&current.plan, &decisions)
-            }))
-        })?
+            },
+        )
     })
     .await?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
