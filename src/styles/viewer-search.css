@@ -1,0 +1,273 @@
+/* 原图查看器：图片观察层保持中性底色，工具在底部居中的 dock（#98）。只盖住图片墙所在的区域（#179），
+   左栏、顶栏与旁边的详情侧栏照常可用；盖住图片墙右下角的打标图标、图片大小与多选操作条。 */
+.viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+}
+/* 查看器本身只是接住按键的焦点落点（打开时获得焦点），不画焦点框；其中的按钮照常画。 */
+.viewer:focus-visible { outline: none; }
+.viewer-bar { height: 44px; min-height: 44px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 14px;
+  background: var(--bg); border-bottom: 1px solid var(--line); }
+.viewer-bar .viewer-back { height: 30px; padding: 0 10px 0 8px; gap: 6px; background: transparent; box-shadow: none; color: var(--ink-2); }
+.viewer-bar .viewer-back:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+.viewer-title { margin-left: 6px; min-width: 0; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 13px; }
+.viewer-index { margin: 0 4px 0 6px; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.viewer-bar .k-icon-btn:disabled { opacity: 0.4; }
+.viewer-zoom { display: flex; align-items: center; gap: 2px; color: var(--ink-2); }
+.viewer-zoom output { min-width: 5ch; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; }
+.viewer-stage {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  background: var(--ground-mid);
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.viewer-stage img { display: block; position: absolute; max-width: none; }
+.viewer-stage:active { cursor: grabbing; }
+.viewer-stage[data-background="dark"] { background: var(--ground-dark); }
+.viewer-stage[data-background="light"] { background: var(--ground-light); }
+.viewer-stage[data-background="checker"] {
+  background: repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%) 0 0 / 24px 24px;
+}
+/* 背景色块：dock 与托盘里的图标，颜色与舞台底色一致。 */
+.viewer-swatch { display: block; width: 18px; height: 18px; border-radius: 5px; background: var(--ground-mid); box-shadow: inset 0 0 0 1px var(--line-2); }
+.viewer-swatch[data-ground="dark"] { background: var(--ground-dark); }
+.viewer-swatch[data-ground="light"] { background: var(--ground-light); }
+.viewer-swatch[data-ground="checker"] { background: repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%) 0 0 / 8px 8px; }
+.viewer-dock { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 4; cursor: default; }
+.viewer-message {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  margin: 0; padding: 12px 16px; border-radius: var(--r-m); background: var(--surface); color: var(--ink);
+  box-shadow: var(--shadow-pop); text-align: center; cursor: default;
+}
+.viewer-message p { margin: 0 0 8px; }
+/* 框出的局部（#65）：按原图像素记，随缩放平移换算位置；外面压暗，三分线辅助构图。 */
+.viewer-crop {
+  position: absolute;
+  box-sizing: border-box;
+  outline: 1.5px solid var(--on-solid);
+  box-shadow: 0 0 0 100000px var(--overlay);
+  pointer-events: none;
+  background:
+    linear-gradient(var(--guide), var(--guide)) 33.33% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--guide), var(--guide)) 66.66% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--guide), var(--guide)) 0 33.33% / 100% 1px no-repeat,
+    linear-gradient(var(--guide), var(--guide)) 0 66.66% / 100% 1px no-repeat;
+}
+.viewer-pin-status {
+  position: absolute;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  z-index: 5;
+  margin: 0;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 12px;
+  box-shadow: var(--shadow-pop);
+}
+/* 内容分级（#53）：人工分级优先于自动分级。 */
+.selection-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.selection-hint {
+  opacity: 0.6;
+}
+
+/* 永久删除的确认（#67）：提醒对话框里列出受影响的参考组。 */
+.permanent-delete-groups {
+  margin: 0 0 4px;
+  padding-left: 1.4em;
+  color: var(--ink-2);
+}
+
+/* 搜索框（#54）：条件以标签块排在输入框前，下拉候选浮在图片墙上。 */
+.search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.search-chips {
+  display: contents;
+  list-style: none;
+}
+
+.search-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.search-chip[data-negate] {
+  text-decoration: line-through;
+  text-decoration-color: var(--accent-strong);
+}
+
+.search-chip-not {
+  color: var(--accent-strong);
+  margin-right: 4px;
+  text-decoration: none;
+}
+
+.search-chip-or,
+.search-chip-missing {
+  opacity: 0.6;
+}
+
+.search-chip button {
+  border: none;
+  background: none;
+  padding: 0 4px;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.search-chip button:hover,
+.search-chip button[aria-pressed="true"] {
+  opacity: 1;
+  color: var(--accent-strong);
+}
+
+.search-field {
+  position: relative;
+  flex: 1;
+  min-width: 160px;
+}
+
+.search-field input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+}
+
+/* 标签分组面板（编辑分组）的候选里仍用。 */
+.search-candidate-via {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* 未翻译标记（#160）：lucide 的 Languages 图标，跟着文字颜色，略淡。 */
+.untranslated {
+  display: inline-flex;
+  flex: none;
+  align-self: center;
+  opacity: 0.7;
+}
+
+/* 分级不是标签（#161）：带一个“分级”小牌，和标签区分开。 */
+.search-rating-mark {
+  margin-right: 4px;
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+/* 近似查找（#56）：相近标签以较淡的字列在条件里，可关掉；“精确查找”一键不展开。 */
+.search {
+  position: relative;
+}
+
+.search-similar {
+  margin-left: 4px;
+  opacity: 0.85;
+}
+
+.search-similar-tag > span:first-of-type {
+  border-bottom: 1px dashed var(--line);
+}
+
+.search-similar-source {
+  margin-left: 2px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--line);
+  font-size: 12px;
+}
+
+.search-popover {
+  position: absolute;
+  z-index: 11;
+  top: calc(100% + 4px);
+  left: 12px;
+  min-width: 240px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: var(--shadow-pop);
+}
+
+.search-popover p {
+  margin: 0 0 6px;
+}
+
+.search-popover button {
+  margin-right: 6px;
+}
+
+.search-popover .k-combo {
+  margin-bottom: 6px;
+}
+
+.search-popover-list {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.search-popover-list li {
+  display: flex;
+  gap: 8px;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.search-popover-list li:hover {
+  background: var(--line);
+}
+
+/* 没有外部对应的标签：不参与内置近似对应表。 */
+.no-external::before {
+  content: "⌀";
+  margin-left: 2px;
+  font-size: 12px;
+  opacity: 0.55;
+}
+
+.settings-approx td {
+  padding: 2px 8px 2px 0;
+}
+
+.app-status-actions {
+  display: flex;
+  gap: 6px;
+}
+

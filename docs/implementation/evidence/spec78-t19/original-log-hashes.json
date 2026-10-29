@@ -1,0 +1,121 @@
+{
+  "note": "Original ignored logs are retained unchanged. Archived .txt copies normalize line endings, trailing whitespace and final blank lines only. Failures and their meanings are preserved.",
+  "logs": [
+    {
+      "file": "work/t19-checks/clippy-final.log",
+      "sha256": "6ee6400e370ec5db347220ebf3350e18a9afde9585fac5e8c44d1c3c18455859"
+    },
+    {
+      "file": "work/t19-checks/clippy.log",
+      "sha256": "befd0b5150622f582b00c02e4f66b73fa3c24cc3af404c54135f28ccdb805a7b"
+    },
+    {
+      "file": "work/t19-checks/policy-after-lint.log",
+      "sha256": "a10c1d7b14db66a9159fb54d60dcddbcfec078449b0e839f8c4aa409bec51521"
+    },
+    {
+      "file": "work/t19-checks/policy-bindings.log",
+      "sha256": "89f9c04ef7394f02fe5186b00d64fb2d922fff108ffc85f7c02023925441a90f"
+    },
+    {
+      "file": "work/t19-checks/policy-final.log",
+      "sha256": "2c715c546c9d130f7042ff86f4c6848bf3b14cacf20f918129dca8d4933a30a1"
+    },
+    {
+      "file": "work/t19-checks/policy-private-green.log",
+      "sha256": "a3594e7647962177763f8335a2714bcfd4022e3a0cb9287aee0d47d70bf404c1"
+    },
+    {
+      "file": "work/t19-checks/policy-private-red.log",
+      "sha256": "03ef07f2e788044011475c23aed4ee072b05f85356f401b4177f759261105b41"
+    },
+    {
+      "file": "work/t19-checks/policy-public-green.log",
+      "sha256": "685f7f0845f67696a6dc1dfda6e3b27ea4e5937e6ed9a72e9fe3032d558568b9"
+    },
+    {
+      "file": "work/t19-checks/policy-public-red.log",
+      "sha256": "50a807a2ffbf668a4b93b91a08d6eb61920a5cbd910c3ecc0986aaffc5d2cec2"
+    },
+    {
+      "file": "work/t19-checks/post-t03-typecheck.log",
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "file": "work/t19-checks/post-t03-ui.log",
+      "sha256": "f246703fc03749ced2360352f7b7e41a5564c927f85ec8df6f6bde02f6b6aac6"
+    },
+    {
+      "file": "work/t19-checks/tauri-check.log",
+      "sha256": "72da41acb0434de13406485d91ebdad0e5431e70beceed679461d36b276bf11f"
+    },
+    {
+      "file": "work/t19-checks/typecheck.log",
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "file": "work/t19-checks/ui-disabled-green.log",
+      "sha256": "57c9370a3ab1c0e21950383d9d0a5588d42df1052a323819a9e121d4b52e9d48"
+    },
+    {
+      "file": "work/t19-checks/ui-disabled-red.log",
+      "sha256": "f39fa6f8fd4398b40f1c96c22cc6c937970144bd87c64e83250e6fac6f8b2be5"
+    },
+    {
+      "file": "work/t19-checks/ui-final.log",
+      "sha256": "4d2369fa8da4553341a6ec9c1405dd4460e89992bba863cc4440690e91f2b892"
+    },
+    {
+      "file": "work/t19-checks/ui-private-green.log",
+      "sha256": "5091b6afbcf545cbf90f9a501caaa55861f68a8d80db01eaf01b36a43aa9cf1e"
+    },
+    {
+      "file": "work/t19-checks/ui-private-red.log",
+      "sha256": "fd3611932d7dcafe64570b4cbc07349d4815a5e6e9cb0c7a291c2e35a611bd58"
+    },
+    {
+      "file": "work/native/t19-upgrade/native-upgrade-menu-modal-red.log",
+      "sha256": "c3d670a0cb00f32bbcdf827fea88610db04b49e8e25e3e4362a38c2dd33469c1"
+    },
+    {
+      "file": "work/native/t19-upgrade/native-upgrade-new-silent-red.log",
+      "sha256": "a5d29585424bebc463aa8606e5a96ea2596e293e8ffc35b3507bdaac65c7cb2b"
+    },
+    {
+      "file": "work/native/t19-upgrade/native-upgrade-provenance-red.log",
+      "sha256": "1bc4b86357233c43965aba0c5d4b1b04c0e5a580d8fe89575d16cdffd0ad6727"
+    },
+    {
+      "file": "work/native/t19-upgrade/native-upgrade-tray-timeout.log",
+      "sha256": "13d64b06340067e1eb75caf0aa863d587ce428baf451c2e35252c29e12cc8423"
+    },
+    {
+      "file": "work/native/t19-upgrade/native-upgrade.log",
+      "sha256": "ec9ab8f33fca65a8447636a6b7938b0e04eff56dc82a77ad388fc2da620c8bf0"
+    },
+    {
+      "file": "work/native/t19-upgrade/new-build.log",
+      "sha256": "f66ff5a8567d89125daac54574871e79bf1bcadb3b954784342e2ccfbe3cb0e8"
+    },
+    {
+      "file": "work/native/t19-upgrade/old-build.log",
+      "sha256": "e4f3ee7d666254bd01c34667c6fccdcd6764beee427e2841af812502835bf63c"
+    },
+    {
+      "file": "work/t19-checks/post-integration-ui.log",
+      "sha256": "02a99b4747865bd6cbdf24a7235f348231ca7a5369329b338fc163692344fce9"
+    },
+    {
+      "file": "work/t19-checks/post-integration-typecheck.log",
+      "sha256": "b306b214ddc8b026c0e3f727c09f2434c3be54d416ce4814dfc4cdb6dbb3015a"
+    },
+    {
+      "file": "work/t19-checks/post-integration-policy.log",
+      "sha256": "6d04f9eb711d3a53126de21c33df092a997190faa6aaf6912a55c56928e96e30"
+    },
+    {
+      "file": "work/t19-checks/post-integration-clippy.log",
+      "sha256": "aafac13fa13a22981aeddaaf13df7c82ad4fb4ec1fbf0e55c13c77f8db4e3d0a"
+    }
+  ]
+}

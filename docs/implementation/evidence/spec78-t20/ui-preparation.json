@@ -1,0 +1,136 @@
+{
+  "scope": "T20 independent UI preparation only; combined/native/install acceptance not executed",
+  "productSource": "67765bed472a0037aae62c193d815bebcf5533b9",
+  "productTree": "09eac8686df761126e0c7b411d8afa65c7892b6d",
+  "recordedAt": "2026-10-08T23:11:01.145040+00:00",
+  "publicInterfaces": [
+    "real App DOM with official Tauri IPC/event mocks",
+    "public core UpdatePolicy"
+  ],
+  "checks": [
+    {
+      "name": "picker original first round",
+      "passed": 0,
+      "failed": 1,
+      "harnessErrors": 13,
+      "note": "Immediate mock cleanup caused unlistener errors; retained, not the clean RED."
+    },
+    {
+      "name": "picker clean RED",
+      "passed": 0,
+      "failed": 1,
+      "harnessErrors": 0,
+      "note": "Late first workspace notification removes typed picker."
+    },
+    {
+      "name": "picker first GREEN",
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "name": "picker and shared tag regression",
+      "files": 3,
+      "passed": 22,
+      "failed": 0
+    },
+    {
+      "name": "UpdatePolicy RED",
+      "passed": 2,
+      "failed": 1
+    },
+    {
+      "name": "UpdatePolicy GREEN",
+      "passed": 3,
+      "failed": 0
+    },
+    {
+      "name": "actual Rust binding regeneration",
+      "passed": 193,
+      "failed": 0
+    },
+    {
+      "name": "frozen 67765be affected UI",
+      "files": 5,
+      "passed": 37,
+      "failed": 1,
+      "checkedSourceFiles": 564,
+      "changedSourceFiles": 0,
+      "note": "Old TagOrganize fixture used group title as readiness for an add button removed during refresh; failure retained."
+    },
+    {
+      "name": "exact add-button readiness correction",
+      "files": 2,
+      "passed": 17,
+      "failed": 0,
+      "sourceNote": "67765be product with only TagOrganize test prerequisite changed; final combined check pending."
+    }
+  ],
+  "layout": {
+    "source": "accepted prototype pane-body and group-card styles",
+    "historicalNativeScreensInspected": [
+      "spec78-t11/01-source-group.png",
+      "spec78-t11/04-exported-package.png"
+    ],
+    "currentSourceFact": "b856 kept40vh height cap and no long-status wrapping",
+    "nativeFinalVerification": "not executed"
+  },
+  "unverified": [
+    "same-final-source two-real-library combined workflow",
+    "native picker after actual workspace monitor",
+    "final reference group layout",
+    "original crop with final T17 changes",
+    "prototype final-source comparison",
+    "release NSIS clean install and old-to-new upgrade",
+    "Windows10",
+    "hardware-specific input/DPI/gamut",
+    "external signed public automatic update"
+  ],
+  "rawLocalFiles": [
+    {
+      "path": "work/t20/ui/picker-red.log",
+      "bytes": 20573,
+      "sha256": "f6b7b8022ad9f9efc7e90da30f2965ef05c1363b0122e06e14e0f640b4285644"
+    },
+    {
+      "path": "work/t20/ui/picker-red-v2.log",
+      "bytes": 11114,
+      "sha256": "9d9dd665bc6b30cc80c277aa1ce993cef9e6a4a11c71d4beeed3d8eedb58e351"
+    },
+    {
+      "path": "work/t20/ui/picker-green.log",
+      "bytes": 502,
+      "sha256": "c12f3e668b7a1d2afda1c7cbe5b3fa118dc1b809a9fdfccf46a66c575f1c4a15"
+    },
+    {
+      "path": "work/t20/ui/picker-regression.log",
+      "bytes": 3864,
+      "sha256": "f54d27b20beb5e41765424ff76fdf1ee2b0d50ed4705236d746bba4bfc1585ad"
+    },
+    {
+      "path": "work/t20/ui/update-policy-red.log",
+      "bytes": 1385,
+      "sha256": "24626319a0b56c568b8d5d05f44ad76be37a488a0b34f3007f228d1e247232a7"
+    },
+    {
+      "path": "work/t20/ui/update-policy-green.log",
+      "bytes": 659,
+      "sha256": "7db370f3ea6a4d5858d1b0a7e4ed504004a8c74295e170edd22cdc7e5ee6e920"
+    },
+    {
+      "path": "work/t20/ui/bindings-regeneration.log",
+      "bytes": 12135,
+      "sha256": "df0eb1ab7a3b9b16449b79e2ebadb8b8fa3a3f8bb3f50141ecb8e9407055cc30"
+    },
+    {
+      "path": "work/t20/ui/frozen-ui.log",
+      "bytes": 7898,
+      "sha256": "6f86f1d1dfd2ca6bac4699ce340e9de590f970ec438ac4bae9497bde9e2cd536"
+    },
+    {
+      "path": "work/t20/ui/readiness-correction.log",
+      "bytes": 3170,
+      "sha256": "8d8bb3e6fcb8310ce59e2deb6627e740a9e2a732240f294cdccff5f23416630f"
+    }
+  ],
+  "publication": "Local preparation. Raw files remain ignored. No GitHub update or push by T20."
+}

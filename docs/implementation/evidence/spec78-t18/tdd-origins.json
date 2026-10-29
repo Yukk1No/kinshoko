@@ -1,0 +1,107 @@
+{
+  "kind": "derived origins; initial work was not source-frozen",
+  "start": "152e652311b7c70425f707faece7253ea6f76872",
+  "stages": [
+    {
+      "scope": "float16 fallback",
+      "red": {
+        "localRaw": "work/t18/renderer-fallback-red.txt",
+        "sha256": "9c0095cf5ebad1ec00d099ba9c63e50b19763e54ebcae401147568ffa21d2433",
+        "bytes": 1279
+      },
+      "green": {
+        "localRaw": "work/t18/renderer-fallback-green.txt",
+        "sha256": "cd3f84600b7b471c27381657a2bd5fe7da83360d550611cde63083f12e8bfd48",
+        "bytes": 240
+      }
+    },
+    {
+      "scope": "default context fallback",
+      "red": {
+        "localRaw": "work/t18/renderer-default-red.txt",
+        "sha256": "2c5136f6aa437362840f2a94e127ecf3e114b464c2c34c40e1dfce14ce3806f1",
+        "bytes": 1090
+      },
+      "green": {
+        "localRaw": "work/t18/renderer-default-green.txt",
+        "sha256": "9f531ae3cd45077280a4a9fa4128cdb9e0f9be2cfb2cd07b814d575f6227caaa",
+        "bytes": 251
+      }
+    },
+    {
+      "scope": "unmeasured status remains unknown",
+      "red": {
+        "localRaw": "work/t18/runtime-unknown-red.txt",
+        "sha256": "7a524577698038b17cbd346a2786e56af0619d1c7162d0e27d8ca2ff5423ba10",
+        "bytes": 1452
+      },
+      "green": {
+        "localRaw": "work/t18/runtime-unknown-green.txt",
+        "sha256": "87a86e919569235114c1481231192565553abc5c0fdc2fa397a8e75a2c03aa70",
+        "bytes": 990
+      }
+    },
+    {
+      "scope": "typed report for missing canvas",
+      "red": {
+        "localRaw": "work/t18/runtime-report-red.txt",
+        "sha256": "b9ec7a06488353f4553956506f2b7643adc98194a7929bafd8cf830125555ada",
+        "bytes": 1140
+      },
+      "green": {
+        "localRaw": "work/t18/runtime-report-green.txt",
+        "sha256": "a2ac72a18ecadb543fb7c522c9abadfc65d169f14e42fab6394d72732c3fc421",
+        "bytes": 1080
+      }
+    },
+    {
+      "scope": "runtime reason and local controls",
+      "red": {
+        "localRaw": "work/t18/runtime-ui-red.txt",
+        "sha256": "7777ad9f0e8fa296a65c83376f570eb7501f4bf3171842928c4f7c2c969a584f",
+        "bytes": 1872
+      },
+      "green": {
+        "localRaw": "work/t18/runtime-ui-green.txt",
+        "sha256": "af8c077f9121d3594a3f8601acf4f744e2170d976382aa69d445867dc176ae92",
+        "bytes": 252
+      }
+    },
+    {
+      "scope": "missing pin canvas sends production ready",
+      "red": {
+        "localRaw": "work/t18/pin-runtime-red-clean.txt",
+        "sha256": "f48c08332265f15db8e8dce0a84a4c45d50a59d05efeccd4911895fe306bde8a",
+        "bytes": 2063
+      },
+      "green": {
+        "localRaw": "work/t18/pin-runtime-green.txt",
+        "sha256": "2b02c7ff4c2bb28b46d5f7fbd2ef7595bd3f180857dd562fe61cbbea245cb3b1",
+        "bytes": 242
+      }
+    },
+    {
+      "scope": "settings recovery controls",
+      "red": {
+        "localRaw": "work/t18/settings-recovery-red.txt",
+        "sha256": "f51507f7ff4025d5cde634df94ac6b5de6cf05a584337a0acc479314a32b44d5",
+        "bytes": 2672
+      },
+      "green": {
+        "localRaw": "work/t18/settings-recovery-green.txt",
+        "sha256": "d46f1d757d43de42b5c02e96d75b54b2d7c273b34e5e30ad9330211e72ade0e4",
+        "bytes": 241
+      }
+    }
+  ],
+  "excludedAsProductRed": [
+    {
+      "name": "pin-runtime-red.txt",
+      "reason": "Invalid Tauri-window fixture"
+    },
+    {
+      "name": "pin-runtime-red-behavior.txt",
+      "reason": "Behavior failure also had cleanup errors; separate clean behavior RED preserved"
+    }
+  ]
+}

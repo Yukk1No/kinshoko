@@ -1,0 +1,105 @@
+/* 视觉 token 取自 logo kit v1.1 与 #13 样稿：品牌色只用在界面框架上，图片底色保持中性。 */
+@font-face {
+  font-family: "Kinshoko Inter";
+  src: url("/fonts/Inter-Regular-hinted.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Kinshoko Inter";
+  src: url("/fonts/Inter-Medium-hinted.woff2") format("woff2");
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Kinshoko Inter";
+  src: url("/fonts/Inter-SemiBold-hinted.woff2") format("woff2");
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Kinshoko Han";
+  src: url("/fonts/SourceHanSansSC-VF.ttf.woff2") format("woff2");
+  font-weight: 250 900; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Kinshoko Han Punct";
+  src: url("/fonts/SourceHanSansSC-VF.ttf.woff2") format("woff2");
+  font-weight: 250 900; font-style: normal; font-display: swap;
+  unicode-range: U+2014, U+2018-2019, U+201C-201D, U+2026;
+}
+:root {
+  color-scheme: light dark;
+  --font-ui: "Kinshoko Inter", "Kinshoko Han", "Segoe UI", "Microsoft YaHei UI", "Segoe UI Emoji", system-ui, sans-serif;
+  font-family: var(--font-ui);
+  font-synthesis: none;
+  font-size: 13px;
+}
+:lang(zh), :lang(ja) { font-family: "Kinshoko Han Punct", var(--font-ui); }
+button, input, textarea, select { font: inherit; }
+b, strong, th, h1, h2, h3, h4, h5, h6 { font-weight: 600; }
+/* design system v2: three sizes only, title 16 / body 13 / small 12; hierarchy comes from weight and colour */
+h1, h2, h3, h4, h5, h6 { font-size: 16px; line-height: 24px; }
+small, code, kbd, pre, samp { font-size: 12px; }
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+button {
+  font: inherit;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.app-workspace[hidden] {
+  display: none;
+}
+
+.app-main {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main-centered {
+  align-items: center;
+  justify-content: center;
+}
+

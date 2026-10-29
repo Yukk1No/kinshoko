@@ -1,0 +1,305 @@
+{
+  "pathRedaction": "Absolute user paths were redacted for publication (2026-10-11, #98 review fix): <worktree> = the T20 Codex worktree checkout, %USERPROFILE% / %APPDATA% / %LOCALAPPDATA% = the developer profile. Recorded SHA256 values refer to the unredacted original files, which stay in the ignored work/ directory.",
+  "kind": "spec78-t20-offline-browser-installer-preparation",
+  "at": "2026-10-09T10:26:16.470008+00:00",
+  "scope": "#78 / T20 #98 additive offline harness preparation; no final acceptance",
+  "previousFixedSource": "80d57642e48b53ff02efa585064677fda0bb302b",
+  "previousFixedTree": "078e3e6439363ca7afabf84f5e35f8df524b1b92",
+  "acceptedPrototype": "bd8aea44c4a311571ee3c07382cb7755f87f3153",
+  "fixed80dReview": {
+    "path": "%USERPROFILE%\\.codex\\visualizations\\2026\\10\\08\\01a11999-1f51-79a1-8137-005f450368e1\\spec78-t20-original-audit\\notes-prototype-80d5764.md",
+    "bytes": 11793,
+    "sha256": "2f13b7faeebf377e1cd2053e5256ed7b97e29f3d83db54724007b3cd045d11e8"
+  },
+  "fixed80dReviewFinding": "one P2 checker title mismatch; current mapping matches actual accepted GROUNDS for all four values",
+  "modules": {
+    "e2e/spec78-combination-prototype.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-prototype.mjs",
+      "bytes": 35007,
+      "sha256": "1c7035777191c8cc5abe5130f1efa99cf8678954f7cf372b0dafe923263c0944"
+    },
+    "e2e/spec78-combination-prototype-browser.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-prototype-browser.mjs",
+      "bytes": 20916,
+      "sha256": "fc6f8ea9ea3b77b6134a0c3ca5fc15f63a338eaeadf1fbf0d5fb9fb98ecce781"
+    },
+    "e2e/spec78-combination-installer.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-installer.mjs",
+      "bytes": 26640,
+      "sha256": "a5eeffabae521bbbda0cb319fe7883d0d118d3416c049120e47194ce81f1d729"
+    },
+    "e2e/spec78-combination-preflight.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination-preflight.mjs",
+      "bytes": 34277,
+      "sha256": "aac44651cd37bfb27940d958e81810a773a240b8b7b30cbfc018eb7b451e0c6d"
+    },
+    "e2e/spec78-combination.mjs": {
+      "path": "<worktree>\\e2e\\spec78-combination.mjs",
+      "bytes": 8514,
+      "sha256": "8712c24fb2faeca66077b725ca2e5fb6dfa7f185d42cc5b4a5191e0813db5882"
+    }
+  },
+  "checks": {
+    "browserOwnershipRed": {
+      "passed": 8,
+      "failed": 1,
+      "reason": "already-selected exact profile child with earlier creation than selected parent did not fail; original result preserved"
+    },
+    "browserOwnershipGreen": {
+      "passed": 9,
+      "failed": 0
+    },
+    "publicPacket": {
+      "passed": 8,
+      "failed": 0
+    },
+    "installerPreparation": {
+      "passed": 9,
+      "failed": 0
+    },
+    "helpers": {
+      "passed": 5,
+      "failed": 0,
+      "safeImportedModules": 5,
+      "browserProgramsCompiled": 21,
+      "browserProgramsExecuted": 0,
+      "powershellScriptsParsed": 2,
+      "powershellScriptsExecuted": 0,
+      "acceptedCodeFiles": 41,
+      "exactFontFiles": 4
+    }
+  },
+  "preparedBehavior": {
+    "prototype": "fresh exact mirror/server config, private unused profile, exact runtime/plan binding; initial spawned PID/path/creation and listener owners; conservative descendant/time guards; fail-closed termination and actual empty release required",
+    "installer": "same exact isolated T19 identity; explicit final-source release build and host target/environment; actual frontend/native/bundle command exits, data/.cargo/dist/config/hooks attribution; actual compile-time NSIS-patched EXE observed and frozen; actual package and every required DLL frozen",
+    "runBoundary": "each live browser/server/install/native stage remains subject to a new precise root exclusive grant",
+    "knownFolderBoundary": "build actions only read both isolated identifiers requested/resolved paths before/after; no settings/Run observations or writes occurred in these pure checks"
+  },
+  "rawDirectory": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1",
+  "rawFiles": [
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\browser-checks.mjs",
+      "bytes": 7599,
+      "sha256": "d2d754abfebb87b03fc566a57f17abe95787ec9c85c8ea56d4e628361bc6e26a"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\browser-v1-command.json",
+      "bytes": 649,
+      "sha256": "c2f411202d430293cfc56fbd0522e7b28caff17e387d69d57b245fae975494a6"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\browser-v1-exit.txt",
+      "bytes": 3,
+      "sha256": "f1b2f662800122bed0ff255693df89c4487fbdcf453d3524a42d4ec20c3d9c04"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\browser-v1-stderr.txt",
+      "bytes": 169,
+      "sha256": "49ca0d389e83d6c3fbc5ef753759b8dce8a3d29926240726e4f3887909cc4826"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\browser-v1-stdout.txt",
+      "bytes": 1142,
+      "sha256": "4aa5ad84c8610c12208566b28bfd3e8e49508673bdfc8a9b86ee35869602f556"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\browser-v1.json",
+      "bytes": 1427,
+      "sha256": "d395da1ae8857bc9d1cd887463b14dca87e665a383dffc9b238a1ac4a53ffaee"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\browser-v2-command.json",
+      "bytes": 533,
+      "sha256": "06d3b97ca385ce993832939c99cb77fdbaa4fcce82156131a83670f216d9721c"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\browser-v2-exit.txt",
+      "bytes": 3,
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\browser-v2-stderr.txt",
+      "bytes": 169,
+      "sha256": "0eb15ee31da9687f24a2eee6f1215ab96b2945fb68e290c92513fdd9670eb9b3"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\browser-v2-stdout.txt",
+      "bytes": 1072,
+      "sha256": "4d37cb33e913e007709ee720c944cef036b9ed553aae01b2aa0fb5968e89bdb3"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\browser-v2.json",
+      "bytes": 1349,
+      "sha256": "b8114141b908aacfd1b18f0f1427d4f1509cf047c934abd93e288bce59f906b8"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\checks-run.json",
+      "bytes": 2590,
+      "sha256": "c183396bc96aa5132e8ccf0bb517419ed222ee063a97ffef1ef40b5507f0d9d1"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\helpers-command.json",
+      "bytes": 506,
+      "sha256": "8f7d8bc43407bf6cad1d6a6289296dcafc5498f192dd7812b8da9eb68eebfc21"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\helpers-exit.txt",
+      "bytes": 3,
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\helpers-stderr.txt",
+      "bytes": 169,
+      "sha256": "ce675e02067c338cf845d3a2004a3e9340151775b6742c499fe1953bf38bd44e"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\helpers-stdout.txt",
+      "bytes": 106,
+      "sha256": "b50ee2cdadda0254e820ff785342382f8ed7c2d6c9ee3bcb6fe8403a92f7be55"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\helpers.json",
+      "bytes": 6946,
+      "sha256": "1cdbcb2384d19c1dfc954e42f0dbb28513e1d0ac60920cc3f2d3600009823e5b"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\helpers.mjs",
+      "bytes": 5483,
+      "sha256": "2ac4ea2658823f1c9baaffde2ffc4a562f3c7658c80136579aa8decce2e2398e"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\installer-checks.mjs",
+      "bytes": 5508,
+      "sha256": "caab139c82e0ba8d471db9a03e87da985db5b6d406eb8f4f48c69a05fdafa82d"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\installer-final-actual.exe",
+      "bytes": 77,
+      "sha256": "29ccfc1871503d2bf87e361eb8546d38606f78cc2194eb0403c9ff0b41ba8ee9"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\installer-final-bare.exe",
+      "bytes": 77,
+      "sha256": "90787ac5a6a9adfffb00996defaf6e3d80d4bc5692a248ecb80b33183f0c32ac"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\installer-final-command.json",
+      "bytes": 547,
+      "sha256": "873b49cd2ec58912e09835c3f6e7f75514332142a554c828979988ee88f0f95f"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\installer-final-counterfeit.exe",
+      "bytes": 77,
+      "sha256": "b2cad51ea5d5ba6fbba19e0cdb375460de3265352fac6b934392db50538a3229"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\installer-final-exit.txt",
+      "bytes": 3,
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\installer-final-frozen.exe",
+      "bytes": 77,
+      "sha256": "29ccfc1871503d2bf87e361eb8546d38606f78cc2194eb0403c9ff0b41ba8ee9"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\installer-final-frozen.exe.json",
+      "bytes": 1052,
+      "sha256": "a1e9aeda6d34b3e97046e75996add339e462b67bc06d190dbd695189aaed0714"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\installer-final-not-a-build.json",
+      "bytes": 78,
+      "sha256": "985c0fcf802ec4d63f32c8972c89b8945da263cfe706c52db6f6da4c25809df8"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\installer-final-stderr.txt",
+      "bytes": 169,
+      "sha256": "85199851428e77c1dd398971173a972730711a3217f3af66e982e0f8b39c7a14"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\installer-final-stdout.txt",
+      "bytes": 24,
+      "sha256": "6ef50173b0051825c9f942fd1586e672332d8bca264d3a4c02b8c5105e7de024"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\installer-final.json",
+      "bytes": 1384,
+      "sha256": "84385598bb13c04e58506abc7c59a6f0e33d700a74d7fb8c4d83a598a1f1acfc"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\packet-checks.mjs",
+      "bytes": 4450,
+      "sha256": "c835e626975240700d4ae8428301865bef4b3e419a6b6b38b8151b841ecb0a36"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\packet-final-command.json",
+      "bytes": 538,
+      "sha256": "ec491f56c94e386af8226a91e241688e8e41f212b27192b60b16f319afb5dfb6"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\packet-final-exit.txt",
+      "bytes": 3,
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\packet-final-stderr.txt",
+      "bytes": 169,
+      "sha256": "158f33eeef957dac8ddb81c3afe09159693088f7d7baff429d832d8bb03c2fb8"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\packet-final-stdout.txt",
+      "bytes": 24,
+      "sha256": "b2b88b1f286943deb300d50a06bbb3676431d8d27b3685203b9a0cc92979bcbf"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\packet-final.json",
+      "bytes": 1077,
+      "sha256": "28ffb2dda88b111cf7541a590e7b716a1bd4350db96ad22d18f367d0f0d94c20"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\powershell-parse-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\powershell-parse-stdout.txt",
+      "bytes": 159,
+      "sha256": "f1ee380210cf21da48852b1a8f9169e98f81c64a395f2bfd18aaaa97d1708c1d"
+    }
+  ],
+  "oldRawRetained": [
+    "work/e2e/spec78-t20-prototype-preparation-1791511114275/",
+    "work/e2e/spec78-t20-installer-preparation-1791539283145/"
+  ],
+  "afterCommitFreeze": {
+    "path": "<worktree>\\work\\e2e\\spec78-t20-offline-wrapper-preparation-v1\\clean-source-freeze.json",
+    "statusAtSummaryCreation": "pending after clean commit; not an executed proof in this JSON"
+  },
+  "unverified": [
+    "final T17 integration and rechecked original-stage actual helpers",
+    "real final combined A/B public packet and same-session formal baseline",
+    "fresh mirror dependency resolution",
+    "real owned browser/server/driver observations, startup and release",
+    "actual prototype baseline tasks and developer visual acceptance",
+    "actual final release NSIS build/compile-time packaged EXE observation",
+    "new lifecycle runner still in preparation: clean install and actual 0.1.0 create/save -> normalQuit -> 0.1.2 release UPDATE",
+    "real installed program, DLL, state preservation and normal tray exit",
+    "actual isolated autostart registration",
+    "Windows 10: owner accepted unverified",
+    "hardware/DPI/multidisplay/pen/wide-color and prior color CI boundaries"
+  ],
+  "productCompilerExecuted": false,
+  "buildExecuted": false,
+  "browserExecuted": false,
+  "serverExecuted": false,
+  "cimExecuted": false,
+  "portsObserved": false,
+  "nativeExecuted": false,
+  "installerExecuted": false,
+  "registryObserved": false,
+  "settingsMutated": false,
+  "formalRunMutated": false,
+  "publicPushExecuted": false,
+  "fullT20Acceptance": false
+}

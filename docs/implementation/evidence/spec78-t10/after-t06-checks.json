@@ -1,0 +1,59 @@
+{
+  "source": "54694d417c1e88acaa3efe79a62840604d9590c3",
+  "suites": [
+    {
+      "suite": "tests\\catalog_approx.rs (target\\debug\\deps\\catalog_approx-be62ca77aabd69de.exe)",
+      "status": "ok",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "suite": "tests\\device_libraries.rs (target\\debug\\deps\\device_libraries-2a4d20ba66dc302f.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "suite": "tests\\portable_tags.rs (target\\debug\\deps\\portable_tags-0861a7dd2877ec6f.exe)",
+      "status": "ok",
+      "passed": 12,
+      "failed": 0,
+      "ignored": 1
+    },
+    {
+      "suite": "tests\\reference_group_package.rs (target\\debug\\deps\\reference_group_package-72e162d74d9bb4c7.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "suite": "tests\\save_destination.rs (target\\debug\\deps\\save_destination-83d37596c3e2fdd7.exe)",
+      "status": "ok",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "suite": "tests\\workspace.rs (target\\debug\\deps\\workspace-0ca34ce5cb6e9673.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "suite": "tests\\workspace_folders.rs (target\\debug\\deps\\workspace_folders-74c205195e20e7ae.exe)",
+      "status": "ok",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    }
+  ],
+  "total": {
+    "passed": 57,
+    "failed": 0,
+    "ignored": 1
+  }
+}

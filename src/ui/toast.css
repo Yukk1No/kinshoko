@@ -1,0 +1,52 @@
+/* Toasts (design system Toast), split out of ui.css; tokens live in src/styles/tokens.css. */
+
+/* ---- Toasts ---- */
+/* A frosted card like the Dock (design system Toast). The stack collapses behind the newest toast, each older one
+   peeking 8 px above it a step smaller, and fans out while the stack is hovered or focused (Base UI's --toast-* variables). */
+.k-toasts { position: fixed; right: 18px; bottom: 18px; z-index: 200; width: 340px; max-width: calc(100vw - 36px); outline: 0; }
+.k-toast { --gap: 8px; --peek: 8px; --scale: calc(max(0, 1 - var(--toast-index) * 0.05)); --shrink: calc(1 - var(--scale));
+  --height: var(--toast-frontmost-height, var(--toast-height));
+  --offset-y: calc(var(--toast-offset-y) * -1 - var(--toast-index) * var(--gap) + var(--toast-swipe-movement-y));
+  position: absolute; right: 0; bottom: 0; left: 0; z-index: calc(100 - var(--toast-index)); box-sizing: border-box; height: var(--height);
+  background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(20px) saturate(1.2); color: var(--ink);
+  border-radius: var(--r-m); box-shadow: var(--shadow-toast); outline: 0; user-select: none; transform-origin: 50% 100%;
+  transform: translateX(var(--toast-swipe-movement-x))
+    translateY(calc(var(--toast-swipe-movement-y) - var(--toast-index) * var(--peek) - var(--shrink) * var(--height))) scale(var(--scale));
+  transition: transform 400ms var(--spring), opacity 200ms var(--ease), height 150ms var(--ease); }
+/* keeps the stack hovered across the gaps between expanded toasts */
+.k-toast::after { content: ""; position: absolute; left: 0; top: 100%; width: 100%; height: calc(var(--gap) + 1px); }
+.k-toast[data-expanded] { height: var(--toast-height); transform: translateX(var(--toast-swipe-movement-x)) translateY(var(--offset-y)); }
+.k-toast[data-starting-style] { opacity: 0; transform: translateY(calc(100% + 18px)); }
+.k-toast[data-ending-style] { opacity: 0; }
+.k-toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x) + 120%)) translateY(var(--offset-y)); }
+.k-toast[data-ending-style][data-swipe-direction="down"] { transform: translateY(calc(var(--toast-swipe-movement-y) + 120%)); }
+.k-toast[data-limited] { opacity: 0; }
+.k-toast:focus-visible { box-shadow: 0 0 0 2px var(--accent), var(--shadow-toast); }
+.k-toast-content { box-sizing: border-box; height: 100%; display: flex; align-items: center; gap: 12px; padding: 10px; overflow: hidden; border-radius: inherit;
+  transition: opacity 250ms var(--ease); }
+.k-toast-content[data-behind] { opacity: 0; }
+.k-toast-content[data-expanded] { opacity: 1; }
+/* the icon sits in a well, like the exact-match slot in the search field; only an error tints it */
+.k-toast-icon { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--r-s); background: var(--sunken);
+  box-shadow: var(--well-inset); color: var(--ink-2); }
+.k-toast[data-tone="error"] .k-toast-icon { color: var(--danger); }
+.k-toast-text { flex: 1; min-width: 0; }
+.k-toast-title { margin: 0; font-size: 13px; font-weight: 500; line-height: 20px; overflow-wrap: anywhere; }
+.k-toast-desc { margin: 0; font-size: 12px; line-height: 18px; color: var(--ink-2); overflow-wrap: anywhere; }
+.k-toast-desc:empty { display: none; }
+.k-toast-action { flex: none; height: 28px; padding: 0 10px; border: 0; border-radius: var(--r-s); background: var(--accent-soft); color: var(--accent-strong);
+  font-size: 12px; font-weight: 500; white-space: nowrap; transition: background var(--t-fast); }
+.k-toast-action:hover { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+/* an error's action (重试) is a plain small button: the sakura pill is for undoing a confirmation */
+.k-toast[data-tone="error"] .k-toast-action { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink); }
+.k-toast[data-tone="error"] .k-toast-action:hover { background: var(--surface-2); }
+.k-toast-close { flex: none; width: 28px; height: 28px; padding: 0; border: 0; display: grid; place-items: center; overflow: hidden; background: none; color: var(--ink-3);
+  border-radius: var(--r-s); transition: width var(--t) var(--ease), margin var(--t) var(--ease), opacity var(--t-fast), background var(--t-fast), color var(--t-fast); }
+.k-toast-close:hover { background: var(--hover); color: var(--ink); }
+/* Confirmations close on their own, so their close button folds away until the toast is hovered or focused; an error keeps it. */
+.k-toast:not([data-tone="error"]) .k-toast-close { width: 0; margin-left: -12px; opacity: 0; }
+.k-toast:not([data-tone="error"]):is(:hover, :focus-within) .k-toast-close { width: 28px; margin-left: 0; opacity: 1; }
+.k-toast-action:focus-visible, .k-toast-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+@media (prefers-reduced-motion: reduce) { .k-toast { transition-duration: 0ms; } }
+:root[data-reduced-motion] .k-toast { transition-duration: 0ms; }

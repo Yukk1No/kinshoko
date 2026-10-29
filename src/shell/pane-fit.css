@@ -1,0 +1,11 @@
+/* 窄窗口里侧栏让位（#274，shell/paneFit.ts）。排在 main-window.css 之后，覆盖那里写死的 256 / 255 px。 */
+
+/* 侧栏宽度由工作区算好写在 .app-body 的 --sidebar-width 上：平时 256，窄时按余量与详情面板一起让到 200。 */
+.sidebar-slot { width: var(--sidebar-width, 256px); }
+.sidebar-slot .pane-head, .sidebar-slot .pane-body,
+.sidebar-slot > .capture-history, .sidebar-slot > .reference-groups { width: calc(var(--sidebar-width, 256px) - 1px); }
+
+/* 再窄就收起；收起期间点开，浮在图片墙上，点空白处、Esc 或选好范围后收回。 */
+.app-body { position: relative; }
+.sidebar-slot[data-float] { position: absolute; z-index: 30; top: 0; bottom: 0; left: 0; --sidebar-width: 256px; box-shadow: var(--shadow-pop); }
+.pane-scrim { position: absolute; inset: 0; z-index: 29; background: var(--overlay); opacity: 0.5; }

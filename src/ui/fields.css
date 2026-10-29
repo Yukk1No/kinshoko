@@ -1,0 +1,77 @@
+/* 输入类控件（设计系统 TextField、Combobox、Select）：控件 32、圆角 r（10），聚焦与查找框相同，
+   1.5 px accent 内描边加 4 px accent-soft 外圈。候选列表与选择列表沿用菜单的 .k-popup / .k-item / .k-sep（ui.css）。 */
+
+/* ---- TextField ---- */
+.k-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.k-field-label { font-size: 12px; line-height: 18px; font-weight: 600; color: var(--ink-2); }
+.k-field-error { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; line-height: 18px; color: var(--danger); }
+.k-field-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.k-field-row > .k-input:not(.is-num) { flex: 1; min-width: 0; }
+.k-field-unit { color: var(--ink-2); }
+
+/* `.k-input` 可以是包着 input 的框（带图标、清除按钮时），也可以直接写在 input 上。 */
+.k-input { display: flex; align-items: center; gap: 8px; box-sizing: border-box; height: 32px; min-width: 0; padding: 0 10px; border: 0; border-radius: var(--r);
+  background: var(--surface); color: var(--ink); font: inherit; box-shadow: inset 0 0 0 1px var(--line-2); outline: 0; transition: box-shadow var(--t-fast); }
+input.k-input { display: inline-block; text-overflow: ellipsis; }
+/* 在一行里时输入框占满剩余宽度；竖排字段里不随 flex 伸缩。 */
+.k-input, .k-combo { flex: 1 1 auto; }
+.k-field > .k-input, .k-field > .k-combo, .k-combo > .k-input { flex: none; }
+.k-input:hover:not(:focus-within):not([data-disabled]):not(:disabled):not([data-invalid]) { box-shadow: inset 0 0 0 1px var(--ink-3); }
+.k-input:focus-within, .k-input[data-focus] { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
+.k-input[data-invalid], .k-input[aria-invalid="true"] { box-shadow: inset 0 0 0 1px var(--danger); }
+.k-input[data-invalid]:focus-within, .k-input[aria-invalid="true"]:focus { box-shadow: inset 0 0 0 1.5px var(--danger), 0 0 0 4px color-mix(in srgb, var(--danger) 16%, transparent); }
+.k-input[data-disabled], .k-input:disabled { opacity: 0.5; }
+.k-input::placeholder, .k-input input::placeholder { color: var(--ink-2); opacity: 1; }
+.k-input:has(> .lucide:first-child) { padding-left: 8px; } /* 光学对齐，与按钮相同 */
+.k-input > .lucide { flex: none; color: var(--ink-3); }
+.k-input input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; outline: 0; text-overflow: ellipsis; }
+.k-input input:focus-visible { outline: 0; }
+.k-input.is-num { width: 72px; flex: none; }
+.k-input.is-num, .k-input.is-num input { text-align: right; font-variant-numeric: tabular-nums; }
+.k-input.is-inline { height: 24px; padding: 0 6px; border-radius: var(--r-xs); } /* 侧栏 30 高的行里 */
+.k-input-clear { flex: none; width: 24px; height: 24px; margin-right: -6px; padding: 0; border: 0; display: grid; place-items: center; border-radius: var(--r-xs);
+  background: none; color: var(--ink-3); }
+.k-input-clear:hover { background: var(--hover); color: var(--ink); }
+
+/* ---- Combobox ---- */
+/* 候选与选择列表常在对话框（.k-dialog 91）里打开，浮层要压在对话框之上。 */
+.k-positioner.is-field { z-index: 95; }
+.k-combo { position: relative; min-width: 0; }
+.k-combo:not(.is-bare) { display: flex; flex-direction: column; }
+.k-combo.is-bare { display: flex; }
+.k-combo.is-bare > input { flex: 1; min-width: 0; }
+/* 列表与输入框同宽，最多约 8 行（8 × 32 + 内边距），超出滚动。 */
+.k-listbox { width: var(--anchor-width); min-width: 0; max-height: min(296px, var(--available-height, 296px)); overflow-y: auto; margin: 0; list-style: none; box-sizing: border-box; }
+.k-listbox .k-sep { margin: 4px 0; }
+.k-option { cursor: pointer; }
+.k-option mark { background: none; color: inherit; font-weight: 600; }
+.k-option .k-item-label { flex: 0 1 auto; }
+.k-option-via { flex: none; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.k-option-via mark { color: var(--ink); }
+.k-option-flag { flex: none; display: inline-flex; color: var(--ink-3); }
+/* 与候选名称左对齐：8 内边距 + 16 指示列 + 8 间距。 */
+.k-option-empty { display: flex; align-items: center; min-height: 32px; padding: 0 10px 0 32px; color: var(--ink-2); cursor: default; }
+.k-option.is-create .k-item-ind { color: var(--ink-3); }
+
+/* ---- Select ---- */
+.k-select { display: flex; align-items: center; gap: 8px; box-sizing: border-box; width: 100%; min-width: 0; height: 32px; padding: 0 8px 0 10px; border: 0; border-radius: var(--r);
+  background: var(--surface); color: var(--ink); font: inherit; text-align: left; box-shadow: inset 0 0 0 1px var(--line-2); transition: box-shadow var(--t-fast); }
+.k-select:has(> .lucide:first-child) { padding-left: 8px; }
+.k-select:hover:not(:disabled):not([data-disabled]):not([data-popup-open]):not(:focus-visible) { box-shadow: inset 0 0 0 1px var(--ink-3); }
+.k-select:focus-visible, .k-select[data-popup-open] { outline: 0; box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
+.k-select:disabled, .k-select[data-disabled] { opacity: 0.5; }
+.k-select-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-select > .lucide { flex: none; color: var(--ink-3); }
+.k-select > .lucide:last-child { transition: transform var(--t-slow) var(--spring); }
+.k-select[data-popup-open] > .lucide:last-child { transform: rotate(180deg); }
+/* 还没换成 Select 的原生 select（编辑分组），先画同样的框和 chevron。 */
+select.k-select { display: block; padding-right: 28px; appearance: none; background: var(--surface) no-repeat;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position: right 14px center, right 10px center; background-size: 4px 4px; }
+/* Select 的浮层与触发器同宽，自己滚动；里面的列表不再限宽限高。 */
+.k-select-popup { box-sizing: border-box; width: var(--anchor-width); min-width: 0; max-height: min(306px, var(--available-height, 306px)); }
+.k-select-popup .k-listbox { width: auto; max-height: none; overflow: visible; }
+
+@media (prefers-reduced-motion: reduce) {
+  .k-input, .k-select, .k-select > .lucide:last-child { transition: none; }
+}

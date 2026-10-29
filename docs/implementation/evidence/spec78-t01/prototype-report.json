@@ -1,0 +1,710 @@
+{
+  "status": "comparison-completed",
+  "harnessCommit": "3ae3601d1f52e464d83594cf92bd01b5300680cb",
+  "sourceCommit": "bd8aea44c4a311571ee3c07382cb7755f87f3153",
+  "viewport": {
+    "dpr": 1.1041666269302368,
+    "height": 801,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "width": 1281
+  },
+  "fonts": true,
+  "browseMetrics": {
+    "cardRadius": "6px",
+    "cardTop": 104.88679504394531,
+    "cardWidth": 228.5,
+    "count": "43 张",
+    "density": "240",
+    "wallTop": 92.88679504394531
+  },
+  "densityCheck": {
+    "initial": 240,
+    "larger": 420,
+    "restored": 240,
+    "initialWidth": 228.5,
+    "largerWidth": 465
+  },
+  "anchor": {
+    "id": "01a11bff2b40702394a55f36b42d93da",
+    "offset": -188.9167022705078
+  },
+  "reading": {
+    "id": "01a11bff2ade710392bc79b98d25189b",
+    "top": 720
+  },
+  "returned": {
+    "id": "01a11bff2ade710392bc79b98d25189b",
+    "top": 561.5094604492188
+  },
+  "reflow": [
+    {
+      "card": 230.799,
+      "visual": 228.48406982421875,
+      "width": 962
+    },
+    {
+      "card": 230.799,
+      "visual": 228.48406982421875,
+      "width": 962
+    },
+    {
+      "card": 230.799,
+      "visual": 228.7119140625,
+      "width": 987
+    },
+    {
+      "card": 230.799,
+      "visual": 228.93777465820312,
+      "width": 1011
+    },
+    {
+      "card": 230.799,
+      "visual": 229.1676788330078,
+      "width": 1036
+    },
+    {
+      "card": 230.799,
+      "visual": 229.58175659179688,
+      "width": 1080
+    },
+    {
+      "card": 230.799,
+      "visual": 229.76622009277344,
+      "width": 1100
+    },
+    {
+      "card": 230.799,
+      "visual": 229.91696166992188,
+      "width": 1116
+    },
+    {
+      "card": 230.799,
+      "visual": 230.04457092285156,
+      "width": 1130
+    },
+    {
+      "card": 230.799,
+      "visual": 230.1517791748047,
+      "width": 1142
+    },
+    {
+      "card": 230.799,
+      "visual": 230.24176025390625,
+      "width": 1151
+    },
+    {
+      "card": 230.799,
+      "visual": 230.3163299560547,
+      "width": 1159
+    },
+    {
+      "card": 230.799,
+      "visual": 230.38063049316406,
+      "width": 1166
+    },
+    {
+      "card": 230.799,
+      "visual": 230.4353485107422,
+      "width": 1172
+    },
+    {
+      "card": 230.799,
+      "visual": 230.48219299316406,
+      "width": 1177
+    },
+    {
+      "card": 230.799,
+      "visual": 230.52252197265625,
+      "width": 1182
+    },
+    {
+      "card": 230.799,
+      "visual": 230.5574493408203,
+      "width": 1185
+    },
+    {
+      "card": 230.799,
+      "visual": 230.5873260498047,
+      "width": 1189
+    },
+    {
+      "card": 230.799,
+      "visual": 230.61386108398438,
+      "width": 1191
+    },
+    {
+      "card": 230.799,
+      "visual": 230.6370849609375,
+      "width": 1194
+    },
+    {
+      "card": 230.799,
+      "visual": 230.65745544433594,
+      "width": 1196
+    },
+    {
+      "card": 230.799,
+      "visual": 230.67535400390625,
+      "width": 1198
+    },
+    {
+      "card": 230.799,
+      "visual": 230.6911163330078,
+      "width": 1200
+    },
+    {
+      "card": 230.799,
+      "visual": 230.70477294921875,
+      "width": 1201
+    },
+    {
+      "card": 230.799,
+      "visual": 230.717041015625,
+      "width": 1203
+    },
+    {
+      "card": 230.799,
+      "visual": 230.7281494140625,
+      "width": 1204
+    },
+    {
+      "card": 230.799,
+      "visual": 230.73727416992188,
+      "width": 1205
+    },
+    {
+      "card": 230.799,
+      "visual": 230.74562072753906,
+      "width": 1206
+    },
+    {
+      "card": 230.799,
+      "visual": 230.7528839111328,
+      "width": 1206
+    },
+    {
+      "card": 230.799,
+      "visual": 230.75914001464844,
+      "width": 1207
+    },
+    {
+      "card": 230.799,
+      "visual": 230.76473999023438,
+      "width": 1208
+    },
+    {
+      "card": 230.799,
+      "visual": 230.76950073242188,
+      "width": 1208
+    },
+    {
+      "card": 230.799,
+      "visual": 230.7735595703125,
+      "width": 1209
+    },
+    {
+      "card": 230.799,
+      "visual": 230.77696228027344,
+      "width": 1209
+    },
+    {
+      "card": 230.799,
+      "visual": 230.7798309326172,
+      "width": 1209
+    },
+    {
+      "card": 230.799,
+      "visual": 230.7821807861328,
+      "width": 1209
+    },
+    {
+      "card": 230.799,
+      "visual": 230.78408813476562,
+      "width": 1209
+    },
+    {
+      "card": 230.799,
+      "visual": 230.7855224609375,
+      "width": 1209
+    },
+    {
+      "card": 230.799,
+      "visual": 230.7865753173828,
+      "width": 1209
+    },
+    {
+      "card": 230.799,
+      "visual": 230.78729248046875,
+      "width": 1209
+    },
+    {
+      "card": 230.799,
+      "visual": 230.78768920898438,
+      "width": 1209
+    },
+    {
+      "card": 230.799,
+      "visual": 230.78773498535156,
+      "width": 1209
+    },
+    {
+      "card": 230.799,
+      "visual": 230.78773498535156,
+      "width": 1209
+    },
+    {
+      "card": 230.799,
+      "visual": 230.78773498535156,
+      "width": 1209
+    },
+    {
+      "card": 230.799,
+      "visual": 230.78773498535156,
+      "width": 1209
+    },
+    {
+      "card": 230.6,
+      "visual": 230.58963012695312,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 230.8,
+      "visual": 230.78773498535156,
+      "width": 1210
+    },
+    {
+      "card": 228.5,
+      "visual": 230.782958984375,
+      "width": 1209
+    },
+    {
+      "card": 228.5,
+      "visual": 230.782958984375,
+      "width": 1209
+    },
+    {
+      "card": 228.5,
+      "visual": 230.556396484375,
+      "width": 1186
+    },
+    {
+      "card": 228.5,
+      "visual": 230.32823181152344,
+      "width": 1161
+    },
+    {
+      "card": 228.5,
+      "visual": 230.10377502441406,
+      "width": 1136
+    },
+    {
+      "card": 228.5,
+      "visual": 229.88961791992188,
+      "width": 1113
+    },
+    {
+      "card": 228.5,
+      "visual": 229.69578552246094,
+      "width": 1092
+    },
+    {
+      "card": 228.5,
+      "visual": 229.5205078125,
+      "width": 1073
+    },
+    {
+      "card": 228.5,
+      "visual": 229.36924743652344,
+      "width": 1057
+    },
+    {
+      "card": 228.5,
+      "visual": 229.24302673339844,
+      "width": 1043
+    },
+    {
+      "card": 228.5,
+      "visual": 229.13504028320312,
+      "width": 1031
+    },
+    {
+      "card": 228.5,
+      "visual": 229.0429229736328,
+      "width": 1022
+    },
+    {
+      "card": 228.5,
+      "visual": 228.968017578125,
+      "width": 1013
+    },
+    {
+      "card": 228.5,
+      "visual": 228.90248107910156,
+      "width": 1006
+    },
+    {
+      "card": 228.5,
+      "visual": 228.8477325439453,
+      "width": 1000
+    },
+    {
+      "card": 228.5,
+      "visual": 228.80160522460938,
+      "width": 995
+    },
+    {
+      "card": 228.5,
+      "visual": 228.7611083984375,
+      "width": 991
+    },
+    {
+      "card": 228.5,
+      "visual": 228.72607421875,
+      "width": 987
+    },
+    {
+      "card": 228.5,
+      "visual": 228.69569396972656,
+      "width": 984
+    },
+    {
+      "card": 228.5,
+      "visual": 228.6696014404297,
+      "width": 981
+    },
+    {
+      "card": 228.5,
+      "visual": 228.6463623046875,
+      "width": 978
+    },
+    {
+      "card": 228.5,
+      "visual": 228.62493896484375,
+      "width": 976
+    },
+    {
+      "card": 228.5,
+      "visual": 228.60711669921875,
+      "width": 974
+    },
+    {
+      "card": 228.5,
+      "visual": 228.5911865234375,
+      "width": 973
+    },
+    {
+      "card": 228.5,
+      "visual": 228.57725524902344,
+      "width": 971
+    },
+    {
+      "card": 228.5,
+      "visual": 228.56529235839844,
+      "width": 970
+    },
+    {
+      "card": 228.5,
+      "visual": 228.55459594726562,
+      "width": 969
+    },
+    {
+      "card": 228.5,
+      "visual": 228.54522705078125,
+      "width": 968
+    },
+    {
+      "card": 228.5,
+      "visual": 228.5369873046875,
+      "width": 967
+    },
+    {
+      "card": 228.5,
+      "visual": 228.52972412109375,
+      "width": 966
+    },
+    {
+      "card": 228.5,
+      "visual": 228.5234832763672,
+      "width": 965
+    },
+    {
+      "card": 228.5,
+      "visual": 228.5181427001953,
+      "width": 965
+    },
+    {
+      "card": 228.5,
+      "visual": 228.51341247558594,
+      "width": 964
+    },
+    {
+      "card": 228.5,
+      "visual": 228.5093536376953,
+      "width": 964
+    },
+    {
+      "card": 228.5,
+      "visual": 228.5059814453125,
+      "width": 963
+    },
+    {
+      "card": 228.5,
+      "visual": 228.50314331054688,
+      "width": 963
+    },
+    {
+      "card": 228.5,
+      "visual": 228.50076293945312,
+      "width": 963
+    },
+    {
+      "card": 228.5,
+      "visual": 228.49888610839844,
+      "width": 963
+    },
+    {
+      "card": 228.5,
+      "visual": 228.49746704101562,
+      "width": 962
+    },
+    {
+      "card": 228.5,
+      "visual": 228.49639892578125,
+      "width": 962
+    },
+    {
+      "card": 228.5,
+      "visual": 228.49566650390625,
+      "width": 962
+    },
+    {
+      "card": 228.5,
+      "visual": 228.49537658691406,
+      "width": 962
+    },
+    {
+      "card": 228.5,
+      "visual": 228.4952850341797,
+      "width": 962
+    },
+    {
+      "card": 228.5,
+      "visual": 228.4952850341797,
+      "width": 962
+    },
+    {
+      "card": 228.5,
+      "visual": 228.4952850341797,
+      "width": 962
+    },
+    {
+      "card": 228.5,
+      "visual": 228.4952850341797,
+      "width": 962
+    },
+    {
+      "card": 228.5,
+      "visual": 228.4952850341797,
+      "width": 962
+    },
+    {
+      "card": 228.5,
+      "visual": 228.4952850341797,
+      "width": 962
+    },
+    {
+      "card": 228.5,
+      "visual": 228.4952850341797,
+      "width": 962
+    }
+  ],
+  "distinctLayoutWidths": 3,
+  "distinctVisualWidths": 60,
+  "collapsedOffset": -121.67296600341797,
+  "expandedOffset": -188.9167022705078,
+  "resizeObservations": [
+    {
+      "requested": {
+        "height": 801,
+        "width": 1051
+      },
+      "viewport": {
+        "height": 802,
+        "width": 1052
+      },
+      "offset": -237.93402099609375
+    },
+    {
+      "requested": {
+        "height": 801,
+        "width": 1281
+      },
+      "viewport": {
+        "height": 802,
+        "width": 1283
+      },
+      "offset": -189.6446990966797
+    }
+  ],
+  "baselineDifferences": [
+    {
+      "step": "keyboard-return",
+      "detail": "Historical reveal(id) adds a 4px edge margin and may scroll a fully visible edge card",
+      "before": 720,
+      "after": 561.5094604492188
+    },
+    {
+      "step": "sidebar-reflow",
+      "detail": "Historical prototype holds the layout width during the sidebar motion and animates the final boxes with FLIP; formal app updates layout on each width change",
+      "distinctLayoutWidths": 3,
+      "distinctVisualWidths": 60
+    },
+    {
+      "step": "sidebar-anchor",
+      "detail": "Historical prototype prioritizes focused-card reveal/focal anchoring",
+      "initialOffset": -188.9167022705078,
+      "collapsedOffset": -121.67296600341797,
+      "expandedOffset": -188.9167022705078
+    }
+  ],
+  "harnessLimits": [
+    {
+      "step": "headless-window-resize",
+      "requested": {
+        "height": 801,
+        "width": 1051
+      },
+      "observed": {
+        "height": 802,
+        "width": 1052
+      },
+      "detail": "Windows/Edge headless WebDriver rectangle rounding at the matched fractional DPR; initial screenshot viewport is exact"
+    },
+    {
+      "step": "headless-window-resize",
+      "requested": {
+        "height": 801,
+        "width": 1281
+      },
+      "observed": {
+        "height": 802,
+        "width": 1283
+      },
+      "detail": "Windows/Edge headless WebDriver rectangle rounding at the matched fractional DPR; initial screenshot viewport is exact"
+    }
+  ],
+  "samples": 43,
+  "sameLargeSample": "01a11bff2d17755a8f7e1fca3270c544",
+  "singleClickReturnFocus": true,
+  "humanAcceptance": "unverified"
+}

@@ -1,0 +1,274 @@
+{
+  "kind": "spec78-t20-release-nsis-lifecycle-derived",
+  "note": "Minimal derived record. Raw build logs, receipts, lifecycle traces and screenshots stay in ignored work/ of the worker tree; referenced by SHA only.",
+  "identity": {
+    "productName": "Kinshoko T19 Upgrade Probe",
+    "identifier": "dev.kinshoko.spec78t19upgrade",
+    "mainBinaryName": "kinshoko-t19-upgrade",
+    "installMode": "currentUser",
+    "autostart": "KINSHOKO_SKIP_AUTOSTART=1",
+    "formalProduct": {
+      "productName": "Kinshoko",
+      "identifier": "dev.kinshoko"
+    },
+    "collision": "none (identifier, install dir, Run value name, AppData dirs, uninstall key, HKCUSoftwarekinshoko subkey all differ)"
+  },
+  "oldBaseline": {
+    "installerSha256": "b1ee1339bbc0e9e2981d50f6519409aab81b73f3574504a857a6fd0afb2a8e91",
+    "bundleVersion": "0.1.0",
+    "profile": "debug (T19 actual baseline, not a release package)",
+    "source": "536cc43c1933e44fc33836f8a439de8cdb0da018",
+    "packagedExeSha256": "8dfd1074c1fe51d9166316b0c0b68bcbe3cc9cae1b53da3cbff618bee85cca5f"
+  },
+  "build": {
+    "source": "855ca438b744062c5e39868223ed9e276ef30d29",
+    "tree": "71f740ea2bae2fa43d9e031d2aed28ba24db740f",
+    "version": "0.1.2",
+    "profile": "release",
+    "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+    "host": "x86_64-pc-windows-msvc",
+    "tauriCli": "2.12.1",
+    "absentOverrides": {
+      "CARGO_BUILD_TARGET": false,
+      "TAURI_CONFIG": false
+    },
+    "environment": {
+      "CARGO_BUILD_JOBS": "2",
+      "KINSHOKO_SKIP_AUTOSTART": "1",
+      "CARGO_TARGET_DIR": "<tree>/target",
+      "RUSTC": "<sysroot>/bin/rustc.exe"
+    },
+    "steps": [
+      {
+        "label": "frontend",
+        "command": "build",
+        "exit": 0,
+        "stdoutSha256": "a09a86e6b76ad7e971428d42d1075d051a51ac0e720551cd6e9ed31571f70efa",
+        "stderrSha256": "d79e4144b596aba3efe480a763561840cbfef5eb0cb7529f9b108e6fedc4fb34"
+      },
+      {
+        "label": "native-release",
+        "command": "build --no-bundle --target x86_64-pc-windows-msvc --config <work>/release.conf.json",
+        "exit": 0,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "e21f3528ff6ff0d4079c0269aa52dbf106bcbb518cb7e70e7cd341cdb94530e0"
+      },
+      {
+        "label": "bundle-nsis-release",
+        "command": "bundle --bundles nsis --target x86_64-pc-windows-msvc --config <work>/release.conf.json",
+        "exit": 0,
+        "stdoutSha256": "5faae21bc5135b61e3e9ef75bd0cf081e5f9ac541ae020a3958e7a323fb352fb",
+        "stderrSha256": "16a48af2889d393a63d00f6467951d3c4aedcd525aa735ec64a1020464d790e5"
+      }
+    ],
+    "configSha256": "0bb372c9184b5b3d96893079ea46e5e672307efe72351fd3bdf942af737a4daa",
+    "hookSha256": "9b9074ccce2d3a6a82bc7e71979eb751cf05dd0a662ce411ad313a5c4777073d",
+    "runtimeIncludeSha256": "0f94fdf9068b12cdc9bb67923aefab37556ccbfebad0fcd8c1fda19d8a005e57",
+    "receiptSha256": "d2fd6853fead812509346ad660ecfeee1ea4f2dbc66d11dab9d36a317435768a",
+    "artifacts": {
+      "bareExe": {
+        "sha256": "76fd10ba4a613daf84a04c80eb4fa9b8b41c985f80dc2a8758a981d0c3494c19",
+        "bytes": 73614336
+      },
+      "nsisPackagedExe": {
+        "sha256": "a6d0fe774d69ab335b39af9611cfd5efb6f7ef3cb10884bacd3c266e0ef6b858",
+        "bytes": 73614336,
+        "markerOffset": 59690648,
+        "changedBytes": 3,
+        "observedAt": "NSIS compile time via !system callback"
+      },
+      "installer": {
+        "sha256": "6f18315a691bf53f79aab7a0e9e6df410af144f5fc3f35ee222809faeb5ae6cb",
+        "bytes": 36699338
+      },
+      "runtime": {
+        "DirectML.dll": {
+          "sha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1",
+          "bytes": 18527776
+        }
+      }
+    },
+    "checkBuild": "node e2e/spec78-combination-installer.mjs --check-build: exit 0"
+  },
+  "lifecycle": {
+    "round": "r5",
+    "status": "actual-clean-and-old-to-new-lifecycles-observed",
+    "startedAt": "2026-10-10T23:05:53.451Z",
+    "finishedAt": "2026-10-10T23:07:22.588Z",
+    "consolePassLines": 26,
+    "resultSha256": "06bf50a02e037fdfd109de53b15c9994a252aa5748939a8ded9d3ee1b69dcdca",
+    "planSha256": "07a1f96244de6e79b6b07c6975f759148e6e4432db6da5d64b8380f4da93da5c",
+    "consoleSha256": "026333311298bd28962703decef7a239184966c959d5b3b695ef40ee41daf49b",
+    "installerActions": [
+      {
+        "label": "clean-release-install",
+        "args": [
+          "/S",
+          "/D=<stage>/installed"
+        ],
+        "exit": 0,
+        "status": "exited-and-released",
+        "restartManagerUsersBefore": 0,
+        "exitedBeforeFirstQuery": false
+      },
+      {
+        "label": "clean-release-uninstall",
+        "args": [
+          "/S",
+          "_?=<stage>/installed"
+        ],
+        "exit": 0,
+        "status": "exited-and-released",
+        "restartManagerUsersBefore": 0,
+        "exitedBeforeFirstQuery": true
+      },
+      {
+        "label": "actual-old-0.1.0-install",
+        "args": [
+          "/S",
+          "/D=<stage>/installed"
+        ],
+        "exit": 0,
+        "status": "exited-and-released",
+        "restartManagerUsersBefore": 0,
+        "exitedBeforeFirstQuery": false
+      },
+      {
+        "label": "actual-new-0.1.2-release-update",
+        "args": [
+          "/S",
+          "/UPDATE",
+          "/D=<stage>/installed"
+        ],
+        "exit": 0,
+        "status": "exited-and-released",
+        "restartManagerUsersBefore": 0,
+        "exitedBeforeFirstQuery": false
+      },
+      {
+        "label": "actual-updated-release-uninstall",
+        "args": [
+          "/S",
+          "_?=<stage>/installed"
+        ],
+        "exit": 0,
+        "status": "exited-and-released",
+        "restartManagerUsersBefore": 0,
+        "exitedBeforeFirstQuery": true
+      }
+    ],
+    "payloads": [
+      {
+        "label": "clean-release-install",
+        "installedExeSha256": "a6d0fe774d69ab335b39af9611cfd5efb6f7ef3cb10884bacd3c266e0ef6b858",
+        "peFileVersion": "0.1.2",
+        "peProductVersion": "0.1.2",
+        "profile": "release",
+        "directmlSha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
+      },
+      {
+        "label": "actual-old-0.1.0-install",
+        "installedExeSha256": "8dfd1074c1fe51d9166316b0c0b68bcbe3cc9cae1b53da3cbff618bee85cca5f",
+        "peFileVersion": "0.1.0",
+        "peProductVersion": "0.1.0",
+        "profile": "debug",
+        "directmlSha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
+      },
+      {
+        "label": "actual-new-0.1.2-release-update",
+        "installedExeSha256": "a6d0fe774d69ab335b39af9611cfd5efb6f7ef3cb10884bacd3c266e0ef6b858",
+        "peFileVersion": "0.1.2",
+        "peProductVersion": "0.1.2",
+        "profile": "release",
+        "directmlSha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
+      }
+    ],
+    "normalQuits": [
+      {
+        "phase": "clean-create-save",
+        "method": "automated-native-menu-dispatch",
+        "exitCode": 0
+      },
+      {
+        "phase": "clean-real-restart",
+        "method": "automated-native-menu-dispatch",
+        "exitCode": 0
+      },
+      {
+        "phase": "actual-old-create-save",
+        "method": "automated-native-menu-dispatch",
+        "exitCode": 0
+      },
+      {
+        "phase": "actual-new-after-update",
+        "method": "automated-native-menu-dispatch",
+        "exitCode": 0
+      }
+    ],
+    "productKeyResidueRemoved": [
+      {
+        "label": "clean-release-uninstall",
+        "residue": true,
+        "removed": true
+      },
+      {
+        "label": "actual-updated-release-uninstall",
+        "residue": true,
+        "removed": true
+      }
+    ],
+    "manualUpdate": {
+      "message": "当前使用安装包手动更新。",
+      "state": "manual"
+    }
+  },
+  "restore": {
+    "t19Settings": "absent before, absent after (both KnownFolder aliases)",
+    "identityDirs": [
+      "local created during run, empty, removed",
+      "roaming created during run, empty, removed"
+    ],
+    "formalRunValue": "Registry64/Registry32 name/kind/value identical before and after",
+    "uninstallEntries": "0 before, 0 after",
+    "productKey": "absent before, absent after",
+    "shortcuts": "absent before, absent after",
+    "independentPreflightCompare": "identical (registry Run, uninstall, HKCUSoftwarekinshoko subkeys, shortcuts, app data dirs, T19/T20 KnownFolder state, processes, ports 4630/4631)",
+    "preflightSha256": "a1a91a04fc7678acfdbf059c8e6e73457f6afd9ba79d41f6cbec26afcbf62892",
+    "finalSha256": "bb7da021a15749061afcd14639b9ef350e3cbc91860b5d425d28115af308ceb4"
+  },
+  "failedRounds": [
+    {
+      "round": "r1",
+      "source": "4c53636",
+      "stop": "harness: quoted InstallLocation rejected after a successful clean install",
+      "fix": "507fe79"
+    },
+    {
+      "round": "r2",
+      "source": "507fe79",
+      "stop": "harness: unconfirmed descendant (identity not reported)",
+      "fix": "7327557"
+    },
+    {
+      "round": "r3",
+      "source": "7327557",
+      "stop": "harness: conhost.exe started by msedgewebview2.exe",
+      "fix": "d3490dd"
+    },
+    {
+      "round": "r4",
+      "source": "d3490dd",
+      "stop": "harness: in-place uninstaller exited (0) before first process query; restoration skipped and done by hand",
+      "fix": "855ca43"
+    }
+  ],
+  "rebuilds": "Each harness commit is part of the attributed source, so each round rebuilt. Product inputs and dist were identical; the bare EXE differed by 24 bytes between rebuilds (PE header/debug-id class, linker nondeterminism, not investigated further).",
+  "unverified": [
+    "interactive installer wizard and double-click install",
+    "installing the T19 baseline as release (it is debug)",
+    "#99 signed public auto-update",
+    "Windows 10",
+    "clean machine without a dev environment"
+  ],
+  "failedRoundsCleanup": "After r1-r4 the left clean install was removed with its own uninstaller (/S _?=), the exact product key removed, and r4 settings file plus empty identity dirs removed; state matched the pre-flight record before each next round."
+}

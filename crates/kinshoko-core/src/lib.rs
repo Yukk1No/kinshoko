@@ -1,0 +1,45 @@
+//! Kinshoko 的领域核心。
+//!
+//! 领域逻辑都放在这里，不依赖 Tauri；`src-tauri` 的命令层只做转发、类型转换和事件推送。
+//! 跨越前后端边界的类型带 `#[ts(export)]`，由 ts-rs 在 `cargo test` 时生成到 `src/bindings/`。
+
+mod app_shell;
+pub mod application_settings_backup;
+pub mod approx;
+pub mod backup;
+pub mod data_dirs;
+pub mod desktop;
+mod device;
+mod device_libraries;
+pub mod diagnostics;
+pub mod fidelity;
+pub mod library;
+pub mod library_batch;
+pub mod portable_tags;
+pub mod reference_groups;
+pub mod safe_mode;
+pub mod search;
+mod settings;
+mod shortcuts;
+pub mod tag_catalog;
+pub mod tagging;
+mod ui_scale;
+pub mod workspace;
+
+pub use app_shell::{
+    AppInfo, UpdateChannel, UpdatePolicy, UpdateProgress, UpdateStatus, app_info, offers_update,
+};
+pub use device::{DeviceRegistry, RegisteredLibrary};
+pub use device_libraries::{
+    DeviceLibraries, DeviceLibraryError, ImportFinishWait, ImportTaskSnapshot, LibraryRegistration,
+    OrganizeWaiting, WriterAccess, WriterWaitError, wait_for_writer,
+};
+pub use library::Library;
+pub use settings::{
+    AppSettings, SettingsError, SettingsSnapshot, ShortcutAction, TagDisplay, TagStyle,
+    ViewerBackground,
+};
+pub use shortcuts::{
+    GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutBinding, ShortcutError,
+};
+pub use ui_scale::{UI_SCALE_LEVELS, UiScale, UiScaleError};

@@ -1,0 +1,1 @@
+Preflight aborted before any launch: a broad command-line substring matched the checking pwsh.exe itself. Subsequent native-identity inspection found only pwsh.exe; no task run or KnownFolder existed. EXE, harness, helper and manifest remained unchanged. The corrected check limits command-line matching to msedgewebview2.exe.

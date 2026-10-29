@@ -1,0 +1,2 @@
+{"passed":false,"command":"plugin:library|close_import_preview","expected":"first-chunk revocation interrupts remaining content and rejects completion","receivedBytes":12962853,"originalBytes":12962853,"chunks":12672,"failure":null,"actionElapsedMs":2097.10000000149}
+{"passed":false,"command":"plugin:library|set_safe_mode","expected":"first-chunk revocation interrupts remaining content and rejects completion","receivedBytes":12962853,"originalBytes":12962853,"chunks":12672,"failure":null,"actionElapsedMs":1914.2000000029802}

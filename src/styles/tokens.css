@@ -1,0 +1,141 @@
+/* #79 → design system v3: cream paper and ink purple from the prototype, sakura accent by day and gold by night;
+   a few values deepened so every text colour reaches 4.5:1. The wall and card stay neutral grey so the frame never tints
+   the reference images. Components write semantic tokens only. This file is the single source of the tokens; the design system's tokens.json is exported from it
+   (design/ui-system/README.md).
+   The formal app keeps its real library, search, import and native pin components. */
+:root {
+  /* #28: Inter for Latin and digits, Source Han Sans SC for CJK (src/fonts.ts); the Windows stack is the fallback. */
+  --font: "Kinshoko Inter", "Kinshoko Han", "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Segoe UI Emoji", system-ui, sans-serif;
+  --font-cjk: "Kinshoko Han Punct", var(--font);
+  font-synthesis: none;
+
+  --bg: #f7f3ea;              /* paper */
+  --surface: #fffdf8;
+  --rail: #efe8da;
+  --surface-2: #f1ebdf;
+  --sunken: #ede7da;
+  --hover: rgba(43, 39, 71, 0.07);
+  --press: rgba(43, 39, 71, 0.12);
+  --ink: #2b2747;             /* ink purple: text */
+  --ink-2: #5b5773;           /* secondary text */
+  --ink-3: #76718c;           /* icons only */
+  --line: #e3daca;
+  --line-2: #d4c9b5;
+  --accent: #e0768f;          /* sakura: selection, focus, indicator; never carries text */
+  --accent-strong: #a63a55;   /* accent as text */
+  --accent-soft: rgba(224, 118, 143, 0.14);
+  --on-accent: #2b2747;
+  --manual: #8a5e08;          /* the artist's decisions, the logo's gold star */
+  --manual-soft: rgba(227, 179, 79, 0.2);
+  --wall: #eae9e6;            /* neutral ground behind thumbnails */
+  --card: #dcdbd8;
+  --splash-card: rgba(43, 39, 71, 0.04);   /* startup splash backdrop (#338), faint enough to sit under the logo */
+  --danger: #b23a3a;
+  --danger-solid: #b23a3a;    /* white text 5.9:1 */
+  --on-solid: #ffffff;
+  --warn: #8a5e08; --warn-strong: #5e4510; --warn-soft: #fbf1d9;
+  --ok: #2f6b3e; --ok-strong: #2f6b3e; --ok-soft: #e3f1e6;
+  /* danger text on an `ink` bar (the floating selection bar): the other theme's colour */
+  --inverse-danger: #f08a8a;
+  /* 模型标签的可信度高档底色（#160）：比 --surface-2（中档）深一档；低档不填底色。 */
+  --tag-conf-high: #e2d6bf;
+  /* 精确查找开启时的金色浅槽、图片大小滑条（#102 方案 C3） */
+  --exact-on-bg: rgba(227, 179, 79, 0.16); --exact-on-ink: #9a6a10;
+  --exact-on-inset: inset 0 1px 1.5px rgba(110, 75, 10, 0.16), inset 0 0 0 0.5px rgba(160, 112, 15, 0.22);
+  --range-track: var(--line-2); --range-fill: var(--ink-2); --range-inset: inset 0 1px 1px rgba(43, 39, 71, 0.18);
+  --knob: #fffdf8;
+  --knob-shadow: 0 0 0 0.5px rgba(43, 39, 71, 0.28), 0 1px 1.5px rgba(43, 39, 71, 0.28), 0 4px 10px rgba(43, 39, 71, 0.16);
+  --knob-shadow-pressed: 0 0 0 0.5px rgba(43, 39, 71, 0.3), 0 1px 3px rgba(43, 39, 71, 0.18);
+  /* the wordmark's gold star, the same in both themes */
+  --star: #e3b34f;
+  /* 安全模式遮蔽的墨色 */
+  --veil: #2b2747;
+  /* shadows and the dialog overlay take ink purple, not black; only things that float get one */
+  --shadow-raise: 0 1px 2px rgba(43, 39, 71, 0.08);
+  --shadow-pop: 0 0 0 1px rgba(43, 39, 71, 0.06), 0 2px 4px rgba(43, 39, 71, 0.06), 0 12px 32px rgba(43, 39, 71, 0.14);
+  --shadow-dialog: 0 24px 64px rgba(30, 28, 44, 0.3);
+  /* a frosted toast: a hairline, a near drop, a far drop pulled in, and a lit top edge */
+  --shadow-toast: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 0 0.5px rgba(43, 39, 71, 0.1), 0 1px 2px rgba(43, 39, 71, 0.07),
+    0 4px 8px -2px rgba(43, 39, 71, 0.06), 0 16px 32px -8px rgba(43, 39, 71, 0.2);
+  /* a sunken well for an icon (toast) */
+  --well-inset: inset 0 1px 1.5px rgba(43, 39, 71, 0.12), inset 0 0 0 0.5px rgba(43, 39, 71, 0.08);
+  --shadow-pin: 0 2px 6px rgba(0, 0, 0, 0.25), 0 12px 32px rgba(0, 0, 0, 0.22);
+  --overlay: rgba(30, 28, 44, 0.38);      /* behind dialogs, outside a crop */
+  /* over images and the frozen screen, the same in both themes */
+  --scrim-label: rgba(0, 0, 0, 0.6);      /* labels on top of an image */
+  --scrim-capture: rgba(0, 0, 0, 0.25);   /* T17 冻结像素核对依据，不要改 */
+  --scrim-capture-out: rgba(0, 0, 0, 0.35);
+  --guide: rgba(255, 255, 255, 0.4);      /* crop thirds */
+  --pin-ring: rgba(255, 255, 255, 0.6);
+  --pin-shadow-near: rgba(0, 0, 0, 0.3); --pin-shadow-far: rgba(0, 0, 0, 0.28);
+  /* viewer grounds: neutral greys and checks; the mid ground stays at 50 % gray for judging values */
+  --ground-dark: #202020; --ground-mid: #808080; --ground-light: #d9d9d9; --checker-a: #d9d9d9; --checker-b: #8d8d8d;
+
+  --r-xs: 6px; --r-item: 7px; --r-s: 8px; --r: 10px; --r-m: 12px; --r-xl: 18px; --r-pill: 999px;
+  --spring: cubic-bezier(0.2, 0.9, 0.25, 1.05);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 120ms; --t: 200ms; --t-slow: 260ms;
+  color-scheme: light;
+}
+/* Dark: ink purple ground, cream text, gold accent (日间樱、夜间金). `.k-dock.is-dark` borrows the dark tokens in either theme. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1e1c2c; --surface: #252336; --rail: #17151f; --surface-2: #2c2940; --sunken: #19172a;
+    --hover: rgba(244, 236, 220, 0.07); --press: rgba(244, 236, 220, 0.12);
+    --ink: #f4ecdc; --ink-2: #c8c0b2; --ink-3: #9890a8; --line: #353249; --line-2: #45415c;
+    --accent: #e3b34f; --accent-strong: #e9c26e; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2b2747;
+    --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18);
+    --wall: #161618; --card: #222224; --splash-card: rgba(244, 236, 220, 0.05); --danger: #f08a8a; --danger-solid: #c94a4a;
+    --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
+    --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
+    --inverse-danger: #b23a3a;
+    --tag-conf-high: #48426a;
+    --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
+    --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
+    --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
+    --knob: #fbf6ec;
+    --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
+    --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
+    --veil: #0f0e17;
+    --shadow-raise: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+    --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
+    --shadow-toast: inset 0 1px 0 rgba(244, 236, 220, 0.08), 0 0 0 0.5px rgba(244, 236, 220, 0.1), 0 1px 2px rgba(0, 0, 0, 0.45),
+      0 4px 8px -2px rgba(0, 0, 0, 0.3), 0 16px 32px -8px rgba(0, 0, 0, 0.6);
+    --well-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.5), inset 0 0 0 0.5px rgba(244, 236, 220, 0.06);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"], .k-dock.is-dark {
+  --bg: #1e1c2c; --surface: #252336; --rail: #17151f; --surface-2: #2c2940; --sunken: #19172a;
+  --hover: rgba(244, 236, 220, 0.07); --press: rgba(244, 236, 220, 0.12);
+  --ink: #f4ecdc; --ink-2: #c8c0b2; --ink-3: #9890a8; --line: #353249; --line-2: #45415c;
+  --accent: #e3b34f; --accent-strong: #e9c26e; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2b2747;
+  --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18);
+  --wall: #161618; --card: #222224; --splash-card: rgba(244, 236, 220, 0.05); --danger: #f08a8a; --danger-solid: #c94a4a;
+  --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
+  --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
+  --inverse-danger: #b23a3a;
+  --tag-conf-high: #48426a;
+  --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
+  --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
+  --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
+  --knob: #fbf6ec;
+  --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
+  --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --veil: #0f0e17;
+  --shadow-raise: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
+  --shadow-toast: inset 0 1px 0 rgba(244, 236, 220, 0.08), 0 0 0 0.5px rgba(244, 236, 220, 0.1), 0 1px 2px rgba(0, 0, 0, 0.45),
+    0 4px 8px -2px rgba(0, 0, 0, 0.3), 0 16px 32px -8px rgba(0, 0, 0, 0.6);
+  --well-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.5), inset 0 0 0 0.5px rgba(244, 236, 220, 0.06);
+  color-scheme: dark;
+}
+@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
+:root[data-reduced-motion] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
+
+/* seal colours (brand invariant): the prototype's rules; deep sakura by day (3.42:1 on the rail), gold by night */
+:root { --seal-acc: #c85672; --seal-ink: var(--ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seal-acc: #e3b34f; } }
+:root[data-theme="dark"] { --seal-acc: #e3b34f; }

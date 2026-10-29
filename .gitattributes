@@ -1,3 +1,18 @@
 * text=auto
 *.md text eol=lf
 *.sh text eol=lf
+# ts-rs 生成物按 LF 写出；固定换行，CI 的生成物差异检查才不受 autocrlf 影响。
+src/bindings/** text eol=lf
+# Hooks run under sh; CRLF breaks them.
+.githooks/* text eol=lf
+# 机器生成或采集的输出，不是 agent 手写的；pre-commit 的 token 上限不检查。
+docs/implementation/evidence/** linguist-generated
+src/bindings/** linguist-generated
+crates/kinshoko-core/data/builtin-translation-table.json linguist-generated
+# 许可证原文照搬自 GNU，不是手写的。
+LICENSE linguist-vendored
+# Impeccable 技能原样取自上游，不是手写的；更新方法见 docs/agents/impeccable.md。
+.agents/skills/impeccable/** linguist-vendored
+.agents/skills/impeccable/scripts/impeccable text eol=lf
+# 认可原型从固定提交 bd8aea44 原样恢复，只作体验对照，不是手写维护的代码。
+design/prototype/** linguist-vendored

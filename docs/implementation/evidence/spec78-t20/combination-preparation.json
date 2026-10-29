@@ -1,0 +1,169 @@
+{
+  "pathRedaction": "Absolute user paths were redacted for publication (2026-10-11, #98 review fix): <worktree> = the T20 Codex worktree checkout, %USERPROFILE% / %APPDATA% / %LOCALAPPDATA% = the developer profile. Recorded SHA256 values refer to the unredacted original files, which stay in the ignored work/ directory.",
+  "kind": "T20-offline-combination-preparation-derived-summary",
+  "recordedAt": "2026-10-09T00:02:25.589911+00:00",
+  "sourceBeforeCommit": {
+    "head": "d94153e5f2b1d280329fe6393c8f520c78135379",
+    "tree": "f32b91c734980c809bfd94e2b8edd69d459e6167",
+    "state": "9 untracked harness modules; docs added after this check; not a final build freeze"
+  },
+  "productUICommit": "67765bed472a0037aae62c193d815bebcf5533b9",
+  "harness": [
+    {
+      "path": "e2e/spec78-combination-backup.mjs",
+      "bytes": 15827,
+      "sha256": "a956ae0a66da81c372c5724157c055b41eea18ddc726d39cf5c382192146bf83"
+    },
+    {
+      "path": "e2e/spec78-combination-driver.mjs",
+      "bytes": 15666,
+      "sha256": "0783a9716db18ac69f10c034da100cf7098a052729486748c8bea44ed3aa65b8"
+    },
+    {
+      "path": "e2e/spec78-combination-eagle.mjs",
+      "bytes": 11149,
+      "sha256": "99a436f16ffd3825037e4d801a4175d621accab32349feb6f4dd703ae1af7b18"
+    },
+    {
+      "path": "e2e/spec78-combination-fixture.mjs",
+      "bytes": 7611,
+      "sha256": "25b55833121c269aa6e797b25f36f2c46861578e339343b03199bbbae75e5c25"
+    },
+    {
+      "path": "e2e/spec78-combination-lifecycle.mjs",
+      "bytes": 10717,
+      "sha256": "c68c1087576d5211fe2cf9146b76a89f7deeeaccb0b27067a5235ead7241019f"
+    },
+    {
+      "path": "e2e/spec78-combination-preflight.mjs",
+      "bytes": 17117,
+      "sha256": "724b3b0cf6cd6da813ad2ead3874d95f668ccee51216c1862267ecdb271fad56"
+    },
+    {
+      "path": "e2e/spec78-combination-sealed.mjs",
+      "bytes": 7017,
+      "sha256": "4c4421be487772ed9339dc77c66c9bc2a72490657532b267e8615acb859a0816"
+    },
+    {
+      "path": "e2e/spec78-combination-workflow.mjs",
+      "bytes": 36520,
+      "sha256": "7204070b8a1eb9e38fc0028547ee0b0c00f49a11b61fea354d14c15d9f4320af"
+    },
+    {
+      "path": "e2e/spec78-combination.mjs",
+      "bytes": 7941,
+      "sha256": "0d7038292a231cde8f18ef9abba13922ada8c3a0bf103c938d94da0f8daf667c"
+    }
+  ],
+  "rawLocalOnly": [
+    {
+      "path": "work/e2e/spec78-t20-offline-check-1791503766036/checks.json",
+      "bytes": 1057,
+      "sha256": "758d47de0d264435f9a369b4dfe98fb66a47bff3b8b3844c622ae17173cfbd6f"
+    },
+    {
+      "path": "work/e2e/spec78-t20-offline-eagle-1791503810000/fixture.json",
+      "bytes": 55050,
+      "sha256": "a878369558ffc2716dc3af1968de6ad15ee59cae29655b03e34200aa4e66b791"
+    },
+    {
+      "path": "work/e2e/spec78-t20-offline-eagle-1791503810000/offline-input-verification.json",
+      "bytes": 3359,
+      "sha256": "82658c45c259443579b8fbdbbf0f4a644c0151acdac7631101ac29a77095b806"
+    },
+    {
+      "path": "work/e2e/spec78-t20-offline-preflight-1791504020000/native-embedded.json",
+      "bytes": 1484,
+      "sha256": "969e475fdeb63ece7152bc7f1aebdfb0892a234d321bc92cb5caad72a7916bbb"
+    },
+    {
+      "path": "work/e2e/spec78-t20-offline-preflight-1791504020000/known-folders.json",
+      "bytes": 1409,
+      "sha256": "1424af153e33b8d4bd8c3bbcef2ed1f90ce37534d0074b2253efa14888b6feaf"
+    },
+    {
+      "path": "work/e2e/spec78-t20-offline-preflight-1791504020000/harness-preparation-checks.json",
+      "bytes": 3531,
+      "sha256": "40ea0a6afa74c76fc8da0dfde7c8a4e38604da732cb2c2ca189996b8fa0f7c65"
+    }
+  ],
+  "checks": {
+    "moduleSyntax": {
+      "passed": 9
+    },
+    "entryAndFixturePreflight": "passed",
+    "driverHelperOnly": {
+      "passed": 5,
+      "scope": "metadata HTTP response behavior and PowerShell AST parsing; no process observation or termination executed"
+    },
+    "syntheticInputVerificationOnly": {
+      "passed": 12,
+      "scope": "file SHA, Pillow decoding/pixels, T14 Eagle metadata and read-only v16 SQLite inputs"
+    }
+  },
+  "knownFolderObservation": {
+    "at": "2026-10-08T23:57:10.052Z",
+    "t20": {
+      "identifier": "dev.kinshoko.spec78t20test",
+      "requested": {
+        "path": "%APPDATA%\\dev.kinshoko.spec78t20test\\settings.json",
+        "exists": false,
+        "bytes": null,
+        "sha256": null
+      },
+      "resolved": {
+        "path": "%APPDATA%\\dev.kinshoko.spec78t20test\\settings.json",
+        "exists": false,
+        "bytes": null,
+        "sha256": null
+      },
+      "requestedResolvesTo": "%APPDATA%\\dev.kinshoko.spec78t20test\\settings.json"
+    },
+    "retainedT19": {
+      "identifier": "dev.kinshoko.spec78t19upgrade",
+      "requested": {
+        "path": "%APPDATA%\\dev.kinshoko.spec78t19upgrade\\settings.json",
+        "exists": true,
+        "bytes": 247,
+        "sha256": "c570d9186a9ed586bf382e9996d9807178641dd9aff6494bbb059f42fb7d916c"
+      },
+      "resolved": {
+        "path": "%LOCALAPPDATA%\\Packages\\OpenAI.Codex_2p2nqsd0c76g0\\LocalCache\\Roaming\\dev.kinshoko.spec78t19upgrade\\settings.json",
+        "exists": true,
+        "bytes": 247,
+        "sha256": "c570d9186a9ed586bf382e9996d9807178641dd9aff6494bbb059f42fb7d916c"
+      },
+      "requestedResolvesTo": "%LOCALAPPDATA%\\Packages\\OpenAI.Codex_2p2nqsd0c76g0\\LocalCache\\Roaming\\dev.kinshoko.spec78t19upgrade\\settings.json"
+    },
+    "nativeExecuted": false
+  },
+  "execution": {
+    "nativeExecuted": false,
+    "desktopExecuted": false,
+    "clipboardExecuted": false,
+    "installerExecuted": false,
+    "prototypeComparisonExecuted": false,
+    "buildExecuted": false,
+    "finalT17Merged": false,
+    "finalOriginalModulePrepared": false,
+    "nativePlanPrepared": false,
+    "fullT20Acceptance": false
+  },
+  "nextRequirements": [
+    "merge the integrated final T17 source",
+    "adapt and freeze original-capture stage",
+    "fresh embedded Vite build and unique T20 configuration",
+    "clean source/tree/input/config/binary/driver/dual-KnownFolder manifest",
+    "new exclusive root desktop grant before native execution",
+    "same-formal-program same-session A/B combined workflow",
+    "same samples and viewport prototype comparison",
+    "release NSIS clean install and actual old-to-new upgrade"
+  ],
+  "preservedBoundaries": {
+    "windows10": "owner-accepted-unverified",
+    "colorCI": "old 11 failures remain",
+    "predecessor": "42 / PR71 remain separate",
+    "externalSignedUpdater": "99 remains separate",
+    "publication": "parent controlled; no push or external evidence sent"
+  }
+}

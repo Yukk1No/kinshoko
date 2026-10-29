@@ -1,0 +1,63 @@
+name: downscale-probe
+
+# 线性光与编码值空间缩小的对比探测程序（#48）：构建、测试、打包后自测，产物作为 artifact 提供。
+on:
+  push:
+    paths:
+      - "tools/downscale-probe/**"
+      - "crates/kinshoko-core/src/fidelity/**"
+      - "docs/validation/sample-manifest.pixiv.json"
+      - ".github/workflows/downscale-probe.yml"
+  pull_request:
+    paths:
+      - "tools/downscale-probe/**"
+      - "crates/kinshoko-core/src/fidelity/**"
+      - "docs/validation/sample-manifest.pixiv.json"
+      - ".github/workflows/downscale-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: tools/downscale-probe
+    steps:
+      - uses: actions/checkout@v4
+      # 工具链版本以仓库根目录的 rust-toolchain.toml 为准。
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.95"
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tools/downscale-probe
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --locked
+      - run: cargo build --release --locked
+      - name: Package
+        shell: pwsh
+        run: |
+          $out = "dist/kinshoko-downscale-probe"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          Copy-Item target/release/kinshoko-downscale-probe.exe $out/
+          Copy-Item README.md $out/使用说明.md
+      # 打包后的程序自测：不开窗口，用构造样本生成全部分组、写报告并读回。
+      # 发布构建是 Windows 子系统程序，用 Start-Process 等它结束并取退出码。
+      - name: Self-test packaged exe
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "downscale-self-test"
+          $p = Start-Process -FilePath dist/kinshoko-downscale-probe/kinshoko-downscale-probe.exe `
+            -ArgumentList "--self-test", "`"$dir`"" -Wait -PassThru -NoNewWindow
+          Get-Content (Join-Path $dir "self-test.txt")
+          if ($p.ExitCode -ne 0) { throw "自测失败（退出码 $($p.ExitCode)）" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kinshoko-downscale-probe-${{ github.sha }}
+          path: tools/downscale-probe/dist/kinshoko-downscale-probe
+          retention-days: 30

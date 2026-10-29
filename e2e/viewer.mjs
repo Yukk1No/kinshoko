@@ -1,0 +1,208 @@
+// #47 原生 WebView2 冒烟：真实双击、两条显示路径、DPI、字体、重排、返回焦点。
+// #179：查看器只盖住图片墙，详情侧栏在旁边并排；双击按第一下的图判定，单击已选中的那张即查看。
+// 用法：node e2e/viewer.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]
+// 本地并行测试宜以独立 identifier 构建；默认使用 4447 / 4448，不占用 #44 的端口。
+import { spawn } from "node:child_process";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, dirname, join, resolve } from "node:path";
+import { copyStandaloneRuntime } from "./native-standalone-guard.mjs";
+import { png } from "./viewer.helpers.mjs";
+
+const [, , appArg, edgeArg, driverArg = "tauri-driver"] = process.argv;
+if (!appArg || !edgeArg) throw new Error("用法：node e2e/viewer.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]");
+const work = process.env.KINSHOKO_STANDALONE_WORK ? resolve(process.env.KINSHOKO_STANDALONE_WORK) : mkdtempSync(join(tmpdir(), "kinshoko-viewer47-"));
+mkdirSync(work, { recursive: true });
+const application = copyStandaloneRuntime(appArg, work, "kinshoko-viewer47.exe");
+const parent = join(work, "libraries");
+const source = join(work, "参考");
+const output = resolve(process.env.KINSHOKO_VIEWER_OUTPUT ?? "work/viewer47");
+for (const dir of [parent, source, output, join(work, "roaming"), join(work, "local")]) mkdirSync(dir, { recursive: true });
+
+for (let i = 0; i < 40; i++) writeFileSync(join(source, `${String(i).padStart(2, "0")}.png`), png(100, 100, [80 + i * 3, 150, 180]));
+writeFileSync(join(source, "大图.png"), png(2400, 1600, (x, y) => x % 120 === 0 || y % 120 === 0 ? [32, 32, 32] : [Math.round(x / 2400 * 255), Math.round(y / 1600 * 255), 120]));
+
+const PORT = Number(process.env.KINSHOKO_WEBDRIVER_PORT ?? 4447);
+const DRIVER = `http://127.0.0.1:${PORT}`;
+const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
+async function wd(method, path, body) {
+  const response = await fetch(DRIVER + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(70000) });
+  const result = await response.json();
+  if (!response.ok || result.status || result.value?.error) throw new Error(`${path}: ${JSON.stringify(result)}`);
+  return path === "/session" && result.sessionId ? { sessionId: result.sessionId, capabilities: result.value } : result.value;
+}
+async function until(what, read) {
+  const end = Date.now() + 30000;
+  let last;
+  while (Date.now() < end) {
+    try { const value = await read(); if (value) return value; } catch (error) { last = error; }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error(`等待超时：${what}${last ? ` (${last.message})` : ""}`);
+}
+function check(ok, label) { if (!ok) throw new Error(label); console.log(`✓ ${label}`); }
+const driver = spawn(driverArg, ["--port", String(PORT), "--native-port", String(PORT + 1), "--native-driver", resolve(edgeArg)], {
+  windowsHide: true,
+  env: { ...process.env, APPDATA: join(work, "roaming"), LOCALAPPDATA: join(work, "local"), KINSHOKO_DATA_DIR: join(work, "app-data"), KINSHOKO_SKIP_AUTOSTART: "1" },
+  stdio: ["ignore", "inherit", "inherit"],
+});
+const stopped = new Promise((resolve) => driver.once("exit", resolve));
+let base;
+const exec = (script, args = []) => wd("POST", `${base}/execute/sync`, { script, args });
+const find = async (xpath) => {
+  const element = await wd("POST", `${base}/element`, { using: "xpath", value: xpath });
+  return element[ELEMENT] ?? element.ELEMENT;
+};
+// #98: viewer dock buttons have no visible text; match the accessible name ("名称" or "名称，快捷键").
+const click = async (text) => wd("POST", `${base}/element/${await find(`//button[normalize-space()='${text}' or @aria-label='${text}' or starts-with(@aria-label,'${text}，')]`)}/click`, {});
+const image = () => exec(`const i = document.querySelector('.viewer-stage img'); if (!i || !i.complete || !i.naturalWidth || getComputedStyle(i).visibility !== 'visible') return null;
+  const r = i.getBoundingClientRect(); return { src: i.src, w: i.naturalWidth, h: i.naturalHeight, physicalW: r.width * devicePixelRatio, physicalH: r.height * devicePixelRatio, physicalLeft: r.left * devicePixelRatio, physicalTop: r.top * devicePixelRatio, interpolation: getComputedStyle(i).imageRendering, dpr: devicePixelRatio };`);
+
+try {
+  await until("WebDriver 就绪", () => fetch(`${DRIVER}/status`).then((r) => r.ok));
+  const forcedDpr = process.env.KINSHOKO_VIEWER_DPR;
+  const additionalBrowserArguments = forcedDpr ? [`force-device-scale-factor=${Number(forcedDpr)}`] : [];
+  const session = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application, webviewOptions: { userDataFolder: join(work, "webview"), additionalBrowserArguments } } } } });
+  base = `/session/${session.sessionId}`;
+  await wd("POST", `${base}/element/${await until("欢迎页", () => find("//button[@aria-labelledby='welcome-create']"))}/click`, {}); // #172：欢迎页先选“新建图库”
+  const name = await until("建库引导", () => find("//label[contains(., '图库名称')]/input"));
+  await wd("POST", `${base}/element/${name}/clear`, {});
+  await wd("POST", `${base}/element/${name}/value`, { text: "原图查看器验证" });
+  await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [parent]);
+  await click("选择存放位置…");
+  await click("建立图库");
+  // #113: no current library in the UI (ADR-0008); the new library shows up as a sidebar group head “名称（N 张）”.
+  await until("打开图库", () => find("//nav[@aria-label='查找范围']//*[@data-library-id]//button[contains(@class,'lib-head-name') and starts-with(@aria-label,'原图查看器验证（') and not(@disabled)]"));
+  check(true, "在独立数据目录建立测试资料库");
+  await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
+  // 设计系统 v2: 导入 is one button; the folder entry is in its menu, then a dialog chooses the library.
+  await click("导入");
+  await wd("POST", `${base}/element/${await until("文件夹菜单项", () => find("//*[@role='menuitem' and normalize-space()='文件夹']"))}/click`, {});
+  const librarySelect = "[...document.querySelectorAll('.k-import-dialog select')].find(s=>s.labels?.[0]?.querySelector('.k-field-label')?.textContent.trim()==='放到图库')";
+  await until("导入对话框", () => exec(`return !!${librarySelect}?.options[1]`));
+  await exec(`const s=${librarySelect};s.value=s.options[1].value;s.dispatchEvent(new Event('change',{bubbles:true}));`);
+  await until("开始导入可用", () => exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
+  await click("开始导入");
+  await until("导入完成", () => exec("const c=document.querySelector('section[aria-label=导入结果]');return c?.textContent.includes('导入完成')&&c.querySelector('.k-task-stats')?.textContent.includes('新增 41');"));
+  await click("关闭导入结果");
+  check(true, "导入 41 张测试参考图，未下载打标模型");
+  const card = await until("大图卡片", () => exec("return [...document.querySelectorAll('.card')].find(c => Math.abs(c.offsetHeight / c.offsetWidth - 2/3) < .02)"));
+  await wd("POST", `${base}/actions`, { actions: [{ type: "pointer", id: "mouse", parameters: { pointerType: "mouse" }, actions: [
+    { type: "pointerMove", duration: 0, origin: card, x: 0, y: 0 },
+    { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 }, { type: "pause", duration: 80 },
+    { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 },
+  ] }] });
+  const fitted = await until("真实双击打开查看器", image);
+  // #179：查看器挂在图片墙所在的区域；左栏、顶栏、详情侧栏可用，侧栏显示正在看的这张。
+  const layout = await until("详情侧栏展开", () => exec(`const v = document.querySelector('.viewer'), pane = document.querySelector('.sidebar-slot'), insp = document.querySelector('aside.inspector');
+    if (!insp || insp.dataset.collapsed !== 'false' || insp.getAnimations().some(a => a.playState === 'running')) return null;
+    const r = v.getBoundingClientRect(), p = pane.getBoundingClientRect(), i = insp.getBoundingClientRect(), top = document.querySelector('.topbar').getBoundingClientRect();
+    return { inHost: !!v.closest('.wall-host'), inert: !!document.querySelector('.rail-slot[inert], .sidebar-slot[inert], .topbar [inert], aside.inspector[inert]'),
+      left: r.left, paneRight: p.right, right: r.right, inspectorLeft: i.left, top: r.top, topbarBottom: top.bottom, selection: insp.dataset.selection, density: !!document.querySelector('[aria-label=图片大小]'),
+      info: !!document.querySelector('[aria-label=图片信息]') };`));
+  const cardId = await exec("return arguments[0].dataset.id", [card]);
+  check(layout.inHost && !layout.inert && layout.left >= layout.paneRight - 0.5 && layout.right <= layout.inspectorLeft + 0.5 && layout.top >= layout.topbarBottom - 0.5,
+    "查看器只占图片墙所在的区域，左栏、顶栏与详情侧栏可用");
+  check(layout.selection === cardId && !layout.density && !layout.info, "详情侧栏显示正在看的图；查看时没有图片大小条和信息浮层");
+  check(fitted.w < 2400 && Math.abs(fitted.physicalW - fitted.w) < 0.01 && Math.abs(fitted.physicalH - fitted.h) < 0.01, "适应窗口按设备像素 1:1 显示派生图");
+  await click("原始像素");
+  const original = await until("原图解码", image);
+  if (forcedDpr) check(Math.abs(original.dpr - Number(forcedDpr)) < 0.001, "WebView2 使用请求的测试 DPR");
+  check(original.w === 2400 && original.h === 1600 && Math.abs(original.physicalW - 2400) < 0.01 && Math.abs(original.physicalH - 1600) < 0.01, "原图像素在真实 WebView2 中对齐（DPR " + original.dpr + "）");
+  check(Math.abs(original.physicalLeft - Math.round(original.physicalLeft)) < 0.01 && Math.abs(original.physicalTop - Math.round(original.physicalTop)) < 0.01, "图片起点落在完整设备像素上");
+  for (let i = 0; i < 4; i++) await wd("POST", `${base}/element/${await find("//button[@aria-label='放大']")}/click`, {});
+  const enlarged = await until("放大", image);
+  check(enlarged.w === 2400 && enlarged.interpolation === "pixelated", "超过 200% 仍用原图并按像素放大");
+  await click("适应窗口");
+  await until("派生图", image);
+  const fonts = await wd("POST", `${base}/execute/async`, { script: `const done = arguments[arguments.length - 1]; Promise.all([document.fonts.load('400 14px "Kinshoko Inter"', 'Kinshoko'), document.fonts.load('500 14px "Kinshoko Inter"', 'Library'), document.fonts.load('600 14px "Kinshoko Inter"', 'Reference'), document.fonts.load('400 14px "Kinshoko Han"', '参考图')]).then(v => done(v.every(f => f.length > 0 && f.every(x => x.status === 'loaded'))));`, args: [] });
+  check(fonts, "全部随软件分发的字体离线加载成功");
+  const fitAfterFonts = await until("字体加载后派生图稳定", image);
+  check(Math.abs(fitAfterFonts.physicalLeft - Math.round(fitAfterFonts.physicalLeft)) < 0.01 && Math.abs(fitAfterFonts.physicalTop - Math.round(fitAfterFonts.physicalTop)) < 0.01, "字体加载后的派生图起点对齐设备像素");
+  const screenshot = await wd("GET", `${base}/screenshot`);
+  writeFileSync(join(output, "viewer.png"), Buffer.from(screenshot, "base64"));
+  const viewerKey = async (value) => wd("POST", `${base}/actions`, { actions: [{type:"key",id:"keyboard",actions:[{type:"keyDown",value},{type:"keyUp",value}]}] });
+  await viewerKey("i");
+  await until("I 隐藏详情侧栏", () => exec("return document.querySelector('aside.inspector')?.dataset.collapsed === 'true'"));
+  await viewerKey("i");
+  await until("I 显示详情侧栏", () => exec("return document.querySelector('aside.inspector')?.dataset.collapsed === 'false'"));
+  check(true, "查看器里 I 键显示或隐藏详情侧栏");
+  await click("返回图片墙");
+  check(await exec("return document.activeElement?.dataset.id === arguments[0].dataset.id && arguments[0].getAttribute('aria-selected') === 'true'", [card]), "返回后选择仍是刚才查看的卡片，焦点交还给它");
+  // 单击已选中的唯一那张：打开查看器（#179）。
+  await wd("POST", `${base}/actions`, { actions: [{ type: "pointer", id: "mouse", parameters: { pointerType: "mouse" }, actions: [
+    { type: "pause", duration: 700 }, { type: "pointerMove", duration: 0, origin: card, x: 0, y: 0 }, { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 },
+  ] }] });
+  await until("单击已选中的图打开查看器", image);
+  await viewerKey("\uE00C");
+  await until("Esc 返回", () => exec("return !document.querySelector('.viewer')"));
+  // 双击最右一列的卡片：第一下展开侧栏（这里先清空选择、收起侧栏），第二下落点被侧栏占住也打开这一张（#179）。
+  await exec("const wall = document.querySelector('.wall'); wall.scrollTop = 0; wall.dispatchEvent(new Event('scroll'));");
+  await new Promise((r) => setTimeout(r, 700));
+  await exec("document.querySelector('.wall-canvas').click();");
+  await until("侧栏收起", () => exec("return !document.querySelector('aside.inspector')"));
+  const rightmost = await exec(`const wall = document.querySelector('.wall'), w = wall.getBoundingClientRect();
+    const seen = [...wall.querySelectorAll('.card')].filter(c => { const r = c.getBoundingClientRect(); return r.top >= w.top && r.bottom <= w.bottom; });
+    return seen.sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right || a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];`);
+  const rightmostId = await exec("return arguments[0].dataset.id", [rightmost]);
+  await wd("POST", `${base}/actions`, { actions: [{ type: "pointer", id: "mouse", parameters: { pointerType: "mouse" }, actions: [
+    { type: "pointerMove", duration: 0, origin: rightmost, x: 0, y: 0 },
+    { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 }, { type: "pause", duration: 250 },
+    { type: "pointerDown", button: 0 }, { type: "pointerUp", button: 0 },
+  ] }] });
+  await until("双击最右一列打开查看器", image);
+  check(await exec("return document.querySelector('aside.inspector')?.dataset.selection === arguments[0] && document.querySelectorAll('.card[aria-selected=true]').length === 1", [rightmostId]),
+    "双击最右一列的卡片：侧栏展开期间第二下照样打开这一张");
+  await viewerKey("\uE00C");
+  await until("Esc 返回", () => exec("return !document.querySelector('.viewer')"));
+
+  const anchor = await exec(`const wall = document.querySelector('.wall'); wall.scrollTop = 720; wall.dispatchEvent(new Event('scroll'));
+    const top = wall.getBoundingClientRect().top; const cards = [...wall.querySelectorAll('.card')].map(c => ({ id: c.dataset.id, r: c.getBoundingClientRect() })).filter(c => c.r.bottom > top + 8 && c.r.top < top + wall.clientHeight).sort((a,b) => a.r.top - b.r.top || a.r.left - b.r.left);
+    return { id: cards[0].id, offset: cards[0].r.top - top };`);
+  const reading = await exec(`const wall = document.querySelector('.wall'); const top = wall.getBoundingClientRect().top;
+    const card = [...wall.querySelectorAll('.card')].find(c => { const r = c.getBoundingClientRect(); return r.top >= top && r.bottom <= top + wall.clientHeight; });
+    card.focus({preventScroll:true}); return { id: card.dataset.id, top: wall.scrollTop };`);
+  const key = async (value) => wd("POST", `${base}/actions`, { actions: [{type:"key",id:"keyboard",actions:[{type:"keyDown",value},{type:"keyUp",value}]}] });
+  await key("\uE007"); // Enter
+  await until("键盘打开查看器", image);
+  await key("\uE00C"); // Escape
+  await until("键盘返回图片墙", () => exec("return !document.querySelector('.viewer')"));
+  // 查看时选择跟着这张图，详情侧栏展开、图片墙按锚点重排（#179）：返回后这张图仍在视口里并获得焦点。
+  check(await exec(`const c = document.activeElement, wall = document.querySelector('.wall'), w = wall.getBoundingClientRect(), r = c?.getBoundingClientRect();
+    return c?.dataset.id === arguments[0].id && c.getAttribute('aria-selected') === 'true' && r.bottom > w.top && r.top < w.bottom;`, [reading]), "滚动后用回车查看，Esc 返回后那张图在视口里、仍选中并获得焦点");
+  const anchorOffset = () => exec(`const c = document.querySelector('[data-id="' + arguments[0] + '"]'); const wall = document.querySelector('.wall'); if (!c || c.getAnimations().some(a => a.playState === 'running')) return null; return c.getBoundingClientRect().top - wall.getBoundingClientRect().top;`, [anchor.id]);
+  const anchorStable = async () => {
+    const moving = await exec("return document.querySelector('.sidebar-slot').getAnimations().some(a => a.playState === 'running')");
+    const offset = await anchorOffset();
+    return !moving && offset !== null && Math.abs(offset - anchor.offset) < 1;
+  };
+  await click("收起侧栏");
+  await until("收起侧栏锚点稳定", anchorStable);
+  await click("展开侧栏");
+  await until("展开侧栏锚点稳定", anchorStable);
+  check(true, "侧栏往返重排保持同一张图的偏移");
+  await wd("POST", `${base}/window/rect`, { width: 1050, height: 800 });
+  await until("窗口变窄锚点稳定", anchorStable);
+  await wd("POST", `${base}/window/rect`, { width: 1280, height: 800 });
+  await until("窗口变宽锚点稳定", anchorStable);
+  check(true, "原生窗口宽度往返保持同一张图的偏移");
+  writeFileSync(join(output, "report.json"), JSON.stringify({ fitted, original, enlarged, fonts, fitAfterFonts, anchor, reading }, null, 2));
+  console.log("查看器冒烟测试通过");
+} catch (error) {
+  if (base) {
+    const state = await exec("return { url: location.href, html: document.body.innerHTML }").catch(() => null);
+    writeFileSync(join(output, "failure.json"), JSON.stringify({ message: error.message, state }, null, 2));
+    const screenshot = await wd("GET", `${base}/screenshot`).catch(() => null);
+    if (screenshot) writeFileSync(join(output, "failure.png"), Buffer.from(screenshot, "base64"));
+  }
+  throw error;
+} finally {
+  if (base) await wd("DELETE", base).catch(() => {});
+  driver.kill(); // tauri-driver 的 Windows Job 只结束本次测试的子进程。
+  await Promise.race([stopped, new Promise((r) => setTimeout(r, 5000))]);
+  if (!process.env.KINSHOKO_STANDALONE_WORK) {
+    const target = resolve(work);
+    if (dirname(target) !== resolve(tmpdir()) || !basename(target).startsWith("kinshoko-viewer47-")) throw new Error("拒绝清理非测试临时目录");
+    rmSync(target, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+  }
+}

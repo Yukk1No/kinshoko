@@ -1,0 +1,78 @@
+{
+  "format": "kinshoko-application-settings",
+  "version": 1,
+  "settings": {
+    "version": 1,
+    "autostart": true,
+    "shortcuts": {},
+    "taggingModel": null,
+    "safeMode": true,
+    "showApproxSource": false,
+    "forceSrgb": false,
+    "viewerBackground": "mid",
+    "usageLog": false
+  },
+  "catalog": {
+    "tags": [
+      {
+        "id": "01a11d5e091177afa803338237c034aa",
+        "namespace": "general",
+        "names": [
+          {
+            "lang": "en",
+            "name": "t15-sealed-only"
+          }
+        ],
+        "defaultNames": [
+          {
+            "lang": "en",
+            "name": "t15-sealed-only"
+          }
+        ],
+        "namePreferences": [],
+        "aliases": [],
+        "external": []
+      }
+    ],
+    "externals": [],
+    "mappings": [
+      {
+        "libraryId": "4c6f4c5e817647c79c10d131e4d88416",
+        "localTagId": "01a11d5e091177afa8033381e2870695",
+        "catalogId": "01a11d5e091177afa803338237c034aa",
+        "legacy": {
+          "id": "01a11d5e091177afa8033381e2870695",
+          "namespace": "general",
+          "names": [
+            {
+              "lang": "en",
+              "name": "t15-sealed-only"
+            }
+          ],
+          "aliases": [],
+          "external": [],
+          "count": 1
+        },
+        "nameProvenance": "pending",
+        "basis": "independent"
+      }
+    ],
+    "adopted": [],
+    "removedAliases": [],
+    "enrollment": [
+      "181e2a0575e3411d98d181dcaf7c037b",
+      "4c6f4c5e817647c79c10d131e4d88416"
+    ],
+    "legacyTags": [
+      [
+        "4c6f4c5e817647c79c10d131e4d88416",
+        "01a11d5e091177afa8033381e2870695"
+      ]
+    ],
+    "nameConfirmations": [],
+    "groups": [],
+    "groupMigrations": [],
+    "approx": [],
+    "approxMigrations": []
+  }
+}

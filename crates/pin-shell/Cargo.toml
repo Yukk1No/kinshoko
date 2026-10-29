@@ -1,0 +1,36 @@
+[package]
+name = "pin-shell"
+description = "桌面钉图的平台层（ADR 0013）：每张钉图两个窗口槽、一次提交换上、输入、显示器。"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+kinshoko-core.workspace = true
+# 只用 wgpu 的 Surface 目标类型（交给 pin-render 建 Surface），不建设备、不画。版本跟 pin-render 走。
+wgpu = { version = "30", default-features = false, features = ["std"] }
+
+[target.'cfg(windows)'.dependencies]
+wgpu = { version = "30", default-features = false, features = ["dx12", "std"] }
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_DirectComposition",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Performance",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+    "Win32_UI_ColorSystem",
+    "Win32_UI_Controls",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Input_Pointer",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+# 工作区禁止 unsafe；平台适配器（`src/windows/`）是唯一放开的地方。
+[lints.rust]
+unsafe_code = "deny"

@@ -1,0 +1,19 @@
+{
+  "baseCommit": "4d111ac",
+  "redState": "base plus uncommitted public regression in reference_group_resolve.rs",
+  "observation": "real Explicit source, active library cache off, References current mode on: old image authorization returned sealed=false",
+  "green": "reference_group_resolve 12; reference_capture_actions 10; pin_veil 3; safe_mode 18",
+  "nativeInterleaving": "not reproduced",
+  "files": [
+    {
+      "path": "reference-mode-cache-red.txt",
+      "sha256": "af9436728de96eba531275eb285415a8c4bbd1c6a53c6f60b28478aa7ed87b86",
+      "bytes": 1061
+    },
+    {
+      "path": "reference-mode-cache-green.txt",
+      "sha256": "562e2434f680d5bce7dfb3dd5742468d4b24144187a69ca1612f36a7688c99f4",
+      "bytes": 4342
+    }
+  ]
+}

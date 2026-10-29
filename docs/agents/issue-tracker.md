@@ -2,6 +2,8 @@
 
 Issues and specs live in GitHub Issues for `Yukk1No/kinshoko`. Use the `gh` CLI from this repository, or pass `--repo Yukk1No/kinshoko` explicitly. Verify the target with `git remote -v` before mutations.
 
+In Git Bash on Windows, run `git show <ref>:<path>` as `MSYS_NO_PATHCONV=1 git show <ref>:<path>`; without it MSYS rewrites the `<ref>:<path>` argument as a Windows path and git cannot find the file.
+
 ## Operations
 
 - Create issues with `gh issue create`; put multiline bodies in a temporary file and use `--body-file`.
@@ -10,8 +12,18 @@ Issues and specs live in GitHub Issues for `Yukk1No/kinshoko`. Use the `gh` CLI 
 - Append comments with `gh issue comment <number>`; use `--body-file` for multiline text.
 - Apply or remove labels with `gh issue edit <number> --add-label <label>` or `--remove-label <label>`.
 - Close issues with `gh issue close <number>` after recording the outcome.
+- In a PR body, write `Closes #N` for each issue the PR finishes: `.github/workflows/close-issues.yml` closes it when the PR merges into `integration/v1`, where GitHub's own auto-close does not apply. Write `Refs #N` for an issue that stays open, such as one awaiting the maintainer's confirmation on a beta.
 - A skill's instruction to publish to the tracker means creating a GitHub issue.
 - A skill's instruction to fetch a ticket means reading its issue and comments.
+
+## Milestones and versions
+
+Versions follow SemVer: `x.y.Z` for bug-fix releases, `x.Y.0` for features and quality-of-life improvements, `X.0.0` for changes that break existing data or habits. A milestone is a scheduled release, named after its version (`v1.0` ships as `1.0.0` through PR #71).
+
+- Create a milestone only once the maintainer schedules work into it; patch milestones such as `v1.0.1` appear only for a fix that cannot wait for the next feature release.
+- An open issue without a milestone is backlog: new ideas and QOL requests land there as `needs-triage` and wait until the maintainer schedules them. Leave the milestone empty unless the maintainer names one.
+- Milestones are orthogonal to the triage labels: the label says how ready the issue is, the milestone says which release it belongs to.
+- Capability directions that are not yet issues live in [`docs/discovery/roadmap.md`](../discovery/roadmap.md).
 
 ## Pull requests as a triage surface
 

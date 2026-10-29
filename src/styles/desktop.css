@@ -1,0 +1,157 @@
+/* 截图（#62）与参考组（#66）侧栏面板（#98，预览 10 / 11）。标题在侧栏标题行，面板只放内容。 */
+.capture-history, .reference-groups { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 4px 10px 16px; overflow-y: auto; color: var(--ink); }
+.sidebar-slot > .capture-history, .sidebar-slot > .reference-groups { width: 255px; flex: 1; min-height: 0; }
+.empty-context > .capture-history, .empty-context > .reference-groups { width: 100%; }
+.capture-history-bar, .reference-groups-bar { display: flex; flex-direction: column; gap: 8px; }
+.capture-history-bar h2, .reference-groups-bar h2 { display: none; }
+.empty-context .capture-history-bar h2, .empty-context .reference-groups-bar h2 { display: none; }
+.capture-history-start { display: flex; gap: 6px; }
+.capture-history-start .k-btn { flex: none; height: 34px; padding: 0 10px; }
+.capture-history-start .k-btn:first-child { flex: 1; min-width: 0; }
+.capture-history-start .k-btn .k-kbd { margin-left: 4px; }
+.capture-history-note, .capture-history-empty, .reference-groups-empty { margin: 0; padding: 0 2px; color: var(--ink-2); font-size: 12px; line-height: 18px; }
+.group-note { margin: 0; padding: 0 2px; color: var(--ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+.group-note.is-error { color: var(--danger); }
+.side-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2);
+  font-size: 12px; box-shadow: inset 0 0 0 1px var(--line-2); }
+.side-chip:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+.side-chip.is-done { color: var(--accent-strong); background: var(--accent-soft); box-shadow: none; }
+
+/* 截图列表 */
+.capture-history-list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.capture-history-item { position: relative; display: flex; gap: 10px; align-items: flex-start; min-width: 0; padding: 8px 6px; border-radius: 10px; }
+.capture-history-item:hover, .capture-history-item:focus-within { background: var(--hover); }
+.capture-history-item img { width: 64px; height: 48px; flex: none; border-radius: 7px; object-fit: cover; background: var(--card); }
+.capture-history-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.capture-history-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.capture-history-meta { color: var(--ink-2); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.capture-collect-thumb { width: 64px; height: 48px; flex: none; border-radius: 7px; object-fit: cover; background: var(--card); }
+.capture-history-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.capture-history-delete { position: absolute; top: 6px; right: 4px; width: 24px; height: 24px; opacity: 0; }
+.capture-history-item:hover .capture-history-delete, .capture-history-delete:focus-visible { opacity: 1; }
+@media (hover: none) { .capture-history-delete { opacity: 1; } }
+
+/* 参考组卡片 */
+.group-save { width: 100%; height: 36px; border-radius: 11px; }
+/* 起名与改名（GroupNameForm）：字段名与关闭按钮一行，输入框与“保存”同高 32 并排、间距 8。
+   新参考组的表单替换“存下桌面钉图”按钮，用 1 px line-2 圈出，不铺底色，免得和选中的参考组卡片混在一起；
+   同心圆角：输入框 r（10）+ 内边距 8 = 外框 r-xl（18）。 */
+.group-name-form { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.group-name-form.is-new { padding: 6px 8px 8px; border-radius: var(--r-xl); box-shadow: inset 0 0 0 1px var(--line-2); }
+.group-name-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; padding-left: 2px; }
+.group-name-form .k-field-row > .k-btn { flex: none; }
+.reference-groups-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.reference-group { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 4px; border-radius: 12px; transition: background var(--t-fast); }
+.reference-group.is-on { padding-bottom: 10px; background: var(--surface-2); box-shadow: var(--shadow-raise); }
+.group-card-head { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-width: 0; padding: 6px; border: 0; border-radius: 9px;
+  background: transparent; color: var(--ink); text-align: left; font: inherit; }
+.reference-group:not(.is-on) .group-card-head:hover { background: var(--hover); }
+.group-card-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.group-thumbs { display: flex; gap: 4px; margin-bottom: 6px; max-width: 100%; overflow: hidden; }
+.group-thumb { width: 44px; height: 44px; flex: none; border-radius: 7px; overflow: hidden; background: var(--card); }
+.group-thumb:nth-child(even) { width: 34px; }
+.group-thumb img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.group-thumb.is-sealed { background: var(--veil); }
+.group-thumb.is-missing { background: repeating-linear-gradient(135deg, var(--card) 0 5px, var(--surface-2) 5px 10px); }
+.reference-group-name { font-weight: 600; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.reference-group-meta, .reference-group-problem { color: var(--ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+.reference-group-problem { color: var(--warn); }
+.reference-group-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 6px; }
+.reference-group .group-name-form { padding: 0 6px 4px; }
+.reference-group-members { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0 6px 0 22px; font-size: 12px; }
+.reference-group-members li { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-width: 0; }
+.reference-group-members span { min-width: 0; overflow-wrap: anywhere; }
+.reference-group-member-unavailable { color: var(--warn); }
+.reference-groups-foot { display: flex; justify-content: center; margin-top: auto; padding-top: 8px; }
+/* 收藏截图并保存参考组：沿用保存对话框（.k-save-dialog，宽 480）。截图列表同 .k-list：surface 底、1 px line 圈出、行间 1 px line。
+   每张截图一行：缩略图在左，名称、尺寸与“已收藏”在上，图库与文件夹两个 Select 并排。 */
+.capture-save-list { display: flex; flex-direction: column; max-height: min(360px, calc(100vh - 260px)); overflow-y: auto; margin: 0; padding: 0; list-style: none;
+  border-radius: var(--r-m); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.capture-save-row { display: flex; gap: 12px; align-items: flex-start; min-width: 0; padding: 12px; }
+.capture-save-row + .capture-save-row { border-top: 1px solid var(--line); }
+.capture-save-thumb { width: 64px; height: 64px; flex: none; border-radius: var(--r-s); object-fit: cover; background: var(--card); transition: opacity var(--t-fast); }
+.capture-save-row.is-skipped .capture-save-thumb { opacity: 0.5; }
+.capture-save-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.capture-save-head { display: flex; align-items: center; gap: 8px; min-height: 22px; margin: 0; min-width: 0; }
+.capture-save-head .k-pill { margin-left: auto; }
+.capture-save-head strong { font-weight: 600; }
+.capture-save-head span { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.capture-save-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 480px) { .capture-save-fields { grid-template-columns: minmax(0, 1fr); } }
+.k-dialog.is-alert { width: min(400px, calc(100vw - 48px)); }
+
+/* 截图框选窗口与钉图菜单窗口（#106）：没有页面底色和边距，禁止系统手势（笔与触摸走 pointer 事件，#7）。 */
+:root[data-view="capture"],
+:root[data-view="capture"] body,
+:root[data-view="desktop-menu"],
+:root[data-view="desktop-menu"] body {
+  background: transparent;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+/* 钉图菜单窗口铺满整台显示器：菜单外的透明处接住点击，用来关闭菜单。 */
+.desktop-menu-backdrop {
+  position: fixed;
+  inset: 0;
+}
+
+.capture {
+  position: fixed;
+  inset: 0;
+  cursor: crosshair;
+}
+
+/* 已确认、等结果可用（#127）。 */
+.capture.is-busy { cursor: progress; }
+
+.capture-screen {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /* 冻结屏幕按物理像素原位显示，不做平滑。 */
+  image-rendering: pixelated;
+}
+
+.capture-shade {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim-capture);
+}
+
+/* 选区外沿用 35% 压暗；没有选区时上面的 25% 遮罩是 T17 冻结像素核对依据，不要改。 */
+.capture-selection {
+  position: absolute;
+  box-sizing: border-box;
+  outline: 1.5px solid var(--on-solid);
+  box-shadow: 0 0 0 100000px var(--scrim-capture-out);
+}
+
+/* 四角与四边中点的手柄标出能拖的地方；命中范围比手柄大，由 selectionPart 判断，手柄本身不接指针。 */
+.capture-handle { position: absolute; width: 8px; height: 8px; border-radius: 2px; background: var(--on-solid); box-shadow: 0 0 0 1px var(--scrim-capture); pointer-events: none; }
+.capture-handle.is-nw { left: -4px; top: -4px; }
+.capture-handle.is-ne { right: -4px; top: -4px; }
+.capture-handle.is-sw { left: -4px; bottom: -4px; }
+.capture-handle.is-se { right: -4px; bottom: -4px; }
+.capture-handle.is-n { left: calc(50% - 4px); top: -4px; }
+.capture-handle.is-s { left: calc(50% - 4px); bottom: -4px; }
+.capture-handle.is-w { left: -4px; top: calc(50% - 4px); }
+.capture-handle.is-e { right: -4px; top: calc(50% - 4px); }
+
+.capture-tools { font-family: var(--font); color: var(--ink); }
+
+.capture-tip {
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 80%, transparent);
+  color: var(--bg);
+  font-family: var(--font);
+  font-size: 12px;
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}

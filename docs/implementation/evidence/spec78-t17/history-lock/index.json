@@ -1,0 +1,82 @@
+{
+  "status": "26 real public core tests pass; native timing not yet verified",
+  "red": "Compile RED only, missing the proposed public interfaces; first two logs also contain cascading pattern type errors. The third has only E0599/E0624. They are not a native reproduction of the static lock chain. Original raw logs unchanged.",
+  "green": "Both runs: capture_history16 + reference_capture_actions10, exit0. First exact dirty patch retained; second adds real-pin-still-open completion and explicit interface docs. Both baseline cd927,9-file dirty product/test source before this evidence documentation.",
+  "files": [
+    {
+      "path": "history-lock-public-red.txt",
+      "bytes": 8847,
+      "sha256": "c6243af309b8643f18159c5230b50fc934a2169c52631c850c893290cfbca33c"
+    },
+    {
+      "path": "history-lock-public-red-exit.txt",
+      "bytes": 5,
+      "sha256": "bdc830287616dae1818ced3e7c186e1387155900ad30d5983ec02da1519c4a95"
+    },
+    {
+      "path": "history-lock-public-red.patch",
+      "bytes": 9388,
+      "sha256": "9de3dcec711c4f1f7ff86955c412661d95a95d7bf30660ce5e0acbec5c7cbbce"
+    },
+    {
+      "path": "history-lock-public-red2.txt",
+      "bytes": 8887,
+      "sha256": "8da315c2286e7e823a7163e9e942a21043da8d45863faef00f4e3c69b36500c7"
+    },
+    {
+      "path": "history-lock-public-red2-exit.txt",
+      "bytes": 5,
+      "sha256": "bdc830287616dae1818ced3e7c186e1387155900ad30d5983ec02da1519c4a95"
+    },
+    {
+      "path": "history-lock-public-red3.txt",
+      "bytes": 7039,
+      "sha256": "2b598cdcda5b685e829efff31024f7eb76353712c6fd3362e5eb2e210c64b624"
+    },
+    {
+      "path": "history-lock-public-red3-exit.txt",
+      "bytes": 5,
+      "sha256": "bdc830287616dae1818ced3e7c186e1387155900ad30d5983ec02da1519c4a95"
+    },
+    {
+      "path": "history-lock-public-green.txt",
+      "bytes": 2730,
+      "sha256": "5832342e55151ce9ac5ab0c7e55c1c840d3a88abba8fc769b7e899e7f4d15062"
+    },
+    {
+      "path": "history-lock-public-green-exit.txt",
+      "bytes": 3,
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+    },
+    {
+      "path": "history-lock-public-green-source.json",
+      "bytes": 1932,
+      "sha256": "e65347dfd20bdd9dc6d50564e8afff07a93974633ec7d6af025fa183b806592d"
+    },
+    {
+      "path": "history-lock-public-green.patch",
+      "bytes": 25743,
+      "sha256": "b975fd0129e83976eb81559fd1b0c66e1822f9641d3c4905298e959089ede4e2"
+    },
+    {
+      "path": "history-lock-public-green2.txt",
+      "bytes": 2729,
+      "sha256": "87457da933d6683ddae021cee4f4223cfc2bf31f077c68971094dea79150352e"
+    },
+    {
+      "path": "history-lock-public-green2-exit.txt",
+      "bytes": 3,
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+    },
+    {
+      "path": "history-lock-public-green2-source.json",
+      "bytes": 1933,
+      "sha256": "867bd943a87d99587d6421813c87d0b323911034b0695acad506533348245e2b"
+    },
+    {
+      "path": "history-lock-public-green2.patch",
+      "bytes": 27026,
+      "sha256": "145fa76d7f3a9d4110d2ceab2046b9a6afef1f5db59605cb7058bbea67103df0"
+    }
+  ]
+}

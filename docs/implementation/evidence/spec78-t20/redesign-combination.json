@@ -1,0 +1,65 @@
+{
+  "kind": "spec78-t20-redesign-combination-derived",
+  "note": "Minimal derived record. Raw rounds, receipts, traces, probes and screenshots stay in ignored work/ of the worker tree; referenced by SHA only.",
+  "redesignMerges": {"streamB": "0e37372", "streamC": "1fc0ed9", "wiringFix": "6065109"},
+  "commits": {
+    "harness": ["3d55b32", "aba127c", "ca2c8bd", "d1b0244", "5f0d0f0", "d1a9ee0"],
+    "product": [
+      {"commit": "2f68bf9", "fix": "import dialogs left a click-blocking backdrop", "round": "r12", "test": "src/library/ImportBar.test.tsx"},
+      {"commit": "99194e1", "fix": "closed receipt revived a phantom running import", "round": "r14", "test": "src/library/ImportMenu.test.tsx"},
+      {"commit": "663b3bc", "fix": "receipt poll showed CursorExpired as a permanent card problem", "round": "r16", "test": "src/library/ImportMenu.test.tsx"},
+      {"commit": "55b37c5", "fix": "source action busy state never cleared after its own reload", "round": "r18", "test": "src/library/SaveDestination.test.tsx"}
+    ]
+  },
+  "finalBuild": {
+    "source": "55b37c50020c00c1dadfe5f0136eda6dd4af5f6b",
+    "tree": "2cb005739ca3bc83cd9060f54c6b81ebbc34ad0b",
+    "profile": "debug, embedded frontend (custom-protocol), no bundle",
+    "isolatedIdentifier": "dev.kinshoko.spec78t20test",
+    "exeSha256": "3e04e6feea52f413f8496e445e5234544b40cd3fffb320d2083a8a91e7cb68bf",
+    "exeBytes": 102005760
+  },
+  "checks": {
+    "source": "55b37c5",
+    "fmt": "pass",
+    "clippyWorkspaceAllTargetsDenyWarnings": "pass",
+    "bindingsRegenerationDiff": "empty",
+    "cargoTestWorkspace": {"passed": 721, "failed": 0, "ignored": 12},
+    "tsc": "pass",
+    "vitest": {"files": 50, "tests": 354, "failed": 0},
+    "e2eNodeCheck": {"files": 43, "failed": 0},
+    "nativeWallPixelsTest": "4 offline cases pass when run directly; python -m unittest cannot load the hyphenated script (it imports the helper instead)",
+    "retainedFlake": "99194e1 first full vitest 351/352 (existing sealed-preview test, findByRole timeout under load); file 5/5 and full rerun 352/352"
+  },
+  "nativeRounds": [
+    {"round": "r12", "build": "aba127c", "pass": 13, "cause": "product: import dialog left a click-blocking backdrop", "resultSha256": "3d6f41ef08cdab61f7627ecf0bad3590ba7b8c51eac8a3945ba4ff5f0384ef70"},
+    {"round": "r13", "build": "2f68bf9", "pass": 23, "cause": "harness: result card covered the inspector actions", "resultSha256": "b486b620bf6b9ac71d0d78c0b6dc32e6d8d6202f47d5d18d2a220719fca6c82b"},
+    {"round": "r14", "build": "2f68bf9", "harness": "ca2c8bd", "pass": 23, "cause": "product: phantom running import after closing receipts", "resultSha256": "6096e69edee95d0a0f133d5250830731d649339fa61e39c621bddeeb43d06034"},
+    {"round": "r15", "build": "99194e1", "pass": 23, "cause": "harness: typed before the source reload after pinning", "resultSha256": "70f4a3bba0cf478b46e493347eef4f440d85884b4083767a7ccc3083e8e0f5ee"},
+    {"round": "r16", "build": "99194e1", "harness": "d1b0244", "pass": 211, "cause": "harness: consent before the import's changes settled; product: CursorExpired text on the result card", "resultSha256": "fea43d2a79e345a5c6656935f45a47996996af20d92473ab22086ecf0a6d1db6"},
+    {"round": "r17", "build": "5f0d0f0", "pass": 212, "cause": "harness: library menu behind the modal sealed preview", "resultSha256": "0ddbbae3412585c86d98a901d326f5186b35b28180375e29d6dced12c250adf8"},
+    {"round": "r18", "build": "5f0d0f0", "harness": "d1a9ee0", "pass": 23, "cause": "product: source action busy state stuck", "resultSha256": "64af553f08f39298eaf1b676d8e162b44b8a2fb8dd3bda2ba1c54ad5373a635b"},
+    {"round": "r19", "build": "55b37c5", "pass": 232, "cause": "environment: backup snapshot directory rename denied", "resultSha256": "d765957318a951d632035c0b6d1e7a5c1d8efa5a66cc72cc9d44984e2d10d969"},
+    {"round": "r20", "build": "55b37c5", "pass": 232, "cause": "environment: same as r19", "resultSha256": "7bbfbdef0da88e8a1d726aa570c13c9263d5ecb482261d4123d88008f7303e57"}
+  ],
+  "allRoundsReleasedAndKnownFolderRestored": true,
+  "backupDiagnosis": {
+    "symptom": "读写备份失败：拒绝访问。 (os error 5) at the snapshot .incomplete directory rename",
+    "r11ExeToday": "c45a80a4… fails 2/2",
+    "finalExe": "3e04e6fe… fails 3/3",
+    "pythonSqliteThenRename": {"insideWorktree": "10/10 denied", "outsideWorktree": "0/10 denied"},
+    "holder": "Vite dev server PID 27012 (--port 4199) rooted at this worktree, started 2026-10-10 13:47 local; not owned by this agent and not stopped",
+    "notVerified": ["content and program restore", "normal restart", "offline provider", "blank environment"]
+  },
+  "prototypeComparison": {
+    "packet": "r20 same-session, 148 cards, exact prototype order",
+    "status": "observed-same-input-baseline-tasks",
+    "assertions": 8,
+    "viewport": "1280x800",
+    "dpr": 1.25,
+    "anchorOffsetPx": {"formal": 465.2, "prototype": 466.8},
+    "comparisonSha256": "c8e07f3fb3d76f8151e03d0ed263d5bdf91565886df710053962987c5634f4cd"
+  },
+  "guiReview": {"build": "55b37c5", "screenshots": 19, "indexSha256": "f480d59302ccb58244e0bc6973500bd9948e0dbfd86834884c1fa2dab09f6a0b", "personalDataVisible": false},
+  "notExecuted": ["full combined round after the watcher stops", "release NSIS clean install / upgrade", "#99 signed automatic update", "Windows 10", "human visual acceptance", "physical DPI / pen input"]
+}

@@ -1,0 +1,320 @@
+//! 自动标签的命令层：为当前资料库运行 `kinshoko_core::tagging::Tagging`，打标子进程是本 exe 的
+//! `tagger` 子命令（ADR-0004）。状态变化推送为窗口事件 `tagging-status`。
+//!
+//! 硬件档与模型目录属于本设备，不随资料库变：换资料库时沿用画师选的硬件档与暂停状态。
+//! 状态与命令都带资料库身份（#49），切换后旧库的迟到状态与旧请求不会落到新库上。
+//! 开始、结束、暂停、出错与子进程的显存额度、标准错误记进运行日志（#219）。
+
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+
+use kinshoko_core::Library;
+use kinshoko_core::diagnostics::{LogEvent, PauseReason};
+use kinshoko_core::tagging::{
+    Device, ForegroundCheck, HUGGING_FACE, LibraryTaggingStatus, ModelChoice, ModelStore,
+    ProcessTagger, Tagging, TaggingConfig, TaggingLog, UserNotificationState, catalog,
+    yields_to_foreground,
+};
+use tauri::{AppHandle, Emitter, Manager, Runtime, State};
+use tauri_plugin_dialog::DialogExt as _;
+
+use crate::shell::ShellState;
+
+const EVENT: &str = "tagging-status";
+
+pub struct TaggingState {
+    models_dir: PathBuf,
+    current: Arc<Mutex<Option<ActiveTagging>>>,
+    /// 画师在设置中选的硬件档；`None` 为自动。
+    preferred: Mutex<Option<Device>>,
+    /// 画师暂停了打标；换资料库后仍暂停。
+    paused: AtomicBool,
+}
+
+impl TaggingState {
+    fn choice(&self) -> ModelChoice {
+        ModelStore::new(self.models_dir.clone(), HUGGING_FACE)
+            .choice(&catalog(), *lock(&self.preferred))
+    }
+}
+
+/// 活动资料库的打标，带上它属于哪个资料库。
+struct ActiveTagging {
+    library_id: String,
+    tagging: Tagging,
+    log: TaggingLog,
+}
+
+impl ActiveTagging {
+    fn status(&self) -> LibraryTaggingStatus {
+        LibraryTaggingStatus {
+            library_id: self.library_id.clone(),
+            status: self.tagging.status(),
+        }
+    }
+}
+
+/// 本机已就绪模型的词表 `selected_tags.csv`：优先画师选的硬件档，没有就绪时取任一已就绪的。
+/// 迁入向导（#59）用它作外部词表；没有模型时返回 `None`。会读文件，不要在主线程上调用。
+pub fn vocabulary_csv<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
+    let state = app.state::<TaggingState>();
+    let store = ModelStore::new(state.models_dir.clone(), HUGGING_FACE);
+    let preferred = *lock(&state.preferred);
+    let models = catalog();
+    models
+        .iter()
+        .filter(|m| preferred == Some(m.device))
+        .chain(models.iter())
+        .find_map(|m| store.ready(m))
+        .map(|m| m.tags_csv)
+}
+
+fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    m.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// 应用启动时登记状态，并开始推送状态变化。`preferred` 是设置里保存的硬件档。
+pub fn setup<R: Runtime>(app: &AppHandle<R>, models_dir: PathBuf, preferred: Option<Device>) {
+    let current: Arc<Mutex<Option<ActiveTagging>>> = Arc::default();
+    app.manage(TaggingState {
+        models_dir,
+        current: current.clone(),
+        preferred: Mutex::new(preferred),
+        paused: AtomicBool::new(false),
+    });
+    let app = app.clone();
+    std::thread::Builder::new()
+        .name("kinshoko-tagging-status".into())
+        .spawn(move || {
+            let mut last = None;
+            loop {
+                let status = lock(&current).as_mut().map(|active| {
+                    let status = active.status();
+                    if let Some(event) = active.log.observe(&status.status, Instant::now()) {
+                        crate::run_log::record(event);
+                    }
+                    status
+                });
+                if status != last {
+                    if let Some(status) = &status {
+                        let _ = app.emit(EVENT, status);
+                    }
+                    last = status;
+                }
+                std::thread::sleep(Duration::from_millis(300));
+            }
+        })
+        .expect("无法启动打标状态线程");
+}
+
+/// 在资料库切换的阻塞任务里调用：先结束旧库打标（立即结束子进程）并释放它持有的资料库，
+/// 再为新库开始自动标签。画师的暂停与硬件档沿用到新库。
+pub fn attach<R: Runtime>(app: &AppHandle<R>, library: Arc<Library>) {
+    detach(app);
+    let state = app.state::<TaggingState>();
+    let exe = match std::env::current_exe() {
+        Ok(exe) => exe,
+        Err(_) => return,
+    };
+    let mut tagger = ProcessTagger::new(exe, vec![kinshoko_tagger::SUBCOMMAND.into()]);
+    if let Some(log) = crate::run_log::log() {
+        tagger = tagger.log_to(log.clone());
+    }
+    let mut config = TaggingConfig::with_catalog(state.models_dir.clone());
+    config.preferred = *lock(&state.preferred);
+    config.publication_gate = Some(crate::library::visibility_publication_gate(app));
+    config.foreground = Some(ForegroundCheck::new(|| {
+        yields_to_foreground(user_notification_state(), foreground_is_ours())
+    }));
+    let library_id = library.info().id.clone();
+    let log = TaggingLog::new(crate::library::library_no(app, &library_id));
+    let tagging = Tagging::start(library, Arc::new(tagger), config);
+    if state.paused.load(Ordering::SeqCst) {
+        tagging.pause();
+    }
+    *lock(&state.current) = Some(ActiveTagging {
+        library_id,
+        tagging,
+        log,
+    });
+}
+
+/// 系统报告的通知状态（全屏程序、演示模式、忙碌等，#212；报告不了 Windows 设置里的“请勿打扰”开关）；读不到时为 `None`。
+#[cfg(windows)]
+#[allow(unsafe_code)]
+fn user_notification_state() -> Option<UserNotificationState> {
+    let mut state = 0;
+    // SAFETY：只写入本函数持有的 `state`。
+    let hr = unsafe { windows_sys::Win32::UI::Shell::SHQueryUserNotificationState(&mut state) };
+    (hr >= 0)
+        .then_some(state)
+        .and_then(UserNotificationState::from_raw)
+}
+
+#[cfg(not(windows))]
+fn user_notification_state() -> Option<UserNotificationState> {
+    None
+}
+
+/// 前台窗口属于本进程（截图框选、钉图菜单等窗口打开时系统也报忙碌，不能因此让出）。
+#[cfg(windows)]
+fn foreground_is_ours() -> bool {
+    crate::desktop::win32::foreground_window().is_some_and(|(_, pid)| pid == std::process::id())
+}
+
+#[cfg(not(windows))]
+fn foreground_is_ours() -> bool {
+    false
+}
+
+/// 结束活动库的打标并等它退出；之后整个资料库文件夹可以移动。在阻塞任务里调用。
+pub fn detach<R: Runtime>(app: &AppHandle<R>) {
+    let old = lock(&app.state::<TaggingState>().current).take();
+    drop(old);
+}
+
+/// 有新图进库时立即检查。
+pub fn wake<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(t) = lock(&app.state::<TaggingState>().current).as_ref() {
+        t.tagging.wake();
+    }
+}
+
+/// 只对界面正在操作的资料库执行；资料库已切换时返回错误，不碰新库。
+async fn with<T: Send + 'static>(
+    state: &TaggingState,
+    library_id: String,
+    f: impl FnOnce(&ActiveTagging) -> T + Send + 'static,
+) -> Result<T, String> {
+    let current = state.current.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        lock(&current)
+            .as_ref()
+            .filter(|active| active.library_id == library_id)
+            .map(f)
+            .ok_or_else(|| "资料库已切换或关闭，请在当前资料库重新操作".to_owned())
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+/// 自动标签的当前状态。
+#[tauri::command]
+pub async fn tagging_status(
+    state: State<'_, TaggingState>,
+    library_id: String,
+) -> Result<LibraryTaggingStatus, String> {
+    with(&state, library_id, ActiveTagging::status).await
+}
+
+/// 画师确认后下载模型（可续传）。
+#[tauri::command]
+pub async fn tagging_download(
+    state: State<'_, TaggingState>,
+    library_id: String,
+) -> Result<(), String> {
+    with(&state, library_id, |active| active.tagging.download()).await
+}
+
+/// 取消下载模型（#213）：回到需要下载，已下的部分保留以便下次续传。
+#[tauri::command]
+pub async fn tagging_cancel_download(
+    state: State<'_, TaggingState>,
+    library_id: String,
+) -> Result<(), String> {
+    with(&state, library_id, |active| {
+        active.tagging.cancel_download()
+    })
+    .await
+}
+
+/// 暂停打标：立即结束打标子进程，归还显存。暂停属于本设备，换资料库后仍暂停。
+#[tauri::command]
+pub async fn tagging_pause(
+    state: State<'_, TaggingState>,
+    library_id: String,
+) -> Result<(), String> {
+    with(&state, library_id, |active| active.tagging.pause()).await?;
+    state.paused.store(true, Ordering::SeqCst);
+    crate::run_log::record(LogEvent::TaggingPaused {
+        reason: PauseReason::Artist,
+    });
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn tagging_resume(
+    state: State<'_, TaggingState>,
+    library_id: String,
+) -> Result<(), String> {
+    with(&state, library_id, |active| active.tagging.resume()).await?;
+    state.paused.store(false, Ordering::SeqCst);
+    crate::run_log::record(LogEvent::TaggingResumed);
+    Ok(())
+}
+
+/// 设置中的模型一节：打标模型名称、各硬件档的显存或内存需求、大小、是否已下载，以及画师选的档。
+#[tauri::command]
+pub async fn tagging_models(state: State<'_, TaggingState>) -> Result<ModelChoice, String> {
+    Ok(state.choice())
+}
+
+/// 换用画师选的硬件档（`null` 为自动）：先保存到设置，再交给正在运行的打标。
+#[tauri::command]
+pub async fn tagging_set_device(
+    state: State<'_, TaggingState>,
+    shell: State<'_, ShellState>,
+    device: Option<Device>,
+) -> Result<ModelChoice, String> {
+    shell
+        .0
+        .lock()
+        .map_err(|e| e.to_string())?
+        .settings
+        .set_tagging_device(device)
+        .map_err(|e| e.to_string())?;
+    apply_device(&state, device);
+    Ok(state.choice())
+}
+
+/// 选择要导入的模型包（zip）；取消时为 `null`。
+#[tauri::command]
+pub async fn tagging_pick_package(app: AppHandle) -> Result<Option<PathBuf>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .add_filter("模型包", &["zip"])
+            .blocking_pick_file()
+            .and_then(|p| p.into_path().ok())
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
+/// 从文件导入模型包并校验（没有网络时）。成功后打标随即用上，不再询问下载。
+#[tauri::command]
+pub async fn tagging_import_package(app: AppHandle, path: PathBuf) -> Result<ModelChoice, String> {
+    let models_dir = app.state::<TaggingState>().models_dir.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        ModelStore::new(models_dir, HUGGING_FACE).import_package(&path, &catalog())
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    let state = app.state::<TaggingState>();
+    if let Some(t) = lock(&state.current).as_ref() {
+        t.tagging.wake();
+    }
+    Ok(state.choice())
+}
+
+fn apply_device(state: &TaggingState, device: Option<Device>) {
+    *lock(&state.preferred) = device;
+    if let Some(t) = lock(&state.current).as_ref() {
+        t.tagging.set_device(device);
+    }
+}
+pub fn apply_device_setting<R: Runtime>(app: &AppHandle<R>, device: Option<Device>) {
+    apply_device(&app.state::<TaggingState>(), device);
+}

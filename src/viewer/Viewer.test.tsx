@@ -1,0 +1,589 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { Viewer } from "./Viewer";
+
+const events = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>());
+vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async (name, callback) => { events.set(name, callback); return () => events.delete(name); }) }));
+
+// JSDOM 不做布局；原生冒烟另用 getBoundingClientRect 检查最终设备像素位置。
+/** The crop dock reads the selection size in original pixels (design/ui-system/README.md, Dock 读数). */
+const cropReadout = (size: string) => {
+  const bar = screen.getByRole("toolbar", { name: "框选" });
+  expect(within(bar).getByText(size)).toBeTruthy();
+  expect(within(bar).getByText("原始像素")).toBeTruthy();
+  return bar;
+};
+const translation = (image: HTMLElement) => image.style.transform.slice("translate(".length).split(",").map(parseFloat);
+
+beforeEach(() => {
+  Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
+  Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.5 });
+  mockConvertFileSrc("windows");
+});
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
+
+describe("查看器设备像素", () => {
+  it("F1 reads only the currently loaded image through a fresh native request", async () => {
+    const reports: any[] = [];
+    mockIPC((command, args) => {
+      if (command === "plugin:desktop|report_capture_references") reports.push(args);
+    });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 800));
+    const { unmount } = render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
+    await waitFor(() => expect(events.has("capture-reference-request")).toBe(true));
+    await act(async () => events.get("capture-reference-request")!({ payload: { request: "unloaded" } }));
+    await waitFor(() => expect(reports).toHaveLength(1));
+    expect(reports[0].frame.references).toEqual([]);
+    const image = screen.getByAltText("正在查看的参考图");
+    Object.defineProperties(image, { complete: { configurable: true, value: true }, naturalWidth: { configurable: true, value: 1500 }, naturalHeight: { configurable: true, value: 1000 } });
+    fireEvent.load(image);
+    await act(async () => events.get("capture-reference-request")!({ payload: { request: "loaded" } }));
+    await waitFor(() => expect(reports).toHaveLength(2));
+    expect(reports[1]).toMatchObject({ request: "loaded", frame: { references: [{ libraryId: "L1", imageId: "a", shown: { x: 0, y: 100, width: 1500, height: 1000 }, visible: { x: 0, y: 100, width: 1500, height: 1000 } }] } });
+    unmount();
+    clearMocks();
+  });
+
+  it("工具栏起点不是完整设备像素时，仍按整个窗口对齐图片起点", () => {
+    const position = new DOMRect(0.25, 47.25, 1000, 800);
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(position);
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 101, height: 67, thumbnail: "", adult: false }} onClose={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /^原始像素/ }));
+    const image = screen.getByAltText("正在查看的参考图");
+    const [left, top] = translation(image);
+    const x = (position.left + left) * window.devicePixelRatio;
+    const y = (position.top + top) * window.devicePixelRatio;
+    expect(x).toBeCloseTo(Math.round(x));
+    expect(y).toBeCloseTo(Math.round(y));
+  });
+  it("连续缩小时等滚轮停下再请求精确派生图，期间已读完的位图按新尺寸临时顶上（#128）", () => {
+    vi.useFakeTimers();
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const image = screen.getByAltText("正在查看的参考图");
+    const stage = image.parentElement!;
+    fireEvent.load(image);
+    fireEvent.wheel(stage, { deltaY: 100, clientX: 500, clientY: 400 });
+    fireEvent.wheel(stage, { deltaY: 100, clientX: 500, clientY: 400 });
+    // 滚轮当帧就有可见响应：旧位图跟着缩放，不等 Rust 生成派生图。
+    const pending = screen.getByAltText("正在查看的参考图");
+    expect(pending.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+    expect(pending.style.visibility).toBe("visible");
+    expect(parseFloat(pending.style.width)).toBeLessThan(1000);
+    expect(screen.queryByText("正在读取参考图…")).toBeNull();
+    act(() => vi.advanceTimersByTime(1000));
+    const settled = screen.getByAltText("正在查看的参考图");
+    expect(settled.getAttribute("src")).toBe(`http://thumb.localhost/L1/a/fit-${Math.round(parseFloat(settled.style.width) * 1.5)}`);
+    expect(settled.style.visibility).toBe("hidden");
+    // 精确图读完前，旧位图摆在同一位置、同一尺寸；读完后换下。
+    const stand = stage.querySelector<HTMLImageElement>("img.viewer-stand-in")!;
+    expect(stand.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+    expect(stand.style.width).toBe(settled.style.width);
+    expect(stand.style.transform).toBe(settled.style.transform);
+    fireEvent.load(settled);
+    expect(settled.style.visibility).toBe("visible");
+    expect(stage.querySelector("img.viewer-stand-in")).toBeNull();
+  });
+  it("从原始像素缩小时用已读完的缩小派生图顶上，不让 Chromium 每帧重采样整张原图（#128）", () => {
+    vi.useFakeTimers();
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    fireEvent.click(screen.getByRole("button", { name: /^原始像素/ }));
+    const original = screen.getByAltText("正在查看的参考图");
+    expect(original.getAttribute("src")).toBe("http://thumb.localhost/L1/a/full");
+    fireEvent.load(original);
+    fireEvent.wheel(stage, { deltaY: 100, clientX: 500, clientY: 400 });
+    const stand = stage.querySelector<HTMLImageElement>("img.viewer-stand-in")!;
+    expect(stand.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+    expect(stand.style.width).toBe(original.style.width);
+    // 派生图画得出来之前，原图留着，不空白一帧。
+    expect(original.style.visibility).toBe("visible");
+    fireEvent.load(stand);
+    expect(original.style.visibility).toBe("hidden");
+  });
+  it("连续放大跨过 100% 时等停手再请求原图，大图不在手势中间上屏（#128）", () => {
+    vi.useFakeTimers();
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    fireEvent.wheel(stage, { deltaY: -600, clientX: 500, clientY: 400 });
+    const shown = screen.getByAltText("正在查看的参考图");
+    expect(parseFloat(shown.style.width) * 1.5).toBeGreaterThan(2400);
+    expect(shown.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+    expect(shown.style.visibility).toBe("visible");
+    // 100% 以上 desiredPx 不再变化，但还在缩放：每一格都重新计时。
+    for (let i = 0; i < 3; i++) {
+      fireEvent.wheel(stage, { deltaY: -50, clientX: 500, clientY: 400 });
+      act(() => vi.advanceTimersByTime(100));
+      expect(screen.getByAltText("正在查看的参考图").getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+    }
+    act(() => vi.advanceTimersByTime(200));
+    const original = screen.getByAltText("正在查看的参考图");
+    expect(original.getAttribute("src")).toBe("http://thumb.localhost/L1/a/full");
+    expect(stage.querySelector("img.viewer-stand-in")?.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+  });
+  it("缩放中换到另一张图，按这张图的尺寸请求，不沿用上一张的宽度", () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<Viewer libraryId="L1" card={{ id: "a", width: 6000, height: 4000, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    fireEvent.wheel(stage, { deltaY: 100, clientX: 500, clientY: 400 });
+    act(() => vi.advanceTimersByTime(200));
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    rerender(<Viewer libraryId="L1" card={{ id: "b", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const next = screen.getByAltText("正在查看的参考图");
+    expect(next.getAttribute("src")).toBe(`http://thumb.localhost/L1/b/fit-${Math.round(parseFloat(next.style.width) * 1.5)}`);
+    expect(stage.querySelector("img.viewer-stand-in")).toBeNull();
+  });
+  it("精确来源读取失败时只显示错误，不留替身", () => {
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    fireEvent.click(screen.getByRole("button", { name: /^原始像素/ }));
+    expect(stage.querySelector("img.viewer-stand-in")?.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+    fireEvent.error(screen.getByAltText("正在查看的参考图"));
+    expect(screen.getByRole("alert").textContent).toContain("无法读取这张参考图");
+    // 派生图替身的元素常驻但隐藏；不能有画得出来的替身。
+    expect([...stage.querySelectorAll<HTMLImageElement>("img.viewer-stand-in")].filter((i) => i.style.visibility !== "hidden")).toEqual([]);
+  });
+  it("快速反复缩放时同一时刻只等一张派生图，读完再请求最新尺寸", () => {
+    // WebView2 不取消被换掉的请求；每次停顿都发新派生图会让 Rust 端积压整图解码，查看器长时间停在“正在读取”。
+    vi.useFakeTimers();
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 6000, height: 4000, thumbnail: "", adult: false }} onClose={() => {}} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    const src = () => screen.getByAltText("正在查看的参考图").getAttribute("src");
+    fireEvent.wheel(stage, { deltaY: 100, clientX: 500, clientY: 400 });
+    act(() => vi.advanceTimersByTime(200));
+    const first = src();
+    expect(first).toMatch(/fit-\d+$/);
+    for (const deltaY of [-150, 120, -90, 200]) {
+      fireEvent.wheel(stage, { deltaY, clientX: 500, clientY: 400 });
+      act(() => vi.advanceTimersByTime(200));
+      expect(src()).toBe(first);
+    }
+    expect(screen.queryByText("正在读取参考图…")).toBeNull();
+    expect(stage.querySelector("img.viewer-stand-in")?.getAttribute("src")).not.toBe(first);
+    fireEvent.load(screen.getByAltText("正在查看的参考图"));
+    act(() => vi.advanceTimersByTime(200));
+    const latest = screen.getByAltText("正在查看的参考图");
+    expect(latest.getAttribute("src")).toBe(`http://thumb.localhost/L1/a/fit-${Math.round(parseFloat(latest.style.width) * 1.5)}`);
+    fireEvent.load(latest);
+    expect(latest.style.visibility).toBe("visible");
+  });
+  it.each([1, 1.25, 1.5, 2])("DPR %s 下原图像素与 110％ 缩放都对齐物理像素，超过 200％ 按像素放大", (dpr) => {
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: dpr });
+    render(<Viewer libraryId="L1" card={{ id: "odd", width: 101, height: 67, thumbnail: "", adult: false }} onClose={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /^原始像素/ }));
+    const image = screen.getByAltText("正在查看的参考图");
+    const physical = (property: "width" | "height" | "left" | "top") =>
+      (property === "left" ? translation(image)[0] : property === "top" ? translation(image)[1] : parseFloat(image.style[property])) * dpr;
+    expect(physical("width")).toBeCloseTo(101);
+    expect(physical("height")).toBeCloseTo(67);
+    expect(physical("left")).toBeCloseTo(Math.round(physical("left")));
+    expect(physical("top")).toBeCloseTo(Math.round(physical("top")));
+
+    fireEvent.wheel(image.parentElement!, { deltaY: -Math.log(1.1) / 0.002, clientX: 500, clientY: 400 });
+    expect(physical("width")).toBeCloseTo(111);
+    expect(physical("height")).toBeCloseTo(74);
+    expect(image.style.imageRendering).toBe("auto");
+    for (let i = 0; i < 4; i++) fireEvent.click(screen.getByRole("button", { name: "放大" }));
+    expect(physical("width")).toBeCloseTo(Math.round(physical("width")));
+    expect(image.style.imageRendering).toBe("pixelated");
+    expect(image.getAttribute("src")).toBe("http://thumb.localhost/L1/odd/full");
+  });
+
+  it("适应窗口请求精确物理宽度，原图像素按 DPR 除一次", () => {
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
+    let image = screen.getByAltText("正在查看的参考图");
+    expect(image.getAttribute("src")).toBe("http://thumb.localhost/L1/a/fit-1500");
+    expect(image.style.width).toBe("1000px");
+    expect(parseFloat(image.style.height)).toBeCloseTo(1000 / 1.5);
+
+    fireEvent.click(screen.getByRole("button", { name: /^原始像素/ }));
+    image = screen.getByAltText("正在查看的参考图");
+    expect(image.getAttribute("src")).toBe("http://thumb.localhost/L1/a/full");
+    expect(image.style.width).toBe("1600px");
+    expect(parseFloat(image.style.height)).toBeCloseTo(1600 / 1.5);
+    expect(screen.getByLabelText("缩放比例").textContent).toBe("100%");
+  });
+
+  it("读取失败有重试入口，拖动可以观察原图边缘；不是模态，没有关闭窗口的按钮", () => {
+    const close = vi.fn();
+    render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={close} />);
+    let image = screen.getByAltText("正在查看的参考图");
+    fireEvent.error(image);
+    expect(screen.getByRole("alert").textContent).toContain("无法读取这张参考图");
+    fireEvent.click(screen.getByRole("button", { name: "重试读取" }));
+    image = screen.getByAltText("正在查看的参考图");
+    fireEvent.load(image);
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /^原始像素/ }));
+    image = screen.getByAltText("正在查看的参考图");
+    const before = translation(image)[0];
+    const stage = image.parentElement!;
+    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 400, clientY: 300, button: 0 });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 550, clientY: 300 });
+    fireEvent.pointerUp(stage, { pointerId: 1 });
+    expect(translation(image)[0] - before).toBeCloseTo(150);
+
+    // 只盖住图片墙所在的区域（#179）：不是模态对话框，窗口按钮仍在顶栏或详情侧栏上。
+    const viewer = screen.getByRole("region", { name: "原图查看器" });
+    expect(viewer.getAttribute("aria-modal")).toBeNull();
+    expect(screen.queryByRole("button", { name: "关闭" })).toBeNull();
+    const first = screen.getByRole("button", { name: "返回图片墙" });
+    first.focus();
+    fireEvent.keyDown(first, { key: "Escape" });
+    expect(close).toHaveBeenCalledOnce();
+  });
+});
+
+describe("从查看器钉到桌面（#65）", () => {
+  const card = { id: "a", width: 800, height: 600, thumbnail: "", adult: false };
+  let calls: { cmd: string; args: unknown }[];
+  beforeEach(() => {
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 800));
+    calls = [];
+    mockIPC((cmd, args) => {
+      calls.push({ cmd, args });
+      if (cmd === "plugin:library|image") return {};
+      return null;
+    });
+  });
+  afterEach(() => clearMocks());
+  const pins = () => calls.filter((c) => c.cmd === "plugin:desktop|pin_reference").map((c) => c.args);
+
+  it("Shift+拖动按原图像素框出局部，缩放时边界不变，Enter 钉住", async () => {
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    // 适应窗口：800×600 的图居中在 1000×800 的舞台上，左上角 (100, 100)，一个 CSS 像素一个原图像素。
+    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 110, clientY: 110, button: 0, shiftKey: true });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 310, clientY: 210 });
+    fireEvent.pointerUp(stage, { pointerId: 1 });
+    expect(cropReadout("200 × 100")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "放大" }));
+    expect(cropReadout("200 × 100")).toBeTruthy();
+    expect(screen.getByLabelText("选区").style.width).toBe("250px");
+    fireEvent.click(screen.getByRole("button", { name: /^适应窗口/ }));
+
+    await act(async () => {
+      fireEvent.keyDown(stage, { key: "Enter" });
+    });
+    expect(pins()).toEqual([{
+      libraryId: "L1",
+      imageId: "a",
+      crop: { x: 10, y: 10, width: 200, height: 100 },
+      shown: { x: 110, y: 110, width: 200, height: 100 },
+    }]);
+    expect(await screen.findByText("已钉住局部")).toBeTruthy();
+  });
+
+  it("钉住整图；框选模式下普通拖动也框选；Esc 先清除选区再返回图片墙", async () => {
+    const close = vi.fn();
+    render(<Viewer libraryId="L1" card={card} onClose={close} />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^钉住整图/ }));
+    });
+    expect(pins()).toEqual([{ libraryId: "L1", imageId: "a", crop: null, shown: { x: 100, y: 100, width: 800, height: 600 } }]);
+
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.click(screen.getByRole("button", { name: /^框选局部/ }));
+    fireEvent.pointerDown(stage, { pointerId: 2, clientX: 100, clientY: 100, button: 0 });
+    fireEvent.pointerMove(stage, { pointerId: 2, clientX: 140, clientY: 130 });
+    fireEvent.pointerUp(stage, { pointerId: 2 });
+    expect(cropReadout("40 × 30")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^框选局部/ }).getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.keyDown(stage, { key: "Escape" });
+    expect(screen.queryByLabelText("选区")).toBeNull();
+    expect(close).not.toHaveBeenCalled();
+    fireEvent.keyDown(stage, { key: "Escape" });
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it.each([["L1", "b"], ["L2", "a"]])("换到同尺寸来源 %s/%s 后，旧选区不可钉住，新框选引用新来源", async (libraryId, imageId) => {
+    const { rerender } = render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    let image = screen.getByAltText("正在查看的参考图");
+    fireEvent.load(image);
+    const stage = image.parentElement!;
+    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 110, clientY: 110, button: 0, shiftKey: true });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 310, clientY: 210 });
+    fireEvent.pointerUp(stage, { pointerId: 1 });
+    cropReadout("200 × 100");
+
+    rerender(<Viewer libraryId={libraryId} card={{ ...card, id: imageId }} onClose={() => {}} />);
+    image = screen.getByAltText("正在查看的参考图");
+    fireEvent.load(image);
+    expect(screen.queryByLabelText("选区")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^钉住局部/ })).toBeNull();
+    fireEvent.keyDown(stage, { key: "Enter" });
+    expect(pins()).toEqual([]);
+
+    fireEvent.pointerDown(stage, { pointerId: 2, clientX: 100, clientY: 100, button: 0, shiftKey: true });
+    fireEvent.pointerMove(stage, { pointerId: 2, clientX: 150, clientY: 120 });
+    fireEvent.pointerUp(stage, { pointerId: 2 });
+    await act(async () => { fireEvent.keyDown(stage, { key: "Enter" }); });
+    expect(pins()).toEqual([{ libraryId, imageId, crop: { x: 0, y: 0, width: 50, height: 20 }, shown: { x: 100, y: 100, width: 50, height: 20 } }]);
+  });
+});
+
+
+describe("查看器程序配置", () => {
+  const card = { id: "background", width: 800, height: 600, thumbnail: "", adult: false };
+  afterEach(() => { clearMocks(); localStorage.clear(); });
+
+  it("已恢复的背景优先于本机旧缓存，并保存后续选择", async () => {
+    localStorage.setItem("kinshoko.viewer.background", "dark");
+    const writes: unknown[] = [];
+    mockIPC((command, args) => {
+      if (command === "shell_settings") return { viewerBackground: "light" };
+      if (command === "set_viewer_background") writes.push(args);
+      if (command === "migrate_viewer_background") throw new Error("must not migrate again");
+      return null;
+    });
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    await waitFor(() => expect(writes).toEqual([{ background: "light" }]));
+    fireEvent.click(screen.getByRole("button", { name: "背景" }));
+    const tray = screen.getByRole("group", { name: "背景" });
+    expect(within(tray).getByRole("button", { name: "浅灰" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(within(tray).getByRole("button", { name: "棋盘格" }));
+    await waitFor(() => expect(writes.at(-1)).toEqual({ background: "checker" }));
+    expect(screen.getByAltText("正在查看的参考图").parentElement!.dataset.background).toBe("checker");
+  });
+
+  it("首次读取程序配置失败时不把旧缓存写回", async () => {
+    localStorage.setItem("kinshoko.viewer.background", "dark");
+    const writes: unknown[] = [];
+    mockIPC((command, args) => {
+      if (command === "shell_settings") throw new Error("temporarily unavailable");
+      if (command === "set_viewer_background" || command === "migrate_viewer_background") writes.push(args);
+      return null;
+    });
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    await act(async () => {});
+    expect(writes).toEqual([]);
+  });
+});
+
+describe("查看器标题行与 dock（#98）", () => {
+  const card = { id: "a", width: 800, height: 600, thumbnail: "", adult: false };
+  let calls: { cmd: string; args: unknown }[];
+  beforeEach(() => {
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 800));
+    calls = [];
+    mockIPC((cmd, args) => {
+      calls.push({ cmd, args });
+      if (cmd === "plugin:library|image") return { originalName: "晨光练习_04.png" };
+      return null;
+    });
+  });
+  afterEach(() => clearMocks());
+  const pins = () => calls.filter((c) => c.cmd === "plugin:desktop|pin_reference").map((c) => c.args);
+
+  it("标题行有返回、文件名、序号、上一张 / 下一张；窗口控件留在顶栏或详情侧栏（#179）", async () => {
+    const step = vi.fn();
+    const close = vi.fn();
+    render(<Viewer libraryId="L1" card={card} onClose={close} position={{ index: 11, total: 86 }} onStep={step} />);
+    const header = screen.getByRole("banner");
+    expect(await within(header).findByText("晨光练习_04.png")).toBeTruthy();
+    expect(within(header).getByText("12 / 86")).toBeTruthy();
+    for (const name of ["最小化", "最大化", "关闭"]) expect(within(header).queryByRole("button", { name })).toBeNull();
+    fireEvent.click(within(header).getByRole("button", { name: "上一张" }));
+    fireEvent.click(within(header).getByRole("button", { name: "下一张" }));
+    expect(step.mock.calls).toEqual([[-1], [1]]);
+    fireEvent.click(within(header).getByRole("button", { name: "返回图片墙" }));
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it("首尾两张禁用越界方向；← / → 也翻页，但 dock 内的方向键只移动焦点", () => {
+    const step = vi.fn();
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} position={{ index: 0, total: 2 }} onStep={step} />);
+    expect((screen.getByRole("button", { name: "上一张" }) as HTMLButtonElement).disabled).toBe(true);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    fireEvent.keyDown(stage, { key: "ArrowLeft" });
+    fireEvent.keyDown(stage, { key: "ArrowRight" });
+    expect(step.mock.calls).toEqual([[1]]);
+    const fit = screen.getByRole("button", { name: /^适应窗口/ });
+    fireEvent.keyDown(fit, { key: "ArrowRight" });
+    expect(step.mock.calls).toEqual([[1]]);
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /^原始像素/ }));
+  });
+
+  it("dock 的名称带快捷键；0 / 1 / P / F1 与点按 dock 执行同一操作", async () => {
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    const dock = screen.getByRole("toolbar", { name: "查看工具" });
+    const names = within(dock).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
+    expect(names).toEqual(["适应窗口，0", "原始像素，1", "框选局部，F1", "钉住整图，P", "背景", "显示详情，I"]);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    const pressed = (name: RegExp) => screen.getByRole("button", { name }).getAttribute("aria-pressed");
+    expect(pressed(/^适应窗口/)).toBe("true");
+    fireEvent.keyDown(stage, { key: "1" });
+    expect(screen.getByLabelText("缩放比例").textContent).toBe("100%");
+    expect(pressed(/^原始像素/)).toBe("true");
+    fireEvent.keyDown(stage, { key: "0" });
+    expect(pressed(/^适应窗口/)).toBe("true");
+    fireEvent.keyDown(stage, { key: "F1" });
+    expect(pressed(/^框选局部/)).toBe("true");
+    fireEvent.keyDown(stage, { key: "F1" });
+    expect(pressed(/^框选局部/)).toBe("false");
+    await act(async () => { fireEvent.keyDown(stage, { key: "p" }); });
+    expect(pins()).toEqual([{ libraryId: "L1", imageId: "a", crop: null, shown: { x: 100, y: 100, width: 800, height: 600 } }]);
+    expect(await screen.findByText("已钉住整图")).toBeTruthy();
+  });
+
+  it("I 键与 dock 的“详情”显示或隐藏旁边的详情侧栏（#179）；查看器自己没有信息浮层", async () => {
+    const toggle = vi.fn();
+    const view = render(<Viewer libraryId="L1" card={card} onClose={() => {}} inspectorOpen={false} onToggleInspector={toggle} />);
+    fireEvent.keyDown(screen.getByAltText("正在查看的参考图").parentElement!, { key: "i" });
+    expect(toggle).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("region", { name: "图片信息" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^显示详情/ }));
+    expect(toggle).toHaveBeenCalledTimes(2);
+    view.rerender(<Viewer libraryId="L1" card={card} onClose={() => {}} inspectorOpen onToggleInspector={toggle} />);
+    fireEvent.click(screen.getByRole("button", { name: /^隐藏详情/ }));
+    expect(toggle).toHaveBeenCalledTimes(3);
+    // 文件名在标题行，缩放比例在工具栏。
+    expect(await screen.findByText("晨光练习_04.png")).toBeTruthy();
+    expect(screen.getByLabelText("缩放比例").textContent).toMatch(/%$/);
+  });
+
+  it("框选 dock：钉住局部是主操作，重选清掉选区并重新框选，取消只清选区", async () => {
+    const close = vi.fn();
+    render(<Viewer libraryId="L1" card={card} onClose={close} />);
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    const drag = (id: number, x1: number, y1: number) => {
+      fireEvent.pointerDown(stage, { pointerId: id, clientX: 110, clientY: 110, button: 0, shiftKey: true });
+      fireEvent.pointerMove(stage, { pointerId: id, clientX: x1, clientY: y1 });
+      fireEvent.pointerUp(stage, { pointerId: id });
+    };
+    drag(1, 310, 210);
+    const bar = cropReadout("200 × 100");
+    expect(within(bar).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["钉住局部，Enter", "重选", "取消，Esc"]);
+    expect(within(bar).getByRole("button", { name: /^钉住局部/ }).className).toContain("is-primary");
+    expect(within(bar).getByRole("button", { name: /^取消/ }).className).toContain("is-danger");
+
+    fireEvent.click(within(bar).getByRole("button", { name: "重选" }));
+    expect(screen.queryByLabelText("选区")).toBeNull();
+    expect(screen.getByRole("button", { name: /^框选局部/ }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.pointerDown(stage, { pointerId: 2, clientX: 100, clientY: 100, button: 0 });
+    fireEvent.pointerMove(stage, { pointerId: 2, clientX: 150, clientY: 120 });
+    fireEvent.pointerUp(stage, { pointerId: 2 });
+    cropReadout("50 × 20");
+
+    await act(async () => { fireEvent.click(within(screen.getByRole("toolbar", { name: "框选" })).getByRole("button", { name: /^钉住局部/ })); });
+    expect(pins()).toEqual([{ libraryId: "L1", imageId: "a", crop: { x: 0, y: 0, width: 50, height: 20 }, shown: { x: 100, y: 100, width: 50, height: 20 } }]);
+
+    fireEvent.click(within(screen.getByRole("toolbar", { name: "框选" })).getByRole("button", { name: /^取消/ }));
+    expect(screen.queryByLabelText("选区")).toBeNull();
+    expect(close).not.toHaveBeenCalled();
+  });
+});
+
+describe("从图片墙进入框选（#102 右键“框选局部钉住”）", () => {
+  it("startCrop 时打开即在框选模式，换到下一张后不再自动框选", () => {
+    mockIPC(() => null);
+    const card = (id: string) => ({ id, width: 400, height: 300, thumbnail: "", adult: false });
+    const { rerender } = render(<Viewer libraryId="L1" card={card("a")} startCrop onClose={() => {}} />);
+    const pressed = () => screen.getByRole("button", { name: /^框选局部/ }).getAttribute("aria-pressed");
+    expect(pressed()).toBe("true");
+    rerender(<Viewer libraryId="L1" card={card("b")} startCrop onClose={() => {}} />);
+    expect(pressed()).toBe("false");
+    clearMocks();
+  });
+});
+
+describe("查看器右键菜单（#114）", () => {
+  const card = { id: "a", width: 800, height: 600, thumbnail: "", adult: false };
+  let calls: { cmd: string; args: unknown }[];
+  let fail: string | null;
+  beforeEach(() => {
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 800));
+    calls = [];
+    fail = null;
+    mockIPC((cmd, args) => {
+      calls.push({ cmd, args });
+      if (cmd === "plugin:library|image") return {};
+      if (fail && cmd.startsWith("plugin:desktop|")) throw fail;
+      return null;
+    });
+  });
+  afterEach(() => clearMocks());
+  const stageOf = () => screen.getByAltText("正在查看的参考图").parentElement!;
+  const openMenu = async () => {
+    fireEvent.contextMenu(stageOf(), { clientX: 200, clientY: 200 });
+    return screen.findByRole("menu", { name: "查看器菜单" });
+  };
+  const rows = (menu: HTMLElement) => [...menu.querySelectorAll("[role^='menuitem']")].map((row) => row.textContent);
+
+  it("菜单项与 #102 表一致：危险项置底红字，三条分隔线", async () => {
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} onTrash={() => {}} />);
+    const menu = await openMenu();
+    expect(rows(menu)).toEqual(["钉住整图P", "钉住局部F1", "复制图片", "适应窗口0", "原始像素1", "背景", "详情I", "在资源管理器中显示", "移到回收站"]);
+    expect(within(menu).getAllByRole("separator")).toHaveLength(3);
+    const danger = within(menu).getAllByRole("menuitem").filter((item) => item.className.includes("is-danger"));
+    expect(danger.map((item) => item.textContent)).toEqual(["移到回收站"]);
+  });
+
+  it("没有回收站动作（例如在回收站里查看）时不显示“移到回收站”", async () => {
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    const menu = await openMenu();
+    expect(rows(menu).at(-1)).toBe("在资源管理器中显示");
+    expect(within(menu).getAllByRole("separator")).toHaveLength(2);
+  });
+
+  it("复制图片与在资源管理器中显示作用于正在看的这张；失败时说明原因", async () => {
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: "复制图片" }));
+    await waitFor(() => expect(calls.find((c) => c.cmd === "plugin:desktop|copy_reference_image")?.args).toEqual({ libraryId: "L1", imageId: "a" }));
+    expect(await screen.findByText("已复制图片")).toBeTruthy();
+    fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: "在资源管理器中显示" }));
+    await waitFor(() => expect(calls.find((c) => c.cmd === "plugin:desktop|reveal_reference_image")?.args).toEqual({ libraryId: "L1", imageId: "a" }));
+    fail = "原文件不在了";
+    fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: "在资源管理器中显示" }));
+    expect(await screen.findByText("无法在资源管理器中显示：原文件不在了")).toBeTruthy();
+  });
+
+  it("缩放、详情与钉住走与 dock 相同的处理", async () => {
+    const toggle = vi.fn();
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} inspectorOpen onToggleInspector={toggle} />);
+    fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^原始像素/ }));
+    expect(screen.getByLabelText("缩放比例").textContent).toBe("100%");
+    fireEvent.click(screen.getByRole("button", { name: "放大" }));
+    fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^适应窗口/ }));
+    expect(screen.getByLabelText("缩放比例").textContent).toBe("100%");
+    const detail = within(await openMenu()).getByRole("menuitemcheckbox", { name: /^详情/ });
+    expect(detail.getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(detail);
+    expect(toggle).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^钉住局部/ }));
+    expect(screen.getByRole("button", { name: /^框选局部/ }).getAttribute("aria-pressed")).toBe("true");
+    await act(async () => { fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^钉住整图/ })); });
+    expect(calls.filter((c) => c.cmd === "plugin:desktop|pin_reference")).toHaveLength(1);
+  });
+
+  it("背景子菜单：选另一种即换上", async () => {
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
+    const menu = await openMenu();
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "背景" }));
+    const grounds = await screen.findByRole("menu", { name: "背景" });
+    fireEvent.click(within(grounds).getByRole("menuitemradio", { name: "棋盘格" }));
+    await waitFor(() => expect(stageOf().getAttribute("data-background")).toBe("checker"));
+  });
+
+  it("移到回收站交给调用方；Shift+F10 打开同一菜单", async () => {
+    const onTrash = vi.fn();
+    render(<Viewer libraryId="L1" card={card} onClose={() => {}} onTrash={onTrash} />);
+    fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: "移到回收站" }));
+    expect(onTrash).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+    fireEvent.keyDown(screen.getByRole("region", { name: "原图查看器" }), { key: "F10", shiftKey: true });
+    expect(await screen.findByRole("menu", { name: "查看器菜单" })).toBeTruthy();
+  });
+});
