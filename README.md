@@ -79,7 +79,7 @@ Feedback from illustrators is the most useful contribution right now. [Open an i
 - **Tag error**: an automatic tag or content rating that is clearly wrong.
 - **Compatibility result**: how pinning behaves with your tablet, display and painting app.
 
-Writing in Chinese or English is fine. To report a security issue, see [SECURITY.md](SECURITY.md).
+Writing in Chinese or English is fine. To report a security issue, see [SECURITY.md](.github/SECURITY.md).
 
 ## Contributing
 
