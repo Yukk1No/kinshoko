@@ -44,6 +44,8 @@ import { OpenTagNameSettings } from "./tags/TagNameSettings";
 
 import { LibraryWorkspace } from "./workspace/LibraryWorkspace";
 import { markStartup } from "./startupTiming";
+import { releaseStartup, startupLibraryOpened } from "./startupGate";
+import { StartupSplash } from "./shell/StartupSplash";
 
 /**
  * 主窗口：本设备登记的资料库与一个活动资料库（#49）；上次的库不可用时仍可选择其他库、
@@ -201,9 +203,12 @@ function MainWindow() {
     currentLibrary().then(
       (value) => {
         markStartup("libraryOpened");
+        startupLibraryOpened();
         if (alive) setLibrary(value);
       },
       (e) => {
+        // 打不开就不等首屏：进主界面，由图库选择页处理。
+        releaseStartup();
         if (!alive) return;
         setOpenError(String(e));
         setLibrary(null);
@@ -278,6 +283,8 @@ function MainWindow() {
 
   const libraryControls = <LibraryPicker current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />;
   const empty = (!library && !hasProviders) || showCreate;
+  // 没有图片墙可等（还没有图库）：加载页直接放行（#338）。
+  useEffect(() => { if (library !== undefined && empty) releaseStartup(); }, [library, empty]);
   const notices = <>
     <RuntimeNotice hidden={showSettings} />
     {library && <div><LegacyNameMigrationNotice libraryId={library.id} safe={lensSafe} onOpen={() => setNameWizard(true)} /></div>}
@@ -363,6 +370,7 @@ function MainWindow() {
         </Dialog.Portal>
       </Dialog.Root>
       <LegacyNameWizard open={nameWizard} onOpenChange={setNameWizard} />
+      <StartupSplash />
       </div>
     </div></SaveDestinationProvider></OpenTagNameSettings.Provider></TagDisplayContext.Provider>
     </UiScaleContext.Provider>
