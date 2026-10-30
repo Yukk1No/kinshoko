@@ -276,7 +276,7 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
     ))}
     {running && !minimized && (
       <section className="k-task" aria-label="导入进度">
-        <div className="k-task-top"><Download size={16} className="k-task-icon is-accent" aria-hidden="true" /><b>正在导入</b>
+        <div className="k-task-top"><Download size={16} className="k-task-icon" aria-hidden="true" /><b>正在导入</b>
           <span className="k-task-count tabular">{done} / {total}</span></div>
         {owner && <p className="k-task-sub">放到 {owner}</p>}
         {taskSwitcher}

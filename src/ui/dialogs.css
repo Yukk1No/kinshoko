@@ -81,20 +81,25 @@
 .k-task-cards { position: fixed; right: 18px; bottom: calc(18px + var(--k-toast-stack, 0px)); z-index: 50; width: 340px; max-width: calc(100vw - 36px); max-height: calc(100vh - 100px);
   overflow: auto; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
 .k-task-cards:empty { display: none; }
-.k-task { pointer-events: auto; padding: 12px; border-radius: var(--r-l); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-pop); }
-.k-task.is-row { display: flex; align-items: center; gap: 10px; }
-.k-task-top { display: flex; align-items: center; gap: 8px; }
-.k-task-top b { flex: 1; font-weight: 600; }
-.k-task-icon { flex: none; color: var(--ink-2); }
-.k-task-icon.is-accent { color: var(--accent-strong); }
-.k-task-icon.is-ok { color: var(--ok); }
+/* Same material and type as a toast (toast.css): a frosted card, the icon in a 28 px well, a 13 px title; the body lines up
+   under the title, past the icon well. Only an error tints the icon (#388). */
+.k-task { pointer-events: auto; box-sizing: border-box; padding: 8px; border-radius: var(--r-l); color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(20px) saturate(1.2); box-shadow: var(--shadow-toast); }
+.k-task:not(.is-row) { padding-left: 48px; }
+.k-task:not(.is-row) > .k-task-top { margin-left: -40px; }
+.k-task.is-row { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.k-task-top { display: flex; align-items: center; gap: 12px; min-height: 28px; }
+.k-task-top b { flex: 1; min-width: 0; font-size: 13px; font-weight: 500; line-height: 20px; }
+.k-task-icon { flex: none; box-sizing: content-box; padding: 6px; border-radius: var(--r-s); background: var(--sunken); box-shadow: var(--well-inset); color: var(--ink-2); }
 .k-task-icon.is-error { color: var(--danger); }
+.k-task-top .k-icon-btn.is-sm { width: 28px; height: 28px; border-radius: var(--r-s); color: var(--ink-3); }
+.k-task-top .k-icon-btn.is-sm:hover { background: var(--hover); color: var(--ink); }
 .k-task-count { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
 .k-task-sub { margin: 2px 0 0; color: var(--ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
 .k-task-sub.is-warn { color: var(--warn); }
 .k-task-sub.is-danger, .k-task-stats .is-danger, .k-task-stats .is-danger b { color: var(--danger); }
-.k-task-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0; font-size: 12px; color: var(--ink-2); }
-.k-task-stats b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.k-task-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0 0; font-size: 12px; color: var(--ink-2); }
+.k-task-stats b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
 .k-task-acts { display: flex; gap: 8px; margin-top: 10px; }
 .k-task-more { margin-top: 6px; font-size: 12px; color: var(--ink-2); }
 .k-task-more summary { cursor: pointer; }

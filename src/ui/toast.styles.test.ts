@@ -65,6 +65,15 @@ describe("轻提示是磨砂卡片（设计系统 v3）", () => {
     expect(rule(".k-toast-content[data-behind]").opacity).toBe("0");
   });
 
+  it("导入任务卡和轻提示同一套外观：磨砂底、圆角、阴影、图标凹槽与标题字号（#388）", () => {
+    const task = cssRule(dialogsCss, ".k-task");
+    for (const key of ["background", "backdrop-filter", "border-radius", "box-shadow"]) expect(task[key]).toBe(toast[key]);
+    const icon = cssRule(dialogsCss, ".k-task-icon"), toastIcon = rule(".k-toast-icon");
+    for (const key of ["background", "box-shadow", "border-radius", "color"]) expect(icon[key]).toBe(toastIcon[key]);
+    expect(cssRule(dialogsCss, ".k-task-top b")["font-size"]).toBe(rule(".k-toast-title")["font-size"]);
+    expect(cssRule(dialogsCss, ".k-task-top b")["font-weight"]).toBe(rule(".k-toast-title")["font-weight"]);
+  });
+
   it("减少动画时不过渡", () => {
     expect(rule(":root[data-reduced-motion] .k-toasts, :root[data-reduced-motion] .k-toast")["transition-duration"]).toBe("0ms");
   });

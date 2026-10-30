@@ -78,7 +78,7 @@ export function ImportResultCard({ report, finished, owner, taskSwitcher, cardNo
   return (
   <section className="k-task" aria-label="导入结果">
     <div className="k-task-top">
-      {report.cancelled ? <CircleSlash size={16} className="k-task-icon" aria-hidden="true" /> : <CircleCheck size={16} className="k-task-icon is-ok" aria-hidden="true" />}
+      {report.cancelled ? <CircleSlash size={16} className="k-task-icon" aria-hidden="true" /> : <CircleCheck size={16} className="k-task-icon" aria-hidden="true" />}
       <b>{report.cancelled ? "导入已取消" : "导入完成"}</b>
       <button type="button" className="k-icon-btn is-sm" aria-label="关闭导入结果" onClick={onDismissReport}><X size={14} aria-hidden="true" /></button>
     </div>
