@@ -136,6 +136,7 @@ impl Store {
             created_at: now,
             last_checked_at: None,
             last_error: None,
+            last_failed_at: None,
         };
         self.conn().execute(
             "INSERT INTO subscription (id, source, target, name, library_id, include_explicit,
@@ -171,7 +172,7 @@ impl Store {
         let conn = self.conn();
         let mut stmt = conn.prepare_cached(
             "SELECT id, source, target, name, library_id, include_explicit, include_manga,
-                    created_at, last_checked_at, last_error
+                    created_at, last_checked_at, last_error, last_failed_at
              FROM subscription ORDER BY created_at, id",
         )?;
         let rows = stmt.query_map([], |r| {
@@ -190,6 +191,7 @@ impl Store {
                     last_error: r
                         .get::<_, Option<String>>(9)?
                         .and_then(|e| serde_json::from_str(&e).ok()),
+                    last_failed_at: r.get(10)?,
                 },
             ))
         })?;
@@ -217,19 +219,21 @@ impl Store {
     /// 记下一次检查完成的时间。
     pub fn mark_checked(&self, id: &str, at: i64) -> Result<(), StoreError> {
         self.conn().execute(
-            "UPDATE subscription SET last_checked_at = ?2, last_error = NULL WHERE id = ?1",
+            "UPDATE subscription SET last_checked_at = ?2, last_error = NULL, last_failed_at = NULL
+             WHERE id = ?1",
             params![id, at],
         )?;
         Ok(())
     }
 
     /// 记下检查没完成的原因；检查时间不变，下次照常到期。
-    pub fn note_error(&self, id: &str, error: &SourceError) -> Result<(), StoreError> {
+    pub fn note_error(&self, id: &str, error: &SourceError, at: i64) -> Result<(), StoreError> {
         self.conn().execute(
-            "UPDATE subscription SET last_error = ?2 WHERE id = ?1",
+            "UPDATE subscription SET last_error = ?2, last_failed_at = ?3 WHERE id = ?1",
             params![
                 id,
-                serde_json::to_string(error).expect("检查错误可以序列化")
+                serde_json::to_string(error).expect("检查错误可以序列化"),
+                at
             ],
         )?;
         Ok(())
@@ -340,6 +344,25 @@ impl Store {
             .query_row(
                 "SELECT 1 FROM failed_work WHERE subscription_id = ?1 AND attempts < ?2 LIMIT 1",
                 params![subscription_id, MAX_ATTEMPTS],
+                |_| Ok(()),
+            )
+            .optional()?
+            .is_some())
+    }
+
+    /// 这个作品已失败到上限，不再下载。
+    pub(super) fn gave_up(
+        &self,
+        subscription_id: &str,
+        source: SourceId,
+        work_id: &str,
+    ) -> Result<bool, StoreError> {
+        Ok(self
+            .conn()
+            .query_row(
+                "SELECT 1 FROM failed_work
+                 WHERE subscription_id = ?1 AND source = ?2 AND work_id = ?3 AND attempts >= ?4",
+                params![subscription_id, source.as_str(), work_id, MAX_ATTEMPTS],
                 |_| Ok(()),
             )
             .optional()?

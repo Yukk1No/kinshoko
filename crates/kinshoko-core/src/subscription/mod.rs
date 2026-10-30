@@ -109,6 +109,9 @@ pub struct Subscription {
     pub last_checked_at: Option<i64>,
     /// 上次检查没完成的原因；成功后清空。
     pub last_error: Option<SourceError>,
+    /// 上次检查没完成的时间；成功后清空。
+    #[ts(type = "number | null")]
+    pub last_failed_at: Option<i64>,
 }
 
 /// 新建订阅时由画师决定的部分。

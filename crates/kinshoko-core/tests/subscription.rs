@@ -434,3 +434,38 @@ fn another_subscriptions_works_do_not_cut_this_listing_short() {
         ["https://i.pximg.net/img-original/1_p0.png"]
     );
 }
+
+#[test]
+fn a_failing_check_waits_before_retrying_and_a_failing_work_is_given_up() {
+    let f = Fixture::new();
+    // 检查没完成：30 分钟内不再到期，过后再到期。
+    let mut source = FakeSource::with(vec![work("1", WorkKind::Illustration, false, 1)]);
+    source.fail.insert(
+        "https://i.pximg.net/img-original/1_p0.png".into(),
+        SourceError::Network,
+    );
+    assert_eq!(f.check(&mut source), Err(SourceError::Network));
+    let subs = f.store.list().unwrap();
+    let failed_at = subs[0].last_failed_at.unwrap();
+    assert!(schedule::due(&subs, failed_at + 1, |_| false).is_empty());
+    assert_eq!(
+        schedule::next_due(&subs, failed_at + 1),
+        Some(failed_at + schedule::RETRY_MS)
+    );
+    assert_eq!(
+        schedule::due(&subs, failed_at + schedule::RETRY_MS, |_| false).len(),
+        1
+    );
+
+    // 单个作品一直失败：第 5 次后不再下载它。
+    source.fail.insert(
+        "https://i.pximg.net/img-original/1_p0.png".into(),
+        SourceError::Status { status: 404 },
+    );
+    for _ in 0..5 {
+        f.check(&mut source).unwrap();
+    }
+    source.downloads.clear();
+    assert_eq!(f.check(&mut source).unwrap().failed, 0);
+    assert!(source.downloads.is_empty());
+}

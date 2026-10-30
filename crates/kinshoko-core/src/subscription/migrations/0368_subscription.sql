@@ -10,7 +10,9 @@ CREATE TABLE subscription (
     include_manga   INTEGER NOT NULL DEFAULT 0,
     created_at      INTEGER NOT NULL,
     last_checked_at INTEGER,
-    last_error      TEXT
+    last_error      TEXT,
+    -- 上次检查没完成的时间：出错后隔一段时间再试，不连续重查。
+    last_failed_at  INTEGER
 );
 
 -- 已收作品：每个资料库、每个来源作品一行。收过的（包括后来被删掉的）不再下载；

@@ -124,7 +124,8 @@ pub fn check(
     let result = run(store, subscription, source, destination, now, cancel);
     let recorded = match &result {
         Ok(_) => store.mark_checked(&subscription.id, now()),
-        Err(error) => store.note_error(&subscription.id, error),
+        Err(SourceError::Cancelled) => Ok(()),
+        Err(error) => store.note_error(&subscription.id, error, now()),
     };
     match (result, recorded) {
         (Ok(report), Ok(())) => Ok(report),
@@ -196,6 +197,9 @@ fn run(
             WorkKind::Manga if !subscription.include_manga => continue,
             _ if work.explicit && !subscription.include_explicit => continue,
             _ => {}
+        }
+        if store.gave_up(&subscription.id, source_id, &work.id)? {
+            continue;
         }
         match collect(store, subscription, &key, work, source, destination, now)? {
             Some(pages) => {
