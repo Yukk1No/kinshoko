@@ -123,6 +123,21 @@ describe("设置提交模型", () => {
     expect(submitter.state().view).toMatchObject({ autostart: false, style: "bands", outline: true });
   });
 
+  it("标签外观失败时只作废恢复之前排着的同项改动，恢复之后的照常执行", async () => {
+    const { core, submitter, display, restore } = setup();
+    const backup: View = { autostart: true, style: "grouped", outline: true, keys: [] };
+    void submitter.submit(display("grouped", true));
+    const dependent = submitter.submit(display("grouped", false));
+    void submitter.submit(restore(backup));
+    const afterRestore = submitter.submit(display("bands", false));
+    await core.release("无法写入设置文件");
+    expect(await dependent).toEqual({ ok: false, reason: "无法写入设置文件" });
+    while (core.waiting.length > 0) await core.release();
+    expect(await afterRestore).toEqual({ ok: true });
+    expect(core.started).toEqual(["display=grouped/true", "restore", "display=bands/false"]);
+    expect(submitter.state().view).toEqual({ ...backup, style: "bands", outline: false });
+  });
+
   it("开关失败时排着的同项改动照常执行：它的值不依赖失败的那次", async () => {
     const { core, submitter, autostart } = setup();
     void submitter.submit(autostart(false));

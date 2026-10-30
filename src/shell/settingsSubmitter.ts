@@ -61,11 +61,20 @@ export function createSettingsSubmitter<View>(options: {
     for (const listener of listeners) listener();
   };
 
-  /** 队列里还没执行、且不隔着整份替换的同项命令。 */
+  /** 队尾往前、不隔着整份替换的同项命令：新提交的命令与它们合并。 */
   const pendingSame = (key: string) => {
     const found: number[] = [];
     for (let i = queue.length - 1; i >= 0 && !queue[i].command.replaces; i--) {
       if (queue[i].command.key === key) found.push(i);
+    }
+    return found;
+  };
+
+  /** 队首往后、在下一次整份替换之前的同项命令（下标从大到小）：它们排在刚失败的那条之后，在它之上改。 */
+  const dependentSame = (key: string) => {
+    const found: number[] = [];
+    for (let i = 0; i < queue.length && !queue[i].command.replaces; i++) {
+      if (queue[i].command.key === key) found.unshift(i);
     }
     return found;
   };
@@ -83,7 +92,7 @@ export function createSettingsSubmitter<View>(options: {
         if (!command.quiet) update({ error: describe(reason) });
         const settles = [...entry.settle];
         if (command.dropPendingOnFailure) {
-          for (const index of pendingSame(command.key)) settles.push(...queue.splice(index, 1)[0].settle);
+          for (const index of dependentSame(command.key)) settles.push(...queue.splice(index, 1)[0].settle);
         }
         for (const settle of settles) settle({ ok: false, reason });
         continue;
