@@ -2,6 +2,7 @@
 
 use super::*;
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::tag_catalog::{
     LegacyNameDecision, LegacyNameMigrationPreview, LegacyNameMigrationWorkspace,
 };
@@ -36,7 +37,10 @@ pub(super) async fn plan_legacy_names<R: Runtime>(
     })
     .await?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新打开名称迁移向导".into());
+        return Err(CommandError::new(
+            ErrorKind::SafeModeChangedMigration,
+            "安全模式已变化，请重新打开名称迁移向导",
+        ));
     }
     Ok(result)
 }
@@ -67,7 +71,10 @@ pub(super) async fn confirm_legacy_names<R: Runtime>(
     .await?;
     names::refresh_labels(&app, &state)?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新打开名称迁移向导".into());
+        return Err(CommandError::new(
+            ErrorKind::SafeModeChangedMigration,
+            "安全模式已变化，请重新打开名称迁移向导",
+        ));
     }
     Ok(result)
 }
@@ -96,7 +103,10 @@ pub(super) async fn preview_legacy_names<R: Runtime>(
     })
     .await?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新打开名称迁移向导".into());
+        return Err(CommandError::new(
+            ErrorKind::SafeModeChangedMigration,
+            "安全模式已变化，请重新打开名称迁移向导",
+        ));
     }
     Ok(result)
 }

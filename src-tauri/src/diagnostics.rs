@@ -5,6 +5,7 @@
 
 use crate::ui_text::{self, Text};
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -138,9 +139,14 @@ pub async fn export_diagnostics(
             Some(log) => log.export(&path, &text),
             None => Err(std::io::Error::other("运行日志没有打开")),
         };
-        saved
-            .map(|()| true)
-            .map_err(|e| CommandError::message(format!("保存诊断信息失败：{e}")))
+        saved.map(|()| true).map_err(|e| {
+            CommandError::new(
+                ErrorKind::DiagnosticsSaveFailed {
+                    detail: e.to_string(),
+                },
+                format!("保存诊断信息失败：{e}"),
+            )
+        })
     })
     .await
     .map_err(CommandError::message)?
@@ -164,7 +170,7 @@ pub fn open_runtime_update() -> Result<(), CommandError> {
             .arg("https://developer.microsoft.com/en-us/microsoft-edge/webview2/")
             .spawn()
             .map(|_| ())
-            .map_err(|_| CommandError::from("无法打开微软 WebView2 下载页。请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/"))
+            .map_err(|_| CommandError::new(ErrorKind::Webview2PageFailed, "无法打开微软 WebView2 下载页。请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/"))
     }
     #[cfg(not(windows))]
     Err("请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/".to_owned())

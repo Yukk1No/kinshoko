@@ -14,6 +14,7 @@
 
 use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::desktop::{
     CaptureChoice, CaptureEntry, CollectedCapture, PinContent, SavedPin, pull_onto_screen,
 };
@@ -86,11 +87,12 @@ pub async fn group_save_captures(
             .filter_map(SavedPin::capture_id)
         {
             if !captures.iter().any(|e: &CaptureEntry| e.id == id) {
-                captures.push(
-                    history
-                        .entry(id)
-                        .ok_or("截图已不在历史中，请关闭这张钉图后重试")?,
-                );
+                captures.push(history.entry(id).ok_or_else(|| {
+                    CommandError::new(
+                        ErrorKind::CaptureGoneClosePin,
+                        "截图已不在历史中，请关闭这张钉图后重试",
+                    )
+                })?);
             }
         }
         Ok(captures)
@@ -113,7 +115,10 @@ fn prepare_pins(
         .filter_map(SavedPin::capture_id)
     {
         if choices.iter().filter(|c| c.capture_id == id).count() != 1 {
-            return Err("桌面截图有变化，请重新选择每张截图存到哪里".into());
+            return Err(CommandError::new(
+                ErrorKind::CapturesChanged,
+                "桌面截图有变化，请重新选择每张截图存到哪里",
+            ));
         }
     }
     let mut prepared = Vec::new();
@@ -134,11 +139,12 @@ fn prepare_pins(
             .expect("已核对选择");
         if choice.keeps_in_group() {
             if !kept.iter().any(|c: &GroupCapture| c.capture_id == id) {
-                kept.push(
-                    lock(&state(app).history)
-                        .group_capture(id)
-                        .ok_or("截图已不在历史中，请关闭这张钉图后重试")?,
-                );
+                kept.push(lock(&state(app).history).group_capture(id).ok_or_else(|| {
+                    CommandError::new(
+                        ErrorKind::CaptureGoneClosePin,
+                        "截图已不在历史中，请关闭这张钉图后重试",
+                    )
+                })?);
             }
             prepared.push(pin);
             continue;
@@ -160,7 +166,11 @@ fn prepare_pins(
                 .map_err(CommandError::from)
         }).map_err(|error| {
             super::history_changed(app);
-            format!("第 {} 张截图的收藏未完成：{error}。之前完成的 {completed_captures} 张收藏已保留；参考组尚未保存。",completed_captures+1)
+            let completed = completed_captures;
+            error.wrapping(
+                |cause| ErrorKind::CollectPartial { index: completed + 1, completed, cause },
+                |text| format!("第 {} 张截图的收藏未完成：{text}。之前完成的 {completed} 张收藏已保留；参考组尚未保存。", completed + 1),
+            )
         })?;
         completed_captures += 1;
         // 这张截图若已是别的参考组自带的截图，那些成员也改连收藏成的参考图。
@@ -454,7 +464,10 @@ pub async fn import_reference_group_package(
             folder_id: None,
         });
         if destination.library_id != library_id {
-            return Err("保存目标资料库与任务归属不一致".into());
+            return Err(CommandError::new(
+                ErrorKind::DestinationMismatch,
+                "保存目标资料库与任务归属不一致",
+            ));
         }
         let Some(path) = path.or_else(|| {
             app.dialog()

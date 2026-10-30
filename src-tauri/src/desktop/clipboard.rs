@@ -3,6 +3,7 @@
 
 use image::RgbaImage;
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use tauri::AppHandle;
 
 pub(super) struct PreparedImage {
@@ -19,7 +20,7 @@ impl PreparedImage {
         #[cfg(debug_assertions)]
         let started = std::time::Instant::now();
         if image.width() == 0 || image.height() == 0 {
-            return Err("复制的图片是空的".into());
+            return Err(CommandError::new(ErrorKind::CopyEmpty, "复制的图片是空的"));
         }
         #[cfg(debug_assertions)]
         eprintln!(
@@ -40,7 +41,14 @@ impl PreparedImage {
                     image.height(),
                     ExtendedColorType::Rgba8,
                 )
-                .map_err(|error| CommandError::message(format!("无法准备复制的图片：{error}")))?;
+                .map_err(|error| {
+                    CommandError::new(
+                        ErrorKind::CopyPrepare {
+                            detail: error.to_string(),
+                        },
+                        format!("无法准备复制的图片：{error}"),
+                    )
+                })?;
             Self { png, dibv5 }
         };
         #[cfg(not(windows))]
@@ -72,21 +80,47 @@ impl PreparedImage {
             let window = app
                 .get_webview_window("main")
                 .or_else(|| app.webview_windows().into_values().next())
-                .ok_or("没有可用于复制的程序窗口")?;
-            let owner = window
-                .hwnd()
-                .map_err(|error| CommandError::message(format!("无法打开剪贴板：{error}")))?;
-            let png_format =
-                clipboard_win::register_format("PNG").ok_or("无法登记图片剪贴板格式")?;
-            let _clipboard = clipboard_win::Clipboard::new_attempts_for(owner.0, 10)
-                .map_err(|error| CommandError::message(format!("无法打开剪贴板：{error}")))?;
+                .ok_or_else(|| {
+                    CommandError::new(ErrorKind::CopyNoWindow, "没有可用于复制的程序窗口")
+                })?;
+            let owner = window.hwnd().map_err(|error| {
+                CommandError::new(
+                    ErrorKind::ClipboardOpen {
+                        detail: error.to_string(),
+                    },
+                    format!("无法打开剪贴板：{error}"),
+                )
+            })?;
+            let png_format = clipboard_win::register_format("PNG").ok_or_else(|| {
+                CommandError::new(ErrorKind::ClipboardFormat, "无法登记图片剪贴板格式")
+            })?;
+            let _clipboard =
+                clipboard_win::Clipboard::new_attempts_for(owner.0, 10).map_err(|error| {
+                    CommandError::new(
+                        ErrorKind::ClipboardOpen {
+                            detail: error.to_string(),
+                        },
+                        format!("无法打开剪贴板：{error}"),
+                    )
+                })?;
             // set allocates and copies the first payload BEFORE clearing. Keep PNG first,
             // as in arboard: consumers may select the first available format.
-            clipboard_win::raw::set(png_format.get(), &self.png)
-                .map_err(|error| CommandError::message(format!("无法写入剪贴板：{error}")))?;
+            clipboard_win::raw::set(png_format.get(), &self.png).map_err(|error| {
+                CommandError::new(
+                    ErrorKind::ClipboardWrite {
+                        detail: error.to_string(),
+                    },
+                    format!("无法写入剪贴板：{error}"),
+                )
+            })?;
             clipboard_win::raw::set_without_clear(clipboard_win::formats::CF_DIBV5, &self.dibv5)
                 .map_err(|error| {
-                    CommandError::message(format!("图片已复制，但部分程序可能无法粘贴：{error}"))
+                    CommandError::new(
+                        ErrorKind::ClipboardPartial {
+                            detail: error.to_string(),
+                        },
+                        format!("图片已复制，但部分程序可能无法粘贴：{error}"),
+                    )
                 })?;
         }
         #[cfg(not(windows))]
@@ -100,7 +134,14 @@ impl PreparedImage {
                         bytes: self.image.as_raw().into(),
                     })
                 })
-                .map_err(|error| CommandError::message(format!("无法写入剪贴板：{error}")))?;
+                .map_err(|error| {
+                    CommandError::new(
+                        ErrorKind::ClipboardWrite {
+                            detail: error.to_string(),
+                        },
+                        format!("无法写入剪贴板：{error}"),
+                    )
+                })?;
         }
         #[cfg(debug_assertions)]
         eprintln!(
@@ -123,16 +164,19 @@ fn now_ms() -> u128 {
 #[cfg(windows)]
 fn dibv5(image: &RgbaImage) -> Result<Vec<u8>, CommandError> {
     const HEADER: usize = 124;
-    let width = i32::try_from(image.width()).map_err(|_| "复制的图片太宽")?;
-    let height = i32::try_from(image.height()).map_err(|_| "复制的图片太高")?;
-    let byte_count = u32::try_from(image.as_raw().len()).map_err(|_| "复制的图片太大")?;
+    let width = i32::try_from(image.width())
+        .map_err(|_| CommandError::new(ErrorKind::CopyTooWide, "复制的图片太宽"))?;
+    let height = i32::try_from(image.height())
+        .map_err(|_| CommandError::new(ErrorKind::CopyTooTall, "复制的图片太高"))?;
+    let byte_count = u32::try_from(image.as_raw().len())
+        .map_err(|_| CommandError::new(ErrorKind::CopyTooLarge, "复制的图片太大"))?;
     let length = HEADER
         .checked_add(byte_count as usize)
-        .ok_or("复制的图片太大")?;
+        .ok_or_else(|| CommandError::new(ErrorKind::CopyTooLarge, "复制的图片太大"))?;
     let mut bytes = Vec::new();
     bytes
         .try_reserve_exact(length)
-        .map_err(|_| "无法为复制的图片分配内存")?;
+        .map_err(|_| CommandError::new(ErrorKind::CopyNoMemory, "无法为复制的图片分配内存"))?;
     bytes.resize(length, 0);
     // BITMAPV5HEADER, little-endian, 32-bit BI_BITFIELDS, sRGB, straight alpha.
     // Positive height and bottom-up BGRA preserve interoperability with older consumers.

@@ -3,6 +3,7 @@
 //! `kinshoko_core::diagnostics::LogEvent`；日志不上传，由画师在设置里导出。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::fmt::Display;
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
@@ -126,9 +127,14 @@ pub async fn set_run_log(
 #[tauri::command]
 pub async fn clear_run_log() -> Result<(), CommandError> {
     match log() {
-        Some(log) => log
-            .clear()
-            .map_err(|e| CommandError::message(format!("清除运行日志失败：{e}"))),
+        Some(log) => log.clear().map_err(|e| {
+            CommandError::new(
+                ErrorKind::ClearLogFailed {
+                    detail: e.to_string(),
+                },
+                format!("清除运行日志失败：{e}"),
+            )
+        }),
         None => Ok(()),
     }
 }

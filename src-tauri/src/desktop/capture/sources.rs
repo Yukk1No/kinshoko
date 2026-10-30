@@ -2,6 +2,7 @@
 //! 截图前后各要一次，两帧一致才冻结；遮挡关系与图像一起固定。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::sync::{Condvar, Mutex};
 use std::time::{Duration, Instant};
 
@@ -39,7 +40,10 @@ pub fn report_capture_references(
     frame: CaptureReferenceFrame,
 ) -> Result<(), CommandError> {
     if window.label() != "main" || !frame.dpr.is_finite() || frame.dpr <= 0.0 {
-        return Err("参考图范围报告无效".into());
+        return Err(CommandError::new(
+            ErrorKind::CaptureInvalidReport,
+            "参考图范围报告无效",
+        ));
     }
     let identity = window_identity(&window)?;
     let channel = &state(&app).capture_frames;
@@ -114,7 +118,10 @@ pub(super) fn request_main_frame(
     let mut pending = lock(&channel.pending);
     loop {
         let Some(request) = pending.as_mut().filter(|p| p.token == token) else {
-            return Err("主窗口已重建，请重新框选".into());
+            return Err(CommandError::new(
+                ErrorKind::CaptureWindowRebuilt,
+                "主窗口已重建，请重新框选",
+            ));
         };
         if let Some(frame) = request.frame.take() {
             *pending = None;
@@ -122,7 +129,10 @@ pub(super) fn request_main_frame(
         }
         let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
             *pending = None;
-            return Err("无法确认当前可见参考图，请重新框选".into());
+            return Err(CommandError::new(
+                ErrorKind::CaptureUnconfirmed,
+                "无法确认当前可见参考图，请重新框选",
+            ));
         };
         pending = channel
             .changed

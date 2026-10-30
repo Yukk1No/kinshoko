@@ -6,6 +6,7 @@
 //! 签名私钥只在 GitHub 仓库的 Actions secret 里，不进仓库（见 docs/validation/release-checklist.md）。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -189,7 +190,10 @@ pub async fn install_update(
         .unwrap_or_else(|e| e.into_inner())
         .take()
     else {
-        return Err("没有可以安装的更新，请先检查更新。".to_owned().into());
+        return Err(CommandError::new(
+            ErrorKind::NoUpdate,
+            "没有可以安装的更新，请先检查更新。",
+        ));
     };
     let mut downloaded = 0u64;
     let progress_app = app.clone();

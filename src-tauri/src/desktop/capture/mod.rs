@@ -8,6 +8,7 @@
 //! 两种结果都存入截图历史（#227）。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 
 mod finish;
 mod sources;
@@ -191,13 +192,17 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), CommandError> {
             continue;
         }
         if crate::library::capture_generation(app) != safe_generation {
-            return Err("安全模式已变化，请重新框选".into());
+            return Err(CommandError::new(
+                ErrorKind::SafeModeChangedCapture,
+                "安全模式已变化，请重新框选",
+            ));
         }
         frozen = Some((image, before_surfaces));
         break;
     }
-    let (image, references) =
-        frozen.ok_or_else(|| CommandError::from("参考图正在移动，请重新框选"))?;
+    let (image, references) = frozen.ok_or_else(|| {
+        CommandError::new(ErrorKind::CaptureSourceMoving, "参考图正在移动，请重新框选")
+    })?;
     let origin = (
         monitor.x().map_err(CommandError::message)?,
         monitor.y().map_err(CommandError::message)?,
@@ -217,7 +222,10 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), CommandError> {
         if !matches!(&*session, Session::Grabbing(t) if t == token)
             || crate::library::capture_generation(app) != safe_generation
         {
-            return Err("截图会话已失效，请重新框选".into());
+            return Err(CommandError::new(
+                ErrorKind::CaptureSessionExpired,
+                "截图会话已失效，请重新框选",
+            ));
         }
         *session = Session::Ready(Pending {
             screen: Arc::new(Screenshot { image, icc }),

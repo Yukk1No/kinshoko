@@ -3,6 +3,7 @@
 //! 会调用窗口或系统 API 的命令写成 `async`，不在主线程上运行（见 `shell` 的线程规则）。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::{AppInfo, ShellSettingsView, ShortcutAction};
 use tauri::{AppHandle, State};
 
@@ -28,8 +29,14 @@ pub async fn set_autostart(
     on: bool,
 ) -> Result<ShellSettingsView, CommandError> {
     let mut shell = state.0.lock().map_err(CommandError::message)?;
-    shell::apply_autostart(&app, on)
-        .map_err(|e| CommandError::message(format!("无法更改开机自启：{e}")))?;
+    shell::apply_autostart(&app, on).map_err(|e| {
+        CommandError::new(
+            ErrorKind::AutostartFailed {
+                detail: e.to_string(),
+            },
+            format!("无法更改开机自启：{e}"),
+        )
+    })?;
     if let Err(e) = shell.settings.set_autostart(on) {
         let _ = shell::apply_autostart(&app, !on);
         return Err(e.to_string().into());
@@ -203,8 +210,12 @@ pub fn interface_language() -> &'static str {
 /// 换界面语言：主窗口、钉图菜单与截图窗口随即更新，不需要重启。设置里的选项随 #358 上线。
 #[tauri::command]
 pub fn set_interface_language(app: AppHandle, lang: String) -> Result<&'static str, CommandError> {
-    let lang = kinshoko_core::interface_lang::set(&lang)
-        .ok_or_else(|| format!("没有这种界面语言：{lang}"))?;
+    let lang = kinshoko_core::interface_lang::set(&lang).ok_or_else(|| {
+        CommandError::new(
+            ErrorKind::UnknownInterfaceLanguage { lang: lang.clone() },
+            format!("没有这种界面语言：{lang}"),
+        )
+    })?;
     shell::announce_interface_language(&app, lang);
     Ok(lang)
 }

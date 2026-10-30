@@ -13,6 +13,7 @@
 //!   浏览视角；参考视角的句柄在装配（打开资料库）时取走，只交给参考组与桌面钉图，不经命令给前端。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 
 mod approx;
 mod groups;
@@ -180,7 +181,7 @@ impl LibraryState {
         lock_libraries(self)
             .as_ref()
             .and_then(DeviceLibraries::current)
-            .ok_or_else(|| CommandError::from("还没有打开资料库"))
+            .ok_or_else(|| CommandError::new(ErrorKind::NoLibraryOpen, "还没有打开资料库"))
     }
 }
 

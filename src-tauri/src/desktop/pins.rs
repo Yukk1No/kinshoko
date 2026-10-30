@@ -16,6 +16,7 @@
 //! 鼠标事件，#7）。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::{Condvar, Mutex};
@@ -48,6 +49,14 @@ const OFFSET: f64 = 16.0;
 const NATIVE_SURFACE: &str = "native-pin";
 const CLOSED: &str = "钉图已关闭";
 const LOCKED: &str = "钉图已锁定";
+
+fn pin_closed() -> CommandError {
+    CommandError::new(ErrorKind::PinClosed, CLOSED)
+}
+
+fn pin_locked() -> CommandError {
+    CommandError::new(ErrorKind::PinLocked, LOCKED)
+}
 
 /// 本次运行中打开着的钉图。
 pub struct PinRecord {

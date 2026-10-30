@@ -7,6 +7,7 @@
 
 use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -196,7 +197,12 @@ async fn with<T: Send + 'static>(
             .as_ref()
             .filter(|active| active.library_id == library_id)
             .map(f)
-            .ok_or_else(|| CommandError::from("资料库已切换或关闭，请在当前资料库重新操作"))
+            .ok_or_else(|| {
+                CommandError::new(
+                    ErrorKind::StaleLibrary,
+                    "资料库已切换或关闭，请在当前资料库重新操作",
+                )
+            })
     })
     .await
     .map_err(CommandError::message)?

@@ -2,6 +2,7 @@
 
 use super::*;
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 
 pub(super) const ACTION_FLIP_H: &str = "flipH";
 pub(super) const ACTION_FLIP_V: &str = "flipV";
@@ -27,7 +28,10 @@ pub(super) const ACTION_EDGE_HIDE: &str = "edgeHide";
 ///
 /// `confirm_reveal`：只问“显示这张图？”（点了遮蔽钉图上的小圆锁）。
 fn popup_menu(app: &AppHandle, pin: &str, confirm_reveal: bool) -> Result<(), CommandError> {
-    let saved = lock(&state(app).store).get(pin).cloned().ok_or(CLOSED)?;
+    let saved = lock(&state(app).store)
+        .get(pin)
+        .cloned()
+        .ok_or_else(pin_closed)?;
     let (veiled, _) = appearance(app, &saved);
     let has_library = !crate::library::registered(app)?.is_empty();
     let group = saved
@@ -164,7 +168,7 @@ pub(in crate::desktop) fn copy_capture_image(
 ) -> Result<(), CommandError> {
     let file = lock(&state(app).history)
         .file(capture_id)
-        .ok_or("截图已不在截图历史中")?;
+        .ok_or_else(|| CommandError::new(ErrorKind::CaptureUnknown, "截图已不在截图历史中"))?;
     let image = image::open(file).map_err(CommandError::from)?.to_rgba8();
     copy_to_clipboard(app, &image)
 }
@@ -172,17 +176,23 @@ pub(in crate::desktop) fn copy_capture_image(
 /// 复制资料库钉图（#289）：钉图显示的那一块原图像素（局部钉图只取局部，不带翻转旋转）。经浏览视角：
 /// 被封印、原文件不在时报错，剪贴板保持原样。会读文件。
 fn copy_reference_pin(app: &AppHandle, pin: &str) -> Result<(), CommandError> {
-    let saved = lock(&state(app).store).get(pin).cloned().ok_or(CLOSED)?;
+    let saved = lock(&state(app).store)
+        .get(pin)
+        .cloned()
+        .ok_or_else(pin_closed)?;
     let PinContent::Reference {
         library_id,
         image_id,
         ..
     } = &saved.content
     else {
-        return Err(CLOSED.to_owned().into());
+        return Err(pin_closed());
     };
     if appearance(app, &saved).0 {
-        return Err("安全模式下已遮蔽，不能复制".to_owned().into());
+        return Err(CommandError::new(
+            ErrorKind::CopySealed,
+            "安全模式下已遮蔽，不能复制",
+        ));
     }
     let pixels = crate::library::visible_source(app, library_id, image_id)?
         .clipboard_pixels(image_id)

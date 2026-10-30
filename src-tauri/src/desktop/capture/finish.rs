@@ -1,6 +1,7 @@
 //! 框选完成：在可见性提交门内再核对一次冻结的来源，解码、写截图历史，再钉住或复制。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::time::Duration;
 #[cfg(debug_assertions)]
 use std::time::Instant;
@@ -35,7 +36,10 @@ fn validate_source(
         source_height,
     } = &surface.selection.pin.content
     else {
-        return Err("参考图来源已变化，请重新框选".into());
+        return Err(CommandError::new(
+            ErrorKind::CaptureSourceChanged,
+            "参考图来源已变化，请重新框选",
+        ));
     };
     if surface.window == "main" {
         // Includes the strictest rating of every known byte-identical provider.
@@ -43,12 +47,18 @@ fn validate_source(
     } else if !pins::capture_source_open(app, &surface.selection.pin.id)
         || (surface.hwnd.is_none() && app.get_webview_window(&surface.window).is_none())
     {
-        return Err("参考图已关闭，请重新框选".into());
+        return Err(CommandError::new(
+            ErrorKind::CaptureSourceClosed,
+            "参考图已关闭，请重新框选",
+        ));
     }
     let image = crate::library::with_references(app, |sources| sources.image(library_id, image_id))
         .map_err(CommandError::from)?;
     if image.width != *source_width || image.height != *source_height {
-        return Err("参考图来源已变化，请重新框选".into());
+        return Err(CommandError::new(
+            ErrorKind::CaptureSourceChanged,
+            "参考图来源已变化，请重新框选",
+        ));
     }
     let safe = crate::library::safe_mode_on(app);
     let mut veils = lock(&state(app).veils).clone();
@@ -57,7 +67,10 @@ fn validate_source(
     veils.set_safe_mode(safe);
     veils.set_scope(crate::library::safe_mode_scope(app));
     if veils.veiled(&surface.selection.pin, Some(image.sealed)) {
-        return Err("参考图已被遮蔽，请重新框选".into());
+        return Err(CommandError::new(
+            ErrorKind::CaptureSealed,
+            "参考图已被遮蔽，请重新框选",
+        ));
     }
     Ok(())
 }
@@ -77,7 +90,10 @@ pub async fn finish_capture(
             Session::Ready(p) if p.token == token => p,
             other => {
                 *session = other;
-                return Err("没有进行中的截图".to_owned().into());
+                return Err(CommandError::new(
+                    ErrorKind::NoCaptureInProgress,
+                    "没有进行中的截图",
+                ));
             }
         }
     };
@@ -128,7 +144,10 @@ fn finish_blocking(
     };
     let at = selection.screen_rect().map_err(CommandError::from)?;
     if crate::library::capture_generation(app) != pending.safe_generation {
-        return Err("安全模式已变化，请重新框选".into());
+        return Err(CommandError::new(
+            ErrorKind::SafeModeChangedCapture,
+            "安全模式已变化，请重新框选",
+        ));
     }
     validate_source(app, &pending, at)?;
     // Only the final validation grants authority. Do not keep the veil mutex through
@@ -164,7 +183,10 @@ fn finish_blocking(
     // Only history persistence and the actual OS/pin side effect occur within it.
     let committed = crate::library::with_visibility_commit(app, |generation| {
         if generation != pending.safe_generation {
-            return Err("安全模式已变化，请重新框选".into());
+            return Err(CommandError::new(
+                ErrorKind::SafeModeChangedCapture,
+                "安全模式已变化，请重新框选",
+            ));
         }
         validate_source(app, &pending, at)?;
         let outcome = draft

@@ -10,6 +10,7 @@
 
 use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard};
@@ -177,7 +178,10 @@ fn run(app: &AppHandle) {
             Ok((p.target().map(PathBuf::from), p.selection().clone()))
         })?;
         let Some(target) = target else {
-            return Err(CommandError::from("还没有选择备份目标"));
+            return Err(CommandError::new(
+                ErrorKind::NoBackupTarget,
+                "还没有选择备份目标",
+            ));
         };
         let registry = crate::library::registered(app)?;
         let groups = groups(app)?;
@@ -246,7 +250,12 @@ pub async fn set_backup_target(
         if let Some(t) = &target
             && !t.is_dir()
         {
-            return Err(format!("备份目标不在：{}", t.display()).into());
+            return Err(CommandError::new(
+                ErrorKind::BackupTargetMissing {
+                    path: t.display().to_string(),
+                },
+                format!("备份目标不在：{}", t.display()),
+            ));
         }
         with_plan(&app, |p| {
             p.set_target(target.as_deref()).map_err(CommandError::from)
@@ -312,7 +321,10 @@ pub async fn backup_preview(
 #[tauri::command]
 pub async fn start_backup(app: AppHandle) -> Result<(), CommandError> {
     if app.state::<BackupState>().busy.load(Ordering::SeqCst) {
-        return Err("正在备份，请等这次完成".into());
+        return Err(CommandError::new(
+            ErrorKind::BackupRunning,
+            "正在备份，请等这次完成",
+        ));
     }
     std::thread::spawn(move || run(&app));
     Ok(())
@@ -323,7 +335,7 @@ pub async fn start_backup(app: AppHandle) -> Result<(), CommandError> {
 pub async fn backup_snapshots(app: AppHandle) -> Result<Vec<SnapshotSummary>, CommandError> {
     blocking(move || {
         let target = with_plan(&app, |p| Ok(p.target().map(PathBuf::from)))?
-            .ok_or_else(|| CommandError::from("还没有选择备份目标"))?;
+            .ok_or_else(|| CommandError::new(ErrorKind::NoBackupTarget, "还没有选择备份目标"))?;
         BackupTarget::new(&target)
             .snapshots()
             .map_err(CommandError::from)
@@ -342,11 +354,16 @@ pub async fn restore_backup(
     blocking(move || {
         let state = app.state::<BackupState>();
         if state.busy.swap(true, Ordering::SeqCst) {
-            return Err("正在备份或恢复，请等这次完成".into());
+            return Err(CommandError::new(
+                ErrorKind::BackupOrRestoreRunning,
+                "正在备份或恢复，请等这次完成",
+            ));
         }
         let result = (|| {
-            let target = with_plan(&app, |p| Ok(p.target().map(PathBuf::from)))?
-                .ok_or_else(|| CommandError::from("还没有选择备份目标"))?;
+            let target =
+                with_plan(&app, |p| Ok(p.target().map(PathBuf::from)))?.ok_or_else(|| {
+                    CommandError::new(ErrorKind::NoBackupTarget, "还没有选择备份目标")
+                })?;
             let groups = groups(&app)?;
             let catalog = crate::library::content_definitions(&app)?;
             let report = BackupTarget::new(&target)

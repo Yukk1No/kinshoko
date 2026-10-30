@@ -2,6 +2,7 @@
 
 use super::*;
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::tag_catalog::CatalogInspection;
 
 /// Complete content dependencies for private backup/export adapters, never ordinary UI responses.
@@ -39,16 +40,21 @@ pub(super) async fn publish_tag_definitions<R: Runtime>(
     let safe = saved_safe_mode(&app);
     let worker = app.clone();
     let result = blocking(move || {
-        publish_definition_dependencies(&worker, &library_id).map_err(|error| CommandError::message(format!(
-            "标签定义未保存到资料库：{error}。程序中的对应和名称选择已保留；资料库可写后，请重试保存标签定义。"
-        )))?;
+        publish_definition_dependencies(&worker, &library_id).map_err(|error| {
+            error.wrapping(|cause| ErrorKind::CatalogDefinitionsNotSaved { cause }, |text| {
+                format!("标签定义未保存到资料库：{text}。程序中的对应和名称选择已保留；资料库可写后，请重试保存标签定义。")
+            })
+        })?;
         let state = worker.state::<LibraryState>();
         workspace::with_resources(&state, |workspace, libraries, catalog| {
             workspace.inspect_catalog(libraries, catalog, safe)
         })
     }).await?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新检查标签对应".into());
+        return Err(CommandError::new(
+            ErrorKind::SafeModeChangedMapping,
+            "安全模式已变化，请重新检查标签对应",
+        ));
     }
     Ok(result)
 }
@@ -91,8 +97,13 @@ pub fn import_package<R: Runtime>(
         })
     })
     .map_err(|error| {
-        format!(
-            "内容已写入，但资料库标签定义尚未更新：{error}。请重试保存标签定义或重新导入参考组包。"
+        error.wrapping(
+            |cause| ErrorKind::PackageDefinitionsPending { cause },
+            |text| {
+                format!(
+                    "内容已写入，但资料库标签定义尚未更新：{text}。请重试保存标签定义或重新导入参考组包。"
+                )
+            },
         )
     })?;
     imported.finish().map_err(CommandError::from)

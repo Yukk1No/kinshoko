@@ -2,6 +2,7 @@
 
 use super::*;
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::workspace::{
     Workspace, WorkspaceSourceInspection, WorkspaceSourceTarget, group_sources,
 };
@@ -149,7 +150,11 @@ pub(super) async fn workspace_edit_source_tags<R: Runtime>(
             })
         })?;
         app.state::<LibraryState>().search.invalidate();
-        publish_definition_dependencies(&app, &target.library_id).map_err(|error| CommandError::message(format!("这个来源的标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。")))?;
+        publish_definition_dependencies(&app, &target.library_id).map_err(|error| {
+            error.wrapping(|cause| ErrorKind::SourceTagsSavedDefinitionsPending { cause }, |text| {
+                format!("这个来源的标签整理已保存，但资料库定义尚未更新：{text}。请在统一标签目录中重试保存标签定义。")
+            })
+        })?;
         Ok(())
     })
     .await
@@ -172,7 +177,7 @@ pub(super) async fn workspace_source_group<R: Runtime>(
             (None, Some(name)) => groups.create(&name, std::slice::from_mut(&mut pin)),
             _ => Err(kinshoko_core::reference_groups::GroupError::InvalidName),
         })
-        .ok_or("参考组还没有准备好")?
+        .ok_or_else(|| CommandError::new(ErrorKind::GroupsNotReady, "参考组还没有准备好"))?
         .map_err(CommandError::from)?;
         crate::desktop::reference_groups_changed(&app);
         Ok(group)

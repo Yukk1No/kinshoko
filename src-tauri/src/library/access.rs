@@ -2,6 +2,7 @@
 
 use super::*;
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 
 /// 运行日志里的资料库编号（#219）：它在本设备登记表里的位置。登记表还没加载、或正被别处
 /// 持有（例如切换资料库的途中）时为空：只为记日志，不等锁。
@@ -64,7 +65,7 @@ pub(super) fn restore<R: Runtime>(
 /// 当前资料库，还没打开时打开本设备上次打开的资料库。供其他模块（例如收藏截图）使用；
 /// 会读文件，不要在主线程上调用。
 pub fn current_or_last<R: Runtime>(app: &AppHandle<R>) -> Result<Arc<Library>, CommandError> {
-    restore(app)?.ok_or_else(|| CommandError::from("还没有资料库"))
+    restore(app)?.ok_or_else(|| CommandError::new(ErrorKind::NoLibrary, "还没有资料库"))
 }
 
 /// 画师要整理的资料库（ADR-0008）：后端只为一个库持有可写句柄，整理哪个库就按需切过去并装配它

@@ -2,6 +2,7 @@
 
 use super::*;
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::tag_catalog::CatalogNameEdit;
 
 pub(super) fn refresh_labels<R: Runtime>(
@@ -61,7 +62,10 @@ pub(super) async fn edit_tag_name<R: Runtime>(
     .await?;
     refresh_labels(&app, &state)?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新读取标签名称".into());
+        return Err(CommandError::new(
+            ErrorKind::SafeModeChangedNames,
+            "安全模式已变化，请重新读取标签名称",
+        ));
     }
     Ok(result)
 }

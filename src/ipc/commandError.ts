@@ -34,9 +34,10 @@ export function describeCommandError(error: CommandError): string {
     case "captureSourceUnavailable":
       return unavailable(error.reason);
     default: {
-      const { code, ...params } = error as { code: string } & Params;
+      const { code, cause, ...params } = error as { code: string; cause?: CommandError } & Params;
       if (!i18n.exists(`errors:${code}`)) return t("unknown", { code, raw: JSON.stringify(error) });
-      return t(code, params);
+      // 包着下层原因的错误：原因也按代码取文案。
+      return t(code, cause ? { ...params, cause: describeCommandError(cause) } : params);
     }
   }
 }

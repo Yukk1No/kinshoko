@@ -26,6 +26,10 @@ it("中文文案与 1.0 的后端原文一致，参数填进去", () => {
   expect(describeCommandError({ code: "shortcutUsedBy", action: "pinClipboard" })).toBe("这个快捷键已用于“钉剪贴板”");
   expect(describeCommandError({ code: "captureSourceUnavailable", reason: { kind: "imageMissing" } })).toBe("参考图已从资料库中删除");
   expect(describeCommandError({ code: "message", message: "原样显示" })).toBe("原样显示");
+  expect(describeCommandError({ code: "tagsSavedDefinitionsPending", cause: { code: "io", detail: "拒绝访问。 (os error 5)" } }))
+    .toBe("标签整理已保存，但资料库定义尚未更新：读写文件失败：拒绝访问。 (os error 5)。请在统一标签目录中重试保存标签定义。");
+  expect(describeCommandError({ code: "collectPartial", index: 2, completed: 1, cause: { code: "unknownLibrary" } }))
+    .toBe("第 2 张截图的收藏未完成：本设备没有登记这个资料库。之前完成的 1 张收藏已保留；参考组尚未保存。");
 });
 
 it("不认识的错误代码显示通用说明并附原始信息", () => {

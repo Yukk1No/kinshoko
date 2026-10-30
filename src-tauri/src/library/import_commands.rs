@@ -3,6 +3,7 @@
 use super::*;
 use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 
 /// 当前资料库这次打开时的对账结果。
 #[tauri::command]
@@ -30,7 +31,10 @@ pub(super) async fn start_import<R: Runtime>(
         folder_id: None,
     });
     if destination.library_id != library_id {
-        return Err("保存目标资料库与任务归属不一致".into());
+        return Err(CommandError::new(
+            ErrorKind::DestinationMismatch,
+            "保存目标资料库与任务归属不一致",
+        ));
     }
     let worker = app.clone();
     let id = blocking(move || {

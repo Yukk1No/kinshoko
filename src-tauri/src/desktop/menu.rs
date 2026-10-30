@@ -12,6 +12,7 @@
 //! 线程规则同 [`super`]：持有锁时不调用窗口 API。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::desktop::ScreenRect;
 use kinshoko_core::desktop::{PinMenu, PinMenuOpen, menu_surface};
 use kinshoko_core::diagnostics::{LogEvent, WindowKind};
@@ -40,7 +41,7 @@ pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), CommandError> {
         (cursor.x.floor() as i32, cursor.y.floor() as i32),
         &pins::monitors(),
     )
-    .ok_or("找不到显示器")?;
+    .ok_or_else(|| CommandError::new(ErrorKind::NoMonitor, "找不到显示器"))?;
     let open = {
         let mut menus = lock(&state(app).menu);
         menus.generation = menus.generation.wrapping_add(1);

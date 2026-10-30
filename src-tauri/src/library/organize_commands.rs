@@ -2,6 +2,7 @@
 
 use super::*;
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 
 #[tauri::command]
 pub(super) async fn image<R: Runtime>(
@@ -47,7 +48,7 @@ pub(super) async fn preview_permanent_delete<R: Runtime>(
         crate::desktop::with_groups(&app, |groups| {
             library.preview_permanent_delete(&ids, groups)
         })
-        .ok_or_else(|| CommandError::from("参考组还没有准备好"))?
+        .ok_or_else(|| CommandError::new(ErrorKind::GroupsNotReady, "参考组还没有准备好"))?
         .map_err(CommandError::from)
     })
     .await
@@ -63,7 +64,7 @@ pub(super) async fn preview_empty_trash<R: Runtime>(
     blocking(move || {
         let library = writable(&app, &library_id)?;
         crate::desktop::with_groups(&app, |groups| library.preview_empty_trash(groups))
-            .ok_or_else(|| CommandError::from("参考组还没有准备好"))?
+            .ok_or_else(|| CommandError::new(ErrorKind::GroupsNotReady, "参考组还没有准备好"))?
             .map_err(CommandError::from)
     })
     .await
@@ -84,7 +85,7 @@ pub(super) async fn permanent_delete<R: Runtime>(
             crate::desktop::with_groups(&app, |groups| {
                 library.permanent_delete(&ids, &token, groups)
             })
-            .ok_or_else(|| CommandError::from("参考组还没有准备好"))?
+            .ok_or_else(|| CommandError::new(ErrorKind::GroupsNotReady, "参考组还没有准备好"))?
             .map_err(CommandError::from)
         })?;
         crate::desktop::reference_groups_changed(&app);
@@ -106,7 +107,7 @@ pub(super) async fn preview_permanent_delete_batch<R: Runtime>(
             crate::desktop::with_groups(&app, |groups| {
                 library.preview_permanent_delete(&batch.image_ids, groups)
             })
-            .ok_or_else(|| CommandError::from("参考组还没有准备好"))?
+            .ok_or_else(|| CommandError::new(ErrorKind::GroupsNotReady, "参考组还没有准备好"))?
             .map_err(CommandError::from)
         });
         Ok(previews
@@ -142,7 +143,7 @@ pub(super) async fn permanent_delete_batch<R: Runtime>(
                 crate::desktop::with_groups(&app, |usage| {
                     library.permanent_delete(&group.image_ids, &group.token, usage)
                 })
-                .ok_or_else(|| CommandError::from("参考组还没有准备好"))?
+                .ok_or_else(|| CommandError::new(ErrorKind::GroupsNotReady, "参考组还没有准备好"))?
                 .map_err(CommandError::from)
             })
         });

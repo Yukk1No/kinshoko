@@ -4,6 +4,7 @@
 
 use image::RgbaImage;
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use tauri::AppHandle;
 
 use crate::library;
@@ -71,7 +72,14 @@ fn open_in_explorer(folder: &std::path::Path) -> Result<(), CommandError> {
         .raw_arg(format!("\"{}\"", folder.display()))
         .spawn()
         .map(|_| ())
-        .map_err(|e| CommandError::message(format!("无法打开资源管理器：{e}")))
+        .map_err(|e| {
+            CommandError::new(
+                ErrorKind::ExplorerFailed {
+                    detail: e.to_string(),
+                },
+                format!("无法打开资源管理器：{e}"),
+            )
+        })
 }
 
 #[cfg(not(windows))]
@@ -88,7 +96,14 @@ fn select_in_explorer(path: &std::path::Path) -> Result<(), CommandError> {
         .raw_arg(format!("/select,\"{}\"", path.display()))
         .spawn()
         .map(|_| ())
-        .map_err(|e| CommandError::message(format!("无法打开资源管理器：{e}")))
+        .map_err(|e| {
+            CommandError::new(
+                ErrorKind::ExplorerFailed {
+                    detail: e.to_string(),
+                },
+                format!("无法打开资源管理器：{e}"),
+            )
+        })
 }
 
 #[cfg(not(windows))]
@@ -127,13 +142,15 @@ pub async fn stage_clipboard_import(app: AppHandle) -> Result<String, CommandErr
     tauri::async_runtime::spawn_blocking(move || {
         let image = arboard::Clipboard::new()
             .and_then(|mut c| c.get_image())
-            .map_err(|_| CommandError::from("剪贴板里没有图片"))?;
+            .map_err(|_| CommandError::new(ErrorKind::ClipboardEmpty, "剪贴板里没有图片"))?;
         let image = RgbaImage::from_raw(
             image.width as u32,
             image.height as u32,
             image.bytes.into_owned(),
         )
-        .ok_or("剪贴板里的图片无法识别")?;
+        .ok_or_else(|| {
+            CommandError::new(ErrorKind::ClipboardUnreadable, "剪贴板里的图片无法识别")
+        })?;
         let dir = library::data_dir(&app).join(CLIPBOARD_IMPORT_DIR);
         kinshoko_core::library::stage_clipboard_image(&dir, &image)
             .map(|path| path.to_string_lossy().into_owned())
