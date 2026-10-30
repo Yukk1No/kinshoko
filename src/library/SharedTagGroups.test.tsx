@@ -75,7 +75,7 @@ describe("T05 shared groups", () => {
     ] }] });
   });
   it("安全模式刚切换（LensChanged）时读分组不报错：确认后会按新视角重读（#176）", async () => {
-    backend(() => Promise.reject("安全模式刚切换过，请重新查找"));
+    backend(() => Promise.reject({ code: "lensChanged" }));
     const barError = vi.fn(), paneError = vi.fn();
     render(<TagGroupBar workspace libraryId="" safe generation={0} input={{ conditions: [], exact: true }} onChange={vi.fn()} onError={barError} />);
     render(<TagGroupsPane libraryId="" safe generation={0} onBrowse={vi.fn()} onError={paneError} />);

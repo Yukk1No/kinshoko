@@ -15,7 +15,7 @@ type Props = {
   generation: number;
   input: SearchInput;
   onChange: (input: SearchInput) => void;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   /** 标签栏右侧的“编辑分组”（#98）：打开分组编辑器。 */
   onEdit?: () => void;
 };
@@ -32,7 +32,7 @@ export function TagGroupBar(p: Props) {
     let alive = true;
     (p.workspace ? workspaceTagGroups(p.libraryId, lang, p.safe) : tagGroups(p.libraryId, lang)).then(
       (next) => { if (alive && current.current === key) setFound({ key, groups: next ?? [] }); },
-      (error) => { if (alive && current.current === key && !isLensChanged(error)) p.onError(String(error)); },
+      (error) => { if (alive && current.current === key && !isLensChanged(error)) p.onError(error); },
     );
     return () => { alive = false; };
   }, [key, p.libraryId, p.safe, p.onError, p.workspace, lang]);

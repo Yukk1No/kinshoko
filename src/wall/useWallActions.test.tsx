@@ -136,10 +136,10 @@ it("某个图库断连时其他图库照常删除，并按图库报告没完成�
     calls.push({ cmd, args: args as Record<string, unknown> });
     if (cmd === "plugin:library|preview_permanent_delete_batch") return [
       { libraryId: "L1", preview: { imageIds: ["i1"], groups: [], token: "t1" }, error: null },
-      { libraryId: "L2", preview: null, error: "资料库暂时不可用：E:\\私人收藏" },
+      { libraryId: "L2", preview: null, error: { code: "message", message: "资料库暂时不可用：E:\\私人收藏" } },
       { libraryId: "L3", preview: { imageIds: ["i3"], groups: [], token: "t3" }, error: null },
     ];
-    if (cmd === "plugin:library|permanent_delete_batch") return [{ libraryId: "L3", error: "导入收尾失败" }];
+    if (cmd === "plugin:library|permanent_delete_batch") return [{ libraryId: "L3", error: { code: "message", message: "导入收尾失败" } }];
     return null;
   });
   const onError = vi.fn(), onChanged = vi.fn();
@@ -169,7 +169,7 @@ it("是否直接在文件夹里按卡片显示的来源读详情的文件夹（�
 });
 
 it("部分图库已删除、其他图库预览过期时取消重新列出：已删的图照样刷新并取消选择", async () => {
-  const stale = "回收站或参考组在确认前有变化，请重新查看将受影响的参考组";
+  const stale = { code: "deletePreviewStale" };
   let previews = 0;
   mockIPC((cmd, args) => {
     calls.push({ cmd, args: args as Record<string, unknown> });

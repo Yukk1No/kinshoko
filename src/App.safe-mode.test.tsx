@@ -206,7 +206,7 @@ describe("安全模式", () => {
       const { text, safeMode } = args as { text: string; safeMode: boolean };
       const held = hold?.();
       if (held) return held;
-      if (safeMode !== safeOn) return Promise.reject("安全模式刚切换过，请重新查找");
+      if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
       return text.trim() && !safeOn ? [adult] : [];
     };
 
@@ -306,7 +306,7 @@ describe("安全模式", () => {
           holding = false;
           return late;
         }
-        if (safeMode !== safeOn) return Promise.reject("安全模式刚切换过，请重新查找");
+        if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
         if (text === "只在成人") return safeOn ? [] : [adult];
         return text.trim() ? candidates : [];
       }, false);
@@ -347,7 +347,7 @@ describe("安全模式", () => {
       backend(library, clean, (cmd, args) => {
         if (cmd !== "plugin:library|resolve_search") return undefined;
         const { input, safeMode } = args as { input: SearchInput; safeMode: boolean };
-        if (safeMode !== safeOn) return Promise.reject("安全模式刚切换过，请重新查找");
+        if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
         return resolved(input);
       }, false);
       render(<App />);

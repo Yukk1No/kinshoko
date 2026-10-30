@@ -6,7 +6,7 @@ import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { referenceCard } from "../desktop/openInKinshoko";
-import { isCursorExpired } from "../ipc";
+import { errorText, isCursorExpired } from "../ipc";
 import { ImportMenu, type ImportControl } from "../library/ImportMenu";
 import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
@@ -141,9 +141,9 @@ export function LibraryWorkspace({
    * 像收到变更通知一样按新修订重读；变更停下后读取成功，不留下常驻横幅（#98）。
    * 同修订的变更通知会被略过，所以不能只等通知来补读。
    */
-  const onError = useCallback((message: string) => {
+  const onError = useCallback((error: unknown) => {
     // 真实错误进轻提示（#98），一直留到画师按“知道了”；没有提示容器时退回就地横幅。
-    if (!isCursorExpired(message)) { if (toast) toast.error(message); else setProblem(message); return; }
+    if (!isCursorExpired(error)) { const message = errorText(error); if (toast) toast.error(message); else setProblem(message); return; }
     setReloadKey((k) => k + 1);
     setVocabularyKey((k) => k + 1);
   }, [toast]);

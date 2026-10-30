@@ -30,7 +30,7 @@ type Props = {
   scope: BrowseScope;
   scopeSelected: boolean;
   onScope: (scope: BrowseScope) => void;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   /** 正在新建文件夹（由图库标题的 ⋯ 菜单发起）：新文件夹放在 parentForNew 下，null 为顶层。 */
   creating: boolean;
   parentForNew: string | null;
@@ -96,7 +96,7 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
   const [deleting, setDeleting] = useState<FolderNode | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const run = (p: Promise<unknown>) => p.catch((e) => onError(String(e)));
+  const run = (p: Promise<unknown>) => p.catch((e) => onError(e));
 
   /** 新文件夹放在哪里：右键的那个文件夹，或图库标题菜单给出的位置；undefined 为没有在新建。 */
   const newParent = creatingUnder ?? (creating ? parentForNew : undefined);
@@ -119,7 +119,7 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
       if (scopeSelected && (scope.kind === "folder" || scope.kind === "folderTree") && removed.includes(scope.id)) onScope({ kind: "all" });
     }, (e) => {
       setBusy(false);
-      onError(String(e));
+      onError(e);
     });
   };
 

@@ -31,7 +31,7 @@ it("workspace search saves forever using shared IDs and preserves once as curren
   const calls:{cmd:string,args:unknown}[]=[];const changes:unknown[]=[];
   mockIPC((cmd,args)=>{calls.push({cmd,args});return undefined;},{shouldMockEvents:true});
   const blue=label("shared-blue","蓝瞳"),aqua=label("shared-aqua","水色瞳");
-  render(<SearchBox workspace libraryId="currently-browsed-B" safe generation={1} input={{conditions:[{any:[{kind:"tag",id:blue.id,dismissed:[]}],negate:false}],exact:false}} tree={{conditions:[{any:[{kind:"tag",tag:blue,similar:[{tag:aqua,source:"builtin",of:[blue.id]}]}],negate:false}]}} showSource={false} onChange={value=>changes.push(value)} onError={error=>{throw Error(error);}}/>);
+  render(<SearchBox workspace libraryId="currently-browsed-B" safe generation={1} input={{conditions:[{any:[{kind:"tag",id:blue.id,dismissed:[]}],negate:false}],exact:false}} tree={{conditions:[{any:[{kind:"tag",tag:blue,similar:[{tag:aqua,source:"builtin",of:[blue.id]}]}],negate:false}]}} showSource={false} onChange={value=>changes.push(value)} onError={error=>{throw Error(String(error));}}/>);
   fireEvent.click(screen.getByRole("button",{name:"不展开“水色瞳”"}));
   fireEvent.click(screen.getByRole("button",{name:"只这次"}));
   expect(changes).toEqual([{conditions:[{any:[{kind:"tag",id:blue.id,dismissed:[aqua.id]}],negate:false}],exact:false}]);
@@ -68,7 +68,7 @@ it("does not release a late unsafe rule list after safe mode changes",async()=>{
 it("workspace plus chooses an unmapped visible tag and saves one global rule",async()=>{
   const calls:{cmd:string,args:unknown}[]=[];const sky=label("shared-sky","天空色"),blue=label("shared-blue","蓝瞳");
   mockIPC((cmd,args)=>{calls.push({cmd,args});if(cmd.endsWith("workspace_candidates"))return [{tag:sky,via:null,count:1}];return undefined;});
-  render(<SearchBox workspace libraryId="B" safe generation={1} input={{conditions:[{any:[{kind:"tag",id:blue.id,dismissed:[]}],negate:false}],exact:false}} tree={{conditions:[{any:[{kind:"tag",tag:blue,similar:[]}],negate:false}]}} showSource={false} onChange={()=>{}} onError={error=>{throw Error(error);}}/>);
+  render(<SearchBox workspace libraryId="B" safe generation={1} input={{conditions:[{any:[{kind:"tag",id:blue.id,dismissed:[]}],negate:false}],exact:false}} tree={{conditions:[{any:[{kind:"tag",tag:blue,similar:[]}],negate:false}]}} showSource={false} onChange={()=>{}} onError={error=>{throw Error(String(error));}}/>);
   fireEvent.click(screen.getByRole("button",{name:"给“蓝瞳”加相近标签"}));
   fireEvent.change(screen.getByRole("combobox",{name:"挑一个统一标签"}),{target:{value:"天空"}});
   fireEvent.click(await screen.findByRole("option",{name:/天空色/}));

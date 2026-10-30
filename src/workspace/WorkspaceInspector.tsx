@@ -28,7 +28,7 @@ export function WorkspaceInspector({
   setViewing: Dispatch<SetStateAction<BrowserCard | null>>;
   setReloadKey: Dispatch<SetStateAction<number>>;
   setVocabularyKey: Dispatch<SetStateAction<number>>;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   onInspectorWidth: (width: number) => void;
 }) {
   const {
