@@ -296,7 +296,7 @@ impl Destination for Libraries {
 // 订阅命令的错误代码随订阅界面的文案再加（#368）；在那之前按原样显示中文说明。
 fn require(app: &AppHandle) -> Result<State<'_, SubscriptionState>, CommandError> {
     app.try_state::<SubscriptionState>()
-        .ok_or_else(|| CommandError::message("订阅功能在这个版本里还不可用"))
+        .ok_or_else(|| CommandError::without_code("订阅功能在这个版本里还不可用"))
 }
 
 #[tauri::command]
@@ -315,7 +315,7 @@ pub async fn set_subscriptions_enabled(
     app.state::<ShellState>()
         .0
         .lock()
-        .map_err(CommandError::message)?
+        .map_err(CommandError::system)?
         .settings
         .set_subscriptions(on)?;
     if !on {
@@ -334,7 +334,7 @@ pub async fn set_subscriptions_enabled(
 pub async fn subscription_check_now(app: AppHandle) -> Result<(), CommandError> {
     let state = require(&app)?;
     if !enabled(&app) {
-        return Err(CommandError::message("订阅功能已关闭"));
+        return Err(CommandError::without_code("订阅功能已关闭"));
     }
     state.poke(true);
     Ok(())
@@ -342,7 +342,7 @@ pub async fn subscription_check_now(app: AppHandle) -> Result<(), CommandError> 
 
 #[tauri::command]
 pub async fn subscriptions(app: AppHandle) -> Result<Vec<Subscription>, CommandError> {
-    require(&app)?.store.list().map_err(CommandError::message)
+    require(&app)?.store.list().map_err(CommandError::system)
 }
 
 /// 最近收进来的图。安全模式开着时不含成人作品。
@@ -353,7 +353,7 @@ pub async fn subscription_recent(app: AppHandle) -> Result<Vec<ReceivedImage>, C
     let recent = state
         .store
         .recent(RECENT_LIMIT)
-        .map_err(CommandError::message)?;
+        .map_err(CommandError::system)?;
     Ok(recent
         .into_iter()
         .filter(|r| !safe || !r.explicit)
@@ -366,7 +366,7 @@ pub async fn subscription_mark_seen(app: AppHandle) -> Result<(), CommandError> 
     require(&app)?
         .store
         .mark_seen()
-        .map_err(CommandError::message)?;
+        .map_err(CommandError::system)?;
     publish(&app);
     Ok(())
 }
@@ -376,15 +376,15 @@ pub async fn subscription_mark_seen(app: AppHandle) -> Result<(), CommandError> 
 pub async fn subscription_login(app: AppHandle, title: String) -> Result<(), CommandError> {
     let state = require(&app)?;
     if !enabled(&app) {
-        return Err(CommandError::message("订阅功能已关闭"));
+        return Err(CommandError::without_code("订阅功能已关闭"));
     }
     if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
         let _ = window.set_focus();
         return Ok(());
     }
     let request = Arc::new(LoginRequest::new());
-    *state.login.lock().map_err(CommandError::message)? = Some(request.clone());
-    let url = request.url().parse().map_err(CommandError::message)?;
+    *state.login.lock().map_err(CommandError::system)? = Some(request.clone());
+    let url = request.url().parse().map_err(CommandError::system)?;
     let handle = app.clone();
     let captured = Arc::new(AtomicBool::new(false));
     WebviewWindowBuilder::new(&app, LOGIN_WINDOW, WebviewUrl::External(url))
@@ -403,7 +403,7 @@ pub async fn subscription_login(app: AppHandle, title: String) -> Result<(), Com
             false
         })
         .build()
-        .map_err(|e| CommandError::message(format!("打不开登录窗口：{e}")))?;
+        .map_err(|e| CommandError::system(format!("打不开登录窗口：{e}")))?;
     Ok(())
 }
 
@@ -453,7 +453,7 @@ pub async fn subscription_logout(app: AppHandle) -> Result<SubscriptionStatus, C
         // 作废还在换会话的登录，免得它晚到的结果把登录写回来。
         let mut login = state.login.lock().unwrap_or_else(|e| e.into_inner());
         *login = None;
-        state.account.log_out().map_err(CommandError::message)?;
+        state.account.log_out().map_err(CommandError::system)?;
     }
     remove_login_profile(&state.dir);
     publish(&app);
