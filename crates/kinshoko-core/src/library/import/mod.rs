@@ -27,8 +27,8 @@ use super::types::{
     ImportReport, ImportSource,
 };
 use super::{
-    Error, Inner, ORIGINALS_DIR, STAGING_DIR, SaveDestination, eagle, fault, now_ms, package, save,
-    tags,
+    Error, Inner, ORIGINALS_DIR, STAGING_DIR, SaveDestination, SubscriptionPage, eagle, fault,
+    now_ms, package, save, subscription_import, tags,
 };
 use super::{colour, thumbnail};
 use crate::fidelity::ColourDescription;
@@ -419,7 +419,7 @@ fn run(
 mod commit;
 mod prepare;
 use commit::*;
-pub(super) use commit::{Pending, import_package_original};
+pub(super) use commit::{Pending, import_package_original, import_subscription_original};
 use prepare::*;
 pub(super) use prepare::{contains_eagle, sha256_hex};
 

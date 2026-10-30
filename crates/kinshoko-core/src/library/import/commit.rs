@@ -174,6 +174,7 @@ pub(super) struct Record {
     pub(super) location: String,
     pub(super) eagle: Option<eagle::Item>,
     pub(super) package: Option<package::PackageFacts>,
+    pub(super) subscription: Option<SubscriptionPage>,
     pub(super) options: ImportOptions,
     pub(super) destination: SaveDestination,
     pub(super) task_created_images: Arc<Mutex<HashSet<String>>>,
@@ -201,17 +202,20 @@ pub(super) fn commit_record_returning(
     let authority = inner.write_revoked.clone();
     let candidate_id = record.id.clone();
     let task_created_images = record.task_created_images.clone();
-    // Package snapshots (including cross-library copy) can change an existing image's
-    // effective rating. Acquire before queuing the writer job: acquiring inside that job
+    // Package snapshots (including cross-library copy) and subscriptions can change an existing
+    // image's effective rating. Acquire before queuing the writer job: acquiring inside that job
     // would invert the scheduler's gate -> writer order. Ordinary/Eagle tasks never write
     // rating facts and must not wait on this gate while unregister settles their workers.
-    let gate = record.package.as_ref().and_then(|_| {
-        inner
-            .package_publication_gate
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
-    });
+    let writes_rating = record.package.is_some() || record.subscription.is_some();
+    let gate = writes_rating
+        .then(|| {
+            inner
+                .package_publication_gate
+                .read()
+                .unwrap_or_else(|e| e.into_inner())
+                .clone()
+        })
+        .flatten();
     let (committed, record) = {
         let _publication = gate
             .as_ref()
@@ -368,10 +372,11 @@ pub(super) fn commit(
                     r.orientation,
                     &r.original_name,
                     now,
-                    match (&r.eagle, &r.package) {
-                        (Some(item), _) => item.collected_at(now),
-                        (None, Some(facts)) => facts.snapshot.collected_at,
-                        (None, None) => now,
+                    match (&r.eagle, &r.package, &r.subscription) {
+                        (Some(item), _, _) => item.collected_at(now),
+                        (None, Some(facts), _) => facts.snapshot.collected_at,
+                        (None, None, Some(page)) => page.collected_at,
+                        (None, None, None) => now,
                     },
                     r.eagle.as_ref().and_then(|item| item.deleted_at(now)),
                     r.eagle.as_ref().is_some_and(|item| item.deleted_at(now).is_some()),
@@ -410,6 +415,14 @@ pub(super) fn commit(
         )?)
     } else if let Some(facts) = &r.package {
         Some(package::commit(&tx, translations, facts, image_id, now)?)
+    } else if let Some(page) = &r.subscription {
+        Some(subscription_import::commit(
+            &tx,
+            translations,
+            page,
+            image_id,
+            now,
+        )?)
     } else {
         tx.execute(
             "INSERT OR IGNORE INTO image_source (image_id, source, location, recorded_at)
@@ -458,6 +471,38 @@ pub(in crate::library) fn import_package_original(
         Origin {
             eagle: None,
             package: Some(package::PackageFacts { origin, snapshot }),
+            subscription: None,
+            source: MergeSource::Bytes(bytes.to_vec()),
+        },
+        ImportOptions::default(),
+        ImportContext {
+            destination: destination.unwrap_or_else(|| SaveDestination {
+                library_id: inner.info.id.clone(),
+                folder_id: None,
+            }),
+            task_created_images: Arc::new(Mutex::new(HashSet::new())),
+            cancel: None,
+        },
+    )
+}
+
+/// 把订阅收进来的一页作品导入（[`crate::library::Library::import_from_subscription`]）。
+pub(in crate::library) fn import_subscription_original(
+    inner: &Inner,
+    page: SubscriptionPage,
+    bytes: &[u8],
+    destination: Option<SaveDestination>,
+) -> (ImportOutcome, bool) {
+    let (original_name, location) = (page.original_name.clone(), page.location());
+    ingest(
+        inner,
+        bytes,
+        original_name,
+        location,
+        Origin {
+            eagle: None,
+            package: None,
+            subscription: Some(page),
             source: MergeSource::Bytes(bytes.to_vec()),
         },
         ImportOptions::default(),

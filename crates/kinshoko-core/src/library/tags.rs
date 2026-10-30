@@ -96,6 +96,11 @@ impl FactSource {
         FactSource(format!("package:{package_id}:{library_id}:{image_id}"))
     }
 
+    /// 订阅收进来的作品（#368），例如 `pixiv:12345`。同一作品的各页共用一层。
+    pub fn subscription(source: &str, work_id: &str) -> FactSource {
+        FactSource(format!("{source}:{work_id}"))
+    }
+
     /// 从备份恢复。
     pub fn restore() -> FactSource {
         FactSource("restore".into())

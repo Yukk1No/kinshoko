@@ -275,6 +275,33 @@ impl Library {
         }
     }
 
+    /// 订阅收进来的一页作品（#368）：走普通导入的写入顺序，来源层按 `<订阅来源>:<作品 id>` 写入
+    /// 来源链接、作者与作品标签（来源名称）和成人分级。同库已有字节相同的原图只合并来源。
+    pub fn import_from_subscription(
+        &self,
+        page: SubscriptionPage,
+        bytes: &[u8],
+    ) -> Result<String, Error> {
+        let (outcome, list_changed) = import::import_subscription_original(
+            &self.inner,
+            page,
+            bytes,
+            self.save_destination.clone(),
+        );
+        if list_changed {
+            self.inner.hub.publish(LibraryEvent::ListStale {
+                library_id: self.inner.info.id.clone(),
+            });
+        }
+        match outcome {
+            ImportOutcome::ReadFailed { reason } => Err(Error::SubscriptionImage(reason)),
+            ImportOutcome::Unsupported => {
+                Err(Error::SubscriptionImage("不是支持的图片格式".into()))
+            }
+            other => Ok(other.image_id().expect("进库的结果都有参考图").to_owned()),
+        }
+    }
+
     /// 打标子接口：待打标的图的原文件位置，不受安全模式影响（被封印的图也要重新打标）。
     pub fn original_to_tag(&self, image_id: &str) -> Result<PathBuf, Error> {
         self.inner.original_path(image_id)

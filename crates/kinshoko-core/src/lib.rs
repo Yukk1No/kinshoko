@@ -22,6 +22,7 @@ pub mod safe_mode;
 pub mod search;
 mod settings;
 mod shortcuts;
+pub mod subscription;
 pub mod tag_catalog;
 pub mod tagging;
 mod ui_scale;

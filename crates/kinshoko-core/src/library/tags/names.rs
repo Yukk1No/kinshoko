@@ -129,11 +129,12 @@ pub(in crate::library) fn apply_translations(inner: &Inner) -> Result<(), Error>
 }
 
 /// 导入来源的标签原文（#217）：按名称、来源名称或别名找标签；没有时新建，原文按文字判断语言后
-/// 记为本库的来源名称。已有的来源名称不动，画师改过的语言保留。
+/// 记为本库的来源名称，`label` 记下是哪种来源带来的。已有的来源名称不动，画师改过的语言保留。
 pub(in crate::library) fn resolve_source_named(
     tx: &Transaction,
     namespace: TagNamespace,
     name: &str,
+    label: &str,
 ) -> Result<String, Error> {
     let name = clean(name)?;
     if let Some(id) = find_named(tx, namespace, &name)? {
@@ -153,7 +154,7 @@ pub(in crate::library) fn resolve_source_named(
         &id,
         &name,
         &crate::library::source_names::detect_lang(&name, crate::interface_lang::current()),
-        crate::library::source_names::EAGLE,
+        label,
     )?;
     Ok(id)
 }

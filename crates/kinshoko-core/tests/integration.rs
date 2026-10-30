@@ -149,6 +149,9 @@ mod search_cache;
 mod source_actions;
 #[path = "source_batch.rs"]
 mod source_batch;
+
+#[path = "subscription.rs"]
+mod subscription;
 #[path = "tag_catalog.rs"]
 mod tag_catalog;
 #[path = "tag_names/mod.rs"]

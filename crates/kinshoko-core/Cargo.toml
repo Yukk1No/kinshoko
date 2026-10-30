@@ -110,6 +110,8 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 csv = "1"
 # 比较更新版本号（与 Tauri updater 同一个 SemVer 实现）。
 semver = "1"
+# pixiv 登录接口要的 X-Client-Hash（订阅，#368）。
+md-5 = "0.10"
 
 [dev-dependencies]
 tempfile = "3.27.0"
