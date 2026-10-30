@@ -9,7 +9,7 @@ export function useSearchTree({ libraryId, safe, vocabularyKey, onError, setRelo
   libraryId: string;
   safe: boolean;
   vocabularyKey: number;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   setReloadKey: Dispatch<SetStateAction<number>>;
 }) {
   const lang = useUiLang();
@@ -35,7 +35,7 @@ export function useSearchTree({ libraryId, safe, vocabularyKey, onError, setRelo
         if (vocabularyKey) setReloadKey((k) => k + 1);
       },
       // 安全模式刚切换、资料库还没跟上：等它确认（safeModeChanged）后按新视角重新解析。
-      (e) => alive && !isLensChanged(e) && onError(String(e)),
+      (e) => alive && !isLensChanged(e) && onError(e),
     );
     return () => {
       alive = false;

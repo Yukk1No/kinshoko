@@ -5,6 +5,7 @@
 //! `app_data_dir`／`app_config_dir`／`app_local_data_dir`（`kinshoko-core` 的
 //! `tests/data_dirs.rs` 检查源码锁住这一点：CI 只跑核心 crate 的测试）。
 
+use kinshoko_core::CommandError;
 use std::path::{Path, PathBuf};
 
 use kinshoko_core::data_dirs::{DataDirs, LegacyDirs, Migration, migrate_legacy};
@@ -26,9 +27,9 @@ pub struct AppData {
 
 /// 解析数据根目录、确认可写，需要时把旧数据迁过来。数据根目录不可写时返回给画师看的说明，
 /// 不换到别处；迁移失败时本次运行用旧位置、下次启动重试（ADR-0009）。
-pub fn prepare() -> Result<AppData, String> {
-    let exe =
-        std::env::current_exe().map_err(|e| format!("找不到 Kinshoko 程序所在的位置：{e}"))?;
+pub fn prepare() -> Result<AppData, CommandError> {
+    let exe = std::env::current_exe()
+        .map_err(|e| CommandError::message(format!("找不到 Kinshoko 程序所在的位置：{e}")))?;
     let exe_dir = exe.parent().unwrap_or(Path::new("."));
     let override_dir = std::env::var_os(DATA_DIR_ENV).map(PathBuf::from);
     // 开发构建（target\debug）不迁移：免得把本机正式安装的数据搬进开发目录。
@@ -67,7 +68,8 @@ pub fn prepare() -> Result<AppData, String> {
         Err(e) => {
             return Err(format!(
                 "Kinshoko 迁移数据时出错，没能完成：\n{e}\n\n请重新启动 Kinshoko 再试。"
-            ));
+            )
+            .into());
         }
     }
     Ok(data)

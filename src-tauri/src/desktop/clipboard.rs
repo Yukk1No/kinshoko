@@ -1,6 +1,8 @@
 //! Prepare image formats before acquiring visibility authority or opening the OS clipboard.
 //! The irreversible commit starts when Windows clears the previous contents.
+
 use image::RgbaImage;
+use kinshoko_core::CommandError;
 use tauri::AppHandle;
 
 pub(super) struct PreparedImage {
@@ -13,7 +15,7 @@ pub(super) struct PreparedImage {
 }
 
 impl PreparedImage {
-    pub(super) fn prepare(image: &RgbaImage) -> Result<Self, String> {
+    pub(super) fn prepare(image: &RgbaImage) -> Result<Self, CommandError> {
         #[cfg(debug_assertions)]
         let started = std::time::Instant::now();
         if image.width() == 0 || image.height() == 0 {
@@ -38,7 +40,7 @@ impl PreparedImage {
                     image.height(),
                     ExtendedColorType::Rgba8,
                 )
-                .map_err(|error| format!("无法准备复制的图片：{error}"))?;
+                .map_err(|error| CommandError::message(format!("无法准备复制的图片：{error}")))?;
             Self { png, dibv5 }
         };
         #[cfg(not(windows))]
@@ -59,7 +61,7 @@ impl PreparedImage {
     /// Caller has revalidated its authority and holds the final visibility permit.
     /// Encoding and pixel conversion have finished. Opening failure preserves the old contents.
     /// After the first OS set starts, Windows has no transaction to roll back both formats.
-    pub(super) fn commit(self, app: &AppHandle) -> Result<(), String> {
+    pub(super) fn commit(self, app: &AppHandle) -> Result<(), CommandError> {
         #[cfg(debug_assertions)]
         let started = std::time::Instant::now();
         #[cfg(debug_assertions)]
@@ -73,17 +75,19 @@ impl PreparedImage {
                 .ok_or("没有可用于复制的程序窗口")?;
             let owner = window
                 .hwnd()
-                .map_err(|error| format!("无法打开剪贴板：{error}"))?;
+                .map_err(|error| CommandError::message(format!("无法打开剪贴板：{error}")))?;
             let png_format =
                 clipboard_win::register_format("PNG").ok_or("无法登记图片剪贴板格式")?;
             let _clipboard = clipboard_win::Clipboard::new_attempts_for(owner.0, 10)
-                .map_err(|error| format!("无法打开剪贴板：{error}"))?;
+                .map_err(|error| CommandError::message(format!("无法打开剪贴板：{error}")))?;
             // set allocates and copies the first payload BEFORE clearing. Keep PNG first,
             // as in arboard: consumers may select the first available format.
             clipboard_win::raw::set(png_format.get(), &self.png)
-                .map_err(|error| format!("无法写入剪贴板：{error}"))?;
+                .map_err(|error| CommandError::message(format!("无法写入剪贴板：{error}")))?;
             clipboard_win::raw::set_without_clear(clipboard_win::formats::CF_DIBV5, &self.dibv5)
-                .map_err(|error| format!("图片已复制，但部分程序可能无法粘贴：{error}"))?;
+                .map_err(|error| {
+                    CommandError::message(format!("图片已复制，但部分程序可能无法粘贴：{error}"))
+                })?;
         }
         #[cfg(not(windows))]
         {
@@ -96,7 +100,7 @@ impl PreparedImage {
                         bytes: self.image.as_raw().into(),
                     })
                 })
-                .map_err(|error| format!("无法写入剪贴板：{error}"))?;
+                .map_err(|error| CommandError::message(format!("无法写入剪贴板：{error}")))?;
         }
         #[cfg(debug_assertions)]
         eprintln!(
@@ -117,7 +121,7 @@ fn now_ms() -> u128 {
 }
 
 #[cfg(windows)]
-fn dibv5(image: &RgbaImage) -> Result<Vec<u8>, String> {
+fn dibv5(image: &RgbaImage) -> Result<Vec<u8>, CommandError> {
     const HEADER: usize = 124;
     let width = i32::try_from(image.width()).map_err(|_| "复制的图片太宽")?;
     let height = i32::try_from(image.height()).map_err(|_| "复制的图片太高")?;

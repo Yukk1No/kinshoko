@@ -31,7 +31,7 @@ type Props = {
   safe: boolean;
   /** 词表代次（词表、图片或安全模式变化时递增）：重新取得标签、别名与候选。 */
   generation: number;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
 };
 
 const NAMESPACES: { value: TagNamespace; label: string }[] = [
@@ -93,7 +93,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
     // 统一标签身份与有效标签出自同一次查询（#158）。
     catalogImageTags(libraryId, single, lang).then(
       (value) => alive && setLoaded({ key: loadKey, tags: value.image, identities: value.identities }),
-      (error) => alive && onError(String(error)),
+      (error) => alive && onError(error),
     );
     return () => {
       alive = false;
@@ -110,7 +110,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   const edit = (edits: TagEdit[]) =>
     (sourceTarget ? workspaceEditSourceTags(sourceTarget, safe, edits) : editTags(libraryId, ids, edits)).then(
       () => { if (currentKey.current !== identityKey) return; if (inspection) inspection.reload(); else setRefresh((n) => n + 1); },
-      (e) => { if (currentKey.current === identityKey) onError(String(e)); },
+      (e) => { if (currentKey.current === identityKey) onError(e); },
     );
 
   const typed = (): TagRef | null => {
@@ -252,7 +252,7 @@ function AliasEditor({
   libraryId: string;
   tag: TagLabel;
   generation: number;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   onClose: () => void;
 }) {
   const lang = useUiLang();
@@ -264,7 +264,7 @@ function AliasEditor({
     let alive = true;
     vocabulary(libraryId).then(
       (v) => alive && setEntry(v.tags.find((t) => t.id === tag.id) ?? null),
-      (e) => alive && onError(String(e)),
+      (e) => alive && onError(e),
     );
     return () => {
       alive = false;
@@ -275,7 +275,7 @@ function AliasEditor({
     const alias = draft.trim();
     if (!alias) return;
     setDraft("");
-    addTagAlias(libraryId, tag.id, { name: alias, lang }).catch((e) => onError(String(e)));
+    addTagAlias(libraryId, tag.id, { name: alias, lang }).catch((e) => onError(e));
   };
 
   return (
@@ -291,7 +291,7 @@ function AliasEditor({
                 className="k-icon-btn is-xs"
                 aria-label={`去掉别名“${a.name}”`}
                 title="去掉"
-                onClick={() => removeTagAlias(libraryId, tag.id, a.name).catch((e) => onError(String(e)))}
+                onClick={() => removeTagAlias(libraryId, tag.id, a.name).catch((e) => onError(e))}
               >
                 <X size={12} aria-hidden="true" />
               </button>

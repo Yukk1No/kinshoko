@@ -1,5 +1,7 @@
 import type { OrganizeWaiting } from "../bindings/OrganizeWaiting";
-import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
+import { isErrorCode } from "./commandError";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { ApproxRelation } from "../bindings/ApproxRelation";
 import type { PersonalApproxEntry } from "../bindings/PersonalApproxEntry";
@@ -73,12 +75,12 @@ export function removeFromTagGroup(libraryId: string, groupId: string, tagIds: s
   return invoke<void>(lib("remove_from_tag_group"), { libraryId, groupId, tagIds });
 }
 
-/** 资料库的 `LensChanged`：请求带的安全模式与资料库的不同（刚切换过），结果作废（#76）。 */
-const LENS_CHANGED = "安全模式刚切换过，请重新查找";
-
-/** 查找命令失败是不是因为安全模式刚切换过：不是错误，切换确认后会按新视角重新查找。 */
+/**
+ * 查找命令失败是不是因为安全模式刚切换过（`lensChanged`：请求带的安全模式与资料库的不同，结果作废，#76）。
+ * 不是错误，切换确认后会按新视角重新查找。
+ */
 export function isLensChanged(error: unknown): boolean {
-  return String(error) === LENS_CHANGED;
+  return isErrorCode(error, "lensChanged");
 }
 
 /**

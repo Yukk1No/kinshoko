@@ -13,7 +13,7 @@ import type { WorkspaceInspectorState } from "./useWorkspaceInspector";
 /** 工作区右侧的详情面板：明确打开的来源整理，或当前选择的整理。 */
 export function WorkspaceInspector({
   inspector, status, safe, reloadKey, vocabularyKey, libraryId, scope, sources, setSources, setSelected, setViewing,
-  setReloadKey, setVocabularyKey, onError, onInspectorWidth,
+  onEdited, onError, onInspectorWidth,
 }: {
   inspector: WorkspaceInspectorState;
   status: WorkspaceStatus | null;
@@ -26,9 +26,9 @@ export function WorkspaceInspector({
   setSources: Dispatch<SetStateAction<WorkspaceCard | null>>;
   setSelected: Dispatch<SetStateAction<Set<string>>>;
   setViewing: Dispatch<SetStateAction<BrowserCard | null>>;
-  setReloadKey: Dispatch<SetStateAction<number>>;
-  setVocabularyKey: Dispatch<SetStateAction<number>>;
-  onError: (message: string) => void;
+  /** 来源对话框改了图：重读并刷新词表。 */
+  onEdited: () => void;
+  onError: (error: unknown) => void;
   onInspectorWidth: (width: number) => void;
 }) {
   const {
@@ -49,7 +49,7 @@ export function WorkspaceInspector({
         </header>
         <div className="insp-body">
           {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => { if (sources) setSources(null); else setSelected(new Set()); }} onView={setViewing}
-            onChanged={() => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); }} />
+            onChanged={onEdited} />
           : <SelectionPanel
             workspace
             libraryId={selectionLibrary ?? libraryId}

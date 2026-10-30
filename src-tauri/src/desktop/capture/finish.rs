@@ -1,5 +1,6 @@
 //! 框选完成：在可见性提交门内再核对一次冻结的来源，解码、写截图历史，再钉住或复制。
 
+use kinshoko_core::CommandError;
 use std::time::Duration;
 #[cfg(debug_assertions)]
 use std::time::Instant;
@@ -14,7 +15,11 @@ use crate::desktop::{clipboard::PreparedImage, history_changed, lock, pins, stat
 
 /// Recheck the frozen source after decoding, while the final visibility permit is held.
 /// The frozen geometry remains authoritative; later scrolling does not change its crop.
-fn validate_source(app: &AppHandle, pending: &Pending, selected: ScreenRect) -> Result<(), String> {
+fn validate_source(
+    app: &AppHandle,
+    pending: &Pending,
+    selected: ScreenRect,
+) -> Result<(), CommandError> {
     let mut candidates = pending
         .references
         .iter()
@@ -41,7 +46,7 @@ fn validate_source(app: &AppHandle, pending: &Pending, selected: ScreenRect) -> 
         return Err("参考图已关闭，请重新框选".into());
     }
     let image = crate::library::with_references(app, |sources| sources.image(library_id, image_id))
-        .map_err(|error| error.to_string())?;
+        .map_err(CommandError::from)?;
     if image.width != *source_width || image.height != *source_height {
         return Err("参考图来源已变化，请重新框选".into());
     }
@@ -64,7 +69,7 @@ pub async fn finish_capture(
     region: Region,
     action: CaptureAction,
     token: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     crate::desktop::timing("finish.begin");
     let pending = {
         let mut session = lock(&state(&app).capture);
@@ -72,7 +77,7 @@ pub async fn finish_capture(
             Session::Ready(p) if p.token == token => p,
             other => {
                 *session = other;
-                return Err("没有进行中的截图".to_owned());
+                return Err("没有进行中的截图".to_owned().into());
             }
         }
     };
@@ -100,7 +105,7 @@ pub async fn finish_capture(
         result.map(|_| ())
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(CommandError::message)?
 }
 
 /// 完成一次框选：解码、提交并产生结果。钉住时返回新钉图的 id。
@@ -109,7 +114,7 @@ fn finish_blocking(
     pending: Pending,
     region: Region,
     action: CaptureAction,
-) -> Result<Option<String>, String> {
+) -> Result<Option<String>, CommandError> {
     let references: Vec<_> = pending
         .references
         .iter()
@@ -121,7 +126,7 @@ fn finish_blocking(
         region,
         references: &references,
     };
-    let at = selection.screen_rect().map_err(|e| e.to_string())?;
+    let at = selection.screen_rect().map_err(CommandError::from)?;
     if crate::library::capture_generation(app) != pending.safe_generation {
         return Err("安全模式已变化，请重新框选".into());
     }
@@ -141,7 +146,7 @@ fn finish_blocking(
             &veils,
         )
     })
-    .map_err(|e| e.to_string())?;
+    .map_err(CommandError::from)?;
     #[cfg(debug_assertions)]
     eprintln!(
         "capture.source.prepare.end at={} ms={}",
@@ -164,7 +169,7 @@ fn finish_blocking(
         validate_source(app, &pending, at)?;
         let outcome = draft
             .commit_with_history(|prepared| lock(&state(app).history).add_prepared(prepared))
-            .map_err(|error| error.to_string())?;
+            .map_err(CommandError::from)?;
         history_changed(app);
         match outcome {
             CaptureOutcome::PinReference(pin) => {

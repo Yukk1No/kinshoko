@@ -21,7 +21,7 @@ type Props = {
   generation: number;
   label?: string;
   onBrowse?: (tagIds: string[]) => void;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
 };
 
 const KINDS: SelectOption<TagNamespace | "">[] = [
@@ -113,7 +113,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "ца
     let alive = true;
     sharedTagGroups(lang, safe).then(
       (value) => { if (alive && current.current === key) setFound({ key, safe, groups: value ?? [] }); },
-      (error) => { if (alive && current.current === key && !isLensChanged(error)) onError(String(error)); },
+      (error) => { if (alive && current.current === key && !isLensChanged(error)) onError(error); },
     );
     return () => { alive = false; };
   }, [key, safe, onError, lang]);
@@ -157,7 +157,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "ца
       await action;
       if (current.current === key) setRefresh((n) => n + 1);
     } catch (error) {
-      if (current.current === key) onError(String(error));
+      if (current.current === key) onError(error);
     } finally { setPendingKey((pending) => pending === key ? null : pending); }
   };
   const edit = (action: CatalogGroupEdit) => run(editSharedTagGroup(action, safe));
@@ -273,7 +273,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "ца
 }
 
 /** The same application configuration editor is available without a current library. */
-export function SharedTagGroupsSettings({ onError }: { onError: (message: string) => void }) {
+export function SharedTagGroupsSettings({ onError }: { onError: (error: unknown) => void }) {
   const [safe, setSafe] = useState<boolean | null>(null);
   const [generation, setGeneration] = useState(0);
   const modeRevision = useRef(0);
@@ -287,7 +287,7 @@ export function SharedTagGroupsSettings({ onError }: { onError: (message: string
         const status = await workspaceStatus(on);
         if (alive && modeRevision.current === mode && workspaceEvent.current === event) workspaceRevision.current = status?.revision ?? null;
       } catch (error) {
-        if (alive && modeRevision.current === mode && !isLensChanged(error)) onError(String(error));
+        if (alive && modeRevision.current === mode && !isLensChanged(error)) onError(error);
       }
     };
     void safeMode().then(async (value) => {
@@ -295,7 +295,7 @@ export function SharedTagGroupsSettings({ onError }: { onError: (message: string
       // Establish the monitor revision before exposing editable drafts, and the actual saved safety mode.
       await baseline(value, revision);
       if (alive && modeRevision.current === revision) setSafe(value);
-    }).catch((error) => { if (alive && modeRevision.current === revision) onError(String(error)); });
+    }).catch((error) => { if (alive && modeRevision.current === revision) onError(error); });
     const mode = onSafeModeSetting((on) => {
       if (!alive) return;
       modeRevision.current++; setSafe(on); setGeneration((n) => n + 1);

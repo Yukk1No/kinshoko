@@ -5,6 +5,7 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use crate::command_error::{CommandError, ErrorKind};
 use crate::library::PermanentDeletePreview;
 
 /// 批量操作里的一张图：它所在的图库与在那个图库里的 id。
@@ -32,7 +33,8 @@ pub struct LibraryBatch {
 pub struct LibraryDeletePreview {
     pub library_id: String,
     pub preview: Option<PermanentDeletePreview>,
-    pub error: Option<String>,
+    #[ts(as = "Option<ErrorKind>")]
+    pub error: Option<CommandError>,
 }
 
 /// 按预览确认后交回的一组：图库、它的图与预览令牌。
@@ -51,7 +53,8 @@ pub struct LibraryDeleteToken {
 #[ts(export)]
 pub struct LibraryBatchFailure {
     pub library_id: String,
-    pub error: String,
+    #[ts(as = "ErrorKind")]
+    pub error: CommandError,
 }
 
 /// 按图库分组，图库按第一次出现的先后，组内去重并保持先后。
@@ -80,10 +83,10 @@ pub fn group_by_library(targets: &[LibraryTarget]) -> Vec<LibraryBatch> {
 
 /// 逐组执行，一组失败不影响后面的组；返回每组与它的结果，顺序同输入。
 /// `run` 负责按需切换可写句柄（等导入收尾）并执行这一组。
-pub fn each_library<B, T>(
+pub fn each_library<B, T, E>(
     batches: impl IntoIterator<Item = B>,
-    mut run: impl FnMut(&B) -> Result<T, String>,
-) -> Vec<(B, Result<T, String>)> {
+    mut run: impl FnMut(&B) -> Result<T, E>,
+) -> Vec<(B, Result<T, E>)> {
     batches
         .into_iter()
         .map(|batch| {

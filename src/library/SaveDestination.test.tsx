@@ -210,7 +210,7 @@ it("pinning whose own change reloads the source leaves the source actions usable
 it("保存位置读取一直遇到“浏览结果已变化”时最多重试 3 次，然后显示问题", async () => {
  let calls = 0;
  mockIPC(cmd => {
-  if (cmd === "plugin:library|workspace_directories") { calls++; return Promise.reject("浏览结果已变化，请从头重新浏览"); }
+  if (cmd === "plugin:library|workspace_directories") { calls++; return Promise.reject({ code: "cursorExpired" }); }
   return undefined;
  }, { shouldMockEvents: true });
  const { SaveDestinationPicker } = await import("./SaveDestination");

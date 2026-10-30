@@ -7,6 +7,7 @@ mod app_shell;
 pub mod application_settings_backup;
 pub mod approx;
 pub mod backup;
+pub mod command_error;
 pub mod data_dirs;
 pub mod desktop;
 mod device;
@@ -31,6 +32,7 @@ pub mod workspace;
 pub use app_shell::{
     AppInfo, UpdateChannel, UpdatePolicy, UpdateProgress, UpdateStatus, app_info, offers_update,
 };
+pub use command_error::CommandError;
 pub use device::{DeviceRegistry, RegisteredLibrary};
 pub use device_libraries::{
     DeviceLibraries, DeviceLibraryError, ImportFinishWait, ImportTaskSnapshot, LibraryRegistration,

@@ -1,4 +1,5 @@
 import { useRef, useState, type ReactNode } from "react";
+import type { LibraryBatchFailure } from "../bindings/LibraryBatchFailure";
 import type { ScreenRect } from "../bindings/ScreenRect";
 import type { WorkspaceSourceTarget } from "../bindings/WorkspaceSourceTarget";
 import { clipboardHasImage, copyReferenceImage, pinReference, referenceGroups, revealReferenceImage, workspaceEditSources, workspaceImage, workspaceSidebar, workspaceSourceGroup } from "../ipc";
@@ -49,7 +50,7 @@ export type WallActionsOptions = {
   /** 先把卡片从墙上移走（#290）；返回结束函数，后端做完后带上没做成的卡片调用（全部做成时为空）。 */
   removeCards?: (cards: BrowserCard[]) => (failed: BrowserCard[]) => void;
   onClearSelection: () => void;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   /** 成功的轻提示（例如“已复制图片”）。 */
   onNotice: (message: string) => void;
   importFrom: (source: ImportSource) => void;
@@ -99,12 +100,12 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       const group = byLibrary.get(target.libraryId);
       if (group) group.push({ card, target }); else byLibrary.set(target.libraryId, [{ card, target }]);
     }
-    const failed: { libraryId: string; error: string }[] = [];
+    const failed: { libraryId: string; error: unknown }[] = [];
     /** 已完成的图：有图库失败时，撤销只作用于这些。 */
     const succeeded: BrowserCard[] = [];
     for (const [libraryId, entries] of byLibrary) {
       for (const { card, target } of entries) {
-        try { await run(target); succeeded.push(card); } catch (e) { failed.push({ libraryId, error: String(e) }); break; }
+        try { await run(target); succeeded.push(card); } catch (e) { failed.push({ libraryId, error: e }); break; }
       }
     }
     if (failed.length) options.current.onError(`有图库没有${what}。${libraryFailures(failed, libraryName)}`);
@@ -130,7 +131,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     },
     importClipboard() {
       const { importClipboard, onError } = options.current;
-      importClipboard().catch((e) => onError(String(e)));
+      importClipboard().catch((e) => onError(e));
     },
     clipboardHasImage: () => clipboardHasImage(),
     pin(cards, point) {
@@ -151,7 +152,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       void (async () => {
         try {
           // 一次调用：后端按图库分组，每个图库只切一次可写句柄、整理一次；一个图库失败不影响其他图库（ADR-0008）。
-          let failed: { libraryId: string; error: string }[];
+          let failed: LibraryBatchFailure[];
           try {
             failed = await workspaceEditSources(entries.map(({ target }) => target), safe, edits);
           } catch (e) {

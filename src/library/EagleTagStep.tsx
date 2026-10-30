@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { EagleTagMapping } from "../bindings/EagleTagMapping";
 import type { MappedExternal } from "../bindings/MappedExternal";
 import type { UnmatchedEagleTag } from "../bindings/UnmatchedEagleTag";
-import { eagleTagMapping, externalSuggestions, mapTagExternal } from "../ipc";
+import { eagleTagMapping, errorText, externalSuggestions, mapTagExternal } from "../ipc";
 import { TagMarks, tagName } from "../search/SearchBox";
 import { useUiLang } from "../i18n";
 import { Combobox, Highlight } from "../ui/Combobox";
@@ -32,7 +32,7 @@ function UnmatchedRow({
   libraryId: string;
   onMapped: (mapped: MappedExternal) => void;
   onSkip: () => void;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
 }) {
   const name = tagName(item.tag);
   const [draft, setDraft] = useState(item.candidates[0] ?? "");
@@ -174,7 +174,7 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
               key={item.tag.id}
               item={item}
               libraryId={libraryId}
-              onError={setError}
+              onError={(e) => setError(errorText(e))}
               onSkip={() => drop(item.tag.id)}
               onMapped={(mapped) => {
                 setError(null);

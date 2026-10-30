@@ -22,7 +22,7 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
   ids: string[];
   onClear: () => void;
   reloadKey: number;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   safeMode?: boolean;
   left: number;
   /** 量到的宽度，以及量的是不是紧凑的悬浮栏。 */
@@ -69,10 +69,10 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
         // 移到回收站能撤销：不先确认，给一个带“撤销”的轻提示。
         if (edits.length === 1 && edits[0].kind === "delete") toast?.show({
           title: "已移到回收站", description: `${picked.length} 张`, tone: "success",
-          action: { label: "撤销", onClick: () => void editImages(libraryId, picked, [{ kind: "restore" }]).catch((e) => onError(String(e))) },
+          action: { label: "撤销", onClick: () => void editImages(libraryId, picked, [{ kind: "restore" }]).catch((e) => onError(e)) },
         });
       },
-      (e) => { if (currentKey.current === key) onError(String(e)); },
+      (e) => { if (currentKey.current === key) onError(e); },
     );
   };
 

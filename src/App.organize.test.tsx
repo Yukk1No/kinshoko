@@ -166,7 +166,7 @@ describe("整理", () => {
       if (cmd === "plugin:library|workspace_permanent_source_delete") {
         if (stale) {
           stale = false;
-          return Promise.reject("回收站或参考组在确认前有变化，请重新查看将受影响的参考组");
+          return Promise.reject({ code: "deletePreviewStale" });
         }
         return null;
       }
