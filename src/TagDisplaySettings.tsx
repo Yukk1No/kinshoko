@@ -20,45 +20,30 @@ export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; o
   const [high, setHigh] = useState(shown(display.high));
   const [low, setLow] = useState(shown(display.low));
   const [problem, setProblem] = useState<string | null>(null);
-  // 连着改几项时，后一项要在前一项之上改。保存一次只发一个，等它回来再发最新的那份；
-  // 还有没保存完的改动时不拿回来的 display 覆盖，否则先回来的旧结果会把后改的盖回去。
-  // 保存失败时回到已保存的 display，排着的改动也作废（它们是在失败那项之上改的）。
-  const latest = useRef(display);
-  const saved = useRef(display);
-  useEffect(() => { saved.current = display; }, [display]);
-  const [shownDisplay, setShownDisplay] = useState(display);
-  const saving = useRef(false);
-  const queued = useRef(false);
+  // 保存的次序、合并与失败作废归设置页的提交模型（#321）。这里只管显示：还有没回来的保存时显示
+  // 最后改成的那份，后一项在它之上改；都回来了就显示已接受的 display，失败时也就回到了它。
+  const outstanding = useRef(0);
+  const latest = useRef<TagDisplay | null>(null);
+  const [pending, setPending] = useState<TagDisplay | null>(null);
+  const [failures, setFailures] = useState(0);
+  const shownDisplay = pending ?? display;
   useEffect(() => {
-    if (saving.current) return;
-    latest.current = display;
-    setShownDisplay(display);
-  }, [display]);
-  useEffect(() => {
-    if (saving.current) return;
-    setHigh(shown(display.high));
-    setLow(shown(display.low));
+    if (outstanding.current > 0) return;
+    // 自己刚保存的阈值与输入框里的数相同时不改写输入框，免得正在输入的“0.7”变成“0.70”。
+    setHigh((text) => (parse(text) === display.high ? text : shown(display.high)));
+    setLow((text) => (parse(text) === display.low ? text : shown(display.low)));
     setProblem(null);
-  }, [display.high, display.low]);
+  }, [display.high, display.low, failures]);
   const save = (change: Partial<TagDisplay>) => {
-    latest.current = { ...latest.current, ...change };
-    setShownDisplay(latest.current);
-    queued.current = true;
-    if (saving.current) return;
-    saving.current = true;
-    void (async () => {
-      while (queued.current) {
-        queued.current = false;
-        if (!await onSave(latest.current)) {
-          queued.current = false;
-          latest.current = saved.current;
-          setShownDisplay(saved.current);
-          setHigh(shown(saved.current.high));
-          setLow(shown(saved.current.low));
-        }
-      }
-      saving.current = false;
-    })();
+    const next = { ...(latest.current ?? display), ...change };
+    latest.current = next;
+    outstanding.current += 1;
+    setPending(next);
+    void onSave(next).then((ok) => {
+      outstanding.current -= 1;
+      if (outstanding.current === 0) { latest.current = null; setPending(null); }
+      if (!ok) setFailures((n) => n + 1);
+    });
   };
 
   const changeThresholds = (nextHigh: string, nextLow: string) => {
@@ -67,7 +52,7 @@ export function TagDisplaySettings({ display, onSave }: { display: TagDisplay; o
     const thresholds = { high: parse(nextHigh), low: parse(nextLow) };
     const why = thresholdProblem(thresholds);
     setProblem(why);
-    if (why === null && (thresholds.high !== latest.current.high || thresholds.low !== latest.current.low)) save(thresholds);
+    if (why === null && (thresholds.high !== shownDisplay.high || thresholds.low !== shownDisplay.low)) save(thresholds);
   };
 
   return <SettingsGroup label="标签外观">

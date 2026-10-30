@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { Activity, Archive, FileText, Keyboard, Layers, Monitor, MousePointerClick, Pin, Power, RefreshCw, Scaling, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
@@ -6,21 +6,8 @@ import type { SafeModeScope } from "./bindings/SafeModeScope";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { ShortcutBinding } from "./bindings/ShortcutBinding";
-import {
-  clearRunLog,
-  rebindShortcut,
-  setAutostart,
-  setForceSrgb,
-  setShowApproxSource,
-  setTagDisplay,
-  setKeepSelectionOnSafeMode,
-  setPinEdgeContrast,
-  setSafeModeScope,
-  setUpdateChannel,
-  setRunLog,
-  shellSettings,
-  errorText,
-} from "./ipc";
+import { clearRunLog, errorText } from "./ipc";
+import { useShellSettings, type ShellSettingsIntent } from "./shell/useShellSettings";
 import { SharedPersonalApproxSettings } from "./search/SharedPersonalApproxSettings";
 import { LegacyNameBanner } from "./library/LegacyNameMigrationPanel";
 import { SharedTagGroupsSettings } from "./library/TagGroupsPane";
@@ -123,41 +110,16 @@ type Props = {
  * 每项一行：图标 · 名称 · 一句描述 · 右侧控件。行为与原来的各节相同，只是重新归位。
  */
 export function SettingsPanel({ onChange, onRestored, library, initialTab = "general", initialTagFocus, version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale }: Props) {
-  const [settingsGeneration, setSettingsGeneration] = useState(0);
-  const [view, setView] = useState<ShellSettingsView | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [loadAttempt, setLoadAttempt] = useState(0);
+  const settings = useShellSettings(onChange);
+  const { view, loadError, error, generation: settingsGeneration } = settings;
+  const setError = settings.showError;
   const [recording, setRecording] = useState<ShortcutAction | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<SettingsTab>(initialTab);
   const [tagView, setTagView] = useState<TagView>("names");
   const diagnostics = useDiagnosticsReport((e) => setError(errorText(e)));
 
-  useEffect(() => {
-    let alive = true;
-    setLoadError(null);
-    shellSettings().then(
-      (value) => { if (alive) setView(value); },
-      (reason) => { if (alive) setLoadError(String(reason)); },
-    );
-    return () => {
-      alive = false;
-    };
-  }, [loadAttempt]);
-
-  /** 保存一项设置；返回是否成功，失败时说明原因，界面留在原来的设置上。 */
-  async function apply(change: Promise<ShellSettingsView>): Promise<boolean> {
-    try {
-      const next = await change;
-      setView(next);
-      onChange?.(next);
-      setError(null);
-      return true;
-    } catch (reason) {
-      setError(String(reason));
-      return false;
-    }
-  }
+  /** 提交一项改动；返回是否成功，失败时说明原因，界面留在已接受的设置上。 */
+  const apply = (intent: ShellSettingsIntent) => settings.submit(intent);
 
   function onRecordKey(action: ShortcutAction, e: KeyboardEvent<HTMLInputElement>) {
     e.preventDefault();
@@ -170,7 +132,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
     const accelerator = acceleratorFromKey(e);
     if (accelerator === null) return;
     setRecording(null);
-    void apply(rebindShortcut(action, accelerator));
+    void apply({ kind: "shortcut", action, accelerator });
   }
 
   if (view === null) {
@@ -179,11 +141,15 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
         ? <p className="k-set-note" role="status">正在读取设置…</p>
         : <div className="k-set-load-error">
           <p className="k-set-error" role="alert">设置没读出来：{loadError}</p>
-          <button type="button" className="k-btn" onClick={() => setLoadAttempt((n) => n + 1)}><span className="k-label">重试</span></button>
+          <button type="button" className="k-btn" onClick={settings.retryLoad}><span className="k-label">重试</span></button>
         </div>}
     </section>;
   }
-  const restored = (next: ShellSettingsView) => { setView(next); onChange?.(next); setSettingsGeneration((generation) => generation + 1); onRestored?.(); };
+  const restore = async (path: string, fingerprint: string) => {
+    const restored = await settings.restore(path, fingerprint);
+    onRestored?.();
+    return restored;
+  };
   const page = (value: SettingsTab, children: ReactNode) => {
     const meta = TABS.find((entry) => entry.value === value)!;
     return <Tabs.Panel value={value} className="k-set-page">
@@ -208,7 +174,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
           {page("general", <>
             <SettingsGroup label="通用">
               <SettingsRow icon={<Power size={16} />} title="开机启动" hint="在托盘里待命">
-                <Switch label="开机启动" checked={view.autostart} onCheckedChange={(on) => void apply(setAutostart(on))} />
+                <Switch label="开机启动" checked={view.autostart} onCheckedChange={(on) => void apply({ kind: "autostart", on })} />
               </SettingsRow>
               {uiScale !== undefined && onUiScale && <SettingsRow icon={<Scaling size={16} />} title="界面缩放" hint="只放大主窗口，钉图和截图不变">
                 <Select label="界面缩放" value={String(uiScale)} onChange={(value) => onUiScale(Number(value))}
@@ -217,7 +183,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
             </SettingsGroup>
             <SettingsGroup label="桌面钉图">
               <SettingsRow icon={<Pin size={16} />} title="增强钉图边缘" hint="阴影外加一圈浅色细线，深色画布上更好分辨">
-                <Switch label="增强钉图边缘" checked={view.pinEdgeContrast} onCheckedChange={(on) => void apply(setPinEdgeContrast(on))} />
+                <Switch label="增强钉图边缘" checked={view.pinEdgeContrast} onCheckedChange={(on) => void apply({ kind: "pinEdgeContrast", on })} />
               </SettingsRow>
             </SettingsGroup>
           </>)}
@@ -234,7 +200,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
                 </> : <>
                   {binding.accelerator === null ? <span className="k-set-muted">未设置</span> : <Keys accelerator={binding.accelerator} />}
                   {binding.accelerator !== null && <button type="button" className="k-btn is-sm is-quiet"
-                    onClick={() => void apply(rebindShortcut(binding.action, null))}><span className="k-label">清除</span></button>}
+                    onClick={() => void apply({ kind: "shortcut", action: binding.action, accelerator: null })}><span className="k-label">清除</span></button>}
                   <button type="button" className="k-btn is-sm" onClick={() => setRecording(binding.action)}><span className="k-label">{binding.accelerator === null ? "设置" : "更换"}</span></button>
                 </>}
               </SettingsRow>;
@@ -253,7 +219,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
               { value: "names", label: "显示名" }, { value: "groups", label: "分组" }, { value: "approx", label: "相近" }, { value: "mapping", label: "对应" },
               { value: "appearance", label: "外观" },
             ]} />
-            {tagView === "appearance" && <TagDisplaySettings display={view.tagDisplay ?? DEFAULT_TAG_DISPLAY} onSave={(next) => apply(setTagDisplay(next))} />}
+            {tagView === "appearance" && <TagDisplaySettings key={`appearance/${settingsGeneration}`} display={view.tagDisplay ?? DEFAULT_TAG_DISPLAY} onSave={(display) => apply({ kind: "tagDisplay", display })} />}
             {tagView === "names" && <>
               <TagNamePanel key={`names/${settingsGeneration}`} focus={initialTagFocus} />
               <LegacyNameBanner onOpen={onOpenNameWizard} />
@@ -262,7 +228,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
             {tagView === "approx" && <>
               <SettingsGroup label="相近标签">
                 <SettingsRow icon={<Tags size={16} />} title="标出来源" hint="相近标签旁注明内置或个人">
-                  <Switch label="标出来源" checked={view.showApproxSource} onCheckedChange={(on) => void apply(setShowApproxSource(on))} />
+                  <Switch label="标出来源" checked={view.showApproxSource} onCheckedChange={(on) => void apply({ kind: "showApproxSource", on })} />
                 </SettingsRow>
               </SettingsGroup>
               <SharedPersonalApproxSettings key={`approx/${settingsGeneration}`} onError={(e) => setError(errorText(e))} />
@@ -272,7 +238,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
           {page("tagging", <AutoTaggingSettings key={`tagging/${settingsGeneration}`} libraryId={library?.id ?? null} />)}
           {page("backup", <>
             <BackupSettings />
-            <ApplicationSettingsBackup onRestored={restored} />
+            <ApplicationSettingsBackup restore={restore} />
           </>)}
           {page("safety", <SettingsGroup label="安全">
             <SettingsRow icon={<SealLock size={10} />} title="安全模式" hint="隐藏范围内的图，钉图里模糊">
@@ -281,16 +247,16 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
             </SettingsRow>
             <SettingsRow icon={<Layers size={16} />} title="安全模式范围" hint="从哪一档分级开始隐藏；还没分级的图照常显示，查找里的“R18”指范围内的各档">
               <Segmented<SafeModeScope> label="安全模式范围" value={view.safeModeScope ?? "questionable"}
-                onChange={(scope) => void apply(setSafeModeScope(scope))} options={SAFE_MODE_SCOPES} />
+                onChange={(scope) => void apply({ kind: "safeModeScope", scope })} options={SAFE_MODE_SCOPES} />
             </SettingsRow>
             <SettingsRow icon={<MousePointerClick size={16} />} title="切换时保留选择" hint="选中的图和详情面板保持打开">
-              <Switch label="切换时保留选择" checked={view.keepSelectionOnSafeMode ?? false} onCheckedChange={(on) => void apply(setKeepSelectionOnSafeMode(on))} />
+              <Switch label="切换时保留选择" checked={view.keepSelectionOnSafeMode ?? false} onCheckedChange={(on) => void apply({ kind: "keepSelectionOnSafeMode", on })} />
             </SettingsRow>
             <SettingsRow icon={<ShieldCheck size={16} />} title="参考组与钉图" hint="原位模糊，点一下单张解开">
               <StatusPill tone={safe === false ? "plain" : "ok"}>{safe === false ? "未开启" : "已开启"}</StatusPill>
             </SettingsRow>
           </SettingsGroup>)}
-          {page("update", <UpdateSection version={version ?? null} channel={view.updateChannel} onChannel={(next) => apply(setUpdateChannel(next))} />)}
+          {page("update", <UpdateSection version={version ?? null} channel={view.updateChannel} onChannel={(channel) => apply({ kind: "updateChannel", channel })} />)}
           {page("diag", <>
             <RuntimeDetails />
             <SettingsGroup label="信息">
@@ -304,12 +270,12 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
               </SettingsRow>
               <SettingsRow icon={<Activity size={16} />} title="运行日志" hint="只存本机，不上传"
                 below={<p className="k-set-note">记下出错和截图、钉图、自动标签的时间点，帮开发者排查问题；不记文件名、路径、标签与图片。最多留 7 天、20 MB。
-                  <button type="button" className="k-link" onClick={() => void clearRunLog().catch((e) => setError(String(e)))}>清除日志</button></p>}>
-                <Switch label="运行日志" checked={view.runLog} onCheckedChange={(on) => void apply(setRunLog(on))} />
+                  <button type="button" className="k-link" onClick={() => void clearRunLog().catch((e) => setError(errorText(e)))}>清除日志</button></p>}>
+                <Switch label="运行日志" checked={view.runLog} onCheckedChange={(on) => void apply({ kind: "runLog", on })} />
               </SettingsRow>
               <SettingsRow icon={<Monitor size={16} />} title="按 sRGB 显示" hint="排查偏色时打开"
                 warn={view.forceSrgb !== view.forceSrgbInEffect && "从托盘退出并重启 Kinshoko 后生效。"}>
-                <Switch label="按 sRGB 显示" checked={view.forceSrgb} onCheckedChange={(on) => void apply(setForceSrgb(on))} />
+                <Switch label="按 sRGB 显示" checked={view.forceSrgb} onCheckedChange={(on) => void apply({ kind: "forceSrgb", on })} />
               </SettingsRow>
             </SettingsGroup>
           </>)}

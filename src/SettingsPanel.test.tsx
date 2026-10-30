@@ -149,6 +149,31 @@ describe("程序设置备份", () => {
     expect(await screen.findByText("偏好设置已恢复。按 sRGB 显示从托盘退出并重启后生效。")).toBeTruthy();
     expect(calls.find((c) => c.cmd === "plugin:library|restore_application_settings")?.args).toEqual({ path: "C:/backup/选择.kinshoko-settings", fingerprint: "fixed-backup" });
   });
+
+  it("恢复排在还没回来的保存之后，迟到的保存不回滚恢复的结果（#321）", async () => {
+    let releaseAutostart = () => {};
+    const restoredView: ShellSettingsView = { ...defaults, autostart: true, showApproxSource: true };
+    const calls = backend((cmd) => {
+      if (cmd === "set_autostart") return new Promise((resolve) => { releaseAutostart = () => resolve({ ...defaults, autostart: false }); });
+      if (cmd === "plugin:library|preview_application_settings") return { fingerprint: "fixed-backup", safeMode: true, forceSrgb: false };
+      if (cmd === "plugin:library|restore_application_settings") return { settings: restoredView, safeMode: true, problems: [] };
+      return undefined;
+    });
+    const seen: ShellSettingsView[] = [];
+    render(<SettingsPanel initialTab="general" onChange={(view) => seen.push(view)} />);
+    fireEvent.click(await screen.findByRole("switch", { name: "开机启动" }));
+    await tab("备份");
+    fireEvent.change(await screen.findByRole("textbox", { name: "偏好设置备份文件" }), { target: { value: "C:/backup/a.kinshoko-settings" } });
+    fireEvent.click(screen.getByRole("button", { name: "读取" }));
+    fireEvent.click(await screen.findByRole("button", { name: "替换偏好设置" }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(calls.some((c) => c.cmd === "plugin:library|restore_application_settings")).toBe(false);
+    releaseAutostart();
+    expect(await screen.findByText(/偏好设置已恢复/)).toBeTruthy();
+    expect(seen.map((view) => view.autostart)).toEqual([false, true]);
+    await tab("通用");
+    expect(screen.getByRole("switch", { name: "开机启动" }).getAttribute("aria-checked")).toBe("true");
+  });
 });
 
 describe("设置：分页", () => {
