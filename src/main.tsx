@@ -10,6 +10,7 @@ import { markStartup } from "./startupTiming";
 import { blockBrowserMenu } from "./ui/browserMenu";
 import "./styles.css";
 import "./ui/ui.css";
+import "./ui/menu.css";
 import "./ui/toast.css";
 import "./ui/fields.css";
 import "./shell/main-window.css";
