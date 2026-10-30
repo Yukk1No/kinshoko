@@ -6,6 +6,7 @@ use super::ErrorKind;
 use crate::backup::BackupError;
 use crate::desktop::{CaptureError, HistoryError, PinError};
 use crate::reference_groups::GroupError;
+use crate::shortcuts::ShortcutProblem;
 use crate::tag_catalog::CatalogError;
 use crate::{
     DeviceLibraryError, SettingsError, ShortcutError, UiScaleError, WriterWaitError, library,
@@ -20,7 +21,9 @@ impl From<library::Error> for ErrorKind {
         use library::Error as E;
         match e {
             E::InvalidName => ErrorKind::InvalidLibraryName,
-            E::TagDefinitions(reason) => ErrorKind::TagDefinitionsNotSaved { reason },
+            E::TagDefinitions(cause) => ErrorKind::TagDefinitionsNotSaved {
+                cause: Box::new(cause.kind),
+            },
             E::NotEmpty(p) => ErrorKind::NotEmpty { path: path(&p) },
             E::NotALibrary(p) => ErrorKind::NotALibrary { path: path(&p) },
             E::UnknownImage => ErrorKind::UnknownImage,
@@ -43,11 +46,15 @@ impl From<library::Error> for ErrorKind {
             E::EagleLocationTaken => ErrorKind::EagleLocationTaken,
             E::LensChanged => ErrorKind::LensChanged,
             E::OutdatedLibrary => ErrorKind::OutdatedLibrary,
-            E::PackageImage(reason) => ErrorKind::PackageImage { reason },
+            E::PackageImage(cause) => ErrorKind::PackageImage {
+                cause: Box::new(cause.kind),
+            },
             E::MergeTargetGone => ErrorKind::MergeTargetGone,
             E::NotInTrash => ErrorKind::NotInTrash,
             E::DeletePreviewStale => ErrorKind::DeletePreviewStale,
-            E::ReferenceGroups(reason) => ErrorKind::ReferenceGroupsUnchecked { reason },
+            E::ReferenceGroups(cause) => ErrorKind::ReferenceGroupsUnchecked {
+                cause: Box::new(cause.kind),
+            },
             E::Io(e) => ErrorKind::Io {
                 detail: e.to_string(),
             },
@@ -62,7 +69,9 @@ impl From<library::Error> for ErrorKind {
             },
             E::Undecodable(detail) => ErrorKind::Undecodable { detail },
             E::OriginalMissing(p) => ErrorKind::OriginalMissing { path: path(&p) },
-            E::ClipboardImage(reason) => ErrorKind::ClipboardImage { reason },
+            E::ClipboardImage(cause) => ErrorKind::ClipboardImage {
+                cause: Box::new(cause.kind),
+            },
         }
     }
 }
@@ -112,9 +121,9 @@ impl From<CatalogError> for ErrorKind {
             },
             CatalogError::Library(e) => e.into(),
             CatalogError::UnknownTag => ErrorKind::CatalogUnknownTag,
-            CatalogError::InvalidDefinition(reason) => {
-                ErrorKind::CatalogInvalidDefinition { reason }
-            }
+            CatalogError::InvalidDefinition(cause) => ErrorKind::CatalogInvalidDefinition {
+                cause: Box::new(cause.kind),
+            },
             CatalogError::UnknownGroup => ErrorKind::CatalogUnknownGroup,
             CatalogError::InvalidGroupMembers => ErrorKind::CatalogInvalidGroupMembers,
             CatalogError::UnknownMapping => ErrorKind::CatalogUnknownMapping,
@@ -138,13 +147,17 @@ impl From<GroupError> for ErrorKind {
             GroupError::UnsupportedVersion(version) => {
                 ErrorKind::GroupUnsupportedVersion { version }
             }
-            GroupError::Invalid(reason) => ErrorKind::GroupInvalid { reason },
+            GroupError::Invalid(cause) => ErrorKind::GroupInvalid {
+                cause: Box::new(cause.kind),
+            },
             GroupError::MembersUnavailable(members) => {
                 ErrorKind::GroupMembersUnavailable { members }
             }
             GroupError::NotAPackage => ErrorKind::NotAPackage,
-            GroupError::PackageDamaged(reason) => ErrorKind::PackageDamaged { reason },
-            GroupError::Library(message) => ErrorKind::Message { message },
+            GroupError::PackageDamaged(cause) => ErrorKind::PackageDamaged {
+                cause: Box::new(cause.kind),
+            },
+            GroupError::Library(cause) => cause.kind,
         }
     }
 }
@@ -156,7 +169,9 @@ impl From<BackupError> for ErrorKind {
                 ErrorKind::BackupTargetUnavailable { path: path(&p) }
             }
             BackupError::UnknownSnapshot => ErrorKind::UnknownSnapshot,
-            BackupError::Incomplete(reason) => ErrorKind::SnapshotIncomplete { reason },
+            BackupError::Incomplete(cause) => ErrorKind::SnapshotIncomplete {
+                cause: Box::new(cause.kind),
+            },
             BackupError::Io(e) => ErrorKind::BackupIo {
                 detail: e.to_string(),
             },
@@ -172,9 +187,7 @@ impl From<SettingsError> for ErrorKind {
             SettingsError::Io(e) => ErrorKind::SettingsIo {
                 detail: e.to_string(),
             },
-            SettingsError::Invalid(why) => ErrorKind::Message {
-                message: why.to_owned(),
-            },
+            SettingsError::TagThresholds => ErrorKind::TagThresholdsInvalid,
         }
     }
 }
@@ -182,9 +195,11 @@ impl From<SettingsError> for ErrorKind {
 impl From<ShortcutError> for ErrorKind {
     fn from(e: ShortcutError) -> Self {
         match e {
-            ShortcutError::Invalid(why) => ErrorKind::Message {
-                message: why.to_owned(),
-            },
+            ShortcutError::Invalid(ShortcutProblem::TwoMainKeys) => ErrorKind::ShortcutTwoMainKeys,
+            ShortcutError::Invalid(ShortcutProblem::NoMainKey) => ErrorKind::ShortcutNoMainKey,
+            ShortcutError::Invalid(ShortcutProblem::HindersTyping) => {
+                ErrorKind::ShortcutHindersTyping
+            }
             ShortcutError::UsedBy(action) => ErrorKind::ShortcutUsedBy { action },
             ShortcutError::Unavailable(reason) => ErrorKind::ShortcutUnavailable { reason },
             ShortcutError::Settings(e) => e.into(),
@@ -222,7 +237,9 @@ impl From<HistoryError> for ErrorKind {
     fn from(e: HistoryError) -> Self {
         match e {
             HistoryError::Unknown => ErrorKind::CaptureUnknown,
-            HistoryError::Collect(reason) => ErrorKind::CollectFailed { reason },
+            HistoryError::Collect(cause) => ErrorKind::CollectFailed {
+                cause: Box::new(cause.kind),
+            },
             HistoryError::Io(e) => ErrorKind::CaptureIo {
                 detail: e.to_string(),
             },

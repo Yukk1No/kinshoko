@@ -57,7 +57,7 @@ describe("主窗口", () => {
         cancelled: false,
         fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
         eagleRelocations: [],
-        items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: "被占用" } }],
+        items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } }],
       },
     });
     if (stage === "已结束") await finish();

@@ -154,7 +154,7 @@ fn libraries_not_registered_on_this_device_and_unreadable_groups_are_reported_as
     let (libs, mut gs) = device();
     gs.push(group("g-far", "外借", &["A", "Z"]));
     gs.push(GroupSummary {
-        problem: Some("参考组文件已损坏".into()),
+        problem: Some(kinshoko_core::reference_groups::GroupError::UnknownGroup.into()),
         ..group("g-bad", "g-bad", &[])
     });
     let scope = compute_scope(&libs, &gs, &ScopeSelection::All);

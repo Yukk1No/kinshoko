@@ -1,6 +1,7 @@
 //! Eagle 文件夹与本库文件夹的对应。
 
 use super::*;
+use crate::CommandError;
 
 /// 这个来源的 Eagle 文件夹在本库对应的文件夹。
 pub(super) fn local_folder(
@@ -21,7 +22,7 @@ pub(super) fn local_folder(
 pub(super) fn source_folder_ids(
     conn: &rusqlite::Connection,
     source_id: &str,
-) -> Result<HashSet<String>, String> {
+) -> Result<HashSet<String>, CommandError> {
     fn collect(folders: &[Folder], out: &mut HashSet<String>) {
         for folder in folders {
             out.insert(folder.id.clone());
@@ -34,7 +35,7 @@ pub(super) fn source_folder_ids(
             [source_id],
             |r| r.get(0),
         )
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::system)?;
     let mut ids = HashSet::new();
     collect(&parse::<LibraryMetadata>(&raw)?.folders, &mut ids);
     Ok(ids)

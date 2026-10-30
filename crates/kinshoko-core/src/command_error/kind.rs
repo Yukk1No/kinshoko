@@ -4,13 +4,18 @@ use serde::Serialize;
 use ts_rs::TS;
 
 use crate::ShortcutAction;
-use crate::reference_groups::UnavailableReason;
+use crate::reference_groups::{MemberUnavailable, UnavailableReason};
+use crate::shortcuts::HotkeyFailure;
 
 /// 命令失败的原因。`code` 决定文案，其余字段是文案里的参数。前端看到的类型名是 `CommandError`。
 ///
 /// `detail` 是系统或底层库给出的原文（例如磁盘错误），按原样附在文案后面。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
-#[serde(tag = "code", rename_all = "camelCase")]
+#[serde(
+    tag = "code",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 #[ts(export, rename = "CommandError")]
 pub enum ErrorKind {
     /// 还没有错误代码的错误：`message` 按原样显示。
@@ -25,7 +30,7 @@ pub enum ErrorKind {
     // 资料库（`library::Error`）。
     InvalidLibraryName,
     TagDefinitionsNotSaved {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
     NotEmpty {
         path: String,
@@ -59,14 +64,15 @@ pub enum ErrorKind {
     LensChanged,
     OutdatedLibrary,
     PackageImage {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
+    PackageImageUnsupported,
     MergeTargetGone,
     NamespaceGroup,
     NotInTrash,
     DeletePreviewStale,
     ReferenceGroupsUnchecked {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
     Io {
         detail: String,
@@ -87,7 +93,7 @@ pub enum ErrorKind {
         path: String,
     },
     ClipboardImage {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
 
     // 本设备的资料库登记（`DeviceLibraryError`、`WriterWaitError`）。
@@ -119,7 +125,7 @@ pub enum ErrorKind {
         detail: String,
     },
     CatalogInvalidDefinition {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
     CatalogInvalidGroupMembers,
     CatalogUnknownGroup,
@@ -143,14 +149,14 @@ pub enum ErrorKind {
         version: u32,
     },
     GroupInvalid {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
     GroupMembersUnavailable {
-        members: Vec<String>,
+        members: Vec<MemberUnavailable>,
     },
     NotAPackage,
     PackageDamaged {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
 
     // 备份（`BackupError`）。
@@ -159,22 +165,89 @@ pub enum ErrorKind {
     },
     UnknownSnapshot,
     SnapshotIncomplete {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
     BackupIo {
         detail: String,
     },
+    BackupUnfinished,
+    ManifestUnreadable {
+        detail: String,
+    },
+    ManifestDamaged {
+        detail: String,
+    },
+    NotABackup,
+    BackupFromNewerVersion {
+        version: u32,
+    },
+    SnapshotDatabaseKey,
+    SnapshotLibraryMismatch {
+        name: String,
+    },
+    SnapshotDefinitionsConflict {
+        cause: Box<ErrorKind>,
+    },
+    SnapshotGroupUnreadable {
+        name: String,
+        detail: String,
+    },
+    SnapshotGroupMismatch {
+        name: String,
+    },
+    SnapshotCapturesMismatch {
+        name: String,
+    },
+    RestoreRoundTripMismatch,
+    RestoreRollbackIncomplete {
+        cause: Box<ErrorKind>,
+        rollback: Box<ErrorKind>,
+    },
+    RestoreJournalDamaged {
+        detail: String,
+    },
+    RestoreJournalMismatch,
+    RestoreJournalLocation,
+    RestoreStageNotOwned,
+    RestoreResultLocation,
+    RestoreLibraryMismatch,
+    RestoreGroupMismatch,
 
     // 设置、快捷键与界面缩放。
     SettingsIo {
         detail: String,
     },
+    SettingsBackupIncompatible,
+    SettingsBackupNoLocation,
+    SettingsPackageIncompatible,
+    SettingsPackageSharedShortcut,
+    SettingsBackupUnreadable {
+        detail: String,
+    },
+    SettingsBackupInvalid {
+        detail: String,
+    },
+    SettingsBackupExtension,
+    SettingsBackupChanged,
+    SettingsRestoreUnfinished,
+    SettingsRestorePending {
+        cause: Box<ErrorKind>,
+    },
+    SettingsRollbackIncomplete {
+        cause: Box<ErrorKind>,
+        rollback: Box<ErrorKind>,
+        journal_kept: bool,
+    },
     ShortcutUsedBy {
         action: ShortcutAction,
     },
     ShortcutUnavailable {
-        reason: String,
+        reason: HotkeyFailure,
     },
+    ShortcutTwoMainKeys,
+    ShortcutNoMainKey,
+    ShortcutHindersTyping,
+    TagThresholdsInvalid,
     UiScaleUnsupported {
         percent: u16,
     },
@@ -194,8 +267,9 @@ pub enum ErrorKind {
     },
     CaptureUnknown,
     CollectFailed {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
+    CaptureNotAccepted,
     CaptureIo {
         detail: String,
     },
@@ -236,6 +310,11 @@ pub enum ErrorKind {
     },
     NoMonitor,
     UpdateNotPending,
+    UpdateCheckFailed,
+    UpdateManual,
+    UpdateNoPublicKey,
+    UpdateNoEndpoint,
+    UpdateUnknownStage,
     UpdateSignatureInvalid,
     UpdateInstallFailed,
 
@@ -335,6 +414,123 @@ pub enum ErrorKind {
     ClipboardPartlyWritten {
         detail: String,
     },
+
+    // 标签定义不合要求的地方。
+    DuplicateTagMapping,
+    ConflictingTagDefinitions,
+    TagNamespaceMismatch,
+    SnapshotNamespaceMismatch,
+    IdentityNamespaceConflict,
+    InvalidTagIdentity,
+    InvalidDefaultNames,
+    InvalidTagAlias,
+    InvalidExternalMapping,
+    ClipboardImageEmpty,
+    VocabularyNoNameColumn,
+    SettingsTagReferences,
+
+    // 参考组文件与参考组包不合要求的地方。
+    GroupNameMissing,
+    GroupMemberDuplicate {
+        member: String,
+    },
+    GroupMemberScale {
+        member: String,
+    },
+    GroupMemberRotation {
+        member: String,
+    },
+    GroupMemberCaptureFile {
+        member: String,
+    },
+    GroupMemberPin {
+        member: String,
+        cause: Box<ErrorKind>,
+    },
+    GroupIdentityExists,
+    MemberCaptureFileInvalid,
+    MemberCaptureMissing,
+    GroupFileMismatch,
+    NotAGroup,
+    WrongFormatVersion,
+    CaptureFileInvalid {
+        file: String,
+    },
+    GroupCaptureUnreadable {
+        file: String,
+        detail: String,
+    },
+    GroupUnreadable {
+        name: String,
+        cause: Box<ErrorKind>,
+    },
+    PackageOriginalMismatch {
+        path: String,
+    },
+    PackageNoDefinitions,
+    PackageNoLocalMappings,
+    PackageDefinitionNamespace,
+    PackageConflictingDefinitions,
+    PackageCaptureDuplicate {
+        file: String,
+    },
+    PackageMemberNoImage {
+        member: String,
+    },
+    PackageCaptureMissing {
+        file: String,
+    },
+    PackageCaptureMismatch {
+        file: String,
+    },
+    PackageImageMissing {
+        file: String,
+    },
+    PackageImageMismatch {
+        file: String,
+    },
+    /// 包导入做完 `done` 项后，第 `number` 项失败。
+    PackageImportStopped {
+        done: usize,
+        total: usize,
+        number: usize,
+        cause: Box<ErrorKind>,
+    },
+
+    // 导入一项没有成功的原因。
+    ImportWriteFailed {
+        cause: Box<ErrorKind>,
+    },
+    ImportTargetUnavailable {
+        cause: Box<ErrorKind>,
+    },
+    ImportItemCrashed,
+    ImportCancelled,
+    ImportUndecodable {
+        detail: String,
+    },
+    StagedFileMismatch,
+    OriginalContentMismatch,
+    OriginalChangedDuringImport,
+    PackageShaMismatch,
+    DeletionMemoryUnreadable {
+        detail: String,
+    },
+    EagleMetadataInvalid {
+        detail: String,
+    },
+    EagleRelocationUnconfirmed,
+    EagleFoldersInvalid,
+    EagleItemPathInvalid,
+    EagleItemFieldInvalid {
+        field: String,
+    },
+    EagleItemIdMismatch,
+    EagleItemSizeOrTags,
+    EagleItemUnknownFolder {
+        folder: String,
+    },
+    EagleItemSizeMismatch,
 
     /// 还原度门槛实验（开发用）不认识的取图方式。
     UnknownFidelitySample {

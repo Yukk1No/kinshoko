@@ -42,7 +42,7 @@ describe("主窗口", () => {
         items: [
           { path: "D:\\下载\\参考\\a.png", outcome: { kind: "imported", imageId: "a" } },
           { path: "D:\\下载\\参考\\说明.txt", outcome: { kind: "unsupported" } },
-          { path: "D:\\下载\\参考\\坏.png", outcome: { kind: "readFailed", reason: "无法解码" } },
+          { path: "D:\\下载\\参考\\坏.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "无法解码" } } },
         ],
       },
     });
@@ -93,7 +93,7 @@ describe("主窗口", () => {
         items: [
           { path: "D:\\参考\\a.png", outcome: { kind: "imported", imageId: "a" } },
           { path: "D:\\参考\\说明.txt", outcome: { kind: "unsupported" } },
-          { path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: "被占用" } },
+          { path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } },
         ],
       },
     });
@@ -164,7 +164,7 @@ describe("导入任务的终态（#76）", () => {
     taskId,
     report: {
       cancelled: false,
-      items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: "被占用" } }],
+      items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } }],
       fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
       eagleRelocations: [],
     },

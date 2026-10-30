@@ -379,7 +379,7 @@ pub async fn open_reference_group(app: AppHandle, group_id: String) -> Result<us
             pins::open_pin(&app, pin);
         }
         match opened.problems.first() {
-            Some(e) => Err(CommandError::without_code(e.clone())),
+            Some(e) => Err(e.clone()),
             None => Ok(fresh.len()),
         }
     })

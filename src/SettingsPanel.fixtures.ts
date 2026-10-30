@@ -20,7 +20,7 @@ export async function tab(name: string) {
 export const defaults: ShellSettingsView = {
   autostart: true,
   shortcuts: [
-    { action: "capture", accelerator: "F1", problem: "已被其他程序占用" },
+    { action: "capture", accelerator: "F1", problem: { kind: "taken" } },
     { action: "pinClipboard", accelerator: "F3", problem: null },
     { action: "hideAllPins", accelerator: "F4", problem: null },
   ],

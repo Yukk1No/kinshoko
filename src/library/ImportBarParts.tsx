@@ -6,6 +6,7 @@ import type { ImportOptions } from "../bindings/ImportOptions";
 import type { ImportOutcome } from "../bindings/ImportOutcome";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
+import { describeCommandError } from "../ipc/commandError";
 import type { FinishedImport, RunningImport } from "./ImportBar";
 
 export type ImportPlan = { paths: string[]; options: ImportOptions; eagle:boolean };
@@ -16,7 +17,7 @@ function reason(outcome: ImportOutcome): string | null {
     case "unsupported":
       return "不支持的格式";
     case "readFailed":
-      return `读取失败：${outcome.reason}`;
+      return `读取失败：${describeCommandError(outcome.reason)}`;
     default:
       return null;
   }

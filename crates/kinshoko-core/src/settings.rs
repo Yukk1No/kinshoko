@@ -197,15 +197,17 @@ pub struct AppSettings {
 #[derive(Debug)]
 pub enum SettingsError {
     Io(io::Error),
-    /// 值不合要求，没有保存；内容是给画师看的原因。
-    Invalid(&'static str),
+    /// 标签外观的分档阈值不合要求，没有保存。
+    TagThresholds,
 }
 
 impl fmt::Display for SettingsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SettingsError::Io(e) => write!(f, "读写设置文件失败：{e}"),
-            SettingsError::Invalid(why) => f.write_str(why),
+            SettingsError::TagThresholds => {
+                f.write_str("低档上限要小于高档下限，且都在 0 到 1 之间")
+            }
         }
     }
 }
@@ -232,9 +234,13 @@ impl SettingsSnapshot {
     pub(crate) fn force_srgb(&self) -> bool {
         self.force_srgb
     }
-    pub(crate) fn validate(&self) -> Result<(), String> {
+    pub(crate) fn validate(&self) -> Result<(), crate::CommandError> {
+        use crate::command_error::ErrorKind;
         if self.version != FORMAT_VERSION {
-            return Err("设置包由不兼容版本创建，请更新 Kinshoko".into());
+            return Err(crate::CommandError::new(
+                ErrorKind::SettingsPackageIncompatible,
+                "设置包由不兼容版本创建，请更新 Kinshoko",
+            ));
         }
         let mut used = std::collections::BTreeSet::new();
         for action in ShortcutAction::ALL {
@@ -244,9 +250,12 @@ impl SettingsSnapshot {
             };
             if let Some(accelerator) = accelerator {
                 let normalized =
-                    crate::shortcuts::normalize(accelerator).map_err(|e| e.to_string())?;
+                    crate::shortcuts::normalize(accelerator).map_err(crate::CommandError::from)?;
                 if !used.insert(normalized) {
-                    return Err("设置包中多个动作使用同一快捷键".into());
+                    return Err(crate::CommandError::new(
+                        ErrorKind::SettingsPackageSharedShortcut,
+                        "设置包中多个动作使用同一快捷键",
+                    ));
                 }
             }
         }
@@ -412,9 +421,7 @@ impl AppSettings {
     /// 保存标签外观；低档上限不小于高档下限、或阈值不在 0–1 之间时拒绝，原来的设置不变。
     pub fn set_tag_display(&mut self, display: TagDisplay) -> Result<(), SettingsError> {
         if !display.thresholds_valid() {
-            return Err(SettingsError::Invalid(
-                "低档上限要小于高档下限，且都在 0 到 1 之间",
-            ));
+            return Err(SettingsError::TagThresholds);
         }
         self.update(|f| f.tag_display = display)
     }

@@ -33,7 +33,12 @@ impl CatalogSettingsSnapshot {
         snapshot
     }
     pub(crate) fn validate(&self) -> Result<(), CatalogError> {
-        let invalid = || CatalogError::InvalidDefinition("设置包中的标签引用不完整或重复".into());
+        let invalid = || {
+            CatalogError::InvalidDefinition(Box::new(crate::CommandError::new(
+                crate::command_error::ErrorKind::SettingsTagReferences,
+                "设置包中的标签引用不完整或重复",
+            )))
+        };
         let mut tags = std::collections::BTreeMap::new();
         for tag in &self.tags {
             crate::portable_tags::PortableTagDefinition {
@@ -44,7 +49,7 @@ impl CatalogSettingsSnapshot {
                 external: tag.external.clone(),
             }
             .validate()
-            .map_err(CatalogError::InvalidDefinition)?;
+            .map_err(|e| CatalogError::InvalidDefinition(Box::new(e)))?;
             if tags.insert(tag.id.as_str(), tag.namespace).is_some() {
                 return Err(invalid());
             }

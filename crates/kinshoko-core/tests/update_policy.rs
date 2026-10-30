@@ -12,10 +12,20 @@ fn manual_builds_explain_package_updates_without_claiming_repository_visibility(
     assert_eq!(
         policy.initial_status(),
         UpdateStatus::Manual {
-            message: "当前使用安装包手动更新。".to_owned(),
+            message: kinshoko_core::CommandError::new(
+                kinshoko_core::command_error::ErrorKind::UpdateManual,
+                "当前使用安装包手动更新。",
+            ),
         }
     );
-    assert!(policy.require_automatic().unwrap_err().contains("手动更新"));
+    assert!(
+        policy
+            .require_automatic()
+            .unwrap_err()
+            .to_string()
+            .to_string()
+            .contains("手动更新")
+    );
 }
 
 #[test]
@@ -37,6 +47,7 @@ fn public_builds_need_the_original_public_endpoint_and_a_signing_key() {
         unsigned
             .require_automatic()
             .unwrap_err()
+            .to_string()
             .contains("更新公钥")
     );
 
@@ -57,7 +68,13 @@ fn public_builds_need_the_original_public_endpoint_and_a_signing_key() {
             missing.initial_status(),
             UpdateStatus::Disabled { .. }
         ));
-        assert!(missing.require_automatic().unwrap_err().contains("原仓库"));
+        assert!(
+            missing
+                .require_automatic()
+                .unwrap_err()
+                .to_string()
+                .contains("原仓库")
+        );
     }
 }
 
@@ -82,6 +99,7 @@ fn absent_stage_defaults_to_private_and_unknown_stage_never_enables_actions() {
         invalid
             .require_automatic()
             .unwrap_err()
+            .to_string()
             .contains("阶段配置")
     );
 }
@@ -108,7 +126,13 @@ fn public_builds_accept_either_original_channel_endpoint_but_nothing_else() {
                 .to_owned(),
         ],
     );
-    assert!(mixed.require_automatic().unwrap_err().contains("原仓库"));
+    assert!(
+        mixed
+            .require_automatic()
+            .unwrap_err()
+            .to_string()
+            .contains("原仓库")
+    );
 }
 
 #[test]
