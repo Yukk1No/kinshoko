@@ -43,9 +43,7 @@ pub(super) fn action<R: Runtime, T>(
 ) -> Result<T, CommandError> {
     let state = app.state::<LibraryState>();
     if saved_safe_mode(app) != safe {
-        return Err(kinshoko_core::library::Error::LensChanged
-            .to_string()
-            .into());
+        return Err(kinshoko_core::library::Error::LensChanged.into());
     }
     with_resources(&state, |workspace, device, catalog| {
         f(workspace, device, catalog)
@@ -60,9 +58,7 @@ pub(super) fn current<R: Runtime>(
     expected: SafeModeSnapshot,
 ) -> Result<(), CommandError> {
     if !app.state::<LibraryState>().safe_mode.still(&expected) || saved_safe_mode(app) != safe {
-        Err(kinshoko_core::library::Error::LensChanged
-            .to_string()
-            .into())
+        Err(kinshoko_core::library::Error::LensChanged.into())
     } else {
         Ok(())
     }

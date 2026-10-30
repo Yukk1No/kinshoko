@@ -27,10 +27,7 @@ pub fn run() {
         Err(message) => {
             eprintln!("{message}");
             #[cfg(windows)]
-            desktop::win32::show_error(
-                ui_text::text(ui_text::Text::StartupFailed),
-                &message.to_string(),
-            );
+            desktop::win32::show_error(ui_text::text(ui_text::Text::StartupFailed), &message);
             std::process::exit(1);
         }
     };

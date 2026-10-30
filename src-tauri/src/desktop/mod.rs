@@ -343,7 +343,7 @@ async fn close_desktop_menu(app: AppHandle, generation: u32) {
 async fn copy_capture(app: AppHandle, id: String) -> Result<(), CommandError> {
     tauri::async_runtime::spawn_blocking(move || pins::copy_capture_image(&app, &id))
         .await
-        .map_err(CommandError::message)?
+        .map_err(CommandError::system)?
 }
 
 /// Native pin menus request a visible destination in the main window before saving.
@@ -384,7 +384,7 @@ async fn collect_capture(
         Ok(collected)
     })
     .await
-    .map_err(CommandError::message)?
+    .map_err(CommandError::system)?
 }
 
 /// 贴边隐藏全部钉图，或让它们回到原位（与全局快捷键相同）。
