@@ -40,7 +40,7 @@ pub(super) async fn export_application_settings<R: Runtime>(
             let shell = lock(&shell_state.0);
             Ok(
                 ApplicationSettingsBackup::export(&shell.settings, catalog, &path)
-                    .map_err(CommandError::message),
+                    .map_err(CommandError::system),
             )
         })?
     })
@@ -50,7 +50,7 @@ pub(super) async fn export_application_settings<R: Runtime>(
 pub(super) async fn preview_application_settings(
     path: PathBuf,
 ) -> Result<ApplicationSettingsPreview, CommandError> {
-    blocking(move || ApplicationSettingsBackup::inspect(&path).map_err(CommandError::message)).await
+    blocking(move || ApplicationSettingsBackup::inspect(&path).map_err(CommandError::system)).await
 }
 #[tauri::command]
 pub(super) async fn restore_application_settings<R: Runtime>(
@@ -77,7 +77,7 @@ pub(super) async fn restore_application_settings<R: Runtime>(
                 &fingerprint,
             );
             if let Err(error) = result {
-                return Ok(Err(error));
+                return Ok(Err(CommandError::without_code(error)));
             }
             state.safe_mode.commit(|mode| {
                 *mode = SafeMode::new(shell.settings.safe_mode(), shell.settings.safe_mode_scope())
@@ -89,7 +89,11 @@ pub(super) async fn restore_application_settings<R: Runtime>(
             shortcuts.reload(&previous, settings);
             let mut problems = Vec::new();
             if let Err(error) = crate::shell::apply_autostart(&app, settings.autostart()) {
-                problems.push(format!("开机自启未同步：{error}"));
+                problems.push(CommandError::caused_by(
+                    error,
+                    |cause| ErrorKind::AutostartNotSynced { cause },
+                    |error| format!("开机自启未同步：{error}"),
+                ));
             }
             Ok(Ok((
                 shortcuts.settings_view(settings),
@@ -107,7 +111,11 @@ pub(super) async fn restore_application_settings<R: Runtime>(
         if let Some(libraries) = lock_libraries(&state).as_mut() {
             libraries.set_safe_mode(safe);
             if let Err(error) = libraries.set_safe_mode_scope(scope) {
-                problems.push(format!("安全模式范围未完全生效：{error}"));
+                problems.push(CommandError::caused_by(
+                    error,
+                    |cause| ErrorKind::SafeModeScopeIncomplete { cause },
+                    |error| format!("安全模式范围未完全生效：{error}"),
+                ));
             }
         }
         if let Some(log) = crate::run_log::log() {
@@ -118,14 +126,22 @@ pub(super) async fn restore_application_settings<R: Runtime>(
         // 恢复的设置可能带来另一个更新通道（#204）。
         crate::updater::channel_changed(&app);
         if let Err(error) = names::refresh_labels(&app, &state) {
-            problems.push(format!("资料库名称未刷新：{error}"));
+            problems.push(CommandError::caused_by(
+                error,
+                |cause| ErrorKind::LibraryNamesNotRefreshed { cause },
+                |error| format!("资料库名称未刷新：{error}"),
+            ));
         }
         let _ = app.emit(SAFE_MODE_EVENT, safe);
         match workspace::action(&app, safe, |w, d, c| w.status(d, c, safe)) {
             Ok(status) => {
                 let _ = app.emit(workspace::EVENT, status);
             }
-            Err(error) => problems.push(format!("资料库列表未刷新：{error}")),
+            Err(error) => problems.push(CommandError::caused_by(
+                error,
+                |cause| ErrorKind::LibraryListNotRefreshed { cause },
+                |error| format!("资料库列表未刷新：{error}"),
+            )),
         }
         Ok(ApplicationSettingsRestored {
             settings: view,

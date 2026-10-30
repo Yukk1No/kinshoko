@@ -30,7 +30,10 @@ pub(super) async fn start_import<R: Runtime>(
         folder_id: None,
     });
     if destination.library_id != library_id {
-        return Err("保存目标资料库与任务归属不一致".into());
+        return Err(CommandError::new(
+            ErrorKind::SaveTargetMismatch,
+            "保存目标资料库与任务归属不一致",
+        ));
     }
     let worker = app.clone();
     let id = blocking(move || {

@@ -57,7 +57,7 @@ pub(super) async fn inspect_tag_catalog<R: Runtime>(
     })
     .await?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新检查标签对应".into());
+        return Err(mapping_safe_mode_changed());
     }
     Ok(result)
 }
@@ -103,9 +103,15 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
         );
     }
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新检查标签对应".into());
+        return Err(mapping_safe_mode_changed());
     }
-    publication.map_err(|error| CommandError::message(format!("标签对应已保存在程序中，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。")))?;
+    publication.map_err(|error| {
+        CommandError::caused_by(
+            error,
+            |cause| ErrorKind::MappingDefinitionsNotSaved { cause },
+            |error| format!("标签对应已保存在程序中，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"),
+        )
+    })?;
     Ok(result)
 }
 
@@ -120,7 +126,13 @@ pub(super) async fn edit_tags<R: Runtime>(
     blocking(move || {
         let library = writable(&app, &library_id)?;
         library.edit_tags(&image_ids, &edits).map_err(CommandError::from)?;
-        publish_definition_dependencies(&app, &library_id).map_err(|error| CommandError::message(format!("标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。")))
+        publish_definition_dependencies(&app, &library_id).map_err(|error| {
+            CommandError::caused_by(
+                error,
+                |cause| ErrorKind::TagEditDefinitionsNotSaved { cause },
+                |error| format!("标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"),
+            )
+        })
     })
     .await
 }

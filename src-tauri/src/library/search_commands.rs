@@ -95,7 +95,7 @@ pub(super) async fn set_safe_mode<R: Runtime>(
                 let Some(shell) = app.try_state::<ShellState>() else {
                     return Ok(());
                 };
-                let mut shell = shell.0.lock().map_err(CommandError::message)?;
+                let mut shell = shell.0.lock().map_err(CommandError::system)?;
                 shell.settings.set_safe_mode(on).map_err(CommandError::from)
             },
         )?;
@@ -144,7 +144,7 @@ pub(super) async fn set_safe_mode_scope<R: Runtime>(
             |_| {
                 import_preview::revoke(&app);
                 let shell = app.state::<ShellState>();
-                let mut shell = shell.0.lock().map_err(CommandError::message)?;
+                let mut shell = shell.0.lock().map_err(CommandError::system)?;
                 shell
                     .settings
                     .set_safe_mode_scope(scope)
@@ -252,7 +252,7 @@ pub(super) fn external_vocabulary<R: Runtime>(
     }
     let mut names = ExternalVocabulary::builtin_names(state.search.builtin_approx());
     if let Some(path) = &csv {
-        names.extend(ExternalVocabulary::read_tags_csv(path)?);
+        names.extend(ExternalVocabulary::read_tags_csv(path).map_err(CommandError::without_code)?);
     }
     let vocabulary = ExternalVocabulary::new(names, &state.translations);
     *cached = Some((csv, vocabulary.clone()));

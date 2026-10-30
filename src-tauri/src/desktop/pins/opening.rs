@@ -71,7 +71,7 @@ pub(super) fn pin_reference_here(
         .map_err(CommandError::from)?;
     let image = crate::library::with_references(app, |refs| refs.image(library_id, image_id))
         .map_err(CommandError::from)?;
-    let origin = window.inner_position().map_err(CommandError::message)?;
+    let origin = window.inner_position().map_err(CommandError::system)?;
     let centre = (
         origin.x + shown.x + (shown.width / 2) as i32,
         origin.y + shown.y + (shown.height / 2) as i32,

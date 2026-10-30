@@ -12,6 +12,7 @@
 //! 线程规则同 [`super`]：持有锁时不调用窗口 API。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::desktop::ScreenRect;
 use kinshoko_core::desktop::{PinMenu, PinMenuOpen, menu_surface};
 use kinshoko_core::diagnostics::{LogEvent, WindowKind};
@@ -35,12 +36,12 @@ pub struct MenuState {
 
 /// 在指针处为钉图弹出菜单。
 pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), CommandError> {
-    let cursor = app.cursor_position().map_err(CommandError::message)?;
+    let cursor = app.cursor_position().map_err(CommandError::system)?;
     let surface = menu_surface(
         (cursor.x.floor() as i32, cursor.y.floor() as i32),
         &pins::monitors(),
     )
-    .ok_or("找不到显示器")?;
+    .ok_or_else(|| CommandError::new(ErrorKind::NoMonitor, "找不到显示器"))?;
     let open = {
         let mut menus = lock(&state(app).menu);
         menus.generation = menus.generation.wrapping_add(1);
@@ -80,7 +81,7 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, CommandError> {
     .visible(false)
     .shared_webview(app)
     .build()
-    .map_err(CommandError::message)?;
+    .map_err(CommandError::system)?;
     crate::run_log::window_created(WindowKind::PinMenu, started);
     // 显示、隐藏都要即时：系统过渡会让铺满显示器的窗口从中间放大、隐藏时边缩小边淡出，
     // 菜单就像向左滑走（#194）。三种关法最后都只是隐藏这个窗口，在这里关掉一次即可。
@@ -168,5 +169,5 @@ fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(), CommandE
     window
         .set_position(PhysicalPosition::new(rect.x, rect.y))
         .and_then(|_| window.set_size(PhysicalSize::new(rect.width, rect.height)))
-        .map_err(CommandError::message)
+        .map_err(CommandError::system)
 }

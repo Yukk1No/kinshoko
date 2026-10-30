@@ -98,13 +98,13 @@ pub fn apply_autostart<R: tauri::Runtime>(
         return Ok(());
     }
     let launcher = app.autolaunch();
-    let current = launcher.is_enabled().map_err(CommandError::message)?;
+    let current = launcher.is_enabled().map_err(CommandError::system)?;
     match (current, on) {
         (false, true) => launcher.enable(),
         (true, false) => launcher.disable(),
         _ => Ok(()),
     }
-    .map_err(CommandError::message)
+    .map_err(CommandError::system)
 }
 
 /// 按本机的界面缩放档位缩放主窗口的 WebView。截图遮罩、钉图等其他窗口不缩放。

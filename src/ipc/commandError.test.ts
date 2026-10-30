@@ -26,6 +26,10 @@ it("中文文案与 1.0 的后端原文一致，参数填进去", () => {
   expect(describeCommandError({ code: "shortcutUsedBy", action: "pinClipboard" })).toBe("这个快捷键已用于“钉剪贴板”");
   expect(describeCommandError({ code: "captureSourceUnavailable", reason: { kind: "imageMissing" } })).toBe("参考图已从资料库中删除");
   expect(describeCommandError({ code: "message", message: "原样显示" })).toBe("原样显示");
+  expect(describeCommandError({ code: "system", detail: "Access is denied." })).toBe("Access is denied.");
+  expect(describeCommandError({ code: "backupTargetMissing", path: "F:\备份" })).toBe("备份目标不在：F:\备份");
+  expect(describeCommandError({ code: "captureCollectIncomplete", number: 2, completed: 1, cause: { code: "unknownImage" } }))
+    .toBe("第 2 张截图的收藏未完成：资料库中没有这张参考图。之前完成的 1 张收藏已保留；参考组尚未保存。");
 });
 
 it("不认识的错误代码显示通用说明并附原始信息", () => {
@@ -37,6 +41,8 @@ it("英文界面按代码取英文文案", async () => {
   await i18n.changeLanguage("en");
   expect(describeCommandError({ code: "unknownImage" })).toBe("This reference image isn't in the library");
   expect(describeCommandError({ code: "io", detail: "disk full" })).toBe("Couldn't read or write a file: disk full");
+  expect(describeCommandError({ code: "autostartFailed", cause: { code: "system", detail: "Access is denied." } }))
+    .toBe("Couldn't change starting with Windows: Access is denied.");
 });
 
 it("命令失败时抛出带代码的错误，显示为说明文字", async () => {

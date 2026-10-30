@@ -62,17 +62,21 @@ pub(super) fn publish_saved<R: Runtime>(
             folder_id: None,
         })
         .map_err(|error| {
-            format!(
-                "内容处理结果已保留，资料库标签定义未更新：{error}。可在统一标签目录重试保存定义。"
+            CommandError::caused_by(
+                error,
+                |cause| ErrorKind::ProcessedDefinitionsNotSaved { cause },
+                |error| format!("内容处理结果已保留，资料库标签定义未更新：{error}。可在统一标签目录重试保存定义。"),
             )
         })?;
     with_catalog(&state.search, |catalog| {
         catalog.publish_library_definitions(library)
     })
     .map_err(|e| {
-        CommandError::message(format!(
-            "内容已保存，资料库标签定义未更新：{e}。可在统一标签目录重试保存定义。"
-        ))
+        CommandError::caused_by(
+            e,
+            |cause| ErrorKind::SavedDefinitionsNotSaved { cause },
+            |e| format!("内容已保存，资料库标签定义未更新：{e}。可在统一标签目录重试保存定义。"),
+        )
     })
 }
 fn complete<R: Runtime>(app: &AppHandle<R>, owner: &str, id: &str, warning: Option<String>) {
