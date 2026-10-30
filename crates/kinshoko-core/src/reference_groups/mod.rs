@@ -40,7 +40,7 @@ use crate::desktop::SavedPin;
 use captures::write_atomically;
 use merge::{assign, merge};
 
-pub use captures::{CaptureFiles, OpenedPins};
+pub use captures::{CaptureFiles, OpenedPins, RelinkFailure, RelinkReport};
 pub use error::GroupError;
 pub use member::{GroupCapture, GroupMember, MemberSource};
 pub use package::{

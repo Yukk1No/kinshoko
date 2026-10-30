@@ -180,19 +180,33 @@ fn prepare_pins(
 /// 截图收藏进了资料库（钉图菜单或截图历史的“收藏”）：截图历史记得由它而来的组内截图成员，
 /// 都改为引用收藏成的参考图（局部与摆放不变，组内那份截图删除）；桌面上来自这些成员的截图钉图
 /// 也改连，不论它显示的是哪条截图历史条目。
-/// 钉图早已关掉、截图在几个参考组里都一样。
+/// 钉图早已关掉、截图在几个参考组里都一样。只转换这次改连成功的成员的钉图；没改连的写进运行日志。
 pub fn capture_collected(app: &AppHandle, capture_id: &str, collected: &CollectedCapture) {
     let Some(entry) = lock(&state(app).history).entry(capture_id) else {
         return;
     };
     let open = pins::open_pins(app);
     // 与其他写参考组的命令一样持着参考组锁改写，免得和“存回参考组”交错；先参考组、后截图历史。
-    let relinked = {
+    let report = {
         let groups = lock(&state(app).groups);
         let mut history = lock(&state(app).history);
         groups.link_captures(&mut history, &open);
         groups.relink_collected(&mut history, capture_id, collected)
     };
+    // 没改连的成员仍是组内截图，参考组照常可用；关联留着，下次收藏这张截图时再试。
+    for failed in &report.failed {
+        crate::run_log::warn(
+            "参考组成员未改连到收藏的参考图",
+            format!(
+                "参考组 {} 成员 {}：{}",
+                failed.member.group_id, failed.member.member_id, failed.reason
+            ),
+        );
+    }
+    if let Some(error) = &report.unlink_error {
+        crate::run_log::warn("截图历史未去掉已改连的关联", error);
+    }
+    let relinked = report.relinked;
     if relinked.is_empty() {
         return;
     }
