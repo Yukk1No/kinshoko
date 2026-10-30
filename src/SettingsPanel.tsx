@@ -20,6 +20,7 @@ import {
   setRunLog,
   shellSettings,
   errorText,
+  hotkeyFailureText,
 } from "./ipc";
 import { SharedPersonalApproxSettings } from "./search/SharedPersonalApproxSettings";
 import { LegacyNameBanner } from "./library/LegacyNameMigrationPanel";
@@ -226,7 +227,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
               const label = ACTION_LABELS[binding.action];
               const isRecording = recording === binding.action;
               return <SettingsRow key={binding.action} label={label} title={label} className={isRecording ? "is-recording" : ""}
-                warn={binding.problem !== null && `未注册：${binding.problem}`}>
+                warn={binding.problem !== null && `未注册：${hotkeyFailureText(binding.problem)}`}>
                 {isRecording ? <>
                   <input className="k-key-recorder" aria-label="按下新的组合键" placeholder="按下新的组合键…" autoFocus readOnly
                     onKeyDown={(e) => onRecordKey(binding.action, e)} onBlur={() => setRecording(null)} />

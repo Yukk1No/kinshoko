@@ -197,15 +197,17 @@ pub struct AppSettings {
 #[derive(Debug)]
 pub enum SettingsError {
     Io(io::Error),
-    /// 值不合要求，没有保存；内容是给画师看的原因。
-    Invalid(&'static str),
+    /// 标签外观的分档阈值不合要求，没有保存。
+    TagThresholds,
 }
 
 impl fmt::Display for SettingsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SettingsError::Io(e) => write!(f, "读写设置文件失败：{e}"),
-            SettingsError::Invalid(why) => f.write_str(why),
+            SettingsError::TagThresholds => {
+                f.write_str("低档上限要小于高档下限，且都在 0 到 1 之间")
+            }
         }
     }
 }
@@ -412,9 +414,7 @@ impl AppSettings {
     /// 保存标签外观；低档上限不小于高档下限、或阈值不在 0–1 之间时拒绝，原来的设置不变。
     pub fn set_tag_display(&mut self, display: TagDisplay) -> Result<(), SettingsError> {
         if !display.thresholds_valid() {
-            return Err(SettingsError::Invalid(
-                "低档上限要小于高档下限，且都在 0 到 1 之间",
-            ));
+            return Err(SettingsError::TagThresholds);
         }
         self.update(|f| f.tag_display = display)
     }

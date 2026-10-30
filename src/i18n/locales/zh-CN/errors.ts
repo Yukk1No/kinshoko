@@ -84,6 +84,16 @@ export default {
   settingsIo: "读写设置文件失败：{{detail}}",
   shortcutUsedBy: "这个快捷键已用于“{{action}}”",
   shortcutUnavailable: "无法使用这个快捷键：{{reason}}",
+  shortcutTwoMainKeys: "一个快捷键只能有一个主键",
+  shortcutNoMainKey: "快捷键需要一个主键，不能只有修饰键",
+  shortcutHindersTyping: "字母、数字和符号键要配合 Ctrl、Alt 或 Win，否则会妨碍打字",
+  /** 系统没能注册快捷键的原因（`HotkeyFailure`）。 */
+  hotkey: {
+    unknownKey: "无法识别这个按键",
+    taken: "已被其他程序占用",
+    refused: "系统拒绝注册（{{detail}}）",
+  },
+  tagThresholdsInvalid: "低档上限要小于高档下限，且都在 0 到 1 之间",
   uiScaleUnsupported: "没有 {{percent}}% 这一档界面缩放",
   uiScaleIo: "保存界面缩放失败：{{detail}}",
   /** 快捷键动作的名称，与设置里一致。 */

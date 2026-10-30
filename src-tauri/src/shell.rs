@@ -10,7 +10,8 @@ use std::sync::Mutex;
 use kinshoko_core::diagnostics::{LogEvent, WindowKind};
 use kinshoko_core::interface_lang;
 use kinshoko_core::{
-    AppSettings, GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutAction, UiScale,
+    AppSettings, GlobalShortcuts, HotkeyFailure, HotkeyRegistrar, ShellSettingsView,
+    ShortcutAction, UiScale,
 };
 use tauri::{AppHandle, Emitter as _, Manager, WebviewWindowBuilder};
 use tauri_plugin_autostart::ManagerExt as _;
@@ -171,10 +172,8 @@ pub struct TauriHotkeys {
 }
 
 impl HotkeyRegistrar for TauriHotkeys {
-    fn register(&mut self, action: ShortcutAction, accelerator: &str) -> Result<(), String> {
-        let shortcut: Shortcut = accelerator
-            .parse()
-            .map_err(|_| "无法识别这个按键".to_owned())?;
+    fn register(&mut self, action: ShortcutAction, accelerator: &str) -> Result<(), HotkeyFailure> {
+        let shortcut: Shortcut = accelerator.parse().map_err(|_| HotkeyFailure::UnknownKey)?;
         self.app
             .global_shortcut()
             .on_shortcut(shortcut, move |app, _, event| {
@@ -185,9 +184,9 @@ impl HotkeyRegistrar for TauriHotkeys {
             .map_err(|e| {
                 let message = e.to_string();
                 if message.contains("already registered") {
-                    "已被其他程序占用".to_owned()
+                    HotkeyFailure::Taken
                 } else {
-                    format!("系统拒绝注册（{message}）")
+                    HotkeyFailure::Refused { detail: message }
                 }
             })
     }

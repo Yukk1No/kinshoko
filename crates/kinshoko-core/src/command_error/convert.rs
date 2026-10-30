@@ -6,6 +6,7 @@ use super::ErrorKind;
 use crate::backup::BackupError;
 use crate::desktop::{CaptureError, HistoryError, PinError};
 use crate::reference_groups::GroupError;
+use crate::shortcuts::ShortcutProblem;
 use crate::tag_catalog::CatalogError;
 use crate::{
     DeviceLibraryError, SettingsError, ShortcutError, UiScaleError, WriterWaitError, library,
@@ -172,9 +173,7 @@ impl From<SettingsError> for ErrorKind {
             SettingsError::Io(e) => ErrorKind::SettingsIo {
                 detail: e.to_string(),
             },
-            SettingsError::Invalid(why) => ErrorKind::Message {
-                message: why.to_owned(),
-            },
+            SettingsError::TagThresholds => ErrorKind::TagThresholdsInvalid,
         }
     }
 }
@@ -182,9 +181,11 @@ impl From<SettingsError> for ErrorKind {
 impl From<ShortcutError> for ErrorKind {
     fn from(e: ShortcutError) -> Self {
         match e {
-            ShortcutError::Invalid(why) => ErrorKind::Message {
-                message: why.to_owned(),
-            },
+            ShortcutError::Invalid(ShortcutProblem::TwoMainKeys) => ErrorKind::ShortcutTwoMainKeys,
+            ShortcutError::Invalid(ShortcutProblem::NoMainKey) => ErrorKind::ShortcutNoMainKey,
+            ShortcutError::Invalid(ShortcutProblem::HindersTyping) => {
+                ErrorKind::ShortcutHindersTyping
+            }
             ShortcutError::UsedBy(action) => ErrorKind::ShortcutUsedBy { action },
             ShortcutError::Unavailable(reason) => ErrorKind::ShortcutUnavailable { reason },
             ShortcutError::Settings(e) => e.into(),

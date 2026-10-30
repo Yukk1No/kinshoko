@@ -84,7 +84,16 @@ const errors: Translation<typeof zh> = {
   settingsIo: "Couldn't read or write the settings file: {{detail}}",
   shortcutUsedBy: "This shortcut is already used for “{{action}}”",
   shortcutUnavailable: "This shortcut can't be used: {{reason}}",
-  uiScaleUnsupported: "There's no {{percent}}% interface scale",
+shortcutTwoMainKeys: "A shortcut can only have one main key",
+  shortcutNoMainKey: "A shortcut needs a main key, not just modifier keys",
+  shortcutHindersTyping: "Letter, number and symbol keys need Ctrl, Alt or Win, or they'd get in the way of typing",
+  hotkey: {
+    unknownKey: "This key isn't recognized",
+    taken: "Another program is already using it",
+    refused: "Windows refused to register it ({{detail}})",
+  },
+  tagThresholdsInvalid: "The low tier's upper limit must be below the high tier's lower limit, and both must be between 0 and 1",
+    uiScaleUnsupported: "There's no {{percent}}% interface scale",
   uiScaleIo: "Couldn't save the interface scale: {{detail}}",
   shortcutAction: {
     capture: "Capture",

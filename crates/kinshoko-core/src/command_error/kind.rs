@@ -5,6 +5,7 @@ use ts_rs::TS;
 
 use crate::ShortcutAction;
 use crate::reference_groups::UnavailableReason;
+use crate::shortcuts::HotkeyFailure;
 
 /// 命令失败的原因。`code` 决定文案，其余字段是文案里的参数。前端看到的类型名是 `CommandError`。
 ///
@@ -173,8 +174,12 @@ pub enum ErrorKind {
         action: ShortcutAction,
     },
     ShortcutUnavailable {
-        reason: String,
+        reason: HotkeyFailure,
     },
+    ShortcutTwoMainKeys,
+    ShortcutNoMainKey,
+    ShortcutHindersTyping,
+    TagThresholdsInvalid,
     UiScaleUnsupported {
         percent: u16,
     },
