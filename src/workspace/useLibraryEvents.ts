@@ -3,27 +3,19 @@ import { onLibraryEvent, onOrganizeWaiting } from "../ipc";
 import type { FinishedImport, RunningImport } from "../library/ImportBar";
 import { safeTiming } from "../shell/safeTiming";
 import type { ToastApi } from "../ui/Toast";
-import type { BrowserCard, WallHandle } from "../wall/Wall";
 import type { ImportTasks } from "./useImportTasks";
-import type { Prune } from "./useWorkspaceStatus";
+import type { Invalidate } from "./useInvalidation";
 
 /** 资料库事件：列表与词表失效、安全模式确认、导入进度与结束；另一个图库整理等导入收尾时的轻提示。 */
 export function useLibraryEvents({
-  libraryId, toast, imports, statusObservations, wall, prune, safeChanged, keepSelectionOnSafeRef,
-  setReloadKey, setVocabularyKey, setSelected, setViewing, setRunning, setReport,
+  libraryId, toast, imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport,
 }: {
   libraryId: string;
   toast: ToastApi | null;
   imports: RefObject<ImportTasks>;
-  statusObservations: RefObject<number>;
-  wall: RefObject<WallHandle | null>;
-  prune: RefObject<Prune>;
+  invalidate: Invalidate;
   safeChanged: RefObject<(on: boolean) => void>;
   keepSelectionOnSafeRef: RefObject<boolean>;
-  setReloadKey: Dispatch<SetStateAction<number>>;
-  setVocabularyKey: Dispatch<SetStateAction<number>>;
-  setSelected: Dispatch<SetStateAction<Set<string>>>;
-  setViewing: Dispatch<SetStateAction<BrowserCard | null>>;
   setRunning: Dispatch<SetStateAction<RunningImport | null>>;
   setReport: Dispatch<SetStateAction<FinishedImport | null>>;
 }) {
@@ -51,29 +43,19 @@ export function useLibraryEvents({
       const task = imports.current;
       switch (event.kind) {
         case "listStale":
-          statusObservations.current += 1;
-          wall.current?.invalidate();
-          prune.current = "reset";
-          setReloadKey((k) => k + 1);
+          invalidate({ kind: "listInvalidated" });
           break;
         case "vocabularyChanged":
         case "imagesChanged":
-          setVocabularyKey((k) => k + 1);
+          invalidate({ kind: "vocabularyInvalidated" });
           break;
         case "safeModeChanged":
           safeChanged.current(event.on);
           // 选中或正在查看的图可能已被封印：开启时关闭查看器回到图片墙；
           // 默认同时清掉选择，设为保留时由重读后的修剪只去掉被封印的图。
-          if (event.on) {
-            if (!keepSelectionOnSafeRef.current) setSelected(new Set());
-            setViewing(null);
-            setReloadKey((k) => k + 1);
-            setVocabularyKey((k) => k + 1);
-          } else {
-            // 关闭：查询视角在后端确认时才放开，放开那一刻（下面按 safe 的效果）整批重读一次。
-            // 这里再重读，会作废那次刚发出的浏览、再排一遍队，释放动画跟着推迟（#183）。
-            safeTiming.mark("资料库事件");
-          }
+          invalidate({ kind: "safeConfirmed", on: event.on, keepSelection: keepSelectionOnSafeRef.current });
+          // 关闭：查询视角在后端确认时才放开，放开那一刻整批重读一次（#183）。
+          if (!event.on) safeTiming.mark("资料库事件");
           break;
         case "taskProgress":
           // 已结束的任务不再复活；另一个任务正在进行时，旧任务的进度不覆盖它。
