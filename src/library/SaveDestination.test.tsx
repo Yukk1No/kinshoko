@@ -92,7 +92,7 @@ it("a late start reply and cancel keep the submitted owner after selecting anoth
 
 it("retry starts at its original target and an explicit new choice matches the final submitted target",async()=>{
  let submitted:unknown;
- const receipt={taskId:"failed-B",destination:{libraryId:"B",folderId:null},libraryName:"保存库",folderName:"未归类",progress:{done:1,total:1},finishing:false,warnings:[],report:{items:[{path:"C:/failed.png",outcome:{kind:"readFailed",reason:"locked"}}],cancelled:false,fromEagle:false,eagleMissing:0,eagleRelocations:[]}};
+ const receipt={taskId:"failed-B",destination:{libraryId:"B",folderId:null},libraryName:"保存库",folderName:"未归类",progress:{done:1,total:1},finishing:false,warnings:[],report:{items:[{path:"C:/failed.png",outcome:{kind: "readFailed", reason: { code: "system", detail: "locked" }}}],cancelled:false,fromEagle:false,eagleMissing:0,eagleRelocations:[]}};
  mockIPC((cmd,args)=>{
   if(cmd==="plugin:library|workspace_directories")return {status:{revision:"test",libraries},providers:libraries.map(registration=>({registration,sidebar:{all:0,trash:0,folders:[]},unassigned:0,descendants:{}}))};
   if(cmd==="plugin:library|import_tasks")return [receipt];
@@ -210,7 +210,7 @@ it("pinning whose own change reloads the source leaves the source actions usable
 it("保存位置读取一直遇到“浏览结果已变化”时最多重试 3 次，然后显示问题", async () => {
  let calls = 0;
  mockIPC(cmd => {
-  if (cmd === "plugin:library|workspace_directories") { calls++; return Promise.reject("浏览结果已变化，请从头重新浏览"); }
+  if (cmd === "plugin:library|workspace_directories") { calls++; return Promise.reject({ code: "cursorExpired" }); }
   return undefined;
  }, { shouldMockEvents: true });
  const { SaveDestinationPicker } = await import("./SaveDestination");

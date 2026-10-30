@@ -26,7 +26,7 @@ export const SPRING_OPEN_MS = 600;
  */
 export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onError, onRecheck, onRemoved, children }: {
   status: WorkspaceStatus | null; scope: WorkspaceScope; onScope: (scope: WorkspaceScope) => void;
-  safeMode: boolean; reloadKey: number; onError: (message: string) => void;
+  safeMode: boolean; reloadKey: number; onError: (error: unknown) => void;
   /** 重新检查未连接的图库（移动盘接回后）。 */
   onRecheck?: () => void;
   /** 图库标题菜单“从列表移除”完成后（取消登记，文件不删）。 */
@@ -51,7 +51,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
         } catch (error) {
           if (!alive || isLensChanged(error)) return;
           if (isCursorExpired(error) && attempt < 3) continue;
-          onError(String(error));
+          onError(error);
           return;
         }
       }
@@ -114,7 +114,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
     const current = latestScope.current;
     if (current.kind === "library" && current.libraryId === libraryId) onScope({ kind: "all" });
     onRemoved?.(libraryId);
-  }, (e) => onError(String(e))); };
+  }, (e) => onError(e)); };
   const emptyItem = (p: WorkspaceDirectory, label: string) => <MenuItem key={p.registration.library.id} icon={<Trash2 size={14} />} danger
     disabled={!p.sidebar || p.sidebar.trash === 0} onClick={() => setEmptying({ libraryId: p.registration.library.id, name: p.registration.library.name })}>{label}</MenuItem>;
 
@@ -172,7 +172,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
         const folder = e.dataTransfer.getData(DRAG_FOLDER);
         const from = e.dataTransfer.getData(DRAG_FOLDER_LIBRARY);
         if (!folder || (from && from !== library.id)) return;
-        void moveFolder(library.id, folder, null, LAST).catch((error) => onError(String(error)));
+        void moveFolder(library.id, folder, null, LAST).catch((error) => onError(error));
       };
       return <section key={library.id} className="workspace-provider lib-group" data-library-id={library.id}
         data-offline={unavailable ? "true" : undefined} {...springHandlers(library.id, available && !expanded)}>

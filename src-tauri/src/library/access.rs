@@ -1,6 +1,7 @@
 //! 其他模块取资料库句柄、来源与安全模式的入口。
 
 use super::*;
+use kinshoko_core::CommandError;
 
 /// 运行日志里的资料库编号（#219）：它在本设备登记表里的位置。登记表还没加载、或正被别处
 /// 持有（例如切换资料库的途中）时为空：只为记日志，不等锁。
@@ -17,7 +18,9 @@ pub fn library_no<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Option<Li
 
 /// 活动资料库；还没有时打开本设备上次打开的资料库并装配。会读文件，不要在主线程上调用。
 /// 启动时的这几步记下耗时（#313）；之后再调用时资料库已经打开，不再记。
-pub(super) fn restore<R: Runtime>(app: &AppHandle<R>) -> Result<Option<Arc<Library>>, String> {
+pub(super) fn restore<R: Runtime>(
+    app: &AppHandle<R>,
+) -> Result<Option<Arc<Library>>, CommandError> {
     use kinshoko_core::diagnostics::took;
     let started = std::time::Instant::now();
     let state = app.state::<LibraryState>();
@@ -60,15 +63,18 @@ pub(super) fn restore<R: Runtime>(app: &AppHandle<R>) -> Result<Option<Arc<Libra
 
 /// 当前资料库，还没打开时打开本设备上次打开的资料库。供其他模块（例如收藏截图）使用；
 /// 会读文件，不要在主线程上调用。
-pub fn current_or_last<R: Runtime>(app: &AppHandle<R>) -> Result<Arc<Library>, String> {
-    restore(app)?.ok_or_else(|| "还没有资料库".to_owned())
+pub fn current_or_last<R: Runtime>(app: &AppHandle<R>) -> Result<Arc<Library>, CommandError> {
+    restore(app)?.ok_or_else(|| CommandError::new(ErrorKind::NoLibrary, "还没有资料库"))
 }
 
 /// 画师要整理的资料库（ADR-0008）：后端只为一个库持有可写句柄，整理哪个库就按需切过去并装配它
 /// （安全模式、打标、事件转发），不改“上次打开”。该库或当前持有者有导入在收尾时，推送一次
 /// `organize-waiting` 轻提示，等收尾结束后再取，请求不丢失、只执行一次；等到 [`ORGANIZE_LIMIT`]
 /// 仍在收尾时报错给界面（这次整理没有执行）。会阻塞，只在阻塞任务里调用。
-pub fn writable<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<Arc<Library>, String> {
+pub fn writable<R: Runtime>(
+    app: &AppHandle<R>,
+    library_id: &str,
+) -> Result<Arc<Library>, CommandError> {
     let state = app.state::<LibraryState>();
     wait_for_writer(
         || {
@@ -84,7 +90,7 @@ pub fn writable<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<Arc<
                 let info = forward_events(app, &state, library.clone());
                 let _ = app.emit(WRITABLE_LIBRARY_EVENT, info);
             }
-            Ok::<_, String>(access)
+            Ok::<_, CommandError>(access)
         },
         |notice| {
             let _ = app.emit(ORGANIZE_WAITING_EVENT, notice);
@@ -92,7 +98,7 @@ pub fn writable<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<Arc<
         ORGANIZE_RECHECK,
         ORGANIZE_LIMIT,
     )
-    .map_err(|error| error.to_string())
+    .map_err(CommandError::from)
 }
 
 /// 界面要读的资料库（浏览、详情、目录、标签……，ADR-0008）：按 id 取，不要求它持有可写句柄，
@@ -100,7 +106,7 @@ pub fn writable<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<Arc<
 pub(super) fn readable<R: Runtime>(
     app: &AppHandle<R>,
     library_id: &str,
-) -> Result<Arc<Library>, String> {
+) -> Result<Arc<Library>, CommandError> {
     let state = app.state::<LibraryState>();
     let safe = saved_safe_mode(app);
     with_libraries(&state, |libraries| libraries.resolve(library_id, safe))
@@ -111,16 +117,19 @@ pub fn visible_source<R: Runtime>(
     app: &AppHandle<R>,
     library_id: &str,
     image_id: &str,
-) -> Result<Arc<Library>, String> {
+) -> Result<Arc<Library>, CommandError> {
     workspace::read(app, library_id, image_id)
 }
 
 /// 图库在本设备上的位置（在资源管理器中打开，#114）：先取登记表的副本、放开锁，再检查那里
 /// 仍是这个图库（与 `registered_libraries` 相同，网络盘的 I/O 不阻塞库操作）。会读文件。
-pub fn library_folder<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Result<PathBuf, String> {
+pub fn library_folder<R: Runtime>(
+    app: &AppHandle<R>,
+    library_id: &str,
+) -> Result<PathBuf, CommandError> {
     let state = app.state::<LibraryState>();
     let registered = with_libraries(&state, |libraries| Ok(libraries.libraries().to_vec()))?;
-    DeviceLibraries::library_folder(&registered, library_id).map_err(|e| e.to_string())
+    DeviceLibraries::library_folder(&registered, library_id).map_err(CommandError::from)
 }
 
 /// 本设备上按“资料库＋参考图”取图的地方（参考组与桌面钉图用，#66）：活动资料库经它的参考视角
@@ -156,14 +165,17 @@ pub fn data_dir<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
 /// 本设备登记的资料库（备份范围用，#69）。在切换锁里读：不会读到切换进行到一半的登记表。
 pub fn registered<R: Runtime>(
     app: &AppHandle<R>,
-) -> Result<Vec<kinshoko_core::RegisteredLibrary>, String> {
+) -> Result<Vec<kinshoko_core::RegisteredLibrary>, CommandError> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
     with_libraries(&state, |libraries| Ok(libraries.libraries().to_vec()))
 }
 
 /// 把恢复出的资料库登记到本设备，不切换过去（#69）。
-pub fn register_restored<R: Runtime>(app: &AppHandle<R>, roots: &[PathBuf]) -> Result<(), String> {
+pub fn register_restored<R: Runtime>(
+    app: &AppHandle<R>,
+    roots: &[PathBuf],
+) -> Result<(), CommandError> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
     with_visibility_commit(app, |_| {

@@ -1,6 +1,6 @@
 import type { RuntimeCapabilities } from "../bindings/RuntimeCapabilities";
 import type { RuntimeStatus } from "../bindings/RuntimeStatus";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { BackupPreview } from "../bindings/BackupPreview";
 import type { BackupStatus } from "../bindings/BackupStatus";
@@ -225,4 +225,19 @@ export function onUpdateProgress(handler: (progress: UpdateProgress) => void): P
 /** 更新通道换了（#204）：之前查到的更新已作废。 */
 export function onUpdateChannelChanged(handler: () => void): Promise<UnlistenFn> {
   return listen("update-channel-changed", () => handler());
+}
+
+/** 当前界面语言（#354）。 */
+export function interfaceLanguage(): Promise<string> {
+  return invoke<string>("interface_language");
+}
+
+/** 换界面语言；各窗口随即收到 `onInterfaceLanguage`。设置里的选项随 #358 上线。 */
+export function setInterfaceLanguage(lang: string): Promise<string> {
+  return invoke<string>("set_interface_language", { lang });
+}
+
+/** 界面语言改了。 */
+export function onInterfaceLanguage(handler: (lang: string) => void): Promise<UnlistenFn> {
+  return listen<string>("interface-language", (e) => handler(e.payload));
 }

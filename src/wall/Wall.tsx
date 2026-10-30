@@ -11,7 +11,7 @@ import { mountWindow, type MountWindow } from "./prefetch";
 import { useUiScale } from "../shell/uiScale";
 import { useDevicePixelRatio } from "../ui/devicePixelRatio";
 import {
-  CAP_RATIO, EMPTY, GAP, NO_CONDITIONS, OVERSCAN, PAD, SAVE_ANCHOR_MS, TARGET, anchorKey, loadAnchor,
+  CAP_RATIO, EMPTY, GAP, NO_CONDITIONS, OVERSCAN, PAD, SAVE_ANCHOR_MS, TARGET, loadAnchor,
   saveAnchor, type BrowserCard, type LayoutSnapshot, type WallHandle, type WallProps,
 } from "./wallShared";
 import { wallCardNode, type CardHandlers } from "./WallCard";
@@ -45,7 +45,6 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   onDensityPreview,
   onDensityCommit,
   onTotalChange,
-  libraryId,
   scope,
   conditions = NO_CONDITIONS,
   reloadKey,
@@ -60,7 +59,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   onPaste,
 }, ref) {
   const searching = conditions.conditions.length > 0;
-  const storeKey = searching ? null : workspaceScope ? `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}` : anchorKey(libraryId, scope);
+  const storeKey = searching ? null : `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}`;
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [previewDensity, setPreviewDensity] = useState<number | null>(null);
@@ -88,16 +87,16 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { onTotalChange?.(total); }, [onTotalChange, total]);
   /**
-   * 请求代次：重新浏览、视角（资料库、范围、条件、安全模式）变化与卸载时前进。
+   * 请求代次：重新浏览、视角（浏览范围、条件、安全模式）变化与卸载时前进。
    * 响应回来时代次已经不同就整个丢掉，不改卡片、游标、数量、错误与加载状态（#77 UI-A）。
    */
   const generation = useRef(0);
   /** 正在进行的请求所属代次；没有时为 null。被作废的请求不会占着它。 */
   const inflight = useRef<number | null>(null);
   /** 当前视角。请求发出时按这里取，不用首次渲染时的值。 */
-  const view = useRef({ libraryId, scope, conditions, workspaceScope, safeMode });
-  view.current = { libraryId, scope, conditions, workspaceScope, safeMode };
-  const lens = `${libraryId}\n${JSON.stringify(scope)}\n${JSON.stringify(conditions)}\n${safeMode}\n${JSON.stringify(workspaceScope)}`;
+  const view = useRef({ conditions, workspaceScope, safeMode });
+  view.current = { conditions, workspaceScope, safeMode };
+  const lens = `${JSON.stringify(conditions)}\n${safeMode}\n${JSON.stringify(workspaceScope)}`;
   useLayoutEffect(() => {
     // 视角变了：还在路上的请求按旧视角作废，旧游标也不再接着翻；等调用方按新视角重新浏览。
     generation.current += 1;
@@ -230,10 +229,10 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const tier = thumbnailTier(thumbnailPx);
 
   useEffect(() => { onCardsChange?.(cards); }, [cards, onCardsChange]);
-  useWallCaptureSources({ viewerOpen, scroller, cards, libraryId });
+  useWallCaptureSources({ viewerOpen, scroller, cards });
   const { loadMore } = useWallPages({
     cards, setCards, cursor, setCursor, setTotal, setError, generation, inflight, view, restoring, anchor, shownCards,
-    measureBeforeReflow, onWorkspaceStatus, releasePage, thumbnailPx, reloadKey, loadMoreRef, workspaceScope, safeMode,
+    measureBeforeReflow, onWorkspaceStatus, releasePage, reloadKey, loadMoreRef, workspaceScope, safeMode,
     pendingRemoval,
   });
 

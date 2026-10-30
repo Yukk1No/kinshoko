@@ -1,20 +1,20 @@
 //! Formal IPC adapter for shared tag-name actions.
+
 use super::*;
+use kinshoko_core::CommandError;
 use kinshoko_core::tag_catalog::CatalogNameEdit;
 
 pub(super) fn refresh_labels<R: Runtime>(
     app: &AppHandle<R>,
     state: &LibraryState,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     state.search.invalidate();
     if let Ok(active) = state.active() {
         let _ = app.emit(
             EVENT,
             LibraryEvent::VocabularyChanged {
                 library_id: active.info().id.clone(),
-                revision: active
-                    .vocabulary_revision()
-                    .map_err(|error| error.to_string())?,
+                revision: active.vocabulary_revision().map_err(CommandError::from)?,
             },
         );
     }
@@ -27,7 +27,7 @@ pub(super) async fn edit_tag_name<R: Runtime>(
     state: State<'_, LibraryState>,
     catalog_id: String,
     edit: CatalogNameEdit,
-) -> Result<TagCatalogWorkspace, String> {
+) -> Result<TagCatalogWorkspace, CommandError> {
     let reader = app.clone();
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
@@ -61,7 +61,10 @@ pub(super) async fn edit_tag_name<R: Runtime>(
     .await?;
     refresh_labels(&app, &state)?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新读取标签名称".into());
+        return Err(CommandError::new(
+            ErrorKind::TagNamesSafeModeChanged,
+            "安全模式已变化，请重新读取标签名称",
+        ));
     }
     Ok(result)
 }
@@ -77,7 +80,7 @@ pub(super) async fn edit_local_alias<R: Runtime>(
     library_id: String,
     local_id: String,
     edit: LocalAliasEdit,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     let catalog = state.search.clone();
     let reader = app.clone();
     blocking(move || {

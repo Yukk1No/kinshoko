@@ -1,13 +1,14 @@
 //! Eagle 库搬家后的位置确认。
 
 use super::*;
+use crate::CommandError;
 
 /// 新位置疑似已登记来源搬了家：某个来源已绑定的条目至少一半出现在这里。只提议，不写任何数据。
 pub(super) fn relocation(
     inner: &Inner,
     root: &Path,
     present: &[String],
-) -> Result<Option<EagleRelocation>, String> {
+) -> Result<Option<EagleRelocation>, CommandError> {
     let present: HashSet<&str> = present.iter().map(String::as_str).collect();
     let conn = inner.readers.get();
     let mut stmt = conn
@@ -15,7 +16,7 @@ pub(super) fn relocation(
             "SELECT DISTINCT s.id, s.location, b.external_id
              FROM import_source s JOIN source_binding b ON b.source_id = s.id",
         )
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::system)?;
     let rows = stmt
         .query_map([], |r| {
             Ok((
@@ -24,11 +25,11 @@ pub(super) fn relocation(
                 r.get::<_, String>(2)?,
             ))
         })
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::system)?;
     // 来源 → (登记位置, 已绑定条目数, 出现在新位置的条目数)
     let mut sources: HashMap<String, (String, u64, u64)> = HashMap::new();
     for row in rows {
-        let (id, location, external_id) = row.map_err(|e| e.to_string())?;
+        let (id, location, external_id) = row.map_err(CommandError::system)?;
         let entry = sources.entry(id).or_insert((location, 0, 0));
         entry.1 += 1;
         entry.2 += u64::from(present.contains(external_id.as_str()));
@@ -77,8 +78,9 @@ pub(in crate::library) fn confirm_location(
     path: &Path,
     choice: EagleLocationChoice,
 ) -> Result<(), Error> {
-    let invalid =
-        |reason: String| Error::Io(std::io::Error::new(std::io::ErrorKind::InvalidData, reason));
+    let invalid = |reason: CommandError| {
+        Error::Io(std::io::Error::new(std::io::ErrorKind::InvalidData, reason))
+    };
     let location = canonical(path).map_err(invalid)?;
     match choice {
         EagleLocationChoice::Separate => {

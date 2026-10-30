@@ -6,7 +6,7 @@ import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { BrowseScope } from "../bindings/BrowseScope";
 
-// WorkspacePane 测试共用的数据与目录读取模拟（从 WorkspacePane.test.tsx 拆出）。
+// WorkspacePane 测试共用的数据与目录读取模拟。
 export const names: Record<string, string> = { A: "人物参考", B: "风景参考" };
 export const registrations = ["A", "B"].map((id) => ({ library: { id, name: names[id], root: `D:\\${id}\\参考` }, unavailable: null as string | null }));
 export const forest = (revision = "r"): WorkspaceDirectories => ({ status: { revision, libraries: registrations }, providers: registrations.map((registration) => ({ registration: { ...registration, library: { ...registration.library } }, unassigned: 1, descendants: { [registration.library.id + "-root"]: 2, [registration.library.id + "-child"]: 1 }, sidebar: { all: 3, trash: 0, folders: [{ id: registration.library.id + "-root", name: "人物", count: 1, children: [{ id: registration.library.id + "-child", name: "动作", count: 1, children: [] }] }] } })) });

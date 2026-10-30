@@ -42,7 +42,7 @@ it("断连库与失效文件夹保持原范围并禁用旧目录控件", async (
 it("读取时目录修订改变会自动重读，不留下要求用户操作的过期提示", async () => {
   render(<WorkspacePane {...props} scope={inA({ kind: "all" })} />);
   await settle();
-  await act(async () => pending[0].reject("浏览结果已变化，请从头重新浏览"));
+  await act(async () => pending[0].reject({ code: "cursorExpired" }));
   await settle();
   expect(pending).toHaveLength(2);
   await act(async () => pending[1].resolve(forest("fresh")));

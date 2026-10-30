@@ -124,12 +124,16 @@ pub enum TaggingStatus {
         model: String,
     },
     /// 正在打标；`tagged` 是本次运行打过的张数，`gpu` 是在用的显卡（CPU 档为空）。
+    /// 这一轮（从上次没有待打标的图算起）的进度是 `done / (done + remaining)`：`done` 是这一轮处理过的张数
+    /// （含无法读取的图），`remaining` 是还没处理的张数（含正在打的这张）。
     #[serde(rename_all = "camelCase")]
     Running {
         model: String,
         device: Device,
         gpu: Option<String>,
         tagged: u32,
+        done: u32,
+        remaining: u32,
     },
     /// 没有待打标的图；会话已结束，不占显存。`tagged` 同 `Running`，含刚打完的最后一张。
     #[serde(rename_all = "camelCase")]
@@ -264,6 +268,8 @@ impl Tagging {
             crashes: HashMap::new(),
             session: None,
             tagged: 0,
+            done: 0,
+            remaining: 0,
             chosen: None,
         };
         let thread = std::thread::Builder::new()
@@ -353,6 +359,9 @@ struct Worker {
     crashes: HashMap<String, u32>,
     session: Option<(String, Box<dyn TaggerSession>)>,
     tagged: u32,
+    /// 见 [`TaggingStatus::Running`]。
+    done: u32,
+    remaining: u32,
     /// 上一次选中的模型 key；自动档换到另一个模型时，之前的下载确认不再算数。
     chosen: Option<String>,
 }

@@ -48,7 +48,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
   it.each<[string, TaggingStatus, RegExp, string | null]>([
     ["加载模型", { state: "starting" }, /正在加载模型…/, "暂停"],
     ["校验模型", { state: "preparing", model: "PixAI Tagger v1.0（显卡）" }, /正在加载模型…/, "暂停"],
-    ["打标", { state: "running", model: "x", device: "directMl", gpu: "RX 6500 XT", tagged: 12 }, /已标 12 张（显卡）/, "暂停"],
+    ["打标", { state: "running", model: "x", device: "directMl", gpu: "RX 6500 XT", tagged: 12, done: 0, remaining: 1 }, /已标 12 张（显卡）/, "暂停"],
     ["暂停", { state: "paused" }, /已暂停/, "继续"],
     ["全屏程序在前台", { state: "yieldedToFullScreen" }, /因全屏程序或演示模式暂停，回到桌面后自动继续/, "暂停"],
     ["打完", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0 }, /已全部打完/, null],
@@ -103,7 +103,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
   });
 
   it("暂停与继续都发给打标所在的资料库", async () => {
-    const calls = backend({ status: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 0 } });
+    const calls = backend({ status: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 0, done: 0, remaining: 1 } });
     render(<AutoTaggingSettings libraryId="L1" />);
     fireEvent.click(await screen.findByRole("button", { name: "暂停" }));
     await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_pause", args: { libraryId: "L1" } }));
@@ -113,7 +113,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
   });
 
   it("跟着后端的可写资料库走，旧库迟到的状态不显示", async () => {
-    const statuses: Record<string, TaggingStatus> = { L1: { state: "paused" }, L2: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 7 } };
+    const statuses: Record<string, TaggingStatus> = { L1: { state: "paused" }, L2: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 7, done: 0, remaining: 1 } };
     backend({ handle: (cmd, args) => (cmd === "tagging_status" ? { libraryId: args.libraryId, status: statuses[args.libraryId as string] } : undefined) });
     render(<AutoTaggingSettings libraryId="L1" />);
     await waitFor(() => expect(within(statusRow()).getByText(/已暂停/)).toBeTruthy());
@@ -161,7 +161,7 @@ describe("设置 › 自动标签 › 模型", () => {
   });
 
   it("选自动时写出实际在用的档", async () => {
-    backend({ status: { state: "running", model: "x", device: "directMl", gpu: "AMD Radeon RX 6500 XT", tagged: 1 } });
+    backend({ status: { state: "running", model: "x", device: "directMl", gpu: "AMD Radeon RX 6500 XT", tagged: 1, done: 0, remaining: 1 } });
     render(<AutoTaggingSettings libraryId="L1" />);
     await hardware();
     expect(await screen.findByText("自动：当前用显卡（AMD Radeon RX 6500 XT）")).toBeTruthy();

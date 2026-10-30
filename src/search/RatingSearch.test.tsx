@@ -38,7 +38,7 @@ function box(props: { input?: SearchInput; tree?: ConditionTree | null; safe?: b
       showSource={false}
       onChange={props.onChange ?? (() => {})}
       onError={(e) => {
-        throw Error(e);
+        throw Error(String(e));
       }}
     />,
   );

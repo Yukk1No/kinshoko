@@ -113,7 +113,7 @@ describe("选中一张图：内容分级", () => {
 
 
 it("永久删除确认使旧详情请求失效，删除后迟到的缺失错误不进入全局提示", async () => {
-  let fail!: (error: string) => void;
+  let fail!: (error: unknown) => void;
   const pending = new Promise<ImageDetail>((_, reject) => { fail = reject; });
   const problems: string[] = [];
   mockIPC((command) => {
@@ -124,10 +124,10 @@ it("永久删除确认使旧详情请求失效，删除后迟到的缺失错误�
     return undefined;
   });
   render(<SelectionPanel libraryId="L1" scope={{ kind: "trash" }} selected={new Set(["img"])}
-    reloadKey={0} onClear={() => {}} onError={(message) => problems.push(message)} />);
+    reloadKey={0} onClear={() => {}} onError={(message) => problems.push(String(message))} />);
   fireEvent.click(screen.getByRole("button", { name: "永久删除…" }));
   await screen.findByRole("button", { name: "确认永久删除" });
-  await act(async () => { fail("资料库中没有这张参考图"); await pending.catch(() => {}); });
+  await act(async () => { fail({ code: "unknownImage" }); await pending.catch(() => {}); });
   expect(problems).toEqual([]);
 });
 
@@ -140,7 +140,7 @@ it("当前选择的有效详情请求失败仍交给错误提示", async () => {
     return undefined;
   });
   render(<SelectionPanel libraryId="L1" scope={{ kind: "all" }} selected={new Set(["img"])}
-    reloadKey={0} onClear={() => {}} onError={(message) => problems.push(message)} />);
+    reloadKey={0} onClear={() => {}} onError={(message) => problems.push(String(message))} />);
   await waitFor(() => expect(problems).toEqual(["读取资料库失败"]));
 });
 

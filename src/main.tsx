@@ -4,6 +4,7 @@ import { App } from "./App";
 import { CaptureOverlay } from "./desktop/CaptureOverlay";
 import { DesktopMenuView } from "./desktop/PinMenu";
 import { FidelityGate } from "./fidelity/FidelityGate";
+import { followInterfaceLanguage } from "./i18n";
 import { RuntimeProvider } from "./RuntimeSupport";
 import { recordUncaughtErrors } from "./runLog";
 import { markStartup } from "./startupTiming";
@@ -30,6 +31,8 @@ const view = params.get("view");
 document.documentElement.dataset.view = view ?? "main";
 // 每种窗口都不弹 WebView 自带的浏览器菜单（#229）。
 blockBrowserMenu(window);
+// 每种窗口都跟着核心的界面语言，切换后立即更新（#354）。
+followInterfaceLanguage();
 // 没有接住的错误记进运行日志（#219）。
 recordUncaughtErrors(window);
 // 首屏耗时（#313）：页面脚本开始执行。

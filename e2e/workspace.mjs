@@ -114,20 +114,20 @@ try {
     const info = await session.invoke("create_library", { parent: libraries, name });
     await session.invoke("start_import", { libraryId: info.id, source: { paths } });
     const page = await until(`import ${name}`, async () => {
-      const page = await session.invoke("browse", { libraryId: info.id, query: { scope: scopeAll, conditions: blank, cursor: null, limit: 100, thumbnailPx: 128 } });
+      const page = await browse(blank, { kind: "library", libraryId: info.id, scope: scopeAll }, await session.invoke("safe_mode"));
       return page.total === paths.length ? page : null;
     });
     return { info, page };
   };
   first = await create("工作区甲库", files);
   // Locate the byte identity through the public detail's original file names, never private SQL.
-  const firstDetails = await Promise.all(first.page.cards.map(async c => [c.id, await session.invoke("image", { libraryId: first.info.id, imageId: c.id })]));
+  const firstDetails = await Promise.all(first.page.cards.map(c => c.sources.find((source) => source.libraryId === first.info.id).imageId).map(async id => [id, await session.invoke("image", { libraryId: first.info.id, imageId: id })]));
   const findSample = firstDetails.find(([, detail]) => JSON.stringify(detail).includes("sample-0.png"));
   if (!findSample) throw new Error("sample-0 detail unavailable");
   first.imageId = findSample[0];
   await session.invoke("edit_tags", { libraryId: first.info.id, imageIds: [first.imageId], edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: "蓝发", lang: "zh-CN" } }] });
   second = await create("工作区乙库", [files[0], near]);
-  const secondDetails = await Promise.all(second.page.cards.map(async c => [c.id, await session.invoke("image", { libraryId: second.info.id, imageId: c.id })]));
+  const secondDetails = await Promise.all(second.page.cards.map(c => c.sources.find((source) => source.libraryId === second.info.id).imageId).map(async id => [id, await session.invoke("image", { libraryId: second.info.id, imageId: id })]));
   second.imageId = secondDetails.find(([, d]) => JSON.stringify(d).includes("sample-0.png"))[0];
   const secondUnique = secondDetails.find(([id]) => id !== second.imageId)[0];
   await session.invoke("edit_tags", { libraryId: second.info.id, imageIds: [second.imageId], edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: "短发", lang: "zh-CN" } }] });

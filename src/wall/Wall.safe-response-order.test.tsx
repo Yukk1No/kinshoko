@@ -3,11 +3,12 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
-import type { BrowsePage } from "../bindings/BrowsePage";
-import type { BrowseQuery } from "../bindings/BrowseQuery";
+import type { WorkspacePage } from "../bindings/WorkspacePage";
+import type { WorkspaceQuery } from "../bindings/WorkspaceQuery";
+import { type CardSeed, workspacePage } from "../test/workspacePage";
 import { Wall } from "./Wall";
 
-type Call = { query: BrowseQuery; resolve: (page: BrowsePage) => void; reject: (e: unknown) => void };
+type Call = { query: WorkspaceQuery; safeMode: boolean; resolve: (page: WorkspacePage) => void; reject: (e: unknown) => void };
 let calls: Call[];
 
 beforeEach(() => {
@@ -18,20 +19,19 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   mockConvertFileSrc("windows");
   mockIPC((cmd, args) => {
-    if (cmd !== "plugin:library|browse") throw new Error(cmd);
-    return new Promise<BrowsePage>((resolve, reject) => {
-      calls.push({ query: (args as { query: BrowseQuery }).query, resolve, reject });
+    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
+    return new Promise<WorkspacePage>((resolve, reject) => {
+      calls.push({ ...(args as { query: WorkspaceQuery; safeMode: boolean }), resolve, reject });
     });
   });
 });
 afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
 
-const card = (id: string, adult = false) => ({ id, width: 100, height: 100, thumbnail: `L1/${id}/256`, adult });
-const page = (cards: ReturnType<typeof card>[], total: number, nextCursor: string | null = null): BrowsePage =>
-  ({ cards, total, nextCursor });
+const card = (id: string, adult = false): CardSeed => ({ id, width: 100, height: 100, adult });
+const page = (cards: CardSeed[], total: number, nextCursor: string | null = null) => workspacePage(cards, total, nextCursor);
 
 const base = {
-  libraryId: "L1", scope: { kind: "all" as const }, selected: new Set<string>(),
+  workspaceScope: { kind: "all" as const }, scope: { kind: "all" as const }, selected: new Set<string>(),
   onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false,
 };
 
@@ -147,7 +147,7 @@ it("翻页游标过期时从第一页重读，不显示错误", async () => {
   await settle();
   const more = calls.length - 1;
   expect(calls[more].query.cursor).toBe("c1");
-  await act(async () => calls[more].reject("浏览结果已变化，请从头重新浏览"));
+  await act(async () => calls[more].reject({ code: "cursorExpired" }));
   await settle();
   const again = calls.length - 1;
   expect(again).toBeGreaterThan(more);
@@ -167,7 +167,7 @@ it("重新浏览撞上安全模式刚切换（LensChanged）：不报错，卡�
   // 快速开了又关：资料库确认“开”时界面已经是“关”，这次重新浏览带的视角与资料库的不同。
   view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
   await settle();
-  await act(async () => calls[1].reject("安全模式刚切换过，请重新查找"));
+  await act(async () => calls[1].reject({ code: "lensChanged" }));
   await settle();
 
   expect(document.querySelector('[role="alert"]')).toBeNull();

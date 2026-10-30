@@ -57,7 +57,7 @@ describe("主窗口", () => {
         cancelled: false,
         fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
         eagleRelocations: [],
-        items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: "被占用" } }],
+        items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } }],
       },
     });
     if (stage === "已结束") await finish();
@@ -69,6 +69,8 @@ describe("主窗口", () => {
     if (stage === "进行中") await finish();
     fireEvent.click(screen.getByRole("button", { name: "返回图库" }));
 
+    // 有没导入的项，结束的轻提示一直留着；它的“查看”打开结果回执（#388）。
+    fireEvent.click(await screen.findByRole("button", { name: "查看" }));
     expect(await screen.findByText("D:\\参考\\坏.png")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
     await confirmImport();

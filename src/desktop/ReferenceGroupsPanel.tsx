@@ -3,10 +3,12 @@ import { useCallback, useEffect, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { BookmarkPlus, FolderInput, Layers, ListTree, MoreHorizontal, PackageOpen, Trash2 } from "lucide-react";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
-import { CaptureGroupSaveDialog, captureChoices, type CaptureSave } from "./CaptureGroupSaveDialog";
+import { CaptureGroupSaveDialog } from "./CaptureGroupSaveDialog";
+import { draftCaptureSave, type CaptureSaveDraft, type CaptureSavePlan } from "./captureSavePlan";
 import { GroupNameForm } from "./GroupNameForm";
 import { useToast } from "../ui/Toast";
 import { ago } from "./relativeTime";
+import { describeCommandError } from "../ipc/commandError";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -67,7 +69,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
   const [expanded, setExpanded] = useState<ReferenceGroupView | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [captureSave, setCaptureSave] = useState<CaptureSave<SaveTarget> | null>(null);
+  const [captureSave, setCaptureSave] = useState<CaptureSaveDraft<SaveTarget> | null>(null);
   const [importing,setImporting]=useState(false);
   const [naming, setNaming] = useState(false);
   const [active, setActive] = useState<string | null>(null);
@@ -154,20 +156,13 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
     try {
       const entries = await ("groupId" in target ? groupSaveCaptures(target.groupId) : groupSaveCaptures());
       if (!entries.length) { await save(target, []); return; }
-      const choices: Record<string, string> = {};
-      for (const entry of entries) {
-        const collected = entry.collected.length === 1 ? entry.collected[0] : null;
-        choices[entry.id] = collected && libraryOptions.some((l) => l.library.id === collected.libraryId && !l.unavailable)
-          ? collected.libraryId : "";
-      }
-      setCaptureSave({ target, entries, choices, folders:{} });
+      setCaptureSave(draftCaptureSave(target, entries, libraryOptions));
     } finally { setSaving(false); }
   };
-  const confirmCaptures = async () => {
-    if (!captureSave) return;
+  const confirmCaptures = async (plan: CaptureSavePlan<SaveTarget>) => {
     setSaving(true);
     try {
-      await run(() => save(captureSave.target, captureChoices(captureSave)));
+      await run(() => save(plan.target, plan.choices));
     } finally { setSaving(false); }
   };
 
@@ -189,7 +184,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
       {error && <p className="group-note is-error" role="alert">{error}</p>}
       {notice && <p className="group-note" role="status">{notice}</p>}
       {captureSave && <CaptureGroupSaveDialog value={captureSave} onChange={setCaptureSave} libraries={libraryOptions} saving={saving}
-        onClose={() => setCaptureSave(null)} onConfirm={() => void confirmCaptures()} />}
+        onClose={() => setCaptureSave(null)} onConfirm={(plan) => void confirmCaptures(plan)} />}
       {groups && groups.length === 0 && (
         <p className="reference-groups-empty">还没有参考组。把整图或局部钉到桌面摆好，再在这里存下。</p>
       )}
@@ -208,7 +203,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                 </span>}
                 {renaming?.id !== g.id && <strong className="reference-group-name">{g.name}</strong>}
                 {g.problem
-                  ? <span className="reference-group-problem">{g.problem}</span>
+                  ? <span className="reference-group-problem">{describeCommandError(g.problem)}</span>
                   : <span className="reference-group-meta k-parts"><span>{g.memberCount} 张</span><span>{libraries(g.libraryIds)}</span><span>{ago(g.updatedAt)}</span></span>}
               </button>
               {renaming?.id === g.id && (

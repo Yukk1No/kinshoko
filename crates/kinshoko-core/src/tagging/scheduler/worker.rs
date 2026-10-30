@@ -1,4 +1,4 @@
-//! 打标调度的后台循环：选档、下载与准备模型、逐张打标并写入、出错后重试（从 scheduler.rs 原样搬出）。
+//! 打标调度的后台循环：选档、下载与准备模型、逐张打标并写入、出错后重试。
 use super::*;
 
 impl Worker {
@@ -162,6 +162,7 @@ impl Worker {
             Err(e) => return self.fail(format!("读取待打标的图失败：{e}")),
         };
         if ids.is_empty() {
+            self.done = 0;
             self.end_session();
             self.shared.set(TaggingStatus::Idle {
                 model: spec.label.clone(),
@@ -172,13 +173,17 @@ impl Worker {
             self.shared.sleep(self.config.poll_interval);
             return;
         }
-        for id in ids {
+        // 数不出来只影响进度环，不中止打标。
+        let remaining = self.library.count_images_to_tag(&source).unwrap_or(0);
+        for (i, id) in ids.iter().enumerate() {
             if self.shared.interrupted() || self.yields() {
                 return;
             }
-            if !self.tag_one(&model, &source, &id) {
+            self.remaining = remaining.saturating_sub(i as u32).max(1);
+            if !self.tag_one(&model, &source, id) {
                 return;
             }
+            self.done += 1;
         }
     }
 
@@ -293,12 +298,14 @@ impl Worker {
             device: spec.device,
             gpu: self.gpu_name(spec.device),
             tagged: self.tagged,
+            done: self.done,
+            remaining: self.remaining,
         });
         let (_, session) = self.session.as_mut().expect("会话已开始");
         let result = session.tag(&path);
         let written = match result {
             Ok(raw) => {
-                let s = interpret(spec, &raw);
+                let result = interpret(spec, &raw);
                 // Only publication joins the application's final side-effect boundary.
                 // Inference and model loading above must never hold it.
                 let gate = self.config.publication_gate.clone();
@@ -312,13 +319,7 @@ impl Worker {
                 }
                 self.crashes.remove(id);
                 self.tagged += 1;
-                self.library
-                    .replace_source_tags(source, id, &s.tags)
-                    .and_then(|()| self.library.replace_source_rating(source, id, s.rating))
-                    .and_then(|()| {
-                        self.library
-                            .finish_tagging(source, id, TaggingOutcome::Done)
-                    })
+                self.library.commit_tagging_result(source, id, &result)
             }
             Err(TagFailure::BadImage(reason)) => {
                 self.library

@@ -75,8 +75,8 @@ try {
   const create = async (name, label) => {
     const info = await session.invoke("create_library", { parent: libraries, name });
     await session.invoke("start_import", { libraryId: info.id, source: { paths: [imagePath] } });
-    const page = await until(`import ${name}`, async () => { const page = await session.invoke("browse", { libraryId: info.id, query: { scope: { kind: "all" }, conditions: { conditions: [] }, cursor: null, limit: 20, thumbnailPx: 128 } }); return page.cards.length === 1 ? page : null; });
-    const imageId = page.cards[0].id;
+    const page = await until(`import ${name}`, async () => { const page = await session.invoke("workspace_browse", { query: { scope: { kind: "library", libraryId: info.id, scope: { kind: "all" } }, conditions: { conditions: [] }, cursor: null, limit: 20, knownPlaceholders: [] }, safeMode: await session.invoke("safe_mode") }); return page.cards.length === 1 ? page : null; });
+    const imageId = page.cards[0].sources.find((source) => source.libraryId === info.id).imageId;
     await session.invoke("edit_tags", { libraryId: info.id, imageIds: [imageId], edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: label, lang: "zh-CN" } }] });
     const vocabulary = await session.invoke("vocabulary", { libraryId: info.id });
     const localId = vocabulary.tags[0].id;

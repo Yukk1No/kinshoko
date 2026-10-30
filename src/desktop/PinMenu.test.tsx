@@ -2,6 +2,8 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PinMenu } from "../bindings/PinMenu";
 import type { PinMenuOpen } from "../bindings/PinMenuOpen";
+import type { PinNotice } from "../bindings/PinNotice";
+import { i18n } from "../i18n/instance";
 
 // 钉图的统一样式菜单（#102 T5，#106）。菜单窗口的放置与焦点在正式程序上核对；这里测菜单项与动作。
 const ipc = vi.hoisted(() => ({
@@ -9,10 +11,11 @@ const ipc = vi.hoisted(() => ({
   next: null as ((open: PinMenuOpen) => void) | null,
   shown: vi.fn((_generation: number) => Promise.resolve()),
   close: vi.fn((_generation: number) => Promise.resolve()),
-  action: vi.fn((_pin: string, _action: string, _generation: number) => Promise.resolve()),
+  action: vi.fn((_pin: string, _action: string, _generation: number) => Promise.resolve(null as PinNotice | null)),
+  notice: vi.fn((_pin: string, _text: string) => Promise.resolve()),
   groups: vi.fn(() => Promise.resolve([
     { id: "g1", name: "光影", memberCount: 2, libraryIds: ["L1"], updatedAt: 0, problem: null },
-    { id: "g2", name: "坏的", memberCount: 0, libraryIds: [], updatedAt: 0, problem: "读不懂" },
+    { id: "g2", name: "坏的", memberCount: 0, libraryIds: [], updatedAt: 0, problem: { code: "groupInvalid" as const, cause: { code: "notAGroup" as const } } },
   ])),
 }));
 vi.mock("../ipc", () => ({
@@ -21,6 +24,7 @@ vi.mock("../ipc", () => ({
   desktopMenuShown: ipc.shown,
   closeDesktopMenu: ipc.close,
   pinMenuAction: ipc.action,
+  showPinNotice: ipc.notice,
   referenceGroups: ipc.groups,
 }));
 
@@ -182,6 +186,27 @@ describe("菜单窗口", () => {
     expect(ipc.action).toHaveBeenCalledWith("P1", "flipH", 4);
     expect(ipc.close).not.toHaveBeenCalled();
     expect(screen.queryByRole("menu", { name: "钉图菜单" })).toBeNull();
+  });
+
+  it("做完一项后按界面语言写好提示，交回钉图显示", async () => {
+    render(<DesktopMenuView />);
+    await settle();
+    ipc.action.mockResolvedValueOnce({ kind: "addedToGroup", name: "光影" });
+    act(() => ipc.next!(open(6)));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /水平翻转/ }));
+    await settle();
+    expect(ipc.notice).toHaveBeenCalledWith("P1", "已加入参考组「光影」");
+
+    await i18n.changeLanguage("en");
+    try {
+      ipc.action.mockResolvedValueOnce({ kind: "failed", error: { code: "pinLocked" } });
+      act(() => ipc.next!(open(7)));
+      fireEvent.click(await screen.findByRole("menuitem", { name: /水平翻转|Flip/ }));
+      await settle();
+      expect(ipc.notice).toHaveBeenLastCalledWith("P1", "The pin is locked");
+    } finally {
+      await i18n.changeLanguage("zh-CN");
+    }
   });
 
   it("Esc、点外部或窗口失去焦点都关闭菜单，同一次只关一回", async () => {

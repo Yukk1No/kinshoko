@@ -1,4 +1,4 @@
-// 图片墙上的选择、键盘、右键与拖出，以及 Ctrl+V 导入（#105），从 Wall.tsx 原样搬出。
+// 图片墙上的选择、键盘、右键与拖出，以及 Ctrl+V 导入（#105）。
 import { useEffect, useRef } from "react";
 import type { DragEvent, KeyboardEvent, MouseEvent, MutableRefObject, ReactNode } from "react";
 import type { BrowseScope } from "../bindings/BrowseScope";

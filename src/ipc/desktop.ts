@@ -1,5 +1,5 @@
 import type { SaveDestination } from "../bindings/SaveDestination";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { CaptureAction } from "../bindings/CaptureAction";
@@ -7,6 +7,7 @@ import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { CollectedCapture } from "../bindings/CollectedCapture";
 import type { FrozenScreen } from "../bindings/FrozenScreen";
 import type { OriginalPixels } from "../bindings/OriginalPixels";
+import type { PinNotice } from "../bindings/PinNotice";
 import type { PinMenuOpen } from "../bindings/PinMenuOpen";
 import type { OpenInKinshoko } from "../bindings/OpenInKinshoko";
 import type { Region } from "../bindings/Region";
@@ -127,9 +128,14 @@ export function closeDesktopMenu(generation: number): Promise<void> {
   return invoke<void>(desk("close_desktop_menu"), { generation });
 }
 
-/** 选了钉图菜单里的一项：先收起菜单窗口，再对钉图做这件事；提示显示在钉图上。 */
-export function pinMenuAction(pin: string, action: PinMenuAction, generation: number): Promise<void> {
-  return invoke<void>(desk("pin_menu_action"), { pin, action, generation });
+/** 选了钉图菜单里的一项：先收起菜单窗口，再对钉图做这件事。返回要在钉图上提示什么。 */
+export function pinMenuAction(pin: string, action: PinMenuAction, generation: number): Promise<PinNotice | null> {
+  return invoke<PinNotice | null>(desk("pin_menu_action"), { pin, action, generation });
+}
+
+/** 在钉图上显示一句提示（按界面语言写好的 {@link pinMenuAction} 的结果）。 */
+export function showPinNotice(pin: string, text: string): Promise<void> {
+  return invoke<void>(desk("show_pin_notice"), { pin, text });
 }
 
 /** 钉图菜单“在 Kinshoko 中打开”留给主窗口的请求；没有时为 null。取走后清空。 */

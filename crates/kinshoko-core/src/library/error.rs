@@ -5,7 +5,7 @@ use std::path::PathBuf;
 #[derive(Debug)]
 pub enum Error {
     InvalidName,
-    TagDefinitions(String),
+    TagDefinitions(Box<crate::CommandError>),
     NotEmpty(PathBuf),
     NotALibrary(PathBuf),
     UnknownImage,
@@ -43,7 +43,7 @@ pub enum Error {
     /// 资料库由旧版本写成，要先作为活动资料库打开一次（升级）才能在别处读取（#66）。
     OutdatedLibrary,
     /// 参考组包里的原图没能进库（读不出、解码失败或与包内记录不符，#68）。
-    PackageImage(String),
+    PackageImage(Box<crate::CommandError>),
     /// 导入时按“同库已有相同内容”只合并来源，提交前那份原图却已被永久删除：要重新暂存这份字节（#120）。
     MergeTargetGone,
     /// 永久删除只删回收站里的图。
@@ -51,7 +51,7 @@ pub enum Error {
     /// 永久删除预览之后回收站、受影响的参考组或安全模式变了，要重新预览（#67）。
     DeletePreviewStale,
     /// 无法核对参考组（例如有参考组文件读不懂），不能确认永久删除的影响。
-    ReferenceGroups(String),
+    ReferenceGroups(Box<crate::CommandError>),
     Io(std::io::Error),
     Db(rusqlite::Error),
     Migration(rusqlite_migration::Error),
@@ -61,7 +61,19 @@ pub enum Error {
     /// 资料库记着这张图，但原文件已不在（被移走或删除，#105）。
     OriginalMissing(PathBuf),
     /// 剪贴板里的图片无法交给导入（#105）。
-    ClipboardImage(String),
+    ClipboardImage(Box<crate::CommandError>),
+}
+
+impl Error {
+    /// 标签定义没保存的原因。
+    pub(crate) fn tag_definitions(cause: impl Into<crate::CommandError>) -> Self {
+        Error::TagDefinitions(Box::new(cause.into()))
+    }
+
+    /// 无法核对参考组的原因。
+    pub fn reference_groups(cause: impl Into<crate::CommandError>) -> Self {
+        Error::ReferenceGroups(Box::new(cause.into()))
+    }
 }
 
 impl fmt::Display for Error {

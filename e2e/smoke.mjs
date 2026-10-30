@@ -266,7 +266,9 @@ try {
   await until("保存目标已选好", () => session.exec("return document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.dataset.value === arguments[1];", [target, created.id]));
   await until("开始导入可用", () => session.exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
   await session.click(await session.find(button("开始导入")));
-  await until("导入完成", () => session.exec("const c=document.querySelector('section[aria-label=导入结果]');return c?.textContent.includes('导入完成')&&c.querySelector('.k-task-stats')?.textContent.includes('新增 3');"), 60000);
+  await until("导入完成", () => session.exec("return [...document.querySelectorAll('.k-toast')].some(t=>t.querySelector('.k-toast-title')?.textContent==='导入完成'&&t.querySelector('.k-toast-stats')?.textContent.includes('新增 3'));"), 60000);
+  // 结束是一条轻提示（#388）；有没导入的文件时它的“查看”打开结果回执。
+  await session.click(await session.find("//*[contains(@class,'k-toast')]//button[normalize-space()='查看']"));
   await session.find(`//section[@aria-label='导入结果']//li[contains(., '说明.txt') and contains(., '不支持的格式')]`);
   assert(true, "导入 3 张图，不支持的文件逐个列出");
 

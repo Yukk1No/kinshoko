@@ -7,12 +7,14 @@ mod app_shell;
 pub mod application_settings_backup;
 pub mod approx;
 pub mod backup;
+pub mod command_error;
 pub mod data_dirs;
 pub mod desktop;
 mod device;
 mod device_libraries;
 pub mod diagnostics;
 pub mod fidelity;
+pub mod interface_lang;
 pub mod library;
 pub mod library_batch;
 pub mod portable_tags;
@@ -29,6 +31,7 @@ pub mod workspace;
 pub use app_shell::{
     AppInfo, UpdateChannel, UpdatePolicy, UpdateProgress, UpdateStatus, app_info, offers_update,
 };
+pub use command_error::CommandError;
 pub use device::{DeviceRegistry, RegisteredLibrary};
 pub use device_libraries::{
     DeviceLibraries, DeviceLibraryError, ImportFinishWait, ImportTaskSnapshot, LibraryRegistration,
@@ -40,6 +43,7 @@ pub use settings::{
     ViewerBackground,
 };
 pub use shortcuts::{
-    GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutBinding, ShortcutError,
+    GlobalShortcuts, HotkeyFailure, HotkeyRegistrar, ShellSettingsView, ShortcutBinding,
+    ShortcutError, ShortcutProblem,
 };
 pub use ui_scale::{UI_SCALE_LEVELS, UiScale, UiScaleError};

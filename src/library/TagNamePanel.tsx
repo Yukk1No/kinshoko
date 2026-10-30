@@ -10,6 +10,7 @@ import { currentName } from "../tags/catalogName";
 import { SOURCE_LANGUAGES } from "../tags/languages";
 import { Select } from "../ui/Select";
 import { Combobox } from "../ui/Combobox";
+import { useUiLang } from "../i18n";
 import { externalOptions } from "./EagleTagStep";
 
 const LIMIT = 80;
@@ -24,7 +25,8 @@ const NAMESPACES: Record<string, string> = { general: "", artist: "作者", char
  */
 export function TagNamePanel({ focus }: { focus?: string } = {}) {
   const [workspace, setWorkspace] = useState<TagCatalogWorkspace | null>(null);
-  const [lang, setLang] = useState("zh-CN");
+  const uiLang = useUiLang();
+  const [lang, setLang] = useState<string>(uiLang);
   const [filter, setFilter] = useState("");
   const [editing, setEditing] = useState<string | null>(focus ?? null);
   const [preferencesOnly, setPreferencesOnly] = useState(false);

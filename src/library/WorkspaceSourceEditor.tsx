@@ -1,5 +1,5 @@
 import { SaveDestinationDialog } from "./SaveDestination";
-import { workspaceCopySource } from "../ipc";
+import { errorText, workspaceCopySource } from "../ipc";
 import { useEffect, useRef, useState } from "react";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceSource } from "../bindings/WorkspaceSource";
@@ -12,6 +12,7 @@ import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { SelectionPanel } from "./SelectionPanel";
 import { Copy, Layers, Pin } from "lucide-react";
 import { useUiScale } from "../shell/uiScale";
+import { useUiLang } from "../i18n";
 import { Select } from "../ui/Select";
 
 /** Adapted from library-workspace.html's explicit source selector, note editor and source actions. */
@@ -24,7 +25,8 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
   const target: WorkspaceSourceTarget = { libraryId: source.libraryId, imageId: source.imageId, contentId: card.id };
   // 整理改了这份来源后重读（#158：详情、标签与文件夹树都出自这一次来源检查）。
   const [refresh, setRefresh] = useState(0);
-  const key = JSON.stringify([target, safe, reloadKey, refresh]);
+  const lang = useUiLang();
+  const key = JSON.stringify([target, safe, reloadKey, refresh, lang]);
   const current = useRef(key); current.current = key;
   const [ready, setReady] = useState<{ key: string; value: WorkspaceSourceInspection } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
   useEffect(() => {
     let alive = true;
     setProblem(null); setNotice(null);
-    workspaceSourceInspection(target, safe, "zh-CN").then(
+    workspaceSourceInspection(target, safe, lang).then(
       (value) => alive && setReady({ key, value }),
       (error) => { if (alive) { setReady(null); setProblem(String(error)); } },
     );
@@ -68,7 +70,7 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
       <SelectionPanel key={JSON.stringify(target)} sourceTarget={target} libraryId={source.libraryId}
         inspection={{ value: ready.value, stale: ready.key !== key, reload: () => setRefresh((n) => n + 1) }}
         selected={new Set([source.imageId])} scope={{ kind: ready.value.detail.deletedAt !== null ? "trash" : "all" }}
-        safeMode={safe} reloadKey={reloadKey} generation={reloadKey} onError={setProblem}
+        safeMode={safe} reloadKey={reloadKey} generation={reloadKey} onError={(e) => setProblem(errorText(e))}
         onClear={onClose} onSourceChanged={onChanged} />
       <fieldset className="insp-use" disabled={busy}><legend>使用此来源</legend>
         <div className="insp-use-row">

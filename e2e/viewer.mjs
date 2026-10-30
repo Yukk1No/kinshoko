@@ -83,8 +83,10 @@ try {
   await exec(`const s=${librarySelect};s.value=s.options[1].value;s.dispatchEvent(new Event('change',{bubbles:true}));`);
   await until("开始导入可用", () => exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
   await click("开始导入");
-  await until("导入完成", () => exec("const c=document.querySelector('section[aria-label=导入结果]');return c?.textContent.includes('导入完成')&&c.querySelector('.k-task-stats')?.textContent.includes('新增 41');"));
-  await click("关闭导入结果");
+  await until("导入完成", () => exec("return [...document.querySelectorAll('.k-toast')].some(t=>t.querySelector('.k-toast-title')?.textContent==='导入完成'&&t.querySelector('.k-toast-stats')?.textContent.includes('新增 41'));"));
+  // 导入结束是一条轻提示（#388），没有回执卡可关；收起提示，免得盖住右下角。
+  await exec("document.querySelectorAll('.k-toast .k-toast-close').forEach(b=>b.click())");
+  await until("提示已收起", () => exec("return !document.querySelector('.k-toast')"));
   check(true, "导入 41 张测试参考图，未下载打标模型");
   const card = await until("大图卡片", () => exec("return [...document.querySelectorAll('.card')].find(c => Math.abs(c.offsetHeight / c.offsetWidth - 2/3) < .02)"));
   await wd("POST", `${base}/actions`, { actions: [{ type: "pointer", id: "mouse", parameters: { pointerType: "mouse" }, actions: [

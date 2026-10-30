@@ -1,5 +1,8 @@
 //! Settings package adapter: live shell, catalog invalidation and OS registrations.
+
 use super::*;
+use crate::ui_text::{Text, text};
+use kinshoko_core::CommandError;
 use kinshoko_core::application_settings_backup::{
     ApplicationSettingsBackup, ApplicationSettingsPreview, ApplicationSettingsRestored,
 };
@@ -7,12 +10,12 @@ use kinshoko_core::application_settings_backup::{
 pub(super) async fn pick_application_settings<R: Runtime>(
     app: AppHandle<R>,
     save: bool,
-) -> Result<Option<PathBuf>, String> {
+) -> Result<Option<PathBuf>, CommandError> {
     blocking(move || {
         let picker = app
             .dialog()
             .file()
-            .add_filter("程序设置备份", &["kinshoko-settings"]);
+            .add_filter(text(Text::FilterSettingsBackup), &["kinshoko-settings"]);
         Ok(if save {
             picker
                 .set_file_name("Kinshoko.kinshoko-settings")
@@ -28,7 +31,7 @@ pub(super) async fn pick_application_settings<R: Runtime>(
 pub(super) async fn export_application_settings<R: Runtime>(
     app: AppHandle<R>,
     path: PathBuf,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
@@ -47,7 +50,7 @@ pub(super) async fn export_application_settings<R: Runtime>(
 #[tauri::command]
 pub(super) async fn preview_application_settings(
     path: PathBuf,
-) -> Result<ApplicationSettingsPreview, String> {
+) -> Result<ApplicationSettingsPreview, CommandError> {
     blocking(move || ApplicationSettingsBackup::inspect(&path)).await
 }
 #[tauri::command]
@@ -55,7 +58,7 @@ pub(super) async fn restore_application_settings<R: Runtime>(
     app: AppHandle<R>,
     path: PathBuf,
     fingerprint: String,
-) -> Result<ApplicationSettingsRestored, String> {
+) -> Result<ApplicationSettingsRestored, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
@@ -87,7 +90,11 @@ pub(super) async fn restore_application_settings<R: Runtime>(
             shortcuts.reload(&previous, settings);
             let mut problems = Vec::new();
             if let Err(error) = crate::shell::apply_autostart(&app, settings.autostart()) {
-                problems.push(format!("开机自启未同步：{error}"));
+                problems.push(CommandError::caused_by(
+                    error,
+                    |cause| ErrorKind::AutostartNotSynced { cause },
+                    |error| format!("开机自启未同步：{error}"),
+                ));
             }
             Ok(Ok((
                 shortcuts.settings_view(settings),
@@ -105,7 +112,11 @@ pub(super) async fn restore_application_settings<R: Runtime>(
         if let Some(libraries) = lock_libraries(&state).as_mut() {
             libraries.set_safe_mode(safe);
             if let Err(error) = libraries.set_safe_mode_scope(scope) {
-                problems.push(format!("安全模式范围未完全生效：{error}"));
+                problems.push(CommandError::caused_by(
+                    error,
+                    |cause| ErrorKind::SafeModeScopeIncomplete { cause },
+                    |error| format!("安全模式范围未完全生效：{error}"),
+                ));
             }
         }
         if let Some(log) = crate::run_log::log() {
@@ -116,14 +127,22 @@ pub(super) async fn restore_application_settings<R: Runtime>(
         // 恢复的设置可能带来另一个更新通道（#204）。
         crate::updater::channel_changed(&app);
         if let Err(error) = names::refresh_labels(&app, &state) {
-            problems.push(format!("资料库名称未刷新：{error}"));
+            problems.push(CommandError::caused_by(
+                error,
+                |cause| ErrorKind::LibraryNamesNotRefreshed { cause },
+                |error| format!("资料库名称未刷新：{error}"),
+            ));
         }
         let _ = app.emit(SAFE_MODE_EVENT, safe);
         match workspace::action(&app, safe, |w, d, c| w.status(d, c, safe)) {
             Ok(status) => {
                 let _ = app.emit(workspace::EVENT, status);
             }
-            Err(error) => problems.push(format!("资料库列表未刷新：{error}")),
+            Err(error) => problems.push(CommandError::caused_by(
+                error,
+                |cause| ErrorKind::LibraryListNotRefreshed { cause },
+                |error| format!("资料库列表未刷新：{error}"),
+            )),
         }
         Ok(ApplicationSettingsRestored {
             settings: view,

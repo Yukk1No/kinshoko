@@ -9,7 +9,8 @@ import type { ImageTag } from "../bindings/ImageTag";
 import type { TagRef } from "../bindings/TagRef";
 import type { VocabularyTag } from "../bindings/VocabularyTag";
 import { addTagAlias, catalogImageTags, editTags, removeTagAlias, vocabulary, workspaceEditSourceTags } from "../ipc";
-import { LIMIT, TagMarks, UI_LANG, tagName, useCandidateState } from "../search/SearchBox";
+import { LIMIT, TagMarks, tagName, useCandidateState } from "../search/SearchBox";
+import { useUiLang } from "../i18n";
 import { tagOption } from "../search/tagOptions";
 import { Combobox, type ComboboxOption } from "../ui/Combobox";
 import { Select } from "../ui/Select";
@@ -30,7 +31,7 @@ type Props = {
   safe: boolean;
   /** 词表代次（词表、图片或安全模式变化时递增）：重新取得标签、别名与候选。 */
   generation: number;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
 };
 
 const NAMESPACES: { value: TagNamespace; label: string }[] = [
@@ -79,7 +80,8 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   const currentKey = useRef(identityKey);
   currentKey.current = identityKey;
   useEffect(() => { currentKey.current = identityKey; return () => { currentKey.current = ""; }; }, [identityKey]);
-  const loadKey = JSON.stringify([identityKey, refresh]);
+  const lang = useUiLang();
+  const loadKey = JSON.stringify([identityKey, refresh, lang]);
 
   const sourceMode = sourceTarget !== undefined;
   useEffect(() => {
@@ -89,14 +91,14 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
       return;
     }
     // 统一标签身份与有效标签出自同一次查询（#158）。
-    catalogImageTags(libraryId, single, UI_LANG).then(
+    catalogImageTags(libraryId, single, lang).then(
       (value) => alive && setLoaded({ key: loadKey, tags: value.image, identities: value.identities }),
-      (error) => alive && onError(String(error)),
+      (error) => alive && onError(error),
     );
     return () => {
       alive = false;
     };
-  }, [libraryId, single, safe, generation, refresh, onError, loadKey, sourceMode]);
+  }, [libraryId, single, safe, generation, refresh, onError, loadKey, sourceMode, lang]);
   const shown = sourceMode ? (single && inspection ? { tags: inspection.tags.image, identities: inspection.tags.identities } : null) : loaded;
   const tags = shown?.tags ?? null;
   const identities = shown?.identities ?? [];
@@ -108,12 +110,12 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   const edit = (edits: TagEdit[]) =>
     (sourceTarget ? workspaceEditSourceTags(sourceTarget, safe, edits) : editTags(libraryId, ids, edits)).then(
       () => { if (currentKey.current !== identityKey) return; if (inspection) inspection.reload(); else setRefresh((n) => n + 1); },
-      (e) => { if (currentKey.current === identityKey) onError(String(e)); },
+      (e) => { if (currentKey.current === identityKey) onError(e); },
     );
 
   const typed = (): TagRef | null => {
     const name = text.trim();
-    return name ? { kind: "named", namespace, name, lang: UI_LANG } : null;
+    return name ? { kind: "named", namespace, name, lang } : null;
   };
   const decide = (kind: TagEdit["kind"], tag: TagRef | null = typed()) => {
     if (!tag) return;
@@ -250,9 +252,10 @@ function AliasEditor({
   libraryId: string;
   tag: TagLabel;
   generation: number;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   onClose: () => void;
 }) {
+  const lang = useUiLang();
   const [entry, setEntry] = useState<VocabularyTag | null>(null);
   const [draft, setDraft] = useState("");
   const name = tagName(tag);
@@ -261,7 +264,7 @@ function AliasEditor({
     let alive = true;
     vocabulary(libraryId).then(
       (v) => alive && setEntry(v.tags.find((t) => t.id === tag.id) ?? null),
-      (e) => alive && onError(String(e)),
+      (e) => alive && onError(e),
     );
     return () => {
       alive = false;
@@ -272,7 +275,7 @@ function AliasEditor({
     const alias = draft.trim();
     if (!alias) return;
     setDraft("");
-    addTagAlias(libraryId, tag.id, { name: alias, lang: UI_LANG }).catch((e) => onError(String(e)));
+    addTagAlias(libraryId, tag.id, { name: alias, lang }).catch((e) => onError(e));
   };
 
   return (
@@ -288,7 +291,7 @@ function AliasEditor({
                 className="k-icon-btn is-xs"
                 aria-label={`去掉别名“${a.name}”`}
                 title="去掉"
-                onClick={() => removeTagAlias(libraryId, tag.id, a.name).catch((e) => onError(String(e)))}
+                onClick={() => removeTagAlias(libraryId, tag.id, a.name).catch((e) => onError(e))}
               >
                 <X size={12} aria-hidden="true" />
               </button>

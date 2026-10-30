@@ -1,4 +1,4 @@
-// 图片墙各部分共用的常量、类型与位置记忆（从 Wall.tsx 原样搬出）。
+// 图片墙各部分共用的常量、类型与位置记忆。
 import type { ReactNode } from "react";
 import type { WallMenuTarget } from "./WallMenu";
 import type { BrowseScope } from "../bindings/BrowseScope";
@@ -58,12 +58,12 @@ export type WallHandle = {
 /** 卡片上的快捷键（与右键菜单同一选择规则）：P 钉住、F1 进入查看器框选、Del 移到回收站、Ctrl+C 复制图片。 */
 export type CardCommand = "pin" | "crop" | "trash" | "copy";
 
-/** 图片墙上的卡片：工作区的卡片（不带缩略图地址，按来源与档位拼，见 `cardThumbnail`），或只浏览单个资料库的旧卡片。 */
-export type BrowserCard = Omit<ImageCard, "thumbnail"> & Partial<Pick<ImageCard, "thumbnail">>
+/** 图片墙上的卡片：工作区的卡片，不带缩略图地址，按来源与档位拼（见 `cardThumbnail`）。 */
+export type BrowserCard = Omit<ImageCard, "thumbnail">
   & Partial<Pick<WorkspaceCard, "libraryId" | "imageId" | "sources">>;
 
 export type WallProps = {
-  workspaceScope?: WorkspaceScope;
+  workspaceScope: WorkspaceScope;
   onInspectSources?: (card: WorkspaceCard) => void;
   onCardsChange?: (cards: BrowserCard[]) => void;
   /** 只有当前请求已完整接受的工作区快照，才能成为父界面的已知状态。 */
@@ -75,7 +75,6 @@ export type WallProps = {
   /** Ctrl+滚轮最后一格后 220 ms 提交的图片大小，与滑条提交同一个值。 */
   onDensityCommit?: (value: number) => void;
   onTotalChange?: (count: number | null) => void;
-  libraryId: string;
   scope: BrowseScope;
   /** Search 给出的条件树；没有条件时是范围内的全部。条件变化时由调用方换 key 重建，从顶部看起。 */
   conditions?: ConditionTree;
@@ -111,11 +110,6 @@ export const editable = (target: EventTarget | null) =>
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
 export const scopeKey = (scope: BrowseScope) =>
   (scope.kind === "folder" || scope.kind === "folderTree") ? `${scope.kind}.${scope.id}` : scope.kind;
-
-export const anchorKey = (libraryId: string, scope: BrowseScope) =>
-  scope.kind === "all"
-    ? `kinshoko.wall.anchor.${libraryId}`
-    : `kinshoko.wall.anchor.${libraryId}.${scopeKey(scope)}`;
 
 export const EMPTY: Record<BrowseScope["kind"], string> = {
   all: "图库里还没有参考图。点右上角的“导入”，或直接拖进窗口。",

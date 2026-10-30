@@ -10,7 +10,7 @@ pub enum BackupError {
     /// 没有这个快照。
     UnknownSnapshot,
     /// 快照没有完成或已损坏，不能恢复。
-    Incomplete(String),
+    Incomplete(Box<crate::CommandError>),
     Io(std::io::Error),
     Library(library::Error),
     Group(GroupError),
@@ -30,6 +30,16 @@ impl std::fmt::Display for BackupError {
             BackupError::Library(e) => e.fmt(f),
             BackupError::Group(e) => e.fmt(f),
         }
+    }
+}
+
+impl BackupError {
+    /// 快照不完整或恢复没做完：`kind` 是哪里不对，`text` 是它的中文说明。
+    pub(crate) fn incomplete(
+        kind: crate::command_error::ErrorKind,
+        text: impl Into<String>,
+    ) -> Self {
+        BackupError::Incomplete(Box::new(crate::CommandError::new(kind, text)))
     }
 }
 

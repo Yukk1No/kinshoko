@@ -15,6 +15,7 @@ mod plugin_acl_tests;
 mod run_log;
 mod shell;
 mod tagging;
+mod ui_text;
 mod updater;
 
 use tauri::RunEvent;
@@ -26,7 +27,7 @@ pub fn run() {
         Err(message) => {
             eprintln!("{message}");
             #[cfg(windows)]
-            desktop::win32::show_error("Kinshoko 无法启动", &message);
+            desktop::win32::show_error(ui_text::text(ui_text::Text::StartupFailed), &message);
             std::process::exit(1);
         }
     };
@@ -83,6 +84,8 @@ pub fn run() {
             run_log::log_timing,
             commands::set_viewer_background,
             commands::migrate_viewer_background,
+            commands::interface_language,
+            commands::set_interface_language,
             commands::ui_scale,
             commands::set_ui_scale,
             commands::double_click,

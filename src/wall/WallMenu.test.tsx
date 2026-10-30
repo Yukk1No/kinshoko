@@ -9,7 +9,7 @@ import type { BrowseScope } from "../bindings/BrowseScope";
 afterEach(cleanup);
 
 const card = (id: string, extra: Partial<BrowserCard> = {}): BrowserCard => ({
-  id, width: 100, height: 100, thumbnail: `L1/${id}/256`, adult: false, libraryId: "L1", imageId: `i${id}`,
+  id, width: 100, height: 100, adult: false, libraryId: "L1", imageId: `i${id}`,
   sources: [{ libraryId: "L1", libraryName: "库一", imageId: `i${id}`, unavailable: null, matches: true, deleted: false }], ...extra,
 });
 

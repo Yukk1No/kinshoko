@@ -1,6 +1,8 @@
 //! Eagle 导入来源 adapter：只读来源，枚举以 images/ 为准。
 //! 原样 JSON 与解析出的来源事实在原文件发布后的同一事务里提交。
 
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -115,9 +117,19 @@ pub(super) fn is_item(path: &Path) -> bool {
             .is_some_and(|p| p.file_name().is_some_and(|n| n == "images"))
 }
 
-fn parse<T: serde::de::DeserializeOwned>(raw: &str) -> Result<T, String> {
-    serde_json::from_str(raw.trim_start_matches('\u{feff}'))
-        .map_err(|e| format!("Eagle 元数据缺少必需字段或格式无效：{e}"))
+fn item_path_invalid() -> CommandError {
+    CommandError::new(ErrorKind::EagleItemPathInvalid, "Eagle 条目路径无效")
+}
+
+fn parse<T: serde::de::DeserializeOwned>(raw: &str) -> Result<T, CommandError> {
+    serde_json::from_str(raw.trim_start_matches('\u{feff}')).map_err(|e| {
+        CommandError::new(
+            ErrorKind::EagleMetadataInvalid {
+                detail: e.to_string(),
+            },
+            format!("Eagle 元数据缺少必需字段或格式无效：{e}"),
+        )
+    })
 }
 
 /// 一个 Eagle 资料库里要导入的条目。
@@ -129,23 +141,23 @@ pub(super) struct Collected {
 
 /// 枚举一个 Eagle 资料库没有得到条目的原因。
 pub(super) enum CollectError {
-    Failed(String),
+    Failed(CommandError),
     /// 新位置像是已登记来源搬了家：什么都没写，等画师确认。
     Relocation(EagleRelocation),
 }
 
-impl From<String> for CollectError {
-    fn from(reason: String) -> Self {
+impl From<CommandError> for CollectError {
+    fn from(reason: CommandError) -> Self {
         CollectError::Failed(reason)
     }
 }
 
 /// `images/` 下的条目目录，按名称排序。`mtime.json` 不可靠，不作为枚举依据。
-fn item_dirs(root: &Path) -> Result<Vec<PathBuf>, String> {
+fn item_dirs(root: &Path) -> Result<Vec<PathBuf>, CommandError> {
     let mut items = Vec::new();
-    for entry in std::fs::read_dir(root.join("images")).map_err(|e| e.to_string())? {
-        let entry = entry.map_err(|e| e.to_string())?;
-        if entry.file_type().map_err(|e| e.to_string())?.is_dir() && is_item(&entry.path()) {
+    for entry in std::fs::read_dir(root.join("images")).map_err(CommandError::system)? {
+        let entry = entry.map_err(CommandError::system)?;
+        if entry.file_type().map_err(CommandError::system)?.is_dir() && is_item(&entry.path()) {
             items.push(entry.path());
         }
     }
@@ -177,7 +189,7 @@ pub(super) fn collect(inner: &Inner, path: &Path) -> Result<Collected, CollectEr
         }
     };
     // Eagle 中删除的条目只把绑定记为 missing，不删本库副本；重新出现时由刷新改回。
-    let present = serde_json::to_string(&present).map_err(|e| e.to_string())?;
+    let present = serde_json::to_string(&present).map_err(CommandError::system)?;
     let missing = inner
         .writer
         .run(move |conn| {
@@ -195,19 +207,19 @@ pub(super) fn collect(inner: &Inner, path: &Path) -> Result<Collected, CollectEr
                 |r| r.get(0),
             )
         })
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::system)?;
     Ok(Collected { items, missing })
 }
 
-fn canonical(root: &Path) -> Result<String, String> {
+fn canonical(root: &Path) -> Result<String, CommandError> {
     Ok(std::fs::canonicalize(root)
-        .map_err(|e| e.to_string())?
+        .map_err(CommandError::system)?
         .to_string_lossy()
         .into_owned())
 }
 
 /// 这个位置已登记的来源。
-fn registered(inner: &Inner, root: &Path) -> Result<Option<String>, String> {
+fn registered(inner: &Inner, root: &Path) -> Result<Option<String>, CommandError> {
     let location = canonical(root)?;
     inner
         .readers
@@ -218,31 +230,37 @@ fn registered(inner: &Inner, root: &Path) -> Result<Option<String>, String> {
             |r| r.get::<_, String>(0),
         )
         .optional()
-        .map_err(|e| e.to_string())
+        .map_err(CommandError::system)
 }
 
 /// 按位置找到来源；没登记过就登记。疑似搬家的位置不登记，要画师先确认。
-fn register(inner: &Inner, root: &Path) -> Result<String, String> {
+fn register(inner: &Inner, root: &Path) -> Result<String, CommandError> {
     if let Some(id) = registered(inner, root)? {
         return Ok(id);
     }
     if relocation(inner, root, &external_ids(&item_dirs(root)?))?.is_some() {
-        return Err("这个 Eagle 资料库像是已登记的来源搬了家，确认后才能迁入".into());
+        return Err(CommandError::new(
+            ErrorKind::EagleRelocationUnconfirmed,
+            "这个 Eagle 资料库像是已登记的来源搬了家，确认后才能迁入",
+        ));
     }
     register_new(inner, root)
 }
 
 /// 读出并验证 Eagle 资料库的 metadata.json；先验证整棵文件夹树，避免坏的层级留下半次写入。
-fn library_metadata(root: &Path) -> Result<(String, LibraryMetadata), String> {
-    let raw = std::fs::read_to_string(root.join("metadata.json")).map_err(|e| e.to_string())?;
+fn library_metadata(root: &Path) -> Result<(String, LibraryMetadata), CommandError> {
+    let raw = std::fs::read_to_string(root.join("metadata.json")).map_err(CommandError::system)?;
     let metadata: LibraryMetadata = parse(&raw)?;
-    fn validate(folders: &[Folder], seen: &mut HashSet<String>) -> Result<(), String> {
+    fn validate(folders: &[Folder], seen: &mut HashSet<String>) -> Result<(), CommandError> {
         for folder in folders {
             if folder.id.is_empty()
                 || folder.name.trim().is_empty()
                 || !seen.insert(folder.id.clone())
             {
-                return Err("Eagle 文件夹的 id 或名称无效，或 id 重复".into());
+                return Err(CommandError::new(
+                    ErrorKind::EagleFoldersInvalid,
+                    "Eagle 文件夹的 id 或名称无效，或 id 重复",
+                ));
             }
             validate(&folder.children, seen)?;
         }
@@ -253,7 +271,7 @@ fn library_metadata(root: &Path) -> Result<(String, LibraryMetadata), String> {
 }
 
 /// 把这个位置登记为新的 Eagle 来源（不检查是否搬家）。
-fn register_new(inner: &Inner, root: &Path) -> Result<String, String> {
+fn register_new(inner: &Inner, root: &Path) -> Result<String, CommandError> {
     let location = canonical(root)?;
     let (raw, metadata) = library_metadata(root)?;
     inner.write(move |tx| {
@@ -268,11 +286,11 @@ fn register_new(inner: &Inner, root: &Path) -> Result<String, String> {
         )?;
         sync_folders(tx, &id, None, &metadata)?;
         Ok(id)
-    }).map_err(|e| e.to_string())
+    }).map_err(CommandError::system)
 }
 
 /// 重导时刷新资料库级的原样 JSON 与文件夹层级。
-fn refresh(inner: &Inner, source_id: &str, root: &Path) -> Result<(), String> {
+fn refresh(inner: &Inner, source_id: &str, root: &Path) -> Result<(), CommandError> {
     let (raw, metadata) = library_metadata(root)?;
     let source_id = source_id.to_owned();
     let changed = inner
@@ -296,7 +314,7 @@ fn refresh(inner: &Inner, source_id: &str, root: &Path) -> Result<(), String> {
             tx.commit()?;
             Ok(true)
         })
-        .map_err(|e: Error| e.to_string())?;
+        .map_err(|e: Error| CommandError::system(e))?;
     // 只有文件夹层级或原样 JSON 真的变了才让浏览结果过期。
     if changed {
         inner.hub.publish(LibraryEvent::ListStale {
@@ -314,17 +332,17 @@ fn item_location(root: &Path, entry: &std::ffi::OsStr) -> String {
         .into_owned()
 }
 
-pub(super) fn load(inner: &Inner, path: &Path) -> Result<Item, String> {
+pub(super) fn load(inner: &Inner, path: &Path) -> Result<Item, CommandError> {
     let root = path
         .parent()
         .and_then(Path::parent)
-        .ok_or("Eagle 条目路径无效")?;
+        .ok_or_else(item_path_invalid)?;
     let source_id = register(inner, root)?;
     let location = item_location(
         &plain(&canonical(root)?),
-        path.file_name().ok_or("Eagle 条目路径无效")?,
+        path.file_name().ok_or_else(item_path_invalid)?,
     );
-    let raw = std::fs::read_to_string(path.join("metadata.json")).map_err(|e| e.to_string())?;
+    let raw = std::fs::read_to_string(path.join("metadata.json")).map_err(CommandError::system)?;
     let metadata: ItemMetadata = parse(&raw)?;
     for (field, value) in [
         ("id", &metadata.id),
@@ -336,27 +354,38 @@ pub(super) fn load(inner: &Inner, path: &Path) -> Result<Item, String> {
             || value == "."
             || value == ".."
         {
-            return Err(format!("Eagle 条目的 {field} 无效"));
+            return Err(CommandError::new(
+                ErrorKind::EagleItemFieldInvalid {
+                    field: field.to_owned(),
+                },
+                format!("Eagle 条目的 {field} 无效"),
+            ));
         }
     }
     if path.file_stem().and_then(|s| s.to_str()) != Some(&metadata.id) {
-        return Err("Eagle 条目的 id 与 images 下的目录名不符".into());
+        return Err(CommandError::new(
+            ErrorKind::EagleItemIdMismatch,
+            "Eagle 条目的 id 与 images 下的目录名不符",
+        ));
     }
     if metadata.width == 0
         || metadata.height == 0
         || metadata.tags.iter().any(|t| t.trim().is_empty())
     {
-        return Err("Eagle 条目的尺寸或标签无效".into());
+        return Err(CommandError::new(
+            ErrorKind::EagleItemSizeOrTags,
+            "Eagle 条目的尺寸或标签无效",
+        ));
     }
     let conn = inner.readers.get();
     let mut stmt = conn
         .prepare_cached("SELECT external_id, folder_id FROM eagle_folder WHERE source_id = ?1")
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::system)?;
     let folders: HashMap<String, String> = stmt
         .query_map([&source_id], |r| Ok((r.get(0)?, r.get(1)?)))
-        .map_err(|e| e.to_string())?
+        .map_err(CommandError::system)?
         .collect::<Result<_, _>>()
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::system)?;
     // Eagle 资料库里有、本库却没有对应的文件夹是画师在本库删掉的（#114）：归属略过，不算错。
     // 只在遇到没有对应的文件夹时才读这个来源的文件夹层级。
     let mut known: Option<HashSet<String>> = None;
@@ -370,7 +399,10 @@ pub(super) fn load(inner: &Inner, path: &Path) -> Result<Item, String> {
             known = Some(source_folder_ids(&conn, &source_id)?);
         }
         if !known.as_ref().is_some_and(|known| known.contains(id)) {
-            return Err(format!("Eagle 条目引用了不存在的文件夹：{id}"));
+            return Err(CommandError::new(
+                ErrorKind::EagleItemUnknownFolder { folder: id.clone() },
+                format!("Eagle 条目引用了不存在的文件夹：{id}"),
+            ));
         }
     }
     let folders = mapped;

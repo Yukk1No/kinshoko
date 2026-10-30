@@ -1,4 +1,4 @@
-//! 资料库的标签、分级与打标接口（从 library/mod.rs 原样搬出）。
+//! 资料库的标签、分级与打标接口。
 
 use super::*;
 
@@ -67,7 +67,25 @@ impl Library {
         rating::images_to_tag(&self.inner, source, limit)
     }
 
+    /// 模型来源 `source` 还没打过标的参考图有几张，范围同 [`Library::images_to_tag`]。
+    pub fn count_images_to_tag(&self, source: &FactSource) -> Result<u32, Error> {
+        rating::count_images_to_tag(&self.inner, source)
+    }
+
+    /// 提交模型来源 `source` 对一张参考图的一次成功推理（#318）：模型标签、分级建议与完成状态
+    /// 在同一个事务里写入，提交后才推送事件；任何一步失败都整体回滚，这张图仍是待打标的图。
+    /// 人工标签决定、人工分级与其他来源不受影响。
+    pub fn commit_tagging_result(
+        &self,
+        source: &FactSource,
+        image_id: &str,
+        result: &TaggingResult,
+    ) -> Result<(), Error> {
+        rating::commit_tagging_result(&self.inner, source, image_id, result)
+    }
+
     /// 记下模型来源 `source` 对一张参考图的打标结果；之后它不再是待打标的图。
+    /// 成功推理的结果用 [`Library::commit_tagging_result`] 连同完成状态一起提交。
     pub fn finish_tagging(
         &self,
         source: &FactSource,
@@ -256,8 +274,13 @@ impl Library {
             });
         }
         match outcome {
-            ImportOutcome::ReadFailed { reason } => Err(Error::PackageImage(reason)),
-            ImportOutcome::Unsupported => Err(Error::PackageImage("不是支持的图片格式".into())),
+            ImportOutcome::ReadFailed { reason } => Err(Error::PackageImage(Box::new(reason))),
+            ImportOutcome::Unsupported => {
+                Err(Error::PackageImage(Box::new(crate::CommandError::new(
+                    crate::command_error::ErrorKind::PackageImageUnsupported,
+                    "不是支持的图片格式",
+                ))))
+            }
             other => Ok(other.image_id().expect("进库的结果都有参考图").to_owned()),
         }
     }

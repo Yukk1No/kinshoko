@@ -1,6 +1,7 @@
 //! 打开钉图：从截图历史、参考图或选区开出钉图，以及钉图的外观。
 
 use super::*;
+use kinshoko_core::CommandError;
 
 /// 改一个钉图的状态并安排保存。钉图不在时为 `None`。
 pub(super) fn edit<T>(app: &AppHandle, pin: &str, f: impl FnOnce(&mut SavedPin) -> T) -> Option<T> {
@@ -13,7 +14,11 @@ pub(super) fn edit<T>(app: &AppHandle, pin: &str, f: impl FnOnce(&mut SavedPin) 
 
 /// 把截图历史中的一张截图钉到桌面，返回新钉图的 id。`at` 是图片原本在屏幕上的位置（物理像素）；
 /// 新钉图略微偏离它，并避开已有钉图（[`place_new_pin`]）。
-pub fn open(app: &AppHandle, capture: &CaptureEntry, at: ScreenRect) -> Result<String, String> {
+pub fn open(
+    app: &AppHandle,
+    capture: &CaptureEntry,
+    at: ScreenRect,
+) -> Result<String, CommandError> {
     let center = (at.x + (at.width / 2) as i32, at.y + (at.height / 2) as i32);
     let (monitor, scale) = monitor_at(center.0, center.1)
         .or_else(|| monitor_at(at.x, at.y))
@@ -60,13 +65,13 @@ pub(super) fn pin_reference_here(
     image_id: &str,
     crop: Option<Region>,
     shown: ScreenRect,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     crate::library::visible_source(app, library_id, image_id)?
         .image(image_id)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     let image = crate::library::with_references(app, |refs| refs.image(library_id, image_id))
-        .map_err(|e| e.to_string())?;
-    let origin = window.inner_position().map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
+    let origin = window.inner_position().map_err(CommandError::system)?;
     let centre = (
         origin.x + shown.x + (shown.width / 2) as i32,
         origin.y + shown.y + (shown.height / 2) as i32,
@@ -87,7 +92,7 @@ pub(super) fn pin_reference_here(
         crop,
         Placement::default(),
     )
-    .map_err(|e| e.to_string())?;
+    .map_err(CommandError::from)?;
     pin.placement.scale = initial_scale(pin.width, pin.height, monitor);
     let (width, height) = pin.window_size();
     let at = ScreenRect {

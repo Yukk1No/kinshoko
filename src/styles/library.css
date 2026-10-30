@@ -17,7 +17,7 @@
   align-items: center;
   justify-content: center;
   border: 3px dashed var(--accent-strong);
-  border-radius: 12px;
+  border-radius: var(--r-xl);
   background: color-mix(in srgb, var(--bg) 85%, transparent);
   color: var(--accent-strong);
   font-size: 16px;
