@@ -81,7 +81,7 @@ impl From<DeviceLibraryError> for ErrorKind {
             }
             DeviceLibraryError::Unavailable { root, reason } => ErrorKind::LibraryUnavailable {
                 root: path(&root),
-                reason,
+                cause: Box::new(reason.kind),
             },
         }
     }

@@ -95,9 +95,10 @@ pub enum ErrorKind {
     IdentityChanged {
         root: String,
     },
+    /// 资料库此刻打不开；`cause` 是打不开的原因。
     LibraryUnavailable {
         root: String,
-        reason: String,
+        cause: Box<ErrorKind>,
     },
     /// 这些资料库的导入一直没有收尾，整理没有执行。
     OrganizeTimedOut {

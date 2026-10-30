@@ -28,7 +28,11 @@ fn errors_reach_the_interface_as_a_code_with_parameters() {
             }
             .into()
         ),
-        serde_json::json!({ "code": "libraryUnavailable", "root": "E:\\库", "reason": "拒绝访问" })
+        serde_json::json!({
+            "code": "libraryUnavailable",
+            "root": "E:\\库",
+            "cause": { "code": "message", "message": "拒绝访问" }
+        })
     );
     assert_eq!(
         text(library::Error::UnknownImage.into()),

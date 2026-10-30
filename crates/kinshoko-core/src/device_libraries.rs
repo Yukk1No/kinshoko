@@ -30,8 +30,13 @@ pub enum DeviceLibraryError {
     Library(crate::library::Error),
     UnknownLibrary,
     StaleLibrary,
-    IdentityChanged { root: PathBuf },
-    Unavailable { root: PathBuf, reason: String },
+    IdentityChanged {
+        root: PathBuf,
+    },
+    Unavailable {
+        root: PathBuf,
+        reason: crate::CommandError,
+    },
 }
 
 impl fmt::Display for DeviceLibraryError {
@@ -255,7 +260,7 @@ impl DeviceLibraries {
             .map(Arc::new)
             .map_err(|error| DeviceLibraryError::Unavailable {
                 root: registration.root.clone(),
-                reason: error.to_string(),
+                reason: error.into(),
             })
     }
 
@@ -286,7 +291,7 @@ impl DeviceLibraries {
         let library =
             Library::open(&registration.root).map_err(|error| DeviceLibraryError::Unavailable {
                 root: registration.root.clone(),
-                reason: error.to_string(),
+                reason: error.into(),
             })?;
         let library = self.scoped(library);
         if library.info().id != library_id {
@@ -403,7 +408,7 @@ impl DeviceLibraries {
         }
         let library = Library::open(root).map_err(|error| DeviceLibraryError::Unavailable {
             root: root.to_path_buf(),
-            reason: error.to_string(),
+            reason: error.into(),
         })?;
         if expected.is_some_and(|id| id != library.info().id) {
             return Err(DeviceLibraryError::IdentityChanged {
@@ -446,7 +451,7 @@ impl DeviceLibraries {
     ) -> Result<crate::library::LibraryInfo, DeviceLibraryError> {
         let info = Library::inspect(root).map_err(|error| DeviceLibraryError::Unavailable {
             root: root.to_path_buf(),
-            reason: error.to_string(),
+            reason: error.into(),
         })?;
         if expected.is_some_and(|id| id != info.id) {
             return Err(DeviceLibraryError::IdentityChanged {

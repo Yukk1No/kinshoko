@@ -45,7 +45,7 @@ const errors: Translation<typeof zh> = {
   unknownLibrary: "This library isn't registered on this device",
   staleLibrary: "The library was switched or closed. Try again in the current library",
   identityChanged: "{{root}} is now a different library. Choose the right location and register it again",
-  libraryUnavailable: "The library is unavailable right now: {{root}}. Make sure the removable drive is connected; if the library has moved, choose its new location and register it again. Reason: {{reason}}",
+  libraryUnavailable: "The library is unavailable right now: {{root}}. Make sure the removable drive is connected; if the library has moved, choose its new location and register it again. Reason: {{cause}}",
   organizeTimedOut: "Imports into {{libraries}} haven't finished, so nothing was changed. Try again later",
   libraryName: "“{{name}}”",
   librarySeparator: ", ",

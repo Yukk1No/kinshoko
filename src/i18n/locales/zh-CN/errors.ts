@@ -44,7 +44,7 @@ export default {
   unknownLibrary: "本设备没有登记这个资料库",
   staleLibrary: "资料库已切换或关闭，请在当前资料库重新操作",
   identityChanged: "{{root}} 已是另一个资料库，请选择正确位置重新登记",
-  libraryUnavailable: "资料库暂时不可用：{{root}}。请确认移动盘已连接；资料库搬家后请选择新位置重新登记。原因：{{reason}}",
+  libraryUnavailable: "资料库暂时不可用：{{root}}。请确认移动盘已连接；资料库搬家后请选择新位置重新登记。原因：{{cause}}",
   organizeTimedOut: "{{libraries}}的导入一直没有收尾，这次整理没有执行，请稍后再试",
   /** 列出资料库名称时每个名称的写法与分隔符。 */
   libraryName: "「{{name}}」",

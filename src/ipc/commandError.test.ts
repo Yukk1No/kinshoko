@@ -17,8 +17,8 @@ it("每个错误代码都有中文文案（按结构拼的几种除外）", () =
 it("中文文案与 1.0 的后端原文一致，参数填进去", () => {
   expect(describeCommandError({ code: "cursorExpired" })).toBe("浏览结果已变化，请从头重新浏览");
   expect(describeCommandError({ code: "ambiguousTag", name: "猫" })).toBe("有多个标签叫“猫”，请从候选中选择");
-  expect(describeCommandError({ code: "libraryUnavailable", root: "E:\\私人收藏", reason: "拒绝访问" }))
-    .toBe("资料库暂时不可用：E:\\私人收藏。请确认移动盘已连接；资料库搬家后请选择新位置重新登记。原因：拒绝访问");
+  expect(describeCommandError({ code: "libraryUnavailable", root: "E:\\私人收藏", cause: { code: "notALibrary", path: "E:\\私人收藏" } }))
+    .toBe("资料库暂时不可用：E:\\私人收藏。请确认移动盘已连接；资料库搬家后请选择新位置重新登记。原因：这里没有 Kinshoko 资料库：E:\\私人收藏");
   expect(describeCommandError({ code: "organizeTimedOut", libraries: ["甲库", "乙库"] }))
     .toBe("「甲库」、「乙库」的导入一直没有收尾，这次整理没有执行，请稍后再试");
   expect(describeCommandError({ code: "groupMembersUnavailable", members: ["a.png：原图文件缺失", "b.png"] }))
