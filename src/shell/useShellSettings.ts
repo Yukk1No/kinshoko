@@ -80,10 +80,12 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
   // 切走再回来的分区接着在它之上改，失败作废的同项改动也就都是真依赖失败那次的。
   // 命令只带改了的几项，执行时才叠到已接受的设置上（见 shellSettingsCommand）。
   // - tagQueued：还没开始执行的那条累计的改动，新改动与它合并时要带上前面几次的。
-  // - tagShown：界面上叠在已接受设置之上的改动；全回来、失败或开始恢复时清掉。
+  // - tagShown：界面上叠在已接受设置之上的改动，只含最近一次恢复之后的；全回来、开始恢复，
+  //   或同一段（tagSegment，每次恢复加一）里的改动失败时清掉。别段的失败不碰它。
   // 恢复把两者都截断：恢复之后的改动另起一条，只带恢复之后改的几项，不把恢复前的其余几项写回去。
   let tagQueued: Partial<TagDisplay> | null = null;
   let tagShown: Partial<TagDisplay> | null = null;
+  let tagSegment = 0;
   let tagOutstanding = 0;
   const tagDraft = () => (tagShown && { ...(submitter.state().view?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...tagShown });
   const listeners = new Set<() => void>();
@@ -109,13 +111,14 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
     changeTagDisplay(change: Partial<TagDisplay>) {
       tagShown = { ...tagShown, ...change };
       const queued = tagQueued = { ...tagQueued, ...change };
+      const segment = tagSegment;
       tagOutstanding += 1;
       refresh();
       const command = shellSettingsCommand({ kind: "tagDisplay", change: queued }, () => submitter.state().view);
       void submitter.submit({ ...command, run: () => { if (tagQueued === queued) tagQueued = null; return command.run(); } }).then((result) => {
         if (!result.ok) {
           if (tagQueued === queued) tagQueued = null;
-          tagShown = null;
+          if (segment === tagSegment) tagShown = null;
         }
         tagOutstanding -= 1;
         if (tagOutstanding === 0) tagShown = null;
@@ -126,6 +129,7 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
     async restore(path: string, fingerprint: string) {
       let restored: ApplicationSettingsRestored | undefined;
       tagQueued = tagShown = null;
+      tagSegment += 1;
       refresh();
       const result = await submitter.submit({
         key: "restore", merge: "keep", replaces: true, quiet: true,
