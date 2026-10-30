@@ -21,7 +21,9 @@ impl From<library::Error> for ErrorKind {
         use library::Error as E;
         match e {
             E::InvalidName => ErrorKind::InvalidLibraryName,
-            E::TagDefinitions(reason) => ErrorKind::TagDefinitionsNotSaved { reason },
+            E::TagDefinitions(cause) => ErrorKind::TagDefinitionsNotSaved {
+                cause: Box::new(cause.kind),
+            },
             E::NotEmpty(p) => ErrorKind::NotEmpty { path: path(&p) },
             E::NotALibrary(p) => ErrorKind::NotALibrary { path: path(&p) },
             E::UnknownImage => ErrorKind::UnknownImage,
@@ -44,11 +46,15 @@ impl From<library::Error> for ErrorKind {
             E::EagleLocationTaken => ErrorKind::EagleLocationTaken,
             E::LensChanged => ErrorKind::LensChanged,
             E::OutdatedLibrary => ErrorKind::OutdatedLibrary,
-            E::PackageImage(reason) => ErrorKind::PackageImage { reason },
+            E::PackageImage(cause) => ErrorKind::PackageImage {
+                cause: Box::new(cause.kind),
+            },
             E::MergeTargetGone => ErrorKind::MergeTargetGone,
             E::NotInTrash => ErrorKind::NotInTrash,
             E::DeletePreviewStale => ErrorKind::DeletePreviewStale,
-            E::ReferenceGroups(reason) => ErrorKind::ReferenceGroupsUnchecked { reason },
+            E::ReferenceGroups(cause) => ErrorKind::ReferenceGroupsUnchecked {
+                cause: Box::new(cause.kind),
+            },
             E::Io(e) => ErrorKind::Io {
                 detail: e.to_string(),
             },
@@ -63,7 +69,9 @@ impl From<library::Error> for ErrorKind {
             },
             E::Undecodable(detail) => ErrorKind::Undecodable { detail },
             E::OriginalMissing(p) => ErrorKind::OriginalMissing { path: path(&p) },
-            E::ClipboardImage(reason) => ErrorKind::ClipboardImage { reason },
+            E::ClipboardImage(cause) => ErrorKind::ClipboardImage {
+                cause: Box::new(cause.kind),
+            },
         }
     }
 }
@@ -113,9 +121,9 @@ impl From<CatalogError> for ErrorKind {
             },
             CatalogError::Library(e) => e.into(),
             CatalogError::UnknownTag => ErrorKind::CatalogUnknownTag,
-            CatalogError::InvalidDefinition(reason) => {
-                ErrorKind::CatalogInvalidDefinition { reason }
-            }
+            CatalogError::InvalidDefinition(cause) => ErrorKind::CatalogInvalidDefinition {
+                cause: Box::new(cause.kind),
+            },
             CatalogError::UnknownGroup => ErrorKind::CatalogUnknownGroup,
             CatalogError::InvalidGroupMembers => ErrorKind::CatalogInvalidGroupMembers,
             CatalogError::UnknownMapping => ErrorKind::CatalogUnknownMapping,
@@ -139,13 +147,17 @@ impl From<GroupError> for ErrorKind {
             GroupError::UnsupportedVersion(version) => {
                 ErrorKind::GroupUnsupportedVersion { version }
             }
-            GroupError::Invalid(reason) => ErrorKind::GroupInvalid { reason },
+            GroupError::Invalid(cause) => ErrorKind::GroupInvalid {
+                cause: Box::new(cause.kind),
+            },
             GroupError::MembersUnavailable(members) => {
                 ErrorKind::GroupMembersUnavailable { members }
             }
             GroupError::NotAPackage => ErrorKind::NotAPackage,
-            GroupError::PackageDamaged(reason) => ErrorKind::PackageDamaged { reason },
-            GroupError::Library(message) => ErrorKind::Message { message },
+            GroupError::PackageDamaged(cause) => ErrorKind::PackageDamaged {
+                cause: Box::new(cause.kind),
+            },
+            GroupError::Library(cause) => cause.kind,
         }
     }
 }

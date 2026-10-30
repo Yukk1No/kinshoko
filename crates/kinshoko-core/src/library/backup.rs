@@ -85,7 +85,7 @@ impl LibrarySnapshot {
             .collect::<std::collections::BTreeSet<_>>();
         let mut bindings = catalog
             .content_bindings(&self.library.id, dependencies)
-            .map_err(|e| Error::TagDefinitions(e.to_string()))?;
+            .map_err(Error::tag_definitions)?;
         // A mapping can outlive a tag deleted before the fixed database snapshot.
         bindings.retain(|binding| local_ids.contains(&binding.local_tag_id));
         super::tag_definitions::publish(&mut conn, &bindings)?;

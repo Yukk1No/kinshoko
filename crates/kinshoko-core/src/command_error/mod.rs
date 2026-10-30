@@ -102,7 +102,12 @@ macro_rules! from_foreign_error {
     )*};
 }
 
-from_foreign_error!(std::io::Error, serde_json::Error, image::ImageError);
+from_foreign_error!(
+    std::io::Error,
+    serde_json::Error,
+    image::ImageError,
+    zip::result::ZipError,
+);
 
 /// 领域错误连同它的中文说明一起转过来。
 macro_rules! from_domain_error {

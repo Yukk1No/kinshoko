@@ -15,7 +15,7 @@ const ipc = vi.hoisted(() => ({
   notice: vi.fn((_pin: string, _text: string) => Promise.resolve()),
   groups: vi.fn(() => Promise.resolve([
     { id: "g1", name: "光影", memberCount: 2, libraryIds: ["L1"], updatedAt: 0, problem: null },
-    { id: "g2", name: "坏的", memberCount: 0, libraryIds: [], updatedAt: 0, problem: "读不懂" },
+    { id: "g2", name: "坏的", memberCount: 0, libraryIds: [], updatedAt: 0, problem: { code: "groupInvalid" as const, cause: { code: "notAGroup" as const } } },
   ])),
 }));
 vi.mock("../ipc", () => ({

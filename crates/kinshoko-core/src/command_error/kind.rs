@@ -4,7 +4,7 @@ use serde::Serialize;
 use ts_rs::TS;
 
 use crate::ShortcutAction;
-use crate::reference_groups::UnavailableReason;
+use crate::reference_groups::{MemberUnavailable, UnavailableReason};
 use crate::shortcuts::HotkeyFailure;
 
 /// 命令失败的原因。`code` 决定文案，其余字段是文案里的参数。前端看到的类型名是 `CommandError`。
@@ -26,7 +26,7 @@ pub enum ErrorKind {
     // 资料库（`library::Error`）。
     InvalidLibraryName,
     TagDefinitionsNotSaved {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
     NotEmpty {
         path: String,
@@ -60,14 +60,15 @@ pub enum ErrorKind {
     LensChanged,
     OutdatedLibrary,
     PackageImage {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
+    PackageImageUnsupported,
     MergeTargetGone,
     NamespaceGroup,
     NotInTrash,
     DeletePreviewStale,
     ReferenceGroupsUnchecked {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
     Io {
         detail: String,
@@ -88,7 +89,7 @@ pub enum ErrorKind {
         path: String,
     },
     ClipboardImage {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
 
     // 本设备的资料库登记（`DeviceLibraryError`、`WriterWaitError`）。
@@ -120,7 +121,7 @@ pub enum ErrorKind {
         detail: String,
     },
     CatalogInvalidDefinition {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
     CatalogInvalidGroupMembers,
     CatalogUnknownGroup,
@@ -144,14 +145,14 @@ pub enum ErrorKind {
         version: u32,
     },
     GroupInvalid {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
     GroupMembersUnavailable {
-        members: Vec<String>,
+        members: Vec<MemberUnavailable>,
     },
     NotAPackage,
     PackageDamaged {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
 
     // 备份（`BackupError`）。
@@ -339,6 +340,87 @@ pub enum ErrorKind {
     },
     ClipboardPartlyWritten {
         detail: String,
+    },
+
+    // 标签定义不合要求的地方。
+    DuplicateTagMapping,
+    ConflictingTagDefinitions,
+    TagNamespaceMismatch,
+    SnapshotNamespaceMismatch,
+    IdentityNamespaceConflict,
+    InvalidTagIdentity,
+    InvalidDefaultNames,
+    InvalidTagAlias,
+    InvalidExternalMapping,
+    ClipboardImageEmpty,
+    SettingsTagReferences,
+
+    // 参考组文件与参考组包不合要求的地方。
+    GroupNameMissing,
+    GroupMemberDuplicate {
+        member: String,
+    },
+    GroupMemberScale {
+        member: String,
+    },
+    GroupMemberRotation {
+        member: String,
+    },
+    GroupMemberCaptureFile {
+        member: String,
+    },
+    GroupMemberPin {
+        member: String,
+        cause: Box<ErrorKind>,
+    },
+    GroupIdentityExists,
+    MemberCaptureFileInvalid,
+    MemberCaptureMissing,
+    GroupFileMismatch,
+    NotAGroup,
+    WrongFormatVersion,
+    CaptureFileInvalid {
+        file: String,
+    },
+    GroupCaptureUnreadable {
+        file: String,
+        detail: String,
+    },
+    GroupUnreadable {
+        name: String,
+        cause: Box<ErrorKind>,
+    },
+    PackageOriginalMismatch {
+        path: String,
+    },
+    PackageNoDefinitions,
+    PackageNoLocalMappings,
+    PackageDefinitionNamespace,
+    PackageConflictingDefinitions,
+    PackageCaptureDuplicate {
+        file: String,
+    },
+    PackageMemberNoImage {
+        member: String,
+    },
+    PackageCaptureMissing {
+        file: String,
+    },
+    PackageCaptureMismatch {
+        file: String,
+    },
+    PackageImageMissing {
+        file: String,
+    },
+    PackageImageMismatch {
+        file: String,
+    },
+    /// 包导入做完 `done` 项后，第 `number` 项失败。
+    PackageImportStopped {
+        done: usize,
+        total: usize,
+        number: usize,
+        cause: Box<ErrorKind>,
     },
 
     /// 还原度门槛实验（开发用）不认识的取图方式。

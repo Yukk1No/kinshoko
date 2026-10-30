@@ -18,8 +18,7 @@ pub(super) fn read(conn: &Connection) -> Result<Vec<PortableTagBinding>, Error> 
         let (local_tag_id, json, authoritative) = row?;
         Ok(PortableTagBinding {
             local_tag_id,
-            definition: serde_json::from_str(&json)
-                .map_err(|e| Error::TagDefinitions(e.to_string()))?,
+            definition: serde_json::from_str(&json).map_err(Error::tag_definitions)?,
             authoritative,
         })
     })
@@ -45,7 +44,7 @@ pub(super) fn seed(tx: &Transaction<'_>) -> Result<(), Error> {
             id: match old {
                 Some(json) => {
                     serde_json::from_str::<PortableTagDefinition>(&json)
-                        .map_err(|e| Error::TagDefinitions(e.to_string()))?
+                        .map_err(Error::tag_definitions)?
                         .id
                 }
                 None => uuid::Uuid::now_v7().simple().to_string(),
@@ -85,7 +84,7 @@ pub(super) fn seed(tx: &Transaction<'_>) -> Result<(), Error> {
             })?
             .collect::<Result<_, _>>()?;
         tx.execute("INSERT INTO tag_definition_dependency(local_tag_id,catalog_id,definition,authoritative) VALUES (?1,?2,?3,0) ON CONFLICT(local_tag_id) DO UPDATE SET definition=excluded.definition",
-            params![local,definition.id,serde_json::to_string(&definition).map_err(|e| Error::TagDefinitions(e.to_string()))?])?;
+            params![local,definition.id,serde_json::to_string(&definition).map_err(Error::tag_definitions)?])?;
     }
     tx.execute("DELETE FROM tag_definition_dirty", [])?;
     Ok(())
@@ -118,14 +117,20 @@ pub(super) fn publish(conn: &mut Connection, bindings: &[PortableTagBinding]) ->
         binding
             .definition
             .validate()
-            .map_err(Error::TagDefinitions)?;
+            .map_err(Error::tag_definitions)?;
         if !local_ids.insert(&binding.local_tag_id) {
-            return Err(Error::TagDefinitions("本地标签对应重复".into()));
+            return Err(Error::tag_definitions(crate::CommandError::new(
+                crate::command_error::ErrorKind::DuplicateTagMapping,
+                "本地标签对应重复",
+            )));
         }
         if let Some(prior) = definitions.insert(&binding.definition.id, &binding.definition)
             && prior != &binding.definition
         {
-            return Err(Error::TagDefinitions("同一身份包含不同定义".into()));
+            return Err(Error::tag_definitions(crate::CommandError::new(
+                crate::command_error::ErrorKind::ConflictingTagDefinitions,
+                "同一身份包含不同定义",
+            )));
         }
         let namespace = tx
             .query_row(
@@ -136,13 +141,16 @@ pub(super) fn publish(conn: &mut Connection, bindings: &[PortableTagBinding]) ->
             .optional()?
             .ok_or(Error::UnknownTag)?;
         if TagNamespace::parse(&namespace)? != binding.definition.namespace {
-            return Err(Error::TagDefinitions("命名空间不一致".into()));
+            return Err(Error::tag_definitions(crate::CommandError::new(
+                crate::command_error::ErrorKind::TagNamespaceMismatch,
+                "命名空间不一致",
+            )));
         }
     }
     seed(&tx)?;
     for binding in bindings {
         tx.execute("INSERT INTO tag_definition_dependency(local_tag_id,catalog_id,definition,authoritative) VALUES (?1,?2,?3,?4) ON CONFLICT(local_tag_id) DO UPDATE SET catalog_id=excluded.catalog_id,definition=excluded.definition,authoritative=excluded.authoritative",
-                    params![binding.local_tag_id,binding.definition.id,serde_json::to_string(&binding.definition).map_err(|e| Error::TagDefinitions(e.to_string()))?,binding.authoritative])?;
+                    params![binding.local_tag_id,binding.definition.id,serde_json::to_string(&binding.definition).map_err(Error::tag_definitions)?,binding.authoritative])?;
         super::fault::storage("portable_tags_publish_row")?;
     }
     tx.commit()?;
@@ -156,14 +164,17 @@ pub(super) fn resolve_snapshot(
     definition: &PortableTagDefinition,
     namespace: TagNamespace,
 ) -> Result<String, Error> {
-    definition.validate().map_err(Error::TagDefinitions)?;
+    definition.validate().map_err(Error::tag_definitions)?;
     if definition.namespace != namespace {
-        return Err(Error::TagDefinitions("快照命名空间与定义不同".into()));
+        return Err(Error::tag_definitions(crate::CommandError::new(
+            crate::command_error::ErrorKind::SnapshotNamespaceMismatch,
+            "快照命名空间与定义不同",
+        )));
     }
     if let Some((local,local_namespace)) = tx.query_row(
         "SELECT d.local_tag_id,t.namespace FROM tag_definition_dependency d JOIN tag t ON t.id=d.local_tag_id WHERE d.catalog_id=?1 ORDER BY d.local_tag_id LIMIT 1",
         [&definition.id], |r| Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?))).optional()? {
-        if TagNamespace::parse(&local_namespace)? != namespace { return Err(Error::TagDefinitions("同一身份命名空间冲突".into())); }
+        if TagNamespace::parse(&local_namespace)? != namespace { return Err(Error::tag_definitions(crate::CommandError::new(crate::command_error::ErrorKind::IdentityNamespaceConflict, "同一身份命名空间冲突"))); }
         return Ok(local);
     }
     let local = uuid::Uuid::now_v7().simple().to_string();
@@ -192,6 +203,6 @@ pub(super) fn resolve_snapshot(
         }
     }
     tx.execute("INSERT INTO tag_definition_dependency(local_tag_id,catalog_id,definition,authoritative) VALUES (?1,?2,?3,1)",
-        params![local,definition.id,serde_json::to_string(definition).map_err(|e|Error::TagDefinitions(e.to_string()))?])?;
+        params![local,definition.id,serde_json::to_string(definition).map_err(Error::tag_definitions)?])?;
     Ok(local)
 }

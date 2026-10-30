@@ -1,6 +1,8 @@
 //! 参考组自带的截图（#270）：存在 `<参考组>.captures/` 下，打开参考组时放回截图历史再钉出，
 //! 没有成员再用时删除，收藏后成员改为引用资料库。
 
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -20,7 +22,7 @@ pub type CaptureFiles = Vec<(String, Vec<u8>)>;
 #[derive(Debug, Clone, PartialEq)]
 pub struct OpenedPins {
     pub pins: Vec<SavedPin>,
-    pub problems: Vec<String>,
+    pub problems: Vec<CommandError>,
 }
 
 /// 收藏截图后改连参考组成员的结果（[`ReferenceGroups::relink_collected`]），每个关联的成员恰在
@@ -55,10 +57,13 @@ impl ReferenceGroups {
             .into_iter()
             .map(|file| match fs::read(dir.join(file)) {
                 Ok(bytes) => Ok((file.to_owned(), bytes)),
-                Err(e) => Err(GroupError::Invalid(format!(
-                    "{}（{file}）：{e}",
-                    UnavailableReason::CaptureMissing
-                ))),
+                Err(e) => Err(GroupError::invalid(
+                    ErrorKind::GroupCaptureUnreadable {
+                        file: file.to_owned(),
+                        detail: e.to_string(),
+                    },
+                    format!("{}（{file}）：{e}", UnavailableReason::CaptureMissing),
+                )),
             })
             .collect()
     }
@@ -89,8 +94,20 @@ impl ReferenceGroups {
                 MemberSource::Capture { .. } => {
                     let added = self
                         .capture_file(&group.id, m)
-                        .ok_or_else(|| "截图文件名不合法".to_owned())
-                        .and_then(|path| fs::read(path).map_err(|_| "组内截图文件缺失".to_owned()))
+                        .ok_or_else(|| {
+                            CommandError::new(
+                                ErrorKind::MemberCaptureFileInvalid,
+                                "截图文件名不合法",
+                            )
+                        })
+                        .and_then(|path| {
+                            fs::read(path).map_err(|_| {
+                                CommandError::new(
+                                    ErrorKind::MemberCaptureMissing,
+                                    "组内截图文件缺失",
+                                )
+                            })
+                        })
                         .and_then(|png| {
                             history
                                 .add_prepared(PreparedCapture::from_png(
@@ -98,12 +115,20 @@ impl ReferenceGroups {
                                     m.source_width,
                                     m.source_height,
                                 ))
-                                .map_err(|e| e.to_string())
+                                .map_err(CommandError::from)
                         });
                     match added {
                         Ok(entry) => entry.id,
                         Err(why) => {
-                            opened.problems.push(format!("成员 {}：{why}", m.id));
+                            let member = m.id.clone();
+                            opened.problems.push(CommandError::caused_by(
+                                why,
+                                |cause| ErrorKind::GroupMemberPin {
+                                    member: member.clone(),
+                                    cause,
+                                },
+                                |why| format!("成员 {member}：{why}"),
+                            ));
                             continue;
                         }
                     }
@@ -294,7 +319,10 @@ impl ReferenceGroups {
         let written = (|| -> Result<(), GroupError> {
             for (file, bytes) in captures {
                 if !valid_capture_file(file) {
-                    return Err(GroupError::Invalid(format!("截图文件名 {file} 不合法")));
+                    return Err(GroupError::invalid(
+                        ErrorKind::CaptureFileInvalid { file: file.clone() },
+                        format!("截图文件名 {file} 不合法"),
+                    ));
                 }
                 fs::create_dir_all(&dir)?;
                 write_atomically(&dir.join(file), bytes)?;

@@ -36,7 +36,11 @@ export function describeCommandError(error: CommandError): string {
     case "organizeTimedOut":
       return t("organizeTimedOut", { libraries: error.libraries.map((name) => t("libraryName", { name })).join(t("librarySeparator")) });
     case "groupMembersUnavailable":
-      return t("groupMembersUnavailable", { members: error.members.join(t("memberSeparator")) });
+      return t("groupMembersUnavailable", {
+        members: error.members
+          .map((m) => (m.member === null ? unavailable(m.reason) : t("memberUnavailable", { member: m.member, reason: unavailable(m.reason) })))
+          .join(t("memberSeparator")),
+      });
     case "shortcutUsedBy":
       return t("shortcutUsedBy", { action: t(`shortcutAction.${error.action}`) });
     case "captureSourceUnavailable":

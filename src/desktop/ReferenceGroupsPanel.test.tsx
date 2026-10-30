@@ -92,7 +92,7 @@ const view: ReferenceGroupView = {
 async function show(libraryId: string | null = "lib-a") {
   ipc.groups.mockResolvedValue([
     summary,
-    { ...summary, id: "bad", name: "bad", memberCount: 0, libraryIds: [], problem: "参考组文件已损坏" },
+    { ...summary, id: "bad", name: "bad", memberCount: 0, libraryIds: [], problem: { code: "groupInvalid", cause: { code: "notAGroup" } } },
   ]);
   ipc.group.mockResolvedValue(view);
   render(<SaveDestinationProvider safe><ReferenceGroupsPanel libraryId={libraryId} /></SaveDestinationProvider>);
@@ -119,7 +119,7 @@ describe("参考组面板", () => {
     expect(screen.getByText("头发参考")).toBeTruthy();
     expect(screen.getByText(/^3 张/).textContent).toBe("3 张");
     expect(screen.getByText(/^3 张/).parentElement!.textContent).toMatch(/^3 张主库、移动盘库\d{4} 年 \d+ 月 \d+ 日$/);
-    expect(screen.getByText("参考组文件已损坏")).toBeTruthy();
+    expect(screen.getByText("参考组文件已损坏：不是 Kinshoko 参考组")).toBeTruthy();
   });
 
   it("卡片缩略图只显示可用成员；安全模式遮蔽和不可用的成员不加载图片", async () => {
@@ -291,7 +291,7 @@ describe("参考组面板", () => {
 
   it("读不懂的参考组只能删除", async () => {
     await show();
-    const bad = screen.getByText("参考组文件已损坏").closest("li")!;
+    const bad = screen.getByText("参考组文件已损坏：不是 Kinshoko 参考组").closest("li")!;
     fireEvent.click(within(bad).getByRole("button", { name: /^bad/ }));
     expect(within(bad).queryByRole("button", { name: "摆到桌面" })).toBeNull();
     fireEvent.click(within(bad).getByRole("button", { name: "删除" }));

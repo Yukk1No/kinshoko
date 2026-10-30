@@ -99,7 +99,7 @@ pub fn compute_scope(
         match &g.problem {
             Some(problem) => uncovered.push(Uncovered::UnreadableGroup {
                 group: item(g),
-                problem: problem.clone(),
+                problem: problem.to_string(),
             }),
             None => readable.push(g),
         }
