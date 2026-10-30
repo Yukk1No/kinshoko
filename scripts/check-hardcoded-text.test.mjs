@@ -30,6 +30,17 @@ describe("前端组件", () => {
     expect(lines(source, "src/A.ts")).toEqual([1]);
   });
 
+  it("正则里的 /* 与 // 不当成注释，除号照常", () => {
+    const source = [
+      "const punctuation = /[/*]/;",
+      'const label = "打开";',
+      "if (/\\/\\//.test(s)) x = a / b; // 注释",
+      'const half = total / 2; const t = "一半";',
+      "return <p>完</p>;",
+    ].join("\n");
+    expect(lines(source, "src/A.tsx")).toEqual([2, 4, 5]);
+  });
+
   it("JSX 文本里的撇号不会把后面的注释当成字符串", () => {
     const source = ["<p>It's fine</p>", "// 注释"].join("\n");
     expect(lines(source, "src/A.tsx")).toEqual([]);

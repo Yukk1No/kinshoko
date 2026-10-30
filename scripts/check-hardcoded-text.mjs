@@ -85,6 +85,27 @@ export function stripComments(text, lang) {
       }
       continue;
     }
+    if (lang === "ts" && ch === "/" && regexCanStart(shape)) {
+      // 正则字面量：里面的 /* 或 // 不是注释。到不在字符类里、没转义的 / 为止，不跨行。
+      let inClass = false;
+      keep(text[i++], false);
+      while (i < n && text[i] !== "\n") {
+        const c = text[i];
+        if (c === "\\") {
+          keep(c, true);
+          if (i + 1 < n && text[i + 1] !== "\n") keep(text[++i], true);
+          i++;
+          continue;
+        }
+        if (c === "[") inClass = true;
+        else if (c === "]") inClass = false;
+        else if (c === "/" && !inClass) break;
+        keep(c, true);
+        i++;
+      }
+      if (text[i] === "/") keep(text[i++], false);
+      continue;
+    }
     if (lang === "rs" && ch === "r" && (next === '"' || next === "#") && !/[\w]/.test(text[i - 1] ?? "")) {
       // 原始字符串 r"…"、r#"…"#
       let j = i + 1;
@@ -164,6 +185,19 @@ export function stripComments(text, lang) {
     i++;
   }
   return { code, shape };
+}
+
+/**
+ * 这里的 / 是正则开头还是除号：看前面最后一个有意义的记号。
+ * 不把 < 算进去，免得 JSX 的 </p> 被当成正则。
+ */
+function regexCanStart(shape) {
+  let end = shape.length;
+  while (end > 0 && /\s/.test(shape[end - 1])) end--;
+  if (end === 0) return true;
+  const before = shape.slice(Math.max(0, end - 8), end);
+  if (/[(,=:[!&|?{};+\-*%~^]$/.test(before)) return true;
+  return /\b(?:return|typeof|case|do|else|in|of|void|yield|await|delete|throw|new)$/.test(before);
 }
 
 /** 从 ${ } 的 } 后面接着扫模板字符串，到 ` 或下一个 ${ 为止。 */
