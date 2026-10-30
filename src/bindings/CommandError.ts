@@ -3,7 +3,7 @@ import type { ShortcutAction } from "./ShortcutAction";
 import type { UnavailableReason } from "./UnavailableReason";
 
 /**
- * 命令失败的原因。`code` 决定文案，其余字段是文案里的参数。
+ * 命令失败的原因。`code` 决定文案，其余字段是文案里的参数。前端看到的类型名是 `CommandError`。
  *
  * `detail` 是系统或底层库给出的原文（例如磁盘错误），按原样附在文案后面。
  */
