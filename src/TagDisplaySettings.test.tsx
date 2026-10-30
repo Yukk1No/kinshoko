@@ -106,6 +106,37 @@ describe("设置：标签外观", () => {
     expect(screen.getByRole("button", { name: "按出处分组" }).getAttribute("aria-pressed")).toBe("true");
   });
 
+  it("保存还没回来时切走再回来，外观接着显示最后改成的那份，再改也在它之上（#321）", async () => {
+    let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
+    const waiting: (() => void)[] = [];
+    const view = (): ShellSettingsView => ({
+      autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
+      runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", updateChannel: "stable", tagDisplay: saved,
+    });
+    mockIPC((cmd, args) => {
+      if (cmd === "shell_settings") return view();
+      if (cmd === "set_tag_display") {
+        const display = (args as { display: TagDisplay }).display;
+        return new Promise<ShellSettingsView>((resolve) => waiting.push(() => { saved = display; resolve(view()); }));
+      }
+      if (cmd === "plugin:library|safe_mode") return true;
+      return undefined;
+    }, { shouldMockEvents: true });
+    const { outline } = await openAppearance();
+    fireEvent.click(outline);
+    fireEvent.click(screen.getByRole("button", { name: "显示名" }));
+    fireEvent.click(screen.getByRole("button", { name: "外观" }));
+    expect((await screen.findByRole("switch", { name: "低档虚线框" })).getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
+    await waitFor(() => expect(waiting.length).toBeGreaterThan(0));
+    while (waiting.length > 0) {
+      waiting.shift()!();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    expect(saved).toEqual({ style: "grouped", high: 0.8, low: 0.4, lowOutline: false });
+    expect(screen.getByRole("switch", { name: "低档虚线框" }).getAttribute("aria-checked")).toBe("false");
+  });
+
   it("保存失败时控件回到已保存的设置，之后的改动不夹带失败的那项", async () => {
     let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
     const view = (): ShellSettingsView => ({
