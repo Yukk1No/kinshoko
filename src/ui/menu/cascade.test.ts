@@ -164,6 +164,23 @@ describe("离开即关（按钮打开的菜单）", () => {
     t.wait(MENU_TIMING.closeDelay);
     expect(t.close).toHaveBeenCalledOnce();
   });
+  it("离开后的等待中改用键盘，不再关闭", () => {
+    const t = anchored();
+    t.move(100, 20, t.a);
+    t.move(600, 600, null);
+    t.wait(200);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown" }));
+    t.wait(MENU_TIMING.closeDelay);
+    expect(t.close).not.toHaveBeenCalled();
+    expect(t.state().input).toBe("keyboard");
+  });
+  it("用键盘打开时一开始就按键盘高亮，指针点开时按指针高亮", () => {
+    const t = anchored();
+    t.ctrl.openedFrom(t.ctrl.anchor, false);
+    expect(t.state().input).toBe("keyboard");
+    t.ctrl.openedFrom(t.ctrl.anchor, true);
+    expect(t.state().input).toBe("pointer");
+  });
   it("用键盘打开时，指针要先进过菜单才会因离开而关", () => {
     const t = anchored();
     t.ctrl.openedFrom(t.ctrl.anchor, false);

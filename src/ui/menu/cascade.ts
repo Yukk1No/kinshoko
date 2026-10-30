@@ -89,8 +89,12 @@ export class CascadeController {
       this.pointerMove({ x: e.clientX, y: e.clientY }, e.target as Element | null, {
         touch: "pointerType" in e && e.pointerType === "touch", dragging: e.type === "dragover",
       });
-    // 键盘接手：还在等的悬停不再生效，免得它晚到一步盖掉键盘的选择。
-    const key = () => { this.cancelPending(); if (this.state.input !== "keyboard") this.set({ input: "keyboard" }); };
+    // 键盘接手：还在等的悬停与离开即关都不再生效，免得它们晚到一步盖掉键盘的操作。
+    const key = () => {
+      this.cancelPending();
+      this.cancelClose();
+      if (this.state.input !== "keyboard") this.set({ input: "keyboard" });
+    };
     const leave = (e: MouseEvent) => { if (!e.relatedTarget) this.pointerLeftWindow(); };
     doc.addEventListener("pointermove", move, true);
     doc.addEventListener("dragover", move, true);
@@ -104,10 +108,14 @@ export class CascadeController {
     };
   }
 
-  /** 按钮打开了菜单。用指针点开的，开的那一下就算进过触发按钮，之后第一次移到外面就开始计时关闭。 */
+  /**
+   * 按钮打开了菜单。用指针点开的，开的那一下就算进过触发按钮，之后第一次移到外面就开始计时关闭；
+   * 用键盘打开的，一开始就按键盘高亮（打开的那次按键早于文档上的监听）。
+   */
   openedFrom(anchor: HTMLElement | null, byPointer: boolean) {
     this.anchor = anchor;
     this.armed = byPointer;
+    this.set({ input: byPointer ? "pointer" : "keyboard" });
   }
 
   /** 整个菜单关闭：清掉状态、计时与监听。 */
