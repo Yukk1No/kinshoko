@@ -31,6 +31,8 @@ use super::{
     tags,
 };
 use super::{colour, thumbnail};
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 use crate::fidelity::ColourDescription;
 use crate::fidelity::budget::{self, BudgetPermit, MemoryBudget};
 use crate::fidelity::inspect::inspect;
@@ -271,7 +273,7 @@ fn run(
                     report.items.push(ImportItem {
                         path: path.clone(),
                         outcome: ImportOutcome::ReadFailed {
-                            reason: format!("保存目标不可用：{error}"),
+                            reason: destination_unavailable(error),
                         },
                     });
                 } else {
@@ -335,7 +337,10 @@ fn run(
                             .unwrap_or_else(|_| {
                                 Prepared::Done(
                                     ImportOutcome::ReadFailed {
-                                        reason: "处理这一项时出错".into(),
+                                        reason: CommandError::new(
+                                            ErrorKind::ImportItemFailed,
+                                            "处理这一项时出错",
+                                        ),
                                     },
                                     false,
                                 )
@@ -425,3 +430,19 @@ pub(super) use prepare::{contains_eagle, sha256_hex};
 
 #[cfg(test)]
 mod tests;
+
+/// 这一项的保存目标此刻不可用。
+fn destination_unavailable(error: impl Into<CommandError>) -> CommandError {
+    error.into().wrapping(
+        |cause| ErrorKind::ImportDestinationUnavailable { cause },
+        |text| format!("保存目标不可用：{text}"),
+    )
+}
+
+/// 这一项没能写进资料库。
+fn write_failed(error: impl Into<CommandError>) -> CommandError {
+    error.into().wrapping(
+        |cause| ErrorKind::ImportWriteFailed { cause },
+        |text| format!("写入资料库失败：{text}"),
+    )
+}

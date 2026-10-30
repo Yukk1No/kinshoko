@@ -163,8 +163,11 @@ pub enum ImportOutcome {
     SkippedDeleted,
     /// 不支持的格式。
     Unsupported,
-    /// 读取失败，附原因。
-    ReadFailed { reason: String },
+    /// 读取失败，附原因（错误代码，#355）。
+    ReadFailed {
+        #[ts(as = "crate::command_error::ErrorKind")]
+        reason: crate::CommandError,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]

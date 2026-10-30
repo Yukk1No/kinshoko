@@ -7,17 +7,17 @@ pub(super) fn publish_and_commit(
     record: Record,
     pending: Pending,
 ) -> (ImportOutcome, bool) {
-    let failed = |reason: String| (ImportOutcome::ReadFailed { reason }, false);
+    let failed = |reason: CommandError| (ImportOutcome::ReadFailed { reason }, false);
     let row = pending.clone();
     if let Err(e) = inner.writer.run(move |conn| row.insert(conn)) {
         let _ = std::fs::remove_file(inner.root.join(&pending.staging_path));
-        return failed(format!("写入资料库失败：{e}"));
+        return failed(write_failed(CommandError::message(e)));
     }
     fault::hit(fault::IMPORT_AFTER_PENDING);
 
     if let Err(reason) = publish(inner, &pending) {
         abandon(inner, pending);
-        return failed(reason);
+        return failed(reason.into());
     }
     fault::hit(fault::IMPORT_AFTER_PUBLISH);
 
@@ -30,7 +30,7 @@ pub(super) fn publish_and_commit(
         }
         Err(e) => {
             abandon(inner, pending);
-            failed(format!("写入资料库失败：{e}"))
+            failed(write_failed(e))
         }
     }
 }

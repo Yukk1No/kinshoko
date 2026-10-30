@@ -269,7 +269,7 @@ impl Library {
             });
         }
         match outcome {
-            ImportOutcome::ReadFailed { reason } => Err(Error::PackageImage(reason)),
+            ImportOutcome::ReadFailed { reason } => Err(Error::PackageImage(reason.to_string())),
             ImportOutcome::Unsupported => Err(Error::PackageImage("不是支持的图片格式".into())),
             other => Ok(other.image_id().expect("进库的结果都有参考图").to_owned()),
         }

@@ -12,7 +12,7 @@ const receipt: ImportTaskSnapshot = {
   taskId: "actual-task", destination: { libraryId: "L1", folderId: null }, libraryName: "参考", folderName: "未归类",
   progress: { done: 3, total: 3 }, finishing: false, warnings: [],
   report: { cancelled: false, fromEagle: false, eagleMissing: 0, eagleRelocations: [], sealedDuplicates: false, privateSummary: false, trashDuplicates: false,
-    items: [ { path: "sealed-name.png", outcome: { kind: "merged", imageId: "sealed-id" } }, { path: "visible-name.png", outcome: { kind: "refreshed", imageId: "visible-id" } }, { path: "missing.png", outcome: { kind: "readFailed", reason: "missing" } } ] },
+    items: [ { path: "sealed-name.png", outcome: { kind: "merged", imageId: "sealed-id" } }, { path: "visible-name.png", outcome: { kind: "refreshed", imageId: "visible-id" } }, { path: "missing.png", outcome: { kind: "readFailed", reason: { code: "message", message: "missing" } } } ] },
 };
 
 function menu() { return <ImportMenu enabled libraryId="L1" libraryName="参考" running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} />; }

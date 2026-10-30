@@ -61,6 +61,8 @@ mod diagnostics;
 mod downscale;
 #[path = "eagle_import.rs"]
 mod eagle_import;
+#[path = "eagle_import_retry.rs"]
+mod eagle_import_retry;
 #[path = "eagle_reimport.rs"]
 mod eagle_reimport;
 #[path = "eagle_source_names.rs"]

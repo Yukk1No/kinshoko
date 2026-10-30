@@ -23,7 +23,7 @@ pub(super) fn collect(
         report.items.push(ImportItem {
             path: path.to_path_buf(),
             outcome: ImportOutcome::ReadFailed {
-                reason: e.to_string(),
+                reason: CommandError::message(e),
             },
         })
     };
@@ -39,7 +39,9 @@ pub(super) fn collect(
             }
             Err(eagle::CollectError::Failed(reason)) => report.items.push(ImportItem {
                 path: path.to_path_buf(),
-                outcome: ImportOutcome::ReadFailed { reason },
+                outcome: ImportOutcome::ReadFailed {
+                    reason: reason.into(),
+                },
             }),
         }
         return;
@@ -88,14 +90,14 @@ pub(super) fn prepare_file(
     options: ImportOptions,
     context: &ImportContext,
 ) -> Prepared {
-    let failed = |reason: String| Prepared::Done(ImportOutcome::ReadFailed { reason }, false);
+    let failed = |reason: CommandError| Prepared::Done(ImportOutcome::ReadFailed { reason }, false);
     if let Err(error) = save::validate(inner, &context.destination) {
-        return failed(format!("保存目标不可用：{error}"));
+        return failed(destination_unavailable(error));
     }
     let eagle = if eagle::is_item(path) {
         match eagle::load(inner, path) {
             Ok(item) => Some(item),
-            Err(reason) => return failed(reason),
+            Err(reason) => return failed(reason.into()),
         }
     } else {
         None
@@ -105,19 +107,22 @@ pub(super) fn prepare_file(
     // 读进来的字节一直留到这一项准备完，先按文件大小占用读取预算。
     let size = match std::fs::metadata(original) {
         Ok(meta) => meta.len(),
-        Err(e) => return failed(e.to_string()),
+        Err(e) => return failed(CommandError::message(e)),
     };
     let Some(_read) = READ_BUDGET.acquire(size, context.cancel.as_deref()) else {
-        return failed("导入已取消".into());
+        return failed(CommandError::new(ErrorKind::ImportCancelled, "导入已取消"));
     };
     let bytes = match timed(|s| &mut s.read, || std::fs::read(original)) {
         Ok(b) => b,
-        Err(e) => return failed(e.to_string()),
+        Err(e) => return failed(CommandError::message(e)),
     };
     if let Some(item) = &eagle
         && item.metadata.size != bytes.len() as u64
     {
-        return failed("Eagle 条目的 size 与原文件字节数不符".into());
+        return failed(CommandError::new(
+            ErrorKind::EagleSizeMismatch,
+            "Eagle 条目的 size 与原文件字节数不符",
+        ));
     }
     let original_name = eagle
         .as_ref()
@@ -298,7 +303,7 @@ pub(super) fn ingest(
     if let Err(error) = save::validate(inner, &context.destination) {
         return (
             ImportOutcome::ReadFailed {
-                reason: format!("保存目标不可用：{error}"),
+                reason: destination_unavailable(error),
             },
             false,
         );
@@ -325,11 +330,18 @@ pub(super) fn prepare(
     options: ImportOptions,
     context: &ImportContext,
 ) -> Prepared {
-    let failed = |reason: String| Prepared::Done(ImportOutcome::ReadFailed { reason }, false);
+    let failed = |reason: CommandError| Prepared::Done(ImportOutcome::ReadFailed { reason }, false);
     let probed = match timed(|s| &mut s.decode, || inspect(bytes)) {
         Ok(Some(p)) => p,
         Ok(None) => return Prepared::Done(ImportOutcome::Unsupported, false),
-        Err(reason) => return failed(format!("无法解码：{reason}")),
+        Err(reason) => {
+            return failed(CommandError::new(
+                ErrorKind::ImportUndecodable {
+                    detail: reason.to_string(),
+                },
+                format!("无法解码：{reason}"),
+            ));
+        }
     };
     // 文件头有效不代表像素可读：发布前完整解码一遍，坏的作为可重试的读取失败。
     // 同一次解码顺带生成占位图（#120）与图片墙要用的网格缩略图（#123）：提交后不再重读原文件解码，
@@ -338,7 +350,7 @@ pub(super) fn prepare(
     let grid_px = thumbnail::grid_tier();
     let Some(decode) = budget::reserve_decode(&probed, context.cancel.as_deref()) else {
         // 任务已取消：这一项不会提交，不再解码。
-        return failed("导入已取消".into());
+        return failed(CommandError::new(ErrorKind::ImportCancelled, "导入已取消"));
     };
     let derivatives = match timed(
         |s| &mut s.decode,
@@ -358,14 +370,24 @@ pub(super) fn prepare(
             let grid = rendered.next().flatten().map(|grid| (grid_px, grid));
             Derivatives { placeholder, grid }
         }
-        Err(reason) => return failed(format!("无法解码：{reason}")),
+        Err(reason) => {
+            return failed(CommandError::new(
+                ErrorKind::ImportUndecodable {
+                    detail: reason.to_string(),
+                },
+                format!("无法解码：{reason}"),
+            ));
+        }
     };
     drop(decode);
     let sha = timed(|s| &mut s.hash, || sha256_hex(bytes));
     if let Some(facts) = &origin.package
         && facts.snapshot.sha256 != sha
     {
-        return failed("与参考组包记录的 SHA-256 不符".into());
+        return failed(CommandError::new(
+            ErrorKind::PackageHashMismatch,
+            "与参考组包记录的 SHA-256 不符",
+        ));
     }
     let rel_path = format!("{ORIGINALS_DIR}/{}/{sha}.{}", &sha[..2], ext(probed.format));
     let record = Record {
@@ -394,7 +416,14 @@ pub(super) fn prepare(
         match skip_deleted(&inner.readers.get(), &record.sha) {
             Ok(true) => return Prepared::Done(ImportOutcome::SkippedDeleted, false),
             Ok(false) => {}
-            Err(e) => return failed(format!("读取删除记忆失败：{e}")),
+            Err(e) => {
+                return failed(CommandError::new(
+                    ErrorKind::DeleteMemoryUnreadable {
+                        detail: e.to_string(),
+                    },
+                    format!("读取删除记忆失败：{e}"),
+                ));
+            }
         }
     }
 
@@ -416,7 +445,7 @@ pub(super) fn prepare(
             pending,
             derivatives,
         },
-        Err(reason) => failed(reason),
+        Err(reason) => failed(reason.into()),
     }
 }
 
@@ -445,11 +474,16 @@ pub(super) fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, boo
                         |s| &mut s.commit,
                         || publish_and_commit(inner, record, pending),
                     ),
-                    Err(reason) => (ImportOutcome::ReadFailed { reason }, false),
+                    Err(reason) => (
+                        ImportOutcome::ReadFailed {
+                            reason: reason.into(),
+                        },
+                        false,
+                    ),
                 },
                 Err(e) => (
                     ImportOutcome::ReadFailed {
-                        reason: format!("写入资料库失败：{e}"),
+                        reason: write_failed(e),
                     },
                     false,
                 ),

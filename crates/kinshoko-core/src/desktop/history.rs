@@ -195,6 +195,7 @@ impl CaptureCollection {
             .wait();
         let image_id = match report.items.into_iter().next().map(|item| item.outcome) {
             Some(ImportOutcome::ReadFailed { reason }) => {
+                let reason = reason.to_string();
                 return Err(HistoryError::Collect(reason));
             }
             Some(outcome) if outcome.image_id().is_some() => {

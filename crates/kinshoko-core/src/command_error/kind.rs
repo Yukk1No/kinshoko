@@ -200,6 +200,24 @@ pub enum ErrorKind {
     },
     CropOutsideImage,
 
+    // 导入一项时的失败（`ImportOutcome::ReadFailed`）。
+    ImportDestinationUnavailable {
+        cause: Box<ErrorKind>,
+    },
+    ImportWriteFailed {
+        cause: Box<ErrorKind>,
+    },
+    ImportItemFailed,
+    ImportCancelled,
+    EagleSizeMismatch,
+    ImportUndecodable {
+        detail: String,
+    },
+    PackageHashMismatch,
+    DeleteMemoryUnreadable {
+        detail: String,
+    },
+
     // 应用壳（Tauri 层）的错误。
     NoLibraryOpen,
     NoLibrary,
