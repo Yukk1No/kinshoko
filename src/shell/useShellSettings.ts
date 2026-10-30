@@ -32,7 +32,8 @@ export type ShellSettingsIntent =
   | { kind: "runLog"; on: boolean }
   | { kind: "forceSrgb"; on: boolean }
   | { kind: "safeModeScope"; scope: SafeModeScope }
-  | { kind: "tagDisplay"; display: TagDisplay }
+  /** 只带改了的几项：执行时才叠到已接受的标签外观上，排在恢复之后的改动不会把恢复前的其余几项写回去。 */
+  | { kind: "tagDisplay"; change: Partial<TagDisplay> }
   | { kind: "shortcut"; action: ShortcutAction; accelerator: string | null }
   | { kind: "updateChannel"; channel: UpdateChannel };
 
@@ -48,7 +49,7 @@ const latest = (key: string, run: () => Promise<ShellSettingsView>): Command => 
  * - 快捷键：每次更换都执行，核心逐次检查冲突并报原因。
  * - 更新通道：每次都执行，成功后设置页按新通道重新检查。
  */
-export function shellSettingsCommand(intent: ShellSettingsIntent): Command {
+export function shellSettingsCommand(intent: ShellSettingsIntent, accepted: () => ShellSettingsView | null): Command {
   switch (intent.kind) {
     case "autostart": return latest(intent.kind, () => setAutostart(intent.on));
     case "showApproxSource": return latest(intent.kind, () => setShowApproxSource(intent.on));
@@ -57,7 +58,7 @@ export function shellSettingsCommand(intent: ShellSettingsIntent): Command {
     case "runLog": return latest(intent.kind, () => setRunLog(intent.on));
     case "forceSrgb": return latest(intent.kind, () => setForceSrgb(intent.on));
     case "safeModeScope": return latest(intent.kind, () => setSafeModeScope(intent.scope));
-    case "tagDisplay": return { key: intent.kind, merge: "latest", dropPendingOnFailure: true, run: () => setTagDisplay(intent.display) };
+    case "tagDisplay": return { key: intent.kind, merge: "latest", dropPendingOnFailure: true, run: () => setTagDisplay({ ...(accepted()?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...intent.change }) };
     case "shortcut": return { key: `shortcut/${intent.action}`, merge: "keep", run: () => rebindShortcut(intent.action, intent.accelerator) };
     case "updateChannel": return { key: intent.kind, merge: "keep", run: () => setUpdateChannel(intent.channel) };
   }
@@ -77,18 +78,25 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
   });
   // 标签外观连着改时，后一项在最后改成的那份之上改。草稿放在这里而不在外观分区里，
   // 切走再回来的分区接着在它之上改，失败作废的同项改动也就都是真依赖失败那次的。
-  let tagDraft: TagDisplay | null = null;
+  // 命令只带改了的几项，执行时才叠到已接受的设置上（见 shellSettingsCommand）。
+  // - tagQueued：还没开始执行的那条累计的改动，新改动与它合并时要带上前面几次的。
+  // - tagShown：界面上叠在已接受设置之上的改动；全回来、失败或开始恢复时清掉。
+  // 恢复把两者都截断：恢复之后的改动另起一条，只带恢复之后改的几项，不把恢复前的其余几项写回去。
+  let tagQueued: Partial<TagDisplay> | null = null;
+  let tagShown: Partial<TagDisplay> | null = null;
   let tagOutstanding = 0;
+  const tagDraft = () => (tagShown && { ...(submitter.state().view?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...tagShown });
   const listeners = new Set<() => void>();
-  let snapshot: SubmitterState<ShellSettingsView> & { tagDraft: TagDisplay | null } = { ...submitter.state(), tagDraft };
+  let snapshot: SubmitterState<ShellSettingsView> & { tagDraft: TagDisplay | null } = { ...submitter.state(), tagDraft: null };
   const refresh = () => {
-    snapshot = { ...submitter.state(), tagDraft };
+    snapshot = { ...submitter.state(), tagDraft: tagDraft() };
     for (const listener of listeners) listener();
   };
   submitter.subscribe(refresh);
 
   /** 提交一项改动；返回是否保存成功（被合并的随合并后那次的结果）。失败时原因进 `error`。 */
-  const submit = (intent: ShellSettingsIntent) => submitter.submit(shellSettingsCommand(intent)).then((result) => result.ok);
+  const submit = (intent: ShellSettingsIntent) =>
+    submitter.submit(shellSettingsCommand(intent, () => submitter.state().view)).then((result) => result.ok);
 
   return {
     state: () => snapshot,
@@ -99,17 +107,26 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
     load: () => submitter.submit({ key: LOAD, merge: "keep", quiet: true, run: shellSettings }),
     submit,
     changeTagDisplay(change: Partial<TagDisplay>) {
-      tagDraft = { ...(tagDraft ?? submitter.state().view?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...change };
+      tagShown = { ...tagShown, ...change };
+      const queued = tagQueued = { ...tagQueued, ...change };
       tagOutstanding += 1;
       refresh();
-      void submit({ kind: "tagDisplay", display: tagDraft }).then(() => {
+      const command = shellSettingsCommand({ kind: "tagDisplay", change: queued }, () => submitter.state().view);
+      void submitter.submit({ ...command, run: () => { if (tagQueued === queued) tagQueued = null; return command.run(); } }).then((result) => {
+        if (!result.ok) {
+          if (tagQueued === queued) tagQueued = null;
+          tagShown = null;
+        }
         tagOutstanding -= 1;
-        if (tagOutstanding === 0) { tagDraft = null; refresh(); }
+        if (tagOutstanding === 0) tagShown = null;
+        refresh();
       });
     },
     /** 用备份整份替换偏好设置；失败时 reject，原因由调用方显示。 */
     async restore(path: string, fingerprint: string) {
       let restored: ApplicationSettingsRestored | undefined;
+      tagQueued = tagShown = null;
+      refresh();
       const result = await submitter.submit({
         key: "restore", merge: "keep", replaces: true, quiet: true,
         run: async () => (restored = await restoreApplicationSettings(path, fingerprint)).settings,
