@@ -7,7 +7,7 @@ import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { ShortcutBinding } from "./bindings/ShortcutBinding";
 import { clearRunLog, errorText } from "./ipc";
-import { useShellSettings, type ShellSettingsIntent } from "./shell/useShellSettings";
+import { useShellSettings, type ShellSettings, type ShellSettingsIntent } from "./shell/useShellSettings";
 import { SharedPersonalApproxSettings } from "./search/SharedPersonalApproxSettings";
 import { LegacyNameBanner } from "./library/LegacyNameMigrationPanel";
 import { SharedTagGroupsSettings } from "./library/TagGroupsPane";
@@ -86,7 +86,9 @@ type Props = {
   onRestored?: () => void;
   /** 打开的资料库；自动标签分页从它开始跟随后端的可写资料库。个人规则不依赖它。 */
   library?: LibraryInfo | null;
-  /** 应用壳设置保存后的结果，主窗口据此更新（例如相近标签来源标记）。 */
+  /** 主窗口持有的设置提交模型（#321）：关掉再打开设置也共用一个队列。没有时设置页自己建一个。 */
+  settings?: ShellSettings;
+  /** 应用壳设置保存后的结果（只在没有传入 `settings` 时用），主窗口据此更新（例如相近标签来源标记）。 */
   onChange?: (view: ShellSettingsView) => void;
   /** 打开时所在的分页。 */
   initialTab?: SettingsTab;
@@ -108,8 +110,8 @@ type Props = {
  * 程序设置（#98）：竖排八个分页——通用、快捷键、标签、自动标签（#143）、备份、安全、更新、诊断。
  * 每项一行：图标 · 名称 · 一句描述 · 右侧控件。行为与原来的各节相同，只是重新归位。
  */
-export function SettingsPanel({ onChange, onRestored, library, initialTab = "general", initialTagFocus, version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale }: Props) {
-  const settings = useShellSettings(onChange);
+export function SettingsPanel({ settings: shared, onChange, onRestored, library, initialTab = "general", initialTagFocus, version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale }: Props) {
+  const settings = useShellSettings(shared, onChange);
   const { view, loadError, error, generation: settingsGeneration } = settings;
   const setError = settings.showError;
   const [recording, setRecording] = useState<ShortcutAction | null>(null);

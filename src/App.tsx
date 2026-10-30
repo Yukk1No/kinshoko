@@ -31,6 +31,7 @@ import { LibraryPicker } from "./library/LibraryPicker";
 import { Rail, type Section } from "./shell/Rail";
 import { initialUiScale, stepUiScale, UiScaleContext, uiScaleStepForKey } from "./shell/uiScale";
 import { SettingsPanel, type SettingsTab } from "./SettingsPanel";
+import { createShellSettings } from "./shell/useShellSettings";
 import { BackupReminder } from "./Backup";
 import { Dialog } from "@base-ui/react/dialog";
 import { UpdateNotice } from "./Update";
@@ -99,6 +100,7 @@ function MainWindow() {
     settingsChanged.current = true;
     acceptShellSettings(view);
   }, [acceptShellSettings]);
+  const [shellSettingsStore] = useState(() => createShellSettings(acceptChangedSettings));
   /** 详情面板宽度先在界面上生效，再写进本设备设置；写不进时只是下次不记得。 */
   const changeInspectorWidth = useCallback((width: number) => {
     setInspectorWidthState(width);
@@ -368,7 +370,7 @@ function MainWindow() {
               safe={safe}
               onSafeMode={toggleSafe}
               onOpenNameWizard={() => setNameWizard(true)}
-              onChange={acceptChangedSettings}
+              settings={shellSettingsStore}
               uiScale={uiScalePercent}
               onUiScale={(percent) => void chooseUiScale(percent)}
             />

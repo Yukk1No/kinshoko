@@ -6,6 +6,7 @@ import type { CatalogApproxEntry } from "./bindings/CatalogApproxEntry";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { TagLabel } from "./bindings/TagLabel";
 import { SettingsPanel } from "./SettingsPanel";
+import { createShellSettings } from "./shell/useShellSettings";
 import { backend, defaults, resetSettingsTest, tab } from "./SettingsPanel.fixtures";
 
 afterEach(resetSettingsTest);
@@ -87,6 +88,30 @@ describe("设置：近似查找", () => {
     await waitFor(() => expect(within(scope).getByRole("button", { name: "仅成人" }).getAttribute("aria-pressed")).toBe("true"));
     expect(calls.find((c) => c.cmd === "plugin:library|set_safe_mode_scope")?.args).toEqual({ scope: "explicit" });
     expect(seen.at(-1)?.safeModeScope).toBe("explicit");
+  });
+
+  it("关掉再打开设置时共用主窗口的提交队列，先选的范围不会在后选的之后写入（#321）", async () => {
+    const waiting: (() => void)[] = [];
+    const calls = backend((cmd, args) => {
+      if (cmd !== "plugin:library|set_safe_mode_scope") return undefined;
+      const reply = { ...defaults, safeModeScope: args.scope as ShellSettingsView["safeModeScope"] };
+      return new Promise((resolve) => waiting.push(() => resolve(reply)));
+    });
+    const seen: ShellSettingsView[] = [];
+    const settings = createShellSettings((view) => seen.push(view));
+    const first = render(<SettingsPanel library={null} settings={settings} initialTab="safety" safe onSafeMode={() => {}} />);
+    fireEvent.click(within(await screen.findByRole("group", { name: "安全模式范围" })).getByRole("button", { name: "仅成人" }));
+    first.unmount();
+    render(<SettingsPanel library={null} settings={settings} initialTab="safety" safe onSafeMode={() => {}} />);
+    fireEvent.click(within(await screen.findByRole("group", { name: "安全模式范围" })).getByRole("button", { name: "轻度及以上" }));
+    const scopes = () => calls.filter((c) => c.cmd === "plugin:library|set_safe_mode_scope").map((c) => c.args.scope);
+    await waitFor(() => expect(waiting.length).toBe(1));
+    expect(scopes()).toEqual(["explicit"]);
+    waiting.shift()!();
+    await waitFor(() => expect(scopes()).toEqual(["explicit", "sensitive"]));
+    waiting.shift()!();
+    await waitFor(() => expect(seen.map((view) => view.safeModeScope)).toEqual(["explicit", "sensitive"]));
+    expect(within(screen.getByRole("group", { name: "安全模式范围" })).getByRole("button", { name: "轻度及以上" }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("程序设置中列出全局个人近似对应表，可以删除", async () => {
