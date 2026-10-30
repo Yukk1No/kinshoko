@@ -19,7 +19,7 @@ import type { SearchInput } from "./bindings/SearchInput";
 import type { TagLabel } from "./bindings/TagLabel";
 import { chooseValue } from "./test/select";
 
-// App 的测试共用的后端模拟、数据与操作步骤（从 App.test.tsx 拆出）。
+// App 的测试共用的后端模拟、数据与操作步骤。
 
 /** 浏览器里的双击：两次按下与单击，再一次 dblclick。双击按第一下的图判定（#179）。 */
 export function doubleClick(target: Element) {

@@ -1,4 +1,4 @@
-// 重排的滑动动画：重排前量下卡片位置；布局变化后把锚定的图放回原处，卡片从旧位置滑到新位置。从 Wall.tsx 原样搬出。
+// 重排的滑动动画：重排前量下卡片位置；布局变化后把锚定的图放回原处，卡片从旧位置滑到新位置。
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type { MutableRefObject } from "react";
 import { flushSync } from "react-dom";

@@ -1,4 +1,4 @@
-// 图片墙上的一张卡片：缩略图、占位图与来源按钮（从 Wall.tsx 原样搬出）。
+// 图片墙上的一张卡片：缩略图、占位图与来源按钮。
 import { Fragment } from "react";
 import type { DragEvent, KeyboardEvent, MouseEvent, MutableRefObject, ReactNode } from "react";
 import { Layers } from "lucide-react";
