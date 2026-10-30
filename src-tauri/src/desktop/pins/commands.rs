@@ -9,7 +9,7 @@ pub(super) fn at_cursor(
     width: u32,
     height: u32,
 ) -> Result<ScreenRect, CommandError> {
-    let cursor = app.cursor_position().map_err(CommandError::message)?;
+    let cursor = app.cursor_position().map_err(CommandError::system)?;
     Ok(ScreenRect {
         x: cursor.x.floor() as i32,
         y: cursor.y.floor() as i32,
@@ -22,13 +22,18 @@ pub(super) fn at_cursor(
 pub(super) fn pin_from_clipboard(app: &AppHandle) -> Result<(), CommandError> {
     let image = arboard::Clipboard::new()
         .and_then(|mut c| c.get_image())
-        .map_err(|_| CommandError::from("剪贴板里没有图片"))?;
+        .map_err(|_| CommandError::new(ErrorKind::ClipboardNoImage, "剪贴板里没有图片"))?;
     let image = RgbaImage::from_raw(
         image.width as u32,
         image.height as u32,
         image.bytes.into_owned(),
     )
-    .ok_or("剪贴板里的图片无法识别")?;
+    .ok_or_else(|| {
+        CommandError::new(
+            ErrorKind::ClipboardImageUnrecognized,
+            "剪贴板里的图片无法识别",
+        )
+    })?;
     // 剪贴板图片不带显示器配置文件，按 sRGB 解释。
     let prepared =
         kinshoko_core::desktop::CaptureHistory::prepare(&Screenshot { image, icc: None })
@@ -60,7 +65,7 @@ pub async fn pin_clipboard(app: AppHandle) -> Result<(), CommandError> {
         logged(PinSource::Clipboard, || pin_from_clipboard(&app))
     })
     .await
-    .map_err(CommandError::message)?
+    .map_err(CommandError::system)?
 }
 
 /// 从截图历史钉住一张截图，放在光标旁。
@@ -71,7 +76,7 @@ pub async fn pin_capture(app: AppHandle, id: String) -> Result<(), CommandError>
             .entries()
             .into_iter()
             .find(|e| e.id == id)
-            .ok_or("截图已不在截图历史中")?;
+            .ok_or_else(pin_capture_gone)?;
         let at = at_cursor(&app, entry.width, entry.height)?;
         open(&app, &entry, at).map(|_| ())
     })
@@ -109,14 +114,14 @@ pub async fn pin_reference(
         })
     })
     .await
-    .map_err(CommandError::message)?
+    .map_err(CommandError::system)?
 }
 
 /// 画师确认显示这一张被遮蔽的参考图：遮蔽淡出，直到安全模式再次开启或钉图关闭。
 pub(super) fn reveal_here(app: &AppHandle, pin: &str) -> Result<(), CommandError> {
     crate::library::with_visibility_commit(app, |_| {
         if !capture_source_open(app, pin) {
-            return Err(CLOSED.to_owned());
+            return Err(pin_closed());
         }
         let safe = crate::library::safe_mode_on(app);
         let mut veils = lock(&state(app).veils);
@@ -145,7 +150,7 @@ pub(super) fn change_here(
     pin: &str,
     f: impl FnOnce(&mut SavedPin) -> bool,
 ) -> Result<ScreenRect, CommandError> {
-    let at = content_of(app, pin).ok_or(CLOSED)?;
+    let at = content_of(app, pin).ok_or_else(pin_closed)?;
     let rect = edit(app, pin, |p| {
         let before = p.placement;
         p.placement.x = at.x;
@@ -157,8 +162,8 @@ pub(super) fn change_here(
             None
         }
     })
-    .ok_or(CLOSED)?
-    .ok_or(LOCKED)?;
+    .ok_or_else(pin_closed)?
+    .ok_or_else(pin_locked)?;
     lock(&state(app).edge).release(pin);
     Ok(rect)
 }

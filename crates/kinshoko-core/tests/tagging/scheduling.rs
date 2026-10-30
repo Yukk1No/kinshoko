@@ -133,6 +133,39 @@ fn images_imported_later_are_tagged_without_restarting() {
 }
 
 #[test]
+fn running_reports_progress_through_the_current_round() {
+    let f = Fixture::new(3);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    f.fake.set_delay(Duration::from_millis(200));
+    let spec = f.server.publish("gpu", Device::DirectMl, b"model");
+    let tagging = f.start(f.config(vec![spec]));
+    tagging.download();
+
+    let status = wait_for(&tagging, "打第二张", |s| {
+        matches!(s, TaggingStatus::Running { done: 1, .. })
+    });
+    let TaggingStatus::Running { remaining, .. } = status else {
+        unreachable!()
+    };
+    assert_eq!(remaining, 2, "含正在打的这张");
+    idle(&tagging);
+
+    // 新的一轮从零算起。
+    f.import(10..12);
+    tagging.wake();
+    let status = wait_for(&tagging, "新一轮开始", |s| {
+        matches!(s, TaggingStatus::Running { .. })
+    });
+    let TaggingStatus::Running {
+        done, remaining, ..
+    } = status
+    else {
+        unreachable!()
+    };
+    assert_eq!((done, remaining), (0, 2));
+}
+
+#[test]
 fn pausing_ends_the_session_and_resuming_continues() {
     let f = Fixture::new(4);
     f.fake.set_gpu(Some(GPU_BUDGET));

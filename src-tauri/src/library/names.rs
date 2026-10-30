@@ -61,7 +61,10 @@ pub(super) async fn edit_tag_name<R: Runtime>(
     .await?;
     refresh_labels(&app, &state)?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新读取标签名称".into());
+        return Err(CommandError::new(
+            ErrorKind::TagNamesSafeModeChanged,
+            "安全模式已变化，请重新读取标签名称",
+        ));
     }
     Ok(result)
 }

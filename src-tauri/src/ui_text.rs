@@ -24,6 +24,10 @@ pub enum Text {
     FilterZip,
     /// 诊断信息文件名的前缀。
     DiagnosticsFileName,
+    /// 启动失败的说明，用 [`fill`] 填进 `{error}`（与 `{root}`）。
+    ExeNotFound,
+    DataDirUnwritable,
+    DataMigrationFailed,
 }
 
 /// 当前界面语言下的文字。
@@ -52,7 +56,37 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
         Text::FilterSettingsBackup => pick(en, "程序设置备份", "Settings backup"),
         Text::FilterZip => pick(en, "zip 压缩包", "ZIP archive"),
         Text::DiagnosticsFileName => pick(en, "kinshoko-诊断信息", "kinshoko-diagnostics"),
+        Text::ExeNotFound => pick(
+            en,
+            "找不到 Kinshoko 程序所在的位置：{error}",
+            "Couldn't find where the Kinshoko program is: {error}",
+        ),
+        Text::DataDirUnwritable => pick(
+            en,
+            "Kinshoko 无法写入数据文件夹：\n{root}\n\n原因：{error}\n\n\
+             Kinshoko 把设置、打标模型等数据保存在程序所在目录下的 data 文件夹。\
+             请把 Kinshoko 安装到当前用户可以写入的位置（例如默认的 %LOCALAPPDATA%\\Kinshoko），\
+             或者给这个文件夹写入权限后重新启动。",
+            "Kinshoko can't write to its data folder:\n{root}\n\nReason: {error}\n\n\
+             Kinshoko keeps settings, tagging models and other data in the data folder next to the program. \
+             Install Kinshoko somewhere the current user can write to (such as the default %LOCALAPPDATA%\\Kinshoko), \
+             or give this folder write permission, then start Kinshoko again.",
+        ),
+        Text::DataMigrationFailed => pick(
+            en,
+            "Kinshoko 迁移数据时出错，没能完成：\n{error}\n\n请重新启动 Kinshoko 再试。",
+            "Kinshoko ran into an error while moving its data and couldn't finish:\n{error}\n\nStart Kinshoko again to retry.",
+        ),
     }
+}
+
+/// 当前界面语言下的文字，`{名称}` 换成对应的值。
+pub fn fill(key: Text, values: &[(&str, &str)]) -> String {
+    values
+        .iter()
+        .fold(text(key).to_owned(), |text, (name, value)| {
+            text.replace(&format!("{{{name}}}"), value)
+        })
 }
 
 fn pick(en: bool, zh: &'static str, english: &'static str) -> &'static str {

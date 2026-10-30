@@ -67,6 +67,11 @@ impl Library {
         rating::images_to_tag(&self.inner, source, limit)
     }
 
+    /// 模型来源 `source` 还没打过标的参考图有几张，范围同 [`Library::images_to_tag`]。
+    pub fn count_images_to_tag(&self, source: &FactSource) -> Result<u32, Error> {
+        rating::count_images_to_tag(&self.inner, source)
+    }
+
     /// 提交模型来源 `source` 对一张参考图的一次成功推理（#318）：模型标签、分级建议与完成状态
     /// 在同一个事务里写入，提交后才推送事件；任何一步失败都整体回滚，这张图仍是待打标的图。
     /// 人工标签决定、人工分级与其他来源不受影响。

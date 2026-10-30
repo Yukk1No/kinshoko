@@ -5,6 +5,7 @@
 
 use crate::ui_text::{self, Text};
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -91,7 +92,7 @@ fn system_facts() -> SystemFacts {
 
 fn app_facts(app: &AppHandle, state: &State<'_, ShellState>) -> Result<AppFacts, CommandError> {
     let migration_problem = crate::data_dirs::migration_problem(app);
-    let shell = state.0.lock().map_err(CommandError::message)?;
+    let shell = state.0.lock().map_err(CommandError::system)?;
     Ok(AppFacts {
         data_migration_problem: migration_problem,
         version: env!("CARGO_PKG_VERSION").to_owned(),
@@ -113,7 +114,7 @@ pub async fn diagnostics_report(
         report_with_runtime(&app, &system_facts(), now(), runtime.as_ref())
     })
     .await
-    .map_err(CommandError::message)
+    .map_err(CommandError::system)
 }
 
 /// 把诊断信息连同最近几天的运行日志存成 zip；画师取消时返回 false。
@@ -135,15 +136,22 @@ pub async fn export_diagnostics(
             return Ok(false);
         };
         let saved = match crate::run_log::log() {
-            Some(log) => log.export(&path, &text),
-            None => Err(std::io::Error::other("运行日志没有打开")),
+            Some(log) => log.export(&path, &text).map_err(CommandError::from),
+            None => Err(CommandError::new(
+                ErrorKind::RunLogNotOpen,
+                "运行日志没有打开",
+            )),
         };
-        saved
-            .map(|()| true)
-            .map_err(|e| CommandError::message(format!("保存诊断信息失败：{e}")))
+        saved.map(|()| true).map_err(|e| {
+            CommandError::caused_by(
+                e,
+                |cause| ErrorKind::DiagnosticsSaveFailed { cause },
+                |e| format!("保存诊断信息失败：{e}"),
+            )
+        })
     })
     .await
-    .map_err(CommandError::message)?
+    .map_err(CommandError::system)?
 }
 
 /// 只解释当前窗口实测状态。版本查询失败不能替代能力检查，也不能用版本豁免质量失败。
@@ -164,10 +172,18 @@ pub fn open_runtime_update() -> Result<(), CommandError> {
             .arg("https://developer.microsoft.com/en-us/microsoft-edge/webview2/")
             .spawn()
             .map(|_| ())
-            .map_err(|_| CommandError::from("无法打开微软 WebView2 下载页。请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/"))
+            .map_err(|_| {
+                CommandError::new(
+                    ErrorKind::WebView2PageFailed,
+                    "无法打开微软 WebView2 下载页。请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/",
+                )
+            })
     }
     #[cfg(not(windows))]
-    Err("请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/".to_owned())
+    Err(CommandError::new(
+        ErrorKind::VisitWebView2Page,
+        "请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/",
+    ))
 }
 
 fn save_dialog(app: &AppHandle, name: &str, filter: &str, ext: &str) -> Option<PathBuf> {

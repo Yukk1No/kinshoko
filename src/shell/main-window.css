@@ -43,7 +43,7 @@
 .workspace-provider { min-width: 0; }
 .lib-head { display: flex; align-items: center; gap: 2px; height: 30px; margin-top: 12px; padding: 0; }
 .workspace-provider-root { display: flex; grid-template-columns: none; margin-top: 10px; }
-.workspace-expand { width: 18px; height: 22px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--ink-3); min-height: 0; }
+.workspace-expand { width: 18px; height: 22px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-xs); background: transparent; color: var(--ink-3); min-height: 0; }
 .workspace-expand:hover { background: var(--hover); color: var(--ink); }
 /* the library name lines up with the row text below it: both sit 8 px in from the band */
 .lib-head-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: 0; border-radius: var(--r-xs); background: transparent;
@@ -73,7 +73,7 @@
 .topbar { height: 56px; min-height: 56px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px; background: var(--bg); border-bottom: 0; z-index: 5; }
 .topbar.is-empty { justify-content: flex-end; }
 .topbar > .search { flex: 1; min-width: 0; max-width: 960px; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; height: 40px; padding: 0 4px 0 12px;
-  border-radius: var(--r-m); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); border: 0; overflow: visible; }
+  border-radius: var(--r); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); border: 0; overflow: visible; }
 .topbar > .search:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
 .topbar > .search .search-chip { height: 28px; padding: 0 4px 0 8px; border: 0; border-radius: var(--r-s); background: var(--surface-2); font-weight: 500; }
 .topbar > .search .search-chip[data-negate] { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); text-decoration: line-through; }
@@ -126,29 +126,33 @@
 .k-density-pop::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 10px; }
 .k-density-pop > svg { flex: none; }
 .k-density-pop .k-range { width: 140px; }
-.k-tagging-dot { position: absolute; top: 0; right: 0; z-index: 1; width: 10px; height: 10px; border-radius: var(--r-pill); background: var(--accent);
-  box-shadow: 0 0 0 2px var(--surface); }
-.k-tagging-dot[data-activity="busy"] { animation: k-tagging-pulse 1.6s ease-in-out infinite; }
-.k-tagging-dot[data-activity="paused"] { background: var(--ink-3); opacity: 0.6; }
-@keyframes k-tagging-pulse { 50% { box-shadow: 0 0 0 2px var(--surface), 0 0 0 5px color-mix(in srgb, var(--accent) 30%, transparent); } }
-/* 打标图标（#144）：与浮岛同材质的小圆钮；下载、加载、打标时转动，暂停时静止半透明。
-   减少动态效果时不转，改用强调色底表示“进行中”。 */
-.k-tagging-activity { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-pill);
+/* 多选收起时的打标状态（#372）：按钮右上角一枚带纸色底的迷你进度环。 */
+.k-tagging-dot { position: absolute; top: -4px; right: -4px; z-index: 1; width: 16px; height: 16px; display: grid; place-items: center; border-radius: var(--r-pill);
+  background: var(--surface); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent); }
+/* 打标图标（#144、#372）：与浮岛同材质的小圆钮。外圈进度环随下载字节或这一轮的张数前进，加载时没有进度，
+   整圈强调色慢慢明暗；星星不转，两颗小星交替闪烁。暂停时环停在原处变灰，图标换成暂停。
+   减少动态效果时不闪不明暗，进度环本身表示“进行中”。 */
+.k-tagging-activity { position: relative; width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-pill);
   background: color-mix(in srgb, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   box-shadow: var(--shadow-pop); color: var(--accent-strong); }
 .k-tagging-activity:hover { color: var(--ink); }
 .k-tagging-activity:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.k-tagging-activity[data-activity="busy"] svg { animation: k-tagging-spin 2.4s linear infinite; }
-.k-tagging-activity[data-activity="paused"] { opacity: 0.5; color: var(--ink-2); }
-@keyframes k-tagging-spin { to { transform: rotate(360deg); } }
+.k-tagging-activity[data-activity="paused"] { color: var(--ink-2); }
+.k-tagging-ring { position: absolute; inset: 0; }
+.k-tagging-ring, .k-tagging-mini { transform: rotate(-90deg); fill: none; stroke-width: 2.5; }
+.k-tagging-mini { stroke-width: 2; }
+.k-tagging-track { stroke: color-mix(in srgb, var(--ink) 10%, transparent); }
+.k-tagging-arc { stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray 600ms var(--ease); }
+[data-activity="paused"] .k-tagging-arc { stroke: var(--ink-3); }
+[data-activity="busy"][data-pending] .k-tagging-track { stroke: var(--accent); opacity: 0.55; animation: k-tagging-breathe 2.4s ease-in-out infinite; }
+.k-twinkle-a { animation: k-tagging-twinkle 2.8s ease-in-out infinite; }
+.k-twinkle-b { animation: k-tagging-twinkle 2.8s ease-in-out 1.4s infinite; }
+@keyframes k-tagging-breathe { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.8; } }
+@keyframes k-tagging-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
 @media (prefers-reduced-motion: reduce) {
-  .k-tagging-activity[data-activity="busy"] svg { animation: none; }
-  .k-tagging-activity[data-activity="busy"] { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
-  .k-tagging-dot[data-activity="busy"] { animation: none; }
+  .k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b { animation: none !important; transition: none; }
 }
-:root[data-reduced-motion] .k-tagging-dot[data-activity="busy"] { animation: none; }
-:root[data-reduced-motion] .k-tagging-activity[data-activity="busy"] svg { animation: none; }
-:root[data-reduced-motion] .k-tagging-activity[data-activity="busy"] { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
+:root[data-reduced-motion] :is(.k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b) { animation: none !important; transition: none; }
 
 /* 滑条：4 px 下沉轨道、已走过的一段 --range-fill；18 px 纸白圆钮带细描边与两层投影，悬停放大、按下压下。
    WebView2 是 Chromium，只需 -webkit- 伪元素。 */
@@ -187,17 +191,17 @@
 .selbar-float { position: absolute; left: 0; bottom: 20px; z-index: 6; }
 /* 图片墙很窄时（selectionBarCompact）：读数只写“N 张”，让出宽度。 */
 .selbar-float .k-dock.is-compact .k-dock-readout { min-width: 0; padding: 0 8px 0 4px; margin-right: 4px; }
-.selbar { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: var(--r-xl); background: var(--ink); color: var(--bg);
+.selbar { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 8px; border-radius: var(--r-xl); background: var(--ink); color: var(--bg);
   box-shadow: var(--shadow-pop); white-space: nowrap; }
 .selbar .selection-count { padding: 0 10px 0 8px; font-weight: 600; }
-.selbar-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: var(--r-m); background: transparent; color: var(--bg); }
+.selbar-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: var(--r); background: transparent; color: var(--bg); }
 .selbar-btn:hover:not(:disabled), .selbar-btn[data-popup-open] { background: color-mix(in srgb, var(--bg) 10%, transparent); }
 .selbar-btn:disabled { opacity: 0.5; }
 .selbar-btn.is-danger { color: var(--inverse-danger); }
 .selbar-btn.is-icon { width: 34px; padding: 0; justify-content: center; }
 .selbar-div { width: 1px; height: 20px; background: color-mix(in srgb, var(--bg) 18%, transparent); margin: 0 4px; }
 /* inside the inspector (one source being organised) the same actions sit inline on the surface */
-.selbar.is-inline { flex-wrap: wrap; background: var(--surface-2); color: var(--ink); box-shadow: none; border-radius: var(--r-m); }
+.selbar.is-inline { flex-wrap: wrap; background: var(--surface-2); color: var(--ink); box-shadow: none; }
 .selbar.is-inline .selbar-btn { color: var(--ink); height: 30px; padding: 0 10px; }
 .selbar.is-inline .selbar-btn:hover:not(:disabled) { background: var(--hover); }
 .selbar.is-inline .selbar-btn.is-danger { color: var(--danger); }

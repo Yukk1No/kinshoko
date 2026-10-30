@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { ApplicationSettingsPreview } from "./bindings/ApplicationSettingsPreview";
-import { exportApplicationSettings, migrateViewerBackground, pickApplicationSettings, previewApplicationSettings, restoreApplicationSettings } from "./ipc";
+import { describeCommandError, exportApplicationSettings, migrateViewerBackground, pickApplicationSettings, previewApplicationSettings, restoreApplicationSettings } from "./ipc";
 import { Settings2 } from "lucide-react";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
 import { legacyViewerBackground, rememberViewerBackground } from "./viewer/background";
@@ -41,7 +41,7 @@ export function ApplicationSettingsBackup({ onRestored }: { onRestored: (setting
     onRestored(result.settings); setPreview(null);
     setMessage(result.settings.forceSrgb !== result.settings.forceSrgbInEffect
       ? "偏好设置已恢复。按 sRGB 显示从托盘退出并重启后生效。" : "偏好设置已恢复。名称、查找习惯与快捷键已按备份生效。");
-    if (result.problems.length) setError(result.problems.join("；"));
+    if (result.problems.length) setError(result.problems.map(describeCommandError).join("；"));
   });
   return <section className="application-settings-backup" aria-label="偏好设置备份">
     <SettingsGroup label="偏好设置">

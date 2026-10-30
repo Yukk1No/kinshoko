@@ -18,9 +18,9 @@
 .k-set-main { position: relative; min-width: 0; overflow: auto; padding: 20px 24px 24px; }
 .k-set-page { outline: 0; }
 .k-set-title { margin: 0 0 16px; font-size: 16px; line-height: 24px; font-weight: 600; }
-/* 一组设置（#310）：下沉槽托盘里放一张浮起的卡，组与组靠托盘分开，不写组名。托盘 18 − 内边距 6 = 卡片 12（同心）。
+/* 一组设置（#310）：下沉槽托盘里放一张浮起的卡，组与组靠托盘分开，不写组名。托盘 20 − 内边距 8 = 卡片 12（同心）。
    整组的说明在卡片下方、仍在托盘里，与卡内文字同一左边；行下方的内容是卡片底部的内槽。 */
-.k-set-group { padding: 6px; border-radius: var(--r-xl); background: var(--sunken); }
+.k-set-group { padding: 8px; border-radius: var(--r-xl); background: var(--sunken); }
 .k-set-group > .k-set-list { overflow: hidden; background: var(--surface); box-shadow: 0 0 0 1px var(--line), var(--shadow-raise); }
 .k-set-group > .k-set-note { margin: 0; padding: 8px 12px 6px; }
 .k-set-group .k-set-row-below-body { padding: 10px 12px 12px; background: var(--bg); border-top: 1px solid var(--line); }
@@ -79,7 +79,7 @@
 .k-notice b { color: var(--warn-strong); font-weight: 600; }
 .app-main .legacy-name-notice.k-notice { margin: 0; border-radius: 0; border-bottom: 1px solid var(--line); padding: 8px 16px; }
 .k-settings .settings-diagnostics { max-height: 220px; overflow: auto; margin: 6px 0 0; padding: 10px; border-radius: var(--r-s); background: var(--sunken); white-space: pre-wrap; font-size: 12px; }
-.k-settings .runtime-notice.is-inline { margin-top: 12px; padding: 12px; border-radius: var(--r-m); background: var(--warn-soft); color: var(--warn-strong); }
+.k-settings .runtime-notice.is-inline { margin-top: 12px; padding: 12px; border-radius: var(--r); background: var(--warn-soft); color: var(--warn-strong); }
 .k-settings .backup-libraries { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0; }
 .k-settings .backup-preview p, .k-settings .backup-result p { margin: 4px 0; }
 .k-settings .backup-snapshots { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }

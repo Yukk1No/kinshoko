@@ -6,6 +6,7 @@
 //! 签名私钥只在 GitHub 仓库的 Actions secret 里，不进仓库（见 docs/validation/release-checklist.md）。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -135,7 +136,7 @@ pub async fn check_update(
 
 fn update_channel(app: &AppHandle) -> Result<UpdateChannel, CommandError> {
     let shell = app.state::<crate::shell::ShellState>();
-    let shell = shell.0.lock().map_err(CommandError::message)?;
+    let shell = shell.0.lock().map_err(CommandError::system)?;
     Ok(shell.settings.update_channel())
 }
 
@@ -148,7 +149,7 @@ pub async fn set_update_channel(
     channel: UpdateChannel,
 ) -> Result<ShellSettingsView, CommandError> {
     let view = {
-        let mut shell = shell.0.lock().map_err(CommandError::message)?;
+        let mut shell = shell.0.lock().map_err(CommandError::system)?;
         shell
             .settings
             .set_update_channel(channel)
@@ -181,7 +182,7 @@ pub async fn install_update(
     if let Err(message) = policy.require_automatic() {
         *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
         state.set(policy.initial_status());
-        return Err(message.into());
+        return Err(CommandError::without_code(message));
     }
     let Some(update) = state
         .pending
@@ -189,7 +190,10 @@ pub async fn install_update(
         .unwrap_or_else(|e| e.into_inner())
         .take()
     else {
-        return Err("没有可以安装的更新，请先检查更新。".to_owned().into());
+        return Err(CommandError::new(
+            ErrorKind::UpdateNotPending,
+            "没有可以安装的更新，请先检查更新。",
+        ));
     };
     let mut downloaded = 0u64;
     let progress_app = app.clone();
@@ -207,17 +211,21 @@ pub async fn install_update(
         Ok(()) => Ok(()),
         Err(e) => {
             crate::run_log::error("安装更新失败", &e);
-            let message = match e {
+            let error = match e {
                 tauri_plugin_updater::Error::Minisign(_)
-                | tauri_plugin_updater::Error::SignatureUtf8(_) => {
-                    "更新包签名不对，已放弃安装。".to_owned()
-                }
-                _ => "下载或安装更新失败，请稍后重试。".to_owned(),
+                | tauri_plugin_updater::Error::SignatureUtf8(_) => CommandError::new(
+                    ErrorKind::UpdateSignatureInvalid,
+                    "更新包签名不对，已放弃安装。",
+                ),
+                _ => CommandError::new(
+                    ErrorKind::UpdateInstallFailed,
+                    "下载或安装更新失败，请稍后重试。",
+                ),
             };
             state.set(UpdateStatus::Failed {
-                message: message.clone(),
+                message: error.to_string(),
             });
-            Err(message.into())
+            Err(error)
         }
     }
 }

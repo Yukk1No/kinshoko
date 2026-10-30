@@ -96,7 +96,7 @@
   gap: 6px;
   padding: 8px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--r);
 }
 
 .tag-alias-editor p {
