@@ -46,6 +46,18 @@ describe("导入结束走轻提示（#388）", () => {
     expect(screen.queryByRole("button", { name: "查看" })).toBeNull();
   });
 
+  it("从导入菜单打开回执再关掉时，这个任务的结束提示一并收起", async () => {
+    serve([receipt]);
+    render(<ToastProvider>{menu()}</ToastProvider>);
+    await screen.findByText("导入完成");
+    fireEvent.click(screen.getByRole("button", { name: "导入" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "导入任务" }));
+    await screen.findByRole("region", { name: "导入结果" });
+    expect(document.querySelector(".k-toast")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "关闭导入结果" }));
+    await waitFor(() => expect(document.querySelector(".k-toast")).toBeNull());
+  });
+
   it("任务有警告（标签定义没存进图库）时提示写出警告、带“查看”且不自动消失", async () => {
     serve([{ ...receipt, warnings: ["标签定义没有存进图库，可在标签目录里重试"], report: { ...receipt.report!, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } }]);
     render(<ToastProvider>{menu()}</ToastProvider>);

@@ -235,7 +235,7 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
   const sealed = report?.sealedDuplicates && finished;
 
-  const { toast, receiptOpen, setReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, recovery, setRecovery, importError, setImportError,
+  const { toast, receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, recovery, setRecovery, importError, setImportError,
     reimport: (paths) => void latest.current.begin(paths), sealedTask: sealed ? sealed.taskId : null, showSealed: (taskId) => setPreview({ taskId, contextKey }) });
 
   const cards = <>
@@ -292,7 +292,7 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
     )}
     {report && receiptOpen && (
       <ImportResultCard report={report} finished={finished} owner={owner} taskSwitcher={taskSwitcher} cardNotes={cardNotes} busy={busy}
-        begin={begin} optionsByTask={optionsByTask} libraryId={libraryId} onOpenTrash={onOpenTrash} onDismissReport={() => { setReceipt(false); onDismissReport(); }} />
+        begin={begin} optionsByTask={optionsByTask} libraryId={libraryId} onOpenTrash={onOpenTrash} onDismissReport={() => { closeReceipt(finished?.taskId); onDismissReport(); }} />
     )}
     {sealed && receiptOpen && <section className="k-task is-row sealed-import-prompt" aria-label="封印项重复">
       {/* #78 规定的原文：不点名内容类别，不给数量。 */}

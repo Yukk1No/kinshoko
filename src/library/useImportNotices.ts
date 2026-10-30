@@ -93,5 +93,11 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
     return () => toast.close(id);
   }, [toast, sealedTask]);
 
-  return { toast, receiptOpen: report !== null && (!toast || receipt), setReceipt };
+  /** 回执关掉（任务回执被删除）时，它的结束提示也收起，免得“查看”指向已不存在的任务。 */
+  const closeReceipt = (taskId: string | undefined) => {
+    setReceipt(false);
+    const id = taskId === undefined ? null : shownNotices.current.get(taskId);
+    if (taskId !== undefined && id) { toast?.close(id); shownNotices.current.set(taskId, null); }
+  };
+  return { toast, receiptOpen: report !== null && (!toast || receipt), setReceipt, closeReceipt };
 }
