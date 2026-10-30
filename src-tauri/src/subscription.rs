@@ -11,6 +11,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 
+use kinshoko_core::command_error::CommandError;
 use kinshoko_core::library::{SaveDestination, SubscriptionPage};
 use kinshoko_core::subscription::pixiv::{
     LoginRequest, LoginState, PixivAccount, PixivSource, callback_code,
@@ -286,20 +287,20 @@ impl Destination for Libraries {
             folder_id: None,
         };
         crate::library::with_destination(&self.0, &destination, |library| {
-            library
-                .import_from_subscription(page, bytes)
-                .map_err(|e| e.to_string())
+            Ok(library.import_from_subscription(page, bytes)?)
         })
+        .map_err(|e| e.to_string())
     }
 }
 
-fn require(app: &AppHandle) -> Result<State<'_, SubscriptionState>, String> {
+// 订阅命令的错误代码随订阅界面的文案再加（#368）；在那之前按原样显示中文说明。
+fn require(app: &AppHandle) -> Result<State<'_, SubscriptionState>, CommandError> {
     app.try_state::<SubscriptionState>()
-        .ok_or_else(|| "订阅功能在这个版本里还不可用".to_owned())
+        .ok_or_else(|| CommandError::message("订阅功能在这个版本里还不可用"))
 }
 
 #[tauri::command]
-pub async fn subscription_status(app: AppHandle) -> Result<SubscriptionStatus, String> {
+pub async fn subscription_status(app: AppHandle) -> Result<SubscriptionStatus, CommandError> {
     let state = require(&app)?;
     Ok(status(&app, &state))
 }
@@ -309,15 +310,14 @@ pub async fn subscription_status(app: AppHandle) -> Result<SubscriptionStatus, S
 pub async fn set_subscriptions_enabled(
     app: AppHandle,
     on: bool,
-) -> Result<SubscriptionStatus, String> {
+) -> Result<SubscriptionStatus, CommandError> {
     let state = require(&app)?;
     app.state::<ShellState>()
         .0
         .lock()
-        .map_err(|e| e.to_string())?
+        .map_err(CommandError::message)?
         .settings
-        .set_subscriptions(on)
-        .map_err(|e| e.to_string())?;
+        .set_subscriptions(on)?;
     if !on {
         state.cancel.store(true, Ordering::SeqCst);
         if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
@@ -331,29 +331,29 @@ pub async fn set_subscriptions_enabled(
 
 /// 立即检查全部订阅（退避中仍不查）。
 #[tauri::command]
-pub async fn subscription_check_now(app: AppHandle) -> Result<(), String> {
+pub async fn subscription_check_now(app: AppHandle) -> Result<(), CommandError> {
     let state = require(&app)?;
     if !enabled(&app) {
-        return Err("订阅功能已关闭".into());
+        return Err(CommandError::message("订阅功能已关闭"));
     }
     state.poke(true);
     Ok(())
 }
 
 #[tauri::command]
-pub async fn subscriptions(app: AppHandle) -> Result<Vec<Subscription>, String> {
-    require(&app)?.store.list().map_err(|e| e.to_string())
+pub async fn subscriptions(app: AppHandle) -> Result<Vec<Subscription>, CommandError> {
+    require(&app)?.store.list().map_err(CommandError::message)
 }
 
 /// 最近收进来的图。安全模式开着时不含成人作品。
 #[tauri::command]
-pub async fn subscription_recent(app: AppHandle) -> Result<Vec<ReceivedImage>, String> {
+pub async fn subscription_recent(app: AppHandle) -> Result<Vec<ReceivedImage>, CommandError> {
     let state = require(&app)?;
     let safe = crate::library::saved_safe_mode(&app);
     let recent = state
         .store
         .recent(RECENT_LIMIT)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::message)?;
     Ok(recent
         .into_iter()
         .filter(|r| !safe || !r.explicit)
@@ -362,29 +362,29 @@ pub async fn subscription_recent(app: AppHandle) -> Result<Vec<ReceivedImage>, S
 
 /// 画师打开了订阅页：新图标为已看，入口与托盘上的数量清零。
 #[tauri::command]
-pub async fn subscription_mark_seen(app: AppHandle) -> Result<(), String> {
+pub async fn subscription_mark_seen(app: AppHandle) -> Result<(), CommandError> {
     require(&app)?
         .store
         .mark_seen()
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::message)?;
     publish(&app);
     Ok(())
 }
 
 /// 打开 pixiv 登录窗口。`title` 是界面按语言给的窗口标题。
 #[tauri::command]
-pub async fn subscription_login(app: AppHandle, title: String) -> Result<(), String> {
+pub async fn subscription_login(app: AppHandle, title: String) -> Result<(), CommandError> {
     let state = require(&app)?;
     if !enabled(&app) {
-        return Err("订阅功能已关闭".into());
+        return Err(CommandError::message("订阅功能已关闭"));
     }
     if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
         let _ = window.set_focus();
         return Ok(());
     }
     let request = Arc::new(LoginRequest::new());
-    *state.login.lock().map_err(|e| e.to_string())? = Some(request.clone());
-    let url = request.url().parse().map_err(|e| format!("{e}"))?;
+    *state.login.lock().map_err(CommandError::message)? = Some(request.clone());
+    let url = request.url().parse().map_err(CommandError::message)?;
     let handle = app.clone();
     let captured = Arc::new(AtomicBool::new(false));
     WebviewWindowBuilder::new(&app, LOGIN_WINDOW, WebviewUrl::External(url))
@@ -403,7 +403,7 @@ pub async fn subscription_login(app: AppHandle, title: String) -> Result<(), Str
             false
         })
         .build()
-        .map_err(|e| format!("打不开登录窗口：{e}"))?;
+        .map_err(|e| CommandError::message(format!("打不开登录窗口：{e}")))?;
     Ok(())
 }
 
@@ -443,7 +443,7 @@ fn finish_login(app: &AppHandle, request: Arc<LoginRequest>, code: &str) {
 
 /// 退出 pixiv 登录：删掉本机保存的登录与登录窗口的 cookie，取消正在进行的检查。
 #[tauri::command]
-pub async fn subscription_logout(app: AppHandle) -> Result<SubscriptionStatus, String> {
+pub async fn subscription_logout(app: AppHandle) -> Result<SubscriptionStatus, CommandError> {
     let state = require(&app)?;
     state.cancel.store(true, Ordering::SeqCst);
     if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
@@ -453,7 +453,7 @@ pub async fn subscription_logout(app: AppHandle) -> Result<SubscriptionStatus, S
         // 作废还在换会话的登录，免得它晚到的结果把登录写回来。
         let mut login = state.login.lock().unwrap_or_else(|e| e.into_inner());
         *login = None;
-        state.account.log_out().map_err(|e| e.to_string())?;
+        state.account.log_out().map_err(CommandError::message)?;
     }
     remove_login_profile(&state.dir);
     publish(&app);

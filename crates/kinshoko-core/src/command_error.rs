@@ -358,6 +358,10 @@ impl From<library::Error> for ErrorKind {
             E::UnknownTagGroup => ErrorKind::UnknownTagGroup,
             E::InvalidTagName => ErrorKind::InvalidTagName,
             E::AmbiguousTag(name) => ErrorKind::AmbiguousTag { name },
+            // 只在订阅检查线程里出现，不经命令交给界面；错误代码随订阅界面的文案再加（#368）。
+            e @ E::SubscriptionImage(_) => ErrorKind::Message {
+                message: e.to_string(),
+            },
             E::DuplicateTagName(name) => ErrorKind::DuplicateTagName { name },
             E::ExternalTaken(name) => ErrorKind::ExternalTaken { name },
             E::NamespaceGroup => ErrorKind::NamespaceGroup,
