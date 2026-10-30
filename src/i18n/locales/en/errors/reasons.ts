@@ -10,6 +10,7 @@ export default {
   invalidTagAlias: "A tag alias isn't valid",
   invalidExternalMapping: "An external tag mapping isn't valid",
   settingsTagReferences: "The tag references in the settings package are incomplete or repeated",
+  vocabularyNoNameColumn: "The vocabulary has no name column",
   clipboardImageEmpty: "The image is empty",
   packageImageUnsupported: "It isn't a supported image format",
 

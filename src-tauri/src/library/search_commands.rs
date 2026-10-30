@@ -252,7 +252,7 @@ pub(super) fn external_vocabulary<R: Runtime>(
     }
     let mut names = ExternalVocabulary::builtin_names(state.search.builtin_approx());
     if let Some(path) = &csv {
-        names.extend(ExternalVocabulary::read_tags_csv(path).map_err(CommandError::without_code)?);
+        names.extend(ExternalVocabulary::read_tags_csv(path)?);
     }
     let vocabulary = ExternalVocabulary::new(names, &state.translations);
     *cached = Some((csv, vocabulary.clone()));

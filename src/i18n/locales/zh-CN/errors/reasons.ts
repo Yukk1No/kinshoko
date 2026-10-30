@@ -10,6 +10,7 @@ export default {
   invalidTagAlias: "标签别名无效",
   invalidExternalMapping: "标签外部对应无效",
   settingsTagReferences: "设置包中的标签引用不完整或重复",
+  vocabularyNoNameColumn: "词表缺少 name 列",
   clipboardImageEmpty: "图片是空的",
   packageImageUnsupported: "不是支持的图片格式",
 

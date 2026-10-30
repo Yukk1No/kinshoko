@@ -310,6 +310,11 @@ pub enum ErrorKind {
     },
     NoMonitor,
     UpdateNotPending,
+    UpdateCheckFailed,
+    UpdateManual,
+    UpdateNoPublicKey,
+    UpdateNoEndpoint,
+    UpdateUnknownStage,
     UpdateSignatureInvalid,
     UpdateInstallFailed,
 
@@ -421,6 +426,7 @@ pub enum ErrorKind {
     InvalidTagAlias,
     InvalidExternalMapping,
     ClipboardImageEmpty,
+    VocabularyNoNameColumn,
     SettingsTagReferences,
 
     // 参考组文件与参考组包不合要求的地方。

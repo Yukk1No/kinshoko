@@ -8,6 +8,7 @@ import { Segmented } from "./ui/Segmented";
 import { useToast, type ToastOptions } from "./ui/Toast";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { checkUpdate, installUpdate, onUpdateChannelChanged, onUpdateProgress, updateStatus } from "./ipc";
+import { CommandFailure, describeCommandError } from "./ipc/commandError";
 import { i18n } from "./i18n";
 
 /** 下载进度的文字，例如“正在下载 3.2／12.0 MB”。 */
@@ -83,7 +84,7 @@ export function UpdateSection({ version = null, channel, onChannel }: {
     try {
       setStatus(await checkUpdate());
     } catch (reason) {
-      setStatus({ state: "failed", message: String(reason) });
+      setStatus({ state: "failed", message: reason instanceof CommandFailure ? reason.error : { code: "system", detail: String(reason) } });
     } finally {
       setChecking(false);
     }
@@ -102,13 +103,13 @@ export function UpdateSection({ version = null, channel, onChannel }: {
       {status.state === "manual" ? (
         <SettingsRow icon={<Download size={16} />} title={t("manual.title")} hint={t("manual.hint")}
           below={steps && <div className="k-set-note">
-            <p>{status.message}</p>
+            <p>{describeCommandError(status.message)}</p>
             <p>{t("manual.steps")}</p>
           </div>}>
           <button type="button" className="k-btn is-sm" aria-expanded={steps} onClick={() => setSteps(!steps)}><span className="k-label">{steps ? t("manual.hideSteps") : t("manual.showSteps")}</span></button>
         </SettingsRow>
       ) : status.state === "disabled" ? (
-        <SettingsRow icon={<Download size={16} />} title={t("automatic.title")} meta={t("automatic.disabled")} below={<p className="k-set-note">{status.message}</p>} />
+        <SettingsRow icon={<Download size={16} />} title={t("automatic.title")} meta={t("automatic.disabled")} below={<p className="k-set-note">{describeCommandError(status.message)}</p>} />
       ) : (
         <>
           {channel !== undefined && onChannel && (
@@ -126,7 +127,7 @@ export function UpdateSection({ version = null, channel, onChannel }: {
           )}
           <SettingsRow icon={<RefreshCw size={16} />} title={t("check.title")} hint={t("check.hint")}
             below={(status.state === "failed" || error !== null) && <>
-              {status.state === "failed" && <p className="k-set-error" role="alert">{status.message}</p>}
+              {status.state === "failed" && <p className="k-set-error" role="alert">{describeCommandError(status.message)}</p>}
               {error !== null && <p className="k-set-error" role="alert">{error}</p>}
             </>}>
             <button type="button" className="k-btn is-sm" disabled={checking || installing} onClick={() => void check()}><span className="k-label">{t("check.action")}</span></button>
