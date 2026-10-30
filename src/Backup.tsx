@@ -18,6 +18,7 @@ import {
   setBackupSelection,
   setBackupTarget,
   startBackup,
+  errorText,
 } from "./ipc";
 import { Archive, CircleCheck, HardDrive, Library, RotateCcw } from "lucide-react";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
@@ -163,7 +164,7 @@ export function BackupSettings() {
             onChange={(value) => select(value === "all" ? { kind: "all" } : { kind: "libraries", ids: [], includeLinked: true })}
             options={[{ value: "all", label: "全部图库" }, { value: "libraries", label: "所选图库" }]} />
         </SettingsRow>
-        <RestoreView onError={setError} />
+        <RestoreView onError={(e) => setError(errorText(e))} />
       </SettingsGroup>
       {error !== null && <p className="k-set-error" role="alert">{error}</p>}
     </section>
@@ -199,12 +200,12 @@ function PreviewView({ preview }: { preview: BackupPreview }) {
 }
 
 /** 从快照恢复：列出完整快照，选一个和放恢复出的资料库的文件夹，显示往返检查结果。 */
-function RestoreView({ onError }: { onError: (message: string) => void }) {
+function RestoreView({ onError }: { onError: (error: unknown) => void }) {
   const [snapshots, setSnapshots] = useState<SnapshotSummary[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState<RestoreReport | null>(null);
 
-  const list = () => backupSnapshots().then((s) => setSnapshots(s ?? []), (e) => onError(String(e)));
+  const list = () => backupSnapshots().then((s) => setSnapshots(s ?? []), (e) => onError(e));
 
   const restore = async (snapshot: SnapshotSummary) => {
     const into = await pickFolder();
@@ -213,7 +214,7 @@ function RestoreView({ onError }: { onError: (message: string) => void }) {
     try {
       setReport(await restoreBackup(snapshot.id, into));
     } catch (e) {
-      onError(String(e));
+      onError(e);
     } finally {
       setBusy(false);
     }

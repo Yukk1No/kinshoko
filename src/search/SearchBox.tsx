@@ -124,7 +124,7 @@ type Props = {
   /** 在相近标签旁标出来源（内置／个人），设置中开启。 */
   showSource: boolean;
   onChange: (input: SearchInput) => void;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
 };
 
 /**
@@ -218,13 +218,13 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   const dismissForever = (similar: SimilarTag) => {
     setDismissing(null);
     (workspace ? editSharedApprox({ kind: "set", rules: similar.of.map((id) => ({ a: id, b: similar.tag.id, relation: "notSimilar" })) }, safe) : Promise.all(similar.of.map((id) => setTagApprox(libraryId, id, similar.tag.id, "notSimilar")))).catch((e) =>
-      onError(String(e)),
+      onError(e),
     );
   };
 
   const addSimilar = (to: TagLabel, tag: TagLabel) => {
     setAdding(null);
-    (workspace ? editSharedApprox({ kind: "set", rules: [{ a: to.id, b: tag.id, relation: "similar" }] }, safe) : setTagApprox(libraryId, to.id, tag.id, "similar")).catch((e) => onError(String(e)));
+    (workspace ? editSharedApprox({ kind: "set", rules: [{ a: to.id, b: tag.id, relation: "similar" }] }, safe) : setTagApprox(libraryId, to.id, tag.id, "similar")).catch((e) => onError(e));
   };
 
   /**

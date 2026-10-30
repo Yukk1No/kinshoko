@@ -119,7 +119,7 @@ it("回执轮询碰上浏览结果变化时只重读，不在卡片上留下“�
   mockWindows("main");
   let calls = 0;
   mockIPC(cmd => {
-    if (cmd === "plugin:library|import_tasks") { calls++; if (calls === 1) throw "浏览结果已变化，请从头重新浏览"; return [receipt]; }
+    if (cmd === "plugin:library|import_tasks") { calls++; if (calls === 1) throw { code: "cursorExpired" }; return [receipt]; }
     if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
     return undefined;
   }, { shouldMockEvents: true });

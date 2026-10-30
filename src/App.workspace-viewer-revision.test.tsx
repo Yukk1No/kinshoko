@@ -52,7 +52,7 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
       };
     }
     if (command === "plugin:library|workspace_image") {
-      if (!state.available) return Promise.reject("资料库中没有这张参考图");
+      if (!state.available) return Promise.reject({ code: "unknownImage" });
       return { id: (args as { imageId: string }).imageId, originalName: "参考图", width: 100, height: 100, collectedAt: 1000, sourceLinks: [],
         folders: [], note: { manual: null, sources: [] }, deletedAt: null, versions: { previous: null, newer: [] },
         rating: { imageId: "a", suggested: null, manual: null, effective: null } };

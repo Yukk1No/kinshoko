@@ -12,7 +12,7 @@ export type Prune = "idle" | "reset" | "loading";
  */
 export function useWorkspaceStatus({ safe, onError, wall, prune, setViewing, setReloadKey, setVocabularyKey }: {
   safe: boolean;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   wall: RefObject<WallHandle | null>;
   prune: RefObject<Prune>;
   setViewing: Dispatch<SetStateAction<BrowserCard | null>>;
@@ -47,7 +47,7 @@ export function useWorkspaceStatus({ safe, onError, wall, prune, setViewing, set
     // A response started before a notification cannot roll back the newer provider facts.
     void workspaceStatus(safe).then((next) => {
       if (alive && statusObservations.current === startedAtObservation) acceptStatus(next);
-    }, (e) => { if (alive && statusObservations.current === startedAtObservation && !isLensChanged(e)) onError(String(e)); });
+    }, (e) => { if (alive && statusObservations.current === startedAtObservation && !isLensChanged(e)) onError(e); });
     const stop = onWorkspaceChanged((next) => {
       if (!alive) return;
       // Keep the explicit source dialog; it revokes stale content and revalidates on reloadKey.
@@ -66,7 +66,7 @@ export function useWorkspaceStatus({ safe, onError, wall, prune, setViewing, set
       const changed = statusRevision.current !== next.revision;
       acceptStatus(next, true);
       if (!changed) setReloadKey((k) => k + 1);
-    }, (e) => { if (!isLensChanged(e)) onError(String(e)); });
+    }, (e) => { if (!isLensChanged(e)) onError(e); });
   }, [safe, onError, acceptStatus]);
 
   return { status, statusObservations, onWallStatus, recheck };

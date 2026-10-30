@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import type { LibraryDeletePreview } from "../bindings/LibraryDeletePreview";
 import type { LibraryTarget } from "../bindings/LibraryTarget";
-import { isDeletePreviewStale, permanentDeleteBatch, previewPermanentDeleteBatch } from "../ipc";
+import { describeCommandError, errorText, isDeletePreviewStale, permanentDeleteBatch, previewPermanentDeleteBatch } from "../ipc";
 
-/** 按图库报告没完成的部分：“「图库」：原因；「图库」：原因”。 */
-export function libraryFailures(failures: { libraryId: string; error: string }[], libraryName: (id: string) => string): string {
-  return failures.map((failure) => `「${libraryName(failure.libraryId)}」：${failure.error}`).join("；");
+/** 按图库报告没完成的部分：“「图库」：原因；「图库」：原因”。原因是后端的错误代码或抛出的错误。 */
+export function libraryFailures(failures: { libraryId: string; error: unknown }[], libraryName: (id: string) => string): string {
+  return failures.map((failure) => `「${libraryName(failure.libraryId)}」：${errorText(failure.error)}`).join("；");
 }
 
 /**
@@ -19,7 +19,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
   libraryName: (libraryId: string) => string;
   onDone: () => void;
   onCancel: () => void;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
 }) {
   const [pending, setPending] = useState(targets);
   const [previews, setPreviews] = useState<LibraryDeletePreview[] | null>(null);
@@ -36,7 +36,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
     setPreviews(null);
     previewPermanentDeleteBatch(pending).then((value) => { if (current) setPreviews(value); }, (e) => {
       if (!current) return;
-      onError(String(e));
+      onError(e);
       cancel();
     });
     return () => { current = false; };
@@ -79,7 +79,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
       (e) => {
         if (!alive.current) return;
         setBusy(false);
-        onError(String(e));
+        onError(e);
       },
     );
   };
@@ -96,7 +96,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
               {total > 0 ? `永久删除这 ${total} 张图？原图与整理结果都会删除，无法恢复。` : "这些图这次都删不了。"}
             </AlertDialog.Description>
             {unavailable.map((p) => (
-              <p key={p.libraryId} className="k-set-note" role="status">「{libraryName(p.libraryId)}」的 {count(p.libraryId)} 张这次删不了：{p.error}</p>
+              <p key={p.libraryId} className="k-set-note" role="status">「{libraryName(p.libraryId)}」的 {count(p.libraryId)} 张这次删不了：{p.error && describeCommandError(p.error)}</p>
             ))}
             {groups.length > 0 && (
               <>

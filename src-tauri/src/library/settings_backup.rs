@@ -1,5 +1,8 @@
 //! Settings package adapter: live shell, catalog invalidation and OS registrations.
+
 use super::*;
+use crate::ui_text::{Text, text};
+use kinshoko_core::CommandError;
 use kinshoko_core::application_settings_backup::{
     ApplicationSettingsBackup, ApplicationSettingsPreview, ApplicationSettingsRestored,
 };
@@ -7,12 +10,12 @@ use kinshoko_core::application_settings_backup::{
 pub(super) async fn pick_application_settings<R: Runtime>(
     app: AppHandle<R>,
     save: bool,
-) -> Result<Option<PathBuf>, String> {
+) -> Result<Option<PathBuf>, CommandError> {
     blocking(move || {
         let picker = app
             .dialog()
             .file()
-            .add_filter("程序设置备份", &["kinshoko-settings"]);
+            .add_filter(text(Text::FilterSettingsBackup), &["kinshoko-settings"]);
         Ok(if save {
             picker
                 .set_file_name("Kinshoko.kinshoko-settings")
@@ -28,18 +31,17 @@ pub(super) async fn pick_application_settings<R: Runtime>(
 pub(super) async fn export_application_settings<R: Runtime>(
     app: AppHandle<R>,
     path: PathBuf,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
         with_catalog(&state.search, |catalog| {
             let shell_state = app.state::<ShellState>();
             let shell = lock(&shell_state.0);
-            Ok(ApplicationSettingsBackup::export(
-                &shell.settings,
-                catalog,
-                &path,
-            ))
+            Ok(
+                ApplicationSettingsBackup::export(&shell.settings, catalog, &path)
+                    .map_err(CommandError::message),
+            )
         })?
     })
     .await
@@ -47,15 +49,15 @@ pub(super) async fn export_application_settings<R: Runtime>(
 #[tauri::command]
 pub(super) async fn preview_application_settings(
     path: PathBuf,
-) -> Result<ApplicationSettingsPreview, String> {
-    blocking(move || ApplicationSettingsBackup::inspect(&path)).await
+) -> Result<ApplicationSettingsPreview, CommandError> {
+    blocking(move || ApplicationSettingsBackup::inspect(&path).map_err(CommandError::message)).await
 }
 #[tauri::command]
 pub(super) async fn restore_application_settings<R: Runtime>(
     app: AppHandle<R>,
     path: PathBuf,
     fingerprint: String,
-) -> Result<ApplicationSettingsRestored, String> {
+) -> Result<ApplicationSettingsRestored, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);

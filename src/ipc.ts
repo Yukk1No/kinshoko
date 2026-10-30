@@ -6,7 +6,7 @@ import type { LibraryDeleteToken } from "./bindings/LibraryDeleteToken";
 import type { LibraryBatchFailure } from "./bindings/LibraryBatchFailure";
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc/invoke";
 import { type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { AppInfo } from "./bindings/AppInfo";
@@ -22,11 +22,13 @@ import type { LibraryRegistration } from "./bindings/LibraryRegistration";
 import type { RecoveryReport } from "./bindings/RecoveryReport";
 import type { Sidebar } from "./bindings/Sidebar";
 import { lib } from "./ipc/plugins";
+import { isErrorCode } from "./ipc/commandError";
 export * from "./ipc/tagsAndSearch";
 export * from "./ipc/shell";
 export * from "./ipc/desktop";
 export * from "./ipc/groups";
 export * from "./ipc/workspace";
+export * from "./ipc/commandError";
 
 export function appInfo(): Promise<AppInfo> {
   return invoke<AppInfo>("app_info");
@@ -59,20 +61,20 @@ export function unregisterLibrary(libraryId: string): Promise<void> {
   return invoke<void>(lib("unregister_library"), { libraryId });
 }
 
-/** 资料库的 `CursorExpired`：分页游标所依据的结果集已经变了，接着翻会遗漏或重复（#77）。 */
-const CURSOR_EXPIRED = "浏览结果已变化，请从头重新浏览";
-
-/** 浏览失败是不是因为分页游标过期：不是错误，从第一页重新浏览即可。 */
+/**
+ * 浏览失败是不是因为分页游标过期（`cursorExpired`）：游标所依据的结果集已经变了，接着翻会遗漏或重复（#77）。
+ * 不是错误，从第一页重新浏览即可。
+ */
 export function isCursorExpired(error: unknown): boolean {
-  return String(error) === CURSOR_EXPIRED;
+  return isErrorCode(error, "cursorExpired");
 }
 
-/** 资料库的 `UnknownImage`：图不存在、在别的资料库，或安全模式下被封印（#60）。 */
-const UNKNOWN_IMAGE = "资料库中没有这张参考图";
-
-/** 命令失败是不是因为这张图已查不到（应关闭查看它的界面、回到图片墙）。 */
+/**
+ * 命令失败是不是因为这张图已查不到（`unknownImage`：图不存在、在别的资料库，或安全模式下被封印，#60）。
+ * 应关闭查看它的界面、回到图片墙。
+ */
 export function isUnknownImage(error: unknown): boolean {
-  return String(error) === UNKNOWN_IMAGE;
+  return isErrorCode(error, "unknownImage");
 }
 
 /** 单张参考图的详情。 */
@@ -110,11 +112,9 @@ export function permanentDelete(libraryId: string, ids: string[], token: string)
   return invoke<void>(lib("permanent_delete"), { libraryId, ids, token });
 }
 
-const DELETE_PREVIEW_STALE = "回收站或参考组在确认前有变化，请重新查看将受影响的参考组";
-
-/** 永久删除被拒绝：预览之后回收站、参考组或安全模式变了，要重新预览。 */
+/** 永久删除被拒绝（`deletePreviewStale`）：预览之后回收站、参考组或安全模式变了，要重新预览。 */
 export function isDeletePreviewStale(error: unknown): boolean {
-  return String(error) === DELETE_PREVIEW_STALE;
+  return isErrorCode(error, "deletePreviewStale");
 }
 
 /** 侧栏：全部、回收站与文件夹树，计数只算可见的图。 */

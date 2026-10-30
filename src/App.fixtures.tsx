@@ -198,7 +198,7 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
           return side;
         case "plugin:library|image": {
           const { imageId } = args as { imageId: string };
-          if (gone.has(imageId)) return Promise.reject("资料库中没有这张参考图");
+          if (gone.has(imageId)) return Promise.reject({ code: "unknownImage" });
           return detail(imageId, null);
         }
         case "plugin:library|edit": {

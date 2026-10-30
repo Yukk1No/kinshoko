@@ -9,7 +9,7 @@ export function TagGroupsDialog({ open, onOpenChange, safe, generation, onBrowse
   safe: boolean;
   generation: number;
   onBrowse: (globalIds: string[]) => void;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>

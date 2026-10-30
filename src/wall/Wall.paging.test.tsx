@@ -31,7 +31,8 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
 
-const EXPIRED = "浏览结果已变化，请从头重新浏览";
+const EXPIRED = { code: "cursorExpired" };
+const EXPIRED_TEXT = "浏览结果已变化，请从头重新浏览";
 const card = (id: string): CardSeed => ({ id, width: 100, height: 100 });
 const folder: WorkspaceScope = { kind: "library", libraryId: "L2", scope: { kind: "folder", id: "F" } };
 const tree: ConditionTree = { conditions: [{ any: [{ kind: "text", text: "手", tags: [], similar: [], ratings: [] }], negate: false }] };
@@ -109,5 +110,5 @@ it("重新浏览一直撞上游标过期：重取几次后报错，不无限重�
     await settle();
   }
   expect(calls).toHaveLength(4);
-  expect(document.querySelector('[role="alert"]')?.textContent).toBe(EXPIRED);
+  expect(document.querySelector('[role="alert"]')?.textContent).toBe(EXPIRED_TEXT);
 });

@@ -41,7 +41,7 @@ type Props = {
   onClear: () => void;
   /** 资料库报告列表过期时递增：重新取文件夹列表与详情。 */
   reloadKey: number;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   /** 安全模式开启时，改成含成人内容的分级会让图被封印：随即取消选择。 */
   safeMode?: boolean;
   /** 词表代次（词表、图片或安全模式变化时递增）：标签面板随之刷新。 */
@@ -195,7 +195,7 @@ export function PermanentDeleteConfirm({
   safeMode?: boolean;
   onDone: () => void;
   onCancel: () => void;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
 }) {
   const [preview, setPreview] = useState<PermanentDeletePreview | null>(null);
   const [changed, setChanged] = useState(false);
@@ -208,7 +208,7 @@ export function PermanentDeleteConfirm({
     (emptyTrash ? previewEmptyTrash(libraryId) : sourceTarget ? workspacePreviewSourceDelete(sourceTarget, safeMode) : previewPermanentDelete(libraryId, ids)).then(
       (value) => { if (currentKey.current === key) setPreview(value); }, (e) => {
       if (currentKey.current !== key) return;
-      onError(String(e));
+      onError(e);
       onCancel();
     });
 
@@ -235,7 +235,7 @@ export function PermanentDeleteConfirm({
           setPreview(null);
           void load();
         } else {
-          onError(String(e));
+          onError(e);
         }
       },
     );
@@ -337,7 +337,7 @@ export function SelectionPanel({
     }
     imageDetail(libraryId, single).then(
       (d) => alive && setLoaded({ key: detailKey, detail: d }),
-      (e) => alive && onError(String(e)),
+      (e) => alive && onError(e),
     );
     return () => {
       alive = false;
@@ -354,7 +354,7 @@ export function SelectionPanel({
           (e.kind === "revertRating" && isAdult(detail?.rating.suggested ?? null)));
         if (clear || sealed) onClear(); else { setSourceRefresh((n) => n + 1); inspection?.reload(); }
         onSourceChanged?.();
-      }, (e) => { if (currentKey.current === requestKey) onError(String(e)); });
+      }, (e) => { if (currentKey.current === requestKey) onError(e); });
     }
     return editImages(libraryId, ids, edits).then(
       (details) => {
@@ -363,7 +363,7 @@ export function SelectionPanel({
         const sealed = safeMode && details.some((d) => isAdult(d.rating.effective));
         if (clear || sealed) onClear();
       },
-      (e) => { if (currentKey.current === requestKey) onError(String(e)); },
+      (e) => { if (currentKey.current === requestKey) onError(e); },
     );
   };
 

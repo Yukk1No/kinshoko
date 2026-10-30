@@ -21,7 +21,7 @@ it("保存为关闭安全模式且活动库断连时，仍显示可用提供方�
     if (command === "plugin:library|current_library") return Promise.reject("移动盘未连接");
     if (command === "plugin:library|registered_libraries") return libraries;
     if (command === "plugin:library|workspace_status") {
-      if ((args as { safeMode: boolean }).safeMode) return Promise.reject("安全模式刚切换过，请重新查找");
+      if ((args as { safeMode: boolean }).safeMode) return Promise.reject({ code: "lensChanged" });
       return { revision: "unsafe", libraries };
     }
     if (command === "plugin:library|workspace_directories") return {status:{revision:"unsafe",libraries},providers:libraries.map(registration=>({registration,sidebar:registration.unavailable?null:{all:1,trash:0,folders:[]},unassigned:1,descendants:{}}))};

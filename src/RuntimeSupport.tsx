@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { RuntimeCapabilities } from "./bindings/RuntimeCapabilities";
 import type { RuntimeStatus } from "./bindings/RuntimeStatus";
-import { diagnosticsReport, exportDiagnostics, openRuntimeUpdate, runtimeStatus } from "./ipc";
+import { diagnosticsReport, errorText, exportDiagnostics, openRuntimeUpdate, runtimeStatus } from "./ipc";
 import { probeRuntime } from "./runtime";
 import { CircleCheck, Monitor, RefreshCw } from "lucide-react";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
@@ -39,18 +39,18 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
 }
 
 /** 原有脱敏报告与保存对话框。每次由用户发起，测量本窗口，不保存能力日志、不上传。 */
-export function useDiagnosticsReport(onError: (message: string) => void) {
+export function useDiagnosticsReport(onError: (error: unknown) => void) {
   const runtime = useContext(RuntimeContext);
   const [text, setText] = useState<string | null>(null);
   const facts = () => runtime ? runtime.check() : Promise.resolve(undefined);
   return {
     text,
-    show: () => void facts().then(diagnosticsReport).then(setText).catch((e) => onError(String(e))),
-    save: () => void facts().then(exportDiagnostics).catch((e) => onError(String(e))),
+    show: () => void facts().then(diagnosticsReport).then(setText).catch((e) => onError(e)),
+    save: () => void facts().then(exportDiagnostics).catch((e) => onError(e)),
   };
 }
 
-export function DiagnosticsReport({ onError }: { onError: (message: string) => void }) {
+export function DiagnosticsReport({ onError }: { onError: (error: unknown) => void }) {
   const report = useDiagnosticsReport(onError);
   return <>
     <p className="settings-actions">
@@ -79,7 +79,7 @@ function RuntimeFailure({ problems, className = "" }: { problems: string[]; clas
       <button type="button" className="k-btn is-sm" onClick={() => void openRuntimeUpdate().catch((e) => setError(String(e)))}><span className="k-label">打开微软 WebView2 下载页</span></button>
       {runtime && <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch((e) => setError(String(e)))}><span className="k-label">重新检查</span></button>}
     </p>
-    <DiagnosticsReport onError={setError} />
+    <DiagnosticsReport onError={(e) => setError(errorText(e))} />
     {error && <p role="alert">{error}</p>}
   </aside>;
 }
