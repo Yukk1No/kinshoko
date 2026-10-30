@@ -15,6 +15,7 @@
 //! - [`Library::replace_source_tags`]：按来源分层写入（打标、Eagle 导入等来源用）；
 //! - 打标子接口：[`Library::images_to_tag`] 取待打标的图，[`Library::replace_source_rating`]
 //!   按来源写入分级建议，[`Library::finish_tagging`] 记下打标结果；[`Library::image_rating`] 读分级。
+//!   一次成功推理经 [`Library::commit_tagging_result`] 把标签、分级与完成状态一起提交。
 //!
 //! - 安全模式（#60）：上面这些读写接口都是浏览视角，开启时不露出被封印的图；
 //!   参考视角 [`ReferenceLens`] 只在装配时交出一次（[`Library::take_reference_lens`]）。
@@ -86,7 +87,9 @@ pub use import::{ImportStages, ImportTask};
 pub use lens::{ReferenceImage, ReferenceLens};
 pub use package::{ImageSnapshot, PackageOrigin, SnapshotTag};
 pub use permanent_delete::PermanentDeletePreview;
-pub use rating::{ContentRating, ImageRating, RatingFact, SafeMode, SafeModeScope, TaggingOutcome};
+pub use rating::{
+    ContentRating, ImageRating, RatingFact, SafeMode, SafeModeScope, TaggingOutcome, TaggingResult,
+};
 pub use save::SaveDestination;
 pub use sidebar::Sidebar;
 pub use source_names::{UND, compose as compose_names, detect_lang};
