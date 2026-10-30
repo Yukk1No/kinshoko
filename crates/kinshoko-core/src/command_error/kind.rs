@@ -161,11 +161,53 @@ pub enum ErrorKind {
     },
     UnknownSnapshot,
     SnapshotIncomplete {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
     BackupIo {
         detail: String,
     },
+    BackupUnfinished,
+    ManifestUnreadable {
+        detail: String,
+    },
+    ManifestDamaged {
+        detail: String,
+    },
+    NotABackup,
+    BackupFromNewerVersion {
+        version: u32,
+    },
+    SnapshotDatabaseKey,
+    SnapshotLibraryMismatch {
+        name: String,
+    },
+    SnapshotDefinitionsConflict {
+        cause: Box<ErrorKind>,
+    },
+    SnapshotGroupUnreadable {
+        name: String,
+        detail: String,
+    },
+    SnapshotGroupMismatch {
+        name: String,
+    },
+    SnapshotCapturesMismatch {
+        name: String,
+    },
+    RestoreRoundTripMismatch,
+    RestoreRollbackIncomplete {
+        cause: Box<ErrorKind>,
+        rollback: Box<ErrorKind>,
+    },
+    RestoreJournalDamaged {
+        detail: String,
+    },
+    RestoreJournalMismatch,
+    RestoreJournalLocation,
+    RestoreStageNotOwned,
+    RestoreResultLocation,
+    RestoreLibraryMismatch,
+    RestoreGroupMismatch,
 
     // 设置、快捷键与界面缩放。
     SettingsIo {

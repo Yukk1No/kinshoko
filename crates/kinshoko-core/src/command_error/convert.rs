@@ -169,7 +169,9 @@ impl From<BackupError> for ErrorKind {
                 ErrorKind::BackupTargetUnavailable { path: path(&p) }
             }
             BackupError::UnknownSnapshot => ErrorKind::UnknownSnapshot,
-            BackupError::Incomplete(reason) => ErrorKind::SnapshotIncomplete { reason },
+            BackupError::Incomplete(cause) => ErrorKind::SnapshotIncomplete {
+                cause: Box::new(cause.kind),
+            },
             BackupError::Io(e) => ErrorKind::BackupIo {
                 detail: e.to_string(),
             },
