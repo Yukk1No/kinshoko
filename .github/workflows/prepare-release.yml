@@ -1,14 +1,11 @@
 name: prepare-release
 
-# 发布第一步：维护者从 integration/v1 新建分支 release/v<版本号>（例如在 GitHub 的分支菜单里输入
-# release/v1.0.0-beta.1，选“从 integration/v1 创建”）。这个工作流在该分支上改好 Cargo.toml、Cargo.lock、
-# package.json、package-lock.json 的版本号并提交，运行摘要给出开 PR 的链接。PR 合并后由 tag-release 接手。
+# 发布第一步：从 main 新建分支 release/v<版本号>（例如在 GitHub 的分支菜单里输入 release/v1.1.0-beta.1，
+# 选“从 main 创建”；维护分支上的补丁版本从 maint/<主>.<次> 创建）。这个工作流在该分支上改好 Cargo.toml、
+# Cargo.lock、package.json、package-lock.json 的版本号并提交，运行摘要给出开 PR 的链接。PR 合并后由
+# tag-release 接手。仓库设置不允许 Actions 开 PR，所以 PR 由维护者点链接打开。
 #
-# 用新建分支触发而不用 workflow_dispatch：workflow_dispatch 要求工作流文件在默认分支（main）上，
-# 而 main 在 v1 发布前不接收这些改动。仓库设置不允许 Actions 开 PR，所以 PR 由维护者点链接打开。
-#
-# 版本号规则在 scripts/release/release-version.mjs：所有版本都从 integration/v1 准备；测试版、候选版合并后
-# 就打标签，正式版随 PR #71 合进 main 后才打标签。
+# 版本号规则在 scripts/release/release-version.mjs：main 上发任何版本，maint/<主>.<次> 只发同一主次版本号。
 
 on:
   push:
@@ -47,10 +44,17 @@ jobs:
           if [ "$current" = "$version" ]; then
             echo "::notice::版本号已经是 $version。"; echo "bump=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          if ! git merge-base --is-ancestor HEAD origin/integration/v1; then
-            echo "::error::$GITHUB_REF_NAME 要从 integration/v1 新建，不带别的提交。"; exit 1
+          # 从维护分支新建的发布到维护分支，否则发布到 main。先认维护分支：它刚从标签建出、还没有修复时也是 main 的祖先。
+          base=main
+          maint="maint/$(echo "$version" | cut -d. -f1,2)"
+          if git rev-parse -q --verify "origin/$maint" >/dev/null && git merge-base --is-ancestor HEAD "origin/$maint"; then
+            base=$maint
           fi
-          if ! problem=$(node scripts/release/release-version.mjs prepare "$version" integration/v1 "$current" 2>&1); then
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          if ! git merge-base --is-ancestor HEAD "origin/$base"; then
+            echo "::error::$GITHUB_REF_NAME 要从 main（补丁版本可从 $maint）新建，不带别的提交。"; exit 1
+          fi
+          if ! problem=$(node scripts/release/release-version.mjs prepare "$version" "$base" "$current" 2>&1); then
             echo "::error::$problem 分支名应为 release/v<版本号>，例如 release/v1.0.0-beta.1。"; exit 1
           fi
           if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
@@ -68,6 +72,7 @@ jobs:
         if: steps.check.outputs.bump == 'true'
         env:
           VERSION: ${{ steps.check.outputs.version }}
+          BASE: ${{ steps.check.outputs.base }}
         run: |
           set -euo pipefail
           sed -i '/^\[workspace.package\]/,/^\[/s/^version = ".*"/version = "'"$VERSION"'"/' Cargo.toml
@@ -81,15 +86,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "chore(release): v$VERSION"
           git push origin "HEAD:$GITHUB_REF_NAME"
-          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/integration/v1...$GITHUB_REF_NAME?expand=1"
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/$BASE...$GITHUB_REF_NAME?expand=1"
           {
             echo "### 下一步：开 PR 并合并"
             echo
-            echo "[把 $GITHUB_REF_NAME 合并到 integration/v1]($url)"
+            echo "[把 $GITHUB_REF_NAME 合并到 $BASE]($url)"
             echo
-            if [[ "$VERSION" == *-* ]]; then
-              echo "合并后 tag-release 会打 v$VERSION 标签并构建草稿 Release。"
-            else
-              echo "这是正式版：合并后再经 PR #71 合进 main，tag-release 才会打 v$VERSION 标签并构建草稿 Release。"
-            fi
+            echo "合并后 tag-release 会打 v$VERSION 标签并构建草稿 Release。"
           } >> "$GITHUB_STEP_SUMMARY"

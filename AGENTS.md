@@ -2,11 +2,11 @@
 
 ## Branches
 
-Development trunk is `integration/v1`: branch from it and open every PR against it, docs and triage included. `main` only receives v1 when it ships, through PR #71.
+Development trunk is `main`: branch from it and open every PR against it, docs and triage included. Keep `main` releasable: a feature that spans several PRs stays out of sight in the app until its last PR lands. A fix to a shipped version that cannot wait for the next release goes to the maintenance branch `maint/<major>.<minor>` (created from that version's tag when first needed) and is then merged back into `main`. `integration/v1` is archived; do not branch from or merge into it.
 
 Before publishing a release (beta, rc or final), work through the “每次发布” section of `docs/validation/release-checklist.md` item by item.
 
-Before changing `.github/workflows/`, read `docs/agents/github-actions.md`: the default branch `main` lacks these workflows, which rules out several triggers.
+Before changing `.github/workflows/`, read `docs/agents/github-actions.md`.
 
 ## Agent skills
 

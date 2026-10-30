@@ -2,11 +2,11 @@ name: ci
 
 on:
   push:
-    # 长期集成分支也要 push 触发：PR 只能读到自己 base 分支（和默认分支）的缓存，
+    # 维护分支也要 push 触发：PR 只能读到自己 base 分支（和默认分支）的缓存，
     # base 分支上从不跑 push 时，以它为 base 的 PR 每次都是冷编译。
     # 这些分支作为 PR 头分支时，push 与 PR 各跑一次：PR 那次检查的是与 base 的合并结果，
     # 不能用 if 跳过（跳过的 job 会算作通过）。
-    branches: [main, "integration/**"]
+    branches: [main, "maint/**"]
     paths-ignore:
       - "docs/**"
       - "design/**"
