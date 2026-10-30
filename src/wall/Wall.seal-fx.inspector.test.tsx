@@ -1,10 +1,9 @@
 // #27：安全模式切换时详情面板收起、图片墙变宽，封印／释放动画照常。
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "@testing-library/react";
-import type { BrowsePage } from "../bindings/BrowsePage";
 import { SEAL } from "../shell/sealfx";
 import { Wall } from "./Wall";
-import { answer, base, card, frames, ghosts, installSealFx, node, wallWith } from "./Wall.seal-fx.fixtures";
+import { answer, base, card, frames, ghosts, installSealFx, node, wallWith, type FxPage } from "./Wall.seal-fx.fixtures";
 
 installSealFx();
 
@@ -55,7 +54,7 @@ describe("切换时详情面板随选择清空而收起，图片墙变宽", () =
   });
 
   it("关闭后送回的页面没有成人图：这次释放就此结束，之后别的浏览带来的成人图不从书里飞出", async () => {
-    const plain: BrowsePage = { cards: [card("g")], total: 1, nextCursor: null };
+    const plain: FxPage = { cards: [card("g")], total: 1, nextCursor: null };
     const view = await wallWith(true, plain);
     view.rerender(<Wall {...base} reloadKey={0} safeMode={false} />);
     view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);

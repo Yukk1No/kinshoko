@@ -34,7 +34,6 @@ fn main() {
                         "register_library",
                         "switch_library",
                         "unregister_library",
-                        "browse",
                         "image",
                         "edit",
                         "preview_permanent_delete",

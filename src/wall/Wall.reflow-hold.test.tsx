@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { workspacePage } from "../test/workspacePage";
 import { Wall } from "./Wall";
 
 let width: number;
@@ -43,8 +44,8 @@ beforeEach(() => {
   }));
   mockConvertFileSrc("windows");
   mockIPC((cmd) => {
-    if (cmd !== "plugin:library|browse") throw new Error(cmd);
-    return { cards: Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30, thumbnail: `L1/${i}/256` })), total: 300, nextCursor: null };
+    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
+    return workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 })));
   });
 });
 afterEach(() => {
@@ -53,7 +54,7 @@ afterEach(() => {
   vi.restoreAllMocks(); vi.unstubAllGlobals();
 });
 
-const props = { libraryId: "L1", scope: { kind: "all" as const }, reloadKey: 0, selected: new Set<string>(),
+const props = { workspaceScope: { kind: "all" as const }, scope: { kind: "all" as const }, reloadKey: 0, selected: new Set<string>(),
   onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false };
 
 async function setup() {

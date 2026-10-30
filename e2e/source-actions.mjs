@@ -67,10 +67,11 @@ try {
     const info = await session.invoke("create_library", { parent, name: "同名资料库" });
     await session.invoke("start_import", { libraryId: info.id, source: { paths: [imagePath] } });
     const page = await until("initial import", async () => {
-      const value = await session.invoke("browse", { libraryId: info.id, query });
+      const scope = { kind: "library", libraryId: info.id, scope: { kind: "all" } };
+      const value = await session.invoke("workspace_browse", { query: { ...query, scope }, safeMode: await session.invoke("safe_mode") });
       return value.total === 1 ? value : null;
     });
-    const imageId = page.cards[0].id;
+    const imageId = page.cards[0].sources.find((source) => source.libraryId === info.id).imageId;
     const folderId = await session.invoke("create_folder", { libraryId: info.id, name: tag + "目录", parent: null });
     await session.invoke("edit", { libraryId: info.id, ids: [imageId], edits: [{ kind: "setNote", text: note }, { kind: "addToFolder", folderId }] });
     await session.invoke("edit_tags", { libraryId: info.id, imageIds: [imageId], edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: tag, lang: "zh-CN" } }] });

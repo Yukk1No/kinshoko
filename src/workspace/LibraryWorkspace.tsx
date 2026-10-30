@@ -302,7 +302,6 @@ export function LibraryWorkspace({
             onDensityCommit={(value) => { setZoomPreview(null); setDensity(value); }}
             onTotalChange={setResultCount}
             key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
-            libraryId={libraryId || "workspace"}
             workspaceScope={workspaceScope}
             onInspectSources={(card) => { setSources(card); }}
             onCardsChange={setLoadedCards}

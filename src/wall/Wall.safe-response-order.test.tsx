@@ -3,11 +3,12 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
-import type { BrowsePage } from "../bindings/BrowsePage";
-import type { BrowseQuery } from "../bindings/BrowseQuery";
+import type { WorkspacePage } from "../bindings/WorkspacePage";
+import type { WorkspaceQuery } from "../bindings/WorkspaceQuery";
+import { type CardSeed, workspacePage } from "../test/workspacePage";
 import { Wall } from "./Wall";
 
-type Call = { query: BrowseQuery; resolve: (page: BrowsePage) => void; reject: (e: unknown) => void };
+type Call = { query: WorkspaceQuery; safeMode: boolean; resolve: (page: WorkspacePage) => void; reject: (e: unknown) => void };
 let calls: Call[];
 
 beforeEach(() => {
@@ -18,20 +19,19 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   mockConvertFileSrc("windows");
   mockIPC((cmd, args) => {
-    if (cmd !== "plugin:library|browse") throw new Error(cmd);
-    return new Promise<BrowsePage>((resolve, reject) => {
-      calls.push({ query: (args as { query: BrowseQuery }).query, resolve, reject });
+    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
+    return new Promise<WorkspacePage>((resolve, reject) => {
+      calls.push({ ...(args as { query: WorkspaceQuery; safeMode: boolean }), resolve, reject });
     });
   });
 });
 afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
 
-const card = (id: string, adult = false) => ({ id, width: 100, height: 100, thumbnail: `L1/${id}/256`, adult });
-const page = (cards: ReturnType<typeof card>[], total: number, nextCursor: string | null = null): BrowsePage =>
-  ({ cards, total, nextCursor });
+const card = (id: string, adult = false): CardSeed => ({ id, width: 100, height: 100, adult });
+const page = (cards: CardSeed[], total: number, nextCursor: string | null = null) => workspacePage(cards, total, nextCursor);
 
 const base = {
-  libraryId: "L1", scope: { kind: "all" as const }, selected: new Set<string>(),
+  workspaceScope: { kind: "all" as const }, scope: { kind: "all" as const }, selected: new Set<string>(),
   onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false,
 };
 

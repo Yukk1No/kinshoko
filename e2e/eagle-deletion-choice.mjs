@@ -73,7 +73,12 @@ const find = async xpath => { const element = await wd("POST", `${base}/element`
 const clickXPath = async xpath => wd("POST", `${base}/element/${await find(xpath)}/click`, {});
 const click = text => clickXPath(`//button[normalize-space()='${text}']`);
 const screenshot = async name => writeFileSync(join(output, `${name}.png`), Buffer.from(await wd("GET", `${base}/screenshot`), "base64"));
-const browse = (scope = "all") => lib("browse", { query: { scope: { kind: scope }, conditions: { conditions: [] }, cursor: null, limit: 100, thumbnailPx: 256 } });
+// 只看目标图库；卡片的 id 换成它在这个图库里的图 id。
+const browse = async () => {
+  const query = { scope: { kind: "library", libraryId, scope: { kind: "all" } }, conditions: { conditions: [] }, cursor: null, limit: 100, knownPlaceholders: [] };
+  const page = await invoke("plugin:library|workspace_browse", { query, safeMode: await invoke("plugin:library|safe_mode") });
+  return { ...page, cards: page.cards.map((card) => ({ ...card, id: card.sources.find((source) => source.libraryId === libraryId).imageId })) };
+};
 const detail = id => lib("image", { imageId: id });
 const policy = () => exec("return !!document.querySelector('[aria-label=\"Eagle 重导选择\"]')");
 const defaultChecked = () => exec("return [...document.querySelectorAll('[aria-label=\"Eagle 重导选择\"] input')].map(i=>i.checked)");

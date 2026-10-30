@@ -51,12 +51,11 @@ use std::sync::{Arc, Mutex, Weak};
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::diagnostics::{LibraryNo, LogEvent};
 use kinshoko_core::library::{
-    BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping,
-    ExternalVocabulary, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportOptions,
-    ImportSource, LibraryEvent, LibraryInfo, MappedExternal, PermanentDeletePreview,
-    PersonalApproxEntry, RecoveryReport, ReferenceLens, SafeMode, SafeModeScope, Sidebar, TagAlias,
-    TagEdit, TagGroupView, TagNamespace, TagTranslations, Vocabulary,
-    discover_eagle_libraries as discover_eagle,
+    EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping, ExternalVocabulary, ImageDetail,
+    ImageEdit, ImageRating, ImageTags, ImportOptions, ImportSource, LibraryEvent, LibraryInfo,
+    MappedExternal, PermanentDeletePreview, PersonalApproxEntry, RecoveryReport, ReferenceLens,
+    SafeMode, SafeModeScope, Sidebar, TagAlias, TagEdit, TagGroupView, TagNamespace,
+    TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::library_batch::{
     LibraryBatchFailure, LibraryDeletePreview, LibraryDeleteToken, LibraryTarget, each_library,
@@ -292,7 +291,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             register_library,
             switch_library,
             unregister_library,
-            browse,
             image,
             edit,
             preview_permanent_delete,

@@ -5,6 +5,7 @@ import { createRef, useState } from "react";
 import { Wall, type WallHandle } from "./Wall";
 import type { WallMenuTarget } from "./WallMenu";
 import { MenuItem } from "../ui/Menu";
+import { workspacePage } from "../test/workspacePage";
 
 beforeEach(() => {
   localStorage.clear();
@@ -13,8 +14,8 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   mockConvertFileSrc("windows");
   mockIPC((cmd) => {
-    if (cmd !== "plugin:library|browse") throw new Error(cmd);
-    return { cards: Array.from({ length: 6 }, (_, i) => ({ id: String(i), width: 100, height: 100, thumbnail: `L1/${i}/256`, adult: false })), total: 6, nextCursor: null };
+    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
+    return workspacePage(Array.from({ length: 6 }, (_, i) => ({ id: String(i), width: 100, height: 100 })));
   });
 });
 afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
@@ -26,7 +27,7 @@ function Harness({ initial = [], onCommand, onSelection, handle, onPaste, viewer
   onPaste?: () => void; viewerOpen?: boolean;
 }) {
   const [selected, setSelected] = useState(new Set(initial));
-  return <Wall ref={handle} libraryId="L1" scope={{ kind: "all" }} reloadKey={0} selected={selected}
+  return <Wall ref={handle} workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={selected}
     onSelectionChange={(next) => { onSelection?.([...next]); setSelected(next); }} onOpenImage={() => {}} viewerOpen={viewerOpen}
     menu={(target) => <MenuItem>{describe(target)}</MenuItem>} onCardCommand={onCommand} onPaste={onPaste} />;
 }
