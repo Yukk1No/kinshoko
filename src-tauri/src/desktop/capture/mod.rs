@@ -8,6 +8,7 @@
 //! 两种结果都存入截图历史（#227）。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 
 mod finish;
 mod sources;
@@ -148,15 +149,15 @@ fn capture_window(app: &AppHandle) -> Result<tauri::WebviewWindow, CommandError>
     .visible(false)
     .shared_webview(app)
     .build()
-    .map_err(CommandError::message)?;
+    .map_err(CommandError::system)?;
     crate::run_log::window_created(WindowKind::Capture, started);
     Ok(window)
 }
 
 fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), CommandError> {
-    let cursor = app.cursor_position().map_err(CommandError::message)?;
+    let cursor = app.cursor_position().map_err(CommandError::system)?;
     let monitor = xcap::Monitor::from_point(cursor.x.floor() as i32, cursor.y.floor() as i32)
-        .map_err(CommandError::message)?;
+        .map_err(CommandError::system)?;
     let safe_generation = crate::library::capture_generation(app);
     let mut frozen = None;
     for _ in 0..5 {
@@ -172,7 +173,7 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), CommandError> {
             continue;
         }
         let before_surfaces = references(app, metrics.as_ref().zip(before.as_ref()))?;
-        let image = monitor.capture_image().map_err(CommandError::message)?;
+        let image = monitor.capture_image().map_err(CommandError::system)?;
         super::timing("grabbed");
         let after = metrics
             .as_ref()
@@ -191,16 +192,17 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), CommandError> {
             continue;
         }
         if crate::library::capture_generation(app) != safe_generation {
-            return Err("安全模式已变化，请重新框选".into());
+            return Err(safe_mode_changed());
         }
         frozen = Some((image, before_surfaces));
         break;
     }
-    let (image, references) =
-        frozen.ok_or_else(|| CommandError::from("参考图正在移动，请重新框选"))?;
+    let (image, references) = frozen.ok_or_else(|| {
+        CommandError::new(ErrorKind::CaptureSourceMoving, "参考图正在移动，请重新框选")
+    })?;
     let origin = (
-        monitor.x().map_err(CommandError::message)?,
-        monitor.y().map_err(CommandError::message)?,
+        monitor.x().map_err(CommandError::system)?,
+        monitor.y().map_err(CommandError::system)?,
     );
     let icc = monitor.name().ok().and_then(|name| display_profile(&name));
     super::timing(&format!(
@@ -217,7 +219,10 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), CommandError> {
         if !matches!(&*session, Session::Grabbing(t) if t == token)
             || crate::library::capture_generation(app) != safe_generation
         {
-            return Err("截图会话已失效，请重新框选".into());
+            return Err(CommandError::new(
+                ErrorKind::CaptureSessionExpired,
+                "截图会话已失效，请重新框选",
+            ));
         }
         *session = Session::Ready(Pending {
             screen: Arc::new(Screenshot { image, icc }),
@@ -241,18 +246,26 @@ fn grab_and_show(app: &AppHandle, token: &str) -> Result<(), CommandError> {
     // 先移到目标显示器再定尺寸：跨越缩放比例不同的显示器时，移动会先按新比例改一次尺寸。
     window
         .set_position(PhysicalPosition::new(rect.x, rect.y))
-        .map_err(CommandError::message)?;
+        .map_err(CommandError::system)?;
     window
         .set_size(PhysicalSize::new(rect.width, rect.height))
-        .map_err(CommandError::message)?;
+        .map_err(CommandError::system)?;
     // 复用的页面早已载入：通知它取这次的冻结屏幕。新建的页面载入时自己会取。
     window
         .emit_to(CAPTURE_WINDOW, SESSION_EVENT, ())
-        .map_err(CommandError::message)?;
+        .map_err(CommandError::system)?;
     Ok(())
 }
 
 #[cfg(windows)]
+/// 框选途中安全模式变了：这次截图作废。
+fn safe_mode_changed() -> CommandError {
+    CommandError::new(
+        ErrorKind::CaptureSafeModeChanged,
+        "安全模式已变化，请重新框选",
+    )
+}
+
 fn display_profile(device: &str) -> Option<Vec<u8>> {
     super::win32::display_profile(device)
 }

@@ -3,6 +3,7 @@
 //! 会调用窗口或系统 API 的命令写成 `async`，不在主线程上运行（见 `shell` 的线程规则）。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::{AppInfo, ShellSettingsView, ShortcutAction};
 use tauri::{AppHandle, State};
 
@@ -17,7 +18,7 @@ pub fn app_info() -> AppInfo {
 pub async fn shell_settings(
     state: State<'_, ShellState>,
 ) -> Result<ShellSettingsView, CommandError> {
-    Ok(state.0.lock().map_err(CommandError::message)?.view())
+    Ok(state.0.lock().map_err(CommandError::system)?.view())
 }
 
 /// 开关开机自启：先改系统，成功后再保存设置。
@@ -27,12 +28,17 @@ pub async fn set_autostart(
     state: State<'_, ShellState>,
     on: bool,
 ) -> Result<ShellSettingsView, CommandError> {
-    let mut shell = state.0.lock().map_err(CommandError::message)?;
-    shell::apply_autostart(&app, on)
-        .map_err(|e| CommandError::message(format!("无法更改开机自启：{e}")))?;
+    let mut shell = state.0.lock().map_err(CommandError::system)?;
+    shell::apply_autostart(&app, on).map_err(|e| {
+        CommandError::caused_by(
+            e,
+            |cause| ErrorKind::AutostartFailed { cause },
+            |e| format!("无法更改开机自启：{e}"),
+        )
+    })?;
     if let Err(e) = shell.settings.set_autostart(on) {
         let _ = shell::apply_autostart(&app, !on);
-        return Err(e.to_string().into());
+        return Err(e.into());
     }
     Ok(shell.view())
 }
@@ -43,7 +49,7 @@ pub async fn set_show_approx_source(
     state: State<'_, ShellState>,
     on: bool,
 ) -> Result<ShellSettingsView, CommandError> {
-    let mut shell = state.0.lock().map_err(CommandError::message)?;
+    let mut shell = state.0.lock().map_err(CommandError::system)?;
     shell
         .settings
         .set_show_approx_source(on)
@@ -57,7 +63,7 @@ pub async fn set_tag_display(
     state: State<'_, ShellState>,
     display: kinshoko_core::TagDisplay,
 ) -> Result<ShellSettingsView, CommandError> {
-    let mut shell = state.0.lock().map_err(CommandError::message)?;
+    let mut shell = state.0.lock().map_err(CommandError::system)?;
     shell
         .settings
         .set_tag_display(display)
@@ -71,7 +77,7 @@ pub async fn set_keep_selection_on_safe_mode(
     state: State<'_, ShellState>,
     on: bool,
 ) -> Result<ShellSettingsView, CommandError> {
-    let mut shell = state.0.lock().map_err(CommandError::message)?;
+    let mut shell = state.0.lock().map_err(CommandError::system)?;
     shell
         .settings
         .set_keep_selection_on_safe_mode(on)
@@ -87,7 +93,7 @@ pub async fn set_pin_edge_contrast(
     on: bool,
 ) -> Result<ShellSettingsView, CommandError> {
     let view = {
-        let mut shell = state.0.lock().map_err(CommandError::message)?;
+        let mut shell = state.0.lock().map_err(CommandError::system)?;
         shell
             .settings
             .set_pin_edge_contrast(on)
@@ -104,7 +110,7 @@ pub async fn set_force_srgb(
     state: State<'_, ShellState>,
     on: bool,
 ) -> Result<ShellSettingsView, CommandError> {
-    let mut shell = state.0.lock().map_err(CommandError::message)?;
+    let mut shell = state.0.lock().map_err(CommandError::system)?;
     shell
         .settings
         .set_force_srgb(on)
@@ -119,7 +125,7 @@ pub async fn rebind_shortcut(
     action: ShortcutAction,
     accelerator: Option<String>,
 ) -> Result<ShellSettingsView, CommandError> {
-    let mut guard = state.0.lock().map_err(CommandError::message)?;
+    let mut guard = state.0.lock().map_err(CommandError::system)?;
     let shell = &mut *guard;
     shell
         .shortcuts
@@ -133,7 +139,7 @@ pub async fn set_viewer_background(
     state: State<'_, ShellState>,
     background: kinshoko_core::ViewerBackground,
 ) -> Result<ShellSettingsView, CommandError> {
-    let mut shell = state.0.lock().map_err(CommandError::message)?;
+    let mut shell = state.0.lock().map_err(CommandError::system)?;
     shell
         .settings
         .set_viewer_background(background)
@@ -146,7 +152,7 @@ pub async fn set_inspector_width(
     state: State<'_, ShellState>,
     width: u32,
 ) -> Result<ShellSettingsView, CommandError> {
-    let mut shell = state.0.lock().map_err(CommandError::message)?;
+    let mut shell = state.0.lock().map_err(CommandError::system)?;
     shell
         .settings
         .set_inspector_width(width)
@@ -158,7 +164,7 @@ pub async fn migrate_viewer_background(
     state: State<'_, ShellState>,
     background: kinshoko_core::ViewerBackground,
 ) -> Result<ShellSettingsView, CommandError> {
-    let mut shell = state.0.lock().map_err(CommandError::message)?;
+    let mut shell = state.0.lock().map_err(CommandError::system)?;
     shell
         .settings
         .migrate_viewer_background(background)
@@ -203,8 +209,12 @@ pub fn interface_language() -> &'static str {
 /// 换界面语言：主窗口、钉图菜单与截图窗口随即更新，不需要重启。设置里的选项随 #358 上线。
 #[tauri::command]
 pub fn set_interface_language(app: AppHandle, lang: String) -> Result<&'static str, CommandError> {
-    let lang = kinshoko_core::interface_lang::set(&lang)
-        .ok_or_else(|| format!("没有这种界面语言：{lang}"))?;
+    let lang = kinshoko_core::interface_lang::set(&lang).ok_or_else(|| {
+        CommandError::new(
+            ErrorKind::UnknownInterfaceLanguage { lang: lang.clone() },
+            format!("没有这种界面语言：{lang}"),
+        )
+    })?;
     shell::announce_interface_language(&app, lang);
     Ok(lang)
 }
@@ -212,7 +222,7 @@ pub fn set_interface_language(app: AppHandle, lang: String) -> Result<&'static s
 /// 本机的界面缩放档位（百分比）。
 #[tauri::command]
 pub async fn ui_scale(state: State<'_, UiScaleState>) -> Result<u16, CommandError> {
-    Ok(state.0.lock().map_err(CommandError::message)?.percent())
+    Ok(state.0.lock().map_err(CommandError::system)?.percent())
 }
 
 /// 换一档界面缩放：保存后立即缩放主窗口，不需要重启。
@@ -223,7 +233,7 @@ pub async fn set_ui_scale(
     percent: u16,
 ) -> Result<u16, CommandError> {
     let factor = {
-        let mut scale = state.0.lock().map_err(CommandError::message)?;
+        let mut scale = state.0.lock().map_err(CommandError::system)?;
         scale.set(percent).map_err(CommandError::from)?;
         scale.factor()
     };

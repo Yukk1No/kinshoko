@@ -8,6 +8,7 @@
 //! 供 CI 使用。
 
 use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 
@@ -224,7 +225,7 @@ pub async fn gate_plan(app: AppHandle) -> Result<GatePlan, CommandError> {
         })
     })
     .await
-    .map_err(CommandError::message)?
+    .map_err(CommandError::system)?
 }
 
 /// 钉图离屏渲染 vs 正式派生图（见 [`pins`]）。第一次调用时在 GPU 上画全部样本。
@@ -238,7 +239,7 @@ pub async fn gate_pins(app: AppHandle) -> Result<PinGate, CommandError> {
             .clone())
     })
     .await
-    .map_err(CommandError::message)?
+    .map_err(CommandError::system)?
 }
 
 /// 样本的原文件（`original`）、应用 1:1 显示的文件（`display`，见 `Library::display`）或
@@ -257,7 +258,12 @@ pub async fn gate_image(
             ("original", _) => library.original_path(&image_id),
             ("display", _) => library.display(&image_id).map(|d| d.path),
             ("thumbnail", Some(px)) => library.thumbnail(&image_id, px),
-            _ => return Err(format!("未知的取图方式：{what}").into()),
+            _ => {
+                return Err(CommandError::new(
+                    ErrorKind::UnknownFidelitySample { what: what.clone() },
+                    format!("未知的取图方式：{what}"),
+                ));
+            }
         }
         .map_err(CommandError::from)?;
         std::fs::read(path)
@@ -265,7 +271,7 @@ pub async fn gate_image(
             .map_err(CommandError::from)
     })
     .await
-    .map_err(CommandError::message)?
+    .map_err(CommandError::system)?
 }
 
 /// 保存报告（JSON 与 Markdown），返回 JSON 的路径。`--exit` 时随后退出。

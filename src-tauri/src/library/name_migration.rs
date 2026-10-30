@@ -7,6 +7,13 @@ use kinshoko_core::tag_catalog::{
 };
 
 /// 经共享的工作区读可见目录（#337）：复用它的快照，不再每次从头装配各提供方、长时间占着锁。
+fn safe_mode_changed() -> CommandError {
+    CommandError::new(
+        ErrorKind::NameMigrationSafeModeChanged,
+        "安全模式已变化，请重新打开名称迁移向导",
+    )
+}
+
 fn view(
     workspace: &mut kinshoko_core::workspace::Workspace,
     catalog: &mut TagCatalog,
@@ -36,7 +43,7 @@ pub(super) async fn plan_legacy_names<R: Runtime>(
     })
     .await?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新打开名称迁移向导".into());
+        return Err(safe_mode_changed());
     }
     Ok(result)
 }
@@ -67,7 +74,7 @@ pub(super) async fn confirm_legacy_names<R: Runtime>(
     .await?;
     names::refresh_labels(&app, &state)?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新打开名称迁移向导".into());
+        return Err(safe_mode_changed());
     }
     Ok(result)
 }
@@ -96,7 +103,7 @@ pub(super) async fn preview_legacy_names<R: Runtime>(
     })
     .await?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新打开名称迁移向导".into());
+        return Err(safe_mode_changed());
     }
     Ok(result)
 }

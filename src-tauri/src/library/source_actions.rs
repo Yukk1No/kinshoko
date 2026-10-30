@@ -32,15 +32,11 @@ fn guarded<R: Runtime, T>(
     let _visibility = lock(&state.visibility_commit);
     let expected = state.safe_mode.snapshot();
     if saved_safe_mode(app) != safe {
-        return Err(kinshoko_core::library::Error::LensChanged
-            .to_string()
-            .into());
+        return Err(kinshoko_core::library::Error::LensChanged.into());
     }
     let value = workspace::with_resources(&state, f)?;
     if !state.safe_mode.still(&expected) || saved_safe_mode(app) != safe {
-        return Err(kinshoko_core::library::Error::LensChanged
-            .to_string()
-            .into());
+        return Err(kinshoko_core::library::Error::LensChanged.into());
     }
     Ok(value)
 }
@@ -149,7 +145,13 @@ pub(super) async fn workspace_edit_source_tags<R: Runtime>(
             })
         })?;
         app.state::<LibraryState>().search.invalidate();
-        publish_definition_dependencies(&app, &target.library_id).map_err(|error| CommandError::message(format!("这个来源的标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。")))?;
+        publish_definition_dependencies(&app, &target.library_id).map_err(|error| {
+            CommandError::caused_by(
+                error,
+                |cause| ErrorKind::SourceTagDefinitionsNotSaved { cause },
+                |error| format!("这个来源的标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"),
+            )
+        })?;
         Ok(())
     })
     .await
@@ -172,7 +174,7 @@ pub(super) async fn workspace_source_group<R: Runtime>(
             (None, Some(name)) => groups.create(&name, std::slice::from_mut(&mut pin)),
             _ => Err(kinshoko_core::reference_groups::GroupError::InvalidName),
         })
-        .ok_or("参考组还没有准备好")?
+        .ok_or_else(groups_not_ready)?
         .map_err(CommandError::from)?;
         crate::desktop::reference_groups_changed(&app);
         Ok(group)

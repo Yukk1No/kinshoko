@@ -196,10 +196,10 @@ async fn with<T: Send + 'static>(
             .as_ref()
             .filter(|active| active.library_id == library_id)
             .map(f)
-            .ok_or_else(|| CommandError::from("资料库已切换或关闭，请在当前资料库重新操作"))
+            .ok_or_else(|| CommandError::from(kinshoko_core::DeviceLibraryError::StaleLibrary))
     })
     .await
-    .map_err(CommandError::message)?
+    .map_err(CommandError::system)?
 }
 
 /// 自动标签的当前状态。
@@ -273,7 +273,7 @@ pub async fn tagging_set_device(
     shell
         .0
         .lock()
-        .map_err(CommandError::message)?
+        .map_err(CommandError::system)?
         .settings
         .set_tagging_device(device)
         .map_err(CommandError::from)?;
@@ -292,7 +292,7 @@ pub async fn tagging_pick_package(app: AppHandle) -> Result<Option<PathBuf>, Com
             .and_then(|p| p.into_path().ok())
     })
     .await
-    .map_err(CommandError::message)
+    .map_err(CommandError::system)
 }
 
 /// 从文件导入模型包并校验（没有网络时）。成功后打标随即用上，不再询问下载。
@@ -306,7 +306,8 @@ pub async fn tagging_import_package(
         ModelStore::new(models_dir, HUGGING_FACE).import_package(&path, &catalog())
     })
     .await
-    .map_err(CommandError::message)??;
+    .map_err(CommandError::system)?
+    .map_err(CommandError::without_code)?;
     let state = app.state::<TaggingState>();
     if let Some(t) = lock(&state.current).as_ref() {
         t.tagging.wake();

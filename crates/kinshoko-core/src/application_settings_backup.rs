@@ -86,7 +86,9 @@ pub struct ApplicationSettingsPreview {
 pub struct ApplicationSettingsRestored {
     pub settings: crate::ShellSettingsView,
     pub safe_mode: bool,
-    pub problems: Vec<String>,
+    /// 设置已恢复，但没有完全生效的部分。
+    #[ts(as = "Vec<crate::command_error::ErrorKind>")]
+    pub problems: Vec<crate::CommandError>,
 }
 pub struct ApplicationSettingsBackup;
 impl ApplicationSettingsBackup {
