@@ -94,6 +94,38 @@ impl PinMenu {
     }
 }
 
+/// 做完钉图菜单里的一项后在钉图上提示什么（#355）。文字由菜单页面按界面语言取。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+#[ts(export)]
+pub enum PinNotice {
+    Locked,
+    Unlocked,
+    Copied,
+    /// 截图钉图的“收藏”：保存位置在主窗口里选。
+    ChooseSaveLocation,
+    /// 截图钉图要先收藏进图库，才能加入参考组。
+    CollectFirst,
+    SavedToGroup {
+        name: String,
+    },
+    AddedToGroup {
+        name: String,
+    },
+    Failed {
+        #[ts(as = "crate::command_error::ErrorKind")]
+        error: crate::CommandError,
+    },
+}
+
+impl<E: Into<crate::CommandError>> From<E> for PinNotice {
+    fn from(error: E) -> Self {
+        PinNotice::Failed {
+            error: error.into(),
+        }
+    }
+}
+
 /// 菜单窗口要显示的一次菜单：编号（关掉旧的、不认过期的选择）、窗口与锚点、菜单状态。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
