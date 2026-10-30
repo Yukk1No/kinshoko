@@ -11,11 +11,11 @@ const MAX_BACKOFF_MS: i64 = 24 * 60 * 60 * 1000;
 
 /// `now` 时到期的订阅，按上次检查从早到晚（从没检查过的最先）。`backed_off` 返回某个来源
 /// 此刻是否在退避中；退避中的来源一条都不查。
-pub fn due<'a>(
-    subscriptions: &'a [Subscription],
+pub fn due(
+    subscriptions: &[Subscription],
     now: i64,
     backed_off: impl Fn(SourceId) -> bool,
-) -> Vec<&'a Subscription> {
+) -> Vec<&Subscription> {
     let mut due: Vec<&Subscription> = subscriptions
         .iter()
         .filter(|s| !backed_off(s.target.source()))

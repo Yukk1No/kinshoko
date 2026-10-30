@@ -56,3 +56,16 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     tray.build(app)?;
     Ok(())
 }
+
+/// 托盘图标上的订阅新图数量（#368）；为 0 时恢复原图标。
+pub fn set_tray_badge(app: &AppHandle, count: u32) {
+    let (Some(tray), Some(icon)) = (app.tray_by_id("main"), app.default_window_icon()) else {
+        return;
+    };
+    let _ = tray.set_icon(Some(crate::subscription::badge(icon, count)));
+    let tooltip = match count {
+        0 => "Kinshoko".to_owned(),
+        n => format!("Kinshoko ({n})"),
+    };
+    let _ = tray.set_tooltip(Some(tooltip));
+}

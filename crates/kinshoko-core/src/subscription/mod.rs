@@ -122,3 +122,20 @@ pub struct NewSubscription {
     pub include_explicit: bool,
     pub include_manga: bool,
 }
+
+/// 订阅入口与托盘要显示的状态。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SubscriptionStatus {
+    /// 设置里的订阅开关；关掉后不显示入口、不检查、不联网。
+    pub enabled: bool,
+    pub login: pixiv::LoginState,
+    /// 正在检查。
+    pub checking: bool,
+    /// 新图数量（按页计）。安全模式开着时不计成人作品。
+    pub new_count: u32,
+    /// 遇到频率限制后，到这个时间（Unix 毫秒）之前不检查。
+    #[ts(type = "number | null")]
+    pub backoff_until: Option<i64>,
+}

@@ -14,6 +14,7 @@ mod library;
 mod plugin_acl_tests;
 mod run_log;
 mod shell;
+mod subscription;
 mod tagging;
 mod updater;
 
@@ -59,6 +60,7 @@ pub fn run() {
             updater::manage(handle);
             backup::manage(handle);
             desktop::create_tray(handle)?;
+            subscription::manage(handle);
             let args: Vec<String> = std::env::args().collect();
             if let Some(options) = fidelity_gate::options(&args) {
                 fidelity_gate::start(handle, options);
@@ -113,6 +115,14 @@ pub fn run() {
             tagging::tagging_set_device,
             tagging::tagging_pick_package,
             tagging::tagging_import_package,
+            subscription::subscription_status,
+            subscription::set_subscriptions_enabled,
+            subscription::subscription_check_now,
+            subscription::subscriptions,
+            subscription::subscription_recent,
+            subscription::subscription_mark_seen,
+            subscription::subscription_login,
+            subscription::subscription_logout,
             fidelity_gate::gate_plan,
             fidelity_gate::gate_pins,
             fidelity_gate::gate_image,
