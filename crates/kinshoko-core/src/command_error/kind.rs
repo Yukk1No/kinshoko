@@ -242,8 +242,9 @@ pub enum ErrorKind {
     },
     CaptureUnknown,
     CollectFailed {
-        reason: String,
+        cause: Box<ErrorKind>,
     },
+    CaptureNotAccepted,
     CaptureIo {
         detail: String,
     },
@@ -464,6 +465,41 @@ pub enum ErrorKind {
         number: usize,
         cause: Box<ErrorKind>,
     },
+
+    // 导入一项没有成功的原因。
+    ImportWriteFailed {
+        cause: Box<ErrorKind>,
+    },
+    ImportTargetUnavailable {
+        cause: Box<ErrorKind>,
+    },
+    ImportItemCrashed,
+    ImportCancelled,
+    ImportUndecodable {
+        detail: String,
+    },
+    StagedFileMismatch,
+    OriginalContentMismatch,
+    OriginalChangedDuringImport,
+    PackageShaMismatch,
+    DeletionMemoryUnreadable {
+        detail: String,
+    },
+    EagleMetadataInvalid {
+        detail: String,
+    },
+    EagleRelocationUnconfirmed,
+    EagleFoldersInvalid,
+    EagleItemPathInvalid,
+    EagleItemFieldInvalid {
+        field: String,
+    },
+    EagleItemIdMismatch,
+    EagleItemSizeOrTags,
+    EagleItemUnknownFolder {
+        folder: String,
+    },
+    EagleItemSizeMismatch,
 
     /// 还原度门槛实验（开发用）不认识的取图方式。
     UnknownFidelitySample {

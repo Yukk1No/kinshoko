@@ -226,7 +226,7 @@ describe("导入对话框与右下角卡片（#98）", () => {
     backend();
     const finished = { taskId: "task-1", report: { ...report, items: [
       { path: "a.png", outcome: { kind: "imported", imageId: "a" } }, { path: "b.png", outcome: { kind: "merged", imageId: "b" } },
-      { path: "c.txt", outcome: { kind: "unsupported" } }, { path: "d.png", outcome: { kind: "readFailed", reason: "被占用" } },
+      { path: "c.txt", outcome: { kind: "unsupported" } }, { path: "d.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } },
     ] } } as never;
     render(<ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={finished} onStarted={() => {}} onDismissReport={() => {}} />);
     const card = await screen.findByRole("region", { name: "导入结果" });

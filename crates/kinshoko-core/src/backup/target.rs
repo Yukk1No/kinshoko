@@ -33,8 +33,8 @@ mod restoring;
 
 pub use report::*;
 
-use files::*;
 pub(super) use files::write_synced;
+use files::*;
 use group_captures::ManifestGroup;
 
 const ROOT: &str = "kinshoko-backup";

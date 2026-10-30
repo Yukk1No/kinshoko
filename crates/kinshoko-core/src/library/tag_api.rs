@@ -269,9 +269,7 @@ impl Library {
             });
         }
         match outcome {
-            ImportOutcome::ReadFailed { reason } => Err(Error::PackageImage(Box::new(
-                crate::CommandError::without_code(reason),
-            ))),
+            ImportOutcome::ReadFailed { reason } => Err(Error::PackageImage(Box::new(reason))),
             ImportOutcome::Unsupported => {
                 Err(Error::PackageImage(Box::new(crate::CommandError::new(
                     crate::command_error::ErrorKind::PackageImageUnsupported,

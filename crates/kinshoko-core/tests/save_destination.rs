@@ -115,7 +115,7 @@ fn deleting_the_destination_during_import_reports_remaining_failures_instead_of_
         .unwrap();
     tx.commit().unwrap();
     let report = task.wait();
-    assert!(report.items.iter().any(|item| matches!(&item.outcome, ImportOutcome::ReadFailed {reason} if reason.contains("保存目标不可用") || reason.contains("没有这个文件夹"))));
+    assert!(report.items.iter().any(|item| matches!(&item.outcome, ImportOutcome::ReadFailed {reason} if reason.to_string().contains("保存目标不可用") || reason.to_string().contains("没有这个文件夹"))));
     assert!(
         report
             .items

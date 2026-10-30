@@ -237,7 +237,9 @@ impl From<HistoryError> for ErrorKind {
     fn from(e: HistoryError) -> Self {
         match e {
             HistoryError::Unknown => ErrorKind::CaptureUnknown,
-            HistoryError::Collect(reason) => ErrorKind::CollectFailed { reason },
+            HistoryError::Collect(cause) => ErrorKind::CollectFailed {
+                cause: Box::new(cause.kind),
+            },
             HistoryError::Io(e) => ErrorKind::CaptureIo {
                 detail: e.to_string(),
             },
