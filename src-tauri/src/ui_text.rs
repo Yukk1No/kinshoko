@@ -1,4 +1,4 @@
-//! Rust 侧直接给画师看的文字（#355）：托盘菜单与提示、系统对话框。按当前界面语言取，
+//! Rust 侧直接给画师看的文字（#355）：托盘菜单与提示、系统对话框（含启动失败的说明）。按当前界面语言取，
 //! 界面里的文字在前端的 i18n 资源里。
 
 use kinshoko_core::interface_lang;
@@ -52,6 +52,51 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
         Text::FilterSettingsBackup => pick(en, "程序设置备份", "Settings backup"),
         Text::FilterZip => pick(en, "zip 压缩包", "ZIP archive"),
         Text::DiagnosticsFileName => pick(en, "kinshoko-诊断信息", "kinshoko-diagnostics"),
+    }
+}
+
+fn english() -> bool {
+    interface_lang::current() == interface_lang::EN
+}
+
+/// 启动失败：找不到程序所在的位置。
+pub fn exe_not_found(error: &dyn std::fmt::Display) -> String {
+    if english() {
+        format!("Couldn't find where Kinshoko is installed: {error}")
+    } else {
+        format!("找不到 Kinshoko 程序所在的位置：{error}")
+    }
+}
+
+/// 启动失败：迁移旧数据没能完成。
+pub fn migration_failed(error: &dyn std::fmt::Display) -> String {
+    if english() {
+        format!(
+            "Kinshoko couldn't finish moving its data:\n{error}\n\nRestart Kinshoko and try again."
+        )
+    } else {
+        format!("Kinshoko 迁移数据时出错，没能完成：\n{error}\n\n请重新启动 Kinshoko 再试。")
+    }
+}
+
+/// 启动失败：数据文件夹不可写。
+pub fn data_unwritable(root: &std::path::Path, error: &dyn std::fmt::Display) -> String {
+    if english() {
+        format!(
+            "Kinshoko can't write to its data folder:\n{}\n\nReason: {error}\n\n\
+             Kinshoko keeps settings, tagging models and other data in the data folder next to the program. \
+             Install Kinshoko somewhere the current user can write to (such as the default %LOCALAPPDATA%\\Kinshoko), \
+             or give this folder write permission, then start it again.",
+            root.display()
+        )
+    } else {
+        format!(
+            "Kinshoko 无法写入数据文件夹：\n{}\n\n原因：{error}\n\n\
+             Kinshoko 把设置、打标模型等数据保存在程序所在目录下的 data 文件夹。\
+             请把 Kinshoko 安装到当前用户可以写入的位置（例如默认的 %LOCALAPPDATA%\\Kinshoko），\
+             或者给这个文件夹写入权限后重新启动。",
+            root.display()
+        )
     }
 }
 

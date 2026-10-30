@@ -21,16 +21,15 @@ mod updater;
 use tauri::RunEvent;
 
 pub fn run() {
+    // 启动失败的说明也按界面语言写，所以先定下界面语言。
+    shell::start_interface_language();
     // 数据根目录在建应用之前定下来：各插件的 setup 与第一个窗口都要用（#145）。
     let data = match data_dirs::prepare() {
         Ok(data) => data,
         Err(message) => {
             eprintln!("{message}");
             #[cfg(windows)]
-            desktop::win32::show_error(
-                ui_text::text(ui_text::Text::StartupFailed),
-                &message.to_string(),
-            );
+            desktop::win32::show_error(ui_text::text(ui_text::Text::StartupFailed), &message);
             std::process::exit(1);
         }
     };
