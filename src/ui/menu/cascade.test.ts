@@ -157,6 +157,20 @@ describe("离开即关（按钮打开的菜单）", () => {
     t.wait(MENU_TIMING.closeDelay);
     expect(t.close).not.toHaveBeenCalled();
   });
+  it("用指针点开后，第一次移动就在外面也会关", () => {
+    const t = anchored();
+    t.ctrl.openedFrom(t.ctrl.anchor, true);
+    t.move(600, 600, null);
+    t.wait(MENU_TIMING.closeDelay);
+    expect(t.close).toHaveBeenCalledOnce();
+  });
+  it("用键盘打开时，指针要先进过菜单才会因离开而关", () => {
+    const t = anchored();
+    t.ctrl.openedFrom(t.ctrl.anchor, false);
+    t.move(600, 600, null);
+    t.wait(MENU_TIMING.closeDelay);
+    expect(t.close).not.toHaveBeenCalled();
+  });
   it("没有离开函数（右键菜单）时滑出不关", () => {
     const t = setup();
     t.move(100, 20, t.a);
@@ -181,6 +195,13 @@ describe("键盘与 Base UI 的开合", () => {
     t.ctrl.requestOpen(0, "A", false, "focus-out");
     t.ctrl.requestOpen(0, "A", false, "sibling-open");
     expect(t.state().open[0]).toBe("A");
+  });
+  it("悬停等待中改用键盘打开别的子菜单，悬停到时不再覆盖", () => {
+    const t = setup();
+    t.move(100, 20, t.a);
+    t.ctrl.requestOpen(0, "B", true, "list-navigation");
+    t.wait(MENU_TIMING.openDelay);
+    expect(t.state().open[0]).toBe("B");
   });
   it("收起一层时更深的层一起收起", () => {
     const t = setup();

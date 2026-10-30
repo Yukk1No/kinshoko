@@ -229,7 +229,10 @@ function MenuRoot<Payload>(props: BaseMenu.Root.Props<Payload>) {
   const cascade = useMemo(() => ({ ctrl, depth: 0 }), [ctrl]);
   const { onOpenChange } = props;
   const openChange = useCallback((open: boolean, details: BaseMenu.Root.ChangeEventDetails) => {
-    if (open) ctrl.anchor = (details.event?.target as Element | null)?.closest?.<HTMLElement>("[aria-haspopup]") ?? null;
+    if (open) {
+      const anchor = (details.event?.target as Element | null)?.closest?.<HTMLElement>("[aria-haspopup]") ?? null;
+      ctrl.openedFrom(anchor, details.event instanceof MouseEvent);
+    }
     onOpenChange?.(open, details);
   }, [ctrl, onOpenChange]);
   return <CascadeContext.Provider value={cascade}>

@@ -89,7 +89,8 @@ export class CascadeController {
       this.pointerMove({ x: e.clientX, y: e.clientY }, e.target as Element | null, {
         touch: "pointerType" in e && e.pointerType === "touch", dragging: e.type === "dragover",
       });
-    const key = () => { if (this.state.input !== "keyboard") this.set({ input: "keyboard" }); };
+    // 键盘接手：还在等的悬停不再生效，免得它晚到一步盖掉键盘的选择。
+    const key = () => { this.cancelPending(); if (this.state.input !== "keyboard") this.set({ input: "keyboard" }); };
     const leave = (e: MouseEvent) => { if (!e.relatedTarget) this.pointerLeftWindow(); };
     doc.addEventListener("pointermove", move, true);
     doc.addEventListener("dragover", move, true);
@@ -101,6 +102,12 @@ export class CascadeController {
       doc.removeEventListener("keydown", key, true);
       doc.documentElement.removeEventListener("mouseleave", leave);
     };
+  }
+
+  /** 按钮打开了菜单。用指针点开的，开的那一下就算进过触发按钮，之后第一次移到外面就开始计时关闭。 */
+  openedFrom(anchor: HTMLElement | null, byPointer: boolean) {
+    this.anchor = anchor;
+    this.armed = byPointer;
   }
 
   /** 整个菜单关闭：清掉状态、计时与监听。 */
@@ -120,6 +127,7 @@ export class CascadeController {
   /** Base UI 要开合第 d 层的子菜单 id（键盘、点击、Esc、点在外面）。指针相关的原因不听。 */
   requestOpen(depth: number, id: string, next: boolean, reason: string) {
     if (IGNORED_REASONS.has(reason)) return;
+    this.cancelPending();
     if (reason === "list-navigation" || reason === "escape-key") this.set({ input: "keyboard" });
     if (next) this.openAt(depth, id);
     else if (this.state.open[depth] === id) this.openAt(depth, null);
