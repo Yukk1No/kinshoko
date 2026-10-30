@@ -7,6 +7,7 @@ mod app_shell;
 pub mod application_settings_backup;
 pub mod approx;
 pub mod backup;
+pub mod command_error;
 pub mod data_dirs;
 pub mod desktop;
 mod device;
@@ -35,6 +36,7 @@ pub use device_libraries::{
     DeviceLibraries, DeviceLibraryError, ImportFinishWait, ImportTaskSnapshot, LibraryRegistration,
     OrganizeWaiting, WriterAccess, WriterWaitError, wait_for_writer,
 };
+pub use command_error::CommandError;
 pub use library::Library;
 pub use settings::{
     AppSettings, SettingsError, SettingsSnapshot, ShortcutAction, TagDisplay, TagStyle,
