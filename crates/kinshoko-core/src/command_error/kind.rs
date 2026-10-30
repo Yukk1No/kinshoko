@@ -11,7 +11,11 @@ use crate::shortcuts::HotkeyFailure;
 ///
 /// `detail` 是系统或底层库给出的原文（例如磁盘错误），按原样附在文案后面。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
-#[serde(tag = "code", rename_all = "camelCase")]
+#[serde(
+    tag = "code",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 #[ts(export, rename = "CommandError")]
 pub enum ErrorKind {
     /// 还没有错误代码的错误：`message` 按原样显示。
@@ -212,6 +216,27 @@ pub enum ErrorKind {
     // 设置、快捷键与界面缩放。
     SettingsIo {
         detail: String,
+    },
+    SettingsBackupIncompatible,
+    SettingsBackupNoLocation,
+    SettingsPackageIncompatible,
+    SettingsPackageSharedShortcut,
+    SettingsBackupUnreadable {
+        detail: String,
+    },
+    SettingsBackupInvalid {
+        detail: String,
+    },
+    SettingsBackupExtension,
+    SettingsBackupChanged,
+    SettingsRestoreUnfinished,
+    SettingsRestorePending {
+        cause: Box<ErrorKind>,
+    },
+    SettingsRollbackIncomplete {
+        cause: Box<ErrorKind>,
+        rollback: Box<ErrorKind>,
+        journal_kept: bool,
     },
     ShortcutUsedBy {
         action: ShortcutAction,

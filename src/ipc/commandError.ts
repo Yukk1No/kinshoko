@@ -45,6 +45,11 @@ export function describeCommandError(error: CommandError): string {
       return t("shortcutUsedBy", { action: t(`shortcutAction.${error.action}`) });
     case "captureSourceUnavailable":
       return unavailable(error.reason);
+    case "settingsRollbackIncomplete":
+      return t(error.journalKept ? "settingsRollbackJournalKept" : "settingsRollbackIncomplete", {
+        cause: describeCommandError(error.cause),
+        rollback: describeCommandError(error.rollback),
+      });
     case "shortcutUnavailable":
       return t("shortcutUnavailable", { reason: hotkeyFailureText(error.reason) });
     default: {

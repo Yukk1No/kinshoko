@@ -38,10 +38,11 @@ pub(super) async fn export_application_settings<R: Runtime>(
         with_catalog(&state.search, |catalog| {
             let shell_state = app.state::<ShellState>();
             let shell = lock(&shell_state.0);
-            Ok(
-                ApplicationSettingsBackup::export(&shell.settings, catalog, &path)
-                    .map_err(CommandError::system),
-            )
+            Ok(ApplicationSettingsBackup::export(
+                &shell.settings,
+                catalog,
+                &path,
+            ))
         })?
     })
     .await
@@ -50,7 +51,7 @@ pub(super) async fn export_application_settings<R: Runtime>(
 pub(super) async fn preview_application_settings(
     path: PathBuf,
 ) -> Result<ApplicationSettingsPreview, CommandError> {
-    blocking(move || ApplicationSettingsBackup::inspect(&path).map_err(CommandError::system)).await
+    blocking(move || ApplicationSettingsBackup::inspect(&path)).await
 }
 #[tauri::command]
 pub(super) async fn restore_application_settings<R: Runtime>(
@@ -77,7 +78,7 @@ pub(super) async fn restore_application_settings<R: Runtime>(
                 &fingerprint,
             );
             if let Err(error) = result {
-                return Ok(Err(CommandError::without_code(error)));
+                return Ok(Err(error));
             }
             state.safe_mode.commit(|mode| {
                 *mode = SafeMode::new(shell.settings.safe_mode(), shell.settings.safe_mode_scope())

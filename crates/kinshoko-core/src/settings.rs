@@ -234,9 +234,13 @@ impl SettingsSnapshot {
     pub(crate) fn force_srgb(&self) -> bool {
         self.force_srgb
     }
-    pub(crate) fn validate(&self) -> Result<(), String> {
+    pub(crate) fn validate(&self) -> Result<(), crate::CommandError> {
+        use crate::command_error::ErrorKind;
         if self.version != FORMAT_VERSION {
-            return Err("设置包由不兼容版本创建，请更新 Kinshoko".into());
+            return Err(crate::CommandError::new(
+                ErrorKind::SettingsPackageIncompatible,
+                "设置包由不兼容版本创建，请更新 Kinshoko",
+            ));
         }
         let mut used = std::collections::BTreeSet::new();
         for action in ShortcutAction::ALL {
@@ -246,9 +250,12 @@ impl SettingsSnapshot {
             };
             if let Some(accelerator) = accelerator {
                 let normalized =
-                    crate::shortcuts::normalize(accelerator).map_err(|e| e.to_string())?;
+                    crate::shortcuts::normalize(accelerator).map_err(crate::CommandError::from)?;
                 if !used.insert(normalized) {
-                    return Err("设置包中多个动作使用同一快捷键".into());
+                    return Err(crate::CommandError::new(
+                        ErrorKind::SettingsPackageSharedShortcut,
+                        "设置包中多个动作使用同一快捷键",
+                    ));
                 }
             }
         }

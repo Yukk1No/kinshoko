@@ -107,6 +107,7 @@ from_foreign_error!(
     serde_json::Error,
     image::ImageError,
     zip::result::ZipError,
+    rusqlite::Error,
 );
 
 /// 领域错误连同它的中文说明一起转过来。
