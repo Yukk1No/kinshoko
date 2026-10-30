@@ -19,6 +19,7 @@ import {
   setUpdateChannel,
   setRunLog,
   shellSettings,
+  errorText,
 } from "./ipc";
 import { SharedPersonalApproxSettings } from "./search/SharedPersonalApproxSettings";
 import { LegacyNameBanner } from "./library/LegacyNameMigrationPanel";
@@ -130,7 +131,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<SettingsTab>(initialTab);
   const [tagView, setTagView] = useState<TagView>("names");
-  const diagnostics = useDiagnosticsReport(setError);
+  const diagnostics = useDiagnosticsReport((e) => setError(errorText(e)));
 
   useEffect(() => {
     let alive = true;
@@ -257,14 +258,14 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
               <TagNamePanel key={`names/${settingsGeneration}`} focus={initialTagFocus} />
               <LegacyNameBanner onOpen={onOpenNameWizard} />
             </>}
-            {tagView === "groups" && <SharedTagGroupsSettings key={`groups/${settingsGeneration}`} onError={setError} />}
+            {tagView === "groups" && <SharedTagGroupsSettings key={`groups/${settingsGeneration}`} onError={(e) => setError(errorText(e))} />}
             {tagView === "approx" && <>
               <SettingsGroup label="相近标签">
                 <SettingsRow icon={<Tags size={16} />} title="标出来源" hint="相近标签旁注明内置或个人">
                   <Switch label="标出来源" checked={view.showApproxSource} onCheckedChange={(on) => void apply(setShowApproxSource(on))} />
                 </SettingsRow>
               </SettingsGroup>
-              <SharedPersonalApproxSettings key={`approx/${settingsGeneration}`} onError={setError} />
+              <SharedPersonalApproxSettings key={`approx/${settingsGeneration}`} onError={(e) => setError(errorText(e))} />
             </>}
             {tagView === "mapping" && <TagIdentityPanel key={`identity/${settingsGeneration}`} />}
           </>)}

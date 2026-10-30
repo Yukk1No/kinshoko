@@ -4,7 +4,7 @@ import { Languages } from "lucide-react";
 import type { CatalogTag } from "../bindings/CatalogTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import { editTagName, inspectTagCatalog } from "../ipc";
-import { UI_LANG } from "../search/SearchBox";
+import { useUiLang } from "../i18n";
 import { currentName } from "./catalogName";
 import { useOpenTagNameSettings } from "./TagNameSettings";
 
@@ -26,6 +26,7 @@ type Props = {
  * 侧栏给已有名称的标签改名（#185）可以复用这个弹框，换掉触发按钮即可。
  */
 export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Props) {
+  const lang = useUiLang();
   const openSettings = useOpenTagNameSettings();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -47,11 +48,11 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
     return () => { alive = false; };
   }, [open, catalogId]);
   const text = draft.trim();
-  const duplicate = text !== "" && others.some((entry) => entry.namespace === tag.namespace && currentName(entry, UI_LANG) === text);
+  const duplicate = text !== "" && others.some((entry) => entry.namespace === tag.namespace && currentName(entry, lang) === text);
   const save = () => {
     if (!text || busy) return;
     setBusy(true); setError(null);
-    editTagName(catalogId, { kind: "prefer", name: { lang: UI_LANG, name: text } }).then(
+    editTagName(catalogId, { kind: "prefer", name: { lang, name: text } }).then(
       () => { setBusy(false); setOpen(false); onOpenChange?.(false); onSaved(); },
       (reason) => { setBusy(false); setError(String(reason)); },
     );

@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc/invoke";
 
 /** 每次界面加载最多记这么多条，出错循环时不挤掉别的日志。 */
 const LIMIT = 100;

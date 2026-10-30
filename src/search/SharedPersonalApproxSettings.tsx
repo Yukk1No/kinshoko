@@ -3,40 +3,42 @@ import type { CatalogApproxEdit } from "../bindings/CatalogApproxEdit";
 import type { CatalogApproxView } from "../bindings/CatalogApproxView";
 import { editSharedApprox, isLensChanged, onSafeModeSetting, onWorkspaceChanged, safeMode, sharedPersonalApprox, workspaceStatus } from "../ipc";
 import { libraryPathHint } from "../library/library-path";
-import { TagMarks, tagName, UI_LANG } from "./SearchBox";
+import { TagMarks, tagName } from "./SearchBox";
+import { useUiLang } from "../i18n";
 
 const relationName=(relation:string)=>relation==="similar"?"相近":"不相近";
 /** Same formal settings structure, with stable shared identities and source-aware conflict choices. */
-export function SharedPersonalApproxSettings({onError}:{onError:(message:string)=>void}) {
+export function SharedPersonalApproxSettings({onError}:{onError:(error:unknown)=>void}) {
   const [safe,setSafe]=useState<boolean|null>(null);
   const [generation,setGeneration]=useState(0);
   const [refresh,setRefresh]=useState(0);
   const [found,setFound]=useState<{key:string;view:CatalogApproxView}|null>(null);
   const [pending,setPending]=useState<string|null>(null);
   const mode=useRef(0),revision=useRef<string|null>(null),events=useRef(0);
-  const key=JSON.stringify([safe,generation,refresh]);const current=useRef(key);current.current=key;
+  const lang=useUiLang();
+  const key=JSON.stringify([safe,generation,refresh,lang]);const current=useRef(key);current.current=key;
   const view=found?.key===key?found.view:null;
   useEffect(()=>{
     let alive=true;const initial=mode.current;
     const baseline=async(on:boolean,expected:number)=>{
       const event=events.current;
       try {const status=await workspaceStatus(on);if(alive&&mode.current===expected&&events.current===event)revision.current=status?.revision??null;}
-      catch(error){if(alive&&mode.current===expected&&!isLensChanged(error))onError(String(error));}
+      catch(error){if(alive&&mode.current===expected&&!isLensChanged(error))onError(error);}
     };
-    void safeMode().then(async(on)=>{if(!alive||mode.current!==initial||typeof on!=="boolean")return;await baseline(on,initial);if(alive&&mode.current===initial)setSafe(on);}).catch(error=>{if(alive&&mode.current===initial)onError(String(error));});
+    void safeMode().then(async(on)=>{if(!alive||mode.current!==initial||typeof on!=="boolean")return;await baseline(on,initial);if(alive&&mode.current===initial)setSafe(on);}).catch(error=>{if(alive&&mode.current===initial)onError(error);});
     const stopMode=onSafeModeSetting(on=>{if(!alive)return;mode.current++;setSafe(on);setGeneration(n=>n+1);void baseline(on,mode.current);});
     const stopWorkspace=onWorkspaceChanged(status=>{if(!alive)return;events.current++;if(revision.current===status.revision)return;revision.current=status.revision;setGeneration(n=>n+1);});
     return ()=>{alive=false;for(const stop of [stopMode,stopWorkspace])void stop.then(unlisten=>unlisten()).catch(()=>{});};
   },[onError]);
   useEffect(()=>{
     if(safe===null)return;let alive=true;
-    void sharedPersonalApprox(UI_LANG,safe).then(value=>{if(alive&&current.current===key)setFound({key,view:value??{revision:0,entries:[],conflicts:[]}});},error=>{if(alive&&current.current===key)onError(String(error));});
+    void sharedPersonalApprox(lang,safe).then(value=>{if(alive&&current.current===key)setFound({key,view:value??{revision:0,entries:[],conflicts:[]}});},error=>{if(alive&&current.current===key)onError(error);});
     return ()=>{alive=false;};
-  },[safe,key,onError]);
+  },[safe,key,onError,lang]);
   const edit=async(action:CatalogApproxEdit)=>{
     if(safe===null)return;setPending(key);
     try {await editSharedApprox(action,safe);if(current.current===key)setRefresh(n=>n+1);}
-    catch(error){if(current.current===key)onError(String(error));}
+    catch(error){if(current.current===key)onError(error);}
     finally {setPending(value=>value===key?null:value);}
   };
   const busy=pending===key;

@@ -12,6 +12,8 @@
 //! - 安全模式（#60）：开关保存在应用壳设置里，打开资料库与切换时设给当前资料库。这里的命令都是
 //!   浏览视角；参考视角的句柄在装配（打开资料库）时取走，只交给参考组与桌面钉图，不经命令给前端。
 
+use kinshoko_core::CommandError;
+
 mod approx;
 mod groups;
 mod import_preview;
@@ -51,12 +53,11 @@ use std::sync::{Arc, Mutex, Weak};
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::diagnostics::{LibraryNo, LogEvent};
 use kinshoko_core::library::{
-    BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping,
-    ExternalVocabulary, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportOptions,
-    ImportSource, LibraryEvent, LibraryInfo, MappedExternal, PermanentDeletePreview,
-    PersonalApproxEntry, RecoveryReport, ReferenceLens, SafeMode, SafeModeScope, Sidebar, TagAlias,
-    TagEdit, TagGroupView, TagNamespace, TagTranslations, Vocabulary,
-    discover_eagle_libraries as discover_eagle,
+    EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping, ExternalVocabulary, ImageDetail,
+    ImageEdit, ImageRating, ImageTags, ImportOptions, ImportSource, LibraryEvent, LibraryInfo,
+    MappedExternal, PermanentDeletePreview, PersonalApproxEntry, RecoveryReport, ReferenceLens,
+    SafeMode, SafeModeScope, Sidebar, TagAlias, TagEdit, TagGroupView, TagNamespace,
+    TagTranslations, Vocabulary, discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::library_batch::{
     LibraryBatchFailure, LibraryDeletePreview, LibraryDeleteToken, LibraryTarget, each_library,
@@ -175,11 +176,11 @@ impl LibraryState {
 
     /// 活动资料库，不核对身份。只给不经界面请求的入口用（缩略图协议、安全模式开关）。
     #[track_caller]
-    fn active(&self) -> Result<Arc<Library>, String> {
+    fn active(&self) -> Result<Arc<Library>, CommandError> {
         lock_libraries(self)
             .as_ref()
             .and_then(DeviceLibraries::current)
-            .ok_or_else(|| "还没有打开资料库".to_owned())
+            .ok_or_else(|| CommandError::from("还没有打开资料库"))
     }
 }
 
@@ -188,7 +189,7 @@ impl LibraryState {
 fn with_libraries<T>(
     state: &LibraryState,
     action: impl FnOnce(&mut DeviceLibraries) -> Result<T, DeviceLibraryError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     with_libraries_at(state, Location::caller(), action)
 }
 
@@ -197,28 +198,27 @@ fn with_libraries_at<T>(
     state: &LibraryState,
     site: &'static Location<'static>,
     action: impl FnOnce(&mut DeviceLibraries) -> Result<T, DeviceLibraryError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     let mut libraries = lock_libraries_at(state, site);
     if libraries.is_none() {
-        let mut opened =
-            DeviceLibraries::open(&state.device_dir).map_err(|error| error.to_string())?;
+        let mut opened = DeviceLibraries::open(&state.device_dir).map_err(CommandError::from)?;
         // 刚打开，还没有句柄：只记下范围，不会失败。
         opened
             .set_safe_mode_scope(state.safe_mode.current().scope)
-            .map_err(|error| error.to_string())?;
+            .map_err(CommandError::from)?;
         *libraries = Some(opened);
     }
-    action(libraries.as_mut().expect("登记表已打开")).map_err(|error| error.to_string())
+    action(libraries.as_mut().expect("登记表已打开")).map_err(CommandError::from)
 }
 
 #[track_caller]
 fn with_catalog<T>(
     catalog: &CatalogSearch,
     action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     catalog
         .with_catalog_at(Location::caller(), action)
-        .map_err(|e| e.to_string())
+        .map_err(CommandError::from)
 }
 
 /// 登记表的锁，等锁、持锁久了记进运行日志（#337）。
@@ -292,7 +292,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             register_library,
             switch_library,
             unregister_library,
-            browse,
             image,
             edit,
             preview_permanent_delete,
@@ -405,11 +404,11 @@ fn saved_safe_mode<R: Runtime>(app: &AppHandle<R>) -> bool {
 }
 
 async fn blocking<T: Send + 'static>(
-    f: impl FnOnce() -> Result<T, String> + Send + 'static,
-) -> Result<T, String> {
+    f: impl FnOnce() -> Result<T, CommandError> + Send + 'static,
+) -> Result<T, CommandError> {
     tauri::async_runtime::spawn_blocking(f)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(CommandError::message)?
 }
 
 #[cfg(test)]

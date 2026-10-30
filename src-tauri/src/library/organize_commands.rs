@@ -1,31 +1,18 @@
-//! 浏览、编辑、永久删除与文件夹的命令。
+//! 读详情、编辑、永久删除与文件夹的命令。
 
 use super::*;
-
-#[tauri::command]
-pub(super) async fn browse<R: Runtime>(
-    app: AppHandle<R>,
-    library_id: String,
-    query: BrowseQuery,
-) -> Result<BrowsePage, String> {
-    blocking(move || {
-        readable(&app, &library_id)?
-            .browse(&query)
-            .map_err(|e| e.to_string())
-    })
-    .await
-}
+use kinshoko_core::CommandError;
 
 #[tauri::command]
 pub(super) async fn image<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     image_id: String,
-) -> Result<ImageDetail, String> {
+) -> Result<ImageDetail, CommandError> {
     blocking(move || {
         readable(&app, &library_id)?
             .image(&image_id)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -37,11 +24,11 @@ pub(super) async fn edit<R: Runtime>(
     library_id: String,
     ids: Vec<String>,
     edits: Vec<ImageEdit>,
-) -> Result<Vec<ImageDetail>, String> {
+) -> Result<Vec<ImageDetail>, CommandError> {
     blocking(move || {
         let library = writable(&app, &library_id)?;
         with_visibility_commit(&app, |_| {
-            library.edit(&ids, &edits).map_err(|e| e.to_string())
+            library.edit(&ids, &edits).map_err(CommandError::from)
         })
     })
     .await
@@ -54,14 +41,14 @@ pub(super) async fn preview_permanent_delete<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     ids: Vec<String>,
-) -> Result<PermanentDeletePreview, String> {
+) -> Result<PermanentDeletePreview, CommandError> {
     blocking(move || {
         let library = writable(&app, &library_id)?;
         crate::desktop::with_groups(&app, |groups| {
             library.preview_permanent_delete(&ids, groups)
         })
-        .ok_or_else(|| "参考组还没有准备好".to_owned())?
-        .map_err(|e| e.to_string())
+        .ok_or_else(|| CommandError::from("参考组还没有准备好"))?
+        .map_err(CommandError::from)
     })
     .await
 }
@@ -72,12 +59,12 @@ pub(super) async fn preview_permanent_delete<R: Runtime>(
 pub(super) async fn preview_empty_trash<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
-) -> Result<PermanentDeletePreview, String> {
+) -> Result<PermanentDeletePreview, CommandError> {
     blocking(move || {
         let library = writable(&app, &library_id)?;
         crate::desktop::with_groups(&app, |groups| library.preview_empty_trash(groups))
-            .ok_or_else(|| "参考组还没有准备好".to_owned())?
-            .map_err(|e| e.to_string())
+            .ok_or_else(|| CommandError::from("参考组还没有准备好"))?
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -90,15 +77,15 @@ pub(super) async fn permanent_delete<R: Runtime>(
     library_id: String,
     ids: Vec<String>,
     token: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let library = writable(&app, &library_id)?;
         with_visibility_commit(&app, |_| {
             crate::desktop::with_groups(&app, |groups| {
                 library.permanent_delete(&ids, &token, groups)
             })
-            .ok_or_else(|| "参考组还没有准备好".to_owned())?
-            .map_err(|e| e.to_string())
+            .ok_or_else(|| CommandError::from("参考组还没有准备好"))?
+            .map_err(CommandError::from)
         })?;
         crate::desktop::reference_groups_changed(&app);
         Ok(())
@@ -112,15 +99,15 @@ pub(super) async fn permanent_delete<R: Runtime>(
 pub(super) async fn preview_permanent_delete_batch<R: Runtime>(
     app: AppHandle<R>,
     targets: Vec<LibraryTarget>,
-) -> Result<Vec<LibraryDeletePreview>, String> {
+) -> Result<Vec<LibraryDeletePreview>, CommandError> {
     blocking(move || {
         let previews = each_library(group_by_library(&targets), |batch| {
             let library = writable(&app, &batch.library_id)?;
             crate::desktop::with_groups(&app, |groups| {
                 library.preview_permanent_delete(&batch.image_ids, groups)
             })
-            .ok_or_else(|| "参考组还没有准备好".to_owned())?
-            .map_err(|e| e.to_string())
+            .ok_or_else(|| CommandError::from("参考组还没有准备好"))?
+            .map_err(CommandError::from)
         });
         Ok(previews
             .into_iter()
@@ -147,7 +134,7 @@ pub(super) async fn preview_permanent_delete_batch<R: Runtime>(
 pub(super) async fn permanent_delete_batch<R: Runtime>(
     app: AppHandle<R>,
     groups: Vec<LibraryDeleteToken>,
-) -> Result<Vec<LibraryBatchFailure>, String> {
+) -> Result<Vec<LibraryBatchFailure>, CommandError> {
     blocking(move || {
         let results = each_library(groups, |group| {
             let library = writable(&app, &group.library_id)?;
@@ -155,8 +142,8 @@ pub(super) async fn permanent_delete_batch<R: Runtime>(
                 crate::desktop::with_groups(&app, |usage| {
                     library.permanent_delete(&group.image_ids, &group.token, usage)
                 })
-                .ok_or_else(|| "参考组还没有准备好".to_owned())?
-                .map_err(|e| e.to_string())
+                .ok_or_else(|| CommandError::from("参考组还没有准备好"))?
+                .map_err(CommandError::from)
             })
         });
         if results.iter().any(|(_, result)| result.is_ok()) {
@@ -179,11 +166,11 @@ pub(super) async fn permanent_delete_batch<R: Runtime>(
 pub(super) async fn sidebar<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
-) -> Result<Sidebar, String> {
+) -> Result<Sidebar, CommandError> {
     blocking(move || {
         readable(&app, &library_id)?
             .sidebar()
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -194,11 +181,11 @@ pub(super) async fn create_folder<R: Runtime>(
     library_id: String,
     name: String,
     parent: Option<String>,
-) -> Result<String, String> {
+) -> Result<String, CommandError> {
     blocking(move || {
         writable(&app, &library_id)?
             .create_folder(&name, parent.as_deref())
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -209,11 +196,11 @@ pub(super) async fn rename_folder<R: Runtime>(
     library_id: String,
     folder_id: String,
     name: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         writable(&app, &library_id)?
             .rename_folder(&folder_id, &name)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -224,11 +211,11 @@ pub(super) async fn delete_folder<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     folder_id: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         writable(&app, &library_id)?
             .delete_folder(&folder_id)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -240,11 +227,11 @@ pub(super) async fn move_folder<R: Runtime>(
     folder_id: String,
     parent: Option<String>,
     position: u32,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         writable(&app, &library_id)?
             .move_folder(&folder_id, parent.as_deref(), position)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }

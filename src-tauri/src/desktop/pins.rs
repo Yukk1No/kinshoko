@@ -15,6 +15,7 @@
 //! 拖动和缩放由原生钉图自己的指针输入驱动（笔与鼠标同一套处理；Windows Ink 下没有系统拖动需要的
 //! 鼠标事件，#7）。
 
+use kinshoko_core::CommandError;
 use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::{Condvar, Mutex};
@@ -172,7 +173,7 @@ pub(super) fn open_reference_selection(
     app: &AppHandle,
     mut pin: SavedPin,
     at: ScreenRect,
-) -> Result<String, String> {
+) -> Result<String, CommandError> {
     let (monitor, dpi) = monitor_at(at.x, at.y).unwrap_or((at, 1.0));
     pin.placement.scale = initial_scale(pin.width, pin.height, monitor);
     let (width, height) = pin.window_size();

@@ -305,7 +305,7 @@ impl Worker {
         let result = session.tag(&path);
         let written = match result {
             Ok(raw) => {
-                let s = interpret(spec, &raw);
+                let result = interpret(spec, &raw);
                 // Only publication joins the application's final side-effect boundary.
                 // Inference and model loading above must never hold it.
                 let gate = self.config.publication_gate.clone();
@@ -319,13 +319,7 @@ impl Worker {
                 }
                 self.crashes.remove(id);
                 self.tagged += 1;
-                self.library
-                    .replace_source_tags(source, id, &s.tags)
-                    .and_then(|()| self.library.replace_source_rating(source, id, s.rating))
-                    .and_then(|()| {
-                        self.library
-                            .finish_tagging(source, id, TaggingOutcome::Done)
-                    })
+                self.library.commit_tagging_result(source, id, &result)
             }
             Err(TagFailure::BadImage(reason)) => {
                 self.library

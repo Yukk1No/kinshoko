@@ -8,6 +8,8 @@
 //! - 被封印只有一条判定（#223）：安全模式开启，且有效分级在安全模式范围（[`SafeModeScope`]）内。
 //!   SQL 里用 [`in_scope_sql`]，内存里用 [`SafeMode::seals`]；不允许别处写死“≥ 敏感”。
 //! - 打标进度按模型来源记录：没有记录的图就是待打标的图；无法打标的图记下原因，不再重试。
+//! - 一次成功推理的模型标签、分级建议与完成状态只经 [`commit_tagging_result`] 在同一个事务里
+//!   提交（#318）：要么整份结果连同完成状态都在，要么都不在。
 
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
@@ -15,7 +17,7 @@ use ts_rs::TS;
 
 use super::events::LibraryEvent;
 use super::tags::{self, FactSource};
-use super::{Error, Inner, now_ms};
+use super::{Error, Inner, fault, now_ms};
 
 /// 内容分级，从宽到严排列。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, TS)]
@@ -210,6 +212,15 @@ pub enum TaggingOutcome {
     Failed(String),
 }
 
+/// 模型来源对一张参考图的一次成功推理：标签建议与分级建议，作为一份结果整体提交
+/// （[`Library::commit_tagging_result`](super::Library::commit_tagging_result)）。
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct TaggingResult {
+    pub tags: Vec<tags::SourceTag>,
+    /// 分级建议；`None` 表示这一层没有建议。
+    pub rating: Option<RatingFact>,
+}
+
 /// 参考图有效分级的档位（`general` 0 … `explicit` 3），没有分级时为 NULL。
 /// `image_id` 是引用参考图 id 的 SQL 表达式（例如 `image.id`）。
 ///
@@ -245,30 +256,14 @@ pub(super) fn replace_source_rating(
     image_id: &str,
     fact: Option<RatingFact>,
 ) -> Result<(), Error> {
-    let (source, id) = (source.as_str().to_owned(), image_id.to_owned());
+    let (source, id) = (source.clone(), image_id.to_owned());
     // 按当前的安全模式范围判断是否跨过；范围变化本身另让修订号前进（`Library::set_safe_mode_scope`）。
     let scope = inner.safe().scope;
     let (resealed, revision) = inner.writer.run(move |conn| {
         let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-        require_image(&tx, &id)?;
-        let in_scope = format!("SELECT {}", in_scope_sql("?1", scope));
-        let was_in: bool = tx.query_row(&in_scope, [&id], |r| r.get(0))?;
-        tx.execute(
-            "DELETE FROM rating_fact WHERE image_id = ?1 AND source = ?2",
-            params![id, source],
-        )?;
-        if let Some(f) = fact {
-            tx.execute(
-                "INSERT INTO rating_fact (image_id, source, rating, score) VALUES (?1, ?2, ?3, ?4)",
-                params![id, source, f.rating.as_str(), f.score],
-            )?;
-        }
-        let is_in: bool = tx.query_row(&in_scope, [&id], |r| r.get(0))?;
-        let resealed = was_in != is_in;
+        let resealed = replace_source_rating_in(&tx, scope, &source, &id, fact)?;
         // 跨过安全模式范围：安全模式下可见的词表（标签与计数）变了，修订号随之前进。
         let revision = if resealed {
-            // 安全模式下浏览结果集也变了：旧的分页游标随列表修订号失效（#77 S4）。
-            tx.execute("UPDATE list_revision SET value = value + 1", [])?;
             Some(tags::bump_revision(&tx)?)
         } else {
             None
@@ -290,6 +285,65 @@ pub(super) fn replace_source_rating(
         inner.hub.publish(LibraryEvent::VocabularyChanged {
             library_id: inner.info.id.clone(),
             revision,
+        });
+    }
+    Ok(())
+}
+
+/// 在调用方的事务里替换一个来源的分级建议。返回这张图是否因此跨过安全模式范围 `scope`；
+/// 跨过时列表修订号已前进，词表修订号与事件由调用方负责。
+fn replace_source_rating_in(
+    tx: &rusqlite::Transaction,
+    scope: SafeModeScope,
+    source: &FactSource,
+    id: &str,
+    fact: Option<RatingFact>,
+) -> Result<bool, Error> {
+    require_image(tx, id)?;
+    let in_scope = format!("SELECT {}", in_scope_sql("?1", scope));
+    let was_in: bool = tx.query_row(&in_scope, [id], |r| r.get(0))?;
+    tx.execute(
+        "DELETE FROM rating_fact WHERE image_id = ?1 AND source = ?2",
+        params![id, source.as_str()],
+    )?;
+    if let Some(f) = fact {
+        tx.execute(
+            "INSERT INTO rating_fact (image_id, source, rating, score) VALUES (?1, ?2, ?3, ?4)",
+            params![id, source.as_str(), f.rating.as_str(), f.score],
+        )?;
+    }
+    let is_in: bool = tx.query_row(&in_scope, [id], |r| r.get(0))?;
+    let resealed = was_in != is_in;
+    if resealed {
+        // 安全模式下浏览结果集也变了：旧的分页游标随列表修订号失效（#77 S4）。
+        tx.execute("UPDATE list_revision SET value = value + 1", [])?;
+    }
+    Ok(resealed)
+}
+
+/// 提交模型来源 `source` 对一张图的一次成功推理：模型标签、分级建议与完成状态在同一个短事务里
+/// 写入并让修订号前进，提交后才推送事件。任何一步失败整个事务回滚：不留下半套结果，也不记完成。
+/// 只替换这个来源自己的那一层，人工标签决定、人工分级与其他来源不受影响。
+pub(super) fn commit_tagging_result(
+    inner: &Inner,
+    source: &FactSource,
+    image_id: &str,
+    result: &TaggingResult,
+) -> Result<(), Error> {
+    let (source, id, result) = (source.clone(), image_id.to_owned(), result.clone());
+    let scope = inner.safe().scope;
+    let resealed = tags::write(inner, vec![image_id.to_owned()], move |tx, translations| {
+        tags::replace_source_tags_in(tx, translations, &source, &id, &result.tags)?;
+        fault::storage(fault::TAGGING_AFTER_TAGS)?;
+        let resealed = replace_source_rating_in(tx, scope, &source, &id, result.rating)?;
+        fault::storage(fault::TAGGING_AFTER_RATING)?;
+        record_tagging_in(tx, &source, &id, &TaggingOutcome::Done)?;
+        fault::storage(fault::TAGGING_AFTER_STATE)?;
+        Ok(resealed)
+    })?;
+    if resealed {
+        inner.hub.publish(LibraryEvent::ListStale {
+            library_id: inner.info.id.clone(),
         });
     }
     Ok(())
@@ -385,24 +439,34 @@ pub(super) fn finish_tagging(
     image_id: &str,
     outcome: TaggingOutcome,
 ) -> Result<(), Error> {
-    let (source, id) = (source.as_str().to_owned(), image_id.to_owned());
+    let (source, id) = (source.clone(), image_id.to_owned());
     inner.writer.run(move |conn| {
         let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-        require_image(&tx, &id)?;
-        let (status, reason) = match outcome {
-            TaggingOutcome::Done => ("done", None),
-            TaggingOutcome::Failed(reason) => ("failed", Some(reason)),
-        };
-        tx.execute(
-            "INSERT INTO tagging_state (image_id, source, status, reason, at)
-             VALUES (?1, ?2, ?3, ?4, ?5)
-             ON CONFLICT (image_id, source)
-             DO UPDATE SET status = excluded.status, reason = excluded.reason, at = excluded.at",
-            params![id, source, status, reason, now_ms()],
-        )?;
+        record_tagging_in(&tx, &source, &id, &outcome)?;
         tx.commit()?;
         Ok::<_, Error>(())
     })
+}
+
+fn record_tagging_in(
+    tx: &rusqlite::Transaction,
+    source: &FactSource,
+    id: &str,
+    outcome: &TaggingOutcome,
+) -> Result<(), Error> {
+    require_image(tx, id)?;
+    let (status, reason) = match outcome {
+        TaggingOutcome::Done => ("done", None),
+        TaggingOutcome::Failed(reason) => ("failed", Some(reason.as_str())),
+    };
+    tx.execute(
+        "INSERT INTO tagging_state (image_id, source, status, reason, at)
+         VALUES (?1, ?2, ?3, ?4, ?5)
+         ON CONFLICT (image_id, source)
+         DO UPDATE SET status = excluded.status, reason = excluded.reason, at = excluded.at",
+        params![id, source.as_str(), status, reason, now_ms()],
+    )?;
+    Ok(())
 }
 
 fn require_image(tx: &rusqlite::Transaction, image_id: &str) -> Result<(), Error> {

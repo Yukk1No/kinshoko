@@ -1,16 +1,12 @@
 // 图片墙的分页浏览：从头重新浏览（reload）与读下一页（loadMore）。
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ConditionTree } from "../bindings/ConditionTree";
-import type { BrowsePage } from "../bindings/BrowsePage";
-import type { WorkspacePage } from "../bindings/WorkspacePage";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
-import { browse, workspaceBrowse, isCursorExpired, isLensChanged } from "../ipc";
+import { workspaceBrowse, isCursorExpired, isLensChanged } from "../ipc";
 import { safeTiming } from "../shell/safeTiming";
 import type { Anchor } from "./layout";
-import { thumbnailTier } from "./thumbnailTier";
 import { PAGE, type BrowserCard } from "./wallShared";
 import { startupWallPage } from "../startupGate";
 import { markStartup } from "../startupTiming";
@@ -20,7 +16,7 @@ const KNOWN_MARGIN = 100;
 
 export function useWallPages({
   cards, setCards, cursor, setCursor, setTotal, setError, generation, inflight, view, restoring, anchor, shownCards,
-  measureBeforeReflow, onWorkspaceStatus, releasePage, thumbnailPx, reloadKey, loadMoreRef, workspaceScope, safeMode,
+  measureBeforeReflow, onWorkspaceStatus, releasePage, reloadKey, loadMoreRef, workspaceScope, safeMode,
   pendingRemoval,
 }: {
   cards: BrowserCard[];
@@ -31,17 +27,16 @@ export function useWallPages({
   setError: Dispatch<SetStateAction<string | null>>;
   generation: MutableRefObject<number>;
   inflight: MutableRefObject<number | null>;
-  view: MutableRefObject<{ libraryId: string; scope: BrowseScope; conditions: ConditionTree; workspaceScope: WorkspaceScope | undefined; safeMode: boolean }>;
+  view: MutableRefObject<{ conditions: ConditionTree; workspaceScope: WorkspaceScope; safeMode: boolean }>;
   restoring: MutableRefObject<boolean>;
   anchor: MutableRefObject<Anchor | null>;
   shownCards: MutableRefObject<BrowserCard[]>;
   measureBeforeReflow: (keepSafe?: boolean) => void;
   onWorkspaceStatus: ((status: WorkspaceStatus, cards: BrowserCard[]) => void) | undefined;
   releasePage: MutableRefObject<boolean>;
-  thumbnailPx: number;
   reloadKey: number;
   loadMoreRef: MutableRefObject<() => void>;
-  workspaceScope: WorkspaceScope | undefined;
+  workspaceScope: WorkspaceScope;
   safeMode: boolean;
   /**
    * 先移走、后端还没做完的卡片（#290）。这期间不翻下一页（接着翻会拿旧游标与删前的张数）；
@@ -51,10 +46,9 @@ export function useWallPages({
 }) {
   // Keyed by value: re-selecting the same range creates a new but equal object. Clearing on that
   // identity change emptied the wall without the reload below ever running again (T20 r5/r6).
-  const workspaceKey = workspaceScope ? JSON.stringify(workspaceScope) : null;
+  const workspaceKey = JSON.stringify(workspaceScope);
   const clearedFor = useRef<string | null>(null);
   useLayoutEffect(() => {
-    if (!workspaceKey) { clearedFor.current = null; return; }
     generation.current += 1;
     inflight.current = null;
     // 只是修订号前进（自动打标每写一张图一次，#142）或安全模式切换：保留旧卡片，等新的一页回来原地替换。
@@ -69,11 +63,6 @@ export function useWallPages({
     setTotal(null);
     setCursor(null);
   }, [reloadKey, safeMode, workspaceKey]);
-  // 工作区的卡片不带缩略图地址，图片墙按档位自己拼（#313），换档位不重新浏览。只浏览单个资料库的
-  // 旧路径按档位而不是原始像素决定何时重新浏览（#200）：请求带原始像素，由后端取整。
-  const tier = workspaceScope ? null : thumbnailTier(thumbnailPx);
-  const px = useRef(thumbnailPx);
-  px.current = thumbnailPx;
   const loaded = useRef(0);
   loaded.current = cards.length;
 
@@ -82,7 +71,7 @@ export function useWallPages({
     async (want: number) => {
       const gen = ++generation.current;
       inflight.current = gen;
-      const { libraryId, scope, conditions, workspaceScope, safeMode } = view.current;
+      const { conditions, workspaceScope, safeMode } = view.current;
       const current = () => gen === generation.current;
       if (!safeMode) safeTiming.mark("开始重新浏览");
       // 墙上已有的占位图（#313）：按内容寻址、永远不变。每页请求报上这一段原有卡片里已有的，
@@ -101,14 +90,11 @@ export function useWallPages({
           let acceptedStatus: WorkspaceStatus | null = null;
           try {
             do {
-              const result: { page: BrowsePage | WorkspacePage; status: WorkspaceStatus | null } = workspaceScope
-                ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, knownPlaceholders: knownFrom(next.length) }, safeMode).then(page => ({ page, status: page.status }))
-                : { page: await browse(libraryId, { scope, conditions, cursor: after, limit: PAGE, thumbnailPx: px.current }), status: null };
-              const page = result.page;
+              const page = await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, knownPlaceholders: knownFrom(next.length) }, safeMode);
               if (!current()) return;
               markStartup("wallFirstPage");
               startupWallPage(page.cards.length);
-              acceptedStatus = result.status;
+              acceptedStatus = page.status;
               for (const card of page.cards) {
                 const kept = card.placeholder ? undefined : held.get(card.id);
                 next.push(kept ? { ...card, placeholder: kept } : card);
@@ -134,6 +120,7 @@ export function useWallPages({
           const unchanged = prev.length === next.length
             && prev.every((c, i) => c.id === next[i].id && c.width === next[i].width && c.height === next[i].height);
           if (!unchanged) measureBeforeReflow();
+          // 顺序契约（#324）：先报这一页带回的状态，再交出卡片。状态若要求修剪选择，修剪就落在这一页上。
           if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus, next);
           if (!safeMode) { safeTiming.mark("卡片送回"); releasePage.current = true; }
           setCards(next);
@@ -150,23 +137,20 @@ export function useWallPages({
         if (inflight.current === gen) inflight.current = null;
       }
     },
-    [tier, measureBeforeReflow, onWorkspaceStatus],
+    [measureBeforeReflow, onWorkspaceStatus],
   );
 
   const loadMore = useCallback(async () => {
     if (inflight.current !== null || !cursor || pendingRemoval.current.size) return;
     const gen = generation.current;
     inflight.current = gen;
-    const { libraryId, scope, conditions, workspaceScope, safeMode } = view.current;
+    const { conditions, workspaceScope, safeMode } = view.current;
     let expired = false;
     try {
-      const result: { page: BrowsePage | WorkspacePage; status: WorkspaceStatus | null } = workspaceScope
-        ? await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, knownPlaceholders: [] }, safeMode).then(page => ({ page, status: page.status }))
-        : { page: await browse(libraryId, { scope, conditions, cursor, limit: PAGE, thumbnailPx: px.current }), status: null };
-      const page = result.page;
+      const page = await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, knownPlaceholders: [] }, safeMode);
       if (gen !== generation.current) return;
       const next = [...cards, ...page.cards];
-      if (result.status) onWorkspaceStatus?.(result.status, next);
+      onWorkspaceStatus?.(page.status, next);
       // 瀑布流追加时已有卡片的位置不变，不必量旧位置、起重排动画（#109）。
       setCards(next);
       setCursor(page.nextCursor);

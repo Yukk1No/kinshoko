@@ -6,7 +6,7 @@ import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { referenceCard } from "../desktop/openInKinshoko";
-import { isCursorExpired } from "../ipc";
+import { errorText, isCursorExpired } from "../ipc";
 import { ImportMenu, type ImportControl } from "../library/ImportMenu";
 import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
@@ -22,6 +22,7 @@ import { useWallActions } from "../wall/useWallActions";
 import { Viewer } from "../viewer/Viewer";
 import { TagGroupsDialog } from "./TagGroupsDialog";
 import { useImportTasks } from "./useImportTasks";
+import { useInvalidation } from "./useInvalidation";
 import { useLibraryEvents } from "./useLibraryEvents";
 import { useSearchTree } from "./useSearchTree";
 import { useViewerStep } from "./useViewerStep";
@@ -102,11 +103,6 @@ export function LibraryWorkspace({
   /** 图片墙上 Ctrl+滚轮缩放中的预览值（#111），滑条跟着走。 */
   const [zoomPreview, setZoomPreview] = useState<number | null>(null);
   const [resultCount, setResultCount] = useState<number | null>(null);
-  /**
-   * 修订变化后的选择修剪：等图片墙读完新的结果，然后只保留仍在的图。范围或安全模式变了时图片墙先清空（loading
-   * 等它读完）；只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
-   */
-  const prune = useRef<"idle" | "reset" | "loading">("idle");
   const wall = useRef<WallHandle>(null);
   const { imports, running, setRunning, report, setReport, started } = useImportTasks();
   const scope: BrowseScope = workspaceScope.kind === "library" ? workspaceScope.scope : { kind: "all" };
@@ -136,34 +132,27 @@ export function LibraryWorkspace({
    * 删除、新增了叫法，或在安全模式下被封印）。与后端 Search 缓存的修订号和安全模式对应。
    */
   const [vocabularyKey, setVocabularyKey] = useState(0);
+  const { invalidate, observations } = useInvalidation({
+    wall, loadedCards, setViewing, setSelected, setSources, setReloadKey, setVocabularyKey,
+  });
   /**
    * 工作区读取期间修订变了（CursorExpired）：那次读到的结果已经过时，不是要用户处理的问题。
    * 像收到变更通知一样按新修订重读；变更停下后读取成功，不留下常驻横幅（#98）。
    * 同修订的变更通知会被略过，所以不能只等通知来补读。
    */
-  const onError = useCallback((message: string) => {
+  const onError = useCallback((error: unknown) => {
     // 真实错误进轻提示（#98），一直留到画师按“知道了”；没有提示容器时退回就地横幅。
-    if (!isCursorExpired(message)) { if (toast) toast.error(message); else setProblem(message); return; }
-    setReloadKey((k) => k + 1);
-    setVocabularyKey((k) => k + 1);
-  }, [toast]);
+    if (!isCursorExpired(error)) { const message = errorText(error); if (toast) toast.error(message); else setProblem(message); return; }
+    invalidate({ kind: "cursorExpired" });
+  }, [toast, invalidate]);
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
   const viewerOpen = viewing !== null;
-  useEffect(() => {
-    if (prune.current === "reset" && resultCount === null) { prune.current = "loading"; return; }
-    if (prune.current === "idle" || resultCount === null) return;
-    prune.current = "idle";
-    const present = new Set(loadedCards.map((card) => card.id));
-    setSelected((previous) => {
-      const kept = [...previous].filter((id) => present.has(id));
-      return kept.length === previous.size ? previous : new Set(kept);
-    });
-  }, [loadedCards, resultCount]);
+  // 修订变化后的选择修剪：等图片墙读完新的结果，然后只保留仍在的图。范围或安全模式变了时图片墙先清空（等它读完）；
+  // 只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
+  useEffect(() => { invalidate({ kind: "pageAccepted", ready: resultCount !== null }); }, [loadedCards, resultCount]);
   const { viewingIndex, step } = useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall });
-  const { status, statusObservations, onWallStatus, recheck } = useWorkspaceStatus({
-    safe, onError, wall, prune, setViewing, setReloadKey, setVocabularyKey,
-  });
+  const { status, onWallStatus, recheck } = useWorkspaceStatus({ safe, onError, invalidate, observations });
 
   // 视角一变就在这次渲染里推进重读序号（#183）：图片墙的重新浏览与视角变化在同一次提交里、
   // 先于这里的状态与侧栏刷新发出。后端让这些查询排队用同一组资源，浏览排在后面要多等上百毫秒。
@@ -175,23 +164,14 @@ export function LibraryWorkspace({
   }
   useEffect(() => {
     // 用户偏好：默认切换即清空；保留时由重读后的修剪去掉新视角里看不到的图。
-    if (!keepSelectionOnSafeRef.current) {
-      setSources(null);
-      setSelected(new Set());
-    }
-    prune.current = "reset";
-    setViewing(null);
-    setVocabularyKey((k) => k + 1);
+    invalidate({ kind: "lensChanged", keepSelection: keepSelectionOnSafeRef.current });
   }, [safe]);
   useEffect(() => {
     imports.current.running = null;
-    setRunning(null); setReport(null); setSelected(new Set()); setViewing(null); setSources(null);
-    setReloadKey((k) => k + 1);
+    setRunning(null); setReport(null);
+    invalidate({ kind: "activeLibraryChanged" });
   }, [libraryId]);
-  useLibraryEvents({
-    libraryId, toast, imports, statusObservations, wall, prune, safeChanged, keepSelectionOnSafeRef,
-    setReloadKey, setVocabularyKey, setSelected, setViewing, setRunning, setReport,
-  });
+  useLibraryEvents({ libraryId, toast, imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport });
 
   const { search, setSearch, tree, treeSafe, searching } = useSearchTree({ libraryId, safe, vocabularyKey, onError, setReloadKey });
 
@@ -211,7 +191,7 @@ export function LibraryWorkspace({
     onOpen: (card) => { setViewCrop(false); setViewing(card); },
     onCrop: (card) => { setViewCrop(true); setViewing(card); },
     onInspect: (card) => setSources(card as WorkspaceCard),
-    onChanged: () => { setReloadKey((k) => k + 1); setVocabularyKey((k) => k + 1); },
+    onChanged: () => invalidate({ kind: "contentEdited" }),
     removeCards: (cards) => {
       const putBack = wall.current?.remove(cards.map((card) => card.id));
       return (failed) => putBack?.(failed.map((card) => card.id));
@@ -234,7 +214,7 @@ export function LibraryWorkspace({
           onLibraryRemoved={onLibraryRemoved} libraryId={libraryId} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
           onScope={(next) => {
             // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
-            setWorkspaceScope(next); setSelected(new Set()); setSources(null); setViewing(null);
+            setWorkspaceScope(next); invalidate({ kind: "scopeChanged" });
             if (panes.floating) onPaneOpen(false);
           }} />
         <main className="app-main main">
@@ -251,8 +231,7 @@ export function LibraryWorkspace({
             onError={onError}
             onChange={(next) => {
               setSearch(next);
-              setSelected(new Set());
-              setViewing(null);
+              invalidate({ kind: "conditionsChanged" });
             }}
           />
           <div className="bar-meta">
@@ -264,15 +243,15 @@ export function LibraryWorkspace({
               onOpenBrowse();
               setSearch({ conditions: [], exact: false });
               setWorkspaceScope({ kind: "library", libraryId:owner, scope: { kind: "trash" } });
-              setSelected(new Set());
-              setViewing(null);
+              // 来源面板保持现状（与换左栏范围不同）。
+              invalidate({ kind: "conditionsChanged" });
             }} />
           {!inspectorOpen && <WinCtrls />}
           </header>
           {notices}
           <div className="app-tagbar">
           <TagGroupBar workspace libraryId="workspace" safe={safe} generation={vocabularyKey} input={search}
-            onChange={(next) => { setSearch(next); setSelected(new Set()); setViewing(null); }} onError={onError} onEdit={() => setEditingGroups(true)} />
+            onChange={(next) => { setSearch(next); invalidate({ kind: "conditionsChanged" }); }} onError={onError} onEdit={() => setEditingGroups(true)} />
           </div>
           <TagGroupsDialog open={editingGroups} onOpenChange={setEditingGroups} safe={safe} generation={vocabularyKey}
             onBrowse={(globalIds) => {
@@ -280,8 +259,7 @@ export function LibraryWorkspace({
                 ...prev,
                 conditions: [{ any: globalIds.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }],
               }));
-              setSelected(new Set());
-              setViewing(null);
+              invalidate({ kind: "conditionsChanged" });
               setEditingGroups(false);
             }}
             onError={onError} />
@@ -302,7 +280,6 @@ export function LibraryWorkspace({
             onDensityCommit={(value) => { setZoomPreview(null); setDensity(value); }}
             onTotalChange={setResultCount}
             key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
-            libraryId={libraryId || "workspace"}
             workspaceScope={workspaceScope}
             onInspectSources={(card) => { setSources(card); }}
             onCardsChange={setLoadedCards}
@@ -354,7 +331,7 @@ export function LibraryWorkspace({
         {inspectorContent && !hidden && (
           <WorkspaceInspector inspector={inspector} status={status} safe={safe} reloadKey={reloadKey} vocabularyKey={vocabularyKey}
             libraryId={libraryId} scope={scope} sources={sources} setSources={setSources} setSelected={setSelected} setViewing={setViewing}
-            setReloadKey={setReloadKey} setVocabularyKey={setVocabularyKey} onError={onError} onInspectorWidth={onInspectorWidth} />
+            onEdited={() => invalidate({ kind: "contentEdited" })} onError={onError} onInspectorWidth={onInspectorWidth} />
         )}
       </div>
     </div>

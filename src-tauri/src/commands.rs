@@ -2,6 +2,7 @@
 //!
 //! 会调用窗口或系统 API 的命令写成 `async`，不在主线程上运行（见 `shell` 的线程规则）。
 
+use kinshoko_core::CommandError;
 use kinshoko_core::{AppInfo, ShellSettingsView, ShortcutAction};
 use tauri::{AppHandle, State};
 
@@ -13,8 +14,10 @@ pub fn app_info() -> AppInfo {
 }
 
 #[tauri::command]
-pub async fn shell_settings(state: State<'_, ShellState>) -> Result<ShellSettingsView, String> {
-    Ok(state.0.lock().map_err(|e| e.to_string())?.view())
+pub async fn shell_settings(
+    state: State<'_, ShellState>,
+) -> Result<ShellSettingsView, CommandError> {
+    Ok(state.0.lock().map_err(CommandError::message)?.view())
 }
 
 /// 开关开机自启：先改系统，成功后再保存设置。
@@ -23,12 +26,13 @@ pub async fn set_autostart(
     app: AppHandle,
     state: State<'_, ShellState>,
     on: bool,
-) -> Result<ShellSettingsView, String> {
-    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
-    shell::apply_autostart(&app, on).map_err(|e| format!("无法更改开机自启：{e}"))?;
+) -> Result<ShellSettingsView, CommandError> {
+    let mut shell = state.0.lock().map_err(CommandError::message)?;
+    shell::apply_autostart(&app, on)
+        .map_err(|e| CommandError::message(format!("无法更改开机自启：{e}")))?;
     if let Err(e) = shell.settings.set_autostart(on) {
         let _ = shell::apply_autostart(&app, !on);
-        return Err(e.to_string());
+        return Err(e.to_string().into());
     }
     Ok(shell.view())
 }
@@ -38,12 +42,12 @@ pub async fn set_autostart(
 pub async fn set_show_approx_source(
     state: State<'_, ShellState>,
     on: bool,
-) -> Result<ShellSettingsView, String> {
-    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+) -> Result<ShellSettingsView, CommandError> {
+    let mut shell = state.0.lock().map_err(CommandError::message)?;
     shell
         .settings
         .set_show_approx_source(on)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     Ok(shell.view())
 }
 
@@ -52,12 +56,12 @@ pub async fn set_show_approx_source(
 pub async fn set_tag_display(
     state: State<'_, ShellState>,
     display: kinshoko_core::TagDisplay,
-) -> Result<ShellSettingsView, String> {
-    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+) -> Result<ShellSettingsView, CommandError> {
+    let mut shell = state.0.lock().map_err(CommandError::message)?;
     shell
         .settings
         .set_tag_display(display)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     Ok(shell.view())
 }
 
@@ -66,12 +70,12 @@ pub async fn set_tag_display(
 pub async fn set_keep_selection_on_safe_mode(
     state: State<'_, ShellState>,
     on: bool,
-) -> Result<ShellSettingsView, String> {
-    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+) -> Result<ShellSettingsView, CommandError> {
+    let mut shell = state.0.lock().map_err(CommandError::message)?;
     shell
         .settings
         .set_keep_selection_on_safe_mode(on)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     Ok(shell.view())
 }
 
@@ -81,13 +85,13 @@ pub async fn set_pin_edge_contrast(
     app: AppHandle,
     state: State<'_, ShellState>,
     on: bool,
-) -> Result<ShellSettingsView, String> {
+) -> Result<ShellSettingsView, CommandError> {
     let view = {
-        let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+        let mut shell = state.0.lock().map_err(CommandError::message)?;
         shell
             .settings
             .set_pin_edge_contrast(on)
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         shell.view()
     };
     crate::desktop::pin_edge_contrast_changed(&app);
@@ -99,12 +103,12 @@ pub async fn set_pin_edge_contrast(
 pub async fn set_force_srgb(
     state: State<'_, ShellState>,
     on: bool,
-) -> Result<ShellSettingsView, String> {
-    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+) -> Result<ShellSettingsView, CommandError> {
+    let mut shell = state.0.lock().map_err(CommandError::message)?;
     shell
         .settings
         .set_force_srgb(on)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     Ok(shell.view())
 }
 
@@ -114,13 +118,13 @@ pub async fn rebind_shortcut(
     state: State<'_, ShellState>,
     action: ShortcutAction,
     accelerator: Option<String>,
-) -> Result<ShellSettingsView, String> {
-    let mut guard = state.0.lock().map_err(|e| e.to_string())?;
+) -> Result<ShellSettingsView, CommandError> {
+    let mut guard = state.0.lock().map_err(CommandError::message)?;
     let shell = &mut *guard;
     shell
         .shortcuts
         .rebind(&mut shell.settings, action, accelerator.as_deref())
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     Ok(shell.view())
 }
 
@@ -128,12 +132,12 @@ pub async fn rebind_shortcut(
 pub async fn set_viewer_background(
     state: State<'_, ShellState>,
     background: kinshoko_core::ViewerBackground,
-) -> Result<ShellSettingsView, String> {
-    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+) -> Result<ShellSettingsView, CommandError> {
+    let mut shell = state.0.lock().map_err(CommandError::message)?;
     shell
         .settings
         .set_viewer_background(background)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     Ok(shell.view())
 }
 /// 保存主窗口详情面板的宽度（#157），超出 280–560 时停在边界上。
@@ -141,24 +145,24 @@ pub async fn set_viewer_background(
 pub async fn set_inspector_width(
     state: State<'_, ShellState>,
     width: u32,
-) -> Result<ShellSettingsView, String> {
-    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+) -> Result<ShellSettingsView, CommandError> {
+    let mut shell = state.0.lock().map_err(CommandError::message)?;
     shell
         .settings
         .set_inspector_width(width)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     Ok(shell.view())
 }
 #[tauri::command]
 pub async fn migrate_viewer_background(
     state: State<'_, ShellState>,
     background: kinshoko_core::ViewerBackground,
-) -> Result<ShellSettingsView, String> {
-    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
+) -> Result<ShellSettingsView, CommandError> {
+    let mut shell = state.0.lock().map_err(CommandError::message)?;
     shell
         .settings
         .migrate_viewer_background(background)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     Ok(shell.view())
 }
 
@@ -190,10 +194,25 @@ pub async fn double_click() -> Option<DoubleClick> {
     }
 }
 
+/// 当前界面语言（#354）。
+#[tauri::command]
+pub fn interface_language() -> &'static str {
+    kinshoko_core::interface_lang::current()
+}
+
+/// 换界面语言：主窗口、钉图菜单与截图窗口随即更新，不需要重启。设置里的选项随 #358 上线。
+#[tauri::command]
+pub fn set_interface_language(app: AppHandle, lang: String) -> Result<&'static str, CommandError> {
+    let lang = kinshoko_core::interface_lang::set(&lang)
+        .ok_or_else(|| format!("没有这种界面语言：{lang}"))?;
+    shell::announce_interface_language(&app, lang);
+    Ok(lang)
+}
+
 /// 本机的界面缩放档位（百分比）。
 #[tauri::command]
-pub async fn ui_scale(state: State<'_, UiScaleState>) -> Result<u16, String> {
-    Ok(state.0.lock().map_err(|e| e.to_string())?.percent())
+pub async fn ui_scale(state: State<'_, UiScaleState>) -> Result<u16, CommandError> {
+    Ok(state.0.lock().map_err(CommandError::message)?.percent())
 }
 
 /// 换一档界面缩放：保存后立即缩放主窗口，不需要重启。
@@ -202,10 +221,10 @@ pub async fn set_ui_scale(
     app: AppHandle,
     state: State<'_, UiScaleState>,
     percent: u16,
-) -> Result<u16, String> {
+) -> Result<u16, CommandError> {
     let factor = {
-        let mut scale = state.0.lock().map_err(|e| e.to_string())?;
-        scale.set(percent).map_err(|e| e.to_string())?;
+        let mut scale = state.0.lock().map_err(CommandError::message)?;
+        scale.set(percent).map_err(CommandError::from)?;
         scale.factor()
     };
     shell::apply_ui_scale(&app, factor);

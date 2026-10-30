@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { useState } from "react";
 import { Wall } from "./Wall";
+import { workspacePage } from "../test/workspacePage";
 
 // 卡片的鼠标与键盘交互（#146）：单击选中，双击或 Enter 打开查看器。
 beforeEach(() => {
@@ -12,8 +13,8 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   mockConvertFileSrc("windows");
   mockIPC((cmd) => {
-    if (cmd !== "plugin:library|browse") throw new Error(cmd);
-    return { cards: Array.from({ length: 6 }, (_, i) => ({ id: String(i), width: 100, height: 100, thumbnail: `L1/${i}/256`, adult: false })), total: 6, nextCursor: null };
+    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
+    return workspacePage(Array.from({ length: 6 }, (_, i) => ({ id: String(i), width: 100, height: 100 })));
   });
 });
 afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
@@ -23,7 +24,7 @@ function Harness({ initial = [], onSelection, onOpen, onAside }: {
 }) {
   const [selected, setSelected] = useState(new Set(initial));
   return <>
-    <Wall libraryId="L1" scope={{ kind: "all" }} reloadKey={0} selected={selected}
+    <Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={selected}
       onSelectionChange={(next) => { onSelection?.([...next]); setSelected(next); }}
       onOpenImage={(card) => onOpen?.(card.id)} viewerOpen={false} />
     {/* 正在展开的详情侧栏：第二下可能落在这里。 */}
@@ -186,8 +187,8 @@ it("Ctrl 单击切换多选，Shift 单击选到范围，都不打开查看器",
 
 it("安全模式下单击被遮蔽的卡片：只选中，不揭开遮蔽，不打开查看器", async () => {
   mockIPC((cmd) => {
-    if (cmd !== "plugin:library|browse") throw new Error(cmd);
-    return { cards: [{ id: "x", width: 100, height: 100, thumbnail: "L1/x/256", adult: true }], total: 1, nextCursor: null };
+    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
+    return workspacePage([{ id: "x", width: 100, height: 100, adult: true }]);
   });
   const onSelection = vi.fn();
   const onOpen = vi.fn();

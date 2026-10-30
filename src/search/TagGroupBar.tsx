@@ -5,7 +5,8 @@ import { PenLine } from "lucide-react";
 import type { TagGroupView } from "../bindings/TagGroupView";
 import type { SearchInput } from "../bindings/SearchInput";
 import { isLensChanged, tagGroups, workspaceTagGroups } from "../ipc";
-import { TagMarks, UI_LANG, tagName } from "./SearchBox";
+import { TagMarks, tagName } from "./SearchBox";
+import { useUiLang } from "../i18n";
 
 type Props = {
   workspace?: boolean;
@@ -14,26 +15,27 @@ type Props = {
   generation: number;
   input: SearchInput;
   onChange: (input: SearchInput) => void;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   /** 标签栏右侧的“编辑分组”（#98）：打开分组编辑器。 */
   onEdit?: () => void;
 };
 
 export function TagGroupBar(p: Props) {
   const [found, setFound] = useState<{ key: string; groups: TagGroupView[] }>({ key: "", groups: [] });
-  const key = JSON.stringify([p.libraryId, p.safe, p.generation, p.workspace]);
+  const lang = useUiLang();
+  const key = JSON.stringify([p.libraryId, p.safe, p.generation, p.workspace, lang]);
   const current = useRef(key); current.current = key;
   const groups = found.key === key ? found.groups : [];
   const [open, setOpen] = useState<string | null>(null);
   const bar = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let alive = true;
-    (p.workspace ? workspaceTagGroups(p.libraryId, UI_LANG, p.safe) : tagGroups(p.libraryId, UI_LANG)).then(
+    (p.workspace ? workspaceTagGroups(p.libraryId, lang, p.safe) : tagGroups(p.libraryId, lang)).then(
       (next) => { if (alive && current.current === key) setFound({ key, groups: next ?? [] }); },
-      (error) => { if (alive && current.current === key && !isLensChanged(error)) p.onError(String(error)); },
+      (error) => { if (alive && current.current === key && !isLensChanged(error)) p.onError(error); },
     );
     return () => { alive = false; };
-  }, [key, p.libraryId, p.safe, p.onError, p.workspace]);
+  }, [key, p.libraryId, p.safe, p.onError, p.workspace, lang]);
   useEffect(() => {
     if (!open) return;
     const close = (e: PointerEvent) => { if (!bar.current?.contains(e.target as Node)) setOpen(null); };

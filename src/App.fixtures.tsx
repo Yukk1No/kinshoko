@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { SearchBox, UI_LANG } from "./search/SearchBox";
+import { SearchBox } from "./search/SearchBox";
+import { useUiLang } from "./i18n";
 import { onLibraryEvent, resolveSearch, setSafeMode } from "./ipc";
 import { workspaceFixture } from "./test/workspace-fixture";
 import { afterEach, beforeEach, expect, vi } from "vitest";
@@ -197,7 +198,7 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
           return side;
         case "plugin:library|image": {
           const { imageId } = args as { imageId: string };
-          if (gone.has(imageId)) return Promise.reject("资料库中没有这张参考图");
+          if (gone.has(imageId)) return Promise.reject({ code: "unknownImage" });
           return detail(imageId, null);
         }
         case "plugin:library|edit": {
@@ -227,6 +228,7 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
 
 /** Existing library-local approximation controls remain separate until global rules (T06) land. */
 export function LocalSearchFixture() {
+  const lang = useUiLang();
   const [input, setInput] = useState<SearchInput>({ conditions: [], exact: false });
   const [tree, setTree] = useState<ConditionTree | null>(null);
   const [safe, setSafe] = useState(safeOn);
@@ -250,9 +252,9 @@ export function LocalSearchFixture() {
   }, []);
   useEffect(() => {
     let alive = true;
-    resolveSearch(library.id, input, UI_LANG, safe).then((tree) => alive && setTree(tree), () => {});
+    resolveSearch(library.id, input, lang, safe).then((tree) => alive && setTree(tree), () => {});
     return () => { alive = false; };
-  }, [input, safe, generation]);
+  }, [input, safe, generation, lang]);
   return <>
     <button type="button" aria-label={`安全模式：${safe ? "开启" : "关闭"}`} aria-pressed={safe}
       onClick={() => { setSafe(!safe); void setSafeMode(!safe); }}>安全模式</button>

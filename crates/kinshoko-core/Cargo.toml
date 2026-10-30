@@ -68,6 +68,10 @@ name = "portable_tags"
 path = "tests/portable_tags.rs"
 
 [[test]]
+name = "tagging_commit"
+path = "tests/tagging_commit.rs"
+
+[[test]]
 name = "tagger_process"
 path = "tests/tagger_process.rs"
 

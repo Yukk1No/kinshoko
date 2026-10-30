@@ -15,7 +15,7 @@ const card: WorkspaceCard = { id: "bytes", width: 120, height: 90, adult: false,
   ] };
 const page = (cards: WorkspaceCard[]): WorkspacePage => ({ cards, total: cards.length, nextCursor: null,
   status: { revision: "r", libraries: [] } });
-const base = { libraryId: "active-write-target", scope: { kind: "all" as const }, selected: new Set<string>(),
+const base = { scope: { kind: "all" as const }, selected: new Set<string>(),
   onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false };
 const settle = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
 beforeEach(() => {
