@@ -43,7 +43,7 @@
 .workspace-provider { min-width: 0; }
 .lib-head { display: flex; align-items: center; gap: 2px; height: 30px; margin-top: 12px; padding: 0; }
 .workspace-provider-root { display: flex; grid-template-columns: none; margin-top: 10px; }
-.workspace-expand { width: 18px; height: 22px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--ink-3); min-height: 0; }
+.workspace-expand { width: 18px; height: 22px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-xs); background: transparent; color: var(--ink-3); min-height: 0; }
 .workspace-expand:hover { background: var(--hover); color: var(--ink); }
 /* the library name lines up with the row text below it: both sit 8 px in from the band */
 .lib-head-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: 0; border-radius: var(--r-xs); background: transparent;
@@ -73,7 +73,7 @@
 .topbar { height: 56px; min-height: 56px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px; background: var(--bg); border-bottom: 0; z-index: 5; }
 .topbar.is-empty { justify-content: flex-end; }
 .topbar > .search { flex: 1; min-width: 0; max-width: 960px; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; height: 40px; padding: 0 4px 0 12px;
-  border-radius: var(--r-m); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); border: 0; overflow: visible; }
+  border-radius: var(--r); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); border: 0; overflow: visible; }
 .topbar > .search:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
 .topbar > .search .search-chip { height: 28px; padding: 0 4px 0 8px; border: 0; border-radius: var(--r-s); background: var(--surface-2); font-weight: 500; }
 .topbar > .search .search-chip[data-negate] { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); text-decoration: line-through; }
@@ -187,17 +187,17 @@
 .selbar-float { position: absolute; left: 0; bottom: 20px; z-index: 6; }
 /* 图片墙很窄时（selectionBarCompact）：读数只写“N 张”，让出宽度。 */
 .selbar-float .k-dock.is-compact .k-dock-readout { min-width: 0; padding: 0 8px 0 4px; margin-right: 4px; }
-.selbar { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: var(--r-xl); background: var(--ink); color: var(--bg);
+.selbar { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 8px; border-radius: var(--r-xl); background: var(--ink); color: var(--bg);
   box-shadow: var(--shadow-pop); white-space: nowrap; }
 .selbar .selection-count { padding: 0 10px 0 8px; font-weight: 600; }
-.selbar-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: var(--r-m); background: transparent; color: var(--bg); }
+.selbar-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: var(--r); background: transparent; color: var(--bg); }
 .selbar-btn:hover:not(:disabled), .selbar-btn[data-popup-open] { background: color-mix(in srgb, var(--bg) 10%, transparent); }
 .selbar-btn:disabled { opacity: 0.5; }
 .selbar-btn.is-danger { color: var(--inverse-danger); }
 .selbar-btn.is-icon { width: 34px; padding: 0; justify-content: center; }
 .selbar-div { width: 1px; height: 20px; background: color-mix(in srgb, var(--bg) 18%, transparent); margin: 0 4px; }
 /* inside the inspector (one source being organised) the same actions sit inline on the surface */
-.selbar.is-inline { flex-wrap: wrap; background: var(--surface-2); color: var(--ink); box-shadow: none; border-radius: var(--r-m); }
+.selbar.is-inline { flex-wrap: wrap; background: var(--surface-2); color: var(--ink); box-shadow: none; }
 .selbar.is-inline .selbar-btn { color: var(--ink); height: 30px; padding: 0 10px; }
 .selbar.is-inline .selbar-btn:hover:not(:disabled) { background: var(--hover); }
 .selbar.is-inline .selbar-btn.is-danger { color: var(--danger); }

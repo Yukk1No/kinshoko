@@ -56,7 +56,7 @@ button {
   font: inherit;
   padding: 4px 12px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--r-s);
   background: transparent;
   color: inherit;
   cursor: pointer;
