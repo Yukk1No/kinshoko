@@ -120,6 +120,7 @@ export function useWallPages({
           const unchanged = prev.length === next.length
             && prev.every((c, i) => c.id === next[i].id && c.width === next[i].width && c.height === next[i].height);
           if (!unchanged) measureBeforeReflow();
+          // 顺序契约（#324）：先报这一页带回的状态，再交出卡片。状态若要求修剪选择，修剪就落在这一页上。
           if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus, next);
           if (!safeMode) { safeTiming.mark("卡片送回"); releasePage.current = true; }
           setCards(next);
