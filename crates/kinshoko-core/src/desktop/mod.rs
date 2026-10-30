@@ -31,7 +31,7 @@ pub use history::{
     CaptureChoice, CaptureCollection, CaptureEntry, CaptureHistory, CollectedCapture,
     CollectedCaptureDraft, HISTORY_LIMIT, HistoryError, PreparedCapture,
 };
-pub use menu::{MenuSurface, OpenInKinshoko, PinMenu, PinMenuOpen, menu_surface};
+pub use menu::{MenuSurface, OpenInKinshoko, PinMenu, PinMenuOpen, PinNotice, menu_surface};
 pub use motion::{PIN_EDGE, overlay_window, pin_area};
 pub use pin::{
     GroupMemberRef, MAX_SCALE, MIN_OPACITY, MIN_SCALE, MIN_SIDE, PinContent, PinError, PinStore,

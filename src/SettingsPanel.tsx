@@ -6,7 +6,7 @@ import type { SafeModeScope } from "./bindings/SafeModeScope";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
 import type { ShortcutBinding } from "./bindings/ShortcutBinding";
-import { clearRunLog, errorText } from "./ipc";
+import { clearRunLog, errorText, hotkeyFailureText } from "./ipc";
 import { useShellSettings, type ShellSettings, type ShellSettingsIntent } from "./shell/useShellSettings";
 import { SharedPersonalApproxSettings } from "./search/SharedPersonalApproxSettings";
 import { LegacyNameBanner } from "./library/LegacyNameMigrationPanel";
@@ -193,7 +193,7 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, library,
               const label = ACTION_LABELS[binding.action];
               const isRecording = recording === binding.action;
               return <SettingsRow key={binding.action} label={label} title={label} className={isRecording ? "is-recording" : ""}
-                warn={binding.problem !== null && `未注册：${binding.problem}`}>
+                warn={binding.problem !== null && `未注册：${hotkeyFailureText(binding.problem)}`}>
                 {isRecording ? <>
                   <input className="k-key-recorder" aria-label="按下新的组合键" placeholder="按下新的组合键…" autoFocus readOnly
                     onKeyDown={(e) => onRecordKey(binding.action, e)} onBlur={() => setRecording(null)} />

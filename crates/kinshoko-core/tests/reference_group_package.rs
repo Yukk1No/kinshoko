@@ -315,7 +315,10 @@ fn export_is_refused_when_a_member_original_is_unavailable() {
     match result {
         Err(GroupError::MembersUnavailable(members)) => {
             assert_eq!(members.len(), 1, "{members:?}");
-            assert!(members[0].contains(&studio.group.members[3].id));
+            assert_eq!(
+                members[0].member.as_deref(),
+                Some(studio.group.members[3].id.as_str())
+            );
         }
         other => panic!("{other:?}"),
     }

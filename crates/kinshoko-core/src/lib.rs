@@ -43,6 +43,7 @@ pub use settings::{
     ViewerBackground,
 };
 pub use shortcuts::{
-    GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutBinding, ShortcutError,
+    GlobalShortcuts, HotkeyFailure, HotkeyRegistrar, ShellSettingsView, ShortcutBinding,
+    ShortcutError, ShortcutProblem,
 };
 pub use ui_scale::{UI_SCALE_LEVELS, UiScale, UiScaleError};

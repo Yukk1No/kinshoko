@@ -16,9 +16,53 @@ use crate::settings::{AppSettings, SettingsError, ShortcutAction};
 /// 实现者在 `register` 里把按键和 `action` 绑在一起，按下时直接派发该动作；
 /// 按键回调不应再回头读取设置或加锁，以免在主线程上等待。
 pub trait HotkeyRegistrar {
-    /// 注册一个快捷键；失败时返回给画师看的原因，例如被别的程序占用。
-    fn register(&mut self, action: ShortcutAction, accelerator: &str) -> Result<(), String>;
+    /// 注册一个快捷键；失败时返回原因，例如被别的程序占用。
+    fn register(&mut self, action: ShortcutAction, accelerator: &str) -> Result<(), HotkeyFailure>;
     fn unregister(&mut self, accelerator: &str);
+}
+
+/// 系统没能注册一个快捷键的原因。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+#[ts(export)]
+pub enum HotkeyFailure {
+    /// 系统不认识这个按键。
+    UnknownKey,
+    /// 已被其他程序占用。
+    Taken,
+    /// 系统拒绝注册；`detail` 是系统给出的原文。
+    Refused { detail: String },
+}
+
+impl fmt::Display for HotkeyFailure {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            HotkeyFailure::UnknownKey => f.write_str("无法识别这个按键"),
+            HotkeyFailure::Taken => f.write_str("已被其他程序占用"),
+            HotkeyFailure::Refused { detail } => write!(f, "系统拒绝注册（{detail}）"),
+        }
+    }
+}
+
+/// 快捷键写法不合要求的地方。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShortcutProblem {
+    TwoMainKeys,
+    NoMainKey,
+    /// 单独一个字母、数字或符号键会妨碍打字。
+    HindersTyping,
+}
+
+impl fmt::Display for ShortcutProblem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            ShortcutProblem::TwoMainKeys => "一个快捷键只能有一个主键",
+            ShortcutProblem::NoMainKey => "快捷键需要一个主键，不能只有修饰键",
+            ShortcutProblem::HindersTyping => {
+                "字母、数字和符号键要配合 Ctrl、Alt 或 Win，否则会妨碍打字"
+            }
+        })
+    }
 }
 
 /// 设置界面显示的一行：动作、绑定的键、以及没能注册的原因。
@@ -30,7 +74,7 @@ pub struct ShortcutBinding {
     /// `None` 表示画师清除了这个动作的快捷键。
     pub accelerator: Option<String>,
     /// 有值时这个键当前没有生效（界面显示“未注册”）。
-    pub problem: Option<String>,
+    pub problem: Option<HotkeyFailure>,
 }
 
 /// 设置界面里应用壳一节的内容。
@@ -89,18 +133,18 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
 #[derive(Debug)]
 pub enum ShortcutError {
     /// 写法不对，或单独一个字母、数字会妨碍打字。
-    Invalid(&'static str),
+    Invalid(ShortcutProblem),
     /// 这个键已经分给了另一个动作。
     UsedBy(ShortcutAction),
     /// 系统拒绝注册，通常是被别的程序占用。
-    Unavailable(String),
+    Unavailable(HotkeyFailure),
     Settings(SettingsError),
 }
 
 impl fmt::Display for ShortcutError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ShortcutError::Invalid(why) => f.write_str(why),
+            ShortcutError::Invalid(why) => why.fmt(f),
             ShortcutError::UsedBy(other) => {
                 write!(f, "这个快捷键已用于“{}”", other.label())
             }
@@ -116,7 +160,7 @@ impl std::error::Error for ShortcutError {}
 pub struct GlobalShortcuts<R: HotkeyRegistrar> {
     registrar: R,
     /// 绑定了但没注册上的动作及原因。
-    problems: BTreeMap<ShortcutAction, String>,
+    problems: BTreeMap<ShortcutAction, HotkeyFailure>,
 }
 
 impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
@@ -268,22 +312,20 @@ pub(crate) fn normalize(accelerator: &str) -> Result<String, ShortcutError> {
         {
             modifiers[i] = true;
         } else if main_key.is_some() {
-            return Err(ShortcutError::Invalid("一个快捷键只能有一个主键"));
+            return Err(ShortcutError::Invalid(ShortcutProblem::TwoMainKeys));
         } else {
             main_key = Some(canonical_key(part));
         }
     }
     let Some(main_key) = main_key else {
-        return Err(ShortcutError::Invalid("快捷键需要一个主键，不能只有修饰键"));
+        return Err(ShortcutError::Invalid(ShortcutProblem::NoMainKey));
     };
 
     let types_text = main_key.chars().count() == 1
         || TYPING_KEYS.contains(&main_key.to_ascii_lowercase().as_str());
     let (ctrl, alt, super_) = (modifiers[0], modifiers[1], modifiers[3]);
     if types_text && !(ctrl || alt || super_) {
-        return Err(ShortcutError::Invalid(
-            "字母、数字和符号键要配合 Ctrl、Alt 或 Win，否则会妨碍打字",
-        ));
+        return Err(ShortcutError::Invalid(ShortcutProblem::HindersTyping));
     }
 
     let mut parts: Vec<&str> = MODIFIERS

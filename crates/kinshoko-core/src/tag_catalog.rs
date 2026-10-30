@@ -48,7 +48,7 @@ pub enum CatalogError {
     Data(serde_json::Error),
     Library(crate::library::Error),
     UnknownTag,
-    InvalidDefinition(String),
+    InvalidDefinition(Box<crate::CommandError>),
     UnknownGroup,
     InvalidGroupMembers,
     UnknownMapping,

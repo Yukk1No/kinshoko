@@ -71,7 +71,8 @@
   /* viewer grounds: neutral greys and checks; the mid ground stays at 50 % gray for judging values */
   --ground-dark: #202020; --ground-mid: #808080; --ground-light: #d9d9d9; --checker-a: #d9d9d9; --checker-b: #8d8d8d;
 
-  --r-xs: 6px; --r-item: 7px; --r-s: 8px; --r: 10px; --r-m: 12px; --r-xl: 18px; --r-pill: 999px;
+  /* radii on a 4 px grid, nested by r = R - p (outer radius minus the padding between); never below 4 */
+  --r-xs: 4px; --r-s: 8px; --r: 12px; --r-l: 16px; --r-xl: 20px; --r-2xl: 32px; --r-pill: 999px;
   --spring: cubic-bezier(0.2, 0.9, 0.25, 1.05);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --t-fast: 120ms; --t: 200ms; --t-slow: 260ms;
@@ -139,3 +140,14 @@
 :root { --seal-acc: #c85672; --seal-ink: var(--ink); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seal-acc: #e3b34f; } }
 :root[data-theme="dark"] { --seal-acc: #e3b34f; }
+
+/* Continuous corners as progressive enhancement: Chrome and Edge 139+ draw the superellipse, other browsers keep the plain border-radius.
+   Pills and circles stay fully round. */
+@supports (corner-shape: superellipse(1.25)) {
+  :where(*) { corner-shape: superellipse(1.25); }
+  .lib-dot, .k-density-island, .k-density-knob, .k-density-pop, .k-tagging-dot, .k-tagging-activity, .k-range, .wall-canvas > .card-sources,
+  .startup-bar, .startup-bar *, .capture-tip, .badge, .rail-badge, .fx-burst, .search-chip, .k-radio-card input, .k-steps i, .k-task-progress,
+  .k-chip, .k-chip-x, .k-switch, .k-switch-thumb, .k-dock-badge, .k-pill { corner-shape: round; }
+  /* search chips in the top bar and its overflow popover are rounded boxes, not pills */
+  .topbar > .search .search-chip, .search-more-pop .search-chip { corner-shape: superellipse(1.25); }
+}

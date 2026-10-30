@@ -216,7 +216,7 @@ pub(super) async fn workspace_permanent_source_delete<R: Runtime>(
                     library.permanent_delete(std::slice::from_ref(&t.image_id), &token, groups)
                 })
                 .ok_or_else(|| {
-                    kinshoko_core::library::Error::ReferenceGroups("参考组还没有准备好".into())
+                    kinshoko_core::library::Error::reference_groups(super::groups_not_ready())
                 })?
             })
         })?;

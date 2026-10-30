@@ -274,8 +274,13 @@ impl Library {
             });
         }
         match outcome {
-            ImportOutcome::ReadFailed { reason } => Err(Error::PackageImage(reason)),
-            ImportOutcome::Unsupported => Err(Error::PackageImage("不是支持的图片格式".into())),
+            ImportOutcome::ReadFailed { reason } => Err(Error::PackageImage(Box::new(reason))),
+            ImportOutcome::Unsupported => {
+                Err(Error::PackageImage(Box::new(crate::CommandError::new(
+                    crate::command_error::ErrorKind::PackageImageUnsupported,
+                    "不是支持的图片格式",
+                ))))
+            }
             other => Ok(other.image_id().expect("进库的结果都有参考图").to_owned()),
         }
     }

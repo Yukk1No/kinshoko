@@ -116,6 +116,7 @@ fn main() {
                         "pin_clipboard",
                         "pin_capture",
                         "pin_menu_action",
+                        "show_pin_notice",
                         "desktop_menu",
                         "desktop_menu_shown",
                         "close_desktop_menu",

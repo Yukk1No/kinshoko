@@ -1,5 +1,7 @@
 //! 参考组成员与它用的是什么：资料库中的参考图，或参考组自带的截图（#270）。
 
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -118,13 +120,23 @@ impl GroupMember {
         pin_id: &str,
         group_id: &str,
         capture_id: &str,
-    ) -> Result<SavedPin, String> {
+    ) -> Result<SavedPin, CommandError> {
         let p = &self.placement;
         if !(p.scale.is_finite() && (MIN_SCALE..=MAX_SCALE).contains(&p.scale)) {
-            return Err(format!("成员 {} 的缩放不合法", self.id));
+            return Err(CommandError::new(
+                ErrorKind::GroupMemberScale {
+                    member: self.id.clone(),
+                },
+                format!("成员 {} 的缩放不合法", self.id),
+            ));
         }
         if p.rotation > 3 {
-            return Err(format!("成员 {} 的旋转不合法", self.id));
+            return Err(CommandError::new(
+                ErrorKind::GroupMemberRotation {
+                    member: self.id.clone(),
+                },
+                format!("成员 {} 的旋转不合法", self.id),
+            ));
         }
         let (library_id, image_id) = match &self.source {
             MemberSource::Library {
@@ -135,7 +147,12 @@ impl GroupMember {
                 ("", String::new())
             }
             MemberSource::Capture { .. } => {
-                return Err(format!("成员 {} 的截图文件名不合法", self.id));
+                return Err(CommandError::new(
+                    ErrorKind::GroupMemberCaptureFile {
+                        member: self.id.clone(),
+                    },
+                    format!("成员 {} 的截图文件名不合法", self.id),
+                ));
             }
         };
         let image = ReferenceImage {
@@ -145,8 +162,17 @@ impl GroupMember {
             sealed: false,
         };
         // 局部与尺寸的核对和参考图钉图相同；组内截图再换成截图钉图。
-        let mut pin = SavedPin::reference(pin_id, library_id, &image, self.crop, *p)
-            .map_err(|e| format!("成员 {}：{e}", self.id))?;
+        let mut pin =
+            SavedPin::reference(pin_id, library_id, &image, self.crop, *p).map_err(|e| {
+                CommandError::caused_by(
+                    e,
+                    |cause| ErrorKind::GroupMemberPin {
+                        member: self.id.clone(),
+                        cause,
+                    },
+                    |e| format!("成员 {}：{e}", self.id),
+                )
+            })?;
         if let MemberSource::Capture { .. } = self.source {
             pin.content = PinContent::Capture {
                 capture_id: capture_id.to_owned(),

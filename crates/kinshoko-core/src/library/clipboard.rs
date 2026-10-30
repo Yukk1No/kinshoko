@@ -48,7 +48,10 @@ fn missing_or(error: std::io::Error, path: &Path) -> Error {
 /// 保存位置照常由画师选择。每次粘贴一个新文件；一天前暂存的文件顺手清掉。失败时不留下文件。
 pub fn stage_clipboard_image(dir: &Path, image: &RgbaImage) -> Result<PathBuf, Error> {
     if image.width() == 0 || image.height() == 0 {
-        return Err(Error::ClipboardImage("图片是空的".into()));
+        return Err(Error::ClipboardImage(Box::new(crate::CommandError::new(
+            crate::command_error::ErrorKind::ClipboardImageEmpty,
+            "图片是空的",
+        ))));
     }
     let mut png = Vec::new();
     PngEncoder::new(&mut png)
@@ -58,7 +61,7 @@ pub fn stage_clipboard_image(dir: &Path, image: &RgbaImage) -> Result<PathBuf, E
             image.height(),
             ExtendedColorType::Rgba8,
         )
-        .map_err(|e| Error::ClipboardImage(e.to_string()))?;
+        .map_err(|e| Error::ClipboardImage(Box::new(e.into())))?;
     std::fs::create_dir_all(dir)?;
     forget_staged_clipboard_images(dir);
     let stamp = SystemTime::now()

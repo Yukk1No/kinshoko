@@ -27,6 +27,7 @@ mod packages;
 mod resolve;
 mod usage;
 
+use crate::command_error::ErrorKind;
 use std::collections::BTreeSet;
 use std::fs;
 use std::io;
@@ -41,7 +42,7 @@ use captures::write_atomically;
 use merge::{assign, merge};
 
 pub use captures::{CaptureFiles, OpenedPins, RelinkFailure, RelinkReport};
-pub use error::GroupError;
+pub use error::{GroupError, MemberUnavailable};
 pub use member::{GroupCapture, GroupMember, MemberSource};
 pub use package::{
     PACKAGE_EXTENSION, PackageImage, PackageManifest, PackageProvenance, read_package,
@@ -129,15 +130,20 @@ impl ReferenceGroup {
 
     fn validate(&self) -> Result<(), GroupError> {
         if self.name.trim().is_empty() {
-            return Err(GroupError::Invalid("没有名称".into()));
+            return Err(GroupError::invalid(ErrorKind::GroupNameMissing, "没有名称"));
         }
         let mut ids = BTreeSet::new();
         for m in &self.members {
             if !ids.insert(m.id.as_str()) {
-                return Err(GroupError::Invalid(format!("成员 {} 重复", m.id)));
+                return Err(GroupError::invalid(
+                    ErrorKind::GroupMemberDuplicate {
+                        member: m.id.clone(),
+                    },
+                    format!("成员 {} 重复", m.id),
+                ));
             }
             m.pin("check", &self.id, "check")
-                .map_err(GroupError::Invalid)?;
+                .map_err(|e| GroupError::Invalid(Box::new(e)))?;
         }
         Ok(())
     }
@@ -156,7 +162,8 @@ pub struct GroupSummary {
     #[ts(type = "number")]
     pub updated_at: i64,
     /// 这个文件读不懂时的原因；能打开时为 `None`。
-    pub problem: Option<String>,
+    #[ts(as = "Option<crate::command_error::ErrorKind>")]
+    pub problem: Option<crate::CommandError>,
 }
 
 /// 磁盘上的参考组文件。
@@ -205,8 +212,9 @@ impl ReferenceGroups {
         captures: &CaptureFiles,
     ) -> Result<(), GroupError> {
         if group.restored_from.is_none() || self.path(&group.id)?.exists() {
-            return Err(GroupError::Invalid(
-                "恢复身份已存在，未覆盖现有参考组".into(),
+            return Err(GroupError::invalid(
+                ErrorKind::GroupIdentityExists,
+                "恢复身份已存在，未覆盖现有参考组",
             ));
         }
         self.publish_with_captures(group, captures)
@@ -238,7 +246,7 @@ impl ReferenceGroups {
                     member_count: 0,
                     library_ids: Vec::new(),
                     updated_at: 0,
-                    problem: Some(e.to_string()),
+                    problem: Some(e.into()),
                 },
             });
         }
@@ -255,7 +263,10 @@ impl ReferenceGroups {
         };
         let group = parse(&bytes)?;
         if group.id != id {
-            return Err(GroupError::Invalid("文件名与参考组身份不符".into()));
+            return Err(GroupError::invalid(
+                ErrorKind::GroupFileMismatch,
+                "文件名与参考组身份不符",
+            ));
         }
         Ok(group)
     }
@@ -416,17 +427,25 @@ impl ReferenceGroups {
 /// 读参考组文件内容：先核对格式与版本，新版本写的文件按版本报错，而不是“已损坏”。
 pub fn parse(bytes: &[u8]) -> Result<ReferenceGroup, GroupError> {
     let header: Header =
-        serde_json::from_slice(bytes).map_err(|e| GroupError::Invalid(e.to_string()))?;
+        serde_json::from_slice(bytes).map_err(|e| GroupError::Invalid(Box::new(e.into())))?;
     if header.format.as_deref() != Some(FORMAT) {
-        return Err(GroupError::Invalid("不是 Kinshoko 参考组".into()));
+        return Err(GroupError::invalid(
+            ErrorKind::NotAGroup,
+            "不是 Kinshoko 参考组",
+        ));
     }
     match header.format_version {
         Some(FORMAT_VERSION | CAPTURE_FORMAT_VERSION) => {}
         Some(v) if v > CAPTURE_FORMAT_VERSION => return Err(GroupError::UnsupportedVersion(v)),
-        _ => return Err(GroupError::Invalid("格式版本不对".into())),
+        _ => {
+            return Err(GroupError::invalid(
+                ErrorKind::WrongFormatVersion,
+                "格式版本不对",
+            ));
+        }
     }
     let file: GroupFile =
-        serde_json::from_slice(bytes).map_err(|e| GroupError::Invalid(e.to_string()))?;
+        serde_json::from_slice(bytes).map_err(|e| GroupError::Invalid(Box::new(e.into())))?;
     file.group.validate()?;
     Ok(file.group)
 }
