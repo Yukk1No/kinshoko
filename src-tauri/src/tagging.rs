@@ -5,6 +5,7 @@
 //! 状态与命令都带资料库身份（#49），切换后旧库的迟到状态与旧请求不会落到新库上。
 //! 开始、结束、暂停、出错与子进程的显存额度、标准错误记进运行日志（#219）。
 
+use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -286,7 +287,7 @@ pub async fn tagging_pick_package(app: AppHandle) -> Result<Option<PathBuf>, Com
     tauri::async_runtime::spawn_blocking(move || {
         app.dialog()
             .file()
-            .add_filter("模型包", &["zip"])
+            .add_filter(text(Text::FilterModelPackage), &["zip"])
             .blocking_pick_file()
             .and_then(|p| p.into_path().ok())
     })

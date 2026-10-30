@@ -8,6 +8,7 @@
 //!   只登记、不切换；参考组恢复为新的参考组，推送 `reference-groups` 让列表刷新。
 //! - 状态变化推送 `backup-status`（[`BackupStatus`]）。
 
+use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -78,12 +79,13 @@ fn status(app: &AppHandle) -> Result<BackupStatus, CommandError> {
     })
 }
 
-fn publish(app: &AppHandle) {
+/// 推送备份状态，并按状态与界面语言更新托盘提示。
+pub(crate) fn publish(app: &AppHandle) {
     if let Ok(status) = status(app) {
         let tooltip = if status.running.is_some() {
-            "Kinshoko：正在备份…".to_owned()
+            text(Text::TrayBackingUp).to_owned()
         } else if let Some(failure) = &status.plan.last_failure {
-            format!("Kinshoko：备份没有完成，下次再试。{}", failure.reason)
+            format!("{}{}", text(Text::TrayBackupFailed), failure.reason)
         } else {
             "Kinshoko".to_owned()
         };

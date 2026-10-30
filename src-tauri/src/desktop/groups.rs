@@ -12,6 +12,7 @@
 //!
 //! 参考组变化后向所有窗口推送 `reference-groups`（无载荷），主窗口据此重新读取列表。
 
+use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
 use kinshoko_core::desktop::{
     CaptureChoice, CaptureEntry, CollectedCapture, PinContent, SavedPin, pull_onto_screen,
@@ -426,7 +427,7 @@ pub async fn export_reference_group_package(
             app.dialog()
                 .file()
                 .set_file_name(format!("{}.{PACKAGE_EXTENSION}", group.name))
-                .add_filter("参考组包", &[PACKAGE_EXTENSION])
+                .add_filter(text(Text::FilterReferencePackage), &[PACKAGE_EXTENSION])
                 .blocking_save_file()
                 .and_then(|p| p.into_path().ok())
         }) else {
@@ -458,7 +459,7 @@ pub async fn import_reference_group_package(
         let Some(path) = path.or_else(|| {
             app.dialog()
                 .file()
-                .add_filter("参考组包", &[PACKAGE_EXTENSION])
+                .add_filter(text(Text::FilterReferencePackage), &[PACKAGE_EXTENSION])
                 .blocking_pick_file()
                 .and_then(|p| p.into_path().ok())
         }) else {

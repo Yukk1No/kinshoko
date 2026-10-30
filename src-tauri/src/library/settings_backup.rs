@@ -1,6 +1,7 @@
 //! Settings package adapter: live shell, catalog invalidation and OS registrations.
 
 use super::*;
+use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
 use kinshoko_core::application_settings_backup::{
     ApplicationSettingsBackup, ApplicationSettingsPreview, ApplicationSettingsRestored,
@@ -14,7 +15,7 @@ pub(super) async fn pick_application_settings<R: Runtime>(
         let picker = app
             .dialog()
             .file()
-            .add_filter("程序设置备份", &["kinshoko-settings"]);
+            .add_filter(text(Text::FilterSettingsBackup), &["kinshoko-settings"]);
         Ok(if save {
             picker
                 .set_file_name("Kinshoko.kinshoko-settings")

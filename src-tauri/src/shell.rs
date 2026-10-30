@@ -82,6 +82,8 @@ fn start_interface_language() {
 /// 告诉各窗口界面语言改了。
 pub fn announce_interface_language(app: &AppHandle, lang: &str) {
     let _ = app.emit(INTERFACE_LANGUAGE_EVENT, lang);
+    desktop::relabel_tray(app);
+    crate::backup::publish(app);
 }
 
 /// 让系统的开机自启与设置一致。

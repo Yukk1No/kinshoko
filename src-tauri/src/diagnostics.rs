@@ -3,6 +3,7 @@
 //! 规则与脱敏在 `kinshoko_core::diagnostics`；这里只向 Windows 查询系统信息、接保存对话框。
 //! 诊断信息连同最近几天的运行日志（`crate::run_log`）一起存成 zip（#219）。
 
+use crate::ui_text::{self, Text};
 use kinshoko_core::CommandError;
 use std::path::PathBuf;
 use std::sync::OnceLock;
@@ -126,10 +127,11 @@ pub async fn export_diagnostics(
     tauri::async_runtime::spawn_blocking(move || {
         let text = report_with_runtime(&facts, &system_facts(), now(), runtime.as_ref());
         let name = format!(
-            "kinshoko-诊断信息-{}.zip",
+            "{}-{}.zip",
+            ui_text::text(Text::DiagnosticsFileName),
             chrono::Local::now().format("%Y%m%d-%H%M")
         );
-        let Some(path) = save_dialog(&app, &name, "zip 压缩包", "zip") else {
+        let Some(path) = save_dialog(&app, &name, ui_text::text(Text::FilterZip), "zip") else {
             return Ok(false);
         };
         let saved = match crate::run_log::log() {

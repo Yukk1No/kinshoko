@@ -1,6 +1,7 @@
 //! 对账结果、导入与 Eagle 资料库定位的命令。
 
 use super::*;
+use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
 
 /// 当前资料库这次打开时的对账结果。
@@ -85,7 +86,10 @@ pub(super) async fn pick_files<R: Runtime>(
         Ok(app
             .dialog()
             .file()
-            .add_filter("图片", &["jpg", "jpeg", "png", "webp", "gif"])
+            .add_filter(
+                text(Text::FilterImages),
+                &["jpg", "jpeg", "png", "webp", "gif"],
+            )
             .blocking_pick_files()
             .unwrap_or_default()
             .into_iter()
