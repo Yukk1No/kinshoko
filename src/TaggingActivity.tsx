@@ -5,6 +5,7 @@ import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { taggingDownload } from "./ipc";
 import { useToast } from "./ui/Toast";
 import { useTaggingStatus } from "./useTaggingStatus";
+import { describeCommandError } from "./ipc/commandError";
 
 const DEVICE_NAME: Record<Device, string> = { directMl: "显卡", cpu: "CPU" };
 const mb = (bytes: number) => `${Math.round(bytes / 1_000_000)} MB`;
@@ -59,9 +60,9 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
       toast.show({ title: "已下载自动标签模型", tone: "success" });
     }
     // 后端出错后定时重试并反复广播：一直是同一个原因时只报一次。
-    if (status.state === "failed" && failure.current !== status.reason) {
-      failure.current = status.reason;
-      toast.error(`自动标签出错：${status.reason}`, { description: "稍后会自动重试" });
+    if (status.state === "failed" && failure.current !== describeCommandError(status.reason)) {
+      failure.current = describeCommandError(status.reason);
+      toast.error(`自动标签出错：${failure.current}`, { description: "稍后会自动重试" });
     }
     if (status.state === "idle" || status.state === "paused") failure.current = null;
     if (status.state === "running") roundStart.current ??= status.tagged;
@@ -71,9 +72,10 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
       roundStart.current = null;
       if (taggedThisRound > 0) toast.show({ title: `自动标签：新打了 ${taggedThisRound} 张`, tone: "success" });
     }
-    if (status.state === "noDevice" && !unavailable.current.has(status.reason)) {
-      unavailable.current.add(status.reason);
-      toast.show({ title: `自动标签不可用：${status.reason}`, timeout: 0 });
+    const noDevice = status.state === "noDevice" ? describeCommandError(status.reason) : null;
+    if (noDevice !== null && !unavailable.current.has(noDevice)) {
+      unavailable.current.add(noDevice);
+      toast.show({ title: `自动标签不可用：${noDevice}`, timeout: 0 });
     }
     // 代码收起的通知先清掉记录，onClose 才不把它当成画师关掉的。
     const closeDownload = () => {

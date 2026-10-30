@@ -16,10 +16,13 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 use crate::diagnostics::{Detail, LogEvent, RunLog};
 
 use super::port::{
     Device, DeviceInfo, PreparedModel, RawTag, SessionStopper, TagFailure, Tagger, TaggerSession,
+    reported,
 };
 
 /// 主进程 → 子进程的第一行。
@@ -216,7 +219,7 @@ impl ProcessTagger {
         self
     }
 
-    fn spawn(&self, hello: &Hello) -> Result<Running, String> {
+    fn spawn(&self, hello: &Hello) -> Result<Running, CommandError> {
         let mut cmd = Command::new(&self.exe);
         cmd.args(&self.args)
             .envs(self.envs.iter().map(|(k, v)| (k, v)))
@@ -235,9 +238,14 @@ impl ProcessTagger {
             // 显卡档的子进程本来就几乎不占 CPU，同样处理。
             cmd.creation_flags(0x0800_0000 | 0x0000_4000);
         }
-        let mut child = cmd
-            .spawn()
-            .map_err(|e| format!("无法启动打标子进程：{e}"))?;
+        let mut child = cmd.spawn().map_err(|e| {
+            CommandError::new(
+                ErrorKind::TaggerSpawnFailed {
+                    detail: e.to_string(),
+                },
+                format!("无法启动打标子进程：{e}"),
+            )
+        })?;
         let stdout = child.stdout.take().expect("已设为管道");
         let stdin = child.stdin.take().expect("已设为管道");
         if let (Some(stderr), Some(log)) = (child.stderr.take(), self.log.clone()) {
@@ -252,7 +260,7 @@ impl ProcessTagger {
                         });
                     }
                 })
-                .map_err(|e| e.to_string())?;
+                .map_err(CommandError::system)?;
         }
         let (tx, rx) = channel();
         std::thread::Builder::new()
@@ -267,15 +275,13 @@ impl ProcessTagger {
                     }
                 }
             })
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::system)?;
         let mut running = Running {
             child: Arc::new(Mutex::new(child)),
             stdin,
             replies: rx,
         };
-        running
-            .write(hello)
-            .map_err(|e| format!("无法与打标子进程通信：{e}"))?;
+        running.write(hello).map_err(pipe_failed)?;
         Ok(running)
     }
 }
@@ -299,21 +305,25 @@ impl Running {
             Ok(Reply::Fatal {
                 reason,
                 device_lost: true,
-            }) => Err(TagFailure::DeviceLost(reason)),
-            Ok(Reply::Fatal { reason, .. }) => Err(TagFailure::Crashed(reason)),
+            }) => Err(TagFailure::DeviceLost(reported(reason))),
+            Ok(Reply::Fatal { reason, .. }) => Err(TagFailure::Crashed(reported(reason))),
             Ok(reply) => Ok(reply),
             Err(RecvTimeoutError::Timeout) => {
                 self.kill();
-                Err(TagFailure::Crashed(format!(
-                    "超过 {} 秒没有响应，已结束",
-                    timeout.as_secs()
+                let seconds = timeout.as_secs();
+                Err(TagFailure::Crashed(CommandError::new(
+                    ErrorKind::TaggerUnresponsive { seconds },
+                    format!("超过 {seconds} 秒没有响应，已结束"),
                 )))
             }
             Err(RecvTimeoutError::Disconnected) => {
                 let status = lock_child(&self.child).wait().map(|s| s.to_string());
-                Err(TagFailure::Crashed(format!(
-                    "子进程已退出（{}）",
-                    status.unwrap_or_else(|e| e.to_string())
+                let status = status.unwrap_or_else(|e| e.to_string());
+                Err(TagFailure::Crashed(CommandError::new(
+                    ErrorKind::TaggerExited {
+                        status: status.clone(),
+                    },
+                    format!("子进程已退出（{status}）"),
                 )))
             }
         }
@@ -322,6 +332,25 @@ impl Running {
     fn kill(&mut self) {
         kill(&self.child);
     }
+}
+
+fn pipe_failed(e: std::io::Error) -> CommandError {
+    CommandError::new(
+        ErrorKind::TaggerPipeFailed {
+            detail: e.to_string(),
+        },
+        format!("无法与打标子进程通信：{e}"),
+    )
+}
+
+fn unexpected(reply: &Reply) -> CommandError {
+    let reply = format!("{reply:?}");
+    CommandError::new(
+        ErrorKind::TaggerUnexpectedReply {
+            reply: reply.clone(),
+        },
+        format!("意外的回复：{reply}"),
+    )
 }
 
 fn lock_child(child: &Mutex<Child>) -> MutexGuard<'_, Child> {
@@ -383,7 +412,7 @@ impl Tagger for ProcessTagger {
                 running,
                 image_timeout: self.image_timeout,
             })),
-            other => Err(TagFailure::Crashed(format!("意外的回复：{other:?}"))),
+            other => Err(TagFailure::Crashed(unexpected(&other))),
         }
     }
 }
@@ -399,11 +428,11 @@ impl TaggerSession for ProcessSession {
             .write(&Request {
                 image: image.to_path_buf(),
             })
-            .map_err(|e| TagFailure::Crashed(format!("无法与打标子进程通信：{e}")))?;
+            .map_err(|e| TagFailure::Crashed(pipe_failed(e)))?;
         match self.running.recv(self.image_timeout)? {
             Reply::Tags { tags } => Ok(tags),
-            Reply::BadImage { reason } => Err(TagFailure::BadImage(reason)),
-            other => Err(TagFailure::Crashed(format!("意外的回复：{other:?}"))),
+            Reply::BadImage { reason } => Err(TagFailure::BadImage(reported(reason))),
+            other => Err(TagFailure::Crashed(unexpected(&other))),
         }
     }
 }

@@ -159,7 +159,10 @@ fn choosing_the_gpu_without_a_usable_gpu_stops_instead_of_using_the_cpu() {
     assert_eq!(
         status,
         TaggingStatus::NoDevice {
-            reason: "没有独立显卡".into()
+            reason: kinshoko_core::CommandError::new(
+                kinshoko_core::command_error::ErrorKind::TaggingNoGpu,
+                "没有独立显卡"
+            )
         }
     );
     std::thread::sleep(Duration::from_millis(100));
@@ -181,9 +184,9 @@ fn choosing_the_gpu_with_too_little_video_memory_says_so() {
     let TaggingStatus::NoDevice { reason } = status else {
         unreachable!()
     };
-    assert!(reason.contains("显存额度不够"), "{reason}");
+    assert!(reason.to_string().contains("显存额度不够"), "{reason}");
     assert!(
-        !reason.contains("测试模型"),
+        !reason.to_string().contains("测试模型"),
         "原因里不出现模型条目名：{reason}"
     );
 }
@@ -205,7 +208,10 @@ fn automatic_falls_back_to_the_cpu_but_asks_before_downloading_it() {
             model: cpu.label.clone(),
             size: cpu.size,
             downloaded: 0,
-            fallback: Some("没有独立显卡".into()),
+            fallback: Some(kinshoko_core::CommandError::new(
+                kinshoko_core::command_error::ErrorKind::TaggingNoGpu,
+                "没有独立显卡"
+            )),
             cancelled: false,
         }
     );
@@ -226,7 +232,7 @@ fn a_confirmed_gpu_download_does_not_download_the_cpu_model_after_falling_back()
     });
     assert!(
         matches!(&status, TaggingStatus::NeedsDownload { model, fallback: Some(reason), .. }
-            if *model == cpu.label && reason.contains("显卡多次出错")),
+            if *model == cpu.label && reason.to_string().contains("显卡多次出错")),
         "{status:?}"
     );
     std::thread::sleep(Duration::from_millis(100));

@@ -50,6 +50,10 @@ export function describeCommandError(error: CommandError): string {
         cause: describeCommandError(error.cause),
         rollback: describeCommandError(error.rollback),
       });
+    case "taggingUnsuitable":
+      return t("taggingUnsuitable", { reasons: error.reasons.map(describeCommandError).join(t("taggingReasonSeparator")) });
+    case "downloadFailed":
+      return error.message === null ? t("downloadFailed", { kind: error.kind }) : t("downloadFailedWithMessage", { kind: error.kind, message: error.message });
     case "shortcutUnavailable":
       return t("shortcutUnavailable", { reason: hotkeyFailureText(error.reason) });
     default: {

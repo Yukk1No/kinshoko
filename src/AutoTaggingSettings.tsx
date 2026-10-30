@@ -7,6 +7,7 @@ import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
 import { importModelPackage, pickModelPackage, taggingCancelDownload, taggingDownload, taggingModels, taggingPause, taggingResume, taggingSetDevice } from "./ipc";
 import { useTaggingStatus } from "./useTaggingStatus";
+import { describeCommandError } from "./ipc/commandError";
 import { Select } from "./ui/Select";
 
 const gb = (bytes: number) => `${(bytes / 1_000_000_000).toFixed(1)} GB`;
@@ -135,7 +136,7 @@ function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; sta
     case "needsDownload": {
       const need = status.fallback === null
         ? `需要下载模型（${mb(status.size)}）`
-        : `显卡不可用：${status.fallback}，改用 CPU 需下载 ${mb(status.size)}`;
+        : `显卡不可用：${describeCommandError(status.fallback)}，改用 CPU 需下载 ${mb(status.size)}`;
       const label = status.downloaded > 0 ? `继续下载（已下载 ${percent(status.downloaded, status.size)}%）` : "下载";
       return row(need, button(label, taggingDownload, true));
     }
@@ -146,8 +147,8 @@ function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; sta
         <progress className="k-task-progress" max={100} value={done} aria-label="下载进度" aria-valuenow={done} />);
     }
     case "noDevice":
-      return row(`自动标签不可用：${status.reason}`);
+      return row(`自动标签不可用：${describeCommandError(status.reason)}`);
     case "failed":
-      return row(`出错了：${status.reason}。稍后会自动重试`);
+      return row(`出错了：${describeCommandError(status.reason)}。稍后会自动重试`);
   }
 }

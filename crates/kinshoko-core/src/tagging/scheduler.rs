@@ -11,6 +11,8 @@ use std::time::Duration;
 use serde::Serialize;
 use ts_rs::TS;
 
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 use crate::library::{Error as LibraryError, FactSource, Library, TaggingOutcome};
 
 use super::interpret::interpret;
@@ -95,7 +97,8 @@ pub enum TaggingStatus {
     /// 本机条件不满足任何模型。
     #[serde(rename_all = "camelCase")]
     NoDevice {
-        reason: String,
+        #[ts(as = "crate::command_error::ErrorKind")]
+        reason: CommandError,
     },
     /// 首次使用：模型还没下载，等画师确认（显示大小；`downloaded` 是上次中断时已下的部分）。
     /// `fallback` 是自动档退到这个模型的原因（例如没有独立显卡）；没有退让时为空。
@@ -107,7 +110,8 @@ pub enum TaggingStatus {
         size: u64,
         #[ts(type = "number")]
         downloaded: u64,
-        fallback: Option<String>,
+        #[ts(as = "Option<crate::command_error::ErrorKind>")]
+        fallback: Option<CommandError>,
         cancelled: bool,
     },
     #[serde(rename_all = "camelCase")]
@@ -146,7 +150,8 @@ pub enum TaggingStatus {
     /// 出错，稍后自动重试。
     #[serde(rename_all = "camelCase")]
     Failed {
-        reason: String,
+        #[ts(as = "crate::command_error::ErrorKind")]
+        reason: CommandError,
     },
 }
 
@@ -360,5 +365,5 @@ struct Worker {
 /// 选中的模型；`fallback` 是自动档跳过前面模型的原因。
 struct Choice {
     spec: ModelSpec,
-    fallback: Option<String>,
+    fallback: Option<CommandError>,
 }

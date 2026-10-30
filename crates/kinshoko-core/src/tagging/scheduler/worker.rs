@@ -86,7 +86,7 @@ impl Worker {
     }
 
     /// 画师选了硬件档时只看这一档的模型；自动时按顺序取本机条件满足的第一个。
-    fn choose(&mut self) -> Result<Choice, String> {
+    fn choose(&mut self) -> Result<Choice, CommandError> {
         let info = self
             .device_info
             .get_or_insert_with(|| self.tagger.probe())
@@ -101,21 +101,30 @@ impl Worker {
         for spec in candidates {
             let unusable = match spec.device {
                 Device::DirectMl => match &info.gpu {
-                    None => Some("没有独立显卡".to_owned()),
-                    Some(_) if !self.gpu_usable() => Some("显卡多次出错，本次不再使用".to_owned()),
-                    Some(gpu) if gpu.vram_budget < vram_wanted(spec) => Some(format!(
-                        "{} 的显存额度不够（需要约 {}）",
-                        gpu.name,
-                        gigabytes(vram_wanted(spec))
+                    None => Some(CommandError::new(ErrorKind::TaggingNoGpu, "没有独立显卡")),
+                    Some(_) if !self.gpu_usable() => Some(CommandError::new(
+                        ErrorKind::TaggingGpuUnreliable,
+                        "显卡多次出错，本次不再使用",
                     )),
+                    Some(gpu) if gpu.vram_budget < vram_wanted(spec) => {
+                        let need = gigabytes(vram_wanted(spec));
+                        Some(CommandError::new(
+                            ErrorKind::TaggingVramShort {
+                                gpu: gpu.name.clone(),
+                                need: need.clone(),
+                            },
+                            format!("{} 的显存额度不够（需要约 {need}）", gpu.name),
+                        ))
+                    }
                     Some(_) => None,
                 },
                 Device::Cpu => (spec.ram_need != 0
                     && info.available_ram < spec.ram_need + RAM_MARGIN)
                     .then(|| {
-                        format!(
-                            "可用内存不够（需要约 {}）",
-                            gigabytes(spec.ram_need + RAM_MARGIN)
+                        let need = gigabytes(spec.ram_need + RAM_MARGIN);
+                        CommandError::new(
+                            ErrorKind::TaggingRamShort { need: need.clone() },
+                            format!("可用内存不够（需要约 {need}）"),
                         )
                     }),
             };
@@ -124,15 +133,15 @@ impl Worker {
                 None => {
                     return Ok(Choice {
                         spec: spec.clone(),
-                        fallback: (!reasons.is_empty()).then(|| reasons.join("；")),
+                        fallback: (!reasons.is_empty()).then(|| unsuitable(reasons)),
                     });
                 }
             }
         }
         Err(if reasons.is_empty() {
-            "没有可用的打标模型".into()
+            CommandError::new(ErrorKind::TaggingNoModel, "没有可用的打标模型")
         } else {
-            reasons.join("；")
+            unsuitable(reasons)
         })
     }
 
@@ -159,7 +168,13 @@ impl Worker {
         let source = FactSource::model(&spec.source);
         let ids = match self.library.images_to_tag(&source, BATCH) {
             Ok(ids) => ids,
-            Err(e) => return self.fail(format!("读取待打标的图失败：{e}")),
+            Err(e) => {
+                return self.fail(CommandError::caused_by(
+                    e,
+                    |cause| ErrorKind::TaggingQueueUnreadable { cause },
+                    |e| format!("读取待打标的图失败：{e}"),
+                ));
+            }
         };
         if ids.is_empty() {
             self.end_session();
@@ -183,7 +198,7 @@ impl Worker {
     }
 
     /// 模型就绪时返回；否则显示需要下载或下载进度，返回 `None`。
-    fn model(&mut self, spec: &ModelSpec, fallback: Option<String>) -> Option<PreparedModel> {
+    fn model(&mut self, spec: &ModelSpec, fallback: Option<CommandError>) -> Option<PreparedModel> {
         if let Some(model) = self.store.ready(spec) {
             return Some(model);
         }
@@ -235,7 +250,7 @@ impl Worker {
         }
     }
 
-    fn fail(&mut self, reason: String) {
+    fn fail(&mut self, reason: CommandError) {
         self.end_session();
         self.shared.set(TaggingStatus::Failed { reason });
         self.shared.sleep(self.config.retry_delay);
@@ -249,7 +264,11 @@ impl Worker {
             // 图在此期间被删除了。
             Err(LibraryError::UnknownImage) => return true,
             Err(e) => {
-                self.fail(format!("读取原图位置失败：{e}"));
+                self.fail(CommandError::caused_by(
+                    e,
+                    |cause| ErrorKind::TaggingOriginalUnreadable { cause },
+                    |e| format!("读取原图位置失败：{e}"),
+                ));
                 return false;
             }
         };
@@ -278,7 +297,11 @@ impl Worker {
                     if spec.device == Device::DirectMl {
                         self.gpu_failures += 1;
                     }
-                    self.fail(format!("无法开始打标：{failure}"));
+                    self.fail(CommandError::caused_by(
+                        failure,
+                        |cause| ErrorKind::TaggingStartFailed { cause },
+                        |e| format!("无法开始打标：{e}"),
+                    ));
                     return false;
                 }
             }
@@ -316,7 +339,7 @@ impl Worker {
             }
             Err(TagFailure::BadImage(reason)) => {
                 self.library
-                    .finish_tagging(source, id, TaggingOutcome::Failed(reason))
+                    .finish_tagging(source, id, TaggingOutcome::Failed(reason.to_string()))
             }
             Err(_) if self.shared.interrupted() => {
                 // 画师暂停（或停止）时结束了会话：这张不算出错，恢复后重打。
@@ -329,7 +352,7 @@ impl Worker {
                 if matches!(failure, TagFailure::DeviceLost(_)) && spec.device == Device::DirectMl {
                     // 输入尺寸固定，显卡重置或显存溢出不怪这张图：记在显卡头上，多次后退到 CPU 档。
                     self.gpu_failures += 1;
-                    self.fail(failure.to_string());
+                    self.fail(failure.into());
                     return false;
                 }
                 let crashes = self.crashes.entry(id.to_owned()).or_default();
@@ -341,18 +364,40 @@ impl Worker {
                         .library
                         .finish_tagging(source, id, TaggingOutcome::Failed(reason));
                 }
-                self.fail(failure.to_string());
+                self.fail(failure.into());
                 return false;
             }
         };
         match written {
             Ok(()) | Err(LibraryError::UnknownImage) => true,
             Err(e) => {
-                self.fail(format!("写入标签建议失败：{e}"));
+                self.fail(CommandError::caused_by(
+                    e,
+                    |cause| ErrorKind::TaggingWriteFailed { cause },
+                    |e| format!("写入标签建议失败：{e}"),
+                ));
                 false
             }
         }
     }
+}
+
+/// 几档模型都用不了的原因；只有一条时就是那一条。
+fn unsuitable(mut reasons: Vec<CommandError>) -> CommandError {
+    if reasons.len() == 1 {
+        return reasons.remove(0);
+    }
+    let text = reasons
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("；");
+    CommandError::new(
+        ErrorKind::TaggingUnsuitable {
+            reasons: reasons.into_iter().map(|r| r.kind).collect(),
+        },
+        text,
+    )
 }
 
 /// 显卡档要求的显存额度：比峰值估计多 25%。

@@ -7,14 +7,21 @@
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use ts_rs::TS;
 
+mod download;
+mod package;
+
+use download::download;
+
 use super::patch;
 use super::port::{Device, PreparedModel};
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 
 /// 分块注意力改写（见 [`patch`]）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -293,9 +300,9 @@ impl ModelStore {
         spec: &ModelSpec,
         progress: &mut dyn FnMut(PrepareStage),
         cancel: &AtomicBool,
-    ) -> Result<PreparedModel, String> {
+    ) -> Result<PreparedModel, CommandError> {
         let p = self.paths(spec);
-        fs::create_dir_all(&p.dir).map_err(|e| format!("无法建立模型目录：{e}"))?;
+        fs::create_dir_all(&p.dir).map_err(no_model_dir)?;
         let verified = fs::read_to_string(&p.marker).ok().as_deref() == Some(&spec.sha256)
             && file_len(&p.onnx) == Some(spec.size);
         if !verified {
@@ -310,12 +317,24 @@ impl ModelStore {
                 )?;
             }
             progress(PrepareStage::Verifying);
-            let sha = sha256_file(&p.onnx).map_err(|e| format!("无法读取模型：{e}"))?;
+            let sha = sha256_file(&p.onnx).map_err(|e| {
+                CommandError::new(
+                    ErrorKind::ModelUnreadable {
+                        detail: e.to_string(),
+                    },
+                    format!("无法读取模型：{e}"),
+                )
+            })?;
             if sha != spec.sha256 {
                 let _ = fs::remove_file(&p.onnx);
-                return Err(format!("{} 校验失败，已删除，稍后重新下载", spec.label));
+                return Err(CommandError::new(
+                    ErrorKind::ModelChecksumFailed {
+                        model: spec.label.clone(),
+                    },
+                    format!("{} 校验失败，已删除，稍后重新下载", spec.label),
+                ));
             }
-            fs::write(&p.marker, &spec.sha256).map_err(|e| e.to_string())?;
+            fs::write(&p.marker, &spec.sha256).map_err(CommandError::system)?;
         }
         if !tags_match(spec, &p.tags) {
             let _ = fs::remove_file(&p.tags);
@@ -328,159 +347,60 @@ impl ModelStore {
             )?;
             if !tags_match(spec, &p.tags) {
                 let _ = fs::remove_file(&p.tags);
-                return Err(format!(
-                    "{} 的词表校验失败，已删除，稍后重新下载",
-                    spec.label
+                return Err(CommandError::new(
+                    ErrorKind::ModelTagsChecksumFailed {
+                        model: spec.label.clone(),
+                    },
+                    format!("{} 的词表校验失败，已删除，稍后重新下载", spec.label),
                 ));
             }
         }
         chunk(spec, &p, progress)?;
-        self.ready(spec)
-            .ok_or_else(|| format!("{} 准备后仍不完整", spec.label))
-    }
-
-    /// 从文件导入模型包（没有网络时）：zip 里有一个模型文件（`.onnx`，名字不限、可在子文件夹里）
-    /// 和词表 `selected_tags.csv`。按大小与 SHA-256 认出是 `models` 中的哪一个，校验通过才装进
-    /// 模型目录（随后在本机改写为分块注意力）；校验不过时什么也不留下。返回装好的模型。
-    pub fn import_package(
-        &self,
-        package: &Path,
-        models: &[ModelSpec],
-    ) -> Result<ModelSpec, String> {
-        let file = fs::File::open(package).map_err(|e| format!("无法打开模型包：{e}"))?;
-        let mut zip =
-            zip::ZipArchive::new(file).map_err(|e| format!("无法读取模型包（不是 zip）：{e}"))?;
-        let unreadable = |e: zip::result::ZipError| format!("无法读取模型包：{e}");
-        let (mut onnx, mut tags) = (None, None);
-        for i in 0..zip.len() {
-            let entry = zip.by_index(i).map_err(unreadable)?;
-            if entry.is_dir() {
-                continue;
-            }
-            let name = entry.name().rsplit(['/', '\\']).next().unwrap_or("");
-            if name.to_ascii_lowercase().ends_with(".onnx") {
-                if onnx.is_some() {
-                    return Err("模型包里有不止一个模型文件（.onnx）".into());
-                }
-                onnx = Some((i, name.to_owned(), entry.size()));
-            } else if name == TAGS_FILE {
-                tags = Some(i);
-            }
-        }
-        let (onnx_index, onnx_name, size) =
-            onnx.ok_or("模型包里没有模型文件（.onnx）".to_owned())?;
-        let tags_index = tags.ok_or(format!("模型包里没有词表 {TAGS_FILE}"))?;
-        let mut tags_csv = Vec::new();
-        zip.by_index(tags_index)
-            .map_err(unreadable)?
-            .read_to_end(&mut tags_csv)
-            .map_err(|e| format!("无法读取模型包：{e}"))?;
-        check_tags_csv(&tags_csv)?;
-        let candidates: Vec<&ModelSpec> = models.iter().filter(|s| s.size == size).collect();
-        if candidates.is_empty() {
-            return Err(format!("模型包里的 {onnx_name} 不是 Kinshoko 支持的模型"));
-        }
-
-        // 先解压到模型目录里的临时文件，边写边算哈希；认出是哪个模型后再改名就位。
-        fs::create_dir_all(&self.dir).map_err(|e| format!("无法建立模型目录：{e}"))?;
-        let tmp = self
-            .dir
-            .join(format!(".import-{}.part", uuid::Uuid::new_v4()));
-        let extracted = zip
-            .by_index(onnx_index)
-            .map_err(unreadable)
-            .and_then(|mut entry| {
-                let mut out = fs::File::create(&tmp).map_err(|e| e.to_string())?;
-                copy_hashing(&mut entry, &mut out).map_err(|e| format!("解压模型失败：{e}"))
-            });
-        let spec = match extracted {
-            Ok(sha) => candidates.into_iter().find(|s| s.sha256 == sha),
-            Err(e) => {
-                let _ = fs::remove_file(&tmp);
-                return Err(e);
-            }
-        };
-        let Some(spec) = spec else {
-            let _ = fs::remove_file(&tmp);
-            return Err(format!(
-                "模型包校验失败：{onnx_name} 已损坏，或不是 Kinshoko 支持的版本"
-            ));
-        };
-        if sha256_bytes(&tags_csv) != spec.tags_sha256 {
-            let _ = fs::remove_file(&tmp);
-            return Err(format!(
-                "模型包里的词表 {TAGS_FILE} 与 {} 不配套（内容、顺序或行数不同）",
-                spec.label
-            ));
-        }
-        let p = self.paths(spec);
-        let installed = (|| {
-            fs::create_dir_all(&p.dir)?;
-            let _ = fs::remove_file(&p.marker);
-            let _ = fs::remove_file(p.onnx.with_extension("part"));
-            fs::rename(&tmp, &p.onnx)?;
-            fs::write(&p.tags, &tags_csv)?;
-            fs::write(&p.marker, &spec.sha256)
-        })();
-        if let Err(e) = installed {
-            let _ = fs::remove_file(&tmp);
-            return Err(format!("无法安装模型：{e}"));
-        }
-        chunk(spec, &p, &mut |_| {})?;
-        self.ready(spec)
-            .map(|_| spec.clone())
-            .ok_or_else(|| format!("{} 导入后仍不完整", spec.label))
+        self.ready(spec).ok_or_else(|| {
+            CommandError::new(
+                ErrorKind::ModelIncomplete {
+                    model: spec.label.clone(),
+                },
+                format!("{} 准备后仍不完整", spec.label),
+            )
+        })
     }
 }
 
 const TAGS_FILE: &str = "selected_tags.csv";
-
-/// 词表要有 `name` 与 `category` 两列、至少一行，类别是数字（与打标子进程读词表的规则一致）。
-fn check_tags_csv(bytes: &[u8]) -> Result<(), String> {
-    let bad = || format!("模型包里的词表 {TAGS_FILE} 格式不对");
-    let mut reader = csv::Reader::from_reader(bytes);
-    let header = reader.headers().map_err(|_| bad())?.clone();
-    let column = |name: &str| header.iter().position(|h| h.trim() == name);
-    let (Some(name), Some(category)) = (column("name"), column("category")) else {
-        return Err(bad());
-    };
-    let mut rows = 0;
-    for record in reader.records() {
-        let record = record.map_err(|_| bad())?;
-        let ok = record.get(name).is_some_and(|n| !n.is_empty())
-            && record
-                .get(category)
-                .is_some_and(|c| c.trim().parse::<u8>().is_ok());
-        if !ok {
-            return Err(bad());
-        }
-        rows += 1;
-    }
-    if rows == 0 {
-        return Err(bad());
-    }
-    Ok(())
-}
 
 /// 有分块改写时，在本机把模型改写为分块注意力并校验结果。
 fn chunk(
     spec: &ModelSpec,
     p: &Paths,
     progress: &mut dyn FnMut(PrepareStage),
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     if let (Some(c), Some((onnx, marker))) = (&spec.chunking, &p.chunked)
         && (fs::read_to_string(marker).ok().as_deref() != Some(&c.sha256) || !onnx.is_file())
     {
         progress(PrepareStage::Verifying);
         let _ = fs::remove_file(marker);
-        patch::chunk_attention(&p.onnx, onnx, c)
-            .map_err(|e| format!("改写 {} 失败：{e}", spec.label))?;
-        let sha = sha256_file(onnx).map_err(|e| e.to_string())?;
+        patch::chunk_attention(&p.onnx, onnx, c).map_err(|e| {
+            CommandError::new(
+                ErrorKind::ModelChunkFailed {
+                    model: spec.label.clone(),
+                    detail: e.to_string(),
+                },
+                format!("改写 {} 失败：{e}", spec.label),
+            )
+        })?;
+        let sha = sha256_file(onnx).map_err(CommandError::system)?;
         if sha != c.sha256 {
             let _ = fs::remove_file(onnx);
-            return Err(format!("{} 改写结果校验失败（{sha}）", spec.label));
+            return Err(CommandError::new(
+                ErrorKind::ModelChunkChecksumFailed {
+                    model: spec.label.clone(),
+                    sha: sha.clone(),
+                },
+                format!("{} 改写结果校验失败（{sha}）", spec.label),
+            ));
         }
-        fs::write(marker, &c.sha256).map_err(|e| e.to_string())?;
+        fs::write(marker, &c.sha256).map_err(CommandError::system)?;
     }
     Ok(())
 }
@@ -526,89 +446,11 @@ fn copy_hashing(from: &mut dyn Read, to: &mut dyn Write) -> std::io::Result<Stri
     Ok(format!("{:x}", h.finalize()))
 }
 
-/// 下载失败的原因。不写下载地址：仓库名与文件名带精度字样，画师用不上（#143）。
-fn download_error(error: ureq::Error) -> String {
-    match error {
-        ureq::Error::Status(code, _) => format!("下载失败：服务器返回 {code}"),
-        ureq::Error::Transport(transport) => match transport.message() {
-            Some(message) => format!("下载失败：{}（{message}）", transport.kind()),
-            None => format!("下载失败：{}", transport.kind()),
+fn no_model_dir(e: std::io::Error) -> CommandError {
+    CommandError::new(
+        ErrorKind::ModelDirFailed {
+            detail: e.to_string(),
         },
-    }
-}
-
-/// 把 `url` 下载到 `dest`：先写 `.part`，有旧的 `.part` 时用 `Range` 续传，完整后改名。
-fn download(
-    url: &str,
-    dest: &Path,
-    expected_size: Option<u64>,
-    progress: &mut dyn FnMut(PrepareStage),
-    cancel: &AtomicBool,
-) -> Result<(), String> {
-    let part = dest.with_extension("part");
-    let mut have = file_len(&part).unwrap_or(0);
-    if let Some(size) = expected_size {
-        if have == size {
-            // 上次下完但没来得及改名；随后的哈希校验兜底。
-            return fs::rename(&part, dest).map_err(|e| e.to_string());
-        }
-        if have > size {
-            let _ = fs::remove_file(&part);
-            have = 0;
-        }
-    }
-    let mut req = ureq::get(url).set("User-Agent", "kinshoko");
-    if have > 0 {
-        req = req.set("Range", &format!("bytes={have}-"));
-    }
-    let resp = req.call().map_err(download_error)?;
-    let resumed = resp.status() == 206;
-    let total = expected_size.or_else(|| {
-        resp.header("Content-Length")
-            .and_then(|v| v.parse::<u64>().ok())
-            .map(|n| if resumed { n + have } else { n })
-    });
-    let mut file = fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .append(resumed)
-        .truncate(!resumed)
-        .open(&part)
-        .map_err(|e| e.to_string())?;
-    let mut done = if resumed { have } else { 0 };
-    let mut reader = resp.into_reader();
-    let mut buf = vec![0u8; 1 << 16];
-    let mut last_report = 0u64;
-    progress(PrepareStage::Downloading {
-        downloaded: done,
-        total: total.unwrap_or(0),
-    });
-    loop {
-        if cancel.load(Ordering::Relaxed) {
-            return Err("下载已停止".into());
-        }
-        let n = reader
-            .read(&mut buf)
-            .map_err(|e| format!("下载中断：{e}"))?;
-        if n == 0 {
-            break;
-        }
-        file.write_all(&buf[..n]).map_err(|e| e.to_string())?;
-        done += n as u64;
-        if done - last_report >= 1 << 20 || Some(done) == total {
-            last_report = done;
-            progress(PrepareStage::Downloading {
-                downloaded: done,
-                total: total.unwrap_or(0),
-            });
-        }
-    }
-    file.flush().map_err(|e| e.to_string())?;
-    drop(file);
-    if let Some(total) = total
-        && done != total
-    {
-        return Err(format!("下载中断：只收到 {done} / {total} 字节"));
-    }
-    fs::rename(&part, dest).map_err(|e| e.to_string())
+        format!("无法建立模型目录：{e}"),
+    )
 }

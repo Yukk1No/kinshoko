@@ -144,7 +144,9 @@ fn the_subprocess_reports_the_device_and_tags_images() {
     assert_eq!(tags[0].name, "blue_eyes");
     assert_eq!(
         session.tag(&dir.path().join("bad.png")),
-        Err(TagFailure::BadImage("无法解码".into()))
+        Err(TagFailure::BadImage(kinshoko_core::tagging::reported(
+            "无法解码"
+        )))
     );
     // 坏图之后会话照常可用。
     assert!(session.tag(&dir.path().join("smile.png")).is_ok());

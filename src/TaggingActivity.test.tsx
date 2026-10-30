@@ -94,8 +94,8 @@ describe("缩放滑块左边的打标图标", () => {
   it.each<[string, TaggingStatus]>([
     ["打完", idle(3)],
     ["需要下载", needsDownload()],
-    ["没有可用设备", { state: "noDevice", reason: "没有独立显卡" }],
-    ["出错", { state: "failed", reason: "超时" }],
+    ["没有可用设备", { state: "noDevice", reason: { code: "taggerReported", detail: "没有独立显卡" } }],
+    ["出错", { state: "failed", reason: { code: "taggerReported", detail: "超时" } }],
   ])("%s时不显示", async (_, status) => {
     backend({ L1: running(1) });
     mount();
@@ -183,7 +183,7 @@ describe("完成类通知", () => {
   });
 
   it.each<[string, TaggingStatus]>([
-    ["出错", { state: "failed", reason: "下载失败：超时" }],
+    ["出错", { state: "failed", reason: { code: "taggerReported", detail: "下载失败：超时" } }],
     ["中断回到需要下载", needsDownload(500_000_000)],
   ])("下载%s不算下载完成", async (_, next) => {
     backend({ L1: downloading(100) });
@@ -207,48 +207,48 @@ describe("完成类通知", () => {
 describe("出错与不可用的通知去重", () => {
   it("出错时写出原因、不自动消失；后端反复重试时同一个原因只弹一次", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    backend({ L1: { state: "failed", reason: "下载失败：超时" } });
+    backend({ L1: { state: "failed", reason: { code: "taggerReported", detail: "下载失败：超时" } } });
     mount();
     expect((await screen.findByRole("alert")).textContent).toContain("自动标签出错：下载失败：超时");
-    await push({ state: "failed", reason: "下载失败：超时" });
-    await push({ state: "failed", reason: "下载失败：超时" });
+    await push({ state: "failed", reason: { code: "taggerReported", detail: "下载失败：超时" } });
+    await push({ state: "failed", reason: { code: "taggerReported", detail: "下载失败：超时" } });
     await act(async () => { vi.advanceTimersByTime(60_000); });
     expect(shown(/下载失败：超时/)).toBe(1);
 
-    await push({ state: "failed", reason: "磁盘已满" });
+    await push({ state: "failed", reason: { code: "taggerReported", detail: "磁盘已满" } });
     await waitFor(() => expect(shown(/磁盘已满/)).toBe(1));
   });
 
   it("重试经过加载、打标或下载再失败时，同一个原因也只弹一次；打完一轮后再出错重新报", async () => {
-    backend({ L1: { state: "failed", reason: "打标子进程崩溃" } });
+    backend({ L1: { state: "failed", reason: { code: "taggerReported", detail: "打标子进程崩溃" } } });
     mount();
     await waitFor(() => expect(shown(/打标子进程崩溃/)).toBe(1));
     await push({ state: "starting" });
     await push(running(0));
-    await push({ state: "failed", reason: "打标子进程崩溃" });
+    await push({ state: "failed", reason: { code: "taggerReported", detail: "打标子进程崩溃" } });
     await push(downloading(10));
-    await push({ state: "failed", reason: "打标子进程崩溃" });
+    await push({ state: "failed", reason: { code: "taggerReported", detail: "打标子进程崩溃" } });
     expect(shown(/打标子进程崩溃/)).toBe(1);
 
     await push(idle(0));
-    await push({ state: "failed", reason: "打标子进程崩溃" });
+    await push({ state: "failed", reason: { code: "taggerReported", detail: "打标子进程崩溃" } });
     await waitFor(() => expect(shown(/打标子进程崩溃/)).toBe(2));
   });
 
   it("不可用时写出原因、不自动消失；本次启动内同一个原因只弹一次", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    backend({ L1: { state: "noDevice", reason: "内存不足" } });
+    backend({ L1: { state: "noDevice", reason: { code: "taggerReported", detail: "内存不足" } } });
     mount();
     await waitFor(() => expect(toasts()).toEqual(["自动标签不可用：内存不足"]));
-    await push({ state: "noDevice", reason: "内存不足" });
+    await push({ state: "noDevice", reason: { code: "taggerReported", detail: "内存不足" } });
     await act(async () => { vi.advanceTimersByTime(60_000); });
     expect(shown(/内存不足/)).toBe(1);
 
     fireEvent.click(screen.getByRole("button", { name: "关闭提示" }));
     await waitFor(() => expect(shown(/内存不足/)).toBe(0));
     await push({ state: "starting" });
-    await push({ state: "noDevice", reason: "内存不足" });
-    await push({ state: "noDevice", reason: "没有独立显卡" });
+    await push({ state: "noDevice", reason: { code: "taggerReported", detail: "内存不足" } });
+    await push({ state: "noDevice", reason: { code: "taggerReported", detail: "没有独立显卡" } });
     await waitFor(() => expect(toasts()).toEqual(["自动标签不可用：没有独立显卡"]));
   });
 });
@@ -275,7 +275,7 @@ describe("一轮打完的通知", () => {
     await settled();
     await push(running(4));
     await push(idle(4));
-    await push({ state: "failed", reason: "看得见的下一条" });
+    await push({ state: "failed", reason: { code: "taggerReported", detail: "看得见的下一条" } });
     await waitFor(() => expect(shown(/看得见的下一条/)).toBe(1));
     expect(shown(/新打了/)).toBe(0);
   });
@@ -290,8 +290,8 @@ describe("切换可写资料库", () => {
     await act(() => emit("writable-library", { id: "L2", name: "私人收藏", root: "D:\\私人收藏" }));
     await screen.findByRole("button", { name: /已标 3 张/ });
     await waitFor(() => expect(shown(/需要下载自动标签模型/)).toBe(0));
-    await push({ state: "failed", reason: "旧库打标失败" }, "L1");
-    await push({ state: "noDevice", reason: "旧库没有显卡" }, "L1");
+    await push({ state: "failed", reason: { code: "taggerReported", detail: "旧库打标失败" } }, "L1");
+    await push({ state: "noDevice", reason: { code: "taggerReported", detail: "旧库没有显卡" } }, "L1");
     await push(idle(4), "L2");
     await waitFor(() => expect(toasts()).toEqual(["自动标签：新打了 1 张"]));
   });

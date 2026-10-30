@@ -52,8 +52,8 @@ describe("设置 › 自动标签 › 自动打标", () => {
     ["暂停", { state: "paused" }, /已暂停/, "继续"],
     ["全屏程序在前台", { state: "yieldedToFullScreen" }, /因全屏程序或演示模式暂停，回到桌面后自动继续/, "暂停"],
     ["打完", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0 }, /已全部打完/, null],
-    ["没有可用设备", { state: "noDevice", reason: "没有独立显卡" }, /自动标签不可用：没有独立显卡/, null],
-    ["出错", { state: "failed", reason: "下载失败：超时" }, /下载失败：超时.*稍后会自动重试/, null],
+    ["没有可用设备", { state: "noDevice", reason: { code: "taggerReported", detail: "没有独立显卡" } }, /自动标签不可用：没有独立显卡/, null],
+    ["出错", { state: "failed", reason: { code: "taggerReported", detail: "下载失败：超时" } }, /下载失败：超时.*稍后会自动重试/, null],
   ])("%s时显示对应的状态与操作", async (_, status, text, action) => {
     backend({ status });
     render(<AutoTaggingSettings libraryId="L1" />);
@@ -78,7 +78,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
   });
 
   it("自动档退回 CPU 时写明原因与要下载的大小", async () => {
-    backend({ status: { state: "needsDownload", model: "x", size: 1_984_062_544, downloaded: 0, fallback: "显卡多次出错，本次不再使用", cancelled: false } });
+    backend({ status: { state: "needsDownload", model: "x", size: 1_984_062_544, downloaded: 0, fallback: { code: "taggerReported", detail: "显卡多次出错，本次不再使用" }, cancelled: false } });
     render(<AutoTaggingSettings libraryId="L1" />);
     await waitFor(() => expect(within(statusRow()).getByText("显卡不可用：显卡多次出错，本次不再使用，改用 CPU 需下载 1984 MB")).toBeTruthy());
     expect(within(statusRow()).getByRole("button", { name: "下载" })).toBeTruthy();
@@ -120,7 +120,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
 
     await act(() => emit("writable-library", { id: "L2", name: "私人收藏", root: "D:\\私人收藏" }));
     expect(await within(statusRow()).findByText(/已标 7 张/)).toBeTruthy();
-    await act(() => emit("tagging-status", { libraryId: "L1", status: { state: "failed", reason: "旧库打标失败" } }));
+    await act(() => emit("tagging-status", { libraryId: "L1", status: { state: "failed", reason: { code: "taggerReported", detail: "旧库打标失败" } } }));
     expect(screen.queryByText(/旧库打标失败/)).toBeNull();
   });
 

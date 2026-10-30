@@ -144,7 +144,7 @@ impl Session {
 
 impl TaggerSession for Session {
     fn tag(&mut self, image: &Path) -> Result<Vec<RawTag>, TagFailure> {
-        let ended = || TagFailure::Crashed("会话已结束".into());
+        let ended = || TagFailure::Crashed(super::port::reported("会话已结束"));
         if self.ended() {
             return Err(ended());
         }
@@ -160,15 +160,17 @@ impl TaggerSession for Session {
         if let Some(n) = s.crashes.get_mut(image).filter(|n| **n > 0) {
             *n -= 1;
             self.dead.store(true, Ordering::SeqCst);
-            return Err(TagFailure::Crashed("模拟崩溃".into()));
+            return Err(TagFailure::Crashed(super::port::reported("模拟崩溃")));
         }
         if let Some(n) = s.device_lost.get_mut(image).filter(|n| **n > 0) {
             *n -= 1;
             self.dead.store(true, Ordering::SeqCst);
-            return Err(TagFailure::DeviceLost("模拟显卡重置".into()));
+            return Err(TagFailure::DeviceLost(super::port::reported(
+                "模拟显卡重置",
+            )));
         }
         if let Some(reason) = s.bad.get(image) {
-            return Err(TagFailure::BadImage(reason.clone()));
+            return Err(TagFailure::BadImage(super::port::reported(reason.clone())));
         }
         s.tagged.push((image.to_path_buf(), self.device));
         Ok(s.outputs.get(image).cloned().unwrap_or_default())

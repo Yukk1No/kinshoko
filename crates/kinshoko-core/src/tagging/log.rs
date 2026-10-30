@@ -56,12 +56,12 @@ impl TaggingLog {
             }
             TaggingStatus::Failed { reason } => {
                 self.run_started = None;
-                self.problem(reason)
+                self.problem(&reason.to_string())
                     .map(|detail| LogEvent::TaggingFailed { detail })
             }
             TaggingStatus::NoDevice { reason } => {
                 self.run_started = None;
-                self.problem(reason)
+                self.problem(&reason.to_string())
                     .map(|detail| LogEvent::TaggingUnavailable { detail })
             }
             TaggingStatus::Paused => {

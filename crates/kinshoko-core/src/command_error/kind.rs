@@ -532,6 +532,140 @@ pub enum ErrorKind {
     },
     EagleItemSizeMismatch,
 
+    // 自动标签：模型下载、导入与打标子进程。
+    TaggingNoGpu,
+    TaggingGpuUnreliable,
+    TaggingVramShort {
+        gpu: String,
+        need: String,
+    },
+    TaggingRamShort {
+        need: String,
+    },
+    TaggingNoModel,
+    /// 几档模型各自用不了的原因。
+    TaggingUnsuitable {
+        reasons: Vec<ErrorKind>,
+    },
+    TaggingQueueUnreadable {
+        cause: Box<ErrorKind>,
+    },
+    TaggingOriginalUnreadable {
+        cause: Box<ErrorKind>,
+    },
+    TaggingStartFailed {
+        cause: Box<ErrorKind>,
+    },
+    TaggingWriteFailed {
+        cause: Box<ErrorKind>,
+    },
+    TaggingBadImage {
+        cause: Box<ErrorKind>,
+    },
+    TaggerCrashed {
+        cause: Box<ErrorKind>,
+    },
+    TaggingDeviceLost {
+        cause: Box<ErrorKind>,
+    },
+    /// 打标子进程（推理库）报告的原文。
+    TaggerReported {
+        detail: String,
+    },
+    TaggerSpawnFailed {
+        detail: String,
+    },
+    TaggerPipeFailed {
+        detail: String,
+    },
+    TaggerUnresponsive {
+        #[ts(type = "number")]
+        seconds: u64,
+    },
+    TaggerExited {
+        status: String,
+    },
+    TaggerUnexpectedReply {
+        reply: String,
+    },
+    ModelDirFailed {
+        detail: String,
+    },
+    ModelUnreadable {
+        detail: String,
+    },
+    ModelChecksumFailed {
+        model: String,
+    },
+    ModelTagsChecksumFailed {
+        model: String,
+    },
+    ModelIncomplete {
+        model: String,
+    },
+    ModelImportIncomplete {
+        model: String,
+    },
+    ModelChunkFailed {
+        model: String,
+        detail: String,
+    },
+    ModelChunkChecksumFailed {
+        model: String,
+        sha: String,
+    },
+    ModelInstallFailed {
+        detail: String,
+    },
+    ModelExtractFailed {
+        detail: String,
+    },
+    ModelPackageUnopenable {
+        detail: String,
+    },
+    ModelPackageNotZip {
+        detail: String,
+    },
+    ModelPackageUnreadable {
+        detail: String,
+    },
+    ModelPackageSeveralModels,
+    ModelPackageNoModel,
+    ModelPackageNoTags {
+        file: String,
+    },
+    ModelPackageTagsInvalid {
+        file: String,
+    },
+    ModelPackageUnsupported {
+        file: String,
+    },
+    ModelPackageDamaged {
+        file: String,
+    },
+    ModelPackageTagsMismatch {
+        file: String,
+        model: String,
+    },
+    DownloadRefused {
+        status: u16,
+    },
+    /// `kind` 是网络库给出的错误种类，`message` 是它的原文。
+    DownloadFailed {
+        kind: String,
+        message: Option<String>,
+    },
+    DownloadStopped,
+    DownloadInterrupted {
+        detail: String,
+    },
+    DownloadIncomplete {
+        #[ts(type = "number")]
+        done: u64,
+        #[ts(type = "number")]
+        total: u64,
+    },
+
     /// 还原度门槛实验（开发用）不认识的取图方式。
     UnknownFidelitySample {
         what: String,

@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::models::ModelSpec;
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 
 /// 推理设备档位。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
@@ -79,11 +81,38 @@ pub struct PreparedModel {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TagFailure {
     /// 这张图本身无法打标（例如解码失败）；会话照常可用。
-    BadImage(String),
+    BadImage(CommandError),
     /// 打标子进程崩溃、超时或无响应；会话已不可用。
-    Crashed(String),
+    Crashed(CommandError),
     /// 显卡被系统重置或显存溢出；会话已不可用。
-    DeviceLost(String),
+    DeviceLost(CommandError),
+}
+
+/// 打标子进程（推理库）报告的原因，按原样显示。
+pub fn reported(detail: impl Into<String>) -> CommandError {
+    let detail = detail.into();
+    CommandError::new(
+        ErrorKind::TaggerReported {
+            detail: detail.clone(),
+        },
+        detail,
+    )
+}
+
+impl From<TagFailure> for CommandError {
+    fn from(failure: TagFailure) -> Self {
+        let text = failure.to_string();
+        let (TagFailure::BadImage(cause)
+        | TagFailure::Crashed(cause)
+        | TagFailure::DeviceLost(cause)) = &failure;
+        let cause = Box::new(cause.kind.clone());
+        let kind = match failure {
+            TagFailure::BadImage(_) => ErrorKind::TaggingBadImage { cause },
+            TagFailure::Crashed(_) => ErrorKind::TaggerCrashed { cause },
+            TagFailure::DeviceLost(_) => ErrorKind::TaggingDeviceLost { cause },
+        };
+        CommandError::new(kind, text)
+    }
 }
 
 impl std::fmt::Display for TagFailure {
