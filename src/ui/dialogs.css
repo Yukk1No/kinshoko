@@ -78,8 +78,8 @@
 
 /* ---- Import task cards, bottom right ---- */
 /* They share the corner with the toasts (toast.css) and sit above the collapsed toast stack, whose height Toast.tsx publishes. */
-.k-task-cards { position: fixed; right: 18px; bottom: calc(18px + var(--k-toast-stack, 0px)); z-index: 50; width: 340px; max-width: calc(100vw - 36px); max-height: calc(100vh - 100px);
-  overflow: auto; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.k-task-cards { position: fixed; right: 18px; bottom: calc(18px + var(--k-toast-stack, 0px)); z-index: 50; width: 340px; max-width: calc(100vw - 36px);
+  max-height: calc(100vh - 100px - var(--k-toast-stack, 0px)); overflow: auto; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
 .k-task-cards:empty { display: none; }
 /* Same material and type as a toast (toast.css): a frosted card, the icon in a 28 px well, a 13 px title; the body lines up
    under the title, past the icon well. Only an error tints the icon (#388). */
@@ -195,7 +195,7 @@
 body:has(.inspector[data-collapsed="false"]) .k-task-cards { right: calc(var(--inspector-width, 320px) + 1px + 18px); max-width: calc(100vw - var(--inspector-width, 320px) - 1px - 36px); }
 @media (prefers-reduced-motion: reduce) { .k-task-cards { transition: none; } }
 /* 有浮动的多选操作条时，卡片抬到操作条上方，同样不遮住它。 */
-body:has(.selbar-host > .selbar) .k-task-cards { bottom: calc(18px + 66px + var(--k-toast-stack, 0px)); }
+body:has(.selbar-host > .selbar) .k-task-cards { bottom: calc(18px + 66px + var(--k-toast-stack, 0px)); max-height: calc(100vh - 100px - 66px - var(--k-toast-stack, 0px)); }
 /* 标签外观的分档阈值（#160）：短标签 + 窄数字框，一行放下两个阈值和“恢复默认”。 */
 .k-set-number { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
 /* 窄时两个阈值和“恢复默认”折行，靠右对齐，不溢出设置窗口。 */

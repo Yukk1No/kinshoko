@@ -196,6 +196,19 @@ describe("备份提醒", () => {
     expect(document.querySelectorAll(".k-toast")).toHaveLength(1);
   });
 
+  it("提醒重新挂载时不叠出重复的出错提示", async () => {
+    backend((cmd) =>
+      cmd === "backup_status"
+        ? { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } }
+        : undefined,
+    );
+    const view = render(<ToastProvider><BackupReminder key="a" /></ToastProvider>);
+    await waitFor(() => expect(document.querySelectorAll(".k-toast")).toHaveLength(1));
+    view.rerender(<ToastProvider><BackupReminder key="b" /></ToastProvider>);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await waitFor(() => expect(document.querySelectorAll(".k-toast:not([data-ending-style])")).toHaveLength(1));
+  });
+
   it("没有失败时不打扰", async () => {
     const calls = backend((cmd) => (cmd === "backup_status" ? withTarget : undefined));
     render(<BackupReminder />);

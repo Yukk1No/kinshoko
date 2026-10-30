@@ -286,6 +286,8 @@ export function BackupReminder() {
     if (shown.current) toast.close(shown.current.id);
     shown.current = at === null ? null : { at, id: toast.error(`备份没有完成：${reason}`, { description: "Kinshoko 会在下次退出或空闲时再试。" }) };
   }, [toast, at, reason]);
+  // 提醒随页面切换重新挂载：卸下时收起自己发出的提示，新实例再发一条，不会越积越多。
+  useEffect(() => () => { if (shown.current) toast?.close(shown.current.id); shown.current = null; }, [toast]);
   if (toast || failure === null || dismissed === failure.at.unixMs) return null;
   return (
     <div className="update-banner backup-reminder" role="alert">
