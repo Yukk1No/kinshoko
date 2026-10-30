@@ -1,14 +1,14 @@
 name: close-issues
 
-# PR 合进 integration/** 后关闭正文里 Closes/Fixes/Resolves #N 指向的 issue。
-# GitHub 只在 PR 合进默认分支（main）时自动关 issue，v1 发布前主干是 integration/v1，所以由这里补上。
+# PR 合进维护分支 maint/** 后关闭正文里 Closes/Fixes/Resolves #N 指向的 issue。
+# GitHub 只在 PR 合进默认分支（main）时自动关 issue，维护分支由这里补上。
 # 规则与 GitHub 一致：关键字后紧跟 #N 才算，一个关键字只认一个编号；“Partially fixes #N”与“Refs #N”不关。
 # 只读 PR 正文，不读标题和提交信息。
 
 on:
   pull_request:
     types: [closed]
-    branches: ["integration/**"]
+    branches: ["maint/**"]
 
 permissions:
   contents: read
