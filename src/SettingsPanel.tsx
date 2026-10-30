@@ -15,7 +15,6 @@ import { TagNamePanel } from "./library/TagNamePanel";
 import { TagIdentityPanel } from "./library/TagIdentityPanel";
 import { ApplicationSettingsBackup } from "./ApplicationSettingsBackup";
 import { TagDisplaySettings } from "./TagDisplaySettings";
-import { DEFAULT_TAG_DISPLAY } from "./tags/tagConfidence";
 import { BackupSettings } from "./Backup";
 import { AutoTaggingSettings } from "./AutoTaggingSettings";
 import { UpdateSection } from "./Update";
@@ -219,7 +218,7 @@ export function SettingsPanel({ onChange, onRestored, library, initialTab = "gen
               { value: "names", label: "显示名" }, { value: "groups", label: "分组" }, { value: "approx", label: "相近" }, { value: "mapping", label: "对应" },
               { value: "appearance", label: "外观" },
             ]} />
-            {tagView === "appearance" && <TagDisplaySettings key={`appearance/${settingsGeneration}`} display={view.tagDisplay ?? DEFAULT_TAG_DISPLAY} onSave={(display) => apply({ kind: "tagDisplay", display })} />}
+            {tagView === "appearance" && <TagDisplaySettings key={`appearance/${settingsGeneration}`} display={settings.tagDisplay} onChange={settings.changeTagDisplay} />}
             {tagView === "names" && <>
               <TagNamePanel key={`names/${settingsGeneration}`} focus={initialTagFocus} />
               <LegacyNameBanner onOpen={onOpenNameWizard} />

@@ -20,6 +20,7 @@ import {
   setUpdateChannel,
   shellSettings,
 } from "../ipc";
+import { DEFAULT_TAG_DISPLAY } from "../tags/tagConfidence";
 import { createSettingsSubmitter, type SettingsCommand } from "./settingsSubmitter";
 
 /** 设置页能提交的改动；每种怎样合并见 `shellSettingsCommand`。 */
@@ -94,6 +95,22 @@ export function useShellSettings(onChange?: (view: ShellSettingsView) => void) {
     [submitter],
   );
 
+  // 标签外观连着改时，后一项在最后改成的那份之上改。这份草稿放在这里而不在外观分区里，
+  // 切走再回来的分区接着在它之上改，失败作废的同项改动也就都是真依赖失败那次的。
+  const tagDraft = useRef<TagDisplay | null>(null);
+  const tagOutstanding = useRef(0);
+  const [tagDisplayDraft, setTagDisplayDraft] = useState<TagDisplay | null>(null);
+  const changeTagDisplay = useCallback((change: Partial<TagDisplay>) => {
+    const display = { ...(tagDraft.current ?? submitter.state().view?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...change };
+    tagDraft.current = display;
+    tagOutstanding.current += 1;
+    setTagDisplayDraft(display);
+    void submit({ kind: "tagDisplay", display }).then(() => {
+      tagOutstanding.current -= 1;
+      if (tagOutstanding.current === 0) { tagDraft.current = null; setTagDisplayDraft(null); }
+    });
+  }, [submitter, submit]);
+
   /** 用备份整份替换偏好设置；失败时 reject，原因由调用方显示。 */
   const restore = useCallback(async (path: string, fingerprint: string) => {
     let restored: ApplicationSettingsRestored | undefined;
@@ -110,6 +127,9 @@ export function useShellSettings(onChange?: (view: ShellSettingsView) => void) {
     error: state.error,
     /** 恢复备份的代次，换了时各分区重新挂载。 */
     generation: state.generation,
+    /** 标签外观：还有没回来的保存时是最后改成的那份，都回来后是已接受的设置，失败时也就回到了它。 */
+    tagDisplay: tagDisplayDraft ?? state.view?.tagDisplay ?? DEFAULT_TAG_DISPLAY,
+    changeTagDisplay,
     loadError,
     retryLoad: () => setLoadAttempt((n) => n + 1),
     submit,
