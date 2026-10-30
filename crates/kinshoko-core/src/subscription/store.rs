@@ -13,6 +13,8 @@ use ts_rs::TS;
 use super::{NewSubscription, SourceError, SourceId, Subscription, Target};
 
 const FILE: &str = "subscriptions.db";
+/// 一个作品失败这么多次后不再重试，也不再让来源为它翻到底。
+const MAX_ATTEMPTS: u32 = 5;
 
 fn migrations() -> Migrations<'static> {
     Migrations::new(vec![M::up(include_str!(
@@ -303,6 +305,49 @@ impl Store {
                 // 跳过的作品没有新图。
                 outcome != Outcome::Collected
             ],
+        )?;
+        Ok(())
+    }
+
+    /// 这条订阅有没收成、还要重试的作品。
+    pub(super) fn has_failed(&self, subscription_id: &str) -> Result<bool, StoreError> {
+        Ok(self
+            .conn()
+            .query_row(
+                "SELECT 1 FROM failed_work WHERE subscription_id = ?1 AND attempts < ?2 LIMIT 1",
+                params![subscription_id, MAX_ATTEMPTS],
+                |_| Ok(()),
+            )
+            .optional()?
+            .is_some())
+    }
+
+    /// 记下一次没收成；返回累计失败次数。
+    pub(super) fn record_failure(
+        &self,
+        subscription_id: &str,
+        source: SourceId,
+        work_id: &str,
+    ) -> Result<u32, StoreError> {
+        Ok(self.conn().query_row(
+            "INSERT INTO failed_work (subscription_id, source, work_id, attempts)
+             VALUES (?1, ?2, ?3, 1)
+             ON CONFLICT DO UPDATE SET attempts = attempts + 1
+             RETURNING attempts",
+            params![subscription_id, source.as_str(), work_id],
+            |r| r.get(0),
+        )?)
+    }
+
+    pub(super) fn clear_failure(
+        &self,
+        subscription_id: &str,
+        source: SourceId,
+        work_id: &str,
+    ) -> Result<(), StoreError> {
+        self.conn().execute(
+            "DELETE FROM failed_work WHERE subscription_id = ?1 AND source = ?2 AND work_id = ?3",
+            params![subscription_id, source.as_str(), work_id],
         )?;
         Ok(())
     }

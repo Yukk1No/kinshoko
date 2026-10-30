@@ -398,7 +398,7 @@ pub async fn subscription_login(app: AppHandle, title: String) -> Result<(), Str
             if !captured.swap(true, Ordering::SeqCst) {
                 let app = handle.clone();
                 let request = request.clone();
-                std::thread::spawn(move || finish_login(&app, &request, &code));
+                std::thread::spawn(move || finish_login(&app, request, &code));
             }
             false
         })
@@ -408,7 +408,8 @@ pub async fn subscription_login(app: AppHandle, title: String) -> Result<(), Str
 }
 
 /// 用截到的 code 换登录会话，关掉登录窗口，检查线程随即按需开始。
-fn finish_login(app: &AppHandle, request: &LoginRequest, code: &str) {
+/// 换会话期间画师退出了登录（或又开了一次登录）时，这次的结果作废。
+fn finish_login(app: &AppHandle, request: Arc<LoginRequest>, code: &str) {
     let Some(state) = app.try_state::<SubscriptionState>() else {
         return;
     };
@@ -416,16 +417,24 @@ fn finish_login(app: &AppHandle, request: &LoginRequest, code: &str) {
     if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
         let _ = window.close();
     }
-    if let Ok(mut login) = state.login.lock() {
-        *login = None;
-    }
-    match result {
-        Ok(session) => {
-            if let Err(e) = state.account.logged_in(session) {
-                eprintln!("pixiv 登录没能保存：{e}");
-            }
+    {
+        // 与退出登录同一把锁：核对这次登录仍有效和保存会话之间，退出登录插不进来。
+        let mut login = state.login.lock().unwrap_or_else(|e| e.into_inner());
+        if !login
+            .as_ref()
+            .is_some_and(|current| Arc::ptr_eq(current, &request))
+        {
+            return;
         }
-        Err(e) => eprintln!("pixiv 登录没能完成：{e:?}"),
+        *login = None;
+        match result {
+            Ok(session) => {
+                if let Err(e) = state.account.logged_in(session) {
+                    eprintln!("pixiv 登录没能保存：{e}");
+                }
+            }
+            Err(e) => eprintln!("pixiv 登录没能完成：{e:?}"),
+        }
     }
     state.poke(false);
     publish(app);
@@ -439,7 +448,12 @@ pub async fn subscription_logout(app: AppHandle) -> Result<SubscriptionStatus, S
     if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
         let _ = window.destroy();
     }
-    state.account.log_out().map_err(|e| e.to_string())?;
+    {
+        // 作废还在换会话的登录，免得它晚到的结果把登录写回来。
+        let mut login = state.login.lock().unwrap_or_else(|e| e.into_inner());
+        *login = None;
+        state.account.log_out().map_err(|e| e.to_string())?;
+    }
     remove_login_profile(&state.dir);
     publish(&app);
     Ok(status(&app, &state))

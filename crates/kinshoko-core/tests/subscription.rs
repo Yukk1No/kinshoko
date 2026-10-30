@@ -319,9 +319,18 @@ fn a_failed_download_only_skips_that_work_until_next_time() {
     );
     let report = f.check(&mut source).unwrap();
     assert_eq!((report.collected, report.failed), (1, 1));
+    // 来源照常在已收的作品 2 处停止翻页；有待重试的作品 1 时仍要翻到它。
     source.fail.clear();
-    let mut retry = FakeSourceIgnoringKnown(&mut source);
-    assert_eq!(f.check(&mut retry).unwrap().collected, 1);
+    source.downloads.clear();
+    assert_eq!(f.check(&mut source).unwrap().collected, 1);
+    assert_eq!(
+        source.downloads,
+        ["https://i.pximg.net/img-original/1_p0.png"]
+    );
+    // 收成后恢复正常：下一次碰到收过的就停，什么都不下。
+    source.downloads.clear();
+    assert_eq!(f.check(&mut source).unwrap().collected, 0);
+    assert!(source.downloads.is_empty());
 }
 
 #[test]

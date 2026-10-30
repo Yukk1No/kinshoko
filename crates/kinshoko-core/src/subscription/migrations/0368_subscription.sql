@@ -39,6 +39,16 @@ CREATE TABLE received_page (
     PRIMARY KEY (library_id, source, work_id, page)
 );
 
+-- 没收成的作品（下载或导入失败）：下次检查时来源不能在比它新的已收作品处停止翻页，
+-- 否则它永远轮不到重试。失败太多次的放弃。
+CREATE TABLE failed_work (
+    subscription_id TEXT NOT NULL,
+    source          TEXT NOT NULL,
+    work_id         TEXT NOT NULL,
+    attempts        INTEGER NOT NULL,
+    PRIMARY KEY (subscription_id, source, work_id)
+);
+
 -- 遇到频率限制后的退避：到 until 之前不检查；level 每连续一次加一。
 CREATE TABLE backoff (
     source TEXT PRIMARY KEY,

@@ -144,7 +144,12 @@ fn run(
     let source_id = source.id();
     let library_id = subscription.library_id.as_str();
     let mut store_failed = false;
+    // 有待重试的作品时，不让来源在比它新的已收作品处停下，否则它轮不到重试。
+    let retrying = store.has_failed(&subscription.id)?;
     let works = source.works(subscription, &mut |work_id| {
+        if retrying {
+            return false;
+        }
         let key = WorkKey {
             library_id,
             source: source_id,
@@ -190,6 +195,7 @@ fn run(
         }
         match collect(store, subscription, &key, work, source, destination, now)? {
             Some(pages) => {
+                store.clear_failure(&subscription.id, source_id, &work.id)?;
                 store.record_work(
                     &key,
                     &subscription.id,
@@ -199,7 +205,10 @@ fn run(
                 )?;
                 report.collected += pages;
             }
-            None => report.failed += 1,
+            None => {
+                store.record_failure(&subscription.id, source_id, &work.id)?;
+                report.failed += 1;
+            }
         }
     }
     Ok(report)
