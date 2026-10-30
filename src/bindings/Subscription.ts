@@ -25,4 +25,8 @@ includeManga: boolean, createdAt: number, lastCheckedAt: number | null,
 /**
  * 上次检查没完成的原因；成功后清空。
  */
-lastError: SourceError | null, };
+lastError: SourceError | null, 
+/**
+ * 上次检查没完成的时间；成功后清空。
+ */
+lastFailedAt: number | null, };
