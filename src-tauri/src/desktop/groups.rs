@@ -12,6 +12,7 @@
 //!
 //! 参考组变化后向所有窗口推送 `reference-groups`（无载荷），主窗口据此重新读取列表。
 
+use kinshoko_core::CommandError;
 use kinshoko_core::desktop::{
     CaptureChoice, CaptureEntry, CollectedCapture, PinContent, SavedPin, pull_onto_screen,
 };
@@ -32,11 +33,11 @@ fn changed(app: &AppHandle) {
 }
 
 async fn blocking<T: Send + 'static>(
-    f: impl FnOnce() -> Result<T, String> + Send + 'static,
-) -> Result<T, String> {
+    f: impl FnOnce() -> Result<T, CommandError> + Send + 'static,
+) -> Result<T, CommandError> {
     tauri::async_runtime::spawn_blocking(f)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(CommandError::message)?
 }
 
 /// 把存进参考组后钉图记下的成员写回钉图状态。
@@ -57,9 +58,12 @@ fn kept_in(target: Option<&ReferenceGroup>, pin: &SavedPin) -> bool {
             .any(|m| m.id == member.member_id && m.library_id().is_none())
 }
 
-fn target_group(app: &AppHandle, group_id: Option<&str>) -> Result<Option<ReferenceGroup>, String> {
+fn target_group(
+    app: &AppHandle,
+    group_id: Option<&str>,
+) -> Result<Option<ReferenceGroup>, CommandError> {
     group_id
-        .map(|id| lock(&state(app).groups).get(id).map_err(|e| e.to_string()))
+        .map(|id| lock(&state(app).groups).get(id).map_err(CommandError::from))
         .transpose()
 }
 
@@ -69,7 +73,7 @@ fn target_group(app: &AppHandle, group_id: Option<&str>) -> Result<Option<Refere
 pub async fn group_save_captures(
     app: AppHandle,
     group_id: Option<String>,
-) -> Result<Vec<CaptureEntry>, String> {
+) -> Result<Vec<CaptureEntry>, CommandError> {
     blocking(move || {
         let target = target_group(&app, group_id.as_deref())?;
         let open = pins::open_pins(&app);
@@ -99,7 +103,7 @@ fn prepare_pins(
     app: &AppHandle,
     choices: &[CaptureChoice],
     target: Option<&ReferenceGroup>,
-) -> Result<(Vec<SavedPin>, Vec<GroupCapture>), String> {
+) -> Result<(Vec<SavedPin>, Vec<GroupCapture>), CommandError> {
     let open = pins::open_pins(app);
     // 先核对全部选择；预览后新出现的截图也必须明确处理。
     for id in open
@@ -148,11 +152,11 @@ fn prepare_pins(
         let reference = crate::library::with_destination_published(app, &destination, |library| {
             let pending = lock(&state(app).history)
                 .prepare_collect(id)
-                .map_err(|e| e.to_string())?;
-            let collected = pending.import(library).map_err(|e| e.to_string())?;
+                .map_err(CommandError::from)?;
+            let collected = pending.import(library).map_err(CommandError::from)?;
             lock(&state(app).history)
                 .finish_collect_pin(&pin, collected)
-                .map_err(|e| e.to_string())
+                .map_err(CommandError::from)
         }).map_err(|error| {
             super::history_changed(app);
             format!("第 {} 张截图的收藏未完成：{error}。之前完成的 {completed_captures} 张收藏已保留；参考组尚未保存。",completed_captures+1)
@@ -242,14 +246,14 @@ pub fn group_name(app: &AppHandle, group_id: &str) -> Option<String> {
 
 /// 把桌面上来自参考组 `group_id` 的钉图存回它（钉图菜单“存回参考组”）。来自它自带截图的截图钉图
 /// 更新那个成员，截图文件不动。
-pub fn save_back(app: &AppHandle, group_id: &str) -> Result<ReferenceGroup, String> {
+pub fn save_back(app: &AppHandle, group_id: &str) -> Result<ReferenceGroup, CommandError> {
     let mut open: Vec<SavedPin> = pins::open_pins(app)
         .into_iter()
         .filter(|p| p.member.as_ref().is_some_and(|m| m.group_id == group_id))
         .collect();
     let group = lock(&state(app).groups)
         .save_pins(group_id, &mut open)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     remember_members(app, &open);
     link_captures(app, &open);
     changed(app);
@@ -258,8 +262,8 @@ pub fn save_back(app: &AppHandle, group_id: &str) -> Result<ReferenceGroup, Stri
 
 /// 本设备的参考组，最近保存的在前；读不懂的文件也列出并说明原因。
 #[tauri::command]
-pub async fn reference_groups(app: AppHandle) -> Result<Vec<GroupSummary>, String> {
-    blocking(move || lock(&state(&app).groups).list().map_err(|e| e.to_string())).await
+pub async fn reference_groups(app: AppHandle) -> Result<Vec<GroupSummary>, CommandError> {
+    blocking(move || lock(&state(&app).groups).list().map_err(CommandError::from)).await
 }
 
 /// 一个参考组及每个成员此刻能否显示（不可用时的原因、安全模式下是否遮蔽）。
@@ -267,10 +271,10 @@ pub async fn reference_groups(app: AppHandle) -> Result<Vec<GroupSummary>, Strin
 pub async fn reference_group(
     app: AppHandle,
     group_id: String,
-) -> Result<ReferenceGroupView, String> {
+) -> Result<ReferenceGroupView, CommandError> {
     blocking(move || {
         let groups = lock(&state(&app).groups).clone();
-        let group = groups.get(&group_id).map_err(|e| e.to_string())?;
+        let group = groups.get(&group_id).map_err(CommandError::from)?;
         Ok(crate::library::with_references(&app, |refs| {
             groups.view(group, refs)
         }))
@@ -284,12 +288,12 @@ pub async fn save_reference_group(
     app: AppHandle,
     name: String,
     captures: Option<Vec<CaptureChoice>>,
-) -> Result<ReferenceGroup, String> {
+) -> Result<ReferenceGroup, CommandError> {
     blocking(move || {
         let (mut open, kept) = prepare_pins(&app, &captures.unwrap_or_default(), None)?;
         let group = lock(&state(&app).groups)
             .create_with_captures(&name, &mut open, &kept)
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         remember_members(&app, &open);
         link_captures(&app, &open);
         changed(&app);
@@ -305,13 +309,13 @@ pub async fn save_pins_to_group(
     app: AppHandle,
     group_id: String,
     captures: Option<Vec<CaptureChoice>>,
-) -> Result<ReferenceGroup, String> {
+) -> Result<ReferenceGroup, CommandError> {
     blocking(move || {
         let target = target_group(&app, Some(&group_id))?;
         let (mut open, kept) = prepare_pins(&app, &captures.unwrap_or_default(), target.as_ref())?;
         let group = lock(&state(&app).groups)
             .save_pins_with_captures(&group_id, &mut open, &kept)
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         remember_members(&app, &open);
         link_captures(&app, &open);
         changed(&app);
@@ -324,10 +328,10 @@ pub async fn save_pins_to_group(
 /// 图已删除的成员也钉出来，保留布局并在钉图上写出原因。参考组自带的截图放回截图历史后钉出，
 /// 文件缺失的说明原因。返回新钉出的数量。
 #[tauri::command]
-pub async fn open_reference_group(app: AppHandle, group_id: String) -> Result<usize, String> {
+pub async fn open_reference_group(app: AppHandle, group_id: String) -> Result<usize, CommandError> {
     blocking(move || {
         let groups = lock(&state(&app).groups).clone();
-        let group = groups.get(&group_id).map_err(|e| e.to_string())?;
+        let group = groups.get(&group_id).map_err(CommandError::from)?;
         let open = pins::open_pins(&app);
         let monitors = pins::monitors();
         let opened = groups.open_pins(&group, &mut lock(&state(&app).history), |m| {
@@ -357,7 +361,7 @@ pub async fn open_reference_group(app: AppHandle, group_id: String) -> Result<us
             pins::open_pin(&app, pin);
         }
         match opened.problems.first() {
-            Some(e) => Err(e.clone()),
+            Some(e) => Err(e.clone().into()),
             None => Ok(fresh.len()),
         }
     })
@@ -369,11 +373,11 @@ pub async fn rename_reference_group(
     app: AppHandle,
     group_id: String,
     name: String,
-) -> Result<ReferenceGroup, String> {
+) -> Result<ReferenceGroup, CommandError> {
     blocking(move || {
         let group = lock(&state(&app).groups)
             .rename(&group_id, &name)
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         changed(&app);
         Ok(group)
     })
@@ -383,11 +387,11 @@ pub async fn rename_reference_group(
 /// 删除参考组和它自带的截图。引用的图与资料库不受影响；桌面上来自它的钉图留着，只是不再记得
 /// 这个参考组（自带截图的钉图仍显示截图历史里的那份）。
 #[tauri::command]
-pub async fn delete_reference_group(app: AppHandle, group_id: String) -> Result<(), String> {
+pub async fn delete_reference_group(app: AppHandle, group_id: String) -> Result<(), CommandError> {
     blocking(move || {
         lock(&state(&app).groups)
             .delete(&group_id)
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         {
             let mut store = lock(&state(&app).store);
             let ids: Vec<String> = store
@@ -414,10 +418,10 @@ pub async fn export_reference_group_package(
     app: AppHandle,
     group_id: String,
     path: Option<PathBuf>,
-) -> Result<Option<PathBuf>, String> {
+) -> Result<Option<PathBuf>, CommandError> {
     blocking(move || {
         let groups = lock(&state(&app).groups).clone();
-        let group = groups.get(&group_id).map_err(|e| e.to_string())?;
+        let group = groups.get(&group_id).map_err(CommandError::from)?;
         let Some(path) = path.or_else(|| {
             app.dialog()
                 .file()
@@ -442,7 +446,7 @@ pub async fn import_reference_group_package(
     library_id: String,
     destination: Option<kinshoko_core::library::SaveDestination>,
     path: Option<PathBuf>,
-) -> Result<Option<ReferenceGroup>, String> {
+) -> Result<Option<ReferenceGroup>, CommandError> {
     blocking(move || {
         let destination = destination.unwrap_or(kinshoko_core::library::SaveDestination {
             library_id: library_id.clone(),
@@ -476,11 +480,11 @@ pub async fn remove_group_member(
     app: AppHandle,
     group_id: String,
     member_id: String,
-) -> Result<ReferenceGroup, String> {
+) -> Result<ReferenceGroup, CommandError> {
     blocking(move || {
         let group = lock(&state(&app).groups)
             .remove_member(&group_id, &member_id)
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         changed(&app);
         Ok(group)
     })

@@ -1,5 +1,7 @@
 //! Workspace adapter: detached provider reads, revisions and global safe-mode boundaries.
+
 use super::*;
+use kinshoko_core::CommandError;
 use kinshoko_core::diagnostics::took;
 use kinshoko_core::workspace::{
     Workspace, WorkspaceCard, WorkspaceDirectories, WorkspacePage, WorkspaceQuery, WorkspaceStatus,
@@ -11,7 +13,7 @@ pub(super) const EVENT: &str = "workspace-changed";
 pub(super) fn with_resources<T>(
     state: &LibraryState,
     f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     // 三把锁都记在调用方的位置上（#337）：日志里看得出是哪个命令占着它们。
     let site = std::panic::Location::caller();
     with_libraries_at(state, site, |device| {
@@ -29,7 +31,7 @@ pub(super) fn with_resources<T>(
                 }
                 f(slot.as_mut().expect("workspace opened"), device, catalog)
             })
-            .map_err(|e| e.to_string()))
+            .map_err(CommandError::from))
     })?
 }
 
@@ -38,10 +40,12 @@ pub(super) fn action<R: Runtime, T>(
     app: &AppHandle<R>,
     safe: bool,
     f: impl FnOnce(&mut Workspace, &DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     let state = app.state::<LibraryState>();
     if saved_safe_mode(app) != safe {
-        return Err(kinshoko_core::library::Error::LensChanged.to_string());
+        return Err(kinshoko_core::library::Error::LensChanged
+            .to_string()
+            .into());
     }
     with_resources(&state, |workspace, device, catalog| {
         f(workspace, device, catalog)
@@ -54,9 +58,11 @@ pub(super) fn current<R: Runtime>(
     app: &AppHandle<R>,
     safe: bool,
     expected: SafeModeSnapshot,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     if !app.state::<LibraryState>().safe_mode.still(&expected) || saved_safe_mode(app) != safe {
-        Err(kinshoko_core::library::Error::LensChanged.to_string())
+        Err(kinshoko_core::library::Error::LensChanged
+            .to_string()
+            .into())
     } else {
         Ok(())
     }
@@ -67,7 +73,7 @@ pub(super) fn guarded<R: Runtime, T>(
     app: &AppHandle<R>,
     safe: bool,
     f: impl FnOnce(&mut Workspace, &DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     let expected = generation(app);
     let value = action(app, safe, f)?;
     current(app, safe, expected)?;
@@ -79,7 +85,7 @@ pub(super) fn stable<R: Runtime, T>(
     app: &AppHandle<R>,
     safe: bool,
     f: impl FnOnce(&mut Workspace, &DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     guarded(app, safe, |workspace, device, catalog| {
         let before = workspace.status(device, catalog, safe)?;
         let value = f(workspace, device, catalog)?;
@@ -112,7 +118,7 @@ pub(super) fn monitor<R: Runtime>(app: AppHandle<R>) {
 pub(super) async fn workspace_status<R: Runtime>(
     app: AppHandle<R>,
     safe_mode: bool,
-) -> Result<WorkspaceStatus, String> {
+) -> Result<WorkspaceStatus, CommandError> {
     blocking(move || stable(&app, safe_mode, |w, d, c| w.status(d, c, safe_mode))).await
 }
 #[tauri::command]
@@ -120,7 +126,7 @@ pub(super) async fn workspace_browse<R: Runtime>(
     app: AppHandle<R>,
     query: WorkspaceQuery,
     safe_mode: bool,
-) -> Result<WorkspacePage, String> {
+) -> Result<WorkspacePage, CommandError> {
     blocking(move || {
         // 浏览耗时（#183、#313）：记进运行日志，分等资源锁、锁外读占位图与总耗时；core 另有锁里的
         // 分段（#288）。
@@ -154,7 +160,7 @@ pub(super) async fn workspace_resolve<R: Runtime>(
     input: SearchInput,
     lang: String,
     safe_mode: bool,
-) -> Result<ConditionTree, String> {
+) -> Result<ConditionTree, CommandError> {
     blocking(move || {
         let catalog = app.state::<LibraryState>().search.clone();
         stable(&app, safe_mode, |w, d, c| {
@@ -170,7 +176,7 @@ pub(super) async fn workspace_candidates<R: Runtime>(
     lang: String,
     limit: u32,
     safe_mode: bool,
-) -> Result<Vec<Candidate>, String> {
+) -> Result<Vec<Candidate>, CommandError> {
     blocking(move || {
         let catalog = app.state::<LibraryState>().search.clone();
         stable(&app, safe_mode, |w, d, c| {
@@ -192,7 +198,7 @@ pub(super) fn read<R: Runtime>(
     app: &AppHandle<R>,
     library_id: &str,
     image_id: &str,
-) -> Result<Arc<Library>, String> {
+) -> Result<Arc<Library>, CommandError> {
     let safe = saved_safe_mode(app);
     stable(app, safe, |workspace, device, catalog| {
         if !workspace.contains(device, catalog, library_id, image_id, safe)? {
@@ -215,7 +221,7 @@ pub(super) fn read_image<R: Runtime>(
     library_id: &str,
     image_id: &str,
     slow: &mut bool,
-) -> Result<Arc<Library>, String> {
+) -> Result<Arc<Library>, CommandError> {
     let state = app.state::<LibraryState>();
     let expected = generation(app);
     let mode = saved_mode(app);
@@ -223,7 +229,7 @@ pub(super) fn read_image<R: Runtime>(
         .gate
         .authorize(library_id, image_id, mode.on, mode.scope)
     {
-        Some(result) => result.map_err(|e| e.to_string())?,
+        Some(result) => result.map_err(CommandError::from)?,
         None => {
             *slow = true;
             action(app, mode.on, |workspace, device, catalog| {
@@ -239,12 +245,12 @@ pub(super) async fn workspace_image<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     image_id: String,
-) -> Result<ImageDetail, String> {
+) -> Result<ImageDetail, CommandError> {
     blocking(move || {
         let safe = saved_safe_mode(&app);
         let expected = generation(&app);
         let library = read(&app, &library_id, &image_id)?;
-        let image = library.image(&image_id).map_err(|e| e.to_string())?;
+        let image = library.image(&image_id).map_err(CommandError::from)?;
         current(&app, safe, expected)?;
         // A rating/provider change during the detail read cannot release a stale image.
         read(&app, &library_id, &image_id)?;
@@ -260,7 +266,7 @@ pub(super) async fn workspace_card<R: Runtime>(
     library_id: String,
     image_id: String,
     safe_mode: bool,
-) -> Result<WorkspaceCard, String> {
+) -> Result<WorkspaceCard, CommandError> {
     blocking(move || {
         stable(&app, safe_mode, |w, d, c| {
             w.card(d, c, &library_id, &image_id, safe_mode)
@@ -275,7 +281,7 @@ pub(super) async fn workspace_tag_groups<R: Runtime>(
     library_id: String,
     lang: String,
     safe_mode: bool,
-) -> Result<Vec<TagGroupView>, String> {
+) -> Result<Vec<TagGroupView>, CommandError> {
     blocking(move || {
         stable(&app, safe_mode, |w, d, c| {
             w.tag_groups(d, c, &library_id, &lang, safe_mode)
@@ -288,7 +294,7 @@ pub(super) async fn workspace_sidebar<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     safe_mode: bool,
-) -> Result<Sidebar, String> {
+) -> Result<Sidebar, CommandError> {
     blocking(move || {
         stable(&app, safe_mode, |w, d, c| {
             w.sidebar(d, c, &library_id, safe_mode)
@@ -302,7 +308,7 @@ pub(super) async fn workspace_local_tags<R: Runtime>(
     library_id: String,
     ids: Vec<String>,
     safe_mode: bool,
-) -> Result<Vec<String>, String> {
+) -> Result<Vec<String>, CommandError> {
     blocking(move || {
         stable(&app, safe_mode, |w, d, c| {
             w.local_tags(d, c, &library_id, &ids, safe_mode)
@@ -315,6 +321,6 @@ pub(super) async fn workspace_local_tags<R: Runtime>(
 pub(super) async fn workspace_directories<R: Runtime>(
     app: AppHandle<R>,
     safe_mode: bool,
-) -> Result<WorkspaceDirectories, String> {
+) -> Result<WorkspaceDirectories, CommandError> {
     blocking(move || stable(&app, safe_mode, |w, d, c| w.directories(d, c, safe_mode))).await
 }

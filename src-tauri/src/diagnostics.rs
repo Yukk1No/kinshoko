@@ -3,6 +3,7 @@
 //! 规则与脱敏在 `kinshoko_core::diagnostics`；这里只向 Windows 查询系统信息、接保存对话框。
 //! 诊断信息连同最近几天的运行日志（`crate::run_log`）一起存成 zip（#219）。
 
+use kinshoko_core::CommandError;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -87,9 +88,9 @@ fn system_facts() -> SystemFacts {
     }
 }
 
-fn app_facts(app: &AppHandle, state: &State<'_, ShellState>) -> Result<AppFacts, String> {
+fn app_facts(app: &AppHandle, state: &State<'_, ShellState>) -> Result<AppFacts, CommandError> {
     let migration_problem = crate::data_dirs::migration_problem(app);
-    let shell = state.0.lock().map_err(|e| e.to_string())?;
+    let shell = state.0.lock().map_err(CommandError::message)?;
     Ok(AppFacts {
         data_migration_problem: migration_problem,
         version: env!("CARGO_PKG_VERSION").to_owned(),
@@ -105,13 +106,13 @@ pub async fn diagnostics_report(
     app: AppHandle,
     state: State<'_, ShellState>,
     runtime: Option<RuntimeCapabilities>,
-) -> Result<String, String> {
+) -> Result<String, CommandError> {
     let app = app_facts(&app, &state)?;
     tauri::async_runtime::spawn_blocking(move || {
         report_with_runtime(&app, &system_facts(), now(), runtime.as_ref())
     })
     .await
-    .map_err(|e| e.to_string())
+    .map_err(CommandError::message)
 }
 
 /// 把诊断信息连同最近几天的运行日志存成 zip；画师取消时返回 false。
@@ -120,7 +121,7 @@ pub async fn export_diagnostics(
     app: AppHandle,
     state: State<'_, ShellState>,
     runtime: Option<RuntimeCapabilities>,
-) -> Result<bool, String> {
+) -> Result<bool, CommandError> {
     let facts = app_facts(&app, &state)?;
     tauri::async_runtime::spawn_blocking(move || {
         let text = report_with_runtime(&facts, &system_facts(), now(), runtime.as_ref());
@@ -137,10 +138,10 @@ pub async fn export_diagnostics(
         };
         saved
             .map(|()| true)
-            .map_err(|e| format!("保存诊断信息失败：{e}"))
+            .map_err(|e| CommandError::message(format!("保存诊断信息失败：{e}")))
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(CommandError::message)?
 }
 
 /// 只解释当前窗口实测状态。版本查询失败不能替代能力检查，也不能用版本豁免质量失败。
@@ -154,14 +155,14 @@ pub fn runtime_status(runtime: RuntimeCapabilities) -> RuntimeStatus {
 
 /// 固定的官方入口。只由用户点击打开，不接收任意 URL，不下载安装、不重启或退出程序。
 #[tauri::command]
-pub fn open_runtime_update() -> Result<(), String> {
+pub fn open_runtime_update() -> Result<(), CommandError> {
     #[cfg(windows)]
     {
         std::process::Command::new("explorer.exe")
             .arg("https://developer.microsoft.com/en-us/microsoft-edge/webview2/")
             .spawn()
             .map(|_| ())
-            .map_err(|_| "无法打开微软 WebView2 下载页。请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/".to_owned())
+            .map_err(|_| CommandError::from("无法打开微软 WebView2 下载页。请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/"))
     }
     #[cfg(not(windows))]
     Err("请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/".to_owned())

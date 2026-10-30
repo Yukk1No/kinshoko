@@ -11,6 +11,7 @@
 //!
 //! 线程规则同 [`super`]：持有锁时不调用窗口 API。
 
+use kinshoko_core::CommandError;
 use kinshoko_core::desktop::ScreenRect;
 use kinshoko_core::desktop::{PinMenu, PinMenuOpen, menu_surface};
 use kinshoko_core::diagnostics::{LogEvent, WindowKind};
@@ -33,8 +34,8 @@ pub struct MenuState {
 }
 
 /// 在指针处为钉图弹出菜单。
-pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), String> {
-    let cursor = app.cursor_position().map_err(|e| e.to_string())?;
+pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), CommandError> {
+    let cursor = app.cursor_position().map_err(CommandError::message)?;
     let surface = menu_surface(
         (cursor.x.floor() as i32, cursor.y.floor() as i32),
         &pins::monitors(),
@@ -60,7 +61,7 @@ pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), String> {
     Ok(())
 }
 
-fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
+fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, CommandError> {
     let started = std::time::Instant::now();
     let window = WebviewWindowBuilder::new(
         app,
@@ -79,7 +80,7 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
     .visible(false)
     .shared_webview(app)
     .build()
-    .map_err(|e| e.to_string())?;
+    .map_err(CommandError::message)?;
     crate::run_log::window_created(WindowKind::PinMenu, started);
     // 显示、隐藏都要即时：系统过渡会让铺满显示器的窗口从中间放大、隐藏时边缩小边淡出，
     // 菜单就像向左滑走（#194）。三种关法最后都只是隐藏这个窗口，在这里关掉一次即可。
@@ -156,7 +157,7 @@ pub fn close(app: &AppHandle, generation: u32) -> Option<String> {
 }
 
 /// 一次调用同时改窗口的位置与尺寸（Windows 上），免得合成出只改了一半的一帧。
-fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(), String> {
+fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(), CommandError> {
     #[cfg(windows)]
     if let Ok(hwnd) = window.hwnd()
         && super::win32::set_window_rect(hwnd.0 as isize, rect.x, rect.y, rect.width, rect.height)
@@ -167,5 +168,5 @@ fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(), String> 
     window
         .set_position(PhysicalPosition::new(rect.x, rect.y))
         .and_then(|_| window.set_size(PhysicalSize::new(rect.width, rect.height)))
-        .map_err(|e| e.to_string())
+        .map_err(CommandError::message)
 }

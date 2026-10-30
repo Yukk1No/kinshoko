@@ -5,6 +5,7 @@
 //! 状态与命令都带资料库身份（#49），切换后旧库的迟到状态与旧请求不会落到新库上。
 //! 开始、结束、暂停、出错与子进程的显存额度、标准错误记进运行日志（#219）。
 
+use kinshoko_core::CommandError;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -187,17 +188,17 @@ async fn with<T: Send + 'static>(
     state: &TaggingState,
     library_id: String,
     f: impl FnOnce(&ActiveTagging) -> T + Send + 'static,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     let current = state.current.clone();
     tauri::async_runtime::spawn_blocking(move || {
         lock(&current)
             .as_ref()
             .filter(|active| active.library_id == library_id)
             .map(f)
-            .ok_or_else(|| "资料库已切换或关闭，请在当前资料库重新操作".to_owned())
+            .ok_or_else(|| CommandError::from("资料库已切换或关闭，请在当前资料库重新操作"))
     })
     .await
-    .map_err(|error| error.to_string())?
+    .map_err(CommandError::message)?
 }
 
 /// 自动标签的当前状态。
@@ -205,7 +206,7 @@ async fn with<T: Send + 'static>(
 pub async fn tagging_status(
     state: State<'_, TaggingState>,
     library_id: String,
-) -> Result<LibraryTaggingStatus, String> {
+) -> Result<LibraryTaggingStatus, CommandError> {
     with(&state, library_id, ActiveTagging::status).await
 }
 
@@ -214,7 +215,7 @@ pub async fn tagging_status(
 pub async fn tagging_download(
     state: State<'_, TaggingState>,
     library_id: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     with(&state, library_id, |active| active.tagging.download()).await
 }
 
@@ -223,7 +224,7 @@ pub async fn tagging_download(
 pub async fn tagging_cancel_download(
     state: State<'_, TaggingState>,
     library_id: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     with(&state, library_id, |active| {
         active.tagging.cancel_download()
     })
@@ -235,7 +236,7 @@ pub async fn tagging_cancel_download(
 pub async fn tagging_pause(
     state: State<'_, TaggingState>,
     library_id: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     with(&state, library_id, |active| active.tagging.pause()).await?;
     state.paused.store(true, Ordering::SeqCst);
     crate::run_log::record(LogEvent::TaggingPaused {
@@ -248,7 +249,7 @@ pub async fn tagging_pause(
 pub async fn tagging_resume(
     state: State<'_, TaggingState>,
     library_id: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     with(&state, library_id, |active| active.tagging.resume()).await?;
     state.paused.store(false, Ordering::SeqCst);
     crate::run_log::record(LogEvent::TaggingResumed);
@@ -257,7 +258,7 @@ pub async fn tagging_resume(
 
 /// 设置中的模型一节：打标模型名称、各硬件档的显存或内存需求、大小、是否已下载，以及画师选的档。
 #[tauri::command]
-pub async fn tagging_models(state: State<'_, TaggingState>) -> Result<ModelChoice, String> {
+pub async fn tagging_models(state: State<'_, TaggingState>) -> Result<ModelChoice, CommandError> {
     Ok(state.choice())
 }
 
@@ -267,21 +268,21 @@ pub async fn tagging_set_device(
     state: State<'_, TaggingState>,
     shell: State<'_, ShellState>,
     device: Option<Device>,
-) -> Result<ModelChoice, String> {
+) -> Result<ModelChoice, CommandError> {
     shell
         .0
         .lock()
-        .map_err(|e| e.to_string())?
+        .map_err(CommandError::message)?
         .settings
         .set_tagging_device(device)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     apply_device(&state, device);
     Ok(state.choice())
 }
 
 /// 选择要导入的模型包（zip）；取消时为 `null`。
 #[tauri::command]
-pub async fn tagging_pick_package(app: AppHandle) -> Result<Option<PathBuf>, String> {
+pub async fn tagging_pick_package(app: AppHandle) -> Result<Option<PathBuf>, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         app.dialog()
             .file()
@@ -290,18 +291,21 @@ pub async fn tagging_pick_package(app: AppHandle) -> Result<Option<PathBuf>, Str
             .and_then(|p| p.into_path().ok())
     })
     .await
-    .map_err(|e| e.to_string())
+    .map_err(CommandError::message)
 }
 
 /// 从文件导入模型包并校验（没有网络时）。成功后打标随即用上，不再询问下载。
 #[tauri::command]
-pub async fn tagging_import_package(app: AppHandle, path: PathBuf) -> Result<ModelChoice, String> {
+pub async fn tagging_import_package(
+    app: AppHandle,
+    path: PathBuf,
+) -> Result<ModelChoice, CommandError> {
     let models_dir = app.state::<TaggingState>().models_dir.clone();
     tauri::async_runtime::spawn_blocking(move || {
         ModelStore::new(models_dir, HUGGING_FACE).import_package(&path, &catalog())
     })
     .await
-    .map_err(|e| e.to_string())??;
+    .map_err(CommandError::message)??;
     let state = app.state::<TaggingState>();
     if let Some(t) = lock(&state.current).as_ref() {
         t.tagging.wake();

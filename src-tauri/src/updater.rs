@@ -5,6 +5,7 @@
 //! 私有阶段只用安装包手动更新。公开阶段必须明确声明原仓库已公开，并有原仓库入口与更新公钥。
 //! 签名私钥只在 GitHub 仓库的 Actions secret 里，不进仓库（见 docs/validation/release-checklist.md）。
 
+use kinshoko_core::CommandError;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -71,7 +72,7 @@ fn update_policy<R: Runtime>(app: &AppHandle<R>) -> UpdatePolicy {
 }
 /// 上次检查的结果；还没检查过时为 `unchecked`。
 #[tauri::command]
-pub async fn update_status(state: State<'_, UpdaterState>) -> Result<UpdateStatus, String> {
+pub async fn update_status(state: State<'_, UpdaterState>) -> Result<UpdateStatus, CommandError> {
     Ok(state.status())
 }
 
@@ -80,7 +81,7 @@ pub async fn update_status(state: State<'_, UpdaterState>) -> Result<UpdateStatu
 pub async fn check_update(
     app: AppHandle,
     state: State<'_, UpdaterState>,
-) -> Result<UpdateStatus, String> {
+) -> Result<UpdateStatus, CommandError> {
     let policy = update_policy(&app);
     if policy.require_automatic().is_err() {
         *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
@@ -132,9 +133,9 @@ pub async fn check_update(
     Ok(state.set(status))
 }
 
-fn update_channel(app: &AppHandle) -> Result<UpdateChannel, String> {
+fn update_channel(app: &AppHandle) -> Result<UpdateChannel, CommandError> {
     let shell = app.state::<crate::shell::ShellState>();
-    let shell = shell.0.lock().map_err(|e| e.to_string())?;
+    let shell = shell.0.lock().map_err(CommandError::message)?;
     Ok(shell.settings.update_channel())
 }
 
@@ -145,13 +146,13 @@ pub async fn set_update_channel(
     app: AppHandle,
     shell: State<'_, crate::shell::ShellState>,
     channel: UpdateChannel,
-) -> Result<ShellSettingsView, String> {
+) -> Result<ShellSettingsView, CommandError> {
     let view = {
-        let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
+        let mut shell = shell.0.lock().map_err(CommandError::message)?;
         shell
             .settings
             .set_update_channel(channel)
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         shell.view()
     };
     channel_changed(&app);
@@ -172,12 +173,15 @@ pub fn channel_changed<R: Runtime>(app: &AppHandle<R>) {
 
 /// 下载并安装已检查到的新版本。成功时安装程序接管，本进程退出、装好后重新启动。
 #[tauri::command]
-pub async fn install_update(app: AppHandle, state: State<'_, UpdaterState>) -> Result<(), String> {
+pub async fn install_update(
+    app: AppHandle,
+    state: State<'_, UpdaterState>,
+) -> Result<(), CommandError> {
     let policy = update_policy(&app);
     if let Err(message) = policy.require_automatic() {
         *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
         state.set(policy.initial_status());
-        return Err(message);
+        return Err(message.into());
     }
     let Some(update) = state
         .pending
@@ -185,7 +189,7 @@ pub async fn install_update(app: AppHandle, state: State<'_, UpdaterState>) -> R
         .unwrap_or_else(|e| e.into_inner())
         .take()
     else {
-        return Err("没有可以安装的更新，请先检查更新。".to_owned());
+        return Err("没有可以安装的更新，请先检查更新。".to_owned().into());
     };
     let mut downloaded = 0u64;
     let progress_app = app.clone();
@@ -213,7 +217,7 @@ pub async fn install_update(app: AppHandle, state: State<'_, UpdaterState>) -> R
             state.set(UpdateStatus::Failed {
                 message: message.clone(),
             });
-            Err(message)
+            Err(message.into())
         }
     }
 }

@@ -268,6 +268,19 @@ impl From<&str> for CommandError {
     }
 }
 
+/// 系统与底层库的错误还没有错误代码，按原样显示。
+macro_rules! from_foreign_error {
+    ($($error:ty),* $(,)?) => {$(
+        impl From<$error> for CommandError {
+            fn from(e: $error) -> Self {
+                CommandError::message(e)
+            }
+        }
+    )*};
+}
+
+from_foreign_error!(std::io::Error, serde_json::Error, image::ImageError);
+
 /// 领域错误连同它的中文说明一起转过来。
 macro_rules! from_domain_error {
     ($($error:ty),* $(,)?) => {$(
@@ -301,6 +314,23 @@ impl<E: Into<ErrorKind> + fmt::Display> From<WriterWaitError<E>> for CommandErro
             kind: e.into(),
             text,
         }
+    }
+}
+
+/// 钉图、截图要用的参考图此刻取不到。
+impl From<UnavailableReason> for CommandError {
+    fn from(reason: UnavailableReason) -> Self {
+        let text = reason.to_string();
+        CommandError {
+            kind: ErrorKind::CaptureSourceUnavailable { reason },
+            text,
+        }
+    }
+}
+
+impl From<CommandError> for ErrorKind {
+    fn from(e: CommandError) -> Self {
+        e.kind
     }
 }
 

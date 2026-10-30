@@ -1,10 +1,14 @@
 //! Explicit writable publication; registered provider reads remain read-only.
+
 use super::*;
+use kinshoko_core::CommandError;
 use kinshoko_core::tag_catalog::CatalogInspection;
 
 /// Complete content dependencies for private backup/export adapters, never ordinary UI responses.
 /// This reads the app catalog without activating or writing any provider.
-pub fn content_definitions<R: Runtime>(app: &AppHandle<R>) -> Result<CatalogInspection, String> {
+pub fn content_definitions<R: Runtime>(
+    app: &AppHandle<R>,
+) -> Result<CatalogInspection, CommandError> {
     let state = app.state::<LibraryState>();
     with_catalog(&state.search, |catalog| catalog.inspect())
 }
@@ -14,7 +18,7 @@ pub fn content_definitions<R: Runtime>(app: &AppHandle<R>) -> Result<CatalogInsp
 pub fn publish_definition_dependencies<R: Runtime>(
     app: &AppHandle<R>,
     library_id: &str,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
     let library = with_libraries(&state, |libraries| libraries.write(library_id))?;
@@ -30,14 +34,14 @@ pub(super) async fn publish_tag_definitions<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
     library_id: String,
-) -> Result<TagCatalogWorkspace, String> {
+) -> Result<TagCatalogWorkspace, CommandError> {
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
     let worker = app.clone();
     let result = blocking(move || {
-        publish_definition_dependencies(&worker, &library_id).map_err(|error| format!(
+        publish_definition_dependencies(&worker, &library_id).map_err(|error| CommandError::message(format!(
             "标签定义未保存到资料库：{error}。程序中的对应和名称选择已保留；资料库可写后，请重试保存标签定义。"
-        ))?;
+        )))?;
         let state = worker.state::<LibraryState>();
         workspace::with_resources(&state, |workspace, libraries, catalog| {
             workspace.inspect_catalog(libraries, catalog, safe)
@@ -55,7 +59,7 @@ pub fn export_package<R: Runtime>(
     groups: &kinshoko_core::reference_groups::ReferenceGroups,
     group_id: &str,
     path: &Path,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     let state = app.state::<LibraryState>();
     // Take the reference registry snapshot before the catalog lock. Workspace readers take
     // libraries then catalog; holding catalog while reading libraries would invert that order.
@@ -63,7 +67,7 @@ pub fn export_package<R: Runtime>(
         with_catalog(&state.search, |catalog| {
             Ok(groups.export_package_with_catalog(group_id, references, path, catalog))
         })?
-        .map_err(|error| error.to_string())
+        .map_err(CommandError::from)
     })?;
     Ok(())
 }
@@ -73,12 +77,12 @@ pub fn import_package<R: Runtime>(
     groups: &kinshoko_core::reference_groups::ReferenceGroups,
     path: &Path,
     library: &Library,
-) -> Result<kinshoko_core::reference_groups::ReferenceGroup, String> {
+) -> Result<kinshoko_core::reference_groups::ReferenceGroup, CommandError> {
     let state = app.state::<LibraryState>();
     let catalog = content_definitions(app)?;
     let imported = groups
         .prepare_package_import(path, library, Some(&catalog))
-        .map_err(|error| error.to_string())?;
+        .map_err(CommandError::from)?;
     // Per-image rating publication already uses this gate. No package IO or decoding is
     // performed while holding either lock; always take the final gate before the catalog.
     with_visibility_commit(app, |_| {
@@ -91,5 +95,5 @@ pub fn import_package<R: Runtime>(
             "内容已写入，但资料库标签定义尚未更新：{error}。请重试保存标签定义或重新导入参考组包。"
         )
     })?;
-    imported.finish().map_err(|error| error.to_string())
+    imported.finish().map_err(CommandError::from)
 }

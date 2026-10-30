@@ -13,6 +13,8 @@
 //! - 钉图的右键菜单（#106）：与主窗口同样式，由独立的置顶无边框菜单窗口承载（[`menu`]）；
 //! - 复制图片、在资源管理器中显示、从剪贴板导入（#105，[`image_actions`]）。
 
+use kinshoko_core::CommandError;
+
 mod capture;
 mod clipboard;
 mod edge;
@@ -338,10 +340,10 @@ async fn close_desktop_menu(app: AppHandle, generation: u32) {
 
 /// 截图历史条目菜单“复制”（#106）：把截图复制到剪贴板。
 #[tauri::command]
-async fn copy_capture(app: AppHandle, id: String) -> Result<(), String> {
+async fn copy_capture(app: AppHandle, id: String) -> Result<(), CommandError> {
     tauri::async_runtime::spawn_blocking(move || pins::copy_capture_image(&app, &id))
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(CommandError::message)?
 }
 
 /// Native pin menus request a visible destination in the main window before saving.
@@ -366,23 +368,23 @@ async fn collect_capture(
     app: AppHandle,
     id: String,
     destination: kinshoko_core::library::SaveDestination,
-) -> Result<CollectedCapture, String> {
+) -> Result<CollectedCapture, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         let collected = library::with_destination_published(&app, &destination, |library| {
             let pending = lock(&state(&app).history)
                 .prepare_collect(&id)
-                .map_err(|e| e.to_string())?;
-            let collected = pending.import(library).map_err(|e| e.to_string())?;
+                .map_err(CommandError::from)?;
+            let collected = pending.import(library).map_err(CommandError::from)?;
             lock(&state(&app).history)
                 .finish_collect(collected)
-                .map_err(|e| e.to_string())
+                .map_err(CommandError::from)
         })?;
         history_changed(&app);
         groups::capture_collected(&app, &id, &collected);
         Ok(collected)
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(CommandError::message)?
 }
 
 /// 贴边隐藏全部钉图，或让它们回到原位（与全局快捷键相同）。
@@ -397,10 +399,10 @@ pub fn on_exit(app: &AppHandle) {
 }
 
 #[tauri::command]
-async fn delete_capture(app: AppHandle, id: String) -> Result<(), String> {
+async fn delete_capture(app: AppHandle, id: String) -> Result<(), CommandError> {
     lock(&state(&app).history)
         .delete(&id)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     history_changed(&app);
     Ok(())
 }

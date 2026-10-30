@@ -26,7 +26,7 @@ pub fn run() {
         Err(message) => {
             eprintln!("{message}");
             #[cfg(windows)]
-            desktop::win32::show_error("Kinshoko 无法启动", &message);
+            desktop::win32::show_error("Kinshoko 无法启动", &message.to_string());
             std::process::exit(1);
         }
     };

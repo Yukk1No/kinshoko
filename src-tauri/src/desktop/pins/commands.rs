@@ -1,10 +1,15 @@
 //! 钉图的命令：钉剪贴板、钉截图与参考图，以及菜单动作共用的缩放、旋转与确认显示。
 
 use super::*;
+use kinshoko_core::CommandError;
 
 /// 光标处的一个点，作为钉剪贴板和从历史钉住时的“原位置”。
-pub(super) fn at_cursor(app: &AppHandle, width: u32, height: u32) -> Result<ScreenRect, String> {
-    let cursor = app.cursor_position().map_err(|e| e.to_string())?;
+pub(super) fn at_cursor(
+    app: &AppHandle,
+    width: u32,
+    height: u32,
+) -> Result<ScreenRect, CommandError> {
+    let cursor = app.cursor_position().map_err(CommandError::message)?;
     Ok(ScreenRect {
         x: cursor.x.floor() as i32,
         y: cursor.y.floor() as i32,
@@ -14,10 +19,10 @@ pub(super) fn at_cursor(app: &AppHandle, width: u32, height: u32) -> Result<Scre
 }
 
 /// 把剪贴板里的图片存进截图历史并钉在光标旁。
-pub(super) fn pin_from_clipboard(app: &AppHandle) -> Result<(), String> {
+pub(super) fn pin_from_clipboard(app: &AppHandle) -> Result<(), CommandError> {
     let image = arboard::Clipboard::new()
         .and_then(|mut c| c.get_image())
-        .map_err(|_| "剪贴板里没有图片".to_owned())?;
+        .map_err(|_| CommandError::from("剪贴板里没有图片"))?;
     let image = RgbaImage::from_raw(
         image.width as u32,
         image.height as u32,
@@ -27,10 +32,10 @@ pub(super) fn pin_from_clipboard(app: &AppHandle) -> Result<(), String> {
     // 剪贴板图片不带显示器配置文件，按 sRGB 解释。
     let prepared =
         kinshoko_core::desktop::CaptureHistory::prepare(&Screenshot { image, icc: None })
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
     let entry = lock(&state(app).history)
         .add_prepared(prepared)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     history_changed(app);
     open(app, &entry, at_cursor(app, entry.width, entry.height)?).map(|_| ())
 }
@@ -45,22 +50,22 @@ pub fn pin_clipboard_in_background(app: &AppHandle) {
     });
 }
 
-pub fn copy_to_clipboard(app: &AppHandle, image: &RgbaImage) -> Result<(), String> {
+pub fn copy_to_clipboard(app: &AppHandle, image: &RgbaImage) -> Result<(), CommandError> {
     super::super::clipboard::PreparedImage::prepare(image)?.commit(app)
 }
 
 #[tauri::command]
-pub async fn pin_clipboard(app: AppHandle) -> Result<(), String> {
+pub async fn pin_clipboard(app: AppHandle) -> Result<(), CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         logged(PinSource::Clipboard, || pin_from_clipboard(&app))
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(CommandError::message)?
 }
 
 /// 从截图历史钉住一张截图，放在光标旁。
 #[tauri::command]
-pub async fn pin_capture(app: AppHandle, id: String) -> Result<(), String> {
+pub async fn pin_capture(app: AppHandle, id: String) -> Result<(), CommandError> {
     logged(PinSource::Capture, || {
         let entry = lock(&state(&app).history)
             .entries()
@@ -73,7 +78,10 @@ pub async fn pin_capture(app: AppHandle, id: String) -> Result<(), String> {
 }
 
 /// 钉住一张图；成功时在运行日志里记下用了多久（#219）。
-fn logged(from: PinSource, pin: impl FnOnce() -> Result<(), String>) -> Result<(), String> {
+fn logged(
+    from: PinSource,
+    pin: impl FnOnce() -> Result<(), CommandError>,
+) -> Result<(), CommandError> {
     let started = Instant::now();
     let result = pin();
     if result.is_ok() {
@@ -94,18 +102,18 @@ pub async fn pin_reference(
     image_id: String,
     crop: Option<Region>,
     shown: ScreenRect,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         logged(PinSource::Reference, || {
             pin_reference_here(&app, &window, &library_id, &image_id, crop, shown)
         })
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(CommandError::message)?
 }
 
 /// 画师确认显示这一张被遮蔽的参考图：遮蔽淡出，直到安全模式再次开启或钉图关闭。
-pub(super) fn reveal_here(app: &AppHandle, pin: &str) -> Result<(), String> {
+pub(super) fn reveal_here(app: &AppHandle, pin: &str) -> Result<(), CommandError> {
     crate::library::with_visibility_commit(app, |_| {
         if !capture_source_open(app, pin) {
             return Err(CLOSED.to_owned());
@@ -136,7 +144,7 @@ pub(super) fn change_here(
     app: &AppHandle,
     pin: &str,
     f: impl FnOnce(&mut SavedPin) -> bool,
-) -> Result<ScreenRect, String> {
+) -> Result<ScreenRect, CommandError> {
     let at = content_of(app, pin).ok_or(CLOSED)?;
     let rect = edit(app, pin, |p| {
         let before = p.placement;
@@ -156,7 +164,7 @@ pub(super) fn change_here(
 }
 
 /// 以钉图中心为锚点缩放到 `scale`（菜单“原始大小”）。锁定的钉图不缩放。内容以动画到达。
-pub(super) fn zoom(app: &AppHandle, pin: &str, scale: f64) -> Result<(), String> {
+pub(super) fn zoom(app: &AppHandle, pin: &str, scale: f64) -> Result<(), CommandError> {
     let rect = change_here(app, pin, |p| {
         let r = p.rect();
         let centre = (
@@ -170,7 +178,7 @@ pub(super) fn zoom(app: &AppHandle, pin: &str, scale: f64) -> Result<(), String>
 }
 
 /// 翻转或旋转钉图（中心不动）。
-pub(super) fn turn_here(app: &AppHandle, pin: &str, turn: Turn) -> Result<(), String> {
+pub(super) fn turn_here(app: &AppHandle, pin: &str, turn: Turn) -> Result<(), CommandError> {
     let rect = change_here(app, pin, |p| {
         p.turn(turn);
         true

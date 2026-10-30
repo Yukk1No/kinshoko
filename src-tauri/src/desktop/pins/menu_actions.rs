@@ -1,6 +1,7 @@
 //! 钉图右键菜单的动作。
 
 use super::*;
+use kinshoko_core::CommandError;
 
 pub(super) const ACTION_FLIP_H: &str = "flipH";
 pub(super) const ACTION_FLIP_V: &str = "flipV";
@@ -25,7 +26,7 @@ pub(super) const ACTION_EDGE_HIDE: &str = "edgeHide";
 /// 鼠标右键、笔的侧键或笔与触摸按住不动时打开（[`native_menu`]）；菜单弹在光标（笔尖）处。
 ///
 /// `confirm_reveal`：只问“显示这张图？”（点了遮蔽钉图上的小圆锁）。
-fn popup_menu(app: &AppHandle, pin: &str, confirm_reveal: bool) -> Result<(), String> {
+fn popup_menu(app: &AppHandle, pin: &str, confirm_reveal: bool) -> Result<(), CommandError> {
     let saved = lock(&state(app).store).get(pin).cloned().ok_or(CLOSED)?;
     let (veiled, _) = appearance(app, &saved);
     let has_library = !crate::library::registered(app)?.is_empty();
@@ -68,7 +69,7 @@ pub async fn pin_menu_action(
     pin: String,
     action: String,
     generation: u32,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     if super::super::menu::close(&app, generation).as_deref() != Some(pin.as_str()) {
         return Ok(());
     }
@@ -94,7 +95,7 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<St
         _ => None,
     };
     if let Some(turn) = turn {
-        return turn_here(app, pin, turn).err();
+        return turn_here(app, pin, turn).err().map(|e| e.to_string());
     }
     if let Some(group_id) = action.strip_prefix(ACTION_GROUP) {
         return Some(add_to_group(app, pin, group_id));
@@ -114,8 +115,8 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<St
             refresh(app, pin);
             Some(if locked { "已锁定" } else { "已解锁" }.to_owned())
         }
-        ACTION_ACTUAL_SIZE => zoom(app, pin, 1.0).err(),
-        ACTION_REVEAL => reveal_here(app, pin).err(),
+        ACTION_ACTUAL_SIZE => zoom(app, pin, 1.0).err().map(|e| e.to_string()),
+        ACTION_REVEAL => reveal_here(app, pin).err().map(|e| e.to_string()),
         ACTION_OPEN => {
             let saved = lock(&state(app).store).get(pin).cloned()?;
             request_open(app, OpenInKinshoko::of(&saved));
@@ -129,7 +130,7 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<St
             let group_id = lock(&state(app).store).get(pin)?.member.clone()?.group_id;
             Some(match super::super::groups::save_back(app, &group_id) {
                 Ok(group) => format!("已存回参考组「{}」", group.name),
-                Err(e) => e,
+                Err(e) => e.to_string(),
             })
         }
         ACTION_COLLECT => {
@@ -149,7 +150,7 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<St
             };
             Some(match copied {
                 Ok(()) => "已复制".to_owned(),
-                Err(e) => e,
+                Err(e) => e.to_string(),
             })
         }
         _ => None,
@@ -160,17 +161,17 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<St
 pub(in crate::desktop) fn copy_capture_image(
     app: &AppHandle,
     capture_id: &str,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     let file = lock(&state(app).history)
         .file(capture_id)
         .ok_or("截图已不在截图历史中")?;
-    let image = image::open(file).map_err(|e| e.to_string())?.to_rgba8();
+    let image = image::open(file).map_err(CommandError::from)?.to_rgba8();
     copy_to_clipboard(app, &image)
 }
 
 /// 复制资料库钉图（#289）：钉图显示的那一块原图像素（局部钉图只取局部，不带翻转旋转）。经浏览视角：
 /// 被封印、原文件不在时报错，剪贴板保持原样。会读文件。
-fn copy_reference_pin(app: &AppHandle, pin: &str) -> Result<(), String> {
+fn copy_reference_pin(app: &AppHandle, pin: &str) -> Result<(), CommandError> {
     let saved = lock(&state(app).store).get(pin).cloned().ok_or(CLOSED)?;
     let PinContent::Reference {
         library_id,
@@ -178,14 +179,14 @@ fn copy_reference_pin(app: &AppHandle, pin: &str) -> Result<(), String> {
         ..
     } = &saved.content
     else {
-        return Err(CLOSED.to_owned());
+        return Err(CLOSED.to_owned().into());
     };
     if appearance(app, &saved).0 {
-        return Err("安全模式下已遮蔽，不能复制".to_owned());
+        return Err("安全模式下已遮蔽，不能复制".to_owned().into());
     }
     let pixels = crate::library::visible_source(app, library_id, image_id)?
         .clipboard_pixels(image_id)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     let pixels = match saved.crop {
         Some(c) => image::imageops::crop_imm(&pixels, c.x, c.y, c.width, c.height).to_image(),
         None => pixels,

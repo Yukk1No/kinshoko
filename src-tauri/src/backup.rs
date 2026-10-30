@@ -8,6 +8,7 @@
 //!   只登记、不切换；参考组恢复为新的参考组，推送 `reference-groups` 让列表刷新。
 //! - 状态变化推送 `backup-status`（[`BackupStatus`]）。
 
+use kinshoko_core::CommandError;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard};
@@ -52,22 +53,22 @@ fn now() -> Stamp {
 
 fn with_plan<T>(
     app: &AppHandle,
-    f: impl FnOnce(&mut BackupPlan) -> Result<T, String>,
-) -> Result<T, String> {
+    f: impl FnOnce(&mut BackupPlan) -> Result<T, CommandError>,
+) -> Result<T, CommandError> {
     let state = app.state::<BackupState>();
     let mut plan = lock(&state.plan);
     if plan.is_none() {
-        *plan = Some(BackupPlan::open(&crate::library::data_dir(app)).map_err(|e| e.to_string())?);
+        *plan = Some(BackupPlan::open(&crate::library::data_dir(app)).map_err(CommandError::from)?);
     }
     f(plan.as_mut().expect("计划已读取"))
 }
 
-fn groups(app: &AppHandle) -> Result<ReferenceGroups, String> {
+fn groups(app: &AppHandle) -> Result<ReferenceGroups, CommandError> {
     ReferenceGroups::open(&crate::library::data_dir(app).join(GROUPS_DIR))
-        .map_err(|e| e.to_string())
+        .map_err(CommandError::from)
 }
 
-fn status(app: &AppHandle) -> Result<BackupStatus, String> {
+fn status(app: &AppHandle) -> Result<BackupStatus, CommandError> {
     let plan = with_plan(app, |p| Ok(p.view(now())))?;
     let state = app.state::<BackupState>();
     Ok(BackupStatus {
@@ -98,7 +99,7 @@ pub fn manage(app: &AppHandle) {
     app.manage(BackupState::default());
     // Before opening the main window, undo only recorded new identities from interrupted restores.
     if let Err(error) = groups(app).and_then(|groups| {
-        kinshoko_core::backup::recover_restores(&groups).map_err(|e| e.to_string())
+        kinshoko_core::backup::recover_restores(&groups).map_err(CommandError::from)
     }) {
         let _ = with_plan(app, |plan| {
             plan.record_problem(
@@ -106,7 +107,7 @@ pub fn manage(app: &AppHandle) {
                 format!("上次资料库恢复尚未回退：{error}。重试恢复时会再次回退"),
                 false,
             )
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
         });
     }
     let app = app.clone();
@@ -174,13 +175,13 @@ fn run(app: &AppHandle) {
             Ok((p.target().map(PathBuf::from), p.selection().clone()))
         })?;
         let Some(target) = target else {
-            return Err("还没有选择备份目标".to_owned());
+            return Err(CommandError::from("还没有选择备份目标"));
         };
         let registry = crate::library::registered(app)?;
         let groups = groups(app)?;
         let scope = compute_scope(
             &registry,
-            &groups.list().map_err(|e| e.to_string())?,
+            &groups.list().map_err(CommandError::from)?,
             &selection,
         );
         let catalog = crate::library::content_definitions(app)?;
@@ -208,9 +209,9 @@ fn run(app: &AppHandle) {
             Ok(Ok(report)) if report.complete => plan.record_success(started, &report.snapshot_id),
             Ok(Ok(report)) => plan.record_problem(now(), report.problems.join("；"), false),
             Ok(Err(e)) => plan.record_failure(now(), e),
-            Err(e) => plan.record_problem(now(), e.clone(), false),
+            Err(e) => plan.record_problem(now(), e.to_string(), false),
         }
-        .map_err(|e| e.to_string())
+        .map_err(CommandError::from)
     });
     if let Ok(Ok(report)) = outcome {
         *lock(&state.last_report) = Some(report);
@@ -221,15 +222,15 @@ fn run(app: &AppHandle) {
 }
 
 async fn blocking<T: Send + 'static>(
-    f: impl FnOnce() -> Result<T, String> + Send + 'static,
-) -> Result<T, String> {
+    f: impl FnOnce() -> Result<T, CommandError> + Send + 'static,
+) -> Result<T, CommandError> {
     tauri::async_runtime::spawn_blocking(f)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(CommandError::message)?
 }
 
 #[tauri::command]
-pub async fn backup_status(app: AppHandle) -> Result<BackupStatus, String> {
+pub async fn backup_status(app: AppHandle) -> Result<BackupStatus, CommandError> {
     blocking(move || status(&app)).await
 }
 
@@ -238,15 +239,15 @@ pub async fn backup_status(app: AppHandle) -> Result<BackupStatus, String> {
 pub async fn set_backup_target(
     app: AppHandle,
     target: Option<PathBuf>,
-) -> Result<BackupStatus, String> {
+) -> Result<BackupStatus, CommandError> {
     blocking(move || {
         if let Some(t) = &target
             && !t.is_dir()
         {
-            return Err(format!("备份目标不在：{}", t.display()));
+            return Err(format!("备份目标不在：{}", t.display()).into());
         }
         with_plan(&app, |p| {
-            p.set_target(target.as_deref()).map_err(|e| e.to_string())
+            p.set_target(target.as_deref()).map_err(CommandError::from)
         })?;
         publish(&app);
         status(&app)
@@ -258,10 +259,10 @@ pub async fn set_backup_target(
 pub async fn set_backup_selection(
     app: AppHandle,
     selection: ScopeSelection,
-) -> Result<BackupStatus, String> {
+) -> Result<BackupStatus, CommandError> {
     blocking(move || {
         with_plan(&app, |p| {
-            p.set_selection(selection).map_err(|e| e.to_string())
+            p.set_selection(selection).map_err(CommandError::from)
         })?;
         publish(&app);
         status(&app)
@@ -274,13 +275,13 @@ pub async fn set_backup_selection(
 pub async fn backup_preview(
     app: AppHandle,
     selection: ScopeSelection,
-) -> Result<BackupPreview, String> {
+) -> Result<BackupPreview, CommandError> {
     blocking(move || {
         let registry = crate::library::registered(&app)?;
         let groups = groups(&app)?;
         let scope = compute_scope(
             &registry,
-            &groups.list().map_err(|e| e.to_string())?,
+            &groups.list().map_err(CommandError::from)?,
             &selection,
         );
         let target =
@@ -295,7 +296,7 @@ pub async fn backup_preview(
                     groups: &groups,
                 },
             )
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         Ok(BackupPreview {
             scope,
             estimate,
@@ -307,7 +308,7 @@ pub async fn backup_preview(
 
 /// 马上备份一次（手动），在后台进行；进度与结果经 `backup-status` 推送。
 #[tauri::command]
-pub async fn start_backup(app: AppHandle) -> Result<(), String> {
+pub async fn start_backup(app: AppHandle) -> Result<(), CommandError> {
     if app.state::<BackupState>().busy.load(Ordering::SeqCst) {
         return Err("正在备份，请等这次完成".into());
     }
@@ -317,13 +318,13 @@ pub async fn start_backup(app: AppHandle) -> Result<(), String> {
 
 /// 备份目标里的完整快照，新的在前。
 #[tauri::command]
-pub async fn backup_snapshots(app: AppHandle) -> Result<Vec<SnapshotSummary>, String> {
+pub async fn backup_snapshots(app: AppHandle) -> Result<Vec<SnapshotSummary>, CommandError> {
     blocking(move || {
         let target = with_plan(&app, |p| Ok(p.target().map(PathBuf::from)))?
-            .ok_or_else(|| "还没有选择备份目标".to_owned())?;
+            .ok_or_else(|| CommandError::from("还没有选择备份目标"))?;
         BackupTarget::new(&target)
             .snapshots()
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -335,7 +336,7 @@ pub async fn restore_backup(
     app: AppHandle,
     snapshot_id: String,
     into: PathBuf,
-) -> Result<RestoreReport, String> {
+) -> Result<RestoreReport, CommandError> {
     blocking(move || {
         let state = app.state::<BackupState>();
         if state.busy.swap(true, Ordering::SeqCst) {
@@ -343,12 +344,12 @@ pub async fn restore_backup(
         }
         let result = (|| {
             let target = with_plan(&app, |p| Ok(p.target().map(PathBuf::from)))?
-                .ok_or_else(|| "还没有选择备份目标".to_owned())?;
+                .ok_or_else(|| CommandError::from("还没有选择备份目标"))?;
             let groups = groups(&app)?;
             let catalog = crate::library::content_definitions(&app)?;
             let report = BackupTarget::new(&target)
                 .restore_with_catalog(&snapshot_id, &into, &groups, now(), &catalog)
-                .map_err(|e| e.to_string())?;
+                .map_err(CommandError::from)?;
             let roots: Vec<PathBuf> = report
                 .libraries
                 .iter()

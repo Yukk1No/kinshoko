@@ -4,6 +4,7 @@
 //! 注册快捷键和开关自启会把调用派发到主线程并等待结果，所以只在 async 命令（不在主线程上）
 //! 和启动时（主线程上、还没有别的事件）持有这把锁；托盘、快捷键与窗口事件的回调一律不碰它。
 
+use kinshoko_core::CommandError;
 use std::sync::Mutex;
 
 use kinshoko_core::diagnostics::{LogEvent, WindowKind};
@@ -87,18 +88,21 @@ pub fn announce_interface_language(app: &AppHandle, lang: &str) {
 ///
 /// 调试构建与设置了 `KINSHOKO_SKIP_AUTOSTART` 时不写系统，免得把 `target/` 里的开发版
 /// 登记成开机启动；设置本身照常保存。
-pub fn apply_autostart<R: tauri::Runtime>(app: &AppHandle<R>, on: bool) -> Result<(), String> {
+pub fn apply_autostart<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+    on: bool,
+) -> Result<(), CommandError> {
     if cfg!(debug_assertions) || std::env::var_os("KINSHOKO_SKIP_AUTOSTART").is_some() {
         return Ok(());
     }
     let launcher = app.autolaunch();
-    let current = launcher.is_enabled().map_err(|e| e.to_string())?;
+    let current = launcher.is_enabled().map_err(CommandError::message)?;
     match (current, on) {
         (false, true) => launcher.enable(),
         (true, false) => launcher.disable(),
         _ => Ok(()),
     }
-    .map_err(|e| e.to_string())
+    .map_err(CommandError::message)
 }
 
 /// 按本机的界面缩放档位缩放主窗口的 WebView。截图遮罩、钉图等其他窗口不缩放。
