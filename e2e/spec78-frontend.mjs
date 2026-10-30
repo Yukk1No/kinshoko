@@ -89,7 +89,9 @@ try {
   await click("开始导入");
   await until("导入完成", () => exec("return [...document.querySelectorAll('.k-toast')].some(t=>t.querySelector('.k-toast-title')?.textContent==='导入完成'&&t.querySelector('.k-toast-stats')?.textContent.includes('新增 43'));"));
   check(true, "导入 43 张测试参考图，未下载打标模型");
-  await click("关闭导入结果");
+  // 导入结束是一条轻提示（#388），没有回执卡可关；收起提示，免得盖住右下角。
+  await exec("document.querySelectorAll('.k-toast .k-toast-close').forEach(b=>b.click())");
+  await until("提示已收起", () => exec("return !document.querySelector('.k-toast')"));
   await until("关闭导入报告，稳定浏览",()=>exec("return !document.querySelector('section[aria-label=导入结果]')"));
   const viewport = await exec("return {width:innerWidth,height:innerHeight,dpr:devicePixelRatio,userAgent:navigator.userAgent}");
   await until("缩略图解码", () => exec("return [...document.querySelectorAll('.card img')].every(i=>i.complete && i.naturalWidth>0)"));
