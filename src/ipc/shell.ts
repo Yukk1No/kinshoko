@@ -226,3 +226,18 @@ export function onUpdateProgress(handler: (progress: UpdateProgress) => void): P
 export function onUpdateChannelChanged(handler: () => void): Promise<UnlistenFn> {
   return listen("update-channel-changed", () => handler());
 }
+
+/** 当前界面语言（#354）。 */
+export function interfaceLanguage(): Promise<string> {
+  return invoke<string>("interface_language");
+}
+
+/** 换界面语言；各窗口随即收到 `onInterfaceLanguage`。设置里的选项随 #358 上线。 */
+export function setInterfaceLanguage(lang: string): Promise<string> {
+  return invoke<string>("set_interface_language", { lang });
+}
+
+/** 界面语言改了。 */
+export function onInterfaceLanguage(handler: (lang: string) => void): Promise<UnlistenFn> {
+  return listen<string>("interface-language", (e) => handler(e.payload));
+}

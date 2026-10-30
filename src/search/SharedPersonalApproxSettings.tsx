@@ -3,7 +3,8 @@ import type { CatalogApproxEdit } from "../bindings/CatalogApproxEdit";
 import type { CatalogApproxView } from "../bindings/CatalogApproxView";
 import { editSharedApprox, isLensChanged, onSafeModeSetting, onWorkspaceChanged, safeMode, sharedPersonalApprox, workspaceStatus } from "../ipc";
 import { libraryPathHint } from "../library/library-path";
-import { TagMarks, tagName, UI_LANG } from "./SearchBox";
+import { TagMarks, tagName } from "./SearchBox";
+import { useUiLang } from "../i18n";
 
 const relationName=(relation:string)=>relation==="similar"?"相近":"不相近";
 /** Same formal settings structure, with stable shared identities and source-aware conflict choices. */
@@ -14,7 +15,8 @@ export function SharedPersonalApproxSettings({onError}:{onError:(message:string)
   const [found,setFound]=useState<{key:string;view:CatalogApproxView}|null>(null);
   const [pending,setPending]=useState<string|null>(null);
   const mode=useRef(0),revision=useRef<string|null>(null),events=useRef(0);
-  const key=JSON.stringify([safe,generation,refresh]);const current=useRef(key);current.current=key;
+  const lang=useUiLang();
+  const key=JSON.stringify([safe,generation,refresh,lang]);const current=useRef(key);current.current=key;
   const view=found?.key===key?found.view:null;
   useEffect(()=>{
     let alive=true;const initial=mode.current;
@@ -30,9 +32,9 @@ export function SharedPersonalApproxSettings({onError}:{onError:(message:string)
   },[onError]);
   useEffect(()=>{
     if(safe===null)return;let alive=true;
-    void sharedPersonalApprox(UI_LANG,safe).then(value=>{if(alive&&current.current===key)setFound({key,view:value??{revision:0,entries:[],conflicts:[]}});},error=>{if(alive&&current.current===key)onError(String(error));});
+    void sharedPersonalApprox(lang,safe).then(value=>{if(alive&&current.current===key)setFound({key,view:value??{revision:0,entries:[],conflicts:[]}});},error=>{if(alive&&current.current===key)onError(String(error));});
     return ()=>{alive=false;};
-  },[safe,key,onError]);
+  },[safe,key,onError,lang]);
   const edit=async(action:CatalogApproxEdit)=>{
     if(safe===null)return;setPending(key);
     try {await editSharedApprox(action,safe);if(current.current===key)setRefresh(n=>n+1);}

@@ -18,12 +18,11 @@ import { tagOption } from "./tagOptions";
 import { chipsThatFit } from "./fitChips";
 import { RatingName, tagName } from "./tagLabel";
 import { TermView } from "./TermView";
+import { useUiLang } from "../i18n";
 import { ratingCandidates, searchCandidates, workspaceCandidates, workspaceSourceCandidates, setTagApprox, editSharedApprox } from "../ipc";
 
 export { TagMarks, tagName, UNTRANSLATED_HINT } from "./tagLabel";
 
-/** 界面语言。多语言界面随后续切片加入。 */
-export const UI_LANG = "zh-CN";
 export const LIMIT = 8;
 
 /**
@@ -46,21 +45,22 @@ export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => 
  */
 export function useCandidateState(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true, limit = LIMIT): { list: Candidate[]; ready: boolean } {
   const [found, setFound] = useState<Found>({ key: "", list: [] });
-  const key = lensKey(lens, text) + `#${limit}`;
+  const lang = useUiLang();
+  const key = lensKey(lens, text) + `#${limit}#${lang}`;
   const { libraryId, safe } = lens;
   const keepRef = useRef(keep);
   keepRef.current = keep;
   useEffect(() => {
     let alive = true;
     if (!text.trim()) return;
-    (lens.sourceTarget ? workspaceSourceCandidates(lens.sourceTarget, text, UI_LANG, safe) : lens.workspace ? workspaceCandidates(text, UI_LANG, limit, safe) : searchCandidates(libraryId, text, UI_LANG, limit, safe)).then(
+    (lens.sourceTarget ? workspaceSourceCandidates(lens.sourceTarget, text, lang, safe) : lens.workspace ? workspaceCandidates(text, lang, limit, safe) : searchCandidates(libraryId, text, lang, limit, safe)).then(
       (list) => alive && setFound({ key, list: list.filter((c) => keepRef.current(c)) }),
       () => alive && setFound({ key, list: [] }),
     );
     return () => {
       alive = false;
     };
-  }, [key, libraryId, safe, text, limit]);
+  }, [key, libraryId, safe, text, limit, lang]);
   const ready = found.key === key && !!text.trim();
   return { list: ready ? found.list : [], ready };
 }
