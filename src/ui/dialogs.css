@@ -21,7 +21,7 @@
 
 /* ---- Radio cards (import target, old-name wizard) ---- */
 .k-radio-cards { display: flex; flex-direction: column; gap: 8px; }
-.k-radio-card { position: relative; display: flex; gap: 10px; padding: 12px; border-radius: var(--r-m); box-shadow: inset 0 0 0 1px var(--line-2); cursor: pointer;
+.k-radio-card { position: relative; display: flex; gap: 10px; padding: 12px; border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--line-2); cursor: pointer;
   transition: background var(--t-fast), box-shadow var(--t-fast); }
 .k-radio-card:hover { background: var(--hover); }
 .k-radio-card.is-on { box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--accent-soft); }
@@ -38,12 +38,12 @@
 .k-dialog-foot.is-tight { margin-top: 0; }
 .k-steps-row { display: flex; align-items: center; gap: 10px; }
 .k-steps { flex: 1; display: flex; gap: 4px; }
-.k-steps i { height: 4px; flex: 1; border-radius: 2px; background: var(--line); }
+.k-steps i { height: 4px; flex: 1; border-radius: var(--r-pill); background: var(--line); }
 .k-steps i.is-done { background: var(--accent); }
 .k-steps i.is-current { background: var(--accent-strong); }
 .k-steps-count { color: var(--ink-2); font-size: 12px; }
 .k-wizard > .k-set-note[role="status"] { margin: -6px 0 0; }
-.k-big-tag { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--r-m); background: var(--surface-2); }
+.k-big-tag { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--r); background: var(--surface-2); }
 .k-big-tag-icon { width: 40px; height: 40px; flex: none; border-radius: var(--r-xs); background: var(--surface); display: grid; place-items: center; color: var(--ink-2); }
 .k-big-tag-name { font-size: 16px; line-height: 24px; font-weight: 600; }
 .k-preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -72,7 +72,7 @@
 .k-dialog.k-import-dialog.is-wide { width: min(640px, calc(100vw - 48px)); }
 .k-import-dialog .k-dialog-desc, .k-save-dialog .k-dialog-desc { margin: -10px 0 0; }
 .k-import-dialog .k-dialog-foot, .k-save-dialog .k-dialog-foot { margin-top: 2px; }
-.k-import-summary { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--r-m); background: var(--surface-2); min-width: 0; }
+.k-import-summary { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--r); background: var(--surface-2); min-width: 0; }
 .k-import-summary .k-big-tag-icon { width: 40px; height: 40px; }
 .k-import-dialog .k-list { max-height: 260px; overflow: auto; }
 
@@ -80,7 +80,7 @@
 .k-task-cards { position: fixed; right: 18px; bottom: 18px; z-index: 50; width: 340px; max-width: calc(100vw - 36px); max-height: calc(100vh - 100px);
   overflow: auto; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
 .k-task-cards:empty { display: none; }
-.k-task { pointer-events: auto; padding: 12px; border-radius: var(--r-m); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-pop); }
+.k-task { pointer-events: auto; padding: 12px; border-radius: var(--r-l); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-pop); }
 .k-task.is-row { display: flex; align-items: center; gap: 10px; }
 .k-task-top { display: flex; align-items: center; gap: 8px; }
 .k-task-top b { flex: 1; font-weight: 600; }
@@ -102,10 +102,10 @@
 .k-task-switch { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-2); }
 .k-task-switch .k-select { flex: 1; min-width: 0; }
 .k-icon-btn.is-sm { width: 24px; height: 24px; border-radius: var(--r-xs); }
-.k-task-progress { appearance: none; display: block; width: 100%; height: 6px; margin-top: 10px; border: 0; border-radius: 3px; overflow: hidden; background: var(--sunken); }
-.k-task-progress::-webkit-progress-bar { background: var(--sunken); border-radius: 3px; }
-.k-task-progress::-webkit-progress-value { background: var(--accent); border-radius: 3px; transition: width var(--t); }
-.k-task-progress::-moz-progress-bar { background: var(--accent); border-radius: 3px; }
+.k-task-progress { appearance: none; display: block; width: 100%; height: 6px; margin-top: 10px; border: 0; border-radius: var(--r-pill); overflow: hidden; background: var(--sunken); }
+.k-task-progress::-webkit-progress-bar { background: var(--sunken); border-radius: var(--r-pill); }
+.k-task-progress::-webkit-progress-value { background: var(--accent); border-radius: var(--r-pill); transition: width var(--t); }
+.k-task-progress::-moz-progress-bar { background: var(--accent); border-radius: var(--r-pill); }
 .k-task .k-seal-lock { flex: none; margin: 0 2px; }
 
 /* Drop hint: the whole window is the drop target. */
@@ -120,10 +120,10 @@
    每个分组一行：28 px 图标方块、名称、靠右的成员数或命名空间胶囊；下面是与名称左对齐的 TagChip（28 + 12 = 40）。
    末行是“新建分组”，点开就地变成新建表单。 */
 .k-groups { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.k-group-list { border-radius: var(--r-m); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.k-group-list { border-radius: var(--r); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
 .k-group { padding: 8px 12px 12px; border-top: 1px solid var(--line); }
 .k-group-rows > .k-group:first-child { border-top: 0; }
-.k-group-icon { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: var(--r-s); background: var(--surface-2); color: var(--ink-2); }
+.k-group-icon { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: var(--r-xs); background: var(--surface-2); color: var(--ink-2); }
 .k-group-head { display: flex; align-items: center; gap: 12px; min-height: 32px; }
 .k-group-head.is-renaming > .k-input { flex: 1; }
 .k-group-name { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
@@ -141,12 +141,12 @@
 .k-icon-btn.is-danger:hover:not(:disabled) { color: var(--danger); background: var(--hover); }
 .k-icon-btn.is-xs { width: 20px; height: 20px; border-radius: var(--r-xs); }
 .k-icon-btn:disabled { opacity: 0.5; cursor: default; }
-/* 成员：TagChip（26 高、r-item、surface 底、1 px line 内描边，计数 12 px ink-2）。 */
+/* 成员：TagChip（26 高、r-s、surface 底、1 px line 内描边，计数 12 px ink-2）。 */
 .k-group-members { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 0; padding: 0 0 0 40px; list-style: none; }
 .k-group-members > li { display: inline-flex; min-width: 0; }
-.k-group-member { align-items: center; height: 26px; border-radius: var(--r-item); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); transition: background var(--t-fast), box-shadow var(--t-fast); }
+.k-group-member { align-items: center; height: 26px; border-radius: var(--r-s); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); transition: background var(--t-fast), box-shadow var(--t-fast); }
 .k-group-member:hover, .k-group-member:has(:focus-visible) { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line-2); }
-.k-group-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: 0; border-radius: var(--r-item); background: none; color: var(--ink); font: inherit; cursor: pointer; }
+.k-group-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: 0; border-radius: var(--r-s); background: none; color: var(--ink); font: inherit; cursor: pointer; }
 .k-group-chip:disabled { opacity: 1; cursor: default; }
 .k-group-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .k-group-chip-name { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
@@ -156,23 +156,23 @@
 .k-group-member-acts { display: inline-flex; gap: 1px; max-width: 0; overflow: hidden; opacity: 0; margin-left: -4px; transition: max-width 140ms, opacity 140ms; }
 .k-group-member:hover .k-group-member-acts, .k-group-member:has(:focus-visible) .k-group-member-acts { max-width: 64px; opacity: 1; padding-right: 5px; }
 @media (hover: none) { .k-group-member-acts { max-width: 64px; opacity: 1; padding-right: 5px; } }
-.k-group-chip-x { width: 16px; height: 16px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: none; color: var(--ink-3); cursor: pointer; }
+.k-group-chip-x { width: 16px; height: 16px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-xs); background: none; color: var(--ink-3); cursor: pointer; }
 .k-group-chip-x:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
 .k-group-chip-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
 .k-group-chip-x:disabled { opacity: 0.4; cursor: default; }
 /* 加标签：行内的轻操作，设计系统 Button is-ghost（accent-strong 字，悬停 accent-soft）。 */
-.k-group-add { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px 0 6px; border: 0; border-radius: var(--r-item);
+.k-group-add { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px 0 6px; border: 0; border-radius: var(--r-s);
   background: transparent; color: var(--accent-strong); font: inherit; font-weight: 500; cursor: pointer; transition: background var(--t-fast); }
 .k-group-add:hover:not(:disabled) { background: var(--accent-soft); }
 .k-group-add:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .k-group-add:disabled { opacity: 0.5; cursor: default; }
 .k-group-pick { align-items: center; gap: 4px; }
 .k-group-pick > .k-combo { flex: none; width: 200px; }
-.k-group-pick .k-input.is-inline { height: 26px; padding: 0 8px; border-radius: var(--r-item); }
+.k-group-pick .k-input.is-inline { height: 26px; padding: 0 8px; border-radius: var(--r-s); }
 /* 末行：新建分组（与分组行同样的图标方块与对齐），点开换成新建表单。 */
-.k-group-create { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 8px 12px; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 var(--r-m) var(--r-m);
+.k-group-create { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 8px 12px; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 var(--r) var(--r);
   background: none; color: var(--accent-strong); font: inherit; font-weight: 500; text-align: left; cursor: pointer; transition: background var(--t-fast); }
-.k-group-rows:empty + .k-group-create { border-top: 0; border-radius: var(--r-m); }
+.k-group-rows:empty + .k-group-create { border-top: 0; border-radius: var(--r); }
 .k-group-create > .k-group-icon { background: var(--accent-soft); color: var(--accent-strong); }
 .k-group-create:hover:not(:disabled) { background: var(--hover); }
 .k-group-create:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
