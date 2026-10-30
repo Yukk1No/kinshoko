@@ -40,17 +40,20 @@ function importCounts(report: ImportReport) {
  * 导入结束的轻提示（#388）：去向与数字；有要处理的（没导入、删过的图、回收站里的）时带“查看”，打开结果回执卡，
  * 且不自动消失。key 概括内容，用来在数字被收起时原地更新。
  */
-export function importNotice(report: ImportReport, owner: string | null): { key: string; toast: (view: () => void) => Omit<ToastOptions, "onClose"> } {
+export function importNotice(report: ImportReport, owner: string | null, warnings: readonly string[] = []): { key: string; toast: (view: () => void) => Omit<ToastOptions, "onClose"> } {
   const counts = importCounts(report);
   const stats: [string, number, boolean?][] = report.privateSummary ? [] : [
     ["新增", counts.imported, true], ["已存在", counts.merged], ["更新", counts.refreshed], ["新版本", counts.newVersions], ["Eagle 已删", report.eagleMissing]];
   const shown = stats.filter(([, n, always]) => always || n > 0);
-  const review = counts.rejected.length > 0 || counts.skippedDeleted.length > 0 || counts.trashDuplicate || report.trashDuplicates;
+  // 任务警告（如标签定义没存进图库）与封印项重复也要能回到回执里处理。
+  const review = counts.rejected.length > 0 || counts.skippedDeleted.length > 0 || counts.trashDuplicate || report.trashDuplicates
+    || report.sealedDuplicates || warnings.length > 0;
+  const stays = counts.rejected.length > 0 || warnings.length > 0;
   const title = report.cancelled ? "导入已取消" : "导入完成";
   return {
-    key: JSON.stringify([title, owner, report.privateSummary, shown, counts.rejected.length, review]),
+    key: JSON.stringify([title, owner, report.privateSummary, shown, counts.rejected.length, review, warnings]),
     toast: (view) => ({
-      title, tone: report.cancelled ? "info" : "success", timeout: counts.rejected.length > 0 ? 0 : undefined,
+      title, tone: report.cancelled ? "info" : "success", timeout: stays ? 0 : undefined,
       description: <>
         {owner && <span className="k-toast-line">放到 {owner}</span>}
         <span className="k-toast-stats">
@@ -58,6 +61,7 @@ export function importNotice(report: ImportReport, owner: string | null): { key:
           {shown.map(([label, n]) => <span key={label}>{label} <b>{n}</b></span>)}
           {counts.rejected.length > 0 && <span className="is-danger">没导入 <b>{counts.rejected.length}</b></span>}
         </span>
+        {warnings.map((warning, index) => <span key={index} className="k-toast-line is-warn">{warning}</span>)}
       </>,
       action: review ? { label: "查看", onClick: view } : undefined,
     }),

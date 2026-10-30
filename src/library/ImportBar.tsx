@@ -45,6 +45,10 @@ type Props = {
   taskSwitcher?: ReactNode;
   /** 卡片里的附加说明（任务警告、正在发布标签定义）。 */
   cardNotes?: ReactNode;
+  /** 所选任务的警告（如标签定义没存进图库），结束的轻提示据此带“查看”。 */
+  warnings?: readonly string[];
+  /** 让导入菜单选中某个任务，以便打开它的回执。 */
+  onSelectTask?: (taskId: string) => void;
   /** 卡片上的保存位置，例如“角色参考 / 人物 / 发型”。 */
   ownerLabel?: string | null;
 };
@@ -58,7 +62,7 @@ export type ImportActions = { files: () => void; folder: () => void; eagle: () =
  * 进度是右下角的卡片，可取消或后台进行。结束、出错、上次中断与封印项重复走轻提示（#388）；结束的提示带“查看”，
  * 打开结果回执卡：列出没有进来的文件并可只重试读取失败的项。没有 ToastProvider 时（单独渲染）这些仍是卡片。
  */
-export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel }: Props) {
+export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, warnings, onSelectTask }: Props) {
   /** “后台进行”收起的进度卡（按任务 id）；新任务或从导入菜单“查看导入任务”时重新显示。 */
   const [background, setBackground] = useState<string | null>(null);
   const report = finished?.report ?? null;
@@ -151,7 +155,7 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
     folder: () => { if (!busy) void importFolder(); },
     eagle: () => { if (!busy && !lookingForEagle) void findEagle(); },
     paths: (paths) => { if (!busy) void begin(paths); },
-    showTasks: () => { setBackground(null); setReceipt(finished?.taskId ?? null); },
+    showTasks: () => { setBackground(null); setReceipt(true); },
   }));
   useEffect(() => { onBusyChange?.(busy, lookingForEagle); }, [busy, lookingForEagle, onBusyChange]);
 
@@ -231,7 +235,7 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
   const sealed = report?.sealedDuplicates && finished;
 
-  const { toast, receiptOpen, setReceipt } = useImportNotices({ finished, owner, recovery, setRecovery, importError, setImportError,
+  const { toast, receiptOpen, setReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, recovery, setRecovery, importError, setImportError,
     reimport: (paths) => void latest.current.begin(paths), sealedTask: sealed ? sealed.taskId : null, showSealed: (taskId) => setPreview({ taskId, contextKey }) });
 
   const cards = <>
@@ -288,9 +292,9 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
     )}
     {report && receiptOpen && (
       <ImportResultCard report={report} finished={finished} owner={owner} taskSwitcher={taskSwitcher} cardNotes={cardNotes} busy={busy}
-        begin={begin} optionsByTask={optionsByTask} libraryId={libraryId} onOpenTrash={onOpenTrash} onDismissReport={() => { setReceipt(null); onDismissReport(); }} />
+        begin={begin} optionsByTask={optionsByTask} libraryId={libraryId} onOpenTrash={onOpenTrash} onDismissReport={() => { setReceipt(false); onDismissReport(); }} />
     )}
-    {!toast && sealed && <section className="k-task is-row sealed-import-prompt" aria-label="封印项重复">
+    {sealed && receiptOpen && <section className="k-task is-row sealed-import-prompt" aria-label="封印项重复">
       {/* #78 规定的原文：不点名内容类别，不给数量。 */}
       <SealLock size={10} /><span className="k-grow">有封印项重复，是否展开看看</span>
       <button type="button" className="k-btn is-sm" aria-label="展开本次重复项" onClick={() => setPreview({ taskId: sealed.taskId, contextKey })}><span className="k-label">展开</span></button>

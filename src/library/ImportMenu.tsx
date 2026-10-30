@@ -101,7 +101,7 @@ export function ImportMenu({control,...p}:ComponentProps<typeof ImportBar>&{scop
   <ImportBar {...p} actionsRef={actions} onBusyChange={onBusyChange} previewContextKey={p.libraryId} libraryId={context.destination?.libraryId??""} libraryName={library?.name??"尚未选择的图库"}
     destination={context.destination} destinationReady={context.ready&&destinationAvailable(context.destination,context.providers)} running={running} finished={finished}
     picker={<SaveDestinationPicker value={context.destination} onChange={context.setDestination} labelPrefix="放到"/>}
-    taskSwitcher={switcher} cardNotes={notes} ownerLabel={task?`${task.libraryName} / ${task.folderName}`:null}
+    taskSwitcher={switcher} cardNotes={notes} warnings={task?.warnings} onSelectTask={setSelectedTask} ownerLabel={task?`${task.libraryName} / ${task.folderName}`:null}
     onStarted={(id,fixed)=>{
       if(fixed){
         const provider=context.providers.find(p=>p.registration.library.id===fixed.libraryId);

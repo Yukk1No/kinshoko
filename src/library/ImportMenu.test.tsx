@@ -46,6 +46,29 @@ describe("导入结束走轻提示（#388）", () => {
     expect(screen.queryByRole("button", { name: "查看" })).toBeNull();
   });
 
+  it("任务有警告（标签定义没存进图库）时提示写出警告、带“查看”且不自动消失", async () => {
+    serve([{ ...receipt, warnings: ["标签定义没有存进图库，可在标签目录里重试"], report: { ...receipt.report!, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } }]);
+    render(<ToastProvider>{menu()}</ToastProvider>);
+    expect((await screen.findByText("导入完成")).closest(".k-toast")?.textContent).toContain("标签定义没有存进图库");
+    expect(screen.getByRole("button", { name: "查看" })).toBeTruthy();
+  });
+
+  it("“查看”先选中提示所属的任务，即使之后开始了别的导入", async () => {
+    mockWindows("main");
+    const running: ImportTaskSnapshot = { ...receipt, taskId: "next-task", folderName: "人物", progress: { done: 1, total: 9 }, report: null };
+    let calls = 0;
+    mockIPC(cmd => {
+      if (cmd === "plugin:library|import_tasks") return ++calls === 1 ? [receipt] : [receipt, running];
+      if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
+      return undefined;
+    }, { shouldMockEvents: true });
+    render(<ToastProvider>{menu()}</ToastProvider>);
+    await screen.findByText("导入完成");
+    await screen.findByRole("region", { name: "导入进度" }, { timeout: 3000 });
+    fireEvent.click(screen.getByRole("button", { name: "查看" }));
+    expect((await screen.findByRole("region", { name: "导入结果" })).textContent).toContain("missing.png");
+  });
+
   it("安全模式打开时，已显示的提示原地收起数字", async () => {
     serve([receipt]);
     render(<ToastProvider>{menu()}</ToastProvider>);

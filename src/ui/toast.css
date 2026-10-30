@@ -40,6 +40,7 @@ body:has(.selbar-host > .selbar) .k-toasts { bottom: calc(18px + 66px); }
 .k-toast-desc:empty { display: none; }
 /* a description in parts (e.g. an import's destination over its counts): one line each; counts sit apart by spacing, not dots */
 .k-toast-line { display: block; }
+.k-toast-line.is-warn { color: var(--warn); }
 .k-toast-stats { display: flex; flex-wrap: wrap; gap: 0 12px; }
 .k-toast-stats b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
 .k-toast-stats .is-danger, .k-toast-stats .is-danger b { color: var(--danger); }
