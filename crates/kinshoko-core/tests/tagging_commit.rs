@@ -157,7 +157,7 @@ fn a_tagging_result_is_committed_whole_and_published_after_commit() {
     assert!(
         events.iter().any(|e| matches!(
             e,
-            LibraryEvent::ImagesChanged { image_ids, .. } if image_ids == &[id.clone()]
+            LibraryEvent::ImagesChanged { image_ids, .. } if image_ids == std::slice::from_ref(&id)
         )),
         "{events:?}"
     );
