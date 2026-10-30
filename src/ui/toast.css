@@ -3,7 +3,11 @@
 /* ---- Toasts ---- */
 /* A frosted card like the Dock (design system Toast). The stack collapses behind the newest toast, each older one
    peeking 8 px above it a step smaller, and fans out while the stack is hovered or focused (Base UI's --toast-* variables). */
-.k-toasts { position: fixed; right: 18px; bottom: 18px; z-index: 200; width: 340px; max-width: calc(100vw - 36px); outline: 0; }
+.k-toasts { position: fixed; right: 18px; bottom: 18px; z-index: 200; width: 340px; max-width: calc(100vw - 36px); outline: 0;
+  transition: right 200ms var(--spring), bottom 200ms var(--spring); }
+/* Same corner as the import task cards (dialogs.css): step left of an open inspector and above a floating selection bar. */
+body:has(.inspector[data-collapsed="false"]) .k-toasts { right: calc(var(--inspector-width, 320px) + 1px + 18px); max-width: calc(100vw - var(--inspector-width, 320px) - 1px - 36px); }
+body:has(.selbar-host > .selbar) .k-toasts { bottom: calc(18px + 66px); }
 .k-toast { --gap: 8px; --peek: 8px; --scale: calc(max(0, 1 - var(--toast-index) * 0.05)); --shrink: calc(1 - var(--scale));
   --height: var(--toast-frontmost-height, var(--toast-height));
   --offset-y: calc(var(--toast-offset-y) * -1 - var(--toast-index) * var(--gap) + var(--toast-swipe-movement-y));
@@ -34,19 +38,26 @@
 .k-toast-title { margin: 0; font-size: 13px; font-weight: 500; line-height: 20px; overflow-wrap: anywhere; }
 .k-toast-desc { margin: 0; font-size: 12px; line-height: 18px; color: var(--ink-2); overflow-wrap: anywhere; }
 .k-toast-desc:empty { display: none; }
+/* a description in parts (e.g. an import's destination over its counts): one line each; counts sit apart by spacing, not dots */
+.k-toast-line { display: block; }
+.k-toast-line.is-warn { color: var(--warn); }
+.k-toast-stats { display: flex; flex-wrap: wrap; gap: 0 12px; }
+.k-toast-stats b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.k-toast-stats .is-danger, .k-toast-stats .is-danger b { color: var(--danger); }
 .k-toast-action { flex: none; height: 28px; padding: 0 10px; border: 0; border-radius: var(--r-s); background: var(--accent-soft); color: var(--accent-strong);
   font-size: 12px; font-weight: 500; white-space: nowrap; transition: background var(--t-fast); }
 .k-toast-action:hover { background: color-mix(in srgb, var(--accent) 24%, transparent); }
 /* an error's action (重试) is a plain small button: the sakura pill is for undoing a confirmation */
 .k-toast[data-tone="error"] .k-toast-action { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink); }
 .k-toast[data-tone="error"] .k-toast-action:hover { background: var(--surface-2); }
-.k-toast-close { flex: none; width: 28px; height: 28px; padding: 0; border: 0; display: grid; place-items: center; overflow: hidden; background: none; color: var(--ink-3);
-  border-radius: var(--r-s); transition: width var(--t) var(--ease), margin var(--t) var(--ease), opacity var(--t-fast), background var(--t-fast), color var(--t-fast); }
+.k-toast-close { flex: none; width: 28px; height: 28px; padding: 0; border: 0; display: grid; place-items: center; background: none; color: var(--ink-3);
+  border-radius: var(--r-s); transition: opacity var(--t-fast), background var(--t-fast), color var(--t-fast); }
 .k-toast-close:hover { background: var(--hover); color: var(--ink); }
-/* Confirmations close on their own, so their close button folds away until the toast is hovered or focused; an error keeps it. */
-.k-toast:not([data-tone="error"]) .k-toast-close { width: 0; margin-left: -12px; opacity: 0; }
-.k-toast:not([data-tone="error"]):is(:hover, :focus-within) .k-toast-close { width: 28px; margin-left: 0; opacity: 1; }
+/* Confirmations close on their own, so their close button stays faded until the toast is hovered or focused; an error keeps it.
+   It keeps its width while hidden: folding it away made hovering narrow the text, which then wrapped and grew the toast (#388). */
+.k-toast:not([data-tone="error"]) .k-toast-close { opacity: 0; }
+.k-toast:not([data-tone="error"]):is(:hover, :focus-within) .k-toast-close { opacity: 1; }
 .k-toast-action:focus-visible, .k-toast-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-@media (prefers-reduced-motion: reduce) { .k-toast { transition-duration: 0ms; } }
-:root[data-reduced-motion] .k-toast { transition-duration: 0ms; }
+@media (prefers-reduced-motion: reduce) { .k-toasts, .k-toast { transition-duration: 0ms; } }
+:root[data-reduced-motion] .k-toasts, :root[data-reduced-motion] .k-toast { transition-duration: 0ms; }
