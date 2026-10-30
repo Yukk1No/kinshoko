@@ -15,6 +15,7 @@ import type { EagleLocationChoice } from "../bindings/EagleLocationChoice";
 import type { EagleRelocation } from "../bindings/EagleRelocation";
 import { cancelImport, confirmEagleLocation, discoverEagleLibraries, importContainsEagle, libraryRecovery, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
 import { EagleLibrariesDialog, ImportPlanDialog, ImportResultCard, type ImportPlan } from "./ImportBarParts";
+import { useImportNotices } from "./useImportNotices";
 
 export type RunningImport = { taskId: string | null; progress: ImportProgress; libraryId?:string; destination?:SaveDestination; libraryName?:string; folderName?:string };
 /** 已结束的导入任务与它的报告。 */
@@ -54,8 +55,8 @@ export type ImportActions = { files: () => void; folder: () => void; eagle: () =
 
 /**
  * 导入（#98）：选择文件或文件夹，或把它们拖进主窗口；先在对话框里选图库和文件夹（Eagle 另问删过的图），
- * 进度与结果是右下角的卡片：进行中可取消或后台进行，结束后列出没有进来的文件并可只重试读取失败的项。
- * 打开图库时若上次导入中断，提示撤回了哪些文件。
+ * 进度是右下角的卡片，可取消或后台进行。结束、出错、上次中断与封印项重复走轻提示（#388）；结束的提示带“查看”，
+ * 打开结果回执卡：列出没有进来的文件并可只重试读取失败的项。没有 ToastProvider 时（单独渲染）这些仍是卡片。
  */
 export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel }: Props) {
   /** “后台进行”收起的进度卡（按任务 id）；新任务或从导入菜单“查看导入任务”时重新显示。 */
@@ -150,7 +151,7 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
     folder: () => { if (!busy) void importFolder(); },
     eagle: () => { if (!busy && !lookingForEagle) void findEagle(); },
     paths: (paths) => { if (!busy) void begin(paths); },
-    showTasks: () => setBackground(null),
+    showTasks: () => { setBackground(null); setReceipt(finished?.taskId ?? null); },
   }));
   useEffect(() => { onBusyChange?.(busy, lookingForEagle); }, [busy, lookingForEagle, onBusyChange]);
 
@@ -230,13 +231,16 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
   const sealed = report?.sealedDuplicates && finished;
 
+  const { toast, receiptOpen, setReceipt } = useImportNotices({ finished, owner, recovery, setRecovery, importError, setImportError,
+    reimport: (paths) => void latest.current.begin(paths), sealedTask: sealed ? sealed.taskId : null, showSealed: (taskId) => setPreview({ taskId, contextKey }) });
+
   const cards = <>
     {importError && <section className="k-task" role="alert" aria-label="导入出错">
       <div className="k-task-top"><CircleAlert size={16} className="k-task-icon is-error" aria-hidden="true" /><b>导入出错</b>
         <button type="button" className="k-icon-btn is-sm" aria-label="知道了" onClick={() => setImportError(null)}><X size={14} aria-hidden="true" /></button></div>
       <p className="k-task-sub">{importError}</p>
     </section>}
-    {(interrupted.length > 0 || orphans.length > 0) && (
+    {!toast && (interrupted.length > 0 || orphans.length > 0) && (
       <section className="k-task" role="status" aria-label={interrupted.length > 0 ? "上次导入中断" : "原文件夹里有不认识的文件"}>
         <div className="k-task-top"><History size={16} className="k-task-icon" aria-hidden="true" />
           <b>{interrupted.length > 0 ? "上次导入中断" : "有不认识的文件"}</b>
@@ -282,11 +286,11 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
         </div>
       </section>
     )}
-    {report && (
+    {report && receiptOpen && (
       <ImportResultCard report={report} finished={finished} owner={owner} taskSwitcher={taskSwitcher} cardNotes={cardNotes} busy={busy}
-        begin={begin} optionsByTask={optionsByTask} libraryId={libraryId} onOpenTrash={onOpenTrash} onDismissReport={onDismissReport} />
+        begin={begin} optionsByTask={optionsByTask} libraryId={libraryId} onOpenTrash={onOpenTrash} onDismissReport={() => { setReceipt(null); onDismissReport(); }} />
     )}
-    {sealed && <section className="k-task is-row sealed-import-prompt" aria-label="封印项重复">
+    {!toast && sealed && <section className="k-task is-row sealed-import-prompt" aria-label="封印项重复">
       {/* #78 规定的原文：不点名内容类别，不给数量。 */}
       <SealLock size={10} /><span className="k-grow">有封印项重复，是否展开看看</span>
       <button type="button" className="k-btn is-sm" aria-label="展开本次重复项" onClick={() => setPreview({ taskId: sealed.taskId, contextKey })}><span className="k-label">展开</span></button>

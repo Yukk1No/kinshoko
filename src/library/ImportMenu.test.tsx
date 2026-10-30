@@ -5,6 +5,7 @@ import { emit } from "@tauri-apps/api/event";
 import type { Channel } from "@tauri-apps/api/core";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import { ImportMenu } from "./ImportMenu";
+import { ToastProvider } from "../ui/Toast";
 
 afterEach(async () => { cleanup(); await new Promise(resolve => setTimeout(resolve, 0)); clearMocks(); vi.unstubAllGlobals(); });
 
@@ -16,6 +17,47 @@ const receipt: ImportTaskSnapshot = {
 };
 
 function menu() { return <ImportMenu enabled libraryId="L1" libraryName="参考" running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} />; }
+
+describe("导入结束走轻提示（#388）", () => {
+  function serve(tasks: ImportTaskSnapshot[]) {
+    mockWindows("main");
+    mockIPC(cmd => {
+      if (cmd === "plugin:library|import_tasks") return tasks;
+      if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
+      return undefined;
+    }, { shouldMockEvents: true });
+  }
+
+  it("结束时只发一条轻提示，回执卡不自己弹出；“查看”打开它", async () => {
+    serve([receipt]);
+    render(<ToastProvider>{menu()}</ToastProvider>);
+    const title = await screen.findByText("导入完成");
+    expect(title.closest(".k-toast")?.textContent).toContain("放到 参考 / 未归类");
+    expect(screen.queryByRole("region", { name: "导入结果" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "查看" }));
+    expect((await screen.findByRole("region", { name: "导入结果" })).textContent).toContain("missing.png");
+    expect(screen.queryByText("导入完成", { selector: ".k-toast-title" })).toBeNull();
+  });
+
+  it("没有要处理的项时不带“查看”", async () => {
+    serve([{ ...receipt, report: { ...receipt.report!, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } }]);
+    render(<ToastProvider>{menu()}</ToastProvider>);
+    expect((await screen.findByText("导入完成")).closest(".k-toast")?.textContent).toContain("新增 1");
+    expect(screen.queryByRole("button", { name: "查看" })).toBeNull();
+  });
+
+  it("安全模式打开时，已显示的提示原地收起数字", async () => {
+    serve([receipt]);
+    render(<ToastProvider>{menu()}</ToastProvider>);
+    const toast = () => screen.getByText("导入完成").closest(".k-toast")!;
+    await screen.findByText("导入完成");
+    expect(toast().textContent).toContain("已存在 1");
+    await act(() => emit("safe-mode-setting", true));
+    await waitFor(() => expect(toast().textContent).not.toMatch(/新增|已存在|更新/));
+    expect(toast().textContent).toContain("内容处理结果已保留");
+    expect(screen.getAllByText("导入完成")).toHaveLength(1);
+  });
+});
 
 describe("导入回执上下文撤销", () => {
   for (const [event, payload] of [["safe-mode-setting", true], ["workspace-changed", { revision: "after", libraries: [] }]] as const) {

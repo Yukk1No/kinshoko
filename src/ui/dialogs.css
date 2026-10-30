@@ -77,7 +77,8 @@
 .k-import-dialog .k-list { max-height: 260px; overflow: auto; }
 
 /* ---- Import task cards, bottom right ---- */
-.k-task-cards { position: fixed; right: 18px; bottom: 18px; z-index: 50; width: 340px; max-width: calc(100vw - 36px); max-height: calc(100vh - 100px);
+/* They share the corner with the toasts (toast.css) and sit above the collapsed toast stack, whose height Toast.tsx publishes. */
+.k-task-cards { position: fixed; right: 18px; bottom: calc(18px + var(--k-toast-stack, 0px)); z-index: 50; width: 340px; max-width: calc(100vw - 36px); max-height: calc(100vh - 100px);
   overflow: auto; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
 .k-task-cards:empty { display: none; }
 .k-task { pointer-events: auto; padding: 12px; border-radius: var(--r-l); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-pop); }
@@ -185,11 +186,11 @@
 @media (prefers-reduced-motion: reduce) { .k-group-member-acts, .k-group-member, .k-group-acts, .k-group-add, .k-group-create { transition: none; } }
 .k-groups-dialog .k-groups { max-height: calc(100vh - 220px); overflow: auto; }
 /* 详情面板打开时，右下角卡片停在面板左侧，不盖住面板底部的按钮（#98）。 */
-.k-task-cards { transition: right 200ms var(--spring); }
+.k-task-cards { transition: right 200ms var(--spring), bottom 200ms var(--spring); }
 body:has(.inspector[data-collapsed="false"]) .k-task-cards { right: calc(var(--inspector-width, 320px) + 1px + 18px); max-width: calc(100vw - var(--inspector-width, 320px) - 1px - 36px); }
 @media (prefers-reduced-motion: reduce) { .k-task-cards { transition: none; } }
 /* 有浮动的多选操作条时，卡片抬到操作条上方，同样不遮住它。 */
-body:has(.selbar-host > .selbar) .k-task-cards { bottom: calc(18px + 66px); }
+body:has(.selbar-host > .selbar) .k-task-cards { bottom: calc(18px + 66px + var(--k-toast-stack, 0px)); }
 /* 标签外观的分档阈值（#160）：短标签 + 窄数字框，一行放下两个阈值和“恢复默认”。 */
 .k-set-number { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
 /* 窄时两个阈值和“恢复默认”折行，靠右对齐，不溢出设置窗口。 */
