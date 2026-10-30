@@ -25,7 +25,7 @@ it("provider refresh keeps the viewed card in place while the new page loads and
     libraryId: "A", imageId: String(index), sources: [],
   }));
   const page: WorkspacePage = { cards, total: cards.length, nextCursor: null, status: { revision: "r", libraries: [] } };
-  const props = { libraryId: "A", scope: { kind: "all" as const }, workspaceScope: { kind: "all" as const },
+  const props = { scope: { kind: "all" as const }, workspaceScope: { kind: "all" as const },
     safeMode: true, selected: new Set<string>(), onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false };
   const view = render(<Wall {...props} reloadKey={0} />);
   await act(async () => replies[0](page));

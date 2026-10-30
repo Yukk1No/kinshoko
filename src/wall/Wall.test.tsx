@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { Wall } from "./Wall";
+import { workspacePage } from "../test/workspacePage";
 
 let width: number;
 let resize: () => void;
@@ -17,14 +18,14 @@ beforeEach(() => {
   });
   mockConvertFileSrc("windows");
   mockIPC((cmd) => {
-    if (cmd !== "plugin:library|browse") throw new Error(cmd);
-    return { cards: Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100, thumbnail: `L1/${i}/256` })), total: 300, nextCursor: null };
+    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
+    return workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 })));
   });
 });
 afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
 
 it("1121 → 1369 → 1121 连续重排后同一张图保持偏移，多次自身滚动事件不漂移", async () => {
-  render(<Wall libraryId="L1" scope={{ kind: "all" }} reloadKey={0} selected={new Set()}
+  render(<Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={new Set()}
     onSelectionChange={() => {}} onOpenImage={() => {}} viewerOpen={false} />);
   await screen.findAllByRole("img");
   const wall = document.querySelector<HTMLElement>(".wall")!;

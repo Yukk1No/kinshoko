@@ -10,8 +10,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { AppInfo } from "./bindings/AppInfo";
-import type { BrowsePage } from "./bindings/BrowsePage";
-import type { BrowseQuery } from "./bindings/BrowseQuery";
 import type { EagleLibraryCandidate } from "./bindings/EagleLibraryCandidate";
 import type { EagleTagMapping } from "./bindings/EagleTagMapping";
 import type { MappedExternal } from "./bindings/MappedExternal";
@@ -59,14 +57,6 @@ export function switchLibrary(libraryId: string): Promise<LibraryInfo> {
 
 export function unregisterLibrary(libraryId: string): Promise<void> {
   return invoke<void>(lib("unregister_library"), { libraryId });
-}
-
-/**
- * 按查询浏览一页。`query.cursor` 所依据的结果集已经变了（换了视角、查询，或可见集合变化）时
- * 被拒绝（{@link isCursorExpired}），从第一页重读。
- */
-export function browse(libraryId: string, query: BrowseQuery): Promise<BrowsePage> {
-  return invoke<BrowsePage>(lib("browse"), { libraryId, query });
 }
 
 /** 资料库的 `CursorExpired`：分页游标所依据的结果集已经变了，接着翻会遗漏或重复（#77）。 */

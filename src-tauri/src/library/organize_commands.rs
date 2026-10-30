@@ -1,20 +1,6 @@
-//! 浏览、编辑、永久删除与文件夹的命令。
+//! 读详情、编辑、永久删除与文件夹的命令。
 
 use super::*;
-
-#[tauri::command]
-pub(super) async fn browse<R: Runtime>(
-    app: AppHandle<R>,
-    library_id: String,
-    query: BrowseQuery,
-) -> Result<BrowsePage, String> {
-    blocking(move || {
-        readable(&app, &library_id)?
-            .browse(&query)
-            .map_err(|e| e.to_string())
-    })
-    .await
-}
 
 #[tauri::command]
 pub(super) async fn image<R: Runtime>(

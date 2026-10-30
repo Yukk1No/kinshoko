@@ -7,7 +7,7 @@ import type { BrowserCard } from "./Wall";
 
 /** useWallActions 测试共用的卡片、调用记录与挂载：每个测试文件调一次 `setupWallActions()`。 */
 export const card = (id: string, libraryId = "L1"): BrowserCard => ({
-  id, width: 100, height: 100, thumbnail: "", adult: false, libraryId, imageId: `i${id}`, sources: [],
+  id, width: 100, height: 100, adult: false, libraryId, imageId: `i${id}`, sources: [],
 });
 export let calls: { cmd: string; args: Record<string, unknown> }[];
 export function setupWallActions() {
