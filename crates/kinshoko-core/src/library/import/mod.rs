@@ -31,6 +31,8 @@ use super::{
     now_ms, package, save, subscription_import, tags,
 };
 use super::{colour, thumbnail};
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 use crate::fidelity::ColourDescription;
 use crate::fidelity::budget::{self, BudgetPermit, MemoryBudget};
 use crate::fidelity::inspect::inspect;
@@ -271,7 +273,7 @@ fn run(
                     report.items.push(ImportItem {
                         path: path.clone(),
                         outcome: ImportOutcome::ReadFailed {
-                            reason: format!("保存目标不可用：{error}"),
+                            reason: target_unavailable(error),
                         },
                     });
                 } else {
@@ -335,7 +337,10 @@ fn run(
                             .unwrap_or_else(|_| {
                                 Prepared::Done(
                                     ImportOutcome::ReadFailed {
-                                        reason: "处理这一项时出错".into(),
+                                        reason: CommandError::new(
+                                            ErrorKind::ImportItemCrashed,
+                                            "处理这一项时出错",
+                                        ),
                                     },
                                     false,
                                 )
@@ -417,11 +422,22 @@ fn run(
 
 /// 与 collect 相同的 Eagle 识别边界，预检只读取目录，不提前登记或刷新来源。
 mod commit;
+mod originals;
 mod prepare;
+pub(super) use commit::Pending;
 use commit::*;
-pub(super) use commit::{Pending, import_package_original, import_subscription_original};
+pub(super) use originals::{import_package_original, import_subscription_original};
 use prepare::*;
 pub(super) use prepare::{contains_eagle, sha256_hex};
 
 #[cfg(test)]
 mod tests;
+
+/// 保存目标不可用：这一项没有导入。
+fn target_unavailable(error: Error) -> CommandError {
+    CommandError::caused_by(
+        error,
+        |cause| ErrorKind::ImportTargetUnavailable { cause },
+        |error| format!("保存目标不可用：{error}"),
+    )
+}

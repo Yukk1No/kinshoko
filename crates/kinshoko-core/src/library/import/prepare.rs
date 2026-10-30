@@ -1,5 +1,7 @@
 //! 导入的准备：收集文件、读取、解码、哈希与暂存，按顺序提交前的每一项。
 use super::*;
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 
 pub(in crate::library) fn contains_eagle(source: &ImportSource) -> bool {
     fn contains(path: &Path) -> bool {
@@ -22,9 +24,7 @@ pub(super) fn collect(
     let fail = |report: &mut ImportReport, e: std::io::Error| {
         report.items.push(ImportItem {
             path: path.to_path_buf(),
-            outcome: ImportOutcome::ReadFailed {
-                reason: e.to_string(),
-            },
+            outcome: ImportOutcome::ReadFailed { reason: e.into() },
         })
     };
     if eagle::is_library(path) {
@@ -88,9 +88,9 @@ pub(super) fn prepare_file(
     options: ImportOptions,
     context: &ImportContext,
 ) -> Prepared {
-    let failed = |reason: String| Prepared::Done(ImportOutcome::ReadFailed { reason }, false);
+    let failed = |reason: CommandError| Prepared::Done(ImportOutcome::ReadFailed { reason }, false);
     if let Err(error) = save::validate(inner, &context.destination) {
-        return failed(format!("保存目标不可用：{error}"));
+        return failed(super::target_unavailable(error));
     }
     let eagle = if eagle::is_item(path) {
         match eagle::load(inner, path) {
@@ -105,19 +105,22 @@ pub(super) fn prepare_file(
     // 读进来的字节一直留到这一项准备完，先按文件大小占用读取预算。
     let size = match std::fs::metadata(original) {
         Ok(meta) => meta.len(),
-        Err(e) => return failed(e.to_string()),
+        Err(e) => return failed(CommandError::system(e)),
     };
     let Some(_read) = READ_BUDGET.acquire(size, context.cancel.as_deref()) else {
-        return failed("导入已取消".into());
+        return failed(cancelled());
     };
     let bytes = match timed(|s| &mut s.read, || std::fs::read(original)) {
         Ok(b) => b,
-        Err(e) => return failed(e.to_string()),
+        Err(e) => return failed(CommandError::system(e)),
     };
     if let Some(item) = &eagle
         && item.metadata.size != bytes.len() as u64
     {
-        return failed("Eagle 条目的 size 与原文件字节数不符".into());
+        return failed(CommandError::new(
+            ErrorKind::EagleItemSizeMismatch,
+            "Eagle 条目的 size 与原文件字节数不符",
+        ));
     }
     let original_name = eagle
         .as_ref()
@@ -177,17 +180,22 @@ pub(super) enum MergeSource {
 impl MergeSource {
     /// 重新取字节，并核对仍是准备时那份内容。重读原文件时与准备线程一样先占用读取预算，
     /// 调用方持有返回的占用直到暂存完。
-    fn bytes(self, sha: &str) -> Result<(Vec<u8>, Option<BudgetPermit>), String> {
+    fn bytes(self, sha: &str) -> Result<(Vec<u8>, Option<BudgetPermit>), CommandError> {
         let (bytes, permit) = match self {
             MergeSource::Bytes(bytes) => (bytes, None),
             MergeSource::File(path) => {
-                let size = std::fs::metadata(&path).map_err(|e| e.to_string())?.len();
+                let size = std::fs::metadata(&path)
+                    .map_err(CommandError::system)?
+                    .len();
                 let permit = READ_BUDGET.acquire(size, None);
-                (std::fs::read(path).map_err(|e| e.to_string())?, permit)
+                (std::fs::read(path).map_err(CommandError::system)?, permit)
             }
         };
         if sha256_hex(&bytes) != sha {
-            return Err("原文件在导入过程中变了".into());
+            return Err(CommandError::new(
+                ErrorKind::OriginalChangedDuringImport,
+                "原文件在导入过程中变了",
+            ));
         }
         Ok((bytes, permit))
     }
@@ -300,7 +308,7 @@ pub(super) fn ingest(
     if let Err(error) = save::validate(inner, &context.destination) {
         return (
             ImportOutcome::ReadFailed {
-                reason: format!("保存目标不可用：{error}"),
+                reason: super::target_unavailable(error),
             },
             false,
         );
@@ -327,11 +335,11 @@ pub(super) fn prepare(
     options: ImportOptions,
     context: &ImportContext,
 ) -> Prepared {
-    let failed = |reason: String| Prepared::Done(ImportOutcome::ReadFailed { reason }, false);
+    let failed = |reason: CommandError| Prepared::Done(ImportOutcome::ReadFailed { reason }, false);
     let probed = match timed(|s| &mut s.decode, || inspect(bytes)) {
         Ok(Some(p)) => p,
         Ok(None) => return Prepared::Done(ImportOutcome::Unsupported, false),
-        Err(reason) => return failed(format!("无法解码：{reason}")),
+        Err(reason) => return failed(undecodable(reason)),
     };
     // 文件头有效不代表像素可读：发布前完整解码一遍，坏的作为可重试的读取失败。
     // 同一次解码顺带生成占位图（#120）与图片墙要用的网格缩略图（#123）：提交后不再重读原文件解码，
@@ -340,7 +348,7 @@ pub(super) fn prepare(
     let grid_px = thumbnail::grid_tier();
     let Some(decode) = budget::reserve_decode(&probed, context.cancel.as_deref()) else {
         // 任务已取消：这一项不会提交，不再解码。
-        return failed("导入已取消".into());
+        return failed(cancelled());
     };
     let derivatives = match timed(
         |s| &mut s.decode,
@@ -360,14 +368,17 @@ pub(super) fn prepare(
             let grid = rendered.next().flatten().map(|grid| (grid_px, grid));
             Derivatives { placeholder, grid }
         }
-        Err(reason) => return failed(format!("无法解码：{reason}")),
+        Err(reason) => return failed(undecodable(reason)),
     };
     drop(decode);
     let sha = timed(|s| &mut s.hash, || sha256_hex(bytes));
     if let Some(facts) = &origin.package
         && facts.snapshot.sha256 != sha
     {
-        return failed("与参考组包记录的 SHA-256 不符".into());
+        return failed(CommandError::new(
+            ErrorKind::PackageShaMismatch,
+            "与参考组包记录的 SHA-256 不符",
+        ));
     }
     let rel_path = format!("{ORIGINALS_DIR}/{}/{sha}.{}", &sha[..2], ext(probed.format));
     let record = Record {
@@ -397,7 +408,14 @@ pub(super) fn prepare(
         match skip_deleted(&inner.readers.get(), &record.sha) {
             Ok(true) => return Prepared::Done(ImportOutcome::SkippedDeleted, false),
             Ok(false) => {}
-            Err(e) => return failed(format!("读取删除记忆失败：{e}")),
+            Err(e) => {
+                return failed(CommandError::new(
+                    ErrorKind::DeletionMemoryUnreadable {
+                        detail: e.to_string(),
+                    },
+                    format!("读取删除记忆失败：{e}"),
+                ));
+            }
         }
     }
 
@@ -452,7 +470,11 @@ pub(super) fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, boo
                 },
                 Err(e) => (
                     ImportOutcome::ReadFailed {
-                        reason: format!("写入资料库失败：{e}"),
+                        reason: CommandError::caused_by(
+                            e,
+                            |cause| ErrorKind::ImportWriteFailed { cause },
+                            |e| format!("写入资料库失败：{e}"),
+                        ),
                     },
                     false,
                 ),
@@ -478,4 +500,17 @@ pub(super) fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, boo
         timed(|s| &mut s.placeholder, || derivatives.store(inner, &sha));
     }
     result
+}
+
+fn cancelled() -> CommandError {
+    CommandError::new(ErrorKind::ImportCancelled, "导入已取消")
+}
+
+fn undecodable(reason: impl std::fmt::Display) -> CommandError {
+    CommandError::new(
+        ErrorKind::ImportUndecodable {
+            detail: reason.to_string(),
+        },
+        format!("无法解码：{reason}"),
+    )
 }

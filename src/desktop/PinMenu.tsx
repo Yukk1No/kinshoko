@@ -8,9 +8,10 @@ import type { GroupSummary } from "../bindings/GroupSummary";
 import type { PinMenu } from "../bindings/PinMenu";
 import type { PinMenuOpen } from "../bindings/PinMenuOpen";
 import {
-  closeDesktopMenu, desktopMenu, desktopMenuShown, onDesktopMenu, pinMenuAction, referenceGroups,
+  closeDesktopMenu, desktopMenu, desktopMenuShown, onDesktopMenu, pinMenuAction, referenceGroups, showPinNotice,
   type PinMenuAction,
 } from "../ipc";
+import { pinNoticeText } from "./pinNotice";
 
 /** 透明度子菜单的几档（百分比），与原生菜单相同。Ctrl+滚轮可以调到中间的值。 */
 export const OPACITY_STEPS = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
@@ -121,7 +122,10 @@ export function DesktopMenuView() {
     if (!now || handled.current === now.generation) return;
     handled.current = now.generation;
     setOpen(null);
-    void pinMenuAction(now.menu.pin, action, now.generation).catch(() => {});
+    const pin = now.menu.pin;
+    void pinMenuAction(pin, action, now.generation)
+      .then((notice) => notice && showPinNotice(pin, pinNoticeText(notice)))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

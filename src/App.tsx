@@ -31,6 +31,7 @@ import { LibraryPicker } from "./library/LibraryPicker";
 import { Rail, type Section } from "./shell/Rail";
 import { initialUiScale, stepUiScale, UiScaleContext, uiScaleStepForKey } from "./shell/uiScale";
 import { SettingsPanel, type SettingsTab } from "./SettingsPanel";
+import { createShellSettings } from "./shell/useShellSettings";
 import { BackupReminder } from "./Backup";
 import { Dialog } from "@base-ui/react/dialog";
 import { UpdateNotice } from "./Update";
@@ -93,6 +94,13 @@ function MainWindow() {
     setKeepSelectionOnSafe(view.keepSelectionOnSafeMode ?? false);
     setInspectorWidthState(view.inspectorWidth);
   }, []);
+  /** 设置页交来过快照后，启动时读到的那份已经旧了，回得晚也不再接受（#321）。 */
+  const settingsChanged = useRef(false);
+  const acceptChangedSettings = useCallback((view: ShellSettingsView) => {
+    settingsChanged.current = true;
+    acceptShellSettings(view);
+  }, [acceptShellSettings]);
+  const [shellSettingsStore] = useState(() => createShellSettings(acceptChangedSettings));
   /** 详情面板宽度先在界面上生效，再写进本设备设置；写不进时只是下次不记得。 */
   const changeInspectorWidth = useCallback((width: number) => {
     setInspectorWidthState(width);
@@ -193,7 +201,7 @@ function MainWindow() {
       () => {},
     );
     shellSettings().then(
-      (view) => alive && view && acceptShellSettings(view),
+      (view) => alive && view && !settingsChanged.current && acceptShellSettings(view),
       () => undefined,
     );
     uiScale().then(
@@ -362,7 +370,7 @@ function MainWindow() {
               safe={safe}
               onSafeMode={toggleSafe}
               onOpenNameWizard={() => setNameWizard(true)}
-              onChange={acceptShellSettings}
+              settings={shellSettingsStore}
               uiScale={uiScalePercent}
               onUiScale={(percent) => void chooseUiScale(percent)}
             />

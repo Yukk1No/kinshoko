@@ -6,6 +6,7 @@ import type { CatalogApproxEntry } from "./bindings/CatalogApproxEntry";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { TagLabel } from "./bindings/TagLabel";
 import { SettingsPanel } from "./SettingsPanel";
+import { createShellSettings } from "./shell/useShellSettings";
 import { backend, defaults, resetSettingsTest, tab } from "./SettingsPanel.fixtures";
 
 afterEach(resetSettingsTest);
@@ -89,6 +90,30 @@ describe("设置：近似查找", () => {
     expect(seen.at(-1)?.safeModeScope).toBe("explicit");
   });
 
+  it("关掉再打开设置时共用主窗口的提交队列，先选的范围不会在后选的之后写入（#321）", async () => {
+    const waiting: (() => void)[] = [];
+    const calls = backend((cmd, args) => {
+      if (cmd !== "plugin:library|set_safe_mode_scope") return undefined;
+      const reply = { ...defaults, safeModeScope: args.scope as ShellSettingsView["safeModeScope"] };
+      return new Promise((resolve) => waiting.push(() => resolve(reply)));
+    });
+    const seen: ShellSettingsView[] = [];
+    const settings = createShellSettings((view) => seen.push(view));
+    const first = render(<SettingsPanel library={null} settings={settings} initialTab="safety" safe onSafeMode={() => {}} />);
+    fireEvent.click(within(await screen.findByRole("group", { name: "安全模式范围" })).getByRole("button", { name: "仅成人" }));
+    first.unmount();
+    render(<SettingsPanel library={null} settings={settings} initialTab="safety" safe onSafeMode={() => {}} />);
+    fireEvent.click(within(await screen.findByRole("group", { name: "安全模式范围" })).getByRole("button", { name: "轻度及以上" }));
+    const scopes = () => calls.filter((c) => c.cmd === "plugin:library|set_safe_mode_scope").map((c) => c.args.scope);
+    await waitFor(() => expect(waiting.length).toBe(1));
+    expect(scopes()).toEqual(["explicit"]);
+    waiting.shift()!();
+    await waitFor(() => expect(scopes()).toEqual(["explicit", "sensitive"]));
+    waiting.shift()!();
+    await waitFor(() => expect(seen.map((view) => view.safeModeScope)).toEqual(["explicit", "sensitive"]));
+    expect(within(screen.getByRole("group", { name: "安全模式范围" })).getByRole("button", { name: "轻度及以上" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("程序设置中列出全局个人近似对应表，可以删除", async () => {
     let listed = entries;
     const calls = backend((cmd, args) => {
@@ -148,6 +173,56 @@ describe("程序设置备份", () => {
     fireEvent.click(restore);
     expect(await screen.findByText("偏好设置已恢复。按 sRGB 显示从托盘退出并重启后生效。")).toBeTruthy();
     expect(calls.find((c) => c.cmd === "plugin:library|restore_application_settings")?.args).toEqual({ path: "C:/backup/选择.kinshoko-settings", fingerprint: "fixed-backup" });
+  });
+
+  it("恢复还没回来时改标签外观，只把改的那项叠到恢复的结果上（#321）", async () => {
+    let releaseRestore = () => {};
+    const backup: ShellSettingsView = { ...defaults, tagDisplay: { style: "grouped", high: 0.9, low: 0.2, lowOutline: true } };
+    const calls = backend((cmd, args) => {
+      if (cmd === "plugin:library|preview_application_settings") return { fingerprint: "fixed-backup", safeMode: true, forceSrgb: false };
+      if (cmd === "plugin:library|restore_application_settings") {
+        return new Promise((resolve) => { releaseRestore = () => resolve({ settings: backup, safeMode: true, problems: [] }); });
+      }
+      if (cmd === "set_tag_display") return { ...backup, tagDisplay: args.display };
+      return undefined;
+    });
+    render(<SettingsPanel initialTab="backup" />);
+    fireEvent.change(await screen.findByRole("textbox", { name: "偏好设置备份文件" }), { target: { value: "C:/backup/a.kinshoko-settings" } });
+    fireEvent.click(screen.getByRole("button", { name: "读取" }));
+    fireEvent.click(await screen.findByRole("button", { name: "替换偏好设置" }));
+    await tab("标签");
+    fireEvent.click(await screen.findByRole("button", { name: "外观" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "低档虚线框" }));
+    releaseRestore();
+    await waitFor(() => expect(calls.find((c) => c.cmd === "set_tag_display")?.args).toEqual({
+      display: { style: "grouped", high: 0.9, low: 0.2, lowOutline: false },
+    }));
+    await waitFor(() => expect((screen.getByRole("spinbutton", { name: "高档下限" }) as HTMLInputElement).value).toBe("0.90"));
+  });
+
+  it("恢复排在还没回来的保存之后，迟到的保存不回滚恢复的结果（#321）", async () => {
+    let releaseAutostart = () => {};
+    const restoredView: ShellSettingsView = { ...defaults, autostart: true, showApproxSource: true };
+    const calls = backend((cmd) => {
+      if (cmd === "set_autostart") return new Promise((resolve) => { releaseAutostart = () => resolve({ ...defaults, autostart: false }); });
+      if (cmd === "plugin:library|preview_application_settings") return { fingerprint: "fixed-backup", safeMode: true, forceSrgb: false };
+      if (cmd === "plugin:library|restore_application_settings") return { settings: restoredView, safeMode: true, problems: [] };
+      return undefined;
+    });
+    const seen: ShellSettingsView[] = [];
+    render(<SettingsPanel initialTab="general" onChange={(view) => seen.push(view)} />);
+    fireEvent.click(await screen.findByRole("switch", { name: "开机启动" }));
+    await tab("备份");
+    fireEvent.change(await screen.findByRole("textbox", { name: "偏好设置备份文件" }), { target: { value: "C:/backup/a.kinshoko-settings" } });
+    fireEvent.click(screen.getByRole("button", { name: "读取" }));
+    fireEvent.click(await screen.findByRole("button", { name: "替换偏好设置" }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(calls.some((c) => c.cmd === "plugin:library|restore_application_settings")).toBe(false);
+    releaseAutostart();
+    expect(await screen.findByText(/偏好设置已恢复/)).toBeTruthy();
+    expect(seen.map((view) => view.autostart)).toEqual([false, true]);
+    await tab("通用");
+    expect(screen.getByRole("switch", { name: "开机启动" }).getAttribute("aria-checked")).toBe("true");
   });
 });
 

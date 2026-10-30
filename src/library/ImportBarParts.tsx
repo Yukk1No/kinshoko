@@ -6,7 +6,9 @@ import type { ImportOptions } from "../bindings/ImportOptions";
 import type { ImportOutcome } from "../bindings/ImportOutcome";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
+import { describeCommandError } from "../ipc/commandError";
 import type { FinishedImport, RunningImport } from "./ImportBar";
+import type { ToastOptions } from "../ui/Toast";
 
 export type ImportPlan = { paths: string[]; options: ImportOptions; eagle:boolean };
 type Begin = (paths: string[], fromEagle?: boolean, options?: ImportOptions, fixed?:SaveDestination) => Promise<void>;
@@ -16,19 +18,14 @@ function reason(outcome: ImportOutcome): string | null {
     case "unsupported":
       return "不支持的格式";
     case "readFailed":
-      return `读取失败：${outcome.reason}`;
+      return `读取失败：${describeCommandError(outcome.reason)}`;
     default:
       return null;
   }
 }
 
-/** 导入结果卡片：新增、已存在与没导入的文件，可只重试读取失败的项。 */
-export function ImportResultCard({ report, finished, owner, taskSwitcher, cardNotes, busy, begin, optionsByTask, libraryId, onOpenTrash, onDismissReport }: {
-  report: ImportReport; finished: FinishedImport | null; owner: string | null; taskSwitcher?: ReactNode; cardNotes?: ReactNode;
-  busy: boolean; begin: Begin; optionsByTask: { current: Map<string, ImportOptions> }; libraryId: string;
-  onOpenTrash?: (libraryId?:string) => void; onDismissReport: () => void;
-}) {
-  const counts = report && {
+function importCounts(report: ImportReport) {
+  return {
     imported: report.items.filter((i) => i.outcome.kind === "imported").length,
     merged: report.items.filter((i) => i.outcome.kind === "merged").length,
     refreshed: report.items.filter((i) => i.outcome.kind === "refreshed").length,
@@ -38,10 +35,51 @@ export function ImportResultCard({ report, finished, owner, taskSwitcher, cardNo
     rejected: report.items.filter((i) => reason(i.outcome) !== null),
     failed: report.items.filter((i) => i.outcome.kind === "readFailed").map((i) => i.path),
   };
+}
+
+/**
+ * 导入结束的轻提示（#388）：去向与数字；有要处理的（没导入、删过的图、回收站里的）时带“查看”，打开结果回执卡，
+ * 且不自动消失。key 概括内容，用来在数字被收起时原地更新。
+ */
+export function importNotice(report: ImportReport, owner: string | null, warnings: readonly string[] = []): { key: string; toast: (view: () => void) => Omit<ToastOptions, "onClose"> } {
+  const counts = importCounts(report);
+  const stats: [string, number, boolean?][] = report.privateSummary ? [] : [
+    ["新增", counts.imported, true], ["已存在", counts.merged], ["更新", counts.refreshed], ["新版本", counts.newVersions], ["Eagle 已删", report.eagleMissing]];
+  const shown = stats.filter(([, n, always]) => always || n > 0);
+  // 任务警告（如标签定义没存进图库）与封印项重复也要能回到回执里处理。
+  const review = counts.rejected.length > 0 || counts.skippedDeleted.length > 0 || counts.trashDuplicate || report.trashDuplicates
+    || report.sealedDuplicates || warnings.length > 0;
+  const stays = counts.rejected.length > 0 || warnings.length > 0;
+  const title = report.cancelled ? "导入已取消" : "导入完成";
+  return {
+    key: JSON.stringify([title, owner, report.privateSummary, shown, counts.rejected.length, review, warnings]),
+    toast: (view) => ({
+      title, tone: report.cancelled ? "info" : "success", timeout: stays ? 0 : undefined,
+      description: <>
+        {owner && <span className="k-toast-line">放到 {owner}</span>}
+        <span className="k-toast-stats">
+          {report.privateSummary && <span>内容处理结果已保留</span>}
+          {shown.map(([label, n]) => <span key={label}>{label} <b>{n}</b></span>)}
+          {counts.rejected.length > 0 && <span className="is-danger">没导入 <b>{counts.rejected.length}</b></span>}
+        </span>
+        {warnings.map((warning, index) => <span key={index} className="k-toast-line is-warn">{warning}</span>)}
+      </>,
+      action: review ? { label: "查看", onClick: view } : undefined,
+    }),
+  };
+}
+
+/** 导入结果卡片：新增、已存在与没导入的文件，可只重试读取失败的项。 */
+export function ImportResultCard({ report, finished, owner, taskSwitcher, cardNotes, busy, begin, optionsByTask, libraryId, onOpenTrash, onDismissReport }: {
+  report: ImportReport; finished: FinishedImport | null; owner: string | null; taskSwitcher?: ReactNode; cardNotes?: ReactNode;
+  busy: boolean; begin: Begin; optionsByTask: { current: Map<string, ImportOptions> }; libraryId: string;
+  onOpenTrash?: (libraryId?:string) => void; onDismissReport: () => void;
+}) {
+  const counts = importCounts(report);
   return (
   <section className="k-task" aria-label="导入结果">
     <div className="k-task-top">
-      {report.cancelled ? <CircleSlash size={16} className="k-task-icon" aria-hidden="true" /> : <CircleCheck size={16} className="k-task-icon is-ok" aria-hidden="true" />}
+      {report.cancelled ? <CircleSlash size={16} className="k-task-icon" aria-hidden="true" /> : <CircleCheck size={16} className="k-task-icon" aria-hidden="true" />}
       <b>{report.cancelled ? "导入已取消" : "导入完成"}</b>
       <button type="button" className="k-icon-btn is-sm" aria-label="关闭导入结果" onClick={onDismissReport}><X size={14} aria-hidden="true" /></button>
     </div>

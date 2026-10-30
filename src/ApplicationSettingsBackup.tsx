@@ -1,13 +1,16 @@
 import { useState } from "react";
-import type { ShellSettingsView } from "./bindings/ShellSettingsView";
+import type { ApplicationSettingsRestored } from "./bindings/ApplicationSettingsRestored";
 import type { ApplicationSettingsPreview } from "./bindings/ApplicationSettingsPreview";
-import { describeCommandError, exportApplicationSettings, migrateViewerBackground, pickApplicationSettings, previewApplicationSettings, restoreApplicationSettings } from "./ipc";
+import { describeCommandError, exportApplicationSettings, migrateViewerBackground, pickApplicationSettings, previewApplicationSettings } from "./ipc";
 import { Settings2 } from "lucide-react";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
 import { legacyViewerBackground, rememberViewerBackground } from "./viewer/background";
 
 /** 设置 › 备份 › 偏好设置（原“程序设置备份”）：单独保存名称偏好、应用级词表、标签分组、相近规则和程序配置；替换前先读取并确认范围。 */
-export function ApplicationSettingsBackup({ onRestored }: { onRestored: (settings: ShellSettingsView) => void }) {
+export function ApplicationSettingsBackup({ restore: replace }: {
+  /** 整份替换偏好设置，经设置页的提交模型排在之前的写入之后（#321）。 */
+  restore: (path: string, fingerprint: string) => Promise<ApplicationSettingsRestored>;
+}) {
   const [path,setPath] = useState("");
   const [preview,setPreview] = useState<ApplicationSettingsPreview | null>(null);
   const [busy,setBusy] = useState(false);
@@ -36,9 +39,9 @@ export function ApplicationSettingsBackup({ onRestored }: { onRestored: (setting
   const inspect = () => run(() => inspectFile(path.trim()));
   const restore = () => run(async () => {
     if (!preview) return;
-    const result = await restoreApplicationSettings(path.trim(),preview.fingerprint);
+    const result = await replace(path.trim(),preview.fingerprint);
     rememberViewerBackground(result.settings.viewerBackground ?? "mid");
-    onRestored(result.settings); setPreview(null);
+    setPreview(null);
     setMessage(result.settings.forceSrgb !== result.settings.forceSrgbInEffect
       ? "偏好设置已恢复。按 sRGB 显示从托盘退出并重启后生效。" : "偏好设置已恢复。名称、查找习惯与快捷键已按备份生效。");
     if (result.problems.length) setError(result.problems.map(describeCommandError).join("；"));

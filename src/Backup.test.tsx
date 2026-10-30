@@ -6,6 +6,7 @@ import type { BackupStatus } from "./bindings/BackupStatus";
 import type { RestoreReport } from "./bindings/RestoreReport";
 import type { SnapshotSummary } from "./bindings/SnapshotSummary";
 import { BackupReminder, BackupSettings } from "./Backup";
+import { ToastProvider } from "./ui/Toast";
 import { chooseOption } from "./test/select";
 
 afterEach(() => {
@@ -179,6 +180,33 @@ describe("备份提醒", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toMatch(/备份没有完成.*下次退出或空闲时再试/);
     expect(alert.textContent).toMatch(/请接上移动盘/);
+  });
+
+  it("在窗口里是一条出错轻提示，不再是横幅（#388）", async () => {
+    backend((cmd) =>
+      cmd === "backup_status"
+        ? { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } }
+        : undefined,
+    );
+    render(<ToastProvider><BackupReminder /></ToastProvider>);
+    const title = (await screen.findAllByText("备份没有完成：备份目标不在")).find((node) => node.closest(".k-toast"))!;
+    expect(title.closest(".k-toast")?.getAttribute("data-tone")).toBe("error");
+    expect(title.closest(".k-toast")?.textContent).toContain("下次退出或空闲时再试");
+    expect(document.querySelector(".update-banner")).toBeNull();
+    expect(document.querySelectorAll(".k-toast")).toHaveLength(1);
+  });
+
+  it("提醒重新挂载时不叠出重复的出错提示", async () => {
+    backend((cmd) =>
+      cmd === "backup_status"
+        ? { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } }
+        : undefined,
+    );
+    const view = render(<ToastProvider><BackupReminder key="a" /></ToastProvider>);
+    await waitFor(() => expect(document.querySelectorAll(".k-toast")).toHaveLength(1));
+    view.rerender(<ToastProvider><BackupReminder key="b" /></ToastProvider>);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await waitFor(() => expect(document.querySelectorAll(".k-toast:not([data-ending-style])")).toHaveLength(1));
   });
 
   it("没有失败时不打扰", async () => {

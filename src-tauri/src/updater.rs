@@ -127,7 +127,10 @@ pub async fn check_update(
         Err(e) => {
             crate::run_log::warn("检查更新失败", &e);
             UpdateStatus::Failed {
-                message: "检查更新失败，请检查网络后重试。".to_owned(),
+                message: CommandError::new(
+                    ErrorKind::UpdateCheckFailed,
+                    "检查更新失败，请检查网络后重试。",
+                ),
             }
         }
     };
@@ -182,7 +185,7 @@ pub async fn install_update(
     if let Err(message) = policy.require_automatic() {
         *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
         state.set(policy.initial_status());
-        return Err(CommandError::without_code(message));
+        return Err(message);
     }
     let Some(update) = state
         .pending
@@ -223,7 +226,7 @@ pub async fn install_update(
                 ),
             };
             state.set(UpdateStatus::Failed {
-                message: error.to_string(),
+                message: error.clone(),
             });
             Err(error)
         }

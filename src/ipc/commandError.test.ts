@@ -21,8 +21,8 @@ it("中文文案与 1.0 的后端原文一致，参数填进去", () => {
     .toBe("资料库暂时不可用：E:\\私人收藏。请确认移动盘已连接；资料库搬家后请选择新位置重新登记。原因：拒绝访问");
   expect(describeCommandError({ code: "organizeTimedOut", libraries: ["甲库", "乙库"] }))
     .toBe("「甲库」、「乙库」的导入一直没有收尾，这次整理没有执行，请稍后再试");
-  expect(describeCommandError({ code: "groupMembersUnavailable", members: ["a.png：原图文件缺失", "b.png"] }))
-    .toBe("有成员取不到原图，无法导出参考组包：a.png：原图文件缺失；b.png");
+  expect(describeCommandError({ code: "groupMembersUnavailable", members: [{ member: "a.png", reason: { kind: "originalMissing" } }, { member: null, reason: { kind: "libraryNotRegistered" } }] }))
+    .toBe("有成员取不到原图，无法导出参考组包：成员 a.png：原图文件缺失；本设备没有登记这个资料库");
   expect(describeCommandError({ code: "shortcutUsedBy", action: "pinClipboard" })).toBe("这个快捷键已用于“钉剪贴板”");
   expect(describeCommandError({ code: "captureSourceUnavailable", reason: { kind: "imageMissing" } })).toBe("参考图已从资料库中删除");
   expect(describeCommandError({ code: "message", message: "原样显示" })).toBe("原样显示");

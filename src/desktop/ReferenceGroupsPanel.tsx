@@ -8,6 +8,7 @@ import { draftCaptureSave, type CaptureSaveDraft, type CaptureSavePlan } from ".
 import { GroupNameForm } from "./GroupNameForm";
 import { useToast } from "../ui/Toast";
 import { ago } from "./relativeTime";
+import { describeCommandError } from "../ipc/commandError";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -202,7 +203,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                 </span>}
                 {renaming?.id !== g.id && <strong className="reference-group-name">{g.name}</strong>}
                 {g.problem
-                  ? <span className="reference-group-problem">{g.problem}</span>
+                  ? <span className="reference-group-problem">{describeCommandError(g.problem)}</span>
                   : <span className="reference-group-meta k-parts"><span>{g.memberCount} 张</span><span>{libraries(g.libraryIds)}</span><span>{ago(g.updatedAt)}</span></span>}
               </button>
               {renaming?.id === g.id && (

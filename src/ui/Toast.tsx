@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Toast } from "@base-ui/react/toast";
 import { CircleAlert, CircleCheck, Info, X } from "lucide-react";
 
@@ -49,6 +49,14 @@ const icons = { success: CircleCheck, info: Info, error: CircleAlert } as const;
 
 function Stack() {
   const { toasts, close } = Toast.useToastManager();
+  // The collapsed stack's height (frontmost toast plus an 8 px peek per older one, plus the gap), published on the root so the
+  // import task cards sharing this corner sit above it instead of underneath (#388).
+  const shown = toasts.filter((toast) => toast.transitionStatus !== "ending" && !toast.limited);
+  const stack = shown.length === 0 ? 0 : (shown[0].height ?? 0) + (shown.length - 1) * 8 + 8;
+  useEffect(() => {
+    document.documentElement.style.setProperty("--k-toast-stack", `${stack}px`);
+    return () => { document.documentElement.style.removeProperty("--k-toast-stack"); };
+  }, [stack]);
   return toasts.map((toast) => {
     const Icon = icons[(toast.type as ToastTone | undefined) ?? "info"] ?? Info;
     return <Toast.Root key={toast.id} toast={toast} className="k-toast" data-tone={toast.type}>

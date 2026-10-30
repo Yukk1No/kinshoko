@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { BackupPreview } from "./bindings/BackupPreview";
+import { useToast } from "./ui/Toast";
 import type { BackupStatus } from "./bindings/BackupStatus";
 import type { LibraryRegistration } from "./bindings/LibraryRegistration";
 import type { RestoreReport } from "./bindings/RestoreReport";
@@ -269,12 +270,25 @@ function RestoreResult({ report }: { report: RestoreReport }) {
   );
 }
 
-/** 自动备份没有完成时的提醒（例如移动盘没插）；下次退出或空闲时再试。 */
+/**
+ * 自动备份没有完成时的提醒（例如移动盘没插）；下次退出或空闲时再试。每次失败一条出错轻提示，保持到“知道了”，
+ * 之后备份成功或换成新的失败时收起（#388）。没有 ToastProvider 时是窗口里的横幅。
+ */
 export function BackupReminder() {
   const [status] = useBackupStatus();
   const [dismissed, setDismissed] = useState<number | null>(null);
+  const toast = useToast();
   const failure = status?.plan.lastFailure ?? null;
-  if (failure === null || dismissed === failure.at.unixMs) return null;
+  const shown = useRef<{ at: number; id: string } | null>(null);
+  const at = failure?.at.unixMs ?? null, reason = failure?.reason ?? "";
+  useEffect(() => {
+    if (!toast || shown.current?.at === at) return;
+    if (shown.current) toast.close(shown.current.id);
+    shown.current = at === null ? null : { at, id: toast.error(`备份没有完成：${reason}`, { description: "Kinshoko 会在下次退出或空闲时再试。" }) };
+  }, [toast, at, reason]);
+  // 提醒随页面切换重新挂载：卸下时收起自己发出的提示，新实例再发一条，不会越积越多。
+  useEffect(() => () => { if (shown.current) toast?.close(shown.current.id); shown.current = null; }, [toast]);
+  if (toast || failure === null || dismissed === failure.at.unixMs) return null;
   return (
     <div className="update-banner backup-reminder" role="alert">
       <span>

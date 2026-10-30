@@ -112,6 +112,29 @@ jobs:
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
           ./actionlint -color
 
+  # 界面文字应放进 i18n 资源（#359）。文案还没抽完，先只出警告；全部抽完后把
+  # KINSHOKO_HARDCODED_TEXT_MODE 改成 fail，有命中即失败。
+  hardcoded-text:
+    name: 写死的界面文字
+    runs-on: ubuntu-latest
+    env:
+      KINSHOKO_HARDCODED_TEXT_MODE: warn
+    steps:
+      # PR 检出的是与 base 的合并提交，要它的第一个父提交（base 一侧）来找出这次新增的行。
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 检查前端组件与 Rust 代码里的中文
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            node scripts/check-hardcoded-text.mjs --diff-base HEAD^1
+          else
+            node scripts/check-hardcoded-text.mjs
+          fi
+
   frontend:
     name: 前端检查与测试
     runs-on: ubuntu-latest

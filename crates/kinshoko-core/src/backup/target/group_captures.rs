@@ -70,7 +70,12 @@ pub(super) fn load(groups_dir: &Path, group: &ManifestGroup) -> Result<CaptureFi
                 .ok()
                 .filter(|b| sha256(b) == c.sha256)
                 .ok_or_else(|| {
-                    BackupError::Incomplete(format!("参考组“{}”的截图快照不符", group.name))
+                    BackupError::incomplete(
+                        crate::command_error::ErrorKind::SnapshotCapturesMismatch {
+                            name: group.name.clone(),
+                        },
+                        format!("参考组“{}”的截图快照不符", group.name),
+                    )
                 })?;
             Ok((c.file.clone(), bytes))
         })

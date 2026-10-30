@@ -5,6 +5,7 @@ import { emit } from "@tauri-apps/api/event";
 import type { Channel } from "@tauri-apps/api/core";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import { ImportMenu } from "./ImportMenu";
+import { ToastProvider } from "../ui/Toast";
 
 afterEach(async () => { cleanup(); await new Promise(resolve => setTimeout(resolve, 0)); clearMocks(); vi.unstubAllGlobals(); });
 
@@ -12,10 +13,86 @@ const receipt: ImportTaskSnapshot = {
   taskId: "actual-task", destination: { libraryId: "L1", folderId: null }, libraryName: "参考", folderName: "未归类",
   progress: { done: 3, total: 3 }, finishing: false, warnings: [],
   report: { cancelled: false, fromEagle: false, eagleMissing: 0, eagleRelocations: [], sealedDuplicates: false, privateSummary: false, trashDuplicates: false,
-    items: [ { path: "sealed-name.png", outcome: { kind: "merged", imageId: "sealed-id" } }, { path: "visible-name.png", outcome: { kind: "refreshed", imageId: "visible-id" } }, { path: "missing.png", outcome: { kind: "readFailed", reason: "missing" } } ] },
+    items: [ { path: "sealed-name.png", outcome: { kind: "merged", imageId: "sealed-id" } }, { path: "visible-name.png", outcome: { kind: "refreshed", imageId: "visible-id" } }, { path: "missing.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "missing" } } } ] },
 };
 
 function menu() { return <ImportMenu enabled libraryId="L1" libraryName="参考" running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} />; }
+
+describe("导入结束走轻提示（#388）", () => {
+  function serve(tasks: ImportTaskSnapshot[]) {
+    mockWindows("main");
+    mockIPC(cmd => {
+      if (cmd === "plugin:library|import_tasks") return tasks;
+      if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
+      return undefined;
+    }, { shouldMockEvents: true });
+  }
+
+  it("结束时只发一条轻提示，回执卡不自己弹出；“查看”打开它", async () => {
+    serve([receipt]);
+    render(<ToastProvider>{menu()}</ToastProvider>);
+    const title = await screen.findByText("导入完成");
+    expect(title.closest(".k-toast")?.textContent).toContain("放到 参考 / 未归类");
+    expect(screen.queryByRole("region", { name: "导入结果" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "查看" }));
+    expect((await screen.findByRole("region", { name: "导入结果" })).textContent).toContain("missing.png");
+    expect(screen.queryByText("导入完成", { selector: ".k-toast-title" })).toBeNull();
+  });
+
+  it("没有要处理的项时不带“查看”", async () => {
+    serve([{ ...receipt, report: { ...receipt.report!, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } }]);
+    render(<ToastProvider>{menu()}</ToastProvider>);
+    expect((await screen.findByText("导入完成")).closest(".k-toast")?.textContent).toContain("新增 1");
+    expect(screen.queryByRole("button", { name: "查看" })).toBeNull();
+  });
+
+  it("从导入菜单打开回执再关掉时，这个任务的结束提示一并收起", async () => {
+    serve([receipt]);
+    render(<ToastProvider>{menu()}</ToastProvider>);
+    await screen.findByText("导入完成");
+    fireEvent.click(screen.getByRole("button", { name: "导入" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "导入任务" }));
+    await screen.findByRole("region", { name: "导入结果" });
+    expect(document.querySelector(".k-toast")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "关闭导入结果" }));
+    await waitFor(() => expect(document.querySelector(".k-toast")).toBeNull());
+  });
+
+  it("任务有警告（标签定义没存进图库）时提示写出警告、带“查看”且不自动消失", async () => {
+    serve([{ ...receipt, warnings: ["标签定义没有存进图库，可在标签目录里重试"], report: { ...receipt.report!, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } }]);
+    render(<ToastProvider>{menu()}</ToastProvider>);
+    expect((await screen.findByText("导入完成")).closest(".k-toast")?.textContent).toContain("标签定义没有存进图库");
+    expect(screen.getByRole("button", { name: "查看" })).toBeTruthy();
+  });
+
+  it("“查看”先选中提示所属的任务，即使之后开始了别的导入", async () => {
+    mockWindows("main");
+    const running: ImportTaskSnapshot = { ...receipt, taskId: "next-task", folderName: "人物", progress: { done: 1, total: 9 }, report: null };
+    let calls = 0;
+    mockIPC(cmd => {
+      if (cmd === "plugin:library|import_tasks") return ++calls === 1 ? [receipt] : [receipt, running];
+      if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
+      return undefined;
+    }, { shouldMockEvents: true });
+    render(<ToastProvider>{menu()}</ToastProvider>);
+    await screen.findByText("导入完成");
+    await screen.findByRole("region", { name: "导入进度" }, { timeout: 3000 });
+    fireEvent.click(screen.getByRole("button", { name: "查看" }));
+    expect((await screen.findByRole("region", { name: "导入结果" })).textContent).toContain("missing.png");
+  });
+
+  it("安全模式打开时，已显示的提示原地收起数字", async () => {
+    serve([receipt]);
+    render(<ToastProvider>{menu()}</ToastProvider>);
+    const toast = () => screen.getByText("导入完成").closest(".k-toast")!;
+    await screen.findByText("导入完成");
+    expect(toast().textContent).toContain("已存在 1");
+    await act(() => emit("safe-mode-setting", true));
+    await waitFor(() => expect(toast().textContent).not.toMatch(/新增|已存在|更新/));
+    expect(toast().textContent).toContain("内容处理结果已保留");
+    expect(screen.getAllByText("导入完成")).toHaveLength(1);
+  });
+});
 
 describe("导入回执上下文撤销", () => {
   for (const [event, payload] of [["safe-mode-setting", true], ["workspace-changed", { revision: "after", libraries: [] }]] as const) {

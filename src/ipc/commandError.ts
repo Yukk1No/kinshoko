@@ -3,6 +3,7 @@
 import { i18n } from "../i18n/instance";
 import type { CommandError } from "../bindings/CommandError";
 import type { UnavailableReason } from "../bindings/UnavailableReason";
+import type { HotkeyFailure } from "../bindings/HotkeyFailure";
 
 export type { CommandError };
 export type CommandErrorCode = CommandError["code"];
@@ -13,6 +14,11 @@ const t = (key: string, params?: Params): string => (i18n.t as (key: string, opt
 
 function unavailable(reason: UnavailableReason): string {
   return reason.kind === "libraryUnavailable" ? t("unavailable.libraryUnavailable", { detail: reason.detail }) : t(`unavailable.${reason.kind}`);
+}
+
+/** 系统没能注册快捷键的原因。 */
+export function hotkeyFailureText(failure: HotkeyFailure): string {
+  return failure.kind === "refused" ? t("hotkey.refused", { detail: failure.detail }) : t(`hotkey.${failure.kind}`);
 }
 
 /** 后端交来的值是不是 `CommandError`。 */
@@ -30,11 +36,22 @@ export function describeCommandError(error: CommandError): string {
     case "organizeTimedOut":
       return t("organizeTimedOut", { libraries: error.libraries.map((name) => t("libraryName", { name })).join(t("librarySeparator")) });
     case "groupMembersUnavailable":
-      return t("groupMembersUnavailable", { members: error.members.join(t("memberSeparator")) });
+      return t("groupMembersUnavailable", {
+        members: error.members
+          .map((m) => (m.member === null ? unavailable(m.reason) : t("memberUnavailable", { member: m.member, reason: unavailable(m.reason) })))
+          .join(t("memberSeparator")),
+      });
     case "shortcutUsedBy":
       return t("shortcutUsedBy", { action: t(`shortcutAction.${error.action}`) });
     case "captureSourceUnavailable":
       return unavailable(error.reason);
+    case "settingsRollbackIncomplete":
+      return t(error.journalKept ? "settingsRollbackJournalKept" : "settingsRollbackIncomplete", {
+        cause: describeCommandError(error.cause),
+        rollback: describeCommandError(error.rollback),
+      });
+    case "shortcutUnavailable":
+      return t("shortcutUnavailable", { reason: hotkeyFailureText(error.reason) });
     default: {
       const { code, ...params } = error as { code: string } & Params;
       if (!i18n.exists(`errors:${code}`)) return t("unknown", { code, raw: JSON.stringify(error) });
