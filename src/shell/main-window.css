@@ -126,29 +126,33 @@
 .k-density-pop::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 10px; }
 .k-density-pop > svg { flex: none; }
 .k-density-pop .k-range { width: 140px; }
-.k-tagging-dot { position: absolute; top: 0; right: 0; z-index: 1; width: 10px; height: 10px; border-radius: var(--r-pill); background: var(--accent);
-  box-shadow: 0 0 0 2px var(--surface); }
-.k-tagging-dot[data-activity="busy"] { animation: k-tagging-pulse 1.6s ease-in-out infinite; }
-.k-tagging-dot[data-activity="paused"] { background: var(--ink-3); opacity: 0.6; }
-@keyframes k-tagging-pulse { 50% { box-shadow: 0 0 0 2px var(--surface), 0 0 0 5px color-mix(in srgb, var(--accent) 30%, transparent); } }
-/* 打标图标（#144）：与浮岛同材质的小圆钮；下载、加载、打标时转动，暂停时静止半透明。
-   减少动态效果时不转，改用强调色底表示“进行中”。 */
-.k-tagging-activity { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-pill);
+/* 多选收起时的打标状态（#372）：按钮右上角一枚带纸色底的迷你进度环。 */
+.k-tagging-dot { position: absolute; top: -4px; right: -4px; z-index: 1; width: 16px; height: 16px; display: grid; place-items: center; border-radius: var(--r-pill);
+  background: var(--surface); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent); }
+/* 打标图标（#144、#372）：与浮岛同材质的小圆钮。外圈进度环随下载字节或这一轮的张数前进，加载时没有进度，
+   整圈强调色慢慢明暗；星星不转，两颗小星交替闪烁。暂停时环停在原处变灰，图标换成暂停。
+   减少动态效果时不闪不明暗，进度环本身表示“进行中”。 */
+.k-tagging-activity { position: relative; width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-pill);
   background: color-mix(in srgb, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   box-shadow: var(--shadow-pop); color: var(--accent-strong); }
 .k-tagging-activity:hover { color: var(--ink); }
 .k-tagging-activity:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.k-tagging-activity[data-activity="busy"] svg { animation: k-tagging-spin 2.4s linear infinite; }
-.k-tagging-activity[data-activity="paused"] { opacity: 0.5; color: var(--ink-2); }
-@keyframes k-tagging-spin { to { transform: rotate(360deg); } }
+.k-tagging-activity[data-activity="paused"] { color: var(--ink-2); }
+.k-tagging-ring { position: absolute; inset: 0; }
+.k-tagging-ring, .k-tagging-mini { transform: rotate(-90deg); fill: none; stroke-width: 2.5; }
+.k-tagging-mini { stroke-width: 2; }
+.k-tagging-track { stroke: color-mix(in srgb, var(--ink) 10%, transparent); }
+.k-tagging-arc { stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray 600ms var(--ease); }
+[data-activity="paused"] .k-tagging-arc { stroke: var(--ink-3); }
+[data-activity="busy"][data-pending] .k-tagging-track { stroke: var(--accent); opacity: 0.55; animation: k-tagging-breathe 2.4s ease-in-out infinite; }
+.k-twinkle-a { animation: k-tagging-twinkle 2.8s ease-in-out infinite; }
+.k-twinkle-b { animation: k-tagging-twinkle 2.8s ease-in-out 1.4s infinite; }
+@keyframes k-tagging-breathe { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.8; } }
+@keyframes k-tagging-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
 @media (prefers-reduced-motion: reduce) {
-  .k-tagging-activity[data-activity="busy"] svg { animation: none; }
-  .k-tagging-activity[data-activity="busy"] { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
-  .k-tagging-dot[data-activity="busy"] { animation: none; }
+  .k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b { animation: none !important; transition: none; }
 }
-:root[data-reduced-motion] .k-tagging-dot[data-activity="busy"] { animation: none; }
-:root[data-reduced-motion] .k-tagging-activity[data-activity="busy"] svg { animation: none; }
-:root[data-reduced-motion] .k-tagging-activity[data-activity="busy"] { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
+:root[data-reduced-motion] :is(.k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b) { animation: none !important; transition: none; }
 
 /* 滑条：4 px 下沉轨道、已走过的一段 --range-fill；18 px 纸白圆钮带细描边与两层投影，悬停放大、按下压下。
    WebView2 是 Chromium，只需 -webkit- 伪元素。 */

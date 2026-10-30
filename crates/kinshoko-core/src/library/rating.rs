@@ -421,6 +421,18 @@ pub(super) fn images_to_tag(
     Ok(ids)
 }
 
+pub(super) fn count_images_to_tag(inner: &Inner, source: &FactSource) -> Result<u32, Error> {
+    let conn = inner.readers.get();
+    let count = conn.query_row(
+        "SELECT COUNT(*) FROM image i
+         WHERE i.deleted_at IS NULL AND NOT EXISTS (
+            SELECT 1 FROM tagging_state s WHERE s.image_id = i.id AND s.source = ?1)",
+        [source.as_str()],
+        |r| r.get(0),
+    )?;
+    Ok(count)
+}
+
 pub(super) fn finish_tagging(
     inner: &Inner,
     source: &FactSource,

@@ -27,7 +27,7 @@ function mount(onOpenSettings = vi.fn(), libraryId = "L1", registered?: string[]
   return { ...view, onOpenSettings, rerender: (id: string, reg?: string[]) => view.rerender(<ToastProvider><TaggingActivity libraryId={id} registered={reg} onOpenSettings={onOpenSettings} /></ToastProvider>) };
 }
 
-const running = (tagged: number): TaggingStatus => ({ state: "running", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged });
+const running = (tagged: number, done = 0, remaining = 1): TaggingStatus => ({ state: "running", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged, done, remaining });
 const idle = (tagged: number): TaggingStatus => ({ state: "idle", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged });
 const needsDownload = (downloaded = 0, cancelled = false): TaggingStatus => ({ state: "needsDownload", model: "PixAI", size: 992_916_002, downloaded, fallback: null, cancelled });
 const downloading = (downloaded: number): TaggingStatus => ({ state: "downloading", model: "PixAI", downloaded, total: 1_000_000_000 });
@@ -47,7 +47,7 @@ afterEach(async () => {
 });
 
 describe("缩放滑块左边的打标图标", () => {
-  it("打标时转动，悬停可见进度，点击打开设置 › 自动标签", async () => {
+  it("打标时显示，悬停可见进度，点击打开设置 › 自动标签", async () => {
     backend({ L1: running(128) });
     const { onOpenSettings } = mount();
     const button = await screen.findByRole("button", { name: /自动标签：正在自动标签，已标 128 张（显卡）/ });
@@ -70,25 +70,56 @@ describe("缩放滑块左边的打标图标", () => {
     ["下载", downloading(450_000_000), "正在下载自动标签模型 45%"],
     ["加载模型", { state: "starting" }, "正在加载自动标签模型"],
     ["校验模型", { state: "preparing", model: "PixAI" }, "正在校验自动标签模型"],
-  ])("%s时转动并写出进度", async (_, status, text) => {
+  ])("%s时显示并写出进度", async (_, status, text) => {
     backend({ L1: status });
     mount();
     const button = await screen.findByRole("button", { name: `自动标签：${text}，打开自动标签设置` });
     expect(button.dataset.activity).toBe("busy");
   });
 
-  it("暂停时静止", async () => {
+  it("暂停时显示暂停", async () => {
     backend({ L1: { state: "paused" } });
     mount();
     const button = await screen.findByRole("button", { name: /自动标签：已暂停/ });
     expect(button.dataset.activity).toBe("paused");
   });
 
-  it("全屏程序在前台时静止，并说明是自动暂停（#212）", async () => {
+  it("全屏程序在前台时显示暂停，并说明是自动暂停（#212）", async () => {
     backend({ L1: { state: "yieldedToFullScreen" } });
     mount();
     const button = await screen.findByRole("button", { name: /自动标签：因全屏程序暂停/ });
     expect(button.dataset.activity).toBe("paused");
+  });
+
+  it("外圈进度环（#372）：下载看字节，打标看这一轮处理过的张数，暂停时停在原处", async () => {
+    const arc = () => document.querySelector(".k-tagging-arc")?.getAttribute("stroke-dasharray");
+    backend({ L1: downloading(450_000_000) });
+    mount();
+    await screen.findByRole("button", { name: /45%/ });
+    expect(arc()).toBe("45 100");
+    await push(running(40, 1, 3));
+    await waitFor(() => expect(arc()).toBe("25 100"));
+    await push({ state: "paused" });
+    await screen.findByRole("button", { name: /已暂停/ });
+    expect(arc()).toBe("25 100");
+    await push({ state: "yieldedToFullScreen" });
+    await screen.findByRole("button", { name: /因全屏程序暂停/ });
+    expect(arc()).toBe("25 100");
+  });
+
+  it("加载模型时没有进度，只有整圈底环", async () => {
+    backend({ L1: { state: "starting" } });
+    mount();
+    const button = await screen.findByRole("button", { name: /正在加载自动标签模型/ });
+    expect(button.dataset.pending).toBe("true");
+    expect(document.querySelector(".k-tagging-arc")).toBeNull();
+  });
+
+  it("多选收起时右上角是迷你进度环", async () => {
+    backend({ L1: running(10, 1, 1) });
+    render(<ToastProvider><TaggingActivity collapsed libraryId="L1" onOpenSettings={() => {}} /></ToastProvider>);
+    const dot = await screen.findByRole("img", { name: /已标 10 张/ });
+    expect(dot.querySelector(".k-tagging-arc")?.getAttribute("stroke-dasharray")).toBe("50 100");
   });
 
   it.each<[string, TaggingStatus]>([
