@@ -177,6 +177,8 @@ fn run(
             work_id: &work.id,
         };
         if store.is_received(&key)? {
+            // 别的订阅已把它收进同一个资料库：本条不用再重试它。
+            store.clear_failure(&subscription.id, source_id, &work.id)?;
             continue;
         }
         match work.kind {
