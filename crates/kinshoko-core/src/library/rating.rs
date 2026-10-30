@@ -87,7 +87,7 @@ impl ContentRating {
 pub enum SafeModeScope {
     /// 轻度及以上。
     Sensitive,
-    /// 敏感及以上（默认，即 #223 之前的行为）。
+    /// 敏感及以上（默认）。
     #[default]
     Questionable,
     /// 仅成人。

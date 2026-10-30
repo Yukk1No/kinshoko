@@ -1,4 +1,4 @@
-// #27：安全模式切换时详情面板收起、图片墙变宽，封印／释放动画照常（从 Wall.seal-fx.test.tsx 拆出）。
+// #27：安全模式切换时详情面板收起、图片墙变宽，封印／释放动画照常。
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "@testing-library/react";
 import type { BrowsePage } from "../bindings/BrowsePage";

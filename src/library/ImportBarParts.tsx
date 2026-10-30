@@ -22,7 +22,7 @@ function reason(outcome: ImportOutcome): string | null {
   }
 }
 
-/** 导入结果卡片：新增、已存在与没导入的文件，可只重试读取失败的项（从 ImportBar 拆出）。 */
+/** 导入结果卡片：新增、已存在与没导入的文件，可只重试读取失败的项。 */
 export function ImportResultCard({ report, finished, owner, taskSwitcher, cardNotes, busy, begin, optionsByTask, libraryId, onOpenTrash, onDismissReport }: {
   report: ImportReport; finished: FinishedImport | null; owner: string | null; taskSwitcher?: ReactNode; cardNotes?: ReactNode;
   busy: boolean; begin: Begin; optionsByTask: { current: Map<string, ImportOptions> }; libraryId: string;
@@ -71,7 +71,7 @@ export function ImportResultCard({ report, finished, owner, taskSwitcher, cardNo
   );
 }
 
-/** 导入前的确认对话框：来源、保存位置，Eagle 另问删过的图（从 ImportBar 拆出）。 */
+/** 导入前的确认对话框：来源、保存位置，Eagle 另问删过的图。 */
 export function ImportPlanDialog({ plan, setPlan, preparing, running, destinationReady, startPlan, picker }: {
   plan: ImportPlan | null; setPlan: Dispatch<SetStateAction<ImportPlan | null>>; preparing: boolean; running: RunningImport | null;
   destinationReady: boolean; startPlan: () => Promise<void>; picker?: ReactNode;
@@ -115,7 +115,7 @@ export function ImportPlanDialog({ plan, setPlan, preparing, running, destinatio
   );
 }
 
-/** 找到的 Eagle 库，或手动选择（从 ImportBar 拆出）。 */
+/** 找到的 Eagle 库，或手动选择。 */
 export function EagleLibrariesDialog({ eagleLibraries, setEagleLibraries, busy, begin, importFolder }: {
   eagleLibraries: EagleLibraryCandidate[] | null; setEagleLibraries: Dispatch<SetStateAction<EagleLibraryCandidate[] | null>>;
   busy: boolean; begin: Begin; importFolder: (fromEagle?: boolean) => Promise<void>;

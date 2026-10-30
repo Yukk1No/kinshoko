@@ -1,4 +1,4 @@
-// 图片墙的分页浏览：从头重新浏览（reload）与读下一页（loadMore），从 Wall.tsx 原样搬出。
+// 图片墙的分页浏览：从头重新浏览（reload）与读下一页（loadMore）。
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { BrowseScope } from "../bindings/BrowseScope";

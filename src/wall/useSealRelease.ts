@@ -1,4 +1,4 @@
-// 安全模式的封印与释放（#27，原型 sealfx），从 Wall.tsx 原样搬出。
+// 安全模式的封印与释放（#27，原型 sealfx）。
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { MAX_GHOSTS, SEAL, SealFx, type FxArrival, type FxSource } from "../shell/sealfx";

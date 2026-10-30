@@ -1,4 +1,4 @@
-//! 导入的准备：收集文件、读取、解码、哈希与暂存，按顺序提交前的每一项（从 import.rs 原样搬出）。
+//! 导入的准备：收集文件、读取、解码、哈希与暂存，按顺序提交前的每一项。
 use super::*;
 
 pub(in crate::library) fn contains_eagle(source: &ImportSource) -> bool {

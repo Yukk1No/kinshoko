@@ -1,4 +1,4 @@
-//! 导入任务的归属与查询（从 device_libraries.rs 原样搬出）。
+//! 导入任务的归属与查询。
 
 use super::*;
 

@@ -1,4 +1,4 @@
-// 缩略图按滚动方向预取（#109），从 Wall.tsx 原样搬出。
+// 缩略图按滚动方向预取（#109）。
 import { useEffect, useRef } from "react";
 import type { MutableRefObject } from "react";
 import { thumbnailUrl } from "../ipc";

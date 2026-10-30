@@ -1,4 +1,4 @@
-// 图片墙各部分共用的常量、类型与位置记忆（从 Wall.tsx 原样搬出）。
+// 图片墙各部分共用的常量、类型与位置记忆。
 import type { ReactNode } from "react";
 import type { WallMenuTarget } from "./WallMenu";
 import type { BrowseScope } from "../bindings/BrowseScope";

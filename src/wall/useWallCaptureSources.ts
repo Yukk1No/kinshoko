@@ -1,4 +1,4 @@
-// 截图时登记图片墙上看得见的参考图（从 Wall.tsx 原样搬出）。
+// 截图时登记图片墙上看得见的参考图。
 import type { MutableRefObject } from "react";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { modalOpen } from "../ui/modal";

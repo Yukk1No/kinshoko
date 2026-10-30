@@ -16,7 +16,7 @@ export const swatch = (ground: Background) => <span className="viewer-swatch" da
 export const OneToOne = ({ size = 19 }: { size?: number }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <rect x="3" y="5" width="18" height="14" rx="3" /><path d="M8.5 10v5M8 10.5l.5-.5M15.5 10v5M15 10.5l.5-.5" /><path d="M12 11.2v.1M12 14v.1" /></svg>;
 
-/** 查看器的背景：本设备设置，读到之前沿用旧的本机缓存（从 Viewer 拆出）。 */
+/** 查看器的背景：本设备设置，读到之前沿用旧的本机缓存。 */
 export function useViewerBackground() {
   const [background, setBackground] = useState<Background>(legacyViewerBackground);
   const [backgroundReady, setBackgroundReady] = useState(false);
@@ -34,7 +34,7 @@ export function useViewerBackground() {
   return [background, setBackground] as const;
 }
 
-/** 查看器 dock 的工具（从 Viewer 拆出）。 */
+/** 查看器 dock 的工具。 */
 export function viewerDockItems(background: Background, inspectorOpen: boolean): DockItem[] {
 return [
   { id: "fit", label: "适应窗口", icon: <Scan size={19} strokeWidth={1.75} />, shortcut: "0" },
@@ -49,7 +49,7 @@ return [
 ];
 }
 
-/** 舞台上的位图：精确来源、替身与读取中 / 失败的说明（从 Viewer 拆出，#128）。 */
+/** 舞台上的位图：精确来源、替身与读取中 / 失败的说明（#128）。 */
 export function ViewerImages({ viewport, src, swapIn, setFailedSrc, placed, scale, ready, derived, setDerived, derivedMounted, derivedStandIn, lastStandIn, isOriginal, failed, setRetry }: {
   viewport: { width: number }; src: string; swapIn: (image: HTMLImageElement, loaded: string) => void; setFailedSrc: (src: string) => void;
   placed: CSSProperties; scale: number; ready: boolean; derived: { src: string; loaded: boolean } | null;
@@ -72,7 +72,7 @@ export function ViewerImages({ viewport, src, swapIn, setFailedSrc, placed, scal
   </>;
 }
 
-/** 查看器右键菜单（#102 表“查看器”行，#114）：每项另有 dock 按钮或快捷键（从 Viewer 拆出）。 */
+/** 查看器右键菜单（#102 表“查看器”行，#114）：每项另有 dock 按钮或快捷键。 */
 export function ViewerMenu({ pin, pinPart, copy, reveal, reset, background, setBackground, inspectorOpen, onToggleInspector, onTrash }: {
   pin: (region: Region | null) => void; pinPart: () => void; copy: () => void; reveal: () => void;
   reset: (next: "fit" | "pixels") => void; background: Background; setBackground: (background: Background) => void;

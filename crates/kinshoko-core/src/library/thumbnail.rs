@@ -236,7 +236,7 @@ fn placeholder_dir(root: &Path, sha: &str) -> PathBuf {
         .join(&sha[..2])
 }
 
-/// #313 之前存成文件的占位图；容器随来源分档（`webp` 或 `png`），两种都找。
+/// 旧版存成文件的占位图；容器随来源分档（`webp` 或 `png`），两种都找。
 fn placeholder_file(root: &Path, sha: &str) -> Option<(PathBuf, &'static str)> {
     if sha.len() < 2 {
         return None;

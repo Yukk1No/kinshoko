@@ -20,7 +20,7 @@ import type { TagNamespace } from "../bindings/TagNamespace";
 import type { TagRef } from "../bindings/TagRef";
 import type { Vocabulary } from "../bindings/Vocabulary";
 
-// 标签整理测试共用的后端模拟与操作步骤（从 TagOrganize.test.tsx 拆出）。
+// 标签整理测试共用的后端模拟与操作步骤。
 
 export const library: LibraryInfo = { id: "L1", name: "工作参考", root: "D:\\参考\\工作参考" };
 export const page: BrowsePage = {

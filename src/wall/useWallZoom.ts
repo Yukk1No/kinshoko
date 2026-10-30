@@ -1,4 +1,4 @@
-// Ctrl+滚轮缩放（#111）与鼠标滚轮插值（#109），从 Wall.tsx 原样搬出。
+// Ctrl+滚轮缩放（#111）与鼠标滚轮插值（#109）。
 import { useEffect } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { flushSync } from "react-dom";
