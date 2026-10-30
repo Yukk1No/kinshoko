@@ -2,7 +2,7 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { SearchInput } from "../bindings/SearchInput";
 import { isLensChanged, workspaceResolve } from "../ipc";
-import { UI_LANG } from "../search/SearchBox";
+import { useUiLang } from "../i18n";
 
 /** 查找条件与它解析成的条件树。 */
 export function useSearchTree({ libraryId, safe, vocabularyKey, onError, setReloadKey }: {
@@ -12,6 +12,7 @@ export function useSearchTree({ libraryId, safe, vocabularyKey, onError, setRelo
   onError: (message: string) => void;
   setReloadKey: Dispatch<SetStateAction<number>>;
 }) {
+  const lang = useUiLang();
   const [search, setSearch] = useState<SearchInput>({ conditions: [], exact: false });
   const [tree, setTree] = useState<ConditionTree>({ conditions: [] });
   /** 条件树是在哪个视角下解析的：与当前不同时，搜索框不显示它展开的标签名（#76）。 */
@@ -25,7 +26,7 @@ export function useSearchTree({ libraryId, safe, vocabularyKey, onError, setRelo
       return;
     }
     let alive = true;
-    workspaceResolve(search, UI_LANG, safe).then(
+    workspaceResolve(search, lang, safe).then(
       (next) => {
         if (!alive) return;
         setTree(next);
@@ -39,7 +40,7 @@ export function useSearchTree({ libraryId, safe, vocabularyKey, onError, setRelo
     return () => {
       alive = false;
     };
-  }, [libraryId, search, searching, vocabularyKey, safe, onError]);
+  }, [libraryId, search, searching, vocabularyKey, safe, onError, lang]);
 
   return { search, setSearch, tree, treeSafe, searching };
 }

@@ -7,10 +7,11 @@
 use std::sync::Mutex;
 
 use kinshoko_core::diagnostics::{LogEvent, WindowKind};
+use kinshoko_core::interface_lang;
 use kinshoko_core::{
     AppSettings, GlobalShortcuts, HotkeyRegistrar, ShellSettingsView, ShortcutAction, UiScale,
 };
-use tauri::{AppHandle, Manager, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter as _, Manager, WebviewWindowBuilder};
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt as _, Shortcut, ShortcutState};
 
@@ -19,6 +20,9 @@ use crate::desktop;
 
 /// 主窗口的标签，与 `tauri.conf.json` 一致。
 pub const MAIN_WINDOW: &str = "main";
+
+/// 界面语言改变时发给各窗口的事件，带新的界面语言（#354）。
+pub const INTERFACE_LANGUAGE_EVENT: &str = "interface-language";
 
 /// 开机自启时附带的参数：带着它启动时只进托盘，不打开主窗口。
 pub const AUTOSTART_ARG: &str = "--autostart";
@@ -42,6 +46,7 @@ impl Shell {
 
 /// 打开设置、注册快捷键、按设置同步开机自启。在 `setup` 里调用一次。
 pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    start_interface_language();
     let mut settings = AppSettings::open(crate::data_dirs::app_data(app).settings())?;
     // 在装上新版本之前记下按本构建推定的更新通道（#204）。
     if let Err(e) = settings.remember_update_channel() {
@@ -60,6 +65,22 @@ pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         shortcuts,
     })));
     Ok(())
+}
+
+/// 定下界面语言（#354）。设置里的选项随 #358 上线，在那之前界面是简体中文；
+/// `KINSHOKO_INTERFACE_LANG`（`en` 或 `system`）供开发时指定。
+fn start_interface_language() {
+    let specified = std::env::var("KINSHOKO_INTERFACE_LANG").ok();
+    let system = sys_locale::get_locale();
+    interface_lang::set(interface_lang::choose(
+        specified.as_deref(),
+        system.as_deref(),
+    ));
+}
+
+/// 告诉各窗口界面语言改了。
+pub fn announce_interface_language(app: &AppHandle, lang: &str) {
+    let _ = app.emit(INTERFACE_LANGUAGE_EVENT, lang);
 }
 
 /// 让系统的开机自启与设置一致。
@@ -115,10 +136,11 @@ pub fn open_main_window(app: &AppHandle) {
         .try_state::<UiScaleState>()
         .and_then(|state| state.0.lock().ok().map(|scale| scale.clone()));
     let factor = scale.as_ref().map_or(1.0, UiScale::factor);
-    // 档位也预先写给页面：图片墙首帧就按它排，不等 `ui_scale` 命令。
+    // 档位也预先写给页面：图片墙首帧就按它排，不等 `ui_scale` 命令。界面语言同样，首帧就是它。
     let seed = format!(
-        "window.__KINSHOKO_UI_SCALE__ = {};",
-        scale.as_ref().map_or(100, UiScale::percent)
+        "window.__KINSHOKO_UI_SCALE__ = {}; window.__KINSHOKO_INTERFACE_LANG__ = \"{}\";",
+        scale.as_ref().map_or(100, UiScale::percent),
+        interface_lang::current()
     );
     match WebviewWindowBuilder::from_config(app, config).and_then(|b| {
         b.visible(false)

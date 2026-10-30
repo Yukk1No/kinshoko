@@ -13,6 +13,7 @@ mod device;
 mod device_libraries;
 pub mod diagnostics;
 pub mod fidelity;
+pub mod interface_lang;
 pub mod library;
 pub mod library_batch;
 pub mod portable_tags;

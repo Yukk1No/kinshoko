@@ -3,7 +3,8 @@ import type { EagleTagMapping } from "../bindings/EagleTagMapping";
 import type { MappedExternal } from "../bindings/MappedExternal";
 import type { UnmatchedEagleTag } from "../bindings/UnmatchedEagleTag";
 import { eagleTagMapping, externalSuggestions, mapTagExternal } from "../ipc";
-import { TagMarks, tagName, UI_LANG } from "../search/SearchBox";
+import { TagMarks, tagName } from "../search/SearchBox";
+import { useUiLang } from "../i18n";
 import { Combobox, Highlight } from "../ui/Combobox";
 
 const SUGGESTIONS = 8;
@@ -95,6 +96,7 @@ function UnmatchedRow({
  * 外部对应已属于库内另一个标签（例如打标模型先建了“蓝瞳”）的 Eagle 标签并入那个标签，单独列出（#217）。
  */
 export function EagleTagStep({ libraryId, onClose }: Props) {
+  const lang = useUiLang();
   const [mapping, setMapping] = useState<EagleTagMapping | null>(null);
   const [remaining, setRemaining] = useState<UnmatchedEagleTag[]>([]);
   const [done, setDone] = useState<Done[]>([]);
@@ -102,7 +104,7 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
 
   useEffect(() => {
     let alive = true;
-    eagleTagMapping(libraryId, UI_LANG).then(
+    eagleTagMapping(libraryId, lang).then(
       (value) => {
         if (!alive) return;
         setMapping(value);
@@ -113,7 +115,7 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
     return () => {
       alive = false;
     };
-  }, [libraryId]);
+  }, [libraryId, lang]);
 
   const drop = (id: string) => setRemaining((rows) => rows.filter((r) => r.tag.id !== id));
   const merged = mapping?.matched.filter((m) => m.mergedInto) ?? [];

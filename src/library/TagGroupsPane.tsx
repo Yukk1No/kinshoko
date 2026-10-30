@@ -10,7 +10,8 @@ import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagNamespace } from "../bindings/TagNamespace";
 import { createSharedTagGroup, editSharedTagGroup, sharedTagGroups, onSafeModeSetting, onWorkspaceChanged, safeMode, workspaceStatus, isLensChanged } from "../ipc";
-import { LIMIT, TagMarks, UI_LANG, tagName, useCandidateState, type Lens } from "../search/SearchBox";
+import { LIMIT, TagMarks, tagName, useCandidateState, type Lens } from "../search/SearchBox";
+import { useUiLang } from "../i18n";
 import { NameInput } from "./SidebarPane";
 
 type Props = {
@@ -99,7 +100,8 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "ца
   const [refresh, setRefresh] = useState(0);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const view = JSON.stringify([safe, generation]);
-  const key = JSON.stringify([view, refresh]);
+  const lang = useUiLang();
+  const key = JSON.stringify([view, refresh, lang]);
   const current = useRef(key); current.current = key;
   // Preserve editor identity during refresh, but never display stale server labels or members.
   const groups = found.safe === safe ? found.groups : [];
@@ -109,12 +111,12 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "ца
 
   useEffect(() => {
     let alive = true;
-    sharedTagGroups(UI_LANG, safe).then(
+    sharedTagGroups(lang, safe).then(
       (value) => { if (alive && current.current === key) setFound({ key, safe, groups: value ?? [] }); },
       (error) => { if (alive && current.current === key && !isLensChanged(error)) onError(String(error)); },
     );
     return () => { alive = false; };
-  }, [key, safe, onError]);
+  }, [key, safe, onError, lang]);
   useEffect(() => { setCreating(false); setRenaming(null); setPicking(null); setDeleting(null); }, [safe]);
   useEffect(() => {
     if (!fresh) return;

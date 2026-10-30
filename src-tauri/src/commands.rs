@@ -190,6 +190,21 @@ pub async fn double_click() -> Option<DoubleClick> {
     }
 }
 
+/// 当前界面语言（#354）。
+#[tauri::command]
+pub fn interface_language() -> &'static str {
+    kinshoko_core::interface_lang::current()
+}
+
+/// 换界面语言：主窗口、钉图菜单与截图窗口随即更新，不需要重启。设置里的选项随 #358 上线。
+#[tauri::command]
+pub fn set_interface_language(app: AppHandle, lang: String) -> Result<&'static str, String> {
+    let lang = kinshoko_core::interface_lang::set(&lang)
+        .ok_or_else(|| format!("没有这种界面语言：{lang}"))?;
+    shell::announce_interface_language(&app, lang);
+    Ok(lang)
+}
+
 /// 本机的界面缩放档位（百分比）。
 #[tauri::command]
 pub async fn ui_scale(state: State<'_, UiScaleState>) -> Result<u16, String> {

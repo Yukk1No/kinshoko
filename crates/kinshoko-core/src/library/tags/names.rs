@@ -152,10 +152,7 @@ pub(in crate::library) fn resolve_source_named(
         tx,
         &id,
         &name,
-        &crate::library::source_names::detect_lang(
-            &name,
-            crate::library::source_names::INTERFACE_LANG,
-        ),
+        &crate::library::source_names::detect_lang(&name, crate::interface_lang::current()),
         crate::library::source_names::EAGLE,
     )?;
     Ok(id)
