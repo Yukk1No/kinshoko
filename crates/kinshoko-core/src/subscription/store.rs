@@ -247,6 +247,30 @@ impl Store {
             .is_some())
     }
 
+    /// 这条订阅自己收过（或跳过）这个作品：来源可以在这里停止翻页。别的订阅收进同一个资料库的
+    /// 作品不算，免得新订阅一开始就停在别人收过的作品上。
+    pub(super) fn received_by(
+        &self,
+        subscription_id: &str,
+        key: &WorkKey<'_>,
+    ) -> Result<bool, StoreError> {
+        Ok(self
+            .conn()
+            .query_row(
+                "SELECT 1 FROM received_work
+                 WHERE library_id = ?1 AND source = ?2 AND work_id = ?3 AND subscription_id = ?4",
+                params![
+                    key.library_id,
+                    key.source.as_str(),
+                    key.work_id,
+                    subscription_id
+                ],
+                |_| Ok(()),
+            )
+            .optional()?
+            .is_some())
+    }
+
     pub(super) fn received_pages(&self, key: &WorkKey<'_>) -> Result<HashSet<u32>, StoreError> {
         let conn = self.conn();
         let mut stmt = conn.prepare_cached(

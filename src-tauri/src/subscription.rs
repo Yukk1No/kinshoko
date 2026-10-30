@@ -414,9 +414,6 @@ fn finish_login(app: &AppHandle, request: Arc<LoginRequest>, code: &str) {
         return;
     };
     let result = request.finish(code);
-    if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
-        let _ = window.close();
-    }
     {
         // 与退出登录同一把锁：核对这次登录仍有效和保存会话之间，退出登录插不进来。
         let mut login = state.login.lock().unwrap_or_else(|e| e.into_inner());
@@ -427,6 +424,10 @@ fn finish_login(app: &AppHandle, request: Arc<LoginRequest>, code: &str) {
             return;
         }
         *login = None;
+        // 只关这次登录的窗口：作废后新开的登录窗口不受影响。
+        if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
+            let _ = window.close();
+        }
         match result {
             Ok(session) => {
                 if let Err(e) = state.account.logged_in(session) {

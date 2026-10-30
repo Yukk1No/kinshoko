@@ -392,3 +392,45 @@ fn checks_resume_after_restart_and_back_off_on_rate_limits() {
     assert_eq!(schedule::backoff_ms(1), hour / 2);
     assert_eq!(schedule::backoff_ms(30), 24 * hour);
 }
+
+#[test]
+fn another_subscriptions_works_do_not_cut_this_listing_short() {
+    let f = Fixture::new();
+    let works = vec![
+        work("1", WorkKind::Illustration, false, 1),
+        work("2", WorkKind::Illustration, false, 1),
+    ];
+    // 另一条订阅先把较新的作品 2 收进了同一个资料库。
+    let other = f
+        .store
+        .add(
+            NewSubscription {
+                target: Target::PixivBookmarks,
+                name: "收藏夹".into(),
+                library_id: f.library().info().id.clone(),
+                include_explicit: true,
+                include_manga: false,
+            },
+            0,
+        )
+        .unwrap();
+    let mut first = FakeSource::with(vec![works[1].clone()]);
+    check(
+        &f.store,
+        &other,
+        &mut first,
+        &f.libraries,
+        &|| 1,
+        &AtomicBool::new(false),
+    )
+    .unwrap();
+
+    // 这条订阅照样翻过作品 2 收到作品 1，作品 2 不重复下载。
+    let mut source = FakeSource::with(works);
+    let report = f.check(&mut source).unwrap();
+    assert_eq!(report.collected, 1);
+    assert_eq!(
+        source.downloads,
+        ["https://i.pximg.net/img-original/1_p0.png"]
+    );
+}

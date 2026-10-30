@@ -155,10 +155,12 @@ fn run(
             source: source_id,
             work_id,
         };
-        store.is_received(&key).unwrap_or_else(|_| {
-            store_failed = true;
-            true
-        })
+        store
+            .received_by(&subscription.id, &key)
+            .unwrap_or_else(|_| {
+                store_failed = true;
+                true
+            })
     })?;
     if store_failed {
         return Err(SourceError::Store);
