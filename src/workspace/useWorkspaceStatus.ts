@@ -12,7 +12,7 @@ export type { Prune } from "./invalidation";
  */
 export function useWorkspaceStatus({ safe, onError, invalidate, observations }: {
   safe: boolean;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   invalidate: Invalidate;
   observations: () => number;
 }) {
@@ -29,7 +29,7 @@ export function useWorkspaceStatus({ safe, onError, invalidate, observations }: 
     // A response started before a notification cannot roll back the newer provider facts.
     void workspaceStatus(safe).then((next) => {
       if (alive) observe(next, "read", startedAt);
-    }, (e) => { if (alive && observations() === startedAt && !isLensChanged(e)) onError(String(e)); });
+    }, (e) => { if (alive && observations() === startedAt && !isLensChanged(e)) onError(e); });
     const stop = onWorkspaceChanged((next) => {
       if (!alive) return;
       // Keep the explicit source dialog; it revokes stale content and revalidates on reloadKey.
@@ -44,7 +44,7 @@ export function useWorkspaceStatus({ safe, onError, invalidate, observations }: 
   const recheck = useCallback(() => {
     const startedAt = observations();
     void workspaceStatus(safe).then((next) => { observe(next, "recheck", startedAt); },
-      (e) => { if (!isLensChanged(e)) onError(String(e)); });
+      (e) => { if (!isLensChanged(e)) onError(e); });
   }, [safe, onError, observe, observations]);
 
   return { status, onWallStatus, recheck };

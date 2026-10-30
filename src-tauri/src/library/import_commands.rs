@@ -1,13 +1,15 @@
 //! 对账结果、导入与 Eagle 资料库定位的命令。
 
 use super::*;
+use crate::ui_text::{Text, text};
+use kinshoko_core::CommandError;
 
 /// 当前资料库这次打开时的对账结果。
 #[tauri::command]
 pub(super) async fn recovery(
     state: State<'_, LibraryState>,
     library_id: String,
-) -> Result<RecoveryReport, String> {
+) -> Result<RecoveryReport, CommandError> {
     with_libraries(&state, |device| {
         Ok(device.write(&library_id)?.recovery().clone())
     })
@@ -21,7 +23,7 @@ pub(super) async fn start_import<R: Runtime>(
     source: ImportSource,
     options: Option<ImportOptions>,
     destination: Option<kinshoko_core::library::SaveDestination>,
-) -> Result<String, String> {
+) -> Result<String, CommandError> {
     let paths = source.paths.len().min(u32::MAX as usize) as u32;
     let destination = destination.unwrap_or(kinshoko_core::library::SaveDestination {
         library_id: library_id.clone(),
@@ -44,7 +46,7 @@ pub(super) async fn start_import<R: Runtime>(
 
 /// 来源预检只读取文件夹，所有入口在开始 Eagle 任务前使用同一个选择步骤。
 #[tauri::command]
-pub(super) async fn import_contains_eagle(source: ImportSource) -> Result<bool, String> {
+pub(super) async fn import_contains_eagle(source: ImportSource) -> Result<bool, CommandError> {
     blocking(move || Ok(source.contains_eagle())).await
 }
 
@@ -53,7 +55,7 @@ pub(super) async fn cancel_import<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     task_id: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         with_libraries(&app.state::<LibraryState>(), |libraries| {
             libraries.cancel_import(&library_id, &task_id)
@@ -63,7 +65,9 @@ pub(super) async fn cancel_import<R: Runtime>(
 }
 
 #[tauri::command]
-pub(super) async fn pick_folder<R: Runtime>(app: AppHandle<R>) -> Result<Option<PathBuf>, String> {
+pub(super) async fn pick_folder<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<Option<PathBuf>, CommandError> {
     blocking(move || {
         Ok(app
             .dialog()
@@ -75,12 +79,17 @@ pub(super) async fn pick_folder<R: Runtime>(app: AppHandle<R>) -> Result<Option<
 }
 
 #[tauri::command]
-pub(super) async fn pick_files<R: Runtime>(app: AppHandle<R>) -> Result<Vec<PathBuf>, String> {
+pub(super) async fn pick_files<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<Vec<PathBuf>, CommandError> {
     blocking(move || {
         Ok(app
             .dialog()
             .file()
-            .add_filter("图片", &["jpg", "jpeg", "png", "webp", "gif"])
+            .add_filter(
+                text(Text::FilterImages),
+                &["jpg", "jpeg", "png", "webp", "gif"],
+            )
             .blocking_pick_files()
             .unwrap_or_default()
             .into_iter()
@@ -92,7 +101,7 @@ pub(super) async fn pick_files<R: Runtime>(app: AppHandle<R>) -> Result<Vec<Path
 
 /// 查找本机 Eagle 资料库；文件读取与磁盘扫描放在阻塞任务里。
 #[tauri::command]
-pub(super) async fn discover_eagle_libraries() -> Result<Vec<EagleLibraryCandidate>, String> {
+pub(super) async fn discover_eagle_libraries() -> Result<Vec<EagleLibraryCandidate>, CommandError> {
     blocking(|| Ok(discover_eagle(&EagleDiscoveryOptions::default()))).await
 }
 
@@ -103,7 +112,7 @@ pub(super) async fn confirm_eagle_location<R: Runtime>(
     library_id: String,
     path: PathBuf,
     choice: kinshoko_core::library::EagleLocationChoice,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     let library = save_destination::fixed_library(
         &app,
         &kinshoko_core::library::SaveDestination {
@@ -114,7 +123,7 @@ pub(super) async fn confirm_eagle_location<R: Runtime>(
     blocking(move || {
         library
             .confirm_eagle_location(&path, choice)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }

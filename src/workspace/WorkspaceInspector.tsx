@@ -28,7 +28,7 @@ export function WorkspaceInspector({
   setViewing: Dispatch<SetStateAction<BrowserCard | null>>;
   /** 来源对话框改了图：重读并刷新词表。 */
   onEdited: () => void;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   onInspectorWidth: (width: number) => void;
 }) {
   const {

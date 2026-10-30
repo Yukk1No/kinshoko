@@ -1,5 +1,5 @@
 import type { SaveDestination } from "../bindings/SaveDestination";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { CaptureAction } from "../bindings/CaptureAction";

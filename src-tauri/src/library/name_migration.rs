@@ -1,5 +1,7 @@
 //! Safe-mode-filtered adapter for the core's all-or-nothing legacy name ownership action.
+
 use super::*;
+use kinshoko_core::CommandError;
 use kinshoko_core::tag_catalog::{
     LegacyNameDecision, LegacyNameMigrationPreview, LegacyNameMigrationWorkspace,
 };
@@ -22,7 +24,7 @@ fn view(
 pub(super) async fn plan_legacy_names<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
-) -> Result<LegacyNameMigrationWorkspace, String> {
+) -> Result<LegacyNameMigrationWorkspace, CommandError> {
     let reader = app.clone();
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
@@ -45,7 +47,7 @@ pub(super) async fn confirm_legacy_names<R: Runtime>(
     state: State<'_, LibraryState>,
     revision: i64,
     decisions: Vec<LegacyNameDecision>,
-) -> Result<LegacyNameMigrationWorkspace, String> {
+) -> Result<LegacyNameMigrationWorkspace, CommandError> {
     let reader = app.clone();
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
@@ -76,7 +78,7 @@ pub(super) async fn preview_legacy_names<R: Runtime>(
     state: State<'_, LibraryState>,
     revision: i64,
     decisions: Vec<LegacyNameDecision>,
-) -> Result<LegacyNameMigrationPreview, String> {
+) -> Result<LegacyNameMigrationPreview, CommandError> {
     let reader = app.clone();
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);

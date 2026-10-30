@@ -1,5 +1,7 @@
 //! The selected aggregate source is a complete identity, independent of active browsing.
+
 use super::*;
+use kinshoko_core::CommandError;
 use kinshoko_core::workspace::{
     Workspace, WorkspaceSourceInspection, WorkspaceSourceTarget, group_sources,
 };
@@ -14,7 +16,7 @@ pub(super) fn action<R: Runtime, T>(
         &mut TagCatalog,
         &WorkspaceSourceTarget,
     ) -> Result<T, CatalogError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     guarded(app, safe, |w, d, c| f(w, d, c, target))
 }
 
@@ -23,18 +25,22 @@ fn guarded<R: Runtime, T>(
     app: &AppHandle<R>,
     safe: bool,
     f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
     // Includes the production SourceEditor rating path and permanent source deletion.
     let _visibility = lock(&state.visibility_commit);
     let expected = state.safe_mode.snapshot();
     if saved_safe_mode(app) != safe {
-        return Err(kinshoko_core::library::Error::LensChanged.to_string());
+        return Err(kinshoko_core::library::Error::LensChanged
+            .to_string()
+            .into());
     }
     let value = workspace::with_resources(&state, f)?;
     if !state.safe_mode.still(&expected) || saved_safe_mode(app) != safe {
-        return Err(kinshoko_core::library::Error::LensChanged.to_string());
+        return Err(kinshoko_core::library::Error::LensChanged
+            .to_string()
+            .into());
     }
     Ok(value)
 }
@@ -45,7 +51,7 @@ pub(super) async fn workspace_source_inspection<R: Runtime>(
     target: WorkspaceSourceTarget,
     safe_mode: bool,
     lang: String,
-) -> Result<WorkspaceSourceInspection, String> {
+) -> Result<WorkspaceSourceInspection, CommandError> {
     blocking(move || {
         action(&app, &target, safe_mode, |w, d, c, t| {
             w.inspect_source(d, c, t, safe_mode, &lang)
@@ -61,7 +67,7 @@ pub(super) async fn workspace_source_candidates<R: Runtime>(
     safe_mode: bool,
     text: String,
     lang: String,
-) -> Result<Vec<Candidate>, String> {
+) -> Result<Vec<Candidate>, CommandError> {
     blocking(move || {
         action(&app, &target, safe_mode, |w, d, c, t| {
             w.source_candidates(d, c, t, safe_mode, &text, &lang)
@@ -76,7 +82,7 @@ pub(super) async fn workspace_edit_source<R: Runtime>(
     target: WorkspaceSourceTarget,
     safe_mode: bool,
     edits: Vec<ImageEdit>,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         // 与其他整理命令同一条路（ADR-0008）：按需切换唯一的可写句柄、等导入收尾。
         let writer = writable(&app, &target.library_id)?;
@@ -101,7 +107,7 @@ pub(super) async fn workspace_edit_sources<R: Runtime>(
     targets: Vec<WorkspaceSourceTarget>,
     safe_mode: bool,
     edits: Vec<ImageEdit>,
-) -> Result<Vec<LibraryBatchFailure>, String> {
+) -> Result<Vec<LibraryBatchFailure>, CommandError> {
     blocking(move || {
         let results = each_library(group_sources(&targets), |batch| {
             let writer = writable(&app, &batch.library_id)?;
@@ -133,7 +139,7 @@ pub(super) async fn workspace_edit_source_tags<R: Runtime>(
     target: WorkspaceSourceTarget,
     safe_mode: bool,
     edits: Vec<TagEdit>,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let writer = writable(&app, &target.library_id)?;
         action(&app, &target, safe_mode, |w, d, c, t| {
@@ -143,7 +149,7 @@ pub(super) async fn workspace_edit_source_tags<R: Runtime>(
             })
         })?;
         app.state::<LibraryState>().search.invalidate();
-        publish_definition_dependencies(&app, &target.library_id).map_err(|error| format!("这个来源的标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))?;
+        publish_definition_dependencies(&app, &target.library_id).map_err(|error| CommandError::message(format!("这个来源的标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。")))?;
         Ok(())
     })
     .await
@@ -156,7 +162,7 @@ pub(super) async fn workspace_source_group<R: Runtime>(
     safe_mode: bool,
     group_id: Option<String>,
     name: Option<String>,
-) -> Result<kinshoko_core::reference_groups::ReferenceGroup, String> {
+) -> Result<kinshoko_core::reference_groups::ReferenceGroup, CommandError> {
     blocking(move || {
         let mut pin = action(&app, &target, safe_mode, |w, d, c, t| {
             w.source_reference(d, c, t, safe_mode)
@@ -167,7 +173,7 @@ pub(super) async fn workspace_source_group<R: Runtime>(
             _ => Err(kinshoko_core::reference_groups::GroupError::InvalidName),
         })
         .ok_or("参考组还没有准备好")?
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
         crate::desktop::reference_groups_changed(&app);
         Ok(group)
     })
@@ -179,7 +185,7 @@ pub(super) async fn workspace_preview_source_delete<R: Runtime>(
     app: AppHandle<R>,
     target: WorkspaceSourceTarget,
     safe_mode: bool,
-) -> Result<PermanentDeletePreview, String> {
+) -> Result<PermanentDeletePreview, CommandError> {
     blocking(move || {
         action(&app, &target, safe_mode, |w, d, c, t| {
             let library = w.read_source(d, c, t, safe_mode)?;
@@ -199,7 +205,7 @@ pub(super) async fn workspace_permanent_source_delete<R: Runtime>(
     target: WorkspaceSourceTarget,
     safe_mode: bool,
     token: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let writer = writable(&app, &target.library_id)?;
         action(&app, &target, safe_mode, |w, d, c, t| {

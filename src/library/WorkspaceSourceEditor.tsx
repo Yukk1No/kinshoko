@@ -1,5 +1,5 @@
 import { SaveDestinationDialog } from "./SaveDestination";
-import { workspaceCopySource } from "../ipc";
+import { errorText, workspaceCopySource } from "../ipc";
 import { useEffect, useRef, useState } from "react";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceSource } from "../bindings/WorkspaceSource";
@@ -70,7 +70,7 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
       <SelectionPanel key={JSON.stringify(target)} sourceTarget={target} libraryId={source.libraryId}
         inspection={{ value: ready.value, stale: ready.key !== key, reload: () => setRefresh((n) => n + 1) }}
         selected={new Set([source.imageId])} scope={{ kind: ready.value.detail.deletedAt !== null ? "trash" : "all" }}
-        safeMode={safe} reloadKey={reloadKey} generation={reloadKey} onError={setProblem}
+        safeMode={safe} reloadKey={reloadKey} generation={reloadKey} onError={(e) => setProblem(errorText(e))}
         onClear={onClose} onSourceChanged={onChanged} />
       <fieldset className="insp-use" disabled={busy}><legend>使用此来源</legend>
         <div className="insp-use-row">

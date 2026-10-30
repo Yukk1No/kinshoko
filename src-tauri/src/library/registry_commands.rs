@@ -1,12 +1,13 @@
 //! 登记、创建与切换资料库的命令。
 
 use super::*;
+use kinshoko_core::CommandError;
 
 /// 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。
 #[tauri::command]
 pub(super) async fn current_library<R: Runtime>(
     app: AppHandle<R>,
-) -> Result<Option<LibraryInfo>, String> {
+) -> Result<Option<LibraryInfo>, CommandError> {
     blocking(move || Ok(restore(&app)?.map(|library| library.info().clone()))).await
 }
 
@@ -16,7 +17,7 @@ pub(super) async fn create_library<R: Runtime>(
     app: AppHandle<R>,
     parent: PathBuf,
     name: String,
-) -> Result<LibraryInfo, String> {
+) -> Result<LibraryInfo, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
@@ -34,7 +35,7 @@ pub(super) async fn create_library<R: Runtime>(
 #[tauri::command]
 pub(super) async fn registered_libraries<R: Runtime>(
     app: AppHandle<R>,
-) -> Result<Vec<LibraryRegistration>, String> {
+) -> Result<Vec<LibraryRegistration>, CommandError> {
     blocking(move || {
         let registered = with_libraries(&app.state::<LibraryState>(), |libraries| {
             Ok(libraries.libraries().to_vec())
@@ -49,7 +50,7 @@ pub(super) async fn registered_libraries<R: Runtime>(
 pub(super) async fn register_library<R: Runtime>(
     app: AppHandle<R>,
     root: PathBuf,
-) -> Result<LibraryInfo, String> {
+) -> Result<LibraryInfo, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
@@ -66,7 +67,7 @@ pub(super) async fn register_library<R: Runtime>(
 pub(super) async fn switch_library<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
-) -> Result<LibraryInfo, String> {
+) -> Result<LibraryInfo, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
@@ -83,7 +84,7 @@ pub(super) async fn switch_library<R: Runtime>(
 pub(super) async fn unregister_library<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);

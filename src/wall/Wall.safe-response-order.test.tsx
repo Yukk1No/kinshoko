@@ -147,7 +147,7 @@ it("翻页游标过期时从第一页重读，不显示错误", async () => {
   await settle();
   const more = calls.length - 1;
   expect(calls[more].query.cursor).toBe("c1");
-  await act(async () => calls[more].reject("浏览结果已变化，请从头重新浏览"));
+  await act(async () => calls[more].reject({ code: "cursorExpired" }));
   await settle();
   const again = calls.length - 1;
   expect(again).toBeGreaterThan(more);
@@ -167,7 +167,7 @@ it("重新浏览撞上安全模式刚切换（LensChanged）：不报错，卡�
   // 快速开了又关：资料库确认“开”时界面已经是“关”，这次重新浏览带的视角与资料库的不同。
   view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
   await settle();
-  await act(async () => calls[1].reject("安全模式刚切换过，请重新查找"));
+  await act(async () => calls[1].reject({ code: "lensChanged" }));
   await settle();
 
   expect(document.querySelector('[role="alert"]')).toBeNull();

@@ -1,6 +1,6 @@
 import type { RuntimeCapabilities } from "../bindings/RuntimeCapabilities";
 import type { RuntimeStatus } from "../bindings/RuntimeStatus";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { BackupPreview } from "../bindings/BackupPreview";
 import type { BackupStatus } from "../bindings/BackupStatus";

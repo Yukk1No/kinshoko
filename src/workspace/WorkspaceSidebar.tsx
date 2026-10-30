@@ -23,7 +23,7 @@ export function WorkspaceSidebar({
   workspaceScope: WorkspaceScope;
   safe: boolean;
   reloadKey: number;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
   recheck: () => void;
   onLibraryRemoved?: (libraryId: string) => void;
   onScope: (next: WorkspaceScope) => void;
