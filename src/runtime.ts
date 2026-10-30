@@ -25,5 +25,3 @@ async function checkImageDecode(): Promise<CapabilityCheck> {
 export async function probeRuntime(): Promise<RuntimeCapabilities> {
   return { imageDecode: await checkImageDecode() };
 }
-
-export const probeHardcodedText = "临时验证：CI 应当警告这一行";
