@@ -28,7 +28,7 @@
 
 测试版、候选版、正式版都逐项做完下面每一条。
 
-- [ ] 在 GitHub 的分支菜单里从 `main` 新建分支 `release/v<版本号>`（例如 `release/v1.1.0-beta.1`）；维护分支上的补丁版本从 `maint/<主>.<次>` 建（例如从 `maint/1.0` 建 `release/v1.0.1`）。`prepare-release` 会在这个分支上改好 `Cargo.toml`、`Cargo.lock`、`package.json`、`package-lock.json` 的版本号，运行摘要里给出开 PR 的链接，PR 的目标是建分支时的来源分支。
+- [ ] 在 GitHub 的分支菜单里从 `main` 新建分支 `release/v<版本号>`（例如 `release/v1.1.0-beta.1`）；维护分支上的补丁版本从 `maint/<主>.<次>` 建（例如从 `maint/1.0` 建 `release/v1.0.1`）。`v1.0.0` 标签里还是以 `integration/v1` 为主干的旧发布工作流，`maint/1.0` 第一次发版前先经 PR 把 `main` 上的 `.github/workflows/` 与 `scripts/release/` 搬过去；`v1.1.0` 起的标签都带新工作流，不需要这一步。`prepare-release` 会在这个分支上改好 `Cargo.toml`、`Cargo.lock`、`package.json`、`package-lock.json` 的版本号，运行摘要里给出开 PR 的链接，PR 的目标是建分支时的来源分支。
 - [ ] 打开这个 PR、等 CI 通过后合并。合并后 `tag-release` 打标签（例如 `v1.1.0-beta.1`）并调用 `release`。带 `-` 的版本建成预发布；预发布不算 `releases/latest`，正式版通道收不到，测试版通道经 `channel-beta` 收到（见下面 `beta-channel` 一条）。维护分支发的补丁版本，发布后把维护分支合回 `main`。
 - [ ] `release` 工作流检查标签与版本一致，构建、静默安装检查（`kinshoko.exe` 与 `DirectML.dll` 都在安装目录），建一个**草稿** Release，附件为安装包、`.sig` 与 `latest.json`，说明文字只有自动生成的变更列表。
 - [ ] 下载草稿里的安装包，在**没有开发环境的 Windows**（例如新建的 Windows 沙盒或干净的虚拟机）上以普通用户安装：不出现管理员确认；SmartScreen 提示按 [安装说明](../install.md) 点“仍要运行”后能装上；启动后能建库、导入、看图；打标能用（DirectML 或 CPU）。测试版也必须做：CI 的静默安装检查在装有开发环境的 runner 上运行，查不出缺运行库、要管理员确认这类问题。
