@@ -1,31 +1,29 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { CircleAlert, Folder, Library } from "lucide-react";
-import { useSaveDestination, folderChoices, destinationAvailable, destinationLabel } from "../library/SaveDestination";
+import { useSaveDestination, folderChoices, destinationLabel } from "../library/SaveDestination";
 import { Select } from "../ui/Select";
-import type { CaptureChoice } from "../bindings/CaptureChoice";
-import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { captureUrl } from "../ipc";
+import { chooseDestination, destinationOf, prepareSave, type CaptureDestination, type CaptureSaveDraft, type CaptureSavePlan } from "./captureSavePlan";
 
-/** 截图只存在参考组里（#270）。 */
-export const KEEP_IN_GROUP = "group";
-/** 截图不加入参考组。 */
-export const SKIP = "skip";
+/** 去处选择里“只存在参考组里”（#270）和“不加入参考组”的值；其余非空值是图库 id。 */
+const KEEP_IN_GROUP = "group";
+const SKIP = "skip";
 
-/**
- * 存参考组前桌面上的截图：每张选的去处（图库 id、{@link KEEP_IN_GROUP} 或 {@link SKIP}，空为还没选）
- * 和收藏进图库时的文件夹。
- */
-export type CaptureSave<T> = { target: T; entries: CaptureEntry[]; choices: Record<string, string>; folders: Record<string, string | null> };
+function choiceValue(destination: CaptureDestination): string {
+  switch (destination.kind) {
+    case "unselected": return "";
+    case "skip": return SKIP;
+    case "keepInGroup": return KEEP_IN_GROUP;
+    case "collect": return destination.destination.libraryId;
+  }
+}
 
-/** 对话框里的选择交给保存入口。 */
-export function captureChoices<T>(value: CaptureSave<T>): CaptureChoice[] {
-  return value.entries.map((entry) => {
-    const choice = value.choices[entry.id];
-    if (choice === KEEP_IN_GROUP) return { captureId: entry.id, libraryId: null, folderId: null, keepInGroup: true };
-    if (choice === SKIP) return { captureId: entry.id, libraryId: null, folderId: null };
-    return { captureId: entry.id, libraryId: choice, folderId: value.folders[entry.id] ?? null };
-  });
+function parseChoice(value: string): CaptureDestination {
+  if (!value) return { kind: "unselected" };
+  if (value === SKIP) return { kind: "skip" };
+  if (value === KEEP_IN_GROUP) return { kind: "keepInGroup" };
+  return { kind: "collect", destination: { libraryId: value, folderId: null } };
 }
 
 /**
@@ -34,11 +32,12 @@ export function captureChoices<T>(value: CaptureSave<T>): CaptureChoice[] {
  * 每张截图一行：缩略图在左，去处与文件夹两个 Select 并排；已收藏的截图在名称后标“已收藏”；位置用不了时在行内写原因。
  */
 export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, onClose, onConfirm }: {
-  value: CaptureSave<T>; onChange: (value: CaptureSave<T>) => void; libraries: LibraryRegistration[];
-  saving: boolean; onClose: () => void; onConfirm: () => void;
+  value: CaptureSaveDraft<T>; onChange: (value: CaptureSaveDraft<T>) => void; libraries: LibraryRegistration[];
+  saving: boolean; onClose: () => void; onConfirm: (plan: CaptureSavePlan<T>) => void;
 }) {
   const saveContext = useSaveDestination();
-  const collecting = (choice: string | undefined) => !!choice && choice !== SKIP && choice !== KEEP_IN_GROUP;
+  const prepared = prepareSave(value, saveContext.providers);
+  const problems = prepared.ok ? [] : prepared.problems;
   return <Dialog.Root open onOpenChange={(open) => { if (!open && !saving) onClose(); }}>
     <Dialog.Portal>
       <Dialog.Backdrop className="k-backdrop" />
@@ -47,14 +46,14 @@ export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, 
         <Dialog.Description className="k-dialog-desc">逐张选择：收藏进图库，只存在参考组里，或不加入参考组。只存在参考组里的截图不进图库，参考组不再用它时一起删除。</Dialog.Description>
         <ul className="capture-save-list">
           {value.entries.map((entry, i) => {
-            const choice = value.choices[entry.id];
-            const folder = value.folders[entry.id] ?? null;
-            const chosen = collecting(choice);
-            const destination = { libraryId: choice, folderId: folder };
+            const current = destinationOf(value, entry.id);
+            const destination = current.kind === "collect" ? current.destination : null;
+            const chosen = !!destination;
+            const folder = destination?.folderId ?? null;
             const collected = [...new Set(entry.collected.map((c) => libraries.find((l) => l.library.id === c.libraryId)?.library.name ?? "未登记的图库"))];
-            const lost = chosen && saveContext.ready && !destinationAvailable(destination, saveContext.providers);
+            const lost = saveContext.ready && problems.some((p) => p.captureId === entry.id && p.reason === "unavailable");
             return (
-              <li key={entry.id} className={`capture-save-row${choice === SKIP ? " is-skipped" : ""}`}>
+              <li key={entry.id} className={`capture-save-row${current.kind === "skip" ? " is-skipped" : ""}`}>
                 <img className="capture-save-thumb" src={captureUrl(entry.id)} alt={`截图 ${i + 1}`} draggable={false} />
                 <div className="capture-save-main">
                   <p className="capture-save-head">
@@ -62,8 +61,8 @@ export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, 
                     {collected.length > 0 && <span className="k-pill" title={`已收藏到 ${collected.join("、")}`}><span className="k-label">已收藏</span></span>}
                   </p>
                   <div className="capture-save-fields">
-                    <Select label={`截图 ${i + 1} 存到哪里`} icon={<Library size={16} aria-hidden="true" />} disabled={saving} value={choice}
-                      onChange={(next) => onChange({ ...value, choices: { ...value.choices, [entry.id]: next }, folders: { ...value.folders, [entry.id]: null } })}
+                    <Select label={`截图 ${i + 1} 存到哪里`} icon={<Library size={16} aria-hidden="true" />} disabled={saving} value={choiceValue(current)}
+                      onChange={(next) => onChange(chooseDestination(value, entry.id, parseChoice(next)))}
                       options={[
                         { value: "", label: "选择去处…" },
                         ...libraries.map((option) => ({
@@ -75,10 +74,10 @@ export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, 
                       ]} />
                     <Select label={`截图 ${i + 1} 的文件夹`} icon={<Folder size={16} aria-hidden="true" />} disabled={saving || !chosen} value={chosen ? folder ?? "" : ""}
                       title={chosen ? `存到：${destinationLabel(destination, saveContext.providers)}` : undefined}
-                      onChange={(next) => onChange({ ...value, folders: { ...value.folders, [entry.id]: next || null } })}
+                      onChange={(next) => { if (destination) onChange(chooseDestination(value, entry.id, { kind: "collect", destination: { libraryId: destination.libraryId, folderId: next || null } })); }}
                       options={[
                         { value: "", label: chosen ? "未归类" : "文件夹" },
-                        ...(chosen ? folderChoices(saveContext.providers.find((p) => p.registration.library.id === choice)?.sidebar?.folders ?? [])
+                        ...(destination ? folderChoices(saveContext.providers.find((p) => p.registration.library.id === destination.libraryId)?.sidebar?.folders ?? [])
                           .map((f) => ({ value: f.id, label: f.path })) : []),
                       ]} />
                   </div>
@@ -92,11 +91,8 @@ export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, 
           <span className="k-grow" />
           <button type="button" className="k-btn" disabled={saving} onClick={onClose}><span className="k-label">取消</span></button>
           <button type="button" className="k-btn is-primary"
-            disabled={saving || !saveContext.ready || value.entries.some((e) => {
-              const choice = value.choices[e.id];
-              return choice !== SKIP && choice !== KEEP_IN_GROUP && !destinationAvailable({ libraryId: choice, folderId: value.folders[e.id] ?? null }, saveContext.providers);
-            })}
-            onClick={onConfirm}><span className="k-label">{saving ? "正在保存…" : "确认并保存"}</span></button>
+            disabled={saving || !saveContext.ready || !prepared.ok}
+            onClick={() => { if (prepared.ok) onConfirm(prepared.plan); }}><span className="k-label">{saving ? "正在保存…" : "确认并保存"}</span></button>
         </div>
       </Dialog.Popup>
     </Dialog.Portal>

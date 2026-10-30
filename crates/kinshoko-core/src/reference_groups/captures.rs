@@ -23,6 +23,27 @@ pub struct OpenedPins {
     pub problems: Vec<String>,
 }
 
+/// 收藏截图后改连参考组成员的结果（[`ReferenceGroups::relink_collected`]），每个关联的成员恰在
+/// `relinked`、`skipped`、`failed` 之一。
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct RelinkReport {
+    /// 改为引用收藏成的参考图的成员。
+    pub relinked: Vec<GroupMemberRef>,
+    /// 关联已明确失效而略过的成员：参考组已删除、成员已移出或已改连。
+    pub skipped: Vec<GroupMemberRef>,
+    /// 这次没改连的成员；关联留着，下次收藏这张截图时再试。
+    pub failed: Vec<RelinkFailure>,
+    /// 改连了、略过了的关联没能从截图历史去掉时的原因。关联留着，下次按已改连略过后再去掉。
+    pub unlink_error: Option<String>,
+}
+
+/// 没改连的成员与原因。
+#[derive(Debug, Clone, PartialEq)]
+pub struct RelinkFailure {
+    pub member: GroupMemberRef,
+    pub reason: GroupError,
+}
+
 impl ReferenceGroups {
     /// 备份的快照入口（#69、#270）：快照字节 `snapshot` 里组内截图成员用到的截图文件与字节，
     /// 从参考组 `id` 的目录读。有文件读不到时报错，不交出缺了截图的快照。
@@ -143,19 +164,34 @@ impl ReferenceGroups {
     }
 
     /// 截图历史条目 `capture_id` 收藏成了 `collected`（截图历史或钉图菜单的“收藏”）：与它关联的
-    /// 组内截图成员都改为引用那张参考图，组内副本删除，关联随之去掉。参考组已删除、成员已移出或
-    /// 已改连的关联略过。返回改连了的成员。
+    /// 组内截图成员逐个改为引用那张参考图，组内副本删除。参考组已删除、成员已移出或已改连的关联
+    /// 略过。改连了、略过了的关联才从截图历史去掉；参考组读不了、写不进的成员关联留着，下次收藏
+    /// 这张截图时再试，已改连的那些不会再动。
     pub fn relink_collected(
         &self,
         history: &mut CaptureHistory,
         capture_id: &str,
         collected: &CollectedCapture,
-    ) -> Vec<GroupMemberRef> {
-        history
-            .take_members(capture_id)
-            .into_iter()
-            .filter(|m| self.is_capture_member(m) && self.collected(m, collected).is_ok())
-            .collect()
+    ) -> RelinkReport {
+        let mut report = RelinkReport::default();
+        for member in history.linked_members(capture_id) {
+            match self.relink(&member, collected) {
+                Ok(true) => report.relinked.push(member),
+                Ok(false) => report.skipped.push(member),
+                Err(reason) => report.failed.push(RelinkFailure { member, reason }),
+            }
+        }
+        let done: Vec<GroupMemberRef> = report
+            .relinked
+            .iter()
+            .chain(&report.skipped)
+            .cloned()
+            .collect();
+        report.unlink_error = history
+            .unlink_members(capture_id, &done)
+            .err()
+            .map(|e| e.to_string());
+        report
     }
 
     /// `member` 现在还是组内截图成员。
@@ -167,20 +203,23 @@ impl ReferenceGroups {
         })
     }
 
-    /// 组内截图收藏进了资料库：成员改为引用那张参考图（局部与摆放不变），组内那份截图删除。
-    /// 成员已不是组内截图时什么都不改。
-    pub fn collected(
+    /// 把一个关联的成员改连：改了为真；参考组明确不在、成员已移出或已改连为假；参考组读写失败
+    /// 时报错（读不了不当作已删除）。
+    fn relink(
         &self,
         member: &GroupMemberRef,
         collected: &CollectedCapture,
-    ) -> Result<ReferenceGroup, GroupError> {
-        let mut group = self.get(&member.group_id)?;
+    ) -> Result<bool, GroupError> {
+        let mut group = match self.get(&member.group_id) {
+            Err(GroupError::UnknownGroup) => return Ok(false),
+            got => got?,
+        };
         let Some(m) = group
             .members
             .iter_mut()
             .find(|m| m.id == member.member_id && m.library_id().is_none())
         else {
-            return Ok(group);
+            return Ok(false);
         };
         m.source = MemberSource::Library {
             library_id: collected.library_id.clone(),
@@ -188,7 +227,19 @@ impl ReferenceGroups {
         };
         group.updated_at = crate::library::now_ms();
         self.commit(&group, &[])?;
-        Ok(group)
+        Ok(true)
+    }
+
+    /// 组内截图收藏进了资料库：成员改为引用那张参考图（局部与摆放不变），组内那份截图删除。
+    /// 成员已不是组内截图时什么都不改。
+    pub fn collected(
+        &self,
+        member: &GroupMemberRef,
+        collected: &CollectedCapture,
+    ) -> Result<ReferenceGroup, GroupError> {
+        let group = self.get(&member.group_id)?;
+        self.relink(member, collected)?;
+        self.get(&group.id)
     }
 }
 
