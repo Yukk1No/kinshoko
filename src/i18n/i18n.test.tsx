@@ -3,7 +3,8 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { applyInterfaceLanguage, followInterfaceLanguage, i18n } from ".";
-import { UpdateSection } from "../Update";
+import { UpdateNotice, UpdateSection } from "../Update";
+import { ToastProvider } from "../ui/Toast";
 import { TagGroupBar } from "../search/TagGroupBar";
 
 afterEach(async () => {
@@ -67,6 +68,22 @@ describe("界面语言", () => {
     await act(async () => { await emit("interface-language", "zh-CN"); });
     expect(await screen.findByText("眼睛")).toBeTruthy();
     expect(screen.getByText("已是最新")).toBeTruthy();
+    stop();
+  });
+
+  it("已经显示的更新通知随界面语言换文字", async () => {
+    mockIPC((cmd) => {
+      if (cmd === "interface_language") return "zh-CN";
+      if (cmd === "update_status") return { state: "available", version: "1.2.0", notes: null };
+      return null;
+    }, { shouldMockEvents: true });
+    const stop = followInterfaceLanguage();
+    render(<ToastProvider><UpdateNotice /></ToastProvider>);
+    expect(await screen.findByText("Kinshoko 1.2.0 可以更新")).toBeTruthy();
+
+    await act(async () => { await emit("interface-language", "en"); });
+    expect(await screen.findByText("Kinshoko 1.2.0 is available")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Install and restart" })).toBeTruthy();
     stop();
   });
 

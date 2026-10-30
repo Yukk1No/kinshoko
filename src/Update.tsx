@@ -5,7 +5,7 @@ import type { UpdateProgress } from "./bindings/UpdateProgress";
 import type { UpdateStatus } from "./bindings/UpdateStatus";
 import { CircleCheck, Download, FlaskConical, Info, RefreshCw } from "lucide-react";
 import { Segmented } from "./ui/Segmented";
-import { useToast } from "./ui/Toast";
+import { useToast, type ToastOptions } from "./ui/Toast";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { checkUpdate, installUpdate, onUpdateChannelChanged, onUpdateProgress, updateStatus } from "./ipc";
 import { i18n } from "./i18n";
@@ -150,23 +150,30 @@ export function UpdateNotice() {
     let alive = true;
     /** 正在显示的更新通知；画师关掉后为 null。 */
     let shown: string | null = null;
+    /** 通知现在的内容，按当前界面语言生成；换语言时重新生成（#354）。 */
+    let content: (() => Omit<ToastOptions, "onClose">) | null = null;
     let progress: Promise<() => void> | null = null;
     const stopProgress = () => {
       void progress?.then((f) => f()).catch(() => {});
       progress = null;
     };
-    const installing = (version: string, p: UpdateProgress | null) =>
+    const present = (id: string, next: () => Omit<ToastOptions, "onClose">) => {
+      if (shown !== id) return;
+      content = next;
+      toast.update(id, next());
+    };
+    const installing = (version: string, p: UpdateProgress | null) => () =>
       ({ title: i18n.t("update:notice.installing", { version }), description: progressText(p), timeout: 0 });
     const install = (id: string, version: string) => {
-      toast.update(id, installing(version, null));
-      progress = onUpdateProgress((p) => { if (shown === id) toast.update(id, installing(version, p)); });
+      present(id, installing(version, null));
+      progress = onUpdateProgress((p) => present(id, installing(version, p)));
       // 成功时 Kinshoko 退出，由安装程序装好后重新启动；只有失败会回到这里。
       installUpdate().catch((reason) => {
         stopProgress();
-        if (shown === id) toast.update(id, {
+        present(id, () => ({
           title: i18n.t("update:notice.failed"), description: String(reason), tone: "error",
           action: { label: i18n.t("update:notice.retry"), onClick: () => install(id, version) },
-        });
+        }));
       });
     };
     (async () => {
@@ -174,13 +181,16 @@ export function UpdateNotice() {
       if (status?.state === "unchecked") status = await checkUpdate();
       if (!alive || status?.state !== "available") return;
       const { version } = status;
-      const id: string = toast.show({
+      const available = () => ({
         title: i18n.t("update:notice.available", { version }), timeout: 0,
         action: { label: i18n.t("update:install.action"), onClick: () => install(id, version) },
-        onClose: () => { if (shown === id) shown = null; },
       });
+      const id: string = toast.show({ ...available(), onClose: () => { if (shown === id) shown = null; } });
       shown = id;
+      content = available;
     })().catch(() => {});
+    const relabel = () => { if (shown !== null && content) toast.update(shown, content()); };
+    i18n.on("languageChanged", relabel);
     const close = () => {
       const id = shown;
       shown = null;
@@ -195,6 +205,7 @@ export function UpdateNotice() {
       alive = false;
       close();
       stopProgress();
+      i18n.off("languageChanged", relabel);
       void unlisten.then((f) => f()).catch(() => {});
     };
   }, [toast]);

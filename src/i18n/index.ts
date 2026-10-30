@@ -34,9 +34,12 @@ void i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
-i18n.on("languageChanged", (lang) => {
+const syncDocumentLang = (lang: string) => {
   if (typeof document !== "undefined") document.documentElement.lang = lang;
-});
+};
+// 首帧的语言也写进文档（index.html 写的是 zh-CN），读屏软件按它朗读。
+syncDocumentLang(i18n.language);
+i18n.on("languageChanged", syncDocumentLang);
 
 /** 改为 `lang`；不是有翻译的界面语言时不变。 */
 export function applyInterfaceLanguage(lang: string): void {
