@@ -159,6 +159,7 @@ pub fn init() -> TauriPlugin<Wry> {
             pins::pin_clipboard,
             pins::pin_capture,
             pins::pin_menu_action,
+            pins::show_pin_notice,
             desktop_menu,
             desktop_menu_shown,
             close_desktop_menu,
