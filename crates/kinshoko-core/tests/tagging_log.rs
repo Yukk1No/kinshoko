@@ -12,6 +12,8 @@ fn running(tagged: u32) -> TaggingStatus {
         device: Device::DirectMl,
         gpu: Some("显卡".into()),
         tagged,
+        done: tagged,
+        remaining: 1,
     }
 }
 

@@ -67,6 +67,11 @@ impl Library {
         rating::images_to_tag(&self.inner, source, limit)
     }
 
+    /// 模型来源 `source` 还没打过标的参考图有几张，范围同 [`Library::images_to_tag`]。
+    pub fn count_images_to_tag(&self, source: &FactSource) -> Result<u32, Error> {
+        rating::count_images_to_tag(&self.inner, source)
+    }
+
     /// 记下模型来源 `source` 对一张参考图的打标结果；之后它不再是待打标的图。
     pub fn finish_tagging(
         &self,

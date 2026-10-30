@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { MonitorPause, Pause } from "lucide-react";
 import type { Device } from "./bindings/Device";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { taggingDownload } from "./ipc";
@@ -105,10 +105,51 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
   }, [toast, libraryId, status]);
 }
 
+/** 外圈进度（0 到 1）：下载看字节，打标看这一轮处理过的张数；加载、校验时没有进度，为 null。 */
+function liveProgress(status: TaggingStatus): number | null {
+  if (status.state === "downloading") return status.total > 0 ? status.downloaded / status.total : 0;
+  if (status.state === "running") return status.done / Math.max(1, status.done + status.remaining);
+  return null;
+}
+
+/** 暂停时外圈停在暂停前的位置：记住最近一次有进度的状态的进度，换库或停下（不显示图标）时清掉。 */
+function useRingProgress(libraryId: string | null, status: TaggingStatus | null) {
+  const [kept, setKept] = useState<{ libraryId: string | null; progress: number | null }>({ libraryId: null, progress: null });
+  const live = status && liveProgress(status);
+  const holds = status?.state === "paused" || status?.state === "yieldedToFullScreen";
+  const next = live ?? (holds && kept.libraryId === libraryId ? kept.progress : null);
+  if (kept.libraryId !== libraryId || kept.progress !== next) setKept({ libraryId, progress: next });
+  return next;
+}
+
+/** 闪光星（lucide Sparkles）：进行中两颗小星交替明暗，大星不动（#372）。 */
+function TwinkleSparkles({ size }: { size: number }) {
+  return (
+    <svg className="k-tagging-sparkles" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+      <path className="k-twinkle-a" d="M20 3v4M22 5h-4" />
+      <path className="k-twinkle-b" d="M4 17v2M5 18H3" />
+    </svg>
+  );
+}
+
+/** 进度环：底圈加一段弧；没有进度时只有底圈，进行中时底圈换成强调色慢慢明暗。 */
+function Ring({ className, size, radius, progress }: { className: string; size: number; radius: number; progress: number | null }) {
+  const c = size / 2;
+  return (
+    <svg className={className} width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+      <circle className="k-tagging-track" cx={c} cy={c} r={radius} />
+      {progress !== null && <circle className="k-tagging-arc" cx={c} cy={c} r={radius} pathLength={100}
+        strokeDasharray={`${Math.round(progress * 1000) / 10} 100`} />}
+    </svg>
+  );
+}
+
 /**
- * 自动标签在主窗口的位置（#144）：图片墙右下角、缩放滑块左边的小图标。下载、加载、打标时转动，
- * 暂停时静止半透明，其他状态不显示；悬停看进度，点击打开设置 › 自动标签。
- * 跟随后端唯一的可写资料库（ADR-0008）。
+ * 自动标签在主窗口的位置（#144）：图片墙右下角、缩放滑块左边的小圆钮。外圈是进度环（#372）：下载看字节，
+ * 打标看这一轮的张数，加载时整圈慢慢明暗；圆钮里的星星两颗小星交替闪烁。暂停时环停在原处变灰，图标换成暂停；
+ * 其他状态不显示。悬停看进度，点击打开设置 › 自动标签。跟随后端唯一的可写资料库（ADR-0008）。
  */
 export function TaggingActivity({ libraryId: opened, registered, onOpenSettings, collapsed = false }: {
   libraryId: string;
@@ -119,14 +160,25 @@ export function TaggingActivity({ libraryId: opened, registered, onOpenSettings,
 }) {
   const { libraryId, status } = useTaggingStatus(opened, registered);
   useTaggingNotices(libraryId, status);
+  const progress = useRingProgress(libraryId, status);
   const text = status && activityLabel(status);
   if (!status || !text) return null;
   const activity = status.state === "paused" || status.state === "yieldedToFullScreen" ? "paused" : "busy";
-  if (collapsed) return <span className="k-tagging-dot" data-activity={activity} role="img" title={text} aria-label={`自动标签：${text}`} />;
+  const pending = progress === null || undefined;
+  if (collapsed) {
+    return (
+      <span className="k-tagging-dot" data-activity={activity} data-pending={pending} role="img" title={text} aria-label={`自动标签：${text}`}>
+        <Ring className="k-tagging-mini" size={12} radius={4.5} progress={progress} />
+      </span>
+    );
+  }
   return (
-    <button type="button" className="k-tagging-activity" data-activity={activity}
+    <button type="button" className="k-tagging-activity" data-activity={activity} data-pending={pending}
       title={text} aria-label={`自动标签：${text}，打开自动标签设置`} onClick={onOpenSettings}>
-      <Sparkles size={16} strokeWidth={1.75} aria-hidden="true" />
+      <Ring className="k-tagging-ring" size={40} radius={18} progress={progress} />
+      {status.state === "paused" ? <Pause size={16} strokeWidth={1.75} aria-hidden="true" />
+        : status.state === "yieldedToFullScreen" ? <MonitorPause size={16} strokeWidth={1.75} aria-hidden="true" />
+        : <TwinkleSparkles size={16} />}
     </button>
   );
 }
