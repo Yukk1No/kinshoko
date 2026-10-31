@@ -102,9 +102,9 @@ describe("订阅页", () => {
     expect(tiles()).toHaveLength(0);
     expect(screen.queryByRole("button", { name: /日榜/ })).toBeNull();
     expect(document.body.textContent).not.toMatch(/R-?18/i);
-    // 后端推送状态，按安全模式重读之后：来源标为成人的仍不显示。
-    await act(async () => { view.rerender(<SubscriptionsPage {...view.props} status={status({ newCount: 1 })} safe />); });
+    // 按新的视角重读之后（后端按它过滤）：来源标为成人的仍不显示。
     await waitFor(() => expect(tiles()).toHaveLength(2));
+    expect(sent("subscription_recent")).toEqual([{ safeMode: false }, { safeMode: true }]);
     expect(screen.queryByRole("region", { name: "榜单" })).toBeNull();
     expect(document.body.textContent).not.toMatch(/R-?18/i);
     view.setSafe(false);

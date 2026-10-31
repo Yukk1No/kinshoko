@@ -28,7 +28,7 @@ function useNow(): number {
 }
 
 /**
- * 订阅名单与最近收进来的图，跟着订阅状态推送重读。订阅页开着时把新图标为已看（入口与托盘清零），
+ * 订阅名单与最近收进来的图，跟着订阅状态推送与安全模式视角重读。订阅页开着时把新图标为已看（入口与托盘清零），
  * 这次打开期间收到的仍排在“新收到”里，离开订阅页才归入“之前”。
  */
 function useSubscriptionData(status: SubscriptionStatus, safe: boolean, onError: (e: unknown) => void) {
@@ -47,7 +47,8 @@ function useSubscriptionData(status: SubscriptionStatus, safe: boolean, onError:
     let alive = true;
     const under = safeRef.current;
     listSubscriptions().then((next) => alive && setList(next), (e) => { if (alive) { setList([]); errors.current(e); } });
-    subscriptionRecent().then((next) => {
+    // 把这次的视角交给后端：后端按它与设置里的安全模式中更严的一个过滤，标成 `under` 不会放宽。
+    subscriptionRecent(under).then((next) => {
       if (!alive) return;
       setRecent(next);
       setRecentSafe(under);
@@ -57,7 +58,7 @@ function useSubscriptionData(status: SubscriptionStatus, safe: boolean, onError:
       void subscriptionMarkSeen().catch(() => {});
     }, (e) => { if (alive) errors.current(e); });
     return () => { alive = false; };
-  }, [status, signedIn]);
+  }, [status, signedIn, safe]);
   return { list, recent, fresh, recentSafe };
 }
 

@@ -30,9 +30,9 @@ export function subscriptions(): Promise<Subscription[]> {
   return invoke<Subscription[]>("subscriptions");
 }
 
-/** 最近收进来的图；安全模式开着时后端已去掉成人作品。 */
-export function subscriptionRecent(): Promise<ReceivedImage[]> {
-  return invoke<ReceivedImage[]>("subscription_recent");
+/** 最近收进来的图。`safeMode` 或设置里的安全模式开着时，后端按图库的有效分级去掉成人作品。 */
+export function subscriptionRecent(safeMode: boolean): Promise<ReceivedImage[]> {
+  return invoke<ReceivedImage[]>("subscription_recent", { safeMode });
 }
 
 /** 订阅页看过了：新图标为已看，入口与托盘上的数量清零。 */
