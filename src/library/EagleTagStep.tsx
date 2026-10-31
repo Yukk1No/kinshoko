@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { EagleTagMapping } from "../bindings/EagleTagMapping";
 import type { MappedExternal } from "../bindings/MappedExternal";
 import type { UnmatchedEagleTag } from "../bindings/UnmatchedEagleTag";
@@ -34,6 +35,7 @@ function UnmatchedRow({
   onSkip: () => void;
   onError: (error: unknown) => void;
 }) {
+  const { t } = useTranslation("importing", { keyPrefix: "tagStep" });
   const name = tagName(item.tag);
   const [draft, setDraft] = useState(item.candidates[0] ?? "");
   const [suggestions, setSuggestions] = useState<string[]>(item.candidates);
@@ -56,7 +58,7 @@ function UnmatchedRow({
     try {
       onMapped(await mapTagExternal(libraryId, item.tag.id, external));
     } catch (error) {
-      onError(`无法给 ${name} 补上外部对应：${String(error)}`);
+      onError(t("mapFailed", { name, error: String(error) }));
       setBusy(false);
     }
   };
@@ -65,12 +67,12 @@ function UnmatchedRow({
     <li>
       <span className="k-parts">
         <span>{name}<TagMarks tag={item.tag} /></span>
-        <span>{item.count} 张</span>
+        <span>{t("count", { count: item.count })}</span>
       </span>
-      {item.candidates.length > 1 && <span className="import-report-reason">对上了多个外部名称，请选一个</span>}
+      {item.candidates.length > 1 && <span className="import-report-reason">{t("ambiguous")}</span>}
       <Combobox
-        label={`${name} 的外部对应`}
-        placeholder="外部名称，如 blue_eyes"
+        label={t("externalLabel", { name })}
+        placeholder={t("placeholder")}
         value={draft}
         disabled={busy}
         autoHighlight={false}
@@ -80,11 +82,11 @@ function UnmatchedRow({
         // 有高亮的候选时 Enter 由 Combobox 选它；没有时按输入的名称补上。
         onKeyDown={(e) => { if (e.key === "Enter" && !e.currentTarget.getAttribute("aria-activedescendant")) void submit(); }}
       />
-      <button type="button" aria-label={`补上 ${name} 的外部对应`} disabled={busy || !draft.trim()} onClick={() => void submit()}>
-        补上
+      <button type="button" aria-label={t("mapLabel", { name })} disabled={busy || !draft.trim()} onClick={() => void submit()}>
+        {t("map")}
       </button>
-      <button type="button" aria-label={`跳过 ${name}`} disabled={busy} onClick={onSkip}>
-        跳过
+      <button type="button" aria-label={t("skipLabel", { name })} disabled={busy} onClick={onSkip}>
+        {t("skip")}
       </button>
     </li>
   );
@@ -97,6 +99,7 @@ function UnmatchedRow({
  */
 export function EagleTagStep({ libraryId, onClose }: Props) {
   const lang = useUiLang();
+  const { t } = useTranslation("importing", { keyPrefix: "tagStep" });
   const [mapping, setMapping] = useState<EagleTagMapping | null>(null);
   const [remaining, setRemaining] = useState<UnmatchedEagleTag[]>([]);
   const [done, setDone] = useState<Done[]>([]);
@@ -110,7 +113,7 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
         setMapping(value);
         setRemaining(value.unmatched);
       },
-      (e) => alive && setError(`无法匹配标签的外部对应：${String(e)}`),
+      (e) => alive && setError(t("matchFailed", { error: String(e) })),
     );
     return () => {
       alive = false;
@@ -121,54 +124,54 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
   const merged = mapping?.matched.filter((m) => m.mergedInto) ?? [];
 
   return (
-    <section className="import-report eagle-tag-step" aria-label="标签的外部对应">
+    <section className="import-report eagle-tag-step" aria-label={t("label")}>
       <header>
         <span>
-          标签的外部对应
-          {mapping && `：已自动对上 ${mapping.matched.length} 个标签，${remaining.length} 个没对上`}
+          {t("title")}
+          {mapping && t("summary", { matched: mapping.matched.length, remaining: remaining.length })}
         </span>
         <button type="button" onClick={onClose}>
-          {remaining.length ? "全部跳过" : "完成"}
+          {remaining.length ? t("skipAll") : t("done")}
         </button>
       </header>
       <p>
-        外部对应是标签在自动标签与内置近似对应表中的名称。没有外部对应的标签（标有
-        <span className="no-external" role="img" aria-label="没有外部对应的提示图标" />
-        ）照常迁入、照常可查，只是不参与内置近似对应表：查找它时不会自动带上相近的标签。可以现在补上，也可以跳过。
+        {t("noteBefore")}
+        <span className="no-external" role="img" aria-label={t("noteIcon")} />
+        {t("noteAfter")}
       </p>
       {mapping && mapping.vocabularySize === 0 && (
-        <p>本机还没有可用的外部词表（自动标签尚未就绪），只能手动补上外部对应。</p>
+        <p>{t("noVocabulary")}</p>
       )}
       {error && <p role="alert">{error}</p>}
       {merged.length > 0 && (
-        <ul aria-label="已并入其他标签">
+        <ul aria-label={t("mergedLabel")}>
           {merged.map((m) => (
             <li key={m.tag.id}>
               <span>
-                {tagName(m.tag)} 已并入 {m.mergedInto && tagName(m.mergedInto)}
+                {t("mergedInto", { tag: tagName(m.tag), into: m.mergedInto ? tagName(m.mergedInto) : "" })}
               </span>
-              <span className="import-report-reason">两边对应同一个外部名称，本来就是同一个标签</span>
+              <span className="import-report-reason">{t("mergedReason")}</span>
             </li>
           ))}
         </ul>
       )}
       {done.length > 0 && (
-        <ul aria-label="已补上的外部对应">
+        <ul aria-label={t("mappedLabel")}>
           {done.map((d) => (
             <li key={d.name}>
               <span>
                 {d.name} → {d.mapped.external}
               </span>
-              {d.mapped.mergedInto && <span className="import-report-reason">已并入对应这个外部名称的标签</span>}
+              {d.mapped.mergedInto && <span className="import-report-reason">{t("mappedMerged")}</span>}
               {!d.mapped.known && (
-                <span className="import-report-reason">词表中没有这个名称，内置近似对应表多半不认识它</span>
+                <span className="import-report-reason">{t("unknown")}</span>
               )}
             </li>
           ))}
         </ul>
       )}
       {remaining.length > 0 && (
-        <ul aria-label="没对上外部对应的标签">
+        <ul aria-label={t("unmatchedLabel")}>
           {remaining.map((item) => (
             <UnmatchedRow
               key={item.tag.id}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 
 import type { RecoveryReport } from "../bindings/RecoveryReport";
 import { onSafeModeSetting, onWorkspaceChanged } from "../ipc";
 import { useToast } from "../ui/Toast";
+import { useTranslation } from "react-i18next";
 import type { FinishedImport } from "./ImportBar";
 import { importNotice } from "./ImportBarParts";
 
@@ -25,6 +26,7 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
   showSealed: (taskId: string) => void;
 }) {
   const toast = useToast();
+  const { t } = useTranslation("importing");
   /** 结果回执是否打开；打开时随导入菜单所选的任务切换。 */
   const [receipt, setReceipt] = useState(false);
   const report = finished?.report ?? null;
@@ -45,11 +47,11 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
     if (!toast || (interrupted.length === 0 && orphans.length === 0)) return;
     let current = true;
     const id = toast.show({
-      title: interrupted.length > 0 ? "上次导入中断" : "有不认识的文件",
-      description: [interrupted.length > 0 && `${interrupted.length} 个文件已撤回，没有留下半张图`,
-        orphans.length > 0 && `图库的原文件夹里有 ${orphans.length} 个不认识的文件，已保留`].filter(Boolean).join("；"),
+      title: interrupted.length > 0 ? t("recovery.interrupted") : t("recovery.orphans"),
+      description: [interrupted.length > 0 && t("recovery.withdrawn", { count: interrupted.length }),
+        orphans.length > 0 && t("recovery.kept", { count: orphans.length })].filter(Boolean).join(t("recovery.separator")),
       timeout: 0,
-      action: interrupted.length > 0 ? { label: "重新导入", onClick: () => { if (!current) return; toast.close(id); latest.current.reimport(interrupted); } } : undefined,
+      action: interrupted.length > 0 ? { label: t("recovery.reimport"), onClick: () => { if (!current) return; toast.close(id); latest.current.reimport(interrupted); } } : undefined,
       onClose: () => { if (current) setRecovery((value) => value === recovery ? null : value); },
     });
     return () => { current = false; toast.close(id); };
@@ -89,7 +91,7 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
   // 封印项重复：#78 规定的原文，不点名内容类别，不给数量。错过时可从回执里再展开。
   useEffect(() => {
     if (!toast || sealedTask === null) return;
-    const id = toast.show({ title: "有封印项重复，是否展开看看", action: { label: "展开", onClick: () => { toast.close(id); latest.current.showSealed(sealedTask); } } });
+    const id = toast.show({ title: t("sealed.prompt"), action: { label: t("sealed.expand"), onClick: () => { toast.close(id); latest.current.showSealed(sealedTask); } } });
     return () => toast.close(id);
   }, [toast, sealedTask]);
 
