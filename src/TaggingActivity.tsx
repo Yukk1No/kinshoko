@@ -1,30 +1,33 @@
 import { useEffect, useRef, useState } from "react";
 import { MonitorPause, Pause } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Device } from "./bindings/Device";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { taggingDownload } from "./ipc";
 import { useToast } from "./ui/Toast";
+import { i18n } from "./i18n";
+import { formatNumber } from "./i18n/format";
 import { useTaggingStatus } from "./useTaggingStatus";
 
-const DEVICE_NAME: Record<Device, string> = { directMl: "显卡", cpu: "CPU" };
-const mb = (bytes: number) => `${Math.round(bytes / 1_000_000)} MB`;
+const deviceName = (device: Device) => i18n.t(`tagging:device.${device}`);
+const mb = (bytes: number) => formatNumber(Math.round(bytes / 1_000_000), { useGrouping: false });
 const percent = (part: number, total: number) => (total > 0 ? Math.floor((part / total) * 100) : 0);
 
 /** 图标上的状态文字；不显示图标的状态为 null。 */
 function activityLabel(status: TaggingStatus): string | null {
   switch (status.state) {
     case "downloading":
-      return `正在下载自动标签模型 ${percent(status.downloaded, status.total)}%`;
+      return i18n.t("tagging:activity.downloading", { percent: percent(status.downloaded, status.total) });
     case "starting":
-      return "正在加载自动标签模型";
+      return i18n.t("tagging:activity.starting");
     case "preparing":
-      return "正在校验自动标签模型";
+      return i18n.t("tagging:activity.preparing");
     case "running":
-      return `正在自动标签，已标 ${status.tagged} 张（${DEVICE_NAME[status.device]}）`;
+      return i18n.t("tagging:activity.running", { count: status.tagged, device: deviceName(status.device) });
     case "paused":
-      return "已暂停";
+      return i18n.t("tagging:activity.paused");
     case "yieldedToFullScreen":
-      return "因全屏程序暂停";
+      return i18n.t("tagging:activity.yieldedToFullScreen");
     default:
       return null;
   }
@@ -56,12 +59,12 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
     previous.current = { libraryId, status };
     // 下载中暂停或取消（#213）也不算下载完成。
     if (before?.state === "downloading" && !["downloading", "failed", "needsDownload", "paused"].includes(status.state)) {
-      toast.show({ title: "已下载自动标签模型", tone: "success" });
+      toast.show({ title: i18n.t("tagging:notice.downloaded"), tone: "success" });
     }
     // 后端出错后定时重试并反复广播：一直是同一个原因时只报一次。
     if (status.state === "failed" && failure.current !== status.reason) {
       failure.current = status.reason;
-      toast.error(`自动标签出错：${status.reason}`, { description: "稍后会自动重试" });
+      toast.error(i18n.t("tagging:notice.failed", { reason: status.reason }), { description: i18n.t("tagging:notice.retrying") });
     }
     if (status.state === "idle" || status.state === "paused") failure.current = null;
     if (status.state === "running") roundStart.current ??= status.tagged;
@@ -69,11 +72,11 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
       // Running 在打每张之前推送，最后一张只在 Idle 的累计张数里。
       const taggedThisRound = before?.state === "running" && roundStart.current !== null ? status.tagged - roundStart.current : 0;
       roundStart.current = null;
-      if (taggedThisRound > 0) toast.show({ title: `自动标签：新打了 ${taggedThisRound} 张`, tone: "success" });
+      if (taggedThisRound > 0) toast.show({ title: i18n.t("tagging:notice.tagged", { count: taggedThisRound }), tone: "success" });
     }
     if (status.state === "noDevice" && !unavailable.current.has(status.reason)) {
       unavailable.current.add(status.reason);
-      toast.show({ title: `自动标签不可用：${status.reason}`, timeout: 0 });
+      toast.show({ title: i18n.t("tagging:notice.unavailable", { reason: status.reason }), timeout: 0 });
     }
     // 代码收起的通知先清掉记录，onClose 才不把它当成画师关掉的。
     const closeDownload = () => {
@@ -88,13 +91,13 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
     const start = () => {
       closeDownload();
       void taggingDownload(libraryId).then(
-        () => toast.show({ title: "正在下载自动标签模型" }),
-        (e) => toast.error(`无法下载自动标签模型：${String(e)}`),
+        () => toast.show({ title: i18n.t("tagging:notice.downloading") }),
+        (e) => toast.error(i18n.t("tagging:notice.downloadFailed", { error: String(e) })),
       );
     };
     const id = toast.show({
-      title: `需要下载自动标签模型（${mb(status.size)}）`, timeout: 0,
-      action: { label: status.downloaded > 0 ? "继续下载" : "下载", onClick: start },
+      title: i18n.t("tagging:notice.needsDownload", { size: mb(status.size) }), timeout: 0,
+      action: { label: status.downloaded > 0 ? i18n.t("tagging:notice.resume") : i18n.t("tagging:notice.download"), onClick: start },
       onClose: () => {
         if (download.current !== id) return;
         download.current = null;
@@ -158,6 +161,8 @@ export function TaggingActivity({ libraryId: opened, registered, onOpenSettings,
   /** 多选悬浮栏出现、右下角收成一个圆形按钮时（#180）：图标换成按钮右上角的小圆点，状态仍看得到。 */
   collapsed?: boolean;
 }) {
+  // 状态文字按界面语言取：换语言时重绘。
+  useTranslation();
   const { libraryId, status } = useTaggingStatus(opened, registered);
   useTaggingNotices(libraryId, status);
   const progress = useRingProgress(libraryId, status);
@@ -167,14 +172,14 @@ export function TaggingActivity({ libraryId: opened, registered, onOpenSettings,
   const pending = progress === null || undefined;
   if (collapsed) {
     return (
-      <span className="k-tagging-dot" data-activity={activity} data-pending={pending} role="img" title={text} aria-label={`自动标签：${text}`}>
+      <span className="k-tagging-dot" data-activity={activity} data-pending={pending} role="img" title={text} aria-label={i18n.t("tagging:label", { text })}>
         <Ring className="k-tagging-mini" size={12} radius={4.5} progress={progress} />
       </span>
     );
   }
   return (
     <button type="button" className="k-tagging-activity" data-activity={activity} data-pending={pending}
-      title={text} aria-label={`自动标签：${text}，打开自动标签设置`} onClick={onOpenSettings}>
+      title={text} aria-label={i18n.t("tagging:openSettings", { text })} onClick={onOpenSettings}>
       <Ring className="k-tagging-ring" size={40} radius={18} progress={progress} />
       {status.state === "paused" ? <Pause size={16} strokeWidth={1.75} aria-hidden="true" />
         : status.state === "yieldedToFullScreen" ? <MonitorPause size={16} strokeWidth={1.75} aria-hidden="true" />

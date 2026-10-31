@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "motion/react";
 import { FolderInput, FolderMinus, RotateCcw, Trash2, X } from "lucide-react";
 import type { BrowseScope } from "../bindings/BrowseScope";
@@ -30,6 +31,7 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
   /** 图片墙很窄时（selectionBarCompact）：读数只写“N 张”。 */
   compact?: boolean;
 }) {
+  const { t } = useTranslation("inspector");
   const reduced = useReducedMotion();
   const toast = useToast();
   const [folders, setFolders] = useState<{ id: string; label: string }[] | null>(null);
@@ -68,8 +70,8 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
         if (clear && currentKey.current === key) onClear();
         // 移到回收站能撤销：不先确认，给一个带“撤销”的轻提示。
         if (edits.length === 1 && edits[0].kind === "delete") toast?.show({
-          title: "已移到回收站", description: `${picked.length} 张`, tone: "success",
-          action: { label: "撤销", onClick: () => void editImages(libraryId, picked, [{ kind: "restore" }]).catch((e) => onError(e)) },
+          title: t("selection.trashed"), description: t("selection.trashedCount", { count: picked.length }), tone: "success",
+          action: { label: t("selection.undo"), onClick: () => void editImages(libraryId, picked, [{ kind: "restore" }]).catch((e) => onError(e)) },
         });
       },
       (e) => { if (currentKey.current === key) onError(e); },
@@ -80,15 +82,15 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
   const trash = scope.kind === "trash";
   const items: DockItem[] = [
     ...trash ? [] : [{
-      id: "put", label: "移到文件夹", icon: <FolderInput size={18} strokeWidth={1.75} />, disabled: !hasFolders,
-      note: folders && !hasFolders ? "还没有文件夹" : undefined, menuWidth: 220,
+      id: "put", label: t("selection.moveToFolder"), icon: <FolderInput size={18} strokeWidth={1.75} />, disabled: !hasFolders,
+      note: folders && !hasFolders ? t("selection.noFolders") : undefined, menuWidth: 220,
       menu: (folders ?? []).map((f) => <MenuItem key={f.id} onClick={() => edit([{ kind: "addToFolder", folderId: f.id }], false)}>{f.label}</MenuItem>),
-    }, ...scope.kind === "folder" ? [{ id: "remove", label: "移出此文件夹", icon: <FolderMinus size={18} strokeWidth={1.75} /> }] : [], "sep" as const],
+    }, ...scope.kind === "folder" ? [{ id: "remove", label: t("selection.removeFromFolder"), icon: <FolderMinus size={18} strokeWidth={1.75} /> }] : [], "sep" as const],
     ...trash
-      ? [{ id: "restore", label: "恢复", icon: <RotateCcw size={18} strokeWidth={1.75} /> },
-        { id: "purge", label: "永久删除…", tone: "danger" as const, icon: <Trash2 size={18} strokeWidth={1.75} /> }]
-      : [{ id: "delete", label: "移到回收站", shortcut: "Del", tone: "danger" as const, icon: <Trash2 size={18} strokeWidth={1.75} /> }],
-    { id: "clear", label: "取消选择", icon: <X size={18} strokeWidth={1.75} /> },
+      ? [{ id: "restore", label: t("selection.restore"), icon: <RotateCcw size={18} strokeWidth={1.75} /> },
+        { id: "purge", label: t("selection.purge"), tone: "danger" as const, icon: <Trash2 size={18} strokeWidth={1.75} /> }]
+      : [{ id: "delete", label: t("selection.trash"), shortcut: "Del", tone: "danger" as const, icon: <Trash2 size={18} strokeWidth={1.75} /> }],
+    { id: "clear", label: t("selection.clear"), icon: <X size={18} strokeWidth={1.75} /> },
   ];
   const run = (id: string) => {
     if (id === "remove" && scope.kind === "folder") edit([{ kind: "removeFromFolder", folderId: scope.id }], true);
@@ -102,8 +104,8 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
   return <motion.div ref={root} className="selbar-float"
     initial={{ opacity: 0, y: reduced ? 0 : 24, x: left }} animate={{ opacity: 1, y: 0, x: left }} exit={{ opacity: 0, y: reduced ? 0 : 24 }}
     transition={reduced ? instant : arcSpring.morph}>
-    <Dock label="已选参考图操作" items={items} onSelect={run} className={compact ? "is-compact" : ""}
-      readout={compact ? <b aria-label={`已选 ${ids.length} 张`}>{ids.length} 张</b> : <b>已选 {ids.length} 张</b>} />
+    <Dock label={t("selection.actions")} items={items} onSelect={run} className={compact ? "is-compact" : ""}
+      readout={compact ? <b aria-label={t("selection.count", { count: ids.length })}>{t("selection.countShort", { count: ids.length })}</b> : <b>{t("selection.count", { count: ids.length })}</b>} />
     {purging && scope.kind === "trash" && <PermanentDeleteConfirm libraryId={libraryId} ids={ids} safeMode={safeMode}
       onDone={() => { setPurging(false); onClear(); }} onCancel={() => setPurging(false)} onError={onError} />}
   </motion.div>;

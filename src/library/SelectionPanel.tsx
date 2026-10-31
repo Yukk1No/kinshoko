@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatDateTime } from "../i18n/format";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { FolderInput, FolderMinus, Link2, RotateCcw, ShieldCheck, Trash2, Undo2, X } from "lucide-react";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
@@ -57,17 +58,13 @@ const isAdult = (rating: ContentRating | null) =>
 /** 文件夹树摊平成带缩进的选项。 */
 export function flattenFolders(nodes: FolderNode[], depth = 0): { id: string; label: string }[] {
   return nodes.flatMap((n) => [
-    { id: n.id, label: `${"　".repeat(depth)}${n.name}` },
+    // 全角空格缩进，与文件夹名对齐，不是界面文案。
+    { id: n.id, label: `${"\u3000".repeat(depth)}${n.name}` },
     ...flattenFolders(n.children, depth + 1),
   ]);
 }
 
-const RATING_LABELS: Record<ContentRating, string> = {
-  general: "全年龄",
-  sensitive: "轻度",
-  questionable: "敏感",
-  explicit: "成人",
-};
+const RATINGS: ContentRating[] = ["general", "sensitive", "questionable", "explicit"];
 
 /** 内容分级：画师选的分级优先于自动分级；“改回自动”即退回自动分级。 */
 function RatingPicker({
@@ -77,17 +74,18 @@ function RatingPicker({
   rating: ImageRating;
   edit: (edits: ImageEdit[]) => void;
 }) {
-  const auto = rating.suggested ? RATING_LABELS[rating.suggested] : "尚未分级";
+  const { t } = useTranslation(["inspector", "common"]);
+  const auto = rating.suggested ? t(`common:rating.${rating.suggested}`) : t("rating.unrated");
   return (
-    <section className="insp-sec selection-rating" aria-label="内容分级">
-      <h4><ShieldCheck size={13} aria-hidden="true" />分级</h4>
-      <Segmented<ContentRating> label="内容分级" className="insp-rate" value={rating.manual}
+    <section className="insp-sec selection-rating" aria-label={t("rating.label")}>
+      <h4><ShieldCheck size={13} aria-hidden="true" />{t("rating.title")}</h4>
+      <Segmented<ContentRating> label={t("rating.label")} className="insp-rate" value={rating.manual}
         onChange={(value) => edit([{ kind: "setRating", rating: value }])}
-        options={(Object.keys(RATING_LABELS) as ContentRating[]).map((r) => ({ value: r, label: RATING_LABELS[r] }))} />
+        options={RATINGS.map((r) => ({ value: r, label: t(`common:rating.${r}`) }))} />
       {rating.manual
-        ? <p className="insp-hint">已手动修正
-          <button type="button" className="k-btn is-ghost is-sm" onClick={() => edit([{ kind: "revertRating" }])}><Undo2 size={12} aria-hidden="true" /><span className="k-label">改回自动（{auto}）</span></button></p>
-        : <p className="insp-hint">自动分级：{auto}</p>}
+        ? <p className="insp-hint">{t("rating.manual")}
+          <button type="button" className="k-btn is-ghost is-sm" onClick={() => edit([{ kind: "revertRating" }])}><Undo2 size={12} aria-hidden="true" /><span className="k-label">{t("rating.revert", { auto })}</span></button></p>
+        : <p className="insp-hint">{t("rating.auto", { auto })}</p>}
     </section>
   );
 }
@@ -105,6 +103,7 @@ function Detail({
   /** 已选中别的图、它的详情还没到：先留着这张的，但不能操作。 */
   stale?: boolean;
 }) {
+  const { t } = useTranslation("inspector");
   const { manual, sources } = detail.note;
   const sourceText = sources.map((s) => s.text).join("\n");
   const saved = manual ?? sourceText;
@@ -121,48 +120,48 @@ function Detail({
     <div className="selection-detail" aria-busy={stale} inert={stale}>
       <div className="insp-file">
         <div className="insp-file-name" title={detail.originalName}>{detail.originalName}</div>
-        <div className="insp-file-meta k-parts"><span>{detail.width} × {detail.height}</span><span>收集于 {new Date(detail.collectedAt).toLocaleString("zh-CN")}</span></div>
+        <div className="insp-file-meta k-parts"><span>{detail.width} × {detail.height}</span><span>{t("file.collectedAt", { at: formatDateTime(detail.collectedAt) })}</span></div>
       </div>
-      {detail.versions.previous && <p className="selection-version">新版本：Eagle 中这张图的内容变了，旧版本仍保留在图库里</p>}
-      {detail.versions.newer.length > 0 && <p className="selection-version">旧版本：Eagle 中这张图的内容后来变了，新版本另存为一张图</p>}
+      {detail.versions.previous && <p className="selection-version">{t("file.newVersion")}</p>}
+      {detail.versions.newer.length > 0 && <p className="selection-version">{t("file.oldVersion")}</p>}
       <RatingPicker rating={detail.rating} edit={edit} />
-      <section className="insp-sec selection-folders" aria-label="所在文件夹">
-        <h4>文件夹</h4>
+      <section className="insp-sec selection-folders" aria-label={t("folders.label")}>
+        <h4>{t("folders.title")}</h4>
         {detail.folders.length
           ? <ul className="insp-chips">{detail.folders.map((folder) => <li key={folder.id} className="insp-chip"><span className="k-label">{folder.name}</span>
-            {sourceMode && <button type="button" className="insp-chip-x" aria-label={`移出「${folder.name}」`} title={`移出「${folder.name}」`}
+            {sourceMode && <button type="button" className="insp-chip-x" aria-label={t("folders.remove", { name: folder.name })} title={t("folders.remove", { name: folder.name })}
               onClick={() => edit([{ kind: "removeFromFolder", folderId: folder.id }])}><X size={11} aria-hidden="true" /></button>}</li>)}</ul>
-          : <p className="insp-hint">不在任何文件夹里</p>}
+          : <p className="insp-hint">{t("folders.none")}</p>}
       </section>
       {/* 备注（#98）：字段用改版样式；有未保存的改动才出现“保存”，有自己写的备注才能“用来源的”。 */}
       <section className="insp-sec k-note">
         <label className="selection-note">
-          <span className="insp-h">备注{manual === null && sources.length > 0 ? "（来自来源）" : ""}</span>
-          <textarea className="k-textarea" aria-label="备注" placeholder="写点什么，例如看哪里" value={draft} rows={3} onChange={(e) => setDraft(e.target.value)} />
+          <span className="insp-h">{manual === null && sources.length > 0 ? t("note.fromSource") : t("note.title")}</span>
+          <textarea className="k-textarea" aria-label={t("note.title")} placeholder={t("note.placeholder")} value={draft} rows={3} onChange={(e) => setDraft(e.target.value)} />
         </label>
         {(draft !== saved || manual !== null) && <div className="selection-actions k-note-acts">
           {draft !== saved && <button
             type="button"
             className="k-btn is-sm is-quiet"
-            aria-label="保存备注"
+            aria-label={t("note.saveLabel")}
             onClick={() => edit([{ kind: "setNote", text: draft }])}
           >
-            <span className="k-label">保存</span>
+            <span className="k-label">{t("note.save")}</span>
           </button>}
           <button
             type="button"
             className="k-btn is-sm is-ghost"
-            aria-label="退回来源备注"
+            aria-label={t("note.revertLabel")}
             disabled={manual === null}
-            title={sources.length ? "改回来源提供的备注" : "来源没有提供备注，退回后备注为空"}
+            title={sources.length ? t("note.revertTitle") : t("note.revertEmptyTitle")}
             onClick={() => edit([{ kind: "revertNote" }])}
           >
-            <span className="k-label">用来源的</span>
+            <span className="k-label">{t("note.revert")}</span>
           </button>
         </div>}
       </section>
       {detail.sourceLinks?.length > 0 && (
-        <ul className="insp-links" aria-label="来源链接">
+        <ul className="insp-links" aria-label={t("links")}>
           {detail.sourceLinks.map((url) => (
             <li key={url}><Link2 size={13} aria-hidden="true" />{/^https?:\/\//i.test(url)
               ? <a href={url} target="_blank" rel="noreferrer">{url}</a>
@@ -298,6 +297,7 @@ export function SelectionPanel({
   inlineActions = true,
   workspace = false,
 }: Props) {
+  const { t } = useTranslation("inspector");
   const ids = [...selected];
   const single = ids.length === 1 ? ids[0] : null;
   const [libraryFolders, setFolders] = useState<{ id: string; label: string }[]>([]);
@@ -370,44 +370,44 @@ export function SelectionPanel({
   };
 
   const actions = inlineActions && (
-    <div className="selection-actions selbar is-inline" role="toolbar" aria-label="已选参考图操作">
-      <span className="selection-count">已选 {ids.length} 张</span>
+    <div className="selection-actions selbar is-inline" role="toolbar" aria-label={t("selection.actions")}>
+      <span className="selection-count">{t("selection.count", { count: ids.length })}</span>
       <Menu.Root modal={false}>
-        <Menu.Trigger className="selbar-btn" aria-label="移到文件夹" disabled={!folders.length} title={folders.length ? "移到文件夹" : "还没有文件夹"}>
-          <FolderInput size={15} aria-hidden="true" /><span className="k-label">移到</span>
+        <Menu.Trigger className="selbar-btn" aria-label={t("selection.moveToFolder")} disabled={!folders.length} title={folders.length ? t("selection.moveToFolder") : t("selection.noFolders")}>
+          <FolderInput size={15} aria-hidden="true" /><span className="k-label">{t("selection.moveTo")}</span>
         </Menu.Trigger>
-        <MenuPopup width={220} align="center" label="移到文件夹">
+        <MenuPopup width={220} align="center" label={t("selection.moveToFolder")}>
           {folders.map((f) => <MenuItem key={f.id} onClick={() => void edit([{ kind: "addToFolder", folderId: f.id }])}>{f.label}</MenuItem>)}
         </MenuPopup>
       </Menu.Root>
       {scope.kind === "folder" && (
         <button type="button" className="selbar-btn" onClick={() => void edit([{ kind: "removeFromFolder", folderId: scope.id }], true)}>
-          <FolderMinus size={15} aria-hidden="true" /><span className="k-label">移出此文件夹</span>
+          <FolderMinus size={15} aria-hidden="true" /><span className="k-label">{t("selection.removeFromFolder")}</span>
         </button>
       )}
       <span className="selbar-div" aria-hidden="true" />
       {scope.kind === "trash" ? (
         <>
           <button type="button" className="selbar-btn" onClick={() => void edit([{ kind: "restore" }], true)}>
-            <RotateCcw size={15} aria-hidden="true" /><span className="k-label">恢复</span>
+            <RotateCcw size={15} aria-hidden="true" /><span className="k-label">{t("selection.restore")}</span>
           </button>
           <button type="button" className="selbar-btn is-danger" onClick={() => setPurging(true)}>
-            <Trash2 size={15} aria-hidden="true" /><span className="k-label">永久删除…</span>
+            <Trash2 size={15} aria-hidden="true" /><span className="k-label">{t("selection.purge")}</span>
           </button>
         </>
       ) : (
         <button type="button" className="selbar-btn is-danger" onClick={() => void edit([{ kind: "delete" }], true)}>
-          <Trash2 size={15} aria-hidden="true" /><span className="k-label">删除</span>
+          <Trash2 size={15} aria-hidden="true" /><span className="k-label">{t("selection.delete")}</span>
         </button>
       )}
-      <button type="button" className="selbar-btn is-icon" aria-label="取消选择" title="取消选择" onClick={onClear}>
+      <button type="button" className="selbar-btn is-icon" aria-label={t("selection.clear")} title={t("selection.clear")} onClick={onClear}>
         <X size={15} aria-hidden="true" />
       </button>
     </div>
   );
 
   return (
-    <div className="selection" aria-label="已选参考图">
+    <div className="selection" aria-label={t("selection.label")}>
       {actions}
       {purging && scope.kind === "trash" && (
         <PermanentDeleteConfirm
