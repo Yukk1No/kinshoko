@@ -7,6 +7,7 @@ const shell: Translation<typeof zh> = {
     browse: "Images and folders",
     groups: "Reference groups",
     captures: "Capture history",
+    subscriptions: "Subscriptions",
     settings: "Settings",
     settingsTip: "Settings",
   },

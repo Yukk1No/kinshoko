@@ -6,28 +6,30 @@
 //! - 功能跨 #368–#371 几个 PR，最后一个合并前只在设了 `KINSHOKO_SUBSCRIPTIONS=1` 时出现：
 //!   没设时不建线程、不打开订阅记录、不联网，命令一律报不可用。
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 
-use kinshoko_core::command_error::CommandError;
+use kinshoko_core::command_error::{CommandError, ErrorKind};
 use kinshoko_core::library::{SaveDestination, SubscriptionPage};
-use kinshoko_core::subscription::pixiv::{
-    LoginRequest, LoginState, PixivAccount, PixivSource, callback_code,
-};
+use kinshoko_core::subscription::pixiv::{LoginRequest, LoginState, PixivAccount, PixivSource};
 use kinshoko_core::subscription::{
     Destination, ReceivedImage, SourceError, SourceId, Store, Subscription, SubscriptionStatus,
     check, schedule,
 };
-use tauri::image::Image;
-use tauri::{AppHandle, Emitter, Listener, Manager, State, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Listener, Manager, State};
 
 use crate::shell::ShellState;
 
+mod badge;
+pub mod login;
+
+pub use badge::badge;
+use login::{LOGIN_WINDOW, remove_login_profile};
+
 /// 订阅状态变了（检查开始或结束、登录变化、新图数量变化），载荷为 [`SubscriptionStatus`]。
 const STATUS_EVENT: &str = "subscription-status";
-const LOGIN_WINDOW: &str = "pixiv-login";
 /// 功能还没做完时，设了它才出现（见模块说明）。
 const PREVIEW_ENV: &str = "KINSHOKO_SUBSCRIPTIONS";
 /// 没有更早到期的订阅时也隔这么久醒一次，防止系统休眠或改时间后睡过头。
@@ -85,28 +87,6 @@ fn enabled(app: &AppHandle) -> bool {
         .unwrap_or(false)
 }
 
-/// 登录窗口的 WebView2 数据目录：与主窗口分开，退出登录时连同 cookie 一起删掉。
-fn login_profile(dir: &Path) -> PathBuf {
-    dir.join("pixiv-webview")
-}
-
-/// 删登录窗口的数据目录；还被占用（窗口刚关）时留个记号，下次启动再删。
-fn remove_login_profile(dir: &Path) {
-    let profile = login_profile(dir);
-    let marker = dir.join("pixiv-webview.remove");
-    match std::fs::remove_dir_all(&profile) {
-        Ok(()) => {
-            let _ = std::fs::remove_file(&marker);
-        }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            let _ = std::fs::remove_file(&marker);
-        }
-        Err(_) => {
-            let _ = std::fs::write(&marker, b"");
-        }
-    }
-}
-
 /// 启动时：功能出现时打开订阅记录、开始检查线程，并跟着安全模式更新托盘上的数量。
 pub fn manage(app: &AppHandle) {
     if !available() {
@@ -150,6 +130,11 @@ fn status(app: &AppHandle, state: &SubscriptionState) -> SubscriptionStatus {
     SubscriptionStatus {
         enabled: enabled(app),
         login: state.account.state(),
+        signing_in: state
+            .login
+            .lock()
+            .map(|login| login.is_some())
+            .unwrap_or(false),
         checking: state.checking.load(Ordering::SeqCst),
         new_count: state.store.new_count(!safe).unwrap_or(0),
         backoff_until: state
@@ -293,10 +278,21 @@ impl Destination for Libraries {
     }
 }
 
-// 订阅命令的错误代码随订阅界面的文案再加（#368）；在那之前按原样显示中文说明。
 fn require(app: &AppHandle) -> Result<State<'_, SubscriptionState>, CommandError> {
-    app.try_state::<SubscriptionState>()
-        .ok_or_else(|| CommandError::without_code("订阅功能在这个版本里还不可用"))
+    app.try_state::<SubscriptionState>().ok_or_else(|| {
+        CommandError::new(
+            ErrorKind::SubscriptionsUnavailable,
+            "subscriptions are not available in this build",
+        )
+    })
+}
+
+/// 设置里关掉了订阅功能。
+fn switched_off() -> CommandError {
+    CommandError::new(
+        ErrorKind::SubscriptionsOff,
+        "subscriptions are switched off",
+    )
 }
 
 #[tauri::command]
@@ -334,7 +330,7 @@ pub async fn set_subscriptions_enabled(
 pub async fn subscription_check_now(app: AppHandle) -> Result<(), CommandError> {
     let state = require(&app)?;
     if !enabled(&app) {
-        return Err(CommandError::without_code("订阅功能已关闭"));
+        return Err(switched_off());
     }
     state.poke(true);
     Ok(())
@@ -345,19 +341,34 @@ pub async fn subscriptions(app: AppHandle) -> Result<Vec<Subscription>, CommandE
     require(&app)?.store.list().map_err(CommandError::system)
 }
 
-/// 最近收进来的图。安全模式开着时不含成人作品。
+/// 最近收进来的图。安全模式开着时不含成人作品：来源标为成人的，以及在图库里按有效分级
+/// 落在安全模式范围内的（例如收进来以后画师手动改了分级），与缩略图的放行规则一致。
+/// `safe_mode` 是界面这次读取用的视角；它与设置里的安全模式有一个开着就按开着过滤，
+/// 界面把结果当作“已按安全模式过滤”时，它一定过滤过。
 #[tauri::command]
-pub async fn subscription_recent(app: AppHandle) -> Result<Vec<ReceivedImage>, CommandError> {
+pub async fn subscription_recent(
+    app: AppHandle,
+    safe_mode: bool,
+) -> Result<Vec<ReceivedImage>, CommandError> {
     let state = require(&app)?;
-    let safe = crate::library::saved_safe_mode(&app);
+    let safe = safe_mode || crate::library::saved_safe_mode(&app);
     let recent = state
         .store
         .recent(RECENT_LIMIT)
         .map_err(CommandError::system)?;
-    Ok(recent
-        .into_iter()
-        .filter(|r| !safe || !r.explicit)
-        .collect())
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        recent
+            .into_iter()
+            .filter(|r| {
+                !safe
+                    || (!r.explicit
+                        && crate::library::image_shown(&app, &r.library_id, &r.image_id))
+            })
+            .collect()
+    })
+    .await
+    .map_err(CommandError::system)
 }
 
 /// 画师打开了订阅页：新图标为已看，入口与托盘上的数量清零。
@@ -369,181 +380,4 @@ pub async fn subscription_mark_seen(app: AppHandle) -> Result<(), CommandError> 
         .map_err(CommandError::system)?;
     publish(&app);
     Ok(())
-}
-
-/// 打开 pixiv 登录窗口。`title` 是界面按语言给的窗口标题。
-#[tauri::command]
-pub async fn subscription_login(app: AppHandle, title: String) -> Result<(), CommandError> {
-    let state = require(&app)?;
-    if !enabled(&app) {
-        return Err(CommandError::without_code("订阅功能已关闭"));
-    }
-    if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
-        let _ = window.set_focus();
-        return Ok(());
-    }
-    let request = Arc::new(LoginRequest::new());
-    *state.login.lock().map_err(CommandError::system)? = Some(request.clone());
-    let url = request.url().parse().map_err(CommandError::system)?;
-    let handle = app.clone();
-    let captured = Arc::new(AtomicBool::new(false));
-    WebviewWindowBuilder::new(&app, LOGIN_WINDOW, WebviewUrl::External(url))
-        .title(title)
-        .inner_size(480.0, 760.0)
-        .data_directory(login_profile(&state.dir))
-        .on_navigation(move |url| {
-            let Some(code) = callback_code(url.as_str()) else {
-                return true;
-            };
-            if !captured.swap(true, Ordering::SeqCst) {
-                let app = handle.clone();
-                let request = request.clone();
-                std::thread::spawn(move || finish_login(&app, request, &code));
-            }
-            false
-        })
-        .build()
-        .map_err(|e| CommandError::system(format!("打不开登录窗口：{e}")))?;
-    Ok(())
-}
-
-/// 用截到的 code 换登录会话，关掉登录窗口，检查线程随即按需开始。
-/// 换会话期间画师退出了登录（或又开了一次登录）时，这次的结果作废。
-fn finish_login(app: &AppHandle, request: Arc<LoginRequest>, code: &str) {
-    let Some(state) = app.try_state::<SubscriptionState>() else {
-        return;
-    };
-    let result = request.finish(code);
-    {
-        // 与退出登录同一把锁：核对这次登录仍有效和保存会话之间，退出登录插不进来。
-        let mut login = state.login.lock().unwrap_or_else(|e| e.into_inner());
-        if !login
-            .as_ref()
-            .is_some_and(|current| Arc::ptr_eq(current, &request))
-        {
-            return;
-        }
-        *login = None;
-        // 只关这次登录的窗口：作废后新开的登录窗口不受影响。
-        if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
-            let _ = window.close();
-        }
-        match result {
-            Ok(session) => {
-                if let Err(e) = state.account.logged_in(session) {
-                    eprintln!("pixiv 登录没能保存：{e}");
-                }
-            }
-            Err(e) => eprintln!("pixiv 登录没能完成：{e:?}"),
-        }
-    }
-    state.poke(false);
-    publish(app);
-}
-
-/// 退出 pixiv 登录：删掉本机保存的登录与登录窗口的 cookie，取消正在进行的检查。
-#[tauri::command]
-pub async fn subscription_logout(app: AppHandle) -> Result<SubscriptionStatus, CommandError> {
-    let state = require(&app)?;
-    state.cancel.store(true, Ordering::SeqCst);
-    if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
-        let _ = window.destroy();
-    }
-    {
-        // 作废还在换会话的登录，免得它晚到的结果把登录写回来。
-        let mut login = state.login.lock().unwrap_or_else(|e| e.into_inner());
-        *login = None;
-        state.account.log_out().map_err(CommandError::system)?;
-    }
-    remove_login_profile(&state.dir);
-    publish(&app);
-    Ok(status(&app, &state))
-}
-
-/// 托盘图标右上角的新图数量：圆点里写数字，超过 9 写“9+”。
-pub fn badge(icon: &Image<'_>, count: u32) -> Image<'static> {
-    let (w, h) = (icon.width() as i32, icon.height() as i32);
-    let mut rgba = icon.rgba().to_vec();
-    if count == 0 {
-        return Image::new_owned(rgba, w as u32, h as u32);
-    }
-    let r = (w.min(h) as f32 * 0.3).max(4.0);
-    let (cx, cy) = (w as f32 - r, r);
-    let mut put = |x: i32, y: i32, c: [u8; 4]| {
-        if (0..w).contains(&x) && (0..h).contains(&y) {
-            let i = ((y * w + x) * 4) as usize;
-            rgba[i..i + 4].copy_from_slice(&c);
-        }
-    };
-    for y in 0..h {
-        for x in 0..w {
-            let d = ((x as f32 + 0.5 - cx).powi(2) + (y as f32 + 0.5 - cy).powi(2)).sqrt();
-            if d <= r {
-                put(x, y, [0xC8, 0x3A, 0x2E, 0xFF]);
-            }
-        }
-    }
-    let text = if count > 9 {
-        "9+".to_owned()
-    } else {
-        count.to_string()
-    };
-    let scale = ((r * 1.1) / 5.0).floor().max(1.0) as i32;
-    let glyph_w = 3 * scale;
-    let width = text.len() as i32 * glyph_w + (text.len() as i32 - 1) * scale;
-    let (x0, y0) = (cx as i32 - width / 2, cy as i32 - 5 * scale / 2);
-    for (n, ch) in text.chars().enumerate() {
-        let rows = glyph(ch);
-        let gx = x0 + n as i32 * (glyph_w + scale);
-        for (row, bits) in rows.iter().enumerate() {
-            for col in 0..3 {
-                if bits & (0b100 >> col) != 0 {
-                    for dy in 0..scale {
-                        for dx in 0..scale {
-                            put(
-                                gx + col * scale + dx,
-                                y0 + row as i32 * scale + dy,
-                                [0xFF, 0xFF, 0xFF, 0xFF],
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
-    Image::new_owned(rgba, w as u32, h as u32)
-}
-
-/// 3×5 点阵数字。
-fn glyph(ch: char) -> [u8; 5] {
-    match ch {
-        '0' => [0b111, 0b101, 0b101, 0b101, 0b111],
-        '1' => [0b010, 0b110, 0b010, 0b010, 0b111],
-        '2' => [0b111, 0b001, 0b111, 0b100, 0b111],
-        '3' => [0b111, 0b001, 0b111, 0b001, 0b111],
-        '4' => [0b101, 0b101, 0b111, 0b001, 0b001],
-        '5' => [0b111, 0b100, 0b111, 0b001, 0b111],
-        '6' => [0b111, 0b100, 0b111, 0b101, 0b111],
-        '7' => [0b111, 0b001, 0b010, 0b010, 0b010],
-        '8' => [0b111, 0b101, 0b111, 0b101, 0b111],
-        '9' => [0b111, 0b101, 0b111, 0b001, 0b111],
-        '+' => [0b000, 0b010, 0b111, 0b010, 0b000],
-        _ => [0; 5],
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn badge_draws_only_when_there_are_new_images() {
-        let icon = Image::new_owned(vec![0; 32 * 32 * 4], 32, 32);
-        assert_eq!(badge(&icon, 0).rgba(), icon.rgba());
-        let drawn = badge(&icon, 12);
-        // 右上角是红点，左下角不动。
-        let at = |x: usize, y: usize| &drawn.rgba()[(y * 32 + x) * 4..(y * 32 + x) * 4 + 4];
-        assert_eq!(at(31 - 9, 1)[3], 0xFF);
-        assert_eq!(at(0, 31), [0, 0, 0, 0]);
-    }
 }

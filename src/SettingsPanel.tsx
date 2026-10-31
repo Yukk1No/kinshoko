@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
-import { Activity, Archive, FileText, Keyboard, Layers, Monitor, MousePointerClick, Pin, Power, RefreshCw, Scaling, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
+import { Activity, Archive, FileText, Keyboard, Layers, Monitor, MousePointerClick, Pin, Power, RefreshCw, Rss, Scaling, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { SafeModeScope } from "./bindings/SafeModeScope";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
@@ -25,6 +25,9 @@ import { Switch } from "./ui/Switch";
 import { SealLock } from "./ui/SealLock";
 import { UI_SCALE_LEVELS } from "./shell/uiScale";
 import { Select } from "./ui/Select";
+import { i18n } from "./i18n/instance";
+import type { SubscriptionStatus } from "./bindings/SubscriptionStatus";
+import { SubscriptionSettings } from "./subscriptions/SubscriptionSettings";
 
 const ACTION_LABELS: Record<ShortcutAction, string> = {
   capture: "截图",
@@ -61,7 +64,7 @@ const VIEWER_KEYS: [string, string][] = [
   ["适应窗口", "0"], ["原始像素", "1"], ["钉住整图", "P"], ["显示或隐藏详情", "I"], ["返回图片墙", "Esc"],
 ];
 
-export type SettingsTab = "general" | "keys" | "tags" | "tagging" | "backup" | "safety" | "update" | "diag";
+export type SettingsTab = "general" | "keys" | "tags" | "tagging" | "backup" | "safety" | "subscriptions" | "update" | "diag";
 const TABS: { value: SettingsTab; name: string; icon: ReactNode }[] = [
   { value: "general", name: "通用", icon: <Settings2 size={15} aria-hidden="true" /> },
   { value: "keys", name: "快捷键", icon: <Keyboard size={15} aria-hidden="true" /> },
@@ -72,6 +75,13 @@ const TABS: { value: SettingsTab; name: string; icon: ReactNode }[] = [
   { value: "update", name: "更新", icon: <RefreshCw size={15} aria-hidden="true" /> },
   { value: "diag", name: "诊断", icon: <Activity size={15} aria-hidden="true" /> },
 ];
+
+/** 订阅分页（#368）排在安全之后；这一版没有订阅功能时不出现。 */
+function tabsWith(subscriptions: boolean) {
+  if (!subscriptions) return TABS;
+  const at = TABS.findIndex((entry) => entry.value === "safety") + 1;
+  return [...TABS.slice(0, at), { value: "subscriptions" as const, name: i18n.t("subscriptions:settings.tab"), icon: <Rss size={15} aria-hidden="true" /> }, ...TABS.slice(at)];
+}
 
 type TagView = "names" | "groups" | "approx" | "mapping" | "appearance";
 
@@ -104,13 +114,15 @@ type Props = {
   /** 界面缩放档位（主窗口持有，#173）；没有时通用分页不显示这一项。 */
   uiScale?: number;
   onUiScale?: (percent: number) => void;
+  /** 订阅状态（主窗口持有）；没有时不显示订阅分页。 */
+  subscriptions?: { status: SubscriptionStatus; onStatus: (status: SubscriptionStatus) => void } | null;
 };
 
 /**
  * 程序设置（#98）：竖排八个分页——通用、快捷键、标签、自动标签（#143）、备份、安全、更新、诊断。
  * 每项一行：图标 · 名称 · 一句描述 · 右侧控件。行为与原来的各节相同，只是重新归位。
  */
-export function SettingsPanel({ settings: shared, onChange, onRestored, library, initialTab = "general", initialTagFocus, version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale }: Props) {
+export function SettingsPanel({ settings: shared, onChange, onRestored, library, initialTab = "general", initialTagFocus, version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale, subscriptions }: Props) {
   const settings = useShellSettings(shared, onChange);
   const { view, loadError, error, generation: settingsGeneration } = settings;
   const setError = settings.showError;
@@ -166,7 +178,7 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, library,
         <nav className="k-set-nav">
           <h2 className="k-set-heading">设置</h2>
           <Tabs.List className="k-set-tabs" aria-label="设置分页">
-            {TABS.map((entry) => <Tabs.Tab key={entry.value} value={entry.value} className="k-set-tab">{entry.icon}<span className="k-label">{entry.name}</span></Tabs.Tab>)}
+            {tabsWith(!!subscriptions).map((entry) => <Tabs.Tab key={entry.value} value={entry.value} className="k-set-tab">{entry.icon}<span className="k-label">{entry.name}</span></Tabs.Tab>)}
           </Tabs.List>
           <span className="k-grow" />
           {version && <p className="k-set-version">{version}</p>}
@@ -257,6 +269,9 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, library,
               <StatusPill tone={safe === false ? "plain" : "ok"}>{safe === false ? "未开启" : "已开启"}</StatusPill>
             </SettingsRow>
           </SettingsGroup>)}
+          {subscriptions && <Tabs.Panel value="subscriptions" className="k-set-page">
+            <SubscriptionSettings status={subscriptions.status} onStatus={subscriptions.onStatus} error={error} onError={setError} />
+          </Tabs.Panel>}
           {page("update", <UpdateSection version={version ?? null} channel={view.updateChannel} onChannel={(channel) => apply({ kind: "updateChannel", channel })} />)}
           {page("diag", <>
             <RuntimeDetails />
