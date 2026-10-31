@@ -9,7 +9,7 @@ use kinshoko_core::subscription::SubscriptionStatus;
 use kinshoko_core::subscription::pixiv::{LoginRequest, callback_code};
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
-use super::{SubscriptionState, enabled, publish, require, status};
+use super::{SubscriptionState, enabled, publish, require, status, switched_off};
 
 pub(super) const LOGIN_WINDOW: &str = "pixiv-login";
 
@@ -39,7 +39,7 @@ pub(super) fn remove_login_profile(dir: &Path) {
 pub async fn subscription_login(app: AppHandle, title: String) -> Result<(), CommandError> {
     let state = require(&app)?;
     if !enabled(&app) {
-        return Err(CommandError::without_code("订阅功能已关闭"));
+        return Err(switched_off());
     }
     if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
         let _ = window.set_focus();
@@ -67,7 +67,7 @@ pub async fn subscription_login(app: AppHandle, title: String) -> Result<(), Com
             false
         })
         .build()
-        .map_err(|e| CommandError::system(format!("打不开登录窗口：{e}")))?;
+        .map_err(CommandError::system)?;
     // 画师自己关掉登录窗口：这次登录作废，订阅页回到未登录。已截到 code 的由 finish_login 收尾。
     window.on_window_event(move |event| {
         if !matches!(event, tauri::WindowEvent::Destroyed) || closed.2.load(Ordering::SeqCst) {

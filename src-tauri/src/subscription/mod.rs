@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 
-use kinshoko_core::command_error::CommandError;
+use kinshoko_core::command_error::{CommandError, ErrorKind};
 use kinshoko_core::library::{SaveDestination, SubscriptionPage};
 use kinshoko_core::subscription::pixiv::{LoginRequest, LoginState, PixivAccount, PixivSource};
 use kinshoko_core::subscription::{
@@ -278,10 +278,21 @@ impl Destination for Libraries {
     }
 }
 
-// 订阅命令的错误代码随订阅界面的文案再加（#368）；在那之前按原样显示中文说明。
 fn require(app: &AppHandle) -> Result<State<'_, SubscriptionState>, CommandError> {
-    app.try_state::<SubscriptionState>()
-        .ok_or_else(|| CommandError::without_code("订阅功能在这个版本里还不可用"))
+    app.try_state::<SubscriptionState>().ok_or_else(|| {
+        CommandError::new(
+            ErrorKind::SubscriptionsUnavailable,
+            "subscriptions are not available in this build",
+        )
+    })
+}
+
+/// 设置里关掉了订阅功能。
+fn switched_off() -> CommandError {
+    CommandError::new(
+        ErrorKind::SubscriptionsOff,
+        "subscriptions are switched off",
+    )
 }
 
 #[tauri::command]
@@ -319,7 +330,7 @@ pub async fn set_subscriptions_enabled(
 pub async fn subscription_check_now(app: AppHandle) -> Result<(), CommandError> {
     let state = require(&app)?;
     if !enabled(&app) {
-        return Err(CommandError::without_code("订阅功能已关闭"));
+        return Err(switched_off());
     }
     state.poke(true);
     Ok(())
