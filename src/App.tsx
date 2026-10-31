@@ -296,7 +296,7 @@ function MainWindow() {
           onOpenTaggingSettings={() => openSettings("tagging")}
         />
       )}
-      <SubscriptionSection subscriptions={subscriptions} safe={safe} paneOpen={paneOpen} onPaneToggle={() => setPaneOpen((open) => !open)}
+      <SubscriptionSection subscriptions={subscriptions} safe={lensSafe} paneOpen={paneOpen} onPaneToggle={() => setPaneOpen((open) => !open)}
         onOpenImage={(libraryId, imageId) => {
           setSection("browse"); setPaneOpen(true);
           setReferenceRequest((last) => ({ libraryId, imageId, stamp: (last?.stamp ?? 0) + 1 }));
