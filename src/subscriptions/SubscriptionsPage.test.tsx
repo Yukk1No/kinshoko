@@ -65,6 +65,18 @@ describe("订阅页", () => {
     await waitFor(() => expect(sent("subscription_mark_seen")).toHaveLength(1));
   });
 
+  it("入口上还有数、读到的却没有新图（图库里改成了成人）：也标为已看", async () => {
+    backend(list, recent.map((image) => ({ ...image, new: false })));
+    page(status({ newCount: 2 }), { safe: true });
+    await waitFor(() => expect(sent("subscription_mark_seen")).toHaveLength(1));
+    cleanup();
+    backend(list, recent.map((image) => ({ ...image, new: false })));
+    page(status(), { safe: true });
+    await waitFor(() => expect(sent("subscription_recent")).toHaveLength(1));
+    await act(async () => {});
+    expect(sent("subscription_mark_seen")).toHaveLength(0);
+  });
+
   it("上次没查完的订阅带警示图标，悬停说明原因", async () => {
     backend();
     page(status());

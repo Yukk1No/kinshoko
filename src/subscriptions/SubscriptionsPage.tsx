@@ -57,6 +57,7 @@ function useSubscriptionData(status: SubscriptionStatus, safe: boolean, onError:
     if (!signedIn) { setList([]); setRecent([]); return; }
     let alive = true;
     const under = lensRef.current;
+    const unseen = status.newCount > 0;
     listSubscriptions().then((next) => alive && setList(next), (e) => { if (alive) { setList([]); errors.current(e); } });
     // 把这次的视角交给后端：后端按它与设置里的安全模式中更严的一个过滤，标成 `under.safe` 不会放宽。
     subscriptionRecent(under.safe).then((next) => {
@@ -64,9 +65,10 @@ function useSubscriptionData(status: SubscriptionStatus, safe: boolean, onError:
       setRecent(next);
       setRecentLens(under);
       const arrived = next.filter((image) => image.new);
-      if (arrived.length === 0) return;
-      setFresh((seen) => new Set([...seen, ...arrived.map(imageKey)]));
-      void subscriptionMarkSeen().catch(() => {});
+      if (arrived.length > 0) setFresh((seen) => new Set([...seen, ...arrived.map(imageKey)]));
+      // 入口上的数按来源的标记算，图库里改成成人的图在这里读不到：只看入口上的数，读到的为空也标为已看。
+      // 标完后端推送状态，数为零就不再标。
+      if (arrived.length > 0 || unseen) void subscriptionMarkSeen().catch(() => {});
     }, (e) => { if (alive) errors.current(e); });
     return () => { alive = false; };
   }, [status, signedIn, safe, lens]);
