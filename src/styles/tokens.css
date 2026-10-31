@@ -141,6 +141,17 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seal-acc: #e3b34f; } }
 :root[data-theme="dark"] { --seal-acc: #e3b34f; }
 
+/* menus (cascade menus, menu.css `[data-k-level]`): the cascade menu's shape on the V3 palette; each token follows its theme */
+:root {
+  --menu-surface: var(--surface); --menu-border: var(--line);
+  --menu-ink: var(--ink); --menu-hover: var(--hover); --menu-quiet: var(--ink-2); --menu-icon: var(--ink-3); --menu-chevron: var(--ink-3);
+  --menu-shadow: var(--shadow-pop);
+  --menu-brand-filter: none;
+}
+/* monochrome brand icons invert in dark */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --menu-brand-filter: invert(1); } }
+:root[data-theme="dark"] { --menu-brand-filter: invert(1); }
+
 /* Continuous corners as progressive enhancement: Chrome and Edge 139+ draw the superellipse, other browsers keep the plain border-radius.
    Pills and circles stay fully round. */
 @supports (corner-shape: superellipse(1.25)) {

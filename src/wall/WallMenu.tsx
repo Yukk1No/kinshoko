@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { CheckSquare, ClipboardPaste, Copy, Crop, Download, FileImage, FolderInput, FolderMinus, FolderOpen, FolderSearch, Images, Layers, Maximize2, Pin, RotateCcw, ShieldCheck, Trash2 } from "lucide-react";
-import { Menu, MenuItem, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuTip } from "../ui/Menu";
+import { CheckSquare, ClipboardPaste, Copy, Crop, Download, FileImage, FolderMinus, FolderOpen, FolderSearch, Images, Layers, Maximize2, Pin, RotateCcw, ShieldCheck, Trash2 } from "lucide-react";
+import { FolderGlyph, Menu, MenuItem, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuTip } from "../ui/Menu";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ContentRating } from "../bindings/ContentRating";
 import type { GroupSummary } from "../bindings/GroupSummary";
@@ -116,7 +116,7 @@ function Organize({ cards, actions, scope, single }: { cards: BrowserCard[]; act
   const libraries = new Set(cards.map((c) => c.libraryId ?? ""));
   const libraryId = libraries.size === 1 ? [...libraries][0] : null;
   return <>
-    <MenuSubmenu icon={icon(FolderInput)} label="移到文件夹" disabled={libraryId === null} popupLabel="移到文件夹" width={220}
+    <MenuSubmenu icon={<FolderGlyph />} label="移到文件夹" disabled={libraryId === null} popupLabel="移到文件夹" width={220}
       meta={libraryId === null ? "来自多个图库" : undefined}>
       {libraryId !== null && <FolderList libraryId={libraryId} actions={actions} cards={cards} />}
     </MenuSubmenu>
