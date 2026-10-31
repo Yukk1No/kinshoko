@@ -7,6 +7,7 @@ import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { dismissImport, importTasks, isCursorExpired, onSafeModeSetting, onWorkspaceChanged, stageClipboardImport } from "../ipc";
 import { destinationAvailable, folderChoices, SaveDestinationPicker, useSaveDestination } from "./SaveDestination";
 import { Select } from "../ui/Select";
+import { useTranslation } from "react-i18next";
 
 const POLL_MIN=400,POLL_MAX=3200;
 
@@ -30,6 +31,7 @@ export type ImportControl = { files: () => void; folder: () => void; eagle: () =
 
 export function ImportMenu({control,...p}:ComponentProps<typeof ImportBar>&{scope?:WorkspaceScope;control?:Ref<ImportControl>}) {
  const [tasks,setTasks]=useState<ImportTaskSnapshot[]>([]),[selectedTask,setSelectedTask]=useState<string|null>(null),[problem,setProblem]=useState<string|null>(null);
+ const { t }=useTranslation("importing");
  const context=useSaveDestination();
  const actions=useRef<ImportActions>(null);
  const [busy,setBusy]=useState({busy:false,eagle:false});
@@ -83,30 +85,30 @@ export function ImportMenu({control,...p}:ComponentProps<typeof ImportBar>&{scop
  // 图片墙空白处右键的“导入 ▸”、Ctrl O 与这里的导入按钮走同一入口；按钮不可用（导入进行中）时也不开始。
  const blocked=busy.busy||active;
  const clipboard=async()=>{
-  if(blocked)throw "正在导入，结束后再从剪贴板导入";
+  if(blocked)throw t("busyClipboard");
   const path=await stageClipboardImport();
   prefill();actions.current?.paths([path]);
  };
  useImperativeHandle(control,()=>({files:()=>{if(!blocked)via("files")();},folder:()=>{if(!blocked)via("folder")();},eagle:()=>{if(!blocked)eagle();},clipboard}));
  const notes=<>
   {problem&&<p className="k-task-sub is-danger" role="alert">{problem}</p>}
-  {task?.report&&task.finishing&&<p className="k-task-sub" role="status">已导入，正在把标签定义存进图库…</p>}
+  {task?.report&&task.finishing&&<p className="k-task-sub" role="status">{t("finishing")}</p>}
   {task?.warnings.map((warning,index)=><p className="k-task-sub is-warn" role="alert" key={index}>{warning}</p>)}
  </>;
- const switcher=tasks.length>1?<div className="k-task-switch">导入任务<Select label="导入任务" value={task?.taskId??""} onChange={setSelectedTask}
-  options={tasks.map(t=>({value:t.taskId,label:`${t.libraryName} / ${t.folderName}（${t.report?"已结束":"进行中"}）`}))}/></div>:null;
+ const switcher=tasks.length>1?<div className="k-task-switch">{t("tasks")}<Select label={t("tasks")} value={task?.taskId??""} onChange={setSelectedTask}
+  options={tasks.map(entry=>({value:entry.taskId,label:t("taskOption",{owner:t("owner",{library:entry.libraryName,folder:entry.folderName}),state:t(entry.report?"taskFinished":"taskRunning")})}))}/></div>:null;
  return <div className="import-menu">
   <ImportButton busy={busy.busy||active} eagleBusy={busy.eagle} onFiles={via("files")} onFolder={via("folder")} onEagle={eagle}
    onShowTasks={tasks.length>0||active||finished?()=>actions.current?.showTasks():undefined}/>
-  <ImportBar {...p} actionsRef={actions} onBusyChange={onBusyChange} previewContextKey={p.libraryId} libraryId={context.destination?.libraryId??""} libraryName={library?.name??"尚未选择的图库"}
+  <ImportBar {...p} actionsRef={actions} onBusyChange={onBusyChange} previewContextKey={p.libraryId} libraryId={context.destination?.libraryId??""} libraryName={library?.name??t("noLibraryChosen")}
     destination={context.destination} destinationReady={context.ready&&destinationAvailable(context.destination,context.providers)} running={running} finished={finished}
     picker={<SaveDestinationPicker value={context.destination} onChange={context.setDestination} putInLibrary/>}
-    taskSwitcher={switcher} cardNotes={notes} warnings={task?.warnings} onSelectTask={setSelectedTask} ownerLabel={task?`${task.libraryName} / ${task.folderName}`:null}
+    taskSwitcher={switcher} cardNotes={notes} warnings={task?.warnings} onSelectTask={setSelectedTask} ownerLabel={task?t("owner",{library:task.libraryName,folder:task.folderName}):null}
     onStarted={(id,fixed)=>{
       if(fixed){
         const provider=context.providers.find(p=>p.registration.library.id===fixed.libraryId);
         optimistic.current.set(id,{taskId:id,destination:fixed,libraryName:provider?.registration.library.name??fixed.libraryId,
-          folderName:fixed.folderId===null?"未归类":folderChoices(provider?.sidebar?.folders??[]).find(f=>f.id===fixed.folderId)?.path??"目标文件夹不可用",progress:{done:0,total:0},report:null,finishing:false,warnings:[]});
+          folderName:fixed.folderId===null?t("unassigned"):folderChoices(provider?.sidebar?.folders??[]).find(f=>f.id===fixed.folderId)?.path??t("folderUnavailable"),progress:{done:0,total:0},report:null,finishing:false,warnings:[]});
         setTasks(previous=>previous.some(t=>t.taskId===id)?previous:[...previous,optimistic.current.get(id)!]);
       }
       setSelectedTask(id);p.onStarted(id,fixed);poke.current();
