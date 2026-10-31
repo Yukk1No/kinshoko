@@ -100,7 +100,7 @@ export function ImportMenu({control,...p}:ComponentProps<typeof ImportBar>&{scop
    onShowTasks={tasks.length>0||active||finished?()=>actions.current?.showTasks():undefined}/>
   <ImportBar {...p} actionsRef={actions} onBusyChange={onBusyChange} previewContextKey={p.libraryId} libraryId={context.destination?.libraryId??""} libraryName={library?.name??"尚未选择的图库"}
     destination={context.destination} destinationReady={context.ready&&destinationAvailable(context.destination,context.providers)} running={running} finished={finished}
-    picker={<SaveDestinationPicker value={context.destination} onChange={context.setDestination} labelPrefix="放到"/>}
+    picker={<SaveDestinationPicker value={context.destination} onChange={context.setDestination} putInLibrary/>}
     taskSwitcher={switcher} cardNotes={notes} warnings={task?.warnings} onSelectTask={setSelectedTask} ownerLabel={task?`${task.libraryName} / ${task.folderName}`:null}
     onStarted={(id,fixed)=>{
       if(fixed){

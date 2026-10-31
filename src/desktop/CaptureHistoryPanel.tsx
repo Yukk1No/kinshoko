@@ -1,6 +1,7 @@
 import { SaveDestinationDialog } from "../library/SaveDestination";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { BookmarkPlus, Check, Clipboard, Copy, Pin, Scissors, Trash2, X } from "lucide-react";
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
@@ -19,9 +20,9 @@ import {
   startCapture,
 } from "../ipc";
 import { ago } from "./relativeTime";
+import { formatDateTime } from "../i18n/format";
 
-const time = (ms: number) =>
-  new Date(ms).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+const time = (ms: number) => formatDateTime(ms, { hour: "2-digit", minute: "2-digit" });
 
 /** 实际生效的全局快捷键（被清除或没注册上的不显示）。 */
 function useShortcutKeys() {
@@ -48,6 +49,7 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
   useEffect(() => { if (request) { setCollecting(request.id); onRequestHandled?.(); } }, [request, onRequestHandled]);
   const [error, setError] = useState<string | null>(null);
   const keys = useShortcutKeys();
+  const { t } = useTranslation("desktop", { keyPrefix: "history" });
 
   useEffect(() => {
     let alive = true;
@@ -72,21 +74,21 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
   };
 
   return (
-    <section className="capture-history" aria-label="截图历史">
+    <section className="capture-history" aria-label={t("label")}>
       <header className="capture-history-bar">
-        <h2>截图</h2>
+        <h2>{t("title")}</h2>
         <div className="capture-history-start">
           <button type="button" className="k-btn" onClick={() => run(pinClipboard())}>
-            <Clipboard size={15} aria-hidden="true" /><span className="k-label">钉住剪贴板</span>{keys.pinClipboard && <kbd className="k-kbd">{keys.pinClipboard}</kbd>}
+            <Clipboard size={15} aria-hidden="true" /><span className="k-label">{t("pinClipboard")}</span>{keys.pinClipboard && <kbd className="k-kbd">{keys.pinClipboard}</kbd>}
           </button>
           <button type="button" className="k-btn" onClick={() => void capture()}>
-            <Scissors size={15} aria-hidden="true" /><span className="k-label">截图</span>
+            <Scissors size={15} aria-hidden="true" /><span className="k-label">{t("capture")}</span>
           </button>
         </div>
-        <p className="capture-history-note">{keys.capture && `按 ${keys.capture} 截取屏幕。`}没收藏的旧截图会自动清理。</p>
+        <p className="capture-history-note">{keys.capture && t("shortcutNote", { key: keys.capture })}{t("cleanupNote")}</p>
       </header>
       {error && <p className="group-note is-error" role="alert">{error}</p>}
-      {entries && entries.length === 0 && <p className="capture-history-empty">还没有截图。</p>}
+      {entries && entries.length === 0 && <p className="capture-history-empty">{t("empty")}</p>}
       <ul className="capture-history-list">
         {entries?.map((entry) => {
           const collected = entry.collected.some((c) => c.libraryId === libraryId);
@@ -95,29 +97,29 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
               <ContextMenu.Trigger render={<li className="capture-history-item" data-id={entry.id} />}>
                 <img src={captureUrl(entry.id)} alt="" loading="lazy" draggable={false} />
                 <div className="capture-history-text">
-                  <span className="capture-history-name">截图 {time(entry.createdAt)}</span>
+                  <span className="capture-history-name">{t("name", { time: time(entry.createdAt) })}</span>
                   <span className="capture-history-meta k-parts">
-                    <span>{entry.width} × {entry.height}</span><span>{ago(entry.createdAt)}</span>{entry.pinned && <span>已钉住</span>}
+                    <span>{entry.width} × {entry.height}</span><span>{ago(entry.createdAt)}</span>{entry.pinned && <span>{t("pinned")}</span>}
                   </span>
                   <span className="capture-history-actions">
                     {collected
-                      ? <button type="button" className="side-chip is-done" aria-label="已收藏，再收藏到别处" onClick={() => setCollecting(entry.id)}>
-                        <Check size={12} aria-hidden="true" /><span className="k-label">已收藏</span></button>
-                      : <button type="button" className="side-chip" onClick={() => setCollecting(entry.id)}><BookmarkPlus size={12} aria-hidden="true" /><span className="k-label">收藏</span></button>}
-                    <button type="button" className="side-chip" onClick={() => run(pinCapture(entry.id))}><Pin size={12} aria-hidden="true" /><span className="k-label">钉住</span></button>
-                    <button type="button" className="side-chip" onClick={() => run(copyCapture(entry.id))}><Copy size={12} aria-hidden="true" /><span className="k-label">复制</span></button>
+                      ? <button type="button" className="side-chip is-done" aria-label={t("collectedAgain")} onClick={() => setCollecting(entry.id)}>
+                        <Check size={12} aria-hidden="true" /><span className="k-label">{t("collected")}</span></button>
+                      : <button type="button" className="side-chip" onClick={() => setCollecting(entry.id)}><BookmarkPlus size={12} aria-hidden="true" /><span className="k-label">{t("collect")}</span></button>}
+                    <button type="button" className="side-chip" onClick={() => run(pinCapture(entry.id))}><Pin size={12} aria-hidden="true" /><span className="k-label">{t("pin")}</span></button>
+                    <button type="button" className="side-chip" onClick={() => run(copyCapture(entry.id))}><Copy size={12} aria-hidden="true" /><span className="k-label">{t("copy")}</span></button>
                   </span>
                 </div>
-                <button type="button" className="k-icon-btn capture-history-delete" aria-label="删除这张截图" title="删除" onClick={() => run(deleteCapture(entry.id))}>
+                <button type="button" className="k-icon-btn capture-history-delete" aria-label={t("deleteLabel")} title={t("delete")} onClick={() => run(deleteCapture(entry.id))}>
                   <X size={14} aria-hidden="true" />
                 </button>
               </ContextMenu.Trigger>
-              <MenuPopup label="截图菜单">
-                <MenuItem icon={<Pin size={14} />} onClick={() => run(pinCapture(entry.id))}>钉住</MenuItem>
-                <MenuItem icon={<Copy size={14} />} onClick={() => run(copyCapture(entry.id))}>复制</MenuItem>
-                <MenuItem icon={<BookmarkPlus size={14} />} onClick={() => setCollecting(entry.id)}>收藏到…</MenuItem>
+              <MenuPopup label={t("menuLabel")}>
+                <MenuItem icon={<Pin size={14} />} onClick={() => run(pinCapture(entry.id))}>{t("pin")}</MenuItem>
+                <MenuItem icon={<Copy size={14} />} onClick={() => run(copyCapture(entry.id))}>{t("copy")}</MenuItem>
+                <MenuItem icon={<BookmarkPlus size={14} />} onClick={() => setCollecting(entry.id)}>{t("collectTo")}</MenuItem>
                 <MenuSeparator />
-                <MenuItem icon={<Trash2 size={14} />} danger onClick={() => run(deleteCapture(entry.id))}>删除</MenuItem>
+                <MenuItem icon={<Trash2 size={14} />} danger onClick={() => run(deleteCapture(entry.id))}>{t("delete")}</MenuItem>
               </MenuPopup>
             </ContextMenu.Root>
           );
@@ -125,10 +127,10 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
       </ul>
       {collecting && (
         <SaveDestinationDialog
-          title="收藏截图"
-          description="选好图库和文件夹，截图会存进去。"
+          title={t("collectTitle")}
+          description={t("collectDescription")}
           summary={<CaptureSummary entry={entries?.find((entry) => entry.id === collecting)} id={collecting} />}
-          confirmLabel="收藏"
+          confirmLabel={t("collectConfirm")}
           onClose={() => setCollecting(null)}
           onConfirm={(destination) => collectCapture(collecting, destination)}
         />
@@ -139,11 +141,12 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
 
 /** 收藏对话框里要收藏的那张截图：缩略图、名称与尺寸。 */
 function CaptureSummary({ entry, id }: { entry: CaptureEntry | undefined; id: string }) {
+  const { t } = useTranslation("desktop", { keyPrefix: "history" });
   return (
     <>
       <img className="capture-collect-thumb" src={captureUrl(id)} alt="" draggable={false} />
       <span className="capture-history-text">
-        <span className="capture-history-name">{entry ? `截图 ${time(entry.createdAt)}` : "截图"}</span>
+        <span className="capture-history-name">{entry ? t("name", { time: time(entry.createdAt) }) : t("unnamed")}</span>
         {entry && <span className="capture-history-meta">{entry.width} × {entry.height}</span>}
       </span>
     </>

@@ -6,6 +6,7 @@ import type { OriginalPixels } from "../bindings/OriginalPixels";
 import { cancelCapture, captureReadout, captureReady, captureUrl, finishCapture, frozenScreen } from "../ipc";
 import { dragSelection, editSelection, reachEdges, selectionPart, toDevicePx, type Grip, type Point, type Rect, type SelectionPart } from "./pixels";
 import { Copy, Pin, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Dock } from "../ui/Dock";
 import { FollowDock } from "../ui/FollowDock";
 import { OriginalStar } from "../ui/OriginalStar";
@@ -34,6 +35,7 @@ const HANDLES: Grip[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
  * 小数坐标乘 dpr（鼠标事件只有整 CSS 像素，110% 下会差 ±1 物理像素）。
  */
 export function CaptureOverlay() {
+  const { t } = useTranslation("desktop", { keyPrefix: "capture" });
   const [screen, setScreen] = useState<FrozenScreen | null>(null);
   const [rect, setRect] = useState<Rect | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -185,20 +187,20 @@ export function CaptureOverlay() {
       {usable && !dragging && (
         <FollowDock className="capture-tools" bounds={{ width: innerWidth, height: innerHeight }}
           anchor={{ x: rect.x / dpr, y: rect.y / dpr, width: rect.width / dpr, height: rect.height / dpr }}>
-          <Dock label="截图" onSelect={(id) => finish(id as CaptureAction | "cancel")}
+          <Dock label={t("label")} onSelect={(id) => finish(id as CaptureAction | "cancel")}
             readout={busy
-              ? <span role="status">{`正在${busy === "copy" ? "复制" : "钉住"}${original ? "原图" : ""}…`}</span>
+              ? <span role="status">{t(busy === "copy" ? original ? "copyingOriginal" : "copying" : original ? "pinningOriginal" : "pinning")}</span>
               : original
-              ? <span className="k-original" title="原始像素">{original.width} × {original.height}<span className="sr-only">原始像素</span><OriginalStar /></span>
-              : <span title="屏幕像素">{rect.width} × {rect.height}<span className="sr-only">屏幕像素</span></span>} items={[
-              { id: "copy", label: "复制", icon: <Copy size={18} strokeWidth={1.75} />, shortcut: "Ctrl C", disabled: !!busy },
-              { id: "pin", label: "钉住", icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary", disabled: !!busy },
+              ? <span className="k-original" title={t("originalPixels")}>{original.width} × {original.height}<span className="sr-only">{t("originalPixels")}</span><OriginalStar /></span>
+              : <span title={t("screenPixels")}>{rect.width} × {rect.height}<span className="sr-only">{t("screenPixels")}</span></span>} items={[
+              { id: "copy", label: t("copy"), icon: <Copy size={18} strokeWidth={1.75} />, shortcut: "Ctrl C", disabled: !!busy },
+              { id: "pin", label: t("pin"), icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary", disabled: !!busy },
               "sep",
-              { id: "cancel", label: "取消", icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger", disabled: !!busy },
+              { id: "cancel", label: t("cancel"), icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger", disabled: !!busy },
             ]} />
         </FollowDock>
       )}
-      {!rect && <div className="capture-tip">拖动框选，右键取消</div>}
+      {!rect && <div className="capture-tip">{t("tip")}</div>}
     </div>
   );
 }

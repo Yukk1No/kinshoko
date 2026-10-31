@@ -21,6 +21,27 @@ const common: Translation<typeof zh> = {
   },
   libraryFailure: "“{{name}}”: {{error}}",
   libraryFailureSeparator: "; ",
+  saveDestination: {
+    chooseBoth: "Choose a library and folder",
+    unassigned: "Unsorted",
+    folderGone: "This folder no longer exists",
+    libraryClosed: "Library not open",
+    label: "{{library}} / {{folder}}",
+    legend: "Save location",
+    library: "Library",
+    putInLibrary: "Put in library",
+    chooseLibrary: "Choose a library…",
+    libraryOption: "{{name}} ({{path}})",
+    libraryOptionOffline: "{{name}} ({{path}}) (not connected)",
+    folder: "Folder",
+    putIn: "Goes to: {{place}}",
+    loading: "Loading libraries…",
+    unavailable: "This location isn't available right now. Reconnect the original library, or choose another location.",
+    description: "Choose a library and folder.",
+    save: "Save",
+    cancel: "Cancel",
+    saving: "Saving…",
+  },
 };
 
 export default common;
