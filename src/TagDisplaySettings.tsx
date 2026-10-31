@@ -6,6 +6,7 @@ import { DEFAULT_TAG_DISPLAY, thresholdProblem } from "./tags/tagConfidence";
 import { Segmented } from "./ui/Segmented";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
 import { Switch } from "./ui/Switch";
+import { useTranslation } from "react-i18next";
 
 const STEP = 0.05;
 const shown = (value: number) => value.toFixed(2);
@@ -22,6 +23,7 @@ export function TagDisplaySettings({ display, onChange }: {
   /** 在 `display` 之上改几项并保存；次序、合并与失败作废归设置页的提交模型（#321）。 */
   onChange: (change: Partial<TagDisplay>) => void;
 }) {
+  const { t } = useTranslation("tagSettings", { keyPrefix: "appearance" });
   const [high, setHigh] = useState(shown(display.high));
   const [low, setLow] = useState(shown(display.low));
   const [problem, setProblem] = useState<string | null>(null);
@@ -42,20 +44,20 @@ export function TagDisplaySettings({ display, onChange }: {
     if (why === null && (thresholds.high !== display.high || thresholds.low !== display.low)) onChange(thresholds);
   };
 
-  return <SettingsGroup label="标签外观">
-    <SettingsRow icon={<Palette size={16} />} title="标签外观" hint="详情面板和查看器里的标签">
-      <Segmented<TagStyle> label="标签外观" value={display.style} onChange={(style) => onChange({ style })} options={[
-        { value: "bands", label: "按可信度分档" }, { value: "grouped", label: "按出处分组" },
+  return <SettingsGroup label={t("group")}>
+    <SettingsRow icon={<Palette size={16} />} title={t("style")} hint={t("styleHint")}>
+      <Segmented<TagStyle> label={t("style")} value={display.style} onChange={(style) => onChange({ style })} options={[
+        { value: "bands", label: t("bands") }, { value: "grouped", label: t("grouped") },
       ]} />
     </SettingsRow>
-    <SettingsRow className="is-thresholds" icon={<Gauge size={16} />} title="可信度分档" hint="模型给的标签分高、中、低三档"
+    <SettingsRow className="is-thresholds" icon={<Gauge size={16} />} title={t("thresholds")} hint={t("thresholdsHint")}
       below={problem !== null && <p className="k-set-error" role="alert">{problem}</p>}>
-      <label className="k-set-number">高档不低于
-        <input className="k-input is-num" type="number" aria-label="高档下限" min={STEP} max={1} step={STEP} value={high}
+      <label className="k-set-number">{t("high")}
+        <input className="k-input is-num" type="number" aria-label={t("highLabel")} min={STEP} max={1} step={STEP} value={high}
           onChange={(e) => changeThresholds(e.target.value, low)} />
       </label>
-      <label className="k-set-number">低档低于
-        <input className="k-input is-num" type="number" aria-label="低档上限" min={0} max={1 - STEP} step={STEP} value={low}
+      <label className="k-set-number">{t("low")}
+        <input className="k-input is-num" type="number" aria-label={t("lowLabel")} min={0} max={1 - STEP} step={STEP} value={low}
           onChange={(e) => changeThresholds(high, e.target.value)} />
       </label>
       <button type="button" className="k-btn is-sm is-quiet" onClick={() => {
@@ -63,10 +65,10 @@ export function TagDisplaySettings({ display, onChange }: {
         setHigh(shown(DEFAULT_TAG_DISPLAY.high));
         setLow(shown(DEFAULT_TAG_DISPLAY.low));
         onChange({ high: DEFAULT_TAG_DISPLAY.high, low: DEFAULT_TAG_DISPLAY.low });
-      }}><RotateCcw size={12} aria-hidden="true" /><span className="k-label">恢复默认</span></button>
+      }}><RotateCcw size={12} aria-hidden="true" /><span className="k-label">{t("reset")}</span></button>
     </SettingsRow>
-    <SettingsRow icon={<SquareDashed size={16} />} title="低档虚线框" hint="低档标签加虚线外框；关掉后只把字变浅">
-      <Switch label="低档虚线框" checked={display.lowOutline} onCheckedChange={(on) => onChange({ lowOutline: on })} />
+    <SettingsRow icon={<SquareDashed size={16} />} title={t("lowOutline")} hint={t("lowOutlineHint")}>
+      <Switch label={t("lowOutline")} checked={display.lowOutline} onCheckedChange={(on) => onChange({ lowOutline: on })} />
     </SettingsRow>
   </SettingsGroup>;
 }
