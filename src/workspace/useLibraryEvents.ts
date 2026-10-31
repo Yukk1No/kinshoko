@@ -1,4 +1,5 @@
 import { useEffect, type Dispatch, type RefObject, type SetStateAction } from "react";
+import { i18n } from "../i18n";
 import { onLibraryEvent, onOrganizeWaiting } from "../ipc";
 import type { FinishedImport, RunningImport } from "../library/ImportBar";
 import { safeTiming } from "../shell/safeTiming";
@@ -24,8 +25,8 @@ export function useLibraryEvents({
     let alive = true;
     const unlisten = onOrganizeWaiting((waiting) => {
       if (!alive) return;
-      const names = waiting.finishing.map((name) => `「${name}」`).join("、");
-      toast?.show({ title: "导入收尾后再整理", description: `${names}的导入完成后自动执行` });
+      const names = waiting.finishing.map((name) => i18n.t("workspace:organizeWaiting.name", { name })).join(i18n.t("workspace:organizeWaiting.separator"));
+      toast?.show({ title: i18n.t("workspace:organizeWaiting.title"), description: i18n.t("workspace:organizeWaiting.description", { names }) });
     });
     return () => {
       alive = false;

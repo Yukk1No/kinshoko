@@ -2,6 +2,7 @@ import type { Candidate } from "../bindings/Candidate";
 import type { TagLabel } from "../bindings/TagLabel";
 import { Highlight, type ComboboxOption } from "../ui/Combobox";
 import { tagName } from "./tagLabel";
+import { i18n } from "../i18n";
 
 export type TagOption = ComboboxOption & { tag: TagLabel };
 
@@ -11,7 +12,7 @@ export function tagOption(c: Candidate, query: string): TagOption {
     id: c.tag.id,
     tag: c.tag,
     label: <Highlight text={tagName(c.tag)} query={query} />,
-    via: c.via ? <>别名 <Highlight text={c.via} query={query} /></> : undefined,
+    via: c.via ? <>{i18n.t("search:tagVia")} <Highlight text={c.via} query={query} /></> : undefined,
     untranslated: c.tag.untranslated,
     meta: c.count,
   };

@@ -1,0 +1,63 @@
+import type zh from "../zh-CN/search";
+import type { Translation } from "../../translation";
+
+const search: Translation<typeof zh> = {
+  label: "Search reference images",
+  placeholder: "Search tags or text",
+  findText: "Search for “{{text}}”",
+  ratingVia: "also",
+  tagVia: "alias",
+  ratingMark: "Rating",
+  conditions: "Search conditions",
+  hiddenConditions_one: "{{count}} more condition",
+  hiddenConditions_other: "{{count}} more conditions",
+  collapsedConditions: "Collapsed search conditions",
+  not: "Not",
+  missingTag: "Deleted tag",
+  or: " or ",
+  exclude: "Exclude this condition",
+  include: "Stop excluding this condition",
+  remove: "Remove this condition",
+  quoted: "“{{text}}”",
+  alsoTags: "Also matches tags: {{tags}}",
+  alsoRatings: "Also matches ratings: {{ratings}}",
+  listSeparator: ", ",
+  exact: "Exact search",
+  similar: {
+    or: "or similar: ",
+    builtin: "Built-in",
+    personal: "Personal",
+    dismissLabel: "Don't expand “{{name}}”",
+    addLabel: "Add a similar tag to “{{name}}”",
+    addGlyph: "+",
+  },
+  dismiss: {
+    label: "Don't expand similar tag",
+    prompt: "Don't expand “{{name}}”:",
+    once: "Just this time",
+    forever: "Never expand it",
+    cancel: "Cancel",
+  },
+  add: {
+    label: "Add similar tag",
+    prompt: "When searching for “{{name}}”, also find:",
+    pickShared: "Pick a shared tag",
+    pickLibrary: "Pick a library tag",
+    none: "No matching tags",
+    cancel: "Cancel",
+  },
+  groups: {
+    label: "Tag groups",
+    tags: "{{name}} tags",
+    anyLabel: "Search for any tag in “{{name}}”",
+    any: "Any member",
+    empty: "Once you set up groups, you can pick tags here.",
+    edit: "Edit groups",
+    dialogTitle: "Edit groups",
+    dialogLead: "Shared by all libraries. A search matches any tag in the group.",
+    close: "Close",
+    done: "Done",
+  },
+};
+
+export default search;

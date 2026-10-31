@@ -1,4 +1,5 @@
 import { PanelRightClose } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Dispatch, SetStateAction } from "react";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
@@ -31,20 +32,21 @@ export function WorkspaceInspector({
   onError: (error: unknown) => void;
   onInspectorWidth: (width: number) => void;
 }) {
+  const { t } = useTranslation("workspace");
   const {
     setInspectorElement, inspected, selectionKey, inspectorOpen, draggedWidth, setDraggedWidth, panelWidth, closeInspector,
     selectionLibrary, panelIds,
   } = inspector;
   return (
-      <aside ref={setInspectorElement} className="inspector" aria-label="详情" data-selection={inspected?.id ?? selectionKey} data-collapsed={!inspectorOpen} data-resizing={draggedWidth !== null} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>
+      <aside ref={setInspectorElement} className="inspector" aria-label={t("inspector.label")} data-selection={inspected?.id ?? selectionKey} data-collapsed={!inspectorOpen} data-resizing={draggedWidth !== null} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>
         <InspectorResizer width={panelWidth} onResize={(width, done) => {
           if (!done) { setDraggedWidth(width); return; }
           setDraggedWidth(null);
           onInspectorWidth(width);
         }} />
         <header className="insp-head" data-tauri-drag-region>
-          <button type="button" className="k-icon-btn" aria-label="收起详情" title="收起详情" onClick={closeInspector}><PanelRightClose size={16} aria-hidden="true" /></button>
-          <span className="insp-title">详情</span>
+          <button type="button" className="k-icon-btn" aria-label={t("inspector.collapse")} title={t("inspector.collapse")} onClick={closeInspector}><PanelRightClose size={16} aria-hidden="true" /></button>
+          <span className="insp-title">{t("inspector.title")}</span>
           {inspectorOpen && <WinCtrls />}
         </header>
         <div className="insp-body">

@@ -1,4 +1,5 @@
 import { useState, type DragEvent, type KeyboardEvent } from "react";
+import { useTranslation } from "react-i18next";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { FolderNode } from "../bindings/FolderNode";
 import type { Sidebar } from "../bindings/Sidebar";
@@ -89,6 +90,7 @@ export const acceptsDrag = (e: DragEvent) =>
  * 文件夹的右键菜单（#102 表“侧栏 · 文件夹”，#114）：新建子文件夹 · 重命名 · ─ · 移到顶层 · ─ · 删除文件夹。
  */
 export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onScope, onError, directory, unassigned, descendantCounts, includeDescendants = false, creating, parentForNew, onCreatingDone }: Props) {
+  const { t } = useTranslation("library");
   const [renaming, setRenaming] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   /** 右键“新建子文件夹”所在的文件夹。 */
@@ -106,7 +108,7 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
     onCreatingDone();
     if (name) void run(createFolder(libraryId, name, parent));
   };
-  const newInput = <NameInput label="新文件夹名称" initial="" onDone={created} />;
+  const newInput = <NameInput label={t("folders.newName")} initial="" onDone={created} />;
 
   const confirmDelete = () => {
     if (!deleting) return;
@@ -153,7 +155,7 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
         <li key={node.id} role="treeitem" aria-label={node.name}>
           {renaming === node.id ? (
             <NameInput
-              label="文件夹名称"
+              label={t("folders.name")}
               initial={node.name}
               onDone={(name) => {
                 setRenaming(null);
@@ -170,7 +172,7 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
               style={{ paddingLeft: 8 + depth * 16 }}
               data-drop={dropTarget === node.id || undefined}
               aria-current={current({ kind: "folder", id: node.id })}
-              aria-label={`${node.name}（${count(node)} 张）`}
+              aria-label={t("folders.folderCount", { name: node.name, count: count(node) })}
               draggable
               onClick={() => onScope({ kind: "folder", id: node.id })}
               onDoubleClick={() => setRenaming(node.id)}
@@ -191,13 +193,13 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
               <span className="sidebar-label k-label">{node.name}</span>
               <span className="sidebar-count k-label">{count(node)}</span>
             </ContextMenu.Trigger>
-            <MenuPopup label={`${node.name} 的操作`} width={200}>
-              <MenuItem icon={<FolderPlus size={14} />} onClick={() => { onCreatingDone(); setCreatingUnder(node.id); }}>新建子文件夹</MenuItem>
-              <MenuItem icon={<Pencil size={14} />} kbd="F2" onClick={() => setRenaming(node.id)}>重命名</MenuItem>
+            <MenuPopup label={t("folders.actions", { name: node.name })} width={200}>
+              <MenuItem icon={<FolderPlus size={14} />} onClick={() => { onCreatingDone(); setCreatingUnder(node.id); }}>{t("folders.newSubfolder")}</MenuItem>
+              <MenuItem icon={<Pencil size={14} />} kbd="F2" onClick={() => setRenaming(node.id)}>{t("folders.rename")}</MenuItem>
               <MenuSeparator />
-              <MenuItem icon={<FolderUp size={14} />} disabled={depth === 0} onClick={() => void run(moveFolder(libraryId, node.id, null, LAST))}>移到顶层</MenuItem>
+              <MenuItem icon={<FolderUp size={14} />} disabled={depth === 0} onClick={() => void run(moveFolder(libraryId, node.id, null, LAST))}>{t("folders.moveToTop")}</MenuItem>
               <MenuSeparator />
-              <MenuItem icon={<FolderX size={14} />} danger onClick={() => setDeleting(node)}>删除文件夹…</MenuItem>
+              <MenuItem icon={<FolderX size={14} />} danger onClick={() => setDeleting(node)}>{t("folders.delete")}</MenuItem>
             </MenuPopup>
             </ContextMenu.Root>
             </FluidRow>
@@ -212,17 +214,17 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
   );
 
   return (
-    <nav className="sidebar" aria-label={`${libraryName}的目录`}>
+    <nav className="sidebar" aria-label={t("folders.treeOf", { name: libraryName })}>
       <FluidList>
       {unassigned !== undefined && <FluidRow index={row++}>
         <button type="button" className="sidebar-item k-row" aria-current={current({ kind: "unassigned" })}
-          aria-label={`未归类（${unassigned} 张）`} onClick={() => onScope({ kind: "unassigned" })}>
+          aria-label={t("folders.unassignedCount", { count: unassigned })} onClick={() => onScope({ kind: "unassigned" })}>
           <span className="k-row-icon" aria-hidden="true"><Inbox size={15} /></span>
-          <span className="sidebar-label k-label">未归类</span>
+          <span className="sidebar-label k-label">{t("folders.unassigned")}</span>
           <span className="sidebar-count k-label">{unassigned}</span>
         </button>
       </FluidRow>}
-      <div role="tree" aria-label="文件夹" className="sidebar-folders">
+      <div role="tree" aria-label={t("folders.tree")} className="sidebar-folders">
         {tree(directory.folders)}
         {/* 放在顶层，或要放进的文件夹已不在树里时放在最后。 */}
         {newParent !== undefined && (newParent === null || !inTree(directory.folders, newParent)) && newInput}
@@ -231,16 +233,16 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
       {deleting && <AlertDialog.Root open onOpenChange={(open) => { if (!open && !busy) setDeleting(null); }}>
         <AlertDialog.Portal>
           <AlertDialog.Backdrop className="k-backdrop" />
-          <AlertDialog.Popup className="k-dialog is-alert" aria-label="删除文件夹">
-            <AlertDialog.Title className="k-dialog-title">删除文件夹</AlertDialog.Title>
+          <AlertDialog.Popup className="k-dialog is-alert" aria-label={t("deleteFolder.title")}>
+            <AlertDialog.Title className="k-dialog-title">{t("deleteFolder.title")}</AlertDialog.Title>
             <AlertDialog.Description className="k-dialog-desc">
-              删除文件夹「{deleting.name}」？文件夹里的图片不会删除；不在其他文件夹里的图片回到未归类。
-              {subtree(deleting).length > 1 && `其中的 ${subtree(deleting).length - 1} 个子文件夹也会一并删除，里面的图片同样保留。`}
+              {t("deleteFolder.confirm", { name: deleting.name })}
+              {subtree(deleting).length > 1 && t("deleteFolder.subfolders", { count: subtree(deleting).length - 1 })}
             </AlertDialog.Description>
             <div className="k-dialog-foot">
               <span className="k-grow" />
-              <AlertDialog.Close className="k-btn" disabled={busy}><span className="k-label">取消</span></AlertDialog.Close>
-              <button type="button" className="k-btn is-danger" disabled={busy} onClick={confirmDelete}><span className="k-label">删除文件夹</span></button>
+              <AlertDialog.Close className="k-btn" disabled={busy}><span className="k-label">{t("deleteFolder.cancel")}</span></AlertDialog.Close>
+              <button type="button" className="k-btn is-danger" disabled={busy} onClick={confirmDelete}><span className="k-label">{t("deleteFolder.submit")}</span></button>
             </div>
           </AlertDialog.Popup>
         </AlertDialog.Portal>

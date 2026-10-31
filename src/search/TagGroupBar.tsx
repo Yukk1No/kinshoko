@@ -1,6 +1,7 @@
 // Adapted from bd8aea4:prototype/reference-browser/src/components/TagGroupBar.tsx.
 // Accepted popovers and condition gestures, backed by the formal library IPC and SearchInput.
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { PenLine } from "lucide-react";
 import type { TagGroupView } from "../bindings/TagGroupView";
 import type { SearchInput } from "../bindings/SearchInput";
@@ -21,6 +22,7 @@ type Props = {
 };
 
 export function TagGroupBar(p: Props) {
+  const { t } = useTranslation("search");
   const [found, setFound] = useState<{ key: string; groups: TagGroupView[] }>({ key: "", groups: [] });
   const lang = useUiLang();
   const key = JSON.stringify([p.libraryId, p.safe, p.generation, p.workspace, lang]);
@@ -58,7 +60,7 @@ export function TagGroupBar(p: Props) {
     else conditions.push({ any: [term], negate });
     p.onChange({ ...p.input, conditions });
   };
-  return <div className="groupbar" ref={bar} role="toolbar" aria-label="标签分组">
+  return <div className="groupbar" ref={bar} role="toolbar" aria-label={t("groups.label")}>
     {groups.map((g) => {
       const picked = g.tags.filter(({ tag }) => used(tag.id)).length;
       return <div key={g.id} className="group">
@@ -66,12 +68,12 @@ export function TagGroupBar(p: Props) {
           onClick={() => setOpen(open === g.id ? null : g.id)}>
           <span className="k-label">{g.name}</span>{picked > 0 && <span className="badge tabular">{picked}</span>}<span aria-hidden>⌄</span>
         </button>
-        {open === g.id && <div className="group-pop" role="group" aria-label={`${g.name}标签`}>
-          <button type="button" className="group-any" aria-label={`按“${g.name}”任一标签查找`} disabled={!g.tags.length}
+        {open === g.id && <div className="group-pop" role="group" aria-label={t("groups.tags", { name: g.name })}>
+          <button type="button" className="group-any" aria-label={t("groups.anyLabel", { name: g.name })} disabled={!g.tags.length}
             onClick={() => {
               p.onChange({ ...p.input, conditions: [...p.input.conditions, { any: g.tags.map(({ tag }) => ({ kind: "tag", id: tag.id, dismissed: [] })), negate: false }] });
               setOpen(null);
-            }}>任一成员</button>
+            }}>{t("groups.any")}</button>
           <div className="chips">
             {g.tags.map(({ tag, count }) => {
               const c = used(tag.id);
@@ -87,7 +89,7 @@ export function TagGroupBar(p: Props) {
         </div>}
       </div>;
     })}
-    {!groups.length && <span className="groupbar-empty">建好分组后，可在这里点选标签。</span>}
-    {p.onEdit && <button type="button" className="groupbar-edit" onClick={p.onEdit}><PenLine size={13} aria-hidden="true" /><span className="k-label">编辑分组</span></button>}
+    {!groups.length && <span className="groupbar-empty">{t("groups.empty")}</span>}
+    {p.onEdit && <button type="button" className="groupbar-edit" onClick={p.onEdit}><PenLine size={13} aria-hidden="true" /><span className="k-label">{t("groups.edit")}</span></button>}
   </div>;
 }
