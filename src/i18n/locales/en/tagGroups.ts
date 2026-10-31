@@ -1,0 +1,73 @@
+import type zh from "../zh-CN/tagGroups";
+import type { Translation } from "../../translation";
+
+const tagGroups: Translation<typeof zh> = {
+  label: "Tag groups",
+  settingsLabel: "Shared tag groups",
+  settingsNote: "Shared by all libraries. Changing groups doesn't change image tags.",
+  settingsLoading: "Loading group settings…",
+  updating: "Updating tag groups…",
+  kind: {
+    custom: "Chosen tags",
+    artist: "All artists",
+    character: "All characters",
+    work: "All works",
+    general: "General tags",
+  },
+  create: {
+    nameLabel: "New tag group name",
+    namePlaceholder: "Group name",
+    kindLabel: "Group contents",
+    cancel: "Cancel",
+    submit: "Create",
+    open: "New tag group",
+    button: "New group",
+  },
+  pick: {
+    label: "Pick a shared tag",
+    placeholder: "Tag name or alias",
+    none: "No matching tags",
+    cancelLabel: "Cancel adding a tag",
+    cancelTitle: "Cancel",
+  },
+  group: {
+    rename: "Tag group name",
+    nameCount_one: "{{name}} ({{count}} tag)",
+    nameCount_other: "{{name}} ({{count}} tags)",
+    browseTitle: "Search by this group; double-click to rename",
+    renameTitle: "Double-click to rename",
+    origin: "From: {{origin}}",
+    originItem: "{{library}} / {{group}}",
+    originSeparator: "; ",
+    renameLabel: "Rename tag group “{{name}}”",
+    renameAction: "Rename",
+    upLabel: "Move tag group “{{name}}” up",
+    up: "Move up",
+    downLabel: "Move tag group “{{name}}” down",
+    down: "Move down",
+    deleteLabel: "Delete tag group “{{name}}”",
+    delete: "Delete group",
+    tagCount_one: "{{count}} tag",
+    tagCount_other: "{{count}} tags",
+  },
+  member: {
+    count_one: "{{name}} ({{count}} image)",
+    count_other: "{{name}} ({{count}} images)",
+    prevLabel: "Move “{{tag}}” earlier in “{{group}}”",
+    prev: "Move earlier",
+    nextLabel: "Move “{{tag}}” later in “{{group}}”",
+    next: "Move later",
+    removeLabel: "Remove “{{tag}}” from “{{group}}”",
+    remove: "Remove from group",
+    addLabel: "Add a tag to “{{group}}”",
+    add: "Add tag",
+  },
+  deleteConfirm: {
+    title: "Delete group",
+    description: "“{{name}}” will be deleted. Image tags stay as they are.",
+    cancel: "Cancel",
+    submit: "Delete",
+  },
+};
+
+export default tagGroups;

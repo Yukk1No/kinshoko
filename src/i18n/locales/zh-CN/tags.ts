@@ -16,6 +16,16 @@ export default {
   },
   untranslated: "尚无中文名，显示的是原名",
   untranslatedFlag: "未翻译",
+  unnamed: "未命名标签",
+  /** 标签名称的语言，用各语言的自称；`und` 是未注明语言。 */
+  language: {
+    "zh-CN": "简体中文",
+    "zh-TW": "繁體中文",
+    en: "English",
+    ja: "日本語",
+    ko: "한국어",
+    und: "未注明语言",
+  },
   noExternal: "没有外部对应，不参与内置近似对应表",
   panel: {
     label: "标签",

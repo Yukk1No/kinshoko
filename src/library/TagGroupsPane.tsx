@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../i18n";
 import type { KeyboardEvent } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Link2, PenLine, Plus, Tags, Trash2, X } from "lucide-react";
@@ -9,7 +11,7 @@ import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagNamespace } from "../bindings/TagNamespace";
-import { createSharedTagGroup, editSharedTagGroup, sharedTagGroups, onSafeModeSetting, onWorkspaceChanged, safeMode, workspaceStatus, isLensChanged } from "../ipc";
+import { createSharedTagGroup, editSharedTagGroup, sharedTagGroups, isLensChanged } from "../ipc";
 import { LIMIT, TagMarks, tagName, useCandidateState, type Lens } from "../search/SearchBox";
 import { useUiLang } from "../i18n";
 import { NameInput } from "./SidebarPane";
@@ -24,13 +26,9 @@ type Props = {
   onError: (error: unknown) => void;
 };
 
-const KINDS: SelectOption<TagNamespace | "">[] = [
-  { value: "", label: "自选标签" },
-  { value: "artist", label: "全部作者" },
-  { value: "character", label: "全部角色" },
-  { value: "work", label: "全部作品" },
-  { value: "general", label: "一般标签" },
-];
+const KINDS: (TagNamespace | "")[] = ["", "artist", "character", "work", "general"];
+const kindLabel = (kind: TagNamespace | "") => i18n.t(`tagGroups:kind.${kind || "custom"}`);
+const kindOptions = (): SelectOption<TagNamespace | "">[] => KINDS.map((value) => ({ value, label: kindLabel(value) }));
 
 /** Esc 只收起这一行编辑，不连带关掉外面的“编辑分组”对话框。 */
 function escape(e: KeyboardEvent, done: () => void) {
@@ -40,6 +38,7 @@ function escape(e: KeyboardEvent, done: () => void) {
 
 /** 新建标签分组：列表末行展开成一行，名称和分组内容（自己挑选成员，或列出一个命名空间的全部标签）。 */
 function NewGroup({ onDone }: { onDone: (group: { name: string; namespace: TagNamespace | null } | null) => void }) {
+  const { t } = useTranslation("tagGroups", { keyPrefix: "create" });
   const [name, setName] = useState("");
   const [kind, setKind] = useState<TagNamespace | "">("");
   const submit = () => onDone(name.trim() ? { name: name.trim(), namespace: kind || null } : null);
@@ -48,8 +47,8 @@ function NewGroup({ onDone }: { onDone: (group: { name: string; namespace: TagNa
       <span className="k-group-icon" aria-hidden="true"><Tags size={16} /></span>
       <input
         className="k-input"
-        aria-label="新标签分组名称"
-        placeholder="分组名称"
+        aria-label={t("nameLabel")}
+        placeholder={t("namePlaceholder")}
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -58,40 +57,43 @@ function NewGroup({ onDone }: { onDone: (group: { name: string; namespace: TagNa
           escape(e, () => onDone(null));
         }}
       />
-      <Select label="分组内容" className="k-group-kind" value={kind} onChange={setKind} options={KINDS} />
-      <button type="button" className="k-btn" onClick={() => onDone(null)}><span className="k-label">取消</span></button>
-      <button type="button" className="k-btn" disabled={!name.trim()} onClick={submit}><span className="k-label">建立</span></button>
+      <Select label={t("kindLabel")} className="k-group-kind" value={kind} onChange={setKind} options={kindOptions()} />
+      <button type="button" className="k-btn" onClick={() => onDone(null)}><span className="k-label">{t("cancel")}</span></button>
+      <button type="button" className="k-btn" disabled={!name.trim()} onClick={submit}><span className="k-label">{t("submit")}</span></button>
     </div>
   );
 }
 
 /** “给分组加标签”：成员行末尾的输入框，按名称或别名从工作区可见标签里挑一个；已在分组里的不再列出，条数照样补足。 */
 function PickTag({ lens, members, onPick, onCancel }: { lens: Lens; members: string[]; onPick: (tag: TagLabel) => void; onCancel: () => void }) {
+  const { t } = useTranslation("tagGroups", { keyPrefix: "pick" });
   const [text, setText] = useState("");
   const { list, ready } = useCandidateState(lens, text, undefined, LIMIT + members.length);
   const found = list.filter((c) => !members.includes(c.tag.id)).slice(0, LIMIT);
   return (
     <li className="k-group-pick">
       <Combobox
-        label="挑一个统一标签"
-        placeholder="标签名或别名"
+        label={t("label")}
+        placeholder={t("placeholder")}
         inline
         autoFocus
         value={text}
         onValueChange={setText}
         options={found.map((c) => tagOption(c, text))}
-        empty={ready ? "没有匹配的标签" : undefined}
+        empty={ready ? t("none") : undefined}
         onSelect={(option) => onPick(option.tag)}
         onKeyDown={(e) => escape(e, onCancel)}
       />
-      <button type="button" className="k-icon-btn is-xs" aria-label="取消加标签" title="取消" onClick={onCancel}><X size={12} aria-hidden="true" /></button>
+      <button type="button" className="k-icon-btn is-xs" aria-label={t("cancelLabel")} title={t("cancelTitle")} onClick={onCancel}><X size={12} aria-hidden="true" /></button>
     </li>
   );
 }
 
 /** Reuses the formal sidebar editor and the accepted prototype's tag-chip structure.
  * Shared IDs are already query identities. Group actions never edit an image's tags. */
-export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "标签分组" }: Props) {
+export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labelProp }: Props) {
+  const { t } = useTranslation("tagGroups");
+  const label = labelProp ?? t("label");
   const [found, setFound] = useState<{ key: string; safe: boolean | null; groups: CatalogGroupView[] }>({ key: "", safe: null, groups: [] });
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -172,17 +174,17 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
   // 末行是“新建分组”。删除先确认（#98，design/ui-system/README.md）。
   return (
     <section ref={section} className="sidebar-tag-groups k-groups" aria-label={label} aria-busy={busy || !fresh}>
-      {!fresh && <p className="k-set-note" role="status">正在更新标签分组…</p>}
+      {!fresh && <p className="k-set-note" role="status">{t("updating")}</p>}
       <div className="k-group-list">
       <div className="k-group-rows">
       {groups.map((group, index) => {
         const custom = group.namespace === null;
-        const origin = group.sources?.length ? group.sources.map((source) => `${source.libraryName} / ${source.groupName}`).join("；") : null;
-        const ids = group.tags.map((t) => t.tag.id);
+        const origin = group.sources?.length ? group.sources.map((source) => t("group.originItem", { library: source.libraryName, group: source.groupName })).join(t("group.originSeparator")) : null;
+        const ids = group.tags.map((member) => member.tag.id);
         return <div key={group.id} role="group" aria-label={fresh ? group.name : undefined} className="k-group">
           {renaming === group.id ? <div className="k-group-head is-renaming" onKeyDown={(e) => escape(e, () => {})}>
             <span className="k-group-icon" aria-hidden="true"><Tags size={16} /></span>
-            <NameInput label="标签分组名称" initial={group.name} onDone={(name) => {
+            <NameInput label={t("group.rename")} initial={group.name} onDone={(name) => {
               setRenaming(null);
               remember(`${group.id}:rename`);
               if (name && name !== group.name) void edit({ kind: "rename", groupId: group.id, name });
@@ -190,39 +192,39 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
           </div> : fresh && (
             <div className="k-group-head">
               <span className="k-group-icon" aria-hidden="true"><Tags size={16} /></span>
-              <button type="button" className="k-group-name" data-focus-key={`${group.id}:name`} aria-label={`${group.name}（${group.tags.length} 个标签）`}
-                disabled={busy || !onBrowse || !group.tags.length} title={onBrowse && group.tags.length ? "按这个分组查找，双击改名" : "双击改名"}
+              <button type="button" className="k-group-name" data-focus-key={`${group.id}:name`} aria-label={t("group.nameCount", { name: group.name, count: group.tags.length })}
+                disabled={busy || !onBrowse || !group.tags.length} title={onBrowse && group.tags.length ? t("group.browseTitle") : t("group.renameTitle")}
                 onClick={() => onBrowse?.(ids)} onDoubleClick={() => setRenaming(group.id)}>
                 <span className="k-group-label k-label">{group.name}</span>
-                {origin && <span className="k-group-origin" role="img" aria-label={`来自：${origin}`} title={`来自：${origin}`}><Link2 size={14} aria-hidden="true" /></span>}
+                {origin && <span className="k-group-origin" role="img" aria-label={t("group.origin", { origin })} title={t("group.origin", { origin })}><Link2 size={14} aria-hidden="true" /></span>}
               </button>
               <span className="k-group-acts">
-                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:rename`} aria-label={`改名标签分组“${group.name}”`} title="改名" disabled={busy} onClick={() => setRenaming(group.id)}><PenLine size={14} aria-hidden="true" /></button>
-                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:up`} aria-label={`上移标签分组“${group.name}”`} title="上移" disabled={busy || index === 0}
+                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:rename`} aria-label={t("group.renameLabel", { name: group.name })} title={t("group.renameAction")} disabled={busy} onClick={() => setRenaming(group.id)}><PenLine size={14} aria-hidden="true" /></button>
+                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:up`} aria-label={t("group.upLabel", { name: group.name })} title={t("group.up")} disabled={busy || index === 0}
                   onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, -1) })}><ArrowUp size={14} aria-hidden="true" /></button>
-                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:down`} aria-label={`下移标签分组“${group.name}”`} title="下移" disabled={busy || index === groups.length - 1}
+                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:down`} aria-label={t("group.downLabel", { name: group.name })} title={t("group.down")} disabled={busy || index === groups.length - 1}
                   onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, 1) })}><ArrowDown size={14} aria-hidden="true" /></button>
-                <button type="button" className="k-icon-btn is-sm is-danger" data-focus-key={`${group.id}:delete`} aria-label={`删除标签分组“${group.name}”`} disabled={busy}
-                  title="删除分组" onClick={() => setDeleting(group.id)}><Trash2 size={14} aria-hidden="true" /></button>
+                <button type="button" className="k-icon-btn is-sm is-danger" data-focus-key={`${group.id}:delete`} aria-label={t("group.deleteLabel", { name: group.name })} disabled={busy}
+                  title={t("group.delete")} onClick={() => setDeleting(group.id)}><Trash2 size={14} aria-hidden="true" /></button>
               </span>
-              {custom ? <span className="k-group-count k-label">{group.tags.length} 个标签</span>
-                : <span className="k-pill"><span className="k-label">{KINDS.find((k) => k.value === group.namespace)?.label}</span></span>}
+              {custom ? <span className="k-group-count k-label">{t("group.tagCount", { count: group.tags.length })}</span>
+                : <span className="k-pill"><span className="k-label">{group.namespace && kindLabel(group.namespace)}</span></span>}
             </div>
           )}
           {((fresh && (group.tags.length > 0 || custom)) || picking === group.id) && <ul className="k-group-members">
             {fresh && group.tags.map(({ tag, count }, memberIndex) => {
               const name = tagName(tag);
               return <li key={tag.id} className="k-group-member">
-                <button type="button" className="k-group-chip" data-focus-key={`${group.id}:${tag.id}:chip`} aria-label={`${name}（${count} 张）`} disabled={!onBrowse}
+                <button type="button" className="k-group-chip" data-focus-key={`${group.id}:${tag.id}:chip`} aria-label={t("member.count", { name, count })} disabled={!onBrowse}
                   onClick={() => onBrowse?.([tag.id])}>
                   <span className="k-group-chip-name k-label">{name}<TagMarks tag={tag} /></span><span className="k-group-chip-count k-label">{count}</span>
                 </button>
                 {custom && <span className="k-group-member-acts">
-                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:prev`} aria-label={`把“${name}”在“${group.name}”中前移`} title="前移" disabled={busy || memberIndex === 0}
+                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:prev`} aria-label={t("member.prevLabel", { tag: name, group: group.name })} title={t("member.prev")} disabled={busy || memberIndex === 0}
                     onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, -1) })}><ArrowLeft size={12} aria-hidden="true" /></button>
-                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:next`} aria-label={`把“${name}”在“${group.name}”中后移`} title="后移" disabled={busy || memberIndex === group.tags.length - 1}
+                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:next`} aria-label={t("member.nextLabel", { tag: name, group: group.name })} title={t("member.next")} disabled={busy || memberIndex === group.tags.length - 1}
                     onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, 1) })}><ArrowRight size={12} aria-hidden="true" /></button>
-                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:remove`} aria-label={`把“${name}”移出“${group.name}”`} title="移出分组" disabled={busy}
+                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:remove`} aria-label={t("member.removeLabel", { tag: name, group: group.name })} title={t("member.remove")} disabled={busy}
                     onClick={() => void edit({ kind: "removeMembers", groupId: group.id, tagIds: [tag.id] })}><X size={12} aria-hidden="true" /></button>
                 </span>}
               </li>;
@@ -234,8 +236,8 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
             }} onPick={(tag) => {
               setPicking(null); remember(`${group.id}:add`); void edit({ kind: "addMembers", groupId: group.id, tagIds: [tag.id] });
             }} /> : custom && <li>
-              <button type="button" className="k-group-add" data-focus-key={`${group.id}:add`} aria-label={`给“${group.name}”加标签`} disabled={busy} onClick={() => setPicking(group.id)}>
-                <Plus size={14} aria-hidden="true" /><span className="k-label">加标签</span></button>
+              <button type="button" className="k-group-add" data-focus-key={`${group.id}:add`} aria-label={t("member.addLabel", { group: group.name })} disabled={busy} onClick={() => setPicking(group.id)}>
+                <Plus size={14} aria-hidden="true" /><span className="k-label">{t("member.add")}</span></button>
             </li>}
           </ul>}
         </div>;
@@ -245,25 +247,25 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
         setCreating(false);
         remember("new");
         if (group) void run(createSharedTagGroup(group.name, group.namespace));
-      }} /> : <button type="button" className="k-group-create" aria-label="新建标签分组" data-focus-key="new" disabled={busy || !fresh} onClick={() => setCreating(true)}>
-        <span className="k-group-icon" aria-hidden="true"><Plus size={16} /></span><span className="k-label">新建分组</span></button>}
+      }} /> : <button type="button" className="k-group-create" aria-label={t("create.open")} data-focus-key="new" disabled={busy || !fresh} onClick={() => setCreating(true)}>
+        <span className="k-group-icon" aria-hidden="true"><Plus size={16} /></span><span className="k-label">{t("create.button")}</span></button>}
       </div>
       <AlertDialog.Root open={!!deletingGroup} onOpenChange={(open) => { if (!open) setDeleting(null); }}>
         <AlertDialog.Portal>
           <AlertDialog.Backdrop className="k-backdrop" />
           <AlertDialog.Popup className="k-dialog is-alert">
-            <AlertDialog.Title className="k-dialog-title">删除分组</AlertDialog.Title>
-            <AlertDialog.Description className="k-dialog-desc">「{deletingGroup?.name}」会被删除，图片的标签不变。</AlertDialog.Description>
+            <AlertDialog.Title className="k-dialog-title">{t("deleteConfirm.title")}</AlertDialog.Title>
+            <AlertDialog.Description className="k-dialog-desc">{t("deleteConfirm.description", { name: deletingGroup?.name })}</AlertDialog.Description>
             <div className="k-dialog-foot">
               <span className="k-grow" />
-              <AlertDialog.Close className="k-btn"><span className="k-label">取消</span></AlertDialog.Close>
+              <AlertDialog.Close className="k-btn"><span className="k-label">{t("deleteConfirm.cancel")}</span></AlertDialog.Close>
               <button type="button" className="k-btn is-danger" onClick={() => {
                 const id = deleting!; setDeleting(null);
                 // 删掉的分组没有可回的位置：回到相邻分组，没有时回到“新建分组”。
                 const at = groups.findIndex((g) => g.id === id), next = groups[at + 1] ?? groups[at - 1];
                 restore.current = next ? `${next.id}:name` : "new";
                 void edit({ kind: "delete", groupId: id });
-              }}><span className="k-label">删除</span></button>
+              }}><span className="k-label">{t("deleteConfirm.submit")}</span></button>
             </div>
           </AlertDialog.Popup>
         </AlertDialog.Portal>
@@ -272,45 +274,5 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
   );
 }
 
-/** The same application configuration editor is available without a current library. */
-export function SharedTagGroupsSettings({ onError }: { onError: (error: unknown) => void }) {
-  const [safe, setSafe] = useState<boolean | null>(null);
-  const [generation, setGeneration] = useState(0);
-  const modeRevision = useRef(0);
-  const workspaceRevision = useRef<string | null>(null);
-  const workspaceEvent = useRef(0);
-  useEffect(() => {
-    let alive = true; const revision = modeRevision.current;
-    const baseline = async (on: boolean, mode: number) => {
-      const event = workspaceEvent.current;
-      try {
-        const status = await workspaceStatus(on);
-        if (alive && modeRevision.current === mode && workspaceEvent.current === event) workspaceRevision.current = status?.revision ?? null;
-      } catch (error) {
-        if (alive && modeRevision.current === mode && !isLensChanged(error)) onError(error);
-      }
-    };
-    void safeMode().then(async (value) => {
-      if (!alive || modeRevision.current !== revision || typeof value !== "boolean") return;
-      // Establish the monitor revision before exposing editable drafts, and the actual saved safety mode.
-      await baseline(value, revision);
-      if (alive && modeRevision.current === revision) setSafe(value);
-    }).catch((error) => { if (alive && modeRevision.current === revision) onError(error); });
-    const mode = onSafeModeSetting((on) => {
-      if (!alive) return;
-      modeRevision.current++; setSafe(on); setGeneration((n) => n + 1);
-      void baseline(on, modeRevision.current);
-    });
-    const workspace = onWorkspaceChanged((status) => {
-      if (!alive) return;
-      workspaceEvent.current++;
-      if (workspaceRevision.current === status.revision) return;
-      workspaceRevision.current = status.revision; setGeneration((n) => n + 1);
-    });
-    return () => { alive = false; for (const stop of [mode, workspace]) void stop.then((unlisten) => unlisten()).catch(() => {}); };
-  }, [onError]);
-  return <>
-    <p className="k-set-note">各图库共用；改分组不改图片标签。</p>
-    {safe === null ? <p role="status">正在读取分组设置…</p> : <TagGroupsPane label="全局标签分组" safe={safe} generation={generation} onError={onError} />}
-  </>;
-}
+// 设置里的全局标签分组在它自己的文件里；旧的导入路径照常可用。
+export { SharedTagGroupsSettings } from "./SharedTagGroupsSettings";

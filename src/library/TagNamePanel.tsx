@@ -7,7 +7,7 @@ import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
 import { editTagName, externalSuggestions, inspectTagCatalog, mapTagExternal, onSafeModeSetting, setSourceNameLang } from "../ipc";
 import { SettingsRow, StatusPill } from "../ui/SettingsList";
 import { currentName } from "../tags/catalogName";
-import { SOURCE_LANGUAGES } from "../tags/languages";
+import { sourceLanguages } from "../tags/languages";
 import { Select } from "../ui/Select";
 import { Combobox } from "../ui/Combobox";
 import { useUiLang } from "../i18n";
@@ -119,7 +119,7 @@ function NameRow({ tag, lang, busy, pending, mappings, libraryName, open, onTogg
           <span className="k-parts"><span>{source.name}</span><span className="k-set-note">来自{libraryName(mapping.libraryId)}</span></span>
           <Select label={`“${source.name}”的语言`} value={source.lang} disabled={busy}
             onChange={(next) => onLocal(() => setSourceNameLang(mapping.libraryId, mapping.localTagId, source.name, next))}
-            options={[...SOURCE_LANGUAGES, ...(SOURCE_LANGUAGES.some(([code]) => code === source.lang) ? [] : [[source.lang, source.lang]])].map(([code, label]) => ({ value: code, label }))} />
+            options={[...sourceLanguages(), ...(sourceLanguages().some(([code]) => code === source.lang) ? [] : [[source.lang, source.lang]])].map(([code, label]) => ({ value: code, label }))} />
         </li>))}
       </ul>}
       {tag.external.length === 0 && mappings.length > 0 && <MapExternal name={name} busy={busy}
