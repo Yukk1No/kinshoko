@@ -9,13 +9,20 @@ import { gateImage, gatePins, gatePlan, gateSave } from "../ipc";
 import { deltaE2000, p3ToLab, patchMean, type Lab } from "./colour";
 import { Select } from "../ui/Select";
 import { PinGateSection, pinGateMarkdown, pinGatePassed } from "./pinGate";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../i18n/instance";
 
 /** 缩略图档位，与 Rust 门槛测试一致。 */
 const THUMB_PX = 128;
 const THRESHOLD = 1;
 const ALPHA_TOLERANCE = 0.02;
-/** 显示设置里开关类项目的填写选项。 */
-const DISPLAY_SWITCH = ["未填写", "开启", "关闭", "不支持"].map((value) => ({ value, label: value }));
+/** 显示设置里开关类项目的填写选项；报告里写它的文字。 */
+type DisplaySwitch = "unset" | "on" | "off" | "unsupported";
+const DISPLAY_SWITCH: DisplaySwitch[] = ["unset", "on", "off", "unsupported"];
+const t = i18n.getFixedT(null, "fidelity");
+const switchText = (value: string) => t(`switch.${value as DisplaySwitch}`);
+const sampleVerdict = (r: { error?: string | null; gated: boolean; passed: boolean }) =>
+  r.error ? t("error", { error: r.error }) : !r.gated ? t("recordOnly") : r.passed ? t("passed") : t("failed");
 
 interface PatchResult {
   /** display-p3 canvas 读回的平均编码值（0～1）：1:1 显示的图与缩略图。 */
@@ -60,13 +67,13 @@ async function decode(bytes: Uint8Array<ArrayBuffer>): Promise<{ image: ImageDat
   const blob = new Blob([bytes]);
   const bitmap = await createImageBitmap(blob).catch((e: unknown) => {
     const head = Array.from(bytes.subarray(0, 8), (b) => b.toString(16).padStart(2, "0")).join(" ");
-    throw new Error(`${String(e)}（${bytes.length} 字节，开头 ${head}）`);
+    throw new Error(`${String(e)} (${bytes.length} bytes, starting ${head})`);
   });
   const canvas = document.createElement("canvas");
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
   const ctx = canvas.getContext("2d", { colorSpace: "display-p3", willReadFrequently: true });
-  if (!ctx) throw new Error("无法建立 canvas");
+  if (!ctx) throw new Error("cannot create canvas");
   ctx.drawImage(bitmap, 0, 0);
   bitmap.close();
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height, { colorSpace: "display-p3" });
@@ -170,22 +177,22 @@ interface Manual {
 
 function markdown(plan: GatePlan, results: SampleResult[], pins: PinGate, env: object, manual: Manual, passed: boolean) {
   const lines = [
-    "# Kinshoko 还原度门槛实验报告",
+    t("report.title"),
     "",
-    `结论：${passed ? "通过" : "未通过"}（阈值 ΔE2000 < ${THRESHOLD}，为假设值；缩略图 ${THUMB_PX} px）`,
+    t("report.verdict", { verdict: t(passed ? "passed" : "failed"), threshold: THRESHOLD, px: THUMB_PX }),
     "",
-    "## 环境",
+    t("report.environment"),
     "",
-    `- Windows HDR：${manual.hdr}；自动色彩管理：${manual.autoColour}；显示器 ICC：${manual.monitorIcc || "未填写"}`,
-    `- 备注：${manual.remarks || "无"}`,
+    t("report.display", { hdr: switchText(manual.hdr), autoColour: switchText(manual.autoColour), icc: manual.monitorIcc || t("switch.unset") }),
+    t("report.remarks", { remarks: manual.remarks || t("report.none") }),
     "",
     "```json",
     JSON.stringify({ app: plan.environment, page: env }, null, 2),
     "```",
     "",
-    "## 样本",
+    t("report.samples"),
     "",
-    "| 样本 | 实验 | 1:1 显示 | 门槛 | 最大 ΔE2000（门槛） | 1:1 显示 vs 标称 | 缩略图 vs 标称 | WebView2 直接显示原图 vs 标称（只记录） | 结果 | SHA-256 |",
+    t("report.header"),
     "|---|---|---|---|---|---|---|---|---|---|",
   ];
   for (const r of results) {
@@ -194,10 +201,10 @@ function markdown(plan: GatePlan, results: SampleResult[], pins: PinGate, env: o
     const nominal = worst((p) => p.deltaENominal);
     const thumbNominal = worst((p) => p.deltaEThumbnailNominal);
     const direct = r.display === "sdrDerivative" ? worst((p) => p.direct?.deltaENominal ?? 0) : "—";
-    const route = r.display === "sdrDerivative" ? "派生图" : "原图";
-    const verdict = r.error ? `出错：${r.error}` : !r.gated ? "只记录" : r.passed ? "通过" : "未通过";
+    const route = r.display === "sdrDerivative" ? t("report.derivative") : t("report.original");
+    const verdict = sampleVerdict(r);
     lines.push(
-      `| ${r.fileName} | ${r.group} | ${route} | ${r.gated ? "是" : "否"} | ${r.maxDeltaE?.toFixed(2) ?? "—"} | ${nominal} | ${thumbNominal} | ${direct} | ${verdict} | \`${r.sha256.slice(0, 16)}…\` |`,
+      `| ${r.fileName} | ${r.group} | ${route} | ${t(r.gated ? "yes" : "no")} | ${r.maxDeltaE?.toFixed(2) ?? "—"} | ${nominal} | ${thumbNominal} | ${direct} | ${verdict} | \`${r.sha256.slice(0, 16)}…\` |`,
     );
   }
   lines.push("", ...pinGateMarkdown(pins));
@@ -205,13 +212,15 @@ function markdown(plan: GatePlan, results: SampleResult[], pins: PinGate, env: o
 }
 
 export function FidelityGate() {
+  const { t } = useTranslation("fidelity");
   const [plan, setPlan] = useState<GatePlan | null>(null);
   const [results, setResults] = useState<SampleResult[]>([]);
   const [pins, setPins] = useState<PinGate | null>(null);
   const [canvasSpace, setCanvasSpace] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
-  const [manual, setManual] = useState<Manual>({ hdr: "未填写", autoColour: "未填写", monitorIcc: "", remarks: "" });
+  const [manual, setManual] = useState<Manual>({ hdr: "unset", autoColour: "unset", monitorIcc: "", remarks: "" });
+  const switchOptions = DISPLAY_SWITCH.map((value) => ({ value, label: t(`switch.${value}`) }));
   const done = plan !== null && results.length === plan.items.length && pins !== null;
   const passed = done && results.every((r) => !r.gated || (r.passed && !r.error)) && pinGatePassed(pins);
 
@@ -279,54 +288,50 @@ export function FidelityGate() {
 
   return (
     <main className="gate">
-      <h1>还原度门槛实验</h1>
-      <p>
-        WebView2 分别解码应用在 1:1 时显示的图（原图，或动图、HDR、查找表型 ICC 与 CMYK 的原尺寸派生图）与缩略图，
-        在 display-p3 canvas 中读回色块，比较 ΔE2000（阈值 {THRESHOLD}，假设值）；显示派生图的样本还须与标称值相差 &lt; {THRESHOLD}。
-        直接显示原图时“1:1 显示 vs 标称”是 WebView2 自己的解释，只记录。
-      </p>
-      {error && <p role="alert">出错：{error}</p>}
-      {!plan && !error && <p>正在生成样本并导入……</p>}
+      <h1>{t("title")}</h1>
+      <p>{t("intro", { threshold: THRESHOLD })}</p>
+      {error && <p role="alert">{t("error", { error })}</p>}
+      {!plan && !error && <p>{t("preparing")}</p>}
       {plan && (
         <p>
-          {results.length}/{plan.items.length} 个样本
-          {canvasSpace && canvasSpace !== "display-p3" && `；注意：canvas 色彩空间为 ${canvasSpace}`}
-          {done && `；结论：${passed ? "通过" : "未通过"}`}
+          {t("progress", { done: results.length, total: plan.items.length })}
+          {canvasSpace && canvasSpace !== "display-p3" && t("canvasSpace", { space: canvasSpace })}
+          {done && t("verdict", { verdict: t(passed ? "passed" : "failed") })}
         </p>
       )}
       {done && !plan?.autoSave && (
         <fieldset className="gate-manual">
-          <legend>请对照 Windows 设置 → 系统 → 屏幕 填写</legend>
+          <legend>{t("manualLegend")}</legend>
           <div className="k-field">
             <span className="k-field-label">HDR</span>
-            <Select label="HDR" value={manual.hdr} options={DISPLAY_SWITCH} onChange={(hdr) => setManual({ ...manual, hdr })} />
+            <Select label="HDR" value={manual.hdr} options={switchOptions} onChange={(hdr) => setManual({ ...manual, hdr })} />
           </div>
           <div className="k-field">
-            <span className="k-field-label">自动色彩管理</span>
-            <Select label="自动色彩管理" value={manual.autoColour} options={DISPLAY_SWITCH} onChange={(autoColour) => setManual({ ...manual, autoColour })} />
+            <span className="k-field-label">{t("autoColour")}</span>
+            <Select label={t("autoColour")} value={manual.autoColour} options={switchOptions} onChange={(autoColour) => setManual({ ...manual, autoColour })} />
           </div>
           <label className="k-field">
-            <span className="k-field-label">显示器 ICC（颜色管理中的默认配置文件）</span>
+            <span className="k-field-label">{t("monitorIcc")}</span>
             <input className="k-input" value={manual.monitorIcc} onChange={(e) => setManual({ ...manual, monitorIcc: e.target.value })} />
           </label>
           <label className="k-field">
-            <span className="k-field-label">备注（例如肉眼看到的差异）</span>
+            <span className="k-field-label">{t("remarks")}</span>
             <input className="k-input" value={manual.remarks} onChange={(e) => setManual({ ...manual, remarks: e.target.value })} />
           </label>
           <button type="button" onClick={() => void save()}>
-            保存报告
+            {t("save")}
           </button>
         </fieldset>
       )}
-      {saved && <p>报告已保存：{saved}</p>}
+      {saved && <p>{t("saved", { path: saved })}</p>}
       <table className="gate-table">
         <thead>
           <tr>
-            <th>样本</th>
-            <th>1:1 显示</th>
-            <th>缩略图</th>
-            <th>最大 ΔE2000</th>
-            <th>结果</th>
+            <th>{t("column.sample")}</th>
+            <th>{t("column.shown")}</th>
+            <th>{t("column.thumbnail")}</th>
+            <th>{t("column.maxDeltaE")}</th>
+            <th>{t("column.result")}</th>
           </tr>
         </thead>
         <tbody>
@@ -345,7 +350,7 @@ export function FidelityGate() {
                 )}
               </td>
               <td>{r.maxDeltaE?.toFixed(2) ?? "—"}</td>
-              <td>{r.error ? `出错：${r.error}` : !r.gated ? "只记录" : r.passed ? "通过" : "未通过"}</td>
+              <td>{sampleVerdict(r)}</td>
             </tr>
           ))}
         </tbody>

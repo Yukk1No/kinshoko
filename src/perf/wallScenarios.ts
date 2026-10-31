@@ -13,12 +13,12 @@ export const PROBE_VERSION = 1;
 
 export const SCENARIOS = {
   "wheel-steady": {
-    description: "匀速滚轮：向下每秒 1000 像素，连续 10 秒",
+    description: "Steady wheel: down 1000 px per second for 10 seconds",
     durationMs: 10_000,
     pxPerSecond: 1000,
   },
   "wheel-burst": {
-    description: "快速连续滚动：每组 8 格（每格 100 像素、间隔 25 ms），组间停 175 ms，连续 10 秒",
+    description: "Rapid bursts: 8 notches per burst (100 px each, 25 ms apart), 175 ms between bursts, for 10 seconds",
     durationMs: 10_000,
     notchPx: 100,
     notchMs: 25,
@@ -26,7 +26,7 @@ export const SCENARIOS = {
     burstMs: 350,
   },
   "ctrl-wheel-zoom": {
-    description: "Ctrl+滚轮连续缩放一次：光标在图片墙中央，放大 10 格再缩小 10 格，每格间隔 50 ms",
+    description: "One Ctrl+wheel zoom: cursor at the wall center, 10 notches in then 10 out, 50 ms apart",
     notches: 10,
     notchMs: 50,
     /** 最后一格后继续记录：覆盖 220 ms 后的提交与按新尺寸重新取缩略图。 */
@@ -130,7 +130,7 @@ async function wait(env: ProbeEnv, ms: number) {
 
 function findWall(): HTMLElement {
   const wall = document.querySelector<HTMLElement>(".wall");
-  if (!wall) throw new Error("找不到图片墙（.wall）。先在主窗口打开资料库的“全部”范围。");
+  if (!wall) throw new Error("Image wall (.wall) not found. Open the library's All scope in the main window first.");
   return wall;
 }
 
@@ -210,7 +210,7 @@ async function runZoom(wall: HTMLElement, env: ProbeEnv, refreshMs: number): Pro
     if (driver === null) driver = ctrlWheel(wall, deltaY) ? "ctrl-wheel" : "density-slider";
     else if (driver === "ctrl-wheel") ctrlWheel(wall, deltaY);
     if (driver === "density-slider") {
-      if (!slider) throw new Error("图片墙没有处理 Ctrl+滚轮，也找不到图片大小滑条。");
+      if (!slider) throw new Error("The image wall did not handle Ctrl+wheel and no image size slider was found.");
       setSlider(slider, plan[i]);
     }
     await wait(env, s.notchMs);
@@ -244,7 +244,7 @@ export async function runWallScenarios(options: RunOptions = {}): Promise<WallPe
   const warnings: string[] = [];
   const totalAttr = wall.dataset.total;
   const total = totalAttr === undefined ? null : Number(totalAttr);
-  if (total === null || total < 5000) warnings.push(`当前范围只有 ${total ?? "未知"} 张，基线要求 5000 张的资料库。`);
+  if (total === null || total < 5000) warnings.push(`The current scope has only ${total ?? "unknown"} images; the baseline needs a 5000-image library.`);
   const slider = densityInput();
 
   // 空闲时校准显示器刷新间隔。

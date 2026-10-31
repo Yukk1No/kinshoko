@@ -1,0 +1,62 @@
+import type zh from "../zh-CN/fidelity";
+import type { Translation } from "../../translation";
+
+const fidelity: Translation<typeof zh> = {
+  passed: "Passed",
+  failed: "Failed",
+  recordOnly: "Recorded only",
+  error: "Error: {{error}}",
+  yes: "Yes",
+  no: "No",
+  switch: {
+    unset: "Not filled in",
+    on: "On",
+    off: "Off",
+    unsupported: "Not supported",
+  },
+  title: "Color fidelity gate",
+  intro: "WebView2 decodes both the image the app shows at 1:1 (the original, or a full-size derivative for animated, HDR, lookup-table ICC and CMYK images) and the thumbnail, reads patches back from a display-p3 canvas and compares ΔE2000 (threshold {{threshold}}, assumed). Samples shown via a derivative must also be within < {{threshold}} of their nominal values. When the original is shown directly, “1:1 vs nominal” is WebView2's own interpretation and is only recorded.",
+  preparing: "Generating and importing samples…",
+  progress: "{{done}}/{{total}} samples",
+  canvasSpace: "; note: canvas color space is {{space}}",
+  verdict: "; verdict: {{verdict}}",
+  manualLegend: "Fill in from Windows Settings → System → Display",
+  autoColour: "Auto color management",
+  monitorIcc: "Monitor ICC (default profile in Color Management)",
+  remarks: "Remarks (e.g. differences you can see)",
+  save: "Save report",
+  saved: "Report saved: {{path}}",
+  column: {
+    sample: "Sample",
+    shown: "1:1 display",
+    thumbnail: "Thumbnail",
+    maxDeltaE: "Max ΔE2000",
+    result: "Result",
+  },
+  pins: {
+    title: "Off-screen pin rendering vs production derivative",
+    drawing: "Drawing samples on the pin renderer…",
+    summary: "Adapter: {{adapter}}; display: {{display}}; verdict: {{verdict}}",
+    error: " (error: {{error}})",
+    worst: "Worst patch ΔE2000",
+    diff: "8-bit diff mean/p99/max",
+    diffValue: "{{mean}}/{{p99}}/{{max}}",
+  },
+  report: {
+    title: "# Kinshoko color fidelity gate report",
+    verdict: "Verdict: {{verdict}} (threshold ΔE2000 < {{threshold}}, assumed; thumbnail {{px}} px)",
+    environment: "## Environment",
+    display: "- Windows HDR: {{hdr}}; auto color management: {{autoColour}}; monitor ICC: {{icc}}",
+    remarks: "- Remarks: {{remarks}}",
+    none: "none",
+    samples: "## Samples",
+    header: "| Sample | Experiment | 1:1 display | Gated | Max ΔE2000 (gate) | 1:1 vs nominal | Thumbnail vs nominal | WebView2 original vs nominal (recorded only) | Result | SHA-256 |",
+    derivative: "derivative",
+    original: "original",
+    pinsTitle: "## Off-screen pin rendering vs production derivative",
+    pinsVerdict: "Verdict: {{verdict}}; adapter: {{adapter}}; display: {{display}}",
+    pinsHeader: "| Sample | Gated | Worst patch ΔE2000 | 8-bit diff mean/p99/max | Result |",
+  },
+};
+
+export default fidelity;
