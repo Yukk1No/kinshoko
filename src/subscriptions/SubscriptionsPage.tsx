@@ -4,8 +4,10 @@ import { ChevronDown, Clock, Info, LoaderCircle, LogOut, MoreHorizontal, PanelLe
 import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
-import { errorText, thumbnailUrl } from "../ipc";
+import { captureImage, useCaptureSources } from "../desktop/captureSources";
+import { errorText, onSafeModeSetting, thumbnailUrl } from "../ipc";
 import { subscriptionCheckNow, subscriptionMarkSeen, subscriptionRecent, subscriptions as listSubscriptions } from "../ipc/subscriptions";
+import { modalOpen } from "../ui/modal";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
@@ -34,10 +36,19 @@ function useNow(): number {
 function useSubscriptionData(status: SubscriptionStatus, safe: boolean, onError: (e: unknown) => void) {
   const [list, setList] = useState<Subscription[] | null>(null);
   const [recent, setRecent] = useState<ReceivedImage[]>([]);
-  /** 读到 `recent` 时的安全模式：后端按图库的有效分级去掉了成人作品，前端只知道来源的标记。 */
-  const [recentSafe, setRecentSafe] = useState(safe);
-  const safeRef = useRef(safe);
-  safeRef.current = safe;
+  /**
+   * 安全模式设置（开关或范围）每变一次加一。范围收紧时 `safe` 不变，已显示的缩略图不会再经后端核对，
+   * 所以按这个数判断 `recent` 是不是按现在的视角读的。
+   */
+  const [lens, setLens] = useState(0);
+  useEffect(() => {
+    const stop = onSafeModeSetting(() => setLens((n) => n + 1));
+    return () => { void stop.then((stop) => stop()); };
+  }, []);
+  /** 读到 `recent` 时的视角：后端按图库的有效分级去掉了成人作品，前端只知道来源的标记。 */
+  const [recentLens, setRecentLens] = useState({ safe, lens });
+  const lensRef = useRef({ safe, lens });
+  lensRef.current = { safe, lens };
   const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set());
   const signedIn = status.login.state !== "loggedOut";
   const errors = useRef(onError);
@@ -45,21 +56,23 @@ function useSubscriptionData(status: SubscriptionStatus, safe: boolean, onError:
   useEffect(() => {
     if (!signedIn) { setList([]); setRecent([]); return; }
     let alive = true;
-    const under = safeRef.current;
+    const under = lensRef.current;
     listSubscriptions().then((next) => alive && setList(next), (e) => { if (alive) { setList([]); errors.current(e); } });
-    // 把这次的视角交给后端：后端按它与设置里的安全模式中更严的一个过滤，标成 `under` 不会放宽。
-    subscriptionRecent(under).then((next) => {
+    // 把这次的视角交给后端：后端按它与设置里的安全模式中更严的一个过滤，标成 `under.safe` 不会放宽。
+    subscriptionRecent(under.safe).then((next) => {
       if (!alive) return;
       setRecent(next);
-      setRecentSafe(under);
+      setRecentLens(under);
       const arrived = next.filter((image) => image.new);
       if (arrived.length === 0) return;
       setFresh((seen) => new Set([...seen, ...arrived.map(imageKey)]));
       void subscriptionMarkSeen().catch(() => {});
     }, (e) => { if (alive) errors.current(e); });
     return () => { alive = false; };
-  }, [status, signedIn, safe]);
-  return { list, recent, fresh, recentSafe };
+  }, [status, signedIn, safe, lens]);
+  /** 安全模式开着，而 `recent` 不是按现在的开关与范围读的。 */
+  const stale = safe && (!recentLens.safe || recentLens.lens !== lens);
+  return { list, recent, fresh, stale };
 }
 
 const imageKey = (image: ReceivedImage) => `${image.libraryId}/${image.imageId}`;
@@ -85,10 +98,10 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   const report = (message: string) => { if (toast) toast.error(message); };
   const onError = (e: unknown) => report(errorText(e));
   const now = useNow();
-  const { list, recent, fresh, recentSafe } = useSubscriptionData(status, safe, onError);
-  // 安全模式刚打开、还没按图库的有效分级重读（后端推送状态后就重读）：先一张都不显示，
-  // 免得画师在图库里改成成人的图在这期间露出来。
-  const veiled = safe && !recentSafe;
+  const { list, recent, fresh, stale } = useSubscriptionData(status, safe, onError);
+  // 安全模式刚打开或范围刚收紧、还没按新视角重读：先一张都不显示，免得画师在图库里改成成人的图
+  // 在这期间露出来；重读失败也一直不显示。
+  const veiled = stale;
   const [selected, setSelected] = useState<string | null>(null);
   const [failedTiles, setFailedTiles] = useState<ReadonlySet<string>>(new Set());
   // 缩略图读不出来可能只是暂时的（例如安全模式下被分级挡住）：换了安全模式或重读后再试。
@@ -113,6 +126,20 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
     for (const image of images) if (fresh.has(imageKey(image))) counts.set(image.subscriptionId, (counts.get(image.subscriptionId) ?? 0) + 1);
     return counts;
   }, [images, fresh]);
+
+  const wall = useRef<HTMLDivElement | null>(null);
+  // 截图时登记看得见的缩略图，钉出来的是图库原图的裁切（与图片墙同一条路）。图库藏在后面时它的来源为空，
+  // 所以优先级要高过图片墙。
+  useCaptureSources(() => {
+    if (!wall.current || modalOpen()) return null;
+    return [...wall.current.querySelectorAll<HTMLImageElement>(".subs-tile img")].flatMap((image) => {
+      const tile = image.closest<HTMLElement>(".subs-tile")!;
+      const { libraryId, imageId } = tile.dataset;
+      if (!libraryId || !imageId) return [];
+      const reference = captureImage(image, wall.current!, libraryId, imageId, image.naturalWidth, image.naturalHeight);
+      return reference ? [reference] : [];
+    });
+  }, 20);
 
   const hasList = account !== null && visible.length > 0;
   const check = checkView(status, visible, now);
@@ -205,7 +232,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
         <span className="subs-banner-text" title={t("expired.tip")}>{t("expired.banner")}</span>
         <button type="button" className="k-btn is-primary" onClick={actions.signIn}><span className="k-label">{t("account.signInAgain")}</span></button>
       </div>}
-      {hasList ? <div className="subs-wall">
+      {hasList ? <div className="subs-wall" ref={wall}>
         {shown.length === 0 && !veiled && <p className="subs-none">{t("recent.none")}</p>}
         {freshImages.length > 0 && <section aria-label={t("recent.fresh")}>
           <h2 className="subs-section">{t("recent.fresh")}<span className="subs-section-count tabular">{freshImages.length}</span></h2>
@@ -250,7 +277,7 @@ function Tiles({ images, label, onOpen, onFail }: {
 }) {
   return <ul className="subs-tiles">
     {images.map((image) => <li key={imageKey(image)}>
-      <button type="button" className="subs-tile" aria-label={label} title={label} onClick={() => onOpen(image.libraryId, image.imageId)}>
+      <button type="button" className="subs-tile" data-library-id={image.libraryId} data-image-id={image.imageId} aria-label={label} title={label} onClick={() => onOpen(image.libraryId, image.imageId)}>
         <img src={thumbnailUrl(`${image.libraryId}/${image.imageId}/${TILE_PX}`)} alt="" decoding="async" draggable={false}
           onError={() => onFail(imageKey(image))} />
       </button>
