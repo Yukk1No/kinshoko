@@ -341,7 +341,8 @@ pub async fn subscriptions(app: AppHandle) -> Result<Vec<Subscription>, CommandE
     require(&app)?.store.list().map_err(CommandError::system)
 }
 
-/// 最近收进来的图。安全模式开着时不含成人作品。
+/// 最近收进来的图。安全模式开着时不含成人作品：来源标为成人的，以及在图库里按有效分级
+/// 落在安全模式范围内的（例如收进来以后画师手动改了分级），与缩略图的放行规则一致。
 #[tauri::command]
 pub async fn subscription_recent(app: AppHandle) -> Result<Vec<ReceivedImage>, CommandError> {
     let state = require(&app)?;
@@ -350,10 +351,19 @@ pub async fn subscription_recent(app: AppHandle) -> Result<Vec<ReceivedImage>, C
         .store
         .recent(RECENT_LIMIT)
         .map_err(CommandError::system)?;
-    Ok(recent
-        .into_iter()
-        .filter(|r| !safe || !r.explicit)
-        .collect())
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        recent
+            .into_iter()
+            .filter(|r| {
+                !safe
+                    || (!r.explicit
+                        && crate::library::image_shown(&app, &r.library_id, &r.image_id))
+            })
+            .collect()
+    })
+    .await
+    .map_err(CommandError::system)
 }
 
 /// 画师打开了订阅页：新图标为已看，入口与托盘上的数量清零。

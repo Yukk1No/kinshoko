@@ -97,9 +97,13 @@ describe("订阅页", () => {
     const view = page(status(), { kinds });
     await waitFor(() => expect(tiles()).toHaveLength(5));
     view.setSafe(true);
-    // 不等后端重读：这次渲染里就不见了。
-    expect(tiles()).toHaveLength(2);
+    // 不等后端重读：这次渲染里就不见了。图库里改过分级的图前端不知道，后端按新的安全模式重读之前一张都不显示。
+    expect(tiles()).toHaveLength(0);
     expect(screen.queryByRole("button", { name: /日榜/ })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/R-?18/i);
+    // 后端推送状态，按安全模式重读之后：来源标为成人的仍不显示。
+    await act(async () => { view.rerender(<SubscriptionsPage {...view.props} status={status({ newCount: 1 })} safe />); });
+    await waitFor(() => expect(tiles()).toHaveLength(2));
     expect(screen.queryByRole("region", { name: "榜单" })).toBeNull();
     expect(document.body.textContent).not.toMatch(/R-?18/i);
     view.setSafe(false);

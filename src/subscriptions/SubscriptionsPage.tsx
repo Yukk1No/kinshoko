@@ -32,9 +32,13 @@ function useNow(): number {
  * 订阅名单与最近收进来的图，跟着订阅状态推送重读。订阅页开着时把新图标为已看（入口与托盘清零），
  * 这次打开期间收到的仍排在“新收到”里，离开订阅页才归入“之前”。
  */
-function useSubscriptionData(status: SubscriptionStatus, onError: (e: unknown) => void) {
+function useSubscriptionData(status: SubscriptionStatus, safe: boolean, onError: (e: unknown) => void) {
   const [list, setList] = useState<Subscription[] | null>(null);
   const [recent, setRecent] = useState<ReceivedImage[]>([]);
+  /** 读到 `recent` 时的安全模式：后端按图库的有效分级去掉了成人作品，前端只知道来源的标记。 */
+  const [recentSafe, setRecentSafe] = useState(safe);
+  const safeRef = useRef(safe);
+  safeRef.current = safe;
   const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set());
   const signedIn = status.login.state !== "loggedOut";
   const errors = useRef(onError);
@@ -42,10 +46,12 @@ function useSubscriptionData(status: SubscriptionStatus, onError: (e: unknown) =
   useEffect(() => {
     if (!signedIn) { setList([]); setRecent([]); return; }
     let alive = true;
+    const under = safeRef.current;
     listSubscriptions().then((next) => alive && setList(next), (e) => { if (alive) { setList([]); errors.current(e); } });
     subscriptionRecent().then((next) => {
       if (!alive) return;
       setRecent(next);
+      setRecentSafe(under);
       const arrived = next.filter((image) => image.new);
       if (arrived.length === 0) return;
       setFresh((seen) => new Set([...seen, ...arrived.map(imageKey)]));
@@ -53,7 +59,7 @@ function useSubscriptionData(status: SubscriptionStatus, onError: (e: unknown) =
     }, (e) => { if (alive) errors.current(e); });
     return () => { alive = false; };
   }, [status, signedIn]);
-  return { list, recent, fresh };
+  return { list, recent, fresh, recentSafe };
 }
 
 const imageKey = (image: ReceivedImage) => `${image.libraryId}/${image.imageId}`;
@@ -79,7 +85,10 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   const report = (message: string) => { if (toast) toast.error(message); };
   const onError = (e: unknown) => report(errorText(e));
   const now = useNow();
-  const { list, recent, fresh } = useSubscriptionData(status, onError);
+  const { list, recent, fresh, recentSafe } = useSubscriptionData(status, safe, onError);
+  // 安全模式刚打开、还没按图库的有效分级重读（后端推送状态后就重读）：先一张都不显示，
+  // 免得画师在图库里改成成人的图在这期间露出来。
+  const veiled = safe && !recentSafe;
   const [selected, setSelected] = useState<string | null>(null);
   const [failedTiles, setFailedTiles] = useState<ReadonlySet<string>>(new Set());
   // 缩略图读不出来可能只是暂时的（例如安全模式下被分级挡住）：换了安全模式或重读后再试。
@@ -95,7 +104,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   const visible = useMemo(() => (list ?? []).filter((s) => !safe || !hiddenWhenSafe(s, kinds)), [list, safe, kinds]);
   const visibleIds = useMemo(() => new Set(visible.map((s) => s.id)), [visible]);
   useEffect(() => { if (selected !== null && !visibleIds.has(selected)) setSelected(null); }, [selected, visibleIds]);
-  const images = recent.filter((image) => (!safe || !image.explicit) && visibleIds.has(image.subscriptionId) && !failedTiles.has(imageKey(image)));
+  const images = veiled ? [] : recent.filter((image) => (!safe || !image.explicit) && visibleIds.has(image.subscriptionId) && !failedTiles.has(imageKey(image)));
   const shown = selected === null ? images : images.filter((image) => image.subscriptionId === selected);
   const freshImages = shown.filter((image) => fresh.has(imageKey(image)));
   const earlier = shown.filter((image) => !fresh.has(imageKey(image)));
@@ -200,7 +209,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
         <button type="button" className="k-btn is-primary" onClick={actions.signIn}><span className="k-label">{t("account.signInAgain")}</span></button>
       </div>}
       {hasList ? <div className="subs-wall">
-        {shown.length === 0 && <p className="subs-none">{t("recent.none")}</p>}
+        {shown.length === 0 && !veiled && <p className="subs-none">{t("recent.none")}</p>}
         {freshImages.length > 0 && <section aria-label={t("recent.fresh")}>
           <h2 className="subs-section">{t("recent.fresh")}<span className="subs-section-count tabular">{freshImages.length}</span></h2>
           <Tiles images={freshImages} label={t("recent.open")} onOpen={onOpenImage} onFail={(key) => setFailedTiles((s) => new Set([...s, key]))} />
