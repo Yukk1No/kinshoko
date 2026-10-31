@@ -96,7 +96,12 @@ const theme = (name) => session.exec("document.documentElement.dataset.theme = a
 const escape = () => session.exec("(document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;");
 const closeToasts = () => session.exec("document.querySelectorAll('.k-toast-close').forEach(b => b.click()); return true;");
 const toggleSafe = async () => { await session.exec("window.dispatchEvent(new KeyboardEvent('keydown', { key: 'S', ctrlKey: true, shiftKey: true, bubbles: true })); return true;"); await delay(1500); };
-const openSubscriptions = async () => { await session.click("//nav//button[@aria-label='订阅']"); await settle(); };
+/** 把鼠标移到主区空白处，图标轨的提示不挡画面。 */
+const park = () => wd("POST", `${session.base}/actions`, { actions: [{ type: "pointer", id: "mouse", parameters: { pointerType: "mouse" }, actions: [{ type: "pointerMove", origin: "viewport", x: 900, y: 860 }] }] });
+const openSubscriptions = async () => {
+  await session.click("//nav//button[@aria-label='订阅']");
+  await session.exec("document.activeElement?.blur(); return true;"); await park(); await settle(); await closeToasts();
+};
 const openSettingsTab = async () => {
   await session.click("//nav//button[@aria-label='设置']"); await settle();
   await session.click("//*[@role='tab' and contains(., '订阅')]"); await settle();
