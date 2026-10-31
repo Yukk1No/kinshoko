@@ -1,4 +1,5 @@
 import { SaveDestinationDialog } from "./SaveDestination";
+import { useTranslation } from "react-i18next";
 import { errorText, workspaceCopySource } from "../ipc";
 import { useEffect, useRef, useState } from "react";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
@@ -20,6 +21,7 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
   card: WorkspaceCard; source: WorkspaceSource; safe: boolean; reloadKey: number; registrations?: LibraryRegistration[];
   onSource: (source: WorkspaceSource) => void; onClose: () => void; onChanged?: () => void;
 }) {
+  const { t } = useTranslation("inspector", { keyPrefix: "source" });
   const path = (id: string) => registrations.find((r) => r.library.id === id)?.library.root;
   const hint = (id: string) => path(id) ? libraryPathHint(path(id)!, registrations.map((r) => r.library.root)) : id;
   const target: WorkspaceSourceTarget = { libraryId: source.libraryId, imageId: source.imageId, contentId: card.id };
@@ -60,23 +62,23 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
       // The action's own change often reloads the source before it replies; it still ends this action (#98 native r18).
       .finally(() => setBusy(false));
   };
-  return <div className="workspace-source-editor" aria-label="整理来源" title={source.libraryId + "/" + source.imageId}>
-    <p className="insp-hint">只整理「{source.libraryName}」的这份来源，其他图库的整理保持独立。</p>
+  return <div className="workspace-source-editor" aria-label={t("label")} title={source.libraryId + "/" + source.imageId}>
+    <p className="insp-hint">{t("only", { library: source.libraryName })}</p>
     {path(source.libraryId) && <p className="workspace-source-path" title={path(source.libraryId)}>{hint(source.libraryId)}</p>}
     {problem && <p className="insp-problem" role="alert">{problem}</p>}
     {notice && <p className="insp-notice" role="status">{notice}</p>}
-    {!available && !problem && <p className="insp-hint" role="status">正在读取该来源…</p>}
+    {!available && !problem && <p className="insp-hint" role="status">{t("loading")}</p>}
     {available && <>
       <SelectionPanel key={JSON.stringify(target)} sourceTarget={target} libraryId={source.libraryId}
         inspection={{ value: ready.value, stale: ready.key !== key, reload: () => setRefresh((n) => n + 1) }}
         selected={new Set([source.imageId])} scope={{ kind: ready.value.detail.deletedAt !== null ? "trash" : "all" }}
         safeMode={safe} reloadKey={reloadKey} generation={reloadKey} onError={(e) => setProblem(errorText(e))}
         onClear={onClose} onSourceChanged={onChanged} />
-      <fieldset className="insp-use" disabled={busy}><legend>使用此来源</legend>
+      <fieldset className="insp-use" disabled={busy}><legend>{t("use")}</legend>
         <div className="insp-use-row">
-          <div className="k-field"><span className="k-field-label">加入哪个参考组</span><Select label="加入哪个参考组" value={groupId} onChange={setGroupId} disabled={busy}
-            options={[{ value: "", label: "新建参考组" }, ...groups.filter((g) => !g.problem).map((g) => ({ value: g.id, label: g.name }))]} /></div>
-          {!groupId && <label className="k-field"><span className="k-field-label">新参考组名称</span><input className="k-input" aria-label="新参考组名称" value={name} onChange={(event) => setName(event.target.value)} /></label>}
+          <div className="k-field"><span className="k-field-label">{t("group")}</span><Select label={t("group")} value={groupId} onChange={setGroupId} disabled={busy}
+            options={[{ value: "", label: t("newGroup") }, ...groups.filter((g) => !g.problem).map((g) => ({ value: g.id, label: g.name }))]} /></div>
+          {!groupId && <label className="k-field"><span className="k-field-label">{t("newGroupName")}</span><input className="k-input" aria-label={t("newGroupName")} value={name} onChange={(event) => setName(event.target.value)} /></label>}
         </div>
         <div className="insp-foot">
           <button type="button" className="k-btn" onClick={(event) => {
@@ -87,18 +89,18 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
             run(() => pinReference(source.libraryId, source.imageId, null, {
               x: Math.round(rect.left * dpr), y: Math.round(rect.top * dpr),
               width: Math.round(200 * pinDpr), height: Math.round(200 * card.height / card.width * pinDpr),
-            }), `已钉住「${source.libraryName}」的原图`);
-          }}><Pin size={14} aria-hidden="true" /><span className="k-label">钉住</span></button>
+            }), t("pinned", { library: source.libraryName }));
+          }}><Pin size={14} aria-hidden="true" /><span className="k-label">{t("pin")}</span></button>
           <button type="button" className="k-btn" disabled={!groupId && !name.trim()} onClick={() => run(
             () => workspaceSourceGroup(target, safe, groupId ? { groupId } : { name: name.trim() }),
-            `已将「${source.libraryName}」的此来源加入参考组`,
-          )}><Layers size={14} aria-hidden="true" /><span className="k-label">加入组</span></button>
-          <button type="button" className="k-btn" onClick={()=>setCopying(true)}><Copy size={14} aria-hidden="true" /><span className="k-label">复制到…</span></button>
+            t("added", { library: source.libraryName }),
+          )}><Layers size={14} aria-hidden="true" /><span className="k-label">{t("addToGroup")}</span></button>
+          <button type="button" className="k-btn" onClick={()=>setCopying(true)}><Copy size={14} aria-hidden="true" /><span className="k-label">{t("copyTo")}</span></button>
         </div>
       </fieldset>
     </>}
-    {copying&&<SaveDestinationDialog title="复制此来源" confirmLabel="确认复制" onClose={()=>setCopying(false)} onConfirm={async destination=>{
-      await workspaceCopySource(target,destination,safe);if(current.current===key){setNotice("已复制此来源，目标已有人工整理保持不变");onChanged?.();}
+    {copying&&<SaveDestinationDialog title={t("copyTitle")} confirmLabel={t("copyConfirm")} onClose={()=>setCopying(false)} onConfirm={async destination=>{
+      await workspaceCopySource(target,destination,safe);if(current.current===key){setNotice(t("copied"));onChanged?.();}
     }}/>}
   </div>;
 }

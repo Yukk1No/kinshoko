@@ -1,4 +1,5 @@
 import type { TagDisplay } from "../bindings/TagDisplay";
+import { i18n } from "../i18n/instance";
 import type { TagOrigin } from "../bindings/TagOrigin";
 
 /** 模型标签的可信度档位（#160）：高档深底，中档常规底，低档字变浅。 */
@@ -53,20 +54,19 @@ export function tagStanding(origins: TagOrigin[]): TagStanding {
   return { kind: "model", score: scores.length ? Math.max(...scores) : null };
 }
 
-const BAND_WORD: Record<ConfidenceBand, string> = { high: "高", mid: "中", low: "低" };
 
 /** 浮层里一个出处的说明，例如“来源：打标模型 · 可信度 87%（高）”。 */
 export function originLine(origin: TagOrigin, thresholds: ConfidenceThresholds): string {
-  if (origin.kind === "manual") return "来源：你添加的";
-  if (origin.kind === "conflict") return "来源：合并时的决定冲突，暂按添加处理";
+  if (origin.kind === "manual") return i18n.t("tags:origin.manual");
+  if (origin.kind === "conflict") return i18n.t("tags:origin.conflict");
   const { source, score } = origin;
   if (isModel(origin)) {
     return score === null
-      ? "自动标签"
-      : `自动标签，可信度 ${confidencePercent(score)}%（${BAND_WORD[confidenceBand(score, thresholds)]}）`;
+      ? i18n.t("tags:origin.model")
+      : i18n.t("tags:origin.modelScore", { percent: confidencePercent(score), band: i18n.t(`tags:origin.band.${confidenceBand(score, thresholds)}`) });
   }
-  if (source.startsWith("eagle:")) return "来源：从 Eagle 导入";
-  if (source.startsWith("package:")) return "来源：参考组包";
-  if (source === "restore") return "来源：备份";
-  return "来源：导入";
+  if (source.startsWith("eagle:")) return i18n.t("tags:origin.eagle");
+  if (source.startsWith("package:")) return i18n.t("tags:origin.package");
+  if (source === "restore") return i18n.t("tags:origin.restore");
+  return i18n.t("tags:origin.imported");
 }

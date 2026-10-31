@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Popover } from "@base-ui/react/popover";
+import { useTranslation } from "react-i18next";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagOrigin } from "../bindings/TagOrigin";
 import { TagMarks, tagName, untranslatedHint } from "../search/SearchBox";
@@ -15,8 +16,9 @@ export function chipBand(origins: TagOrigin[], thresholds: ConfidenceThresholds)
 
 /** 可信度刻度条（C）：底边一条细线，长度等于可信度。 */
 export function ConfidenceMeter({ score }: { score: number }) {
+  const { t } = useTranslation("tags");
   const percent = confidencePercent(score);
-  return <span className="k-tag-meter" role="meter" aria-label="可信度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}
+  return <span className="k-tag-meter" role="meter" aria-label={t("origin.confidence")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}
     style={{ width: `${percent}%` }} />;
 }
 
@@ -39,6 +41,7 @@ type Props = {
  * 悬停前后标签尺寸不变（#159）。
  */
 export function TagChip({ tag, origins, notes = [], actions, meter = false, rename }: Props) {
+  const { t } = useTranslation("tags");
   const display = useTagDisplay();
   const [open, setOpen] = useState(false);
   // 改名框开着时不出出处浮层，两个浮层不叠在一起。
@@ -59,7 +62,7 @@ export function TagChip({ tag, origins, notes = [], actions, meter = false, rena
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={6}>
-          <Popover.Popup className="k-tip k-tag-tip" aria-label={`“${name}”的出处`} initialFocus={false} finalFocus={false}>
+          <Popover.Popup className="k-tip k-tag-tip" aria-label={t("origin.label", { name })} initialFocus={false} finalFocus={false}>
             {lines.map((line) => <span key={line} className="k-tag-tip-line">{line}</span>)}
             {notes.map((note) => <span key={note} className="k-tag-tip-line is-dim">{note}</span>)}
             <span className="k-tag-tip-acts">{actions}</span>
