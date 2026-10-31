@@ -1,4 +1,5 @@
 import { PanelLeftClose } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
@@ -33,20 +34,21 @@ export function WorkspaceSidebar({
 }) {
   useFloatEscape(!!floating, onPaneToggle);
   const libInPane = paneOpen && section === "browse";
-  const sectionName = section === "groups" ? "参考组" : "截图";
+  const { t } = useTranslation("workspace");
+  const sectionName = section === "groups" ? t("pane.groups") : t("pane.captures");
   return (
     <aside
       className="sidebar-slot pane"
       data-collapsed={!paneOpen}
       data-float={floating || undefined}
-      aria-label={section === "browse" ? "文件夹" : section === "groups" ? "参考组" : "截图历史"}
+      aria-label={section === "browse" ? t("pane.folders") : section === "groups" ? t("pane.groups") : t("pane.capturesLabel")}
       aria-hidden={!paneOpen}
       inert={!paneOpen}
     >
       <header className="pane-head" data-tauri-drag-region>
         {section === "browse" ? <div className="pane-library">{libInPane && libraryControls}</div>
           : <h1 className="pane-title">{sectionName}</h1>}
-        <button type="button" className="k-icon-btn" aria-label="收起侧栏" title="收起侧栏 Ctrl B" onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button>
+        <button type="button" className="k-icon-btn" aria-label={t("collapsePane")} title={t("collapsePaneTitle")} onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button>
       </header>
       <div className="pane-body" hidden={section !== "browse"}>
       <WorkspacePane status={status} scope={workspaceScope} safeMode={safe}

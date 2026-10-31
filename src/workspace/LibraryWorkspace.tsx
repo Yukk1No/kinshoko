@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { PanelLeftOpen } from "lucide-react";
 import { useImportShortcut } from "./useImportShortcut";
 import type { BrowseScope } from "../bindings/BrowseScope";
@@ -91,6 +92,7 @@ export function LibraryWorkspace({
   onLibraryRemoved,
   onOpenTaggingSettings,
 }: WorkspaceProps) {
+  const { t } = useTranslation("workspace");
   const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
   keepSelectionOnSafeRef.current = keepSelectionOnSafe;
   const toast = useToast();
@@ -122,7 +124,7 @@ export function LibraryWorkspace({
     const { libraryId: from, imageId } = referenceRequest;
     referenceCard(from, imageId, safe).then(
       (card) => { if (!alive) return; setSources(null); setViewCrop(false); setViewing(card); },
-      (e) => { if (alive) toast?.error(`无法打开这张参考图：${String(e)}`); },
+      (e) => { if (alive) toast?.error(t("openFailed", { error: String(e) })); },
     );
     return () => { alive = false; };
   }, [referenceRequest]);
@@ -219,7 +221,7 @@ export function LibraryWorkspace({
           }} />
         <main className="app-main main">
           <header className="topbar" data-tauri-drag-region>
-            {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label="展开侧栏" title="展开侧栏 Ctrl B"><PanelLeftOpen size={16} aria-hidden="true" /></button>}
+            {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={t("expandPane")} title={t("expandPaneTitle")}><PanelLeftOpen size={16} aria-hidden="true" /></button>}
           <SearchBox
             workspace
             libraryId="workspace"
@@ -235,7 +237,7 @@ export function LibraryWorkspace({
             }}
           />
           <div className="bar-meta">
-            <span className="result-count tabular k-label" role="status" aria-label="查找结果">{resultCount === null ? "…" : resultCount + " 张"}</span>
+            <span className="result-count tabular k-label" role="status" aria-label={t("results")}>{resultCount === null ? "…" : t("resultCount", { count: resultCount })}</span>
           </div>
           <ImportMenu control={importControl} scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
             running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
@@ -267,7 +269,7 @@ export function LibraryWorkspace({
             <p className="app-problem" role="alert">
               {problem}
               <button type="button" onClick={() => setProblem(null)}>
-                知道了
+                {t("gotIt")}
               </button>
             </p>
           )}
@@ -297,7 +299,7 @@ export function LibraryWorkspace({
             onCardCommand={(command, cards, point) => {
               if (command === "pin") wallActions.pin(cards, point);
               else if (command === "crop") wallActions.crop(cards[0]);
-              else if (command === "copy") { if (cards.length === 1) wallActions.copy(cards[0]); else if (toast) toast.show({ title: "一次只能复制一张" }); else onError("一次只能复制一张"); }
+              else if (command === "copy") { if (cards.length === 1) wallActions.copy(cards[0]); else if (toast) toast.show({ title: t("copyOneOnly") }); else onError(t("copyOneOnly")); }
               else wallActions.edit(cards, [{ kind: "delete" }], true);
             }}
             onPaste={wallActions.importClipboard}

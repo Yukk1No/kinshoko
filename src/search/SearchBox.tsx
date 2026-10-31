@@ -12,6 +12,7 @@ import type { Term } from "../bindings/Term";
 import type { TermInput } from "../bindings/TermInput";
 import { Popover } from "@base-ui/react/popover";
 import { Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Combobox, Highlight, type ComboboxOption } from "../ui/Combobox";
 import { ExactToggle } from "./ExactToggle";
 import { tagOption } from "./tagOptions";
@@ -21,7 +22,7 @@ import { TermView } from "./TermView";
 import { useUiLang } from "../i18n";
 import { ratingCandidates, searchCandidates, workspaceCandidates, workspaceSourceCandidates, setTagApprox, editSharedApprox } from "../ipc";
 
-export { TagMarks, tagName, UNTRANSLATED_HINT } from "./tagLabel";
+export { TagMarks, tagName, untranslatedHint } from "./tagLabel";
 
 export const LIMIT = 8;
 
@@ -136,6 +137,7 @@ type Props = {
  * （记进个人近似对应表）；“＋”从可见标签里挑一个加为相近；“精确查找”一键不展开。
  */
 export function SearchBox({ libraryId, safe, generation, input, tree, showSource, onChange, onError, workspace = false }: Props) {
+  const { t } = useTranslation("search");
   const [text, setText] = useState("");
   const [dismissing, setDismissing] = useState<(Place & { similar: SimilarTag; lens: string }) | null>(null);
   const [adding, setAdding] = useState<{ tag: TagLabel; lens: string } | null>(null);
@@ -165,10 +167,10 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   const query = text.trim();
   const rows: (ComboboxOption & { term: TermInput })[] = query
     ? [
-        { id: "text", icon: <Search size={14} />, label: `查找“${query}”`, term: { kind: "text", text: query, dismissed: [] } },
+        { id: "text", icon: <Search size={14} />, label: t("findText", { text: query }), term: { kind: "text", text: query, dismissed: [] } },
         ...ratings.map((r) => ({
           id: `rating-${r.rating.ratings.join("-")}`, label: <RatingName rating={r.rating} />,
-          via: r.via ? <>又名 <Highlight text={r.via} query={query} /></> : undefined,
+          via: r.via ? <>{t("ratingVia")} <Highlight text={r.via} query={query} /></> : undefined,
           term: { kind: "rating" as const, ratings: r.rating.ratings },
         })),
         ...candidates.map((c) => ({ ...tagOption(c, query), term: { kind: "tag" as const, id: c.tag.id, dismissed: [] } })),
@@ -233,17 +235,17 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
    */
   const chip = (c: SearchInput["conditions"][number], i: number, collapsed = false, last = false) => {
     const resolved: Condition | undefined = tree?.conditions[i];
-    const terms = c.any.map((t, j) => ({ input: t, place: j, term: resolved && resolvedTerm(resolved, t) }));
-    const visible = resolved ? terms.filter((t) => t.term) : terms;
+    const terms = c.any.map((input, j) => ({ input, place: j, term: resolved && resolvedTerm(resolved, input) }));
+    const visible = resolved ? terms.filter((x) => x.term) : terms;
     return (
       <li key={i} className="search-chip" data-negate={c.negate || undefined} data-collapsed={collapsed || undefined} aria-hidden={collapsed || undefined} inert={collapsed || undefined}>
-        {c.negate && <span className="search-chip-not">不要</span>}
+        {c.negate && <span className="search-chip-not">{t("not")}</span>}
         {visible.length === 0 ? (
-          <span className="search-chip-missing">已删除的标签</span>
+          <span className="search-chip-missing">{t("missingTag")}</span>
         ) : (
-          visible.map(({ input: t, place, term }, k) => (
+          visible.map(({ input, place, term }, k) => (
             <span key={place} className="search-term">
-              {k > 0 && <span className="search-chip-or"> 或 </span>}
+              {k > 0 && <span className="search-chip-or">{t("or")}</span>}
               {term ? (
                 <TermView
                   term={term}
@@ -252,20 +254,20 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
                   onAdd={(to) => setAdding({ tag: to, lens: context })}
                 />
               ) : (
-                <span>{inputLabel(t)}</span>
+                <span>{inputLabel(input)}</span>
               )}
             </span>
           ))
         )}
         <button
           type="button"
-          aria-label={c.negate ? "不再排除这个条件" : "排除这个条件"}
+          aria-label={c.negate ? t("include") : t("exclude")}
           aria-pressed={c.negate}
           onClick={() => toggle(i)}
         >
           ⊘
         </button>
-        <button type="button" aria-label="去掉这个条件" onClick={() => { remove(i); if (last) field.current?.focus(); }}>
+        <button type="button" aria-label={t("remove")} onClick={() => { remove(i); if (last) field.current?.focus(); }}>
           ×
         </button>
       </li>
@@ -275,14 +277,14 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   const hiddenCount = Math.max(input.conditions.length - fit, 0);
   return (
     <div className="search" ref={root}>
-      <ul className="search-chips" aria-label="查找条件">
+      <ul className="search-chips" aria-label={t("conditions")}>
         {hiddenCount > 0 && (
           <li className="search-more">
             <Popover.Root>
-              <Popover.Trigger className="search-more-btn" aria-label={`还有 ${hiddenCount} 个条件`}>+{hiddenCount}</Popover.Trigger>
+              <Popover.Trigger className="search-more-btn" aria-label={t("hiddenConditions", { count: hiddenCount })}>+{hiddenCount}</Popover.Trigger>
               <Popover.Portal>
                 <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={8}>
-                  <Popover.Popup className="k-popup search-more-pop" aria-label="收起的查找条件">
+                  <Popover.Popup className="k-popup search-more-pop" aria-label={t("collapsedConditions")}>
                     <ul className="search-chips">{input.conditions.slice(0, hiddenCount).map((c, i) => chip(c, i, false, hiddenCount === 1))}</ul>
                   </Popover.Popup>
                 </Popover.Positioner>
@@ -297,8 +299,8 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
           bare
           anchor={root}
           inputRef={field}
-          label="查找参考图"
-          placeholder="查找标签或文字"
+          label={t("label")}
+          placeholder={t("placeholder")}
           value={text}
           options={rows}
           onValueChange={setText}
@@ -310,16 +312,16 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
       </div>
       <ExactToggle exact={input.exact} onChange={(exact) => onChange({ ...input, exact })} />
       {dismissingNow && (
-        <div className="search-popover" role="dialog" aria-label="不展开相近标签">
-          <p>不展开“{tagName(dismissingNow.similar.tag)}”：</p>
+        <div className="search-popover" role="dialog" aria-label={t("dismiss.label")}>
+          <p>{t("dismiss.prompt", { name: tagName(dismissingNow.similar.tag) })}</p>
           <button type="button" onClick={() => dismissOnce(dismissingNow)}>
-            只这次
+            {t("dismiss.once")}
           </button>
           <button type="button" onClick={() => dismissForever(dismissingNow.similar)}>
-            以后都不展开
+            {t("dismiss.forever")}
           </button>
           <button type="button" onClick={() => setDismissing(null)}>
-            取消
+            {t("dismiss.cancel")}
           </button>
         </div>
       )}
@@ -341,24 +343,25 @@ function AddSimilar({
   onPick: (tag: TagLabel) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation("search");
   const [text, setText] = useState("");
   const { list: found, ready } = useCandidateState(lens, text, (c) => c.tag.id !== to.id);
 
   return (
-    <div className="search-popover" role="dialog" aria-label="加相近标签">
-      <p>查“{tagName(to)}”时也找：</p>
+    <div className="search-popover" role="dialog" aria-label={t("add.label")}>
+      <p>{t("add.prompt", { name: tagName(to) })}</p>
       <Combobox
-        label={lens.workspace ? "挑一个统一标签" : "挑一个库内标签"}
+        label={lens.workspace ? t("add.pickShared") : t("add.pickLibrary")}
         autoFocus
         value={text}
         options={found.map((c) => tagOption(c, text))}
-        empty={ready && found.length === 0 ? "没有匹配的标签" : undefined}
+        empty={ready && found.length === 0 ? t("add.none") : undefined}
         onValueChange={setText}
         onSelect={(option) => onPick(option.tag)}
         onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
       />
       <button type="button" onClick={onCancel}>
-        取消
+        {t("add.cancel")}
       </button>
     </div>
   );

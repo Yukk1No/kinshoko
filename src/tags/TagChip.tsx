@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Popover } from "@base-ui/react/popover";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagOrigin } from "../bindings/TagOrigin";
-import { TagMarks, UNTRANSLATED_HINT, tagName } from "../search/SearchBox";
+import { TagMarks, tagName, untranslatedHint } from "../search/SearchBox";
 import { confidenceBand, confidencePercent, originLine, tagStanding, type ConfidenceThresholds } from "./tagConfidence";
 import { useTagDisplay } from "./TagDisplayContext";
 import { UntranslatedRename } from "./UntranslatedRename";
@@ -47,7 +47,7 @@ export function TagChip({ tag, origins, notes = [], actions, meter = false, rena
   const standing = tagStanding(origins);
   const manual = standing.kind === "manual";
   const lines = [...new Set(origins.map((o) => originLine(o, display)))];
-  if (tag.untranslated) lines.push(UNTRANSLATED_HINT);
+  if (tag.untranslated) lines.push(untranslatedHint());
   return (
     <Popover.Root open={open && !renaming} onOpenChange={setOpen}>
       <Popover.Trigger openOnHover delay={250} closeDelay={160} nativeButton={false}
