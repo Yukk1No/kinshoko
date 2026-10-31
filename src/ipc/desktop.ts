@@ -78,6 +78,11 @@ export function revealReferenceImage(libraryId: string, imageId: string): Promis
   return invoke<void>(desk("reveal_reference_image"), { libraryId, imageId });
 }
 
+/** 导入回执里未导入的文件（#388）：在资源管理器中选中它；文件已不在时打开原来的文件夹，都不在时 reject 中文原因。 */
+export function revealImportSource(path: string): Promise<void> {
+  return invoke<void>(desk("reveal_import_source"), { path });
+}
+
 /** 在资源管理器中打开图库（#114）：打开图库在本设备上的文件夹；不在原处时 reject 中文原因。 */
 export function revealLibrary(libraryId: string): Promise<void> {
   return invoke<void>(desk("reveal_library"), { libraryId });

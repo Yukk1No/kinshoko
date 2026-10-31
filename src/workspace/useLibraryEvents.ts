@@ -1,6 +1,6 @@
 import { useEffect, type Dispatch, type RefObject, type SetStateAction } from "react";
 import { onLibraryEvent, onOrganizeWaiting } from "../ipc";
-import type { FinishedImport, RunningImport } from "../library/ImportBar";
+import type { FinishedImport, RunningImport } from "../library/import/report";
 import { safeTiming } from "../shell/safeTiming";
 import type { ToastApi } from "../ui/Toast";
 import type { ImportTasks } from "./useImportTasks";

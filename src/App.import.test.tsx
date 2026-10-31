@@ -4,10 +4,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { mockIPC } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
-import { library, clean, backend, sent, push, importAction, chooseDestination, confirmImport } from "./App.fixtures";
-
-/** 导入结束是一条轻提示（#388）；有要处理的项时，它的“查看”打开结果回执卡。 */
-const viewReceipt = async () => fireEvent.click(await screen.findByRole("button", { name: "查看" }));
+import { library, clean, backend, sent, push, importAction, chooseDestination, confirmImport, openImportPanel, viewReceipt, unimported } from "./App.fixtures";
 
 describe("主窗口", () => {
   it("导入文件夹时显示进度、可以取消，结束后逐项列出没有进来的文件", async () => {
@@ -25,8 +22,10 @@ describe("主窗口", () => {
     );
 
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 4 } });
+    // 进度在导入弹层里（#388），按钮上是进度环。
+    openImportPanel();
     expect(screen.getByRole("progressbar", { name: "导入进度" }).getAttribute("aria-valuenow")).toBe("1");
-    expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 4")).toBeTruthy();
+    expect(within(screen.getByRole("group", { name: "导入进度" })).getByText("1 / 4")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
     await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ libraryId: "L1", taskId: "T1" }]));
 
@@ -50,13 +49,14 @@ describe("主窗口", () => {
       },
     });
     expect(screen.queryByRole("progressbar")).toBeNull();
-    expect(screen.getByText("导入已取消")).toBeTruthy();
-    expect(screen.queryByRole("region", { name: "导入结果" })).toBeNull();
+    // 有未导入的文件：提示直接说几个没进来，“查看”展开回执，“未导入”的子菜单逐个列出（#388 定稿）。
+    expect(screen.getByText("2 个文件未导入", { selector: ".k-toast-title" })).toBeTruthy();
     await viewReceipt();
-    expect(screen.getByRole("region", { name: "导入结果" })).toBeTruthy();
-    expect(screen.getByText("D:\\下载\\参考\\说明.txt")).toBeTruthy();
-    expect(screen.getByText("不支持的格式")).toBeTruthy();
-    expect(screen.getByText("读取失败：无法解码")).toBeTruthy();
+    const files = await unimported();
+    expect(within(files).getByText("说明.txt")).toBeTruthy();
+    expect(within(files).getByText("不支持的格式")).toBeTruthy();
+    expect(within(files).getByText("无法解码")).toBeTruthy();
+    expect(within(files).getAllByText("D:\\下载\\参考\\")).toHaveLength(2);
   });
 
   it("把图片和文件夹拖进主窗口就开始导入", async () => {
@@ -104,7 +104,7 @@ describe("主窗口", () => {
       },
     });
     await viewReceipt();
-    fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+    fireEvent.click(within(await unimported()).getByRole("button", { name: "重试读取失败的 1 项" }));
     await confirmImport();
 
     await waitFor(() =>
@@ -122,10 +122,14 @@ describe("主窗口", () => {
     });
     render(<App />);
 
-    // 轻提示（#388）：撤回与不认识的文件各报数量，“重新导入”把撤回的文件再导一次。
+    // 轻提示（#388）：撤回与不认识的文件各报数量；“查看”打开弹层里那一行，“重新导入”把撤回的文件再导一次。
     expect(await screen.findByText("上次导入中断")).toBeTruthy();
     expect(screen.getByText(/1 个文件已撤回/).textContent).toContain("1 个不认识的文件");
-    fireEvent.click(screen.getByRole("button", { name: "重新导入" }));
+    fireEvent.click(screen.getByRole("button", { name: "查看" }));
+    const row = await screen.findByRole("region", { name: "上次导入中断" });
+    fireEvent.click(within(row).getByRole("button", { name: "查看文件" }));
+    expect(within(row).getByText("b.png")).toBeTruthy();
+    fireEvent.click(within(row).getByRole("button", { name: "重新导入" }));
     await confirmImport();
 
     await waitFor(() =>
@@ -196,13 +200,12 @@ describe("导入任务的终态（#76）", () => {
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 1 } });
 
     expect(screen.queryByRole("progressbar")).toBeNull();
-    expect(screen.getByText("导入完成")).toBeTruthy();
+    expect(screen.getByText("1 个文件未导入", { selector: ".k-toast-title" })).toBeTruthy();
     await viewReceipt();
-    expect(screen.getByText("读取失败：被占用")).toBeTruthy();
-    const files = importButton();
-    expect(files.getAttribute("aria-disabled")).not.toBe("true");
-    fireEvent.keyDown(files, { key: "Escape" });
-    fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+    const list = await unimported();
+    expect(within(list).getByText("被占用")).toBeTruthy();
+    expect(importButton().disabled).toBe(false);
+    fireEvent.click(within(list).getByRole("button", { name: "重试读取失败的 1 项" }));
     await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(2));
   });
@@ -223,7 +226,8 @@ describe("导入任务的终态（#76）", () => {
       await response;
     });
 
-    expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 3")).toBeTruthy();
+    openImportPanel();
+    expect(within(screen.getByRole("group", { name: "导入进度" })).getByText("1 / 3")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
     await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ libraryId: "L1", taskId: "T1" }]));
   });
@@ -239,7 +243,7 @@ describe("导入任务的终态（#76）", () => {
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
     await failed("T1");
     await viewReceipt();
-    fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+    fireEvent.click(within(await unimported()).getByRole("button", { name: "重试读取失败的 1 项" }));
     await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(2));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T2", progress: { done: 1, total: 5 } });
@@ -248,8 +252,9 @@ describe("导入任务的终态（#76）", () => {
     await failed("T1");
     await push({ kind: "taskFinished", libraryId: "L2", taskId: "T2", report: { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] } });
 
-    expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 5")).toBeTruthy();
-    expect(screen.queryByLabelText("导入结果")).toBeNull();
+    openImportPanel();
+    expect(within(screen.getByRole("group", { name: "导入进度" })).getByText("1 / 5")).toBeTruthy();
+    expect(screen.queryByText("导入已取消")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
     await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ libraryId: "L1", taskId: "T2" }]));
   });
@@ -392,7 +397,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     // 启动出错：显示错误，不打开这一步；再迁入一次照常。
     fail("资料库正忙");
     await startEagle();
-    expect(await screen.findByText("无法开始导入：资料库正忙")).toBeTruthy();
+    expect(await screen.findByText("无法开始导入：资料库正忙", { selector: ".k-toast-title" })).toBeTruthy();
     expect(step()).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "开始导入" }));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(4));

@@ -20,6 +20,7 @@ import "./shell/pane-fit.css";
 // 设置早于 dialogs.css：后者减弱动效的规则要盖过设置页签的过渡。
 import "./ui/settings.css";
 import "./ui/dialogs.css";
+import "./library/import/import.css";
 import "./search/search-bar.css";
 import "./ui/text-select.css";
 

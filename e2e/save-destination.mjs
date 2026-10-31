@@ -39,7 +39,7 @@ const driver = spawn("tauri-driver", ["--port", String(port), "--native-port", "
 let session, a, b, c, environment;
 const receipts=[];
 // The UI steps read the live session through this getter (stopApp sets it to null and restarts the app).
-const { local, task, finish, dialogX, importDialog, libraryChoice, shown, choose, pick, readyClick, openImport, startOpened, begin, exists, chooseNextTarget, openPane, shownCurrentName, browseAll, runningCard, createLibraryFromMenu } = importUi({ get session() { return session; } }, { until });
+const { local, task, finish, dialogX, importDialog, libraryChoice, shown, choose, pick, readyClick, openImport, startOpened, begin, exists, chooseNextTarget, openPane, shownCurrentName, browseAll, runningCard, openTasks, createLibraryFromMenu } = importUi({ get session() { return session; } }, { until });
 // End only this run's own application processes: descendants of this run's tauri-driver PID.
 function ownAppPids(){
  const r=spawnSync("powershell",["-NoProfile","-NonInteractive","-Command","$all=Get-CimInstance Win32_Process;$set=@([int]$env:KINSHOKO_E2E_DRIVER);do{$n=$set.Count;$set=@($set+($all|Where-Object{$set -contains [int]$_.ParentProcessId}|ForEach-Object{[int]$_.ProcessId})|Select-Object -Unique)}while($set.Count -ne $n);$all|Where-Object{$set -contains [int]$_.ProcessId -and $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE}|ForEach-Object{$_.ProcessId}"],{env:{...process.env,KINSHOKO_E2E_DRIVER:String(driver.pid),KINSHOKO_E2E_EXECUTABLE:application},encoding:"utf8",windowsHide:true});
@@ -81,8 +81,9 @@ try{
  await browseAll();
  const during=await task(long);receipts.push({phase:"after-current-create-target-change",receipt:during});
  assert(during.report===null&&during.destination.libraryId===b.id&&during.destination.folderId===bFolder,"changing current by creating C and selecting save A while running keeps B task ownership");
- assert(await until("visible running card",()=>session.exec("const card=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return !!card&&card.getClientRects().length>0&&[...card.querySelectorAll('.k-task-sub')].some(n=>n.textContent.includes('放到 保存库 B / B 最终目录'));",[runningCard])),"formal progress visibly reports original B position after selecting A");
- assert(!await session.exec("return [...document.querySelectorAll('.k-task')].some(card=>card.textContent.includes('已导入，正在把标签定义存进图库'));"),"running task does not claim content completion before its actual report");
+ await openTasks();
+ assert(await until("visible running card",()=>session.exec("const card=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return !!card&&card.getClientRects().length>0&&[...card.querySelectorAll('.k-import-sub')].some(n=>n.textContent.includes('保存库 B / B 最终目录'));",[runningCard])),"formal progress visibly reports original B position after selecting A");
+ assert(!await session.exec("return [...document.querySelectorAll('.k-import-task')].some(card=>card.textContent.includes('正在存标签定义'));"),"running task does not claim content completion before its actual report");
  assert(await session.invoke("cancel_import",{libraryId:a.id,taskId:long}).then(()=>false,()=>true),"wrong-owner cancellation is rejected during the real task");
  await session.screenshot("running-owner-after-current-and-target-change.png");
  const completed=await finish(long);receipts.push(completed);
@@ -107,6 +108,7 @@ try{
  // Explicit UI cancellation follows its original owner after the next target changes.
  const cancelledTask=await begin(Array(1200).fill(imagePath),b.id,bFolder);
  const cancelBefore=await running(cancelledTask);await chooseNextTarget(a.id,aFolder);
+ await openTasks();
  await readyClick(`${runningCard}//button[@aria-label='取消导入']`);
  const cancelled=await finish(cancelledTask);receipts.push({phase:"owner-cancel-after-target-change",before:cancelBefore,after:cancelled});
  assert(cancelled.report.cancelled&&cancelled.destination.libraryId===b.id,"formal cancel applies to original B even when the next target is A");

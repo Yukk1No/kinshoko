@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { emit } from "@tauri-apps/api/event";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import { App } from "./App";
-import { library, page, clean, backend, sent, selectionPanel, push, importAction, chooseDestination, libraryAction, openLibrary, confirmImport } from "./App.fixtures";
+import { library, page, clean, backend, sent, selectionPanel, push, importAction, chooseDestination, libraryAction, openLibrary, confirmImport, viewReceipt, unimported } from "./App.fixtures";
 
 describe("主窗口", () => {
   it("打开另一个图库时清空选择与导入状态，迟到的旧库浏览和进度不会覆盖新库", async () => {
@@ -35,7 +35,7 @@ describe("主窗口", () => {
     expect(screen.queryByRole("img")).toBeNull();
     expect(selectionPanel()).toBeNull();
     expect(screen.queryByRole("progressbar")).toBeNull();
-    expect(screen.queryByLabelText("导入结果")).toBeNull();
+    expect(screen.queryByText("导入已取消")).toBeNull();
     expect(sent("plugin:library|browse").at(-1)).toMatchObject({ libraryId: "L2" });
   });
 
@@ -69,10 +69,11 @@ describe("主窗口", () => {
     if (stage === "进行中") await finish();
     fireEvent.click(screen.getByRole("button", { name: "返回图库" }));
 
-    // 有没导入的项，结束的轻提示一直留着；它的“查看”打开结果回执（#388）。
-    fireEvent.click(await screen.findByRole("button", { name: "查看" }));
-    expect(await screen.findByText("D:\\参考\\坏.png")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
+    // 有没导入的项，结束的轻提示一直留着；它的“查看”展开回执，“未导入”列出文件（#388）。
+    await viewReceipt();
+    const files = await unimported();
+    expect(within(files).getByText("坏.png")).toBeTruthy();
+    fireEvent.click(within(files).getByRole("button", { name: "重试读取失败的 1 项" }));
     await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toEqual([
       { libraryId: "L1", source: { paths: ["D:\\参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
@@ -104,7 +105,7 @@ describe("主窗口", () => {
       },
     });
 
-    const prompt = await screen.findByRole("alert", { name: "Eagle 库换了位置？" });
+    const prompt = await screen.findByRole("dialog", { name: "Eagle 库换了位置？" });
     expect(within(prompt).getByText(/100% 的图已经从另一个位置导入过/)).toBeTruthy();
     fireEvent.click(within(prompt).getByRole("button", { name: button }));
     fireEvent.click(await screen.findByRole("button", { name: "开始导入" }));
@@ -118,7 +119,7 @@ describe("主窗口", () => {
       options: { eagleDeletedContent: "skipDeleted" },
       destination:{libraryId:"L1",folderId:null},
     });
-    expect(screen.queryByRole("alert", { name: "Eagle 库换了位置？" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Eagle 库换了位置？" })).toBeNull();
   });
 
   it("新建资料库页不接受拖放导入，返回当前库后恢复拖放", async () => {

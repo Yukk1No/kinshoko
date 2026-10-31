@@ -1,5 +1,5 @@
 import { useEffect, type RefObject } from "react";
-import type { ImportControl } from "../library/ImportMenu";
+import type { ImportControl } from "../library/import/ImportCenter";
 
 /**
  * 导入菜单里“图片”的快捷键 Ctrl O：与菜单项同一入口，导入进行中时由入口自己忽略。

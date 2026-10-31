@@ -77,7 +77,7 @@ try {
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
   // 设计系统 v2: 导入 is one button; the folder entry is in its menu, then a dialog chooses the library.
   await click("导入");
-  await wd("POST", `${base}/element/${await until("文件夹菜单项", () => find("//*[@role='menuitem' and normalize-space()='文件夹']"))}/click`, {});
+  await wd("POST", `${base}/element/${await until("文件夹来源", () => find("//*[@aria-label='导入来源']//button[normalize-space()='文件夹']"))}/click`, {});
   const librarySelect = "[...document.querySelectorAll('.k-import-dialog select')].find(s=>s.labels?.[0]?.querySelector('.k-field-label')?.textContent.trim()==='放到图库')";
   await until("导入对话框", () => exec(`return !!${librarySelect}?.options[1]`));
   await exec(`const s=${librarySelect};s.value=s.options[1].value;s.dispatchEvent(new Event('change',{bubbles:true}));`);

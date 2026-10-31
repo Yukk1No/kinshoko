@@ -4,7 +4,7 @@ import { useUiLang } from "./i18n";
 import { onLibraryEvent, resolveSearch, setSafeMode } from "./ipc";
 import { workspaceFixture } from "./test/workspace-fixture";
 import { afterEach, beforeEach, expect, vi } from "vitest";
-import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { AppInfo } from "./bindings/AppInfo";
@@ -273,9 +273,26 @@ export const push = (event: LibraryEvent) => act(() => emit("library-event", eve
  * 顶栏的导入按钮（设计系统 v2）：一个按钮打开菜单，图片、文件夹与 Eagle 都是菜单项。
  * 打开菜单并返回要点击的那一项。
  */
+/** 导入弹层（#388）：点顶栏的导入按钮打开；已经开着时不再点（再点会收起）。 */
+export const openImportPanel = () => {
+  if (!screen.queryByRole("dialog", { name: "导入" })) fireEvent.click(screen.getByRole("button", { name: /^(导入|正在导入)$/ }));
+  return screen.getByRole("dialog", { name: "导入" });
+};
+/** 结束轻提示的“查看”：打开导入弹层并展开这条任务的回执。 */
+export const viewReceipt = async () => {
+  // 未导入的提示优先级高：Base UI 让 alert 副本播报，可见的这条在聚焦前 aria-hidden。
+  fireEvent.click(await screen.findByRole("button", { name: "查看", hidden: true }));
+  return screen.findByRole("region", { name: /^导入回执/ });
+};
+/** 回执里“未导入 N”的子菜单：未导入的文件与“重试读取失败的”。 */
+export const unimported = async () => {
+  fireEvent.click(await screen.findByRole("button", { name: /^未导入/ }));
+  return screen.findByRole("dialog", { name: "未导入" });
+};
 export const importAction = (name: "导入文件…" | "导入文件夹…" | "从 Eagle 导入…") => {
-  fireEvent.click(screen.getByRole("button", { name: /^(导入|正在导入)$/ }));
-  return screen.getByRole("menuitem", { name: name === "导入文件…" ? /^图片/ : name === "导入文件夹…" ? /^文件夹/ : /从 Eagle 导入|正在查找 Eagle/ });
+  openImportPanel();
+  // 导入按钮打开的弹层（#388）：上半是来源按钮。
+  return within(screen.getByRole("group", { name: "导入来源" })).getByRole("button", { name: name === "导入文件…" ? /^图片/ : name === "导入文件夹…" ? /^文件夹/ : /从 Eagle 导入|正在查找 Eagle/ });
 };
 /** 导入面板里的保存位置为空时选当前库（与原来先选位置再选文件的操作等价）。 */
 export const chooseDestination = async () => {

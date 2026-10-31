@@ -80,7 +80,7 @@ try {
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
   // 设计系统 v2: 导入 is one button; the folder entry is in its menu, then a dialog chooses the library.
   await click("导入");
-  await wd("POST",base+"/element/"+await until("文件夹菜单项",()=>find("//*[@role='menuitem' and normalize-space()='文件夹']"))+"/click",{});
+  await wd("POST",base+"/element/"+await until("文件夹来源",()=>find("//*[@aria-label='导入来源']//button[normalize-space()='文件夹']"))+"/click",{});
   // 保存位置的图库选择按可见标签“放到图库”命名。
   const librarySelect = "[...document.querySelectorAll('.k-import-dialog select')].find(s=>s.labels?.[0]?.querySelector('.k-field-label')?.textContent.trim()==='放到图库')";
   await until("导入对话框", () => exec(`return !!${librarySelect}?.options[1]`));
@@ -92,7 +92,6 @@ try {
   // 导入结束是一条轻提示（#388），没有回执卡可关；收起提示，免得盖住右下角。
   await exec("document.querySelectorAll('.k-toast .k-toast-close').forEach(b=>b.click())");
   await until("提示已收起", () => exec("return !document.querySelector('.k-toast')"));
-  await until("关闭导入报告，稳定浏览",()=>exec("return !document.querySelector('section[aria-label=导入结果]')"));
   const viewport = await exec("return {width:innerWidth,height:innerHeight,dpr:devicePixelRatio,userAgent:navigator.userAgent}");
   await until("缩略图解码", () => exec("return [...document.querySelectorAll('.card img')].every(i=>i.complete && i.naturalWidth>0)"));
   writeFileSync(join(output, "formal-wall.png"), Buffer.from(await wd("GET", base + "/screenshot"), "base64"));

@@ -2,13 +2,16 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { App } from "../App";
-import { ImportMenu } from "./ImportMenu";
+import { ImportCenter } from "./import/ImportCenter";
 import { SaveDestinationProvider } from "./SaveDestination";
 import { WorkspaceSourceEditor } from "./WorkspaceSourceEditor";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import { chooseOption } from "../test/select";
 const a={ id:"A",name:"浏览库",root:"C:/a" }, b={ id:"B",name:"保存库",root:"D:/b" };
 const libraries=[a,b].map(library=>({library,unavailable:null}));
+/** 导入按钮打开的弹层（#388）：上半是来源，下半是任务。 */
+const panel=async()=>{ if(!screen.queryByRole("dialog",{name:"导入"}))fireEvent.click(await screen.findByRole("button",{name:/^(导入|正在导入)$/})); return screen.findByRole("dialog",{name:"导入"}); };
+const pickImages=async()=>{ await panel(); fireEvent.click(within(await screen.findByRole("group",{name:"导入来源"})).getByRole("button",{name:/^图片/})); };
 beforeEach(()=>{
  Object.defineProperty(HTMLElement.prototype,"clientWidth",{configurable:true,get:()=>1000});
  Object.defineProperty(HTMLElement.prototype,"clientHeight",{configurable:true,get:()=>800});
@@ -36,8 +39,7 @@ it("global import requires a visible save destination and does not change browse
  },{shouldMockEvents:true});
  render(<App/>);
  // #98: the split button picks files first; the panel then asks where to save before anything starts.
- fireEvent.click(await screen.findByRole("button",{name:"导入"}));
- fireEvent.click(await screen.findByRole("menuitem",{name:/^图片/}));
+ await pickImages();
  const start=await screen.findByRole("button",{name:"开始导入"});
  const menu=screen.getByRole("dialog",{name:"导入图片"});
  expect(start).toHaveProperty("disabled",true);
@@ -74,20 +76,21 @@ it("a late start reply and cancel keep the submitted owner after selecting anoth
   return null;
  },{shouldMockEvents:true});
  render(<App/>);
- fireEvent.click(await screen.findByRole("button",{name:"导入"}));
- fireEvent.click(await screen.findByRole("menuitem",{name:/^图片/}));
+ await pickImages();
  const start=await screen.findByRole("button",{name:"开始导入"});
  await chooseOption(await screen.findByRole("combobox",{name:"放到图库"}),/^保存库/);
  await waitFor(()=>expect(start).toHaveProperty("disabled",false));
  fireEvent.click(start);
  await chooseOption(screen.getByRole("combobox",{name:"放到图库"}),/^浏览库/);
  await act(async()=>{resolveStart("late-task");await pendingStart;});
- expect(await screen.findByText("放到 保存库 / 未归类")).toBeTruthy();
- fireEvent.click(await screen.findByRole("button",{name:"取消导入"}));
+ await panel();
+ const row=await screen.findByRole("group",{name:"导入进度"});
+ expect(await within(row).findByText("保存库 / 未归类")).toBeTruthy();
+ fireEvent.click(within(row).getByRole("button",{name:"取消导入"}));
  await waitFor(()=>expect(cancelled).toEqual({libraryId:"B",taskId:"late-task"}));
- // 卡片上的保存位置仍是提交时的保存库，不跟着之后的新选择变。
- expect(screen.getByText("放到 保存库 / 未归类")).toBeTruthy();
- expect(screen.queryByText("放到 浏览库 / 未归类")).toBeNull();
+ // 任务行上的保存位置仍是提交时的保存库，不跟着之后的新选择变。
+ expect(screen.getByText("保存库 / 未归类")).toBeTruthy();
+ expect(screen.queryByText("浏览库 / 未归类")).toBeNull();
 });
 
 it("retry starts at its original target and an explicit new choice matches the final submitted target",async()=>{
@@ -101,8 +104,11 @@ it("retry starts at its original target and an explicit new choice matches the f
   if(cmd==="plugin:library|recovery")return {interrupted:[],orphans:[]};
   return null;
  },{shouldMockEvents:true});
- render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
- fireEvent.click(await screen.findByRole("button",{name:"重试失败的 1 项"}));
+ render(<SaveDestinationProvider safe><ImportCenter enabled libraryId="A" running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
+ await panel();
+ fireEvent.click(await screen.findByRole("button",{name:"保存库 / 未归类，导入完成"}));
+ fireEvent.click(await screen.findByRole("button",{name:/^未导入/}));
+ fireEvent.click(within(await screen.findByRole("dialog",{name:"未导入"})).getByRole("button",{name:"重试读取失败的 1 项"}));
  await screen.findByRole("button",{name:"开始导入"});
  expect(screen.getByRole("combobox",{name:"放到图库"}).textContent).toMatch(/^保存库/);
  await chooseOption(screen.getByRole("combobox",{name:"放到图库"}),/^浏览库/);
@@ -119,9 +125,8 @@ it("a concrete folder entry prefills its provider and folder without activating 
   if(cmd==="plugin:library|import_contains_eagle")return false;
   return null;
  },{shouldMockEvents:true});
- render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" scope={{kind:"library",libraryId:"B",scope:{kind:"folder",id:"folder-b"}}} running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
- fireEvent.click(screen.getByRole("button",{name:"导入"}));
- fireEvent.click(await screen.findByRole("menuitem",{name:/^图片/}));
+ render(<SaveDestinationProvider safe><ImportCenter enabled libraryId="A" scope={{kind:"library",libraryId:"B",scope:{kind:"folder",id:"folder-b"}}} running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
+ await pickImages();
  await screen.findByRole("button",{name:"开始导入"});
  expect(await screen.findByText("放到：保存库 / 具体目录")).toBeTruthy();
  expect(screen.getByRole("combobox",{name:"放到图库"}).textContent).toMatch(/^保存库/);
@@ -173,12 +178,15 @@ it("running import does not claim that content is complete before the actual rep
     if (cmd === "plugin:library|import_tasks") return [{ ...receipt }];
     return null;
   }, { shouldMockEvents: true });
-  render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider>);
-  await screen.findByText("放到 保存库 / 未归类");
-  expect(screen.queryByText("已导入，正在把标签定义存进图库…")).toBeNull();
+  render(<SaveDestinationProvider safe><ImportCenter enabled libraryId="A" running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider>);
+  await panel();
+  const row = await screen.findByRole("group", { name: "导入进度" });
+  await within(row).findByText("保存库 / 未归类");
+  expect(within(row).getByText("正在导入")).toBeTruthy();
+  expect(screen.queryByText("正在存标签定义")).toBeNull();
   receipt.progress = { done: 2000, total: 2000 };
   receipt.report = { items: [], cancelled: false, fromEagle: false, eagleMissing: 0, eagleRelocations: [] };
-  expect(await screen.findByText("已导入，正在把标签定义存进图库…")).toBeTruthy();
+  expect(await screen.findByText("正在存标签定义")).toBeTruthy();
 });
 
 it("pinning whose own change reloads the source leaves the source actions usable (#98 native r18)", async () => {

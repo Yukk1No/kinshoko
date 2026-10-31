@@ -76,50 +76,13 @@
 .k-import-summary .k-big-tag-icon { width: 40px; height: 40px; }
 .k-import-dialog .k-list { max-height: 260px; overflow: auto; }
 
-/* ---- Import task cards, bottom right ---- */
-/* They share the corner with the toasts (toast.css) and sit above the collapsed toast stack, whose height Toast.tsx publishes. */
-.k-task-cards { position: fixed; right: 18px; bottom: calc(18px + var(--k-toast-stack, 0px)); z-index: 50; width: 340px; max-width: calc(100vw - 36px);
-  max-height: calc(100vh - 100px - var(--k-toast-stack, 0px)); overflow: auto; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
-.k-task-cards:empty { display: none; }
-/* Same material and type as a toast (toast.css): a frosted card, the icon in a 28 px well, a 13 px title; the body lines up
-   under the title, past the icon well. Only an error tints the icon (#388). */
-.k-task { pointer-events: auto; box-sizing: border-box; padding: 8px; border-radius: var(--r-l); color: var(--ink);
-  background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(20px) saturate(1.2); box-shadow: var(--shadow-toast); }
-.k-task:not(.is-row) { padding-left: 48px; }
-.k-task:not(.is-row) > .k-task-top { margin-left: -40px; }
-.k-task.is-row { display: flex; align-items: center; gap: 12px; font-size: 13px; }
-.k-task-top { display: flex; align-items: center; gap: 12px; min-height: 28px; }
-.k-task-top b { flex: 1; min-width: 0; font-size: 13px; font-weight: 500; line-height: 20px; }
-.k-task-icon { flex: none; box-sizing: content-box; padding: 6px; border-radius: var(--r-s); background: var(--sunken); box-shadow: var(--well-inset); color: var(--ink-2); }
-.k-task-icon.is-error { color: var(--danger); }
-.k-task-top .k-icon-btn.is-sm { width: 28px; height: 28px; border-radius: var(--r-s); color: var(--ink-3); }
-.k-task-top .k-icon-btn.is-sm:hover { background: var(--hover); color: var(--ink); }
-.k-task-count { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
-.k-task-sub { margin: 2px 0 0; color: var(--ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
-.k-task-sub.is-warn { color: var(--warn); }
-.k-task-sub.is-danger, .k-task-stats .is-danger, .k-task-stats .is-danger b { color: var(--danger); }
-.k-task-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0 0; font-size: 12px; color: var(--ink-2); }
-.k-task-stats b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
-.k-task-acts { display: flex; gap: 8px; margin-top: 10px; }
-.k-task-more { margin-top: 6px; font-size: 12px; color: var(--ink-2); }
-.k-task-more summary { cursor: pointer; }
-.k-task-more ul { margin: 4px 0 0; padding-left: 16px; max-height: 120px; overflow: auto; }
-.k-task-more .import-report-reason { margin-left: 6px; color: var(--danger); }
-.k-task-switch { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-2); }
-.k-task-switch .k-select { flex: 1; min-width: 0; }
-.k-icon-btn.is-sm { width: 24px; height: 24px; border-radius: var(--r-xs); }
-.k-task-progress { appearance: none; display: block; width: 100%; height: 6px; margin-top: 10px; border: 0; border-radius: var(--r-pill); overflow: hidden; background: var(--sunken); }
-.k-task-progress::-webkit-progress-bar { background: var(--sunken); border-radius: var(--r-pill); }
-.k-task-progress::-webkit-progress-value { background: var(--accent); border-radius: var(--r-pill); transition: width var(--t); }
-.k-task-progress::-moz-progress-bar { background: var(--accent); border-radius: var(--r-pill); }
-.k-task .k-seal-lock { flex: none; margin: 0 2px; }
 
 /* Drop hint: the whole window is the drop target. */
 .k-drop-hint { position: fixed; inset: 12px; z-index: 80; display: grid; place-items: center; border-radius: var(--r-xl); pointer-events: none;
   border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent-soft) 60%, transparent); color: var(--accent-strong); font-size: 16px; line-height: 24px; font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {
-  .k-task-progress::-webkit-progress-value { transition-duration: 0ms; }
+  .k-import-bar::-webkit-progress-value { transition-duration: 0ms; }
 }
 
 /* 编辑分组（#98）：设计系统 SettingsList 的外框（圆角 r-m、1 px line、行间 1 px line、行内边距 8 × 12），
@@ -190,12 +153,6 @@
 .k-group-new > .k-group-kind { flex: none; width: 120px; }
 @media (prefers-reduced-motion: reduce) { .k-group-member-acts, .k-group-member, .k-group-acts, .k-group-add, .k-group-create { transition: none; } }
 .k-groups-dialog .k-groups { max-height: calc(100vh - 220px); overflow: auto; }
-/* 详情面板打开时，右下角卡片停在面板左侧，不盖住面板底部的按钮（#98）。 */
-.k-task-cards { transition: right 200ms var(--spring), bottom 200ms var(--spring); }
-body:has(.inspector[data-collapsed="false"]) .k-task-cards { right: calc(var(--inspector-width, 320px) + 1px + 18px); max-width: calc(100vw - var(--inspector-width, 320px) - 1px - 36px); }
-@media (prefers-reduced-motion: reduce) { .k-task-cards { transition: none; } }
-/* 有浮动的多选操作条时，卡片抬到操作条上方，同样不遮住它。 */
-body:has(.selbar-host > .selbar) .k-task-cards { bottom: calc(18px + 66px + var(--k-toast-stack, 0px)); max-height: calc(100vh - 100px - 66px - var(--k-toast-stack, 0px)); }
 /* 标签外观的分档阈值（#160）：短标签 + 窄数字框，一行放下两个阈值和“恢复默认”。 */
 .k-set-number { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
 /* 窄时两个阈值和“恢复默认”折行，靠右对齐，不溢出设置窗口。 */

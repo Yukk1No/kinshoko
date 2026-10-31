@@ -19,9 +19,9 @@ describe("主窗口", () => {
     fireEvent.change(slider, { target: { value: "420" } });
     fireEvent.pointerUp(slider);
     await waitFor(() => expect(parseFloat(card.style.width)).toBeGreaterThan(before));
-    expect(screen.queryByRole("menuitem", { name: /^文件夹/ })).toBeNull();
+    expect(screen.queryByRole("group", { name: "导入来源" })).toBeNull();
     expect(importAction("导入文件夹…")).toBeTruthy();
-    fireEvent.keyDown(screen.getByRole("menuitem", { name: /^文件夹/ }), { key: "Escape" });
+    fireEvent.keyDown(screen.getByRole("dialog", { name: "导入" }), { key: "Escape" });
     await expandLibrary();
     fireEvent.click(screen.getByRole("button", { name: "人物（1 张）" }));
     await waitFor(() => expect(result.textContent).toBe("1 张"));

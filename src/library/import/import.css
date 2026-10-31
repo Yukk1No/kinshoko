@@ -1,0 +1,118 @@
+/* 导入（#388 定稿，Claude Design 画布“Kinshoko 导入重设计”）：顶栏按钮 + 一个弹层（来源 + 任务）。
+   字号只有 13 / 12，字重 400 / 500；分隔线 0.5 px；图标凹槽与轻提示同一种；展开内容不套底块。 */
+
+/* ---- 按钮：无底，图标区固定 26 px；导入中换成 13 px 图标 + 进度环，宽度不变 ---- */
+.k-import { position: relative; display: inline-flex; align-items: center; flex: none; height: 36px; padding: 0 5px; border: 0; border-radius: var(--r);
+  background: transparent; color: var(--ink-2); transition: background var(--t-fast), color var(--t-fast), transform var(--t-fast) var(--spring); }
+.k-import:hover, .k-import[data-popup-open] { background: var(--hover); color: var(--ink); }
+.k-import:active { transform: scale(0.97); }
+.k-import:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.k-import-glyph { position: relative; width: 26px; height: 26px; display: grid; place-items: center; }
+.k-import-ring { position: absolute; inset: 0; transform: rotate(-90deg); fill: none; stroke-width: 2.5; }
+.k-import-ring-track { stroke: color-mix(in srgb, var(--ink) 10%, transparent); }
+.k-import-ring-arc { stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray 600ms var(--ease); }
+.k-import-ring[data-pending] .k-import-ring-track { stroke: var(--accent); animation: k-import-breathe 2.4s ease-in-out infinite; }
+@keyframes k-import-breathe { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.8; } }
+.k-import-dot { position: absolute; top: 2px; right: 1px; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--danger); box-shadow: 0 0 0 2px var(--bg); }
+.k-import-dot[data-tone="warn"] { background: var(--star, var(--warn)); }
+
+/* ---- 弹层 ---- */
+.k-popup.k-import-pop { box-sizing: border-box; width: 340px; max-width: calc(100vw - 24px); padding: 5px; max-height: min(var(--available-height, 640px), 640px); }
+.k-import-pop .k-item, .k-import-subpop .k-item { width: 100%; border: 0; background: none; font: inherit; text-align: left; }
+.k-import-pop .k-item:hover:not(:disabled), .k-import-subpop .k-item:hover { background: var(--hover); }
+.k-import-pop .k-item:disabled { color: var(--ink-3); }
+.k-import-pop .k-kbd, .k-import-subpop .k-kbd { box-shadow: none; padding: 0; }
+.k-import-sep { height: 0.5px; margin: 4px 8px; background: var(--line); }
+.k-import-tasks { display: flex; flex-direction: column; }
+.k-import-problem { margin: 4px 8px; font-size: 12px; line-height: 18px; color: var(--danger); }
+
+.k-import-well { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--r-s); background: var(--sunken); box-shadow: var(--well-inset); color: var(--ink-2); }
+.k-import-well[data-tone="accent"] { color: var(--accent-strong); }
+.k-import-well[data-tone="danger"] { color: var(--danger); }
+.k-import-well[data-tone="warn"] { color: var(--warn); }
+.k-ell { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-import-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.k-import-text b { font-weight: 500; }
+.k-import-line { display: flex; align-items: baseline; gap: 8px; }
+.k-import-line > :first-child { flex: 1; }
+.k-import-sub { margin: 0; font-size: 12px; line-height: 18px; color: var(--ink-2); }
+.k-import-count { margin-left: auto; flex: none; font-size: 12px; line-height: 18px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.is-danger { color: var(--danger); }
+.k-import-ibtn { flex: none; width: 28px; height: 28px; padding: 0; border: 0; display: grid; place-items: center; border-radius: var(--r-s); background: none; color: var(--ink-3); }
+.k-import-ibtn:hover { background: var(--hover); color: var(--ink); }
+.k-import-ibtn.is-filled { background: var(--hover); color: var(--ink); }
+.k-import-ibtn.is-filled:hover { background: var(--press); }
+.k-import-ibtn:focus-visible, .k-import-toggle:focus-visible, .k-import-act:focus-visible, .k-import-file:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* 一条任务：表头 44 px（凹槽 + 去向 + 右侧动作），展开的正文从 46 px 处起排 */
+.k-import-task { margin: 0; border-radius: var(--r-s); }
+.k-import-head { display: flex; align-items: center; gap: 2px; min-height: 44px; padding: 0 4px 0 0; border-radius: var(--r-s); }
+.k-import-task:not([data-expanded]) .k-import-head:hover { background: var(--hover); }
+.k-import-head > .k-import-well { margin-left: 8px; }
+.k-import-head > .k-import-text { margin-left: 10px; padding: 6px 0; }
+.k-import-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 4px 0 8px; border: 0; border-radius: var(--r-s);
+  background: none; color: inherit; font: inherit; text-align: left; }
+.k-import-toggle.is-tall { padding-top: 8px; padding-bottom: 8px; align-items: flex-start; }
+.k-import-place { flex: 1; }
+.k-import-place.is-strong { font-weight: 500; }
+.k-import-summary-nums { flex: none; display: flex; gap: 10px; font-size: 12px; line-height: 18px; color: var(--ink-2); }
+.k-import-summary-nums b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+.k-import-summary-nums .is-danger b { color: var(--danger); }
+.k-import-chev { color: var(--ink-3); transition: transform var(--t) var(--spring); }
+.k-import-task[data-expanded] .k-import-chev { transform: rotate(180deg); }
+/* 移除记录：收起时悬停才出现，展开时常显 */
+.k-import-remove { opacity: 0; transition: opacity var(--t-fast); }
+.k-import-task:is([data-expanded], :hover, :focus-within) .k-import-remove, .k-import-remove.is-shown { opacity: 1; }
+
+.k-import-bar { appearance: none; display: block; width: 100%; height: 4px; margin: 6px 0 2px; border: 0; border-radius: var(--r-pill); overflow: hidden; background: var(--sunken); }
+.k-import-bar::-webkit-progress-bar { background: var(--sunken); border-radius: var(--r-pill); }
+.k-import-bar::-webkit-progress-value { background: var(--accent); border-radius: var(--r-pill); transition: width var(--t); }
+.k-import-bar::-moz-progress-bar { background: var(--accent); border-radius: var(--r-pill); }
+.k-import-bar.is-indeterminate { position: relative; }
+.k-import-bar.is-indeterminate::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 34%; border-radius: var(--r-pill); background: var(--accent);
+  animation: k-import-slide 1.6s var(--ease) infinite; }
+@keyframes k-import-slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+
+.k-import-body { padding: 0 0 6px 46px; }
+.k-import-body.is-row { display: flex; align-items: center; gap: 12px; padding-bottom: 8px; }
+.k-import-nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 8px; padding-right: 18px; }
+.k-import-nums > div { display: flex; flex-direction: column; }
+.k-import-num { font-weight: 500; font-variant-numeric: tabular-nums; }
+.k-import-warn { margin: 8px 10px 0 0; padding: 8px 10px; border-radius: var(--r-s); background: var(--warn-soft); color: var(--warn-strong); font-size: 12px; line-height: 18px; }
+.k-import-link { padding: 0; border: 0; background: none; font: inherit; font-size: 12px; color: var(--ink-2); }
+.k-import-link:hover { color: var(--ink); }
+
+/* 需要处理的事：32 px 菜单行，文字与正文同一列（左缩 46 px 由正文给），带清单的从弹层左侧弹出 */
+.k-import-acts { display: flex; flex-direction: column; margin: 8px 0 0 -46px; }
+.k-import-act { display: flex; align-items: center; gap: 8px; width: 100%; height: 32px; padding: 0 10px 0 46px; border: 0; border-radius: var(--r-s);
+  background: none; color: var(--ink); font: inherit; text-align: left; }
+.k-import-act:hover, .k-import-act[data-popup-open] { background: var(--hover); }
+.k-import-act .k-import-count { margin-left: auto; }
+.k-import-act .k-import-count.is-danger { color: var(--danger); }
+.k-import-sub-ind { flex: none; color: var(--ink-3); }
+
+/* 子菜单：未导入 / 删过的图的文件清单（文件名 + 原因，第二行所在文件夹），底部是动作 */
+.k-popup.k-import-subpop { box-sizing: border-box; width: 340px; max-width: calc(100vw - 24px); padding: 5px; max-height: min(var(--available-height, 420px), 420px); display: flex; flex-direction: column; }
+.k-import-files { display: flex; flex-direction: column; min-height: 0; overflow: auto; }
+.k-import-files.is-inline { padding: 0 6px 6px 38px; max-height: 200px; }
+.k-import-file { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 6px 6px 8px; border: 0; border-radius: var(--r-s); background: none; color: var(--ink);
+  font: inherit; text-align: left; }
+.k-import-file > .k-item-ind { align-self: flex-start; margin-top: 2px; }
+.k-import-file:hover { background: var(--hover); }
+.k-import-reveal { flex: none; width: 28px; height: 28px; display: grid; place-items: center; color: var(--ink); opacity: 0; }
+.k-import-file:is(:hover, :focus-visible) .k-import-reveal { opacity: 1; }
+
+/* ---- 对话框：摘要图标与弹层同一种凹槽 ---- */
+.k-import-dialog .k-import-summary .k-import-well { width: 36px; height: 36px; }
+.k-import-dialog .k-import-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-import-more { margin-top: 2px; font-size: 12px; color: var(--ink-2); }
+.k-import-more summary { cursor: pointer; }
+.k-import-more ul { margin: 4px 0 0; padding-left: 16px; max-height: 120px; overflow: auto; }
+.k-import-paths { flex: 1; min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; margin: 0; font-size: 12px; line-height: 18px; }
+.k-import-paths dt { color: var(--ink-2); }
+.k-import-paths dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .k-import-ring-arc, .k-import-ring-track, .k-import-bar.is-indeterminate::after, .k-import-chev { animation: none !important; transition: none; }
+}
+:root[data-reduced-motion] :is(.k-import-ring-arc, .k-import-ring-track, .k-import-bar.is-indeterminate::after, .k-import-chev) { animation: none !important; transition: none; }

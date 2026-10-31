@@ -64,6 +64,24 @@ pub async fn reveal_library(app: AppHandle, library_id: String) -> Result<(), Co
     .map_err(CommandError::system)?
 }
 
+/// 导入回执里未导入的文件（#388）：在资源管理器中选中它；文件已不在时打开它原来所在的文件夹，
+/// 文件夹也不在时报原因（界面提示），不打开窗口。路径来自这次导入的来源，不经资料库。
+#[tauri::command]
+pub async fn reveal_import_source(path: String) -> Result<(), CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = std::path::PathBuf::from(path);
+        if path.is_file() {
+            return select_in_explorer(&path);
+        }
+        match path.parent() {
+            Some(folder) if folder.is_dir() => open_in_explorer(folder),
+            _ => Err(CommandError::from(kinshoko_core::library::Error::OriginalMissing(path))),
+        }
+    })
+    .await
+    .map_err(CommandError::system)?
+}
+
 #[cfg(windows)]
 fn open_in_explorer(folder: &std::path::Path) -> Result<(), CommandError> {
     use std::os::windows::process::CommandExt;

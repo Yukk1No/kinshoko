@@ -1,13 +1,16 @@
-import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { createContext, useContext, useMemo, useRef, type ReactNode } from "react";
 import { Toast } from "@base-ui/react/toast";
-import { CircleAlert, CircleCheck, Info, X } from "lucide-react";
+import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from "lucide-react";
 
-export type ToastTone = "success" | "info" | "error";
+/** warn: something needs a look but nothing failed (e.g. tag definitions not saved); it stays like an error but is not urgent. */
+export type ToastTone = "success" | "info" | "warn" | "error";
 export type ToastOptions = {
   title: ReactNode;
   description?: ReactNode;
   tone?: ToastTone;
-  /** ms; 0 keeps it until dismissed. Errors default to 0 so a real failure is never lost. */
+  /** Replaces the tone's icon in the well (e.g. a history mark for an interrupted import). */
+  icon?: ReactNode;
+  /** ms; 0 keeps it until dismissed. Errors and warnings default to 0 so they are never lost. */
   timeout?: number;
   action?: { label: string; onClick: () => void };
   /** Called once the toast closes, whether dismissed by the artist or closed by code. */
@@ -30,8 +33,8 @@ function Bridge({ children }: { children: ReactNode }) {
   const latest = useRef(manager);
   latest.current = manager;
   const api = useMemo<ToastApi>(() => {
-    const content = ({ title, description, tone = "info", timeout, action }: Omit<ToastOptions, "onClose">) => ({
-      title, description, type: tone, timeout: timeout ?? (tone === "error" ? 0 : 5000), priority: tone === "error" ? "high" as const : "low" as const,
+    const content = ({ title, description, tone = "info", icon, timeout, action }: Omit<ToastOptions, "onClose">) => ({
+      title, description, type: tone, data: { icon }, timeout: timeout ?? (tone === "error" || tone === "warn" ? 0 : 5000), priority: tone === "error" ? "high" as const : "low" as const,
       actionProps: action ? { children: action.label, onClick: action.onClick } : undefined,
     });
     const show = ({ onClose, ...options }: ToastOptions): string => latest.current.add({ ...content(options), onClose });
@@ -45,24 +48,16 @@ function Bridge({ children }: { children: ReactNode }) {
   return <Manager.Provider value={api}>{children}</Manager.Provider>;
 }
 
-const icons = { success: CircleCheck, info: Info, error: CircleAlert } as const;
+const icons = { success: CircleCheck, info: Info, warn: TriangleAlert, error: CircleAlert } as const;
 
 function Stack() {
   const { toasts, close } = Toast.useToastManager();
-  // The collapsed stack's height (frontmost toast plus an 8 px peek per older one, plus the gap), published on the root so the
-  // import task cards sharing this corner sit above it instead of underneath (#388).
-  const shown = toasts.filter((toast) => toast.transitionStatus !== "ending" && !toast.limited);
-  const stack = shown.length === 0 ? 0 : (shown[0].height ?? 0) + (shown.length - 1) * 8 + 8;
-  useEffect(() => {
-    document.documentElement.style.setProperty("--k-toast-stack", `${stack}px`);
-    return () => { document.documentElement.style.removeProperty("--k-toast-stack"); };
-  }, [stack]);
   return toasts.map((toast) => {
     const Icon = icons[(toast.type as ToastTone | undefined) ?? "info"] ?? Info;
     return <Toast.Root key={toast.id} toast={toast} className="k-toast" data-tone={toast.type}>
       {/* Content clips a taller toast to the frontmost one's height while the stack is collapsed. */}
       <Toast.Content className="k-toast-content">
-        <span className="k-toast-icon"><Icon size={16} aria-hidden="true" /></span>
+        <span className="k-toast-icon" aria-hidden="true">{(toast.data as { icon?: ReactNode } | undefined)?.icon ?? <Icon size={16} />}</span>
         <div className="k-toast-text">
           <Toast.Title className="k-toast-title" />
           <Toast.Description className="k-toast-desc" />

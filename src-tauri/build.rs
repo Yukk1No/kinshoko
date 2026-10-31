@@ -125,6 +125,7 @@ fn main() {
                         "copy_reference_image",
                         "reveal_reference_image",
                         "reveal_library",
+                        "reveal_import_source",
                         "clipboard_has_image",
                         "stage_clipboard_import",
                         "reference_groups",

@@ -254,11 +254,11 @@ try {
   result.library = created;
   assert(true, "建立图库并打开");
 
-  // 导入文件夹（含子文件夹）。设计系统 v2：导入是顶栏的一个按钮，文件夹在它的菜单里；选好文件夹后
+  // 导入文件夹（含子文件夹）。导入是顶栏的一个按钮，点开的弹层上半是来源（#388）；选好文件夹后
   // 在导入对话框里选保存位置。保存位置的两个选择按可见标签命名（放到图库、文件夹）。
   await session.pick(source);
   await session.click(await session.find("//button[@aria-label='导入']"));
-  await session.click(await session.waitFor("文件夹菜单项", "//*[@role='menuitem' and normalize-space()='文件夹']"));
+  await session.click(await session.waitFor("文件夹来源", "//*[@aria-label='导入来源']//button[normalize-space()='文件夹']"));
   // 保存位置是设计系统的 Select（不是原生 select）：点开“放到图库”，等新建的图库可选后点它；文件夹默认“未归类”。
   const target = "//*[contains(@class,'k-import-dialog')]//*[@role='combobox' and @aria-label='放到图库']";
   await session.click(await session.waitFor("保存目标选择", target));
@@ -266,10 +266,11 @@ try {
   await until("保存目标已选好", () => session.exec("return document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.dataset.value === arguments[1];", [target, created.id]));
   await until("开始导入可用", () => session.exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
   await session.click(await session.find(button("开始导入")));
-  await until("导入完成", () => session.exec("return [...document.querySelectorAll('.k-toast')].some(t=>t.querySelector('.k-toast-title')?.textContent==='导入完成'&&t.querySelector('.k-toast-stats')?.textContent.includes('新增 3'));"), 60000);
-  // 结束是一条轻提示（#388）；有没导入的文件时它的“查看”打开结果回执。
+  await until("导入完成", () => session.exec("return [...document.querySelectorAll('.k-toast')].some(t=>t.querySelector('.k-toast-title')?.textContent==='1 个文件未导入'&&t.querySelector('.k-toast-stats')?.textContent.includes('新增 3'));"), 60000);
+  // 结束是一条轻提示（#388）：标题说几个没进来，“查看”展开弹层里的回执，“未导入”的子菜单逐个列出。
   await session.click(await session.find("//*[contains(@class,'k-toast')]//button[normalize-space()='查看']"));
-  await session.find(`//section[@aria-label='导入结果']//li[contains(., '说明.txt') and contains(., '不支持的格式')]`);
+  await session.click(await session.waitFor("未导入一行", "//section[starts-with(@aria-label,'导入回执')]//button[starts-with(normalize-space(),'未导入')]"));
+  await session.waitFor("未导入清单", "//*[@role='dialog' and @aria-label='未导入']//button[contains(., '说明.txt') and contains(., '不支持的格式')]");
   assert(true, "导入 3 张图，不支持的文件逐个列出");
 
   // 浏览

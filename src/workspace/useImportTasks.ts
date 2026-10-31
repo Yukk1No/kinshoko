@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { FinishedImport, RunningImport } from "../library/ImportBar";
+import type { FinishedImport, RunningImport } from "../library/import/report";
 
 /** 导入任务按 id 记下的终态（#76）。 */
 export type ImportTasks = {

@@ -34,6 +34,7 @@ body:has(.selbar-host > .selbar) .k-toasts { bottom: calc(18px + 66px); }
 .k-toast-icon { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--r-s); background: var(--sunken);
   box-shadow: var(--well-inset); color: var(--ink-2); }
 .k-toast[data-tone="error"] .k-toast-icon { color: var(--danger); }
+.k-toast[data-tone="warn"] .k-toast-icon { color: var(--warn); }
 .k-toast-text { flex: 1; min-width: 0; }
 .k-toast-title { margin: 0; font-size: 13px; font-weight: 500; line-height: 20px; overflow-wrap: anywhere; }
 .k-toast-desc { margin: 0; font-size: 12px; line-height: 18px; color: var(--ink-2); overflow-wrap: anywhere; }
@@ -50,6 +51,9 @@ body:has(.selbar-host > .selbar) .k-toasts { bottom: calc(18px + 66px); }
 /* an error's action (重试) is a plain small button: the sakura pill is for undoing a confirmation */
 .k-toast[data-tone="error"] .k-toast-action { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink); }
 .k-toast[data-tone="error"] .k-toast-action:hover { background: var(--surface-2); }
+/* a warning stays until dismissed, like an error: plain action, close button always shown */
+.k-toast[data-tone="warn"] .k-toast-action { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink); }
+.k-toast[data-tone="warn"] .k-toast-action:hover { background: var(--surface-2); }
 .k-toast-close { flex: none; width: 28px; height: 28px; padding: 0; border: 0; display: grid; place-items: center; background: none; color: var(--ink-3);
   border-radius: var(--r-s); transition: opacity var(--t-fast), background var(--t-fast), color var(--t-fast); }
 .k-toast-close:hover { background: var(--hover); color: var(--ink); }
@@ -57,6 +61,7 @@ body:has(.selbar-host > .selbar) .k-toasts { bottom: calc(18px + 66px); }
    It keeps its width while hidden: folding it away made hovering narrow the text, which then wrapped and grew the toast (#388). */
 .k-toast:not([data-tone="error"]) .k-toast-close { opacity: 0; }
 .k-toast:not([data-tone="error"]):is(:hover, :focus-within) .k-toast-close { opacity: 1; }
+.k-toast[data-tone="warn"] .k-toast-close { opacity: 1; }
 .k-toast-action:focus-visible, .k-toast-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 @media (prefers-reduced-motion: reduce) { .k-toasts, .k-toast { transition-duration: 0ms; } }

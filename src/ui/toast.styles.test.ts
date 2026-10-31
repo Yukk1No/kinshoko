@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import css from "./toast.css?raw";
 import uiCss from "./ui.css?raw";
-import dialogsCss from "./dialogs.css?raw";
+import importCss from "../library/import/import.css?raw";
 import { cssRule } from "./cssRule";
 
 const rule = (selector: string) => cssRule(css, selector);
@@ -52,10 +52,9 @@ describe("轻提示是磨砂卡片（设计系统 v3）", () => {
     }
   });
 
-  it("和导入任务卡同一角落：让开检查器与选择栏；任务卡停在提示上方（#388）", () => {
+  it("右下角让开检查器与选择栏", () => {
     expect(rule('body:has(.inspector[data-collapsed="false"]) .k-toasts').right).toContain("var(--inspector-width");
     expect(rule("body:has(.selbar-host > .selbar) .k-toasts").bottom).toBe("calc(18px + 66px)");
-    expect(cssRule(dialogsCss, ".k-task-cards").bottom).toBe("calc(18px + var(--k-toast-stack, 0px))");
   });
 
   it("收起时叠在最新一条后面，展开时按 Base UI 的偏移排开", () => {
@@ -65,13 +64,14 @@ describe("轻提示是磨砂卡片（设计系统 v3）", () => {
     expect(rule(".k-toast-content[data-behind]").opacity).toBe("0");
   });
 
-  it("导入任务卡和轻提示同一套外观：磨砂底、圆角、阴影、图标凹槽与标题字号（#388）", () => {
-    const task = cssRule(dialogsCss, ".k-task");
-    for (const key of ["background", "backdrop-filter", "border-radius", "box-shadow"]) expect(task[key]).toBe(toast[key]);
-    const icon = cssRule(dialogsCss, ".k-task-icon"), toastIcon = rule(".k-toast-icon");
-    for (const key of ["background", "box-shadow", "border-radius", "color"]) expect(icon[key]).toBe(toastIcon[key]);
-    expect(cssRule(dialogsCss, ".k-task-top b")["font-size"]).toBe(rule(".k-toast-title")["font-size"]);
-    expect(cssRule(dialogsCss, ".k-task-top b")["font-weight"]).toBe(rule(".k-toast-title")["font-weight"]);
+  it("提醒类（warn）的图标是 warn 色，关闭按钮一直在（#388）", () => {
+    expect(rule('.k-toast[data-tone="warn"] .k-toast-icon').color).toBe("var(--warn)");
+    expect(rule('.k-toast[data-tone="warn"] .k-toast-close').opacity).toBe("1");
+  });
+
+  it("导入弹层的状态图标与轻提示同一种凹槽（#388）", () => {
+    const well = cssRule(importCss, ".k-import-well"), toastIcon = rule(".k-toast-icon");
+    for (const key of ["width", "height", "background", "box-shadow", "border-radius", "color"]) expect(well[key]).toBe(toastIcon[key]);
   });
 
   it("减少动画时不过渡", () => {

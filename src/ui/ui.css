@@ -75,17 +75,6 @@
 /* the group name lines up with the item text: item padding 8 + indicator 16 + gap 8 */
 .k-menu-label { padding: 6px 10px 2px 32px; font-size: 12px; line-height: 18px; color: var(--ink-2); font-weight: 600; }
 
-/* ---- Import button: one target, the source is chosen in its menu (design system ImportButton) ---- */
-.k-import { display: inline-flex; align-items: center; gap: 2px; flex: none; height: 36px; padding: 0 8px 0 10px; border: 0; border-radius: var(--r); background: transparent; color: var(--ink-2);
-  transition: background var(--t-fast), color var(--t-fast), transform var(--t-fast) var(--spring); }
-.k-import:hover:not(:disabled), .k-import[data-popup-open] { background: var(--hover); color: var(--ink); }
-.k-import:active:not(:disabled) { transform: scale(0.97); }
-.k-import .k-import-chev { color: var(--ink-3); transition: transform var(--t-slow) var(--spring); }
-.k-import[data-popup-open] .k-import-chev { transform: rotate(180deg); }
-.k-import[aria-busy="true"] > svg:first-child { animation: k-busy 1.2s var(--ease) infinite; }
-@keyframes k-busy { 50% { opacity: 0.35; } }
-@media (prefers-reduced-motion: reduce) { .k-import[aria-busy="true"] > svg:first-child { animation: none; } }
-
 /* ---- Fluid hover list ---- */
 .k-fluid { position: relative; }
 .k-fluid-pill { position: absolute; left: 0; right: 0; border-radius: var(--r-s); background: var(--hover); pointer-events: none; }

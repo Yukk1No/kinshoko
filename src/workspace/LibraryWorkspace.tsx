@@ -7,7 +7,7 @@ import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { referenceCard } from "../desktop/openInKinshoko";
 import { errorText, isCursorExpired } from "../ipc";
-import { ImportMenu, type ImportControl } from "../library/ImportMenu";
+import { ImportCenter, type ImportControl } from "../library/import/ImportCenter";
 import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
 import { fitPanes, isNarrow, usePaneFold, useWidth } from "../shell/paneFit";
@@ -237,7 +237,7 @@ export function LibraryWorkspace({
           <div className="bar-meta">
             <span className="result-count tabular k-label" role="status" aria-label="查找结果">{resultCount === null ? "…" : resultCount + " 张"}</span>
           </div>
-          <ImportMenu control={importControl} scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
+          <ImportCenter control={importControl} scope={workspaceScope} enabled={!hidden} libraryId={libraryId}
             running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
             onOpenTrash={(owner=libraryId) => {
               onOpenBrowse();

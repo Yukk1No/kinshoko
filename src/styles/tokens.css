@@ -146,7 +146,7 @@
 @supports (corner-shape: superellipse(1.25)) {
   :where(*) { corner-shape: superellipse(1.25); }
   .lib-dot, .k-density-island, .k-density-knob, .k-density-pop, .k-tagging-dot, .k-tagging-activity, .k-range, .wall-canvas > .card-sources,
-  .startup-bar, .startup-bar *, .capture-tip, .badge, .rail-badge, .fx-burst, .search-chip, .k-radio-card input, .k-steps i, .k-task-progress,
+  .startup-bar, .startup-bar *, .capture-tip, .badge, .rail-badge, .fx-burst, .search-chip, .k-radio-card input, .k-steps i, .k-import-bar,
   .k-chip, .k-chip-x, .k-switch, .k-switch-thumb, .k-dock-badge, .k-pill { corner-shape: round; }
   /* search chips in the top bar and its overflow popover are rounded boxes, not pills */
   .topbar > .search .search-chip, .search-more-pop .search-chip { corner-shape: superellipse(1.25); }
