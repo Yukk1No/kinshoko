@@ -5,8 +5,10 @@ import { editSharedApprox, isLensChanged, onSafeModeSetting, onWorkspaceChanged,
 import { libraryPathHint } from "../library/library-path";
 import { TagMarks, tagName } from "./SearchBox";
 import { useUiLang } from "../i18n";
+import { i18n } from "../i18n/instance";
+import { useTranslation } from "react-i18next";
 
-const relationName=(relation:string)=>relation==="similar"?"相近":"不相近";
+const relationName=(relation:string)=>i18n.t(relation==="similar"?"tagSettings:approx.similar":"tagSettings:approx.notSimilar");
 /** Same formal settings structure, with stable shared identities and source-aware conflict choices. */
 export function SharedPersonalApproxSettings({onError}:{onError:(error:unknown)=>void}) {
   const [safe,setSafe]=useState<boolean|null>(null);
@@ -16,6 +18,7 @@ export function SharedPersonalApproxSettings({onError}:{onError:(error:unknown)=
   const [pending,setPending]=useState<string|null>(null);
   const mode=useRef(0),revision=useRef<string|null>(null),events=useRef(0);
   const lang=useUiLang();
+  const {t}=useTranslation("tagSettings",{keyPrefix:"approx"});
   const key=JSON.stringify([safe,generation,refresh,lang]);const current=useRef(key);current.current=key;
   const view=found?.key===key?found.view:null;
   useEffect(()=>{
@@ -42,22 +45,22 @@ export function SharedPersonalApproxSettings({onError}:{onError:(error:unknown)=
     finally {setPending(value=>value===key?null:value);}
   };
   const busy=pending===key;
-  return <section aria-label="相近标签" aria-busy={busy}>
-    <p className="k-set-note">各图库共用。查找时“以后都不展开”或“＋”加的记在这里。</p>
-    {view===null?<p role="status">正在读取相近标签…</p>:<>
-      {view.entries.length===0?<p className="k-set-note">还没有记下的相近标签。</p>:<table className="settings-approx" aria-label="相近标签表"><tbody>
+  return <section aria-label={t("label")} aria-busy={busy}>
+    <p className="k-set-note">{t("note")}</p>
+    {view===null?<p role="status">{t("loading")}</p>:<>
+      {view.entries.length===0?<p className="k-set-note">{t("empty")}</p>:<table className="settings-approx" aria-label={t("table")}><tbody>
         {view.entries.map(entry=><tr key={`${entry.a.id}/${entry.b.id}`}>
-          <td>{tagName(entry.a)}<TagMarks tag={entry.a}/>～{tagName(entry.b)}<TagMarks tag={entry.b}/></td>
+          <td>{tagName(entry.a)}<TagMarks tag={entry.a}/>{t("pairSeparator")}{tagName(entry.b)}<TagMarks tag={entry.b}/></td>
           <td>{relationName(entry.relation)}</td>
-          <td><button type="button" className="k-btn is-sm is-quiet" disabled={busy} onClick={()=>void edit({kind:"remove",a:entry.a.id,b:entry.b.id})}><span className="k-label">删除</span></button></td>
-          {!!entry.sources.length&&<td>来自：{entry.sources.map(source=><span key={source.libraryId} title={source.libraryRoot}>{source.libraryName}（{libraryPathHint(source.libraryRoot, entry.sources.map(item => item.libraryRoot))}） </span>)}</td>}
+          <td><button type="button" className="k-btn is-sm is-quiet" disabled={busy} onClick={()=>void edit({kind:"remove",a:entry.a.id,b:entry.b.id})}><span className="k-label">{t("remove")}</span></button></td>
+          {!!entry.sources.length&&<td>{t("from")}{entry.sources.map(source=><span key={source.libraryId} title={source.libraryRoot}>{t("source",{name:source.libraryName,path:libraryPathHint(source.libraryRoot, entry.sources.map(item => item.libraryRoot))})}</span>)}</td>}
         </tr>)}
       </tbody></table>}
-      {view.conflicts.map(conflict=><div role="group" aria-label="相近判断冲突" className="k-approx-conflict" key={`${conflict.a.id}/${conflict.b.id}`}>
-        <h3>{tagName(conflict.a)} ～ {tagName(conflict.b)}</h3>
-        <p className="k-set-note">{conflict.current===null?"较早图库的判断不一致，选好前先不展开。":`现在算“${relationName(conflict.current)}”，较早图库不会改它。`}</p>
-        <ul>{conflict.sources.map((source,index)=><li key={`${source.libraryId}/${index}`} title={source.libraryRoot}>{source.libraryName}（{libraryPathHint(source.libraryRoot, conflict.sources.map(item => item.libraryRoot))}）：{relationName(source.relation)}</li>)}</ul>
-        <div className="k-set-inline">{([{relation:"similar",name:"相近"},{relation:"notSimilar",name:"不相近"},{relation:null,name:"保持现状"}] as const).map(choice=><button key={choice.name} type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void edit({kind:"resolveConflict",a:conflict.a.id,b:conflict.b.id,revision:view.revision,relation:choice.relation})}><span className="k-label">{choice.name}</span></button>)}</div>
+      {view.conflicts.map(conflict=><div role="group" aria-label={t("conflict")} className="k-approx-conflict" key={`${conflict.a.id}/${conflict.b.id}`}>
+        <h3>{t("pair",{a:tagName(conflict.a),b:tagName(conflict.b)})}</h3>
+        <p className="k-set-note">{conflict.current===null?t("undecided"):t("current",{relation:relationName(conflict.current)})}</p>
+        <ul>{conflict.sources.map((source,index)=><li key={`${source.libraryId}/${index}`} title={source.libraryRoot}>{t("sourceRelation",{name:source.libraryName,path:libraryPathHint(source.libraryRoot, conflict.sources.map(item => item.libraryRoot)),relation:relationName(source.relation)})}</li>)}</ul>
+        <div className="k-set-inline">{([{relation:"similar",name:t("similar")},{relation:"notSimilar",name:t("notSimilar")},{relation:null,name:t("keep")}] as const).map(choice=><button key={choice.name} type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void edit({kind:"resolveConflict",a:conflict.a.id,b:conflict.b.id,revision:view.revision,relation:choice.relation})}><span className="k-label">{choice.name}</span></button>)}</div>
       </div>)}
     </>}
   </section>;
