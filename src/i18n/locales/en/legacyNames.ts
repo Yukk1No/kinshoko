@@ -1,0 +1,63 @@
+import type zh from "../zh-CN/legacyNames";
+import type { Translation } from "../../translation";
+
+const legacyNames: Translation<typeof zh> = {
+  close: "Close",
+  title: "Confirm older names",
+  lead: "Older libraries call some tags differently. Just pick one.",
+  busy: "Loading or saving older names…",
+  libraryOffline: "{{library}}: {{reason}}. Reconnect it, then confirm its older names.",
+  saved: "Older names confirmed.",
+  none: "No older names left to confirm.",
+  reviewStep: "Review",
+  step: "{{current}} / {{total}}",
+  chosen: "{{chosen}} / {{total}} chosen",
+  usedIn_one: "Used in {{count}} library: {{libraries}}",
+  usedIn_other: "Used in {{count}} libraries: {{libraries}}",
+  librarySeparator: ", ",
+  differentNames: "These libraries use different names. Pick one.",
+  differsFromPreference: "This differs from “{{name}}”, which you set before. Check the result before confirming.",
+  choiceLabel: "Name to use",
+  aliasNote: "The other name stays as an alias and still finds the tag. Names in other languages aren't affected.",
+  option: {
+    followDefaultNamed: "Follow the default “{{name}}”",
+    followDefault: "Follow the default",
+    withdrawsPreference: "Withdraws your name “{{name}}”",
+    followsUpdates: "Follows the default name when it's updated",
+    noDefault: "No default name in this language yet; shown in another language",
+    keepAsPreference: "Keep “{{name}}” as a shared preference",
+    savedFrom: "Saved as the display name, from {{library}}",
+    keepPrevious: "Keep the name you set before",
+  },
+  unnamed: "Unnamed tag",
+  checking: "Checking the final display…",
+  preview: {
+    label: "Display after migration",
+    tag: "Tag",
+    display: "Final display",
+    preference: "Changed display name",
+    tagInLanguage: "{{tag}} ({{language}})",
+    noPreference: "None, follows the default",
+    previousPage: "Previous page",
+    nextPage: "Next page",
+  },
+  bulk: "Use the default for the rest ({{count}})",
+  done: "Done",
+  cancel: "Cancel",
+  previous: "Previous",
+  confirm: "Confirm names",
+  next: "Next",
+  notice: {
+    title: "Older names to confirm",
+    body_one: " This library has {{count}} older name",
+    body_other: " This library has {{count}} older names",
+    open: "Confirm one by one",
+  },
+  banner: {
+    title_one: "{{count}} older name to confirm",
+    title_other: "{{count}} older names to confirm",
+    body: " From older libraries",
+  },
+};
+
+export default legacyNames;

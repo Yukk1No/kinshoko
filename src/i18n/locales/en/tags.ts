@@ -16,6 +16,15 @@ const tags: Translation<typeof zh> = {
   },
   untranslated: "No English name yet; showing the original name",
   untranslatedFlag: "Untranslated",
+  unnamed: "Unnamed tag",
+  language: {
+    "zh-CN": "简体中文",
+    "zh-TW": "繁體中文",
+    en: "English",
+    ja: "日本語",
+    ko: "한국어",
+    und: "Language not specified",
+  },
   noExternal: "No external mapping; not in the built-in approximate match table",
   panel: {
     label: "Tags",
