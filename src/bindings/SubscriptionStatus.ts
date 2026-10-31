@@ -10,6 +10,10 @@ export type SubscriptionStatus = {
  */
 enabled: boolean, login: LoginState, 
 /**
+ * pixiv 登录窗口开着，还没登录好。
+ */
+signingIn: boolean, 
+/**
  * 正在检查。
  */
 checking: boolean, 

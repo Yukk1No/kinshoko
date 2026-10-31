@@ -134,6 +134,8 @@ pub struct SubscriptionStatus {
     /// 设置里的订阅开关；关掉后不显示入口、不检查、不联网。
     pub enabled: bool,
     pub login: pixiv::LoginState,
+    /// pixiv 登录窗口开着，还没登录好。
+    pub signing_in: bool,
     /// 正在检查。
     pub checking: bool,
     /// 新图数量（按页计）。安全模式开着时不计成人作品。

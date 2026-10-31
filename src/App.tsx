@@ -19,7 +19,6 @@ import {
   onSafeModeSetting,
   safeMode,
   setSafeMode,
-  setUiScale,
   shellSettings,
   setInspectorWidth,
   uiScale,
@@ -31,7 +30,8 @@ import { CreateLibrary } from "./library/CreateLibrary";
 import { LegacyNameMigrationNotice, LegacyNameWizard } from "./library/LegacyNameMigrationPanel";
 import { LibraryPicker } from "./library/LibraryPicker";
 import { Rail, type Section } from "./shell/Rail";
-import { initialUiScale, stepUiScale, UiScaleContext, uiScaleStepForKey } from "./shell/uiScale";
+import { UiScaleContext } from "./shell/uiScale";
+import { useUiScaleChoice } from "./shell/useUiScaleChoice";
 import { SettingsPanel, type SettingsTab } from "./SettingsPanel";
 import { createShellSettings } from "./shell/useShellSettings";
 import { BackupReminder } from "./Backup";
@@ -49,6 +49,7 @@ import { LibraryWorkspace } from "./workspace/LibraryWorkspace";
 import { markStartup } from "./startupTiming";
 import { releaseStartup, startupLibraryOpened } from "./startupGate";
 import { StartupSplash } from "./shell/StartupSplash";
+import { SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
 
 /**
  * 主窗口：本设备登记的资料库与一个活动资料库（#49）；上次的库不可用时仍可选择其他库、
@@ -56,6 +57,7 @@ import { StartupSplash } from "./shell/StartupSplash";
  * 封印书或 Ctrl+Shift+S 切换安全模式（#60）：开启的那一刻先遮住将被封印的图，资料库确认后
  * 它们离开图片墙，计数与候选随之刷新。安全模式属于本设备，切换资料库后沿用。
  * Ctrl+= / Ctrl+- / Ctrl+0 按档位放大、缩小、复位界面缩放（#173）。
+ * 订阅（#368）是图标轨的第四个分区，见 SubscriptionSection。
  */
 export function App() {
   return <ToastProvider><MainWindow /></ToastProvider>;
@@ -79,6 +81,7 @@ function MainWindow() {
   const [referenceRequest, setReferenceRequest] = useState<{ libraryId: string; imageId: string; stamp: number } | null>(null);
   const [section, setSection] = useState<Section>("browse");
   const [paneOpen, setPaneOpen] = useState(true);
+  const subscriptions = useSubscriptionSection(section, setSection);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   // undefined：还在打开；null：没有活动资料库。
@@ -109,41 +112,7 @@ function MainWindow() {
     setInspectorWidthState(width);
     void setInspectorWidth(width).catch(() => {});
   }, []);
-  /**
-   * 界面缩放档位（#173）。WebView 由核心缩放，这里只记下档位给图片墙和设置用：
-   * 显示的档位在核心保存并缩放之后才换；连按时从最后按下的那一档往下数。
-   * 写入一次只发一个：上一个完成后若又按了别的档，再写最后按到的那一档，旧的写入不会盖过新的。
-   */
-  const [uiScalePercent, setUiScalePercent] = useState(initialUiScale);
-  const uiScaleTarget = useRef(uiScalePercent);
-  const uiScaleSaved = useRef(uiScalePercent);
-  const uiScaleWriting = useRef(false);
-  const acceptUiScale = useCallback((saved: number) => {
-    uiScaleSaved.current = saved;
-    uiScaleTarget.current = saved;
-    setUiScalePercent(saved);
-  }, []);
-  const chooseUiScale = useCallback(async (percent: number) => {
-    if (percent === uiScaleTarget.current) return;
-    uiScaleTarget.current = percent;
-    if (uiScaleWriting.current) return;
-    uiScaleWriting.current = true;
-    try {
-      while (uiScaleTarget.current !== uiScaleSaved.current) {
-        const wanted = uiScaleTarget.current;
-        try {
-          const saved = await setUiScale(wanted);
-          uiScaleSaved.current = saved;
-          if (uiScaleTarget.current === wanted) acceptUiScale(saved);
-        } catch (e) {
-          toast?.error(i18n.t("shell:uiScaleFailed", { error: String(e) }));
-          acceptUiScale(await uiScale().catch(() => uiScaleSaved.current));
-        }
-      }
-    } finally {
-      uiScaleWriting.current = false;
-    }
-  }, [toast, acceptUiScale]);
+  const { uiScalePercent, uiScaleWriting, acceptUiScale, chooseUiScale } = useUiScaleChoice(toast);
   /**
    * 安全模式。读到设置之前按开启处理，不会先露出被封印的图。`safe` 是开关上显示的状态；
    * 查询资料库用 `lensSafe`：关闭时等后端确认才放开（#183，见 safeLens）。
@@ -261,24 +230,12 @@ function MainWindow() {
     return () => window.removeEventListener("keydown", onKey);
   }, [toggleSafe]);
 
-  // 界面缩放的固定按键；Ctrl+滚轮不在这里，它归图片墙的图片大小（#111）。
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const step = uiScaleStepForKey(e);
-      if (!step) return;
-      e.preventDefault();
-      void chooseUiScale(stepUiScale(uiScaleTarget.current, step));
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [chooseUiScale]);
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
       if (e.key.toLowerCase() === "b") { e.preventDefault(); setPaneOpen((open) => !open); }
-      if (["1", "2", "3"].includes(e.key)) {
-        e.preventDefault(); setSection((["browse", "groups", "captures"] as Section[])[Number(e.key) - 1]); setPaneOpen(true);
+      if (["1", "2", "3"].includes(e.key) || (e.key === "4" && subscriptions.onRef.current)) {
+        e.preventDefault(); setSection((["browse", "groups", "captures", "subscriptions"] as Section[])[Number(e.key) - 1]); setPaneOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -308,7 +265,8 @@ function MainWindow() {
       <div className="rail-slot">
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
           onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
-          onSettings={() => { if (showSettings) setShowSettings(false); else openSettings("general"); }} />
+          onSettings={() => { if (showSettings) setShowSettings(false); else openSettings("general"); }}
+          subscriptions={subscriptions.rail} />
       </div>
       <div className="app-column">
       {library !== undefined && (
@@ -324,7 +282,7 @@ function MainWindow() {
           onPaneOpen={setPaneOpen}
           onOpenBrowse={() => { setSection("browse"); setPaneOpen(true); }}
           libraryControls={libraryControls}
-          hidden={empty}
+          hidden={empty || subscriptions.page !== null}
           safe={lensSafe}
           onSafeChanged={acceptSafe}
           showApproxSource={showApproxSource}
@@ -336,7 +294,12 @@ function MainWindow() {
           onOpenTaggingSettings={() => openSettings("tagging")}
         />
       )}
-      {empty && (
+      <SubscriptionSection subscriptions={subscriptions} safe={safe} paneOpen={paneOpen} onPaneToggle={() => setPaneOpen((open) => !open)}
+        onOpenImage={(libraryId, imageId) => {
+          setSection("browse"); setPaneOpen(true);
+          setReferenceRequest((last) => ({ libraryId, imageId, stamp: (last?.stamp ?? 0) + 1 }));
+        }} />
+      {empty && !subscriptions.page && (
         <div className="app-empty-workspace">
           {!library && paneOpen && section !== "browse" && <aside className="pane empty-context" aria-label={section === "groups" ? t("emptyPane.groups") : t("emptyPane.capturesLabel")}>
             <header className="pane-head" data-tauri-drag-region><h2 className="pane-title">{section === "groups" ? t("emptyPane.groups") : t("emptyPane.captures")}</h2>
@@ -376,6 +339,7 @@ function MainWindow() {
               settings={shellSettingsStore}
               uiScale={uiScalePercent}
               onUiScale={(percent) => void chooseUiScale(percent)}
+              subscriptions={subscriptions.settings}
             />
           </Dialog.Popup>
         </Dialog.Portal>
