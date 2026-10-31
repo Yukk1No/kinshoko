@@ -82,6 +82,8 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   const { list, recent, fresh } = useSubscriptionData(status, onError);
   const [selected, setSelected] = useState<string | null>(null);
   const [failedTiles, setFailedTiles] = useState<ReadonlySet<string>>(new Set());
+  // 缩略图读不出来可能只是暂时的（例如安全模式下被分级挡住）：换了安全模式或重读后再试。
+  useEffect(() => { setFailedTiles(new Set()); }, [safe, recent]);
   const login = status.login;
   const account = login.state === "loggedOut" ? null : login.account;
   const signingIn = status.signingIn && login.state !== "loggedIn";

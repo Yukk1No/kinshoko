@@ -107,6 +107,16 @@ describe("订阅页", () => {
     expect(screen.getByRole("button", { name: /日榜 前 50/ })).toBeTruthy();
   });
 
+  it("缩略图读不出来的先不显示，换了安全模式再试", async () => {
+    backend();
+    const view = page(status(), { safe: true });
+    await waitFor(() => expect(tiles()).toHaveLength(3));
+    fireEvent.error(tiles()[0].querySelector("img")!);
+    expect(tiles()).toHaveLength(2);
+    view.setSafe(false);
+    expect(tiles()).toHaveLength(5);
+  });
+
   it("空闲时标题行右侧是“几分钟前查过”与立即检查", async () => {
     backend();
     page(status());

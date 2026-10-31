@@ -155,6 +155,8 @@ function MainWindow() {
   // 钉图菜单“在 Kinshoko 中打开”（#106）：参考图在查看器里打开，截图打开截图历史。
   useOpenInKinshoko((request) => {
     if (request.kind === "capture") { setSection("captures"); setPaneOpen(true); return; }
+    // 查看器在图片与文件夹的工作区里：正开着订阅页时先回去，不然打开了也看不见。
+    setSection((current) => (current === "subscriptions" ? "browse" : current));
     setReferenceRequest((last) => ({ libraryId: request.libraryId, imageId: request.imageId, stamp: (last?.stamp ?? 0) + 1 }));
   });
 

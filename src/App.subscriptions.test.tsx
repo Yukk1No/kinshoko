@@ -10,8 +10,12 @@ const entry = () => screen.queryByRole("button", { name: "订阅" });
 const push = (next: SubscriptionStatus) => act(() => emit("subscription-status", next));
 
 /** 订阅功能（#368）：`subscription_status` 回什么，主窗口就按什么显示；没有订阅功能时命令 reject。 */
+let openRequest: unknown = null;
+
 function withSubscriptions(initial: SubscriptionStatus | "unavailable") {
+  openRequest = null;
   backend(library, undefined, (cmd) => {
+    if (cmd === "plugin:desktop|take_open_request") { const next = openRequest; openRequest = null; return next; }
     if (cmd === "subscription_status") return initial === "unavailable" ? Promise.reject("unavailable") : initial;
     if (cmd === "subscriptions" || cmd === "subscription_recent") return [];
     return undefined;
@@ -53,5 +57,17 @@ describe("订阅入口", () => {
     await push(status());
     fireEvent.keyDown(window, { key: "4", ctrlKey: true });
     expect(await screen.findByRole("complementary", { name: "订阅" })).toBeTruthy();
+  });
+
+  it("开着订阅页时从钉图“在 Kinshoko 中打开”参考图，回到图片与文件夹", async () => {
+    withSubscriptions(status());
+    render(<App />);
+    await waitFor(() => expect(entry()).toBeTruthy());
+    fireEvent.click(entry()!);
+    expect(await screen.findByRole("complementary", { name: "订阅" })).toBeTruthy();
+    openRequest = { kind: "reference", libraryId: "L1", imageId: "a" };
+    await act(() => emit("open-in-kinshoko"));
+    await waitFor(() => expect(screen.queryByRole("complementary", { name: "订阅" })).toBeNull());
+    expect(screen.getByRole("button", { name: "图片与文件夹" }).getAttribute("aria-current")).toBe("page");
   });
 });

@@ -121,7 +121,7 @@ try {
   const parent = join(work, "libraries"); mkdirSync(parent, { recursive: true });
   const info = await session.invoke("plugin:library|create_library", { parent, name: "pixiv 订阅" });
   await session.invoke("plugin:library|start_import", { libraryId: info.id, source: { paths } });
-  const browse = () => session.invoke("plugin:library|workspace_browse", { query: { scope: { kind: "all" }, conditions: { conditions: [] }, cursor: null, limit: 100, thumbnailPx: 128 }, safeMode: false });
+  const browse = () => session.invoke("plugin:library|workspace_browse", { query: { scope: { kind: "all" }, conditions: { conditions: [] }, cursor: null, limit: 100, thumbnailPx: 128 }, safeMode: true });
   const page = await until("import", async () => { const p = await browse(); return p.total === paths.length && p; });
   const imageIds = page.cards.map((card) => card.imageId ?? card.id);
 
