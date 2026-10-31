@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { Image } from "lucide-react";
 import { arcSpring } from "../ui/Dock";
 import { useReducedMotion } from "../ui/reducedMotion";
@@ -15,24 +16,25 @@ import { DensitySlider } from "./DensitySlider";
  * dock's morph spring; reduced motion jumps to the end state.
  */
 export function DensityIsland(p: { value: number; preview?: number | null; onPreview: (v: number | null) => void; onCommit: (v: number) => void; collapsed?: boolean }) {
+  const { t } = useTranslation("wall");
   const reduced = useReducedMotion();
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
-  const slider = <DensitySlider label="图片大小" value={p.value} preview={p.preview} onPreview={p.onPreview} onCommit={p.onCommit} />;
+  const slider = <DensitySlider label={t("density.label")} value={p.value} preview={p.preview} onPreview={p.onPreview} onCommit={p.onCommit} />;
   const morph = reduced ? { duration: 0 } : arcSpring.morph;
   if (!p.collapsed) {
-    return <motion.div layout layoutId="k-density-island" transition={morph} className="k-density-island density" role="group" aria-label="图片大小">
+    return <motion.div layout layoutId="k-density-island" transition={morph} className="k-density-island density" role="group" aria-label={t("density.label")}>
       <Image size={12} strokeWidth={1.75} data-end="small" aria-hidden="true" />
       {slider}
       <Image size={16} strokeWidth={1.75} data-end="large" aria-hidden="true" />
     </motion.div>;
   }
-  return <motion.div layout layoutId="k-density-island" transition={morph} className="k-density-island density is-collapsed" role="group" aria-label="图片大小"
+  return <motion.div layout layoutId="k-density-island" transition={morph} className="k-density-island density is-collapsed" role="group" aria-label={t("density.label")}
     onMouseEnter={() => setOpen(true)}
     onMouseLeave={(e) => { if (!e.currentTarget.contains(document.activeElement)) setOpen(false); }}
     onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false); }}
     onKeyDown={(e) => { if (e.key === "Escape" && open) { e.stopPropagation(); setOpen(false); button.current?.focus(); } }}>
-    <button ref={button} type="button" className="k-density-knob" aria-label="图片大小" aria-expanded={open} onClick={() => setOpen(true)}>
+    <button ref={button} type="button" className="k-density-knob" aria-label={t("density.label")} aria-expanded={open} onClick={() => setOpen(true)}>
       <Image size={16} strokeWidth={1.75} aria-hidden="true" />
     </button>
     <AnimatePresence>

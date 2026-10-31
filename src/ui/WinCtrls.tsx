@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { glyphGrid, glyphPath, snapGlyph, type GlyphKind } from "./winGlyphs";
 
@@ -53,6 +54,7 @@ function useSnappedGlyphs(group: RefObject<HTMLDivElement | null>, maximized: bo
  * Closing keeps today's semantics: only this window closes, Kinshoko stays in the tray (ADR 0004).
  */
 export function WinCtrls() {
+  const { t } = useTranslation("shell");
   const [maximized, setMaximized] = useState(false);
   const group = useRef<HTMLDivElement>(null);
   const dpr = useSnappedGlyphs(group, maximized);
@@ -71,14 +73,14 @@ export function WinCtrls() {
   };
   return <div ref={group} className="k-win-ctrls">
     <span className="k-win-div" aria-hidden="true" />
-    <button type="button" className="k-win-btn" aria-label="最小化" title="最小化" onClick={run((win) => win.minimize())}>
+    <button type="button" className="k-win-btn" aria-label={t("window.minimize")} title={t("window.minimize")} onClick={run((win) => win.minimize())}>
       <Glyph kind="minimize" dpr={dpr} />
     </button>
-    <button type="button" className="k-win-btn" aria-label={maximized ? "还原" : "最大化"} title={maximized ? "还原" : "最大化"}
+    <button type="button" className="k-win-btn" aria-label={maximized ? t("window.restore") : t("window.maximize")} title={maximized ? t("window.restore") : t("window.maximize")}
       onClick={run((win) => win.toggleMaximize())}>
       <Glyph kind={maximized ? "restore" : "maximize"} dpr={dpr} />
     </button>
-    <button type="button" className="k-win-btn is-close" aria-label="关闭" title="关闭" onClick={run((win) => win.close())}>
+    <button type="button" className="k-win-btn is-close" aria-label={t("window.close")} title={t("window.close")} onClick={run((win) => win.close())}>
       <Glyph kind="close" dpr={dpr} />
     </button>
   </div>;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CheckSquare, ClipboardPaste, Copy, Crop, Download, FileImage, FolderMinus, FolderOpen, FolderSearch, Images, Layers, Maximize2, Pin, RotateCcw, ShieldCheck, Trash2 } from "lucide-react";
 import { FolderGlyph, Menu, MenuItem, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuTip } from "../ui/Menu";
 import type { BrowseScope } from "../bindings/BrowseScope";
@@ -44,18 +45,17 @@ export type WallMenuActions = {
 };
 
 /** 图片大小的几档预设（目标列宽，与密度滑条同一个值）。 */
-export const DENSITY_PRESETS: { value: number; label: string }[] = [
-  { value: 160, label: "小" }, { value: 240, label: "中" }, { value: 320, label: "大" }, { value: 400, label: "特大" },
+export const DENSITY_PRESETS: { value: number; label: "small" | "medium" | "large" | "huge" }[] = [
+  { value: 160, label: "small" }, { value: 240, label: "medium" }, { value: 320, label: "large" }, { value: 400, label: "huge" },
 ];
 
-const RATINGS: { value: ContentRating; label: string }[] = [
-  { value: "general", label: "全年龄" }, { value: "sensitive", label: "轻度" }, { value: "questionable", label: "敏感" }, { value: "explicit", label: "成人" },
-];
+const RATINGS: ContentRating[] = ["general", "sensitive", "questionable", "explicit"];
 
 const icon = (Icon: typeof Pin) => <Icon size={14} />;
 
 /** 菜单打开时读一次剪贴板：读到之前与读不到时不禁用（真去导入时再报告原因）。 */
 function ClipboardImport({ actions }: { actions: WallMenuActions }) {
+  const { t } = useTranslation(["wall", "common"]);
   const [hasImage, setHasImage] = useState<boolean | null>(null);
   useEffect(() => {
     let alive = true;
@@ -63,7 +63,7 @@ function ClipboardImport({ actions }: { actions: WallMenuActions }) {
     return () => { alive = false; };
     // 每次打开菜单只读一次。
   }, []);
-  return <MenuItem icon={icon(ClipboardPaste)} kbd="Ctrl V" disabled={hasImage === false} onClick={actions.importClipboard}>从剪贴板导入</MenuItem>;
+  return <MenuItem icon={icon(ClipboardPaste)} kbd="Ctrl V" disabled={hasImage === false} onClick={actions.importClipboard}>{t("menu.importClipboard")}</MenuItem>;
 }
 
 /** 子菜单打开时才读的列表；读不到时显示原因。 */
@@ -79,19 +79,21 @@ function useList<T>(load: () => Promise<T[]>) {
 }
 
 function FolderList({ libraryId, actions, cards }: { libraryId: string; actions: WallMenuActions; cards: BrowserCard[] }) {
+  const { t } = useTranslation(["wall", "common"]);
   const { items, problem } = useList(() => actions.folders(libraryId));
-  if (!items) return <MenuTip>正在读取文件夹…</MenuTip>;
+  if (!items) return <MenuTip>{t("menu.loadingFolders")}</MenuTip>;
   if (problem) return <MenuTip>{problem}</MenuTip>;
-  if (!items.length) return <MenuTip>这个图库还没有文件夹</MenuTip>;
+  if (!items.length) return <MenuTip>{t("menu.noFolders")}</MenuTip>;
   return <>{items.map((f) => <MenuItem key={f.id} onClick={() => actions.edit(cards, [{ kind: "addToFolder", folderId: f.id }], false)}>{f.label}</MenuItem>)}</>;
 }
 
 function GroupList({ actions, cards }: { actions: WallMenuActions; cards: BrowserCard[] }) {
+  const { t } = useTranslation(["wall", "common"]);
   const { items, problem } = useList(actions.groups);
-  if (!items) return <MenuTip>正在读取参考组…</MenuTip>;
+  if (!items) return <MenuTip>{t("menu.loadingGroups")}</MenuTip>;
   if (problem) return <MenuTip>{problem}</MenuTip>;
   const usable = items.filter((g) => !g.problem);
-  if (!usable.length) return <MenuTip>还没有参考组，可在侧栏“参考组”里新建</MenuTip>;
+  if (!usable.length) return <MenuTip>{t("menu.noGroups")}</MenuTip>;
   return <>{usable.map((g) => <MenuItem key={g.id} onClick={() => actions.addToGroup(cards, g.id)}>{g.name}</MenuItem>)}</>;
 }
 
@@ -100,6 +102,7 @@ function GroupList({ actions, cards }: { actions: WallMenuActions; cards: Browse
  * 默认）时范围里也有子文件夹里的图，菜单打开时问一次这张图是否直接在这个文件夹里，是才显示。
  */
 function RemoveFromFolder({ card, folderId, direct, actions }: { card: BrowserCard; folderId: string; direct: boolean; actions: WallMenuActions }) {
+  const { t } = useTranslation(["wall", "common"]);
   const [member, setMember] = useState(direct);
   useEffect(() => {
     if (direct) return;
@@ -109,26 +112,27 @@ function RemoveFromFolder({ card, folderId, direct, actions }: { card: BrowserCa
     // 每次打开菜单只问一次。
   }, []);
   if (!member) return null;
-  return <MenuItem icon={icon(FolderMinus)} onClick={() => actions.edit([card], [{ kind: "removeFromFolder", folderId }], true)}>从此文件夹移出</MenuItem>;
+  return <MenuItem icon={icon(FolderMinus)} onClick={() => actions.edit([card], [{ kind: "removeFromFolder", folderId }], true)}>{t("menu.removeFromFolder")}</MenuItem>;
 }
 
 function Organize({ cards, actions, scope, single }: { cards: BrowserCard[]; actions: WallMenuActions; scope: BrowseScope; single: boolean }) {
+  const { t } = useTranslation(["wall", "common"]);
   const libraries = new Set(cards.map((c) => c.libraryId ?? ""));
   const libraryId = libraries.size === 1 ? [...libraries][0] : null;
   return <>
-    <MenuSubmenu icon={<FolderGlyph />} label="移到文件夹" disabled={libraryId === null} popupLabel="移到文件夹" width={220}
-      meta={libraryId === null ? "来自多个图库" : undefined}>
+    <MenuSubmenu icon={<FolderGlyph />} label={t("menu.moveToFolder")} disabled={libraryId === null} popupLabel={t("menu.moveToFolder")} width={220}
+      meta={libraryId === null ? t("menu.fromSeveralLibraries") : undefined}>
       {libraryId !== null && <FolderList libraryId={libraryId} actions={actions} cards={cards} />}
     </MenuSubmenu>
     {single && (scope.kind === "folder" || scope.kind === "folderTree") &&
       <RemoveFromFolder card={cards[0]} folderId={scope.id} direct={scope.kind === "folder"} actions={actions} />}
-    <MenuSubmenu icon={icon(Layers)} label="加入参考组" popupLabel="加入参考组" width={220}>
+    <MenuSubmenu icon={icon(Layers)} label={t("menu.addToGroup")} popupLabel={t("menu.addToGroup")} width={220}>
       <GroupList actions={actions} cards={cards} />
     </MenuSubmenu>
-    <MenuSubmenu icon={icon(ShieldCheck)} label="内容分级" popupLabel="内容分级">
-      {RATINGS.map((r) => <MenuItem key={r.value} onClick={() => actions.edit(cards, [{ kind: "setRating", rating: r.value }], false)}>{r.label}</MenuItem>)}
+    <MenuSubmenu icon={icon(ShieldCheck)} label={t("menu.rating")} popupLabel={t("menu.rating")}>
+      {RATINGS.map((rating) => <MenuItem key={rating} onClick={() => actions.edit(cards, [{ kind: "setRating", rating }], false)}>{t(`common:rating.${rating}`)}</MenuItem>)}
       <MenuSeparator />
-      <MenuItem icon={icon(RotateCcw)} onClick={() => actions.edit(cards, [{ kind: "revertRating" }], false)}>改回自动</MenuItem>
+      <MenuItem icon={icon(RotateCcw)} onClick={() => actions.edit(cards, [{ kind: "revertRating" }], false)}>{t("menu.revertRating")}</MenuItem>
     </MenuSubmenu>
   </>;
 }
@@ -140,19 +144,20 @@ function Organize({ cards, actions, scope, single }: { cards: BrowserCard[]; act
 export function WallMenu({ target, scope, density, actions }: {
   target: WallMenuTarget; scope: BrowseScope; density: number; actions: WallMenuActions;
 }) {
+  const { t } = useTranslation(["wall", "common"]);
   if (target.kind === "blank") {
     return <>
-      <MenuSubmenu icon={icon(Download)} label="导入" popupLabel="导入">
-        <MenuItem icon={icon(FileImage)} kbd="Ctrl O" onClick={() => actions.importFrom("files")}>图片</MenuItem>
-        <MenuItem icon={icon(FolderOpen)} onClick={() => actions.importFrom("folder")}>文件夹</MenuItem>
-        <MenuItem icon={icon(Images)} onClick={() => actions.importFrom("eagle")}>从 Eagle…</MenuItem>
+      <MenuSubmenu icon={icon(Download)} label={t("menu.import")} popupLabel={t("menu.import")}>
+        <MenuItem icon={icon(FileImage)} kbd="Ctrl O" onClick={() => actions.importFrom("files")}>{t("menu.importFiles")}</MenuItem>
+        <MenuItem icon={icon(FolderOpen)} onClick={() => actions.importFrom("folder")}>{t("menu.importFolder")}</MenuItem>
+        <MenuItem icon={icon(Images)} onClick={() => actions.importFrom("eagle")}>{t("menu.importEagle")}</MenuItem>
       </MenuSubmenu>
       <ClipboardImport actions={actions} />
-      <MenuItem icon={icon(CheckSquare)} kbd="Ctrl A" onClick={actions.selectAll}>全选</MenuItem>
-      <MenuSubmenu icon={icon(Maximize2)} label="图片大小" popupLabel="图片大小">
+      <MenuItem icon={icon(CheckSquare)} kbd="Ctrl A" onClick={actions.selectAll}>{t("menu.selectAll")}</MenuItem>
+      <MenuSubmenu icon={icon(Maximize2)} label={t("density.label")} popupLabel={t("density.label")}>
         <Menu.RadioGroup value={DENSITY_PRESETS.some((p) => p.value === density) ? density : null}
           onValueChange={(value) => actions.setDensity(value as number)}>
-          {DENSITY_PRESETS.map((p) => <MenuRadioItem key={p.value} value={p.value}>{p.label}</MenuRadioItem>)}
+          {DENSITY_PRESETS.map((p) => <MenuRadioItem key={p.value} value={p.value}>{t(`density.${p.label}`)}</MenuRadioItem>)}
         </Menu.RadioGroup>
       </MenuSubmenu>
     </>;
@@ -160,34 +165,34 @@ export function WallMenu({ target, scope, density, actions }: {
   const { cards, point } = target;
   if (scope.kind === "trash") {
     return <>
-      <MenuItem icon={icon(RotateCcw)} onClick={() => actions.edit(cards, [{ kind: "restore" }], true)}>还原</MenuItem>
+      <MenuItem icon={icon(RotateCcw)} onClick={() => actions.edit(cards, [{ kind: "restore" }], true)}>{t("menu.restore")}</MenuItem>
       <MenuSeparator />
-      <MenuItem icon={icon(Trash2)} danger onClick={() => actions.purge(cards)}>彻底删除…</MenuItem>
+      <MenuItem icon={icon(Trash2)} danger onClick={() => actions.purge(cards)}>{t("menu.purge")}</MenuItem>
     </>;
   }
   if (cards.length === 1) {
     const [card] = cards;
     const sources = card.sources ?? [];
     return <>
-      <MenuItem icon={icon(Maximize2)} kbd="Enter" onClick={() => actions.open(card)}>打开</MenuItem>
-      <MenuItem icon={icon(Pin)} kbd="P" onClick={() => actions.pin(cards, point)}>钉住整图</MenuItem>
-      <MenuItem icon={icon(Crop)} kbd="F1" onClick={() => actions.crop(card)}>框选局部钉住</MenuItem>
-      <MenuItem icon={icon(Copy)} kbd="Ctrl C" onClick={() => actions.copy(card)}>复制图片</MenuItem>
+      <MenuItem icon={icon(Maximize2)} kbd="Enter" onClick={() => actions.open(card)}>{t("menu.open")}</MenuItem>
+      <MenuItem icon={icon(Pin)} kbd="P" onClick={() => actions.pin(cards, point)}>{t("common:image.pinWhole")}</MenuItem>
+      <MenuItem icon={icon(Crop)} kbd="F1" onClick={() => actions.crop(card)}>{t("menu.cropPin")}</MenuItem>
+      <MenuItem icon={icon(Copy)} kbd="Ctrl C" onClick={() => actions.copy(card)}>{t("common:image.copy")}</MenuItem>
       <MenuSeparator />
       <Organize cards={cards} actions={actions} scope={scope} single />
-      {sources.length >= 2 && <MenuItem icon={icon(Layers)} onClick={() => actions.inspectSources(card)}>查看来源</MenuItem>}
+      {sources.length >= 2 && <MenuItem icon={icon(Layers)} onClick={() => actions.inspectSources(card)}>{t("menu.inspectSources")}</MenuItem>}
       <MenuSeparator />
-      <MenuItem icon={icon(FolderSearch)} onClick={() => actions.reveal(card)}>在资源管理器中显示</MenuItem>
+      <MenuItem icon={icon(FolderSearch)} onClick={() => actions.reveal(card)}>{t("common:image.reveal")}</MenuItem>
       <MenuSeparator />
-      <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>移到回收站</MenuItem>
+      <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>{t("common:image.trash")}</MenuItem>
     </>;
   }
   return <>
-    <MenuItem icon={icon(Pin)} kbd="P" onClick={() => actions.pin(cards, point)}>钉住 {cards.length} 张</MenuItem>
-    <MenuItem icon={icon(Copy)} disabled className="has-meta">复制<span className="k-item-meta">一次只能复制一张</span></MenuItem>
+    <MenuItem icon={icon(Pin)} kbd="P" onClick={() => actions.pin(cards, point)}>{t("menu.pinCount", { count: cards.length })}</MenuItem>
+    <MenuItem icon={icon(Copy)} disabled className="has-meta">{t("menu.copyMany")}<span className="k-item-meta">{t("menu.copyOneOnly")}</span></MenuItem>
     <MenuSeparator />
     <Organize cards={cards} actions={actions} scope={scope} single={false} />
     <MenuSeparator />
-    <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>移到回收站（{cards.length} 张）</MenuItem>
+    <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>{t("menu.trashCount", { count: cards.length })}</MenuItem>
   </>;
 }

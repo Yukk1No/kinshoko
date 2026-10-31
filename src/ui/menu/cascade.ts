@@ -294,8 +294,9 @@ export class CascadeController {
     this.debugState = {
       triangle: zone && side && apex ? safeTriangle(apex, zone.submenu, side) : null,
       strip: zone && side ? approachStrip(zone.parent, side) : null,
-      timer: this.closeTimer ? { label: "关闭", startedAt: this.closeStartedAt, duration: MENU_TIMING.closeDelay }
-        : p ? { label: p.kind === "safe" ? "安全区" : "悬停", startedAt: p.startedAt, duration: p.duration }
+      // 调试层的计时说明只给开发者看（关闭、安全区、悬停），不进界面文案（#356）。
+      timer: this.closeTimer ? { label: "close", startedAt: this.closeStartedAt, duration: MENU_TIMING.closeDelay }
+        : p ? { label: p.kind === "safe" ? "safe zone" : "hover", startedAt: p.startedAt, duration: p.duration }
         : null,
     };
     this.emit();

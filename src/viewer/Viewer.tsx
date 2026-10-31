@@ -7,6 +7,7 @@ import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
 import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Pin, Plus, RotateCcw, X } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
+import { useTranslation } from "react-i18next";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import { Dock } from "../ui/Dock";
 import { FollowDock } from "../ui/FollowDock";
@@ -43,6 +44,7 @@ type Props = {
  * 选区按原图像素记，标出“宽 × 高 原始像素”，缩放平移时边界不变。
  */
 export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, position, onStep, startCrop = false, onTrash, inspectorOpen = false, onToggleInspector }: Props) {
+  const { t } = useTranslation(["viewer", "common"]);
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0, dpr: window.devicePixelRatio || 1 });
@@ -151,8 +153,8 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     const rect: CssRect = region ? cropOnScreen(region, shown, natural) : { x: left, y: top, width, height };
     setPinStatus(null);
     pinReference(libraryId, card.id, region, toScreenRect(rect, viewport, dpr)).then(
-      () => setPinStatus(region ? "已钉住局部" : "已钉住整图"),
-      (e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(`无法钉住：${String(e)}`); },
+      () => setPinStatus(region ? t("pinnedPart") : t("pinnedWhole")),
+      (e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(t("common:image.pinFailed", { error: String(e) })); },
     );
   };
   useEffect(() => {
@@ -163,12 +165,12 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   /** 复制图片、在资源管理器中显示（#105 的命令，#114 的查看器菜单）：结果在钉图提示的位置说明。 */
   const copy = () => {
     setPinStatus(null);
-    copyReferenceImage(libraryId, card.id).then(() => setPinStatus("已复制图片"),
-      (e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(`无法复制图片：${String(e)}`); });
+    copyReferenceImage(libraryId, card.id).then(() => setPinStatus(t("common:image.copied")),
+      (e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(t("common:image.copyFailed", { error: String(e) })); });
   };
   const reveal = () => {
     setPinStatus(null);
-    revealReferenceImage(libraryId, card.id).catch((e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(`无法在资源管理器中显示：${String(e)}`); });
+    revealReferenceImage(libraryId, card.id).catch((e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(t("common:image.revealFailed", { error: String(e) })); });
   };
   /** 钉住局部：已有选区就钉住它，否则进入框选。 */
   const pinPart = () => { if (crop) pin(crop); else setSelecting(true); };
@@ -224,21 +226,21 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   };
   const toolValue = selecting ? "crop" : mode === "zoom" ? null : mode;
   return (
-    <section ref={root} className="viewer" role="region" aria-label="原图查看器"
+    <section ref={root} className="viewer" role="region" aria-label={t("label")}
       tabIndex={-1} onKeyDown={keyDown}>
       <header className="viewer-bar">
-        <button type="button" className="k-btn is-quiet viewer-back" aria-label="返回图片墙" onClick={onClose}><ArrowLeft size={16} /><span className="k-label">返回</span></button>
+        <button type="button" className="k-btn is-quiet viewer-back" aria-label={t("backLabel")} onClick={onClose}><ArrowLeft size={16} /><span className="k-label">{t("back")}</span></button>
         <span className="viewer-title" title={name ?? undefined}>{name}</span>
         {position && <>
           <span className="viewer-index">{position.index + 1} / {position.total}</span>
-          <button type="button" className="k-icon-btn" aria-label="上一张" title="上一张 ←" disabled={position.index <= 0} onClick={() => onStep?.(-1)}><ChevronLeft size={16} /></button>
-          <button type="button" className="k-icon-btn" aria-label="下一张" title="下一张 →" disabled={position.index >= position.total - 1} onClick={() => onStep?.(1)}><ChevronRight size={16} /></button>
+          <button type="button" className="k-icon-btn" aria-label={t("previous")} title={t("previousTitle")} disabled={position.index <= 0} onClick={() => onStep?.(-1)}><ChevronLeft size={16} /></button>
+          <button type="button" className="k-icon-btn" aria-label={t("next")} title={t("nextTitle")} disabled={position.index >= position.total - 1} onClick={() => onStep?.(1)}><ChevronRight size={16} /></button>
         </>}
         <span className="k-grow" />
         <div className="viewer-zoom">
-          <button type="button" className="k-icon-btn" aria-label="缩小" title="缩小" onClick={() => zoomAt(0.8)}><Minus size={15} /></button>
-          <output aria-label="缩放比例">{Math.round(physicalWidth / card.width * 100)}%</output>
-          <button type="button" className="k-icon-btn" aria-label="放大" title="放大" onClick={() => zoomAt(1.25)}><Plus size={15} /></button>
+          <button type="button" className="k-icon-btn" aria-label={t("zoomOut")} title={t("zoomOut")} onClick={() => zoomAt(0.8)}><Minus size={15} /></button>
+          <output aria-label={t("zoomLevel")}>{Math.round(physicalWidth / card.width * 100)}%</output>
+          <button type="button" className="k-icon-btn" aria-label={t("zoomIn")} title={t("zoomIn")} onClick={() => zoomAt(1.25)}><Plus size={15} /></button>
         </div>
       </header>
       <ContextMenu.Root>
@@ -274,17 +276,17 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
         <ViewerImages viewport={viewport} src={src} swapIn={swapIn} setFailedSrc={setFailedSrc} placed={placed} scale={scale} ready={ready}
           derived={derived} setDerived={setDerived} derivedMounted={derivedMounted} derivedStandIn={derivedStandIn} lastStandIn={lastStandIn}
           isOriginal={isOriginal} failed={failed} setRetry={setRetry} />
-        {cropRect && crop && <div className="viewer-crop" aria-label="选区"
+        {cropRect && crop && <div className="viewer-crop" aria-label={t("selection")}
           style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }} />}
         {shownCropRect && crop && <FollowDock anchor={shownCropRect} bounds={viewport} reserveBottom={DOCK_RESERVE}>
-          <Dock label="框选" onSelect={cropTool} readout={<span className="k-original" title="原始像素">{crop.width} × {crop.height}<span className="sr-only">原始像素</span><OriginalStar /></span>} items={[
-            { id: "pin", label: "钉住局部", icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary" },
-            { id: "redo", label: "重选", icon: <RotateCcw size={18} strokeWidth={1.75} /> },
-            { id: "cancel", label: "取消", icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },
+          <Dock label={t("crop.label")} onSelect={cropTool} readout={<span className="k-original" title={t("originalPixels")}>{crop.width} × {crop.height}<span className="sr-only">{t("originalPixels")}</span><OriginalStar /></span>} items={[
+            { id: "pin", label: t("common:image.pinPart"), icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary" },
+            { id: "redo", label: t("crop.redo"), icon: <RotateCcw size={18} strokeWidth={1.75} /> },
+            { id: "cancel", label: t("crop.cancel"), icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },
           ]} />
         </FollowDock>}
         {pinStatus && <p className="viewer-pin-status" role="status">{pinStatus}</p>}
-        <div className="viewer-dock"><Dock label="查看工具" items={viewerTools} value={toolValue} onSelect={tool} /></div>
+        <div className="viewer-dock"><Dock label={t("tools.label")} items={viewerTools} value={toolValue} onSelect={tool} /></div>
       </ContextMenu.Trigger>
       {/* 查看器右键菜单（#102 表“查看器”行，#114）：每项另有 dock 按钮或快捷键。 */}
       <ViewerMenu pin={pin} pinPart={pinPart} copy={copy} reveal={reveal} reset={reset} background={background} setBackground={setBackground}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { KeyboardEvent, PointerEvent } from "react";
 
 /** 详情面板的宽度（#157）：没拖过时 320，可拖到 280–560，同时不超过窗口宽度的一半。 */
@@ -34,6 +35,7 @@ type Props = {
  * 详情面板左边缘的拖动手柄（#157）。往左拖变宽；双击回到 320；聚焦后左右方向键每次 16px。
  */
 export function InspectorResizer({ width, onResize }: Props) {
+  const { t } = useTranslation("shell");
   const drag = useRef<{ x: number; width: number; pointer: number; last: number } | null>(null);
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
@@ -66,8 +68,8 @@ export function InspectorResizer({ width, onResize }: Props) {
       className="insp-resizer"
       role="separator"
       aria-orientation="vertical"
-      aria-label="调整详情宽度"
-      title="调整宽度"
+      aria-label={t("resizeInspector")}
+      title={t("resizeInspectorTitle")}
       aria-valuenow={width}
       aria-valuemin={INSPECTOR_WIDTH.min}
       aria-valuemax={widest()}

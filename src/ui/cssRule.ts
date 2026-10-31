@@ -2,6 +2,6 @@
 export function cssRule(css: string, selector: string): Record<string, string> {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const body = css.match(new RegExp(`(?:^|\\})\\s*${escaped}\\s*\\{([^}]*)\\}`, "m"))?.[1];
-  if (body === undefined) throw new Error(`缺少规则 ${selector}`);
+  if (body === undefined) throw new Error(`missing rule ${selector}`);
   return Object.fromEntries(body.split(";").map((d) => d.split(/:(.*)/s).map((s) => s.trim())).filter(([k]) => k));
 }

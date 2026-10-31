@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../i18n";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import type { LibraryDeletePreview } from "../bindings/LibraryDeletePreview";
 import type { LibraryTarget } from "../bindings/LibraryTarget";
@@ -6,7 +8,9 @@ import { describeCommandError, errorText, isDeletePreviewStale, permanentDeleteB
 
 /** 按图库报告没完成的部分：“「图库」：原因；「图库」：原因”。原因是后端的错误代码或抛出的错误。 */
 export function libraryFailures(failures: { libraryId: string; error: unknown }[], libraryName: (id: string) => string): string {
-  return failures.map((failure) => `「${libraryName(failure.libraryId)}」：${errorText(failure.error)}`).join("；");
+  return failures
+    .map((failure) => i18n.t("common:libraryFailure", { name: libraryName(failure.libraryId), error: errorText(failure.error) }))
+    .join(i18n.t("common:libraryFailureSeparator"));
 }
 
 /**
@@ -21,6 +25,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
   onCancel: () => void;
   onError: (error: unknown) => void;
 }) {
+  const { t } = useTranslation("wall", { keyPrefix: "purge" });
   const [pending, setPending] = useState(targets);
   const [previews, setPreviews] = useState<LibraryDeletePreview[] | null>(null);
   const [changed, setChanged] = useState(false);
@@ -68,7 +73,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
           const failure = failed.find((f) => f.libraryId === p.libraryId && !stale.has(f.libraryId));
           return failure ? [failure] : [];
         });
-        if (reported.length) onError(`有图库没有删完。${libraryFailures(reported, libraryName)}`);
+        if (reported.length) onError(i18n.t("wall:notice.librariesNotDeleted", { failures: libraryFailures(reported, libraryName) }));
         if (stale.size) {
           setChanged(true);
           setPending(pending.filter((target) => stale.has(target.libraryId)));
@@ -88,23 +93,23 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
     <AlertDialog.Root open onOpenChange={(open) => { if (!open && !busy) cancel(); }}>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="k-backdrop" />
-        <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label="永久删除">
-          <AlertDialog.Title className="k-dialog-title">永久删除</AlertDialog.Title>
-          {!previews ? <p className="k-dialog-desc" role="status">正在核对参考组…</p> : <>
-            {changed && <p className="k-set-note" role="status">回收站或参考组刚有变化，已按最新情况重新列出。</p>}
+        <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label={t("title")}>
+          <AlertDialog.Title className="k-dialog-title">{t("title")}</AlertDialog.Title>
+          {!previews ? <p className="k-dialog-desc" role="status">{t("checking")}</p> : <>
+            {changed && <p className="k-set-note" role="status">{t("changed")}</p>}
             <AlertDialog.Description className="k-dialog-desc">
-              {total > 0 ? `永久删除这 ${total} 张图？原图与整理结果都会删除，无法恢复。` : "这些图这次都删不了。"}
+              {total > 0 ? t("confirmCount", { count: total }) : t("nothing")}
             </AlertDialog.Description>
             {unavailable.map((p) => (
-              <p key={p.libraryId} className="k-set-note" role="status">「{libraryName(p.libraryId)}」的 {count(p.libraryId)} 张这次删不了：{p.error && describeCommandError(p.error)}</p>
+              <p key={p.libraryId} className="k-set-note" role="status">{t("libraryUnavailable", { library: libraryName(p.libraryId), count: count(p.libraryId), reason: p.error ? describeCommandError(p.error) : "" })}</p>
             ))}
             {groups.length > 0 && (
               <>
-                <p className="k-dialog-desc">这些参考组用到了它们，成员位置会保留并标为缺失：</p>
-                <ul className="permanent-delete-groups" aria-label="受影响的参考组">
+                <p className="k-dialog-desc">{t("groupsIntro")}</p>
+                <ul className="permanent-delete-groups" aria-label={t("groupsLabel")}>
                   {groups.map((g) => (
                     <li key={g.groupId}>
-                      {g.name}（{g.count} 张）
+                      {t("groupCount", { name: g.name, count: g.count })}
                     </li>
                   ))}
                 </ul>
@@ -113,9 +118,9 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
           </>}
           <div className="k-dialog-foot">
             <span className="k-grow" />
-            <AlertDialog.Close className="k-btn" disabled={busy}><span className="k-label">取消</span></AlertDialog.Close>
+            <AlertDialog.Close className="k-btn" disabled={busy}><span className="k-label">{t("cancel")}</span></AlertDialog.Close>
             <button type="button" className="k-btn is-danger" disabled={busy || !previews || total === 0} onClick={confirm}>
-              <span className="k-label">确认永久删除</span>
+              <span className="k-label">{t("confirm")}</span>
             </button>
           </div>
         </AlertDialog.Popup>

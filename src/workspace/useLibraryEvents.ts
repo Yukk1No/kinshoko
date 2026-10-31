@@ -55,7 +55,7 @@ export function useLibraryEvents({
           // 默认同时清掉选择，设为保留时由重读后的修剪只去掉被封印的图。
           invalidate({ kind: "safeConfirmed", on: event.on, keepSelection: keepSelectionOnSafeRef.current });
           // 关闭：查询视角在后端确认时才放开，放开那一刻整批重读一次（#183）。
-          if (!event.on) safeTiming.mark("资料库事件");
+          if (!event.on) safeTiming.mark("library-event");
           break;
         case "taskProgress":
           // 已结束的任务不再复活；另一个任务正在进行时，旧任务的进度不覆盖它。

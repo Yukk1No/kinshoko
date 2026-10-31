@@ -73,7 +73,7 @@ export function useWallPages({
       inflight.current = gen;
       const { conditions, workspaceScope, safeMode } = view.current;
       const current = () => gen === generation.current;
-      if (!safeMode) safeTiming.mark("开始重新浏览");
+      if (!safeMode) safeTiming.mark("rebrowse-start");
       // 墙上已有的占位图（#313）：按内容寻址、永远不变。每页请求报上这一段原有卡片里已有的，
       // 后端只给其余的卡片带，回来后从这里补上；顺序变了的卡片只是多带一次，不会缺。
       const shown = shownCards.current;
@@ -122,7 +122,7 @@ export function useWallPages({
           if (!unchanged) measureBeforeReflow();
           // 顺序契约（#324）：先报这一页带回的状态，再交出卡片。状态若要求修剪选择，修剪就落在这一页上。
           if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus, next);
-          if (!safeMode) { safeTiming.mark("卡片送回"); releasePage.current = true; }
+          if (!safeMode) { safeTiming.mark("cards-returned"); releasePage.current = true; }
           setCards(next);
           setCursor(after);
           setTotal(count);

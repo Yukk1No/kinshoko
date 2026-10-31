@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { MenuPopup } from "../ui/Menu";
 import type { WallMenuTarget } from "./WallMenu";
@@ -11,7 +12,7 @@ import { mountWindow, type MountWindow } from "./prefetch";
 import { useUiScale } from "../shell/uiScale";
 import { useDevicePixelRatio } from "../ui/devicePixelRatio";
 import {
-  CAP_RATIO, EMPTY, GAP, NO_CONDITIONS, OVERSCAN, PAD, SAVE_ANCHOR_MS, TARGET, loadAnchor,
+  CAP_RATIO, GAP, NO_CONDITIONS, OVERSCAN, PAD, SAVE_ANCHOR_MS, TARGET, loadAnchor,
   saveAnchor, type BrowserCard, type LayoutSnapshot, type WallHandle, type WallProps,
 } from "./wallShared";
 import { wallCardNode, type CardHandlers } from "./WallCard";
@@ -221,6 +222,8 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   // 屏幕上的宽度与每行张数不变。缩略图按卡片的 CSS 宽度乘实际的设备像素比请求。
   const uiScale = useUiScale();
   const dpr = useDevicePixelRatio();
+  // 卡片里有文案：换界面语言时重建。
+  const { t, i18n: { language } } = useTranslation("wall");
   const thumbnailPx = useMemo(
     () => Math.ceil((density / uiScale) * 1.5 * dpr),
     [density, uiScale, dpr],
@@ -312,7 +315,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   useReturnFocus({ returnTo, scroller, position, layout, syncMount });
 
   /** 上次渲染的卡片元素，按 id；布局、选择、遮蔽都没变的卡片原样沿用。 */
-  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; leaving: boolean; landing: boolean; tier: number; node: ReactNode }>());
+  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; leaving: boolean; landing: boolean; tier: number; language: string; node: ReactNode }>());
   useLayoutEffect(() => { renderedCards.current = nextRendered; });
   const cardHandlers = useRef<CardHandlers>(null!);
   usePrefetchThumbnails({ layout, mount, cards, scrollDirection, thumbnailPx });
@@ -334,12 +337,12 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   return (
     <ContextMenu.Root disabled={!menu} onOpenChange={(next) => { if (!next) setMenuTarget(null); }}>
     <ContextMenu.Trigger render={<div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
-      role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1} onKeyDown={wallKey} onClick={clearOnBlankClick}
+      role="listbox" aria-label={t("label")} aria-multiselectable="true" tabIndex={-1} onKeyDown={wallKey} onClick={clearOnBlankClick}
       inert={viewerOpen}
       onContextMenuCapture={(e) => { if (menu) targetMenu(e); }} />}>
       {error && <p role="alert">{error}</p>}
       {total === 0 ? (
-        <p className="wall-empty">{searching ? "没有符合条件的参考图。" : EMPTY[scope.kind]}</p>
+        <p className="wall-empty">{searching ? t("empty.searching") : t(`empty.${scope.kind}`)}</p>
       ) : (
         <div className="wall-canvas" style={{ height: layout.height }}>
           {mounted.map((i) => {
@@ -353,19 +356,19 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
             const landing = arriving.has(card.id);
             // 没变的卡片沿用上次的元素，React 跳过整张卡片的比对（#109）。
             const kept = renderedCards.current.get(card.id);
-            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.leaving === leaving && kept.landing === landing && kept.tier === tier) {
+            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.leaving === leaving && kept.landing === landing && kept.tier === tier && kept.language === language) {
               nextRendered.set(card.id, kept);
               return kept.node;
             }
             const node = wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened });
-            nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, tier, node });
+            nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, tier, language, node });
             return node;
           })}
         </div>
       )}
       {createPortal(<div className="fx-layer" ref={fxHost} aria-hidden="true" />, document.body)}
     </ContextMenu.Trigger>
-    {menu && menuTarget && <MenuPopup label={menuTarget.kind === "blank" ? "图片墙菜单" : menuTarget.cards.length > 1 ? `${menuTarget.cards.length} 张参考图的菜单` : "参考图菜单"} width={232}>
+    {menu && menuTarget && <MenuPopup label={menuTarget.kind === "blank" ? t("menu.blankLabel") : menuTarget.cards.length > 1 ? t("menu.cardsLabel", { count: menuTarget.cards.length }) : t("menu.cardLabel")} width={232}>
       {menu(menuTarget)}
     </MenuPopup>}
     </ContextMenu.Root>

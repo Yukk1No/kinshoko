@@ -1,0 +1,45 @@
+/** 原图查看器（`src/viewer/`）。 */
+export default {
+  label: "原图查看器",
+  back: "返回",
+  backLabel: "返回图片墙",
+  previous: "上一张",
+  previousTitle: "上一张 ←",
+  next: "下一张",
+  nextTitle: "下一张 →",
+  zoomOut: "缩小",
+  zoomIn: "放大",
+  zoomLevel: "缩放比例",
+  imageAlt: "正在查看的参考图",
+  loading: "正在读取参考图…",
+  loadFailed: "无法读取这张参考图。请检查图库文件是否仍可访问。",
+  retry: "重试读取",
+  pinnedPart: "已钉住局部",
+  pinnedWhole: "已钉住整图",
+  selection: "选区",
+  originalPixels: "原始像素",
+  crop: {
+    label: "框选",
+    redo: "重选",
+    cancel: "取消",
+  },
+  tools: {
+    label: "查看工具",
+    fit: "适应窗口",
+    crop: "框选局部",
+    background: "背景",
+    showInspector: "显示详情",
+    hideInspector: "隐藏详情",
+  },
+  /** 查看器背景；键是 `Background`。 */
+  ground: {
+    dark: "深灰",
+    mid: "中灰",
+    light: "浅灰",
+    checker: "棋盘格",
+  },
+  menu: {
+    label: "查看器菜单",
+    inspector: "详情",
+  },
+};
