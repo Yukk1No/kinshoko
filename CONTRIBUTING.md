@@ -30,7 +30,7 @@ Contributions are licensed under the repository's [GPL-3.0-or-later](LICENSE), i
 - WebView2 Runtime (evergreen). Windows 11 includes it.
 - Python 3, for the pre-commit hook and the probe scripts in `scripts/probe/`.
 
-After cloning, enable the repository's git hooks (they reject staged files over 5,000 tokens):
+After cloning, enable the repository's git hooks (pre-commit rejects staged files over 5,000 tokens; pre-push runs `cargo fmt --check` and `npm run typecheck`, about 10 seconds):
 
 ```sh
 git config core.hooksPath .githooks

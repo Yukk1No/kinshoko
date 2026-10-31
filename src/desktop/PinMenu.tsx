@@ -3,6 +3,7 @@ import {
   BookmarkPlus, Copy, Eye, ExternalLink, FlipHorizontal2, FlipVertical2, Layers, PanelRightClose,
   RotateCcw, RotateCw, Save, Scan, SunDim, X,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Menu, MenuCheckboxItem, MenuItem, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuTip, PointerMenu } from "../ui/Menu";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { PinMenu } from "../bindings/PinMenu";
@@ -20,6 +21,7 @@ const icon = (Icon: typeof X) => <Icon size={14} />;
 
 /** 子菜单打开时才读参考组；读不到时显示原因。 */
 function GroupList({ load, act }: { load: () => Promise<GroupSummary[]>; act: (a: PinMenuAction) => void }) {
+  const { t } = useTranslation("desktop", { keyPrefix: "pinMenu" });
   const [state, setState] = useState<{ items: GroupSummary[] | null; problem: string | null }>({ items: null, problem: null });
   useEffect(() => {
     let alive = true;
@@ -28,10 +30,10 @@ function GroupList({ load, act }: { load: () => Promise<GroupSummary[]>; act: (a
     // 每次打开子菜单只读一次。
   }, []);
   const { items, problem } = state;
-  if (!items) return <MenuTip>正在读取参考组…</MenuTip>;
+  if (!items) return <MenuTip>{t("loadingGroups")}</MenuTip>;
   if (problem) return <MenuTip>{problem}</MenuTip>;
   const usable = items.filter((g) => !g.problem);
-  if (!usable.length) return <MenuTip>还没有参考组，可在主窗口侧栏“参考组”里新建</MenuTip>;
+  if (!usable.length) return <MenuTip>{t("noGroups")}</MenuTip>;
   return <>{usable.map((g) => <MenuItem key={g.id} onClick={() => act(`group:${g.id}`)}>{g.name}</MenuItem>)}</>;
 }
 
@@ -43,46 +45,47 @@ function GroupList({ load, act }: { load: () => Promise<GroupSummary[]>; act: (a
 export function PinMenuItems({ menu, act, dismiss = () => {}, groups = referenceGroups }: {
   menu: PinMenu; act: (action: PinMenuAction) => void; dismiss?: () => void; groups?: () => Promise<GroupSummary[]>;
 }) {
+  const { t } = useTranslation("desktop", { keyPrefix: "pinMenu" });
   // 点了遮蔽钉图上的小圆锁：只问这一句。
   if (menu.confirmReveal) return <>
-    <MenuTip>显示这张图？</MenuTip>
-    <MenuItem icon={icon(Eye)} onClick={() => act("reveal")}>显示</MenuItem>
-    <MenuItem icon={icon(X)} onClick={dismiss}>取消</MenuItem>
+    <MenuTip>{t("confirmReveal")}</MenuTip>
+    <MenuItem icon={icon(Eye)} onClick={() => act("reveal")}>{t("reveal")}</MenuItem>
+    <MenuItem icon={icon(X)} onClick={dismiss}>{t("cancel")}</MenuItem>
   </>;
   const opacity = OPACITY_STEPS.includes(menu.opacity) ? menu.opacity : null;
   return <>
-    <MenuItem icon={icon(FlipHorizontal2)} kbd="H" onClick={() => act("flipH")}>水平翻转</MenuItem>
-    <MenuItem icon={icon(FlipVertical2)} kbd="V" onClick={() => act("flipV")}>垂直翻转</MenuItem>
-    <MenuItem icon={icon(RotateCw)} kbd="R" onClick={() => act("rotateCw")}>顺时针旋转 90°</MenuItem>
-    <MenuItem icon={icon(RotateCcw)} kbd="Shift R" onClick={() => act("rotateCcw")}>逆时针旋转 90°</MenuItem>
+    <MenuItem icon={icon(FlipHorizontal2)} kbd="H" onClick={() => act("flipH")}>{t("flipH")}</MenuItem>
+    <MenuItem icon={icon(FlipVertical2)} kbd="V" onClick={() => act("flipV")}>{t("flipV")}</MenuItem>
+    <MenuItem icon={icon(RotateCw)} kbd="R" onClick={() => act("rotateCw")}>{t("rotateCw")}</MenuItem>
+    <MenuItem icon={icon(RotateCcw)} kbd="Shift R" onClick={() => act("rotateCcw")}>{t("rotateCcw")}</MenuItem>
     <MenuSeparator />
-    <MenuItem icon={icon(Scan)} disabled={menu.locked || menu.actualSize} onClick={() => act("actualSize")}>原始大小（100%）</MenuItem>
-    <MenuSubmenu icon={icon(SunDim)} label="透明度" meta={`${menu.opacity}%`} popupLabel="透明度">
+    <MenuItem icon={icon(Scan)} disabled={menu.locked || menu.actualSize} onClick={() => act("actualSize")}>{t("actualSize")}</MenuItem>
+    <MenuSubmenu icon={icon(SunDim)} label={t("opacity")} meta={`${menu.opacity}%`} popupLabel={t("opacity")}>
       <Menu.RadioGroup value={opacity} onValueChange={(value) => act(`opacity:${value as number}`)}>
         {OPACITY_STEPS.map((p) => <MenuRadioItem key={p} value={p}>{p}%</MenuRadioItem>)}
       </Menu.RadioGroup>
     </MenuSubmenu>
-    <MenuCheckboxItem checked={menu.locked} onCheckedChange={() => act("lock")}>锁定位置与大小</MenuCheckboxItem>
+    <MenuCheckboxItem checked={menu.locked} onCheckedChange={() => act("lock")}>{t("lock")}</MenuCheckboxItem>
     <MenuSeparator />
     {menu.capture && (
       <MenuItem icon={icon(BookmarkPlus)} disabled={!menu.canCollect} onClick={() => act("collect")}>
-        {menu.canCollect ? "收藏到…" : "收藏（还没有图库）"}
+        {menu.canCollect ? t("collect") : t("collectNoLibrary")}
       </MenuItem>
     )}
     {/* 资料库钉图复制钉图显示的那一块原图像素（#289）；被遮蔽时不能复制。 */}
-    <MenuItem icon={icon(Copy)} disabled={menu.veiled} onClick={() => act("copy")}>复制</MenuItem>
-    {!menu.capture && menu.veiled && <MenuItem icon={icon(Eye)} onClick={() => act("reveal")}>显示这张图（安全模式下已遮蔽）</MenuItem>}
-    {!menu.capture && menu.group !== null && <MenuItem icon={icon(Save)} onClick={() => act("saveGroup")}>存回参考组「{menu.group}」</MenuItem>}
+    <MenuItem icon={icon(Copy)} disabled={menu.veiled} onClick={() => act("copy")}>{t("copy")}</MenuItem>
+    {!menu.capture && menu.veiled && <MenuItem icon={icon(Eye)} onClick={() => act("reveal")}>{t("revealVeiled")}</MenuItem>}
+    {!menu.capture && menu.group !== null && <MenuItem icon={icon(Save)} onClick={() => act("saveGroup")}>{t("saveGroup", { name: menu.group })}</MenuItem>}
     <MenuSeparator />
-    <MenuItem icon={icon(ExternalLink)} onClick={() => act("openInKinshoko")}>在 Kinshoko 中打开</MenuItem>
-    <MenuSubmenu icon={icon(Layers)} label="加入参考组" popupLabel="加入参考组" width={220}>
+    <MenuItem icon={icon(ExternalLink)} onClick={() => act("openInKinshoko")}>{t("openInKinshoko")}</MenuItem>
+    <MenuSubmenu icon={icon(Layers)} label={t("addToGroup")} popupLabel={t("addToGroup")} width={220}>
       {menu.capture
-        ? <MenuTip>截图要先收藏进图库，才能加入参考组</MenuTip>
+        ? <MenuTip>{t("collectFirst")}</MenuTip>
         : <GroupList load={groups} act={act} />}
     </MenuSubmenu>
-    <MenuItem icon={icon(PanelRightClose)} onClick={() => act("edgeHide")}>贴边隐藏</MenuItem>
+    <MenuItem icon={icon(PanelRightClose)} onClick={() => act("edgeHide")}>{t("edgeHide")}</MenuItem>
     <MenuSeparator />
-    <MenuItem icon={icon(X)} kbd="Esc" onClick={() => act("close")}>关闭钉图</MenuItem>
+    <MenuItem icon={icon(X)} kbd="Esc" onClick={() => act("close")}>{t("close")}</MenuItem>
   </>;
 }
 
@@ -99,6 +102,7 @@ export function menuAnchor(open: PinMenuOpen, dpr: number): { x: number; y: numb
  * 菜单窗口再做这件事，提示显示在钉图上。窗口用完只隐藏，下次右键直接复用。
  */
 export function DesktopMenuView() {
+  const { t } = useTranslation("desktop", { keyPrefix: "pinMenu" });
   const [open, setOpen] = useState<PinMenuOpen | null>(null);
   const [dpr, setDpr] = useState(() => window.devicePixelRatio || 1);
   /** 已经处理过（选中或关闭）的那一次菜单，免得关闭时再发一次。 */
@@ -154,7 +158,7 @@ export function DesktopMenuView() {
     {/* 点在菜单外（同一台显示器上）就关闭；别的显示器上的点击经窗口失去焦点关闭。 */}
     <div className="desktop-menu-backdrop" onPointerDown={dismiss} onContextMenu={(e) => { e.preventDefault(); dismiss(); }} />
     {open && (
-      <PointerMenu key={open.generation} point={menuAnchor(open, dpr)} label="钉图菜单" onClose={dismiss}>
+      <PointerMenu key={open.generation} point={menuAnchor(open, dpr)} label={t("label")} onClose={dismiss}>
         <PinMenuItems menu={open.menu} act={act} dismiss={dismiss} />
       </PointerMenu>
     )}

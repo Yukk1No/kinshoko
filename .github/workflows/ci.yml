@@ -31,8 +31,10 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  rust:
-    name: Rust 检查与测试
+  # Rust 部分拆成几个并行的 job，PR 等待时间取决于最慢的那个。原先全在一个 job 里，
+  # 中位 15 分钟，其中测试运行约 6 分钟、编译约 3 分钟。
+  rust-lint:
+    name: Rust 静态检查
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -69,25 +71,13 @@ jobs:
         shell: bash
         run: cargo metadata --locked --format-version 1 --manifest-path tools/downscale-probe/Cargo.toml > /dev/null
 
-      # 与 npm run bindings 相同：先删掉生成物再跑核心 crate 测试，测试过程中 ts-rs 重新生成类型。
-      # nextest 跨测试二进制并行（cargo test 一个二进制跑完才跑下一个），但不跑文档测试，下一步单独跑。
-      # pin-shell 的 Windows 集成测试建屏幕外、没有内容的窗口，验证样式、异步换窗与收起旧槽。
-      # 应用壳（kinshoko）的测试含原生钉图编排对假平台层的序列测试（#284），以及一条要 GPU 适配器
-      # （runner 上是 WARP）的离屏比对；nextest 每个用例一个进程，WARP 不会并发建设备。
-      - name: 核心 crate、钉图平台层与应用壳测试（同时重新生成 ts-rs 类型）
+      # 先删掉生成物，再只跑 ts-rs 为每个 #[ts(export)] 类型生成的 export_bindings_* 测试；
+      # 删掉的类型留下的旧文件也会因此被发现。
+      - name: 重新生成 ts-rs 类型
         shell: pwsh
         run: |
           Remove-Item -Recurse -Force src/bindings -ErrorAction SilentlyContinue
-          cargo nextest run -p kinshoko-core -p pin-shell -p kinshoko --locked --no-fail-fast
-
-      # 文档里的 compile_fail 示例守住运行日志的隐私边界（diagnostics::log_event）。
-      - name: 核心 crate 文档测试
-        run: cargo test -p kinshoko-core --doc --locked
-
-      # 钉图渲染层的离屏比对（#282）：在真 GPU 设备上画、读回、与派生图和金样比较。
-      # runner 没有显卡，Renderer::new 找不到硬件适配器时退到后备适配器（WARP），测的就是这条路。
-      - name: 钉图渲染层测试（WARP 离屏比对）
-        run: cargo nextest run -p pin-render --locked --no-fail-fast
+          cargo nextest run -p kinshoko-core --lib --locked -E 'test(/(^|::)export_bindings_/)'
 
       - name: ts-rs 生成物与提交内容一致
         shell: pwsh
@@ -99,6 +89,71 @@ jobs:
             Write-Error "src/bindings 与 Rust 类型不一致：运行 npm run bindings 后提交生成物。"
             exit 1
           }
+
+  # job 名沿用 rust：rust-cache 的缓存键含 job 名，这样分片直接用上原来的缓存。
+  rust:
+    name: Rust 测试（${{ matrix.partition }}/3）
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+
+      # 工具链版本以 rust-toolchain.toml 为准。
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.95"
+      # 三个分片编译的东西一样，只让第一片保存缓存。
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ matrix.partition == 1 }}
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # 应用壳编译时要读到前端产物（tauri.conf.json 的 frontendDist），先构建前端。
+      - name: 前端构建
+        run: npm run vite:build
+
+      # 每片都编译全部测试二进制，按用例名的哈希只跑其中三分之一。
+      # nextest 跨测试二进制并行（cargo test 一个二进制跑完才跑下一个），但不跑文档测试，由 rust-render 跑。
+      # pin-shell 的 Windows 集成测试建屏幕外、没有内容的窗口，验证样式、异步换窗与收起旧槽。
+      # 应用壳（kinshoko）的测试含原生钉图编排对假平台层的序列测试（#284），以及一条要 GPU 适配器
+      # （runner 上是 WARP）的离屏比对；nextest 每个用例一个进程，WARP 不会并发建设备。
+      - name: 核心 crate、钉图平台层与应用壳测试
+        run: cargo nextest run -p kinshoko-core -p pin-shell -p kinshoko --locked --no-fail-fast --partition hash:${{ matrix.partition }}/3
+
+  rust-render:
+    name: 钉图渲染层与文档测试
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      # 工具链版本以 rust-toolchain.toml 为准。
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.95"
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
+      # 钉图渲染层的离屏比对（#282）：在真 GPU 设备上画、读回、与派生图和金样比较。
+      # runner 没有显卡，Renderer::new 找不到硬件适配器时退到后备适配器（WARP），测的就是这条路。
+      - name: 钉图渲染层测试（WARP 离屏比对）
+        run: cargo nextest run -p pin-render --locked --no-fail-fast
+
+      # 文档里的 compile_fail 示例守住运行日志的隐私边界（diagnostics::log_event）。
+      - name: 核心 crate 文档测试
+        run: cargo test -p kinshoko-core --doc --locked
 
   # 工作流本身没有别的测试：发布流程要到真实发版才会运行（docs/agents/github-actions.md）。
   # actionlint 检查语法、表达式与 run: 里的脚本（调用 runner 自带的 shellcheck）。

@@ -14,6 +14,7 @@ import inspector from "./locales/zh-CN/inspector";
 import tagging from "./locales/zh-CN/tagging";
 import tagGroups from "./locales/zh-CN/tagGroups";
 import legacyNames from "./locales/zh-CN/legacyNames";
+import desktop from "./locales/zh-CN/desktop";
 import subscriptions from "./locales/zh-CN/subscriptions";
 import enUpdate from "./locales/en/update";
 import enErrors from "./locales/en/errors";
@@ -30,19 +31,21 @@ import enInspector from "./locales/en/inspector";
 import enTagging from "./locales/en/tagging";
 import enTagGroups from "./locales/en/tagGroups";
 import enLegacyNames from "./locales/en/legacyNames";
+import enDesktop from "./locales/en/desktop";
 import enSubscriptions from "./locales/en/subscriptions";
 
 /**
  * 界面文案（#353）：按功能模块分文件，`zh-CN` 为源语言，`en` 为翻译。新增模块时两边各加一份，
  * 再登记到这里；译文少了模块或键，`tsc` 报错。
  */
-export const zhCN = { update, errors, pins, common, shell, wall, viewer, library, search, workspace, tags, inspector, tagging, tagGroups, legacyNames, subscriptions };
+export const zhCN = { update, errors, pins, common, shell, wall, viewer, library, search, workspace, tags, inspector, tagging, tagGroups, legacyNames, subscriptions, desktop };
 
 export const resources = {
   "zh-CN": zhCN,
   en: {
     update: enUpdate, errors: enErrors, pins: enPins, common: enCommon, shell: enShell, wall: enWall, viewer: enViewer,
     library: enLibrary, search: enSearch, workspace: enWorkspace, tags: enTags, inspector: enInspector, tagging: enTagging, tagGroups: enTagGroups, legacyNames: enLegacyNames,
+    desktop: enDesktop,
     subscriptions: enSubscriptions,
   } satisfies { [M in keyof typeof zhCN]: Translation<(typeof zhCN)[M]> },
 };

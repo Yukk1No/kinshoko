@@ -201,7 +201,7 @@ describe("菜单窗口", () => {
     try {
       ipc.action.mockResolvedValueOnce({ kind: "failed", error: { code: "pinLocked" } });
       act(() => ipc.next!(open(7)));
-      fireEvent.click(await screen.findByRole("menuitem", { name: /水平翻转|Flip/ }));
+      fireEvent.click(await screen.findByRole("menuitem", { name: /Flip horizontally/ }));
       await settle();
       expect(ipc.notice).toHaveBeenLastCalledWith("P1", "The pin is locked");
     } finally {
