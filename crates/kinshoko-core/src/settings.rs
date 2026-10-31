@@ -155,6 +155,8 @@ pub struct SettingsSnapshot {
     inspector_width: Option<u32>,
     /// 更新通道（#204）；没选过时为空，按当前构建的版本号决定。
     update_channel: Option<UpdateChannel>,
+    /// 订阅功能（#368）：关掉后不显示入口、不检查、不联网。新安装默认开。
+    subscriptions: bool,
     /// 新版本写入、本版本不认识的字段。
     #[serde(flatten)]
     unknown: serde_json::Map<String, serde_json::Value>,
@@ -180,6 +182,7 @@ impl Default for SettingsSnapshot {
             tag_display: TagDisplay::default(),
             inspector_width: None,
             update_channel: None,
+            subscriptions: true,
             unknown: serde_json::Map::new(),
         }
     }
@@ -460,6 +463,15 @@ impl AppSettings {
     }
 
     /// 动作当前绑定的快捷键；`None` 表示未绑定。
+    /// 订阅功能是否开着（#368）。
+    pub fn subscriptions(&self) -> bool {
+        self.file.subscriptions
+    }
+
+    pub fn set_subscriptions(&mut self, on: bool) -> Result<(), SettingsError> {
+        self.update(|f| f.subscriptions = on)
+    }
+
     pub fn shortcut(&self, action: ShortcutAction) -> Option<&str> {
         match self.file.shortcuts.get(&action) {
             Some(bound) => bound.as_deref(),

@@ -412,7 +412,7 @@ fn saved_mode<R: Runtime>(app: &AppHandle<R>) -> SafeMode {
 }
 
 /// 设置里的安全模式开关；还没迁移的命令组用它“开始记下、结束复核”。
-fn saved_safe_mode<R: Runtime>(app: &AppHandle<R>) -> bool {
+pub(crate) fn saved_safe_mode<R: Runtime>(app: &AppHandle<R>) -> bool {
     saved_mode(app).on
 }
 

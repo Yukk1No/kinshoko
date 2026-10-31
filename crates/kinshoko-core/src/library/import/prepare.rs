@@ -145,6 +145,7 @@ pub(super) fn prepare_file(
         Origin {
             eagle,
             package: None,
+            subscription: None,
             source,
         },
         options,
@@ -152,10 +153,11 @@ pub(super) fn prepare_file(
     )
 }
 
-/// 原图从哪里来：普通文件（都为空）、Eagle 条目或参考组包。
+/// 原图从哪里来：普通文件（都为空）、Eagle 条目、参考组包或订阅。
 pub(super) struct Origin {
     pub(super) eagle: Option<eagle::Item>,
     pub(super) package: Option<package::PackageFacts>,
+    pub(super) subscription: Option<SubscriptionPage>,
     /// 合并项若要重新暂存，从哪里再取这份字节。
     pub(super) source: MergeSource,
 }
@@ -393,6 +395,7 @@ pub(super) fn prepare(
         location,
         eagle: origin.eagle,
         package: origin.package,
+        subscription: origin.subscription,
         options,
         destination: context.destination.clone(),
         task_created_images: context.task_created_images.clone(),

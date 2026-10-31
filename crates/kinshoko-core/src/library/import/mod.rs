@@ -27,8 +27,8 @@ use super::types::{
     ImportReport, ImportSource,
 };
 use super::{
-    Error, Inner, ORIGINALS_DIR, STAGING_DIR, SaveDestination, eagle, fault, now_ms, package, save,
-    tags,
+    Error, Inner, ORIGINALS_DIR, STAGING_DIR, SaveDestination, SubscriptionPage, eagle, fault,
+    now_ms, package, save, subscription_import, tags,
 };
 use super::{colour, thumbnail};
 use crate::CommandError;
@@ -422,9 +422,11 @@ fn run(
 
 /// 与 collect 相同的 Eagle 识别边界，预检只读取目录，不提前登记或刷新来源。
 mod commit;
+mod originals;
 mod prepare;
+pub(super) use commit::Pending;
 use commit::*;
-pub(super) use commit::{Pending, import_package_original};
+pub(super) use originals::{import_package_original, import_subscription_original};
 use prepare::*;
 pub(super) use prepare::{contains_eagle, sha256_hex};
 

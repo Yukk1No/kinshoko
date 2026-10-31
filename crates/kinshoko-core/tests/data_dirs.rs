@@ -422,10 +422,18 @@ mod shell_source {
     }
 
     /// 每个建窗口的地方都套上同一个 WebView2 用户数据目录与启动参数（`shared_webview`）。
+    /// 唯一的例外是 pixiv 登录窗口（#368）：它打开外部网页，用自己的数据目录，退出登录时连同
+    /// cookie 一起删掉。
     #[test]
     fn every_window_shares_one_webview2_environment() {
         let (mut builders, mut shared, mut stray) = (0, 0, Vec::new());
         for (path, text) in shell_sources() {
+            if path.ends_with("subscription.rs") {
+                assert_eq!(text.matches("WebviewWindowBuilder::new(").count(), 1);
+                assert!(text.contains(".data_directory(login_profile("));
+                assert!(!text.contains("additional_browser_args"));
+                continue;
+            }
             builders += text.matches("WebviewWindowBuilder::new(").count()
                 + text.matches("WebviewWindowBuilder::from_config(").count();
             shared += text.matches(".shared_webview(").count();

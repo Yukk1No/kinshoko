@@ -72,7 +72,12 @@ pub(in crate::library) fn commit(
         .map(|name| {
             Ok(SourceTag {
                 tag: TagRef::Id {
-                    id: tags::resolve_source_named(tx, TagNamespace::General, name)?,
+                    id: tags::resolve_source_named(
+                        tx,
+                        TagNamespace::General,
+                        name,
+                        crate::library::source_names::EAGLE,
+                    )?,
                 },
                 score: None,
             })

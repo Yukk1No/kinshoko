@@ -27,6 +27,18 @@ fn turning_autostart_off_is_remembered_after_restart() {
 }
 
 #[test]
+fn subscriptions_are_on_after_a_fresh_install_and_turning_them_off_is_remembered() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(settings.subscriptions());
+
+    settings.set_subscriptions(false).unwrap();
+    drop(settings);
+
+    assert!(!AppSettings::open(dir.path()).unwrap().subscriptions());
+}
+
+#[test]
 fn safe_mode_is_on_after_a_fresh_install_and_turning_it_off_is_remembered() {
     let dir = tempfile::tempdir().unwrap();
     let mut settings = AppSettings::open(dir.path()).unwrap();

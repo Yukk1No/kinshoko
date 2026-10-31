@@ -49,6 +49,7 @@ mod save;
 mod sidebar;
 mod source_names;
 mod store;
+mod subscription_import;
 mod tag_api;
 pub(crate) mod tag_definitions;
 mod tags;
@@ -93,6 +94,7 @@ pub use rating::{
 pub use save::SaveDestination;
 pub use sidebar::Sidebar;
 pub use source_names::{UND, compose as compose_names, detect_lang};
+pub use subscription_import::SubscriptionPage;
 pub use tags::{
     FactSource, ImageTag, ImageTags, LocalizedName, PersonalApproxEntry, SourceTag, TagAlias,
     TagCount, TagEdit, TagGroupDefinition, TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef,
