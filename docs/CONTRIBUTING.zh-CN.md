@@ -28,7 +28,7 @@
 - WebView2 Runtime（evergreen）。Windows 11 自带。
 - Python 3：用于 pre-commit 钩子和 `scripts/probe/` 下的探测脚本。
 
-克隆后启用仓库的 git 钩子（拦截超过 5,000 token 的暂存文件）：
+克隆后启用仓库的 git 钩子（pre-commit 拦截超过 5,000 token 的暂存文件；pre-push 跑 `cargo fmt --check` 和 `npm run typecheck`，约 10 秒）：
 
 ```sh
 git config core.hooksPath .githooks
