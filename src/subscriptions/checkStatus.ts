@@ -5,7 +5,7 @@ import { i18n } from "../i18n/instance";
 import { formatDateTime } from "../i18n/format";
 
 /**
- * 订阅页主区标题行右侧的检查状态（维护者对原型第 10 号画板的评论）：空闲时“几分钟前查过”加立即检查，
+ * 订阅页主区标题行右侧的检查状态（维护者对原型第 10 号画板的评论）：空闲时“同步于几分钟前”加立即检查，
  * 检查中、退避中只有一句话。登录失效时由横幅说明，这里不显示。
  */
 export type CheckView =
@@ -24,7 +24,7 @@ export function checkView(status: SubscriptionStatus, list: Subscription[], now:
 
 const MINUTE = 60_000;
 
-/** “10 分钟前查过”。 */
+/** “同步于 10 分钟前”。 */
 export function checkedText(lastCheckedAt: number | null, now: number): string {
   if (lastCheckedAt === null) return i18n.t("subscriptions:check.never");
   const minutes = Math.floor(Math.max(0, now - lastCheckedAt) / MINUTE);
@@ -35,7 +35,7 @@ export function checkedText(lastCheckedAt: number | null, now: number): string {
   return i18n.t("subscriptions:check.days", { count: Math.floor(hours / 24) });
 }
 
-/** “14:30 再查”。 */
+/** “将于 14:30 同步”。 */
 export function retryText(until: number): string {
   return i18n.t("subscriptions:check.retryAt", { time: formatDateTime(until, { hour: "2-digit", minute: "2-digit", hour12: false }) });
 }

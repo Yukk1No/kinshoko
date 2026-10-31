@@ -42,7 +42,7 @@ describe("英文界面：订阅", () => {
       cleanup();
     }
     page(status());
-    expect(await screen.findByText("Checked 10 minutes ago")).toBeTruthy();
+    expect(await screen.findByText("Synced 10 minutes ago")).toBeTruthy();
     expect(screen.getByRole("button", { name: /灯里/ }).getAttribute("title")).toBe("Last check didn't finish: Couldn't reach pixiv");
   });
 

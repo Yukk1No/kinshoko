@@ -60,7 +60,8 @@ describe("订阅页", () => {
     expect(within(screen.getByRole("region", { name: "之前" })).getAllByRole("button")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: /最近收到\s*5 张/ })).toBeTruthy();
     expect(within(screen.getByRole("button", { name: /Mika/ })).getByText("2")).toBeTruthy();
-    expect(screen.getByText("非官方").getAttribute("title")).toBe("pixiv 没有开放接口，这是 Kinshoko 自己做的");
+    // 订阅页标题旁不再标“非官方”（维护者看截图后定的），首次使用说明与设置里仍有。
+    expect(screen.queryByText("非官方")).toBeNull();
     await waitFor(() => expect(sent("subscription_mark_seen")).toHaveLength(1));
   });
 
@@ -124,7 +125,7 @@ describe("订阅页", () => {
   it("空闲时标题行右侧是“几分钟前查过”与立即检查", async () => {
     backend();
     page(status());
-    expect(await screen.findByText("10 分钟前查过")).toBeTruthy();
+    expect(await screen.findByText("同步于 10 分钟前")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "立即检查" }));
     await waitFor(() => expect(sent("subscription_check_now")).toHaveLength(1));
   });
@@ -142,8 +143,8 @@ describe("订阅页", () => {
     until.setHours(14, 30, 0, 0);
     page(status({ backoffUntil: Math.max(until.getTime(), NOW + 60_000) }));
     const line = await screen.findByRole("status");
-    expect(line.textContent).toMatch(/^\d\d:\d\d 再查$/);
-    expect(line.getAttribute("title")).toBe("pixiv 限制了请求次数，到时会自动再查");
+    expect(line.textContent).toMatch(/^将于 \d\d:\d\d 同步$/);
+    expect(line.getAttribute("title")).toBe("pixiv 限制了请求次数，到时会自动同步");
     expect(screen.queryByRole("button", { name: "立即检查" })).toBeNull();
   });
 
@@ -152,7 +153,7 @@ describe("订阅页", () => {
     page(status({ login: { state: "expired", account } }));
     expect(await screen.findByText("pixiv 登录已失效，检查已暂停")).toBeTruthy();
     expect(screen.getByText("登录已失效")).toBeTruthy();
-    expect(screen.queryByText("10 分钟前查过")).toBeNull();
+    expect(screen.queryByText("同步于 10 分钟前")).toBeNull();
     const again = screen.getAllByRole("button", { name: "重新登录" });
     expect(again).toHaveLength(2);
     fireEvent.click(again[0]);
@@ -203,7 +204,7 @@ describe("订阅页", () => {
     expect(await screen.findByRole("heading", { name: "还没有订阅" })).toBeTruthy();
     // 等最近收到的图也读完，免得点下去时页面还在换内容。
     await act(async () => {});
-    expect(screen.queryByText("10 分钟前查过")).toBeNull();
+    expect(screen.queryByText("同步于 10 分钟前")).toBeNull();
     fireEvent.click(screen.getAllByRole("button", { name: "添加订阅" })[1]);
     await screen.findByRole("menuitem", { name: "画师" });
     for (const name of ["画师", "榜单", "pixiv 收藏夹"]) {

@@ -13,12 +13,11 @@ import { accountActions } from "./accountActions";
 import { checkedText, checkView, failureText, retryText } from "./checkStatus";
 import { FirstRunDialog, firstRunSeen, markFirstRunSeen } from "./FirstRunDialog";
 import { hiddenWhenSafe, KINDS, kindOf, type KindMount } from "./kinds";
-import { UnofficialMark } from "./UnofficialMark";
 
 /** 图片墙的缩略图档位（`thumbnailTier` 的一档），五列左右时够清楚。 */
 const TILE_PX = 384;
 
-/** 每分钟走一下，让“几分钟前查过”跟着变。 */
+/** 每分钟走一下，让“同步于几分钟前”跟着变。 */
 function useNow(): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -128,10 +127,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   return <>
     <aside className="sidebar-slot pane subs-pane" data-collapsed={!paneOpen} aria-label={t("title")} aria-hidden={!paneOpen} inert={!paneOpen}>
       <header className="pane-head" data-tauri-drag-region>
-        <div className="subs-pane-title">
-          <h1 className="pane-title">{t("title")}</h1>
-          <UnofficialMark />
-        </div>
+        <h1 className="pane-title subs-pane-title">{t("title")}</h1>
         {account && addMenu(<button type="button" className="k-icon-btn" aria-label={t("add")} title={t("add")}><Plus size={18} strokeWidth={1.75} aria-hidden="true" /></button>)}
         <button type="button" className="k-icon-btn subs-collapse" aria-label={tw("collapsePane")} title={tw("collapsePaneTitle")} onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button>
       </header>
