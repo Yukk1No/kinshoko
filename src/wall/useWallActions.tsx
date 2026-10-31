@@ -8,6 +8,7 @@ import { libraryFailures, PermanentDeleteBatchConfirm } from "../library/Permane
 import type { BrowserCard } from "./Wall";
 import type { ImportSource, WallMenuActions } from "./WallMenu";
 import { useToast } from "../ui/Toast";
+import { i18n } from "../i18n";
 
 /** 一次最多钉住的张数；超过时只钉前这么多张，再用轻提示说明。 */
 export const PIN_LIMIT = 20;
@@ -77,7 +78,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     // 依次钉住：后钉的盖在先钉的上面，错开的顺序与图片墙一致。
     for (const [i, card] of cards.entries()) {
       const target = targetOf(card, activeLibraryId);
-      try { await pinReference(target.libraryId, target.imageId, null, rects[i]); } catch (e) { onError(`无法钉住：${String(e)}`); return false; }
+      try { await pinReference(target.libraryId, target.imageId, null, rects[i]); } catch (e) { onError(i18n.t("common:image.pinFailed", { error: String(e) })); return false; }
     }
     return true;
   };
@@ -92,7 +93,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
    * 可写句柄每个图库只切一次；一个图库失败（例如导入一直没收尾、等到上限）后跳过它剩下的图，
    * 不让每张图各等一次上限，其他图库也不必跟着等。
    */
-  const eachCard = async (cards: BrowserCard[], what: string, run: (target: WorkspaceSourceTarget) => Promise<unknown>) => {
+  const eachCard = async (cards: BrowserCard[], report: (failures: string) => string, run: (target: WorkspaceSourceTarget) => Promise<unknown>) => {
     cardsNamed.current = cards;
     const byLibrary = new Map<string, { card: BrowserCard; target: WorkspaceSourceTarget }[]>();
     for (const card of cards) {
@@ -108,7 +109,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
         try { await run(target); succeeded.push(card); } catch (e) { failed.push({ libraryId, error: e }); break; }
       }
     }
-    if (failed.length) options.current.onError(`有图库没有${what}。${libraryFailures(failed, libraryName)}`);
+    if (failed.length) options.current.onError(report(libraryFailures(failed, libraryName)));
     return { ok: failed.length === 0, succeeded };
   };
 
@@ -122,12 +123,12 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     copy(card) {
       const { activeLibraryId, onNotice, onError } = options.current;
       const target = targetOf(card, activeLibraryId);
-      copyReferenceImage(target.libraryId, target.imageId).then(() => onNotice("已复制图片"), (e) => onError(`无法复制图片：${String(e)}`));
+      copyReferenceImage(target.libraryId, target.imageId).then(() => onNotice(i18n.t("common:image.copied")), (e) => onError(i18n.t("common:image.copyFailed", { error: String(e) })));
     },
     reveal(card) {
       const { activeLibraryId, onError } = options.current;
       const target = targetOf(card, activeLibraryId);
-      revealReferenceImage(target.libraryId, target.imageId).catch((e) => onError(`无法在资源管理器中显示：${String(e)}`));
+      revealReferenceImage(target.libraryId, target.imageId).catch((e) => onError(i18n.t("common:image.revealFailed", { error: String(e) })));
     },
     importClipboard() {
       const { importClipboard, onError } = options.current;
@@ -138,7 +139,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       if (cards.length <= PIN_LIMIT) { void pinNow(cards, point); return; }
       // 超过上限不弹确认：钉住前 PIN_LIMIT 张，再告诉画师只钉了这么多。
       void pinNow(cards.slice(0, PIN_LIMIT), point).then((ok) => {
-        if (ok) toast?.show({ title: `已钉住前 ${PIN_LIMIT} 张`, description: `一次最多钉住 ${PIN_LIMIT} 张`, tone: "success" });
+        if (ok) toast?.show({ title: i18n.t("wall:notice.pinnedFirst", { count: PIN_LIMIT }), description: i18n.t("wall:notice.pinLimit", { count: PIN_LIMIT }), tone: "success" });
       });
     },
     edit(cards, edits, clear) {
@@ -157,21 +158,21 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
             failed = await workspaceEditSources(entries.map(({ target }) => target), safe, edits);
           } catch (e) {
             putBack?.(moved);
-            onError(`没有整理完：${String(e)}`);
+            onError(i18n.t("wall:notice.organizeFailed", { error: String(e) }));
             return;
           }
           const failedLibraries = new Set(failed.map((f) => f.libraryId));
           const succeeded = entries.filter(({ target }) => !failedLibraries.has(target.libraryId)).map(({ card }) => card);
           putBack?.(moved.filter((card) => !succeeded.includes(card)));
           if (failed.length) {
-            onError(`有图库没有整理完。${libraryFailures(failed, libraryName)}`);
+            onError(i18n.t("wall:notice.librariesNotOrganized", { failures: libraryFailures(failed, libraryName) }));
           }
           if (!failed.length && clear) onClearSelection();
           // 移到回收站能撤销，所以不先确认：直接做，再给一个带“撤销”的轻提示。有图库失败时，已移走的那部分照样能撤销。
           if (succeeded.length > 0 && edits.length === 1 && edits[0].kind === "delete") {
             toast?.show({
-              title: "已移到回收站", description: succeeded.length > 1 ? `${succeeded.length} 张` : undefined, tone: "success",
-              action: { label: "撤销", onClick: () => actions.edit(succeeded, [{ kind: "restore" }], false) },
+              title: i18n.t("wall:notice.trashed"), description: succeeded.length > 1 ? i18n.t("wall:notice.trashedCount", { count: succeeded.length }) : undefined, tone: "success",
+              action: { label: i18n.t("wall:notice.undo"), onClick: () => actions.edit(succeeded, [{ kind: "restore" }], false) },
             });
           }
         } finally {
@@ -181,7 +182,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     },
     addToGroup(cards, groupId) {
       const { safe } = options.current;
-      void eachCard(cards, "加入参考组", (target) => workspaceSourceGroup(target, safe, { groupId }));
+      void eachCard(cards, (failures) => i18n.t("wall:notice.librariesNotAddedToGroup", { failures }), (target) => workspaceSourceGroup(target, safe, { groupId }));
     },
     purge(cards) {
       // 多张可以跨图库（ADR-0008）：后端按图库分组，逐组切换可写句柄删除。

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Toast } from "@base-ui/react/toast";
 import { CircleAlert, CircleCheck, Info, X } from "lucide-react";
 
@@ -48,6 +49,7 @@ function Bridge({ children }: { children: ReactNode }) {
 const icons = { success: CircleCheck, info: Info, error: CircleAlert } as const;
 
 function Stack() {
+  const { t } = useTranslation("shell");
   const { toasts, close } = Toast.useToastManager();
   // The collapsed stack's height (frontmost toast plus an 8 px peek per older one, plus the gap), published on the root so the
   // import task cards sharing this corner sit above it instead of underneath (#388).
@@ -69,7 +71,7 @@ function Stack() {
         </div>
         {toast.actionProps && <Toast.Action className="k-toast-action" />}
         {/* Our own close: Base UI's Toast.Close hides itself from assistive tech while the stack is collapsed. */}
-        <button type="button" className="k-toast-close" aria-label={toast.type === "error" ? "知道了" : "关闭提示"} title={toast.type === "error" ? "知道了" : "关闭"}
+        <button type="button" className="k-toast-close" aria-label={toast.type === "error" ? t("toast.gotIt") : t("toast.dismissLabel")} title={toast.type === "error" ? t("toast.gotIt") : t("toast.dismiss")}
           onClick={() => close(toast.id)}><X size={14} aria-hidden="true" /></button>
       </Toast.Content>
     </Toast.Root>;
@@ -81,9 +83,10 @@ function Stack() {
  * hovered or focused, auto-dismissing for confirmations, persistent for real errors. Mount once around the window's content.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation("shell");
   return <Toast.Provider limit={4}>
     <Bridge>{children}</Bridge>
-    <Toast.Portal><Toast.Viewport className="k-toasts" aria-label="提示"><Stack /></Toast.Viewport></Toast.Portal>
+    <Toast.Portal><Toast.Viewport className="k-toasts" aria-label={t("toast.label")}><Stack /></Toast.Viewport></Toast.Portal>
   </Toast.Provider>;
 }
 

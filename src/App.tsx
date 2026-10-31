@@ -3,6 +3,8 @@ import { onCollectionRequest, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PanelLeftClose, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { i18n } from "./i18n";
 import { ToastProvider, useToast } from "./ui/Toast";
 import { WinCtrls } from "./ui/WinCtrls";
 import type { AppInfo } from "./bindings/AppInfo";
@@ -60,6 +62,7 @@ export function App() {
 }
 
 function MainWindow() {
+  const { t } = useTranslation("shell");
   useCaptureSources(() => [], -100);
   const toast = useToast();
   const [info, setInfo] = useState<AppInfo | null>(null);
@@ -133,7 +136,7 @@ function MainWindow() {
           uiScaleSaved.current = saved;
           if (uiScaleTarget.current === wanted) acceptUiScale(saved);
         } catch (e) {
-          toast?.error(`无法更改界面缩放：${String(e)}`);
+          toast?.error(i18n.t("shell:uiScaleFailed", { error: String(e) }));
           acceptUiScale(await uiScale().catch(() => uiScaleSaved.current));
         }
       }
@@ -167,14 +170,14 @@ function MainWindow() {
     safeTiming.toggled(next);
     setSafeMode(next).then(
       (on) => {
-        safeTiming.mark("后端确认");
+        safeTiming.mark("backend-confirmed");
         applySafe({ kind: "settled", on });
         // 快速连点时返回可能乱序：与最后一次点击不一致就读一次设置校准。
         if (needsRecheck(safeStateRef.current, on)) recheckSafe();
       },
       (e) => {
         applySafe({ kind: "failed" });
-        toast?.error(`无法切换安全模式：${String(e)}`);
+        toast?.error(i18n.t("shell:safeMode.toggleFailed", { error: String(e) }));
         recheckSafe();
       },
     );
@@ -230,7 +233,7 @@ function MainWindow() {
   // 上次的图库打不开：报告一次，留到画师确认（原常驻横幅，#98）。
   useEffect(() => {
     if (!openError || !toast) return;
-    const id = toast.error(`上次的图库无法打开：${openError}`);
+    const id = toast.error(i18n.t("shell:openFailed", { error: openError }));
     return () => toast.close(id);
   }, [openError, toast]);
 
@@ -335,9 +338,9 @@ function MainWindow() {
       )}
       {empty && (
         <div className="app-empty-workspace">
-          {!library && paneOpen && section !== "browse" && <aside className="pane empty-context" aria-label={section === "groups" ? "参考组" : "截图历史"}>
-            <header className="pane-head" data-tauri-drag-region><h2 className="pane-title">{section === "groups" ? "参考组" : "截图"}</h2>
-              <button type="button" className="k-icon-btn" aria-label="收起侧栏" title="收起侧栏" onClick={() => setPaneOpen(false)}><PanelLeftClose size={16} aria-hidden="true" /></button></header>
+          {!library && paneOpen && section !== "browse" && <aside className="pane empty-context" aria-label={section === "groups" ? t("emptyPane.groups") : t("emptyPane.capturesLabel")}>
+            <header className="pane-head" data-tauri-drag-region><h2 className="pane-title">{section === "groups" ? t("emptyPane.groups") : t("emptyPane.captures")}</h2>
+              <button type="button" className="k-icon-btn" aria-label={t("emptyPane.collapse")} title={t("emptyPane.collapse")} onClick={() => setPaneOpen(false)}><PanelLeftClose size={16} aria-hidden="true" /></button></header>
             {section === "groups" ? <ReferenceGroupsPanel libraryId={undefined} /> : <CaptureHistoryPanel libraryId={undefined} request={captureRequest} onRequestHandled={collectionHandled} />}
           </aside>}
         <main className="app-main app-main-centered">
@@ -345,9 +348,9 @@ function MainWindow() {
           {empty && notices}
           <div className="app-empty-body">
           {library === undefined ? (
-            <p role="status">正在打开图库…</p>
+            <p role="status">{t("opening")}</p>
           ) : showCreate ? (
-            <CreateLibrary onCreated={changed} onBusyChange={setCreating} onBack={() => setShowCreate(false)} backLabel={library ? "返回图库" : "返回"} />
+            <CreateLibrary onCreated={changed} onBusyChange={setCreating} onBack={() => setShowCreate(false)} backLabel={library ? t("backToLibrary") : t("back")} />
           ) : (
             <LibraryPicker layout="inline" current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />
           )}
@@ -359,9 +362,9 @@ function MainWindow() {
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />
           <Dialog.Popup className="k-dialog k-settings-dialog">
-            <Dialog.Title className="sr-only">程序设置</Dialog.Title>
+            <Dialog.Title className="sr-only">{t("settingsTitle")}</Dialog.Title>
             {/* 关闭按钮不归设置面板管：读取中或读取失败时也在。 */}
-            <Dialog.Close className="k-icon-btn k-dialog-x" aria-label="关闭设置"><X size={16} aria-hidden="true" /></Dialog.Close>
+            <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("closeSettings")}><X size={16} aria-hidden="true" /></Dialog.Close>
             <SettingsPanel
               version={info && `${info.productName} ${info.version}`}
               library={library ?? null}

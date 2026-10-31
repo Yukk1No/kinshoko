@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useStartupGate } from "../startupGate";
 import { I_STAR } from "../ui/OriginalStar";
 import { useReducedMotion } from "../ui/reducedMotion";
@@ -63,6 +64,7 @@ function starHole(width: number, height: number, cx: number, cy: number, scale: 
  * “减少动画”时直接淡出。
  */
 export function StartupSplash() {
+  const { t } = useTranslation("shell");
   const { progress, released } = useStartupGate();
   const reduced = useReducedMotion();
   const [phase, setPhase] = useState<"loading" | "settling" | "leaving" | "gone">("loading");
@@ -122,7 +124,7 @@ export function StartupSplash() {
 
   if (phase === "gone") return null;
   return <div ref={root} className="startup-splash" data-phase={phase} data-reduced={reduced || undefined}
-    role="status" aria-label="正在打开图库" aria-busy={phase === "loading"}>
+    role="status" aria-label={t("openingLabel")} aria-busy={phase === "loading"}>
     <div className="startup-wall" aria-hidden="true">
       {COLUMNS.map((heights, i) => <div key={i} className="startup-col">
         <div className={`startup-col-run ${i % 2 ? "is-down" : "is-up"}`} style={{ animationDuration: `${(70 + ((i * 13) % 30)) / 3}s` }}>

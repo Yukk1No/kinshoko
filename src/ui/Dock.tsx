@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { Menu, MenuPopup } from "./Menu";
 
 /* A Kinshoko dock, built from the published behaviour of Arc Pro's dock (uiarc.dev/components/dock):
@@ -33,10 +34,12 @@ const isEntry = (item: DockItem): item is DockEntry => item !== "sep";
  * tray member calls `onSelect(trayOwnerId, memberId)`. Keyboard: ←/→ move, Home/End jump, Enter/Space
  * run, ↑ opens a tray, Esc closes it. A `menu` item opens its menu upward instead of calling `onSelect`. Reduced motion jumps straight to the end state.
  */
-export function Dock({ items, value, onSelect, label = "工具", className = "", readout, tone }: {
+export function Dock({ items, value, onSelect, label: labelProp, className = "", readout, tone }: {
   items: DockItem[]; value?: string | null; onSelect: (id: string, member?: string) => void;
   label?: string; className?: string; readout?: ReactNode; tone?: "dark";
 }) {
+  const { t } = useTranslation("shell");
+  const label = labelProp ?? t("dock");
   const reduced = useReducedMotion();
   const instant = { duration: 0 };
   const [hovered, setHovered] = useState<string | null>(null);
@@ -84,7 +87,7 @@ export function Dock({ items, value, onSelect, label = "工具", className = "",
             <MenuPopup side="top" align="center" sideOffset={10} width={item.menuWidth} label={item.label}>{item.menu}</MenuPopup>
           </Menu.Root>
           : <motion.button type="button" className={`k-dock-item${item.tone ? ` is-${item.tone}` : ""}`} aria-pressed={item.tray ? undefined : value === item.id}
-            aria-label={item.shortcut ? `${item.label}，${item.shortcut}` : item.label} disabled={item.disabled}
+            aria-label={item.shortcut ? t("dockItem", { label: item.label, shortcut: item.shortcut }) : item.label} disabled={item.disabled}
             aria-haspopup={item.tray ? "true" : undefined} aria-expanded={item.tray ? open === item.id : undefined}
             onFocus={() => setHovered(item.id)} onBlur={() => setHovered((h) => h === item.id ? null : h)}
             onClick={() => run(item)} onKeyDown={keys(item)}

@@ -5,6 +5,7 @@ import { Layers } from "lucide-react";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { thumbnailUrl } from "../ipc";
+import { i18n } from "../i18n";
 import type { Box } from "./layout";
 import { cardThumbnail } from "./thumbnailTier";
 import type { BrowserCard } from "./wallShared";
@@ -69,7 +70,7 @@ export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, s
       onDragStart={(e) => cardHandlers.current.dragStart(card.id, e)}
       style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}
     >
-      <img src={thumbnailUrl(cardThumbnail(card, thumbnailPx))} alt="参考图" decoding="async" draggable={false}
+      <img src={thumbnailUrl(cardThumbnail(card, thumbnailPx))} alt={i18n.t("wall:card.alt")} decoding="async" draggable={false}
         ref={markCachedThumbnail} onLoad={markThumbnailLoaded} />
       {/* 占位图（#110）：缩略图到达前放大模糊显示；遮蔽中的图不露出它的色彩。 */}
       {card.placeholder && !veiled && <div className="card-placeholder" aria-hidden="true"
@@ -77,11 +78,11 @@ export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, s
     </div>
     {/* 来源按钮是卡片选项的兄弟，不在选项里：选项内不放可聚焦的子元素。只在一个图库的图不放按钮（#221），所在图库在详情里看。 */}
     {sources.length >= 2 && <button type="button" className="card-sources" data-card={card.id}
-      aria-label={`在 ${sources.length} 个图库，查看详情`}
-      title={`在 ${sources.length} 个图库`}
+      aria-label={i18n.t("wall:card.sourcesLabel", { count: sources.length })}
+      title={i18n.t("wall:card.sourcesTitle", { count: sources.length })}
       style={{ left: `${b.x + b.w - 8}px`, top: `${b.y + b.h - 8}px` }}
       onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; cardHandlers.current.inspect?.(card as WorkspaceCard); }}
-      onKeyDown={(e) => e.stopPropagation()}>{SOURCES_ICON}<span className="k-label">{`${sources.length} 处`}</span></button>}
+      onKeyDown={(e) => e.stopPropagation()}>{SOURCES_ICON}<span className="k-label">{i18n.t("wall:card.sourcesCount", { count: sources.length })}</span></button>}
     </Fragment>
   );
 }

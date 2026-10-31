@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { FolderInput, FolderMinus, Link2, RotateCcw, ShieldCheck, Trash2, Undo2, X } from "lucide-react";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
@@ -241,7 +242,8 @@ export function PermanentDeleteConfirm({
     );
   };
 
-  const title = emptyTrash ? "清空回收站" : "永久删除";
+  const { t } = useTranslation("wall", { keyPrefix: "purge" });
+  const title = emptyTrash ? t("emptyTrash") : t("title");
   // 提醒对话框挂在 body 上：详情面板收起（inert）时也能看到并操作（#98）。
   return (
     <AlertDialog.Root open onOpenChange={(open) => { if (!open && !busy) onCancel(); }}>
@@ -249,18 +251,18 @@ export function PermanentDeleteConfirm({
         <AlertDialog.Backdrop className="k-backdrop" />
         <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label={title}>
           <AlertDialog.Title className="k-dialog-title">{title}</AlertDialog.Title>
-          {!preview ? <p className="k-dialog-desc" role="status">正在核对参考组…</p> : <>
-            {changed && <p className="k-set-note" role="status">回收站或参考组刚有变化，已按最新情况重新列出。</p>}
+          {!preview ? <p className="k-dialog-desc" role="status">{t("checking")}</p> : <>
+            {changed && <p className="k-set-note" role="status">{t("changed")}</p>}
             <AlertDialog.Description className="k-dialog-desc">{emptyTrash
-              ? `永久删除「${emptyTrash.libraryName}」回收站里的 ${preview.imageIds.length} 张图？原图与整理结果都会删除，无法恢复。`
-              : `永久删除这 ${preview.imageIds.length} 张图？原图与整理结果都会删除，无法恢复。`}</AlertDialog.Description>
+              ? t("confirmEmptyTrash", { library: emptyTrash.libraryName, count: preview.imageIds.length })
+              : t("confirmCount", { count: preview.imageIds.length })}</AlertDialog.Description>
             {preview.groups.length > 0 && (
               <>
-                <p className="k-dialog-desc">这些参考组用到了它们，成员位置会保留并标为缺失：</p>
-                <ul className="permanent-delete-groups" aria-label="受影响的参考组">
+                <p className="k-dialog-desc">{t("groupsIntro")}</p>
+                <ul className="permanent-delete-groups" aria-label={t("groupsLabel")}>
                   {preview.groups.map((g) => (
                     <li key={g.groupId}>
-                      {g.name}（{g.imageIds.length} 张）
+                      {t("groupCount", { name: g.name, count: g.imageIds.length })}
                     </li>
                   ))}
                 </ul>
@@ -269,9 +271,9 @@ export function PermanentDeleteConfirm({
           </>}
           <div className="k-dialog-foot">
             <span className="k-grow" />
-            <AlertDialog.Close className="k-btn" disabled={busy}><span className="k-label">取消</span></AlertDialog.Close>
+            <AlertDialog.Close className="k-btn" disabled={busy}><span className="k-label">{t("cancel")}</span></AlertDialog.Close>
             <button type="button" className="k-btn is-danger" disabled={busy || !preview || preview.imageIds.length === 0} onClick={confirm}>
-              <span className="k-label">{emptyTrash ? "清空回收站" : "确认永久删除"}</span>
+              <span className="k-label">{emptyTrash ? t("emptyTrash") : t("confirm")}</span>
             </button>
           </div>
         </AlertDialog.Popup>

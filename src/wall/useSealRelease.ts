@@ -102,7 +102,7 @@ export function useSealRelease({
       },
     }));
     if (!arrivals.length) return;
-    safeTiming.mark("释放动画开始");
+    safeTiming.mark("release-animation-start");
     setArriving(new Set(arrivals.map((a) => a.id)));
     f.release(arrivals, b, landed);
   };
