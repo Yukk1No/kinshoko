@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import type { ReceivedImage } from "../bindings/ReceivedImage";
+import { useCaptureSources } from "../desktop/captureSources";
 import { SubscriptionsPage } from "./SubscriptionsPage";
 import { list, NOW, recent, status } from "./subscriptions.fixtures";
 
@@ -51,11 +52,18 @@ it("安全模式开着时收紧范围：按新范围重读之前一张都不显�
   expect(tiles()).toHaveLength(1);
 });
 
-it("截图时登记看得见的缩略图，钉出来的是图库里那张图", async () => {
+/** 藏在后面、没关掉的图库查看器：仍登记着来源，只答空。 */
+function HiddenViewer() {
+  useCaptureSources(() => [], 100);
+  return null;
+}
+
+it("截图时登记看得见的缩略图，钉出来的是图库里那张图（图库查看器藏在后面也一样）", async () => {
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
     return this.matches("img") ? new DOMRect(100, 120, 200, 300) : new DOMRect(0, 0, 1000, 800);
   });
+  render(<HiddenViewer />);
   page();
   await waitFor(() => expect(reads).toHaveLength(1));
   await act(async () => reads[0].resolve(recent.slice(0, 1)));

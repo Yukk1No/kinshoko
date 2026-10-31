@@ -128,8 +128,8 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   }, [images, fresh]);
 
   const wall = useRef<HTMLDivElement | null>(null);
-  // 截图时登记看得见的缩略图，钉出来的是图库原图的裁切（与图片墙同一条路）。图库藏在后面时它的来源为空，
-  // 所以优先级要高过图片墙。
+  // 截图时登记看得见的缩略图，钉出来的是图库原图的裁切（与图片墙同一条路）。图库藏在后面时图片墙与
+  // 没关的查看器仍登记着、只答空，所以订阅页（只在显示时挂着）的优先级要高过它们。
   useCaptureSources(() => {
     if (!wall.current || modalOpen()) return null;
     return [...wall.current.querySelectorAll<HTMLImageElement>(".subs-tile img")].flatMap((image) => {
@@ -139,7 +139,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
       const reference = captureImage(image, wall.current!, libraryId, imageId, image.naturalWidth, image.naturalHeight);
       return reference ? [reference] : [];
     });
-  }, 20);
+  }, 200);
 
   const hasList = account !== null && visible.length > 0;
   const check = checkView(status, visible, now);
