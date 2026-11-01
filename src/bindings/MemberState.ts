@@ -4,4 +4,4 @@ import type { UnavailableReason } from "./UnavailableReason";
 /**
  * 成员此刻的状态。
  */
-export type MemberState = { "kind": "available", sealed: boolean, } | { "kind": "unavailable", reason: UnavailableReason, message: string, };
+export type MemberState = { "kind": "available", sealed: boolean, } | { "kind": "unavailable", reason: UnavailableReason, };

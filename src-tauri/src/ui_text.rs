@@ -2,6 +2,7 @@
 //! 界面里的文字在前端的 i18n 资源里。
 
 use kinshoko_core::interface_lang;
+use kinshoko_core::reference_groups::UnavailableReason;
 
 /// 一段界面文字。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,6 +29,15 @@ pub enum Text {
     ExeNotFound,
     DataDirUnwritable,
     DataMigrationFailed,
+    /// 钉图读不到图、又没有别的原因时写在钉图上的话。
+    PinUnreadable,
+    /// 钉图上写的参考图取不到的原因（[`UnavailableReason`]）。
+    PinLibraryNotRegistered,
+    PinLibraryMissing,
+    PinLibraryUnavailable,
+    PinImageMissing,
+    PinOriginalMissing,
+    PinCaptureMissing,
 }
 
 /// 当前界面语言下的文字。
@@ -77,6 +87,53 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
             "Kinshoko 迁移数据时出错，没能完成：\n{error}\n\n请重新启动 Kinshoko 再试。",
             "Kinshoko ran into an error while moving its data and couldn't finish:\n{error}\n\nStart Kinshoko again to retry.",
         ),
+        Text::PinUnreadable => pick(
+            en,
+            "参考图无法读取：图库没有打开，或原图已缺失",
+            "Can't read the reference image: the library isn't open, or the original is missing",
+        ),
+        Text::PinLibraryNotRegistered => pick(
+            en,
+            "本设备没有登记这个资料库",
+            "This library isn't registered on this device",
+        ),
+        Text::PinLibraryMissing => pick(
+            en,
+            "{root} 处没有这个资料库（移动盘没插，或资料库搬了家）",
+            "There's no library at {root} (the removable drive isn't connected, or the library has moved)",
+        ),
+        Text::PinLibraryUnavailable => pick(
+            en,
+            "资料库暂时不可用",
+            "The library is unavailable right now",
+        ),
+        Text::PinImageMissing => pick(
+            en,
+            "参考图已从资料库中删除",
+            "The reference image has been deleted from the library",
+        ),
+        Text::PinOriginalMissing => pick(en, "原图文件缺失", "The original file is missing"),
+        Text::PinCaptureMissing => pick(
+            en,
+            "参考组里的截图文件缺失",
+            "The capture file in the reference group is missing",
+        ),
+    }
+}
+
+/// 参考图此刻取不到的原因，按当前界面语言写在钉图上。
+pub fn unavailable(reason: &UnavailableReason) -> String {
+    match reason {
+        UnavailableReason::LibraryNotRegistered => text(Text::PinLibraryNotRegistered).to_owned(),
+        UnavailableReason::LibraryMissing { root } => {
+            fill(Text::PinLibraryMissing, &[("root", root)])
+        }
+        UnavailableReason::LibraryUnavailable { .. } => {
+            text(Text::PinLibraryUnavailable).to_owned()
+        }
+        UnavailableReason::ImageMissing => text(Text::PinImageMissing).to_owned(),
+        UnavailableReason::OriginalMissing => text(Text::PinOriginalMissing).to_owned(),
+        UnavailableReason::CaptureMissing => text(Text::PinCaptureMissing).to_owned(),
     }
 }
 

@@ -92,17 +92,19 @@ impl DeviceLibraries {
         }
         let folder_name = match &destination.folder_id {
             None => None,
-            Some(id) => Some(folder_path(
-                &library
-                    .sidebar()
-                    .map_err(DeviceLibraryError::Library)?
-                    .folders,
-                id,
-                "",
-            )
-            .ok_or(DeviceLibraryError::Library(
-                crate::library::Error::UnknownFolder,
-            ))?),
+            Some(id) => Some(
+                folder_path(
+                    &library
+                        .sidebar()
+                        .map_err(DeviceLibraryError::Library)?
+                        .folders,
+                    id,
+                    "",
+                )
+                .ok_or(DeviceLibraryError::Library(
+                    crate::library::Error::UnknownFolder,
+                ))?,
+            ),
         };
         self.writers
             .insert(destination.library_id.clone(), library.clone());

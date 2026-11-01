@@ -158,10 +158,8 @@ impl ReferenceGroups {
                     .capture_file(&view.group.id, m)
                     .is_some_and(|p| p.is_file())
             {
-                let reason = UnavailableReason::CaptureMissing;
                 status.state = MemberState::Unavailable {
-                    message: reason.to_string(),
-                    reason,
+                    reason: UnavailableReason::CaptureMissing,
                 };
             }
         }

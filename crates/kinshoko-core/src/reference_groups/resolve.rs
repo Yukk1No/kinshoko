@@ -22,9 +22,14 @@ use crate::library::{Error, ReferenceImage, ReferenceLens, SafeMode, SafeModeSco
 pub enum UnavailableReason {
     /// 本设备没有登记这个资料库（例如在别的电脑上建的参考组）。
     LibraryNotRegistered,
-    /// 资料库登记了但现在打不开（移动盘没插、搬了家、需要升级）。
+    /// 登记的位置上没有这个资料库（移动盘没插，或资料库搬了家）。
     #[serde(rename_all = "camelCase")]
-    LibraryUnavailable { detail: String },
+    LibraryMissing { root: String },
+    /// 资料库登记了但现在打不开（需要升级、读不了等），`cause` 是打不开的原因。
+    #[serde(rename_all = "camelCase")]
+    LibraryUnavailable {
+        cause: Box<crate::command_error::ErrorKind>,
+    },
     /// 资料库里已经没有这张图（永久删除）。
     ImageMissing,
     /// 资料库里还有这张图的记录，但原文件不在了。
@@ -33,12 +38,16 @@ pub enum UnavailableReason {
     CaptureMissing,
 }
 
+// 不上界面：界面与钉图按 UnavailableReason 本身写原因（前端 unavailableReasonText、ui_text::unavailable），Display 只进日志
 impl fmt::Display for UnavailableReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UnavailableReason::LibraryNotRegistered => write!(f, "本设备没有登记这个资料库"),
-            UnavailableReason::LibraryUnavailable { detail } => {
-                write!(f, "资料库暂时不可用：{detail}")
+            UnavailableReason::LibraryMissing { root } => {
+                write!(f, "{root} 处没有这个资料库（移动盘没插，或资料库搬了家）")
+            }
+            UnavailableReason::LibraryUnavailable { cause } => {
+                write!(f, "资料库暂时不可用：{cause:?}")
             }
             UnavailableReason::ImageMissing => write!(f, "参考图已从资料库中删除"),
             UnavailableReason::OriginalMissing => write!(f, "原图文件缺失"),
@@ -54,11 +63,8 @@ impl fmt::Display for UnavailableReason {
 pub enum MemberState {
     /// 能显示。`sealed`：安全模式开启且这张图被封印，原位遮蔽。
     Available { sealed: bool },
-    /// 暂时不能显示；`message` 是给画师看的原因。
-    Unavailable {
-        reason: UnavailableReason,
-        message: String,
-    },
+    /// 暂时不能显示；界面按 `reason` 写出原因。
+    Unavailable { reason: UnavailableReason },
 }
 
 /// 一个成员的核对结果。
@@ -95,7 +101,7 @@ fn checked_image(
     .map_err(|e| match e {
         Error::UnknownImage => UnavailableReason::ImageMissing,
         other => UnavailableReason::LibraryUnavailable {
-            detail: other.to_string(),
+            cause: Box::new(other.into()),
         },
     })?;
     match lens.original_path(image_id) {
@@ -136,10 +142,7 @@ pub fn resolve(group: &ReferenceGroup, source: &dyn ReferenceSource) -> Vec<Memb
                     Ok(image) => MemberState::Available {
                         sealed: image.sealed,
                     },
-                    Err(reason) => MemberState::Unavailable {
-                        message: reason.to_string(),
-                        reason,
-                    },
+                    Err(reason) => MemberState::Unavailable { reason },
                 },
             },
         })
@@ -167,18 +170,16 @@ impl DetachedLenses {
         let lens = match open.get(&library.id) {
             Some((root, lens)) if *root == library.root => lens.clone(),
             _ => {
-                let lens =
-                    ReferenceLens::open_detached(&library.root, &library.id).map_err(|e| {
-                        UnavailableReason::LibraryUnavailable {
-                            detail: match e {
-                                Error::NotALibrary(_) => format!(
-                                    "{} 处没有这个资料库（移动盘没插，或资料库搬了家）",
-                                    library.root.display()
-                                ),
-                                other => other.to_string(),
-                            },
-                        }
-                    })?;
+                let lens = ReferenceLens::open_detached(&library.root, &library.id).map_err(
+                    |e| match e {
+                        Error::NotALibrary(_) => UnavailableReason::LibraryMissing {
+                            root: library.root.display().to_string(),
+                        },
+                        other => UnavailableReason::LibraryUnavailable {
+                            cause: Box::new(other.into()),
+                        },
+                    },
+                )?;
                 open.insert(library.id.clone(), (library.root.clone(), lens.clone()));
                 lens
             }
