@@ -4,4 +4,4 @@ import type { RankingPeriod } from "./RankingPeriod";
 /**
  * 订阅的对象：订阅来源里的一位画师、一个榜单或画师自己的收藏夹。
  */
-export type Target = { "kind": "pixivArtist", userId: string, } | { "kind": "pixivRanking", period: RankingPeriod, top: number, } | { "kind": "pixivBookmarks" };
+export type Target = { "kind": "pixivArtist", userId: string, } | { "kind": "pixivRanking", period: RankingPeriod, top: number, explicit: boolean, } | { "kind": "pixivBookmarks" };

@@ -132,11 +132,13 @@ impl Store {
         self.conn.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    /// 新建一条订阅。只收新作时，发布时间早于现在的作品一律不收。
+    /// 新建一条订阅。只收新作时，发布时间早于现在的作品一律不收；榜单不看发布时间，
+    /// 每次收当时榜上的前若干名。
     pub fn add(&self, new: NewSubscription, now: i64) -> Result<Subscription, StoreError> {
-        let since = match new.backlog {
-            Backlog::NewOnly => Some(now),
-            Backlog::Recent { .. } | Backlog::All => None,
+        let since = match (&new.target, new.backlog) {
+            (Target::PixivRanking { .. }, _) => None,
+            (_, Backlog::NewOnly) => Some(now),
+            (_, Backlog::Recent { .. } | Backlog::All) => None,
         };
         let subscription = Subscription {
             id: uuid::Uuid::now_v7().simple().to_string(),
@@ -251,17 +253,29 @@ impl Store {
             .ok_or(StoreError::UnknownSubscription)
     }
 
-    /// 改订阅的漫画与成人作品选项。资料库与旧作是订阅时定的，不再改。
+    /// 改订阅的漫画与成人作品选项；`top` 给了时还改榜单的名次（不是榜单时不管它）。资料库、
+    /// 旧作与哪个榜单是订阅时定的，不再改。名次改小时已收的图留着（#366 不做自动清理）。
     pub fn set_options(
         &self,
         id: &str,
         include_explicit: bool,
         include_manga: bool,
+        top: Option<u32>,
     ) -> Result<Subscription, StoreError> {
+        let mut target = self.get(id)?.target;
+        if let (Target::PixivRanking { top: current, .. }, Some(top)) = (&mut target, top) {
+            *current = top;
+        }
         // 先放开连接再读回来：`get` 也要它。
         let changed = self.conn().execute(
-            "UPDATE subscription SET include_explicit = ?2, include_manga = ?3 WHERE id = ?1",
-            params![id, include_explicit, include_manga],
+            "UPDATE subscription SET include_explicit = ?2, include_manga = ?3, target = ?4
+             WHERE id = ?1",
+            params![
+                id,
+                include_explicit,
+                include_manga,
+                serde_json::to_string(&target).expect("订阅对象可以序列化")
+            ],
         )?;
         match changed {
             0 => Err(StoreError::UnknownSubscription),

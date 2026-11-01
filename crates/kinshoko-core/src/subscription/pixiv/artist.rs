@@ -144,7 +144,7 @@ fn user(v: &Value) -> Option<Artist> {
     })
 }
 
-fn next_url(page: &Value) -> Option<String> {
+pub(super) fn next_url(page: &Value) -> Option<String> {
     page["next_url"]
         .as_str()
         .filter(|u| u.starts_with("https://app-api.pixiv.net/"))

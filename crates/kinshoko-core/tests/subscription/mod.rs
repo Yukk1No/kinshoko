@@ -16,6 +16,7 @@ use kinshoko_core::subscription::{
 };
 
 mod backlog;
+mod ranking;
 
 fn png(seed: u8) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -375,6 +376,7 @@ fn checks_resume_after_restart_and_back_off_on_rate_limits() {
                 new(Target::PixivRanking {
                     period: kinshoko_core::subscription::RankingPeriod::Day,
                     top: 50,
+                    explicit: false,
                 }),
                 0,
             )

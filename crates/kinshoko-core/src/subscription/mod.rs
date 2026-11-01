@@ -61,14 +61,23 @@ pub enum Target {
     /// pixiv 画师（#369）。
     #[serde(rename_all = "camelCase")]
     PixivArtist { user_id: String },
-    /// pixiv 日榜、周榜或月榜的前若干名（#370）。
+    /// pixiv 日榜、周榜或月榜的前若干名（#370）。`explicit` 为真时是 R-18 榜：pixiv 只有 R-18 日榜
+    /// 与周榜，要登录且账号打开了 R-18 显示。
     #[serde(rename_all = "camelCase")]
-    PixivRanking { period: RankingPeriod, top: u32 },
+    PixivRanking {
+        period: RankingPeriod,
+        top: u32,
+        #[serde(default)]
+        explicit: bool,
+    },
     /// 登录账号的 pixiv 收藏夹，公开与非公开都收（#371）。不是 GLOSSARY 里的“收藏”。
     PixivBookmarks,
 }
 
 const HOUR_MS: i64 = 60 * 60 * 1000;
+
+/// 榜单订阅可选的名次（#366：前 10／50／100）。
+pub const RANKING_TOPS: [u32; 3] = [10, 50, 100];
 
 impl Target {
     pub fn source(&self) -> SourceId {
@@ -84,6 +93,18 @@ impl Target {
         match self {
             Target::PixivArtist { .. } | Target::PixivBookmarks => 6 * HOUR_MS,
             Target::PixivRanking { .. } => 24 * HOUR_MS,
+        }
+    }
+
+    /// 这个版本能订阅它：榜单的名次是可选的几档之一，R-18 榜没有月榜。
+    pub fn is_valid(&self) -> bool {
+        match self {
+            Target::PixivRanking {
+                period,
+                top,
+                explicit,
+            } => RANKING_TOPS.contains(top) && !(*explicit && *period == RankingPeriod::Month),
+            Target::PixivArtist { .. } | Target::PixivBookmarks => true,
         }
     }
 }
