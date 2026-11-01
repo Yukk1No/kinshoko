@@ -105,9 +105,12 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   // 在这期间露出来；重读失败也一直不显示。
   const veiled = stale;
   const [selected, setSelected] = useState<string | null>(null);
-  const [failedTiles, setFailedTiles] = useState<ReadonlySet<string>>(new Set());
-  // 缩略图读不出来可能只是暂时的（例如安全模式下被分级挡住）：换了安全模式或重读后再试。
-  useEffect(() => { setFailedTiles(new Set()); }, [safe, recent]);
+  // 缩略图读不出来可能只是暂时的（例如安全模式下被分级挡住）：记下时连同这次读到的结果与安全模式，
+  // 换了安全模式或重读后就不算了，再试一次。
+  const [failures, setFailures] = useState<{ recent: ReceivedImage[]; safe: boolean; keys: ReadonlySet<string> } | null>(null);
+  const current = (f: typeof failures): ReadonlySet<string> => (f?.recent === recent && f.safe === safe ? f.keys : new Set());
+  const failedTiles = current(failures);
+  const onFail = (key: string) => setFailures((f) => ({ recent, safe, keys: new Set([...current(f), key]) }));
   const login = status.login;
   const account = login.state === "loggedOut" ? null : login.account;
   const signingIn = status.signingIn && login.state !== "loggedIn";
@@ -238,11 +241,11 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
         {shown.length === 0 && !veiled && <p className="subs-none">{t("recent.none")}</p>}
         {freshImages.length > 0 && <section aria-label={t("recent.fresh")}>
           <h2 className="subs-section">{t("recent.fresh")}<span className="subs-section-count tabular">{freshImages.length}</span></h2>
-          <Tiles images={freshImages} label={t("recent.open")} onOpen={onOpenImage} onFail={(key) => setFailedTiles((s) => new Set([...s, key]))} />
+          <Tiles images={freshImages} label={t("recent.open")} onOpen={onOpenImage} onFail={onFail} />
         </section>}
         {earlier.length > 0 && <section aria-label={t("recent.earlier")}>
           <h2 className="subs-section is-quiet">{t("recent.earlier")}</h2>
-          <Tiles images={earlier} label={t("recent.open")} onOpen={onOpenImage} onFail={(key) => setFailedTiles((s) => new Set([...s, key]))} />
+          <Tiles images={earlier} label={t("recent.open")} onOpen={onOpenImage} onFail={onFail} />
         </section>}
       </div> : list !== null && <div className="subs-empty">
         <span className="subs-empty-icon" aria-hidden="true">{signingIn ? <LoaderCircle className="subs-spin is-accent" size={24} /> : <Rss size={24} strokeWidth={1.75} />}</span>
