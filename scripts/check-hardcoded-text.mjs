@@ -384,6 +384,16 @@ export function findHardcodedText(text, path) {
   return hits;
 }
 
+/**
+ * 不进去的目录：node_modules，以及 cargo 的构建目录 target。源码目录（src/ 下面）里叫 target 的
+ * 是模块（如 backup/target/），照查。
+ */
+export function isSkippedDir(path) {
+  const name = path.slice(path.lastIndexOf("/") + 1);
+  if (name === "node_modules") return true;
+  return name === "target" && !/(^|\/)src\//.test(path);
+}
+
 function listFiles(root, dir, exts) {
   const out = [];
   let entries;
@@ -395,7 +405,7 @@ function listFiles(root, dir, exts) {
   for (const entry of entries) {
     const path = `${dir}/${entry.name}`;
     if (entry.isDirectory()) {
-      if (entry.name === "node_modules" || entry.name === "target") continue;
+      if (isSkippedDir(path)) continue;
       out.push(...listFiles(root, path, exts));
     } else if (exts.some(ext => entry.name.endsWith(ext)) && !isSkipped(path)) {
       out.push(path);

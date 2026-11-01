@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findHardcodedText, isSkipped } from "./check-hardcoded-text.mjs";
+import { findHardcodedText, isSkipped, isSkippedDir } from "./check-hardcoded-text.mjs";
 
 const lines = (text, path) => findHardcodedText(text, path).map(hit => hit.line);
 
@@ -185,5 +185,11 @@ describe("不查的文件", () => {
   it("组件与 Rust 源码要查", () => {
     expect(isSkipped("src/App.tsx")).toBe(false);
     expect(isSkipped("src-tauri/src/commands.rs")).toBe(false);
+  });
+
+  it("跳过构建目录 target，源码里叫 target 的模块照查", () => {
+    expect(isSkippedDir("crates/pin-render/target")).toBe(true);
+    expect(isSkippedDir("src/node_modules")).toBe(true);
+    expect(isSkippedDir("crates/kinshoko-core/src/backup/target")).toBe(false);
   });
 });
