@@ -108,6 +108,9 @@
 .subs-option { display: flex; align-items: center; gap: 12px; }
 .subs-option-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .subs-option-hint { font-size: 12px; color: var(--ink-2); }
+/* 分段按钮里的项默认平分宽度、可以缩到 0：这里按文字撑开，“不收”“Include”都放得下。 */
+.subs-option > .k-seg { flex: none; }
+.subs-option .k-seg-item { flex: none; min-width: 56px; }
 .subs-artist-hint { margin: -6px 0 0; font-size: 12px; color: var(--ink-2); }
 .subs-follow-count { flex: none; font-size: 12px; color: var(--ink-2); }
 .subs-follow-list { max-height: 248px; overflow-y: auto; border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--line); }
