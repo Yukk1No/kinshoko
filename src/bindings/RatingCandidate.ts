@@ -6,6 +6,6 @@ import type { RatingLabel } from "./RatingLabel";
  */
 export type RatingCandidate = { rating: RatingLabel, 
 /**
- * 经由其他叫法（英文名、R-18 等）命中时，是那个叫法；按显示名命中时为空。
+ * 经由其他叫法（R-18、Danbooru 的分级名等）命中时，是那个叫法；按中文或英文的显示名命中时为空。
  */
 via: string | null, };

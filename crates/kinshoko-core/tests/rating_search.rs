@@ -15,6 +15,24 @@ use kinshoko_core::search::{ConditionInput, Search, SearchInput, TermInput, rati
 
 const ZH: &str = "zh-CN";
 
+/// 分级在中文界面里的显示名（界面按 `common:rating` 写出）。
+fn shown_name(label: &kinshoko_core::search::RatingLabel) -> String {
+    if label.r18 {
+        return "R18".into();
+    }
+    label
+        .ratings
+        .iter()
+        .map(|r| match r {
+            ContentRating::General => "全年龄",
+            ContentRating::Sensitive => "轻度",
+            ContentRating::Questionable => "敏感",
+            ContentRating::Explicit => "成人",
+        })
+        .collect::<Vec<_>>()
+        .join("、")
+}
+
 /// 测试库里的图，按内容分级区分；安全模式关着。
 struct Fixture {
     _dir: tempfile::TempDir,
@@ -147,7 +165,7 @@ fn typing_r18_offers_one_candidate_for_both_adult_ratings_and_it_finds_exactly_t
         assert!(
             found
                 .iter()
-                .any(|c| c.rating.ratings == ADULT && c.rating.name == "R18"),
+                .any(|c| c.rating.ratings == ADULT && c.rating.r18),
             "输入“{typed}”时没有合并的分级候选：{found:?}"
         );
     }
@@ -214,7 +232,7 @@ fn with_safe_mode_on_adult_candidates_disappear_and_adult_conditions_find_nothin
     let names = |typed| -> Vec<String> {
         rating_candidates(typed, true)
             .into_iter()
-            .map(|c| c.rating.name)
+            .map(|c| shown_name(&c.rating))
             .collect()
     };
     assert_eq!(names("全年龄"), ["全年龄"]);
@@ -329,5 +347,22 @@ fn rating_conditions_combine_with_tags_and_sit_inside_the_same_alternatives() {
             picked(&[ContentRating::Questionable])
         ])]),
         set(&[&f.general, &f.questionable])
+    );
+}
+
+#[test]
+fn english_display_names_are_searchable_like_the_chinese_ones() {
+    let found = |typed| -> Vec<(String, Option<String>)> {
+        rating_candidates(typed, false)
+            .into_iter()
+            .map(|c| (shown_name(&c.rating), c.via))
+            .collect()
+    };
+    assert_eq!(found("mild"), [("轻度".to_owned(), None)]);
+    assert_eq!(found("全年龄"), [("全年龄".to_owned(), None)]);
+    assert!(found("adult").contains(&("成人".to_owned(), None)));
+    assert!(
+        found("explicit").contains(&("成人".to_owned(), Some("explicit".to_owned()))),
+        "Danbooru 的分级名仍是其他叫法"
     );
 }

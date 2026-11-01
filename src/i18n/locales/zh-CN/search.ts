@@ -8,6 +8,7 @@ export default {
   /** 标签候选匹配到的别名。 */
   tagVia: "别名",
   ratingMark: "分级",
+  r18: "R18",
   conditions: "查找条件",
   hiddenConditions_other: "还有 {{count}} 个条件",
   collapsedConditions: "收起的查找条件",

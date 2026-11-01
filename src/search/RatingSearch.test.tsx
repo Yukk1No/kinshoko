@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 const shortHair: TagLabel = { id: "t-short", name: "短发", namespace: "general", untranslated: false, hasExternal: true };
-const r18: RatingCandidate = { rating: { ratings: ["questionable", "explicit"], name: "R18" }, via: null };
+const r18: RatingCandidate = { rating: { ratings: ["questionable", "explicit"], r18: true }, via: null };
 const empty: SearchInput = { conditions: [], exact: false };
 
 function backend(ratingCandidates: RatingCandidate[]) {
