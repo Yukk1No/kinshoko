@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::sync::Mutex;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::{MemberSource, ReferenceGroup};
@@ -16,7 +16,7 @@ use crate::RegisteredLibrary;
 use crate::library::{Error, ReferenceImage, ReferenceLens, SafeMode, SafeModeScope};
 
 /// 成员暂时不能显示的原因。成员与布局都保留，原因标在成员上。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase", tag = "kind")]
 #[ts(export)]
 pub enum UnavailableReason {

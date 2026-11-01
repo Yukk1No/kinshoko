@@ -6,6 +6,7 @@ import domain from "./errors/domain";
 import shell from "./errors/shell";
 import reasons from "./errors/reasons";
 import tagging from "./errors/tagging";
+import backup from "./errors/backup";
 
 const errors: Translation<typeof zh> = {
   ...library,
@@ -13,6 +14,7 @@ const errors: Translation<typeof zh> = {
   ...shell,
   ...reasons,
   ...tagging,
+  ...backup,
 };
 
 export default errors;

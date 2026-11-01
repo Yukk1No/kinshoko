@@ -62,6 +62,8 @@ pub enum Error {
     Undecodable(String),
     /// 资料库记着这张图，但原文件已不在（被移走或删除，#105）。
     OriginalMissing(PathBuf),
+    /// 从快照恢复出的原文件与快照记录不符；附原图键。
+    RestoredOriginalMismatch(String),
     /// 剪贴板里的图片无法交给导入（#105）。
     ClipboardImage(Box<crate::CommandError>),
 }
@@ -129,6 +131,7 @@ impl fmt::Display for Error {
             Error::OriginalMissing(p) => {
                 write!(f, "原文件不在了，可能被移走或删除：{}", p.display())
             }
+            Error::RestoredOriginalMismatch(key) => write!(f, "恢复的原文件内容不符：{key}"),
             Error::ClipboardImage(why) => write!(f, "剪贴板里的图片无法导入：{why}"),
         }
     }

@@ -127,14 +127,14 @@ impl BackupTarget {
         let mut seen = BTreeSet::new();
         for item in &scope.libraries {
             let deps = registered(sources, item).and_then(|reg| {
-                Library::dependencies_at(&reg.root, &reg.id).map_err(|e| e.to_string())
+                Library::dependencies_at(&reg.root, &reg.id).map_err(CommandError::from)
             });
             let deps = match deps {
                 Ok(d) => d,
                 Err(reason) => {
                     est.unavailable.push(SkippedLibrary {
                         library: item.clone(),
-                        reason,
+                        reason: reason.into(),
                     });
                     continue;
                 }
@@ -240,7 +240,7 @@ impl BackupTarget {
                     let libraries = match ReferenceGroups::snapshot_libraries(&bytes) {
                         Ok(libraries) => libraries,
                         Err(e) => {
-                            report.problems.push(format!("参考组“{}”：{e}", g.name));
+                            report.problems.push(group_problem(&g.name, e.into()));
                             continue;
                         }
                     };
@@ -252,9 +252,14 @@ impl BackupTarget {
                                     if group.id == g.id && library_id == id)
                             })
                     }) {
-                        report.problems.push(format!(
-                            "参考组“{}”有新的资料库引用，请重新计算备份范围后重试",
-                            g.name
+                        report.problems.push(CommandError::new(
+                            ErrorKind::BackupGroupNewLibrary {
+                                name: g.name.clone(),
+                            },
+                            format!(
+                                "参考组“{}”有新的资料库引用，请重新计算备份范围后重试",
+                                g.name
+                            ),
                         ));
                         continue;
                     }
@@ -262,7 +267,7 @@ impl BackupTarget {
                         match group_captures::save(sources.groups, &g.id, &bytes, &groups_dir) {
                             Ok(captures) => captures,
                             Err(e) => {
-                                report.problems.push(format!("参考组“{}”：{e}", g.name));
+                                report.problems.push(group_problem(&g.name, e.into()));
                                 continue;
                             }
                         };
@@ -274,7 +279,7 @@ impl BackupTarget {
                         captures,
                     });
                 }
-                Err(e) => report.problems.push(format!("参考组“{}”：{e}", g.name)),
+                Err(e) => report.problems.push(group_problem(&g.name, e.into())),
             }
         }
 
@@ -282,16 +287,21 @@ impl BackupTarget {
         for item in &scope.libraries {
             let snap = registered(sources, item).and_then(|reg| {
                 Library::snapshot_at(&reg.root, &reg.id, &work.join("libraries").join(&reg.id))
-                    .map_err(|e| e.to_string())
+                    .map_err(CommandError::from)
             });
             match snap {
                 Ok(mut s) => {
                     if let Some(catalog) = catalog {
                         // Failure enriching a selected library is incomplete, not an unavailable skip.
                         if let Err(e) = s.apply_content_definitions(catalog) {
-                            report
-                                .problems
-                                .push(format!("资料库“{}”的标签定义：{e}", item.name));
+                            report.problems.push(CommandError::caused_by(
+                                e,
+                                |cause| ErrorKind::BackupLibraryDefinitions {
+                                    name: item.name.clone(),
+                                    cause,
+                                },
+                                |e| format!("资料库“{}”的标签定义：{e}", item.name),
+                            ));
                             continue;
                         }
                     }
@@ -299,7 +309,7 @@ impl BackupTarget {
                 }
                 Err(reason) => report.skipped.push(SkippedLibrary {
                     library: item.clone(),
-                    reason,
+                    reason: reason.into(),
                 }),
             }
         }
@@ -320,9 +330,19 @@ impl BackupTarget {
                             report.copied_bytes += dep.file.size;
                             library::fault::hit(library::fault::BACKUP_AFTER_COPY);
                         }
-                        Err(why) => report.problems.push(format!(
-                            "资料库“{}”的原图 {}：{why}",
-                            snap.library.name, dep.file.key
+                        Err(why) => report.problems.push(CommandError::caused_by(
+                            why,
+                            |cause| ErrorKind::BackupOriginalProblem {
+                                name: snap.library.name.clone(),
+                                file: dep.file.key.clone(),
+                                cause,
+                            },
+                            |why| {
+                                format!(
+                                    "资料库“{}”的原图 {}：{why}",
+                                    snap.library.name, dep.file.key
+                                )
+                            },
                         )),
                     }
                 }
@@ -417,4 +437,16 @@ impl BackupTarget {
         removed.sort();
         Ok(removed)
     }
+}
+
+/// 参考组 `name` 的一个问题：备份时读不了，或恢复后核对不了。
+fn group_problem(name: &str, problem: CommandError) -> CommandError {
+    CommandError::caused_by(
+        problem,
+        |cause| ErrorKind::BackupGroupProblem {
+            name: name.to_owned(),
+            cause,
+        },
+        |p| format!("参考组“{name}”：{p}"),
+    )
 }

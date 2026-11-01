@@ -2,7 +2,7 @@
 
 use super::*;
 
-/// 备份与恢复的错误。`Display` 是给画师看的中文说明。
+/// 备份与恢复的错误。交给界面时转成错误代码；`Display` 是日志里的中文说明。
 #[derive(Debug)]
 pub enum BackupError {
     /// 备份目标不在（移动盘没插、目录被删）。
@@ -16,6 +16,7 @@ pub enum BackupError {
     Group(GroupError),
 }
 
+// 不上界面：交给界面与写进备份计划时都转成错误代码（command_error），Display 只进日志
 impl std::fmt::Display for BackupError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -84,7 +85,8 @@ pub struct BackupProgress {
 #[ts(export)]
 pub struct SkippedLibrary {
     pub library: ScopeItem,
-    pub reason: String,
+    /// 写进清单；旧版本写下的是中文句子。
+    pub reason: crate::command_error::StoredReason,
 }
 
 /// 一次备份的结果。
@@ -102,7 +104,8 @@ pub struct BackupReport {
     /// 备份目标里已有、直接引用的原文件。
     pub reused: u32,
     pub skipped: Vec<SkippedLibrary>,
-    pub problems: Vec<String>,
+    #[ts(as = "Vec<crate::command_error::ErrorKind>")]
+    pub problems: Vec<crate::CommandError>,
     /// 按保留策略删掉的旧快照。
     pub removed_snapshots: Vec<String>,
 }
@@ -161,7 +164,8 @@ pub struct RestoredGroup {
 #[ts(export)]
 pub struct CheckPart {
     pub checked: u32,
-    pub problems: Vec<String>,
+    #[ts(as = "Vec<crate::command_error::ErrorKind>")]
+    pub problems: Vec<crate::CommandError>,
 }
 
 /// 恢复后的往返检查：原图哈希、整理信息、参考组。
