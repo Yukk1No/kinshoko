@@ -1,0 +1,62 @@
+/** 还原度门槛实验（画面保真检查，`src/fidelity/`）：页面与它保存的 Markdown 报告。 */
+export default {
+  passed: "通过",
+  failed: "未通过",
+  recordOnly: "只记录",
+  error: "出错：{{error}}",
+  yes: "是",
+  no: "否",
+  /** 显示设置里开关类项目的填写选项。 */
+  switch: {
+    unset: "未填写",
+    on: "开启",
+    off: "关闭",
+    unsupported: "不支持",
+  },
+  title: "还原度门槛实验",
+  /** 原来分三行写在 JSX 里，行间各有一个空格。 */
+  intro: "WebView2 分别解码应用在 1:1 时显示的图（原图，或动图、HDR、查找表型 ICC 与 CMYK 的原尺寸派生图）与缩略图， 在 display-p3 canvas 中读回色块，比较 ΔE2000（阈值 {{threshold}}，假设值）；显示派生图的样本还须与标称值相差 < {{threshold}}。 直接显示原图时“1:1 显示 vs 标称”是 WebView2 自己的解释，只记录。",
+  preparing: "正在生成样本并导入……",
+  progress: "{{done}}/{{total}} 个样本",
+  canvasSpace: "；注意：canvas 色彩空间为 {{space}}",
+  verdict: "；结论：{{verdict}}",
+  manualLegend: "请对照 Windows 设置 → 系统 → 屏幕 填写",
+  autoColour: "自动色彩管理",
+  monitorIcc: "显示器 ICC（颜色管理中的默认配置文件）",
+  remarks: "备注（例如肉眼看到的差异）",
+  save: "保存报告",
+  saved: "报告已保存：{{path}}",
+  column: {
+    sample: "样本",
+    shown: "1:1 显示",
+    thumbnail: "缩略图",
+    maxDeltaE: "最大 ΔE2000",
+    result: "结果",
+  },
+  /** 钉图离屏渲染 vs 正式派生图（#282）。 */
+  pins: {
+    title: "钉图离屏渲染 vs 正式派生图",
+    drawing: "正在钉图渲染层上画样本……",
+    summary: "适配器：{{adapter}}；显示器：{{display}}；结论：{{verdict}}",
+    error: "（出错：{{error}}）",
+    worst: "最差色块 ΔE2000",
+    diff: "8 位差 均值／p99／最大",
+    diffValue: "{{mean}}／{{p99}}／{{max}}",
+  },
+  /** 保存的 Markdown 报告。 */
+  report: {
+    title: "# Kinshoko 还原度门槛实验报告",
+    verdict: "结论：{{verdict}}（阈值 ΔE2000 < {{threshold}}，为假设值；缩略图 {{px}} px）",
+    environment: "## 环境",
+    display: "- Windows HDR：{{hdr}}；自动色彩管理：{{autoColour}}；显示器 ICC：{{icc}}",
+    remarks: "- 备注：{{remarks}}",
+    none: "无",
+    samples: "## 样本",
+    header: "| 样本 | 实验 | 1:1 显示 | 门槛 | 最大 ΔE2000（门槛） | 1:1 显示 vs 标称 | 缩略图 vs 标称 | WebView2 直接显示原图 vs 标称（只记录） | 结果 | SHA-256 |",
+    derivative: "派生图",
+    original: "原图",
+    pinsTitle: "## 钉图离屏渲染 vs 正式派生图",
+    pinsVerdict: "结论：{{verdict}}；适配器：{{adapter}}；显示器：{{display}}",
+    pinsHeader: "| 样本 | 门槛 | 最差色块 ΔE2000 | 8 位差 均值／p99／最大 | 结果 |",
+  },
+};

@@ -26,7 +26,7 @@ export function installPerfProbe(target: Window & { __kinshokoPerf?: KinshokoPer
     run: (options) => runWallScenarios({ ...options, env }),
     inspector(options) {
       const wall = document.querySelector<HTMLElement>(".wall");
-      if (!wall) return Promise.reject(new Error("找不到图片墙（.wall）。先在主窗口打开一个有图的范围。"));
+      if (!wall) return Promise.reject(new Error("Image wall (.wall) not found. Open a scope with images in the main window first."));
       return measureSelections({ ...options, wall, inspector: () => document.querySelector(".inspector"), env });
     },
     async record(ms, options) {

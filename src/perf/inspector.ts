@@ -6,6 +6,7 @@
 // 精度是一帧。只量主窗口的“选中一张”：多来源整理（.workspace-sources）要再点一次“整理此来源”，跳过。
 
 import { browserEnv, type ProbeEnv } from "./frameProbe";
+import { i18n } from "../i18n/instance";
 
 export const INSPECTOR_BUDGET_MS = 100;
 
@@ -51,7 +52,7 @@ const busy = (el: Element | null) => !el || el.getAttribute("aria-busy") === "tr
 export function inspectorShows(inspector: ParentNode, id: string): boolean {
   const marker = inspector instanceof Element && inspector.hasAttribute("data-selection") ? inspector : inspector.querySelector("[data-selection]");
   if (marker?.getAttribute("data-selection") !== id) return false;
-  return !busy(inspector.querySelector(".selection-detail")) && !busy(inspector.querySelector('.tag-panel [aria-label="有效标签"]'));
+  return !busy(inspector.querySelector(".selection-detail")) && !busy(inspector.querySelector(`.tag-panel [aria-label="${i18n.t("tags:panel.active")}"]`));
 }
 
 const nextFrame = (env: ProbeEnv) => new Promise<number>((resolve) => env.raf(resolve));
