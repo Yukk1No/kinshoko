@@ -103,12 +103,17 @@ export function isErrorCode(error: unknown, code: CommandErrorCode): boolean {
   return errorCode(error) === code;
 }
 
-/** 给画师看的说明：命令失败按代码取文案，其他错误按原样。 */
+/** 几个原因连成一句，例如自动标签跳过各个模型的原因。 */
+export function describeCommandErrors(errors: CommandError[]): string {
+  return errors.map(describeCommandError).join(t("reasonSeparator"));
+}
+
 /** 写进文件的原因：新记录是错误代码，旧版本写下的中文句子照原样显示。 */
 export function storedReasonText(reason: StoredReason): string {
   return typeof reason === "string" ? reason : describeCommandError(reason);
 }
 
+/** 给画师看的说明：命令失败按代码取文案，其他错误按原样。 */
 export function errorText(error: unknown): string {
   if (isCommandError(error)) return describeCommandError(error);
   return String(error);

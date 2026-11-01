@@ -3,6 +3,8 @@
 
 use std::time::{Duration, Instant};
 
+use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::diagnostics::{LibraryNo, LogEvent};
 use kinshoko_core::tagging::{Device, TaggingLog, TaggingStatus};
 
@@ -56,7 +58,12 @@ fn failures_and_missing_hardware_are_logged_once_without_paths() {
     let t0 = Instant::now();
     let mut log = TaggingLog::new(None);
     let failed = TaggingStatus::Failed {
-        reason: r"读取 C:\Users\画师\模型\model.onnx 失败".into(),
+        reason: CommandError::new(
+            ErrorKind::ModelUnreadable {
+                detail: r"C:\Users\画师\模型\model.onnx".into(),
+            },
+            r"读取 C:\Users\画师\模型\model.onnx 失败",
+        ),
     };
 
     let Some(LogEvent::TaggingFailed { detail }) = log.observe(&failed, t0) else {
@@ -69,7 +76,7 @@ fn failures_and_missing_hardware_are_logged_once_without_paths() {
     assert!(matches!(
         log.observe(
             &TaggingStatus::NoDevice {
-                reason: "没有独立显卡".into()
+                reasons: vec![CommandError::new(ErrorKind::TaggingNoGpu, "没有独立显卡")]
             },
             t0
         ),

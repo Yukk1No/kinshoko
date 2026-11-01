@@ -4,7 +4,7 @@ import type { CommandError } from "../bindings/CommandError";
 import { i18n } from "../i18n/instance";
 import zh from "../i18n/locales/zh-CN/errors";
 import { appInfo, isCursorExpired, isUnknownImage } from "../ipc";
-import { CommandFailure, describeCommandError, errorCode, errorText, storedReasonText } from "./commandError";
+import { CommandFailure, describeCommandError, describeCommandErrors, errorCode, errorText, storedReasonText } from "./commandError";
 
 afterEach(async () => { clearMocks(); await i18n.changeLanguage("zh-CN"); });
 
@@ -52,6 +52,8 @@ it("英文界面按代码取英文文案", async () => {
   expect(describeCommandError({ code: "io", detail: "disk full" })).toBe("Couldn't read or write a file: disk full");
   expect(describeCommandError({ code: "autostartFailed", cause: { code: "system", detail: "Access is denied." } }))
     .toBe("Couldn't change starting with Windows: Access is denied.");
+  expect(describeCommandErrors([{ code: "taggingNoGpu" }, { code: "taggingRamShort", need: "5.4 GB" }]))
+    .toBe("There's no dedicated graphics card; There isn't enough free memory (needs about 5.4 GB)");
   expect(describeCommandError({ code: "checkOriginalCount", snapshot: 3, restored: 2 }))
     .toBe("The number of originals doesn't match: 3 in the snapshot, 2 after restoring");
 });
