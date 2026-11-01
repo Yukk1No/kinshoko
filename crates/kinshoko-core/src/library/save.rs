@@ -76,10 +76,7 @@ impl Library {
 pub(super) fn validate(inner: &super::Inner, destination: &SaveDestination) -> Result<(), Error> {
     validate_authority(&inner.write_revoked)?;
     if inner.detached {
-        return Err(Error::Io(std::io::Error::new(
-            std::io::ErrorKind::PermissionDenied,
-            "此资料库为只读提供方",
-        )));
+        return Err(Error::ReadOnlyProvider);
     }
     if destination.library_id != inner.info.id
         || Library::inspect(&inner.root)?.id != destination.library_id
@@ -113,10 +110,7 @@ pub(super) fn assign(
 
 pub(super) fn validate_authority(revoked: &std::sync::atomic::AtomicBool) -> Result<(), Error> {
     if revoked.load(super::Ordering::SeqCst) {
-        return Err(Error::Io(std::io::Error::new(
-            std::io::ErrorKind::NotConnected,
-            "资料库已取消登记，保存目标不可用",
-        )));
+        return Err(Error::DestinationRevoked);
     }
     Ok(())
 }

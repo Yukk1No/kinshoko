@@ -30,8 +30,13 @@ pub enum DeviceLibraryError {
     Library(crate::library::Error),
     UnknownLibrary,
     StaleLibrary,
-    IdentityChanged { root: PathBuf },
-    Unavailable { root: PathBuf, reason: String },
+    IdentityChanged {
+        root: PathBuf,
+    },
+    Unavailable {
+        root: PathBuf,
+        reason: crate::library::Error,
+    },
 }
 
 // 不上界面：领域错误交给界面时转成错误代码（command_error），Display 只进日志
@@ -70,7 +75,8 @@ impl From<std::io::Error> for DeviceLibraryError {
 #[ts(export)]
 pub struct LibraryRegistration {
     pub library: RegisteredLibrary,
-    pub unavailable: Option<String>,
+    #[ts(as = "Option<crate::command_error::ErrorKind>")]
+    pub unavailable: Option<crate::CommandError>,
 }
 
 /// A real task receipt bound to its chosen destination, not to current browsing.
@@ -81,11 +87,14 @@ pub struct ImportTaskSnapshot {
     pub task_id: String,
     pub destination: SaveDestination,
     pub library_name: String,
-    pub folder_name: String,
+    /// 目标文件夹的路径；放进“未归类”时为空，由界面写出“未归类”。
+    pub folder_name: Option<String>,
     pub progress: ImportProgress,
     pub report: Option<ImportReport>,
     pub finishing: bool,
-    pub warnings: Vec<String>,
+    /// 内容导入完、收尾没做成的部分（如标签定义没发布）。
+    #[ts(as = "Vec<crate::command_error::ErrorKind>")]
+    pub warnings: Vec<crate::CommandError>,
 }
 
 /// 当前进程的资料库与本设备登记。调用方将它放在互斥锁中，串行处理切换。
@@ -136,7 +145,7 @@ impl DeviceLibraries {
                 library: library.clone(),
                 unavailable: Self::inspect(&library.root, Some(&library.id))
                     .err()
-                    .map(|error| error.to_string()),
+                    .map(crate::CommandError::from),
             })
             .collect()
     }
@@ -256,7 +265,7 @@ impl DeviceLibraries {
             .map(Arc::new)
             .map_err(|error| DeviceLibraryError::Unavailable {
                 root: registration.root.clone(),
-                reason: error.to_string(),
+                reason: error,
             })
     }
 
@@ -287,7 +296,7 @@ impl DeviceLibraries {
         let library =
             Library::open(&registration.root).map_err(|error| DeviceLibraryError::Unavailable {
                 root: registration.root.clone(),
-                reason: error.to_string(),
+                reason: error,
             })?;
         let library = self.scoped(library);
         if library.info().id != library_id {
@@ -404,7 +413,7 @@ impl DeviceLibraries {
         }
         let library = Library::open(root).map_err(|error| DeviceLibraryError::Unavailable {
             root: root.to_path_buf(),
-            reason: error.to_string(),
+            reason: error,
         })?;
         if expected.is_some_and(|id| id != library.info().id) {
             return Err(DeviceLibraryError::IdentityChanged {
@@ -447,7 +456,7 @@ impl DeviceLibraries {
     ) -> Result<crate::library::LibraryInfo, DeviceLibraryError> {
         let info = Library::inspect(root).map_err(|error| DeviceLibraryError::Unavailable {
             root: root.to_path_buf(),
-            reason: error.to_string(),
+            reason: error,
         })?;
         if expected.is_some_and(|id| id != info.id) {
             return Err(DeviceLibraryError::IdentityChanged {

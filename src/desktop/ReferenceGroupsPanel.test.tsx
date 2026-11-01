@@ -38,7 +38,7 @@ vi.mock("../ipc", () => ({
   registeredLibraries: () =>
     Promise.resolve([
       { library: { id: "lib-a", name: "主库", root: "D:/a" }, unavailable: null },
-      { library: { id: "lib-b", name: "移动盘库", root: "E:/b" }, unavailable: "没插" },
+      { library: { id: "lib-b", name: "移动盘库", root: "E:/b" }, unavailable: { code: "system" as const, detail: "没插" } },
     ]),
 }));
 
@@ -82,8 +82,7 @@ const view: ReferenceGroupView = {
       imageId: "img-m3",
       state: {
         kind: "unavailable",
-        reason: { kind: "libraryUnavailable", detail: "没插" },
-        message: "资料库暂时不可用：没插",
+        reason: { kind: "libraryMissing", root: "E:/b" },
       },
     },
   ],
@@ -226,10 +225,10 @@ describe("参考组面板", () => {
 
   it("查看成员时标出不可用的原因与安全模式下的遮蔽", async () => {
     await show();
-    expect(screen.queryByText("资料库暂时不可用：没插")).toBeNull();
+    expect(screen.queryByText("E:/b 处没有这个资料库（移动盘没插，或资料库搬了家）")).toBeNull();
     await more("查看成员");
     expect(ipc.group).toHaveBeenCalledWith("g1");
-    expect(screen.getByText("资料库暂时不可用：没插")).toBeTruthy();
+    expect(screen.getByText("E:/b 处没有这个资料库（移动盘没插，或资料库搬了家）")).toBeTruthy();
     expect(screen.getByText("安全模式下原位遮蔽")).toBeTruthy();
   });
 

@@ -338,7 +338,7 @@ pub async fn subscription_check_now(app: AppHandle) -> Result<(), CommandError> 
 
 #[tauri::command]
 pub async fn subscriptions(app: AppHandle) -> Result<Vec<Subscription>, CommandError> {
-    require(&app)?.store.list().map_err(CommandError::system)
+    require(&app)?.store.list().map_err(CommandError::from)
 }
 
 /// 最近收进来的图。安全模式开着时不含成人作品：来源标为成人的，以及在图库里按有效分级
@@ -355,7 +355,7 @@ pub async fn subscription_recent(
     let recent = state
         .store
         .recent(RECENT_LIMIT)
-        .map_err(CommandError::system)?;
+        .map_err(CommandError::from)?;
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
         recent
@@ -377,7 +377,7 @@ pub async fn subscription_mark_seen(app: AppHandle) -> Result<(), CommandError> 
     require(&app)?
         .store
         .mark_seen()
-        .map_err(CommandError::system)?;
+        .map_err(CommandError::from)?;
     publish(&app);
     Ok(())
 }

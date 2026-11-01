@@ -169,9 +169,10 @@ describe("主窗口", () => {
   it("未连接的图库在侧栏只占一行并可就地重新连接，管理图库里显示原因（#113）", async () => {
     const other = { id: "L2", name: "移动盘参考", root: "E:\\移动盘参考" };
     const reason = "资料库暂时不可用：E:\\移动盘参考。请确认移动盘已连接，搬家后重新登记。";
+    const unavailable = { code: "system" as const, detail: reason };
     backend(library, clean, (cmd) => {
       if (cmd === "plugin:library|registered_libraries") return [
-        { library, unavailable: null }, { library: other, unavailable: reason },
+        { library, unavailable: null }, { library: other, unavailable },
       ];
       return undefined;
     });

@@ -39,6 +39,15 @@ const SKIP = [
   // 给测试用的假实现（打标 port、钉图平台层），正式运行时不用。
   /^crates\/kinshoko-core\/src\/tagging\/memory\.rs$/,
   /^crates\/pin-shell\/src\/fake\.rs$/,
+  // 底层技术原因（#359）：解码与色彩转换、GPU 渲染、钉图窗口壳、打标子进程与模型的报错。
+  // 只进日志，或作为 detail 原样附在已翻译的说明后面，不单独成句上界面。
+  /^crates\/kinshoko-core\/src\/fidelity\/(?:render\/|inspect\.rs$)/,
+  /^crates\/kinshoko-core\/src\/desktop\/pin_colour\//,
+  /^crates\/pin-render\//,
+  /^crates\/pin-shell\//,
+  /^src-tauri\/src\/desktop\/pins\/native\/(?:render|host|surface)\.rs$/,
+  /^crates\/kinshoko-tagger\//,
+  /^crates\/kinshoko-core\/src\/tagging\/(?:process|patch)\.rs$/,
 ];
 
 export function isSkipped(path) {

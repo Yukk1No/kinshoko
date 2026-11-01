@@ -86,6 +86,7 @@ pub enum TagFailure {
     DeviceLost(String),
 }
 
+// 不上界面：交给界面时转成错误代码（From<TagFailure> for CommandError），Display 只进日志
 impl std::fmt::Display for TagFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

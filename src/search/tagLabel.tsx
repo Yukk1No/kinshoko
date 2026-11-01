@@ -4,12 +4,16 @@ import type { TagLabel } from "../bindings/TagLabel";
 import { Languages } from "lucide-react";
 import { i18n } from "../i18n";
 
+/** 分级的显示名：“R18”，或依次写出各档的名称。 */
+export const ratingName = (rating: RatingLabel) =>
+  rating.r18 ? i18n.t("search:r18") : rating.ratings.map((r) => i18n.t(`common:rating.${r}`)).join(i18n.t("search:listSeparator"));
+
 /** 分级不是标签：条件与候选里都带“分级”字样，和标签区分开。 */
 export function RatingName({ rating }: { rating: RatingLabel }) {
   return (
     <>
       <span className="search-rating-mark">{i18n.t("search:ratingMark")}</span>
-      <span>{rating.name}</span>
+      <span>{ratingName(rating)}</span>
     </>
   );
 }

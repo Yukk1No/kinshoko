@@ -19,7 +19,7 @@ afterEach(async () => {
 });
 const settle = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
-const registrations = ["A", "B"].map((id) => ({ library: { id, name: `库${id}`, root: `D:\\${id}` }, unavailable: null as string | null }));
+const registrations = ["A", "B"].map((id) => ({ library: { id, name: `库${id}`, root: `D:\\${id}` }, unavailable: null as import("../bindings/CommandError").CommandError | null }));
 const forest = (): WorkspaceDirectories => ({
   status: { revision: "r", libraries: registrations },
   providers: registrations.map((registration) => ({

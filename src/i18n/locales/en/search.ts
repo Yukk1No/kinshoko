@@ -8,6 +8,7 @@ const search: Translation<typeof zh> = {
   ratingVia: "also",
   tagVia: "alias",
   ratingMark: "Rating",
+  r18: "R18",
   conditions: "Search conditions",
   hiddenConditions_one: "{{count}} more condition",
   hiddenConditions_other: "{{count}} more conditions",

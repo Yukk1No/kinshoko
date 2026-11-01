@@ -140,7 +140,9 @@ fn capture_window(app: &AppHandle) -> Result<tauri::WebviewWindow, CommandError>
         CAPTURE_WINDOW,
         WebviewUrl::App("index.html?view=capture".into()),
     )
-    .title("Kinshoko 截图")
+    .title(crate::ui_text::text(
+        crate::ui_text::Text::CaptureWindowTitle,
+    ))
     .decorations(false)
     .resizable(false)
     .shadow(false)

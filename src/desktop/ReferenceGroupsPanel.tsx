@@ -10,7 +10,7 @@ import { draftCaptureSave, type CaptureSaveDraft, type CaptureSavePlan } from ".
 import { GroupNameForm } from "./GroupNameForm";
 import { useToast } from "../ui/Toast";
 import { ago } from "./relativeTime";
-import { describeCommandError } from "../ipc/commandError";
+import { describeCommandError, unavailableReasonText } from "../ipc/commandError";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -41,7 +41,7 @@ function memberState(status: MemberStatus): string {
     case "available":
       return i18n.t(status.state.sealed ? "desktop:groups.sealed" : "desktop:groups.available");
     case "unavailable":
-      return status.state.message;
+      return unavailableReasonText(status.state.reason);
   }
 }
 

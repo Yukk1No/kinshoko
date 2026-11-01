@@ -13,9 +13,18 @@ type Params = Record<string, string | number | CommandError>;
 // 错误代码是运行时的值；每个代码都有文案由 commandError.test.ts 在类型检查时核对。
 const t = (key: string, params?: Params): string => (i18n.t as (key: string, options?: object) => string)(`errors:${key}`, params);
 
-function unavailable(reason: UnavailableReason): string {
-  return reason.kind === "libraryUnavailable" ? t("unavailable.libraryUnavailable", { detail: reason.detail }) : t(`unavailable.${reason.kind}`);
+/** 参考图此刻取不到的原因。 */
+export function unavailableReasonText(reason: UnavailableReason): string {
+  switch (reason.kind) {
+    case "libraryUnavailable":
+      return t("unavailable.libraryUnavailable", { cause: describeCommandError(reason.cause) });
+    case "libraryMissing":
+      return t("unavailable.libraryMissing", { root: reason.root });
+    default:
+      return t(`unavailable.${reason.kind}`);
+  }
 }
+const unavailable = unavailableReasonText;
 
 /** 系统没能注册快捷键的原因。 */
 export function hotkeyFailureText(failure: HotkeyFailure): string {

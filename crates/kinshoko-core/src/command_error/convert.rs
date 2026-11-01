@@ -7,6 +7,7 @@ use crate::backup::BackupError;
 use crate::desktop::{CaptureError, HistoryError, PinError};
 use crate::reference_groups::GroupError;
 use crate::shortcuts::ShortcutProblem;
+use crate::subscription::StoreError;
 use crate::tag_catalog::CatalogError;
 use crate::{
     DeviceLibraryError, SettingsError, ShortcutError, UiScaleError, WriterWaitError, library,
@@ -74,6 +75,8 @@ impl From<library::Error> for ErrorKind {
             E::Undecodable(detail) => ErrorKind::Undecodable { detail },
             E::OriginalMissing(p) => ErrorKind::OriginalMissing { path: path(&p) },
             E::RestoredOriginalMismatch(file) => ErrorKind::RestoredOriginalMismatch { file },
+            E::ReadOnlyProvider => ErrorKind::LibraryReadOnly,
+            E::DestinationRevoked => ErrorKind::DestinationRevoked,
             E::ClipboardImage(cause) => ErrorKind::ClipboardImage {
                 cause: Box::new(cause.kind),
             },
@@ -95,7 +98,7 @@ impl From<DeviceLibraryError> for ErrorKind {
             }
             DeviceLibraryError::Unavailable { root, reason } => ErrorKind::LibraryUnavailable {
                 root: path(&root),
-                reason,
+                reason: Box::new(reason.into()),
             },
         }
     }
@@ -126,6 +129,7 @@ impl From<CatalogError> for ErrorKind {
             },
             CatalogError::Library(e) => e.into(),
             CatalogError::UnknownTag => ErrorKind::CatalogUnknownTag,
+            CatalogError::Command(e) => e.kind,
             CatalogError::InvalidDefinition(cause) => ErrorKind::CatalogInvalidDefinition {
                 cause: Box::new(cause.kind),
             },
@@ -182,6 +186,23 @@ impl From<BackupError> for ErrorKind {
             },
             BackupError::Library(e) => e.into(),
             BackupError::Group(e) => e.into(),
+        }
+    }
+}
+
+impl From<StoreError> for ErrorKind {
+    fn from(e: StoreError) -> Self {
+        match e {
+            StoreError::Io(e) => ErrorKind::SubscriptionStore {
+                detail: e.to_string(),
+            },
+            StoreError::Sqlite(e) => ErrorKind::SubscriptionStore {
+                detail: e.to_string(),
+            },
+            StoreError::Migration(e) => ErrorKind::SubscriptionStoreUpgrade {
+                detail: e.to_string(),
+            },
+            StoreError::UnknownSubscription => ErrorKind::SubscriptionUnknown,
         }
     }
 }

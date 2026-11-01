@@ -47,7 +47,7 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
         cards: state.available ? [{ id: state.contentId, libraryId: "A", imageId: state.imageId, width: 100, height: 100, adult: false,
           sources: [{ libraryId: "A", libraryName: "甲库", imageId: state.imageId, unavailable: null, matches: true, deleted: state.deleted },
             // 来源按钮只在两个及以上图库时出现（#221）：需要按钮的用例再挂一份离线来源。
-            ...(state.inTwoLibraries ? [{ libraryId: "B", libraryName: "乙库", imageId: "b", unavailable: "离线", matches: false, deleted: false }] : [])] }] : [],
+            ...(state.inTwoLibraries ? [{ libraryId: "B", libraryName: "乙库", imageId: "b", unavailable: { code: "system" as const, detail: "离线" }, matches: false, deleted: false }] : [])] }] : [],
         total: state.available ? 1 : 0, nextCursor: null, status: status(state.wallRevision),
       };
     }

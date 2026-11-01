@@ -34,6 +34,7 @@ export default {
   packageDefinitionsNotSaved: "内容已写入，但资料库标签定义尚未更新：{{cause}}。请重试保存标签定义或重新导入参考组包。",
   processedDefinitionsNotSaved: "内容处理结果已保留，资料库标签定义未更新：{{cause}}。可在统一标签目录重试保存定义。",
   savedDefinitionsNotSaved: "内容已保存，资料库标签定义未更新：{{cause}}。可在统一标签目录重试保存定义。",
+  importPublicationNotStarted: "导入已开始，但没能开始更新资料库标签定义：{{cause}}。导入完成后，可在统一标签目录重试保存定义。",
 
   autostartNotSynced: "开机自启未同步：{{cause}}",
   safeModeScopeIncomplete: "安全模式范围未完全生效：{{cause}}",

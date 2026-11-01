@@ -254,16 +254,13 @@ fn unavailable_members_keep_their_layout_and_say_why() {
     let reasons: Vec<_> = status
         .iter()
         .map(|s| match &s.state {
-            MemberState::Unavailable { reason, message } => {
-                assert!(!message.is_empty());
-                Some(reason.clone())
-            }
+            MemberState::Unavailable { reason } => Some(reason.clone()),
             MemberState::Available { .. } => None,
         })
         .collect();
     assert!(matches!(
         reasons[0],
-        Some(UnavailableReason::LibraryUnavailable { .. })
+        Some(UnavailableReason::LibraryMissing { .. })
     ));
     assert_eq!(reasons[1], Some(UnavailableReason::LibraryNotRegistered));
     assert_eq!(reasons[2], None);
@@ -321,7 +318,7 @@ fn a_library_registered_at_a_place_now_holding_another_library_is_unavailable() 
     };
     assert!(matches!(
         refs.image(&f.b.id, &f.b_images[0]),
-        Err(UnavailableReason::LibraryUnavailable { .. })
+        Err(UnavailableReason::LibraryMissing { .. })
     ));
 }
 

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ChevronRight, FolderOpen, FolderPlus, Library, Lightbulb, Pin, Plus, RefreshCw, Settings2 } from "lucide-react";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
+import { describeCommandError } from "../ipc/commandError";
 import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, unregisterLibrary } from "../ipc";
 import { BrandMark } from "../ui/BrandMark";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
@@ -137,7 +138,7 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
               <div className="k-list-text">
                 <div className="k-list-title">{library.name}</div>
                 <div className="k-list-desc" title={library.root}>{library.root}</div>
-                {unavailable && <p className="k-list-desc is-warn" role="status">{unavailable}</p>}
+                {unavailable && <p className="k-list-desc is-warn" role="status">{describeCommandError(unavailable)}</p>}
               </div>
               <div className="k-list-end">
                 <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}><span className="k-label">{unavailable ? t("manage.offline") : t("manage.online")}</span></span>

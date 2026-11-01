@@ -24,11 +24,11 @@ fn errors_reach_the_interface_as_a_code_with_parameters() {
         json(
             DeviceLibraryError::Unavailable {
                 root: "E:\\库".into(),
-                reason: "拒绝访问".into()
+                reason: library::Error::OutdatedLibrary
             }
             .into()
         ),
-        serde_json::json!({ "code": "libraryUnavailable", "root": "E:\\库", "reason": "拒绝访问" })
+        serde_json::json!({ "code": "libraryUnavailable", "root": "E:\\库", "reason": { "code": "outdatedLibrary" } })
     );
     assert_eq!(
         text(library::Error::UnknownImage.into()),

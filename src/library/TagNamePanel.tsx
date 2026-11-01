@@ -4,6 +4,7 @@ import type { CatalogNameEdit } from "../bindings/CatalogNameEdit";
 import type { CatalogTag } from "../bindings/CatalogTag";
 import type { LibraryTagMapping } from "../bindings/LibraryTagMapping";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
+import { describeCommandError } from "../ipc/commandError";
 import { editTagName, externalSuggestions, inspectTagCatalog, mapTagExternal, onSafeModeSetting, setSourceNameLang } from "../ipc";
 import { SettingsRow, StatusPill } from "../ui/SettingsList";
 import { currentName } from "../tags/catalogName";
@@ -78,7 +79,7 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
     {error && <p className="k-set-error" role="alert">{error}</p>}
     {!workspace && !busy && <button type="button" className="k-btn is-sm" onClick={() => void run(inspectTagCatalog)}><span className="k-label">{t("names.load")}</span></button>}
     {workspace && <>
-      {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} className="k-set-note" role="status">{t("libraryUnavailable", { name: library.name, reason: unavailable })}</p>)}
+      {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} className="k-set-note" role="status">{t("libraryUnavailable", { name: library.name, reason: describeCommandError(unavailable!) })}</p>)}
       {shown.length === 0 ? <p className="k-set-note">{workspace.catalog.tags.length === 0 ? t("noTags") : t("names.noMatch")}</p>
         : <ul className="k-list k-set-list" aria-label={t("names.list")}>
           {shown.map((tag) => <NameRow key={`${tag.id}/${language}`} tag={tag} lang={language} busy={busy} pending={pending.has(tag.id)}

@@ -8,7 +8,7 @@ import type { BrowseScope } from "../bindings/BrowseScope";
 
 // 侧栏右键菜单（#102 表“侧栏”三行，#114）：文件夹、图库标题与回收站。
 const names: Record<string, string> = { A: "人物参考", B: "风景参考" };
-const registrations = ["A", "B"].map((id) => ({ library: { id, name: names[id], root: `D:\\${id}\\参考` }, unavailable: null as string | null }));
+const registrations = ["A", "B"].map((id) => ({ library: { id, name: names[id], root: `D:\\${id}\\参考` }, unavailable: null as import("../bindings/CommandError").CommandError | null }));
 const forest = (): WorkspaceDirectories => ({ status: { revision: "r", libraries: registrations }, providers: registrations.map((registration) => ({ registration: { ...registration, library: { ...registration.library } }, unassigned: 1, descendants: {}, sidebar: { all: 3, trash: 2, folders: [{ id: registration.library.id + "-root", name: "人物", count: 1, children: [{ id: registration.library.id + "-child", name: "动作", count: 1, children: [] }] }] } })) });
 const inA = (local: BrowseScope): WorkspaceScope => ({ kind: "library", libraryId: "A", scope: local });
 const section = (id: string) => document.querySelector<HTMLElement>(`[data-library-id="${id}"]`)!;
@@ -46,7 +46,7 @@ const openOn = async (node: HTMLElement, label: string) => {
 
 it("图库标题：右键与 ⋯ 是同一组菜单项；未连接时多出“重新连接”", async () => {
   const offline = forest();
-  offline.providers[1].registration.unavailable = "资料库暂时不可用：移动盘没插";
+  offline.providers[1].registration.unavailable = { code: "system", detail: "资料库暂时不可用：移动盘没插" };
   offline.providers[1].sidebar = null;
   await show({ kind: "all" }, offline, { onRecheck: vi.fn() });
   const head = within(section("A")).getByRole("button", { name: "人物参考（3 张）" });
@@ -67,7 +67,7 @@ it("图库标题：右键与 ⋯ 是同一组菜单项；未连接时多出“�
 
 it("图库标题：在资源管理器中打开、重新连接与从列表移除", async () => {
   const offline = forest();
-  offline.providers[1].registration.unavailable = "未连接";
+  offline.providers[1].registration.unavailable = { code: "system", detail: "未连接" };
   offline.providers[1].sidebar = null;
   const onRecheck = vi.fn();
   const onRemoved = vi.fn();

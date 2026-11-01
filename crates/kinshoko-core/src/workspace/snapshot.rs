@@ -26,7 +26,9 @@ impl Workspace {
         let scope = device.safe_mode_scope();
         for registration in device.libraries() {
             let result = self.gate.reader(registration, scope).and_then(|library| {
-                let revisions = library.provider_revision().map_err(|e| e.to_string())?;
+                let revisions = library
+                    .provider_revision()
+                    .map_err(crate::CommandError::from)?;
                 Ok((library, revisions))
             });
             match result {
