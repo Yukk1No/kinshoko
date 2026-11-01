@@ -275,6 +275,10 @@ fn check_each(
     if current() != backoff {
         return;
     }
+    if rate_limited {
+        // 界面里正在进行的查找画师或读关注也在下一个请求前停下，不在退避期间接着请求。
+        state.foreground_cancel.store(true, Ordering::SeqCst);
+    }
     let _ = if rate_limited {
         state.store.set_backoff(
             SourceId::Pixiv,

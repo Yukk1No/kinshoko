@@ -75,7 +75,7 @@
 /* ---- 首次使用说明 ---- */
 .k-dialog.subs-first-run { width: min(460px, calc(100vw - 48px)); display: flex; flex-direction: column; gap: 12px; }
 .subs-first-run .k-dialog-desc { margin: 0; padding: 0 4px; }
-.subs-first-run-head { display: flex; align-items: center; gap: 8px; padding: 4px 4px 0; }
+.subs-first-run-head { display: flex; align-items: baseline; gap: 8px; padding: 4px 4px 0; }
 .subs-first-run-points { list-style: none; margin: 4px 0 0; padding: 0; border-radius: var(--r); background: var(--surface-2); }
 .subs-first-run-points > li { display: flex; gap: 12px; padding: 12px 14px; }
 .subs-first-run-points > li + li { border-top: 1px solid var(--line); }
