@@ -57,6 +57,7 @@ impl RuntimeCapabilities {
         RuntimeAssessment { problems }
     }
 
+    // 不上界面：只写进诊断报告
     pub(super) fn describe(&self) -> String {
         let check = |state| match state {
             CapabilityCheck::Available => "完成",
