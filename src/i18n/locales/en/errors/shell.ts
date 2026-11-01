@@ -34,6 +34,7 @@ export default {
   packageDefinitionsNotSaved: "The content was written, but the library's tag definitions weren't updated: {{cause}}. Save the tag definitions again or import the reference group package again.",
   processedDefinitionsNotSaved: "The processed content is kept, but the library's tag definitions weren't updated: {{cause}}. You can save the definitions again from the unified tag catalog.",
   savedDefinitionsNotSaved: "The content is saved, but the library's tag definitions weren't updated: {{cause}}. You can save the definitions again from the unified tag catalog.",
+  importPublicationNotStarted: "The import has started, but updating the library's tag definitions couldn't start: {{cause}}. Once the import finishes, you can save the definitions again from the unified tag catalog.",
 
   autostartNotSynced: "Starting with Windows wasn't updated: {{cause}}",
   safeModeScopeIncomplete: "The safe mode scope didn't fully take effect: {{cause}}",

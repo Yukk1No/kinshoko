@@ -167,7 +167,7 @@ it("copy keeps its confirmation during a source refresh and closes it after the 
 
 
 it("running import does not claim that content is complete before the actual report", async () => {
-  const receipt = { taskId: "publishing-B", destination: { libraryId: "B", folderId: null }, libraryName: "保存库", folderName: "未归类", progress: { done: 47, total: 2000 }, finishing: true, warnings: [], report: null as null | { items: never[]; cancelled: boolean; fromEagle: boolean; eagleMissing: number; eagleRelocations: never[] } };
+  const receipt = { taskId: "publishing-B", destination: { libraryId: "B", folderId: null }, libraryName: "保存库", folderName: null, progress: { done: 47, total: 2000 }, finishing: true, warnings: [], report: null as null | { items: never[]; cancelled: boolean; fromEagle: boolean; eagleMissing: number; eagleRelocations: never[] } };
   mockIPC(cmd => {
     if (cmd === "plugin:library|workspace_directories") return { status: { revision: "test", libraries }, providers: libraries.map(registration => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
     if (cmd === "plugin:library|import_tasks") return [{ ...receipt }];

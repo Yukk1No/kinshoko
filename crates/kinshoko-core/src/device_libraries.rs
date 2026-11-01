@@ -81,11 +81,14 @@ pub struct ImportTaskSnapshot {
     pub task_id: String,
     pub destination: SaveDestination,
     pub library_name: String,
-    pub folder_name: String,
+    /// 目标文件夹的路径；放进“未归类”时为空，由界面写出“未归类”。
+    pub folder_name: Option<String>,
     pub progress: ImportProgress,
     pub report: Option<ImportReport>,
     pub finishing: bool,
-    pub warnings: Vec<String>,
+    /// 内容导入完、收尾没做成的部分（如标签定义没发布）。
+    #[ts(as = "Vec<crate::command_error::ErrorKind>")]
+    pub warnings: Vec<crate::CommandError>,
 }
 
 /// 当前进程的资料库与本设备登记。调用方将它放在互斥锁中，串行处理切换。

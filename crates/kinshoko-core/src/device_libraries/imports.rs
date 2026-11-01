@@ -91,8 +91,8 @@ impl DeviceLibraries {
             None
         }
         let folder_name = match &destination.folder_id {
-            None => "未归类".into(),
-            Some(id) => folder_path(
+            None => None,
+            Some(id) => Some(folder_path(
                 &library
                     .sidebar()
                     .map_err(DeviceLibraryError::Library)?
@@ -102,7 +102,7 @@ impl DeviceLibraries {
             )
             .ok_or(DeviceLibraryError::Library(
                 crate::library::Error::UnknownFolder,
-            ))?,
+            ))?),
         };
         self.writers
             .insert(destination.library_id.clone(), library.clone());
@@ -196,7 +196,7 @@ impl DeviceLibraries {
         &mut self,
         library_id: &str,
         task_id: &str,
-        warning: Option<String>,
+        warning: Option<crate::CommandError>,
     ) -> Result<(), DeviceLibraryError> {
         let task = self
             .tasks

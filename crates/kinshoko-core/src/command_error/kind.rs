@@ -349,6 +349,10 @@ pub enum ErrorKind {
     SavedDefinitionsNotSaved {
         cause: Box<ErrorKind>,
     },
+    /// 导入任务已启动，但收尾发布标签定义的线程没能启动。
+    ImportPublicationNotStarted {
+        cause: Box<ErrorKind>,
+    },
 
     // 恢复程序设置后没有完全生效的部分。
     AutostartNotSynced {
