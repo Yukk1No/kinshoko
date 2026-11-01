@@ -7,6 +7,7 @@ import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
 import { importModelPackage, pickModelPackage, taggingCancelDownload, taggingDownload, taggingModels, taggingPause, taggingResume, taggingSetDevice } from "./ipc";
 import { useTaggingStatus } from "./useTaggingStatus";
+import { describeCommandError, describeCommandErrors } from "./ipc/commandError";
 import { Select } from "./ui/Select";
 import { i18n } from "./i18n/instance";
 import { useTranslation } from "react-i18next";
@@ -140,7 +141,7 @@ function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; sta
     case "needsDownload": {
       const need = status.fallback === null
         ? t("needsModel", { size: mb(status.size) })
-        : t("fallback", { reason: status.fallback, size: mb(status.size) });
+        : t("fallback", { reason: describeCommandErrors(status.fallback), size: mb(status.size) });
       const label = status.downloaded > 0 ? t("resumeDownload", { percent: percent(status.downloaded, status.size) }) : t("download");
       return row(need, button(label, taggingDownload, true));
     }
@@ -151,8 +152,8 @@ function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; sta
         <progress className="k-task-progress" max={100} value={done} aria-label={t("progress")} aria-valuenow={done} />);
     }
     case "noDevice":
-      return row(t("unavailable", { reason: status.reason }));
+      return row(t("unavailable", { reason: describeCommandErrors(status.reasons) }));
     case "failed":
-      return row(t("failed", { reason: status.reason }));
+      return row(t("failed", { reason: describeCommandError(status.reason) }));
   }
 }

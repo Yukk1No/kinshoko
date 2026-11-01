@@ -106,7 +106,7 @@ fn a_package_with_a_damaged_model_is_rejected_and_nothing_is_installed() {
     let err = store
         .import_package(&pkg, &[gpu.clone(), cpu.clone()])
         .unwrap_err();
-    assert!(err.contains("校验失败"), "{err}");
+    assert!(err.to_string().contains("校验失败"), "{err}");
     assert!(store.ready(&gpu).is_none());
     let leftovers: Vec<_> = std::fs::read_dir(&models)
         .map(|d| d.flatten().map(|e| e.path()).collect())
@@ -128,7 +128,7 @@ fn a_package_of_an_unknown_model_is_rejected() {
     );
     let store = ModelStore::new(dir.path().join("models"), server.base_url());
     let err = store.import_package(&pkg, &[gpu, cpu]).unwrap_err();
-    assert!(err.contains("不是"), "{err}");
+    assert!(err.to_string().contains("不是"), "{err}");
 }
 
 #[test]
@@ -141,7 +141,7 @@ fn a_package_without_a_tag_list_or_model_is_rejected() {
 
     let pkg = package(dir.path(), &[("model_fp16.onnx", MODEL)]);
     let err = store.import_package(&pkg, &models).unwrap_err();
-    assert!(err.contains("selected_tags.csv"), "{err}");
+    assert!(err.to_string().contains("selected_tags.csv"), "{err}");
 
     let pkg = package(
         dir.path(),
@@ -151,17 +151,17 @@ fn a_package_without_a_tag_list_or_model_is_rejected() {
         ],
     );
     let err = store.import_package(&pkg, &models).unwrap_err();
-    assert!(err.contains("词表"), "{err}");
+    assert!(err.to_string().contains("词表"), "{err}");
 
     let pkg = package(dir.path(), &[("selected_tags.csv", TAGS_CSV.as_bytes())]);
     let err = store.import_package(&pkg, &models).unwrap_err();
-    assert!(err.contains(".onnx"), "{err}");
+    assert!(err.to_string().contains(".onnx"), "{err}");
     assert!(store.ready(&gpu).is_none());
 
     let not_zip = dir.path().join("坏包.zip");
     std::fs::write(&not_zip, b"not a zip at all").unwrap();
     let err = store.import_package(&not_zip, &models).unwrap_err();
-    assert!(err.contains("模型包"), "{err}");
+    assert!(err.to_string().contains("模型包"), "{err}");
 }
 
 /// 固定模型的词表也是固定的：内容、顺序与行数都要与模型一致，否则分数会对错标签（#76 Core1）。
@@ -183,7 +183,7 @@ fn a_package_whose_tag_list_does_not_match_the_model_is_rejected() {
         let err = store
             .import_package(&pkg, &[gpu.clone(), cpu.clone()])
             .expect_err(case);
-        assert!(err.contains("词表"), "{case}：{err}");
+        assert!(err.to_string().contains("词表"), "{case}：{err}");
         assert!(store.ready(&gpu).is_none(), "{case}");
         let leftovers: Vec<_> = std::fs::read_dir(&models)
             .map(|d| d.flatten().map(|e| e.path()).collect())

@@ -59,6 +59,7 @@ pub enum CatalogError {
     StaleApproxConflict,
     IncompleteNameMigration,
 }
+// 不上界面：领域错误交给界面时转成错误代码（command_error），Display 只进日志
 impl fmt::Display for CatalogError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -243,6 +244,9 @@ impl TagCatalog {
         if version > 5 {
             return Err(CatalogError::UnsupportedFormat);
         }
+        // library_tag_source_name：库内标签现在的来源名称（#217，ADR-0012），每次同步刷新。
+        // catalog_library_synchronized：每个资料库上次同步时的词表与目录修订号（#337），
+        // 重启后没有变化也不必整份重新同步。
         conn.execute_batch(
             "PRAGMA foreign_keys=ON;
             BEGIN IMMEDIATE;
@@ -257,11 +261,9 @@ impl TagCatalog {
                 library_id TEXT NOT NULL, local_tag_id TEXT NOT NULL,
                 catalog_id TEXT NOT NULL REFERENCES catalog_tag(id), legacy TEXT NOT NULL,
                 basis TEXT NOT NULL, PRIMARY KEY(library_id, local_tag_id));
-            -- 库内标签现在的来源名称（#217，ADR-0012），每次同步刷新。
             CREATE TABLE IF NOT EXISTS library_tag_source_name (
                 library_id TEXT NOT NULL, local_tag_id TEXT NOT NULL, names TEXT NOT NULL,
                 PRIMARY KEY(library_id, local_tag_id));
-            -- 每个资料库上次同步时的词表与目录修订号（#337）：重启后没有变化也不必整份重新同步。
             CREATE TABLE IF NOT EXISTS catalog_library_synchronized (
                 library_id TEXT PRIMARY KEY, root TEXT NOT NULL, vocabulary INTEGER NOT NULL,
                 catalog INTEGER NOT NULL, program TEXT NOT NULL);

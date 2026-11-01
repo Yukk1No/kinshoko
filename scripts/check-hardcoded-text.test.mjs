@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findHardcodedText, isSkipped } from "./check-hardcoded-text.mjs";
+import { findHardcodedText, isSkipped, isSkippedDir } from "./check-hardcoded-text.mjs";
 
 const lines = (text, path) => findHardcodedText(text, path).map(hit => hit.line);
 
@@ -90,6 +90,79 @@ describe("Rust", () => {
     ].join("\n");
     expect(lines(source, "crates/x/src/lib.rs")).toEqual([8]);
   });
+
+  it("不算日志与运行日志里的中文", () => {
+    const source = [
+      'log::warn!("同步失败：{e}");',
+      'crate::run_log::error("打开主窗口失败", e);',
+      'took("浏览：一页", started, None);',
+      'self.effects.push(Effect::Warn("画不上", e));',
+      'let _held = HeldLock::acquired("登记表", site, waiting);',
+      'Err(format!("界面上的"))',
+    ].join("\n");
+    expect(lines(source, "src-tauri/src/a.rs")).toEqual([6]);
+  });
+
+  it("错误代码后面的日志说明不算，代码本身与原样显示的错误照查", () => {
+    const source = [
+      'CommandError::new(ErrorKind::NoLibrary, "还没有资料库")',
+      "GroupError::invalid(",
+      "    ErrorKind::GroupMemberDuplicate { member: m.id.clone() },",
+      '    format!("成员 {} 重复", m.id),',
+      ")",
+      'BackupError::incomplete(crate::command_error::ErrorKind::RestoreJournalMismatch, "身份不符")',
+      'CommandError::new(ErrorKind::Undecodable { detail: "不支持的格式".into() }, "原图无法解码")',
+      'CommandError::system("原样显示")',
+      'CommandError::without_code("原样显示")',
+      'wrap(ErrorKind::Message { message: "原样显示".into() }, "说明")',
+    ].join("\n");
+    expect(lines(source, "crates/x/src/lib.rs")).toEqual([7, 8, 9, 10]);
+  });
+
+  it("caused_by 只豁免第三个参数，原因与错误代码照查", () => {
+    const source = [
+      "CommandError::caused_by(",
+      "    e,",
+      '    |cause| ErrorKind::Undecodable { detail: "界面上的".into() },',
+      '    |e| format!("日志里的 {e}"),',
+      ")",
+      'CommandError::caused_by(e, |cause| ErrorKind::X { cause }, |e| format!("日志 {e}"))',
+    ].join("\n");
+    expect(lines(source, "crates/x/src/lib.rs")).toEqual([3]);
+  });
+
+  it("Display 实现照查，标了“不上界面”的才豁免", () => {
+    const source = [
+      "impl fmt::Display for UiReason {",
+      '    fn fmt(&self, f: &mut fmt::Formatter<\'_>) -> fmt::Result { f.write_str("上界面") }',
+      "}",
+      "// 不上界面：领域错误交给界面时转成错误代码",
+      "impl fmt::Display for Error {",
+      "    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {",
+      '        match self { Error::A => write!(f, "日志里的说明"), Error::B => f.write_str("{") }',
+      "    }",
+      "}",
+      'fn label() -> &\'static str { "界面" }',
+    ].join("\n");
+    expect(lines(source, "crates/x/src/lib.rs")).toEqual([2, 10]);
+  });
+
+  it("“不上界面”标记豁免紧跟着的一个条目，没写原因的不算", () => {
+    const source = [
+      "// 不上界面：只写进诊断报告",
+      "/// 文档注释",
+      "#[inline]",
+      "fn report() -> String {",
+      '    format!("诊断信息")',
+      "}",
+      "// 不上界面：搜索时认的叫法",
+      'const NAMES: [(u8, &str); 2] = [(1, "全年龄"), (2, "成人")];',
+      'const AFTER: &str = "照查";',
+      "// 不上界面：",
+      'const NO_REASON: &str = "照查";',
+    ].join("\n");
+    expect(lines(source, "crates/x/src/lib.rs")).toEqual([9, 11]);
+  });
 });
 
 describe("不查的文件", () => {
@@ -103,6 +176,8 @@ describe("不查的文件", () => {
     "crates/kinshoko-core/tests/library.rs",
     "crates/kinshoko-core/src/library/tests.rs",
     "crates/kinshoko-core/examples/demo.rs",
+    "crates/kinshoko-core/src/fidelity/gate.rs",
+    "src-tauri/src/fidelity_gate/pins.rs",
   ])("%s", path => {
     expect(isSkipped(path)).toBe(true);
   });
@@ -110,5 +185,11 @@ describe("不查的文件", () => {
   it("组件与 Rust 源码要查", () => {
     expect(isSkipped("src/App.tsx")).toBe(false);
     expect(isSkipped("src-tauri/src/commands.rs")).toBe(false);
+  });
+
+  it("跳过构建目录 target，源码里叫 target 的模块照查", () => {
+    expect(isSkippedDir("crates/pin-render/target")).toBe(true);
+    expect(isSkippedDir("src/node_modules")).toBe(true);
+    expect(isSkippedDir("crates/kinshoko-core/src/backup/target")).toBe(false);
   });
 });

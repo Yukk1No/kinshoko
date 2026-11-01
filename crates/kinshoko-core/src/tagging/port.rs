@@ -96,6 +96,20 @@ impl std::fmt::Display for TagFailure {
     }
 }
 
+/// 交给界面的是错误代码与子进程给出的原因；Display 是日志里的说明。
+impl From<TagFailure> for crate::CommandError {
+    fn from(failure: TagFailure) -> Self {
+        use crate::command_error::ErrorKind;
+        let text = failure.to_string();
+        let kind = match failure {
+            TagFailure::BadImage(detail) => ErrorKind::TaggingBadImage { detail },
+            TagFailure::Crashed(detail) => ErrorKind::TaggingCrashed { detail },
+            TagFailure::DeviceLost(detail) => ErrorKind::TaggingDeviceLost { detail },
+        };
+        crate::CommandError::new(kind, text)
+    }
+}
+
 /// 打标 port。
 pub trait Tagger: Send + Sync {
     /// 查询本机的推理条件，用来选模型档位。

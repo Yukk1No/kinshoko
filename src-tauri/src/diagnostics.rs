@@ -41,6 +41,7 @@ fn now() -> u64 {
         .unwrap_or(0)
 }
 
+// 不上界面：只写进诊断报告
 fn system_facts() -> SystemFacts {
     let monitors = xcap::Monitor::all().unwrap_or_default();
     #[cfg(windows)]

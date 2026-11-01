@@ -100,7 +100,8 @@ impl ShortcutAction {
         ShortcutAction::HideAllPins,
     ];
 
-    /// 设置界面和提示里的动作名称。
+    /// 动作名称，只用在快捷键冲突的日志说明里；界面按动作代码从 src/i18n 取名称。
+    // 不上界面：只用于 ShortcutError 的 Display（日志）
     pub fn label(self) -> &'static str {
         match self {
             ShortcutAction::Capture => "截图",
@@ -204,6 +205,7 @@ pub enum SettingsError {
     TagThresholds,
 }
 
+// 不上界面：领域错误交给界面时转成错误代码（command_error），Display 只进日志
 impl fmt::Display for SettingsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

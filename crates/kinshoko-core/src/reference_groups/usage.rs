@@ -36,13 +36,12 @@ impl ReferenceGroupUsage for ReferenceGroups {
         let mut out = Vec::new();
         for summary in self.list()? {
             if let Some(problem) = summary.problem {
-                let text = format!("无法核对参考组“{}”：{problem}", summary.name);
                 return Err(GroupError::invalid(
                     ErrorKind::GroupUnreadable {
-                        name: summary.name,
-                        cause: Box::new(problem.kind),
+                        name: summary.name.clone(),
+                        cause: Box::new(problem.kind.clone()),
                     },
-                    text,
+                    format!("无法核对参考组“{}”：{problem}", summary.name),
                 ));
             }
             if !summary.library_ids.iter().any(|l| l == library_id) {

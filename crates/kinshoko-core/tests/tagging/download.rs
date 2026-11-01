@@ -148,7 +148,7 @@ fn a_model_with_the_wrong_hash_is_deleted_and_never_used() {
     let TaggingStatus::Failed { reason } = status else {
         unreachable!()
     };
-    assert!(reason.contains("校验失败"), "{reason}");
+    assert!(reason.to_string().contains("校验失败"), "{reason}");
     drop(tagging);
     assert!(f.fake.started().is_empty(), "没有用未通过校验的模型");
     assert!(
@@ -170,9 +170,9 @@ fn a_failed_download_says_why_without_the_download_address() {
     }) else {
         unreachable!()
     };
-    assert!(reason.contains("404"), "{reason}");
+    assert!(reason.to_string().contains("404"), "{reason}");
     assert!(
-        !reason.contains("missing-fp16") && !reason.contains("http"),
+        !reason.to_string().contains("missing-fp16") && !reason.to_string().contains("http"),
         "原因里不出现下载地址（含精度字样的仓库与文件名）：{reason}"
     );
 }

@@ -8,6 +8,7 @@ import { useToast } from "./ui/Toast";
 import { i18n } from "./i18n";
 import { formatNumber } from "./i18n/format";
 import { useTaggingStatus } from "./useTaggingStatus";
+import { describeCommandError, describeCommandErrors } from "./ipc/commandError";
 
 const deviceName = (device: Device) => i18n.t(`tagging:device.${device}`);
 const mb = (bytes: number) => formatNumber(Math.round(bytes / 1_000_000), { useGrouping: false });
@@ -62,9 +63,10 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
       toast.show({ title: i18n.t("tagging:notice.downloaded"), tone: "success" });
     }
     // 后端出错后定时重试并反复广播：一直是同一个原因时只报一次。
-    if (status.state === "failed" && failure.current !== status.reason) {
-      failure.current = status.reason;
-      toast.error(i18n.t("tagging:notice.failed", { reason: status.reason }), { description: i18n.t("tagging:notice.retrying") });
+    const failed = status.state === "failed" ? describeCommandError(status.reason) : null;
+    if (failed !== null && failure.current !== failed) {
+      failure.current = failed;
+      toast.error(i18n.t("tagging:notice.failed", { reason: failed }), { description: i18n.t("tagging:notice.retrying") });
     }
     if (status.state === "idle" || status.state === "paused") failure.current = null;
     if (status.state === "running") roundStart.current ??= status.tagged;
@@ -74,9 +76,10 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
       roundStart.current = null;
       if (taggedThisRound > 0) toast.show({ title: i18n.t("tagging:notice.tagged", { count: taggedThisRound }), tone: "success" });
     }
-    if (status.state === "noDevice" && !unavailable.current.has(status.reason)) {
-      unavailable.current.add(status.reason);
-      toast.show({ title: i18n.t("tagging:notice.unavailable", { reason: status.reason }), timeout: 0 });
+    const missing = status.state === "noDevice" ? describeCommandErrors(status.reasons) : null;
+    if (missing !== null && !unavailable.current.has(missing)) {
+      unavailable.current.add(missing);
+      toast.show({ title: i18n.t("tagging:notice.unavailable", { reason: missing }), timeout: 0 });
     }
     // 代码收起的通知先清掉记录，onClose 才不把它当成画师关掉的。
     const closeDownload = () => {

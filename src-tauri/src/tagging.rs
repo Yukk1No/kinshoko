@@ -306,8 +306,7 @@ pub async fn tagging_import_package(
         ModelStore::new(models_dir, HUGGING_FACE).import_package(&path, &catalog())
     })
     .await
-    .map_err(CommandError::system)?
-    .map_err(CommandError::without_code)?;
+    .map_err(CommandError::system)??;
     let state = app.state::<TaggingState>();
     if let Some(t) = lock(&state.current).as_ref() {
         t.tagging.wake();

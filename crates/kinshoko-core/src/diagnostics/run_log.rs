@@ -23,6 +23,7 @@ const SUFFIX: &str = ".jsonl";
 /// 旧版“使用日志”的文件。
 const LEGACY: [&str; 2] = ["usage.jsonl", "usage.1.jsonl"];
 /// 导出包里诊断信息的文件名。
+// 不上界面：诊断导出包里的文件名
 const REPORT_NAME: &str = "诊断信息.txt";
 
 /// 画师没选过时运行日志开不开。测试版、候选版构建（版本号带“-”）开启，好让反馈附上日志；
