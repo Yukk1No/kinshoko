@@ -192,13 +192,31 @@ fn run(
         .into_iter()
         .filter(|w| since.is_none_or(|since| w.posted_at >= since))
         .collect();
-    let (works, cutoff) = match window {
+    // 窗口一算出来就记下，之后（包括这次没收完的重试）都按它收，新发的作品不会把没收完的挤出去。
+    let (works, boundary) = match window {
         Some(count) => {
-            let (works, cutoff) = take_recent(subscription, works, count);
-            (works, Some(cutoff))
+            let (works, cutoff, boundary) = take_recent(subscription, works, count);
+            let boundary = boundary.map(|(work, pages)| (work.to_owned(), pages));
+            store.set_window(
+                &subscription.id,
+                cutoff,
+                boundary
+                    .as_ref()
+                    .map(|(work, pages)| (work.as_str(), *pages)),
+            )?;
+            (works, boundary)
         }
-        None => (works, None),
+        None => (works, store.boundary(&subscription.id)?),
     };
+    let works: Vec<Work> = works
+        .into_iter()
+        .map(|mut work| {
+            if let Some((_, pages)) = boundary.as_ref().filter(|(id, _)| *id == work.id) {
+                work.pages.truncate(*pages as usize);
+            }
+            work
+        })
+        .collect();
     let mut report = CheckReport::default();
     // 从旧到新收，最近收进来的图按时间排列时与来源上的先后一致。
     for work in works.iter().rev() {
@@ -253,12 +271,6 @@ fn run(
             }
         }
     }
-    // 窗口里有没收成的作品时先不定下限：下次照样按窗口数，边界上那个作品重试时也只收窗口里的页。
-    if let Some(cutoff) = cutoff
-        && report.failed == 0
-    {
-        store.set_since(&subscription.id, cutoff)?;
-    }
     Ok(report)
 }
 
@@ -272,10 +284,16 @@ fn wanted(subscription: &Subscription, work: &Work) -> bool {
 }
 
 /// 最近若干张：从新到旧数够 `count` 张（按页计），最后一个作品超出的页不收。返回要处理的作品
-/// （其间的动图照样记为已跳过）与此后的下限：数到的最后一张的发布时间；不够这么多张时为最早。
-fn take_recent(subscription: &Subscription, works: Vec<Work>, count: u32) -> (Vec<Work>, i64) {
+/// （其间的动图照样记为已跳过）、此后的下限（数到的最后一张的发布时间；不够这么多张时为最早），
+/// 以及被截断的那个作品与它收的页数。
+fn take_recent(
+    subscription: &Subscription,
+    works: Vec<Work>,
+    count: u32,
+) -> (Vec<Work>, i64, Option<(String, u32)>) {
     let mut left = count;
     let mut cutoff = i64::MIN;
+    let mut boundary = None;
     let mut out = Vec::new();
     for mut work in works {
         if left == 0 {
@@ -283,13 +301,16 @@ fn take_recent(subscription: &Subscription, works: Vec<Work>, count: u32) -> (Ve
         }
         if wanted(subscription, &work) {
             let take = (work.pages.len() as u32).min(left);
+            if (take as usize) < work.pages.len() {
+                boundary = Some((work.id.clone(), take));
+            }
             work.pages.truncate(take as usize);
             left -= take;
             cutoff = work.posted_at;
         }
         out.push(work);
     }
-    (out, if left == 0 { cutoff } else { i64::MIN })
+    (out, if left == 0 { cutoff } else { i64::MIN }, boundary)
 }
 
 /// 收一个作品还没收的页；返回这次收了几页，某页失败时为空（已收的页留着，下次补其余的）。

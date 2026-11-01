@@ -108,17 +108,23 @@ fn a_failed_boundary_work_is_retried_only_up_to_the_window() {
     );
     let report = f.check(&mut source).unwrap();
     assert_eq!((report.collected, report.failed), (0, 1));
-    // 窗口里有没收成的：先不定下限，下次照样只数两张。
-    assert_eq!(f.store.get(&f.subscription.id).unwrap().since, None);
-
-    source.fail.clear();
-    source.downloads.clear();
-    f.check(&mut source).unwrap();
-    assert_eq!(
-        source.downloads,
-        ["https://i.pximg.net/img-original/1_p1.png"]
-    );
+    // 窗口第一次检查就定下了。
     assert!(f.store.get(&f.subscription.id).unwrap().since.is_some());
+
+    // 重试前画师又发了两张：新作照收，没收完的作品 1 也补上，且只补到窗口里的第二页。
+    source
+        .works
+        .push(posted(work("2", WorkKind::Illustration, false, 2), 2));
+    let mut again = FakeSource::with(source.works.clone());
+    f.check(&mut again).unwrap();
+    assert_eq!(
+        again.downloads,
+        [
+            "https://i.pximg.net/img-original/1_p1.png",
+            "https://i.pximg.net/img-original/2_p0.png",
+            "https://i.pximg.net/img-original/2_p1.png",
+        ]
+    );
 }
 
 /// 收进第一张图后把订阅退订掉的资料库。

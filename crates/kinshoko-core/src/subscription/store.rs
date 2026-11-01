@@ -263,13 +263,38 @@ impl Store {
         }
     }
 
-    /// 定下“发布时间早于它的作品不收”（最近若干张的第一次检查数完以后）。
-    pub(super) fn set_since(&self, id: &str, since: i64) -> Result<(), StoreError> {
+    /// 定下最近若干张的窗口：发布时间早于 `since` 的作品不收；`boundary` 是数到的最后一个作品
+    /// 与它只收的页数（没截断时为空）。
+    pub(super) fn set_window(
+        &self,
+        id: &str,
+        since: i64,
+        boundary: Option<(&str, u32)>,
+    ) -> Result<(), StoreError> {
         self.conn().execute(
-            "UPDATE subscription SET since = ?2 WHERE id = ?1",
-            params![id, since],
+            "UPDATE subscription SET since = ?2, boundary_work = ?3, boundary_pages = ?4
+             WHERE id = ?1",
+            params![
+                id,
+                since,
+                boundary.map(|(work, _)| work),
+                boundary.map(|(_, pages)| pages)
+            ],
         )?;
         Ok(())
+    }
+
+    /// 窗口边界上只收前几页的作品与页数。
+    pub(super) fn boundary(&self, id: &str) -> Result<Option<(String, u32)>, StoreError> {
+        Ok(self
+            .conn()
+            .query_row(
+                "SELECT boundary_work, boundary_pages FROM subscription
+                 WHERE id = ?1 AND boundary_work IS NOT NULL",
+                [id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()?)
     }
 
     /// 记下一次检查完成的时间。
