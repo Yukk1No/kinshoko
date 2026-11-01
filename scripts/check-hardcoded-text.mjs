@@ -307,23 +307,19 @@ const RUST_NON_UI_CALLS = [
 ];
 
 /**
- * 只把第一个参数之后的部分换成空格：交给界面的错误只序列化错误代码（#355，见 kinshoko-core 的
- * command_error），界面按代码从 src/i18n 取文案，跟在代码后面的中文说明只用于日志。
- * - CommandError::new(代码, 说明)、CommandError::caused_by(原因, 代码, 说明)；
+ * 错误代码后面的说明：交给界面的错误只序列化错误代码（#355，见 kinshoko-core 的 command_error），
+ * 界面按代码从 src/i18n 取文案，跟在代码后面的中文说明只用于日志。`keep` 是照常检查的前几个参数
+ * （原因与错误代码，连同代码的字段），其后的参数换成空格。
+ * - CommandError::new(代码, 说明)；
+ * - CommandError::caused_by(原因, 代码, 说明)；
  * - 第一个参数就是错误代码的构造，如 GroupError::invalid(ErrorKind::…, 说明)。
- * 第一个参数（代码与它的字段）照常检查。CommandError::system、without_code 与 ErrorKind::Message
- * 的内容会原样显示在界面上，不豁免。
+ * CommandError::system、without_code 与 ErrorKind::Message、ErrorKind::System 的内容会原样显示在界面上，不豁免。
  */
 const RUST_LOG_TEXT_AFTER_CODE = [
-  /\bCommandError::(?:new|caused_by)\s*\(/g,
-  /\((?=\s*(?:(?:crate|kinshoko_core)::command_error::)?ErrorKind::(?!Message\b|System\b))/g,
+  { pattern: /\bCommandError::new\s*\(/g, keep: 1 },
+  { pattern: /\bCommandError::caused_by\s*\(/g, keep: 2 },
+  { pattern: /\((?=\s*(?:(?:crate|kinshoko_core)::command_error::)?ErrorKind::(?!Message\b|System\b))/g, keep: 1 },
 ];
-
-/**
- * Display 实现：领域错误的 Display 只用于日志和拼进别的说明（#355），界面按错误代码取文案。
- * 整个 impl 块换成空格。
- */
-const RUST_DISPLAY_IMPL = /\bimpl\b[^{;]*?\b(?:fmt::)?Display\s+for\b[^{;]*\{/g;
 
 function maskSpan(out, start, end) {
   for (let k = start; k <= end && k < out.length; k++) if (out[k] !== "\n") out[k] = " ";
@@ -339,14 +335,15 @@ function matchingClose(shape, start, open, close) {
   return shape.length - 1;
 }
 
-/** shape[start] 是 (，找它里面第一个顶层逗号的下标；没有逗号时返回 -1。 */
-function firstTopLevelComma(shape, start, end) {
+/** shape[start] 是 (，找它里面第 n 个顶层逗号的下标；不够 n 个时返回 -1。 */
+function topLevelComma(shape, start, end, n) {
   let depth = 0;
+  let seen = 0;
   for (let i = start + 1; i < end; i++) {
     const c = shape[i];
     if (c === "(" || c === "[" || c === "{") depth++;
     else if (c === ")" || c === "]" || c === "}") depth--;
-    else if (c === "," && depth === 0) return i;
+    else if (c === "," && depth === 0 && ++seen === n) return i;
   }
   return -1;
 }
@@ -359,17 +356,13 @@ export function maskRustNonUiText(code, shape) {
       maskSpan(out, start, matchingClose(shape, start, "(", ")"));
     }
   }
-  for (const pattern of RUST_LOG_TEXT_AFTER_CODE) {
+  for (const { pattern, keep } of RUST_LOG_TEXT_AFTER_CODE) {
     for (const m of shape.matchAll(pattern)) {
       const start = shape.indexOf("(", m.index);
       const end = matchingClose(shape, start, "(", ")");
-      const comma = firstTopLevelComma(shape, start, end);
+      const comma = topLevelComma(shape, start, end, keep);
       if (comma !== -1) maskSpan(out, comma, end);
     }
-  }
-  for (const m of shape.matchAll(RUST_DISPLAY_IMPL)) {
-    const start = m.index + m[0].length - 1;
-    maskSpan(out, start, matchingClose(shape, start, "{", "}"));
   }
   return out.join("");
 }

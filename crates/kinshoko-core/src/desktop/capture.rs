@@ -133,6 +133,7 @@ pub enum CaptureError {
     History(HistoryError),
 }
 
+// 不上界面：领域错误交给界面时转成错误代码（command_error），Display 只进日志
 impl std::fmt::Display for CaptureError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

@@ -119,8 +119,24 @@ describe("Rust", () => {
     expect(lines(source, "crates/x/src/lib.rs")).toEqual([7, 8, 9, 10]);
   });
 
-  it("Display 实现整块不算", () => {
+  it("caused_by 只豁免第三个参数，原因与错误代码照查", () => {
     const source = [
+      "CommandError::caused_by(",
+      "    e,",
+      '    |cause| ErrorKind::Undecodable { detail: "界面上的".into() },',
+      '    |e| format!("日志里的 {e}"),',
+      ")",
+      'CommandError::caused_by(e, |cause| ErrorKind::X { cause }, |e| format!("日志 {e}"))',
+    ].join("\n");
+    expect(lines(source, "crates/x/src/lib.rs")).toEqual([3]);
+  });
+
+  it("Display 实现照查，标了“不上界面”的才豁免", () => {
+    const source = [
+      "impl fmt::Display for UiReason {",
+      '    fn fmt(&self, f: &mut fmt::Formatter<\'_>) -> fmt::Result { f.write_str("上界面") }',
+      "}",
+      "// 不上界面：领域错误交给界面时转成错误代码",
       "impl fmt::Display for Error {",
       "    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {",
       '        match self { Error::A => write!(f, "日志里的说明"), Error::B => f.write_str("{") }',
@@ -128,7 +144,7 @@ describe("Rust", () => {
       "}",
       'fn label() -> &\'static str { "界面" }',
     ].join("\n");
-    expect(lines(source, "crates/x/src/lib.rs")).toEqual([6]);
+    expect(lines(source, "crates/x/src/lib.rs")).toEqual([2, 10]);
   });
 
   it("“不上界面”标记豁免紧跟着的一个条目，没写原因的不算", () => {

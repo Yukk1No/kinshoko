@@ -35,6 +35,7 @@ pub enum UiScaleError {
     Io(io::Error),
 }
 
+// 不上界面：领域错误交给界面时转成错误代码（command_error），Display 只进日志
 impl fmt::Display for UiScaleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
