@@ -22,6 +22,7 @@ mod updater;
 use tauri::RunEvent;
 
 pub fn run() {
+    shell::start_interface_language();
     // 数据根目录在建应用之前定下来：各插件的 setup 与第一个窗口都要用（#145）。
     let data = match data_dirs::prepare() {
         Ok(data) => data,

@@ -43,7 +43,10 @@ impl Library {
             source_library_id: source.info().id.clone(),
             source_image_id: image_id.into(),
             group_id: "source-copy".into(),
-            group_name: format!("从「{}」复制", source.info().name),
+            group_name: crate::written_names::copied_from(
+                crate::interface_lang::current(),
+                &source.info().name,
+            ),
             exported_at: super::now_ms(),
             location: path.to_string_lossy().into_owned(),
         };

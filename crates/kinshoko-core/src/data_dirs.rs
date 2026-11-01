@@ -227,23 +227,13 @@ pub fn migrate_legacy_with(
         let _ = rename(&legacy.local.join(EBWEBVIEW), &webview.join(EBWEBVIEW));
     }
     for origin in [Origin::Roaming, Origin::Local] {
-        let mut note = format!(
-            "Kinshoko 的设置、打标模型等数据已移到：\r\n{}\r\n",
-            target.display()
-        );
         let left: Vec<&str> = left_behind
             .iter()
             .filter(|(o, _)| *o == origin)
             .map(|(_, name)| name.as_str())
             .collect();
-        if left.is_empty() {
-            note.push_str("这个文件夹可以删除。\r\n");
-        } else {
-            note.push_str("下面这些没有迁移（与别处同名或名字无法记录），请先确认再删除：\r\n");
-            for name in left {
-                note.push_str(&format!("  {name}\r\n"));
-            }
-        }
+        let note =
+            crate::written_names::migration_note(crate::interface_lang::current(), target, &left);
         // 说明写不进去不影响数据：新位置已经完整。
         let _ = fs::write(origin.dir(legacy).join(NOTE), note);
     }

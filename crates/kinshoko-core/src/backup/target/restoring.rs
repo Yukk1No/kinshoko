@@ -128,18 +128,13 @@ impl BackupTarget {
             let mut staged_libraries = Vec::new();
             let mut reserved = BTreeSet::new();
             for lib in &manifest.libraries {
-                let mut dest =
-                    unique_dir(into, &format!("{}（恢复 {}）", lib.name, at.local_date()));
+                let lang = crate::interface_lang::current();
+                let dir_name = |n| {
+                    crate::written_names::restored_library_dir(lang, &lib.name, &at.local_date(), n)
+                };
+                let mut dest = unique_dir(into, &dir_name(None));
                 while !reserved.insert(dest.clone()) {
-                    dest = unique_dir(
-                        into,
-                        &format!(
-                            "{}（恢复 {}） {}",
-                            lib.name,
-                            at.local_date(),
-                            reserved.len()
-                        ),
-                    );
+                    dest = unique_dir(into, &dir_name(Some(reserved.len())));
                 }
                 let stage = batch.stage().join(&lib.id);
                 let provenance = RestoreProvenance {
@@ -150,7 +145,7 @@ impl BackupTarget {
                 let mut info = Library::restore_at(
                     &dir.join("libraries").join(&lib.id).join(&lib.database_key),
                     &stage,
-                    &format!("{}（恢复）", lib.name),
+                    &crate::written_names::restored_library_name(lang, &lib.name),
                     &provenance,
                     &mut |file, target| {
                         fs::copy(self.stored(&root, &file.sha256), target).map(|_| ())
