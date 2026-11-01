@@ -1,0 +1,91 @@
+/* 订阅页（#368，Claude Design 原型“Kinshoko 订阅界面原型”第 1–15 号画板）。只用 tokens.css 的语义令牌，日夜两版同一套。 */
+
+/* ---- “非官方”标记 ---- */
+.subs-unofficial { flex: none; height: 20px; padding: 0 8px; border-radius: var(--r-pill); background: var(--warn-soft); color: var(--warn-strong);
+  font-size: 12px; line-height: 20px; font-weight: 500; white-space: nowrap; cursor: default; }
+
+/* ---- 侧栏：标题行、名单、账号行 ---- */
+.subs-pane .pane-head { padding: 0 8px 0 12px; gap: 4px; }
+.subs-pane-title { flex: 1; min-width: 0; }
+.subs-list { width: 255px; flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 8px; box-sizing: border-box; }
+.subs-sep { height: 1px; background: var(--line); margin: 8px 2px; }
+.subs-group { margin-bottom: 8px; }
+.subs-group-head { height: 28px; margin: 0; display: flex; align-items: center; gap: 6px; padding: 0 10px; color: var(--ink-2); font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
+.subs-group-icon { display: inline-grid; color: var(--ink-3); }
+.subs-row { width: 100%; height: 30px; border: 0; border-radius: var(--r-s); display: flex; align-items: center; gap: 8px; padding: 0 10px;
+  background: transparent; color: var(--ink); font: inherit; text-align: left; transition: background var(--t-fast); }
+.subs-row:hover { background: var(--hover); }
+.subs-row.is-item { padding-left: 30px; }
+.subs-row.is-on { background: var(--accent-soft); color: var(--accent-strong); font-weight: 500; }
+.subs-row-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.subs-row-count { font-size: 12px; }
+.subs-row-warn { flex: none; color: var(--warn); }
+.subs-row-fresh { min-width: 20px; height: 18px; padding: 0 6px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent-strong);
+  font-size: 12px; line-height: 18px; font-weight: 600; text-align: center; }
+
+.subs-account { width: 255px; box-sizing: border-box; flex: none; display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 10px 10px 12px 14px; border-top: 1px solid var(--line); }
+.subs-avatar { width: 28px; height: 28px; flex: none; border-radius: var(--r-pill); display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-strong); font-weight: 600; }
+.subs-avatar.is-empty { background: var(--sunken); color: var(--ink-3); }
+.subs-account-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 16px; }
+.subs-account-text.is-muted { color: var(--ink-2); line-height: 20px; }
+.subs-account-name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.subs-account-sub { font-size: 12px; color: var(--ink-2); }
+.subs-account-sub.is-warn { color: var(--warn-strong); font-weight: 500; }
+
+/* ---- 主区：标题行与检查状态 ---- */
+.subs-topbar { padding-left: 24px; }
+.subs-title { margin: 0; display: flex; align-items: baseline; gap: 10px; font-size: 16px; line-height: 24px; font-weight: 600; }
+.subs-title-count { color: var(--ink-2); font-size: 13px; font-weight: 400; }
+.subs-check { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding-right: 2px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+.subs-check + .k-win-ctrls, .subs-topbar > .k-icon-btn + .k-win-ctrls { margin-left: 4px; }
+.subs-check svg { color: var(--ink-3); }
+
+.subs-spin { animation: subs-spin 0.9s linear infinite; }
+.subs-spin.is-accent, .subs-check .subs-spin.is-accent { color: var(--accent); }
+@keyframes subs-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .subs-spin { animation-duration: 2.4s; } }
+:root[data-reduced-motion] .subs-spin { animation-duration: 2.4s; }
+
+.subs-banner { flex: none; margin: 0 24px 12px; min-height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 8px 0 16px; border-radius: var(--r);
+  background: var(--warn-soft); color: var(--warn-strong); }
+.subs-banner-text { flex: 1; font-weight: 500; }
+
+/* ---- 最近收到：两段瀑布流 ---- */
+.subs-wall { flex: 1; min-height: 0; overflow-y: auto; padding: 0 24px 24px; }
+.subs-section { margin: 0; height: 28px; display: flex; align-items: baseline; gap: 8px; font-size: 13px; line-height: 28px; font-weight: 600; }
+.subs-section.is-quiet { margin-top: 8px; color: var(--ink-2); }
+.subs-section-count { font-size: 12px; color: var(--accent-strong); }
+.subs-none { margin: 24px 0 0; color: var(--ink-2); }
+.subs-tiles { list-style: none; margin: 4px 0 0; padding: 0; column-width: 200px; column-gap: 12px; }
+.subs-tiles > li { break-inside: avoid; margin: 0 0 12px; }
+.subs-tile { display: block; width: 100%; min-height: 120px; padding: 0; border: 0; border-radius: var(--r); overflow: hidden; background: var(--card); cursor: pointer;
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast); }
+.subs-tile:hover { box-shadow: var(--shadow-raise); transform: translateY(-1px); }
+.subs-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.subs-tile img { display: block; width: 100%; height: auto; }
+
+/* ---- 空状态 ---- */
+.subs-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 0 24px 80px; text-align: center; }
+.subs-empty-icon { width: 56px; height: 56px; margin-bottom: 4px; border-radius: var(--r-l); display: grid; place-items: center; background: var(--sunken); color: var(--ink-3); }
+.subs-empty-title { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; }
+.subs-empty-hint { margin: 0; color: var(--ink-2); }
+.subs-empty-actions { display: flex; gap: 8px; margin-top: 8px; }
+.subs-empty-actions .k-btn { height: 36px; padding: 0 16px; }
+
+/* ---- 首次使用说明 ---- */
+.k-dialog.subs-first-run { width: min(460px, calc(100vw - 48px)); display: flex; flex-direction: column; gap: 12px; }
+.subs-first-run .k-dialog-desc { margin: 0; padding: 0 4px; }
+.subs-first-run-head { display: flex; align-items: center; gap: 8px; padding: 4px 4px 0; }
+.subs-first-run-points { list-style: none; margin: 4px 0 0; padding: 0; border-radius: var(--r); background: var(--surface-2); }
+.subs-first-run-points > li { display: flex; gap: 12px; padding: 12px 14px; }
+.subs-first-run-points > li + li { border-top: 1px solid var(--line); }
+.subs-first-run-icon { flex: none; margin-top: 2px; color: var(--ink-3); }
+.subs-first-run-points > li.is-warn .subs-first-run-icon { color: var(--warn); }
+.subs-first-run-title { margin: 0; font-weight: 600; }
+.subs-first-run-body { margin: 0; color: var(--ink-2); }
+.subs-first-run .k-dialog-foot { margin-top: 4px; justify-content: flex-end; }
+
+/* ---- 设置 › 订阅 ---- */
+.subs-settings-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.subs-settings-head .k-set-title { margin: 0; }
+.subs-settings-lead { margin: 0 0 16px; font-size: 13px; line-height: 20px; }

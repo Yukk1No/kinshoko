@@ -255,6 +255,10 @@ pub enum ErrorKind {
         detail: String,
     },
 
+    // 订阅（#368）：这一版还没有订阅功能，或设置里关掉了。
+    SubscriptionsUnavailable,
+    SubscriptionsOff,
+
     // 截图与钉图（`CaptureError`、`HistoryError`、`PinError`）。
     EmptySelection,
     CaptureSourceUnavailable {

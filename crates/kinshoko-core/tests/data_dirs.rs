@@ -428,7 +428,7 @@ mod shell_source {
     fn every_window_shares_one_webview2_environment() {
         let (mut builders, mut shared, mut stray) = (0, 0, Vec::new());
         for (path, text) in shell_sources() {
-            if path.ends_with("subscription.rs") {
+            if path.ends_with("subscription/login.rs") {
                 assert_eq!(text.matches("WebviewWindowBuilder::new(").count(), 1);
                 assert!(text.contains(".data_directory(login_profile("));
                 assert!(!text.contains("additional_browser_args"));

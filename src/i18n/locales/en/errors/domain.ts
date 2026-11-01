@@ -87,6 +87,8 @@ shortcutTwoMainKeys: "A shortcut can only have one main key",
   tagThresholdsInvalid: "The low tier's upper limit must be below the high tier's lower limit, and both must be between 0 and 1",
     uiScaleUnsupported: "There's no {{percent}}% interface scale",
   uiScaleIo: "Couldn't save the interface scale: {{detail}}",
+  subscriptionsUnavailable: "Subscriptions aren't available in this version",
+  subscriptionsOff: "Subscriptions are turned off",
   shortcutAction: {
     capture: "Capture",
     pinClipboard: "Pin clipboard",

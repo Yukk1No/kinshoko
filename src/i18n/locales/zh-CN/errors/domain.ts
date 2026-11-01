@@ -89,6 +89,8 @@ export default {
   tagThresholdsInvalid: "低档上限要小于高档下限，且都在 0 到 1 之间",
   uiScaleUnsupported: "没有 {{percent}}% 这一档界面缩放",
   uiScaleIo: "保存界面缩放失败：{{detail}}",
+  subscriptionsUnavailable: "订阅功能在这个版本里还不可用",
+  subscriptionsOff: "订阅功能已关闭",
   /** 快捷键动作的名称，与设置里一致。 */
   shortcutAction: {
     capture: "截图",

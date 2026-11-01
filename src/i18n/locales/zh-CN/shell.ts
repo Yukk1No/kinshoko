@@ -5,6 +5,7 @@ export default {
     browse: "图片与文件夹",
     groups: "参考组",
     captures: "截图历史",
+    subscriptions: "订阅",
     settings: "设置",
     settingsTip: "程序设置",
   },

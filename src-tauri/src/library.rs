@@ -411,6 +411,16 @@ fn saved_mode<R: Runtime>(app: &AppHandle<R>) -> SafeMode {
     )
 }
 
+/// 这张图此刻能不能显示（已登记、没被安全模式隐藏），与 `thumb` 协议同一套核对。
+pub(crate) fn image_shown<R: Runtime>(
+    app: &AppHandle<R>,
+    library_id: &str,
+    image_id: &str,
+) -> bool {
+    let mut slow = false;
+    workspace::read_image(app, library_id, image_id, &mut slow).is_ok()
+}
+
 /// 设置里的安全模式开关；还没迁移的命令组用它“开始记下、结束复核”。
 pub(crate) fn saved_safe_mode<R: Runtime>(app: &AppHandle<R>) -> bool {
     saved_mode(app).on
