@@ -5,6 +5,10 @@
  */
 export type Account = { 
 /**
+ * pixiv 用户 ID（读关注时用）。#368 存下的登录里没有，下次换会话时补上。
+ */
+userId: string, 
+/**
  * 显示名。
  */
 name: string, 

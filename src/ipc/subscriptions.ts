@@ -1,4 +1,6 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { Artist } from "../bindings/Artist";
+import type { NewSubscription } from "../bindings/NewSubscription";
 import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
@@ -52,4 +54,29 @@ export function subscriptionCancelLogin(): Promise<SubscriptionStatus> {
 
 export function subscriptionLogout(): Promise<SubscriptionStatus> {
   return invoke<SubscriptionStatus>("subscription_logout");
+}
+
+/** 订阅画师（#369）：从画师主页链接或 ID 找到画师。认不出、找不到时 reject（`artistUnrecognized`、`artistNotFound`）。 */
+export function subscriptionFindArtist(input: string): Promise<Artist> {
+  return invoke<Artist>("subscription_find_artist", { input });
+}
+
+/** 登录账号在 pixiv 上关注的画师。 */
+export function subscriptionFollowing(): Promise<Artist[]> {
+  return invoke<Artist[]>("subscription_following");
+}
+
+/** 添加订阅（可以一次几条）；已订阅过的对象 reject（`alreadySubscribed`），一条都不加。 */
+export function subscriptionAdd(subscriptions: NewSubscription[]): Promise<Subscription[]> {
+  return invoke<Subscription[]>("subscription_add", { subscriptions });
+}
+
+/** 改一条订阅收不收漫画与成人作品。 */
+export function subscriptionSetOptions(id: string, includeExplicit: boolean, includeManga: boolean): Promise<Subscription> {
+  return invoke<Subscription>("subscription_set_options", { id, includeExplicit, includeManga });
+}
+
+/** 退订；已收进图库的图留着。 */
+export function subscriptionRemove(id: string): Promise<void> {
+  return invoke<void>("subscription_remove", { id });
 }

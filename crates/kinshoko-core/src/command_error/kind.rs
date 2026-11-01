@@ -258,6 +258,16 @@ pub enum ErrorKind {
     // 订阅（#368）：这一版还没有订阅功能，或设置里关掉了。
     SubscriptionsUnavailable,
     SubscriptionsOff,
+    /// 订阅画师（#369）：输入认不出是 pixiv 画师主页链接或 ID。
+    ArtistUnrecognized,
+    /// pixiv 上没有这位画师。
+    ArtistNotFound,
+    /// 已经订阅了同一个对象。
+    AlreadySubscribed,
+    /// 向订阅来源请求时没成，原因同检查没完成的原因。
+    SubscriptionSource {
+        reason: crate::subscription::SourceError,
+    },
 
     // 截图与钉图（`CaptureError`、`HistoryError`、`PinError`）。
     EmptySelection,

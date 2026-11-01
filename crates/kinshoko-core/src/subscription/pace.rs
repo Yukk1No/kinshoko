@@ -1,5 +1,6 @@
 //! 放慢请求（#366）：同一个订阅来源的相邻两次请求至少隔开一段时间，等待期间可以取消。
 
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
@@ -36,5 +37,39 @@ impl Pacer {
         }
         self.last = Some(Instant::now());
         true
+    }
+}
+
+/// 一个订阅来源共用的节拍：检查线程与界面里的查找画师、读关注排同一个队，不会叠在一起加快。
+#[derive(Debug)]
+pub struct Pacers {
+    pub(crate) api: Mutex<Pacer>,
+    pub(crate) download: Mutex<Pacer>,
+}
+
+impl Default for Pacers {
+    fn default() -> Self {
+        Pacers {
+            api: Mutex::new(Pacer::new(API_GAP)),
+            download: Mutex::new(Pacer::new(DOWNLOAD_GAP)),
+        }
+    }
+}
+
+impl Pacers {
+    /// 等到可以发下一个接口请求；见 [`Pacer::wait`]。
+    pub(crate) fn api(&self, cancel: &AtomicBool) -> bool {
+        self.api
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .wait(cancel)
+    }
+
+    /// 等到可以下载下一张原图；见 [`Pacer::wait`]。
+    pub(crate) fn download(&self, cancel: &AtomicBool) -> bool {
+        self.download
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .wait(cancel)
     }
 }

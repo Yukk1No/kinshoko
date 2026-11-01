@@ -88,6 +88,19 @@ impl Target {
     }
 }
 
+/// 订阅时旧作收多少（#366）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+#[ts(export)]
+pub enum Backlog {
+    /// 只收订阅以后发的作品（默认）。
+    NewOnly,
+    /// 订阅时收最近若干张（按页计），之后只收新作。
+    Recent { count: u32 },
+    /// 旧作全部收。
+    All,
+}
+
 /// 一条订阅。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -103,6 +116,14 @@ pub struct Subscription {
     pub include_explicit: bool,
     /// 收不收漫画类型（#366 默认不收）。
     pub include_manga: bool,
+    /// 订阅时选的旧作收多少。
+    pub backlog: Backlog,
+    /// 发布时间早于它（Unix 毫秒）的作品不收：只收新作时是订阅的时间，最近若干张时是第一次检查
+    /// 数到的最后一张。为空时还没定（最近若干张、还没查完第一次）或旧作全部收。
+    #[ts(type = "number | null")]
+    pub since: Option<i64>,
+    /// 跳过的动图有几个（订阅页上标明“已跳过”）。
+    pub skipped: u32,
     #[ts(type = "number")]
     pub created_at: i64,
     #[ts(type = "number | null")]
@@ -124,6 +145,7 @@ pub struct NewSubscription {
     pub library_id: String,
     pub include_explicit: bool,
     pub include_manga: bool,
+    pub backlog: Backlog,
 }
 
 /// 订阅入口与托盘要显示的状态。

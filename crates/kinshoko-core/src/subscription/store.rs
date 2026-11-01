@@ -10,16 +10,17 @@ use rusqlite_migration::{M, Migrations};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{NewSubscription, SourceError, SourceId, Subscription, Target};
+use super::{Backlog, NewSubscription, SourceError, SourceId, Subscription, Target};
 
 const FILE: &str = "subscriptions.db";
 /// 一个作品失败这么多次后不再重试，也不再让来源为它翻到底。
 const MAX_ATTEMPTS: u32 = 5;
 
 fn migrations() -> Migrations<'static> {
-    Migrations::new(vec![M::up(include_str!(
-        "migrations/0368_subscription.sql"
-    ))])
+    Migrations::new(vec![
+        M::up(include_str!("migrations/0368_subscription.sql")),
+        M::up(include_str!("migrations/0369_backlog.sql")),
+    ])
 }
 
 #[derive(Debug)]
@@ -125,7 +126,12 @@ impl Store {
         self.conn.lock().unwrap_or_else(|e| e.into_inner())
     }
 
+    /// 新建一条订阅。只收新作时，发布时间早于现在的作品一律不收。
     pub fn add(&self, new: NewSubscription, now: i64) -> Result<Subscription, StoreError> {
+        let since = match new.backlog {
+            Backlog::NewOnly => Some(now),
+            Backlog::Recent { .. } | Backlog::All => None,
+        };
         let subscription = Subscription {
             id: uuid::Uuid::now_v7().simple().to_string(),
             target: new.target,
@@ -133,6 +139,9 @@ impl Store {
             library_id: new.library_id,
             include_explicit: new.include_explicit,
             include_manga: new.include_manga,
+            backlog: new.backlog,
+            since,
+            skipped: 0,
             created_at: now,
             last_checked_at: None,
             last_error: None,
@@ -140,8 +149,8 @@ impl Store {
         };
         self.conn().execute(
             "INSERT INTO subscription (id, source, target, name, library_id, include_explicit,
-                                       include_manga, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                                       include_manga, backlog, since, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
                 subscription.id,
                 subscription.target.source().as_str(),
@@ -150,6 +159,8 @@ impl Store {
                 subscription.library_id,
                 subscription.include_explicit,
                 subscription.include_manga,
+                serde_json::to_string(&subscription.backlog).expect("旧作选项可以序列化"),
+                subscription.since,
                 now
             ],
         )?;
@@ -172,7 +183,9 @@ impl Store {
         let conn = self.conn();
         let mut stmt = conn.prepare_cached(
             "SELECT id, source, target, name, library_id, include_explicit, include_manga,
-                    created_at, last_checked_at, last_error, last_failed_at
+                    created_at, last_checked_at, last_error, last_failed_at, backlog, since,
+                    (SELECT COUNT(*) FROM received_work w
+                     WHERE w.subscription_id = subscription.id AND w.outcome = 'skippedAnimation')
              FROM subscription ORDER BY created_at, id",
         )?;
         let rows = stmt.query_map([], |r| {
@@ -186,6 +199,13 @@ impl Store {
                     library_id: r.get(4)?,
                     include_explicit: r.get(5)?,
                     include_manga: r.get(6)?,
+                    backlog: r
+                        .get::<_, String>(11)
+                        .ok()
+                        .and_then(|b| serde_json::from_str(&b).ok())
+                        .unwrap_or(Backlog::All),
+                    since: r.get(12)?,
+                    skipped: r.get(13)?,
                     created_at: r.get(7)?,
                     last_checked_at: r.get(8)?,
                     last_error: r
@@ -214,6 +234,33 @@ impl Store {
             .into_iter()
             .find(|s| s.id == id)
             .ok_or(StoreError::UnknownSubscription)
+    }
+
+    /// 改订阅的漫画与成人作品选项。资料库与旧作是订阅时定的，不再改。
+    pub fn set_options(
+        &self,
+        id: &str,
+        include_explicit: bool,
+        include_manga: bool,
+    ) -> Result<Subscription, StoreError> {
+        // 先放开连接再读回来：`get` 也要它。
+        let changed = self.conn().execute(
+            "UPDATE subscription SET include_explicit = ?2, include_manga = ?3 WHERE id = ?1",
+            params![id, include_explicit, include_manga],
+        )?;
+        match changed {
+            0 => Err(StoreError::UnknownSubscription),
+            _ => self.get(id),
+        }
+    }
+
+    /// 定下“发布时间早于它的作品不收”（最近若干张的第一次检查数完以后）。
+    pub(super) fn set_since(&self, id: &str, since: i64) -> Result<(), StoreError> {
+        self.conn().execute(
+            "UPDATE subscription SET since = ?2 WHERE id = ?1",
+            params![id, since],
+        )?;
+        Ok(())
     }
 
     /// 记下一次检查完成的时间。

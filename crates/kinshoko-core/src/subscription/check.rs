@@ -1,16 +1,17 @@
 //! 检查一条订阅：向订阅来源要作品，跳过收过的，下载没收的页并收进资料库。
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::store::{Outcome, Store, StoreError, WorkKey};
-use super::{SourceId, Subscription};
+use super::{Backlog, SourceId, Subscription};
 use crate::library::SubscriptionPage;
 
 /// 作品类型（#366）：插画收全部页；漫画按订阅的设置；动图跳过。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WorkKind {
     Illustration,
     Manga,
@@ -77,11 +78,13 @@ impl SourceError {
 pub trait Source {
     fn id(&self) -> SourceId;
 
-    /// 订阅对象的作品，从新到旧。`known` 说某个作品已收过时，来源可以就此停止往下翻页。
+    /// 订阅对象的作品，从新到旧。`enough` 对某个作品回真时（例如它已收过，或已经数够），来源可以
+    /// 就此停止往下翻页，这个作品照样列出。来源分几条作品流翻页时（例如画师的插画与漫画），
+    /// 每条各自停，合起来仍从新到旧。
     fn works(
         &mut self,
         subscription: &Subscription,
-        known: &mut dyn FnMut(&str) -> bool,
+        enough: &mut dyn FnMut(&Work) -> bool,
     ) -> Result<Vec<Work>, SourceError>;
 
     /// 下载一页原图。
@@ -144,17 +147,36 @@ fn run(
 ) -> Result<CheckReport, SourceError> {
     let source_id = source.id();
     let library_id = subscription.library_id.as_str();
+    let since = subscription.since;
+    // 选了“最近若干张”、第一次还没查完：数够这么多张为止，收过的不算停下的理由（已收的也算在数里）。
+    let window = match subscription.backlog {
+        Backlog::Recent { count } if since.is_none() => Some(count),
+        _ => None,
+    };
     let mut store_failed = false;
     // 有待重试的作品时，不让来源在比它新的已收作品处停下，否则它轮不到重试。
     let retrying = store.has_failed(&subscription.id)?;
-    let works = source.works(subscription, &mut |work_id| {
+    let mut counted: HashMap<WorkKind, u32> = HashMap::new();
+    let works = source.works(subscription, &mut |work| {
+        if since.is_some_and(|since| work.posted_at < since) {
+            return true;
+        }
+        if let Some(count) = window {
+            if !wanted(subscription, work) {
+                return false;
+            }
+            // 每条作品流只有一种作品类型，按类型各自数。
+            let seen = counted.entry(work.kind).or_default();
+            *seen += work.pages.len() as u32;
+            return *seen >= count;
+        }
         if retrying {
             return false;
         }
         let key = WorkKey {
             library_id,
             source: source_id,
-            work_id,
+            work_id: &work.id,
         };
         store
             .received_by(&subscription.id, &key)
@@ -166,6 +188,17 @@ fn run(
     if store_failed {
         return Err(SourceError::Store);
     }
+    let works: Vec<Work> = works
+        .into_iter()
+        .filter(|w| since.is_none_or(|since| w.posted_at >= since))
+        .collect();
+    let (works, cutoff) = match window {
+        Some(count) => {
+            let (works, cutoff) = take_recent(subscription, works, count);
+            (works, Some(cutoff))
+        }
+        None => (works, None),
+    };
     let mut report = CheckReport::default();
     // 从旧到新收，最近收进来的图按时间排列时与来源上的先后一致。
     for work in works.iter().rev() {
@@ -219,7 +252,40 @@ fn run(
             }
         }
     }
+    if let Some(cutoff) = cutoff {
+        store.set_since(&subscription.id, cutoff)?;
+    }
     Ok(report)
+}
+
+/// 这条订阅要不要收这个作品（动图、没打开的漫画与成人作品不收）。
+fn wanted(subscription: &Subscription, work: &Work) -> bool {
+    match work.kind {
+        WorkKind::Animation => false,
+        WorkKind::Manga if !subscription.include_manga => false,
+        _ => !work.explicit || subscription.include_explicit,
+    }
+}
+
+/// 最近若干张：从新到旧数够 `count` 张（按页计），最后一个作品超出的页不收。返回要处理的作品
+/// （其间的动图照样记为已跳过）与此后的下限：数到的最后一张的发布时间；不够这么多张时为最早。
+fn take_recent(subscription: &Subscription, works: Vec<Work>, count: u32) -> (Vec<Work>, i64) {
+    let mut left = count;
+    let mut cutoff = i64::MIN;
+    let mut out = Vec::new();
+    for mut work in works {
+        if left == 0 {
+            break;
+        }
+        if wanted(subscription, &work) {
+            let take = (work.pages.len() as u32).min(left);
+            work.pages.truncate(take as usize);
+            left -= take;
+            cutoff = work.posted_at;
+        }
+        out.push(work);
+    }
+    (out, if left == 0 { cutoff } else { i64::MIN })
 }
 
 /// 收一个作品还没收的页；返回这次收了几页，某页失败时为空（已收的页留着，下次补其余的）。

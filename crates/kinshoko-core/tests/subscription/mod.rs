@@ -11,9 +11,11 @@ use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::library::{ContentRating, ImageEdit, SubscriptionPage, TagNamespace};
 use kinshoko_core::subscription::{
-    CheckReport, Destination, NewSubscription, Source, SourceError, SourceId, Store, Subscription,
-    Target, Work, WorkKind, check, schedule,
+    Backlog, CheckReport, Destination, NewSubscription, Source, SourceError, SourceId, Store,
+    Subscription, Target, Work, WorkKind, check, schedule,
 };
+
+mod backlog;
 
 fn png(seed: u8) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -45,6 +47,8 @@ struct FakeSource {
     images: HashMap<String, Vec<u8>>,
     fail: HashMap<String, SourceError>,
     downloads: Vec<String>,
+    /// 上一次列出了几个作品（翻到哪里停下）。
+    listed: usize,
 }
 
 impl FakeSource {
@@ -73,16 +77,19 @@ impl Source for FakeSource {
     fn works(
         &mut self,
         _: &Subscription,
-        known: &mut dyn FnMut(&str) -> bool,
+        enough: &mut dyn FnMut(&Work) -> bool,
     ) -> Result<Vec<Work>, SourceError> {
-        // 从新到旧，碰到收过的就不再往下翻。
-        Ok(self
-            .works
-            .iter()
-            .rev()
-            .take_while(|w| !known(&w.id))
-            .cloned()
-            .collect())
+        // 从新到旧，检查说够了就不再往下翻。
+        self.listed = 0;
+        let mut out = Vec::new();
+        for work in self.works.iter().rev() {
+            out.push(work.clone());
+            self.listed += 1;
+            if enough(work) {
+                break;
+            }
+        }
+        Ok(out)
     }
 
     fn download(&mut self, url: &str) -> Result<Vec<u8>, SourceError> {
@@ -124,6 +131,11 @@ struct Fixture {
 
 impl Fixture {
     fn new() -> Fixture {
+        Fixture::with(Backlog::All, 0)
+    }
+
+    /// 选了 `backlog`、在 `created_at` 订阅的画师。
+    fn with(backlog: Backlog, created_at: i64) -> Fixture {
         let dir = tempfile::tempdir().unwrap();
         let library = Library::create(&dir.path().join("lib"), "库").unwrap();
         library.set_safe_mode(false);
@@ -138,8 +150,9 @@ impl Fixture {
                     library_id: library.info().id.clone(),
                     include_explicit: true,
                     include_manga: false,
+                    backlog,
                 },
-                0,
+                created_at,
             )
             .unwrap();
         Fixture {
@@ -147,7 +160,7 @@ impl Fixture {
             store,
             libraries: Libraries(vec![library]),
             subscription,
-            clock: RefCell::new(1_000),
+            clock: RefCell::new(created_at + 1_000),
         }
     }
 
@@ -155,7 +168,9 @@ impl Fixture {
         &self.libraries.0[0]
     }
 
+    /// 按存下的订阅检查（第一次检查定下的下限要从订阅记录里读回来）。
     fn check(&self, source: &mut dyn Source) -> Result<CheckReport, SourceError> {
+        let subscription = self.store.get(&self.subscription.id).unwrap();
         let now = || {
             let mut t = self.clock.borrow_mut();
             *t += 1;
@@ -163,7 +178,7 @@ impl Fixture {
         };
         check(
             &self.store,
-            &self.subscription,
+            &subscription,
             source,
             &self.libraries,
             &now,
@@ -244,7 +259,7 @@ impl Source for FakeSourceIgnoringKnown<'_> {
     fn works(
         &mut self,
         _: &Subscription,
-        _: &mut dyn FnMut(&str) -> bool,
+        _: &mut dyn FnMut(&Work) -> bool,
     ) -> Result<Vec<Work>, SourceError> {
         Ok(self.0.works.iter().rev().cloned().collect())
     }
@@ -343,6 +358,7 @@ fn checks_resume_after_restart_and_back_off_on_rate_limits() {
         library_id: "lib".into(),
         include_explicit: true,
         include_manga: false,
+        backlog: Backlog::All,
     };
     let (artist, ranking) = {
         let store = Store::open(dir.path()).unwrap();
@@ -410,6 +426,7 @@ fn another_subscriptions_works_do_not_cut_this_listing_short() {
                 library_id: f.library().info().id.clone(),
                 include_explicit: true,
                 include_manga: false,
+                backlog: Backlog::All,
             },
             0,
         )

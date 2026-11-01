@@ -91,6 +91,10 @@ export default {
   uiScaleIo: "保存界面缩放失败：{{detail}}",
   subscriptionsUnavailable: "订阅功能在这个版本里还不可用",
   subscriptionsOff: "订阅功能已关闭",
+  artistUnrecognized: "输入 pixiv 画师主页链接或数字 ID",
+  artistNotFound: "找不到这位画师",
+  alreadySubscribed: "已经订阅过了",
+  subscriptionSource: "{{reason}}",
   /** 快捷键动作的名称，与设置里一致。 */
   shortcutAction: {
     capture: "截图",
