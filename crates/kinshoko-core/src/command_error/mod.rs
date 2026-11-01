@@ -157,6 +157,21 @@ impl From<UnavailableReason> for CommandError {
     }
 }
 
+/// 写进文件的原因（备份计划、备份清单）：新写的是错误代码；旧版本写下的是中文句子，读回来照原样显示。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(untagged)]
+#[ts(export)]
+pub enum StoredReason {
+    Code(ErrorKind),
+    Text(String),
+}
+
+impl From<CommandError> for StoredReason {
+    fn from(e: CommandError) -> Self {
+        StoredReason::Code(e.kind)
+    }
+}
+
 impl From<CommandError> for ErrorKind {
     fn from(e: CommandError) -> Self {
         e.kind

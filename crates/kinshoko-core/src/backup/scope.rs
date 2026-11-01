@@ -68,7 +68,11 @@ pub enum Uncovered {
     },
     /// 读不懂的参考组文件，无法备份。
     #[serde(rename_all = "camelCase")]
-    UnreadableGroup { group: ScopeItem, problem: String },
+    UnreadableGroup {
+        group: ScopeItem,
+        /// 写进清单；旧版本写下的是中文句子。
+        problem: crate::command_error::StoredReason,
+    },
 }
 
 /// 算好的备份范围。资料库按登记顺序，参考组按名称。
@@ -99,7 +103,7 @@ pub fn compute_scope(
         match &g.problem {
             Some(problem) => uncovered.push(Uncovered::UnreadableGroup {
                 group: item(g),
-                problem: problem.to_string(),
+                problem: problem.clone().into(),
             }),
             None => readable.push(g),
         }

@@ -264,17 +264,16 @@ fn rollback_failed(
     journal_kept: bool,
 ) -> CommandError {
     let rollback = rollback.into();
-    let text = if journal_kept {
-        format!("{error}；恢复记录保留，请重启：{rollback}")
-    } else {
-        format!("{error}；回退未完成，请重启：{rollback}")
-    };
     CommandError::new(
         ErrorKind::SettingsRollbackIncomplete {
             cause: Box::new(error.kind.clone()),
-            rollback: Box::new(rollback.kind),
+            rollback: Box::new(rollback.kind.clone()),
             journal_kept,
         },
-        text,
+        if journal_kept {
+            format!("{error}；恢复记录保留，请重启：{rollback}")
+        } else {
+            format!("{error}；回退未完成，请重启：{rollback}")
+        },
     )
 }

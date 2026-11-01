@@ -26,6 +26,7 @@ import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { Select } from "./ui/Select";
 import { useTranslation } from "react-i18next";
 import { i18n } from "./i18n/instance";
+import { describeCommandError, storedReasonText } from "./ipc/commandError";
 
 /** 本地日期时间，按记录时的时区偏移，例如“2026-10-05 08:00”。 */
 export function stampText(s: Stamp): string {
@@ -39,7 +40,7 @@ function mb(bytes: number): string {
 }
 
 function uncoveredText(u: Uncovered): string {
-  if (u.kind === "unreadableGroup") return i18n.t("backup:uncovered.unreadable", { group: u.group.name, problem: u.problem });
+  if (u.kind === "unreadableGroup") return i18n.t("backup:uncovered.unreadable", { group: u.group.name, problem: storedReasonText(u.problem) });
   return u.libraryName === null
     ? i18n.t("backup:uncovered.libraryClosed", { group: u.group.name })
     : i18n.t("backup:uncovered.libraryLeftOut", { group: u.group.name, library: u.libraryName });
@@ -140,7 +141,7 @@ export function BackupSettings() {
         <SettingsRow icon={<Archive size={16} />} title={t("last")} hint={t("lastHint")}
           meta={running !== null ? <span role="status">{t("running", { done: running.done, total: running.total })}</span>
             : plan.lastSuccess !== null ? stampText(plan.lastSuccess) : t("never")}
-          warn={plan.lastFailure !== null && <span role="alert">{t("failed", { at: stampText(plan.lastFailure.at), reason: plan.lastFailure.reason })}</span>}>
+          warn={plan.lastFailure !== null && <span role="alert">{t("failed", { at: stampText(plan.lastFailure.at), reason: storedReasonText(plan.lastFailure.reason) })}</span>}>
           {plan.lastFailure === null && plan.lastSuccess !== null && running === null && <StatusPill tone="ok" icon={<CircleCheck size={12} aria-hidden="true" />}>{t("done")}</StatusPill>}
           <button type="button" className="k-btn is-sm is-primary" disabled={plan.target === null || running !== null}
             onClick={() => void startBackup().catch((e) => setError(String(e)))}><span className="k-label">{t("start")}</span></button>
@@ -193,7 +194,7 @@ function PreviewView({ preview }: { preview: BackupPreview }) {
           ))}
           {estimate.unavailable.map((s) => (
             <li key={s.library.id}>
-              {t("preview.unavailable", { library: s.library.name, reason: s.reason })}
+              {t("preview.unavailable", { library: s.library.name, reason: storedReasonText(s.reason) })}
             </li>
           ))}
         </ul>
@@ -263,7 +264,7 @@ function RestoreResult({ report }: { report: RestoreReport }) {
       {problems.length > 0 && (
         <ul>
           {problems.map((p, i) => (
-            <li key={i}>{p}</li>
+            <li key={i}>{describeCommandError(p)}</li>
           ))}
         </ul>
       )}
@@ -283,7 +284,7 @@ export function BackupReminder() {
   const { t } = useTranslation("backup", { keyPrefix: "reminder" });
   const failure = status?.plan.lastFailure ?? null;
   const shown = useRef<{ at: number; id: string } | null>(null);
-  const at = failure?.at.unixMs ?? null, reason = failure?.reason ?? "";
+  const at = failure?.at.unixMs ?? null, reason = failure ? storedReasonText(failure.reason) : "";
   useEffect(() => {
     if (!toast || shown.current?.at === at) return;
     if (shown.current) toast.close(shown.current.id);
@@ -295,7 +296,7 @@ export function BackupReminder() {
   return (
     <div className="update-banner backup-reminder" role="alert">
       <span>
-        {t("banner", { reason: failure.reason })}
+        {t("banner", { reason: storedReasonText(failure.reason) })}
       </span>
       <button type="button" onClick={() => setDismissed(failure.at.unixMs)}>
         {t("dismiss")}

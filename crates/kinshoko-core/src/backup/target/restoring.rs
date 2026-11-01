@@ -209,12 +209,13 @@ impl BackupTarget {
         })();
         if let Err(error) = outcome {
             if let Err(rollback) = batch.rollback() {
+                // 不上界面：日志里的说明，界面按下面的错误代码取文案
                 let text =
                     format!("{error}；本批次回退未完成：{rollback}。重启或重试恢复时会再次回退");
-                return Err(BackupError::Incomplete(Box::new(crate::CommandError::new(
-                    crate::command_error::ErrorKind::RestoreRollbackIncomplete {
-                        cause: Box::new(crate::CommandError::from(error).kind),
-                        rollback: Box::new(crate::CommandError::from(rollback).kind),
+                return Err(BackupError::Incomplete(Box::new(CommandError::new(
+                    ErrorKind::RestoreRollbackIncomplete {
+                        cause: Box::new(CommandError::from(error).kind),
+                        rollback: Box::new(CommandError::from(rollback).kind),
                     },
                     text,
                 ))));
@@ -235,6 +236,18 @@ fn unfinished() -> BackupError {
     )
 }
 
+/// 恢复出的资料库 `name` 里的一个问题。
+fn library_problem(name: &str, problem: CommandError) -> CommandError {
+    CommandError::caused_by(
+        problem,
+        |cause| ErrorKind::CheckLibraryProblem {
+            name: name.to_owned(),
+            cause,
+        },
+        |p| format!("{name}：{p}"),
+    )
+}
+
 fn check(
     manifest: &Manifest,
     report: &RestoreReport,
@@ -251,25 +264,32 @@ fn check(
                 out.originals.problems.extend(
                     c.original_problems
                         .into_iter()
-                        .map(|p| format!("{}：{p}", lib.name)),
+                        .map(|p| library_problem(&lib.name, p)),
                 );
                 out.curation.checked += c.curation_checked;
                 out.curation.problems.extend(
                     c.curation_problems
                         .into_iter()
-                        .map(|p| format!("{}：{p}", lib.name)),
+                        .map(|p| library_problem(&lib.name, p)),
                 );
             }
-            Err(e) => out.originals.problems.push(format!("{}：{e}", lib.name)),
+            Err(e) => out
+                .originals
+                .problems
+                .push(library_problem(&lib.name, e.into())),
         }
         match ReferenceLens::open_detached(&info.root, &info.id) {
             Ok(lens) => {
                 lenses.insert(info.id.clone(), lens);
             }
-            Err(e) => out
-                .groups
-                .problems
-                .push(format!("无法读取恢复出的资料库“{}”：{e}", lib.name)),
+            Err(e) => out.groups.problems.push(CommandError::caused_by(
+                e,
+                |cause| ErrorKind::CheckLibraryUnreadable {
+                    name: lib.name.clone(),
+                    cause,
+                },
+                |e| format!("无法读取恢复出的资料库“{}”：{e}", lib.name),
+            )),
         }
     }
     let mapping: HashMap<&str, &str> = report
@@ -282,14 +302,17 @@ fn check(
         let (before, after) = match (reference_groups::parse(bytes), groups.get(&restored.id)) {
             (Ok(b), Ok(a)) => (b, a),
             (_, Err(e)) | (Err(e), _) => {
-                out.groups.problems.push(format!("参考组“{}”：{e}", g.name));
+                out.groups.problems.push(group_problem(&g.name, e.into()));
                 continue;
             }
         };
         if after.name != before.name || after.members.len() != before.members.len() {
-            out.groups
-                .problems
-                .push(format!("参考组“{}”的名称或成员数不一致", g.name));
+            out.groups.problems.push(CommandError::new(
+                ErrorKind::CheckGroupMismatch {
+                    name: g.name.clone(),
+                },
+                format!("参考组“{}”的名称或成员数不一致", g.name),
+            ));
             continue;
         }
         for (b, a) in before.members.iter().zip(&after.members) {
@@ -301,9 +324,13 @@ fn check(
                 || a.placement != b.placement
                 || (a.source_width, a.source_height) != (b.source_width, b.source_height)
             {
-                out.groups
-                    .problems
-                    .push(format!("参考组“{}”的成员 {} 不一致", g.name, b.id));
+                out.groups.problems.push(CommandError::new(
+                    ErrorKind::CheckMemberMismatch {
+                        name: g.name.clone(),
+                        member: b.id.clone(),
+                    },
+                    format!("参考组“{}”的成员 {} 不一致", g.name, b.id),
+                ));
                 continue;
             }
             // 参考组自带的截图核对字节；引用的库不在这次备份里时成员原样保留，不在这里核对。
@@ -318,14 +345,22 @@ fn check(
             };
             match lens.image(image_id) {
                 Ok(img) if (img.width, img.height) == (a.source_width, a.source_height) => {}
-                Ok(_) => out
-                    .groups
-                    .problems
-                    .push(format!("参考组“{}”的成员 {} 原图尺寸不符", g.name, a.id)),
-                Err(e) => out
-                    .groups
-                    .problems
-                    .push(format!("参考组“{}”的成员 {} 取不到原图：{e}", g.name, a.id)),
+                Ok(_) => out.groups.problems.push(CommandError::new(
+                    ErrorKind::CheckMemberSizeMismatch {
+                        name: g.name.clone(),
+                        member: a.id.clone(),
+                    },
+                    format!("参考组“{}”的成员 {} 原图尺寸不符", g.name, a.id),
+                )),
+                Err(e) => out.groups.problems.push(CommandError::caused_by(
+                    e,
+                    |cause| ErrorKind::CheckMemberUnreadable {
+                        name: g.name.clone(),
+                        member: a.id.clone(),
+                        cause,
+                    },
+                    |e| format!("参考组“{}”的成员 {} 取不到原图：{e}", g.name, a.id),
+                )),
             }
         }
     }

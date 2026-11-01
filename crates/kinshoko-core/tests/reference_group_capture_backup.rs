@@ -128,7 +128,10 @@ fn a_group_whose_capture_file_is_missing_leaves_the_backup_incomplete() {
     let report = backup(&groups, &target);
     assert!(!report.complete);
     assert!(
-        report.problems.iter().any(|p| p.contains("一次性")),
+        report
+            .problems
+            .iter()
+            .any(|p| p.to_string().contains("一次性")),
         "{:?}",
         report.problems
     );
