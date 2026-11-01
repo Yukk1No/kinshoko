@@ -109,7 +109,7 @@ export function patchMean(
       n++;
     }
   }
-  if (n === 0) throw new Error("色块为空");
+  if (n === 0) throw new Error("empty patch");
   const [r, g, b, a] = sum.map((s) => s / n / 255);
   return { rgb: [r, g, b], alpha: a };
 }

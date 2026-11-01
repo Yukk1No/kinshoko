@@ -30,7 +30,7 @@ it("界面里没有接住的错误与被拒绝的 Promise 记进运行日志", a
 
   expect(calls).toEqual([
     { level: "error", message: "TypeError: x is undefined" },
-    { level: "error", message: "未处理的 Promise 拒绝：读取失败" },
+    { level: "error", message: "Unhandled promise rejection: 读取失败" },
   ]);
 });
 
