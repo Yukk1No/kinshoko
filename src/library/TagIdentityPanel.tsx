@@ -8,14 +8,16 @@ import { correctTagMapping, inspectTagCatalog, onLibraryEvent, onSafeModeSetting
 import { libraryPathHint } from "./library-path";
 import { Select } from "../ui/Select";
 import { useUiLang } from "../i18n";
+import { i18n } from "../i18n/instance";
+import { useTranslation } from "react-i18next";
 
-const namespaces: Record<TagNamespace, string> = { general: "一般", artist: "作者", character: "角色", work: "作品" };
-const basis = { independent: "独立", external: "按词表", conflictingExternal: "词表有歧义", corrected: "已纠正" };
-const nameOf = (tag: CatalogTag, lang: string) => tag.names.find((n) => n.lang === lang)?.name ?? tag.names[0]?.name ?? tag.external[0]?.name.replaceAll("_", " ") ?? "未命名标签";
-const localName = (mapping: LibraryTagMapping, lang: string) => mapping.legacy.names.find((n) => n.lang === lang)?.name ?? mapping.legacy.names[0]?.name ?? mapping.legacy.external[0]?.replaceAll("_", " ") ?? "未命名标签";
+const namespaceName = (namespace: TagNamespace) => i18n.t(`tags:namespaceOption.${namespace}`);
+const nameOf = (tag: CatalogTag, lang: string) => tag.names.find((n) => n.lang === lang)?.name ?? tag.names[0]?.name ?? tag.external[0]?.name.replaceAll("_", " ") ?? i18n.t("tags:unnamed");
+const localName = (mapping: LibraryTagMapping, lang: string) => mapping.legacy.names.find((n) => n.lang === lang)?.name ?? mapping.legacy.names[0]?.name ?? mapping.legacy.external[0]?.replaceAll("_", " ") ?? i18n.t("tags:unnamed");
 
 /** Settings fieldset and explicit row actions follow the approved reference-browser SettingsDialog. */
 export function TagIdentityPanel() {
+  const { t } = useTranslation("tagSettings");
   const [workspace, setWorkspace] = useState<TagCatalogWorkspace | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -57,21 +59,21 @@ export function TagIdentityPanel() {
     catch (reason) { if (request === generation.current) setError((previous) => automatic && previous !== null ? previous : String(reason)); }
     finally { if (request === generation.current) { setBusy(false); running.current = false; if (dirty.current) { dirty.current = false; void run(inspectTagCatalog, undefined, true); } } }
   };
-  return <section className="tag-identity" aria-label="图库间标签对应">
-    <p className="k-set-note">同名的标签各自独立。认错了可以在这里纠正，各图库里的人工添加和否决不受影响。</p>
-    <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void run(inspectTagCatalog)}><span className="k-label">检查标签对应</span></button>
-    {busy && <p role="status">正在读取标签对应…</p>}
+  return <section className="tag-identity" aria-label={t("identity.label")}>
+    <p className="k-set-note">{t("identity.note")}</p>
+    <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void run(inspectTagCatalog)}><span className="k-label">{t("identity.inspect")}</span></button>
+    {busy && <p role="status">{t("identity.loading")}</p>}
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     {workspace && <>
-      <p className="settings-hint">带走图库前，先把标签定义存进图库。默认名称、别名与对应随图库携带；改过的显示名留在偏好设置里。只读或离线时可以保留程序中的选择，稍后重试保存。</p>
+      <p className="settings-hint">{t("identity.publishHint")}</p>
       {workspace.libraries.map(({library, unavailable}) => <div key={"definitions-" + library.id} className="settings-actions">
         <span className="k-parts" title={library.root}><span>{library.name}</span><span className="k-set-note">{libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span></span>
-        <button type="button" className="k-btn is-sm" aria-label={"保存 " + library.name + " 的标签定义"} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), "标签定义已保存到图库。")}><span className="k-label">存进图库</span></button>
+        <button type="button" className="k-btn is-sm" aria-label={t("identity.publishLabel", { name: library.name })} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), t("identity.published"))}><span className="k-label">{t("identity.publish")}</span></button>
       </div>)}
-      {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} role="status">{library.name}：{unavailable}</p>)}
-      {workspace.catalog.mappings.length === 0 ? <p className="k-set-note">图库里还没有标签。</p> : <table className="settings-shortcuts">
-        <thead><tr><th>图库与原显示</th><th>对应到</th><th>纠正</th></tr></thead>
+      {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} role="status">{t("libraryUnavailable", { name: library.name, reason: unavailable })}</p>)}
+      {workspace.catalog.mappings.length === 0 ? <p className="k-set-note">{t("noTags")}</p> : <table className="settings-shortcuts">
+        <thead><tr><th>{t("identity.columnLibrary")}</th><th>{t("identity.columnTarget")}</th><th>{t("identity.columnCorrect")}</th></tr></thead>
         <tbody>{workspace.catalog.mappings.map((mapping) => <MappingRow key={`${mapping.libraryId}/${mapping.localTagId}`} mapping={mapping} workspace={workspace} busy={busy} onSave={(catalogId) => void run(() => correctTagMapping(mapping.libraryId, mapping.localTagId, catalogId === "separate" ? { kind: "separate" } : { kind: "use", catalogId }))} />)}</tbody>
       </table>}
     </>}
@@ -80,6 +82,7 @@ export function TagIdentityPanel() {
 
 function MappingRow({ mapping, workspace, busy, onSave }: { mapping: LibraryTagMapping; workspace: TagCatalogWorkspace; busy: boolean; onSave: (id: string) => void }) {
   const lang = useUiLang();
+  const { t } = useTranslation("tagSettings");
   const [target, setTarget] = useState(mapping.catalogId);
   // 对应变了才跟着重置选择。不用 effect：挂载时的 effect 晚于首次渲染执行，会盖掉在那之前做的选择。
   const [shown, setShown] = useState(mapping.catalogId);
@@ -92,15 +95,16 @@ function MappingRow({ mapping, workspace, busy, onSave }: { mapping: LibraryTagM
   const choices = candidates.map((tag) => {
     const name = nameOf(tag, lang), n = (seen.get(name) ?? 0) + 1;
     seen.set(name, n);
-    return { tag, label: `${name}（${namespaces[tag.namespace]}）${candidates.filter((other) => nameOf(other, lang) === name).length > 1 ? `（${n}）` : ""}` };
+    const same = candidates.filter((other) => nameOf(other, lang) === name).length > 1;
+    return { tag, label: t(same ? "identity.choiceNumbered" : "identity.choice", { name, namespace: namespaceName(tag.namespace), n }) };
   });
   return <tr data-library-id={mapping.libraryId} data-local-tag-id={mapping.localTagId}>
-    <th scope="row"><span className="k-parts"><span>{library?.name ?? "未打开的图库"}</span><span>{localName(mapping, lang)}</span><small>{namespaces[mapping.legacy.namespace]}</small></span>
-      <p className="k-set-note">{mapping.nameProvenance === "pending" ? "旧名称待确认，确认前照旧显示。" : `别名：${mapping.legacy.aliases.map((a) => a.name).join("、") || "无"}`}</p>
-      <details><summary>详情</summary><p>库内编号：{mapping.localTagId}</p><p>外部对应：{mapping.legacy.external.map((name) => `danbooru:${name}`).join("、") || "无"}</p></details>
+    <th scope="row"><span className="k-parts"><span>{library?.name ?? t("libraryClosed")}</span><span>{localName(mapping, lang)}</span><small>{namespaceName(mapping.legacy.namespace)}</small></span>
+      <p className="k-set-note">{mapping.nameProvenance === "pending" ? t("identity.pendingName") : t("identity.aliases", { aliases: mapping.legacy.aliases.map((a) => a.name).join(t("separator")) || t("none") })}</p>
+      <details><summary>{t("details")}</summary><p>{t("identity.localId", { id: mapping.localTagId })}</p><p>{t("names.external", { names: mapping.legacy.external.map((name) => `danbooru:${name}`).join(t("separator")) || t("none") })}</p></details>
     </th>
-    <td><span className="k-parts"><span>{shared ? nameOf(shared, lang) : "未命名标签"}</span><small>{basis[mapping.basis]}</small></span><details><summary>详情</summary><p>编号：{mapping.catalogId}</p><p>外部对应：{shared?.external.map((e) => `${e.vocabulary}:${e.name}`).join("、") || "无"}</p></details></td>
-    <td><Select label={`纠正 ${library?.name ?? "未打开的图库"} 的 ${localName(mapping, lang)} 对应`} value={target} disabled={busy} onChange={setTarget}
-      options={[...choices.map(({ tag, label }) => ({ value: tag.id, label })), { value: "separate", label: "拆成独立标签" }]} /><button type="button" className="k-btn is-sm" disabled={busy || target === mapping.catalogId} onClick={() => onSave(target)}><span className="k-label">保存对应</span></button></td>
+    <td><span className="k-parts"><span>{shared ? nameOf(shared, lang) : i18n.t("tags:unnamed")}</span><small>{t(`identity.basis.${mapping.basis}`)}</small></span><details><summary>{t("details")}</summary><p>{t("identity.catalogId", { id: mapping.catalogId })}</p><p>{t("names.external", { names: shared?.external.map((e) => `${e.vocabulary}:${e.name}`).join(t("separator")) || t("none") })}</p></details></td>
+    <td><Select label={t("identity.correctLabel", { library: library?.name ?? t("libraryClosed"), name: localName(mapping, lang) })} value={target} disabled={busy} onChange={setTarget}
+      options={[...choices.map(({ tag, label }) => ({ value: tag.id, label })), { value: "separate", label: t("identity.separate") }]} /><button type="button" className="k-btn is-sm" disabled={busy || target === mapping.catalogId} onClick={() => onSave(target)}><span className="k-label">{t("identity.save")}</span></button></td>
   </tr>;
 }

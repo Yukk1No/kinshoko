@@ -20,8 +20,8 @@ export const DEFAULT_TAG_DISPLAY: TagDisplay = { style: "bands", high: 0.8, low:
 /** 阈值哪里不合要求；没问题时返回 null。核心按同样的规则拒绝保存。 */
 export function thresholdProblem({ high, low }: ConfidenceThresholds): string | null {
   const inRange = (value: number) => value >= 0 && value <= 1;
-  if (!inRange(high) || !inRange(low)) return "阈值要在 0 到 1 之间";
-  if (low >= high) return "低档上限要小于高档下限";
+  if (!inRange(high) || !inRange(low)) return i18n.t("tagSettings:appearance.outOfRange");
+  if (low >= high) return i18n.t("tagSettings:appearance.lowAboveHigh");
   return null;
 }
 
