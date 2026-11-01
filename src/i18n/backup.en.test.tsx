@@ -24,7 +24,7 @@ const settle = () => act(async () => { for (let i = 0; i < 8; i++) await Promise
 const at = { unixMs: 1_791_158_400_000, offsetMinutes: 480 };
 const status: BackupStatus = {
   plan: { target: "E:/backup", selection: { kind: "libraries", ids: ["A"], includeLinked: true }, lastSuccess: at, lastSnapshot: "s1",
-    lastFailure: { at, reason: "drive missing" }, due: false },
+    lastFailure: { at, reason: "drive missing", targetUnavailable: false }, due: false },
   running: null,
   lastReport: null,
 };
