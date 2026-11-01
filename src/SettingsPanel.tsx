@@ -1,5 +1,6 @@
 import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
+import { useTranslation } from "react-i18next";
 import { Activity, Archive, FileText, Keyboard, Layers, Monitor, MousePointerClick, Pin, Power, RefreshCw, Scaling, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { SafeModeScope } from "./bindings/SafeModeScope";
@@ -26,12 +27,6 @@ import { SealLock } from "./ui/SealLock";
 import { UI_SCALE_LEVELS } from "./shell/uiScale";
 import { Select } from "./ui/Select";
 
-const ACTION_LABELS: Record<ShortcutAction, string> = {
-  capture: "截图",
-  pinClipboard: "钉剪贴板",
-  hideAllPins: "收起钉图",
-};
-
 const MODIFIER_KEYS = new Set(["Control", "Alt", "Shift", "Meta", "OS"]);
 
 /**
@@ -55,32 +50,30 @@ export function Keys({ accelerator }: { accelerator: string }) {
     <kbd key={index} className="k-key" aria-hidden="true">{key.replace(/^Key(?=[A-Z]$)/, "").replace(/^Digit(?=\d$)/, "")}</kbd>)}</span>;
 }
 
-/** 查看器里的固定操作（#179）：缩放、平移、框选、换图、详情侧栏与返回。 */
-const VIEWER_KEYS: [string, string][] = [
-  ["缩放", "滚轮"], ["平移", "拖动"], ["框选局部", "Shift+拖动"], ["进入框选", "F1"], ["上一张", "←"], ["下一张", "→"],
-  ["适应窗口", "0"], ["原始像素", "1"], ["钉住整图", "P"], ["显示或隐藏详情", "I"], ["返回图片墙", "Esc"],
+/** 查看器里的固定操作（#179）：缩放、平移、框选、换图、详情侧栏与返回。按键是滚轮、拖动这类操作时写它的键名。 */
+type ViewerKeyWord = "wheel" | "drag" | "shiftDrag";
+const VIEWER_KEYS: [action: string, keys: string | { word: ViewerKeyWord }][] = [
+  ["zoom", { word: "wheel" }], ["pan", { word: "drag" }], ["crop", { word: "shiftDrag" }], ["cropMode", "F1"], ["previous", "←"], ["next", "→"],
+  ["fit", "0"], ["actual", "1"], ["pin", "P"], ["details", "I"], ["back", "Esc"],
 ];
 
 export type SettingsTab = "general" | "keys" | "tags" | "tagging" | "backup" | "safety" | "update" | "diag";
-const TABS: { value: SettingsTab; name: string; icon: ReactNode }[] = [
-  { value: "general", name: "通用", icon: <Settings2 size={15} aria-hidden="true" /> },
-  { value: "keys", name: "快捷键", icon: <Keyboard size={15} aria-hidden="true" /> },
-  { value: "tags", name: "标签", icon: <Tags size={15} aria-hidden="true" /> },
-  { value: "tagging", name: "自动标签", icon: <Sparkles size={15} aria-hidden="true" /> },
-  { value: "backup", name: "备份", icon: <Archive size={15} aria-hidden="true" /> },
-  { value: "safety", name: "安全", icon: <ShieldCheck size={15} aria-hidden="true" /> },
-  { value: "update", name: "更新", icon: <RefreshCw size={15} aria-hidden="true" /> },
-  { value: "diag", name: "诊断", icon: <Activity size={15} aria-hidden="true" /> },
+const TABS: { value: SettingsTab; icon: ReactNode }[] = [
+  { value: "general", icon: <Settings2 size={15} aria-hidden="true" /> },
+  { value: "keys", icon: <Keyboard size={15} aria-hidden="true" /> },
+  { value: "tags", icon: <Tags size={15} aria-hidden="true" /> },
+  { value: "tagging", icon: <Sparkles size={15} aria-hidden="true" /> },
+  { value: "backup", icon: <Archive size={15} aria-hidden="true" /> },
+  { value: "safety", icon: <ShieldCheck size={15} aria-hidden="true" /> },
+  { value: "update", icon: <RefreshCw size={15} aria-hidden="true" /> },
+  { value: "diag", icon: <Activity size={15} aria-hidden="true" /> },
 ];
 
 type TagView = "names" | "groups" | "approx" | "mapping" | "appearance";
+const TAG_VIEWS: TagView[] = ["names", "groups", "approx", "mapping", "appearance"];
 
 /** 安全模式范围（#223）的三档，从宽到严；名称与人工分级界面的分级名一致。 */
-const SAFE_MODE_SCOPES: { value: SafeModeScope; label: string }[] = [
-  { value: "sensitive", label: "轻度及以上" },
-  { value: "questionable", label: "敏感及以上" },
-  { value: "explicit", label: "仅成人" },
-];
+const SAFE_MODE_SCOPES: SafeModeScope[] = ["sensitive", "questionable", "explicit"];
 
 type Props = {
   onRestored?: () => void;
@@ -111,6 +104,7 @@ type Props = {
  * 每项一行：图标 · 名称 · 一句描述 · 右侧控件。行为与原来的各节相同，只是重新归位。
  */
 export function SettingsPanel({ settings: shared, onChange, onRestored, library, initialTab = "general", initialTagFocus, version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale }: Props) {
+  const { t } = useTranslation("settings");
   const settings = useShellSettings(shared, onChange);
   const { view, loadError, error, generation: settingsGeneration } = settings;
   const setError = settings.showError;
@@ -137,12 +131,12 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, library,
   }
 
   if (view === null) {
-    return <section className="k-settings is-loading" aria-label="设置">
+    return <section className="k-settings is-loading" aria-label={t("label")}>
       {loadError === null
-        ? <p className="k-set-note" role="status">正在读取设置…</p>
+        ? <p className="k-set-note" role="status">{t("loading")}</p>
         : <div className="k-set-load-error">
-          <p className="k-set-error" role="alert">设置没读出来：{loadError}</p>
-          <button type="button" className="k-btn" onClick={settings.retryLoad}><span className="k-label">重试</span></button>
+          <p className="k-set-error" role="alert">{t("loadFailed", { error: loadError })}</p>
+          <button type="button" className="k-btn" onClick={settings.retryLoad}><span className="k-label">{t("retry")}</span></button>
         </div>}
     </section>;
   }
@@ -152,74 +146,72 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, library,
     return restored;
   };
   const page = (value: SettingsTab, children: ReactNode) => {
-    const meta = TABS.find((entry) => entry.value === value)!;
     return <Tabs.Panel value={value} className="k-set-page">
-      <h3 className="k-set-title">{meta.name}</h3>
+      <h3 className="k-set-title">{t(`tab.${value}`)}</h3>
       {error !== null && <p className="k-set-error" role="alert">{error}</p>}
       {children}
     </Tabs.Panel>;
   };
 
   return (
-    <section className="k-settings" aria-label="设置">
+    <section className="k-settings" aria-label={t("label")}>
       <Tabs.Root value={tab} onValueChange={(next) => { setTab(next as SettingsTab); setRecording(null); setError(null); }} orientation="vertical" className="k-set-body">
         <nav className="k-set-nav">
-          <h2 className="k-set-heading">设置</h2>
-          <Tabs.List className="k-set-tabs" aria-label="设置分页">
-            {TABS.map((entry) => <Tabs.Tab key={entry.value} value={entry.value} className="k-set-tab">{entry.icon}<span className="k-label">{entry.name}</span></Tabs.Tab>)}
+          <h2 className="k-set-heading">{t("heading")}</h2>
+          <Tabs.List className="k-set-tabs" aria-label={t("tabsLabel")}>
+            {TABS.map((entry) => <Tabs.Tab key={entry.value} value={entry.value} className="k-set-tab">{entry.icon}<span className="k-label">{t(`tab.${entry.value}`)}</span></Tabs.Tab>)}
           </Tabs.List>
           <span className="k-grow" />
           {version && <p className="k-set-version">{version}</p>}
         </nav>
         <div className="k-set-main">
           {page("general", <>
-            <SettingsGroup label="通用">
-              <SettingsRow icon={<Power size={16} />} title="开机启动" hint="在托盘里待命">
-                <Switch label="开机启动" checked={view.autostart} onCheckedChange={(on) => void apply({ kind: "autostart", on })} />
+            <SettingsGroup label={t("general.group")}>
+              <SettingsRow icon={<Power size={16} />} title={t("general.autostart")} hint={t("general.autostartHint")}>
+                <Switch label={t("general.autostart")} checked={view.autostart} onCheckedChange={(on) => void apply({ kind: "autostart", on })} />
               </SettingsRow>
-              {uiScale !== undefined && onUiScale && <SettingsRow icon={<Scaling size={16} />} title="界面缩放" hint="只放大主窗口，钉图和截图不变">
-                <Select label="界面缩放" value={String(uiScale)} onChange={(value) => onUiScale(Number(value))}
+              {uiScale !== undefined && onUiScale && <SettingsRow icon={<Scaling size={16} />} title={t("general.uiScale")} hint={t("general.uiScaleHint")}>
+                <Select label={t("general.uiScale")} value={String(uiScale)} onChange={(value) => onUiScale(Number(value))}
                   options={UI_SCALE_LEVELS.map((percent) => ({ value: String(percent), label: `${percent}%` }))} />
               </SettingsRow>}
             </SettingsGroup>
-            <SettingsGroup label="桌面钉图">
-              <SettingsRow icon={<Pin size={16} />} title="增强钉图边缘" hint="阴影外加一圈浅色细线，深色画布上更好分辨">
-                <Switch label="增强钉图边缘" checked={view.pinEdgeContrast} onCheckedChange={(on) => void apply({ kind: "pinEdgeContrast", on })} />
+            <SettingsGroup label={t("general.pinsGroup")}>
+              <SettingsRow icon={<Pin size={16} />} title={t("general.pinEdge")} hint={t("general.pinEdgeHint")}>
+                <Switch label={t("general.pinEdge")} checked={view.pinEdgeContrast} onCheckedChange={(on) => void apply({ kind: "pinEdgeContrast", on })} />
               </SettingsRow>
             </SettingsGroup>
           </>)}
-          {page("keys", <><SettingsGroup label="快捷键">
+          {page("keys", <><SettingsGroup label={t("keys.group")}>
             {view.shortcuts.map((binding: ShortcutBinding) => {
-              const label = ACTION_LABELS[binding.action];
+              const label = t(`keys.action.${binding.action}`);
               const isRecording = recording === binding.action;
               return <SettingsRow key={binding.action} label={label} title={label} className={isRecording ? "is-recording" : ""}
-                warn={binding.problem !== null && `未注册：${hotkeyFailureText(binding.problem)}`}>
+                warn={binding.problem !== null && t("keys.notRegistered", { reason: hotkeyFailureText(binding.problem) })}>
                 {isRecording ? <>
-                  <input className="k-key-recorder" aria-label="按下新的组合键" placeholder="按下新的组合键…" autoFocus readOnly
+                  <input className="k-key-recorder" aria-label={t("keys.record")} placeholder={t("keys.recordPlaceholder")} autoFocus readOnly
                     onKeyDown={(e) => onRecordKey(binding.action, e)} onBlur={() => setRecording(null)} />
-                  <button type="button" className="k-btn is-sm" onMouseDown={(e) => e.preventDefault()} onClick={() => setRecording(null)}><span className="k-label">取消</span></button>
+                  <button type="button" className="k-btn is-sm" onMouseDown={(e) => e.preventDefault()} onClick={() => setRecording(null)}><span className="k-label">{t("keys.cancel")}</span></button>
                 </> : <>
-                  {binding.accelerator === null ? <span className="k-set-muted">未设置</span> : <Keys accelerator={binding.accelerator} />}
+                  {binding.accelerator === null ? <span className="k-set-muted">{t("keys.unset")}</span> : <Keys accelerator={binding.accelerator} />}
                   {binding.accelerator !== null && <button type="button" className="k-btn is-sm is-quiet"
-                    onClick={() => void apply({ kind: "shortcut", action: binding.action, accelerator: null })}><span className="k-label">清除</span></button>}
-                  <button type="button" className="k-btn is-sm" onClick={() => setRecording(binding.action)}><span className="k-label">{binding.accelerator === null ? "设置" : "更换"}</span></button>
+                    onClick={() => void apply({ kind: "shortcut", action: binding.action, accelerator: null })}><span className="k-label">{t("keys.clear")}</span></button>}
+                  <button type="button" className="k-btn is-sm" onClick={() => setRecording(binding.action)}><span className="k-label">{binding.accelerator === null ? t("keys.set") : t("keys.change")}</span></button>
                 </>}
               </SettingsRow>;
             })}
-            <SettingsRow label="安全模式" title="安全模式" hint="固定按键，在主窗口里用"><Keys accelerator="Ctrl+Shift+S" /></SettingsRow>
-            <SettingsRow label="放大界面" title="放大界面" hint="固定按键，在主窗口里用"><Keys accelerator="Ctrl+=" /></SettingsRow>
-            <SettingsRow label="缩小界面" title="缩小界面" hint="固定按键，在主窗口里用"><Keys accelerator="Ctrl+-" /></SettingsRow>
-            <SettingsRow label="界面复位到 100%" title="界面复位到 100%" hint="固定按键，在主窗口里用"><Keys accelerator="Ctrl+0" /></SettingsRow>
+            {([["safeMode", "Ctrl+Shift+S"], ["zoomIn", "Ctrl+="], ["zoomOut", "Ctrl+-"], ["zoomReset", "Ctrl+0"]] as const).map(([action, keys]) =>
+              <SettingsRow key={action} label={t(`keys.${action}`)} title={t(`keys.${action}`)} hint={t("keys.fixedHint")}><Keys accelerator={keys} /></SettingsRow>)}
           </SettingsGroup>
           {/* 查看器的操作提示（#179，原在查看器的信息浮层里）。 */}
-          <SettingsGroup label="查看器">
-            {VIEWER_KEYS.map(([title, keys]) => <SettingsRow key={title} label={title} title={title}><Keys accelerator={keys} /></SettingsRow>)}
+          <SettingsGroup label={t("keys.viewerGroup")}>
+            {VIEWER_KEYS.map(([action, keys]) => {
+              const title = t(`keys.viewer.${action}` as "keys.viewer.zoom");
+              return <SettingsRow key={action} label={title} title={title}><Keys accelerator={typeof keys === "string" ? keys : t(`keys.key.${keys.word}`)} /></SettingsRow>;
+            })}
           </SettingsGroup></>)}
           {page("tags", <>
-            <Segmented<TagView> className="k-set-seg" label="标签设置" value={tagView} onChange={setTagView} options={[
-              { value: "names", label: "显示名" }, { value: "groups", label: "分组" }, { value: "approx", label: "相近" }, { value: "mapping", label: "对应" },
-              { value: "appearance", label: "外观" },
-            ]} />
+            <Segmented<TagView> className="k-set-seg" label={t("tags.viewLabel")} value={tagView} onChange={setTagView}
+              options={TAG_VIEWS.map((value) => ({ value, label: t(`tags.view.${value}`) }))} />
             {tagView === "appearance" && <TagDisplaySettings key={`appearance/${settingsGeneration}`} display={settings.tagDisplay} onChange={settings.changeTagDisplay} />}
             {tagView === "names" && <>
               <TagNamePanel key={`names/${settingsGeneration}`} focus={initialTagFocus} />
@@ -227,9 +219,9 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, library,
             </>}
             {tagView === "groups" && <SharedTagGroupsSettings key={`groups/${settingsGeneration}`} onError={(e) => setError(errorText(e))} />}
             {tagView === "approx" && <>
-              <SettingsGroup label="相近标签">
-                <SettingsRow icon={<Tags size={16} />} title="标出来源" hint="相近标签旁注明内置或个人">
-                  <Switch label="标出来源" checked={view.showApproxSource} onCheckedChange={(on) => void apply({ kind: "showApproxSource", on })} />
+              <SettingsGroup label={t("tags.approxGroup")}>
+                <SettingsRow icon={<Tags size={16} />} title={t("tags.showSource")} hint={t("tags.showSourceHint")}>
+                  <Switch label={t("tags.showSource")} checked={view.showApproxSource} onCheckedChange={(on) => void apply({ kind: "showApproxSource", on })} />
                 </SettingsRow>
               </SettingsGroup>
               <SharedPersonalApproxSettings key={`approx/${settingsGeneration}`} onError={(e) => setError(errorText(e))} />
@@ -241,42 +233,42 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, library,
             <BackupSettings />
             <ApplicationSettingsBackup restore={restore} />
           </>)}
-          {page("safety", <SettingsGroup label="安全">
-            <SettingsRow icon={<SealLock size={10} />} title="安全模式" hint="隐藏范围内的图，钉图里模糊">
+          {page("safety", <SettingsGroup label={t("safety.group")}>
+            <SettingsRow icon={<SealLock size={10} />} title={t("safety.safeMode")} hint={t("safety.safeModeHint")}>
               <Keys accelerator="Ctrl+Shift+S" />
-              {safe !== undefined && onSafeMode && <Switch label="安全模式" checked={safe} onCheckedChange={(on) => { if (on !== safe) onSafeMode(); }} />}
+              {safe !== undefined && onSafeMode && <Switch label={t("safety.safeMode")} checked={safe} onCheckedChange={(on) => { if (on !== safe) onSafeMode(); }} />}
             </SettingsRow>
-            <SettingsRow icon={<Layers size={16} />} title="安全模式范围" hint="从哪一档分级开始隐藏；还没分级的图照常显示，查找里的“R18”指范围内的各档">
-              <Segmented<SafeModeScope> label="安全模式范围" value={view.safeModeScope ?? "questionable"}
-                onChange={(scope) => void apply({ kind: "safeModeScope", scope })} options={SAFE_MODE_SCOPES} />
+            <SettingsRow icon={<Layers size={16} />} title={t("safety.scope")} hint={t("safety.scopeHint")}>
+              <Segmented<SafeModeScope> label={t("safety.scope")} value={view.safeModeScope ?? "questionable"}
+                onChange={(scope) => void apply({ kind: "safeModeScope", scope })} options={SAFE_MODE_SCOPES.map((value) => ({ value, label: t(`safety.scopeOption.${value}`) }))} />
             </SettingsRow>
-            <SettingsRow icon={<MousePointerClick size={16} />} title="切换时保留选择" hint="选中的图和详情面板保持打开">
-              <Switch label="切换时保留选择" checked={view.keepSelectionOnSafeMode ?? false} onCheckedChange={(on) => void apply({ kind: "keepSelectionOnSafeMode", on })} />
+            <SettingsRow icon={<MousePointerClick size={16} />} title={t("safety.keepSelection")} hint={t("safety.keepSelectionHint")}>
+              <Switch label={t("safety.keepSelection")} checked={view.keepSelectionOnSafeMode ?? false} onCheckedChange={(on) => void apply({ kind: "keepSelectionOnSafeMode", on })} />
             </SettingsRow>
-            <SettingsRow icon={<ShieldCheck size={16} />} title="参考组与钉图" hint="原位模糊，点一下单张解开">
-              <StatusPill tone={safe === false ? "plain" : "ok"}>{safe === false ? "未开启" : "已开启"}</StatusPill>
+            <SettingsRow icon={<ShieldCheck size={16} />} title={t("safety.groupsAndPins")} hint={t("safety.groupsAndPinsHint")}>
+              <StatusPill tone={safe === false ? "plain" : "ok"}>{safe === false ? t("safety.off") : t("safety.on")}</StatusPill>
             </SettingsRow>
           </SettingsGroup>)}
           {page("update", <UpdateSection version={version ?? null} channel={view.updateChannel} onChannel={(channel) => apply({ kind: "updateChannel", channel })} />)}
           {page("diag", <>
             <RuntimeDetails />
-            <SettingsGroup label="信息">
-              <SettingsRow icon={<FileText size={16} />} title="诊断信息" hint="不含图片和文件名"
+            <SettingsGroup label={t("diag.group")}>
+              <SettingsRow icon={<FileText size={16} />} title={t("diag.report")} hint={t("diag.reportHint")}
                 below={<>
-                  <p className="k-set-note">存成文件时附上最近 7 天的运行日志，打包成一个 zip，由你决定要不要发出去。</p>
-                  {diagnostics.text !== null && <pre className="settings-diagnostics" aria-label="诊断信息">{diagnostics.text}</pre>}
+                  <p className="k-set-note">{t("diag.reportNote")}</p>
+                  {diagnostics.text !== null && <pre className="settings-diagnostics" aria-label={t("diag.report")}>{diagnostics.text}</pre>}
                 </>}>
-                <button type="button" className="k-btn is-sm" onClick={diagnostics.show}><span className="k-label">查看</span></button>
-                <button type="button" className="k-btn is-sm" onClick={diagnostics.save}><span className="k-label">存成文件…</span></button>
+                <button type="button" className="k-btn is-sm" onClick={diagnostics.show}><span className="k-label">{t("diag.show")}</span></button>
+                <button type="button" className="k-btn is-sm" onClick={diagnostics.save}><span className="k-label">{t("diag.save")}</span></button>
               </SettingsRow>
-              <SettingsRow icon={<Activity size={16} />} title="运行日志" hint="只存本机，不上传"
-                below={<p className="k-set-note">记下出错和截图、钉图、自动标签的时间点，帮开发者排查问题；不记文件名、路径、标签与图片。最多留 7 天、20 MB。
-                  <button type="button" className="k-link" onClick={() => void clearRunLog().catch((e) => setError(errorText(e)))}>清除日志</button></p>}>
-                <Switch label="运行日志" checked={view.runLog} onCheckedChange={(on) => void apply({ kind: "runLog", on })} />
+              <SettingsRow icon={<Activity size={16} />} title={t("diag.runLog")} hint={t("diag.runLogHint")}
+                below={<p className="k-set-note">{t("diag.runLogNote")}
+                  <button type="button" className="k-link" onClick={() => void clearRunLog().catch((e) => setError(errorText(e)))}>{t("diag.clearRunLog")}</button></p>}>
+                <Switch label={t("diag.runLog")} checked={view.runLog} onCheckedChange={(on) => void apply({ kind: "runLog", on })} />
               </SettingsRow>
-              <SettingsRow icon={<Monitor size={16} />} title="按 sRGB 显示" hint="排查偏色时打开"
-                warn={view.forceSrgb !== view.forceSrgbInEffect && "从托盘退出并重启 Kinshoko 后生效。"}>
-                <Switch label="按 sRGB 显示" checked={view.forceSrgb} onCheckedChange={(on) => void apply({ kind: "forceSrgb", on })} />
+              <SettingsRow icon={<Monitor size={16} />} title={t("diag.srgb")} hint={t("diag.srgbHint")}
+                warn={view.forceSrgb !== view.forceSrgbInEffect && t("diag.restartNeeded")}>
+                <Switch label={t("diag.srgb")} checked={view.forceSrgb} onCheckedChange={(on) => void apply({ kind: "forceSrgb", on })} />
               </SettingsRow>
             </SettingsGroup>
           </>)}
