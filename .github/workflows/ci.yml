@@ -167,13 +167,12 @@ jobs:
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
           ./actionlint -color
 
-  # 界面文字应放进 i18n 资源（#359）。文案还没抽完，先只出警告；全部抽完后把
-  # KINSHOKO_HARDCODED_TEXT_MODE 改成 fail，有命中即失败。
+  # 界面文字应放进 i18n 资源（#359）：有命中即失败。PR 里这次新增的行排在最前面。
   hardcoded-text:
     name: 写死的界面文字
     runs-on: ubuntu-latest
     env:
-      KINSHOKO_HARDCODED_TEXT_MODE: warn
+      KINSHOKO_HARDCODED_TEXT_MODE: fail
     steps:
       # PR 检出的是与 base 的合并提交，要它的第一个父提交（base 一侧）来找出这次新增的行。
       - uses: actions/checkout@v4
