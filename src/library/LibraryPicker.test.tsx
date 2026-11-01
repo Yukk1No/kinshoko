@@ -10,7 +10,7 @@ import { LibraryPicker } from "./LibraryPicker";
 
 const opened = { id: "L1", name: "工作参考", root: "D:\\参考" };
 const restored = { id: "R1", name: "同名资料库（恢复）", root: "D:\\synthetic-t20\\恢复\\A" };
-let registered: { library: typeof restored; unavailable: string | null }[];
+let registered: { library: typeof restored; unavailable: import("../bindings/CommandError").CommandError | null }[];
 let reads: number;
 
 beforeEach(() => {
@@ -46,7 +46,7 @@ it("其他入口登记的新资料库随工作区变化出现在“管理图库�
   await act(async () => {});
   expect(within(dialog).queryByText("同名资料库（恢复）")).toBeNull();
 
-  registered = [...registered, { library: restored, unavailable: "移动盘没插" }];
+  registered = [...registered, { library: restored, unavailable: { code: "system" as const, detail: "移动盘没插" } }];
   const before = reads;
   await act(async () => { await emit("workspace-changed", { revision: "r2", libraries: structuredClone(registered) }); });
   await act(async () => {});

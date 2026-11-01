@@ -12,6 +12,7 @@ use serde::Serialize;
 use crate::backup::BackupError;
 use crate::desktop::{CaptureError, HistoryError, PinError};
 use crate::reference_groups::{GroupError, UnavailableReason};
+use crate::subscription::StoreError;
 use crate::tag_catalog::CatalogError;
 use crate::{
     DeviceLibraryError, SettingsError, ShortcutError, UiScaleError, WriterWaitError, library,
@@ -134,6 +135,7 @@ from_domain_error!(
     CaptureError,
     HistoryError,
     PinError,
+    StoreError,
 );
 
 impl<E: Into<ErrorKind> + fmt::Display> From<WriterWaitError<E>> for CommandError {

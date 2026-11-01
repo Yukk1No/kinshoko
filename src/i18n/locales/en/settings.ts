@@ -120,6 +120,11 @@ const settings: Translation<typeof zh> = {
     report: "Diagnostic information",
     noticeLabel: "Runtime notice",
     failed: "Runtime check didn't pass",
+    problem: {
+      decodeMissing: "This WebView2 lacks the image decoding interface (HTMLImageElement.decode), so reference images can't be shown.",
+      decodeFailed: "This WebView2 couldn't decode the built-in PNG sample, so it's not confirmed that reference images can be shown.",
+      decodeTimedOut: "Decoding the built-in PNG sample timed out, so it's not confirmed that reference images can be shown.",
+    },
     advice: "After updating WebView2, quit Kinshoko from the tray and restart it. If the problem continues, save the diagnostic information.",
     download: "Open Microsoft's WebView2 download page",
     recheck: "Check again",

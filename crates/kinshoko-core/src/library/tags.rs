@@ -58,7 +58,7 @@ impl TagNamespace {
             other => {
                 return Err(rusqlite::Error::InvalidColumnType(
                     0,
-                    format!("未知的标签命名空间 {other}"),
+                    format!("unknown tag namespace {other}"),
                     rusqlite::types::Type::Text,
                 ));
             }

@@ -79,7 +79,7 @@ pub(super) fn publish_saved<R: Runtime>(
         )
     })
 }
-fn complete<R: Runtime>(app: &AppHandle<R>, owner: &str, id: &str, warning: Option<String>) {
+fn complete<R: Runtime>(app: &AppHandle<R>, owner: &str, id: &str, warning: Option<CommandError>) {
     let state = app.state::<LibraryState>();
     if let Err(error) = with_libraries(&state, |device| {
         device.complete_import_publication(owner, id, warning)
@@ -110,9 +110,7 @@ pub(super) fn begin<R: Runtime>(
                 if let LibraryEvent::TaskFinished { task_id: id, .. } = event
                     && id == task_id
                 {
-                    let warning = publish_saved(&worker, &library)
-                        .err()
-                        .map(|e| e.to_string());
+                    let warning = publish_saved(&worker, &library).err();
                     complete(&worker, &library.info().id, &task_id, warning);
                     break;
                 }
@@ -124,8 +122,14 @@ pub(super) fn begin<R: Runtime>(
             app,
             &destination.library_id,
             &id,
-            Some(format!(
-                "导入任务已启动，标签定义发布未启动：{error}。内容处理完毕后，可在统一标签目录重试保存定义。"
+            Some(CommandError::caused_by(
+                error,
+                |cause| ErrorKind::ImportPublicationNotStarted { cause },
+                |error| {
+                    format!(
+                        "导入任务已启动，标签定义发布未启动：{error}。内容处理完毕后，可在统一标签目录重试保存定义。"
+                    )
+                },
             )),
         );
     }

@@ -126,7 +126,7 @@ pub(super) fn appearance(app: &AppHandle, pin: &SavedPin) -> (bool, Option<Strin
             ..
         } => match crate::library::with_references(app, |refs| refs.image(library_id, image_id)) {
             Ok(image) => (Some(image.sealed), None),
-            Err(reason) => (None, Some(reason.to_string())),
+            Err(reason) => (None, Some(crate::ui_text::unavailable(&reason))),
         },
         PinContent::Capture { .. } => (Some(false), None),
     };

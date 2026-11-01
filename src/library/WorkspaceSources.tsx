@@ -1,5 +1,6 @@
 import type { WorkspaceSource } from "../bindings/WorkspaceSource";
 import { useTranslation } from "react-i18next";
+import { describeCommandError } from "../ipc/commandError";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { WorkspaceSourceEditor } from "./WorkspaceSourceEditor";
 import { Segmented } from "../ui/Segmented";
@@ -38,7 +39,7 @@ export function WorkspaceSources({ card, onClose, onView, safe = true, reloadKey
         <span className="workspace-source-state">{source.deleted ? t("trash") : source.matches ? t("matches") : t("notMatches")}</span>
       </div>
       {root(source.libraryId) && <span className="workspace-source-path" title={root(source.libraryId)}>{hint(source.libraryId)}</span>}
-      {source.unavailable ? <p className="insp-hint" role="status">{source.unavailable}</p> :
+      {source.unavailable ? <p className="insp-hint" role="status">{describeCommandError(source.unavailable)}</p> :
         <div className="selection-actions"><button type="button" className="k-btn is-sm" onClick={() => setEditing(source)}><span className="k-label">{t("organize")}</span></button>
         <button type="button" className="k-btn is-sm" onClick={() => { onClose(); onView({ ...card, libraryId: source.libraryId, imageId: source.imageId }); }}><span className="k-label">{t("view")}</span></button></div>}
     </li>)}</ul>}

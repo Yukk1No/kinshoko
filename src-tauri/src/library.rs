@@ -195,7 +195,7 @@ fn mapping_safe_mode_changed() -> CommandError {
     )
 }
 
-fn groups_not_ready() -> CommandError {
+pub(crate) fn groups_not_ready() -> CommandError {
     CommandError::new(ErrorKind::ReferenceGroupsNotReady, "参考组还没有准备好")
 }
 

@@ -8,6 +8,7 @@ import { dismissImport, importTasks, isCursorExpired, onSafeModeSetting, onWorks
 import { destinationAvailable, folderChoices, SaveDestinationPicker, useSaveDestination } from "./SaveDestination";
 import { Select } from "../ui/Select";
 import { useTranslation } from "react-i18next";
+import { describeCommandError } from "../ipc/commandError";
 
 const POLL_MIN=400,POLL_MAX=3200;
 
@@ -74,8 +75,8 @@ export function ImportMenu({control,...p}:ComponentProps<typeof ImportBar>&{scop
    progress:p.running?.taskId===selected.taskId?p.running.progress:selected.progress}:undefined;
  // 主窗口只收当前图库的导入事件：导入到别的图库时它记下的“进行中”不会结束。已关闭的回执不再借它复活（#98 本机 r14）。
  const fallbackRunning=p.running&&!(p.running.taskId&&dismissed.current.has(p.running.taskId))?p.running:null;
- const running=task&&(task.report===null||task.finishing)?{taskId:task.taskId,progress:task.progress,libraryId:task.destination.libraryId,destination:task.destination,libraryName:task.libraryName,folderName:task.folderName}:task?null:fallbackRunning;
- const finished=task?.report&&!task.finishing?{taskId:task.taskId,report:task.report,libraryId:task.destination.libraryId,destination:task.destination,libraryName:task.libraryName,folderName:task.folderName}:task?null:p.finished?{...p.finished,report:concealSuccesses(p.finished.report)}:null;
+ const running=task&&(task.report===null||task.finishing)?{taskId:task.taskId,progress:task.progress,libraryId:task.destination.libraryId,destination:task.destination,libraryName:task.libraryName,folderName:task.folderName??undefined}:task?null:fallbackRunning;
+ const finished=task?.report&&!task.finishing?{taskId:task.taskId,report:task.report,libraryId:task.destination.libraryId,destination:task.destination,libraryName:task.libraryName,folderName:task.folderName??undefined}:task?null:p.finished?{...p.finished,report:concealSuccesses(p.finished.report)}:null;
  const active=running!==null;
  const library=context.providers.find(provider=>provider.registration.library.id===context.destination?.libraryId)?.registration.library;
  // 在文件夹里浏览时，导入默认放进这个文件夹（与原来的导入按钮相同）。
@@ -90,25 +91,26 @@ export function ImportMenu({control,...p}:ComponentProps<typeof ImportBar>&{scop
   prefill();actions.current?.paths([path]);
  };
  useImperativeHandle(control,()=>({files:()=>{if(!blocked)via("files")();},folder:()=>{if(!blocked)via("folder")();},eagle:()=>{if(!blocked)eagle();},clipboard}));
+ const warnings=task?.warnings.map(describeCommandError);
  const notes=<>
   {problem&&<p className="k-task-sub is-danger" role="alert">{problem}</p>}
   {task?.report&&task.finishing&&<p className="k-task-sub" role="status">{t("finishing")}</p>}
-  {task?.warnings.map((warning,index)=><p className="k-task-sub is-warn" role="alert" key={index}>{warning}</p>)}
+  {warnings?.map((warning,index)=><p className="k-task-sub is-warn" role="alert" key={index}>{warning}</p>)}
  </>;
  const switcher=tasks.length>1?<div className="k-task-switch">{t("tasks")}<Select label={t("tasks")} value={task?.taskId??""} onChange={setSelectedTask}
-  options={tasks.map(entry=>({value:entry.taskId,label:t("taskOption",{owner:t("owner",{library:entry.libraryName,folder:entry.folderName}),state:t(entry.report?"taskFinished":"taskRunning")})}))}/></div>:null;
+  options={tasks.map(entry=>({value:entry.taskId,label:t("taskOption",{owner:t("owner",{library:entry.libraryName,folder:entry.folderName??t("unassigned")}),state:t(entry.report?"taskFinished":"taskRunning")})}))}/></div>:null;
  return <div className="import-menu">
   <ImportButton busy={busy.busy||active} eagleBusy={busy.eagle} onFiles={via("files")} onFolder={via("folder")} onEagle={eagle}
    onShowTasks={tasks.length>0||active||finished?()=>actions.current?.showTasks():undefined}/>
   <ImportBar {...p} actionsRef={actions} onBusyChange={onBusyChange} previewContextKey={p.libraryId} libraryId={context.destination?.libraryId??""} libraryName={library?.name??t("noLibraryChosen")}
     destination={context.destination} destinationReady={context.ready&&destinationAvailable(context.destination,context.providers)} running={running} finished={finished}
     picker={<SaveDestinationPicker value={context.destination} onChange={context.setDestination} putInLibrary/>}
-    taskSwitcher={switcher} cardNotes={notes} warnings={task?.warnings} onSelectTask={setSelectedTask} ownerLabel={task?t("owner",{library:task.libraryName,folder:task.folderName}):null}
+    taskSwitcher={switcher} cardNotes={notes} warnings={warnings} onSelectTask={setSelectedTask} ownerLabel={task?t("owner",{library:task.libraryName,folder:task.folderName??t("unassigned")}):null}
     onStarted={(id,fixed)=>{
       if(fixed){
         const provider=context.providers.find(p=>p.registration.library.id===fixed.libraryId);
         optimistic.current.set(id,{taskId:id,destination:fixed,libraryName:provider?.registration.library.name??fixed.libraryId,
-          folderName:fixed.folderId===null?t("unassigned"):folderChoices(provider?.sidebar?.folders??[]).find(f=>f.id===fixed.folderId)?.path??t("folderUnavailable"),progress:{done:0,total:0},report:null,finishing:false,warnings:[]});
+          folderName:fixed.folderId===null?null:folderChoices(provider?.sidebar?.folders??[]).find(f=>f.id===fixed.folderId)?.path??t("folderUnavailable"),progress:{done:0,total:0},report:null,finishing:false,warnings:[]});
         setTasks(previous=>previous.some(t=>t.taskId===id)?previous:[...previous,optimistic.current.get(id)!]);
       }
       setSelectedTask(id);p.onStarted(id,fixed);poke.current();

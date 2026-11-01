@@ -15,7 +15,7 @@ pub(super) fn parse_relation(s: &str) -> rusqlite::Result<ApproxRelation> {
         "notSimilar" => Ok(ApproxRelation::NotSimilar),
         other => Err(rusqlite::Error::InvalidColumnType(
             2,
-            format!("未知的近似判断 {other}"),
+            format!("unknown approximation relation {other}"),
             rusqlite::types::Type::Text,
         )),
     }

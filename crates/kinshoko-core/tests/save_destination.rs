@@ -440,7 +440,14 @@ fn publication_failure_stays_on_its_original_task_receipt_after_browsing_changes
         .complete_import_publication(
             &a.info().id,
             &task,
-            Some("内容已保存，资料库定义未更新，可在统一标签目录重试".into()),
+            Some(kinshoko_core::CommandError::new(
+                kinshoko_core::command_error::ErrorKind::ImportPublicationNotStarted {
+                    cause: Box::new(kinshoko_core::command_error::ErrorKind::System {
+                        detail: "spawn".into(),
+                    }),
+                },
+                "导入任务已启动，标签定义发布未启动",
+            )),
         )
         .unwrap();
     let receipt = device.import_task(&task).unwrap();

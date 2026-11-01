@@ -3,6 +3,9 @@ export default {
   registry: "无法保存本设备的资料库登记：{{detail}}",
   unknownLibrary: "本设备没有登记这个资料库",
   staleLibrary: "资料库已切换或关闭，请在当前资料库重新操作",
+  libraryReadOnly: "这个资料库现在只读打开，不能保存到这里",
+  destinationRevoked: "资料库已取消登记，保存目标不可用",
+  sourceOriginalMissing: "此来源的原图文件不可用，请连接原资料库",
   identityChanged: "{{root}} 已是另一个资料库，请选择正确位置重新登记",
   libraryUnavailable: "资料库暂时不可用：{{root}}。请确认移动盘已连接；资料库搬家后请选择新位置重新登记。原因：{{reason}}",
   organizeTimedOut: "{{libraries}}的导入一直没有收尾，这次整理没有执行，请稍后再试",
@@ -95,6 +98,9 @@ export default {
   artistNotFound: "找不到这位画师",
   alreadySubscribed: "已经订阅过了",
   subscriptionSource: "{{reason}}",
+  subscriptionStore: "订阅记录读写失败：{{detail}}",
+  subscriptionStoreUpgrade: "订阅记录升级失败：{{detail}}",
+  subscriptionUnknown: "没有这条订阅",
   /** 快捷键动作的名称，与设置里一致。 */
   shortcutAction: {
     capture: "截图",

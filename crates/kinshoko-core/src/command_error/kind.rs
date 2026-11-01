@@ -105,9 +105,10 @@ pub enum ErrorKind {
     IdentityChanged {
         root: String,
     },
+    /// 登记的资料库打不开；`reason` 是打不开的原因。
     LibraryUnavailable {
         root: String,
-        reason: String,
+        reason: Box<ErrorKind>,
     },
     /// 这些资料库的导入一直没有收尾，整理没有执行。
     OrganizeTimedOut {
@@ -220,6 +221,12 @@ pub enum ErrorKind {
     RestoredOriginalMismatch {
         file: String,
     },
+    /// 只读打开的资料库不能写入。
+    LibraryReadOnly,
+    /// 资料库已取消登记，保存目标不可用。
+    DestinationRevoked,
+    /// 此来源的原图文件不在，要连接原资料库。
+    SourceOriginalMissing,
     // 一次备份没能备份的部分（#359）：`name` 是参考组或资料库的名称。
     /// 这次备份不完整，`problems` 逐条列出。
     BackupProblems {
@@ -356,6 +363,14 @@ pub enum ErrorKind {
     SubscriptionSource {
         reason: crate::subscription::SourceError,
     },
+    /// 订阅记录读写或升级失败（`StoreError`）。
+    SubscriptionStore {
+        detail: String,
+    },
+    SubscriptionStoreUpgrade {
+        detail: String,
+    },
+    SubscriptionUnknown,
 
     // 截图与钉图（`CaptureError`、`HistoryError`、`PinError`）。
     EmptySelection,
@@ -445,6 +460,10 @@ pub enum ErrorKind {
         cause: Box<ErrorKind>,
     },
     SavedDefinitionsNotSaved {
+        cause: Box<ErrorKind>,
+    },
+    /// 导入任务已启动，但收尾发布标签定义的线程没能启动。
+    ImportPublicationNotStarted {
         cause: Box<ErrorKind>,
     },
 

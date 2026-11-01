@@ -67,7 +67,8 @@ export default {
   unknownFidelitySample: "Unknown sampling method: {{what}}",
   unavailable: {
     libraryNotRegistered: "This library isn't registered on this device",
-    libraryUnavailable: "The library is unavailable right now: {{detail}}",
+    libraryMissing: "There's no library at {{root}} (the removable drive isn't connected, or the library has moved)",
+    libraryUnavailable: "The library is unavailable right now: {{cause}}",
     imageMissing: "The reference image has been deleted from the library",
     originalMissing: "The original file is missing",
     captureMissing: "The capture file in the reference group is missing",

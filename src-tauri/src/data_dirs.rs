@@ -68,7 +68,10 @@ pub fn prepare() -> Result<AppData, String> {
         Err(e) => {
             return Err(ui_text::fill(
                 Text::DataMigrationFailed,
-                &[("error", &e.to_string())],
+                &[
+                    ("error", &e.source.to_string()),
+                    ("staging", &e.staging.display().to_string()),
+                ],
             ));
         }
     }

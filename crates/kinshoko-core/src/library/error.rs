@@ -1,7 +1,7 @@
 use std::fmt;
 use std::path::PathBuf;
 
-/// 资料库操作的错误。`Display` 是给画师看的中文说明。
+/// 资料库操作的错误。交给界面时转成错误代码，`Display` 是日志里的中文说明。
 #[derive(Debug)]
 pub enum Error {
     InvalidName,
@@ -64,6 +64,10 @@ pub enum Error {
     OriginalMissing(PathBuf),
     /// 从快照恢复出的原文件与快照记录不符；附原图键。
     RestoredOriginalMismatch(String),
+    /// 只读打开的资料库（未激活、经参考视角读取）不能写入。
+    ReadOnlyProvider,
+    /// 资料库已取消登记，保存目标不再可用。
+    DestinationRevoked,
     /// 剪贴板里的图片无法交给导入（#105）。
     ClipboardImage(Box<crate::CommandError>),
 }
@@ -80,6 +84,7 @@ impl Error {
     }
 }
 
+// 不上界面：领域错误交给界面时转成错误代码（command_error），Display 只进日志
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -132,6 +137,8 @@ impl fmt::Display for Error {
                 write!(f, "原文件不在了，可能被移走或删除：{}", p.display())
             }
             Error::RestoredOriginalMismatch(key) => write!(f, "恢复的原文件内容不符：{key}"),
+            Error::ReadOnlyProvider => write!(f, "此资料库为只读提供方"),
+            Error::DestinationRevoked => write!(f, "资料库已取消登记，保存目标不可用"),
             Error::ClipboardImage(why) => write!(f, "剪贴板里的图片无法导入：{why}"),
         }
     }

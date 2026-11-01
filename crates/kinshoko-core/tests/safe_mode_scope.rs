@@ -21,6 +21,24 @@ use kinshoko_core::search::{
 
 const ZH: &str = "zh-CN";
 
+/// 分级在中文界面里的显示名（界面按 `common:rating` 写出）。
+fn shown_name(label: &kinshoko_core::search::RatingLabel) -> String {
+    if label.r18 {
+        return "R18".into();
+    }
+    label
+        .ratings
+        .iter()
+        .map(|r| match r {
+            ContentRating::General => "全年龄",
+            ContentRating::Sensitive => "轻度",
+            ContentRating::Questionable => "敏感",
+            ContentRating::Explicit => "成人",
+        })
+        .collect::<Vec<_>>()
+        .join("、")
+}
+
 /// 没有参考组用到任何图。
 struct NoGroups;
 
@@ -343,7 +361,7 @@ fn r18_means_the_ratings_in_scope() {
     let r18 = |safe: SafeMode| {
         rating_candidates("R18", safe)
             .into_iter()
-            .find(|c| c.rating.name == "R18")
+            .find(|c| c.rating.r18)
             .map(|c| c.rating.ratings)
     };
     use ContentRating::*;
@@ -372,7 +390,7 @@ fn safe_mode_leaves_out_rating_candidates_in_scope() {
     let shown = |text: &str, scope| {
         rating_candidates(text, SafeMode::new(true, scope))
             .into_iter()
-            .map(|c| c.rating.name)
+            .map(|c| shown_name(&c.rating))
             .collect::<Vec<_>>()
     };
     assert_eq!(
@@ -413,7 +431,7 @@ fn search_uses_the_scope_of_its_vocabulary_snapshot() {
     let Term::Text { ratings, .. } = &tree.conditions[0].any[0] else {
         panic!("文字条件");
     };
-    let r18 = ratings.iter().find(|r| r.name == "R18").unwrap();
+    let r18 = ratings.iter().find(|r| r.r18).unwrap();
     assert_eq!(
         r18.ratings,
         [

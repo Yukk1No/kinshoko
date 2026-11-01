@@ -69,7 +69,8 @@ export default {
   /** 参考图此刻取不到的原因（`UnavailableReason`）。 */
   unavailable: {
     libraryNotRegistered: "本设备没有登记这个资料库",
-    libraryUnavailable: "资料库暂时不可用：{{detail}}",
+    libraryMissing: "{{root}} 处没有这个资料库（移动盘没插，或资料库搬了家）",
+    libraryUnavailable: "资料库暂时不可用：{{cause}}",
     imageMissing: "参考图已从资料库中删除",
     originalMissing: "原图文件缺失",
     captureMissing: "参考组里的截图文件缺失",

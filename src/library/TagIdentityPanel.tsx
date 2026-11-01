@@ -3,6 +3,7 @@ import type { CatalogTag } from "../bindings/CatalogTag";
 import type { LibraryTagMapping } from "../bindings/LibraryTagMapping";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
 import type { TagNamespace } from "../bindings/TagNamespace";
+import { describeCommandError } from "../ipc/commandError";
 import { correctTagMapping, inspectTagCatalog, onLibraryEvent, onSafeModeSetting, publishTagDefinitions } from "../ipc";
 
 import { libraryPathHint } from "./library-path";
@@ -71,7 +72,7 @@ export function TagIdentityPanel() {
         <span className="k-parts" title={library.root}><span>{library.name}</span><span className="k-set-note">{libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span></span>
         <button type="button" className="k-btn is-sm" aria-label={t("identity.publishLabel", { name: library.name })} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), t("identity.published"))}><span className="k-label">{t("identity.publish")}</span></button>
       </div>)}
-      {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} role="status">{t("libraryUnavailable", { name: library.name, reason: unavailable })}</p>)}
+      {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} role="status">{t("libraryUnavailable", { name: library.name, reason: describeCommandError(unavailable!) })}</p>)}
       {workspace.catalog.mappings.length === 0 ? <p className="k-set-note">{t("noTags")}</p> : <table className="settings-shortcuts">
         <thead><tr><th>{t("identity.columnLibrary")}</th><th>{t("identity.columnTarget")}</th><th>{t("identity.columnCorrect")}</th></tr></thead>
         <tbody>{workspace.catalog.mappings.map((mapping) => <MappingRow key={`${mapping.libraryId}/${mapping.localTagId}`} mapping={mapping} workspace={workspace} busy={busy} onSave={(catalogId) => void run(() => correctTagMapping(mapping.libraryId, mapping.localTagId, catalogId === "separate" ? { kind: "separate" } : { kind: "use", catalogId }))} />)}</tbody>

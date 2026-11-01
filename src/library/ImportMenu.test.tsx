@@ -10,7 +10,7 @@ import { ToastProvider } from "../ui/Toast";
 afterEach(async () => { cleanup(); await new Promise(resolve => setTimeout(resolve, 0)); clearMocks(); vi.unstubAllGlobals(); });
 
 const receipt: ImportTaskSnapshot = {
-  taskId: "actual-task", destination: { libraryId: "L1", folderId: null }, libraryName: "参考", folderName: "未归类",
+  taskId: "actual-task", destination: { libraryId: "L1", folderId: null }, libraryName: "参考", folderName: null,
   progress: { done: 3, total: 3 }, finishing: false, warnings: [],
   report: { cancelled: false, fromEagle: false, eagleMissing: 0, eagleRelocations: [], sealedDuplicates: false, privateSummary: false, trashDuplicates: false,
     items: [ { path: "sealed-name.png", outcome: { kind: "merged", imageId: "sealed-id" } }, { path: "visible-name.png", outcome: { kind: "refreshed", imageId: "visible-id" } }, { path: "missing.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "missing" } } } ] },
@@ -59,9 +59,9 @@ describe("导入结束走轻提示（#388）", () => {
   });
 
   it("任务有警告（标签定义没存进图库）时提示写出警告、带“查看”且不自动消失", async () => {
-    serve([{ ...receipt, warnings: ["标签定义没有存进图库，可在标签目录里重试"], report: { ...receipt.report!, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } }]);
+    serve([{ ...receipt, warnings: [{ code: "savedDefinitionsNotSaved", cause: { code: "system", detail: "磁盘已满" } }], report: { ...receipt.report!, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } }]);
     render(<ToastProvider>{menu()}</ToastProvider>);
-    expect((await screen.findByText("导入完成")).closest(".k-toast")?.textContent).toContain("标签定义没有存进图库");
+    expect((await screen.findByText("导入完成")).closest(".k-toast")?.textContent).toContain("资料库标签定义未更新：磁盘已满");
     expect(screen.getByRole("button", { name: "查看" })).toBeTruthy();
   });
 

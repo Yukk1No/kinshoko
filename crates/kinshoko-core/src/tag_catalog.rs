@@ -49,6 +49,8 @@ pub enum CatalogError {
     Library(crate::library::Error),
     UnknownTag,
     InvalidDefinition(Box<crate::CommandError>),
+    /// 已经是错误代码的原因（资料库不可用、来源原图不在等）。
+    Command(Box<crate::CommandError>),
     UnknownGroup,
     InvalidGroupMembers,
     UnknownMapping,
@@ -68,6 +70,7 @@ impl fmt::Display for CatalogError {
             Self::Data(e) => write!(f, "统一标签目录中的定义无效：{e}"),
             Self::Library(e) => e.fmt(f),
             Self::InvalidDefinition(why) => write!(f, "标签定义无效：{why}"),
+            Self::Command(why) => write!(f, "{why}"),
             Self::InvalidGroupMembers => write!(f, "分组成员无效，命名空间分组会自动列出该类标签"),
             Self::UnknownGroup => write!(f, "没有这个全局标签分组"),
             Self::UnknownTag => write!(f, "统一标签目录中没有这个标签"),

@@ -15,7 +15,7 @@ use pin_shell::{PinId, PinShell};
 
 use super::super::caption::Caption;
 use super::super::port::{DrawJob, RenderPort};
-use super::{ANIM_FRAME, Effect, Live, MISSING, Orchestra, Reveal, SETTLE_MS, Screen, Submit};
+use super::{ANIM_FRAME, Effect, Live, Orchestra, Reveal, SETTLE_MS, Screen, Submit, missing};
 
 /// 淡到这么浅就当作没有了（不到 1/255 的一半）。
 const FADED: f64 = 1e-3;
@@ -78,7 +78,7 @@ impl Live {
                 .look
                 .unavailable
                 .clone()
-                .or_else(|| self.placeholder.then(|| MISSING.to_owned())),
+                .or_else(|| self.placeholder.then(missing)),
             notice: self.notice.as_ref().map(|(text, _)| text.clone()),
         }
     }

@@ -306,7 +306,7 @@ impl Workspace {
             .ok_or(Error::UnknownImage)?;
         let library = device
             .read(&authorization.library_id)
-            .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
+            .map_err(|e| CatalogError::Command(Box::new(e.into())))?;
         Ok(PreparedImportPreview {
             authorization,
             entry,
@@ -325,7 +325,7 @@ impl Workspace {
         self.validate_import_preview(device, catalog, &resolved.authorization, safe)?;
         let library = device
             .read(&resolved.authorization.library_id)
-            .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
+            .map_err(|e| CatalogError::Command(Box::new(e.into())))?;
         let current = library.provider_snapshot()?;
         if !current.images.iter().any(|image| {
             image.id == resolved.entry.image_id

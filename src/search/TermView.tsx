@@ -1,7 +1,7 @@
 import type { SimilarTag } from "../bindings/SimilarTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { Term } from "../bindings/Term";
-import { RatingName, TagMarks, tagName } from "./tagLabel";
+import { RatingName, ratingName, TagMarks, tagName } from "./tagLabel";
 import { i18n } from "../i18n";
 import { useTranslation } from "react-i18next";
 
@@ -10,7 +10,7 @@ function termTitle(term: Term) {
   if (term.kind !== "text") return undefined;
   const lines = [
     term.tags.length > 0 && i18n.t("search:alsoTags", { tags: term.tags.map(tagName).join(i18n.t("search:listSeparator")) }),
-    term.ratings.length > 0 && i18n.t("search:alsoRatings", { ratings: term.ratings.map((r) => r.name).join(i18n.t("search:listSeparator")) }),
+    term.ratings.length > 0 && i18n.t("search:alsoRatings", { ratings: term.ratings.map(ratingName).join(i18n.t("search:listSeparator")) }),
   ].filter(Boolean);
   return lines.length ? lines.join("\n") : undefined;
 }

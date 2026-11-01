@@ -2,10 +2,14 @@
 import type { ContentRating } from "./ContentRating";
 
 /**
- * 条件或候选中的内容分级，带显示用的名称。
+ * 条件或候选中的内容分级。界面按 `ratings` 写出各档的名称，`r18` 时写“R18”。
  */
 export type RatingLabel = { 
 /**
  * 代表的分级，从宽到严。
  */
-ratings: Array<ContentRating>, name: string, };
+ratings: Array<ContentRating>, 
+/**
+ * 代表安全模式范围内各档的“R18”（#223）。
+ */
+r18: boolean, };
