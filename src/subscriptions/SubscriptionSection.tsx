@@ -24,16 +24,18 @@ export function useSubscriptionSection(section: Section, setSection: Dispatch<Se
 }
 
 /** 订阅页占满工作区（侧栏与主区），与图片与文件夹的工作区并排切换。 */
-export function SubscriptionSection({ subscriptions, safe, paneOpen, onPaneToggle, onOpenImage }: {
+export function SubscriptionSection({ subscriptions, safe, libraryId, paneOpen, onPaneToggle, onOpenImage }: {
   subscriptions: ReturnType<typeof useSubscriptionSection>;
   safe: boolean;
+  /** 当前打开的资料库：新订阅默认收进这里。 */
+  libraryId: string | null;
   paneOpen: boolean;
   onPaneToggle: () => void;
   onOpenImage: (libraryId: string, imageId: string) => void;
 }) {
   if (!subscriptions.page) return null;
   return <div className="app-workspace workspace"><div className="app-body">
-    <SubscriptionsPage status={subscriptions.page} onStatus={subscriptions.setStatus} safe={safe} paneOpen={paneOpen}
+    <SubscriptionsPage status={subscriptions.page} onStatus={subscriptions.setStatus} safe={safe} libraryId={libraryId} paneOpen={paneOpen}
       onPaneToggle={onPaneToggle} onOpenImage={onOpenImage} />
   </div></div>;
 }

@@ -26,6 +26,9 @@ const AUTH_UA: &str = "PixivAndroidApp/5.0.234 (Android 11; Pixel 5)";
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct Account {
+    /// pixiv 用户 ID（读关注时用）。#368 存下的登录里没有，下次换会话时补上。
+    #[serde(default)]
+    pub user_id: String,
     /// 显示名。
     pub name: String,
     /// 账号打开了 R-18 显示（`user.x_restrict` 大于 0）；没打开时不出现成人内容的选项。
@@ -176,6 +179,11 @@ fn session(v: &Value) -> Result<Session, AuthError> {
         expires_at: SystemTime::now() + Duration::from_secs(expires_in),
         refresh_token: refresh_token.to_owned(),
         account: Account {
+            user_id: match &user["id"] {
+                Value::Number(n) => n.to_string(),
+                Value::String(s) => s.clone(),
+                _ => String::new(),
+            },
             name: user["name"].as_str().unwrap_or_default().to_owned(),
             explicit_allowed: user["x_restrict"].as_i64().unwrap_or(0) > 0,
         },
@@ -216,10 +224,11 @@ mod tests {
     fn session_reads_the_account_and_r18_permission() {
         let v = serde_json::json!({
             "access_token": "a", "refresh_token": "r", "expires_in": 3600,
-            "user": { "name": "画师", "x_restrict": 1 }
+            "user": { "id": "11", "name": "画师", "x_restrict": 1 }
         });
         let s = session(&v).unwrap();
         assert_eq!(s.account.name, "画师");
+        assert_eq!(s.account.user_id, "11");
         assert!(s.account.explicit_allowed);
         assert!(!s.expired());
         assert!(!format!("{s:?}").contains("\"r\""));

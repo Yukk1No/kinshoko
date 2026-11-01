@@ -10,16 +10,22 @@ use rusqlite_migration::{M, Migrations};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{NewSubscription, SourceError, SourceId, Subscription, Target};
+use super::{Backlog, NewSubscription, SourceError, SourceId, Subscription, Target};
+
+mod failures;
+mod window;
+
+pub(super) use window::Window;
 
 const FILE: &str = "subscriptions.db";
 /// 一个作品失败这么多次后不再重试，也不再让来源为它翻到底。
 const MAX_ATTEMPTS: u32 = 5;
 
 fn migrations() -> Migrations<'static> {
-    Migrations::new(vec![M::up(include_str!(
-        "migrations/0368_subscription.sql"
-    ))])
+    Migrations::new(vec![
+        M::up(include_str!("../migrations/0368_subscription.sql")),
+        M::up(include_str!("../migrations/0369_backlog.sql")),
+    ])
 }
 
 #[derive(Debug)]
@@ -126,7 +132,12 @@ impl Store {
         self.conn.lock().unwrap_or_else(|e| e.into_inner())
     }
 
+    /// 新建一条订阅。只收新作时，发布时间早于现在的作品一律不收。
     pub fn add(&self, new: NewSubscription, now: i64) -> Result<Subscription, StoreError> {
+        let since = match new.backlog {
+            Backlog::NewOnly => Some(now),
+            Backlog::Recent { .. } | Backlog::All => None,
+        };
         let subscription = Subscription {
             id: uuid::Uuid::now_v7().simple().to_string(),
             target: new.target,
@@ -134,6 +145,9 @@ impl Store {
             library_id: new.library_id,
             include_explicit: new.include_explicit,
             include_manga: new.include_manga,
+            backlog: new.backlog,
+            since,
+            skipped: 0,
             created_at: now,
             last_checked_at: None,
             last_error: None,
@@ -141,8 +155,8 @@ impl Store {
         };
         self.conn().execute(
             "INSERT INTO subscription (id, source, target, name, library_id, include_explicit,
-                                       include_manga, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                                       include_manga, backlog, since, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
                 subscription.id,
                 subscription.target.source().as_str(),
@@ -151,6 +165,8 @@ impl Store {
                 subscription.library_id,
                 subscription.include_explicit,
                 subscription.include_manga,
+                serde_json::to_string(&subscription.backlog).expect("旧作选项可以序列化"),
+                subscription.since,
                 now
             ],
         )?;
@@ -173,7 +189,9 @@ impl Store {
         let conn = self.conn();
         let mut stmt = conn.prepare_cached(
             "SELECT id, source, target, name, library_id, include_explicit, include_manga,
-                    created_at, last_checked_at, last_error, last_failed_at
+                    created_at, last_checked_at, last_error, last_failed_at, backlog, since,
+                    (SELECT COUNT(*) FROM received_work w
+                     WHERE w.subscription_id = subscription.id AND w.outcome = 'skippedAnimation')
              FROM subscription ORDER BY created_at, id",
         )?;
         let rows = stmt.query_map([], |r| {
@@ -187,6 +205,13 @@ impl Store {
                     library_id: r.get(4)?,
                     include_explicit: r.get(5)?,
                     include_manga: r.get(6)?,
+                    backlog: r
+                        .get::<_, String>(11)
+                        .ok()
+                        .and_then(|b| serde_json::from_str(&b).ok())
+                        .unwrap_or(Backlog::All),
+                    since: r.get(12)?,
+                    skipped: r.get(13)?,
                     created_at: r.get(7)?,
                     last_checked_at: r.get(8)?,
                     last_error: r
@@ -210,11 +235,38 @@ impl Store {
         Ok(out)
     }
 
+    /// 这条订阅还在（没被退订）。
+    pub fn exists(&self, id: &str) -> Result<bool, StoreError> {
+        Ok(self
+            .conn()
+            .query_row("SELECT 1 FROM subscription WHERE id = ?1", [id], |_| Ok(()))
+            .optional()?
+            .is_some())
+    }
+
     pub fn get(&self, id: &str) -> Result<Subscription, StoreError> {
         self.list()?
             .into_iter()
             .find(|s| s.id == id)
             .ok_or(StoreError::UnknownSubscription)
+    }
+
+    /// 改订阅的漫画与成人作品选项。资料库与旧作是订阅时定的，不再改。
+    pub fn set_options(
+        &self,
+        id: &str,
+        include_explicit: bool,
+        include_manga: bool,
+    ) -> Result<Subscription, StoreError> {
+        // 先放开连接再读回来：`get` 也要它。
+        let changed = self.conn().execute(
+            "UPDATE subscription SET include_explicit = ?2, include_manga = ?3 WHERE id = ?1",
+            params![id, include_explicit, include_manga],
+        )?;
+        match changed {
+            0 => Err(StoreError::UnknownSubscription),
+            _ => self.get(id),
+        }
     }
 
     /// 记下一次检查完成的时间。
@@ -334,68 +386,6 @@ impl Store {
                 // 跳过的作品没有新图。
                 outcome != Outcome::Collected
             ],
-        )?;
-        Ok(())
-    }
-
-    /// 这条订阅有没收成、还要重试的作品。
-    pub(super) fn has_failed(&self, subscription_id: &str) -> Result<bool, StoreError> {
-        Ok(self
-            .conn()
-            .query_row(
-                "SELECT 1 FROM failed_work WHERE subscription_id = ?1 AND attempts < ?2 LIMIT 1",
-                params![subscription_id, MAX_ATTEMPTS],
-                |_| Ok(()),
-            )
-            .optional()?
-            .is_some())
-    }
-
-    /// 这个作品已失败到上限，不再下载。
-    pub(super) fn gave_up(
-        &self,
-        subscription_id: &str,
-        source: SourceId,
-        work_id: &str,
-    ) -> Result<bool, StoreError> {
-        Ok(self
-            .conn()
-            .query_row(
-                "SELECT 1 FROM failed_work
-                 WHERE subscription_id = ?1 AND source = ?2 AND work_id = ?3 AND attempts >= ?4",
-                params![subscription_id, source.as_str(), work_id, MAX_ATTEMPTS],
-                |_| Ok(()),
-            )
-            .optional()?
-            .is_some())
-    }
-
-    /// 记下一次没收成；返回累计失败次数。
-    pub(super) fn record_failure(
-        &self,
-        subscription_id: &str,
-        source: SourceId,
-        work_id: &str,
-    ) -> Result<u32, StoreError> {
-        Ok(self.conn().query_row(
-            "INSERT INTO failed_work (subscription_id, source, work_id, attempts)
-             VALUES (?1, ?2, ?3, 1)
-             ON CONFLICT DO UPDATE SET attempts = attempts + 1
-             RETURNING attempts",
-            params![subscription_id, source.as_str(), work_id],
-            |r| r.get(0),
-        )?)
-    }
-
-    pub(super) fn clear_failure(
-        &self,
-        subscription_id: &str,
-        source: SourceId,
-        work_id: &str,
-    ) -> Result<(), StoreError> {
-        self.conn().execute(
-            "DELETE FROM failed_work WHERE subscription_id = ?1 AND source = ?2 AND work_id = ?3",
-            params![subscription_id, source.as_str(), work_id],
         )?;
         Ok(())
     }

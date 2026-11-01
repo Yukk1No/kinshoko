@@ -60,6 +60,10 @@ export function describeCommandError(error: CommandError): string {
         cause: describeCommandError(error.cause),
         rollback: describeCommandError(error.rollback),
       });
+    case "subscriptionSource":
+      return error.reason.code === "status"
+        ? i18n.t("subscriptions:reason.status", { status: error.reason.status })
+        : i18n.t(`subscriptions:reason.${error.reason.code}`);
     case "shortcutUnavailable":
       return t("shortcutUnavailable", { reason: hotkeyFailureText(error.reason) });
     case "backupProblems":

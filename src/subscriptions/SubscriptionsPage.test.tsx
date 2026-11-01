@@ -179,6 +179,7 @@ describe("订阅页", () => {
     const dialog = await screen.findByRole("dialog", { name: /订阅 pixiv 新作/ });
     expect(within(dialog).getByText("非官方")).toBeTruthy();
     expect(within(dialog).getByText("账号可能被警告或停用")).toBeTruthy();
+    expect(within(dialog).getByText("动图暂不兼容")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "以后再说" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(localStorage.getItem("kinshoko.subscriptions.firstRunSeen")).toBe("1");
@@ -219,18 +220,21 @@ describe("订阅页", () => {
     expect(screen.queryByText("同步于 10 分钟前")).toBeNull();
     fireEvent.click(screen.getAllByRole("button", { name: "添加订阅" })[1]);
     await screen.findByRole("menuitem", { name: "画师" });
-    for (const name of ["画师", "榜单", "pixiv 收藏夹"]) {
+    // 画师（#369）已挂上添加流程；榜单与收藏夹还没有。
+    expect(screen.getByRole("menuitem", { name: "画师" }).getAttribute("aria-disabled")).toBeNull();
+    for (const name of ["榜单", "pixiv 收藏夹"]) {
       expect(screen.getByRole("menuitem", { name }).getAttribute("aria-disabled")).toBe("true");
     }
   });
 
   it("挂上添加流程的一类可以用", async () => {
     backend([], []);
-    const add = vi.fn();
-    page(status(), { kinds: KINDS.map((k) => (k.kind === "artist" ? { ...k, add } : k)) });
+    const add = vi.fn(({ onClose }: { onClose: () => void }) => <button type="button" onClick={onClose}>假的添加流程</button>);
+    page(status(), { kinds: KINDS.map((k) => (k.kind === "ranking" ? { ...k, add } : k)) });
     fireEvent.click((await screen.findAllByRole("button", { name: "添加订阅" }))[0]);
-    fireEvent.click(await screen.findByRole("menuitem", { name: "画师" }));
-    expect(add).toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole("menuitem", { name: "榜单" }));
+    fireEvent.click(await screen.findByRole("button", { name: "假的添加流程" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "假的添加流程" })).toBeNull());
   });
 
   it("账号菜单：风险说明与退出登录", async () => {

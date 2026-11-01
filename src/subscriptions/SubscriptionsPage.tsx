@@ -5,8 +5,8 @@ import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
-import { errorText, onSafeModeSetting, thumbnailUrl } from "../ipc";
-import { subscriptionCheckNow, subscriptionMarkSeen, subscriptionRecent, subscriptions as listSubscriptions } from "../ipc/subscriptions";
+import { errorText, thumbnailUrl } from "../ipc";
+import { subscriptionCheckNow } from "../ipc/subscriptions";
 import { modalOpen } from "../ui/modal";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
@@ -15,76 +15,18 @@ import { accountActions } from "./accountActions";
 import { checkedText, checkView, failureText, retryText } from "./checkStatus";
 import { FirstRunDialog, firstRunSeen, markFirstRunSeen } from "./FirstRunDialog";
 import { hiddenWhenSafe, KINDS, kindOf, type KindMount } from "./kinds";
+import { RemoveDialog } from "./RemoveDialog";
+import { imageKey, useNow, useSubscriptionData } from "./useSubscriptionData";
 
 /** 图片墙的缩略图档位（`thumbnailTier` 的一档），五列左右时够清楚。 */
 const TILE_PX = 384;
-
-/** 每分钟走一下，让“同步于几分钟前”跟着变。 */
-function useNow(): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(timer);
-  }, []);
-  return now;
-}
-
-/**
- * 订阅名单与最近收进来的图，跟着订阅状态推送与安全模式视角重读。订阅页开着时把新图标为已看（入口与托盘清零），
- * 这次打开期间收到的仍排在“新收到”里，离开订阅页才归入“之前”。
- */
-function useSubscriptionData(status: SubscriptionStatus, safe: boolean, onError: (e: unknown) => void) {
-  const [list, setList] = useState<Subscription[] | null>(null);
-  const [recent, setRecent] = useState<ReceivedImage[]>([]);
-  /**
-   * 安全模式设置（开关或范围）每变一次加一。范围收紧时 `safe` 不变，已显示的缩略图不会再经后端核对，
-   * 所以按这个数判断 `recent` 是不是按现在的视角读的。
-   */
-  const [lens, setLens] = useState(0);
-  useEffect(() => {
-    const stop = onSafeModeSetting(() => setLens((n) => n + 1));
-    return () => { void stop.then((stop) => stop()); };
-  }, []);
-  /** 读到 `recent` 时的视角：后端按图库的有效分级去掉了成人作品，前端只知道来源的标记。 */
-  const [recentLens, setRecentLens] = useState({ safe, lens });
-  const lensRef = useRef({ safe, lens });
-  lensRef.current = { safe, lens };
-  const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set());
-  const signedIn = status.login.state !== "loggedOut";
-  const errors = useRef(onError);
-  errors.current = onError;
-  useEffect(() => {
-    if (!signedIn) { setList([]); setRecent([]); return; }
-    let alive = true;
-    const under = lensRef.current;
-    const unseen = status.newCount > 0;
-    listSubscriptions().then((next) => alive && setList(next), (e) => { if (alive) { setList([]); errors.current(e); } });
-    // 把这次的视角交给后端：后端按它与设置里的安全模式中更严的一个过滤，标成 `under.safe` 不会放宽。
-    subscriptionRecent(under.safe).then((next) => {
-      if (!alive) return;
-      setRecent(next);
-      setRecentLens(under);
-      const arrived = next.filter((image) => image.new);
-      if (arrived.length > 0) setFresh((seen) => new Set([...seen, ...arrived.map(imageKey)]));
-      // 入口上的数按来源的标记算，图库里改成成人的图在这里读不到：只看入口上的数，读到的为空也标为已看。
-      // 标完后端推送状态，数为零就不再标。
-      if (arrived.length > 0 || unseen) void subscriptionMarkSeen().catch(() => {});
-    }, (e) => { if (alive) errors.current(e); });
-    return () => { alive = false; };
-  }, [status, signedIn, safe, lens]);
-  /** 安全模式开着，而 `recent` 不是按现在的开关与范围读的。 */
-  const stale = safe && (!recentLens.safe || recentLens.lens !== lens);
-  return { list, recent, fresh, stale };
-}
-
-const imageKey = (image: ReceivedImage) => `${image.libraryId}/${image.imageId}`;
 
 /**
  * 订阅页（#368，原型第 1–12 号画板）：左侧订阅名单与账号，右侧最近收进来的图。
  * 安全模式开着时不显示成人作品与 `hiddenWhenSafe` 的订阅，也不出现 R-18 字样；切换当即生效，
  * 不等后端重读。画师、榜单、收藏夹的添加流程由 #369–#371 挂在 `kinds` 上。
  */
-export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneToggle, onOpenImage, kinds = KINDS }: {
+export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneToggle, onOpenImage, libraryId = null, kinds = KINDS }: {
   status: SubscriptionStatus;
   onStatus: (status: SubscriptionStatus) => void;
   safe: boolean;
@@ -92,6 +34,8 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   onPaneToggle: () => void;
   /** “在图库中打开”：回到图片与文件夹，在查看器里打开这张图。 */
   onOpenImage: (libraryId: string, imageId: string) => void;
+  /** 当前打开的资料库：新订阅默认收进这里。 */
+  libraryId?: string | null;
   kinds?: KindMount[];
 }) {
   const { t } = useTranslation("subscriptions");
@@ -100,7 +44,15 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   const report = (message: string) => { if (toast) toast.error(message); };
   const onError = (e: unknown) => report(errorText(e));
   const now = useNow();
-  const { list, recent, fresh, stale } = useSubscriptionData(status, safe, onError);
+  /** 添加、改设置或退订后加一，重读名单。 */
+  const [reload, setReload] = useState(0);
+  const { list, recent, fresh, stale } = useSubscriptionData(status, safe, reload, onError);
+  const [adding, setAdding] = useState<KindMount | null>(null);
+  const [editing, setEditing] = useState<Subscription | null>(null);
+  const [removing, setRemoving] = useState<Subscription | null>(null);
+  /** 名单上哪一行的“更多”菜单开着（右键也打开它）。 */
+  const [rowMenu, setRowMenu] = useState<string | null>(null);
+  const changed = () => setReload((n) => n + 1);
   // 安全模式刚打开或范围刚收紧、还没按新视角重读：先一张都不显示，免得画师在图库里改成成人的图
   // 在这期间露出来；重读失败也一直不显示。
   const veiled = stale;
@@ -147,13 +99,17 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   }, 200);
 
   const hasList = account !== null && visible.length > 0;
+  /** 选中的订阅跳过了几个动图（#366：订阅记录里标明“已跳过”）。 */
+  const skipped = visible.find((s) => s.id === selected)?.skipped ?? 0;
+  const mountOf = (s: Subscription) => kinds.find((k) => k.kind === kindOf(s.target));
+  const flow = { status, safe, list: list ?? [], libraryId };
   const check = checkView(status, visible, now);
   const checkNow = () => { subscriptionCheckNow().catch((e) => report(t("check.failed", { error: errorText(e) }))); };
 
   const addMenu = (trigger: ReactElement) => <Menu.Root modal={false}>
     <Menu.Trigger render={trigger} />
     <MenuPopup label={t("add")} width={200}>
-      {kinds.map((k) => <MenuItem key={k.kind} icon={k.icon(16)} disabled={!k.add} onClick={k.add}>{t(`addMenu.${k.kind}`)}</MenuItem>)}
+      {kinds.map((k) => <MenuItem key={k.kind} icon={k.icon(16)} disabled={!k.add} onClick={() => setAdding(k)}>{t(`addMenu.${k.kind}`)}</MenuItem>)}
     </MenuPopup>
   </Menu.Root>;
 
@@ -179,13 +135,24 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
               <h2 className="subs-group-head"><span className="subs-group-icon">{k.icon(14)}</span>{t(`groups.${k.kind}`)}</h2>
               {rows.map((s) => {
                 const count = freshBySubscription.get(s.id) ?? 0;
-                return <button key={s.id} type="button" className={`subs-row is-item${selected === s.id ? " is-on" : ""}`}
-                  aria-current={selected === s.id ? "true" : undefined} title={s.lastError ? failureText(s.lastError) : undefined}
-                  onClick={() => setSelected(selected === s.id ? null : s.id)}>
-                  <span className="subs-row-name">{s.name}</span>
-                  {s.lastError && <TriangleAlert className="subs-row-warn" size={14} strokeWidth={2} role="img" aria-label={t("lastFailed")} />}
-                  {count > 0 && <span className="subs-row-fresh tabular">{count}</span>}
-                </button>;
+                return <div key={s.id} className={`subs-row-wrap${rowMenu === s.id ? " is-menu" : ""}`}>
+                  <button type="button" className={`subs-row is-item${selected === s.id ? " is-on" : ""}`}
+                    aria-current={selected === s.id ? "true" : undefined} title={s.lastError ? failureText(s.lastError) : undefined}
+                    onClick={() => setSelected(selected === s.id ? null : s.id)}
+                    onContextMenu={(e) => { e.preventDefault(); setRowMenu(s.id); }}>
+                    <span className="subs-row-name">{s.name}</span>
+                    {s.lastError && <TriangleAlert className="subs-row-warn" size={14} strokeWidth={2} role="img" aria-label={t("lastFailed")} />}
+                    {count > 0 && <span className="subs-row-fresh tabular">{count}</span>}
+                  </button>
+                  <Menu.Root modal={false} open={rowMenu === s.id} onOpenChange={(open) => setRowMenu(open ? s.id : null)}>
+                    <Menu.Trigger className="k-icon-btn subs-row-more" aria-label={t("row.more")} title={t("row.more")}><MoreHorizontal size={16} aria-hidden="true" /></Menu.Trigger>
+                    <MenuPopup label={t("row.more")} width={180}>
+                      {k.settings && <MenuItem onClick={() => setEditing(s)}>{t("row.settings")}</MenuItem>}
+                      {k.settings && <MenuSeparator />}
+                      <MenuItem danger onClick={() => setRemoving(s)}>{t("row.remove")}</MenuItem>
+                    </MenuPopup>
+                  </Menu.Root>
+                </div>;
               })}
             </section>;
           })}
@@ -222,7 +189,8 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
     <main className="app-main subs-main">
       <header className="topbar subs-topbar" data-tauri-drag-region>
         {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={tw("expandPane")} title={tw("expandPaneTitle")}><PanelLeftOpen size={16} aria-hidden="true" /></button>}
-        {hasList && <h1 className="subs-title">{t("recent.title")}<span className="subs-title-count tabular">{t("recent.count", { count: shown.length })}</span></h1>}
+        {hasList && <h1 className="subs-title">{t("recent.title")}<span className="subs-title-count tabular">{t("recent.count", { count: shown.length })}</span>
+          {skipped > 0 && <span className="subs-title-count">{t("recent.skipped", { count: skipped })}</span>}</h1>}
         <span className="k-grow" />
         {check.kind === "idle" && <>
           <span className="subs-check">{checkedText(check.lastCheckedAt, now)}</span>
@@ -272,6 +240,10 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
         </>}
       </div>}
     </main>
+    {adding?.add?.({ ...flow, onClose: () => setAdding(null), onAdded: changed })}
+    {editing && mountOf(editing)?.settings?.({ ...flow, subscription: editing, onClose: () => setEditing(null), onSaved: changed })}
+    {removing && <RemoveDialog subscription={removing} onClose={() => setRemoving(null)}
+      onRemoved={() => { if (selected === removing.id) setSelected(null); changed(); }} />}
     <FirstRunDialog open={firstRun} signedIn={account !== null} onClose={closeFirstRun}
       onSignIn={() => { closeFirstRun(); actions.signIn(); }} />
   </>;
@@ -289,3 +261,4 @@ function Tiles({ images, label, onOpen, onFail }: {
     </li>)}
   </ul>;
 }
+

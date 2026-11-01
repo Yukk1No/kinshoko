@@ -179,6 +179,7 @@ mod tests {
             expires_at: std::time::SystemTime::now() + std::time::Duration::from_secs(3600),
             refresh_token: "r".into(),
             account: Account {
+                user_id: "11".into(),
                 name: "画师".into(),
                 explicit_allowed: false,
             },
@@ -204,6 +205,7 @@ mod tests {
         let saved = Saved {
             refresh_token: "r".into(),
             account: Account {
+                user_id: "11".into(),
                 name: "画师".into(),
                 explicit_allowed: true,
             },

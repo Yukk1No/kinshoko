@@ -76,6 +76,8 @@
 .k-dialog.subs-first-run { width: min(460px, calc(100vw - 48px)); display: flex; flex-direction: column; gap: 12px; }
 .subs-first-run .k-dialog-desc { margin: 0; padding: 0 4px; }
 .subs-first-run-head { display: flex; align-items: center; gap: 8px; padding: 4px 4px 0; }
+/* 标题字形在 24px 行高里偏上约 1px：标记跟着上移，两者中线对齐。 */
+.subs-first-run-head .subs-unofficial { transform: translateY(-1px); }
 .subs-first-run-points { list-style: none; margin: 4px 0 0; padding: 0; border-radius: var(--r); background: var(--surface-2); }
 .subs-first-run-points > li { display: flex; gap: 12px; padding: 12px 14px; }
 .subs-first-run-points > li + li { border-top: 1px solid var(--line); }
@@ -89,3 +91,34 @@
 .subs-settings-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .subs-settings-head .k-set-title { margin: 0; }
 .subs-settings-lead { margin: 0 0 16px; font-size: 13px; line-height: 20px; }
+
+/* ---- 名单行的“更多”（#369 草图 C）：悬停、选中或菜单开着时出现 ---- */
+.subs-row-wrap { position: relative; }
+.subs-row-wrap > .subs-row { padding-right: 34px; }
+.subs-row-more { position: absolute; top: 3px; right: 3px; width: 24px; height: 24px; opacity: 0; }
+.subs-row-wrap:hover > .subs-row-more, .subs-row-wrap.is-menu > .subs-row-more, .subs-row-more:focus-visible,
+.subs-row-wrap > .subs-row.is-on + .subs-row-more { opacity: 1; }
+
+/* ---- 订阅画师、从关注导入、订阅设置（#369 草图 A、B） ---- */
+.k-dialog.subs-artist-dialog { width: min(480px, calc(100vw - 48px)); display: flex; flex-direction: column; gap: 16px; }
+.subs-artist-dialog .k-dialog-desc { margin: -10px 0 0; }
+.subs-artist-dialog .k-dialog-foot { margin-top: 4px; }
+.subs-artist-find { display: flex; flex-direction: column; gap: 6px; }
+.subs-artist-found { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--line-2); }
+.subs-backlog-card { align-items: center; height: 48px; padding-top: 0; padding-bottom: 0; box-sizing: border-box; }
+.subs-backlog-card > input[type="radio"] { margin-top: 0; }
+.subs-option { display: flex; align-items: center; gap: 12px; }
+.subs-option-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.subs-follow-count { flex: none; font-size: 12px; color: var(--ink-2); }
+.subs-follow-list { max-height: 248px; overflow-y: auto; border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--line); }
+.subs-follow-list ul { margin: 0; padding: 0; list-style: none; }
+.subs-follow-list li + li { border-top: 1px solid var(--line); }
+.subs-follow-row { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 12px; cursor: pointer; }
+.subs-follow-row:hover { background: var(--hover); }
+.subs-follow-row input { flex: none; margin: 0; accent-color: var(--accent-strong); }
+.subs-follow-row.is-done { cursor: default; color: var(--ink-2); }
+.subs-follow-row.is-done:hover { background: none; }
+.subs-follow-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.subs-avatar.is-sm { width: 24px; height: 24px; font-size: 12px; }
+.subs-follow-note { display: flex; align-items: center; gap: 6px; margin: 0; padding: 12px; font-size: 13px; color: var(--ink-2); }
+.k-dialog.subs-remove-dialog { width: min(400px, calc(100vw - 48px)); }

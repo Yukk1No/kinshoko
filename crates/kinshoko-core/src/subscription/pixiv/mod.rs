@@ -2,10 +2,12 @@
 
 mod account;
 mod api;
+mod artist;
 mod auth;
 mod parse;
 
 pub use account::{LoginState, PixivAccount};
 pub use api::PixivSource;
+pub use artist::{Artist, artist_id};
 pub use auth::{Account, AuthError, LoginRequest, Session, callback_code};
 pub use parse::work_from_illust;

@@ -8,9 +8,10 @@ use std::time::Duration;
 use serde_json::Value;
 
 use super::account::PixivAccount;
+use super::artist::{self, Artist};
 use super::auth::AuthError;
-use crate::subscription::pace::{API_GAP, DOWNLOAD_GAP, Pacer};
-use crate::subscription::{Source, SourceError, SourceId, Subscription, Work};
+use crate::subscription::pace::Pacers;
+use crate::subscription::{Source, SourceError, SourceId, Subscription, Target, Work};
 
 const API: &str = "https://app-api.pixiv.net";
 const APP_UA: &str = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)";
@@ -47,20 +48,37 @@ impl From<AuthError> for SourceError {
 pub struct PixivSource {
     account: Arc<PixivAccount>,
     agent: ureq::Agent,
-    api_pacer: Pacer,
-    download_pacer: Pacer,
+    pacers: Arc<Pacers>,
     cancel: Arc<AtomicBool>,
 }
 
 impl PixivSource {
-    pub fn new(account: Arc<PixivAccount>, cancel: Arc<AtomicBool>) -> PixivSource {
+    /// `pacers` 是 pixiv 共用的一份节拍。
+    pub fn new(
+        account: Arc<PixivAccount>,
+        pacers: Arc<Pacers>,
+        cancel: Arc<AtomicBool>,
+    ) -> PixivSource {
         PixivSource {
             account,
             agent: agent(),
-            api_pacer: Pacer::new(API_GAP),
-            download_pacer: Pacer::new(DOWNLOAD_GAP),
+            pacers,
             cancel,
         }
+    }
+
+    /// 查一位画师。没有这位画师时为空。
+    pub fn artist(&mut self, user_id: &str) -> Result<Option<Artist>, SourceError> {
+        artist::artist(&mut |path| self.get(path), user_id)
+    }
+
+    /// 登录账号关注的画师（#369 从 pixiv 关注导入）。
+    pub fn following(&mut self) -> Result<Vec<Artist>, SourceError> {
+        let self_id = self.account.session()?.account.user_id;
+        if self_id.is_empty() {
+            return Err(SourceError::Unreadable);
+        }
+        artist::following(&mut |path| self.get(path), &self_id)
     }
 
     /// GET 一个客户端接口（`/v1/...` 或接口给的 `next_url`）。access token 被拒时换一次再试。
@@ -71,7 +89,7 @@ impl PixivSource {
             format!("{API}{path}")
         };
         for retry in [false, true] {
-            if !self.api_pacer.wait(&self.cancel) {
+            if !self.pacers.api(&self.cancel) {
                 return Err(SourceError::Cancelled);
             }
             let session = self.account.session()?;
@@ -126,15 +144,23 @@ impl Source for PixivSource {
 
     fn works(
         &mut self,
-        _subscription: &Subscription,
-        _known: &mut dyn FnMut(&str) -> bool,
+        subscription: &Subscription,
+        enough: &mut dyn FnMut(&Work) -> bool,
     ) -> Result<Vec<Work>, SourceError> {
-        // 画师、榜单与收藏夹分别在 #369、#370、#371 接上。
-        Err(SourceError::Unsupported)
+        match &subscription.target {
+            Target::PixivArtist { user_id } => artist::works(
+                &mut |path| self.get(path),
+                user_id,
+                subscription.include_manga,
+                enough,
+            ),
+            // 榜单与收藏夹分别在 #370、#371 接上。
+            Target::PixivRanking { .. } | Target::PixivBookmarks => Err(SourceError::Unsupported),
+        }
     }
 
     fn download(&mut self, url: &str) -> Result<Vec<u8>, SourceError> {
-        if !self.download_pacer.wait(&self.cancel) {
+        if !self.pacers.download(&self.cancel) {
             return Err(SourceError::Cancelled);
         }
         let response = self

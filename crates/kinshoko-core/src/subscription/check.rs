@@ -1,16 +1,17 @@
 //! 检查一条订阅：向订阅来源要作品，跳过收过的，下载没收的页并收进资料库。
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::store::{Outcome, Store, StoreError, WorkKey};
-use super::{SourceId, Subscription};
+use super::store::{Outcome, Store, StoreError, Window, WorkKey};
+use super::{Backlog, SourceId, Subscription};
 use crate::library::SubscriptionPage;
 
 /// 作品类型（#366）：插画收全部页；漫画按订阅的设置；动图跳过。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WorkKind {
     Illustration,
     Manga,
@@ -77,11 +78,13 @@ impl SourceError {
 pub trait Source {
     fn id(&self) -> SourceId;
 
-    /// 订阅对象的作品，从新到旧。`known` 说某个作品已收过时，来源可以就此停止往下翻页。
+    /// 订阅对象的作品，从新到旧。`enough` 对某个作品回真时（例如它已收过，或已经数够），来源可以
+    /// 就此停止往下翻页，这个作品照样列出。来源分几条作品流翻页时（例如画师的插画与漫画），
+    /// 每条各自停，合起来仍从新到旧。
     fn works(
         &mut self,
         subscription: &Subscription,
-        known: &mut dyn FnMut(&str) -> bool,
+        enough: &mut dyn FnMut(&Work) -> bool,
     ) -> Result<Vec<Work>, SourceError>;
 
     /// 下载一页原图。
@@ -144,17 +147,45 @@ fn run(
 ) -> Result<CheckReport, SourceError> {
     let source_id = source.id();
     let library_id = subscription.library_id.as_str();
+    let since = subscription.since;
+    // 选了“最近若干张”、第一次还没查完：数够这么多张为止，收过的不算停下的理由（已收的也算在数里）。
+    let window = match subscription.backlog {
+        Backlog::Recent { count } if since.is_none() => Some(count),
+        _ => None,
+    };
     let mut store_failed = false;
     // 有待重试的作品时，不让来源在比它新的已收作品处停下，否则它轮不到重试。
     let retrying = store.has_failed(&subscription.id)?;
-    let works = source.works(subscription, &mut |work_id| {
+    let mut counted: HashMap<WorkKind, u32> = HashMap::new();
+    let mut reached: HashMap<WorkKind, i64> = HashMap::new();
+    let works = source.works(subscription, &mut |work| {
+        if since.is_some_and(|since| work.posted_at < since) {
+            return true;
+        }
+        if let Some(count) = window {
+            // 按作品流各自数。数够以后还要看到一个更早的作品才停，
+            // 免得和数到的最后一个同一时刻发布的作品没列出来、记不进窗口。
+            let feed = feed_of(work.kind);
+            if let Some(at) = reached.get(&feed) {
+                return work.posted_at < *at;
+            }
+            if !wanted(subscription, work) {
+                return false;
+            }
+            let seen = counted.entry(feed).or_default();
+            *seen += work.pages.len() as u32;
+            if *seen >= count {
+                reached.insert(feed, work.posted_at);
+            }
+            return false;
+        }
         if retrying {
             return false;
         }
         let key = WorkKey {
             library_id,
             source: source_id,
-            work_id,
+            work_id: &work.id,
         };
         store
             .received_by(&subscription.id, &key)
@@ -166,10 +197,36 @@ fn run(
     if store_failed {
         return Err(SourceError::Store);
     }
+    let works: Vec<Work> = works
+        .into_iter()
+        .filter(|w| since.is_none_or(|since| w.posted_at >= since))
+        .collect();
+    // 窗口一算出来就记下，之后（包括这次没收完的重试）都按它收，新发的作品不会把没收完的挤出去。
+    let (works, window) = match window {
+        Some(count) => {
+            let (works, window) = take_recent(subscription, works, count);
+            store.set_window(&subscription.id, &window)?;
+            (works, window)
+        }
+        None => (works, store.window(&subscription.id)?),
+    };
+    let boundary = window.boundary;
+    let works: Vec<Work> = works
+        .into_iter()
+        // 发布时间正好在下限上、当初没数进窗口的作品（例如另一条作品流里同一时刻的漫画）照样不收。
+        .filter(|work| !window.excluded.contains(&work.id))
+        .map(|mut work| {
+            if let Some((_, pages)) = boundary.as_ref().filter(|(id, _)| *id == work.id) {
+                work.pages.truncate(*pages as usize);
+            }
+            work
+        })
+        .collect();
     let mut report = CheckReport::default();
     // 从旧到新收，最近收进来的图按时间排列时与来源上的先后一致。
     for work in works.iter().rev() {
-        if cancel.load(Ordering::SeqCst) {
+        // 检查期间画师退订了：剩下的不再收。
+        if cancel.load(Ordering::SeqCst) || !store.exists(&subscription.id)? {
             return Err(SourceError::Cancelled);
         }
         let key = WorkKey {
@@ -222,6 +279,62 @@ fn run(
     Ok(report)
 }
 
+/// 这条订阅要不要收这个作品（动图、没打开的漫画与成人作品不收）。
+fn wanted(subscription: &Subscription, work: &Work) -> bool {
+    match work.kind {
+        WorkKind::Animation => false,
+        WorkKind::Manga if !subscription.include_manga => false,
+        _ => !work.explicit || subscription.include_explicit,
+    }
+}
+
+/// 作品在哪条作品流里：动图与插画同在插画流里，漫画单独一条。
+fn feed_of(kind: WorkKind) -> WorkKind {
+    match kind {
+        WorkKind::Animation => WorkKind::Illustration,
+        kind => kind,
+    }
+}
+
+/// 最近若干张：从新到旧数够 `count` 张（按页计），最后一个作品超出的页不收。返回要处理的作品
+/// （其间的动图照样记为已跳过）与定下的窗口（见 [`Window`]）。
+fn take_recent(subscription: &Subscription, works: Vec<Work>, count: u32) -> (Vec<Work>, Window) {
+    let mut left = count;
+    let mut window = Window {
+        since: i64::MIN,
+        boundary: None,
+        excluded: Vec::new(),
+    };
+    let mut out = Vec::new();
+    let mut rest = Vec::new();
+    for mut work in works {
+        if left == 0 {
+            rest.push(work);
+            continue;
+        }
+        if wanted(subscription, &work) {
+            let take = (work.pages.len() as u32).min(left);
+            if (take as usize) < work.pages.len() {
+                window.boundary = Some((work.id.clone(), take));
+            }
+            work.pages.truncate(take as usize);
+            left -= take;
+            window.since = work.posted_at;
+        }
+        out.push(work);
+    }
+    if left == 0 {
+        window.excluded = rest
+            .into_iter()
+            .filter(|w| w.posted_at == window.since)
+            .map(|w| w.id)
+            .collect();
+    } else {
+        window.since = i64::MIN;
+    }
+    (out, window)
+}
+
 /// 收一个作品还没收的页；返回这次收了几页，某页失败时为空（已收的页留着，下次补其余的）。
 fn collect(
     store: &Store,
@@ -238,6 +351,9 @@ fn collect(
         let page = page as u32;
         if done.contains(&page) {
             continue;
+        }
+        if !store.exists(&subscription.id)? {
+            return Err(SourceError::Cancelled);
         }
         let bytes = match source.download(url) {
             Ok(bytes) => bytes,
