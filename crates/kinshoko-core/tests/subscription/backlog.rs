@@ -210,3 +210,21 @@ fn unsubscribing_between_pages_stops_the_work() {
         ["https://i.pximg.net/img-original/1_p0.png"]
     );
 }
+
+#[test]
+fn animations_after_the_recent_window_stop_the_listing() {
+    // 插画流里数够一张以后，后面更早的动图也让列表停下，不必翻完一堆动图。
+    let f = Fixture::with(Backlog::Recent { count: 1 }, 0);
+    let mut source = FakeSource::with(vec![
+        posted(work("1", WorkKind::Illustration, false, 1), 1),
+        posted(work("2", WorkKind::Animation, false, 1), 2),
+        posted(work("3", WorkKind::Animation, false, 1), 3),
+        posted(work("4", WorkKind::Illustration, false, 1), 4),
+    ]);
+    assert_eq!(f.check(&mut source).unwrap().collected, 1);
+    assert_eq!(source.listed, 2);
+    assert_eq!(
+        source.downloads,
+        ["https://i.pximg.net/img-original/4_p0.png"]
+    );
+}

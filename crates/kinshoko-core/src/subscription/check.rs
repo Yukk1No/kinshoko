@@ -163,18 +163,19 @@ fn run(
             return true;
         }
         if let Some(count) = window {
-            // 每条作品流只有一种作品类型，按类型各自数。数够以后还要看到一个更早的作品才停，
+            // 按作品流各自数。数够以后还要看到一个更早的作品才停，
             // 免得和数到的最后一个同一时刻发布的作品没列出来、记不进窗口。
-            if let Some(at) = reached.get(&work.kind) {
+            let feed = feed_of(work.kind);
+            if let Some(at) = reached.get(&feed) {
                 return work.posted_at < *at;
             }
             if !wanted(subscription, work) {
                 return false;
             }
-            let seen = counted.entry(work.kind).or_default();
+            let seen = counted.entry(feed).or_default();
             *seen += work.pages.len() as u32;
             if *seen >= count {
-                reached.insert(work.kind, work.posted_at);
+                reached.insert(feed, work.posted_at);
             }
             return false;
         }
@@ -284,6 +285,14 @@ fn wanted(subscription: &Subscription, work: &Work) -> bool {
         WorkKind::Animation => false,
         WorkKind::Manga if !subscription.include_manga => false,
         _ => !work.explicit || subscription.include_explicit,
+    }
+}
+
+/// 作品在哪条作品流里：动图与插画同在插画流里，漫画单独一条。
+fn feed_of(kind: WorkKind) -> WorkKind {
+    match kind {
+        WorkKind::Animation => WorkKind::Illustration,
+        kind => kind,
     }
 }
 
