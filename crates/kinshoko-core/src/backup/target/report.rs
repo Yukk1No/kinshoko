@@ -2,7 +2,7 @@
 
 use super::*;
 
-/// 备份与恢复的错误。`Display` 是给画师看的中文说明。
+/// 备份与恢复的错误。交给界面时转成错误代码；`Display` 是日志里的中文说明。
 #[derive(Debug)]
 pub enum BackupError {
     /// 备份目标不在（移动盘没插、目录被删）。
@@ -16,6 +16,7 @@ pub enum BackupError {
     Group(GroupError),
 }
 
+// 不上界面：交给界面与写进备份计划时都转成错误代码（command_error），Display 只进日志
 impl std::fmt::Display for BackupError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
