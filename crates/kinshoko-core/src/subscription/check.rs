@@ -202,7 +202,8 @@ fn run(
     let mut report = CheckReport::default();
     // 从旧到新收，最近收进来的图按时间排列时与来源上的先后一致。
     for work in works.iter().rev() {
-        if cancel.load(Ordering::SeqCst) {
+        // 检查期间画师退订了：剩下的不再收。
+        if cancel.load(Ordering::SeqCst) || !store.exists(&subscription.id)? {
             return Err(SourceError::Cancelled);
         }
         let key = WorkKey {
@@ -252,7 +253,10 @@ fn run(
             }
         }
     }
-    if let Some(cutoff) = cutoff {
+    // 窗口里有没收成的作品时先不定下限：下次照样按窗口数，边界上那个作品重试时也只收窗口里的页。
+    if let Some(cutoff) = cutoff
+        && report.failed == 0
+    {
         store.set_since(&subscription.id, cutoff)?;
     }
     Ok(report)

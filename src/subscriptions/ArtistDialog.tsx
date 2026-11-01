@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { CircleAlert, LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -36,6 +36,8 @@ export function ArtistDialog({ status, safe, list, libraryId, onClose, onAdded, 
   const fallback = libraries.options.find((o) => o.value === libraryId)?.value ?? libraries.options[0]?.value ?? "";
   const [input, setInput] = useState("");
   const [lookup, setLookup] = useState<Lookup>({ kind: "idle" });
+  /** 第几次查找；输入改了也加一，晚到的旧结果对不上就丢掉。 */
+  const asked = useRef(0);
   const [choices, setChoices] = useState<ArtistChoices>(() => initialChoices(""));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,9 +49,10 @@ export function ArtistDialog({ status, safe, list, libraryId, onClose, onAdded, 
 
   const find = () => {
     if (!input.trim() || lookup.kind === "finding") return;
+    const request = ++asked.current;
     setLookup({ kind: "finding" });
-    subscriptionFindArtist(input).then((artist) => setLookup({ kind: "found", artist }),
-      (e) => setLookup({ kind: "failed", message: errorText(e) }));
+    subscriptionFindArtist(input).then((artist) => { if (request === asked.current) setLookup({ kind: "found", artist }); },
+      (e) => { if (request === asked.current) setLookup({ kind: "failed", message: errorText(e) }); });
   };
   const subscribe = () => {
     if (!found || already || !backlog || !chosen.libraryId) return;
@@ -75,7 +78,7 @@ export function ArtistDialog({ status, safe, list, libraryId, onClose, onAdded, 
             <span className="k-field-row">
               <span className="k-input" aria-invalid={lookup.kind === "failed" ? true : undefined}>
                 <input value={input} aria-label={t("input")} placeholder={t("placeholder")} disabled={busy} autoFocus spellCheck={false}
-                  onChange={(e) => { setInput(e.target.value); if (lookup.kind !== "finding") setLookup({ kind: "idle" }); }} />
+                  onChange={(e) => { asked.current++; setInput(e.target.value); setLookup({ kind: "idle" }); }} />
               </span>
               <button type="submit" className="k-btn" disabled={busy || !input.trim() || lookup.kind === "finding"}>
                 {lookup.kind === "finding" && <LoaderCircle className="subs-spin" size={14} aria-hidden="true" />}

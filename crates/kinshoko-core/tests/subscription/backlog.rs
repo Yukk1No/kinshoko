@@ -94,3 +94,67 @@ fn options_can_change_but_unknown_subscriptions_cannot() {
     assert_eq!(changed.library_id, f.subscription.library_id);
     assert!(f.store.set_options("nope", true, true).is_err());
 }
+
+#[test]
+fn a_failed_boundary_work_is_retried_only_up_to_the_window() {
+    let f = Fixture::with(Backlog::Recent { count: 2 }, 0);
+    let mut source = FakeSource::with(vec![posted(
+        work("1", WorkKind::Illustration, false, 10),
+        1,
+    )]);
+    source.fail.insert(
+        "https://i.pximg.net/img-original/1_p1.png".into(),
+        SourceError::Status { status: 500 },
+    );
+    let report = f.check(&mut source).unwrap();
+    assert_eq!((report.collected, report.failed), (0, 1));
+    // 窗口里有没收成的：先不定下限，下次照样只数两张。
+    assert_eq!(f.store.get(&f.subscription.id).unwrap().since, None);
+
+    source.fail.clear();
+    source.downloads.clear();
+    f.check(&mut source).unwrap();
+    assert_eq!(
+        source.downloads,
+        ["https://i.pximg.net/img-original/1_p1.png"]
+    );
+    assert!(f.store.get(&f.subscription.id).unwrap().since.is_some());
+}
+
+/// 收进第一张图后把订阅退订掉的资料库。
+struct UnsubscribeAfterFirst<'a>(&'a Fixture);
+
+impl Destination for UnsubscribeAfterFirst<'_> {
+    fn import(
+        &self,
+        library_id: &str,
+        page: SubscriptionPage,
+        bytes: &[u8],
+    ) -> Result<String, String> {
+        let id = self.0.libraries.import(library_id, page, bytes)?;
+        let _ = self.0.store.remove(&self.0.subscription.id);
+        Ok(id)
+    }
+}
+
+#[test]
+fn unsubscribing_during_a_check_stops_it() {
+    let f = Fixture::new();
+    let mut source = FakeSource::with(vec![
+        posted(work("1", WorkKind::Illustration, false, 1), 1),
+        posted(work("2", WorkKind::Illustration, false, 1), 2),
+    ]);
+    let result = check(
+        &f.store,
+        &f.subscription,
+        &mut source,
+        &UnsubscribeAfterFirst(&f),
+        &|| 5_000,
+        &AtomicBool::new(false),
+    );
+    assert_eq!(result.unwrap_err(), SourceError::Cancelled);
+    assert_eq!(
+        source.downloads,
+        ["https://i.pximg.net/img-original/1_p0.png"]
+    );
+}

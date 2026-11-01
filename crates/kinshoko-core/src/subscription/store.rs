@@ -229,6 +229,15 @@ impl Store {
         Ok(out)
     }
 
+    /// 这条订阅还在（没被退订）。
+    pub fn exists(&self, id: &str) -> Result<bool, StoreError> {
+        Ok(self
+            .conn()
+            .query_row("SELECT 1 FROM subscription WHERE id = ?1", [id], |_| Ok(()))
+            .optional()?
+            .is_some())
+    }
+
     pub fn get(&self, id: &str) -> Result<Subscription, StoreError> {
         self.list()?
             .into_iter()

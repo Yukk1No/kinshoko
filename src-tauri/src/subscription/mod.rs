@@ -64,6 +64,8 @@ pub struct SubscriptionState {
     signal: Condvar,
     /// 关掉订阅开关或退出登录时置位，正在进行的检查在下一个请求前停下。
     cancel: Arc<AtomicBool>,
+    /// 同上，管界面里的查找画师与读关注：关掉订阅开关或退出登录时置位。
+    foreground_cancel: Arc<AtomicBool>,
     checking: AtomicBool,
     login: Mutex<Option<Arc<LoginRequest>>>,
 }
@@ -118,6 +120,7 @@ pub fn manage(app: &AppHandle) {
         wake: Mutex::new(Wake::default()),
         signal: Condvar::new(),
         cancel: Arc::new(AtomicBool::new(false)),
+        foreground_cancel: Arc::new(AtomicBool::new(false)),
         checking: AtomicBool::new(false),
         login: Mutex::new(None),
     });
@@ -208,7 +211,7 @@ fn round(app: &AppHandle, state: &SubscriptionState, check_all: bool) -> Duratio
         state.cancel.store(false, Ordering::SeqCst);
         state.checking.store(true, Ordering::SeqCst);
         publish(app);
-        check_each(app, state, &due, backoff.map_or(0, |(_, level)| level));
+        check_each(app, state, &due, backoff);
         state.checking.store(false, Ordering::SeqCst);
         publish(app);
     }
@@ -223,7 +226,16 @@ fn round(app: &AppHandle, state: &SubscriptionState, check_all: bool) -> Duratio
     })
 }
 
-fn check_each(app: &AppHandle, state: &SubscriptionState, due: &[Subscription], level: u32) {
+/// `backoff` 是这一轮开始时看到的退避。轮中别处（查找画师、读关注）遇到频率限制定下的新退避，
+/// 这一轮照样遵守，也不会在结束时把它清掉。
+fn check_each(
+    app: &AppHandle,
+    state: &SubscriptionState,
+    due: &[Subscription],
+    backoff: Option<(i64, u32)>,
+) {
+    let level = backoff.map_or(0, |(_, level)| level);
+    let current = || state.store.backoff(SourceId::Pixiv).ok().flatten();
     let mut source = PixivSource::new(
         state.account.clone(),
         state.pacers.clone(),
@@ -232,6 +244,9 @@ fn check_each(app: &AppHandle, state: &SubscriptionState, due: &[Subscription], 
     let destination = Libraries(app.clone());
     let mut rate_limited = false;
     for subscription in due {
+        if current() != backoff {
+            return;
+        }
         let result = check(
             &state.store,
             subscription,
@@ -250,9 +265,15 @@ fn check_each(app: &AppHandle, state: &SubscriptionState, due: &[Subscription], 
                 rate_limited = true;
                 break;
             }
-            Err(SourceError::LoginExpired | SourceError::Cancelled) => break,
+            Err(SourceError::LoginExpired) => break,
+            // 不是整轮取消，而是这条在检查期间被退订了：接着查下一条。
+            Err(SourceError::Cancelled) if !state.cancel.load(Ordering::SeqCst) => {}
+            Err(SourceError::Cancelled) => break,
             Err(_) => {}
         }
+    }
+    if current() != backoff {
+        return;
     }
     let _ = if rate_limited {
         state.store.set_backoff(
@@ -326,6 +347,7 @@ pub async fn set_subscriptions_enabled(
         .set_subscriptions(on)?;
     if !on {
         state.cancel.store(true, Ordering::SeqCst);
+        state.foreground_cancel.store(true, Ordering::SeqCst);
         if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
             let _ = window.close();
         }
@@ -421,10 +443,11 @@ async fn ask_pixiv<T: Send + 'static>(
     if backoff.is_some_and(|(until, _)| until > now_ms()) {
         return Err(source_failed(SourceError::RateLimited));
     }
+    state.foreground_cancel.store(false, Ordering::SeqCst);
     let mut source = PixivSource::new(
         state.account.clone(),
         state.pacers.clone(),
-        Arc::new(AtomicBool::new(false)),
+        state.foreground_cancel.clone(),
     );
     let store = state.store.clone();
     let result = tauri::async_runtime::spawn_blocking(move || ask(&mut source))

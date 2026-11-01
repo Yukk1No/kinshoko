@@ -10,6 +10,8 @@ import { account, list, NOW, status, subscription } from "./subscriptions.fixtur
 // 订阅画师（#369）：添加对话框、从 pixiv 关注导入、订阅设置与退订。
 
 let calls: { cmd: string; args: unknown }[] = [];
+/** 让“slow”那次查找回来。 */
+let finishSlow = () => {};
 const libraries = [
   { library: { id: "L1", name: "主图库", root: "C:/lib1" }, unavailable: null },
   { library: { id: "L2", name: "pixiv 画师", root: "C:/lib2" }, unavailable: null },
@@ -28,6 +30,7 @@ function backend(subs: Subscription[] = list) {
     }
     if (cmd === "subscription_find_artist") {
       const input = (args as { input: string }).input;
+      if (input === "slow") return new Promise((resolve) => { finishSlow = () => resolve({ userId: "1", name: "Slow" }); });
       if (input.includes("404")) throw { code: "artistNotFound" };
       return { userId: "777", name: "Nanashi" };
     }
@@ -105,6 +108,21 @@ describe("订阅画师", () => {
     fireEvent.click(within(again).getByRole("button", { name: "查找" }));
     expect(await within(again).findByText("已经订阅了这位画师")).toBeTruthy();
     expect((within(again).getByRole("button", { name: "订阅" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("查找期间改了输入，晚到的结果不算", async () => {
+    backend();
+    page(status());
+    const dialog = await openArtistDialog();
+    const input = within(dialog).getByRole("textbox", { name: "画师主页链接或 ID" });
+    fireEvent.change(input, { target: { value: "slow" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "查找" }));
+    await waitFor(() => expect(sent("subscription_find_artist")).toHaveLength(1));
+    fireEvent.change(input, { target: { value: "777" } });
+    finishSlow();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(within(dialog).queryByText("Slow")).toBeNull();
+    expect((within(dialog).getByRole("button", { name: "订阅" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("登录着时有 R-18 与关注导入；不登录（登录失效）或安全模式下都不出现", async () => {

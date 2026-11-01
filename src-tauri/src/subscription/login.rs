@@ -140,6 +140,7 @@ fn finish_login(app: &AppHandle, request: Arc<LoginRequest>, code: &str) {
 pub async fn subscription_logout(app: AppHandle) -> Result<SubscriptionStatus, CommandError> {
     let state = require(&app)?;
     state.cancel.store(true, Ordering::SeqCst);
+    state.foreground_cancel.store(true, Ordering::SeqCst);
     if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
         let _ = window.destroy();
     }
