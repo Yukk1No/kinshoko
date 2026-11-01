@@ -164,3 +164,49 @@ fn unsubscribing_during_a_check_stops_it() {
         ["https://i.pximg.net/img-original/1_p0.png"]
     );
 }
+
+#[test]
+fn works_posted_at_the_cutoff_but_left_out_stay_out() {
+    let f = Fixture::with(Backlog::Recent { count: 1 }, 0);
+    // 两个作品同一时刻发布：只数进较新列出的那个。
+    let works = vec![
+        posted(work("3", WorkKind::Illustration, false, 1), 0),
+        posted(work("1", WorkKind::Illustration, false, 1), 1),
+        posted(work("2", WorkKind::Illustration, false, 1), 1),
+    ];
+    let mut source = FakeSource::with(works.clone());
+    assert_eq!(f.check(&mut source).unwrap().collected, 1);
+    assert_eq!(
+        source.downloads,
+        ["https://i.pximg.net/img-original/2_p0.png"]
+    );
+
+    // 之后全部列出也不补同一时刻的作品 1。
+    let mut again = FakeSource::with(works);
+    assert_eq!(
+        f.check(&mut FakeSourceIgnoringKnown(&mut again))
+            .unwrap()
+            .collected,
+        0
+    );
+    assert!(again.downloads.is_empty(), "{:?}", again.downloads);
+}
+
+#[test]
+fn unsubscribing_between_pages_stops_the_work() {
+    let f = Fixture::new();
+    let mut source = FakeSource::with(vec![posted(work("1", WorkKind::Illustration, false, 5), 1)]);
+    let result = check(
+        &f.store,
+        &f.subscription,
+        &mut source,
+        &UnsubscribeAfterFirst(&f),
+        &|| 5_000,
+        &AtomicBool::new(false),
+    );
+    assert_eq!(result.unwrap_err(), SourceError::Cancelled);
+    assert_eq!(
+        source.downloads,
+        ["https://i.pximg.net/img-original/1_p0.png"]
+    );
+}

@@ -462,6 +462,8 @@ async fn ask_pixiv<T: Send + 'static>(
                 now_ms() + schedule::backoff_ms(level),
                 level + 1,
             );
+            // 正在进行的检查在下一个请求前停下，不在退避期间接着请求。
+            state.cancel.store(true, Ordering::SeqCst);
             publish(app);
             Err(source_failed(SourceError::RateLimited))
         }

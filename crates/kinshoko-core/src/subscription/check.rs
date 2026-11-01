@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::store::{Outcome, Store, StoreError, WorkKey};
+use super::store::{Outcome, Store, StoreError, Window, WorkKey};
 use super::{Backlog, SourceId, Subscription};
 use crate::library::SubscriptionPage;
 
@@ -157,18 +157,26 @@ fn run(
     // 有待重试的作品时，不让来源在比它新的已收作品处停下，否则它轮不到重试。
     let retrying = store.has_failed(&subscription.id)?;
     let mut counted: HashMap<WorkKind, u32> = HashMap::new();
+    let mut reached: HashMap<WorkKind, i64> = HashMap::new();
     let works = source.works(subscription, &mut |work| {
         if since.is_some_and(|since| work.posted_at < since) {
             return true;
         }
         if let Some(count) = window {
+            // 每条作品流只有一种作品类型，按类型各自数。数够以后还要看到一个更早的作品才停，
+            // 免得和数到的最后一个同一时刻发布的作品没列出来、记不进窗口。
+            if let Some(at) = reached.get(&work.kind) {
+                return work.posted_at < *at;
+            }
             if !wanted(subscription, work) {
                 return false;
             }
-            // 每条作品流只有一种作品类型，按类型各自数。
             let seen = counted.entry(work.kind).or_default();
             *seen += work.pages.len() as u32;
-            return *seen >= count;
+            if *seen >= count {
+                reached.insert(work.kind, work.posted_at);
+            }
+            return false;
         }
         if retrying {
             return false;
@@ -193,23 +201,19 @@ fn run(
         .filter(|w| since.is_none_or(|since| w.posted_at >= since))
         .collect();
     // 窗口一算出来就记下，之后（包括这次没收完的重试）都按它收，新发的作品不会把没收完的挤出去。
-    let (works, boundary) = match window {
+    let (works, window) = match window {
         Some(count) => {
-            let (works, cutoff, boundary) = take_recent(subscription, works, count);
-            let boundary = boundary.map(|(work, pages)| (work.to_owned(), pages));
-            store.set_window(
-                &subscription.id,
-                cutoff,
-                boundary
-                    .as_ref()
-                    .map(|(work, pages)| (work.as_str(), *pages)),
-            )?;
-            (works, boundary)
+            let (works, window) = take_recent(subscription, works, count);
+            store.set_window(&subscription.id, &window)?;
+            (works, window)
         }
-        None => (works, store.boundary(&subscription.id)?),
+        None => (works, store.window(&subscription.id)?),
     };
+    let boundary = window.boundary;
     let works: Vec<Work> = works
         .into_iter()
+        // 发布时间正好在下限上、当初没数进窗口的作品（例如另一条作品流里同一时刻的漫画）照样不收。
+        .filter(|work| !window.excluded.contains(&work.id))
         .map(|mut work| {
             if let Some((_, pages)) = boundary.as_ref().filter(|(id, _)| *id == work.id) {
                 work.pages.truncate(*pages as usize);
@@ -284,33 +288,42 @@ fn wanted(subscription: &Subscription, work: &Work) -> bool {
 }
 
 /// 最近若干张：从新到旧数够 `count` 张（按页计），最后一个作品超出的页不收。返回要处理的作品
-/// （其间的动图照样记为已跳过）、此后的下限（数到的最后一张的发布时间；不够这么多张时为最早），
-/// 以及被截断的那个作品与它收的页数。
-fn take_recent(
-    subscription: &Subscription,
-    works: Vec<Work>,
-    count: u32,
-) -> (Vec<Work>, i64, Option<(String, u32)>) {
+/// （其间的动图照样记为已跳过）与定下的窗口（见 [`Window`]）。
+fn take_recent(subscription: &Subscription, works: Vec<Work>, count: u32) -> (Vec<Work>, Window) {
     let mut left = count;
-    let mut cutoff = i64::MIN;
-    let mut boundary = None;
+    let mut window = Window {
+        since: i64::MIN,
+        boundary: None,
+        excluded: Vec::new(),
+    };
     let mut out = Vec::new();
+    let mut rest = Vec::new();
     for mut work in works {
         if left == 0 {
-            break;
+            rest.push(work);
+            continue;
         }
         if wanted(subscription, &work) {
             let take = (work.pages.len() as u32).min(left);
             if (take as usize) < work.pages.len() {
-                boundary = Some((work.id.clone(), take));
+                window.boundary = Some((work.id.clone(), take));
             }
             work.pages.truncate(take as usize);
             left -= take;
-            cutoff = work.posted_at;
+            window.since = work.posted_at;
         }
         out.push(work);
     }
-    (out, if left == 0 { cutoff } else { i64::MIN }, boundary)
+    if left == 0 {
+        window.excluded = rest
+            .into_iter()
+            .filter(|w| w.posted_at == window.since)
+            .map(|w| w.id)
+            .collect();
+    } else {
+        window.since = i64::MIN;
+    }
+    (out, window)
 }
 
 /// 收一个作品还没收的页；返回这次收了几页，某页失败时为空（已收的页留着，下次补其余的）。
@@ -329,6 +342,9 @@ fn collect(
         let page = page as u32;
         if done.contains(&page) {
             continue;
+        }
+        if !store.exists(&subscription.id)? {
+            return Err(SourceError::Cancelled);
         }
         let bytes = match source.download(url) {
             Ok(bytes) => bytes,

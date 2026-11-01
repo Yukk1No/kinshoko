@@ -5,3 +5,5 @@ ALTER TABLE subscription ADD COLUMN since INTEGER;
 -- 最近若干张数到的最后一个作品只收前几页：记下它与页数，重试时也不多收。
 ALTER TABLE subscription ADD COLUMN boundary_work TEXT;
 ALTER TABLE subscription ADD COLUMN boundary_pages INTEGER;
+-- 发布时间正好在下限上、当初没数进窗口的作品（JSON 数组），之后也不收。
+ALTER TABLE subscription ADD COLUMN cutoff_excluded TEXT;
