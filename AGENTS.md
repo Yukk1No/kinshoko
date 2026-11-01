@@ -8,6 +8,10 @@ Before publishing a release (beta, rc or final), work through the “每次发�
 
 Before changing `.github/workflows/`, read `docs/agents/github-actions.md`.
 
+## Interface text
+
+Text the artist sees goes into `src/i18n/locales` (Rust-drawn tray, dialog and pin text into `src-tauri/src/ui_text.rs`), and a Rust failure shown in the interface is an error code (`ErrorKind`); Chinese that only reaches logs carries `// 不上界面：<reason>` on the line above its item. The CI job “写死的界面文字” fails on any other Chinese line.
+
 ## Agent skills
 
 ### Interface design
