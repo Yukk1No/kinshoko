@@ -79,7 +79,6 @@ function RuntimeFailure({ problems, className = "" }: { problems: RuntimeProblem
   return <aside className={`runtime-notice ${className}`} aria-label={t("noticeLabel")}>
     <div role="alert"><strong>{t("failed")}</strong><ul>{problems.map((problem) => <li key={problem}>{t(`problem.${problem}`)}</li>)}</ul></div>
     <p>{t("advice")}</p>
-    <p>故意写死的界面文字，验证检查会失败</p>
     <p className="settings-actions">
       <button type="button" className="k-btn is-sm" onClick={() => void openRuntimeUpdate().catch((e) => setError(String(e)))}><span className="k-label">{t("download")}</span></button>
       {runtime && <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch((e) => setError(String(e)))}><span className="k-label">{t("recheck")}</span></button>}
