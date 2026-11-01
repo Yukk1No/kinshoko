@@ -29,6 +29,7 @@ impl Clock for LocalClock {
 }
 
 /// 按设置打开运行日志并记下 panic。在建任何窗口之前调用一次。
+// 不上界面：panic 写进运行日志
 pub fn start(app: &AppHandle, settings: &AppSettings) {
     let dir = crate::data_dirs::app_data(app).logs();
     let log = RunLog::open(dir, settings.run_log(), Arc::new(LocalClock));
@@ -159,6 +160,7 @@ pub enum StartupStep {
     TwentyThumbnails,
 }
 
+// 不上界面：首屏耗时写进运行日志
 impl StartupStep {
     fn label(self) -> &'static str {
         match self {

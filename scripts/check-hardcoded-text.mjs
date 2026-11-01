@@ -33,6 +33,12 @@ const SKIP = [
   /(^|\/)benches\//,
   /(^|\/)tests?\.rs$/,
   /_tests?\.rs$/,
+  // 还原度门槛实验（#45）：命令行开发工具 kinshoko.exe --fidelity-gate，样本说明与报告只给开发者看。
+  /^crates\/kinshoko-core\/src\/fidelity\/(?:gate|pin_gate)\.rs$/,
+  /^src-tauri\/src\/fidelity_gate\//,
+  // 给测试用的假实现（打标 port、钉图平台层），正式运行时不用。
+  /^crates\/kinshoko-core\/src\/tagging\/memory\.rs$/,
+  /^crates\/pin-shell\/src\/fake\.rs$/,
 ];
 
 export function isSkipped(path) {
@@ -226,27 +232,53 @@ function scanTemplateTail(text, i, keep) {
   return { index: i, reentered: false };
 }
 
+/**
+ * 从 shape[from] 起的一个条目所占的行（从 1 数）加进 lines：到圆括号、方括号以外的第一个 ; 为止，
+ * 或者到第一个 { 配对的 } 为止（数组类型 [T; 4] 里的 ; 不算）。返回条目结尾的下标。
+ */
+function itemLines(shape, from, lines) {
+  let i = from;
+  let depth = 0;
+  for (; i < shape.length; i++) {
+    const c = shape[i];
+    if (c === "(" || c === "[") depth++;
+    else if (c === ")" || c === "]") depth--;
+    else if (depth === 0 && (c === ";" || c === "{")) break;
+  }
+  if (shape[i] === "{") i = matchingClose(shape, i, "{", "}");
+  const last = lineOf(shape, i);
+  for (let l = lineOf(shape, from); l <= last; l++) lines.add(l);
+  return i;
+}
+
 /** Rust 里 #[cfg(test)] 标着的条目所占的行（从 1 数），整条跳过。 */
 export function rustTestLines(shape) {
   const lines = new Set();
   const attr = /#\[cfg\(\s*test\s*\)\]/g;
   let m;
   while ((m = attr.exec(shape))) {
-    let i = m.index + m[0].length;
-    // 条目到第一个 ; 为止，或者到第一个 { 配对的 } 为止。
-    while (i < shape.length && shape[i] !== ";" && shape[i] !== "{") i++;
-    if (shape[i] === "{") {
-      let depth = 0;
-      for (; i < shape.length; i++) {
-        if (shape[i] === "{") depth++;
-        else if (shape[i] === "}" && --depth === 0) break;
-      }
-    }
-    const first = lineOf(shape, m.index);
-    const last = lineOf(shape, i);
-    for (let l = first; l <= last; l++) lines.add(l);
-    attr.lastIndex = Math.max(attr.lastIndex, i);
+    const end = itemLines(shape, m.index, lines);
+    attr.lastIndex = Math.max(attr.lastIndex, end);
   }
+  return lines;
+}
+
+/**
+ * 写在条目正上方的标记 `// 不上界面：<原因>`：这个条目（函数、常量、impl 等）里的文字不在界面上显示，
+ * 比如写进诊断报告、只进日志、搜索时认的叫法。冒号后面必须写原因，没写原因的标记不算。
+ */
+const NOT_UI_MARKER = /^\s*\/\/\s*不上界面[：:]\s*\S/;
+
+export function rustMarkedLines(original, shape) {
+  const lines = new Set();
+  const starts = [0];
+  for (let i = 0; i < shape.length; i++) if (shape[i] === "\n") starts.push(i + 1);
+  original.forEach((line, index) => {
+    if (NOT_UI_MARKER.test(line) && index + 1 < starts.length) {
+      lines.add(index + 1);
+      itemLines(shape, starts[index + 1], lines);
+    }
+  });
   return lines;
 }
 
@@ -257,23 +289,87 @@ function lineOf(text, index) {
 }
 
 /**
- * Rust 里只给开发者看的文字：panic 一类宏与 expect 的消息、打到控制台的输出。
- * 这些调用的整个参数列表换成空格。
+ * Rust 里不上界面的文字，按用途豁免。
+ *
+ * 整个参数列表换成空格：
+ * - 只给开发者看：panic 一类宏与 expect 的消息、打到控制台的输出。
+ * - 只进运行日志：log/tracing 的宏、run_log 的 warn/error/info、诊断的耗时与持锁记录
+ *   （took、took_if_slow、HeldLock::acquired）、原生钉图编排的 Effect::Warn（由宿主写进运行日志）。
  */
-const RUST_DEVELOPER_TEXT =
-  /(?:\.expect|\b(?:panic|unreachable|todo|unimplemented|(?:debug_)?assert(?:_eq|_ne)?|e?print(?:ln)?)!)\s*\(/g;
+const RUST_NON_UI_CALLS = [
+  /\.expect\s*\(/g,
+  /\b(?:panic|unreachable|todo|unimplemented|(?:debug_)?assert(?:_eq|_ne)?|e?print(?:ln)?)!\s*\(/g,
+  /\b(?:trace|debug|info|warn|error)!\s*\(/g,
+  /\brun_log::(?:info|warn|error)\s*\(/g,
+  /\b(?:took|took_if_slow)\s*\(/g,
+  /\bHeldLock::acquired\s*\(/g,
+  /\bEffect::Warn\s*\(/g,
+];
 
-export function maskRustDeveloperText(code, shape) {
+/**
+ * 只把第一个参数之后的部分换成空格：交给界面的错误只序列化错误代码（#355，见 kinshoko-core 的
+ * command_error），界面按代码从 src/i18n 取文案，跟在代码后面的中文说明只用于日志。
+ * - CommandError::new(代码, 说明)、CommandError::caused_by(原因, 代码, 说明)；
+ * - 第一个参数就是错误代码的构造，如 GroupError::invalid(ErrorKind::…, 说明)。
+ * 第一个参数（代码与它的字段）照常检查。CommandError::system、without_code 与 ErrorKind::Message
+ * 的内容会原样显示在界面上，不豁免。
+ */
+const RUST_LOG_TEXT_AFTER_CODE = [
+  /\bCommandError::(?:new|caused_by)\s*\(/g,
+  /\((?=\s*(?:(?:crate|kinshoko_core)::command_error::)?ErrorKind::(?!Message\b|System\b))/g,
+];
+
+/**
+ * Display 实现：领域错误的 Display 只用于日志和拼进别的说明（#355），界面按错误代码取文案。
+ * 整个 impl 块换成空格。
+ */
+const RUST_DISPLAY_IMPL = /\bimpl\b[^{;]*?\b(?:fmt::)?Display\s+for\b[^{;]*\{/g;
+
+function maskSpan(out, start, end) {
+  for (let k = start; k <= end && k < out.length; k++) if (out[k] !== "\n") out[k] = " ";
+}
+
+/** 从 shape[start]（一个开括号）找到配对的闭括号的下标。 */
+function matchingClose(shape, start, open, close) {
+  let depth = 0;
+  for (let i = start; i < shape.length; i++) {
+    if (shape[i] === open) depth++;
+    else if (shape[i] === close && --depth === 0) return i;
+  }
+  return shape.length - 1;
+}
+
+/** shape[start] 是 (，找它里面第一个顶层逗号的下标；没有逗号时返回 -1。 */
+function firstTopLevelComma(shape, start, end) {
+  let depth = 0;
+  for (let i = start + 1; i < end; i++) {
+    const c = shape[i];
+    if (c === "(" || c === "[" || c === "{") depth++;
+    else if (c === ")" || c === "]" || c === "}") depth--;
+    else if (c === "," && depth === 0) return i;
+  }
+  return -1;
+}
+
+export function maskRustNonUiText(code, shape) {
   const out = code.split("");
-  for (const m of shape.matchAll(RUST_DEVELOPER_TEXT)) {
-    const start = m.index + m[0].length - 1;
-    let depth = 0;
-    let i = start;
-    for (; i < shape.length; i++) {
-      if (shape[i] === "(") depth++;
-      else if (shape[i] === ")" && --depth === 0) break;
+  for (const pattern of RUST_NON_UI_CALLS) {
+    for (const m of shape.matchAll(pattern)) {
+      const start = m.index + m[0].length - 1;
+      maskSpan(out, start, matchingClose(shape, start, "(", ")"));
     }
-    for (let k = start; k <= i && k < out.length; k++) if (out[k] !== "\n") out[k] = " ";
+  }
+  for (const pattern of RUST_LOG_TEXT_AFTER_CODE) {
+    for (const m of shape.matchAll(pattern)) {
+      const start = shape.indexOf("(", m.index);
+      const end = matchingClose(shape, start, "(", ")");
+      const comma = firstTopLevelComma(shape, start, end);
+      if (comma !== -1) maskSpan(out, comma, end);
+    }
+  }
+  for (const m of shape.matchAll(RUST_DISPLAY_IMPL)) {
+    const start = m.index + m[0].length - 1;
+    maskSpan(out, start, matchingClose(shape, start, "{", "}"));
   }
   return out.join("");
 }
@@ -283,9 +379,9 @@ export function findHardcodedText(text, path) {
   const lang = path.endsWith(".rs") ? "rs" : "ts";
   const stripped = stripComments(text.replace(/\r\n/g, "\n"), lang);
   const shape = stripped.shape;
-  const code = lang === "rs" ? maskRustDeveloperText(stripped.code, shape) : stripped.code;
-  const skipped = lang === "rs" ? rustTestLines(shape) : new Set();
+  const code = lang === "rs" ? maskRustNonUiText(stripped.code, shape) : stripped.code;
   const original = text.replace(/\r\n/g, "\n").split("\n");
+  const skipped = lang === "rs" ? new Set([...rustTestLines(shape), ...rustMarkedLines(original, shape)]) : new Set();
   const hits = [];
   code.split("\n").forEach((line, index) => {
     if (CJK.test(line) && !skipped.has(index + 1)) {

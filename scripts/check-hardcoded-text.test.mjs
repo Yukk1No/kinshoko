@@ -90,6 +90,63 @@ describe("Rust", () => {
     ].join("\n");
     expect(lines(source, "crates/x/src/lib.rs")).toEqual([8]);
   });
+
+  it("不算日志与运行日志里的中文", () => {
+    const source = [
+      'log::warn!("同步失败：{e}");',
+      'crate::run_log::error("打开主窗口失败", e);',
+      'took("浏览：一页", started, None);',
+      'self.effects.push(Effect::Warn("画不上", e));',
+      'let _held = HeldLock::acquired("登记表", site, waiting);',
+      'Err(format!("界面上的"))',
+    ].join("\n");
+    expect(lines(source, "src-tauri/src/a.rs")).toEqual([6]);
+  });
+
+  it("错误代码后面的日志说明不算，代码本身与原样显示的错误照查", () => {
+    const source = [
+      'CommandError::new(ErrorKind::NoLibrary, "还没有资料库")',
+      "GroupError::invalid(",
+      "    ErrorKind::GroupMemberDuplicate { member: m.id.clone() },",
+      '    format!("成员 {} 重复", m.id),',
+      ")",
+      'BackupError::incomplete(crate::command_error::ErrorKind::RestoreJournalMismatch, "身份不符")',
+      'CommandError::new(ErrorKind::Undecodable { detail: "不支持的格式".into() }, "原图无法解码")',
+      'CommandError::system("原样显示")',
+      'CommandError::without_code("原样显示")',
+      'wrap(ErrorKind::Message { message: "原样显示".into() }, "说明")',
+    ].join("\n");
+    expect(lines(source, "crates/x/src/lib.rs")).toEqual([7, 8, 9, 10]);
+  });
+
+  it("Display 实现整块不算", () => {
+    const source = [
+      "impl fmt::Display for Error {",
+      "    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {",
+      '        match self { Error::A => write!(f, "日志里的说明"), Error::B => f.write_str("{") }',
+      "    }",
+      "}",
+      'fn label() -> &\'static str { "界面" }',
+    ].join("\n");
+    expect(lines(source, "crates/x/src/lib.rs")).toEqual([6]);
+  });
+
+  it("“不上界面”标记豁免紧跟着的一个条目，没写原因的不算", () => {
+    const source = [
+      "// 不上界面：只写进诊断报告",
+      "/// 文档注释",
+      "#[inline]",
+      "fn report() -> String {",
+      '    format!("诊断信息")',
+      "}",
+      "// 不上界面：搜索时认的叫法",
+      'const NAMES: [(u8, &str); 2] = [(1, "全年龄"), (2, "成人")];',
+      'const AFTER: &str = "照查";',
+      "// 不上界面：",
+      'const NO_REASON: &str = "照查";',
+    ].join("\n");
+    expect(lines(source, "crates/x/src/lib.rs")).toEqual([9, 11]);
+  });
 });
 
 describe("不查的文件", () => {
@@ -103,6 +160,8 @@ describe("不查的文件", () => {
     "crates/kinshoko-core/tests/library.rs",
     "crates/kinshoko-core/src/library/tests.rs",
     "crates/kinshoko-core/examples/demo.rs",
+    "crates/kinshoko-core/src/fidelity/gate.rs",
+    "src-tauri/src/fidelity_gate/pins.rs",
   ])("%s", path => {
     expect(isSkipped(path)).toBe(true);
   });
