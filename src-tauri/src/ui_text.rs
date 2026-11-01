@@ -47,7 +47,7 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
         Text::TrayBackupFailed => pick(
             en,
             "Kinshoko：备份没有完成，下次再试。",
-            "Kinshoko: the backup didn't finish. It will try again next time. ",
+            "Kinshoko: the backup didn't finish. It will try again next time.",
         ),
         Text::StartupFailed => pick(en, "Kinshoko 无法启动", "Kinshoko couldn't start"),
         Text::FilterReferencePackage => pick(en, "参考组包", "Reference group package"),

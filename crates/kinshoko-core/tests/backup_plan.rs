@@ -2,6 +2,7 @@
 //! 隔一段时间后的下一次再试。经 `kinshoko_core::backup::BackupPlan`，计划存在临时目录里。
 
 use kinshoko_core::backup::{BackupError, BackupPlan, ScopeSelection, Stamp};
+use kinshoko_core::command_error::{ErrorKind, StoredReason};
 
 const HOUR: i64 = 60 * 60 * 1000;
 /// 2026-10-05 00:00 UTC，东八区 08:00。
@@ -44,13 +45,16 @@ fn a_missing_target_is_remembered_for_a_reminder_and_retried_next_time() {
     plan.set_target(Some(&dir.path().join("备份盘"))).unwrap();
     plan.record_failure(
         at(1),
-        &BackupError::TargetUnavailable(dir.path().join("备份盘")),
+        BackupError::TargetUnavailable(dir.path().join("备份盘")),
     )
     .unwrap();
     let view = plan.view(at(1));
     let failure = view.last_failure.expect("提醒画师");
     assert!(failure.target_unavailable);
-    assert!(failure.reason.contains("备份目标不在"));
+    assert!(matches!(
+        failure.reason,
+        StoredReason::Code(ErrorKind::BackupTargetUnavailable { .. })
+    ));
     assert!(!plan.due(at(1)), "刚失败不马上重试");
     assert!(plan.due(at(2)), "下一次退出或空闲时再试");
 
@@ -68,4 +72,31 @@ fn choosing_another_target_makes_a_backup_due_again_today() {
     assert!(plan.due(at(3)));
     plan.set_target(None).unwrap();
     assert!(!plan.due(at(3)));
+}
+
+#[test]
+fn a_failure_written_by_an_older_version_still_reads_back_as_text() {
+    let dir = tempfile::tempdir().unwrap();
+    let legacy = serde_json::json!({
+        "format": "kinshoko.backup-plan",
+        "formatVersion": 1,
+        "target": dir.path().join("备份盘"),
+        "lastFailure": {
+            "at": { "unixMs": T0, "offsetMinutes": 480 },
+            "reason": "备份目标不在：E盘",
+            "targetUnavailable": true,
+        },
+    });
+    std::fs::write(
+        dir.path().join("backup.json"),
+        serde_json::to_vec(&legacy).unwrap(),
+    )
+    .unwrap();
+    let plan = BackupPlan::open(dir.path()).unwrap();
+    let failure = plan.view(at(1)).last_failure.expect("旧的失败记录还在");
+    assert_eq!(
+        failure.reason,
+        StoredReason::Text("备份目标不在：E盘".into())
+    );
+    assert!(failure.target_unavailable);
 }

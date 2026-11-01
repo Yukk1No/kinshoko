@@ -73,6 +73,7 @@ impl From<library::Error> for ErrorKind {
             },
             E::Undecodable(detail) => ErrorKind::Undecodable { detail },
             E::OriginalMissing(p) => ErrorKind::OriginalMissing { path: path(&p) },
+            E::RestoredOriginalMismatch(file) => ErrorKind::RestoredOriginalMismatch { file },
             E::ClipboardImage(cause) => ErrorKind::ClipboardImage {
                 cause: Box::new(cause.kind),
             },

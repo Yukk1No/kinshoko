@@ -4,6 +4,7 @@ import { i18n } from "../i18n/instance";
 import type { CommandError } from "../bindings/CommandError";
 import type { UnavailableReason } from "../bindings/UnavailableReason";
 import type { HotkeyFailure } from "../bindings/HotkeyFailure";
+import type { StoredReason } from "../bindings/StoredReason";
 
 export type { CommandError };
 export type CommandErrorCode = CommandError["code"];
@@ -52,6 +53,10 @@ export function describeCommandError(error: CommandError): string {
       });
     case "shortcutUnavailable":
       return t("shortcutUnavailable", { reason: hotkeyFailureText(error.reason) });
+    case "backupProblems":
+      return error.problems.map(describeCommandError).join(t("problemSeparator"));
+    case "checkTableMismatch":
+      return t(error.sameContent ? "checkTableRowCount" : "checkTableMismatch", { table: error.table, snapshot: error.snapshot, restored: error.restored });
     default: {
       const { code, ...params } = error as { code: string } & Params;
       if (!i18n.exists(`errors:${code}`)) return t("unknown", { code, raw: JSON.stringify(error) });
@@ -99,6 +104,11 @@ export function isErrorCode(error: unknown, code: CommandErrorCode): boolean {
 }
 
 /** 给画师看的说明：命令失败按代码取文案，其他错误按原样。 */
+/** 写进文件的原因：新记录是错误代码，旧版本写下的中文句子照原样显示。 */
+export function storedReasonText(reason: StoredReason): string {
+  return typeof reason === "string" ? reason : describeCommandError(reason);
+}
+
 export function errorText(error: unknown): string {
   if (isCommandError(error)) return describeCommandError(error);
   return String(error);

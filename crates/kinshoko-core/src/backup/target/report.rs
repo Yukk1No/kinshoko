@@ -84,7 +84,8 @@ pub struct BackupProgress {
 #[ts(export)]
 pub struct SkippedLibrary {
     pub library: ScopeItem,
-    pub reason: String,
+    /// 写进清单；旧版本写下的是中文句子。
+    pub reason: crate::command_error::StoredReason,
 }
 
 /// 一次备份的结果。
@@ -102,7 +103,8 @@ pub struct BackupReport {
     /// 备份目标里已有、直接引用的原文件。
     pub reused: u32,
     pub skipped: Vec<SkippedLibrary>,
-    pub problems: Vec<String>,
+    #[ts(as = "Vec<crate::command_error::ErrorKind>")]
+    pub problems: Vec<crate::CommandError>,
     /// 按保留策略删掉的旧快照。
     pub removed_snapshots: Vec<String>,
 }
@@ -161,7 +163,8 @@ pub struct RestoredGroup {
 #[ts(export)]
 pub struct CheckPart {
     pub checked: u32,
-    pub problems: Vec<String>,
+    #[ts(as = "Vec<crate::command_error::ErrorKind>")]
+    pub problems: Vec<crate::CommandError>,
 }
 
 /// 恢复后的往返检查：原图哈希、整理信息、参考组。

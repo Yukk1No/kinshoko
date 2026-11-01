@@ -3,7 +3,7 @@
 use std::fmt;
 use std::io;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::UnavailableReason;
@@ -11,7 +11,7 @@ use crate::CommandError;
 use crate::command_error::ErrorKind;
 
 /// 导出参考组包时取不到原图的一个成员。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct MemberUnavailable {

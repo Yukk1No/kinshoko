@@ -4,13 +4,13 @@ import type { CommandError } from "../bindings/CommandError";
 import { i18n } from "../i18n/instance";
 import zh from "../i18n/locales/zh-CN/errors";
 import { appInfo, isCursorExpired, isUnknownImage } from "../ipc";
-import { CommandFailure, describeCommandError, errorCode, errorText } from "./commandError";
+import { CommandFailure, describeCommandError, errorCode, errorText, storedReasonText } from "./commandError";
 
 afterEach(async () => { clearMocks(); await i18n.changeLanguage("zh-CN"); });
 
 it("每个错误代码都有中文文案（按结构拼的几种除外）", () => {
   // 后端新增错误代码而这里没有文案时，类型检查报错。
-  const texts: Record<Exclude<CommandError["code"], "message" | "captureSourceUnavailable">, string> = zh;
+  const texts: Record<Exclude<CommandError["code"], "message" | "captureSourceUnavailable" | "backupProblems">, string> = zh;
   expect(Object.values(texts).length).toBeGreaterThan(0);
 });
 
@@ -32,6 +32,15 @@ it("中文文案与 1.0 的后端原文一致，参数填进去", () => {
     .toBe("第 2 张截图的收藏未完成：资料库中没有这张参考图。之前完成的 1 张收藏已保留；参考组尚未保存。");
 });
 
+it("备份与往返检查的原因按结构拼出；旧版本写下的原因照原样显示", () => {
+  expect(describeCommandError({ code: "backupProblems", problems: [{ code: "backupGroupNewLibrary", name: "人体" }, { code: "backupOriginalProblem", name: "主库", file: "a.png", cause: { code: "backupOriginalChanged" } }] }))
+    .toBe("参考组“人体”有新的资料库引用，请重新计算备份范围后重试；资料库“主库”的原图 a.png：原图内容与资料库记录不符（可能被外部改动），这次备份不完整");
+  expect(describeCommandError({ code: "checkTableMismatch", table: "tag", snapshot: 3, restored: 2, sameContent: true })).toBe("表 tag：快照 3 行，恢复后 2 行，内容一致");
+  expect(describeCommandError({ code: "checkTableMismatch", table: "tag", snapshot: 3, restored: 2, sameContent: false })).toBe("表 tag：快照 3 行，恢复后 2 行，内容不一致");
+  expect(storedReasonText("备份目标不在：E盘")).toBe("备份目标不在：E盘");
+  expect(storedReasonText({ code: "backupLibraryNotRegistered" })).toBe("本设备没有登记这个资料库");
+});
+
 it("不认识的错误代码显示通用说明并附原始信息", () => {
   const unknown = { code: "fromTheFuture", detail: "x" } as unknown as CommandError;
   expect(describeCommandError(unknown)).toBe('操作没有完成（错误代码 fromTheFuture）：{"code":"fromTheFuture","detail":"x"}');
@@ -43,6 +52,8 @@ it("英文界面按代码取英文文案", async () => {
   expect(describeCommandError({ code: "io", detail: "disk full" })).toBe("Couldn't read or write a file: disk full");
   expect(describeCommandError({ code: "autostartFailed", cause: { code: "system", detail: "Access is denied." } }))
     .toBe("Couldn't change starting with Windows: Access is denied.");
+  expect(describeCommandError({ code: "checkOriginalCount", snapshot: 3, restored: 2 }))
+    .toBe("The number of originals doesn't match: 3 in the snapshot, 2 after restoring");
 });
 
 it("命令失败时抛出带代码的错误，显示为说明文字", async () => {
