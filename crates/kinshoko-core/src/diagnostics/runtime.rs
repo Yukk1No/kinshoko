@@ -26,7 +26,35 @@ pub struct RuntimeCapabilities {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct RuntimeAssessment {
-    pub problems: Vec<String>,
+    pub problems: Vec<RuntimeProblem>,
+}
+
+/// 检查没通过的原因，界面按语言写出。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum RuntimeProblem {
+    /// 缺少图片解码接口（`HTMLImageElement.decode`），参考图无法显示。
+    DecodeMissing,
+    /// 没能解码内置 PNG 样本。
+    DecodeFailed,
+    /// 内置 PNG 解码检查超时。
+    DecodeTimedOut,
+}
+
+impl RuntimeProblem {
+    // 不上界面：只写进诊断报告
+    fn describe(self) -> &'static str {
+        match self {
+            RuntimeProblem::DecodeMissing => {
+                "当前 WebView2 缺少图片解码接口（HTMLImageElement.decode），参考图无法显示。"
+            }
+            RuntimeProblem::DecodeFailed => {
+                "当前 WebView2 未能解码内置 PNG 样本，参考图显示能力未确认。"
+            }
+            RuntimeProblem::DecodeTimedOut => "内置 PNG 解码检查超时，参考图显示能力未确认。",
+        }
+    }
 }
 
 /// WebView2 可用版本查询与本窗口能力检查。版本查询不独立证明实际运行进程的版本。
@@ -43,17 +71,11 @@ impl RuntimeCapabilities {
         let mut problems = Vec::new();
         let decode = match self.image_decode {
             CapabilityCheck::Available => None,
-            CapabilityCheck::Missing => {
-                Some("当前 WebView2 缺少图片解码接口（HTMLImageElement.decode），参考图无法显示。")
-            }
-            CapabilityCheck::Failed => {
-                Some("当前 WebView2 未能解码内置 PNG 样本，参考图显示能力未确认。")
-            }
-            CapabilityCheck::TimedOut => Some("内置 PNG 解码检查超时，参考图显示能力未确认。"),
+            CapabilityCheck::Missing => Some(RuntimeProblem::DecodeMissing),
+            CapabilityCheck::Failed => Some(RuntimeProblem::DecodeFailed),
+            CapabilityCheck::TimedOut => Some(RuntimeProblem::DecodeTimedOut),
         };
-        if let Some(reason) = decode {
-            problems.push(reason.to_owned());
-        }
+        problems.extend(decode);
         RuntimeAssessment { problems }
     }
 
@@ -70,7 +92,7 @@ impl RuntimeCapabilities {
             check(self.image_decode),
         );
         for reason in self.assess().problems {
-            out.push_str(&reason);
+            out.push_str(reason.describe());
             out.push('\n');
         }
         out

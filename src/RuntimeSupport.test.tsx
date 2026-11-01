@@ -9,7 +9,7 @@ it("explains a failed required capability, opens the official update action and 
   const calls: string[] = [];
   mockIPC((command) => {
     calls.push(command);
-    if (command === "runtime_status") return { webview2: "154.0.4258.62", assessment: { problems: ["当前 WebView2 缺少图片解码接口（HTMLImageElement.decode），参考图无法显示。"] } };
+    if (command === "runtime_status") return { webview2: "154.0.4258.62", assessment: { problems: ["decodeMissing"] } };
     if (command === "diagnostics_report") return "本机脱敏报告\n缺少图片解码接口。";
     return null;
   });
@@ -24,7 +24,7 @@ it("explains a failed required capability, opens the official update action and 
 });
 
 it("keeps the required capability reason and recovery actions inside the settings runtime section", async () => {
-  mockIPC((command) => command === "runtime_status" ? { webview2: "154.0.4258.62", assessment: { problems: ["当前 WebView2 缺少图片解码接口（HTMLImageElement.decode），参考图无法显示。"] } } : null);
+  mockIPC((command) => command === "runtime_status" ? { webview2: "154.0.4258.62", assessment: { problems: ["decodeMissing"] } } : null);
   render(<RuntimeProvider><RuntimeDetails /></RuntimeProvider>);
   expect((await screen.findByRole("alert")).textContent).toContain("缺少图片解码接口");
   expect(screen.getByRole("button", { name: "打开微软 WebView2 下载页" })).toBeTruthy();

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { RuntimeCapabilities } from "./bindings/RuntimeCapabilities";
 import type { RuntimeStatus } from "./bindings/RuntimeStatus";
+import type { RuntimeProblem } from "./bindings/RuntimeProblem";
 import { diagnosticsReport, errorText, exportDiagnostics, openRuntimeUpdate, runtimeStatus } from "./ipc";
 import { probeRuntime } from "./runtime";
 import { CircleCheck, Monitor, RefreshCw } from "lucide-react";
@@ -71,12 +72,12 @@ export function RuntimeNotice({ className = "", hidden = false }: { className?: 
 }
 
 /** 实际生产路径也可直接报告失败。 */
-function RuntimeFailure({ problems, className = "" }: { problems: string[]; className?: string }) {
+function RuntimeFailure({ problems, className = "" }: { problems: RuntimeProblem[]; className?: string }) {
   const runtime = useContext(RuntimeContext);
   const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation("settings", { keyPrefix: "runtime" });
   return <aside className={`runtime-notice ${className}`} aria-label={t("noticeLabel")}>
-    <div role="alert"><strong>{t("failed")}</strong><ul>{problems.map((problem) => <li key={problem}>{problem}</li>)}</ul></div>
+    <div role="alert"><strong>{t("failed")}</strong><ul>{problems.map((problem) => <li key={problem}>{t(`problem.${problem}`)}</li>)}</ul></div>
     <p>{t("advice")}</p>
     <p className="settings-actions">
       <button type="button" className="k-btn is-sm" onClick={() => void openRuntimeUpdate().catch((e) => setError(String(e)))}><span className="k-label">{t("download")}</span></button>

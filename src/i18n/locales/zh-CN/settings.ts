@@ -124,6 +124,11 @@ export default {
     report: "诊断信息",
     noticeLabel: "运行环境提示",
     failed: "运行环境检查未通过",
+    problem: {
+      decodeMissing: "当前 WebView2 缺少图片解码接口（HTMLImageElement.decode），参考图无法显示。",
+      decodeFailed: "当前 WebView2 未能解码内置 PNG 样本，参考图显示能力未确认。",
+      decodeTimedOut: "内置 PNG 解码检查超时，参考图显示能力未确认。",
+    },
     advice: "更新 WebView2 后，从托盘退出并重启 Kinshoko。若问题继续出现，请保存本机诊断信息。",
     download: "打开微软 WebView2 下载页",
     recheck: "重新检查",
