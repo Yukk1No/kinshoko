@@ -48,7 +48,6 @@ impl Shell {
 
 /// 打开设置、注册快捷键、按设置同步开机自启。在 `setup` 里调用一次。
 pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    start_interface_language();
     let mut settings = AppSettings::open(crate::data_dirs::app_data(app).settings())?;
     // 在装上新版本之前记下按本构建推定的更新通道（#204）。
     if let Err(e) = settings.remember_update_channel() {
@@ -70,8 +69,9 @@ pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// 定下界面语言（#354）。设置里的选项随 #358 上线，在那之前界面是简体中文；
-/// `KINSHOKO_INTERFACE_LANG`（`en` 或 `system`）供开发时指定。
-fn start_interface_language() {
+/// `KINSHOKO_INTERFACE_LANG`（`en` 或 `system`）供开发时指定。在准备数据目录之前调用：
+/// 迁移旧数据时留下的说明与启动失败的对话框也按界面语言写。
+pub fn start_interface_language() {
     let specified = std::env::var("KINSHOKO_INTERFACE_LANG").ok();
     let system = sys_locale::get_locale();
     interface_lang::set(interface_lang::choose(

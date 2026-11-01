@@ -21,7 +21,7 @@ fn vram_exceeded() -> Option<String> {
     let gpu = sysinfo::discrete_gpu()?;
     (gpu.usage > gpu.budget).then(|| {
         format!(
-            "显存不够：打标占用 {:.1} GB，超过系统现在给的 {:.1} GB（可能有游戏或其他程序在用显卡）",
+            "显存不足：打标占用 {:.1} GB，超过系统现在给的 {:.1} GB（可能有游戏或其他程序在用显卡）",
             gpu.usage as f64 / 1e9,
             gpu.budget as f64 / 1e9
         )

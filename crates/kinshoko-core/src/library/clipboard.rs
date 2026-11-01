@@ -69,11 +69,8 @@ pub fn stage_clipboard_image(dir: &Path, image: &RgbaImage) -> Result<PathBuf, E
         .unwrap_or_default()
         .as_millis();
     for attempt in 0u32.. {
-        let name = if attempt == 0 {
-            format!("剪贴板图片-{stamp}.png")
-        } else {
-            format!("剪贴板图片-{stamp}-{attempt}.png")
-        };
+        let name =
+            crate::written_names::clipboard_image(crate::interface_lang::current(), stamp, attempt);
         let path = dir.join(name);
         let mut file = match std::fs::OpenOptions::new()
             .write(true)

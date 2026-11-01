@@ -28,6 +28,7 @@ pub mod tag_catalog;
 pub mod tagging;
 mod ui_scale;
 pub mod workspace;
+mod written_names;
 
 pub use app_shell::{
     AppInfo, UpdateChannel, UpdatePolicy, UpdateProgress, UpdateStatus, app_info, offers_update,

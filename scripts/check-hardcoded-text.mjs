@@ -28,6 +28,8 @@ const SKIP = [
   /\.test\.tsx?$/,
   /\.fixtures\.tsx?$/,
   /^src-tauri\/src\/ui_text\.rs$/,
+  // 写进画师数据的默认名，按写入时的界面语言取中文或英文（#359）。
+  /^crates\/kinshoko-core\/src\/written_names\.rs$/,
   /(^|\/)tests\//,
   /(^|\/)examples\//,
   /(^|\/)benches\//,

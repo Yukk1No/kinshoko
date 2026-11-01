@@ -181,7 +181,7 @@ fn choosing_the_gpu_with_too_little_video_memory_says_so() {
     let mut config = f.config(vec![gpu, cpu]);
     config.preferred = Some(Device::DirectMl);
     let tagging = f.start(config);
-    let status = wait_for(&tagging, "显存不够", |s| {
+    let status = wait_for(&tagging, "显存不足", |s| {
         matches!(s, TaggingStatus::NoDevice { .. })
     });
     let TaggingStatus::NoDevice { reasons } = status else {
