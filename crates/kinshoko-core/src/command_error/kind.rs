@@ -536,6 +536,117 @@ pub enum ErrorKind {
     },
     EagleItemSizeMismatch,
 
+    // 自动标签（#359）：本机条件不满足某个模型的原因。`need` 是给画师看的大小，例如 `2.3 GB`。
+    TaggingNoGpu,
+    TaggingGpuUnreliable,
+    TaggingVramShort {
+        gpu: String,
+        need: String,
+    },
+    TaggingRamShort {
+        need: String,
+    },
+    TaggingNoModel,
+    // 自动标签出错（稍后自动重试）。
+    TaggingQueueUnreadable {
+        cause: Box<ErrorKind>,
+    },
+    TaggingOriginalUnreadable {
+        cause: Box<ErrorKind>,
+    },
+    TaggingStartFailed {
+        cause: Box<ErrorKind>,
+    },
+    TaggingWriteFailed {
+        cause: Box<ErrorKind>,
+    },
+    // 打标子进程报来的失败（`TagFailure`）；`detail` 是子进程给出的原因。
+    TaggingBadImage {
+        detail: String,
+    },
+    TaggingCrashed {
+        detail: String,
+    },
+    TaggingDeviceLost {
+        detail: String,
+    },
+    // 准备模型：下载、校验、改写为分块注意力，以及从文件导入模型包。`model` 是模型名称。
+    ModelDirFailed {
+        detail: String,
+    },
+    ModelUnreadable {
+        detail: String,
+    },
+    ModelChecksumFailed {
+        model: String,
+    },
+    ModelTagsChecksumFailed {
+        model: String,
+    },
+    ModelIncomplete {
+        model: String,
+    },
+    ModelRewriteFailed {
+        model: String,
+        detail: String,
+    },
+    ModelRewriteMismatch {
+        model: String,
+    },
+    ModelPackageUnopenable {
+        detail: String,
+    },
+    ModelPackageNotZip {
+        detail: String,
+    },
+    ModelPackageUnreadable {
+        detail: String,
+    },
+    ModelPackageManyModels,
+    ModelPackageNoModel,
+    ModelPackageNoTags {
+        file: String,
+    },
+    ModelPackageTagsInvalid {
+        file: String,
+    },
+    ModelPackageUnsupported {
+        file: String,
+    },
+    ModelPackageUnpackFailed {
+        detail: String,
+    },
+    ModelPackageDamaged {
+        file: String,
+    },
+    ModelPackageTagsMismatch {
+        file: String,
+        model: String,
+    },
+    ModelInstallFailed {
+        detail: String,
+    },
+    ModelImportIncomplete {
+        model: String,
+    },
+    DownloadRefused {
+        status: u16,
+    },
+    /// `detail` 是网络库给的错误种类与说明（英文）。
+    DownloadFailed {
+        detail: String,
+    },
+    DownloadStopped,
+    DownloadInterrupted {
+        detail: String,
+    },
+    DownloadIncomplete {
+        #[ts(type = "number")]
+        done: u64,
+        #[ts(type = "number")]
+        total: u64,
+    },
+
     /// 还原度门槛实验（开发用）不认识的取图方式。
     UnknownFidelitySample {
         what: String,

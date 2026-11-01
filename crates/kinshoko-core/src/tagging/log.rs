@@ -56,12 +56,13 @@ impl TaggingLog {
             }
             TaggingStatus::Failed { reason } => {
                 self.run_started = None;
-                self.problem(reason)
+                self.problem(&reason.to_string())
                     .map(|detail| LogEvent::TaggingFailed { detail })
             }
-            TaggingStatus::NoDevice { reason } => {
+            TaggingStatus::NoDevice { reasons } => {
                 self.run_started = None;
-                self.problem(reason)
+                let reasons: Vec<String> = reasons.iter().map(ToString::to_string).collect();
+                self.problem(&reasons.join("; "))
                     .map(|detail| LogEvent::TaggingUnavailable { detail })
             }
             TaggingStatus::Paused => {
