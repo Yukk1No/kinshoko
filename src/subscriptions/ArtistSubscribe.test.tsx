@@ -129,7 +129,7 @@ describe("订阅画师", () => {
     backend();
     page(status());
     let dialog = await openArtistDialog();
-    expect(within(dialog).getByText("R-18 作品")).toBeTruthy();
+    expect(within(dialog).getByRole("switch", { name: "R-18 作品" })).toBeTruthy();
     expect(within(dialog).getByRole("button", { name: "从 pixiv 关注导入…" })).toBeTruthy();
     cleanup();
 
@@ -164,7 +164,7 @@ describe("订阅画师", () => {
     expect(within(follows).getByText("已订阅")).toBeTruthy();
     fireEvent.click(within(follows).getByRole("checkbox", { name: /Akira/ }));
     expect(within(follows).getByText("已选 1 / 3 位")).toBeTruthy();
-    fireEvent.click(within(follows).getByRole("switch", { name: "收漫画" }));
+    fireEvent.click(within(follows).getByRole("switch", { name: "漫画" }));
     fireEvent.click(within(follows).getByRole("button", { name: "订阅 1 位画师" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
     expect(sent("subscription_add")[0]).toEqual({ subscriptions: [{
@@ -180,7 +180,7 @@ describe("订阅画师", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "订阅设置…" }));
     const settings = await screen.findByRole("dialog", { name: "订阅设置" });
     expect(within(settings).queryByText("旧作")).toBeNull();
-    fireEvent.click(within(settings).getByRole("button", { name: "不收" }));
+    fireEvent.click(within(settings).getByRole("switch", { name: "R-18 作品" }));
     fireEvent.click(within(settings).getByRole("button", { name: "保存" }));
     await waitFor(() => expect(sent("subscription_set_options")).toEqual([{ id: "s1", includeExplicit: false, includeManga: false }]));
 

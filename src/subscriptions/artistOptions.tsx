@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import type { Backlog } from "../bindings/Backlog";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { useSaveDestination } from "../library/SaveDestination";
-import { Segmented } from "../ui/Segmented";
 import { Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
 
@@ -73,11 +72,11 @@ export function ArtistOptionFields({ value, onChange, backlogAs, showExplicit, d
     {backlogAs === "cards" && <div className="k-field" role="radiogroup" aria-label={t("backlog")}>
       <span className="k-field-label" aria-hidden="true">{t("backlog")}</span>
       <div className="k-radio-cards">
-        <label className={`k-radio-card${value.backlog === "newOnly" ? " is-on" : ""}`}>
+        <label className={`k-radio-card subs-backlog-card${value.backlog === "newOnly" ? " is-on" : ""}`}>
           <input type="radio" name="artist-backlog" disabled={disabled} checked={value.backlog === "newOnly"} onChange={() => set({ backlog: "newOnly" })} />
-          <span><span className="k-radio-title">{t("newOnly")}</span><span className="k-radio-desc">{t("newOnlyHint")}</span></span>
+          <span className="k-radio-title">{t("newOnly")}</span>
         </label>
-        <label className={`k-radio-card subs-recent-card${value.backlog === "recent" ? " is-on" : ""}`}>
+        <label className={`k-radio-card subs-backlog-card subs-recent-card${value.backlog === "recent" ? " is-on" : ""}`}>
           <input type="radio" name="artist-backlog" disabled={disabled} checked={value.backlog === "recent"} onChange={() => set({ backlog: "recent" })} />
           <span className="k-radio-title k-grow">{t("recent")}</span>
           <span className="k-input is-num" aria-invalid={value.backlog === "recent" && !backlogOf(value) ? true : undefined}>
@@ -87,9 +86,9 @@ export function ArtistOptionFields({ value, onChange, backlogAs, showExplicit, d
           </span>
           <span className="k-field-unit">{t("recentUnit")}</span>
         </label>
-        <label className={`k-radio-card${value.backlog === "all" ? " is-on" : ""}`}>
+        <label className={`k-radio-card subs-backlog-card${value.backlog === "all" ? " is-on" : ""}`}>
           <input type="radio" name="artist-backlog" disabled={disabled} checked={value.backlog === "all"} onChange={() => set({ backlog: "all" })} />
-          <span><span className="k-radio-title">{t("all")}</span><span className="k-radio-desc">{t("allHint")}</span></span>
+          <span className="k-radio-title">{t("all")}</span>
         </label>
       </div>
     </div>}
@@ -104,13 +103,12 @@ export function ArtistOptionFields({ value, onChange, backlogAs, showExplicit, d
         ]} />
     </div>}
     <div className="subs-option">
-      <span className="subs-option-text">{t("manga")}<span className="subs-option-hint">{t("mangaHint")}</span></span>
+      <span className="subs-option-text">{t("manga")}</span>
       <Switch label={t("manga")} disabled={disabled} checked={value.includeManga} onCheckedChange={(includeManga) => set({ includeManga })} />
     </div>
     {showExplicit && <div className="subs-option">
       <span className="subs-option-text">{t("explicit")}</span>
-      <Segmented label={t("explicit")} value={value.includeExplicit ? "yes" : "no"} onChange={(v) => set({ includeExplicit: v === "yes" })}
-        options={[{ value: "yes", label: t("explicitYes"), disabled }, { value: "no", label: t("explicitNo"), disabled }]} />
+      <Switch label={t("explicit")} disabled={disabled} checked={value.includeExplicit} onCheckedChange={(includeExplicit) => set({ includeExplicit })} />
     </div>}
   </>;
 }
