@@ -64,6 +64,7 @@ impl LibraryNo {
     }
 }
 
+// 不上界面：只写进运行日志
 impl Serialize for LibraryNo {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         s.collect_str(&format_args!("资料库 #{}", self.0))

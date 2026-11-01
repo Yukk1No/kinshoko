@@ -68,6 +68,7 @@ fn registry_dword(key: &str, value: &str) -> Option<u32> {
 
 /// 例如 `Windows 11 Professional 25H2（26200.9550）`。注册表的 ProductName 在 Windows 11 上仍写
 /// “Windows 10”，所以按版本号判断。
+// 不上界面：只写进诊断报告
 pub fn windows_version() -> String {
     const KEY: &str = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion";
     let build = registry_string(KEY, "CurrentBuild").unwrap_or_default();
@@ -82,6 +83,7 @@ pub fn windows_version() -> String {
     format!("{name} {edition} {display}（{build}.{ubr}）")
 }
 
+// 不上界面：只写进诊断报告
 pub fn cpu_name() -> String {
     registry_string(
         r"HARDWARE\DESCRIPTION\System\CentralProcessor\0",
