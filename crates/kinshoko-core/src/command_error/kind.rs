@@ -1,6 +1,6 @@
 //! 错误代码与参数（[`ErrorKind`]）。
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::ShortcutAction;
@@ -10,7 +10,7 @@ use crate::shortcuts::HotkeyFailure;
 /// 命令失败的原因。`code` 决定文案，其余字段是文案里的参数。前端看到的类型名是 `CommandError`。
 ///
 /// `detail` 是系统或底层库给出的原文（例如磁盘错误），按原样附在文案后面。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(
     tag = "code",
     rename_all = "camelCase",
@@ -212,6 +212,94 @@ pub enum ErrorKind {
     RestoreResultLocation,
     RestoreLibraryMismatch,
     RestoreGroupMismatch,
+    /// 上次恢复没有回退完，`cause` 是回退时的错误。
+    RestorePendingRollback {
+        cause: Box<ErrorKind>,
+    },
+    /// 恢复出的原文件与快照记录不符；`file` 是原图键。
+    RestoredOriginalMismatch {
+        file: String,
+    },
+    // 一次备份没能备份的部分（#359）：`name` 是参考组或资料库的名称。
+    /// 这次备份不完整，`problems` 逐条列出。
+    BackupProblems {
+        problems: Vec<ErrorKind>,
+    },
+    BackupGroupProblem {
+        name: String,
+        cause: Box<ErrorKind>,
+    },
+    BackupGroupNewLibrary {
+        name: String,
+    },
+    BackupLibraryDefinitions {
+        name: String,
+        cause: Box<ErrorKind>,
+    },
+    BackupOriginalProblem {
+        name: String,
+        file: String,
+        cause: Box<ErrorKind>,
+    },
+    BackupOriginalChanged,
+    BackupOriginalUnreadable {
+        detail: String,
+    },
+    BackupLibraryNotRegistered,
+    // 恢复后往返检查发现的问题（`RoundTripCheck`）。
+    CheckLibraryProblem {
+        name: String,
+        cause: Box<ErrorKind>,
+    },
+    CheckLibraryUnreadable {
+        name: String,
+        cause: Box<ErrorKind>,
+    },
+    CheckGroupMismatch {
+        name: String,
+    },
+    CheckMemberMismatch {
+        name: String,
+        member: String,
+    },
+    CheckMemberSizeMismatch {
+        name: String,
+        member: String,
+    },
+    CheckMemberUnreadable {
+        name: String,
+        member: String,
+        cause: Box<ErrorKind>,
+    },
+    CheckCaptureMismatch {
+        name: String,
+        member: String,
+    },
+    CheckOriginalMissing {
+        file: String,
+    },
+    CheckOriginalMismatch {
+        file: String,
+    },
+    CheckOriginalUnreadable {
+        file: String,
+        detail: String,
+    },
+    CheckOriginalCount {
+        #[ts(type = "number")]
+        snapshot: u64,
+        #[ts(type = "number")]
+        restored: u64,
+    },
+    /// 整理信息的一张表与快照不一致；`sameContent` 为真时只是行数不同。
+    CheckTableMismatch {
+        table: String,
+        #[ts(type = "number")]
+        snapshot: u64,
+        #[ts(type = "number")]
+        restored: u64,
+        same_content: bool,
+    },
 
     // 设置、快捷键与界面缩放。
     SettingsIo {

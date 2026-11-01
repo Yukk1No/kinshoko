@@ -5,23 +5,36 @@ use super::*;
 pub(super) fn registered<'a>(
     sources: &'a BackupSources,
     item: &ScopeItem,
-) -> Result<&'a RegisteredLibrary, String> {
+) -> Result<&'a RegisteredLibrary, CommandError> {
     sources
         .libraries
         .iter()
         .find(|l| l.id == item.id)
-        .ok_or_else(|| "本设备没有登记这个资料库".to_owned())
+        .ok_or_else(|| {
+            CommandError::new(
+                ErrorKind::BackupLibraryNotRegistered,
+                "本设备没有登记这个资料库",
+            )
+        })
 }
 
 /// 复制进备份目标的原文件区：先写临时文件、核对哈希、落盘，再改名。
-pub(super) fn store(source: &Path, target: &Path, sha: &str) -> Result<(), String> {
+pub(super) fn store(source: &Path, target: &Path, sha: &str) -> Result<(), CommandError> {
     let dir = target.parent().expect("原文件区有上级目录");
-    fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    fs::create_dir_all(dir)?;
     let tmp = dir.join(format!(".{sha}.tmp-{}", uuid::Uuid::new_v4().simple()));
     let result = match library::copy_hashed(source, &tmp) {
-        Ok(got) if got == sha => fs::rename(&tmp, target).map_err(|e| e.to_string()),
-        Ok(_) => Err("原图内容与资料库记录不符（可能被外部改动），这次备份不完整".into()),
-        Err(e) => Err(format!("读不到原图：{e}")),
+        Ok(got) if got == sha => fs::rename(&tmp, target).map_err(CommandError::from),
+        Ok(_) => Err(CommandError::new(
+            ErrorKind::BackupOriginalChanged,
+            "原图内容与资料库记录不符（可能被外部改动），这次备份不完整",
+        )),
+        Err(e) => Err(CommandError::new(
+            ErrorKind::BackupOriginalUnreadable {
+                detail: e.to_string(),
+            },
+            format!("读不到原图：{e}"),
+        )),
     };
     if result.is_err() {
         let _ = fs::remove_file(&tmp);

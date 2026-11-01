@@ -85,8 +85,9 @@ pub(crate) fn publish(app: &AppHandle) {
     if let Ok(status) = status(app) {
         let tooltip = if status.running.is_some() {
             text(Text::TrayBackingUp).to_owned()
-        } else if let Some(failure) = &status.plan.last_failure {
-            format!("{}{}", text(Text::TrayBackupFailed), failure.reason)
+        } else if status.plan.last_failure.is_some() {
+            // 原因是错误代码，按界面语言的文案在备份页里显示；托盘只提醒一句。
+            text(Text::TrayBackupFailed).to_owned()
         } else {
             "Kinshoko".to_owned()
         };
@@ -107,7 +108,11 @@ pub fn manage(app: &AppHandle) {
         let _ = with_plan(app, |plan| {
             plan.record_problem(
                 now(),
-                format!("上次资料库恢复尚未回退：{error}。重试恢复时会再次回退"),
+                CommandError::caused_by(
+                    error,
+                    |cause| ErrorKind::RestorePendingRollback { cause },
+                    |error| format!("上次资料库恢复尚未回退：{error}。重试恢复时会再次回退"),
+                ),
                 false,
             )
             .map_err(CommandError::from)
@@ -207,16 +212,22 @@ fn run(app: &AppHandle) {
         );
         Ok(result)
     })();
-    let _ = with_plan(app, |plan| {
-        match &outcome {
-            Ok(Ok(report)) if report.complete => plan.record_success(started, &report.snapshot_id),
-            Ok(Ok(report)) => plan.record_problem(now(), report.problems.join("；"), false),
-            Ok(Err(e)) => plan.record_failure(now(), e),
-            Err(e) => plan.record_problem(now(), e.to_string(), false),
-        }
-        .map_err(CommandError::from)
+    let report = with_plan(app, |plan| {
+        let (recorded, report) = match outcome {
+            Ok(Ok(report)) if report.complete => (
+                plan.record_success(started, &report.snapshot_id),
+                Some(report),
+            ),
+            Ok(Ok(report)) => (
+                plan.record_problem(now(), incomplete(&report), false),
+                Some(report),
+            ),
+            Ok(Err(e)) => (plan.record_failure(now(), e), None),
+            Err(e) => (plan.record_problem(now(), e, false), None),
+        };
+        recorded.map(|()| report).map_err(CommandError::from)
     });
-    if let Ok(Ok(report)) = outcome {
+    if let Ok(Some(report)) = report {
         *lock(&state.last_report) = Some(report);
     }
     *lock(&state.running) = None;
@@ -381,4 +392,15 @@ pub async fn restore_backup(
         result
     })
     .await
+}
+
+/// 备份没有完成：逐条列出没能备份的部分。
+fn incomplete(report: &BackupReport) -> CommandError {
+    let text: Vec<String> = report.problems.iter().map(ToString::to_string).collect();
+    CommandError::new(
+        ErrorKind::BackupProblems {
+            problems: report.problems.iter().map(|p| p.kind.clone()).collect(),
+        },
+        text.join("；"),
+    )
 }

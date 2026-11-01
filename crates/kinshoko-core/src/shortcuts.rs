@@ -6,7 +6,7 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::settings::{AppSettings, SettingsError, ShortcutAction};
@@ -22,7 +22,7 @@ pub trait HotkeyRegistrar {
 }
 
 /// 系统没能注册一个快捷键的原因。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 #[ts(export)]
 pub enum HotkeyFailure {
