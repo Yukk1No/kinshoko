@@ -97,7 +97,6 @@ export function ArtistDialog({ status, safe, list, libraryId, onClose, onAdded, 
           {already && <span className="k-pill"><span className="k-label">{t("already")}</span></span>}
         </div>}
         <ArtistOptionFields value={chosen} onChange={setChoices} backlogAs="cards" showExplicit={showExplicit} disabled={busy} />
-        <p className="subs-artist-hint">{t("pagesHint")}</p>
         {error && <p className="k-field-error" role="alert"><CircleAlert size={14} aria-hidden="true" />{error}</p>}
         <div className="k-dialog-foot">
           {followingChoice(status) && <button type="button" className="k-btn is-quiet" disabled={busy} onClick={onImport}><span className="k-label">{t("importFollowing")}</span></button>}

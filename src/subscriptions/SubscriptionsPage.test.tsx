@@ -179,6 +179,7 @@ describe("订阅页", () => {
     const dialog = await screen.findByRole("dialog", { name: /订阅 pixiv 新作/ });
     expect(within(dialog).getByText("非官方")).toBeTruthy();
     expect(within(dialog).getByText("账号可能被警告或停用")).toBeTruthy();
+    expect(within(dialog).getByText("动图暂不兼容")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "以后再说" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(localStorage.getItem("kinshoko.subscriptions.firstRunSeen")).toBe("1");

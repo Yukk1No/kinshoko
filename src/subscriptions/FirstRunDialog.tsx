@@ -1,5 +1,5 @@
 import { Dialog } from "@base-ui/react/dialog";
-import { Clock, Info, TriangleAlert } from "lucide-react";
+import { Clock, ImageOff, Info, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { UnofficialMark } from "./UnofficialMark";
 
@@ -26,6 +26,7 @@ export function FirstRunDialog({ open, signedIn, onClose, onSignIn }: {
     { icon: <Info size={16} strokeWidth={1.75} />, title: t("firstRun.unofficialTitle"), body: t("firstRun.unofficialBody") },
     { icon: <TriangleAlert size={16} strokeWidth={2} />, title: t("firstRun.accountTitle"), body: t("firstRun.accountBody"), warn: true },
     { icon: <Clock size={16} strokeWidth={1.75} />, title: t("firstRun.gentleTitle"), body: t("firstRun.gentleBody") },
+    { icon: <ImageOff size={16} strokeWidth={1.75} />, title: t("firstRun.animationTitle") },
   ];
   return <Dialog.Root open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
     <Dialog.Portal>
@@ -39,7 +40,7 @@ export function FirstRunDialog({ open, signedIn, onClose, onSignIn }: {
         <ul className="subs-first-run-points">
           {points.map((p) => <li key={p.title} className={p.warn ? "is-warn" : undefined}>
             <span className="subs-first-run-icon" aria-hidden="true">{p.icon}</span>
-            <div><p className="subs-first-run-title">{p.title}</p><p className="subs-first-run-body">{p.body}</p></div>
+            <div><p className="subs-first-run-title">{p.title}</p>{p.body && <p className="subs-first-run-body">{p.body}</p>}</div>
           </li>)}
         </ul>
         <div className="k-dialog-foot">
