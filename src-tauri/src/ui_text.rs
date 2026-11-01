@@ -25,10 +25,13 @@ pub enum Text {
     FilterZip,
     /// 诊断信息文件名的前缀。
     DiagnosticsFileName,
-    /// 启动失败的说明，用 [`fill`] 填进 `{error}`（与 `{root}`）。
+    /// 启动失败的说明，用 [`fill`] 填进 `{error}`（与 `{root}`、`{staging}`）。
     ExeNotFound,
     DataDirUnwritable,
     DataMigrationFailed,
+    /// 截图与钉图菜单窗口的标题（任务栏、Alt Tab 里看得到）。
+    CaptureWindowTitle,
+    MenuWindowTitle,
     /// 钉图读不到图、又没有别的原因时写在钉图上的话。
     PinUnreadable,
     /// 钉图上写的参考图取不到的原因（[`UnavailableReason`]）。
@@ -84,9 +87,11 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
         ),
         Text::DataMigrationFailed => pick(
             en,
-            "Kinshoko 迁移数据时出错，没能完成：\n{error}\n\n请重新启动 Kinshoko 再试。",
-            "Kinshoko ran into an error while moving its data and couldn't finish:\n{error}\n\nStart Kinshoko again to retry.",
+            "Kinshoko 迁移数据时出错，没能完成：\n{error}；有些数据还在 {staging}，下次启动时会放回原处再迁移\n\n请重新启动 Kinshoko 再试。",
+            "Kinshoko ran into an error while moving its data and couldn't finish:\n{error}. Some data is still in {staging}; the next time Kinshoko starts, it will put it back and move it again\n\nStart Kinshoko again to retry.",
         ),
+        Text::CaptureWindowTitle => pick(en, "Kinshoko 截图", "Kinshoko capture"),
+        Text::MenuWindowTitle => pick(en, "Kinshoko 菜单", "Kinshoko menu"),
         Text::PinUnreadable => pick(
             en,
             "参考图无法读取：图库没有打开，或原图已缺失",

@@ -112,6 +112,7 @@ pub struct MigrationError {
     pub staging: PathBuf,
 }
 
+// 不上界面：启动失败的对话框按字段经 ui_text 写出，Display 只进日志与诊断信息
 impl std::fmt::Display for MigrationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.legacy_intact {
@@ -306,6 +307,7 @@ fn restore(staging: &Path, legacy: &LegacyDirs) -> io::Result<()> {
                 // 旧位置又有了同名条目（例如之后运行过旧版本）：两份都留着，不替画师选。
                 return Err(io::Error::new(
                     io::ErrorKind::AlreadyExists,
+                    // 不上界面：底层原因，原样附在启动失败对话框已翻译的说明里
                     format!("{} 与 {} 都存在", staged.display(), source.display()),
                 ));
             }

@@ -69,7 +69,8 @@ pub struct WorkspaceSource {
     pub library_id: String,
     pub library_name: String,
     pub image_id: String,
-    pub unavailable: Option<String>,
+    #[ts(as = "Option<crate::command_error::ErrorKind>")]
+    pub unavailable: Option<crate::CommandError>,
     pub matches: bool,
     pub deleted: bool,
 }
@@ -395,7 +396,7 @@ impl Workspace {
     ) -> Result<std::sync::Arc<crate::library::Library>, CatalogError> {
         self.gate
             .reader(registration, device.safe_mode_scope())
-            .map_err(|e| CatalogError::Io(std::io::Error::other(e)))
+            .map_err(|e| CatalogError::Command(Box::new(e)))
     }
     /// O(log n) authorization after bounded provider/catalog revision checks, including trash views.
     pub fn contains(

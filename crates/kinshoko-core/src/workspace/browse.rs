@@ -68,12 +68,13 @@ impl Workspace {
                 .iter()
                 .find(|p| p.registration.library.id == *library_id)
                 .ok_or_else(|| {
-                    CatalogError::Io(std::io::Error::other(
+                    CatalogError::Command(Box::new(crate::CommandError::new(
+                        crate::command_error::ErrorKind::UnknownLibrary,
                         "本设备没有登记这个资料库；当前查找范围保持原值",
-                    ))
+                    )))
                 })?;
             if let Some(reason) = &provider.registration.unavailable {
-                return Err(CatalogError::Io(std::io::Error::other(reason.clone())));
+                return Err(CatalogError::Command(Box::new(reason.clone())));
             }
         }
         let key = digest(&serde_json::to_vec(&(

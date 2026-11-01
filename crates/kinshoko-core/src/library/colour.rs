@@ -125,6 +125,7 @@ pub(super) fn get(
         return Ok((d, sha, path));
     }
     let bytes = std::fs::read(&path)?;
+    // 不上界面：底层技术原因，作为 detail 原样附在已翻译的说明后面
     let description = inspect(&bytes)
         .map_err(Error::Undecodable)?
         .ok_or_else(|| Error::Undecodable("不支持的格式".into()))?

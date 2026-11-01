@@ -14,7 +14,7 @@ afterEach(async () => { cleanup(); await new Promise((resolve) => setTimeout(res
 it("保存为关闭安全模式且活动库断连时，仍显示可用提供方的现有工作区", async () => {
   const libraries = [
     { library: { id: "A", name: "可用甲库", root: "A" }, unavailable: null },
-    { library: { id: "B", name: "断连乙库", root: "B" }, unavailable: "移动盘未连接" },
+    { library: { id: "B", name: "断连乙库", root: "B" }, unavailable: { code: "system" as const, detail: "移动盘未连接" } },
   ];
   mockIPC((command, args) => {
     if (command === "plugin:library|safe_mode") return false;

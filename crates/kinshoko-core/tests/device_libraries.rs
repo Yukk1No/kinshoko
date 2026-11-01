@@ -81,7 +81,10 @@ fn unavailable_libraries_stay_registered_and_a_failed_switch_keeps_the_current_l
         .iter()
         .find(|entry| entry.library.id == b.id)
         .unwrap();
-    assert!(missing.unavailable.as_ref().unwrap().contains("暂时不可用"));
+    assert!(matches!(
+        missing.unavailable.as_ref().unwrap().kind,
+        kinshoko_core::command_error::ErrorKind::LibraryUnavailable { .. }
+    ));
     let error = libraries.switch(&b.id).err().unwrap().to_string();
     assert!(error.contains("移动盘已连接"));
     assert!(error.contains("重新登记"));

@@ -125,9 +125,10 @@ impl Workspace {
     ) -> Result<crate::desktop::SavedPin, CatalogError> {
         let library = self.read_source(device, catalog, target, safe)?;
         if !library.original_path(&target.image_id)?.is_file() {
-            return Err(CatalogError::Io(std::io::Error::other(
+            return Err(CatalogError::Command(Box::new(crate::CommandError::new(
+                crate::command_error::ErrorKind::SourceOriginalMissing,
                 "此来源的原图文件不可用，请连接原资料库",
-            )));
+            ))));
         }
         let lens =
             crate::library::ReferenceLens::open_detached(&library.info().root, &target.library_id)?;
@@ -139,7 +140,7 @@ impl Workspace {
             None,
             crate::desktop::Placement::default(),
         )
-        .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))
+        .map_err(|e| CatalogError::Command(Box::new(e.into())))
     }
 
     fn require_source(
@@ -178,7 +179,7 @@ impl Workspace {
             .find(|p| p.registration.library.id == target.library_id)
             .ok_or(Error::SourceChanged)?;
         if let Some(reason) = &provider.registration.unavailable {
-            return Err(CatalogError::Io(std::io::Error::other(reason.clone())));
+            return Err(CatalogError::Command(Box::new(reason.clone())));
         }
         let hash = snapshot
             .identities
@@ -202,7 +203,7 @@ impl Workspace {
         self.require_source(device, catalog, target, safe)?;
         let library = device
             .read(&target.library_id)
-            .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
+            .map_err(|e| CatalogError::Command(Box::new(e.into())))?;
         library.set_safe_mode(safe);
         Ok(library)
     }
@@ -220,7 +221,7 @@ impl Workspace {
         self.require_source(device, catalog, target, safe)?;
         let library = device
             .write(&target.library_id)
-            .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
+            .map_err(|e| CatalogError::Command(Box::new(e.into())))?;
         self.write_source_with(device, catalog, target, safe, &library, action)
     }
 

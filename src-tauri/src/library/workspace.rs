@@ -202,7 +202,7 @@ pub(super) fn read<R: Runtime>(
         }
         let library = device
             .read(library_id)
-            .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
+            .map_err(|e| CatalogError::Command(Box::new(e.into())))?;
         library.set_safe_mode(safe);
         Ok(library)
     })

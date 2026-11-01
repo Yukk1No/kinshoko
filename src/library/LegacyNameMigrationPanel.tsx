@@ -6,6 +6,7 @@ import type { LegacyNameGroup } from "../bindings/LegacyNameGroup";
 import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrationWorkspace";
 import type { LegacyNameMigrationPreview } from "../bindings/LegacyNameMigrationPreview";
 import type { LegacyNameResolution } from "../bindings/LegacyNameResolution";
+import { describeCommandError } from "../ipc/commandError";
 import { confirmLegacyNames, onLibraryEvent, onSafeModeSetting, planLegacyNames, previewLegacyNames } from "../ipc";
 import { languageName } from "../tags/languages";
 
@@ -127,7 +128,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
         <Dialog.Description className="k-dialog-desc">{t("lead")}</Dialog.Description>
         {busy && <p className="k-set-note" role="status">{t("busy")}</p>}
         {error && <p className="k-set-error" role="alert">{error}</p>}
-        {view?.libraries.filter((entry) => entry.unavailable).map((entry) => <p key={entry.library.id} className="k-set-note" role="status">{t("libraryOffline", { library: entry.library.name, reason: entry.unavailable })}</p>)}
+        {view?.libraries.filter((entry) => entry.unavailable).map((entry) => <p key={entry.library.id} className="k-set-note" role="status">{t("libraryOffline", { library: entry.library.name, reason: describeCommandError(entry.unavailable!) })}</p>)}
         {saved && <p role="status">{t("saved")}</p>}
         {view && groups.length === 0 && <p className="k-set-note">{t("none")}</p>}
         {groups.length > 0 && <>

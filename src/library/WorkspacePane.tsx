@@ -8,6 +8,7 @@ import { PermanentDeleteConfirm } from "./SelectionPanel";
 import { Switch } from "../ui/Switch";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
+import { describeCommandError } from "../ipc/commandError";
 import { isCursorExpired, isLensChanged, moveFolder, revealLibrary, unregisterLibrary, workspaceDirectories } from "../ipc";
 import { acceptsDrag, DRAG_FOLDER, DRAG_FOLDER_LIBRARY, LAST, SidebarPane } from "./SidebarPane";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
@@ -163,7 +164,8 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
     </div>
     <div className="side-scroll">
     {providers.map((provider) => {
-      const { registration: { library, unavailable }, sidebar, unassigned, descendants: counts } = provider;
+      const { registration: { library, unavailable: offline }, sidebar, unassigned, descendants: counts } = provider;
+      const unavailable = offline ? describeCommandError(offline) : null;
       const available = !unavailable && Boolean(sidebar);
       const expanded = available && (openIds.has(library.id) || sprung === library.id);
       const selectedRoot = scope.kind === "library" && scope.libraryId === library.id;

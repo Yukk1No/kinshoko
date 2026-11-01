@@ -80,7 +80,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
             |workspace, libraries, catalog| {
                 let library = libraries
                     .read(&library_id)
-                    .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
+                    .map_err(|e| CatalogError::Command(Box::new(e.into())))?;
                 library.set_safe_mode(safe);
                 catalog.correct(&library, &local_tag_id, correction)?;
                 workspace.inspect_catalog(libraries, catalog, safe)

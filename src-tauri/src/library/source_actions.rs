@@ -194,7 +194,7 @@ pub(super) async fn workspace_preview_source_delete<R: Runtime>(
             crate::desktop::with_groups(&app, |groups| {
                 library.preview_permanent_delete(std::slice::from_ref(&t.image_id), groups)
             })
-            .ok_or_else(|| CatalogError::Io(std::io::Error::other("参考组还没有准备好")))?
+            .ok_or_else(|| CatalogError::Command(Box::new(super::groups_not_ready())))?
             .map_err(CatalogError::Library)
         })
     })

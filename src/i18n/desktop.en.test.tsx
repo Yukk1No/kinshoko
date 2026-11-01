@@ -32,7 +32,7 @@ vi.mock("../ipc", () => ({
   ] }),
   registeredLibraries: () => Promise.resolve([
     { library: { id: "lib-a", name: "主库", root: "D:/a" }, unavailable: null },
-    { library: { id: "lib-b", name: "移动盘库", root: "E:/b" }, unavailable: "unplugged" },
+    { library: { id: "lib-b", name: "移动盘库", root: "E:/b" }, unavailable: { code: "system" as const, detail: "unplugged" } },
   ]),
 }));
 

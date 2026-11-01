@@ -69,7 +69,7 @@ fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, CommandError> {
         MENU_WINDOW,
         WebviewUrl::App("index.html?view=desktop-menu".into()),
     )
-    .title("Kinshoko 菜单")
+    .title(crate::ui_text::text(crate::ui_text::Text::MenuWindowTitle))
     .decorations(false)
     .transparent(true)
     .resizable(false)
