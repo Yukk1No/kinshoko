@@ -4,7 +4,6 @@ import type { Translation } from "../../translation";
 const subscriptions: Translation<typeof zh> = {
   title: "Subscriptions",
   unofficial: "Unofficial",
-  unofficialTip: "pixiv has no public API; Kinshoko built this on its own",
   add: "Add subscription",
   addMenu: {
     artist: "Artist",
@@ -42,7 +41,6 @@ const subscriptions: Translation<typeof zh> = {
     days_other: "Synced {{count}} days ago",
     checking: "Checking",
     retryAt: "Syncs at {{time}}",
-    retryTip: "pixiv is limiting requests; Kinshoko will sync then",
     failed: "Couldn't start the check: {{error}}",
   },
   account: {
@@ -100,7 +98,6 @@ const subscriptions: Translation<typeof zh> = {
   },
   following: {
     title: "Import from pixiv follows",
-    lead: "Choose artists to subscribe to. Following or unfollowing on pixiv later won't change these subscriptions.",
     filter: "Filter artists",
     loading: "Reading your follows…",
     loadFailed: "Couldn't read your follows: {{error}}",
@@ -113,7 +110,6 @@ const subscriptions: Translation<typeof zh> = {
   },
   ranking: {
     title: "Subscribe to rankings",
-    lead: "Checked once a day. Works on the ranking go into your library.",
     list: "Rankings",
     period: {
       day: "Daily",
@@ -127,7 +123,6 @@ const subscriptions: Translation<typeof zh> = {
     name: "{{period}} · Top {{count}}",
     subscribed: "Subscribed · Top {{count}}",
     explicit: "R-18 works",
-    explicitHint: "pixiv only has daily and weekly R-18 rankings",
     explicitList: "R-18 rankings",
     library: "Library",
     newLibrary: "New library",
@@ -136,11 +131,9 @@ const subscriptions: Translation<typeof zh> = {
     location: "Location",
     notChosen: "No location chosen",
     change: "Change…",
-    staysHere: "You'll stay in the library you have open",
     existingLibrary: "Use an existing library",
     otherLibrary: "Not the same library as your other rankings — a work may be collected into both.",
     manga: "Manga",
-    pickOne: "Tick the rankings you want",
     allDone: "You're subscribed to all of these",
     subscribe_one: "Subscribe to {{count}} ranking",
     subscribe_other: "Subscribe to {{count}} rankings",
@@ -150,7 +143,6 @@ const subscriptions: Translation<typeof zh> = {
     libraryFailed: "Couldn't create the library: {{error}}",
     settingsTitle: "Subscription settings",
     ranks: "Ranks",
-    ranksHint: "Lowering this keeps works already collected",
     save: "Save",
     saveFailed: "Couldn't save: {{error}}",
   },
@@ -168,18 +160,15 @@ const subscriptions: Translation<typeof zh> = {
   },
   expired: {
     banner: "pixiv sign-in expired, checks paused",
-    tip: "You may have changed your password or signed out everywhere on pixiv",
   },
   empty: {
     signedOutTitle: "Sign in to pixiv to start",
     signedOutHint: "Unofficial feature, use a spare account",
     signIn: "Sign in to pixiv",
     waitingTitle: "Sign in in the window that opened",
-    waitingHint: "This page updates when you're done",
     cancel: "Cancel",
     backToWindow: "Back to sign-in window",
     noSubsTitle: "No subscriptions yet",
-    noSubsHint: "New works from artists, rankings or bookmarks land in your library",
   },
   firstRun: {
     title: "Subscribe to pixiv",
@@ -197,11 +186,8 @@ const subscriptions: Translation<typeof zh> = {
   },
   settings: {
     tab: "Subscriptions",
-    lead: "Collect new works from pixiv into your library automatically.",
     group: "Subscriptions",
     feature: "Subscriptions",
-    onHint: "When off, nothing is checked or downloaded",
-    offHint: "Off; hidden from the sidebar",
     account: "pixiv account",
     signedOut: "Not signed in",
     risks: "About the risks",

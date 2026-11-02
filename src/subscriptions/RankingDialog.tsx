@@ -40,9 +40,9 @@ type Library = { mode: "new" | "existing"; existingId: string; name: string; par
 
 /**
  * 订阅榜单（#370，原型「榜单 #370」R1–R4）：日榜、周榜、月榜各一行，勾上几行订几个，每行选名次。
- * 「R-18 作品」开着时多出 R-18 日榜与周榜；它只在登录着、账号开着 R-18 时出现（安全模式只藏图，不藏这些选项）。
- * 第一次订榜单时默认新建单独的图库「pixiv 榜单」，放在当前图库旁边、建好后不切换过去；已有榜单订阅时默认放进同一个图库，
- * 选了别的图库时提示可能重复收（去重只在同一个图库里）。
+ * 「R-18 作品」开着时多出 R-18 日榜与周榜（pixiv 没有 R-18 月榜）；它只在登录着、账号开着 R-18 时出现（安全模式只藏图，
+ * 不藏这些选项）。第一次订榜单时默认新建单独的图库「pixiv 榜单」，放在当前图库旁边、建好后不切换过去；已有榜单订阅时默认
+ * 放进同一个图库，选了别的图库时提示可能重复收（去重只在同一个图库里）。说明性的文字不放在界面上（维护者 2026-11-02）。
  */
 export function RankingDialog({ status, list, libraryId, onClose, onAdded }: {
   status: SubscriptionStatus; list: Subscription[];
@@ -140,12 +140,9 @@ export function RankingDialog({ status, list, libraryId, onClose, onAdded }: {
     <Dialog.Portal>
       <Dialog.Backdrop className="k-backdrop" />
       <Dialog.Popup className="k-dialog subs-artist-dialog subs-rank-dialog">
-        <div>
-          <div className="subs-first-run-head">
-            <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
-            <UnofficialMark />
-          </div>
-          <Dialog.Description className="subs-rank-lead">{t("lead")}</Dialog.Description>
+        <div className="subs-first-run-head">
+          <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+          <UnofficialMark />
         </div>
         <div className="k-field">
           <span className="k-field-label" id="subs-rank-list">{t("list")}</span>
@@ -153,7 +150,7 @@ export function RankingDialog({ status, list, libraryId, onClose, onAdded }: {
         </div>
         {showExplicit && <div className="k-field">
           <div className="subs-option">
-            <span className="subs-option-text">{t("explicit")}{explicitOn && <span className="subs-rank-hint">{t("explicitHint")}</span>}</span>
+            <span className="subs-option-text">{t("explicit")}</span>
             <Switch label={t("explicit")} disabled={busy} checked={explicitOn} onCheckedChange={setExplicitOn} />
           </div>
           {explicitOn && <ul className="subs-rank-list" aria-label={t("explicitList")}>{RANKINGS.filter((r) => r.explicit).map(row)}</ul>}
@@ -180,12 +177,11 @@ export function RankingDialog({ status, list, libraryId, onClose, onAdded }: {
                       <span className="k-label">{t("change")}</span>
                     </button>
                   </div>
-                  <span className="subs-rank-hint subs-rank-note"><Info size={12} aria-hidden="true" />{t("staysHere")}</span>
                 </div>}
               </div>
               <label className={`k-radio-card subs-rank-existing${chosen.mode === "existing" ? " is-on" : ""}`}>
                 <input type="radio" name="subs-rank-library" disabled={busy} checked={chosen.mode === "existing"} onChange={() => set({ mode: "existing" })} />
-                <span className="k-radio-title k-grow">{t("existingLibrary")}</span>
+                <span className="k-radio-title">{t("existingLibrary")}</span>
                 {chosen.mode === "existing" && <Select label={t("existingLibrary")} disabled={busy || !libraries.ready}
                   value={chosen.existingId} onChange={(existingId) => set({ existingId })} options={libraries.options} />}
               </label>
@@ -198,7 +194,7 @@ export function RankingDialog({ status, list, libraryId, onClose, onAdded }: {
         </div>
         {error && <p className="k-field-error" role="alert"><CircleAlert size={14} aria-hidden="true" />{error}</p>}
         <div className="k-dialog-foot">
-          <span className="k-grow subs-rank-foot-note">{open === 0 ? t("allDone") : picked.length === 0 ? t("pickOne") : ""}</span>
+          <span className="k-grow subs-rank-foot-note">{open === 0 ? t("allDone") : ""}</span>
           <button type="button" className="k-btn" disabled={busy} onClick={onClose}><span className="k-label">{t("cancel")}</span></button>
           <button type="button" className="k-btn is-primary" disabled={busy || picked.length === 0 || !libraryReady} onClick={() => void subscribe()}>
             <span className="k-label">{busy ? t("subscribing") : t("subscribe", { count: Math.max(picked.length, 1) })}</span>
@@ -234,7 +230,6 @@ export function RankingSettingsDialog({ subscription, onClose, onSaved }: {
         <div className="k-field">
           <span className="k-field-label">{t("ranks")}</span>
           <TopPicker label={t("ranks")} value={top} onChange={setTop} />
-          <span className="subs-rank-hint">{t("ranksHint")}</span>
         </div>
         <div className="subs-option">
           <span className="subs-option-text">{t("manga")}</span>

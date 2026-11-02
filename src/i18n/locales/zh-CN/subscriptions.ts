@@ -2,7 +2,6 @@
 export default {
   title: "订阅",
   unofficial: "非官方",
-  unofficialTip: "pixiv 没有开放接口，这是 Kinshoko 自己做的",
   add: "添加订阅",
   addMenu: {
     artist: "画师",
@@ -38,7 +37,6 @@ export default {
     days_other: "同步于 {{count}} 天前",
     checking: "正在检查",
     retryAt: "将于 {{time}} 同步",
-    retryTip: "pixiv 限制了请求次数，到时会自动同步",
     failed: "没能开始检查：{{error}}",
   },
   account: {
@@ -93,7 +91,6 @@ export default {
   },
   following: {
     title: "从 pixiv 关注导入",
-    lead: "勾选要订阅的画师。之后在 pixiv 关注或取关，不影响这里的订阅。",
     filter: "筛选画师",
     loading: "正在读取关注…",
     loadFailed: "没能读取关注：{{error}}",
@@ -105,7 +102,6 @@ export default {
   },
   ranking: {
     title: "订阅榜单",
-    lead: "每天查一次，把榜上的作品收进图库。",
     list: "榜单",
     period: {
       day: "日榜",
@@ -119,7 +115,6 @@ export default {
     name: "{{period}} 前 {{count}}",
     subscribed: "已订阅 · 前 {{count}}",
     explicit: "R-18 作品",
-    explicitHint: "pixiv 只有 R-18 日榜和周榜",
     explicitList: "R-18 榜单",
     library: "图库",
     newLibrary: "新建图库",
@@ -128,11 +123,9 @@ export default {
     location: "存放位置",
     notChosen: "还没选位置",
     change: "更改…",
-    staysHere: "建好后不会切换过去，你还在当前图库",
     existingLibrary: "放进已有图库",
     otherLibrary: "和其他榜单不在同一个图库，同一作品可能各收一份。",
     manga: "漫画",
-    pickOne: "勾选要订阅的榜单",
     allDone: "这些榜单都订阅了",
     subscribe_other: "订阅 {{count}} 个榜单",
     subscribing: "正在订阅",
@@ -141,7 +134,6 @@ export default {
     libraryFailed: "没能新建图库：{{error}}",
     settingsTitle: "订阅设置",
     ranks: "名次",
-    ranksHint: "名次改少后，已收的图会留着",
     save: "保存",
     saveFailed: "没能保存：{{error}}",
   },
@@ -159,18 +151,15 @@ export default {
   },
   expired: {
     banner: "pixiv 登录已失效，检查已暂停",
-    tip: "可能在 pixiv 改了密码或退出了所有设备",
   },
   empty: {
     signedOutTitle: "登录 pixiv，开始订阅",
     signedOutHint: "非官方功能，建议用小号登录",
     signIn: "登录 pixiv",
     waitingTitle: "在弹出的窗口里登录",
-    waitingHint: "登录好后这里会自动更新",
     cancel: "取消",
     backToWindow: "回到登录窗口",
     noSubsTitle: "还没有订阅",
-    noSubsHint: "画师、榜单或收藏夹的新作，会自动收进图库",
   },
   firstRun: {
     title: "订阅 pixiv 新作",
@@ -188,11 +177,8 @@ export default {
   },
   settings: {
     tab: "订阅",
-    lead: "把 pixiv 上的新作自动收进图库。",
     group: "订阅",
     feature: "订阅功能",
-    onHint: "关掉后不检查，也不联网",
-    offHint: "已关闭，侧栏不显示订阅",
     account: "pixiv 账号",
     signedOut: "未登录",
     risks: "风险说明",

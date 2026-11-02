@@ -66,7 +66,6 @@ export function FollowingDialog({ status, list, libraryId, onClose, onBack, onAd
       <Dialog.Backdrop className="k-backdrop" />
       <Dialog.Popup className="k-dialog subs-artist-dialog">
         <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
-        <Dialog.Description className="k-dialog-desc">{t("lead")}</Dialog.Description>
         <div className="k-field-row">
           <span className="k-input">
             <Search size={16} aria-hidden="true" />

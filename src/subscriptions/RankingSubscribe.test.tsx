@@ -71,7 +71,6 @@ describe("订阅榜单", () => {
     expect((within(dialog).getByRole("radio", { name: "新建图库" }) as HTMLInputElement).checked).toBe(true);
     expect((within(dialog).getByRole("textbox", { name: "图库名称" }) as HTMLInputElement).value).toBe("pixiv 榜单");
     expect(await within(dialog).findByText("D:/参考图\\pixiv 榜单")).toBeTruthy();
-    expect(within(dialog).getByText("建好后不会切换过去，你还在当前图库")).toBeTruthy();
     // 点周榜的「前 10」顺带勾上周榜。
     fireEvent.click(within(within(dialog).getByRole("group", { name: "周榜收前几名" })).getByRole("button", { name: "前 10" }));
     expect((within(dialog).getByRole("checkbox", { name: "周榜" }) as HTMLInputElement).checked).toBe(true);
@@ -94,7 +93,6 @@ describe("订阅榜单", () => {
     page(status());
     const dialog = await openRankingDialog();
     fireEvent.click(within(dialog).getByRole("checkbox", { name: "日榜" }));
-    expect(within(dialog).getByText("勾选要订阅的榜单")).toBeTruthy();
     expect((within(dialog).getByRole("button", { name: "订阅 1 个榜单" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(within(dialog).getByRole("checkbox", { name: "月榜" }));
     fireEvent.click(within(dialog).getByRole("radio", { name: /放进已有图库/ }));
@@ -167,7 +165,6 @@ describe("订阅榜单", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "订阅设置…" }));
     const settings = await screen.findByRole("dialog", { name: "订阅设置" });
     expect(within(settings).getByText("日榜 前 50")).toBeTruthy();
-    expect(within(settings).getByText("名次改少后，已收的图会留着")).toBeTruthy();
     expect(within(settings).queryByText(/图库/)).toBeNull();
     fireEvent.click(within(settings).getByRole("button", { name: "前 100" }));
     fireEvent.click(within(settings).getByRole("button", { name: "保存" }));

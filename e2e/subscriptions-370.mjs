@@ -158,11 +158,14 @@ try {
   account(false);
   const now = Date.now();
   let db = new DatabaseSync(join(subsDir, "subscriptions.db"));
-  const addSub = db.prepare("INSERT INTO subscription (id, source, target, name, library_id, include_explicit, include_manga, created_at, last_checked_at, backlog, since) VALUES (?, 'pixiv', ?, ?, ?, 1, 0, ?, ?, ?, ?)");
+  const prepare = () => ({
+    addSub: db.prepare("INSERT INTO subscription (id, source, target, name, library_id, include_explicit, include_manga, created_at, last_checked_at, backlog, since) VALUES (?, 'pixiv', ?, ?, ?, 1, 0, ?, ?, ?, ?)"),
+    addWork: db.prepare("INSERT INTO received_work (library_id, source, work_id, subscription_id, outcome, explicit, received_at, seen) VALUES (?, 'pixiv', ?, ?, 'collected', ?, ?, ?)"),
+    addPage: db.prepare("INSERT INTO received_page (library_id, source, work_id, page, image_id, received_at) VALUES (?, 'pixiv', ?, 0, ?, ?)"),
+  });
+  let { addSub, addWork, addPage } = prepare();
   [["s1", "1001", "Mika"], ["s2", "1002", "ぽち"]].forEach(([id, userId, name], i) =>
     addSub.run(id, JSON.stringify({ kind: "pixivArtist", userId }), name, info.id, now - 86_400_000 + i, now - 10 * 60_000, JSON.stringify({ kind: "newOnly" }), now - 86_400_000));
-  const addWork = db.prepare("INSERT INTO received_work (library_id, source, work_id, subscription_id, outcome, explicit, received_at, seen) VALUES (?, 'pixiv', ?, ?, 'collected', ?, ?, ?)");
-  const addPage = db.prepare("INSERT INTO received_page (library_id, source, work_id, page, image_id, received_at) VALUES (?, 'pixiv', ?, 0, ?, ?)");
   const receive = (owners, explicit = []) => imageIds.forEach((imageId, i) => {
     const at = now - i * 3_600_000;
     addWork.run(info.id, `w${i}`, owners[i], explicit.includes(i) ? 1 : 0, at, i < 4 ? 0 : 1);
@@ -191,6 +194,7 @@ try {
   if (current.id !== info.id) throw new Error("create_library_unopened switched the current library");
   await session.close(); quitOwnApp(); await delay(800);
   db = new DatabaseSync(join(subsDir, "subscriptions.db"));
+  ({ addSub, addWork, addPage } = prepare());
   db.exec("DELETE FROM received_page; DELETE FROM received_work;");
   const ranking = (id, period, top, explicit, name, i) => addSub.run(id, JSON.stringify({ kind: "pixivRanking", period, top, explicit }), name,
     rankingsLibrary.id, now - 3_600_000 + i, now - 10 * 60_000, JSON.stringify({ kind: "all" }), null);
@@ -200,8 +204,8 @@ try {
   receive(["r1", "r2", "s1", "r1", "s2", "r2", "r1", "s2", "r1", "r2", "s1", "r1"], [1, 5, 9]);
   db.close();
 
+  // 安全模式在第一轮已经关掉，设置会留着。
   await reopen();
-  await toggleSafe();
 
   // B 名单：画师下面是榜单两行；选中日榜看它收进来的图。
   await both("B1-list");

@@ -36,9 +36,8 @@ export function SubscriptionSettings({ status, onStatus, error, onError }: {
       <UnofficialMark />
     </div>
     {error !== null && <p className="k-set-error" role="alert">{error}</p>}
-    <p className="k-set-note subs-settings-lead">{t("settings.lead")}</p>
     <SettingsGroup label={t("settings.group")}>
-      <SettingsRow icon={<Rss size={16} />} title={t("settings.feature")} hint={on ? t("settings.onHint") : t("settings.offHint")}>
+      <SettingsRow icon={<Rss size={16} />} title={t("settings.feature")}>
         <Switch label={t("settings.feature")} checked={on} onCheckedChange={toggle} />
       </SettingsRow>
       {(on || account) && <SettingsRow icon={<User size={16} />} title={t("settings.account")}

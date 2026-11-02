@@ -149,14 +149,13 @@ describe("订阅页", () => {
     expect(screen.queryByRole("button", { name: "立即检查" })).toBeNull();
   });
 
-  it("限流退避中显示几点再查，悬停说明是 pixiv 限制了请求次数", async () => {
+  it("限流退避中显示几点再查", async () => {
     backend();
     const until = new Date(NOW);
     until.setHours(14, 30, 0, 0);
     page(status({ backoffUntil: Math.max(until.getTime(), NOW + 60_000) }));
     const line = await screen.findByRole("status");
     expect(line.textContent).toMatch(/^将于 \d\d:\d\d 同步$/);
-    expect(line.getAttribute("title")).toBe("pixiv 限制了请求次数，到时会自动同步");
     expect(screen.queryByRole("button", { name: "立即检查" })).toBeNull();
   });
 
