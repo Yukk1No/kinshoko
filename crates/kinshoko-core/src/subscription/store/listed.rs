@@ -63,6 +63,34 @@ impl Store {
         Ok(())
     }
 
+    /// 收藏夹第一次检查已定下基线。
+    pub(in crate::subscription) fn bookmarks_baseline(
+        &self,
+        subscription_id: &str,
+    ) -> Result<bool, StoreError> {
+        Ok(self
+            .conn()
+            .query_row(
+                "SELECT bookmarks_baseline_at IS NOT NULL FROM subscription WHERE id = ?1",
+                [subscription_id],
+                |r| r.get(0),
+            )
+            .optional()?
+            .unwrap_or(false))
+    }
+
+    pub(in crate::subscription) fn set_bookmarks_baseline(
+        &self,
+        subscription_id: &str,
+        at: i64,
+    ) -> Result<(), StoreError> {
+        self.conn().execute(
+            "UPDATE subscription SET bookmarks_baseline_at = ?2 WHERE id = ?1",
+            params![subscription_id, at],
+        )?;
+        Ok(())
+    }
+
     /// 记下某个作品只收前几页（最近若干张数到的最后一个作品）。
     pub(in crate::subscription) fn set_page_limit(
         &self,

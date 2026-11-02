@@ -1,10 +1,12 @@
 //! 检查 pixiv 收藏夹（#371）。收藏夹按收藏先后排，旧作品也可能是刚收藏的，所以不看发布时间：
-//! 每条收藏流从最近的收藏往前翻，翻到连着两个列出过的作品（或流的末尾是列出过的）就停，比它们近、
-//! 没列出过的才是新收藏。只认连着两个，是因为取消收藏后又重新收藏的作品会单独排到前面，它不是上次的边界。
+//! 每条收藏流从最近的收藏往前翻，翻到连着两个列出过的作品就停，比它们近、没列出过的才是新收藏。一般不认单独
+//! 一个列出过的作品：取消收藏后又重新收藏的作品会单独排到前面，它不是上次的边界。只有它后面再没有列出过的
+//! 作品时（上次的边界只剩它一个），才认它。
 //! 在 pixiv 上取消收藏只是让它不再列出，已收进资料库的图不动。
 //!
-//! - 第一次检查时公开、非公开收藏各按画师选的旧收藏定：只同步以后的新收藏时只读第一页记下来；最近若干张时
-//!   收这条流最近这么多张；全部时整条流都收。第一次没查完时下次重来，收过的不再下载。
+//! - 第一次检查时公开、非公开收藏各按画师选的旧收藏定：只同步以后的新收藏时只读第一页；最近若干张时收这条流
+//!   最近这么多张；全部时整条流都收。下载前先把没选上的记为列出过，定下基线：第一次没查完时，下次照常从基线
+//!   往前认新收藏，期间新收藏的作品挤不掉当初选上、还没下完的。
 //! - 检查成功后，这次列出的作品都记为列出过；没收成、还要重试的除外，下次翻到底把它们找回来。翻到底也
 //!   没找到的（已取消收藏）不再重试。最近若干张数到的最后一个作品只收前几页，记下页数，重试时也照它。
 //! - 一条流里列出过的作品全被取消收藏、翻到底也没遇到时，不把剩下的旧收藏当成新的，只重新记下。
@@ -25,7 +27,7 @@ pub(super) fn run(
     cancel: &AtomicBool,
 ) -> Result<CheckReport, SourceError> {
     let id = subscription.id.as_str();
-    let first = subscription.last_checked_at.is_none();
+    let first = !store.bookmarks_baseline(id)?;
     let retry = store.retry_works(id)?;
     let source_id = source.id();
     let mut store_failed = false;
@@ -69,7 +71,7 @@ pub(super) fn run(
         return Err(SourceError::Store);
     }
 
-    let mut report = CheckReport::default();
+    let mut chosen = Vec::new();
     for (feed, works) in feeds.iter().enumerate() {
         let mut candidates: Vec<Work> = if first {
             match backlog(subscription, feed) {
@@ -113,6 +115,25 @@ pub(super) fn run(
                 work.pages.truncate(pages as usize);
             }
         }
+        chosen.push(candidates);
+    }
+    if first {
+        for (feed, (works, candidates)) in feeds.iter().zip(&chosen).enumerate() {
+            let taken: HashSet<&str> = candidates.iter().map(|w| w.id.as_str()).collect();
+            store.mark_listed(
+                id,
+                feed,
+                works
+                    .iter()
+                    .map(|w| w.id.as_str())
+                    .filter(|w| !taken.contains(w)),
+            )?;
+        }
+        store.set_bookmarks_baseline(id, now())?;
+    }
+
+    let mut report = CheckReport::default();
+    for candidates in &chosen {
         // 从旧到新收，最近收进来的图按时间排列时与收藏的先后一致。
         for work in candidates.iter().rev() {
             receive(
@@ -157,9 +178,13 @@ fn backlog(subscription: &Subscription, feed: usize) -> Backlog {
     }
 }
 
-/// 新旧收藏的边界：第一个列出过、且紧跟着的也列出过（或它是最后一个）的作品。
+/// 新旧收藏的边界：第一个列出过、且紧跟着的也列出过的作品；它后面再没有列出过的作品（包括它是最后一个）时
+/// 也算。
 fn boundary(known: &[bool]) -> Option<usize> {
-    (0..known.len()).find(|&at| known[at] && known.get(at + 1).copied().unwrap_or(true))
+    (0..known.len()).find(|&at| {
+        known[at]
+            && (known.get(at + 1).copied().unwrap_or(true) || !known[at + 1..].contains(&true))
+    })
 }
 
 /// 这条订阅列出过或收过这个作品。

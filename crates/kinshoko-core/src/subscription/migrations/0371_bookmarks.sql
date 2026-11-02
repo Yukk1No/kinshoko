@@ -14,5 +14,7 @@ CREATE TABLE page_limit (
     pages           INTEGER NOT NULL,
     PRIMARY KEY (subscription_id, work_id)
 );
+-- 收藏夹第一次检查定下基线的时间（没选上的旧收藏已记为列出过）；为空时还没定。
+ALTER TABLE subscription ADD COLUMN bookmarks_baseline_at INTEGER;
 -- 已有的非公开收藏收多少（JSON，见 subscription::Backlog）；为空时同 backlog。只有收藏夹有。
 ALTER TABLE subscription ADD COLUMN private_backlog TEXT;

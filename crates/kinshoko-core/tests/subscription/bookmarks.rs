@@ -395,3 +395,40 @@ fn a_failed_bookmark_that_was_removed_stops_forcing_full_scans() {
     check_bookmarks(&f, &sub, &mut source).unwrap();
     assert_eq!(source.pages_read, 1);
 }
+
+#[test]
+fn a_lone_surviving_boundary_still_marks_new_bookmarks() {
+    let f = later();
+    let sub = sync(&f, Backlog::NewOnly, true);
+    // 第一页 p0–p2 记下，p3、p4 没读到。
+    let mut source = bookmarks(PAGE + 2, 0);
+    check_bookmarks(&f, &sub, &mut source).unwrap();
+
+    // 取消收藏 p1、p2，再新收藏 n：[n, p0, p3, p4]，n 照样同步，p3、p4 不当新收藏。
+    source.unbookmark("p1");
+    source.unbookmark("p2");
+    source.bookmark(0, old("n"));
+    assert_eq!(check_bookmarks(&f, &sub, &mut source).unwrap().collected, 1);
+    assert_eq!(work_ids(&f), ["n"]);
+}
+
+#[test]
+fn new_bookmarks_do_not_push_out_an_unfinished_recent_selection() {
+    let f = later();
+    let sub = sync(&f, Backlog::Recent { count: 2 }, true);
+    let mut source = bookmarks(3, 0);
+    // 选上 p0、p1；从旧往新收，p1 先下载时断网，这次检查没完成。
+    source
+        .fail
+        .insert(source.feeds[0][1].pages[0].clone(), SourceError::Network);
+    assert_eq!(
+        check_bookmarks(&f, &sub, &mut source),
+        Err(SourceError::Network)
+    );
+
+    // 期间新收藏 n：下次检查 n、p0、p1 都同步，p2 不同步。
+    source.fail.clear();
+    source.bookmark(0, old("n"));
+    assert_eq!(check_bookmarks(&f, &sub, &mut source).unwrap().collected, 3);
+    assert_eq!(work_ids(&f), ["n", "p0", "p1"]);
+}
