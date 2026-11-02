@@ -88,7 +88,7 @@ function quitOwnApp() {
 }
 
 const driver = spawn("tauri-driver", ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], {
-  env: { ...process.env, KINSHOKO_DATA_DIR: data, KINSHOKO_SKIP_AUTOSTART: "1", KINSHOKO_SUBSCRIPTIONS: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") },
+  env: { ...process.env, KINSHOKO_DATA_DIR: data, KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") },
   stdio: ["ignore", "inherit", "inherit"], windowsHide: true,
 });
 let session;
@@ -183,7 +183,7 @@ try {
   await both("A1-first-ranking");
   // 勾上 R-18 日榜，周榜选前 10（点名次顺带勾上），改放进已有图库。
   await session.click("//*[@role='dialog']//label[contains(., 'R-18 日榜')]"); await settle();
-  await session.click("//*[@role='dialog']//*[@aria-label='周榜收前几名']//button[contains(., '前 10')]"); await settle();
+  await session.click("//*[@role='dialog']//*[@aria-label='周榜同步前几名']//button[contains(., '前 10')]"); await settle();
   await session.click("//*[@role='dialog']//label[contains(., '放进已有图库')]//input"); await settle();
   await both("A2-picked-existing-library");
   await escape(); await settle();

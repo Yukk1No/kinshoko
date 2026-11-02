@@ -9,7 +9,7 @@ import { status } from "./subscriptions/subscriptions.fixtures";
 const entry = () => screen.queryByRole("button", { name: "订阅" });
 const push = (next: SubscriptionStatus) => act(() => emit("subscription-status", next));
 
-/** 订阅功能（#368）：`subscription_status` 回什么，主窗口就按什么显示；没有订阅功能时命令 reject。 */
+/** 订阅功能（#368）：`subscription_status` 回什么，主窗口就按什么显示；订阅记录打不开时命令 reject。 */
 let openRequest: unknown = null;
 
 function withSubscriptions(initial: SubscriptionStatus | "unavailable") {
@@ -23,7 +23,7 @@ function withSubscriptions(initial: SubscriptionStatus | "unavailable") {
 }
 
 describe("订阅入口", () => {
-  it("这一版没有订阅功能时图标轨不显示入口，Ctrl+4 也不打开", async () => {
+  it("订阅记录打不开时图标轨不显示入口，Ctrl+4 也不打开", async () => {
     withSubscriptions("unavailable");
     render(<App />);
     await screen.findByRole("button", { name: "参考组" });

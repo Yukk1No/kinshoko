@@ -77,8 +77,8 @@ describe("订阅画师", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "查找" }));
     expect(await within(dialog).findByText("Nanashi")).toBeTruthy();
     expect(within(dialog).getByText("pixiv ID 777")).toBeTruthy();
-    // 默认只收新作；改成最近 5 张。
-    expect((within(dialog).getByRole("radio", { name: /只收新作/ }) as HTMLInputElement).checked).toBe(true);
+    // 默认仅同步新作；改成最近 5 张。
+    expect((within(dialog).getByRole("radio", { name: /仅同步新作/ }) as HTMLInputElement).checked).toBe(true);
     fireEvent.change(within(dialog).getByRole("textbox", { name: "最近几张" }), { target: { value: "5" } });
     expect((within(dialog).getByRole("radio", { name: /最近/ }) as HTMLInputElement).checked).toBe(true);
     await waitFor(() => expect(subscribe.disabled).toBe(false));
@@ -98,7 +98,7 @@ describe("订阅画师", () => {
     const input = within(dialog).getByRole("textbox", { name: "画师主页链接或 ID" });
     fireEvent.change(input, { target: { value: "404" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "查找" }));
-    expect((await within(dialog).findByRole("alert")).textContent).toBe("找不到这位画师");
+    expect((await within(dialog).findByRole("alert")).textContent).toBe("未找到这位画师");
     cleanup();
 
     backend([subscription("777", "Nanashi")]);

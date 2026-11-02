@@ -110,7 +110,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   const addMenu = (trigger: ReactElement) => <Menu.Root modal={false}>
     <Menu.Trigger render={trigger} />
     <MenuPopup label={t("add")} width={200}>
-      {kinds.map((k) => <MenuItem key={k.kind} icon={k.icon(16)} disabled={!k.add} onClick={() => setAdding(k)}>{t(`addMenu.${k.kind}`)}</MenuItem>)}
+      {kinds.map((k) => <MenuItem key={k.kind} icon={k.icon(16)} disabled={!k.add || (k.full?.(list ?? []) ?? false)} onClick={() => setAdding(k)}>{t(`addMenu.${k.kind}`)}</MenuItem>)}
     </MenuPopup>
   </Menu.Root>;
 

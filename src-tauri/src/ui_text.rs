@@ -71,7 +71,7 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
         Text::DiagnosticsFileName => pick(en, "kinshoko-诊断信息", "kinshoko-diagnostics"),
         Text::ExeNotFound => pick(
             en,
-            "找不到 Kinshoko 程序所在的位置：{error}",
+            "无法找到 Kinshoko 程序所在的位置：{error}",
             "Couldn't find where the Kinshoko program is: {error}",
         ),
         Text::DataDirUnwritable => pick(
@@ -87,7 +87,7 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
         ),
         Text::DataMigrationFailed => pick(
             en,
-            "Kinshoko 迁移数据时出错，没能完成：\n{error}；有些数据还在 {staging}，下次启动时会放回原处再迁移\n\n请重新启动 Kinshoko 再试。",
+            "Kinshoko 迁移数据时出错，未能完成：\n{error}；有些数据还在 {staging}，下次启动时会放回原处再迁移\n\n请重新启动 Kinshoko 再试。",
             "Kinshoko ran into an error while moving its data and couldn't finish:\n{error}. Some data is still in {staging}; the next time Kinshoko starts, it will put it back and move it again\n\nStart Kinshoko again to retry.",
         ),
         Text::CaptureWindowTitle => pick(en, "Kinshoko 截图", "Kinshoko capture"),

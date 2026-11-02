@@ -143,7 +143,7 @@ export default {
     savesTo: "存到：{{place}}",
     unassigned: "未归类",
     folder: "文件夹",
-    unavailable: "这个位置现在用不了，换一个图库或文件夹",
+    unavailable: "这个位置暂时无法使用，请换一个图库或文件夹",
     cancel: "取消",
     saving: "正在保存…",
     confirm: "确认并保存",

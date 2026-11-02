@@ -72,7 +72,7 @@ describe("订阅榜单", () => {
     expect((within(dialog).getByRole("textbox", { name: "图库名称" }) as HTMLInputElement).value).toBe("pixiv 榜单");
     expect(await within(dialog).findByText("D:/参考图\\pixiv 榜单")).toBeTruthy();
     // 点周榜的「前 10」顺带勾上周榜。
-    fireEvent.click(within(within(dialog).getByRole("group", { name: "周榜收前几名" })).getByRole("button", { name: "前 10" }));
+    fireEvent.click(within(within(dialog).getByRole("group", { name: "周榜同步前几名" })).getByRole("button", { name: "前 10" }));
     expect((within(dialog).getByRole("checkbox", { name: "周榜" }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(within(dialog).getByRole("switch", { name: "漫画" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "订阅 2 个榜单" }));
@@ -114,9 +114,9 @@ describe("订阅榜单", () => {
     expect((within(dialog).getByRole("checkbox", { name: "周榜" }) as HTMLInputElement).checked).toBe(true);
     const library = within(dialog).getByRole("combobox", { name: "图库" });
     await waitFor(() => expect(library.textContent).toContain("私人"));
-    expect(within(dialog).queryByText(/可能各收一份/)).toBeNull();
+    expect(within(dialog).queryByText(/可能各存一份/)).toBeNull();
     await chooseOption(library, "主图库");
-    expect(within(dialog).getByText("和其他榜单不在同一个图库，同一作品可能各收一份。")).toBeTruthy();
+    expect(within(dialog).getByText("和其他榜单不在同一个图库，同一作品可能各存一份。")).toBeTruthy();
   });
 
   it("R-18 榜：登录着、账号开着 R-18 时才有，安全模式开着也照常能订；没有 R-18 月榜", async () => {

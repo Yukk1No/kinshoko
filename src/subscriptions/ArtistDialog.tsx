@@ -8,6 +8,7 @@ import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { errorText } from "../ipc";
 import { subscriptionAdd, subscriptionFindArtist, subscriptionSetOptions } from "../ipc/subscriptions";
 import { ArtistOptionFields, backlogOf, explicitChoice, followingChoice, initialChoices, useLibraryOptions, type ArtistChoices } from "./artistOptions";
+import { displayName } from "./rankingNames";
 import { UnofficialMark } from "./UnofficialMark";
 
 type Lookup =
@@ -111,12 +112,13 @@ export function ArtistDialog({ status, list, libraryId, onClose, onAdded, onImpo
   </Dialog.Root>;
 }
 
-/** 订阅设置（草图 C）：只改漫画与 R-18；资料库与旧作是订阅时定的。 */
+/** 订阅设置（草图 C）：只改漫画与 R-18；资料库与旧作是订阅时定的。收藏夹（#371）也用它。 */
 export function ArtistSettingsDialog({ subscription, status, onClose, onSaved }: {
   subscription: Subscription; status: SubscriptionStatus;
   onClose: () => void; onSaved: (saved: Subscription) => void;
 }) {
   const { t } = useTranslation("subscriptions", { keyPrefix: "artist" });
+  const { t: ts } = useTranslation("subscriptions");
   const [choices, setChoices] = useState<ArtistChoices>(() => ({
     ...initialChoices(subscription.libraryId), includeManga: subscription.includeManga, includeExplicit: subscription.includeExplicit,
   }));
@@ -134,7 +136,7 @@ export function ArtistSettingsDialog({ subscription, status, onClose, onSaved }:
       <Dialog.Backdrop className="k-backdrop" />
       <Dialog.Popup className="k-dialog subs-artist-dialog">
         <Dialog.Title className="k-dialog-title">{t("settingsTitle")}</Dialog.Title>
-        <Dialog.Description className="k-dialog-desc">{subscription.name}</Dialog.Description>
+        <Dialog.Description className="k-dialog-desc">{displayName(ts, subscription)}</Dialog.Description>
         <ArtistOptionFields value={choices} onChange={setChoices} backlogAs={null} showExplicit={showExplicit} disabled={busy} />
         {error && <p className="k-field-error" role="alert"><CircleAlert size={14} aria-hidden="true" />{error}</p>}
         <div className="k-dialog-foot">

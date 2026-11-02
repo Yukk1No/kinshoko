@@ -13,7 +13,7 @@ export default {
   visitWebView2Page: "请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/",
   openExplorerFailed: "无法打开资源管理器：{{detail}}",
   openInFileManager: "请在文件管理器中打开：{{path}}",
-  noMonitor: "找不到显示器",
+  noMonitor: "未找到显示器",
   updateCheckFailed: "检查更新失败，请检查网络后重试。",
   updateManual: "当前使用安装包手动更新。",
   updateNoPublicKey: "未配置更新公钥，自动更新未启用。请使用新版安装包手动更新。",
@@ -34,7 +34,7 @@ export default {
   packageDefinitionsNotSaved: "内容已写入，但资料库标签定义尚未更新：{{cause}}。请重试保存标签定义或重新导入参考组包。",
   processedDefinitionsNotSaved: "内容处理结果已保留，资料库标签定义未更新：{{cause}}。可在统一标签目录重试保存定义。",
   savedDefinitionsNotSaved: "内容已保存，资料库标签定义未更新：{{cause}}。可在统一标签目录重试保存定义。",
-  importPublicationNotStarted: "导入已开始，但没能开始更新资料库标签定义：{{cause}}。导入完成后，可在统一标签目录重试保存定义。",
+  importPublicationNotStarted: "导入已开始，但无法开始更新资料库标签定义：{{cause}}。导入完成后，可在统一标签目录重试保存定义。",
 
   autostartNotSynced: "开机自启未同步：{{cause}}",
   safeModeScopeIncomplete: "安全模式范围未完全生效：{{cause}}",

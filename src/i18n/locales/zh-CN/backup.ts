@@ -4,7 +4,7 @@ export default {
   separator: "、",
   none: "无",
   uncovered: {
-    unreadable: "参考组「{{group}}」读不懂，无法备份：{{problem}}",
+    unreadable: "无法读取参考组「{{group}}」，未能备份：{{problem}}",
     libraryClosed: "参考组「{{group}}」引用的图库没在本机打开，不在这次备份里",
     libraryLeftOut: "参考组「{{group}}」引用的「{{library}}」不在这次备份里",
   },

@@ -6,9 +6,9 @@ import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { invoke } from "./invoke";
 
-// 订阅（#368）。功能还没做完时（没设 KINSHOKO_SUBSCRIPTIONS=1）这些命令都 reject。
+// 订阅（#368）。订阅记录打不开时这些命令都 reject（`subscriptionsUnavailable`）。
 
-/** 订阅入口与托盘的状态；这一版没有订阅功能时 reject。 */
+/** 订阅入口与托盘的状态；订阅记录打不开时 reject。 */
 export function subscriptionStatus(): Promise<SubscriptionStatus> {
   return invoke<SubscriptionStatus>("subscription_status");
 }

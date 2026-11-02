@@ -51,6 +51,76 @@ export function useLibraryOptions() {
   return { options, ready };
 }
 
+/** 旧作几张单选卡片的文字。 */
+export type BacklogLabels = { newOnly: string; recent: string; recentUnit: string; recentLabel: string; all: string };
+
+/**
+ * 旧作收多少的三张单选卡片：只收新作／最近几张（卡片里带输入框）／全部。`inline` 时三张排成一行（收藏夹的公开、
+ * 非公开收藏各一行，#371），否则竖排。
+ */
+export function BacklogCards({ name, label, labels, value, onChange, disabled, inline }: {
+  /** 单选组的名字，同一个对话框里几组不能重。 */
+  name: string; label: string; labels: BacklogLabels;
+  value: Pick<ArtistChoices, "backlog" | "recentCount">;
+  onChange: (value: Pick<ArtistChoices, "backlog" | "recentCount">) => void;
+  disabled?: boolean; inline?: boolean;
+}) {
+  const set = (patch: Partial<Pick<ArtistChoices, "backlog" | "recentCount">>) => onChange({ ...value, ...patch });
+  const invalid = value.backlog === "recent" && !backlogOf({ ...initialChoices(""), ...value });
+  return <div className="k-field" role="radiogroup" aria-label={label}>
+    <span className="k-field-label" aria-hidden="true">{label}</span>
+    <div className={`k-radio-cards${inline ? " subs-backlog-row" : ""}`}>
+      <label className={`k-radio-card subs-backlog-card${value.backlog === "newOnly" ? " is-on" : ""}`}>
+        <input type="radio" name={name} disabled={disabled} checked={value.backlog === "newOnly"} onChange={() => set({ backlog: "newOnly" })} />
+        <span className="k-radio-title">{labels.newOnly}</span>
+      </label>
+      <label className={`k-radio-card subs-backlog-card subs-recent-card${value.backlog === "recent" ? " is-on" : ""}`}>
+        <input type="radio" name={name} disabled={disabled} checked={value.backlog === "recent"} onChange={() => set({ backlog: "recent" })} />
+        <span className="k-radio-title k-grow">{labels.recent}</span>
+        <span className="k-input is-num" aria-invalid={invalid ? true : undefined}>
+          <input inputMode="numeric" aria-label={labels.recentLabel} disabled={disabled} value={value.recentCount}
+            onFocus={() => set({ backlog: "recent" })}
+            onChange={(e) => set({ backlog: "recent", recentCount: e.target.value.replace(/[^\d]/g, "") })} />
+        </span>
+        <span className="k-field-unit">{labels.recentUnit}</span>
+      </label>
+      <label className={`k-radio-card subs-backlog-card${value.backlog === "all" ? " is-on" : ""}`}>
+        <input type="radio" name={name} disabled={disabled} checked={value.backlog === "all"} onChange={() => set({ backlog: "all" })} />
+        <span className="k-radio-title">{labels.all}</span>
+      </label>
+    </div>
+  </div>;
+}
+
+/** 图库下拉。 */
+export function LibraryField({ label, value, onChange, disabled }: { label: string; value: string; onChange: (libraryId: string) => void; disabled?: boolean }) {
+  const libraries = useLibraryOptions();
+  return <div className="k-field">
+    <span className="k-field-label">{label}</span>
+    <Select label={label} icon={<Library size={16} aria-hidden="true" />} disabled={disabled || !libraries.ready}
+      value={value} onChange={onChange} options={libraries.options} />
+  </div>;
+}
+
+/** 漫画与 R-18 两个开关；R-18 只在 `showExplicit` 时出现。 */
+export function KindSwitches({ value, onChange, showExplicit, disabled }: {
+  value: Pick<ArtistChoices, "includeManga" | "includeExplicit">;
+  onChange: (patch: Partial<Pick<ArtistChoices, "includeManga" | "includeExplicit">>) => void;
+  showExplicit: boolean; disabled?: boolean;
+}) {
+  const { t } = useTranslation("subscriptions", { keyPrefix: "artist" });
+  return <>
+    <div className="subs-option">
+      <span className="subs-option-text">{t("manga")}</span>
+      <Switch label={t("manga")} disabled={disabled} checked={value.includeManga} onCheckedChange={(includeManga) => onChange({ includeManga })} />
+    </div>
+    {showExplicit && <div className="subs-option">
+      <span className="subs-option-text">{t("explicit")}</span>
+      <Switch label={t("explicit")} disabled={disabled} checked={value.includeExplicit} onCheckedChange={(includeExplicit) => onChange({ includeExplicit })} />
+    </div>}
+  </>;
+}
+
 /**
  * 资料库、旧作、漫画与 R-18 几行。`backlogAs` 为 cards 时旧作是三张单选卡片（订阅画师），为 select 时是下拉
  * （从关注导入，免得对话框太高），为空时不显示（订阅设置里不改旧作与资料库）。
@@ -60,38 +130,12 @@ export function ArtistOptionFields({ value, onChange, backlogAs, showExplicit, d
   backlogAs: "cards" | "select" | null; showExplicit: boolean; disabled?: boolean;
 }) {
   const { t } = useTranslation("subscriptions", { keyPrefix: "artist" });
-  const libraries = useLibraryOptions();
   const set = (patch: Partial<ArtistChoices>) => onChange({ ...value, ...patch });
   const recentCount = backlogOf({ ...value, backlog: "recent" })?.kind === "recent" ? Number(value.recentCount) : RECENT_DEFAULT;
   return <>
-    {backlogAs && <div className="k-field">
-      <span className="k-field-label">{t("library")}</span>
-      <Select label={t("library")} icon={<Library size={16} aria-hidden="true" />} disabled={disabled || !libraries.ready}
-        value={value.libraryId} onChange={(libraryId) => set({ libraryId })} options={libraries.options} />
-    </div>}
-    {backlogAs === "cards" && <div className="k-field" role="radiogroup" aria-label={t("backlog")}>
-      <span className="k-field-label" aria-hidden="true">{t("backlog")}</span>
-      <div className="k-radio-cards">
-        <label className={`k-radio-card subs-backlog-card${value.backlog === "newOnly" ? " is-on" : ""}`}>
-          <input type="radio" name="artist-backlog" disabled={disabled} checked={value.backlog === "newOnly"} onChange={() => set({ backlog: "newOnly" })} />
-          <span className="k-radio-title">{t("newOnly")}</span>
-        </label>
-        <label className={`k-radio-card subs-backlog-card subs-recent-card${value.backlog === "recent" ? " is-on" : ""}`}>
-          <input type="radio" name="artist-backlog" disabled={disabled} checked={value.backlog === "recent"} onChange={() => set({ backlog: "recent" })} />
-          <span className="k-radio-title k-grow">{t("recent")}</span>
-          <span className="k-input is-num" aria-invalid={value.backlog === "recent" && !backlogOf(value) ? true : undefined}>
-            <input inputMode="numeric" aria-label={t("recentLabel")} disabled={disabled} value={value.recentCount}
-              onFocus={() => set({ backlog: "recent" })}
-              onChange={(e) => set({ backlog: "recent", recentCount: e.target.value.replace(/[^\d]/g, "") })} />
-          </span>
-          <span className="k-field-unit">{t("recentUnit")}</span>
-        </label>
-        <label className={`k-radio-card subs-backlog-card${value.backlog === "all" ? " is-on" : ""}`}>
-          <input type="radio" name="artist-backlog" disabled={disabled} checked={value.backlog === "all"} onChange={() => set({ backlog: "all" })} />
-          <span className="k-radio-title">{t("all")}</span>
-        </label>
-      </div>
-    </div>}
+    {backlogAs && <LibraryField label={t("library")} value={value.libraryId} onChange={(libraryId) => set({ libraryId })} disabled={disabled} />}
+    {backlogAs === "cards" && <BacklogCards name="artist-backlog" label={t("backlog")} value={value} onChange={set} disabled={disabled}
+      labels={{ newOnly: t("newOnly"), recent: t("recent"), recentUnit: t("recentUnit"), recentLabel: t("recentLabel"), all: t("all") }} />}
     {backlogAs === "select" && <div className="k-field">
       <span className="k-field-label">{t("backlog")}</span>
       <Select label={t("backlog")} disabled={disabled} value={value.backlog}
@@ -102,13 +146,6 @@ export function ArtistOptionFields({ value, onChange, backlogAs, showExplicit, d
           { value: "all", label: t("all") },
         ]} />
     </div>}
-    <div className="subs-option">
-      <span className="subs-option-text">{t("manga")}</span>
-      <Switch label={t("manga")} disabled={disabled} checked={value.includeManga} onCheckedChange={(includeManga) => set({ includeManga })} />
-    </div>
-    {showExplicit && <div className="subs-option">
-      <span className="subs-option-text">{t("explicit")}</span>
-      <Switch label={t("explicit")} disabled={disabled} checked={value.includeExplicit} onCheckedChange={(includeExplicit) => set({ includeExplicit })} />
-    </div>}
+    <KindSwitches value={value} onChange={set} showExplicit={showExplicit} disabled={disabled} />
   </>;
 }

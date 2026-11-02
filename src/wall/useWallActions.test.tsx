@@ -146,7 +146,7 @@ it("某个图库断连时其他图库照常删除，并按图库报告没完成�
   render(<Harness onError={onError} onChanged={onChanged} />);
   act(() => api.purge([named("1", "L1", "工作参考"), named("2", "L2", "私人收藏"), named("3", "L3", "移动盘")]));
   expect(await screen.findByText("永久删除这 2 张图？原图与整理结果都会删除，无法恢复。")).toBeTruthy();
-  expect(screen.getByText("「私人收藏」的 1 张这次删不了：资料库暂时不可用：E:\\私人收藏")).toBeTruthy();
+  expect(screen.getByText("「私人收藏」的 1 张这次无法删除：资料库暂时不可用：E:\\私人收藏")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
   await waitFor(() => expect(onError).toHaveBeenCalled());
   expect(calls.find((c) => c.cmd === "plugin:library|permanent_delete_batch")!.args).toEqual({ groups: [

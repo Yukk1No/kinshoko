@@ -3,8 +3,7 @@
 //!
 //! - 只在设置里的订阅开关开着、有订阅、已登录时联网；关掉开关立即取消正在进行的检查。
 //! - 检查线程按 `schedule` 睡到下一条订阅到期；退出期间错过的检查，重新打开后补上。
-//! - 功能跨 #368–#371 几个 PR，最后一个合并前只在设了 `KINSHOKO_SUBSCRIPTIONS=1` 时出现：
-//!   没设时不建线程、不打开订阅记录、不联网，命令一律报不可用。
+//! - 订阅记录打不开时不建线程、不联网，命令一律报不可用。
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -32,17 +31,10 @@ use login::{LOGIN_WINDOW, remove_login_profile};
 
 /// 订阅状态变了（检查开始或结束、登录变化、新图数量变化），载荷为 [`SubscriptionStatus`]。
 const STATUS_EVENT: &str = "subscription-status";
-/// 功能还没做完时，设了它才出现（见模块说明）。
-const PREVIEW_ENV: &str = "KINSHOKO_SUBSCRIPTIONS";
 /// 没有更早到期的订阅时也隔这么久醒一次，防止系统休眠或改时间后睡过头。
 const MAX_SLEEP: Duration = Duration::from_secs(60 * 60);
 /// 订阅页“最近收进来的图”最多列这么多张。
 const RECENT_LIMIT: u32 = 200;
-
-/// 订阅功能这一版是否出现。
-pub fn available() -> bool {
-    std::env::var(PREVIEW_ENV).is_ok_and(|v| v == "1")
-}
 
 #[derive(Default)]
 struct Wake {
@@ -93,11 +85,8 @@ fn enabled(app: &AppHandle) -> bool {
         .unwrap_or(false)
 }
 
-/// 启动时：功能出现时打开订阅记录、开始检查线程，并跟着安全模式更新托盘上的数量。
+/// 启动时：打开订阅记录、开始检查线程，并跟着安全模式更新托盘上的数量。
 pub fn manage(app: &AppHandle) {
-    if !available() {
-        return;
-    }
     let dir = crate::data_dirs::app_data(app)
         .device()
         .join("subscriptions");
@@ -316,7 +305,7 @@ fn require(app: &AppHandle) -> Result<State<'_, SubscriptionState>, CommandError
     app.try_state::<SubscriptionState>().ok_or_else(|| {
         CommandError::new(
             ErrorKind::SubscriptionsUnavailable,
-            "subscriptions are not available in this build",
+            "subscription records could not be opened",
         )
     })
 }

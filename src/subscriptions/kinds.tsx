@@ -4,6 +4,7 @@ import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import type { Target } from "../bindings/Target";
 import { ArtistDialog, ArtistSettingsDialog } from "./ArtistDialog";
+import { BookmarksDialog, syncingBookmarks } from "./BookmarksDialog";
 import { FollowingDialog } from "./FollowingDialog";
 import { RankingDialog, RankingSettingsDialog } from "./RankingDialog";
 
@@ -34,6 +35,8 @@ export type KindMount = {
   icon: (size: number) => ReactNode;
   /** 添加流程：这一类的添加对话框。 */
   add?: (props: AddFlowProps) => ReactNode;
+  /** 这一类已经满了，添加菜单里这一项变灰（例如收藏夹只有一个）。 */
+  full?: (list: Subscription[]) => boolean;
   /** 订阅设置：改一条已有订阅的对话框。 */
   settings?: (props: SettingsFlowProps) => ReactNode;
   hiddenWhenSafe?: (subscription: Subscription) => boolean;
@@ -60,7 +63,12 @@ export const KINDS: KindMount[] = [
     add: (props) => <RankingDialog {...props} />,
     settings: (props) => <RankingSettingsDialog {...props} />,
   },
-  { kind: "bookmarks", icon: icon(Heart) },
+  {
+    kind: "bookmarks", icon: icon(Heart),
+    add: (props) => <BookmarksDialog {...props} />,
+    full: syncingBookmarks,
+    settings: (props) => <ArtistSettingsDialog {...props} />,
+  },
 ];
 
 export function kindOf(target: Target): SubscriptionKind {

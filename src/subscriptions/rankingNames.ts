@@ -27,8 +27,12 @@ export function rankingName(t: TFunction<"subscriptions">, period: RankingPeriod
   return t("ranking.name", { period: t(`ranking.period.${rankingKey(period, explicit)}`), count: top });
 }
 
-/** 订阅在名单、退订确认与订阅设置里显示的名字：榜单按语言现拼，其余用存下的名字。 */
+/** 订阅在名单、退订确认与订阅设置里显示的名字：榜单与收藏夹按语言现拼，画师用存下的名字。 */
 export function displayName(t: TFunction<"subscriptions">, subscription: { name: string; target: Target }): string {
   const { target } = subscription;
-  return target.kind === "pixivRanking" ? rankingName(t, target.period, target.explicit, target.top) : subscription.name;
+  switch (target.kind) {
+    case "pixivRanking": return rankingName(t, target.period, target.explicit, target.top);
+    case "pixivBookmarks": return t("bookmarks.name");
+    case "pixivArtist": return subscription.name;
+  }
 }
