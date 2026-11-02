@@ -63,6 +63,37 @@ impl Store {
         Ok(())
     }
 
+    /// 记下某个作品只收前几页（最近若干张数到的最后一个作品）。
+    pub(in crate::subscription) fn set_page_limit(
+        &self,
+        subscription_id: &str,
+        work_id: &str,
+        pages: u32,
+    ) -> Result<(), StoreError> {
+        self.conn().execute(
+            "INSERT OR REPLACE INTO page_limit (subscription_id, work_id, pages)
+             VALUES (?1, ?2, ?3)",
+            params![subscription_id, work_id, pages],
+        )?;
+        Ok(())
+    }
+
+    /// 某个作品只收前几页；没有限制时为空。
+    pub(in crate::subscription) fn page_limit(
+        &self,
+        subscription_id: &str,
+        work_id: &str,
+    ) -> Result<Option<u32>, StoreError> {
+        Ok(self
+            .conn()
+            .query_row(
+                "SELECT pages FROM page_limit WHERE subscription_id = ?1 AND work_id = ?2",
+                params![subscription_id, work_id],
+                |r| r.get(0),
+            )
+            .optional()?)
+    }
+
     /// 这条订阅没收成、还要重试的作品。
     pub(in crate::subscription) fn retry_works(
         &self,

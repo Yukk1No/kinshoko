@@ -188,6 +188,7 @@ impl Store {
         let tx = conn.transaction()?;
         let removed = tx.execute("DELETE FROM subscription WHERE id = ?1", [id])?;
         tx.execute("DELETE FROM listed_work WHERE subscription_id = ?1", [id])?;
+        tx.execute("DELETE FROM page_limit WHERE subscription_id = ?1", [id])?;
         tx.commit()?;
         match removed {
             0 => Err(StoreError::UnknownSubscription),

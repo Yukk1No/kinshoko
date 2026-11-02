@@ -337,3 +337,61 @@ fn an_unfinished_first_check_starts_over_without_downloading_twice() {
     assert_eq!(source.downloads.len(), 2);
     assert_eq!(work_ids(&f), ["p0", "p1", "p2"]);
 }
+
+#[test]
+fn a_rebookmarked_work_is_not_taken_for_the_old_boundary() {
+    let f = later();
+    let sub = sync(&f, Backlog::NewOnly, true);
+    let mut source = bookmarks(2, 0);
+    check_bookmarks(&f, &sub, &mut source).unwrap();
+
+    // 新收藏 b，再把列出过的 p0 取消收藏后重新收藏：p0 排到 b 前面，b 照样同步进来。
+    source.bookmark(0, old("b"));
+    source.unbookmark("p0");
+    source.bookmark(0, old("p0"));
+    assert_eq!(check_bookmarks(&f, &sub, &mut source).unwrap().collected, 1);
+    assert_eq!(work_ids(&f), ["b"]);
+}
+
+#[test]
+fn a_retried_boundary_work_keeps_the_recent_page_limit() {
+    let f = later();
+    let sub = sync(&f, Backlog::Recent { count: 2 }, true);
+    let mut source = FakeBookmarks::default();
+    let mut five = work("five", WorkKind::Illustration, false, 5);
+    five.posted_at = 1_000;
+    source.bookmark(0, five.clone());
+    source
+        .fail
+        .insert(five.pages[1].clone(), SourceError::Status { status: 500 });
+    assert_eq!(check_bookmarks(&f, &sub, &mut source).unwrap().failed, 1);
+
+    // 重试时只补第 2 页，不多收后面三页。
+    source.fail.clear();
+    source.downloads.clear();
+    check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert_eq!(source.downloads, [five.pages[1].clone()]);
+    assert_eq!(f.store.recent(10).unwrap().len(), 2);
+}
+
+#[test]
+fn a_failed_bookmark_that_was_removed_stops_forcing_full_scans() {
+    let f = later();
+    let sub = sync(&f, Backlog::NewOnly, true);
+    let mut source = bookmarks(PAGE * 3, 0);
+    check_bookmarks(&f, &sub, &mut source).unwrap();
+
+    let flaky = old("flaky");
+    source
+        .fail
+        .insert(flaky.pages[0].clone(), SourceError::Status { status: 500 });
+    source.bookmark(0, flaky);
+    assert_eq!(check_bookmarks(&f, &sub, &mut source).unwrap().failed, 1);
+
+    // 取消收藏后：这次翻到底确认它不在了，之后的检查只读第一页。
+    source.unbookmark("flaky");
+    check_bookmarks(&f, &sub, &mut source).unwrap();
+    source.pages_read = 0;
+    check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert_eq!(source.pages_read, 1);
+}
