@@ -5,4 +5,8 @@ import type { Target } from "./Target";
 /**
  * 新建订阅时由画师决定的部分。
  */
-export type NewSubscription = { target: Target, name: string, libraryId: string, includeExplicit: boolean, includeManga: boolean, backlog: Backlog, };
+export type NewSubscription = { target: Target, name: string, libraryId: string, includeExplicit: boolean, includeManga: boolean, backlog: Backlog, 
+/**
+ * 收藏夹已有的非公开收藏收多少（见 [`Subscription::private_backlog`]）。
+ */
+privateBacklog?: Backlog, };

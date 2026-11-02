@@ -3,7 +3,7 @@ import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { onSubscriptionStatus, subscriptionStatus } from "../ipc/subscriptions";
 
 /**
- * 订阅状态（#368），跟着后端推送更新。`null`：这一版没有订阅功能（没设 `KINSHOKO_SUBSCRIPTIONS=1`），
+ * 订阅状态（#368），跟着后端推送更新。`null`：订阅记录打不开，
  * 或还没读到；这时图标轨不显示入口、设置里没有订阅分页。
  */
 export function useSubscriptionStatus(): [SubscriptionStatus | null, (status: SubscriptionStatus) => void] {

@@ -49,16 +49,16 @@ afterEach(async () => {
 });
 
 describe("订阅页", () => {
-  it("名单按画师、榜单、收藏夹分组，新收到与之前分两段，打开订阅页即标为已看", async () => {
+  it("名单按画师、榜单、收藏夹分组，新存入与之前分两段，打开订阅页即标为已看", async () => {
     backend();
     page(status({ newCount: 3 }));
     await waitFor(() => expect(tiles()).toHaveLength(5));
     expect(within(pane()).getByRole("region", { name: "画师" })).toBeTruthy();
     expect(within(pane()).getByRole("region", { name: "榜单" })).toBeTruthy();
     expect(within(pane()).getByRole("region", { name: "pixiv 收藏夹" })).toBeTruthy();
-    expect(within(screen.getByRole("region", { name: "新收到" })).getAllByRole("button")).toHaveLength(3);
+    expect(within(screen.getByRole("region", { name: "新存入" })).getAllByRole("button")).toHaveLength(3);
     expect(within(screen.getByRole("region", { name: "之前" })).getAllByRole("button")).toHaveLength(2);
-    expect(screen.getByRole("heading", { name: /最近收到\s*5 张/ })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /最近存入\s*5 张/ })).toBeTruthy();
     expect(within(screen.getByRole("button", { name: /Mika/ })).getByText("2")).toBeTruthy();
     // 订阅页标题旁不再标“非官方”（维护者看截图后定的），首次使用说明与设置里仍有。
     expect(screen.queryByText("非官方")).toBeNull();
@@ -81,8 +81,8 @@ describe("订阅页", () => {
     backend();
     page(status());
     const row = await screen.findByRole("button", { name: /灯里/ });
-    expect(within(row).getByRole("img", { name: "上次没查完" })).toBeTruthy();
-    expect(row.getAttribute("title")).toBe("上次没查完：连不上 pixiv");
+    expect(within(row).getByRole("img", { name: "上次检查未完成" })).toBeTruthy();
+    expect(row.getAttribute("title")).toBe("上次检查未完成：无法连接 pixiv");
   });
 
   it("点名单里的一条只看它收进来的图，再点回到全部", async () => {
@@ -210,7 +210,7 @@ describe("订阅页", () => {
     expect(sent("subscription_login")).toHaveLength(1);
   });
 
-  it("已登录、还没有订阅：添加订阅的画师与榜单能用，收藏夹等 #371 接上", async () => {
+  it("已登录、还没有订阅：画师、榜单与收藏夹都能添加", async () => {
     backend([], []);
     page(status());
     expect(await screen.findByRole("heading", { name: "还没有订阅" })).toBeTruthy();
@@ -219,11 +219,9 @@ describe("订阅页", () => {
     expect(screen.queryByText("同步于 10 分钟前")).toBeNull();
     fireEvent.click(screen.getAllByRole("button", { name: "添加订阅" })[1]);
     await screen.findByRole("menuitem", { name: "画师" });
-    // 画师（#369）与榜单（#370）已挂上添加流程；收藏夹还没有。
-    for (const name of ["画师", "榜单"]) {
+    for (const name of ["画师", "榜单", "pixiv 收藏夹"]) {
       expect(screen.getByRole("menuitem", { name }).getAttribute("aria-disabled")).toBeNull();
     }
-    expect(screen.getByRole("menuitem", { name: "pixiv 收藏夹" }).getAttribute("aria-disabled")).toBe("true");
   });
 
   it("挂上添加流程的一类可以用", async () => {
@@ -250,7 +248,7 @@ describe("订阅页", () => {
     expect(within(dialog).getAllByRole("button").map((b) => b.textContent)).toEqual(["知道了"]);
   });
 
-  it("这次打开期间收到的图留在“新收到”，状态推送后照样排在前面", async () => {
+  it("这次打开期间收到的图留在“新存入”，状态推送后照样排在前面", async () => {
     backend();
     const view = page(status());
     await waitFor(() => expect(tiles()).toHaveLength(5));
@@ -258,6 +256,6 @@ describe("订阅页", () => {
     backend(list, recent.map((image) => ({ ...image, new: false })));
     await act(async () => { view.rerender(<SubscriptionsPage {...view.props} status={status({ checking: true })} safe={false} />); });
     await waitFor(() => expect(sent("subscription_recent")).toHaveLength(1));
-    expect(within(screen.getByRole("region", { name: "新收到" })).getAllByRole("button")).toHaveLength(3);
+    expect(within(screen.getByRole("region", { name: "新存入" })).getAllByRole("button")).toHaveLength(3);
   });
 });

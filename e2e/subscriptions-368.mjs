@@ -87,7 +87,7 @@ function quitOwnApp() {
 }
 
 const driver = spawn("tauri-driver", ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], {
-  env: { ...process.env, KINSHOKO_DATA_DIR: data, KINSHOKO_SKIP_AUTOSTART: "1", KINSHOKO_SUBSCRIPTIONS: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") },
+  env: { ...process.env, KINSHOKO_DATA_DIR: data, KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") },
   stdio: ["ignore", "inherit", "inherit"], windowsHide: true,
 });
 let session;

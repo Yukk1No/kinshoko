@@ -137,8 +137,12 @@ pub struct Subscription {
     pub include_explicit: bool,
     /// 收不收漫画类型（#366 默认不收）。
     pub include_manga: bool,
-    /// 订阅时选的旧作收多少。
+    /// 订阅时选的旧作收多少。收藏夹（#371）时是已有的公开收藏收多少。
     pub backlog: Backlog,
+    /// 收藏夹（#371）已有的非公开收藏收多少；为空时同 `backlog`。别的订阅没有它。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub private_backlog: Option<Backlog>,
     /// 发布时间早于它（Unix 毫秒）的作品不收：只收新作时是订阅的时间，最近若干张时是第一次检查
     /// 数到的最后一张。为空时还没定（最近若干张、还没查完第一次）或旧作全部收。
     #[ts(type = "number | null")]
@@ -167,6 +171,10 @@ pub struct NewSubscription {
     pub include_explicit: bool,
     pub include_manga: bool,
     pub backlog: Backlog,
+    /// 收藏夹已有的非公开收藏收多少（见 [`Subscription::private_backlog`]）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub private_backlog: Option<Backlog>,
 }
 
 /// 订阅入口与托盘要显示的状态。

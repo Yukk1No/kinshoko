@@ -4,7 +4,7 @@ import { SubscriptionsPage } from "./SubscriptionsPage";
 import { useSubscriptionStatus } from "./useSubscriptionStatus";
 
 /**
- * 主窗口的订阅分区（#368）：图标轨第四项，订阅功能开着时才出现；这一版只在设了 `KINSHOKO_SUBSCRIPTIONS=1` 时有。
+ * 主窗口的订阅分区（#368）：图标轨第四项，设置里的订阅功能开着时才出现。
  * 订阅功能关掉时入口消失，正开着的订阅页回到图片与文件夹。
  */
 export function useSubscriptionSection(section: Section, setSection: Dispatch<SetStateAction<Section>>) {

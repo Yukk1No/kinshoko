@@ -7,8 +7,10 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::store::{Outcome, Store, StoreError, Window, WorkKey};
-use super::{Backlog, SourceId, Subscription};
+use super::{Backlog, SourceId, Subscription, Target};
 use crate::library::SubscriptionPage;
+
+mod bookmarks;
 
 /// 作品类型（#366）：插画收全部页；漫画按订阅的设置；动图跳过。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -87,6 +89,17 @@ pub trait Source {
         enough: &mut dyn FnMut(&Work) -> bool,
     ) -> Result<Vec<Work>, SourceError>;
 
+    /// 登录账号的收藏夹（#371）：每条收藏流（pixiv 的公开、非公开收藏）一组，组内按收藏先后从近到远。
+    /// 每读一页就问 `enough`（流的序号与这一页的作品）；回真时这条流不再往下翻，这一页照样列出。
+    fn bookmarks(
+        &mut self,
+        subscription: &Subscription,
+        enough: &mut dyn FnMut(usize, &[Work]) -> bool,
+    ) -> Result<Vec<Vec<Work>>, SourceError> {
+        let _ = (subscription, enough);
+        Err(SourceError::Unsupported)
+    }
+
     /// 下载一页原图。
     fn download(&mut self, url: &str) -> Result<Vec<u8>, SourceError>;
 }
@@ -124,7 +137,12 @@ pub fn check(
     now: &dyn Fn() -> i64,
     cancel: &AtomicBool,
 ) -> Result<CheckReport, SourceError> {
-    let result = run(store, subscription, source, destination, now, cancel);
+    let result = match subscription.target {
+        Target::PixivBookmarks => {
+            bookmarks::run(store, subscription, source, destination, now, cancel)
+        }
+        _ => run(store, subscription, source, destination, now, cancel),
+    };
     let recorded = match &result {
         Ok(_) => store.mark_checked(&subscription.id, now()),
         Err(SourceError::Cancelled) => Ok(()),
@@ -225,62 +243,89 @@ fn run(
     let mut report = CheckReport::default();
     // 从旧到新收，最近收进来的图按时间排列时与来源上的先后一致。
     for work in works.iter().rev() {
-        // 检查期间画师退订了：剩下的不再收。
-        if cancel.load(Ordering::SeqCst) || !store.exists(&subscription.id)? {
-            return Err(SourceError::Cancelled);
-        }
-        let key = WorkKey {
-            library_id,
-            source: source_id,
-            work_id: &work.id,
-        };
-        if store.is_received(&key)? {
-            // 别的订阅已把它收进同一个资料库：本条不用再重试它。
-            store.clear_failure(&subscription.id, source_id, &work.id)?;
-            continue;
-        }
-        match work.kind {
-            WorkKind::Animation => {
-                store.record_work(
-                    &key,
-                    &subscription.id,
-                    Outcome::SkippedAnimation,
-                    work.explicit,
-                    now(),
-                )?;
-                report.skipped += 1;
-                continue;
-            }
-            WorkKind::Manga if !subscription.include_manga => continue,
-            _ if work.explicit && !subscription.include_explicit => continue,
-            _ => {}
-        }
-        if store.gave_up(&subscription.id, source_id, &work.id)? {
-            continue;
-        }
-        match collect(store, subscription, &key, work, source, destination, now)? {
-            Some(pages) => {
-                store.clear_failure(&subscription.id, source_id, &work.id)?;
-                store.record_work(
-                    &key,
-                    &subscription.id,
-                    Outcome::Collected,
-                    work.explicit,
-                    now(),
-                )?;
-                report.collected += pages;
-            }
-            None => {
-                store.record_failure(&subscription.id, source_id, &work.id)?;
-                report.failed += 1;
-            }
-        }
+        receive(
+            store,
+            subscription,
+            work,
+            source,
+            destination,
+            now,
+            cancel,
+            &mut report,
+        )?;
     }
     Ok(report)
 }
 
+/// 处理一个要收的作品：别的订阅已收进同一个资料库的不再收，动图记为跳过，没打开的漫画与成人作品不收，
+/// 其余下载没收的页。没收成的记下，下次重试。
+#[allow(clippy::too_many_arguments)]
+fn receive(
+    store: &Store,
+    subscription: &Subscription,
+    work: &Work,
+    source: &mut dyn Source,
+    destination: &dyn Destination,
+    now: &dyn Fn() -> i64,
+    cancel: &AtomicBool,
+    report: &mut CheckReport,
+) -> Result<(), SourceError> {
+    let source_id = source.id();
+    // 检查期间画师退订了：剩下的不再收。
+    if cancel.load(Ordering::SeqCst) || !store.exists(&subscription.id)? {
+        return Err(SourceError::Cancelled);
+    }
+    let key = WorkKey {
+        library_id: &subscription.library_id,
+        source: source_id,
+        work_id: &work.id,
+    };
+    if store.is_received(&key)? {
+        // 别的订阅已把它收进同一个资料库：本条不用再重试它。
+        store.clear_failure(&subscription.id, source_id, &work.id)?;
+        return Ok(());
+    }
+    match work.kind {
+        WorkKind::Animation => {
+            store.record_work(
+                &key,
+                &subscription.id,
+                Outcome::SkippedAnimation,
+                work.explicit,
+                now(),
+            )?;
+            report.skipped += 1;
+            return Ok(());
+        }
+        WorkKind::Manga if !subscription.include_manga => return Ok(()),
+        _ if work.explicit && !subscription.include_explicit => return Ok(()),
+        _ => {}
+    }
+    if store.gave_up(&subscription.id, source_id, &work.id)? {
+        return Ok(());
+    }
+    match collect(store, subscription, &key, work, source, destination, now)? {
+        Some(pages) => {
+            store.clear_failure(&subscription.id, source_id, &work.id)?;
+            store.record_work(
+                &key,
+                &subscription.id,
+                Outcome::Collected,
+                work.explicit,
+                now(),
+            )?;
+            report.collected += pages;
+        }
+        None => {
+            store.record_failure(&subscription.id, source_id, &work.id)?;
+            report.failed += 1;
+        }
+    }
+    Ok(())
+}
+
 /// 这条订阅要不要收这个作品（动图、没打开的漫画与成人作品不收）。
-fn wanted(subscription: &Subscription, work: &Work) -> bool {
+pub(super) fn wanted(subscription: &Subscription, work: &Work) -> bool {
     match work.kind {
         WorkKind::Animation => false,
         WorkKind::Manga if !subscription.include_manga => false,

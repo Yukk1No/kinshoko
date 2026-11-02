@@ -26,7 +26,7 @@ export default {
   eagleLocationTaken: "这个位置已经登记为另一个 Eagle 来源",
   lensChanged: "安全模式刚切换过，请重新查找",
   outdatedLibrary: "资料库需要先在 Kinshoko 中打开一次以完成升级",
-  packageImage: "参考组包里的原图没能导入：{{cause}}",
+  packageImage: "无法导入参考组包里的原图：{{cause}}",
   mergeTargetGone: "同一内容的参考图已被永久删除",
   namespaceGroup: "这个分组按命名空间列出标签，不能手动调整成员",
   notInTrash: "只能永久删除回收站里的图",

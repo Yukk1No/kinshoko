@@ -16,6 +16,7 @@ use kinshoko_core::subscription::{
 };
 
 mod backlog;
+mod bookmarks;
 mod ranking;
 
 fn png(seed: u8) -> Vec<u8> {
@@ -152,6 +153,7 @@ impl Fixture {
                     include_explicit: true,
                     include_manga: false,
                     backlog,
+                    private_backlog: None,
                 },
                 created_at,
             )
@@ -360,6 +362,7 @@ fn checks_resume_after_restart_and_back_off_on_rate_limits() {
         include_explicit: true,
         include_manga: false,
         backlog: Backlog::All,
+        private_backlog: None,
     };
     let (artist, ranking) = {
         let store = Store::open(dir.path()).unwrap();
@@ -423,12 +426,17 @@ fn another_subscriptions_works_do_not_cut_this_listing_short() {
         .store
         .add(
             NewSubscription {
-                target: Target::PixivBookmarks,
-                name: "收藏夹".into(),
+                target: Target::PixivRanking {
+                    period: kinshoko_core::subscription::RankingPeriod::Day,
+                    top: 10,
+                    explicit: false,
+                },
+                name: "日榜".into(),
                 library_id: f.library().info().id.clone(),
                 include_explicit: true,
                 include_manga: false,
                 backlog: Backlog::All,
+                private_backlog: None,
             },
             0,
         )
