@@ -16,6 +16,7 @@ use kinshoko_core::subscription::{
 };
 
 mod backlog;
+mod bookmarks;
 mod ranking;
 
 fn png(seed: u8) -> Vec<u8> {
@@ -423,8 +424,12 @@ fn another_subscriptions_works_do_not_cut_this_listing_short() {
         .store
         .add(
             NewSubscription {
-                target: Target::PixivBookmarks,
-                name: "收藏夹".into(),
+                target: Target::PixivRanking {
+                    period: kinshoko_core::subscription::RankingPeriod::Day,
+                    top: 10,
+                    explicit: false,
+                },
+                name: "日榜".into(),
                 library_id: f.library().info().id.clone(),
                 include_explicit: true,
                 include_manga: false,

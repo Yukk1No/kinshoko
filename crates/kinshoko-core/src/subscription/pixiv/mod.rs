@@ -4,6 +4,7 @@ mod account;
 mod api;
 mod artist;
 mod auth;
+mod bookmarks;
 mod parse;
 mod ranking;
 

@@ -10,6 +10,7 @@ use serde_json::Value;
 use super::account::PixivAccount;
 use super::artist::{self, Artist};
 use super::auth::AuthError;
+use super::bookmarks;
 use super::ranking;
 use crate::subscription::pace::Pacers;
 use crate::subscription::{Source, SourceError, SourceId, Subscription, Target, Work};
@@ -75,11 +76,17 @@ impl PixivSource {
 
     /// 登录账号关注的画师（#369 从 pixiv 关注导入）。
     pub fn following(&mut self) -> Result<Vec<Artist>, SourceError> {
+        let self_id = self.self_id()?;
+        artist::following(&mut |path| self.get(path), &self_id)
+    }
+
+    /// 登录账号的 pixiv 用户 ID。
+    fn self_id(&mut self) -> Result<String, SourceError> {
         let self_id = self.account.session()?.account.user_id;
         if self_id.is_empty() {
             return Err(SourceError::Unreadable);
         }
-        artist::following(&mut |path| self.get(path), &self_id)
+        Ok(self_id)
     }
 
     /// GET 一个客户端接口（`/v1/...` 或接口给的 `next_url`）。access token 被拒时换一次再试。
@@ -160,9 +167,18 @@ impl Source for PixivSource {
                 top,
                 explicit,
             } => ranking::works(&mut |path| self.get(path), *period, *explicit, *top),
-            // 收藏夹在 #371 接上。
+            // 收藏夹不按发布时间排，走 `bookmarks`。
             Target::PixivBookmarks => Err(SourceError::Unsupported),
         }
+    }
+
+    fn bookmarks(
+        &mut self,
+        _: &Subscription,
+        enough: &mut dyn FnMut(usize, &[Work]) -> bool,
+    ) -> Result<Vec<Vec<Work>>, SourceError> {
+        let self_id = self.self_id()?;
+        bookmarks::works(&mut |path| self.get(path), &self_id, enough)
     }
 
     fn download(&mut self, url: &str) -> Result<Vec<u8>, SourceError> {

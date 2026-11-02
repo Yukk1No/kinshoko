@@ -350,7 +350,7 @@ pub enum ErrorKind {
         detail: String,
     },
 
-    // 订阅（#368）：这一版还没有订阅功能，或设置里关掉了。
+    // 订阅（#368）：订阅记录打不开，或设置里关掉了。
     SubscriptionsUnavailable,
     SubscriptionsOff,
     /// 订阅画师（#369）：输入认不出是 pixiv 画师主页链接或 ID。

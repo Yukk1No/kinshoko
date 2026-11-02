@@ -13,6 +13,7 @@ use ts_rs::TS;
 use super::{Backlog, NewSubscription, SourceError, SourceId, Subscription, Target};
 
 mod failures;
+mod listed;
 mod window;
 
 pub(super) use window::Window;
@@ -25,6 +26,7 @@ fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
         M::up(include_str!("../migrations/0368_subscription.sql")),
         M::up(include_str!("../migrations/0369_backlog.sql")),
+        M::up(include_str!("../migrations/0371_bookmarks.sql")),
     ])
 }
 
@@ -133,10 +135,10 @@ impl Store {
     }
 
     /// 新建一条订阅。只收新作时，发布时间早于现在的作品一律不收；榜单不看发布时间，
-    /// 每次收当时榜上的前若干名。
+    /// 每次收当时榜上的前若干名；收藏夹也不看发布时间，按收藏先后认新收藏（见 `listed_work`）。
     pub fn add(&self, new: NewSubscription, now: i64) -> Result<Subscription, StoreError> {
         let since = match (&new.target, new.backlog) {
-            (Target::PixivRanking { .. }, _) => None,
+            (Target::PixivRanking { .. } | Target::PixivBookmarks, _) => None,
             (_, Backlog::NewOnly) => Some(now),
             (_, Backlog::Recent { .. } | Backlog::All) => None,
         };
@@ -175,12 +177,15 @@ impl Store {
         Ok(subscription)
     }
 
-    /// 删掉一条订阅。已收作品的记录保留：重新订阅也不会把删掉的图再下回来。
+    /// 删掉一条订阅。已收作品的记录保留：重新订阅也不会把删掉的图再下回来。收藏夹列出过的作品
+    /// 不留：重新同步时按那时选的旧收藏重新定。
     pub fn remove(&self, id: &str) -> Result<(), StoreError> {
-        match self
-            .conn()
-            .execute("DELETE FROM subscription WHERE id = ?1", [id])?
-        {
+        let mut conn = self.conn();
+        let tx = conn.transaction()?;
+        let removed = tx.execute("DELETE FROM subscription WHERE id = ?1", [id])?;
+        tx.execute("DELETE FROM listed_work WHERE subscription_id = ?1", [id])?;
+        tx.commit()?;
+        match removed {
             0 => Err(StoreError::UnknownSubscription),
             _ => Ok(()),
         }

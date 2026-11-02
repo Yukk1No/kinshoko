@@ -1,0 +1,315 @@
+//! pixiv 收藏夹同步（#371）：pixiv 上新收藏的作品下次检查后出现在资料库，旧作品刚收藏的也算；
+//! 在 pixiv 取消收藏，资料库里的图不变；首次开启时按选的旧收藏收；公开与非公开收藏都收。
+
+use super::*;
+
+/// 假收藏夹：公开、非公开两条流，每条从最近的收藏往前，每页 `PAGE` 个。
+#[derive(Default)]
+struct FakeBookmarks {
+    feeds: [Vec<Work>; 2],
+    images: HashMap<String, Vec<u8>>,
+    fail: HashMap<String, SourceError>,
+    downloads: Vec<String>,
+    /// 读了几页。
+    pages_read: usize,
+}
+
+const PAGE: usize = 3;
+
+impl FakeBookmarks {
+    /// 在某条流里新收藏一个作品（排到最前）。
+    fn bookmark(&mut self, feed: usize, work: Work) {
+        for url in &work.pages {
+            let seed = self.images.len() as u8 + 1;
+            self.images.insert(url.clone(), png(seed));
+        }
+        self.feeds[feed].insert(0, work);
+    }
+
+    fn unbookmark(&mut self, id: &str) {
+        for feed in &mut self.feeds {
+            feed.retain(|w| w.id != id);
+        }
+    }
+}
+
+impl Source for FakeBookmarks {
+    fn id(&self) -> SourceId {
+        SourceId::Pixiv
+    }
+
+    fn works(
+        &mut self,
+        _: &Subscription,
+        _: &mut dyn FnMut(&Work) -> bool,
+    ) -> Result<Vec<Work>, SourceError> {
+        Err(SourceError::Unsupported)
+    }
+
+    fn bookmarks(
+        &mut self,
+        _: &Subscription,
+        enough: &mut dyn FnMut(usize, &[Work]) -> bool,
+    ) -> Result<Vec<Vec<Work>>, SourceError> {
+        let mut out = Vec::new();
+        for (feed, works) in self.feeds.iter().enumerate() {
+            let mut listed = Vec::new();
+            for page in works.chunks(PAGE) {
+                self.pages_read += 1;
+                listed.extend_from_slice(page);
+                if enough(feed, page) {
+                    break;
+                }
+            }
+            out.push(listed);
+        }
+        Ok(out)
+    }
+
+    fn download(&mut self, url: &str) -> Result<Vec<u8>, SourceError> {
+        self.downloads.push(url.to_owned());
+        if let Some(error) = self.fail.get(url) {
+            return Err(error.clone());
+        }
+        Ok(self.images[url].clone())
+    }
+}
+
+/// 发布时间很早的作品：收藏夹不看发布时间。
+fn old(id: &str) -> Work {
+    let mut w = work(id, WorkKind::Illustration, false, 1);
+    w.posted_at = 1_000;
+    w
+}
+
+/// 公开收藏 `public` 个、非公开 `private` 个（id 为 p0…、s0…，序号越小越近）。
+fn bookmarks(public: usize, private: usize) -> FakeBookmarks {
+    let mut source = FakeBookmarks::default();
+    for i in (0..public).rev() {
+        source.bookmark(0, old(&format!("p{i}")));
+    }
+    for i in (0..private).rev() {
+        source.bookmark(1, old(&format!("s{i}")));
+    }
+    source
+}
+
+/// 订阅时间晚于所有作品的发布时间。
+fn sync(f: &Fixture, backlog: Backlog, include_explicit: bool) -> Subscription {
+    f.store
+        .add(
+            NewSubscription {
+                target: Target::PixivBookmarks,
+                name: String::new(),
+                library_id: f.library().info().id.clone(),
+                include_explicit,
+                include_manga: true,
+                backlog,
+            },
+            *f.clock.borrow(),
+        )
+        .unwrap()
+}
+
+fn check_bookmarks(
+    f: &Fixture,
+    subscription: &Subscription,
+    source: &mut dyn Source,
+) -> Result<CheckReport, SourceError> {
+    let subscription = f.store.get(&subscription.id).unwrap();
+    let now = || {
+        let mut t = f.clock.borrow_mut();
+        *t += 1;
+        *t
+    };
+    check(
+        &f.store,
+        &subscription,
+        source,
+        &f.libraries,
+        &now,
+        &AtomicBool::new(false),
+    )
+}
+
+fn later() -> Fixture {
+    Fixture::with(Backlog::All, 1_800_000_000_000)
+}
+
+fn work_ids(f: &Fixture) -> Vec<String> {
+    let mut ids: Vec<String> = f
+        .store
+        .recent(100)
+        .unwrap()
+        .into_iter()
+        .map(|r| r.work_id)
+        .collect();
+    ids.sort();
+    ids.dedup();
+    ids
+}
+
+/// 订阅收进来、还在资料库里的图。
+fn library_images(f: &Fixture) -> Vec<String> {
+    let mut ids: Vec<String> = f
+        .store
+        .recent(100)
+        .unwrap()
+        .into_iter()
+        .filter(|r| f.library().image(&r.image_id).is_ok())
+        .map(|r| r.image_id)
+        .collect();
+    ids.sort();
+    ids
+}
+
+#[test]
+fn a_new_bookmark_shows_up_in_the_library_after_the_next_check() {
+    let f = later();
+    let sub = sync(&f, Backlog::NewOnly, true);
+    let mut source = bookmarks(5, 2);
+
+    // 首次只收以后的新收藏：已有的一张不收，只读第一页记下来。
+    let report = check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert_eq!(report.collected, 0);
+    assert_eq!(source.pages_read, 2);
+    assert!(source.downloads.is_empty());
+
+    // 在 pixiv 上收藏一张很早以前发布的作品：下次检查后出现在资料库里。
+    source.bookmark(0, old("new"));
+    source.bookmark(1, old("secret"));
+    let report = check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert_eq!(report.collected, 2);
+    assert_eq!(work_ids(&f), ["new", "secret"]);
+    let images = library_images(&f);
+    assert_eq!(images.len(), 2);
+
+    // 没有新收藏时不再下载。
+    source.downloads.clear();
+    check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert!(source.downloads.is_empty());
+}
+
+#[test]
+fn unbookmarking_on_pixiv_leaves_collected_images_alone() {
+    let f = later();
+    let sub = sync(&f, Backlog::All, true);
+    let mut source = bookmarks(4, 0);
+    assert_eq!(check_bookmarks(&f, &sub, &mut source).unwrap().collected, 4);
+    let before = library_images(&f);
+
+    // 取消收藏最近的两张：资料库不变，也不把更早的收藏当成新的。
+    source.unbookmark("p0");
+    source.unbookmark("p1");
+    source.downloads.clear();
+    let report = check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert_eq!(report, CheckReport::default());
+    assert!(source.downloads.is_empty());
+    assert_eq!(library_images(&f), before);
+
+    // 之后新收藏的照样收进来。
+    source.bookmark(0, old("again"));
+    assert_eq!(check_bookmarks(&f, &sub, &mut source).unwrap().collected, 1);
+    assert_eq!(library_images(&f).len(), 5);
+}
+
+#[test]
+fn removing_every_listed_bookmark_does_not_turn_older_ones_into_new_ones() {
+    let f = later();
+    let sub = sync(&f, Backlog::NewOnly, true);
+    let mut source = bookmarks(5, 0);
+    check_bookmarks(&f, &sub, &mut source).unwrap();
+
+    // 第一页记下的三张全取消收藏：剩下的两张是旧收藏，不收，只重新记下。
+    for id in ["p0", "p1", "p2"] {
+        source.unbookmark(id);
+    }
+    let report = check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert_eq!(report.collected, 0);
+    source.bookmark(0, old("new"));
+    assert_eq!(check_bookmarks(&f, &sub, &mut source).unwrap().collected, 1);
+    assert_eq!(work_ids(&f), ["new"]);
+}
+
+#[test]
+fn recent_backlog_takes_the_latest_bookmarks_of_each_feed() {
+    let f = later();
+    let sub = sync(&f, Backlog::Recent { count: 2 }, true);
+    let mut source = bookmarks(5, 3);
+    let report = check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert_eq!(report.collected, 4);
+    assert_eq!(work_ids(&f), ["p0", "p1", "s0", "s1"]);
+
+    // 第一次数到的范围以外的旧收藏，之后也不收。
+    let report = check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert_eq!(report.collected, 0);
+}
+
+#[test]
+fn bookmarks_follow_the_explicit_option_and_skip_animations() {
+    let f = later();
+    let sub = sync(&f, Backlog::NewOnly, false);
+    let mut source = bookmarks(1, 0);
+    check_bookmarks(&f, &sub, &mut source).unwrap();
+
+    let mut explicit = old("r18");
+    explicit.explicit = true;
+    let mut animation = old("ugoira");
+    animation.kind = WorkKind::Animation;
+    animation.pages.clear();
+    source.bookmark(0, explicit);
+    source.bookmark(0, animation);
+    source.bookmark(0, old("safe"));
+    let report = check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert_eq!((report.collected, report.skipped), (1, 1));
+    assert_eq!(work_ids(&f), ["safe"]);
+    assert_eq!(f.store.get(&sub.id).unwrap().skipped, 1);
+}
+
+#[test]
+fn a_failed_bookmark_is_retried_even_after_newer_ones_are_listed() {
+    let f = later();
+    let sub = sync(&f, Backlog::NewOnly, true);
+    let mut source = bookmarks(PAGE * 2, 0);
+    check_bookmarks(&f, &sub, &mut source).unwrap();
+
+    let flaky = old("flaky");
+    source
+        .fail
+        .insert(flaky.pages[0].clone(), SourceError::Status { status: 500 });
+    source.bookmark(0, flaky);
+    assert_eq!(check_bookmarks(&f, &sub, &mut source).unwrap().failed, 1);
+
+    // 之后又收藏了几张，没收成的那张被挤到后面的页里：照样翻到它，补收进来。
+    source.fail.clear();
+    for i in 0..PAGE {
+        source.bookmark(0, old(&format!("n{i}")));
+    }
+    let report = check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert_eq!(report.collected, PAGE as u32 + 1);
+    assert!(work_ids(&f).contains(&"flaky".to_owned()));
+}
+
+#[test]
+fn an_unfinished_first_check_starts_over_without_downloading_twice() {
+    let f = later();
+    let sub = sync(&f, Backlog::All, true);
+    let mut source = bookmarks(3, 0);
+    // 第二张（从旧往新收）遇到频率限制：这次不算查过。
+    source.fail.insert(
+        source.feeds[0][1].pages[0].clone(),
+        SourceError::RateLimited,
+    );
+    assert_eq!(
+        check_bookmarks(&f, &sub, &mut source),
+        Err(SourceError::RateLimited)
+    );
+    assert_eq!(f.store.get(&sub.id).unwrap().last_checked_at, None);
+
+    source.fail.clear();
+    source.downloads.clear();
+    let report = check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert_eq!(report.collected, 2);
+    assert_eq!(source.downloads.len(), 2);
+    assert_eq!(work_ids(&f), ["p0", "p1", "p2"]);
+}
