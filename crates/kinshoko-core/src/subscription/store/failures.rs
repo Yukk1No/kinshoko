@@ -58,6 +58,28 @@ impl Store {
         )?)
     }
 
+    /// 记下待收的作品（收藏夹第一次检查选上的）：同没收成的作品一样，下次翻到底把它们找回来，处理完再清掉。
+    pub(in crate::subscription) fn add_pending<'a>(
+        &self,
+        subscription_id: &str,
+        source: SourceId,
+        work_ids: impl IntoIterator<Item = &'a str>,
+    ) -> Result<(), StoreError> {
+        let mut conn = self.conn();
+        let tx = conn.transaction()?;
+        {
+            let mut stmt = tx.prepare_cached(
+                "INSERT OR IGNORE INTO failed_work (subscription_id, source, work_id, attempts)
+                 VALUES (?1, ?2, ?3, 0)",
+            )?;
+            for work_id in work_ids {
+                stmt.execute(params![subscription_id, source.as_str(), work_id])?;
+            }
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
     pub(in crate::subscription) fn clear_failure(
         &self,
         subscription_id: &str,

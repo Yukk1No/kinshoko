@@ -5,8 +5,8 @@
 //! 在 pixiv 上取消收藏只是让它不再列出，已收进资料库的图不动。
 //!
 //! - 第一次检查时公开、非公开收藏各按画师选的旧收藏定：只同步以后的新收藏时只读第一页；最近若干张时收这条流
-//!   最近这么多张；全部时整条流都收。下载前先把没选上的记为列出过，定下基线：第一次没查完时，下次照常从基线
-//!   往前认新收藏，期间新收藏的作品挤不掉当初选上、还没下完的。
+//!   最近这么多张；全部时整条流都收。下载前先把读到的都记为列出过，定下基线，选上的另记为待收（同重试）：
+//!   第一次没查完时，下次照常从基线往前认新收藏，并把选上、还没下完的找回来接着收。
 //! - 检查成功后，这次列出的作品都记为列出过；没收成、还要重试的除外，下次翻到底把它们找回来。翻到底也
 //!   没找到的（已取消收藏）不再重试。最近若干张数到的最后一个作品只收前几页，记下页数，重试时也照它。
 //! - 一条流里列出过的作品全被取消收藏、翻到底也没遇到时，不把剩下的旧收藏当成新的，只重新记下。
@@ -119,15 +119,8 @@ pub(super) fn run(
     }
     if first {
         for (feed, (works, candidates)) in feeds.iter().zip(&chosen).enumerate() {
-            let taken: HashSet<&str> = candidates.iter().map(|w| w.id.as_str()).collect();
-            store.mark_listed(
-                id,
-                feed,
-                works
-                    .iter()
-                    .map(|w| w.id.as_str())
-                    .filter(|w| !taken.contains(w)),
-            )?;
+            store.mark_listed(id, feed, works.iter().map(|w| w.id.as_str()))?;
+            store.add_pending(id, source_id, candidates.iter().map(|w| w.id.as_str()))?;
         }
         store.set_bookmarks_baseline(id, now())?;
     }
@@ -136,6 +129,7 @@ pub(super) fn run(
     for candidates in &chosen {
         // 从旧到新收，最近收进来的图按时间排列时与收藏的先后一致。
         for work in candidates.iter().rev() {
+            let failed = report.failed;
             receive(
                 store,
                 subscription,
@@ -146,6 +140,10 @@ pub(super) fn run(
                 cancel,
                 &mut report,
             )?;
+            // 处理完了（收了、跳过或按选项不收）：不再待收。
+            if report.failed == failed && !store.gave_up(id, source_id, &work.id)? {
+                store.clear_failure(id, source_id, &work.id)?;
+            }
         }
     }
 

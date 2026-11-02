@@ -432,3 +432,27 @@ fn new_bookmarks_do_not_push_out_an_unfinished_recent_selection() {
     assert_eq!(check_bookmarks(&f, &sub, &mut source).unwrap().collected, 3);
     assert_eq!(work_ids(&f), ["n", "p0", "p1"]);
 }
+
+#[test]
+fn an_unfinished_recent_selection_that_fills_a_page_keeps_its_cutoff() {
+    let f = later();
+    // 最近 3 张正好是第一页；从旧往新收，第一张 p2 就断网。
+    let sub = sync(&f, Backlog::Recent { count: PAGE as u32 }, true);
+    let mut source = bookmarks(PAGE + 2, 0);
+    source.fail.insert(
+        source.feeds[0][PAGE - 1].pages[0].clone(),
+        SourceError::Network,
+    );
+    assert_eq!(
+        check_bookmarks(&f, &sub, &mut source),
+        Err(SourceError::Network)
+    );
+
+    // 下次只补这 3 张，后面两张旧收藏不同步；补完以后不再翻到底。
+    source.fail.clear();
+    assert_eq!(check_bookmarks(&f, &sub, &mut source).unwrap().collected, 3);
+    assert_eq!(work_ids(&f), ["p0", "p1", "p2"]);
+    source.pages_read = 0;
+    check_bookmarks(&f, &sub, &mut source).unwrap();
+    assert_eq!(source.pages_read, 1);
+}
