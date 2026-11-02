@@ -211,7 +211,7 @@ describe("订阅页", () => {
     expect(sent("subscription_login")).toHaveLength(1);
   });
 
-  it("已登录、还没有订阅：添加订阅的三项先不能用（#369–#371 接上）", async () => {
+  it("已登录、还没有订阅：添加订阅的画师与榜单能用，收藏夹等 #371 接上", async () => {
     backend([], []);
     page(status());
     expect(await screen.findByRole("heading", { name: "还没有订阅" })).toBeTruthy();
@@ -220,11 +220,11 @@ describe("订阅页", () => {
     expect(screen.queryByText("同步于 10 分钟前")).toBeNull();
     fireEvent.click(screen.getAllByRole("button", { name: "添加订阅" })[1]);
     await screen.findByRole("menuitem", { name: "画师" });
-    // 画师（#369）已挂上添加流程；榜单与收藏夹还没有。
-    expect(screen.getByRole("menuitem", { name: "画师" }).getAttribute("aria-disabled")).toBeNull();
-    for (const name of ["榜单", "pixiv 收藏夹"]) {
-      expect(screen.getByRole("menuitem", { name }).getAttribute("aria-disabled")).toBe("true");
+    // 画师（#369）与榜单（#370）已挂上添加流程；收藏夹还没有。
+    for (const name of ["画师", "榜单"]) {
+      expect(screen.getByRole("menuitem", { name }).getAttribute("aria-disabled")).toBeNull();
     }
+    expect(screen.getByRole("menuitem", { name: "pixiv 收藏夹" }).getAttribute("aria-disabled")).toBe("true");
   });
 
   it("挂上添加流程的一类可以用", async () => {

@@ -31,6 +31,27 @@ pub(super) async fn create_library<R: Runtime>(
     .await
 }
 
+/// 在 `parent` 下新建名为 `name` 的资料库文件夹并登记到本设备，但不切换过去（#370：订阅榜单时
+/// 新建「pixiv 榜单」，画师还留在当前图库）。
+#[tauri::command]
+pub(super) async fn create_library_unopened<R: Runtime>(
+    app: AppHandle<R>,
+    parent: PathBuf,
+    name: String,
+) -> Result<kinshoko_core::RegisteredLibrary, CommandError> {
+    blocking(move || {
+        let state = app.state::<LibraryState>();
+        let root = parent.join(name.trim());
+        Library::create(&root, &name).map_err(DeviceLibraryError::Library)?;
+        let registered = with_visibility_commit(&app, |_| {
+            with_libraries(&state, |libraries| libraries.add_registration(&root))
+        })?;
+        state.release_readers();
+        Ok(registered)
+    })
+    .await
+}
+
 /// 本设备登记的资料库，以及这次检查时不可用的原因（例如移动盘没插）。
 #[tauri::command]
 pub(super) async fn registered_libraries<R: Runtime>(

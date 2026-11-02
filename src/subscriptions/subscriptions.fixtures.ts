@@ -19,7 +19,7 @@ export const subscription = (id: string, name: string, patch: Partial<Subscripti
 export const list: Subscription[] = [
   subscription("s1", "Mika"),
   subscription("s2", "灯里", { lastError: { code: "network" }, lastFailedAt: NOW - 60_000 }),
-  subscription("s3", "日榜 前 50", { target: { kind: "pixivRanking", period: "day", top: 50 } }),
+  subscription("s3", "日榜 前 50", { target: { kind: "pixivRanking", period: "day", top: 50, explicit: false } }),
   subscription("s4", "我的收藏", { target: { kind: "pixivBookmarks" } }),
 ];
 

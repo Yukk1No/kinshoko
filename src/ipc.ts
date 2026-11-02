@@ -19,6 +19,7 @@ import type { ImageEdit } from "./bindings/ImageEdit";
 import type { PermanentDeletePreview } from "./bindings/PermanentDeletePreview";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { LibraryRegistration } from "./bindings/LibraryRegistration";
+import type { RegisteredLibrary } from "./bindings/RegisteredLibrary";
 import type { RecoveryReport } from "./bindings/RecoveryReport";
 import type { Sidebar } from "./bindings/Sidebar";
 import { lib } from "./ipc/plugins";
@@ -43,6 +44,11 @@ export function currentLibrary(): Promise<LibraryInfo | null> {
 /** 在 parent 下新建名为 name 的资料库，登记到本设备并打开。 */
 export function createLibrary(parent: string, name: string): Promise<LibraryInfo> {
   return invoke<LibraryInfo>(lib("create_library"), { parent, name });
+}
+
+/** 新建资料库并登记到本设备，但不切换过去（#370 订阅榜单时新建「pixiv 榜单」）。 */
+export function createLibraryUnopened(parent: string, name: string): Promise<RegisteredLibrary> {
+  return invoke<RegisteredLibrary>(lib("create_library_unopened"), { parent, name });
 }
 
 export function registeredLibraries(): Promise<LibraryRegistration[]> {

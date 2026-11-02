@@ -15,6 +15,7 @@ import { accountActions } from "./accountActions";
 import { checkedText, checkView, failureText, retryText } from "./checkStatus";
 import { FirstRunDialog, firstRunSeen, markFirstRunSeen } from "./FirstRunDialog";
 import { hiddenWhenSafe, KINDS, kindOf, type KindMount } from "./kinds";
+import { displayName } from "./rankingNames";
 import { RemoveDialog } from "./RemoveDialog";
 import { imageKey, useNow, useSubscriptionData } from "./useSubscriptionData";
 
@@ -140,7 +141,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
                     aria-current={selected === s.id ? "true" : undefined} title={s.lastError ? failureText(s.lastError) : undefined}
                     onClick={() => setSelected(selected === s.id ? null : s.id)}
                     onContextMenu={(e) => { e.preventDefault(); setRowMenu(s.id); }}>
-                    <span className="subs-row-name">{s.name}</span>
+                    <span className="subs-row-name">{displayName(t, s)}</span>
                     {s.lastError && <TriangleAlert className="subs-row-warn" size={14} strokeWidth={2} role="img" aria-label={t("lastFailed")} />}
                     {count > 0 && <span className="subs-row-fresh tabular">{count}</span>}
                   </button>

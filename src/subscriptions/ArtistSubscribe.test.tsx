@@ -125,7 +125,7 @@ describe("订阅画师", () => {
     expect((within(dialog).getByRole("button", { name: "订阅" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("登录着时有 R-18 与关注导入；不登录（登录失效）或安全模式下都不出现", async () => {
+  it("登录着时有 R-18 与关注导入（安全模式开着也有）；不登录（登录失效）时都不出现", async () => {
     backend();
     page(status());
     let dialog = await openArtistDialog();
@@ -146,10 +146,11 @@ describe("订阅画师", () => {
     expect(within(dialog).queryByText(/R-18/)).toBeNull();
     cleanup();
 
+    // 安全模式只防社死：选项照常出现，R-18 的图才不上屏。
     backend();
     page(status(), true);
     dialog = await openArtistDialog();
-    expect(dialog.textContent).not.toMatch(/R-18/);
+    expect(within(dialog).getByRole("switch", { name: "R-18 作品" })).toBeTruthy();
   });
 
   it("从 pixiv 关注导入：已订阅的标出来，勾选的用同一套设置订阅", async () => {
@@ -182,7 +183,7 @@ describe("订阅画师", () => {
     expect(within(settings).queryByText("旧作")).toBeNull();
     fireEvent.click(within(settings).getByRole("switch", { name: "R-18 作品" }));
     fireEvent.click(within(settings).getByRole("button", { name: "保存" }));
-    await waitFor(() => expect(sent("subscription_set_options")).toEqual([{ id: "s1", includeExplicit: false, includeManga: false }]));
+    await waitFor(() => expect(sent("subscription_set_options")).toEqual([{ id: "s1", includeExplicit: false, includeManga: false, top: null }]));
 
     fireEvent.click(screen.getAllByRole("button", { name: "更多" })[0]);
     fireEvent.click(await screen.findByRole("menuitem", { name: "退订" }));

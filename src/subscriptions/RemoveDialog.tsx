@@ -4,10 +4,12 @@ import { useTranslation } from "react-i18next";
 import type { Subscription } from "../bindings/Subscription";
 import { errorText } from "../ipc";
 import { subscriptionRemove } from "../ipc/subscriptions";
+import { displayName } from "./rankingNames";
 
 /** 退订确认（草图 C）：已收进图库的图留着。 */
 export function RemoveDialog({ subscription, onClose, onRemoved }: { subscription: Subscription; onClose: () => void; onRemoved: () => void }) {
   const { t } = useTranslation("subscriptions", { keyPrefix: "remove" });
+  const { t: ts } = useTranslation("subscriptions");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const remove = () => {
@@ -19,7 +21,7 @@ export function RemoveDialog({ subscription, onClose, onRemoved }: { subscriptio
     <Dialog.Portal>
       <Dialog.Backdrop className="k-backdrop" />
       <Dialog.Popup className="k-dialog subs-remove-dialog">
-        <Dialog.Title className="k-dialog-title">{t("title", { name: subscription.name })}</Dialog.Title>
+        <Dialog.Title className="k-dialog-title">{t("title", { name: displayName(ts, subscription) })}</Dialog.Title>
         <Dialog.Description className="k-dialog-desc">{t("body")}</Dialog.Description>
         {error && <p className="k-field-error" role="alert">{error}</p>}
         <div className="k-dialog-foot">

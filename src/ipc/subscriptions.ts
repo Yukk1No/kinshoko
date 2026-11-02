@@ -71,9 +71,9 @@ export function subscriptionAdd(subscriptions: NewSubscription[]): Promise<Subsc
   return invoke<Subscription[]>("subscription_add", { subscriptions });
 }
 
-/** 改一条订阅收不收漫画与成人作品。 */
-export function subscriptionSetOptions(id: string, includeExplicit: boolean, includeManga: boolean): Promise<Subscription> {
-  return invoke<Subscription>("subscription_set_options", { id, includeExplicit, includeManga });
+/** 改一条订阅收不收漫画与成人作品；榜单还可以改名次（`top`，#370）。 */
+export function subscriptionSetOptions(id: string, includeExplicit: boolean, includeManga: boolean, top: number | null = null): Promise<Subscription> {
+  return invoke<Subscription>("subscription_set_options", { id, includeExplicit, includeManga, top });
 }
 
 /** 退订；已收进图库的图留着。 */
