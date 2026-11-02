@@ -16,8 +16,8 @@ type Follows = { kind: "loading" } | { kind: "loaded"; artists: Artist[] } | { k
  * 从 pixiv 关注导入（#369，草图 B）：一次性读出登录账号的关注，勾选要订阅的画师，用同一套设置订阅。
  * 订阅名单是 Kinshoko 自己的，之后 pixiv 上的关注变化不影响它（#366）。
  */
-export function FollowingDialog({ status, safe, list, libraryId, onClose, onBack, onAdded }: {
-  status: SubscriptionStatus; safe: boolean; list: Subscription[]; libraryId: string | null;
+export function FollowingDialog({ status, list, libraryId, onClose, onBack, onAdded }: {
+  status: SubscriptionStatus; list: Subscription[]; libraryId: string | null;
   onClose: () => void; onBack: () => void; onAdded: (added: Subscription[]) => void;
 }) {
   const { t } = useTranslation("subscriptions", { keyPrefix: "following" });
@@ -31,7 +31,7 @@ export function FollowingDialog({ status, safe, list, libraryId, onClose, onBack
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const chosen = { ...choices, libraryId: choices.libraryId || fallback };
-  const showExplicit = explicitChoice(status, safe);
+  const showExplicit = explicitChoice(status);
   const subscribed = useMemo(() => subscribedArtists(list), [list]);
 
   useEffect(() => {
@@ -66,7 +66,6 @@ export function FollowingDialog({ status, safe, list, libraryId, onClose, onBack
       <Dialog.Backdrop className="k-backdrop" />
       <Dialog.Popup className="k-dialog subs-artist-dialog">
         <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
-        <Dialog.Description className="k-dialog-desc">{t("lead")}</Dialog.Description>
         <div className="k-field-row">
           <span className="k-input">
             <Search size={16} aria-hidden="true" />

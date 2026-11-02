@@ -25,8 +25,8 @@ export function subscribedArtists(list: Subscription[]): Set<string> {
  * 订阅画师（#369，草图 A）：输入画师主页链接或 ID 查找，再选资料库、旧作收多少、漫画与 R-18。
  * 登录失效时也能添加（恢复登录后才查），但不出现 R-18 与从关注导入。
  */
-export function ArtistDialog({ status, safe, list, libraryId, onClose, onAdded, onImport }: {
-  status: SubscriptionStatus; safe: boolean; list: Subscription[];
+export function ArtistDialog({ status, list, libraryId, onClose, onAdded, onImport }: {
+  status: SubscriptionStatus; list: Subscription[];
   /** 默认收进的资料库（当前打开的）。 */
   libraryId: string | null;
   onClose: () => void; onAdded: (added: Subscription[]) => void; onImport: () => void;
@@ -42,7 +42,7 @@ export function ArtistDialog({ status, safe, list, libraryId, onClose, onAdded, 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const chosen = { ...choices, libraryId: choices.libraryId || fallback };
-  const showExplicit = explicitChoice(status, safe);
+  const showExplicit = explicitChoice(status);
   const found = lookup.kind === "found" ? lookup.artist : null;
   const already = found !== null && subscribedArtists(list).has(found.userId);
   const backlog = backlogOf(chosen);
@@ -112,8 +112,8 @@ export function ArtistDialog({ status, safe, list, libraryId, onClose, onAdded, 
 }
 
 /** 订阅设置（草图 C）：只改漫画与 R-18；资料库与旧作是订阅时定的。 */
-export function ArtistSettingsDialog({ subscription, status, safe, onClose, onSaved }: {
-  subscription: Subscription; status: SubscriptionStatus; safe: boolean;
+export function ArtistSettingsDialog({ subscription, status, onClose, onSaved }: {
+  subscription: Subscription; status: SubscriptionStatus;
   onClose: () => void; onSaved: (saved: Subscription) => void;
 }) {
   const { t } = useTranslation("subscriptions", { keyPrefix: "artist" });
@@ -122,8 +122,8 @@ export function ArtistSettingsDialog({ subscription, status, safe, onClose, onSa
   }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // 安全模式开着或不能选 R-18 时不出现这一行，原来的选择照旧。
-  const showExplicit = explicitChoice(status, safe);
+  // 不能选 R-18（没登录或账号没开 R-18）时不出现这一行，原来的选择照旧。
+  const showExplicit = explicitChoice(status);
   const save = () => {
     setBusy(true); setError(null);
     subscriptionSetOptions(subscription.id, showExplicit ? choices.includeExplicit : subscription.includeExplicit, choices.includeManga)

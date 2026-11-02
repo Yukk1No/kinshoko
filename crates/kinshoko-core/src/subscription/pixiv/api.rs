@@ -10,6 +10,7 @@ use serde_json::Value;
 use super::account::PixivAccount;
 use super::artist::{self, Artist};
 use super::auth::AuthError;
+use super::ranking;
 use crate::subscription::pace::Pacers;
 use crate::subscription::{Source, SourceError, SourceId, Subscription, Target, Work};
 
@@ -154,8 +155,13 @@ impl Source for PixivSource {
                 subscription.include_manga,
                 enough,
             ),
-            // 榜单与收藏夹分别在 #370、#371 接上。
-            Target::PixivRanking { .. } | Target::PixivBookmarks => Err(SourceError::Unsupported),
+            Target::PixivRanking {
+                period,
+                top,
+                explicit,
+            } => ranking::works(&mut |path| self.get(path), *period, *explicit, *top),
+            // 收藏夹在 #371 接上。
+            Target::PixivBookmarks => Err(SourceError::Unsupported),
         }
     }
 

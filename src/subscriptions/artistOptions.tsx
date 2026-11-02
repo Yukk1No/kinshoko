@@ -31,11 +31,11 @@ export function backlogOf(choices: ArtistChoices): Backlog | null {
 }
 
 /**
- * R-18 选项只在登录着、账号打开了 R-18 显示、安全模式关着时出现（#366：安全模式开着时对话框里不出现 R-18 字样）；
- * 不出现时按默认收。
+ * R-18 选项只在登录着、账号打开了 R-18 显示时出现；不出现时按默认收。安全模式只防社死：开着时照样出现，
+ * 只是 R-18 的图不上屏（维护者 2026-11-02，#370）。
  */
-export function explicitChoice(status: SubscriptionStatus, safe: boolean): boolean {
-  return status.login.state === "loggedIn" && status.login.account.explicitAllowed && !safe;
+export function explicitChoice(status: SubscriptionStatus): boolean {
+  return status.login.state === "loggedIn" && status.login.account.explicitAllowed;
 }
 
 /** 从 pixiv 关注导入只在登录着时出现。 */

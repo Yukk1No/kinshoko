@@ -5,6 +5,7 @@ import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import type { Target } from "../bindings/Target";
 import { ArtistDialog, ArtistSettingsDialog } from "./ArtistDialog";
 import { FollowingDialog } from "./FollowingDialog";
+import { RankingDialog, RankingSettingsDialog } from "./RankingDialog";
 
 export type SubscriptionKind = "artist" | "ranking" | "bookmarks";
 
@@ -54,7 +55,11 @@ export const KINDS: KindMount[] = [
     add: (props) => <ArtistAddFlow {...props} />,
     settings: (props) => <ArtistSettingsDialog {...props} />,
   },
-  { kind: "ranking", icon: icon(Trophy) },
+  {
+    kind: "ranking", icon: icon(Trophy),
+    add: (props) => <RankingDialog {...props} />,
+    settings: (props) => <RankingSettingsDialog {...props} />,
+  },
   { kind: "bookmarks", icon: icon(Heart) },
 ];
 

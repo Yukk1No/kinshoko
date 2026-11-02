@@ -5,6 +5,7 @@ mod api;
 mod artist;
 mod auth;
 mod parse;
+mod ranking;
 
 pub use account::{LoginState, PixivAccount};
 pub use api::PixivSource;

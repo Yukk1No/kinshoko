@@ -88,11 +88,11 @@ fn options_can_change_but_unknown_subscriptions_cannot() {
     let f = Fixture::new();
     let changed = f
         .store
-        .set_options(&f.subscription.id, false, true)
+        .set_options(&f.subscription.id, false, true, None)
         .unwrap();
     assert!(!changed.include_explicit && changed.include_manga);
     assert_eq!(changed.library_id, f.subscription.library_id);
-    assert!(f.store.set_options("nope", true, true).is_err());
+    assert!(f.store.set_options("nope", true, true, None).is_err());
 }
 
 #[test]

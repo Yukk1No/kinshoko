@@ -301,6 +301,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             workspace::workspace_local_tags,
             current_library,
             create_library,
+            create_library_unopened,
             registered_libraries,
             register_library,
             switch_library,

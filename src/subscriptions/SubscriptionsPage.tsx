@@ -15,6 +15,7 @@ import { accountActions } from "./accountActions";
 import { checkedText, checkView, failureText, retryText } from "./checkStatus";
 import { FirstRunDialog, firstRunSeen, markFirstRunSeen } from "./FirstRunDialog";
 import { hiddenWhenSafe, KINDS, kindOf, type KindMount } from "./kinds";
+import { displayName } from "./rankingNames";
 import { RemoveDialog } from "./RemoveDialog";
 import { imageKey, useNow, useSubscriptionData } from "./useSubscriptionData";
 
@@ -140,7 +141,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
                     aria-current={selected === s.id ? "true" : undefined} title={s.lastError ? failureText(s.lastError) : undefined}
                     onClick={() => setSelected(selected === s.id ? null : s.id)}
                     onContextMenu={(e) => { e.preventDefault(); setRowMenu(s.id); }}>
-                    <span className="subs-row-name">{s.name}</span>
+                    <span className="subs-row-name">{displayName(t, s)}</span>
                     {s.lastError && <TriangleAlert className="subs-row-warn" size={14} strokeWidth={2} role="img" aria-label={t("lastFailed")} />}
                     {count > 0 && <span className="subs-row-fresh tabular">{count}</span>}
                   </button>
@@ -197,12 +198,12 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
           <button type="button" className="k-icon-btn" aria-label={t("check.now")} title={t("check.now")} onClick={checkNow}><RefreshCw size={16} strokeWidth={1.75} aria-hidden="true" /></button>
         </>}
         {check.kind === "checking" && <span className="subs-check" role="status"><LoaderCircle className="subs-spin is-accent" size={14} aria-hidden="true" />{t("check.checking")}</span>}
-        {check.kind === "backoff" && <span className="subs-check" role="status" title={t("check.retryTip")}><Clock size={14} strokeWidth={1.75} aria-hidden="true" />{retryText(check.until)}</span>}
+        {check.kind === "backoff" && <span className="subs-check" role="status"><Clock size={14} strokeWidth={1.75} aria-hidden="true" />{retryText(check.until)}</span>}
         <WinCtrls />
       </header>
       {login.state === "expired" && <div className="subs-banner" role="status">
         <TriangleAlert size={16} strokeWidth={2} aria-hidden="true" />
-        <span className="subs-banner-text" title={t("expired.tip")}>{t("expired.banner")}</span>
+        <span className="subs-banner-text">{t("expired.banner")}</span>
         <button type="button" className="k-btn is-primary" onClick={actions.signIn}><span className="k-label">{t("account.signInAgain")}</span></button>
       </div>}
       {hasList ? <div className="subs-wall" ref={wall}>
@@ -219,14 +220,12 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
         <span className="subs-empty-icon" aria-hidden="true">{signingIn ? <LoaderCircle className="subs-spin is-accent" size={24} /> : <Rss size={24} strokeWidth={1.75} />}</span>
         {signingIn ? <>
           <h1 className="subs-empty-title">{t("empty.waitingTitle")}</h1>
-          <p className="subs-empty-hint">{t("empty.waitingHint")}</p>
           <div className="subs-empty-actions">
             <button type="button" className="k-btn is-quiet" onClick={actions.cancel}><span className="k-label">{t("empty.cancel")}</span></button>
             <button type="button" className="k-btn" onClick={actions.signIn}><span className="k-label">{t("empty.backToWindow")}</span></button>
           </div>
         </> : account ? <>
           <h1 className="subs-empty-title">{t("empty.noSubsTitle")}</h1>
-          <p className="subs-empty-hint">{t("empty.noSubsHint")}</p>
           <div className="subs-empty-actions">
             {addMenu(<button type="button" className="k-btn is-primary"><span className="k-label">{t("add")}</span><ChevronDown size={14} strokeWidth={2} aria-hidden="true" /></button>)}
           </div>
