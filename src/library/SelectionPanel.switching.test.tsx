@@ -139,14 +139,12 @@ it("跨库视角下，一次选中只调用一次 workspaceSourceInspection", as
     const id = (args as { target?: { imageId: string } }).target?.imageId ?? "";
     if (cmd === "plugin:library|workspace_source_inspection") return { detail: detail(id), tags: tags(id), sidebar: { all: 1, trash: 0, folders: [] } };
     if (cmd === "plugin:library|workspace_sidebar") return { all: 1, trash: 0, folders: [] };
-    if (cmd === "plugin:desktop|reference_groups") return [];
     return undefined;
   });
   const card: WorkspaceCard = { id: "same-bytes", width: 10, height: 10, adult: false, libraryId: "B", imageId: "b", sources: [
     { libraryId: "B", libraryName: "移动盘参考", imageId: "b", matches: true, unavailable: null, deleted: false },
   ] };
-  render(<WorkspaceSources card={card} onClose={() => {}} onView={() => {}} />);
-  screen.getByRole("button", { name: "整理此来源" }).click();
+  render(<WorkspaceSources card={card} onClose={() => {}} />);
   await screen.findByText("b.png");
   await screen.findByText("b 的标签");
 
