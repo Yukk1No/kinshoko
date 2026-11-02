@@ -153,6 +153,7 @@ impl Fixture {
                     include_explicit: true,
                     include_manga: false,
                     backlog,
+                    private_backlog: None,
                 },
                 created_at,
             )
@@ -361,6 +362,7 @@ fn checks_resume_after_restart_and_back_off_on_rate_limits() {
         include_explicit: true,
         include_manga: false,
         backlog: Backlog::All,
+        private_backlog: None,
     };
     let (artist, ranking) = {
         let store = Store::open(dir.path()).unwrap();
@@ -434,6 +436,7 @@ fn another_subscriptions_works_do_not_cut_this_listing_short() {
                 include_explicit: true,
                 include_manga: false,
                 backlog: Backlog::All,
+                private_backlog: None,
             },
             0,
         )

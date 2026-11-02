@@ -7,3 +7,5 @@ CREATE TABLE listed_work (
     PRIMARY KEY (subscription_id, work_id)
 );
 CREATE INDEX listed_work_feed ON listed_work (subscription_id, feed);
+-- 已有的非公开收藏收多少（JSON，见 subscription::Backlog）；为空时同 backlog。只有收藏夹有。
+ALTER TABLE subscription ADD COLUMN private_backlog TEXT;

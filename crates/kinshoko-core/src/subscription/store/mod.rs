@@ -150,6 +150,7 @@ impl Store {
             include_explicit: new.include_explicit,
             include_manga: new.include_manga,
             backlog: new.backlog,
+            private_backlog: new.private_backlog,
             since,
             skipped: 0,
             created_at: now,
@@ -159,8 +160,8 @@ impl Store {
         };
         self.conn().execute(
             "INSERT INTO subscription (id, source, target, name, library_id, include_explicit,
-                                       include_manga, backlog, since, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                                       include_manga, backlog, since, created_at, private_backlog)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
                 subscription.id,
                 subscription.target.source().as_str(),
@@ -171,7 +172,10 @@ impl Store {
                 subscription.include_manga,
                 serde_json::to_string(&subscription.backlog).expect("旧作选项可以序列化"),
                 subscription.since,
-                now
+                now,
+                subscription
+                    .private_backlog
+                    .map(|b| serde_json::to_string(&b).expect("旧作选项可以序列化"))
             ],
         )?;
         Ok(subscription)
@@ -197,6 +201,7 @@ impl Store {
         let mut stmt = conn.prepare_cached(
             "SELECT id, source, target, name, library_id, include_explicit, include_manga,
                     created_at, last_checked_at, last_error, last_failed_at, backlog, since,
+                    private_backlog,
                     (SELECT COUNT(*) FROM received_work w
                      WHERE w.subscription_id = subscription.id AND w.outcome = 'skippedAnimation')
              FROM subscription ORDER BY created_at, id",
@@ -217,8 +222,11 @@ impl Store {
                         .ok()
                         .and_then(|b| serde_json::from_str(&b).ok())
                         .unwrap_or(Backlog::All),
+                    private_backlog: r
+                        .get::<_, Option<String>>(13)?
+                        .and_then(|b| serde_json::from_str(&b).ok()),
                     since: r.get(12)?,
-                    skipped: r.get(13)?,
+                    skipped: r.get(14)?,
                     created_at: r.get(7)?,
                     last_checked_at: r.get(8)?,
                     last_error: r

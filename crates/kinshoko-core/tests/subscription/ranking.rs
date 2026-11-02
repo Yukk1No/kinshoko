@@ -19,6 +19,7 @@ fn ranking(f: &Fixture, period: RankingPeriod, top: u32) -> Subscription {
                 include_manga: false,
                 // 界面给什么旧作选项都一样：榜单每次收当时榜上的作品。
                 backlog: Backlog::NewOnly,
+                private_backlog: None,
             },
             *f.clock.borrow(),
         )

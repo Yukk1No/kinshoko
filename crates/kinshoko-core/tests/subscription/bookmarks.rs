@@ -94,8 +94,17 @@ fn bookmarks(public: usize, private: usize) -> FakeBookmarks {
     source
 }
 
-/// 订阅时间晚于所有作品的发布时间。
+/// 订阅时间晚于所有作品的发布时间。公开与非公开收藏选一样的旧收藏。
 fn sync(f: &Fixture, backlog: Backlog, include_explicit: bool) -> Subscription {
+    sync_each(f, backlog, None, include_explicit)
+}
+
+fn sync_each(
+    f: &Fixture,
+    backlog: Backlog,
+    private_backlog: Option<Backlog>,
+    include_explicit: bool,
+) -> Subscription {
     f.store
         .add(
             NewSubscription {
@@ -103,8 +112,9 @@ fn sync(f: &Fixture, backlog: Backlog, include_explicit: bool) -> Subscription {
                 name: String::new(),
                 library_id: f.library().info().id.clone(),
                 include_explicit,
-                include_manga: true,
+                include_manga: false,
                 backlog,
+                private_backlog,
             },
             *f.clock.borrow(),
         )
@@ -243,6 +253,20 @@ fn recent_backlog_takes_the_latest_bookmarks_of_each_feed() {
     // 第一次数到的范围以外的旧收藏，之后也不收。
     let report = check_bookmarks(&f, &sub, &mut source).unwrap();
     assert_eq!(report.collected, 0);
+}
+
+#[test]
+fn public_and_private_bookmarks_follow_their_own_backlog() {
+    let f = later();
+    // 公开收藏只同步以后的新收藏，非公开收藏全部同步。
+    let sub = sync_each(&f, Backlog::NewOnly, Some(Backlog::All), true);
+    assert_eq!(
+        f.store.get(&sub.id).unwrap().private_backlog,
+        Some(Backlog::All)
+    );
+    let mut source = bookmarks(5, 4);
+    assert_eq!(check_bookmarks(&f, &sub, &mut source).unwrap().collected, 4);
+    assert_eq!(work_ids(&f), ["s0", "s1", "s2", "s3"]);
 }
 
 #[test]

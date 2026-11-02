@@ -2,8 +2,8 @@
 //! 每条收藏流从最近的收藏往前翻，翻到列出过的作品就停，比它近的才是新收藏。在 pixiv 上取消收藏
 //! 只是让它不再列出，已收进资料库的图不动。
 //!
-//! - 第一次检查按选的旧收藏定：只收以后的新收藏时只读第一页记下来；最近若干张时每条流各收最近
-//!   这么多张；全部时整个收藏夹都收。第一次没查完时下次重来，收过的不再下载。
+//! - 第一次检查时公开、非公开收藏各按画师选的旧收藏定：只同步以后的新收藏时只读第一页记下来；最近若干张时
+//!   收这条流最近这么多张；全部时整条流都收。第一次没查完时下次重来，收过的不再下载。
 //! - 检查成功后，这次列出的作品都记为列出过；没收成、还要重试的除外，下次翻到底把它们找回来。
 //! - 一条流里列出过的作品全被取消收藏、翻到底也没遇到时，不把剩下的旧收藏当成新的，只重新记下。
 
@@ -42,7 +42,7 @@ pub(super) fn run(
         if !first {
             return page.iter().any(&mut is_known);
         }
-        match subscription.backlog {
+        match backlog(subscription, feed) {
             Backlog::NewOnly => true,
             Backlog::All => false,
             Backlog::Recent { count } => {
@@ -61,7 +61,7 @@ pub(super) fn run(
     let mut report = CheckReport::default();
     for (feed, works) in feeds.iter().enumerate() {
         let mut candidates: Vec<Work> = if first {
-            match subscription.backlog {
+            match backlog(subscription, feed) {
                 Backlog::NewOnly => Vec::new(),
                 Backlog::All => works.clone(),
                 Backlog::Recent { count } => recent(subscription, works, count),
@@ -114,6 +114,14 @@ pub(super) fn run(
         )?;
     }
     Ok(report)
+}
+
+/// 某条收藏流第一次检查时按的旧收藏选项：公开收藏按 `backlog`，非公开收藏按 `private_backlog`。
+fn backlog(subscription: &Subscription, feed: usize) -> Backlog {
+    match feed {
+        0 => subscription.backlog,
+        _ => subscription.private_backlog.unwrap_or(subscription.backlog),
+    }
 }
 
 /// 这条订阅列出过或收过这个作品：翻到它就停。
