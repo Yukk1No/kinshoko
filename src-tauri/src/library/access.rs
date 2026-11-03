@@ -16,6 +16,44 @@ pub fn library_no<R: Runtime>(app: &AppHandle<R>, library_id: &str) -> Option<Li
         .map(LibraryNo::from_index)
 }
 
+/// 已登记资料库的身份，按登记顺序：自动打标逐个询问它们（ADR-0008 修订，#414）。
+/// 登记表读不到时为空，调度器下一轮再问。
+pub fn registered_library_ids<R: Runtime>(app: &AppHandle<R>) -> Vec<String> {
+    let Some(state) = app.try_state::<LibraryState>() else {
+        return Vec::new();
+    };
+    with_libraries(&state, |libraries| {
+        Ok(libraries
+            .libraries()
+            .iter()
+            .map(|library| library.id.clone())
+            .collect())
+    })
+    .unwrap_or_default()
+}
+
+/// 自动打标给某个库取可写句柄（#414）：与保存目标一样复用本设备的可写句柄，不切换活动库、
+/// 不改“上次打开”。先在登记表的锁外核对位置，移动盘拔掉、网络盘不通时不在锁里等。
+/// `fresh` 为真时（这个句柄第一次交给打标）设上译名表、发布闸门与安全模式，同保存目标的 `fixed_library`。
+pub fn tagging_writer<R: Runtime>(
+    app: &AppHandle<R>,
+    library_id: &str,
+    fresh: impl FnOnce(&Arc<Library>) -> bool,
+) -> Result<Arc<Library>, CommandError> {
+    let state = app
+        .try_state::<LibraryState>()
+        .ok_or_else(|| CommandError::new(ErrorKind::LibraryNotOpen, "还没有打开资料库"))?;
+    let registrations = with_libraries(&state, |libraries| Ok(libraries.libraries().to_vec()))?;
+    DeviceLibraries::library_folder(&registrations, library_id).map_err(CommandError::from)?;
+    let _transition = lock(&state.transition);
+    let library = with_libraries(&state, |device| device.write(library_id))?;
+    if fresh(&library) {
+        state.configure_library(&library);
+        library.set_safe_mode(saved_safe_mode(app));
+    }
+    Ok(library)
+}
+
 /// 活动资料库；还没有时打开本设备上次打开的资料库并装配。会读文件，不要在主线程上调用。
 /// 启动时的这几步记下耗时（#313）；之后再调用时资料库已经打开，不再记。
 pub(super) fn restore<R: Runtime>(

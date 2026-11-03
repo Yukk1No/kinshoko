@@ -19,7 +19,7 @@ it("global import requires a visible save destination and does not change browse
  let submitted:unknown=null; const scopes:unknown[]=[];
  const side={all:0,trash:0,folders:[{id:"folder-b",name:"最终目录",count:0,children:[]}]};
  mockIPC((cmd,args)=>{
-  if(cmd==="tagging_status")return {libraryId:"A",status:{kind:"idle"}};
+  if(cmd==="tagging_status")return {state:"starting"};
   if(cmd==="app_info")return {productName:"Kinshoko",version:"1"};
   if(cmd==="plugin:library|safe_mode")return true;
   if(cmd==="plugin:library|current_library")return a;
@@ -57,7 +57,7 @@ it("a late start reply and cancel keep the submitted owner after selecting anoth
  let cancelled:unknown;
  const side={all:0,trash:0,folders:[]};
  mockIPC((cmd,args)=>{
-  if(cmd==="tagging_status")return {libraryId:"A",status:{kind:"idle"}};
+  if(cmd==="tagging_status")return {state:"starting"};
   if(cmd==="app_info")return {productName:"Kinshoko",version:"1"};
   if(cmd==="plugin:library|safe_mode")return true;
   if(cmd==="plugin:library|current_library")return a;

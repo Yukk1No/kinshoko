@@ -24,7 +24,7 @@ afterEach(async () => { cleanup(); await new Promise((resolve) => setTimeout(res
  */
 function workspace() {
   const state = { revision: "r1", failing: null as string | null, failures: 0, calls: 0, failure: EXPIRED as unknown };
-  mockIPC((command, args) => {
+  mockIPC((command) => {
     if (command === state.failing) {
       state.calls += 1;
       if (state.calls <= state.failures) return Promise.reject(state.failure);
@@ -37,7 +37,7 @@ function workspace() {
     if (command === "plugin:library|workspace_directories") return { status, providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
     if (command === "plugin:library|workspace_tag_groups") return [{ id: "g", name: "人物分组", namespace: null, tags: [] }];
     if (command === "plugin:library|import_tasks") return [];
-    if (command === "tagging_status") return { libraryId: (args as { libraryId: string }).libraryId, status: { state: "starting" } };
+    if (command === "tagging_status") return { state: "starting" };
     if (command === "plugin:library|workspace_browse") return {
       cards: [{ id: "bytes", libraryId: "A", imageId: "a", width: 100, height: 100, thumbnail: "A/a/128", adult: false,
         sources: [{ libraryId: "A", libraryName: "甲库", imageId: "a", unavailable: null, matches: true, deleted: false }] }],

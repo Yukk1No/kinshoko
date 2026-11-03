@@ -1,6 +1,6 @@
 //! 自动标签（Tagging）：调度打标子进程，写入自动标签建议与内容分级建议（#52，ADR-0004）。
 //!
-//! - [`Tagging`]：后台调度。按本机条件选模型档位（有独显用 DirectML，没有时退到 CPU 档），
+//! - [`Tagging`]：后台调度，全设备一个，覆盖 [`TaggingLibraries`] 给出的全部资料库。按本机条件选模型档位（有独显用 DirectML，没有时退到 CPU 档），
 //!   首次使用时经画师确认下载模型（固定版本、校验哈希、断点续传、显示大小与进度），在本机改写为
 //!   分块注意力；之后逐张打标，按“模型来源”写入建议，不碰人工标签决定。暂停时结束会话归还显存，
 //!   会话崩溃后重启，同一张图反复崩溃就记为无法打标。
@@ -11,6 +11,7 @@
 
 mod foreground;
 mod interpret;
+mod libraries;
 mod log;
 mod memory;
 mod models;
@@ -20,6 +21,7 @@ mod process;
 mod scheduler;
 
 pub use foreground::{ForegroundCheck, UserNotificationState, yields_to_foreground};
+pub use libraries::TaggingLibraries;
 pub use log::TaggingLog;
 pub use memory::InMemoryTagger;
 pub use models::{
@@ -31,4 +33,4 @@ pub use port::{
     TaggerSession,
 };
 pub use process::{Backend, Engine, EngineError, ProcessTagger, abort_device_lost, serve};
-pub use scheduler::{LibraryTaggingStatus, Tagging, TaggingConfig, TaggingStatus};
+pub use scheduler::{Tagging, TaggingConfig, TaggingStatus};

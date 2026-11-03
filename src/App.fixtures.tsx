@@ -215,7 +215,7 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
         case "plugin:library|resolve_search":
           return resolved((args as { input: SearchInput }).input);
         case "tagging_status":
-          return { libraryId: (args as { libraryId: string }).libraryId, status: { state: "starting" } };
+          return { state: "starting" };
         case "shell_settings":
           return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode };
         default:

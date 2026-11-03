@@ -52,7 +52,7 @@ beforeEach(() => {
         groups[0] = { ...groups[0], tags: [{ tag, count: 1 }] };
         return null;
       }
-      case "tagging_status": return { libraryId: "L1", status: { state: "starting" } };
+      case "tagging_status": return { state: "starting" };
       case "shell_settings": return { autostart: false, shortcuts: [], showApproxSource: false };
       default: return null;
     }

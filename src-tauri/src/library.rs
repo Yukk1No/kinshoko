@@ -382,7 +382,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             // 硬件档保存在应用壳设置里；这里只读一次，之后由设置命令同步。
             let saved = kinshoko_core::AppSettings::open(dirs.settings()).ok();
             let preferred = saved.as_ref().and_then(|s| s.tagging_device());
-            crate::tagging::setup(app, dirs.models().to_path_buf(), preferred);
             // 读不到设置时按 SafeModeState 的默认值：开启，默认范围。
             let safe_mode = saved.as_ref().map_or_else(
                 || SafeModeState::default().current(),
@@ -391,6 +390,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             let state = LibraryState::new(device_dir, safe_mode);
             state.detached.set_safe_mode_scope(safe_mode.scope);
             app.manage(state);
+            // 发布闸门取自资料库状态：登记好之后再开始自动标签。
+            crate::tagging::setup(app, dirs.models().to_path_buf(), preferred);
             workspace::monitor(app.clone());
             Ok(())
         })

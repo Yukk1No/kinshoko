@@ -35,7 +35,7 @@ function backend({ status = { state: "paused" } as TaggingStatus, models = choic
     const handled = handle(cmd, a);
     if (handled !== undefined) return handled;
     if (cmd === "tagging_models") return models;
-    if (cmd === "tagging_status") return { libraryId: a.libraryId, status };
+    if (cmd === "tagging_status") return status;
     return null;
   }, { shouldMockEvents: true });
   return calls;
@@ -48,10 +48,12 @@ describe("设置 › 自动标签 › 自动打标", () => {
   it.each<[string, TaggingStatus, RegExp, string | null]>([
     ["加载模型", { state: "starting" }, /正在加载模型…/, "暂停"],
     ["校验模型", { state: "preparing", model: "PixAI Tagger v1.0 (GPU)" }, /正在加载模型…/, "暂停"],
-    ["打标", { state: "running", model: "x", device: "directMl", gpu: "RX 6500 XT", tagged: 12, done: 0, remaining: 1 }, /已标 12 张（显卡）/, "暂停"],
+    ["打标", { state: "running", model: "x", device: "directMl", gpu: "RX 6500 XT", tagged: 12, done: 0, remaining: 30 }, /已标 12 张，还剩 30 张（显卡）/, "暂停"],
     ["暂停", { state: "paused" }, /已暂停/, "继续"],
     ["全屏程序在前台", { state: "yieldedToFullScreen" }, /因全屏程序或演示模式暂停，回到桌面后自动继续/, "暂停"],
-    ["打完", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0 }, /已全部打完/, null],
+    ["打完", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0 }, /已全部打完/, null],
+    // 有图库暂时打不开、数不出还剩几张时，不报已全部打完（#414）。
+    ["有图库打不开", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 1 }, /^1 个图库暂时打不开$/, null],
     ["没有可用设备", { state: "noDevice", reasons: [{ code: "taggingNoGpu" }, { code: "taggingRamShort", need: "5.4 GB" }] }, /自动标签不可用：没有独立显卡；可用内存不够（需要约 5.4 GB）/, null],
     ["出错", { state: "failed", reason: { code: "downloadFailed", detail: "超时" } }, /下载失败：超时.*稍后会自动重试/, null],
   ])("%s时显示对应的状态与操作", async (_, status, text, action) => {
@@ -68,7 +70,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
     await waitFor(() => expect(within(statusRow()).getByText(/需要下载模型（993 MB）/)).toBeTruthy());
     expect(calls.some((c) => c.cmd === "tagging_download")).toBe(false);
     fireEvent.click(within(statusRow()).getByRole("button", { name: "下载" }));
-    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_download", args: { libraryId: "L1" } }));
+    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_download", args: {} }));
   });
 
   it("下载过一部分时按钮是继续下载", async () => {
@@ -88,55 +90,39 @@ describe("设置 › 自动标签 › 自动打标", () => {
     backend({ status: { state: "starting" } });
     render(<AutoTaggingSettings libraryId="L1" />);
     await screen.findByText(/正在加载模型…/);
-    await act(() => emit("tagging-status", { libraryId: "L1", status: { state: "downloading", model: "x", downloaded: 500_000_000, total: 1_000_000_000 } }));
+    await act(() => emit("tagging-status", { state: "downloading", model: "x", downloaded: 500_000_000, total: 1_000_000_000 }));
     expect(await within(statusRow()).findByText("正在下载模型 50%（500 MB / 1000 MB）")).toBeTruthy();
     expect(within(statusRow()).getByRole("progressbar").getAttribute("aria-valuenow")).toBe("50");
   });
 
-  it("下载中可以暂停或取消（#213），都发给打标所在的资料库", async () => {
+  it("下载中可以暂停或取消（#213）", async () => {
     const calls = backend({ status: { state: "downloading", model: "x", downloaded: 1, total: 2 } });
     render(<AutoTaggingSettings libraryId="L1" />);
     fireEvent.click(await within(statusRow()).findByRole("button", { name: "暂停" }));
-    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_pause", args: { libraryId: "L1" } }));
+    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_pause", args: {} }));
     fireEvent.click(within(statusRow()).getByRole("button", { name: "取消下载" }));
-    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_cancel_download", args: { libraryId: "L1" } }));
+    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_cancel_download", args: {} }));
   });
 
-  it("暂停与继续都发给打标所在的资料库", async () => {
+  it("暂停与继续", async () => {
     const calls = backend({ status: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 0, done: 0, remaining: 1 } });
     render(<AutoTaggingSettings libraryId="L1" />);
     fireEvent.click(await screen.findByRole("button", { name: "暂停" }));
-    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_pause", args: { libraryId: "L1" } }));
-    await act(() => emit("tagging-status", { libraryId: "L1", status: { state: "paused" } }));
+    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_pause", args: {} }));
+    await act(() => emit("tagging-status", { state: "paused" }));
     fireEvent.click(await screen.findByRole("button", { name: "继续" }));
-    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_resume", args: { libraryId: "L1" } }));
+    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_resume", args: {} }));
   });
 
-  it("跟着后端的可写资料库走，旧库迟到的状态不显示", async () => {
-    const statuses: Record<string, TaggingStatus> = { L1: { state: "paused" }, L2: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 7, done: 0, remaining: 1 } };
-    backend({ handle: (cmd, args) => (cmd === "tagging_status" ? { libraryId: args.libraryId, status: statuses[args.libraryId as string] } : undefined) });
-    render(<AutoTaggingSettings libraryId="L1" />);
-    await waitFor(() => expect(within(statusRow()).getByText(/已暂停/)).toBeTruthy());
-
-    await act(() => emit("writable-library", { id: "L2", name: "私人收藏", root: "D:\\私人收藏" }));
-    expect(await within(statusRow()).findByText(/已标 7 张/)).toBeTruthy();
-    await act(() => emit("tagging-status", { libraryId: "L1", status: { state: "failed", reason: { code: "system", detail: "旧库打标失败" } } }));
-    expect(screen.queryByText(/旧库打标失败/)).toBeNull();
-  });
-
-  it("打标切到另一个资料库后，不再显示旧库的状态", async () => {
-    backend({ handle: (cmd, args) => (cmd === "tagging_status" && args.libraryId === "L2" ? new Promise(() => {}) : undefined) });
-    render(<AutoTaggingSettings libraryId="L1" />);
-    await waitFor(() => expect(within(statusRow()).getByText("已暂停")).toBeTruthy());
-
-    await act(() => emit("writable-library", { id: "L2", name: "私人收藏", root: "D:\\私人收藏" }));
-
-    await waitFor(() => expect(within(statusRow()).getByText("正在读取…")).toBeTruthy());
-    expect(within(statusRow()).queryByRole("button")).toBeNull();
+  it("打开的图库读不到、别的图库照常打标时，状态与暂停照常显示（#414）", async () => {
+    backend({ status: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 3, done: 0, remaining: 9 } });
+    render(<AutoTaggingSettings libraryId={null} />);
+    await waitFor(() => expect(within(statusRow()).getByText(/已标 3 张，还剩 9 张/)).toBeTruthy());
+    expect(within(statusRow()).getByRole("button", { name: "暂停" })).toBeTruthy();
   });
 
   it("还没有资料库时说明打开图库后才开始", async () => {
-    backend();
+    backend({ status: { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0 } });
     render(<AutoTaggingSettings libraryId={null} />);
     await waitFor(() => expect(within(statusRow()).getByText("添加图库后开始")).toBeTruthy());
   });
@@ -214,7 +200,7 @@ describe("设置 › 自动标签 › 模型", () => {
     render(<AutoTaggingSettings libraryId="L1" />);
     await waitFor(async () => expect(await optionNames(await hardware())).toContainEqual(expect.stringMatching(/CPU，.*需下载/)));
     downloaded = true;
-    await act(() => emit("tagging-status", { libraryId: "L1", status: { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0 } }));
+    await act(() => emit("tagging-status", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0 }));
     await waitFor(async () => expect(await optionNames(await hardware())).toContain("CPU，内存约 5.0 GB，已下载"));
   });
 
