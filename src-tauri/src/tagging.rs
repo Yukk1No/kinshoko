@@ -161,6 +161,13 @@ pub fn prefer<R: Runtime>(app: &AppHandle<R>, library_id: &str) {
     }
 }
 
+/// 这个库取消了登记：正在打它时中止那一批，等打标放下它的句柄。调用方不能持有发布闸门。
+pub fn release<R: Runtime>(app: &AppHandle<R>, library_id: &str) {
+    if let Some(tagging) = app.state::<TaggingState>().tagging.as_deref() {
+        tagging.release(library_id);
+    }
+}
+
 /// 系统报告的通知状态（全屏程序、演示模式、忙碌等，#212；报告不了 Windows 设置里的“请勿打扰”开关）；读不到时为 `None`。
 #[cfg(windows)]
 #[allow(unsafe_code)]

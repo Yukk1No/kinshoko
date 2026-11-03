@@ -124,6 +124,8 @@ pub(super) async fn unregister_library<R: Runtime>(
             *lock(&state.reference) = None;
         }
         state.release_readers();
+        // 打标正在打这个库时中止那一批并等它放下句柄（#414）；发布闸门已放开。
+        crate::tagging::release(&app, &library_id);
         Ok(())
     })
     .await

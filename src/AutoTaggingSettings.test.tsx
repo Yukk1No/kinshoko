@@ -114,8 +114,15 @@ describe("设置 › 自动标签 › 自动打标", () => {
     await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_resume", args: {} }));
   });
 
+  it("打开的图库读不到、别的图库照常打标时，状态与暂停照常显示（#414）", async () => {
+    backend({ status: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 3, done: 0, remaining: 9 } });
+    render(<AutoTaggingSettings libraryId={null} />);
+    await waitFor(() => expect(within(statusRow()).getByText(/已标 3 张，还剩 9 张/)).toBeTruthy());
+    expect(within(statusRow()).getByRole("button", { name: "暂停" })).toBeTruthy();
+  });
+
   it("还没有资料库时说明打开图库后才开始", async () => {
-    backend();
+    backend({ status: { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0 } });
     render(<AutoTaggingSettings libraryId={null} />);
     await waitFor(() => expect(within(statusRow()).getByText("添加图库后开始")).toBeTruthy());
   });

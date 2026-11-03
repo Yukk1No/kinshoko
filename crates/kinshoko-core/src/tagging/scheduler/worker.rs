@@ -381,7 +381,9 @@ impl Worker {
                 let publication = gate
                     .as_ref()
                     .map(|gate| gate.lock().unwrap_or_else(|error| error.into_inner()));
-                if self.shared.interrupted() {
+                // 资料库取消登记与写入都在闸门里：取消之后不再写进它。
+                let registered = self.libraries.library_ids().contains(&library.info().id);
+                if self.shared.interrupted() || !registered {
                     drop(publication);
                     self.end_session();
                     return false;
@@ -394,7 +396,7 @@ impl Worker {
                 library.finish_tagging(source, id, TaggingOutcome::Failed(reason))
             }
             Err(_) if self.shared.interrupted() => {
-                // 画师暂停（或停止）时结束了会话：这张不算出错，恢复后重打。
+                // 画师暂停（或停止、资料库取消登记）时结束了会话：这张不算出错，恢复后重打。
                 self.end_session();
                 return false;
             }

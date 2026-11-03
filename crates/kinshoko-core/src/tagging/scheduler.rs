@@ -182,6 +182,10 @@ struct Shared {
     stopper: Mutex<Option<SessionStopper>>,
     /// 正在打的这一批属于哪个资料库；没有在打时为空。
     tagging: Mutex<Option<String>>,
+    /// `tagging` 变化时通知，[`Tagging::release`] 在上面等这一批放下资料库。
+    tagging_changed: Condvar,
+    /// 这一批的资料库取消了登记（[`Tagging::release`]）：和暂停一样中止这一批，不算出错。
+    released: AtomicBool,
 }
 
 impl Shared {
@@ -222,7 +226,11 @@ impl Shared {
     }
 
     fn set_tagging(&self, library_id: Option<String>) {
-        *self.tagging.lock().unwrap_or_else(|e| e.into_inner()) = library_id;
+        let mut tagging = self.tagging.lock().unwrap_or_else(|e| e.into_inner());
+        *tagging = library_id;
+        self.released.store(false, Ordering::SeqCst);
+        drop(tagging);
+        self.tagging_changed.notify_all();
     }
 
     /// 等到被唤醒或超时；返回时可能已暂停或停止。
@@ -243,9 +251,10 @@ impl Shared {
         self.wake.notify_all();
     }
 
+    /// 暂停、停止，或这一批的资料库取消了登记。
     fn interrupted(&self) -> bool {
         let c = self.control();
-        c.stop || c.paused
+        c.stop || c.paused || self.released.load(Ordering::SeqCst)
     }
 }
 
@@ -272,6 +281,8 @@ impl Tagging {
             cancel: AtomicBool::new(false),
             stopper: Mutex::new(None),
             tagging: Mutex::new(None),
+            tagging_changed: Condvar::new(),
+            released: AtomicBool::new(false),
         });
         let worker = Worker {
             store: ModelStore::new(config.models_dir.clone(), &config.base_url),
@@ -361,6 +372,35 @@ impl Tagging {
         control.library = Some(library_id.to_owned());
         drop(control);
         self.shared.wake.notify_all();
+    }
+
+    /// 资料库取消了登记：正在打它的这一批立即中止（结束会话，打到一半的结果不写），等到调度器放下
+    /// 它的句柄再返回，之后它的文件夹可以移动。调用方先从登记表里移除它，并放开发布闸门；
+    /// 调度器不会再列出它。没在打这个库时立即返回。
+    pub fn release(&self, library_id: &str) {
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        let mut tagging = self
+            .shared
+            .tagging
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if tagging.as_deref() != Some(library_id) {
+            return;
+        }
+        self.shared.released.store(true, Ordering::SeqCst);
+        self.shared.stop_session();
+        while tagging.as_deref() == Some(library_id) {
+            let left = deadline.saturating_duration_since(std::time::Instant::now());
+            if left.is_zero() {
+                return;
+            }
+            tagging = self
+                .shared
+                .tagging_changed
+                .wait_timeout(tagging, left)
+                .unwrap_or_else(|e| e.into_inner())
+                .0;
+        }
     }
 
     /// 正在打的这一批属于哪个资料库（记运行日志用）；没有在打时为空。

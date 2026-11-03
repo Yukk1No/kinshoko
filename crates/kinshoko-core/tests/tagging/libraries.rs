@@ -188,3 +188,54 @@ fn pausing_survives_a_change_of_preferred_library() {
     idle(&tagging);
     assert_eq!((tagged_in(&f, &f.library), tagged_in(&f, &b)), (3, 2));
 }
+
+/// 可以取消登记的库（像本设备的登记表那样）。
+struct Registry(std::sync::Mutex<Vec<Arc<Library>>>);
+
+impl TaggingLibraries for Registry {
+    fn library_ids(&self) -> Vec<String> {
+        self.0.lock().unwrap().library_ids()
+    }
+
+    fn writer(&self, library_id: &str) -> Result<Arc<Library>, CommandError> {
+        self.0.lock().unwrap().writer(library_id)
+    }
+}
+
+#[test]
+fn unregistering_the_library_being_tagged_stops_its_batch_and_lets_go_of_it() {
+    let f = Fixture::new(1);
+    let b = second_library(&f);
+    import_into(&f.dir, &b, 100..101);
+    f.fake
+        .set_output(&f.original(0), vec![raw("blue_eyes", 0, 0.9)]);
+    // CPU 档一张约 29 秒：取消登记不能等这张打完。
+    f.fake.set_delay(Duration::from_secs(30));
+    let registry = Arc::new(Registry(std::sync::Mutex::new(vec![
+        f.library.clone(),
+        b.clone(),
+    ])));
+    let tagging = start_with(&f, registry.clone(), Duration::from_millis(20));
+    tagging.prefer(&f.library.info().id);
+    wait_for(&tagging, "开始打 A", |s| {
+        matches!(s, TaggingStatus::Running { .. })
+    });
+
+    let a_id = f.library.info().id.clone();
+    registry.0.lock().unwrap().retain(|l| l.info().id != a_id);
+    let started = Instant::now();
+    tagging.release(&a_id);
+    assert!(
+        started.elapsed() < Duration::from_secs(5),
+        "不等手上这张打完"
+    );
+    assert_ne!(tagging.tagging_library(), Some(a_id.clone()), "已放下 A");
+    assert!(
+        tags_of(&f.library, &f.ids[0]).is_empty(),
+        "取消登记后不再写进 A"
+    );
+
+    // 其余的库照常打。
+    f.fake.set_delay(Duration::ZERO);
+    wait_for(&tagging, "打 B", |_| tagged_in(&f, &b) == 1);
+}

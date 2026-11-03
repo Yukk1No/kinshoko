@@ -116,8 +116,9 @@ export function AutoTaggingSettings({ libraryId }: { libraryId: string | null })
 function TaggingStatusRow({ hasLibrary, status }: { hasLibrary: boolean; status: TaggingStatus | null }) {
   const row = (desc: ReactNode, action?: ReactNode, below?: ReactNode) =>
     <SettingsRow label={t("status")} icon={<Sparkles size={16} />} title={t("status")} meta={desc} below={below}>{action}</SettingsRow>;
-  if (!hasLibrary) return row(t("noLibrary"));
-  if (status === null) return row(t("loading"));
+  // 打标属于本设备，打开的图库读不到时其他图库也照常打：状态与操作照常显示，只有空闲时写还没有图库。
+  if (!status) return row(hasLibrary ? t("loading") : t("noLibrary"));
+  if (!hasLibrary && status.state === "idle") return row(t("noLibrary"));
   const act = (f: () => Promise<void>) => () => void f().catch(() => {});
   const button = (name: string, f: () => Promise<void>, primary = false) =>
     <button type="button" className={`k-btn is-sm${primary ? "" : " is-ghost"}`} onClick={act(f)}><span className="k-label">{name}</span></button>;
