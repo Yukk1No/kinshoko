@@ -56,7 +56,7 @@ fn an_imported_package_is_recognised_verified_and_used_without_network() {
     let mut config = TaggingConfig::new(dir.path().join("models"), vec![gpu.clone(), cpu.clone()]);
     config.base_url = server.base_url().to_owned();
     config.poll_interval = Duration::from_millis(20);
-    let tagging = Tagging::start(library, Arc::new(fake.clone()), config);
+    let tagging = Tagging::start(Arc::new(vec![library]), Arc::new(fake.clone()), config);
     let deadline = Instant::now() + Duration::from_secs(10);
     while !matches!(tagging.status(), TaggingStatus::NeedsDownload { .. }) {
         assert!(Instant::now() < deadline, "{:?}", tagging.status());

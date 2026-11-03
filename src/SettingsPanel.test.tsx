@@ -241,9 +241,9 @@ describe("设置：分页", () => {
   });
 
   it("自动打标与模型包移到自动标签分页，通用分页不再有", async () => {
-    backend((cmd, args) => {
+    backend((cmd) => {
       if (cmd === "tagging_models") return { model: "PixAI Tagger v1.0", selected: null, options: [] };
-      if (cmd === "tagging_status") return { libraryId: args.libraryId, status: { state: "paused" } };
+      if (cmd === "tagging_status") return { state: "paused" };
       return undefined;
     });
     render(<SettingsPanel library={{ id: "L1", name: "资料库", root: "D:\\资料库" }} />);

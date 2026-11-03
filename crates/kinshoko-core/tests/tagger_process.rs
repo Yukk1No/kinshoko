@@ -314,7 +314,7 @@ fn tagging_continues_after_the_subprocess_crashes() {
     let mut config = TaggingConfig::new(dir.path().join("models"), vec![spec]);
     config.base_url = server.base_url().to_owned();
     config.retry_delay = Duration::from_millis(20);
-    let tagging = Tagging::start(library.clone(), Arc::new(tagger), config);
+    let tagging = Tagging::start(Arc::new(vec![library.clone()]), Arc::new(tagger), config);
     tagging.download();
     let deadline = Instant::now() + Duration::from_secs(60);
     while !matches!(tagging.status(), TaggingStatus::Idle { .. }) {
@@ -400,7 +400,7 @@ fn tagging_with_slow_load_and(
     config.retry_delay = Duration::from_millis(20);
     config.poll_interval = Duration::from_millis(20);
     configure(&mut config);
-    let tagging = Tagging::start(library.clone(), Arc::new(tagger), config);
+    let tagging = Tagging::start(Arc::new(vec![library.clone()]), Arc::new(tagger), config);
     tagging.download();
     (library, id, tagging, marker)
 }

@@ -6,6 +6,7 @@ mod support;
 
 mod download;
 mod hardware;
+mod libraries;
 mod scheduling;
 
 use std::path::PathBuf;
@@ -54,26 +55,7 @@ impl Fixture {
     }
 
     fn import(&self, seeds: impl Iterator<Item = u8>) -> Vec<String> {
-        let paths: Vec<PathBuf> = seeds
-            .map(|i| {
-                let path = self.dir.path().join(format!("in/{i}.png"));
-                std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-                RgbaImage::from_fn(4, 4, |x, y| image::Rgba([i, x as u8, y as u8, 255]))
-                    .save(&path)
-                    .unwrap();
-                path
-            })
-            .collect();
-        self.library
-            .import(ImportSource { paths })
-            .wait()
-            .items
-            .into_iter()
-            .map(|item| match item.outcome {
-                ImportOutcome::Imported { image_id } => image_id,
-                other => panic!("未导入：{other:?}"),
-            })
-            .collect()
+        import_into(&self.dir, &self.library, seeds)
     }
 
     fn original(&self, i: usize) -> PathBuf {
@@ -88,8 +70,40 @@ impl Fixture {
     }
 
     fn start(&self, config: TaggingConfig) -> Tagging {
-        Tagging::start(self.library.clone(), Arc::new(self.fake.clone()), config)
+        Tagging::start(
+            Arc::new(vec![self.library.clone()]),
+            Arc::new(self.fake.clone()),
+            config,
+        )
     }
+}
+
+/// 把几张小图导入 `library`；`seeds` 决定图的内容与文件名。
+fn import_into(
+    dir: &tempfile::TempDir,
+    library: &Library,
+    seeds: impl Iterator<Item = u8>,
+) -> Vec<String> {
+    let paths: Vec<PathBuf> = seeds
+        .map(|i| {
+            let path = dir.path().join(format!("in/{i}.png"));
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            RgbaImage::from_fn(4, 4, |x, y| image::Rgba([i, x as u8, y as u8, 255]))
+                .save(&path)
+                .unwrap();
+            path
+        })
+        .collect();
+    library
+        .import(ImportSource { paths })
+        .wait()
+        .items
+        .into_iter()
+        .map(|item| match item.outcome {
+            ImportOutcome::Imported { image_id } => image_id,
+            other => panic!("未导入：{other:?}"),
+        })
+        .collect()
 }
 
 fn raw(name: &str, category: u8, score: f32) -> RawTag {

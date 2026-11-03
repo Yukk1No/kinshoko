@@ -168,17 +168,12 @@ impl Worker {
             return;
         };
         let source = FactSource::model(&spec.source);
-        let ids = match self.library.images_to_tag(&source, BATCH) {
-            Ok(ids) => ids,
-            Err(e) => {
-                return self.fail(CommandError::caused_by(
-                    e,
-                    |cause| ErrorKind::TaggingQueueUnreadable { cause },
-                    |e| format!("读取待打标的图失败：{e}"),
-                ));
-            }
-        };
-        if ids.is_empty() {
+        let Pick {
+            batch,
+            remaining,
+            unknown,
+        } = self.pick(&source);
+        let Some((library, ids)) = batch else {
             self.done = 0;
             self.end_session();
             self.shared.set(TaggingStatus::Idle {
@@ -186,22 +181,60 @@ impl Worker {
                 device: spec.device,
                 gpu: self.gpu_name(spec.device),
                 tagged: self.tagged,
+                unknown,
             });
             self.shared.sleep(self.config.poll_interval);
             return;
-        }
-        // 数不出来只影响进度环，不中止打标。
-        let remaining = self.library.count_images_to_tag(&source).unwrap_or(0);
+        };
+        let library_id = library.info().id.clone();
+        self.shared.set_tagging(Some(library_id.clone()));
         for (i, id) in ids.iter().enumerate() {
             if self.shared.interrupted() || self.yields() {
-                return;
+                break;
+            }
+            // 资料库在这一批中途取消登记了：放下它，下一轮不再列出。
+            if i > 0 && !self.libraries.library_ids().contains(&library_id) {
+                break;
             }
             self.remaining = remaining.saturating_sub(i as u32).max(1);
-            if !self.tag_one(&model, &source, id) {
-                return;
+            if !self.tag_one(&library, &model, &source, id) {
+                break;
             }
             self.done += 1;
         }
+        self.shared.set_tagging(None);
+    }
+
+    /// 逐个询问各库：画师正在整理的库在前，其余按登记顺序。取第一个有未打标的图的库的一批，
+    /// 并数出各库的未打标张数合计。打不开或数不出来的库跳过，不中断其他库。
+    fn pick(&self, source: &FactSource) -> Pick {
+        let mut order = self.libraries.library_ids();
+        let preferred = self.shared.control().library.clone();
+        if let Some(at) = preferred.and_then(|id| order.iter().position(|entry| *entry == id)) {
+            let first = order.remove(at);
+            order.insert(0, first);
+        }
+        let mut pick = Pick::default();
+        for id in order {
+            let Ok(library) = self.libraries.writer(&id) else {
+                pick.unknown += 1;
+                continue;
+            };
+            let Ok(count) = library.count_images_to_tag(source) else {
+                pick.unknown += 1;
+                continue;
+            };
+            pick.remaining = pick.remaining.saturating_add(count);
+            if count == 0 || pick.batch.is_some() {
+                continue;
+            }
+            match library.images_to_tag(source, BATCH) {
+                Ok(ids) if !ids.is_empty() => pick.batch = Some((library, ids)),
+                Ok(_) => {}
+                Err(_) => pick.unknown += 1,
+            }
+        }
+        pick
     }
 
     /// 模型就绪时返回；否则显示需要下载或下载进度，返回 `None`。
@@ -268,9 +301,16 @@ impl Worker {
     }
 
     /// 打一张图并写入。返回 `false` 表示这一批要中止（会话失效等）。
-    fn tag_one(&mut self, model: &PreparedModel, source: &FactSource, id: &str) -> bool {
+    fn tag_one(
+        &mut self,
+        library: &Library,
+        model: &PreparedModel,
+        source: &FactSource,
+        id: &str,
+    ) -> bool {
         let spec = &model.spec;
-        let path = match self.library.original_to_tag(id) {
+        let crash_key = (library.info().id.clone(), id.to_owned());
+        let path = match library.original_to_tag(id) {
             Ok(path) => path,
             // 图在此期间被删除了。
             Err(LibraryError::UnknownImage) => return true,
@@ -346,13 +386,12 @@ impl Worker {
                     self.end_session();
                     return false;
                 }
-                self.crashes.remove(id);
+                self.crashes.remove(&crash_key);
                 self.tagged += 1;
-                self.library.commit_tagging_result(source, id, &result)
+                library.commit_tagging_result(source, id, &result)
             }
             Err(TagFailure::BadImage(reason)) => {
-                self.library
-                    .finish_tagging(source, id, TaggingOutcome::Failed(reason))
+                library.finish_tagging(source, id, TaggingOutcome::Failed(reason))
             }
             Err(_) if self.shared.interrupted() => {
                 // 画师暂停（或停止）时结束了会话：这张不算出错，恢复后重打。
@@ -368,15 +407,13 @@ impl Worker {
                     self.fail(failure.into());
                     return false;
                 }
-                let crashes = self.crashes.entry(id.to_owned()).or_default();
+                let crashes = self.crashes.entry(crash_key.clone()).or_default();
                 *crashes += 1;
                 if *crashes >= self.config.max_crashes_per_image {
-                    self.crashes.remove(id);
+                    self.crashes.remove(&crash_key);
                     // 不上界面：只记进资料库的打标记录，界面不读
                     let reason = format!("打标子进程在这张图上反复出错：{failure}");
-                    let _ = self
-                        .library
-                        .finish_tagging(source, id, TaggingOutcome::Failed(reason));
+                    let _ = library.finish_tagging(source, id, TaggingOutcome::Failed(reason));
                 }
                 self.fail(failure.into());
                 return false;

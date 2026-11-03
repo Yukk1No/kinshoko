@@ -25,6 +25,7 @@ fn idle(tagged: u32) -> TaggingStatus {
         device: Device::DirectMl,
         gpu: Some("显卡".into()),
         tagged,
+        unknown: 0,
     }
 }
 

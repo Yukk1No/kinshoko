@@ -39,13 +39,13 @@ function automatic(status: TaggingStatus | null): string {
 
 /**
  * 设置 › 自动标签（#143）：打标状态（暂停、继续、下载），Tagger 模型（只读），硬件加速（自动／显卡／CPU），
- * 没有网络时导入模型包。状态跟着后端唯一的可写资料库（ADR-0008），与侧栏卡片同一套处理。
+ * 没有网络时导入模型包。状态是所有资料库合计（#414），与图片墙右下角的图标同一套处理。
  * 换硬件档后已经打过标的图不重打。
  */
-export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string | null }) {
+export function AutoTaggingSettings({ libraryId }: { libraryId: string | null }) {
   // 随界面语言重新渲染（文案经 `t` 取，不在组件里订阅）。
   useTranslation("tagging");
-  const { libraryId, status } = useTaggingStatus(opened);
+  const status = useTaggingStatus();
   const [choice, setChoice] = useState<ModelChoice | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -93,7 +93,7 @@ export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string |
   const selected = choice?.options.find((o) => o.device === choice.selected);
   return <>
     <SettingsGroup label={t("group")}>
-      <TaggingStatusRow libraryId={libraryId} status={status} />
+      <TaggingStatusRow hasLibrary={libraryId !== null} status={status} />
     </SettingsGroup>
     {choice && <SettingsGroup label={t("modelGroup")}>
       <SettingsRow label={t("model")} icon={<Tags size={16} />} title={t("model")} hint={t("modelHint")}>
@@ -113,13 +113,13 @@ export function AutoTaggingSettings({ libraryId: opened }: { libraryId: string |
 }
 
 /** 打标状态一行：状态文字与对应的操作（暂停、继续、下载、取消下载）；下载时行下方显示进度条。 */
-function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; status: TaggingStatus | null }) {
+function TaggingStatusRow({ hasLibrary, status }: { hasLibrary: boolean; status: TaggingStatus | null }) {
   const row = (desc: ReactNode, action?: ReactNode, below?: ReactNode) =>
     <SettingsRow label={t("status")} icon={<Sparkles size={16} />} title={t("status")} meta={desc} below={below}>{action}</SettingsRow>;
-  if (libraryId === null) return row(t("noLibrary"));
+  if (!hasLibrary) return row(t("noLibrary"));
   if (status === null) return row(t("loading"));
-  const act = (f: (id: string) => Promise<void>) => () => void f(libraryId).catch(() => {});
-  const button = (name: string, f: (id: string) => Promise<void>, primary = false) =>
+  const act = (f: () => Promise<void>) => () => void f().catch(() => {});
+  const button = (name: string, f: () => Promise<void>, primary = false) =>
     <button type="button" className={`k-btn is-sm${primary ? "" : " is-ghost"}`} onClick={act(f)}><span className="k-label">{name}</span></button>;
   const pause = button(t("pause"), taggingPause);
 
@@ -129,15 +129,16 @@ function TaggingStatusRow({ libraryId, status }: { libraryId: string | null; sta
     case "preparing":
       return row(t("loadingModel"), pause);
     case "running":
-      return row(t("running", { count: status.tagged, device: deviceName(status.device) }), pause);
+      return row(t("running", { count: status.tagged, remaining: status.remaining, device: deviceName(status.device) }), pause);
     case "paused":
       return row(t("paused"), button(t("resume"), taggingResume));
     // 有全屏程序（游戏）或演示模式时自动让出显卡（#212），不是卡住或出错。系统的通知状态报告不了
     // Windows 设置里的“请勿打扰”开关，所以不提它。
     case "yieldedToFullScreen":
       return row(t("yielded"), pause);
+    // 有资料库暂时打不开、数不出未打标的张数时，不报已全部打完（#414）。
     case "idle":
-      return row(t("idle"));
+      return row(status.unknown > 0 ? t("unknown", { count: status.unknown }) : t("idle"));
     case "needsDownload": {
       const need = status.fallback === null
         ? t("needsModel", { size: mb(status.size) })
