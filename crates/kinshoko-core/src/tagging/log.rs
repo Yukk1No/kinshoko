@@ -7,7 +7,7 @@ use std::time::Instant;
 use super::scheduler::TaggingStatus;
 use crate::diagnostics::{Detail, LibraryNo, LogEvent, PauseReason};
 
-/// 一个资料库的打标在运行日志里的记录者。
+/// 打标在运行日志里的记录者。
 #[derive(Debug)]
 pub struct TaggingLog {
     library: Option<LibraryNo>,
@@ -27,6 +27,11 @@ impl TaggingLog {
             last_problem: None,
             yielded: false,
         }
+    }
+
+    /// 打标调度覆盖所有资料库（#414）：记下正在打的是哪个库，之后的开始事件带上它。
+    pub fn set_library(&mut self, library: Option<LibraryNo>) {
+        self.library = library;
     }
 
     /// 看到新的状态；需要记下时返回事件。

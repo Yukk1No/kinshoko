@@ -35,29 +35,25 @@ function activityLabel(status: TaggingStatus): string | null {
 }
 
 /** 打标状态变化时的右下角通知（#144）。 */
-function useTaggingNotices(libraryId: string | null, status: TaggingStatus | null) {
+function useTaggingNotices(status: TaggingStatus | null) {
   const toast = useToast();
   /** 正在显示的“需要下载”通知。 */
   const download = useRef<string | null>(null);
-  /** 画师关掉过“需要下载”通知的资料库：本次启动内不再弹。 */
-  const declined = useRef(new Set<string>());
+  /** 画师关掉过“需要下载”通知：本次启动内不再弹。 */
+  const declined = useRef(false);
   /** 本次启动内报过的“不可用”原因。 */
   const unavailable = useRef(new Set<string>());
   /** 最近报过的出错原因；重试会经过加载、打标或下载再失败，到打完或暂停才算过去。 */
   const failure = useRef<string | null>(null);
   /** 这一轮开始时本次运行已打的张数（这一轮第一条 Running 的 `tagged`）。 */
   const roundStart = useRef<number | null>(null);
-  /** 上一次看到的状态与它所属的资料库：换库后不拿旧库的状态比较。 */
-  const previous = useRef<{ libraryId: string; status: TaggingStatus } | null>(null);
+  /** 上一次看到的状态。 */
+  const previous = useRef<TaggingStatus | null>(null);
 
   useEffect(() => {
-    if (!toast || libraryId === null || !status) return;
-    const before = previous.current?.libraryId === libraryId ? previous.current.status : null;
-    if (before === null) {
-      roundStart.current = null;
-      failure.current = null;
-    }
-    previous.current = { libraryId, status };
+    if (!toast || !status) return;
+    const before = previous.current;
+    previous.current = status;
     // 下载中暂停或取消（#213）也不算下载完成。
     if (before?.state === "downloading" && !["downloading", "failed", "needsDownload", "paused"].includes(status.state)) {
       toast.show({ title: i18n.t("tagging:notice.downloaded"), tone: "success" });
@@ -89,11 +85,11 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
     };
     if (status.state !== "needsDownload") return closeDownload();
     // 画师取消了下载（#213）：和关掉通知一样，本次启动内不再弹。
-    if (status.cancelled) declined.current.add(libraryId);
-    if (download.current !== null || declined.current.has(libraryId)) return;
+    if (status.cancelled) declined.current = true;
+    if (download.current !== null || declined.current) return;
     const start = () => {
       closeDownload();
-      void taggingDownload(libraryId).then(
+      void taggingDownload().then(
         () => toast.show({ title: i18n.t("tagging:notice.downloading") }),
         (e) => toast.error(i18n.t("tagging:notice.downloadFailed", { error: String(e) })),
       );
@@ -104,11 +100,11 @@ function useTaggingNotices(libraryId: string | null, status: TaggingStatus | nul
       onClose: () => {
         if (download.current !== id) return;
         download.current = null;
-        declined.current.add(libraryId);
+        declined.current = true;
       },
     });
     download.current = id;
-  }, [toast, libraryId, status]);
+  }, [toast, status]);
 }
 
 /** 外圈进度（0 到 1）：下载看字节，打标看这一轮处理过的张数；加载、校验时没有进度，为 null。 */
@@ -118,13 +114,13 @@ function liveProgress(status: TaggingStatus): number | null {
   return null;
 }
 
-/** 暂停时外圈停在暂停前的位置：记住最近一次有进度的状态的进度，换库或停下（不显示图标）时清掉。 */
-function useRingProgress(libraryId: string | null, status: TaggingStatus | null) {
-  const [kept, setKept] = useState<{ libraryId: string | null; progress: number | null }>({ libraryId: null, progress: null });
+/** 暂停时外圈停在暂停前的位置：记住最近一次有进度的状态的进度，停下（不显示图标）时清掉。 */
+function useRingProgress(status: TaggingStatus | null) {
+  const [kept, setKept] = useState<number | null>(null);
   const live = status && liveProgress(status);
   const holds = status?.state === "paused" || status?.state === "yieldedToFullScreen";
-  const next = live ?? (holds && kept.libraryId === libraryId ? kept.progress : null);
-  if (kept.libraryId !== libraryId || kept.progress !== next) setKept({ libraryId, progress: next });
+  const next = live ?? (holds ? kept : null);
+  if (kept !== next) setKept(next);
   return next;
 }
 
@@ -155,20 +151,18 @@ function Ring({ className, size, radius, progress }: { className: string; size: 
 /**
  * 自动标签在主窗口的位置（#144）：图片墙右下角、缩放滑块左边的小圆钮。外圈是进度环（#372）：下载看字节，
  * 打标看这一轮的张数，加载时整圈慢慢明暗；圆钮里的星星两颗小星交替闪烁。暂停时环停在原处变灰，图标换成暂停；
- * 其他状态不显示。悬停看进度，点击打开设置 › 自动标签。跟随后端唯一的可写资料库（ADR-0008）。
+ * 其他状态不显示。悬停看进度，点击打开设置 › 自动标签。状态是所有资料库合计（#414），不跟哪个库走。
  */
-export function TaggingActivity({ libraryId: opened, registered, onOpenSettings, collapsed = false }: {
-  libraryId: string;
-  registered?: readonly string[];
+export function TaggingActivity({ onOpenSettings, collapsed = false }: {
   onOpenSettings: () => void;
   /** 多选悬浮栏出现、右下角收成一个圆形按钮时（#180）：图标换成按钮右上角的小圆点，状态仍看得到。 */
   collapsed?: boolean;
 }) {
   // 状态文字按界面语言取：换语言时重绘。
   useTranslation();
-  const { libraryId, status } = useTaggingStatus(opened, registered);
-  useTaggingNotices(libraryId, status);
-  const progress = useRingProgress(libraryId, status);
+  const status = useTaggingStatus();
+  useTaggingNotices(status);
+  const progress = useRingProgress(status);
   const text = status && activityLabel(status);
   if (!status || !text) return null;
   const activity = status.state === "paused" || status.state === "yieldedToFullScreen" ? "paused" : "busy";

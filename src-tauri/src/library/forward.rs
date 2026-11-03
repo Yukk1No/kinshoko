@@ -3,7 +3,7 @@
 use super::*;
 
 /// 核心已完成切换，这里装配新的活动资料库：设上保存的安全模式、取走参考视角、清掉旧库的
-/// Search 快照、为它开始打标，并转发它的事件。每个活动句柄只装配一次；事件按句柄转发，
+/// Search 快照、让自动打标先打它，并转发它的事件。每个活动句柄只装配一次；事件按句柄转发，
 /// 切换后旧句柄（例如导入仍持有的库）的事件照常带着它的资料库身份送到界面。
 ///
 /// 新打开的资料库在核心里先是封存状态（安全模式开），这里再按设置放开。
@@ -44,8 +44,8 @@ pub(super) fn forward_events<R: Runtime>(
     state.search.invalidate();
     took("装配：设置与放掉只读句柄", started, None);
     let started = std::time::Instant::now();
-    crate::tagging::attach(app, library);
-    took("装配：启动自动打标", started, None);
+    crate::tagging::prefer(app, &info.id);
+    took("装配：优先打标", started, None);
     let mut handles = lock(&state.forwarded_handles);
     handles.retain(|handle| handle.strong_count() > 0);
     if handles.iter().any(|handle| Weak::ptr_eq(handle, &weak)) {

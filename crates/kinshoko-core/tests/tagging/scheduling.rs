@@ -314,7 +314,11 @@ fn a_ready_that_arrives_after_pausing_does_not_restart_tagging() {
         gate: gate.clone(),
     };
     let spec = f.server.publish("gpu", Device::DirectMl, b"model");
-    let tagging = Tagging::start(f.library.clone(), Arc::new(tagger), f.config(vec![spec]));
+    let tagging = Tagging::start(
+        Arc::new(vec![f.library.clone()]),
+        Arc::new(tagger),
+        f.config(vec![spec]),
+    );
     tagging.download();
     {
         let (lock, wake) = &*gate;

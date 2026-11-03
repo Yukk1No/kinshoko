@@ -285,7 +285,7 @@ export function backend() {
           announce([]); return null;
         }
         case "tagging_status":
-          return { libraryId: "L1", status: { state: "starting" } };
+          return { state: "starting" };
         case "shell_settings":
           return { autostart: true, shortcuts: [], showApproxSource: false };
         default:
