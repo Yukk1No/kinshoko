@@ -39,19 +39,16 @@ fn images_saved_to_a_library_that_is_not_preferred_are_tagged_without_waking() {
     let tagging = start_with(
         &f,
         Arc::new(vec![f.library.clone(), b.clone()]),
-        // 留出时间在下一次拉取之前设好假输出。
         Duration::from_millis(300),
     );
     tagging.prefer(&f.library.info().id);
     idle(&tagging);
     assert_eq!(tagged_in(&f, &f.library), 1);
 
-    // 像订阅那样直接写进 B：不叫醒调度器，也不把 B 设为优先。
+    // 像订阅那样直接写进 B：不叫醒调度器，也不把 B 设为优先。导入还没返回时图已经能被拉到，
+    // 所以假输出要在导入前设好。
+    f.fake.set_default_output(vec![raw("long_hair", 0, 0.5)]);
     let saved = import_into(&f.dir, &b, 100..102);
-    f.fake.set_output(
-        &b.original_path(&saved[0]).unwrap(),
-        vec![raw("long_hair", 0, 0.5)],
-    );
     wait_for(&tagging, "B 的图打上标", |_| tagged_in(&f, &b) == 2);
     idle(&tagging);
     let names: Vec<_> = tags_of(&b, &saved[0]).into_iter().map(|t| t.1).collect();
@@ -235,7 +232,7 @@ fn unregistering_the_library_being_tagged_stops_its_batch_and_lets_go_of_it() {
         "取消登记后不再写进 A"
     );
 
-    // 其余的库照常打。
+    // 其余的库照常打（放下 A 后可能已经按 30 秒开始打 B 的那张，缩短耗时后它随之打完）。
     f.fake.set_delay(Duration::ZERO);
     wait_for(&tagging, "打 B", |_| tagged_in(&f, &b) == 1);
 }
