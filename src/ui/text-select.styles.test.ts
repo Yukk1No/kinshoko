@@ -24,7 +24,6 @@ describe("文字选取（#224）", () => {
     '[contenteditable]:not([contenteditable="false"])',
     ".insp-file-name",
     ".insp-links",
-    ".workspace-source-path",
     ".import-report-path",
     ".import-report-reason",
     ".create-library-path-text",

@@ -27,15 +27,15 @@ export function useWorkspaceInspector({
   const selectionKey = [...selected].sort().join("\n");
   const [inspectorHidden, setInspectorHidden] = useState<string | null>(null);
   // 详情面板整理哪个图库（ADR-0008，#113）：范围是某个图库时就是它；“全部图片”下选中的图都只有同一个图库的
-  // 来源时是那个库。多选可以整理任何一个图库；只选一张且不在窗口打开的图库时，走下面的来源整理。
+  // 来源时是那个库。单选、多选都可以整理任何一个图库（#422）；选中的图有几份来源、定不下图库时，走下面的来源整理。
   const selectedCards = loadedCards.filter((card) => selected.has(card.id));
   const soleLibrary = selectedCards[0]?.sources?.length === 1 ? selectedCards[0].sources[0].libraryId : null;
   // 列表重读期间选中的图暂时不在已读卡片里：沿用窗口打开的图库，等修剪选择后再定（与原规则相同）。
   const selectionLibrary = workspaceScope.kind === "library" ? workspaceScope.libraryId
     : selectedCards.length === 0 ? libraryId || null
     : soleLibrary && selectedCards.every((card) => card.sources?.length === 1 && card.sources[0].libraryId === soleLibrary) ? soleLibrary : null;
-  const eligible = selected.size > 0 && selectionLibrary !== null && (selected.size > 1 || selectionLibrary === libraryId);
-  // 选中一张只有一份来源、且不属于当前图库的图时，详情面板也显示它的来源整理（卡片上的来源按钮同样可打开）。
+  const eligible = selected.size > 0 && selectionLibrary !== null;
+  // 选中一张在几个图库各有一份的图时，详情面板显示它的来源整理（卡片上的来源按钮同样可打开）。
   const selectedSourceCard = !eligible && selected.size === 1
     ? loadedCards.find((card) => selected.has(card.id) && card.sources?.length && card.libraryId && card.imageId) as SourcesCard | undefined
     : undefined;

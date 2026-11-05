@@ -150,6 +150,24 @@ describe("整理", () => {
     );
   });
 
+  it("在窗口打开时以外的图库里只选一张，详情面板与窗口打开的图库相同，不走来源整理（#422）", async () => {
+    const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
+    backend(library, clean, (cmd) => {
+      if (cmd === "plugin:library|registered_libraries") return [library, other].map((library) => ({ library, unavailable: null }));
+      return undefined;
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(await screen.findByRole("button", { name: "私人收藏（2 张）" }));
+    await waitFor(() => expect(sent("plugin:library|browse").at(-1)).toMatchObject({ libraryId: "L2" }));
+    await waitFor(() => expect(card("a")).toBeTruthy());
+    fireEvent.keyDown(card("a"), { key: " " });
+
+    await waitFor(() => expect(sent("plugin:library|image").at(-1)).toEqual({ libraryId: "L2", imageId: "a" }));
+    await waitFor(() => expect(selectionPanel()).toBeTruthy());
+    expect(sent("plugin:library|workspace_source_inspection")).toEqual([]);
+  });
+
   it("回收站里永久删除：先列出受影响的参考组，过期时重新预览后再确认", async () => {
     let previews = 0;
     let stale = true;

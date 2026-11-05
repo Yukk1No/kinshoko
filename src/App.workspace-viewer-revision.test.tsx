@@ -146,7 +146,6 @@ it("后台已知副本分级使聚合图封印时，保留来源详情面板，�
   const inspector = screen.getByLabelText("详情", { selector: "aside" });
   // 详情面板没有缩略图（#179）。
   expect(within(inspector).queryByRole("img")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "整理此来源" }));
   await screen.findByRole("textbox", { name: "备注" });
   // Background tagging revokes the aggregate through the public provider snapshot; no manual onClear action.
   Object.assign(state, { initialRevision: "r3", wallRevision: "r3", available: false });

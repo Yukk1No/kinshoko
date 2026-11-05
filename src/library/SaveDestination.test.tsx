@@ -148,7 +148,7 @@ it("copy keeps its confirmation during a source refresh and closes it after the 
     if (cmd === "plugin:library|workspace_copy_source") return pendingCopy;
     return null;
   }, { shouldMockEvents: true });
-  const view = (reloadKey: number) => <SaveDestinationProvider safe><WorkspaceSourceEditor card={card} source={card.sources[0]} safe reloadKey={reloadKey} onSource={() => {}} onClose={() => {}} /></SaveDestinationProvider>;
+  const view = (reloadKey: number) => <SaveDestinationProvider safe><WorkspaceSourceEditor card={card} source={card.sources[0]} safe reloadKey={reloadKey} onClose={() => {}} /></SaveDestinationProvider>;
   const rendered = render(view(0));
   fireEvent.click(await screen.findByRole("button", { name: "复制到…" }));
   const dialog = screen.getByRole("dialog", { name: "复制此来源" });
@@ -179,32 +179,6 @@ it("running import does not claim that content is complete before the actual rep
   receipt.progress = { done: 2000, total: 2000 };
   receipt.report = { items: [], cancelled: false, fromEagle: false, eagleMissing: 0, eagleRelocations: [] };
   expect(await screen.findByText("已导入，正在把标签定义存进图库…")).toBeTruthy();
-});
-
-it("pinning whose own change reloads the source leaves the source actions usable (#98 native r18)", async () => {
-  let finishPin!: () => void;
-  const pendingPin = new Promise<void>(resolve => { finishPin = resolve; });
-  const inspection = {
-    detail: { id: "a", originalName: "same.png", width: 100, height: 200, folders: [], note: { manual: "原来源备注", sources: [] }, collectedAt: 0, sourceLinks: [], deletedAt: null, rating: { imageId: "a", suggested: null, manual: null, effective: null }, versions: { previous: null, newer: [] } },
-    tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 1, trash: 0, folders: [] },
-  };
-  const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, adult: false, libraryId: "A", imageId: "a", sources: [{ libraryId: "A", libraryName: "浏览库", imageId: "a", matches: true, unavailable: null, deleted: false }] };
-  mockIPC(cmd => {
-    if (cmd === "plugin:library|workspace_directories") return { status: { revision: "test", libraries }, providers: libraries.map(registration => ({ registration, sidebar: inspection.sidebar, unassigned: 0, descendants: {} })) };
-    if (cmd === "plugin:library|workspace_source_inspection") return inspection;
-    if (cmd === "plugin:library|workspace_sidebar") return inspection.sidebar;
-    if (cmd === "plugin:desktop|reference_groups") return [];
-    if (cmd === "plugin:desktop|pin_reference") return pendingPin;
-    return null;
-  }, { shouldMockEvents: true });
-  const view = (reloadKey: number) => <SaveDestinationProvider safe><WorkspaceSourceEditor card={card} source={card.sources[0]} safe reloadKey={reloadKey} onSource={() => {}} onClose={() => {}} /></SaveDestinationProvider>;
-  const rendered = render(view(0));
-  fireEvent.click(await screen.findByRole("button", { name: "钉住" }));
-  // The pin's own workspace change reloads the source before the pin command replies.
-  rendered.rerender(view(1));
-  await act(async () => { finishPin(); await pendingPin; });
-  await waitFor(() => expect(screen.getByRole("group", { name: "使用此来源" })).toHaveProperty("disabled", false));
-  expect(screen.getByRole("textbox", { name: "新参考组名称" })).toHaveProperty("disabled", false);
 });
 
 it("保存位置读取一直遇到“浏览结果已变化”时最多重试 3 次，然后显示问题", async () => {

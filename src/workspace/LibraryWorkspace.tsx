@@ -332,7 +332,7 @@ export function LibraryWorkspace({
         </main>
         {inspectorContent && !hidden && (
           <WorkspaceInspector inspector={inspector} status={status} safe={safe} reloadKey={reloadKey} vocabularyKey={vocabularyKey}
-            libraryId={libraryId} scope={scope} sources={sources} setSources={setSources} setSelected={setSelected} setViewing={setViewing}
+            libraryId={libraryId} scope={scope} sources={sources} setSources={setSources} setSelected={setSelected}
             onEdited={() => invalidate({ kind: "contentEdited" })} onError={onError} onInspectorWidth={onInspectorWidth} />
         )}
       </div>
