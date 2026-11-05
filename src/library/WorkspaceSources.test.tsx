@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { WorkspaceSources } from "./WorkspacePane";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
@@ -10,14 +10,20 @@ const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, adult: 
 ] };
 afterEach(() => { cleanup(); clearMocks(); });
 
+/** 一份来源的三条读取（#424）：详情、标签与文件夹；不属于它们的命令回 undefined。 */
+function sourceReads(cmd: string, args: unknown, detail: (id: string) => object = () => ({}), sidebar = { all: 1, trash: 0, folders: [] }) {
+  const id = (args as { imageId: string }).imageId;
+  if (cmd === "plugin:library|image") return { id, originalName: id + ".png", width: 100, height: 200, folders: [], note: { manual: id + " 的备注", sources: [] }, collectedAt: 0, sourceLinks: [], deletedAt: null, rating: { imageId: id, suggested: null, manual: null, effective: null }, versions: { previous: null, newer: [] }, ...detail(id) };
+  if (cmd === "plugin:library|catalog_image_tags") return { image: { imageId: id, tags: [], rejected: [] }, identities: [] };
+  if (cmd === "plugin:library|image_folders") return sidebar;
+  return undefined;
+}
+
 it("在图库间切换后复用备注整理，发送完整来源身份", async () => {
   const edits: unknown[] = [];
   mockIPC((cmd, args) => {
-    if (cmd === "plugin:library|workspace_source_inspection") return {
-      detail: { id: "b", originalName: "same.png", width: 100, height: 200, folders: [], note: { manual: "B 的备注", sources: [] }, collectedAt: 0, sourceLinks: [], deletedAt: null, rating: { imageId: "b", suggested: null, manual: null, effective: null }, versions: { previous: null, newer: [] } },
-      tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 1, trash: 0, folders: [] },
-    };
-    if (cmd === "plugin:library|workspace_sidebar") return { all: 1, trash: 0, folders: [] };
+    const read = sourceReads(cmd, args, (id) => ({ note: { manual: id === "b" ? "B 的备注" : "A 的备注", sources: [] } }));
+    if (read) return read;
     if (cmd === "plugin:desktop|reference_groups") return [];
     if (cmd === "plugin:library|workspace_edit_source") { edits.push(args); return; }
   });
@@ -35,11 +41,8 @@ it("换到 B 后，A 的迟到删除响应不能关闭 B 的整理面板", async
   let finishDelete!: () => void;
   const deletion = new Promise<void>((resolve) => { finishDelete = resolve; });
   mockIPC((cmd, args) => {
-    if (cmd === "plugin:library|workspace_source_inspection") {
-      const id = (args as { target: { imageId: string } }).target.imageId;
-      return { detail: { id, originalName: id + ".png", width: 100, height: 200, folders: [], note: { manual: id + " 的备注", sources: [] }, collectedAt: 0, sourceLinks: [], deletedAt: null, rating: { imageId: id, suggested: null, manual: null, effective: null }, versions: { previous: null, newer: [] } }, tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 1, trash: 0, folders: [] } };
-    }
-    if (cmd === "plugin:library|workspace_sidebar") return { all: 1, trash: 0, folders: [] };
+    const read = sourceReads(cmd, args);
+    if (read) return read;
     if (cmd === "plugin:desktop|reference_groups") return [];
     if (cmd === "plugin:library|workspace_edit_source") return deletion;
   });
@@ -57,11 +60,8 @@ it("换来源后，旧永久删除的迟到响应不能关闭新来源", async (
   let finish!: () => void;
   const pending = new Promise<void>((resolve) => { finish = resolve; });
   mockIPC((cmd, args) => {
-    if (cmd === "plugin:library|workspace_source_inspection") {
-      const id = (args as { target: { imageId: string } }).target.imageId;
-      return { detail: { id, originalName: id + ".png", width: 100, height: 200, folders: [], note: { manual: id + " 的备注", sources: [] }, collectedAt: 0, sourceLinks: [], deletedAt: 1, rating: { imageId: id, suggested: null, manual: null, effective: null }, versions: { previous: null, newer: [] } }, tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 0, trash: 1, folders: [] } };
-    }
-    if (cmd === "plugin:library|workspace_sidebar") return { all: 0, trash: 1, folders: [] };
+    const read = sourceReads(cmd, args, () => ({ deletedAt: 1 }), { all: 0, trash: 1, folders: [] });
+    if (read) return read;
     if (cmd === "plugin:desktop|reference_groups") return [];
     if (cmd === "plugin:library|workspace_preview_source_delete") return { imageIds: ["a"], groups: [], token: "preview-a" };
     if (cmd === "plugin:library|workspace_permanent_source_delete") return pending;
@@ -90,12 +90,7 @@ it("同名图库在切换按钮的提示里显示最短独立路径", () => {
 });
 
 it("只在一个图库的图直接显示详情，没有图库切换", async () => {
-  mockIPC((cmd) => {
-    if (cmd === "plugin:library|workspace_source_inspection") return {
-      detail: { id: "a", originalName: "only.png", width: 100, height: 200, folders: [], note: { manual: null, sources: [] }, collectedAt: 0, sourceLinks: [], deletedAt: null, rating: { imageId: "a", suggested: null, manual: null, effective: null }, versions: { previous: null, newer: [] } },
-      tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 1, trash: 0, folders: [] },
-    };
-  });
+  mockIPC((cmd, args) => sourceReads(cmd, args, () => ({ originalName: "only.png" })));
   render(<WorkspaceSources card={{ ...card, sources: card.sources.slice(0, 1) }} onClose={vi.fn()} />);
   await screen.findByText("only.png");
   expect(screen.queryByRole("group", { name: "所在图库" })).toBeNull();
@@ -104,9 +99,34 @@ it("只在一个图库的图直接显示详情，没有图库切换", async () =
 it("卡片代表的那份未连接时，先打开另一份可用的", async () => {
   const inspected: string[] = [];
   mockIPC((cmd, args) => {
-    if (cmd === "plugin:library|workspace_source_inspection") { inspected.push((args as { target: { libraryId: string } }).target.libraryId); return new Promise(() => {}); }
+    if (cmd === "plugin:library|image") inspected.push((args as { libraryId: string }).libraryId);
+    return new Promise(() => {});
   });
   const offline: WorkspaceCard = { ...card, sources: [{ ...card.sources[0], unavailable: { code: "system", detail: "离线" } }, card.sources[1]] };
   render(<WorkspaceSources card={offline} onClose={vi.fn()} />);
   await waitFor(() => expect(inspected).toEqual(["B"]));
+});
+
+it("来源读不出来时只留原因，收起面板与复制", async () => {
+  mockIPC((cmd, args) => {
+    if (cmd === "plugin:library|image") return Promise.reject({ code: "unknownImage" });
+    return sourceReads(cmd, args);
+  });
+  render(<WorkspaceSources card={{ ...card, sources: card.sources.slice(0, 1) }} onClose={vi.fn()} />);
+  await screen.findByRole("alert");
+  await waitFor(() => expect(screen.queryByRole("combobox")).toBeNull());
+  expect(screen.queryByRole("textbox", { name: "备注" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "复制到…" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /^删除$/ })).toBeNull();
+});
+
+it("回收站里的来源：详情到了才出现恢复与永久删除", async () => {
+  let finish!: (value: unknown) => void;
+  const pending = new Promise((resolve) => { finish = resolve; });
+  mockIPC((cmd, args) => (cmd === "plugin:library|image" ? pending : sourceReads(cmd, args)));
+  render(<WorkspaceSources card={{ ...card, sources: card.sources.slice(0, 1) }} onClose={vi.fn()} />);
+  expect(screen.queryByRole("button", { name: /^删除$/ })).toBeNull();
+  await act(async () => { finish(sourceReads("plugin:library|image", { imageId: "a" }, () => ({ deletedAt: 1 }))); });
+  expect(await screen.findByRole("button", { name: "永久删除…" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /^删除$/ })).toBeNull();
 });

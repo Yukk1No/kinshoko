@@ -3,43 +3,6 @@
 use super::*;
 use kinshoko_core::CommandError;
 
-/// 一张参考图的标签，名称按界面语言 `lang`。
-#[tauri::command]
-pub(super) async fn image_tags<R: Runtime>(
-    app: AppHandle<R>,
-    state: State<'_, LibraryState>,
-    library_id: String,
-    image_id: String,
-    lang: String,
-) -> Result<ImageTags, CommandError> {
-    let catalog = state.search.clone();
-    blocking(move || {
-        let library = readable(&app, &library_id)?;
-        with_catalog(&catalog, |catalog| {
-            Ok(catalog.image_tags(&library, &image_id, &lang)?.image)
-        })
-    })
-    .await
-}
-
-#[tauri::command]
-pub(super) async fn catalog_image_tags<R: Runtime>(
-    app: AppHandle<R>,
-    state: State<'_, LibraryState>,
-    library_id: String,
-    image_id: String,
-    lang: String,
-) -> Result<CatalogImageTags, CommandError> {
-    let catalog = state.search.clone();
-    blocking(move || {
-        let library = readable(&app, &library_id)?;
-        with_catalog(&catalog, |catalog| {
-            catalog.image_tags(&library, &image_id, &lang)
-        })
-    })
-    .await
-}
-
 #[tauri::command]
 pub(super) async fn inspect_tag_catalog<R: Runtime>(
     app: AppHandle<R>,

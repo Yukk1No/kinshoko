@@ -87,7 +87,7 @@ try {
   const second = await create("第二库", "青丝");
   let snapshot = await session.invoke("inspect_tag_catalog");
   const target = snapshot.catalog.mappings.find((m) => m.libraryId === first.info.id).catalogId;
-  const secondBefore = await session.invoke("image_tags", { libraryId: second.info.id, imageId: second.imageId, lang: "zh-CN" });
+  const secondBefore = (await session.invoke("catalog_image_tags", { libraryId: second.info.id, imageId: second.imageId, lang: "zh-CN" })).image;
   assert(snapshot.catalog.tags.length === 2, "ambiguous aliases do not merge identities");
   assert(first.localId !== second.localId, "real libraries use different local IDs");
   await session.close(); session = null; quitOwnApp(); await delay(700);
@@ -112,7 +112,7 @@ try {
   await session.invoke("switch_library", { libraryId: first.info.id });
   await session.invoke("edit_tags", { libraryId: first.info.id, imageIds: [first.imageId], edits: [{ kind: "reject", tag: { kind: "id", id: first.localId } }] });
   await session.invoke("switch_library", { libraryId: second.info.id });
-  const afterOtherDecision = await session.invoke("image_tags", { libraryId: second.info.id, imageId: second.imageId, lang: "zh-CN" });
+  const afterOtherDecision = (await session.invoke("catalog_image_tags", { libraryId: second.info.id, imageId: second.imageId, lang: "zh-CN" })).image;
   assert(JSON.stringify(afterOtherDecision) === JSON.stringify(secondBefore), "other library's rejection does not change local image decision");
   await session.close(); session = null; quitOwnApp(); await delay(700);
   session = await Session.start();

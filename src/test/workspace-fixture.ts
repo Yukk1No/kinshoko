@@ -50,7 +50,7 @@ export function workspaceFixture(handler: Handler): Handler {
       });
     }
     const remap: Record<string, string> = {
-      workspace_image: "image", workspace_sidebar: "sidebar", workspace_resolve: "resolve_search",
+      image_folders: "sidebar", workspace_sidebar: "sidebar", workspace_resolve: "resolve_search",
       workspace_candidates: "search_candidates", workspace_tag_groups: "tag_groups",
     };
     const name = command.replace("plugin:library|", "");

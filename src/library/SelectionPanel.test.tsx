@@ -32,7 +32,7 @@ function backend(initial: ImageDetail, afterEdit: ImageDetail) {
   const edits: unknown[] = [];
   mockIPC((cmd, args) => {
     if (cmd === "plugin:library|catalog_image_tags") return NO_TAGS;
-    if (cmd === "plugin:library|sidebar") return { all: 1, trash: 0, folders: [] };
+    if (cmd === "plugin:library|image_folders") return { all: 1, trash: 0, folders: [] };
     if (cmd === "plugin:library|image") return initial;
     if (cmd === "plugin:library|edit") {
       edits.push((args as { edits: unknown }).edits);
@@ -118,7 +118,7 @@ it("永久删除确认使旧详情请求失效，删除后迟到的缺失错误�
   const problems: string[] = [];
   mockIPC((command) => {
     if (command === "plugin:library|catalog_image_tags") return NO_TAGS;
-    if (command === "plugin:library|sidebar") return { all: 0, trash: 1, folders: [] };
+    if (command === "plugin:library|image_folders") return { all: 0, trash: 1, folders: [] };
     if (command === "plugin:library|image") return pending;
     if (command === "plugin:library|preview_permanent_delete") return { imageIds: ["img"], token: "t", groups: [] };
     return undefined;
@@ -135,7 +135,7 @@ it("当前选择的有效详情请求失败仍交给错误提示", async () => {
   const problems: string[] = [];
   mockIPC((command) => {
     if (command === "plugin:library|catalog_image_tags") return NO_TAGS;
-    if (command === "plugin:library|sidebar") return { all: 1, trash: 0, folders: [] };
+    if (command === "plugin:library|image_folders") return { all: 1, trash: 0, folders: [] };
     if (command === "plugin:library|image") return Promise.reject("读取资料库失败");
     return undefined;
   });
@@ -144,19 +144,33 @@ it("当前选择的有效详情请求失败仍交给错误提示", async () => {
   await waitFor(() => expect(problems).toEqual(["读取资料库失败"]));
 });
 
-it("主窗口的多选经工作区读取所选图库的目录，不要求它是后端此刻的可写库（ADR-0008，#113）", async () => {
+it("多选经工作区读取所选图库的目录，不要求它是后端此刻的可写库（ADR-0008，#113）", async () => {
   const commands: { cmd: string; args: unknown }[] = [];
   mockIPC((cmd, args) => {
     if (cmd === "plugin:library|catalog_image_tags") return NO_TAGS;
     commands.push({ cmd, args });
     if (cmd === "plugin:library|workspace_sidebar") return { all: 2, trash: 0, folders: [{ id: "F", name: "人物", count: 0, children: [] }] };
-    if (cmd === "plugin:library|sidebar") return Promise.reject("这个界面打开的资料库已切换");
     return undefined;
   });
-  render(<SelectionPanel workspace libraryId="L2" scope={{ kind: "all" }} selected={new Set(["a", "b"])}
+  render(<SelectionPanel libraryId="L2" scope={{ kind: "all" }} selected={new Set(["a", "b"])}
     onClear={() => {}} reloadKey={0} onError={() => {}} safeMode />);
   await waitFor(() => expect(screen.getByRole("button", { name: "移到文件夹" })).toHaveProperty("disabled", false));
   expect(commands.filter((c) => c.cmd.endsWith("sidebar"))).toEqual([
     { cmd: "plugin:library|workspace_sidebar", args: { libraryId: "L2", safeMode: true } },
   ]);
+});
+
+it("单张详情读失败后改成多选，标签面板照常出现", async () => {
+  mockIPC((command) => {
+    if (command === "plugin:library|image") return Promise.reject({ code: "unknownImage" });
+    if (command === "plugin:library|catalog_image_tags") return NO_TAGS;
+    if (command === "plugin:library|image_folders" || command === "plugin:library|workspace_sidebar") return { all: 2, trash: 0, folders: [] };
+    return [];
+  });
+  const panel = (ids: string[]) => <SelectionPanel libraryId="L1" scope={{ kind: "all" }} selected={new Set(ids)}
+    reloadKey={0} onClear={() => {}} onError={() => {}} />;
+  const view = render(panel(["a"]));
+  await waitFor(() => expect(screen.queryByRole("region", { name: "标签" })).toBeNull());
+  view.rerender(panel(["a", "b"]));
+  expect(await screen.findByRole("region", { name: "标签" })).toBeTruthy();
 });

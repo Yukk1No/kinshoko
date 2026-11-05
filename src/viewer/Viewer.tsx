@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ImageCard } from "../bindings/ImageCard";
 import type { Region } from "../bindings/Region";
-import { copyReferenceImage, imageDetail, workspaceImage, isUnknownImage, pinReference, revealReferenceImage } from "../ipc";
+import { copyReferenceImage, workspaceImage, isUnknownImage, pinReference, revealReferenceImage } from "../ipc";
 import type { KeyboardEvent } from "react";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
@@ -16,7 +16,6 @@ import { type Background, DOCK_RESERVE, useViewerBackground, viewerDockItems, Vi
 import { useViewerSource } from "./useViewerSource";
 
 type Props = {
-  workspace?: boolean;
   libraryId: string;
   card: Omit<ImageCard, "thumbnail"> & Partial<Pick<ImageCard, "thumbnail">>;
   onClose: () => void;
@@ -43,7 +42,7 @@ type Props = {
  * 钉到桌面（#65）：“钉住整图”，或 Shift+拖动（或先按“框选局部”）框出一块，按 Enter 或“钉住局部”。
  * 选区按原图像素记，标出“宽 × 高 原始像素”，缩放平移时边界不变。
  */
-export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, position, onStep, startCrop = false, onTrash, inspectorOpen = false, onToggleInspector }: Props) {
+export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onStep, startCrop = false, onTrash, inspectorOpen = false, onToggleInspector }: Props) {
   const { t } = useTranslation(["viewer", "common"]);
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -134,11 +133,11 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   // 这张图已不在（被删除，或安全模式下被封印，查询返回 UnknownImage）时回到图片墙。
   useEffect(() => {
     let alive = true;
-    (workspace ? workspaceImage : imageDetail)(libraryId, card.id).then(
+    workspaceImage(libraryId, card.id).then(
       (detail) => { if (alive) setName(detail?.originalName ?? null); },
       (e) => { if (alive && isUnknownImage(e)) closeRef.current(); });
     return () => { alive = false; };
-  }, [libraryId, card.id, reloadKey, failedSrc, workspace]);
+  }, [libraryId, card.id, reloadKey, failedSrc]);
   const shown = { left, top, width, height };
   const placed = { width, height, left: 0, top: 0, transform: `translate(${left}px, ${top}px)` };
   const natural = { width: card.width, height: card.height };
