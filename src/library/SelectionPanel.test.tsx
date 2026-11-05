@@ -159,3 +159,18 @@ it("多选经工作区读取所选图库的目录，不要求它是后端此刻�
     { cmd: "plugin:library|workspace_sidebar", args: { libraryId: "L2", safeMode: true } },
   ]);
 });
+
+it("单张详情读失败后改成多选，标签面板照常出现", async () => {
+  mockIPC((command) => {
+    if (command === "plugin:library|image") return Promise.reject({ code: "unknownImage" });
+    if (command === "plugin:library|catalog_image_tags") return NO_TAGS;
+    if (command === "plugin:library|image_folders" || command === "plugin:library|workspace_sidebar") return { all: 2, trash: 0, folders: [] };
+    return [];
+  });
+  const panel = (ids: string[]) => <SelectionPanel libraryId="L1" scope={{ kind: "all" }} selected={new Set(ids)}
+    reloadKey={0} onClear={() => {}} onError={() => {}} />;
+  const view = render(panel(["a"]));
+  await waitFor(() => expect(screen.queryByRole("region", { name: "标签" })).toBeNull());
+  view.rerender(panel(["a", "b"]));
+  expect(await screen.findByRole("region", { name: "标签" })).toBeTruthy();
+});

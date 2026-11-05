@@ -325,13 +325,13 @@ export function SelectionPanel({
   const detailKey = JSON.stringify([requestKey, reloadKey, sourceRefresh]);
   useEffect(() => {
     let alive = true;
+    setFailed(false);
     if (!single) {
       setLoaded(null);
       return;
     }
     // Delete confirmation owns the selection now; listStale must not start another detail read.
     if (purging) return;
-    setFailed(false);
     workspaceImage(libraryId, single).then(
       (d) => alive && setLoaded({ key: detailKey, detail: d }),
       (e) => { if (alive) { setLoaded(null); setFailed(true); onError(e); } },

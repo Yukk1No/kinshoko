@@ -29,6 +29,14 @@ const assert = (ok, label) => { if (!ok) throw Error(label); result.assertions.p
 const delay = ms => new Promise(done => setTimeout(done, ms));
 const { until, wd, Session, begin, quitOwnApp } = driverClient({ url, application, work, result });
 let session, driver;
+// targetImage is the unknown copy of a known Adult: only readable with safe mode off.
+const targetMetadata = async () => {
+  await session.invoke("set_safe_mode", { on: false });
+  const detail = await session.invoke("image", { libraryId: fixture.target.id, imageId: fixture.targetImage });
+  const tags = (await session.invoke("catalog_image_tags", { libraryId: fixture.target.id, imageId: fixture.targetImage, lang: "en" })).image;
+  await session.invoke("set_safe_mode", { on: true });
+  return { detail, tags };
+};
 const safe = async phase => { const on = await session.invoke("safe_mode"); result.safeStates.push({ phase, on }); assert(on === true, `actual global safe mode stays on: ${phase}`); };
 const query = { scope: { kind: "all" }, conditions: { conditions: [] }, cursor: null, limit: 100, thumbnailPx: 128 };
 const finish = id => until("real completed import", async () => { const r = (await session.invoke("import_tasks")).find(t => t.taskId === id); return r?.report && !r.finishing ? r : null; }, 90000);
@@ -42,8 +50,7 @@ try {
   await session.exec("location.reload();");
   await until("rendered current target", () => session.exec("return document.querySelector('select[aria-label=当前资料库]')?.value===arguments[0];", [fixture.target.id]));
   await delay(1800); await safe("before import");
-  const before = await session.invoke("image", { libraryId: fixture.target.id, imageId: fixture.targetImage });
-  const tagsBefore = (await session.invoke("catalog_image_tags", { libraryId: fixture.target.id, imageId: fixture.targetImage, lang: "en" })).image;
+  const { detail: before, tags: tagsBefore } = await targetMetadata();
   const initial = await session.invoke("workspace_browse", { query, safeMode: true }); assert(initial.total === 1, "unknown target copy of a known Adult stays hidden while the ordinary unknown image remains visible");
   const running = await begin(session, fixture.target.id, [fixture.sealedPath, fixture.visiblePath, fixture.newPath, join(work, "missing-file.png")]);
   const receipt = await finish(running.taskId); result.receipts.push(receipt);
@@ -135,7 +142,7 @@ try {
   assert(Boolean((await session.bytes(second.id, second.items[0])).failure), "same-mode generation transition revokes consent"); await safe("same-mode transition");
   const dismiss = await explicit(secondReceipt.taskId); await session.invoke("dismiss_import", { libraryId: fixture.target.id, taskId: secondReceipt.taskId }); assert(Boolean((await session.bytes(dismiss.id, dismiss.items[0])).failure), "receipt dismissal revokes image access");
   const candidates = await session.invoke("workspace_candidates", { text: "t15-sealed-only", lang: "en", limit: 20, safeMode: true }); assert(candidates.length === 0, "ordinary candidates never reveal the hidden duplicate's tag");
-  const after = await session.invoke("image", { libraryId: fixture.target.id, imageId: fixture.targetImage }); const tagsAfter = (await session.invoke("catalog_image_tags", { libraryId: fixture.target.id, imageId: fixture.targetImage, lang: "en" })).image;
+  const { detail: after, tags: tagsAfter } = await targetMetadata();
   assert(JSON.stringify(before.note) === JSON.stringify(after.note) && JSON.stringify(tagsBefore) === JSON.stringify(tagsAfter) && after.rating.effective === null, "real preview leaves manual note, tags and unknown target classification unchanged");
   const final = await session.invoke("workspace_browse", { query, safeMode: true }); assert(final.total === 2, "ordinary browse and counts remain safe after preview");
   for (const [path, expected] of Object.entries(fixture.originals)) assert(sha(readFileSync(path)) === expected, "original SHA unchanged: " + path);
