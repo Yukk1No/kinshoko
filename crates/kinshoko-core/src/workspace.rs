@@ -13,6 +13,7 @@ mod browse;
 use browse::BrowseCache;
 pub use browse::PendingPage;
 mod gate;
+mod image_read;
 pub use gate::ImageGate;
 mod snapshot;
 mod vocabulary;

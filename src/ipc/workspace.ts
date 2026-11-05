@@ -61,8 +61,12 @@ export function workspaceResolve(input: SearchInput, lang: string, safeMode: boo
 export function workspaceCandidates(text: string, lang: string, limit: number, safeMode: boolean): Promise<Candidate[]> {
   return invoke<Candidate[]>(lib("workspace_candidates"), { text, lang, limit, safeMode });
 }
+/** 单图详情的读取：详情、标签（上面的 catalogImageTags）与文件夹都按资料库与图寻址，封印由后端复核（#424）。 */
 export function workspaceImage(libraryId: string, imageId: string): Promise<ImageDetail> {
-  return invoke<ImageDetail>(lib("workspace_image"), { libraryId, imageId });
+  return invoke<ImageDetail>(lib("image"), { libraryId, imageId });
+}
+export function imageFolders(libraryId: string, imageId: string): Promise<Sidebar> {
+  return invoke<Sidebar>(lib("image_folders"), { libraryId, imageId });
 }
 /** 一张图的卡片，与图片墙同样构成（id 是字节身份、带全部来源）；不经图片墙打开的入口用。 */
 export function workspaceCard(libraryId: string, imageId: string, safeMode: boolean): Promise<WorkspaceCard> {
@@ -87,9 +91,6 @@ export function editTagName(catalogId: string, edit: CatalogNameEdit): Promise<T
 
 
 // Explicit aggregate-source actions keep browsing and the current library independent.
-export function workspaceSourceInspection(target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, lang: string): Promise<import("../bindings/WorkspaceSourceInspection").WorkspaceSourceInspection> {
-  return invoke(lib("workspace_source_inspection"), { target, safeMode, lang });
-}
 export function workspaceEditSource(target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, edits: ImageEdit[]): Promise<void> {
   return invoke(lib("workspace_edit_source"), { target, safeMode, edits });
 }

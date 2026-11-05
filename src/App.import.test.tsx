@@ -392,7 +392,8 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     // 启动出错：显示错误，不打开这一步；再迁入一次照常。
     fail("资料库正忙");
     await startEagle();
-    expect(await screen.findByText("无法开始导入：资料库正忙")).toBeTruthy();
+    // 轻提示的标题和读屏播报可能同时带着这句话。
+    expect(await screen.findAllByText("无法开始导入：资料库正忙")).not.toHaveLength(0);
     expect(step()).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "开始导入" }));
     await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(4));

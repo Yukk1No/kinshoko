@@ -1,21 +1,7 @@
-//! 读详情、编辑、永久删除与文件夹的命令。
+//! 编辑、永久删除与文件夹的命令。
 
 use super::*;
 use kinshoko_core::CommandError;
-
-#[tauri::command]
-pub(super) async fn image<R: Runtime>(
-    app: AppHandle<R>,
-    library_id: String,
-    image_id: String,
-) -> Result<ImageDetail, CommandError> {
-    blocking(move || {
-        readable(&app, &library_id)?
-            .image(&image_id)
-            .map_err(CommandError::from)
-    })
-    .await
-}
 
 /// 一次批量整理若干张图，返回重新计算后的详情。
 #[tauri::command]
@@ -158,19 +144,6 @@ pub(super) async fn permanent_delete_batch<R: Runtime>(
                 })
             })
             .collect())
-    })
-    .await
-}
-
-#[tauri::command]
-pub(super) async fn sidebar<R: Runtime>(
-    app: AppHandle<R>,
-    library_id: String,
-) -> Result<Sidebar, CommandError> {
-    blocking(move || {
-        readable(&app, &library_id)?
-            .sidebar()
-            .map_err(CommandError::from)
     })
     .await
 }

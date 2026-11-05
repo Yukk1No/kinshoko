@@ -142,7 +142,9 @@ it("copy keeps its confirmation during a source refresh and closes it after the 
   const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, adult: false, libraryId: "A", imageId: "a", sources: [{ libraryId: "A", libraryName: "浏览库", imageId: "a", matches: true, unavailable: null, deleted: false }] };
   mockIPC(cmd => {
     if (cmd === "plugin:library|workspace_directories") return { status: { revision: "test", libraries }, providers: libraries.map(registration => ({ registration, sidebar: inspection.sidebar, unassigned: 0, descendants: {} })) };
-    if (cmd === "plugin:library|workspace_source_inspection") return refreshed ? pendingInspection : inspection;
+    if (cmd === "plugin:library|image") return refreshed ? pendingInspection : inspection.detail;
+    if (cmd === "plugin:library|catalog_image_tags") return inspection.tags;
+    if (cmd === "plugin:library|image_folders") return inspection.sidebar;
     if (cmd === "plugin:library|workspace_sidebar") return inspection.sidebar;
     if (cmd === "plugin:desktop|reference_groups") return [];
     if (cmd === "plugin:library|workspace_copy_source") return pendingCopy;
@@ -161,7 +163,7 @@ it("copy keeps its confirmation during a source refresh and closes it after the 
   await waitFor(() => expect(screen.getByRole("textbox", { name: "备注", hidden: true }).closest("[aria-busy='true']")).toBeTruthy());
   expect(screen.getByRole("dialog", { name: "复制此来源" })).toBeTruthy();
   await act(async () => { finishCopy(); await pendingCopy; });
-  await act(async () => { finishInspection(inspection); await pendingInspection; });
+  await act(async () => { finishInspection(inspection.detail); await pendingInspection; });
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "复制此来源" })).toBeNull());
 });
 

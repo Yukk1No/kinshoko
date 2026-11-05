@@ -12,7 +12,6 @@ import type { Candidate } from "../bindings/Candidate";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { SearchInput } from "../bindings/SearchInput";
 import type { ImageRating } from "../bindings/ImageRating";
-import type { ImageTags } from "../bindings/ImageTags";
 import type { LibraryEvent } from "../bindings/LibraryEvent";
 import type { TagAlias } from "../bindings/TagAlias";
 import type { TagEdit } from "../bindings/TagEdit";
@@ -22,10 +21,6 @@ import type { Vocabulary } from "../bindings/Vocabulary";
 import { lib, testPick } from "./plugins";
 
 /** 一张参考图的有效标签及出处、被否决的标签，名称按界面语言 lang。 */
-export function imageTags(libraryId: string, imageId: string, lang: string): Promise<ImageTags> {
-  return invoke<ImageTags>(lib("image_tags"), { libraryId, imageId, lang });
-}
-
 /** 对若干参考图批量添加、否决或清除标签决定。 */
 export function editTags(libraryId: string, imageIds: string[], edits: TagEdit[]): Promise<void> {
   return invoke<void>(lib("edit_tags"), { libraryId, imageIds, edits });

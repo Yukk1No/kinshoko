@@ -22,7 +22,6 @@ import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { LibraryRegistration } from "./bindings/LibraryRegistration";
 import type { RegisteredLibrary } from "./bindings/RegisteredLibrary";
 import type { RecoveryReport } from "./bindings/RecoveryReport";
-import type { Sidebar } from "./bindings/Sidebar";
 import { lib } from "./ipc/plugins";
 import { isErrorCode } from "./ipc/commandError";
 export * from "./ipc/tagsAndSearch";
@@ -100,10 +99,6 @@ export function isUnknownImage(error: unknown): boolean {
 }
 
 /** 单张参考图的详情。 */
-export function imageDetail(libraryId: string, imageId: string): Promise<ImageDetail> {
-  return invoke<ImageDetail>(lib("image"), { libraryId, imageId });
-}
-
 /** 一次批量整理若干张图，返回重新计算后的详情。 */
 export function editImages(libraryId: string, ids: string[], edits: ImageEdit[]): Promise<ImageDetail[]> {
   return invoke<ImageDetail[]>(lib("edit"), { libraryId, ids, edits });
@@ -140,10 +135,6 @@ export function isDeletePreviewStale(error: unknown): boolean {
 }
 
 /** 侧栏：全部、回收站与文件夹树，计数只算可见的图。 */
-export function sidebar(libraryId: string): Promise<Sidebar> {
-  return invoke<Sidebar>(lib("sidebar"), { libraryId });
-}
-
 /** 新建文件夹，放在 parent 下（null 为顶层）的最后，返回文件夹 id。 */
 export function createFolder(libraryId: string, name: string, parent: string | null): Promise<string> {
   return invoke<string>(lib("create_folder"), { libraryId, name, parent });
