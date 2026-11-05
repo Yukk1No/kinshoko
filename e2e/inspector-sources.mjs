@@ -110,6 +110,12 @@ const both = async (name) => {
   await theme("light"); await settle();
 };
 const pick = (id) => session.exec("document.querySelector(`.card[data-id=\"${arguments[0]}\"]`).dispatchEvent(new MouseEvent('click', { bubbles: true })); return true;", [id]);
+// 详情面板是普通面板：没有操作栏、“已选 1 张”和“复制到…”（#425）。
+const plainPanel = async (label) => {
+  const leftover = await session.exec("const panel = document.querySelector('aside.inspector'); return { text: panel?.innerText ?? '', bar: Boolean(panel?.querySelector('[role=toolbar]')) };");
+  if (!leftover.text || leftover.bar || /已选 1 张|复制到…/.test(leftover.text)) throw new Error(`${label}: ${JSON.stringify(leftover)}`);
+  console.log("plain panel", label);
+};
 const named = (namespace, name) => ({ kind: "add", tag: { kind: "named", namespace, name, lang: "ja" } });
 
 try {
@@ -148,9 +154,22 @@ try {
 
   // C 两个图库都有：顶上切换到另一个图库。
   await pick(shared.id); await settle();
+  await plainPanel("C1");
   await both("C1-two-libraries");
   await session.click("//aside//*[@role='group' and @aria-label='所在图库']//button[not(@aria-pressed='true')]"); await settle();
+  await plainPanel("C2");
   await both("C2-switched");
+
+  // D 查看器打开墙外的图：窗口留在 Test，打开只在「pixiv 榜单」里的图。真实入口是钉图菜单“在 Kinshoko 中打开”，
+  // 这里替换它取请求的那一步，不弹钉图窗口；之后的路径与真实入口相同。
+  await session.click("//button[starts-with(@aria-label, 'Test') or starts-with(normalize-space(), 'Test')]"); await settle();
+  await until("Test wall without the image", () => session.exec("return document.querySelectorAll('.card[data-id]').length === 6 && !document.querySelector(`.card[data-id=\"${arguments[0]}\"]`);", [featured.id]));
+  await session.exec("const internals = window.__TAURI_INTERNALS__, invoke = internals.invoke, request = arguments[0]; internals.invoke = (command, ...rest) => command === 'plugin:desktop|take_open_request' ? Promise.resolve(request) : invoke(command, ...rest); return true;", [{ kind: "reference", libraryId: ranking.info.id, imageId: featured.imageId }]);
+  await session.invoke("plugin:event|emit", { event: "open-in-kinshoko", payload: null });
+  await until("viewer outside the wall", () => session.exec("return Boolean(document.querySelector('.viewer'));"));
+  await settle(); await delay(800);
+  await plainPanel("D");
+  await both("D-viewer-outside-wall");
   console.log(`Evidence: ${work}`);
 } finally {
   try { await session?.close(); } catch {}
