@@ -42,7 +42,7 @@ function automatic(status: TaggingStatus | null): string {
  * 没有网络时导入模型包。状态是所有资料库合计（#414），与图片墙右下角的图标同一套处理。
  * 换硬件档后已经打过标的图不重打。
  */
-export function AutoTaggingSettings({ libraryId }: { libraryId: string | null }) {
+export function AutoTaggingSettings({ hasLibrary }: { hasLibrary: boolean }) {
   // 随界面语言重新渲染（文案经 `t` 取，不在组件里订阅）。
   useTranslation("tagging");
   const status = useTaggingStatus();
@@ -93,7 +93,7 @@ export function AutoTaggingSettings({ libraryId }: { libraryId: string | null })
   const selected = choice?.options.find((o) => o.device === choice.selected);
   return <>
     <SettingsGroup label={t("group")}>
-      <TaggingStatusRow hasLibrary={libraryId !== null} status={status} />
+      <TaggingStatusRow hasLibrary={hasLibrary} status={status} />
     </SettingsGroup>
     {choice && <SettingsGroup label={t("modelGroup")}>
       <SettingsRow label={t("model")} icon={<Tags size={16} />} title={t("model")} hint={t("modelHint")}>

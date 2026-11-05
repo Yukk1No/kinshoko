@@ -7,21 +7,13 @@ import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { createLibraryUnopened, errorText, pickFolder } from "../ipc";
 import { subscriptionAdd, subscriptionSetOptions } from "../ipc/subscriptions";
 import { useSaveDestination } from "../library/SaveDestination";
+import { newLibraryParentPrefill } from "../library/savePrefill";
 import { Segmented } from "../ui/Segmented";
 import { Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
 import { explicitChoice, useLibraryOptions } from "./artistOptions";
 import { displayName, RANKINGS, rankingKey, rankingName, TOPS, type Ranking, type RankingKey, type Top } from "./rankingNames";
 import { UnofficialMark } from "./UnofficialMark";
-
-/** 上级文件夹；拿不到时为空。盘符根目录保留末尾的分隔符，免得拼成相对路径。 */
-export function parentFolder(root: string): string | null {
-  const trimmed = root.replace(/[\\/]+$/, "");
-  const at = Math.max(trimmed.lastIndexOf("\\"), trimmed.lastIndexOf("/"));
-  if (at <= 0) return null;
-  const parent = trimmed.slice(0, at);
-  return /^[A-Za-z]:$/.test(parent) ? `${parent}\\` : parent;
-}
 
 /** 新文件夹的完整路径，只用来给画师看；真正的路径由后端拼。 */
 function preview(parent: string, name: string) {
@@ -41,19 +33,17 @@ type Library = { mode: "new" | "existing"; existingId: string; name: string; par
 /**
  * 订阅榜单（#370，原型「榜单 #370」R1–R4）：日榜、周榜、月榜各一行，勾上几行订几个，每行选名次。
  * 「R-18 作品」开着时多出 R-18 日榜与周榜（pixiv 没有 R-18 月榜）；它只在登录着、账号开着 R-18 时出现（安全模式只藏图，
- * 不藏这些选项）。第一次订榜单时默认新建单独的图库「pixiv 榜单」，放在当前图库旁边、建好后不切换过去；已有榜单订阅时默认
+ * 不藏这些选项）。第一次订榜单时默认新建单独的图库「pixiv 榜单」，位置按 ADR-0016 预填、建好后不切换过去；已有榜单订阅时默认
  * 放进同一个图库，选了别的图库时提示可能重复收（去重只在同一个图库里）。说明性的文字不放在界面上（维护者 2026-11-02）。
  */
-export function RankingDialog({ status, list, libraryId, onClose, onAdded }: {
+export function RankingDialog({ status, list, onClose, onAdded }: {
   status: SubscriptionStatus; list: Subscription[];
-  /** 当前打开的资料库：新建图库默认放在它旁边。 */
-  libraryId: string | null;
   onClose: () => void; onAdded: (added: Subscription[]) => void;
 }) {
   const { t } = useTranslation("subscriptions", { keyPrefix: "ranking" });
   const { t: ts } = useTranslation("subscriptions");
   const libraries = useLibraryOptions();
-  const { providers } = useSaveDestination();
+  const { providers, memory, rememberNewLibraryParent } = useSaveDestination();
   const rankings = list.filter((s) => s.target.kind === "pixivRanking");
   const subscribed = new Map<RankingKey, number>(rankings.flatMap((s) =>
     s.target.kind === "pixivRanking" ? [[rankingKey(s.target.period, s.target.explicit), s.target.top] as const] : []));
@@ -71,12 +61,11 @@ export function RankingDialog({ status, list, libraryId, onClose, onAdded }: {
   const defaultName = t("defaultLibraryName");
   const named = libraries.options.find((o) => o.label === defaultName)?.value;
   const latestRanking = [...rankings].reverse().find((s) => libraries.options.some((o) => o.value === s.libraryId))?.libraryId;
-  const currentRoot = providers.find((p) => p.registration.library.id === libraryId)?.registration.library.root;
   const chosen: Library = {
     mode: library.mode ?? (rankings.length > 0 || named ? "existing" : "new"),
-    existingId: library.existingId ?? latestRanking ?? named ?? libraries.options.find((o) => o.value === libraryId)?.value ?? libraries.options[0]?.value ?? "",
+    existingId: library.existingId ?? latestRanking ?? named ?? libraries.options[0]?.value ?? "",
     name: library.name ?? defaultName,
-    parent: library.parent !== undefined ? library.parent : currentRoot ? parentFolder(currentRoot) : null,
+    parent: library.parent !== undefined ? library.parent : newLibraryParentPrefill(rankings.map((s) => s.libraryId), memory.newLibraryParent, providers),
   };
   const set = (patch: Partial<Library>) => setLibrary((l) => ({ ...l, ...patch }));
 
@@ -97,6 +86,7 @@ export function RankingDialog({ status, list, libraryId, onClose, onAdded }: {
     if (chosen.mode === "new") {
       try {
         target = (await createLibraryUnopened(chosen.parent!, chosen.name.trim())).id;
+        if (library.parent) rememberNewLibraryParent(library.parent);
         // 建好了：订阅没成也不再建第二次，下次直接放进它。
         set({ mode: "existing", existingId: target });
       } catch (e) {

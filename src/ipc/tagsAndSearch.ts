@@ -12,9 +12,7 @@ import type { Candidate } from "../bindings/Candidate";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { SearchInput } from "../bindings/SearchInput";
 import type { ImageRating } from "../bindings/ImageRating";
-import type { ImageTags } from "../bindings/ImageTags";
 import type { LibraryEvent } from "../bindings/LibraryEvent";
-import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { TagAlias } from "../bindings/TagAlias";
 import type { TagEdit } from "../bindings/TagEdit";
 import type { TagNamespace } from "../bindings/TagNamespace";
@@ -23,10 +21,6 @@ import type { Vocabulary } from "../bindings/Vocabulary";
 import { lib, testPick } from "./plugins";
 
 /** 一张参考图的有效标签及出处、被否决的标签，名称按界面语言 lang。 */
-export function imageTags(libraryId: string, imageId: string, lang: string): Promise<ImageTags> {
-  return invoke<ImageTags>(lib("image_tags"), { libraryId, imageId, lang });
-}
-
 /** 对若干参考图批量添加、否决或清除标签决定。 */
 export function editTags(libraryId: string, imageIds: string[], edits: TagEdit[]): Promise<void> {
   return invoke<void>(lib("edit_tags"), { libraryId, imageIds, edits });
@@ -143,14 +137,6 @@ export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<
   return listen<LibraryEvent>("library-event", (e) => handler(e.payload));
 }
 
-/**
- * 整理另一个图库时后端把唯一的可写句柄切了过去（ADR-0008，#112）。界面没有“当前图库”，
- * 只有跟着可写库走的部分（自动标签）需要知道。
- */
-export function onWritableLibrary(handler: (library: LibraryInfo) => void): Promise<UnlistenFn> {
-  return listen<LibraryInfo>("writable-library", (e) => handler(e.payload));
-}
-
 /** 整理在等某个图库的导入收尾（#112）：完成后自动执行，界面只给轻提示。 */
 export function onOrganizeWaiting(handler: (waiting: OrganizeWaiting) => void): Promise<UnlistenFn> {
   return listen<OrganizeWaiting>("organize-waiting", (e) => handler(e.payload));
@@ -193,7 +179,7 @@ export function safeMode(): Promise<boolean> {
   return invoke<boolean>(lib("safe_mode"));
 }
 
-/** 开关安全模式；当前资料库随后推送 safeModeChanged。 */
+/** 开关安全模式；开着的资料库随后推送 safeModeChanged。 */
 export function setSafeMode(on: boolean): Promise<boolean> {
   return invoke<boolean>(lib("set_safe_mode"), { on });
 }

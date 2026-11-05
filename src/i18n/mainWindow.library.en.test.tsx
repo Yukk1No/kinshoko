@@ -22,6 +22,7 @@ const settle = () => act(async () => { await Promise.resolve(); await Promise.re
 const registrations = ["A", "B"].map((id) => ({ library: { id, name: `库${id}`, root: `D:\\${id}` }, unavailable: null as import("../bindings/CommandError").CommandError | null }));
 const forest = (): WorkspaceDirectories => ({
   status: { revision: "r", libraries: registrations },
+  registrationOrder: ["A", "B"],
   providers: registrations.map((registration) => ({
     registration, unassigned: 1, descendants: {},
     sidebar: { all: 3, trash: 2, folders: [{ id: `${registration.library.id}-f`, name: "人物", count: 1, children: [{ id: `${registration.library.id}-c`, name: "动作", count: 1, children: [] }] }] },
@@ -32,7 +33,7 @@ const data = ["库A", "库B", "人物", "动作", "眼睛", "蓝瞳"];
 describe("英文界面：首次启动", () => {
   it("欢迎页与新建图库", async () => {
     mockIPC(() => [], { shouldMockEvents: true });
-    render(<LibraryPicker layout="inline" current={null} onChanged={vi.fn()} onCreate={vi.fn()} />);
+    render(<LibraryPicker layout="inline" onChanged={vi.fn()} onCreate={vi.fn()} />);
     await settle();
     expect(screen.getByRole("heading", { name: "Welcome to Kinshoko" })).toBeTruthy();
     expectNoChinese(document.body);
@@ -58,7 +59,7 @@ describe("英文界面：资料库与文件夹树", () => {
 
   it("管理图库", async () => {
     mockIPC((command) => (command === "plugin:library|registered_libraries" ? registrations : null), { shouldMockEvents: true });
-    render(<LibraryPicker current={registrations[0].library} onChanged={vi.fn()} onCreate={vi.fn()} />);
+    render(<LibraryPicker onChanged={vi.fn()} onCreate={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Open, create or manage libraries" }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Manage libraries" }));
     expect(await screen.findByRole("button", { name: "Remove 库A" })).toBeTruthy();

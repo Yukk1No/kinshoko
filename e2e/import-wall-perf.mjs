@@ -100,7 +100,7 @@ try {
   await until("窗口已最大化", () => session.exec("return Boolean(document.querySelector('.k-win-btn[aria-label=\"还原\"]'));"));
   const b = await session.invoke("create_library", { parent: libraries, name: "另一库" });
   await session.invoke("start_import", { libraryId: b.id, source: { paths: [small] } });
-  await until("库 B 导入", async () => (await session.invoke("sidebar", { libraryId: b.id })).all === 4);
+  await until("库 B 导入", async () => (await session.invoke("workspace_sidebar", { libraryId: b.id, safeMode: await session.invoke("safe_mode") })).all === 4);
   const a = await session.invoke("create_library", { parent: libraries, name: "帧时间基线" });
   result.libraries = { a: a.id, b: b.id };
   await until("侧栏出现两个资料库", () => session.exec("return document.querySelectorAll('nav[aria-label=\"查找范围\"] [data-library-id]').length === 2;"));
@@ -142,7 +142,7 @@ try {
   await delay(1500);
   await session.screenshot(join(work, "importing-2.png"));
   await until("导入完成", () => session.exec("return !document.querySelector('[aria-label=\"导入进度\"]');"), 3_600_000, 500);
-  const imported = (await session.invoke("sidebar", { libraryId: a.id })).all;
+  const imported = (await session.invoke("workspace_sidebar", { libraryId: a.id, safeMode: await session.invoke("safe_mode") })).all;
   // 读取或解码失败的项也会让进度条消失：张数必须与样本里不同内容的张数完全一致，否则不算这次测量。
   if (imported !== expected) throw new Error(`导入结果不完整：进库 ${imported} 张，样本里有 ${expected} 张不同内容的图`);
   result.import = { ms: Date.now() - importStart, all: imported, expected };

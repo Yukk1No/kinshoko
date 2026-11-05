@@ -37,7 +37,7 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
     if (command === "plugin:library|current_library") return libraries[0].library;
     if (command === "plugin:library|registered_libraries") return libraries;
     if (command === "plugin:library|workspace_status") return initialReply ?? status(state.initialRevision);
-    if (command === "plugin:library|workspace_directories") return { status: status(state.wallRevision), providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
+    if (command === "plugin:library|workspace_directories") return { status: status(state.wallRevision), registrationOrder: [], providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
     if (command === "plugin:library|workspace_tag_groups" || command === "plugin:library|import_tasks") return [];
     if (command === "tagging_status") return { state: "starting" };
     if (command === "plugin:library|workspace_browse") {
@@ -51,22 +51,15 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
         total: state.available ? 1 : 0, nextCursor: null, status: status(state.wallRevision),
       };
     }
-    if (command === "plugin:library|workspace_image") {
+    if (command === "plugin:library|image") {
       if (!state.available) return Promise.reject({ code: "unknownImage" });
       return { id: (args as { imageId: string }).imageId, originalName: "参考图", width: 100, height: 100, collectedAt: 1000, sourceLinks: [],
         folders: [], note: { manual: null, sources: [] }, deletedAt: null, versions: { previous: null, newer: [] },
         rating: { imageId: "a", suggested: null, manual: null, effective: null } };
     }
-    if (command === "plugin:library|workspace_source_inspection") {
-      if (!state.available) return Promise.reject("此来源已封印");
-      return { detail: { id: state.imageId, originalName: "参考图", width: 100, height: 100, collectedAt: 1000, sourceLinks: [],
-        folders: [], note: { manual: "来源备注", sources: [] }, deletedAt: null, versions: { previous: null, newer: [] },
-        rating: { imageId: state.imageId, suggested: null, manual: null, effective: null } },
-        tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 1, trash: 0, folders: [] } };
-    }
     if (command === "plugin:desktop|reference_groups") return [];
     if (command === "plugin:library|catalog_image_tags") return { image: { imageId: state.imageId, tags: [], rejected: [] }, identities: [] };
-    if (command === "plugin:library|workspace_sidebar" || command === "plugin:library|sidebar") return { all: state.available ? 1 : 0, trash: 0, folders: [] };
+    if (command === "plugin:library|workspace_sidebar" || command === "plugin:library|image_folders") return { all: state.available ? 1 : 0, trash: 0, folders: [] };
     if (command === "shell_settings") return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid" };
     if (command === "app_info") return { productName: "Kinshoko", version: "1" };
     if (command === "plugin:library|workspace_edit_sources") return [];
@@ -153,7 +146,7 @@ it("后台已知副本分级使聚合图封印时，保留来源详情面板，�
   await waitFor(() => expect(screen.getByRole("listbox", { name: "图片墙" }).dataset.total).toBe("0"));
   expect(screen.getByLabelText("详情", { selector: "aside" })).toBe(inspector);
   expect(within(inspector).queryByRole("img")).toBeNull();
-  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "此来源已封印");
+  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "资料库中没有这张参考图");
 });
 
 it("首个修订通知先于初始状态和浏览响应到达时，图片墙重读当前修订", async () => {

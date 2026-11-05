@@ -63,6 +63,7 @@ const importing: Translation<typeof zh> = {
   drop: {
     choose: "Drop to import, then choose where it goes",
     into: "Drop to import into {{library}}",
+    inTrash: "Can't import in the Trash",
   },
   tagStepLabel: "Fill in tag mappings",
   result: {
@@ -86,7 +87,6 @@ const importing: Translation<typeof zh> = {
     importAnyway: "Import them this time…",
     inTrash: "Some images are in the Trash and stay deleted. ",
     openTrash: "Go to Trash",
-    rejectedFiles: "Files not imported",
     retryLabel_one: "Retry {{count}} failed item",
     retryLabel_other: "Retry {{count}} failed items",
     retry: "Retry failed",

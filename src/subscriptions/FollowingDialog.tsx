@@ -16,14 +16,14 @@ type Follows = { kind: "loading" } | { kind: "loaded"; artists: Artist[] } | { k
  * 从 pixiv 关注导入（#369，草图 B）：一次性读出登录账号的关注，勾选要订阅的画师，用同一套设置订阅。
  * 订阅名单是 Kinshoko 自己的，之后 pixiv 上的关注变化不影响它（#366）。
  */
-export function FollowingDialog({ status, list, libraryId, onClose, onBack, onAdded }: {
-  status: SubscriptionStatus; list: Subscription[]; libraryId: string | null;
+export function FollowingDialog({ status, list, onClose, onBack, onAdded }: {
+  status: SubscriptionStatus; list: Subscription[];
   onClose: () => void; onBack: () => void; onAdded: (added: Subscription[]) => void;
 }) {
   const { t } = useTranslation("subscriptions", { keyPrefix: "following" });
   const { t: ta } = useTranslation("subscriptions", { keyPrefix: "artist" });
   const libraries = useLibraryOptions();
-  const fallback = libraries.options.find((o) => o.value === libraryId)?.value ?? libraries.options[0]?.value ?? "";
+  const fallback = libraries.options[0]?.value ?? "";
   const [follows, setFollows] = useState<Follows>({ kind: "loading" });
   const [filter, setFilter] = useState("");
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());

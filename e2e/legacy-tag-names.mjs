@@ -4,9 +4,9 @@
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync, renameSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import { createHash } from "node:crypto";
 import { deflateSync } from "node:zlib";
+import { chunk, ihdr, oldLibrary } from "./legacy-tag-names.helpers.mjs";
 
 const [, , appArg, edgeArg] = process.argv;
 if (!appArg || !edgeArg) throw new Error("Usage: node e2e/legacy-tag-names.mjs <kinshoko.exe> <msedgedriver.exe>");
@@ -19,15 +19,6 @@ const libraries = join(work, "libraries");
 mkdirSync(libraries);
 mkdirSync(join(work, "roaming")); mkdirSync(join(work, "local"));
 const imagePath = join(work, "image.png");
-function chunk(type, data) {
-  const body = Buffer.concat([Buffer.from(type), data]);
-  let crc = 0xffffffff;
-  for (const byte of body) { crc ^= byte; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1; }
-  const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-  const checksum = Buffer.alloc(4); checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, checksum]);
-}
-const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(3, 0); ihdr.writeUInt32BE(3, 4); ihdr[8] = 8; ihdr[9] = 2;
 const row = Buffer.from([0, 18, 28, 38, 18, 28, 38, 18, 28, 38]);
 writeFileSync(imagePath, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(Buffer.concat([row, row, row]))), chunk("IEND", Buffer.alloc(0))]));
 const port = Number(process.env.KINSHOKO_WEBDRIVER_PORT ?? 4458);
@@ -98,30 +89,8 @@ let session;
 const setting = "//button[@aria-label='设置' or normalize-space()='设置']";
 
 const oldSchema = readFileSync("crates/kinshoko-core/tests/fixtures/spec78-legacy-v16.sql", "utf8");
-function oldLibrary(name, oldName) {
-  const root = join(libraries, name);
-  mkdirSync(root);
-  const bytes = readFileSync(imagePath);
-  const sha = createHash("sha256").update(bytes).digest("hex");
-  const rel = `originals/${sha.slice(0, 2)}/${sha}.png`;
-  mkdirSync(join(root, "originals", sha.slice(0, 2)), { recursive: true });
-  writeFileSync(join(root, rel), bytes);
-  const db = new DatabaseSync(join(root, "library.sqlite"));
-  db.exec(oldSchema);
-  const identity = (suffix) => createHash("sha256").update(name + suffix).digest("hex").slice(0, 32);
-  const id = identity("library"), imageId = identity("image"), localId = identity("parted");
-  db.prepare("INSERT INTO library VALUES (?,?,1,1000)").run(id, name);
-  db.prepare("INSERT INTO image (id,sha256,size,format,rel_path,width,height,orientation,original_name,imported_at) VALUES (?,?,?,'png',?,3,3,1,'old.png',1000)").run(imageId, sha, bytes.length, rel);
-  db.prepare("INSERT INTO tag VALUES (?,'general',1000)").run(localId);
-  db.prepare("INSERT INTO tag_name VALUES (?,'zh-CN',?)").run(localId, oldName);
-  db.prepare("INSERT INTO tag_external VALUES ('parted_hair',?)").run(localId);
-  db.prepare("INSERT INTO tag_fact VALUES (?,?,'model:old',0.9)").run(imageId, localId);
-  db.prepare("INSERT INTO tag_decision VALUES (?,?,'add',1000)").run(imageId, localId);
-  db.close();
-  return { info: { id, root, name }, imageId, localId, original: join(root, rel), sha };
-}
-const first = oldLibrary("旧名称第一库", "分发");
-const second = oldLibrary("旧名称第二库", "分开的头发");
+const first = oldLibrary({ libraries, imagePath, oldSchema }, "旧名称第一库", "分发");
+const second = oldLibrary({ libraries, imagePath, oldSchema }, "旧名称第二库", "分开的头发");
 let target;
 async function register(library) {
   const info = await session.invoke("register_library", { root: library.info.root });
@@ -151,7 +120,7 @@ async function confirm() {
   await until("saved migration", () => session.exec("return document.body.textContent.includes('本批次名称归属已保存。')"));
 }
 async function closeSettings() { await session.click("//button[normalize-space()='关闭设置']"); }
-async function tags(library) { return session.invoke("image_tags", { libraryId: library.info.id, imageId: library.imageId, lang: "zh-CN" }); }
+async function tags(library) { return session.invoke("catalog_image_tags", { libraryId: library.info.id, imageId: library.imageId, lang: "zh-CN" }).then((tags) => tags.image); }
 async function displayed(library, expected) {
   await session.select("//select[@aria-label='当前资料库']", library.info.id);
   await until("selected write target", async () => (await session.invoke("current_library"))?.id === library.info.id);

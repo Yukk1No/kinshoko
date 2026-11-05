@@ -13,7 +13,7 @@ describe("查找", () => {
   const lastQuery = () =>
     (sent("plugin:library|browse").at(-1) as { query: { conditions: ConditionTree } }).query;
 
-  it("切换整理资料库保留全局条件，旧候选和旧条件树按代次重新解析", async () => {
+  it("登记另一个图库保留全局条件，旧候选和旧条件树按代次重新解析", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
     let finishCandidates!: (value: Candidate[]) => void;
     let finishTree!: (value: ConditionTree) => void;

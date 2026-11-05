@@ -103,7 +103,7 @@ try {
   await until("selection and trash card removed", () => session.exec("return !document.querySelector('.selection') && document.querySelector('.wall')?.dataset.total === '0';"));
   await delay(2000); // allow a full provider-monitor revision after the deletion event.
   assert(await session.exec("return ![...document.querySelectorAll('[role=alert]')].some(el => el.textContent.includes('资料库中没有这张参考图'));"), "permanent delete does not leave a stale detail error in formal UI");
-  assert(await session.invoke("workspace_image", { libraryId: prior.first.info.id, imageId: target.imageId }).then(() => false, () => true), "deleted selected source is unavailable to new detail requests");
+  assert(await session.invoke("image", { libraryId: prior.first.info.id, imageId: target.imageId }).then(() => false, () => true), "deleted selected source is unavailable to new detail requests");
   await session.screenshot("permanent-delete-no-stale-detail.png");
   writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, binarySha256, assertions, libraryId: prior.first.info.id, deletedImage: target.imageId }, null, 2));
   console.log(`Evidence: ${work}`);

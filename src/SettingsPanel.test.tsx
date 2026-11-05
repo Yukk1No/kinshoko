@@ -12,7 +12,6 @@ import { backend, defaults, resetSettingsTest, tab } from "./SettingsPanel.fixtu
 afterEach(resetSettingsTest);
 
 describe("设置：近似查找", () => {
-  const library = { id: "L1", name: "工作参考", root: "D:\\参考" };
   const label = (id: string, name: string, hasExternal: boolean): TagLabel => ({
     id,
     namespace: "general",
@@ -30,7 +29,7 @@ describe("设置：近似查找", () => {
       cmd === "set_show_approx_source" ? { ...defaults, showApproxSource: true } : undefined,
     );
     const seen: ShellSettingsView[] = [];
-    render(<SettingsPanel library={null} onChange={(v) => seen.push(v)} initialTab="tags" />);
+    render(<SettingsPanel onChange={(v) => seen.push(v)} initialTab="tags" />);
     fireEvent.click(await screen.findByRole("button", { name: "相近" }));
 
     const toggle = await screen.findByRole("switch", { name: "标出来源" });
@@ -47,7 +46,7 @@ describe("设置：近似查找", () => {
       cmd === "set_keep_selection_on_safe_mode" ? { ...defaults, keepSelectionOnSafeMode: true } : undefined,
     );
     const seen: ShellSettingsView[] = [];
-    render(<SettingsPanel library={null} onChange={(v) => seen.push(v)} initialTab="safety" safe onSafeMode={() => {}} />);
+    render(<SettingsPanel onChange={(v) => seen.push(v)} initialTab="safety" safe onSafeMode={() => {}} />);
 
     const toggle = await screen.findByRole("switch", { name: "切换时保留选择" });
     expect(toggle.getAttribute("aria-checked")).toBe("false");
@@ -62,7 +61,7 @@ describe("设置：近似查找", () => {
     const calls = backend((cmd) =>
       cmd === "set_pin_edge_contrast" ? { ...defaults, pinEdgeContrast: true } : undefined,
     );
-    render(<SettingsPanel library={null} initialTab="general" />);
+    render(<SettingsPanel initialTab="general" />);
 
     const toggle = await screen.findByRole("switch", { name: "增强钉图边缘" });
     expect(toggle.getAttribute("aria-checked")).toBe("false");
@@ -77,7 +76,7 @@ describe("设置：近似查找", () => {
       cmd === "plugin:library|set_safe_mode_scope" ? { ...defaults, safeModeScope: "explicit" } : undefined,
     );
     const seen: ShellSettingsView[] = [];
-    render(<SettingsPanel library={null} onChange={(v) => seen.push(v)} initialTab="safety" safe onSafeMode={() => {}} />);
+    render(<SettingsPanel onChange={(v) => seen.push(v)} initialTab="safety" safe onSafeMode={() => {}} />);
 
     const scope = await screen.findByRole("group", { name: "安全模式范围" });
     expect(within(scope).getAllByRole("button").map((b) => [b.textContent, b.getAttribute("aria-pressed")])).toEqual([
@@ -99,10 +98,10 @@ describe("设置：近似查找", () => {
     });
     const seen: ShellSettingsView[] = [];
     const settings = createShellSettings((view) => seen.push(view));
-    const first = render(<SettingsPanel library={null} settings={settings} initialTab="safety" safe onSafeMode={() => {}} />);
+    const first = render(<SettingsPanel settings={settings} initialTab="safety" safe onSafeMode={() => {}} />);
     fireEvent.click(within(await screen.findByRole("group", { name: "安全模式范围" })).getByRole("button", { name: "仅成人" }));
     first.unmount();
-    render(<SettingsPanel library={null} settings={settings} initialTab="safety" safe onSafeMode={() => {}} />);
+    render(<SettingsPanel settings={settings} initialTab="safety" safe onSafeMode={() => {}} />);
     fireEvent.click(within(await screen.findByRole("group", { name: "安全模式范围" })).getByRole("button", { name: "轻度及以上" }));
     const scopes = () => calls.filter((c) => c.cmd === "plugin:library|set_safe_mode_scope").map((c) => c.args.scope);
     await waitFor(() => expect(waiting.length).toBe(1));
@@ -125,7 +124,7 @@ describe("设置：近似查找", () => {
       }
       return undefined;
     });
-    render(<SettingsPanel library={library} initialTab="tags" />);
+    render(<SettingsPanel hasLibrary initialTab="tags" />);
     fireEvent.click(await screen.findByRole("button", { name: "相近" }));
 
     const table = await screen.findByRole("table", { name: "相近标签表" });
@@ -146,7 +145,7 @@ describe("设置：近似查找", () => {
 it("refreshes personal approximate labels when shared display names change", async () => {
   let current = "旧显示名称";
   mockIPC((cmd) => cmd === "shell_settings" ? defaults : cmd.endsWith("safe_mode") ? true : cmd.endsWith("workspace_status") ? { revision: "r1", libraries: [] } : cmd.endsWith("shared_personal_approx") ? { revision: 1, conflicts: [], entries: [{ a: { id: "a", namespace: "general", name: current, untranslated: false, hasExternal: false }, b: { id: "b", namespace: "general", name: "另一个标签", untranslated: false, hasExternal: false }, relation: "similar", sources: [] }] } : undefined, { shouldMockEvents: true });
-  render(<SettingsPanel library={{ id: "library", name: "资料库", root: "library" }} initialTab="tags" />);
+  render(<SettingsPanel hasLibrary initialTab="tags" />);
   fireEvent.click(await screen.findByRole("button", { name: "相近" }));
   await screen.findByText(/旧显示名称/);
   current = "新的共享名称";
@@ -246,7 +245,7 @@ describe("设置：分页", () => {
       if (cmd === "tagging_status") return { state: "paused" };
       return undefined;
     });
-    render(<SettingsPanel library={{ id: "L1", name: "资料库", root: "D:\\资料库" }} />);
+    render(<SettingsPanel hasLibrary />);
     await screen.findByRole("switch", { name: "开机启动" });
     expect(screen.queryByText(/自动打标|模型包|硬件加速/)).toBeNull();
 

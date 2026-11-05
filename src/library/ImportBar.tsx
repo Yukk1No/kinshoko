@@ -25,6 +25,8 @@ export type FinishedImport = { taskId: string; report: ImportReport; libraryId?:
 type Props = {
   enabled: boolean;
   previewContextKey?: string;
+  /** 拖入窗口不开始导入（回收站范围）：悬停不提示，松开后只发一条通知。 */
+  dropBlocked?: boolean;
   libraryId: string;
   libraryName: string;
   destination?:SaveDestination|null;
@@ -35,7 +37,7 @@ type Props = {
   onRetryDestination?: (destination:SaveDestination)=>void;
   onDismissReport: () => void;
   /** 到现有、受安全模式筛选的回收站，由画师决定恢复。 */
-  onOpenTrash?: (libraryId?:string) => void;
+  onOpenTrash?: (libraryId:string) => void;
   /** 导入入口是顶栏的分体按钮（#98），经 `actionsRef` 调用这里的流程。 */
   actionsRef?: Ref<ImportActions>;
   /** 能否开始新的导入（与入口按钮的可用状态一致），以及是否正在查找 Eagle 资料库。 */
@@ -63,7 +65,7 @@ export type ImportActions = { files: () => void; folder: () => void; eagle: () =
  * 进度是右下角的卡片，可取消或后台进行。结束、出错、上次中断与封印项重复走轻提示（#388）；结束的提示带“查看”，
  * 打开结果回执卡：列出没有进来的文件并可只重试读取失败的项。没有 ToastProvider 时（单独渲染）这些仍是卡片。
  */
-export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, warnings, onSelectTask }: Props) {
+export function ImportBar({ previewContextKey, dropBlocked = false, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, warnings, onSelectTask }: Props) {
   const { t } = useTranslation("importing");
   /** “后台进行”收起的进度卡（按任务 id）；新任务或从导入菜单“查看导入任务”时重新显示。 */
   const [background, setBackground] = useState<string | null>(null);
@@ -182,18 +184,19 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
   };
 
   // 拖放的回调只注册一次，经 ref 读到最新的状态。
-  const latest = useRef({ busy, begin });
-  latest.current = { busy, begin };
+  const latest = useRef({ busy, begin, dropBlocked, noticeBlockedDrop: () => {} });
+  latest.current = { ...latest.current, busy, begin, dropBlocked };
   useEffect(() => {
     const unlisten = onFileDrop((drop) => {
       if (!alive.current || !enabledRef.current) return;
       switch (drop.kind) {
         case "enter":
-          setHovering(!latest.current.busy);
+          setHovering(!latest.current.busy && !latest.current.dropBlocked);
           break;
         case "drop":
           setHovering(false);
-          if (!latest.current.busy) void latest.current.begin(drop.paths);
+          if (latest.current.dropBlocked) latest.current.noticeBlockedDrop();
+          else if (!latest.current.busy) void latest.current.begin(drop.paths);
           break;
         case "leave":
           setHovering(false);
@@ -229,6 +232,8 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
 
   const { toast, receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, recovery, dismissRecovery, importError, setImportError,
     reimport: (paths, library) => void reimport(paths, library), sealedTask: sealed ? sealed.taskId : null, showSealed: (taskId) => setPreview({ taskId, contextKey }) });
+
+  latest.current.noticeBlockedDrop = () => { toast?.show({ title: t("drop.inTrash") }); };
 
   const cards = <>
     {importError && <section className="k-task" role="alert" aria-label={t("error.title")}>
@@ -300,7 +305,9 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
       <EagleLibrariesDialog eagleLibraries={eagleLibraries} setEagleLibraries={setEagleLibraries} busy={busy} begin={begin} importFolder={importFolder} />
       {hovering && (
         <div className="drop-hint k-drop-hint" aria-live="polite">
-          {destination === null ? t("drop.choose") : t("drop.into", { library: libraryName })}
+          <span className="k-drop-hint-icon" role="img" aria-label={destination === null ? t("drop.choose") : t("drop.into", { library: libraryName })}>
+            <Download size={32} strokeWidth={1.75} aria-hidden="true" />
+          </span>
         </div>
       )}
       {finished && preview?.taskId === finished.taskId && preview.contextKey === contextKey && enabled && <SealedImportPreview key={finished.taskId} libraryId={finished.libraryId ?? libraryId} taskId={finished.taskId} onClose={() => setPreview(null)} />}

@@ -14,6 +14,7 @@ const ipc = vi.hoisted(() => ({
   captures: vi.fn(() => Promise.resolve([{ id: "shot-1", width: 100, height: 80, collected: [{ libraryId: "lib-a" }] }])),
 }));
 vi.mock("../ipc", () => ({
+  saveMemory: () => Promise.resolve({ importDestination: null, newLibraryParent: null }),
   referenceGroups: ipc.groups,
   referenceGroup: ipc.group,
   groupSaveCaptures: ipc.captures,
@@ -95,7 +96,7 @@ describe("英文界面：桌面", () => {
   });
 
   it("截图历史与它的右键菜单", async () => {
-    render(<CaptureHistoryPanel libraryId="lib-a" />);
+    render(<CaptureHistoryPanel />);
     await settle();
     expect(screen.getByText("Press F1 to capture the screen. Old screenshots that aren't collected are cleaned up automatically.")).toBeTruthy();
     expect(screen.getByText("5 minutes ago")).toBeTruthy();

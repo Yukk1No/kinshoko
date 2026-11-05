@@ -4,9 +4,8 @@
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync, renameSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import { createHash } from "node:crypto";
-import { deflateSync } from "node:zlib";
+import { assert, assertions, backup, boot, clearSession, closeSettings, configure, delay, hotkey, normalQuit, oldLibrary, openSettings, ownedWindows, quitOwnApp, restart, restore, session, setting, stopDriver, until, useProfile, wd } from "./application-settings-backup.helpers.mjs";
 const [, , appArg, edgeArg] = process.argv;
 if (!appArg || !edgeArg) throw Error("Owned executable and matching Edge driver required");
 const application=resolve(appArg), manifest=JSON.parse(readFileSync("work/t13/native-source.json","utf8"));
@@ -17,97 +16,19 @@ const work=resolve("work","e2e",`application-settings-${Date.now()}`);mkdirSync(
 const configDir=resolve(process.env.USERPROFILE,"AppData","Roaming",manifest.identifier), configFile=join(configDir,"settings.json");
 if(existsSync(configFile))throw Error(`Isolated KnownFolder settings already exist: ${configFile}`);
 const libraries=join(work,"libraries");mkdirSync(libraries);
-let data=join(work,"configured-app-data"), profile=join(work,"configured-webview"), driver, session;
+useProfile(join(work,"configured-app-data"),join(work,"configured-webview"));
 const port=Number(process.env.KINSHOKO_WEBDRIVER_PORT??4492),driverUrl=`http://127.0.0.1:${port}`;
 const oldSchema=readFileSync("crates/kinshoko-core/tests/fixtures/spec78-legacy-v16.sql","utf8"),oldSchemaSha256=sha(oldSchema);
-function chunk(type,bytes){const body=Buffer.concat([Buffer.from(type),bytes]);let crc=0xffffffff;for(const byte of body){crc^=byte;for(let i=0;i<8;i++)crc=crc&1?0xedb88320^(crc>>>1):crc>>>1;}const length=Buffer.alloc(4);length.writeUInt32BE(bytes.length);const checksum=Buffer.alloc(4);checksum.writeUInt32BE((crc^0xffffffff)>>>0);return Buffer.concat([length,body,checksum]);}
-const ihdr=Buffer.alloc(13);ihdr.writeUInt32BE(3,0);ihdr.writeUInt32BE(3,4);ihdr[8]=8;ihdr[9]=2;
-function png(red){const row=Buffer.from([0,red,28,38,red,28,38,red,28,38]);return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk("IHDR",ihdr),chunk("IDAT",deflateSync(Buffer.concat([row,row,row]))),chunk("IEND",Buffer.alloc(0))]);}
-function oldLibrary(name,red,positive){const root=join(libraries,name);mkdirSync(root);const db=new DatabaseSync(join(root,"library.sqlite"));db.exec(oldSchema);const identity=value=>sha(name+value).slice(0,32),id=identity("library");db.prepare("INSERT INTO library VALUES (?,?,1,1000)").run(id,name);const tags={},originals=[];
-function tag(key,label){const local=identity(key);tags[key]=local;db.prepare("INSERT INTO tag VALUES (?,'general',1000)").run(local);db.prepare("INSERT INTO tag_name VALUES (?,'zh-CN',?)").run(local,label);db.prepare("INSERT INTO tag_external VALUES (?,?)").run(key,local);return local;}
-const blue=tag("blue_eyes","蓝瞳"),aqua=tag("aqua_eyes","水色瞳"),sky=tag("spec78_sky","天空色");
-function add(key,color,tag){const bytes=png(color),hash=sha(bytes),rel=`originals/${hash.slice(0,2)}/${hash}.png`;mkdirSync(join(root,"originals",hash.slice(0,2)),{recursive:true});writeFileSync(join(root,rel),bytes);const imageId=identity(key);db.prepare("INSERT INTO image(id,sha256,size,format,rel_path,width,height,orientation,original_name,imported_at,rating_manual,note_manual) VALUES(?,?,?,'png',?,3,3,1,?,1000,'general',?)").run(imageId,hash,bytes.length,rel,key+".png","原有备注 "+name);db.prepare("INSERT INTO tag_fact VALUES (?,?,'model:old',0.9)").run(imageId,tag);originals.push({imageId,path:join(root,rel),sha:hash});return imageId;}
-add("blue",red,blue);add("aqua",red+10,aqua);add("sky",red+20,sky);db.prepare("INSERT INTO personal_approx VALUES (?,?,?,1000)").run(blue,aqua,positive?"similar":"notSimilar");const group=identity("group");db.prepare("INSERT INTO tag_group VALUES (?,?,'general',0,1000)").run(group,"旧组 "+name);db.prepare("INSERT INTO tag_group_member VALUES (?,?,0)").run(group,blue);db.close();return {info:{id,root,name},tags,originals};}
+configure({application,edgeArg,work,libraries,oldSchema,port,driverUrl,sha});
 const first=oldLibrary("设置备份 A",10,true),second=oldLibrary("设置备份 B",50,false);
-const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
-async function wd(method, path, body) {
-  const response = await fetch(driverUrl + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
-  const result = await response.json();
-  if (!response.ok || result.value?.error) throw new Error(`${method} ${path}: ${JSON.stringify(result.value)}`);
-  return result.value;
-}
-const delay = (ms) => new Promise((done) => setTimeout(done, ms));
-async function until(label, read, timeout = 30000) {
-  const end = Date.now() + timeout;
-  let error;
-  while (Date.now() < end) {
-    try { const result = await read(); if (result) return result; } catch (reason) { error = reason; }
-    await delay(150);
-  }
-  throw new Error(`Timed out: ${label}${error ? ` (${error.message})` : ""}`);
-}
-const assertions = [];
-function assert(ok, label) { if (!ok) throw new Error(label); assertions.push(label); console.log(`PASS ${label}`); }
-class Session {
-  static async start() {
-    const result = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application, webviewOptions: { userDataFolder: profile } } } } });
-    const session = new Session(result.sessionId);
-    await until("Tauri IPC ready", () => session.exec("return Boolean(window.__TAURI_INTERNALS__?.invoke);"));
-    return session;
-  }
-  constructor(id) { this.base = `/session/${id}`; }
-  exec(script, args = []) { return wd("POST", `${this.base}/execute/sync`, { script, args }); }
-  async invoke(command, args = {}) {
-    const result = await wd("POST", `${this.base}/execute/async`, { script: "const done = arguments[arguments.length - 1]; window.__TAURI_INTERNALS__.invoke((arguments[0].includes(':') || arguments[0].startsWith('shell_') || ['set_autostart','set_show_approx_source','set_force_srgb','set_usage_log','set_viewer_background','migrate_viewer_background'].includes(arguments[0]) || arguments[0].startsWith('rebind_') || arguments[0].startsWith('tagging_') || arguments[0].startsWith('clear_usage') || arguments[0].startsWith('diagnostics_') ? arguments[0] : 'plugin:library|' + arguments[0]), arguments[1]).then(value => done({ value }), error => done({ failure: String(error) }));", args: [command, args] });
-    if (result.failure) throw new Error(`${command}: ${result.failure}`);
-    return result.value;
-  }
-  async find(xpath) { return (await wd("POST", `${this.base}/element`, { using: "xpath", value: xpath }))[ELEMENT]; }
-  async click(xpath) {
-    for (let attempt = 0; ; attempt++) {
-      try { return await this.find(xpath).then((id) => wd("POST", `${this.base}/element/${id}/click`, {})); }
-      catch (error) {
-        if (attempt >= 4 || !/stale element reference|no such element/.test(error.message)) throw error;
-        await delay(150);
-      }
-    }
-  }
-  async set(xpath, value) {
-    await this.exec("const element = document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (!element) throw Error('control missing'); const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(element, arguments[1]); element.dispatchEvent(new Event('input', { bubbles: true }));", [xpath, value]);
-  }
-  async select(xpath, value) {
-    await until("enabled select option", () => this.exec("const element = document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; return element && !element.disabled && [...element.options].some((option) => option.value === arguments[1]);", [xpath, value]));
-    await this.exec("const element = document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; element.value = arguments[1]; element.dispatchEvent(new Event('change', { bubbles: true }));", [xpath, value]);
-  }
-  key(value) { return wd("POST", `${this.base}/actions`, { actions: [{ type: "key", id: "keyboard", actions: [{ type: "keyDown", value }, { type: "keyUp", value }] }] }); }
-  async controlClick(xpath) {
-    await wd("POST", `${this.base}/actions`, { actions: [{ type: "key", id: "keyboard", actions: [{ type: "keyDown", value: String.fromCharCode(0xE009) }] }] });
-    try { await this.click(xpath); } finally { await wd("DELETE", `${this.base}/actions`); }
-  }
-  close() { return wd("DELETE", this.base); }
-  async screenshot(name) { writeFileSync(join(work, name), Buffer.from(await wd("GET", `${this.base}/screenshot`), "base64")); }
-}
 
-function quitOwnApp(){return spawnSync("powershell",["-NoProfile","-NonInteractive","-Command","Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_T13_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"],{env:{...process.env,KINSHOKO_T13_EXECUTABLE:application},windowsHide:true,stdio:"ignore"});}
-function stopDriver(){if(driver?.pid)spawnSync("taskkill",["/PID",String(driver.pid),"/T","/F"],{windowsHide:true,stdio:"ignore"});driver=null;}
-async function boot(fault){mkdirSync(data,{recursive:true});mkdirSync(profile,{recursive:true});driver=spawn(process.argv[4]??"tauri-driver",["--port",String(port),"--native-port",String(port+1),"--native-driver",resolve(edgeArg)],{env:{...process.env,APPDATA:join(work,"roaming"),LOCALAPPDATA:join(work,"local"),KINSHOKO_DATA_DIR:data,KINSHOKO_SKIP_AUTOSTART:"1",WEBVIEW2_USER_DATA_FOLDER:profile,...(fault?{KINSHOKO_FAULT:fault}: {})},windowsHide:true,stdio:["ignore","inherit","inherit"]});await until("driver ready",()=>fetch(driverUrl+"/status").then(r=>r.ok));session=await Session.start();await until("formal main controls",()=>session.find(setting));}
-const setting="//button[@aria-label='设置' or normalize-space()='设置']";
-async function normalQuit(label){const receipt=join(work,label+"-normal-quit.json");const result=spawnSync("python",["e2e/native-tray-exit-t13.py",application,receipt],{windowsHide:true,encoding:"utf8",timeout:45000});if(result.status!==0||!JSON.parse(readFileSync(receipt,"utf8")).processEnded)throw Error(`Normal tray exit failed: ${label} ${result.stderr}`);await session.close().catch(()=>{});session=null;}
-async function restart(label){await normalQuit(label);stopDriver();await boot();}
-async function openSettings(){if(!await session.exec("return Boolean(document.querySelector('[role=dialog][aria-label=程序设置]'))"))await session.click(setting);await until("settings section mounted",()=>session.find("//fieldset[@aria-label='程序设置备份']"));}
-async function closeSettings(){await session.click("//button[normalize-space()='关闭设置']");}
-const backupInput="//input[@aria-label='程序设置备份文件']";
-async function backup(path){await openSettings();await session.set(backupInput,path);await session.click("//button[normalize-space()='备份当前程序设置']");await until("backup saved",()=>session.exec("return document.querySelector('fieldset[aria-label=程序设置备份]').textContent.includes('程序设置备份完成。')"));}
-async function restore(path,label){await openSettings();await session.set(backupInput,path);assert(!await session.exec("return Boolean(document.querySelector('[role=group][aria-label=确认替换程序设置]'))"),"replacement requires reading the chosen package: "+label);await session.click("//button[normalize-space()='读取程序设置备份']");await until("replacement scope visible",()=>session.find("//div[@role='group' and @aria-label='确认替换程序设置']"));assert(await session.exec("return document.querySelector('[role=group][aria-label=确认替换程序设置]').textContent.includes('缺席的名称偏好和个人规则会删除')"),"formal scope explicitly replaces missing choices: "+label);await session.screenshot(label+"-confirmation.png");await session.click("//button[normalize-space()='替换程序设置']");await until("replacement finished",()=>session.exec("return document.querySelector('fieldset[aria-label=程序设置备份]').textContent.includes('程序设置恢复完成。')"));assert(!await session.exec("return Boolean(document.querySelector('fieldset[aria-label=程序设置备份] [role=alert]'))"),"replacement reports no runtime registration failures: "+label);}
 const inspect=()=>session.invoke("inspect_tag_catalog");
 const groups=()=>session.invoke("shared_tag_groups",{lang:"zh-CN",safeMode:true});
 const approx=()=>session.invoke("shared_personal_approx",{lang:"zh-CN",safeMode:true});
 async function preference(catalogId,name){await session.invoke("edit_tag_name",{catalogId,edit:{kind:"prefer",name:{lang:"zh-CN",name}}});}
 async function pair(a,b,relation){await session.invoke("edit_shared_approx",{edit:{kind:"set",rules:[{a,b,relation}]},safeMode:true});}
-async function contents(library){await session.invoke("switch_library",{libraryId:library.info.id});const images=[];for(const original of library.originals)images.push({detail:await session.invoke("image",{libraryId:library.info.id,imageId:original.imageId}),tags:await session.invoke("image_tags",{libraryId:library.info.id,imageId:original.imageId,lang:"zh-CN"})});return {images,sidebar:await session.invoke("sidebar",{libraryId:library.info.id})};}
+async function contents(library){await session.invoke("switch_library",{libraryId:library.info.id});const images=[];for(const original of library.originals)images.push({detail:await session.invoke("image",{libraryId:library.info.id,imageId:original.imageId}),tags:(await session.invoke("catalog_image_tags",{libraryId:library.info.id,imageId:original.imageId,lang:"zh-CN"})).image});return {images,sidebar:await session.invoke("workspace_sidebar",{libraryId:library.info.id,safeMode:await session.invoke("safe_mode")})};}
 function imageFacts(value){return JSON.stringify(value,(key,item)=>["name","label","sourceName"].includes(key)?undefined:item);}
-function ownedWindows(){const result=spawnSync("python",["e2e/native-process-observe-t13.py","windows",application],{windowsHide:true,encoding:"utf8"});if(result.status!==0)throw Error(result.stderr);return JSON.parse(result.stdout);}
-async function hotkey(key){const result=spawnSync("python",["e2e/native-process-observe-t13.py","hotkey",application,key],{windowsHide:true,encoding:"utf8",timeout:10000});if(result.status!==0)throw Error(result.stderr);const receipt=JSON.parse(result.stdout);writeFileSync(join(work,"native-hotkey-"+key+".json"),JSON.stringify(receipt,null,2));return receipt;}
 const backupFile=join(work,"用户偏好.kinshoko-settings");let webviewEnvironment,blue,aqua,skyBefore,skyAfter,baseline,rawPackage,rejectedInflight=0;
 try{
  await boot();webviewEnvironment=await session.exec("return {userAgent:navigator.userAgent,innerWidth,innerHeight,outerWidth,outerHeight,dpr:devicePixelRatio,screenWidth:screen.width,screenHeight:screen.height}");
@@ -131,10 +52,10 @@ try{
  await restart("force-srgb-restart");settings=await session.invoke("shell_settings");assert(settings.forceSrgb&&settings.forceSrgbInEffect&&settings.viewerBackground==="checker","normal tray exit and restart apply force sRGB and keep the restored background");const diagnostic=await session.invoke("diagnostics_report");writeFileSync(join(work,"restarted-diagnostics.txt"),diagnostic);
  await session.exec("localStorage.setItem('kinshoko.viewer.background','dark')");await until("restarted wall card",()=>session.find("//div[@role='listbox' and @aria-label='图片墙']//div[@role='option']"));await session.click("//div[@role='listbox' and @aria-label='图片墙']//div[@role='option']");await session.key("\uE007");await until("restored Viewer background",()=>session.exec("return document.querySelector('select[aria-label=查看器背景]')?.value==='checker'&&document.querySelector('.viewer-stage')?.dataset.background==='checker'"));assert((await session.invoke("shell_settings")).viewerBackground==="checker"&&await session.exec("return localStorage.getItem('kinshoko.viewer.background')==='checker'"),"actual reopened Viewer uses restored checker background and revokes stale local cache");await session.screenshot("restored-viewer-background.png");await session.click("//button[normalize-space()='返回图片墙']");
  // A blank application must not receive the old device registry from the settings package.
- await normalQuit("before-blank-target");stopDriver();renameSync(configFile,join(work,"configured-settings.json"));data=join(work,"blank-app-data");profile=join(work,"blank-webview");const offline=libraries+".offline";renameSync(libraries,offline);try{await boot();assert((await session.invoke("registered_libraries")).length===0,"blank target has no old device library registrations");await restore(backupFile,"blank-target");const db=new DatabaseSync(join(data,"tag-catalog.sqlite"),{readOnly:true});const restoredDefinitions=db.prepare("SELECT COUNT(*) AS n FROM catalog_tag").get().n;db.close();assert(restoredDefinitions>=rawPackage.catalog.tags.length,"blank target interprets complete definitions with every old library unavailable");assert((await session.invoke("registered_libraries")).length===0,"restoring program settings does not import provider device paths");await normalQuit("blank-offline-restored");stopDriver();}finally{renameSync(offline,libraries);}
- await boot();for(const library of[first,second])await session.invoke("register_library",{root:library.info.root});await restart("blank-reconnect");assert((await groups()).map(g=>g.name).join()==="跨库眼睛","deleted legacy groups stay deleted after reconnecting old providers");for(const library of[first,second]){await session.invoke("switch_library",{libraryId:library.info.id});const tags=await session.invoke("image_tags",{libraryId:library.info.id,imageId:library.originals[0].imageId,lang:"zh-CN"});assert(JSON.stringify(tags).includes("最贴切的蓝瞳"),`${library.info.name} uses the same restored display name`);}assert((await approx()).entries.some(e=>e.relation==="similar"),"restored global approximate choice works after both providers return");
+ await normalQuit("before-blank-target");stopDriver();renameSync(configFile,join(work,"configured-settings.json"));useProfile(join(work,"blank-app-data"),join(work,"blank-webview"));const offline=libraries+".offline";renameSync(libraries,offline);try{await boot();assert((await session.invoke("registered_libraries")).length===0,"blank target has no old device library registrations");await restore(backupFile,"blank-target");const db=new DatabaseSync(join(data,"tag-catalog.sqlite"),{readOnly:true});const restoredDefinitions=db.prepare("SELECT COUNT(*) AS n FROM catalog_tag").get().n;db.close();assert(restoredDefinitions>=rawPackage.catalog.tags.length,"blank target interprets complete definitions with every old library unavailable");assert((await session.invoke("registered_libraries")).length===0,"restoring program settings does not import provider device paths");await normalQuit("blank-offline-restored");stopDriver();}finally{renameSync(offline,libraries);}
+ await boot();for(const library of[first,second])await session.invoke("register_library",{root:library.info.root});await restart("blank-reconnect");assert((await groups()).map(g=>g.name).join()==="跨库眼睛","deleted legacy groups stay deleted after reconnecting old providers");for(const library of[first,second]){await session.invoke("switch_library",{libraryId:library.info.id});const tags=(await session.invoke("catalog_image_tags",{libraryId:library.info.id,imageId:library.originals[0].imageId,lang:"zh-CN"})).image;assert(JSON.stringify(tags).includes("最贴切的蓝瞳"),`${library.info.name} uses the same restored display name`);}assert((await approx()).entries.some(e=>e.relation==="similar"),"restored global approximate choice works after both providers return");
  // Crash the actual desktop process at the durable catalog/settings publication seam.
- await preference(blue,"中断前名字");await session.invoke("create_shared_tag_group",{name:"中断前分组",namespace:null});await session.invoke("set_viewer_background",{background:"light"});await normalQuit("before-fault");stopDriver();await boot("settings_restore_after_catalog");const faultReceipt=join(work,"actual-app-fault-exit.json");const observer=spawn("python",["e2e/native-process-observe-t13.py","wait",application,faultReceipt],{windowsHide:true,stdio:["ignore","pipe","pipe"]});await new Promise((resolve,reject)=>{observer.stdout.once("data",resolve);observer.once("error",reject);observer.once("exit",code=>{if(code)reject(Error("fault observer did not attach"));});});await session.invoke("restore_application_settings",{path:backupFile,fingerprint:preview.fingerprint}).catch(()=>{});const actualExit=await until("complete actual fault exit receipt",()=>existsSync(faultReceipt)&&JSON.parse(readFileSync(faultReceipt,"utf8")));assert(actualExit.exitCode===99,"actual native process exits 99 at the configured publication point");await session.close().catch(()=>{});session=null;stopDriver();assert(existsSync(join(data,"application-settings-restore.json")),"interrupted actual restore leaves its durable undo journal");await boot();catalog=(await inspect()).catalog;assert(catalog.tags.find(t=>t.id===blue).namePreferences.some(n=>n.name==="中断前名字")&&(await groups()).some(g=>g.name==="中断前分组")&&(await session.invoke("shell_settings")).viewerBackground==="light","startup recovery restores the complete old configuration before live use");assert(!existsSync(join(data,"application-settings-restore.json")),"successful actual startup recovery consumes the undo journal");await restore(backupFile,"retry-after-crash");await session.screenshot("recovered-and-retried.png");await normalQuit("finished");stopDriver();
+ await preference(blue,"中断前名字");await session.invoke("create_shared_tag_group",{name:"中断前分组",namespace:null});await session.invoke("set_viewer_background",{background:"light"});await normalQuit("before-fault");stopDriver();await boot("settings_restore_after_catalog");const faultReceipt=join(work,"actual-app-fault-exit.json");const observer=spawn("python",["e2e/native-process-observe-t13.py","wait",application,faultReceipt],{windowsHide:true,stdio:["ignore","pipe","pipe"]});await new Promise((resolve,reject)=>{observer.stdout.once("data",resolve);observer.once("error",reject);observer.once("exit",code=>{if(code)reject(Error("fault observer did not attach"));});});await session.invoke("restore_application_settings",{path:backupFile,fingerprint:preview.fingerprint}).catch(()=>{});const actualExit=await until("complete actual fault exit receipt",()=>existsSync(faultReceipt)&&JSON.parse(readFileSync(faultReceipt,"utf8")));assert(actualExit.exitCode===99,"actual native process exits 99 at the configured publication point");await session.close().catch(()=>{});clearSession();stopDriver();assert(existsSync(join(data,"application-settings-restore.json")),"interrupted actual restore leaves its durable undo journal");await boot();catalog=(await inspect()).catalog;assert(catalog.tags.find(t=>t.id===blue).namePreferences.some(n=>n.name==="中断前名字")&&(await groups()).some(g=>g.name==="中断前分组")&&(await session.invoke("shell_settings")).viewerBackground==="light","startup recovery restores the complete old configuration before live use");assert(!existsSync(join(data,"application-settings-restore.json")),"successful actual startup recovery consumes the undo journal");await restore(backupFile,"retry-after-crash");await session.screenshot("recovered-and-retried.png");await normalQuit("finished");stopDriver();
  for(const library of[first,second])for(const original of library.originals)assert(sha(readFileSync(original.path))===original.sha,`${library.info.name} original ${original.imageId} remains byte-identical`);
  writeFileSync(join(work,"result.json"),JSON.stringify({status:"passed",source,tree,harnessSource,application,binarySha256:manifest.binarySha256,manifest,stories:[33,34,36],oldSchemaSha256,webviewEnvironment,assertions,rejectedInflight,backupFile,backupSha256:sha(readFileSync(backupFile)),first,second},null,2));console.log("Evidence: "+work);
 }catch(error){console.error(error);if(session){await session.screenshot("failure.png").catch(()=>{});await session.exec("return document.body.outerHTML").then(html=>writeFileSync(join(work,"failure.html"),html)).catch(()=>{});}writeFileSync(join(work,"result.json"),JSON.stringify({status:"failed",source,tree,harnessSource,application,assertions,error:String(error)},null,2));process.exitCode=1;}

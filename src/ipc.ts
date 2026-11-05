@@ -1,4 +1,5 @@
 import type { SaveDestination } from "./bindings/SaveDestination";
+import type { SaveMemory } from "./bindings/SaveMemory";
 import type { ImportOptions } from "./bindings/ImportOptions";
 import type { LibraryTarget } from "./bindings/LibraryTarget";
 import type { LibraryDeletePreview } from "./bindings/LibraryDeletePreview";
@@ -21,7 +22,6 @@ import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { LibraryRegistration } from "./bindings/LibraryRegistration";
 import type { RegisteredLibrary } from "./bindings/RegisteredLibrary";
 import type { RecoveryReport } from "./bindings/RecoveryReport";
-import type { Sidebar } from "./bindings/Sidebar";
 import { lib } from "./ipc/plugins";
 import { isErrorCode } from "./ipc/commandError";
 export * from "./ipc/tagsAndSearch";
@@ -36,9 +36,24 @@ export function appInfo(): Promise<AppInfo> {
 }
 
 
-/** 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。 */
-export function currentLibrary(): Promise<LibraryInfo | null> {
-  return invoke<LibraryInfo | null>(lib("current_library"));
+/** 启动时打开本设备上次打开的资料库并装配后端。打开了哪个是后端细节（ADR-0008），界面不留。 */
+export async function openLastLibrary(): Promise<void> {
+  await invoke(lib("current_library"));
+}
+
+/** 保存入口各自记住的位置（ADR-0016）。 */
+export function saveMemory(): Promise<SaveMemory> {
+  return invoke<SaveMemory>(lib("save_memory"));
+}
+
+/** 导入对话框里亲手选定了保存目标。 */
+export function rememberImportDestination(destination: SaveDestination): Promise<void> {
+  return invoke<void>(lib("remember_import_destination"), { destination });
+}
+
+/** 亲手选定了新建资料库的位置。 */
+export function rememberNewLibraryParent(parent: string): Promise<void> {
+  return invoke<void>(lib("remember_new_library_parent"), { parent });
 }
 
 /** 在 parent 下新建名为 name 的资料库，登记到本设备并打开。 */
@@ -84,10 +99,6 @@ export function isUnknownImage(error: unknown): boolean {
 }
 
 /** 单张参考图的详情。 */
-export function imageDetail(libraryId: string, imageId: string): Promise<ImageDetail> {
-  return invoke<ImageDetail>(lib("image"), { libraryId, imageId });
-}
-
 /** 一次批量整理若干张图，返回重新计算后的详情。 */
 export function editImages(libraryId: string, ids: string[], edits: ImageEdit[]): Promise<ImageDetail[]> {
   return invoke<ImageDetail[]>(lib("edit"), { libraryId, ids, edits });
@@ -124,10 +135,6 @@ export function isDeletePreviewStale(error: unknown): boolean {
 }
 
 /** 侧栏：全部、回收站与文件夹树，计数只算可见的图。 */
-export function sidebar(libraryId: string): Promise<Sidebar> {
-  return invoke<Sidebar>(lib("sidebar"), { libraryId });
-}
-
 /** 新建文件夹，放在 parent 下（null 为顶层）的最后，返回文件夹 id。 */
 export function createFolder(libraryId: string, name: string, parent: string | null): Promise<string> {
   return invoke<string>(lib("create_folder"), { libraryId, name, parent });

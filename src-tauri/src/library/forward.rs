@@ -55,8 +55,7 @@ pub(super) fn forward_events<R: Runtime>(
     drop(handles);
     let (app, search) = (app.clone(), state.search.clone());
     // 每个句柄的事件都转发，直到句柄关闭（ADR-0008）：可写句柄切到别的库后，原库仍在进行的导入的
-    // 进度、结束与列表变化照常送到界面。事件都带资料库身份，界面只采纳它正在显示的库的安全模式与
-    // 导入事件，不串台。
+    // 进度、结束与列表变化照常送到界面。事件都带资料库身份，导入回执归它自己的任务，不串台。
     std::thread::Builder::new()
         .name("kinshoko-library-events".into())
         .spawn(move || {

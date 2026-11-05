@@ -13,6 +13,7 @@ mod browse;
 use browse::BrowseCache;
 pub use browse::PendingPage;
 mod gate;
+mod image_read;
 pub use gate::ImageGate;
 mod snapshot;
 mod vocabulary;
@@ -127,6 +128,8 @@ pub struct WorkspaceDirectory {
 pub struct WorkspaceDirectories {
     pub status: WorkspaceStatus,
     pub providers: Vec<WorkspaceDirectory>,
+    /// 资料库 id，登记最早的在前。`providers` 按 id 排，保存入口的兜底按这个（ADR-0016）。
+    pub registration_order: Vec<String>,
 }
 #[derive(Clone)]
 struct Provider {
@@ -336,6 +339,7 @@ impl Workspace {
         Ok(WorkspaceDirectories {
             status: snapshot.status(safe),
             providers,
+            registration_order: device.libraries().iter().map(|r| r.id.clone()).collect(),
         })
     }
     /// Compatibility projection of one provider; forest reads use `directories`.

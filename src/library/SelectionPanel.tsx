@@ -12,32 +12,27 @@ import type { FolderNode } from "../bindings/FolderNode";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageEdit } from "../bindings/ImageEdit";
 import type { PermanentDeletePreview } from "../bindings/PermanentDeletePreview";
-import type { WorkspaceSourceInspection } from "../bindings/WorkspaceSourceInspection";
 import {
   editImages,
-  imageDetail,
+  imageFolders,
   isDeletePreviewStale,
   permanentDelete,
   previewEmptyTrash,
   previewPermanentDelete,
-  sidebar,
   workspaceEditSource,
+  workspaceImage,
   workspaceSidebar,
   workspacePreviewSourceDelete,
   workspacePermanentSourceDelete,
 } from "../ipc";
 import { TagPanel } from "./TagPanel";
 
-/** 来源整理时上层读到的来源检查：详情、标签与文件夹树出自同一次请求（#158）。stale：正在重读。 */
-export type SourceInspection = { value: WorkspaceSourceInspection; stale: boolean; reload: () => void };
-
 type Props = {
   sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
-  inspection?: SourceInspection;
   onSourceChanged?: () => void;
+  /** 来源整理：这张图的详情有没有读到；重读期间仍算读到。 */
+  onAvailable?: (available: boolean) => void;
   libraryId: string;
-  /** 主窗口：目录经工作区读取，任何一个已连接图库都可以，不要求它是后端此刻的可写库（ADR-0008）。 */
-  workspace?: boolean;
   scope: BrowseScope;
   selected: ReadonlySet<string>;
   onClear: () => void;
@@ -292,18 +287,18 @@ export function SelectionPanel({
   safeMode = false,
   generation = 0,
   sourceTarget,
-  inspection,
   onSourceChanged,
+  onAvailable,
   inlineActions = true,
-  workspace = false,
 }: Props) {
   const { t } = useTranslation("inspector");
   const ids = [...selected];
   const single = ids.length === 1 ? ids[0] : null;
-  const [libraryFolders, setFolders] = useState<{ id: string; label: string }[]>([]);
+  const [folders, setFolders] = useState<{ id: string; label: string }[]>([]);
   // 读到的详情记着它属于哪一次读取：切换选中图时先留着上一张的（不可操作），新的到了再换（#158）。
   const [loaded, setLoaded] = useState<{ key: string; detail: ImageDetail } | null>(null);
   const [purging, setPurging] = useState(false);
+  const [failed, setFailed] = useState(false);
   const selectionKey = ids.join("\n");
   const [sourceRefresh, setSourceRefresh] = useState(0);
   const requestKey = JSON.stringify([libraryId, selectionKey, safeMode, sourceTarget]);
@@ -314,39 +309,44 @@ export function SelectionPanel({
   useEffect(() => setPurging(false), [selectionKey]);
 
   // 文件夹树和选了哪张图无关（#158）：只在资料库、安全模式或数据代次变化时重读。
-  // 来源整理的文件夹树在来源检查里。
-  const sourceMode = sourceTarget !== undefined;
+  const hasSingle = single !== null;
   useEffect(() => {
-    if (sourceMode || !inlineActions) return;
+    if (!inlineActions) return;
     let alive = true;
-    (workspace ? workspaceSidebar(libraryId, safeMode) : sidebar(libraryId)).then(
+    (single ? imageFolders(libraryId, single) : workspaceSidebar(libraryId, safeMode)).then(
       (s) => alive && setFolders(flattenFolders(s.folders)),
       () => undefined,
     );
     return () => {
       alive = false;
     };
-  }, [libraryId, reloadKey, safeMode, workspace, sourceMode, inlineActions]);
-  const folders = inspection ? flattenFolders(inspection.value.sidebar.folders) : libraryFolders;
+  }, [libraryId, reloadKey, safeMode, hasSingle, inlineActions]);
 
   const detailKey = JSON.stringify([requestKey, reloadKey, sourceRefresh]);
   useEffect(() => {
     let alive = true;
-    // Delete confirmation owns the selection now; listStale must not start another detail read.
-    if (!single || purging || sourceMode) {
+    setFailed(false);
+    if (!single) {
       setLoaded(null);
       return;
     }
-    imageDetail(libraryId, single).then(
+    // Delete confirmation owns the selection now; listStale must not start another detail read.
+    if (purging) return;
+    workspaceImage(libraryId, single).then(
       (d) => alive && setLoaded({ key: detailKey, detail: d }),
-      (e) => alive && onError(e),
+      (e) => { if (alive) { setLoaded(null); setFailed(true); onError(e); } },
     );
     return () => {
       alive = false;
     };
-  }, [libraryId, single, reloadKey, onError, purging, detailKey, sourceMode]);
-  const detail = sourceMode ? inspection?.value.detail ?? null : loaded?.detail ?? null;
-  const stale = sourceMode ? !!inspection?.stale : loaded?.key !== detailKey;
+  }, [libraryId, single, reloadKey, onError, purging, detailKey]);
+  const detail = loaded?.detail ?? null;
+  const stale = loaded?.key !== detailKey;
+  const available = detail !== null;
+  useEffect(() => onAvailable?.(available), [available, onAvailable]);
+  // 来源整理的回收站范围跟这份来源自己走：详情到了才知道它在不在回收站。
+  const sourceMode = sourceTarget !== undefined;
+  const shownScope: BrowseScope = sourceMode && detail?.deletedAt != null ? { kind: "trash" } : scope;
 
   const edit = (edits: ImageEdit[], clear = false) => {
     if (sourceTarget) {
@@ -354,7 +354,7 @@ export function SelectionPanel({
         if (currentKey.current !== requestKey) return;
         const sealed = safeMode && edits.some((e) => (e.kind === "setRating" && isAdult(e.rating)) ||
           (e.kind === "revertRating" && isAdult(detail?.rating.suggested ?? null)));
-        if (clear || sealed) onClear(); else { setSourceRefresh((n) => n + 1); inspection?.reload(); }
+        if (clear || sealed) onClear(); else setSourceRefresh((n) => n + 1);
         onSourceChanged?.();
       }, (e) => { if (currentKey.current === requestKey) onError(e); });
     }
@@ -369,7 +369,7 @@ export function SelectionPanel({
     );
   };
 
-  const actions = inlineActions && (
+  const actions = inlineActions && (!sourceMode || available) && (
     <div className="selection-actions selbar is-inline" role="toolbar" aria-label={t("selection.actions")}>
       <span className="selection-count">{t("selection.count", { count: ids.length })}</span>
       <Menu.Root modal={false}>
@@ -380,13 +380,13 @@ export function SelectionPanel({
           {folders.map((f) => <MenuItem key={f.id} onClick={() => void edit([{ kind: "addToFolder", folderId: f.id }])}>{f.label}</MenuItem>)}
         </MenuPopup>
       </Menu.Root>
-      {scope.kind === "folder" && (
-        <button type="button" className="selbar-btn" onClick={() => void edit([{ kind: "removeFromFolder", folderId: scope.id }], true)}>
+      {shownScope.kind === "folder" && (
+        <button type="button" className="selbar-btn" onClick={() => void edit([{ kind: "removeFromFolder", folderId: shownScope.id }], true)}>
           <FolderMinus size={15} aria-hidden="true" /><span className="k-label">{t("selection.removeFromFolder")}</span>
         </button>
       )}
       <span className="selbar-div" aria-hidden="true" />
-      {scope.kind === "trash" ? (
+      {shownScope.kind === "trash" ? (
         <>
           <button type="button" className="selbar-btn" onClick={() => void edit([{ kind: "restore" }], true)}>
             <RotateCcw size={15} aria-hidden="true" /><span className="k-label">{t("selection.restore")}</span>
@@ -409,7 +409,7 @@ export function SelectionPanel({
   return (
     <div className="selection" aria-label={t("selection.label")}>
       {actions}
-      {purging && scope.kind === "trash" && (
+      {purging && shownScope.kind === "trash" && (
         <PermanentDeleteConfirm
           libraryId={libraryId}
           ids={ids}
@@ -424,7 +424,7 @@ export function SelectionPanel({
         />
       )}
       {/* 标签面板保持在原位置（编辑中的输入不因详情重读而重置）；详情面板用 CSS order 把文件名排在它前面。 */}
-      {!purging && <TagPanel sourceTarget={sourceTarget} inspection={inspection && { tags: inspection.value.tags, stale: inspection.stale, reload: inspection.reload }} libraryId={libraryId} ids={ids} safe={safeMode} generation={generation + sourceRefresh} onError={onError} />}
+      {!purging && !failed && <TagPanel sourceTarget={sourceTarget} libraryId={libraryId} ids={ids} safe={safeMode} generation={generation + sourceRefresh} onError={onError} />}
       {!purging && detail && <Detail key={detail.id} sourceMode={!!sourceTarget} detail={detail} stale={stale} edit={(e) => void edit(e)} />}
     </div>
   );

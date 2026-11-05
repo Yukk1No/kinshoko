@@ -145,6 +145,24 @@ fn exact_and_descendant_scopes_preserve_each_source_folder_memberships_and_file_
     );
 }
 #[test]
+fn a_directory_forest_reports_the_order_libraries_were_registered_in() {
+    let dir = tempfile::tempdir().unwrap();
+    let app = dir.path().join("app");
+    let mut device = DeviceLibraries::open(&app).unwrap();
+    let ids: Vec<String> = (0..8)
+        .map(|i| {
+            let library = device
+                .create(&dir.path().join(format!("l{i}")), "库")
+                .unwrap();
+            library.info().id.clone()
+        })
+        .collect();
+    let mut catalog = TagCatalog::open(&app).unwrap();
+    let mut workspace = Workspace::open(&app).unwrap();
+    let forest = workspace.directories(&device, &mut catalog, true).unwrap();
+    assert_eq!(forest.registration_order, ids);
+}
+#[test]
 fn a_directory_forest_keeps_same_named_libraries_and_folders_independent() {
     let dir = tempfile::tempdir().unwrap();
     let app = dir.path().join("app");

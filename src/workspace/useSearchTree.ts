@@ -5,8 +5,7 @@ import { isLensChanged, workspaceResolve } from "../ipc";
 import { useUiLang } from "../i18n";
 
 /** 查找条件与它解析成的条件树。 */
-export function useSearchTree({ libraryId, safe, vocabularyKey, onError, setReloadKey }: {
-  libraryId: string;
+export function useSearchTree({ safe, vocabularyKey, onError, setReloadKey }: {
   safe: boolean;
   vocabularyKey: number;
   onError: (error: unknown) => void;
@@ -40,7 +39,7 @@ export function useSearchTree({ libraryId, safe, vocabularyKey, onError, setRelo
     return () => {
       alive = false;
     };
-  }, [libraryId, search, searching, vocabularyKey, safe, onError, lang]);
+  }, [search, searching, vocabularyKey, safe, onError, lang]);
 
   return { search, setSearch, tree, treeSafe, searching };
 }
