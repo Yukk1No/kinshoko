@@ -41,9 +41,9 @@ function useShortcutKeys() {
 /**
  * 截图：最近的截图，从新到旧。可以再钉住、复制、选择图库和文件夹收藏、删除。
  * 每一条也有与主窗口同样式的右键菜单（#106）：钉住 · 复制 · 收藏到… · ─ · 删除，与条目上的按钮相同。
- * 没收藏也没钉住的旧截图会被自动丢弃；`libraryId` 是当前资料库，用来显示“已收藏”。
+ * 没收藏也没钉住的旧截图会被自动丢弃；收藏进任何一个图库都显示“已收藏”。
  */
-export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { libraryId: string | undefined; request?: { id: string; stamp: number } | null; onRequestHandled?: () => void }) {
+export function CaptureHistoryPanel({ request, onRequestHandled }: { request?: { id: string; stamp: number } | null; onRequestHandled?: () => void }) {
   const [entries, setEntries] = useState<CaptureEntry[] | null>(null);
   const [collecting, setCollecting] = useState<string | null>(null);
   useEffect(() => { if (request) { setCollecting(request.id); onRequestHandled?.(); } }, [request, onRequestHandled]);
@@ -91,7 +91,7 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
       {entries && entries.length === 0 && <p className="capture-history-empty">{t("empty")}</p>}
       <ul className="capture-history-list">
         {entries?.map((entry) => {
-          const collected = entry.collected.some((c) => c.libraryId === libraryId);
+          const collected = entry.collected.length > 0;
           return (
             <ContextMenu.Root key={entry.id}>
               <ContextMenu.Trigger render={<li className="capture-history-item" data-id={entry.id} />}>

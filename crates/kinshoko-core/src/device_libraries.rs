@@ -16,7 +16,9 @@ use crate::library::{
 use crate::{DeviceRegistry, Library, RegisteredLibrary};
 
 mod imports;
+mod save_memory;
 mod writer_wait;
+
 use imports::OwnedImport;
 use writer_wait::FinishSignal;
 pub use writer_wait::{

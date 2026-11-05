@@ -44,8 +44,6 @@ export type InvalidationEvent =
   | { kind: "scopeChanged" }
   /** 换了查找条件（搜索框、标签分组、打开回收站）。 */
   | { kind: "conditionsChanged" }
-  /** 换了活动资料库。 */
-  | { kind: "activeLibraryChanged" }
   /**
    * 图片墙交来的卡片或张数变了；`ready` 为张数已知（这一页读完）。
    * 顺序契约：图片墙先报这一页带回的状态（`statusObserved`，origin `page`），再交出这一页的卡片，
@@ -121,8 +119,6 @@ export function decide(state: InvalidationState, event: InvalidationEvent): Outc
       return act(state, { clearSelection: true, clearSources: true, closeViewer: true });
     case "conditionsChanged":
       return act(state, { clearSelection: true, closeViewer: true });
-    case "activeLibraryChanged":
-      return act(state, { clearSelection: true, clearSources: true, closeViewer: true, reload: true });
     case "pageAccepted":
       if (state.prune === "reset" && !event.ready) return keep({ ...state, prune: "loading" });
       if (state.prune === "idle" || !event.ready) return keep(state);

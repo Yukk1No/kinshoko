@@ -16,8 +16,6 @@ type FlowContext = {
   safe: boolean;
   /** 现有的订阅（标出已订阅的）。 */
   list: Subscription[];
-  /** 默认收进的资料库（当前打开的）。 */
-  libraryId: string | null;
   onClose: () => void;
 };
 

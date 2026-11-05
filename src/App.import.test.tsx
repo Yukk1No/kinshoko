@@ -54,6 +54,7 @@ describe("主窗口", () => {
     expect(screen.queryByRole("region", { name: "导入结果" })).toBeNull();
     await viewReceipt();
     expect(screen.getByRole("region", { name: "导入结果" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^未导入/ }));
     expect(screen.getByText("D:\\下载\\参考\\说明.txt")).toBeTruthy();
     expect(screen.getByText("不支持的格式")).toBeTruthy();
     expect(screen.getByText("读取失败：无法解码")).toBeTruthy();
@@ -71,7 +72,7 @@ describe("主窗口", () => {
     await act(() =>
       emit("tauri://drag-enter", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }),
     );
-    expect(screen.getByText("松开即可导入，再选放在哪里")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "松开即可导入到 工作参考" })).toBeTruthy();
     await act(() => emit("tauri://drag-drop", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }));
     await confirmImport();
 
@@ -80,7 +81,7 @@ describe("主窗口", () => {
         { libraryId: "L1", source: { paths: ["D:\\图\\a.png", "D:\\一批参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
       ]),
     );
-    expect(screen.queryByText("松开即可导入，再选放在哪里")).toBeNull();
+    expect(screen.queryByRole("img", { name: "松开即可导入到 工作参考" })).toBeNull();
   });
 
   it("导入结束后可以只重试读取失败的项", async () => {
@@ -198,6 +199,7 @@ describe("导入任务的终态（#76）", () => {
     expect(screen.queryByRole("progressbar")).toBeNull();
     expect(screen.getByText("导入完成")).toBeTruthy();
     await viewReceipt();
+    fireEvent.click(screen.getByRole("button", { name: /^未导入/ }));
     expect(screen.getByText("读取失败：被占用")).toBeTruthy();
     const files = importButton();
     expect(files.getAttribute("aria-disabled")).not.toBe("true");
@@ -246,7 +248,7 @@ describe("导入任务的终态（#76）", () => {
 
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 1 } });
     await failed("T1");
-    await push({ kind: "taskFinished", libraryId: "L2", taskId: "T2", report: { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] } });
+    await push({ kind: "taskFinished", libraryId: "L2", taskId: "T9", report: { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] } });
 
     expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 5")).toBeTruthy();
     expect(screen.queryByLabelText("导入结果")).toBeNull();

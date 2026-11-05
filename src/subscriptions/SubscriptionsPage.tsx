@@ -27,7 +27,7 @@ const TILE_PX = 384;
  * 安全模式开着时不显示成人作品与 `hiddenWhenSafe` 的订阅，也不出现 R-18 字样；切换当即生效，
  * 不等后端重读。画师、榜单、收藏夹的添加流程由 #369–#371 挂在 `kinds` 上。
  */
-export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneToggle, onOpenImage, libraryId = null, kinds = KINDS }: {
+export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneToggle, onOpenImage, kinds = KINDS }: {
   status: SubscriptionStatus;
   onStatus: (status: SubscriptionStatus) => void;
   safe: boolean;
@@ -36,7 +36,6 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   /** “在图库中打开”：回到图片与文件夹，在查看器里打开这张图。 */
   onOpenImage: (libraryId: string, imageId: string) => void;
   /** 当前打开的资料库：新订阅默认收进这里。 */
-  libraryId?: string | null;
   kinds?: KindMount[];
 }) {
   const { t } = useTranslation("subscriptions");
@@ -103,7 +102,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   /** 选中的订阅跳过了几个动图（#366：订阅记录里标明“已跳过”）。 */
   const skipped = visible.find((s) => s.id === selected)?.skipped ?? 0;
   const mountOf = (s: Subscription) => kinds.find((k) => k.kind === kindOf(s.target));
-  const flow = { status, safe, list: list ?? [], libraryId };
+  const flow = { status, safe, list: list ?? [] };
   const check = checkView(status, visible, now);
   const checkNow = () => { subscriptionCheckNow().catch((e) => report(t("check.failed", { error: errorText(e) }))); };
 

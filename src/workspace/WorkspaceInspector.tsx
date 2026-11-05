@@ -11,7 +11,7 @@ import type { WorkspaceInspectorState } from "./useWorkspaceInspector";
 
 /** 工作区右侧的详情面板：明确打开的来源整理，或当前选择的整理。 */
 export function WorkspaceInspector({
-  inspector, status, safe, reloadKey, vocabularyKey, libraryId, sources, setSources, setSelected,
+  inspector, status, safe, reloadKey, vocabularyKey, sources, setSources, setSelected,
   onError, onInspectorWidth,
 }: {
   inspector: WorkspaceInspectorState;
@@ -19,7 +19,6 @@ export function WorkspaceInspector({
   safe: boolean;
   reloadKey: number;
   vocabularyKey: number;
-  libraryId: string;
   sources: WorkspaceCard | null;
   setSources: Dispatch<SetStateAction<WorkspaceCard | null>>;
   setSelected: Dispatch<SetStateAction<Set<string>>>;
@@ -46,7 +45,7 @@ export function WorkspaceInspector({
         <div className="insp-body">
           {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => { if (sources) setSources(null); else setSelected(new Set()); }} />
           : <SelectionPanel
-            libraryId={selectionLibrary ?? libraryId}
+            libraryId={selectionLibrary ?? ""}
             selected={new Set(panelIds)}
             onClear={() => setSelected(new Set())}
             reloadKey={reloadKey}

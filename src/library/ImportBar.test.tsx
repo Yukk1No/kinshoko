@@ -232,8 +232,38 @@ describe("导入对话框与右下角卡片（#98）", () => {
     const card = await screen.findByRole("region", { name: "导入结果" });
     expect(card.textContent).toContain("新增 1");
     expect(card.textContent).toContain("已存在 1");
-    expect(card.textContent).toContain("没导入 2");
+    expect(card.textContent).not.toContain("没导入");
+    expect(within(card).queryByText("未导入的文件")).toBeNull();
+    const rejected = within(card).getByRole("button", { name: "未导入 2" });
+    expect(rejected.getAttribute("aria-expanded")).toBe("false");
+    expect(within(card).queryByText("读取失败：被占用")).toBeNull();
+    fireEvent.click(rejected);
+    expect(rejected.getAttribute("aria-expanded")).toBe("true");
     expect(within(card).getByText("读取失败：被占用")).toBeTruthy();
+    expect(within(card).getByText("c.txt")).toBeTruthy();
+    fireEvent.click(rejected);
+    expect(within(card).queryByText("读取失败：被占用")).toBeNull();
     expect(within(card).getByRole("button", { name: "重试失败的 1 项" }).textContent).toBe("重试失败");
+  });
+
+  it("全部导入成功时没有未导入这一行，也就没有可点开的东西", async () => {
+    backend();
+    const finished = { taskId: "task-1", report: { ...report, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } } as never;
+    render(<ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={finished} onStarted={() => {}} onDismissReport={() => {}} />);
+    const card = await screen.findByRole("region", { name: "导入结果" });
+    expect(card.textContent).not.toContain("未导入");
+    expect(within(card).queryByRole("button", { name: /未导入/ })).toBeNull();
+  });
+
+  it("换一个任务的回执时收起未导入的文件", async () => {
+    backend();
+    const failing = (taskId: string, path: string) => ({ taskId, report: { ...report, items: [{ path, outcome: { kind: "unsupported" } }] } }) as never;
+    const ui = (finished: never) => <ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={finished} onStarted={() => {}} onDismissReport={() => {}} />;
+    const view = render(ui(failing("task-1", "a.txt")));
+    fireEvent.click(await screen.findByRole("button", { name: "未导入 1" }));
+    expect(screen.getByText("a.txt")).toBeTruthy();
+    view.rerender(ui(failing("task-2", "b.txt")));
+    expect(screen.getByRole("button", { name: "未导入 1" }).getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByText("b.txt")).toBeNull();
   });
 });

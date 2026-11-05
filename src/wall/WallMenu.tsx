@@ -54,7 +54,7 @@ const RATINGS: ContentRating[] = ["general", "sensitive", "questionable", "expli
 const icon = (Icon: typeof Pin) => <Icon size={14} />;
 
 /** 菜单打开时读一次剪贴板：读到之前与读不到时不禁用（真去导入时再报告原因）。 */
-function ClipboardImport({ actions }: { actions: WallMenuActions }) {
+function ClipboardImport({ actions, disabled }: { actions: WallMenuActions; disabled: boolean }) {
   const { t } = useTranslation(["wall", "common"]);
   const [hasImage, setHasImage] = useState<boolean | null>(null);
   useEffect(() => {
@@ -63,7 +63,7 @@ function ClipboardImport({ actions }: { actions: WallMenuActions }) {
     return () => { alive = false; };
     // 每次打开菜单只读一次。
   }, []);
-  return <MenuItem icon={icon(ClipboardPaste)} kbd="Ctrl V" disabled={hasImage === false} onClick={actions.importClipboard}>{t("menu.importClipboard")}</MenuItem>;
+  return <MenuItem icon={icon(ClipboardPaste)} kbd="Ctrl V" disabled={disabled || hasImage === false} onClick={actions.importClipboard}>{t("menu.importClipboard")}</MenuItem>;
 }
 
 /** 子菜单打开时才读的列表；读不到时显示原因。 */
@@ -146,13 +146,15 @@ export function WallMenu({ target, scope, density, actions }: {
 }) {
   const { t } = useTranslation(["wall", "common"]);
   if (target.kind === "blank") {
+    // 回收站里不能发起新的导入（ADR-0016）。
+    const inTrash = scope.kind === "trash";
     return <>
-      <MenuSubmenu icon={icon(Download)} label={t("menu.import")} popupLabel={t("menu.import")}>
+      <MenuSubmenu icon={icon(Download)} label={t("menu.import")} popupLabel={t("menu.import")} disabled={inTrash}>
         <MenuItem icon={icon(FileImage)} kbd="Ctrl O" onClick={() => actions.importFrom("files")}>{t("menu.importFiles")}</MenuItem>
         <MenuItem icon={icon(FolderOpen)} onClick={() => actions.importFrom("folder")}>{t("menu.importFolder")}</MenuItem>
         <MenuItem icon={icon(Images)} onClick={() => actions.importFrom("eagle")}>{t("menu.importEagle")}</MenuItem>
       </MenuSubmenu>
-      <ClipboardImport actions={actions} />
+      <ClipboardImport actions={actions} disabled={inTrash} />
       <MenuItem icon={icon(CheckSquare)} kbd="Ctrl A" onClick={actions.selectAll}>{t("menu.selectAll")}</MenuItem>
       <MenuSubmenu icon={icon(Maximize2)} label={t("density.label")} popupLabel={t("density.label")}>
         <Menu.RadioGroup value={DENSITY_PRESETS.some((p) => p.value === density) ? density : null}

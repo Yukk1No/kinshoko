@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrationWorkspace";
@@ -40,10 +40,10 @@ it("shows one old name at a time with both old names and the existing preference
   expect(within(wizard).getByRole("radio", { name: /保留为全局偏好「分发」/ })).toBeTruthy();
   expect(within(wizard).getByRole("radio", { name: /保留为全局偏好「自然分缝」.*之前定的/ })).toBeTruthy();
   // 不同旧叫法与已有叫法都是冲突，必须逐个决定。
-  expect(within(wizard).getByText(/叫法不同，请选一个/)).toBeTruthy();
+  expect(within(wizard).getByText(/名称不同，请选一个/)).toBeTruthy();
   expect(within(wizard).getByRole<HTMLButtonElement>("button", { name: /剩下的都用默认/ }).disabled).toBe(true);
   choose(/跟随默认.*「分缝发型」/);
-  expect(within(wizard).getByText(/会撤回你的叫法「自然分缝」/)).toBeTruthy();
+  expect(within(wizard).getByText(/会撤回你定的名称「自然分缝」/)).toBeTruthy();
   fireEvent.click(within(wizard).getByRole("button", { name: "取消" }));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "确认旧名称" })).toBeNull());
   expect(writes).toHaveLength(0);
@@ -67,7 +67,7 @@ it("shows one old name at a time with both old names and the existing preference
 it("offers the wizard when opening an old library whose name has already adopted a global preference", async () => {
   let opened = false;
   mockIPC((cmd) => cmd.endsWith("plan_legacy_names") ? view() : undefined, { shouldMockEvents: true });
-  render(<LegacyNameMigrationNotice libraryId="b" safe={true} onOpen={() => { opened = true; }} />);
+  render(<LegacyNameMigrationNotice safe={true} onOpen={() => { opened = true; }} />);
   expect(await screen.findByText(/旧名称待确认/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "逐个确认" }));
   expect(opened).toBe(true);
@@ -143,7 +143,7 @@ it("uses the default only for remaining unchosen names without conflicts, leaves
   choose(/保留为全局偏好「自然分缝」/);
   next();
   expect(within(wizard).getByText("252 / 252")).toBeTruthy();
-  expect(within(wizard).getByText(/叫法不同，请选一个/)).toBeTruthy();
+  expect(within(wizard).getByText(/名称不同，请选一个/)).toBeTruthy();
   // 没选完不能进入确认。
   next();
   expect(within(wizard).queryByRole("table", { name: "迁移后最终显示" })).toBeNull();
@@ -210,8 +210,8 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
     const answer = structuredClone(state);
     return new Promise((resolve) => setTimeout(() => { inFlight--; resolve(answer); }, 25));
   }, { shouldMockEvents: true });
-  render(<LegacyNameMigrationNotice libraryId="a" safe={true} onOpen={() => {}} />);
-  expect(await screen.findByText(/这个图库里有 1 个较早的叫法/)).toBeTruthy();
+  render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
+  expect(await screen.findByText(/1 个旧名称待确认/)).toBeTruthy();
   calls = 0;
   const bursts = 50;
   for (let index = 0; index < bursts; index++) {
@@ -222,10 +222,66 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
   }
-  expect(await screen.findByText(/这个图库里有 2 个较早的叫法/, {}, { timeout: 2000 })).toBeTruthy();
+  expect(await screen.findByText(/2 个旧名称待确认/, {}, { timeout: 2000 })).toBeTruthy();
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 100)); });
   expect(peak).toBe(1);
   // 后端 25 ms 作答、补读间隔 200 ms：约 3–4 次；留余量给慢机器。
   expect(calls).toBeLessThanOrEqual(10);
   expect(inFlight).toBe(0);
+});
+
+describe("登记的资料库变化时刷新旧名称提示（#426）", () => {
+  const registration = (id: string, unavailable: unknown = null) => ({ library: { id, name: id, root: `D:/${id}` }, unavailable });
+  const changed = (revision: string, libraries: unknown[]) => act(() => emit("workspace-changed", { revision, libraries }));
+
+  function backend() {
+    let pending = false, reads = 0;
+    mockIPC((cmd) => {
+      if (!cmd.endsWith("plan_legacy_names")) return undefined;
+      reads++;
+      const answer = view();
+      return pending ? answer : { ...answer, plan: { ...answer.plan, groups: [] } };
+    }, { shouldMockEvents: true });
+    return { setPending: (value: boolean) => { pending = value; }, reads: () => reads };
+  }
+
+  it("打开带旧名称的图库后出现提示，移除后消失", async () => {
+    const { setPending, reads } = backend();
+    render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
+    await waitFor(() => expect(reads()).toBe(1));
+    await changed("r1", [registration("a")]);
+
+    setPending(true);
+    await changed("r2", [registration("a"), registration("b")]);
+    expect(await screen.findByText(/旧名称待确认/)).toBeTruthy();
+
+    setPending(false);
+    await changed("r3", [registration("a")]);
+    await waitFor(() => expect(screen.queryByText(/旧名称待确认/)).toBeNull());
+  });
+
+  it("移动盘接回（可用状态变化）时也刷新", async () => {
+    const { setPending, reads } = backend();
+    render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
+    await waitFor(() => expect(reads()).toBe(1));
+    await changed("r1", [registration("a", { code: "unavailable" })]);
+
+    setPending(true);
+    await changed("r2", [registration("a")]);
+    expect(await screen.findByText(/旧名称待确认/)).toBeTruthy();
+  });
+
+  it("只是修订前进、登记没变时不重读", async () => {
+    const { reads } = backend();
+    render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
+    await waitFor(() => expect(reads()).toBe(1));
+    await changed("r1", [registration("a")]);
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const settled = reads();
+
+    await changed("r2", [registration("a")]);
+    await changed("r3", [registration("a")]);
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(reads()).toBe(settled);
+  });
 });

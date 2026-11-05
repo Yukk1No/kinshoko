@@ -51,9 +51,9 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); });
 
-async function show(entries: CaptureEntry[], libraryId: string | undefined = "lib-a") {
+async function show(entries: CaptureEntry[]) {
   ipc.history.mockResolvedValue(entries);
-  render(<CaptureHistoryPanel libraryId={libraryId} />);
+  render(<CaptureHistoryPanel />);
   await act(async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); });
 }
 const row = (name: string) => screen.getByText(name).closest("li")!;
@@ -83,7 +83,7 @@ describe("截图面板", () => {
   });
 
   it("收藏到明确选择的图库；已收藏的仍可再收藏到别处", async () => {
-    await show([entry("s1", 3), entry("s2", 5, { collected: [{ libraryId: "lib-a" } as never] })]);
+    await show([entry("s1", 3), entry("s2", 5, { collected: [{ libraryId: "另一个图库" } as never] })]);
     const [first, second] = screen.getAllByRole("listitem");
     expect(within(second).getByRole("button", { name: /已收藏/ })).toBeTruthy();
     expect(within(first).queryByText("已收藏")).toBeNull();

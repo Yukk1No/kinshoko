@@ -63,7 +63,7 @@ describe("英文界面：导入", () => {
     expect(screen.getByText("Into 参考 / Unsorted")).toBeTruthy();
     expect(screen.getByRole("alert", { name: "Did the Eagle library move?" })).toBeTruthy();
     expect(screen.getByRole("status", { name: "Last import was interrupted" })).toBeTruthy();
-    fireEvent.click(screen.getByText("Files not imported"));
+    fireEvent.click(screen.getByRole("button", { name: /^Not imported/ }));
     expectNoChinese(document.body, data);
   });
 

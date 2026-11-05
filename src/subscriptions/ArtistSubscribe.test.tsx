@@ -26,7 +26,7 @@ function backend(subs: Subscription[] = list) {
     if (cmd === "subscriptions") return subs;
     if (cmd === "subscription_recent") return [];
     if (cmd === "plugin:library|workspace_directories") {
-      return { status: { revision: "t", libraries }, providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
+      return { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
     }
     if (cmd === "subscription_find_artist") {
       const input = (args as { input: string }).input;
@@ -44,7 +44,7 @@ const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.ar
 
 function page(s: SubscriptionStatus, safe = false) {
   return render(<SaveDestinationProvider safe={safe}>
-    <SubscriptionsPage status={s} onStatus={vi.fn()} safe={safe} paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} libraryId="L2" />
+    <SubscriptionsPage status={s} onStatus={vi.fn()} safe={safe} paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} />
   </SaveDestinationProvider>);
 }
 
@@ -67,7 +67,7 @@ afterEach(async () => {
 });
 
 describe("订阅画师", () => {
-  it("输入主页链接查找，选最近几张，收进当前资料库", async () => {
+  it("输入主页链接查找，选最近几张，收进登记最早的可用资料库", async () => {
     backend();
     page(status());
     const dialog = await openArtistDialog();
@@ -85,7 +85,7 @@ describe("订阅画师", () => {
     fireEvent.click(subscribe);
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
     expect(sent("subscription_add")[0]).toEqual({ subscriptions: [{
-      target: { kind: "pixivArtist", userId: "777" }, name: "Nanashi", libraryId: "L2",
+      target: { kind: "pixivArtist", userId: "777" }, name: "Nanashi", libraryId: "L1",
       includeExplicit: true, includeManga: false, backlog: { kind: "recent", count: 5 },
     }] });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -169,7 +169,7 @@ describe("订阅画师", () => {
     fireEvent.click(within(follows).getByRole("button", { name: "订阅 1 位画师" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
     expect(sent("subscription_add")[0]).toEqual({ subscriptions: [{
-      target: { kind: "pixivArtist", userId: "21" }, name: "Akira", libraryId: "L2",
+      target: { kind: "pixivArtist", userId: "21" }, name: "Akira", libraryId: "L1",
       includeExplicit: true, includeManga: true, backlog: { kind: "newOnly" },
     }] });
   });

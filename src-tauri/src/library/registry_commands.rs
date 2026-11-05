@@ -3,7 +3,8 @@
 use super::*;
 use kinshoko_core::CommandError;
 
-/// 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。
+/// 启动时打开本设备上次打开的资料库并装配后端（可写句柄、缩略图协议、事件转发）。界面不用
+/// 返回值判断任何事（ADR-0016），它留给 e2e 核对后端状态。
 #[tauri::command]
 pub(super) async fn current_library<R: Runtime>(
     app: AppHandle<R>,
@@ -48,6 +49,47 @@ pub(super) async fn create_library_unopened<R: Runtime>(
         })?;
         state.release_readers();
         Ok(registered)
+    })
+    .await
+}
+
+/// 保存入口各自记住的位置（ADR-0016）。
+#[tauri::command]
+pub(super) async fn save_memory<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<kinshoko_core::SaveMemory, CommandError> {
+    blocking(move || {
+        with_libraries(&app.state::<LibraryState>(), |libraries| {
+            Ok(libraries.save_memory())
+        })
+    })
+    .await
+}
+
+/// 导入对话框里亲手选定了保存目标。
+#[tauri::command]
+pub(super) async fn remember_import_destination<R: Runtime>(
+    app: AppHandle<R>,
+    destination: kinshoko_core::library::SaveDestination,
+) -> Result<(), CommandError> {
+    blocking(move || {
+        with_libraries(&app.state::<LibraryState>(), |libraries| {
+            libraries.remember_import_destination(&destination)
+        })
+    })
+    .await
+}
+
+/// 亲手选定了新建资料库的位置。
+#[tauri::command]
+pub(super) async fn remember_new_library_parent<R: Runtime>(
+    app: AppHandle<R>,
+    parent: PathBuf,
+) -> Result<(), CommandError> {
+    blocking(move || {
+        with_libraries(&app.state::<LibraryState>(), |libraries| {
+            libraries.remember_new_library_parent(&parent)
+        })
     })
     .await
 }

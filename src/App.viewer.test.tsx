@@ -188,7 +188,25 @@ describe("主窗口", () => {
     expect(screen.getByRole("region", { name: "原图查看器" })).toBeTruthy();
   });
 
-  it("后端按需切到的另一个图库：它的列表变化刷新图片墙，它的安全模式与导入事件不串台（#112）", async () => {
+  it("后端按需切到的另一个图库：它的列表变化刷新图片墙，它的导入任务归它自己（#112）", async () => {
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    doubleClick(document.querySelector<HTMLElement>('[data-id="a"]')!);
+    await screen.findByRole("region", { name: "原图查看器" });
+
+    await push({ kind: "taskProgress", libraryId: "L2", taskId: "T9", progress: { done: 1, total: 9 } });
+    expect(screen.getByRole("region", { name: "原图查看器" })).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 9")).toBeTruthy();
+    await push({ kind: "taskProgress", libraryId: "L1", taskId: "T8", progress: { done: 1, total: 2 } });
+    expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 9")).toBeTruthy();
+
+    gone.add("a");
+    await push({ kind: "listStale", libraryId: "L2" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("任何一个图库确认安全模式开启，都关闭查看器回到图片墙：安全模式属于本设备", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
@@ -196,13 +214,8 @@ describe("主窗口", () => {
     await screen.findByRole("region", { name: "原图查看器" });
 
     await push({ kind: "safeModeChanged", libraryId: "L2", on: true });
-    await push({ kind: "taskProgress", libraryId: "L2", taskId: "T9", progress: { done: 1, total: 9 } });
-    expect(screen.getByRole("region", { name: "原图查看器" })).toBeTruthy();
-    expect(screen.queryByRole("progressbar")).toBeNull();
 
-    gone.add("a");
-    await push({ kind: "listStale", libraryId: "L2" });
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull());
   });
 
   it("登记已有资料库后打开它，取消登记后可以继续建库或重新登记", async () => {

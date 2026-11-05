@@ -34,7 +34,7 @@ function workspace() {
     if (command === "plugin:library|current_library") return libraries[0].library;
     if (command === "plugin:library|registered_libraries") return libraries;
     if (command === "plugin:library|workspace_status") return status;
-    if (command === "plugin:library|workspace_directories") return { status, providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
+    if (command === "plugin:library|workspace_directories") return { status, registrationOrder: [], providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
     if (command === "plugin:library|workspace_tag_groups") return [{ id: "g", name: "人物分组", namespace: null, tags: [] }];
     if (command === "plugin:library|import_tasks") return [];
     if (command === "tagging_status") return { state: "starting" };

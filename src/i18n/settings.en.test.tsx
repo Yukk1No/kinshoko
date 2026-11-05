@@ -34,7 +34,7 @@ function show() {
     if (cmd === "plugin:library|shared_tag_groups") return [];
     return undefined;
   });
-  render(<SettingsPanel library={null} safe onSafeMode={() => {}} />);
+  render(<SettingsPanel safe onSafeMode={() => {}} />);
 }
 
 describe("英文界面：设置", () => {

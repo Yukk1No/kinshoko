@@ -21,15 +21,14 @@ type FeedChoice = Pick<ArtistChoices, "backlog" | "recentCount">;
  * 首次开启时选图库、已有的公开与非公开收藏各同步多少（pixiv 不给收藏时间，两边没法合起来数，由画师分别选）、
  * 漫画与 R-18；R-18 一行只在登录着、账号开着 R-18 时出现。
  */
-export function BookmarksDialog({ status, libraryId, onClose, onAdded }: {
+export function BookmarksDialog({ status, onClose, onAdded }: {
   status: SubscriptionStatus;
   /** 默认存进的资料库（当前打开的）。 */
-  libraryId: string | null;
   onClose: () => void; onAdded: (added: Subscription[]) => void;
 }) {
   const { t } = useTranslation("subscriptions", { keyPrefix: "bookmarks" });
   const libraries = useLibraryOptions();
-  const fallback = libraries.options.find((o) => o.value === libraryId)?.value ?? libraries.options[0]?.value ?? "";
+  const fallback = libraries.options[0]?.value ?? "";
   const [chosenLibrary, setLibrary] = useState("");
   const [feeds, setFeeds] = useState<{ public: FeedChoice; private: FeedChoice }>(() => ({
     public: { backlog: "newOnly", recentCount: String(RECENT_DEFAULT) },

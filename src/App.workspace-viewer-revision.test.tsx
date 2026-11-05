@@ -37,7 +37,7 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
     if (command === "plugin:library|current_library") return libraries[0].library;
     if (command === "plugin:library|registered_libraries") return libraries;
     if (command === "plugin:library|workspace_status") return initialReply ?? status(state.initialRevision);
-    if (command === "plugin:library|workspace_directories") return { status: status(state.wallRevision), providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
+    if (command === "plugin:library|workspace_directories") return { status: status(state.wallRevision), registrationOrder: [], providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
     if (command === "plugin:library|workspace_tag_groups" || command === "plugin:library|import_tasks") return [];
     if (command === "tagging_status") return { state: "starting" };
     if (command === "plugin:library|workspace_browse") {

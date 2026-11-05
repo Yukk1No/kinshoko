@@ -149,6 +149,5 @@ describe("工作区失效决策", () => {
     expect(run([{ kind: "vocabularyInvalidated" }]).last).toMatchObject({ refreshVocabulary: true, reload: false });
     expect(run([{ kind: "scopeChanged" }]).last).toMatchObject({ clearSelection: true, clearSources: true, closeViewer: true, reload: false });
     expect(run([{ kind: "conditionsChanged" }]).last).toMatchObject({ clearSelection: true, clearSources: false, closeViewer: true });
-    expect(run([{ kind: "activeLibraryChanged" }]).last).toMatchObject({ clearSelection: true, clearSources: true, closeViewer: true, reload: true });
   });
 });
