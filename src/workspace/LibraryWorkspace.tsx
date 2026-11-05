@@ -315,7 +315,6 @@ export function LibraryWorkspace({
           />
           {viewing && (
             <Viewer
-              workspace
               libraryId={viewing.libraryId ?? libraryId}
               card={{ ...viewing, id: viewing.imageId ?? viewing.id }}
               onClose={() => setViewing(null)}

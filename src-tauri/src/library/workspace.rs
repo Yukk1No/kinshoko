@@ -236,21 +236,51 @@ pub(super) fn read_image<R: Runtime>(
     current(app, mode.on, expected)?;
     Ok(library)
 }
+/// 一张图的详情。详情、标签、文件夹的可见性复核与安全模式封印都在 core（#424）。
 #[tauri::command]
-pub(super) async fn workspace_image<R: Runtime>(
+pub(super) async fn image<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     image_id: String,
 ) -> Result<ImageDetail, CommandError> {
     blocking(move || {
-        let safe = saved_safe_mode(&app);
-        let expected = generation(&app);
-        let library = read(&app, &library_id, &image_id)?;
-        let image = library.image(&image_id).map_err(CommandError::from)?;
-        current(&app, safe, expected)?;
-        // A rating/provider change during the detail read cannot release a stale image.
-        read(&app, &library_id, &image_id)?;
-        Ok(image)
+        let state = app.state::<LibraryState>();
+        with_resources(&state, |w, d, c| {
+            w.image_detail(d, c, &state.safe_mode, &library_id, &image_id)
+        })
+    })
+    .await
+}
+
+/// 一张图的标签与统一标签身份，名称按界面语言 `lang`。
+#[tauri::command]
+pub(super) async fn catalog_image_tags<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    image_id: String,
+    lang: String,
+) -> Result<CatalogImageTags, CommandError> {
+    blocking(move || {
+        let state = app.state::<LibraryState>();
+        with_resources(&state, |w, d, c| {
+            w.image_tags(d, c, &state.safe_mode, &library_id, &image_id, &lang)
+        })
+    })
+    .await
+}
+
+/// 一张图所在资料库的文件夹树。
+#[tauri::command]
+pub(super) async fn image_folders<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    image_id: String,
+) -> Result<Sidebar, CommandError> {
+    blocking(move || {
+        let state = app.state::<LibraryState>();
+        with_resources(&state, |w, d, c| {
+            w.image_folders(d, c, &state.safe_mode, &library_id, &image_id)
+        })
     })
     .await
 }

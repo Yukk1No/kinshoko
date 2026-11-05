@@ -51,7 +51,6 @@ export function WorkspaceInspector({
           {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => { if (sources) setSources(null); else setSelected(new Set()); }}
             onChanged={onEdited} />
           : <SelectionPanel
-            workspace
             libraryId={selectionLibrary ?? libraryId}
             scope={scope}
             inlineActions={false}

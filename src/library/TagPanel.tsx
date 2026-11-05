@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ResolvedTagIdentity } from "../bindings/ResolvedTagIdentity";
-import type { CatalogImageTags } from "../bindings/CatalogImageTags";
 import type { ImageTags } from "../bindings/ImageTags";
 import type { TagEdit } from "../bindings/TagEdit";
 import type { TagLabel } from "../bindings/TagLabel";
@@ -23,8 +22,6 @@ import { AtSign, Ban, Check, Tags, Undo2, X } from "lucide-react";
 
 type Props = {
   sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
-  /** 来源整理：标签出自上层的来源检查（#158），改了标签请上层重读。 */
-  inspection?: { tags: CatalogImageTags; stale: boolean; reload: () => void };
   libraryId: string;
   /** 选中的参考图；只有一张时列出它的标签。 */
   ids: string[];
@@ -63,7 +60,7 @@ const byId = (tag: TagLabel): TagRef => ({ kind: "id", id: tag.id });
  * 人工标签决定，给标签加别名；选几张都能按命名空间与名称（或别名）一次添加、否决或清除。
  * 人工标签决定优先于来源事实，重新打标或重新迁入不会覆盖。
  */
-export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarget, inspection }: Props) {
+export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarget }: Props) {
   const { t } = useTranslation("tags");
   const single = ids.length === 1 ? ids[0] : null;
   // 读到的标签记着它属于哪一次读取：切换选中图时先留着上一张的（不可操作），新的到了再换（#158）。
@@ -80,33 +77,31 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   const lang = useUiLang();
   const loadKey = JSON.stringify([identityKey, refresh, lang]);
 
-  const sourceMode = sourceTarget !== undefined;
   useEffect(() => {
     let alive = true;
-    if (!single || sourceMode) {
+    if (!single) {
       setLoaded(null);
       return;
     }
     // 统一标签身份与有效标签出自同一次查询（#158）。
     catalogImageTags(libraryId, single, lang).then(
       (value) => alive && setLoaded({ key: loadKey, tags: value.image, identities: value.identities }),
-      (error) => alive && onError(error),
+      (error) => { if (alive) { setLoaded(null); onError(error); } },
     );
     return () => {
       alive = false;
     };
-  }, [libraryId, single, safe, generation, refresh, onError, loadKey, sourceMode, lang]);
-  const shown = sourceMode ? (single && inspection ? { tags: inspection.tags.image, identities: inspection.tags.identities } : null) : loaded;
-  const tags = shown?.tags ?? null;
-  const identities = shown?.identities ?? [];
-  const stale = sourceMode ? !!inspection?.stale : loaded !== null && loaded.key !== loadKey;
+  }, [libraryId, single, safe, generation, refresh, onError, loadKey, lang]);
+  const tags = loaded?.tags ?? null;
+  const identities = loaded?.identities ?? [];
+  const stale = loaded !== null && loaded.key !== loadKey;
 
   // 换了选中的图，别名编辑跟着关掉。
   useEffect(() => setAliasFor(null), [single]);
 
   const edit = (edits: TagEdit[]) =>
     (sourceTarget ? workspaceEditSourceTags(sourceTarget, safe, edits) : editTags(libraryId, ids, edits)).then(
-      () => { if (currentKey.current !== identityKey) return; if (inspection) inspection.reload(); else setRefresh((n) => n + 1); },
+      () => { if (currentKey.current === identityKey) setRefresh((n) => n + 1); },
       (e) => { if (currentKey.current === identityKey) onError(e); },
     );
 
@@ -121,7 +116,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   };
 
   // 名称偏好保存后重读标签（词表变化事件也会让代次递增）。
-  const renamed = () => { if (currentKey.current !== identityKey) return; if (inspection) inspection.reload(); else setRefresh((n) => n + 1); };
+  const renamed = () => { if (currentKey.current === identityKey) setRefresh((n) => n + 1); };
   const renameFor = (tag: TagLabel) => {
     const identity = identities.find((entry) => entry.localTagId === tag.id);
     return identity && { catalogId: identity.catalogId, onSaved: renamed };

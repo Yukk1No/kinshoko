@@ -4,9 +4,9 @@
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync, renameSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import { createHash } from "node:crypto";
 import { deflateSync } from "node:zlib";
+import { chunk, driverClient, ihdr, oldLibrary } from "./shared-tag-groups.helpers.mjs";
 
 const [, , appArg, edgeArg] = process.argv;
 if (!appArg || !edgeArg) throw new Error("Usage: node e2e/shared-tag-groups.mjs <kinshoko.exe> <msedgedriver.exe>");
@@ -22,77 +22,13 @@ const libraries = join(work, "libraries");
 mkdirSync(libraries);
 mkdirSync(join(work, "roaming")); mkdirSync(join(work, "local"));
 const imagePath = join(work, "image.png");
-function chunk(type, data) {
-  const body = Buffer.concat([Buffer.from(type), data]);
-  let crc = 0xffffffff;
-  for (const byte of body) { crc ^= byte; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1; }
-  const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-  const checksum = Buffer.alloc(4); checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, checksum]);
-}
-const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(3, 0); ihdr.writeUInt32BE(3, 4); ihdr[8] = 8; ihdr[9] = 2;
 const row = Buffer.from([0, 18, 28, 38, 18, 28, 38, 18, 28, 38]);
 writeFileSync(imagePath, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(Buffer.concat([row, row, row]))), chunk("IEND", Buffer.alloc(0))]));
 const port = Number(process.env.KINSHOKO_WEBDRIVER_PORT ?? 4464);
 const driverUrl = `http://127.0.0.1:${port}`;
-const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
-async function wd(method, path, body) {
-  const response = await fetch(driverUrl + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
-  const result = await response.json();
-  if (!response.ok || result.value?.error) throw new Error(`${method} ${path}: ${JSON.stringify(result.value)}`);
-  return result.value;
-}
-const delay = (ms) => new Promise((done) => setTimeout(done, ms));
-async function until(label, read, timeout = 30000) {
-  const end = Date.now() + timeout;
-  let error;
-  while (Date.now() < end) {
-    try { const result = await read(); if (result) return result; } catch (reason) { error = reason; }
-    await delay(150);
-  }
-  throw new Error(`Timed out: ${label}${error ? ` (${error.message})` : ""}`);
-}
 const assertions = [];
 function assert(ok, label) { if (!ok) throw new Error(label); assertions.push(label); console.log(`PASS ${label}`); }
-class Session {
-  static async start() {
-    const result = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application, webviewOptions: { userDataFolder: join(work, "webview") } } } } });
-    const session = new Session(result.sessionId);
-    await until("Tauri IPC ready", () => session.exec("return Boolean(window.__TAURI_INTERNALS__?.invoke);"));
-    return session;
-  }
-  constructor(id) { this.base = `/session/${id}`; }
-  exec(script, args = []) { return wd("POST", `${this.base}/execute/sync`, { script, args }); }
-  async invoke(command, args = {}) {
-    const result = await wd("POST", `${this.base}/execute/async`, { script: "const done = arguments[arguments.length - 1]; window.__TAURI_INTERNALS__.invoke('plugin:library|' + arguments[0], arguments[1]).then(value => done({ value }), error => done({ failure: String(error) }));", args: [command, args] });
-    if (result.failure) throw new Error(`${command}: ${result.failure}`);
-    return result.value;
-  }
-  async find(xpath) { return (await wd("POST", `${this.base}/element`, { using: "xpath", value: xpath }))[ELEMENT]; }
-  async click(xpath) {
-    for (let attempt = 0; ; attempt++) {
-      try { return await this.find(xpath).then((id) => wd("POST", `${this.base}/element/${id}/click`, {})); }
-      catch (error) {
-        if (attempt >= 4 || !/stale element reference|no such element/.test(error.message)) throw error;
-        await delay(150);
-      }
-    }
-  }
-  async set(xpath, value) {
-    await this.exec("const element = document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (!element) throw Error('control missing'); const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(element, arguments[1]); element.dispatchEvent(new Event('input', { bubbles: true }));", [xpath, value]);
-  }
-  async select(xpath, value) {
-    await until("enabled select option", () => this.exec("const element = document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; return element && !element.disabled && [...element.options].some((option) => option.value === arguments[1]);", [xpath, value]));
-    await this.exec("const element = document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; element.value = arguments[1]; element.dispatchEvent(new Event('change', { bubbles: true }));", [xpath, value]);
-  }
-  key(value) { return wd("POST", `${this.base}/actions`, { actions: [{ type: "key", id: "keyboard", actions: [{ type: "keyDown", value }, { type: "keyUp", value }] }] }); }
-  async controlClick(xpath) {
-    await wd("POST", `${this.base}/actions`, { actions: [{ type: "key", id: "keyboard", actions: [{ type: "keyDown", value: String.fromCharCode(0xE009) }] }] });
-    try { await this.click(xpath); } finally { await wd("DELETE", `${this.base}/actions`); }
-  }
-  close() { return wd("DELETE", this.base); }
-  async screenshot(name) { writeFileSync(join(work, name), Buffer.from(await wd("GET", `${this.base}/screenshot`), "base64")); }
-}
+const { until, wd, delay, Session } = driverClient({ driverUrl, application, work });
 function quitOwnApp() {
   return spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, windowsHide: true, stdio: "ignore" });
 }
@@ -102,50 +38,8 @@ const setting = "//button[@aria-label='设置' or normalize-space()='设置']";
 
 const oldSchema = readFileSync("crates/kinshoko-core/tests/fixtures/spec78-legacy-v16.sql", "utf8");
 const oldSchemaSha256 = createHash("sha256").update(oldSchema).digest("hex");
-function png(red) {
-  const row = Buffer.from([0, red, 28, 38, red, 28, 38, red, 28, 38]);
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(Buffer.concat([row, row, row]))), chunk("IEND", Buffer.alloc(0))]);
-}
-function oldLibrary(name, primary, red, isAdult) {
-  const root = join(libraries, name); mkdirSync(root);
-  const db = new DatabaseSync(join(root, "library.sqlite")); db.exec(oldSchema);
-  const identity = (value) => createHash("sha256").update(name + value).digest("hex").slice(0, 32);
-  const id = identity("library"); db.prepare("INSERT INTO library VALUES (?,?,1,1000)").run(id, name);
-  const tags = {};
-  function addTag(key, label, namespace = "general", external = key) {
-    const local = identity(key + namespace); tags[key + namespace] = local;
-    db.prepare("INSERT INTO tag VALUES (?,?,1000)").run(local, namespace);
-    db.prepare("INSERT INTO tag_name VALUES (?,'zh-CN',?)").run(local, label);
-    if (external) db.prepare("INSERT INTO tag_external VALUES (?,?)").run(external, local);
-    return local;
-  }
-  const blue = addTag("blue_hair", "蓝发"), purple = addTag("purple_hair", "紫发"), secret = addTag("spec78_secret", "封印专用词");
-  const workTag = addTag("星海", "星海", "work", null), artistTag = addTag("星海", "星海", "artist", null);
-  const originals = [];
-  function addImage(key, color, ids, adult = false) {
-    const bytes = png(color), sha = createHash("sha256").update(bytes).digest("hex");
-    const rel = `originals/${sha.slice(0, 2)}/${sha}.png`;
-    mkdirSync(join(root, "originals", sha.slice(0, 2)), { recursive: true }); writeFileSync(join(root, rel), bytes);
-    const imageId = identity(key);
-    db.prepare("INSERT INTO image (id,sha256,size,format,rel_path,width,height,orientation,original_name,imported_at,rating_manual) VALUES (?,?,?,'png',?,3,3,1,?,1000,?)").run(imageId, sha, bytes.length, rel, key + ".png", adult ? "explicit" : null);
-    for (const tag of ids) {
-      db.prepare("INSERT INTO tag_fact VALUES (?,?,'model:old',0.9)").run(imageId, tag);
-      db.prepare("INSERT INTO tag_decision VALUES (?,?,'add',1000)").run(imageId, tag);
-    }
-    originals.push({ imageId, path: join(root, rel), sha }); return imageId;
-  }
-  const primaryId = addImage("primary", red, [primary === "blue" ? blue : purple, workTag, artistTag]);
-  const secretId = addImage("secret", 99, [secret], isAdult);
-  // The blue file has different local IDs in the two providers but one byte identity.
-  if (primary !== "blue") addImage("shared-blue", 10, [blue]);
-  const groupId = identity("group-hair");
-  db.prepare("INSERT INTO tag_group VALUES (?, '发色', NULL,0,1000)").run(groupId);
-  db.prepare("INSERT INTO tag_group_member VALUES (?,?,0)").run(groupId, primary === "blue" ? blue : purple);
-  if (primary === "blue") db.prepare("INSERT INTO tag_group VALUES (?, '作品','work',1,1000)").run(identity("group-work"));
-  db.close(); return { info: { id, root, name }, groupId, primaryId, secretId, tags, originals };
-}
-const first = oldLibrary("角色参考", "blue", 10, true);
-const second = oldLibrary("画法参考", "purple", 20, false);
+const first = oldLibrary({ libraries, oldSchema }, "角色参考", "blue", 10, true);
+const second = oldLibrary({ libraries, oldSchema }, "画法参考", "purple", 20, false);
 let sharedGroup;
 async function readGroups(safe = true) { return session.invoke("shared_tag_groups", { lang: "zh-CN", safeMode: safe }); }
 async function openSettings() {
@@ -211,7 +105,7 @@ try {
   assert(!JSON.stringify(inspected).includes("封印专用词"), "ordinary name settings apply the same all-source Adult veto");
   const namePlan = await session.invoke("plan_legacy_names");
   assert(!JSON.stringify(namePlan).includes("封印专用词"), "legacy name wizard hides names from globally vetoed copies");
-  const firstBefore = await session.invoke("workspace_image", { libraryId: first.info.id, imageId: first.primaryId });
+  const firstBefore = await session.invoke("image", { libraryId: first.info.id, imageId: first.primaryId });
   await openSettings();
   await until("legacy provenance visible in settings", () => session.exec("return [...document.querySelectorAll('section[aria-label=全局标签分组] .tag-group-origin')].some((node) => node.textContent.includes('角色参考')) && [...document.querySelectorAll('section[aria-label=全局标签分组] .tag-group-origin')].some((node) => node.textContent.includes('画法参考'))"));
   await session.screenshot("legacy-shared-group-provenance.png");
@@ -269,7 +163,7 @@ try {
   const blueId = firstGroup.tags[0].tag.id;
   await session.invoke("edit_tag_name", { catalogId: blueId, edit: { kind: "prefer", name: { lang: "zh-CN", name: "天青发" } } });
   await until("current shared label", async () => (await readGroups()).find((g) => g.name === "安全整理后").tags.some((t) => t.tag.name === "天青发"));
-  const firstAfter = await session.invoke("workspace_image", { libraryId: first.info.id, imageId: first.primaryId });
+  const firstAfter = await session.invoke("image", { libraryId: first.info.id, imageId: first.primaryId });
   assert(firstBefore.id === firstAfter.id && firstBefore.originalName === firstAfter.originalName && JSON.stringify(firstBefore.versions) === JSON.stringify(firstAfter.versions), "group management leaves source image identity and version links unchanged");
   await restart("after-global-edits");
   groups = await readGroups();

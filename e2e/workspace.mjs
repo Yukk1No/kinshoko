@@ -180,7 +180,7 @@ try {
   await uiTotal(24);
   assert((await browse(blue, { kind: "library", libraryId: first.info.id, scope: scopeAll })).total === 0, "Adult in out-of-scope nonmatching source vetoes whole card");
   assert((await candidate("蓝发")).length === 0, "safe candidates/counts omit globally vetoed identity");
-  assert(await session.invoke("workspace_image", { libraryId: first.info.id, imageId: first.imageId }).then(() => false, () => true), "detail read cannot bypass cross-source Adult veto");
+  assert(await session.invoke("image", { libraryId: first.info.id, imageId: first.imageId }).then(() => false, () => true), "detail read cannot bypass cross-source Adult veto");
   await session.screenshot("safe-cross-source-veto.png");
   await session.invoke("set_safe_mode", { on: false });
   await session.invoke("edit", { libraryId: second.info.id, ids: [second.imageId], edits: [{ kind: "setRating", rating: "general" }] });
