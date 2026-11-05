@@ -18,6 +18,15 @@ it("真实错误以轻提示报告：立即播报、不自动消失，按“知�
   await waitFor(() => expect(screen.queryByText(/磁盘已满/)).toBeNull());
 });
 
+it("错误轻提示的读屏副本照常播报，按文字查找只找到看得见的那份", async () => {
+  render(<ToastProvider><Grab /></ToastProvider>);
+  act(() => { api!.error("资料库正忙"); });
+  await screen.findByRole("alert");
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+  expect(screen.getByRole("alert").textContent).toContain("资料库正忙");
+  expect(screen.getByText("资料库正忙").tagName).toBe("H2");
+});
+
 it("确认类提示带操作，过一会儿自动消失", async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   const undo = vi.fn();

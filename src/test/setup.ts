@@ -4,4 +4,7 @@ import "../i18n/instance";
 
 // findBy*/waitFor 默认只等 1 秒。Windows CI 上 76 个 jsdom 文件并行时，打开对话框、读取预览这类
 // 几步异步后才出现的元素偶尔超过 1 秒（ImportMenu、WorkspaceSources 先后因此失败），放宽到 5 秒。
-configure({ asyncUtilTimeout: 5000 });
+//
+// base-ui 给高优先级轻提示（toast.error）另渲染一份隐藏的读屏文字（role="alert" aria-atomic）。按文字查找时
+// 跳过这份副本，否则两份都在：findByText 只有赶在第二份出现前查到才通过，CI 上时序一变就失败。
+configure({ asyncUtilTimeout: 5000, defaultIgnore: 'script, style, [role="alert"][aria-atomic="true"] > div' });
