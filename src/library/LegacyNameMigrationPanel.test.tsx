@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrationWorkspace";
@@ -228,4 +228,60 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
   // 后端 25 ms 作答、补读间隔 200 ms：约 3–4 次；留余量给慢机器。
   expect(calls).toBeLessThanOrEqual(10);
   expect(inFlight).toBe(0);
+});
+
+describe("登记的资料库变化时刷新旧名称提示（#426）", () => {
+  const registration = (id: string, unavailable: unknown = null) => ({ library: { id, name: id, root: `D:/${id}` }, unavailable });
+  const changed = (revision: string, libraries: unknown[]) => act(() => emit("workspace-changed", { revision, libraries }));
+
+  function backend() {
+    let pending = false, reads = 0;
+    mockIPC((cmd) => {
+      if (!cmd.endsWith("plan_legacy_names")) return undefined;
+      reads++;
+      const answer = view();
+      return pending ? answer : { ...answer, plan: { ...answer.plan, groups: [] } };
+    }, { shouldMockEvents: true });
+    return { setPending: (value: boolean) => { pending = value; }, reads: () => reads };
+  }
+
+  it("打开带旧名称的图库后出现提示，移除后消失", async () => {
+    const { setPending, reads } = backend();
+    render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
+    await waitFor(() => expect(reads()).toBe(1));
+    await changed("r1", [registration("a")]);
+
+    setPending(true);
+    await changed("r2", [registration("a"), registration("b")]);
+    expect(await screen.findByText(/旧名称待确认/)).toBeTruthy();
+
+    setPending(false);
+    await changed("r3", [registration("a")]);
+    await waitFor(() => expect(screen.queryByText(/旧名称待确认/)).toBeNull());
+  });
+
+  it("移动盘接回（可用状态变化）时也刷新", async () => {
+    const { setPending, reads } = backend();
+    render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
+    await waitFor(() => expect(reads()).toBe(1));
+    await changed("r1", [registration("a", { code: "unavailable" })]);
+
+    setPending(true);
+    await changed("r2", [registration("a")]);
+    expect(await screen.findByText(/旧名称待确认/)).toBeTruthy();
+  });
+
+  it("只是修订前进、登记没变时不重读", async () => {
+    const { reads } = backend();
+    render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
+    await waitFor(() => expect(reads()).toBe(1));
+    await changed("r1", [registration("a")]);
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const settled = reads();
+
+    await changed("r2", [registration("a")]);
+    await changed("r3", [registration("a")]);
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(reads()).toBe(settled);
+  });
 });

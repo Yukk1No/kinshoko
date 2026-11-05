@@ -7,7 +7,7 @@ import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrati
 import type { LegacyNameMigrationPreview } from "../bindings/LegacyNameMigrationPreview";
 import type { LegacyNameResolution } from "../bindings/LegacyNameResolution";
 import { describeCommandError } from "../ipc/commandError";
-import { confirmLegacyNames, onLibraryEvent, onSafeModeSetting, planLegacyNames, previewLegacyNames } from "../ipc";
+import { confirmLegacyNames, onLibraryEvent, onSafeModeSetting, onWorkspaceChanged, planLegacyNames, previewLegacyNames } from "../ipc";
 import { languageName } from "../tags/languages";
 
 
@@ -229,12 +229,21 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
     start();
     const unlisten = onLibraryEvent((event) => { if (event.kind === "vocabularyChanged" || event.kind === "taskFinished") read(); });
     const safeStop = onSafeModeSetting(() => { generation++; setCount(0); });
+    // 待确认的旧名称合计所有图库：登记或可用状态变了就重读；只是修订前进（每次写入都有）不读。
+    let registrations: string | null = null;
+    const workspaceStop = onWorkspaceChanged((status) => {
+      const next = status.libraries.map((entry) => `${entry.library.id}:${entry.unavailable ? 0 : 1}`).sort().join("|");
+      if (next === registrations) return;
+      registrations = next;
+      read();
+    });
     window.addEventListener(CHANGED, read);
     return () => {
       alive = false; generation++;
       clearTimeout(timer);
       window.removeEventListener(CHANGED, read);
       void unlisten.then((stop) => stop()).catch(() => {}); void safeStop.then((stop) => stop()).catch(() => {});
+      void workspaceStop.then((stop) => stop()).catch(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
