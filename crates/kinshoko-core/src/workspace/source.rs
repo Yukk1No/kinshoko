@@ -44,76 +44,7 @@ pub fn group_sources(targets: &[WorkspaceSourceTarget]) -> Vec<WorkspaceSourceBa
     batches
 }
 
-#[derive(Debug, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct WorkspaceSourceInspection {
-    pub detail: crate::library::ImageDetail,
-    pub tags: crate::tag_catalog::CatalogImageTags,
-    pub sidebar: crate::library::Sidebar,
-}
-
 impl Workspace {
-    pub fn inspect_source(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        target: &WorkspaceSourceTarget,
-        safe: bool,
-        lang: &str,
-    ) -> Result<WorkspaceSourceInspection, CatalogError> {
-        let before = self.status(device, catalog, safe)?.revision;
-        let library = self.read_source(device, catalog, target, safe)?;
-        let detail = library.image(&target.image_id)?;
-        let tags = catalog.image_tags(&library, &target.image_id, lang)?;
-        let sidebar = self.sidebar(device, catalog, &target.library_id, safe)?;
-        self.require_source(device, catalog, target, safe)?;
-        if before != self.status(device, catalog, safe)?.revision {
-            return Err(Error::CursorExpired.into());
-        }
-        Ok(WorkspaceSourceInspection {
-            detail,
-            tags,
-            sidebar,
-        })
-    }
-
-    /// Local IDs for editing, with vocabulary/counts filtered by the workspace's
-    /// all-known-source Adult veto. A picker cannot leak tags belonging only to hidden copies.
-    pub fn source_candidates(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        target: &WorkspaceSourceTarget,
-        safe: bool,
-        text: &str,
-        lang: &str,
-    ) -> Result<Vec<Candidate>, CatalogError> {
-        self.require_source(device, catalog, target, safe)?;
-        let snapshot = self.snapshot(device, catalog)?;
-        let provider = snapshot
-            .providers
-            .iter()
-            .find(|p| p.registration.library.id == target.library_id)
-            .ok_or(Error::SourceChanged)?;
-        let raw = provider.vocabulary.as_ref().ok_or(Error::SourceChanged)?;
-        let mut vocabulary = snapshot.catalog.search_vocabulary(&target.library_id, raw);
-        let mut counts = BTreeMap::<&str, u32>::new();
-        for image in &provider.images {
-            if image.deleted || (safe && snapshot.adult.contains(&image.sha256)) {
-                continue;
-            }
-            for tag in &image.tags {
-                *counts.entry(tag).or_default() += 1;
-            }
-        }
-        vocabulary.tags.retain_mut(|tag| {
-            tag.count = counts.get(tag.id.as_str()).copied().unwrap_or(0);
-            tag.count > 0
-        });
-        Ok(Search::new(&vocabulary, &BuiltinApproxTable::default()).candidates(text, lang, 8))
-    }
-
     /// Create a stable reference to the selected library and original image. Byte-identical
     /// alternatives can later help display, but do not change this saved identity.
     pub fn source_reference(
@@ -208,48 +139,9 @@ impl Workspace {
         Ok(library)
     }
 
-    /// Complete a synchronous action in the chosen provider. The caller serializes registry
-    /// transitions; the target is checked again on every action. No other copy is edited.
-    pub fn write_source<T>(
-        &mut self,
-        device: &mut DeviceLibraries,
-        catalog: &mut TagCatalog,
-        target: &WorkspaceSourceTarget,
-        safe: bool,
-        action: impl FnOnce(&Library) -> Result<T, Error>,
-    ) -> Result<T, CatalogError> {
-        self.require_source(device, catalog, target, safe)?;
-        let library = device
-            .write(&target.library_id)
-            .map_err(|e| CatalogError::Command(Box::new(e.into())))?;
-        self.write_source_with(device, catalog, target, safe, &library, action)
-    }
-
-    /// 同 [`Self::write_source`]，但用调用方已按需取得的可写句柄（ADR-0008：应用壳经
-    /// [`DeviceLibraries::organize`] 切换唯一的可写句柄、等导入收尾），不另开一个。
-    /// 句柄必须属于所选来源的图库；来源在这里重新核对。
-    pub fn write_source_with<T>(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        target: &WorkspaceSourceTarget,
-        safe: bool,
-        writer: &Library,
-        action: impl FnOnce(&Library) -> Result<T, Error>,
-    ) -> Result<T, CatalogError> {
-        self.write_sources_with(
-            device,
-            catalog,
-            std::slice::from_ref(target),
-            safe,
-            writer,
-            |library, _| action(library),
-        )
-    }
-
-    /// 同 [`Self::write_source_with`]，一次整理同一图库的多份来源（#290）：只核对一次，
+    /// 一次整理同一图库的多份来源（#290），用调用方按需取得的可写句柄（ADR-0008）：只核对一次，
     /// `action` 只调一次，拿到这些来源的图片 id（顺序同输入）。任何一份来源不属于句柄的图库、
-    /// 或核对不过时整批都不做。
+    /// 或核对不过时整批都不做。不碰别的副本。
     pub fn write_sources_with<T>(
         &mut self,
         device: &DeviceLibraries,

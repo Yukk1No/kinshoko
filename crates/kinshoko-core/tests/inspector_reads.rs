@@ -11,7 +11,7 @@ use kinshoko_core::library::{
     FactSource, ImageEdit, ImportSource, SourceTag, TagNamespace, TagRef,
 };
 use kinshoko_core::tag_catalog::TagCatalog;
-use kinshoko_core::workspace::{Workspace, WorkspaceQuery, WorkspaceSourceTarget};
+use kinshoko_core::workspace::{Workspace, WorkspaceQuery};
 
 const IMAGES: usize = 1000;
 const VOCABULARY: usize = 2000;
@@ -96,12 +96,7 @@ fn selection_reads_for_the_inspector() {
     assert_eq!(page.cards.len(), SAMPLES);
 
     let library_id = library.info().id.clone();
-    let (mut detail, mut tags, mut sidebar, mut inspection) = (
-        Duration::ZERO,
-        Duration::ZERO,
-        Duration::ZERO,
-        Duration::ZERO,
-    );
+    let (mut detail, mut tags, mut sidebar) = (Duration::ZERO, Duration::ZERO, Duration::ZERO);
     for card in &page.cards {
         let source = &card.sources[0];
         let started = Instant::now();
@@ -117,23 +112,12 @@ fn selection_reads_for_the_inspector() {
             .sidebar(&device, &mut catalog, &library_id, true)
             .unwrap();
         sidebar += started.elapsed();
-        let target = WorkspaceSourceTarget {
-            library_id: library_id.clone(),
-            image_id: source.image_id.clone(),
-            content_id: card.id.clone(),
-        };
-        let started = Instant::now();
-        workspace
-            .inspect_source(&device, &mut catalog, &target, true, "zh-CN")
-            .unwrap();
-        inspection += started.elapsed();
     }
     println!(
         "#158 {IMAGES} images/{VOCABULARY} tags/{TAGS_PER_IMAGE} per image/{FOLDERS} folders, mean of {SAMPLES}: \
-         image={:.2}ms catalog_image_tags={:.2}ms workspace_sidebar={:.2}ms workspace_source_inspection={:.2}ms",
+         image={:.2}ms catalog_image_tags={:.2}ms workspace_sidebar={:.2}ms",
         mean(detail),
         mean(tags),
         mean(sidebar),
-        mean(inspection),
     );
 }

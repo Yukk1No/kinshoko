@@ -151,29 +151,6 @@ try{
  const captureSha=createHash("sha256").update(readFileSync(join(appData,"captures",capture.id+".png"))).digest("hex");
  assert((await local(b.id,bFolder)).cards.some(card=>card.id===captureSha&&card.imageId===collected.imageId),"screenshot collection preserves the capture bytes in the chosen B folder");
  await session.screenshot("capture-explicit-destination.png");
- // Existing independent target curation survives explicit source copying.
- const cImport=await session.invoke("start_import",{libraryId:c.id,source:{paths:[imagePath]},destination:{libraryId:c.id,folderId:null}});await finish(cImport);
- const cCard=(await local(c.id)).cards.find(card=>card.id===bCard.id);
- const cTarget={libraryId:c.id,imageId:cCard.imageId,contentId:cCard.id};
- await session.invoke("workspace_edit_source",{target:cTarget,safeMode:true,edits:[{kind:"setNote",text:"C 独立人工备注"}]});
- await browseAll();
- // The card's source button is a sibling of its option; with N sources it reads “在 N 个图库，查看详情”.
- const sourcesButton=`//div[@role='listbox' and @aria-label='图片墙']//button[contains(@class,'card-sources') and @data-card='${bCard.id}' and starts-with(@aria-label,'在 ')]`;
- await until("aggregate source choices",()=>shown(sourcesButton));
- await readyClick(sourcesButton);
- await readyClick(`//*[@data-source-library-id='${b.id}']//button[normalize-space()='整理此来源']`);
- await readyClick("//button[normalize-space()='复制到…']");
- const copyDialog=dialogX("复制此来源");
- await choose(c.id,null,copyDialog);await session.screenshot("copy-explicit-confirmation.png");await readyClick(`${copyDialog}//button[normalize-space()='确认复制']`);
- await until("source copy finished",async()=>!await exists(copyDialog));
- const cAfter=await until("copy source facts saved",async()=>{const value=await session.invoke("workspace_source_inspection",{target:cTarget,safeMode:true,lang:"zh-CN"});return value.detail.note.sources.some(s=>s.source.includes(b.id))?value:null;});
- assert(cAfter.detail.note.sources.some(s=>s.source.includes(b.id)),"cross-library copy retains the original B provenance");
- assert(cAfter.detail.note.manual==="C 独立人工备注","formal cross-library copy preserves the existing target manual note");
- assert((await local(c.id)).total===1,"copy merges identical bytes without creating a public pool or a duplicate target image");
- await until("copy confirmation stays closed after refresh",async()=>!await exists(copyDialog));
- await delay(500);
- assert(!await exists(copyDialog),"copy confirmation stays closed after the real source refresh");
- await session.screenshot("copy-preserves-independent-curation.png");
  writeFileSync(join(work,"result.json"),JSON.stringify({status:"passed",source,binarySha256,application,environment,provenance,a,b,c,receipts,assertions,finishedAt:new Date().toISOString()},null,2));
  console.log(`Evidence: ${work}`);
 }catch(error){

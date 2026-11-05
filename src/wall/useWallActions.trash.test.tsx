@@ -60,7 +60,6 @@ it("一次删除 N 张图只调一次批量命令，带上每张图的来源；�
     { libraryId: "L1", imageId: "i3", contentId: "3" },
   ]);
   expect(edits[0].args.edits).toEqual([{ kind: "delete" }]);
-  expect(calls.some((c) => c.cmd === "plugin:library|workspace_edit_source")).toBe(false);
   expect(onClearSelection).toHaveBeenCalled();
 });
 

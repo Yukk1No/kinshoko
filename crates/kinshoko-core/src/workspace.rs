@@ -6,9 +6,7 @@ pub use import_preview::{
     ImportPreviewContent, ImportPreviewSession, PreparedImportPreview, ResolvedImportPreview,
 };
 mod source;
-pub use source::{
-    WorkspaceSourceBatch, WorkspaceSourceInspection, WorkspaceSourceTarget, group_sources,
-};
+pub use source::{WorkspaceSourceBatch, WorkspaceSourceTarget, group_sources};
 mod browse;
 use browse::BrowseCache;
 pub use browse::PendingPage;

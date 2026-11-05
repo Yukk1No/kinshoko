@@ -1,7 +1,6 @@
 import { PanelRightClose } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Dispatch, SetStateAction } from "react";
-import type { BrowseScope } from "../bindings/BrowseScope";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { SelectionPanel } from "../library/SelectionPanel";
@@ -12,8 +11,8 @@ import type { WorkspaceInspectorState } from "./useWorkspaceInspector";
 
 /** 工作区右侧的详情面板：明确打开的来源整理，或当前选择的整理。 */
 export function WorkspaceInspector({
-  inspector, status, safe, reloadKey, vocabularyKey, libraryId, scope, sources, setSources, setSelected,
-  onEdited, onError, onInspectorWidth,
+  inspector, status, safe, reloadKey, vocabularyKey, libraryId, sources, setSources, setSelected,
+  onError, onInspectorWidth,
 }: {
   inspector: WorkspaceInspectorState;
   status: WorkspaceStatus | null;
@@ -21,12 +20,9 @@ export function WorkspaceInspector({
   reloadKey: number;
   vocabularyKey: number;
   libraryId: string;
-  scope: BrowseScope;
   sources: WorkspaceCard | null;
   setSources: Dispatch<SetStateAction<WorkspaceCard | null>>;
   setSelected: Dispatch<SetStateAction<Set<string>>>;
-  /** 来源对话框改了图：重读并刷新词表。 */
-  onEdited: () => void;
   onError: (error: unknown) => void;
   onInspectorWidth: (width: number) => void;
 }) {
@@ -48,12 +44,9 @@ export function WorkspaceInspector({
           {inspectorOpen && <WinCtrls />}
         </header>
         <div className="insp-body">
-          {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => { if (sources) setSources(null); else setSelected(new Set()); }}
-            onChanged={onEdited} />
+          {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => { if (sources) setSources(null); else setSelected(new Set()); }} />
           : <SelectionPanel
             libraryId={selectionLibrary ?? libraryId}
-            scope={scope}
-            inlineActions={false}
             selected={new Set(panelIds)}
             onClear={() => setSelected(new Set())}
             reloadKey={reloadKey}

@@ -10,13 +10,11 @@ const inspector: Translation<typeof zh> = {
     countShort_one: "{{count}} image",
     countShort_other: "{{count}} images",
     moveToFolder: "Move to folder",
-    moveTo: "Move to",
     noFolders: "No folders yet",
     removeFromFolder: "Remove from this folder",
     restore: "Restore",
     purge: "Delete permanently…",
     trash: "Move to Trash",
-    delete: "Delete",
     clear: "Clear selection",
     trashed: "Moved to Trash",
     trashedCount_one: "{{count}} image",
@@ -39,7 +37,6 @@ const inspector: Translation<typeof zh> = {
   folders: {
     label: "Folders",
     title: "Folders",
-    remove: "Remove from “{{name}}”",
     none: "Not in any folder",
   },
   note: {
@@ -63,11 +60,6 @@ const inspector: Translation<typeof zh> = {
   },
   source: {
     label: "Organize source",
-    loading: "Loading this source…",
-    copyTo: "Copy to…",
-    copyTitle: "Copy this source",
-    copyConfirm: "Copy",
-    copied: "Copied this source. Anything organized by hand at the destination stays as it was",
   },
 };
 

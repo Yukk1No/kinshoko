@@ -20,7 +20,7 @@ import { chipsThatFit } from "./fitChips";
 import { RatingName, tagName } from "./tagLabel";
 import { TermView } from "./TermView";
 import { useUiLang } from "../i18n";
-import { ratingCandidates, searchCandidates, workspaceCandidates, workspaceSourceCandidates, setTagApprox, editSharedApprox } from "../ipc";
+import { ratingCandidates, searchCandidates, workspaceCandidates, workspaceLibraryCandidates, setTagApprox, editSharedApprox } from "../ipc";
 
 export { TagMarks, tagName, untranslatedHint } from "./tagLabel";
 
@@ -31,9 +31,9 @@ export const LIMIT = 8;
  * 当前相同时显示；切换安全模式、词表变化或换了资料库后，旧候选这一帧就不再显示，迟到的
  * 响应也写不回来。后端按同一视角核对（`LensChanged`）。
  */
-export type Lens = { libraryId: string; safe: boolean; generation: number; workspace?: boolean; sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget };
+export type Lens = { libraryId: string; safe: boolean; generation: number; workspace?: boolean; /** 给这个资料库的图挑标签：封印按全部来源算（#425）。 */ picking?: boolean };
 type Found = { key: string; list: Candidate[] };
-const lensKey = (lens: Lens, text: string) => JSON.stringify([lens.libraryId, lens.safe, lens.generation, lens.workspace, lens.sourceTarget, text]);
+const lensKey = (lens: Lens, text: string) => JSON.stringify([lens.libraryId, lens.safe, lens.generation, lens.workspace, lens.picking, text]);
 
 /** 按 `lens` 与 `text` 取得候选；身份变了的旧结果不返回。标签整理面板挑标签时也用它。 */
 export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true): Candidate[] {
@@ -54,7 +54,7 @@ export function useCandidateState(lens: Lens, text: string, keep: (c: Candidate)
   useEffect(() => {
     let alive = true;
     if (!text.trim()) return;
-    (lens.sourceTarget ? workspaceSourceCandidates(lens.sourceTarget, text, lang, safe) : lens.workspace ? workspaceCandidates(text, lang, limit, safe) : searchCandidates(libraryId, text, lang, limit, safe)).then(
+    (lens.picking ? workspaceLibraryCandidates(libraryId, text, lang, limit, safe) : lens.workspace ? workspaceCandidates(text, lang, limit, safe) : searchCandidates(libraryId, text, lang, limit, safe)).then(
       (list) => alive && setFound({ key, list: list.filter((c) => keepRef.current(c)) }),
       () => alive && setFound({ key, list: [] }),
     );

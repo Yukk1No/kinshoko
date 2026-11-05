@@ -8,7 +8,7 @@ import type { TagNamespace } from "../bindings/TagNamespace";
 import type { ImageTag } from "../bindings/ImageTag";
 import type { TagRef } from "../bindings/TagRef";
 import type { VocabularyTag } from "../bindings/VocabularyTag";
-import { addTagAlias, catalogImageTags, editTags, removeTagAlias, vocabulary, workspaceEditSourceTags } from "../ipc";
+import { addTagAlias, catalogImageTags, editTags, removeTagAlias, vocabulary } from "../ipc";
 import { LIMIT, TagMarks, tagName, useCandidateState } from "../search/SearchBox";
 import { useUiLang } from "../i18n";
 import { tagOption } from "../search/tagOptions";
@@ -21,7 +21,6 @@ import { useTagDisplay } from "../tags/TagDisplayContext";
 import { AtSign, Ban, Check, Tags, Undo2, X } from "lucide-react";
 
 type Props = {
-  sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
   libraryId: string;
   /** 选中的参考图；只有一张时列出它的标签。 */
   ids: string[];
@@ -60,7 +59,7 @@ const byId = (tag: TagLabel): TagRef => ({ kind: "id", id: tag.id });
  * 人工标签决定，给标签加别名；选几张都能按命名空间与名称（或别名）一次添加、否决或清除。
  * 人工标签决定优先于来源事实，重新打标或重新迁入不会覆盖。
  */
-export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarget }: Props) {
+export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
   const { t } = useTranslation("tags");
   const single = ids.length === 1 ? ids[0] : null;
   // 读到的标签记着它属于哪一次读取：切换选中图时先留着上一张的（不可操作），新的到了再换（#158）。
@@ -70,7 +69,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   const [text, setText] = useState("");
   const [refresh, setRefresh] = useState(0);
   const display = useTagDisplay();
-  const identityKey = JSON.stringify([libraryId, ids, safe, generation, sourceTarget]);
+  const identityKey = JSON.stringify([libraryId, ids, safe, generation]);
   const currentKey = useRef(identityKey);
   currentKey.current = identityKey;
   useEffect(() => { currentKey.current = identityKey; return () => { currentKey.current = ""; }; }, [identityKey]);
@@ -100,7 +99,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   useEffect(() => setAliasFor(null), [single]);
 
   const edit = (edits: TagEdit[]) =>
-    (sourceTarget ? workspaceEditSourceTags(sourceTarget, safe, edits) : editTags(libraryId, ids, edits)).then(
+    editTags(libraryId, ids, edits).then(
       () => { if (currentKey.current === identityKey) setRefresh((n) => n + 1); },
       (e) => { if (currentKey.current === identityKey) onError(e); },
     );
@@ -127,7 +126,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
   const query = text.trim();
   const has = new Set(single ? tags?.tags.map((entry) => entry.tag.id) : []);
   // 已经有的标签之后要去掉：多取这么多个，去掉后仍能列满。
-  const { list: candidates, ready } = useCandidateState({ libraryId, safe, generation, sourceTarget }, text, undefined, LIMIT + has.size);
+  const { list: candidates, ready } = useCandidateState({ libraryId, safe, generation, picking: true }, text, undefined, LIMIT + has.size);
   const found = candidates.filter((c) => !has.has(c.tag.id)).slice(0, LIMIT);
   const exact = candidates.some((c) => c.tag.namespace === namespace && (c.tag.name === query || c.via === query));
   const addOptions: (ComboboxOption & { tag: TagLabel | null })[] = found.map((c) => tagOption(c, query));
@@ -150,8 +149,8 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
           )}
           <button type="button" className="k-tag-tip-btn" aria-label={t("panel.rejectLabel", { name })} title={t("panel.rejectTitle")}
             onClick={() => decide("reject", byId(tag))}><Ban size={12} aria-hidden="true" /><span className="k-label">{t("panel.reject")}</span></button>
-          {!sourceTarget && <button type="button" className="k-tag-tip-btn" aria-label={t("panel.aliasesLabel", { name })}
-            onClick={() => setAliasFor(tag)}><AtSign size={12} aria-hidden="true" /><span className="k-label">{t("panel.aliases")}</span></button>}
+          <button type="button" className="k-tag-tip-btn" aria-label={t("panel.aliasesLabel", { name })}
+            onClick={() => setAliasFor(tag)}><AtSign size={12} aria-hidden="true" /><span className="k-label">{t("panel.aliases")}</span></button>
         </>} />
     );
   };

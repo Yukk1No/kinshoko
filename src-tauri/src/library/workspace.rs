@@ -189,6 +189,33 @@ pub(super) async fn workspace_candidates<R: Runtime>(
     })
     .await
 }
+/// 给 `library_id` 里的图挑标签的候选（#425）。修订号变了不算失败：导入收尾时也要能挑标签。
+#[tauri::command]
+pub(super) async fn workspace_library_candidates<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    text: String,
+    lang: String,
+    limit: u32,
+    safe_mode: bool,
+) -> Result<Vec<Candidate>, CommandError> {
+    blocking(move || {
+        let catalog = app.state::<LibraryState>().search.clone();
+        guarded(&app, safe_mode, |w, d, c| {
+            w.library_candidates(
+                d,
+                c,
+                &library_id,
+                &text,
+                &lang,
+                limit as usize,
+                safe_mode,
+                catalog.builtin_approx(),
+            )
+        })
+    })
+    .await
+}
 /// Read any registered source without activating it. Safety includes every known byte-identical copy.
 pub(super) fn read<R: Runtime>(
     app: &AppHandle<R>,
@@ -264,22 +291,6 @@ pub(super) async fn catalog_image_tags<R: Runtime>(
         let state = app.state::<LibraryState>();
         with_resources(&state, |w, d, c| {
             w.image_tags(d, c, &state.safe_mode, &library_id, &image_id, &lang)
-        })
-    })
-    .await
-}
-
-/// 一张图所在资料库的文件夹树。
-#[tauri::command]
-pub(super) async fn image_folders<R: Runtime>(
-    app: AppHandle<R>,
-    library_id: String,
-    image_id: String,
-) -> Result<Sidebar, CommandError> {
-    blocking(move || {
-        let state = app.state::<LibraryState>();
-        with_resources(&state, |w, d, c| {
-            w.image_folders(d, c, &state.safe_mode, &library_id, &image_id)
         })
     })
     .await
