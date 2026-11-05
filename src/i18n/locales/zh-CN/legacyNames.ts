@@ -2,7 +2,7 @@
 export default {
   close: "关闭",
   title: "确认旧名称",
-  lead: "较早的图库里有不同叫法，选一个就好。",
+  lead: "较早的图库里有不同名称，选一个就好。",
   busy: "正在读取或保存旧名称…",
   libraryOffline: "{{library}}：{{reason}}。重新连接后再确认它的旧名称。",
   saved: "旧名称已确认。",
@@ -12,20 +12,20 @@ export default {
   chosen: "已选 {{chosen}} / {{total}}",
   usedIn_other: "用在 {{count}} 个图库：{{libraries}}",
   librarySeparator: "、",
-  differentNames: "这几个图库叫法不同，请选一个。",
+  differentNames: "这几个图库的名称不同，请选一个。",
   differsFromPreference: "和你之前定的「{{name}}」不同，确认前看看结果。",
   choiceLabel: "名称归属",
-  aliasNote: "另一个名字会留作别名，照样能搜到。其他语言的叫法不受影响。",
+  aliasNote: "另一个名字会留作别名，照样能搜到。其他语言的名称不受影响。",
   /** 选项名用 #78 规定的“跟随默认”与“保留为全局偏好”，具体名称紧跟其后。 */
   option: {
     followDefaultNamed: "跟随默认「{{name}}」",
     followDefault: "跟随默认",
-    withdrawsPreference: "会撤回你的叫法「{{name}}」",
+    withdrawsPreference: "会撤回你定的名称「{{name}}」",
     followsUpdates: "以后跟着默认名更新",
     noDefault: "本语言还没有默认名，按其他语言显示",
     keepAsPreference: "保留为全局偏好「{{name}}」",
     savedFrom: "保存为显示名，来自{{library}}",
-    keepPrevious: "继续用你之前定的叫法",
+    keepPrevious: "继续用你之前定的名称",
   },
   unnamed: "未命名标签",
   checking: "正在核对最终显示…",
@@ -46,9 +46,7 @@ export default {
   confirm: "确认名称",
   next: "下一个",
   notice: {
-    title: "旧名称待确认",
-    /** 跟在加粗标题后，前面的全角空格是间隔。 */
-    body_other: "　有 {{count}} 个较早的叫法",
+    title_other: "{{count}} 个旧名称待确认",
     open: "逐个确认",
   },
   banner: {

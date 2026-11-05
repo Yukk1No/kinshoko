@@ -48,9 +48,8 @@ const legacyNames: Translation<typeof zh> = {
   confirm: "Confirm names",
   next: "Next",
   notice: {
-    title: "Older names to confirm",
-    body_one: " {{count}} older name",
-    body_other: " {{count}} older names",
+    title_one: "{{count}} older name to confirm",
+    title_other: "{{count}} older names to confirm",
     open: "Confirm one by one",
   },
   banner: {

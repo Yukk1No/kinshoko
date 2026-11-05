@@ -61,6 +61,7 @@ export default {
   drop: {
     choose: "松开即可导入，再选放在哪里",
     into: "松开即可导入到 {{library}}",
+    inTrash: "回收站内无法导入",
   },
   tagStepLabel: "补上标签对应",
   /** 导入结束的提示与结果卡片。 */

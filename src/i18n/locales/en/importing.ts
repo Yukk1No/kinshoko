@@ -62,6 +62,7 @@ const importing: Translation<typeof zh> = {
   drop: {
     choose: "Drop to import, then choose where it goes",
     into: "Drop to import into {{library}}",
+    inTrash: "Can't import in the Trash",
   },
   tagStepLabel: "Fill in tag mappings",
   result: {

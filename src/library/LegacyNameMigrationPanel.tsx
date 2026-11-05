@@ -255,7 +255,7 @@ export function LegacyNameMigrationNotice({ safe, onOpen }: { safe: boolean; onO
   const { t } = useTranslation("legacyNames", { keyPrefix: "notice" });
   const pending = usePendingLegacyNames(() => true, [safe]);
   return pending > 0 ? <p className="legacy-name-notice k-notice" role="status"><Sparkles size={14} aria-hidden="true" />
-    <span className="k-grow"><b>{t("title")}</b>{t("body", { count: pending })}</span>
+    <span className="k-grow"><b>{t("title", { count: pending })}</b></span>
     <button type="button" className="k-btn is-sm" onClick={onOpen}><span className="k-label">{t("open")}</span></button></p> : null;
 }
 

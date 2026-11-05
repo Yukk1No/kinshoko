@@ -25,6 +25,8 @@ export type FinishedImport = { taskId: string; report: ImportReport; libraryId?:
 type Props = {
   enabled: boolean;
   previewContextKey?: string;
+  /** 拖入窗口不开始导入（回收站范围）：悬停不提示，松开后只发一条通知。 */
+  dropBlocked?: boolean;
   /** 读“上次导入中断”用哪个图库；没给时用 `libraryId`。 */
   recoveryLibraryId?: string;
   libraryId: string;
@@ -65,7 +67,7 @@ export type ImportActions = { files: () => void; folder: () => void; eagle: () =
  * 进度是右下角的卡片，可取消或后台进行。结束、出错、上次中断与封印项重复走轻提示（#388）；结束的提示带“查看”，
  * 打开结果回执卡：列出没有进来的文件并可只重试读取失败的项。没有 ToastProvider 时（单独渲染）这些仍是卡片。
  */
-export function ImportBar({ previewContextKey, recoveryLibraryId, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, warnings, onSelectTask }: Props) {
+export function ImportBar({ previewContextKey, recoveryLibraryId, dropBlocked = false, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, warnings, onSelectTask }: Props) {
   const { t } = useTranslation("importing");
   /** “后台进行”收起的进度卡（按任务 id）；新任务或从导入菜单“查看导入任务”时重新显示。 */
   const [background, setBackground] = useState<string | null>(null);
@@ -184,18 +186,19 @@ export function ImportBar({ previewContextKey, recoveryLibraryId, enabled, libra
   };
 
   // 拖放的回调只注册一次，经 ref 读到最新的状态。
-  const latest = useRef({ busy, begin });
-  latest.current = { busy, begin };
+  const latest = useRef({ busy, begin, dropBlocked, noticeBlockedDrop: () => {} });
+  latest.current = { ...latest.current, busy, begin, dropBlocked };
   useEffect(() => {
     const unlisten = onFileDrop((drop) => {
       if (!alive.current || !enabledRef.current) return;
       switch (drop.kind) {
         case "enter":
-          setHovering(!latest.current.busy);
+          setHovering(!latest.current.busy && !latest.current.dropBlocked);
           break;
         case "drop":
           setHovering(false);
-          if (!latest.current.busy) void latest.current.begin(drop.paths);
+          if (latest.current.dropBlocked) latest.current.noticeBlockedDrop();
+          else if (!latest.current.busy) void latest.current.begin(drop.paths);
           break;
         case "leave":
           setHovering(false);
@@ -242,6 +245,8 @@ export function ImportBar({ previewContextKey, recoveryLibraryId, enabled, libra
 
   const { toast, receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, recovery, setRecovery, importError, setImportError,
     reimport: (paths) => void latest.current.begin(paths), sealedTask: sealed ? sealed.taskId : null, showSealed: (taskId) => setPreview({ taskId, contextKey }) });
+
+  latest.current.noticeBlockedDrop = () => { toast?.show({ title: t("drop.inTrash") }); };
 
   const cards = <>
     {importError && <section className="k-task" role="alert" aria-label={t("error.title")}>

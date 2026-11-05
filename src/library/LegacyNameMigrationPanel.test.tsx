@@ -40,10 +40,10 @@ it("shows one old name at a time with both old names and the existing preference
   expect(within(wizard).getByRole("radio", { name: /保留为全局偏好「分发」/ })).toBeTruthy();
   expect(within(wizard).getByRole("radio", { name: /保留为全局偏好「自然分缝」.*之前定的/ })).toBeTruthy();
   // 不同旧叫法与已有叫法都是冲突，必须逐个决定。
-  expect(within(wizard).getByText(/叫法不同，请选一个/)).toBeTruthy();
+  expect(within(wizard).getByText(/名称不同，请选一个/)).toBeTruthy();
   expect(within(wizard).getByRole<HTMLButtonElement>("button", { name: /剩下的都用默认/ }).disabled).toBe(true);
   choose(/跟随默认.*「分缝发型」/);
-  expect(within(wizard).getByText(/会撤回你的叫法「自然分缝」/)).toBeTruthy();
+  expect(within(wizard).getByText(/会撤回你定的名称「自然分缝」/)).toBeTruthy();
   fireEvent.click(within(wizard).getByRole("button", { name: "取消" }));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "确认旧名称" })).toBeNull());
   expect(writes).toHaveLength(0);
@@ -143,7 +143,7 @@ it("uses the default only for remaining unchosen names without conflicts, leaves
   choose(/保留为全局偏好「自然分缝」/);
   next();
   expect(within(wizard).getByText("252 / 252")).toBeTruthy();
-  expect(within(wizard).getByText(/叫法不同，请选一个/)).toBeTruthy();
+  expect(within(wizard).getByText(/名称不同，请选一个/)).toBeTruthy();
   // 没选完不能进入确认。
   next();
   expect(within(wizard).queryByRole("table", { name: "迁移后最终显示" })).toBeNull();
@@ -211,7 +211,7 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
     return new Promise((resolve) => setTimeout(() => { inFlight--; resolve(answer); }, 25));
   }, { shouldMockEvents: true });
   render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
-  expect(await screen.findByText(/有 1 个较早的叫法/)).toBeTruthy();
+  expect(await screen.findByText(/1 个旧名称待确认/)).toBeTruthy();
   calls = 0;
   const bursts = 50;
   for (let index = 0; index < bursts; index++) {
@@ -222,7 +222,7 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
   }
-  expect(await screen.findByText(/有 2 个较早的叫法/, {}, { timeout: 2000 })).toBeTruthy();
+  expect(await screen.findByText(/2 个旧名称待确认/, {}, { timeout: 2000 })).toBeTruthy();
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 100)); });
   expect(peak).toBe(1);
   // 后端 25 ms 作答、补读间隔 200 ms：约 3–4 次；留余量给慢机器。

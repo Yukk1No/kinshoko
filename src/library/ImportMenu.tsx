@@ -92,8 +92,11 @@ export function ImportMenu({control,...p}:Omit<ComponentProps<typeof ImportBar>,
  const via=(action:"files"|"folder")=>()=>{actions.current?.[action]();};
  const eagle=()=>{actions.current?.eagle();};
  // 图片墙空白处右键的“导入 ▸”、Ctrl O 与这里的导入按钮走同一入口；按钮不可用（导入进行中）时也不开始。
- const blocked=busy.busy||active;
+ // 回收站里不能发起新的导入（ADR-0016）；任务回执、重试和重新导入不经过这里，照常可用。
+ const inTrash=p.scope?.kind==="library"&&p.scope.scope.kind==="trash";
+ const blocked=busy.busy||active||inTrash;
  const clipboard=async()=>{
+  if(inTrash)return;
   if(blocked)throw t("busyClipboard");
   const path=await stageClipboardImport();
   actions.current?.paths([path]);
@@ -108,9 +111,9 @@ export function ImportMenu({control,...p}:Omit<ComponentProps<typeof ImportBar>,
  const switcher=tasks.length>1?<div className="k-task-switch">{t("tasks")}<Select label={t("tasks")} value={task?.taskId??""} onChange={setSelectedTask}
   options={tasks.map(entry=>({value:entry.taskId,label:t("taskOption",{owner:t("owner",{library:entry.libraryName,folder:entry.folderName??t("unassigned")}),state:t(entry.report?"taskFinished":"taskRunning")})}))}/></div>:null;
  return <div className="import-menu">
-  <ImportButton busy={busy.busy||active} eagleBusy={busy.eagle} onFiles={via("files")} onFolder={via("folder")} onEagle={eagle}
+  <ImportButton busy={busy.busy||active} eagleBusy={busy.eagle} canStart={!inTrash} onFiles={via("files")} onFolder={via("folder")} onEagle={eagle}
    onShowTasks={tasks.length>0||active||finished?()=>actions.current?.showTasks():undefined}/>
-  <ImportBar {...p} actionsRef={actions} onBusyChange={onBusyChange} previewContextKey={context.providers.map(provider=>provider.registration.library.id).join("/")} recoveryLibraryId={picked?.libraryId??""} libraryId={destination?.libraryId??""} libraryName={library?.name??t("noLibraryChosen")}
+  <ImportBar {...p} actionsRef={actions} onBusyChange={onBusyChange} dropBlocked={inTrash} previewContextKey={context.providers.map(provider=>provider.registration.library.id).join("/")} recoveryLibraryId={picked?.libraryId??""} libraryId={destination?.libraryId??""} libraryName={library?.name??t("noLibraryChosen")}
     destination={destination} destinationReady={context.ready&&destinationAvailable(destination,context.providers)} running={running} finished={finished}
     picker={<SaveDestinationPicker value={destination} onChange={value=>{handPicked.current=true;setPicked(value);}} putInLibrary/>}
     taskSwitcher={switcher} cardNotes={notes} warnings={warnings} onSelectTask={setSelectedTask} ownerLabel={task?t("owner",{library:task.libraryName,folder:task.folderName??t("unassigned")}):null}
