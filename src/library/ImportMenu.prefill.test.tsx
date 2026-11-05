@@ -9,7 +9,7 @@ import { ToastProvider } from "../ui/Toast";
 import { ImportMenu, type ImportControl } from "./ImportMenu";
 import { SaveDestinationProvider } from "./SaveDestination";
 
-afterEach(() => { cleanup(); clearMocks(); });
+afterEach(async () => { cleanup(); await new Promise(resolve => setTimeout(resolve, 0)); clearMocks(); });
 
 const libraries = [
   { library: { id: "A", name: "最早库", root: "C:/a" }, unavailable: null },
