@@ -54,9 +54,10 @@ describe("主窗口", () => {
     if (stage === "进行中") await finish();
     fireEvent.click(screen.getByRole("button", { name: "返回图库" }));
 
-    // 有没导入的项，结束的轻提示一直留着；它的“查看”打开结果回执（#388）。
+    // 有未导入的项，结束的轻提示一直留着；它的“查看”打开结果回执（#388）。
     fireEvent.click(await screen.findByRole("button", { name: "查看" }));
-    expect(await screen.findByText("D:\\参考\\坏.png")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: /^未导入/ }));
+    expect(screen.getByText("D:\\参考\\坏.png")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
     await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toEqual([
@@ -117,14 +118,14 @@ describe("主窗口", () => {
     const position = { x: 10, y: 10 };
     const paths = ["D:\\参考\\a.png"];
     await act(() => emit("tauri://drag-enter", { paths, position }));
-    expect(screen.getByText("松开即可导入到 工作参考")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "松开即可导入到 工作参考" })).toBeTruthy();
     await libraryAction(/新建图库/);
     await screen.findByLabelText("图库名称");
     await act(() => emit("tauri://drag-drop", { paths, position }));
     expect(sent("plugin:library|start_import")).toEqual([]);
 
     fireEvent.click(screen.getByRole("button", { name: "返回图库" }));
-    expect(screen.queryByText("松开即可导入到 工作参考")).toBeNull();
+    expect(screen.queryByRole("img", { name: "松开即可导入到 工作参考" })).toBeNull();
     await act(() => emit("tauri://drag-drop", { paths, position }));
     await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toEqual([

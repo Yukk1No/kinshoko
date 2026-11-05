@@ -1,7 +1,7 @@
 import type { SaveDestination } from "../bindings/SaveDestination";
-import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { useId, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { CircleCheck, CircleSlash, FolderOpen, Images, Library, X } from "lucide-react";
+import { ChevronRight, CircleCheck, CircleSlash, FolderOpen, Images, Library, X } from "lucide-react";
 import type { ImportOptions } from "../bindings/ImportOptions";
 import type { ImportOutcome } from "../bindings/ImportOutcome";
 import type { ImportReport } from "../bindings/ImportReport";
@@ -40,7 +40,7 @@ function importCounts(report: ImportReport) {
 }
 
 /**
- * 导入结束的轻提示（#388）：去向与数字；有要处理的（没导入、删过的图、回收站里的）时带“查看”，打开结果回执卡，
+ * 导入结束的轻提示（#388）：去向与数字；有要处理的（未导入、删过的图、回收站里的）时带“查看”，打开结果回执卡，
  * 且不自动消失。key 概括内容，用来在数字被收起时原地更新。
  */
 export function importNotice(report: ImportReport, owner: string | null, warnings: readonly string[] = []): { key: string; toast: (view: () => void) => Omit<ToastOptions, "onClose"> } {
@@ -72,7 +72,25 @@ export function importNotice(report: ImportReport, owner: string | null, warning
   };
 }
 
-/** 导入结果卡片：新增、已存在与没导入的文件，可只重试读取失败的项。 */
+/** “未导入 N”这一行，点开是这些文件和原因。 */
+function RejectedFiles({ items }: { items: ImportReport["items"] }) {
+  const { t } = useTranslation("importing", { keyPrefix: "result" });
+  const [open, setOpen] = useState(false);
+  const list = useId();
+  return <>
+    <div className="k-task-stats">
+      <button type="button" className="k-task-toggle is-danger" aria-expanded={open} aria-controls={list} onClick={() => setOpen((value) => !value)}>
+        <span>{t("rejected")} <b>{items.length}</b></span>
+        <ChevronRight size={12} aria-hidden="true" />
+      </button>
+    </div>
+    <div id={list} className="k-task-more" hidden={!open}>{open && <ul>
+      {items.map((item) => <li key={item.path}><span className="import-report-path">{item.path}</span><span className="import-report-reason">{reason(item.outcome)}</span></li>)}
+    </ul>}</div>
+  </>;
+}
+
+/** 导入结果卡片：新增、已存在与未导入的文件，可只重试读取失败的项。 */
 export function ImportResultCard({ report, finished, owner, taskSwitcher, cardNotes, busy, begin, optionsByTask, libraryId, onOpenTrash, onDismissReport }: {
   report: ImportReport; finished: FinishedImport | null; owner: string | null; taskSwitcher?: ReactNode; cardNotes?: ReactNode;
   busy: boolean; begin: Begin; optionsByTask: { current: Map<string, ImportOptions> }; libraryId: string;
@@ -96,15 +114,12 @@ export function ImportResultCard({ report, finished, owner, taskSwitcher, cardNo
       {counts.newVersions > 0 && <span title={t("newVersionsHint")}>{t("newVersions")} <b>{counts.newVersions}</b></span>}
       {report.eagleMissing > 0 && <span title={t("eagleMissingHint")}>{t("eagleMissing")} <b>{report.eagleMissing}</b></span>}
     </p>}
-    {counts.rejected.length > 0 && <p className="k-task-stats"><span className="is-danger">{t("rejected")} <b>{counts.rejected.length}</b></span></p>}
+    {counts.rejected.length > 0 && <RejectedFiles key={finished?.taskId} items={counts.rejected} />}
     {cardNotes}
     {counts.skippedDeleted.length > 0 && <p className="k-task-sub">{t("skippedDeleted")}
       <button type="button" className="k-link" disabled={busy} onClick={() => void begin(counts.skippedDeleted, true, undefined, finished?.destination)}>{t("importAnyway")}</button></p>}
     {(counts.trashDuplicate || report.trashDuplicates) && <p className="k-task-sub">{t("inTrash")}
       {onOpenTrash && <button type="button" className="k-link" onClick={()=>onOpenTrash?.(finished?.libraryId??libraryId)}>{t("openTrash")}</button>}</p>}
-    {counts.rejected.length > 0 && <details className="k-task-more"><summary>{t("rejectedFiles")}</summary><ul>
-      {counts.rejected.map((item) => <li key={item.path}><span className="import-report-path">{item.path}</span><span className="import-report-reason">{reason(item.outcome)}</span></li>)}
-    </ul></details>}
     {counts.failed.length > 0 && <div className="k-task-acts">
       <button type="button" className="k-btn is-sm" aria-label={t("retryLabel", { count: counts.failed.length })} disabled={busy}
         onClick={() => void begin(counts.failed, false, finished ? optionsByTask.current.get(finished.taskId) : undefined, finished?.destination)}><span className="k-label">{t("retry")}</span></button>

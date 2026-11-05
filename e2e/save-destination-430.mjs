@@ -90,6 +90,7 @@ const has = async (needle) => (await text()).includes(needle);
 const escape = () => session.exec("(document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;");
 const closeToasts = () => session.exec("document.querySelectorAll('.k-toast-close').forEach(b => b.click()); return true;");
 const drag = (kind, paths) => session.invoke("plugin:event|emit", { event: `tauri://drag-${kind}`, payload: kind === "leave" ? null : { paths, position: { x: 400, y: 400 } } });
+const dropHint = () => session.exec("return document.querySelector('.k-drop-hint-icon')?.getAttribute('aria-label') ?? null;");
 const scope = (prefix) => session.click(`//button[starts-with(@aria-label, '${prefix}') or starts-with(normalize-space(), '${prefix}')]`);
 const twoSelected = () => session.exec("return (document.querySelector('[role=toolbar][aria-label=已选参考图操作]')?.innerText ?? '').includes('2 张');");
 const selectTwo = async () => {
@@ -140,11 +141,14 @@ try {
   for (const name of ["light", "dark"]) {
     await theme(name);
     await drag("enter", [refs[0]]);
-    await until("drop hint", () => has("松开即可导入"));
-    if (name === "light") check(await has("松开即可导入到 角色参考"), "全部图片下拖入提示写登记最早的库：角色参考");
+    const hint = await until("drop hint", dropHint);
+    if (name === "light") {
+      check(hint === "松开即可导入到 角色参考", `全部图片下拖入提示写登记最早的库：${hint}`);
+      check((await session.exec("return document.querySelector('.drop-hint').innerText;")).trim() === "", "拖入提示只有图标，没有可见文字");
+    }
     await settle(); await session.shot(`1-drop-hint-${name}.png`);
     await drag("leave");
-    await until("hint gone", async () => !(await has("松开即可导入")));
+    await until("hint gone", async () => (await dropHint()) === null);
   }
 
   // 导入对话框的预填。
@@ -166,6 +170,20 @@ try {
   await session.click("//*[@role='dialog']//button[normalize-space()='开始导入']");
   await session.click("//button[normalize-space()='查看']");
   await until("result card", resultCard);
+  const rejected = "//section[@aria-label='导入结果']//button[@aria-expanded]";
+  const expanded = () => session.exec("return document.querySelector('section[aria-label=导入结果] button[aria-expanded]')?.getAttribute('aria-expanded') ?? null;");
+  check(await expanded() === "false" && !(await has("坏文件.png")) && await has("未导入") && !(await has("没导入")), "结果卡默认折叠，文案是未导入");
+  for (const name of ["light", "dark"]) {
+    await theme(name);
+    await settle(); await session.shot(`5-result-collapsed-${name}.png`);
+    await session.click(rejected);
+    await until("expanded", async () => await expanded() === "true");
+    if (name === "light") check(await has("坏文件.png"), "点开未导入这一行后列出文件");
+    await settle(); await session.shot(`6-result-expanded-${name}.png`);
+    await session.click(rejected);
+    await until("collapsed", async () => await expanded() === "false");
+  }
+  await theme("light");
   await scope("角色参考");
   await until("library A wall", async () => (await session.exec("return document.querySelectorAll('.card[data-id]').length;")) === 6);
   await selectTwo();
@@ -203,7 +221,7 @@ try {
     await theme(name);
     await drag("enter", [refs[0]]);
     await delay(200);
-    if (name === "light") check(!(await has("松开即可导入")), "回收站里拖入不提示");
+    if (name === "light") check((await dropHint()) === null, "回收站里拖入不提示");
     await drag("drop", [refs[0]]);
     await until("trash notice", () => has("回收站内无法导入"));
     if (name === "light") check(!(await dialogOpen()), "回收站里松开后不弹导入对话框");

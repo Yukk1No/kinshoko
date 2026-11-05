@@ -319,7 +319,9 @@ export function ImportBar({ previewContextKey, recoveryLibraryId, dropBlocked = 
       <EagleLibrariesDialog eagleLibraries={eagleLibraries} setEagleLibraries={setEagleLibraries} busy={busy} begin={begin} importFolder={importFolder} />
       {hovering && (
         <div className="drop-hint k-drop-hint" aria-live="polite">
-          {destination === null ? t("drop.choose") : t("drop.into", { library: libraryName })}
+          <span className="k-drop-hint-icon" role="img" aria-label={destination === null ? t("drop.choose") : t("drop.into", { library: libraryName })}>
+            <Download size={32} strokeWidth={1.75} aria-hidden="true" />
+          </span>
         </div>
       )}
       {finished && preview?.taskId === finished.taskId && preview.contextKey === contextKey && enabled && <SealedImportPreview key={finished.taskId} libraryId={finished.libraryId ?? libraryId} taskId={finished.taskId} onClose={() => setPreview(null)} />}

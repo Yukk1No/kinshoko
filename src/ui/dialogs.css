@@ -101,6 +101,11 @@
 .k-task-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0 0; font-size: 12px; color: var(--ink-2); }
 .k-task-stats b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
 .k-task-acts { display: flex; gap: 8px; margin-top: 10px; }
+.k-task-toggle { display: inline-flex; align-items: center; gap: 4px; margin: -2px -4px; padding: 2px 4px; border: 0; border-radius: var(--r-xs); background: none; color: var(--danger); font: inherit; cursor: pointer; }
+.k-task-toggle:hover { background: var(--surface-2); }
+.k-task-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.k-task-toggle svg { transition: transform var(--t); }
+.k-task-toggle[aria-expanded="true"] svg { transform: rotate(90deg); }
 .k-task-more { margin-top: 6px; font-size: 12px; color: var(--ink-2); }
 .k-task-more summary { cursor: pointer; }
 .k-task-more ul { margin: 4px 0 0; padding-left: 16px; max-height: 120px; overflow: auto; }
@@ -116,10 +121,11 @@
 
 /* Drop hint: the whole window is the drop target. */
 .k-drop-hint { position: fixed; inset: 12px; z-index: 80; display: grid; place-items: center; border-radius: var(--r-xl); pointer-events: none;
-  border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent-soft) 60%, transparent); color: var(--accent-strong); font-size: 16px; line-height: 24px; font-weight: 600; }
+  border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent-soft) 60%, transparent); color: var(--accent-strong); }
+.k-drop-hint-icon { display: grid; place-items: center; width: 72px; height: 72px; border-radius: var(--r-xl); background: var(--surface); box-shadow: var(--shadow-pop); }
 
 @media (prefers-reduced-motion: reduce) {
-  .k-task-progress::-webkit-progress-value { transition-duration: 0ms; }
+  .k-task-progress::-webkit-progress-value, .k-task-toggle svg { transition-duration: 0ms; }
 }
 
 /* 编辑分组（#98）：设计系统 SettingsList 的外框（圆角 r-m、1 px line、行间 1 px line、行内边距 8 × 12），

@@ -86,7 +86,6 @@ const importing: Translation<typeof zh> = {
     importAnyway: "Import them this time…",
     inTrash: "Some images are in the Trash and stay deleted. ",
     openTrash: "Go to Trash",
-    rejectedFiles: "Files not imported",
     retryLabel_one: "Retry {{count}} failed item",
     retryLabel_other: "Retry {{count}} failed items",
     retry: "Retry failed",

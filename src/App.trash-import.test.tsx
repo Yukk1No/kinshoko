@@ -37,7 +37,8 @@ describe("回收站范围下的导入", () => {
     expect(disabled(await screen.findByRole("menuitem", { name: /^图片/ }))).toBe(false);
     fireEvent.keyDown(screen.getByRole("menuitem", { name: /^图片/ }), { key: "Escape" });
     await act(() => emit("tauri://drag-enter", { paths, position }));
-    expect(await screen.findByText(/松开即可导入到/)).toBeTruthy();
+    expect(await screen.findByRole("img", { name: /松开即可导入到/ })).toBeTruthy();
+    expect(document.querySelector(".drop-hint")!.textContent).toBe("");
   });
 
   it("离开回收站后 Ctrl V 恢复", async () => {
@@ -71,7 +72,7 @@ describe("回收站范围下的导入", () => {
   it("拖入时不显示松开即可导入；松开后不导入，只发一条不是错误的通知", async () => {
     await inTrash();
     await act(() => emit("tauri://drag-enter", { paths, position }));
-    expect(screen.queryByText(/松开即可导入/)).toBeNull();
+    expect(screen.queryByRole("img", { name: /松开即可导入/ })).toBeNull();
 
     await act(() => emit("tauri://drag-drop", { paths, position }));
 

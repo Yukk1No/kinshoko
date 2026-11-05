@@ -37,7 +37,9 @@ describe("导入结束走轻提示（#388）", () => {
     expect(title.closest(".k-toast")?.textContent).toContain("放到 参考 / 未归类");
     expect(screen.queryByRole("region", { name: "导入结果" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "查看" }));
-    expect((await screen.findByRole("region", { name: "导入结果" })).textContent).toContain("missing.png");
+    const region = await screen.findByRole("region", { name: "导入结果" });
+    fireEvent.click(screen.getByRole("button", { name: "未导入 1" }));
+    expect(region.textContent).toContain("missing.png");
     expect(screen.queryByText("导入完成", { selector: ".k-toast-title" })).toBeNull();
   });
 
@@ -80,7 +82,9 @@ describe("导入结束走轻提示（#388）", () => {
     await screen.findByText("导入完成");
     await screen.findByRole("region", { name: "导入进度" }, { timeout: 3000 });
     fireEvent.click(screen.getByRole("button", { name: "查看" }));
-    expect((await screen.findByRole("region", { name: "导入结果" })).textContent).toContain("missing.png");
+    const region = await screen.findByRole("region", { name: "导入结果" });
+    fireEvent.click(screen.getByRole("button", { name: "未导入 1" }));
+    expect(region.textContent).toContain("missing.png");
   });
 
   describe("进度取事件和轮询里更靠前的", () => {
@@ -129,6 +133,7 @@ describe("导入回执上下文撤销", () => {
       const region = await screen.findByRole("region", { name: "导入结果" });
       expect(region.textContent).toContain("已存在 1");
       expect(region.textContent).toContain("更新 1");
+      fireEvent.click(screen.getByRole("button", { name: "未导入 1" }));
       await waitFor(() => expect(calls).toBe(2));
       await act(() => emit(event, payload));
       expect(region.textContent).not.toMatch(/新增|已存在|更新/);
