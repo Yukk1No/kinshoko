@@ -269,6 +269,7 @@ try {
   await until("导入完成", () => session.exec("return [...document.querySelectorAll('.k-toast')].some(t=>t.querySelector('.k-toast-title')?.textContent==='导入完成'&&t.querySelector('.k-toast-stats')?.textContent.includes('新增 3'));"), 60000);
   // 结束是一条轻提示（#388）；有未导入的文件时它的“查看”打开结果回执。
   await session.click(await session.find("//*[contains(@class,'k-toast')]//button[normalize-space()='查看']"));
+  await session.click(await session.find("//section[@aria-label='导入结果']//button[@aria-expanded='false' and starts-with(normalize-space(), '未导入')]"));
   await session.find(`//section[@aria-label='导入结果']//li[contains(., '说明.txt') and contains(., '不支持的格式')]`);
   assert(true, "导入 3 张图，不支持的文件逐个列出");
 
