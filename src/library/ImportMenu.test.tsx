@@ -83,6 +83,24 @@ describe("导入结束走轻提示（#388）", () => {
     expect((await screen.findByRole("region", { name: "导入结果" })).textContent).toContain("missing.png");
   });
 
+  describe("进度取事件和轮询里更靠前的", () => {
+    const polled: ImportTaskSnapshot = { ...receipt, taskId: "T", progress: { done: 5, total: 30 }, report: null };
+    const card = (event: { done: number; total: number }) => <ToastProvider><ImportMenu enabled running={{ taskId: "T", progress: event }} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></ToastProvider>;
+    const shown = async (text: string) => expect((await screen.findByRole("region", { name: "导入进度" })).textContent).toContain(text);
+
+    it("目标图库不是可写句柄时事件到不了：启动时记下的 0/0 不盖住轮询", async () => {
+      serve([polled]);
+      render(card({ done: 0, total: 0 }));
+      await shown("5 / 30");
+    });
+
+    it("事件比轮询新时用事件", async () => {
+      serve([polled]);
+      render(card({ done: 9, total: 30 }));
+      await shown("9 / 30");
+    });
+  });
+
   it("安全模式打开时，已显示的提示原地收起数字", async () => {
     serve([receipt]);
     render(<ToastProvider>{menu()}</ToastProvider>);

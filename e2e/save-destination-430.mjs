@@ -91,12 +91,14 @@ const escape = () => session.exec("(document.activeElement ?? document.body).dis
 const closeToasts = () => session.exec("document.querySelectorAll('.k-toast-close').forEach(b => b.click()); return true;");
 const drag = (kind, paths) => session.invoke("plugin:event|emit", { event: `tauri://drag-${kind}`, payload: kind === "leave" ? null : { paths, position: { x: 400, y: 400 } } });
 const scope = (prefix) => session.click(`//button[starts-with(@aria-label, '${prefix}') or starts-with(normalize-space(), '${prefix}')]`);
+const twoSelected = () => session.exec("return (document.querySelector('[role=toolbar][aria-label=已选参考图操作]')?.innerText ?? '').includes('2 张');");
 const selectTwo = async () => {
   await until("two cards", () => session.exec("return document.querySelectorAll('.card[data-id]').length >= 2;"));
-  await session.exec("const [a, b] = document.querySelectorAll('.card[data-id]'); a.focus(); a.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true })); b.dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: true })); return true;");
-  await until("two selected", () => has("已选 2 张"));
+  await session.exec("const [a] = document.querySelectorAll('.card[data-id]'); a.focus(); a.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true })); return true;");
+  await delay(400);
+  await session.exec("const [, b] = document.querySelectorAll('.card[data-id]'); b.dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: true })); return true;");
+  await until("two selected", twoSelected);
 };
-const selectionBar = () => session.exec("return Boolean(document.querySelector('[role=toolbar][aria-label=已选参考图操作]'));");
 const resultCard = () => session.exec("return Boolean(document.querySelector('section[aria-label=导入结果]'));");
 const progressCard = () => session.exec("return document.querySelector('section[aria-label=导入进度] .k-task-count')?.textContent ?? null;");
 const dialogOpen = () => session.exec("return document.querySelector('.k-import-dialog .k-dialog-title')?.textContent === '导入图片';");
@@ -107,7 +109,7 @@ try {
   session = await Session.start();
   await until("welcome", () => session.exec("return Boolean(document.querySelector('#welcome-title'));"));
 
-  // 数据：两个新库，两个 v16 旧库（叫法不同，会有旧名称待确认），一批导入中用的大图。
+  // 数据：两个新库，一个 v16 旧库（打开后才有旧名称待确认），一批导入中用的大图。
   const files = join(work, "files"); mkdirSync(files, { recursive: true });
   const refs = Array.from({ length: 12 }, (_, i) => png(join(files, `ref-${i}.png`), 240 + i * 8, 320 - i * 6, i + 1));
   const bad = join(files, "坏文件.png"); writeFileSync(bad, Buffer.from("not an image"));
@@ -126,13 +128,13 @@ try {
   const smallPng = png(join(files, "small.png"), 3, 3, 7);
   const oldSchema = readFileSync("crates/kinshoko-core/tests/fixtures/spec78-legacy-v16.sql", "utf8");
   const firstOld = oldLibrary({ libraries: parent, imagePath: smallPng, oldSchema }, "旧名称第一库", "分发");
-  const secondOld = oldLibrary({ libraries: parent, imagePath: smallPng, oldSchema }, "旧名称第二库", "分开的头发");
-  await session.invoke("plugin:library|register_library", { root: firstOld.info.root });
   await session.close(); quitOwnApp(); await delay(800);
   session = await Session.start();
   await until("main window", () => session.exec("return Boolean(document.querySelector('.rail'));"));
   await settle(); await closeToasts();
   await until("all scope wall", () => session.exec("return document.querySelectorAll('.card[data-id]').length >= 2;"));
+  // 等启动的展开动画走完。
+  await delay(3000);
 
   // 拖入提示：全部图片下预填登记最早的库。
   for (const name of ["light", "dark"]) {
@@ -164,15 +166,17 @@ try {
   await session.click("//*[@role='dialog']//button[normalize-space()='开始导入']");
   await session.click("//button[normalize-space()='查看']");
   await until("result card", resultCard);
+  await scope("角色参考");
+  await until("library A wall", async () => (await session.exec("return document.querySelectorAll('.card[data-id]').length;")) === 6);
   await selectTwo();
   const noticeBefore = await session.exec("return document.body.innerText.match(/(\\d+) 个旧名称待确认/)?.[1] ?? null;");
 
-  await session.exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]; return true;", [secondOld.info.root]);
+  await session.exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]; return true;", [firstOld.info.root]);
   await session.click("//button[@aria-label='打开、新建或管理图库']");
   await session.click("//*[@role='menuitem'][contains(normalize-space(), '打开图库')]");
-  await until("opened library in sidebar", () => has("旧名称第二库"));
+  await until("opened library in sidebar", () => has("旧名称第一库"));
   await settle();
-  check(await selectionBar() && await has("已选 2 张"), "打开图库后选择还在（已选 2 张）");
+  check(await twoSelected(), "打开图库后选择还在（已选 2 张）");
   check(await resultCard(), "打开图库后导入结果卡还在");
 
   await session.exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]; return true;", [parent]);
@@ -185,10 +189,10 @@ try {
   await until("back on wall", () => session.exec("return !document.querySelector('.create-library') && Boolean(document.querySelector('.rail'));"));
   await until("new library in sidebar", () => has("我的参考"));
   await settle();
-  check(await selectionBar() && await has("已选 2 张"), "新建图库后选择还在（已选 2 张）");
+  check(await twoSelected(), "新建图库后选择还在（已选 2 张）");
   check(await resultCard(), "新建图库后导入结果卡还在");
   const noticeAfter = await until("legacy notice", () => session.exec("return document.body.innerText.match(/(\\d+) 个旧名称待确认/)?.[1] ?? null;"));
-  check(noticeAfter !== null, `旧名称提示：打开前 ${noticeBefore ?? "无"}，打开后 ${noticeAfter}`);
+  check(noticeBefore === null && noticeAfter === "1", `旧名称提示跟着登记刷新：打开前 ${noticeBefore ?? "无"}，打开后 ${noticeAfter}`);
   for (const name of ["light", "dark"]) { await theme(name); await settle(); await session.shot(`3-retained-with-legacy-notice-${name}.png`); }
   await theme("light");
 
@@ -236,16 +240,28 @@ try {
     return page.total === 2 && page;
   }, 120000);
   const progressAfterMove = await progressCard();
-  check(progressBeforeMove !== null, `移动时 A 库导入确实还在进行（${progressStart} → ${progressBeforeMove} → ${progressAfterMove ?? "已结束"}）`);
+  const importedAtMove = (await browse(a.id)).total;
+  check(progressBeforeMove !== null && progressAfterMove !== null && importedAtMove < 46, `移动时 A 库导入还在进行（${progressStart} → ${progressBeforeMove} → ${progressAfterMove}，A 库此时 ${importedAtMove} 张）`);
   check(moved.total === 2, "B 库的文件夹里进了 2 张");
-  check(await selectionBar() && await has("已选 2 张"), "整理后 B 库的选择还在");
+  check(await twoSelected(), "整理后 B 库的选择还在");
   check((await session.exec("return document.querySelectorAll('.card[data-id]').length;")) >= 2, "整理后仍在 B 库范围");
-  await until("A finished", async () => (await browse(a.id)).total === 46, 300000);
+  const samples = [];
+  await until("A finished", async () => {
+    const value = await progressCard();
+    if (value !== samples.at(-1)) samples.push(value);
+    return (await browse(a.id)).total === 46;
+  }, 300000);
+  console.log("progress samples:", samples.join(", "));
+  check(samples.some((value) => value && !value.startsWith("0 /")), `移到 B 库文件夹后 A 的进度继续走：${samples.slice(0, 4).join("，")} … ${samples.at(-1)}`);
   check(true, "A 库导入完成，共 46 张");
   check((await browse(b.id)).total === 6, "B 库图片数不变");
   writeFileSync(join(work, "checks.json"), JSON.stringify(results, null, 2));
   console.log(`Evidence: ${work}`);
   console.log(`PASS ${results.filter((r) => r.ok).length} / FAIL ${results.filter((r) => !r.ok).length}`);
+} catch (error) {
+  console.error(String(error));
+  try { await session.shot("failure.png"); writeFileSync(join(work, "failure.txt"), await text()); } catch {}
+  process.exitCode = 1;
 } finally {
   writeFileSync(join(work, "checks.json"), JSON.stringify(results, null, 2));
   try { await session?.close(); } catch {}

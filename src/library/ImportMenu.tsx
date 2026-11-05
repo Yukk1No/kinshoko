@@ -2,6 +2,7 @@ import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Com
 import { ImportBar, type ImportActions } from "./ImportBar";
 import { ImportButton } from "../ui/ImportButton";
 import type { ImportReport } from "../bindings/ImportReport";
+import type { ImportProgress } from "../bindings/ImportProgress";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { dismissImport, importTasks, isCursorExpired, onSafeModeSetting, onWorkspaceChanged, stageClipboardImport } from "../ipc";
@@ -31,6 +32,9 @@ function concealSuccesses(report: ImportReport): ImportReport {
  * （保存位置照常选择）；剪贴板没有图片或正在导入时 reject 中文原因（#105）。
  */
 export type ImportControl = { files: () => void; folder: () => void; eagle: () => void; clipboard: () => Promise<void> };
+
+/** 进度事件与任务轮询取更靠前的：写入目标不是可写句柄时事件到不了，启动时记下的 0/0 不能盖住轮询。 */
+const furtherProgress=(event:ImportProgress,polled:ImportProgress)=>event.done!==polled.done?(event.done>polled.done?event:polled):(event.total>=polled.total?event:polled);
 
 export function ImportMenu({control,...p}:Omit<ComponentProps<typeof ImportBar>,"libraryId"|"libraryName">&{scope?:WorkspaceScope;control?:Ref<ImportControl>}) {
  const [tasks,setTasks]=useState<ImportTaskSnapshot[]>([]),[selectedTask,setSelectedTask]=useState<string|null>(null),[problem,setProblem]=useState<string|null>(null);
@@ -82,7 +86,7 @@ export function ImportMenu({control,...p}:Omit<ComponentProps<typeof ImportBar>,
  },[]);
  const selected=tasks.find(t=>t.taskId===selectedTask)??tasks.find(t=>t.report===null)??tasks.at(-1);
  const task=selected?{...selected,report:selected.report??(p.finished?.taskId===selected.taskId?concealSuccesses(p.finished.report):null),
-   progress:p.running?.taskId===selected.taskId?p.running.progress:selected.progress}:undefined;
+   progress:p.running?.taskId===selected.taskId?furtherProgress(p.running.progress,selected.progress):selected.progress}:undefined;
  // 已关闭的回执不再借事件记下的“进行中”复活（#98 本机 r14）。
  const fallbackRunning=p.running&&!(p.running.taskId&&dismissed.current.has(p.running.taskId))?p.running:null;
  const running=task&&(task.report===null||task.finishing)?{taskId:task.taskId,progress:task.progress,libraryId:task.destination.libraryId,destination:task.destination,libraryName:task.libraryName,folderName:task.folderName??undefined}:task?null:fallbackRunning;
