@@ -60,7 +60,7 @@ export type CardCommand = "pin" | "crop" | "trash" | "copy";
 
 /** 图片墙上的卡片：工作区的卡片，不带缩略图地址，按来源与档位拼（见 `cardThumbnail`）。 */
 export type BrowserCard = Omit<ImageCard, "thumbnail">
-  & Partial<Pick<WorkspaceCard, "libraryId" | "imageId" | "sources">>;
+  & Pick<WorkspaceCard, "libraryId" | "imageId"> & Partial<Pick<WorkspaceCard, "sources">>;
 
 export type WallProps = {
   workspaceScope: WorkspaceScope;

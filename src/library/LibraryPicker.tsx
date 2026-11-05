@@ -16,8 +16,9 @@ import { useToast } from "../ui/Toast";
  * （ADR-0008），这里没有切换；`inline`：还没有图库时的欢迎页（#172 原型 A：先选新建或打开，新建再填表）。
  * 打开菜单或管理对话框时重新读取登记，不可用的登记仍可重新连接（重新检查）或移除。
  */
-export function LibraryPicker({ current, onChanged, onCreate, blocked = false, layout = "menu" }: {
-  current: LibraryInfo | null | undefined;
+export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = false, layout = "menu" }: {
+  /** 启动时后端还没打开上次的资料库：先不让操作。 */
+  ready?: boolean;
   onChanged: (library: LibraryInfo | null) => void;
   onCreate: () => void;
   blocked?: boolean;
@@ -30,17 +31,17 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
   const [revision, setRevision] = useState(0);
   const [managing, setManaging] = useState(false);
   const toast = useToast();
-  const disabled = busy || blocked || current === undefined;
+  const disabled = busy || blocked || !ready;
 
   useEffect(() => {
-    if (current === undefined) return;
+    if (!ready) return;
     let alive = true;
     registeredLibraries().then(
       (value) => alive && setEntries(value),
       (e) => alive && fail(String(e)),
     );
     return () => { alive = false; };
-  }, [current?.id, current?.root, current === undefined, revision]);
+  }, [ready, revision]);
 
   // Registrations can also change outside this picker (content restore, unregistration elsewhere).
   // Re-read the list when the workspace's provider set changes.
@@ -76,7 +77,7 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
   });
   const remove = (id: string) => run(async () => {
     await unregisterLibrary(id);
-    if (current?.id === id) onChanged(null);
+    onChanged(null);
   });
 
   const status = <>
@@ -115,7 +116,7 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
     <div className="pane-library-title">
       <h2 className="pane-title">{t("picker.title")}</h2>
       <Menu.Root modal={false} onOpenChange={(open) => { if (open) refresh(); }}>
-        <Menu.Trigger className="k-icon-btn lib-add" aria-label={t("picker.addLabel")} title={t("picker.addLabel")} disabled={current === undefined}>
+        <Menu.Trigger className="k-icon-btn lib-add" aria-label={t("picker.addLabel")} title={t("picker.addLabel")} disabled={!ready}>
           <Plus size={15} aria-hidden="true" />
         </Menu.Trigger>
         <MenuPopup width={200} label={t("picker.title")}>

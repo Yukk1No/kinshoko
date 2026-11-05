@@ -54,7 +54,7 @@ function memberState(status: MemberStatus): string {
  * 参考组包（#68）：导出时带上所用原图与整理信息快照，可带到别的电脑；导入时原图进当前资料库
  * （`libraryId`），另存为新的参考组。
  */
-export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
+export function ReferenceGroupsPanel() {
   const [groups, setGroups] = useState<GroupSummary[] | null>(null);
   const [libraryNames, setLibraryNames] = useState<Map<string, string>>(new Map());
   const [libraryOptions, setLibraryOptions] = useState<LibraryRegistration[]>([]);

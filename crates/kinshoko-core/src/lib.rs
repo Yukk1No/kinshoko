@@ -34,7 +34,7 @@ pub use app_shell::{
     AppInfo, UpdateChannel, UpdatePolicy, UpdateProgress, UpdateStatus, app_info, offers_update,
 };
 pub use command_error::CommandError;
-pub use device::{DeviceRegistry, RegisteredLibrary};
+pub use device::{DeviceRegistry, RegisteredLibrary, SaveMemory};
 pub use device_libraries::{
     DeviceLibraries, DeviceLibraryError, ImportFinishWait, ImportTaskSnapshot, LibraryRegistration,
     OrganizeWaiting, WriterAccess, WriterWaitError, wait_for_writer,

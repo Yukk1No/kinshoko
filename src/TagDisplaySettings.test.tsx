@@ -36,7 +36,7 @@ function backend() {
 }
 
 async function openAppearance(onChange?: (view: ShellSettingsView) => void) {
-  render(<SettingsPanel library={null} initialTab="tags" onChange={onChange} />);
+  render(<SettingsPanel initialTab="tags" onChange={onChange} />);
   fireEvent.click(await screen.findByRole("button", { name: "外观" }));
   return {
     high: await screen.findByRole("spinbutton", { name: "高档下限" }) as HTMLInputElement,

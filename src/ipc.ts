@@ -1,4 +1,5 @@
 import type { SaveDestination } from "./bindings/SaveDestination";
+import type { SaveMemory } from "./bindings/SaveMemory";
 import type { ImportOptions } from "./bindings/ImportOptions";
 import type { LibraryTarget } from "./bindings/LibraryTarget";
 import type { LibraryDeletePreview } from "./bindings/LibraryDeletePreview";
@@ -35,9 +36,24 @@ export function appInfo(): Promise<AppInfo> {
 }
 
 
-/** 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。 */
-export function currentLibrary(): Promise<LibraryInfo | null> {
-  return invoke<LibraryInfo | null>(lib("current_library"));
+/** 启动时打开本设备上次打开的资料库并装配后端。打开了哪个是后端细节（ADR-0008），界面不留。 */
+export async function openLastLibrary(): Promise<void> {
+  await invoke(lib("current_library"));
+}
+
+/** 保存入口各自记住的位置（ADR-0016）。 */
+export function saveMemory(): Promise<SaveMemory> {
+  return invoke<SaveMemory>(lib("save_memory"));
+}
+
+/** 导入对话框里亲手选定了保存目标。 */
+export function rememberImportDestination(destination: SaveDestination): Promise<void> {
+  return invoke<void>(lib("remember_import_destination"), { destination });
+}
+
+/** 亲手选定了新建资料库的位置。 */
+export function rememberNewLibraryParent(parent: string): Promise<void> {
+  return invoke<void>(lib("remember_new_library_parent"), { parent });
 }
 
 /** 在 parent 下新建名为 name 的资料库，登记到本设备并打开。 */

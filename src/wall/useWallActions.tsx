@@ -31,8 +31,8 @@ export function staggeredPins(point: Point, count: number, dpr: number): ScreenR
 }
 
 /** 卡片显示的那份来源。 */
-const targetOf = (card: BrowserCard, fallbackLibrary: string): WorkspaceSourceTarget => ({
-  libraryId: card.libraryId ?? fallbackLibrary, imageId: card.imageId ?? card.id, contentId: card.id,
+const targetOf = (card: BrowserCard): WorkspaceSourceTarget => ({
+  libraryId: card.libraryId, imageId: card.imageId, contentId: card.id,
 });
 
 /** 整理这份来源后卡片还在当前视图里：别的来源仍符合这个视图（例如另一个资料库里那份没进回收站）。 */
@@ -41,8 +41,6 @@ const staysAfter = (card: BrowserCard, target: WorkspaceSourceTarget) =>
 
 export type WallActionsOptions = {
   safe: boolean;
-  /** 卡片没有标出图库时的后备图库。 */
-  activeLibraryId: string;
   onOpen: (card: BrowserCard) => void;
   onCrop: (card: BrowserCard) => void;
   onInspect: (card: BrowserCard) => void;
@@ -73,11 +71,11 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
   const [purging, setPurging] = useState<BrowserCard[] | null>(null);
 
   const pinNow = async (cards: BrowserCard[], point: Point) => {
-    const { activeLibraryId, onError } = options.current;
+    const { onError } = options.current;
     const rects = staggeredPins(point, cards.length, window.devicePixelRatio || 1);
     // 依次钉住：后钉的盖在先钉的上面，错开的顺序与图片墙一致。
     for (const [i, card] of cards.entries()) {
-      const target = targetOf(card, activeLibraryId);
+      const target = targetOf(card);
       try { await pinReference(target.libraryId, target.imageId, null, rects[i]); } catch (e) { onError(i18n.t("common:image.pinFailed", { error: String(e) })); return false; }
     }
     return true;
@@ -97,7 +95,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     cardsNamed.current = cards;
     const byLibrary = new Map<string, { card: BrowserCard; target: WorkspaceSourceTarget }[]>();
     for (const card of cards) {
-      const target = targetOf(card, options.current.activeLibraryId);
+      const target = targetOf(card);
       const group = byLibrary.get(target.libraryId);
       if (group) group.push({ card, target }); else byLibrary.set(target.libraryId, [{ card, target }]);
     }
@@ -121,13 +119,13 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     selectAll: () => options.current.selectAll(),
     setDensity: (value) => options.current.setDensity(value),
     copy(card) {
-      const { activeLibraryId, onNotice, onError } = options.current;
-      const target = targetOf(card, activeLibraryId);
+      const { onNotice, onError } = options.current;
+      const target = targetOf(card);
       copyReferenceImage(target.libraryId, target.imageId).then(() => onNotice(i18n.t("common:image.copied")), (e) => onError(i18n.t("common:image.copyFailed", { error: String(e) })));
     },
     reveal(card) {
-      const { activeLibraryId, onError } = options.current;
-      const target = targetOf(card, activeLibraryId);
+      const { onError } = options.current;
+      const target = targetOf(card);
       revealReferenceImage(target.libraryId, target.imageId).catch((e) => onError(i18n.t("common:image.revealFailed", { error: String(e) })));
     },
     importClipboard() {
@@ -143,9 +141,9 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       });
     },
     edit(cards, edits, clear) {
-      const { safe, activeLibraryId, onChanged, onClearSelection, onError, removeCards } = options.current;
+      const { safe, onChanged, onClearSelection, onError, removeCards } = options.current;
       cardsNamed.current = cards;
-      const entries = cards.map((card) => ({ card, target: targetOf(card, activeLibraryId) }));
+      const entries = cards.map((card) => ({ card, target: targetOf(card) }));
       // 移到回收站与还原让卡片离开当前视图：先移走，不等后端与整墙重读（#290）。别的来源还让它留在视图里的卡片不动。
       const leaving = edits.length === 1 && (edits[0].kind === "delete" || edits[0].kind === "restore");
       const moved = leaving ? entries.filter(({ card, target }) => !staysAfter(card, target)).map(({ card }) => card) : [];
@@ -190,14 +188,14 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       setPurging(cards);
     },
     inFolder: (card, folderId) => {
-      const target = targetOf(card, options.current.activeLibraryId);
+      const target = targetOf(card);
       return workspaceImage(target.libraryId, target.imageId).then((detail) => detail.folders.some((folder) => folder.id === folderId));
     },
     folders: (libraryId) => workspaceSidebar(libraryId, options.current.safe).then((sidebar) => flattenFolders(sidebar.folders)),
     groups: () => referenceGroups(),
   };
 
-  const purgeTarget = purging?.length === 1 ? targetOf(purging[0], o.activeLibraryId) : undefined;
+  const purgeTarget = purging?.length === 1 ? targetOf(purging[0]) : undefined;
   const purged = () => { setPurging(null); options.current.onClearSelection(); options.current.onChanged(); };
   const dialogs = <>
     {purging && purgeTarget && <PermanentDeleteConfirm
@@ -211,7 +209,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     />}
     {purging && !purgeTarget && <PermanentDeleteBatchConfirm
       targets={purging.map((card) => {
-        const { libraryId, imageId } = targetOf(card, o.activeLibraryId);
+        const { libraryId, imageId } = targetOf(card);
         return { libraryId, imageId };
       })}
       libraryName={libraryName}

@@ -1,42 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
-import type { BrowsePage } from "./bindings/BrowsePage";
 import { App } from "./App";
-import { library, page, clean, backend, sent, selectionPanel, push, importAction, chooseDestination, libraryAction, openLibrary, confirmImport } from "./App.fixtures";
+import { library, clean, backend, sent, selectionPanel, push, importAction, chooseDestination, libraryAction, openLibrary, confirmImport } from "./App.fixtures";
 
 describe("主窗口", () => {
-  it("打开另一个图库时清空选择与导入状态，迟到的旧库浏览和进度不会覆盖新库", async () => {
+  it("打开另一个图库不动选择和进行中的导入（ADR-0008）", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
-    let resolveOld!: (page: BrowsePage) => void;
-    const oldPage = new Promise<BrowsePage>((resolve) => { resolveOld = resolve; });
-    let delayed = false;
-    backend(library, clean, (cmd, args) => {
+    backend(library, clean, (cmd) => {
       if (cmd === "plugin:library|registered_libraries") return [library, other].map((library) => ({ library, unavailable: null }));
-      if (cmd === "plugin:library|switch_library") return other;
-      if (cmd === "plugin:library|browse") {
-        if ((args as { libraryId: string }).libraryId === "L2") return { cards: [], nextCursor: null, total: 0 };
-        if (delayed) return oldPage;
-      }
       return undefined;
     });
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
+    await waitFor(() => expect(selectionPanel()).toBeTruthy());
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 4 } });
-    delayed = true;
-    await push({ kind: "listStale", libraryId: "L1" });
-    await openLibrary();
-    await act(() => resolveOld(page));
-    await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 2, total: 4 } });
-    await push({ kind: "taskFinished", libraryId: "L1", taskId: "T1", report: { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] } });
 
-    expect(await screen.findByText("图库里还没有参考图。点右上角的“导入”，或直接拖进窗口。")).toBeTruthy();
-    expect(screen.queryByRole("img")).toBeNull();
-    expect(selectionPanel()).toBeNull();
-    expect(screen.queryByRole("progressbar")).toBeNull();
-    expect(screen.queryByLabelText("导入结果")).toBeNull();
-    expect(sent("plugin:library|browse").at(-1)).toMatchObject({ libraryId: "L2" });
+    await openLibrary();
+    await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 2, total: 4 } });
+
+    expect(selectionPanel()).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("2 / 4")).toBeTruthy();
   });
 
   it.each(["进行中", "已结束"])("导入%s时打开新建资料库页再返回，保留结果和重试入口", async (stage) => {
@@ -69,9 +54,10 @@ describe("主窗口", () => {
     if (stage === "进行中") await finish();
     fireEvent.click(screen.getByRole("button", { name: "返回图库" }));
 
-    // 有没导入的项，结束的轻提示一直留着；它的“查看”打开结果回执（#388）。
+    // 有未导入的项，结束的轻提示一直留着；它的“查看”打开结果回执（#388）。
     fireEvent.click(await screen.findByRole("button", { name: "查看" }));
-    expect(await screen.findByText("D:\\参考\\坏.png")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: /^未导入/ }));
+    expect(screen.getByText("D:\\参考\\坏.png")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
     await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toEqual([
@@ -121,7 +107,7 @@ describe("主窗口", () => {
     expect(screen.queryByRole("alert", { name: "Eagle 库换了位置？" })).toBeNull();
   });
 
-  it("新建资料库页不接受拖放导入，返回当前库后恢复拖放", async () => {
+  it("新建资料库页不接受拖放导入，返回后恢复拖放", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
@@ -132,14 +118,14 @@ describe("主窗口", () => {
     const position = { x: 10, y: 10 };
     const paths = ["D:\\参考\\a.png"];
     await act(() => emit("tauri://drag-enter", { paths, position }));
-    expect(screen.getByText("松开即可导入，再选放在哪里")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "松开即可导入到 工作参考" })).toBeTruthy();
     await libraryAction(/新建图库/);
     await screen.findByLabelText("图库名称");
     await act(() => emit("tauri://drag-drop", { paths, position }));
     expect(sent("plugin:library|start_import")).toEqual([]);
 
     fireEvent.click(screen.getByRole("button", { name: "返回图库" }));
-    expect(screen.queryByText("松开即可导入，再选放在哪里")).toBeNull();
+    expect(screen.queryByRole("img", { name: "松开即可导入到 工作参考" })).toBeNull();
     await act(() => emit("tauri://drag-drop", { paths, position }));
     await confirmImport();
     await waitFor(() => expect(sent("plugin:library|start_import")).toEqual([
@@ -147,7 +133,7 @@ describe("主窗口", () => {
     ]));
   });
 
-  it("选择导入文件的对话框等待期间打开另一个图库，迟到的选择不会导入新库", async () => {
+  it("选择导入文件的对话框等待期间打开另一个图库，迟到的选择也要先确认保存位置", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
     let resolvePick!: (paths: string[]) => void;
     const picked = new Promise<string[]>((resolve) => { resolvePick = resolve; });

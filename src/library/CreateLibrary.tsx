@@ -3,6 +3,7 @@ import { ChevronLeft, FolderOpen, Lightbulb } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import { createLibrary, pickFolder } from "../ipc";
+import { useSaveDestination } from "./SaveDestination";
 
 /** 新文件夹的完整路径，只用来给画师看；真正的路径由后端拼。 */
 function preview(parent: string, name: string) {
@@ -20,6 +21,7 @@ export function CreateLibrary({ onCreated, onBusyChange, onBack, backLabel }: {
   backLabel: string;
 }) {
   const { t } = useTranslation("library");
+  const { rememberNewLibraryParent } = useSaveDestination();
   const [name, setName] = useState(() => t("create.defaultName"));
   const [parent, setParent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,9 @@ export function CreateLibrary({ onCreated, onBusyChange, onBack, backLabel }: {
     onBusyChange?.(true);
     setError(null);
     try {
-      onCreated(await createLibrary(parent, name.trim()));
+      const created = await createLibrary(parent, name.trim());
+      rememberNewLibraryParent(parent);
+      onCreated(created);
     } catch (e) {
       setError(String(e));
     } finally {

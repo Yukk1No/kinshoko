@@ -1,4 +1,4 @@
-import { useEffect, type Dispatch, type RefObject, type SetStateAction } from "react";
+import { useEffect, useRef, type Dispatch, type RefObject, type SetStateAction } from "react";
 import { i18n } from "../i18n";
 import { onLibraryEvent, onOrganizeWaiting } from "../ipc";
 import type { FinishedImport, RunningImport } from "../library/ImportBar";
@@ -9,9 +9,8 @@ import type { Invalidate } from "./useInvalidation";
 
 /** 资料库事件：列表与词表失效、安全模式确认、导入进度与结束；另一个图库整理等导入收尾时的轻提示。 */
 export function useLibraryEvents({
-  libraryId, toast, imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport,
+  toast, imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport,
 }: {
-  libraryId: string;
   toast: ToastApi | null;
   imports: RefObject<ImportTasks>;
   invalidate: Invalidate;
@@ -33,14 +32,12 @@ export function useLibraryEvents({
       void unlisten.then((stop) => stop());
     };
   }, [toast]);
+  // 安全模式属于本设备，开着几个可写句柄就有几份确认（ADR-0008）：第一份生效，其余不再清一次选择。
+  const confirmedSafe = useRef<boolean | null>(null);
   useEffect(() => {
     let alive = true;
     const unlisten = onLibraryEvent((event) => {
       if (!alive) return;
-      // 后端按需把可写句柄切到正在整理的图库（ADR-0008）：任何图库的列表或词表变化都只让界面重读；
-      // 安全模式与导入事件只认这个界面打开的图库，另一个库的不串台。
-      const invalidation = event.kind === "listStale" || event.kind === "vocabularyChanged" || event.kind === "imagesChanged";
-      if (event.libraryId !== libraryId && !invalidation) return;
       const task = imports.current;
       switch (event.kind) {
         case "listStale":
@@ -51,6 +48,8 @@ export function useLibraryEvents({
           invalidate({ kind: "vocabularyInvalidated" });
           break;
         case "safeModeChanged":
+          if (confirmedSafe.current === event.on) break;
+          confirmedSafe.current = event.on;
           safeChanged.current(event.on);
           // 选中或正在查看的图可能已被封印：开启时关闭查看器回到图片墙；
           // 默认同时清掉选择，设为保留时由重读后的修剪只去掉被封印的图。
@@ -62,14 +61,14 @@ export function useLibraryEvents({
           // 已结束的任务不再复活；另一个任务正在进行时，旧任务的进度不覆盖它。
           if (task.finished.has(event.taskId) || task.other(event.taskId)) break;
           task.running = event.taskId;
-          setRunning({ taskId: event.taskId, progress: event.progress });
+          setRunning({ taskId: event.taskId, progress: event.progress, libraryId: event.libraryId });
           break;
         case "taskFinished":
           if (task.finished.has(event.taskId) || task.other(event.taskId)) break;
           task.finished.add(event.taskId);
           task.running = null;
           setRunning(null);
-          setReport({ taskId: event.taskId, report: event.report });
+          setReport({ taskId: event.taskId, report: event.report, libraryId: event.libraryId });
           break;
       }
     });
@@ -77,5 +76,5 @@ export function useLibraryEvents({
       alive = false;
       void unlisten.then((stop) => stop());
     };
-  }, [libraryId]);
+  }, []);
 }

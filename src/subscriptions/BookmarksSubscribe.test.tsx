@@ -24,7 +24,7 @@ function backend(subs: Subscription[]) {
     if (cmd === "subscriptions") return subs;
     if (cmd === "subscription_recent") return [];
     if (cmd === "plugin:library|workspace_directories") {
-      return { status: { revision: "t", libraries }, providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
+      return { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
     }
     if (cmd === "subscription_add") return [];
     if (cmd === "subscription_set_options") return subs[0];
@@ -36,7 +36,7 @@ const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.ar
 
 function page(s: SubscriptionStatus, safe = false) {
   return render(<SaveDestinationProvider safe={safe}>
-    <SubscriptionsPage status={s} onStatus={vi.fn()} safe={safe} paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} libraryId="L2" />
+    <SubscriptionsPage status={s} onStatus={vi.fn()} safe={safe} paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} />
   </SaveDestinationProvider>);
 }
 
@@ -61,7 +61,7 @@ afterEach(async () => {
 });
 
 describe("同步 pixiv 收藏夹", () => {
-  it("默认两边都不同步已有的收藏、不同步漫画、同步 R-18，存进当前图库", async () => {
+  it("默认两边都不同步已有的收藏、不同步漫画、同步 R-18，存进登记最早的图库", async () => {
     backend(list.filter((s) => s.target.kind !== "pixivBookmarks"));
     page(status());
     fireEvent.click(await openMenu());
@@ -74,7 +74,7 @@ describe("同步 pixiv 收藏夹", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "开始同步" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
     expect(sent("subscription_add")[0]).toEqual({ subscriptions: [{
-      target: { kind: "pixivBookmarks" }, name: "", libraryId: "L2", includeExplicit: true, includeManga: false, backlog: { kind: "newOnly" }, privateBacklog: { kind: "newOnly" },
+      target: { kind: "pixivBookmarks" }, name: "", libraryId: "L1", includeExplicit: true, includeManga: false, backlog: { kind: "newOnly" }, privateBacklog: { kind: "newOnly" },
     }] });
   });
 

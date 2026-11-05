@@ -8,13 +8,12 @@ import type { BrowserCard } from "../wall/Wall";
 
 /** 详情面板（#98）：整理哪些图、是否打开、宽度与开合过渡。 */
 export function useWorkspaceInspector({
-  selected, setSelected, loadedCards, workspaceScope, libraryId, sources, setSources, hidden, viewing, inspectorWidth, fitPanel,
+  selected, setSelected, loadedCards, workspaceScope, sources, setSources, hidden, viewing, inspectorWidth, fitPanel,
 }: {
   selected: Set<string>;
   setSelected: Dispatch<SetStateAction<Set<string>>>;
   loadedCards: BrowserCard[];
   workspaceScope: WorkspaceScope;
-  libraryId: string;
   sources: WorkspaceCard | null;
   setSources: Dispatch<SetStateAction<WorkspaceCard | null>>;
   hidden: boolean;
@@ -30,10 +29,12 @@ export function useWorkspaceInspector({
   // 来源时是那个库。单选、多选都可以整理任何一个图库（#422）；选中的图有几份来源、定不下图库时，走下面的来源整理。
   const selectedCards = loadedCards.filter((card) => selected.has(card.id));
   const soleLibrary = selectedCards[0]?.sources?.length === 1 ? selectedCards[0].sources[0].libraryId : null;
-  // 列表重读期间选中的图暂时不在已读卡片里：沿用窗口打开的图库，等修剪选择后再定（与原规则相同）。
+  // 列表重读期间选中的图暂时不在已读卡片里：沿用这组选择上次定下的图库，等修剪选择后再定。
+  const lastSelectionLibrary = useRef<{ key: string; library: string } | null>(null);
   const selectionLibrary = workspaceScope.kind === "library" ? workspaceScope.libraryId
-    : selectedCards.length === 0 ? libraryId || null
+    : selectedCards.length === 0 ? (lastSelectionLibrary.current?.key === selectionKey ? lastSelectionLibrary.current.library : null)
     : soleLibrary && selectedCards.every((card) => card.sources?.length === 1 && card.sources[0].libraryId === soleLibrary) ? soleLibrary : null;
+  if (selectionLibrary) lastSelectionLibrary.current = { key: selectionKey, library: selectionLibrary };
   const eligible = selected.size > 0 && selectionLibrary !== null;
   // 选中一张在几个图库各有一份的图时，详情面板显示它的来源整理（卡片上的来源按钮同样可打开）。
   const selectedSourceCard = !eligible && selected.size === 1

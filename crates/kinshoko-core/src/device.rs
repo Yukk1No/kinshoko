@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::library::LibraryInfo;
+use crate::library::{LibraryInfo, SaveDestination};
 
 const FILE: &str = "device.json";
 const FORMAT: &str = "kinshoko.device";
@@ -26,6 +26,16 @@ pub struct RegisteredLibrary {
     pub root: PathBuf,
 }
 
+/// 保存入口各记各的“上次亲手选的”（ADR-0016），不是跨入口的默认资料库。
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase", default)]
+#[ts(export)]
+pub struct SaveMemory {
+    pub import_destination: Option<SaveDestination>,
+    #[ts(type = "string | null")]
+    pub new_library_parent: Option<PathBuf>,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct State {
@@ -33,6 +43,8 @@ struct State {
     format_version: u32,
     libraries: Vec<RegisteredLibrary>,
     last_opened: Option<String>,
+    #[serde(default)]
+    save_memory: SaveMemory,
 }
 
 /// 本设备的资料库登记表。
@@ -68,7 +80,7 @@ impl DeviceRegistry {
         &self.state.libraries
     }
 
-    /// 上次打开的资料库。
+    /// 上次打开的资料库：只决定启动时后端先把可写句柄给谁，不给界面当依据（ADR-0016）。
     pub fn last_opened(&self) -> Option<&RegisteredLibrary> {
         let id = self.state.last_opened.as_ref()?;
         self.state.libraries.iter().find(|l| &l.id == id)
@@ -116,6 +128,47 @@ impl DeviceRegistry {
         if next.last_opened.as_deref() == Some(id) {
             next.last_opened = None;
         }
+        let memory = &mut next.save_memory;
+        if memory
+            .import_destination
+            .as_ref()
+            .is_some_and(|destination| destination.library_id == id)
+        {
+            memory.import_destination = None;
+        }
+        self.save(&next)?;
+        self.state = next;
+        Ok(())
+    }
+
+    pub fn save_memory(&self) -> &SaveMemory {
+        &self.state.save_memory
+    }
+
+    /// 导入对话框里亲手选定的保存目标。资料库已不在登记表里时（选定后被取消登记）不记。
+    pub fn remember_import_destination(
+        &mut self,
+        destination: &SaveDestination,
+    ) -> std::io::Result<()> {
+        if !self
+            .state
+            .libraries
+            .iter()
+            .any(|library| library.id == destination.library_id)
+        {
+            return Ok(());
+        }
+        let mut next = self.state.clone();
+        next.save_memory.import_destination = Some(destination.clone());
+        self.save(&next)?;
+        self.state = next;
+        Ok(())
+    }
+
+    /// 亲手选定的新建资料库位置。
+    pub fn remember_new_library_parent(&mut self, parent: &Path) -> std::io::Result<()> {
+        let mut next = self.state.clone();
+        next.save_memory.new_library_parent = Some(parent.to_path_buf());
         self.save(&next)?;
         self.state = next;
         Ok(())

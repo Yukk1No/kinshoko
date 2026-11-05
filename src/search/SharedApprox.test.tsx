@@ -18,7 +18,7 @@ it("lists and deletes application rules without an active library",async()=>{
     if(cmd.endsWith("edit_shared_approx")){entries=[];return null;}
     return undefined;
   },{shouldMockEvents:true});
-  render(<SettingsPanel library={null} initialTab="tags"/>);fireEvent.click(await screen.findByRole("button",{name:"相近"}));
+  render(<SettingsPanel initialTab="tags"/>);fireEvent.click(await screen.findByRole("button",{name:"相近"}));
   const table=await screen.findByRole("table",{name:"相近标签表"});
   expect(within(table).getByText(/蓝瞳/)).toBeTruthy();
   fireEvent.click(within(table).getByRole("button",{name:"删除"}));
