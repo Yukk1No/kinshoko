@@ -32,6 +32,7 @@ export default {
     withdrawn_other: "{{count}} 个文件已撤回，没有留下半张图",
     kept_other: "图库的原文件夹里有 {{count}} 个不认识的文件，已保留",
     separator: "；",
+    inLibrary: "{{library}}：{{summary}}",
     showFiles: "查看文件",
     reimportLabel: "重新导入这些文件",
     reimport: "重新导入",

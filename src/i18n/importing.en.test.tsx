@@ -6,6 +6,7 @@ import { i18n } from ".";
 import type { ImportReport } from "../bindings/ImportReport";
 import { ImportBar, type ImportActions } from "../library/ImportBar";
 import { importNotice } from "../library/ImportBarParts";
+import { SaveDestinationProvider } from "../library/SaveDestination";
 import { EagleTagStep } from "../library/EagleTagStep";
 import { expectNoChinese } from "../test/noChinese";
 
@@ -37,6 +38,10 @@ function backend() {
   mockWindows("main");
   mockIPC((cmd) => {
     if (cmd === "plugin:library|recovery") return { interrupted: ["D:/图/半张.png"], orphans: ["x"] };
+    if (cmd === "plugin:library|workspace_directories") {
+      const registration = { library: { id: "L1", name: "参考", root: "D:/参考" }, unavailable: null };
+      return { status: { revision: "r", libraries: [registration] }, providers: [{ registration, unassigned: 0, descendants: {}, sidebar: null }] };
+    }
     if (cmd === "plugin:library|discover_eagle_libraries")
       return [{ name: "主库", path: "D:/Eagle/main.library", items: 3, version: "4.0.0", foundBy: "settings" }];
     if (cmd === "plugin:library|eagle_tag_mapping") return {
@@ -57,7 +62,7 @@ const bar = (finished: ImportReport | null) =>
 describe("英文界面：导入", () => {
   it("结果卡片、上次中断与 Eagle 库换了位置", async () => {
     backend();
-    render(bar(report));
+    render(<SaveDestinationProvider safe={false}>{bar(report)}</SaveDestinationProvider>);
     await settle();
     expect(screen.getByRole("region", { name: "Import result" })).toBeTruthy();
     expect(screen.getByText("Into 参考 / Unsorted")).toBeTruthy();

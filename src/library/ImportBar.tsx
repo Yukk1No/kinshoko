@@ -9,14 +9,14 @@ import { SealLock } from "../ui/SealLock";
 import type { ImportOptions } from "../bindings/ImportOptions";
 import type { ImportProgress } from "../bindings/ImportProgress";
 import type { ImportReport } from "../bindings/ImportReport";
-import type { RecoveryReport } from "../bindings/RecoveryReport";
 import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
 import { EagleTagStep } from "./EagleTagStep";
 import type { EagleLocationChoice } from "../bindings/EagleLocationChoice";
 import type { EagleRelocation } from "../bindings/EagleRelocation";
-import { cancelImport, confirmEagleLocation, discoverEagleLibraries, importContainsEagle, libraryRecovery, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
+import { cancelImport, confirmEagleLocation, discoverEagleLibraries, importContainsEagle, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
 import { EagleLibrariesDialog, ImportPlanDialog, ImportResultCard, type ImportPlan } from "./ImportBarParts";
 import { useImportNotices } from "./useImportNotices";
+import { useImportRecovery } from "./useImportRecovery";
 
 export type RunningImport = { taskId: string | null; progress: ImportProgress; libraryId?:string; destination?:SaveDestination; libraryName?:string; folderName?:string };
 /** 已结束的导入任务与它的报告。 */
@@ -72,7 +72,7 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
   const [preview, setPreview] = useState<{ taskId: string; contextKey: string } | null>(null);
   useEffect(() => { setPreview(null); }, [finished?.taskId, contextKey, enabled]);
   const [hovering, setHovering] = useState(false);
-  const [recovery, setRecovery] = useState<RecoveryReport | null>(null);
+  const { recovery, dismiss: dismissRecovery } = useImportRecovery();
   const [eagleLibraries, setEagleLibraries] = useState<EagleLibraryCandidate[] | null>(null);
   const [lookingForEagle, setLookingForEagle] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -205,17 +205,6 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
     };
   }, []);
 
-  useEffect(() => {
-    let alive = true;
-    libraryRecovery(libraryId).then(
-      (value) => alive && setRecovery(value),
-      () => {},
-    );
-    return () => {
-      alive = false;
-    };
-  }, [libraryId]);
-
   const { done = 0, total = 0 } = running?.progress ?? {};
   const relocations = (report?.eagleRelocations ?? []).filter((r) => !confirmed.includes(r.to));
   const confirm = async (relocation: EagleRelocation, choice: EagleLocationChoice) => {
@@ -229,16 +218,17 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
       if (alive.current) setImportError(t("failed.confirmEagle", { error: String(error) }));
     }
   };
-  const interrupted = recovery?.interrupted ?? [];
-  const orphans = recovery?.orphans ?? [];
+  const interrupted = recovery?.report.interrupted ?? [];
+  const orphans = recovery?.report.orphans ?? [];
+  const reimport = (paths: string[], library: string) => latest.current.begin(paths, false, undefined, { libraryId: library, folderId: null });
 
   const minimized = running !== null && background === (running.taskId ?? "");
   const owner = ownerLabel ?? (finished?.libraryName ? t("owner", { library: finished.libraryName, folder: finished.folderName ?? t("unassigned") }) : running?.libraryName ? t("owner", { library: running.libraryName, folder: running.folderName ?? t("unassigned") }) : null);
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
   const sealed = report?.sealedDuplicates && finished;
 
-  const { toast, receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, recovery, setRecovery, importError, setImportError,
-    reimport: (paths) => void latest.current.begin(paths), sealedTask: sealed ? sealed.taskId : null, showSealed: (taskId) => setPreview({ taskId, contextKey }) });
+  const { toast, receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, recovery, dismissRecovery, importError, setImportError,
+    reimport: (paths, library) => void reimport(paths, library), sealedTask: sealed ? sealed.taskId : null, showSealed: (taskId) => setPreview({ taskId, contextKey }) });
 
   const cards = <>
     {importError && <section className="k-task" role="alert" aria-label={t("error.title")}>
@@ -246,21 +236,20 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
         <button type="button" className="k-icon-btn is-sm" aria-label={t("error.dismiss")} onClick={() => setImportError(null)}><X size={14} aria-hidden="true" /></button></div>
       <p className="k-task-sub">{importError}</p>
     </section>}
-    {!toast && (interrupted.length > 0 || orphans.length > 0) && (
+    {!toast && recovery && (
       <section className="k-task" role="status" aria-label={interrupted.length > 0 ? t("recovery.interrupted") : t("recovery.orphansLabel")}>
         <div className="k-task-top"><History size={16} className="k-task-icon" aria-hidden="true" />
           <b>{interrupted.length > 0 ? t("recovery.interrupted") : t("recovery.orphans")}</b>
-          <button type="button" className="k-icon-btn is-sm" aria-label={t("recovery.close")} onClick={() => setRecovery(null)}><X size={14} aria-hidden="true" /></button></div>
+          <button type="button" className="k-icon-btn is-sm" aria-label={t("recovery.close")} onClick={() => dismissRecovery(recovery)}><X size={14} aria-hidden="true" /></button></div>
         <p className="k-task-sub">
-          {interrupted.length > 0 && t("recovery.withdrawn", { count: interrupted.length })}
-          {interrupted.length > 0 && orphans.length > 0 && t("recovery.separator")}
-          {orphans.length > 0 && t("recovery.kept", { count: orphans.length })}
+          {t("recovery.inLibrary", { library: recovery.libraryName, summary: [interrupted.length > 0 && t("recovery.withdrawn", { count: interrupted.length }),
+            orphans.length > 0 && t("recovery.kept", { count: orphans.length })].filter(Boolean).join(t("recovery.separator")) })}
         </p>
         {interrupted.length > 0 && <details className="k-task-more"><summary>{t("recovery.showFiles")}</summary><ul>
           {interrupted.map((path) => <li key={path}><span className="import-report-path">{path}</span></li>)}
         </ul></details>}
         {interrupted.length > 0 && <div className="k-task-acts">
-          <button type="button" className="k-btn is-sm" aria-label={t("recovery.reimportLabel")} disabled={busy} onClick={() => { void begin(interrupted); setRecovery(null); }}><span className="k-label">{t("recovery.reimport")}</span></button>
+          <button type="button" className="k-btn is-sm" aria-label={t("recovery.reimportLabel")} disabled={busy} onClick={() => { void reimport(interrupted, recovery.libraryId); dismissRecovery(recovery); }}><span className="k-label">{t("recovery.reimport")}</span></button>
         </div>}
       </section>
     )}
