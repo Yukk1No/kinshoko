@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n/instance";
 import type { SaveDestination } from "../bindings/SaveDestination";
 import type { SaveMemory } from "../bindings/SaveMemory";
+import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import type { FolderNode } from "../bindings/FolderNode";
 import { isCursorExpired, onWorkspaceChanged, rememberImportDestination, rememberNewLibraryParent, saveMemory, workspaceDirectories } from "../ipc";
@@ -31,6 +32,12 @@ export const useSaveDestination = () => useContext(Context);
 
 const RETRIES = 3, RETRY_MS = 150;
 
+/** 保存入口看到的资料库：登记最早的在前（ADR-0016 的兜底），不跟侧栏的顺序。 */
+function inRegistrationOrder({ providers, registrationOrder }: WorkspaceDirectories) {
+  const rank = (provider: WorkspaceDirectory) => registrationOrder.indexOf(provider.registration.library.id);
+  return [...providers].sort((a, b) => rank(a) - rank(b));
+}
+
 export function SaveDestinationProvider({ safe, children }: { safe: boolean; children: ReactNode }) {
   const [destination, setDestination] = useState<SaveDestination | null>(null);
   const [providers, setProviders] = useState<WorkspaceDirectory[]>([]);
@@ -55,7 +62,7 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
       void workspaceDirectories(safe).then(value => {
         if (!alive || request !== sequence) return;
         revision = value.status.revision;
-        setProviders(value.providers); setProblem(null); setReady(true);
+        setProviders(inRegistrationOrder(value)); setProblem(null); setReady(true);
       }, error => {
         if (!alive || request !== sequence) return;
         // 读取期间修订变了：结果已过时，稍后按新修订重读，不当作问题显示（#98）；连续 3 次仍在变才显示。

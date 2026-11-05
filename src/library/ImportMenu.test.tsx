@@ -143,7 +143,7 @@ for (const phase of ["已显示图片", "读取尚未完成"] as const) it(`登�
       channel.onmessage(new ArrayBuffer(0));
     }
     if (cmd === "plugin:library|close_import_preview") closed.push((args as { sessionId: string }).sessionId);
-    if (cmd === "plugin:library|workspace_directories") { registered = true; return { status: { revision: "r", libraries }, providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) }; }
+    if (cmd === "plugin:library|workspace_directories") { registered = true; return { status: { revision: "r", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) }; }
     return undefined;
   }, { shouldMockEvents: true });
   const revoke = vi.fn(), create = vi.fn(() => "blob:actual-receipt-preview");

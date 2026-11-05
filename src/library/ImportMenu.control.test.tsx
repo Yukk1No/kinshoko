@@ -33,7 +33,7 @@ it("从剪贴板导入（#105）：剪贴板图片暂存成文件后走同一导
   const libraries = [{ library: { id: "A", name: "浏览库", root: "C:/a" }, unavailable: null }, { library: { id: "B", name: "保存库", root: "D:/b" }, unavailable: null }];
   let submitted: unknown = null;
   mockIPC((cmd, args) => {
-    if (cmd === "plugin:library|workspace_directories") return { status: { revision: "t", libraries }, providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
+    if (cmd === "plugin:library|workspace_directories") return { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
     if (cmd === "plugin:library|import_tasks") return [];
     if (cmd === "plugin:library|recovery") return { interrupted: [], orphans: [] };
     if (cmd === "plugin:desktop|stage_clipboard_import") return "C:/data/clipboard-import/剪贴板图片-1.png";

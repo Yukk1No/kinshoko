@@ -9,7 +9,7 @@ import type { BrowseScope } from "../bindings/BrowseScope";
 // 侧栏右键菜单（#102 表“侧栏”三行，#114）：文件夹、图库标题与回收站。
 const names: Record<string, string> = { A: "人物参考", B: "风景参考" };
 const registrations = ["A", "B"].map((id) => ({ library: { id, name: names[id], root: `D:\\${id}\\参考` }, unavailable: null as import("../bindings/CommandError").CommandError | null }));
-const forest = (): WorkspaceDirectories => ({ status: { revision: "r", libraries: registrations }, providers: registrations.map((registration) => ({ registration: { ...registration, library: { ...registration.library } }, unassigned: 1, descendants: {}, sidebar: { all: 3, trash: 2, folders: [{ id: registration.library.id + "-root", name: "人物", count: 1, children: [{ id: registration.library.id + "-child", name: "动作", count: 1, children: [] }] }] } })) });
+const forest = (): WorkspaceDirectories => ({ status: { revision: "r", libraries: registrations }, registrationOrder: ["A", "B"], providers: registrations.map((registration) => ({ registration: { ...registration, library: { ...registration.library } }, unassigned: 1, descendants: {}, sidebar: { all: 3, trash: 2, folders: [{ id: registration.library.id + "-root", name: "人物", count: 1, children: [{ id: registration.library.id + "-child", name: "动作", count: 1, children: [] }] }] } })) });
 const inA = (local: BrowseScope): WorkspaceScope => ({ kind: "library", libraryId: "A", scope: local });
 const section = (id: string) => document.querySelector<HTMLElement>(`[data-library-id="${id}"]`)!;
 const settle = () => act(async () => { await Promise.resolve(); });

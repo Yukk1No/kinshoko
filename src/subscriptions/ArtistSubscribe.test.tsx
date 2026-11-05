@@ -26,7 +26,7 @@ function backend(subs: Subscription[] = list) {
     if (cmd === "subscriptions") return subs;
     if (cmd === "subscription_recent") return [];
     if (cmd === "plugin:library|workspace_directories") {
-      return { status: { revision: "t", libraries }, providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
+      return { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
     }
     if (cmd === "subscription_find_artist") {
       const input = (args as { input: string }).input;

@@ -25,7 +25,7 @@ it("global import shows the prefilled destination, can be changed by hand and do
   if(cmd==="plugin:library|current_library")return a;
   if(cmd==="plugin:library|registered_libraries")return libraries;
   if(cmd==="plugin:library|workspace_status")return {revision:"test",libraries};
-  if(cmd==="plugin:library|workspace_directories")return {status:{revision:"test",libraries},providers:libraries.map(registration=>({registration,sidebar:side,unassigned:0,descendants:{}}))};
+  if(cmd==="plugin:library|workspace_directories")return {status:{revision:"test",libraries},registrationOrder: [], providers:libraries.map(registration=>({registration,sidebar:side,unassigned:0,descendants:{}}))};
   if(cmd==="plugin:library|workspace_browse"){scopes.push((args as {query:{scope:unknown}}).query.scope);return {cards:[],total:0,nextCursor:null,status:{revision:"test",libraries}};}
   if(cmd==="plugin:library|pick_files")return ["C:/source.png"];
   if(cmd==="plugin:library|import_contains_eagle")return false;
@@ -63,7 +63,7 @@ it("a late start reply and cancel keep the submitted owner after selecting anoth
   if(cmd==="plugin:library|current_library")return a;
   if(cmd==="plugin:library|registered_libraries")return libraries;
   if(cmd==="plugin:library|workspace_status")return {revision:"test",libraries};
-  if(cmd==="plugin:library|workspace_directories")return {status:{revision:"test",libraries},providers:libraries.map(registration=>({registration,sidebar:side,unassigned:0,descendants:{}}))};
+  if(cmd==="plugin:library|workspace_directories")return {status:{revision:"test",libraries},registrationOrder: [], providers:libraries.map(registration=>({registration,sidebar:side,unassigned:0,descendants:{}}))};
   if(cmd==="plugin:library|workspace_browse")return {cards:[],total:0,nextCursor:null,status:{revision:"test",libraries}};
   if(cmd==="plugin:library|pick_files")return ["C:/source.png"];
   if(cmd==="plugin:library|import_contains_eagle")return false;
@@ -94,7 +94,7 @@ it("retry starts at its original target and an explicit new choice matches the f
  let submitted:unknown;
  const receipt={taskId:"failed-B",destination:{libraryId:"B",folderId:null},libraryName:"保存库",folderName:"未归类",progress:{done:1,total:1},finishing:false,warnings:[],report:{items:[{path:"C:/failed.png",outcome:{kind: "readFailed", reason: { code: "system", detail: "locked" }}}],cancelled:false,fromEagle:false,eagleMissing:0,eagleRelocations:[]}};
  mockIPC((cmd,args)=>{
-  if(cmd==="plugin:library|workspace_directories")return {status:{revision:"test",libraries},providers:libraries.map(registration=>({registration,sidebar:{all:0,trash:0,folders:[]},unassigned:0,descendants:{}}))};
+  if(cmd==="plugin:library|workspace_directories")return {status:{revision:"test",libraries},registrationOrder: [], providers:libraries.map(registration=>({registration,sidebar:{all:0,trash:0,folders:[]},unassigned:0,descendants:{}}))};
   if(cmd==="plugin:library|import_tasks")return [receipt];
   if(cmd==="plugin:library|import_contains_eagle")return false;
   if(cmd==="plugin:library|start_import"){submitted=args;return "retry-task";}
@@ -113,7 +113,7 @@ it("retry starts at its original target and an explicit new choice matches the f
 
 it("a concrete folder entry prefills its provider and folder without activating it",async()=>{
  mockIPC(cmd=>{
-  if(cmd==="plugin:library|workspace_directories")return {status:{revision:"test",libraries},providers:libraries.map(registration=>({registration,sidebar:{all:0,trash:0,folders:[{id:"folder-b",name:"具体目录",children:[],count:0}]},unassigned:0,descendants:{}}))};
+  if(cmd==="plugin:library|workspace_directories")return {status:{revision:"test",libraries},registrationOrder: [], providers:libraries.map(registration=>({registration,sidebar:{all:0,trash:0,folders:[{id:"folder-b",name:"具体目录",children:[],count:0}]},unassigned:0,descendants:{}}))};
   if(cmd==="plugin:library|import_tasks")return [];
   if(cmd==="plugin:library|pick_files")return ["C:/source.png"];
   if(cmd==="plugin:library|import_contains_eagle")return false;
@@ -141,7 +141,7 @@ it("copy keeps its confirmation during a source refresh and closes it after the 
   };
   const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, adult: false, libraryId: "A", imageId: "a", sources: [{ libraryId: "A", libraryName: "浏览库", imageId: "a", matches: true, unavailable: null, deleted: false }] };
   mockIPC(cmd => {
-    if (cmd === "plugin:library|workspace_directories") return { status: { revision: "test", libraries }, providers: libraries.map(registration => ({ registration, sidebar: inspection.sidebar, unassigned: 0, descendants: {} })) };
+    if (cmd === "plugin:library|workspace_directories") return { status: { revision: "test", libraries }, registrationOrder: [], providers: libraries.map(registration => ({ registration, sidebar: inspection.sidebar, unassigned: 0, descendants: {} })) };
     if (cmd === "plugin:library|image") return refreshed ? pendingInspection : inspection.detail;
     if (cmd === "plugin:library|catalog_image_tags") return inspection.tags;
     if (cmd === "plugin:library|image_folders") return inspection.sidebar;
@@ -171,7 +171,7 @@ it("copy keeps its confirmation during a source refresh and closes it after the 
 it("running import does not claim that content is complete before the actual report", async () => {
   const receipt = { taskId: "publishing-B", destination: { libraryId: "B", folderId: null }, libraryName: "保存库", folderName: null, progress: { done: 47, total: 2000 }, finishing: true, warnings: [], report: null as null | { items: never[]; cancelled: boolean; fromEagle: boolean; eagleMissing: number; eagleRelocations: never[] } };
   mockIPC(cmd => {
-    if (cmd === "plugin:library|workspace_directories") return { status: { revision: "test", libraries }, providers: libraries.map(registration => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
+    if (cmd === "plugin:library|workspace_directories") return { status: { revision: "test", libraries }, registrationOrder: [], providers: libraries.map(registration => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
     if (cmd === "plugin:library|import_tasks") return [{ ...receipt }];
     return null;
   }, { shouldMockEvents: true });

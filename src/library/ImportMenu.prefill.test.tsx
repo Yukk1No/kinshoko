@@ -17,12 +17,12 @@ const libraries = [
 ];
 const folders = [{ id: "fb", name: "人物", count: 0, children: [] }];
 
-function setup({ scope = { kind: "all" }, memory = { importDestination: null, newLibraryParent: null } }: { scope?: WorkspaceScope; memory?: SaveMemory } = {}) {
+function setup({ scope = { kind: "all" }, memory = { importDestination: null, newLibraryParent: null }, listed = libraries }: { scope?: WorkspaceScope; memory?: SaveMemory; listed?: typeof libraries } = {}) {
   const started: unknown[] = [], remembered: unknown[] = [];
   let next = 0;
   mockWindows("main");
   mockIPC((cmd, args) => {
-    if (cmd === "plugin:library|workspace_directories") return { status: { revision: "t", libraries }, providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders }, unassigned: 0, descendants: {} })) };
+    if (cmd === "plugin:library|workspace_directories") return { status: { revision: "t", libraries }, registrationOrder: libraries.map((entry) => entry.library.id), providers: listed.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders }, unassigned: 0, descendants: {} })) };
     if (cmd === "plugin:library|save_memory") return memory;
     if (cmd === "plugin:library|remember_import_destination") { remembered.push((args as { destination: unknown }).destination); return null; }
     if (cmd === "plugin:library|import_tasks") return [];
@@ -55,6 +55,12 @@ it("「全部图片」下没记过时，预填登记最早的可用资料库的�
   await confirm(dialog);
   await waitFor(() => expect(started).toEqual([{ libraryId: "A", folderId: null }]));
   expect(remembered).toEqual([]);
+});
+
+it("登记最早看登记先后，不看目录接口返回的顺序", async () => {
+  const { open } = setup({ listed: [...libraries].reverse() });
+  const dialog = await open();
+  await within(dialog).findByText("放到：最早库 / 未归类");
 });
 
 it("「全部图片」下用导入上次亲手选的保存目标", async () => {

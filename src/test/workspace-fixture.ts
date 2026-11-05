@@ -35,7 +35,7 @@ export function workspaceFixture(handler: Handler): Handler {
     if (command === "plugin:library|workspace_directories") {
       return Promise.resolve(handler("plugin:library|registered_libraries")).then(async (value) => {
         const libraries = (value ?? []) as LibraryRegistration[];
-        return { status: { revision: `fixture-${revision}`, libraries }, providers: await Promise.all(libraries.map(async (registration) => ({
+        return { status: { revision: `fixture-${revision}`, libraries }, registrationOrder: libraries.map((entry) => entry.library.id), providers: await Promise.all(libraries.map(async (registration) => ({
           registration, unassigned: 0, descendants: {}, sidebar: registration.unavailable ? null : await handler("plugin:library|sidebar", { libraryId: registration.library.id }) as Sidebar,
         }))) } satisfies WorkspaceDirectories;
       });

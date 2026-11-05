@@ -22,6 +22,7 @@ const settle = () => act(async () => { await Promise.resolve(); await Promise.re
 const registrations = ["A", "B"].map((id) => ({ library: { id, name: `库${id}`, root: `D:\\${id}` }, unavailable: null as import("../bindings/CommandError").CommandError | null }));
 const forest = (): WorkspaceDirectories => ({
   status: { revision: "r", libraries: registrations },
+  registrationOrder: ["A", "B"],
   providers: registrations.map((registration) => ({
     registration, unassigned: 1, descendants: {},
     sidebar: { all: 3, trash: 2, folders: [{ id: `${registration.library.id}-f`, name: "人物", count: 1, children: [{ id: `${registration.library.id}-c`, name: "动作", count: 1, children: [] }] }] },

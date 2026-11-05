@@ -29,7 +29,7 @@ function backend(subs: Subscription[] = [], newLibraryParent: string | null = nu
     if (cmd === "plugin:library|save_memory") return { importDestination: null, newLibraryParent };
     if (cmd === "subscription_recent") return [];
     if (cmd === "plugin:library|workspace_directories") {
-      return { status: { revision: "t", libraries }, providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
+      return { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
     }
     if (cmd === "plugin:library|create_library_unopened") return { id: "L9", name: "pixiv 榜单", root: "D:/参考图/pixiv 榜单" };
     if (cmd === "subscription_add") return [];
