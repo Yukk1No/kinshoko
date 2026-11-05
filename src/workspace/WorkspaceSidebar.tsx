@@ -12,7 +12,7 @@ import type { Section } from "../shell/Rail";
 /** 工作区左栏：文件夹（图库与查找范围）、参考组或截图历史。 */
 export function WorkspaceSidebar({
   section, paneOpen, floating, onPaneToggle, libraryControls, status, workspaceScope, safe, reloadKey, onError, recheck,
-  onLibraryRemoved, onScope, libraryId, captureRequest, onCaptureRequestHandled,
+  onLibraryRemoved, onScope, captureRequest, onCaptureRequestHandled,
 }: {
   section: Section;
   paneOpen: boolean;
@@ -28,7 +28,6 @@ export function WorkspaceSidebar({
   recheck: () => void;
   onLibraryRemoved?: (libraryId: string) => void;
   onScope: (next: WorkspaceScope) => void;
-  libraryId: string;
   captureRequest?: { id: string; stamp: number } | null;
   onCaptureRequestHandled?: () => void;
 }) {
@@ -55,8 +54,8 @@ export function WorkspaceSidebar({
         reloadKey={reloadKey} onError={onError} onRecheck={recheck} onRemoved={onLibraryRemoved} onScope={onScope}>
       </WorkspacePane>
       </div>
-      {section === "groups" && <ReferenceGroupsPanel libraryId={libraryId || undefined} />}
-      {section === "captures" && <CaptureHistoryPanel libraryId={libraryId || undefined} request={captureRequest} onRequestHandled={onCaptureRequestHandled} />}
+      {section === "groups" && <ReferenceGroupsPanel />}
+      {section === "captures" && <CaptureHistoryPanel request={captureRequest} onRequestHandled={onCaptureRequestHandled} />}
     </aside>
   );
 }

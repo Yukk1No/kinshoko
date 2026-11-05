@@ -2,7 +2,6 @@ import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { useTranslation } from "react-i18next";
 import { Activity, Archive, FileText, Keyboard, Layers, Monitor, MousePointerClick, Pin, Power, RefreshCw, Rss, Scaling, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
-import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { SafeModeScope } from "./bindings/SafeModeScope";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
@@ -92,7 +91,8 @@ const SAFE_MODE_SCOPES: SafeModeScope[] = ["sensitive", "questionable", "explici
 type Props = {
   onRestored?: () => void;
   /** 打开的资料库；自动标签分页从它开始跟随后端的可写资料库。个人规则不依赖它。 */
-  library?: LibraryInfo | null;
+  /** 本设备登记了资料库（设置 › 打标的状态行）。 */
+  hasLibrary?: boolean;
   /** 主窗口持有的设置提交模型（#321）：关掉再打开设置也共用一个队列。没有时设置页自己建一个。 */
   settings?: ShellSettings;
   /** 应用壳设置保存后的结果（只在没有传入 `settings` 时用），主窗口据此更新（例如相近标签来源标记）。 */
@@ -119,7 +119,7 @@ type Props = {
  * 程序设置（#98）：竖排八个分页——通用、快捷键、标签、自动标签（#143）、备份、安全、更新、诊断。
  * 每项一行：图标 · 名称 · 一句描述 · 右侧控件。行为与原来的各节相同，只是重新归位。
  */
-export function SettingsPanel({ settings: shared, onChange, onRestored, library, initialTab = "general", initialTagFocus, version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale, subscriptions }: Props) {
+export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibrary = false, initialTab = "general", initialTagFocus, version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale, subscriptions }: Props) {
   const { t } = useTranslation("settings");
   const settings = useShellSettings(shared, onChange);
   const { view, loadError, error, generation: settingsGeneration } = settings;
@@ -244,7 +244,7 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, library,
             </>}
             {tagView === "mapping" && <TagIdentityPanel key={`identity/${settingsGeneration}`} />}
           </>)}
-          {page("tagging", <AutoTaggingSettings key={`tagging/${settingsGeneration}`} libraryId={library?.id ?? null} />)}
+          {page("tagging", <AutoTaggingSettings key={`tagging/${settingsGeneration}`} hasLibrary={hasLibrary} />)}
           {page("backup", <>
             <BackupSettings />
             <ApplicationSettingsBackup restore={restore} />

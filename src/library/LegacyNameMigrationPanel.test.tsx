@@ -67,7 +67,7 @@ it("shows one old name at a time with both old names and the existing preference
 it("offers the wizard when opening an old library whose name has already adopted a global preference", async () => {
   let opened = false;
   mockIPC((cmd) => cmd.endsWith("plan_legacy_names") ? view() : undefined, { shouldMockEvents: true });
-  render(<LegacyNameMigrationNotice libraryId="b" safe={true} onOpen={() => { opened = true; }} />);
+  render(<LegacyNameMigrationNotice safe={true} onOpen={() => { opened = true; }} />);
   expect(await screen.findByText(/旧名称待确认/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "逐个确认" }));
   expect(opened).toBe(true);
@@ -210,8 +210,8 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
     const answer = structuredClone(state);
     return new Promise((resolve) => setTimeout(() => { inFlight--; resolve(answer); }, 25));
   }, { shouldMockEvents: true });
-  render(<LegacyNameMigrationNotice libraryId="a" safe={true} onOpen={() => {}} />);
-  expect(await screen.findByText(/这个图库里有 1 个较早的叫法/)).toBeTruthy();
+  render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
+  expect(await screen.findByText(/有 1 个较早的叫法/)).toBeTruthy();
   calls = 0;
   const bursts = 50;
   for (let index = 0; index < bursts; index++) {
@@ -222,7 +222,7 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
   }
-  expect(await screen.findByText(/这个图库里有 2 个较早的叫法/, {}, { timeout: 2000 })).toBeTruthy();
+  expect(await screen.findByText(/有 2 个较早的叫法/, {}, { timeout: 2000 })).toBeTruthy();
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 100)); });
   expect(peak).toBe(1);
   // 后端 25 ms 作答、补读间隔 200 ms：约 3–4 次；留余量给慢机器。

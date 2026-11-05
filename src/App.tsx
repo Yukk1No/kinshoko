@@ -13,7 +13,7 @@ import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
 import {
   appInfo,
-  currentLibrary,
+  openLastLibrary,
   workspaceStatus,
   onWorkspaceChanged,
   onSafeModeSetting,
@@ -52,8 +52,7 @@ import { StartupSplash } from "./shell/StartupSplash";
 import { SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
 
 /**
- * 主窗口：本设备登记的资料库与一个活动资料库（#49）；上次的库不可用时仍可选择其他库、
- * 重新登记或新建。状态栏可打开截图历史与设置。
+ * 主窗口：本设备登记的资料库（#49）；上次的库不可用时仍可选择其他库、重新登记或新建。状态栏可打开截图历史与设置。
  * 封印书或 Ctrl+Shift+S 切换安全模式（#60）：开启的那一刻先遮住将被封印的图，资料库确认后
  * 它们离开图片墙，计数与候选随之刷新。安全模式属于本设备，切换资料库后沿用。
  * Ctrl+= / Ctrl+- / Ctrl+0 按档位放大、缩小、复位界面缩放（#173）。
@@ -84,9 +83,10 @@ function MainWindow() {
   const subscriptions = useSubscriptionSection(section, setSection);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  // undefined：还在打开；null：没有活动资料库。
-  const [library, setLibrary] = useState<LibraryInfo | null | undefined>(undefined);
-  const [hasProviders, setHasProviders] = useState(false);
+  /** 启动时后端打开上次的资料库（成功或失败）之后才进工作区。打开了哪个是后端细节（ADR-0008）。 */
+  const [opened, setOpened] = useState(false);
+  /** undefined：还没读到登记。 */
+  const [hasProviders, setHasProviders] = useState<boolean | undefined>(undefined);
   const [openError, setOpenError] = useState<string | null>(null);
   /** 设置“显示相近标签来源（内置／个人）”，默认不显示。 */
   const [showApproxSource, setShowApproxSource] = useState(false);
@@ -182,18 +182,18 @@ function MainWindow() {
       (saved) => { if (alive && typeof saved === "number" && !uiScaleWriting.current) acceptUiScale(saved); },
       () => undefined,
     );
-    currentLibrary().then(
-      (value) => {
+    openLastLibrary().then(
+      () => {
         markStartup("libraryOpened");
         startupLibraryOpened();
-        if (alive) setLibrary(value);
+        if (alive) setOpened(true);
       },
       (e) => {
         // 打不开就不等首屏：进主界面，由图库选择页处理。
         releaseStartup();
         if (!alive) return;
         setOpenError(String(e));
-        setLibrary(null);
+        setOpened(true);
       },
     );
     return () => {
@@ -211,7 +211,8 @@ function MainWindow() {
   useEffect(() => {
     let alive = true;
     const accept = (status: WorkspaceStatus) => { if (alive) setHasProviders(status.libraries.length > 0); };
-    workspaceStatus(lensSafe).then(accept, () => {});
+    // 读不到时进工作区，由它显示读取错误。
+    workspaceStatus(lensSafe).then(accept, () => { if (alive) setHasProviders((known) => known ?? true); });
     const stop = onWorkspaceChanged(accept);
     return () => { alive = false; void stop.then((stop) => stop()); };
   }, [lensSafe]);
@@ -244,20 +245,20 @@ function MainWindow() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const changed = (value: LibraryInfo | null) => {
-    setLibrary(value);
+  const changed = (added: LibraryInfo | null) => {
+    if (added) setHasProviders(true);
     workspaceStatus(lensSafe).then((status) => setHasProviders(status.libraries.length > 0), () => {});
     setOpenError(null);
     setShowCreate(false);
   };
 
-  const libraryControls = <LibraryPicker current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />;
-  const empty = (!library && !hasProviders) || showCreate;
+  const libraryControls = <LibraryPicker ready={opened} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />;
+  const empty = hasProviders === false || showCreate;
   // 没有图片墙可等（还没有图库）：加载页直接放行（#338）。
-  useEffect(() => { if (library !== undefined && empty) releaseStartup(); }, [library, empty]);
+  useEffect(() => { if (opened && empty) releaseStartup(); }, [opened, empty]);
   const notices = <>
     <RuntimeNotice hidden={showSettings} />
-    {library && <div><LegacyNameMigrationNotice libraryId={library.id} safe={lensSafe} onOpen={() => setNameWizard(true)} /></div>}
+    {hasProviders && <div><LegacyNameMigrationNotice safe={lensSafe} onOpen={() => setNameWizard(true)} /></div>}
     <UpdateNotice />
     <BackupReminder />
   </>;
@@ -271,10 +272,9 @@ function MainWindow() {
           subscriptions={subscriptions.rail} />
       </div>
       <div className="app-column">
-      {library !== undefined && (
+      {opened && (
         <LibraryWorkspace
           key="workspace"
-          library={library}
           captureRequest={captureRequest}
           onCaptureRequestHandled={collectionHandled}
           referenceRequest={referenceRequest}
@@ -292,32 +292,32 @@ function MainWindow() {
           inspectorWidth={inspectorWidth}
           onInspectorWidth={changeInspectorWidth}
           notices={!empty && notices}
-          onLibraryRemoved={(id) => { if (library?.id === id) changed(null); }}
+          onLibraryRemoved={() => changed(null)}
           onOpenTaggingSettings={() => openSettings("tagging")}
         />
       )}
-      <SubscriptionSection subscriptions={subscriptions} safe={lensSafe} libraryId={library?.id ?? null} paneOpen={paneOpen} onPaneToggle={() => setPaneOpen((open) => !open)}
+      <SubscriptionSection subscriptions={subscriptions} safe={lensSafe} paneOpen={paneOpen} onPaneToggle={() => setPaneOpen((open) => !open)}
         onOpenImage={(libraryId, imageId) => {
           setSection("browse"); setPaneOpen(true);
           setReferenceRequest((last) => ({ libraryId, imageId, stamp: (last?.stamp ?? 0) + 1 }));
         }} />
       {empty && !subscriptions.page && (
         <div className="app-empty-workspace">
-          {!library && paneOpen && section !== "browse" && <aside className="pane empty-context" aria-label={section === "groups" ? t("emptyPane.groups") : t("emptyPane.capturesLabel")}>
+          {!hasProviders && paneOpen && section !== "browse" && <aside className="pane empty-context" aria-label={section === "groups" ? t("emptyPane.groups") : t("emptyPane.capturesLabel")}>
             <header className="pane-head" data-tauri-drag-region><h2 className="pane-title">{section === "groups" ? t("emptyPane.groups") : t("emptyPane.captures")}</h2>
               <button type="button" className="k-icon-btn" aria-label={t("emptyPane.collapse")} title={t("emptyPane.collapse")} onClick={() => setPaneOpen(false)}><PanelLeftClose size={16} aria-hidden="true" /></button></header>
-            {section === "groups" ? <ReferenceGroupsPanel libraryId={undefined} /> : <CaptureHistoryPanel libraryId={undefined} request={captureRequest} onRequestHandled={collectionHandled} />}
+            {section === "groups" ? <ReferenceGroupsPanel /> : <CaptureHistoryPanel request={captureRequest} onRequestHandled={collectionHandled} />}
           </aside>}
         <main className="app-main app-main-centered">
           <header className="topbar is-empty" data-tauri-drag-region><span className="k-grow" /><WinCtrls /></header>
           {empty && notices}
           <div className="app-empty-body">
-          {library === undefined ? (
+          {!opened ? (
             <p role="status">{t("opening")}</p>
           ) : showCreate ? (
-            <CreateLibrary onCreated={changed} onBusyChange={setCreating} onBack={() => setShowCreate(false)} backLabel={library ? t("backToLibrary") : t("back")} />
+            <CreateLibrary onCreated={changed} onBusyChange={setCreating} onBack={() => setShowCreate(false)} backLabel={hasProviders ? t("backToLibrary") : t("back")} />
           ) : (
-            <LibraryPicker layout="inline" current={library} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />
+            <LibraryPicker layout="inline" ready={opened} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />
           )}
           </div>
         </main>
@@ -332,7 +332,7 @@ function MainWindow() {
             <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("closeSettings")}><X size={16} aria-hidden="true" /></Dialog.Close>
             <SettingsPanel
               version={info && `${info.productName} ${info.version}`}
-              library={library ?? null}
+              hasLibrary={!!hasProviders}
               initialTab={settingsTab}
               initialTagFocus={settingsTagFocus}
               safe={safe}

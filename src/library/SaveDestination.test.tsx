@@ -15,7 +15,7 @@ beforeEach(()=>{
  vi.stubGlobal("ResizeObserver",class{observe(){} disconnect(){}}); mockConvertFileSrc("windows"); mockWindows("main");
 });
 afterEach(async()=>{cleanup();await new Promise(r=>setTimeout(r,0));clearMocks();vi.unstubAllGlobals();});
-it("global import requires a visible save destination and does not change browse scope",async()=>{
+it("global import shows the prefilled destination, can be changed by hand and does not change browse scope",async()=>{
  let submitted:unknown=null; const scopes:unknown[]=[];
  const side={all:0,trash:0,folders:[{id:"folder-b",name:"最终目录",count:0,children:[]}]};
  mockIPC((cmd,args)=>{
@@ -40,8 +40,8 @@ it("global import requires a visible save destination and does not change browse
  fireEvent.click(await screen.findByRole("menuitem",{name:/^图片/}));
  const start=await screen.findByRole("button",{name:"开始导入"});
  const menu=screen.getByRole("dialog",{name:"导入图片"});
- expect(start).toHaveProperty("disabled",true);
  expect(submitted).toBeNull();
+ await within(menu).findByText(/放到：浏览库/);
  await chooseOption(await within(menu).findByRole("combobox",{name:"放到图库"}),/^保存库/);
  await chooseOption(within(menu).getByRole("combobox",{name:"文件夹"}),"最终目录");
  expect(within(menu).getByText(/放到：保存库.*最终目录/)).toBeTruthy();
@@ -101,7 +101,7 @@ it("retry starts at its original target and an explicit new choice matches the f
   if(cmd==="plugin:library|recovery")return {interrupted:[],orphans:[]};
   return null;
  },{shouldMockEvents:true});
- render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
+ render(<SaveDestinationProvider safe><ImportMenu enabled running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
  fireEvent.click(await screen.findByRole("button",{name:"重试失败的 1 项"}));
  await screen.findByRole("button",{name:"开始导入"});
  expect(screen.getByRole("combobox",{name:"放到图库"}).textContent).toMatch(/^保存库/);
@@ -119,7 +119,7 @@ it("a concrete folder entry prefills its provider and folder without activating 
   if(cmd==="plugin:library|import_contains_eagle")return false;
   return null;
  },{shouldMockEvents:true});
- render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" scope={{kind:"library",libraryId:"B",scope:{kind:"folder",id:"folder-b"}}} running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
+ render(<SaveDestinationProvider safe><ImportMenu enabled scope={{kind:"library",libraryId:"B",scope:{kind:"folder",id:"folder-b"}}} running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
  fireEvent.click(screen.getByRole("button",{name:"导入"}));
  fireEvent.click(await screen.findByRole("menuitem",{name:/^图片/}));
  await screen.findByRole("button",{name:"开始导入"});
@@ -173,7 +173,7 @@ it("running import does not claim that content is complete before the actual rep
     if (cmd === "plugin:library|import_tasks") return [{ ...receipt }];
     return null;
   }, { shouldMockEvents: true });
-  render(<SaveDestinationProvider safe><ImportMenu enabled libraryId="A" libraryName="浏览库" running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider>);
+  render(<SaveDestinationProvider safe><ImportMenu enabled running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider>);
   await screen.findByText("放到 保存库 / 未归类");
   expect(screen.queryByText("已导入，正在把标签定义存进图库…")).toBeNull();
   receipt.progress = { done: 2000, total: 2000 };

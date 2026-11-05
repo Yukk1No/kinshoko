@@ -25,6 +25,8 @@ export type FinishedImport = { taskId: string; report: ImportReport; libraryId?:
 type Props = {
   enabled: boolean;
   previewContextKey?: string;
+  /** 读“上次导入中断”用哪个图库；没给时用 `libraryId`。 */
+  recoveryLibraryId?: string;
   libraryId: string;
   libraryName: string;
   destination?:SaveDestination|null;
@@ -35,7 +37,7 @@ type Props = {
   onRetryDestination?: (destination:SaveDestination)=>void;
   onDismissReport: () => void;
   /** 到现有、受安全模式筛选的回收站，由画师决定恢复。 */
-  onOpenTrash?: (libraryId?:string) => void;
+  onOpenTrash?: (libraryId:string) => void;
   /** 导入入口是顶栏的分体按钮（#98），经 `actionsRef` 调用这里的流程。 */
   actionsRef?: Ref<ImportActions>;
   /** 能否开始新的导入（与入口按钮的可用状态一致），以及是否正在查找 Eagle 资料库。 */
@@ -63,7 +65,7 @@ export type ImportActions = { files: () => void; folder: () => void; eagle: () =
  * 进度是右下角的卡片，可取消或后台进行。结束、出错、上次中断与封印项重复走轻提示（#388）；结束的提示带“查看”，
  * 打开结果回执卡：列出没有进来的文件并可只重试读取失败的项。没有 ToastProvider 时（单独渲染）这些仍是卡片。
  */
-export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, warnings, onSelectTask }: Props) {
+export function ImportBar({ previewContextKey, recoveryLibraryId, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, warnings, onSelectTask }: Props) {
   const { t } = useTranslation("importing");
   /** “后台进行”收起的进度卡（按任务 id）；新任务或从导入菜单“查看导入任务”时重新显示。 */
   const [background, setBackground] = useState<string | null>(null);
@@ -205,16 +207,17 @@ export function ImportBar({ previewContextKey, enabled, libraryId, libraryName, 
     };
   }, []);
 
+  const recoveryLibrary = recoveryLibraryId ?? libraryId;
   useEffect(() => {
     let alive = true;
-    libraryRecovery(libraryId).then(
+    libraryRecovery(recoveryLibrary).then(
       (value) => alive && setRecovery(value),
       () => {},
     );
     return () => {
       alive = false;
     };
-  }, [libraryId]);
+  }, [recoveryLibrary]);
 
   const { done = 0, total = 0 } = running?.progress ?? {};
   const relocations = (report?.eagleRelocations ?? []).filter((r) => !confirmed.includes(r.to));

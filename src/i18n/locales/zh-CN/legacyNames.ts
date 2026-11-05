@@ -48,7 +48,7 @@ export default {
   notice: {
     title: "旧名称待确认",
     /** 跟在加粗标题后，前面的全角空格是间隔。 */
-    body_other: "　这个图库里有 {{count}} 个较早的叫法",
+    body_other: "　有 {{count}} 个较早的叫法",
     open: "逐个确认",
   },
   banner: {

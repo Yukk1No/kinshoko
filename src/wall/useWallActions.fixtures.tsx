@@ -21,7 +21,7 @@ export function setupWallActions() {
 export let api: WallMenuActions;
 export function Harness(options: Partial<WallActionsOptions>) {
   const { actions, dialogs } = useWallActions({
-    safe: false, activeLibraryId: "L1", onOpen: () => {}, onCrop: () => {}, onInspect: () => {}, onChanged: () => {},
+    safe: false, onOpen: () => {}, onCrop: () => {}, onInspect: () => {}, onChanged: () => {},
     onClearSelection: () => {}, onError: () => {}, importFrom: () => {}, selectAll: () => {}, setDensity: () => {},
     onNotice: () => {}, importClipboard: async () => {}, ...options,
   });

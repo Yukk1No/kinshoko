@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { PanelLeftOpen } from "lucide-react";
 import { useImportShortcut } from "./useImportShortcut";
 import type { BrowseScope } from "../bindings/BrowseScope";
-import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { referenceCard } from "../desktop/openInKinshoko";
@@ -33,7 +32,6 @@ import { useWorkspaceInspector } from "./useWorkspaceInspector";
 import { useWorkspaceStatus } from "./useWorkspaceStatus";
 
 type WorkspaceProps = {
-  library: LibraryInfo | null;
   captureRequest?:{id:string;stamp:number}|null;
   onCaptureRequestHandled?:()=>void;
   /** 钉图菜单“在 Kinshoko 中打开”的参考图（#106）：在查看器里打开。 */
@@ -45,7 +43,7 @@ type WorkspaceProps = {
   onPaneOpen: (open: boolean) => void;
   onOpenBrowse: () => void;
   libraryControls: ReactNode;
-  /** 新建资料库表单打开时只隐藏工作区，继续接收当前库的导入事件。 */
+  /** 新建资料库表单打开时只隐藏工作区，继续接收导入事件。 */
   hidden: boolean;
   /** 查询资料库用的安全模式视角：开启当即生效，关闭等后端确认（#183）。 */
   safe: boolean;
@@ -67,11 +65,10 @@ type WorkspaceProps = {
 };
 
 /**
- * 同一工作区浏览已登记资料库；查找范围与活动写入资料库分别保存。
- * 活动资料库变化时取消旧导入和选择视角，保留工作区查找与滚动锚点。
+ * 同一工作区浏览所有已登记资料库。没有“窗口打开的资料库”（ADR-0008）：资料库只来自卡片、浏览范围
+ * 或画师的明确选择，后端按需切换可写句柄不影响这里的任何状态。
  */
 export function LibraryWorkspace({
-  library,
   captureRequest,
   onCaptureRequestHandled,
   referenceRequest,
@@ -96,7 +93,6 @@ export function LibraryWorkspace({
   const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
   keepSelectionOnSafeRef.current = keepSelectionOnSafe;
   const toast = useToast();
-  const libraryId = library?.id ?? "";
   const [sources, setSources] = useState<WorkspaceCard | null>(null);
   const [loadedCards, setLoadedCards] = useState<BrowserCard[]>([]);
   const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
@@ -168,20 +164,15 @@ export function LibraryWorkspace({
     // 用户偏好：默认切换即清空；保留时由重读后的修剪去掉新视角里看不到的图。
     invalidate({ kind: "lensChanged", keepSelection: keepSelectionOnSafeRef.current });
   }, [safe]);
-  useEffect(() => {
-    imports.current.running = null;
-    setRunning(null); setReport(null);
-    invalidate({ kind: "activeLibraryChanged" });
-  }, [libraryId]);
-  useLibraryEvents({ libraryId, toast, imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport });
+  useLibraryEvents({ toast, imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport });
 
-  const { search, setSearch, tree, treeSafe, searching } = useSearchTree({ libraryId, safe, vocabularyKey, onError, setReloadKey });
+  const { search, setSearch, tree, treeSafe, searching } = useSearchTree({ safe, vocabularyKey, onError, setReloadKey });
 
   // 窄窗口里侧栏与详情面板按余量一起让位，主区不低于 300（#274）。
   const [appBody, setAppBody] = useState<HTMLDivElement | null>(null);
   const bodyWidth = useWidth(appBody);
   const inspector = useWorkspaceInspector({
-    selected, setSelected, loadedCards, workspaceScope, libraryId, sources, setSources, hidden, viewing, inspectorWidth,
+    selected, setSelected, loadedCards, workspaceScope, sources, setSources, hidden, viewing, inspectorWidth,
     fitPanel: (width) => fitPanes(bodyWidth, width, paneOpen && !isNarrow(bodyWidth, width)).inspector,
   });
   const { selectionLibrary, eligible, inspected, inspectorContent, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector } = inspector;
@@ -189,7 +180,7 @@ export function LibraryWorkspace({
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
   const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
-    safe, activeLibraryId: libraryId, onError,
+    safe, onError,
     onOpen: (card) => { setViewCrop(false); setViewing(card); },
     onCrop: (card) => { setViewCrop(true); setViewing(card); },
     onInspect: (card) => setSources(card as WorkspaceCard),
@@ -213,7 +204,7 @@ export function LibraryWorkspace({
         {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
         <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
           status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} recheck={recheck}
-          onLibraryRemoved={onLibraryRemoved} libraryId={libraryId} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
+          onLibraryRemoved={onLibraryRemoved} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
           onScope={(next) => {
             // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
             setWorkspaceScope(next); invalidate({ kind: "scopeChanged" });
@@ -239,9 +230,9 @@ export function LibraryWorkspace({
           <div className="bar-meta">
             <span className="result-count tabular k-label" role="status" aria-label={t("results")}>{resultCount === null ? "…" : t("resultCount", { count: resultCount })}</span>
           </div>
-          <ImportMenu control={importControl} scope={workspaceScope} enabled={!hidden} libraryId={libraryId} libraryName={library?.name??""}
+          <ImportMenu control={importControl} scope={workspaceScope} enabled={!hidden}
             running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
-            onOpenTrash={(owner=libraryId) => {
+            onOpenTrash={(owner) => {
               onOpenBrowse();
               setSearch({ conditions: [], exact: false });
               setWorkspaceScope({ kind: "library", libraryId:owner, scope: { kind: "trash" } });
@@ -307,7 +298,7 @@ export function LibraryWorkspace({
           {/* 图片墙右下角：打标图标（#144）在图片大小浮岛（#102 方案 C3，与 Ctrl+滚轮缩放成对）的左边。
               选了两张及以上时底部升起多选悬浮栏（#98，#180），右下角收成圆形按钮让位；查看器打开时悬浮栏隐藏。 */}
           <WallFloats
-            tagging={(collapsed) => library && <TaggingActivity collapsed={collapsed} onOpenSettings={onOpenTaggingSettings} />}
+            tagging={(collapsed) => <TaggingActivity collapsed={collapsed} onOpenSettings={onOpenTaggingSettings} />}
             density={viewerOpen ? null : { value: density, preview: zoomPreview, onPreview: (v) => wall.current?.previewDensity(v), onCommit: setDensity }}
             bar={inspected === null && eligible && !hidden && !viewerOpen && panelIds.length > 1 && selectionLibrary !== null ? {
               libraryId: selectionLibrary, scope, ids: panelIds, onClear: () => setSelected(new Set()), reloadKey, onError, safeMode: safe,
@@ -316,7 +307,7 @@ export function LibraryWorkspace({
           {viewing && (
             <Viewer
               workspace
-              libraryId={viewing.libraryId ?? libraryId}
+              libraryId={viewing.libraryId}
               card={{ ...viewing, id: viewing.imageId ?? viewing.id }}
               onClose={() => setViewing(null)}
               reloadKey={reloadKey}
@@ -332,7 +323,7 @@ export function LibraryWorkspace({
         </main>
         {inspectorContent && !hidden && (
           <WorkspaceInspector inspector={inspector} status={status} safe={safe} reloadKey={reloadKey} vocabularyKey={vocabularyKey}
-            libraryId={libraryId} scope={scope} sources={sources} setSources={setSources} setSelected={setSelected}
+            scope={scope} sources={sources} setSources={setSources} setSelected={setSelected}
             onEdited={() => invalidate({ kind: "contentEdited" })} onError={onError} onInspectorWidth={onInspectorWidth} />
         )}
       </div>

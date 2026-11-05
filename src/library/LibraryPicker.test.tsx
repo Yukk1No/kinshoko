@@ -25,7 +25,7 @@ afterEach(async () => { cleanup(); await act(async () => {}); clearMocks(); });
 
 it("侧栏标题是“图库”与一个 ＋ 菜单（打开 / 新建 / 管理），没有图库切换", async () => {
   const create = vi.fn();
-  render(<LibraryPicker current={opened} onChanged={() => {}} onCreate={create} />);
+  render(<LibraryPicker onChanged={() => {}} onCreate={create} />);
   await act(async () => {});
   expect(screen.getByRole("heading", { name: "图库" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: /^当前图库/ })).toBeNull();
@@ -38,7 +38,7 @@ it("侧栏标题是“图库”与一个 ＋ 菜单（打开 / 新建 / 管理�
 });
 
 it("其他入口登记的新资料库随工作区变化出现在“管理图库”里", async () => {
-  render(<LibraryPicker current={opened} onChanged={() => {}} onCreate={() => {}} />);
+  render(<LibraryPicker onChanged={() => {}} onCreate={() => {}} />);
   await act(async () => {});
   fireEvent.click(screen.getByRole("button", { name: "打开、新建或管理图库" }));
   fireEvent.click(await screen.findByRole("menuitem", { name: "管理图库" }));

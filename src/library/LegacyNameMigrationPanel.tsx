@@ -242,9 +242,9 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
 }
 
 /** 打开带旧名称的图库时的横幅：保留原显示，提供“逐个确认”。 */
-export function LegacyNameMigrationNotice({ libraryId, safe, onOpen }: { libraryId: string; safe: boolean; onOpen: () => void }) {
+export function LegacyNameMigrationNotice({ safe, onOpen }: { safe: boolean; onOpen: () => void }) {
   const { t } = useTranslation("legacyNames", { keyPrefix: "notice" });
-  const pending = usePendingLegacyNames((group) => group.sources.some((source) => source.libraryId === libraryId), [libraryId, safe]);
+  const pending = usePendingLegacyNames(() => true, [safe]);
   return pending > 0 ? <p className="legacy-name-notice k-notice" role="status"><Sparkles size={14} aria-hidden="true" />
     <span className="k-grow"><b>{t("title")}</b>{t("body", { count: pending })}</span>
     <button type="button" className="k-btn is-sm" onClick={onOpen}><span className="k-label">{t("open")}</span></button></p> : null;

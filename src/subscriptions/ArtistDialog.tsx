@@ -26,15 +26,14 @@ export function subscribedArtists(list: Subscription[]): Set<string> {
  * 订阅画师（#369，草图 A）：输入画师主页链接或 ID 查找，再选资料库、旧作收多少、漫画与 R-18。
  * 登录失效时也能添加（恢复登录后才查），但不出现 R-18 与从关注导入。
  */
-export function ArtistDialog({ status, list, libraryId, onClose, onAdded, onImport }: {
+export function ArtistDialog({ status, list, onClose, onAdded, onImport }: {
   status: SubscriptionStatus; list: Subscription[];
   /** 默认收进的资料库（当前打开的）。 */
-  libraryId: string | null;
   onClose: () => void; onAdded: (added: Subscription[]) => void; onImport: () => void;
 }) {
   const { t } = useTranslation("subscriptions", { keyPrefix: "artist" });
   const libraries = useLibraryOptions();
-  const fallback = libraries.options.find((o) => o.value === libraryId)?.value ?? libraries.options[0]?.value ?? "";
+  const fallback = libraries.options[0]?.value ?? "";
   const [input, setInput] = useState("");
   const [lookup, setLookup] = useState<Lookup>({ kind: "idle" });
   /** 第几次查找；输入改了也加一，晚到的旧结果对不上就丢掉。 */

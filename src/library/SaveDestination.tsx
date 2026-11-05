@@ -4,9 +4,10 @@ import { Folder, Library } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n/instance";
 import type { SaveDestination } from "../bindings/SaveDestination";
+import type { SaveMemory } from "../bindings/SaveMemory";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import type { FolderNode } from "../bindings/FolderNode";
-import { isCursorExpired, onWorkspaceChanged, workspaceDirectories } from "../ipc";
+import { isCursorExpired, onWorkspaceChanged, rememberImportDestination, rememberNewLibraryParent, saveMemory, workspaceDirectories } from "../ipc";
 import { libraryPathHint } from "./library-path";
 import { Select } from "../ui/Select";
 
@@ -16,9 +17,15 @@ type SaveContext = {
   providers: WorkspaceDirectory[];
   problem: string | null;
   ready: boolean;
+  /** 各入口上次亲手选的（ADR-0016）。 */
+  memory: SaveMemory;
+  rememberImport: (value: SaveDestination) => void;
+  rememberNewLibraryParent: (parent: string) => void;
 };
+const NOTHING_REMEMBERED: SaveMemory = { importDestination: null, newLibraryParent: null };
 const Context = createContext<SaveContext>({
   destination: null, setDestination: () => {}, providers: [], problem: null, ready: false,
+  memory: NOTHING_REMEMBERED, rememberImport: () => {}, rememberNewLibraryParent: () => {},
 });
 export const useSaveDestination = () => useContext(Context);
 
@@ -29,6 +36,16 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
   const [providers, setProviders] = useState<WorkspaceDirectory[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [memory, setMemory] = useState(NOTHING_REMEMBERED);
+  // 记忆写不进时只是下次不记得，不打扰这次保存。
+  const rememberImport = (importDestination: SaveDestination) => {
+    setMemory((value) => ({ ...value, importDestination }));
+    void rememberImportDestination(importDestination).catch(() => {});
+  };
+  const rememberParent = (newLibraryParent: string) => {
+    setMemory((value) => ({ ...value, newLibraryParent }));
+    void rememberNewLibraryParent(newLibraryParent).catch(() => {});
+  };
   useEffect(() => {
     let alive = true, sequence = 0, revision = "", retry: ReturnType<typeof setTimeout> | undefined;
     setReady(false);
@@ -46,11 +63,14 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
         setProblem(String(error)); setReady(false);
       });
     };
+    // 取消登记会清掉记住的目标，所以登记变化时一并重读。
+    const readMemory = () => void saveMemory().then(value => { if (alive && value) setMemory(value); }, () => {});
     refresh();
-    const stop = onWorkspaceChanged(value => { if (value.revision !== revision) refresh(); });
+    readMemory();
+    const stop = onWorkspaceChanged(value => { if (value.revision !== revision) { refresh(); readMemory(); } });
     return () => { alive = false; clearTimeout(retry); void stop.then(fn => fn()); };
   }, [safe]);
-  return <Context.Provider value={{ destination, setDestination, providers, problem, ready }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ destination, setDestination, providers, problem, ready, memory, rememberImport, rememberNewLibraryParent: rememberParent }}>{children}</Context.Provider>;
 }
 
 export function folderChoices(nodes: FolderNode[], prefix = ""): { id: string; path: string }[] {

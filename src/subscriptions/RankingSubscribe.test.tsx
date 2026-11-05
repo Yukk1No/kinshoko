@@ -5,7 +5,7 @@ import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { SaveDestinationProvider } from "../library/SaveDestination";
 import { chooseOption } from "../test/select";
-import { parentFolder } from "./RankingDialog";
+import { parentFolder } from "../library/library-path";
 import { SubscriptionsPage } from "./SubscriptionsPage";
 import { account, NOW, status, subscription } from "./subscriptions.fixtures";
 
@@ -19,13 +19,14 @@ const libraries = [
 const ranking = (id: string, period: "day" | "week" | "month", top: number, patch: Partial<Subscription> = {}) =>
   subscription(id, "存下的名字", { target: { kind: "pixivRanking", period, top, explicit: false }, backlog: { kind: "all" }, ...patch });
 
-function backend(subs: Subscription[] = []) {
+function backend(subs: Subscription[] = [], newLibraryParent: string | null = null) {
   calls = [];
   mockWindows("main");
   mockConvertFileSrc("windows");
   mockIPC((cmd, args) => {
     calls.push({ cmd, args });
     if (cmd === "subscriptions") return subs;
+    if (cmd === "plugin:library|save_memory") return { importDestination: null, newLibraryParent };
     if (cmd === "subscription_recent") return [];
     if (cmd === "plugin:library|workspace_directories") {
       return { status: { revision: "t", libraries }, providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
@@ -40,7 +41,7 @@ const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.ar
 
 function page(s: SubscriptionStatus, safe = false) {
   return render(<SaveDestinationProvider safe={safe}>
-    <SubscriptionsPage status={s} onStatus={vi.fn()} safe={safe} paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} libraryId="L1" />
+    <SubscriptionsPage status={s} onStatus={vi.fn()} safe={safe} paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} />
   </SaveDestinationProvider>);
 }
 
@@ -86,6 +87,27 @@ describe("订阅榜单", () => {
         includeExplicit: true, includeManga: true, backlog: { kind: "all" } },
     ] });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("没有榜单订阅时，新图库放在上次新建图库的位置；照预填确认不写进记忆", async () => {
+    backend([], "E:/别处");
+    page(status());
+    const dialog = await openRankingDialog();
+    await within(dialog).findByTitle("E:/别处");
+    fireEvent.click(within(dialog).getByRole("button", { name: /订阅 1 个榜单/ }));
+    await waitFor(() => expect(sent("plugin:library|create_library_unopened")).toEqual([{ parent: "E:/别处", name: "pixiv 榜单" }]));
+    expect(sent("plugin:library|remember_new_library_parent")).toEqual([]);
+  });
+
+  it("亲手选的新建位置写进记忆", async () => {
+    backend();
+    page(status());
+    const dialog = await openRankingDialog();
+    window.__KINSHOKO_TEST_PICKS__ = ["F:/亲手选"];
+    fireEvent.click(within(dialog).getByRole("button", { name: /选择|更改/ }));
+    await within(dialog).findByTitle("F:/亲手选");
+    fireEvent.click(within(dialog).getByRole("button", { name: /订阅 1 个榜单/ }));
+    await waitFor(() => expect(sent("plugin:library|remember_new_library_parent")).toEqual([{ parent: "F:/亲手选" }]));
   });
 
   it("也可以放进已有图库；一个都不勾时按钮不能点", async () => {

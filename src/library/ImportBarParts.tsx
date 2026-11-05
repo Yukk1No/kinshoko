@@ -76,7 +76,7 @@ export function importNotice(report: ImportReport, owner: string | null, warning
 export function ImportResultCard({ report, finished, owner, taskSwitcher, cardNotes, busy, begin, optionsByTask, libraryId, onOpenTrash, onDismissReport }: {
   report: ImportReport; finished: FinishedImport | null; owner: string | null; taskSwitcher?: ReactNode; cardNotes?: ReactNode;
   busy: boolean; begin: Begin; optionsByTask: { current: Map<string, ImportOptions> }; libraryId: string;
-  onOpenTrash?: (libraryId?:string) => void; onDismissReport: () => void;
+  onOpenTrash?: (libraryId:string) => void; onDismissReport: () => void;
 }) {
   const { t } = useTranslation("importing", { keyPrefix: "result" });
   const counts = importCounts(report);

@@ -4,7 +4,9 @@ import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { Channel } from "@tauri-apps/api/core";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
+import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { ImportMenu } from "./ImportMenu";
+import { SaveDestinationProvider } from "./SaveDestination";
 import { ToastProvider } from "../ui/Toast";
 
 afterEach(async () => { cleanup(); await new Promise(resolve => setTimeout(resolve, 0)); clearMocks(); vi.unstubAllGlobals(); });
@@ -16,7 +18,7 @@ const receipt: ImportTaskSnapshot = {
     items: [ { path: "sealed-name.png", outcome: { kind: "merged", imageId: "sealed-id" } }, { path: "visible-name.png", outcome: { kind: "refreshed", imageId: "visible-id" } }, { path: "missing.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "missing" } } } ] },
 };
 
-function menu() { return <ImportMenu enabled libraryId="L1" libraryName="参考" running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} />; }
+function menu() { return <ImportMenu enabled running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} />; }
 
 describe("导入结束走轻提示（#388）", () => {
   function serve(tasks: ImportTaskSnapshot[]) {
@@ -122,9 +124,11 @@ describe("导入回执上下文撤销", () => {
 });
 
 
-for (const phase of ["已显示图片", "读取尚未完成"] as const) it(`当前资料库改变立即遮蔽${phase}，保留实际任务回执并要求再次同意`, async () => {
+for (const phase of ["已显示图片", "读取尚未完成"] as const) it(`登记的资料库变化立即遮蔽${phase}，保留实际任务回执并要求再次同意`, async () => {
   mockWindows("main");
   const closed: string[] = [];
+  let registered = false;
+  let libraries = [{ library: { id: "L1", name: "参考", root: "D:/a" }, unavailable: null } as LibraryRegistration];
   let channel: Channel<ArrayBuffer> | undefined, release!: () => void;
   const pending = new Promise<void>(resolve => { release = resolve; });
   const sealed = { ...receipt, progress: { done: 0, total: 0 }, report: { ...receipt.report!, items: [], sealedDuplicates: true, privateSummary: true } };
@@ -139,19 +143,22 @@ for (const phase of ["已显示图片", "读取尚未完成"] as const) it(`当�
       channel.onmessage(new ArrayBuffer(0));
     }
     if (cmd === "plugin:library|close_import_preview") closed.push((args as { sessionId: string }).sessionId);
+    if (cmd === "plugin:library|workspace_directories") { registered = true; return { status: { revision: "r", libraries }, providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) }; }
     return undefined;
   }, { shouldMockEvents: true });
   const revoke = vi.fn(), create = vi.fn(() => "blob:actual-receipt-preview");
   vi.stubGlobal("URL", { createObjectURL: create, revokeObjectURL: revoke });
   HTMLDialogElement.prototype.showModal = function() { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function() { this.removeAttribute("open"); };
-  const current = (libraryId: string) => <ImportMenu enabled libraryId={libraryId} libraryName="当前资料库" running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} />;
-  const { rerender } = render(current("L1"));
+  render(<SaveDestinationProvider safe><ImportMenu enabled running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider>);
+  await waitFor(() => expect(registered).toBe(true));
   expect(await screen.findByText("有封印项重复，是否展开看看")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "展开本次重复项" }));
   if (phase === "已显示图片") expect(await screen.findByRole("img", { name: "本次导入的重复项" })).toBeTruthy();
   else await waitFor(() => expect(channel).toBeDefined());
-  rerender(current("L2"));
+  libraries = [...libraries, { library: { id: "L2", name: "新登记", root: "E:/b" }, unavailable: null }];
+  await act(() => emit("workspace-changed", { revision: "r2", libraries }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.queryByRole("img")).toBeNull();
   await waitFor(() => expect(closed).toContain("actual-receipt-session"));
@@ -165,14 +172,10 @@ for (const phase of ["已显示图片", "读取尚未完成"] as const) it(`当�
   }
   expect(screen.getByText("放到 参考 / 未归类")).toBeTruthy();
   expect(screen.getByRole("button", { name: "展开本次重复项" })).toBeTruthy();
-  rerender(current("L1"));
-  expect(screen.queryByRole("dialog")).toBeNull();
-  expect(screen.queryByRole("img")).toBeNull();
 });
 
 it("另一个图库的任务回执关闭后，不留下“正在导入”的空卡片，仍可开始导入（#98 本机 r14）", async () => {
   mockWindows("main");
-  // 主窗口只按当前图库接收导入事件：导入到另一个图库时，它记下的“进行中”不会被结束事件清掉。
   const other = { ...receipt, taskId: "other-library-task", destination: { libraryId: "L2", folderId: null }, libraryName: "另一个" };
   let tasks: ImportTaskSnapshot[] = [other];
   mockIPC(cmd => {
@@ -181,7 +184,7 @@ it("另一个图库的任务回执关闭后，不留下“正在导入”的空�
     if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
     return undefined;
   }, { shouldMockEvents: true });
-  render(<ImportMenu enabled libraryId="L1" libraryName="参考" running={{ taskId: "other-library-task", progress: { done: 0, total: 0 } }}
+  render(<ImportMenu enabled running={{ taskId: "other-library-task", progress: { done: 0, total: 0 } }}
     finished={null} onStarted={() => {}} onDismissReport={() => {}} />);
   await screen.findByRole("region", { name: "导入结果" });
   fireEvent.click(screen.getByRole("button", { name: "关闭导入结果" }));

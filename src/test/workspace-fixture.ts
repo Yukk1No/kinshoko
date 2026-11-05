@@ -1,5 +1,6 @@
 // Existing one-provider UI fixtures projected onto the workspace IPC contract.
 // The product never uses this adapter; real provider semantics are tested in Rust/native E2E.
+import { emit } from "@tauri-apps/api/event";
 import type { Sidebar } from "../bindings/Sidebar";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { BrowsePage } from "../bindings/BrowsePage";
@@ -9,23 +10,32 @@ import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 type Handler = (cmd: string, args?: unknown) => unknown;
 export function workspaceFixture(handler: Handler): Handler {
   let active: LibraryInfo | null | undefined;
+  let revision = 0;
+  const status = () => Promise.resolve(handler("plugin:library|registered_libraries")).then((libraries) => ({
+    revision: `fixture-${revision}`, libraries: (libraries ?? []) as LibraryRegistration[],
+  }));
+  /** 登记变化后后端推送的通知：界面靠它重读，不靠“换了资料库”。 */
+  const registrationChanged = () => { revision++; void status().then((value) => emit("workspace-changed", value)); };
   return (command, arguments_) => {
     const args = (arguments_ ?? {}) as Record<string, unknown>;
     const current = () => active !== undefined ? active : handler("plugin:library|current_library") as LibraryInfo | null;
     if (["current_library", "switch_library", "register_library", "create_library"].some((name) => command === "plugin:library|" + name)) {
       const value = handler(command, arguments_);
-      return Promise.resolve(value).then((library) => { active = library as LibraryInfo | null; return library; });
+      return Promise.resolve(value).then((library) => {
+        active = library as LibraryInfo | null;
+        if (command !== "plugin:library|current_library") registrationChanged();
+        return library;
+      });
     }
-    if (command === "plugin:library|unregister_library") { active = null; return handler(command, arguments_); }
-    if (command === "plugin:library|workspace_status") {
-      return Promise.resolve(handler("plugin:library|registered_libraries")).then((libraries) => ({
-        revision: "fixture", libraries: (libraries ?? []) as LibraryRegistration[],
-      }));
+    if (command === "plugin:library|unregister_library") {
+      active = null;
+      return Promise.resolve(handler(command, arguments_)).then((value) => { registrationChanged(); return value; });
     }
+    if (command === "plugin:library|workspace_status") return status();
     if (command === "plugin:library|workspace_directories") {
       return Promise.resolve(handler("plugin:library|registered_libraries")).then(async (value) => {
         const libraries = (value ?? []) as LibraryRegistration[];
-        return { status: { revision: "fixture", libraries }, providers: await Promise.all(libraries.map(async (registration) => ({
+        return { status: { revision: `fixture-${revision}`, libraries }, providers: await Promise.all(libraries.map(async (registration) => ({
           registration, unassigned: 0, descendants: {}, sidebar: registration.unavailable ? null : await handler("plugin:library|sidebar", { libraryId: registration.library.id }) as Sidebar,
         }))) } satisfies WorkspaceDirectories;
       });
@@ -41,7 +51,7 @@ export function workspaceFixture(handler: Handler): Handler {
         ...query, scope: query.scope.kind === "library" ? query.scope.scope : { kind: "all" },
       } })).then((page) => {
         const result = page as BrowsePage;
-        return { ...result, status: { revision: "fixture", libraries: [] },
+        return { ...result, status: { revision: `fixture-${revision}`, libraries: [] },
           // 工作区的卡片不带缩略图地址，图片墙按来源与档位自己拼（#313）。
           cards: result.cards.map(({ thumbnail: _, ...card }) => ({ ...card, libraryId, imageId: card.id, sources: [{
             libraryId, libraryName: library?.name ?? "fixture", imageId: card.id, matches: true, unavailable: null, deleted: false,

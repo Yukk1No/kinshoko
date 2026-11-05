@@ -14,7 +14,6 @@ import type { SearchInput } from "../bindings/SearchInput";
 import type { ImageRating } from "../bindings/ImageRating";
 import type { ImageTags } from "../bindings/ImageTags";
 import type { LibraryEvent } from "../bindings/LibraryEvent";
-import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { TagAlias } from "../bindings/TagAlias";
 import type { TagEdit } from "../bindings/TagEdit";
 import type { TagNamespace } from "../bindings/TagNamespace";
@@ -143,14 +142,6 @@ export function onLibraryEvent(handler: (event: LibraryEvent) => void): Promise<
   return listen<LibraryEvent>("library-event", (e) => handler(e.payload));
 }
 
-/**
- * 整理另一个图库时后端把唯一的可写句柄切了过去（ADR-0008，#112）。界面没有“当前图库”，
- * 只有跟着可写库走的部分（自动标签）需要知道。
- */
-export function onWritableLibrary(handler: (library: LibraryInfo) => void): Promise<UnlistenFn> {
-  return listen<LibraryInfo>("writable-library", (e) => handler(e.payload));
-}
-
 /** 整理在等某个图库的导入收尾（#112）：完成后自动执行，界面只给轻提示。 */
 export function onOrganizeWaiting(handler: (waiting: OrganizeWaiting) => void): Promise<UnlistenFn> {
   return listen<OrganizeWaiting>("organize-waiting", (e) => handler(e.payload));
@@ -193,7 +184,7 @@ export function safeMode(): Promise<boolean> {
   return invoke<boolean>(lib("safe_mode"));
 }
 
-/** 开关安全模式；当前资料库随后推送 safeModeChanged。 */
+/** 开关安全模式；开着的资料库随后推送 safeModeChanged。 */
 export function setSafeMode(on: boolean): Promise<boolean> {
   return invoke<boolean>(lib("set_safe_mode"), { on });
 }

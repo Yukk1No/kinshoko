@@ -71,7 +71,7 @@ describe("主窗口", () => {
     await act(() =>
       emit("tauri://drag-enter", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }),
     );
-    expect(screen.getByText("松开即可导入，再选放在哪里")).toBeTruthy();
+    expect(screen.getByText("松开即可导入到 工作参考")).toBeTruthy();
     await act(() => emit("tauri://drag-drop", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }));
     await confirmImport();
 
@@ -80,7 +80,7 @@ describe("主窗口", () => {
         { libraryId: "L1", source: { paths: ["D:\\图\\a.png", "D:\\一批参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
       ]),
     );
-    expect(screen.queryByText("松开即可导入，再选放在哪里")).toBeNull();
+    expect(screen.queryByText("松开即可导入到 工作参考")).toBeNull();
   });
 
   it("导入结束后可以只重试读取失败的项", async () => {
@@ -246,7 +246,7 @@ describe("导入任务的终态（#76）", () => {
 
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 1 } });
     await failed("T1");
-    await push({ kind: "taskFinished", libraryId: "L2", taskId: "T2", report: { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] } });
+    await push({ kind: "taskFinished", libraryId: "L2", taskId: "T9", report: { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] } });
 
     expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 5")).toBeTruthy();
     expect(screen.queryByLabelText("导入结果")).toBeNull();

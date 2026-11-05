@@ -19,6 +19,7 @@ const ipc = vi.hoisted(() => ({
 }));
 
 vi.mock("../ipc", () => ({
+  saveMemory: () => Promise.resolve({ importDestination: null, newLibraryParent: null }),
   referenceGroups: ipc.groups,
   referenceGroup: ipc.group,
   groupSaveCaptures: ipc.captures,
@@ -88,13 +89,13 @@ const view: ReferenceGroupView = {
   ],
 };
 
-async function show(libraryId: string | null = "lib-a") {
+async function show() {
   ipc.groups.mockResolvedValue([
     summary,
     { ...summary, id: "bad", name: "bad", memberCount: 0, libraryIds: [], problem: { code: "groupInvalid", cause: { code: "notAGroup" } } },
   ]);
   ipc.group.mockResolvedValue(view);
-  render(<SaveDestinationProvider safe><ReferenceGroupsPanel libraryId={libraryId} /></SaveDestinationProvider>);
+  render(<SaveDestinationProvider safe><ReferenceGroupsPanel /></SaveDestinationProvider>);
   await act(async () => {
     for (let i = 0; i < 5; i++) await Promise.resolve();
   });
@@ -299,8 +300,8 @@ describe("参考组面板", () => {
     expect(ipc.remove).toHaveBeenCalledWith("bad");
   });
 
-  it("没有活动库时仍可从明确目标导入参考组包", async () => {
-    await show(null);
+  it("没有图库也可从明确目标导入参考组包的入口点开", async () => {
+    await show();
     expect((screen.getByRole("button", { name: "导入参考组包" }) as HTMLButtonElement).disabled).toBe(false);
   });
 });
