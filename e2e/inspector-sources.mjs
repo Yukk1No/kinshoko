@@ -160,12 +160,11 @@ try {
   await plainPanel("C2");
   await both("C2-switched");
 
-  // D 查看器打开墙外的图：窗口留在 Test，打开只在「pixiv 榜单」里的图。真实入口是钉图菜单“在 Kinshoko 中打开”，
-  // 这里替换它取请求的那一步，不弹钉图窗口；之后的路径与真实入口相同。
+  // D 查看器打开墙外的图：窗口留在 Test，打开只在「pixiv 榜单」里的图。真实入口是订阅页的图块和钉图菜单；这里没有订阅数据，
+  // 直接调用订阅页拿到的 onOpenImage，之后的路径与点图块相同。
   await session.click("//button[starts-with(@aria-label, 'Test') or starts-with(normalize-space(), 'Test')]"); await settle();
   await until("Test wall without the image", () => session.exec("return document.querySelectorAll('.card[data-id]').length === 6 && !document.querySelector(`.card[data-id=\"${arguments[0]}\"]`);", [featured.id]));
-  await session.exec("const internals = window.__TAURI_INTERNALS__, invoke = internals.invoke, request = arguments[0]; internals.invoke = (command, ...rest) => command === 'plugin:desktop|take_open_request' ? Promise.resolve(request) : invoke(command, ...rest); return true;", [{ kind: "reference", libraryId: ranking.info.id, imageId: featured.imageId }]);
-  await session.invoke("plugin:event|emit", { event: "open-in-kinshoko", payload: null });
+  await session.exec("const root = document.getElementById('root'); const key = Object.keys(root).find(k => k.startsWith('__reactContainer$')); const stack = [root[key].stateNode.current]; while (stack.length) { const fiber = stack.pop(); const props = fiber.memoizedProps; if (typeof props?.onOpenImage === 'function' && props.subscriptions) { props.onOpenImage(arguments[0], arguments[1]); return true; } if (fiber.sibling) stack.push(fiber.sibling); if (fiber.child) stack.push(fiber.child); } throw new Error('onOpenImage not found');", [ranking.info.id, featured.imageId]);
   await until("viewer outside the wall", () => session.exec("return Boolean(document.querySelector('.viewer'));"));
   await settle(); await delay(800);
   await plainPanel("D");
