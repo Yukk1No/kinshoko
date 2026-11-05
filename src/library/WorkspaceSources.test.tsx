@@ -51,7 +51,7 @@ it("换到 B 后，A 迟到的分级响应不能关闭 B 的面板", async () =>
   fireEvent.click(within(screen.getByRole("group", { name: "所在图库" })).getByRole("button", { name: "移动盘参考" }));
   await waitFor(() => expect((screen.getByRole("textbox", { name: "备注" }) as HTMLTextAreaElement).value).toBe("b 的备注"));
   await act(async () => {
-    finish([{ id: "a", rating: { imageId: "a", suggested: null, manual: "explicit", effective: "explicit" } }]);
+    finish([sourceReads("plugin:library|image", { imageId: "a" }, () => ({ rating: { imageId: "a", suggested: null, manual: "explicit", effective: "explicit" } }))]);
     await pending;
   });
   expect(close).not.toHaveBeenCalled();
@@ -61,7 +61,7 @@ it("安全模式下把这一份改成成人分级，面板随之关闭", async (
   mockIPC((cmd, args) => {
     const read = sourceReads(cmd, args);
     if (read) return read;
-    if (cmd === "plugin:library|edit") return [{ id: "a", rating: { imageId: "a", suggested: null, manual: "explicit", effective: "explicit" } }];
+    if (cmd === "plugin:library|edit") return [sourceReads("plugin:library|image", { imageId: "a" }, () => ({ rating: { imageId: "a", suggested: null, manual: "explicit", effective: "explicit" } }))];
   });
   const close = vi.fn();
   render(<WorkspaceSources card={card} onClose={close} />);
