@@ -22,7 +22,7 @@ Before writing or reviewing interface copy (text in the app, prototypes, design 
 
 ### Interface design
 
-Use the project-local Impeccable skill for UI design, implementation, review, and refinement. Before these tasks, read `.agents/skills/impeccable/SKILL.md` and follow its relevant playbook. Installation and usage notes are in `docs/agents/impeccable.md`.
+Use the project-local Impeccable skill for UI design, implementation, review, and refinement. Before these tasks, read `.agents/skills/impeccable/SKILL.md` and follow its relevant playbook. Installation and usage notes are in `docs/agents/impeccable.md`. Before changing the interface, also read `design/ui-system/README.md` and the files its table lists for the task, such as `visual-and-motion.md` for transitions.
 
 ### Issue tracker
 
