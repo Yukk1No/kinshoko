@@ -1,7 +1,6 @@
 import { PanelRightClose } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Dispatch, SetStateAction } from "react";
-import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { SelectionPanel } from "../library/SelectionPanel";
 import { WorkspaceSources } from "../library/WorkspacePane";
@@ -11,7 +10,7 @@ import type { WorkspaceInspectorState } from "./useWorkspaceInspector";
 
 /** 工作区右侧的详情面板：明确打开的来源整理，或当前选择的整理。 */
 export function WorkspaceInspector({
-  inspector, status, safe, reloadKey, vocabularyKey, sources, setSources, setSelected,
+  inspector, status, safe, reloadKey, vocabularyKey, setSelected,
   onError, onInspectorWidth,
 }: {
   inspector: WorkspaceInspectorState;
@@ -19,15 +18,13 @@ export function WorkspaceInspector({
   safe: boolean;
   reloadKey: number;
   vocabularyKey: number;
-  sources: WorkspaceCard | null;
-  setSources: Dispatch<SetStateAction<WorkspaceCard | null>>;
   setSelected: Dispatch<SetStateAction<Set<string>>>;
   onError: (error: unknown) => void;
   onInspectorWidth: (width: number) => void;
 }) {
   const { t } = useTranslation("workspace");
   const {
-    setInspectorElement, inspected, selectionKey, inspectorOpen, draggedWidth, setDraggedWidth, panelWidth, closeInspector,
+    setInspectorElement, inspected, selectionKey, inspectorOpen, draggedWidth, setDraggedWidth, panelWidth, closeInspector, closeSources,
     selectionLibrary, panelIds,
   } = inspector;
   return (
@@ -43,7 +40,7 @@ export function WorkspaceInspector({
           {inspectorOpen && <WinCtrls />}
         </header>
         <div className="insp-body">
-          {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={() => { if (sources) setSources(null); else setSelected(new Set()); }} />
+          {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={closeSources} />
           : <SelectionPanel
             libraryId={selectionLibrary ?? ""}
             selected={new Set(panelIds)}

@@ -35,6 +35,19 @@ it("列表重读期间选中的图暂时不在已读卡片里：沿用这组选�
   expect(result.current.eligible).toBe(true);
 });
 
+it("重读期间详情面板仍整理这组选择里的图，不变空", () => {
+  const { result, rerender } = inspector({ selected: ["a"], cards: [card("a", "L2")] });
+  rerender({ selected: ["a"], cards: [] });
+  expect(result.current.panelIds).toEqual(["a"]);
+});
+
+it("修剪掉这组选择后不再沿用读到过的卡片", () => {
+  const { result, rerender } = inspector({ selected: ["a", "b"], cards: [card("a", "L2"), card("b", "L2")] });
+  rerender({ selected: ["b"], cards: [] });
+  expect(result.current.panelIds).toEqual([]);
+  expect(result.current.selectionLibrary).toBeNull();
+});
+
 it("没读到过的选择定不下图库，不猜一个", () => {
   const { result, rerender } = inspector({ selected: ["a"], cards: [card("a", "L2")] });
   rerender({ selected: ["b"], cards: [] });
