@@ -12,7 +12,7 @@ import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
 import { fitPanes, isNarrow, usePaneFold, useWidth } from "../shell/paneFit";
 import type { Section } from "../shell/Rail";
-import { useWidthTransition } from "../shell/useWidthTransition";
+import { usePanelSlide } from "../shell/usePanelSlide";
 import { TaggingActivity } from "../TaggingActivity";
 import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
@@ -174,10 +174,10 @@ export function LibraryWorkspace({
     fitPanel: (width) => fitPanes(bodyWidth, width, paneOpen && !isNarrow(bodyWidth, width)).inspector,
   });
   const { selectionLibrary, selectedCards, inspected, inspectorContent, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector } = inspector;
-  // 侧栏开合的宽度过渡中图片墙不逐帧重排，过渡结束后重排一次（同详情面板，#162）。
   const [sidebarElement, setSidebarElement] = useState<HTMLElement | null>(null);
-  const sidebarMoving = useWidthTransition(sidebarElement);
   const panes = usePaneFold({ body: bodyWidth, inspector: inspectorOpen ? inspector.panelWidth : 0, paneOpen, onPaneOpen });
+  // 侧栏开合时图片墙一开始就按终点宽度排，卡片随侧栏一起滑到位；浮在墙上的侧栏不占墙的宽度。
+  const sidebarSlide = usePanelSlide(sidebarElement, panes.floating ? null : panes.sidebar);
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
   const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
@@ -273,7 +273,8 @@ export function LibraryWorkspace({
             conditions={tree}
             reloadKey={reloadKey}
             safeMode={safe}
-            holdReflow={inspectorMoving || sidebarMoving || draggedWidth !== null}
+            holdReflow={inspectorMoving || draggedWidth !== null}
+            settle={sidebarSlide}
             selected={selected}
             onSelectionChange={(next) => {
               // 来源按钮打开的整理只对那一张：画师改了选择，面板跟着选择走。
