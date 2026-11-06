@@ -53,7 +53,6 @@ export default {
     capturesLabel: "截图历史",
     collapse: "收起侧栏",
   },
-  backToLibrary: "返回图库",
   back: "返回",
   settingsTitle: "程序设置",
   closeSettings: "关闭设置",

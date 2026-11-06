@@ -1,7 +1,9 @@
-import { Library } from "lucide-react";
+import { useState } from "react";
+import { FolderPlus, Library } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Backlog } from "../bindings/Backlog";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
+import { CreateLibraryDialog, type CreatedLibrary } from "../library/CreateLibrary";
 import { useSaveDestination } from "../library/SaveDestination";
 import { Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
@@ -92,13 +94,37 @@ export function BacklogCards({ name, label, labels, value, onChange, disabled, i
   </div>;
 }
 
-/** 图库下拉。 */
-export function LibraryField({ label, value, onChange, disabled }: { label: string; value: string; onChange: (libraryId: string) => void; disabled?: boolean }) {
+/** 下拉里「新建图库…」一项的值；不会是资料库 ID。 */
+const NEW_LIBRARY = "\u0000new-library";
+
+/**
+ * 订阅里选图库的下拉（#442）：最后一项「新建图库…」叠一层新建图库对话框，建好后选中新图库、不切换主窗口；
+ * 取消时仍是原来的选项。新图库进登记列表之前先补在列表里，免得下拉一时显示不出它。
+ */
+export function LibrarySelect({ label, value, onChange, disabled }: { label: string; value: string; onChange: (libraryId: string) => void; disabled?: boolean }) {
+  const { t } = useTranslation("library", { keyPrefix: "picker" });
   const libraries = useLibraryOptions();
+  const [creating, setCreating] = useState(false);
+  const [created, setCreated] = useState<CreatedLibrary | null>(null);
+  const known = created === null || libraries.options.some((o) => o.value === created.id)
+    ? libraries.options : [...libraries.options, { value: created.id, label: created.name }];
+  const options = [...known, {
+    value: NEW_LIBRARY,
+    label: <span className="subs-new-library"><FolderPlus size={14} aria-hidden="true" />{t("create")}</span>,
+  }];
+  return <>
+    <Select label={label} icon={<Library size={16} aria-hidden="true" />} disabled={disabled || !libraries.ready}
+      value={value} onChange={(next) => { if (next === NEW_LIBRARY) setCreating(true); else onChange(next); }} options={options} />
+    {creating && <CreateLibraryDialog onClose={() => setCreating(false)}
+      onCreated={(library) => { setCreated(library); setCreating(false); onChange(library.id); }} />}
+  </>;
+}
+
+/** 图库下拉，带栏名。 */
+export function LibraryField({ label, value, onChange, disabled }: { label: string; value: string; onChange: (libraryId: string) => void; disabled?: boolean }) {
   return <div className="k-field">
     <span className="k-field-label">{label}</span>
-    <Select label={label} icon={<Library size={16} aria-hidden="true" />} disabled={disabled || !libraries.ready}
-      value={value} onChange={onChange} options={libraries.options} />
+    <LibrarySelect label={label} value={value} onChange={onChange} disabled={disabled} />
   </div>;
 }
 
