@@ -49,7 +49,8 @@ export function CreateLibrary({ onCreated, onBusyChange, onBack, backLabel }: {
     setError(null);
     try {
       const created = await createLibrary(parent, name.trim());
-      rememberNewLibraryParent(parent);
+      // 只记画师亲手选的位置；预填的不写进记忆（ADR-0016），免得盖掉暂时读不到的那条。
+      if (chosen) rememberNewLibraryParent(chosen);
       onCreated(created);
     } catch (e) {
       setError(String(e));

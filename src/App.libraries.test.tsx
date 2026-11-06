@@ -229,6 +229,8 @@ describe("主窗口", () => {
     await waitFor(() => expect(sent("plugin:library|create_library")).toEqual([
       { parent: "C:\\Users\\画师\\Pictures", name: "我的参考" },
     ]));
+    // 预填的位置不写进“上次新建资料库的位置”。
+    expect(sent("plugin:library|remember_new_library_parent")).toEqual([]);
   });
 
   it("已有图库时新建图库预填到那个图库旁边", async () => {
