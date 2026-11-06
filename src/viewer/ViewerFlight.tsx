@@ -15,7 +15,11 @@ type Fly = {
   kind: "fly"; direction: "open" | "close"; card: BrowserCard; cardEl: HTMLElement;
   /** 飞行元素按卡片的矩形排版，靠变换到达查看区：放大只会加重遮蔽的模糊，从大尺寸缩小才会减轻它。 */
   box: FlightRect; host: { x: number; y: number }; radius: string; src: string; veiled: boolean;
-  from: FlightRect; to: FlightRect | null; arrived: boolean; settled: boolean;
+  from: FlightRect; to: FlightRect | null;
+  /** 看上去到位了（弹簧的 visualDuration）：顶栏与 Dock 此时进入，不等弹簧的尾巴。 */
+  inPlace: boolean;
+  /** 真正落定（差不到 1 px）：此时才能换上原图。 */
+  arrived: boolean; settled: boolean;
 };
 type Stage =
   | { kind: "measure"; direction: "open" | "close"; card: BrowserCard; resume: Fly | null }
@@ -106,7 +110,7 @@ export function useViewerFlight({ viewing, safe, host, instant }: {
       setStage({
         kind: "fly", direction: "open", card: stage.card, cardEl: target.el, box: target.rect, host: { x: hostRect.left, y: hostRect.top },
         radius: getComputedStyle(target.el).borderRadius || "0px", src: cardImage(target.el), veiled: target.el.dataset.veiled === "true",
-        from: target.rect, to: placed.current?.rect ?? null, arrived: false, settled: placed.current?.settled ?? false,
+        from: target.rect, to: placed.current?.rect ?? null, inPlace: false, arrived: false, settled: placed.current?.settled ?? false,
       });
       return;
     }
@@ -115,27 +119,34 @@ export function useViewerFlight({ viewing, safe, host, instant }: {
       return;
     }
     if (stage.resume) {
-      setStage({ ...stage.resume, direction: "close", to: target.rect, arrived: false });
+      setStage({ ...stage.resume, direction: "close", to: target.rect, inPlace: false, arrived: false });
       return;
     }
     const veiled = target.el.dataset.veiled === "true";
     setStage({
       kind: "fly", direction: "close", card: stage.card, cardEl: target.el, box: target.rect, host: { x: hostRect.left, y: hostRect.top },
       radius: getComputedStyle(target.el).borderRadius || "0px", src: (!veiled && placed.current?.src) || cardImage(target.el), veiled,
-      from: placed.current?.rect ?? target.rect, to: target.rect, arrived: false, settled: true,
+      from: placed.current?.rect ?? target.rect, to: target.rect, inPlace: false, arrived: false, settled: true,
     });
   }, [stage, host]);
 
   // 中途掉头时量落点这一步也留着飞行元素，它接着当前的位置与速度飞回去。
   const flying = stage?.kind === "fly" ? stage : stage?.kind === "measure" ? stage.resume : null;
   // 卡片用透明度藏起来而不是 visibility：图片墙刚把焦点接回它，不能丢。
+  // 和飞行元素的增删在同一次提交里生效，否则落地时卡片会空一帧。
   const cardEl = flying?.cardEl;
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!cardEl) return;
     cardEl.dataset.flying = "";
     return () => { delete cardEl.dataset.flying; };
   }, [cardEl]);
 
+  const flyingIn = !!flying && flying.direction === "open" && !flying.inPlace;
+  useEffect(() => {
+    if (!flyingIn) return;
+    const timer = window.setTimeout(() => setStage((current) => current?.kind === "fly" && current.direction === "open" ? { ...current, inPlace: true } : current), arcSpring.smooth.visualDuration * 1000);
+    return () => window.clearTimeout(timer);
+  }, [flyingIn]);
   const fading = !!flying && flying.direction === "open" && flying.arrived && flying.settled && !sealed(flying.card);
   useEffect(() => {
     if (!fading) return;
@@ -171,13 +182,13 @@ export function useViewerFlight({ viewing, safe, host, instant }: {
     : stage.kind === "fade-in" ? "fade-in"
     : stage.kind === "fade-out" ? "fade-out"
     : stage.direction === "close" ? "land"
-    : stage.kind === "fly" && stage.arrived ? undefined : "fly-in";
+    : stage.kind === "fly" && stage.inPlace ? undefined : "fly-in";
   return {
     card, session, attr, onPlaced, back, cut,
     /** 飞行期间与安全模式下，查看区不显示原图。 */
     hideImage: sealed(card) || (!!stage && (stage.kind === "measure" || (stage.kind === "fly" && !fading))),
     /** 墙、侧栏与详情面板退到背景，只在图片飞行时。 */
-    dim: !!flying && !(flying.direction === "open" && flying.arrived),
+    dim: !!flying && !flying.inPlace,
     flier: flying?.to ? <ViewerFlier key={`flier:${session}`} flight={flying} to={flying.to} veiled={flying.veiled || sealed(flying.card)} fading={fading} onLanded={landed} /> : null,
   };
 }
@@ -187,13 +198,15 @@ function ViewerFlier({ flight, to, veiled, fading, onLanded }: {
 }) {
   const { box, host, direction, radius, src, from } = flight;
   const opening = direction === "open";
+  const spring = opening ? arcSpring.smooth : { ...arcSpring.snappy, delay: tokenMs("--t-fast") / 1000 };
   return (
     <div className="viewer-flight" aria-hidden="true">
       <motion.div className="viewer-flier" data-veiled={veiled} data-fading={fading || undefined}
         style={{ left: box.x - host.x, top: box.y - host.y, width: box.width, height: box.height, originX: 0, originY: 0 }}
         initial={{ ...transformTo(box, from), borderRadius: opening ? radius : "0px" }}
         animate={{ ...transformTo(box, to), borderRadius: opening ? "0px" : radius }}
-        transition={opening ? arcSpring.smooth : { ...arcSpring.snappy, delay: tokenMs("--t-fast") / 1000 }}
+        // 缩放差到相当于 1 px 就算落定；默认精度下弹簧的尾巴要多拖几百毫秒。
+        transition={{ ...spring, scaleX: { ...spring, restDelta: 1 / box.width }, scaleY: { ...spring, restDelta: 1 / box.height } }}
         onAnimationComplete={onLanded}>
         {/* 遮蔽中的飞行元素只拿卡片上的缩略图；模糊与遮罩的样式与卡片同一条规则。 */}
         {src && <img src={src} alt="" draggable={false} />}

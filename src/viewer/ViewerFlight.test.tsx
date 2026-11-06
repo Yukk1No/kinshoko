@@ -79,7 +79,7 @@ describe("打开", () => {
     expect(screen.queryByText("正在读取参考图…")).toBeNull();
 
     await loadOriginal();
-    await waitFor(() => expect(flier()).toBeNull());
+    await waitFor(() => expect(flier()).toBeNull(), LANDED);
     expect(original().style.visibility).toBe("visible");
     expect(document.querySelector<HTMLElement>('.card[data-id="a"]')!.dataset.flying).toBeUndefined();
   });
@@ -89,7 +89,7 @@ describe("打开", () => {
     press("open-a");
     await waitFor(() => expect(viewer()!.dataset.flight).toBeUndefined(), LANDED);
     fireEvent.error(original());
-    await waitFor(() => expect(flier()).toBeNull());
+    await waitFor(() => expect(flier()).toBeNull(), LANDED);
     expect(screen.getByRole("alert")).toBeTruthy();
   });
 
@@ -108,7 +108,7 @@ describe("返回", () => {
     press(name);
     await waitFor(() => expect(viewer()!.dataset.flight).toBeUndefined(), LANDED);
     await loadOriginal();
-    await waitFor(() => expect(flier()).toBeNull());
+    await waitFor(() => expect(flier()).toBeNull(), LANDED);
   };
 
   it("缩回正在看的那张的卡片，顶栏与 Dock 先退出，落地后查看器才卸下", async () => {
@@ -198,7 +198,7 @@ describe("过渡中途不再要动画", () => {
     press("open-a");
     expect(flier()).not.toBeNull();
     document.documentElement.setAttribute("data-reduced-motion", "");
-    await waitFor(() => expect(flier()).toBeNull());
+    await waitFor(() => expect(flier()).toBeNull(), LANDED);
     expect(viewer()!.dataset.flight).toBeUndefined();
     await loadOriginal();
     expect(original().style.visibility).toBe("visible");
