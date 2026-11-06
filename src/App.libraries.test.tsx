@@ -215,6 +215,27 @@ describe("主窗口", () => {
     ]);
   });
 
+  it("没有图库时新建图库预填系统的图片文件夹", async () => {
+    backend(null, clean, (cmd) => (cmd === "plugin:library|pictures_folder" ? "C:\\Users\\画师\\Pictures" : undefined));
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "新建图库" }));
+    expect(await screen.findByText("C:\\Users\\画师\\Pictures\\我的参考")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "建立图库" }));
+    await waitFor(() => expect(sent("plugin:library|create_library")).toEqual([
+      { parent: "C:\\Users\\画师\\Pictures", name: "我的参考" },
+    ]));
+    // 预填的位置不写进“上次新建资料库的位置”。
+    expect(sent("plugin:library|remember_new_library_parent")).toEqual([]);
+  });
+
+  it("已有图库时新建图库预填到那个图库旁边", async () => {
+    backend(library, clean, (cmd) => (cmd === "plugin:library|pictures_folder" ? "C:\\Users\\画师\\Pictures" : undefined));
+    render(<App />);
+    await screen.findAllByRole("img");
+    await libraryAction(/新建图库/);
+    expect(await screen.findByText("D:\\参考\\我的参考")).toBeTruthy();
+  });
+
   it("没有资料库时新建表单的“返回”回到欢迎页；打开图库登记所选文件夹", async () => {
     backend(null);
     render(<App />);

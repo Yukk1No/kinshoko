@@ -1,9 +1,10 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { ChevronLeft, FolderOpen, Lightbulb } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { createLibrary, createLibraryUnopened, errorText, pickFolder } from "../ipc";
+import { createLibrary, createLibraryUnopened, errorText, pickFolder, picturesFolder } from "../ipc";
 import { useSaveDestination } from "./SaveDestination";
+import { createLibraryParentPrefill } from "./savePrefill";
 
 /** 新建图库要填的两项：名称与存放位置（新文件夹的上级）。 */
 export type NewLibraryDraft = { name: string; parent: string | null };
@@ -56,8 +57,10 @@ export function NewLibraryFields({ value, onChange, disabled, compact = false }:
 }
 
 /**
- * 新建图库的表单：两栏、报错与建立按钮。在所选位置新建同名文件夹并登记到本设备，记住这次的位置（ADR-0016）。
- * `opens` 时建好后打开它（主窗口新建）；否则只登记不切换（订阅里就地新建）。有 `onCancel` 时脚部是对话框的「取消／建立」。
+ * 新建图库的表单：两栏、报错与建立按钮。在所选位置新建同名文件夹并登记到本设备。
+ * 位置按 ADR-0016 预填（和已有的图库放在一起 → 系统的「图片」文件夹）；只记画师亲手选的位置，预填的不写进记忆，
+ * 免得盖掉暂时读不到的那条。`opens` 时建好后打开它（主窗口新建）；否则只登记不切换（订阅里就地新建）。
+ * 有 `onCancel` 时脚部是对话框的「取消／建立」。
  */
 function NewLibraryForm({ opens, onCreated, onBusyChange, onCancel }: {
   opens: boolean;
@@ -66,11 +69,20 @@ function NewLibraryForm({ opens, onCreated, onBusyChange, onCancel }: {
   onCancel?: () => void;
 }) {
   const { t } = useTranslation("library", { keyPrefix: "create" });
-  const { rememberNewLibraryParent } = useSaveDestination();
-  const [draft, setDraft] = useState<NewLibraryDraft>(() => ({ name: t("defaultName"), parent: null }));
+  const { providers, memory, rememberNewLibraryParent } = useSaveDestination();
+  const [name, setName] = useState(() => t("defaultName"));
+  const [chosen, setChosen] = useState<string | null>(null);
+  const [pictures, setPictures] = useState<string | null>(null);
+  const draft: NewLibraryDraft = { name, parent: chosen ?? createLibraryParentPrefill(memory.newLibraryParent, providers, pictures) };
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const ready = !!draft.parent && !!draft.name.trim() && !busy;
+
+  useEffect(() => {
+    let live = true;
+    picturesFolder().then((dir) => { if (live) setPictures(dir ?? null); }, () => {});
+    return () => { live = false; };
+  }, []);
 
   const create = async () => {
     if (!draft.parent) return;
@@ -79,7 +91,7 @@ function NewLibraryForm({ opens, onCreated, onBusyChange, onCancel }: {
     setError(null);
     try {
       const created = await (opens ? createLibrary : createLibraryUnopened)(draft.parent, draft.name.trim());
-      rememberNewLibraryParent(draft.parent);
+      if (chosen) rememberNewLibraryParent(chosen);
       onCreated(created);
     } catch (e) {
       setError(errorText(e));
@@ -93,7 +105,10 @@ function NewLibraryForm({ opens, onCreated, onBusyChange, onCancel }: {
     <span className="k-label">{t("submit")}</span>
   </button>;
   return <>
-    <NewLibraryFields value={draft} onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))} disabled={busy} />
+    <NewLibraryFields value={draft} disabled={busy} onChange={(patch) => {
+      if (patch.name !== undefined) setName(patch.name);
+      if (patch.parent) setChosen(patch.parent);
+    }} />
     {error && <p className="create-library-error" role="alert">{error}</p>}
     {onCancel
       ? <div className="k-dialog-foot">

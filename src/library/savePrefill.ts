@@ -38,3 +38,8 @@ export function newLibraryParentPrefill(rankingLibraries: string[], remembered: 
     .find(Boolean);
   return beside(ranking) ?? remembered ?? beside(providers.find(usable));
 }
+
+/** 新建图库的位置：和已有的图库放在一起（上次新建资料库的位置 → 登记最早的资料库旁边）→ 系统的「图片」文件夹。 */
+export function createLibraryParentPrefill(remembered: string | null, providers: WorkspaceDirectory[], pictures: string | null): string | null {
+  return newLibraryParentPrefill([], remembered, providers) ?? pictures;
+}
