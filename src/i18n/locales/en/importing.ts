@@ -20,23 +20,15 @@ const importing: Translation<typeof zh> = {
     confirmEagle: "Couldn't confirm the Eagle library's location: {{error}}",
     cancel: "Couldn't cancel the import: {{error}}",
   },
-  error: {
-    title: "Import error",
-    dismiss: "Got it",
-  },
   recovery: {
     interrupted: "Last import was interrupted",
-    orphansLabel: "Unrecognized files in the original folder",
     orphans: "Unrecognized files",
-    close: "Close",
     withdrawn_one: "{{count}} file was rolled back; no partial image was left behind",
     withdrawn_other: "{{count}} files were rolled back; no partial images were left behind",
     kept_one: "The library's original folder has {{count}} unrecognized file; it was kept",
     kept_other: "The library's original folder has {{count}} unrecognized files; they were kept",
     separator: "; ",
     inLibrary: "{{library}}: {{summary}}",
-    showFiles: "Show files",
-    reimportLabel: "Import these files again",
     reimport: "Import again",
   },
   relocation: {

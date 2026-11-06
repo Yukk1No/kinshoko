@@ -147,7 +147,6 @@ export function UpdateNotice() {
   const toast = useToast();
 
   useEffect(() => {
-    if (!toast) return;
     let alive = true;
     /** 正在显示的更新通知；画师关掉后为 null。 */
     let shown: string | null = null;

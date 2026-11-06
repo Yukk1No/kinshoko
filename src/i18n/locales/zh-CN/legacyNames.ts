@@ -49,8 +49,8 @@ export default {
     title_other: "{{count}} 个旧名称待确认",
     open: "逐个确认",
   },
-  banner: {
-    title_other: "{{count}} 个旧名称待确认",
-    body: "　来自较早的图库",
+  entry: {
+    title: "旧名称",
+    hint: "来自较早的图库",
   },
 };

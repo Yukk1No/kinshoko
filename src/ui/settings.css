@@ -75,11 +75,7 @@
 .k-confirm { margin-top: 8px; padding: 10px 12px; border-radius: var(--r); background: var(--warn-soft); color: var(--warn-strong); }
 .k-confirm p { margin: 0 0 6px; }
 .k-confirm-actions { display: flex; gap: 8px; margin-top: 8px; }
-.k-notice { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; padding: 10px 12px; border-radius: var(--r); background: var(--warn-soft); color: var(--warn-strong); font-size: 12px; }
-.k-notice b { color: var(--warn-strong); font-weight: 600; }
-.app-main .legacy-name-notice.k-notice { margin: 0; border-radius: 0; border-bottom: 1px solid var(--line); padding: 8px 16px; }
 .k-settings .settings-diagnostics { max-height: 220px; overflow: auto; margin: 6px 0 0; padding: 10px; border-radius: var(--r-s); background: var(--sunken); white-space: pre-wrap; font-size: 12px; }
-.k-settings .runtime-notice.is-inline { margin-top: 12px; padding: 12px; border-radius: var(--r); background: var(--warn-soft); color: var(--warn-strong); }
 .k-settings .backup-libraries { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0; }
 .k-settings .backup-preview p, .k-settings .backup-result p { margin: 4px 0; }
 .k-settings .backup-snapshots { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }

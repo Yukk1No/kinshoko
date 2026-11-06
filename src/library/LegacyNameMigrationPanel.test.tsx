@@ -4,7 +4,7 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrationWorkspace";
 import { emit } from "@tauri-apps/api/event";
 import { useState } from "react";
-import { LegacyNameBanner, LegacyNameMigrationNotice, LegacyNameWizard } from "./LegacyNameMigrationPanel";
+import { LegacyNameEntry, LegacyNameMigrationNotice, LegacyNameWizard } from "./LegacyNameMigrationPanel";
 
 afterEach(() => { cleanup(); clearMocks(); });
 const view = (): LegacyNameMigrationWorkspace => ({
@@ -67,16 +67,16 @@ it("shows one old name at a time with both old names and the existing preference
 it("offers the wizard when opening an old library whose name has already adopted a global preference", async () => {
   let opened = false;
   mockIPC((cmd) => cmd.endsWith("plan_legacy_names") ? view() : undefined, { shouldMockEvents: true });
-  render(<LegacyNameMigrationNotice safe={true} onOpen={() => { opened = true; }} />);
+  render(<LegacyNameMigrationNotice safe={true} enabled hidden={false} onOpen={() => { opened = true; }} />);
   expect(await screen.findByText(/旧名称待确认/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "逐个确认" }));
   expect(opened).toBe(true);
 });
 
-it("counts pending old names in the settings banner", async () => {
+it("counts pending old names in the settings entry", async () => {
   let opened = false;
   mockIPC((cmd) => cmd.endsWith("plan_legacy_names") ? view() : undefined, { shouldMockEvents: true });
-  render(<LegacyNameBanner onOpen={() => { opened = true; }} />);
+  render(<LegacyNameEntry onOpen={() => { opened = true; }} />);
   expect(await screen.findByText("1 个旧名称待确认")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "逐个确认" }));
   expect(opened).toBe(true);
@@ -210,7 +210,7 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
     const answer = structuredClone(state);
     return new Promise((resolve) => setTimeout(() => { inFlight--; resolve(answer); }, 25));
   }, { shouldMockEvents: true });
-  render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
+  render(<LegacyNameMigrationNotice safe={true} enabled hidden={false} onOpen={() => {}} />);
   expect(await screen.findByText(/1 个旧名称待确认/)).toBeTruthy();
   calls = 0;
   const bursts = 50;
@@ -247,7 +247,7 @@ describe("登记的资料库变化时刷新旧名称提示（#426）", () => {
 
   it("打开带旧名称的图库后出现提示，移除后消失", async () => {
     const { setPending, reads } = backend();
-    render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
+    render(<LegacyNameMigrationNotice safe={true} enabled hidden={false} onOpen={() => {}} />);
     await waitFor(() => expect(reads()).toBe(1));
     await changed("r1", [registration("a")]);
 
@@ -262,7 +262,7 @@ describe("登记的资料库变化时刷新旧名称提示（#426）", () => {
 
   it("移动盘接回（可用状态变化）时也刷新", async () => {
     const { setPending, reads } = backend();
-    render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
+    render(<LegacyNameMigrationNotice safe={true} enabled hidden={false} onOpen={() => {}} />);
     await waitFor(() => expect(reads()).toBe(1));
     await changed("r1", [registration("a", { code: "unavailable" })]);
 
@@ -273,7 +273,7 @@ describe("登记的资料库变化时刷新旧名称提示（#426）", () => {
 
   it("只是修订前进、登记没变时不重读", async () => {
     const { reads } = backend();
-    render(<LegacyNameMigrationNotice safe={true} onOpen={() => {}} />);
+    render(<LegacyNameMigrationNotice safe={true} enabled hidden={false} onOpen={() => {}} />);
     await waitFor(() => expect(reads()).toBe(1));
     await changed("r1", [registration("a")]);
     await new Promise((resolve) => setTimeout(resolve, 350));

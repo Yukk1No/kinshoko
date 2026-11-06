@@ -9,7 +9,7 @@ import type { ShortcutBinding } from "./bindings/ShortcutBinding";
 import { clearRunLog, errorText, hotkeyFailureText } from "./ipc";
 import { useShellSettings, type ShellSettings, type ShellSettingsIntent } from "./shell/useShellSettings";
 import { SharedPersonalApproxSettings } from "./search/SharedPersonalApproxSettings";
-import { LegacyNameBanner } from "./library/LegacyNameMigrationPanel";
+import { LegacyNameEntry } from "./library/LegacyNameMigrationPanel";
 import { SharedTagGroupsSettings } from "./library/TagGroupsPane";
 import { TagNamePanel } from "./library/TagNamePanel";
 import { TagIdentityPanel } from "./library/TagIdentityPanel";
@@ -231,7 +231,7 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
             {tagView === "appearance" && <TagDisplaySettings key={`appearance/${settingsGeneration}`} display={settings.tagDisplay} onChange={settings.changeTagDisplay} />}
             {tagView === "names" && <>
               <TagNamePanel key={`names/${settingsGeneration}`} focus={initialTagFocus} />
-              <LegacyNameBanner onOpen={onOpenNameWizard} />
+              <LegacyNameEntry onOpen={onOpenNameWizard} />
             </>}
             {tagView === "groups" && <SharedTagGroupsSettings key={`groups/${settingsGeneration}`} onError={(e) => setError(errorText(e))} />}
             {tagView === "approx" && <>

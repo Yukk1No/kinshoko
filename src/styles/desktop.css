@@ -10,8 +10,6 @@
 .capture-history-start .k-btn:first-child { flex: 1; min-width: 0; }
 .capture-history-start .k-btn .k-kbd { margin-left: 4px; }
 .capture-history-note, .capture-history-empty, .reference-groups-empty { margin: 0; padding: 0 2px; color: var(--ink-2); font-size: 12px; line-height: 18px; }
-.group-note { margin: 0; padding: 0 2px; color: var(--ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
-.group-note.is-error { color: var(--danger); }
 .side-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink-2);
   font-size: 12px; box-shadow: inset 0 0 0 1px var(--line-2); }
 .side-chip:hover:not(:disabled) { background: var(--hover); color: var(--ink); }

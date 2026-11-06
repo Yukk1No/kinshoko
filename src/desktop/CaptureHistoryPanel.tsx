@@ -2,6 +2,7 @@ import { SaveDestinationDialog } from "../library/SaveDestination";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useToast } from "../ui/Toast";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { BookmarkPlus, Check, Clipboard, Copy, Pin, Scissors, Trash2, X } from "lucide-react";
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
@@ -47,7 +48,7 @@ export function CaptureHistoryPanel({ request, onRequestHandled }: { request?: {
   const [entries, setEntries] = useState<CaptureEntry[] | null>(null);
   const [collecting, setCollecting] = useState<string | null>(null);
   useEffect(() => { if (request) { setCollecting(request.id); onRequestHandled?.(); } }, [request, onRequestHandled]);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
   const keys = useShortcutKeys();
   const { t } = useTranslation("desktop", { keyPrefix: "history" });
 
@@ -62,8 +63,7 @@ export function CaptureHistoryPanel({ request, onRequestHandled }: { request?: {
   }, []);
 
   const run = (action: Promise<unknown>) => {
-    setError(null);
-    action.catch((e) => setError(String(e)));
+    action.catch((e) => toast.error(String(e)));
   };
 
   const capture = async () => {
@@ -87,7 +87,6 @@ export function CaptureHistoryPanel({ request, onRequestHandled }: { request?: {
         </div>
         <p className="capture-history-note">{keys.capture && t("shortcutNote", { key: keys.capture })}{t("cleanupNote")}</p>
       </header>
-      {error && <p className="group-note is-error" role="alert">{error}</p>}
       {entries && entries.length === 0 && <p className="capture-history-empty">{t("empty")}</p>}
       <ul className="capture-history-list">
         {entries?.map((entry) => {

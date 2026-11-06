@@ -10,7 +10,6 @@ const workspace: Translation<typeof zh> = {
   results: "Search results",
   resultCount_one: "{{count}} image",
   resultCount_other: "{{count}} images",
-  gotIt: "Got it",
   copyOneOnly: "Copies one image at a time",
   pane: {
     folders: "Folders",

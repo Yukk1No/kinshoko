@@ -64,10 +64,11 @@ describe("英文界面：导入", () => {
     backend();
     render(<SaveDestinationProvider safe={false}>{bar(report)}</SaveDestinationProvider>);
     await settle();
-    expect(screen.getByRole("region", { name: "Import result" })).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "View" }));
+    expect(await screen.findByRole("region", { name: "Import result" })).toBeTruthy();
     expect(screen.getByText("Into 参考 / Unsorted")).toBeTruthy();
     expect(screen.getByRole("alert", { name: "Did the Eagle library move?" })).toBeTruthy();
-    expect(screen.getByRole("status", { name: "Last import was interrupted" })).toBeTruthy();
+    expect(await screen.findByText("Last import was interrupted")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /^Not imported/ }));
     expectNoChinese(document.body, data);
   });

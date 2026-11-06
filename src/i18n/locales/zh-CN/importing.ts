@@ -19,22 +19,14 @@ export default {
     confirmEagle: "无法确认 Eagle 库的位置：{{error}}",
     cancel: "无法取消导入：{{error}}",
   },
-  error: {
-    title: "导入出错",
-    dismiss: "知道了",
-  },
   /** 上次导入中断或原文件夹里有不认识的文件。 */
   recovery: {
     interrupted: "上次导入中断",
-    orphansLabel: "原文件夹里有不认识的文件",
     orphans: "有不认识的文件",
-    close: "关闭",
     withdrawn_other: "{{count}} 个文件已撤回，没有留下半张图",
     kept_other: "图库的原文件夹里有 {{count}} 个不认识的文件，已保留",
     separator: "；",
     inLibrary: "{{library}}：{{summary}}",
-    showFiles: "查看文件",
-    reimportLabel: "重新导入这些文件",
     reimport: "重新导入",
   },
   relocation: {

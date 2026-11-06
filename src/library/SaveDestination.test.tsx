@@ -100,6 +100,7 @@ it("retry starts at its original target and an explicit new choice matches the f
   return null;
  },{shouldMockEvents:true});
  render(<SaveDestinationProvider safe><ImportMenu enabled running={null} finished={null} onStarted={()=>{}} onDismissReport={()=>{}}/></SaveDestinationProvider>);
+ fireEvent.click(await screen.findByRole("button",{name:"查看"}));
  fireEvent.click(await screen.findByRole("button",{name:"重试失败的 1 项"}));
  await screen.findByRole("button",{name:"开始导入"});
  expect(screen.getByRole("combobox",{name:"放到图库"}).textContent).toMatch(/^保存库/);

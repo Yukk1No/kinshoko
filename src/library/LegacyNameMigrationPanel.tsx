@@ -9,6 +9,8 @@ import type { LegacyNameResolution } from "../bindings/LegacyNameResolution";
 import { describeCommandError } from "../ipc/commandError";
 import { confirmLegacyNames, onLibraryEvent, onSafeModeSetting, onWorkspaceChanged, planLegacyNames, previewLegacyNames } from "../ipc";
 import { languageName } from "../tags/languages";
+import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
+import { usePersistentToast } from "../ui/Toast";
 
 
 /** 向导确认后通知各处的“旧名称待确认”提示重新读取。 */
@@ -202,6 +204,7 @@ const REREAD_DELAY_MS = 200;
  */
 function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps: unknown[]) {
   const [count, setCount] = useState(0);
+  const [settled, setSettled] = useState(false);
   const matcher = useRef(match);
   matcher.current = match;
   useEffect(() => {
@@ -210,7 +213,7 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
     let running = false;
     let stale = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    setCount(0);
+    setCount(0); setSettled(false);
     const start = () => {
       timer = undefined;
       if (!alive) return;
@@ -221,6 +224,7 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
         if (alive && request === generation) setCount(view?.plan.groups.filter((group) => matcher.current(group)).length ?? 0);
       }).catch(() => {}).finally(() => {
         running = false;
+        if (alive && request === generation) setSettled(true);
         if (alive && stale) schedule();
       });
     };
@@ -228,7 +232,7 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
     const read = () => { stale = true; schedule(); };
     start();
     const unlisten = onLibraryEvent((event) => { if (event.kind === "vocabularyChanged" || event.kind === "taskFinished") read(); });
-    const safeStop = onSafeModeSetting(() => { generation++; setCount(0); });
+    const safeStop = onSafeModeSetting(() => { generation++; setCount(0); setSettled(false); read(); });
     // 待确认的旧名称合计所有图库：登记或可用状态变了就重读；只是修订前进（每次写入都有）不读。
     let registrations: string | null = null;
     const workspaceStop = onWorkspaceChanged((status) => {
@@ -247,24 +251,32 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
-  return count;
+  return { count, settled };
 }
 
-/** 打开带旧名称的图库时的横幅：保留原显示，提供“逐个确认”。 */
-export function LegacyNameMigrationNotice({ safe, onOpen }: { safe: boolean; onOpen: () => void }) {
+/**
+ * 主窗口的旧名称通知（#433）：关掉后只有待确认数量超过关掉时的数量才再弹，所以切换安全模式不会打扰。
+ * 重读期间沿用上次的数量，切换安全模式时通知不闪。
+ */
+export function LegacyNameMigrationNotice({ safe, enabled, hidden, onOpen }: { safe: boolean; enabled: boolean; hidden: boolean; onOpen: () => void }) {
   const { t } = useTranslation("legacyNames", { keyPrefix: "notice" });
-  const pending = usePendingLegacyNames(() => true, [safe]);
-  return pending > 0 ? <p className="legacy-name-notice k-notice" role="status"><Sparkles size={14} aria-hidden="true" />
-    <span className="k-grow"><b>{t("title", { count: pending })}</b></span>
-    <button type="button" className="k-btn is-sm" onClick={onOpen}><span className="k-label">{t("open")}</span></button></p> : null;
+  const { count, settled } = usePendingLegacyNames(() => true, [safe]);
+  const pending = useRef(0);
+  if (settled) pending.current = count;
+  usePersistentToast(enabled && pending.current > 0
+    ? { title: t("title", { count: pending.current }), action: { label: t("open"), onClick: onOpen } }
+    : null, { hidden, level: pending.current });
+  return null;
 }
 
-/** 设置 › 标签 › 显示名底部的提示条。 */
-export function LegacyNameBanner({ onOpen }: { onOpen?: () => void }) {
+/** 设置 › 标签 › 显示名底部：通知关掉后从这里进向导。 */
+export function LegacyNameEntry({ onOpen }: { onOpen?: () => void }) {
   const { t } = useTranslation("legacyNames");
-  const pending = usePendingLegacyNames(() => true, []);
+  const { count: pending } = usePendingLegacyNames(() => true, []);
   if (pending === 0 || !onOpen) return null;
-  return <div className="k-notice legacy-name-banner" role="status"><Sparkles size={15} aria-hidden="true" />
-    <span className="k-grow"><b>{t("banner.title", { count: pending })}</b>{t("banner.body")}</span>
-    <button type="button" className="k-btn is-sm" onClick={onOpen}><span className="k-label">{t("notice.open")}</span></button></div>;
+  return <SettingsGroup label={t("entry.title")}>
+    <SettingsRow icon={<Sparkles size={16} />} title={t("entry.title")} hint={t("entry.hint")} warn={<span role="status">{t("notice.title", { count: pending })}</span>}>
+      <button type="button" className="k-btn is-sm" onClick={onOpen}><span className="k-label">{t("notice.open")}</span></button>
+    </SettingsRow>
+  </SettingsGroup>;
 }

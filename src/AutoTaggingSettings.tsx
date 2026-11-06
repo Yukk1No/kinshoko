@@ -11,6 +11,7 @@ import { describeCommandError, describeCommandErrors } from "./ipc/commandError"
 import { Select } from "./ui/Select";
 import { i18n } from "./i18n/instance";
 import { useTranslation } from "react-i18next";
+import { useToast } from "./ui/Toast";
 
 const gb = (bytes: number) => `${(bytes / 1_000_000_000).toFixed(1)} GB`;
 const mb = (bytes: number) => `${Math.round(bytes / 1_000_000)} MB`;
@@ -48,7 +49,7 @@ export function AutoTaggingSettings({ hasLibrary }: { hasLibrary: boolean }) {
   const status = useTaggingStatus();
   const [choice, setChoice] = useState<ModelChoice | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   /** 画师改过选择（换档、导入、下载）的次数：在这之前开始的重新读取晚到时不再采用，免得把刚选的档盖回去。 */
   const changes = useRef(0);
@@ -69,13 +70,12 @@ export function AutoTaggingSettings({ hasLibrary }: { hasLibrary: boolean }) {
 
   async function run(change: () => Promise<ModelChoice | null>, done: string | null) {
     setError(null);
-    setMessage(null);
     changes.current += 1;
     try {
       const next = await change();
       if (next) {
         setChoice(next);
-        setMessage(done);
+        if (done) toast.show({ title: done, tone: "success" });
       }
     } catch (reason) {
       setError(String(reason));
@@ -104,7 +104,7 @@ export function AutoTaggingSettings({ hasLibrary }: { hasLibrary: boolean }) {
           onChange={(value) => void run(() => taggingSetDevice(value === "auto" ? null : value as Device), null)}
           options={[{ value: "auto", label: t("auto") }, ...choice.options.map((o) => ({ value: o.device, label: describe(o) }))]} />
       </SettingsRow>
-      <SettingsRow label={t("package")} icon={<PackageOpen size={16} />} title={t("package")} hint={t("packageHint")} meta={busy ? t("importing") : message ?? undefined}
+      <SettingsRow label={t("package")} icon={<PackageOpen size={16} />} title={t("package")} hint={t("packageHint")} meta={busy ? t("importing") : undefined}
         below={error !== null && <p className="k-set-error" role="alert">{error}</p>}>
         <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void importPackage()}><span className="k-label">{t("importPackage")}</span></button>
       </SettingsRow>
