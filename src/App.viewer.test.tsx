@@ -26,20 +26,20 @@ describe("主窗口", () => {
     expect(await screen.findByRole("region", { name: "原图查看器" })).toBeTruthy();
   });
 
-  it("单击参考图：选中它并展开详情面板，不打开查看器；单击空白处收起（#146）", async () => {
+  it("详情面板开着时，单击参考图只换内容，不打开查看器；单击空白处内容留空、面板不收", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
-    const inspector = () => document.querySelector<HTMLElement>("aside.inspector");
-    expect(inspector()).toBeNull();
+    const inspector = () => document.querySelector<HTMLElement>("aside.inspector")!;
+    await waitFor(() => expect(inspector().getAttribute("data-collapsed")).toBe("false"));
     fireEvent.click(document.querySelector<HTMLElement>('[data-id="a"]')!);
-    expect(inspector()!.getAttribute("data-collapsed")).toBe("false");
-    expect(inspector()!.dataset.selection).toBe("a");
+    expect(inspector().dataset.selection).toBe("a");
     // 详情面板里没有缩略图（#179）。
-    expect(within(inspector()!).queryByRole("img")).toBeNull();
+    expect(within(inspector()).queryByRole("img")).toBeNull();
     expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull();
     fireEvent.click(document.querySelector<HTMLElement>(".wall-canvas")!);
-    expect(inspector()).toBeNull();
+    expect(inspector().getAttribute("data-collapsed")).toBe("false");
+    expect(inspector().querySelector(".selection")).toBeNull();
   });
 
   it("查看器的下一张 / 上一张按图片墙顺序换图", async () => {

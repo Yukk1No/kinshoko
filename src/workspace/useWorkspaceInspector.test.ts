@@ -13,7 +13,7 @@ const card = (id: string, libraryId: string) => ({
 function inspector(initial: { selected: string[]; cards: BrowserCard[]; scope?: WorkspaceScope }) {
   return renderHook(({ selected, cards, scope }) => useWorkspaceInspector({
     selected: new Set(selected), setSelected: () => {}, loadedCards: cards, workspaceScope: scope ?? { kind: "all" },
-    sources: null, setSources: () => {}, hidden: false, viewing: null,
+    sources: null, setSources: () => {}, hidden: false, viewing: null, inspectorShown: true, onInspectorShown: () => {},
   }), { initialProps: initial });
 }
 

@@ -46,6 +46,10 @@ tagDisplay: TagDisplay,
  */
 inspectorWidth?: number, 
 /**
+ * 主窗口详情面板是否打开。
+ */
+inspectorOpen: boolean, 
+/**
  * 检查更新用的通道（#204）：画师选的，没选过时按当前构建的版本号。
  */
 updateChannel: UpdateChannel, };

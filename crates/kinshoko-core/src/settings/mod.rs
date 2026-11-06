@@ -8,117 +8,27 @@
 //! 例外：界面缩放（`ui_scale`）只属于这台电脑的屏幕，单独存放，不进这里，也就不进程序设置备份。
 
 use std::collections::BTreeMap;
-use std::fmt;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 
 use crate::app_shell::{UpdateChannel, app_info};
 use crate::diagnostics::run_log_default_for_version;
 use crate::library::SafeModeScope;
 use crate::tagging::{Device, catalog};
 
+mod error;
+mod preferences;
+pub use error::SettingsError;
+pub use preferences::*;
+
 const FILE_NAME: &str = "settings.json";
 const BROKEN_FILE_NAME: &str = "settings.broken.json";
 const FORMAT_VERSION: u32 = 1;
 /// 详情面板可拖到的宽度范围（#157），单位 CSS 像素。没保存过时界面用 320。
 const INSPECTOR_WIDTH: std::ops::RangeInclusive<u32> = 280..=560;
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub enum ViewerBackground {
-    Dark,
-    Mid,
-    Light,
-    Checker,
-}
-
-/// 详情面板与查看器里标签的外观（#160）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub enum TagStyle {
-    /// 模型标签按可信度分三档底色（默认）。
-    #[default]
-    Bands,
-    /// 详情面板按出处分组，模型标签底边一条可信度刻度。
-    Grouped,
-}
-
-/// 标签外观与可信度分档（#160）。阈值按两位小数保存，必须满足 `0 ≤ low < high ≤ 1`。
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase", default)]
-#[ts(export)]
-pub struct TagDisplay {
-    pub style: TagStyle,
-    /// 高档下限：可信度不低于它的模型标签归高档。
-    pub high: f32,
-    /// 低档上限：可信度低于它的模型标签归低档。
-    pub low: f32,
-    /// 低档标签加虚线外框；默认开（维护者验收决定），关掉后只把字变浅。
-    pub low_outline: bool,
-}
-
-impl Default for TagDisplay {
-    /// 默认阈值来自维护者测试库的 13,837 个模型标签：0.80 / 0.40 让高、中、低三档大约各占三分之一。
-    fn default() -> Self {
-        TagDisplay {
-            style: TagStyle::Bands,
-            high: 0.8,
-            low: 0.4,
-            low_outline: true,
-        }
-    }
-}
-
-impl TagDisplay {
-    fn thresholds_valid(&self) -> bool {
-        (0.0..=1.0).contains(&self.low) && (0.0..=1.0).contains(&self.high) && self.low < self.high
-    }
-}
-
-/// 可以绑定全局快捷键的动作。默认键沿用 Snipaste 的习惯。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub enum ShortcutAction {
-    /// 框选屏幕区域截图。
-    Capture,
-    /// 把剪贴板里的图片钉到桌面。
-    PinClipboard,
-    /// 把全部钉图收到屏幕边缘，再按一次回到原位。
-    HideAllPins,
-}
-
-impl ShortcutAction {
-    pub const ALL: [ShortcutAction; 3] = [
-        ShortcutAction::Capture,
-        ShortcutAction::PinClipboard,
-        ShortcutAction::HideAllPins,
-    ];
-
-    /// 动作名称，只用在快捷键冲突的日志说明里；界面按动作代码从 src/i18n 取名称。
-    // 不上界面：只用于 ShortcutError 的 Display（日志）
-    pub fn label(self) -> &'static str {
-        match self {
-            ShortcutAction::Capture => "截图",
-            ShortcutAction::PinClipboard => "钉剪贴板",
-            ShortcutAction::HideAllPins => "收起全部钉图",
-        }
-    }
-
-    fn default_accelerator(self) -> &'static str {
-        match self {
-            ShortcutAction::Capture => "F1",
-            ShortcutAction::PinClipboard => "F3",
-            ShortcutAction::HideAllPins => "F4",
-        }
-    }
-}
-
 /// 磁盘上的格式。字段都有默认值，缺了就按新安装处理。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -154,6 +64,8 @@ pub struct SettingsSnapshot {
     tag_display: TagDisplay,
     /// 主窗口详情面板的宽度（#157）；没拖过时为空。
     inspector_width: Option<u32>,
+    /// 主窗口详情面板是否打开：画师亲手开合后记住，选择图片不改变它。默认关闭。
+    inspector_open: bool,
     /// 更新通道（#204）；没选过时为空，按当前构建的版本号决定。
     update_channel: Option<UpdateChannel>,
     /// 订阅功能（#368）：关掉后不显示入口、不检查、不联网。新安装默认开。
@@ -182,6 +94,7 @@ impl Default for SettingsSnapshot {
             usage_log: false,
             tag_display: TagDisplay::default(),
             inspector_width: None,
+            inspector_open: false,
             update_channel: None,
             subscriptions: true,
             unknown: serde_json::Map::new(),
@@ -196,33 +109,6 @@ pub struct AppSettings {
     file: SettingsSnapshot,
     /// 打开设置时的“强制 sRGB”：本次运行的 WebView2 按它启动，改设置不影响。
     force_srgb_in_effect: bool,
-}
-
-#[derive(Debug)]
-pub enum SettingsError {
-    Io(io::Error),
-    /// 标签外观的分档阈值不合要求，没有保存。
-    TagThresholds,
-}
-
-// 不上界面：领域错误交给界面时转成错误代码（command_error），Display 只进日志
-impl fmt::Display for SettingsError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SettingsError::Io(e) => write!(f, "读写设置文件失败：{e}"),
-            SettingsError::TagThresholds => {
-                f.write_str("低档上限要小于高档下限，且都在 0 到 1 之间")
-            }
-        }
-    }
-}
-
-impl std::error::Error for SettingsError {}
-
-impl From<io::Error> for SettingsError {
-    fn from(e: io::Error) -> Self {
-        SettingsError::Io(e)
-    }
 }
 
 impl SettingsSnapshot {
@@ -440,6 +326,16 @@ impl AppSettings {
     pub fn set_inspector_width(&mut self, width: u32) -> Result<(), SettingsError> {
         let width = width.clamp(*INSPECTOR_WIDTH.start(), *INSPECTOR_WIDTH.end());
         self.update(|f| f.inspector_width = Some(width))
+    }
+
+    /// 主窗口详情面板是否打开。
+    pub fn inspector_open(&self) -> bool {
+        self.file.inspector_open
+    }
+
+    /// 记住详情面板的开合。
+    pub fn set_inspector_open(&mut self, open: bool) -> Result<(), SettingsError> {
+        self.update(|f| f.inspector_open = open)
     }
 
     /// 检查更新用的通道。画师选过就按画师的；没选过时测试版、候选版构建用测试版通道，
