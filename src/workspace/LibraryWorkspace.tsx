@@ -225,7 +225,8 @@ export function LibraryWorkspace({
               onOpenBrowse();
               setSearch((prev) => ({ ...prev, conditions: [] }));
               setWorkspaceScope({ kind: "library", libraryId: destination.libraryId,
-                scope: destination.folderId === null ? { kind: "unassigned" } : { kind: "folder", id: destination.folderId } });
+                // 没选文件夹时打开整个图库：Eagle 导入与合并的重复项会保留原有文件夹，“未归类”可能一张也看不到。
+                scope: destination.folderId === null ? { kind: "all" } : { kind: "folder", id: destination.folderId } });
               invalidate({ kind: "conditionsChanged" });
             }} />
           {!inspectorOpen && <>
