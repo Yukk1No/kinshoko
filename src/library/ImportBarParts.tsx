@@ -8,6 +8,7 @@ import type { ImportReport } from "../bindings/ImportReport";
 import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
 import { describeCommandError } from "../ipc/commandError";
 import type { FinishedImport, RunningImport } from "./ImportBar";
+import { DialogHeight } from "../ui/DialogHeight";
 import type { ToastOptions } from "../ui/Toast";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n/instance";
@@ -142,6 +143,7 @@ export function ImportPlanDialog({ plan, setPlan, preparing, running, destinatio
         <Dialog.Popup className="k-dialog k-import-dialog">{plan && <>
           <Dialog.Title className="k-dialog-title">{plan.eagle ? t("eagleTitle") : t("title")}</Dialog.Title>
           <Dialog.Description className="k-dialog-desc">{plan.eagle ? t("eagleDescription") : t("description")}</Dialog.Description>
+          <DialogHeight>
           <div className="k-import-summary">
             <span className="k-big-tag-icon" aria-hidden="true">{plan.eagle ? <Library size={18} /> : <Images size={18} />}</span>
             <div className="k-list-text">
@@ -162,6 +164,7 @@ export function ImportPlanDialog({ plan, setPlan, preparing, running, destinatio
             </div>
             <p className="k-set-note">{t("deletedNote")}</p>
           </fieldset>}
+          </DialogHeight>
           <div className="k-dialog-foot">
             <span className="k-grow" />
             <button type="button" className="k-btn" disabled={preparing} onClick={() => setPlan(null)}><span className="k-label">{t("cancel")}</span></button>
@@ -186,6 +189,7 @@ export function EagleLibrariesDialog({ eagleLibraries, setEagleLibraries, busy, 
         <Dialog.Popup className="k-dialog k-import-dialog">{eagleLibraries && <>
           <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
           <Dialog.Description className="k-dialog-desc">{t("description")}</Dialog.Description>
+          <DialogHeight>
           {eagleLibraries.length ? <ul className="k-list" aria-label={t("found")}>
             {eagleLibraries.map((candidate) => <li key={candidate.path} className="k-list-row">
               <span className="k-list-icon" aria-hidden="true"><Library size={16} /></span>
@@ -197,6 +201,7 @@ export function EagleLibrariesDialog({ eagleLibraries, setEagleLibraries, busy, 
             </li>)}
           </ul> : <p className="k-set-note" role="status">{t("none")}</p>}
           <p className="k-set-note">{t("note")}</p>
+          </DialogHeight>
           <div className="k-dialog-foot">
             <button type="button" className="k-btn" disabled={busy} onClick={() => { setEagleLibraries(null); void importFolder(true); }}><FolderOpen size={14} aria-hidden="true" /><span className="k-label">{t("manual")}</span></button>
             <span className="k-grow" />
