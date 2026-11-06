@@ -26,6 +26,6 @@ export function png(w, h, colour) {
 
 /** #433：钉住结果走通知，不能被查看器盖住：通知中心那一点最上面的元素属于通知本身。 */
 export const PIN_TOAST_PROBE = `const title = [...document.querySelectorAll('.k-toast-title')].find((node) => node.textContent === '已钉住整图');
-  if (!title) return null;
-  const r = title.closest('.k-toast').getBoundingClientRect(), viewer = document.querySelector('.viewer').getBoundingClientRect();
-  return { top: !!document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest('.k-toast'), inWindow: r.bottom <= innerHeight && r.right <= innerWidth, overViewer: r.left < viewer.right && r.top < viewer.bottom };`;
+  if (!title || document.getAnimations().some((a) => a.playState === 'running' && a.effect.target?.closest?.('.k-toasts'))) return null;
+  const r = title.closest('.k-toast').getBoundingClientRect(), viewer = document.querySelector('.viewer').getBoundingClientRect(), dock = document.querySelector('.viewer-dock').getBoundingClientRect();
+  return { top: !!document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest('.k-toast'), inWindow: r.bottom <= innerHeight && r.right <= innerWidth, overViewer: r.left < viewer.right && r.top < viewer.bottom, clearOfDock: r.bottom <= dock.top };`;
