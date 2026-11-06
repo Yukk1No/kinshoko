@@ -1,6 +1,6 @@
 import { PanelRightClose } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { Dispatch, SetStateAction } from "react";
+import { useRef, type Dispatch, type SetStateAction } from "react";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { SelectionPanel } from "../library/SelectionPanel";
 import { WorkspaceSources } from "../library/WorkspacePane";
@@ -27,6 +27,11 @@ export function WorkspaceInspector({
     setInspectorElement, inspected, selectionKey, inspectorOpen, draggedWidth, setDraggedWidth, panelWidth, closeInspector, closeSources,
     selectionLibrary, eligible, panelIds,
   } = inspector;
+  // 收起时不读详情；但开着时已经在看的内容收起后留着，没保存的备注草稿再打开还在。换了内容才放下。
+  const contentKey = inspected ? `sources:${inspected.id}` : `selection:${selectionKey}`;
+  const shownKey = useRef<string | null>(null);
+  if (inspectorOpen) shownKey.current = contentKey;
+  const keepContent = inspectorOpen || shownKey.current === contentKey;
   return (
       <aside ref={setInspectorElement} className="inspector" aria-label={t("inspector.label")} data-selection={inspected?.id ?? selectionKey} data-collapsed={!inspectorOpen} data-resizing={draggedWidth !== null} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>
         <InspectorResizer width={panelWidth} onResize={(width, done) => {
@@ -40,7 +45,7 @@ export function WorkspaceInspector({
           {inspectorOpen && <WinCtrls />}
         </header>
         <div className="insp-body">
-          {!inspectorOpen ? null : inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={closeSources} />
+          {!keepContent ? null : inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={closeSources} />
           : eligible && panelIds.length > 0 && <SelectionPanel
             libraryId={selectionLibrary ?? ""}
             selected={new Set(panelIds)}

@@ -1,6 +1,6 @@
 // 详情面板跟着选择与查看器走：选择或正在看的图一变，面板不能无声消失，也不能留着别的图的内容。
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
@@ -129,6 +129,29 @@ describe("选择变化时", () => {
     expect(opened()).toBe(true);
     fireEvent.keyDown(document.body, { key: "I" });
     expect(opened()).toBe(false);
+  });
+
+  it("启动时的设置回得晚，也不把画师刚开的面板盖回关着", async () => {
+    let answer: (view: unknown) => void = () => {};
+    const late = new Promise((done) => { answer = done; });
+    backend((command) => command === "shell_settings" ? late : undefined, false);
+    render(<App />);
+    await waitFor(() => expect(tile("a1")).toBeTruthy());
+    fireEvent.keyDown(document.body, { key: "i" });
+    expect(opened()).toBe(true);
+    await act(async () => { answer({ autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid", inspectorOpen: false }); await late; });
+    expect(opened()).toBe(true);
+  });
+
+  it("收起再打开，同一张图没保存的备注草稿还在", async () => {
+    await start();
+    fireEvent.click(tile("a1"));
+    await shows("L1/i1");
+    const note = () => within(panel()!).getByRole("textbox", { name: "备注" });
+    fireEvent.change(await waitFor(note), { target: { value: "草稿" } });
+    fireEvent.click(screen.getByRole("button", { name: "收起详情" }));
+    fireEvent.click(screen.getByRole("button", { name: "显示详情" }));
+    expect((note() as HTMLTextAreaElement).value).toBe("草稿");
   });
 
   it("上次开着，重新打开主窗口时面板也开着", async () => {
