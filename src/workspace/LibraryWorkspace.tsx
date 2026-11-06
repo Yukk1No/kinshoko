@@ -12,6 +12,7 @@ import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
 import { fitPanes, isNarrow, usePaneFold, useWidth } from "../shell/paneFit";
 import type { Section } from "../shell/Rail";
+import { useWidthTransition } from "../shell/useWidthTransition";
 import { TaggingActivity } from "../TaggingActivity";
 import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
@@ -173,6 +174,9 @@ export function LibraryWorkspace({
     fitPanel: (width) => fitPanes(bodyWidth, width, paneOpen && !isNarrow(bodyWidth, width)).inspector,
   });
   const { selectionLibrary, selectedCards, inspected, inspectorContent, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector } = inspector;
+  // 侧栏开合的宽度过渡中图片墙不逐帧重排，过渡结束后重排一次（同详情面板，#162）。
+  const [sidebarElement, setSidebarElement] = useState<HTMLElement | null>(null);
+  const sidebarMoving = useWidthTransition(sidebarElement);
   const panes = usePaneFold({ body: bodyWidth, inspector: inspectorOpen ? inspector.panelWidth : 0, paneOpen, onPaneOpen });
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
@@ -199,7 +203,7 @@ export function LibraryWorkspace({
     <div className="app-workspace workspace" hidden={hidden}>
       <div className="app-body" ref={setAppBody} style={{ "--sidebar-width": `${panes.sidebar}px` } as CSSProperties}>
         {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
-        <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
+        <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} paneRef={setSidebarElement} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
           status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} recheck={recheck}
           onLibraryRemoved={onLibraryRemoved} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
           onScope={(next) => {
@@ -269,7 +273,7 @@ export function LibraryWorkspace({
             conditions={tree}
             reloadKey={reloadKey}
             safeMode={safe}
-            holdReflow={inspectorMoving || draggedWidth !== null}
+            holdReflow={inspectorMoving || sidebarMoving || draggedWidth !== null}
             selected={selected}
             onSelectionChange={(next) => {
               // 来源按钮打开的整理只对那一张：画师改了选择，面板跟着选择走。

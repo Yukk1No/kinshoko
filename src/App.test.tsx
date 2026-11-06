@@ -85,7 +85,7 @@ describe("主窗口", () => {
     await waitFor(() => expect(screen.getByRole("list", { name: "查找条件" }).textContent).toBe(""));
   });
 
-  it("收起侧栏过程中按每次可用宽度连续重排，并保持阅读偏移", async () => {
+  it("侧栏开合的宽度过渡中图片墙不逐帧重排，过渡结束后重排一次并保持阅读偏移（同 #162）", async () => {
     let available = 1000;
     const observers = new Set<() => void>();
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => available });
@@ -100,17 +100,17 @@ describe("主窗口", () => {
     await screen.findAllByRole("img");
     const wall = screen.getByRole("listbox", { name: "图片墙" });
     const card = document.querySelector<HTMLElement>('[data-id="a"]')!;
+    const sidebar = document.querySelector<HTMLElement>(".sidebar-slot")!;
     wall.scrollTop = 60;
     fireEvent.scroll(wall);
     const offset = parseFloat(card.style.top) - wall.scrollTop;
     const initial = parseFloat(card.style.width);
+    const resize = (next: number) => { available = next; act(() => observers.forEach((notify) => notify())); };
     fireEvent.click(screen.getByRole("button", { name: "收起侧栏" }));
-    available = 1100;
-    act(() => observers.forEach((resize) => resize()));
-    expect(parseFloat(card.style.width)).toBeGreaterThan(initial);
-    expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
-    available = 1248;
-    act(() => observers.forEach((resize) => resize()));
+    act(() => { sidebar.dispatchEvent(new TransitionEvent("transitionrun", { propertyName: "width" })); });
+    for (const next of [1040, 1100, 1180, 1248]) resize(next);
+    expect(parseFloat(card.style.width)).toBe(initial);
+    act(() => { sidebar.dispatchEvent(new TransitionEvent("transitionend", { propertyName: "width" })); });
     expect(parseFloat(card.style.width)).toBeCloseTo(238.4);
     expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
   });
@@ -175,7 +175,7 @@ describe("主窗口", () => {
     expect(document.documentElement.style.getPropertyValue("--inspector-width")).toBe("450px");
   });
 
-  it("图标轨切换上下文侧栏时保留查找和图片墙，重复点按收起侧栏", async () => {
+  it("图标轨切换上下文侧栏时保留查找和图片墙，重复点按收起侧栏，收起后切换不再弹开", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
@@ -188,7 +188,14 @@ describe("主窗口", () => {
     expect(screen.getByRole("combobox", { name: "查找参考图" })).toBeTruthy();
     fireEvent.click(groups);
     expect(groups.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.click(within(nav).getByRole("button", { name: "图片与文件夹" }));
+    const browse = within(nav).getByRole("button", { name: "图片与文件夹" });
+    fireEvent.click(browse);
+    expect(browse.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("complementary", { name: "文件夹" })).toBeNull();
+    fireEvent.keyDown(window, { key: "2", ctrlKey: true });
+    expect(groups.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.keyDown(window, { key: "1", ctrlKey: true });
+    fireEvent.click(browse);
     expect(screen.getByRole("complementary", { name: "文件夹" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "工作参考 的操作" })).toBeTruthy();
   });

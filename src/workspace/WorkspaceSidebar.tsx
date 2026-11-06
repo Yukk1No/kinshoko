@@ -11,13 +11,15 @@ import type { Section } from "../shell/Rail";
 
 /** 工作区左栏：文件夹（图库与查找范围）、参考组或截图历史。 */
 export function WorkspaceSidebar({
-  section, paneOpen, floating, onPaneToggle, libraryControls, status, workspaceScope, safe, reloadKey, onError, recheck,
+  section, paneOpen, floating, paneRef, onPaneToggle, libraryControls, status, workspaceScope, safe, reloadKey, onError, recheck,
   onLibraryRemoved, onScope, captureRequest, onCaptureRequestHandled,
 }: {
   section: Section;
   paneOpen: boolean;
   /** 窄窗口里侧栏浮在图片墙上（paneFit）；Esc 收回。 */
   floating?: boolean;
+  /** 侧栏元素，主窗口据此看它的宽度过渡，过渡中图片墙不逐帧重排。 */
+  paneRef?: (element: HTMLElement | null) => void;
   onPaneToggle: () => void;
   libraryControls: ReactNode;
   status: WorkspaceStatus | null;
@@ -37,6 +39,7 @@ export function WorkspaceSidebar({
   const sectionName = section === "groups" ? t("pane.groups") : t("pane.captures");
   return (
     <aside
+      ref={paneRef}
       className="sidebar-slot pane"
       data-collapsed={!paneOpen}
       data-float={floating || undefined}
