@@ -222,7 +222,6 @@ describe("订阅画师", () => {
     page(status());
     const dialog = await openArtistDialog();
     fireEvent.change(within(dialog).getByRole("textbox", { name: "画师主页链接或 ID" }), { target: { value: "777" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: "查找" }));
     expect(await within(dialog).findByText("Nanashi")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("radio", { name: /全部/ }));
 
@@ -268,7 +267,6 @@ describe("订阅画师", () => {
     page(status());
     const dialog = await openArtistDialog();
     fireEvent.change(within(dialog).getByRole("textbox", { name: "画师主页链接或 ID" }), { target: { value: "777" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: "查找" }));
     expect(await within(dialog).findByText("Nanashi")).toBeTruthy();
     const subscribe = within(dialog).getByRole("button", { name: "订阅" }) as HTMLButtonElement;
     expect(subscribe.disabled).toBe(true);
