@@ -14,6 +14,13 @@ export function selectionBarPlacement({ wallWidth, barWidth, cornerLeft, gap = 8
 }
 
 /**
+ * 圆形按钮形变为滑条时（#452）向左长 grow：左边离悬浮栏右缘不到 gap 就改为向上升起，不盖住悬浮栏。
+ */
+export function densityMorphRises({ barRight, cornerLeft, grow, gap = 8 }: { barRight: number; cornerLeft: number; grow: number; gap?: number }) {
+  return cornerLeft - grow - gap < barRight;
+}
+
+/**
  * 图片墙窄得连完整的悬浮栏（fullWidth，含“已选 N 张”读数）加两边 margin 都放不下时，改用紧凑的悬浮栏
  * （读数只写“N 张”），不出现水平溢出。fullWidth 还没量到（0）时按完整的算。
  */

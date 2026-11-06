@@ -100,15 +100,15 @@ describe("整理", () => {
     await screen.findAllByRole("img");
     const island = () => screen.getByRole("group", { name: "图片大小" });
     fireEvent.keyDown(card("a"), { key: " " });
-    expect(island().classList.contains("is-collapsed")).toBe(false);
+    expect(island().hasAttribute("data-collapsed")).toBe(false);
     fireEvent.click(card("b"), { ctrlKey: true });
-    expect(island().classList.contains("is-collapsed")).toBe(true);
+    expect(island().hasAttribute("data-collapsed")).toBe(true);
     expect(screen.queryByRole("slider", { name: "图片大小" })).toBeNull();
     expect(within(island()).getByRole("button", { name: "图片大小" })).toBeTruthy();
 
     fireEvent.click(within(selectionBar()!).getByRole("button", { name: "取消选择" }));
     await waitFor(() => expect(selectionBar()).toBeNull());
-    expect(island().classList.contains("is-collapsed")).toBe(false);
+    expect(island().hasAttribute("data-collapsed")).toBe(false);
     expect(screen.getByRole("slider", { name: "图片大小" })).toBeTruthy();
   });
 

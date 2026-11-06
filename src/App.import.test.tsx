@@ -122,7 +122,7 @@ describe("主窗口", () => {
     const icon = await screen.findByRole("button", { name: /自动标签：正在加载自动标签模型/ });
     expect(document.querySelector(".side-foot .tagging")).toBeNull();
     expect(screen.queryByText(/自动标签：正在加载自动标签模型…/)).toBeNull();
-    expect(icon.nextElementSibling?.getAttribute("aria-label")).toBe("图片大小");
+    expect(icon.closest(".k-wall-badge")?.nextElementSibling?.getAttribute("aria-label")).toBe("图片大小");
 
     fireEvent.click(icon);
     const dialog = await screen.findByRole("dialog", { name: "程序设置" });
