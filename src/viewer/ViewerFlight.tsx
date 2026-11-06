@@ -89,6 +89,8 @@ export function useViewerFlight({ viewing, safe, host, instant }: {
       setStage(null);
     }
   }
+  // 过渡中途要求不再有动画（打开减弱动效、捕获请求）：直接到终态。
+  if (stage && !animated) setStage(null);
   const closing = stage && (stage.kind === "fade-out" || ((stage.kind === "fly" || stage.kind === "measure") && stage.direction === "close"));
   // 飞回途中开启安全模式：立刻收掉。
   if (closing && sealed(stage.card)) setStage(null);

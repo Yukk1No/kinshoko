@@ -190,6 +190,37 @@ describe("减弱动效", () => {
   });
 });
 
+describe("过渡中途不再要动画", () => {
+  it("打开途中开启减弱动效：飞行元素收掉，原图可以直接显示", async () => {
+    render(<Harness />);
+    press("open-a");
+    expect(flier()).not.toBeNull();
+    document.documentElement.setAttribute("data-reduced-motion", "");
+    await waitFor(() => expect(flier()).toBeNull());
+    expect(viewer()!.dataset.flight).toBeUndefined();
+    await loadOriginal();
+    expect(original().style.visibility).toBe("visible");
+  });
+
+  it("飞回途中开启减弱动效：查看器当场卸下", async () => {
+    render(<Harness initial={cards.a} />);
+    press("close");
+    expect(flier()).not.toBeNull();
+    document.documentElement.setAttribute("data-reduced-motion", "");
+    await waitFor(() => expect(viewer()).toBeNull());
+    expect(flier()).toBeNull();
+  });
+
+  it("飞回途中来了捕获请求：查看器当场卸下", () => {
+    const { rerender } = render(<Harness initial={cards.a} />);
+    press("close");
+    expect(flier()).not.toBeNull();
+    rerender(<Harness initial={cards.a} instant />);
+    expect(viewer()).toBeNull();
+    expect(flier()).toBeNull();
+  });
+});
+
 describe("安全模式", () => {
   it("遮蔽的卡片打开时，飞行全程带遮蔽，只拿缩略图，原图一直隐藏", async () => {
     render(<Harness />);
