@@ -145,6 +145,25 @@ describe("DialogSwap", () => {
     await waitFor(() => expect(screen.queryByText("旧")).toBeNull());
   });
 
+  it("外面滚动过时，新内容从顶部开始，旧内容留在原来看到的位置", () => {
+    const { container, rerender } = render(<DialogHeight><DialogSwap step={0}>甲页</DialogSwap></DialogHeight>);
+    const outer = outerOf(container);
+    outer.scrollTop = 300;
+    rerender(<DialogHeight><DialogSwap step={1}>乙页</DialogSwap></DialogHeight>);
+    expect(outer.scrollTop).toBe(0);
+    expect(screen.getByText("甲页").closest<HTMLElement>("[inert]")!.style.translate).toBe("0 -300px");
+    expect(screen.getByText("乙页").style.translate).toBe("");
+  });
+
+  it("减弱动效下外面滚动过时，新内容同样从顶部开始", () => {
+    document.documentElement.setAttribute("data-reduced-motion", "");
+    const { container, rerender } = render(<DialogHeight><DialogSwap step={0}>丙页</DialogSwap></DialogHeight>);
+    const outer = outerOf(container);
+    outer.scrollTop = 300;
+    rerender(<DialogHeight><DialogSwap step={1}>丁页</DialogSwap></DialogHeight>);
+    expect(outer.scrollTop).toBe(0);
+  });
+
   it("首次出现不播放进场", () => {
     const { container } = render(<DialogSwap step={3}>内容</DialogSwap>);
     expect(container.querySelector<HTMLElement>(".k-dialog-swap-step")!.style.opacity).not.toBe("0");

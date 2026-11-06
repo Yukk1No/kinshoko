@@ -1,7 +1,7 @@
 import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { useTranslation } from "react-i18next";
-import { Activity, Archive, FileText, Keyboard, Layers, Monitor, MousePointerClick, Pin, Power, RefreshCw, Rss, Scaling, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
+import { Activity, FileText, Layers, Monitor, MousePointerClick, Pin, Power, Scaling, ShieldCheck, Tags } from "lucide-react";
 import type { SafeModeScope } from "./bindings/SafeModeScope";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { ShortcutAction } from "./bindings/ShortcutAction";
@@ -20,15 +20,17 @@ import { AutoTaggingSettings } from "./AutoTaggingSettings";
 import { UpdateSection } from "./Update";
 import { RuntimeDetails, useDiagnosticsReport } from "./RuntimeSupport";
 import { Segmented } from "./ui/Segmented";
-import { DialogHeight } from "./ui/DialogHeight";
+import { DialogHeight, DialogSwap } from "./ui/DialogHeight";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { Switch } from "./ui/Switch";
 import { SealLock } from "./ui/SealLock";
 import { UI_SCALE_LEVELS } from "./shell/uiScale";
 import { Select } from "./ui/Select";
-import { i18n } from "./i18n/instance";
+import { tabName, tabsWith, type SettingsTab } from "./settingsTabs";
 import type { SubscriptionStatus } from "./bindings/SubscriptionStatus";
 import { SubscriptionSettings } from "./subscriptions/SubscriptionSettings";
+
+export type { SettingsTab };
 
 const MODIFIER_KEYS = new Set(["Control", "Alt", "Shift", "Meta", "OS"]);
 
@@ -59,29 +61,6 @@ const VIEWER_KEYS: [action: string, keys: string | { word: ViewerKeyWord }][] = 
   ["zoom", { word: "wheel" }], ["pan", { word: "drag" }], ["crop", { word: "shiftDrag" }], ["cropMode", "F1"], ["previous", "←"], ["next", "→"],
   ["fit", "0"], ["actual", "1"], ["pin", "P"], ["details", "I"], ["back", "Esc"],
 ];
-
-export type SettingsTab = "general" | "keys" | "tags" | "tagging" | "backup" | "safety" | "subscriptions" | "update" | "diag";
-const TABS: { value: SettingsTab; icon: ReactNode }[] = [
-  { value: "general", icon: <Settings2 size={15} aria-hidden="true" /> },
-  { value: "keys", icon: <Keyboard size={15} aria-hidden="true" /> },
-  { value: "tags", icon: <Tags size={15} aria-hidden="true" /> },
-  { value: "tagging", icon: <Sparkles size={15} aria-hidden="true" /> },
-  { value: "backup", icon: <Archive size={15} aria-hidden="true" /> },
-  { value: "safety", icon: <ShieldCheck size={15} aria-hidden="true" /> },
-  { value: "update", icon: <RefreshCw size={15} aria-hidden="true" /> },
-  { value: "diag", icon: <Activity size={15} aria-hidden="true" /> },
-];
-
-/** 订阅分页（#368）排在安全之后；这一版没有订阅功能时不出现。 */
-function tabsWith(subscriptions: boolean) {
-  if (!subscriptions) return TABS;
-  const at = TABS.findIndex((entry) => entry.value === "safety") + 1;
-  return [...TABS.slice(0, at), { value: "subscriptions" as const, icon: <Rss size={15} aria-hidden="true" /> }, ...TABS.slice(at)];
-}
-/** 分页名；订阅分页的名字在订阅的文案模块里。 */
-function tabName(value: SettingsTab): string {
-  return value === "subscriptions" ? i18n.t("subscriptions:settings.tab") : i18n.t(`settings:tab.${value}`);
-}
 
 type TagView = "names" | "groups" | "approx" | "mapping" | "appearance";
 const TAG_VIEWS: TagView[] = ["names", "groups", "approx", "mapping", "appearance"];
@@ -162,26 +141,30 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
     onRestored?.();
     return restored;
   };
-  const page = (value: SettingsTab, children: ReactNode, full = false) => {
-    return <Tabs.Panel value={value} className={full ? "k-set-page is-full" : "k-set-page"}>
-      <h3 className="k-set-title">{tabName(value)}</h3>
-      {error !== null && <p className="k-set-error" role="alert">{error}</p>}
-      {children}
-    </Tabs.Panel>;
-  };
+  // 只渲染当前页，退场由 DialogSwap 保留旧元素。keepMounted 不能省：否则旧页一转为未选中，Tabs.Panel 就自己卸载，淡出看不到。
+  const panel = (value: SettingsTab, children: ReactNode, full = false) => value !== tab ? null
+    : <Tabs.Panel keepMounted value={value} className={full ? "k-set-page is-full" : "k-set-page"}>{children}</Tabs.Panel>;
+  const page = (value: SettingsTab, children: ReactNode, full = false) => panel(value, <>
+    <h3 className="k-set-title">{tabName(value)}</h3>
+    {error !== null && <p className="k-set-error" role="alert">{error}</p>}
+    {children}
+  </>, full);
 
   return (
     <section className="k-settings" aria-label={t("label")}>
       <Tabs.Root value={tab} onValueChange={(next) => { setTab(next as SettingsTab); setRecording(null); setError(null); }} orientation="vertical" className="k-set-body">
         <nav className="k-set-nav">
           <h2 className="k-set-heading">{t("heading")}</h2>
-          <Tabs.List className="k-set-tabs" aria-label={t("tabsLabel")}>
+          <Tabs.List className="k-set-tabs" aria-label={t("tabsLabel")} activateOnFocus>
+            <Tabs.Indicator className="k-set-tab-indicator" />
             {tabsWith(!!subscriptions).map((entry) => <Tabs.Tab key={entry.value} value={entry.value} className="k-set-tab">{entry.icon}<span className="k-label">{tabName(entry.value)}</span></Tabs.Tab>)}
           </Tabs.List>
           <span className="k-grow" />
           {version && <p className="k-set-version">{version}</p>}
         </nav>
         <DialogHeight className="k-set-main">
+          {/* 序号按含订阅的完整顺序算：订阅状态晚到时，当前页的序号不变，不会多播一次交替。 */}
+          <DialogSwap step={tabsWith(true).findIndex((entry) => entry.value === tab)} axis="y">
           {page("general", <>
             <SettingsGroup label={t("general.group")}>
               <SettingsRow icon={<Power size={16} />} title={t("general.autostart")} hint={t("general.autostartHint")}>
@@ -266,9 +249,7 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
               <StatusPill tone={safe === false ? "plain" : "ok"}>{safe === false ? t("safety.off") : t("safety.on")}</StatusPill>
             </SettingsRow>
           </SettingsGroup>)}
-          {subscriptions && <Tabs.Panel value="subscriptions" className="k-set-page">
-            <SubscriptionSettings status={subscriptions.status} onStatus={subscriptions.onStatus} error={error} onError={setError} />
-          </Tabs.Panel>}
+          {subscriptions && panel("subscriptions", <SubscriptionSettings status={subscriptions.status} onStatus={subscriptions.onStatus} error={error} onError={setError} />)}
           {page("update", <UpdateSection version={version ?? null} channel={view.updateChannel} onChannel={(channel) => apply({ kind: "updateChannel", channel })} />)}
           {page("diag", <>
             <RuntimeDetails />
@@ -292,6 +273,7 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
               </SettingsRow>
             </SettingsGroup>
           </>)}
+          </DialogSwap>
         </DialogHeight>
       </Tabs.Root>
     </section>

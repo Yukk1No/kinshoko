@@ -9,16 +9,21 @@
 .k-set-body { display: grid; grid-template-columns: 200px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 .k-set-nav { display: flex; flex-direction: column; gap: 2px; padding: 20px 12px; background: var(--surface-2); }
 .k-set-heading { margin: 0 0 12px 10px; font-size: 16px; line-height: 24px; font-weight: 600; }
-.k-set-tabs { display: flex; flex-direction: column; gap: 2px; }
-.k-set-tab { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px 0 8px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink-2);
+.k-set-tabs { position: relative; display: flex; flex-direction: column; gap: 2px; }
+/* 选中底板（#454）：在 tab 之间滑动，曲线同左侧导栏的 .rail-indicator。tab 本身叠在它上面。 */
+.k-set-tab-indicator { position: absolute; top: 0; left: 0; width: var(--active-tab-width); height: var(--active-tab-height); border-radius: var(--r-s); background: var(--surface); box-shadow: var(--shadow-raise);
+  transform: translateY(var(--active-tab-top)); transition: transform var(--t-slow) var(--ease); }
+.k-set-tab { position: relative; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px 0 8px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink-2);
   font: inherit; text-align: left; transition: background var(--t-fast), color var(--t-fast); }
 .k-set-tab:hover { background: var(--hover); color: var(--ink); }
-.k-set-tab[data-active] { background: var(--surface); color: var(--ink); font-weight: 500; box-shadow: var(--shadow-raise); }
+.k-set-tab[data-active] { background: transparent; color: var(--ink); font-weight: 500; }
 .k-set-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .k-set-version { margin: 0; padding: 0 10px; font-size: 12px; color: var(--ink-2); }
 /* 滚动条的位置一直留着（12 px，右内边距相应少 12）：切页与过渡结束时内容宽度不变。 */
 .k-dialog-height.k-set-main { position: relative; min-width: 0; margin: 0; padding: 20px 12px 24px 24px; scrollbar-gutter: stable; }
 .k-set-page { outline: 0; }
+/* 同时只挂当前页和退场中的旧页，带 hidden 的只有旧页（SettingsPanel 的 keepMounted）：淡出期间要看得见。 */
+.k-set-page[hidden] { display: block; }
 /* 带搜索和列表的页面停在最大高度：筛选结果变少时，搜索框不跟着对话框移动。44 px 是 .k-set-main 的上下内边距。 */
 .k-set-page.is-full { min-height: calc(var(--k-settings-max) - 44px); }
 .k-set-title { margin: 0 0 16px; font-size: 16px; line-height: 24px; font-weight: 600; }
