@@ -12,6 +12,26 @@
 }
 /* 查看器本身只是接住按键的焦点落点（打开时获得焦点），不画焦点框；其中的按钮照常画。 */
 .viewer:focus-visible { outline: none; }
+/* 开合过渡（#449）：图片飞行时查看器的底色淡入盖住墙，顶栏与 Dock 到位后才进入；返回时它们先退出，底色随后淡出。 */
+.viewer-bar, .viewer-dock { transition: opacity var(--t) var(--ease); }
+.viewer[data-flight="fly-in"], .viewer[data-flight="fade-in"] { animation: viewer-enter var(--t-slow) var(--ease) both; }
+.viewer[data-flight="fly-in"] :is(.viewer-bar, .viewer-dock) { opacity: 0; pointer-events: none; }
+.viewer[data-flight="land"] { opacity: 0; pointer-events: none; transition: opacity var(--t-slow) var(--ease) var(--t-fast); }
+.viewer[data-flight="land"] :is(.viewer-bar, .viewer-dock) { opacity: 0; transition-duration: var(--t-fast); }
+.viewer[data-flight="fade-out"] { opacity: 0; pointer-events: none; transition: opacity var(--t) var(--ease); }
+@keyframes viewer-enter { from { opacity: 0; } }
+/* 飞行元素在查看器之上，裁在图片墙所在的区域里。 */
+.viewer-flight { position: absolute; inset: 0; z-index: 9; overflow: hidden; pointer-events: none; }
+.viewer-flier { position: absolute; overflow: hidden; background: var(--card); }
+.viewer-flier img { display: block; width: 100%; height: 100%; }
+.viewer-flier[data-fading] { opacity: 0; transition: opacity var(--t-fast) var(--ease); }
+/* 正在飞的那张的卡片：飞行元素代替它。用透明度而不是 visibility，图片墙要把焦点接回它。 */
+.card[data-flying], .card[data-flying] + .card-sources { opacity: 0; }
+/* 图片飞行时墙外的界面（侧栏、顶栏、详情面板）退到背景。主区的容器查询自成层叠上下文，盖不住整个窗口，所以各盖各的。 */
+.app-body > :is(.sidebar-slot:not([data-float]), .inspector), .app-main > :is(.topbar, .app-tagbar) { position: relative; }
+.app-body > :is(.sidebar-slot, .inspector)::after, .app-main > :is(.topbar, .app-tagbar)::after {
+  content: ""; position: absolute; inset: 0; z-index: 7; background: var(--bg); opacity: 0; pointer-events: none; transition: opacity var(--t-slow) var(--ease); }
+.app-body[data-viewer-flying] > :is(.sidebar-slot, .inspector)::after, .app-body[data-viewer-flying] > .app-main > :is(.topbar, .app-tagbar)::after { opacity: 0.6; }
 .viewer-bar { height: 44px; min-height: 44px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 14px;
   background: var(--bg); border-bottom: 1px solid var(--line); }
 .viewer-bar .viewer-back { height: 30px; padding: 0 10px 0 8px; gap: 6px; background: transparent; box-shadow: none; color: var(--ink-2); }
