@@ -75,12 +75,9 @@ try {
   await until("打开图库", () => find("//nav[@aria-label='查找范围']//*[@data-library-id]//button[contains(@class,'lib-head-name') and starts-with(@aria-label,'原图查看器验证（') and not(@disabled)]"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
-  // 设计系统 v2: 导入 is one button; the folder entry is in its menu, then a dialog chooses the library.
+  // 设计系统 v2: 导入 is one button; the folder entry is in its menu; the dialog comes prefilled with the library (#416).
   await click("导入");
   await wd("POST", `${base}/element/${await until("文件夹菜单项", () => find("//*[@role='menuitem' and normalize-space()='文件夹']"))}/click`, {});
-  const librarySelect = "[...document.querySelectorAll('.k-import-dialog select')].find(s=>s.labels?.[0]?.querySelector('.k-field-label')?.textContent.trim()==='放到图库')";
-  await until("导入对话框", () => exec(`return !!${librarySelect}?.options[1]`));
-  await exec(`const s=${librarySelect};s.value=s.options[1].value;s.dispatchEvent(new Event('change',{bubbles:true}));`);
   await until("开始导入可用", () => exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
   await click("开始导入");
   await until("导入完成", () => exec("return [...document.querySelectorAll('.k-toast')].some(t=>t.querySelector('.k-toast-title')?.textContent==='导入完成'&&t.querySelector('.k-toast-stats')?.textContent.includes('新增 41'));"));
