@@ -124,7 +124,8 @@ try {
   await until("notices closed", async () => { await session.exec("document.querySelectorAll('.k-toast-close').forEach(b => b.click()); return true;"); await delay(400); return session.exec("return !document.querySelector('.k-toast-close');"); });
 
   // 1. Wide window, one selected: no bar, corner as before. Then collapse the detail panel and multi-select.
-  await pick(ids[0], false); await settle();
+  // The panel opens and closes only by hand and starts closed on a new install.
+  await pick(ids[0], false); await session.click("//button[@aria-label='显示详情']"); await settle();
   await session.shot("1-single-wide.png");
   results.single = await layout();
   await pick(ids[1], true); await pick(ids[2], true); await settle();
@@ -141,8 +142,8 @@ try {
   await session.shot("4-multi-size-popover.png");
   await session.exec("document.activeElement?.blur(); document.querySelector('.k-density-island')?.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); return true;");
 
-  // 2. Detail panel open (wall narrower): a new selection opens the panel again.
-  await clearSelection(); await settle();
+  // 2. Detail panel open (wall narrower): reopened by hand; selecting does not open it.
+  await clearSelection(); await session.click("//button[@aria-label='显示详情']"); await settle();
   await pick(ids[3], false); await pick(ids[4], true); await pick(ids[5], true); await settle();
   await session.shot("5-multi-inspector.png");
   results.inspector = await layout();

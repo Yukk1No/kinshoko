@@ -140,6 +140,8 @@ export type Call = { cmd: string; args: unknown };
 /** 设置中的“显示相近标签来源”。 */
 export let showApproxSource = false;
 export let keepSelectionOnSafeMode = false;
+/** 详情面板的开合。这些用例多在面板里操作，默认开着；要看关着时的行为用 `setInspectorOpen`。 */
+export let inspectorOpen = true;
 export let calls: Call[];
 /** 后端的安全模式开关。 */
 export let safeOn = true;
@@ -148,6 +150,7 @@ export let gone = new Set<string>();
 /** 测试文件不能给导入的绑定赋值：改共享状态走这几个函数。 */
 export const setShowApproxSource = (on: boolean) => { showApproxSource = on; };
 export const setKeepSelectionOnSafeMode = (on: boolean) => { keepSelectionOnSafeMode = on; };
+export const setInspectorOpen = (on: boolean) => { inspectorOpen = on; };
 export const setCalls = (next: Call[]) => { calls = next; };
 export const setSafeOn = (on: boolean) => { safeOn = on; };
 
@@ -217,7 +220,7 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
         case "tagging_status":
           return { state: "starting" };
         case "shell_settings":
-          return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode };
+          return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorOpen };
         default:
           return null;
       }
@@ -314,6 +317,7 @@ beforeEach(() => {
   window.__KINSHOKO_TEST_PICKS__ = [];
   showApproxSource = false;
   keepSelectionOnSafeMode = false;
+  inspectorOpen = true;
 });
 
 afterEach(async () => {

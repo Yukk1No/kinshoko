@@ -32,7 +32,7 @@ export const defaults: ShellSettingsView = {
   pinEdgeContrast: false,
   safeModeScope: "questionable",
   tagDisplay: { style: "bands", high: 0.8, low: 0.4, lowOutline: true },
-  updateChannel: "stable",
+  inspectorOpen: false, updateChannel: "stable",
 };
 
 /** 记录前端发出的命令，按给定的处理函数回应。 */

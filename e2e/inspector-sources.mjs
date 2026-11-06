@@ -142,6 +142,8 @@ try {
   await load("Test", [...paths.slice(0, 5), paths[9]]);
   await restart();
 
+  // 面板只由画师开合，新装默认关着：先用顶栏按钮打开，之后一直开着。
+  await session.click("//button[@aria-label='显示详情']"); await settle();
   // B 只在「pixiv 榜单」里的图：详情直接是这张图。
   await pick(featured.id); await settle();
   await both("B-single-library");

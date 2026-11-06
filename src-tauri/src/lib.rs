@@ -93,6 +93,7 @@ pub fn run() {
             commands::set_ui_scale,
             commands::double_click,
             commands::set_inspector_width,
+            commands::set_inspector_open,
             diagnostics::diagnostics_report,
             diagnostics::runtime_status,
             diagnostics::open_runtime_update,

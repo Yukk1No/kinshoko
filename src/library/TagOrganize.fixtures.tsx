@@ -287,7 +287,7 @@ export function backend() {
         case "tagging_status":
           return { state: "starting" };
         case "shell_settings":
-          return { autostart: true, shortcuts: [], showApproxSource: false };
+          return { autostart: true, shortcuts: [], showApproxSource: false, inspectorOpen: true };
         default:
           return null;
       }
