@@ -87,6 +87,13 @@
 .create-library-path-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .create-library-error { margin: 0; color: var(--danger); font-size: 12px; overflow-wrap: anywhere; }
 .create-library-foot { display: flex; justify-content: flex-end; margin-top: 4px; }
+/* 新建图库对话框（#442）：已有图库时从图库切换器打开，或叠在订阅对话框上。 */
+.k-dialog.create-library-dialog { width: min(440px, calc(100vw - 48px)); display: flex; flex-direction: column; gap: 16px; }
+.create-library-dialog .k-dialog-foot { margin-top: 4px; }
+/* 订阅榜单「新建图库」卡片里的紧凑两栏（#370）。 */
+.create-library-compact { display: flex; flex-direction: column; gap: 8px; }
+.create-library-path.is-compact { padding-left: 10px; border-radius: var(--r-s); background: var(--surface-2); color: var(--ink-3); }
+.create-library-path.is-compact .create-library-path-text { font-size: 12px; color: var(--ink); }
 .k-btn.is-lg { height: 40px; padding: 0 18px; border-radius: var(--r); }
 .k-btn.is-lg:has(> svg:first-child) { padding-left: 16px; }
 @media (prefers-reduced-motion: reduce) { .welcome { animation: none; } }

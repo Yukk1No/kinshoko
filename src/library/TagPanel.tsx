@@ -154,7 +154,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
         </>} />
     );
   };
-  // 详情面板的标签（#98，design/ui-system/README.md 与 copy-map.md；#160）：现有标签是小标签，只写名称；
+  // 详情面板的标签（#98，design/ui-system/interface-text-rules.md 与 copy-map.md；#160）：现有标签是小标签，只写名称；
   // 出处、可信度和“保留／改回自动／不要／别名”在悬停或聚焦时的浮层里。外观按设置：B 按可信度分档底色，
   // C 按出处分组加刻度。输入框一个，打字后才出现“添加／排除／改回自动”。
   return (

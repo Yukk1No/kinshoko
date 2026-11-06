@@ -27,7 +27,7 @@ import {
 import { useOpenInKinshoko } from "./desktop/openInKinshoko";
 import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
 import { ReferenceGroupsPanel } from "./desktop/ReferenceGroupsPanel";
-import { CreateLibrary } from "./library/CreateLibrary";
+import { CreateLibrary, CreateLibraryDialog } from "./library/CreateLibrary";
 import { LegacyNameMigrationNotice, LegacyNameWizard } from "./library/LegacyNameMigrationPanel";
 import { LibraryPicker } from "./library/LibraryPicker";
 import { Rail, type Section } from "./shell/Rail";
@@ -264,7 +264,9 @@ function MainWindow() {
   };
 
   const libraryControls = <LibraryPicker ready={opened} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />;
-  const empty = hasProviders === false || showCreate;
+  // 还没有图库时新建是整页引导；已有图库时是对话框，图片墙留着（#442）。
+  const createPage = showCreate && !hasProviders;
+  const empty = hasProviders === false || createPage;
   // 没有图片墙可等（还没有图库）：加载页直接放行（#338）。
   useEffect(() => { if (opened && empty) releaseStartup(); }, [opened, empty]);
   return (
@@ -319,8 +321,8 @@ function MainWindow() {
           <div className="app-empty-body">
           {!opened ? (
             <p role="status">{t("opening")}</p>
-          ) : showCreate ? (
-            <CreateLibrary onCreated={changed} onBusyChange={setCreating} onBack={() => setShowCreate(false)} backLabel={hasProviders ? t("backToLibrary") : t("back")} />
+          ) : createPage ? (
+            <CreateLibrary onCreated={changed} onBusyChange={setCreating} onBack={() => setShowCreate(false)} backLabel={t("back")} />
           ) : (
             <LibraryPicker layout="inline" ready={opened} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />
           )}
@@ -328,6 +330,7 @@ function MainWindow() {
         </main>
         </div>
       )}
+      {showCreate && hasProviders && <CreateLibraryDialog opens onClose={() => setShowCreate(false)} onCreated={changed} onBusyChange={setCreating} />}
       <Dialog.Root open={showSettings} onOpenChange={setShowSettings}>
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />

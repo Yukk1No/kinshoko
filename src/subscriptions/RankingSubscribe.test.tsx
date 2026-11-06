@@ -141,6 +141,27 @@ describe("订阅榜单", () => {
     expect(within(dialog).getByText("和其他榜单不在同一个图库，同一作品可能各存一份。")).toBeTruthy();
   });
 
+  it("已有榜单订阅时，图库下拉里也能就地新建图库（#442）", async () => {
+    backend([ranking("r1", "day", 50, { libraryId: "L2" })]);
+    page(status());
+    const dialog = await openRankingDialog();
+    const library = within(dialog).getByRole("combobox", { name: "图库" });
+    await waitFor(() => expect(library.textContent).toContain("私人"));
+    await chooseOption(library, "新建图库…");
+    const create = await screen.findByRole("dialog", { name: "新建图库" });
+    window.__KINSHOKO_TEST_PICKS__ = ["D:/参考图"];
+    fireEvent.click(within(create).getByRole("button", { name: "选择存放位置…" }));
+    await within(create).findByText("D:/参考图\\我的参考");
+    fireEvent.click(within(create).getByRole("button", { name: "建立图库" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "新建图库" })).toBeNull());
+    await waitFor(() => expect(library.getAttribute("data-value")).toBe("L9"));
+    expect((within(dialog).getByRole("checkbox", { name: "周榜" }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(within(dialog).getByRole("button", { name: "订阅 1 个榜单" }));
+    await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
+    expect((sent("subscription_add")[0] as { subscriptions: { libraryId: string }[] }).subscriptions[0].libraryId).toBe("L9");
+    expect(sent("plugin:library|create_library_unopened")).toEqual([{ parent: "D:/参考图", name: "我的参考" }]);
+  });
+
   it("R-18 榜：登录着、账号开着 R-18 时才有，安全模式开着也照常能订；没有 R-18 月榜", async () => {
     for (const safe of [false, true]) {
       backend();

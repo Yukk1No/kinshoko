@@ -56,6 +56,11 @@ export function rememberNewLibraryParent(parent: string): Promise<void> {
   return invoke<void>(lib("remember_new_library_parent"), { parent });
 }
 
+/** 系统的「图片」文件夹；取不到时为空。 */
+export function picturesFolder(): Promise<string | null> {
+  return invoke<string | null>(lib("pictures_folder"));
+}
+
 /** 在 parent 下新建名为 name 的资料库，登记到本设备并打开。 */
 export function createLibrary(parent: string, name: string): Promise<LibraryInfo> {
   return invoke<LibraryInfo>(lib("create_library"), { parent, name });

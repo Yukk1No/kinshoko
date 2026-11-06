@@ -21,7 +21,7 @@ export { WorkspaceSources } from "./WorkspaceSources";
 export const SPRING_OPEN_MS = 600;
 
 /**
- * 侧栏（方案 D，#113；design/ui-system/README.md 侧栏布局）：顶部固定“全部图片”与跨库合计；中间是
+ * 侧栏（方案 D，#113；design/ui-system/window-frame-and-sidebar.md 侧栏布局）：顶部固定“全部图片”与跨库合计；中间是
  * Finder 式的图库分组，选中哪个图库内的范围就只展开哪个，选“全部图片”时全部折起，箭头可临时多展开；
  * 拖动图片或文件夹悬停在折起的图库上约 0.6 秒自动展开，放下或离开后恢复。每个已连接图库的目录都能
  * 直接整理（ADR-0008）；未连接的图库只占一行并可就地重新连接。底部固定跟随所选图库的回收站。

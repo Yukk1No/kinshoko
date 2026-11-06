@@ -171,7 +171,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
   const deletingGroup = groups.find((group) => group.id === deleting);
   // 设计系统 SettingsList 的外框：每个分组一行，28 px 图标方块、名称、靠右的成员数（命名空间分组是胶囊）；
   // 悬停或键盘聚焦时露出改名、上移、下移、删除。成员是 TagChip，悬停露出前移、后移、移出，末尾是幽灵按钮“加标签”。
-  // 末行是“新建分组”。删除先确认（#98，design/ui-system/README.md）。
+  // 末行是“新建分组”。删除先确认（#98，design/ui-system/tokens-and-components.md）。
   return (
     <section ref={section} className="sidebar-tag-groups k-groups" aria-label={label} aria-busy={busy || !fresh}>
       {!fresh && <p className="k-set-note" role="status">{t("updating")}</p>}

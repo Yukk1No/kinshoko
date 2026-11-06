@@ -1,4 +1,4 @@
-/* Settings dialog: vertical tabs + rows (split from dialogs.css; design/ui-system/README.md「设置」).
+/* Settings dialog: vertical tabs + rows (split from dialogs.css; design/ui-system/tokens-and-components.md「设置」).
    Built on the shared `.k-dialog` / `.k-list` shell in ui.css and the form controls in dialogs.css. */
 
 .k-dialog.k-settings-dialog { width: min(860px, calc(100vw - 48px)); height: min(620px, calc(100vh - 48px)); padding: 0; overflow: hidden; }

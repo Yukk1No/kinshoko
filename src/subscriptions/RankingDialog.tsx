@@ -1,24 +1,20 @@
 import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { CircleAlert, FolderOpen, Info, Library } from "lucide-react";
+import { CircleAlert, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
-import { createLibraryUnopened, errorText, pickFolder } from "../ipc";
+import { createLibraryUnopened, errorText } from "../ipc";
 import { subscriptionAdd, subscriptionSetOptions } from "../ipc/subscriptions";
+import { NewLibraryFields } from "../library/CreateLibrary";
 import { useSaveDestination } from "../library/SaveDestination";
 import { newLibraryParentPrefill } from "../library/savePrefill";
 import { Segmented } from "../ui/Segmented";
 import { Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
-import { explicitChoice, useLibraryOptions } from "./artistOptions";
+import { explicitChoice, LibrarySelect, useLibraryOptions } from "./artistOptions";
 import { displayName, RANKINGS, rankingKey, rankingName, TOPS, type Ranking, type RankingKey, type Top } from "./rankingNames";
 import { UnofficialMark } from "./UnofficialMark";
-
-/** 新文件夹的完整路径，只用来给画师看；真正的路径由后端拼。 */
-function preview(parent: string, name: string) {
-  return /[\\/]$/.test(parent) ? `${parent}${name}` : `${parent}\\${name}`;
-}
 
 /** 名次分段：前 10／50／100。 */
 function TopPicker({ label, value, onChange }: { label: string; value: Top; onChange: (top: Top) => void }) {
@@ -75,10 +71,6 @@ export function RankingDialog({ status, list, onClose, onAdded }: {
   const libraryReady = chosen.mode === "new" ? chosen.name.trim() !== "" && chosen.parent !== null : chosen.existingId !== "";
   const otherLibrary = rankings.length > 0 && chosen.mode === "existing" && !rankingLibraries.has(chosen.existingId);
 
-  const choose = async () => {
-    const folder = await pickFolder();
-    if (folder) set({ parent: folder });
-  };
   const subscribe = async () => {
     if (picked.length === 0 || !libraryReady) return;
     setBusy(true); setError(null);
@@ -148,8 +140,8 @@ export function RankingDialog({ status, list, onClose, onAdded }: {
         <div className="k-field">
           <span className="k-field-label" id="subs-rank-library">{t("library")}</span>
           {rankings.length > 0
-            ? <Select label={t("library")} icon={<Library size={16} aria-hidden="true" />} disabled={busy || !libraries.ready}
-                value={chosen.existingId} onChange={(existingId) => set({ mode: "existing", existingId })} options={libraries.options} />
+            ? <LibrarySelect label={t("library")} disabled={busy}
+                value={chosen.existingId} onChange={(existingId) => set({ mode: "existing", existingId })} />
             : <div className="k-radio-cards" role="radiogroup" aria-labelledby="subs-rank-library">
               <div className={`k-radio-card subs-rank-new${chosen.mode === "new" ? " is-on" : ""}`}>
                 <label className="subs-rank-card-head">
@@ -157,16 +149,7 @@ export function RankingDialog({ status, list, onClose, onAdded }: {
                   <span className="k-radio-title">{t("newLibrary")}</span>
                 </label>
                 {chosen.mode === "new" && <div className="subs-rank-new-fields">
-                  <span className="k-input"><input aria-label={t("newLibraryName")} value={chosen.name} disabled={busy} onChange={(e) => set({ name: e.target.value })} /></span>
-                  <div className="subs-rank-path">
-                    <FolderOpen size={14} aria-hidden="true" />
-                    <span className="subs-rank-path-text" title={chosen.parent ?? undefined}>
-                      {chosen.parent ? preview(chosen.parent, chosen.name.trim() || "…") : t("notChosen")}
-                    </span>
-                    <button type="button" className="k-btn is-sm" disabled={busy} onClick={choose}>
-                      <span className="k-label">{t("change")}</span>
-                    </button>
-                  </div>
+                  <NewLibraryFields compact value={chosen} onChange={set} disabled={busy} />
                 </div>}
               </div>
               <label className={`k-radio-card subs-rank-existing${chosen.mode === "existing" ? " is-on" : ""}`}>

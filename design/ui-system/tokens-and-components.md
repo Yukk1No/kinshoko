@@ -1,0 +1,47 @@
+# 令牌与组件
+
+## 令牌来源
+
+`src/styles/tokens.css` 是界面令牌的唯一来源：日间 `:root`、夜间两套写法（跟随系统的 `prefers-color-scheme` 与手动的 `data-theme="dark"`）、封印书的 `--seal-acc`，以及圆角与动效时长。
+
+- **改颜色只改这一个文件。** 其他样式表只写 `var(--token)`，不写十六进制颜色；`src/styles/tokens.styles.test.ts` 会扫描 `src/` 下所有样式表，在令牌文件之外发现十六进制颜色就失败。确有理由写死的，列进该测试的 `ALLOWED` 并写明理由。
+- **claude.ai 上的 Kinshoko 设计系统（`project/README.md`、`tokens.json`）从这个文件导出。** 改了令牌就把新值同步过去；两边不一致时以本文件为准。
+- 查颜色只看 `tokens.css`，不必在各个组件样式表里搜。
+
+## 组件库选型
+
+负责人提供了五个候选库，要求“不用强行使用，一切以美学设计和 user friendly 优先”。核对结果如下（2026-10-10）：
+
+| 库 | 角色 | 依据 |
+| --- | --- | --- |
+| [Base UI](https://mui.com/base-ui/) `@base-ui/react` 1.6.0 · MIT | **采用：交互基础层** | 37 个无样式组件，来自 Radix / Floating UI / MUI 团队，覆盖菜单、右键菜单、下拉选择、可搜索选择、浮层、对话框、提醒对话框、标签页、开关、滑块、轻提示、提示、滚动区、分段切换。键盘与读屏行为由库负责；不要求 Tailwind，直接套用本项目的设计令牌。 |
+| [motion](https://motion.dev/) 14.1.0 · MIT | **采用：动效** | 驱动上面的弹簧档位与布局过渡（悬停高亮、指示块滑动）。必须遵守“减少动画”。 |
+| [lucide-react](https://lucide.dev/) 1.52.0 · ISC | **沿用** | 原型已用的通用图标；图标轨 20 px / 线宽 1.75，界面内 13–16 px。 |
+| [Fluid Functionalism](https://github.com/mickadesign/fluid-functionalism) · MIT | **采用：交互与动效规范** | 仓库为 MIT（Copyright (c) 2026 Micka Touillaud），底层同样支持 Base UI。移植其无依赖的 `use-fluid-hover`（高亮滑到离指针最近的行，空隙点击落到被高亮的行）与 `springs` 动效档位（fast 0.08 s / moderate 0.16 s / slow 0.24 s，退出用更快一档的补间）；保留原版权声明。组件样式写在 Tailwind 类名里，不直接搬组件，改用本项目令牌重写。原则同样采纳：动效只为传递信息；越大的东西动得越慢。 |
+| [Arc Library](https://github.com/kuratlielia/arc-library) · MIT | **采用：按钮与 dock 的参照** | 开源部分（MIT，样式用 CSS Modules，无需 Tailwind）提供 button、split-button、segmented-control 等的写法与动效令牌（snappy / smooth / morph 弹簧）。Arc Pro 的 dock 是付费组件、不在仓库里，本项目按其公开行为说明自行实现，不复制其代码。 |
+| beUI | **只参考动效写法** | Motion + Tailwind 的复制式组件（弹簧、模糊交叉淡入、布局过渡）。官方仓库与许可证未能确认。 |
+| [RareUI](https://github.com/Codewithswappy/RareUI) · MIT | **主界面不用** | 液态、玻璃、3D、WebGL 背景等装饰性组件。与“图片底色保持中性、缩略图不加装饰”冲突：画师要靠眼睛判断参考图颜色。 |
+| [Shaders](https://shaders.com) | **只用于“时刻”** | WebGPU 着色器特效。常驻界面（侧栏、顶栏、图片墙、查看器）与图片周围仍然不用：画师要靠眼睛判断参考图颜色，作画时也不能占显卡。2026-10-16（#78 人工验收反馈）放开到短暂的“时刻”：封印书的封印 / 释放演出、空状态、首次启动、导入完成。硬约束：演出结束或窗口隐藏即停止渲染；“减少动画”时给静态画面；没有 WebGPU 时退回 CSS 写法。用到哪一处需在对应工单里列明。 |
+
+新增依赖只限 `@base-ui/react`、`motion`；`lucide-react` 已存在于原型。移植的 Fluid Functionalism 源码放在独立的 vendor 目录，文件头保留出处与许可证。任何新库都要先在这里登记许可证与用途。
+
+### 组件对照
+
+| 界面 | Base UI 组件 | 说明 |
+| --- | --- | --- |
+| 侧栏标题“图库 ＋” | `Menu` | 替换原图库切换（#113，ADR-0008：没有“当前图库”）；＋ 菜单为打开图库… / 新建图库… / 管理图库 |
+| 图库标题的 `⋯` | `Menu` | 悬停出现；与图库标题的右键菜单是同一组菜单项（新建文件夹 · 在资源管理器中打开 · 重新连接（未连接时） · ─ · 从列表移除，#114） |
+| 图片右键菜单 | `ContextMenu` / `Menu` | 图标 + 快捷键提示；危险项置底、红字 |
+| 查看器、侧栏文件夹与回收站的右键菜单 | `ContextMenu` / `Menu` | 与图片右键菜单同一样式（#114）；删除文件夹、清空回收站走 `AlertDialog` 确认 |
+| 来源按钮 | 按钮 → 详情面板 | 只在属于 ≥2 个图库的卡片右下角出现，显示“N 处”（#78：聚合卡片可查看全部来源）；只在一个图库的图没有按钮，选中后在详情里看所在图库（#221）。按钮是卡片选项的兄弟元素，选项内不放可聚焦的子元素 |
+| 设置 | `Dialog` + `Tabs`（竖排） | 每项一行：图标、名称、右侧控件；补充说明在悬停提示里（v2）。一组设置是 `sunken` 托盘里的一张 `surface` 卡，不写组名；整组的说明放在卡片下方的托盘里，行下方的内容是卡片底部的 `bg` 内槽（#310） |
+| 开关项 | `Switch` | 替换复选框 |
+| 范围、来源切换 | `ToggleGroup` | 分段按钮 |
+| 下拉选择 | `Select` / `Combobox` | 标签选择用 `Combobox` |
+| 轻提示 | `Toast` | 替换常驻红字横幅；可撤销、自动消失。一次性的结果与出错都走它（导入结束、导入出错、备份没有完成），不另画卡片或横幅；有事等画师处理的常驻提示也走它（`usePersistentToast`），不自动消失，关掉后设置里还有入口（#433）；导入进度与导入前要回答的问题是右下角的任务卡，停在轻提示上方（#388） |
+| 图标提示 | `Tooltip` | 名称 + 快捷键 |
+| 精确查找 | `Toggle` + `Tooltip` | 查找框尾部的图标开关（#102 方案 C3），见 [buttons-and-dock.md](buttons-and-dock.md)“按钮” |
+| 图片大小 | 原生 `range` + 自绘样式 | 图片墙右下角的浮岛，见 [buttons-and-dock.md](buttons-and-dock.md)“按钮”；保留原生滑条的键盘与提交行为 |
+| 导入 | `Menu` | 一个按钮打开菜单选来源（v2），见 [buttons-and-dock.md](buttons-and-dock.md)“按钮” |
+| 截图、查看器、框选的工具 | 自建 Dock | 见 [buttons-and-dock.md](buttons-and-dock.md)“Dock” |
+| 确认删除 | `AlertDialog` | |
