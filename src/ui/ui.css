@@ -50,8 +50,15 @@
 .k-positioner { z-index: 60; outline: 0; }
 .k-popup { min-width: 200px; max-height: min(var(--available-height, 480px), 480px); overflow: auto; padding: 8px; background: var(--surface); color: var(--ink);
   border-radius: var(--r-l); box-shadow: var(--shadow-pop); outline: 0;
+  --k-pop-x: 0px; --k-pop-y: 0px;
   transform-origin: var(--transform-origin); transition: transform var(--t-pop) var(--spring), opacity var(--t-fast); }
-.k-popup[data-starting-style], .k-popup[data-ending-style] { opacity: 0; transform: scale(0.96) translateY(-4px); }
+/* 从触发点那一侧滑出，再缩回同一侧（#455）：在下方的从上往下，在上方的从下往上，左右同理。
+   级联菜单的进退场在 menu.css，这里不管。 */
+.k-popup[data-side="bottom"] { --k-pop-y: -4px; }
+.k-popup[data-side="top"] { --k-pop-y: 4px; }
+.k-popup:is([data-side="left"], [data-side="inline-start"]) { --k-pop-x: 4px; }
+.k-popup:is([data-side="right"], [data-side="inline-end"]) { --k-pop-x: -4px; }
+.k-popup:not([data-k-level]):is([data-starting-style], [data-ending-style]) { opacity: 0; transform: translate(var(--k-pop-x), var(--k-pop-y)) scale(0.96); }
 .k-item { position: relative; display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px 0 8px; border-radius: var(--r-s); outline: 0; cursor: default;
   user-select: none; white-space: nowrap; color: var(--ink); }
 .k-item[data-highlighted] { background: var(--hover); }
