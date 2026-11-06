@@ -20,6 +20,7 @@ import { WallFloats } from "../wall/WallFloats";
 import { WallMenu } from "../wall/WallMenu";
 import { useWallActions } from "../wall/useWallActions";
 import { Viewer } from "../viewer/Viewer";
+import { useViewerFlight } from "../viewer/ViewerFlight";
 import { TagGroupsDialog } from "./TagGroupsDialog";
 import { useImportTasks } from "./useImportTasks";
 import { useInvalidation } from "./useInvalidation";
@@ -143,10 +144,15 @@ export function LibraryWorkspace({
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
   const viewerOpen = viewing !== null;
+  const wallHost = useRef<HTMLDivElement>(null);
+  const flight = useViewerFlight({ viewing, safe, host: wallHost, instant: hidden || !!captureRequest });
   // 修订变化后的选择修剪：等图片墙读完新的结果，然后只保留仍在的图。范围或安全模式变了时图片墙先清空（等它读完）；
   // 只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
   useEffect(() => { invalidate({ kind: "pageAccepted", ready: resultCount !== null }); }, [loadedCards, resultCount]);
   const { viewingIndex, step } = useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall });
+  /** 序号在飞回途中留着：顶栏淡出时不跳动。 */
+  const viewerPosition = useRef<{ index: number; total: number } | undefined>(undefined);
+  if (viewing) viewerPosition.current = viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) };
   const { status, onWallStatus, recheck } = useWorkspaceStatus({ safe, onError, invalidate, observations });
 
   // 视角一变就在这次渲染里推进重读序号（#183）：图片墙的重新浏览与视角变化在同一次提交里、
@@ -197,7 +203,7 @@ export function LibraryWorkspace({
   return (
     <>
     <div className="app-workspace workspace" hidden={hidden}>
-      <div className="app-body" ref={setAppBody} style={{ "--sidebar-width": `${panes.sidebar}px` } as CSSProperties}>
+      <div className="app-body" ref={setAppBody} data-viewer-flying={flight.dim || undefined} style={{ "--sidebar-width": `${panes.sidebar}px` } as CSSProperties}>
         {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
         <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
           status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} recheck={recheck}
@@ -253,7 +259,7 @@ export function LibraryWorkspace({
             }}
             onError={onError} />
           {/* 图片墙所在的区域：查看器盖在这里（#179），左栏、顶栏与详情侧栏照常可用。 */}
-          <div className="wall-host">
+          <div className="wall-host" ref={wallHost}>
           <Wall
             ref={wall}
             density={density}
@@ -304,20 +310,25 @@ export function LibraryWorkspace({
                 },
               } : null}
           />
-          {viewing && (
+          {flight.card && (
             <Viewer
-              libraryId={viewing.libraryId}
-              card={{ ...viewing, id: viewing.imageId ?? viewing.id }}
+              key={flight.session}
+              flight={flight.attr}
+              hideImage={flight.hideImage}
+              onPlaced={flight.onPlaced}
+              libraryId={flight.card.libraryId}
+              card={{ ...flight.card, id: flight.card.imageId ?? flight.card.id }}
               onClose={() => setViewing(null)}
               reloadKey={reloadKey}
-              position={viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) }}
+              position={viewerPosition.current}
               onStep={step}
               startCrop={viewCrop}
               inspectorOpen={inspectorOpen}
               onToggleInspector={toggleInspector}
-              onTrash={(viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.deleted ?? scope.kind === "trash") ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
+              onTrash={!viewing || (viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.deleted ?? scope.kind === "trash") ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
             />
           )}
+          {flight.flier}
           </div>
         </main>
         {inspectorContent && !hidden && (

@@ -15,6 +15,7 @@ import { FollowDock } from "../ui/FollowDock";
 import { OriginalStar } from "../ui/OriginalStar";
 import { type Background, DOCK_RESERVE, useViewerBackground, viewerDockItems, ViewerImages, ViewerMenu } from "./ViewerParts";
 import { useViewerSource } from "./useViewerSource";
+import type { ViewerFlightAttr, ViewerPlaced } from "./ViewerFlight";
 
 type Props = {
   libraryId: string;
@@ -33,6 +34,12 @@ type Props = {
   /** 旁边的详情侧栏是否显示着（#179）：I 键、dock 的“详情”与右键菜单的“详情”切换它。 */
   inspectorOpen?: boolean;
   onToggleInspector?: () => void;
+  /** 开合过渡的阶段（#449）；不给出时直接显示。 */
+  flight?: ViewerFlightAttr;
+  /** 不显示原图：飞行元素正代替它，或这张图在安全模式下被遮蔽。 */
+  hideImage?: boolean;
+  /** 报告图此刻的位置与位图状态，飞行元素据此起落。 */
+  onPlaced?: (placed: ViewerPlaced) => void;
 };
 
 
@@ -43,7 +50,7 @@ type Props = {
  * 钉到桌面（#65）：“钉住整图”，或 Shift+拖动（或先按“框选局部”）框出一块，按 Enter 或“钉住局部”。
  * 选区按原图像素记，标出“宽 × 高 原始像素”，缩放平移时边界不变。
  */
-export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onStep, startCrop = false, onTrash, inspectorOpen = false, onToggleInspector }: Props) {
+export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onStep, startCrop = false, onTrash, inspectorOpen = false, onToggleInspector, flight, hideImage = false, onPlaced }: Props) {
   const { t } = useTranslation(["viewer", "common"]);
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -126,7 +133,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onSt
   useLayoutEffect(() => { if (startCrop) setSelecting(true); }, []);
   useCaptureSources(() => {
     const image = stage.current?.querySelector<HTMLImageElement>("img.viewer-image");
-    if (!image || !exactSource || loadedSrc !== src || failedSrc === src) return [];
+    if (!image || hideImage || !exactSource || loadedSrc !== src || failedSrc === src) return [];
     const reference = captureImage(image, stage.current!, libraryId, card.id, card.width, card.height);
     return reference ? [reference] : [];
   }, 100);
@@ -138,6 +145,10 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onSt
       (e) => { if (alive && isUnknownImage(e)) closeRef.current(); });
     return () => { alive = false; };
   }, [libraryId, card.id, reloadKey, failedSrc]);
+  const settled = ready || failed;
+  useLayoutEffect(() => {
+    if (viewport.width > 0) onPlaced?.({ rect: { x: viewport.left + left, y: viewport.top + top, width, height }, src: ready ? src : null, settled });
+  }, [viewport.width, viewport.left, viewport.top, left, top, width, height, src, ready, settled, onPlaced]);
   const shown = { left, top, width, height };
   const placed = { width, height, left: 0, top: 0, transform: `translate(${left}px, ${top}px)` };
   const natural = { width: card.width, height: card.height };
@@ -218,7 +229,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onSt
   const toolValue = selecting ? "crop" : mode === "zoom" ? null : mode;
   return (
     <section ref={root} className="viewer" role="region" aria-label={t("label")}
-      tabIndex={-1} onKeyDown={keyDown}>
+      tabIndex={-1} onKeyDown={keyDown} data-flight={flight} inert={flight === "land" || flight === "fade-out"}>
       <header className="viewer-bar">
         <button type="button" className="k-btn is-quiet viewer-back" aria-label={t("backLabel")} onClick={onClose}><ArrowLeft size={16} /><span className="k-label">{t("back")}</span></button>
         <span className="viewer-title" title={name ?? undefined}>{name}</span>
@@ -266,7 +277,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onSt
         onLostPointerCapture={() => { drag.current = null; select.current = null; setDragging(false); }} />}>
         <ViewerImages viewport={viewport} src={src} swapIn={swapIn} setFailedSrc={setFailedSrc} placed={placed} scale={scale} ready={ready}
           derived={derived} setDerived={setDerived} derivedMounted={derivedMounted} derivedStandIn={derivedStandIn} lastStandIn={lastStandIn}
-          isOriginal={isOriginal} failed={failed} setRetry={setRetry} />
+          isOriginal={isOriginal} failed={failed} setRetry={setRetry} hidden={hideImage} />
         {cropRect && crop && <div className="viewer-crop" aria-label={t("selection")}
           style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }} />}
         {shownCropRect && crop && <FollowDock anchor={shownCropRect} bounds={viewport} reserveBottom={DOCK_RESERVE}>

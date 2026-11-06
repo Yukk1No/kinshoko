@@ -51,26 +51,26 @@ return [
 }
 
 /** 舞台上的位图：精确来源、替身与读取中 / 失败的说明（#128）。 */
-export function ViewerImages({ viewport, src, swapIn, setFailedSrc, placed, scale, ready, derived, setDerived, derivedMounted, derivedStandIn, lastStandIn, isOriginal, failed, setRetry }: {
+export function ViewerImages({ viewport, src, swapIn, setFailedSrc, placed, scale, ready, derived, setDerived, derivedMounted, derivedStandIn, lastStandIn, isOriginal, failed, setRetry, hidden = false }: {
   viewport: { width: number }; src: string; swapIn: (image: HTMLImageElement, loaded: string) => void; setFailedSrc: (src: string) => void;
   placed: CSSProperties; scale: number; ready: boolean; derived: { src: string; loaded: boolean } | null;
   setDerived: Dispatch<SetStateAction<{ src: string; loaded: boolean } | null>>; derivedMounted: boolean; derivedStandIn: boolean;
-  lastStandIn: string | null; isOriginal: (address: string) => boolean; failed: boolean; setRetry: Dispatch<SetStateAction<number>>;
+  lastStandIn: string | null; isOriginal: (address: string) => boolean; failed: boolean; setRetry: Dispatch<SetStateAction<number>>; hidden?: boolean;
 }) {
   const { t } = useTranslation("viewer");
   return <>
     {viewport.width > 0 && <img key={src} className="viewer-image" src={src} alt={t("imageAlt")}
       draggable={false} onLoad={(e) => swapIn(e.currentTarget, src)} onError={() => setFailedSrc(src)}
-      style={{ ...placed, imageRendering: scale > 2 ? "pixelated" : "auto", visibility: ready && !derivedStandIn ? "visible" : "hidden" }} />}
+      style={{ ...placed, imageRendering: scale > 2 ? "pixelated" : "auto", visibility: ready && !derivedStandIn && !hidden ? "visible" : "hidden" }} />}
     {viewport.width > 0 && derivedMounted && derived && <img key={`derived:${derived.src}`} className="viewer-stand-in is-derived" src={derived.src} alt="" aria-hidden="true"
       draggable={false} onLoad={() => setDerived((d) => d?.src === derived.src ? { ...d, loaded: true } : d)}
-      style={{ ...placed, visibility: derivedStandIn ? "visible" : "hidden" }} />}
-    {viewport.width > 0 && lastStandIn && <img key={`last:${lastStandIn}`} className="viewer-stand-in" src={lastStandIn} alt="" aria-hidden="true"
+      style={{ ...placed, visibility: derivedStandIn && !hidden ? "visible" : "hidden" }} />}
+    {viewport.width > 0 && lastStandIn && !hidden && <img key={`last:${lastStandIn}`} className="viewer-stand-in" src={lastStandIn} alt="" aria-hidden="true"
       draggable={false} style={{ ...placed, imageRendering: scale > 2 && isOriginal(lastStandIn) ? "pixelated" : "auto" }} />}
     {failed ? <div className="viewer-message" role="alert">
       <p>{t("loadFailed")}</p>
       <button type="button" className="k-btn is-sm" onClick={() => setRetry((r) => r + 1)}><span className="k-label">{t("retry")}</span></button>
-    </div> : !ready && !derivedStandIn && !lastStandIn && <p className="viewer-message" role="status">{t("loading")}</p>}
+    </div> : !hidden && !ready && !derivedStandIn && !lastStandIn && <p className="viewer-message" role="status">{t("loading")}</p>}
   </>;
 }
 
