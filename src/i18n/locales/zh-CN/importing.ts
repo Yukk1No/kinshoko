@@ -55,6 +55,7 @@ export default {
     choose: "松开即可导入，再选放在哪里",
     into: "松开即可导入到 {{library}}",
     inTrash: "回收站内无法导入",
+    busy: "正在导入，结束后再拖进来",
   },
   tagStepLabel: "补上标签对应",
   /** 导入结束的提示与结果卡片。 */
@@ -75,6 +76,7 @@ export default {
     eagleMissingHint: "Eagle 里已经没有，本库保留",
     rejected: "未导入",
     view: "查看",
+    show: "打开",
     skippedDeleted: "删过的图已跳过。",
     importAnyway: "这次也导入…",
     inTrash: "有图在回收站里，保持删除。",

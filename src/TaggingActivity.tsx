@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MonitorPause, Pause } from "lucide-react";
+import { CircleAlert, Download, MonitorPause, Pause } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Device } from "./bindings/Device";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
@@ -29,6 +29,13 @@ function activityLabel(status: TaggingStatus): string | null {
       return i18n.t("tagging:activity.paused");
     case "yieldedToFullScreen":
       return i18n.t("tagging:activity.yieldedToFullScreen");
+    // 停住、要画师处理的状态也留一个静止的图标：关掉通知后仍有地方找回（点开是设置 › 自动标签）。
+    case "needsDownload":
+      return i18n.t("tagging:activity.needsDownload");
+    case "failed":
+      return i18n.t("tagging:activity.failed");
+    case "noDevice":
+      return i18n.t("tagging:activity.noDevice");
     default:
       return null;
   }
@@ -165,8 +172,9 @@ export function TaggingActivity({ onOpenSettings, collapsed = false }: {
   const progress = useRingProgress(status);
   const text = status && activityLabel(status);
   if (!status || !text) return null;
-  const activity = status.state === "paused" || status.state === "yieldedToFullScreen" ? "paused" : "busy";
-  const pending = progress === null || undefined;
+  const stopped = status.state === "needsDownload" || status.state === "failed" || status.state === "noDevice";
+  const activity = stopped ? "stopped" : status.state === "paused" || status.state === "yieldedToFullScreen" ? "paused" : "busy";
+  const pending = (!stopped && progress === null) || undefined;
   if (collapsed) {
     return (
       <span className="k-tagging-dot" data-activity={activity} data-pending={pending} role="img" title={text} aria-label={i18n.t("tagging:label", { text })}>
@@ -178,7 +186,9 @@ export function TaggingActivity({ onOpenSettings, collapsed = false }: {
     <button type="button" className="k-tagging-activity" data-activity={activity} data-pending={pending}
       title={text} aria-label={i18n.t("tagging:openSettings", { text })} onClick={onOpenSettings}>
       <Ring className="k-tagging-ring" size={40} radius={18} progress={progress} />
-      {status.state === "paused" ? <Pause size={16} strokeWidth={1.75} aria-hidden="true" />
+      {status.state === "needsDownload" ? <Download size={16} strokeWidth={1.75} aria-hidden="true" />
+        : status.state === "failed" || status.state === "noDevice" ? <CircleAlert size={16} strokeWidth={1.75} aria-hidden="true" />
+        : status.state === "paused" ? <Pause size={16} strokeWidth={1.75} aria-hidden="true" />
         : status.state === "yieldedToFullScreen" ? <MonitorPause size={16} strokeWidth={1.75} aria-hidden="true" />
         : <TwinkleSparkles size={16} />}
     </button>

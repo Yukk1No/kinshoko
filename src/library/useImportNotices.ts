@@ -3,6 +3,7 @@ import { onSafeModeSetting, onWorkspaceChanged } from "../ipc";
 import { useToast } from "../ui/Toast";
 import { useTranslation } from "react-i18next";
 import type { FinishedImport } from "./ImportBar";
+import type { SaveDestination } from "../bindings/SaveDestination";
 import { importNotice } from "./ImportBarParts";
 import type { LibraryRecovery } from "./useImportRecovery";
 
@@ -10,12 +11,14 @@ import type { LibraryRecovery } from "./useImportRecovery";
  * 导入的一次性提示走轻提示管线（#388）：结束、出错、上次中断与封印项重复。结束的提示带“查看”，打开结果回执卡；
  * 回执也可从导入菜单的“导入任务”打开。
  */
-export function useImportNotices({ finished, owner, warnings = [], onSelectTask, recovery, dismissRecovery, reimport, sealedTask, showSealed }: {
+export function useImportNotices({ finished, owner, warnings = [], onSelectTask, onShowDestination, recovery, dismissRecovery, reimport, sealedTask, showSealed }: {
   finished: FinishedImport | null;
   owner: string | null;
   warnings?: readonly string[];
   /** 让导入菜单选中某个任务：“查看”先选中它，回执显示的才是这条提示的任务。 */
   onSelectTask?: (taskId: string) => void;
+  /** 去导入的位置（图库与文件夹）看结果。 */
+  onShowDestination?: (destination: SaveDestination) => void;
   recovery: LibraryRecovery | null;
   dismissRecovery: (recovery: LibraryRecovery) => void;
   /** 把上次中断时撤回的文件重新导入回它们所在的资料库。 */
@@ -28,8 +31,8 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
   /** 结果回执是否打开；打开时随导入菜单所选的任务切换。 */
   const [receipt, setReceipt] = useState(false);
   const report = finished?.report ?? null;
-  const latest = useRef({ reimport, onSelectTask, showSealed });
-  latest.current = { reimport, onSelectTask, showSealed };
+  const latest = useRef({ reimport, onSelectTask, showSealed, onShowDestination });
+  latest.current = { reimport, onSelectTask, showSealed, onShowDestination };
 
   // 上次导入中断或原文件夹里有不认识的文件：每个图库提示一次，可直接把撤回的文件重新导入回那个图库。
   useEffect(() => {
@@ -51,17 +54,19 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
   const notice = report && finished ? importNotice(report, owner, warnings) : null;
   const shownNotices = useRef(new Map<string, string | null>());
   const view = (taskId: string, id: string) => () => { toast.close(id); latest.current.onSelectTask?.(taskId); setReceipt(true); };
+  const target = finished?.destination ?? (finished?.libraryId ? { libraryId: finished.libraryId, folderId: null } : null);
+  const show = (id: string) => target && onShowDestination ? () => { toast.close(id); latest.current.onShowDestination?.(target); } : undefined;
   useEffect(() => {
     if (!finished || !notice) return;
     const taskId = finished.taskId;
     if (shownNotices.current.has(taskId)) {
       const id = shownNotices.current.get(taskId);
-      if (id) toast.update(id, notice.toast(view(taskId, id)));
+      if (id) toast.update(id, notice.toast(view(taskId, id), show(id)));
       return;
     }
     // 回执正开着时它已显示这个任务，不再另外提示。
     if (receipt) { shownNotices.current.set(taskId, null); return; }
-    const id: string = toast.show({ ...notice.toast(() => view(taskId, id)()), onClose: () => shownNotices.current.set(taskId, null) });
+    const id: string = toast.show({ ...notice.toast(() => view(taskId, id)(), target && onShowDestination ? () => show(id)?.() : undefined), onClose: () => shownNotices.current.set(taskId, null) });
     shownNotices.current.set(taskId, id);
   }, [toast, finished?.taskId, notice?.key]);
   // 安全模式或工作区变化时，别的任务留着的提示无法跟着收起数字，直接收起；所选任务的提示由上面原地更新。

@@ -8,6 +8,11 @@ export default {
   results: "查找结果",
   resultCount_other: "{{count}} 张",
   copyOneOnly: "一次只能复制一张",
+  empty: {
+    importFiles: "导入图片",
+    importFolder: "导入文件夹",
+    clearConditions: "清除条件",
+  },
   pane: {
     folders: "文件夹",
     groups: "参考组",

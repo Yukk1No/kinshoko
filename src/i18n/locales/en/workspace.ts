@@ -11,6 +11,11 @@ const workspace: Translation<typeof zh> = {
   resultCount_one: "{{count}} image",
   resultCount_other: "{{count}} images",
   copyOneOnly: "Copies one image at a time",
+  empty: {
+    importFiles: "Import images",
+    importFolder: "Import a folder",
+    clearConditions: "Clear search",
+  },
   pane: {
     folders: "Folders",
     groups: "Reference groups",

@@ -19,6 +19,7 @@ import { WinCtrls } from "../ui/WinCtrls";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "../wall/Wall";
 import { WallFloats } from "../wall/WallFloats";
 import { WallMenu } from "../wall/WallMenu";
+import { WallEmptyAction } from "./WallEmptyAction";
 import { useWallActions } from "../wall/useWallActions";
 import { Viewer } from "../viewer/Viewer";
 import { useViewerFlight } from "../viewer/ViewerFlight";
@@ -219,6 +220,13 @@ export function LibraryWorkspace({
               setWorkspaceScope({ kind: "library", libraryId:owner, scope: { kind: "trash" } });
               // 来源面板保持现状（与换左栏范围不同）。
               invalidate({ kind: "conditionsChanged" });
+            }}
+            onShowDestination={(destination) => {
+              onOpenBrowse();
+              setSearch((prev) => ({ ...prev, conditions: [] }));
+              setWorkspaceScope({ kind: "library", libraryId: destination.libraryId,
+                scope: destination.folderId === null ? { kind: "unassigned" } : { kind: "folder", id: destination.folderId } });
+              invalidate({ kind: "conditionsChanged" });
             }} />
           {!inspectorOpen && <>
             <button type="button" className="k-icon-btn" aria-label={t("viewer:tools.showInspector")} title={t("viewer:tools.showInspector")} onClick={toggleInspector}><PanelRight size={16} aria-hidden="true" /></button>
@@ -274,6 +282,8 @@ export function LibraryWorkspace({
               else wallActions.edit(cards, [{ kind: "delete" }], true);
             }}
             onPaste={wallActions.importClipboard}
+            emptyAction={(empty) => <WallEmptyAction searching={empty} scope={scope} importControl={importControl}
+              onClearConditions={() => { setSearch((prev) => ({ ...prev, conditions: [] })); invalidate({ kind: "conditionsChanged" }); }} />}
           />
           {/* 图片墙右下角：打标图标（#144）在图片大小浮岛（#102 方案 C3，与 Ctrl+滚轮缩放成对）的左边。
               选了两张及以上时底部升起多选悬浮栏（#98，#180），右下角收成圆形按钮让位；查看器打开时悬浮栏隐藏。 */}

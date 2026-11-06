@@ -44,7 +44,7 @@ function importCounts(report: ImportReport) {
  * 导入结束的轻提示（#388）：去向与数字；有要处理的（未导入、删过的图、回收站里的）时带“查看”，打开结果回执卡，
  * 且不自动消失。key 概括内容，用来在数字被收起时原地更新。
  */
-export function importNotice(report: ImportReport, owner: string | null, warnings: readonly string[] = []): { key: string; toast: (view: () => void) => Omit<ToastOptions, "onClose"> } {
+export function importNotice(report: ImportReport, owner: string | null, warnings: readonly string[] = []): { key: string; toast: (view: () => void, show?: () => void) => Omit<ToastOptions, "onClose"> } {
   const t = i18n.getFixedT(null, "importing", "result");
   const counts = importCounts(report);
   const stats: [string, number, boolean?][] = report.privateSummary ? [] : [
@@ -57,7 +57,8 @@ export function importNotice(report: ImportReport, owner: string | null, warning
   const title = report.cancelled ? t("cancelled") : t("done");
   return {
     key: JSON.stringify([title, owner, report.privateSummary, shown, counts.rejected.length, review, warnings]),
-    toast: (view) => ({
+    // 没有要处理的、又进来了图：带“打开”，直接去导入的位置看结果。
+    toast: (view, show) => ({
       title, tone: report.cancelled ? "info" : "success", timeout: stays ? 0 : undefined,
       description: <>
         {owner && <span className="k-toast-line">{i18n.t("importing:ownerLine", { owner })}</span>}
@@ -68,7 +69,8 @@ export function importNotice(report: ImportReport, owner: string | null, warning
         </span>
         {warnings.map((warning, index) => <span key={index} className="k-toast-line is-warn">{warning}</span>)}
       </>,
-      action: review ? { label: t("view"), onClick: view } : undefined,
+      action: review ? { label: t("view"), onClick: view }
+        : show && !report.cancelled && counts.imported + counts.merged + counts.refreshed + counts.newVersions > 0 ? { label: t("show"), onClick: show } : undefined,
     }),
   };
 }

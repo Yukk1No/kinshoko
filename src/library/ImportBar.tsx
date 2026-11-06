@@ -40,6 +40,8 @@ type Props = {
   onDismissReport: () => void;
   /** 到现有、受安全模式筛选的回收站，由画师决定恢复。 */
   onOpenTrash?: (libraryId:string) => void;
+  /** 到导入的位置看结果（结束提示的“打开”）。 */
+  onShowDestination?: (destination: SaveDestination) => void;
   /** 导入入口是顶栏的分体按钮（#98），经 `actionsRef` 调用这里的流程。 */
   actionsRef?: Ref<ImportActions>;
   /** 能否开始新的导入（与入口按钮的可用状态一致），以及是否正在查找 Eagle 资料库。 */
@@ -67,7 +69,7 @@ export type ImportActions = { files: () => void; folder: () => void; eagle: () =
  * 进度是右下角的卡片，可取消或后台进行。结束、出错、上次中断与封印项重复走轻提示（#388）；结束的提示带“查看”，
  * 打开结果回执卡：列出没有进来的文件并可只重试读取失败的项。
  */
-export function ImportBar({ previewContextKey, dropBlocked = false, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, warnings, onSelectTask }: Props) {
+export function ImportBar({ previewContextKey, dropBlocked = false, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, onShowDestination, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, warnings, onSelectTask }: Props) {
   const { t } = useTranslation("importing");
   /** “后台进行”收起的进度卡（按任务 id）；新任务或从导入菜单“查看导入任务”时重新显示。 */
   const [background, setBackground] = useState<string | null>(null);
@@ -183,7 +185,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
   };
 
   // 拖放的回调只注册一次，经 ref 读到最新的状态。
-  const latest = useRef({ busy, begin, dropBlocked, noticeBlockedDrop: () => {} });
+  const latest = useRef({ busy, begin, dropBlocked, noticeBlockedDrop: () => {}, noticeBusyDrop: () => {} });
   latest.current = { ...latest.current, busy, begin, dropBlocked };
   useEffect(() => {
     const unlisten = onFileDrop((drop) => {
@@ -195,7 +197,8 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
         case "drop":
           setHovering(false);
           if (latest.current.dropBlocked) latest.current.noticeBlockedDrop();
-          else if (!latest.current.busy) void latest.current.begin(drop.paths);
+          else if (latest.current.busy) latest.current.noticeBusyDrop();
+          else void latest.current.begin(drop.paths);
           break;
         case "leave":
           setHovering(false);
@@ -226,10 +229,12 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
   const sealed = report?.sealedDuplicates && finished;
 
-  const { receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, recovery, dismissRecovery,
+  const { receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, onShowDestination, recovery, dismissRecovery,
     reimport: (paths, library) => void reimport(paths, library), sealedTask: sealed ? sealed.taskId : null, showSealed: (taskId) => setPreview({ taskId, contextKey }) });
 
   latest.current.noticeBlockedDrop = () => { toast.show({ title: t("drop.inTrash") }); };
+  // 正在导入时拖进来的不排队：说一声，免得松手后什么都没发生。
+  latest.current.noticeBusyDrop = () => { toast.show({ title: t("drop.busy") }); };
 
   const cards = <>
     {relocations.map((relocation) => (

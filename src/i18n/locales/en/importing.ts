@@ -56,6 +56,7 @@ const importing: Translation<typeof zh> = {
     choose: "Drop to import, then choose where it goes",
     into: "Drop to import into {{library}}",
     inTrash: "Can't import in the Trash",
+    busy: "An import is in progress. Drop again when it's done.",
   },
   tagStepLabel: "Fill in tag mappings",
   result: {
@@ -75,6 +76,7 @@ const importing: Translation<typeof zh> = {
     eagleMissingHint: "No longer in Eagle; kept in this library",
     rejected: "Not imported",
     view: "View",
+    show: "Open",
     skippedDeleted: "Previously deleted images were skipped. ",
     importAnyway: "Import them this time…",
     inTrash: "Some images are in the Trash and stay deleted. ",
