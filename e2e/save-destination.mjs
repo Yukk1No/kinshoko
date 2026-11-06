@@ -141,7 +141,7 @@ try{
  // The native capture pin (ADR 0013) is not a WebView window; WebDriver clicks go into the page and are not blocked by it.
  const capture=(await session.desktop("capture_history"))[0];
  await openPane("截图历史");
- await readyClick("//*[contains(@class,'capture-history')]//button[normalize-space()='收藏']");
+ await readyClick("//*[contains(@class,'capture-history')]//button[@aria-label='收藏到图库']");
  // The 收藏截图 save-target dialog: one dialog, two choices (图库, 文件夹).
  const collectDialog=dialogX("收藏截图");
  await choose(b.id,bFolder,collectDialog);await session.screenshot("capture-save-target-dialog.png");

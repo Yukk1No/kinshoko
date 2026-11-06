@@ -2,31 +2,25 @@
 .capture-history, .reference-groups { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 4px 10px 16px; overflow-y: auto; color: var(--ink); }
 .sidebar-slot > .capture-history, .sidebar-slot > .reference-groups { width: 255px; flex: 1; min-height: 0; }
 .empty-context > .capture-history, .empty-context > .reference-groups { width: 100%; }
-.capture-history-bar, .reference-groups-bar { display: flex; flex-direction: column; gap: 8px; }
-.capture-history-bar h2, .reference-groups-bar h2 { display: none; }
-.empty-context .capture-history-bar h2, .empty-context .reference-groups-bar h2 { display: none; }
-.capture-history-start { display: flex; gap: 6px; }
-.capture-history-start .k-btn { flex: none; height: 34px; padding: 0 10px; }
-.capture-history-start .k-btn:first-child { flex: 1; min-width: 0; }
-.capture-history-start .k-btn .k-kbd { margin-left: 4px; }
-.capture-history-note, .capture-history-empty, .reference-groups-empty { margin: 0; padding: 0 2px; color: var(--ink-2); font-size: 12px; line-height: 18px; }
+.reference-groups-bar { display: flex; flex-direction: column; gap: 8px; }
+.reference-groups-bar h2 { display: none; }
+.empty-context .reference-groups-bar h2 { display: none; }
+.capture-history-empty, .reference-groups-empty { margin: 0; padding: 0 2px; color: var(--ink-2); font-size: 12px; line-height: 18px; }
 .group-note { margin: 0; padding: 0 2px; color: var(--ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
 .group-note.is-error { color: var(--danger); }
-.side-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink-2);
-  font-size: 12px; box-shadow: inset 0 0 0 1px var(--line-2); }
-.side-chip:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
-.side-chip.is-done { color: var(--accent-strong); background: var(--accent-soft); box-shadow: none; }
 
 /* 截图列表 */
 .capture-history-list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
-.capture-history-item { position: relative; display: flex; gap: 10px; align-items: flex-start; min-width: 0; padding: 8px; border-radius: var(--r); }
+.capture-history-item { position: relative; display: flex; gap: 10px; align-items: center; min-width: 0; padding: 8px; border-radius: var(--r); }
 .capture-history-item:hover, .capture-history-item:focus-within { background: var(--hover); }
-.capture-history-item img { width: 64px; height: 48px; flex: none; border-radius: var(--r-xs); object-fit: cover; background: var(--card); }
+.capture-history-item img { width: 64px; height: 64px; flex: none; border-radius: var(--r-xs); object-fit: cover; background: var(--card); }
 .capture-history-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .capture-history-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .capture-history-meta { color: var(--ink-2); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .capture-collect-thumb { width: 64px; height: 48px; flex: none; border-radius: var(--r-xs); object-fit: cover; background: var(--card); }
-.capture-history-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+/* 左移 5px：图标与上面的文字对齐，而不是透明的按钮框。 */
+.capture-history-actions { display: flex; gap: 2px; margin: 2px 0 0 -5px; }
+.capture-history-actions .k-icon-btn.is-done, .capture-history-actions .k-icon-btn.is-done:hover:not(:disabled) { color: var(--accent-strong); }
 .capture-history-delete { position: absolute; top: 6px; right: 4px; width: 24px; height: 24px; opacity: 0; }
 .capture-history-item:hover .capture-history-delete, .capture-history-delete:focus-visible { opacity: 1; }
 @media (hover: none) { .capture-history-delete { opacity: 1; } }
