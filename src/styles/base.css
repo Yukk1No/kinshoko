@@ -103,3 +103,17 @@ button.primary {
   justify-content: center;
 }
 
+
+/* Scrollbars: a slim rounded thumb on a transparent track instead of WebView2's grey bar. The transparent border
+   insets the thumb inside a 12px hit area and widens it a little under the pointer. Don't set scrollbar-width or
+   scrollbar-color on an element unless you mean it: in Chromium either one switches these ::-webkit-scrollbar rules off. */
+::-webkit-scrollbar { width: 12px; height: 12px; background: transparent; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-button { display: none; }
+::-webkit-scrollbar-thumb {
+  min-height: 32px; min-width: 32px;
+  border: 4px solid transparent; border-radius: var(--r-pill);
+  background: var(--scroll-thumb) padding-box;
+}
+::-webkit-scrollbar-thumb:hover { border-width: 2px; background-color: var(--scroll-thumb-hover); }
+::-webkit-scrollbar-thumb:active { border-width: 2px; background-color: var(--scroll-thumb-active); }

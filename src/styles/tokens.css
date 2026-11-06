@@ -43,6 +43,8 @@
   --exact-on-bg: rgba(227, 179, 79, 0.16); --exact-on-ink: #9a6a10;
   --exact-on-inset: inset 0 1px 1.5px rgba(110, 75, 10, 0.16), inset 0 0 0 0.5px rgba(160, 112, 15, 0.22);
   --range-track: var(--line-2); --range-fill: var(--ink-2); --range-inset: inset 0 1px 1px rgba(43, 39, 71, 0.18);
+  /* scrollbar thumb at rest, hovered, dragged; the track stays transparent */
+  --scroll-thumb: rgba(43, 39, 71, 0.16); --scroll-thumb-hover: rgba(43, 39, 71, 0.36); --scroll-thumb-active: rgba(43, 39, 71, 0.5);
   --knob: #fffdf8;
   --knob-shadow: 0 0 0 0.5px rgba(43, 39, 71, 0.28), 0 1px 1.5px rgba(43, 39, 71, 0.28), 0 4px 10px rgba(43, 39, 71, 0.16);
   --knob-shadow-pressed: 0 0 0 0.5px rgba(43, 39, 71, 0.3), 0 1px 3px rgba(43, 39, 71, 0.18);
@@ -94,6 +96,7 @@
     --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
     --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
     --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
+    --scroll-thumb: rgba(244, 236, 220, 0.14); --scroll-thumb-hover: rgba(244, 236, 220, 0.32); --scroll-thumb-active: rgba(244, 236, 220, 0.46);
     --knob: #fbf6ec;
     --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
     --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
@@ -121,6 +124,7 @@
   --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
   --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
   --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
+  --scroll-thumb: rgba(244, 236, 220, 0.14); --scroll-thumb-hover: rgba(244, 236, 220, 0.32); --scroll-thumb-active: rgba(244, 236, 220, 0.46);
   --knob: #fbf6ec;
   --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
   --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
