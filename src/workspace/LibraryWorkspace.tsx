@@ -172,7 +172,7 @@ export function LibraryWorkspace({
     selected, setSelected, loadedCards, workspaceScope, sources, setSources, hidden, viewing, inspectorWidth,
     fitPanel: (width) => fitPanes(bodyWidth, width, paneOpen && !isNarrow(bodyWidth, width)).inspector,
   });
-  const { selectionLibrary, eligible, inspected, inspectorContent, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector } = inspector;
+  const { selectionLibrary, selectedCards, inspected, inspectorContent, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector } = inspector;
   const panes = usePaneFold({ body: bodyWidth, inspector: inspectorOpen ? inspector.panelWidth : 0, paneOpen, onPaneOpen });
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
@@ -288,9 +288,17 @@ export function LibraryWorkspace({
           <WallFloats
             tagging={(collapsed) => <TaggingActivity collapsed={collapsed} onOpenSettings={onOpenTaggingSettings} />}
             density={viewerOpen ? null : { value: density, preview: zoomPreview, onPreview: (v) => wall.current?.previewDensity(v), onCommit: setDensity }}
-            bar={inspected === null && eligible && !hidden && !viewerOpen && panelIds.length > 1 && selectionLibrary !== null ? {
-              libraryId: selectionLibrary, scope, ids: panelIds, onClear: () => setSelected(new Set()), reloadKey, onError, safeMode: safe,
-            } : null}
+            bar={inspected !== null || hidden || viewerOpen ? null
+              : selectionLibrary !== null ? (panelIds.length > 1 ? {
+                libraryId: selectionLibrary, scope, ids: panelIds, onClear: () => setSelected(new Set()), reloadKey, onError, safeMode: safe,
+              } : null)
+              : selectedCards.length > 1 ? {
+                libraryId: null, scope, ids: selectedCards.map((card) => card.id), onClear: () => setSelected(new Set()), reloadKey, onError, safeMode: safe,
+                acrossLibraries: {
+                  folderLibrary: new Set(selectedCards.map((card) => card.libraryId)).size === 1 ? selectedCards[0].libraryId ?? null : null,
+                  edit: (edits, clear) => wallActions.edit(selectedCards, edits, clear),
+                },
+              } : null}
           />
           {viewing && (
             <Viewer

@@ -9,10 +9,6 @@ const ipc = vi.hoisted(() => ({
   remove: vi.fn(() => Promise.resolve()),
   pin: vi.fn(() => Promise.resolve()),
   copy: vi.fn(() => Promise.resolve()),
-  clipboard: vi.fn(() => Promise.resolve()),
-  start: vi.fn(() => Promise.resolve()),
-  settings: vi.fn(),
-  minimize: vi.fn(() => Promise.resolve()),
 }));
 vi.mock("../ipc", () => ({
   captureHistory: ipc.history,
@@ -22,11 +18,7 @@ vi.mock("../ipc", () => ({
   deleteCapture: ipc.remove,
   onCaptureHistory: () => Promise.resolve(() => {}),
   pinCapture: ipc.pin,
-  pinClipboard: ipc.clipboard,
-  startCapture: ipc.start,
-  shellSettings: ipc.settings,
 }));
-vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ minimize: ipc.minimize }) }));
 vi.mock("../library/SaveDestination", () => ({
   SaveDestinationDialog: ({ title, onConfirm, onClose }: { title: string; onConfirm: (d: unknown) => Promise<unknown>; onClose: () => void }) =>
     <div role="dialog" aria-label={title}>
@@ -43,11 +35,6 @@ const entry = (id: string, minutesAgo: number, extra: Partial<CaptureEntry> = {}
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(now);
-  ipc.settings.mockResolvedValue({ shortcuts: [
-    { action: "capture", accelerator: "F1", problem: null },
-    { action: "pinClipboard", accelerator: "F3", problem: null },
-    { action: "hideAllPins", accelerator: "F4", problem: null },
-  ] });
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); });
 
@@ -59,20 +46,30 @@ async function show(entries: CaptureEntry[]) {
 const row = (name: string) => screen.getByText(name).closest("li")!;
 
 describe("截图面板", () => {
-  it("钉住剪贴板带上实际的快捷键，说明怎样截图", async () => {
+  it("面板只放截图列表：没有截图入口，也没有说明句", async () => {
     await show([]);
-    const clip = screen.getByRole("button", { name: /^钉住剪贴板/ });
-    expect(within(clip).getByText("F3")).toBeTruthy();
-    expect(screen.getByText("按 F1 截取屏幕。没收藏的旧截图会自动清理。")).toBeTruthy();
-    await act(async () => { fireEvent.click(clip); });
-    expect(ipc.clipboard).toHaveBeenCalledOnce();
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getByRole("region", { name: "截图历史" }).textContent).toBe("还没有截图。");
   });
 
-  it("快捷键被清除时不显示键，也不提它", async () => {
-    ipc.settings.mockResolvedValue({ shortcuts: [{ action: "capture", accelerator: null, problem: null }, { action: "pinClipboard", accelerator: null, problem: null }] });
-    await show([]);
-    expect(screen.getByRole("button", { name: "钉住剪贴板" }).textContent).toBe("钉住剪贴板");
-    expect(screen.getByText("没收藏的旧截图会自动清理。")).toBeTruthy();
+  it("操作只有图标，键盘聚焦或悬停时提示写出它做什么", async () => {
+    vi.useRealTimers();
+    await show([entry("s1", 3)]);
+    const item = screen.getByRole("listitem");
+    for (const name of ["收藏到图库", "钉到桌面", "复制到剪贴板"]) expect(within(item).getByRole("button", { name }).textContent).toBe("");
+    const pin = within(item).getByRole("button", { name: "钉到桌面" });
+    fireEvent.pointerEnter(pin, { pointerType: "mouse" });
+    fireEvent.mouseEnter(pin);
+    fireEvent.mouseMove(pin);
+    expect((await screen.findByText("钉到桌面", { selector: ".k-tip" }, { timeout: 1500 })).textContent).toBe("钉到桌面");
+    // 移到相邻的图标，提示跟着换。
+    fireEvent.pointerLeave(pin, { pointerType: "mouse" });
+    fireEvent.mouseLeave(pin);
+    const copy = within(item).getByRole("button", { name: "复制到剪贴板" });
+    fireEvent.pointerEnter(copy, { pointerType: "mouse" });
+    fireEvent.mouseEnter(copy);
+    fireEvent.mouseMove(copy);
+    expect(await screen.findByText("复制到剪贴板", { selector: ".k-tip" }, { timeout: 1500 })).toBeTruthy();
   });
 
   it("每张截图写出时间、尺寸、多久以前与钉住状态", async () => {
@@ -85,9 +82,9 @@ describe("截图面板", () => {
   it("收藏到明确选择的图库；已收藏的仍可再收藏到别处", async () => {
     await show([entry("s1", 3), entry("s2", 5, { collected: [{ libraryId: "另一个图库" } as never] })]);
     const [first, second] = screen.getAllByRole("listitem");
-    expect(within(second).getByRole("button", { name: /已收藏/ })).toBeTruthy();
-    expect(within(first).queryByText("已收藏")).toBeNull();
-    fireEvent.click(within(first).getByRole("button", { name: "收藏" }));
+    expect(within(second).getByRole("button", { name: "已收藏，再收藏到别处" })).toBeTruthy();
+    expect(within(first).queryByRole("button", { name: "已收藏，再收藏到别处" })).toBeNull();
+    fireEvent.click(within(first).getByRole("button", { name: "收藏到图库" }));
     await act(async () => { fireEvent.click(within(screen.getByRole("dialog", { name: "收藏截图" })).getByRole("button", { name: "确认收藏" })); });
     expect(ipc.collect).toHaveBeenCalledWith("s1", { libraryId: "lib-a", folderId: null });
   });
@@ -95,7 +92,7 @@ describe("截图面板", () => {
   it("钉住与删除走各自的入口", async () => {
     await show([entry("s1", 3)]);
     const item = screen.getByRole("listitem");
-    await act(async () => { fireEvent.click(within(item).getByRole("button", { name: "钉住" })); });
+    await act(async () => { fireEvent.click(within(item).getByRole("button", { name: "钉到桌面" })); });
     expect(ipc.pin).toHaveBeenCalledWith("s1");
     await act(async () => { fireEvent.click(within(item).getByRole("button", { name: "删除这张截图" })); });
     expect(ipc.remove).toHaveBeenCalledWith("s1");
@@ -103,7 +100,7 @@ describe("截图面板", () => {
 
   it("复制按钮把这张截图复制到剪贴板", async () => {
     await show([entry("s1", 3)]);
-    await act(async () => { fireEvent.click(within(screen.getByRole("listitem")).getByRole("button", { name: "复制" })); });
+    await act(async () => { fireEvent.click(within(screen.getByRole("listitem")).getByRole("button", { name: "复制到剪贴板" })); });
     expect(ipc.copy).toHaveBeenCalledWith("s1");
   });
 
@@ -127,18 +124,10 @@ describe("截图面板", () => {
     expect(ipc.collect).toHaveBeenCalledWith("s2", { libraryId: "lib-a", folderId: null });
   });
 
-  it("截图前先让开主窗口", async () => {
-    vi.useRealTimers();
-    await show([]);
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^截图/ })); await new Promise((r) => setTimeout(r, 300)); });
-    expect(ipc.minimize).toHaveBeenCalledOnce();
-    expect(ipc.start).toHaveBeenCalledOnce();
-  });
-
   it("失败写在面板里", async () => {
-    ipc.clipboard.mockRejectedValueOnce("剪贴板里没有图片");
-    await show([]);
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^钉住剪贴板/ })); });
-    expect(screen.getByRole("alert").textContent).toBe("剪贴板里没有图片");
+    ipc.pin.mockRejectedValueOnce("截图已不在截图历史中");
+    await show([entry("s1", 3)]);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "钉到桌面" })); });
+    expect(screen.getByRole("alert").textContent).toBe("截图已不在截图历史中");
   });
 });

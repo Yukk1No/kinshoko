@@ -16,9 +16,12 @@ import { useToast } from "../ui/Toast";
  * 移到文件夹 | 移出此文件夹（文件夹浏览范围） | 移到回收站（轻提示里可撤销）；回收站里只有 恢复 | 永久删除…；最后是取消选择。
  * 只在选了两张及以上时出现（单张的这些操作在右键菜单里）。left 是 selectionBarPlacement 算出的水平位置；
  * onWidth 报告自己的宽度。升起、离开与左右挪动都用 Dock 的形变弹簧，减少动画时直接到位。
+ * 选择定不下一个图库时（跨图库，或含多份来源的图）libraryId 是 null，操作交给 acrossLibraries。
  */
-export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onError, safeMode = false, left, onWidth, compact = false }: {
-  libraryId: string;
+export function SelectionBar({ libraryId, acrossLibraries, scope, ids, onClear, reloadKey, onError, safeMode = false, left, onWidth, compact = false }: {
+  libraryId: string | null;
+  /** 与右键菜单同一条写入：按卡片显示的那份来源、按图库分组。folderLibrary 是这些来源共同的图库，没有就不能放进文件夹。 */
+  acrossLibraries?: { folderLibrary: string | null; edit: (edits: ImageEdit[], clear: boolean) => void };
   scope: BrowseScope;
   ids: string[];
   onClear: () => void;
@@ -42,11 +45,13 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
   currentKey.current = selectionKey;
   useEffect(() => setPurging(false), [selectionKey]);
 
+  const folderLibrary = libraryId ?? acrossLibraries?.folderLibrary ?? null;
   useEffect(() => {
+    if (folderLibrary === null) { setFolders(null); return; }
     let alive = true;
-    workspaceSidebar(libraryId, safeMode).then((s) => alive && setFolders(flattenFolders(s.folders)), () => undefined);
+    workspaceSidebar(folderLibrary, safeMode).then((s) => alive && setFolders(flattenFolders(s.folders)), () => undefined);
     return () => { alive = false; };
-  }, [libraryId, reloadKey, safeMode]);
+  }, [folderLibrary, reloadKey, safeMode]);
 
   // 观察者只接一次，回调读最新的 onWidth 与 compact。
   const report = useRef({ onWidth, compact });
@@ -64,6 +69,7 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
   }, []);
 
   const edit = (edits: ImageEdit[], clear: boolean) => {
+    if (libraryId === null) { acrossLibraries?.edit(edits, clear); return; }
     const key = selectionKey, picked = ids;
     void editImages(libraryId, picked, edits).then(
       () => {
@@ -106,7 +112,7 @@ export function SelectionBar({ libraryId, scope, ids, onClear, reloadKey, onErro
     transition={reduced ? instant : arcSpring.morph}>
     <Dock label={t("selection.actions")} items={items} onSelect={run} className={compact ? "is-compact" : ""}
       readout={compact ? <b aria-label={t("selection.count", { count: ids.length })}>{t("selection.countShort", { count: ids.length })}</b> : <b>{t("selection.count", { count: ids.length })}</b>} />
-    {purging && scope.kind === "trash" && <PermanentDeleteConfirm libraryId={libraryId} ids={ids} safeMode={safeMode}
+    {purging && libraryId !== null && scope.kind === "trash" && <PermanentDeleteConfirm libraryId={libraryId} ids={ids} safeMode={safeMode}
       onDone={() => { setPurging(false); onClear(); }} onCancel={() => setPurging(false)} onError={onError} />}
   </motion.div>;
 }

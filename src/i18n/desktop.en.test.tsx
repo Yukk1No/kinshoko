@@ -98,7 +98,7 @@ describe("英文界面：桌面", () => {
   it("截图历史与它的右键菜单", async () => {
     render(<CaptureHistoryPanel />);
     await settle();
-    expect(screen.getByText("Press F1 to capture the screen. Old screenshots that aren't collected are cleaned up automatically.")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Pin to desktop" }).length).toBeGreaterThan(0);
     expect(screen.getByText("5 minutes ago")).toBeTruthy();
     expectNoChinese(document.body);
     fireEvent.contextMenu(screen.getAllByRole("listitem")[0]!);
