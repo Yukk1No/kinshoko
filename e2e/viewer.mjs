@@ -122,6 +122,9 @@ try {
   const pinned = await until("钉住结果的通知", () => exec(PIN_TOAST_PROBE));
   check(pinned.top && pinned.inWindow && pinned.overViewer && pinned.clearOfDock, "查看器打开时钉住结果的通知可见，没有被盖住，也不挡工具条");
   writeFileSync(join(output, "viewer-pin-toast.png"), Buffer.from(await wd("GET", `${base}/screenshot`), "base64"));
+  await exec("document.documentElement.dataset.theme = 'dark'");
+  writeFileSync(join(output, "viewer-pin-toast-dark.png"), Buffer.from(await wd("GET", `${base}/screenshot`), "base64"));
+  await exec("delete document.documentElement.dataset.theme");
   const screenshot = await wd("GET", `${base}/screenshot`);
   writeFileSync(join(output, "viewer.png"), Buffer.from(screenshot, "base64"));
   const viewerKey = async (value) => wd("POST", `${base}/actions`, { actions: [{type:"key",id:"keyboard",actions:[{type:"keyDown",value},{type:"keyUp",value}]}] });
