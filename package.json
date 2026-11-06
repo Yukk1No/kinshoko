@@ -15,6 +15,7 @@
     "vite:build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "check": "node scripts/check.mjs",
     "bindings": "node -e \"require('node:fs').rmSync('src/bindings',{recursive:true,force:true})\" && cargo test -p kinshoko-core --lib"
   },
   "dependencies": {
