@@ -4,7 +4,7 @@ use super::*;
 use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
 
-/// 当前资料库这次打开时的对账结果。
+/// 这个资料库这次打开时的对账结果；还没打开时打开它。
 #[tauri::command]
 pub(super) async fn recovery(
     state: State<'_, LibraryState>,

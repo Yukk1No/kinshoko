@@ -34,6 +34,7 @@ const importing: Translation<typeof zh> = {
     kept_one: "The library's original folder has {{count}} unrecognized file; it was kept",
     kept_other: "The library's original folder has {{count}} unrecognized files; they were kept",
     separator: "; ",
+    inLibrary: "{{library}}: {{summary}}",
     showFiles: "Show files",
     reimportLabel: "Import these files again",
     reimport: "Import again",

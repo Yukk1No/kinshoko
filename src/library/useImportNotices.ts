@@ -1,27 +1,27 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import type { RecoveryReport } from "../bindings/RecoveryReport";
+import { useEffect, useRef, useState } from "react";
 import { onSafeModeSetting, onWorkspaceChanged } from "../ipc";
 import { useToast } from "../ui/Toast";
 import { useTranslation } from "react-i18next";
 import type { FinishedImport } from "./ImportBar";
 import { importNotice } from "./ImportBarParts";
+import type { LibraryRecovery } from "./useImportRecovery";
 
 /**
  * 导入的一次性提示走轻提示管线（#388）：结束、出错、上次中断与封印项重复。结束的提示带“查看”，打开结果回执卡；
  * 回执也可从导入菜单的“导入任务”打开。没有 ToastProvider 时 toast 为 null，导入条退回原来的卡片，回执一直显示。
  */
-export function useImportNotices({ finished, owner, warnings = [], onSelectTask, recovery, setRecovery, importError, setImportError, reimport, sealedTask, showSealed }: {
+export function useImportNotices({ finished, owner, warnings = [], onSelectTask, recovery, dismissRecovery, importError, setImportError, reimport, sealedTask, showSealed }: {
   finished: FinishedImport | null;
   owner: string | null;
   warnings?: readonly string[];
   /** 让导入菜单选中某个任务：“查看”先选中它，回执显示的才是这条提示的任务。 */
   onSelectTask?: (taskId: string) => void;
-  recovery: RecoveryReport | null;
-  setRecovery: Dispatch<SetStateAction<RecoveryReport | null>>;
+  recovery: LibraryRecovery | null;
+  dismissRecovery: (recovery: LibraryRecovery) => void;
   importError: string | null;
   setImportError: (value: null) => void;
-  /** 重新导入上次中断时撤回的文件。 */
-  reimport: (paths: string[]) => void;
+  /** 把上次中断时撤回的文件重新导入回它们所在的资料库。 */
+  reimport: (paths: string[], libraryId: string) => void;
   sealedTask: string | null;
   showSealed: (taskId: string) => void;
 }) {
@@ -40,22 +40,21 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
     setImportError(null);
   }, [toast, importError, setImportError]);
 
-  // 上次导入中断或原文件夹里有不认识的文件：打开图库时提示一次，可直接重新导入撤回的文件。
-  // 换了图库（重新读取恢复报告）或卸下时收起，旧提示不会把上一个图库的文件导进新位置，也不会清掉新报告。
+  // 上次导入中断或原文件夹里有不认识的文件：每个图库提示一次，可直接把撤回的文件重新导入回那个图库。
   useEffect(() => {
-    const interrupted = recovery?.interrupted ?? [], orphans = recovery?.orphans ?? [];
-    if (!toast || (interrupted.length === 0 && orphans.length === 0)) return;
+    if (!toast || !recovery) return;
+    const { interrupted, orphans } = recovery.report;
     let current = true;
     const id = toast.show({
       title: interrupted.length > 0 ? t("recovery.interrupted") : t("recovery.orphans"),
-      description: [interrupted.length > 0 && t("recovery.withdrawn", { count: interrupted.length }),
-        orphans.length > 0 && t("recovery.kept", { count: orphans.length })].filter(Boolean).join(t("recovery.separator")),
+      description: t("recovery.inLibrary", { library: recovery.libraryName, summary: [interrupted.length > 0 && t("recovery.withdrawn", { count: interrupted.length }),
+        orphans.length > 0 && t("recovery.kept", { count: orphans.length })].filter(Boolean).join(t("recovery.separator")) }),
       timeout: 0,
-      action: interrupted.length > 0 ? { label: t("recovery.reimport"), onClick: () => { if (!current) return; toast.close(id); latest.current.reimport(interrupted); } } : undefined,
-      onClose: () => { if (current) setRecovery((value) => value === recovery ? null : value); },
+      action: interrupted.length > 0 ? { label: t("recovery.reimport"), onClick: () => { if (!current) return; toast.close(id); latest.current.reimport(interrupted, recovery.libraryId); } } : undefined,
+      onClose: () => { if (current) dismissRecovery(recovery); },
     });
     return () => { current = false; toast.close(id); };
-  }, [toast, recovery, setRecovery]);
+  }, [toast, recovery, dismissRecovery]);
 
   // 导入结束：每个任务一条轻提示；安全模式或工作区变化收起数字时，已显示的提示原地更新（notice.key 概括了提示内容）。
   const notice = report && finished ? importNotice(report, owner, warnings) : null;

@@ -203,7 +203,7 @@ export function cancelImport(libraryId: string, taskId: string): Promise<void> {
   return invoke<void>(lib("cancel_import"), { libraryId, taskId });
 }
 
-/** 当前资料库这次打开时的对账结果：撤回的中断导入项与不认识的孤立文件。 */
+/** 这个资料库这次打开时的对账结果：撤回的中断导入项与不认识的孤立文件。 */
 export function libraryRecovery(libraryId: string): Promise<RecoveryReport> {
   return invoke<RecoveryReport>(lib("recovery"), { libraryId });
 }

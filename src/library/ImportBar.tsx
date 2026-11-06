@@ -9,14 +9,14 @@ import { SealLock } from "../ui/SealLock";
 import type { ImportOptions } from "../bindings/ImportOptions";
 import type { ImportProgress } from "../bindings/ImportProgress";
 import type { ImportReport } from "../bindings/ImportReport";
-import type { RecoveryReport } from "../bindings/RecoveryReport";
 import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
 import { EagleTagStep } from "./EagleTagStep";
 import type { EagleLocationChoice } from "../bindings/EagleLocationChoice";
 import type { EagleRelocation } from "../bindings/EagleRelocation";
-import { cancelImport, confirmEagleLocation, discoverEagleLibraries, importContainsEagle, libraryRecovery, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
+import { cancelImport, confirmEagleLocation, discoverEagleLibraries, importContainsEagle, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
 import { EagleLibrariesDialog, ImportPlanDialog, ImportResultCard, type ImportPlan } from "./ImportBarParts";
 import { useImportNotices } from "./useImportNotices";
+import { useImportRecovery } from "./useImportRecovery";
 
 export type RunningImport = { taskId: string | null; progress: ImportProgress; libraryId?:string; destination?:SaveDestination; libraryName?:string; folderName?:string };
 /** 已结束的导入任务与它的报告。 */
@@ -27,8 +27,6 @@ type Props = {
   previewContextKey?: string;
   /** 拖入窗口不开始导入（回收站范围）：悬停不提示，松开后只发一条通知。 */
   dropBlocked?: boolean;
-  /** 读“上次导入中断”用哪个图库；没给时用 `libraryId`。 */
-  recoveryLibraryId?: string;
   libraryId: string;
   libraryName: string;
   destination?:SaveDestination|null;
@@ -67,7 +65,7 @@ export type ImportActions = { files: () => void; folder: () => void; eagle: () =
  * 进度是右下角的卡片，可取消或后台进行。结束、出错、上次中断与封印项重复走轻提示（#388）；结束的提示带“查看”，
  * 打开结果回执卡：列出没有进来的文件并可只重试读取失败的项。没有 ToastProvider 时（单独渲染）这些仍是卡片。
  */
-export function ImportBar({ previewContextKey, recoveryLibraryId, dropBlocked = false, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, warnings, onSelectTask }: Props) {
+export function ImportBar({ previewContextKey, dropBlocked = false, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, warnings, onSelectTask }: Props) {
   const { t } = useTranslation("importing");
   /** “后台进行”收起的进度卡（按任务 id）；新任务或从导入菜单“查看导入任务”时重新显示。 */
   const [background, setBackground] = useState<string | null>(null);
@@ -76,7 +74,7 @@ export function ImportBar({ previewContextKey, recoveryLibraryId, dropBlocked = 
   const [preview, setPreview] = useState<{ taskId: string; contextKey: string } | null>(null);
   useEffect(() => { setPreview(null); }, [finished?.taskId, contextKey, enabled]);
   const [hovering, setHovering] = useState(false);
-  const [recovery, setRecovery] = useState<RecoveryReport | null>(null);
+  const { recovery, dismiss: dismissRecovery } = useImportRecovery();
   const [eagleLibraries, setEagleLibraries] = useState<EagleLibraryCandidate[] | null>(null);
   const [lookingForEagle, setLookingForEagle] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -210,18 +208,6 @@ export function ImportBar({ previewContextKey, recoveryLibraryId, dropBlocked = 
     };
   }, []);
 
-  const recoveryLibrary = recoveryLibraryId ?? libraryId;
-  useEffect(() => {
-    let alive = true;
-    libraryRecovery(recoveryLibrary).then(
-      (value) => alive && setRecovery(value),
-      () => {},
-    );
-    return () => {
-      alive = false;
-    };
-  }, [recoveryLibrary]);
-
   const { done = 0, total = 0 } = running?.progress ?? {};
   const relocations = (report?.eagleRelocations ?? []).filter((r) => !confirmed.includes(r.to));
   const confirm = async (relocation: EagleRelocation, choice: EagleLocationChoice) => {
@@ -235,16 +221,17 @@ export function ImportBar({ previewContextKey, recoveryLibraryId, dropBlocked = 
       if (alive.current) setImportError(t("failed.confirmEagle", { error: String(error) }));
     }
   };
-  const interrupted = recovery?.interrupted ?? [];
-  const orphans = recovery?.orphans ?? [];
+  const interrupted = recovery?.report.interrupted ?? [];
+  const orphans = recovery?.report.orphans ?? [];
+  const reimport = (paths: string[], library: string) => latest.current.begin(paths, false, undefined, { libraryId: library, folderId: null });
 
   const minimized = running !== null && background === (running.taskId ?? "");
   const owner = ownerLabel ?? (finished?.libraryName ? t("owner", { library: finished.libraryName, folder: finished.folderName ?? t("unassigned") }) : running?.libraryName ? t("owner", { library: running.libraryName, folder: running.folderName ?? t("unassigned") }) : null);
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
   const sealed = report?.sealedDuplicates && finished;
 
-  const { toast, receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, recovery, setRecovery, importError, setImportError,
-    reimport: (paths) => void latest.current.begin(paths), sealedTask: sealed ? sealed.taskId : null, showSealed: (taskId) => setPreview({ taskId, contextKey }) });
+  const { toast, receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, recovery, dismissRecovery, importError, setImportError,
+    reimport: (paths, library) => void reimport(paths, library), sealedTask: sealed ? sealed.taskId : null, showSealed: (taskId) => setPreview({ taskId, contextKey }) });
 
   latest.current.noticeBlockedDrop = () => { toast?.show({ title: t("drop.inTrash") }); };
 
@@ -254,21 +241,20 @@ export function ImportBar({ previewContextKey, recoveryLibraryId, dropBlocked = 
         <button type="button" className="k-icon-btn is-sm" aria-label={t("error.dismiss")} onClick={() => setImportError(null)}><X size={14} aria-hidden="true" /></button></div>
       <p className="k-task-sub">{importError}</p>
     </section>}
-    {!toast && (interrupted.length > 0 || orphans.length > 0) && (
+    {!toast && recovery && (
       <section className="k-task" role="status" aria-label={interrupted.length > 0 ? t("recovery.interrupted") : t("recovery.orphansLabel")}>
         <div className="k-task-top"><History size={16} className="k-task-icon" aria-hidden="true" />
           <b>{interrupted.length > 0 ? t("recovery.interrupted") : t("recovery.orphans")}</b>
-          <button type="button" className="k-icon-btn is-sm" aria-label={t("recovery.close")} onClick={() => setRecovery(null)}><X size={14} aria-hidden="true" /></button></div>
+          <button type="button" className="k-icon-btn is-sm" aria-label={t("recovery.close")} onClick={() => dismissRecovery(recovery)}><X size={14} aria-hidden="true" /></button></div>
         <p className="k-task-sub">
-          {interrupted.length > 0 && t("recovery.withdrawn", { count: interrupted.length })}
-          {interrupted.length > 0 && orphans.length > 0 && t("recovery.separator")}
-          {orphans.length > 0 && t("recovery.kept", { count: orphans.length })}
+          {t("recovery.inLibrary", { library: recovery.libraryName, summary: [interrupted.length > 0 && t("recovery.withdrawn", { count: interrupted.length }),
+            orphans.length > 0 && t("recovery.kept", { count: orphans.length })].filter(Boolean).join(t("recovery.separator")) })}
         </p>
         {interrupted.length > 0 && <details className="k-task-more"><summary>{t("recovery.showFiles")}</summary><ul>
           {interrupted.map((path) => <li key={path}><span className="import-report-path">{path}</span></li>)}
         </ul></details>}
         {interrupted.length > 0 && <div className="k-task-acts">
-          <button type="button" className="k-btn is-sm" aria-label={t("recovery.reimportLabel")} disabled={busy} onClick={() => { void begin(interrupted); setRecovery(null); }}><span className="k-label">{t("recovery.reimport")}</span></button>
+          <button type="button" className="k-btn is-sm" aria-label={t("recovery.reimportLabel")} disabled={busy} onClick={() => { void reimport(interrupted, recovery.libraryId); dismissRecovery(recovery); }}><span className="k-label">{t("recovery.reimport")}</span></button>
         </div>}
       </section>
     )}

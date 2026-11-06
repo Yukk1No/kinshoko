@@ -342,6 +342,25 @@ fn reading_a_library_does_not_require_it_to_hold_the_writable_handle() {
     ));
 }
 
+/// 读上次导入中断要带上登记的资料库 id：空 id 取不到句柄，前端不能用它代替“还没选保存目标”。
+#[test]
+fn a_writer_needs_a_registered_id_and_opening_it_reports_its_own_recovery() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut device, _a, b) = two_libraries(dir.path());
+    assert!(matches!(
+        device.write(""),
+        Err(DeviceLibraryError::UnknownLibrary)
+    ));
+    assert!(
+        device
+            .write(&b.id)
+            .unwrap()
+            .recovery()
+            .interrupted
+            .is_empty()
+    );
+}
+
 /// 安全模式开关设给所有开着的可写句柄：后台导入仍持有的旧库不会留着旧视角。
 #[test]
 fn the_safe_mode_setting_reaches_every_open_writable_library() {

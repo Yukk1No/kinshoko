@@ -117,7 +117,7 @@ export function ImportMenu({control,...p}:Omit<ComponentProps<typeof ImportBar>,
  return <div className="import-menu">
   <ImportButton busy={busy.busy||active} eagleBusy={busy.eagle} canStart={!inTrash} onFiles={via("files")} onFolder={via("folder")} onEagle={eagle}
    onShowTasks={tasks.length>0||active||finished?()=>actions.current?.showTasks():undefined}/>
-  <ImportBar {...p} actionsRef={actions} onBusyChange={onBusyChange} dropBlocked={inTrash} previewContextKey={context.providers.map(provider=>provider.registration.library.id).join("/")} recoveryLibraryId={picked?.libraryId??""} libraryId={destination?.libraryId??""} libraryName={library?.name??t("noLibraryChosen")}
+  <ImportBar {...p} actionsRef={actions} onBusyChange={onBusyChange} dropBlocked={inTrash} previewContextKey={context.providers.map(provider=>provider.registration.library.id).join("/")} libraryId={destination?.libraryId??""} libraryName={library?.name??t("noLibraryChosen")}
     destination={destination} destinationReady={context.ready&&destinationAvailable(destination,context.providers)} running={running} finished={finished}
     picker={<SaveDestinationPicker value={destination} onChange={value=>{handPicked.current=true;setPicked(value);}} putInLibrary/>}
     taskSwitcher={switcher} cardNotes={notes} warnings={warnings} onSelectTask={setSelectedTask} ownerLabel={task?t("owner",{library:task.libraryName,folder:task.folderName??t("unassigned")}):null}

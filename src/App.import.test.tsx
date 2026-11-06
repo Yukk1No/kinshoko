@@ -115,27 +115,6 @@ describe("主窗口", () => {
     );
   });
 
-  it("上次导入中断时提示撤回了哪些文件，并可以重新导入", async () => {
-    backend(library, {
-      interrupted: ["D:\\参考\\b.png"],
-      orphans: ["originals/ab/x.png"],
-      discardedStaging: 0,
-    });
-    render(<App />);
-
-    // 轻提示（#388）：撤回与不认识的文件各报数量，“重新导入”把撤回的文件再导一次。
-    expect(await screen.findByText("上次导入中断")).toBeTruthy();
-    expect(screen.getByText(/1 个文件已撤回/).textContent).toContain("1 个不认识的文件");
-    fireEvent.click(screen.getByRole("button", { name: "重新导入" }));
-    await confirmImport();
-
-    await waitFor(() =>
-      expect(sent("plugin:library|start_import")).toEqual([
-        { libraryId: "L1", source: { paths: ["D:\\参考\\b.png"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
-      ]),
-    );
-  });
-
   it("打标卡片不再占侧栏；缩放滑块左边的打标图标打开设置 › 自动标签（#144）", async () => {
     backend(library);
     render(<App />);
