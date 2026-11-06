@@ -10,7 +10,7 @@ import { CascadeController, menuDebugEnabled } from "./menu/cascade";
 import { menuMotionVars } from "./menu/timing";
 
 /**
- * Shared Base UI menu parts with the project styling (design/ui-system/README.md, 组件对照).
+ * Shared Base UI menu parts with the project styling (design/ui-system/tokens-and-components.md, 组件对照).
  * Popups render in a portal; `side`/`align` follow Base UI's positioner.
  *
  * 每棵菜单树有一个 CascadeController（src/ui/menu/cascade.ts）：子菜单悬停 220 ms 才打开，斜着朝子菜单移动时

@@ -2,7 +2,7 @@ export type Box = { x: number; y: number; width: number; height: number };
 export type Size = { width: number; height: number };
 
 /**
- * Where a dock that follows a selection goes (design/ui-system/README.md, Dock 放置): 14 px under the
+ * Where a dock that follows a selection goes (design/ui-system/buttons-and-dock.md, Dock 放置): 14 px under the
  * selection and centred on it; above it when there is no room below; pinned to the bottom of the usable
  * area when neither fits. Never leaves the bounds horizontally. `reserveBottom` keeps another dock clear.
  */

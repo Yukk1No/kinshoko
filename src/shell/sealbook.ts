@@ -1,4 +1,4 @@
-// Copied verbatim from bd8aea44:prototype/reference-browser/src/sealbook.ts (brand invariant, design/ui-system/README.md).
+// Copied verbatim from bd8aea44:prototype/reference-browser/src/sealbook.ts (brand invariant, design/ui-system/brand-invariants.md).
 // The seal book (封印书, #27): geometry and drawing, ported from the chosen design
 // (design/seal-book-concepts/round5-a1-round-lock, 24 px master). p = 0 sealed, 1 open.
 
