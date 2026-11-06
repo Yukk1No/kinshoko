@@ -20,6 +20,7 @@ import {
   safeMode,
   setSafeMode,
   shellSettings,
+  setInspectorOpen,
   setInspectorWidth,
   uiScale,
 } from "./ipc";
@@ -94,11 +95,13 @@ function MainWindow() {
   /** 标签外观（#160）：详情面板与查看器从上下文读取，设置一改立即生效。 */
   const [tagDisplay, setTagDisplay] = useState<TagDisplay>(DEFAULT_TAG_DISPLAY);
   const [inspectorWidth, setInspectorWidthState] = useState<number | undefined>(undefined);
+  const [inspectorShown, setInspectorShownState] = useState(false);
   const acceptShellSettings = useCallback((view: ShellSettingsView) => {
     setShowApproxSource(view.showApproxSource);
     setTagDisplay(view.tagDisplay ?? DEFAULT_TAG_DISPLAY);
     setKeepSelectionOnSafe(view.keepSelectionOnSafeMode ?? false);
     setInspectorWidthState(view.inspectorWidth);
+    setInspectorShownState(view.inspectorOpen ?? false);
   }, []);
   /** 设置页交来过快照后，启动时读到的那份已经旧了，回得晚也不再接受（#321）。 */
   const settingsChanged = useRef(false);
@@ -111,6 +114,11 @@ function MainWindow() {
   const changeInspectorWidth = useCallback((width: number) => {
     setInspectorWidthState(width);
     void setInspectorWidth(width).catch(() => {});
+  }, []);
+  /** 详情面板的开合同样先生效再写设置。 */
+  const changeInspectorShown = useCallback((open: boolean) => {
+    setInspectorShownState(open);
+    void setInspectorOpen(open).catch(() => {});
   }, []);
   const { uiScalePercent, uiScaleWriting, acceptUiScale, chooseUiScale } = useUiScaleChoice(toast);
   /**
@@ -285,6 +293,8 @@ function MainWindow() {
           keepSelectionOnSafe={keepSelectionOnSafe}
           inspectorWidth={inspectorWidth}
           onInspectorWidth={changeInspectorWidth}
+          inspectorShown={inspectorShown}
+          onInspectorShown={changeInspectorShown}
           onLibraryRemoved={() => changed(null)}
           onOpenTaggingSettings={() => openSettings("tagging")}
         />

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckSquare, ClipboardPaste, Copy, Crop, Download, FileImage, FolderMinus, FolderOpen, FolderSearch, Images, Layers, Maximize2, Pin, RotateCcw, ShieldCheck, Trash2 } from "lucide-react";
-import { FolderGlyph, Menu, MenuItem, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuTip } from "../ui/Menu";
+import { FolderGlyph, Menu, MenuCheckboxItem, MenuItem, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuTip } from "../ui/Menu";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ContentRating } from "../bindings/ContentRating";
 import type { GroupSummary } from "../bindings/GroupSummary";
@@ -141,10 +141,15 @@ function Organize({ cards, actions, scope, single }: { cards: BrowserCard[]; act
  * 图片墙的右键菜单内容（#102 “右键菜单”表的瀑布流各行）：单张、多张、回收站范围与空白处。
  * 复制图片、在资源管理器中显示与从剪贴板导入是 #105 的新能力。
  */
-export function WallMenu({ target, scope, density, actions }: {
+export function WallMenu({ target, scope, density, actions, inspectorOpen = false, onToggleInspector }: {
   target: WallMenuTarget; scope: BrowseScope; density: number; actions: WallMenuActions;
+  inspectorOpen?: boolean; onToggleInspector?: () => void;
 }) {
-  const { t } = useTranslation(["wall", "common"]);
+  const { t } = useTranslation(["wall", "common", "viewer"]);
+  const inspector = onToggleInspector && <>
+    <MenuSeparator />
+    <MenuCheckboxItem checked={inspectorOpen} onCheckedChange={onToggleInspector} kbd="I">{t("viewer:menu.inspector")}</MenuCheckboxItem>
+  </>;
   if (target.kind === "blank") {
     // 回收站里不能发起新的导入（ADR-0016）。
     const inTrash = scope.kind === "trash";
@@ -162,6 +167,7 @@ export function WallMenu({ target, scope, density, actions }: {
           {DENSITY_PRESETS.map((p) => <MenuRadioItem key={p.value} value={p.value}>{t(`density.${p.label}`)}</MenuRadioItem>)}
         </Menu.RadioGroup>
       </MenuSubmenu>
+      {inspector}
     </>;
   }
   const { cards, point } = target;
@@ -185,6 +191,7 @@ export function WallMenu({ target, scope, density, actions }: {
       {sources.length >= 2 && <MenuItem icon={icon(Layers)} onClick={() => actions.inspectSources(card)}>{t("menu.inspectSources")}</MenuItem>}
       <MenuSeparator />
       <MenuItem icon={icon(FolderSearch)} onClick={() => actions.reveal(card)}>{t("common:image.reveal")}</MenuItem>
+      {inspector}
       <MenuSeparator />
       <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>{t("common:image.trash")}</MenuItem>
     </>;
@@ -194,6 +201,7 @@ export function WallMenu({ target, scope, density, actions }: {
     <MenuItem icon={icon(Copy)} disabled className="has-meta">{t("menu.copyMany")}<span className="k-item-meta">{t("menu.copyOneOnly")}</span></MenuItem>
     <MenuSeparator />
     <Organize cards={cards} actions={actions} scope={scope} single={false} />
+    {inspector}
     <MenuSeparator />
     <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>{t("menu.trashCount", { count: cards.length })}</MenuItem>
   </>;

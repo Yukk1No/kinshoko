@@ -8,7 +8,7 @@ import { InspectorResizer } from "../shell/InspectorResizer";
 import { WinCtrls } from "../ui/WinCtrls";
 import type { WorkspaceInspectorState } from "./useWorkspaceInspector";
 
-/** 工作区右侧的详情面板：明确打开的来源整理，或当前选择的整理。 */
+/** 工作区右侧的详情面板：明确打开的来源整理，或当前选择的整理；没有可整理的内容时留空，宽度不变。收起时不读详情。 */
 export function WorkspaceInspector({
   inspector, status, safe, reloadKey, vocabularyKey, setSelected,
   onError, onInspectorWidth,
@@ -25,7 +25,7 @@ export function WorkspaceInspector({
   const { t } = useTranslation("workspace");
   const {
     setInspectorElement, inspected, selectionKey, inspectorOpen, draggedWidth, setDraggedWidth, panelWidth, closeInspector, closeSources,
-    selectionLibrary, panelIds,
+    selectionLibrary, eligible, panelIds,
   } = inspector;
   return (
       <aside ref={setInspectorElement} className="inspector" aria-label={t("inspector.label")} data-selection={inspected?.id ?? selectionKey} data-collapsed={!inspectorOpen} data-resizing={draggedWidth !== null} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>
@@ -40,8 +40,8 @@ export function WorkspaceInspector({
           {inspectorOpen && <WinCtrls />}
         </header>
         <div className="insp-body">
-          {inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={closeSources} />
-          : <SelectionPanel
+          {!inspectorOpen ? null : inspected ? <WorkspaceSources key={inspected.id} card={inspected} registrations={status?.libraries ?? []} safe={safe} reloadKey={reloadKey} onClose={closeSources} />
+          : eligible && panelIds.length > 0 && <SelectionPanel
             libraryId={selectionLibrary ?? ""}
             selected={new Set(panelIds)}
             onClear={() => setSelected(new Set())}

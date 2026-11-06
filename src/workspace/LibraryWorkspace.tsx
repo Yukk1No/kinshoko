@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { PanelLeftOpen } from "lucide-react";
+import { PanelLeftOpen, PanelRight } from "lucide-react";
 import { useImportShortcut } from "./useImportShortcut";
+import { useInspectorShortcut } from "./useInspectorShortcut";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
@@ -56,6 +57,9 @@ type WorkspaceProps = {
   inspectorWidth?: number;
   /** 拖动松手、双击或方向键定下的详情面板宽度。 */
   onInspectorWidth: (width: number) => void;
+  /** 详情面板是否打开：本设备记住，只由画师亲手开合。 */
+  inspectorShown: boolean;
+  onInspectorShown: (open: boolean) => void;
   /** 顶栏下方的提示（运行时、旧名称、更新、备份提醒）。 */
   /** 侧栏图库标题菜单“从列表移除”之后（#114）。 */
   onLibraryRemoved?: (libraryId: string) => void;
@@ -84,10 +88,12 @@ export function LibraryWorkspace({
   keepSelectionOnSafe,
   inspectorWidth,
   onInspectorWidth,
+  inspectorShown,
+  onInspectorShown,
   onLibraryRemoved,
   onOpenTaggingSettings,
 }: WorkspaceProps) {
-  const { t } = useTranslation("workspace");
+  const { t } = useTranslation(["workspace", "viewer"]);
   const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
   keepSelectionOnSafeRef.current = keepSelectionOnSafe;
   const toast = useToast();
@@ -169,10 +175,11 @@ export function LibraryWorkspace({
   const [appBody, setAppBody] = useState<HTMLDivElement | null>(null);
   const bodyWidth = useWidth(appBody);
   const inspector = useWorkspaceInspector({
-    selected, setSelected, loadedCards, workspaceScope, sources, setSources, hidden, viewing, inspectorWidth,
+    selected, setSelected, loadedCards, workspaceScope, sources, setSources, hidden, viewing, inspectorWidth, inspectorShown, onInspectorShown,
     fitPanel: (width) => fitPanes(bodyWidth, width, paneOpen && !isNarrow(bodyWidth, width)).inspector,
   });
-  const { selectionLibrary, selectedCards, inspected, inspectorContent, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector } = inspector;
+  const { selectionLibrary, selectedCards, inspected, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector, openSources } = inspector;
+  useInspectorShortcut(toggleInspector, hidden || viewing !== null);
   const panes = usePaneFold({ body: bodyWidth, inspector: inspectorOpen ? inspector.panelWidth : 0, paneOpen, onPaneOpen });
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
@@ -180,7 +187,7 @@ export function LibraryWorkspace({
     safe, onError,
     onOpen: (card) => { setViewCrop(false); setViewing(card); },
     onCrop: (card) => { setViewCrop(true); setViewing(card); },
-    onInspect: (card) => setSources(card as WorkspaceCard),
+    onInspect: (card) => openSources(card as WorkspaceCard),
     onChanged: () => invalidate({ kind: "contentEdited" }),
     removeCards: (cards) => {
       const putBack = wall.current?.remove(cards.map((card) => card.id));
@@ -236,7 +243,10 @@ export function LibraryWorkspace({
               // 来源面板保持现状（与换左栏范围不同）。
               invalidate({ kind: "conditionsChanged" });
             }} />
-          {!inspectorOpen && <WinCtrls />}
+          {!inspectorOpen && <>
+            <button type="button" className="k-icon-btn" aria-label={t("viewer:tools.showInspector")} title={t("viewer:tools.showInspector")} onClick={toggleInspector}><PanelRight size={16} aria-hidden="true" /></button>
+            <WinCtrls />
+          </>}
           </header>
           <div className="app-tagbar">
           <TagGroupBar workspace libraryId="workspace" safe={safe} generation={vocabularyKey} input={search}
@@ -262,7 +272,7 @@ export function LibraryWorkspace({
             onTotalChange={setResultCount}
             key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
             workspaceScope={workspaceScope}
-            onInspectSources={(card) => { setSources(card); }}
+            onInspectSources={openSources}
             onCardsChange={setLoadedCards}
             onWorkspaceStatus={onWallStatus}
             scope={scope}
@@ -278,7 +288,7 @@ export function LibraryWorkspace({
             }}
             onOpenImage={(card) => { setViewCrop(false); setViewing(card); }}
             viewerOpen={viewerOpen}
-            menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} />}
+            menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} inspectorOpen={inspectorOpen} onToggleInspector={toggleInspector} />}
             onCardCommand={(command, cards, point) => {
               if (command === "pin") wallActions.pin(cards, point);
               else if (command === "crop") wallActions.crop(cards[0]);
@@ -320,7 +330,7 @@ export function LibraryWorkspace({
           )}
           </div>
         </main>
-        {inspectorContent && !hidden && (
+        {!hidden && (
           <WorkspaceInspector inspector={inspector} status={status} safe={safe} reloadKey={reloadKey} vocabularyKey={vocabularyKey}
             setSelected={setSelected}
             onError={onError} onInspectorWidth={onInspectorWidth} />

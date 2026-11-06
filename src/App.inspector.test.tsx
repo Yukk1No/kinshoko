@@ -23,8 +23,8 @@ const wallCards = [
 ];
 const outside = card("out", source("L1", "e1"), source("L2", "e2"));
 
-function backend(override?: (command: string, args: Record<string, string>) => unknown) {
-  const state = { cards: wallCards, open: null as unknown };
+function backend(override?: (command: string, args: Record<string, string>) => unknown, shown = true) {
+  const state = { cards: wallCards, open: null as unknown, shown, reads: [] as string[] };
   mockIPC((command, raw) => {
     const args = raw as Record<string, string>;
     const answer = override?.(command, args);
@@ -38,12 +38,13 @@ function backend(override?: (command: string, args: Record<string, string>) => u
       case "plugin:library|workspace_browse": return { cards: state.cards, total: state.cards.length, nextCursor: null, status };
       case "plugin:library|workspace_card": return args.imageId === "m2" ? card("both", source("L2", "m2"), source("L1", "m1"))
         : args.imageId === "f1" ? card("out2", source("L1", "f1")) : outside;
-      case "plugin:library|image": return { id: args.imageId, originalName: `${args.libraryId}/${args.imageId}`, width: 1, height: 1, collectedAt: 1000, sourceLinks: [], folders: [], note: { manual: null, sources: [] }, deletedAt: null, versions: { previous: null, newer: [] }, rating: { imageId: args.imageId, suggested: null, manual: null, effective: null } };
+      case "plugin:library|image": state.reads.push(args.imageId); return { id: args.imageId, originalName: `${args.libraryId}/${args.imageId}`, width: 1, height: 1, collectedAt: 1000, sourceLinks: [], folders: [], note: { manual: null, sources: [] }, deletedAt: null, versions: { previous: null, newer: [] }, rating: { imageId: args.imageId, suggested: null, manual: null, effective: null } };
       case "plugin:library|catalog_image_tags": return { image: { imageId: args.imageId, tags: [], rejected: [] }, identities: [] };
       case "plugin:library|workspace_sidebar": return { all: 1, trash: 0, folders: [] };
       case "plugin:desktop|take_open_request": { const next = state.open; state.open = null; return next; }
       case "tagging_status": return { state: "starting" };
-      case "shell_settings": return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid" };
+      case "shell_settings": return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid", inspectorOpen: state.shown };
+      case "set_inspector_open": state.shown = (raw as { open: boolean }).open; return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid", inspectorOpen: state.shown };
       case "app_info": return { productName: "Kinshoko", version: "1" };
       default: return null;
     }
@@ -65,12 +66,14 @@ const panel = () => document.querySelector<HTMLElement>("aside.inspector");
 const opened = () => panel()?.dataset.collapsed === "false";
 /** 面板里读到的文件名是“图库/图片”，所以它同时说明了整理的是哪个图库的哪一份。 */
 const shows = (name: string) => waitFor(() => expect(panel()?.querySelector(".insp-file-name")?.textContent).toBe(name));
-async function start(override?: Parameters<typeof backend>[0]) {
-  const state = backend(override);
+async function start(override?: Parameters<typeof backend>[0], shown = true) {
+  const state = backend(override, shown);
   render(<App />);
   await waitFor(() => expect(tile("a1")).toBeTruthy());
+  await waitFor(() => expect(opened()).toBe(shown));
   return state;
 }
+const wallWidth = () => tile("a1").style.width;
 const viewer = () => screen.getByRole("region", { name: "原图查看器" });
 const viewed = (src: string) => waitFor(() => expect(viewer().querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/${src}/full`));
 async function openReference(state: ReturnType<typeof backend>, libraryId: string, imageId: string) {
@@ -81,12 +84,71 @@ async function openReference(state: ReturnType<typeof backend>, libraryId: strin
 }
 
 describe("选择变化时", () => {
-  it.each([["跨图库", "b1"], ["含几个图库各有一份的图", "both"]])("多选%s：定不下整理哪个图库，不显示详情面板，选择不动；退回单选后面板回来", async (_, other) => {
+  it("面板默认关着：单击只选中，不开面板、不读详情；图片墙不动，第二下照样打开查看器", async () => {
+    const state = await start(undefined, false);
+    const width = wallWidth();
+    fireEvent.click(tile("a2"), { ctrlKey: true });
+    fireEvent.click(tile("a2"), { ctrlKey: true });
+    // jsdom 里每次点击都落在同一坐标：最后一下单击 a1，下面双击的第一下才是它的第二下。
+    fireEvent.click(tile("a1"));
+    await act(async () => { await new Promise((done) => setTimeout(done, 20)); });
+    expect(opened()).toBe(false);
+    expect(wallWidth()).toBe(width);
+    expect(state.reads).toEqual([]);
+    doubleClick(tile("a1"));
+    await viewed("L1/i1");
+  });
+
+  it("顶栏按钮打开后留着并记住：单击别的图只换内容，多选、取消选择都不收；收起按钮才收", async () => {
+    const state = await start(undefined, false);
+    fireEvent.click(tile("a1"));
+    fireEvent.click(screen.getByRole("button", { name: "显示详情" }));
+    await shows("L1/i1");
+    expect(state.shown).toBe(true);
+    expect(screen.queryByRole("button", { name: "显示详情" })).toBeNull();
+    fireEvent.click(tile("a2"));
+    await shows("L1/i2");
+    fireEvent.click(tile("b1"), { ctrlKey: true });
+    await waitFor(() => expect(panel()!.querySelector(".selection")).toBeNull());
+    expect(opened()).toBe(true);
+    fireEvent.click(document.querySelector<HTMLElement>(".wall-canvas")!);
+    expect(opened()).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "收起详情" }));
+    expect(opened()).toBe(false);
+    expect(state.shown).toBe(false);
+  });
+
+  it("图片墙上的 I 键显示或隐藏面板；在查找框里打字不算", async () => {
+    await start(undefined, false);
+    const input = screen.getByRole("combobox", { name: "查找参考图" });
+    fireEvent.keyDown(input, { key: "i" });
+    expect(opened()).toBe(false);
+    fireEvent.keyDown(document.body, { key: "i" });
+    expect(opened()).toBe(true);
+    fireEvent.keyDown(document.body, { key: "i", ctrlKey: true });
+    expect(opened()).toBe(true);
+    fireEvent.keyDown(document.body, { key: "I" });
+    expect(opened()).toBe(false);
+  });
+
+  it("上次开着，重新打开主窗口时面板也开着", async () => {
+    const state = await start(undefined, false);
+    fireEvent.keyDown(document.body, { key: "i" });
+    await waitFor(() => expect(state.shown).toBe(true));
+    cleanup();
+    await start(undefined, true);
+    expect(opened()).toBe(true);
+  });
+
+  it.each([["跨图库", "b1"], ["含几个图库各有一份的图", "both"]])("面板开着时多选%s：定不下整理哪个图库，内容留空、宽度不变，选择不动；退回单选后内容回来", async (_, other) => {
     await start();
     fireEvent.click(tile("a1"));
     await shows("L1/i1");
+    const width = wallWidth();
     fireEvent.click(tile(other), { ctrlKey: true });
-    await waitFor(() => expect(panel()).toBeNull());
+    await waitFor(() => expect(panel()!.querySelector(".selection, .workspace-sources")).toBeNull());
+    expect(opened()).toBe(true);
+    expect(wallWidth()).toBe(width);
     expect(tile("a1").getAttribute("aria-selected")).toBe("true");
     expect(tile(other).getAttribute("aria-selected")).toBe("true");
     fireEvent.click(tile(other), { ctrlKey: true });
@@ -105,30 +167,11 @@ describe("选择变化时", () => {
     expect(opened()).toBe(true);
   });
 
-  it("收起面板只对收起时的那组选择有效：选过别的再选回来，面板打开", async () => {
-    await start();
-    fireEvent.click(tile("a1"));
-    await shows("L1/i1");
-    fireEvent.click(screen.getByRole("button", { name: "收起详情" }));
-    expect(opened()).toBe(false);
-    fireEvent.click(tile("a2"));
-    await shows("L1/i2");
-    fireEvent.click(tile("a1"));
-    await shows("L1/i1");
-    expect(opened()).toBe(true);
-
-    fireEvent.click(screen.getByRole("button", { name: "收起详情" }));
-    fireEvent.click(document.querySelector<HTMLElement>(".wall-canvas")!);
-    expect(panel()).toBeNull();
-    fireEvent.click(tile("a1"));
-    await shows("L1/i1");
-    expect(opened()).toBe(true);
-  });
-
-  it("来源按钮打开的整理在画师改选别的图后让位，同一图库的多选悬浮栏也能出来", async () => {
-    await start();
+  it("面板关着时点来源按钮：面板打开并留着；画师改选别的图后整理让位，同一图库的多选悬浮栏也能出来", async () => {
+    await start(undefined, false);
     fireEvent.click(screen.getByRole("button", { name: "在 2 个图库，查看详情" }));
     await shows("L1/m1");
+    expect(opened()).toBe(true);
     fireEvent.click(tile("a1"));
     await shows("L1/i1");
     expect(panel()!.dataset.selection).toBe("a1");
@@ -203,8 +246,12 @@ describe("查看器里", () => {
     expect(opened()).toBe(false);
     fireEvent.keyDown(viewer(), { key: "ArrowRight" });
     await viewed("L1/m1");
+    expect(opened()).toBe(false);
+    expect(panel()!.querySelector(".insp-body")!.childElementCount).toBe(0);
+    fireEvent.keyDown(viewer(), { key: "i" });
     await shows("L1/m1");
     expect(panel()!.querySelector(".workspace-sources")).toBeTruthy();
+    fireEvent.keyDown(viewer(), { key: "i" });
     expect(opened()).toBe(false);
     fireEvent.keyDown(viewer(), { key: "Escape" });
     expect(opened()).toBe(false);
@@ -221,7 +268,8 @@ describe("查看器里", () => {
     expect(opened()).toBe(true);
     await shows("L1/e1");
     fireEvent.keyDown(viewer(), { key: "Escape" });
-    await waitFor(() => expect(panel()).toBeNull());
+    await waitFor(() => expect(panel()!.querySelector(".workspace-sources")).toBeNull());
+    expect(opened()).toBe(true);
   });
 
   it("看墙外的图时不管怎么收起再打开，面板都不换成图片墙上选中的那张，退出才回去", async () => {
@@ -246,11 +294,9 @@ describe("查看器里", () => {
     expect(opened()).toBe(true);
   });
 
-  it("画师已收起面板时打开墙外的图也保持收起，退出后选择的面板仍收起", async () => {
-    const state = await start();
+  it("面板关着时打开墙外的图也保持关着，退出后仍关着", async () => {
+    const state = await start(undefined, false);
     fireEvent.click(tile("a1"));
-    await shows("L1/i1");
-    fireEvent.click(screen.getByRole("button", { name: "收起详情" }));
     await openReference(state, "L1", "e1");
     expect(opened()).toBe(false);
     fireEvent.keyDown(viewer(), { key: "Escape" });

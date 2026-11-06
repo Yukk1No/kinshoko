@@ -107,6 +107,8 @@ pub struct ShellSettingsView {
     /// 主窗口详情面板的宽度；没有时用 320。
     #[ts(optional)]
     pub inspector_width: Option<u32>,
+    /// 主窗口详情面板是否打开。
+    pub inspector_open: bool,
     /// 检查更新用的通道（#204）：画师选的，没选过时按当前构建的版本号。
     pub update_channel: crate::UpdateChannel,
 }
@@ -126,6 +128,7 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
             viewer_background: settings.viewer_background(),
             tag_display: settings.tag_display(),
             inspector_width: settings.inspector_width(),
+            inspector_open: settings.inspector_open(),
             update_channel: settings.update_channel(),
         }
     }
