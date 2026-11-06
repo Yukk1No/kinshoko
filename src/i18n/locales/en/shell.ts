@@ -53,7 +53,6 @@ const shell: Translation<typeof zh> = {
     capturesLabel: "Capture history",
     collapse: "Collapse sidebar",
   },
-  backToLibrary: "Back to the library",
   back: "Back",
   settingsTitle: "Settings",
   closeSettings: "Close settings",

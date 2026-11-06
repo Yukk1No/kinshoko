@@ -200,11 +200,11 @@ try {
   await session.exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]; return true;", [parent]);
   await session.click("//button[@aria-label='打开、新建或管理图库']");
   await session.click("//*[@role='menuitem'][contains(normalize-space(), '新建图库')]");
-  await until("create form", () => session.exec("return Boolean(document.querySelector('.create-library'));"));
+  await until("create form", () => session.exec("return Boolean(document.querySelector('.create-library-dialog'));"));
   await session.click("//button[normalize-space()='选择存放位置…']");
   await until("parent chosen", async () => !(await has("尚未选择")));
   await session.click("//button[normalize-space()='建立图库']");
-  await until("back on wall", () => session.exec("return !document.querySelector('.create-library') && Boolean(document.querySelector('.rail'));"));
+  await until("back on wall", () => session.exec("return !document.querySelector('.create-library-dialog') && Boolean(document.querySelector('.rail'));"));
   await until("new library in sidebar", () => has("我的参考"));
   await settle();
   check(await twoSelected(), "新建图库后选择还在（已选 2 张）");

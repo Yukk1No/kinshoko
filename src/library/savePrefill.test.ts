@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
-import { importPrefill, newLibraryParentPrefill } from "./savePrefill";
+import { createLibraryParentPrefill, importPrefill, newLibraryParentPrefill } from "./savePrefill";
 
 const provider = (id: string, root: string, { unavailable = false, folders = [] as string[] } = {}) => ({
   registration: { library: { id, name: id, root }, unavailable: unavailable ? { code: "unavailable" } : null },
@@ -62,5 +62,23 @@ describe("新建榜单资料库的位置（ADR-0016）", () => {
 
   it("没有可用资料库时留空，由画师选", () => {
     expect(newLibraryParentPrefill([], null, [offline])).toBeNull();
+  });
+});
+
+describe("新建图库的位置", () => {
+  it("用上次新建资料库的位置", () => {
+    expect(createLibraryParentPrefill("G:/上次", [a, b], "C:/图片")).toBe("G:/上次");
+  });
+
+  it("没有记忆时放在登记最早的可用资料库旁边", () => {
+    expect(createLibraryParentPrefill(null, [offline, b, a], "C:/图片")).toBe("E:/收藏");
+  });
+
+  it("没有可用资料库时用系统的图片文件夹", () => {
+    expect(createLibraryParentPrefill(null, [offline], "C:/图片")).toBe("C:/图片");
+  });
+
+  it("图片文件夹也取不到时留空，由画师选", () => {
+    expect(createLibraryParentPrefill(null, [], null)).toBeNull();
   });
 });

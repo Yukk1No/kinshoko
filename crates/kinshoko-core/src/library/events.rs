@@ -206,6 +206,13 @@ mod tests {
 
     /// 在另一个线程里按给定节奏发出事件，转发结果连同到达时刻一起收集。
     fn run(script: Vec<(Duration, LibraryEvent)>) -> Vec<(Duration, LibraryEvent)> {
+        run_timed(script).0
+    }
+
+    /// 同 [`run`]，另外返回最后一个事件发出时距开始的时间。
+    fn run_timed(
+        script: Vec<(Duration, LibraryEvent)>,
+    ) -> (Vec<(Duration, LibraryEvent)>, Duration) {
         let (tx, rx) = channel();
         let start = Instant::now();
         let sender = std::thread::spawn(move || {
@@ -213,11 +220,12 @@ mod tests {
                 std::thread::sleep(delay);
                 tx.send(event).unwrap();
             }
+            start.elapsed()
         });
         let mut out = Vec::new();
         forward_coalesced(rx, WINDOW, |event| out.push((start.elapsed(), event)));
-        sender.join().unwrap();
-        out
+        let last_sent = sender.join().unwrap();
+        (out, last_sent)
     }
 
     #[test]
@@ -243,9 +251,18 @@ mod tests {
             script.push((Duration::ZERO, images(&[&id])));
             script.push((Duration::ZERO, vocabulary(2 * n + 2)));
         }
-        let out = run(script);
-        // 约 180 ms 的一阵写入：开头立即推一次，其余在窗口结束时合并成一批。
-        assert!(out.len() <= 6, "推送次数没有合并：{}", out.len());
+        let (out, last_sent) = run_timed(script);
+        // 收到变化的每个合并窗口最多推三次：开窗时立即推的一次，窗口结束时图片、词表各一次。
+        // 相邻窗口的开始至少相隔 WINDOW；最后一个窗口收到的事件发于 last_sent 之前，而上一个窗口
+        // 只在通道已空时结束，所以它开始于 last_sent - WINDOW 之前，窗口数不超过 last_sent / WINDOW + 1。
+        // 上限按实际耗时推出，慢机器上睡眠拉长也不会误报；正常约 180 ms，上限 3 次，远少于 240 个事件。
+        let windows = (last_sent.as_millis() / WINDOW.as_millis()) as usize + 1;
+        let limit = 3 * windows;
+        assert!(
+            out.len() <= limit,
+            "推送次数没有合并：{} 次，写入用时 {last_sent:?}，上限 {limit}",
+            out.len()
+        );
         assert_eq!(out.last().unwrap().1, vocabulary(120));
         let mut seen: Vec<String> = out
             .iter()

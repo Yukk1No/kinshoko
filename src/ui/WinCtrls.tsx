@@ -48,7 +48,7 @@ function useSnappedGlyphs(group: RefObject<HTMLDivElement | null>, maximized: bo
 }
 
 /**
- * Window controls for the frameless main window (design/ui-system/README.md, 窗口框架).
+ * Window controls for the frameless main window (design/ui-system/window-frame-and-sidebar.md, 窗口框架).
  * They sit at the end of whichever header row is right-most; that row is the window's safe area.
  * Maximized or not, they keep the same size, inset and corners; only the middle glyph changes to restore.
  * Closing keeps today's semantics: only this window closes, Kinshoko stays in the tray (ADR 0004).
