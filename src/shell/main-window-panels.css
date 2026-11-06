@@ -108,7 +108,7 @@
 .topbar > .search .search-chips { display: flex; flex: 0 1 auto; min-width: 0; gap: 6px; margin: 0; padding: 0; overflow-x: auto; scrollbar-width: none; }
 .topbar > .search .search-chips::-webkit-scrollbar { display: none; }
 .topbar > .search .search-field { flex: 1 1 72px; min-width: 72px; }
-@container main (max-width: 600px) { .k-wall-corner { right: 16px; bottom: 16px; } .selbar-float { bottom: 16px; } .k-density-island { gap: 8px; padding: 0 12px; } .k-density-island .k-range { width: 96px; } }
+@container main (max-width: 600px) { .k-wall-corner { right: 16px; bottom: 16px; } .selbar-float { bottom: 16px; } .k-density-slot { --density-gap: 8px; --density-pad: 12px; } .k-density-island .k-range { width: 96px; } }
 @container main (max-width: 600px) { .bar-meta { display: none; } }
 
 /* 详情面板的标签与备注（#98，#160）：现有标签是小标签，只写名称；出处、可信度与操作在悬停或聚焦时的浮层里。

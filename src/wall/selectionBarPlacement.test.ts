@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { selectionBarCompact, selectionBarPlacement } from "./selectionBarPlacement";
+import { densityMorphRises, selectionBarCompact, selectionBarPlacement } from "./selectionBarPlacement";
 
 // 折叠后的圆形按钮 40 px，离右边 24 px：它的左边在 wallWidth - 64。
 const corner = (wallWidth: number) => wallWidth - 24 - 40;
@@ -32,5 +32,16 @@ describe("窄到放不下完整的悬浮栏时改用紧凑的（#180）", () => 
   });
   it("还没量到完整宽度时按完整的算", () => {
     expect(selectionBarCompact(100, 0)).toBe(false);
+  });
+});
+
+describe("圆形按钮形变为滑条的方向（#452）", () => {
+  it("左边放得下时向左长，长到离悬浮栏正好 8 px 也算放得下", () => {
+    expect(densityMorphRises({ barRight: 700, cornerLeft: 1000, grow: 174 })).toBe(false);
+    expect(densityMorphRises({ barRight: 818, cornerLeft: 1000, grow: 174 })).toBe(false);
+  });
+
+  it("再近一点就会盖住悬浮栏或贴上它，改为向上", () => {
+    expect(densityMorphRises({ barRight: 819, cornerLeft: 1000, grow: 174 })).toBe(true);
   });
 });
