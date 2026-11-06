@@ -4,7 +4,8 @@ import { afterEach, expect, it } from "vitest";
 import type { Section } from "../shell/Rail";
 import { LoginExpiredNotice, useSubscriptionSection } from "./SubscriptionSection";
 
-afterEach(() => { cleanup(); clearMocks(); });
+// 卸载时异步取消事件订阅，等它完成再撤掉模拟。
+afterEach(async () => { cleanup(); await new Promise((resolve) => setTimeout(resolve, 0)); clearMocks(); });
 
 const account = { id: "1", name: "画师" };
 const status = (over: object) => ({ enabled: true, login: { state: "expired", account }, signingIn: false, newCount: 0, checking: false, ...over });

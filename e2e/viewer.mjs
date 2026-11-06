@@ -7,7 +7,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { copyStandaloneRuntime } from "./native-standalone-guard.mjs";
-import { png } from "./viewer.helpers.mjs";
+import { png, PIN_TOAST_PROBE } from "./viewer.helpers.mjs";
 
 const [, , appArg, edgeArg, driverArg = "tauri-driver"] = process.argv;
 if (!appArg || !edgeArg) throw new Error("用法：node e2e/viewer.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]");
@@ -121,6 +121,10 @@ try {
   check(fonts, "全部随软件分发的字体离线加载成功");
   const fitAfterFonts = await until("字体加载后派生图稳定", image);
   check(Math.abs(fitAfterFonts.physicalLeft - Math.round(fitAfterFonts.physicalLeft)) < 0.01 && Math.abs(fitAfterFonts.physicalTop - Math.round(fitAfterFonts.physicalTop)) < 0.01, "字体加载后的派生图起点对齐设备像素");
+  await click("钉住整图");
+  const pinned = await until("钉住结果的通知", () => exec(PIN_TOAST_PROBE));
+  check(pinned.top && pinned.inWindow && pinned.overViewer, "查看器打开时钉住结果的通知可见，没有被查看器盖住");
+  writeFileSync(join(output, "viewer-pin-toast.png"), Buffer.from(await wd("GET", `${base}/screenshot`), "base64"));
   const screenshot = await wd("GET", `${base}/screenshot`);
   writeFileSync(join(output, "viewer.png"), Buffer.from(screenshot, "base64"));
   const viewerKey = async (value) => wd("POST", `${base}/actions`, { actions: [{type:"key",id:"keyboard",actions:[{type:"keyDown",value},{type:"keyUp",value}]}] });
