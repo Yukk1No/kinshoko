@@ -20,6 +20,8 @@ const library: Translation<typeof zh> = {
     location: "Location",
     notChosen: "Not chosen yet",
     choose: "Choose location…",
+    change: "Change…",
+    cancel: "Cancel",
     submit: "Create library",
   },
   picker: {

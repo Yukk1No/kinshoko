@@ -19,6 +19,8 @@ export default {
     location: "存放位置",
     notChosen: "尚未选择",
     choose: "选择存放位置…",
+    change: "更改…",
+    cancel: "取消",
     submit: "建立图库",
   },
   picker: {
