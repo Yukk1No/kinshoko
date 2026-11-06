@@ -119,7 +119,7 @@ export function LibraryWorkspace({
     let alive = true;
     const { libraryId: from, imageId } = referenceRequest;
     referenceCard(from, imageId, safe).then(
-      (card) => { if (!alive) return; setSources(null); setViewCrop(false); setViewing(card); },
+      (card) => { if (!alive) return; setViewCrop(false); setViewing(card); },
       (e) => { if (alive) toast?.error(t("openFailed", { error: String(e) })); },
     );
     return () => { alive = false; };

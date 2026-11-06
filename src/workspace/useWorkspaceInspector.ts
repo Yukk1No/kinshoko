@@ -50,10 +50,10 @@ export function useWorkspaceInspector({
   const panelIds = selectedCards.flatMap((card) =>
     card.sources?.filter((source) => source.libraryId === selectionLibrary && !source.unavailable).map((source) => source.imageId) ?? []);
   /** 来源整理是查看器为墙外那张图打开的（不是画师点来源按钮打开的）。 */
-  const viewedSources = useRef(false);
-  const viewingOutside = viewedSources.current && sources !== null;
+  const viewedSources = useRef<string | null>(null);
+  const viewingOutside = viewedSources.current !== null;
   // 面板此刻显示的对象：收起标记只对它有效。墙外那张图的来源整理跟选择无关，收起时也不能露出选择的详情。
-  const panelKey = viewingOutside ? sources.id : selectionKey;
+  const panelKey = viewedSources.current ?? selectionKey;
   // 换了对象就不再记得上一个收起过：否则再选回那张图时面板不开，图片墙上也没有别的办法打开它。
   if (inspectorHidden !== null && inspectorHidden !== panelKey) setInspectorHidden(null);
   const inspectorOpen = inspectorContent && !hidden && ((sources !== null && !viewingOutside) || inspectorHidden !== panelKey);
@@ -71,13 +71,13 @@ export function useWorkspaceInspector({
     const moveHidden = (to: string) => setInspectorHidden((key) => key !== null && key === from ? to : key);
     if (!viewing) {
       // 离开查看器：为墙外那张图打开的来源整理随之收起。
-      if (viewedSources.current) { viewedSources.current = false; setSources(null); moveHidden(lastSelectionKey.current); }
+      if (viewedSources.current) { viewedSources.current = null; setSources(null); moveHidden(lastSelectionKey.current); }
       return;
     }
-    viewedSources.current = false;
+    viewedSources.current = null;
     if (!loadedCards.some((card) => card.id === viewing.id)) {
       if (viewing.libraryId && viewing.imageId && viewing.sources?.length) {
-        viewedSources.current = true;
+        viewedSources.current = viewing.id;
         setSources(viewing as WorkspaceCard);
         moveHidden(viewing.id);
       }

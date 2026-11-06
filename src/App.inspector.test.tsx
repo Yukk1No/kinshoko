@@ -36,7 +36,8 @@ function backend(override?: (command: string, args: Record<string, string>) => u
       case "plugin:library|workspace_directories": return { status, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
       case "plugin:library|workspace_tag_groups": case "plugin:library|import_tasks": case "plugin:desktop|reference_groups": case "plugin:library|workspace_candidates": return [];
       case "plugin:library|workspace_browse": return { cards: state.cards, total: state.cards.length, nextCursor: null, status };
-      case "plugin:library|workspace_card": return args.imageId === "m2" ? card("both", source("L2", "m2"), source("L1", "m1")) : outside;
+      case "plugin:library|workspace_card": return args.imageId === "m2" ? card("both", source("L2", "m2"), source("L1", "m1"))
+        : args.imageId === "f1" ? card("out2", source("L1", "f1")) : outside;
       case "plugin:library|image": return { id: args.imageId, originalName: `${args.libraryId}/${args.imageId}`, width: 1, height: 1, collectedAt: 1000, sourceLinks: [], folders: [], note: { manual: null, sources: [] }, deletedAt: null, versions: { previous: null, newer: [] }, rating: { imageId: args.imageId, suggested: null, manual: null, effective: null } };
       case "plugin:library|catalog_image_tags": return { image: { imageId: args.imageId, tags: [], rejected: [] }, identities: [] };
       case "plugin:library|workspace_sidebar": return { all: 1, trash: 0, folders: [] };
@@ -254,6 +255,16 @@ describe("查看器里", () => {
     expect(opened()).toBe(false);
     fireEvent.keyDown(viewer(), { key: "Escape" });
     await waitFor(() => expect(panel()!.dataset.selection).toBe("a1"));
+    expect(opened()).toBe(false);
+  });
+
+  it("收起面板看墙外的图时，再从钉图打开另一张墙外的图，面板仍收起并跟着换", async () => {
+    const state = await start();
+    await openReference(state, "L1", "e1");
+    fireEvent.keyDown(viewer(), { key: "i" });
+    expect(opened()).toBe(false);
+    await openReference(state, "L1", "f1");
+    expect(panel()!.dataset.selection).toBe("out2");
     expect(opened()).toBe(false);
   });
 
