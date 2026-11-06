@@ -1,12 +1,11 @@
 import { SaveDestinationDialog } from "../library/SaveDestination";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@base-ui/react/context-menu";
-import { BookmarkPlus, Check, Clipboard, Copy, Pin, Scissors, Trash2, X } from "lucide-react";
+import { Tooltip } from "@base-ui/react/tooltip";
+import { BookmarkCheck, BookmarkPlus, Copy, Pin, Trash2, X } from "lucide-react";
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import type { CaptureEntry } from "../bindings/CaptureEntry";
-import type { ShortcutAction } from "../bindings/ShortcutAction";
 import {
   captureHistory,
   captureUrl,
@@ -15,27 +14,24 @@ import {
   deleteCapture,
   onCaptureHistory,
   pinCapture,
-  pinClipboard,
-  shellSettings,
-  startCapture,
 } from "../ipc";
 import { ago } from "./relativeTime";
 import { formatDateTime } from "../i18n/format";
 
 const time = (ms: number) => formatDateTime(ms, { hour: "2-digit", minute: "2-digit" });
 
-/** 实际生效的全局快捷键（被清除或没注册上的不显示）。 */
-function useShortcutKeys() {
-  const [keys, setKeys] = useState<Partial<Record<ShortcutAction, string>>>({});
-  useEffect(() => {
-    let alive = true;
-    shellSettings().then((view) => {
-      if (!alive || !view) return;
-      setKeys(Object.fromEntries(view.shortcuts.filter((s) => s.accelerator && !s.problem).map((s) => [s.action, s.accelerator!])));
-    }, () => {});
-    return () => { alive = false; };
-  }, []);
-  return keys;
+/** 只有图标的操作按钮；悬停或键盘聚焦时用提示写出它做什么。 */
+function ItemAction({ label, className, onClick, children }: { label: string; className: string; onClick: () => void; children: ReactNode }) {
+  return <Tooltip.Root>
+    <Tooltip.Trigger render={<button type="button" className={className} aria-label={label} onClick={onClick} />}>
+      {children}
+    </Tooltip.Trigger>
+    <Tooltip.Portal>
+      <Tooltip.Positioner className="k-positioner" side="top" sideOffset={6}>
+        <Tooltip.Popup className="k-tip">{label}</Tooltip.Popup>
+      </Tooltip.Positioner>
+    </Tooltip.Portal>
+  </Tooltip.Root>;
 }
 
 /**
@@ -48,7 +44,6 @@ export function CaptureHistoryPanel({ request, onRequestHandled }: { request?: {
   const [collecting, setCollecting] = useState<string | null>(null);
   useEffect(() => { if (request) { setCollecting(request.id); onRequestHandled?.(); } }, [request, onRequestHandled]);
   const [error, setError] = useState<string | null>(null);
-  const keys = useShortcutKeys();
   const { t } = useTranslation("desktop", { keyPrefix: "history" });
 
   useEffect(() => {
@@ -66,65 +61,47 @@ export function CaptureHistoryPanel({ request, onRequestHandled }: { request?: {
     action.catch((e) => setError(String(e)));
   };
 
-  const capture = async () => {
-    // 先让开主窗口，免得截到自己。
-    await getCurrentWindow().minimize();
-    await new Promise((r) => setTimeout(r, 250));
-    run(startCapture());
-  };
-
   return (
     <section className="capture-history" aria-label={t("label")}>
-      <header className="capture-history-bar">
-        <h2>{t("title")}</h2>
-        <div className="capture-history-start">
-          <button type="button" className="k-btn" onClick={() => run(pinClipboard())}>
-            <Clipboard size={15} aria-hidden="true" /><span className="k-label">{t("pinClipboard")}</span>{keys.pinClipboard && <kbd className="k-kbd">{keys.pinClipboard}</kbd>}
-          </button>
-          <button type="button" className="k-btn" onClick={() => void capture()}>
-            <Scissors size={15} aria-hidden="true" /><span className="k-label">{t("capture")}</span>
-          </button>
-        </div>
-        <p className="capture-history-note">{keys.capture && t("shortcutNote", { key: keys.capture })}{t("cleanupNote")}</p>
-      </header>
       {error && <p className="group-note is-error" role="alert">{error}</p>}
       {entries && entries.length === 0 && <p className="capture-history-empty">{t("empty")}</p>}
-      <ul className="capture-history-list">
-        {entries?.map((entry) => {
-          const collected = entry.collected.length > 0;
-          return (
-            <ContextMenu.Root key={entry.id}>
-              <ContextMenu.Trigger render={<li className="capture-history-item" data-id={entry.id} />}>
-                <img src={captureUrl(entry.id)} alt="" loading="lazy" draggable={false} />
-                <div className="capture-history-text">
-                  <span className="capture-history-name">{t("name", { time: time(entry.createdAt) })}</span>
-                  <span className="capture-history-meta k-parts">
-                    <span>{entry.width} × {entry.height}</span><span>{ago(entry.createdAt)}</span>{entry.pinned && <span>{t("pinned")}</span>}
-                  </span>
-                  <span className="capture-history-actions">
-                    {collected
-                      ? <button type="button" className="side-chip is-done" aria-label={t("collectedAgain")} onClick={() => setCollecting(entry.id)}>
-                        <Check size={12} aria-hidden="true" /><span className="k-label">{t("collected")}</span></button>
-                      : <button type="button" className="side-chip" onClick={() => setCollecting(entry.id)}><BookmarkPlus size={12} aria-hidden="true" /><span className="k-label">{t("collect")}</span></button>}
-                    <button type="button" className="side-chip" onClick={() => run(pinCapture(entry.id))}><Pin size={12} aria-hidden="true" /><span className="k-label">{t("pin")}</span></button>
-                    <button type="button" className="side-chip" onClick={() => run(copyCapture(entry.id))}><Copy size={12} aria-hidden="true" /><span className="k-label">{t("copy")}</span></button>
-                  </span>
-                </div>
-                <button type="button" className="k-icon-btn capture-history-delete" aria-label={t("deleteLabel")} title={t("delete")} onClick={() => run(deleteCapture(entry.id))}>
-                  <X size={14} aria-hidden="true" />
-                </button>
-              </ContextMenu.Trigger>
-              <MenuPopup label={t("menuLabel")}>
-                <MenuItem icon={<Pin size={14} />} onClick={() => run(pinCapture(entry.id))}>{t("pin")}</MenuItem>
-                <MenuItem icon={<Copy size={14} />} onClick={() => run(copyCapture(entry.id))}>{t("copy")}</MenuItem>
-                <MenuItem icon={<BookmarkPlus size={14} />} onClick={() => setCollecting(entry.id)}>{t("collectTo")}</MenuItem>
-                <MenuSeparator />
-                <MenuItem icon={<Trash2 size={14} />} danger onClick={() => run(deleteCapture(entry.id))}>{t("delete")}</MenuItem>
-              </MenuPopup>
-            </ContextMenu.Root>
-          );
-        })}
-      </ul>
+      <Tooltip.Provider delay={400}>
+        <ul className="capture-history-list">
+          {entries?.map((entry) => {
+            const collected = entry.collected.length > 0;
+            return (
+              <ContextMenu.Root key={entry.id}>
+                <ContextMenu.Trigger render={<li className="capture-history-item" data-id={entry.id} />}>
+                  <img src={captureUrl(entry.id)} alt="" loading="lazy" draggable={false} />
+                  <div className="capture-history-text">
+                    <span className="capture-history-name">{t("name", { time: time(entry.createdAt) })}</span>
+                    <span className="capture-history-meta k-parts">
+                      <span>{entry.width} × {entry.height}</span><span>{ago(entry.createdAt)}</span>{entry.pinned && <span>{t("pinned")}</span>}
+                    </span>
+                    <span className="capture-history-actions">
+                      <ItemAction label={collected ? t("collectedAgain") : t("collectHint")} className={`k-icon-btn is-sm${collected ? " is-done" : ""}`} onClick={() => setCollecting(entry.id)}>
+                        {collected ? <BookmarkCheck size={14} aria-hidden="true" /> : <BookmarkPlus size={14} aria-hidden="true" />}
+                      </ItemAction>
+                      <ItemAction label={t("pinHint")} className="k-icon-btn is-sm" onClick={() => run(pinCapture(entry.id))}><Pin size={14} aria-hidden="true" /></ItemAction>
+                      <ItemAction label={t("copyHint")} className="k-icon-btn is-sm" onClick={() => run(copyCapture(entry.id))}><Copy size={14} aria-hidden="true" /></ItemAction>
+                    </span>
+                  </div>
+                  <ItemAction label={t("deleteLabel")} className="k-icon-btn capture-history-delete" onClick={() => run(deleteCapture(entry.id))}>
+                    <X size={14} aria-hidden="true" />
+                  </ItemAction>
+                </ContextMenu.Trigger>
+                <MenuPopup label={t("menuLabel")}>
+                  <MenuItem icon={<Pin size={14} />} onClick={() => run(pinCapture(entry.id))}>{t("pin")}</MenuItem>
+                  <MenuItem icon={<Copy size={14} />} onClick={() => run(copyCapture(entry.id))}>{t("copy")}</MenuItem>
+                  <MenuItem icon={<BookmarkPlus size={14} />} onClick={() => setCollecting(entry.id)}>{t("collectTo")}</MenuItem>
+                  <MenuSeparator />
+                  <MenuItem icon={<Trash2 size={14} />} danger onClick={() => run(deleteCapture(entry.id))}>{t("delete")}</MenuItem>
+                </MenuPopup>
+              </ContextMenu.Root>
+            );
+          })}
+        </ul>
+      </Tooltip.Provider>
       {collecting && (
         <SaveDestinationDialog
           title={t("collectTitle")}

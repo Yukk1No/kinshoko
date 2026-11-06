@@ -17,11 +17,6 @@ import { desk } from "./plugins";
 // ---------- 截图与钉图（#62） ----------
 
 
-/** 开始框选截图（与全局快捷键相同）。 */
-export function startCapture(): Promise<void> {
-  return invoke<void>(desk("start_capture"));
-}
-
 /** 框选窗口：要显示的冻结屏幕；没有进行中的截图时为 null。 */
 export function frozenScreen(): Promise<FrozenScreen | null> {
   return invoke<FrozenScreen | null>(desk("frozen_screen"));
@@ -44,11 +39,6 @@ export function finishCapture(region: Region, action: CaptureAction, token: stri
 
 export function cancelCapture(token: string): Promise<void> {
   return invoke<void>(desk("cancel_capture"), { token });
-}
-
-/** 把剪贴板里的图片钉住；剪贴板没有图片时 reject 中文原因。 */
-export function pinClipboard(): Promise<void> {
-  return invoke<void>(desk("pin_clipboard"));
 }
 
 /** 从截图历史钉住一张截图。 */
