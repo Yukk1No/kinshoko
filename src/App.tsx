@@ -238,7 +238,7 @@ function MainWindow() {
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
       if (e.key.toLowerCase() === "b") { e.preventDefault(); setPaneOpen((open) => !open); }
       if (["1", "2", "3"].includes(e.key) || (e.key === "4" && subscriptions.onRef.current)) {
-        e.preventDefault(); setSection((["browse", "groups", "captures", "subscriptions"] as Section[])[Number(e.key) - 1]); setPaneOpen(true);
+        e.preventDefault(); setSection((["browse", "groups", "captures", "subscriptions"] as Section[])[Number(e.key) - 1]);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -261,7 +261,7 @@ function MainWindow() {
     <TagDisplayContext.Provider value={tagDisplay}><OpenTagNameSettings.Provider value={openTagNameSettings}><SaveDestinationProvider safe={lensSafe}><div className="app app-shell">
       <div className="rail-slot">
         <Rail section={section} paneOpen={paneOpen} safeMode={safe} onSafeMode={toggleSafe}
-          onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else { setSection(next); setPaneOpen(true); } }}
+          onSection={(next) => { if (next === section) setPaneOpen((open) => !open); else setSection(next); }}
           onSettings={() => { if (showSettings) setShowSettings(false); else openSettings("general"); }}
           subscriptions={subscriptions.rail} />
       </div>
