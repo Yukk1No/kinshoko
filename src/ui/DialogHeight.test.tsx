@@ -120,9 +120,10 @@ describe("DialogHeight", () => {
 });
 
 describe("设置对话框", () => {
-  it("高度随内容，上限不变；滚动条位置常留", () => {
+  it("有起始高度，只有长页才长高，上限不变；滚动条位置常留", () => {
     const dialog = cssRule(settings, ".k-dialog.k-settings-dialog");
     expect(dialog.height).toBeUndefined();
+    expect(dialog["min-height"]).toBe("min(480px, calc(100vh - 48px))");
     expect(dialog["max-height"]).toBe("var(--k-settings-max)");
     expect(cssRule(settings, ".k-dialog-height.k-set-main")["scrollbar-gutter"]).toBe("stable");
   });
@@ -143,6 +144,25 @@ describe("DialogSwap", () => {
     screen.getByRole("button", { name: "新" });
     expect(screen.queryByRole("button", { name: "旧" })).toBeNull();
     await waitFor(() => expect(screen.queryByText("旧")).toBeNull());
+  });
+
+  it("外面滚动过时，新内容从顶部开始，旧内容留在原来看到的位置", () => {
+    const { container, rerender } = render(<DialogHeight><DialogSwap step={0}>甲页</DialogSwap></DialogHeight>);
+    const outer = outerOf(container);
+    outer.scrollTop = 300;
+    rerender(<DialogHeight><DialogSwap step={1}>乙页</DialogSwap></DialogHeight>);
+    expect(outer.scrollTop).toBe(0);
+    expect(screen.getByText("甲页").closest<HTMLElement>("[inert]")!.style.translate).toBe("0 -300px");
+    expect(screen.getByText("乙页").style.translate).toBe("");
+  });
+
+  it("减弱动效下外面滚动过时，新内容同样从顶部开始", () => {
+    document.documentElement.setAttribute("data-reduced-motion", "");
+    const { container, rerender } = render(<DialogHeight><DialogSwap step={0}>丙页</DialogSwap></DialogHeight>);
+    const outer = outerOf(container);
+    outer.scrollTop = 300;
+    rerender(<DialogHeight><DialogSwap step={1}>丁页</DialogSwap></DialogHeight>);
+    expect(outer.scrollTop).toBe(0);
   });
 
   it("首次出现不播放进场", () => {

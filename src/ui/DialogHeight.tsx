@@ -77,18 +77,27 @@ const swapVariants = {
 /**
  * 换步骤时内容交替：`step` 变大算前进，新内容从前进方向进来，旧内容往反方向退出；变小反过来。
  * `axis` 是位移方向：向导横向（默认），设置页签这样上下排列的传 "y"。放在 DialogHeight 里，高度由它过渡。
+ * 外面滚动过时，新内容从顶部开始，退场的旧内容留在原来看到的位置。
  */
 export function DialogSwap({ step, axis = "x", children }: { step: number; axis?: "x" | "y"; children: ReactNode }) {
   const reduced = useReducedMotion();
+  const rootRef = useRef<HTMLDivElement>(null);
   const previous = useRef(step);
   const sign = useRef(1);
   if (step !== previous.current) {
     sign.current = step > previous.current ? 1 : -1;
     previous.current = step;
   }
-  if (reduced) return <div className="k-dialog-swap"><div key={step} className="k-dialog-swap-page">{children}</div></div>;
+  useLayoutEffect(() => {
+    const scroller = rootRef.current?.closest<HTMLElement>(".k-dialog-height");
+    if (!scroller?.scrollTop) return;
+    const scrolled = scroller.scrollTop;
+    scroller.scrollTop = 0;
+    rootRef.current!.querySelectorAll<HTMLElement>(":scope > .k-dialog-swap-step > [inert]").forEach((leaving) => { leaving.style.translate = `0 ${-scrolled}px`; });
+  }, [step]);
+  if (reduced) return <div ref={rootRef} className="k-dialog-swap"><div key={step} className="k-dialog-swap-page">{children}</div></div>;
   const custom: SwapMotion = { axis, sign: sign.current };
-  return <div className="k-dialog-swap">
+  return <div ref={rootRef} className="k-dialog-swap">
     <AnimatePresence mode="popLayout" initial={false} custom={custom}>
       <motion.div key={step} className="k-dialog-swap-step" custom={custom} variants={swapVariants}
         initial="enter" animate="shown" exit="leave" transition={arcSpring.snappy}>
