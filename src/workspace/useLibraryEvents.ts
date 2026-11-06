@@ -11,7 +11,7 @@ import type { Invalidate } from "./useInvalidation";
 export function useLibraryEvents({
   toast, imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport,
 }: {
-  toast: ToastApi | null;
+  toast: ToastApi;
   imports: RefObject<ImportTasks>;
   invalidate: Invalidate;
   safeChanged: RefObject<(on: boolean) => void>;
@@ -25,7 +25,7 @@ export function useLibraryEvents({
     const unlisten = onOrganizeWaiting((waiting) => {
       if (!alive) return;
       const names = waiting.finishing.map((name) => i18n.t("workspace:organizeWaiting.name", { name })).join(i18n.t("workspace:organizeWaiting.separator"));
-      toast?.show({ title: i18n.t("workspace:organizeWaiting.title"), description: i18n.t("workspace:organizeWaiting.description", { names }) });
+      toast.show({ title: i18n.t("workspace:organizeWaiting.title"), description: i18n.t("workspace:organizeWaiting.description", { names }) });
     });
     return () => {
       alive = false;

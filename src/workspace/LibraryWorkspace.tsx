@@ -57,7 +57,6 @@ type WorkspaceProps = {
   /** 拖动松手、双击或方向键定下的详情面板宽度。 */
   onInspectorWidth: (width: number) => void;
   /** 顶栏下方的提示（运行时、旧名称、更新、备份提醒）。 */
-  notices?: ReactNode;
   /** 侧栏图库标题菜单“从列表移除”之后（#114）。 */
   onLibraryRemoved?: (libraryId: string) => void;
   /** 点打标图标：打开设置 › 自动标签（#144）。 */
@@ -85,7 +84,6 @@ export function LibraryWorkspace({
   keepSelectionOnSafe,
   inspectorWidth,
   onInspectorWidth,
-  notices,
   onLibraryRemoved,
   onOpenTaggingSettings,
 }: WorkspaceProps) {
@@ -120,11 +118,10 @@ export function LibraryWorkspace({
     const { libraryId: from, imageId } = referenceRequest;
     referenceCard(from, imageId, safe).then(
       (card) => { if (!alive) return; setViewCrop(false); setViewing(card); },
-      (e) => { if (alive) toast?.error(t("openFailed", { error: String(e) })); },
+      (e) => { if (alive) toast.error(t("openFailed", { error: String(e) })); },
     );
     return () => { alive = false; };
   }, [referenceRequest]);
-  const [problem, setProblem] = useState<string | null>(null);
   /**
    * 词表代次：词表、图片或安全模式变化时递增，重新解析条件、重新取得候选（标签可能改名、
    * 删除、新增了叫法，或在安全模式下被封印）。与后端 Search 缓存的修订号和安全模式对应。
@@ -140,7 +137,7 @@ export function LibraryWorkspace({
    */
   const onError = useCallback((error: unknown) => {
     // 真实错误进轻提示（#98），一直留到画师按“知道了”；没有提示容器时退回就地横幅。
-    if (!isCursorExpired(error)) { const message = errorText(error); if (toast) toast.error(message); else setProblem(message); return; }
+    if (!isCursorExpired(error)) { toast.error(errorText(error)); return; }
     invalidate({ kind: "cursorExpired" });
   }, [toast, invalidate]);
   const safeChanged = useRef(onSafeChanged);
@@ -192,7 +189,7 @@ export function LibraryWorkspace({
     onClearSelection: () => setSelected(new Set()),
     importFrom: (source) => importControl.current?.[source](),
     importClipboard: async () => { await importControl.current?.clipboard(); },
-    onNotice: (message) => { toast?.show({ title: message, tone: "success" }); },
+    onNotice: (message) => { toast.show({ title: message, tone: "success" }); },
     selectAll: () => wall.current?.selectAll(),
     setDensity,
   });
@@ -241,7 +238,6 @@ export function LibraryWorkspace({
             }} />
           {!inspectorOpen && <WinCtrls />}
           </header>
-          {notices}
           <div className="app-tagbar">
           <TagGroupBar workspace libraryId="workspace" safe={safe} generation={vocabularyKey} input={search}
             onChange={(next) => { setSearch(next); invalidate({ kind: "conditionsChanged" }); }} onError={onError} onEdit={() => setEditingGroups(true)} />
@@ -256,14 +252,6 @@ export function LibraryWorkspace({
               setEditingGroups(false);
             }}
             onError={onError} />
-          {problem && (
-            <p className="app-problem" role="alert">
-              {problem}
-              <button type="button" onClick={() => setProblem(null)}>
-                {t("gotIt")}
-              </button>
-            </p>
-          )}
           {/* 图片墙所在的区域：查看器盖在这里（#179），左栏、顶栏与详情侧栏照常可用。 */}
           <div className="wall-host">
           <Wall
@@ -294,7 +282,7 @@ export function LibraryWorkspace({
             onCardCommand={(command, cards, point) => {
               if (command === "pin") wallActions.pin(cards, point);
               else if (command === "crop") wallActions.crop(cards[0]);
-              else if (command === "copy") { if (cards.length === 1) wallActions.copy(cards[0]); else if (toast) toast.show({ title: t("copyOneOnly") }); else onError(t("copyOneOnly")); }
+              else if (command === "copy") { if (cards.length === 1) wallActions.copy(cards[0]); else toast.show({ title: t("copyOneOnly") }); }
               else wallActions.edit(cards, [{ kind: "delete" }], true);
             }}
             onPaste={wallActions.importClipboard}

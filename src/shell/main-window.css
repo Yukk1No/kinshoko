@@ -19,7 +19,6 @@
 .pane-body { width: 255px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0; }
 .pane-body[hidden] { display: none; }
 
-.library-error { margin: 0; padding: 4px 8px; color: var(--danger); font-size: 12px; }
 
 /* three bands: fixed top, scrolling libraries, fixed foot */
 .side-bands { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; margin: 0; border: 0; }
@@ -170,10 +169,6 @@
 :root[data-reduced-motion] .k-range::-webkit-slider-thumb { transition-duration: 0ms; }
 .app-tagbar { flex: none; }
 .app-tagbar .groupbar { background: var(--bg); border-bottom: 1px solid var(--line); padding: 4px 12px; }
-
-/* sticky banners that stay (runtime, legacy names, update, backup) sit under the header, not above it */
-.app-main > .runtime-notice, .app-main > .update-banner, .app-main > div > .legacy-name-notice { flex: none; }
-.app-main > .update-banner { border-top: 0; border-bottom: 1px solid var(--line); background: var(--surface); }
 
 /* ---- Wall source chip: every card with sources; "N 处" when an image lives in two or more libraries.
    A sibling of the card option (no focusable children inside an option), pinned to the card's bottom-right.

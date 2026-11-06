@@ -33,7 +33,7 @@ export function useUiScaleChoice(toast: ReturnType<typeof useToast>) {
           uiScaleSaved.current = saved;
           if (uiScaleTarget.current === wanted) acceptUiScale(saved);
         } catch (e) {
-          toast?.error(i18n.t("shell:uiScaleFailed", { error: String(e) }));
+          toast.error(i18n.t("shell:uiScaleFailed", { error: String(e) }));
           acceptUiScale(await uiScale().catch(() => uiScaleSaved.current));
         }
       }

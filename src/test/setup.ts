@@ -1,6 +1,19 @@
+import { createElement, type ComponentType, type ReactNode } from "react";
 import { configure } from "@testing-library/react";
+import { vi } from "vitest";
 // 组件按界面语言取文案（#353）：单独渲染组件的测试也要先初始化 i18n，默认简体中文。
 import "../i18n/instance";
+import { ToastProvider } from "../ui/Toast";
+
+// 窗口里的组件都在 ToastProvider 之内，单独渲染时也一样（#433）。
+vi.mock("@testing-library/react", async (original) => {
+  const library = await original<typeof import("@testing-library/react")>();
+  return { ...library, render: (ui: ReactNode, options?: { wrapper?: ComponentType<{ children: ReactNode }> }) => {
+    const Inner = options?.wrapper;
+    const wrapper = ({ children }: { children: ReactNode }) => createElement(ToastProvider, null, Inner ? createElement(Inner, null, children) : children);
+    return library.render(ui, { ...options, wrapper } as Parameters<typeof library.render>[1]);
+  } };
+});
 
 // findBy*/waitFor 默认只等 1 秒。Windows CI 上 76 个 jsdom 文件并行时，打开对话框、读取预览这类
 // 几步异步后才出现的元素偶尔超过 1 秒（ImportMenu、WorkspaceSources 先后因此失败），放宽到 5 秒。

@@ -63,20 +63,6 @@
     linear-gradient(var(--guide), var(--guide)) 0 33.33% / 100% 1px no-repeat,
     linear-gradient(var(--guide), var(--guide)) 0 66.66% / 100% 1px no-repeat;
 }
-.viewer-pin-status {
-  position: absolute;
-  left: 50%;
-  bottom: 84px;
-  transform: translateX(-50%);
-  z-index: 5;
-  margin: 0;
-  padding: 5px 10px;
-  border-radius: var(--r-s);
-  background: var(--ink);
-  color: var(--bg);
-  font-size: 12px;
-  box-shadow: var(--shadow-pop);
-}
 /* 内容分级（#53）：人工分级优先于自动分级。 */
 .selection-rating {
   display: flex;

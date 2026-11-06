@@ -167,7 +167,7 @@ export default {
     failed: "无法退订：{{error}}",
   },
   expired: {
-    banner: "pixiv 登录已失效，检查已暂停",
+    notice: "pixiv 登录已失效，检查已暂停",
   },
   empty: {
     signedOutTitle: "登录 pixiv，开始订阅",

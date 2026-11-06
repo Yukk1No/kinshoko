@@ -44,6 +44,10 @@ npm run dev             # run the app in dev mode (Vite dev server + debug build
 npm run build           # release build; the NSIS installer lands in target/release/bundle/nsis/
 npm test                # frontend tests (Vitest)
 npm run typecheck       # TypeScript type check
+npm run check           # type check + frontend tests; prints only failures and a summary, exit code covers every step
+npm run check -- --rust # also cargo fmt --check, Clippy and the core crate tests
+npm run check -- App.import   # only Vitest, arguments passed through
+npm run check -- --rust-only --test integration writer_switch::   # only nextest, arguments passed through
 npm run bindings        # regenerate src/bindings/ (runs the core crate's unit tests)
 cargo nextest run -p kinshoko-core   # core crate tests (what CI runs; needs cargo-nextest)
 cargo test -p kinshoko-core --doc    # core crate doctests (nextest skips them)
@@ -52,6 +56,8 @@ cargo fmt --all
 cargo clippy --workspace --all-targets -- -D warnings   # run npm run vite:build first to produce dist/
 node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # needs tauri-driver and an msedgedriver matching WebView2
 ```
+
+The core crate sets `autotests = false`, and most files in `crates/kinshoko-core/tests/` are modules of the `integration` target, not targets of their own. To run one module, name the target and filter by module path: `cargo nextest run -p kinshoko-core --test integration writer_switch::`. `--test writer_switch` fails with "no test target named"; the available targets are the `[[test]]` entries in its `Cargo.toml`.
 
 CI runs the Rust checks (format, Clippy, core crate tests, pin renderer offscreen tests on WARP, generated-file check) and the native app build with the WebDriver smoke test on `windows-2022`, and the TypeScript type check, frontend tests and workflow lint on `ubuntu-latest`. The app job is pinned to `windows-2022` because the smoke test does not yet pass on `windows-latest`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run the relevant checks locally before opening a PR.
 

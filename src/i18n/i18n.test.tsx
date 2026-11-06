@@ -4,7 +4,6 @@ import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { applyInterfaceLanguage, followInterfaceLanguage, i18n } from ".";
 import { UpdateNotice, UpdateSection } from "../Update";
-import { ToastProvider } from "../ui/Toast";
 import { TagGroupBar } from "../search/TagGroupBar";
 
 afterEach(async () => {
@@ -78,7 +77,7 @@ describe("界面语言", () => {
       return null;
     }, { shouldMockEvents: true });
     const stop = followInterfaceLanguage();
-    render(<ToastProvider><UpdateNotice /></ToastProvider>);
+    render(<><UpdateNotice /></>);
     expect(await screen.findByText("Kinshoko 1.2.0 可以更新")).toBeTruthy();
 
     await act(async () => { await emit("interface-language", "en"); });

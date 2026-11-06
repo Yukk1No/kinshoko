@@ -5,7 +5,6 @@ import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import type { SaveMemory } from "../bindings/SaveMemory";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { chooseOption } from "../test/select";
-import { ToastProvider } from "../ui/Toast";
 import { ImportMenu, type ImportControl } from "./ImportMenu";
 import { SaveDestinationProvider } from "./SaveDestination";
 
@@ -33,7 +32,7 @@ function setup({ scope = { kind: "all" }, memory = { importDestination: null, ne
     return null;
   }, { shouldMockEvents: true });
   const control = createRef<ImportControl>();
-  const ui = (value: WorkspaceScope) => <ToastProvider><SaveDestinationProvider safe={false}><ImportMenu control={control} scope={value} enabled running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider></ToastProvider>;
+  const ui = (value: WorkspaceScope) => <><SaveDestinationProvider safe={false}><ImportMenu control={control} scope={value} enabled running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider></>;
   const view = render(ui(scope));
   const open = async () => {
     await waitFor(() => expect(control.current).not.toBeNull());

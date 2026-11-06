@@ -8,6 +8,7 @@ import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } fr
 import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Pin, Plus, RotateCcw, X } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { useTranslation } from "react-i18next";
+import { useToast } from "../ui/Toast";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import { Dock } from "../ui/Dock";
 import { FollowDock } from "../ui/FollowDock";
@@ -57,7 +58,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onSt
   const [selecting, setSelecting] = useState(false);
   const select = useRef<{ id: number; start: Point } | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [pinStatus, setPinStatus] = useState<string | null>(null);
+  const toast = useToast();
   const [name, setName] = useState<string | null>(null);
   const { dpr } = viewport;
   const closeRef = useRef(onClose);
@@ -116,7 +117,6 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onSt
     setCrop(null);
     setSelecting(false);
     setDragging(false);
-    setPinStatus(null);
     setLoadedSrc(null);
     setDerived(null);
     select.current = null;
@@ -150,26 +150,18 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onSt
   /** 钉到桌面：整图（crop 为 null）或选区；钉图以它此刻在查看器里的位置为中心出现。 */
   const pin = (region: Region | null) => {
     const rect: CssRect = region ? cropOnScreen(region, shown, natural) : { x: left, y: top, width, height };
-    setPinStatus(null);
     pinReference(libraryId, card.id, region, toScreenRect(rect, viewport, dpr)).then(
-      () => setPinStatus(region ? t("pinnedPart") : t("pinnedWhole")),
-      (e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(t("common:image.pinFailed", { error: String(e) })); },
+      () => toast.show({ title: region ? t("pinnedPart") : t("pinnedWhole"), tone: "success" }),
+      (e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.pinFailed", { error: String(e) })); },
     );
   };
-  useEffect(() => {
-    if (!pinStatus) return;
-    const timer = window.setTimeout(() => setPinStatus(null), 2000);
-    return () => window.clearTimeout(timer);
-  }, [pinStatus]);
-  /** 复制图片、在资源管理器中显示（#105 的命令，#114 的查看器菜单）：结果在钉图提示的位置说明。 */
+  /** 复制图片、在资源管理器中显示（#105 的命令，#114 的查看器菜单）。 */
   const copy = () => {
-    setPinStatus(null);
-    copyReferenceImage(libraryId, card.id).then(() => setPinStatus(t("common:image.copied")),
-      (e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(t("common:image.copyFailed", { error: String(e) })); });
+    copyReferenceImage(libraryId, card.id).then(() => toast.show({ title: t("common:image.copied"), tone: "success" }),
+      (e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.copyFailed", { error: String(e) })); });
   };
   const reveal = () => {
-    setPinStatus(null);
-    revealReferenceImage(libraryId, card.id).catch((e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(t("common:image.revealFailed", { error: String(e) })); });
+    revealReferenceImage(libraryId, card.id).catch((e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.revealFailed", { error: String(e) })); });
   };
   /** 钉住局部：已有选区就钉住它，否则进入框选。 */
   const pinPart = () => { if (crop) pin(crop); else setSelecting(true); };
@@ -284,7 +276,6 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onSt
             { id: "cancel", label: t("crop.cancel"), icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },
           ]} />
         </FollowDock>}
-        {pinStatus && <p className="viewer-pin-status" role="status">{pinStatus}</p>}
         <div className="viewer-dock"><Dock label={t("tools.label")} items={viewerTools} value={toolValue} onSelect={tool} /></div>
       </ContextMenu.Trigger>
       {/* 查看器右键菜单（#102 表“查看器”行，#114）：每项另有 dock 按钮或快捷键。 */}

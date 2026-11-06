@@ -83,10 +83,10 @@ describe("英文界面：备份与画面保真检查", () => {
     expectNoChinese(document.body);
   });
 
-  it("备份没有完成的横幅", async () => {
+  it("备份没有完成的通知", async () => {
     backend();
     render(<BackupReminder />);
-    expect(await screen.findByText("Backup didn't finish: drive missing. Kinshoko will try again on the next quit or when idle.")).toBeTruthy();
+    expect(await screen.findByText("Backup didn't finish: drive missing")).toBeTruthy();
     expectNoChinese(document.body);
   });
 

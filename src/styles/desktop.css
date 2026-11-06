@@ -6,8 +6,6 @@
 .reference-groups-bar h2 { display: none; }
 .empty-context .reference-groups-bar h2 { display: none; }
 .capture-history-empty, .reference-groups-empty { margin: 0; padding: 0 2px; color: var(--ink-2); font-size: 12px; line-height: 18px; }
-.group-note { margin: 0; padding: 0 2px; color: var(--ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
-.group-note.is-error { color: var(--danger); }
 
 /* 截图列表 */
 .capture-history-list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }

@@ -139,7 +139,7 @@ describe("参考组面板", () => {
     fireEvent.change(screen.getByLabelText("新参考组名称"), { target: { value: "手部" } });
     await act(async () => { fireEvent.click(save); });
     expect(ipc.save).toHaveBeenCalledWith("手部");
-    expect(screen.getByRole("status").textContent).toBe("已把桌面钉图存为参考组");
+    expect(await screen.findByText("已把桌面钉图存为参考组")).toBeTruthy();
   });
 
   it("起名时按 Esc 或关闭按钮取消，回到“存下桌面钉图”", async () => {
@@ -210,7 +210,7 @@ describe("参考组面板", () => {
       fireEvent.click(screen.getByRole("button", { name: "摆到桌面" }));
     });
     expect(ipc.open).toHaveBeenCalledWith("g1");
-    expect(screen.getByRole("status").textContent).toBe("已钉出 2 个成员");
+    expect(await screen.findByText("已钉出 2 个成员")).toBeTruthy();
   });
 
   it("操作只出现在选中的卡片上；点另一张卡片换过去", async () => {
@@ -259,7 +259,7 @@ describe("参考组面板", () => {
     await show();
     await more("导出参考组包");
     expect(ipc.exportPackage).toHaveBeenCalledWith("g1");
-    expect(screen.getByRole("status").textContent).toContain("D:/导出/头发参考.kinshoko-group");
+    expect(await screen.findByText(/D:\/导出\/头发参考\.kinshoko-group/)).toBeTruthy();
   });
 
   it("取消保存对话框时不提示", async () => {
@@ -279,7 +279,7 @@ describe("参考组面板", () => {
     await chooseValue(screen.getByRole("combobox",{name:"文件夹"}),"folder-a");
     await act(async()=>{fireEvent.click(screen.getByRole("button",{name:"选择参考组包并导入"}));});
     expect(ipc.importPackage).toHaveBeenCalledWith("lib-a",{libraryId:"lib-a",folderId:"folder-a"});
-    expect(screen.getByRole("status").textContent).toContain("别人的参考组");
+    expect(await screen.findByText(/别人的参考组/)).toBeTruthy();
   });
 
   it("存入桌面钉图到已有参考组", async () => {

@@ -7,7 +7,6 @@ export default {
   collapsePaneTitle: "收起侧栏 Ctrl B",
   results: "查找结果",
   resultCount_other: "{{count}} 张",
-  gotIt: "知道了",
   copyOneOnly: "一次只能复制一张",
   pane: {
     folders: "文件夹",

@@ -31,6 +31,12 @@ function backend() {
 const actions = createRef<ImportActions>() as { current: ImportActions | null };
 const fromEagle = () => act(() => { actions.current!.eagle(); });
 
+/** 结束的通知带“查看”，点了才打开回执卡。 */
+const openReceipt = async () => {
+  fireEvent.click(await screen.findByRole("button", { name: "查看" }));
+  return screen.findByRole("region", { name: "导入结果" });
+};
+
 function bar(props: { report: ImportReport | null }) {
   // 测试里启动命令总是返回 task-1，结束的也是它。
   const finished = props.report && { taskId: "task-1", report: props.report };
@@ -91,7 +97,7 @@ describe("导入栏：Eagle 迁入后的标签外部对应", () => {
     backend();
     const { rerender } = render(bar({ report: null }));
     rerender(bar({ report }));
-    await screen.findByRole("region", { name: "导入结果" });
+    await screen.findByText("导入完成");
     expect(screen.queryByRole("region", { name: "标签的外部对应" })).toBeNull();
   });
 });
@@ -104,7 +110,7 @@ describe("封印重复项回执", () => {
     expect(await screen.findByText("有封印项重复，是否展开看看")).toBeTruthy();
     expect(screen.queryByText(/新增.*张/)).toBeNull();
     expect(screen.queryByRole("img")).toBeNull();
-    expect(screen.getByRole("button", { name: "展开本次重复项" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "展开" })).toBeTruthy();
   });
 });
 
@@ -125,7 +131,7 @@ it("关闭期间迟到的预览字节不会创建图片，且回执仍需重新�
   HTMLDialogElement.prototype.showModal = function() { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function() { this.removeAttribute("open"); };
   const { rerender } = render(bar({ report: { ...report, sealedDuplicates: true, privateSummary: true } }));
-  fireEvent.click(screen.getByRole("button", { name: "展开本次重复项" }));
+  fireEvent.click(await screen.findByRole("button", { name: "展开" }));
   await waitFor(() => expect(calls).toContain("plugin:library|read_import_preview"));
   fireEvent.click(screen.getByRole("button", { name: "关闭重复项预览" }));
   await waitFor(() => expect(calls).toContain("plugin:library|close_import_preview"));
@@ -134,9 +140,9 @@ it("关闭期间迟到的预览字节不会创建图片，且回执仍需重新�
   release();
   await new Promise(resolve => setTimeout(resolve, 0));
   expect(create).not.toHaveBeenCalled();
-  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByRole("dialog", { name: "本次封印重复项" })).toBeNull();
   rerender(bar({ report: { ...report, sealedDuplicates: true, privateSummary: true } }));
-  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByRole("dialog", { name: "本次封印重复项" })).toBeNull();
   vi.unstubAllGlobals();
 });
 
@@ -148,7 +154,7 @@ it("展开后是界面系统的对话框：标题与说明用规格原话，关�
     return undefined;
   }, { shouldMockEvents: true });
   render(bar({ report: { ...report, sealedDuplicates: true, privateSummary: true } }));
-  fireEvent.click(screen.getByRole("button", { name: "展开本次重复项" }));
+  fireEvent.click(await screen.findByRole("button", { name: "展开" }));
   const dialog = await screen.findByRole("dialog", { name: "本次封印重复项" });
   expect(dialog.className).toContain("k-dialog");
   expect(dialog.tagName).not.toBe("DIALOG");
@@ -169,12 +175,12 @@ it("切换到另一张回执不会自动沿用前一张回执的明确同意", a
   HTMLDialogElement.prototype.close = function() { this.removeAttribute("open"); };
   const receiptBar = (taskId: string) => <ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={{ taskId, report: { ...report, sealedDuplicates: true, privateSummary: true } }} onStarted={() => {}} onDismissReport={() => {}} />;
   const { rerender } = render(receiptBar("task-first"));
-  fireEvent.click(screen.getByRole("button", { name: "展开本次重复项" }));
+  fireEvent.click(await screen.findByRole("button", { name: "展开" }));
   await waitFor(() => expect(opened).toEqual(["task-first"]));
   rerender(receiptBar("task-next"));
   await new Promise(resolve => setTimeout(resolve, 0));
   expect(opened).toEqual(["task-first"]);
-  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByRole("dialog", { name: "本次封印重复项" })).toBeNull();
 });
 
 describe("导入对话框与右下角卡片（#98）", () => {
@@ -229,7 +235,7 @@ describe("导入对话框与右下角卡片（#98）", () => {
       { path: "c.txt", outcome: { kind: "unsupported" } }, { path: "d.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } },
     ] } } as never;
     render(<ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={finished} onStarted={() => {}} onDismissReport={() => {}} />);
-    const card = await screen.findByRole("region", { name: "导入结果" });
+    const card = await openReceipt();
     expect(card.textContent).toContain("新增 1");
     expect(card.textContent).toContain("已存在 1");
     expect(card.textContent).not.toContain("没导入");
@@ -250,9 +256,9 @@ describe("导入对话框与右下角卡片（#98）", () => {
     backend();
     const finished = { taskId: "task-1", report: { ...report, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } } as never;
     render(<ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={finished} onStarted={() => {}} onDismissReport={() => {}} />);
-    const card = await screen.findByRole("region", { name: "导入结果" });
-    expect(card.textContent).not.toContain("未导入");
-    expect(within(card).queryByRole("button", { name: /未导入/ })).toBeNull();
+    const title = await screen.findByText("导入完成");
+    expect(title.closest(".k-toast")?.textContent).not.toContain("未导入");
+    expect(screen.queryByRole("button", { name: "查看" })).toBeNull();
   });
 
   it("换一个任务的回执时收起未导入的文件", async () => {
@@ -260,10 +266,10 @@ describe("导入对话框与右下角卡片（#98）", () => {
     const failing = (taskId: string, path: string) => ({ taskId, report: { ...report, items: [{ path, outcome: { kind: "unsupported" } }] } }) as never;
     const ui = (finished: never) => <ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={finished} onStarted={() => {}} onDismissReport={() => {}} />;
     const view = render(ui(failing("task-1", "a.txt")));
-    fireEvent.click(await screen.findByRole("button", { name: "未导入 1" }));
+    fireEvent.click(within(await openReceipt()).getByRole("button", { name: "未导入 1" }));
     expect(screen.getByText("a.txt")).toBeTruthy();
     view.rerender(ui(failing("task-2", "b.txt")));
-    expect(screen.getByRole("button", { name: "未导入 1" }).getAttribute("aria-expanded")).toBe("false");
+    expect((await screen.findByRole("button", { name: "未导入 1" })).getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByText("b.txt")).toBeNull();
   });
 });
