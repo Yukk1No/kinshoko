@@ -185,8 +185,8 @@ sources`;
 }
 
 /**
- * 容器宽度变化时重排；详情面板过渡中与单击后的双击间隔里先不重排（#162、#179）。
- * 侧栏滑动（settle）时一开始就按终点宽度排，进行中不再跟着容器变。
+ * 容器宽度变化时重排；拖动面板边缘时与单击后的双击间隔里先不重排（#157、#179）。
+ * 面板开合（settle）时一开始就按终点宽度排，进行中不再跟着容器变（#162）。
  */
 export function useWidthSync({ holdReflow, settle, slideMotion, scroller, layoutWidth, measureBeforeReflow, setWidth, syncMount }: {
   holdReflow: boolean;
@@ -227,7 +227,8 @@ export function useWidthSync({ holdReflow, settle, slideMotion, scroller, layout
   // 面板开始滑：墙的终点宽度已知，现在就按它排，卡片随面板一起到位。
   useLayoutEffect(() => {
     const el = scroller.current;
-    if (!settle || !el || !layoutWidth.current) return;
+    // 拖动中不排；松手时这段滑动的变化量已经过时，等它结束再按实际宽度排。
+    if (!settle || holdReflow || !el || !layoutWidth.current) return;
     const target = Math.round(el.clientWidth + settle.by);
     if (target <= 0 || target === layoutWidth.current) return;
     measureBeforeReflow(true);

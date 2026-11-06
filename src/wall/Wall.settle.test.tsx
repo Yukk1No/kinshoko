@@ -1,4 +1,4 @@
-// 侧栏开合（settle）：过渡一开始就按终点宽度重排，卡片按面板过渡的时长、缓动与起点滑过去；
+// 面板开合（settle，侧栏与详情面板同一条路）：过渡一开始就按终点宽度重排，卡片按面板过渡的时长、缓动与起点滑过去；
 // 进行中容器逐帧变宽不再重排，结束时宽度与终点相符就不再排。
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -65,7 +65,7 @@ async function setup() {
   wall.scrollTop = 2000;
   fireEvent.scroll(wall);
   motions = [];
-  const slide = (settle: PanelSlide | null) => view.rerender(<Wall {...props} settle={settle} />);
+  const slide = (settle: PanelSlide | null, holdReflow = false) => view.rerender(<Wall {...props} settle={settle} holdReflow={holdReflow} />);
   return { wall, slide };
 }
 
@@ -110,4 +110,79 @@ it("结束时宽度与终点不符，按实际宽度再排一次", async () => {
   resize(1180);
   slide(null);
   expect(placement()).not.toEqual(settled);
+});
+
+const expand: PanelSlide = { by: -320, duration: 260, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", startTime: 1234 };
+
+it("详情面板打开（墙变窄）：一开始就按终点宽度排，进行中与结束时都不再排", async () => {
+  const { slide } = await setup();
+  const before = placement();
+  slide(expand);
+  const settled = placement();
+  expect(settled).not.toEqual(before);
+  const ids = motions.map((motion) => motion.id);
+  expect(new Set(ids).size).toBe(ids.length);
+  for (const next of [960, 880, 760, 680]) resize(next);
+  expect(placement()).toEqual(settled);
+  slide(null);
+  expect(placement()).toEqual(settled);
+  // 整个开合只起了开始那一组卡片动画。
+  expect(motions.map((motion) => motion.id)).toEqual(ids);
+});
+
+it("中途反向：从当前位置按新过渡排回新的终点，只重排这一次，结束不再补排", async () => {
+  const { slide } = await setup();
+  const before = placement();
+  slide(expand);
+  const first = [...motions];
+  resize(840);
+  motions = [];
+  // 面板从 160 退回 0：墙现在 840，终点 1000。
+  slide({ ...expand, by: 160, duration: 130, startTime: 1300 });
+  expect(placement()).toEqual(before);
+  expect(first.every((motion) => motion.cancel.mock.calls.length === 1)).toBe(true);
+  expect(motions.length).toBeGreaterThan(0);
+  expect(motions.every((motion) => motion.options.duration === 130 && motion.startTime === 1300)).toBe(true);
+  const back = motions.length;
+  for (const next of [900, 960, 1000]) resize(next);
+  slide(null);
+  expect(placement()).toEqual(before);
+  expect(motions.length).toBe(back);
+});
+
+it("两个面板一起滑时第二个开始不重复排", async () => {
+  const { slide } = await setup();
+  slide(expand);
+  const settled = placement(), started = motions.length;
+  // 同一帧里第二个面板的 transitionrun：算出的终点相同。
+  slide({ ...expand });
+  expect(placement()).toEqual(settled);
+  expect(motions.length).toBe(started);
+});
+
+it("拖动面板边缘（holdReflow）期间另一个面板的 slide 不触发重排，松手后等它结束才按实际宽度排一次", async () => {
+  const { slide } = await setup();
+  const before = placement();
+  slide(null, true);
+  for (const next of [980, 940, 900]) resize(next);
+  // 窄窗口里拖宽详情，侧栏跟着让位产生的过渡。
+  slide(expand, true);
+  expect(placement()).toEqual(before);
+  expect(motions).toEqual([]);
+  // 松手时侧栏还在滑：旧的变化量已经不对，不能拿来排。
+  slide(expand, false);
+  expect(placement()).toEqual(before);
+  resize(880);
+  expect(placement()).toEqual(before);
+  slide(null, false);
+  expect(placement()).not.toEqual(before);
+});
+
+it("减弱动效：按终点宽度排，没有卡片动画", async () => {
+  reduce = true;
+  const { slide } = await setup();
+  const before = placement();
+  slide(expand);
+  expect(placement()).not.toEqual(before);
+  expect(motions).toEqual([]);
 });

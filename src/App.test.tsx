@@ -122,6 +122,48 @@ describe("主窗口", () => {
     expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
   });
 
+  it("详情面板开合时图片墙一开始就按终点宽度排好，过渡中与结束时不再重排，并保持阅读偏移（#450）", async () => {
+    let available = 1000;
+    const observers = new Set<() => void>();
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => available });
+    vi.stubGlobal("ResizeObserver", class {
+      callback: () => void;
+      constructor(callback: () => void) { this.callback = callback; observers.add(callback); }
+      observe() {}
+      disconnect() { observers.delete(this.callback); }
+    });
+    vi.stubGlobal("innerWidth", 1600);
+    setInspectorOpen(false);
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const wall = screen.getByRole("listbox", { name: "图片墙" });
+    const card = document.querySelector<HTMLElement>('[data-id="a"]')!;
+    const inspector = document.querySelector<HTMLElement>(".inspector")!;
+    const sidebar = document.querySelector<HTMLElement>(".sidebar-slot")!;
+    // 现在详情 0、侧栏 256：详情打开后墙窄 320。
+    vi.spyOn(inspector, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 0, 800));
+    vi.spyOn(sidebar, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 256, 800));
+    wall.scrollTop = 60;
+    fireEvent.scroll(wall);
+    const offset = parseFloat(card.style.top) - wall.scrollTop;
+    const initial = parseFloat(card.style.width);
+    const resize = (next: number) => { available = next; act(() => observers.forEach((notify) => notify())); };
+    fireEvent.click(screen.getByRole("button", { name: "显示详情" }));
+    await waitFor(() => expect(inspector.getAttribute("data-collapsed")).toBe("false"));
+    // 过渡开始之前，墙还是原来的布局。
+    expect(parseFloat(card.style.width)).toBe(initial);
+    act(() => { inspector.dispatchEvent(new TransitionEvent("transitionrun", { propertyName: "width" })); });
+    const settled = parseFloat(card.style.width);
+    expect(settled).toBeLessThan(initial);
+    expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
+    for (const next of [960, 880, 760, 680]) resize(next);
+    expect(parseFloat(card.style.width)).toBe(settled);
+    act(() => { inspector.dispatchEvent(new TransitionEvent("transitionend", { propertyName: "width" })); });
+    expect(parseFloat(card.style.width)).toBe(settled);
+    expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
+  });
+
   it("拖动详情面板边缘时图片墙不逐帧重排，松手后重排一次（#157）", async () => {
     let available = 1000;
     const observers = new Set<() => void>();
