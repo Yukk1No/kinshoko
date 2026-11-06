@@ -73,7 +73,6 @@ const subscriptions: Translation<typeof zh> = {
     settingsTitle: "Subscription settings",
     input: "Artist page link or ID",
     placeholder: "https://www.pixiv.net/users/…",
-    find: "Find",
     finding: "Finding",
     id: "pixiv ID {{id}}",
     already: "You already subscribe to this artist",
