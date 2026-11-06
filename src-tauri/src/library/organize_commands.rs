@@ -3,6 +3,24 @@
 use super::*;
 use kinshoko_core::CommandError;
 
+/// 整理这个资料库里的这些图（#425）：按需切换可写句柄、等导入收尾，再在锁里复核这些图此刻可见。
+pub(super) fn write_visible<R: Runtime, T>(
+    app: &AppHandle<R>,
+    library_id: &str,
+    image_ids: &[String],
+    action: impl FnOnce(&Library) -> Result<T, kinshoko_core::library::Error>,
+) -> Result<T, CommandError> {
+    let writer = writable(app, library_id)?;
+    let state = app.state::<LibraryState>();
+    let _transition = lock(&state.transition);
+    let _visibility = lock(&state.visibility_commit);
+    let value = workspace::with_resources(&state, |w, d, c| {
+        w.write_visible_images(d, c, &state.safe_mode, &writer, image_ids, action)
+    })?;
+    state.search.invalidate();
+    Ok(value)
+}
+
 /// 一次批量整理若干张图，返回重新计算后的详情。
 #[tauri::command]
 pub(super) async fn edit<R: Runtime>(
@@ -12,9 +30,8 @@ pub(super) async fn edit<R: Runtime>(
     edits: Vec<ImageEdit>,
 ) -> Result<Vec<ImageDetail>, CommandError> {
     blocking(move || {
-        let library = writable(&app, &library_id)?;
-        with_visibility_commit(&app, |_| {
-            library.edit(&ids, &edits).map_err(CommandError::from)
+        write_visible(&app, &library_id, &ids, |library| {
+            library.edit(&ids, &edits)
         })
     })
     .await
@@ -29,12 +46,12 @@ pub(super) async fn preview_permanent_delete<R: Runtime>(
     ids: Vec<String>,
 ) -> Result<PermanentDeletePreview, CommandError> {
     blocking(move || {
-        let library = writable(&app, &library_id)?;
-        crate::desktop::with_groups(&app, |groups| {
-            library.preview_permanent_delete(&ids, groups)
+        write_visible(&app, &library_id, &ids, |library| {
+            crate::desktop::with_groups(&app, |groups| {
+                library.preview_permanent_delete(&ids, groups)
+            })
+            .ok_or_else(|| kinshoko_core::library::Error::reference_groups(groups_not_ready()))?
         })
-        .ok_or_else(groups_not_ready)?
-        .map_err(CommandError::from)
     })
     .await
 }

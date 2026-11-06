@@ -45,15 +45,6 @@ pub(crate) fn clipboard_image(lang: &str, stamp: u128, attempt: u32) -> String {
     }
 }
 
-/// 从另一个资料库复制进来时，来源记录里的参考组名。
-pub(crate) fn copied_from(lang: &str, library: &str) -> String {
-    if english(lang) {
-        format!("Copied from “{library}”")
-    } else {
-        format!("从「{library}」复制")
-    }
-}
-
 /// 数据迁到新位置后，旧文件夹里留下的说明；`left` 是没有迁移的条目。
 pub(crate) fn migration_note(lang: &str, target: &Path, left: &[&str]) -> String {
     let en = english(lang);
@@ -105,8 +96,6 @@ mod tests {
         assert_eq!(restored_library_name(EN, "Main"), "Main (restored)");
         assert_eq!(clipboard_image(ZH_CN, 7, 0), "剪贴板图片-7.png");
         assert_eq!(clipboard_image(EN, 7, 1), "clipboard-image-7-1.png");
-        assert_eq!(copied_from(ZH_CN, "甲"), "从「甲」复制");
-        assert_eq!(copied_from(EN, "A"), "Copied from “A”");
         let note = migration_note(EN, Path::new("D:/data"), &["x"]);
         assert!(note.starts_with("Kinshoko's settings"));
         assert!(note.ends_with("  x\r\n"));

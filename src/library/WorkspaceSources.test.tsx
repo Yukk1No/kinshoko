@@ -10,22 +10,21 @@ const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, adult: 
 ] };
 afterEach(() => { cleanup(); clearMocks(); });
 
-/** 一份来源的三条读取（#424）：详情、标签与文件夹；不属于它们的命令回 undefined。 */
-function sourceReads(cmd: string, args: unknown, detail: (id: string) => object = () => ({}), sidebar = { all: 1, trash: 0, folders: [] }) {
+/** 一份来源的读取（#424）：详情与标签；不属于它们的命令回 undefined。 */
+function sourceReads(cmd: string, args: unknown, detail: (id: string) => object = () => ({})) {
   const id = (args as { imageId: string }).imageId;
   if (cmd === "plugin:library|image") return { id, originalName: id + ".png", width: 100, height: 200, folders: [], note: { manual: id + " 的备注", sources: [] }, collectedAt: 0, sourceLinks: [], deletedAt: null, rating: { imageId: id, suggested: null, manual: null, effective: null }, versions: { previous: null, newer: [] }, ...detail(id) };
   if (cmd === "plugin:library|catalog_image_tags") return { image: { imageId: id, tags: [], rejected: [] }, identities: [] };
-  if (cmd === "plugin:library|image_folders") return sidebar;
   return undefined;
 }
 
-it("在图库间切换后复用备注整理，发送完整来源身份", async () => {
+it("切到另一份后，备注按（资料库，图）只写那一份", async () => {
   const edits: unknown[] = [];
   mockIPC((cmd, args) => {
     const read = sourceReads(cmd, args, (id) => ({ note: { manual: id === "b" ? "B 的备注" : "A 的备注", sources: [] } }));
     if (read) return read;
     if (cmd === "plugin:desktop|reference_groups") return [];
-    if (cmd === "plugin:library|workspace_edit_source") { edits.push(args); return; }
+    if (cmd === "plugin:library|edit") { edits.push(args); return []; }
   });
   render(<WorkspaceSources card={card} onClose={vi.fn()} />);
   await screen.findByRole("textbox", { name: "备注" });
@@ -34,47 +33,41 @@ it("在图库间切换后复用备注整理，发送完整来源身份", async (
   const note = screen.getByRole("textbox", { name: "备注" });
   fireEvent.change(note, { target: { value: "只改 B" } });
   fireEvent.click(screen.getByRole("button", { name: "保存备注" }));
-  await waitFor(() => expect(edits).toEqual([{ target: { libraryId: "B", imageId: "b", contentId: "same-bytes" }, safeMode: true, edits: [{ kind: "setNote", text: "只改 B" }] }]));
+  await waitFor(() => expect(edits).toEqual([{ libraryId: "B", ids: ["b"], edits: [{ kind: "setNote", text: "只改 B" }] }]));
 });
 
-it("换到 B 后，A 的迟到删除响应不能关闭 B 的整理面板", async () => {
-  let finishDelete!: () => void;
-  const deletion = new Promise<void>((resolve) => { finishDelete = resolve; });
+it("换到 B 后，A 迟到的分级响应不能关闭 B 的面板", async () => {
+  let finish!: (details: unknown[]) => void;
+  const pending = new Promise<unknown[]>((resolve) => { finish = resolve; });
   mockIPC((cmd, args) => {
     const read = sourceReads(cmd, args);
     if (read) return read;
-    if (cmd === "plugin:desktop|reference_groups") return [];
-    if (cmd === "plugin:library|workspace_edit_source") return deletion;
+    if (cmd === "plugin:library|edit") return pending;
   });
   const close = vi.fn();
   render(<WorkspaceSources card={card} onClose={close} />);
   await screen.findByRole("textbox", { name: "备注" });
-  fireEvent.click(screen.getByRole("button", { name: /^删除$/ }));
+  fireEvent.click(screen.getByRole("button", { name: "成人" }));
   fireEvent.click(within(screen.getByRole("group", { name: "所在图库" })).getByRole("button", { name: "移动盘参考" }));
   await waitFor(() => expect((screen.getByRole("textbox", { name: "备注" }) as HTMLTextAreaElement).value).toBe("b 的备注"));
-  await import("@testing-library/react").then(({ act }) => act(async () => { finishDelete(); await deletion; }));
+  await act(async () => {
+    finish([sourceReads("plugin:library|image", { imageId: "a" }, () => ({ rating: { imageId: "a", suggested: null, manual: "explicit", effective: "explicit" } }))]);
+    await pending;
+  });
   expect(close).not.toHaveBeenCalled();
 });
 
-it("换来源后，旧永久删除的迟到响应不能关闭新来源", async () => {
-  let finish!: () => void;
-  const pending = new Promise<void>((resolve) => { finish = resolve; });
+it("安全模式下把这一份改成成人分级，面板随之关闭", async () => {
   mockIPC((cmd, args) => {
-    const read = sourceReads(cmd, args, () => ({ deletedAt: 1 }), { all: 0, trash: 1, folders: [] });
+    const read = sourceReads(cmd, args);
     if (read) return read;
-    if (cmd === "plugin:desktop|reference_groups") return [];
-    if (cmd === "plugin:library|workspace_preview_source_delete") return { imageIds: ["a"], groups: [], token: "preview-a" };
-    if (cmd === "plugin:library|workspace_permanent_source_delete") return pending;
+    if (cmd === "plugin:library|edit") return [sourceReads("plugin:library|image", { imageId: "a" }, () => ({ rating: { imageId: "a", suggested: null, manual: "explicit", effective: "explicit" } }))];
   });
   const close = vi.fn();
   render(<WorkspaceSources card={card} onClose={close} />);
-  fireEvent.click(await screen.findByRole("button", { name: "永久删除…" }));
-  fireEvent.click(await screen.findByRole("button", { name: "确认永久删除" }));
-  // 确认是模态提醒对话框，背后的来源切换对读屏隐藏；这里直接派发点击，模拟删除进行中来源被换掉的竞态。
-  fireEvent.click(within(screen.getByRole("group", { name: "所在图库", hidden: true })).getByRole("button", { name: "移动盘参考", hidden: true }));
   await screen.findByRole("textbox", { name: "备注" });
-  await import("@testing-library/react").then(({ act }) => act(async () => { finish(); await pending; }));
-  expect(close).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "成人" }));
+  await waitFor(() => expect(close).toHaveBeenCalled());
 });
 
 it("同名图库在切换按钮的提示里显示最短独立路径", () => {
@@ -107,7 +100,7 @@ it("卡片代表的那份未连接时，先打开另一份可用的", async () =
   await waitFor(() => expect(inspected).toEqual(["B"]));
 });
 
-it("来源读不出来时只留原因，收起面板与复制", async () => {
+it("来源读不出来时只留原因，收起面板", async () => {
   mockIPC((cmd, args) => {
     if (cmd === "plugin:library|image") return Promise.reject({ code: "unknownImage" });
     return sourceReads(cmd, args);
@@ -116,17 +109,15 @@ it("来源读不出来时只留原因，收起面板与复制", async () => {
   await screen.findByRole("alert");
   await waitFor(() => expect(screen.queryByRole("combobox")).toBeNull());
   expect(screen.queryByRole("textbox", { name: "备注" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "复制到…" })).toBeNull();
-  expect(screen.queryByRole("button", { name: /^删除$/ })).toBeNull();
 });
 
-it("回收站里的来源：详情到了才出现恢复与永久删除", async () => {
-  let finish!: (value: unknown) => void;
-  const pending = new Promise((resolve) => { finish = resolve; });
-  mockIPC((cmd, args) => (cmd === "plugin:library|image" ? pending : sourceReads(cmd, args)));
-  render(<WorkspaceSources card={{ ...card, sources: card.sources.slice(0, 1) }} onClose={vi.fn()} />);
-  expect(screen.queryByRole("button", { name: /^删除$/ })).toBeNull();
-  await act(async () => { finish(sourceReads("plugin:library|image", { imageId: "a" }, () => ({ deletedAt: 1 }))); });
-  expect(await screen.findByRole("button", { name: "永久删除…" })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: /^删除$/ })).toBeNull();
+it("和普通单选面板一样：没有操作栏，文件夹标签不能移出", async () => {
+  mockIPC((cmd, args) => sourceReads(cmd, args, () => ({ deletedAt: 1, folders: [{ id: "f", name: "人物" }] })));
+  render(<WorkspaceSources card={card} onClose={vi.fn()} />);
+  await screen.findByText("人物");
+  expect(screen.queryByRole("toolbar")).toBeNull();
+  expect(screen.queryByText("已选 1 张")).toBeNull();
+  for (const name of ["移到文件夹", "移到回收站", "恢复", "永久删除…", "取消选择", "移出「人物」", "复制到…"]) {
+    expect(screen.queryByRole("button", { name })).toBeNull();
+  }
 });

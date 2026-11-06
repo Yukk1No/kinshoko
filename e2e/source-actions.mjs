@@ -42,7 +42,11 @@ let session, a, b, target, groupId, pin, environment;
 const blank = { conditions: [] };
 const query = { scope: { kind: "all" }, conditions: blank, cursor: null, limit: 100, thumbnailPx: 128 };
 const browse = () => session.invoke("workspace_browse", { query, safeMode: true });
-const inspect = (sourceTarget = target, safeMode = true) => session.invoke("workspace_source_inspection", { target: sourceTarget, safeMode, lang: "zh-CN" });
+const inspect = async (source = target) => ({
+  detail: await session.invoke("image", { libraryId: source.libraryId, imageId: source.imageId }),
+  tags: await session.invoke("catalog_image_tags", { libraryId: source.libraryId, imageId: source.imageId, lang: "zh-CN" }),
+});
+const editOne = (source, edits) => session.invoke("edit", { libraryId: source.libraryId, ids: [source.imageId], edits });
 const uiTotal = (total) => until(`wall total ${total}`, () => session.exec("return document.querySelector('.wall')?.dataset.total === arguments[0];", [String(total)]));
 const stopApp = async () => {
   if (session) await session.close().catch(() => {});
@@ -103,21 +107,17 @@ try {
   await session.exec("const select=document.querySelector('[aria-label=\"内容分级\"]'); select.value='sensitive'; select.dispatchEvent(new Event('change',{bubbles:true}));");
   await until("B rating", async () => (await inspect()).detail.rating.manual === "sensitive");
   assert((await inspect(aTarget)).detail.rating.manual === null, "B manual rating remains independent from A");
-  await until("B folder control", () => session.find("//button[normalize-space(.)='移出「B 独立标签目录」']"));
-  await session.click("//button[normalize-space(.)='移出「B 独立标签目录」']");
+  await editOne(target, [{ kind: "removeFromFolder", folderId: b.folderId }]);
   await until("B folder removed", async () => (await inspect()).detail.folders.length === 0);
   assert((await inspect(aTarget)).detail.folders[0].id === a.folderId, "removing B folder membership preserves A folder membership");
-  // 设计系统 v2: the source editor's 移到文件夹 is a menu of the provider's folders.
-  await until("B folder menu ready", () => session.exec("const button=document.querySelector('[aria-label=\"整理来源\"] button[aria-label=\"移到文件夹\"]'); return !!button && !button.disabled;"));
-  await session.click("//*[@aria-label='整理来源']//button[@aria-label='移到文件夹']");
-  await session.click("//*[@role='menu']//*[@role='menuitem' and normalize-space()='B 独立标签目录']");
+  await editOne(target, [{ kind: "addToFolder", folderId: b.folderId }]);
   await until("B folder restored", async () => (await inspect()).detail.folders.some(f => f.id === b.folderId));
   await until("B tag input ready", () => session.find("//*[@aria-label='标签名']"));
   await session.type("//*[@aria-label='标签名']", "B 新人工标签");
   await session.click("//button[@aria-label='添加标签']");
   await until("B new tag", async () => (await inspect()).tags.image.tags.some(t => t.tag.name === "B 新人工标签"));
   assert(!(await inspect(aTarget)).tags.image.tags.some(t => t.tag.name === "B 新人工标签"), "new B manual tag never changes A tags");
-  assert((await session.invoke("workspace_source_candidates", { target, safeMode: true, text: "B 新", lang: "zh-CN" }))[0]?.tag.name === "B 新人工标签", "source picker uses B local tag identities through actual native ACL");
+  assert((await session.invoke("workspace_library_candidates", { libraryId: target.libraryId, safeMode: true, text: "B 新", lang: "zh-CN", limit: 8 }))[0]?.tag.name === "B 新人工标签", "source picker uses B local tag identities through actual native ACL");
   await delay(1800); // Let the real workspace monitor publish the tag revision before the next user action.
   await until("B controls ready", () => session.find("//button[text()='钉住此来源']"));
   await session.screenshot("explicit-inactive-source-after.png");
@@ -146,30 +146,22 @@ try {
   assert(stableReference(offlineGroup.group.members[0]) && offlineGroup.members[0].state.kind === "unavailable", "restart with disconnected B keeps B group member and reports unavailable instead of binding A");
   assert(stableReference(pinState()[0].content), "restart preserves the unavailable pin source identity");
   assert(await inspect().then(() => false, e => String(e).includes("暂时不可用")), "disconnected source inspection explicitly rejects B");
-  assert(await session.invoke("workspace_edit_source", { target, safeMode: true, edits: [{ kind: "delete" }] }).then(() => false, e => String(e).includes("暂时不可用")), "disconnected B write never falls back to available A bytes");
+  assert(await editOne(target, [{ kind: "delete" }]).then(() => false, e => String(e).includes("暂时不可用")), "disconnected B write never falls back to available A bytes");
   assert(JSON.stringify((await inspect(aTarget)).detail) === JSON.stringify(aBefore.detail), "A curation remains unchanged after B edits and disconnected requests");
   await session.screenshot("disconnected-source-keeps-reference.png");
   await stopApp(); renameSync(b.root + ".offline", b.root); session = await Session.start(); await uiTotal(1); await delay(1800);
   assert((await session.invoke("current_library")).id === a.id, "source editing and restart preserve last-opened A");
   assert((await inspect()).detail.note.manual === "B 改后的独立备注", "B independent curation persists across process restarts");
-  await openSource(b.id);
-  await session.click("//*[@aria-label='已选参考图']//button[text()='删除']");
+  await editOne(target, [{ kind: "delete" }]);
   await until("B in trash", async () => (await inspect()).detail.deletedAt !== null);
   assert((await browse()).total === 1 && (await inspect(aTarget)).detail.deletedAt === null, "deleting B leaves aggregate A card and A original live");
-  await delay(1800); await openSource(b.id);
-  await session.click("//button[text()='永久删除…']");
-  await until("B delete preview", () => session.find("//*[@role='alertdialog' and @aria-label='永久删除']"));
-  assert(await session.exec("return document.querySelector('[role=alertdialog]').textContent.includes('T09 指定 B 来源');"), "inactive-source permanent-delete preview reports B reference-group impact");
-  await session.screenshot("source-permanent-delete-preview.png");
-  await session.click("//button[text()='确认永久删除']");
+  const purge = await session.invoke("preview_permanent_delete", { libraryId: target.libraryId, ids: [target.imageId] });
+  assert(purge.groups.some(group => group.name === "T09 指定 B 来源"), "inactive-source permanent-delete preview reports B reference-group impact");
+  await session.invoke("permanent_delete", { libraryId: target.libraryId, ids: purge.imageIds, token: purge.token });
   await until("B permanent removal", () => inspect().then(() => false, () => true));
   assert((await browse()).total === 1 && (await inspect(aTarget)).detail.deletedAt === null, "permanent B deletion preserves A duplicate and its curation");
   const missingGroup = await session.desktop("reference_group", { groupId });
   assert(stableReference(missingGroup.group.members[0]) && missingGroup.members[0].state.kind === "unavailable", "permanent deletion retains B member identity and reports image missing");
-  assert(await session.invoke("workspace_edit_source", { target: { ...aTarget, contentId: "stale-byte-identity" }, safeMode: true, edits: [{ kind: "delete" }] }).then(() => false, e => String(e).includes("来源")), "changed byte identity is rejected instead of targeting a current aggregate card");
-  await session.invoke("set_safe_mode", { on: false });
-  assert(await session.invoke("workspace_edit_source", { target: aTarget, safeMode: true, edits: [{ kind: "delete" }] }).then(() => false, e => String(e).includes("安全模式")), "stale safe-mode generation is rejected at the native write boundary");
-  await session.invoke("set_safe_mode", { on: true });
   await session.screenshot("after-source-deletion.png");
   writeFileSync(join(work, "result.json"), JSON.stringify({ status: "passed", source, binarySha256, application, environment, provenance, a, b, target, groupId, pin, assertions, stories: [12, 13], finishedAt: new Date().toISOString() }, null, 2));
   console.log(`Evidence: ${work}`);

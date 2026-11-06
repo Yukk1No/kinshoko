@@ -43,7 +43,6 @@ function backend(answer: (cmd: string, id: string) => unknown = () => undefined)
     const id = (args as { imageId?: string }).imageId ?? "";
     const custom = answer(name, id);
     if (custom !== undefined) return custom;
-    if (name === "workspace_sidebar" || name === "image_folders") return { all: 3, trash: 0, folders: [{ id: "f", name: "人物", count: 1, children: [] }] };
     if (name === "image") return detail(id);
     if (name === "catalog_image_tags") return tags(id);
     return undefined;
@@ -53,12 +52,12 @@ function backend(answer: (cmd: string, id: string) => unknown = () => undefined)
 
 function panel(id: string) {
   return (
-    <SelectionPanel libraryId="L1" scope={{ kind: "all" }} selected={new Set([id])}
+    <SelectionPanel libraryId="L1" selected={new Set([id])}
       onClear={() => {}} reloadKey={0} onError={() => {}} />
   );
 }
 
-it("连续切换选中图时，不再重新读取文件夹树", async () => {
+it("连续切换选中图时，不读文件夹树", async () => {
   const calls = backend();
   const view = render(panel("a"));
   await screen.findByText("a.png");
@@ -68,7 +67,7 @@ it("连续切换选中图时，不再重新读取文件夹树", async () => {
   await screen.findByText("c.png");
   await screen.findByText("c 的标签");
 
-  expect(calls.image_folders).toBe(1);
+  expect(calls.workspace_sidebar).toBeUndefined();
 });
 
 it("一次选中，详情和标签的后端查询各只发一次", async () => {
@@ -130,7 +129,7 @@ it("迟到的旧响应不会写进新选中的图", async () => {
   expect(screen.queryByText("b 的标签")).toBeNull();
 });
 
-it("来源整理与普通面板读同一套接口，各只发一次，不走来源检查", async () => {
+it("同一文件多份时与普通面板读同一套接口，各只发一次", async () => {
   const calls = backend();
   const card: WorkspaceCard = { id: "same-bytes", width: 10, height: 10, adult: false, libraryId: "B", imageId: "b", sources: [
     { libraryId: "B", libraryName: "移动盘参考", imageId: "b", matches: true, unavailable: null, deleted: false },
@@ -141,6 +140,4 @@ it("来源整理与普通面板读同一套接口，各只发一次，不走来�
 
   expect(calls.image).toBe(1);
   expect(calls.catalog_image_tags).toBe(1);
-  expect(calls.image_folders).toBe(1);
-  expect(calls.workspace_source_inspection).toBeUndefined();
 });

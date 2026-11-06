@@ -59,7 +59,7 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
     }
     if (command === "plugin:desktop|reference_groups") return [];
     if (command === "plugin:library|catalog_image_tags") return { image: { imageId: state.imageId, tags: [], rejected: [] }, identities: [] };
-    if (command === "plugin:library|workspace_sidebar" || command === "plugin:library|image_folders") return { all: state.available ? 1 : 0, trash: 0, folders: [] };
+    if (command === "plugin:library|workspace_sidebar") return { all: state.available ? 1 : 0, trash: 0, folders: [] };
     if (command === "shell_settings") return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid" };
     if (command === "app_info") return { productName: "Kinshoko", version: "1" };
     if (command === "plugin:library|workspace_edit_sources") return [];

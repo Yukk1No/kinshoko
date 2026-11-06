@@ -93,14 +93,14 @@ it("加入参考组按每张图的来源加入", async () => {
 it("一张图的彻底删除按它显示的来源预览并确认", async () => {
   mockIPC((cmd, args) => {
     calls.push({ cmd, args: args as Record<string, unknown> });
-    if (cmd.endsWith("workspace_preview_source_delete")) return { imageIds: ["i1"], groups: [], token: "t" };
+    if (cmd.endsWith("|preview_permanent_delete")) return { imageIds: ["i1"], groups: [], token: "t" };
     return null;
   });
   render(<Harness />);
   act(() => api.purge([card("1")]));
   fireEvent.click(await screen.findByRole("button", { name: "确认永久删除" }));
-  await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:library|workspace_permanent_source_delete")).toBe(true));
-  expect(calls.find((c) => c.cmd === "plugin:library|workspace_permanent_source_delete")!.args).toMatchObject({ target: { libraryId: "L1", imageId: "i1" }, token: "t" });
+  await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:library|permanent_delete")).toBe(true));
+  expect(calls.find((c) => c.cmd === "plugin:library|permanent_delete")!.args).toMatchObject({ libraryId: "L1", ids: ["i1"], token: "t" });
 });
 
 it("跨图库的多张彻底删除：按图库分组预览，列出受影响的参考组，确认后逐组删除（#112）", async () => {

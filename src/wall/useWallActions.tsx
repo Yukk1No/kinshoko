@@ -201,7 +201,6 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     {purging && purgeTarget && <PermanentDeleteConfirm
       libraryId={purgeTarget.libraryId}
       ids={[purgeTarget.imageId]}
-      sourceTarget={purgeTarget}
       safeMode={o.safe}
       onDone={purged}
       onCancel={() => setPurging(null)}

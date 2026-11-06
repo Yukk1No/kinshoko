@@ -2,9 +2,7 @@
 
 use super::*;
 use kinshoko_core::CommandError;
-use kinshoko_core::workspace::{
-    Workspace, WorkspaceSourceInspection, WorkspaceSourceTarget, group_sources,
-};
+use kinshoko_core::workspace::{Workspace, WorkspaceSourceTarget, group_sources};
 
 pub(super) fn action<R: Runtime, T>(
     app: &AppHandle<R>,
@@ -39,60 +37,6 @@ fn guarded<R: Runtime, T>(
         return Err(kinshoko_core::library::Error::LensChanged.into());
     }
     Ok(value)
-}
-
-#[tauri::command]
-pub(super) async fn workspace_source_inspection<R: Runtime>(
-    app: AppHandle<R>,
-    target: WorkspaceSourceTarget,
-    safe_mode: bool,
-    lang: String,
-) -> Result<WorkspaceSourceInspection, CommandError> {
-    blocking(move || {
-        action(&app, &target, safe_mode, |w, d, c, t| {
-            w.inspect_source(d, c, t, safe_mode, &lang)
-        })
-    })
-    .await
-}
-
-#[tauri::command]
-pub(super) async fn workspace_source_candidates<R: Runtime>(
-    app: AppHandle<R>,
-    target: WorkspaceSourceTarget,
-    safe_mode: bool,
-    text: String,
-    lang: String,
-) -> Result<Vec<Candidate>, CommandError> {
-    blocking(move || {
-        action(&app, &target, safe_mode, |w, d, c, t| {
-            w.source_candidates(d, c, t, safe_mode, &text, &lang)
-        })
-    })
-    .await
-}
-
-#[tauri::command]
-pub(super) async fn workspace_edit_source<R: Runtime>(
-    app: AppHandle<R>,
-    target: WorkspaceSourceTarget,
-    safe_mode: bool,
-    edits: Vec<ImageEdit>,
-) -> Result<(), CommandError> {
-    blocking(move || {
-        // 与其他整理命令同一条路（ADR-0008）：按需切换唯一的可写句柄、等导入收尾。
-        let writer = writable(&app, &target.library_id)?;
-        action(&app, &target, safe_mode, |w, d, c, t| {
-            w.write_source_with(d, c, t, safe_mode, &writer, |library| {
-                library
-                    .edit(std::slice::from_ref(&t.image_id), &edits)
-                    .map(|_| ())
-            })
-        })?;
-        app.state::<LibraryState>().search.invalidate();
-        Ok(())
-    })
-    .await
 }
 
 /// 跨图库的多份来源一次整理（#290）：按图库分组，每个图库只切一次可写句柄、调一次整理；
@@ -130,34 +74,6 @@ pub(super) async fn workspace_edit_sources<R: Runtime>(
 }
 
 #[tauri::command]
-pub(super) async fn workspace_edit_source_tags<R: Runtime>(
-    app: AppHandle<R>,
-    target: WorkspaceSourceTarget,
-    safe_mode: bool,
-    edits: Vec<TagEdit>,
-) -> Result<(), CommandError> {
-    blocking(move || {
-        let writer = writable(&app, &target.library_id)?;
-        action(&app, &target, safe_mode, |w, d, c, t| {
-            w.write_source_with(d, c, t, safe_mode, &writer, |library| {
-                library.use_translations_for_new_tags(bundled_translations());
-                library.edit_tags(std::slice::from_ref(&t.image_id), &edits)
-            })
-        })?;
-        app.state::<LibraryState>().search.invalidate();
-        publish_definition_dependencies(&app, &target.library_id).map_err(|error| {
-            CommandError::caused_by(
-                error,
-                |cause| ErrorKind::SourceTagDefinitionsNotSaved { cause },
-                |error| format!("这个来源的标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"),
-            )
-        })?;
-        Ok(())
-    })
-    .await
-}
-
-#[tauri::command]
 pub(super) async fn workspace_source_group<R: Runtime>(
     app: AppHandle<R>,
     target: WorkspaceSourceTarget,
@@ -178,50 +94,6 @@ pub(super) async fn workspace_source_group<R: Runtime>(
         .map_err(CommandError::from)?;
         crate::desktop::reference_groups_changed(&app);
         Ok(group)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(super) async fn workspace_preview_source_delete<R: Runtime>(
-    app: AppHandle<R>,
-    target: WorkspaceSourceTarget,
-    safe_mode: bool,
-) -> Result<PermanentDeletePreview, CommandError> {
-    blocking(move || {
-        action(&app, &target, safe_mode, |w, d, c, t| {
-            let library = w.read_source(d, c, t, safe_mode)?;
-            crate::desktop::with_groups(&app, |groups| {
-                library.preview_permanent_delete(std::slice::from_ref(&t.image_id), groups)
-            })
-            .ok_or_else(|| CatalogError::Command(Box::new(super::groups_not_ready())))?
-            .map_err(CatalogError::Library)
-        })
-    })
-    .await
-}
-
-#[tauri::command]
-pub(super) async fn workspace_permanent_source_delete<R: Runtime>(
-    app: AppHandle<R>,
-    target: WorkspaceSourceTarget,
-    safe_mode: bool,
-    token: String,
-) -> Result<(), CommandError> {
-    blocking(move || {
-        let writer = writable(&app, &target.library_id)?;
-        action(&app, &target, safe_mode, |w, d, c, t| {
-            w.write_source_with(d, c, t, safe_mode, &writer, |library| {
-                crate::desktop::with_groups(&app, |groups| {
-                    library.permanent_delete(std::slice::from_ref(&t.image_id), &token, groups)
-                })
-                .ok_or_else(|| {
-                    kinshoko_core::library::Error::reference_groups(super::groups_not_ready())
-                })?
-            })
-        })?;
-        crate::desktop::reference_groups_changed(&app);
-        Ok(())
     })
     .await
 }

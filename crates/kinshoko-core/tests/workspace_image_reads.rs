@@ -1,4 +1,4 @@
-//! 单图详情的读取（#424）：详情、标签、文件夹都按（资料库，图）寻址，不切换任何句柄；
+//! 单图详情的读取（#424）：详情、标签都按（资料库，图）寻址，不切换任何句柄；
 //! 可见性复核与安全模式封印在这一条路上，读之前和读之后各核对一次。
 
 use image::{Rgba, RgbaImage};
@@ -47,13 +47,13 @@ impl Fixture {
             .to_owned()
     }
 
-    /// 三个读取都得到同一个结果：`Ok` 时都读到了这张图，`Err` 时都是这个错误。
+    /// 两个读取都得到同一个结果：`Ok` 时都读到了这张图，`Err` 时都是这个错误。
     fn each_read(
         &mut self,
         safe: &SafeModeState,
         library: &str,
         image: &str,
-    ) -> [Result<(), CatalogError>; 3] {
+    ) -> [Result<(), CatalogError>; 2] {
         let (w, d, c) = (&mut self.workspace, &self.device, &mut self.catalog);
         [
             w.image_detail(d, c, safe, library, image).map(|detail| {
@@ -63,7 +63,6 @@ impl Fixture {
                 .map(|tags| {
                     assert_eq!(tags.image.image_id, image);
                 }),
-            w.image_folders(d, c, safe, library, image).map(|_| ()),
         ]
     }
 }
@@ -79,7 +78,7 @@ fn rate(library: &Library, id: &str, rating: ContentRating) {
         .unwrap();
 }
 
-fn assert_unknown_image(results: [Result<(), CatalogError>; 3]) {
+fn assert_unknown_image(results: [Result<(), CatalogError>; 2]) {
     for result in results {
         assert!(
             matches!(result, Err(CatalogError::Library(Error::UnknownImage))),
@@ -113,8 +112,6 @@ fn reads_any_registered_library_without_switching_the_writer() {
     let (w, d, c) = (&mut f.workspace, &f.device, &mut f.catalog);
     let detail = w.image_detail(d, c, &safe, &a_id, &image).unwrap();
     assert_eq!(detail.folders[0].id, folder);
-    let tree = w.image_folders(d, c, &safe, &a_id, &image).unwrap();
-    assert_eq!(tree.folders[0].id, folder);
     assert_eq!(f.device.current().unwrap().info().id, writer);
 }
 

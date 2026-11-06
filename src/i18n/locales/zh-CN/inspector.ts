@@ -6,13 +6,11 @@ export default {
     count_other: "已选 {{count}} 张",
     countShort_other: "{{count}} 张",
     moveToFolder: "移到文件夹",
-    moveTo: "移到",
     noFolders: "还没有文件夹",
     removeFromFolder: "移出此文件夹",
     restore: "恢复",
     purge: "永久删除…",
     trash: "移到回收站",
-    delete: "删除",
     clear: "取消选择",
     trashed: "已移到回收站",
     trashedCount_other: "{{count}} 张",
@@ -34,7 +32,6 @@ export default {
   folders: {
     label: "所在文件夹",
     title: "文件夹",
-    remove: "移出「{{name}}」",
     none: "不在任何文件夹里",
   },
   note: {
@@ -58,10 +55,5 @@ export default {
   },
   source: {
     label: "整理来源",
-    loading: "正在读取该来源…",
-    copyTo: "复制到…",
-    copyTitle: "复制此来源",
-    copyConfirm: "确认复制",
-    copied: "已复制此来源，目标已有人工整理保持不变",
   },
 };

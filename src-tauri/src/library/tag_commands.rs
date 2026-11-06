@@ -87,8 +87,9 @@ pub(super) async fn edit_tags<R: Runtime>(
     edits: Vec<TagEdit>,
 ) -> Result<(), CommandError> {
     blocking(move || {
-        let library = writable(&app, &library_id)?;
-        library.edit_tags(&image_ids, &edits).map_err(CommandError::from)?;
+        organize_commands::write_visible(&app, &library_id, &image_ids, |library| {
+            library.edit_tags(&image_ids, &edits)
+        })?;
         publish_definition_dependencies(&app, &library_id).map_err(|error| {
             CommandError::caused_by(
                 error,

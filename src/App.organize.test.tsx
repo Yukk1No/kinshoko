@@ -165,23 +165,22 @@ describe("整理", () => {
 
     await waitFor(() => expect(sent("plugin:library|image").at(-1)).toEqual({ libraryId: "L2", imageId: "a" }));
     await waitFor(() => expect(selectionPanel()).toBeTruthy());
-    expect(sent("plugin:library|workspace_source_inspection")).toEqual([]);
   });
 
   it("回收站里永久删除：先列出受影响的参考组，过期时重新预览后再确认", async () => {
     let previews = 0;
     let stale = true;
     backend(library, clean, (cmd, args) => {
-      if (cmd === "plugin:library|workspace_preview_source_delete") {
+      if (cmd === "plugin:library|preview_permanent_delete") {
         previews += 1;
-        const ids = [(args as { target: { imageId: string } }).target.imageId];
+        const { ids } = args as { ids: string[] };
         return {
           imageIds: ids,
           groups: previews === 1 ? [] : [{ groupId: "G1", name: "手的参考", imageIds: ids }],
           token: `T${previews}`,
         };
       }
-      if (cmd === "plugin:library|workspace_permanent_source_delete") {
+      if (cmd === "plugin:library|permanent_delete") {
         if (stale) {
           stale = false;
           return Promise.reject({ code: "deletePreviewStale" });
@@ -214,9 +213,9 @@ describe("整理", () => {
     expect(screen.getByText(/刚有变化/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
     await waitFor(() =>
-      expect(sent("plugin:library|workspace_permanent_source_delete")).toMatchObject([
-        { target: { libraryId: "L1", imageId: "a" }, token: "T1" },
-        { target: { libraryId: "L1", imageId: "a" }, token: "T2" },
+      expect(sent("plugin:library|permanent_delete")).toMatchObject([
+        { libraryId: "L1", ids: ["a"], token: "T1" },
+        { libraryId: "L1", ids: ["a"], token: "T2" },
       ]),
     );
     await waitFor(() => expect(selectionPanel()).toBeNull());
@@ -224,8 +223,8 @@ describe("整理", () => {
 
   it("收起详情面板后，永久删除的确认仍是可见、可操作的提醒对话框", async () => {
     backend(library, clean, (cmd, args) => {
-      if (cmd === "plugin:library|workspace_preview_source_delete") return { imageIds: [(args as { target: { imageId: string } }).target.imageId], groups: [], token: "T1" };
-      if (cmd === "plugin:library|workspace_permanent_source_delete") return null;
+      if (cmd === "plugin:library|preview_permanent_delete") return { imageIds: (args as { ids: string[] }).ids, groups: [], token: "T1" };
+      if (cmd === "plugin:library|permanent_delete") return null;
       return undefined;
     });
     render(<App />);
@@ -245,7 +244,7 @@ describe("整理", () => {
     expect(confirm.className).toContain("k-btn");
     expect(confirm.className).toContain("is-danger");
     fireEvent.click(confirm);
-    await waitFor(() => expect(sent("plugin:library|workspace_permanent_source_delete")).toMatchObject([{ target: { libraryId: "L1", imageId: "a" }, token: "T1" }]));
+    await waitFor(() => expect(sent("plugin:library|permanent_delete")).toMatchObject([{ libraryId: "L1", ids: ["a"], token: "T1" }]));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
   });
 

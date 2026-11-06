@@ -2,10 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatDateTime } from "../i18n/format";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { FolderInput, FolderMinus, Link2, RotateCcw, ShieldCheck, Trash2, Undo2, X } from "lucide-react";
-import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
+import { Link2, ShieldCheck, Undo2 } from "lucide-react";
 import { Segmented } from "../ui/Segmented";
-import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ContentRating } from "../bindings/ContentRating";
 import type { ImageRating } from "../bindings/ImageRating";
 import type { FolderNode } from "../bindings/FolderNode";
@@ -14,26 +12,16 @@ import type { ImageEdit } from "../bindings/ImageEdit";
 import type { PermanentDeletePreview } from "../bindings/PermanentDeletePreview";
 import {
   editImages,
-  imageFolders,
   isDeletePreviewStale,
   permanentDelete,
   previewEmptyTrash,
   previewPermanentDelete,
-  workspaceEditSource,
   workspaceImage,
-  workspaceSidebar,
-  workspacePreviewSourceDelete,
-  workspacePermanentSourceDelete,
 } from "../ipc";
 import { TagPanel } from "./TagPanel";
 
 type Props = {
-  sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
-  onSourceChanged?: () => void;
-  /** 来源整理：这张图的详情有没有读到；重读期间仍算读到。 */
-  onAvailable?: (available: boolean) => void;
   libraryId: string;
-  scope: BrowseScope;
   selected: ReadonlySet<string>;
   onClear: () => void;
   /** 资料库报告列表过期时递增：重新取文件夹列表与详情。 */
@@ -43,8 +31,6 @@ type Props = {
   safeMode?: boolean;
   /** 词表代次（词表、图片或安全模式变化时递增）：标签面板随之刷新。 */
   generation?: number;
-  /** 数量与批量操作排在面板里（来源整理）。主窗口为 false：多选时它们在图片墙的悬浮栏里（SelectionBar，#180）。 */
-  inlineActions?: boolean;
 };
 
 const isAdult = (rating: ContentRating | null) =>
@@ -89,12 +75,10 @@ function RatingPicker({
 function Detail({
   detail,
   edit,
-  sourceMode = false,
   stale = false,
 }: {
   detail: ImageDetail;
   edit: (edits: ImageEdit[]) => void;
-  sourceMode?: boolean;
   /** 已选中别的图、它的详情还没到：先留着这张的，但不能操作。 */
   stale?: boolean;
 }) {
@@ -123,9 +107,7 @@ function Detail({
       <section className="insp-sec selection-folders" aria-label={t("folders.label")}>
         <h4>{t("folders.title")}</h4>
         {detail.folders.length
-          ? <ul className="insp-chips">{detail.folders.map((folder) => <li key={folder.id} className="insp-chip"><span className="k-label">{folder.name}</span>
-            {sourceMode && <button type="button" className="insp-chip-x" aria-label={t("folders.remove", { name: folder.name })} title={t("folders.remove", { name: folder.name })}
-              onClick={() => edit([{ kind: "removeFromFolder", folderId: folder.id }])}><X size={11} aria-hidden="true" /></button>}</li>)}</ul>
+          ? <ul className="insp-chips">{detail.folders.map((folder) => <li key={folder.id} className="insp-chip"><span className="k-label">{folder.name}</span></li>)}</ul>
           : <p className="insp-hint">{t("folders.none")}</p>}
       </section>
       {/* 备注（#98）：字段用改版样式；有未保存的改动才出现“保存”，有自己写的备注才能“用来源的”。 */}
@@ -175,7 +157,6 @@ function Detail({
  */
 export function PermanentDeleteConfirm({
   libraryId,
-  sourceTarget,
   safeMode = false,
   ids,
   emptyTrash,
@@ -186,7 +167,6 @@ export function PermanentDeleteConfirm({
   libraryId: string;
   ids: string[];
   emptyTrash?: { libraryName: string };
-  sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
   safeMode?: boolean;
   onDone: () => void;
   onCancel: () => void;
@@ -195,12 +175,12 @@ export function PermanentDeleteConfirm({
   const [preview, setPreview] = useState<PermanentDeletePreview | null>(null);
   const [changed, setChanged] = useState(false);
   const [busy, setBusy] = useState(false);
-  const key = JSON.stringify([libraryId, ids, sourceTarget, safeMode, Boolean(emptyTrash)]);
+  const key = JSON.stringify([libraryId, ids, safeMode, Boolean(emptyTrash)]);
   const currentKey = useRef(key); currentKey.current = key;
   useEffect(() => { currentKey.current = key; return () => { currentKey.current = ""; }; }, [key]);
 
   const load = () =>
-    (emptyTrash ? previewEmptyTrash(libraryId) : sourceTarget ? workspacePreviewSourceDelete(sourceTarget, safeMode) : previewPermanentDelete(libraryId, ids)).then(
+    (emptyTrash ? previewEmptyTrash(libraryId) : previewPermanentDelete(libraryId, ids)).then(
       (value) => { if (currentKey.current === key) setPreview(value); }, (e) => {
       if (currentKey.current !== key) return;
       onError(e);
@@ -216,7 +196,7 @@ export function PermanentDeleteConfirm({
   const confirm = () => {
     if (!preview) return;
     setBusy(true);
-    (sourceTarget && !emptyTrash ? workspacePermanentSourceDelete(sourceTarget, safeMode, preview.token) : permanentDelete(libraryId, preview.imageIds, preview.token)).then(
+    permanentDelete(libraryId, preview.imageIds, preview.token).then(
       () => {
         if (currentKey.current !== key) return;
         setBusy(false);
@@ -276,53 +256,29 @@ export function PermanentDeleteConfirm({
   );
 }
 
-/** 选中参考图后的整理操作：放入或移出文件夹、标签决定、删除或恢复；只选一张时还能写备注。 */
+/** 选中参考图的详情：标签、分级、所在文件夹与备注；移动、删除这些操作在图片墙的右键菜单与悬浮栏里。 */
 export function SelectionPanel({
   libraryId,
-  scope,
   selected,
   onClear,
   reloadKey,
   onError,
   safeMode = false,
   generation = 0,
-  sourceTarget,
-  onSourceChanged,
-  onAvailable,
-  inlineActions = true,
 }: Props) {
   const { t } = useTranslation("inspector");
   const ids = [...selected];
   const single = ids.length === 1 ? ids[0] : null;
-  const [folders, setFolders] = useState<{ id: string; label: string }[]>([]);
   // 读到的详情记着它属于哪一次读取：切换选中图时先留着上一张的（不可操作），新的到了再换（#158）。
   const [loaded, setLoaded] = useState<{ key: string; detail: ImageDetail } | null>(null);
-  const [purging, setPurging] = useState(false);
   const [failed, setFailed] = useState(false);
   const selectionKey = ids.join("\n");
-  const [sourceRefresh, setSourceRefresh] = useState(0);
-  const requestKey = JSON.stringify([libraryId, selectionKey, safeMode, sourceTarget]);
+  const requestKey = JSON.stringify([libraryId, selectionKey, safeMode]);
   const currentKey = useRef(requestKey);
   currentKey.current = requestKey;
   useEffect(() => { currentKey.current = requestKey; return () => { currentKey.current = ""; }; }, [requestKey]);
-  // 选择变了就收起永久删除的确认。
-  useEffect(() => setPurging(false), [selectionKey]);
 
-  // 文件夹树和选了哪张图无关（#158）：只在资料库、安全模式或数据代次变化时重读。
-  const hasSingle = single !== null;
-  useEffect(() => {
-    if (!inlineActions) return;
-    let alive = true;
-    (single ? imageFolders(libraryId, single) : workspaceSidebar(libraryId, safeMode)).then(
-      (s) => alive && setFolders(flattenFolders(s.folders)),
-      () => undefined,
-    );
-    return () => {
-      alive = false;
-    };
-  }, [libraryId, reloadKey, safeMode, hasSingle, inlineActions]);
-
-  const detailKey = JSON.stringify([requestKey, reloadKey, sourceRefresh]);
+  const detailKey = JSON.stringify([requestKey, reloadKey]);
   useEffect(() => {
     let alive = true;
     setFailed(false);
@@ -330,8 +286,6 @@ export function SelectionPanel({
       setLoaded(null);
       return;
     }
-    // Delete confirmation owns the selection now; listStale must not start another detail read.
-    if (purging) return;
     workspaceImage(libraryId, single).then(
       (d) => alive && setLoaded({ key: detailKey, detail: d }),
       (e) => { if (alive) { setLoaded(null); setFailed(true); onError(e); } },
@@ -339,93 +293,25 @@ export function SelectionPanel({
     return () => {
       alive = false;
     };
-  }, [libraryId, single, reloadKey, onError, purging, detailKey]);
+  }, [libraryId, single, reloadKey, onError, detailKey]);
   const detail = loaded?.detail ?? null;
   const stale = loaded?.key !== detailKey;
-  const available = detail !== null;
-  useEffect(() => onAvailable?.(available), [available, onAvailable]);
-  // 来源整理的回收站范围跟这份来源自己走：详情到了才知道它在不在回收站。
-  const sourceMode = sourceTarget !== undefined;
-  const shownScope: BrowseScope = sourceMode && detail?.deletedAt != null ? { kind: "trash" } : scope;
 
-  const edit = (edits: ImageEdit[], clear = false) => {
-    if (sourceTarget) {
-      return workspaceEditSource(sourceTarget, safeMode, edits).then(() => {
-        if (currentKey.current !== requestKey) return;
-        const sealed = safeMode && edits.some((e) => (e.kind === "setRating" && isAdult(e.rating)) ||
-          (e.kind === "revertRating" && isAdult(detail?.rating.suggested ?? null)));
-        if (clear || sealed) onClear(); else setSourceRefresh((n) => n + 1);
-        onSourceChanged?.();
-      }, (e) => { if (currentKey.current === requestKey) onError(e); });
-    }
-    return editImages(libraryId, ids, edits).then(
+  const edit = (edits: ImageEdit[]) =>
+    editImages(libraryId, ids, edits).then(
       (details) => {
         if (currentKey.current !== requestKey) return;
         if (single && details[0]) setLoaded({ key: detailKey, detail: details[0] });
-        const sealed = safeMode && details.some((d) => isAdult(d.rating.effective));
-        if (clear || sealed) onClear();
+        if (safeMode && details.some((d) => isAdult(d.rating.effective))) onClear();
       },
       (e) => { if (currentKey.current === requestKey) onError(e); },
     );
-  };
-
-  const actions = inlineActions && (!sourceMode || available) && (
-    <div className="selection-actions selbar is-inline" role="toolbar" aria-label={t("selection.actions")}>
-      <span className="selection-count">{t("selection.count", { count: ids.length })}</span>
-      <Menu.Root modal={false}>
-        <Menu.Trigger className="selbar-btn" aria-label={t("selection.moveToFolder")} disabled={!folders.length} title={folders.length ? t("selection.moveToFolder") : t("selection.noFolders")}>
-          <FolderInput size={15} aria-hidden="true" /><span className="k-label">{t("selection.moveTo")}</span>
-        </Menu.Trigger>
-        <MenuPopup width={220} align="center" label={t("selection.moveToFolder")}>
-          {folders.map((f) => <MenuItem key={f.id} onClick={() => void edit([{ kind: "addToFolder", folderId: f.id }])}>{f.label}</MenuItem>)}
-        </MenuPopup>
-      </Menu.Root>
-      {shownScope.kind === "folder" && (
-        <button type="button" className="selbar-btn" onClick={() => void edit([{ kind: "removeFromFolder", folderId: shownScope.id }], true)}>
-          <FolderMinus size={15} aria-hidden="true" /><span className="k-label">{t("selection.removeFromFolder")}</span>
-        </button>
-      )}
-      <span className="selbar-div" aria-hidden="true" />
-      {shownScope.kind === "trash" ? (
-        <>
-          <button type="button" className="selbar-btn" onClick={() => void edit([{ kind: "restore" }], true)}>
-            <RotateCcw size={15} aria-hidden="true" /><span className="k-label">{t("selection.restore")}</span>
-          </button>
-          <button type="button" className="selbar-btn is-danger" onClick={() => setPurging(true)}>
-            <Trash2 size={15} aria-hidden="true" /><span className="k-label">{t("selection.purge")}</span>
-          </button>
-        </>
-      ) : (
-        <button type="button" className="selbar-btn is-danger" onClick={() => void edit([{ kind: "delete" }], true)}>
-          <Trash2 size={15} aria-hidden="true" /><span className="k-label">{t("selection.delete")}</span>
-        </button>
-      )}
-      <button type="button" className="selbar-btn is-icon" aria-label={t("selection.clear")} title={t("selection.clear")} onClick={onClear}>
-        <X size={15} aria-hidden="true" />
-      </button>
-    </div>
-  );
 
   return (
     <div className="selection" aria-label={t("selection.label")}>
-      {actions}
-      {purging && shownScope.kind === "trash" && (
-        <PermanentDeleteConfirm
-          libraryId={libraryId}
-          ids={ids}
-          sourceTarget={sourceTarget}
-          safeMode={safeMode}
-          onDone={() => {
-            setPurging(false);
-            onClear();
-          }}
-          onCancel={() => setPurging(false)}
-          onError={onError}
-        />
-      )}
       {/* 标签面板保持在原位置（编辑中的输入不因详情重读而重置）；详情面板用 CSS order 把文件名排在它前面。 */}
-      {!purging && !failed && <TagPanel sourceTarget={sourceTarget} libraryId={libraryId} ids={ids} safe={safeMode} generation={generation + sourceRefresh} onError={onError} />}
-      {!purging && detail && <Detail key={detail.id} sourceMode={!!sourceTarget} detail={detail} stale={stale} edit={(e) => void edit(e)} />}
+      {!failed && <TagPanel libraryId={libraryId} ids={ids} safe={safeMode} generation={generation} onError={onError} />}
+      {detail && <Detail key={detail.id} detail={detail} stale={stale} edit={(e) => void edit(e)} />}
     </div>
   );
 }

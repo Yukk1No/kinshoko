@@ -20,9 +20,9 @@ function firstSource(card: WorkspaceCard): WorkspaceSource | undefined {
  * 详情面板里不在窗口打开的图库、或同一文件在 N 个图库各有一份整理的图（#98）：直接显示一份的详情；
  * 有多份时顶上用分段切换图库，标签、分级、文件夹与备注都只改所选的那一份。
  */
-export function WorkspaceSources({ card, onClose, safe = true, reloadKey = 0, onChanged, registrations = [] }: {
+export function WorkspaceSources({ card, onClose, safe = true, reloadKey = 0, registrations = [] }: {
   card: WorkspaceCard; onClose: () => void;
-  safe?: boolean; reloadKey?: number; onChanged?: () => void; registrations?: LibraryRegistration[];
+  safe?: boolean; reloadKey?: number; registrations?: LibraryRegistration[];
 }) {
   const { t } = useTranslation("inspector", { keyPrefix: "sources" });
   const [picked, setPicked] = useState<string | null>(null);
@@ -35,7 +35,7 @@ export function WorkspaceSources({ card, onClose, safe = true, reloadKey = 0, on
       options={card.sources.map((source) => ({ value: keyOf(source), label: source.libraryName, disabled: !!source.unavailable,
         title: [hint(source.libraryId), source.deleted ? t("trash") : null, source.unavailable ? t("offline") : null].filter(Boolean).join(t("titleSeparator")) || undefined }))} />}
     {editing?.unavailable ? <p className="insp-hint" role="status">{describeCommandError(editing.unavailable)}</p>
-      : editing && <WorkspaceSourceEditor key={keyOf(editing)} card={card} source={editing}
-        safe={safe} reloadKey={reloadKey} onClose={onClose} onChanged={onChanged} />}
+      : editing && <WorkspaceSourceEditor key={keyOf(editing)} source={editing}
+        safe={safe} reloadKey={reloadKey} onClose={onClose} />}
   </section>;
 }
