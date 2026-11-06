@@ -228,3 +228,29 @@ it("查看器是否给“移到回收站”看正在看的这份来源，不看�
   const menu = await screen.findByRole("menu", { name: "查看器菜单" });
   expect(within(menu).queryByRole("menuitem", { name: "移到回收站" })).toBeNull();
 });
+
+it("从真实的图片墙飞进查看器；返回时查看器留到落地，图片墙当场接回焦点（#449）", async () => {
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    if (!this.classList.contains("card")) return new DOMRect(0, 0, 1000, 800);
+    return new DOMRect(parseFloat(this.style.left), parseFloat(this.style.top), parseFloat(this.style.width), parseFloat(this.style.height));
+  });
+  workspace();
+  render(<App />);
+  const image = await screen.findByRole("img", { name: "参考图" });
+  const card = image.closest<HTMLElement>('[role="option"]')!;
+  doubleClick(card);
+  const viewer = await screen.findByRole("region", { name: "原图查看器" });
+  const flier = () => document.querySelector<HTMLElement>(".viewer-flier");
+  expect(viewer.dataset.flight).toBe("fly-in");
+  expect(flier()!.querySelector("img")!.getAttribute("src")).toBe(image.getAttribute("src"));
+  expect(card.dataset.flying).toBe("");
+  expect(document.querySelector<HTMLElement>(".app-body")!.dataset.viewerFlying).toBe("true");
+
+  fireEvent.click(within(viewer).getByRole("button", { name: "返回图片墙" }));
+  expect(screen.getByRole("region", { name: "原图查看器" }).dataset.flight).toBe("land");
+  expect(document.activeElement).toBe(card);
+  await waitFor(() => expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull(), { timeout: 4000 });
+  expect(card.dataset.flying).toBeUndefined();
+  expect(document.querySelector<HTMLElement>(".app-body")!.dataset.viewerFlying).toBeUndefined();
+  vi.restoreAllMocks();
+});

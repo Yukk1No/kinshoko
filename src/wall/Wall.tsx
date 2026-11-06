@@ -13,13 +13,13 @@ import { useUiScale } from "../shell/uiScale";
 import { useDevicePixelRatio } from "../ui/devicePixelRatio";
 import {
   CAP_RATIO, GAP, NO_CONDITIONS, OVERSCAN, PAD, SAVE_ANCHOR_MS, TARGET, loadAnchor,
-  saveAnchor, type BrowserCard, type LayoutSnapshot, type WallHandle, type WallProps,
+  saveAnchor, type BrowserCard, type WallHandle, type WallProps,
 } from "./wallShared";
 import { wallCardNode, type CardHandlers } from "./WallCard";
 import { useDoubleClickGuard } from "./useDoubleClickGuard";
 import { useWallPages } from "./useWallPages";
 import { useReleaseLanding, useSealRelease } from "./useSealRelease";
-import { useMeasureBeforeReflow, useReflowAfterLayout, useWidthSync } from "./useReflow";
+import { useMeasureBeforeReflow, useReflowAfterLayout, useReflowState, useWidthSync } from "./useReflow";
 import { usePrefetchThumbnails } from "./usePrefetchThumbnails";
 import { thumbnailTier } from "./thumbnailTier";
 import { useReturnFocus, useViewerLeave } from "./useViewerReturn";
@@ -51,6 +51,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   reloadKey,
   safeMode = true,
   holdReflow = false,
+  settle = null,
   selected,
   onSelectionChange,
   onOpenImage,
@@ -117,23 +118,9 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const lastOpened = useRef<string | null>(null);
   const wasViewing = useRef(false);
   const layoutWidth = useRef(0);
-  const beforeReflow = useRef(new Map<string, DOMRect>());
-  const motions = useRef(new Map<string, Animation>());
+  const { beforeReflow, motions, safeReflow, beforeBoxes, reflowMotion, slideMotion } = useReflowState();
   /** 先移走、后端还没做完的卡片（#290）；见 useWallPages。 */
   const pendingRemoval = useRef(new Set<string>());
-  /**
-   * 安全模式切换那一刻量下的卡片位置。资料库按新视角送回卡片后，留下的卡片从这里滑到新位置，
-   * 节奏按原型的封印／释放重排（从点下去的时刻算起）。
-   */
-  const safeReflow = useRef<{
-    rects: Map<string, DOMRect>; boxes: LayoutSnapshot; at: number; delay: number; duration: number;
-    /** 存下之后卡片又被别的重排挪过（例如墙变宽）：起点按用时量到的位置，不用存下的。 */
-    moved?: boolean;
-  } | null>(null);
-  /** 封印／释放重排前的布局：点下去时不在视口里的卡片，从这里算出起点（#154）。 */
-  const beforeBoxes = useRef<LayoutSnapshot | null>(null);
-  /** 这一次重排的节奏；null 时是平常的 200 ms。 */
-  const reflowMotion = useRef<{ at: number; delay: number; duration: number } | null>(null);
 
   /** 原生滚轮监听读最新的渲染结果。 */
   const live = useRef({ layout: null as ReturnType<typeof masonry> | null, ids: [] as string[], density, previewDensity, onDensityPreview, onDensityCommit });
@@ -141,7 +128,6 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const releasePage = useRef(false);
   const measureBeforeReflow = useMeasureBeforeReflow({ scroller, motions, safeReflow, reflowMotion, beforeReflow, beforeBoxes, live });
 
-  useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
   /** 封印后按原型节奏移走飞走的图的那一帧（requestAnimationFrame id）；0 表示没有。 */
   const sealDrop = useRef(0);
   useEffect(() => () => cancelAnimationFrame(sealDrop.current), []);
@@ -239,7 +225,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
     pendingRemoval,
   });
 
-  const { holdForDoubleClick } = useWidthSync({ holdReflow, scroller, layoutWidth, measureBeforeReflow, setWidth, syncMount });
+  const { holdForDoubleClick } = useWidthSync({ holdReflow, settle, slideMotion, scroller, layoutWidth, measureBeforeReflow, setWidth, syncMount });
 
   const { revealed, arriving, fxHost, fx, releaseDue, book, releaseOnScreen } = useSealRelease({
     safeMode, cards, setCards, scroller, shownCards, live, safeReflow, sealDrop, measureBeforeReflow, viewerOpen, releasePage,
@@ -257,7 +243,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
 
   useReflowAfterLayout({
     scroller, width, cards, zoomPin, ids, layout, anchor, storeKey, settledTop, cursor, restoring, beforeReflow, reflowMotion,
-    beforeBoxes, syncMount, motions,
+    beforeBoxes, syncMount, motions, slideMotion,
   });
 
   live.current = { layout, ids, density, previewDensity, onDensityPreview, onDensityCommit };

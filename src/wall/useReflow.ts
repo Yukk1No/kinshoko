@@ -6,6 +6,7 @@ import { reducedNow } from "../ui/reducedMotion";
 import { doubleClickSettings } from "./doubleClick";
 import { captureAnchor, resolveAnchor, zoomScrollTop, type Anchor, type masonry } from "./layout";
 import { RELEASE_WAIT, saveAnchor, type LayoutSnapshot } from "./wallShared";
+import type { PanelSlide } from "../shell/usePanelSlide";
 
 type SafeReflow = {
   rects: Map<string, DOMRect>; boxes: LayoutSnapshot; at: number; delay: number; duration: number;
@@ -13,6 +14,25 @@ type SafeReflow = {
   moved?: boolean;
 };
 type Motion = { at: number; delay: number; duration: number };
+
+/** 重排动画在各 hook 之间共用的状态；卸载时取消还在滑的卡片。 */
+export function useReflowState() {
+  const beforeReflow = useRef(new Map<string, DOMRect>());
+  const motions = useRef(new Map<string, Animation>());
+  /**
+   * 安全模式切换那一刻量下的卡片位置。资料库按新视角送回卡片后，留下的卡片从这里滑到新位置，
+   * 节奏按原型的封印／释放重排（从点下去的时刻算起）。
+   */
+  const safeReflow = useRef<SafeReflow | null>(null);
+  /** 封印／释放重排前的布局：点下去时不在视口里的卡片，从这里算出起点（#154）。 */
+  const beforeBoxes = useRef<LayoutSnapshot | null>(null);
+  /** 这一次重排的节奏；null 时是平常的 200 ms。 */
+  const reflowMotion = useRef<Motion | null>(null);
+  /** 这一次重排跟着面板过渡走（settle）：卡片动画用面板的时长、缓动与起点。 */
+  const slideMotion = useRef<PanelSlide | null>(null);
+  useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
+  return { beforeReflow, motions, safeReflow, beforeBoxes, reflowMotion, slideMotion };
+}
 
 export function useMeasureBeforeReflow({ scroller, motions, safeReflow, reflowMotion, beforeReflow, beforeBoxes, live }: {
   scroller: MutableRefObject<HTMLDivElement | null>;
@@ -66,7 +86,7 @@ export function useMeasureBeforeReflow({ scroller, motions, safeReflow, reflowMo
 
 export function useReflowAfterLayout({
   scroller, width, cards, zoomPin, ids, layout, anchor, storeKey, settledTop, cursor, restoring, beforeReflow, reflowMotion,
-  beforeBoxes, syncMount, motions,
+  beforeBoxes, syncMount, motions, slideMotion,
 }: {
   scroller: MutableRefObject<HTMLDivElement | null>;
   width: number;
@@ -84,6 +104,7 @@ export function useReflowAfterLayout({
   beforeBoxes: MutableRefObject<LayoutSnapshot | null>;
   syncMount: (el: HTMLElement) => void;
   motions: MutableRefObject<Map<string, Animation>>;
+  slideMotion: MutableRefObject<PanelSlide | null>;
 }) {
   // 布局变化（宽度、新的一批卡片）后把锚定的图放回原来的位置。
   useLayoutEffect(() => {
@@ -107,7 +128,8 @@ export function useReflowAfterLayout({
     }
     // 锚定的图找到了，或已取完全部仍没有（图已不在），都结束恢复。
     if (top !== null || !anchor.current || !cursor) restoring.current = false;
-    const from = beforeReflow.current, safe = reflowMotion.current, fromBoxes = beforeBoxes.current;
+    const from = beforeReflow.current, safe = reflowMotion.current, fromBoxes = beforeBoxes.current, slide = slideMotion.current;
+    slideMotion.current = null;
     beforeReflow.current = new Map();
     reflowMotion.current = null;
     beforeBoxes.current = null;
@@ -121,7 +143,9 @@ export function useReflowAfterLayout({
     };
     // 先读（挂载范围、各卡片矩形），再起滑动动画：起动画之后再读布局会再强制排一次版（#176）。
     syncMount(el);
-    const timing: KeyframeAnimationOptions = safe
+    const timing: KeyframeAnimationOptions = slide
+      ? { duration: slide.duration, easing: slide.easing }
+      : safe
       ? { duration: safe.duration, delay: Math.max(0, safe.at + safe.delay - performance.now()), easing: "cubic-bezier(0.65, 0, 0.35, 1)", fill: "backwards" }
       : { duration: 200, easing: "cubic-bezier(0.2,0.8,0.2,1)" };
     if ((from.size || fromBoxes) && !reducedNow()) {
@@ -138,6 +162,8 @@ export function useReflowAfterLayout({
           { transform: `translate(${old.left - next.left}px, ${old.top - next.top}px) scale(${old.width / next.width}, ${old.height / next.height})` },
           { transform: "none" },
         ], timing);
+        // 与面板的过渡对齐起点：两段同节奏的移动合起来才是一段直线。
+        if (slide?.startTime != null) motion.startTime = slide.startTime;
         motions.current.set(node.dataset.id!, motion);
         motion.onfinish = () => motions.current.delete(node.dataset.id!);
         // 图库标记是卡片的兄弟、按新位置摆着：跟卡片右下角一起从旧位置滑过来，保留它自身的 translate(-100%, -100%)。
@@ -147,6 +173,7 @@ export function useReflowAfterLayout({
             { transform: `translate(${old.right - next.right}px, ${old.bottom - next.bottom}px) translate(-100%, -100%)` },
             { transform: "translate(-100%, -100%)" },
           ], timing);
+          if (slide?.startTime != null) badgeMotion.startTime = slide.startTime;
           const key = `${node.dataset.id!}
 sources`;
           motions.current.set(key, badgeMotion);
@@ -157,17 +184,22 @@ sources`;
   }, [layout, ids, width, cards.length, cursor, syncMount]);
 }
 
-/** 容器宽度变化时重排；详情面板过渡中与单击后的双击间隔里先不重排（#162、#179）。 */
-export function useWidthSync({ holdReflow, scroller, layoutWidth, measureBeforeReflow, setWidth, syncMount }: {
+/**
+ * 容器宽度变化时重排；详情面板过渡中与单击后的双击间隔里先不重排（#162、#179）。
+ * 侧栏滑动（settle）时一开始就按终点宽度排，进行中不再跟着容器变。
+ */
+export function useWidthSync({ holdReflow, settle, slideMotion, scroller, layoutWidth, measureBeforeReflow, setWidth, syncMount }: {
   holdReflow: boolean;
+  settle: PanelSlide | null;
+  slideMotion: MutableRefObject<PanelSlide | null>;
   scroller: MutableRefObject<HTMLDivElement | null>;
   layoutWidth: MutableRefObject<number>;
   measureBeforeReflow: (keepSafe?: boolean) => void;
   setWidth: (width: number) => void;
   syncMount: (el: HTMLElement) => void;
 }) {
-  const holding = useRef(holdReflow);
-  holding.current = holdReflow;
+  const holding = useRef(holdReflow || !!settle);
+  holding.current = holdReflow || !!settle;
   /** 单击卡片后到双击间隔结束的时刻（performance.now）：之前不重排（#179）。 */
   const clickHoldUntil = useRef(0);
   const clickHoldTimer = useRef(0);
@@ -192,8 +224,20 @@ export function useWidthSync({ holdReflow, scroller, layoutWidth, measureBeforeR
     ro.observe(el);
     return () => ro.disconnect();
   }, [measureBeforeReflow, syncMount]);
+  // 面板开始滑：墙的终点宽度已知，现在就按它排，卡片随面板一起到位。
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (!settle || !el || !layoutWidth.current) return;
+    const target = Math.round(el.clientWidth + settle.by);
+    if (target <= 0 || target === layoutWidth.current) return;
+    measureBeforeReflow(true);
+    slideMotion.current = settle;
+    layoutWidth.current = target;
+    setWidth(target);
+  }, [settle]); // eslint-disable-line react-hooks/exhaustive-deps
   // 宽度稳定了：按最终宽度重排一次（双击间隔还没过时，由下面的计时到点后再排）。
-  useLayoutEffect(() => { if (!holdReflow) syncWidth.current(); }, [holdReflow]);
+  const still = !holdReflow && !settle;
+  useLayoutEffect(() => { if (still) syncWidth.current(); }, [still]);
   /** 单击卡片：双击间隔结束前不重排，结束时若宽度也稳定了就重排一次。 */
   const holdForDoubleClick = () => {
     const wait = doubleClickSettings().intervalMs;

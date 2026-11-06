@@ -9,6 +9,7 @@ import type { LegacyNameResolution } from "../bindings/LegacyNameResolution";
 import { describeCommandError } from "../ipc/commandError";
 import { confirmLegacyNames, onLibraryEvent, onSafeModeSetting, onWorkspaceChanged, planLegacyNames, previewLegacyNames } from "../ipc";
 import { languageName } from "../tags/languages";
+import { DialogHeight, DialogSwap } from "../ui/DialogHeight";
 import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
 import { usePersistentToast } from "../ui/Toast";
 
@@ -128,6 +129,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
         <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("close")}><X size={16} aria-hidden="true" /></Dialog.Close>
         <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
         <Dialog.Description className="k-dialog-desc">{t("lead")}</Dialog.Description>
+        <DialogHeight>
         {busy && <p className="k-set-note" role="status">{t("busy")}</p>}
         {error && <p className="k-set-error" role="alert">{error}</p>}
         {view?.libraries.filter((entry) => entry.unavailable).map((entry) => <p key={entry.library.id} className="k-set-note" role="status">{t("libraryOffline", { library: entry.library.name, reason: describeCommandError(entry.unavailable!) })}</p>)}
@@ -142,6 +144,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
           </div>
           <p className="k-set-note" role="status">{t("chosen", { chosen, total: groups.length })}</p>
         </>}
+        {(group || reviewing) && <DialogSwap step={reviewing ? groups.length : page}>
         {group && <>
           <div className="k-big-tag">
             <span className="k-big-tag-icon" aria-hidden="true"><Tag size={18} /></span>
@@ -176,6 +179,8 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
             </div>}
           </>}
         </>}
+        </DialogSwap>}
+        </DialogHeight>
         <div className="k-dialog-foot">
           {groups.length > 0 && !reviewing && !saved && <button type="button" className="k-btn is-ghost is-flush" disabled={busy || bulk.length === 0} onClick={bulkFollow}><span className="k-label">{t("bulk", { count: bulk.length })}</span></button>}
           <span className="k-grow" />
