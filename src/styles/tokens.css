@@ -1,7 +1,7 @@
 /* #79 → design system v3: cream paper and ink purple from the prototype, sakura accent by day and gold by night;
    a few values deepened so every text colour reaches 4.5:1. The wall and card stay neutral grey so the frame never tints
    the reference images. Components write semantic tokens only. This file is the single source of the tokens; the design system's tokens.json is exported from it
-   (design/ui-system/README.md).
+   (design/ui-system/tokens-and-components.md).
    The formal app keeps its real library, search, import and native pin components. */
 :root {
   /* #28: Inter for Latin and digits, Source Han Sans SC for CJK (src/fonts.ts); the Windows stack is the fallback. */

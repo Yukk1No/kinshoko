@@ -16,7 +16,7 @@ To report whether checks pass, use `npm run check` (`--rust` adds the Rust check
 
 Text the artist sees goes into `src/i18n/locales` (Rust-drawn tray, dialog and pin text into `src-tauri/src/ui_text.rs`), and a Rust failure shown in the interface is an error code (`ErrorKind`); Chinese that only reaches logs carries `// 不上界面：<reason>` on the line above its item. The CI job “写死的界面文字” fails on any other Chinese line.
 
-Before writing or reviewing interface copy (text in the app, prototypes, design notes), read `design/ui-system/copy.md`: plain, everyday Chinese with neutral verbs.
+Before writing or reviewing interface copy (text in the app, prototypes, design notes), read `design/ui-system/interface-text-rules.md`: plain, everyday Chinese with neutral verbs.
 
 ## Agent skills
 
