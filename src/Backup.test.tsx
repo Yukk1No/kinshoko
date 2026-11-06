@@ -170,7 +170,7 @@ describe("备份提醒", () => {
             ...withTarget,
             plan: {
               ...withTarget.plan,
-              lastFailure: { at, reason: "备份目标不在：E:\\备份。请接上移动盘", targetUnavailable: true },
+              lastFailure: { at, reason: "备份位置不在：E:\\备份。请接上移动盘", targetUnavailable: true },
             },
           }
         : undefined,

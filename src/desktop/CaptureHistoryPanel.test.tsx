@@ -49,7 +49,7 @@ describe("截图面板", () => {
   it("面板只放截图列表：没有截图入口，也没有说明句", async () => {
     await show([]);
     expect(screen.queryAllByRole("button")).toHaveLength(0);
-    expect(screen.getByRole("region", { name: "截图历史" }).textContent).toBe("还没有截图。");
+    expect(screen.getByRole("region", { name: "截图" }).textContent).toBe("还没有截图。");
   });
 
   it("操作只有图标，键盘聚焦或悬停时提示写出它做什么", async () => {
@@ -125,9 +125,9 @@ describe("截图面板", () => {
   });
 
   it("失败写在面板里", async () => {
-    ipc.pin.mockRejectedValueOnce("截图已不在截图历史中");
+    ipc.pin.mockRejectedValueOnce("这张截图已删除");
     await show([entry("s1", 3)]);
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "钉到桌面" })); });
-    expect(screen.getByRole("alert").textContent).toBe("截图已不在截图历史中");
+    expect(screen.getByRole("alert").textContent).toBe("这张截图已删除");
   });
 });

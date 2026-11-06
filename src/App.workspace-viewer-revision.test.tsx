@@ -146,7 +146,7 @@ it("后台已知副本分级使聚合图封印时，保留来源详情面板，�
   await waitFor(() => expect(screen.getByRole("listbox", { name: "图片墙" }).dataset.total).toBe("0"));
   expect(screen.getByLabelText("详情", { selector: "aside" })).toBe(inspector);
   expect(within(inspector).queryByRole("img")).toBeNull();
-  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "资料库中没有这张参考图");
+  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "图库中没有这张参考图");
 });
 
 it("首个修订通知先于初始状态和浏览响应到达时，图片墙重读当前修订", async () => {

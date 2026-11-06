@@ -210,7 +210,7 @@ describe("参考组面板", () => {
       fireEvent.click(screen.getByRole("button", { name: "摆到桌面" }));
     });
     expect(ipc.open).toHaveBeenCalledWith("g1");
-    expect(await screen.findByText("已钉出 2 个成员")).toBeTruthy();
+    expect(await screen.findByText("已摆到桌面 2 张")).toBeTruthy();
   });
 
   it("操作只出现在选中的卡片上；点另一张卡片换过去", async () => {
@@ -226,10 +226,10 @@ describe("参考组面板", () => {
 
   it("查看成员时标出不可用的原因与安全模式下的遮蔽", async () => {
     await show();
-    expect(screen.queryByText("E:/b 处没有这个资料库（移动盘没插，或资料库搬了家）")).toBeNull();
+    expect(screen.queryByText("E:/b 处没有这个图库（移动盘没接上，或图库换了位置）")).toBeNull();
     await more("查看成员");
     expect(ipc.group).toHaveBeenCalledWith("g1");
-    expect(screen.getByText("E:/b 处没有这个资料库（移动盘没插，或资料库搬了家）")).toBeTruthy();
+    expect(screen.getByText("E:/b 处没有这个图库（移动盘没接上，或图库换了位置）")).toBeTruthy();
     expect(screen.getByText("安全模式下原位遮蔽")).toBeTruthy();
   });
 

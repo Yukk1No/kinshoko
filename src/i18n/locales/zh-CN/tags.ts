@@ -26,7 +26,7 @@ export default {
     ko: "한국어",
     und: "未注明语言",
   },
-  noExternal: "没有外部对应，不参与内置近似对应表",
+  noExternal: "没有外部对应，不参与内置相近标签",
   panel: {
     label: "标签",
     title: "标签",

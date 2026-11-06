@@ -46,7 +46,7 @@ const openOn = async (node: HTMLElement, label: string) => {
 
 it("图库标题：右键与 ⋯ 是同一组菜单项；未连接时多出“重新连接”", async () => {
   const offline = forest();
-  offline.providers[1].registration.unavailable = { code: "system", detail: "资料库暂时不可用：移动盘没插" };
+  offline.providers[1].registration.unavailable = { code: "system", detail: "图库暂时无法连接：移动盘没插" };
   offline.providers[1].sidebar = null;
   await show({ kind: "all" }, offline, { onRecheck: vi.fn() });
   const head = within(section("A")).getByRole("button", { name: "人物参考（3 张）" });
@@ -77,9 +77,9 @@ it("图库标题：在资源管理器中打开、重新连接与从列表移除"
   await settle();
   expect(calls).toEqual([{ command: "plugin:desktop|reveal_library", args: { libraryId: "A" } }]);
 
-  answers["plugin:desktop|reveal_library"] = new Error("资料库暂时不可用：D:\\A\\参考");
+  answers["plugin:desktop|reveal_library"] = new Error("图库暂时无法连接：D:\\A\\参考");
   fireEvent.click(within(await openOn(headA, "人物参考 的操作")).getByRole("menuitem", { name: "在资源管理器中打开" }));
-  await waitFor(() => expect(onError).toHaveBeenCalledWith("无法在资源管理器中打开：资料库暂时不可用：D:\\A\\参考"));
+  await waitFor(() => expect(onError).toHaveBeenCalledWith("无法在资源管理器中打开：图库暂时无法连接：D:\\A\\参考"));
 
   const headB = within(section("B")).getByRole("button", { name: "风景参考（未连接）" });
   fireEvent.click(within(await openOn(headB, "风景参考 的操作")).getByRole("menuitem", { name: "重新连接" }));
@@ -115,7 +115,7 @@ it("文件夹：菜单项与表一致，顶层文件夹不能“移到顶层”�
   await show(inA({ kind: "all" }));
   const top = within(section("A")).getByRole("button", { name: "人物（1 张）" });
   const menu = await openOn(top, "人物 的操作");
-  expect(rows(menu)).toEqual(["新建子文件夹", "重命名F2", "移到顶层", "删除文件夹…"]);
+  expect(rows(menu)).toEqual(["新建子文件夹", "改名F2", "移到顶层", "删除文件夹…"]);
   expect(within(menu).getAllByRole("separator")).toHaveLength(2);
   expect(enabled(menu, "移到顶层")).toBe(false);
   const danger = within(menu).getAllByRole("menuitem").filter((item) => item.className.includes("is-danger"));
@@ -140,7 +140,7 @@ it("文件夹：新建子文件夹建在它里面；重命名可从菜单或按 
   fireEvent.keyDown(input, { key: "Enter" });
   await settle();
 
-  fireEvent.click(within(await openOn(top(), "人物 的操作")).getByRole("menuitem", { name: /^重命名/ }));
+  fireEvent.click(within(await openOn(top(), "人物 的操作")).getByRole("menuitem", { name: /^改名/ }));
   const rename = await within(section("A")).findByRole("textbox", { name: "文件夹名称" });
   fireEvent.change(rename, { target: { value: "角色" } });
   fireEvent.keyDown(rename, { key: "Enter" });

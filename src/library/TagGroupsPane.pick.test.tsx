@@ -25,11 +25,11 @@ it("加标签时不列已有成员，仍列满其余匹配的标签；Esc 收起
   const add = await screen.findByRole("button", { name: "给“猫”加标签" });
   await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(add);
-  const input = screen.getByRole("combobox", { name: "挑一个统一标签" });
+  const input = screen.getByRole("combobox", { name: "挑一个标签" });
   input.focus();
   fireEvent.change(input, { target: { value: "猫" } });
 
-  const list = await screen.findByRole("listbox", { name: "挑一个统一标签" });
+  const list = await screen.findByRole("listbox", { name: "挑一个标签" });
   await within(list).findByRole("option", { name: /猫7/ });
   const names = within(list).getAllByRole("option").map((o) => o.textContent);
   expect(names.filter((n) => /猫耳|猫尾/.test(n ?? ""))).toEqual([]);
@@ -40,5 +40,5 @@ it("加标签时不列已有成员，仍列满其余匹配的标签；Esc 收起
   input.dispatchEvent(escape);
   expect(escape.defaultPrevented).toBe(true);
   await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toBe("给“猫”加标签"));
-  expect(screen.queryByRole("combobox", { name: "挑一个统一标签" })).toBeNull();
+  expect(screen.queryByRole("combobox", { name: "挑一个标签" })).toBeNull();
 });

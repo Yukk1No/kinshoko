@@ -42,7 +42,7 @@ describe("T05 shared groups", () => {
   });
   it("renders global groups in settings with no current library", async () => {
     backend(); render(<SettingsPanel initialTab="tags" />); fireEvent.click(await screen.findByRole("button", { name: "分组" }));
-    const settingsGroups = await screen.findByRole("region", { name: "全局标签分组" });
+    const settingsGroups = await screen.findByRole("region", { name: "标签分组" });
     expect(await within(settingsGroups).findByRole("group", { name: "发色" })).toBeTruthy();
   });
   it("keeps a settings rename draft when the monitor repeats the current revision", async () => {

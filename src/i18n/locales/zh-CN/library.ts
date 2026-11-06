@@ -97,7 +97,7 @@ export default {
     name: "文件夹名称",
     actions: "{{name}} 的操作",
     newSubfolder: "新建子文件夹",
-    rename: "重命名",
+    rename: "改名",
     moveToTop: "移到顶层",
     delete: "删除文件夹…",
   },

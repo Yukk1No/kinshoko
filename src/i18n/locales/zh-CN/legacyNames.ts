@@ -14,7 +14,7 @@ export default {
   librarySeparator: "、",
   differentNames: "这几个图库的名称不同，请选一个。",
   differsFromPreference: "和你之前定的「{{name}}」不同，确认前看看结果。",
-  choiceLabel: "名称归属",
+  choiceLabel: "选用的名称",
   aliasNote: "另一个名字会留作别名，照样能搜到。其他语言的名称不受影响。",
   /** 选项名用 #78 规定的“跟随默认”与“保留为全局偏好”，具体名称紧跟其后。 */
   option: {
@@ -30,7 +30,7 @@ export default {
   unnamed: "未命名标签",
   checking: "正在核对最终显示…",
   preview: {
-    label: "迁移后最终显示",
+    label: "确认后的显示",
     tag: "标签",
     display: "最终显示",
     preference: "改过的显示名",
