@@ -94,6 +94,14 @@ pub(super) async fn remember_new_library_parent<R: Runtime>(
     .await
 }
 
+/// 系统的「图片」文件夹，新建资料库时没有已有资料库可以挨着放才用它；不存在时为空。
+#[tauri::command]
+pub(super) async fn pictures_folder<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<Option<PathBuf>, CommandError> {
+    Ok(app.path().picture_dir().ok().filter(|dir| dir.is_dir()))
+}
+
 /// 本设备登记的资料库，以及这次检查时不可用的原因（例如移动盘没插）。
 #[tauri::command]
 pub(super) async fn registered_libraries<R: Runtime>(

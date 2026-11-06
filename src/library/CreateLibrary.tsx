@@ -1,9 +1,10 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { ChevronLeft, FolderOpen, Lightbulb } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
-import { createLibrary, pickFolder } from "../ipc";
+import { createLibrary, pickFolder, picturesFolder } from "../ipc";
 import { useSaveDestination } from "./SaveDestination";
+import { createLibraryParentPrefill } from "./savePrefill";
 
 /** 新文件夹的完整路径，只用来给画师看；真正的路径由后端拼。 */
 function preview(parent: string, name: string) {
@@ -21,16 +22,24 @@ export function CreateLibrary({ onCreated, onBusyChange, onBack, backLabel }: {
   backLabel: string;
 }) {
   const { t } = useTranslation("library");
-  const { rememberNewLibraryParent } = useSaveDestination();
+  const { providers, memory, rememberNewLibraryParent } = useSaveDestination();
   const [name, setName] = useState(() => t("create.defaultName"));
-  const [parent, setParent] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<string | null>(null);
+  const [pictures, setPictures] = useState<string | null>(null);
+  const parent = chosen ?? createLibraryParentPrefill(memory.newLibraryParent, providers, pictures);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const ids = useId();
 
+  useEffect(() => {
+    let live = true;
+    picturesFolder().then((dir) => { if (live) setPictures(dir ?? null); }, () => {});
+    return () => { live = false; };
+  }, []);
+
   const choose = async () => {
     const picked = await pickFolder();
-    if (picked) setParent(picked);
+    if (picked) setChosen(picked);
   };
 
   const create = async () => {

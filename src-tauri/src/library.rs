@@ -301,6 +301,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             save_memory,
             remember_import_destination,
             remember_new_library_parent,
+            pictures_folder,
             registered_libraries,
             register_library,
             switch_library,
