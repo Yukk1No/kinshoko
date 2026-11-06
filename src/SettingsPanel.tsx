@@ -20,6 +20,7 @@ import { AutoTaggingSettings } from "./AutoTaggingSettings";
 import { UpdateSection } from "./Update";
 import { RuntimeDetails, useDiagnosticsReport } from "./RuntimeSupport";
 import { Segmented } from "./ui/Segmented";
+import { DialogHeight } from "./ui/DialogHeight";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { Switch } from "./ui/Switch";
 import { SealLock } from "./ui/SealLock";
@@ -161,8 +162,8 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
     onRestored?.();
     return restored;
   };
-  const page = (value: SettingsTab, children: ReactNode) => {
-    return <Tabs.Panel value={value} className="k-set-page">
+  const page = (value: SettingsTab, children: ReactNode, full = false) => {
+    return <Tabs.Panel value={value} className={full ? "k-set-page is-full" : "k-set-page"}>
       <h3 className="k-set-title">{tabName(value)}</h3>
       {error !== null && <p className="k-set-error" role="alert">{error}</p>}
       {children}
@@ -180,7 +181,7 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
           <span className="k-grow" />
           {version && <p className="k-set-version">{version}</p>}
         </nav>
-        <div className="k-set-main">
+        <DialogHeight className="k-set-main">
           {page("general", <>
             <SettingsGroup label={t("general.group")}>
               <SettingsRow icon={<Power size={16} />} title={t("general.autostart")} hint={t("general.autostartHint")}>
@@ -243,7 +244,7 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
               <SharedPersonalApproxSettings key={`approx/${settingsGeneration}`} onError={(e) => setError(errorText(e))} />
             </>}
             {tagView === "mapping" && <TagIdentityPanel key={`identity/${settingsGeneration}`} />}
-          </>)}
+          </>, true)}
           {page("tagging", <AutoTaggingSettings key={`tagging/${settingsGeneration}`} hasLibrary={hasLibrary} />)}
           {page("backup", <>
             <BackupSettings />
@@ -291,7 +292,7 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
               </SettingsRow>
             </SettingsGroup>
           </>)}
-        </div>
+        </DialogHeight>
       </Tabs.Root>
     </section>
   );

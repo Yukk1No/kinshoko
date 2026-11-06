@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "../ui/Toast";
 import { Dialog } from "@base-ui/react/dialog";
 import { Download, MapPinned } from "lucide-react";
+import { DialogHeight } from "../ui/DialogHeight";
 import { SealLock } from "../ui/SealLock";
 import type { ImportOptions } from "../bindings/ImportOptions";
 import type { ImportProgress } from "../bindings/ImportProgress";
@@ -288,7 +289,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />
           <Dialog.Popup className="k-dialog k-import-dialog is-wide" aria-label={t("tagStepLabel")}>
-            {tagStep && <EagleTagStep libraryId={finished?.libraryId??libraryId} onClose={() => setTagStep(false)} />}
+            {tagStep && <DialogHeight><EagleTagStep libraryId={finished?.libraryId??libraryId} onClose={() => setTagStep(false)} /></DialogHeight>}
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
