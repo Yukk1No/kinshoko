@@ -120,7 +120,7 @@ try {
   check(Math.abs(fitAfterFonts.physicalLeft - Math.round(fitAfterFonts.physicalLeft)) < 0.01 && Math.abs(fitAfterFonts.physicalTop - Math.round(fitAfterFonts.physicalTop)) < 0.01, "字体加载后的派生图起点对齐设备像素");
   await click("钉住整图");
   const pinned = await until("钉住结果的通知", () => exec(PIN_TOAST_PROBE));
-  check(pinned.top && pinned.inWindow && pinned.overViewer && pinned.clearOfDock, "查看器打开时钉住结果的通知可见，没有被盖住，也不挡工具条");
+  check(pinned.top && pinned.atCorner && pinned.clearOfDock, "查看器打开时钉住结果的通知在右下角，没有被盖住，也不挡工具条");
   writeFileSync(join(output, "viewer-pin-toast.png"), Buffer.from(await wd("GET", `${base}/screenshot`), "base64"));
   await exec("document.documentElement.dataset.theme = 'dark'");
   writeFileSync(join(output, "viewer-pin-toast-dark.png"), Buffer.from(await wd("GET", `${base}/screenshot`), "base64"));
