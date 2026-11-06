@@ -30,7 +30,9 @@ export function WorkspaceInspector({
   // 收起时不读详情；但开着时已经在看的内容收起后留着，没保存的备注草稿再打开还在。换了内容才放下。
   const contentKey = inspected ? `sources:${inspected.id}` : `selection:${selectionKey}`;
   const shownKey = useRef<string | null>(null);
+  // 收起期间内容一换就忘掉：再换回原来那张时不在收起的面板里重新挂载、去读详情。
   if (inspectorOpen) shownKey.current = contentKey;
+  else if (shownKey.current !== contentKey) shownKey.current = null;
   const keepContent = inspectorOpen || shownKey.current === contentKey;
   return (
       <aside ref={setInspectorElement} className="inspector" aria-label={t("inspector.label")} data-selection={inspected?.id ?? selectionKey} data-collapsed={!inspectorOpen} data-resizing={draggedWidth !== null} aria-hidden={!inspectorOpen} inert={!inspectorOpen}>

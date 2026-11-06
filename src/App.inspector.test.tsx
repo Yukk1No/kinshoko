@@ -153,6 +153,20 @@ describe("选择变化时", () => {
     await waitFor(() => expect(opened()).toBe(false));
   });
 
+  it("收起后选别的图再选回来，面板仍关着、不读详情", async () => {
+    const state = await start();
+    fireEvent.click(tile("a1"));
+    await shows("L1/i1");
+    fireEvent.click(screen.getByRole("button", { name: "收起详情" }));
+    const reads = state.reads.length;
+    fireEvent.click(tile("a2"));
+    fireEvent.click(tile("a1"));
+    await act(async () => { await new Promise((done) => setTimeout(done, 20)); });
+    expect(opened()).toBe(false);
+    expect(panel()!.querySelector(".insp-body")!.childElementCount).toBe(0);
+    expect(state.reads.length).toBe(reads);
+  });
+
   it("收起再打开，同一张图没保存的备注草稿还在", async () => {
     await start();
     fireEvent.click(tile("a1"));
