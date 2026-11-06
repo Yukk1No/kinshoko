@@ -89,7 +89,7 @@ export default {
     taken: "已被其他程序占用",
     refused: "系统拒绝注册（{{detail}}）",
   },
-  tagThresholdsInvalid: "低档上限要小于高档下限，且都在 0 到 1 之间",
+  tagThresholdsInvalid: "低档上限要小于高档下限，且都在 0% 到 100% 之间",
   uiScaleUnsupported: "没有 {{percent}}% 这一档界面缩放",
   uiScaleIo: "保存界面缩放失败：{{detail}}",
   subscriptionsUnavailable: "无法打开订阅记录",

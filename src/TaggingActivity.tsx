@@ -6,19 +6,17 @@ import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { taggingDownload } from "./ipc";
 import { useToast } from "./ui/Toast";
 import { i18n } from "./i18n";
-import { formatNumber } from "./i18n/format";
+import { formatBytes, percentOf } from "./i18n/format";
 import { useTaggingStatus } from "./useTaggingStatus";
 import { describeCommandError, describeCommandErrors } from "./ipc/commandError";
 
 const deviceName = (device: Device) => i18n.t(`tagging:device.${device}`);
-const mb = (bytes: number) => formatNumber(Math.round(bytes / 1_000_000), { useGrouping: false });
-const percent = (part: number, total: number) => (total > 0 ? Math.floor((part / total) * 100) : 0);
 
 /** 图标上的状态文字；不显示图标的状态为 null。 */
 function activityLabel(status: TaggingStatus): string | null {
   switch (status.state) {
     case "downloading":
-      return i18n.t("tagging:activity.downloading", { percent: percent(status.downloaded, status.total) });
+      return i18n.t("tagging:activity.downloading", { percent: percentOf(status.downloaded, status.total) });
     case "starting":
       return i18n.t("tagging:activity.starting");
     case "preparing":
@@ -95,7 +93,7 @@ function useTaggingNotices(status: TaggingStatus | null) {
       );
     };
     const id = toast.show({
-      title: i18n.t("tagging:notice.needsDownload", { size: mb(status.size) }), timeout: 0,
+      title: i18n.t("tagging:notice.needsDownload", { size: formatBytes(status.size) }), timeout: 0,
       action: { label: status.downloaded > 0 ? i18n.t("tagging:notice.resume") : i18n.t("tagging:notice.download"), onClick: start },
       onClose: () => {
         if (download.current !== id) return;

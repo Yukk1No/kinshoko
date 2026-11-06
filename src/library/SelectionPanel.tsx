@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { formatDateTime } from "../i18n/format";
+import { formatMoment } from "../i18n/format";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Link2, ShieldCheck, Undo2 } from "lucide-react";
 import { Segmented } from "../ui/Segmented";
@@ -99,7 +99,7 @@ function Detail({
     <div className="selection-detail" aria-busy={stale} inert={stale}>
       <div className="insp-file">
         <div className="insp-file-name" title={detail.originalName}>{detail.originalName}</div>
-        <div className="insp-file-meta k-parts"><span>{detail.width} × {detail.height}</span><span>{t("file.collectedAt", { at: formatDateTime(detail.collectedAt) })}</span></div>
+        <div className="insp-file-meta k-parts"><span>{detail.width} × {detail.height}</span><span>{t("file.collectedAt", { at: formatMoment(detail.collectedAt) })}</span></div>
       </div>
       {detail.versions.previous && <p className="selection-version">{t("file.newVersion")}</p>}
       {detail.versions.newer.length > 0 && <p className="selection-version">{t("file.oldVersion")}</p>}

@@ -23,7 +23,7 @@ const tagSettings: Translation<typeof zh> = {
     noMatch: "No matching tags.",
     list: "Tags",
     library: "Library",
-    truncated: "{{total}} in total; showing the first {{shown}}. Keep typing to narrow it down.",
+    truncated: "{{total, number}} in total; showing the first {{shown, number}}. Keep typing to narrow it down.",
     defaultNameOf: "default name {{name}}",
     noName: "none yet",
     defaultName: "default name",
@@ -114,7 +114,7 @@ const tagSettings: Translation<typeof zh> = {
     reset: "Restore defaults",
     lowOutline: "Dashed outline for low",
     lowOutlineHint: "Low-confidence tags get a dashed outline; when off, only their text is lighter",
-    outOfRange: "Thresholds must be between 0 and 1",
+    outOfRange: "Must be between 0% and 100%",
     lowAboveHigh: "The low upper bound must be less than the high lower bound",
   },
 };

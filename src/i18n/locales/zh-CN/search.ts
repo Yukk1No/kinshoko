@@ -10,7 +10,7 @@ export default {
   ratingMark: "分级",
   r18: "R18",
   conditions: "查找条件",
-  hiddenConditions_other: "还有 {{count}} 个条件",
+  hiddenConditions_other: "还有 {{count, number}} 个条件",
   collapsedConditions: "收起的查找条件",
   not: "不要",
   missingTag: "已删除的标签",

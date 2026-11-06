@@ -10,21 +10,19 @@ import { useTaggingStatus } from "./useTaggingStatus";
 import { describeCommandError, describeCommandErrors } from "./ipc/commandError";
 import { Select } from "./ui/Select";
 import { i18n } from "./i18n/instance";
+import { formatBytes, percentOf } from "./i18n/format";
 import { useTranslation } from "react-i18next";
 import { useToast } from "./ui/Toast";
 
-const gb = (bytes: number) => `${(bytes / 1_000_000_000).toFixed(1)} GB`;
-const mb = (bytes: number) => `${Math.round(bytes / 1_000_000)} MB`;
-const percent = (part: number, total: number) => (total > 0 ? Math.floor((part / total) * 100) : 0);
 const t = i18n.getFixedT(null, "tagging", "settings");
 const deviceName = (device: Device) => i18n.t(`tagging:device.${device}`);
 
 /** 一个硬件档：名称 · 显存或内存需求 · 是否已下载。不写精度（FP16/FP32 随档位定，画师不用管）。 */
 function describe(option: HardwareOption): string {
   const need = option.device === "directMl"
-    ? t("vram", { size: gb(option.vramNeed) })
-    : option.ramNeed > 0 ? t("ram", { size: gb(option.ramNeed) }) : "";
-  return t("option", { device: deviceName(option.device), need, state: option.downloaded ? t("downloaded") : t("needsDownload", { size: mb(option.size) }) });
+    ? t("vram", { size: formatBytes(option.vramNeed) })
+    : option.ramNeed > 0 ? t("ram", { size: formatBytes(option.ramNeed) }) : "";
+  return t("option", { device: deviceName(option.device), need, state: option.downloaded ? t("downloaded") : t("needsDownload", { size: formatBytes(option.size) }) });
 }
 
 /** 选“自动”时，说明实际在用的档。 */
@@ -142,15 +140,15 @@ function TaggingStatusRow({ hasLibrary, status }: { hasLibrary: boolean; status:
       return row(status.unknown > 0 ? t("unknown", { count: status.unknown }) : t("idle"));
     case "needsDownload": {
       const need = status.fallback === null
-        ? t("needsModel", { size: mb(status.size) })
-        : t("fallback", { reason: describeCommandErrors(status.fallback), size: mb(status.size) });
-      const label = status.downloaded > 0 ? t("resumeDownload", { percent: percent(status.downloaded, status.size) }) : t("download");
+        ? t("needsModel", { size: formatBytes(status.size) })
+        : t("fallback", { reason: describeCommandErrors(status.fallback), size: formatBytes(status.size) });
+      const label = status.downloaded > 0 ? t("resumeDownload", { percent: percentOf(status.downloaded, status.size) }) : t("download");
       return row(need, button(label, taggingDownload, true));
     }
     case "downloading": {
-      const done = percent(status.downloaded, status.total);
+      const done = percentOf(status.downloaded, status.total);
       // 暂停与取消都保留已下的部分，之后从断点续传（#213）。
-      return row(t("downloading", { percent: done, done: mb(status.downloaded), total: mb(status.total) }), <>{pause}{button(t("cancelDownload"), taggingCancelDownload)}</>,
+      return row(t("downloading", { percent: done, done: formatBytes(status.downloaded), total: formatBytes(status.total) }), <>{pause}{button(t("cancelDownload"), taggingCancelDownload)}</>,
         <progress className="k-task-progress" max={100} value={done} aria-label={t("progress")} aria-valuenow={done} />);
     }
     case "noDevice":

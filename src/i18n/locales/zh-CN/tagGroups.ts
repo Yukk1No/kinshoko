@@ -31,7 +31,7 @@ export default {
   },
   group: {
     rename: "标签分组名称",
-    nameCount_other: "{{name}}（{{count}} 个标签）",
+    nameCount_other: "{{name}}（{{count, number}} 个标签）",
     browseTitle: "按这个分组查找，双击改名",
     renameTitle: "双击改名",
     origin: "来自：{{origin}}",
@@ -45,10 +45,10 @@ export default {
     down: "下移",
     deleteLabel: "删除标签分组“{{name}}”",
     delete: "删除分组",
-    tagCount_other: "{{count}} 个标签",
+    tagCount_other: "{{count, number}} 个标签",
   },
   member: {
-    count_other: "{{name}}（{{count}} 张）",
+    count_other: "{{name}}（{{count, number}} 张）",
     prevLabel: "把“{{tag}}”在“{{group}}”中前移",
     prev: "前移",
     nextLabel: "把“{{tag}}”在“{{group}}”中后移",

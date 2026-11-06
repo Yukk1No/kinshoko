@@ -140,7 +140,7 @@ describe("自动标签的右下角通知", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     backend(needsDownload());
     mount();
-    expect(await screen.findByText("需要下载自动标签模型（993 MB）")).toBeTruthy();
+    expect(await screen.findByText("需要下载自动标签模型（947 MB）")).toBeTruthy();
     await act(async () => { vi.advanceTimersByTime(60_000); });
     const download = screen.getByRole("button", { name: "下载" });
     expect(actions.map((a) => a.command)).not.toContain("tagging_download");

@@ -10,8 +10,8 @@ describe("侧栏里的相对时间", () => {
     [minutes(27), "27 分钟前"],
     [minutes(120), "2 小时前"],
     [new Date(2026, 9, 9, 23, 0).getTime(), "昨天"],
-    [new Date(2026, 9, 2, 9, 0).getTime(), "10 月 2 日"],
-    [new Date(2025, 11, 30, 9, 0).getTime(), "2025 年 12 月 30 日"],
+    [new Date(2026, 9, 2, 9, 0).getTime(), "10月2日"],
+    [new Date(2025, 11, 30, 9, 0).getTime(), "2025年12月30日"],
   ])("%s → %s", (at, text) => expect(ago(at, now)).toBe(text));
   it("一小时内按分钟算；更早且跨过零点按日历算昨天", () => {
     expect(ago(new Date(2026, 9, 10, 0, 10).getTime(), new Date(2026, 9, 10, 0, 50).getTime())).toBe("40 分钟前");

@@ -60,7 +60,7 @@ export default {
     namespaceLabel: "命名空间",
     namespaceTitle: "标签类别",
     noMatch: "没有匹配的标签",
-    many_other: "对已选的 {{count}} 张一起记下",
+    many_other: "对已选的 {{count, number}} 张一起记下",
     addLabel: "添加标签",
     add: "添加",
     excludeLabel: "否决标签",

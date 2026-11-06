@@ -26,17 +26,12 @@ import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { Select } from "./ui/Select";
 import { useTranslation } from "react-i18next";
 import { i18n } from "./i18n/instance";
+import { formatBytes, formatMoment } from "./i18n/format";
 import { describeCommandError, storedReasonText } from "./ipc/commandError";
 
-/** 本地日期时间，按记录时的时区偏移，例如“2026-10-05 08:00”。 */
+/** 日期时间，按记录时的时区偏移，例如“10月5日 08:00”；不在今年时带年份。 */
 export function stampText(s: Stamp): string {
-  const d = new Date(s.unixMs + s.offsetMinutes * 60_000);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
-}
-
-function mb(bytes: number): string {
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return formatMoment(s.unixMs, { offsetMinutes: s.offsetMinutes });
 }
 
 function uncoveredText(u: Uncovered): string {
@@ -147,7 +142,7 @@ export function BackupSettings() {
             onClick={() => void startBackup().catch((e) => setError(String(e)))}><span className="k-label">{t("start")}</span></button>
         </SettingsRow>
         <SettingsRow icon={<Library size={16} />} title={t("scope")}
-          meta={preview ? t("estimate", { size: mb(preview.estimate.totalBytes) }) : t("estimating")}
+          meta={preview ? t("estimate", { size: formatBytes(preview.estimate.totalBytes) }) : t("estimating")}
           below={<>
             {narrowed !== null && <div className="backup-libraries" role="group" aria-label={t("libraries")}>
               {libraries.map(({ library }) => (
@@ -184,7 +179,7 @@ function PreviewView({ preview }: { preview: BackupPreview }) {
     <div className="backup-preview" aria-label={t("preview.label")}>
       <p>{t("preview.scope", { libraries: names(scope.libraries), groups: names(scope.groups) })}</p>
       <p>
-        {t("preview.size", { total: mb(estimate.totalBytes), fresh: mb(estimate.newBytes), count: estimate.newOriginals })}
+        {t("preview.size", { total: formatBytes(estimate.totalBytes), fresh: formatBytes(estimate.newBytes), count: estimate.newOriginals })}
         {!preview.targetAvailable && t("preview.targetMissing")}
       </p>
       {(scope.uncovered.length > 0 || estimate.unavailable.length > 0) && (

@@ -2,6 +2,7 @@
 // Accepted popovers and condition gestures, backed by the formal library IPC and SearchInput.
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatNumber } from "../i18n/format";
 import { Popover } from "@base-ui/react/popover";
 import { ChevronDown, PenLine } from "lucide-react";
 import type { TagGroupView } from "../bindings/TagGroupView";
@@ -86,7 +87,7 @@ export function TagGroupBar(p: Props) {
                         aria-pressed={!!c}
                         onClick={(e) => c ? remove(tag.id) : add(tag.id, e.ctrlKey || e.metaKey ? "or" : "and")}
                         onContextMenu={(e) => { e.preventDefault(); if (c?.negate) remove(tag.id); else add(tag.id, "and", true); }}>
-                        <span className="k-label">{tagName(tag)}</span><TagMarks tag={tag} /><span className="count tabular k-label">{count}</span>
+                        <span className="k-label">{tagName(tag)}</span><TagMarks tag={tag} /><span className="count tabular k-label">{formatNumber(count)}</span>
                       </button>;
                     })}
                   </div>

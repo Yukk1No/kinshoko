@@ -74,7 +74,7 @@ describe("设置：备份", () => {
     fireEvent.click(within(where).getByRole("button", { name: "选择…" }));
     await screen.findByText("E:\\备份");
     expect(calls.find((c) => c.cmd === "set_backup_target")?.args).toEqual({ target: "E:\\备份" });
-    expect(screen.getByText("2026-10-05 08:00")).toBeTruthy();
+    expect(screen.getByText(/10月5日 08:00$/)).toBeTruthy();
     expect(screen.getByText("已备份")).toBeTruthy();
   });
 
@@ -98,7 +98,7 @@ describe("设置：备份", () => {
       }),
     );
     expect(await screen.findByText(/参考组「眼睛参考」引用的「旧库」不在这次备份里/)).toBeTruthy();
-    expect(screen.getByText(/约 30\.0 MB，这次新写入 2\.0 MB（新原图 1 张）/)).toBeTruthy();
+    expect(screen.getByText(/约 30 MB，这次新写入 2 MB（新原图 1 张）/)).toBeTruthy();
   });
 
   it("可以马上备份；备份进行中显示进度", async () => {
@@ -151,7 +151,7 @@ describe("设置：备份", () => {
     render(<BackupSettings />);
 
     fireEvent.click(await screen.findByRole("button", { name: "选择备份…" }));
-    fireEvent.click(await screen.findByRole("button", { name: "恢复 2026-10-05 08:00 的备份" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^恢复 .*10月5日 08:00 的备份$/ }));
     expect(await screen.findByText("完整")).toBeTruthy();
     expect(screen.getByText(/原图 12 张哈希一致/)).toBeTruthy();
     expect(screen.getByText(/主库（恢复）/)).toBeTruthy();

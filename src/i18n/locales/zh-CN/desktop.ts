@@ -6,8 +6,6 @@ export default {
     minutes_other: "{{count}} 分钟前",
     hours_other: "{{count}} 小时前",
     yesterday: "昨天",
-    date: "{{month}} 月 {{day}} 日",
-    dateWithYear: "{{year}} 年 {{month}} 月 {{day}} 日",
   },
   /** 起名与改名的表单（`GroupNameForm`）。 */
   nameForm: {
@@ -94,12 +92,12 @@ export default {
     importConfirm: "选择参考组包并导入",
     imported: "已导入参考组「{{name}}」，原图保存到所选图库和文件夹",
     empty: "还没有参考组。把整图或局部钉到桌面摆好，再在这里存下。",
-    memberCount_other: "{{count}} 张",
+    memberCount_other: "{{count, number}} 张",
     renameTitle: "改名",
     nameLabel: "参考组名称",
     delete: "删除",
     allOnDesktop: "成员都已在桌面上",
-    opened_other: "已钉出 {{count}} 个成员",
+    opened_other: "已钉出 {{count, number}} 个成员",
     open: "摆到桌面",
     rename: "改名",
     more: "更多操作",

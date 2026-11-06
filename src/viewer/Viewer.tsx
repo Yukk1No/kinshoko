@@ -8,6 +8,7 @@ import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } fr
 import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Pin, Plus, RotateCcw, X } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { useTranslation } from "react-i18next";
+import { formatNumber } from "../i18n/format";
 import { useToast } from "../ui/Toast";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import { Dock } from "../ui/Dock";
@@ -236,7 +237,7 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
         <button type="button" className="k-btn is-quiet viewer-back" aria-label={t("backLabel")} onClick={onBack}><ArrowLeft size={16} /><span className="k-label">{t("back")}</span></button>
         <span className="viewer-title" title={name ?? undefined}>{name}</span>
         {position && <>
-          <span className="viewer-index">{position.index + 1} / {position.total}</span>
+          <span className="viewer-index">{formatNumber(position.index + 1)} / {formatNumber(position.total)}</span>
           <button type="button" className="k-icon-btn" aria-label={t("previous")} title={t("previousTitle")} disabled={position.index <= 0} onClick={() => onStep?.(-1)}><ChevronLeft size={16} /></button>
           <button type="button" className="k-icon-btn" aria-label={t("next")} title={t("nextTitle")} disabled={position.index >= position.total - 1} onClick={() => onStep?.(1)}><ChevronRight size={16} /></button>
         </>}

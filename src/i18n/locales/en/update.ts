@@ -37,8 +37,8 @@ const update: Translation<typeof zh> = {
   },
   progress: {
     starting: "Downloading update…",
-    downloaded: "Downloading {{downloaded}} MB",
-    downloadedOfTotal: "Downloading {{downloaded}} / {{total}} MB",
+    downloaded: "Downloading {{downloaded}}",
+    downloadedOfTotal: "Downloading {{downloaded}} / {{total}}",
   },
   notice: {
     available: "Kinshoko {{version}} is available",
