@@ -1,8 +1,9 @@
 /* Settings dialog: vertical tabs + rows (split from dialogs.css; design/ui-system/tokens-and-components.md「设置」).
    Built on the shared `.k-dialog` / `.k-list` shell in ui.css and the form controls in dialogs.css. */
 
-.k-dialog.k-settings-dialog { --k-settings-max: min(620px, calc(100vh - 48px)); display: flex; flex-direction: column; width: min(860px, calc(100vw - 48px)); max-height: var(--k-settings-max); padding: 0; overflow: hidden; }
-.k-settings, .k-set-body { flex: 0 1 auto; min-height: 0; }
+/* 起始高度够大多数页面用，切页时容器不动；只有放不下的长页才长高，最高到 --k-settings-max。 */
+.k-dialog.k-settings-dialog { --k-settings-max: min(620px, calc(100vh - 48px)); display: flex; flex-direction: column; width: min(860px, calc(100vw - 48px)); min-height: min(480px, calc(100vh - 48px)); max-height: var(--k-settings-max); padding: 0; overflow: hidden; }
+.k-settings, .k-set-body { flex: 1 1 auto; min-height: 0; }
 .k-settings { display: flex; flex-direction: column; }
 .k-settings.is-loading { display: grid; place-items: center; padding: 48px; }
 .k-set-load-error { display: grid; justify-items: center; gap: 12px; }

@@ -120,9 +120,10 @@ describe("DialogHeight", () => {
 });
 
 describe("设置对话框", () => {
-  it("高度随内容，上限不变；滚动条位置常留", () => {
+  it("有起始高度，只有长页才长高，上限不变；滚动条位置常留", () => {
     const dialog = cssRule(settings, ".k-dialog.k-settings-dialog");
     expect(dialog.height).toBeUndefined();
+    expect(dialog["min-height"]).toBe("min(480px, calc(100vh - 48px))");
     expect(dialog["max-height"]).toBe("var(--k-settings-max)");
     expect(cssRule(settings, ".k-dialog-height.k-set-main")["scrollbar-gutter"]).toBe("stable");
   });
