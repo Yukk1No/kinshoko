@@ -114,7 +114,7 @@
 
 /* 安全模式（#60）：遮蔽 = 模糊 14px＋92% 墨色。开启时 200ms 内到位（约 170ms 起已无法辨认），
    释放未播完时开启也从当前样子直接转回遮蔽。 */
-.card::after {
+.card::after, .viewer-flier::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -128,12 +128,12 @@
 /* 封印中交给影子的卡片：不显示、不可操作，只占位（#154）。 */
 .card[data-leaving="true"], .card[data-leaving="true"] + .card-sources { visibility: hidden; }
 
-.card[data-veiled="true"] img {
+.card[data-veiled="true"] img, .viewer-flier[data-veiled="true"] img {
   filter: blur(14px);
   transition: filter 200ms ease-out;
 }
 
-.card[data-veiled="true"]::after {
+.card[data-veiled="true"]::after, .viewer-flier[data-veiled="true"]::after {
   opacity: 0.92;
   transition: opacity 200ms ease-out;
 }

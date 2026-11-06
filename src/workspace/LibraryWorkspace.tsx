@@ -12,6 +12,7 @@ import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
 import { fitPanes, isNarrow, usePaneFold, useWidth } from "../shell/paneFit";
 import type { Section } from "../shell/Rail";
+import { usePanelSlide } from "../shell/usePanelSlide";
 import { TaggingActivity } from "../TaggingActivity";
 import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
@@ -20,6 +21,7 @@ import { WallFloats } from "../wall/WallFloats";
 import { WallMenu } from "../wall/WallMenu";
 import { useWallActions } from "../wall/useWallActions";
 import { Viewer } from "../viewer/Viewer";
+import { useViewerFlight } from "../viewer/ViewerFlight";
 import { TagGroupsDialog } from "./TagGroupsDialog";
 import { useImportTasks } from "./useImportTasks";
 import { useInvalidation } from "./useInvalidation";
@@ -104,6 +106,8 @@ export function LibraryWorkspace({
   const scope: BrowseScope = workspaceScope.kind === "library" ? workspaceScope.scope : { kind: "all" };
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<BrowserCard | null>(null);
+  const wallHost = useRef<HTMLDivElement>(null);
+  const flight = useViewerFlight({ viewing, safe, host: wallHost, instant: hidden || !!captureRequest });
   /** 查看器打开时即进入框选（图片墙右键“框选局部钉住”或 F1）。 */
   const [viewCrop, setViewCrop] = useState(false);
   useEffect(() => { if (!viewing) setViewCrop(false); }, [viewing]);
@@ -128,7 +132,7 @@ export function LibraryWorkspace({
    */
   const [vocabularyKey, setVocabularyKey] = useState(0);
   const { invalidate, observations } = useInvalidation({
-    wall, loadedCards, setViewing, setSelected, setSources, setReloadKey, setVocabularyKey,
+    wall, loadedCards, setViewing: (next) => { flight.cut(); setViewing(next); }, setSelected, setSources, setReloadKey, setVocabularyKey,
   });
   /**
    * 工作区读取期间修订变了（CursorExpired）：那次读到的结果已经过时，不是要用户处理的问题。
@@ -147,6 +151,9 @@ export function LibraryWorkspace({
   // 只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
   useEffect(() => { invalidate({ kind: "pageAccepted", ready: resultCount !== null }); }, [loadedCards, resultCount]);
   const { viewingIndex, step } = useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall });
+  /** 序号在飞回途中留着：顶栏淡出时不跳动。 */
+  const viewerPosition = useRef<{ index: number; total: number } | undefined>(undefined);
+  if (viewing) viewerPosition.current = viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) };
   const { status, onWallStatus, recheck } = useWorkspaceStatus({ safe, onError, invalidate, observations });
 
   // 视角一变就在这次渲染里推进重读序号（#183）：图片墙的重新浏览与视角变化在同一次提交里、
@@ -173,7 +180,12 @@ export function LibraryWorkspace({
     fitPanel: (width) => fitPanes(bodyWidth, width, paneOpen && !isNarrow(bodyWidth, width)).inspector,
   });
   const { selectionLibrary, selectedCards, inspected, inspectorContent, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector } = inspector;
+  const [sidebarElement, setSidebarElement] = useState<HTMLElement | null>(null);
   const panes = usePaneFold({ body: bodyWidth, inspector: inspectorOpen ? inspector.panelWidth : 0, paneOpen, onPaneOpen });
+  // 侧栏开合时图片墙一开始就按终点宽度排，卡片随侧栏一起滑到位；浮在墙上的侧栏不占墙的宽度。
+  // 窄窗口里详情面板会同时让位或收回，它的变化一并算进终点。
+  const sidebarSlide = usePanelSlide(sidebarElement, panes.floating ? null : panes.sidebar,
+    { element: inspector.inspectorElement, finalWidth: inspectorOpen ? inspector.shownWidth : 0 });
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
   const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
@@ -197,9 +209,9 @@ export function LibraryWorkspace({
   return (
     <>
     <div className="app-workspace workspace" hidden={hidden}>
-      <div className="app-body" ref={setAppBody} style={{ "--sidebar-width": `${panes.sidebar}px` } as CSSProperties}>
+      <div className="app-body" ref={setAppBody} data-viewer-flying={flight.dim || undefined} style={{ "--sidebar-width": `${panes.sidebar}px` } as CSSProperties}>
         {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
-        <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
+        <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} paneRef={setSidebarElement} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
           status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} recheck={recheck}
           onLibraryRemoved={onLibraryRemoved} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
           onScope={(next) => {
@@ -253,7 +265,7 @@ export function LibraryWorkspace({
             }}
             onError={onError} />
           {/* 图片墙所在的区域：查看器盖在这里（#179），左栏、顶栏与详情侧栏照常可用。 */}
-          <div className="wall-host">
+          <div className="wall-host" ref={wallHost}>
           <Wall
             ref={wall}
             density={density}
@@ -270,6 +282,7 @@ export function LibraryWorkspace({
             reloadKey={reloadKey}
             safeMode={safe}
             holdReflow={inspectorMoving || draggedWidth !== null}
+            settle={sidebarSlide}
             selected={selected}
             onSelectionChange={(next) => {
               // 来源按钮打开的整理只对那一张：画师改了选择，面板跟着选择走。
@@ -304,20 +317,26 @@ export function LibraryWorkspace({
                 },
               } : null}
           />
-          {viewing && (
+          {flight.card && (
             <Viewer
-              libraryId={viewing.libraryId}
-              card={{ ...viewing, id: viewing.imageId ?? viewing.id }}
+              key={flight.session}
+              flight={flight.attr}
+              hideImage={flight.hideImage}
+              onPlaced={flight.onPlaced}
+              libraryId={flight.card.libraryId}
+              card={{ ...flight.card, id: flight.card.imageId ?? flight.card.id }}
               onClose={() => setViewing(null)}
+              onBack={() => { flight.back(); setViewing(null); }}
               reloadKey={reloadKey}
-              position={viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) }}
+              position={viewerPosition.current}
               onStep={step}
               startCrop={viewCrop}
               inspectorOpen={inspectorOpen}
               onToggleInspector={toggleInspector}
-              onTrash={(viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.deleted ?? scope.kind === "trash") ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
+              onTrash={!viewing || (viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.deleted ?? scope.kind === "trash") ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
             />
           )}
+          {flight.flier}
           </div>
         </main>
         {inspectorContent && !hidden && (

@@ -107,24 +107,34 @@
 /* 图片墙右下角：打标图标（#144）在图片大小浮岛左边，两者一起浮在图片墙上。 */
 .k-wall-corner { position: absolute; right: 24px; bottom: 20px; z-index: 6; display: flex; align-items: center; gap: 8px; }
 /* 图片大小浮岛（#102 方案 C3）：半透明 --surface、背景模糊、全圆角；两端小图 / 大图。 */
-.k-density-island { display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px;
-  border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+.k-density-slot { --density-gap: 10px; --density-pad: 14px; display: inline-flex; }
+.k-density-island { display: inline-flex; align-items: center; height: 40px; padding: 0 var(--density-pad); overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   box-shadow: var(--shadow-pop); color: var(--ink-3); }
-.k-density-island > svg { flex: none; }
+.k-density-row { display: flex; align-items: center; gap: var(--density-gap); height: 40px; flex: none; }
+.k-density-row > svg { flex: none; }
 .k-density-island .k-range { width: 140px; }
-/* 多选时（#180）右下角收成一个 40 px 圆形按钮：悬停或点按时滑条从上方弹出；打标状态是按钮右上角的小圆点。 */
+/* 多选时（#180）右下角收成一个 40 px 圆形按钮，悬停或点按时按钮自身形变为滑条（#452）：
+   占位始终 40 px，周围不动；形状贴右下长出，左边放不下时升到占位上方。打标状态是右上角的小圆点。 */
 .k-wall-corner { transform-origin: 100% 100%; }
-.k-density-island.is-collapsed { position: relative; width: 40px; padding: 0; gap: 0; justify-content: center; }
-.k-density-knob { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--ink-2); }
-.k-density-knob:hover, .k-density-knob[aria-expanded="true"] { color: var(--ink); }
-.k-density-knob:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.k-density-pop { position: absolute; right: 0; bottom: calc(100% + 10px); display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px;
-  border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 92%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-pop); color: var(--ink-3); transform-origin: 100% 100%; }
-/* 指针从按钮移到滑条时经过的空隙也算在浮岛里，不让它收回。 */
-.k-density-pop::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 10px; }
-.k-density-pop > svg { flex: none; }
-.k-density-pop .k-range { width: 140px; }
+.k-density-slot[data-collapsed] { position: relative; width: 40px; height: 40px; }
+.k-density-slot[data-collapsed] .k-density-island { position: absolute; right: 0; bottom: 0; padding: 0; }
+.k-density-slot[data-collapsed] .k-density-island[data-open] { padding-left: var(--density-pad); }
+/* 按钮的图标留在原处，就是滑条右端的大图标；焦点顺序仍是先按钮后滑条。 */
+.k-density-knob { order: 1; flex: none; width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--ink-2); transition: color var(--t-fast) var(--ease); }
+.k-density-island[data-open] .k-density-knob { margin-left: calc(var(--density-gap) - 12px); color: var(--ink-3); }
+.k-density-knob:hover, .k-density-island[data-open] .k-density-knob:hover { color: var(--ink); }
+.k-density-knob:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* 收回时滑条脱离排版，形状才缩得回去。 */
+.k-density-island:not([data-open]) .k-density-row { position: absolute; top: 0; right: calc(28px + var(--density-gap)); pointer-events: none; }
+/* 升到上方时越过选择栏（高 56 px）再隔开 8 px；形状与原位之间的整块都算在内，指针斜着移过去也不收回。
+   打标小圆点放在 .k-wall-badge 里，由 WallFloats 带着走。 */
+.k-density-slot { --density-rise: 64px; }
+.k-density-slot[data-rising] .k-density-island { bottom: var(--density-rise); }
+.k-density-slot[data-rising]::before { content: ""; position: absolute; right: 0; bottom: 0; width: 214px; height: var(--density-rise); }
+.k-wall-badge { display: contents; }
+.k-wall-corner[data-collapsed] .k-wall-badge { display: block; position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.k-tagging-dot { pointer-events: auto; }
 /* 多选收起时的打标状态（#372）：按钮右上角一枚带纸色底的迷你进度环。 */
 .k-tagging-dot { position: absolute; top: -4px; right: -4px; z-index: 1; width: 16px; height: 16px; display: grid; place-items: center; border-radius: var(--r-pill);
   background: var(--surface); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent); }
