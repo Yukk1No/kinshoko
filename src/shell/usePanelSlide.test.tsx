@@ -67,3 +67,22 @@ it("面板不占墙的宽度（浮起）时仍不给出变化量；其他元素�
   fire(panel, "transitionrun", "border-right-width");
   expect(seen).toBeNull();
 });
+
+it("另一侧的面板同时变宽变窄时，它的变化量一并算进墙宽", () => {
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    return new DOMRect(0, 0, this.tagName === "SECTION" ? 0 : 256, 800);
+  });
+  let other: HTMLElement | null = null;
+  function Both() {
+    const [element, setElement] = useState<HTMLElement | null>(null);
+    const [inspector, setInspector] = useState<HTMLElement | null>(null);
+    other = inspector;
+    seen = usePanelSlide(element, 200, { element: inspector, finalWidth: 320 });
+    return <><aside ref={setElement} /><section ref={setInspector} /></>;
+  }
+  const { container } = render(<Both />);
+  expect(other).not.toBeNull();
+  // 侧栏 256 → 200 让出 56，详情 0 → 320 占去 320：墙最终窄 264。
+  fire(container.querySelector("aside")!, "transitionrun");
+  expect(seen).toMatchObject({ by: -264 });
+});

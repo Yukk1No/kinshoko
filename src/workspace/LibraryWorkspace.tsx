@@ -177,7 +177,9 @@ export function LibraryWorkspace({
   const [sidebarElement, setSidebarElement] = useState<HTMLElement | null>(null);
   const panes = usePaneFold({ body: bodyWidth, inspector: inspectorOpen ? inspector.panelWidth : 0, paneOpen, onPaneOpen });
   // 侧栏开合时图片墙一开始就按终点宽度排，卡片随侧栏一起滑到位；浮在墙上的侧栏不占墙的宽度。
-  const sidebarSlide = usePanelSlide(sidebarElement, panes.floating ? null : panes.sidebar);
+  // 窄窗口里详情面板会同时让位或收回，它的变化一并算进终点。
+  const sidebarSlide = usePanelSlide(sidebarElement, panes.floating ? null : panes.sidebar,
+    { element: inspector.inspectorElement, finalWidth: inspectorOpen ? inspector.shownWidth : 0 });
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
   const { actions: wallActions, dialogs: wallDialogs } = useWallActions({

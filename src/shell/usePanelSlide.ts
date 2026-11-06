@@ -15,11 +15,16 @@ export type PanelSlide = {
  * 面板自身的宽度过渡进行中时给出 PanelSlide，否则为 null。过渡一开始就知道终点，
  * 图片墙可以直接按终点宽度排好，让卡片和面板同起同落，不跟着面板平移后再折回来。
  * `finalWidth` 是面板这次开合的终点宽度；面板浮在墙上、不占墙的宽度时传 null。
+ * `alongside`：墙另一侧同时可能在变宽变窄的面板（窄窗口里侧栏与详情面板一起让位）；它的变化量一并算进墙宽。
  * 计数、只认自身 width 过渡、在事件里同步提交的做法与 useWidthTransition 相同（#162）。
  */
-export function usePanelSlide(element: HTMLElement | null, finalWidth: number | null): PanelSlide | null {
+export function usePanelSlide(
+  element: HTMLElement | null, finalWidth: number | null, alongside?: { element: HTMLElement | null; finalWidth: number },
+): PanelSlide | null {
   const final = useRef(finalWidth);
   final.current = finalWidth;
+  const other = useRef(alongside);
+  other.current = alongside;
   const [state, setState] = useState<{ running: number; slide: PanelSlide | null }>({ running: 0, slide: null });
   useEffect(() => {
     setState({ running: 0, slide: null });
@@ -31,7 +36,8 @@ export function usePanelSlide(element: HTMLElement | null, finalWidth: number | 
       const timing = transition?.effect?.getTiming();
       const style = getComputedStyle(element);
       const slide: PanelSlide | null = final.current === null ? null : {
-        by: element.getBoundingClientRect().width - final.current,
+        by: element.getBoundingClientRect().width - final.current
+          + (other.current?.element ? other.current.element.getBoundingClientRect().width - other.current.finalWidth : 0),
         duration: typeof timing?.duration === "number" ? timing.duration : parseFloat(style.transitionDuration) * 1000 || 0,
         easing: timing?.easing ?? style.transitionTimingFunction ?? "ease",
         startTime: typeof transition?.startTime === "number" ? transition.startTime : null,
