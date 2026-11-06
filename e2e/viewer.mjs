@@ -7,7 +7,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { copyStandaloneRuntime } from "./native-standalone-guard.mjs";
-import { png } from "./viewer.helpers.mjs";
+import { png, PIN_TOAST_PROBE } from "./viewer.helpers.mjs";
 
 const [, , appArg, edgeArg, driverArg = "tauri-driver"] = process.argv;
 if (!appArg || !edgeArg) throw new Error("用法：node e2e/viewer.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]");
@@ -75,12 +75,9 @@ try {
   await until("打开图库", () => find("//nav[@aria-label='查找范围']//*[@data-library-id]//button[contains(@class,'lib-head-name') and starts-with(@aria-label,'原图查看器验证（') and not(@disabled)]"));
   check(true, "在独立数据目录建立测试资料库");
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
-  // 设计系统 v2: 导入 is one button; the folder entry is in its menu, then a dialog chooses the library.
+  // 设计系统 v2: 导入 is one button; the folder entry is in its menu; the dialog comes prefilled with the library (#416).
   await click("导入");
   await wd("POST", `${base}/element/${await until("文件夹菜单项", () => find("//*[@role='menuitem' and normalize-space()='文件夹']"))}/click`, {});
-  const librarySelect = "[...document.querySelectorAll('.k-import-dialog select')].find(s=>s.labels?.[0]?.querySelector('.k-field-label')?.textContent.trim()==='放到图库')";
-  await until("导入对话框", () => exec(`return !!${librarySelect}?.options[1]`));
-  await exec(`const s=${librarySelect};s.value=s.options[1].value;s.dispatchEvent(new Event('change',{bubbles:true}));`);
   await until("开始导入可用", () => exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
   await click("开始导入");
   await until("导入完成", () => exec("return [...document.querySelectorAll('.k-toast')].some(t=>t.querySelector('.k-toast-title')?.textContent==='导入完成'&&t.querySelector('.k-toast-stats')?.textContent.includes('新增 41'));"));
@@ -121,6 +118,13 @@ try {
   check(fonts, "全部随软件分发的字体离线加载成功");
   const fitAfterFonts = await until("字体加载后派生图稳定", image);
   check(Math.abs(fitAfterFonts.physicalLeft - Math.round(fitAfterFonts.physicalLeft)) < 0.01 && Math.abs(fitAfterFonts.physicalTop - Math.round(fitAfterFonts.physicalTop)) < 0.01, "字体加载后的派生图起点对齐设备像素");
+  await click("钉住整图");
+  const pinned = await until("钉住结果的通知", () => exec(PIN_TOAST_PROBE));
+  check(pinned.top && pinned.atCorner && pinned.clearOfDock, "查看器打开时钉住结果的通知在右下角，没有被盖住，也不挡工具条");
+  writeFileSync(join(output, "viewer-pin-toast.png"), Buffer.from(await wd("GET", `${base}/screenshot`), "base64"));
+  await exec("document.documentElement.dataset.theme = 'dark'");
+  writeFileSync(join(output, "viewer-pin-toast-dark.png"), Buffer.from(await wd("GET", `${base}/screenshot`), "base64"));
+  await exec("delete document.documentElement.dataset.theme");
   const screenshot = await wd("GET", `${base}/screenshot`);
   writeFileSync(join(output, "viewer.png"), Buffer.from(screenshot, "base64"));
   const viewerKey = async (value) => wd("POST", `${base}/actions`, { actions: [{type:"key",id:"keyboard",actions:[{type:"keyDown",value},{type:"keyUp",value}]}] });

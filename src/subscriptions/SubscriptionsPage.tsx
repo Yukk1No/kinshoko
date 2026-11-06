@@ -41,7 +41,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   const { t } = useTranslation("subscriptions");
   const { t: tw } = useTranslation("workspace");
   const toast = useToast();
-  const report = (message: string) => { if (toast) toast.error(message); };
+  const report = (message: string) => { toast.error(message); };
   const onError = (e: unknown) => report(errorText(e));
   const now = useNow();
   /** 添加、改设置或退订后加一，重读名单。 */
@@ -200,11 +200,6 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
         {check.kind === "backoff" && <span className="subs-check" role="status"><Clock size={14} strokeWidth={1.75} aria-hidden="true" />{retryText(check.until)}</span>}
         <WinCtrls />
       </header>
-      {login.state === "expired" && <div className="subs-banner" role="status">
-        <TriangleAlert size={16} strokeWidth={2} aria-hidden="true" />
-        <span className="subs-banner-text">{t("expired.banner")}</span>
-        <button type="button" className="k-btn is-primary" onClick={actions.signIn}><span className="k-label">{t("account.signInAgain")}</span></button>
-      </div>}
       {hasList ? <div className="subs-wall" ref={wall}>
         {shown.length === 0 && !veiled && <p className="subs-none">{t("recent.none")}</p>}
         {freshImages.length > 0 && <section aria-label={t("recent.fresh")}>

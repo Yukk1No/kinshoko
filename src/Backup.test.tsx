@@ -6,7 +6,6 @@ import type { BackupStatus } from "./bindings/BackupStatus";
 import type { RestoreReport } from "./bindings/RestoreReport";
 import type { SnapshotSummary } from "./bindings/SnapshotSummary";
 import { BackupReminder, BackupSettings } from "./Backup";
-import { ToastProvider } from "./ui/Toast";
 import { chooseOption } from "./test/select";
 
 afterEach(() => {
@@ -188,11 +187,10 @@ describe("备份提醒", () => {
         ? { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } }
         : undefined,
     );
-    render(<ToastProvider><BackupReminder /></ToastProvider>);
+    render(<><BackupReminder /></>);
     const title = (await screen.findAllByText("备份没有完成：备份目标不在")).find((node) => node.closest(".k-toast"))!;
     expect(title.closest(".k-toast")?.getAttribute("data-tone")).toBe("error");
     expect(title.closest(".k-toast")?.textContent).toContain("下次退出或空闲时再试");
-    expect(document.querySelector(".update-banner")).toBeNull();
     expect(document.querySelectorAll(".k-toast")).toHaveLength(1);
   });
 
@@ -202,9 +200,9 @@ describe("备份提醒", () => {
         ? { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } }
         : undefined,
     );
-    const view = render(<ToastProvider><BackupReminder key="a" /></ToastProvider>);
+    const view = render(<><BackupReminder key="a" /></>);
     await waitFor(() => expect(document.querySelectorAll(".k-toast")).toHaveLength(1));
-    view.rerender(<ToastProvider><BackupReminder key="b" /></ToastProvider>);
+    view.rerender(<><BackupReminder key="b" /></>);
     await new Promise((resolve) => setTimeout(resolve, 50));
     await waitFor(() => expect(document.querySelectorAll(".k-toast:not([data-ending-style])")).toHaveLength(1));
   });

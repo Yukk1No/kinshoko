@@ -5,9 +5,9 @@
    peeking 8 px above it a step smaller, and fans out while the stack is hovered or focused (Base UI's --toast-* variables). */
 .k-toasts { position: fixed; right: 18px; bottom: 18px; z-index: 200; width: 340px; max-width: calc(100vw - 36px); outline: 0;
   transition: right 200ms var(--spring), bottom 200ms var(--spring); }
-/* Same corner as the import task cards (dialogs.css): step left of an open inspector and above a floating selection bar. */
-body:has(.inspector[data-collapsed="false"]) .k-toasts { right: calc(var(--inspector-width, 320px) + 1px + 18px); max-width: calc(100vw - var(--inspector-width, 320px) - 1px - 36px); }
-body:has(.selbar-host > .selbar) .k-toasts { bottom: calc(18px + 66px); }
+/* Same corner as the import task cards (dialogs.css), over the inspector when it is open; with it closed, above a floating selection bar or the viewer's dock. */
+body:has(.selbar-host > .selbar):not(:has(.inspector[data-collapsed="false"])) .k-toasts { bottom: calc(18px + 66px); }
+body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-toasts { bottom: calc(18px + 66px); }
 .k-toast { --gap: 8px; --peek: 8px; --scale: calc(max(0, 1 - var(--toast-index) * 0.05)); --shrink: calc(1 - var(--scale));
   --height: var(--toast-frontmost-height, var(--toast-height));
   --offset-y: calc(var(--toast-offset-y) * -1 - var(--toast-index) * var(--gap) + var(--toast-swipe-movement-y));

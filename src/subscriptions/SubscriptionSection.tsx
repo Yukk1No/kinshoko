@@ -1,4 +1,7 @@
 import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import { useTranslation } from "react-i18next";
+import { usePersistentToast, useToast } from "../ui/Toast";
+import { accountActions } from "./accountActions";
 import type { Section } from "../shell/Rail";
 import { SubscriptionsPage } from "./SubscriptionsPage";
 import { useSubscriptionStatus } from "./useSubscriptionStatus";
@@ -21,6 +24,17 @@ export function useSubscriptionSection(section: Section, setSection: Dispatch<Se
     rail: on ? { newCount: status.newCount } : null,
     settings: status && { status, onStatus: setStatus },
   };
+}
+
+/** pixiv 登录失效的通知（#433）：检查已经暂停，所以不管画师在哪一页都提示；登录窗口开着时先收起。 */
+export function LoginExpiredNotice({ subscriptions, hidden }: { subscriptions: ReturnType<typeof useSubscriptionSection>; hidden: boolean }) {
+  const { t } = useTranslation("subscriptions");
+  const toast = useToast();
+  const { status, setStatus } = subscriptions;
+  usePersistentToast(status?.enabled && status.login.state === "expired"
+    ? { title: t("expired.notice"), action: { label: t("account.signInAgain"), onClick: () => accountActions((message) => toast.error(message), setStatus).signIn() } }
+    : null, { hidden: hidden || status?.signingIn === true });
+  return null;
 }
 
 /** 订阅页占满工作区（侧栏与主区），与图片与文件夹的工作区并排切换。 */

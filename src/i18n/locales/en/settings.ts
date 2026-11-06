@@ -115,10 +115,8 @@ const settings: Translation<typeof zh> = {
     restartNeeded: "Takes effect after you quit Kinshoko from the tray and restart it.",
   },
   runtime: {
-    showReport: "Show diagnostic information",
-    save: "Save to file…",
-    report: "Diagnostic information",
-    noticeLabel: "Runtime notice",
+    view: "View",
+    open: "Open",
     failed: "Runtime check didn't pass",
     problem: {
       decodeMissing: "This WebView2 lacks the image decoding interface (HTMLImageElement.decode), so reference images can't be shown.",
@@ -126,7 +124,7 @@ const settings: Translation<typeof zh> = {
       decodeTimedOut: "Decoding the built-in PNG sample timed out, so it's not confirmed that reference images can be shown.",
     },
     advice: "After updating WebView2, quit Kinshoko from the tray and restart it. If the problem continues, save the diagnostic information.",
-    download: "Open Microsoft's WebView2 download page",
+    download: "Microsoft's WebView2 download page",
     recheck: "Check again",
     checking: "Checking",
     incomplete: "Incomplete",

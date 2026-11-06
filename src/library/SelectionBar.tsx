@@ -75,7 +75,7 @@ export function SelectionBar({ libraryId, acrossLibraries, scope, ids, onClear, 
       () => {
         if (clear && currentKey.current === key) onClear();
         // 移到回收站能撤销：不先确认，给一个带“撤销”的轻提示。
-        if (edits.length === 1 && edits[0].kind === "delete") toast?.show({
+        if (edits.length === 1 && edits[0].kind === "delete") toast.show({
           title: t("selection.trashed"), description: t("selection.trashedCount", { count: picked.length }), tone: "success",
           action: { label: t("selection.undo"), onClick: () => void editImages(libraryId, picked, [{ kind: "restore" }]).catch((e) => onError(e)) },
         });

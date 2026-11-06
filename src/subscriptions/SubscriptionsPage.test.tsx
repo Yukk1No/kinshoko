@@ -159,15 +159,12 @@ describe("订阅页", () => {
     expect(screen.queryByRole("button", { name: "立即检查" })).toBeNull();
   });
 
-  it("登录失效：顶部横幅与账号行都能重新登录，标题行不显示检查状态", async () => {
+  it("登录失效：账号行能重新登录，标题行不显示检查状态", async () => {
     backend();
     page(status({ login: { state: "expired", account } }));
-    expect(await screen.findByText("pixiv 登录已失效，检查已暂停")).toBeTruthy();
-    expect(screen.getByText("登录已失效")).toBeTruthy();
+    expect(await screen.findByText("登录已失效")).toBeTruthy();
     expect(screen.queryByText("同步于 10 分钟前")).toBeNull();
-    const again = screen.getAllByRole("button", { name: "重新登录" });
-    expect(again).toHaveLength(2);
-    fireEvent.click(again[0]);
+    fireEvent.click(screen.getByRole("button", { name: "重新登录" }));
     await waitFor(() => expect(sent("subscription_login")).toEqual([{ title: "登录 pixiv" }]));
   });
 

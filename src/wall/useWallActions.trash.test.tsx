@@ -1,7 +1,6 @@
 import { expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { mockIPC } from "@tauri-apps/api/mocks";
-import { ToastProvider } from "../ui/Toast";
 import type { BrowserCard } from "./Wall";
 import { api, calls, card, Harness, named, setupWallActions } from "./useWallActions.fixtures";
 
@@ -21,7 +20,7 @@ const failing = (reasons: Record<string, string>) => mockIPC((cmd, args) => {
 
 it("移到回收站不先确认，轻提示里的“撤销”把同一批图还原，各一次批量调用", async () => {
   failing({});
-  render(<ToastProvider><Harness /></ToastProvider>);
+  render(<><Harness /></>);
   act(() => api.edit([card("1"), card("2", "L2")], [{ kind: "delete" }], true));
   expect(await screen.findByText("已移到回收站")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "撤销" }));
@@ -36,7 +35,7 @@ it("移到回收站不先确认，轻提示里的“撤销”把同一批图还�
 it("跨图库移到回收站时一个图库失败：已移走的那部分照样能撤销", async () => {
   failing({ L2: "资料库暂时不可用" });
   const onError = vi.fn();
-  render(<ToastProvider><Harness onError={onError} /></ToastProvider>);
+  render(<><Harness onError={onError} /></>);
   act(() => api.edit([card("1"), card("2", "L2"), card("3", "L3")], [{ kind: "delete" }], true));
   expect(await screen.findByText("已移到回收站")).toBeTruthy();
   expect(screen.getByText("2 张")).toBeTruthy();

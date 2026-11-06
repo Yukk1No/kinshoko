@@ -4,7 +4,6 @@ import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { TaggingActivity } from "./TaggingActivity";
-import { ToastProvider } from "./ui/Toast";
 
 let actions: { command: string; args: unknown }[];
 
@@ -22,7 +21,7 @@ function backend(status: TaggingStatus) {
 const push = (status: TaggingStatus) => act(() => emit("tagging-status", status));
 
 function mount(onOpenSettings = vi.fn()) {
-  const view = render(<ToastProvider><TaggingActivity onOpenSettings={onOpenSettings} /></ToastProvider>);
+  const view = render(<><TaggingActivity onOpenSettings={onOpenSettings} /></>);
   return { ...view, onOpenSettings };
 }
 
@@ -58,7 +57,7 @@ describe("缩放滑块左边的打标图标", () => {
 
   it("右下角收起时（#180）换成小圆点，状态仍可读", async () => {
     backend(running(128));
-    render(<ToastProvider><TaggingActivity collapsed onOpenSettings={() => {}} /></ToastProvider>);
+    render(<><TaggingActivity collapsed onOpenSettings={() => {}} /></>);
     const dot = await screen.findByRole("img", { name: "自动标签：正在自动标签，已标 128 张（显卡）" });
     expect(dot.classList.contains("k-tagging-dot")).toBe(true);
     expect(dot.dataset.activity).toBe("busy");
@@ -116,7 +115,7 @@ describe("缩放滑块左边的打标图标", () => {
 
   it("多选收起时右上角是迷你进度环", async () => {
     backend(running(10, 1, 1));
-    render(<ToastProvider><TaggingActivity collapsed onOpenSettings={() => {}} /></ToastProvider>);
+    render(<><TaggingActivity collapsed onOpenSettings={() => {}} /></>);
     const dot = await screen.findByRole("img", { name: /已标 10 张/ });
     expect(dot.querySelector(".k-tagging-arc")?.getAttribute("stroke-dasharray")).toBe("50 100");
   });

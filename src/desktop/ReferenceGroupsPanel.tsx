@@ -59,16 +59,9 @@ export function ReferenceGroupsPanel() {
   const [libraryNames, setLibraryNames] = useState<Map<string, string>>(new Map());
   const [libraryOptions, setLibraryOptions] = useState<LibraryRegistration[]>([]);
   const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const toast = useToast();
   const { t } = useTranslation("desktop", { keyPrefix: "groups" });
-  /** 结果用轻提示回报；没有 ToastProvider 时（单独渲染面板）写在面板里。 */
-  const tell = (text: string | null) => {
-    if (!text) return;
-    if (toast) toast.show({ title: text, tone: "success" });
-    else setNotice(text);
-  };
+  const tell = (text: string | null) => { if (text) toast.show({ title: text, tone: "success" }); };
   const [expanded, setExpanded] = useState<ReferenceGroupView | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -83,7 +76,7 @@ export function ReferenceGroupsPanel() {
   const reload = useCallback(() => {
     referenceGroups()
       .then(setGroups)
-      .catch((e) => setError(String(e)));
+      .catch((e) => toast.error(String(e)));
     registeredLibraries()
       .then((list) => {
         setLibraryNames(new Map(list.map((r) => [r.library.id, r.library.name])));
@@ -110,13 +103,11 @@ export function ReferenceGroupsPanel() {
   }, [groups, expanded]);
 
   const run = async (action: () => Promise<unknown>, done?: (value: unknown) => string | null) => {
-    setError(null);
-    setNotice(null);
     try {
       const value = await action();
       if (done) tell(done(value));
     } catch (e) {
-      setError(String(e));
+      toast.error(String(e));
     }
   };
 
@@ -184,8 +175,6 @@ export function ReferenceGroupsPanel() {
         const group = await importReferenceGroupPackage(destination.libraryId, destination);
         if (group) tell(t("imported", { name: group.name }));
       }} />}
-      {error && <p className="group-note is-error" role="alert">{error}</p>}
-      {notice && <p className="group-note" role="status">{notice}</p>}
       {captureSave && <CaptureGroupSaveDialog value={captureSave} onChange={setCaptureSave} libraries={libraryOptions} saving={saving}
         onClose={() => setCaptureSave(null)} onConfirm={(plan) => void confirmCaptures(plan)} />}
       {groups && groups.length === 0 && (

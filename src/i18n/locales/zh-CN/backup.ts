@@ -58,8 +58,6 @@ export default {
   reminder: {
     title: "备份没有完成：{{reason}}",
     retry: "Kinshoko 会在下次退出或空闲时再试。",
-    banner: "备份没有完成：{{reason}}。Kinshoko 会在下次退出或空闲时再试。",
-    dismiss: "知道了",
   },
   /** 偏好设置备份。 */
   settings: {

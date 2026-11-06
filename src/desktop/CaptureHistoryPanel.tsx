@@ -1,6 +1,7 @@
 import { SaveDestinationDialog } from "../library/SaveDestination";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useToast } from "../ui/Toast";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Tooltip } from "@base-ui/react/tooltip";
 import { BookmarkCheck, BookmarkPlus, Copy, Pin, Trash2, X } from "lucide-react";
@@ -43,7 +44,7 @@ export function CaptureHistoryPanel({ request, onRequestHandled }: { request?: {
   const [entries, setEntries] = useState<CaptureEntry[] | null>(null);
   const [collecting, setCollecting] = useState<string | null>(null);
   useEffect(() => { if (request) { setCollecting(request.id); onRequestHandled?.(); } }, [request, onRequestHandled]);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
   const { t } = useTranslation("desktop", { keyPrefix: "history" });
 
   useEffect(() => {
@@ -57,13 +58,11 @@ export function CaptureHistoryPanel({ request, onRequestHandled }: { request?: {
   }, []);
 
   const run = (action: Promise<unknown>) => {
-    setError(null);
-    action.catch((e) => setError(String(e)));
+    action.catch((e) => toast.error(String(e)));
   };
 
   return (
     <section className="capture-history" aria-label={t("label")}>
-      {error && <p className="group-note is-error" role="alert">{error}</p>}
       {entries && entries.length === 0 && <p className="capture-history-empty">{t("empty")}</p>}
       <Tooltip.Provider delay={400}>
         <ul className="capture-history-list">

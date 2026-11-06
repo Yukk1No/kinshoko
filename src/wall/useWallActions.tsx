@@ -137,7 +137,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       if (cards.length <= PIN_LIMIT) { void pinNow(cards, point); return; }
       // 超过上限不弹确认：钉住前 PIN_LIMIT 张，再告诉画师只钉了这么多。
       void pinNow(cards.slice(0, PIN_LIMIT), point).then((ok) => {
-        if (ok) toast?.show({ title: i18n.t("wall:notice.pinnedFirst", { count: PIN_LIMIT }), description: i18n.t("wall:notice.pinLimit", { count: PIN_LIMIT }), tone: "success" });
+        if (ok) toast.show({ title: i18n.t("wall:notice.pinnedFirst", { count: PIN_LIMIT }), description: i18n.t("wall:notice.pinLimit", { count: PIN_LIMIT }), tone: "success" });
       });
     },
     edit(cards, edits, clear) {
@@ -168,7 +168,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
           if (!failed.length && clear) onClearSelection();
           // 移到回收站能撤销，所以不先确认：直接做，再给一个带“撤销”的轻提示。有图库失败时，已移走的那部分照样能撤销。
           if (succeeded.length > 0 && edits.length === 1 && edits[0].kind === "delete") {
-            toast?.show({
+            toast.show({
               title: i18n.t("wall:notice.trashed"), description: succeeded.length > 1 ? i18n.t("wall:notice.trashedCount", { count: succeeded.length }) : undefined, tone: "success",
               action: { label: i18n.t("wall:notice.undo"), onClick: () => actions.edit(succeeded, [{ kind: "restore" }], false) },
             });

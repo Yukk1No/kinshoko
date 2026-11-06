@@ -27,7 +27,6 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
   const { t } = useTranslation("library");
   const [entries, setEntries] = useState<LibraryRegistration[]>([]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const [managing, setManaging] = useState(false);
   const toast = useToast();
@@ -57,12 +56,11 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
   }, []);
 
   function fail(message: string) {
-    if (toast) toast.error(message); else setError(message);
+    toast.error(message);
   }
   const refresh = () => setRevision((value) => value + 1);
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
-    setError(null);
     try { await action(); }
     catch (e) { fail(String(e)); }
     finally {
@@ -82,7 +80,6 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
 
   const status = <>
     {busy && <span className="sr-only" role="status">{t("picker.busy")}</span>}
-    {error && <p className="library-error" role="alert">{error}</p>}
   </>;
 
   if (layout === "inline") return <div className="welcome">

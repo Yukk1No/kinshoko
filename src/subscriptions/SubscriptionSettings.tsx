@@ -41,7 +41,9 @@ export function SubscriptionSettings({ status, onStatus, error, onError }: {
         <Switch label={t("settings.feature")} checked={on} onCheckedChange={toggle} />
       </SettingsRow>
       {(on || account) && <SettingsRow icon={<User size={16} />} title={t("settings.account")}
-        meta={account ? account.name : t("settings.signedOut")}>
+        meta={account ? account.name : t("settings.signedOut")}
+        warn={on && status.login.state === "expired" && <span role="status">{t("expired.notice")}</span>}>
+        {on && status.login.state === "expired" && <button type="button" className="k-btn is-sm is-primary" onClick={actions.signIn}><span className="k-label">{t("account.signInAgain")}</span></button>}
         {account
           ? <button type="button" className="k-btn is-sm" onClick={actions.signOut}><span className="k-label">{t("account.signOut")}</span></button>
           : <button type="button" className="k-btn is-sm is-primary" onClick={actions.signIn}><span className="k-label">{t("account.signIn")}</span></button>}

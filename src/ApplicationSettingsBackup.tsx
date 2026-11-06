@@ -4,6 +4,7 @@ import type { ApplicationSettingsPreview } from "./bindings/ApplicationSettingsP
 import { describeCommandError, exportApplicationSettings, migrateViewerBackground, pickApplicationSettings, previewApplicationSettings } from "./ipc";
 import { Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useToast } from "./ui/Toast";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
 import { legacyViewerBackground, rememberViewerBackground } from "./viewer/background";
 
@@ -17,9 +18,9 @@ export function ApplicationSettingsBackup({ restore: replace }: {
   const [preview,setPreview] = useState<ApplicationSettingsPreview | null>(null);
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState<string | null>(null);
-  const [message,setMessage] = useState<string | null>(null);
+  const toast = useToast();
   const run = async (action: () => Promise<void>) => {
-    setBusy(true); setError(null); setMessage(null);
+    setBusy(true); setError(null);
     try { await action(); } catch (reason) { setError(String(reason)); }
     finally { setBusy(false); }
   };
@@ -28,7 +29,7 @@ export function ApplicationSettingsBackup({ restore: replace }: {
     if (!file) return;
     await migrateViewerBackground(legacyViewerBackground());
     await exportApplicationSettings(file);
-    setPath(file); setPreview(null); setMessage(t("exported"));
+    setPath(file); setPreview(null); toast.show({ title: t("exported"), tone: "success" });
   });
   const inspectFile = async (file: string) => { setPreview(await previewApplicationSettings(file)); };
   // 恢复：选好文件就读取，确认替换范围后才真正恢复。
@@ -44,8 +45,8 @@ export function ApplicationSettingsBackup({ restore: replace }: {
     const result = await replace(path.trim(),preview.fingerprint);
     rememberViewerBackground(result.settings.viewerBackground ?? "mid");
     setPreview(null);
-    setMessage(result.settings.forceSrgb !== result.settings.forceSrgbInEffect
-      ? t("restoredSrgb") : t("restored"));
+    toast.show({ title: result.settings.forceSrgb !== result.settings.forceSrgbInEffect
+      ? t("restoredSrgb") : t("restored"), tone: "success" });
     if (result.problems.length) setError(result.problems.map(describeCommandError).join(t("problemSeparator")));
   });
   return <section className="application-settings-backup" aria-label={t("label")}>
@@ -54,7 +55,7 @@ export function ApplicationSettingsBackup({ restore: replace }: {
         below={<>
           <div className="k-set-inline">
             <input className="k-input" aria-label={t("file")} value={path} disabled={busy} placeholder={t("filePlaceholder")}
-              onChange={(e)=>{setPath(e.target.value);setPreview(null);setMessage(null);setError(null);}} />
+              onChange={(e)=>{setPath(e.target.value);setPreview(null);setError(null);}} />
             {path.trim() && !preview && <button type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void inspect()}><span className="k-label">{t("read")}</span></button>}
           </div>
           {busy && <p role="status">{t("busy")}</p>}
@@ -67,7 +68,6 @@ export function ApplicationSettingsBackup({ restore: replace }: {
               <button type="button" className="k-btn is-sm" disabled={busy} onClick={()=>setPreview(null)}><span className="k-label">{t("cancel")}</span></button>
             </div>
           </div>}
-          {message && <p role="status">{message}</p>}
           {error && <p className="k-set-error" role="alert">{error}</p>}
         </>}>
         <button type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void pick()}><span className="k-label">{t("restore")}</span></button>

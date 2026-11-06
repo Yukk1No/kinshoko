@@ -61,8 +61,6 @@ const backup: Translation<typeof zh> = {
   reminder: {
     title: "Backup didn't finish: {{reason}}",
     retry: "Kinshoko will try again on the next quit or when idle.",
-    banner: "Backup didn't finish: {{reason}}. Kinshoko will try again on the next quit or when idle.",
-    dismiss: "Got it",
   },
   settings: {
     exported: "Preferences exported.",

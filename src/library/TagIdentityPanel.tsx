@@ -8,6 +8,7 @@ import { correctTagMapping, inspectTagCatalog, onLibraryEvent, onSafeModeSetting
 
 import { libraryPathHint } from "./library-path";
 import { Select } from "../ui/Select";
+import { useToast } from "../ui/Toast";
 import { useUiLang } from "../i18n";
 import { i18n } from "../i18n/instance";
 import { useTranslation } from "react-i18next";
@@ -21,7 +22,7 @@ export function TagIdentityPanel() {
   const { t } = useTranslation("tagSettings");
   const [workspace, setWorkspace] = useState<TagCatalogWorkspace | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
   const generation = useRef(0);
   const inspected = useRef(false);
@@ -34,7 +35,7 @@ export function TagIdentityPanel() {
       generation.current++;
       inspected.current = false; running.current = false; dirty.current = false;
       setWorkspace(null);
-      setError(null); setNotice(null);
+      setError(null);
       setBusy(false);
     });
     const vocabulary = onLibraryEvent((event) => {
@@ -55,8 +56,8 @@ export function TagIdentityPanel() {
     inspected.current = true; running.current = true;
     setBusy(true);
     // Vocabulary refreshes update rows without dismissing an unresolved publication failure.
-    if (!automatic) { setError(null); setNotice(null); }
-    try { const next = await action(); if (request === generation.current) { setWorkspace(next); if (!automatic) setNotice(success ?? null); } }
+    if (!automatic) setError(null);
+    try { const next = await action(); if (request === generation.current) { setWorkspace(next); if (!automatic && success) toast.show({ title: success, tone: "success" }); } }
     catch (reason) { if (request === generation.current) setError((previous) => automatic && previous !== null ? previous : String(reason)); }
     finally { if (request === generation.current) { setBusy(false); running.current = false; if (dirty.current) { dirty.current = false; void run(inspectTagCatalog, undefined, true); } } }
   };
@@ -65,7 +66,6 @@ export function TagIdentityPanel() {
     <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void run(inspectTagCatalog)}><span className="k-label">{t("identity.inspect")}</span></button>
     {busy && <p role="status">{t("identity.loading")}</p>}
     {error && <p role="alert">{error}</p>}
-    {notice && <p role="status">{notice}</p>}
     {workspace && <>
       <p className="settings-hint">{t("identity.publishHint")}</p>
       {workspace.libraries.map(({library, unavailable}) => <div key={"definitions-" + library.id} className="settings-actions">

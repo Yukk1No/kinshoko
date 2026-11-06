@@ -3,8 +3,9 @@ import type { SaveDestination } from "../bindings/SaveDestination";
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { useToast } from "../ui/Toast";
 import { Dialog } from "@base-ui/react/dialog";
-import { CircleAlert, Download, History, MapPinned, X } from "lucide-react";
+import { Download, MapPinned } from "lucide-react";
 import { SealLock } from "../ui/SealLock";
 import type { ImportOptions } from "../bindings/ImportOptions";
 import type { ImportProgress } from "../bindings/ImportProgress";
@@ -63,7 +64,7 @@ export type ImportActions = { files: () => void; folder: () => void; eagle: () =
 /**
  * 导入（#98）：选择文件或文件夹，或把它们拖进主窗口；先在对话框里选图库和文件夹（Eagle 另问删过的图），
  * 进度是右下角的卡片，可取消或后台进行。结束、出错、上次中断与封印项重复走轻提示（#388）；结束的提示带“查看”，
- * 打开结果回执卡：列出没有进来的文件并可只重试读取失败的项。没有 ToastProvider 时（单独渲染）这些仍是卡片。
+ * 打开结果回执卡：列出没有进来的文件并可只重试读取失败的项。
  */
 export function ImportBar({ previewContextKey, dropBlocked = false, enabled, libraryId, libraryName, destination, destinationReady=true, running, finished, onStarted, onRetryDestination, onDismissReport, onOpenTrash, actionsRef, onBusyChange, picker, taskSwitcher, cardNotes, ownerLabel, warnings, onSelectTask }: Props) {
   const { t } = useTranslation("importing");
@@ -77,7 +78,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
   const { recovery, dismiss: dismissRecovery } = useImportRecovery();
   const [eagleLibraries, setEagleLibraries] = useState<EagleLibraryCandidate[] | null>(null);
   const [lookingForEagle, setLookingForEagle] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
+  const toast = useToast();
   const [preparing, setPreparing] = useState(false);
   const [plan, setPlan] = useState<ImportPlan | null>(null);
   const optionsByTask = useRef(new Map<string, ImportOptions>());
@@ -109,7 +110,6 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
   const start = async (paths: string[], fromEagle = false, options?: ImportOptions, fixed?:SaveDestination) => {
     if (!alive.current || !enabledRef.current || !paths.length) return;
     try {
-      setImportError(null);
       setTagStep(false);
       const taskId = await startImport(fixed?.libraryId??libraryId, paths, options, fixed??destination??undefined);
       if (!alive.current) return;
@@ -119,7 +119,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
       setPlan(null);
       setEagleLibraries(null);
     } catch (error) {
-      if (alive.current) setImportError(t("failed.start", { error: String(error) }));
+      if (alive.current) toast.error(t("failed.start", { error: String(error) }));
     }
   };
   // 手选、拖入、恢复中断与失败重试都经过同一只读预检；取消选择不会启动任务或写入来源。
@@ -127,7 +127,6 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
     if (!alive.current || !enabledRef.current || !paths.length) return;
     if(fixed)onRetryDestination?.(fixed);
     setPreparing(true);
-    setImportError(null);
     try {
       const isEagle = fromEagle || await importContainsEagle(paths);
       if (!alive.current || !enabledRef.current) return;
@@ -137,7 +136,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
         await start(paths, false, options, fixed);
       }
     } catch (error) {
-      if (alive.current) setImportError(t("failed.inspect", { error: String(error) }));
+      if (alive.current) toast.error(t("failed.inspect", { error: String(error) }));
     } finally {
       if (alive.current) setPreparing(false);
     }
@@ -172,12 +171,11 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
   }, [finishedTask, detectedEagle, eagleTasks]);
   const findEagle = async () => {
     setLookingForEagle(true);
-    setImportError(null);
     try {
       const found = await discoverEagleLibraries();
       if (alive.current) setEagleLibraries(found);
     } catch (error) {
-      if (alive.current) setImportError(t("failed.findEagle", { error: String(error) }));
+      if (alive.current) toast.error(t("failed.findEagle", { error: String(error) }));
     } finally {
       if (alive.current) setLookingForEagle(false);
     }
@@ -212,17 +210,14 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
   const relocations = (report?.eagleRelocations ?? []).filter((r) => !confirmed.includes(r.to));
   const confirm = async (relocation: EagleRelocation, choice: EagleLocationChoice) => {
     try {
-      setImportError(null);
       await confirmEagleLocation(finished?.libraryId??libraryId, relocation.to, choice);
       if (!alive.current) return;
       setConfirmed((done) => [...done, relocation.to]);
       await begin([relocation.to], true, finished ? optionsByTask.current.get(finished.taskId) : undefined, finished?.destination);
     } catch (error) {
-      if (alive.current) setImportError(t("failed.confirmEagle", { error: String(error) }));
+      if (alive.current) toast.error(t("failed.confirmEagle", { error: String(error) }));
     }
   };
-  const interrupted = recovery?.report.interrupted ?? [];
-  const orphans = recovery?.report.orphans ?? [];
   const reimport = (paths: string[], library: string) => latest.current.begin(paths, false, undefined, { libraryId: library, folderId: null });
 
   const minimized = running !== null && background === (running.taskId ?? "");
@@ -230,34 +225,12 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
   const sealed = report?.sealedDuplicates && finished;
 
-  const { toast, receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, recovery, dismissRecovery, importError, setImportError,
+  const { receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, recovery, dismissRecovery,
     reimport: (paths, library) => void reimport(paths, library), sealedTask: sealed ? sealed.taskId : null, showSealed: (taskId) => setPreview({ taskId, contextKey }) });
 
-  latest.current.noticeBlockedDrop = () => { toast?.show({ title: t("drop.inTrash") }); };
+  latest.current.noticeBlockedDrop = () => { toast.show({ title: t("drop.inTrash") }); };
 
   const cards = <>
-    {importError && <section className="k-task" role="alert" aria-label={t("error.title")}>
-      <div className="k-task-top"><CircleAlert size={16} className="k-task-icon is-error" aria-hidden="true" /><b>{t("error.title")}</b>
-        <button type="button" className="k-icon-btn is-sm" aria-label={t("error.dismiss")} onClick={() => setImportError(null)}><X size={14} aria-hidden="true" /></button></div>
-      <p className="k-task-sub">{importError}</p>
-    </section>}
-    {!toast && recovery && (
-      <section className="k-task" role="status" aria-label={interrupted.length > 0 ? t("recovery.interrupted") : t("recovery.orphansLabel")}>
-        <div className="k-task-top"><History size={16} className="k-task-icon" aria-hidden="true" />
-          <b>{interrupted.length > 0 ? t("recovery.interrupted") : t("recovery.orphans")}</b>
-          <button type="button" className="k-icon-btn is-sm" aria-label={t("recovery.close")} onClick={() => dismissRecovery(recovery)}><X size={14} aria-hidden="true" /></button></div>
-        <p className="k-task-sub">
-          {t("recovery.inLibrary", { library: recovery.libraryName, summary: [interrupted.length > 0 && t("recovery.withdrawn", { count: interrupted.length }),
-            orphans.length > 0 && t("recovery.kept", { count: orphans.length })].filter(Boolean).join(t("recovery.separator")) })}
-        </p>
-        {interrupted.length > 0 && <details className="k-task-more"><summary>{t("recovery.showFiles")}</summary><ul>
-          {interrupted.map((path) => <li key={path}><span className="import-report-path">{path}</span></li>)}
-        </ul></details>}
-        {interrupted.length > 0 && <div className="k-task-acts">
-          <button type="button" className="k-btn is-sm" aria-label={t("recovery.reimportLabel")} disabled={busy} onClick={() => { void reimport(interrupted, recovery.libraryId); dismissRecovery(recovery); }}><span className="k-label">{t("recovery.reimport")}</span></button>
-        </div>}
-      </section>
-    )}
     {relocations.map((relocation) => (
       <section key={relocation.to} className="k-task" role="alert" aria-label={t("relocation.title")}>
         <div className="k-task-top"><MapPinned size={16} className="k-task-icon" aria-hidden="true" /><b>{t("relocation.title")}</b></div>
@@ -281,7 +254,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
         {cardNotes}
         <div className="k-task-acts">
           <button type="button" className="k-btn is-sm" aria-label={t("progress.cancelLabel")} disabled={!running.taskId}
-            onClick={() => running.taskId && cancelImport(running.libraryId??libraryId, running.taskId).catch((e) => alive.current && setImportError(t("failed.cancel", { error: String(e) })))}><span className="k-label">{t("progress.cancel")}</span></button>
+            onClick={() => running.taskId && cancelImport(running.libraryId??libraryId, running.taskId).catch((e) => alive.current && toast.error(t("failed.cancel", { error: String(e) })))}><span className="k-label">{t("progress.cancel")}</span></button>
           <button type="button" className="k-btn is-sm is-ghost" onClick={() => setBackground(running.taskId ?? "")}><span className="k-label">{t("progress.background")}</span></button>
         </div>
       </section>

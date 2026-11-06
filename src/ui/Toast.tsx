@@ -90,7 +90,46 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   </Toast.Provider>;
 }
 
-/** Null outside a ToastProvider, so components stay usable on their own (they fall back inline). */
-export function useToast(): ToastApi | null {
-  return useContext(Manager);
+export function useToast(): ToastApi {
+  const api = useContext(Manager);
+  if (!api) throw new Error("useToast outside a ToastProvider");
+  return api;
+}
+
+export type PersistentToast = Pick<ToastOptions, "title" | "description" | "tone" | "action">;
+
+/**
+ * A notice about something still waiting on the artist: stays until dismissed or until `notice` becomes null, updates in
+ * place (including on a language change, since the caller's strings change), and stays away once dismissed.
+ * `hidden` only steps aside while the artist is already dealing with it (a dialog above it) and forgets nothing.
+ * Without `level`, a dismissal lasts until `notice` next becomes null, so a new occurrence shows again;
+ * with `level`, it lasts until the level exceeds the one dismissed.
+ */
+export function usePersistentToast(notice: PersistentToast | null, { hidden = false, level }: { hidden?: boolean; level?: number } = {}) {
+  const toast = useToast();
+  const latest = useRef({ notice, level });
+  latest.current = { notice, level };
+  const shown = useRef<string | null>(null);
+  const dismissedAt = useRef<number | null>(null);
+  const close = () => {
+    const id = shown.current;
+    shown.current = null;
+    if (id !== null) toast.close(id);
+  };
+  useEffect(() => {
+    if (!notice && level === undefined) dismissedAt.current = null;
+    if (!notice || hidden || (dismissedAt.current !== null && (level ?? 0) <= dismissedAt.current)) { close(); return; }
+    dismissedAt.current = null;
+    const { title, description, tone, action } = notice;
+    const content = { title, description, tone, timeout: 0,
+      action: action && { label: action.label, onClick: () => latest.current.notice?.action?.onClick() } };
+    if (shown.current !== null) { toast.update(shown.current, content); return; }
+    const id: string = toast.show({ ...content, onClose: () => {
+      if (shown.current !== id) return;
+      shown.current = null;
+      dismissedAt.current = latest.current.level ?? 0;
+    } });
+    shown.current = id;
+  }, [notice === null, notice?.title, notice?.description, notice?.tone, notice?.action?.label, hidden, level]);
+  useEffect(() => close, []);
 }

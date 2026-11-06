@@ -2,7 +2,6 @@ import { expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { mockIPC } from "@tauri-apps/api/mocks";
 import { PIN_LIMIT, staggeredPins } from "./useWallActions";
-import { ToastProvider } from "../ui/Toast";
 import { api, calls, card, Harness, named, setupWallActions } from "./useWallActions.fixtures";
 
 setupWallActions();
@@ -25,7 +24,7 @@ it("不超过 20 张时直接钉住，每张按来源钉", async () => {
 
 it("超过 20 张不弹确认：直接钉前 20 张，再用轻提示说明", async () => {
   const many = Array.from({ length: 23 }, (_, i) => card(String(i)));
-  render(<ToastProvider><Harness /></ToastProvider>);
+  render(<><Harness /></>);
   act(() => api.pin(many, { x: 0, y: 0 }));
   await waitFor(() => expect(pins()).toHaveLength(20));
   expect(screen.queryByRole("alertdialog")).toBeNull();

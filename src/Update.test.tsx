@@ -3,7 +3,6 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { UpdateNotice, UpdateSection } from "./Update";
-import { ToastProvider } from "./ui/Toast";
 
 afterEach(() => {
   cleanup();
@@ -20,7 +19,7 @@ function backend(handle: (cmd: string) => unknown) {
 }
 
 describe("主窗口的更新通知", () => {
-  const notice = () => render(<ToastProvider><UpdateNotice /></ToastProvider>);
+  const notice = () => render(<><UpdateNotice /></>);
 
   it("还没检查过时检查一次，有新版本就在右下角通知，可以安装", async () => {
     const calls = backend((cmd) => {

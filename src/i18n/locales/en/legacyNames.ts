@@ -52,10 +52,9 @@ const legacyNames: Translation<typeof zh> = {
     title_other: "{{count}} older names to confirm",
     open: "Confirm one by one",
   },
-  banner: {
-    title_one: "{{count}} older name to confirm",
-    title_other: "{{count}} older names to confirm",
-    body: " From older libraries",
+  entry: {
+    title: "Older names",
+    hint: "From older libraries",
   },
 };
 

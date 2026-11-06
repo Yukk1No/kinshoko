@@ -51,7 +51,7 @@ function useTaggingNotices(status: TaggingStatus | null) {
   const previous = useRef<TaggingStatus | null>(null);
 
   useEffect(() => {
-    if (!toast || !status) return;
+    if (!status) return;
     const before = previous.current;
     previous.current = status;
     // 下载中暂停或取消（#213）也不算下载完成。

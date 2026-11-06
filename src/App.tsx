@@ -49,7 +49,7 @@ import { LibraryWorkspace } from "./workspace/LibraryWorkspace";
 import { markStartup } from "./startupTiming";
 import { releaseStartup, startupLibraryOpened } from "./startupGate";
 import { StartupSplash } from "./shell/StartupSplash";
-import { SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
+import { LoginExpiredNotice, SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
 
 /**
  * 主窗口：本设备登记的资料库（#49）；上次的库不可用时仍可选择其他库、重新登记或新建。状态栏可打开截图历史与设置。
@@ -73,7 +73,7 @@ function MainWindow() {
   const [settingsTagFocus, setSettingsTagFocus] = useState<string | undefined>(undefined);
   const openSettings = (tab: SettingsTab, tagFocus?: string) => { setSettingsTab(tab); setSettingsTagFocus(tagFocus); setShowSettings(true); };
   const openTagNameSettings = useCallback((catalogId: string) => { setSettingsTab("tags"); setSettingsTagFocus(catalogId); setShowSettings(true); }, []);
-  /** 确认旧名称向导：横幅或设置 › 标签的提示条打开，叠在当前界面上。 */
+  /** 确认旧名称向导：通知或设置 › 标签打开，叠在当前界面上。 */
   const [nameWizard, setNameWizard] = useState(false);
   const [captureRequest,setCaptureRequest]=useState<{id:string;stamp:number}|null>(null);
   const collectionHandled=useCallback(()=>setCaptureRequest(null),[]);
@@ -146,7 +146,7 @@ function MainWindow() {
       },
       (e) => {
         applySafe({ kind: "failed" });
-        toast?.error(i18n.t("shell:safeMode.toggleFailed", { error: String(e) }));
+        toast.error(i18n.t("shell:safeMode.toggleFailed", { error: String(e) }));
         recheckSafe();
       },
     );
@@ -203,7 +203,7 @@ function MainWindow() {
 
   // 上次的图库打不开：报告一次，留到画师确认（原常驻横幅，#98）。
   useEffect(() => {
-    if (!openError || !toast) return;
+    if (!openError) return;
     const id = toast.error(i18n.t("shell:openFailed", { error: openError }));
     return () => toast.close(id);
   }, [openError, toast]);
@@ -256,12 +256,6 @@ function MainWindow() {
   const empty = hasProviders === false || showCreate;
   // 没有图片墙可等（还没有图库）：加载页直接放行（#338）。
   useEffect(() => { if (opened && empty) releaseStartup(); }, [opened, empty]);
-  const notices = <>
-    <RuntimeNotice hidden={showSettings} />
-    {hasProviders && <div><LegacyNameMigrationNotice safe={lensSafe} onOpen={() => setNameWizard(true)} /></div>}
-    <UpdateNotice />
-    <BackupReminder />
-  </>;
   return (
     <UiScaleContext.Provider value={uiScalePercent / 100}>
     <TagDisplayContext.Provider value={tagDisplay}><OpenTagNameSettings.Provider value={openTagNameSettings}><SaveDestinationProvider safe={lensSafe}><div className="app app-shell">
@@ -291,7 +285,6 @@ function MainWindow() {
           keepSelectionOnSafe={keepSelectionOnSafe}
           inspectorWidth={inspectorWidth}
           onInspectorWidth={changeInspectorWidth}
-          notices={!empty && notices}
           onLibraryRemoved={() => changed(null)}
           onOpenTaggingSettings={() => openSettings("tagging")}
         />
@@ -310,7 +303,6 @@ function MainWindow() {
           </aside>}
         <main className="app-main app-main-centered">
           <header className="topbar is-empty" data-tauri-drag-region><span className="k-grow" /><WinCtrls /></header>
-          {empty && notices}
           <div className="app-empty-body">
           {!opened ? (
             <p role="status">{t("opening")}</p>
@@ -347,6 +339,13 @@ function MainWindow() {
         </Dialog.Portal>
       </Dialog.Root>
       <LegacyNameWizard open={nameWizard} onOpenChange={setNameWizard} />
+      {opened && <>
+        <RuntimeNotice hidden={showSettings} onOpen={() => openSettings("diag")} />
+        <LegacyNameMigrationNotice safe={lensSafe} enabled={!!hasProviders} hidden={showSettings || nameWizard} onOpen={() => setNameWizard(true)} />
+        <LoginExpiredNotice subscriptions={subscriptions} hidden={showSettings} />
+        <UpdateNotice />
+        <BackupReminder />
+      </>}
       <StartupSplash />
       </div>
     </div></SaveDestinationProvider></OpenTagNameSettings.Provider></TagDisplayContext.Provider>

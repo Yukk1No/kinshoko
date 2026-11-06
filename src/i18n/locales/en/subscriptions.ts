@@ -176,7 +176,7 @@ const subscriptions: Translation<typeof zh> = {
     failed: "Couldn't unsubscribe: {{error}}",
   },
   expired: {
-    banner: "pixiv sign-in expired, checks paused",
+    notice: "pixiv sign-in expired, checks paused",
   },
   empty: {
     signedOutTitle: "Sign in to pixiv to start",
