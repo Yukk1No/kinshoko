@@ -110,7 +110,7 @@ export function useWorkspaceInspector({
 
   return {
     selectionKey, selectionLibrary, selectedCards, eligible, inspected, inspectorContent, panelIds, inspectorOpen,
-    setInspectorElement, inspectorMoving, draggedWidth, setDraggedWidth, panelWidth, closeInspector, closeSources, toggleInspector,
+    inspectorElement, setInspectorElement, inspectorMoving, shownWidth, draggedWidth, setDraggedWidth, panelWidth, closeInspector, closeSources, toggleInspector,
   };
 }
 

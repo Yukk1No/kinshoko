@@ -8,6 +8,7 @@ import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import type { Anchor, Box } from "./layout";
+import type { PanelSlide } from "../shell/usePanelSlide";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
 export const GAP = 8;
@@ -91,6 +92,11 @@ export type WallProps = {
    * 两者都结束时才重排。
    */
   holdReflow?: boolean;
+  /**
+   * 旁边的面板正在滑到终点（侧栏开合）：一开始就按终点宽度重排，卡片按面板过渡的时长、缓动与起点滑过去，
+   * 和墙边一起平移的那部分合起来是一段不折返的移动。进行中不跟着容器宽度逐帧重排；结束后宽度若与终点不符再排一次。
+   */
+  settle?: PanelSlide | null;
   selected: ReadonlySet<string>;
   onSelectionChange: (selected: Set<string>) => void;
   onOpenImage: (card: BrowserCard) => void;
