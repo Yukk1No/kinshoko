@@ -77,11 +77,11 @@ describe("主窗口", () => {
     fireEvent.click(await screen.findByRole("button", { name: "人物（1 张）" }));
     const bar = await screen.findByRole("toolbar", { name: "标签分组" });
     fireEvent.click(within(bar).getByRole("button", { name: "发色" }));
-    fireEvent.click(within(bar).getByRole("button", { name: /蓝发/ }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: /发色/ })).getByRole("button", { name: /蓝发/ }));
     expect(await screen.findByRole("list", { name: "查找条件" })).toBeTruthy();
     await waitFor(() => expect(screen.getByRole("list", { name: "查找条件" }).textContent).toContain("蓝发"));
     expect(screen.getByRole("button", { name: "人物（1 张）" }).getAttribute("aria-current")).toBe("page");
-    fireEvent.click(within(bar).getByRole("button", { name: /蓝发/ }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: /发色/ })).getByRole("button", { name: /蓝发/ }));
     await waitFor(() => expect(screen.getByRole("list", { name: "查找条件" }).textContent).toBe(""));
   });
 
