@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { PanelLeftOpen } from "lucide-react";
+import { PanelLeftOpen, PanelRight } from "lucide-react";
 import { useImportShortcut } from "./useImportShortcut";
+import { useInspectorShortcut } from "./useInspectorShortcut";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
@@ -11,7 +12,6 @@ import { ImportMenu, type ImportControl } from "../library/ImportMenu";
 import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
 import { fitPanes, isNarrow, usePaneFold, useWidth } from "../shell/paneFit";
-import type { Section } from "../shell/Rail";
 import { usePanelSlide } from "../shell/usePanelSlide";
 import { TaggingActivity } from "../TaggingActivity";
 import { useToast } from "../ui/Toast";
@@ -32,38 +32,7 @@ import { WorkspaceInspector } from "./WorkspaceInspector";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
 import { useWorkspaceInspector } from "./useWorkspaceInspector";
 import { useWorkspaceStatus } from "./useWorkspaceStatus";
-
-type WorkspaceProps = {
-  captureRequest?:{id:string;stamp:number}|null;
-  onCaptureRequestHandled?:()=>void;
-  /** 钉图菜单“在 Kinshoko 中打开”的参考图（#106）：在查看器里打开。 */
-  referenceRequest?: { libraryId: string; imageId: string; stamp: number } | null;
-  section: Section;
-  paneOpen: boolean;
-  onPaneToggle: () => void;
-  /** 窄窗口里自动收起、恢复侧栏，以及点开浮起的侧栏后收回。 */
-  onPaneOpen: (open: boolean) => void;
-  onOpenBrowse: () => void;
-  libraryControls: ReactNode;
-  /** 新建资料库表单打开时只隐藏工作区，继续接收导入事件。 */
-  hidden: boolean;
-  /** 查询资料库用的安全模式视角：开启当即生效，关闭等后端确认（#183）。 */
-  safe: boolean;
-  /** 资料库确认安全模式已切换（`safeModeChanged`）。 */
-  onSafeChanged: (on: boolean) => void;
-  showApproxSource: boolean;
-  /** 设置“切换安全模式时保留选择”；关闭时切换即清空选择和来源面板。 */
-  keepSelectionOnSafe: boolean;
-  /** 本设备保存的详情面板宽度（#157）；没拖过时为 undefined。 */
-  inspectorWidth?: number;
-  /** 拖动松手、双击或方向键定下的详情面板宽度。 */
-  onInspectorWidth: (width: number) => void;
-  /** 顶栏下方的提示（运行时、旧名称、更新、备份提醒）。 */
-  /** 侧栏图库标题菜单“从列表移除”之后（#114）。 */
-  onLibraryRemoved?: (libraryId: string) => void;
-  /** 点打标图标：打开设置 › 自动标签（#144）。 */
-  onOpenTaggingSettings: () => void;
-};
+import type { WorkspaceProps } from "./workspaceProps";
 
 /**
  * 同一工作区浏览所有已登记资料库。没有“窗口打开的资料库”（ADR-0008）：资料库只来自卡片、浏览范围
@@ -86,10 +55,12 @@ export function LibraryWorkspace({
   keepSelectionOnSafe,
   inspectorWidth,
   onInspectorWidth,
+  inspectorShown,
+  onInspectorShown,
   onLibraryRemoved,
   onOpenTaggingSettings,
 }: WorkspaceProps) {
-  const { t } = useTranslation("workspace");
+  const { t } = useTranslation(["workspace", "viewer"]);
   const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
   keepSelectionOnSafeRef.current = keepSelectionOnSafe;
   const toast = useToast();
@@ -176,10 +147,11 @@ export function LibraryWorkspace({
   const [appBody, setAppBody] = useState<HTMLDivElement | null>(null);
   const bodyWidth = useWidth(appBody);
   const inspector = useWorkspaceInspector({
-    selected, setSelected, loadedCards, workspaceScope, sources, setSources, hidden, viewing, inspectorWidth,
+    selected, setSelected, loadedCards, workspaceScope, sources, setSources, hidden, viewing, inspectorWidth, inspectorShown, onInspectorShown,
     fitPanel: (width) => fitPanes(bodyWidth, width, paneOpen && !isNarrow(bodyWidth, width)).inspector,
   });
-  const { selectionLibrary, selectedCards, inspected, inspectorContent, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector } = inspector;
+  const { selectionLibrary, selectedCards, inspected, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector, openSources } = inspector;
+  useInspectorShortcut(toggleInspector, hidden || viewing !== null);
   const [sidebarElement, setSidebarElement] = useState<HTMLElement | null>(null);
   const panes = usePaneFold({ body: bodyWidth, inspector: inspectorOpen ? inspector.panelWidth : 0, paneOpen, onPaneOpen });
   // 侧栏开合时图片墙一开始就按终点宽度排，卡片随侧栏一起滑到位；浮在墙上的侧栏不占墙的宽度。
@@ -192,7 +164,7 @@ export function LibraryWorkspace({
     safe, onError,
     onOpen: (card) => { setViewCrop(false); setViewing(card); },
     onCrop: (card) => { setViewCrop(true); setViewing(card); },
-    onInspect: (card) => setSources(card as WorkspaceCard),
+    onInspect: (card) => openSources(card as WorkspaceCard),
     onChanged: () => invalidate({ kind: "contentEdited" }),
     removeCards: (cards) => {
       const putBack = wall.current?.remove(cards.map((card) => card.id));
@@ -248,7 +220,10 @@ export function LibraryWorkspace({
               // 来源面板保持现状（与换左栏范围不同）。
               invalidate({ kind: "conditionsChanged" });
             }} />
-          {!inspectorOpen && <WinCtrls />}
+          {!inspectorOpen && <>
+            <button type="button" className="k-icon-btn" aria-label={t("viewer:tools.showInspector")} title={t("viewer:tools.showInspector")} onClick={toggleInspector}><PanelRight size={16} aria-hidden="true" /></button>
+            <WinCtrls />
+          </>}
           </header>
           <div className="app-tagbar">
           <TagGroupBar workspace libraryId="workspace" safe={safe} generation={vocabularyKey} input={search}
@@ -274,7 +249,7 @@ export function LibraryWorkspace({
             onTotalChange={setResultCount}
             key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
             workspaceScope={workspaceScope}
-            onInspectSources={(card) => { setSources(card); }}
+            onInspectSources={openSources}
             onCardsChange={setLoadedCards}
             onWorkspaceStatus={onWallStatus}
             scope={scope}
@@ -291,7 +266,7 @@ export function LibraryWorkspace({
             }}
             onOpenImage={(card) => { setViewCrop(false); setViewing(card); }}
             viewerOpen={viewerOpen}
-            menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} />}
+            menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} inspectorOpen={inspectorOpen} onToggleInspector={toggleInspector} />}
             onCardCommand={(command, cards, point) => {
               if (command === "pin") wallActions.pin(cards, point);
               else if (command === "crop") wallActions.crop(cards[0]);
@@ -339,7 +314,7 @@ export function LibraryWorkspace({
           {flight.flier}
           </div>
         </main>
-        {inspectorContent && !hidden && (
+        {!hidden && (
           <WorkspaceInspector inspector={inspector} status={status} safe={safe} reloadKey={reloadKey} vocabularyKey={vocabularyKey}
             setSelected={setSelected}
             onError={onError} onInspectorWidth={onInspectorWidth} />

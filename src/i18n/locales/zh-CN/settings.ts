@@ -45,6 +45,7 @@ export default {
     change: "更换",
     fixedHint: "固定按键，在主窗口里用",
     safeMode: "安全模式",
+    details: "显示或隐藏详情",
     zoomIn: "放大界面",
     zoomOut: "缩小界面",
     zoomReset: "界面复位到 100%",

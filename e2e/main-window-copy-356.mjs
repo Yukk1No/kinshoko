@@ -150,8 +150,8 @@ try {
   await session.shot("06-wall-menu.png");
   await escape(); await settle();
 
-  // 详情侧栏：右键时已选中这一张。
-  await settle(); await closeToasts();
+  // 详情侧栏：右键时已选中这一张。面板只由画师开合，新装默认关着，用顶栏按钮打开。
+  await session.click("//button[@aria-label='显示详情']"); await settle(); await closeToasts();
   await session.shot("07-inspector.png");
   // 多选：操作条。
   await pick(await card(1), true); await pick(await card(2), true); await settle();

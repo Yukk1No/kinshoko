@@ -45,6 +45,7 @@ const settings: Translation<typeof zh> = {
     change: "Change",
     fixedHint: "Fixed key, works in the main window",
     safeMode: "Safe mode",
+    details: "Show or hide details",
     zoomIn: "Enlarge interface",
     zoomOut: "Shrink interface",
     zoomReset: "Reset interface to 100%",

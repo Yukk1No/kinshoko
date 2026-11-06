@@ -378,6 +378,18 @@ fn the_details_panel_width_is_unset_until_the_artist_drags_it_and_then_remembere
 }
 
 #[test]
+fn the_details_panel_starts_closed_and_remembers_what_the_artist_chose() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(!settings.inspector_open());
+
+    settings.set_inspector_open(true).unwrap();
+    drop(settings);
+
+    assert!(AppSettings::open(dir.path()).unwrap().inspector_open());
+}
+
+#[test]
 fn the_details_panel_width_is_kept_between_280_and_560() {
     let dir = tempfile::tempdir().unwrap();
     let mut settings = AppSettings::open(dir.path()).unwrap();

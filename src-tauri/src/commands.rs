@@ -159,6 +159,19 @@ pub async fn set_inspector_width(
         .map_err(CommandError::from)?;
     Ok(shell.view())
 }
+/// 记住主窗口详情面板的开合。
+#[tauri::command]
+pub async fn set_inspector_open(
+    state: State<'_, ShellState>,
+    open: bool,
+) -> Result<ShellSettingsView, CommandError> {
+    let mut shell = state.0.lock().map_err(CommandError::system)?;
+    shell
+        .settings
+        .set_inspector_open(open)
+        .map_err(CommandError::from)?;
+    Ok(shell.view())
+}
 #[tauri::command]
 pub async fn migrate_viewer_background(
     state: State<'_, ShellState>,

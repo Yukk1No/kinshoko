@@ -216,7 +216,7 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
                 </>}
               </SettingsRow>;
             })}
-            {([["safeMode", "Ctrl+Shift+S"], ["zoomIn", "Ctrl+="], ["zoomOut", "Ctrl+-"], ["zoomReset", "Ctrl+0"]] as const).map(([action, keys]) =>
+            {([["safeMode", "Ctrl+Shift+S"], ["zoomIn", "Ctrl+="], ["zoomOut", "Ctrl+-"], ["zoomReset", "Ctrl+0"], ["details", "I"]] as const).map(([action, keys]) =>
               <SettingsRow key={action} label={t(`keys.${action}`)} title={t(`keys.${action}`)} hint={t("keys.fixedHint")}><Keys accelerator={keys} /></SettingsRow>)}
           </SettingsGroup>
           {/* 查看器的操作提示（#179，原在查看器的信息浮层里）。 */}

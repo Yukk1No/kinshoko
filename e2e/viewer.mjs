@@ -85,6 +85,9 @@ try {
   await exec("document.querySelectorAll('.k-toast .k-toast-close').forEach(b=>b.click())");
   await until("提示已收起", () => exec("return !document.querySelector('.k-toast')"));
   check(true, "导入 41 张测试参考图，未下载打标模型");
+  // 详情面板只由画师开合，新装默认关着：先用顶栏按钮打开，之后选择、查看都不改变它。
+  await click("显示详情");
+  await until("详情面板打开", () => exec("return document.querySelector('aside.inspector')?.dataset.collapsed === 'false'"));
   const card = await until("大图卡片", () => exec("return [...document.querySelectorAll('.card')].find(c => Math.abs(c.offsetHeight / c.offsetWidth - 2/3) < .02)"));
   await wd("POST", `${base}/actions`, { actions: [{ type: "pointer", id: "mouse", parameters: { pointerType: "mouse" }, actions: [
     { type: "pointerMove", duration: 0, origin: card, x: 0, y: 0 },
@@ -142,11 +145,11 @@ try {
   await until("单击已选中的图打开查看器", image);
   await viewerKey("\uE00C");
   await until("Esc 返回", () => exec("return !document.querySelector('.viewer')"));
-  // 双击最右一列的卡片：第一下展开侧栏（这里先清空选择、收起侧栏），第二下落点被侧栏占住也打开这一张（#179）。
+  // 清空选择后双击最右一列的卡片：面板开着、宽度不变，图片墙不重排，第二下照样打开这一张（#179）。
   await exec("const wall = document.querySelector('.wall'); wall.scrollTop = 0; wall.dispatchEvent(new Event('scroll'));");
   await new Promise((r) => setTimeout(r, 700));
   await exec("document.querySelector('.wall-canvas').click();");
-  await until("侧栏收起", () => exec("return !document.querySelector('aside.inspector')"));
+  await until("选择清空", () => exec("return !document.querySelector('.card[aria-selected=true]') && document.querySelector('aside.inspector')?.dataset.collapsed === 'false'"));
   const rightmost = await exec(`const wall = document.querySelector('.wall'), w = wall.getBoundingClientRect();
     const seen = [...wall.querySelectorAll('.card')].filter(c => { const r = c.getBoundingClientRect(); return r.top >= w.top && r.bottom <= w.bottom; });
     return seen.sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right || a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];`);
@@ -158,7 +161,7 @@ try {
   ] }] });
   await until("双击最右一列打开查看器", image);
   check(await exec("return document.querySelector('aside.inspector')?.dataset.selection === arguments[0] && document.querySelectorAll('.card[aria-selected=true]').length === 1", [rightmostId]),
-    "双击最右一列的卡片：侧栏展开期间第二下照样打开这一张");
+    "双击最右一列的卡片：第二下照样打开这一张");
   await viewerKey("\uE00C");
   await until("Esc 返回", () => exec("return !document.querySelector('.viewer')"));
 
@@ -173,7 +176,7 @@ try {
   await until("键盘打开查看器", image);
   await key("\uE00C"); // Escape
   await until("键盘返回图片墙", () => exec("return !document.querySelector('.viewer')"));
-  // 查看时选择跟着这张图，详情侧栏展开、图片墙按锚点重排（#179）：返回后这张图仍在视口里并获得焦点。
+  // 查看时选择跟着这张图（#179）：返回后这张图仍在视口里并获得焦点。
   check(await exec(`const c = document.activeElement, wall = document.querySelector('.wall'), w = wall.getBoundingClientRect(), r = c?.getBoundingClientRect();
     return c?.dataset.id === arguments[0].id && c.getAttribute('aria-selected') === 'true' && r.bottom > w.top && r.top < w.bottom;`, [reading]), "滚动后用回车查看，Esc 返回后那张图在视口里、仍选中并获得焦点");
   const anchorOffset = () => exec(`const c = document.querySelector('[data-id="' + arguments[0] + '"]'); const wall = document.querySelector('.wall'); if (!c || c.getAnimations().some(a => a.playState === 'running')) return null; return c.getBoundingClientRect().top - wall.getBoundingClientRect().top;`, [anchor.id]);
