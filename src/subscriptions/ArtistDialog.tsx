@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { CircleAlert, LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -17,13 +17,16 @@ type Lookup =
   | { kind: "found"; artist: Artist }
   | { kind: "failed"; message: string };
 
+/** 输入停下这么久才查：纯数字的每个前缀都是合法 ID，逐键查会白白消耗 pixiv 的请求节拍。 */
+const FIND_DELAY_MS = 400;
+
 /** 已订阅的画师 ID。 */
 export function subscribedArtists(list: Subscription[]): Set<string> {
   return new Set(list.flatMap((s) => (s.target.kind === "pixivArtist" ? [s.target.userId] : [])));
 }
 
 /**
- * 订阅画师（#369，草图 A）：输入画师主页链接或 ID 查找，再选资料库、旧作收多少、漫画与 R-18。
+ * 订阅画师（#369，草图 A）：输入画师主页链接或 ID 后自动查找，再选资料库、旧作收多少、漫画与 R-18。
  * 登录失效时也能添加（恢复登录后才查），但不出现 R-18 与从关注导入。
  */
 export function ArtistDialog({ status, list, onClose, onAdded, onImport }: {
@@ -47,13 +50,17 @@ export function ArtistDialog({ status, list, onClose, onAdded, onImport }: {
   const already = found !== null && subscribedArtists(list).has(found.userId);
   const backlog = backlogOf(chosen);
 
-  const find = () => {
-    if (!input.trim() || lookup.kind === "finding") return;
+  const find = useCallback((text: string) => {
     const request = ++asked.current;
     setLookup({ kind: "finding" });
-    subscriptionFindArtist(input).then((artist) => { if (request === asked.current) setLookup({ kind: "found", artist }); },
+    subscriptionFindArtist(text).then((artist) => { if (request === asked.current) setLookup({ kind: "found", artist }); },
       (e) => { if (request === asked.current) setLookup({ kind: "failed", message: errorText(e) }); });
-  };
+  }, []);
+  useEffect(() => {
+    if (!input.trim()) return;
+    const timer = setTimeout(() => find(input), FIND_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [input, find]);
   const subscribe = () => {
     if (!found || already || !backlog || !chosen.libraryId) return;
     setBusy(true); setError(null);
@@ -72,18 +79,15 @@ export function ArtistDialog({ status, list, onClose, onAdded, onImport }: {
           <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
           <UnofficialMark />
         </div>
-        <form className="subs-artist-find" onSubmit={(e) => { e.preventDefault(); find(); }}>
+        <form className="subs-artist-find" onSubmit={(e) => { e.preventDefault(); if (lookup.kind === "failed") find(input); }}>
           <label className="k-field">
             <span className="k-field-label">{t("input")}</span>
             <span className="k-field-row">
               <span className="k-input" aria-invalid={lookup.kind === "failed" ? true : undefined}>
                 <input value={input} aria-label={t("input")} placeholder={t("placeholder")} disabled={busy} autoFocus spellCheck={false}
-                  onChange={(e) => { asked.current++; setInput(e.target.value); setLookup({ kind: "idle" }); }} />
+                  onChange={(e) => { asked.current++; setInput(e.target.value); setLookup({ kind: e.target.value.trim() ? "finding" : "idle" }); }} />
+                {lookup.kind === "finding" && <LoaderCircle className="subs-spin" size={14} role="status" aria-label={t("finding")} />}
               </span>
-              <button type="submit" className="k-btn" disabled={busy || !input.trim() || lookup.kind === "finding"}>
-                {lookup.kind === "finding" && <LoaderCircle className="subs-spin" size={14} aria-hidden="true" />}
-                <span className="k-label">{t(lookup.kind === "finding" ? "finding" : "find")}</span>
-              </button>
             </span>
           </label>
           {lookup.kind === "failed" && <p className="k-field-error" role="alert"><CircleAlert size={14} aria-hidden="true" />{lookup.message}</p>}

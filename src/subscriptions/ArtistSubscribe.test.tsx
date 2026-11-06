@@ -67,15 +67,16 @@ afterEach(async () => {
 });
 
 describe("订阅画师", () => {
-  it("输入主页链接查找，选最近几张，收进登记最早的可用资料库", async () => {
+  it("输入主页链接后自动匹配，选最近几张，收进登记最早的可用资料库", async () => {
     backend();
     page(status());
     const dialog = await openArtistDialog();
     const subscribe = within(dialog).getByRole("button", { name: "订阅" }) as HTMLButtonElement;
     expect(subscribe.disabled).toBe(true);
     fireEvent.change(within(dialog).getByRole("textbox", { name: "画师主页链接或 ID" }), { target: { value: "https://www.pixiv.net/users/777" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: "查找" }));
+    expect(within(dialog).getByRole("status", { name: "正在查找" })).toBeTruthy();
     expect(await within(dialog).findByText("Nanashi")).toBeTruthy();
+    expect(within(dialog).queryByRole("status", { name: "正在查找" })).toBeNull();
     expect(within(dialog).getByText("pixiv ID 777")).toBeTruthy();
     // 默认仅同步新作；改成最近 5 张。
     expect((within(dialog).getByRole("radio", { name: /仅同步新作/ }) as HTMLInputElement).checked).toBe(true);
@@ -97,15 +98,16 @@ describe("订阅画师", () => {
     const dialog = await openArtistDialog();
     const input = within(dialog).getByRole("textbox", { name: "画师主页链接或 ID" });
     fireEvent.change(input, { target: { value: "404" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: "查找" }));
     expect((await within(dialog).findByRole("alert")).textContent).toBe("未找到这位画师");
+    // 查失败了按回车重查。
+    fireEvent.submit(input);
+    await waitFor(() => expect(sent("subscription_find_artist")).toHaveLength(2));
     cleanup();
 
     backend([subscription("777", "Nanashi")]);
     page(status());
     const again = await openArtistDialog();
     fireEvent.change(within(again).getByRole("textbox", { name: "画师主页链接或 ID" }), { target: { value: "777" } });
-    fireEvent.click(within(again).getByRole("button", { name: "查找" }));
     expect(await within(again).findByText("已经订阅了这位画师")).toBeTruthy();
     expect((within(again).getByRole("button", { name: "订阅" }) as HTMLButtonElement).disabled).toBe(true);
   });
@@ -116,13 +118,31 @@ describe("订阅画师", () => {
     const dialog = await openArtistDialog();
     const input = within(dialog).getByRole("textbox", { name: "画师主页链接或 ID" });
     fireEvent.change(input, { target: { value: "slow" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: "查找" }));
     await waitFor(() => expect(sent("subscription_find_artist")).toHaveLength(1));
     fireEvent.change(input, { target: { value: "777" } });
     finishSlow();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(within(dialog).queryByText("Slow")).toBeNull();
     expect((within(dialog).getByRole("button", { name: "订阅" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(await within(dialog).findByText("Nanashi")).toBeTruthy();
+  });
+
+  it("连续输入时只查停下来时的内容；清空后不查", async () => {
+    backend();
+    page(status());
+    const dialog = await openArtistDialog();
+    const input = within(dialog).getByRole("textbox", { name: "画师主页链接或 ID" });
+    fireEvent.change(input, { target: { value: "7" } });
+    fireEvent.change(input, { target: { value: "77" } });
+    fireEvent.change(input, { target: { value: "777" } });
+    expect(await within(dialog).findByText("Nanashi")).toBeTruthy();
+    expect(sent("subscription_find_artist")).toEqual([{ input: "777" }]);
+
+    fireEvent.change(input, { target: { value: "" } });
+    expect(within(dialog).queryByText("Nanashi")).toBeNull();
+    expect(within(dialog).queryByRole("status", { name: "正在查找" })).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(sent("subscription_find_artist")).toHaveLength(1);
   });
 
   it("登录着时有 R-18 与关注导入（安全模式开着也有）；不登录（登录失效）时都不出现", async () => {

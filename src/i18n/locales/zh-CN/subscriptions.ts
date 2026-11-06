@@ -67,7 +67,6 @@ export default {
     settingsTitle: "订阅设置",
     input: "画师主页链接或 ID",
     placeholder: "https://www.pixiv.net/users/…",
-    find: "查找",
     finding: "正在查找",
     id: "pixiv ID {{id}}",
     already: "已经订阅了这位画师",
