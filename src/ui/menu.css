@@ -3,7 +3,7 @@
    Loaded right after ui.css so these rules win over the shared ones. */
 .k-popup[data-k-level] { display: flex; flex-direction: column; gap: 4px; min-width: 210px; max-width: 260px; width: max-content;
   max-height: min(420px, calc(100vh - 24px), var(--available-height, 100vh)); overflow: auto; padding: 6px;
-  border: 1px solid var(--menu-border); border-radius: 12px; background: var(--menu-surface); color: var(--menu-ink); box-shadow: var(--menu-shadow);
+  border: 1px solid var(--menu-border); border-radius: var(--r); background: var(--menu-surface); color: var(--menu-ink); box-shadow: var(--menu-shadow);
   -webkit-backdrop-filter: blur(18px) saturate(135%); backdrop-filter: blur(18px) saturate(135%);
   transform-origin: var(--transform-origin);
   transition: opacity var(--menu-fade) ease-out, transform var(--menu-spring) var(--menu-spring-ease),
@@ -20,7 +20,7 @@
 .k-menu-title { padding: 4px 8px 2px; font-size: 11px; line-height: 14px; font-weight: 600; color: var(--menu-quiet); user-select: none;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color var(--menu-theme-fade); }
 
-[data-k-level] .k-item { flex: none; height: 32px; min-height: 32px; padding: 0 8px; gap: 8px; border-radius: 8px; color: var(--menu-ink);
+[data-k-level] .k-item { flex: none; height: 32px; min-height: 32px; padding: 0 8px; gap: 8px; border-radius: var(--r-s); color: var(--menu-ink);
   font-size: 14px; font-weight: 500; transition: color var(--menu-theme-fade); }
 [data-k-level] .k-item.is-danger, [data-k-level] .k-item.is-danger .k-item-ind { color: var(--danger); }
 /* highlight comes from cascade state, not :hover and not Base UI's pointer-following data-highlighted:

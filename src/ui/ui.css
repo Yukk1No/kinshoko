@@ -50,7 +50,7 @@
 .k-positioner { z-index: 60; outline: 0; }
 .k-popup { min-width: 200px; max-height: min(var(--available-height, 480px), 480px); overflow: auto; padding: 8px; background: var(--surface); color: var(--ink);
   border-radius: var(--r-l); box-shadow: var(--shadow-pop); outline: 0;
-  transform-origin: var(--transform-origin); transition: transform 220ms var(--spring), opacity 150ms; }
+  transform-origin: var(--transform-origin); transition: transform var(--t-pop) var(--spring), opacity var(--t-fast); }
 .k-popup[data-starting-style], .k-popup[data-ending-style] { opacity: 0; transform: scale(0.96) translateY(-4px); }
 .k-item { position: relative; display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px 0 8px; border-radius: var(--r-s); outline: 0; cursor: default;
   user-select: none; white-space: nowrap; color: var(--ink); }
@@ -98,7 +98,7 @@
 .k-switch[data-checked] { background: var(--accent); }
 .k-switch[data-disabled] { opacity: 0.5; cursor: default; }
 .k-switch-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--on-solid); box-shadow: var(--knob-shadow);
-  transition: transform 250ms var(--spring); }
+  transition: transform var(--t-slow) var(--spring); }
 .k-switch[data-checked] .k-switch-thumb { transform: translateX(14px); }
 .k-switch.is-sm { width: 28px; height: 16px; }
 .k-switch.is-sm .k-switch-thumb { width: 12px; height: 12px; }
@@ -111,7 +111,7 @@
   display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; overflow: hidden;
   transition: background var(--t-fast), color var(--t-fast); }
 .k-seg-item:hover:not([data-disabled]) { color: var(--ink); }
-.k-seg-item[data-pressed] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line), var(--shadow-raise); }
+.k-seg-item[data-pressed] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
 .k-seg-item[data-disabled] { opacity: 0.5; cursor: default; }
 
 /* ---- Dock (after Arc Pro dock behaviour) ---- */
@@ -150,11 +150,11 @@
 /* `.k-dock.is-dark` takes the dark theme's tokens (src/styles.css), so it needs no rules of its own. */
 
 /* ---- Dialog shell (Base UI Dialog / AlertDialog) and settings-style lists ---- */
-.k-backdrop { position: fixed; inset: 0; z-index: 90; background: var(--overlay); transition: opacity 200ms; }
+.k-backdrop { position: fixed; inset: 0; z-index: 90; background: var(--overlay); transition: opacity var(--t); }
 .k-backdrop[data-starting-style], .k-backdrop[data-ending-style] { opacity: 0; }
 .k-dialog { position: fixed; left: 50%; top: 50%; z-index: 91; width: min(560px, calc(100vw - 48px)); max-height: calc(100vh - 48px); overflow: auto; translate: -50% -50%;
   padding: 20px; border-radius: var(--r-2xl); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-dialog);
-  transition: transform 220ms var(--spring), opacity 160ms; }
+  transition: transform var(--t-pop) var(--spring), opacity var(--t-fast); }
 .k-dialog[data-starting-style], .k-dialog[data-ending-style] { opacity: 0; transform: scale(0.97); }
 .k-dialog-title { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; }
 .k-dialog-desc { margin: 4px 0 14px; color: var(--ink-2); font-size: 13px; }

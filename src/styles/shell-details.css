@@ -59,7 +59,7 @@
 
 .legacy-name-migration .settings-shortcuts { width: 100%; table-layout: fixed; }
 .legacy-name-migration .settings-shortcuts th, .legacy-name-migration .settings-shortcuts td { vertical-align: top; overflow-wrap: anywhere; }
-.legacy-name-migration .settings-shortcuts small { display: block; opacity: .6; font-size: 12px; }
+.legacy-name-migration .settings-shortcuts small { display: block; color: var(--ink-2); font-size: 12px; }
 
 .legacy-name-migration { min-width: 0; }
 .workspace-scope { padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }

@@ -38,7 +38,7 @@ describe("回收站范围下的导入", () => {
     fireEvent.keyDown(screen.getByRole("menuitem", { name: /^图片/ }), { key: "Escape" });
     await act(() => emit("tauri://drag-enter", { paths, position }));
     expect(await screen.findByRole("img", { name: /松开即可导入到/ })).toBeTruthy();
-    expect(document.querySelector(".drop-hint")!.textContent).toBe("");
+    expect(document.querySelector(".k-drop-hint")!.textContent).toBe("");
   });
 
   it("离开回收站后 Ctrl V 恢复", async () => {

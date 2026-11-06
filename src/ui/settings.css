@@ -13,7 +13,7 @@
 .k-set-tab { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px 0 8px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink-2);
   font: inherit; text-align: left; transition: background var(--t-fast), color var(--t-fast); }
 .k-set-tab:hover { background: var(--hover); color: var(--ink); }
-.k-set-tab[data-active] { background: var(--surface); color: var(--ink); font-weight: 500; box-shadow: var(--shadow-raise); }
+.k-set-tab[data-active] { background: var(--surface); color: var(--ink); font-weight: 500; box-shadow: inset 0 0 0 1px var(--line); }
 .k-set-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .k-set-version { margin: 0; padding: 0 10px; font-size: 12px; color: var(--ink-2); }
 /* 滚动条的位置一直留着（12 px，右内边距相应少 12）：切页与过渡结束时内容宽度不变。 */
@@ -25,7 +25,7 @@
 /* 一组设置（#310）：下沉槽托盘里放一张浮起的卡，组与组靠托盘分开，不写组名。托盘 20 − 内边距 8 = 卡片 12（同心）。
    整组的说明在卡片下方、仍在托盘里，与卡内文字同一左边；行下方的内容是卡片底部的内槽。 */
 .k-set-group { padding: 8px; border-radius: var(--r-xl); background: var(--sunken); }
-.k-set-group > .k-set-list { overflow: hidden; background: var(--surface); box-shadow: 0 0 0 1px var(--line), var(--shadow-raise); }
+.k-set-group > .k-set-list { overflow: hidden; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
 .k-set-group > .k-set-note { margin: 0; padding: 8px 12px 6px; }
 .k-set-group .k-set-row-below-body { padding: 10px 12px 12px; background: var(--bg); border-top: 1px solid var(--line); }
 .k-set-group .k-set-row-below-body > :first-child { margin-top: 0; }
