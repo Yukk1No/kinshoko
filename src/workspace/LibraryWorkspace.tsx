@@ -283,7 +283,11 @@ export function LibraryWorkspace({
             safeMode={safe}
             holdReflow={inspectorMoving || draggedWidth !== null}
             selected={selected}
-            onSelectionChange={setSelected}
+            onSelectionChange={(next) => {
+              // 来源按钮打开的整理只对那一张：画师改了选择，面板跟着选择走。
+              setSelected(next);
+              setSources(null);
+            }}
             onOpenImage={(card) => { setViewCrop(false); setViewing(card); }}
             viewerOpen={viewerOpen}
             menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} />}
@@ -322,7 +326,7 @@ export function LibraryWorkspace({
         </main>
         {inspectorContent && !hidden && (
           <WorkspaceInspector inspector={inspector} status={status} safe={safe} reloadKey={reloadKey} vocabularyKey={vocabularyKey}
-            sources={sources} setSources={setSources} setSelected={setSelected}
+            setSelected={setSelected}
             onError={onError} onInspectorWidth={onInspectorWidth} />
         )}
       </div>
