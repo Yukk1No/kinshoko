@@ -21,6 +21,8 @@ type Props = {
   libraryId: string;
   card: Omit<ImageCard, "thumbnail"> & Partial<Pick<ImageCard, "thumbnail">>;
   onClose: () => void;
+  /** 画师按返回或 Esc；不给出时同 onClose。onClose 还用于这张图已不在时关闭。 */
+  onBack?: () => void;
   /** 资料库报告列表过期时递增：重新确认这张图还在（可能被删除或被安全模式封印）。 */
   reloadKey?: number;
   /** 这张图在当前浏览结果里的位置（从 0 起）；给出时标题行显示序号与上一张 / 下一张。 */
@@ -50,7 +52,7 @@ type Props = {
  * 钉到桌面（#65）：“钉住整图”，或 Shift+拖动（或先按“框选局部”）框出一块，按 Enter 或“钉住局部”。
  * 选区按原图像素记，标出“宽 × 高 原始像素”，缩放平移时边界不变。
  */
-export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onStep, startCrop = false, onTrash, inspectorOpen = false, onToggleInspector, flight, hideImage = false, onPlaced }: Props) {
+export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey = 0, position, onStep, startCrop = false, onTrash, inspectorOpen = false, onToggleInspector, flight, hideImage = false, onPlaced }: Props) {
   const { t } = useTranslation(["viewer", "common"]);
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -189,7 +191,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onSt
     if (e.key === "Escape") {
       e.preventDefault(); e.stopPropagation();
       // 先取消框选，再回到图片墙。
-      if (crop || selecting) cancelCrop(); else onClose();
+      if (crop || selecting) cancelCrop(); else onBack();
       return;
     }
     // dock 的快捷键与点按 dock 走同一处理；方向键在 dock 内只移动焦点。
@@ -231,7 +233,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, position, onSt
     <section ref={root} className="viewer" role="region" aria-label={t("label")}
       tabIndex={-1} onKeyDown={keyDown} data-flight={flight} inert={flight === "land" || flight === "fade-out"}>
       <header className="viewer-bar">
-        <button type="button" className="k-btn is-quiet viewer-back" aria-label={t("backLabel")} onClick={onClose}><ArrowLeft size={16} /><span className="k-label">{t("back")}</span></button>
+        <button type="button" className="k-btn is-quiet viewer-back" aria-label={t("backLabel")} onClick={onBack}><ArrowLeft size={16} /><span className="k-label">{t("back")}</span></button>
         <span className="viewer-title" title={name ?? undefined}>{name}</span>
         {position && <>
           <span className="viewer-index">{position.index + 1} / {position.total}</span>

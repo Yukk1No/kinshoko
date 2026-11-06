@@ -71,15 +71,17 @@ export function useViewerFlight({ viewing, safe, host, instant }: {
   const [session, setSession] = useState(0);
   const [prevId, setPrevId] = useState<string | null>(viewing?.id ?? null);
   const [stage, setStage] = useState<Stage>(null);
+  /** 这次关闭是画师按的返回。别的关闭（修订前进、安全模式、图已不在）是撤销这张图，不能再把它留在屏幕上。 */
+  const [backing, setBacking] = useState(false);
   const id = viewing?.id ?? null;
   const sealed = (card: BrowserCard | null) => !!card?.adult && safe;
   if (id !== prevId) {
     setPrevId(id);
     if (id === null) {
-      // 安全模式关上的图不飞也不淡，这一帧就消失：它防的就是这张图留在屏幕上。
+      setBacking(false);
       const card = lastCard.current!;
       const resume = stage?.kind === "fly" && stage.direction === "open" ? stage : null;
-      setStage(animated && !sealed(card) ? { kind: "measure", direction: "close", card, resume } : null);
+      setStage(animated && backing && !sealed(card) ? { kind: "measure", direction: "close", card, resume } : null);
     } else if (prevId === null) {
       placed.current = null;
       setSession((value) => value + 1);
@@ -156,6 +158,10 @@ export function useViewerFlight({ viewing, safe, host, instant }: {
       return same && settled === next.settled ? current : { ...current, to: next.rect, settled: next.settled };
     });
   }, []);
+  /** 画师按返回：和 `setViewing(null)` 一起调用，查看器才飞回卡片。 */
+  const back = useCallback(() => setBacking(true), []);
+  /** 飞回途中图片被撤销：当场收掉。 */
+  const cut = useCallback(() => setStage(null), []);
   const landed = useCallback(() => {
     setStage((current) => current?.kind !== "fly" ? current : current.direction === "close" ? null : current.arrived ? current : { ...current, arrived: true });
   }, []);
@@ -167,7 +173,7 @@ export function useViewerFlight({ viewing, safe, host, instant }: {
     : stage.direction === "close" ? "land"
     : stage.kind === "fly" && stage.arrived ? undefined : "fly-in";
   return {
-    card, session, attr, onPlaced,
+    card, session, attr, onPlaced, back, cut,
     /** 飞行期间与安全模式下，查看区不显示原图。 */
     hideImage: sealed(card) || (!!stage && (stage.kind === "measure" || (stage.kind === "fly" && !fading))),
     /** 墙、侧栏与详情面板退到背景，只在图片飞行时。 */

@@ -105,6 +105,8 @@ export function LibraryWorkspace({
   const scope: BrowseScope = workspaceScope.kind === "library" ? workspaceScope.scope : { kind: "all" };
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<BrowserCard | null>(null);
+  const wallHost = useRef<HTMLDivElement>(null);
+  const flight = useViewerFlight({ viewing, safe, host: wallHost, instant: hidden || !!captureRequest });
   /** 查看器打开时即进入框选（图片墙右键“框选局部钉住”或 F1）。 */
   const [viewCrop, setViewCrop] = useState(false);
   useEffect(() => { if (!viewing) setViewCrop(false); }, [viewing]);
@@ -129,7 +131,7 @@ export function LibraryWorkspace({
    */
   const [vocabularyKey, setVocabularyKey] = useState(0);
   const { invalidate, observations } = useInvalidation({
-    wall, loadedCards, setViewing, setSelected, setSources, setReloadKey, setVocabularyKey,
+    wall, loadedCards, setViewing: (next) => { flight.cut(); setViewing(next); }, setSelected, setSources, setReloadKey, setVocabularyKey,
   });
   /**
    * 工作区读取期间修订变了（CursorExpired）：那次读到的结果已经过时，不是要用户处理的问题。
@@ -144,8 +146,6 @@ export function LibraryWorkspace({
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
   const viewerOpen = viewing !== null;
-  const wallHost = useRef<HTMLDivElement>(null);
-  const flight = useViewerFlight({ viewing, safe, host: wallHost, instant: hidden || !!captureRequest });
   // 修订变化后的选择修剪：等图片墙读完新的结果，然后只保留仍在的图。范围或安全模式变了时图片墙先清空（等它读完）；
   // 只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
   useEffect(() => { invalidate({ kind: "pageAccepted", ready: resultCount !== null }); }, [loadedCards, resultCount]);
@@ -319,6 +319,7 @@ export function LibraryWorkspace({
               libraryId={flight.card.libraryId}
               card={{ ...flight.card, id: flight.card.imageId ?? flight.card.id }}
               onClose={() => setViewing(null)}
+              onBack={() => { flight.back(); setViewing(null); }}
               reloadKey={reloadKey}
               position={viewerPosition.current}
               onStep={step}

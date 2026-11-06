@@ -26,8 +26,10 @@ function Harness({ initial = null, safe = false, instant = false }: { initial?: 
       </div>
       {Object.values(cards).map((card) => <button key={card.id} onClick={() => setViewing(card)}>{`open-${card.id}`}</button>)}
       <button onClick={() => setViewing(makeCard("gone"))}>open-gone</button>
-      <button onClick={() => setViewing(null)}>close</button>
-      {flight.card && <Viewer key={flight.session} libraryId="L1" card={flight.card} onClose={() => setViewing(null)}
+      <button onClick={() => { flight.back(); setViewing(null); }}>close</button>
+      <button onClick={() => setViewing(null)}>revoke</button>
+      <button onClick={() => { flight.cut(); setViewing(null); }}>revoke-landing</button>
+      {flight.card && <Viewer key={flight.session} libraryId="L1" card={flight.card} onClose={() => setViewing(null)} onBack={() => { flight.back(); setViewing(null); }}
         flight={flight.attr} hideImage={flight.hideImage} onPlaced={flight.onPlaced} />}
       {flight.flier}
     </div>
@@ -221,6 +223,35 @@ describe("过渡中途不再要动画", () => {
   });
 });
 
+describe("撤销图片的关闭", () => {
+  it("修订前进、图已不在这类关闭不飞也不淡：原图不再留在屏幕上", async () => {
+    document.documentElement.style.setProperty("--t", "20ms");
+    render(<Harness initial={cards.a} />);
+    await loadOriginal();
+    press("revoke");
+    expect(viewer()).toBeNull();
+    expect(flier()).toBeNull();
+  });
+
+  it("飞回途中图片被撤销：当场收掉", async () => {
+    render(<Harness initial={cards.a} />);
+    await loadOriginal();
+    press("close");
+    expect(flier()).not.toBeNull();
+    press("revoke-landing");
+    expect(viewer()).toBeNull();
+    expect(flier()).toBeNull();
+  });
+
+  it("打开途中图片被撤销：当场收掉", () => {
+    render(<Harness />);
+    press("open-a");
+    press("revoke");
+    expect(viewer()).toBeNull();
+    expect(flier()).toBeNull();
+  });
+});
+
 describe("安全模式", () => {
   it("遮蔽的卡片打开时，飞行全程带遮蔽，只拿缩略图，原图一直隐藏", async () => {
     render(<Harness />);
@@ -265,7 +296,7 @@ describe("安全模式", () => {
     rerender(<Harness initial={cards.r18} safe />);
     // 查看器还没收到关闭时，原图也已经藏起来。
     expect(original().style.visibility).toBe("hidden");
-    press("close");
+    press("close"); // 即使这一刻按的是返回。
     expect(viewer()).toBeNull();
     expect(flier()).toBeNull();
   });
