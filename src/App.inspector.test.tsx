@@ -143,6 +143,16 @@ describe("选择变化时", () => {
     expect(opened()).toBe(true);
   });
 
+  it("亲手开过面板后，设置页交来的新快照（例如恢复备份）照样改面板的开合", async () => {
+    const view = { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid", inspectorOpen: false };
+    await start((command) => command === "set_autostart" ? view : undefined, false);
+    fireEvent.keyDown(document.body, { key: "i" });
+    expect(opened()).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "设置" }));
+    fireEvent.click(await screen.findByRole("switch", { name: /开机启动/ }));
+    await waitFor(() => expect(opened()).toBe(false));
+  });
+
   it("收起再打开，同一张图没保存的备注草稿还在", async () => {
     await start();
     fireEvent.click(tile("a1"));

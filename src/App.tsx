@@ -97,13 +97,13 @@ function MainWindow() {
   const [inspectorWidth, setInspectorWidthState] = useState<number | undefined>(undefined);
   const [inspectorShown, setInspectorShownState] = useState(false);
   const inspectorChosen = useRef(false);
-  const acceptShellSettings = useCallback((view: ShellSettingsView) => {
+  /** `keepInspector`：启动时读到的快照回得晚，画师这次已亲手开合过详情面板，就不拿它盖回去。 */
+  const acceptShellSettings = useCallback((view: ShellSettingsView, keepInspector = false) => {
     setShowApproxSource(view.showApproxSource);
     setTagDisplay(view.tagDisplay ?? DEFAULT_TAG_DISPLAY);
     setKeepSelectionOnSafe(view.keepSelectionOnSafeMode ?? false);
     setInspectorWidthState(view.inspectorWidth);
-    // 画师这次亲手开合过，就以界面上的为准：回得晚的启动快照不能把它盖回去。
-    if (!inspectorChosen.current) setInspectorShownState(view.inspectorOpen ?? false);
+    if (!keepInspector) setInspectorShownState(view.inspectorOpen ?? false);
   }, []);
   /** 设置页交来过快照后，启动时读到的那份已经旧了，回得晚也不再接受（#321）。 */
   const settingsChanged = useRef(false);
@@ -186,7 +186,7 @@ function MainWindow() {
       () => {},
     );
     shellSettings().then(
-      (view) => alive && view && !settingsChanged.current && acceptShellSettings(view),
+      (view) => alive && view && !settingsChanged.current && acceptShellSettings(view, inspectorChosen.current),
       () => undefined,
     );
     uiScale().then(
