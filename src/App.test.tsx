@@ -180,7 +180,7 @@ describe("主窗口", () => {
     expect(document.documentElement.style.getPropertyValue("--inspector-width")).toBe("450px");
   });
 
-  it("图标轨切换上下文侧栏时保留查找和图片墙，重复点按收起侧栏，收起后切换不再弹开", async () => {
+  it("图标轨切换上下文侧栏时保留查找和图片墙，点当前图标收起侧栏，收起后点别的图标或按 Ctrl+数字展开", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
@@ -195,11 +195,12 @@ describe("主窗口", () => {
     expect(groups.getAttribute("aria-expanded")).toBe("false");
     const browse = within(nav).getByRole("button", { name: "图片与文件夹" });
     fireEvent.click(browse);
+    expect(browse.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("complementary", { name: "文件夹" })).toBeTruthy();
+    fireEvent.click(browse);
     expect(browse.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByRole("complementary", { name: "文件夹" })).toBeNull();
     fireEvent.keyDown(window, { key: "2", ctrlKey: true });
-    expect(groups.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.keyDown(window, { key: "1", ctrlKey: true });
+    expect(groups.getAttribute("aria-expanded")).toBe("true");
     fireEvent.click(browse);
     expect(screen.getByRole("complementary", { name: "文件夹" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "工作参考 的操作" })).toBeTruthy();
