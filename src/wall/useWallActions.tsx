@@ -9,6 +9,7 @@ import type { BrowserCard } from "./Wall";
 import type { ImportSource, WallMenuActions } from "./WallMenu";
 import { useToast } from "../ui/Toast";
 import { i18n } from "../i18n";
+import { errorText } from "../ipc/commandError";
 
 /** 一次最多钉住的张数；超过时只钉前这么多张，再用轻提示说明。 */
 export const PIN_LIMIT = 20;
@@ -76,7 +77,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     // 依次钉住：后钉的盖在先钉的上面，错开的顺序与图片墙一致。
     for (const [i, card] of cards.entries()) {
       const target = targetOf(card);
-      try { await pinReference(target.libraryId, target.imageId, null, rects[i]); } catch (e) { onError(i18n.t("common:image.pinFailed", { error: String(e) })); return false; }
+      try { await pinReference(target.libraryId, target.imageId, null, rects[i]); } catch (e) { onError(i18n.t("common:image.pinFailed", { error: errorText(e) })); return false; }
     }
     return true;
   };
@@ -121,12 +122,12 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     copy(card) {
       const { onNotice, onError } = options.current;
       const target = targetOf(card);
-      copyReferenceImage(target.libraryId, target.imageId).then(() => onNotice(i18n.t("common:image.copied")), (e) => onError(i18n.t("common:image.copyFailed", { error: String(e) })));
+      copyReferenceImage(target.libraryId, target.imageId).then(() => onNotice(i18n.t("common:image.copied")), (e) => onError(i18n.t("common:image.copyFailed", { error: errorText(e) })));
     },
     reveal(card) {
       const { onError } = options.current;
       const target = targetOf(card);
-      revealReferenceImage(target.libraryId, target.imageId).catch((e) => onError(i18n.t("common:image.revealFailed", { error: String(e) })));
+      revealReferenceImage(target.libraryId, target.imageId).catch((e) => onError(i18n.t("common:image.revealFailed", { error: errorText(e) })));
     },
     importClipboard() {
       const { importClipboard, onError } = options.current;
@@ -156,7 +157,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
             failed = await workspaceEditSources(entries.map(({ target }) => target), safe, edits);
           } catch (e) {
             putBack?.(moved);
-            onError(i18n.t("wall:notice.organizeFailed", { error: String(e) }));
+            onError(i18n.t("wall:notice.organizeFailed", { error: errorText(e) }));
             return;
           }
           const failedLibraries = new Set(failed.map((f) => f.libraryId));

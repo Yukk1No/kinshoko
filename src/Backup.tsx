@@ -85,7 +85,7 @@ export function BackupSettings() {
       (p) => {
         if (alive && p) setPreview(p);
       },
-      (e) => alive && setError(String(e)),
+      (e) => alive && setError(errorText(e)),
     );
     return () => {
       alive = false;
@@ -99,7 +99,7 @@ export function BackupSettings() {
         setStatus(await change);
         setError(null);
       } catch (e) {
-        setError(String(e));
+        setError(errorText(e));
       }
     },
     [setStatus],
@@ -129,7 +129,7 @@ export function BackupSettings() {
       <SettingsGroup label={t("group")} note={t("groupNote")}>
         <SettingsRow icon={<HardDrive size={16} />} title={t("target")}
           meta={plan.target ?? t("noTarget")} hint={t("targetHint")} label={t("target")}>
-          <button type="button" className="k-btn is-sm" onClick={() => void choose().catch((e) => setError(String(e)))}>
+          <button type="button" className="k-btn is-sm" onClick={() => void choose().catch((e) => setError(errorText(e)))}>
             <span className="k-label">{plan.target === null ? t("choose") : t("change")}</span>
           </button>
         </SettingsRow>
@@ -139,7 +139,7 @@ export function BackupSettings() {
           warn={plan.lastFailure !== null && <span role="alert">{t("failed", { at: stampText(plan.lastFailure.at), reason: storedReasonText(plan.lastFailure.reason) })}</span>}>
           {plan.lastFailure === null && plan.lastSuccess !== null && running === null && <StatusPill tone="ok" icon={<CircleCheck size={12} aria-hidden="true" />}>{t("done")}</StatusPill>}
           <button type="button" className="k-btn is-sm is-primary" disabled={plan.target === null || running !== null}
-            onClick={() => void startBackup().catch((e) => setError(String(e)))}><span className="k-label">{t("start")}</span></button>
+            onClick={() => void startBackup().catch((e) => setError(errorText(e)))}><span className="k-label">{t("start")}</span></button>
         </SettingsRow>
         <SettingsRow icon={<Library size={16} />} title={t("scope")}
           meta={preview ? t("estimate", { size: formatBytes(preview.estimate.totalBytes) }) : t("estimating")}

@@ -4,7 +4,7 @@ import type { CatalogNameEdit } from "../bindings/CatalogNameEdit";
 import type { CatalogTag } from "../bindings/CatalogTag";
 import type { LibraryTagMapping } from "../bindings/LibraryTagMapping";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
-import { describeCommandError } from "../ipc/commandError";
+import { describeCommandError, errorText } from "../ipc/commandError";
 import { editTagName, externalSuggestions, inspectTagCatalog, mapTagExternal, onSafeModeSetting, setSourceNameLang } from "../ipc";
 import { SettingsRow, StatusPill } from "../ui/SettingsList";
 import { currentName } from "../tags/catalogName";
@@ -44,7 +44,7 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
     const request = ++generation.current;
     setBusy(true); setError(null);
     try { const result = await action(); if (request === generation.current) setWorkspace(result); }
-    catch (reason) { if (request === generation.current) setError(String(reason)); }
+    catch (reason) { if (request === generation.current) setError(errorText(reason)); }
     finally { if (request === generation.current) setBusy(false); }
   };
   useEffect(() => {

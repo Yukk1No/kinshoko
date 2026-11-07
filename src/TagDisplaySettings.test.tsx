@@ -25,7 +25,7 @@ function backend() {
     if (cmd === "set_tag_display") {
       const display = (args as { display: TagDisplay }).display;
       sent.push(display);
-      if (display.low >= display.high) throw "低档上限要小于高档下限，且都在 0 到 1 之间";
+      if (display.low >= display.high) throw { code: "message", message: "低档上限要小于高档下限，且都在 0 到 1 之间" };
       saved = display;
       return view();
     }
@@ -147,7 +147,7 @@ describe("设置：标签外观", () => {
     mockIPC((cmd, args) => {
       if (cmd === "shell_settings") return view();
       if (cmd === "set_tag_display") {
-        if (failNext) { failNext = false; throw "无法写入设置文件"; }
+        if (failNext) { failNext = false; throw { code: "message", message: "无法写入设置文件" }; }
         saved = (args as { display: TagDisplay }).display;
         return view();
       }

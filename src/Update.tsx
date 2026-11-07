@@ -8,7 +8,7 @@ import { Segmented } from "./ui/Segmented";
 import { useToast, type ToastOptions } from "./ui/Toast";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { checkUpdate, installUpdate, onUpdateChannelChanged, onUpdateProgress, updateStatus } from "./ipc";
-import { CommandFailure, describeCommandError } from "./ipc/commandError";
+import { CommandFailure, describeCommandError, errorText } from "./ipc/commandError";
 import { i18n } from "./i18n";
 import { formatBytes } from "./i18n/format";
 
@@ -40,7 +40,7 @@ function useInstall() {
     try {
       await installUpdate();
     } catch (reason) {
-      setError(String(reason));
+      setError(errorText(reason));
       setInstalling(false);
     }
   };
@@ -84,7 +84,7 @@ export function UpdateSection({ version = null, channel, onChannel }: {
     try {
       setStatus(await checkUpdate());
     } catch (reason) {
-      setStatus({ state: "failed", message: reason instanceof CommandFailure ? reason.error : { code: "system", detail: String(reason) } });
+      setStatus({ state: "failed", message: reason instanceof CommandFailure ? reason.error : { code: "system", detail: errorText(reason) } });
     } finally {
       setChecking(false);
     }
@@ -171,7 +171,7 @@ export function UpdateNotice() {
       installUpdate().catch((reason) => {
         stopProgress();
         present(id, () => ({
-          title: i18n.t("update:notice.failed"), description: String(reason), tone: "error",
+          title: i18n.t("update:notice.failed"), description: errorText(reason), tone: "error",
           action: { label: i18n.t("update:notice.retry"), onClick: () => install(id, version) },
         }));
       });

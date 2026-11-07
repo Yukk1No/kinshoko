@@ -1,5 +1,6 @@
 // 命令失败的原因（#355）：后端交来错误代码＋参数（`CommandError`），这里按界面语言取文案。
 // 判断错误种类一律按 `code`，不比较文字。
+import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { i18n } from "../i18n/instance";
 import type { CommandError } from "../bindings/CommandError";
 import type { UnavailableReason } from "../bindings/UnavailableReason";
@@ -82,7 +83,7 @@ export function describeCommandError(error: CommandError): string {
 
 /**
  * 命令失败时抛出的错误：`code` 供判断，`message` 是按界面语言写好的说明。
- * `String(error)` 也得到说明，界面里原来直接显示错误的地方不用改。
+ * 界面显示错误一律走 {@link errorText}。
  */
 export class CommandFailure extends Error {
   readonly code: CommandErrorCode;
@@ -126,8 +127,18 @@ export function storedReasonText(reason: StoredReason): string {
   return typeof reason === "string" ? reason : describeCommandError(reason);
 }
 
-/** 给画师看的说明：命令失败按代码取文案，其他错误按原样。 */
+/** 非命令失败的错误（插件调用、前端异常）在日志里的原文。 */
+function rawText(error: unknown): string {
+  return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+}
+
+/**
+ * 界面上显示错误的唯一出口（#483）：命令失败按代码取文案；其他错误只显示通用说明，
+ * 原文写进运行日志。界面代码不直接 `String(e)`，由 scripts/check-error-text.mjs 把关。
+ */
 export function errorText(error: unknown): string {
+  if (error instanceof CommandFailure) return error.message;
   if (isCommandError(error)) return describeCommandError(error);
-  return String(error);
+  void tauriInvoke("log_frontend", { level: "error", message: `Unexpected error: ${rawText(error)}` }).catch(() => {});
+  return t("generic");
 }

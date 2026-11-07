@@ -7,6 +7,7 @@ import { CircleCheck, Download, Monitor, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { usePersistentToast } from "./ui/Toast";
+import { errorText } from "./ipc/commandError";
 
 type RuntimeContextValue = {
   status: RuntimeStatus | null;
@@ -30,7 +31,7 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
       if (generation.current === request) { setStatus(next); setError(null); }
       return facts;
     } catch (reason) {
-      if (generation.current === request) { setStatus(null); setError(String(reason)); }
+      if (generation.current === request) { setStatus(null); setError(errorText(reason)); }
       throw reason;
     } finally {
       if (generation.current === request) setChecking(false);
@@ -79,7 +80,7 @@ export function RuntimeDetails() {
       <SettingsRow icon={<Monitor size={16} />} title={t("display")} meta={t("webview2", { version: status?.webview2 ?? t("unknownVersion") })}
         warn={failed && <span role="alert">{problems.map((problem) => t(`problem.${problem}`)).join(" ")}</span>}>{state}</SettingsRow>
       {failed && <SettingsRow icon={<Download size={16} />} title={t("download")} hint={t("advice")}>
-        <button type="button" className="k-btn is-sm" onClick={() => void openRuntimeUpdate().catch((e) => setError(String(e)))}><span className="k-label">{t("open")}</span></button>
+        <button type="button" className="k-btn is-sm" onClick={() => void openRuntimeUpdate().catch((e) => setError(errorText(e)))}><span className="k-label">{t("open")}</span></button>
       </SettingsRow>}
       <SettingsRow icon={<RefreshCw size={16} />} title={t("recheck")} hint={t("recheckHint")}>
         <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch(() => {})}><span className="k-label">{t("check")}</span></button>

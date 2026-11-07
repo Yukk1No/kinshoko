@@ -8,7 +8,7 @@ import { PermanentDeleteConfirm } from "./SelectionPanel";
 import { Switch } from "../ui/Switch";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
-import { describeCommandError } from "../ipc/commandError";
+import { describeCommandError, errorText } from "../ipc/commandError";
 import { isCursorExpired, isLensChanged, moveFolder, revealLibrary, unregisterLibrary, workspaceDirectories } from "../ipc";
 import { acceptsDrag, DRAG_FOLDER, DRAG_FOLDER_LIBRARY, LAST, SidebarPane } from "./SidebarPane";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
@@ -108,7 +108,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
   const [trashList, setTrashList] = useState(false);
   /** 正在确认清空回收站的图库。 */
   const [emptying, setEmptying] = useState<{ libraryId: string; name: string } | null>(null);
-  const reveal = (libraryId: string) => { revealLibrary(libraryId).catch((e) => onError(t("scope.revealFailed", { error: String(e) }))); };
+  const reveal = (libraryId: string) => { revealLibrary(libraryId).catch((e) => onError(t("scope.revealFailed", { error: errorText(e) }))); };
   // 移除完成时按那时的范围判断：正浏览这个图库（任一范围）就回到“全部图片”（同时清掉选择），
   // 不再向已取消登记的图库请求浏览。
   const latestScope = useRef(scope);

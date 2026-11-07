@@ -48,7 +48,7 @@ describe("主窗口的更新通知", () => {
       if (cmd === "update_status") return { state: "available", version: "0.2.0", notes: null };
       if (cmd === "install_update") {
         attempts += 1;
-        return attempts === 1 ? Promise.reject("签名校验失败") : new Promise(() => {});
+        return attempts === 1 ? Promise.reject({ code: "message", message: "签名校验失败" }) : new Promise(() => {});
       }
       return null;
     });

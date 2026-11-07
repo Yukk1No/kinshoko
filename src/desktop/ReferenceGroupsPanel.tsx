@@ -10,7 +10,7 @@ import { draftCaptureSave, type CaptureSaveDraft, type CaptureSavePlan } from ".
 import { GroupNameForm } from "./GroupNameForm";
 import { useToast } from "../ui/Toast";
 import { ago } from "./relativeTime";
-import { describeCommandError, unavailableReasonText } from "../ipc/commandError";
+import { describeCommandError, errorText, unavailableReasonText } from "../ipc/commandError";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -76,7 +76,7 @@ export function ReferenceGroupsPanel() {
   const reload = useCallback(() => {
     referenceGroups()
       .then(setGroups)
-      .catch((e) => toast.error(String(e)));
+      .catch((e) => toast.error(errorText(e)));
     registeredLibraries()
       .then((list) => {
         setLibraryNames(new Map(list.map((r) => [r.library.id, r.library.name])));
@@ -107,7 +107,7 @@ export function ReferenceGroupsPanel() {
       const value = await action();
       if (done) tell(done(value));
     } catch (e) {
-      toast.error(String(e));
+      toast.error(errorText(e));
     }
   };
 

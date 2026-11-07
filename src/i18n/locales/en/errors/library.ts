@@ -1,5 +1,6 @@
 /** Library and device registration errors。 */
 export default {
+  generic: "Something went wrong. Details are in the run log.",
   unknown: "The operation didn't finish (error code {{code}}): {{raw}}",
 
   invalidLibraryName: "The library name can't be empty",

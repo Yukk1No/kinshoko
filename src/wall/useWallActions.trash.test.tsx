@@ -15,7 +15,7 @@ const failing = (reasons: Record<string, string>) => mockIPC((cmd, args) => {
   calls.push({ cmd, args: args as Record<string, unknown> });
   if (cmd !== EDIT_SOURCES) return null;
   const libraries = [...new Set((args as { targets: Target[] }).targets.map((t) => t.libraryId))];
-  return libraries.filter((id) => id in reasons).map((libraryId) => ({ libraryId, error: reasons[libraryId] }));
+  return libraries.filter((id) => id in reasons).map((libraryId) => ({ libraryId, error: { code: "message", message: reasons[libraryId] } }));
 });
 
 it("移到回收站不先确认，轻提示里的“撤销”把同一批图还原，各一次批量调用", async () => {
@@ -63,7 +63,7 @@ it("一次删除 N 张图只调一次批量命令，带上每张图的来源；�
 });
 
 it("点删除后先移走卡片，不等后端；失败的图库那部分放回原位并给出原因（#290）", async () => {
-  let answer: ((failed: { libraryId: string; error: string }[]) => void) | undefined;
+  let answer: ((failed: { libraryId: string; error: unknown }[]) => void) | undefined;
   mockIPC((cmd, args) => {
     calls.push({ cmd, args: args as Record<string, unknown> });
     return cmd === EDIT_SOURCES ? new Promise((resolve) => { answer = resolve; }) : null;
@@ -77,7 +77,7 @@ it("点删除后先移走卡片，不等后端；失败的图库那部分放回�
   expect(removeCards).toHaveBeenCalledWith(cards);
   expect(onChanged).not.toHaveBeenCalled();
   await waitFor(() => expect(answer).toBeTypeOf("function"));
-  await act(async () => answer!([{ libraryId: "L2", error: "资料库暂时不可用" }]));
+  await act(async () => answer!([{ libraryId: "L2", error: { code: "message", message: "资料库暂时不可用" } }]));
   await waitFor(() => expect(onChanged).toHaveBeenCalled());
   expect(putBack).toHaveBeenCalledWith([cards[1], cards[2]]);
   expect(onError).toHaveBeenCalledWith("有图库没有整理完。「私人收藏」：资料库暂时不可用");
@@ -100,7 +100,7 @@ it("另一个资料库里那份来源仍在视图里的卡片不先移走：删�
 it("批量命令整个失败时全部放回并给出原因；不移走卡片的整理不先移走", async () => {
   mockIPC((cmd, args) => {
     calls.push({ cmd, args: args as Record<string, unknown> });
-    return cmd === EDIT_SOURCES ? Promise.reject("安全模式刚切换") : null;
+    return cmd === EDIT_SOURCES ? Promise.reject({ code: "message", message: "安全模式刚切换" }) : null;
   });
   const putBack = vi.fn();
   const removeCards = vi.fn((_cards: BrowserCard[]) => putBack);

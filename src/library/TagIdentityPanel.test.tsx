@@ -84,7 +84,7 @@ it("offers an explicit provider publication retry without discarding the saved a
     if (cmd.endsWith("inspect_tag_catalog")) return workspace;
     if (cmd.endsWith("publish_tag_definitions")) {
       expect(args).toEqual({ libraryId: "b" });
-      if (++attempt === 1) throw new Error("标签定义未保存：磁盘已满。程序中的对应已保留，请重试。");
+      if (++attempt === 1) throw { code: "message", message: "标签定义未保存：磁盘已满。程序中的对应已保留，请重试。" };
       return workspace;
     }
   });
@@ -109,7 +109,7 @@ it("keeps a correction publication failure through queued and later vocabulary r
   let inspections = 0;
   mockIPC((cmd) => {
     if (cmd.endsWith("inspect_tag_catalog")) {
-      if (++inspections === 4) throw new Error("自动读取暂时失败");
+      if (++inspections === 4) throw { code: "message", message: "自动读取暂时失败" };
       return inspections === 1 ? workspace : corrected;
     }
     if (cmd.endsWith("correct_tag_mapping")) return pending;
@@ -122,7 +122,7 @@ it("keeps a correction publication failure through queued and later vocabulary r
   fireEvent.click(within(row).getByRole("button", { name: "保存对应" }));
   await act(async () => {
     await emit("library-event", { kind: "vocabularyChanged", libraryId: "b", revision: 3 });
-    rejectCorrection(failure);
+    rejectCorrection({ code: "message", message: failure } as never);
     await pending.catch(() => {});
   });
   await waitFor(() => expect(inspections).toBe(2));

@@ -18,6 +18,7 @@ import {
 } from "../ipc";
 import { ago } from "./relativeTime";
 import { formatMoment } from "../i18n/format";
+import { errorText } from "../ipc/commandError";
 
 /** 当天只显示时间，其他天带日期，免得跨天的两条同是“09:05”分不清。 */
 const time = (ms: number) => formatMoment(ms, { todayAsTime: true });
@@ -59,7 +60,7 @@ export function CaptureHistoryPanel({ request, onRequestHandled }: { request?: {
   }, []);
 
   const run = (action: Promise<unknown>) => {
-    action.catch((e) => toast.error(String(e)));
+    action.catch((e) => toast.error(errorText(e)));
   };
 
   return (

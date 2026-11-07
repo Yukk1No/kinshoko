@@ -3,6 +3,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { closeImportPreview, onSafeModeSetting, onWorkspaceChanged, openImportPreview, readImportPreview } from "../ipc";
+import { errorText } from "../ipc/commandError";
 
 /**
  * 本次封印重复项的预览（#78 故事 42、43）：只展开这一次导入的重复项，全局安全模式保持开启；
@@ -30,7 +31,7 @@ export function SealedImportPreview({ libraryId, taskId, onClose }: { libraryId:
         const url = URL.createObjectURL(new Blob([bytes])); urls.add(url);
         setImages(previous => [...previous, { id, url }]);
       }
-    }).catch(error => { if (alive) { setProblem(String(error)); for (const url of urls) URL.revokeObjectURL(url); urls.clear(); setImages([]); void closeImportPreview(sessionId).catch(() => {}); } });
+    }).catch(error => { if (alive) { setProblem(errorText(error)); for (const url of urls) URL.revokeObjectURL(url); urls.clear(); setImages([]); void closeImportPreview(sessionId).catch(() => {}); } });
     return () => {
       alive = false; for (const url of urls) URL.revokeObjectURL(url); urls.clear();
       void closeImportPreview(sessionId).catch(() => {});

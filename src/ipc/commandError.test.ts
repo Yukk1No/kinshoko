@@ -75,3 +75,17 @@ it("不是命令错误的失败原样交回", async () => {
   expect(errorText({ code: "cursorExpired" })).toBe("浏览结果已变化，请从头重新浏览");
   expect(errorCode("浏览结果已变化，请从头重新浏览")).toBeUndefined();
 });
+
+it("插件失败与前端异常只显示通用说明，原文写进运行日志", async () => {
+  const logged: string[] = [];
+  mockIPC((cmd, args) => { if (cmd === "log_frontend") logged.push((args as { message: string }).message); });
+  expect(errorText(new TypeError("Cannot read properties of undefined"))).toBe("出了点问题，详情在运行日志里");
+  expect(errorText("dialog plugin: permission denied")).toBe("出了点问题，详情在运行日志里");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(logged).toEqual([
+    "Unexpected error: TypeError: Cannot read properties of undefined",
+    "Unexpected error: dialog plugin: permission denied",
+  ]);
+  await i18n.changeLanguage("en");
+  expect(errorText(new Error("x"))).toBe("Something went wrong. Details are in the run log.");
+});
