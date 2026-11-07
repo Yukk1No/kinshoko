@@ -150,14 +150,16 @@ export function LibraryWorkspace({
     selected, setSelected, loadedCards, workspaceScope, sources, setSources, hidden, viewing, inspectorWidth, inspectorShown, onInspectorShown,
     fitPanel: (width) => fitPanes(bodyWidth, width, paneOpen && !isNarrow(bodyWidth, width)).inspector,
   });
-  const { selectionLibrary, selectedCards, inspected, panelIds, inspectorOpen, inspectorMoving, draggedWidth, toggleInspector, openSources } = inspector;
+  const { selectionLibrary, selectedCards, inspected, panelIds, inspectorOpen, draggedWidth, toggleInspector, openSources } = inspector;
   useInspectorShortcut(toggleInspector, hidden || viewing !== null);
   const [sidebarElement, setSidebarElement] = useState<HTMLElement | null>(null);
   const panes = usePaneFold({ body: bodyWidth, inspector: inspectorOpen ? inspector.panelWidth : 0, paneOpen, onPaneOpen });
-  // 侧栏开合时图片墙一开始就按终点宽度排，卡片随侧栏一起滑到位；浮在墙上的侧栏不占墙的宽度。
-  // 窄窗口里详情面板会同时让位或收回，它的变化一并算进终点。
-  const sidebarSlide = usePanelSlide(sidebarElement, panes.floating ? null : panes.sidebar,
-    { element: inspector.inspectorElement, finalWidth: inspectorOpen ? inspector.shownWidth : 0 });
+  // 面板开合时图片墙一开始就按终点宽度排，卡片随面板一起滑到位；浮在墙上的侧栏不占墙的宽度。
+  // 窄窗口里两边会一起让位或收回，变化一并算进终点。
+  const panelSlide = usePanelSlide([
+    { element: sidebarElement, finalWidth: panes.floating ? null : panes.sidebar },
+    { element: inspector.inspectorElement, finalWidth: inspectorOpen ? inspector.shownWidth : 0 },
+  ]);
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
   const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
@@ -256,8 +258,8 @@ export function LibraryWorkspace({
             conditions={tree}
             reloadKey={reloadKey}
             safeMode={safe}
-            holdReflow={inspectorMoving || draggedWidth !== null}
-            settle={sidebarSlide}
+            holdReflow={draggedWidth !== null}
+            settle={panelSlide}
             selected={selected}
             onSelectionChange={(next) => {
               // 来源按钮打开的整理只对那一张：画师改了选择，面板跟着选择走。

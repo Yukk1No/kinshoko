@@ -3,7 +3,6 @@ import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceCard as SourcesCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { useInspectorWidth } from "../shell/InspectorResizer";
-import { useWidthTransition } from "../shell/useWidthTransition";
 import type { BrowserCard } from "../wall/Wall";
 
 /** 详情面板（#98）：整理哪些图、是否打开、宽度与开合过渡。 */
@@ -76,9 +75,8 @@ export function useWorkspaceInspector({
     setSources(null);
     setSelected((previous) => previous.size === 1 && previous.has(viewing.id) ? previous : new Set([viewing.id]));
   }, [viewing]); // eslint-disable-line react-hooks/exhaustive-deps
-  // 详情面板开合的宽度过渡中图片墙不逐帧重排，过渡结束后重排一次（#162）；拖动边缘时同样，松手后重排（#157）。
   const [inspectorElement, setInspectorElement] = useState<HTMLElement | null>(null);
-  const inspectorMoving = useWidthTransition(inspectorElement);
+  // 拖动边缘时图片墙不逐帧重排，松手后重排一次（#157）。
   const [draggedWidth, setDraggedWidth] = useState<number | null>(null);
   const panelWidth = useInspectorWidth(draggedWidth ?? inspectorWidth);
   const shownWidth = fitPanel ? fitPanel(panelWidth) : panelWidth;
@@ -102,7 +100,7 @@ export function useWorkspaceInspector({
 
   return {
     selectionKey, selectionLibrary, selectedCards, eligible, inspected, inspectorContent, panelIds, inspectorOpen,
-    inspectorElement, setInspectorElement, inspectorMoving, shownWidth, draggedWidth, setDraggedWidth, panelWidth, closeInspector, openSources, closeSources, toggleInspector,
+    inspectorElement, setInspectorElement, shownWidth, draggedWidth, setDraggedWidth, panelWidth, closeInspector, openSources, closeSources, toggleInspector,
   };
 }
 
