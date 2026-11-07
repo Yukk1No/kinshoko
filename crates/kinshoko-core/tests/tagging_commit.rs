@@ -467,6 +467,36 @@ fn searching_for_unfinished_tagging_finds_the_images_that_could_not_be_tagged() 
     assert_eq!(search(true), sorted(vec![done, waiting]));
 }
 
+// 打不上标的记录变了要通知界面：图片墙按「自动标签未完成」查找的结果与详情跟着变（#475 评审）。
+#[test]
+fn recording_and_retrying_failures_tell_the_interface_which_images_changed() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, id) = library_with_image(&dir.path().join("lib"));
+    let events = library.events();
+    let changed = |events: &std::sync::mpsc::Receiver<LibraryEvent>| -> Vec<String> {
+        events
+            .try_iter()
+            .flat_map(|e| match e {
+                LibraryEvent::ImagesChanged { image_ids, .. } => image_ids,
+                _ => vec![],
+            })
+            .collect()
+    };
+    library
+        .finish_tagging(&model(), &id, TaggingOutcome::BadImage("无法解码".into()))
+        .unwrap();
+    assert_eq!(changed(&events), vec![id.clone()]);
+    library
+        .retry_failed_tagging(&model(), RetryTagging::AllFailed)
+        .unwrap();
+    assert_eq!(changed(&events), vec![id.clone()]);
+    // 没有清掉什么时不通知。
+    library
+        .retry_failed_tagging(&model(), RetryTagging::AllFailed)
+        .unwrap();
+    assert!(changed(&events).is_empty());
+}
+
 fn failed(unreadable: u32, crashed: u32) -> FailedTagging {
     FailedTagging {
         unreadable,

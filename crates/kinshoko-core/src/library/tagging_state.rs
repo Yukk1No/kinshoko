@@ -7,7 +7,7 @@ use ts_rs::TS;
 
 use super::rating::require_image;
 use super::tags::FactSource;
-use super::{Error, Inner, now_ms};
+use super::{Error, Inner, LibraryEvent, now_ms};
 
 /// 一张图的打标结果。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -172,19 +172,39 @@ pub(super) fn retry_failed_tagging(
     which: RetryTagging,
 ) -> Result<u32, Error> {
     let source = source.clone();
-    inner.writer.run(move |conn| {
+    let cleared = inner.writer.run(move |conn| {
         let sql = match which {
             RetryTagging::CrashedOnly => {
                 "DELETE FROM tagging_state
-                 WHERE source = ?1 AND status = 'failed' AND failure = 'crashed'"
+                 WHERE source = ?1 AND status = 'failed' AND failure = 'crashed'
+                 RETURNING image_id"
             }
             RetryTagging::AllFailed => {
-                "DELETE FROM tagging_state WHERE source = ?1 AND status = 'failed'"
+                "DELETE FROM tagging_state WHERE source = ?1 AND status = 'failed'
+                 RETURNING image_id"
             }
         };
-        let cleared = conn.execute(sql, [source.as_str()])?;
-        Ok::<_, Error>(u32::try_from(cleared).unwrap_or(u32::MAX))
-    })
+        let mut stmt = conn.prepare(sql)?;
+        let ids = stmt
+            .query_map([source.as_str()], |r| r.get(0))?
+            .collect::<Result<Vec<String>, _>>()?;
+        Ok::<_, Error>(ids)
+    })?;
+    let count = u32::try_from(cleared.len()).unwrap_or(u32::MAX);
+    // 查找条件「自动标签未完成」与详情里的未完成一行都跟着变（#475）。
+    failures_changed(inner, cleared);
+    Ok(count)
+}
+
+/// 打不上标的记录变了：这些图的详情与按「自动标签未完成」查找的结果要重新读取（#475）。
+fn failures_changed(inner: &Inner, image_ids: Vec<String>) {
+    if image_ids.is_empty() {
+        return;
+    }
+    inner.hub.publish(LibraryEvent::ImagesChanged {
+        library_id: inner.info.id.clone(),
+        image_ids,
+    });
 }
 
 pub(super) fn finish_tagging(
@@ -194,12 +214,17 @@ pub(super) fn finish_tagging(
     outcome: TaggingOutcome,
 ) -> Result<(), Error> {
     let (source, id) = (source.clone(), image_id.to_owned());
+    let failed = outcome != TaggingOutcome::Done;
     inner.writer.run(move |conn| {
         let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         record_tagging_in(&tx, &source, &id, &outcome)?;
         tx.commit()?;
         Ok::<_, Error>(())
-    })
+    })?;
+    if failed {
+        failures_changed(inner, vec![image_id.to_owned()]);
+    }
+    Ok(())
 }
 
 pub(super) fn record_tagging_in(
