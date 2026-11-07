@@ -1,4 +1,4 @@
-// 按钮质感（方案 A）的日间、夜间截图：欢迎页、主按钮悬停、空图库、设置几页、多选、清空回收站的确认对话框。
+// 按钮质感（方案 A）的日间、夜间截图：欢迎页、新建图库页、空图库与主按钮悬停、设置几页、多选、清空回收站的确认对话框。
 // 夜间用 :root[data-theme="dark"] 强制，与系统深色走同一套令牌。
 // Usage: node e2e/button-material.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
 import { spawn, spawnSync } from "node:child_process";
@@ -138,9 +138,14 @@ try {
   await session.rect({ width: 1440, height: 900 });
   await until("welcome", () => session.exec("return Boolean(document.querySelector('#welcome-title'));")); await settle();
 
-  // 欢迎页：主按钮和普通按钮，再截主按钮悬停。
+  // 欢迎页，再进新建图库页（小按钮与还不能点的主按钮）。
   await step("welcome", () => session.shot("01-welcome"));
-  await step("welcome hover", async () => { await session.hover(".welcome-card .k-btn.is-primary"); await settle(); await session.shotElement(".welcome-card", "02-welcome-primary-hover"); await session.park(); });
+  await step("create page", async () => {
+    await session.click("//button[contains(@class, 'welcome-choice') and contains(@class, 'is-main')]");
+    await until("create page", () => session.exec("return Boolean(document.querySelector('.k-btn.is-primary'));"), 8000); await settle();
+    await session.park(); await session.shot("02-create-page");
+    await escape(); await settle();
+  });
 
   const paths = sizes.map(([w, h], i) => { const path = join(work, `ref-${i + 1}.png`); png(path, w, h, palette[i]); return path; });
   const parent = join(work, "libraries"); mkdirSync(parent, { recursive: true });
@@ -152,6 +157,10 @@ try {
   await until("empty wall", () => session.exec("return Boolean(document.querySelector('.wall-empty'));"));
   await settle(); await closeToasts(); await settle();
   await step("empty library", () => session.shot("03-empty-library"));
+  await step("empty library hover", async () => {
+    await session.hover(".wall-empty .k-btn.is-primary"); await settle();
+    await session.shotElement(".wall-empty", "03b-empty-library-primary-hover"); await session.park();
+  });
 
   await step("import", async () => {
     await session.invoke("start_import", { libraryId: info.id, source: { paths } });
@@ -170,17 +179,19 @@ try {
     await escape(); await settle();
   });
 
-  // 危险按钮：两张图移到回收站，再清空回收站的确认对话框。
+  // 多选操作条；两张图移到回收站，再从回收站的右键菜单清空，截危险按钮的确认对话框。
   await step("empty trash dialog", async () => {
     await pick(await card(0), true); await pick(await card(1), true);
     await until("selection bar", () => session.exec("return Boolean(document.querySelector('[role=toolbar][aria-label=已选参考图操作]'));"), 8000); await settle();
-    await session.shot("09-multi-select");
-    await session.exec("(document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })); return true;");
+    await session.park(); await session.shot("09-multi-select");
+    await session.click("//*[@role='toolbar' and @aria-label='已选参考图操作']//button[contains(@aria-label, '回收站') or contains(., '回收站')]");
     await settle(); await closeToasts().catch(() => {});
-    await session.click("//*[contains(., '回收站') and (self::button or @role='treeitem' or self::a)]"); await settle();
-    await session.click("//button[contains(., '清空')]");
+    await until("trash count", () => session.exec("const b = document.querySelector('button.sidebar-item[title] .k-row-icon') && [...document.querySelectorAll('button.sidebar-item')].find(x => x.textContent.includes('回收站')); return Boolean(b && !b.disabled && b.querySelector('.sidebar-count')?.textContent.trim());"), 10000);
+    await session.exec("const b = [...document.querySelectorAll('button.sidebar-item')].find(x => x.textContent.includes('回收站')); const r = b.getBoundingClientRect(); b.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 })); return true;");
+    await settle();
+    await session.click("//*[@role='menuitem' and contains(., '清空')]");
     await until("confirm", () => session.exec("return Boolean(document.querySelector('.permanent-delete .k-btn.is-danger:not(:disabled)'));"), 10000); await settle();
-    await session.shot("10-empty-trash-confirm");
+    await session.park(); await session.shot("10-empty-trash-confirm");
     await escape(); await settle();
   });
   console.log(`Evidence: ${work}`);
