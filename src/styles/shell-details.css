@@ -1,6 +1,6 @@
 /* Accepted tag-group popovers/chips, adapted from the fixed prototype styles. */
 .groupbar { flex: none; display: flex; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--bg); position: relative; z-index: 3; flex-wrap: wrap; }
-.group-btn { display: flex; align-items: center; gap: 4px; height: 28px; padding: 0 8px 0 10px; border-radius: var(--r-s); color: var(--ink-2); transition: background-color var(--t) var(--ease), color var(--t) var(--ease); }
+.group-btn { display: flex; border: 0; background: transparent; align-items: center; gap: 4px; height: 28px; padding: 0 8px 0 10px; border-radius: var(--r-s); color: var(--ink-2); transition: background-color var(--t) var(--ease), color var(--t) var(--ease); }
 .group-btn:hover, .group-btn[data-popup-open] { background: var(--hover); color: var(--ink); }
 .group-btn.has-picked { color: var(--ink); font-weight: 500; }
 .group-btn svg { color: var(--ink-3); transition: transform var(--t-slow) var(--spring); }

@@ -37,7 +37,7 @@ async function show(scope: WorkspaceScope, value = forest(), extra: Partial<Para
     if (answer instanceof Error) throw answer.message;
     return answer ?? null;
   });
-  const view = render(<WorkspacePane status={{ revision: "r", libraries: registrations }} scope={scope} safeMode reloadKey={0} onScope={onScope} onError={onError} {...extra} />);
+  const view = render(<ToastProvider><WorkspacePane status={{ revision: "r", libraries: registrations }} scope={scope} safeMode reloadKey={0} onScope={onScope} onError={onError} {...extra} /></ToastProvider>);
   await settle(); await settle();
   return view;
 }
@@ -130,11 +130,11 @@ it("文件夹：菜单项与表一致，顶层文件夹不能“移到顶层”�
   await show(inA({ kind: "all" }));
   const top = within(section("A")).getByRole("button", { name: "人物（1 张）" });
   const menu = await openOn(top, "人物 的操作");
-  expect(rows(menu)).toEqual(["新建子文件夹", "重命名F2", "移到顶层", "删除文件夹…"]);
+  expect(rows(menu)).toEqual(["新建子文件夹", "重命名F2", "移到顶层", "删除文件夹"]);
   expect(within(menu).getAllByRole("separator")).toHaveLength(2);
   expect(enabled(menu, "移到顶层")).toBe(false);
   const danger = within(menu).getAllByRole("menuitem").filter((item) => item.className.includes("is-danger"));
-  expect(danger.map((item) => item.textContent)).toEqual(["删除文件夹…"]);
+  expect(danger.map((item) => item.textContent)).toEqual(["删除文件夹"]);
   fireEvent.keyDown(menu, { key: "Escape" });
   await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 
@@ -173,32 +173,29 @@ it("文件夹：新建子文件夹建在它里面；重命名可从菜单或按 
   ]);
 });
 
-it("删除文件夹先确认，写明图片不删、子文件夹一并删除；正在看的文件夹被删后回到该图库的全部", async () => {
+it("删除文件夹不先确认，直接删并给“撤销”；正在看的文件夹被删后回到该图库的全部；撤销把删除返回的内容原样放回", async () => {
   await show(inA({ kind: "folderTree", id: "A-child" }));
+  const deleted = { folders: [{ id: "A-root", name: "人物", parentId: null, ord: 0, createdAt: 1 }], members: [], decisions: [], eagle: [] };
+  answers["plugin:library|delete_folder"] = deleted;
   const top = within(section("A")).getByRole("button", { name: "人物（1 张）" });
-  fireEvent.click(within(await openOn(top, "人物 的操作")).getByRole("menuitem", { name: "删除文件夹…" }));
-  let dialog = await screen.findByRole("alertdialog", { name: "删除文件夹" });
-  expect(dialog.textContent).toContain("删除文件夹「人物」？");
-  expect(dialog.textContent).toContain("图片不会删除");
-  expect(dialog.textContent).toContain("回到未归类");
-  expect(dialog.textContent).toContain("1 个子文件夹也会一并删除");
-  fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
-  await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
-  expect(calls).toEqual([]);
-
-  fireEvent.click(within(await openOn(top, "人物 的操作")).getByRole("menuitem", { name: "删除文件夹…" }));
-  dialog = await screen.findByRole("alertdialog", { name: "删除文件夹" });
-  fireEvent.click(within(dialog).getByRole("button", { name: "删除文件夹" }));
+  fireEvent.click(within(await openOn(top, "人物 的操作")).getByRole("menuitem", { name: "删除文件夹" }));
   await waitFor(() => expect(calls).toEqual([{ command: "plugin:library|delete_folder", args: { libraryId: "A", folderId: "A-root" } }]));
+  expect(screen.queryByRole("alertdialog")).toBeNull();
   await waitFor(() => expect(onScope).toHaveBeenLastCalledWith(inA({ kind: "all" })));
-  await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+  expect(await screen.findByText("已删除文件夹")).toBeTruthy();
+
+  calls.length = 0;
+  fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+  await waitFor(() => expect(calls).toEqual([{ command: "plugin:library|restore_folder", args: { libraryId: "A", deleted } }]));
 });
 
-it("没有子文件夹的文件夹：确认框不提子文件夹", async () => {
+it("撤销失败时报错", async () => {
   await show(inA({ kind: "all" }));
-  fireEvent.click(within(await openOn(within(section("A")).getByRole("button", { name: "动作（1 张）" }), "动作 的操作")).getByRole("menuitem", { name: "删除文件夹…" }));
-  const dialog = await screen.findByRole("alertdialog", { name: "删除文件夹" });
-  expect(dialog.textContent).not.toContain("子文件夹");
+  answers["plugin:library|delete_folder"] = { folders: [], members: [], decisions: [], eagle: [] };
+  answers["plugin:library|restore_folder"] = new Error("放回失败");
+  fireEvent.click(within(await openOn(within(section("A")).getByRole("button", { name: "动作（1 张）" }), "动作 的操作")).getByRole("menuitem", { name: "删除文件夹" }));
+  fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
+  await waitFor(() => expect(onError).toHaveBeenCalledWith("放回失败"));
 });
 
 it("回收站：清空回收站先列出将永久删除的张数，确认后按预览的令牌删除", async () => {

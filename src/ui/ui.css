@@ -140,6 +140,7 @@
 .k-dock-item.is-primary { background: var(--ink); color: var(--bg); }
 .k-dock-item.is-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 88%, var(--bg)); color: var(--bg); }
 .k-dock-item.is-danger:hover:not(:disabled) { color: var(--danger); background: var(--hover); }
+.k-dock-item:disabled, .k-import:disabled { opacity: 0.5; cursor: default; }
 .k-dock-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .k-dock-sel { position: absolute; inset: 0; border-radius: var(--r); background: var(--accent-soft); }
 .k-dock-icon { position: relative; display: grid; place-items: center; }
