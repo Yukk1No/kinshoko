@@ -20,7 +20,6 @@ export function TagGroupsDialog({ open, onOpenChange, safe, generation, onBrowse
         <Dialog.Popup className="k-dialog k-groups-dialog">
           <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("close")}><X size={16} aria-hidden="true" /></Dialog.Close>
           <Dialog.Title className="k-dialog-title">{t("dialogTitle")}</Dialog.Title>
-          <Dialog.Description className="k-dialog-desc">{t("dialogLead")}</Dialog.Description>
           <TagGroupsPane
             safe={safe}
             generation={generation}

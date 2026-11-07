@@ -139,10 +139,10 @@ it("running import does not claim that content is complete before the actual rep
   }, { shouldMockEvents: true });
   render(<SaveDestinationProvider safe><ImportMenu enabled running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider>);
   await screen.findByText("放到 保存库 / 未归类");
-  expect(screen.queryByText("已导入，正在把标签定义存进图库…")).toBeNull();
+  expect(screen.queryByText("已导入，正在把标签信息存进图库…")).toBeNull();
   receipt.progress = { done: 2000, total: 2000 };
   receipt.report = { items: [], cancelled: false, fromEagle: false, eagleMissing: 0, eagleRelocations: [] };
-  expect(await screen.findByText("已导入，正在把标签定义存进图库…")).toBeTruthy();
+  expect(await screen.findByText("已导入，正在把标签信息存进图库…")).toBeTruthy();
 });
 
 it("保存位置读取一直遇到“浏览结果已变化”时最多重试 3 次，然后显示问题", async () => {

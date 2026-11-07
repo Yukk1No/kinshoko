@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { ChevronLeft, FolderOpen, Lightbulb } from "lucide-react";
+import { ChevronLeft, FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { createLibrary, createLibraryUnopened, errorText, pickFolder, picturesFolder } from "../ipc";
 import { useSaveDestination } from "./SaveDestination";
@@ -136,13 +136,9 @@ export function CreateLibrary({ onCreated, onBusyChange, onBack, backLabel }: {
   return <div className="welcome">
     <section className="create-library" aria-labelledby={`${ids}-title`}>
       <button type="button" className="welcome-back" disabled={busy} onClick={onBack}><ChevronLeft size={14} aria-hidden="true" /><span className="k-label">{backLabel}</span></button>
-      <div>
-        <h1 id={`${ids}-title`}>{t("create.title")}</h1>
-        <p className="create-library-desc">{t("create.lead")}</p>
-      </div>
+      <h1 id={`${ids}-title`}>{t("create.title")}</h1>
       <NewLibraryForm opens onCreated={onCreated} onBusyChange={(b) => { setBusy(b); onBusyChange?.(b); }} />
     </section>
-    <p className="welcome-tip"><Lightbulb size={14} aria-hidden="true" />{t("welcome.eagleTip")}</p>
   </div>;
 }
 

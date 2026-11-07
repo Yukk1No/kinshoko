@@ -34,7 +34,7 @@ const point = { x: 50, y: 60 };
 
 it("单张：菜单项与 #102 表一致，快捷键提示在右侧，危险项置底红字", () => {
   const { menu, rows } = show({ kind: "cards", cards: [card("1")], point });
-  expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "复制图片Ctrl C", "移到文件夹", "加入参考组", "内容分级", "在资源管理器中显示", "移到回收站Del"]);
+  expect(rows()).toEqual(["打开Enter", "钉住整图P", "钉住局部F1", "复制图片Ctrl C", "移到文件夹", "加入参考组", "内容分级", "在资源管理器中显示", "移到回收站Del"]);
   const items = within(menu).getAllByRole("menuitem");
   expect(items.at(-1)!.className).toContain("is-danger");
   expect(items.filter((item) => item.className.includes("is-danger"))).toHaveLength(1);
@@ -58,7 +58,7 @@ it("单张：在文件夹范围里多出“移出此文件夹”，多来源时�
     { libraryId: "L2", libraryName: "库二", imageId: "j1", unavailable: null, matches: true, deleted: false },
   ] });
   const { rows, a } = show({ kind: "cards", cards: [twoSources], point }, { kind: "folder", id: "f9" });
-  expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "复制图片Ctrl C", "移到文件夹", "移出此文件夹", "加入参考组", "内容分级", "查看来源", "在资源管理器中显示", "移到回收站Del"]);
+  expect(rows()).toEqual(["打开Enter", "钉住整图P", "钉住局部F1", "复制图片Ctrl C", "移到文件夹", "移出此文件夹", "加入参考组", "内容分级", "查看来源", "在资源管理器中显示", "移到回收站Del"]);
   fireEvent.click(screen.getByRole("menuitem", { name: "移出此文件夹" }));
   expect(a.edit).toHaveBeenCalledWith([twoSources], [{ kind: "removeFromFolder", folderId: "f9" }], true);
 });
@@ -89,7 +89,7 @@ it("单张：各项调用对应的动作", () => {
   expect(a.pin).toHaveBeenCalledWith([one], point);
   cleanup();
   const again = show({ kind: "cards", cards: [one], point });
-  fireEvent.click(screen.getByRole("menuitem", { name: /框选局部钉住/ }));
+  fireEvent.click(screen.getByRole("menuitem", { name: /钉住局部/ }));
   expect(again.a.crop).toHaveBeenCalledWith(one);
   cleanup();
   const third = show({ kind: "cards", cards: [one], point });

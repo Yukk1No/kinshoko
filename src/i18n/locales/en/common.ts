@@ -37,7 +37,6 @@ const common: Translation<typeof zh> = {
     putIn: "Goes to: {{place}}",
     loading: "Loading libraries…",
     unavailable: "This location isn't available right now. Reconnect the original library, or choose another location.",
-    description: "Choose a library and folder.",
     save: "Save",
     cancel: "Cancel",
     saving: "Saving…",

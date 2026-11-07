@@ -45,10 +45,10 @@ const inspector: Translation<typeof zh> = {
     placeholder: "Write something, e.g. what to look at",
     saveLabel: "Save note",
     save: "Save",
-    revertLabel: "Use the source's note",
+    revertLabel: "Restore the source's note",
     revertTitle: "Go back to the note from the source",
     revertEmptyTitle: "The source has no note; going back leaves the note empty",
-    revert: "Use source's",
+    revert: "Restore source note",
   },
   links: "Source links",
   sources: {

@@ -129,7 +129,6 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
       <Dialog.Popup className="k-dialog k-wizard legacy-name-migration">
         <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("close")}><X size={16} aria-hidden="true" /></Dialog.Close>
         <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
-        <Dialog.Description className="k-dialog-desc">{t("lead")}</Dialog.Description>
         <DialogHeight>
         {busy && <p className="k-set-note" role="status">{t("busy")}</p>}
         {error && <p className="k-set-error" role="alert">{error}</p>}
@@ -152,7 +151,6 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
             <div><div className="k-big-tag-name">{shown}</div>
               <div className="k-list-desc">{t("usedIn", { count: group.affectedLibraries.length, libraries: group.affectedLibraries.map(libraryName).join(t("librarySeparator")) })}</div></div>
           </div>
-          {differentOldNames(group) && <p className="k-list-desc is-warn">{t("differentNames")}</p>}
           {group.existingPreference !== null && group.sources.some((source) => source.legacyName !== group.existingPreference) &&
             <p className="k-list-desc is-warn">{t("differsFromPreference", { name: group.existingPreference })}</p>}
           <div className="k-radio-cards" role="radiogroup" aria-label={t("choiceLabel")}>
@@ -162,7 +160,6 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
               <span><span className="k-radio-title">{option.title}</span><span className="k-radio-desc">{option.desc}</span></span>
             </label>)}
           </div>
-          <p className="k-set-note">{t("aliasNote")}</p>
         </>}
         {reviewing && <>
           {previewBusy && <p role="status">{t("checking")}</p>}

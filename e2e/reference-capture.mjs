@@ -129,7 +129,7 @@ try {
   const name = await until("建库引导", () => find("//label[contains(., '图库名称')]/input"));
   await wd("POST", `${base}/element/${name}/clear`, {});
   await wd("POST", `${base}/element/${name}/value`, { text: "T16 原图框选" });
-  await exec("window.__KINSHOKO_TEST_PICKS__=[arguments[0]]", [parent]); await click("选择存放位置…"); await click("建立图库");
+  await exec("window.__KINSHOKO_TEST_PICKS__=[arguments[0]]", [parent]); await click("选择存放位置…"); await click("新建图库");
   await until("测试资料库", () => find("//h1[normalize-space()='T16 原图框选']"));
   await exec("window.__KINSHOKO_TEST_PICKS__=[arguments[0]]", [source]); await click("导入文件夹…");
   const card = await until("导入参考图", () => exec("return document.querySelector('.card')"));

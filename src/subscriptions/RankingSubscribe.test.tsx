@@ -157,7 +157,7 @@ describe("订阅榜单", () => {
     window.__KINSHOKO_TEST_PICKS__ = ["D:/参考图"];
     fireEvent.click(within(create).getByRole("button", { name: "选择存放位置…" }));
     await within(create).findByText("D:/参考图\\我的参考");
-    fireEvent.click(within(create).getByRole("button", { name: "建立图库" }));
+    fireEvent.click(within(create).getByRole("button", { name: "新建图库" }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "新建图库" })).toBeNull());
     await waitFor(() => expect(library.getAttribute("data-value")).toBe("L9"));
     expect((within(dialog).getByRole("checkbox", { name: "周榜" }) as HTMLInputElement).checked).toBe(true);
@@ -205,7 +205,7 @@ describe("订阅榜单", () => {
     }
   });
 
-  it("名单按语言显示榜单名；订阅设置改名次与漫画，名字跟着变", async () => {
+  it("名单按语言显示榜单名；订阅设置重命名次与漫画，名字跟着变", async () => {
     backend([ranking("r1", "day", 50)]);
     page(status());
     expect(await screen.findByRole("button", { name: "日榜 前 50" })).toBeTruthy();

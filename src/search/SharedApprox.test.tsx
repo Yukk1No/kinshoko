@@ -32,12 +32,12 @@ it("workspace search saves forever using shared IDs and preserves once as curren
   mockIPC((cmd,args)=>{calls.push({cmd,args});return undefined;},{shouldMockEvents:true});
   const blue=label("shared-blue","蓝瞳"),aqua=label("shared-aqua","水色瞳");
   render(<SearchBox workspace libraryId="currently-browsed-B" safe generation={1} input={{conditions:[{any:[{kind:"tag",id:blue.id,dismissed:[]}],negate:false}],exact:false}} tree={{conditions:[{any:[{kind:"tag",tag:blue,similar:[{tag:aqua,source:"builtin",of:[blue.id]}]}],negate:false}]}} showSource={false} onChange={value=>changes.push(value)} onError={error=>{throw Error(String(error));}}/>);
-  fireEvent.click(screen.getByRole("button",{name:"不展开“水色瞳”"}));
+  fireEvent.click(screen.getByRole("button",{name:"不带“水色瞳”的相近标签"}));
   fireEvent.click(await screen.findByRole("menuitem",{name:"只这次"}));
   expect(changes).toEqual([{conditions:[{any:[{kind:"tag",id:blue.id,dismissed:[aqua.id]}],negate:false}],exact:false}]);
   expect(calls.some(c=>c.cmd.endsWith("edit_shared_approx"))).toBe(false);
-  fireEvent.click(screen.getByRole("button",{name:"不展开“水色瞳”"}));
-  fireEvent.click(await screen.findByRole("menuitem",{name:"以后都不展开"}));
+  fireEvent.click(screen.getByRole("button",{name:"不带“水色瞳”的相近标签"}));
+  fireEvent.click(await screen.findByRole("menuitem",{name:"以后都不带"}));
   await waitFor(()=>expect(calls.find(c=>c.cmd.endsWith("edit_shared_approx"))?.args).toEqual({edit:{kind:"set",rules:[{a:blue.id,b:aqua.id,relation:"notSimilar"}]},safeMode:true}));
 });
 

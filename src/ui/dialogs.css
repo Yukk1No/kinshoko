@@ -7,10 +7,10 @@
 .k-check input { accent-color: var(--accent-strong); margin: 0; }
 .k-link { border: 0; padding: 0; margin-left: 10px; background: none; color: var(--accent-strong); font: inherit; font-weight: 500; }
 .k-link:hover { text-decoration: underline; }
-.k-btn.is-quiet { background: transparent; box-shadow: none; color: var(--ink-2); }
-.k-btn.is-quiet:hover:not(:disabled) { color: var(--ink); background: var(--hover); }
-.k-btn.is-flush { padding-left: 0; }
-.k-btn.is-flush:hover:not(:disabled) { background: transparent; text-decoration: underline; }
+.k-btn.is-quiet { --k-face: transparent; --k-face-hover: var(--hover); --k-face-press: var(--press); --k-lift: none; --k-lift-hover: none; --k-lift-press: none; color: var(--ink-2); }
+.k-btn.is-quiet:hover:not(:disabled) { color: var(--ink); }
+.k-btn.is-flush { --k-face-hover: transparent; --k-face-press: transparent; padding-left: 0; }
+.k-btn.is-flush:hover:not(:disabled) { text-decoration: underline; }
 .k-btn:disabled { opacity: 0.5; cursor: default; }
 .k-pill { gap: 4px; white-space: nowrap; }
 .k-pill.is-accent { background: var(--accent-soft); color: var(--ink); }

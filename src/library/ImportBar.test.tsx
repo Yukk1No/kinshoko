@@ -147,7 +147,7 @@ it("关闭期间迟到的预览字节不会创建图片，且回执仍需重新�
 });
 
 
-it("展开后是界面系统的对话框：标题与说明用规格原话，关闭按钮可用", async () => {
+it("展开后是界面系统的对话框：标题用规格原话，关闭按钮可用", async () => {
   mockWindows("main");
   mockIPC((cmd) => {
     if (cmd === "plugin:library|open_import_preview") return { id: "session", items: [] };
@@ -158,8 +158,6 @@ it("展开后是界面系统的对话框：标题与说明用规格原话，关�
   const dialog = await screen.findByRole("dialog", { name: "本次封印重复项" });
   expect(dialog.className).toContain("k-dialog");
   expect(dialog.tagName).not.toBe("DIALOG");
-  expect(dialog.textContent).toContain("只展开本次重复项");
-  expect(dialog.textContent).toContain("关闭后重新遮蔽");
   fireEvent.click(within(dialog).getByRole("button", { name: "关闭重复项预览" }));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "本次封印重复项" })).toBeNull());
 });
@@ -197,7 +195,6 @@ describe("导入对话框与右下角卡片（#98）", () => {
     await fromEagle();
     fireEvent.click(await screen.findByRole("button", { name: "导入 主库" }));
     const plan = await screen.findByRole("dialog", { name: "从 Eagle 导入" });
-    expect(within(plan).getByText("原库不会改动。")).toBeTruthy();
     const skip = within(plan).getByRole<HTMLInputElement>("radio", { name: /继续跳过.*之前删掉的不再导入/ });
     const once = within(plan).getByRole<HTMLInputElement>("radio", { name: /这次也导入.*只对这一次有效/ });
     expect(skip.checked).toBe(true);
@@ -240,7 +237,7 @@ describe("导入对话框与右下角卡片（#98）", () => {
     expect(card.textContent).toContain("已存在 1");
     expect(card.textContent).not.toContain("没导入");
     expect(within(card).queryByText("未导入的文件")).toBeNull();
-    const rejected = within(card).getByRole("button", { name: "未导入 2" });
+    const rejected = within(card).getByRole("button", { name: "未导入 2 张" });
     expect(rejected.getAttribute("aria-expanded")).toBe("false");
     expect(within(card).queryByText("读取失败：被占用")).toBeNull();
     fireEvent.click(rejected);
@@ -266,10 +263,10 @@ describe("导入对话框与右下角卡片（#98）", () => {
     const failing = (taskId: string, path: string) => ({ taskId, report: { ...report, items: [{ path, outcome: { kind: "unsupported" } }] } }) as never;
     const ui = (finished: never) => <ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={finished} onStarted={() => {}} onDismissReport={() => {}} />;
     const view = render(ui(failing("task-1", "a.txt")));
-    fireEvent.click(within(await openReceipt()).getByRole("button", { name: "未导入 1" }));
+    fireEvent.click(within(await openReceipt()).getByRole("button", { name: "未导入 1 张" }));
     expect(screen.getByText("a.txt")).toBeTruthy();
     view.rerender(ui(failing("task-2", "b.txt")));
-    expect((await screen.findByRole("button", { name: "未导入 1" })).getAttribute("aria-expanded")).toBe("false");
+    expect((await screen.findByRole("button", { name: "未导入 1 张" })).getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByText("b.txt")).toBeNull();
   });
 });

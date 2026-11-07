@@ -40,8 +40,8 @@ describe("设置：常驻与快捷键", () => {
     await tab("快捷键");
     const capture = screen.getByRole("listitem", { name: "截图" });
     expect(within(capture).getByText("F1")).toBeTruthy();
-    expect(within(capture).getByText("未注册：已被其他程序占用")).toBeTruthy();
-    expect(within(screen.getByRole("listitem", { name: "钉剪贴板" })).getByText("F3")).toBeTruthy();
+    expect(within(capture).getByText("无法使用：已被其他程序占用")).toBeTruthy();
+    expect(within(screen.getByRole("listitem", { name: "钉住剪贴板" })).getByText("F3")).toBeTruthy();
     expect(within(screen.getByRole("listitem", { name: "收起钉图" })).getByText("F4")).toBeTruthy();
     // 安全模式的按键固定，只说明不提供更换。
     expect(within(screen.getByRole("listitem", { name: "安全模式" })).queryByRole("button")).toBeNull();
@@ -115,7 +115,7 @@ describe("设置：常驻与快捷键", () => {
 
   it("更换被拒绝时显示原因，原来的键不变", async () => {
     backend((cmd) => {
-      if (cmd === "rebind_shortcut") throw "这个快捷键已用于“钉剪贴板”";
+      if (cmd === "rebind_shortcut") throw "这个快捷键已用于“钉住剪贴板”";
       return undefined;
     });
     render(<SettingsPanel initialTab="keys" />);
@@ -126,7 +126,7 @@ describe("设置：常驻与快捷键", () => {
 
     expect(await screen.findByRole("alert")).toHaveProperty(
       "textContent",
-      "这个快捷键已用于“钉剪贴板”",
+      "这个快捷键已用于“钉住剪贴板”",
     );
     expect(within(hide).getByText("F4")).toBeTruthy();
   });
@@ -145,7 +145,7 @@ describe("设置：常驻与快捷键", () => {
         : undefined,
     );
     render(<SettingsPanel initialTab="keys" />);
-    const pin = await screen.findByRole("listitem", { name: "钉剪贴板" });
+    const pin = await screen.findByRole("listitem", { name: "钉住剪贴板" });
 
     fireEvent.click(within(pin).getByRole("button", { name: "清除" }));
 

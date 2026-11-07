@@ -134,11 +134,6 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
           {remaining.length ? t("skipAll") : t("done")}
         </button>
       </header>
-      <p>
-        {t("noteBefore")}
-        <span className="no-external" role="img" aria-label={t("noteIcon")} />
-        {t("noteAfter")}
-      </p>
       {mapping && mapping.vocabularySize === 0 && (
         <p>{t("noVocabulary")}</p>
       )}

@@ -69,8 +69,7 @@ describe("设置：备份", () => {
     const where = await screen.findByRole("listitem", { name: "备份位置" });
     expect(where.textContent).toMatch(/还没选/);
     expect(screen.getByRole("list", { name: "图库" })).toBeTruthy();
-    expect(screen.getByText(/恢复不改当前设置/)).toBeTruthy();
-    expect(screen.getByRole<HTMLButtonElement>("button", { name: "立即备份" }).disabled).toBe(true);
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "备份" }).disabled).toBe(true);
     fireEvent.click(within(where).getByRole("button", { name: "选择…" }));
     await screen.findByText("E:\\备份");
     expect(calls.find((c) => c.cmd === "set_backup_target")?.args).toEqual({ target: "E:\\备份" });
@@ -108,7 +107,7 @@ describe("设置：备份", () => {
       return undefined;
     });
     render(<BackupSettings />);
-    fireEvent.click(await screen.findByRole("button", { name: "立即备份" }));
+    fireEvent.click(await screen.findByRole("button", { name: "备份" }));
     await waitFor(() => expect(calls.some((c) => c.cmd === "start_backup")).toBe(true));
     cleanup();
 
@@ -118,8 +117,8 @@ describe("设置：备份", () => {
       return undefined;
     });
     render(<BackupSettings />);
-    expect(await screen.findByText("正在备份：原图 3／10")).toBeTruthy();
-    expect((screen.getByRole("button", { name: "立即备份" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(await screen.findByText("正在备份：原图 3 / 10")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "备份" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("从快照恢复后显示往返检查结果", async () => {
@@ -153,7 +152,7 @@ describe("设置：备份", () => {
     fireEvent.click(await screen.findByRole("button", { name: "选择备份…" }));
     fireEvent.click(await screen.findByRole("button", { name: /^恢复 .*10月5日 08:00 的备份$/ }));
     expect(await screen.findByText("完整")).toBeTruthy();
-    expect(screen.getByText(/原图 12 张哈希一致/)).toBeTruthy();
+    expect(screen.getByText(/原图 12 张已核对/)).toBeTruthy();
     expect(screen.getByText(/主库（恢复）/)).toBeTruthy();
     expect(calls.find((c) => c.cmd === "restore_backup")?.args).toEqual({
       snapshotId: snapshot.id,

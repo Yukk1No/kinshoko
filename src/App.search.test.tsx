@@ -48,7 +48,7 @@ describe("查找", () => {
     expect(sent("plugin:library|resolve_search")[0]).toMatchObject({ libraryId: "L1" });
   });
 
-  it("输入的词命中多个命名空间与别名时，下拉按命名空间与别名列出候选", async () => {
+  it("输入的词命中多个类别与别名时，下拉按类别与别名列出候选", async () => {
     backend(library);
     render(<App />);
     fireEvent.change(await box(), { target: { value: "某某" } });
@@ -153,15 +153,15 @@ describe("近似查找", () => {
     expect(screen.getByRole("button", { name: "精确查找", pressed: true })).toBeTruthy();
   });
 
-  it("关掉一个相近标签时，“只这次”只改本次条件，“以后都不展开”记进个人近似对应表", async () => {
+  it("关掉一个相近标签时，“只这次”只改本次条件，“以后都不带”记进个人近似对应表", async () => {
     backend(library);
     render(<LocalSearchFixture />);
     await pickBlue();
 
-    fireEvent.click(screen.getByRole("button", { name: "不展开“水色发”" }));
+    fireEvent.click(screen.getByRole("button", { name: "不带“水色发”的相近标签" }));
     // 贴着“×”的小菜单：一行说明，两个选项。
     const menu = await screen.findByRole("menu");
-    expect(menu.textContent).toContain("不展开“水色发”：");
+    expect(menu.textContent).toContain("不带“水色发”的相近标签：");
     fireEvent.click(within(menu).getByRole("menuitem", { name: "只这次" }));
     await waitFor(() =>
       expect(lastInput().conditions[0].any[0]).toEqual({ kind: "tag", id: "B", dismissed: ["Q"] }),
@@ -171,8 +171,8 @@ describe("近似查找", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "去掉这个条件" }));
     await pickBlue();
-    fireEvent.click(screen.getByRole("button", { name: "不展开“水色发”" }));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "以后都不展开" }));
+    fireEvent.click(screen.getByRole("button", { name: "不带“水色发”的相近标签" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "以后都不带" }));
     await waitFor(() =>
       expect(sent("plugin:library|set_tag_approx")).toEqual([{ libraryId: "L1", a: "B", b: "Q", relation: "notSimilar" }]),
     );

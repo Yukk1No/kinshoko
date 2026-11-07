@@ -5,7 +5,7 @@ export default {
   restoredOriginalMismatch: "恢复的原文件内容不符：{{file}}",
   backupGroupProblem: "参考组“{{name}}”：{{cause}}",
   backupGroupNewLibrary: "参考组“{{name}}”引用了新的图库，请重新估算备份范围后重试",
-  backupLibraryDefinitions: "图库“{{name}}”的标签定义：{{cause}}",
+  backupLibraryDefinitions: "图库“{{name}}”的标签信息：{{cause}}",
   backupOriginalProblem: "图库“{{name}}”的原图 {{file}}：{{cause}}",
   backupOriginalChanged: "原图内容与图库记录不符（可能被外部改动），这次备份不完整",
   backupOriginalUnreadable: "无法读取原图：{{detail}}",

@@ -2,17 +2,11 @@
 export default {
   welcome: {
     title: "欢迎使用 Kinshoko",
-    lead: "先准备一个图库，用来存放参考图。",
     create: "新建图库",
-    createHint: "在你选的位置新建文件夹",
     open: "打开图库",
-    openHint: "选择已有图库所在的文件夹",
-    eagleTip: "用过 Eagle？建好图库后从“导入”迁入",
-    captureTip: "截图和钉图不需要图库，随时可用",
   },
   create: {
     title: "新建图库",
-    lead: "图片会存进这个新文件夹",
     /** 新图库名称的初始值，画师可以改。 */
     defaultName: "我的参考",
     name: "图库名称",
@@ -21,7 +15,7 @@ export default {
     choose: "选择存放位置…",
     change: "更改…",
     cancel: "取消",
-    submit: "建立图库",
+    submit: "新建图库",
   },
   picker: {
     busy: "正在处理图库…",
@@ -33,7 +27,6 @@ export default {
   },
   manage: {
     title: "管理图库",
-    lead: "移除只是不再显示，文件不会删除。",
     listLabel: "本设备的图库",
     offline: "未连接",
     online: "已连接",
@@ -68,11 +61,11 @@ export default {
     libraryActions: "{{name}} 的操作",
     libraryActionsTitle: "图库操作",
     descendants: "含子文件夹",
-    revealFailed: "无法在资源管理器中打开：{{error}}",
+    revealFailed: "无法在资源管理器中显示：{{error}}",
   },
   libraryMenu: {
     newFolder: "新建文件夹",
-    reveal: "在资源管理器中打开",
+    reveal: "在资源管理器中显示",
     reconnect: "重新连接",
     remove: "从列表移除",
     removed: "已从列表移除",
@@ -99,7 +92,7 @@ export default {
     name: "文件夹名称",
     actions: "{{name}} 的操作",
     newSubfolder: "新建子文件夹",
-    rename: "改名",
+    rename: "重命名",
     moveToTop: "移到顶层",
     delete: "删除文件夹…",
   },
