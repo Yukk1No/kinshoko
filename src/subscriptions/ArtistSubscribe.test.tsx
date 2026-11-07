@@ -231,7 +231,7 @@ describe("订阅画师", () => {
     window.__KINSHOKO_TEST_PICKS__ = ["D:/参考"];
     fireEvent.click(within(create).getByRole("button", { name: "选择存放位置…" }));
     expect(await within(create).findByText("D:/参考\\画师新作")).toBeTruthy();
-    fireEvent.click(within(create).getByRole("button", { name: "建立图库" }));
+    fireEvent.click(within(create).getByRole("button", { name: "新建图库" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "新建图库" })).toBeNull());
     expect(sent("plugin:library|create_library_unopened")).toEqual([{ parent: "D:/参考", name: "画师新作" }]);
@@ -276,7 +276,7 @@ describe("订阅画师", () => {
     window.__KINSHOKO_TEST_PICKS__ = ["D:/参考"];
     fireEvent.click(within(create).getByRole("button", { name: "选择存放位置…" }));
     await within(create).findByText("D:/参考\\我的参考");
-    fireEvent.click(within(create).getByRole("button", { name: "建立图库" }));
+    fireEvent.click(within(create).getByRole("button", { name: "新建图库" }));
     await waitFor(() => expect(subscribe.disabled).toBe(false));
     fireEvent.click(subscribe);
     await waitFor(() => expect(sent("subscription_add")[0]).toMatchObject({ subscriptions: [{ libraryId: "L9" }] }));

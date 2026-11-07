@@ -33,7 +33,7 @@ describe("整理", () => {
     );
   });
 
-  it("新建文件夹放在当前打开的文件夹里，双击改名", async () => {
+  it("新建文件夹放在当前打开的文件夹里，双击重命名", async () => {
     backend(library);
     render(<App />);
     await expandLibrary();
@@ -264,7 +264,7 @@ describe("整理", () => {
         edits: [{ kind: "setNote", text: "看左手" }],
       }),
     );
-    const revert = screen.getByRole("button", { name: "退回来源备注" });
+    const revert = screen.getByRole("button", { name: "改回来源备注" });
     await waitFor(() => expect((revert as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(revert);
     await waitFor(() =>

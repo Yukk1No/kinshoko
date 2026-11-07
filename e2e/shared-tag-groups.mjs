@@ -55,12 +55,12 @@ async function clickGroupControl(name, label) {
   await session.click(xpath);
 }
 async function renameGroup(name, next) {
-  await clickGroupControl(name, `改名标签分组“${name}”`);
+  await clickGroupControl(name, `重命名标签分组“${name}”`);
   await session.set("//input[@aria-label='标签分组名称']", next); await session.key("\uE007");
   await until("renamed group", async () => (await readGroups(await session.invoke("safe_mode"))).some((g) => g.name === next));
 }
 async function addMember(name, text, expected) {
-  await clickGroupControl(name, `给“${name}”加标签`);
+  await clickGroupControl(name, `给“${name}”添加标签`);
   await session.set("//input[@aria-label='挑一个统一标签']", text);
   await until("global candidate", () => session.find(`${groupPath(name)}//li[@role='option' and contains(.,'${expected}')]`));
   await session.click(`${groupPath(name)}//li[@role='option' and contains(.,'${expected}')]`);
@@ -110,7 +110,7 @@ try {
   await until("legacy provenance visible in settings", () => session.exec("return [...document.querySelectorAll('section[aria-label=全局标签分组] .tag-group-origin')].some((node) => node.textContent.includes('角色参考')) && [...document.querySelectorAll('section[aria-label=全局标签分组] .tag-group-origin')].some((node) => node.textContent.includes('画法参考'))"));
   await session.screenshot("legacy-shared-group-provenance.png");
   const firstRow = `${groupPath("发色")}[.//p[contains(.,'角色参考')]]`;
-  await session.click(`${firstRow}//button[@aria-label='改名标签分组“发色”']`);
+  await session.click(`${firstRow}//button[@aria-label='重命名标签分组“发色”']`);
   await session.set("//input[@aria-label='标签分组名称']", "两库发色"); await session.key("\uE007");
   await until("first group renamed only", async () => (await readGroups()).some((g) => g.name === "两库发色"));
   await addMember("两库发色", "紫", "紫发");

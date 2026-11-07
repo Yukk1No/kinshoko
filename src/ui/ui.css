@@ -13,18 +13,24 @@
 }
 
 /* ---- Buttons ---- */
-.k-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: var(--r);
-  font-weight: 500; white-space: nowrap; color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2);
-  transition: background var(--t-fast), transform var(--t-fast) var(--spring); }
+/* 每种按钮只换 --k-* 这几个值，悬停、按下的规则共用；材质令牌见 tokens.css 的 --btn-*。 */
+.k-btn { --k-face: var(--btn-face); --k-face-hover: var(--btn-face-hover); --k-face-press: var(--btn-face-press);
+  --k-lift: var(--btn-lift); --k-lift-hover: var(--btn-lift-hover); --k-lift-press: var(--btn-lift-press);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: var(--r);
+  font-weight: 500; white-space: nowrap; color: var(--ink); background: var(--k-face); box-shadow: var(--k-lift);
+  transition: background var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast) var(--spring); }
 .k-btn:has(> svg:first-child) { padding-left: 10px; } /* optical: an icon's side bearing reads as padding */
-.k-btn:hover:not(:disabled) { background: var(--surface-2); }
-.k-btn:active:not(:disabled) { transform: scale(0.97); }
-.k-btn.is-primary { background: var(--ink); color: var(--bg); box-shadow: none; }
-.k-btn.is-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 88%, var(--bg)); }
-.k-btn.is-ghost { background: transparent; box-shadow: none; color: var(--accent-strong); }
-.k-btn.is-ghost:hover:not(:disabled) { background: var(--accent-soft); }
-.k-btn.is-danger { background: var(--danger-solid); color: var(--on-solid); box-shadow: none; }
-.k-btn.is-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger-solid) 90%, var(--ink)); }
+.k-btn:hover:not(:disabled) { background: var(--k-face-hover); box-shadow: var(--k-lift-hover); }
+.k-btn:active:not(:disabled) { background: var(--k-face-press); box-shadow: var(--k-lift-press); transform: translateY(0.5px); }
+.k-btn.is-primary { --k-face: var(--btn-primary-face); --k-face-hover: var(--btn-primary-face-hover); --k-face-press: var(--btn-primary-face-press);
+  --k-lift: var(--btn-primary-lift); --k-lift-hover: var(--btn-primary-lift); --k-lift-press: var(--btn-primary-lift-press); color: var(--bg); }
+.k-btn.is-danger { --k-face: var(--btn-danger-face); --k-face-hover: var(--btn-danger-face-hover); --k-face-press: var(--btn-danger-face-press);
+  --k-lift: var(--btn-danger-lift); --k-lift-hover: var(--btn-danger-lift); --k-lift-press: var(--btn-danger-lift-press); color: var(--on-solid); }
+.k-btn.is-ghost { --k-face: transparent; --k-face-hover: var(--accent-soft); --k-face-press: var(--accent-soft);
+  --k-lift: none; --k-lift-hover: none; --k-lift-press: none; color: var(--accent-strong); }
+/* 不可用：留细线、去掉投影，实底按钮直接平掉 */
+.k-btn:disabled { --k-lift: var(--btn-lift-disabled); }
+.k-btn:is(.is-primary, .is-danger):disabled { --k-lift: none; }
 .k-btn.is-sm { height: 28px; padding: 0 10px; font-size: 12px; border-radius: var(--r-s); }
 .k-btn.is-sm:has(> svg:first-child) { padding-left: 8px; }
 .k-btn svg { flex: none; }

@@ -17,7 +17,7 @@ it("reports a failed capability as one notice that opens the details and leaves 
   render(<RuntimeProvider><RuntimeNotice hidden={false} onOpen={onOpen} /><button>打开参考图</button></RuntimeProvider>);
   const title = await screen.findByText("运行环境检查未通过");
   expect(title.closest(".k-toast")?.getAttribute("data-tone")).toBe("error");
-  expect(screen.queryByText(/缺少图片解码接口/)).toBeNull();
+  expect(screen.queryByText(/WebView2 版本过旧/)).toBeNull();
   expect(screen.getByRole("button", { name: "打开参考图" })).toHaveProperty("disabled", false);
   fireEvent.click(screen.getByRole("button", { name: "查看", hidden: true }));
   expect(onOpen).toHaveBeenCalledTimes(1);
@@ -56,7 +56,7 @@ it("keeps the reason and the update action inside the settings runtime section",
   const calls: string[] = [];
   failing(calls);
   render(<RuntimeProvider><RuntimeDetails /></RuntimeProvider>);
-  expect((await screen.findByRole("alert")).textContent).toContain("缺少图片解码接口");
+  expect((await screen.findByRole("alert")).textContent).toContain("WebView2 版本过旧");
   expect(screen.getByText("微软 WebView2 下载页")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "打开" }));
   await waitFor(() => expect(calls).toContain("open_runtime_update"));

@@ -2,7 +2,6 @@
 export default {
   close: "关闭",
   title: "确认旧名称",
-  lead: "较早的图库里有不同名称，选一个就好。",
   busy: "正在读取或保存旧名称…",
   libraryOffline: "{{library}}：{{reason}}。重新连接后再确认它的旧名称。",
   saved: "旧名称已确认。",
@@ -12,10 +11,8 @@ export default {
   chosen: "已选 {{chosen, number}} / {{total, number}}",
   usedIn_other: "用在 {{count, number}} 个图库：{{libraries}}",
   librarySeparator: "、",
-  differentNames: "这几个图库的名称不同，请选一个。",
   differsFromPreference: "和你之前定的「{{name}}」不同，确认前看看结果。",
   choiceLabel: "选用的名称",
-  aliasNote: "另一个名字会留作别名，照样能搜到。其他语言的名称不受影响。",
   /** 选项名用 #78 规定的“跟随默认”与“保留为全局偏好”，具体名称紧跟其后。 */
   option: {
     followDefaultNamed: "跟随默认「{{name}}」",

@@ -77,7 +77,7 @@ async function openPicker(beforePicker?: () => Promise<void>) {
   await within(region).findByRole("group", { name: "发色" });
   if (beforePicker) await beforePicker();
   const group = await within(region).findByRole("group", { name: "发色" });
-  fireEvent.click(within(group).getByRole("button", { name: "给“发色”加标签" }));
+  fireEvent.click(within(group).getByRole("button", { name: "给“发色”添加标签" }));
   const input = within(group).getByRole<HTMLInputElement>("combobox", { name: "挑一个标签" });
   fireEvent.change(input, { target: { value: "蓝" } });
   await screen.findByRole("option", { name: /蓝发/ });

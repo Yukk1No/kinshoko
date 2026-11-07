@@ -4,7 +4,6 @@ import type { Translation } from "../../translation";
 const tagGroups: Translation<typeof zh> = {
   label: "Tag groups",
   settingsLabel: "Shared tag groups",
-  settingsNote: "Shared by all libraries. Changing groups doesn't change image tags.",
   settingsLoading: "Loading group settings…",
   updating: "Updating tag groups…",
   kind: {

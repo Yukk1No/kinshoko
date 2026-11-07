@@ -6,7 +6,7 @@ export default {
     copied: "已复制",
     chooseSaveLocation: "请在主窗口选择保存位置",
     collectFirst: "截图要先收藏进图库，才能加入参考组",
-    savedToGroup: "已存回参考组「{{name}}」",
+    savedToGroup: "已更新参考组「{{name}}」",
     addedToGroup: "已加入参考组「{{name}}」",
   },
 };

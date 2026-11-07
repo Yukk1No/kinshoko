@@ -53,25 +53,25 @@ function show(menu: PinMenu) {
 }
 
 describe("钉图菜单项", () => {
-  it("截图钉图：保留原生菜单全部项，再加在 Kinshoko 中打开、加入参考组、贴边隐藏与关闭钉图", () => {
+  it("截图钉图：保留原生菜单全部项，再加在 Kinshoko 中打开、加入参考组、收起钉图与关闭钉图", () => {
     const { rows, popup } = show(capture);
     expect(rows()).toEqual([
       "水平翻转H", "垂直翻转V", "顺时针旋转 90°R", "逆时针旋转 90°Shift R",
       "原始大小（100%）", "透明度70%", "锁定位置与大小",
       "收藏到…", "复制",
-      "在 Kinshoko 中打开", "加入参考组", "贴边隐藏",
+      "在 Kinshoko 中打开", "加入参考组", "收起钉图",
       "关闭钉图Esc",
     ]);
     expect(within(popup).getAllByRole("separator")).toHaveLength(4);
   });
 
-  it("资料库钉图：没有收藏；遮蔽时有“显示这张图”、复制不可用，来自参考组时有“存回参考组”", () => {
+  it("资料库钉图：没有收藏；遮蔽时有“显示这张图”、复制不可用，来自参考组时有“更新参考组”", () => {
     const { rows } = show(reference);
     expect(rows()).toEqual([
       "水平翻转H", "垂直翻转V", "顺时针旋转 90°R", "逆时针旋转 90°Shift R",
       "原始大小（100%）", "透明度100%", "锁定位置与大小",
-      "复制", "显示这张图（安全模式下已遮蔽）", "存回参考组「光影」",
-      "在 Kinshoko 中打开", "加入参考组", "贴边隐藏",
+      "复制", "显示这张图（安全模式下已遮蔽）", "更新参考组「光影」",
+      "在 Kinshoko 中打开", "加入参考组", "收起钉图",
       "关闭钉图Esc",
     ]);
   });
@@ -111,7 +111,7 @@ describe("钉图菜单项", () => {
     click(/水平翻转/); click(/垂直翻转/); click(/顺时针/); click(/逆时针/);
     click("原始大小（100%）"); fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "锁定位置与大小" }));
     click("收藏到…"); click("复制");
-    click("在 Kinshoko 中打开"); click("贴边隐藏"); click(/关闭钉图/);
+    click("在 Kinshoko 中打开"); click("收起钉图"); click(/关闭钉图/);
     expect(act.mock.calls.map(([a]) => a)).toEqual([
       "flipH", "flipV", "rotateCw", "rotateCcw", "actualSize", "lock", "collect", "copy", "openInKinshoko", "edgeHide", "close",
     ]);
@@ -304,7 +304,7 @@ describe("菜单窗口", () => {
     act(() => ipc.next!(open(8)));
     await screen.findByRole("menuitem", { name: "收藏到…" });
     act(() => ipc.next!(open(9, reference)));
-    expect(await screen.findByRole("menuitem", { name: "存回参考组「光影」" })).toBeTruthy();
+    expect(await screen.findByRole("menuitem", { name: "更新参考组「光影」" })).toBeTruthy();
     fireEvent.click(screen.getByRole("menuitem", { name: /关闭钉图/ }));
     expect(ipc.action).toHaveBeenCalledWith("P2", "close", 9);
   });

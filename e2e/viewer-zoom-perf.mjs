@@ -210,7 +210,7 @@ try {
   await wd("POST", `${base}/element/${name}/value`, { text: "缩放测量" });
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [parent]);
   await click("选择存放位置…");
-  await click("建立图库");
+  await click("新建图库");
   await until("打开图库", () => find("//nav[@aria-label='查找范围']//*[@data-library-id]//button[contains(@class,'lib-head-name') and starts-with(@aria-label,'缩放测量（') and not(@disabled)]"));
   await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
   await click("导入");
