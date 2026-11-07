@@ -131,3 +131,50 @@ fn artists_who_already_have_a_group_do_not_gain_the_presets() {
         ["我的"]
     );
 }
+
+#[test]
+fn an_unused_preset_tag_resolves_to_itself_and_the_decision_is_in_settings_backups() {
+    use kinshoko_core::approx::BuiltinApproxTable;
+    use kinshoko_core::search::{ConditionInput, SearchInput, TermInput};
+    let dir = tempfile::tempdir().unwrap();
+    let app = dir.path().join("app");
+    let device = DeviceLibraries::open(&app).unwrap();
+    let (mut catalog, mut workspace) = open(&app);
+    let groups = workspace
+        .tag_groups(&device, &mut catalog, "", "zh-CN", true)
+        .unwrap();
+    let blue = groups[0]
+        .tags
+        .iter()
+        .find(|t| t.tag.name == "蓝发")
+        .unwrap()
+        .tag
+        .id
+        .clone();
+    let input = SearchInput {
+        conditions: vec![ConditionInput {
+            any: vec![TermInput::Tag {
+                id: blue.clone(),
+                dismissed: Vec::new(),
+            }],
+            negate: false,
+        }],
+        exact: false,
+    };
+    let tree = workspace
+        .resolve(
+            &device,
+            &mut catalog,
+            &input,
+            "zh-CN",
+            true,
+            &BuiltinApproxTable::bundled(),
+        )
+        .unwrap();
+    assert!(
+        format!("{tree:?}").contains(&blue),
+        "未用过的预置标签解析不到：{tree:?}"
+    );
+    let snapshot = serde_json::to_value(catalog.settings_snapshot().unwrap()).unwrap();
+    assert_eq!(snapshot["presets"].as_array().unwrap().len(), 1);
+}

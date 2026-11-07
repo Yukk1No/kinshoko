@@ -133,14 +133,14 @@ impl Workspace {
             }
         }
         // 所有资料库的旧分组都迁过一遍以后，才决定要不要预置“发色”“瞳色”（#484）。
-        if observed.iter().all(|o| o.1.is_none()) {
-            let pending = readers.values().any(|l| {
+        // 有资料库打不开时，它的旧分组还不知道，只当作“还没迁完”：已有分组的决定照样记下。
+        let pending = observed.iter().any(|o| o.1.is_some())
+            || readers.values().any(|l| {
                 l.tag_group_definitions()
                     .map(|g| !g.is_empty())
                     .unwrap_or(true)
             });
-            catalog.ensure_preset_groups(pending)?;
-        }
+        catalog.ensure_preset_groups(pending)?;
         let inspection = catalog.inspect()?;
         let key = fingerprint(inspection.revision)?;
         let adult = providers
