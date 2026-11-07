@@ -1,4 +1,4 @@
-// #162：详情面板开合（以及 #157 拖动）时图片墙的宽度逐帧变化。宽度稳定前不重排，稳定后只重排一次，
+// #157：拖动详情面板边缘时图片墙的宽度逐帧变化（开合改走 settle，见 Wall.settle.test）。宽度稳定前不重排，稳定后只重排一次，
 // 起一组位移动画，视口顶部的图不跳走；减少动态效果时直接到最终布局。
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";

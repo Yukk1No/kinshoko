@@ -359,6 +359,48 @@ fn a_ready_that_arrives_after_pausing_does_not_restart_tagging() {
     assert_eq!(f.fake.tagged().len(), 1, "恢复后照常打标");
 }
 
+/// 开机后第一次加载模型可能要几分钟：这期间新收的图还没打，不能继续显示上一轮的“已全部打完”。
+#[test]
+fn a_new_image_is_not_reported_all_done_while_its_model_loads() {
+    let f = Fixture::new(0);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    let gate = Arc::new((
+        std::sync::Mutex::new((false, false)),
+        std::sync::Condvar::new(),
+    ));
+    let tagger = LateReady {
+        inner: f.fake.clone(),
+        gate: gate.clone(),
+    };
+    let spec = f.server.publish("gpu", Device::DirectMl, b"model");
+    let tagging = Tagging::start(
+        Arc::new(vec![f.library.clone()]),
+        Arc::new(tagger),
+        f.config(vec![spec]),
+    );
+    tagging.download();
+    idle(&tagging);
+
+    f.import(0..1);
+    {
+        let (lock, wake) = &*gate;
+        let mut state = lock.lock().unwrap();
+        while !state.0 {
+            state = wake.wait(state).unwrap();
+        }
+    }
+    let loading = tagging.status();
+    {
+        let (lock, wake) = &*gate;
+        lock.lock().unwrap().1 = true;
+        wake.notify_all();
+    }
+
+    assert_eq!(loading, TaggingStatus::Starting, "有图没打时不算全部打完");
+    idle(&tagging);
+    assert_eq!(f.fake.tagged().len(), 1, "加载完照常打完");
+}
+
 #[test]
 fn inference_runs_outside_the_publication_gate_and_rating_commits_after_release() {
     let f = Fixture::new(1);
