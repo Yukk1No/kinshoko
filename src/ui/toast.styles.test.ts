@@ -53,7 +53,7 @@ describe("轻提示是磨砂卡片（设计系统 v3）", () => {
   });
 
   it("和导入任务卡同一角落：侧栏关着时让开选择栏与工具条；任务卡停在提示上方（#388、#433）", () => {
-    expect(rule('body:has(.selbar-host > .selbar):not(:has(.inspector[data-collapsed="false"])) .k-toasts').bottom).toBe("calc(18px + 66px)");
+    expect(rule('body:has(.selbar-float):not(:has(.inspector[data-collapsed="false"])) .k-toasts').bottom).toBe("calc(18px + 66px)");
     expect(rule('body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-toasts').bottom).toBe("calc(18px + 66px)");
     expect(cssRule(dialogsCss, ".k-task-cards").bottom).toBe("calc(18px + var(--k-toast-stack, 0px))");
   });

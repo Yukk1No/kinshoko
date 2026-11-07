@@ -144,7 +144,7 @@ try {
     const hint = await until("drop hint", dropHint);
     if (name === "light") {
       check(hint === "松开即可导入到 角色参考", `全部图片下拖入提示写登记最早的库：${hint}`);
-      check((await session.exec("return document.querySelector('.drop-hint').innerText;")).trim() === "", "拖入提示只有图标，没有可见文字");
+      check((await session.exec("return document.querySelector('.k-drop-hint').innerText;")).trim() === "", "拖入提示只有图标，没有可见文字");
     }
     await settle(); await session.shot(`1-drop-hint-${name}.png`);
     await drag("leave");

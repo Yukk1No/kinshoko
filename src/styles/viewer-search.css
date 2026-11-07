@@ -92,7 +92,7 @@
 }
 
 .selection-hint {
-  opacity: 0.6;
+  color: var(--ink-2);
 }
 
 /* 永久删除的确认（#67）：提醒对话框里列出受影响的参考组。 */
@@ -140,21 +140,19 @@
 
 .search-chip-or,
 .search-chip-missing {
-  opacity: 0.6;
+  color: var(--ink-2);
 }
 
 .search-chip button {
   border: none;
   background: none;
   padding: 0 4px;
-  color: inherit;
-  opacity: 0.6;
+  color: var(--ink-2);
   cursor: pointer;
 }
 
 .search-chip button:hover,
 .search-chip button[aria-pressed="true"] {
-  opacity: 1;
   color: var(--accent-strong);
 }
 

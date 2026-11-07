@@ -38,6 +38,7 @@ b, strong, th, h1, h2, h3, h4, h5, h6 { font-weight: 600; }
 /* design system v2: three sizes only, title 16 / body 13 / small 12; hierarchy comes from weight and colour */
 h1, h2, h3, h4, h5, h6 { font-size: 16px; line-height: 24px; }
 small, code, kbd, pre, samp { font-size: 12px; }
+kbd { font-family: inherit; }  /* a shortcut is text, not code */
 
 html,
 body,
