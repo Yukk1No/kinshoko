@@ -37,6 +37,7 @@ pub(crate) mod fault;
 mod filter;
 mod folders;
 mod image_api;
+pub(crate) mod image_set;
 mod import;
 mod lens;
 mod package;

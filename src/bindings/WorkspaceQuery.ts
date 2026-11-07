@@ -6,4 +6,8 @@ export type WorkspaceQuery = { scope: WorkspaceScope, conditions: ConditionTree,
 /**
  * 调用方已经有占位图的卡片 id（#313）：占位图按内容寻址、永远不变，这些卡片不再带它。
  */
-knownPlaceholders: Array<string>, };
+knownPlaceholders: Array<string>, 
+/**
+ * 同一图集叠成一摞（#418）：每个图集只占一格，各页放进卡片的 [`WorkspaceCard::set`]。
+ */
+stackSets: boolean, };

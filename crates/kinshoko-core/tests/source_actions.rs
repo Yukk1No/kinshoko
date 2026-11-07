@@ -126,6 +126,7 @@ fn an_explicit_aggregate_source_edits_only_its_curation_and_rejects_a_changed_by
                 cursor: None,
                 limit: 10,
                 known_placeholders: Vec::new(),
+                stack_sets: false,
             },
             true,
         )
@@ -266,6 +267,7 @@ fn unavailable_or_sealed_selected_sources_are_rejected_without_using_a_duplicate
                 cursor: None,
                 limit: 10,
                 known_placeholders: Vec::new(),
+                stack_sets: false,
             },
             true,
         )
@@ -382,6 +384,7 @@ pub(crate) fn wall_card(
                 cursor: None,
                 limit: 10,
                 known_placeholders: Vec::new(),
+                stack_sets: false,
             },
             true,
         )

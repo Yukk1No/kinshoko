@@ -187,6 +187,7 @@ fn workspace_cards_carry_the_placeholder_of_their_display_source() {
                 cursor: None,
                 limit: 100,
                 known_placeholders: Vec::new(),
+                stack_sets: false,
             },
             true,
         )

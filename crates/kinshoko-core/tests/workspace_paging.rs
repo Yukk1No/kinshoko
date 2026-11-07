@@ -16,6 +16,7 @@ fn query() -> WorkspaceQuery {
         cursor: None,
         limit: 1,
         known_placeholders: Vec::new(),
+        stack_sets: false,
     }
 }
 /// 同一份字节导入到每个资料库，返回各自的图片 id。
