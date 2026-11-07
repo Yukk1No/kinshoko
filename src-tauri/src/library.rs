@@ -315,6 +315,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             create_folder,
             rename_folder,
             delete_folder,
+            restore_folder,
             move_folder,
             recovery,
             start_import,

@@ -78,7 +78,7 @@ export function TagGroupBar(p: Props) {
             <Popover.Popup className="group-pop" aria-label={g && t("groups.tags", { name: g.name })}>
               <Popover.Viewport className="group-pop-viewport">
                 {g && <>
-                  <Popover.Close className="group-any" aria-label={t("groups.anyLabel", { name: g.name })} disabled={!g.tags.length}
+                  <Popover.Close className="group-any k-btn is-sm" aria-label={t("groups.anyLabel", { name: g.name })} disabled={!g.tags.length}
                     onClick={() => p.onChange({ ...p.input, conditions: [...p.input.conditions, { any: g.tags.map(({ tag }) => ({ kind: "tag", id: tag.id, dismissed: [] })), negate: false }] })}>{t("groups.any")}</Popover.Close>
                   <div className="chips">
                     {g.tags.map(({ tag, count }) => {
