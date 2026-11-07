@@ -127,7 +127,35 @@ pub(super) fn management_vocabulary(snapshot: &Snapshot, safe: bool) -> &Vocabul
             .iter()
             .map(|tag| tag.id.clone())
             .collect::<BTreeSet<_>>();
-        for tag in visible_catalog(snapshot, safe).tags {
+        // 预置分组的成员还没有任何资料库带着它们时也要列出（#484）；它们没有对应，不涉及安全模式。
+        let mapped = snapshot
+            .catalog
+            .mappings
+            .iter()
+            .map(|mapping| mapping.catalog_id.as_str())
+            .collect::<BTreeSet<_>>();
+        let unattached = snapshot
+            .catalog
+            .tags
+            .iter()
+            .filter(|tag| {
+                !mapped.contains(tag.id.as_str())
+                    && tag.namespace == crate::library::TagNamespace::General
+                    && tag.external.iter().any(|e| {
+                        e.vocabulary == "danbooru" && crate::tag_catalog::is_preset_member(&e.name)
+                    })
+            })
+            .cloned()
+            .map(|mut tag| {
+                crate::tag_catalog::fill_names(&mut tag, std::iter::empty());
+                tag
+            })
+            .collect::<Vec<_>>();
+        for tag in visible_catalog(snapshot, safe)
+            .tags
+            .into_iter()
+            .chain(unattached)
+        {
             if !present.contains(&tag.id) {
                 vocabulary.tags.push(VocabularyTag {
                     id: tag.id,

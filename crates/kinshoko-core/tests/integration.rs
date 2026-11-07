@@ -43,6 +43,8 @@ mod capture_region;
 mod catalog_approx;
 #[path = "catalog_groups.rs"]
 mod catalog_groups;
+#[path = "catalog_preset_groups.rs"]
+mod catalog_preset_groups;
 #[path = "catalog_search.rs"]
 mod catalog_search;
 #[path = "catalog_source_names.rs"]

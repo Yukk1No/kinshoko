@@ -132,6 +132,15 @@ impl Workspace {
                 return Err(Error::CursorExpired.into());
             }
         }
+        // 所有资料库的旧分组都迁过一遍以后，才决定要不要预置“发色”“瞳色”（#484）。
+        if observed.iter().all(|o| o.1.is_none()) {
+            let pending = readers.values().any(|l| {
+                l.tag_group_definitions()
+                    .map(|g| !g.is_empty())
+                    .unwrap_or(true)
+            });
+            catalog.ensure_preset_groups(pending)?;
+        }
         let inspection = catalog.inspect()?;
         let key = fingerprint(inspection.revision)?;
         let adult = providers
