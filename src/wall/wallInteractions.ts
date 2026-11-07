@@ -7,7 +7,7 @@ import { modalOpen } from "../ui/modal";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import type { Press } from "./doubleClick";
 import type { WallMenuTarget } from "./WallMenu";
-import { DRAG_IMAGE_SOURCES, DRAG_IMAGES, editable, type BrowserCard, type CardCommand } from "./wallShared";
+import { CARD_BUTTONS, DRAG_IMAGE_SOURCES, DRAG_IMAGES, editable, type BrowserCard, type CardCommand } from "./wallShared";
 
 export function wallInteractions({
   ids, cards, selected, onSelectionChange, pivot, lastPress, pendingClick, holdForDoubleClick, open, selectAllRef,
@@ -33,22 +33,39 @@ export function wallInteractions({
   /** 关上托盘；`keep` 是关上后留在屏幕原处的那一格。 */
   closeTray: (keep?: string) => void;
 }) {
-  const select = (id: string, e: Pick<MouseEvent, "shiftKey" | "ctrlKey" | "metaKey">) => {
+  /** 托盘的第 1 页：关上后它就是这一摞，仍在墙上。 */
+  const trayCover = trayIds.values().next().value;
+  /** 去掉托盘里的页的选择；`keepCover` 时留下第 1 页（关托盘后它是这一摞）。 */
+  const withoutTray = (from: ReadonlySet<string>, keepCover: boolean) =>
+    new Set([...from].filter((id) => !trayIds.has(id) || (keepCover && id === trayCover)));
+  const select = (id: string, e: Pick<MouseEvent, "shiftKey" | "ctrlKey" | "metaKey">, change = onSelectionChange) => {
     if (e.shiftKey && pivot.current && ids.includes(pivot.current)) {
       const [a, b] = [ids.indexOf(pivot.current), ids.indexOf(id)].sort((x, y) => x - y);
       const next = e.ctrlKey || e.metaKey ? new Set(selected) : new Set<string>();
       ids.slice(a, b + 1).forEach((x) => next.add(x));
-      onSelectionChange(next);
+      change(next);
       return;
     }
     pivot.current = id;
     if (e.ctrlKey || e.metaKey) {
       const next = new Set(selected);
       if (!next.delete(id)) next.add(id);
-      onSelectionChange(next);
+      change(next);
     } else {
-      onSelectionChange(new Set([id]));
+      change(new Set([id]));
     }
+  };
+  /** 关上托盘（#418）：托盘里第 2 页往后的页随之离开墙，也离开选择，免得操作落在看不见的图上。 */
+  const leaveTray = (keep?: string) => {
+    const next = withoutTray(selected, true);
+    if (next.size !== selected.size) onSelectionChange(next);
+    closeTray(keep);
+  };
+  /** 只取消托盘里的页的选择（Esc、点托盘背景）。 */
+  const dropTraySelection = () => {
+    if (![...selected].some((id) => trayIds.has(id))) return false;
+    onSelectionChange(withoutTray(selected, false));
+    return true;
   };
 
 
@@ -61,7 +78,7 @@ export function wallInteractions({
     if (trayIds.size && !trayIds.has(card.id)) {
       closeTray(card.id);
       lastPress.current = null;
-      select(card.id, e);
+      select(card.id, e, (next) => onSelectionChange(withoutTray(next, true)));
       return;
     }
     const opens = !(e.ctrlKey || e.metaKey || e.shiftKey) && selected.size === 1 && selected.has(card.id);
@@ -84,16 +101,16 @@ export function wallInteractions({
   };
   /** 单击空白处清空选择（资源管理器的习惯）；按着修饰键时不动，落在滚动条上的不算。 */
   const clearOnBlankClick = (e: MouseEvent<HTMLDivElement>) => {
-    if (trayIds.size && !(e.target as Element).closest?.(".card, .card-sources, .card-count, .card-check, .wall-tray")) closeTray();
+    if (trayIds.size && !(e.target as Element).closest?.(`.card, ${CARD_BUTTONS}, .wall-tray`)) leaveTray();
     if (e.ctrlKey || e.metaKey || e.shiftKey || !selected.size) return;
-    if ((e.target as Element).closest?.(".card, .card-sources, .card-count, .card-check")) return;
+    if ((e.target as Element).closest?.(`.card, ${CARD_BUTTONS}`)) return;
     const el = e.currentTarget;
     if (e.clientX - el.getBoundingClientRect().left >= el.clientWidth) return;
     onSelectionChange(new Set());
   };
   const targetMenu = (e: MouseEvent) => {
     const point = { x: e.clientX, y: e.clientY };
-    const node = (e.target as Element).closest?.<HTMLElement>(".card, .card-sources, .card-count, .card-check");
+    const node = (e.target as Element).closest?.<HTMLElement>(`.card, ${CARD_BUTTONS}`);
     const id = node?.dataset.id ?? node?.dataset.card;
     const acted = id ? actOn(id) : [];
     setMenuTarget(acted.length ? { kind: "cards", cards: acted, point } : { kind: "blank", point });
@@ -116,8 +133,7 @@ export function wallInteractions({
     if (e.key === "Escape" && trayIds.size && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
       // 托盘开着时（#418）：有选中的页先取消选择，再按一次关托盘。
       e.preventDefault();
-      if ([...selected].some((id) => trayIds.has(id))) onSelectionChange(new Set([...selected].filter((id) => !trayIds.has(id))));
-      else closeTray();
+      if (!dropTraySelection()) closeTray();
     } else if (chord && e.key.toLowerCase() === "a") {
       e.preventDefault();
       // 焦点在托盘里时只选中这一摞的全部页，不选中整面墙（#418）。
@@ -159,9 +175,11 @@ export function wallInteractions({
   /** 点托盘背景（#418）：只取消页的选择，托盘不关。 */
   const trayClick = (e: MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    if ([...selected].some((id) => trayIds.has(id))) onSelectionChange(new Set([...selected].filter((id) => !trayIds.has(id))));
+    dropTraySelection();
   };
-  return { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart, trayClick };
+  /** 点托盘里页角的勾：增减这一页的选择，与 Ctrl 单击相同。 */
+  const toggle = (card: BrowserCard) => select(card.id, { ctrlKey: true, shiftKey: false, metaKey: false });
+  return { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart, trayClick, leaveTray, toggle };
 }
 
 /** Ctrl+V：从剪贴板导入（#105）。主窗口里焦点不在输入框、没有模态与查看器时都响应。 */

@@ -135,6 +135,9 @@ export const scopeKey = (scope: BrowseScope) =>
  */
 export const STACK_SETS_READY = import.meta.env.DEV || import.meta.env.VITE_KINSHOKO_STACK_SETS === "1";
 
+/** 卡片旁边的按钮（来源、一摞的张数、托盘页角的勾，#418）：它们是卡片选项的兄弟，点它们不算点空白处。 */
+export const CARD_BUTTONS = ".card-sources, .card-count, .card-check";
+
 export const NO_CONDITIONS: ConditionTree = { conditions: [] };
 
 export function loadAnchor(key: string): Anchor | null {

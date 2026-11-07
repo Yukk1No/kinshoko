@@ -46,7 +46,7 @@ export type CardHandlers = {
   /** 点一摞的张数：打开或关上它的托盘（#418）。 */
   toggleTray: (card: BrowserCard) => void;
   /** 点托盘里页角的勾：增减这一页的选择，与 Ctrl 单击相同。 */
-  check: (card: BrowserCard, e: MouseEvent) => void;
+  check: (card: BrowserCard) => void;
 };
 
 /** 缩略图与它的占位图（#110）：缩略图到达前放大模糊显示；遮蔽中的图不露出它的色彩。 */
@@ -70,7 +70,7 @@ function stackFace(card: BrowserCard, b: Box, inset: number, thumbnailPx: number
   const pose = ({ x, y, r }: { x: number; y: number; r: number }) => `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotate(${r.toFixed(2)}deg)`;
   return <>
     <div className="stack-contact" aria-hidden="true"
-      style={{ left: `${inset + 8}px`, width: `${face.w - 16}px`, top: `${inset + face.h - 9}px`, opacity: 0.4 + sheets.length * 0.15 }} />
+      style={{ left: `${inset + 8}px`, width: `${face.w - 16}px`, top: `${inset + face.h - 9}px`, ["--weight" as string]: 0.4 + sheets.length * 0.15 }} />
     {sheets.map((sheet) => {
       const page = pages[sheet.page];
       return <div key={page.id} className="stack-sheet" aria-hidden="true"
@@ -130,7 +130,7 @@ export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, s
     {trayPage > 0 && <button type="button" role="checkbox" className="card-check" data-card={card.id}
       aria-checked={selected.has(card.id)} aria-label={i18n.t("wall:card.pageLabel", { page: trayPage })}
       style={{ left: `${b.x + b.w - 28}px`, top: `${b.y + 6}px` }}
-      onClick={(e) => { e.stopPropagation(); cardHandlers.current.check(card, e); }}
+      onClick={(e) => { e.stopPropagation(); cardHandlers.current.check(card); }}
       onKeyDown={(e) => e.stopPropagation()}>{CHECK_ICON}</button>}
     {count >= 2 && <button type="button" className="card-count" data-card={card.id}
       aria-label={i18n.t("wall:card.stackLabel", { count })} aria-expanded={trayPage === 1}

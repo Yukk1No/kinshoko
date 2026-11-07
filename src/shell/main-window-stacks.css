@@ -23,15 +23,16 @@
 }
 .card.is-stack > .stack-contact {
   position: absolute; height: 14px; border-radius: 50%; pointer-events: none; background: rgba(var(--contact), 0.3); filter: blur(6px);
+  opacity: var(--weight); /* 页数越多越重：卡片上按层数给出 --weight。 */
   transition: transform var(--t) var(--ease), opacity var(--t) var(--ease);
 }
-.card.is-stack:hover > .stack-sheet { transform: var(--hot); transition: transform var(--t-slow) var(--spring) 120ms; }
+.card.is-stack:hover > .stack-sheet { transform: var(--hot); transition: transform var(--t-slow) var(--spring) var(--t-fast); }
 .card.is-stack:hover > .stack-cover {
-  transform: translateY(-3px); transition: transform var(--t-slow) var(--spring) 120ms, box-shadow var(--t) var(--ease) 120ms;
+  transform: translateY(-3px); transition: transform var(--t-slow) var(--spring) var(--t-fast), box-shadow var(--t) var(--ease) var(--t-fast);
   box-shadow: 0 0 0 0.5px var(--sheet-edge), 0 3px 6px var(--sheet-drop), 0 16px 30px -6px rgba(var(--contact), 0.4);
 }
-.card.is-stack:hover > .stack-contact { transform: translateY(5px) scaleX(1.06); opacity: 0.25; transition-delay: 120ms; }
-.card.is-stack:hover + .card-count { transform: translateY(-3px); transition: transform var(--t-slow) var(--spring) 120ms; }
+.card.is-stack:hover > .stack-contact { transform: translateY(5px) scaleX(1.06); opacity: calc(var(--weight) * 0.6); transition-delay: var(--t-fast); }
+.card.is-stack:hover + .card-count { transform: translateY(-3px); transition: transform var(--t-slow) var(--spring) var(--t-fast); }
 .wall-canvas > .card-count { transition: transform var(--t) var(--ease); }
 .card.is-stack[aria-selected="true"] > .stack-cover { box-shadow: 0 0 0 2px var(--wall), 0 0 0 4px var(--accent); }
 .card.is-stack:focus-visible { outline: 0; }
@@ -40,7 +41,8 @@
 .wall[data-scrolling] .card.is-stack:hover > .stack-sheet { transform: var(--rest); transition: transform var(--t) var(--ease); }
 .wall[data-scrolling] .card.is-stack:hover > .stack-cover,
 .wall[data-scrolling] .card.is-stack:hover > .stack-contact,
-.wall[data-scrolling] .card.is-stack:hover + .card-count { transform: none; opacity: 1; }
+.wall[data-scrolling] .card.is-stack:hover + .card-count { transform: none; }
+.wall[data-scrolling] .card.is-stack:hover > .stack-contact { opacity: var(--weight); }
 /* 托盘关上、各页还在飞回时：这一摞的纸边先不显现，第 1 页压在最上面。 */
 .card.is-stack[data-gathering] { z-index: 2; }
 .card.is-stack[data-gathering] > .stack-sheet, .card.is-stack[data-gathering] > .stack-contact { visibility: hidden; }
@@ -69,10 +71,10 @@
 .wall-canvas > .card-check[aria-checked="true"] { opacity: 1; }
 .wall-canvas > .card-check[aria-checked="true"] { color: var(--on-accent); background: var(--accent); }
 
-/* 托盘：墙上压下去的一块浅槽，仍是中性灰，靠内阴影和下沿一道亮边分出深度。 */
+/* 托盘：墙上压下去的一块浅槽，仍是中性灰（只压暗，不染色），靠内阴影和下沿一道亮边分出深度。 */
 .wall-tray {
   position: absolute;
-  background: color-mix(in srgb, var(--wall) 94%, rgb(var(--contact)));
+  background: color-mix(in srgb, var(--wall) 95%, black);
   box-shadow: inset 0 2px 6px rgba(var(--contact), 0.16), inset 0 1px 1px rgba(var(--contact), 0.12), inset 0 -1px 0 var(--sheet-light);
 }
 .wall-ghosts { position: absolute; inset: 0; pointer-events: none; z-index: 1; }

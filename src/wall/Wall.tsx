@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@base-ui/react/context-menu";
@@ -157,6 +157,14 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const returnTo = useViewerLeave({ viewerOpen, selected, lastOpened, wasViewing, smoothRef });
 
   const openTrayRef = useRef<(card: BrowserCard) => void>(() => {});
+  const leaveTrayRef = useRef<() => void>(() => {});
+  // 托盘开着时点顶栏也关托盘（#418）；点详情面板不关，面板显示的正是托盘里的选择。
+  useEffect(() => {
+    if (openSet === null) return;
+    const onDown = (e: PointerEvent) => { if ((e.target as Element | null)?.closest?.(".topbar")) leaveTrayRef.current(); };
+    document.addEventListener("pointerdown", onDown, true);
+    return () => document.removeEventListener("pointerdown", onDown, true);
+  }, [openSet]);
   const open = (card: BrowserCard) => {
     pivot.current = card.id;
     // 打开一摞是打开它的托盘（#418），不进查看器。
@@ -282,7 +290,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const { openTray, closeTray } = useTrayMotion({
     scroller, layout, ids, shown, tray, openSet, setOpenSet, anchor, settledTop, beforeReflow, measureBeforeReflow, trayMotion, thumbnailPx,
   });
-  const { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart, trayClick } = wallInteractions({
+  const { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart, trayClick, leaveTray, toggle } = wallInteractions({
     ids, cards: shown, selected, onSelectionChange, pivot, lastPress, pendingClick, holdForDoubleClick, open, selectAllRef,
     setMenuTarget, menu, onCardCommand, scope, workspaceScope, trayIds, closeTray,
   });
@@ -294,11 +302,14 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   // 卡片的事件处理读这里的最新版本，沿用的卡片元素因此不会拿着旧的选择与回调。
   openTrayRef.current = openTray;
   cardHandlers.current = {
-    click, open, cardKey, dragStart, inspect: onInspectSources,
+    click, open, cardKey, dragStart,
+    // 托盘开着时点别的格子的来源按钮：先关托盘（#418），这一格留在屏幕原处。
+    inspect: onInspectSources && ((card) => { if (trayIds.size && !trayIds.has(card.id)) leaveTray(card.id); onInspectSources(card); }),
     // 托盘里第 1 页上的张数（那一页不带图集）与已打开的那一摞：叠回去。
-    toggleTray: (card) => { if (!card.set || openSet === card.set.key) closeTray(); else openTray(card); },
-    check: (card, e) => click(card, { ctrlKey: true, shiftKey: false, metaKey: false, clientX: e.clientX, clientY: e.clientY } as ReactMouseEvent),
+    toggleTray: (card) => { if (!card.set || openSet === card.set.key) leaveTray(); else openTray(card); },
+    check: toggle,
   };
+  leaveTrayRef.current = leaveTray;
   const nextRendered: typeof renderedCards.current = new Map();
 
   return (

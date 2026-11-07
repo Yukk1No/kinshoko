@@ -136,3 +136,24 @@ it("点托盘以外关托盘：点到别的格子时同时选中那一格；点�
   await act(async () => { fireEvent.click(document.querySelector(".wall")!); });
   expect(tray()).toBeNull();
 });
+
+it("关托盘时第 2 页往后的选择随之取消，操作不会落在看不见的图上", async () => {
+  const onSelection = vi.fn();
+  render(<Harness onSelection={onSelection} />);
+  await screen.findAllByRole("option");
+  fireEvent.click(count());
+  fireEvent.click(card("p0")!);
+  fireEvent.click(card("p2")!, { ctrlKey: true });
+  expect(onSelection).toHaveBeenLastCalledWith(["p0", "p2"]);
+  fireEvent.click(card("b")!, { ctrlKey: true });
+  expect(tray()).toBeNull();
+  expect(onSelection).toHaveBeenLastCalledWith(["p0", "b"]);
+});
+
+it("点顶栏也关托盘", async () => {
+  render(<><header className="topbar"><button type="button">导入</button></header><Harness /></>);
+  await screen.findAllByRole("option");
+  fireEvent.click(count());
+  fireEvent.pointerDown(screen.getByRole("button", { name: "导入" }));
+  expect(tray()).toBeNull();
+});
