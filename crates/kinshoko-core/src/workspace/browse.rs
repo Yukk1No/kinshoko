@@ -126,8 +126,10 @@ impl Workspace {
             .providers
             .iter()
             .filter(|p| {
+                // 一摞里露出的页可能来自别的资料库，也要读它的占位图。
                 cards
                     .iter()
+                    .chain(stacked_pages(&cards))
                     .any(|c| c.library_id == p.registration.library.id)
             })
             .map(|p| p.registration.library.clone())

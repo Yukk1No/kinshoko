@@ -232,3 +232,19 @@ fn an_image_already_in_the_library_joins_the_set_when_its_work_is_collected() {
     assert_eq!(cells.len(), 1);
     assert_eq!(page_ids(&cells[0]), [early.as_str(), p1.as_str()]);
 }
+
+#[test]
+fn every_exposed_page_carries_its_placeholder_even_from_another_library() {
+    let mut f = Fixture::new();
+    let other = f.device.create(&f.dir.path().join("b"), "B").unwrap();
+    f.collect("500", 0, 50);
+    other
+        .import_from_subscription(subscription_page("500", 1), &png(51))
+        .unwrap();
+    let cells = f.browse(&query(true), false);
+    assert_eq!(cells.len(), 1);
+    let set = cells[0].set.as_ref().unwrap();
+    assert_eq!(set.pages[1].library_id, other.info().id);
+    assert!(cells[0].placeholder.is_some());
+    assert!(set.pages.iter().all(|p| p.placeholder.is_some()));
+}
