@@ -176,6 +176,8 @@ export function TaggingActivity({ onOpenSettings, collapsed = false }: {
   const activity = stopped ? "stopped" : status.state === "paused" || status.state === "yieldedToFullScreen" ? "paused" : "busy";
   const pending = (!stopped && progress === null) || undefined;
   if (collapsed) {
+    // 小圆点只表示进行中的进度；停住的状态等收起结束后再回到原处的图标。
+    if (stopped) return null;
     return (
       <span className="k-tagging-dot" data-activity={activity} data-pending={pending} role="img" title={text} aria-label={i18n.t("tagging:label", { text })}>
         <Ring className="k-tagging-mini" size={12} radius={4.5} progress={progress} />

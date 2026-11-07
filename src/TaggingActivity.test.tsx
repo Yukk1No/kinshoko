@@ -145,6 +145,14 @@ describe("缩放滑块左边的打标图标", () => {
     expect(onOpenSettings).toHaveBeenCalled();
   });
 
+  it("停住的状态在多选收起时不挂小圆点", async () => {
+    backend(needsDownload());
+    render(<><TaggingActivity collapsed onOpenSettings={() => {}} /></>);
+    await settled();
+    await act(async () => {});
+    expect(document.querySelector(".k-tagging-dot")).toBeNull();
+  });
+
 });
 
 describe("自动标签的右下角通知", () => {
