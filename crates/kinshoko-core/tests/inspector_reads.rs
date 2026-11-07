@@ -89,6 +89,7 @@ fn selection_reads_for_the_inspector() {
                 cursor: None,
                 limit: SAMPLES as u32,
                 known_placeholders: Vec::new(),
+                stack_sets: false,
             },
             true,
         )

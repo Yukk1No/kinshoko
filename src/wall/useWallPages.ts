@@ -90,7 +90,7 @@ export function useWallPages({
           let acceptedStatus: WorkspaceStatus | null = null;
           try {
             do {
-              const page = await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, knownPlaceholders: knownFrom(next.length) }, safeMode);
+              const page = await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, knownPlaceholders: knownFrom(next.length), stackSets: false }, safeMode);
               if (!current()) return;
               markStartup("wallFirstPage");
               startupWallPage(page.cards.length);
@@ -147,7 +147,7 @@ export function useWallPages({
     const { conditions, workspaceScope, safeMode } = view.current;
     let expired = false;
     try {
-      const page = await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, knownPlaceholders: [] }, safeMode);
+      const page = await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, knownPlaceholders: [], stackSets: false }, safeMode);
       if (gen !== generation.current) return;
       const next = [...cards, ...page.cards];
       onWorkspaceStatus?.(page.status, next);

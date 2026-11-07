@@ -45,6 +45,7 @@ fn migration_list() -> Vec<M<'static>> {
             super::eagle_tags::upgrade_source_names,
         ),
         M::up(include_str!("migrations/0313_placeholders.sql")),
+        M::up(include_str!("migrations/0418_image_set_revision.sql")),
     ]
 }
 
@@ -183,5 +184,41 @@ impl Readers {
             }
         }
         self.pool[0].lock().unwrap_or_else(|e| e.into_inner())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 图集按来源链接现算（#418）：只改链接、没有别的写入时，列表修订号也要前进。
+    #[test]
+    fn changing_a_source_link_advances_the_list_revision() {
+        let dir = tempfile::tempdir().unwrap();
+        let conn = open_db(&dir.path().join("library.db")).unwrap();
+        conn.execute_batch(
+            "INSERT INTO image (id, sha256, size, format, rel_path, width, height, orientation,
+                                original_name, imported_at)
+             VALUES ('i', 's', 1, 'png', 'a', 1, 1, 1, 'a_p0.png', 0);
+             INSERT INTO image_source (image_id, source, location, recorded_at)
+             VALUES ('i', 'eagle', 'x', 0);",
+        )
+        .unwrap();
+        let revision = || -> i64 {
+            conn.query_row("SELECT value FROM list_revision", [], |r| r.get(0))
+                .unwrap()
+        };
+        let before = revision();
+        conn.execute(
+            "UPDATE image_source SET url = 'https://www.pixiv.net/artworks/1'",
+            [],
+        )
+        .unwrap();
+        assert_eq!(revision(), before + 1);
+        conn.execute("UPDATE image_source SET url = url", [])
+            .unwrap();
+        assert_eq!(revision(), before + 1);
+        conn.execute("DELETE FROM image_source", []).unwrap();
+        assert_eq!(revision(), before + 2);
     }
 }

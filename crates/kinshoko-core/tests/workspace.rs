@@ -59,6 +59,7 @@ fn each_source_must_match_all_conditions_before_identical_bytes_are_aggregated()
         cursor: None,
         limit: 1,
         known_placeholders: Vec::new(),
+        stack_sets: false,
     };
     let page = workspace.browse(&device, &mut catalog, &all, true).unwrap();
     assert_eq!(page.total, 1);
@@ -127,6 +128,7 @@ fn query() -> WorkspaceQuery {
         cursor: None,
         limit: 1,
         known_placeholders: Vec::new(),
+        stack_sets: false,
     }
 }
 fn files(dir: &std::path::Path, libraries: &[&Library], red: u8) -> Vec<String> {

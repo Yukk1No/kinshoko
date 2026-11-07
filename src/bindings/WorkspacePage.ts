@@ -2,4 +2,12 @@
 import type { WorkspaceCard } from "./WorkspaceCard";
 import type { WorkspaceStatus } from "./WorkspaceStatus";
 
-export type WorkspacePage = { cards: Array<WorkspaceCard>, nextCursor: string | null, total: number, status: WorkspaceStatus, };
+export type WorkspacePage = { cards: Array<WorkspaceCard>, nextCursor: string | null, 
+/**
+ * 结果的格数：叠成一摞时一摞算一格。
+ */
+total: number, 
+/**
+ * 叠成一摞时（[`WorkspaceQuery::stack_sets`]）结果里的张数；不叠放时与 `total` 相同，省略。
+ */
+images?: number, status: WorkspaceStatus, };
