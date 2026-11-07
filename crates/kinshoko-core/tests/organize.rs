@@ -19,7 +19,7 @@ fn write_png(path: &Path, seed: u8) -> PathBuf {
 }
 
 /// 新建资料库并导入 `n` 张内容不同的图，返回参考图 id（按导入顺序）。
-fn library_with(dir: &Path, n: u8) -> (Library, Vec<String>) {
+pub(super) fn library_with(dir: &Path, n: u8) -> (Library, Vec<String>) {
     let library = Library::create(&dir.join("lib"), "库").unwrap();
     let files: Vec<PathBuf> = (0..n)
         .map(|i| write_png(&dir.join(format!("in/{i:02}.png")), i))
@@ -37,7 +37,7 @@ fn library_with(dir: &Path, n: u8) -> (Library, Vec<String>) {
 }
 
 /// 范围内的全部参考图 id，按浏览顺序。
-fn browse(library: &Library, scope: BrowseScope) -> Vec<String> {
+pub(super) fn browse(library: &Library, scope: BrowseScope) -> Vec<String> {
     library
         .browse(&BrowseQuery {
             scope,
@@ -54,7 +54,7 @@ fn browse(library: &Library, scope: BrowseScope) -> Vec<String> {
 }
 
 /// 文件夹树写成 `名称(计数)[子文件夹…]`，便于整体比较。
-fn tree(nodes: &[FolderNode]) -> String {
+pub(super) fn tree(nodes: &[FolderNode]) -> String {
     nodes
         .iter()
         .map(|n| {
