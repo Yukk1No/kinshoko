@@ -53,26 +53,9 @@ body {
   line-height: 1.5;
 }
 
-button {
-  font: inherit;
-  padding: 4px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-s);
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-button.primary {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--bg);
-}
+/* 按钮的外观由 .k-btn、.k-icon-btn 和各组件自己的类决定；这里只留手形光标。 */
+button { cursor: pointer; }
+button:disabled { cursor: default; }
 
 .app {
   display: flex;
