@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import { formatNumber } from "../i18n/format";
 import { ChevronDown, Clock, Info, LoaderCircle, LogOut, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plus, RefreshCw, Rss, TriangleAlert, User } from "lucide-react";
 import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
@@ -125,7 +126,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
           <button type="button" className={`subs-row is-all${selected === null ? " is-on" : ""}`} aria-current={selected === null ? "true" : undefined} onClick={() => setSelected(null)}>
             <Rss size={16} strokeWidth={1.75} aria-hidden="true" />
             <span className="subs-row-name">{t("all")}</span>
-            <span className="subs-row-count tabular">{images.length}</span>
+            <span className="subs-row-count tabular">{formatNumber(images.length)}</span>
           </button>
           <div className="subs-sep" />
           {kinds.map((k) => {
@@ -142,7 +143,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
                     onContextMenu={(e) => { e.preventDefault(); setRowMenu(s.id); }}>
                     <span className="subs-row-name">{displayName(t, s)}</span>
                     {s.lastError && <TriangleAlert className="subs-row-warn" size={14} strokeWidth={2} role="img" aria-label={t("lastFailed")} />}
-                    {count > 0 && <span className="subs-row-fresh tabular">{count}</span>}
+                    {count > 0 && <span className="subs-row-fresh tabular">{formatNumber(count)}</span>}
                   </button>
                   <Menu.Root modal={false} open={rowMenu === s.id} onOpenChange={(open) => setRowMenu(open ? s.id : null)}>
                     <Menu.Trigger className="k-icon-btn subs-row-more" aria-label={t("row.more")} title={t("row.more")}><MoreHorizontal size={16} aria-hidden="true" /></Menu.Trigger>
@@ -203,7 +204,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
       {hasList ? <div className="subs-wall" ref={wall}>
         {shown.length === 0 && !veiled && <p className="subs-none">{t("recent.none")}</p>}
         {freshImages.length > 0 && <section aria-label={t("recent.fresh")}>
-          <h2 className="subs-section">{t("recent.fresh")}<span className="subs-section-count tabular">{freshImages.length}</span></h2>
+          <h2 className="subs-section">{t("recent.fresh")}<span className="subs-section-count tabular">{formatNumber(freshImages.length)}</span></h2>
           <Tiles images={freshImages} label={t("recent.open")} onOpen={onOpenImage} onFail={onFail} />
         </section>}
         {earlier.length > 0 && <section aria-label={t("recent.earlier")}>

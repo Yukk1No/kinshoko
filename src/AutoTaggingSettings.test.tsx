@@ -67,7 +67,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
   it("首次使用显示需要下载的大小，确认后才下载", async () => {
     const calls = backend({ status: { state: "needsDownload", model: "x", size: 992_916_002, downloaded: 0, fallback: null, cancelled: false } });
     render(<AutoTaggingSettings hasLibrary />);
-    await waitFor(() => expect(within(statusRow()).getByText(/需要下载模型（993 MB）/)).toBeTruthy());
+    await waitFor(() => expect(within(statusRow()).getByText(/需要下载模型（947 MB）/)).toBeTruthy());
     expect(calls.some((c) => c.cmd === "tagging_download")).toBe(false);
     fireEvent.click(within(statusRow()).getByRole("button", { name: "下载" }));
     await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_download", args: {} }));
@@ -82,7 +82,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
   it("自动档退回 CPU 时写明原因与要下载的大小", async () => {
     backend({ status: { state: "needsDownload", model: "x", size: 1_984_062_544, downloaded: 0, fallback: [{ code: "taggingGpuUnreliable" }], cancelled: false } });
     render(<AutoTaggingSettings hasLibrary />);
-    await waitFor(() => expect(within(statusRow()).getByText("显卡不可用：显卡多次出错，本次不再使用，改用 CPU 需下载 1984 MB")).toBeTruthy());
+    await waitFor(() => expect(within(statusRow()).getByText("显卡不可用：显卡多次出错，本次不再使用，改用 CPU 需下载 1.8 GB")).toBeTruthy());
     expect(within(statusRow()).getByRole("button", { name: "下载" })).toBeTruthy();
   });
 
@@ -91,7 +91,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
     render(<AutoTaggingSettings hasLibrary />);
     await screen.findByText(/正在加载模型…/);
     await act(() => emit("tagging-status", { state: "downloading", model: "x", downloaded: 500_000_000, total: 1_000_000_000 }));
-    expect(await within(statusRow()).findByText("正在下载模型 50%（500 MB / 1000 MB）")).toBeTruthy();
+    expect(await within(statusRow()).findByText("正在下载模型 50%（477 MB / 954 MB）")).toBeTruthy();
     expect(within(statusRow()).getByRole("progressbar").getAttribute("aria-valuenow")).toBe("50");
   });
 
@@ -142,7 +142,7 @@ describe("设置 › 自动标签 › 模型", () => {
     render(<AutoTaggingSettings hasLibrary />);
     const select = await hardware();
     expect(select.textContent).toBe("自动");
-    expect(await optionNames(select)).toEqual(["自动", "显卡，显存约 1.8 GB，已下载", "CPU，内存约 5.0 GB，需下载 1984 MB"]);
+    expect(await optionNames(select)).toEqual(["自动", "显卡，显存约 1.7 GB，已下载", "CPU，内存约 4.7 GB，需下载 1.8 GB"]);
     expect(document.body.textContent).not.toMatch(/FP16|FP32|精度/);
   });
 
@@ -166,7 +166,7 @@ describe("设置 › 自动标签 › 模型", () => {
     await chooseOption(await hardware(), /^CPU/);
     await waitFor(async () => expect((await hardware()).textContent).toMatch(/^CPU/));
     expect(calls.find((c) => c.cmd === "tagging_set_device")?.args).toEqual({ device: "cpu" });
-    expect(screen.getByText("CPU，内存约 5.0 GB，需下载 1984 MB", { selector: ".k-list-meta" })).toBeTruthy();
+    expect(screen.getByText("CPU，内存约 4.7 GB，需下载 1.8 GB", { selector: ".k-list-meta" })).toBeTruthy();
 
     await chooseOption(await hardware(), "自动");
     await waitFor(() => expect(calls.filter((c) => c.cmd === "tagging_set_device").at(-1)?.args).toEqual({ device: null }));
@@ -201,7 +201,7 @@ describe("设置 › 自动标签 › 模型", () => {
     await waitFor(async () => expect(await optionNames(await hardware())).toContainEqual(expect.stringMatching(/CPU，.*需下载/)));
     downloaded = true;
     await act(() => emit("tagging-status", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0 }));
-    await waitFor(async () => expect(await optionNames(await hardware())).toContain("CPU，内存约 5.0 GB，已下载"));
+    await waitFor(async () => expect(await optionNames(await hardware())).toContain("CPU，内存约 4.7 GB，已下载"));
   });
 
   it("从文件导入模型包，校验通过后显示已下载", async () => {
@@ -212,7 +212,7 @@ describe("设置 › 自动标签 › 模型", () => {
     render(<AutoTaggingSettings hasLibrary />);
     fireEvent.click(await screen.findByRole("button", { name: "导入模型包…" }));
     expect(await screen.findByText("模型包已导入并通过校验")).toBeTruthy();
-    expect(await optionNames(await hardware())).toContain("CPU，内存约 5.0 GB，已下载");
+    expect(await optionNames(await hardware())).toContain("CPU，内存约 4.7 GB，已下载");
     expect(calls.find((c) => c.cmd === "tagging_import_package")?.args).toEqual({ path: "D:\\离线\\pixai.zip" });
   });
 

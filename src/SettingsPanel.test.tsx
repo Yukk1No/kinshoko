@@ -196,7 +196,7 @@ describe("偏好设置备份", () => {
     await waitFor(() => expect(calls.find((c) => c.cmd === "set_tag_display")?.args).toEqual({
       display: { style: "grouped", high: 0.9, low: 0.2, lowOutline: false },
     }));
-    await waitFor(() => expect((screen.getByRole("spinbutton", { name: "高档下限" }) as HTMLInputElement).value).toBe("0.90"));
+    await waitFor(() => expect((screen.getByRole("spinbutton", { name: "高档下限" }) as HTMLInputElement).value).toBe("90"));
   });
 
   it("恢复排在还没回来的保存之后，迟到的保存不回滚恢复的结果（#321）", async () => {

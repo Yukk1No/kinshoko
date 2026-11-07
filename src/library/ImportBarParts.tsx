@@ -11,6 +11,7 @@ import type { FinishedImport, RunningImport } from "./ImportBar";
 import { DialogHeight } from "../ui/DialogHeight";
 import type { ToastOptions } from "../ui/Toast";
 import { useTranslation } from "react-i18next";
+import { formatNumber } from "../i18n/format";
 import { i18n } from "../i18n/instance";
 
 export type ImportPlan = { paths: string[]; options: ImportOptions; eagle:boolean };
@@ -65,7 +66,7 @@ export function importNotice(report: ImportReport, owner: string | null, warning
         <span className="k-toast-stats">
           {report.privateSummary && <span>{t("private")}</span>}
           {shown.map(([label, n]) => <span key={label}>{label} <b>{n}</b></span>)}
-          {counts.rejected.length > 0 && <span className="is-danger">{t("rejected")} <b>{counts.rejected.length}</b></span>}
+          {counts.rejected.length > 0 && <span className="is-danger">{t("rejected")} <b>{formatNumber(counts.rejected.length)}</b></span>}
         </span>
         {warnings.map((warning, index) => <span key={index} className="k-toast-line is-warn">{warning}</span>)}
       </>,
@@ -83,7 +84,7 @@ function RejectedFiles({ items }: { items: ImportReport["items"] }) {
   return <>
     <div className="k-task-stats">
       <button type="button" className="k-task-toggle is-danger" aria-expanded={open} aria-controls={list} onClick={() => setOpen((value) => !value)}>
-        <span>{t("rejected")} <b>{items.length}</b></span>
+        <span>{t("rejected")} <b>{formatNumber(items.length)}</b></span>
         <ChevronRight size={12} aria-hidden="true" />
       </button>
     </div>

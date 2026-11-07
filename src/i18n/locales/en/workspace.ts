@@ -8,8 +8,8 @@ const workspace: Translation<typeof zh> = {
   collapsePane: "Collapse sidebar",
   collapsePaneTitle: "Collapse sidebar Ctrl B",
   results: "Search results",
-  resultCount_one: "{{count}} image",
-  resultCount_other: "{{count}} images",
+  resultCount_one: "{{count, number}} image",
+  resultCount_other: "{{count, number}} images",
   copyOneOnly: "Copies one image at a time",
   empty: {
     importFiles: "Import images",

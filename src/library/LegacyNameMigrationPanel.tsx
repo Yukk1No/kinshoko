@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatNumber } from "../i18n/format";
 import { Dialog } from "@base-ui/react/dialog";
 import { Sparkles, Tag, X } from "lucide-react";
 import type { LegacyNameGroup } from "../bindings/LegacyNameGroup";
@@ -172,7 +173,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
                 <td>{t("preview.tagInLanguage", { tag: tagLabel(outcome.catalogId), language: languageName(outcome.lang) })}</td><td>{outcome.displayName}</td><td>{outcome.preferenceName ?? t("preview.noPreference")}</td></tr>)}</tbody>
             </table>
             {outcomes.length > PREVIEW_PAGE && <div className="k-dialog-foot is-tight">
-              <span className="k-set-note">{previewPage * PREVIEW_PAGE + 1}–{Math.min((previewPage + 1) * PREVIEW_PAGE, outcomes.length)} / {outcomes.length}</span>
+              <span className="k-set-note">{formatNumber(previewPage * PREVIEW_PAGE + 1)}–{formatNumber(Math.min((previewPage + 1) * PREVIEW_PAGE, outcomes.length))} / {formatNumber(outcomes.length)}</span>
               <span className="k-grow" />
               <button type="button" className="k-btn is-sm" disabled={previewPage === 0} onClick={() => setPreviewPage(previewPage - 1)}><span className="k-label">{t("preview.previousPage")}</span></button>
               <button type="button" className="k-btn is-sm" disabled={(previewPage + 1) * PREVIEW_PAGE >= outcomes.length} onClick={() => setPreviewPage(previewPage + 1)}><span className="k-label">{t("preview.nextPage")}</span></button>

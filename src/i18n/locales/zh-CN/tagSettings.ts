@@ -25,7 +25,7 @@ export default {
     noMatch: "没有匹配的标签。",
     list: "标签",
     library: "图库",
-    truncated: "共 {{total}} 个，先列出 {{shown}} 个。继续输入可以缩小范围。",
+    truncated: "共 {{total, number}} 个，先列出 {{shown, number}} 个。继续输入可以缩小范围。",
     defaultNameOf: "默认名 {{name}}",
     noName: "暂无",
     defaultName: "默认名称",
@@ -117,7 +117,7 @@ export default {
     reset: "恢复默认",
     lowOutline: "低档虚线框",
     lowOutlineHint: "低档标签加虚线外框；关掉后只把字变浅",
-    outOfRange: "阈值要在 0 到 1 之间",
+    outOfRange: "要在 0% 到 100% 之间",
     lowAboveHigh: "低档上限要小于高档下限",
   },
 };

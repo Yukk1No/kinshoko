@@ -66,7 +66,7 @@ describe("英文界面：备份与画面保真检查", () => {
     window.__KINSHOKO_TEST_PICKS__ = ["F:/r"];
     render(<BackupSettings />);
     await settle();
-    expect(await screen.findByText(/About 30.0 MB in total, 2.0 MB newly written this time \(1 new original\)/)).toBeTruthy();
+    expect(await screen.findByText(/About 30 MB in total, 2 MB newly written this time \(1 new original\)/)).toBeTruthy();
     expectNoChinese(document.body, data);
     fireEvent.click(screen.getByRole("button", { name: "Choose a backup…" }));
     fireEvent.click(await screen.findByRole("button", { name: /^Restore the backup from/ }));

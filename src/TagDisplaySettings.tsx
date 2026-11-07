@@ -8,10 +8,11 @@ import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
 import { Switch } from "./ui/Switch";
 import { useTranslation } from "react-i18next";
 
-const STEP = 0.05;
-const shown = (value: number) => value.toFixed(2);
-/** 输入框里的数按两位小数取，0.1 + 0.05 这类浮点尾数不进设置。 */
-const parse = (text: string) => (text.trim() === "" ? Number.NaN : Math.round(Number(text) * 100) / 100);
+// 输入框按整数百分比（0–100）写，和标签上的“可信度 87%”一致；存的仍是 0–1 的小数。
+const STEP = 5;
+const shown = (value: number) => String(Math.round(value * 100));
+/** 输入框里的百分数取整后除以 100，0.1 + 0.05 这类浮点尾数不进设置。 */
+const parse = (text: string) => (text.trim() === "" ? Number.NaN : Math.round(Number(text)) / 100);
 
 /**
  * 设置 › 标签 › 外观（#160）：标签风格（B 按可信度分档，默认；C 按出处分组加刻度）、可信度分档阈值、
@@ -53,11 +54,11 @@ export function TagDisplaySettings({ display, onChange }: {
     <SettingsRow className="is-thresholds" icon={<Gauge size={16} />} title={t("thresholds")} hint={t("thresholdsHint")}
       below={problem !== null && <p className="k-set-error" role="alert">{problem}</p>}>
       <label className="k-set-number">{t("high")}
-        <input className="k-input is-num" type="number" aria-label={t("highLabel")} min={STEP} max={1} step={STEP} value={high}
+        <input className="k-input is-num" type="number" aria-label={t("highLabel")} min={STEP} max={100} step={STEP} value={high}
           onChange={(e) => changeThresholds(e.target.value, low)} />
       </label>
       <label className="k-set-number">{t("low")}
-        <input className="k-input is-num" type="number" aria-label={t("lowLabel")} min={0} max={1 - STEP} step={STEP} value={low}
+        <input className="k-input is-num" type="number" aria-label={t("lowLabel")} min={0} max={100 - STEP} step={STEP} value={low}
           onChange={(e) => changeThresholds(high, e.target.value)} />
       </label>
       <button type="button" className="k-btn is-sm is-quiet" onClick={() => {

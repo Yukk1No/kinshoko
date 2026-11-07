@@ -6,7 +6,7 @@ export default {
   collapsePane: "收起侧栏",
   collapsePaneTitle: "收起侧栏 Ctrl B",
   results: "查找结果",
-  resultCount_other: "{{count}} 张",
+  resultCount_other: "{{count, number}} 张",
   copyOneOnly: "一次只能复制一张",
   empty: {
     importFiles: "导入图片",

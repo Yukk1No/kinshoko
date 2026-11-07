@@ -1,5 +1,6 @@
 import type { TagDisplay } from "../bindings/TagDisplay";
 import { i18n } from "../i18n/instance";
+import { clampRatio } from "../i18n/format";
 import type { TagOrigin } from "../bindings/TagOrigin";
 
 /** 模型标签的可信度档位（#160）：高档深底，中档常规底，低档字变浅。 */
@@ -37,7 +38,7 @@ export function confidenceBand(score: number, { high, low }: ConfidenceThreshold
  * 阈值是两位小数，所以向下取整的百分比和 `confidenceBand` 在任何阈值下都落在同一边；浮点误差按同样的 EPSILON 放过。
  */
 export function confidencePercent(score: number): number {
-  return Math.floor(score * 100 + EPSILON * 100);
+  return Math.floor(clampRatio(score) * 100 + EPSILON * 100);
 }
 
 /** 有效标签按出处归类：人工确认或添加的（以及合并资料库时留下、暂按添加处理的决定冲突）不分档；模型给的取各模型来源的最高分；其余是导入等来源。 */

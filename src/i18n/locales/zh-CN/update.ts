@@ -35,8 +35,8 @@ export default {
   },
   progress: {
     starting: "正在下载更新…",
-    downloaded: "正在下载 {{downloaded}} MB",
-    downloadedOfTotal: "正在下载 {{downloaded}}／{{total}} MB",
+    downloaded: "正在下载 {{downloaded}}",
+    downloadedOfTotal: "正在下载 {{downloaded}}／{{total}}",
   },
   notice: {
     available: "Kinshoko {{version}} 可以更新",

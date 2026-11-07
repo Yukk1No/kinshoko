@@ -10,14 +10,14 @@ import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { checkUpdate, installUpdate, onUpdateChannelChanged, onUpdateProgress, updateStatus } from "./ipc";
 import { CommandFailure, describeCommandError } from "./ipc/commandError";
 import { i18n } from "./i18n";
+import { formatBytes } from "./i18n/format";
 
-/** 下载进度的文字，例如“正在下载 3.2／12.0 MB”。 */
+/** 下载进度的文字，例如“正在下载 3.2 MB／12 MB”。 */
 function progressText(p: UpdateProgress | null): string {
   if (p === null) return i18n.t("update:progress.starting");
-  const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
   return p.total === null
-    ? i18n.t("update:progress.downloaded", { downloaded: mb(p.downloaded) })
-    : i18n.t("update:progress.downloadedOfTotal", { downloaded: mb(p.downloaded), total: mb(p.total) });
+    ? i18n.t("update:progress.downloaded", { downloaded: formatBytes(p.downloaded) })
+    : i18n.t("update:progress.downloadedOfTotal", { downloaded: formatBytes(p.downloaded), total: formatBytes(p.total) });
 }
 
 /** 安装：下载期间显示进度；成功时 Kinshoko 退出，由安装程序装好后重新启动。 */

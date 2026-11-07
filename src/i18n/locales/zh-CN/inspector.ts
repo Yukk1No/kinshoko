@@ -3,8 +3,8 @@ export default {
   selection: {
     label: "已选参考图",
     actions: "已选参考图操作",
-    count_other: "已选 {{count}} 张",
-    countShort_other: "{{count}} 张",
+    count_other: "已选 {{count, number}} 张",
+    countShort_other: "{{count, number}} 张",
     moveToFolder: "移到文件夹",
     noFolders: "还没有文件夹",
     removeFromFolder: "移出此文件夹",
@@ -13,7 +13,7 @@ export default {
     trash: "移到回收站",
     clear: "取消选择",
     trashed: "已移到回收站",
-    trashedCount_other: "{{count}} 张",
+    trashedCount_other: "{{count, number}} 张",
     undo: "撤销",
   },
   rating: {

@@ -144,7 +144,7 @@ describe("英文界面：桌面", () => {
     expect(ago(now - 30_000, now)).toBe("Just now");
     expect(ago(now - 60_000, now)).toBe("1 minute ago");
     expect(ago(now - 120 * 60_000, now)).toBe("2 hours ago");
-    expect(ago(new Date(2026, 9, 2).getTime(), now)).toBe("10/2");
-    expect(ago(new Date(2025, 11, 30).getTime(), now)).toBe("12/30/2025");
+    expect(ago(new Date(2026, 9, 2).getTime(), now)).toBe("Oct 2");
+    expect(ago(new Date(2025, 11, 30).getTime(), now)).toBe("Dec 30, 2025");
   });
 });

@@ -118,7 +118,7 @@ describe("参考组面板", () => {
     await show();
     expect(screen.getByText("头发参考")).toBeTruthy();
     expect(screen.getByText(/^3 张/).textContent).toBe("3 张");
-    expect(screen.getByText(/^3 张/).parentElement!.textContent).toMatch(/^3 张主库、移动盘库\d{4} 年 \d+ 月 \d+ 日$/);
+    expect(screen.getByText(/^3 张/).parentElement!.textContent).toMatch(/^3 张主库、移动盘库\d{4}年\d+月\d+日$/);
     expect(screen.getByText("参考组文件已损坏：不是 Kinshoko 参考组")).toBeTruthy();
   });
 

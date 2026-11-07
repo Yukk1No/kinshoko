@@ -20,7 +20,7 @@ export default {
   checkOriginalMissing: "缺少原图 {{file}}",
   checkOriginalMismatch: "原图内容不符 {{file}}",
   checkOriginalUnreadable: "无法读取原图 {{file}}：{{detail}}",
-  checkOriginalCount: "原图数量不符：快照 {{snapshot}} 张，恢复后 {{restored}} 张",
-  checkTableRowCount: "表 {{table}}：快照 {{snapshot}} 行，恢复后 {{restored}} 行，内容一致",
-  checkTableMismatch: "表 {{table}}：快照 {{snapshot}} 行，恢复后 {{restored}} 行，内容不一致",
+  checkOriginalCount: "原图数量不符：快照 {{snapshot, number}} 张，恢复后 {{restored, number}} 张",
+  checkTableRowCount: "表 {{table}}：快照 {{snapshot, number}} 行，恢复后 {{restored, number}} 行，内容一致",
+  checkTableMismatch: "表 {{table}}：快照 {{snapshot, number}} 行，恢复后 {{restored, number}} 行，内容不一致",
 };

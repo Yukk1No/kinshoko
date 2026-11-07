@@ -3,6 +3,7 @@ import type { SaveDestination } from "../bindings/SaveDestination";
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { formatNumber, percentOf } from "../i18n/format";
 import { useToast } from "../ui/Toast";
 import { Dialog } from "@base-ui/react/dialog";
 import { Download, MapPinned } from "lucide-react";
@@ -226,7 +227,8 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
 
   const minimized = running !== null && background === (running.taskId ?? "");
   const owner = ownerLabel ?? (finished?.libraryName ? t("owner", { library: finished.libraryName, folder: finished.folderName ?? t("unassigned") }) : running?.libraryName ? t("owner", { library: running.libraryName, folder: running.folderName ?? t("unassigned") }) : null);
-  const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+  // 扫描阶段总数还是 0，进度条停在 0；数到的比总数多时也不超过 100%。
+  const percent = percentOf(done, total);
   const sealed = report?.sealedDuplicates && finished;
 
   const { receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, onShowDestination, recovery, dismissRecovery,
@@ -252,11 +254,11 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
     {running && !minimized && (
       <section className="k-task" aria-label={t("progress.label")}>
         <div className="k-task-top"><Download size={16} className="k-task-icon" aria-hidden="true" /><b>{t("progress.title")}</b>
-          <span className="k-task-count tabular">{done} / {total}</span></div>
+          <span className="k-task-count tabular">{formatNumber(done)} / {formatNumber(total)}</span></div>
         {owner && <p className="k-task-sub">{t("ownerLine", { owner })}</p>}
         {taskSwitcher}
-        <progress className="k-task-progress" max={Math.max(total, 1)} value={done} aria-label={t("progress.label")}
-          aria-valuemin={0} aria-valuemax={total} aria-valuenow={done} style={{ ["--p" as string]: `${percent}%` }} />
+        <progress className="k-task-progress" max={Math.max(total, 1)} value={Math.min(done, Math.max(total, 1))} aria-label={t("progress.label")}
+          aria-valuemin={0} aria-valuemax={total} aria-valuenow={Math.min(done, total)} style={{ ["--p" as string]: `${percent}%` }} />
         {cardNotes}
         <div className="k-task-acts">
           <button type="button" className="k-btn is-sm" aria-label={t("progress.cancelLabel")} disabled={!running.taskId}

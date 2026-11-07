@@ -17,9 +17,10 @@ import {
   pinCapture,
 } from "../ipc";
 import { ago } from "./relativeTime";
-import { formatDateTime } from "../i18n/format";
+import { formatMoment } from "../i18n/format";
 
-const time = (ms: number) => formatDateTime(ms, { hour: "2-digit", minute: "2-digit" });
+/** 当天只显示时间，其他天带日期，免得跨天的两条同是“09:05”分不清。 */
+const time = (ms: number) => formatMoment(ms, { todayAsTime: true });
 
 /** 只有图标的操作按钮；悬停或键盘聚焦时用提示写出它做什么。 */
 function ItemAction({ label, className, onClick, children }: { label: string; className: string; onClick: () => void; children: ReactNode }) {

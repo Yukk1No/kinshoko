@@ -20,7 +20,7 @@ export default {
   checkOriginalMissing: "Original {{file}} is missing",
   checkOriginalMismatch: "Original {{file}} doesn't match",
   checkOriginalUnreadable: "Couldn't read original {{file}}: {{detail}}",
-  checkOriginalCount: "The number of originals doesn't match: {{snapshot}} in the snapshot, {{restored}} after restoring",
-  checkTableRowCount: "Table {{table}}: {{snapshot}} rows in the snapshot, {{restored}} after restoring; the contents match",
-  checkTableMismatch: "Table {{table}}: {{snapshot}} rows in the snapshot, {{restored}} after restoring; the contents differ",
+  checkOriginalCount: "The number of originals doesn't match: {{snapshot, number}} in the snapshot, {{restored, number}} after restoring",
+  checkTableRowCount: "Table {{table}}: {{snapshot, number}} rows in the snapshot, {{restored, number}} after restoring; the contents match",
+  checkTableMismatch: "Table {{table}}: {{snapshot, number}} rows in the snapshot, {{restored, number}} after restoring; the contents differ",
 };

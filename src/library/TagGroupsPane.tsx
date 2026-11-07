@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatNumber } from "../i18n/format";
 import { i18n } from "../i18n";
 import type { KeyboardEvent } from "react";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
@@ -217,7 +218,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
               return <li key={tag.id} className="k-group-member">
                 <button type="button" className="k-group-chip" data-focus-key={`${group.id}:${tag.id}:chip`} aria-label={t("member.count", { name, count })} disabled={!onBrowse}
                   onClick={() => onBrowse?.([tag.id])}>
-                  <span className="k-group-chip-name k-label">{name}<TagMarks tag={tag} /></span><span className="k-group-chip-count k-label">{count}</span>
+                  <span className="k-group-chip-name k-label">{name}<TagMarks tag={tag} /></span><span className="k-group-chip-count k-label">{formatNumber(count)}</span>
                 </button>
                 {custom && <span className="k-group-member-acts">
                   <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:prev`} aria-label={t("member.prevLabel", { tag: name, group: group.name })} title={t("member.prev")} disabled={busy || memberIndex === 0}
