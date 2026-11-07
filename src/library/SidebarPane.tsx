@@ -3,14 +3,14 @@ import { useTranslation } from "react-i18next";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { FolderNode } from "../bindings/FolderNode";
 import type { Sidebar } from "../bindings/Sidebar";
-import { createFolder, deleteFolder, editImages, moveFolder, renameFolder } from "../ipc";
+import { createFolder, deleteFolder, editImages, moveFolder, renameFolder, restoreFolder } from "../ipc";
 import { DRAG_IMAGE_SOURCES, DRAG_IMAGES } from "../wall/Wall";
 import { Folder, FolderOpen, FolderPlus, FolderUp, FolderX, Inbox, Pencil } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
-import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { FluidList, FluidRow } from "../ui/FluidList";
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
+import { useToast } from "../ui/Toast";
 
 /** 侧栏里拖动文件夹时放进 dataTransfer 的类型，值为文件夹 id。 */
 export const DRAG_FOLDER = "application/x-kinshoko-folder";
@@ -95,8 +95,7 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   /** 右键“新建子文件夹”所在的文件夹。 */
   const [creatingUnder, setCreatingUnder] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<FolderNode | null>(null);
-  const [busy, setBusy] = useState(false);
+  const toast = useToast();
 
   const run = (p: Promise<unknown>) => p.catch((e) => onError(e));
 
@@ -110,19 +109,17 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
   };
   const newInput = <NameInput label={t("folders.newName")} initial="" onDone={created} />;
 
-  const confirmDelete = () => {
-    if (!deleting) return;
-    const removed = subtree(deleting);
-    setBusy(true);
-    deleteFolder(libraryId, deleting.id).then(() => {
-      setBusy(false);
-      setDeleting(null);
+  /** 删除文件夹能撤销，所以不先确认：直接删，再给一个带“撤销”的轻提示；撤销用的是删除时返回的内容。 */
+  const removeFolder = (node: FolderNode) => {
+    const removed = subtree(node);
+    deleteFolder(libraryId, node.id).then((deleted) => {
       // 正在看的文件夹（或它的子文件夹）没了：回到这个图库的全部。
       if (scopeSelected && (scope.kind === "folder" || scope.kind === "folderTree") && removed.includes(scope.id)) onScope({ kind: "all" });
-    }, (e) => {
-      setBusy(false);
-      onError(e);
-    });
+      toast.show({
+        title: t("deleteFolder.done"), description: node.name, tone: "success",
+        action: { label: t("deleteFolder.undo"), onClick: () => { restoreFolder(libraryId, deleted).catch((e) => onError(e)); } },
+      });
+    }, (e) => onError(e));
   };
 
   const over = (target: string) => (e: DragEvent) => {
@@ -199,7 +196,7 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
               <MenuSeparator />
               <MenuItem icon={<FolderUp size={14} />} disabled={depth === 0} onClick={() => void run(moveFolder(libraryId, node.id, null, LAST))}>{t("folders.moveToTop")}</MenuItem>
               <MenuSeparator />
-              <MenuItem icon={<FolderX size={14} />} danger onClick={() => setDeleting(node)}>{t("folders.delete")}</MenuItem>
+              <MenuItem icon={<FolderX size={14} />} danger onClick={() => removeFolder(node)}>{t("folders.delete")}</MenuItem>
             </MenuPopup>
             </ContextMenu.Root>
             </FluidRow>
@@ -230,23 +227,6 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
         {newParent !== undefined && (newParent === null || !inTree(directory.folders, newParent)) && newInput}
       </div>
       </FluidList>
-      {deleting && <AlertDialog.Root open onOpenChange={(open) => { if (!open && !busy) setDeleting(null); }}>
-        <AlertDialog.Portal>
-          <AlertDialog.Backdrop className="k-backdrop" />
-          <AlertDialog.Popup className="k-dialog is-alert" aria-label={t("deleteFolder.title")}>
-            <AlertDialog.Title className="k-dialog-title">{t("deleteFolder.title")}</AlertDialog.Title>
-            <AlertDialog.Description className="k-dialog-desc">
-              {t("deleteFolder.confirm", { name: deleting.name })}
-              {subtree(deleting).length > 1 && t("deleteFolder.subfolders", { count: subtree(deleting).length - 1 })}
-            </AlertDialog.Description>
-            <div className="k-dialog-foot">
-              <span className="k-grow" />
-              <AlertDialog.Close className="k-btn" disabled={busy}><span className="k-label">{t("deleteFolder.cancel")}</span></AlertDialog.Close>
-              <button type="button" className="k-btn is-danger" disabled={busy} onClick={confirmDelete}><span className="k-label">{t("deleteFolder.submit")}</span></button>
-            </div>
-          </AlertDialog.Popup>
-        </AlertDialog.Portal>
-      </AlertDialog.Root>}
     </nav>
   );
 }

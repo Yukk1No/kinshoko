@@ -2,7 +2,7 @@
 //! 放入与移出参考图走 [`super::Library::edit`]。
 
 use rusqlite::{Connection, OptionalExtension, params};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::{Error, Inner, LIVE, now_ms};
@@ -17,6 +17,59 @@ pub struct FolderNode {
     /// 直接放在这个文件夹里、可见的参考图张数（不含子文件夹，不含回收站）。
     pub count: u32,
     pub children: Vec<FolderNode>,
+}
+
+/// 删掉的一棵文件夹（根在前、父在子前），连同让它原样放回所需的一切。
+/// 由 [`delete`] 返回、交给 [`restore`]；后端不留存，前端拿着它就是“可撤销”，丢了就不能撤销。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct DeletedFolders {
+    folders: Vec<DeletedFolder>,
+    members: Vec<DeletedMember>,
+    decisions: Vec<DeletedDecision>,
+    eagle: Vec<DeletedEagleLink>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct DeletedFolder {
+    id: String,
+    name: String,
+    parent_id: Option<String>,
+    #[ts(type = "number")]
+    ord: i64,
+    #[ts(type = "number")]
+    created_at: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct DeletedMember {
+    folder_id: String,
+    image_id: String,
+    #[ts(type = "number")]
+    added_at: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct DeletedDecision {
+    folder_id: String,
+    image_id: String,
+    member: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct DeletedEagleLink {
+    source_id: String,
+    external_id: String,
+    folder_id: String,
 }
 
 fn valid_name(name: &str) -> Result<String, Error> {
@@ -132,7 +185,7 @@ pub(super) fn move_to(
 /// 这个文件夹或它的子文件夹是正在进行的导入的保存位置时拒绝（[`Error::FolderReceivingImport`]），
 /// 导入结束后再删。从核对到提交一直持有导入登记表的锁；导入在同一把锁里核对保存位置并登记
 /// （[`super::Library::import_to`]），所以导入要么先登记（这里拒绝），要么等提交后看到文件夹已不在。
-pub(super) fn delete(inner: &Inner, id: &str) -> Result<(), Error> {
+pub(super) fn delete(inner: &Inner, id: &str) -> Result<DeletedFolders, Error> {
     let id = id.to_owned();
     inner.write_holding(inner.import_folders.clone(), move |tx, receiving| {
         let parent: Option<String> = tx
@@ -155,6 +208,7 @@ pub(super) fn delete(inner: &Inner, id: &str) -> Result<(), Error> {
         }
         #[cfg(test)]
         tests::after_receiving_check(&id);
+        let deleted = snapshot(tx, &id)?;
         for table in ["folder_member", "folder_decision", "eagle_folder"] {
             tx.execute(
                 &format!(
@@ -168,7 +222,147 @@ pub(super) fn delete(inner: &Inner, id: &str) -> Result<(), Error> {
             [&id],
         )?;
         let rest = siblings(tx, parent.as_deref())?;
-        renumber(tx, parent.as_deref(), &rest)
+        renumber(tx, parent.as_deref(), &rest)?;
+        Ok(deleted)
+    })
+}
+
+/// 记下以 `root` 为根的整棵文件夹：每个文件夹的名称、父级、顺序，以及成员、取舍与 Eagle 对应。
+fn snapshot(conn: &Connection, root: &str) -> Result<DeletedFolders, Error> {
+    const SUBTREE: &str = "WITH RECURSIVE subtree(id) AS (
+            SELECT ?1 UNION ALL SELECT f.id FROM folder f JOIN subtree s ON f.parent_id = s.id
+        )";
+    let mut all: Vec<DeletedFolder> = conn
+        .prepare(&format!(
+            "{SUBTREE} SELECT id, name, parent_id, ord, created_at FROM folder
+             WHERE id IN (SELECT id FROM subtree)"
+        ))?
+        .query_map([root], |row| {
+            Ok(DeletedFolder {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                parent_id: row.get(2)?,
+                ord: row.get(3)?,
+                created_at: row.get(4)?,
+            })
+        })?
+        .collect::<Result<_, _>>()?;
+    // 根在前、父在子前：放回时按这个顺序插入，外键才成立。
+    let mut folders = Vec::with_capacity(all.len());
+    let at = all
+        .iter()
+        .position(|f| f.id == root)
+        .ok_or(Error::UnknownFolder)?;
+    folders.push(all.swap_remove(at));
+    let mut next = 0;
+    while next < folders.len() {
+        let parent = folders[next].id.clone();
+        let (children, rest): (Vec<_>, Vec<_>) = all
+            .into_iter()
+            .partition(|f| f.parent_id.as_deref() == Some(parent.as_str()));
+        all = rest;
+        folders.extend(children);
+        next += 1;
+    }
+    let members = conn
+        .prepare(&format!(
+            "{SUBTREE} SELECT folder_id, image_id, added_at FROM folder_member
+             WHERE folder_id IN (SELECT id FROM subtree) ORDER BY rowid"
+        ))?
+        .query_map([root], |row| {
+            Ok(DeletedMember {
+                folder_id: row.get(0)?,
+                image_id: row.get(1)?,
+                added_at: row.get(2)?,
+            })
+        })?
+        .collect::<Result<_, _>>()?;
+    let decisions = conn
+        .prepare(&format!(
+            "{SUBTREE} SELECT folder_id, image_id, member FROM folder_decision
+             WHERE folder_id IN (SELECT id FROM subtree)"
+        ))?
+        .query_map([root], |row| {
+            Ok(DeletedDecision {
+                folder_id: row.get(0)?,
+                image_id: row.get(1)?,
+                member: row.get::<_, i64>(2)? != 0,
+            })
+        })?
+        .collect::<Result<_, _>>()?;
+    let eagle = conn
+        .prepare(&format!(
+            "{SUBTREE} SELECT source_id, external_id, folder_id FROM eagle_folder
+             WHERE folder_id IN (SELECT id FROM subtree)"
+        ))?
+        .query_map([root], |row| {
+            Ok(DeletedEagleLink {
+                source_id: row.get(0)?,
+                external_id: row.get(1)?,
+                folder_id: row.get(2)?,
+            })
+        })?
+        .collect::<Result<_, _>>()?;
+    Ok(DeletedFolders {
+        folders,
+        members,
+        decisions,
+        eagle,
+    })
+}
+
+/// 把 [`delete`] 删掉的文件夹原样放回：名称、子文件夹、成员、同级里的位置都照旧。
+/// 原来的上级已经不在了就放到顶层；删除之后被永久删除的图、被去掉的导入来源不再放回。
+pub(super) fn restore(inner: &Inner, deleted: DeletedFolders) -> Result<(), Error> {
+    inner.write(move |tx| {
+        let root = deleted.folders.first().ok_or(Error::UnknownFolder)?;
+        let parent = match &root.parent_id {
+            Some(p) if ensure_folder(tx, p).is_ok() => Some(p.clone()),
+            _ => None,
+        };
+        let mut order = siblings(tx, parent.as_deref())?;
+        let at = (root.ord.max(0) as usize).min(order.len());
+        order.insert(at, root.id.clone());
+        for (i, folder) in deleted.folders.iter().enumerate() {
+            let parent_id = if i == 0 {
+                parent.as_deref()
+            } else {
+                folder.parent_id.as_deref()
+            };
+            tx.execute(
+                "INSERT INTO folder (id, name, parent_id, ord, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![folder.id, folder.name, parent_id, folder.ord, folder.created_at],
+            )?;
+        }
+        renumber(tx, parent.as_deref(), &order)?;
+        let exists = |sql: &str, id: &str| -> Result<bool, Error> {
+            Ok(tx.query_row(sql, [id], |_| Ok(())).optional()?.is_some())
+        };
+        for m in &deleted.members {
+            if exists("SELECT 1 FROM image WHERE id = ?1", &m.image_id)? {
+                tx.execute(
+                    "INSERT INTO folder_member (folder_id, image_id, added_at) VALUES (?1, ?2, ?3)",
+                    params![m.folder_id, m.image_id, m.added_at],
+                )?;
+            }
+        }
+        for d in &deleted.decisions {
+            if exists("SELECT 1 FROM image WHERE id = ?1", &d.image_id)? {
+                tx.execute(
+                    "INSERT INTO folder_decision (folder_id, image_id, member) VALUES (?1, ?2, ?3)",
+                    params![d.folder_id, d.image_id, d.member as i64],
+                )?;
+            }
+        }
+        for e in &deleted.eagle {
+            if exists("SELECT 1 FROM import_source WHERE id = ?1", &e.source_id)? {
+                tx.execute(
+                    "INSERT OR IGNORE INTO eagle_folder (source_id, external_id, folder_id) VALUES (?1, ?2, ?3)",
+                    params![e.source_id, e.external_id, e.folder_id],
+                )?;
+            }
+        }
+        Ok(())
     })
 }
 
@@ -272,7 +466,7 @@ mod tests {
         let deleted = library.delete_folder(&folder);
         let imported = import.recv().unwrap();
         match (&deleted, &imported) {
-            (Ok(()), Err(Error::UnknownFolder)) | (Err(Error::FolderReceivingImport), Ok(_)) => {}
+            (Ok(_), Err(Error::UnknownFolder)) | (Err(Error::FolderReceivingImport), Ok(_)) => {}
             other => panic!("删除与导入交错：{other:?}"),
         }
     }

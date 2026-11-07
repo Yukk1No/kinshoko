@@ -98,15 +98,11 @@ const library: Translation<typeof zh> = {
     newSubfolder: "New subfolder",
     rename: "Rename",
     moveToTop: "Move to top level",
-    delete: "Delete folder…",
+    delete: "Delete folder",
   },
   deleteFolder: {
-    title: "Delete folder",
-    confirm: "Delete the folder “{{name}}”? The images in it are kept; images that aren't in another folder go back to Unsorted.",
-    subfolders_one: "Its {{count, number}} subfolder is deleted too; the images in it are kept as well.",
-    subfolders_other: "Its {{count, number}} subfolders are deleted too; the images in them are kept as well.",
-    cancel: "Cancel",
-    submit: "Delete folder",
+    done: "Folder deleted",
+    undo: "Undo",
   },
 };
 

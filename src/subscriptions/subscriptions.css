@@ -55,7 +55,7 @@
 .subs-none { margin: 24px 0 0; color: var(--ink-2); }
 .subs-tiles { list-style: none; margin: 4px 0 0; padding: 0; column-width: 200px; column-gap: 12px; }
 .subs-tiles > li { break-inside: avoid; margin: 0 0 12px; }
-.subs-tile { display: block; width: 100%; min-height: 120px; padding: 0; border: 0; border-radius: var(--r); overflow: hidden; background: var(--card); cursor: pointer;
+.subs-tile { color: inherit; display: block; width: 100%; min-height: 120px; padding: 0; border: 0; border-radius: var(--r); overflow: hidden; background: var(--card); cursor: pointer;
   transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast); }
 .subs-tile:hover { box-shadow: var(--shadow-raise); transform: translateY(-1px); }
 .subs-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
