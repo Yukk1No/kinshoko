@@ -314,13 +314,13 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
       {dismissingNow && (
         <div className="search-popover" role="dialog" aria-label={t("dismiss.label")}>
           <p>{t("dismiss.prompt", { name: tagName(dismissingNow.similar.tag) })}</p>
-          <button type="button" onClick={() => dismissOnce(dismissingNow)}>
+          <button type="button" className="k-btn is-sm" onClick={() => dismissOnce(dismissingNow)}>
             {t("dismiss.once")}
           </button>
-          <button type="button" onClick={() => dismissForever(dismissingNow.similar)}>
+          <button type="button" className="k-btn is-sm" onClick={() => dismissForever(dismissingNow.similar)}>
             {t("dismiss.forever")}
           </button>
-          <button type="button" onClick={() => setDismissing(null)}>
+          <button type="button" className="k-btn is-sm" onClick={() => setDismissing(null)}>
             {t("dismiss.cancel")}
           </button>
         </div>
@@ -360,7 +360,7 @@ function AddSimilar({
         onSelect={(option) => onPick(option.tag)}
         onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
       />
-      <button type="button" onClick={onCancel}>
+      <button type="button" className="k-btn is-sm" onClick={onCancel}>
         {t("add.cancel")}
       </button>
     </div>
