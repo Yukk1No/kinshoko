@@ -151,6 +151,23 @@ describe("选中一张图：自动标签未完成（#475）", () => {
     await waitFor(() => expect(screen.queryByText("自动标签未完成")).toBeNull());
   });
 
+  it("选着的图之后打标失败：收到图片变化的通知就补上这一行，不用重新选", async () => {
+    let failure: "unreadable" | null = null;
+    mockIPC((cmd) => {
+      if (cmd === "plugin:library|catalog_image_tags") return NO_TAGS;
+      if (cmd === "plugin:library|image") return { ...detail({}), taggingFailure: failure };
+      return undefined;
+    });
+    const onError = () => {};
+    const panel = (generation: number) => <SelectionPanel libraryId="L1" selected={new Set(["img"])} onClear={() => {}} reloadKey={0} onError={onError} generation={generation} />;
+    const view = render(panel(0));
+    await screen.findByRole("group", { name: "内容分级" });
+    expect(screen.queryByText("自动标签未完成")).toBeNull();
+    failure = "unreadable";
+    view.rerender(panel(1));
+    expect(await screen.findByText("自动标签未完成")).toBeTruthy();
+  });
+
   it("打完了的图没有这一行", async () => {
     backend(detail({}), detail({}));
     renderPanel();

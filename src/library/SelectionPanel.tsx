@@ -306,7 +306,8 @@ export function SelectionPanel({
     return () => {
       alive = false;
     };
-  }, [libraryId, single, reloadKey, onError, detailKey]);
+    // 词表代次随 imagesChanged 前进（例如这张图打标失败被记下，#475）：重读详情，但不算换了一张，不先变成不可操作。
+  }, [libraryId, single, reloadKey, onError, detailKey, generation]);
   const detail = loaded?.detail ?? null;
   const stale = loaded?.key !== detailKey;
 

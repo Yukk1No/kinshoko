@@ -3,6 +3,7 @@
 
 use super::*;
 use kinshoko_core::library::FailedTagging;
+use kinshoko_core::tagging::TaggingLibraries;
 
 fn failed(unreadable: u32, crashed: u32) -> FailedTagging {
     FailedTagging {
@@ -135,4 +136,59 @@ fn retrying_an_image_that_still_cannot_be_decoded_records_it_again() {
     let status = idle(&tagging);
     assert_eq!(failures(&status), Some(failed(1, 0)));
     assert!(f.fake.tagged().is_empty());
+}
+
+/// 一个可以拔掉再插回的库。
+struct Pluggable {
+    library: Arc<Library>,
+    plugged: AtomicBool,
+}
+
+impl TaggingLibraries for Pluggable {
+    fn library_ids(&self) -> Vec<String> {
+        vec![self.library.info().id.clone()]
+    }
+
+    fn writer(&self, library_id: &str) -> Result<Arc<Library>, kinshoko_core::CommandError> {
+        if self.plugged.load(std::sync::atomic::Ordering::SeqCst) {
+            vec![self.library.clone()].writer(library_id)
+        } else {
+            Err(kinshoko_core::DeviceLibraryError::UnknownLibrary.into())
+        }
+    }
+}
+
+// 画师要求重试时库暂时打不开：要求记着，库回来后照常重试（#475 评审）。
+#[test]
+fn a_retry_asked_while_the_library_is_unavailable_runs_once_it_is_back() {
+    let f = Fixture::new(1);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    f.fake.bad_image(&f.original(0), "无法解码");
+    let libraries = Arc::new(Pluggable {
+        library: f.library.clone(),
+        plugged: AtomicBool::new(true),
+    });
+    let spec = f.server.publish("gpu", Device::DirectMl, b"model");
+    let tagging = Tagging::start(
+        libraries.clone(),
+        Arc::new(f.fake.clone()),
+        f.config(vec![spec]),
+    );
+    tagging.download();
+    assert_eq!(failures(&idle(&tagging)), Some(failed(1, 0)));
+
+    libraries
+        .plugged
+        .store(false, std::sync::atomic::Ordering::SeqCst);
+    f.fake.fix_image(&f.original(0));
+    tagging.retry_failed();
+    std::thread::sleep(Duration::from_millis(100));
+    libraries
+        .plugged
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+    // 拔掉时这个库算“数不出来”（unknown），失败张数看不到；插回后要是 0 张才是真重试了。
+    wait_for(&tagging, "库回来后重试", |s| {
+        matches!(s, TaggingStatus::Idle { unknown: 0, .. }) && failures(s) == Some(failed(0, 0))
+    });
+    assert_eq!(f.fake.tagged().len(), 1);
 }

@@ -25,6 +25,7 @@ use super::libraries::TaggingLibraries;
 
 use super::interpret::interpret;
 use super::models::{HUGGING_FACE, ModelSpec, ModelStore, PrepareStage, catalog};
+mod retry;
 mod worker;
 
 use super::foreground::ForegroundCheck;
@@ -301,6 +302,7 @@ impl Tagging {
             gpu_failures: 0,
             crashes: HashMap::new(),
             crash_retried: HashSet::new(),
+            retry_asked: HashSet::new(),
             session: None,
             tagged: 0,
             done: 0,
@@ -450,6 +452,8 @@ struct Worker {
     crashes: HashMap<(String, String), u32>,
     /// 本次运行已经重试过反复崩溃的图的（资料库, 模型来源）：每次启动只重试一轮（#475）。
     crash_retried: HashSet<(String, String)>,
+    /// 画师要求重试、还没清掉失败记录的（资料库, 模型来源）（#475）。
+    retry_asked: HashSet<(String, String)>,
     session: Option<(String, Box<dyn TaggerSession>)>,
     tagged: u32,
     /// 见 [`TaggingStatus::Running`]。

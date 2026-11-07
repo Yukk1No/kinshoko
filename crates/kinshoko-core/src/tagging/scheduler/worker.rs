@@ -208,34 +208,6 @@ impl Worker {
         self.shared.set_tagging(None);
     }
 
-    /// 让打不上标的图重新待打标（#475）：画师要求过重试（[`Tagging::retry_failed`]）时，各库两类都重试；
-    /// 否则每个库在本次运行第一次轮到时，只重试反复崩溃的图一次。打不开的库这次跳过，下次再试。
-    fn retry_failed(&mut self, source: &FactSource) {
-        let asked = std::mem::take(&mut self.shared.control().retry_failed);
-        if asked {
-            // 这一轮的崩溃次数从头算。
-            self.crashes.clear();
-        }
-        for id in self.libraries.library_ids() {
-            let key = (id, source.as_str().to_owned());
-            let first = !self.crash_retried.contains(&key);
-            if !asked && !first {
-                continue;
-            }
-            let Ok(library) = self.libraries.writer(&key.0) else {
-                continue;
-            };
-            let which = if asked {
-                RetryTagging::AllFailed
-            } else {
-                RetryTagging::CrashedOnly
-            };
-            if library.retry_failed_tagging(source, which).is_ok() {
-                self.crash_retried.insert(key);
-            }
-        }
-    }
-
     /// 逐个询问各库：画师正在整理的库在前，其余按登记顺序。取第一个有未打标的图的库的一批，
     /// 并数出各库的未打标张数与打不上标的张数合计。打不开或数不出来的库跳过，不中断其他库。
     fn pick(&self, source: &FactSource) -> Pick {
