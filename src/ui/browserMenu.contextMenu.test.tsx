@@ -6,7 +6,7 @@ import { blockBrowserMenu } from "./browserMenu";
 let stop = () => {};
 afterEach(() => stop());
 
-it("装了拦截以后，Base UI 的右键菜单照样能打开（图片墙、截图历史）", async () => {
+it("装了拦截以后，Base UI 的右键菜单照样能打开（图片墙、截图）", async () => {
   stop = blockBrowserMenu(window);
   render(
     <ContextMenu.Root>

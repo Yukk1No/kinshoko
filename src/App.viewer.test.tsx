@@ -183,7 +183,7 @@ describe("主窗口", () => {
 
     await act(() => emit("organize-waiting", { libraryId: "L2", finishing: ["工作参考"] }));
 
-    expect(await screen.findByText("导入收尾后再整理")).toBeTruthy();
+    expect(await screen.findByText("导入完成后再整理")).toBeTruthy();
     expect(screen.getByText("「工作参考」的导入完成后自动执行")).toBeTruthy();
     expect(screen.getByRole("region", { name: "原图查看器" })).toBeTruthy();
   });

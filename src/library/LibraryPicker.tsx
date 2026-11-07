@@ -11,7 +11,7 @@ import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
 
 /**
- * 本设备的资料库登记与取消登记（界面称“图库”，design/ui-system/copy-map.md）。
+ * 本设备的资料库登记与取消登记（界面称“图库”，design/ui-system/interface-terms.md）。
  * `menu`：侧栏标题行“图库 ＋”（方案 D，#113）：＋ 菜单为打开 / 新建 / 管理。画师不选“当前图库”
  * （ADR-0008），这里没有切换；`inline`：还没有图库时的欢迎页（#172 原型 A：先选新建或打开，新建再填表）。
  * 打开菜单或管理对话框时重新读取登记，不可用的登记仍可重新连接（重新检查）或移除。

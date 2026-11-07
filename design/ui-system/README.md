@@ -14,7 +14,8 @@
 | [buttons-and-dock.md](buttons-and-dock.md) | 按钮、Dock 的样式与放置 | 改按钮、工具条、浮岛 |
 | [visual-and-motion.md](visual-and-motion.md) | 字号、颜色、圆角、动效 | 改视觉或动画 |
 | [interface-text-rules.md](interface-text-rules.md) | 界面文字的名称、描述与用词规则 | 写或审界面文字 |
-| [copy-map.md](copy-map.md) | 逐条文案与操作改写对照 | 查某个词或流程改成了什么 |
+| [interface-terms.md](interface-terms.md) | 该用的词与不再用的词，按主题列 | 给按钮、菜单、提示起名或改词 |
+| [interaction-flows.md](interaction-flows.md) | 图库切换、侧栏、导入、提示、设置等的定型做法 | 改这些操作的流程 |
 
 ## 预览
 

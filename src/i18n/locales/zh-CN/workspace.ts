@@ -12,7 +12,7 @@ export default {
     folders: "文件夹",
     groups: "参考组",
     captures: "截图",
-    capturesLabel: "截图历史",
+    capturesLabel: "截图",
   },
   inspector: {
     label: "详情",
@@ -20,7 +20,7 @@ export default {
     title: "详情",
   },
   organizeWaiting: {
-    title: "导入收尾后再整理",
+    title: "导入完成后再整理",
     description: "{{names}}的导入完成后自动执行",
     name: "「{{name}}」",
     separator: "、",

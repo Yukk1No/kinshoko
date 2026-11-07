@@ -112,7 +112,7 @@ export default {
     top: "前 {{count}}",
     topLabel: "{{period}}同步前几名",
     name: "{{period}} 前 {{count}}",
-    subscribed: "已订阅 · 前 {{count}}",
+    subscribed: "已订阅，前 {{count}}",
     explicit: "R-18 作品",
     explicitList: "R-18 榜单",
     library: "图库",

@@ -1,7 +1,7 @@
 /** 编辑标签分组（`src/library/TagGroupsPane.tsx`）：“编辑分组”对话框与设置里的全局标签分组。 */
 export default {
   label: "标签分组",
-  settingsLabel: "全局标签分组",
+  settingsLabel: "标签分组",
   settingsNote: "各图库共用；改分组不改图片标签。",
   settingsLoading: "正在读取分组设置…",
   updating: "正在更新标签分组…",
@@ -23,7 +23,7 @@ export default {
     button: "新建分组",
   },
   pick: {
-    label: "挑一个统一标签",
+    label: "挑一个标签",
     placeholder: "标签名或别名",
     none: "没有匹配的标签",
     cancelLabel: "取消加标签",

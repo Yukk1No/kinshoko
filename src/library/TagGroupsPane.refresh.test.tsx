@@ -78,13 +78,13 @@ async function openPicker(beforePicker?: () => Promise<void>) {
   if (beforePicker) await beforePicker();
   const group = await within(region).findByRole("group", { name: "发色" });
   fireEvent.click(within(group).getByRole("button", { name: "给“发色”加标签" }));
-  const input = within(group).getByRole<HTMLInputElement>("combobox", { name: "挑一个统一标签" });
+  const input = within(group).getByRole<HTMLInputElement>("combobox", { name: "挑一个标签" });
   fireEvent.change(input, { target: { value: "蓝" } });
   await screen.findByRole("option", { name: /蓝发/ });
   return { region, input };
 }
 async function addMember(region: HTMLElement) {
-  const input = await within(region).findByRole<HTMLInputElement>("combobox", { name: "挑一个统一标签" });
+  const input = await within(region).findByRole<HTMLInputElement>("combobox", { name: "挑一个标签" });
   expect(input.value).toBe("蓝");
   fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
   expect(await within(region).findByRole("button", { name: "蓝发（1 张）" })).toBeTruthy();
@@ -112,7 +112,7 @@ it("keeps typing when the monitor repeats an observed workspace revision", async
 it("closes the draft and old candidates when the safety mode really changes", async () => {
   const { region } = await openPicker();
   await act(async () => { await emit("safe-mode-setting", false); });
-  expect(within(region).queryByRole("combobox", { name: "挑一个统一标签" })).toBeNull();
+  expect(within(region).queryByRole("combobox", { name: "挑一个标签" })).toBeNull();
   expect(screen.queryByRole("option", { name: /蓝发/ })).toBeNull();
 });
 
@@ -126,7 +126,7 @@ it("keeps the focused input while withholding stale labels and ignoring a late o
   readCandidates = () => new Promise((resolve) => { finishNew = resolve; });
   readGroups = () => new Promise((resolve) => { finishGroups = resolve; });
   await act(async () => { await emit("library-event", { kind: "vocabularyChanged", libraryId: "L1", revision: 1 }); });
-  expect(within(region).getByRole("combobox", { name: "挑一个统一标签" })).toBe(input);
+  expect(within(region).getByRole("combobox", { name: "挑一个标签" })).toBe(input);
   expect(document.activeElement).toBe(input);
   expect(input.value).toBe("蓝发");
   expect(within(region).queryByRole("group", { name: "发色" })).toBeNull();
@@ -135,12 +135,12 @@ it("keeps the focused input while withholding stale labels and ignoring a late o
   expect(within(region).queryByText("失效的旧标签")).toBeNull();
   await act(async () => { finishNew([{ tag, via: null, count: 1 }]); finishGroups(structuredClone(groups)); });
   expect(await screen.findByRole("option", { name: /蓝发/ })).toBeTruthy();
-  expect(within(region).getByRole("combobox", { name: "挑一个统一标签" })).toBe(input);
+  expect(within(region).getByRole("combobox", { name: "挑一个标签" })).toBe(input);
 });
 
 it("closes a draft whose group was deleted during refresh", async () => {
   const { region } = await openPicker();
   groups = [];
   await act(async () => { await emit("workspace-changed", { ...status, revision: "workspace-r3" }); });
-  expect(within(region).queryByRole("combobox", { name: "挑一个统一标签" })).toBeNull();
+  expect(within(region).queryByRole("combobox", { name: "挑一个标签" })).toBeNull();
 });

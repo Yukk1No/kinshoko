@@ -36,7 +36,7 @@ export default {
     size_other: "共约 {{total}}，这次新写入 {{fresh}}（新原图 {{count, number}} 张）",
     targetMissing: "。备份位置现在不在，按全部需要复制估计",
     uncovered: "没覆盖的内容",
-    unavailable: "「{{library}}」现在读不到，会跳过：{{reason}}",
+    unavailable: "「{{library}}」暂时无法读取，会跳过：{{reason}}",
   },
   restore: {
     title: "恢复图库",

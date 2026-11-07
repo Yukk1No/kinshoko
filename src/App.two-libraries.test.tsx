@@ -56,7 +56,7 @@ describe("A 库导入中，整理 B 库文件夹", () => {
     await screen.findByText(`放到 ${library.name} / 未归类`);
 
     await act(() => emit("organize-waiting", { finishing: [library.name] }));
-    expect(await screen.findByText("导入收尾后再整理")).toBeTruthy();
+    expect(await screen.findByText("导入完成后再整理")).toBeTruthy();
 
     finishTasks([]);
     const report = { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] };

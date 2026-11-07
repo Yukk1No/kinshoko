@@ -41,8 +41,8 @@ export default {
   add: {
     label: "加相近标签",
     prompt: "查“{{name}}”时也找：",
-    pickShared: "挑一个统一标签",
-    pickLibrary: "挑一个库内标签",
+    pickShared: "挑一个标签",
+    pickLibrary: "挑本图库的标签",
     none: "没有匹配的标签",
     cancel: "取消",
   },

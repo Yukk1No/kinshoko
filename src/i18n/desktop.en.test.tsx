@@ -6,7 +6,7 @@ import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
 import { expectNoChinese } from "../test/noChinese";
 
-// 英文界面下桌面（钉图菜单、截图框选、截图历史、参考组）没有中文界面文案（#357）。
+// 英文界面下桌面（钉图菜单、截图框选、截图、参考组）没有中文界面文案（#357）。
 // 中文界面的文案由各组件自己的测试核对；参考组名、图库名是画师的数据。
 const ipc = vi.hoisted(() => ({
   groups: vi.fn(),
@@ -95,7 +95,7 @@ describe("英文界面：桌面", () => {
     expect(screen.getByRole("menuitem", { name: "Show" })).toBeTruthy();
   });
 
-  it("截图历史与它的右键菜单", async () => {
+  it("截图与它的右键菜单", async () => {
     render(<CaptureHistoryPanel />);
     await settle();
     expect(screen.getAllByRole("button", { name: "Pin to desktop" }).length).toBeGreaterThan(0);

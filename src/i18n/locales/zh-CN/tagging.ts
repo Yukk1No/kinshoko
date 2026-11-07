@@ -1,6 +1,6 @@
 /** 自动标签：主窗口里的状态（`src/TaggingActivity.tsx`，图片墙右下角的图标与通知）与设置 › 自动标签（`src/AutoTaggingSettings.tsx`）。 */
 export default {
-  /** 打标所用的设备；键是 `Device`。 */
+  /** 自动标签所用的设备；键是 `Device`。 */
   device: {
     directMl: "显卡",
     cpu: "CPU",
@@ -9,7 +9,7 @@ export default {
     downloading: "正在下载自动标签模型 {{percent}}%",
     starting: "正在加载自动标签模型",
     preparing: "正在校验自动标签模型",
-    running_other: "正在自动标签，已标 {{count, number}} 张（{{device}}）",
+    running_other: "正在自动标签，已完成 {{count, number}} 张（{{device}}）",
     paused: "已暂停",
     yieldedToFullScreen: "因全屏程序暂停",
   },
@@ -19,7 +19,7 @@ export default {
     downloaded: "已下载自动标签模型",
     failed: "自动标签出错：{{reason}}",
     retrying: "稍后会自动重试",
-    tagged_other: "自动标签：新打了 {{count, number}} 张",
+    tagged_other: "自动标签：新增 {{count, number}} 张",
     unavailable: "自动标签不可用：{{reason}}",
     downloading: "正在下载自动标签模型",
     downloadFailed: "无法下载自动标签模型：{{error}}",
@@ -55,12 +55,12 @@ export default {
     loading: "正在读取…",
     pause: "暂停",
     loadingModel: "正在加载模型…",
-    running_other: "已标 {{count, number}} 张，还剩 {{remaining, number}} 张（{{device}}）",
+    running_other: "已完成 {{count, number}} 张，还剩 {{remaining, number}} 张（{{device}}）",
     paused: "已暂停",
     resume: "继续",
     yielded: "因全屏程序或演示模式暂停，回到桌面后自动继续",
-    idle: "已全部打完",
-    unknown_other: "{{count, number}} 个图库暂时打不开",
+    idle: "已全部完成",
+    unknown_other: "{{count, number}} 个图库暂时无法读取",
     needsModel: "需要下载模型（{{size}}）",
     fallback: "显卡不可用：{{reason}}，改用 CPU 需下载 {{size}}",
     resumeDownload: "继续下载（已下载 {{percent}}%）",

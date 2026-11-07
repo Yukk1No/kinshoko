@@ -48,12 +48,12 @@ describe("设置 › 自动标签 › 自动打标", () => {
   it.each<[string, TaggingStatus, RegExp, string | null]>([
     ["加载模型", { state: "starting" }, /正在加载模型…/, "暂停"],
     ["校验模型", { state: "preparing", model: "PixAI Tagger v1.0 (GPU)" }, /正在加载模型…/, "暂停"],
-    ["打标", { state: "running", model: "x", device: "directMl", gpu: "RX 6500 XT", tagged: 12, done: 0, remaining: 30 }, /已标 12 张，还剩 30 张（显卡）/, "暂停"],
+    ["打标", { state: "running", model: "x", device: "directMl", gpu: "RX 6500 XT", tagged: 12, done: 0, remaining: 30 }, /已完成 12 张，还剩 30 张（显卡）/, "暂停"],
     ["暂停", { state: "paused" }, /已暂停/, "继续"],
     ["全屏程序在前台", { state: "yieldedToFullScreen" }, /因全屏程序或演示模式暂停，回到桌面后自动继续/, "暂停"],
-    ["打完", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0 }, /已全部打完/, null],
-    // 有图库暂时打不开、数不出还剩几张时，不报已全部打完（#414）。
-    ["有图库打不开", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 1 }, /^1 个图库暂时打不开$/, null],
+    ["打完", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0 }, /已全部完成/, null],
+    // 有图库暂时打不开、数不出还剩几张时，不报已全部完成（#414）。
+    ["有图库打不开", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 1 }, /^1 个图库暂时无法读取$/, null],
     ["没有可用设备", { state: "noDevice", reasons: [{ code: "taggingNoGpu" }, { code: "taggingRamShort", need: "5.4 GB" }] }, /自动标签不可用：没有独立显卡；可用内存不够（需要约 5.4 GB）/, null],
     ["出错", { state: "failed", reason: { code: "downloadFailed", detail: "超时" } }, /下载失败：超时.*稍后会自动重试/, null],
   ])("%s时显示对应的状态与操作", async (_, status, text, action) => {
@@ -117,7 +117,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
   it("打开的图库读不到、别的图库照常打标时，状态与暂停照常显示（#414）", async () => {
     backend({ status: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 3, done: 0, remaining: 9 } });
     render(<AutoTaggingSettings hasLibrary={false} />);
-    await waitFor(() => expect(within(statusRow()).getByText(/已标 3 张，还剩 9 张/)).toBeTruthy());
+    await waitFor(() => expect(within(statusRow()).getByText(/已完成 3 张，还剩 9 张/)).toBeTruthy());
     expect(within(statusRow()).getByRole("button", { name: "暂停" })).toBeTruthy();
   });
 

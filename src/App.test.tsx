@@ -60,12 +60,12 @@ describe("主窗口", () => {
     expect(island.closest("main")).toBe(screen.getByRole("listbox", { name: "图片墙" }).closest("main"));
   });
 
-  it("尚未打开资料库时仍能从图标轨打开截图历史", async () => {
+  it("尚未打开资料库时仍能从图标轨打开截图", async () => {
     backend(null);
     render(<App />);
     await screen.findByRole("button", { name: "新建图库" });
-    fireEvent.click(screen.getByRole("button", { name: "截图历史" }));
-    expect(await screen.findByRole("region", { name: "截图历史" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "截图" }));
+    expect(await screen.findByRole("region", { name: "截图" })).toBeTruthy();
   });
 
   it("查找区域的标签分组展开后可以添加、取消条件，并保留文件夹范围", async () => {

@@ -103,7 +103,7 @@ it("keeps a correction publication failure through queued and later vocabulary r
   const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "白" }], aliases: [], external: [], count: 1 };
   const workspace: TagCatalogWorkspace = { libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }], catalog: { revision: 2, tags: [{ ...local, id: "old", defaultNames: local.names, namePreferences: [] }, { ...local, id: "split", names: [{ lang: "zh-CN", name: "独立的白" }], defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "b", localTagId: "local", catalogId: "old", legacy: local, basis: "independent", nameProvenance: "catalog" }] } };
   const corrected: TagCatalogWorkspace = { ...workspace, catalog: { ...workspace.catalog, revision: 3, mappings: [{ ...workspace.catalog.mappings[0], catalogId: "split", basis: "corrected" }] } };
-  const failure = "标签对应已保存在程序中，但资料库定义尚未更新：磁盘已满。请在统一标签目录中重试保存标签定义。";
+  const failure = "标签对应已保存在程序里，但图库里的标签定义还没更新：磁盘已满。请在设置 › 标签 › 对应里重新存进图库。";
   let rejectCorrection: (reason: string) => void = () => { throw Error("correction did not start"); };
   const pending = new Promise<TagCatalogWorkspace>((_, reject) => { rejectCorrection = reject; });
   let inspections = 0;

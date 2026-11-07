@@ -70,7 +70,7 @@ it("workspace plus chooses an unmapped visible tag and saves one global rule",as
   mockIPC((cmd,args)=>{calls.push({cmd,args});if(cmd.endsWith("workspace_candidates"))return [{tag:sky,via:null,count:1}];return undefined;});
   render(<SearchBox workspace libraryId="B" safe generation={1} input={{conditions:[{any:[{kind:"tag",id:blue.id,dismissed:[]}],negate:false}],exact:false}} tree={{conditions:[{any:[{kind:"tag",tag:blue,similar:[]}],negate:false}]}} showSource={false} onChange={()=>{}} onError={error=>{throw Error(String(error));}}/>);
   fireEvent.click(screen.getByRole("button",{name:"给“蓝瞳”加相近标签"}));
-  fireEvent.change(screen.getByRole("combobox",{name:"挑一个统一标签"}),{target:{value:"天空"}});
+  fireEvent.change(screen.getByRole("combobox",{name:"挑一个标签"}),{target:{value:"天空"}});
   fireEvent.click(await screen.findByRole("option",{name:/天空色/}));
   await waitFor(()=>expect(calls.find(c=>c.cmd.endsWith("edit_shared_approx"))?.args).toEqual({edit:{kind:"set",rules:[{a:blue.id,b:sky.id,relation:"similar"}]},safeMode:true}));
 });

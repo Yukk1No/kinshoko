@@ -133,7 +133,7 @@ describe("设置：近似查找", () => {
       "蓝瞳～天空色相近删除",
       "蓝瞳～水色瞳不相近删除",
     ]);
-    expect(within(rows[0]).getAllByRole("img", { name: "没有外部对应，不参与内置近似对应表" })).toHaveLength(1);
+    expect(within(rows[0]).getAllByRole("img", { name: "没有外部对应，不参与内置相近标签" })).toHaveLength(1);
 
     fireEvent.click(within(rows[1]).getByRole("button", { name: "删除" }));
 
@@ -154,7 +154,7 @@ it("refreshes personal approximate labels when shared display names change", asy
 });
 
 
-describe("程序设置备份", () => {
+describe("偏好设置备份", () => {
   it("只在读取兼容备份并确认替换范围后恢复，显示重启条件", async () => {
     const calls = backend((cmd) => {
       if (cmd === "plugin:library|preview_application_settings") return { fingerprint: "fixed-backup", safeMode: true, forceSrgb: true };

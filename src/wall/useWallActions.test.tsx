@@ -135,7 +135,7 @@ it("某个图库断连时其他图库照常删除，并按图库报告没完成�
     calls.push({ cmd, args: args as Record<string, unknown> });
     if (cmd === "plugin:library|preview_permanent_delete_batch") return [
       { libraryId: "L1", preview: { imageIds: ["i1"], groups: [], token: "t1" }, error: null },
-      { libraryId: "L2", preview: null, error: { code: "message", message: "资料库暂时不可用：E:\\私人收藏" } },
+      { libraryId: "L2", preview: null, error: { code: "message", message: "图库暂时无法连接：E:\\私人收藏" } },
       { libraryId: "L3", preview: { imageIds: ["i3"], groups: [], token: "t3" }, error: null },
     ];
     if (cmd === "plugin:library|permanent_delete_batch") return [{ libraryId: "L3", error: { code: "message", message: "导入收尾失败" } }];
@@ -145,13 +145,13 @@ it("某个图库断连时其他图库照常删除，并按图库报告没完成�
   render(<Harness onError={onError} onChanged={onChanged} />);
   act(() => api.purge([named("1", "L1", "工作参考"), named("2", "L2", "私人收藏"), named("3", "L3", "移动盘")]));
   expect(await screen.findByText("永久删除这 2 张图？原图与整理结果都会删除，无法恢复。")).toBeTruthy();
-  expect(screen.getByText("「私人收藏」的 1 张这次无法删除：资料库暂时不可用：E:\\私人收藏")).toBeTruthy();
+  expect(screen.getByText("「私人收藏」的 1 张这次无法删除：图库暂时无法连接：E:\\私人收藏")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
   await waitFor(() => expect(onError).toHaveBeenCalled());
   expect(calls.find((c) => c.cmd === "plugin:library|permanent_delete_batch")!.args).toEqual({ groups: [
     { libraryId: "L1", imageIds: ["i1"], token: "t1" }, { libraryId: "L3", imageIds: ["i3"], token: "t3" },
   ] });
-  expect(onError).toHaveBeenCalledWith("有图库没有删完。「私人收藏」：资料库暂时不可用：E:\\私人收藏；「移动盘」：导入收尾失败");
+  expect(onError).toHaveBeenCalledWith("有图库没有删完。「私人收藏」：图库暂时无法连接：E:\\私人收藏；「移动盘」：导入收尾失败");
   expect(onChanged).toHaveBeenCalled();
 });
 
