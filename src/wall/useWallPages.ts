@@ -17,7 +17,7 @@ const KNOWN_MARGIN = 100;
 export function useWallPages({
   cards, setCards, cursor, setCursor, setTotal, setError, generation, inflight, view, restoring, anchor, shownCards,
   measureBeforeReflow, onWorkspaceStatus, releasePage, reloadKey, loadMoreRef, workspaceScope, safeMode,
-  pendingRemoval, stackSets,
+  pendingRemoval, stackSets, setStacked,
 }: {
   cards: BrowserCard[];
   setCards: Dispatch<SetStateAction<BrowserCard[]>>;
@@ -45,6 +45,8 @@ export function useWallPages({
   pendingRemoval: MutableRefObject<Set<string>>;
   /** 同一图集叠成一摞（#418）。 */
   stackSets: boolean;
+  /** 叠在一摞里、不占格子的张数（#418）：结果的张数 = 格数 + 它。 */
+  setStacked: Dispatch<SetStateAction<number>>;
 }) {
   // Keyed by value: re-selecting the same range creates a new but equal object. Clearing on that
   // identity change emptied the wall without the reload below ever running again (T20 r5/r6).
@@ -89,6 +91,7 @@ export function useWallPages({
           const next: BrowserCard[] = [];
           let after: string | null = null;
           let count = 0;
+          let stacked = 0;
           let acceptedStatus: WorkspaceStatus | null = null;
           try {
             do {
@@ -103,6 +106,7 @@ export function useWallPages({
               }
               after = page.nextCursor;
               count = page.total;
+              stacked = (page.images ?? page.total) - page.total;
               // 恢复位置时一直取到锚定的那张图为止。
               const target = restoring.current ? anchor.current?.id : undefined;
               if (next.length >= want && !(target && !next.some((c) => c.id === target))) break;
@@ -128,6 +132,7 @@ export function useWallPages({
           setCards(next);
           setCursor(after);
           setTotal(count);
+          setStacked(stacked);
           setError(null);
           return;
         }
@@ -157,6 +162,7 @@ export function useWallPages({
       setCards(next);
       setCursor(page.nextCursor);
       setTotal(page.total);
+      setStacked((page.images ?? page.total) - page.total);
       setError(null);
     } catch (e) {
       if (gen !== generation.current) return;

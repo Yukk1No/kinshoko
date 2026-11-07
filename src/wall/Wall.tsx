@@ -16,7 +16,7 @@ import {
   saveAnchor, type BrowserCard, type WallHandle, type WallProps,
 } from "./wallShared";
 import { wallCardNode, type CardHandlers } from "./WallCard";
-import { layoutItems, TRAY_PAD, useOpenTray } from "./imageSets";
+import { layoutItems, TRAY_PAD, useCloseTrayOnTopbar, useOpenTray } from "./imageSets";
 import { STACK_INSET } from "./stackPaper";
 import { useTrayMotion } from "./useTrayMotion";
 import { useWallHandle } from "./useWallHandle";
@@ -95,7 +95,9 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => { onTotalChange?.(total); }, [onTotalChange, total]);
+  /** 叠在一摞里、不占格子的张数（#418）；顶栏报的是张数，不是格数。 */
+  const [stacked, setStacked] = useState(0);
+  useEffect(() => { onTotalChange?.(total === null ? null : total + stacked); }, [onTotalChange, total, stacked]);
   /**
    * 请求代次：重新浏览、视角（浏览范围、条件、安全模式）变化与卸载时前进。
    * 响应回来时代次已经不同就整个丢掉，不改卡片、游标、数量、错误与加载状态（#77 UI-A）。
@@ -158,13 +160,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
 
   const openTrayRef = useRef<(card: BrowserCard) => void>(() => {});
   const leaveTrayRef = useRef<() => void>(() => {});
-  // 托盘开着时点顶栏也关托盘（#418）；点详情面板不关，面板显示的正是托盘里的选择。
-  useEffect(() => {
-    if (openSet === null) return;
-    const onDown = (e: PointerEvent) => { if ((e.target as Element | null)?.closest?.(".topbar")) leaveTrayRef.current(); };
-    document.addEventListener("pointerdown", onDown, true);
-    return () => document.removeEventListener("pointerdown", onDown, true);
-  }, [openSet]);
+  useCloseTrayOnTopbar(openSet, leaveTrayRef);
   const open = (card: BrowserCard) => {
     pivot.current = card.id;
     // 打开一摞是打开它的托盘（#418），不进查看器。
@@ -195,7 +191,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const { loadMore } = useWallPages({
     cards, setCards, cursor, setCursor, setTotal, setError, generation, inflight, view, restoring, anchor, shownCards,
     measureBeforeReflow, onWorkspaceStatus, releasePage, reloadKey, loadMoreRef, workspaceScope, safeMode,
-    pendingRemoval, stackSets,
+    pendingRemoval, stackSets, setStacked,
   });
 
   const { holdForDoubleClick } = useWidthSync({ holdReflow, settle, slideMotion, scroller, layoutWidth, measureBeforeReflow, setWidth, syncMount });

@@ -7,7 +7,9 @@
 .card.is-stack:hover { outline: 0; z-index: 2; }
 .card.is-stack[aria-selected="true"] { box-shadow: none; }
 .card.is-stack::after { inset: 10px; }
-.card.is-stack > .stack-sheet, .card.is-stack > .stack-cover { position: absolute; overflow: hidden; background: var(--card); }
+.card.is-stack > .stack-sheet, .card.is-stack > .stack-cover { position: absolute; overflow: hidden; background: var(--card); border-radius: var(--r-s); }
+/* 下面几层的高度按页的比例但有上下限：图铺满这层纸，不露出纸底。 */
+.card.is-stack > .stack-sheet img { object-fit: cover; }
 .card.is-stack > .stack-sheet {
   pointer-events: none; transform-origin: 50% 50%; transform: var(--rest);
   box-shadow: 0 0 0 0.5px var(--sheet-edge), 0 1px 1.5px var(--sheet-drop);
@@ -78,5 +80,5 @@
   box-shadow: inset 0 2px 6px rgba(var(--contact), 0.16), inset 0 1px 1px rgba(var(--contact), 0.12), inset 0 -1px 0 var(--sheet-light);
 }
 .wall-ghosts { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
-.tray-ghost { position: absolute; overflow: hidden; background: var(--card) center / cover; transform-origin: 0 0; box-shadow: 0 0 0 0.5px var(--sheet-edge), 0 1px 2px var(--sheet-drop); }
+.tray-ghost { position: absolute; overflow: hidden; border-radius: var(--r-s); background: var(--card) center / cover; transform-origin: 0 0; box-shadow: 0 0 0 0.5px var(--sheet-edge), 0 1px 2px var(--sheet-drop); }
 .tray-ghost > img { display: block; width: 100%; height: 100%; object-fit: contain; }

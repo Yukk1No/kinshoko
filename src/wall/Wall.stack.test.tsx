@@ -157,3 +157,11 @@ it("点顶栏也关托盘", async () => {
   fireEvent.pointerDown(screen.getByRole("button", { name: "导入" }));
   expect(tray()).toBeNull();
 });
+
+it("顶栏报的是张数，不是格数：一摞里的页都算上", async () => {
+  const onTotal = vi.fn();
+  render(<Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={new Set()} stackSets
+    onSelectionChange={() => {}} onOpenImage={() => {}} viewerOpen={false} onTotalChange={onTotal} />);
+  await screen.findAllByRole("option");
+  expect(onTotal).toHaveBeenLastCalledWith(5);
+});

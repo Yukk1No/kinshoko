@@ -1,12 +1,12 @@
 // #418 第 2 步：图片墙叠放图集与原位托盘的日间、夜间截图，可选录屏（悬停拿起、打开托盘、关上托盘）。
 // 应用要用 VITE_KINSHOKO_STACK_SETS=1 构建（第 3 步合并前，叠放只在开发构建或这个开关下露出）。
 // 墙上的图来自一个合成的 Eagle 资料库：几个 pixiv 多页作品（链接是作品页、文件名带 _p<n>），夹着普通单张。
-// 录屏用 ffmpeg 按窗口标题抓屏，窗口必须在前台、不被挡住：加 --record 才录，会占用屏幕。
+// 录屏用 ffmpeg 抓桌面上窗口所在的区域，窗口必须在前台、不被挡住：加 --record 才录，会占用屏幕。
 // Usage: node e2e/image-sets-418.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录> [--record]
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { deflateSync } from "node:zlib";
+import { buildFixture } from "./image-sets-418.fixture.mjs";
 
 const [, , appArg, edgeArg, outArg, ...flags] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/image-sets-418.mjs <kinshoko.exe> <msedgedriver.exe> <out> [--record]");
@@ -18,83 +18,11 @@ const port = 4618;
 const driverUrl = `http://127.0.0.1:${port}`;
 const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
 
-// ---- 合成的 Eagle 资料库 ----
-function chunk(type, data) {
-  const body = Buffer.concat([Buffer.from(type), data]);
-  let crc = 0xffffffff;
-  for (const byte of body) { crc ^= byte; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1; }
-  const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-  const checksum = Buffer.alloc(4); checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, checksum]);
-}
-const hsl = (h, s, l) => {
-  const a = s * Math.min(l, 1 - l);
-  const f = (n) => { const k = (n + h / 30) % 12; return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
-  return [f(0), f(8), f(4)];
-};
-/** 合成图：两种颜色沿对角线渐变，中间一块亮斑，同一作品的各页色相相近。 */
-function png(width, height, hue, page) {
-  const header = Buffer.alloc(13); header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4); header[8] = 8; header[9] = 2;
-  const [a, b, c] = [hsl(hue, 0.45, 0.62), hsl((hue + 30) % 360, 0.38, 0.36), hsl((hue + 40) % 360, 0.5, 0.85)];
-  const cx = 0.35 + (page % 3) * 0.15, cy = 0.4;
-  const rows = [];
-  for (let y = 0; y < height; y++) {
-    const row = Buffer.alloc(1 + width * 3);
-    for (let x = 0; x < width; x++) {
-      const t = (x / width + y / height) / 2;
-      const d = Math.hypot(x / width - cx, (y / height - cy) * 1.3);
-      const glow = Math.max(0, 1 - d / 0.28);
-      for (let k = 0; k < 3; k++) row[1 + x * 3 + k] = Math.round((a[k] * (1 - t) + b[k] * t) * (1 - glow) + c[k] * glow);
-    }
-    rows.push(row);
-  }
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header), chunk("IDAT", deflateSync(Buffer.concat(rows))), chunk("IEND", Buffer.alloc(0))]);
-}
-/** 作品：页数、首页比例（高 / 宽）与各页比例的偏差，与纸张对比原型的那一批相同。 */
-const WORKS = [
-  { id: "91000001", ratio: 1.0, vary: [0, 0], hue: 140 },
-  { id: "91000002", ratio: 0.72, vary: [0, 0.12, 0], hue: 275 },
-  { id: "91000003", ratio: 1.414, vary: [0, 0.14, -0.12, 0, 0.1, 0], hue: 205 },
-  { id: "91000004", ratio: 1.42, vary: [0, 0, 0.18, 0.12, 0, 0, -0.2, 0, 0, 0, 0.24, 0], hue: 22 },
-  { id: "91000005", ratio: 1.6, vary: [0, -0.16, 0.12, 0], hue: 340 },
-  { id: "91000006", ratio: 0.56, vary: [0, 0.1, 0, -0.06, 0], hue: 50 },
-];
-const SINGLE_RATIOS = [0.66, 0.75, 1, 1.25, 1.33, 1.414, 1.5, 0.56, 1.2, 0.8, 1.1, 1.6];
-const ORDER = "s A s B C s D s s E F s s s s s".split(" ");
-const eagle = join(work, "fixture", "示例.library");
-mkdirSync(join(eagle, "images"), { recursive: true });
-writeFileSync(join(eagle, "metadata.json"), JSON.stringify({ folders: [], applicationVersion: "4.0.0" }));
-let serial = 0;
-let btime = 1756571097667;
-function item({ name, width, height, hue, page, url }) {
-  const id = `ITEM${String(serial++).padStart(9, "0")}`;
-  const dir = join(eagle, "images", `${id}.info`);
-  mkdirSync(dir, { recursive: true });
-  const bytes = png(width, height, hue, page);
-  writeFileSync(join(dir, `${name}.png`), bytes);
-  writeFileSync(join(dir, "metadata.json"), JSON.stringify({
-    id, name, ext: "png", size: bytes.length, width, height, tags: [], folders: [], annotation: "", url, isDeleted: false,
-    btime: btime += 60_000, comments: [],
-  }));
-}
-{
-  let single = 0, work = 0;
-  for (const token of ORDER) {
-    if (token === "s") {
-      const ratio = SINGLE_RATIOS[single % SINGLE_RATIOS.length];
-      item({ name: `single-${++single}`, width: 360, height: Math.round(360 * ratio), hue: (single * 47) % 360, page: single, url: "" });
-    } else {
-      const w = WORKS[work++];
-      w.vary.forEach((v, p) => item({
-        name: `${w.id}_p${p}`, width: 360, height: Math.round(360 * w.ratio * (1 + v)), hue: w.hue + (p % 3) * 9 - 9, page: p,
-        url: `https://www.pixiv.net/artworks/${w.id}`,
-      }));
-    }
-  }
-}
+// ---- 合成的 Eagle 资料库（见 image-sets-418.fixture.mjs）----
+const { eagle, items } = buildFixture(work);
 
 // --fixture-only：只生成 Eagle 资料库就退出（不启动应用，不占屏幕），用来检查数据。
-if (flags.includes("--fixture-only")) { console.log(`Fixture: ${eagle} (${serial} items)`); process.exit(0); }
+if (flags.includes("--fixture-only")) { console.log(`Fixture: ${eagle} (${items} items)`); process.exit(0); }
 
 // ---- WebDriver ----
 async function wd(method, path, body) {
@@ -158,17 +86,54 @@ class Session {
 function quitOwnApp() {
   spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, stdio: "ignore", windowsHide: true });
 }
-/** 录一段：ffmpeg 抓 Kinshoko 窗口，跑完 act 后再多录一会儿。 */
+/**
+ * 应用窗口在屏幕上的矩形与主屏的尺寸，都按物理像素量（先声明感知 DPI）。WebView2 的设备像素比与屏幕坐标对不上，
+ * 所以录屏先录整个主屏，再按两者的比例裁出窗口。
+ */
+function windowOnScreen() {
+  const script = `Add-Type -AssemblyName System.Windows.Forms
+Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public struct R { public int L, T, Rt, B; } public static class W { [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out R r); [DllImport("user32.dll")] public static extern bool SetProcessDPIAware(); }'
+[void][W]::SetProcessDPIAware()
+$p = Get-Process | Where-Object { $_.Path -eq $env:KINSHOKO_E2E_EXECUTABLE -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+$r = New-Object R; [void][W]::GetWindowRect($p.MainWindowHandle, [ref]$r)
+$b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+"$($r.L) $($r.T) $($r.Rt) $($r.B) $($b.Width) $($b.Height)"`;
+  const out = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", script], { encoding: "utf8", windowsHide: true, env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application } });
+  const [l, t, r, b, sw, sh] = out.stdout.trim().split(/\s+/).map(Number);
+  if (![l, t, r, b, sw, sh].every(Number.isFinite) || r <= l) throw new Error(`window rect: ${out.stdout} ${out.stderr}`);
+  return { l, t, r, b, sw, sh };
+}
+/** 录一段：录整个主屏，跑完 act 后再多录一会儿，再按窗口的位置裁出来。 */
 async function clip(name, act, tail = 900) {
   if (!record) { await act(); return; }
+  const raw = join(work, `${name}.screen.mp4`);
   const file = join(work, `${name}.mp4`);
-  const ffmpeg = spawn("ffmpeg", ["-y", "-loglevel", "error", "-f", "gdigrab", "-framerate", "60", "-draw_mouse", "1", "-i", "title=Kinshoko",
-    "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", file], { stdio: ["pipe", "inherit", "inherit"], windowsHide: true });
+  const win = windowOnScreen();
+  const ffmpeg = spawn("ffmpeg", ["-y", "-loglevel", "error", "-f", "gdigrab", "-framerate", "60", "-draw_mouse", "1", "-i", "desktop",
+    "-vf", "crop=trunc(iw/2)*2:trunc(ih/2)*2", "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-pix_fmt", "yuv420p", raw], { stdio: ["pipe", "inherit", "inherit"], windowsHide: true });
+  // 先挂上退出的监听：ffmpeg 提前退出时立刻报错，不干等。
+  let exited = false;
+  const done = new Promise((resolve) => ffmpeg.on("exit", (code) => { exited = true; resolve(code); }));
   await delay(700);
+  if (exited) throw new Error(`ffmpeg exited before recording ${name}`);
   try { await act(); await delay(tail); } finally {
-    ffmpeg.stdin.write("q"); ffmpeg.stdin.end();
-    await new Promise((done) => ffmpeg.on("exit", done));
+    if (!exited) { ffmpeg.stdin.write("q"); ffmpeg.stdin.end(); }
+    const timer = setTimeout(() => ffmpeg.kill(), 5000);
+    await done; clearTimeout(timer);
   }
+  // 录到的画面宽 / 屏幕宽 = 两个坐标系的比例；裁出窗口（去掉 Windows 的不可见边框各 8 px 左右，按比例）。
+  const probe = spawnSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", raw], { encoding: "utf8" });
+  const [vw, vh] = probe.stdout.trim().split(",").map(Number);
+  const k = vw / win.sw;
+  // 最大化的窗口带着各 8 px 的不可见边框，会越出画面：裁剪区域限制在画面以内。
+  const x = Math.max(0, Math.round(win.l * k)), y = Math.max(0, Math.round(win.t * k));
+  const w = Math.min(Math.round(win.r * k), vw) - x & ~1, h = Math.min(Math.round(win.b * k), vh) - y & ~1;
+  console.log("record", name, JSON.stringify({ win, k, x, y, w, h }));
+  const crop = spawnSync("ffmpeg", ["-y", "-loglevel", "error", "-i", raw, "-vf", `crop=${w}:${h}:${x}:${y}`,
+    "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", file], { stdio: "inherit" });
+  // 整屏的原始录像里有屏幕上别的东西：裁完就删，只留窗口。
+  rmSync(raw, { force: true });
+  if (crop.status !== 0) throw new Error(`crop ${name} failed`);
   console.log("clip", name);
 }
 
@@ -185,6 +150,16 @@ const closeToasts = () => until("notices closed", async () => {
 /** 第 n 摞（墙上的顺序）的封面选择器；按张数找，免得依赖卡片 id。 */
 const stack = (pages) => session.exec(`const count = [...document.querySelectorAll('.wall-canvas > .card-count')].find(b => b.textContent.trim() === String(arguments[0]));
   if (!count) return null; const id = count.dataset.card; return '.card[data-id="' + id + '"]';`, [pages]);
+/** 从顶上往下滚，直到墙上挂载了这一摞（墙只挂载视口附近的卡片）。 */
+async function seek(pages) {
+  await session.exec("document.querySelector('.wall').scrollTop = 0; return true;"); await delay(300);
+  for (let i = 0; i < 40; i++) {
+    const found = await countButton(pages);
+    if (found) return found;
+    await session.exec("const wall = document.querySelector('.wall'); wall.scrollTop += wall.clientHeight * 0.6; return true;"); await delay(250);
+  }
+  throw new Error(`no stack of ${pages}`);
+}
 const countButton = (pages) => session.exec(`const count = [...document.querySelectorAll('.wall-canvas > .card-count')].find(b => b.textContent.trim() === String(arguments[0]));
   return count ? '.card-count[data-card="' + count.dataset.card + '"]' : null;`, [pages]);
 /** 让这一摞停在视口上部三分之一处。 */
@@ -205,15 +180,17 @@ try {
   await session.close(); quitOwnApp(); await delay(800);
 
   session = await Session.start();
-  await session.rect({ x: 40, y: 40, width: 1440, height: 900 });
+  await session.rect({ x: 0, y: 0, width: 1440, height: 900 });
   await until("empty wall", () => session.exec("return Boolean(document.querySelector('.wall-empty'));"));
   await session.invoke("start_import", { libraryId: info.id, source: { paths: [eagle] } });
   await until("stacks on the wall", () => session.exec("return document.querySelectorAll('.wall-canvas > .card-count').length >= 4;"), 60000);
+  // Eagle 导入后先问标签的外部对应：直接完成。
+  await until("tag mapping", () => session.exec("const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '完成'); if (b) b.click(); return Boolean(b) || !document.querySelector('[aria-label=\"标签的外部对应\"]');"), 10000).catch(() => {});
   await settle(); await closeToasts().catch(() => {}); await session.park(); await settle(); await settle();
 
   await step("wall at rest", () => session.shot("01-wall"));
   await step("hover a stack", async () => {
-    const six = await stack(6); await reveal(six); await settle();
+    await seek(6); const six = await stack(6); await reveal(six); await settle();
     await session.pointer(six); await delay(700);
     await session.shot("02-hover");
     await session.park(); await settle();
@@ -242,7 +219,7 @@ try {
     await session.park(); await settle();
   });
   await step("twelve-page tray", async () => {
-    const twelve = await countButton(12); await reveal(twelve); await settle();
+    const twelve = await seek(12); await reveal(twelve); await settle();
     await session.click(twelve); await session.park(); await settle();
     await session.shot("06-tray-twelve-pages");
     await session.key(""); await settle();
@@ -256,10 +233,12 @@ try {
   });
 
   // 录屏：日间、夜间各一段，依次是悬停拿起、打开托盘、点托盘下面的一格关上托盘。
+  // WebDriver 改过尺寸的窗口里 WebView 可能比窗口大（右边被截掉）：录之前最大化，让系统排窗口。
+  if (record) { await wd("POST", `${session.base}/window/maximize`, {}); await delay(1500); }
   for (const theme of ["light", "dark"]) {
     await step(`clip ${theme}`, async () => {
       await session.theme(theme);
-      const six = await stack(6); await reveal(six); await session.park(); await settle();
+      await seek(6); const six = await stack(6); await reveal(six); await session.park(); await settle();
       await clip(`clip-${theme === "light" ? "day" : "night"}`, async () => {
         await session.pointer(six); await delay(900);
         await session.park(); await delay(600);

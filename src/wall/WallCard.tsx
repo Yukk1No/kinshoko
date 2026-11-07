@@ -1,7 +1,7 @@
 // 图片墙上的一张卡片：缩略图、占位图与来源按钮。
 import { Fragment } from "react";
 import type { DragEvent, KeyboardEvent, MouseEvent, MutableRefObject, ReactNode } from "react";
-import { Check, Layers, SquareStack } from "lucide-react";
+import { Check, GalleryVerticalEnd, Layers } from "lucide-react";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { thumbnailUrl } from "../ipc";
@@ -33,7 +33,7 @@ export const markThumbnailLoaded = (e: { currentTarget: HTMLImageElement }) => {
 /** 来源按钮的图标：同一个元素，卡片重排重新渲染时 React 直接跳过它。 */
 const SOURCES_ICON = <Layers size={11} aria-hidden="true" />;
 /** 一摞的张数按钮（#418）：与来源按钮的 Layers 分开。 */
-const STACK_ICON = <SquareStack size={11} aria-hidden="true" />;
+const STACK_ICON = <GalleryVerticalEnd size={12} aria-hidden="true" />;
 const CHECK_ICON = <Check size={11} aria-hidden="true" />;
 
 /** 卡片的事件处理；沿用的卡片元素读 ref 里的最新版本。 */

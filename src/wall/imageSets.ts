@@ -1,5 +1,6 @@
 // 图片墙上的图集（#418）：叠成一摞的格子，与打开时让出的原位托盘。
 import { useEffect, useMemo, useState } from "react";
+import type { MutableRefObject } from "react";
 import type { LayoutInput, TrayInput } from "./layout";
 import { STACK_INSET } from "./stackPaper";
 import { STACK_SETS_READY, type BrowserCard } from "./wallShared";
@@ -39,4 +40,14 @@ export function useOpenTray(cards: BrowserCard[], stackSets: boolean) {
 export function useStackSetsSetting() {
   const [on, setOn] = useState(STACK_SETS_READY);
   return { on, menu: STACK_SETS_READY ? { on, toggle: () => setOn((value) => !value) } : undefined };
+}
+
+/** 托盘开着时点顶栏也关托盘；点详情面板不关，面板显示的正是托盘里的选择。 */
+export function useCloseTrayOnTopbar(openSet: string | null, leaveTray: MutableRefObject<() => void>) {
+  useEffect(() => {
+    if (openSet === null) return;
+    const onDown = (e: PointerEvent) => { if ((e.target as Element | null)?.closest?.(".topbar")) leaveTray.current(); };
+    document.addEventListener("pointerdown", onDown, true);
+    return () => document.removeEventListener("pointerdown", onDown, true);
+  }, [openSet, leaveTray]);
 }
