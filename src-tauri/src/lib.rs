@@ -59,6 +59,7 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle();
             shell::start(handle)?;
+            library::start_background(handle);
             updater::manage(handle);
             backup::manage(handle);
             desktop::create_tray(handle)?;

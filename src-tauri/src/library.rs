@@ -374,9 +374,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 dirs.settings(),
             )
             .map_err(std::io::Error::other)?;
-            // 硬件档保存在应用壳设置里；这里只读一次，之后由设置命令同步。
             let saved = kinshoko_core::AppSettings::open(dirs.settings()).ok();
-            let preferred = saved.as_ref().and_then(|s| s.tagging_device());
             // 读不到设置时按 SafeModeState 的默认值：开启，默认范围。
             let safe_mode = saved.as_ref().map_or_else(
                 || SafeModeState::default().current(),
@@ -385,9 +383,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             let state = LibraryState::new(device_dir, safe_mode);
             state.detached.set_safe_mode_scope(safe_mode.scope);
             app.manage(state);
-            // 发布闸门取自资料库状态：登记好之后再开始自动标签。
-            crate::tagging::setup(app, dirs.models().to_path_buf(), preferred);
-            workspace::monitor(app.clone());
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol("thumb", |ctx, request, responder| {
@@ -401,6 +396,18 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 }
 
 /// 设置里的安全模式（[`SafeModeState`]）；资料库插件还没装配时按其默认值。
+/// 开始自动标签与工作区监视。在资料库状态登记好（发布闸门取自它）、运行日志打开之后调用一次：
+/// 打标子进程的显存额度与标准错误要记进运行日志，打标一开始就要用到它。
+pub fn start_background<R: Runtime>(app: &AppHandle<R>) {
+    let dirs = crate::data_dirs::app_data(app);
+    // 硬件档保存在应用壳设置里；这里只读一次，之后由设置命令同步。
+    let preferred = kinshoko_core::AppSettings::open(dirs.settings())
+        .ok()
+        .and_then(|s| s.tagging_device());
+    crate::tagging::setup(app, dirs.models().to_path_buf(), preferred);
+    workspace::monitor(app.clone());
+}
+
 fn saved_mode<R: Runtime>(app: &AppHandle<R>) -> SafeMode {
     app.try_state::<LibraryState>().map_or_else(
         || SafeModeState::default().current(),

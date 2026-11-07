@@ -329,12 +329,16 @@ impl Worker {
             .is_none_or(|(key, _)| *key != spec.key)
         {
             self.end_session();
+            // 加载可能要几分钟：不留着上一个状态，那可能是“已全部打完”“已暂停”或“出错”。
+            self.shared.set(TaggingStatus::Starting);
+            let loading = std::time::Instant::now();
             let shared = self.shared.clone();
             let watch = self.watch_foreground_while_loading();
             let started = self.tagger.start(model, spec.device, &move |stopper| {
                 shared.register_stopper(stopper)
             });
             drop(watch);
+            crate::diagnostics::took("打标：加载模型", loading, None);
             match started {
                 Ok(session) => {
                     self.session = Some((spec.key.clone(), session));
