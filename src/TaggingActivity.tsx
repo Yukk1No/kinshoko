@@ -8,7 +8,7 @@ import { useToast } from "./ui/Toast";
 import { i18n } from "./i18n";
 import { formatBytes, percentOf } from "./i18n/format";
 import { useTaggingStatus } from "./useTaggingStatus";
-import { describeCommandError, describeCommandErrors } from "./ipc/commandError";
+import { describeCommandError, describeCommandErrors, errorText } from "./ipc/commandError";
 
 const deviceName = (device: Device) => i18n.t(`tagging:device.${device}`);
 
@@ -96,7 +96,7 @@ function useTaggingNotices(status: TaggingStatus | null) {
       closeDownload();
       void taggingDownload().then(
         () => toast.show({ title: i18n.t("tagging:notice.downloading") }),
-        (e) => toast.error(i18n.t("tagging:notice.downloadFailed", { error: String(e) })),
+        (e) => toast.error(i18n.t("tagging:notice.downloadFailed", { error: errorText(e) })),
       );
     };
     const id = toast.show({

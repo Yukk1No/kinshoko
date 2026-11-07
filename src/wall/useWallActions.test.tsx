@@ -43,7 +43,7 @@ it("复制图片按卡片显示的来源复制原图，成功后轻提示（#105
 
 it("复制失败或原文件不在时给出原因，不静默失败", async () => {
   mockIPC((cmd) => {
-    if (cmd === "plugin:desktop|copy_reference_image" || cmd === "plugin:desktop|reveal_reference_image") throw "原文件不在了，可能被移走或删除：C:/lib/originals/a.png";
+    if (cmd === "plugin:desktop|copy_reference_image" || cmd === "plugin:desktop|reveal_reference_image") throw { code: "message", message: "原文件不在了，可能被移走或删除：C:/lib/originals/a.png" };
     return null;
   });
   const onNotice = vi.fn(), onError = vi.fn();
@@ -75,9 +75,9 @@ it("从剪贴板导入交给导入入口，剪贴板是否有图片读后端", a
 
 it("从剪贴板导入失败（剪贴板没有图片）时给出原因", async () => {
   const onError = vi.fn();
-  render(<Harness onError={onError} importClipboard={() => Promise.reject("剪贴板里没有图片")} />);
+  render(<Harness onError={onError} importClipboard={() => Promise.reject({ code: "message", message: "剪贴板里没有图片" })} />);
   act(() => api.importClipboard());
-  await waitFor(() => expect(onError).toHaveBeenCalledWith("剪贴板里没有图片"));
+  await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "剪贴板里没有图片" })));
 });
 
 it("加入参考组按每张图的来源加入", async () => {
@@ -200,7 +200,7 @@ it("跨图库加入参考组：一个图库失败时其他图库照常完成，�
   mockIPC((cmd, args) => {
     calls.push({ cmd, args: args as Record<string, unknown> });
     const target = (args as { target?: { libraryId: string } }).target;
-    if (target?.libraryId === "L2") return Promise.reject("资料库暂时不可用");
+    if (target?.libraryId === "L2") return Promise.reject({ code: "message", message: "资料库暂时不可用" });
     return null;
   });
   const onError = vi.fn();

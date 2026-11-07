@@ -11,6 +11,7 @@ import type { FolderNode } from "../bindings/FolderNode";
 import { isCursorExpired, onWorkspaceChanged, rememberImportDestination, rememberNewLibraryParent, saveMemory, workspaceDirectories } from "../ipc";
 import { libraryPathHint } from "./library-path";
 import { Select } from "../ui/Select";
+import { errorText } from "../ipc/commandError";
 
 type SaveContext = {
   destination: SaveDestination | null;
@@ -67,7 +68,7 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
         if (!alive || request !== sequence) return;
         // 读取期间修订变了：结果已过时，稍后按新修订重读，不当作问题显示（#98）；连续 3 次仍在变才显示。
         if (isCursorExpired(error) && attempt < RETRIES) { retry = setTimeout(() => refresh(attempt + 1), RETRY_MS); return; }
-        setProblem(String(error)); setReady(false);
+        setProblem(errorText(error)); setReady(false);
       });
     };
     // 取消登记会清掉记住的目标，所以登记变化时一并重读。
@@ -178,7 +179,7 @@ export function SaveDestinationDialog({ title, summary, confirmLabel, onConfirm,
               const fixed = { ...value };
               context.setDestination(fixed); setBusy(true); setError(null);
               void onConfirm(fixed).then(() => { if (alive.current) onClose(); },
-                error => { if (alive.current) setError(String(error)); })
+                error => { if (alive.current) setError(errorText(error)); })
                 .finally(() => { if (alive.current) setBusy(false); });
             }}><span className="k-label">{busy ? t("saving") : confirmLabel ?? t("save")}</span></button>
         </div>

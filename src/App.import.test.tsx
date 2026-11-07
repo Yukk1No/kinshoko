@@ -256,7 +256,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
           return { matched: [], unmatched: [], vocabularySize: 0 };
         case "plugin:library|start_import": {
           const failure = failures.shift();
-          if (failure) return Promise.reject(failure);
+          if (failure) return Promise.reject({ code: "message", message: failure });
           return new Promise<string>((resolve) => answers.push(resolve));
         }
         default:

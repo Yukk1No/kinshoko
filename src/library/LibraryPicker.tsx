@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ChevronRight, FolderOpen, FolderPlus, Library, Plus, RefreshCw, Settings2 } from "lucide-react";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
-import { describeCommandError } from "../ipc/commandError";
+import { describeCommandError, errorText } from "../ipc/commandError";
 import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, unregisterLibrary } from "../ipc";
 import { BrandMark } from "../ui/BrandMark";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
@@ -37,7 +37,7 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
     let alive = true;
     registeredLibraries().then(
       (value) => alive && setEntries(value),
-      (e) => alive && fail(String(e)),
+      (e) => alive && fail(errorText(e)),
     );
     return () => { alive = false; };
   }, [ready, revision]);
@@ -62,7 +62,7 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
     try { await action(); }
-    catch (e) { fail(String(e)); }
+    catch (e) { fail(errorText(e)); }
     finally {
       setBusy(false);
       refresh();

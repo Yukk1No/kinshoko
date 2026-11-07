@@ -94,7 +94,7 @@ export function LibraryWorkspace({
     const { libraryId: from, imageId } = referenceRequest;
     referenceCard(from, imageId, safe).then(
       (card) => { if (!alive) return; setViewCrop(false); setViewing(card); },
-      (e) => { if (alive) toast.error(t("openFailed", { error: String(e) })); },
+      (e) => { if (alive) toast.error(t("openFailed", { error: errorText(e) })); },
     );
     return () => { alive = false; };
   }, [referenceRequest]);

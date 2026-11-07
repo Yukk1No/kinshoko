@@ -7,6 +7,7 @@ import type { ContentRating } from "../bindings/ContentRating";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ImageEdit } from "../bindings/ImageEdit";
 import type { BrowserCard } from "./Wall";
+import { errorText } from "../ipc/commandError";
 
 /** 右键菜单作用的对象：一组卡片（右键的那张，或它所在的整组选择），或图片墙的空白处。point 为指针位置（CSS 像素，窗口客户区）。 */
 export type WallMenuTarget =
@@ -71,7 +72,7 @@ function useList<T>(load: () => Promise<T[]>) {
   const [state, setState] = useState<{ items: T[] | null; problem: string | null }>({ items: null, problem: null });
   useEffect(() => {
     let alive = true;
-    load().then((items) => alive && setState({ items, problem: null }), (e) => alive && setState({ items: [], problem: String(e) }));
+    load().then((items) => alive && setState({ items, problem: null }), (e) => alive && setState({ items: [], problem: errorText(e) }));
     return () => { alive = false; };
     // 每次打开子菜单只读一次。
   }, []);

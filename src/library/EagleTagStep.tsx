@@ -58,7 +58,7 @@ function UnmatchedRow({
     try {
       onMapped(await mapTagExternal(libraryId, item.tag.id, external));
     } catch (error) {
-      onError(t("mapFailed", { name, error: String(error) }));
+      onError(t("mapFailed", { name, error: errorText(error) }));
       setBusy(false);
     }
   };
@@ -113,7 +113,7 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
         setMapping(value);
         setRemaining(value.unmatched);
       },
-      (e) => alive && setError(t("matchFailed", { error: String(e) })),
+      (e) => alive && setError(t("matchFailed", { error: errorText(e) })),
     );
     return () => {
       alive = false;

@@ -32,7 +32,7 @@ async function show(scope: WorkspaceScope, value = forest(), extra: Partial<Para
     if (command === "plugin:library|workspace_directories") return value;
     calls.push({ command, args: args as Record<string, unknown> });
     const answer = answers[command];
-    if (answer instanceof Error) throw answer.message;
+    if (answer instanceof Error) throw { code: "message", message: answer.message };
     return answer ?? null;
   });
   const view = render(<WorkspacePane status={{ revision: "r", libraries: registrations }} scope={scope} safeMode reloadKey={0} onScope={onScope} onError={onError} {...extra} />);
@@ -102,7 +102,7 @@ it("移除当前范围所在的图库后回到“全部图片”；移除别的�
   const headA = within(section("A")).getByRole("button", { name: "人物参考（3 张）" });
   answers["plugin:library|unregister_library"] = new Error("还有导入在进行");
   fireEvent.click(within(await openOn(headA, "人物参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
-  await waitFor(() => expect(onError).toHaveBeenCalledWith("还有导入在进行"));
+  await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "还有导入在进行" })));
   expect(onScope).not.toHaveBeenCalled();
 
   delete answers["plugin:library|unregister_library"];

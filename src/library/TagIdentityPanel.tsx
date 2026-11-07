@@ -3,7 +3,7 @@ import type { CatalogTag } from "../bindings/CatalogTag";
 import type { LibraryTagMapping } from "../bindings/LibraryTagMapping";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
 import type { TagNamespace } from "../bindings/TagNamespace";
-import { describeCommandError } from "../ipc/commandError";
+import { describeCommandError, errorText } from "../ipc/commandError";
 import { correctTagMapping, inspectTagCatalog, onLibraryEvent, onSafeModeSetting, publishTagDefinitions } from "../ipc";
 
 import { libraryPathHint } from "./library-path";
@@ -58,7 +58,7 @@ export function TagIdentityPanel() {
     // Vocabulary refreshes update rows without dismissing an unresolved publication failure.
     if (!automatic) setError(null);
     try { const next = await action(); if (request === generation.current) { setWorkspace(next); if (!automatic && success) toast.show({ title: success, tone: "success" }); } }
-    catch (reason) { if (request === generation.current) setError((previous) => automatic && previous !== null ? previous : String(reason)); }
+    catch (reason) { if (request === generation.current) setError((previous) => automatic && previous !== null ? previous : errorText(reason)); }
     finally { if (request === generation.current) { setBusy(false); running.current = false; if (dirty.current) { dirty.current = false; void run(inspectTagCatalog, undefined, true); } } }
   };
   return <section className="tag-identity" aria-label={t("identity.label")}>
