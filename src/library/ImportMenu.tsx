@@ -101,7 +101,7 @@ export function ImportMenu({control,...p}:Omit<ComponentProps<typeof ImportBar>,
  const blocked=busy.busy||active||inTrash;
  const clipboard=async()=>{
   if(inTrash)return;
-  if(blocked)throw t("busyClipboard");
+  if(blocked)throw { code: "message", message: t("busyClipboard") };
   const path=await stageClipboardImport();
   actions.current?.paths([path]);
  };
