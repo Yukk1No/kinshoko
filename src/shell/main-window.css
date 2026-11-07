@@ -102,6 +102,7 @@
 .k-exact[data-pressed] .k-exact-line { opacity: 1; transform: none; }
 .k-tip { padding: 5px 8px; border-radius: var(--r-s); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 18px; box-shadow: var(--shadow-pop);
   transform-origin: var(--transform-origin); transition: transform var(--t-fast) var(--spring), opacity var(--t-fast); }
+.k-tip-note { margin-left: 8px; opacity: 0.7; }
 .k-tip[data-starting-style], .k-tip[data-ending-style] { opacity: 0; transform: scale(0.96); }
 
 /* 图片墙右下角：打标图标（#144）在图片大小浮岛左边，两者一起浮在图片墙上。 */
@@ -166,6 +167,17 @@
   .k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b { animation: none !important; transition: none; }
 }
 :root[data-reduced-motion] :is(.k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b) { animation: none !important; transition: none; }
+/* 有图没有完成（#475）：提示图标用警示色，没有环，常驻到画师忽略。 */
+.k-tagging-activity[data-activity="unfinished"] { color: var(--warn); }
+.k-tagging-activity[data-activity="unfinished"]:hover { color: var(--warn-strong); }
+/* 悬停时图标变成点击后的动作（#475，照精确查找的开关）：当前的压扁淡出，动作的展开。减少动态效果时只淡入淡出。 */
+.k-tagging-glyph { position: relative; display: grid; place-items: center; }
+.k-tagging-glyph > span { grid-area: 1 / 1; display: grid; transition: opacity var(--t-fast) var(--ease), transform var(--t-pop) var(--spring); }
+.k-tagging-next { opacity: 0; transform: scaleX(0.6); }
+.k-tagging-activity:is(:hover, :focus-visible) [data-morph] .k-tagging-now { opacity: 0; transform: scaleY(0.4); }
+.k-tagging-activity:is(:hover, :focus-visible) [data-morph] .k-tagging-next { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .k-tagging-glyph > span { transform: none !important; transition: opacity 120ms var(--ease); } }
+:root[data-reduced-motion] .k-tagging-glyph > span { transform: none !important; transition: opacity 120ms var(--ease); }
 
 /* 滑条：4 px 下沉轨道、已走过的一段 --range-fill；18 px 纸白圆钮带细描边与两层投影，悬停放大、按下压下。
    WebView2 是 Chromium，只需 -webkit- 伪元素。 */

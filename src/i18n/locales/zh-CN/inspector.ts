@@ -16,6 +16,13 @@ export default {
     trashedCount_other: "{{count, number}} 张",
     undo: "撤销",
   },
+  /** 打不上标的图（#475）：一行状态与重试，原因在悬停提示。 */
+  tagging: {
+    unfinished: "自动标签未完成",
+    retry: "重试",
+    unreadable: "无法读取这张图",
+    crashed: "处理这张图时出错",
+  },
   rating: {
     label: "内容分级",
     title: "分级",

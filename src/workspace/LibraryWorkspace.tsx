@@ -6,7 +6,6 @@ import { useInspectorShortcut } from "./useInspectorShortcut";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
-import { referenceCard } from "../desktop/openInKinshoko";
 import { errorText, isCursorExpired } from "../ipc";
 import { ImportMenu, type ImportControl } from "../library/ImportMenu";
 import { SearchBox } from "../search/SearchBox";
@@ -27,7 +26,9 @@ import { TagGroupsDialog } from "./TagGroupsDialog";
 import { useImportTasks } from "./useImportTasks";
 import { useInvalidation } from "./useInvalidation";
 import { useLibraryEvents } from "./useLibraryEvents";
+import { useReferenceRequest } from "./useReferenceRequest";
 import { useSearchTree } from "./useSearchTree";
+import { useShowUnfinishedTagging } from "./useShowUnfinishedTagging";
 import { useViewerStep } from "./useViewerStep";
 import { WorkspaceInspector } from "./WorkspaceInspector";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
@@ -60,6 +61,7 @@ export function LibraryWorkspace({
   onInspectorShown,
   onLibraryRemoved,
   onOpenTaggingSettings,
+  unfinishedTaggingRequest = 0,
 }: WorkspaceProps) {
   const { t } = useTranslation(["workspace", "viewer"]);
   const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
@@ -87,17 +89,7 @@ export function LibraryWorkspace({
   useImportShortcut(importControl, hidden);
   const [editingGroups, setEditingGroups] = useState(false);
   useEffect(()=>{if(captureRequest){setViewing(null);setSources(null);}},[captureRequest]);
-  // 钉图菜单“在 Kinshoko 中打开”（#106）：按当前安全模式读这张参考图，读到才打开查看器。
-  useEffect(() => {
-    if (!referenceRequest) return;
-    let alive = true;
-    const { libraryId: from, imageId } = referenceRequest;
-    referenceCard(from, imageId, safe).then(
-      (card) => { if (!alive) return; setViewCrop(false); setViewing(card); },
-      (e) => { if (alive) toast.error(t("openFailed", { error: String(e) })); },
-    );
-    return () => { alive = false; };
-  }, [referenceRequest]);
+  useReferenceRequest(referenceRequest, safe, (card) => { setViewCrop(false); setViewing(card); });
   /**
    * 词表代次：词表、图片或安全模式变化时递增，重新解析条件、重新取得候选（标签可能改名、
    * 删除、新增了叫法，或在安全模式下被封印）。与后端 Search 缓存的修订号和安全模式对应。
@@ -143,6 +135,8 @@ export function LibraryWorkspace({
   useLibraryEvents({ toast, imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport });
 
   const { search, setSearch, tree, treeSafe, searching } = useSearchTree({ safe, vocabularyKey, onError, setReloadKey });
+
+  const showUnfinishedTagging = useShowUnfinishedTagging({ request: unfinishedTaggingRequest, onOpenBrowse, setSearch, setWorkspaceScope, invalidate });
 
   // 窄窗口里侧栏与详情面板按余量一起让位，主区不低于 300（#274）。
   const [appBody, setAppBody] = useState<HTMLDivElement | null>(null);
@@ -291,7 +285,7 @@ export function LibraryWorkspace({
           {/* 图片墙右下角：打标图标（#144）在图片大小浮岛（#102 方案 C3，与 Ctrl+滚轮缩放成对）的左边。
               选了两张及以上时底部升起多选悬浮栏（#98，#180），右下角收成圆形按钮让位；查看器打开时悬浮栏隐藏。 */}
           <WallFloats
-            tagging={(collapsed) => <TaggingActivity collapsed={collapsed} onOpenSettings={onOpenTaggingSettings} />}
+            tagging={(collapsed) => <TaggingActivity collapsed={collapsed} onOpenSettings={onOpenTaggingSettings} onShowUnfinished={showUnfinishedTagging} />}
             density={viewerOpen ? null : { value: density, preview: zoomPreview, onPreview: (v) => wall.current?.previewDensity(v), onCommit: setDensity }}
             bar={inspected !== null || hidden || viewerOpen ? null
               : selectionLibrary !== null ? (panelIds.length > 1 ? {

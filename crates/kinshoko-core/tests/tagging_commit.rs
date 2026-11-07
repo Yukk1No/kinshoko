@@ -6,9 +6,9 @@ use std::path::Path;
 use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::library::{
-    ContentRating, FactSource, ImageEdit, ImportOutcome, ImportSource, LibraryEvent, RatingFact,
-    RetryTagging, SourceTag, TagEdit, TagNamespace, TagOrigin, TagRef, TaggingOutcome,
-    TaggingResult,
+    ContentRating, FactSource, FailedTagging, ImageEdit, ImportOutcome, ImportSource, LibraryEvent,
+    RatingFact, RetryTagging, SourceTag, TagEdit, TagNamespace, TagOrigin, TagRef, TaggingFailure,
+    TaggingOutcome, TaggingResult,
 };
 
 const ZH: &str = "zh-CN";
@@ -275,14 +275,17 @@ fn failed_images_are_counted_and_can_be_retried() {
     library
         .finish_tagging(&model(), &crashed, TaggingOutcome::Crashed("崩溃".into()))
         .unwrap();
-    assert_eq!(library.count_failed_tagging(&model()).unwrap(), 2);
+    assert_eq!(
+        library.count_failed_tagging(&model()).unwrap(),
+        failed(1, 1)
+    );
     assert_eq!(library.count_images_to_tag(&model()).unwrap(), 0);
     // 别的模型来源不受影响。
     assert_eq!(
         library
             .count_failed_tagging(&FactSource::model("other"))
             .unwrap(),
-        0
+        failed(0, 0)
     );
 
     assert_eq!(
@@ -295,7 +298,10 @@ fn failed_images_are_counted_and_can_be_retried() {
         library.images_to_tag(&model(), 10).unwrap(),
         vec![crashed.clone()]
     );
-    assert_eq!(library.count_failed_tagging(&model()).unwrap(), 1);
+    assert_eq!(
+        library.count_failed_tagging(&model()).unwrap(),
+        failed(1, 0)
+    );
 
     assert_eq!(
         library
@@ -303,7 +309,10 @@ fn failed_images_are_counted_and_can_be_retried() {
             .unwrap(),
         1
     );
-    assert_eq!(library.count_failed_tagging(&model()).unwrap(), 0);
+    assert_eq!(
+        library.count_failed_tagging(&model()).unwrap(),
+        failed(0, 0)
+    );
     assert_eq!(library.count_images_to_tag(&model()).unwrap(), 2);
 }
 
@@ -317,7 +326,10 @@ fn failed_images_in_the_trash_are_not_counted() {
     library
         .edit(std::slice::from_ref(&id), &[ImageEdit::Delete])
         .unwrap();
-    assert_eq!(library.count_failed_tagging(&model()).unwrap(), 0);
+    assert_eq!(
+        library.count_failed_tagging(&model()).unwrap(),
+        failed(0, 0)
+    );
 }
 
 // 升级前记下的失败只有原因文字：按反复崩溃的原因前缀分出两类，崩溃的才在启动时重试。
@@ -350,11 +362,116 @@ fn failures_recorded_before_the_upgrade_are_sorted_by_their_reason() {
     }
 
     let library = Library::open(&root).unwrap();
-    assert_eq!(library.count_failed_tagging(&model()).unwrap(), 2);
+    assert_eq!(
+        library.count_failed_tagging(&model()).unwrap(),
+        failed(1, 1)
+    );
     library
         .retry_failed_tagging(&model(), RetryTagging::CrashedOnly)
         .unwrap();
     assert_eq!(library.images_to_tag(&model(), 10).unwrap(), vec![crashed]);
+}
+
+// 详情里看得到单张图属于哪类失败；重试只清掉这张的失败记录，之后照常待打标。
+#[test]
+fn an_image_shows_why_it_was_not_tagged_and_can_be_retried_alone() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, bad) = library_with_image(&dir.path().join("lib"));
+    let crashed = import_more(&library, dir.path(), 2);
+    let done = import_more(&library, dir.path(), 3);
+    library
+        .finish_tagging(&model(), &bad, TaggingOutcome::BadImage("无法解码".into()))
+        .unwrap();
+    library
+        .finish_tagging(&model(), &crashed, TaggingOutcome::Crashed("崩溃".into()))
+        .unwrap();
+    library
+        .finish_tagging(&model(), &done, TaggingOutcome::Done)
+        .unwrap();
+    assert_eq!(
+        library.image(&bad).unwrap().tagging_failure,
+        Some(TaggingFailure::Unreadable)
+    );
+    assert_eq!(
+        library.image(&crashed).unwrap().tagging_failure,
+        Some(TaggingFailure::Crashed)
+    );
+    assert_eq!(library.image(&done).unwrap().tagging_failure, None);
+
+    let details = library
+        .edit(&[bad.clone(), done.clone()], &[ImageEdit::RetryTagging])
+        .unwrap();
+    assert!(details.iter().all(|d| d.tagging_failure.is_none()));
+    assert_eq!(library.images_to_tag(&model(), 10).unwrap(), vec![bad]);
+    assert_eq!(
+        library.count_failed_tagging(&model()).unwrap(),
+        failed(0, 1)
+    );
+}
+
+// 查找条件「自动标签未完成」只留下打不上标的图；排除时留下其余的。
+#[test]
+fn searching_for_unfinished_tagging_finds_the_images_that_could_not_be_tagged() {
+    use kinshoko_core::approx::BuiltinApproxTable;
+    use kinshoko_core::library::BrowseQuery;
+    use kinshoko_core::search::{ConditionInput, Search, SearchInput, TermInput};
+
+    let dir = tempfile::tempdir().unwrap();
+    let (library, bad) = library_with_image(&dir.path().join("lib"));
+    let crashed = import_more(&library, dir.path(), 2);
+    let done = import_more(&library, dir.path(), 3);
+    let waiting = import_more(&library, dir.path(), 4);
+    library
+        .finish_tagging(&model(), &bad, TaggingOutcome::BadImage("无法解码".into()))
+        .unwrap();
+    library
+        .finish_tagging(&model(), &crashed, TaggingOutcome::Crashed("崩溃".into()))
+        .unwrap();
+    library
+        .finish_tagging(&model(), &done, TaggingOutcome::Done)
+        .unwrap();
+    let search = |negate: bool| {
+        let input = SearchInput {
+            conditions: vec![ConditionInput {
+                any: vec![TermInput::TaggingUnfinished],
+                negate,
+            }],
+            exact: false,
+        };
+        let tree = Search::new(
+            &library.vocabulary().unwrap(),
+            &BuiltinApproxTable::bundled(),
+        )
+        .resolve(&input, ZH);
+        let mut ids: Vec<String> = library
+            .browse(&BrowseQuery {
+                scope: Default::default(),
+                conditions: tree,
+                cursor: None,
+                limit: 100,
+                thumbnail_px: 256,
+            })
+            .unwrap()
+            .cards
+            .into_iter()
+            .map(|c| c.id)
+            .collect();
+        ids.sort();
+        ids
+    };
+    let sorted = |mut v: Vec<String>| {
+        v.sort();
+        v
+    };
+    assert_eq!(search(false), sorted(vec![bad, crashed]));
+    assert_eq!(search(true), sorted(vec![done, waiting]));
+}
+
+fn failed(unreadable: u32, crashed: u32) -> FailedTagging {
+    FailedTagging {
+        unreadable,
+        crashed,
+    }
 }
 
 fn import_more(library: &Library, dir: &Path, seed: u8) -> String {

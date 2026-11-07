@@ -26,7 +26,7 @@ fn idle(tagged: u32) -> TaggingStatus {
         gpu: Some("显卡".into()),
         tagged,
         unknown: 0,
-        failed: 0,
+        failed: Default::default(),
     }
 }
 

@@ -260,7 +260,7 @@ fn reads_ratings(tree: &ConditionTree) -> bool {
         .any(|term| match term {
             Term::Rating { .. } => true,
             Term::Text { ratings, .. } => !ratings.is_empty(),
-            Term::Tag { .. } => false,
+            Term::Tag { .. } | Term::TaggingUnfinished => false,
         })
 }
 

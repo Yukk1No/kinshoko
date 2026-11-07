@@ -95,7 +95,7 @@ pub use sidebar::Sidebar;
 pub use source_names::{UND, compose as compose_names, detect_lang};
 pub use subscription_import::SubscriptionPage;
 pub(crate) use tagging_state::CRASHED_REASON;
-pub use tagging_state::{RetryTagging, TaggingOutcome};
+pub use tagging_state::{FailedTagging, RetryTagging, TaggingFailure, TaggingOutcome};
 pub use tags::{
     FactSource, ImageTag, ImageTags, LocalizedName, PersonalApproxEntry, SourceTag, TagAlias,
     TagCount, TagEdit, TagGroupDefinition, TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef,

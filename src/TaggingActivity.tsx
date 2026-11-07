@@ -1,43 +1,89 @@
-import { useEffect, useRef, useState } from "react";
-import { CircleAlert, Download, MonitorPause, Pause } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Tooltip } from "@base-ui/react/tooltip";
+import { CircleAlert, Download, EyeOff, Images, MonitorPause, Pause, Play, RotateCw, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { Device } from "./bindings/Device";
+import type { FailedTagging } from "./bindings/FailedTagging";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
-import { taggingDownload } from "./ipc";
+import { taggingDownload, taggingPause, taggingResume, taggingRetryFailed } from "./ipc";
+import { MenuItem, MenuSeparator, PointerMenu } from "./ui/Menu";
+import { useTaggingProgress, useUnfinishedTagging, type TaggingProgress } from "./useTaggingProgress";
 import { useToast } from "./ui/Toast";
 import { i18n } from "./i18n";
 import { formatBytes, percentOf } from "./i18n/format";
 import { useTaggingStatus } from "./useTaggingStatus";
 import { describeCommandError, describeCommandErrors } from "./ipc/commandError";
 
-const deviceName = (device: Device) => i18n.t(`tagging:device.${device}`);
+/** 预计用时的说法：不到一分钟、几分钟或几小时。 */
+function etaText(ms: number): string {
+  const minutes = Math.ceil(ms / 60_000);
+  if (minutes <= 1) return i18n.t("tagging:activity.etaUnderMinute");
+  if (minutes < 60) return i18n.t("tagging:activity.etaMinutes", { count: minutes });
+  return i18n.t("tagging:activity.etaHours", { count: Math.round(minutes / 60) });
+}
 
-/** 图标上的状态文字；不显示图标的状态为 null。 */
-function activityLabel(status: TaggingStatus): string | null {
+/** 没有完成的图分哪几类：“2 张无法读取，1 张出错”，没有的一类不写。 */
+function failureKinds(failed: FailedTagging): string {
+  return [
+    failed.unreadable > 0 && i18n.t("tagging:activity.unreadable", { count: failed.unreadable }),
+    failed.crashed > 0 && i18n.t("tagging:activity.crashed", { count: failed.crashed }),
+  ].filter(Boolean).join(i18n.t("tagging:activity.separator"));
+}
+
+/** 图标上的状态：悬停标签的两段（第二段颜色浅一些，可以没有）；不显示图标的状态为 null。 */
+function activityLabel(status: TaggingStatus, progress: TaggingProgress, unfinished: boolean): [string, string | null] | null {
+  const eta = progress.eta === null ? null : etaText(progress.eta);
   switch (status.state) {
     case "downloading":
-      return i18n.t("tagging:activity.downloading", { percent: percentOf(status.downloaded, status.total) });
+      return [i18n.t("tagging:activity.downloading", { percent: percentOf(status.downloaded, status.total) }), null];
     case "starting":
-      return i18n.t("tagging:activity.starting");
+      return [i18n.t("tagging:activity.starting"), null];
     case "preparing":
-      return i18n.t("tagging:activity.preparing");
+      return [i18n.t("tagging:activity.preparing"), null];
     case "running":
-      return i18n.t("tagging:activity.running", { count: status.tagged, device: deviceName(status.device) });
+      return [i18n.t("tagging:activity.remaining", { count: status.remaining }), eta];
     case "paused":
-      return i18n.t("tagging:activity.paused");
+      return progress.remaining === null ? [i18n.t("tagging:activity.paused"), null]
+        : [i18n.t("tagging:activity.pausedRemaining", { count: progress.remaining }), eta];
     case "yieldedToFullScreen":
-      return i18n.t("tagging:activity.yieldedToFullScreen");
-    // 停住、要画师处理的状态也留一个静止的图标：关掉通知后仍有地方找回（点开是设置 › 自动标签）。
+      return [i18n.t("tagging:activity.yieldedToFullScreen"), null];
+    // 停住、要画师处理的状态也留一个静止的图标：关掉通知后仍有地方找回（右键进设置 › 自动标签）。
     case "needsDownload":
-      return i18n.t("tagging:activity.needsDownload");
+      return [i18n.t("tagging:activity.needsDownload"), null];
     case "failed":
-      return i18n.t("tagging:activity.failed");
+      return [i18n.t("tagging:activity.failed"), null];
     case "noDevice":
-      return i18n.t("tagging:activity.noDevice");
+      return [i18n.t("tagging:activity.noDevice"), null];
+    // 有图没有完成（#475）：常驻到画师忽略。
+    case "idle":
+      return unfinished ? [i18n.t("tagging:activity.unfinished", { count: status.failed.unreadable + status.failed.crashed }), failureKinds(status.failed)] : null;
+  }
+}
+
+/** 点击图标做什么：打标中暂停、暂停时继续、有图没有完成时重试；停住的状态没有动作，打开设置。 */
+type Act = "pause" | "resume" | "retry" | null;
+
+function actOf(status: TaggingStatus): Act {
+  switch (status.state) {
+    case "downloading":
+    case "starting":
+    case "preparing":
+    case "running":
+    case "yieldedToFullScreen":
+      return "pause";
+    case "paused":
+      return "resume";
+    case "idle":
+      return "retry";
     default:
       return null;
   }
 }
+
+const ACT: Record<Exclude<Act, null>, { run: () => Promise<void>; icon: ReactNode }> = {
+  pause: { run: taggingPause, icon: <Pause size={16} strokeWidth={1.75} aria-hidden="true" /> },
+  resume: { run: taggingResume, icon: <Play size={16} strokeWidth={1.75} aria-hidden="true" /> },
+  retry: { run: taggingRetryFailed, icon: <RotateCw size={16} strokeWidth={1.75} aria-hidden="true" /> },
+};
 
 /** 打标状态变化时的右下角通知（#144）。 */
 function useTaggingNotices(status: TaggingStatus | null) {
@@ -153,13 +199,37 @@ function Ring({ className, size, radius, progress }: { className: string; size: 
   );
 }
 
+/** 当前状态的图标。 */
+function stateIcon(status: TaggingStatus): ReactNode {
+  switch (status.state) {
+    case "needsDownload":
+      return <Download size={16} strokeWidth={1.75} aria-hidden="true" />;
+    case "failed":
+    case "noDevice":
+    case "idle":
+      return <CircleAlert size={16} strokeWidth={1.75} aria-hidden="true" />;
+    case "paused":
+      return <Pause size={16} strokeWidth={1.75} aria-hidden="true" />;
+    case "yieldedToFullScreen":
+      return <MonitorPause size={16} strokeWidth={1.75} aria-hidden="true" />;
+    default:
+      return <TwinkleSparkles size={16} />;
+  }
+}
+
 /**
  * 自动标签在主窗口的位置（#144）：图片墙右下角、缩放滑块左边的小圆钮。外圈是进度环（#372）：下载看字节，
- * 打标看这一轮的张数，加载时整圈慢慢明暗；圆钮里的星星两颗小星交替闪烁。暂停时环停在原处变灰，图标换成暂停；
- * 其他状态不显示。悬停看进度，点击打开设置 › 自动标签。状态是所有资料库合计（#414），不跟哪个库走。
+ * 打标看这一轮的张数，加载时整圈慢慢明暗；圆钮里的星星两颗小星交替闪烁。暂停时环停在原处变灰，图标换成暂停。
+ * 有图没有完成时（#475）显示提示图标，直到画师忽略。状态是所有资料库合计（#414），不跟哪个库走。
+ *
+ * 点击直接操作（#475）：打标中暂停、暂停时继续、有图没有完成时重试；悬停时图标变成点击后的动作，
+ * 上方的墨紫标签写剩余张数与预计用时，或没有完成的张数与原因。右键是查看这些图、忽略与自动标签设置；
+ * 停住的状态（需要下载、出错、不可用）点击也打开设置。
  */
-export function TaggingActivity({ onOpenSettings, collapsed = false }: {
+export function TaggingActivity({ onOpenSettings, onShowUnfinished, collapsed = false }: {
   onOpenSettings: () => void;
+  /** 回到图片墙，筛出没有完成自动标签的图（#475）。 */
+  onShowUnfinished?: () => void;
   /** 多选悬浮栏出现、右下角收成一个圆形按钮时（#180）：图标换成按钮右上角的小圆点，状态仍看得到。 */
   collapsed?: boolean;
 }) {
@@ -167,30 +237,62 @@ export function TaggingActivity({ onOpenSettings, collapsed = false }: {
   useTranslation();
   const status = useTaggingStatus();
   useTaggingNotices(status);
-  const progress = useRingProgress(status);
-  const text = status && activityLabel(status);
-  if (!status || !text) return null;
-  const stopped = status.state === "needsDownload" || status.state === "failed" || status.state === "noDevice";
-  const activity = stopped ? "stopped" : status.state === "paused" || status.state === "yieldedToFullScreen" ? "paused" : "busy";
-  const pending = (!stopped && progress === null) || undefined;
+  const ring = useRingProgress(status);
+  const progress = useTaggingProgress(status);
+  const unfinished = useUnfinishedTagging(status?.state === "idle" ? status.failed : null);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const label = status && activityLabel(status, progress, unfinished.shown);
+  if (!status || !label) return null;
+  const text = label[1] ? i18n.t("tagging:activity.parts", { first: label[0], second: label[1] }) : label[0];
+  const stopped = status.state === "needsDownload" || status.state === "failed" || status.state === "noDevice" || status.state === "idle";
+  const activity = status.state === "idle" ? "unfinished" : stopped ? "stopped"
+    : status.state === "paused" || status.state === "yieldedToFullScreen" ? "paused" : "busy";
+  const pending = (!stopped && ring === null) || undefined;
   if (collapsed) {
     // 小圆点只表示进行中的进度；停住的状态等收起结束后再回到原处的图标。
     if (stopped) return null;
     return (
       <span className="k-tagging-dot" data-activity={activity} data-pending={pending} role="img" title={text} aria-label={i18n.t("tagging:label", { text })}>
-        <Ring className="k-tagging-mini" size={12} radius={4.5} progress={progress} />
+        <Ring className="k-tagging-mini" size={12} radius={4.5} progress={ring} />
       </span>
     );
   }
-  return (
-    <button type="button" className="k-tagging-activity" data-activity={activity} data-pending={pending}
-      title={text} aria-label={i18n.t("tagging:openSettings", { text })} onClick={onOpenSettings}>
-      <Ring className="k-tagging-ring" size={40} radius={18} progress={progress} />
-      {status.state === "needsDownload" ? <Download size={16} strokeWidth={1.75} aria-hidden="true" />
-        : status.state === "failed" || status.state === "noDevice" ? <CircleAlert size={16} strokeWidth={1.75} aria-hidden="true" />
-        : status.state === "paused" ? <Pause size={16} strokeWidth={1.75} aria-hidden="true" />
-        : status.state === "yieldedToFullScreen" ? <MonitorPause size={16} strokeWidth={1.75} aria-hidden="true" />
-        : <TwinkleSparkles size={16} />}
-    </button>
-  );
+  const act = actOf(status);
+  const next = act && ACT[act];
+  const click = () => {
+    if (next) void next.run().catch(() => {});
+    else onOpenSettings();
+  };
+  return <>
+    <Tooltip.Root>
+      <Tooltip.Trigger delay={200} closeOnClick={false} render={
+        <button type="button" className="k-tagging-activity" data-activity={activity} data-pending={pending}
+          aria-label={act ? i18n.t(`tagging:act.${act}`, { text }) : i18n.t("tagging:openSettings", { text })} onClick={click}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            // 键盘打开的右键菜单没有指针位置：贴着图标左上角。
+            const box = e.currentTarget.getBoundingClientRect();
+            setMenu(e.clientX === 0 && e.clientY === 0 ? { x: box.left, y: box.top } : { x: e.clientX, y: e.clientY });
+          }} />}>
+        <Ring className="k-tagging-ring" size={40} radius={18} progress={ring} />
+        <span className="k-tagging-glyph" data-morph={next ? true : undefined}>
+          <span className="k-tagging-now">{stateIcon(status)}</span>
+          {next && <span className="k-tagging-next">{next.icon}</span>}
+        </span>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Positioner className="k-positioner" side="top" sideOffset={10}>
+          <Tooltip.Popup className="k-tip">{label[0]}{label[1] && <span className="k-tip-note">{label[1]}</span>}</Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+    {menu && <PointerMenu point={menu} label={i18n.t("tagging:menu.label")} onClose={() => setMenu(null)}>
+      {unfinished.shown && <>
+        <MenuItem icon={<Images size={16} aria-hidden="true" />} onClick={() => onShowUnfinished?.()}>{i18n.t("tagging:menu.show")}</MenuItem>
+        <MenuItem icon={<EyeOff size={16} aria-hidden="true" />} onClick={unfinished.ignore}>{i18n.t("tagging:menu.ignore")}</MenuItem>
+        <MenuSeparator />
+      </>}
+      <MenuItem icon={<Settings size={16} aria-hidden="true" />} onClick={onOpenSettings}>{i18n.t("tagging:menu.settings")}</MenuItem>
+    </PointerMenu>}
+  </>;
 }

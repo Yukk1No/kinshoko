@@ -20,6 +20,7 @@ const search: Translation<typeof zh> = {
   include: "Stop excluding this condition",
   remove: "Remove this condition",
   quoted: "“{{text}}”",
+  taggingUnfinished: "Auto-tagging unfinished",
   alsoTags: "Also matches tags: {{tags}}",
   alsoRatings: "Also matches ratings: {{ratings}}",
   listSeparator: ", ",

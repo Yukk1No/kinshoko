@@ -24,6 +24,7 @@ function detail(rating: Partial<ImageRating>): ImageDetail {
     collectedAt: 0,
     sourceLinks: [],
     versions: { previous: null, newer: [] },
+    taggingFailure: null,
     rating: { imageId: "img", suggested: "explicit", manual: null, effective: "explicit", ...rating },
   };
 }
@@ -134,4 +135,26 @@ it("单张详情读失败后改成多选，标签面板照常出现", async () =
   await waitFor(() => expect(screen.queryByRole("region", { name: "标签" })).toBeNull());
   view.rerender(panel(["a", "b"]));
   expect(await screen.findByRole("region", { name: "标签" })).toBeTruthy();
+});
+
+describe("选中一张图：自动标签未完成（#475）", () => {
+  it.each<["unreadable" | "crashed", string]>([
+    ["unreadable", "无法读取这张图"],
+    ["crashed", "处理这张图时出错"],
+  ])("写出未完成，原因在悬停提示；重试后这一行收起", async (failure, reason) => {
+    const edits = backend({ ...detail({}), taggingFailure: failure }, detail({}));
+    renderPanel();
+    const line = await screen.findByText("自动标签未完成");
+    expect(line.getAttribute("title")).toBe(reason);
+    fireEvent.click(screen.getByRole("button", { name: "重试" }));
+    await waitFor(() => expect(edits).toEqual([[{ kind: "retryTagging" }]]));
+    await waitFor(() => expect(screen.queryByText("自动标签未完成")).toBeNull());
+  });
+
+  it("打完了的图没有这一行", async () => {
+    backend(detail({}), detail({}));
+    renderPanel();
+    await screen.findByRole("group", { name: "内容分级" });
+    expect(screen.queryByText("自动标签未完成")).toBeNull();
+  });
 });

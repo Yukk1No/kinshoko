@@ -258,7 +258,7 @@ impl Worker {
                 pick.unknown += 1;
                 continue;
             };
-            pick.failed = pick.failed.saturating_add(failed);
+            pick.failed = pick.failed + failed;
             pick.remaining = pick.remaining.saturating_add(count);
             if count == 0 || pick.batch.is_some() {
                 continue;

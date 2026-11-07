@@ -1,7 +1,9 @@
 //! 打标进度（#52、#475）：按模型来源记下每张参考图打没打过。没有记录的图就是待打标的图；打不上标的图
 //! 分两类记下原因：无法解码的只在画师手动重试时再打，反复让打标子进程崩溃的下次启动时重试一次。
 
-use rusqlite::params;
+use rusqlite::{Connection, OptionalExtension, params};
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use super::rating::require_image;
 use super::tags::FactSource;
@@ -26,6 +28,37 @@ pub enum RetryTagging {
     CrashedOnly,
     /// 两类都重试：画师手动重试用。
     AllFailed,
+}
+
+/// 一张图为什么没有完成自动标签（#475）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum TaggingFailure {
+    /// 无法解码这张图。
+    Unreadable,
+    /// 这张图反复让打标子进程崩溃。
+    Crashed,
+}
+
+/// 打不上标的图，按两类分别计数（#475）；不含回收站中的。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct FailedTagging {
+    pub unreadable: u32,
+    pub crashed: u32,
+}
+
+impl std::ops::Add for FailedTagging {
+    type Output = FailedTagging;
+
+    fn add(self, other: FailedTagging) -> FailedTagging {
+        FailedTagging {
+            unreadable: self.unreadable.saturating_add(other.unreadable),
+            crashed: self.crashed.saturating_add(other.crashed),
+        }
+    }
 }
 
 pub(super) fn images_to_tag(
@@ -84,15 +117,53 @@ pub(super) fn add_tagging_failure(tx: &rusqlite::Transaction) -> rusqlite_migrat
     Ok(())
 }
 
-pub(super) fn count_failed_tagging(inner: &Inner, source: &FactSource) -> Result<u32, Error> {
+pub(super) fn count_failed_tagging(
+    inner: &Inner,
+    source: &FactSource,
+) -> Result<FailedTagging, Error> {
     let conn = inner.readers.get();
-    let count = conn.query_row(
-        "SELECT COUNT(*) FROM tagging_state s JOIN image i ON i.id = s.image_id
+    let counts = conn.query_row(
+        "SELECT coalesce(SUM(s.failure = 'bad_image'), 0), coalesce(SUM(s.failure = 'crashed'), 0)
+         FROM tagging_state s JOIN image i ON i.id = s.image_id
          WHERE s.source = ?1 AND s.status = 'failed' AND i.deleted_at IS NULL",
         [source.as_str()],
-        |r| r.get(0),
+        |r| {
+            Ok(FailedTagging {
+                unreadable: r.get(0)?,
+                crashed: r.get(1)?,
+            })
+        },
     )?;
-    Ok(count)
+    Ok(counts)
+}
+
+/// 这张图有没有打不上标、属于哪类；有几个模型来源都打不上时取最近记下的。
+pub(super) fn failure_of(conn: &Connection, id: &str) -> Result<Option<TaggingFailure>, Error> {
+    let failure: Option<String> = conn
+        .query_row(
+            "SELECT failure FROM tagging_state WHERE image_id = ?1 AND status = 'failed'
+             ORDER BY at DESC LIMIT 1",
+            [id],
+            |r| r.get(0),
+        )
+        .optional()?;
+    Ok(failure.map(|f| {
+        if f == "crashed" {
+            TaggingFailure::Crashed
+        } else {
+            TaggingFailure::Unreadable
+        }
+    }))
+}
+
+/// 让这些图重新待打标（画师在详情里重试，#475）：只清掉打不上标的记录，打完的不重打。
+pub(super) fn retry_images(conn: &Connection, ids: &[String]) -> Result<(), Error> {
+    let mut stmt =
+        conn.prepare_cached("DELETE FROM tagging_state WHERE image_id = ?1 AND status = 'failed'")?;
+    for id in ids {
+        stmt.execute([id])?;
+    }
+    Ok(())
 }
 
 pub(super) fn retry_failed_tagging(

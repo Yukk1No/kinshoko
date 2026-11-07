@@ -65,6 +65,8 @@ pub enum TermInput {
     /// 从候选中点选的内容分级（#161）：有效分级是其中任一档。内容分级不是标签，只是在搜索框里
     /// 用起来像标签。
     Rating { ratings: Vec<ContentRating> },
+    /// 自动标签未完成的图（#475）：从自动标签的状态进来，不在候选里。
+    TaggingUnfinished,
 }
 
 /// 搜索框里的一个条件：各项任一满足；`negate` 时排除满足的图。
@@ -115,6 +117,8 @@ pub enum Term {
     },
     /// 有效分级是其中任一档；还没有分级的图不满足。
     Rating { rating: RatingLabel },
+    /// 打不上标的图（#475）。
+    TaggingUnfinished,
 }
 
 /// 近似查找展开出的一个相近标签。
@@ -334,6 +338,10 @@ impl Search {
                     any.push(Term::Rating {
                         rating: rating_label(ratings, self.safe.scope),
                     });
+                }
+                TermInput::TaggingUnfinished => {
+                    expressed = true;
+                    any.push(Term::TaggingUnfinished);
                 }
                 TermInput::Tag { id, dismissed } => {
                     expressed = true;

@@ -103,6 +103,8 @@ function resolvedTerm(condition: Condition, term: TermInput): Term | undefined {
         return t.kind === "text" && t.text === term.text;
       case "rating":
         return t.kind === "rating" && sameRatings(t.rating.ratings, [...term.ratings].sort(byRank));
+      case "taggingUnfinished":
+        return t.kind === "taggingUnfinished";
     }
   });
 }
@@ -208,7 +210,7 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
           : {
               ...c,
               any: c.any.map((t, j) =>
-                j === term && t.kind !== "rating" ? { ...t, dismissed: [...t.dismissed, similar.tag.id] } : t,
+                j === term && (t.kind === "tag" || t.kind === "text") ? { ...t, dismissed: [...t.dismissed, similar.tag.id] } : t,
               ),
             },
       ),

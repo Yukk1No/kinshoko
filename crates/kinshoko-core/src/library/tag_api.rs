@@ -72,8 +72,8 @@ impl Library {
         tagging_state::count_images_to_tag(&self.inner, source)
     }
 
-    /// 模型来源 `source` 打不上标的参考图有几张（#475），不含回收站中的。
-    pub fn count_failed_tagging(&self, source: &FactSource) -> Result<u32, Error> {
+    /// 模型来源 `source` 打不上标的参考图按两类各有几张（#475），不含回收站中的。
+    pub fn count_failed_tagging(&self, source: &FactSource) -> Result<FailedTagging, Error> {
         tagging_state::count_failed_tagging(&self.inner, source)
     }
 

@@ -22,4 +22,4 @@ similar: Array<SimilarTag>,
 /**
  * 名称或其他叫法含这段文字的内容分级（#161）；安全模式开启时不含成人内容的分级。
  */
-ratings: Array<RatingLabel>, } | { "kind": "rating", rating: RatingLabel, };
+ratings: Array<RatingLabel>, } | { "kind": "rating", rating: RatingLabel, } | { "kind": "taggingUnfinished" };

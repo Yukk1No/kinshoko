@@ -17,7 +17,8 @@ use ts_rs::TS;
 use crate::CommandError;
 use crate::command_error::ErrorKind;
 use crate::library::{
-    CRASHED_REASON, Error as LibraryError, FactSource, Library, RetryTagging, TaggingOutcome,
+    CRASHED_REASON, Error as LibraryError, FactSource, FailedTagging, Library, RetryTagging,
+    TaggingOutcome,
 };
 
 use super::libraries::TaggingLibraries;
@@ -138,8 +139,8 @@ pub enum TaggingStatus {
         remaining: u32,
     },
     /// 能打开的资料库都没有待打标的图；会话已结束，不占显存。`tagged` 同 `Running`，含刚打完的最后一张。
-    /// `unknown` 是暂时打不开、数不出未打标张数的资料库个数，`failed` 是各库打不上标的图合计（#475，
-    /// 无法解码或反复让子进程崩溃，不含回收站中的）：两者不为 0 时都不算已全部打完。
+    /// `unknown` 是暂时打不开、数不出未打标张数的资料库个数，`failed` 是各库打不上标的图按两类合计（#475，
+    /// 不含回收站中的）：两者不为 0 时都不算已全部打完。
     #[serde(rename_all = "camelCase")]
     Idle {
         model: String,
@@ -147,7 +148,7 @@ pub enum TaggingStatus {
         gpu: Option<String>,
         tagged: u32,
         unknown: u32,
-        failed: u32,
+        failed: FailedTagging,
     },
     /// 画师暂停了打标；会话已结束，显存已归还。
     Paused,
@@ -465,7 +466,7 @@ struct Pick {
     batch: Option<(Arc<Library>, Vec<String>)>,
     remaining: u32,
     unknown: u32,
-    failed: u32,
+    failed: FailedTagging,
 }
 
 /// 选中的模型；`fallback` 是自动档跳过前面模型的原因。
