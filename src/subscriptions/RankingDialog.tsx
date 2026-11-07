@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { CircleAlert, Info } from "lucide-react";
+import { CircleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
@@ -12,6 +12,7 @@ import { newLibraryParentPrefill } from "../library/savePrefill";
 import { Segmented } from "../ui/Segmented";
 import { Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
+import { WarnIcon } from "../ui/WarnIcon";
 import { explicitChoice, LibrarySelect, useLibraryOptions } from "./artistOptions";
 import { displayName, RANKINGS, rankingKey, rankingName, TOPS, type Ranking, type RankingKey, type Top } from "./rankingNames";
 import { UnofficialMark } from "./UnofficialMark";
@@ -159,7 +160,7 @@ export function RankingDialog({ status, list, onClose, onAdded }: {
                   value={chosen.existingId} onChange={(existingId) => set({ existingId })} options={libraries.options} />}
               </label>
             </div>}
-          {otherLibrary && <span className="subs-rank-hint subs-rank-note is-warn"><Info size={12} aria-hidden="true" />{t("otherLibrary")}</span>}
+          {otherLibrary && <span className="subs-rank-hint subs-rank-note is-warn"><WarnIcon />{t("otherLibrary")}</span>}
         </div>
         <div className="subs-option">
           <span className="subs-option-text">{t("manga")}</span>

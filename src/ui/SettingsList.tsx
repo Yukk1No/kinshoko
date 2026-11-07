@@ -1,4 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { WarnIcon } from "./WarnIcon";
 
 /**
  * 设置与对话框里的一行（设计系统 SettingsList）：图标、名称、右侧控件，没有描述行。
@@ -42,7 +43,7 @@ export function SettingsRow({ icon, title, hint, meta, warn, children, label, cl
       <div className="k-list-text">
         <div className="k-list-title">{title}</div>
         {hint && <p id={hintId} className="k-set-hint">{hint}</p>}
-        {warn && <p className="k-list-desc is-warn">{warn}</p>}
+        {warn && <p className="k-list-desc is-warn"><WarnIcon />{warn}</p>}
       </div>
       {(meta !== undefined || children !== undefined) && <div className="k-list-end">
         {meta !== undefined && <span className="k-list-meta">{meta}</span>}
@@ -67,7 +68,7 @@ export function SettingsGroup({ label, note, children }: { label: string; note?:
   </div>;
 }
 
-/** 状态胶囊：完成（绿）、注意（黄）或普通；胶囊里必须有文字，图标放在文字前。 */
+/** 状态胶囊：完成（绿）、注意（橙，默认带警告图标）或普通；胶囊里必须有文字，图标放在文字前。 */
 export function StatusPill({ tone = "plain", icon, children }: { tone?: "ok" | "warn" | "plain" | "accent" | "mine"; icon?: ReactNode; children: ReactNode }) {
-  return <span className={`k-pill${tone === "plain" ? "" : ` is-${tone}`}`}>{icon}<span className="k-label">{children}</span></span>;
+  return <span className={`k-pill${tone === "plain" ? "" : ` is-${tone}`}`}>{icon ?? (tone === "warn" && <WarnIcon />)}<span className="k-label">{children}</span></span>;
 }

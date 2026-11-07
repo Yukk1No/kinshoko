@@ -12,6 +12,7 @@ import { modalOpen } from "../ui/modal";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
+import { WarnIcon } from "../ui/WarnIcon";
 import { accountActions } from "./accountActions";
 import { checkedText, checkView, failureText, retryText } from "./checkStatus";
 import { FirstRunDialog, firstRunSeen, markFirstRunSeen } from "./FirstRunDialog";
@@ -168,7 +169,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
           <span className="subs-account-text">
             <span className="subs-account-name">{account.name}</span>
             {login.state === "expired"
-              ? <span className="subs-account-sub is-warn">{t("account.expired")}</span>
+              ? <span className="subs-account-sub is-warn"><WarnIcon />{t("account.expired")}</span>
               : <span className="subs-account-sub">{t("account.source")}</span>}
           </span>
           {login.state === "expired" && <button type="button" className="k-btn is-primary" onClick={actions.signIn}><span className="k-label">{t("account.signInAgain")}</span></button>}

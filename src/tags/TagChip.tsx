@@ -7,6 +7,7 @@ import { TagMarks, tagName, untranslatedHint } from "../search/SearchBox";
 import { confidenceBand, confidencePercent, originLine, tagStanding, type ConfidenceThresholds } from "./tagConfidence";
 import { useTagDisplay } from "./TagDisplayContext";
 import { UntranslatedRename } from "./UntranslatedRename";
+import { ManualStar } from "../ui/ManualStar";
 
 /** 模型标签的档位（`data-band`）；人工添加的、导入的、没有分数的不分档。 */
 export function chipBand(origins: TagOrigin[], thresholds: ConfidenceThresholds) {
@@ -56,7 +57,7 @@ export function TagChip({ tag, origins, notes = [], actions, meter = false, rena
       <Popover.Trigger openOnHover delay={250} closeDelay={160} nativeButton={false}
         render={<li role="listitem" tabIndex={0} className={`tag-row k-tag-chip${manual ? " is-manual" : ""}`}
           data-band={display.style === "bands" ? chipBand(origins, display) : undefined} onFocus={() => setOpen(true)} />}>
-        <span className="tag-name">{name}</span>
+        <span className="tag-name">{manual && <ManualStar />}{name}</span>
         <TagMarks tag={tag} untranslated={rename && <UntranslatedRename tag={tag} catalogId={rename.catalogId} onSaved={rename.onSaved} onOpenChange={setRenaming} />} />
         {meter && standing.kind === "model" && standing.score !== null && <ConfidenceMeter score={standing.score} />}
       </Popover.Trigger>

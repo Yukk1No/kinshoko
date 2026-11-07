@@ -29,7 +29,7 @@
 .chip.pick.is-neg { border-style: dashed; text-decoration: line-through; color: var(--ink-2); }
 .chip .count { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
 .chip.pick.is-zero { color: var(--ink-2); border-style: dashed; }
-.chip.manual { border-color: color-mix(in srgb, var(--manual) 55%, transparent); background: var(--manual-soft); }
+.chip.manual { background: var(--manual-soft); }
 .chip.auto { border-style: dashed; }
 .chip.is-rejected { color: var(--ink-2); text-decoration: line-through; border-style: dashed; height: 24px; font-size: 12px; }
 .chip-x { width: 16px; height: 16px; border-radius: var(--r-xs); display: grid; place-items: center; color: var(--ink-3); opacity: 0; margin-right: -4px; }

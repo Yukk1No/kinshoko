@@ -6,6 +6,7 @@ import { FluidList, FluidRow } from "../ui/FluidList";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { PermanentDeleteConfirm } from "./SelectionPanel";
 import { Switch } from "../ui/Switch";
+import { WarnIcon } from "../ui/WarnIcon";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import { describeCommandError } from "../ipc/commandError";
@@ -199,7 +200,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
             onClick={() => onScope({ kind: "library", libraryId: library.id, scope: { kind: "all" } })}
             title={unavailable ? `${library.root}\n${unavailable}` : library.root}>
             <span className="sidebar-label k-label">{library.name}</span>
-            {unavailable ? <span className="lib-dot is-off" aria-hidden="true" /> : <span className="sidebar-count k-label">{sidebar?.all ?? "…"}</span>}
+            {unavailable ? <span className="lib-warn is-off" aria-hidden="true"><WarnIcon /></span> : <span className="sidebar-count k-label">{sidebar?.all ?? "…"}</span>}
           </button>
           {unavailable && onRecheck && <button type="button" className="offline-retry" title={unavailable} onClick={onRecheck}><span className="k-label">{t("scope.reconnect")}</span></button>}
           <Menu.Root modal={false}>

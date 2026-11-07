@@ -1,7 +1,7 @@
 /* 订阅页（#368，Claude Design 原型“Kinshoko 订阅界面原型”第 1–15 号画板）。只用 tokens.css 的语义令牌，日夜两版同一套。 */
 
 /* ---- “非官方”标记 ---- */
-.subs-unofficial { flex: none; height: 20px; padding: 0 8px; border-radius: var(--r-pill); background: var(--warn-soft); color: var(--warn-strong);
+.subs-unofficial { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: var(--r-pill); background: var(--warn-soft); color: var(--warn-strong);
   font-size: 12px; line-height: 20px; font-weight: 500; white-space: nowrap; cursor: default; }
 
 /* ---- 侧栏：标题行、名单、账号行 ---- */

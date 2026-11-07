@@ -59,7 +59,7 @@ it("未连接的图库名称变淡带警示点，同一行末尾就地重新连�
   const a = section("A");
   expect(a.getAttribute("data-offline")).toBe("true");
   expect(within(a).getByRole("button", { name: "人物参考（未连接）" })).toBeTruthy();
-  expect(a.querySelector(".lib-dot.is-off")).toBeTruthy();
+  expect(a.querySelector(".lib-warn.is-off")).toBeTruthy();
   // 不再另起一行说明：重新连接与图库名在同一行。
   expect(within(a).queryByRole("status")).toBeNull();
   const retry = within(a).getByRole("button", { name: "重新连接" });

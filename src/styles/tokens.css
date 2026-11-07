@@ -27,13 +27,15 @@
   --on-accent: #2b2747;
   --manual: #8a5e08;          /* the artist's decisions, the logo's gold star */
   --manual-soft: rgba(227, 179, 79, 0.2);
+  --manual-strong: #5e4510;   /* manual as text on manual-soft (the "mine" pill) */
   --wall: #eae9e6;            /* neutral ground behind thumbnails */
   --card: #dcdbd8;
   --splash-card: rgba(43, 39, 71, 0.04);   /* startup splash backdrop (#338), faint enough to sit under the logo */
   --danger: #b23a3a;
   --danger-solid: #b23a3a;    /* white text 5.9:1 */
   --on-solid: #ffffff;
-  --warn: #8a5e08; --warn-strong: #5e4510; --warn-soft: #fbf1d9;
+  /* amber, apart from the manual gold and the danger red (#482); always beside a warning icon, since the hue sits close to red */
+  --warn: #a14f12; --warn-strong: #7c3a0e; --warn-soft: #fbeadb;
   --ok: #2f6b3e; --ok-strong: #2f6b3e; --ok-soft: #e3f1e6;
   /* danger text on an `ink` bar (the floating selection bar): the other theme's colour */
   --inverse-danger: #f08a8a;
@@ -99,9 +101,9 @@
     --hover: rgba(244, 236, 220, 0.07); --press: rgba(244, 236, 220, 0.12);
     --ink: #f4ecdc; --ink-2: #c8c0b2; --ink-3: #9890a8; --line: #353249; --line-2: #45415c;
     --accent: #e3b34f; --accent-strong: #e9c26e; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2b2747;
-    --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18);
+    --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18); --manual-strong: #f0cf86;
     --wall: #161618; --card: #222224; --splash-card: rgba(244, 236, 220, 0.05); --danger: #f08a8a; --danger-solid: #c94a4a;
-    --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
+    --warn: #ec9a56; --warn-strong: #f6b885; --warn-soft: rgba(236, 154, 86, 0.14);
     --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
     --inverse-danger: #b23a3a;
     --tag-conf-high: #48426a;
@@ -138,9 +140,9 @@
   --hover: rgba(244, 236, 220, 0.07); --press: rgba(244, 236, 220, 0.12);
   --ink: #f4ecdc; --ink-2: #c8c0b2; --ink-3: #9890a8; --line: #353249; --line-2: #45415c;
   --accent: #e3b34f; --accent-strong: #e9c26e; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2b2747;
-  --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18);
+  --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18); --manual-strong: #f0cf86;
   --wall: #161618; --card: #222224; --splash-card: rgba(244, 236, 220, 0.05); --danger: #f08a8a; --danger-solid: #c94a4a;
-  --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
+  --warn: #ec9a56; --warn-strong: #f6b885; --warn-soft: rgba(236, 154, 86, 0.14);
   --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
   --inverse-danger: #b23a3a;
   --tag-conf-high: #48426a;
@@ -206,7 +208,7 @@
    Pills and circles stay fully round. */
 @supports (corner-shape: superellipse(1.25)) {
   :where(*) { corner-shape: superellipse(1.25); }
-  .lib-dot, .k-density-island, .k-density-knob, .k-tagging-dot, .k-tagging-activity, .k-range, .wall-canvas > .card-sources,
+  .k-density-island, .k-density-knob, .k-tagging-dot, .k-tagging-activity, .k-range, .wall-canvas > .card-sources,
   .startup-bar, .startup-bar *, .capture-tip, .badge, .rail-badge, .fx-burst, .search-chip, .k-radio-card input, .k-steps i, .k-task-progress,
   .k-chip, .k-chip-x, .k-switch, .k-switch-thumb, .k-dock-badge, .k-pill { corner-shape: round; }
   /* search chips in the top bar and its overflow popover are rounded boxes, not pills */

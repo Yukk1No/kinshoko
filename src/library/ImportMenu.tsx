@@ -10,6 +10,7 @@ import { destinationAvailable, folderChoices, SaveDestinationPicker, useSaveDest
 import { importPrefill } from "./savePrefill";
 import type { SaveDestination } from "../bindings/SaveDestination";
 import { Select } from "../ui/Select";
+import { WarnIcon } from "../ui/WarnIcon";
 import { useTranslation } from "react-i18next";
 import { describeCommandError } from "../ipc/commandError";
 
@@ -110,7 +111,7 @@ export function ImportMenu({control,...p}:Omit<ComponentProps<typeof ImportBar>,
  const notes=<>
   {problem&&<p className="k-task-sub is-danger" role="alert">{problem}</p>}
   {task?.report&&task.finishing&&<p className="k-task-sub" role="status">{t("finishing")}</p>}
-  {warnings?.map((warning,index)=><p className="k-task-sub is-warn" role="alert" key={index}>{warning}</p>)}
+  {warnings?.map((warning,index)=><p className="k-task-sub is-warn" role="alert" key={index}><WarnIcon />{warning}</p>)}
  </>;
  const switcher=tasks.length>1?<div className="k-task-switch">{t("tasks")}<Select label={t("tasks")} value={task?.taskId??""} onChange={setSelectedTask}
   options={tasks.map(entry=>({value:entry.taskId,label:t("taskOption",{owner:t("owner",{library:entry.libraryName,folder:entry.folderName??t("unassigned")}),state:t(entry.report?"taskFinished":"taskRunning")})}))}/></div>:null;
