@@ -5,6 +5,7 @@ import { FluidList, FluidRow } from "../ui/FluidList";
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import type { FolderNode } from "../bindings/FolderNode";
+import { Tip } from "../ui/Tip";
 
 export function folderPath(nodes: FolderNode[], id: string, parent: string[] = []): string[] | null {
   for (const node of nodes) {
@@ -41,8 +42,8 @@ export function TrashRow({ label, count, current, expanded, disabled, onClick, m
 }) {
   return <FluidList><FluidRow index={0}>
     <ContextMenu.Root>
-      <ContextMenu.Trigger render={<button type="button" className="sidebar-item k-row" aria-current={current ? "page" : undefined} aria-expanded={expanded}
-        disabled={disabled} aria-label={`回收站（${label}，${count ?? "…"} 张）`} title={label} onClick={onClick} />}>
+      <ContextMenu.Trigger render={<Tip label={label} align="start"><button type="button" className="sidebar-item k-row" aria-current={current ? "page" : undefined} aria-expanded={expanded}
+        disabled={disabled} aria-label={`回收站（${label}，${count ?? "…"} 张）`} onClick={onClick} /></Tip>}>
         <span className="k-row-icon" aria-hidden="true"><Trash2 size={15} /></span>
         <span className="sidebar-label k-label">回收站</span>
         <span className="sidebar-count k-label">{count ?? ""}</span>

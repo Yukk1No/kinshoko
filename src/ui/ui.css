@@ -47,11 +47,16 @@
 .k-win-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---- Popups: menus and popovers (Base UI parts) ---- */
-.k-positioner { z-index: 60; outline: 0; }
+/* 菜单、小确认、悬停提示常在对话框（.k-dialog 91）里打开，浮层要压在对话框之上。 */
+.k-positioner { z-index: 95; outline: 0; }
 .k-popup { min-width: 200px; max-height: min(var(--available-height, 480px), 480px); overflow: auto; padding: 5px; background: var(--surface); color: var(--ink);
   border-radius: var(--r-m); box-shadow: var(--shadow-pop); outline: 0;
   transform-origin: var(--transform-origin); transition: transform 220ms var(--spring), opacity 150ms; }
 .k-popup[data-starting-style], .k-popup[data-ending-style] { opacity: 0; transform: scale(0.96) translateY(-4px); }
+/* 贴在按钮旁的小确认（Popconfirm）：间距与字号同改名浮层 .k-rename。 */
+.k-popconfirm { width: 260px; min-width: 0; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.k-popconfirm-desc { margin: 0; font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
+.k-popconfirm-acts { display: flex; gap: 6px; justify-content: flex-end; }
 .k-item { position: relative; display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px 0 8px; border-radius: var(--r-item); outline: 0; cursor: default;
   user-select: none; white-space: nowrap; color: var(--ink); }
 .k-item[data-highlighted] { background: var(--hover); }
@@ -130,10 +135,12 @@
 .k-dock-icon { position: relative; display: grid; place-items: center; }
 .k-dock-sep { width: 1px; height: 22px; margin: 0 5px; background: var(--line-2); }
 .k-dock-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--r-pill); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 16px; font-weight: 600; text-align: center; }
-.k-dock-tip { position: absolute; bottom: calc(100% + 10px); display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: var(--r-s); background: var(--ink); color: var(--bg);
+.k-dock-tip { position: absolute; bottom: calc(100% + 10px); display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-s); background: var(--surface); color: var(--ink);
   font-size: 12px; line-height: 18px; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-pop); }
-.k-dock-tip-note { opacity: 0.7; }
-.k-dock-tip kbd { font: inherit; padding: 0; border: 0; background: none; color: inherit; opacity: 0.7; }
+.k-dock-tip-note { color: var(--ink-2); }
+/* 提示与菜单同底（--surface），键帽沿用设置里的 .k-key，只收紧高度以放进一行提示。 */
+.k-tip-line { display: flex; align-items: center; gap: 8px; }
+:is(.k-tip, .k-dock-tip) .k-key { padding: 0 6px; line-height: 18px; }
 .k-dock-tray { position: absolute; bottom: calc(100% + 10px); left: 50%; translate: -50% 0; display: flex; gap: 2px; padding: 6px; border-radius: var(--r-xl);
   background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(18px);
   box-shadow: var(--shadow-pop); transform-origin: 50% 100%; }

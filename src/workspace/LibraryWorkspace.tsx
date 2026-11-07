@@ -29,6 +29,7 @@ import { WorkspaceInspector } from "./WorkspaceInspector";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
 import { useWorkspaceInspector } from "./useWorkspaceInspector";
 import { useWorkspaceStatus } from "./useWorkspaceStatus";
+import { Tip } from "../ui/Tip";
 
 type WorkspaceProps = {
   library: LibraryInfo | null;
@@ -60,6 +61,7 @@ type WorkspaceProps = {
   notices?: ReactNode;
   /** 侧栏图库标题菜单“从列表移除”之后（#114）。 */
   onLibraryRemoved?: (libraryId: string) => void;
+  onLibraryRestore?: (root: string) => Promise<void>;
   /** 点打标图标：打开设置 › 自动标签（#144）。 */
   onOpenTaggingSettings: () => void;
 };
@@ -88,6 +90,7 @@ export function LibraryWorkspace({
   onInspectorWidth,
   notices,
   onLibraryRemoved,
+  onLibraryRestore,
   onOpenTaggingSettings,
 }: WorkspaceProps) {
   const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
@@ -231,7 +234,7 @@ export function LibraryWorkspace({
         {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
         <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
           status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} recheck={recheck}
-          onLibraryRemoved={onLibraryRemoved} libraryId={libraryId} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
+          onLibraryRemoved={onLibraryRemoved} onLibraryRestore={onLibraryRestore} libraryId={libraryId} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
           onScope={(next) => {
             // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
             setWorkspaceScope(next); setSelected(new Set()); setSources(null); setViewing(null);
@@ -239,7 +242,7 @@ export function LibraryWorkspace({
           }} />
         <main className="app-main main">
           <header className="topbar" data-tauri-drag-region>
-            {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label="展开侧栏" title="展开侧栏 Ctrl B"><PanelLeftOpen size={16} aria-hidden="true" /></button>}
+            {!paneOpen && <Tip label="展开侧栏" keys="Ctrl+B"><button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label="展开侧栏"><PanelLeftOpen size={16} aria-hidden="true" /></button></Tip>}
           <SearchBox
             workspace
             libraryId="workspace"

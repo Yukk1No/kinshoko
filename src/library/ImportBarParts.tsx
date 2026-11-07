@@ -7,6 +7,7 @@ import type { ImportOutcome } from "../bindings/ImportOutcome";
 import type { ImportReport } from "../bindings/ImportReport";
 import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
 import type { FinishedImport, RunningImport } from "./ImportBar";
+import { Tip } from "../ui/Tip";
 
 export type ImportPlan = { paths: string[]; options: ImportOptions; eagle:boolean };
 type Begin = (paths: string[], fromEagle?: boolean, options?: ImportOptions, fixed?:SaveDestination) => Promise<void>;
@@ -49,10 +50,10 @@ export function ImportResultCard({ report, finished, owner, taskSwitcher, cardNo
     {taskSwitcher}
     {report.privateSummary ? <p className="k-task-sub">内容处理结果已保留</p> : <p className="k-task-stats">
       <span>新增 <b>{counts.imported}</b></span>
-      {counts.merged > 0 && <span title="与已有的图相同，已合并">已存在 <b>{counts.merged}</b></span>}
-      {counts.refreshed > 0 && <span title="更新了 Eagle 信息，本库的整理保留">更新 <b>{counts.refreshed}</b></span>}
-      {counts.newVersions > 0 && <span title="Eagle 里内容变了，作为新版本进库，旧版本保留">新版本 <b>{counts.newVersions}</b></span>}
-      {report.eagleMissing > 0 && <span title="Eagle 里已经没有，本库保留">Eagle 已删 <b>{report.eagleMissing}</b></span>}
+      {counts.merged > 0 && <Tip label="与已有的图相同，已合并"><span>已存在 <b>{counts.merged}</b></span></Tip>}
+      {counts.refreshed > 0 && <Tip label="更新了 Eagle 信息，本库的整理保留"><span>更新 <b>{counts.refreshed}</b></span></Tip>}
+      {counts.newVersions > 0 && <Tip label="Eagle 里内容变了，作为新版本进库，旧版本保留"><span>新版本 <b>{counts.newVersions}</b></span></Tip>}
+      {report.eagleMissing > 0 && <Tip label="Eagle 里已经没有，本库保留"><span>Eagle 已删 <b>{report.eagleMissing}</b></span></Tip>}
     </p>}
     {counts.rejected.length > 0 && <p className="k-task-stats"><span className="is-danger">没导入 <b>{counts.rejected.length}</b></span></p>}
     {cardNotes}
@@ -132,7 +133,7 @@ export function EagleLibrariesDialog({ eagleLibraries, setEagleLibraries, busy, 
               <span className="k-list-icon" aria-hidden="true"><Library size={16} /></span>
               <div className="k-list-text">
                 <div className="k-list-title">{candidate.name}</div>
-                <p className="k-list-desc k-parts" title={candidate.path}><span>{candidate.items} 张</span>{candidate.version && <span>Eagle {candidate.version}</span>}<span>{candidate.path}</span></p>
+                <Tip label={candidate.path} align="start"><p className="k-list-desc k-parts"><span>{candidate.items} 张</span>{candidate.version && <span>Eagle {candidate.version}</span>}<span>{candidate.path}</span></p></Tip>
               </div>
               <div className="k-list-end"><button type="button" className="k-btn is-sm" aria-label={`导入 ${candidate.name}`} disabled={busy} onClick={() => { setEagleLibraries(null); void begin([candidate.path], true); }}><span className="k-label">导入</span></button></div>
             </li>)}

@@ -29,6 +29,8 @@ import {
   savePinsToGroup,
   saveReferenceGroup,
 } from "../ipc";
+import { Tip } from "../ui/Tip";
+import { Popconfirm } from "../ui/Popconfirm";
 
 type SaveTarget = { name: string } | { groupId: string };
 
@@ -228,7 +230,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                   )}><Layers size={13} aria-hidden="true" /><span className="k-label">摆到桌面</span></button>
                   <button type="button" className="k-btn is-sm" onClick={() => setRenaming({ id: g.id, name: g.name })}><span className="k-label">改名</span></button>
                   <Menu.Root>
-                    <Menu.Trigger className="k-icon-btn" aria-label="更多操作" title="更多操作"><MoreHorizontal size={15} aria-hidden="true" /></Menu.Trigger>
+                    <Tip label="更多操作"><Menu.Trigger className="k-icon-btn" aria-label="更多操作"><MoreHorizontal size={15} aria-hidden="true" /></Menu.Trigger></Tip>
                     <MenuPopup label={`${g.name} 的更多操作`}>
                       <MenuItem icon={<BookmarkPlus size={14} />} disabled={!!captureSave || saving}
                         onClick={() => void run(() => beginSave({ groupId: g.id }))}>存入桌面钉图</MenuItem>
@@ -252,7 +254,12 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                       <li key={m.memberId} className={m.state.kind === "unavailable" ? "reference-group-member-unavailable" : undefined}>
                         <span className="k-parts"><span>{"libraryId" in m ? libraryNames.get(m.libraryId) ?? "未登记的图库" : "参考组里的截图"}</span><span>{crop ? `局部 ${crop.width} × ${crop.height}` : "整图"}</span></span>
                         <span>{memberState(m)}</span>
-                        <button type="button" className="k-btn is-sm" onClick={() => void run(() => removeGroupMember(g.id, m.memberId))}><span className="k-label">移出</span></button>
+                        {"libraryId" in m
+                          ? <button type="button" className="k-btn is-sm" onClick={() => void run(() => removeGroupMember(g.id, m.memberId))}><span className="k-label">移出</span></button>
+                          : <Popconfirm description="这张截图只存在这个参考组里，移出后一起删除。" confirm="移出并删除"
+                            onConfirm={() => void run(() => removeGroupMember(g.id, m.memberId))}>
+                            <button type="button" className="k-btn is-sm"><span className="k-label">移出</span></button>
+                          </Popconfirm>}
                       </li>
                     );
                   })}
@@ -277,7 +284,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
               <button type="button" className="k-btn is-danger" onClick={() => {
                 const id = deleting!;
                 void run(() => deleteReferenceGroup(id), () => (setDeleting(null), null));
-              }}><span className="k-label">删除</span></button>
+              }}><span className="k-label">删除参考组</span></button>
             </div>
           </AlertDialog.Popup>
         </AlertDialog.Portal>

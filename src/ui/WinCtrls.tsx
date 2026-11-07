@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { glyphGrid, glyphPath, snapGlyph, type GlyphKind } from "./winGlyphs";
+import { Tip } from "./Tip";
 
 /** The window this page runs in; null outside Tauri (tests without a mocked window, plain browser). */
 function currentWindow() {
@@ -71,15 +72,15 @@ export function WinCtrls() {
   };
   return <div ref={group} className="k-win-ctrls">
     <span className="k-win-div" aria-hidden="true" />
-    <button type="button" className="k-win-btn" aria-label="最小化" title="最小化" onClick={run((win) => win.minimize())}>
+    <Tip label="最小化"><button type="button" className="k-win-btn" aria-label="最小化" onClick={run((win) => win.minimize())}>
       <Glyph kind="minimize" dpr={dpr} />
-    </button>
-    <button type="button" className="k-win-btn" aria-label={maximized ? "还原" : "最大化"} title={maximized ? "还原" : "最大化"}
+    </button></Tip>
+    <Tip label={maximized ? "还原" : "最大化"}><button type="button" className="k-win-btn" aria-label={maximized ? "还原" : "最大化"}
       onClick={run((win) => win.toggleMaximize())}>
       <Glyph kind={maximized ? "restore" : "maximize"} dpr={dpr} />
-    </button>
-    <button type="button" className="k-win-btn is-close" aria-label="关闭" title="关闭" onClick={run((win) => win.close())}>
+    </button></Tip>
+    <Tip label="关闭" align="end"><button type="button" className="k-win-btn is-close" aria-label="关闭" onClick={run((win) => win.close())}>
       <Glyph kind="close" dpr={dpr} />
-    </button>
+    </button></Tip>
   </div>;
 }

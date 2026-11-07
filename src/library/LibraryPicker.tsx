@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { ChevronRight, FolderOpen, FolderPlus, Library, Lightbulb, Pin, Plus, RefreshCw, Settings2 } from "lucide-react";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
@@ -7,6 +7,8 @@ import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, u
 import { BrandMark } from "../ui/BrandMark";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
+import { Tip } from "../ui/Tip";
+import { offerUndoRemoval, reRegister } from "./undoRemoval";
 
 /**
  * 本设备的资料库登记与取消登记（界面称“图库”，design/ui-system/copy-map.md）。
@@ -28,6 +30,8 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
   const [managing, setManaging] = useState(false);
   const toast = useToast();
   const disabled = busy || blocked || current === undefined;
+  const latest = useRef(current);
+  latest.current = current;
 
   useEffect(() => {
     if (current === undefined) return;
@@ -72,8 +76,11 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
     if (root) onChanged(await registerLibrary(root));
   });
   const remove = (id: string) => run(async () => {
+    const entry = entries.find((e) => e.library.id === id);
     await unregisterLibrary(id);
     if (current?.id === id) onChanged(null);
+    if (entry && !entry.unavailable) offerUndoRemoval(toast, entry.library,
+      (root) => run(async () => onChanged(await reRegister(root, latest.current?.id))), fail);
   });
 
   const status = <>
@@ -112,9 +119,9 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
     <div className="pane-library-title">
       <h2 className="pane-title">图库</h2>
       <Menu.Root modal={false} onOpenChange={(open) => { if (open) refresh(); }}>
-        <Menu.Trigger className="k-icon-btn lib-add" aria-label="打开、新建或管理图库" title="打开、新建或管理图库" disabled={current === undefined}>
+        <Tip label="打开、新建或管理图库"><Menu.Trigger className="k-icon-btn lib-add" aria-label="打开、新建或管理图库" disabled={current === undefined}>
           <Plus size={15} aria-hidden="true" />
-        </Menu.Trigger>
+        </Menu.Trigger></Tip>
         <MenuPopup width={200} label="图库">
           <MenuItem icon={<FolderOpen size={14} />} disabled={disabled} onClick={() => void register()}>打开图库…</MenuItem>
           <MenuItem icon={<FolderPlus size={14} />} disabled={disabled} onClick={onCreate}>新建图库…</MenuItem>
@@ -134,14 +141,13 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
               <span className="k-list-icon" aria-hidden="true"><Library size={16} /></span>
               <div className="k-list-text">
                 <div className="k-list-title">{library.name}</div>
-                <div className="k-list-desc" title={library.root}>{library.root}</div>
+                <Tip label={library.root} align="start"><div className="k-list-desc">{library.root}</div></Tip>
                 {unavailable && <p className="k-list-desc is-warn" role="status">{unavailable}</p>}
               </div>
               <div className="k-list-end">
                 <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}><span className="k-label">{unavailable ? "未连接" : "已连接"}</span></span>
                 {unavailable && <button type="button" className="k-btn is-sm" disabled={disabled} onClick={refresh}><RefreshCw size={13} aria-hidden="true" /><span className="k-label">重新连接</span></button>}
-                <button type="button" className="k-btn is-sm" disabled={disabled} aria-label={`移除 ${library.name}`}
-                  title="文件不会删除" onClick={() => void remove(library.id)}><span className="k-label">移除</span></button>
+                <Tip label="文件不会删除"><button type="button" className="k-btn is-sm" disabled={disabled} aria-label={`移除 ${library.name}`} onClick={() => void remove(library.id)}><span className="k-label">移除</span></button></Tip>
               </div>
             </li>)}
           </ul> : <p className="k-dialog-desc">还没有打开的图库。</p>}

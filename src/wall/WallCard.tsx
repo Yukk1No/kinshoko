@@ -9,6 +9,7 @@ import type { Box } from "./layout";
 import { cardThumbnail } from "./thumbnailTier";
 import type { BrowserCard } from "./wallShared";
 import { markThumbnailShown } from "../startupTiming";
+import { Tip } from "../ui/Tip";
 
 /**
  * 缩略图到达的标记直接写在节点上，不经 React 渲染（滚动时不为每张图重渲染）。
@@ -76,12 +77,11 @@ export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, s
         style={{ backgroundImage: `url("${card.placeholder}")` }} />}
     </div>
     {/* 来源按钮是卡片选项的兄弟，不在选项里：选项内不放可聚焦的子元素。只在一个图库的图不放按钮（#221），所在图库在详情里看。 */}
-    {sources.length >= 2 && <button type="button" className="card-sources" data-card={card.id}
+    {sources.length >= 2 && <Tip label={`在 ${sources.length} 个图库`}><button type="button" className="card-sources" data-card={card.id}
       aria-label={`在 ${sources.length} 个图库，查看详情`}
-      title={`在 ${sources.length} 个图库`}
       style={{ left: `${b.x + b.w - 8}px`, top: `${b.y + b.h - 8}px` }}
       onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; cardHandlers.current.inspect?.(card as WorkspaceCard); }}
-      onKeyDown={(e) => e.stopPropagation()}>{SOURCES_ICON}<span className="k-label">{`${sources.length} 处`}</span></button>}
+      onKeyDown={(e) => e.stopPropagation()}>{SOURCES_ICON}<span className="k-label">{`${sources.length} 处`}</span></button></Tip>}
     </Fragment>
   );
 }

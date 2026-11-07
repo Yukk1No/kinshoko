@@ -33,11 +33,11 @@ it("workspace search saves forever using shared IDs and preserves once as curren
   const blue=label("shared-blue","蓝瞳"),aqua=label("shared-aqua","水色瞳");
   render(<SearchBox workspace libraryId="currently-browsed-B" safe generation={1} input={{conditions:[{any:[{kind:"tag",id:blue.id,dismissed:[]}],negate:false}],exact:false}} tree={{conditions:[{any:[{kind:"tag",tag:blue,similar:[{tag:aqua,source:"builtin",of:[blue.id]}]}],negate:false}]}} showSource={false} onChange={value=>changes.push(value)} onError={error=>{throw Error(error);}}/>);
   fireEvent.click(screen.getByRole("button",{name:"不展开“水色瞳”"}));
-  fireEvent.click(screen.getByRole("button",{name:"只这次"}));
+  fireEvent.click(await screen.findByRole("menuitem",{name:"只这次"}));
   expect(changes).toEqual([{conditions:[{any:[{kind:"tag",id:blue.id,dismissed:[aqua.id]}],negate:false}],exact:false}]);
   expect(calls.some(c=>c.cmd.endsWith("edit_shared_approx"))).toBe(false);
   fireEvent.click(screen.getByRole("button",{name:"不展开“水色瞳”"}));
-  fireEvent.click(screen.getByRole("button",{name:"以后都不展开"}));
+  fireEvent.click(await screen.findByRole("menuitem",{name:"以后都不展开"}));
   await waitFor(()=>expect(calls.find(c=>c.cmd.endsWith("edit_shared_approx"))?.args).toEqual({edit:{kind:"set",rules:[{a:blue.id,b:aqua.id,relation:"notSimilar"}]},safeMode:true}));
 });
 
@@ -70,7 +70,7 @@ it("workspace plus chooses an unmapped visible tag and saves one global rule",as
   mockIPC((cmd,args)=>{calls.push({cmd,args});if(cmd.endsWith("workspace_candidates"))return [{tag:sky,via:null,count:1}];return undefined;});
   render(<SearchBox workspace libraryId="B" safe generation={1} input={{conditions:[{any:[{kind:"tag",id:blue.id,dismissed:[]}],negate:false}],exact:false}} tree={{conditions:[{any:[{kind:"tag",tag:blue,similar:[]}],negate:false}]}} showSource={false} onChange={()=>{}} onError={error=>{throw Error(error);}}/>);
   fireEvent.click(screen.getByRole("button",{name:"给“蓝瞳”加相近标签"}));
-  fireEvent.change(screen.getByRole("combobox",{name:"挑一个统一标签"}),{target:{value:"天空"}});
+  fireEvent.change(await screen.findByRole("combobox",{name:"挑一个统一标签"}),{target:{value:"天空"}});
   fireEvent.click(await screen.findByRole("option",{name:/天空色/}));
   await waitFor(()=>expect(calls.find(c=>c.cmd.endsWith("edit_shared_approx"))?.args).toEqual({edit:{kind:"set",rules:[{a:blue.id,b:sky.id,relation:"similar"}]},safeMode:true}));
 });

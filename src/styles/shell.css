@@ -31,9 +31,6 @@
 .card.is-arriving img, .card.is-arriving::after { transition: none; }
 .rail-badge { position: absolute; top: 2px; right: 1px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--r-pill); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 16px; font-weight: 600; text-align: center; }
 .rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
-.tip { position: absolute; left: calc(100% + 10px); top: 50%; transform: translate(-4px, -50%); white-space: nowrap; background: var(--ink); color: var(--bg); padding: 5px 8px; border-radius: var(--r-s); font-size: 12px; line-height: 18px; pointer-events: none; opacity: 0; transition: opacity var(--t-fast), transform var(--t-fast) var(--ease); z-index: 20; }
-.tip kbd { background: transparent; color: inherit; border-color: color-mix(in srgb, var(--bg) 40%, transparent); opacity: 0.8; }
-.rail-btn:hover .tip, .rail-btn:focus-visible .tip { opacity: 1; transform: translate(0, -50%); }
 
 body { font-size: 13px; line-height: 20px; overflow: hidden; }
 * { box-sizing: border-box; }

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Layers } from "lucide-react";
 import { libraryPathHint } from "./library-path";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
+import { Tip } from "../ui/Tip";
 
 /**
  * 详情面板里的多来源整理（#98）：同一文件在 N 个图库各自保留整理结果。先明确选一份来源，
@@ -26,16 +27,16 @@ export function WorkspaceSources({ card, onClose, onView, safe = true, reloadKey
       <Segmented label="当前操作的来源记录" value={editing ? keyOf(editing) : null}
         onChange={(key) => { const next = card.sources.find((s) => keyOf(s) === key); if (next) setEditing(next); }}
         options={card.sources.map((source) => ({ value: keyOf(source), label: source.libraryName, disabled: !!source.unavailable,
-          title: [hint(source.libraryId), source.deleted ? "回收站" : null, source.unavailable ? "未连接" : null].filter(Boolean).join("，") || undefined }))} />
+          tip: [hint(source.libraryId), source.deleted ? "回收站" : null, source.unavailable ? "未连接" : null].filter(Boolean).join("，") || undefined }))} />
     </div>
     {editing && <WorkspaceSourceEditor key={keyOf(editing)} card={card} source={editing}
       safe={safe} registrations={registrations} reloadKey={reloadKey} onSource={setEditing} onClose={onClose} onChanged={onChanged} />}
-    {!editing && <ul className="workspace-source-list">{card.sources.map((source) => <li key={keyOf(source)} data-source-library-id={source.libraryId} title={keyOf(source)}>
+    {!editing && <ul className="workspace-source-list">{card.sources.map((source) => <li key={keyOf(source)} data-source-library-id={source.libraryId}>
       <div className="workspace-source-head">
         <strong>{source.libraryName}</strong>
         <span className="workspace-source-state">{source.deleted ? "回收站" : source.matches ? "符合当前查找" : "不符合当前查找"}</span>
       </div>
-      {root(source.libraryId) && <span className="workspace-source-path" title={root(source.libraryId)}>{hint(source.libraryId)}</span>}
+      {root(source.libraryId) && <Tip label={root(source.libraryId)} align="start"><span className="workspace-source-path">{hint(source.libraryId)}</span></Tip>}
       {source.unavailable ? <p className="insp-hint" role="status">{source.unavailable}</p> :
         <div className="selection-actions"><button type="button" className="k-btn is-sm" onClick={() => setEditing(source)}><span className="k-label">整理此来源</span></button>
         <button type="button" className="k-btn is-sm" onClick={() => { onClose(); onView({ ...card, libraryId: source.libraryId, imageId: source.imageId }); }}><span className="k-label">查看此来源</span></button></div>}

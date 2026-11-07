@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { OPEN_MS, SEAL_MS, clamp, sealBookSVG } from "./shell/sealbook";
+import { Tip } from "./ui/Tip";
 import { useReducedMotion } from "./ui/reducedMotion";
 
 // The drawing and the progress-driven seal / release motion are copied verbatim from the approved
@@ -40,9 +41,10 @@ export function SealBook({ on, onToggle, slow = 1 }: { on: boolean; onToggle: ()
     return () => cancelAnimationFrame(m.raf);
   }, [sealed, reducedMotion, slow]);
 
-  return <button type="button" className={`rail-btn seal-book${sealed ? " is-sealed" : ""}`} aria-pressed={sealed}
-    aria-label={sealed ? "安全模式：开启" : "安全模式：关闭"} onClick={onToggle}>
-    <svg ref={svg} width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false" />
-    <span className="tip" role="tooltip">安全模式{sealed ? "：开，成人图已封印" : "：关"}<kbd>Ctrl+Shift+S</kbd></span>
-  </button>;
+  return <Tip side="right" label={`安全模式${sealed ? "：开，成人图已封印" : "：关"}`} keys="Ctrl+Shift+S">
+    <button type="button" className={`rail-btn seal-book${sealed ? " is-sealed" : ""}`} aria-pressed={sealed}
+      aria-label={sealed ? "安全模式：开启" : "安全模式：关闭"} onClick={onToggle}>
+      <svg ref={svg} width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false" />
+    </button>
+  </Tip>;
 }

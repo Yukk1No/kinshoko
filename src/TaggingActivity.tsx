@@ -5,6 +5,7 @@ import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { taggingDownload } from "./ipc";
 import { useToast } from "./ui/Toast";
 import { useTaggingStatus } from "./useTaggingStatus";
+import { Tip } from "./ui/Tip";
 
 const DEVICE_NAME: Record<Device, string> = { directMl: "显卡", cpu: "CPU" };
 const mb = (bytes: number) => `${Math.round(bytes / 1_000_000)} MB`;
@@ -122,11 +123,10 @@ export function TaggingActivity({ libraryId: opened, registered, onOpenSettings,
   const text = status && activityLabel(status);
   if (!status || !text) return null;
   const activity = status.state === "paused" || status.state === "yieldedToFullScreen" ? "paused" : "busy";
-  if (collapsed) return <span className="k-tagging-dot" data-activity={activity} role="img" title={text} aria-label={`自动标签：${text}`} />;
+  if (collapsed) return <Tip label={text} side="top"><span className="k-tagging-dot" data-activity={activity} role="img" aria-label={`自动标签：${text}`} /></Tip>;
   return (
-    <button type="button" className="k-tagging-activity" data-activity={activity}
-      title={text} aria-label={`自动标签：${text}，打开自动标签设置`} onClick={onOpenSettings}>
+    <Tip label={text} side="top"><button type="button" className="k-tagging-activity" data-activity={activity} aria-label={`自动标签：${text}，打开自动标签设置`} onClick={onOpenSettings}>
       <Sparkles size={16} strokeWidth={1.75} aria-hidden="true" />
-    </button>
+    </button></Tip>
   );
 }

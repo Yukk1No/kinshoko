@@ -9,6 +9,7 @@ import { InspectorResizer } from "../shell/InspectorResizer";
 import { WinCtrls } from "../ui/WinCtrls";
 import type { BrowserCard } from "../wall/Wall";
 import type { WorkspaceInspectorState } from "./useWorkspaceInspector";
+import { Tip } from "../ui/Tip";
 
 /** 工作区右侧的详情面板：明确打开的来源整理，或当前选择的整理。 */
 export function WorkspaceInspector({
@@ -43,7 +44,7 @@ export function WorkspaceInspector({
           onInspectorWidth(width);
         }} />
         <header className="insp-head" data-tauri-drag-region>
-          <button type="button" className="k-icon-btn" aria-label="收起详情" title="收起详情" onClick={closeInspector}><PanelRightClose size={16} aria-hidden="true" /></button>
+          <Tip label="收起详情"><button type="button" className="k-icon-btn" aria-label="收起详情" onClick={closeInspector}><PanelRightClose size={16} aria-hidden="true" /></button></Tip>
           <span className="insp-title">详情</span>
           {inspectorOpen && <WinCtrls />}
         </header>

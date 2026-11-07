@@ -13,6 +13,7 @@ import { FollowDock } from "../ui/FollowDock";
 import { OriginalStar } from "../ui/OriginalStar";
 import { type Background, DOCK_RESERVE, useViewerBackground, viewerDockItems, ViewerImages, ViewerMenu } from "./ViewerParts";
 import { useViewerSource } from "./useViewerSource";
+import { Tip } from "../ui/Tip";
 
 type Props = {
   workspace?: boolean;
@@ -228,17 +229,17 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
       tabIndex={-1} onKeyDown={keyDown}>
       <header className="viewer-bar">
         <button type="button" className="k-btn is-quiet viewer-back" aria-label="返回图片墙" onClick={onClose}><ArrowLeft size={16} /><span className="k-label">返回</span></button>
-        <span className="viewer-title" title={name ?? undefined}>{name}</span>
+        <Tip label={name}><span className="viewer-title">{name}</span></Tip>
         {position && <>
           <span className="viewer-index">{position.index + 1} / {position.total}</span>
-          <button type="button" className="k-icon-btn" aria-label="上一张" title="上一张 ←" disabled={position.index <= 0} onClick={() => onStep?.(-1)}><ChevronLeft size={16} /></button>
-          <button type="button" className="k-icon-btn" aria-label="下一张" title="下一张 →" disabled={position.index >= position.total - 1} onClick={() => onStep?.(1)}><ChevronRight size={16} /></button>
+          <Tip label="上一张" keys="←"><button type="button" className="k-icon-btn" aria-label="上一张" disabled={position.index <= 0} onClick={() => onStep?.(-1)}><ChevronLeft size={16} /></button></Tip>
+          <Tip label="下一张" keys="→"><button type="button" className="k-icon-btn" aria-label="下一张" disabled={position.index >= position.total - 1} onClick={() => onStep?.(1)}><ChevronRight size={16} /></button></Tip>
         </>}
         <span className="k-grow" />
         <div className="viewer-zoom">
-          <button type="button" className="k-icon-btn" aria-label="缩小" title="缩小" onClick={() => zoomAt(0.8)}><Minus size={15} /></button>
+          <Tip label="缩小"><button type="button" className="k-icon-btn" aria-label="缩小" onClick={() => zoomAt(0.8)}><Minus size={15} /></button></Tip>
           <output aria-label="缩放比例">{Math.round(physicalWidth / card.width * 100)}%</output>
-          <button type="button" className="k-icon-btn" aria-label="放大" title="放大" onClick={() => zoomAt(1.25)}><Plus size={15} /></button>
+          <Tip label="放大"><button type="button" className="k-icon-btn" aria-label="放大" onClick={() => zoomAt(1.25)}><Plus size={15} /></button></Tip>
         </div>
       </header>
       <ContextMenu.Root>
@@ -277,7 +278,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
         {cropRect && crop && <div className="viewer-crop" aria-label="选区"
           style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }} />}
         {shownCropRect && crop && <FollowDock anchor={shownCropRect} bounds={viewport} reserveBottom={DOCK_RESERVE}>
-          <Dock label="框选" onSelect={cropTool} readout={<span className="k-original" title="原始像素">{crop.width} × {crop.height}<span className="sr-only">原始像素</span><OriginalStar /></span>} items={[
+          <Dock label="框选" onSelect={cropTool} readout={<Tip label="原始像素" side="top"><span className="k-original">{crop.width} × {crop.height}<span className="sr-only">原始像素</span><OriginalStar /></span></Tip>} items={[
             { id: "pin", label: "钉住局部", icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary" },
             { id: "redo", label: "重选", icon: <RotateCcw size={18} strokeWidth={1.75} /> },
             { id: "cancel", label: "取消", icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },

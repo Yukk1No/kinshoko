@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { CircleAlert, Folder, Library } from "lucide-react";
 import { useSaveDestination, folderChoices, destinationAvailable, destinationLabel } from "../library/SaveDestination";
@@ -6,6 +7,8 @@ import type { CaptureChoice } from "../bindings/CaptureChoice";
 import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { captureUrl } from "../ipc";
+import { Tip } from "../ui/Tip";
+import { Popconfirm } from "../ui/Popconfirm";
 
 /** 截图只存在参考组里（#270）。 */
 export const KEEP_IN_GROUP = "group";
@@ -39,7 +42,12 @@ export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, 
 }) {
   const saveContext = useSaveDestination();
   const collecting = (choice: string | undefined) => !!choice && choice !== SKIP && choice !== KEEP_IN_GROUP;
-  return <Dialog.Root open onOpenChange={(open) => { if (!open && !saving) onClose(); }}>
+  // 改过去处后关掉（取消、Esc、点外面）会丢掉这些选择：先在“取消”旁确认一次；没改过直接关。
+  const picked = JSON.stringify([value.choices, value.folders]);
+  const [initial] = useState(picked);
+  const [guard, setGuard] = useState(false);
+  const close = () => { if (saving) return; if (picked !== initial) setGuard(true); else onClose(); };
+  return <Dialog.Root open onOpenChange={(open) => { if (!open) close(); }}>
     <Dialog.Portal>
       <Dialog.Backdrop className="k-backdrop" />
       <Dialog.Popup className="k-dialog k-save-dialog capture-group-save">
@@ -59,7 +67,7 @@ export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, 
                 <div className="capture-save-main">
                   <p className="capture-save-head">
                     <strong>截图 {i + 1}</strong><span>{entry.width} × {entry.height}</span>
-                    {collected.length > 0 && <span className="k-pill" title={`已收藏到 ${collected.join("、")}`}><span className="k-label">已收藏</span></span>}
+                    {collected.length > 0 && <Tip label={`已收藏到 ${collected.join("、")}`}><span className="k-pill"><span className="k-label">已收藏</span></span></Tip>}
                   </p>
                   <div className="capture-save-fields">
                     <Select label={`截图 ${i + 1} 存到哪里`} icon={<Library size={16} aria-hidden="true" />} disabled={saving} value={choice}
@@ -74,7 +82,7 @@ export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, 
                         { value: SKIP, label: "不加入参考组" },
                       ]} />
                     <Select label={`截图 ${i + 1} 的文件夹`} icon={<Folder size={16} aria-hidden="true" />} disabled={saving || !chosen} value={chosen ? folder ?? "" : ""}
-                      title={chosen ? `存到：${destinationLabel(destination, saveContext.providers)}` : undefined}
+                      tip={chosen ? `存到：${destinationLabel(destination, saveContext.providers)}` : undefined}
                       onChange={(next) => onChange({ ...value, folders: { ...value.folders, [entry.id]: next || null } })}
                       options={[
                         { value: "", label: chosen ? "未归类" : "文件夹" },
@@ -90,7 +98,10 @@ export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, 
         </ul>
         <div className="k-dialog-foot">
           <span className="k-grow" />
-          <button type="button" className="k-btn" disabled={saving} onClick={onClose}><span className="k-label">取消</span></button>
+          <Popconfirm open={guard} onOpenChange={(open) => { if (!open) setGuard(false); else close(); }} side="top"
+            description="这次选的去处不会保存。" confirm="放弃并关闭" onConfirm={onClose}>
+            <button type="button" className="k-btn" disabled={saving}><span className="k-label">取消</span></button>
+          </Popconfirm>
           <button type="button" className="k-btn is-primary"
             disabled={saving || !saveContext.ready || value.entries.some((e) => {
               const choice = value.choices[e.id];

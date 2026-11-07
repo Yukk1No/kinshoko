@@ -159,7 +159,10 @@ describe("近似查找", () => {
     await pickBlue();
 
     fireEvent.click(screen.getByRole("button", { name: "不展开“水色发”" }));
-    fireEvent.click(within(screen.getByRole("dialog", { name: "不展开相近标签" })).getByRole("button", { name: "只这次" }));
+    // 贴着“×”的小菜单：一行说明，两个选项。
+    const menu = await screen.findByRole("menu");
+    expect(menu.textContent).toContain("不展开“水色发”：");
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "只这次" }));
     await waitFor(() =>
       expect(lastInput().conditions[0].any[0]).toEqual({ kind: "tag", id: "B", dismissed: ["Q"] }),
     );
@@ -169,11 +172,11 @@ describe("近似查找", () => {
     fireEvent.click(screen.getByRole("button", { name: "去掉这个条件" }));
     await pickBlue();
     fireEvent.click(screen.getByRole("button", { name: "不展开“水色发”" }));
-    fireEvent.click(screen.getByRole("button", { name: "以后都不展开" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "以后都不展开" }));
     await waitFor(() =>
       expect(sent("plugin:library|set_tag_approx")).toEqual([{ libraryId: "L1", a: "B", b: "Q", relation: "notSimilar" }]),
     );
-    expect(screen.queryByRole("dialog", { name: "不展开相近标签" })).toBeNull();
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
   });
 
   it("用“＋”从库内标签里挑一个加为相近标签", async () => {
@@ -182,7 +185,7 @@ describe("近似查找", () => {
     await pickBlue();
 
     fireEvent.click(screen.getByRole("button", { name: "给“蓝发”加相近标签" }));
-    const dialog = screen.getByRole("dialog", { name: "加相近标签" });
+    const dialog = await screen.findByRole("dialog", { name: "加相近标签" });
     fireEvent.change(within(dialog).getByRole("combobox", { name: "挑一个库内标签" }), {
       target: { value: "某" },
     });

@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { History, Images, Layers, Settings } from 'lucide-react';
 import { SealBook } from '../SealBook';
 import { BrandMark } from '../ui/BrandMark';
+import { Tip } from '../ui/Tip';
 import { captureHistory, onCaptureHistory, onReferenceGroupsChanged, referenceGroups } from '../ipc';
 
 export type Section = 'browse' | 'groups' | 'captures';
@@ -55,25 +56,27 @@ export function Rail(p: Props) {
     if (el) setIndicator({ top: el.offsetTop + 8, height: el.offsetHeight - 16 });
   }, [p.section]);
   return <nav className="rail" aria-label="主导航">
-    <div className="brand" title="Kinshoko" data-tauri-drag-region="deep">
+    <div className="brand" data-tauri-drag-region="deep">
       <BrandMark size={28} />
     </div>
     <div className="rail-items" ref={nav}>
       {indicator && <span className="rail-indicator" style={{ transform: `translateY(${indicator.top}px)`, height: indicator.height }} aria-hidden="true" />}
-      {ITEMS.map(({ id, label, icon: Icon, key }) => <button key={id} data-section={id} type="button"
-        className={`rail-btn${p.section === id ? ' is-active' : ''}`} aria-current={p.section === id ? 'page' : undefined}
-        aria-label={label} aria-expanded={p.section === id ? p.paneOpen : undefined} onClick={() => p.onSection(id)}>
-        <Icon size={20} strokeWidth={1.75} />
-        {!!badges[id] && <span className="rail-badge tabular">{badges[id]}</span>}
-        <span className="tip" role="tooltip">{label}<kbd>{key}</kbd></span>
-      </button>)}
+      {ITEMS.map(({ id, label, icon: Icon, key }) => <Tip key={id} side="right" label={label} keys={key}>
+        <button data-section={id} type="button"
+          className={`rail-btn${p.section === id ? ' is-active' : ''}`} aria-current={p.section === id ? 'page' : undefined}
+          aria-label={label} aria-expanded={p.section === id ? p.paneOpen : undefined} onClick={() => p.onSection(id)}>
+          <Icon size={20} strokeWidth={1.75} />
+          {!!badges[id] && <span className="rail-badge tabular">{badges[id]}</span>}
+        </button>
+      </Tip>)}
     </div>
     <div className="rail-foot">
       <SealBook on={p.safeMode} onToggle={p.onSafeMode} />
-      <button type="button" className="rail-btn" aria-label="设置" onClick={p.onSettings}>
-        <Settings size={20} strokeWidth={1.75} />
-        <span className="tip" role="tooltip">程序设置</span>
-      </button>
+      <Tip side="right" label="程序设置">
+        <button type="button" className="rail-btn" aria-label="设置" onClick={p.onSettings}>
+          <Settings size={20} strokeWidth={1.75} />
+        </button>
+      </Tip>
     </div>
   </nav>;
 }

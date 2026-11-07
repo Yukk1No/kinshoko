@@ -12,6 +12,9 @@ import { acceptsDrag, DRAG_FOLDER, DRAG_FOLDER_LIBRARY, LAST, SidebarPane } from
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { folderPath, LibraryMenuItems, TrashRow } from "./WorkspacePaneRows";
+import { Tip } from "../ui/Tip";
+import { useToast } from "../ui/Toast";
+import { offerUndoRemoval } from "./undoRemoval";
 // 来源整理拆到 WorkspaceSources.tsx；从这里导入的调用方照旧可用。
 export { WorkspaceSources } from "./WorkspaceSources";
 
@@ -24,15 +27,18 @@ export const SPRING_OPEN_MS = 600;
  * 拖动图片或文件夹悬停在折起的图库上约 0.6 秒自动展开，放下或离开后恢复。每个已连接图库的目录都能
  * 直接整理（ADR-0008）；未连接的图库只占一行并可就地重新连接。底部固定跟随所选图库的回收站。
  */
-export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onError, onRecheck, onRemoved, children }: {
+export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onError, onRecheck, onRemoved, onRestore, children }: {
   status: WorkspaceStatus | null; scope: WorkspaceScope; onScope: (scope: WorkspaceScope) => void;
   safeMode: boolean; reloadKey: number; onError: (message: string) => void;
   /** 重新检查未连接的图库（移动盘接回后）。 */
   onRecheck?: () => void;
   /** 图库标题菜单“从列表移除”完成后（取消登记，文件不删）。 */
   onRemoved?: (libraryId: string) => void;
+  /** 移除后的“撤销”：重新登记这个位置。 */
+  onRestore?: (root: string) => Promise<void>;
   children?: ReactNode;
 }) {
+  const toast = useToast();
   // 代次（登记了哪些图库、各自是否可用、安全模式）变了，旧目录在新结果到达前就不再显示。内容变化
   // （status.revision 随每次进库前进，导入期间约每 1.5 秒一次）与单纯重读（reloadKey，每次列表过期加一）
   // 只重读：沿用上一份目录直到新结果到达，资料库行不因计数刷新整行变成不可用（#121）。
@@ -110,10 +116,11 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
   // 不再向已取消登记的图库请求浏览。
   const latestScope = useRef(scope);
   latestScope.current = scope;
-  const remove = (libraryId: string) => { unregisterLibrary(libraryId).then(() => {
+  const remove = (registration: WorkspaceDirectory["registration"]) => { const libraryId = registration.library.id; unregisterLibrary(libraryId).then(() => {
     const current = latestScope.current;
     if (current.kind === "library" && current.libraryId === libraryId) onScope({ kind: "all" });
     onRemoved?.(libraryId);
+    if (onRestore && !registration.unavailable) offerUndoRemoval(toast, registration.library, onRestore, onError);
   }, (e) => onError(String(e))); };
   const emptyItem = (p: WorkspaceDirectory, label: string) => <MenuItem key={p.registration.library.id} icon={<Trash2 size={14} />} danger
     disabled={!p.sidebar || p.sidebar.trash === 0} onClick={() => setEmptying({ libraryId: p.registration.library.id, name: p.registration.library.name })}>{label}</MenuItem>;
@@ -167,7 +174,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
       const selectedRoot = scope.kind === "library" && scope.libraryId === library.id;
       const parentForNew = selectedRoot && (scope.scope.kind === "folder" || scope.scope.kind === "folderTree") ? scope.scope.id : null;
       const libraryItems = <LibraryMenuItems provider={provider} onNewFolder={() => { toggle(library.id, true); setCreatingIn(library.id); }}
-        onReveal={() => reveal(library.id)} onRecheck={onRecheck} onRemove={() => remove(library.id)} />;
+        onReveal={() => reveal(library.id)} onRecheck={onRecheck} onRemove={() => remove(provider.registration)} />;
       const dropFolderHere = (e: DragEvent) => {
         const folder = e.dataTransfer.getData(DRAG_FOLDER);
         const from = e.dataTransfer.getData(DRAG_FOLDER_LIBRARY);
@@ -178,13 +185,15 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
         data-offline={unavailable ? "true" : undefined} {...springHandlers(library.id, available && !expanded)}>
         <ContextMenu.Root>
         {/* 图库标题的右键菜单与 ⋯ 同一组菜单项；未连接时名称按钮禁用（不接收指针），右键落在这一行上。 */}
-        <ContextMenu.Trigger render={<div className="workspace-provider-root lib-head" title={unavailable ? `${library.root}\n${unavailable}` : undefined} />}>
+        <Tip label={unavailable ? `${library.root}\n${unavailable}` : undefined}>
+        <ContextMenu.Trigger render={<div className="workspace-provider-root lib-head" />}>
           {available ? <button type="button" className="workspace-expand" aria-label={`${expanded ? "收起" : "展开"}${library.name}`}
             aria-expanded={expanded} onClick={() => {
               if (sprung === library.id) setSprung(null);
               toggle(library.id, !expanded);
             }}>{expanded ? <ChevronDown size={12} aria-hidden="true" /> : <ChevronRight size={12} aria-hidden="true" />}</button>
             : <span className="workspace-expand" aria-hidden="true" />}
+          <Tip label={unavailable ? undefined : library.root} align="start">
           <button type="button" className={`sidebar-item lib-head-name${unavailable ? " is-off" : ""}`} disabled={!available}
             aria-label={unavailable ? library.name + "（未连接）" : `${library.name}（${sidebar?.all ?? "…"} 张）`}
             aria-current={selectedRoot && scope.scope.kind === "all" ? "page" : undefined}
@@ -192,21 +201,22 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
             onDragOver={(e) => { if (available && e.dataTransfer.types.includes(DRAG_FOLDER)) { e.preventDefault(); setHeadDrop(library.id); } }}
             onDragLeave={() => setHeadDrop(null)}
             onDrop={(e) => { e.preventDefault(); setHeadDrop(null); dropFolderHere(e); }}
-            onClick={() => onScope({ kind: "library", libraryId: library.id, scope: { kind: "all" } })}
-            title={unavailable ? `${library.root}\n${unavailable}` : library.root}>
+            onClick={() => onScope({ kind: "library", libraryId: library.id, scope: { kind: "all" } })}>
             <span className="sidebar-label k-label">{library.name}</span>
             {unavailable ? <span className="lib-dot is-off" aria-hidden="true" /> : <span className="sidebar-count k-label">{sidebar?.all ?? "…"}</span>}
           </button>
-          {unavailable && onRecheck && <button type="button" className="offline-retry" title={unavailable} onClick={onRecheck}><span className="k-label">重新连接</span></button>}
+          </Tip>
+          {unavailable && onRecheck && <button type="button" className="offline-retry" onClick={onRecheck}><span className="k-label">重新连接</span></button>}
           <Menu.Root modal={false}>
-            <Menu.Trigger className="k-icon-btn lib-more" aria-label={`${library.name} 的操作`} title="图库操作">
+            <Tip label="图库操作"><Menu.Trigger className="k-icon-btn lib-more" aria-label={`${library.name} 的操作`}>
               <MoreHorizontal size={14} aria-hidden="true" />
-            </Menu.Trigger>
+            </Menu.Trigger></Tip>
             <MenuPopup width={200} label={`${library.name} 的操作`}>
               {libraryItems}
             </MenuPopup>
           </Menu.Root>
         </ContextMenu.Trigger>
+        </Tip>
         <MenuPopup width={200} label={`${library.name} 的操作`}>{libraryItems}</MenuPopup>
         </ContextMenu.Root>
         {expanded && sidebar && <SidebarPane directory={sidebar} unassigned={unassigned} descendantCounts={counts} includeDescendants={descendants}
@@ -238,11 +248,10 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
           menu={connected.map((p) => emptyItem(p, connected.length === 1 ? "清空回收站…" : `清空「${p.registration.library.name}」的回收站…`))} />
         {trashList && connected.length > 1 && <div role="group" aria-label="各图库的回收站" className="trash-groups">
           <FluidList>{connected.map((p, index) => <FluidRow key={p.registration.library.id} index={index}>
-            <button type="button" className="sidebar-item k-row trash-group-row" aria-label={`${p.registration.library.name}（${p.sidebar?.trash ?? 0} 张）`}
-              title={p.registration.library.root} onClick={() => onScope(trashOf(p.registration.library.id))}>
+            <Tip label={p.registration.library.root} align="start"><button type="button" className="sidebar-item k-row trash-group-row" aria-label={`${p.registration.library.name}（${p.sidebar?.trash ?? 0} 张）`} onClick={() => onScope(trashOf(p.registration.library.id))}>
               <span className="sidebar-label k-label">{p.registration.library.name}</span>
               <span className="sidebar-count k-label">{p.sidebar?.trash ?? 0}</span>
-            </button>
+            </button></Tip>
           </FluidRow>)}</FluidList>
         </div>}
       </>}

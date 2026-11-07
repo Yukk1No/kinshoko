@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { tipText } from "./test/tip";
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
@@ -51,7 +52,7 @@ describe("缩放滑块左边的打标图标", () => {
     backend({ L1: running(128) });
     const { onOpenSettings } = mount();
     const button = await screen.findByRole("button", { name: /自动标签：正在自动标签，已标 128 张（显卡）/ });
-    expect(button.getAttribute("title")).toBe("正在自动标签，已标 128 张（显卡）");
+    expect(await tipText(button)).toBe("正在自动标签，已标 128 张（显卡）");
     expect(button.dataset.activity).toBe("busy");
     fireEvent.click(button);
     expect(onOpenSettings).toHaveBeenCalledTimes(1);

@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { tipText } from "../test/tip";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { WorkspaceSources } from "./WorkspacePane";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
@@ -78,7 +79,7 @@ it("换来源后，旧永久删除的迟到响应不能关闭新来源", async (
   expect(close).not.toHaveBeenCalled();
 });
 
-it("同名来源显示最短独立路径，保留完整路径供核对", () => {
+it("同名来源显示最短独立路径，保留完整路径供核对", async () => {
   const sameNames = { ...card, sources: card.sources.map((source) => ({ ...source, libraryName: "同名资料库" })) };
   render(<WorkspaceSources card={sameNames} onClose={vi.fn()} onView={vi.fn()} registrations={[
     { library: { id: "A", name: "同名资料库", root: "C:\\common\\first\\Art" }, unavailable: null },
@@ -88,5 +89,5 @@ it("同名来源显示最短独立路径，保留完整路径供核对", () => {
   const b = document.querySelector('[data-source-library-id="B"]')!;
   expect(a.textContent).toContain("…\\first\\Art");
   expect(b.textContent).toContain("…\\second\\Art");
-  expect(a.querySelector(".workspace-source-path")?.getAttribute("title")).toBe("C:\\common\\first\\Art");
+  expect(await tipText(a.querySelector(".workspace-source-path")!)).toBe("C:\\common\\first\\Art");
 });

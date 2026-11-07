@@ -43,9 +43,11 @@ import { TagDisplayContext } from "./tags/TagDisplayContext";
 import { OpenTagNameSettings } from "./tags/TagNameSettings";
 
 import { LibraryWorkspace } from "./workspace/LibraryWorkspace";
+import { reRegister } from "./library/undoRemoval";
 import { markStartup } from "./startupTiming";
 import { releaseStartup, startupLibraryOpened } from "./startupGate";
 import { StartupSplash } from "./shell/StartupSplash";
+import { Tip } from "./ui/Tip";
 
 /**
  * 主窗口：本设备登记的资料库与一个活动资料库（#49）；上次的库不可用时仍可选择其他库、
@@ -274,6 +276,8 @@ function MainWindow() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  const latestLibrary = useRef(library);
+  latestLibrary.current = library;
   const changed = (value: LibraryInfo | null) => {
     setLibrary(value);
     workspaceStatus(lensSafe).then((status) => setHasProviders(status.libraries.length > 0), () => {});
@@ -322,6 +326,7 @@ function MainWindow() {
           onInspectorWidth={changeInspectorWidth}
           notices={!empty && notices}
           onLibraryRemoved={(id) => { if (library?.id === id) changed(null); }}
+          onLibraryRestore={async (root) => changed(await reRegister(root, latestLibrary.current?.id))}
           onOpenTaggingSettings={() => openSettings("tagging")}
         />
       )}
@@ -329,7 +334,7 @@ function MainWindow() {
         <div className="app-empty-workspace">
           {!library && paneOpen && section !== "browse" && <aside className="pane empty-context" aria-label={section === "groups" ? "参考组" : "截图历史"}>
             <header className="pane-head" data-tauri-drag-region><h2 className="pane-title">{section === "groups" ? "参考组" : "截图"}</h2>
-              <button type="button" className="k-icon-btn" aria-label="收起侧栏" title="收起侧栏" onClick={() => setPaneOpen(false)}><PanelLeftClose size={16} aria-hidden="true" /></button></header>
+              <Tip label="收起侧栏" keys="Ctrl+B"><button type="button" className="k-icon-btn" aria-label="收起侧栏" onClick={() => setPaneOpen(false)}><PanelLeftClose size={16} aria-hidden="true" /></button></Tip></header>
             {section === "groups" ? <ReferenceGroupsPanel libraryId={undefined} /> : <CaptureHistoryPanel libraryId={undefined} request={captureRequest} onRequestHandled={collectionHandled} />}
           </aside>}
         <main className="app-main app-main-centered">

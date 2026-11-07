@@ -11,6 +11,7 @@ import { SOURCE_LANGUAGES } from "../tags/languages";
 import { Select } from "../ui/Select";
 import { Combobox } from "../ui/Combobox";
 import { externalOptions } from "./EagleTagStep";
+import { Tip } from "../ui/Tip";
 
 const LIMIT = 80;
 const NAMESPACES: Record<string, string> = { general: "", artist: "作者", character: "角色", work: "作品" };
@@ -65,7 +66,7 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
         <input aria-label="查找要改名称的标签" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="搜标签名或别名" /></label>
       <label className="k-check"><input type="checkbox" checked={preferencesOnly} onChange={(event) => setPreferencesOnly(event.target.checked)} />只看改过名的</label>
       <label className="k-check"><input type="checkbox" checked={unmappedOnly} onChange={(event) => setUnmappedOnly(event.target.checked)} />只看没有外部对应的</label>
-      <label className="k-lang" title="名称语言">语言<input className="k-input" aria-label="名称语言" value={lang} onChange={(event) => setLang(event.target.value)} placeholder="zh-CN" /></label>
+      <label className="k-lang">语言<input className="k-input" aria-label="名称语言" value={lang} onChange={(event) => setLang(event.target.value)} placeholder="zh-CN" /></label>
     </div>
     {busy && !workspace && <p className="k-set-note" role="status">正在读取标签…</p>}
     {error && <p className="k-set-error" role="alert">{error}</p>}
@@ -125,7 +126,7 @@ function NameRow({ tag, lang, busy, pending, mappings, libraryName, open, onTogg
       <details className="k-more"><summary>详情</summary><p className="k-parts"><span>{NAMESPACES[tag.namespace] || "一般"}</span><span>编号 {tag.id}</span></p><p>外部对应：{tag.external.map((entry) => `${entry.vocabulary}:${entry.name}`).join("、") || "无"}</p></details>
     </div>}>
     {pending ? <StatusPill tone="accent">待确认</StatusPill> : preference ? <StatusPill tone="mine">已改名</StatusPill> : <StatusPill>默认</StatusPill>}
-    <button type="button" className="k-icon-btn" aria-expanded={open} aria-label={`改名“${name}”`} title="改名" onClick={onToggle}><PenLine size={14} aria-hidden="true" /></button>
+    <Tip label="改名"><button type="button" className="k-icon-btn" aria-expanded={open} aria-label={`改名“${name}”`} onClick={onToggle}><PenLine size={14} aria-hidden="true" /></button></Tip>
   </SettingsRow>;
 }
 

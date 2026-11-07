@@ -7,6 +7,7 @@ import { correctTagMapping, inspectTagCatalog, onLibraryEvent, onSafeModeSetting
 
 import { libraryPathHint } from "./library-path";
 import { Select } from "../ui/Select";
+import { Tip } from "../ui/Tip";
 
 const namespaces: Record<TagNamespace, string> = { general: "一般", artist: "作者", character: "角色", work: "作品" };
 const basis = { independent: "独立", external: "按词表", conflictingExternal: "词表有歧义", corrected: "已纠正" };
@@ -65,7 +66,7 @@ export function TagIdentityPanel() {
     {workspace && <>
       <p className="settings-hint">带走图库前，先把标签定义存进图库。默认名称、别名与对应随图库携带；改过的显示名留在偏好设置里。只读或离线时可以保留程序中的选择，稍后重试保存。</p>
       {workspace.libraries.map(({library, unavailable}) => <div key={"definitions-" + library.id} className="settings-actions">
-        <span className="k-parts" title={library.root}><span>{library.name}</span><span className="k-set-note">{libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span></span>
+        <Tip label={library.root} align="start"><span className="k-parts"><span>{library.name}</span><span className="k-set-note">{libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span></span></Tip>
         <button type="button" className="k-btn is-sm" aria-label={"保存 " + library.name + " 的标签定义"} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), "标签定义已保存到图库。")}><span className="k-label">存进图库</span></button>
       </div>)}
       {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} role="status">{library.name}：{unavailable}</p>)}

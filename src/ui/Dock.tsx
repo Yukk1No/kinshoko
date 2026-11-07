@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
+import { Keys } from "./Keys";
 import { Menu, MenuPopup } from "./Menu";
 
 /* A Kinshoko dock, built from the published behaviour of Arc Pro's dock (uiarc.dev/components/dock):
@@ -110,7 +111,7 @@ export function Dock({ items, value, onSelect, label = "工具", className = "",
         {tip && !((tip.tray || tip.menu) && open === tip.id) && <motion.div layoutId="k-dock-tip" className="k-dock-tip" aria-hidden="true"
           style={{ left: tipX, x: "-50%" }} initial={{ opacity: 0, y: reduced ? 0 : 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
           transition={reduced ? { duration: 0.1 } : arcSpring.snappy}>
-          {tip.label}{tip.shortcut && <kbd>{tip.shortcut}</kbd>}{tip.note && <span className="k-dock-tip-note">{tip.note}</span>}
+          {tip.label}{tip.shortcut && <Keys accelerator={tip.shortcut} />}{tip.note && <span className="k-dock-tip-note">{tip.note}</span>}
         </motion.div>}
       </AnimatePresence>
     </div>

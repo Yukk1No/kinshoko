@@ -19,6 +19,7 @@ import {
   startCapture,
 } from "../ipc";
 import { ago } from "./relativeTime";
+import { Tip } from "../ui/Tip";
 
 const time = (ms: number) =>
   new Date(ms).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
@@ -108,9 +109,9 @@ export function CaptureHistoryPanel({ libraryId, request, onRequestHandled }: { 
                     <button type="button" className="side-chip" onClick={() => run(copyCapture(entry.id))}><Copy size={12} aria-hidden="true" /><span className="k-label">复制</span></button>
                   </span>
                 </div>
-                <button type="button" className="k-icon-btn capture-history-delete" aria-label="删除这张截图" title="删除" onClick={() => run(deleteCapture(entry.id))}>
+                <Tip label="删除"><button type="button" className="k-icon-btn capture-history-delete" aria-label="删除这张截图" onClick={() => run(deleteCapture(entry.id))}>
                   <X size={14} aria-hidden="true" />
-                </button>
+                </button></Tip>
               </ContextMenu.Trigger>
               <MenuPopup label="截图菜单">
                 <MenuItem icon={<Pin size={14} />} onClick={() => run(pinCapture(entry.id))}>钉住</MenuItem>

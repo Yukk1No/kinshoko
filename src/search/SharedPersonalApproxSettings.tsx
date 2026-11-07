@@ -4,6 +4,7 @@ import type { CatalogApproxView } from "../bindings/CatalogApproxView";
 import { editSharedApprox, isLensChanged, onSafeModeSetting, onWorkspaceChanged, safeMode, sharedPersonalApprox, workspaceStatus } from "../ipc";
 import { libraryPathHint } from "../library/library-path";
 import { TagMarks, tagName, UI_LANG } from "./SearchBox";
+import { Tip } from "../ui/Tip";
 
 const relationName=(relation:string)=>relation==="similar"?"相近":"不相近";
 /** Same formal settings structure, with stable shared identities and source-aware conflict choices. */
@@ -48,13 +49,13 @@ export function SharedPersonalApproxSettings({onError}:{onError:(message:string)
           <td>{tagName(entry.a)}<TagMarks tag={entry.a}/>～{tagName(entry.b)}<TagMarks tag={entry.b}/></td>
           <td>{relationName(entry.relation)}</td>
           <td><button type="button" className="k-btn is-sm is-quiet" disabled={busy} onClick={()=>void edit({kind:"remove",a:entry.a.id,b:entry.b.id})}><span className="k-label">删除</span></button></td>
-          {!!entry.sources.length&&<td>来自：{entry.sources.map(source=><span key={source.libraryId} title={source.libraryRoot}>{source.libraryName}（{libraryPathHint(source.libraryRoot, entry.sources.map(item => item.libraryRoot))}） </span>)}</td>}
+          {!!entry.sources.length&&<td>来自：{entry.sources.map(source=><Tip key={source.libraryId} label={source.libraryRoot}><span>{source.libraryName}（{libraryPathHint(source.libraryRoot, entry.sources.map(item => item.libraryRoot))}） </span></Tip>)}</td>}
         </tr>)}
       </tbody></table>}
       {view.conflicts.map(conflict=><div role="group" aria-label="相近判断冲突" className="k-approx-conflict" key={`${conflict.a.id}/${conflict.b.id}`}>
         <h3>{tagName(conflict.a)} ～ {tagName(conflict.b)}</h3>
         <p className="k-set-note">{conflict.current===null?"较早图库的判断不一致，选好前先不展开。":`现在算“${relationName(conflict.current)}”，较早图库不会改它。`}</p>
-        <ul>{conflict.sources.map((source,index)=><li key={`${source.libraryId}/${index}`} title={source.libraryRoot}>{source.libraryName}（{libraryPathHint(source.libraryRoot, conflict.sources.map(item => item.libraryRoot))}）：{relationName(source.relation)}</li>)}</ul>
+        <ul>{conflict.sources.map((source,index)=><Tip key={`${source.libraryId}/${index}`} label={source.libraryRoot}><li>{source.libraryName}（{libraryPathHint(source.libraryRoot, conflict.sources.map(item => item.libraryRoot))}）：{relationName(source.relation)}</li></Tip>)}</ul>
         <div className="k-set-inline">{([{relation:"similar",name:"相近"},{relation:"notSimilar",name:"不相近"},{relation:null,name:"保持现状"}] as const).map(choice=><button key={choice.name} type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void edit({kind:"resolveConflict",a:conflict.a.id,b:conflict.b.id,revision:view.revision,relation:choice.relation})}><span className="k-label">{choice.name}</span></button>)}</div>
       </div>)}
     </>}

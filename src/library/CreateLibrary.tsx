@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import { ChevronLeft, FolderOpen, Lightbulb } from "lucide-react";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import { createLibrary, pickFolder } from "../ipc";
+import { Tip } from "../ui/Tip";
 
 /** 新文件夹的完整路径，只用来给画师看；真正的路径由后端拼。 */
 function preview(parent: string, name: string) {
@@ -59,7 +60,7 @@ export function CreateLibrary({ onCreated, onBusyChange, onBack, backLabel }: {
         <span className="k-field-label" id={`${ids}-loc`}>存放位置</span>
         <div className={`create-library-path${parent ? " is-set" : ""}`}>
           <FolderOpen size={16} aria-hidden="true" />
-          <span className="create-library-path-text" title={parent ?? undefined}>{parent ? preview(parent, name.trim() || "…") : "尚未选择"}</span>
+          <Tip label={parent} align="start"><span className="create-library-path-text">{parent ? preview(parent, name.trim() || "…") : "尚未选择"}</span></Tip>
           <button type="button" className="k-btn is-sm" disabled={busy} onClick={choose}><span className="k-label">选择存放位置…</span></button>
         </div>
       </div>

@@ -9,6 +9,7 @@ import { Copy, Pin, X } from "lucide-react";
 import { Dock } from "../ui/Dock";
 import { FollowDock } from "../ui/FollowDock";
 import { OriginalStar } from "../ui/OriginalStar";
+import { Tip } from "../ui/Tip";
 
 /** 太小的选区多半是误点，不截。 */
 const MIN_SIZE = 4;
@@ -189,8 +190,8 @@ export function CaptureOverlay() {
             readout={busy
               ? <span role="status">{`正在${busy === "copy" ? "复制" : "钉住"}${original ? "原图" : ""}…`}</span>
               : original
-              ? <span className="k-original" title="原始像素">{original.width} × {original.height}<span className="sr-only">原始像素</span><OriginalStar /></span>
-              : <span title="屏幕像素">{rect.width} × {rect.height}<span className="sr-only">屏幕像素</span></span>} items={[
+              ? <Tip label="原始像素" side="top"><span className="k-original">{original.width} × {original.height}<span className="sr-only">原始像素</span><OriginalStar /></span></Tip>
+              : <Tip label="屏幕像素" side="top"><span>{rect.width} × {rect.height}<span className="sr-only">屏幕像素</span></span></Tip>} items={[
               { id: "copy", label: "复制", icon: <Copy size={18} strokeWidth={1.75} />, shortcut: "Ctrl C", disabled: !!busy },
               { id: "pin", label: "钉住", icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary", disabled: !!busy },
               "sep",

@@ -187,6 +187,31 @@ describe("参考组面板", () => {
     expect(ipc.save).toHaveBeenCalledWith("一次性", [{ captureId: "shot-1", libraryId: null, folderId: null, keepInGroup: true }]);
   });
 
+  it("截图去处没改过直接取消；改过以后取消先在按钮旁确认，放弃才关", async () => {
+    const shot = [{ id: "shot-1", width: 100, height: 80, collected: [] }];
+    ipc.captures.mockResolvedValueOnce(shot).mockResolvedValueOnce(shot);
+    await show();
+    fireEvent.click(screen.getByRole("button", { name: "存下桌面钉图" }));
+    fireEvent.change(screen.getByLabelText("新参考组名称"), { target: { value: "截图参考" } });
+    // 取消截图对话框后起名框还在，再点“保存”重新打开。
+    const open = async () => {
+      fireEvent.click(screen.getByRole("button", { name: "保存" }));
+      return screen.findByRole("dialog", { name: "截图怎样存进参考组" });
+    };
+    let dialog = await open();
+    fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "截图怎样存进参考组" })).toBeNull());
+
+    dialog = await open();
+    await chooseValue(within(dialog).getByRole("combobox", { name: "截图 1 存到哪里" }), "group");
+    fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
+    const confirm = (await screen.findByText("这次选的去处不会保存。")).closest<HTMLElement>("[role='dialog']")!;
+    expect(screen.getByRole("dialog", { name: "截图怎样存进参考组" })).toBeTruthy();
+    fireEvent.click(within(confirm).getByRole("button", { name: "放弃并关闭" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "截图怎样存进参考组" })).toBeNull());
+    expect(ipc.save).not.toHaveBeenCalled();
+  });
+
   it("参考组自带的截图在成员和缩略图里照常显示", async () => {
     const capture = { id: "m4", captureFile: "m4.png", sourceWidth: 30, sourceHeight: 20, crop: null, placement };
     ipc.groups.mockResolvedValue([{ ...summary, memberCount: 1, libraryIds: [] }]);
@@ -202,6 +227,12 @@ describe("参考组面板", () => {
     await more("查看成员");
     const members = screen.getByRole("list", { name: "头发参考 的成员" });
     expect(members.textContent).toContain("参考组里的截图");
+    // 截图只存在参考组里：移出等于删掉，先在按钮旁确认一次。
+    fireEvent.click(within(members).getByRole("button", { name: "移出" }));
+    expect(ipc.removeMember).not.toHaveBeenCalled();
+    const confirm = (await screen.findByText("这张截图只存在这个参考组里，移出后一起删除。")).closest<HTMLElement>("[role='dialog']")!;
+    await act(async () => { fireEvent.click(within(confirm).getByRole("button", { name: "移出并删除" })); });
+    expect(ipc.removeMember).toHaveBeenCalledWith("g1", "m4");
   });
 
   it("打开参考组把成员钉到桌面", async () => {
@@ -240,7 +271,7 @@ describe("参考组面板", () => {
     const confirm = await screen.findByRole("alertdialog", { name: "删除参考组" });
     expect(confirm.textContent).toContain("头发参考");
     await act(async () => {
-      fireEvent.click(within(confirm).getByRole("button", { name: "删除" }));
+      fireEvent.click(within(confirm).getByRole("button", { name: "删除参考组" }));
     });
     expect(ipc.remove).toHaveBeenCalledWith("g1");
   });
@@ -296,7 +327,7 @@ describe("参考组面板", () => {
     expect(within(bad).queryByRole("button", { name: "摆到桌面" })).toBeNull();
     fireEvent.click(within(bad).getByRole("button", { name: "删除" }));
     const confirm = await screen.findByRole("alertdialog", { name: "删除参考组" });
-    await act(async () => { fireEvent.click(within(confirm).getByRole("button", { name: "删除" })); });
+    await act(async () => { fireEvent.click(within(confirm).getByRole("button", { name: "删除参考组" })); });
     expect(ipc.remove).toHaveBeenCalledWith("bad");
   });
 

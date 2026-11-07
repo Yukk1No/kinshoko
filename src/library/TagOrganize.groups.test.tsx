@@ -103,11 +103,11 @@ describe("标签分组", () => {
 
     const deletes = sent("plugin:library|edit_shared_tag_group").length;
     fireEvent.click(within(groups).getByRole("button", { name: "删除标签分组“头发颜色”" }));
-    // #98: deleting a group asks first; nothing is sent before the confirmation.
-    const confirm = await screen.findByRole("alertdialog", { name: "删除分组" });
+    // #98: deleting a group asks first (a small confirm by the button); nothing is sent before the confirmation.
+    const confirm = (await screen.findByText("「头发颜色」会被删除，图片的标签不变。")).closest<HTMLElement>("[role='dialog']")!;
     expect(sent("plugin:library|edit_shared_tag_group").length).toBe(deletes);
     expect(within(groups).getByRole("group", { name: "头发颜色", hidden: true })).toBeTruthy();
-    fireEvent.click(within(confirm).getByRole("button", { name: "删除" }));
+    fireEvent.click(within(confirm).getByRole("button", { name: "删除分组" }));
     await waitFor(() => expect(within(groups).queryByRole("group", { name: "头发颜色" })).toBeNull());
     expect(sent("plugin:library|edit_shared_tag_group").at(-1)).toEqual({ edit: { kind: "delete", groupId: "G1" }, safeMode: true });
   });

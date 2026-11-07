@@ -1,6 +1,7 @@
 import { useEffect, useState, type SyntheticEvent } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { Languages } from "lucide-react";
+import { Tip } from "../ui/Tip";
 import type { CatalogTag } from "../bindings/CatalogTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import { editTagName, inspectTagCatalog } from "../ipc";
@@ -58,9 +59,9 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
   };
   return (
     <Popover.Root open={open} onOpenChange={change}>
-      <Popover.Trigger className="untranslated is-action" aria-label={`给“${name}”改名`} title="尚未翻译" {...contained}>
+      <Tip label="尚未翻译"><Popover.Trigger className="untranslated is-action" aria-label={`给“${name}”改名`} {...contained}>
         <Languages size={12} aria-hidden="true" />
-      </Popover.Trigger>
+      </Popover.Trigger></Tip>
       <Popover.Portal>
         <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={6}>
           <Popover.Popup className="k-popup k-rename" {...contained}>

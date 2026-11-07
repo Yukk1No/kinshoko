@@ -25,6 +25,7 @@ import {
   workspacePermanentSourceDelete,
 } from "../ipc";
 import { TagPanel } from "./TagPanel";
+import { Tip } from "../ui/Tip";
 
 /** 来源整理时上层读到的来源检查：详情、标签与文件夹树出自同一次请求（#158）。stale：正在重读。 */
 export type SourceInspection = { value: WorkspaceSourceInspection; stale: boolean; reload: () => void };
@@ -119,7 +120,7 @@ function Detail({
   return (
     <div className="selection-detail" aria-busy={stale} inert={stale}>
       <div className="insp-file">
-        <div className="insp-file-name" title={detail.originalName}>{detail.originalName}</div>
+        <Tip label={detail.originalName}><div className="insp-file-name">{detail.originalName}</div></Tip>
         <div className="insp-file-meta k-parts"><span>{detail.width} × {detail.height}</span><span>收集于 {new Date(detail.collectedAt).toLocaleString("zh-CN")}</span></div>
       </div>
       {detail.versions.previous && <p className="selection-version">新版本：Eagle 中这张图的内容变了，旧版本仍保留在图库里</p>}
@@ -129,8 +130,8 @@ function Detail({
         <h4>文件夹</h4>
         {detail.folders.length
           ? <ul className="insp-chips">{detail.folders.map((folder) => <li key={folder.id} className="insp-chip"><span className="k-label">{folder.name}</span>
-            {sourceMode && <button type="button" className="insp-chip-x" aria-label={`移出「${folder.name}」`} title={`移出「${folder.name}」`}
-              onClick={() => edit([{ kind: "removeFromFolder", folderId: folder.id }])}><X size={11} aria-hidden="true" /></button>}</li>)}</ul>
+            {sourceMode && <Tip label={`移出「${folder.name}」`}><button type="button" className="insp-chip-x" aria-label={`移出「${folder.name}」`}
+              onClick={() => edit([{ kind: "removeFromFolder", folderId: folder.id }])}><X size={11} aria-hidden="true" /></button></Tip>}</li>)}</ul>
           : <p className="insp-hint">不在任何文件夹里</p>}
       </section>
       {/* 备注（#98）：字段用改版样式；有未保存的改动才出现“保存”，有自己写的备注才能“用来源的”。 */}
@@ -148,16 +149,15 @@ function Detail({
           >
             <span className="k-label">保存</span>
           </button>}
-          <button
+          <Tip label={sources.length ? "改回来源提供的备注" : "来源没有提供备注，退回后备注为空"}><button
             type="button"
             className="k-btn is-sm is-ghost"
             aria-label="退回来源备注"
             disabled={manual === null}
-            title={sources.length ? "改回来源提供的备注" : "来源没有提供备注，退回后备注为空"}
             onClick={() => edit([{ kind: "revertNote" }])}
           >
             <span className="k-label">用来源的</span>
-          </button>
+          </button></Tip>
         </div>}
       </section>
       {detail.sourceLinks?.length > 0 && (
@@ -371,9 +371,9 @@ export function SelectionPanel({
     <div className="selection-actions selbar is-inline" role="toolbar" aria-label="已选参考图操作">
       <span className="selection-count">已选 {ids.length} 张</span>
       <Menu.Root modal={false}>
-        <Menu.Trigger className="selbar-btn" aria-label="移到文件夹" disabled={!folders.length} title={folders.length ? "移到文件夹" : "还没有文件夹"}>
+        <Tip label={folders.length ? "移到文件夹" : "还没有文件夹"} side="top"><Menu.Trigger className="selbar-btn" aria-label="移到文件夹" disabled={!folders.length}>
           <FolderInput size={15} aria-hidden="true" /><span className="k-label">移到</span>
-        </Menu.Trigger>
+        </Menu.Trigger></Tip>
         <MenuPopup width={220} align="center" label="移到文件夹">
           {folders.map((f) => <MenuItem key={f.id} onClick={() => void edit([{ kind: "addToFolder", folderId: f.id }])}>{f.label}</MenuItem>)}
         </MenuPopup>
@@ -398,9 +398,9 @@ export function SelectionPanel({
           <Trash2 size={15} aria-hidden="true" /><span className="k-label">删除</span>
         </button>
       )}
-      <button type="button" className="selbar-btn is-icon" aria-label="取消选择" title="取消选择" onClick={onClear}>
+      <Tip label="取消选择" side="top"><button type="button" className="selbar-btn is-icon" aria-label="取消选择" onClick={onClear}>
         <X size={15} aria-hidden="true" />
-      </button>
+      </button></Tip>
     </div>
   );
 

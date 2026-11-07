@@ -1,7 +1,9 @@
+import type { ReactElement, ReactNode } from "react";
 import type { SimilarTag } from "../bindings/SimilarTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { Term } from "../bindings/Term";
 import { RatingName, TagMarks, tagName } from "./tagLabel";
+import { Tip } from "../ui/Tip";
 
 /** 文字项也匹配的标签与分级，鼠标悬停时显示，画师能看见文字查到了什么。 */
 function termTitle(term: Term) {
@@ -20,19 +22,22 @@ export function soleTag(term: Term): TagLabel | null {
   return term.tags.length === 1 ? term.tags[0] : null;
 }
 
-/** 条件里的一项，及其展开的相近标签。 */
+/**
+ * 条件里的一项，及其展开的相近标签。相近标签后的“×”和末尾的“＋”交给调用方包成菜单或浮层的触发器
+ * （`dismiss` / `add` 收到按钮本身），弹出的东西贴着按钮。
+ */
 export function TermView({
   term,
   showSource,
   personal = true,
-  onDismiss,
-  onAdd,
+  dismiss,
+  add,
 }: {
   term: Term;
   showSource: boolean;
   personal?: boolean;
-  onDismiss: (similar: SimilarTag) => void;
-  onAdd: (to: TagLabel) => void;
+  dismiss: (similar: SimilarTag, button: ReactElement) => ReactNode;
+  add: (to: TagLabel, button: ReactElement) => ReactNode;
 }) {
   const sole = soleTag(term);
   if (term.kind === "rating") return <RatingName rating={term.rating} />;
@@ -44,7 +49,7 @@ export function TermView({
           <TagMarks tag={term.tag} />
         </>
       ) : (
-        <span title={termTitle(term)}>“{term.text}”</span>
+        <Tip label={termTitle(term)}><span>“{term.text}”</span></Tip>
       )}
       {term.similar.length > 0 && (
         <span className="search-similar">
@@ -57,18 +62,12 @@ export function TermView({
               {showSource && (
                 <span className="search-similar-source">{s.source === "builtin" ? "内置" : "个人"}</span>
               )}
-              <button type="button" aria-label={`不展开“${tagName(s.tag)}”`} onClick={() => onDismiss(s)}>
-                ×
-              </button>
+              {dismiss(s, <button type="button" aria-label={`不展开“${tagName(s.tag)}”`}>×</button>)}
             </span>
           ))}
         </span>
       )}
-      {sole && personal && (
-        <button type="button" aria-label={`给“${tagName(sole)}”加相近标签`} onClick={() => onAdd(sole)}>
-          ＋
-        </button>
-      )}
+      {sole && personal && add(sole, <button type="button" aria-label={`给“${tagName(sole)}”加相近标签`}>＋</button>)}
     </>
   );
 }

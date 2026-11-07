@@ -315,7 +315,7 @@ describe("安全模式", () => {
       fireEvent.change(input, { target: { value: "蓝" } });
       fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
       fireEvent.click(await screen.findByRole("button", { name: "给“蓝发”加相近标签" }));
-      const dialog = screen.getByRole("dialog", { name: "加相近标签" });
+      const dialog = await screen.findByRole("dialog", { name: "加相近标签" });
       const pick = within(dialog).getByRole("combobox", { name: "挑一个库内标签" });
       fireEvent.change(pick, { target: { value: "只在成人" } });
       expect(await screen.findByRole("option", { name: /只在成人图出现的标签/ })).toBeTruthy();
@@ -324,7 +324,7 @@ describe("安全模式", () => {
       expect(screen.queryByRole("dialog", { name: "加相近标签" })).toBeNull();
       await changed(true);
       fireEvent.click(await screen.findByRole("button", { name: "给“蓝发”加相近标签" }));
-      const safeDialog = screen.getByRole("dialog", { name: "加相近标签" });
+      const safeDialog = await screen.findByRole("dialog", { name: "加相近标签" });
       fireEvent.change(within(safeDialog).getByRole("combobox"), { target: { value: "只在成人" } });
       await waitFor(() => expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ text: "只在成人", safeMode: true }));
       expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
@@ -334,7 +334,7 @@ describe("安全模式", () => {
       fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
       await changed(false);
       fireEvent.click(await screen.findByRole("button", { name: "给“蓝发”加相近标签" }));
-      fireEvent.change(within(screen.getByRole("dialog", { name: "加相近标签" })).getByRole("combobox"), { target: { value: "只在成人" } });
+      fireEvent.change(within(await screen.findByRole("dialog", { name: "加相近标签" })).getByRole("combobox"), { target: { value: "只在成人" } });
       await waitFor(() => expect(holding).toBe(false));
       fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
       await changed(true);

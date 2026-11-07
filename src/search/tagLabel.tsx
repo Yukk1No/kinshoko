@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { RatingLabel } from "../bindings/RatingLabel";
 import type { TagLabel } from "../bindings/TagLabel";
 import { Languages } from "lucide-react";
+import { Tip } from "../ui/Tip";
 
 /** 分级不是标签：条件与候选里都带“分级”字样，和标签区分开。 */
 export function RatingName({ rating }: { rating: RatingLabel }) {
@@ -33,17 +34,16 @@ export function TagMarks({ tag, untranslated }: { tag: TagLabel; untranslated?: 
   return (
     <>
       {tag.untranslated && (untranslated ??
-        <span className="untranslated" role="img" aria-label={UNTRANSLATED_HINT} title={UNTRANSLATED_HINT}>
+        <Tip label={UNTRANSLATED_HINT}><span className="untranslated" role="img" aria-label={UNTRANSLATED_HINT}>
           <Languages size={12} aria-hidden="true" />
-        </span>
+        </span></Tip>
       )}
       {!tag.hasExternal && (
-        <span
+        <Tip label="没有外部对应，不参与内置近似对应表"><span
           className="no-external"
           role="img"
           aria-label="没有外部对应，不参与内置近似对应表"
-          title="没有外部对应，不参与内置近似对应表"
-        />
+        /></Tip>
       )}
     </>
   );

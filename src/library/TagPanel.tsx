@@ -18,6 +18,7 @@ import { UntranslatedRename } from "../tags/UntranslatedRename";
 import { tagStanding } from "../tags/tagConfidence";
 import { useTagDisplay } from "../tags/TagDisplayContext";
 import { AtSign, Ban, Check, Tags, Undo2, X } from "lucide-react";
+import { Tip } from "../ui/Tip";
 
 type Props = {
   sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget;
@@ -151,11 +152,11 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
             <button type="button" className="k-tag-tip-btn" aria-label={`清除对“${name}”的人工决定`}
               onClick={() => decide("clear", byId(tag))}><Undo2 size={12} aria-hidden="true" /><span className="k-label">改回自动</span></button>
           ) : (
-            <button type="button" className="k-tag-tip-btn" aria-label={`确认“${name}”`} title="确认"
-              onClick={() => decide("add", byId(tag))}><Check size={12} aria-hidden="true" /><span className="k-label">保留</span></button>
+            <Tip label="确认"><button type="button" className="k-tag-tip-btn" aria-label={`确认“${name}”`}
+              onClick={() => decide("add", byId(tag))}><Check size={12} aria-hidden="true" /><span className="k-label">保留</span></button></Tip>
           )}
-          <button type="button" className="k-tag-tip-btn" aria-label={`否决“${name}”`} title="这张图不是它"
-            onClick={() => decide("reject", byId(tag))}><Ban size={12} aria-hidden="true" /><span className="k-label">不要</span></button>
+          <Tip label="这张图不是它"><button type="button" className="k-tag-tip-btn" aria-label={`否决“${name}”`}
+            onClick={() => decide("reject", byId(tag))}><Ban size={12} aria-hidden="true" /><span className="k-label">不要</span></button></Tip>
           {!sourceTarget && <button type="button" className="k-tag-tip-btn" aria-label={`“${name}”的别名`}
             onClick={() => setAliasFor(tag)}><AtSign size={12} aria-hidden="true" /><span className="k-label">别名</span></button>}
         </>} />
@@ -192,8 +193,8 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
                   <li key={tag.id} className="tag-row k-tag-chip is-rejected">
                     <span className="tag-name">{name}</span>
                     <TagMarks tag={tag} untranslated={rename && <UntranslatedRename tag={tag} catalogId={rename.catalogId} onSaved={rename.onSaved} />} />
-                    <button type="button" className="k-tag-restore" aria-label={`撤销否决“${name}”`} title="改回自动"
-                      onClick={() => decide("clear", byId(tag))}>恢复</button>
+                    <Tip label="改回自动"><button type="button" className="k-tag-restore" aria-label={`撤销否决“${name}”`}
+                      onClick={() => decide("clear", byId(tag))}>恢复</button></Tip>
                   </li>
                 );
               })}
@@ -207,7 +208,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
           label="标签名"
           placeholder="加标签…"
           value={text}
-          leading={<Select className="k-tag-kind" label="命名空间" title="标签类别" value={namespace} options={NAMESPACES} onChange={setNamespace} />}
+          leading={<Select className="k-tag-kind" label="命名空间" tip="标签类别" value={namespace} options={NAMESPACES} onChange={setNamespace} />}
           options={addOptions}
           empty={query && ready && found.length === 0 ? "没有匹配的标签" : undefined}
           onValueChange={setText}
@@ -221,8 +222,8 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, sourceTarg
         {ids.length > 1 && <p className="selection-hint insp-hint">对已选的 {ids.length} 张一起记下</p>}
         {hasText && <div className="selection-actions k-tag-add-acts">
           <button type="button" className="k-btn is-sm is-primary" aria-label="添加标签" onClick={() => decide("add")}><span className="k-label">添加</span></button>
-          <button type="button" className="k-btn is-sm is-ghost" aria-label="否决标签" title="这张图不是这个标签" onClick={() => decide("reject")}><span className="k-label">排除</span></button>
-          <button type="button" className="k-btn is-sm is-ghost" aria-label="清除标签决定" title="改回自动" onClick={() => decide("clear")}><span className="k-label">改回自动</span></button>
+          <Tip label="这张图不是这个标签"><button type="button" className="k-btn is-sm is-ghost" aria-label="否决标签" onClick={() => decide("reject")}><span className="k-label">排除</span></button></Tip>
+          <Tip label="改回自动"><button type="button" className="k-btn is-sm is-ghost" aria-label="清除标签决定" onClick={() => decide("clear")}><span className="k-label">改回自动</span></button></Tip>
         </div>}
       </div>
       {aliasFor && (
@@ -283,15 +284,14 @@ function AliasEditor({
           {entry.aliases.map((a) => (
             <li key={a.name}>
               <span>{a.name}</span>
-              <button
+              <Tip label="去掉"><button
                 type="button"
                 className="k-icon-btn is-xs"
                 aria-label={`去掉别名“${a.name}”`}
-                title="去掉"
                 onClick={() => removeTagAlias(libraryId, tag.id, a.name).catch((e) => onError(String(e)))}
               >
                 <X size={12} aria-hidden="true" />
-              </button>
+              </button></Tip>
             </li>
           ))}
         </ul>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
+import { Tip } from "../ui/Tip";
 
 /** 详情面板的宽度（#157）：没拖过时 320，可拖到 280–560，同时不超过窗口宽度的一半。 */
 export const INSPECTOR_WIDTH = { initial: 320, min: 280, max: 560 } as const;
@@ -62,12 +63,12 @@ export function InspectorResizer({ width, onResize }: Props) {
     onResize(clampInspectorWidth(width + delta), true);
   };
   return (
+    <Tip label="调整宽度" side="left">
     <div
       className="insp-resizer"
       role="separator"
       aria-orientation="vertical"
       aria-label="调整详情宽度"
-      title="调整宽度"
       aria-valuenow={width}
       aria-valuemin={INSPECTOR_WIDTH.min}
       aria-valuemax={widest()}
@@ -79,5 +80,6 @@ export function InspectorResizer({ width, onResize }: Props) {
       onDoubleClick={() => onResize(INSPECTOR_WIDTH.initial, true)}
       onKeyDown={key}
     />
+    </Tip>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { tipText } from "../test/tip";
 import { afterEach, describe, expect, it } from "vitest";
 import { Combobox, Highlight, type ComboboxOption } from "./Combobox";
 
@@ -13,7 +14,7 @@ const TAGS = [
 
 type Picked = { id: string; alt: boolean };
 
-function TagAdder({ added = [], onBackspace, autoHighlight }: { added?: string[]; onBackspace?: () => void; autoHighlight?: boolean }) {
+function TagAdder({ added = [], onBackspace, autoHighlight, embedded }: { added?: string[]; onBackspace?: () => void; autoHighlight?: boolean; embedded?: boolean }) {
   const [text, setText] = useState("");
   const [picked, setPicked] = useState<Picked[]>([]);
   const query = text.trim();
@@ -23,7 +24,7 @@ function TagAdder({ added = [], onBackspace, autoHighlight }: { added?: string[]
     { id: "create", create: true, label: `新建标签“${query}”` },
   ] : [];
   return <>
-    <Combobox label="标签名" placeholder="加标签" value={text} onValueChange={setText} options={options} autoHighlight={autoHighlight}
+    <Combobox label="标签名" placeholder="加标签" value={text} onValueChange={setText} options={options} autoHighlight={autoHighlight} embedded={embedded}
       empty={query && found.length === 0 ? "没有匹配的标签" : undefined}
       onSelect={(option, event) => { setPicked((p) => [...p, { id: option.id, alt: event.altKey }]); setText(""); }}
       onBackspaceEmpty={onBackspace} />
@@ -65,6 +66,18 @@ describe("Combobox", () => {
     expect(highlighted()).toBe(options[0]);
     expect(options[0].hasAttribute("data-highlighted")).toBe(true);
     expect(options[0].getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("embedded：列表放在输入框下方、同一个外框里，不另浮一层；键盘与单击照常", async () => {
+    render(<TagAdder embedded />);
+    const list = await typeAndOpen("猫");
+    expect(list.className).toContain("is-embedded");
+    expect(list.closest(".k-popup")).toBeNull();
+    expect(list.parentElement).toBe(input().closest(".k-combo"));
+    key("ArrowDown");
+    key("Enter");
+    expect(picked()).not.toBe("");
+    expect(screen.queryByRole("listbox")).toBeNull();
   });
 
   it("↑↓ 移动高亮并循环，Enter 选中高亮项", async () => {
@@ -124,7 +137,7 @@ describe("Combobox", () => {
     const list = await typeAndOpen("ne");
     const [neko, create] = within(list).getAllByRole("option");
     expect(neko.querySelector(".k-option-via mark")?.textContent).toBe("ne");
-    expect(neko.querySelector(".k-option-flag")?.getAttribute("title")).toBe("未翻译");
+    expect(await tipText(neko.querySelector(".k-option-flag")!)).toBe("未翻译");
     expect(neko.querySelector(".k-item-meta")?.textContent).toBe("40");
     expect(create.className).toContain("is-create");
     expect(create.previousElementSibling?.className).toContain("k-sep");

@@ -8,6 +8,7 @@ import { RuntimeProvider } from "./RuntimeSupport";
 import { recordUncaughtErrors } from "./runLog";
 import { markStartup } from "./startupTiming";
 import { blockBrowserMenu } from "./ui/browserMenu";
+import { TipProvider } from "./ui/Tip";
 import "./styles.css";
 import "./ui/ui.css";
 import "./ui/toast.css";
@@ -39,7 +40,7 @@ if (view === null) markStartup("scriptStarted");
 if ((import.meta.env.DEV || import.meta.env.VITE_KINSHOKO_PERF === "1") && !view) void import("./perf/install").then((m) => m.installPerfProbe(window));
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
+  <StrictMode><TipProvider>
     {view === "capture" ? (
       <CaptureOverlay />
     ) : view === "desktop-menu" ? (
@@ -49,5 +50,5 @@ createRoot(document.getElementById("root")!).render(
     ) : (
       <RuntimeProvider><App /></RuntimeProvider>
     )}
-  </StrictMode>,
+  </TipProvider></StrictMode>,
 );

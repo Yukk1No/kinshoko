@@ -7,6 +7,7 @@ import type { FolderNode } from "../bindings/FolderNode";
 import { isCursorExpired, onWorkspaceChanged, workspaceDirectories } from "../ipc";
 import { libraryPathHint } from "./library-path";
 import { Select } from "../ui/Select";
+import { Tip } from "../ui/Tip";
 
 type SaveContext = {
   destination: SaveDestination | null;
@@ -108,7 +109,7 @@ export function SaveDestinationPicker({ value, onChange, disabled = false, label
           ]} />
       </div>
     </div>
-    {value && <p className="save-final-position k-set-note" title={provider?.registration.library.root}>放到：{destinationLabel(value, providers)}</p>}
+    {value && <Tip label={provider?.registration.library.root} align="start"><p className="save-final-position k-set-note">放到：{destinationLabel(value, providers)}</p></Tip>}
     {(!ready || problem) && <p className="k-set-note" role="status">{problem ?? "正在读取图库…"}</p>}
     {value && ready && !destinationAvailable(value, providers)
       && <p className="k-set-error" role="alert">这个位置现在用不了。请接上原图库，或换一个位置。</p>}

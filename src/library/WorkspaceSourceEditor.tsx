@@ -13,6 +13,7 @@ import { SelectionPanel } from "./SelectionPanel";
 import { Copy, Layers, Pin } from "lucide-react";
 import { useUiScale } from "../shell/uiScale";
 import { Select } from "../ui/Select";
+import { Tip } from "../ui/Tip";
 
 /** Adapted from library-workspace.html's explicit source selector, note editor and source actions. */
 export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, onChanged, registrations = [] }: {
@@ -58,9 +59,9 @@ export function WorkspaceSourceEditor({ card, source, safe, reloadKey, onClose, 
       // The action's own change often reloads the source before it replies; it still ends this action (#98 native r18).
       .finally(() => setBusy(false));
   };
-  return <div className="workspace-source-editor" aria-label="整理来源" title={source.libraryId + "/" + source.imageId}>
+  return <div className="workspace-source-editor" aria-label="整理来源">
     <p className="insp-hint">只整理「{source.libraryName}」的这份来源，其他图库的整理保持独立。</p>
-    {path(source.libraryId) && <p className="workspace-source-path" title={path(source.libraryId)}>{hint(source.libraryId)}</p>}
+    {path(source.libraryId) && <Tip label={path(source.libraryId)} align="start"><p className="workspace-source-path">{hint(source.libraryId)}</p></Tip>}
     {problem && <p className="insp-problem" role="alert">{problem}</p>}
     {notice && <p className="insp-notice" role="status">{notice}</p>}
     {!available && !problem && <p className="insp-hint" role="status">正在读取该来源…</p>}

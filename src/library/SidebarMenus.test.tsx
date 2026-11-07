@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { WorkspacePane } from "./WorkspacePane";
+import { ToastProvider } from "../ui/Toast";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { BrowseScope } from "../bindings/BrowseScope";
@@ -109,6 +110,19 @@ it("移除当前范围所在的图库后回到“全部图片”；移除别的�
   fireEvent.click(within(await openOn(headA, "人物参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
   await waitFor(() => expect(onRemoved).toHaveBeenCalledWith("A"));
   expect(onScope).toHaveBeenCalledWith({ kind: "all" });
+});
+
+it("从列表移除后轻提示里可撤销：按原位置重新登记", async () => {
+  const onRestore = vi.fn(() => Promise.resolve());
+  mockIPC((command) => (command === "plugin:library|workspace_directories" ? forest() : null));
+  render(<ToastProvider><WorkspacePane status={{ revision: "r", libraries: registrations }} scope={inA({ kind: "all" })} safeMode reloadKey={0}
+    onScope={onScope} onError={onError} onRestore={onRestore} /></ToastProvider>);
+  await settle(); await settle();
+  const headB = within(section("B")).getByRole("button", { name: "风景参考（3 张）" });
+  fireEvent.click(within(await openOn(headB, "风景参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
+  expect(await screen.findByText("已从列表移除")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+  expect(onRestore).toHaveBeenCalledWith(registrations[1].library.root);
 });
 
 it("文件夹：菜单项与表一致，顶层文件夹不能“移到顶层”；菜单键打开同一菜单", async () => {

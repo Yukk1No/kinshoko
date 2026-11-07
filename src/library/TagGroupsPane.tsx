@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Link2, PenLine, Plus, Tags, Trash2, X } from "lucide-react";
 import { Combobox } from "../ui/Combobox";
 import { Select, type SelectOption } from "../ui/Select";
@@ -12,6 +11,8 @@ import type { TagNamespace } from "../bindings/TagNamespace";
 import { createSharedTagGroup, editSharedTagGroup, sharedTagGroups, onSafeModeSetting, onWorkspaceChanged, safeMode, workspaceStatus, isLensChanged } from "../ipc";
 import { LIMIT, TagMarks, UI_LANG, tagName, useCandidateState, type Lens } from "../search/SearchBox";
 import { NameInput } from "./SidebarPane";
+import { Tip } from "../ui/Tip";
+import { Popconfirm } from "../ui/Popconfirm";
 
 type Props = {
   /** Kept for callers from the previous local UI; group ownership is always application-wide. */
@@ -83,7 +84,7 @@ function PickTag({ lens, members, onPick, onCancel }: { lens: Lens; members: str
         onSelect={(option) => onPick(option.tag)}
         onKeyDown={(e) => escape(e, onCancel)}
       />
-      <button type="button" className="k-icon-btn is-xs" aria-label="取消加标签" title="取消" onClick={onCancel}><X size={12} aria-hidden="true" /></button>
+      <Tip label="取消" keys="Esc"><button type="button" className="k-icon-btn is-xs" aria-label="取消加标签" onClick={onCancel}><X size={12} aria-hidden="true" /></button></Tip>
     </li>
   );
 }
@@ -164,7 +165,6 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
     [result[index], result[other]] = [result[other], result[index]];
     return result;
   };
-  const deletingGroup = groups.find((group) => group.id === deleting);
   // 设计系统 SettingsList 的外框：每个分组一行，28 px 图标方块、名称、靠右的成员数（命名空间分组是胶囊）；
   // 悬停或键盘聚焦时露出改名、上移、下移、删除。成员是 TagChip，悬停露出前移、后移、移出，末尾是幽灵按钮“加标签”。
   // 末行是“新建分组”。删除先确认（#98，design/ui-system/README.md）。
@@ -188,20 +188,26 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
           </div> : fresh && (
             <div className="k-group-head">
               <span className="k-group-icon" aria-hidden="true"><Tags size={16} /></span>
-              <button type="button" className="k-group-name" data-focus-key={`${group.id}:name`} aria-label={`${group.name}（${group.tags.length} 个标签）`}
-                disabled={busy || !onBrowse || !group.tags.length} title={onBrowse && group.tags.length ? "按这个分组查找，双击改名" : "双击改名"}
+              <Tip label={(origin ? `来自：${origin}\n` : "") + (onBrowse && group.tags.length ? "按这个分组查找，双击改名" : "双击改名")} align="start"><button type="button" className="k-group-name" data-focus-key={`${group.id}:name`} aria-label={`${group.name}（${group.tags.length} 个标签）`}
+                disabled={busy || !onBrowse || !group.tags.length}
                 onClick={() => onBrowse?.(ids)} onDoubleClick={() => setRenaming(group.id)}>
                 <span className="k-group-label k-label">{group.name}</span>
-                {origin && <span className="k-group-origin" role="img" aria-label={`来自：${origin}`} title={`来自：${origin}`}><Link2 size={14} aria-hidden="true" /></span>}
-              </button>
+                {origin && <span className="k-group-origin" role="img" aria-label={`来自：${origin}`}><Link2 size={14} aria-hidden="true" /></span>}
+              </button></Tip>
               <span className="k-group-acts">
-                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:rename`} aria-label={`改名标签分组“${group.name}”`} title="改名" disabled={busy} onClick={() => setRenaming(group.id)}><PenLine size={14} aria-hidden="true" /></button>
-                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:up`} aria-label={`上移标签分组“${group.name}”`} title="上移" disabled={busy || index === 0}
-                  onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, -1) })}><ArrowUp size={14} aria-hidden="true" /></button>
-                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:down`} aria-label={`下移标签分组“${group.name}”`} title="下移" disabled={busy || index === groups.length - 1}
-                  onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, 1) })}><ArrowDown size={14} aria-hidden="true" /></button>
-                <button type="button" className="k-icon-btn is-sm is-danger" data-focus-key={`${group.id}:delete`} aria-label={`删除标签分组“${group.name}”`} disabled={busy}
-                  title="删除分组" onClick={() => setDeleting(group.id)}><Trash2 size={14} aria-hidden="true" /></button>
+                <Tip label="改名"><button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:rename`} aria-label={`改名标签分组“${group.name}”`} disabled={busy} onClick={() => setRenaming(group.id)}><PenLine size={14} aria-hidden="true" /></button></Tip>
+                <Tip label="上移"><button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:up`} aria-label={`上移标签分组“${group.name}”`} disabled={busy || index === 0}
+                  onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, -1) })}><ArrowUp size={14} aria-hidden="true" /></button></Tip>
+                <Tip label="下移"><button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:down`} aria-label={`下移标签分组“${group.name}”`} disabled={busy || index === groups.length - 1}
+                  onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, 1) })}><ArrowDown size={14} aria-hidden="true" /></button></Tip>
+                <Popconfirm open={deleting === group.id} onOpenChange={(open) => setDeleting(open ? group.id : null)}
+                  description={`「${group.name}」会被删除，图片的标签不变。`} confirm="删除分组" onConfirm={() => {
+                  // 删掉的分组没有可回的位置：回到相邻分组，没有时回到“新建分组”。
+                  const next = groups[index + 1] ?? groups[index - 1];
+                  restore.current = next ? `${next.id}:name` : "new";
+                  void edit({ kind: "delete", groupId: group.id });
+                }}><Tip label="删除分组"><button type="button" className="k-icon-btn is-sm is-danger" data-focus-key={`${group.id}:delete`} aria-label={`删除标签分组“${group.name}”`} disabled={busy}>
+                  <Trash2 size={14} aria-hidden="true" /></button></Tip></Popconfirm>
               </span>
               {custom ? <span className="k-group-count k-label">{group.tags.length} 个标签</span>
                 : <span className="k-pill"><span className="k-label">{KINDS.find((k) => k.value === group.namespace)?.label}</span></span>}
@@ -216,12 +222,12 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
                   <span className="k-group-chip-name k-label">{name}<TagMarks tag={tag} /></span><span className="k-group-chip-count k-label">{count}</span>
                 </button>
                 {custom && <span className="k-group-member-acts">
-                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:prev`} aria-label={`把“${name}”在“${group.name}”中前移`} title="前移" disabled={busy || memberIndex === 0}
-                    onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, -1) })}><ArrowLeft size={12} aria-hidden="true" /></button>
-                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:next`} aria-label={`把“${name}”在“${group.name}”中后移`} title="后移" disabled={busy || memberIndex === group.tags.length - 1}
-                    onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, 1) })}><ArrowRight size={12} aria-hidden="true" /></button>
-                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:remove`} aria-label={`把“${name}”移出“${group.name}”`} title="移出分组" disabled={busy}
-                    onClick={() => void edit({ kind: "removeMembers", groupId: group.id, tagIds: [tag.id] })}><X size={12} aria-hidden="true" /></button>
+                  <Tip label="前移"><button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:prev`} aria-label={`把“${name}”在“${group.name}”中前移`} disabled={busy || memberIndex === 0}
+                    onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, -1) })}><ArrowLeft size={12} aria-hidden="true" /></button></Tip>
+                  <Tip label="后移"><button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:next`} aria-label={`把“${name}”在“${group.name}”中后移`} disabled={busy || memberIndex === group.tags.length - 1}
+                    onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, 1) })}><ArrowRight size={12} aria-hidden="true" /></button></Tip>
+                  <Tip label="移出分组"><button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:remove`} aria-label={`把“${name}”移出“${group.name}”`} disabled={busy}
+                    onClick={() => void edit({ kind: "removeMembers", groupId: group.id, tagIds: [tag.id] })}><X size={12} aria-hidden="true" /></button></Tip>
                 </span>}
               </li>;
             })}
@@ -246,26 +252,6 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label = "�
       }} /> : <button type="button" className="k-group-create" aria-label="新建标签分组" data-focus-key="new" disabled={busy || !fresh} onClick={() => setCreating(true)}>
         <span className="k-group-icon" aria-hidden="true"><Plus size={16} /></span><span className="k-label">新建分组</span></button>}
       </div>
-      <AlertDialog.Root open={!!deletingGroup} onOpenChange={(open) => { if (!open) setDeleting(null); }}>
-        <AlertDialog.Portal>
-          <AlertDialog.Backdrop className="k-backdrop" />
-          <AlertDialog.Popup className="k-dialog is-alert">
-            <AlertDialog.Title className="k-dialog-title">删除分组</AlertDialog.Title>
-            <AlertDialog.Description className="k-dialog-desc">「{deletingGroup?.name}」会被删除，图片的标签不变。</AlertDialog.Description>
-            <div className="k-dialog-foot">
-              <span className="k-grow" />
-              <AlertDialog.Close className="k-btn"><span className="k-label">取消</span></AlertDialog.Close>
-              <button type="button" className="k-btn is-danger" onClick={() => {
-                const id = deleting!; setDeleting(null);
-                // 删掉的分组没有可回的位置：回到相邻分组，没有时回到“新建分组”。
-                const at = groups.findIndex((g) => g.id === id), next = groups[at + 1] ?? groups[at - 1];
-                restore.current = next ? `${next.id}:name` : "new";
-                void edit({ kind: "delete", groupId: id });
-              }}><span className="k-label">删除</span></button>
-            </div>
-          </AlertDialog.Popup>
-        </AlertDialog.Portal>
-      </AlertDialog.Root>
     </section>
   );
 }

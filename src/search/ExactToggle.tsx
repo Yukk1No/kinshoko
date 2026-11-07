@@ -8,7 +8,7 @@ import { Tooltip } from "@base-ui/react/tooltip";
  */
 export function ExactToggle({ exact, onChange }: { exact: boolean; onChange: (exact: boolean) => void }) {
   return <Tooltip.Root>
-    <Tooltip.Trigger delay={400} closeOnClick={false}
+    <Tooltip.Trigger closeOnClick={false}
       render={<Toggle className="k-exact" aria-label="精确查找" pressed={exact} onPressedChange={(next) => onChange(next)} />}>
       <svg className="k-exact-glyph" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6"
         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
