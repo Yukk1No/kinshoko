@@ -26,7 +26,7 @@ function mount(onOpenSettings = vi.fn()) {
 }
 
 const running = (tagged: number, done = 0, remaining = 1): TaggingStatus => ({ state: "running", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged, done, remaining });
-const idle = (tagged: number): TaggingStatus => ({ state: "idle", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged, unknown: 0 });
+const idle = (tagged: number): TaggingStatus => ({ state: "idle", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged, unknown: 0, failed: 0 });
 const needsDownload = (downloaded = 0, cancelled = false): TaggingStatus => ({ state: "needsDownload", model: "PixAI", size: 992_916_002, downloaded, fallback: null, cancelled });
 const downloading = (downloaded: number): TaggingStatus => ({ state: "downloading", model: "PixAI", downloaded, total: 1_000_000_000 });
 /** 等待后端首次读取与订阅都到位，后面的推送才收得到。 */

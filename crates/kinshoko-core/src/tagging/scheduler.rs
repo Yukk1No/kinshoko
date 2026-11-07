@@ -4,7 +4,7 @@
 //! 全设备一个调度（ADR-0008 修订，#414）：同一时间只有一个打标会话；画师正在整理的库先打，其余按登记
 //! 顺序轮流。调度器空闲时自己逐个询问各库，写入方不必通知它；叫醒只为早点开始。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
@@ -16,7 +16,9 @@ use ts_rs::TS;
 
 use crate::CommandError;
 use crate::command_error::ErrorKind;
-use crate::library::{Error as LibraryError, FactSource, Library, TaggingOutcome};
+use crate::library::{
+    CRASHED_REASON, Error as LibraryError, FactSource, Library, RetryTagging, TaggingOutcome,
+};
 
 use super::libraries::TaggingLibraries;
 
@@ -47,7 +49,7 @@ pub struct TaggingConfig {
     pub retry_delay: Duration,
     /// 没有待打标的图时，隔多久再查一次资料库。
     pub poll_interval: Duration,
-    /// 同一张图让会话崩溃这么多次后记为无法打标，不再重试。
+    /// 同一张图让会话崩溃这么多次后记为打不上标；本次运行不再重试，下次启动时重试一次（#475）。
     pub max_crashes_per_image: u32,
     /// 显卡被重置或会话在显卡上启动失败这么多次后，本次运行不再用显卡，退到 CPU 档。
     pub max_gpu_failures: u32,
@@ -136,7 +138,8 @@ pub enum TaggingStatus {
         remaining: u32,
     },
     /// 能打开的资料库都没有待打标的图；会话已结束，不占显存。`tagged` 同 `Running`，含刚打完的最后一张。
-    /// `unknown` 是暂时打不开、数不出未打标张数的资料库个数：不为 0 时不算已全部打完。
+    /// `unknown` 是暂时打不开、数不出未打标张数的资料库个数，`failed` 是各库打不上标的图合计（#475，
+    /// 无法解码或反复让子进程崩溃，不含回收站中的）：两者不为 0 时都不算已全部打完。
     #[serde(rename_all = "camelCase")]
     Idle {
         model: String,
@@ -144,6 +147,7 @@ pub enum TaggingStatus {
         gpu: Option<String>,
         tagged: u32,
         unknown: u32,
+        failed: u32,
     },
     /// 画师暂停了打标；会话已结束，显存已归还。
     Paused,
@@ -169,6 +173,8 @@ struct Control {
     preferred: Option<Device>,
     /// 画师正在整理的资料库，先打；见 [`Tagging::prefer`]。
     library: Option<String>,
+    /// 画师要重试打不上标的图；见 [`Tagging::retry_failed`]。
+    retry_failed: bool,
 }
 
 struct Shared {
@@ -293,6 +299,7 @@ impl Tagging {
             device_info: None,
             gpu_failures: 0,
             crashes: HashMap::new(),
+            crash_retried: HashSet::new(),
             session: None,
             tagged: 0,
             done: 0,
@@ -360,6 +367,13 @@ impl Tagging {
 
     /// 有新图时立即检查，不等下一次轮询。不调用也不会漏，只是晚一点开始。
     pub fn wake(&self) {
+        self.shared.wake.notify_all();
+    }
+
+    /// 画师要重试打不上标的图（#475）：当前模型在各库打不上标的图（两类都算）重新成为待打标的图，
+    /// 各打一次；再打不上时照常记下。不打断手上这一批。
+    pub fn retry_failed(&self) {
+        self.shared.control().retry_failed = true;
         self.shared.wake.notify_all();
     }
 
@@ -433,6 +447,8 @@ struct Worker {
     gpu_failures: u32,
     /// （资料库, 参考图）→ 让会话崩溃过几次。
     crashes: HashMap<(String, String), u32>,
+    /// 本次运行已经重试过反复崩溃的图的（资料库, 模型来源）：每次启动只重试一轮（#475）。
+    crash_retried: HashSet<(String, String)>,
     session: Option<(String, Box<dyn TaggerSession>)>,
     tagged: u32,
     /// 见 [`TaggingStatus::Running`]。
@@ -442,12 +458,14 @@ struct Worker {
     chosen: Option<String>,
 }
 
-/// 这一步从各库取到的：要打的一批（资料库与参考图）、各库未打标张数合计、数不出来的库个数。
+/// 这一步从各库取到的：要打的一批（资料库与参考图）、各库未打标张数合计、数不出来的库个数、
+/// 各库打不上标的张数合计。
 #[derive(Default)]
 struct Pick {
     batch: Option<(Arc<Library>, Vec<String>)>,
     remaining: u32,
     unknown: u32,
+    failed: u32,
 }
 
 /// 选中的模型；`fallback` 是自动档跳过前面模型的原因。

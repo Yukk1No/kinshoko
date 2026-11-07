@@ -45,6 +45,8 @@ fn migration_list() -> Vec<M<'static>> {
             super::eagle_tags::upgrade_source_names,
         ),
         M::up(include_str!("migrations/0313_placeholders.sql")),
+        // #475：加列不能写成可重跑的 SQL，在钩子里先看列在不在。
+        M::up_with_hook("", super::tagging_state::add_tagging_failure),
     ]
 }
 

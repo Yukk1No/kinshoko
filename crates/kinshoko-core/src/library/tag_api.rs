@@ -64,12 +64,27 @@ impl Library {
 
     /// 模型来源 `source` 还没打过标的参考图（不含回收站中的），新导入的在前，最多 `limit` 张。
     pub fn images_to_tag(&self, source: &FactSource, limit: u32) -> Result<Vec<String>, Error> {
-        rating::images_to_tag(&self.inner, source, limit)
+        tagging_state::images_to_tag(&self.inner, source, limit)
     }
 
     /// 模型来源 `source` 还没打过标的参考图有几张，范围同 [`Library::images_to_tag`]。
     pub fn count_images_to_tag(&self, source: &FactSource) -> Result<u32, Error> {
-        rating::count_images_to_tag(&self.inner, source)
+        tagging_state::count_images_to_tag(&self.inner, source)
+    }
+
+    /// 模型来源 `source` 打不上标的参考图有几张（#475），不含回收站中的。
+    pub fn count_failed_tagging(&self, source: &FactSource) -> Result<u32, Error> {
+        tagging_state::count_failed_tagging(&self.inner, source)
+    }
+
+    /// 让模型来源 `source` 打不上标的图（`which` 指定哪一类）重新成为待打标的图，返回张数（#475）。
+    /// 再打不上时照常记下，不在一次重试里反复试。
+    pub fn retry_failed_tagging(
+        &self,
+        source: &FactSource,
+        which: RetryTagging,
+    ) -> Result<u32, Error> {
+        tagging_state::retry_failed_tagging(&self.inner, source, which)
     }
 
     /// 提交模型来源 `source` 对一张参考图的一次成功推理（#318）：模型标签、分级建议与完成状态
@@ -92,7 +107,7 @@ impl Library {
         image_id: &str,
         outcome: TaggingOutcome,
     ) -> Result<(), Error> {
-        rating::finish_tagging(&self.inner, source, image_id, outcome)
+        tagging_state::finish_tagging(&self.inner, source, image_id, outcome)
     }
 
     // Only identities are recorded for name provenance. Hidden labels remain private to the library.

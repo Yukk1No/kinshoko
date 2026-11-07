@@ -7,7 +7,8 @@ use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::library::{
     ContentRating, FactSource, ImageEdit, ImportOutcome, ImportSource, LibraryEvent, RatingFact,
-    SourceTag, TagEdit, TagNamespace, TagOrigin, TagRef, TaggingResult,
+    RetryTagging, SourceTag, TagEdit, TagNamespace, TagOrigin, TagRef, TaggingOutcome,
+    TaggingResult,
 };
 
 const ZH: &str = "zh-CN";
@@ -259,5 +260,116 @@ fn a_failure_at_any_step_rolls_back_the_whole_result() {
                 .unwrap();
             assert_committed(&library, &id);
         }
+    }
+}
+
+// 打不上标的图（#475）：数得出来，不再算待打标；崩溃导致的可以单独重试，手动重试两类都清掉。
+#[test]
+fn failed_images_are_counted_and_can_be_retried() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, bad) = library_with_image(&dir.path().join("lib"));
+    let crashed = import_more(&library, dir.path(), 2);
+    library
+        .finish_tagging(&model(), &bad, TaggingOutcome::BadImage("无法解码".into()))
+        .unwrap();
+    library
+        .finish_tagging(&model(), &crashed, TaggingOutcome::Crashed("崩溃".into()))
+        .unwrap();
+    assert_eq!(library.count_failed_tagging(&model()).unwrap(), 2);
+    assert_eq!(library.count_images_to_tag(&model()).unwrap(), 0);
+    // 别的模型来源不受影响。
+    assert_eq!(
+        library
+            .count_failed_tagging(&FactSource::model("other"))
+            .unwrap(),
+        0
+    );
+
+    assert_eq!(
+        library
+            .retry_failed_tagging(&model(), RetryTagging::CrashedOnly)
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        library.images_to_tag(&model(), 10).unwrap(),
+        vec![crashed.clone()]
+    );
+    assert_eq!(library.count_failed_tagging(&model()).unwrap(), 1);
+
+    assert_eq!(
+        library
+            .retry_failed_tagging(&model(), RetryTagging::AllFailed)
+            .unwrap(),
+        1
+    );
+    assert_eq!(library.count_failed_tagging(&model()).unwrap(), 0);
+    assert_eq!(library.count_images_to_tag(&model()).unwrap(), 2);
+}
+
+#[test]
+fn failed_images_in_the_trash_are_not_counted() {
+    let dir = tempfile::tempdir().unwrap();
+    let (library, id) = library_with_image(&dir.path().join("lib"));
+    library
+        .finish_tagging(&model(), &id, TaggingOutcome::BadImage("无法解码".into()))
+        .unwrap();
+    library
+        .edit(std::slice::from_ref(&id), &[ImageEdit::Delete])
+        .unwrap();
+    assert_eq!(library.count_failed_tagging(&model()).unwrap(), 0);
+}
+
+// 升级前记下的失败只有原因文字：按反复崩溃的原因前缀分出两类，崩溃的才在启动时重试。
+#[test]
+fn failures_recorded_before_the_upgrade_are_sorted_by_their_reason() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("lib");
+    let (library, bad) = library_with_image(&root);
+    let crashed = import_more(&library, dir.path(), 2);
+    library
+        .finish_tagging(&model(), &bad, TaggingOutcome::BadImage("无法解码".into()))
+        .unwrap();
+    library
+        .finish_tagging(&model(), &crashed, TaggingOutcome::Crashed("崩溃".into()))
+        .unwrap();
+    drop(library);
+    {
+        let conn = rusqlite::Connection::open(root.join("library.sqlite")).unwrap();
+        let version: i64 = conn
+            .query_row("PRAGMA user_version", [], |r| r.get(0))
+            .unwrap();
+        conn.execute_batch(&format!(
+            "UPDATE tagging_state SET reason = '打标子进程在这张图上反复出错：会话结束'
+               WHERE image_id = '{crashed}';
+             ALTER TABLE tagging_state DROP COLUMN failure;
+             PRAGMA user_version = {};",
+            version - 1
+        ))
+        .unwrap();
+    }
+
+    let library = Library::open(&root).unwrap();
+    assert_eq!(library.count_failed_tagging(&model()).unwrap(), 2);
+    library
+        .retry_failed_tagging(&model(), RetryTagging::CrashedOnly)
+        .unwrap();
+    assert_eq!(library.images_to_tag(&model(), 10).unwrap(), vec![crashed]);
+}
+
+fn import_more(library: &Library, dir: &Path, seed: u8) -> String {
+    let path = dir.join(format!("more-{seed}.png"));
+    RgbaImage::from_fn(4, 4, |x, y| image::Rgba([seed, x as u8, y as u8, 255]))
+        .save(&path)
+        .unwrap();
+    match library
+        .import(ImportSource { paths: vec![path] })
+        .wait()
+        .items
+        .remove(0)
+        .outcome
+    {
+        ImportOutcome::Imported { image_id } => image_id,
+        other => panic!("未导入：{other:?}"),
     }
 }
