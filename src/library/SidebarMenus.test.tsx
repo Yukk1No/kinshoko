@@ -182,7 +182,7 @@ it("撤销失败时报错", async () => {
   answers["plugin:library|restore_folder"] = new Error("放回失败");
   fireEvent.click(within(await openOn(within(section("A")).getByRole("button", { name: "动作（1 张）" }), "动作 的操作")).getByRole("menuitem", { name: "删除文件夹" }));
   fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
-  await waitFor(() => expect(onError).toHaveBeenCalledWith("放回失败"));
+  await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "放回失败" })));
 });
 
 it("回收站：清空回收站先列出将永久删除的张数，确认后按预览的令牌删除", async () => {
