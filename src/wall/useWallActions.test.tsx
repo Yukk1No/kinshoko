@@ -77,7 +77,7 @@ it("从剪贴板导入失败（剪贴板没有图片）时给出原因", async (
   const onError = vi.fn();
   render(<Harness onError={onError} importClipboard={() => Promise.reject({ code: "message", message: "剪贴板里没有图片" })} />);
   act(() => api.importClipboard());
-  await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "剪贴板里没有图片" })));
+  await waitFor(() => expect(onError).toHaveBeenCalledWith("剪贴板里没有图片"));
 });
 
 it("加入参考组按每张图的来源加入", async () => {

@@ -77,6 +77,22 @@ describe("迁入向导：标签的外部对应", () => {
     });
   });
 
+  it("补上外部对应失败时，界面上能看到标签名和后端给的说明", async () => {
+    mockIPC((cmd) => {
+      if (cmd === "plugin:library|eagle_tag_mapping") return mapping;
+      if (cmd === "plugin:library|external_suggestions") return [];
+      if (cmd === "plugin:library|map_tag_external") throw { code: "unknownTag" };
+      return undefined;
+    });
+    render(<EagleTagStep libraryId="L1" onClose={() => {}} />);
+
+    const input = await screen.findByRole("combobox", { name: "水色 的外部对应" });
+    fireEvent.change(input, { target: { value: "Aqua Eyes" } });
+    fireEvent.click(screen.getByRole("button", { name: "补上 水色 的外部对应" }));
+
+    expect(await screen.findByText("无法给 水色 补上外部对应：图库中没有这个标签")).toBeTruthy();
+  });
+
   it("用 ↓ 高亮一个候选再回车，只补上这一个，不再另按输入补一次", async () => {
     const calls = backend();
     render(<EagleTagStep libraryId="L1" onClose={() => {}} />);

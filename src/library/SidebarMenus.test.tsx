@@ -20,6 +20,7 @@ let calls: { command: string; args: Record<string, unknown> }[];
 let answers: Record<string, unknown>;
 const onScope = vi.fn();
 const onError = vi.fn();
+const onMessage = vi.fn();
 beforeEach(() => {
   calls = [];
   answers = {};
@@ -35,7 +36,7 @@ async function show(scope: WorkspaceScope, value = forest(), extra: Partial<Para
     if (answer instanceof Error) throw { code: "message", message: answer.message };
     return answer ?? null;
   });
-  const view = render(<WorkspacePane status={{ revision: "r", libraries: registrations }} scope={scope} safeMode reloadKey={0} onScope={onScope} onError={onError} {...extra} />);
+  const view = render(<WorkspacePane status={{ revision: "r", libraries: registrations }} scope={scope} safeMode reloadKey={0} onScope={onScope} onError={onError} onMessage={onMessage} {...extra} />);
   await settle(); await settle();
   return view;
 }
@@ -79,7 +80,7 @@ it("图库标题：在资源管理器中显示、重新连接与从列表移除"
 
   answers["plugin:desktop|reveal_library"] = new Error("图库暂时无法连接：D:\\A\\参考");
   fireEvent.click(within(await openOn(headA, "人物参考 的操作")).getByRole("menuitem", { name: "在资源管理器中显示" }));
-  await waitFor(() => expect(onError).toHaveBeenCalledWith("无法在资源管理器中显示：图库暂时无法连接：D:\\A\\参考"));
+  await waitFor(() => expect(onMessage).toHaveBeenCalledWith("无法在资源管理器中显示：图库暂时无法连接：D:\\A\\参考"));
 
   const headB = within(section("B")).getByRole("button", { name: "风景参考（未连接）" });
   fireEvent.click(within(await openOn(headB, "风景参考 的操作")).getByRole("menuitem", { name: "重新连接" }));

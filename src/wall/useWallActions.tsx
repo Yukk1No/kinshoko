@@ -50,7 +50,7 @@ export type WallActionsOptions = {
   /** 先把卡片从墙上移走（#290）；返回结束函数，后端做完后带上没做成的卡片调用（全部做成时为空）。 */
   removeCards?: (cards: BrowserCard[]) => (failed: BrowserCard[]) => void;
   onClearSelection: () => void;
-  onError: (error: unknown) => void;
+  onError: (message: string) => void;
   /** 成功的轻提示（例如“已复制图片”）。 */
   onNotice: (message: string) => void;
   importFrom: (source: ImportSource) => void;
@@ -131,7 +131,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     },
     importClipboard() {
       const { importClipboard, onError } = options.current;
-      importClipboard().catch((e) => onError(e));
+      importClipboard().catch((e) => onError(errorText(e)));
     },
     clipboardHasImage: () => clipboardHasImage(),
     pin(cards, point) {

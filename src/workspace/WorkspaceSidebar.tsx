@@ -11,7 +11,7 @@ import type { Section } from "../shell/Rail";
 
 /** 工作区左栏：文件夹（图库与查找范围）、参考组或截图历史。 */
 export function WorkspaceSidebar({
-  section, paneOpen, floating, paneRef, onPaneToggle, libraryControls, status, workspaceScope, safe, reloadKey, onError, recheck,
+  section, paneOpen, floating, paneRef, onPaneToggle, libraryControls, status, workspaceScope, safe, reloadKey, onError, onMessage, recheck,
   onLibraryRemoved, onScope, captureRequest, onCaptureRequestHandled,
 }: {
   section: Section;
@@ -27,6 +27,7 @@ export function WorkspaceSidebar({
   safe: boolean;
   reloadKey: number;
   onError: (error: unknown) => void;
+  onMessage?: (message: string) => void;
   recheck: () => void;
   onLibraryRemoved?: (libraryId: string) => void;
   onScope: (next: WorkspaceScope) => void;
@@ -54,7 +55,7 @@ export function WorkspaceSidebar({
       </header>
       <div className="pane-body" hidden={section !== "browse"}>
       <WorkspacePane status={status} scope={workspaceScope} safeMode={safe}
-        reloadKey={reloadKey} onError={onError} onRecheck={recheck} onRemoved={onLibraryRemoved} onScope={onScope}>
+        reloadKey={reloadKey} onError={onError} onMessage={onMessage} onRecheck={recheck} onRemoved={onLibraryRemoved} onScope={onScope}>
       </WorkspacePane>
       </div>
       {section === "groups" && <ReferenceGroupsPanel />}
