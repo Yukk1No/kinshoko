@@ -22,6 +22,8 @@ export const PAGE = 500;
 /** 滚动方向前方预取缩略图的距离（挂载范围之外，画布像素）与张数上限。 */
 export const PREFETCH_PX = 1600;
 export const PREFETCH_MAX = 48;
+/** 最后一次滚动之后多久才算停手、悬停的一摞才拿起（#418）。 */
+export const SCROLLING_MS = 150;
 /** 滚动停手多久后把位置写进本地存储。 */
 export const SAVE_ANCHOR_MS = 250;
 /**
@@ -59,9 +61,12 @@ export type WallHandle = {
 /** 卡片上的快捷键（与右键菜单同一选择规则）：P 钉住、F1 进入查看器框选、Del 移到回收站、Ctrl+C 复制图片。 */
 export type CardCommand = "pin" | "crop" | "trash" | "copy";
 
-/** 图片墙上的卡片：工作区的卡片，不带缩略图地址，按来源与档位拼（见 `cardThumbnail`）。 */
+/**
+ * 图片墙上的卡片：工作区的卡片，不带缩略图地址，按来源与档位拼（见 `cardThumbnail`）。
+ * 叠成一摞时（#418）带上 `set`，卡片本身是封面。
+ */
 export type BrowserCard = Omit<ImageCard, "thumbnail">
-  & Pick<WorkspaceCard, "libraryId" | "imageId"> & Partial<Pick<WorkspaceCard, "sources">>;
+  & Pick<WorkspaceCard, "libraryId" | "imageId"> & Partial<Pick<WorkspaceCard, "sources" | "set">>;
 
 export type WallProps = {
   workspaceScope: WorkspaceScope;
@@ -105,6 +110,11 @@ export type WallProps = {
   /** 右键菜单的内容（#102）；不给出时图片墙没有右键菜单。 */
   menu?: (target: WallMenuTarget) => ReactNode;
   onCardCommand?: (command: CardCommand, cards: BrowserCard[], point: { x: number; y: number }) => void;
+  /**
+   * 同一图集叠成一摞（#418）：开着时浏览按图集折叠，一摞占一格，点开在原位让出托盘。
+   * 换这个值时由调用方换 key 重建。
+   */
+  stackSets?: boolean;
   /** Ctrl+V：从剪贴板导入（#105）。主窗口里焦点不在输入框、没有模态与查看器时都响应。 */
   onPaste?: () => void;
   /** 空状态下紧跟在那句话后面的操作（空图库的导入、没有结果时的清除条件）；不给出时只有那句话。 */
@@ -118,6 +128,12 @@ export const editable = (target: EventTarget | null) =>
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
 export const scopeKey = (scope: BrowseScope) =>
   (scope.kind === "folder" || scope.kind === "folderTree") ? `${scope.kind}.${scope.id}` : scope.kind;
+
+/**
+ * 叠放图集（#418）还在分几个 PR 做：最后一个（查看器在图集内翻页、整摞操作）合并前只在开发构建里露出。
+ * 出截图的发布构建用 `VITE_KINSHOKO_STACK_SETS=1` 打开。第 3 步合并时去掉这个开关，菜单项与默认开对所有构建生效。
+ */
+export const STACK_SETS_READY = import.meta.env.DEV || import.meta.env.VITE_KINSHOKO_STACK_SETS === "1";
 
 export const NO_CONDITIONS: ConditionTree = { conditions: [] };
 

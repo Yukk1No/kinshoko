@@ -17,6 +17,7 @@ import { TaggingActivity } from "../TaggingActivity";
 import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "../wall/Wall";
+import { useStackSetsSetting } from "../wall/imageSets";
 import { WallFloats } from "../wall/WallFloats";
 import { WallMenu } from "../wall/WallMenu";
 import { WallEmptyAction } from "./WallEmptyAction";
@@ -70,6 +71,7 @@ export function LibraryWorkspace({
   const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
   const [reloadKey, setReloadKey] = useState(0);
   const [density, setDensity] = useState(240);
+  const stacking = useStackSetsSetting();
   /** 图片墙上 Ctrl+滚轮缩放中的预览值（#111），滑条跟着走。 */
   const [zoomPreview, setZoomPreview] = useState<number | null>(null);
   const [resultCount, setResultCount] = useState<number | null>(null);
@@ -258,7 +260,8 @@ export function LibraryWorkspace({
             onDensityPreview={setZoomPreview}
             onDensityCommit={(value) => { setZoomPreview(null); setDensity(value); }}
             onTotalChange={setResultCount}
-            key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
+            key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}/${stacking.on}`}
+            stackSets={stacking.on}
             workspaceScope={workspaceScope}
             onInspectSources={openSources}
             onCardsChange={setLoadedCards}
@@ -277,7 +280,8 @@ export function LibraryWorkspace({
             }}
             onOpenImage={(card) => { setViewCrop(false); setViewing(card); }}
             viewerOpen={viewerOpen}
-            menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} inspectorOpen={inspectorOpen} onToggleInspector={toggleInspector} />}
+            menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} inspectorOpen={inspectorOpen} onToggleInspector={toggleInspector}
+              stackSets={stacking.menu} />}
             onCardCommand={(command, cards, point) => {
               if (command === "pin") wallActions.pin(cards, point);
               else if (command === "crop") wallActions.crop(cards[0]);

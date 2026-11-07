@@ -18,6 +18,9 @@ const wall: Translation<typeof zh> = {
     sourcesTitle_one: "In {{count, number}} library",
     sourcesTitle_other: "In {{count, number}} libraries",
     sourcesCount_other: "{{count, number}}",
+    stackLabel_one: "{{count, number}} image",
+    stackLabel_other: "{{count, number}} images",
+    pageLabel: "Page {{page, number}}",
   },
   density: {
     label: "Image size",
@@ -28,6 +31,7 @@ const wall: Translation<typeof zh> = {
   },
   menu: {
     blankLabel: "Image wall menu",
+    stackSets: "Stack image sets",
     cardLabel: "Reference image menu",
     cardsLabel_one: "Menu for {{count, number}} reference image",
     cardsLabel_other: "Menu for {{count, number}} reference images",

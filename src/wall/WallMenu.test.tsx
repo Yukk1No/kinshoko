@@ -194,3 +194,13 @@ it("导入子菜单：图片文件、整个文件夹、从 Eagle", async () => {
   fireEvent.click(screen.getByRole("menuitem", { name: "从 Eagle…" }));
   expect(a.importFrom).toHaveBeenCalledWith("eagle");
 });
+
+it("空白处：给出「叠放图集」开关时多出一项勾选，点它切换（#418）", async () => {
+  const toggle = vi.fn();
+  render(<ContextMenu.Root open><MenuPopup label="图片墙菜单"><WallMenu target={{ kind: "blank", point }} scope={{ kind: "all" }} density={240}
+    actions={actions()} stackSets={{ on: true, toggle }} /></MenuPopup></ContextMenu.Root>);
+  const item = screen.getByRole("menuitemcheckbox", { name: "叠放图集" });
+  expect(item.getAttribute("aria-checked")).toBe("true");
+  fireEvent.click(item);
+  expect(toggle).toHaveBeenCalled();
+});

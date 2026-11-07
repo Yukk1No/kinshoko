@@ -1,0 +1,80 @@
+/* 图片墙上叠成一摞的图集与原位托盘（#418）。接在 main-window.css 的卡片与来源按钮之后加载。 */
+/* ---- 一摞与原位托盘（#418 第 5 版原型，纸张摆法见 stackPaper.ts）----
+   一摞仍是一个格子：封面摆正、四周留出纸边，下面几层是后面几页的缩略图。质感只来自纸本身：
+   细边线、一线顶边高光、底下一块接触阴影；墙的底色和图片都不加装饰。
+   悬停停 120 ms 才拿起：纸边散开，封面上移 3 px，阴影变淡、变宽、往下落；放下比拿起快；滚动中不拿起。 */
+.card.is-stack { background: transparent; overflow: visible; }
+.card.is-stack:hover { outline: 0; z-index: 2; }
+.card.is-stack[aria-selected="true"] { box-shadow: none; }
+.card.is-stack::after { inset: 10px; }
+.card.is-stack > .stack-sheet, .card.is-stack > .stack-cover { position: absolute; overflow: hidden; background: var(--card); }
+.card.is-stack > .stack-sheet {
+  pointer-events: none; transform-origin: 50% 50%; transform: var(--rest);
+  box-shadow: 0 0 0 0.5px var(--sheet-edge), 0 1px 1.5px var(--sheet-drop);
+  transition: transform var(--t) var(--ease);
+}
+.card.is-stack > .stack-cover {
+  box-shadow: 0 0 0 0.5px var(--sheet-edge), 0 1px 2px var(--sheet-drop), 0 4px 8px -2px var(--sheet-drop);
+  transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+/* 顶边一线高光盖在图上：缩略图在纸里面。 */
+.card.is-stack > .stack-sheet::after, .card.is-stack > .stack-cover::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; box-shadow: inset 0 1px 0 var(--sheet-light);
+}
+.card.is-stack > .stack-contact {
+  position: absolute; height: 14px; border-radius: 50%; pointer-events: none; background: rgba(var(--contact), 0.3); filter: blur(6px);
+  transition: transform var(--t) var(--ease), opacity var(--t) var(--ease);
+}
+.card.is-stack:hover > .stack-sheet { transform: var(--hot); transition: transform var(--t-slow) var(--spring) 120ms; }
+.card.is-stack:hover > .stack-cover {
+  transform: translateY(-3px); transition: transform var(--t-slow) var(--spring) 120ms, box-shadow var(--t) var(--ease) 120ms;
+  box-shadow: 0 0 0 0.5px var(--sheet-edge), 0 3px 6px var(--sheet-drop), 0 16px 30px -6px rgba(var(--contact), 0.4);
+}
+.card.is-stack:hover > .stack-contact { transform: translateY(5px) scaleX(1.06); opacity: 0.25; transition-delay: 120ms; }
+.card.is-stack:hover + .card-count { transform: translateY(-3px); transition: transform var(--t-slow) var(--spring) 120ms; }
+.wall-canvas > .card-count { transition: transform var(--t) var(--ease); }
+.card.is-stack[aria-selected="true"] > .stack-cover { box-shadow: 0 0 0 2px var(--wall), 0 0 0 4px var(--accent); }
+.card.is-stack:focus-visible { outline: 0; }
+.card.is-stack:focus-visible > .stack-cover { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 滚动中：保持静止的样子。 */
+.wall[data-scrolling] .card.is-stack:hover > .stack-sheet { transform: var(--rest); transition: transform var(--t) var(--ease); }
+.wall[data-scrolling] .card.is-stack:hover > .stack-cover,
+.wall[data-scrolling] .card.is-stack:hover > .stack-contact,
+.wall[data-scrolling] .card.is-stack:hover + .card-count { transform: none; opacity: 1; }
+/* 托盘关上、各页还在飞回时：这一摞的纸边先不显现，第 1 页压在最上面。 */
+.card.is-stack[data-gathering] { z-index: 2; }
+.card.is-stack[data-gathering] > .stack-sheet, .card.is-stack[data-gathering] > .stack-contact { visibility: hidden; }
+/* 减弱动效：只加深阴影，不拿起。 */
+@media (prefers-reduced-motion: reduce) {
+  .card.is-stack:hover > .stack-sheet { transform: var(--rest); }
+  .card.is-stack:hover > .stack-cover, .card.is-stack:hover + .card-count, .card.is-stack:hover > .stack-contact { transform: none; }
+}
+:root[data-reduced-motion] .card.is-stack:hover > .stack-sheet { transform: var(--rest); }
+:root[data-reduced-motion] .card.is-stack:hover > .stack-cover,
+:root[data-reduced-motion] .card.is-stack:hover + .card-count,
+:root[data-reduced-motion] .card.is-stack:hover > .stack-contact { transform: none; }
+
+/* 张数：封面左上角，样子同右下角的来源按钮。托盘里页角的勾在右上角，悬停或选中时出现。 */
+.wall-canvas > .card-count, .wall-canvas > .card-check {
+  position: absolute; z-index: 3; display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 22px; border: 0;
+  box-sizing: border-box; white-space: nowrap; line-height: 1; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--ink); font-size: 12px; font-weight: 600;
+  font-variant-numeric: tabular-nums; box-shadow: var(--shadow-raise);
+}
+.wall-canvas > .card-count { width: max-content; padding: 0 7px 0 6px; }
+.wall-canvas > .card-count > svg, .wall-canvas > .card-check > svg { flex: none; }
+.wall-canvas > .card-count:hover, .wall-canvas > .card-check:hover { background: var(--surface); }
+.wall-canvas > .card-check { width: 22px; padding: 0; color: var(--ink-3); opacity: 0; transition: opacity var(--t-fast) var(--ease); }
+.card.is-tray-page:hover + .card-check, .wall-canvas > .card-check:hover, .wall-canvas > .card-check:focus-visible,
+.wall-canvas > .card-check[aria-checked="true"] { opacity: 1; }
+.wall-canvas > .card-check[aria-checked="true"] { color: var(--on-accent); background: var(--accent); }
+
+/* 托盘：墙上压下去的一块浅槽，仍是中性灰，靠内阴影和下沿一道亮边分出深度。 */
+.wall-tray {
+  position: absolute;
+  background: color-mix(in srgb, var(--wall) 94%, rgb(var(--contact)));
+  box-shadow: inset 0 2px 6px rgba(var(--contact), 0.16), inset 0 1px 1px rgba(var(--contact), 0.12), inset 0 -1px 0 var(--sheet-light);
+}
+.wall-ghosts { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.tray-ghost { position: absolute; overflow: hidden; background: var(--card) center / cover; transform-origin: 0 0; box-shadow: 0 0 0 0.5px var(--sheet-edge), 0 1px 2px var(--sheet-drop); }
+.tray-ghost > img { display: block; width: 100%; height: 100%; object-fit: contain; }

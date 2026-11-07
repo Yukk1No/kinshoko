@@ -141,9 +141,11 @@ function Organize({ cards, actions, scope, single }: { cards: BrowserCard[]; act
  * 图片墙的右键菜单内容（#102 “右键菜单”表的瀑布流各行）：单张、多张、回收站范围与空白处。
  * 复制图片、在资源管理器中显示与从剪贴板导入是 #105 的新能力。
  */
-export function WallMenu({ target, scope, density, actions, inspectorOpen = false, onToggleInspector }: {
+export function WallMenu({ target, scope, density, actions, inspectorOpen = false, onToggleInspector, stackSets }: {
   target: WallMenuTarget; scope: BrowseScope; density: number; actions: WallMenuActions;
   inspectorOpen?: boolean; onToggleInspector?: () => void;
+  /** 「叠放图集」开关（#418）；不给出时没有这一项。 */
+  stackSets?: { on: boolean; toggle: () => void };
 }) {
   const { t } = useTranslation(["wall", "common", "viewer"]);
   const inspector = onToggleInspector && <>
@@ -167,6 +169,7 @@ export function WallMenu({ target, scope, density, actions, inspectorOpen = fals
           {DENSITY_PRESETS.map((p) => <MenuRadioItem key={p.value} value={p.value}>{t(`density.${p.label}`)}</MenuRadioItem>)}
         </Menu.RadioGroup>
       </MenuSubmenu>
+      {stackSets && <MenuCheckboxItem checked={stackSets.on} onCheckedChange={stackSets.toggle}>{t("menu.stackSets")}</MenuCheckboxItem>}
       {inspector}
     </>;
   }

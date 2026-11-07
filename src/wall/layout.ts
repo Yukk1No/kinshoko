@@ -9,9 +9,17 @@ export type Layout = {
   boxes: Box[];
   /** 每一列的图片序号，按 y 递增。 */
   lanes: number[][];
+  /** 打开的托盘（#418）：跨满整宽，托盘里的页排在它里面。没有打开时为 null。 */
+  tray: Box | null;
 };
 
-export type LayoutInput = readonly { w: number; h: number }[];
+/**
+ * 一张图的尺寸。`inset`：一摞（#418）的封面四周留出的纸边（CSS 像素），盒子按封面比例算，再加上内缩，
+ * 纸边因此不出格子。
+ */
+export type LayoutInput = readonly { w: number; h: number; inset?: number }[];
+/** 打开的托盘：`items` 里从 `at` 起的 `count` 张是托盘里的页，按页序排成行；`pad` 是托盘的上下内边距。 */
+export type TrayInput = { at: number; count: number; pad: number };
 export type LayoutOptions = {
   width: number;
   /** 目标列宽（CSS 像素）。 */
@@ -22,26 +30,53 @@ export type LayoutOptions = {
   capRatio: number | null;
 };
 
-export function masonry(items: LayoutInput, o: LayoutOptions): Layout {
+export function masonry(items: LayoutInput, o: LayoutOptions, trayInput: TrayInput | null = null): Layout {
   const inner = Math.max(1, o.width - o.pad * 2);
   const columns = Math.max(1, Math.round((inner + o.gap) / (o.target + o.gap)));
   const columnWidth = (inner - o.gap * (columns - 1)) / columns;
   const heights = new Array<number>(columns).fill(o.pad);
   const lanes: number[][] = Array.from({ length: columns }, () => []);
   const boxes: Box[] = new Array(items.length);
-  items.forEach((item, index) => {
+  const x = (lane: number) => o.pad + lane * (columnWidth + o.gap);
+  const heightOf = (item: LayoutInput[number]) => {
+    const inset = item.inset ?? 0;
+    const face = columnWidth - inset * 2;
+    let h = face * (item.h / item.w);
+    if (o.capRatio) h = Math.min(h, face * o.capRatio);
+    return Math.max(h, 24) + inset * 2;
+  };
+  let tray: Box | null = null;
+  for (let index = 0; index < items.length; index++) {
+    if (trayInput && index === trayInput.at && trayInput.count > 0) {
+      // 托盘从最高的一列底下开始；各页按页序从左到右排成行，每行从上一行最高的那页底下开始。
+      const top = Math.max(...heights);
+      let row = top + trayInput.pad;
+      let rowHeight = 0;
+      const end = Math.min(items.length, index + trayInput.count);
+      for (let page = index; page < end; page++) {
+        const lane = (page - index) % columns;
+        if (lane === 0 && page > index) { row += rowHeight + o.gap; rowHeight = 0; }
+        const h = heightOf(items[page]);
+        boxes[page] = { x: x(lane), y: row, w: columnWidth, h };
+        lanes[lane].push(page);
+        rowHeight = Math.max(rowHeight, h);
+      }
+      const bottom = row + rowHeight + trayInput.pad;
+      tray = { x: 0, y: top, w: o.width, h: bottom - top };
+      heights.fill(bottom + o.gap);
+      index = end - 1;
+      continue;
+    }
     // 放进最短的一列；相差不到 0.5 像素时取左边的。
     let lane = 0;
     for (let c = 1; c < columns; c++) if (heights[c] < heights[lane] - 0.5) lane = c;
-    let h = columnWidth * (item.h / item.w);
-    if (o.capRatio) h = Math.min(h, columnWidth * o.capRatio);
-    h = Math.max(h, 24);
-    boxes[index] = { x: o.pad + lane * (columnWidth + o.gap), y: heights[lane], w: columnWidth, h };
+    const h = heightOf(items[index]);
+    boxes[index] = { x: x(lane), y: heights[lane], w: columnWidth, h };
     heights[lane] += h + o.gap;
     lanes[lane].push(index);
-  });
+  }
   const height = items.length ? Math.max(...heights) - o.gap + o.pad : 0;
-  return { columns, columnWidth, height, boxes, lanes };
+  return { columns, columnWidth, height, boxes, lanes, tray };
 }
 
 /** 与 [top, bottom) 相交的图片序号：每列二分查找。 */

@@ -17,7 +17,7 @@ const KNOWN_MARGIN = 100;
 export function useWallPages({
   cards, setCards, cursor, setCursor, setTotal, setError, generation, inflight, view, restoring, anchor, shownCards,
   measureBeforeReflow, onWorkspaceStatus, releasePage, reloadKey, loadMoreRef, workspaceScope, safeMode,
-  pendingRemoval,
+  pendingRemoval, stackSets,
 }: {
   cards: BrowserCard[];
   setCards: Dispatch<SetStateAction<BrowserCard[]>>;
@@ -43,6 +43,8 @@ export function useWallPages({
    * 重新浏览回来的页去掉它们，张数也减去页里还算着的那些。
    */
   pendingRemoval: MutableRefObject<Set<string>>;
+  /** 同一图集叠成一摞（#418）。 */
+  stackSets: boolean;
 }) {
   // Keyed by value: re-selecting the same range creates a new but equal object. Clearing on that
   // identity change emptied the wall without the reload below ever running again (T20 r5/r6).
@@ -90,7 +92,7 @@ export function useWallPages({
           let acceptedStatus: WorkspaceStatus | null = null;
           try {
             do {
-              const page = await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, knownPlaceholders: knownFrom(next.length), stackSets: false }, safeMode);
+              const page = await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, knownPlaceholders: knownFrom(next.length), stackSets }, safeMode);
               if (!current()) return;
               markStartup("wallFirstPage");
               startupWallPage(page.cards.length);
@@ -137,7 +139,7 @@ export function useWallPages({
         if (inflight.current === gen) inflight.current = null;
       }
     },
-    [measureBeforeReflow, onWorkspaceStatus],
+    [measureBeforeReflow, onWorkspaceStatus, stackSets],
   );
 
   const loadMore = useCallback(async () => {
@@ -147,7 +149,7 @@ export function useWallPages({
     const { conditions, workspaceScope, safeMode } = view.current;
     let expired = false;
     try {
-      const page = await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, knownPlaceholders: [], stackSets: false }, safeMode);
+      const page = await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, knownPlaceholders: [], stackSets }, safeMode);
       if (gen !== generation.current) return;
       const next = [...cards, ...page.cards];
       onWorkspaceStatus?.(page.status, next);
@@ -165,7 +167,7 @@ export function useWallPages({
       if (inflight.current === gen) inflight.current = null;
     }
     if (expired) void reload(Math.max(loaded.current, PAGE));
-  }, [cards, cursor, reload, onWorkspaceStatus]);
+  }, [cards, cursor, reload, onWorkspaceStatus, stackSets]);
   loadMoreRef.current = () => { void loadMore(); };
   // 布局效果：同一次提交里先于其他组件的刷新（被动效果）发出浏览，后端按到达顺序排队（#183）。
   useLayoutEffect(() => {
