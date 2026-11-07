@@ -9,7 +9,7 @@ struct BrowseRow {
 
 /// 最近几组排好的浏览结果，键与游标里的相同（#288）：同一组结果翻页、从头重读只切片。
 /// 键里含修订号、范围与条件，修订号一变旧结果就再也取不到，不需要另外失效。留几组而不是一组，
-/// 免得两处用不同条件交替浏览时互相挤掉。按分级查找的结果不留（[`reads_ratings`]）。
+/// 免得两处用不同条件交替浏览时互相挤掉。按分级、按自动标签未完成查找的结果不留（[`uncached`]）。
 #[derive(Default)]
 pub(super) struct BrowseCache {
     results: std::collections::VecDeque<(String, std::sync::Arc<Vec<BrowseRow>>)>,
@@ -92,8 +92,9 @@ impl Workspace {
                 offset.parse::<usize>().map_err(|_| Error::InvalidCursor)?
             }
         };
-        // 按分级查找的结果不复用：来源分级没跨过安全模式范围时不推进修订号。
-        let reuse = !reads_ratings(&query.conditions);
+        // 按分级查找的结果不复用：来源分级没跨过安全模式范围时不推进修订号。打标失败的记录变了
+        // （记下、重试）也不推进修订号，按自动标签未完成查找的结果同样不复用（#475）。
+        let reuse = !uncached(&query.conditions);
         let cached = reuse.then(|| self.browse_cache.get(&key)).flatten();
         let hit = cached.is_some();
         let collecting = std::time::Instant::now();
@@ -252,15 +253,17 @@ impl PendingPage {
     }
 }
 
-/// 条件里有没有按有效分级匹配的项（点选的分级，或文字也匹配某档分级的名称）。
-fn reads_ratings(tree: &ConditionTree) -> bool {
+/// 条件里有没有修订号管不到的项：按有效分级匹配的（点选的分级，或文字也匹配某档分级的名称），
+/// 或自动标签未完成。
+fn uncached(tree: &ConditionTree) -> bool {
     tree.conditions
         .iter()
         .flat_map(|c| &c.any)
         .any(|term| match term {
             Term::Rating { .. } => true,
             Term::Text { ratings, .. } => !ratings.is_empty(),
-            Term::Tag { .. } | Term::TaggingUnfinished => false,
+            Term::TaggingUnfinished => true,
+            Term::Tag { .. } => false,
         })
 }
 
