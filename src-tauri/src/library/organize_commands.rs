@@ -196,15 +196,31 @@ pub(super) async fn rename_folder<R: Runtime>(
 }
 
 /// 删除文件夹及其子文件夹（#114）：图片不删，没有其他文件夹的回到未归类。
+/// 返回删掉的内容，界面留着它给“撤销”用（[`restore_folder`]）。
 #[tauri::command]
 pub(super) async fn delete_folder<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     folder_id: String,
-) -> Result<(), CommandError> {
+) -> Result<kinshoko_core::library::DeletedFolders, CommandError> {
     blocking(move || {
         writable(&app, &library_id)?
             .delete_folder(&folder_id)
+            .map_err(CommandError::from)
+    })
+    .await
+}
+
+/// 撤销删除文件夹（#478）：把 [`delete_folder`] 返回的内容原样放回。
+#[tauri::command]
+pub(super) async fn restore_folder<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    deleted: kinshoko_core::library::DeletedFolders,
+) -> Result<(), CommandError> {
+    blocking(move || {
+        writable(&app, &library_id)?
+            .restore_folder(deleted)
             .map_err(CommandError::from)
     })
     .await

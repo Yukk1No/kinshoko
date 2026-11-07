@@ -71,6 +71,8 @@ mod eagle_tag_collisions;
 mod eagle_tag_mapping;
 #[path = "edge_hide.rs"]
 mod edge_hide;
+#[path = "folder_undo.rs"]
+mod folder_undo;
 #[path = "global_shortcuts.rs"]
 mod global_shortcuts;
 #[path = "image_commands.rs"]
