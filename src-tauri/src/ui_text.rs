@@ -53,8 +53,8 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
     match key {
         Text::TrayOpen => pick(en, "打开 Kinshoko", "Open Kinshoko"),
         Text::TrayCapture => pick(en, "截图", "Capture"),
-        Text::TrayPinClipboard => pick(en, "钉剪贴板", "Pin clipboard"),
-        Text::TrayEdgeHide => pick(en, "贴边隐藏／显示钉图", "Hide or show pins at the edge"),
+        Text::TrayPinClipboard => pick(en, "钉住剪贴板", "Pin clipboard"),
+        Text::TrayEdgeHide => pick(en, "收起 / 显示钉图", "Hide or show pins"),
         Text::TrayQuit => pick(en, "退出", "Quit"),
         Text::TrayBackingUp => pick(en, "Kinshoko：正在备份…", "Kinshoko: backing up…"),
         Text::TrayBackupFailed => pick(
@@ -77,7 +77,7 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
         Text::DataDirUnwritable => pick(
             en,
             "Kinshoko 无法写入数据文件夹：\n{root}\n\n原因：{error}\n\n\
-             Kinshoko 把设置、打标模型等数据保存在程序所在目录下的 data 文件夹。\
+             Kinshoko 把设置、自动标签模型等数据保存在程序所在目录下的 data 文件夹。\
              请把 Kinshoko 安装到当前用户可以写入的位置（例如默认的 %LOCALAPPDATA%\\Kinshoko），\
              或者给这个文件夹写入权限后重新启动。",
             "Kinshoko can't write to its data folder:\n{root}\n\nReason: {error}\n\n\
@@ -97,24 +97,16 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
             "参考图无法读取：图库没有打开，或原图已缺失",
             "Can't read the reference image: the library isn't open, or the original is missing",
         ),
-        Text::PinLibraryNotRegistered => pick(
-            en,
-            "本设备没有登记这个资料库",
-            "This library isn't registered on this device",
-        ),
+        Text::PinLibraryNotRegistered => pick(en, "这个图库还没有打开", "This library isn't open"),
         Text::PinLibraryMissing => pick(
             en,
-            "{root} 处没有这个资料库（移动盘没插，或资料库搬了家）",
+            "{root} 处没有这个图库（移动盘没插，或图库搬了家）",
             "There's no library at {root} (the removable drive isn't connected, or the library has moved)",
         ),
-        Text::PinLibraryUnavailable => pick(
-            en,
-            "资料库暂时不可用",
-            "The library is unavailable right now",
-        ),
+        Text::PinLibraryUnavailable => pick(en, "图库未连接", "The library isn't connected"),
         Text::PinImageMissing => pick(
             en,
-            "参考图已从资料库中删除",
+            "参考图已从图库中删除",
             "The reference image has been deleted from the library",
         ),
         Text::PinOriginalMissing => pick(en, "原图文件缺失", "The original file is missing"),

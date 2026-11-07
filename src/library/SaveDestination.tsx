@@ -148,11 +148,11 @@ export function SaveDestinationPicker({ value, onChange, disabled = false, putIn
 }
 
 /**
- * 选好保存位置再执行的对话框（收藏截图、复制到、导入参考组包）。`description` 与 `summary`
- * 是标题下的一句说明和要保存的内容（例如截图缩略图与尺寸）。
+ * 选好保存位置再执行的对话框（收藏截图、复制到、导入参考组包）。`summary`
+ * 是标题下要保存的内容（例如截图缩略图与尺寸）。
  */
-export function SaveDestinationDialog({ title, description, summary, confirmLabel, onConfirm, onClose }: {
-  title: string; description?: string; summary?: ReactNode; confirmLabel?: string; onConfirm: (value: SaveDestination) => Promise<unknown>; onClose: () => void;
+export function SaveDestinationDialog({ title, summary, confirmLabel, onConfirm, onClose }: {
+  title: string; summary?: ReactNode; confirmLabel?: string; onConfirm: (value: SaveDestination) => Promise<unknown>; onClose: () => void;
 }) {
   const { t } = useTranslation("common", { keyPrefix: "saveDestination" });
   const context = useSaveDestination();
@@ -166,7 +166,6 @@ export function SaveDestinationDialog({ title, description, summary, confirmLabe
       <Dialog.Backdrop className="k-backdrop" />
       <Dialog.Popup className="k-dialog k-save-dialog save-destination-dialog">
         <Dialog.Title className="k-dialog-title">{title}</Dialog.Title>
-        <Dialog.Description className="k-dialog-desc">{description ?? t("description")}</Dialog.Description>
         {summary && <div className="k-import-summary">{summary}</div>}
         <SaveDestinationPicker value={value} onChange={setValue} disabled={busy} />
         {error && <p className="k-set-error" role="alert">{error}</p>}

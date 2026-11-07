@@ -29,7 +29,7 @@ export default {
     cancelled: "检查已取消",
   },
   check: {
-    now: "立即检查",
+    now: "检查",
     never: "还没同步过",
     justNow: "刚刚同步",
     minutes_other: "同步于 {{count}} 分钟前",
@@ -182,7 +182,7 @@ export default {
     accountTitle: "账号可能被警告或停用",
     accountBody: "建议注册一个小号，专门给 Kinshoko 用。",
     gentleTitle: "非即时",
-    gentleBody: "Kinshoko 会定时检查新作，也可以手动立即检查。",
+    gentleBody: "Kinshoko 会定时检查新作，也可以手动检查。",
     animationTitle: "动图暂不兼容",
     later: "以后再说",
     signIn: "知道了，去登录",

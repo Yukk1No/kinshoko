@@ -23,7 +23,7 @@ function TagAdder({ added = [], onBackspace, autoHighlight }: { added?: string[]
     { id: "create", create: true, label: `新建标签“${query}”` },
   ] : [];
   return <>
-    <Combobox label="标签名" placeholder="加标签" value={text} onValueChange={setText} options={options} autoHighlight={autoHighlight}
+    <Combobox label="标签名" placeholder="添加标签" value={text} onValueChange={setText} options={options} autoHighlight={autoHighlight}
       empty={query && found.length === 0 ? "没有匹配的标签" : undefined}
       onSelect={(option, event) => { setPicked((p) => [...p, { id: option.id, alt: event.altKey }]); setText(""); }}
       onBackspaceEmpty={onBackspace} />
