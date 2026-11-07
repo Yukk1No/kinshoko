@@ -25,6 +25,9 @@ export type ToastApi = {
 
 const Manager = createContext<ToastApi | null>(null);
 
+/** 带操作（如“撤销”）的提示多留一会儿：看完再伸手去点要比读一句话久。悬停时照常暂停计时。 */
+const ACTION_TIMEOUT = 8000;
+
 function Bridge({ children }: { children: ReactNode }) {
   // The manager object changes identity between renders; keep the API stable so it can sit in effect deps.
   const manager = Toast.useToastManager();
@@ -32,7 +35,7 @@ function Bridge({ children }: { children: ReactNode }) {
   latest.current = manager;
   const api = useMemo<ToastApi>(() => {
     const content = ({ title, description, tone = "info", timeout, action }: Omit<ToastOptions, "onClose">) => ({
-      title, description, type: tone, timeout: timeout ?? (tone === "error" ? 0 : 5000), priority: tone === "error" ? "high" as const : "low" as const,
+      title, description, type: tone, timeout: timeout ?? (tone === "error" ? 0 : action ? ACTION_TIMEOUT : 5000), priority: tone === "error" ? "high" as const : "low" as const,
       actionProps: action ? { children: action.label, onClick: action.onClick } : undefined,
     });
     const show = ({ onClose, ...options }: ToastOptions): string => latest.current.add({ ...content(options), onClose });

@@ -107,6 +107,8 @@ export type WallProps = {
   onCardCommand?: (command: CardCommand, cards: BrowserCard[], point: { x: number; y: number }) => void;
   /** Ctrl+V：从剪贴板导入（#105）。主窗口里焦点不在输入框、没有模态与查看器时都响应。 */
   onPaste?: () => void;
+  /** 空状态下紧跟在那句话后面的操作（空图库的导入、没有结果时的清除条件）；不给出时只有那句话。 */
+  emptyAction?: (searching: boolean) => ReactNode;
 };
 
 /** 按键落在可输入的地方（输入框、文本框、可编辑区域）：Ctrl+V 是粘贴文字，不是导入。 */

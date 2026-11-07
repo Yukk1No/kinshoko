@@ -147,6 +147,10 @@
 .k-tagging-activity:hover { color: var(--ink); }
 .k-tagging-activity:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .k-tagging-activity[data-activity="paused"] { color: var(--ink-2); }
+/* 停住、等画师处理（需要下载、出错、不可用）：静止的图标，没有环，不闪烁；点开去设置处理。 */
+.k-tagging-activity[data-activity="stopped"] { color: var(--ink-2); }
+.k-tagging-activity[data-activity="stopped"]:hover { color: var(--ink); }
+[data-activity="stopped"] .k-tagging-track { stroke: color-mix(in srgb, var(--ink) 10%, transparent); }
 .k-tagging-ring { position: absolute; inset: 0; }
 .k-tagging-ring, .k-tagging-mini { transform: rotate(-90deg); fill: none; stroke-width: 2.5; }
 .k-tagging-mini { stroke-width: 2; }

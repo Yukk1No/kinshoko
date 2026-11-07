@@ -120,17 +120,37 @@ describe("缩放滑块左边的打标图标", () => {
     expect(dot.querySelector(".k-tagging-arc")?.getAttribute("stroke-dasharray")).toBe("50 100");
   });
 
-  it.each<[string, TaggingStatus]>([
-    ["打完", idle(3)],
-    ["需要下载", needsDownload()],
-    ["没有可用设备", { state: "noDevice", reasons: [{ code: "system", detail: "没有独立显卡" }] }],
-    ["出错", { state: "failed", reason: { code: "system", detail: "超时" } }],
-  ])("%s时不显示", async (_, status) => {
+  it("打完时不显示", async () => {
     backend(running(1));
     mount();
     await screen.findByRole("button", { name: /自动标签/ });
-    await push(status);
+    await push(idle(3));
     await waitFor(() => expect(icon()).toBeNull());
+  });
+
+  // 停住、等画师处理的状态留一个静止图标：关掉通知后仍能从这里去设置。
+  it.each<[string, TaggingStatus, RegExp]>([
+    ["需要下载", needsDownload(), /需要下载自动标签模型/],
+    ["没有可用设备", { state: "noDevice", reasons: [{ code: "system", detail: "没有独立显卡" }] }, /自动标签不可用/],
+    ["出错", { state: "failed", reason: { code: "system", detail: "超时" } }, /自动标签出错/],
+  ])("%s时留一个静止图标，点开去设置", async (_, status, name) => {
+    const onOpenSettings = vi.fn();
+    backend(status);
+    mount(onOpenSettings);
+    const button = await screen.findByRole("button", { name });
+    expect(button.dataset.activity).toBe("stopped");
+    expect(button.dataset.pending).toBeUndefined();
+    expect(document.querySelector(".k-tagging-arc")).toBeNull();
+    fireEvent.click(button);
+    expect(onOpenSettings).toHaveBeenCalled();
+  });
+
+  it("停住的状态在多选收起时不挂小圆点", async () => {
+    backend(needsDownload());
+    render(<><TaggingActivity collapsed onOpenSettings={() => {}} /></>);
+    await settled();
+    await act(async () => {});
+    expect(document.querySelector(".k-tagging-dot")).toBeNull();
   });
 
 });

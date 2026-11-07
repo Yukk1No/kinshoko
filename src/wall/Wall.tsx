@@ -59,6 +59,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   menu,
   onCardCommand,
   onPaste,
+  emptyAction,
 }, ref) {
   const searching = conditions.conditions.length > 0;
   const storeKey = searching ? null : `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}`;
@@ -328,7 +329,10 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
       onContextMenuCapture={(e) => { if (menu) targetMenu(e); }} />}>
       {error && <p role="alert">{error}</p>}
       {total === 0 ? (
-        <p className="wall-empty">{searching ? t("empty.searching") : t(`empty.${scope.kind}`)}</p>
+        <div className="wall-empty">
+          <p>{searching ? t("empty.searching") : t(`empty.${scope.kind}`)}</p>
+          {emptyAction?.(searching)}
+        </div>
       ) : (
         <div className="wall-canvas" style={{ height: layout.height }}>
           {mounted.map((i) => {
