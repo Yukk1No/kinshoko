@@ -131,7 +131,7 @@ describe("订阅榜单", () => {
     const dialog = await openRankingDialog();
     const day = within(dialog).getByRole("checkbox", { name: "日榜" }) as HTMLInputElement;
     expect(day.disabled && day.checked).toBe(true);
-    expect(within(dialog).getByText("已订阅 · 前 50")).toBeTruthy();
+    expect(within(dialog).getByText("已订阅，前 50")).toBeTruthy();
     // 预勾第一个还没订的。
     expect((within(dialog).getByRole("checkbox", { name: "周榜" }) as HTMLInputElement).checked).toBe(true);
     const library = within(dialog).getByRole("combobox", { name: "图库" });

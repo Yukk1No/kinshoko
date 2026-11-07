@@ -4,7 +4,7 @@ export default {
   heading: "设置",
   tabsLabel: "设置分页",
   loading: "正在读取设置…",
-  loadFailed: "设置没读出来：{{error}}",
+  loadFailed: "无法读取设置：{{error}}",
   retry: "重试",
   /** 分页名，键是 `SettingsTab`。 */
   tab: {

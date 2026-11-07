@@ -53,7 +53,7 @@ it("读取时目录修订改变会自动重读，不留下要求用户操作的�
 it("未连接的图库名称变淡带警示点，同一行末尾就地重新连接，原因在悬停提示里（设计系统 v2）", async () => {
   const recheck = vi.fn();
   const missing = forest("offline");
-  missing.providers[0].registration.unavailable = { code: "system", detail: "资料库暂时不可用：移动盘没插" };
+  missing.providers[0].registration.unavailable = { code: "system", detail: "图库暂时无法连接：移动盘没插" };
   missing.providers[0].sidebar = null;
   await loaded(render(<WorkspacePane {...props} scope={inA({ kind: "all" })} onRecheck={recheck} />), missing);
   const a = section("A");

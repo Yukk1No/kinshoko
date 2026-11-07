@@ -316,7 +316,7 @@ describe("安全模式", () => {
       fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
       fireEvent.click(await screen.findByRole("button", { name: "给“蓝发”加相近标签" }));
       const dialog = screen.getByRole("dialog", { name: "加相近标签" });
-      const pick = within(dialog).getByRole("combobox", { name: "挑一个库内标签" });
+      const pick = within(dialog).getByRole("combobox", { name: "挑本图库的标签" });
       fireEvent.change(pick, { target: { value: "只在成人" } });
       expect(await screen.findByRole("option", { name: /只在成人图出现的标签/ })).toBeTruthy();
 

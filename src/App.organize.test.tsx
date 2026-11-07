@@ -88,7 +88,7 @@ describe("整理", () => {
     fireEvent.keyDown(card("a"), { key: " " });
     expect(selectionBar()).toBeNull();
     fireEvent.contextMenu(card("a"));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "还原" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "恢复" }));
     await waitFor(() =>
       expect(sent("plugin:library|workspace_edit_sources").at(-1)).toMatchObject({ targets: [{ imageId: "a" }], edits: [{ kind: "restore" }] }),
     );
@@ -200,7 +200,7 @@ describe("整理", () => {
     // 只选一张时没有悬浮栏（#180）：从右键菜单彻底删除。
     fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.contextMenu(card("a"));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "彻底删除…" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "永久删除…" }));
 
     // 没有受影响的参考组：直接确认。
     expect(await screen.findByText(/永久删除这 1 张图/)).toBeTruthy();
@@ -235,7 +235,7 @@ describe("整理", () => {
     fireEvent.click(await screen.findByRole("button", { name: "收起详情" }));
     await waitFor(() => expect(screen.getByLabelText("详情", { selector: "aside" }).getAttribute("data-collapsed")).toBe("true"));
     fireEvent.contextMenu(card("a"));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "彻底删除…" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "永久删除…" }));
     const dialog = await screen.findByRole("alertdialog", { name: "永久删除" });
     expect(dialog.closest("[inert], [aria-hidden='true']")).toBeNull();
     expect(dialog.closest("aside")).toBeNull();

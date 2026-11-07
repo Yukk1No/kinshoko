@@ -39,7 +39,7 @@ describe("标签分组", () => {
       return button;
     });
     fireEvent.click(addMember);
-    fireEvent.change(within(hair).getByRole("combobox", { name: "挑一个统一标签" }), { target: { value: "蓝" } });
+    fireEvent.change(within(hair).getByRole("combobox", { name: "挑一个标签" }), { target: { value: "蓝" } });
     fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
     await waitFor(() =>
       expect(sent("plugin:library|edit_shared_tag_group")).toEqual([{ edit: { kind: "addMembers", groupId: "G1", tagIds: ["T-blue"] }, safeMode: true }]),

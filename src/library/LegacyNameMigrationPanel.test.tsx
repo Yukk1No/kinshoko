@@ -53,7 +53,7 @@ it("shows one old name at a time with both old names and the existing preference
   expect(within(wizard).getByRole<HTMLInputElement>("radio", { name: /跟随默认.*「分缝发型」/ }).checked).toBe(false);
   choose(/保留为全局偏好「分开的头发」/);
   next();
-  const table = await within(wizard).findByRole("table", { name: "迁移后最终显示" });
+  const table = await within(wizard).findByRole("table", { name: "确认后的显示" });
   expect(within(table).getByText("核心预览结果")).toBeTruthy();
   // 标签列写标签名与语言，不写内部编号。
   expect(within(table).getByText("分缝发型（简体中文）")).toBeTruthy();
@@ -146,10 +146,10 @@ it("uses the default only for remaining unchosen names without conflicts, leaves
   expect(within(wizard).getByText(/名称不同，请选一个/)).toBeTruthy();
   // 没选完不能进入确认。
   next();
-  expect(within(wizard).queryByRole("table", { name: "迁移后最终显示" })).toBeNull();
+  expect(within(wizard).queryByRole("table", { name: "确认后的显示" })).toBeNull();
   choose(/保留为全局偏好「分发」/);
   next();
-  const table = await within(wizard).findByRole("table", { name: "迁移后最终显示" });
+  const table = await within(wizard).findByRole("table", { name: "确认后的显示" });
   expect(within(table).getAllByRole("row")).toHaveLength(21);
   expect(within(wizard).queryByText("最终名称 250")).toBeNull();
   fireEvent.click(within(wizard).getByRole("button", { name: "下一页" }));

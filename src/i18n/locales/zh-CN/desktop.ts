@@ -57,7 +57,7 @@ export default {
   },
   /** 侧栏的截图历史（`CaptureHistoryPanel`）。 */
   history: {
-    label: "截图历史",
+    label: "截图",
     empty: "还没有截图。",
     name: "截图 {{time}}",
     unnamed: "截图",
@@ -81,7 +81,7 @@ export default {
     label: "参考组",
     sealed: "安全模式下原位遮蔽",
     available: "可用",
-    unregisteredLibrary: "未登记的图库",
+    unregisteredLibrary: "未打开的图库",
     notInLibrary: "不在图库里",
     librarySeparator: "、",
     savedNew: "已把桌面钉图存为参考组",
@@ -99,7 +99,7 @@ export default {
     nameLabel: "参考组名称",
     delete: "删除",
     allOnDesktop: "成员都已在桌面上",
-    opened_other: "已钉出 {{count}} 个成员",
+    opened_other: "已摆到桌面 {{count}} 张",
     open: "摆到桌面",
     rename: "改名",
     more: "更多操作",
@@ -123,7 +123,7 @@ export default {
   captureSave: {
     title: "截图怎样存进参考组",
     description: "逐张选择：收藏进图库，只存在参考组里，或不加入参考组。只存在参考组里的截图不进图库，参考组不再用它时一起删除。",
-    unregisteredLibrary: "未登记的图库",
+    unregisteredLibrary: "未打开的图库",
     thumbAlt: "截图 {{n}}",
     name: "截图 {{n}}",
     collectedTo: "已收藏到 {{libraries}}",
