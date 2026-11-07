@@ -1,4 +1,5 @@
 import type { SaveDestination } from "./bindings/SaveDestination";
+import type { SaveMemory } from "./bindings/SaveMemory";
 import type { ImportOptions } from "./bindings/ImportOptions";
 import type { LibraryTarget } from "./bindings/LibraryTarget";
 import type { LibraryDeletePreview } from "./bindings/LibraryDeletePreview";
@@ -6,12 +7,10 @@ import type { LibraryDeleteToken } from "./bindings/LibraryDeleteToken";
 import type { LibraryBatchFailure } from "./bindings/LibraryBatchFailure";
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc/invoke";
 import { type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { AppInfo } from "./bindings/AppInfo";
-import type { BrowsePage } from "./bindings/BrowsePage";
-import type { BrowseQuery } from "./bindings/BrowseQuery";
 import type { EagleLibraryCandidate } from "./bindings/EagleLibraryCandidate";
 import type { EagleTagMapping } from "./bindings/EagleTagMapping";
 import type { MappedExternal } from "./bindings/MappedExternal";
@@ -21,28 +20,55 @@ import type { ImageEdit } from "./bindings/ImageEdit";
 import type { PermanentDeletePreview } from "./bindings/PermanentDeletePreview";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { LibraryRegistration } from "./bindings/LibraryRegistration";
+import type { RegisteredLibrary } from "./bindings/RegisteredLibrary";
 import type { RecoveryReport } from "./bindings/RecoveryReport";
-import type { Sidebar } from "./bindings/Sidebar";
 import { lib } from "./ipc/plugins";
+import { isErrorCode } from "./ipc/commandError";
 export * from "./ipc/tagsAndSearch";
 export * from "./ipc/shell";
 export * from "./ipc/desktop";
 export * from "./ipc/groups";
 export * from "./ipc/workspace";
+export * from "./ipc/commandError";
 
 export function appInfo(): Promise<AppInfo> {
   return invoke<AppInfo>("app_info");
 }
 
 
-/** 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。 */
-export function currentLibrary(): Promise<LibraryInfo | null> {
-  return invoke<LibraryInfo | null>(lib("current_library"));
+/** 启动时打开本设备上次打开的资料库并装配后端。打开了哪个是后端细节（ADR-0008），界面不留。 */
+export async function openLastLibrary(): Promise<void> {
+  await invoke(lib("current_library"));
+}
+
+/** 保存入口各自记住的位置（ADR-0016）。 */
+export function saveMemory(): Promise<SaveMemory> {
+  return invoke<SaveMemory>(lib("save_memory"));
+}
+
+/** 导入对话框里亲手选定了保存目标。 */
+export function rememberImportDestination(destination: SaveDestination): Promise<void> {
+  return invoke<void>(lib("remember_import_destination"), { destination });
+}
+
+/** 亲手选定了新建资料库的位置。 */
+export function rememberNewLibraryParent(parent: string): Promise<void> {
+  return invoke<void>(lib("remember_new_library_parent"), { parent });
+}
+
+/** 系统的「图片」文件夹；取不到时为空。 */
+export function picturesFolder(): Promise<string | null> {
+  return invoke<string | null>(lib("pictures_folder"));
 }
 
 /** 在 parent 下新建名为 name 的资料库，登记到本设备并打开。 */
 export function createLibrary(parent: string, name: string): Promise<LibraryInfo> {
   return invoke<LibraryInfo>(lib("create_library"), { parent, name });
+}
+
+/** 新建资料库并登记到本设备，但不切换过去（#370 订阅榜单时新建「pixiv 榜单」）。 */
+export function createLibraryUnopened(parent: string, name: string): Promise<RegisteredLibrary> {
+  return invoke<RegisteredLibrary>(lib("create_library_unopened"), { parent, name });
 }
 
 export function registeredLibraries(): Promise<LibraryRegistration[]> {
@@ -62,34 +88,22 @@ export function unregisterLibrary(libraryId: string): Promise<void> {
 }
 
 /**
- * 按查询浏览一页。`query.cursor` 所依据的结果集已经变了（换了视角、查询，或可见集合变化）时
- * 被拒绝（{@link isCursorExpired}），从第一页重读。
+ * 浏览失败是不是因为分页游标过期（`cursorExpired`）：游标所依据的结果集已经变了，接着翻会遗漏或重复（#77）。
+ * 不是错误，从第一页重新浏览即可。
  */
-export function browse(libraryId: string, query: BrowseQuery): Promise<BrowsePage> {
-  return invoke<BrowsePage>(lib("browse"), { libraryId, query });
-}
-
-/** 资料库的 `CursorExpired`：分页游标所依据的结果集已经变了，接着翻会遗漏或重复（#77）。 */
-const CURSOR_EXPIRED = "浏览结果已变化，请从头重新浏览";
-
-/** 浏览失败是不是因为分页游标过期：不是错误，从第一页重新浏览即可。 */
 export function isCursorExpired(error: unknown): boolean {
-  return String(error) === CURSOR_EXPIRED;
+  return isErrorCode(error, "cursorExpired");
 }
 
-/** 资料库的 `UnknownImage`：图不存在、在别的资料库，或安全模式下被封印（#60）。 */
-const UNKNOWN_IMAGE = "资料库中没有这张参考图";
-
-/** 命令失败是不是因为这张图已查不到（应关闭查看它的界面、回到图片墙）。 */
+/**
+ * 命令失败是不是因为这张图已查不到（`unknownImage`：图不存在、在别的资料库，或安全模式下被封印，#60）。
+ * 应关闭查看它的界面、回到图片墙。
+ */
 export function isUnknownImage(error: unknown): boolean {
-  return String(error) === UNKNOWN_IMAGE;
+  return isErrorCode(error, "unknownImage");
 }
 
 /** 单张参考图的详情。 */
-export function imageDetail(libraryId: string, imageId: string): Promise<ImageDetail> {
-  return invoke<ImageDetail>(lib("image"), { libraryId, imageId });
-}
-
 /** 一次批量整理若干张图，返回重新计算后的详情。 */
 export function editImages(libraryId: string, ids: string[], edits: ImageEdit[]): Promise<ImageDetail[]> {
   return invoke<ImageDetail[]>(lib("edit"), { libraryId, ids, edits });
@@ -120,18 +134,12 @@ export function permanentDelete(libraryId: string, ids: string[], token: string)
   return invoke<void>(lib("permanent_delete"), { libraryId, ids, token });
 }
 
-const DELETE_PREVIEW_STALE = "回收站或参考组在确认前有变化，请重新查看将受影响的参考组";
-
-/** 永久删除被拒绝：预览之后回收站、参考组或安全模式变了，要重新预览。 */
+/** 永久删除被拒绝（`deletePreviewStale`）：预览之后回收站、参考组或安全模式变了，要重新预览。 */
 export function isDeletePreviewStale(error: unknown): boolean {
-  return String(error) === DELETE_PREVIEW_STALE;
+  return isErrorCode(error, "deletePreviewStale");
 }
 
 /** 侧栏：全部、回收站与文件夹树，计数只算可见的图。 */
-export function sidebar(libraryId: string): Promise<Sidebar> {
-  return invoke<Sidebar>(lib("sidebar"), { libraryId });
-}
-
 /** 新建文件夹，放在 parent 下（null 为顶层）的最后，返回文件夹 id。 */
 export function createFolder(libraryId: string, name: string, parent: string | null): Promise<string> {
   return invoke<string>(lib("create_folder"), { libraryId, name, parent });
@@ -200,7 +208,7 @@ export function cancelImport(libraryId: string, taskId: string): Promise<void> {
   return invoke<void>(lib("cancel_import"), { libraryId, taskId });
 }
 
-/** 当前资料库这次打开时的对账结果：撤回的中断导入项与不认识的孤立文件。 */
+/** 这个资料库这次打开时的对账结果：撤回的中断导入项与不认识的孤立文件。 */
 export function libraryRecovery(libraryId: string): Promise<RecoveryReport> {
   return invoke<RecoveryReport>(lib("recovery"), { libraryId });
 }

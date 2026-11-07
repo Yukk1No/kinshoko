@@ -2,7 +2,7 @@
 
 **English** · [简体中文](docs/CONTRIBUTING.zh-CN.md)
 
-Thanks for helping out. Kinshoko is led by a single maintainer and the first stable release (v1.0) is being finished. This page explains how to contribute without wasting anyone's time.
+Thanks for helping out. Kinshoko is led by a single maintainer, and v1.0 shipped in October 2026. This page explains how to contribute without wasting anyone's time.
 
 Most project docs, issues and code comments are in Chinese. Writing in English is fine.
 
@@ -16,7 +16,7 @@ Search existing issues first. Do not report security issues in public; see [SECU
 
 1. **Open an issue, or comment on an existing one, before you start.** Describe what you want to change and how, and wait for the maintainer to reply. Much of Kinshoko's behavior rests on acceptance testing with illustrators and on recorded decisions (see [docs/adr/](docs/adr/)), so agreeing first avoids wasted work. Issues labelled `ready-for-human` are open to pick up.
 2. Small fixes such as typos and broken doc links can go straight to a PR.
-3. **Target the `integration/v1` branch**, not `main`. `main` is frozen until v1 ships through [PR #71](https://github.com/Yukk1No/kinshoko/pull/71).
+3. **Target the `main` branch.** If your fix also needs to go into an already released version, the maintainer will carry it over to a maintenance branch; you don't need to do anything for that.
 4. Keep each PR to one change. Link the issue (`Closes #123`) and say how you verified it. For UI changes, attach a screenshot of the app window.
 5. The maintainer merges once CI is green.
 
@@ -30,7 +30,7 @@ Contributions are licensed under the repository's [GPL-3.0-or-later](LICENSE), i
 - WebView2 Runtime (evergreen). Windows 11 includes it.
 - Python 3, for the pre-commit hook and the probe scripts in `scripts/probe/`.
 
-After cloning, enable the repository's git hooks (they reject staged files over 5,000 tokens):
+After cloning, enable the repository's git hooks (pre-commit rejects staged files over 5,000 tokens; pre-push runs `cargo fmt --check` and `npm run typecheck`, about 10 seconds):
 
 ```sh
 git config core.hooksPath .githooks
@@ -44,6 +44,10 @@ npm run dev             # run the app in dev mode (Vite dev server + debug build
 npm run build           # release build; the NSIS installer lands in target/release/bundle/nsis/
 npm test                # frontend tests (Vitest)
 npm run typecheck       # TypeScript type check
+npm run check           # type check + frontend tests; prints only failures and a summary, exit code covers every step
+npm run check -- --rust # also cargo fmt --check, Clippy and the core crate tests
+npm run check -- App.import   # only Vitest, arguments passed through
+npm run check -- --rust-only --test integration writer_switch::   # only nextest, arguments passed through
 npm run bindings        # regenerate src/bindings/ (runs the core crate's unit tests)
 cargo nextest run -p kinshoko-core   # core crate tests (what CI runs; needs cargo-nextest)
 cargo test -p kinshoko-core --doc    # core crate doctests (nextest skips them)
@@ -52,6 +56,8 @@ cargo fmt --all
 cargo clippy --workspace --all-targets -- -D warnings   # run npm run vite:build first to produce dist/
 node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # needs tauri-driver and an msedgedriver matching WebView2
 ```
+
+The core crate sets `autotests = false`, and most files in `crates/kinshoko-core/tests/` are modules of the `integration` target, not targets of their own. To run one module, name the target and filter by module path: `cargo nextest run -p kinshoko-core --test integration writer_switch::`. `--test writer_switch` fails with "no test target named"; the available targets are the `[[test]]` entries in its `Cargo.toml`.
 
 CI runs the Rust checks (format, Clippy, core crate tests, pin renderer offscreen tests on WARP, generated-file check) and the native app build with the WebDriver smoke test on `windows-2022`, and the TypeScript type check, frontend tests and workflow lint on `ubuntu-latest`. The app job is pinned to `windows-2022` because the smoke test does not yet pass on `windows-latest`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run the relevant checks locally before opening a PR.
 
@@ -87,6 +93,11 @@ CI runs the Rust checks (format, Clippy, core crate tests, pin renderer offscree
 - **Commit messages.** Use `type(scope): summary`, with types such as `feat`, `fix`, `docs`, `ci` and `chore`. The summary may be in Chinese.
 - **Privacy.** The repository is public. Do not commit full-desktop screenshots, logs containing personal paths or user names, or a real illustrator's library. Capture only the app window, and test with synthetic images or images that may be redistributed publicly.
 
-## AI coding assistants
+## How Kinshoko is built
 
-The repository ships instructions and skills for AI coding assistants; start at [AGENTS.md](AGENTS.md). PRs written with an AI assistant still need an agreed issue first, and you are responsible for reviewing the change and running the checks yourself.
+Kinshoko is developed mainly by AI coding agents (Claude Code and Codex). The maintainer decides what to build and how it should feel, and tests it on illustrators' machines. Agents write most of the code, docs, issues and PR descriptions, and review PRs. Text an agent wrote on its own is marked as such.
+
+What this means for you:
+
+- Your PR will usually get a first review from an agent; the maintainer makes the final call.
+- PRs written with an AI assistant are welcome. They still need an agreed issue first, and you are responsible for reviewing the change and running the checks yourself. The instructions and skills the project's agents use start at [AGENTS.md](AGENTS.md).

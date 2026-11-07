@@ -1,6 +1,6 @@
 import type { RuntimeCapabilities } from "../bindings/RuntimeCapabilities";
 import type { RuntimeStatus } from "../bindings/RuntimeStatus";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { BackupPreview } from "../bindings/BackupPreview";
 import type { BackupStatus } from "../bindings/BackupStatus";
@@ -11,34 +11,34 @@ import type { ModelChoice } from "../bindings/ModelChoice";
 import type { Device } from "../bindings/Device";
 import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { ShortcutAction } from "../bindings/ShortcutAction";
-import type { LibraryTaggingStatus } from "../bindings/LibraryTaggingStatus";
+import type { TaggingStatus } from "../bindings/TaggingStatus";
 import type { UpdateProgress } from "../bindings/UpdateProgress";
 import type { UpdateChannel } from "../bindings/UpdateChannel";
 import type { UpdateStatus } from "../bindings/UpdateStatus";
 import { testPick } from "./plugins";
 
-/** 自动标签的当前状态；还没打开资料库时 reject。 */
-export function taggingStatus(libraryId: string): Promise<LibraryTaggingStatus> {
-  return invoke<LibraryTaggingStatus>("tagging_status", { libraryId });
+/** 自动标签的当前状态，所有资料库合计（#414）。 */
+export function taggingStatus(): Promise<TaggingStatus> {
+  return invoke<TaggingStatus>("tagging_status");
 }
 
 /** 画师确认后下载打标模型（可续传）。 */
-export function taggingDownload(libraryId: string): Promise<void> {
-  return invoke<void>("tagging_download", { libraryId });
+export function taggingDownload(): Promise<void> {
+  return invoke<void>("tagging_download");
 }
 
 /** 取消下载打标模型：回到需要下载，已下的部分保留以便下次续传。 */
-export function taggingCancelDownload(libraryId: string): Promise<void> {
-  return invoke<void>("tagging_cancel_download", { libraryId });
+export function taggingCancelDownload(): Promise<void> {
+  return invoke<void>("tagging_cancel_download");
 }
 
 /** 暂停打标：结束打标子进程，归还显存；下载中则停下下载，继续时续传。 */
-export function taggingPause(libraryId: string): Promise<void> {
-  return invoke<void>("tagging_pause", { libraryId });
+export function taggingPause(): Promise<void> {
+  return invoke<void>("tagging_pause");
 }
 
-export function taggingResume(libraryId: string): Promise<void> {
-  return invoke<void>("tagging_resume", { libraryId });
+export function taggingResume(): Promise<void> {
+  return invoke<void>("tagging_resume");
 }
 
 /** 设置中的打标模型名称、各硬件档的需求与是否已下载，以及画师选的硬件档。 */
@@ -62,8 +62,8 @@ export function importModelPackage(path: string): Promise<ModelChoice> {
   return invoke<ModelChoice>("tagging_import_package", { path });
 }
 
-export function onTaggingStatus(handler: (status: LibraryTaggingStatus) => void): Promise<UnlistenFn> {
-  return listen<LibraryTaggingStatus>("tagging-status", (e) => handler(e.payload));
+export function onTaggingStatus(handler: (status: TaggingStatus) => void): Promise<UnlistenFn> {
+  return listen<TaggingStatus>("tagging-status", (e) => handler(e.payload));
 }
 
 /** 应用壳设置：开机自启与全局快捷键。 */
@@ -225,4 +225,19 @@ export function onUpdateProgress(handler: (progress: UpdateProgress) => void): P
 /** 更新通道换了（#204）：之前查到的更新已作废。 */
 export function onUpdateChannelChanged(handler: () => void): Promise<UnlistenFn> {
   return listen("update-channel-changed", () => handler());
+}
+
+/** 当前界面语言（#354）。 */
+export function interfaceLanguage(): Promise<string> {
+  return invoke<string>("interface_language");
+}
+
+/** 换界面语言；各窗口随即收到 `onInterfaceLanguage`。设置里的选项随 #358 上线。 */
+export function setInterfaceLanguage(lang: string): Promise<string> {
+  return invoke<string>("set_interface_language", { lang });
+}
+
+/** 界面语言改了。 */
+export function onInterfaceLanguage(handler: (lang: string) => void): Promise<UnlistenFn> {
+  return listen<string>("interface-language", (e) => handler(e.payload));
 }

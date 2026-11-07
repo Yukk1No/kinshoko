@@ -1,17 +1,16 @@
 name: tag-release
 
 # 发布第二步：prepare-release 准备好的版本号 PR 合并后，打 v<版本号> 标签，再以可复用工作流调用 release
-# （构建、安装检查、草稿 Release）。直接调用而不靠推标签触发或 workflow_dispatch：Actions 令牌推送的标签不会触发 push，
-# workflow_dispatch 又要求工作流文件在默认分支（main）上，而 main 在 v1 发布前不接收这些改动。
+# （构建、安装检查、草稿 Release）。直接调用而不靠推标签触发：Actions 令牌推送的标签不会触发 push。
 #
 # 只在这次推送改了 [workspace.package] version、新版本比原来大、版本号与分支符合
-# scripts/release/release-version.mjs 的规则时才发布：测试版、候选版在 integration/v1 上，正式版随 PR #71 合进 main 后。
-# 其余情况（例如正式版刚合进 integration/v1、测试版版本号随 #71 进 main）只记一条说明。
+# scripts/release/release-version.mjs 的规则时才发布：main 上任何版本，maint/<主>.<次> 上同一主次版本号的版本。
+# 其余情况只记一条说明；维护分支合回 main 时带来的版本号已经打过标签，按下面的重跑规则也不再发布。
 # 重跑时：标签已经指向这个提交、Release 还没发布（没建或还是草稿，可能上次上传失败）就重新构建并补传；指向别的提交则不发布。
 
 on:
   push:
-    branches: [main, "integration/**"]
+    branches: [main, "maint/**"]
     paths: ["Cargo.toml"]
 
 permissions:

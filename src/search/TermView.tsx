@@ -2,15 +2,17 @@ import type { ReactElement, ReactNode } from "react";
 import type { SimilarTag } from "../bindings/SimilarTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { Term } from "../bindings/Term";
-import { RatingName, TagMarks, tagName } from "./tagLabel";
+import { RatingName, ratingName, TagMarks, tagName } from "./tagLabel";
+import { i18n } from "../i18n";
+import { useTranslation } from "react-i18next";
 import { Tip } from "../ui/Tip";
 
 /** 文字项也匹配的标签与分级，鼠标悬停时显示，画师能看见文字查到了什么。 */
 function termTitle(term: Term) {
   if (term.kind !== "text") return undefined;
   const lines = [
-    term.tags.length > 0 && `也匹配标签：${term.tags.map(tagName).join("、")}`,
-    term.ratings.length > 0 && `也匹配分级：${term.ratings.map((r) => r.name).join("、")}`,
+    term.tags.length > 0 && i18n.t("search:alsoTags", { tags: term.tags.map(tagName).join(i18n.t("search:listSeparator")) }),
+    term.ratings.length > 0 && i18n.t("search:alsoRatings", { ratings: term.ratings.map(ratingName).join(i18n.t("search:listSeparator")) }),
   ].filter(Boolean);
   return lines.length ? lines.join("\n") : undefined;
 }
@@ -39,6 +41,7 @@ export function TermView({
   dismiss: (similar: SimilarTag, button: ReactElement) => ReactNode;
   add: (to: TagLabel, button: ReactElement) => ReactNode;
 }) {
+  const { t } = useTranslation("search");
   const sole = soleTag(term);
   if (term.kind === "rating") return <RatingName rating={term.rating} />;
   return (
@@ -49,25 +52,27 @@ export function TermView({
           <TagMarks tag={term.tag} />
         </>
       ) : (
-        <Tip label={termTitle(term)}><span>“{term.text}”</span></Tip>
+        <Tip label={termTitle(term)}><span>{t("quoted", { text: term.text })}</span></Tip>
       )}
       {term.similar.length > 0 && (
         <span className="search-similar">
-          <span className="search-chip-or">或相近：</span>
+          <span className="search-chip-or">{t("similar.or")}</span>
           {term.similar.map((s, k) => (
             <span key={s.tag.id} className="search-similar-tag">
-              {k > 0 && "、"}
+              {k > 0 && t("listSeparator")}
               <span>{tagName(s.tag)}</span>
               <TagMarks tag={s.tag} />
               {showSource && (
-                <span className="search-similar-source">{s.source === "builtin" ? "内置" : "个人"}</span>
+                <span className="search-similar-source">{s.source === "builtin" ? t("similar.builtin") : t("similar.personal")}</span>
               )}
-              {dismiss(s, <button type="button" aria-label={`不展开“${tagName(s.tag)}”`}>×</button>)}
+              {dismiss(s, <button type="button" aria-label={t("similar.dismissLabel", { name: tagName(s.tag) })}>×</button>)}
             </span>
           ))}
         </span>
       )}
-      {sole && personal && add(sole, <button type="button" aria-label={`给“${tagName(sole)}”加相近标签`}>＋</button>)}
+      {sole && personal && (
+        add(sole, <button type="button" aria-label={t("similar.addLabel", { name: tagName(sole) })}>{t("similar.addGlyph")}</button>)
+      )}
     </>
   );
 }

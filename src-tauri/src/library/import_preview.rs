@@ -1,11 +1,13 @@
 //! Decode outside resource locks; validate and publish only within the shared revocation permit.
+
 use super::*;
+use kinshoko_core::CommandError;
 use kinshoko_core::workspace::{ImportPreviewSession, Workspace};
 
 fn action<R: Runtime, T>(
     app: &AppHandle<R>,
     f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     let state = app.state::<LibraryState>();
     workspace::with_resources(&state, f)
 }
@@ -24,7 +26,7 @@ pub(super) async fn open_import_preview<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     task_id: String,
-) -> Result<ImportPreviewSession, String> {
+) -> Result<ImportPreviewSession, CommandError> {
     let generation = with_visibility_commit(&app, |_| {
         app.state::<LibraryState>()
             .import_preview_generation
@@ -41,7 +43,7 @@ pub(super) async fn open_import_preview<R: Runtime>(
                 .load(Ordering::SeqCst)
                 != generation
             {
-                return Err(kinshoko_core::library::Error::LensChanged.to_string());
+                return Err(kinshoko_core::library::Error::LensChanged.into());
             }
             let session = action(&app, |w, d, c| {
                 w.open_import_preview(d, c, &library_id, &task_id, true)
@@ -57,7 +59,7 @@ pub(super) async fn open_import_preview<R: Runtime>(
                 if let Some(device) = lock_libraries(&state).as_mut() {
                     device.close_import_preview(Some(&session.id));
                 }
-                return Err(kinshoko_core::library::Error::LensChanged.to_string());
+                return Err(kinshoko_core::library::Error::LensChanged.into());
             }
             Ok(session)
         })
@@ -68,7 +70,7 @@ pub(super) async fn open_import_preview<R: Runtime>(
 pub(super) async fn close_import_preview<R: Runtime>(
     app: AppHandle<R>,
     session_id: Option<String>,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         with_visibility_commit(&app, |_| {
             let state = app.state::<LibraryState>();
@@ -93,7 +95,7 @@ pub(super) async fn read_import_preview<R: Runtime>(
     item_id: String,
     target_px: u32,
     on_chunk: tauri::ipc::Channel<tauri::ipc::Response>,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     let generation = app
         .state::<LibraryState>()
         .import_preview_generation
@@ -104,10 +106,10 @@ pub(super) async fn read_import_preview<R: Runtime>(
         let request = action(&app, |w, d, c| {
             w.prepare_import_preview(d, c, &session_id, &item_id, true, target_px)
         })?;
-        let resolved = request.resolve().map_err(|error| error.to_string())?;
+        let resolved = request.resolve().map_err(CommandError::from)?;
         let content = with_visibility_commit(&app, |current_mode_generation| {
             if current_mode_generation != mode_generation {
-                return Err(kinshoko_core::library::Error::LensChanged.to_string());
+                return Err(kinshoko_core::library::Error::LensChanged.into());
             }
             workspace::current(&app, true, mode_generation)?;
             action(&app, |w, d, c| {
@@ -125,7 +127,7 @@ pub(super) async fn read_import_preview<R: Runtime>(
                         .load(Ordering::SeqCst)
                         != generation
                 {
-                    return Err(kinshoko_core::library::Error::LensChanged.to_string());
+                    return Err(kinshoko_core::library::Error::LensChanged.into());
                 }
                 workspace::current(&app, true, mode_generation)?;
                 let state = app.state::<LibraryState>();
@@ -140,7 +142,7 @@ pub(super) async fn read_import_preview<R: Runtime>(
                         }),
                     )
                 })?
-                .map_err(|error| error.to_string())
+                .map_err(CommandError::from)
             })?;
             if is_end {
                 return Ok(());
@@ -154,7 +156,7 @@ pub(super) async fn read_import_preview<R: Runtime>(
 }
 pub(super) fn receipts<R: Runtime>(
     app: &AppHandle<R>,
-) -> Result<Vec<kinshoko_core::ImportTaskSnapshot>, String> {
+) -> Result<Vec<kinshoko_core::ImportTaskSnapshot>, CommandError> {
     let safe = saved_safe_mode(app);
     let expected = workspace::generation(app);
     let receipts = action(app, |w, d, c| w.import_receipts(d, c, safe))?;

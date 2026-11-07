@@ -1,11 +1,11 @@
 use std::fmt;
 use std::path::PathBuf;
 
-/// 资料库操作的错误。`Display` 是给画师看的中文说明。
+/// 资料库操作的错误。交给界面时转成错误代码，`Display` 是日志里的中文说明。
 #[derive(Debug)]
 pub enum Error {
     InvalidName,
-    TagDefinitions(String),
+    TagDefinitions(Box<crate::CommandError>),
     NotEmpty(PathBuf),
     NotALibrary(PathBuf),
     UnknownImage,
@@ -43,7 +43,9 @@ pub enum Error {
     /// 资料库由旧版本写成，要先作为活动资料库打开一次（升级）才能在别处读取（#66）。
     OutdatedLibrary,
     /// 参考组包里的原图没能进库（读不出、解码失败或与包内记录不符，#68）。
-    PackageImage(String),
+    PackageImage(Box<crate::CommandError>),
+    /// 订阅收进来的原图没能进库（读不出或解码失败，#368）。
+    SubscriptionImage(Box<crate::CommandError>),
     /// 导入时按“同库已有相同内容”只合并来源，提交前那份原图却已被永久删除：要重新暂存这份字节（#120）。
     MergeTargetGone,
     /// 永久删除只删回收站里的图。
@@ -51,7 +53,7 @@ pub enum Error {
     /// 永久删除预览之后回收站、受影响的参考组或安全模式变了，要重新预览（#67）。
     DeletePreviewStale,
     /// 无法核对参考组（例如有参考组文件读不懂），不能确认永久删除的影响。
-    ReferenceGroups(String),
+    ReferenceGroups(Box<crate::CommandError>),
     Io(std::io::Error),
     Db(rusqlite::Error),
     Migration(rusqlite_migration::Error),
@@ -60,10 +62,29 @@ pub enum Error {
     Undecodable(String),
     /// 资料库记着这张图，但原文件已不在（被移走或删除，#105）。
     OriginalMissing(PathBuf),
+    /// 从快照恢复出的原文件与快照记录不符；附原图键。
+    RestoredOriginalMismatch(String),
+    /// 只读打开的资料库（未激活、经参考视角读取）不能写入。
+    ReadOnlyProvider,
+    /// 资料库已取消登记，保存目标不再可用。
+    DestinationRevoked,
     /// 剪贴板里的图片无法交给导入（#105）。
-    ClipboardImage(String),
+    ClipboardImage(Box<crate::CommandError>),
 }
 
+impl Error {
+    /// 标签定义没保存的原因。
+    pub(crate) fn tag_definitions(cause: impl Into<crate::CommandError>) -> Self {
+        Error::TagDefinitions(Box::new(cause.into()))
+    }
+
+    /// 无法核对参考组的原因。
+    pub fn reference_groups(cause: impl Into<crate::CommandError>) -> Self {
+        Error::ReferenceGroups(Box::new(cause.into()))
+    }
+}
+
+// 不上界面：领域错误交给界面时转成错误代码（command_error），Display 只进日志
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -96,6 +117,7 @@ impl fmt::Display for Error {
                 write!(f, "资料库需要先在 Kinshoko 中打开一次以完成升级")
             }
             Error::PackageImage(why) => write!(f, "参考组包里的原图没能导入：{why}"),
+            Error::SubscriptionImage(why) => write!(f, "订阅收进来的图没能导入：{why}"),
             Error::MergeTargetGone => write!(f, "同一内容的参考图已被永久删除"),
             Error::NamespaceGroup => write!(f, "这个分组按命名空间列出标签，不能手动调整成员"),
             Error::NotInTrash => write!(f, "只能永久删除回收站里的图"),
@@ -114,6 +136,9 @@ impl fmt::Display for Error {
             Error::OriginalMissing(p) => {
                 write!(f, "原文件不在了，可能被移走或删除：{}", p.display())
             }
+            Error::RestoredOriginalMismatch(key) => write!(f, "恢复的原文件内容不符：{key}"),
+            Error::ReadOnlyProvider => write!(f, "此资料库为只读提供方"),
+            Error::DestinationRevoked => write!(f, "资料库已取消登记，保存目标不可用"),
             Error::ClipboardImage(why) => write!(f, "剪贴板里的图片无法导入：{why}"),
         }
     }

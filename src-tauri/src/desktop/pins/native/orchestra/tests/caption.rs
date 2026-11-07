@@ -132,7 +132,10 @@ fn a_failed_read_shows_the_stand_in_instead_of_giving_up() {
         panic!("应当画占位")
     };
     assert!(job.placeholder);
-    assert_eq!(job.caption.reason.as_deref(), Some(MISSING));
+    assert_eq!(
+        job.caption.reason.as_deref(),
+        Some(super::super::missing().as_str())
+    );
     assert!(
         !o.take_effects()
             .iter()

@@ -17,6 +17,8 @@ use sha2::{Digest, Sha256};
 use ts_rs::TS;
 
 use super::{DB_FILE, Error, Library, LibraryInfo, ORIGINALS_DIR, STAGING_DIR, store};
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 
 mod curation;
 use curation::{NOT_CURATION, curation};
@@ -85,7 +87,7 @@ impl LibrarySnapshot {
             .collect::<std::collections::BTreeSet<_>>();
         let mut bindings = catalog
             .content_bindings(&self.library.id, dependencies)
-            .map_err(|e| Error::TagDefinitions(e.to_string()))?;
+            .map_err(Error::tag_definitions)?;
         // A mapping can outlive a tag deleted before the fixed database snapshot.
         bindings.retain(|binding| local_ids.contains(&binding.local_tag_id));
         super::tag_definitions::publish(&mut conn, &bindings)?;
@@ -114,9 +116,9 @@ pub struct LibraryCheck {
     /// 核对过哈希的原文件数。
     pub originals_checked: u32,
     /// 缺失或内容不符的原文件。
-    pub original_problems: Vec<String>,
+    pub original_problems: Vec<crate::CommandError>,
     /// 与快照不一致的整理信息（表）。
-    pub curation_problems: Vec<String>,
+    pub curation_problems: Vec<crate::CommandError>,
     /// Content tables actually compared; legacy program settings are excluded.
     pub curation_checked: u32,
 }
@@ -283,10 +285,7 @@ impl Library {
                 }
                 fetch(&dep.file, &dep.source)?;
                 if hash_file(&dep.source)? != dep.file.sha256 {
-                    return Err(Error::Io(std::io::Error::other(format!(
-                        "恢复的原文件内容不符：{}",
-                        dep.file.key
-                    ))));
+                    return Err(Error::RestoredOriginalMismatch(dep.file.key.clone()));
                 }
             }
             // Old content snapshots can still contain the former per-library settings.
@@ -335,25 +334,41 @@ impl Library {
         for file in expected {
             check.originals_checked += 1;
             match present.get(&file.key) {
-                None => check
-                    .original_problems
-                    .push(format!("缺少原图 {}", file.key)),
+                None => check.original_problems.push(CommandError::new(
+                    ErrorKind::CheckOriginalMissing {
+                        file: file.key.clone(),
+                    },
+                    format!("缺少原图 {}", file.key),
+                )),
                 Some(dep) => match hash_file(&dep.source) {
                     Ok(sha) if sha == file.sha256 && dep.file.sha256 == file.sha256 => {}
-                    Ok(_) => check
-                        .original_problems
-                        .push(format!("原图内容不符 {}", file.key)),
-                    Err(e) => check
-                        .original_problems
-                        .push(format!("读不到原图 {}：{e}", file.key)),
+                    Ok(_) => check.original_problems.push(CommandError::new(
+                        ErrorKind::CheckOriginalMismatch {
+                            file: file.key.clone(),
+                        },
+                        format!("原图内容不符 {}", file.key),
+                    )),
+                    Err(e) => check.original_problems.push(CommandError::new(
+                        ErrorKind::CheckOriginalUnreadable {
+                            file: file.key.clone(),
+                            detail: e.to_string(),
+                        },
+                        format!("读不到原图 {}：{e}", file.key),
+                    )),
                 },
             }
         }
         if present.len() != expected.len() {
-            check.original_problems.push(format!(
-                "原图数量不符：快照 {} 张，恢复后 {} 张",
-                expected.len(),
-                present.len()
+            check.original_problems.push(CommandError::new(
+                ErrorKind::CheckOriginalCount {
+                    snapshot: expected.len() as u64,
+                    restored: present.len() as u64,
+                },
+                format!(
+                    "原图数量不符：快照 {} 张，恢复后 {} 张",
+                    expected.len(),
+                    present.len()
+                ),
             ));
         }
         let content_expected = curation_expected
@@ -370,16 +385,21 @@ impl Library {
         let actual = curation(&conn, Some(&content_expected))?;
         for (want, got) in content_expected.iter().zip(&actual) {
             if want != got {
-                check.curation_problems.push(format!(
-                    "表 {}：快照 {} 行，恢复后 {} 行，内容{}",
-                    want.table,
-                    want.rows,
-                    got.rows,
-                    if want.sha256 == got.sha256 {
-                        "一致"
-                    } else {
-                        "不一致"
-                    }
+                let same_content = want.sha256 == got.sha256;
+                check.curation_problems.push(CommandError::new(
+                    ErrorKind::CheckTableMismatch {
+                        table: want.table.clone(),
+                        snapshot: want.rows,
+                        restored: got.rows,
+                        same_content,
+                    },
+                    format!(
+                        "表 {}：快照 {} 行，恢复后 {} 行，内容{}",
+                        want.table,
+                        want.rows,
+                        got.rows,
+                        if same_content { "一致" } else { "不一致" }
+                    ),
                 ));
             }
         }

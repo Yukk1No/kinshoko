@@ -1,10 +1,14 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Folder, Library } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../i18n/instance";
 import type { SaveDestination } from "../bindings/SaveDestination";
+import type { SaveMemory } from "../bindings/SaveMemory";
+import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import type { FolderNode } from "../bindings/FolderNode";
-import { isCursorExpired, onWorkspaceChanged, workspaceDirectories } from "../ipc";
+import { isCursorExpired, onWorkspaceChanged, rememberImportDestination, rememberNewLibraryParent, saveMemory, workspaceDirectories } from "../ipc";
 import { libraryPathHint } from "./library-path";
 import { Select } from "../ui/Select";
 import { Tip } from "../ui/Tip";
@@ -15,19 +19,41 @@ type SaveContext = {
   providers: WorkspaceDirectory[];
   problem: string | null;
   ready: boolean;
+  /** 各入口上次亲手选的（ADR-0016）。 */
+  memory: SaveMemory;
+  rememberImport: (value: SaveDestination) => void;
+  rememberNewLibraryParent: (parent: string) => void;
 };
+const NOTHING_REMEMBERED: SaveMemory = { importDestination: null, newLibraryParent: null };
 const Context = createContext<SaveContext>({
   destination: null, setDestination: () => {}, providers: [], problem: null, ready: false,
+  memory: NOTHING_REMEMBERED, rememberImport: () => {}, rememberNewLibraryParent: () => {},
 });
 export const useSaveDestination = () => useContext(Context);
 
 const RETRIES = 3, RETRY_MS = 150;
+
+/** 保存入口看到的资料库：登记最早的在前（ADR-0016 的兜底），不跟侧栏的顺序。 */
+function inRegistrationOrder({ providers, registrationOrder }: WorkspaceDirectories) {
+  const rank = (provider: WorkspaceDirectory) => registrationOrder.indexOf(provider.registration.library.id);
+  return [...providers].sort((a, b) => rank(a) - rank(b));
+}
 
 export function SaveDestinationProvider({ safe, children }: { safe: boolean; children: ReactNode }) {
   const [destination, setDestination] = useState<SaveDestination | null>(null);
   const [providers, setProviders] = useState<WorkspaceDirectory[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [memory, setMemory] = useState(NOTHING_REMEMBERED);
+  // 记忆写不进时只是下次不记得，不打扰这次保存。
+  const rememberImport = (importDestination: SaveDestination) => {
+    setMemory((value) => ({ ...value, importDestination }));
+    void rememberImportDestination(importDestination).catch(() => {});
+  };
+  const rememberParent = (newLibraryParent: string) => {
+    setMemory((value) => ({ ...value, newLibraryParent }));
+    void rememberNewLibraryParent(newLibraryParent).catch(() => {});
+  };
   useEffect(() => {
     let alive = true, sequence = 0, revision = "", retry: ReturnType<typeof setTimeout> | undefined;
     setReady(false);
@@ -37,7 +63,7 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
       void workspaceDirectories(safe).then(value => {
         if (!alive || request !== sequence) return;
         revision = value.status.revision;
-        setProviders(value.providers); setProblem(null); setReady(true);
+        setProviders(inRegistrationOrder(value)); setProblem(null); setReady(true);
       }, error => {
         if (!alive || request !== sequence) return;
         // 读取期间修订变了：结果已过时，稍后按新修订重读，不当作问题显示（#98）；连续 3 次仍在变才显示。
@@ -45,11 +71,14 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
         setProblem(String(error)); setReady(false);
       });
     };
+    // 取消登记会清掉记住的目标，所以登记变化时一并重读。
+    const readMemory = () => void saveMemory().then(value => { if (alive && value) setMemory(value); }, () => {});
     refresh();
-    const stop = onWorkspaceChanged(value => { if (value.revision !== revision) refresh(); });
+    readMemory();
+    const stop = onWorkspaceChanged(value => { if (value.revision !== revision) { refresh(); readMemory(); } });
     return () => { alive = false; clearTimeout(retry); void stop.then(fn => fn()); };
   }, [safe]);
-  return <Context.Provider value={{ destination, setDestination, providers, problem, ready }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ destination, setDestination, providers, problem, ready, memory, rememberImport, rememberNewLibraryParent: rememberParent }}>{children}</Context.Provider>;
 }
 
 export function folderChoices(nodes: FolderNode[], prefix = ""): { id: string; path: string }[] {
@@ -59,11 +88,12 @@ export function folderChoices(nodes: FolderNode[], prefix = ""): { id: string; p
   });
 }
 export function destinationLabel(value: SaveDestination | null, providers: WorkspaceDirectory[]) {
-  if (!value) return "请选择图库和文件夹";
+  const t = i18n.getFixedT(null, "common", "saveDestination");
+  if (!value) return t("chooseBoth");
   const provider = providers.find(p => p.registration.library.id === value.libraryId);
-  const folder = value.folderId === null ? "未归类"
-    : folderChoices(provider?.sidebar?.folders ?? []).find(f => f.id === value.folderId)?.path ?? "这个文件夹不在了";
-  return `${provider?.registration.library.name ?? "未打开的图库"} / ${folder}`;
+  const folder = value.folderId === null ? t("unassigned")
+    : folderChoices(provider?.sidebar?.folders ?? []).find(f => f.id === value.folderId)?.path ?? t("folderGone");
+  return t("label", { library: provider?.registration.library.name ?? t("libraryClosed"), folder });
 }
 export function destinationAvailable(value: SaveDestination | null, providers: WorkspaceDirectory[]) {
   const provider = providers.find(p => p.registration.library.id === value?.libraryId);
@@ -73,46 +103,48 @@ export function destinationAvailable(value: SaveDestination | null, providers: W
 
 /**
  * 保存位置（#98）：并排两个选择——图库与文件夹；写入从不改变浏览范围。
- * 两个选择的读屏名称就是可见标签（“放到图库”或“图库”，以及“文件夹”）。
+ * 两个选择的读屏名称就是可见标签（`putInLibrary` 时为“放到图库”，否则“图库”，以及“文件夹”）。
  */
-export function SaveDestinationPicker({ value, onChange, disabled = false, labelPrefix = "" }: {
+export function SaveDestinationPicker({ value, onChange, disabled = false, putInLibrary = false }: {
   value: SaveDestination | null; onChange: (value: SaveDestination | null) => void;
-  disabled?: boolean; labelPrefix?: string;
+  disabled?: boolean; putInLibrary?: boolean;
 }) {
+  const { t } = useTranslation("common", { keyPrefix: "saveDestination" });
+  const libraryLabel = t(putInLibrary ? "putInLibrary" : "library");
   const { providers, problem, ready } = useSaveDestination();
   const provider = providers.find(p => p.registration.library.id === value?.libraryId);
   const paths = providers.map(p => p.registration.library.root);
   const folders = folderChoices(provider?.sidebar?.folders ?? []);
   return <fieldset className="save-destination k-destination" disabled={disabled}>
-    <legend className="sr-only">保存位置</legend>
+    <legend className="sr-only">{t("legend")}</legend>
     <div className="k-destination-grid">
       <div className="k-field">
-        <span className="k-field-label">{labelPrefix}图库</span>
-        <Select label={`${labelPrefix}图库`} icon={<Library size={16} aria-hidden="true" />} disabled={disabled} value={value?.libraryId ?? ""}
+        <span className="k-field-label">{libraryLabel}</span>
+        <Select label={libraryLabel} icon={<Library size={16} aria-hidden="true" />} disabled={disabled} value={value?.libraryId ?? ""}
           onChange={id => onChange(id ? { libraryId: id, folderId: null } : null)}
           options={[
-            { value: "", label: "选择图库…" },
-            ...(value && !provider ? [{ value: value.libraryId, label: "未打开的图库", disabled: true }] : []),
+            { value: "", label: t("chooseLibrary") },
+            ...(value && !provider ? [{ value: value.libraryId, label: t("libraryClosed"), disabled: true }] : []),
             ...providers.map(p => ({ value: p.registration.library.id, disabled: !!p.registration.unavailable || !p.sidebar,
-              label: `${p.registration.library.name}（${libraryPathHint(p.registration.library.root, paths)}）${p.registration.unavailable ? "（未连接）" : ""}` })),
+              label: t(p.registration.unavailable ? "libraryOptionOffline" : "libraryOption", { name: p.registration.library.name, path: libraryPathHint(p.registration.library.root, paths) }) })),
           ]} />
       </div>
       <div className="k-field">
-        <span className="k-field-label">文件夹</span>
-        <Select label="文件夹" icon={<Folder size={16} aria-hidden="true" />} value={value?.folderId ?? ""}
+        <span className="k-field-label">{t("folder")}</span>
+        <Select label={t("folder")} icon={<Folder size={16} aria-hidden="true" />} value={value?.folderId ?? ""}
           disabled={disabled || !provider || !!provider.registration.unavailable}
           onChange={id => value && onChange({ ...value, folderId: id || null })}
           options={[
-            { value: "", label: "未归类" },
-            ...(value?.folderId && !folders.some(f => f.id === value.folderId) ? [{ value: value.folderId, label: "这个文件夹不在了", disabled: true }] : []),
+            { value: "", label: t("unassigned") },
+            ...(value?.folderId && !folders.some(f => f.id === value.folderId) ? [{ value: value.folderId, label: t("folderGone"), disabled: true }] : []),
             ...folders.map(folder => ({ value: folder.id, label: folder.path })),
           ]} />
       </div>
     </div>
-    {value && <Tip label={provider?.registration.library.root} align="start"><p className="save-final-position k-set-note">放到：{destinationLabel(value, providers)}</p></Tip>}
-    {(!ready || problem) && <p className="k-set-note" role="status">{problem ?? "正在读取图库…"}</p>}
+    {value && <Tip label={provider?.registration.library.root} align="start"><p className="save-final-position k-set-note">{t("putIn", { place: destinationLabel(value, providers) })}</p></Tip>}
+    {(!ready || problem) && <p className="k-set-note" role="status">{problem ?? t("loading")}</p>}
     {value && ready && !destinationAvailable(value, providers)
-      && <p className="k-set-error" role="alert">这个位置现在用不了。请接上原图库，或换一个位置。</p>}
+      && <p className="k-set-error" role="alert">{t("unavailable")}</p>}
   </fieldset>;
 }
 
@@ -120,9 +152,10 @@ export function SaveDestinationPicker({ value, onChange, disabled = false, label
  * 选好保存位置再执行的对话框（收藏截图、复制到、导入参考组包）。`description` 与 `summary`
  * 是标题下的一句说明和要保存的内容（例如截图缩略图与尺寸）。
  */
-export function SaveDestinationDialog({ title, description, summary, confirmLabel = "保存", onConfirm, onClose }: {
+export function SaveDestinationDialog({ title, description, summary, confirmLabel, onConfirm, onClose }: {
   title: string; description?: string; summary?: ReactNode; confirmLabel?: string; onConfirm: (value: SaveDestination) => Promise<unknown>; onClose: () => void;
 }) {
+  const { t } = useTranslation("common", { keyPrefix: "saveDestination" });
   const context = useSaveDestination();
   const [value, setValue] = useState(context.destination);
   const [busy, setBusy] = useState(false);
@@ -134,13 +167,13 @@ export function SaveDestinationDialog({ title, description, summary, confirmLabe
       <Dialog.Backdrop className="k-backdrop" />
       <Dialog.Popup className="k-dialog k-save-dialog save-destination-dialog">
         <Dialog.Title className="k-dialog-title">{title}</Dialog.Title>
-        <Dialog.Description className="k-dialog-desc">{description ?? "选好图库和文件夹。"}</Dialog.Description>
+        <Dialog.Description className="k-dialog-desc">{description ?? t("description")}</Dialog.Description>
         {summary && <div className="k-import-summary">{summary}</div>}
         <SaveDestinationPicker value={value} onChange={setValue} disabled={busy} />
         {error && <p className="k-set-error" role="alert">{error}</p>}
         <div className="k-dialog-foot">
           <span className="k-grow" />
-          <button type="button" className="k-btn" disabled={busy} onClick={onClose}><span className="k-label">取消</span></button>
+          <button type="button" className="k-btn" disabled={busy} onClick={onClose}><span className="k-label">{t("cancel")}</span></button>
           <button type="button" className="k-btn is-primary" disabled={busy || !context.ready || !destinationAvailable(value, context.providers)}
             onClick={() => {
               if (!value || busy) return;
@@ -149,7 +182,7 @@ export function SaveDestinationDialog({ title, description, summary, confirmLabe
               void onConfirm(fixed).then(() => { if (alive.current) onClose(); },
                 error => { if (alive.current) setError(String(error)); })
                 .finally(() => { if (alive.current) setBusy(false); });
-            }}><span className="k-label">{busy ? "正在保存…" : confirmLabel}</span></button>
+            }}><span className="k-label">{busy ? t("saving") : confirmLabel ?? t("save")}</span></button>
         </div>
       </Dialog.Popup>
     </Dialog.Portal>

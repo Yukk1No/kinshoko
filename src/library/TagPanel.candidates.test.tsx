@@ -14,7 +14,7 @@ it("已经有的标签排在前面时，仍列满其余匹配的标签", async (
   const limits: number[] = [];
   mockIPC((cmd, args) => {
     if (cmd.endsWith("catalog_image_tags")) return { image: { imageId: "a", rejected: [], tags: assigned.map((t) => ({ tag: t, origins: [{ kind: "manual" }] })) }, identities: [] };
-    if (cmd.endsWith("search_candidates")) {
+    if (cmd.endsWith("workspace_library_candidates")) {
       const { limit } = args as { limit: number };
       limits.push(limit);
       return [...assigned, ...others].slice(0, limit).map((t, i) => ({ tag: t, via: null, count: 20 - i }));

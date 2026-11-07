@@ -1,5 +1,8 @@
 //! 打标调度：选模型档位、下载与准备模型、逐张打标并按模型来源写入、暂停时结束会话归还显存、
 //! 会话崩溃后重启。全部在一个后台线程里，不占用调用方线程；打标没完成时资料库照常读写。
+//!
+//! 全设备一个调度（ADR-0008 修订，#414）：同一时间只有一个打标会话；画师正在整理的库先打，其余按登记
+//! 顺序轮流。调度器空闲时自己逐个询问各库，写入方不必通知它；叫醒只为早点开始。
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -11,7 +14,11 @@ use std::time::Duration;
 use serde::Serialize;
 use ts_rs::TS;
 
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 use crate::library::{Error as LibraryError, FactSource, Library, TaggingOutcome};
+
+use super::libraries::TaggingLibraries;
 
 use super::interpret::interpret;
 use super::models::{HUGGING_FACE, ModelSpec, ModelStore, PrepareStage, catalog};
@@ -77,16 +84,7 @@ impl TaggingConfig {
     }
 }
 
-/// 状态与所属资料库一起传给界面，迟到推送不能覆盖另一个库的状态。
-#[derive(Debug, Clone, PartialEq, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct LibraryTaggingStatus {
-    pub library_id: String,
-    pub status: TaggingStatus,
-}
-
-/// 自动标签的当前状态，供界面显示。
+/// 自动标签的当前状态，所有资料库合计，供界面显示。
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[serde(tag = "state", rename_all = "camelCase")]
 #[ts(export)]
@@ -95,7 +93,8 @@ pub enum TaggingStatus {
     /// 本机条件不满足任何模型。
     #[serde(rename_all = "camelCase")]
     NoDevice {
-        reason: String,
+        #[ts(as = "Vec<crate::command_error::ErrorKind>")]
+        reasons: Vec<CommandError>,
     },
     /// 首次使用：模型还没下载，等画师确认（显示大小；`downloaded` 是上次中断时已下的部分）。
     /// `fallback` 是自动档退到这个模型的原因（例如没有独立显卡）；没有退让时为空。
@@ -107,7 +106,8 @@ pub enum TaggingStatus {
         size: u64,
         #[ts(type = "number")]
         downloaded: u64,
-        fallback: Option<String>,
+        #[ts(as = "Option<Vec<crate::command_error::ErrorKind>>")]
+        fallback: Option<Vec<CommandError>>,
         cancelled: bool,
     },
     #[serde(rename_all = "camelCase")]
@@ -124,20 +124,26 @@ pub enum TaggingStatus {
         model: String,
     },
     /// 正在打标；`tagged` 是本次运行打过的张数，`gpu` 是在用的显卡（CPU 档为空）。
+    /// 这一轮（从上次没有待打标的图算起）的进度是 `done / (done + remaining)`：`done` 是这一轮处理过的张数
+    /// （含无法读取的图），`remaining` 是各库还没处理的张数合计（含正在打的这张）。
     #[serde(rename_all = "camelCase")]
     Running {
         model: String,
         device: Device,
         gpu: Option<String>,
         tagged: u32,
+        done: u32,
+        remaining: u32,
     },
-    /// 没有待打标的图；会话已结束，不占显存。`tagged` 同 `Running`，含刚打完的最后一张。
+    /// 能打开的资料库都没有待打标的图；会话已结束，不占显存。`tagged` 同 `Running`，含刚打完的最后一张。
+    /// `unknown` 是暂时打不开、数不出未打标张数的资料库个数：不为 0 时不算已全部打完。
     #[serde(rename_all = "camelCase")]
     Idle {
         model: String,
         device: Device,
         gpu: Option<String>,
         tagged: u32,
+        unknown: u32,
     },
     /// 画师暂停了打标；会话已结束，显存已归还。
     Paused,
@@ -146,7 +152,8 @@ pub enum TaggingStatus {
     /// 出错，稍后自动重试。
     #[serde(rename_all = "camelCase")]
     Failed {
-        reason: String,
+        #[ts(as = "crate::command_error::ErrorKind")]
+        reason: CommandError,
     },
 }
 
@@ -160,6 +167,8 @@ struct Control {
     cancelled: bool,
     /// 见 [`TaggingConfig::preferred`]。
     preferred: Option<Device>,
+    /// 画师正在整理的资料库，先打；见 [`Tagging::prefer`]。
+    library: Option<String>,
 }
 
 struct Shared {
@@ -171,6 +180,12 @@ struct Shared {
     cancel: AtomicBool,
     /// 当前会话的结束开关；暂停或停止时立即结束会话，不等手上那张图。
     stopper: Mutex<Option<SessionStopper>>,
+    /// 正在打的这一批属于哪个资料库；没有在打时为空。
+    tagging: Mutex<Option<String>>,
+    /// `tagging` 变化时通知，[`Tagging::release`] 在上面等这一批放下资料库。
+    tagging_changed: Condvar,
+    /// 这一批的资料库取消了登记（[`Tagging::release`]）：和暂停一样中止这一批，不算出错。
+    released: AtomicBool,
 }
 
 impl Shared {
@@ -210,6 +225,14 @@ impl Shared {
         *self.status.lock().unwrap_or_else(|e| e.into_inner()) = status;
     }
 
+    fn set_tagging(&self, library_id: Option<String>) {
+        let mut tagging = self.tagging.lock().unwrap_or_else(|e| e.into_inner());
+        *tagging = library_id;
+        self.released.store(false, Ordering::SeqCst);
+        drop(tagging);
+        self.tagging_changed.notify_all();
+    }
+
     /// 等到被唤醒或超时；返回时可能已暂停或停止。
     fn sleep(&self, timeout: Duration) {
         let control = self.control();
@@ -228,21 +251,26 @@ impl Shared {
         self.wake.notify_all();
     }
 
+    /// 暂停、停止，或这一批的资料库取消了登记。
     fn interrupted(&self) -> bool {
         let c = self.control();
-        c.stop || c.paused
+        c.stop || c.paused || self.released.load(Ordering::SeqCst)
     }
 }
 
-/// 自动标签服务。丢弃即停止（结束会话、取消下载）。
+/// 自动标签服务，覆盖 `libraries` 给出的全部资料库。丢弃即停止（结束会话、取消下载）。
 pub struct Tagging {
     shared: Arc<Shared>,
     thread: Option<JoinHandle<()>>,
 }
 
 impl Tagging {
-    /// 在后台开始为 `library` 打标。
-    pub fn start(library: Arc<Library>, tagger: Arc<dyn Tagger>, config: TaggingConfig) -> Tagging {
+    /// 在后台开始为 `libraries` 里的资料库打标。
+    pub fn start(
+        libraries: Arc<dyn TaggingLibraries>,
+        tagger: Arc<dyn Tagger>,
+        config: TaggingConfig,
+    ) -> Tagging {
         let shared = Arc::new(Shared {
             control: Mutex::new(Control {
                 preferred: config.preferred,
@@ -252,11 +280,14 @@ impl Tagging {
             status: Mutex::new(TaggingStatus::Starting),
             cancel: AtomicBool::new(false),
             stopper: Mutex::new(None),
+            tagging: Mutex::new(None),
+            tagging_changed: Condvar::new(),
+            released: AtomicBool::new(false),
         });
         let worker = Worker {
             store: ModelStore::new(config.models_dir.clone(), &config.base_url),
             shared: shared.clone(),
-            library,
+            libraries,
             tagger,
             config,
             device_info: None,
@@ -264,6 +295,8 @@ impl Tagging {
             crashes: HashMap::new(),
             session: None,
             tagged: 0,
+            done: 0,
+            remaining: 0,
             chosen: None,
         };
         let thread = std::thread::Builder::new()
@@ -325,9 +358,58 @@ impl Tagging {
         self.shared.wake.notify_all();
     }
 
-    /// 有新图时立即检查，不等下一次轮询。
+    /// 有新图时立即检查，不等下一次轮询。不调用也不会漏，只是晚一点开始。
     pub fn wake(&self) {
         self.shared.wake.notify_all();
+    }
+
+    /// 画师正在整理这个库：下一批先从它取（不打断手上这一批）。不调用也会轮到它。
+    pub fn prefer(&self, library_id: &str) {
+        let mut control = self.shared.control();
+        if control.library.as_deref() == Some(library_id) {
+            return;
+        }
+        control.library = Some(library_id.to_owned());
+        drop(control);
+        self.shared.wake.notify_all();
+    }
+
+    /// 资料库取消了登记：正在打它的这一批立即中止（结束会话，打到一半的结果不写），等到调度器放下
+    /// 它的句柄再返回，之后它的文件夹可以移动。调用方先从登记表里移除它，并放开发布闸门；
+    /// 调度器不会再列出它。没在打这个库时立即返回。
+    pub fn release(&self, library_id: &str) {
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        let mut tagging = self
+            .shared
+            .tagging
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if tagging.as_deref() != Some(library_id) {
+            return;
+        }
+        self.shared.released.store(true, Ordering::SeqCst);
+        self.shared.stop_session();
+        while tagging.as_deref() == Some(library_id) {
+            let left = deadline.saturating_duration_since(std::time::Instant::now());
+            if left.is_zero() {
+                return;
+            }
+            tagging = self
+                .shared
+                .tagging_changed
+                .wait_timeout(tagging, left)
+                .unwrap_or_else(|e| e.into_inner())
+                .0;
+        }
+    }
+
+    /// 正在打的这一批属于哪个资料库（记运行日志用）；没有在打时为空。
+    pub fn tagging_library(&self) -> Option<String> {
+        self.shared
+            .tagging
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 }
 
@@ -343,22 +425,33 @@ impl Drop for Tagging {
 
 struct Worker {
     shared: Arc<Shared>,
-    library: Arc<Library>,
+    libraries: Arc<dyn TaggingLibraries>,
     tagger: Arc<dyn Tagger>,
     config: TaggingConfig,
     store: ModelStore,
     device_info: Option<DeviceInfo>,
     gpu_failures: u32,
-    /// 参考图 → 让会话崩溃过几次。
-    crashes: HashMap<String, u32>,
+    /// （资料库, 参考图）→ 让会话崩溃过几次。
+    crashes: HashMap<(String, String), u32>,
     session: Option<(String, Box<dyn TaggerSession>)>,
     tagged: u32,
+    /// 见 [`TaggingStatus::Running`]。
+    done: u32,
+    remaining: u32,
     /// 上一次选中的模型 key；自动档换到另一个模型时，之前的下载确认不再算数。
     chosen: Option<String>,
+}
+
+/// 这一步从各库取到的：要打的一批（资料库与参考图）、各库未打标张数合计、数不出来的库个数。
+#[derive(Default)]
+struct Pick {
+    batch: Option<(Arc<Library>, Vec<String>)>,
+    remaining: u32,
+    unknown: u32,
 }
 
 /// 选中的模型；`fallback` 是自动档跳过前面模型的原因。
 struct Choice {
     spec: ModelSpec,
-    fallback: Option<String>,
+    fallback: Option<Vec<CommandError>>,
 }

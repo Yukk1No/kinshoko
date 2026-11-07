@@ -133,6 +133,39 @@ fn images_imported_later_are_tagged_without_restarting() {
 }
 
 #[test]
+fn running_reports_progress_through_the_current_round() {
+    let f = Fixture::new(3);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    f.fake.set_delay(Duration::from_millis(200));
+    let spec = f.server.publish("gpu", Device::DirectMl, b"model");
+    let tagging = f.start(f.config(vec![spec]));
+    tagging.download();
+
+    let status = wait_for(&tagging, "打第二张", |s| {
+        matches!(s, TaggingStatus::Running { done: 1, .. })
+    });
+    let TaggingStatus::Running { remaining, .. } = status else {
+        unreachable!()
+    };
+    assert_eq!(remaining, 2, "含正在打的这张");
+    idle(&tagging);
+
+    // 新的一轮从零算起。
+    f.import(10..12);
+    tagging.wake();
+    let status = wait_for(&tagging, "新一轮开始", |s| {
+        matches!(s, TaggingStatus::Running { .. })
+    });
+    let TaggingStatus::Running {
+        done, remaining, ..
+    } = status
+    else {
+        unreachable!()
+    };
+    assert_eq!((done, remaining), (0, 2));
+}
+
+#[test]
 fn pausing_ends_the_session_and_resuming_continues() {
     let f = Fixture::new(4);
     f.fake.set_gpu(Some(GPU_BUDGET));
@@ -281,7 +314,11 @@ fn a_ready_that_arrives_after_pausing_does_not_restart_tagging() {
         gate: gate.clone(),
     };
     let spec = f.server.publish("gpu", Device::DirectMl, b"model");
-    let tagging = Tagging::start(f.library.clone(), Arc::new(tagger), f.config(vec![spec]));
+    let tagging = Tagging::start(
+        Arc::new(vec![f.library.clone()]),
+        Arc::new(tagger),
+        f.config(vec![spec]),
+    );
     tagging.download();
     {
         let (lock, wake) = &*gate;
@@ -320,6 +357,48 @@ fn a_ready_that_arrives_after_pausing_does_not_restart_tagging() {
     tagging.resume();
     idle(&tagging);
     assert_eq!(f.fake.tagged().len(), 1, "恢复后照常打标");
+}
+
+/// 开机后第一次加载模型可能要几分钟：这期间新收的图还没打，不能继续显示上一轮的“已全部打完”。
+#[test]
+fn a_new_image_is_not_reported_all_done_while_its_model_loads() {
+    let f = Fixture::new(0);
+    f.fake.set_gpu(Some(GPU_BUDGET));
+    let gate = Arc::new((
+        std::sync::Mutex::new((false, false)),
+        std::sync::Condvar::new(),
+    ));
+    let tagger = LateReady {
+        inner: f.fake.clone(),
+        gate: gate.clone(),
+    };
+    let spec = f.server.publish("gpu", Device::DirectMl, b"model");
+    let tagging = Tagging::start(
+        Arc::new(vec![f.library.clone()]),
+        Arc::new(tagger),
+        f.config(vec![spec]),
+    );
+    tagging.download();
+    idle(&tagging);
+
+    f.import(0..1);
+    {
+        let (lock, wake) = &*gate;
+        let mut state = lock.lock().unwrap();
+        while !state.0 {
+            state = wake.wait(state).unwrap();
+        }
+    }
+    let loading = tagging.status();
+    {
+        let (lock, wake) = &*gate;
+        lock.lock().unwrap().1 = true;
+        wake.notify_all();
+    }
+
+    assert_eq!(loading, TaggingStatus::Starting, "有图没打时不算全部打完");
+    idle(&tagging);
+    assert_eq!(f.fake.tagged().len(), 1, "加载完照常打完");
 }
 
 #[test]

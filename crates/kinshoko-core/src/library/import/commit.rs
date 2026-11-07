@@ -1,5 +1,7 @@
-//! 导入的提交：pending、发布原文件与写库事务，以及参考组包的原图（从 import.rs 原样搬出）。
+//! 导入的提交：pending、发布原文件与写库事务。
 use super::*;
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 
 /// pending 记录 → 发布原文件 → 提交参考图；任一步失败都撤回这一项。
 pub(super) fn publish_and_commit(
@@ -7,11 +9,15 @@ pub(super) fn publish_and_commit(
     record: Record,
     pending: Pending,
 ) -> (ImportOutcome, bool) {
-    let failed = |reason: String| (ImportOutcome::ReadFailed { reason }, false);
+    let failed = |reason: CommandError| (ImportOutcome::ReadFailed { reason }, false);
     let row = pending.clone();
     if let Err(e) = inner.writer.run(move |conn| row.insert(conn)) {
         let _ = std::fs::remove_file(inner.root.join(&pending.staging_path));
-        return failed(format!("写入资料库失败：{e}"));
+        return failed(CommandError::caused_by(
+            CommandError::system(e),
+            |cause| ErrorKind::ImportWriteFailed { cause },
+            |e| format!("写入资料库失败：{e}"),
+        ));
     }
     fault::hit(fault::IMPORT_AFTER_PENDING);
 
@@ -30,7 +36,11 @@ pub(super) fn publish_and_commit(
         }
         Err(e) => {
             abandon(inner, pending);
-            failed(format!("写入资料库失败：{e}"))
+            failed(CommandError::caused_by(
+                e,
+                |cause| ErrorKind::ImportWriteFailed { cause },
+                |e| format!("写入资料库失败：{e}"),
+            ))
         }
     }
 }
@@ -55,23 +65,26 @@ pub(super) fn already_stored(inner: &Inner, sha: &str) -> bool {
 }
 
 /// 同库暂存：写入 `.staging/<操作 id>` 并落盘，重新读出校验。
-pub(super) fn stage(inner: &Inner, bytes: &[u8], record: &Record) -> Result<Pending, String> {
+pub(super) fn stage(inner: &Inner, bytes: &[u8], record: &Record) -> Result<Pending, CommandError> {
     let id = uuid::Uuid::new_v4().simple().to_string();
     let staging_path = format!("{STAGING_DIR}/{id}");
     let staging = inner.root.join(&staging_path);
-    let result = (|| -> std::io::Result<()> {
+    let result = (|| -> Result<(), CommandError> {
         let mut file = std::fs::File::create_new(&staging)?;
         file.write_all(bytes)?;
         file.sync_all()?;
         drop(file);
         if sha256_hex(&std::fs::read(&staging)?) != record.sha {
-            return Err(std::io::Error::other("暂存文件校验不一致"));
+            return Err(CommandError::new(
+                ErrorKind::StagedFileMismatch,
+                "暂存文件校验不一致",
+            ));
         }
         Ok(())
     })();
     if let Err(e) = result {
         let _ = std::fs::remove_file(&staging);
-        return Err(e.to_string());
+        return Err(e);
     }
     Ok(Pending {
         id,
@@ -85,22 +98,25 @@ pub(super) fn stage(inner: &Inner, bytes: &[u8], record: &Record) -> Result<Pend
 }
 
 /// 发布暂存文件到按哈希命名的位置，从不覆盖。目标已存在且内容相同则直接复用。
-pub(super) fn publish(inner: &Inner, pending: &Pending) -> Result<(), String> {
+pub(super) fn publish(inner: &Inner, pending: &Pending) -> Result<(), CommandError> {
     let staging = inner.root.join(&pending.staging_path);
     let target = inner.root.join(&pending.rel_path);
-    let result = (|| -> Result<(), String> {
+    let result = (|| -> Result<(), CommandError> {
         std::fs::create_dir_all(target.parent().expect("原文件路径有父目录"))
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::system)?;
         match publish_no_replace(&staging, &target) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
                 match std::fs::read(&target) {
                     Ok(existing) if sha256_hex(&existing) == pending.sha => Ok(()),
-                    Ok(_) => Err("资料库中同名原文件内容不符".into()),
-                    Err(e) => Err(e.to_string()),
+                    Ok(_) => Err(CommandError::new(
+                        ErrorKind::OriginalContentMismatch,
+                        "资料库中同名原文件内容不符",
+                    )),
+                    Err(e) => Err(CommandError::system(e)),
                 }
             }
-            Err(e) => Err(e.to_string()),
+            Err(e) => Err(CommandError::system(e)),
         }
     })();
     let _ = std::fs::remove_file(&staging);
@@ -174,6 +190,7 @@ pub(super) struct Record {
     pub(super) location: String,
     pub(super) eagle: Option<eagle::Item>,
     pub(super) package: Option<package::PackageFacts>,
+    pub(super) subscription: Option<SubscriptionPage>,
     pub(super) options: ImportOptions,
     pub(super) destination: SaveDestination,
     pub(super) task_created_images: Arc<Mutex<HashSet<String>>>,
@@ -201,17 +218,20 @@ pub(super) fn commit_record_returning(
     let authority = inner.write_revoked.clone();
     let candidate_id = record.id.clone();
     let task_created_images = record.task_created_images.clone();
-    // Package snapshots (including cross-library copy) can change an existing image's
-    // effective rating. Acquire before queuing the writer job: acquiring inside that job
+    // Package snapshots (including cross-library copy) and subscriptions can change an existing
+    // image's effective rating. Acquire before queuing the writer job: acquiring inside that job
     // would invert the scheduler's gate -> writer order. Ordinary/Eagle tasks never write
     // rating facts and must not wait on this gate while unregister settles their workers.
-    let gate = record.package.as_ref().and_then(|_| {
-        inner
-            .package_publication_gate
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
-    });
+    let writes_rating = record.package.is_some() || record.subscription.is_some();
+    let gate = writes_rating
+        .then(|| {
+            inner
+                .package_publication_gate
+                .read()
+                .unwrap_or_else(|e| e.into_inner())
+                .clone()
+        })
+        .flatten();
     let (committed, record) = {
         let _publication = gate
             .as_ref()
@@ -368,10 +388,11 @@ pub(super) fn commit(
                     r.orientation,
                     &r.original_name,
                     now,
-                    match (&r.eagle, &r.package) {
-                        (Some(item), _) => item.collected_at(now),
-                        (None, Some(facts)) => facts.snapshot.collected_at,
-                        (None, None) => now,
+                    match (&r.eagle, &r.package, &r.subscription) {
+                        (Some(item), _, _) => item.collected_at(now),
+                        (None, Some(facts), _) => facts.snapshot.collected_at,
+                        (None, None, Some(page)) => page.collected_at,
+                        (None, None, None) => now,
                     },
                     r.eagle.as_ref().and_then(|item| item.deleted_at(now)),
                     r.eagle.as_ref().is_some_and(|item| item.deleted_at(now).is_some()),
@@ -410,6 +431,14 @@ pub(super) fn commit(
         )?)
     } else if let Some(facts) = &r.package {
         Some(package::commit(&tx, translations, facts, image_id, now)?)
+    } else if let Some(page) = &r.subscription {
+        Some(subscription_import::commit(
+            &tx,
+            translations,
+            page,
+            image_id,
+            now,
+        )?)
     } else {
         tx.execute(
             "INSERT OR IGNORE INTO image_source (image_id, source, location, recorded_at)
@@ -438,36 +467,4 @@ pub(super) fn commit(
     fault::hit(fault::IMPORT_BEFORE_COMMIT);
     tx.commit()?;
     Ok((outcome, revision))
-}
-
-/// 把参考组包里的一份原图连同快照导入（[`crate::library::Library::import_from_package`]）。
-/// 返回进库的结果与浏览列表是否变了；列表过期事件由调用方推送。
-pub(in crate::library) fn import_package_original(
-    inner: &Inner,
-    origin: package::PackageOrigin,
-    bytes: &[u8],
-    snapshot: package::ImageSnapshot,
-    destination: Option<SaveDestination>,
-) -> (ImportOutcome, bool) {
-    let (original_name, location) = (snapshot.original_name.clone(), origin.location.clone());
-    ingest(
-        inner,
-        bytes,
-        original_name,
-        location,
-        Origin {
-            eagle: None,
-            package: Some(package::PackageFacts { origin, snapshot }),
-            source: MergeSource::Bytes(bytes.to_vec()),
-        },
-        ImportOptions::default(),
-        ImportContext {
-            destination: destination.unwrap_or_else(|| SaveDestination {
-                library_id: inner.info.id.clone(),
-                folder_id: None,
-            }),
-            task_created_images: Arc::new(Mutex::new(HashSet::new())),
-            cancel: None,
-        },
-    )
 }

@@ -31,7 +31,7 @@ it("断连库与失效文件夹保持原范围并禁用旧目录控件", async (
   expect(screen.getByRole("switch", { name: "含子文件夹" }).hasAttribute("data-disabled")).toBe(true);
   view.rerender(<WorkspacePane {...props} scope={selected} reloadKey={2} />);
   const missing = forest("missing");
-  missing.providers[0].registration.unavailable = "未连接";
+  missing.providers[0].registration.unavailable = { code: "system", detail: "未连接" };
   missing.providers[0].sidebar = null;
   await act(async () => pending[2].resolve(missing));
   expect(within(section("A")).getByRole("button", { name: "人物参考（未连接）" })).toHaveProperty("disabled", true);
@@ -42,7 +42,7 @@ it("断连库与失效文件夹保持原范围并禁用旧目录控件", async (
 it("读取时目录修订改变会自动重读，不留下要求用户操作的过期提示", async () => {
   render(<WorkspacePane {...props} scope={inA({ kind: "all" })} />);
   await settle();
-  await act(async () => pending[0].reject("浏览结果已变化，请从头重新浏览"));
+  await act(async () => pending[0].reject({ code: "cursorExpired" }));
   await settle();
   expect(pending).toHaveLength(2);
   await act(async () => pending[1].resolve(forest("fresh")));
@@ -53,7 +53,7 @@ it("读取时目录修订改变会自动重读，不留下要求用户操作的�
 it("未连接的图库名称变淡带警示点，同一行末尾就地重新连接，原因在悬停提示里（设计系统 v2）", async () => {
   const recheck = vi.fn();
   const missing = forest("offline");
-  missing.providers[0].registration.unavailable = "资料库暂时不可用：移动盘没插";
+  missing.providers[0].registration.unavailable = { code: "system", detail: "图库暂时无法连接：移动盘没插" };
   missing.providers[0].sidebar = null;
   await loaded(render(<WorkspacePane {...props} scope={inA({ kind: "all" })} onRecheck={recheck} />), missing);
   const a = section("A");
@@ -102,7 +102,7 @@ it("选“全部图片”时回收站显示各库合计，点开按库分组列�
 
 it("只有一个已连接图库时，“全部图片”下的回收站直接打开它", async () => {
   const one = forest(); one.providers[0].sidebar!.trash = 1;
-  one.providers[1].registration.unavailable = "未连接"; one.providers[1].sidebar = null;
+  one.providers[1].registration.unavailable = { code: "system", detail: "未连接" }; one.providers[1].sidebar = null;
   await loaded(undefined, one);
   fireEvent.click(screen.getByRole("button", { name: "回收站（全部图库，1 张）" }));
   expect(props.onScope).toHaveBeenLastCalledWith({ kind: "library", libraryId: "A", scope: { kind: "trash" } });
@@ -133,7 +133,7 @@ it("导入期间列表过期只重读目录：资料库行与展开的文件夹�
 
 it("登记的图库或其可用性变了，旧目录在新结果到达前就隐藏（#121 只放宽内容变化）", async () => {
   const view = await loaded(render(<WorkspacePane {...props} scope={inA({ kind: "all" })} />));
-  const offline = registrations.map((r) => r.library.id === "B" ? { ...r, unavailable: "移动盘没插" } : r);
+  const offline = registrations.map((r) => r.library.id === "B" ? { ...r, unavailable: { code: "system" as const, detail: "移动盘没插" } } : r);
   view.rerender(<WorkspacePane {...props} scope={inA({ kind: "all" })} status={{ revision: "r2", libraries: offline }} />);
   expect(within(section("A")).getByRole("button", { name: "人物参考（… 张）" })).toHaveProperty("disabled", true);
 });

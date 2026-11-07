@@ -1,13 +1,15 @@
-import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import { Keys } from "./Keys";
 import { Menu, MenuPopup } from "./Menu";
+import { useReducedMotion } from "./reducedMotion";
 
 /* A Kinshoko dock, built from the published behaviour of Arc Pro's dock (uiarc.dev/components/dock):
  * one hairline surface, 40 px slots, a shared selection tint that springs between items, a floating
  * label that glides between items with the shortcut, groups that grow a tray out of the dock, and a
  * short press dip. Springs follow Arc's open motion tokens (MIT, github.com/kuratlielia/arc-library).
- * No Arc Pro code is copied (design/ui-system/README.md, Dock). */
+ * No Arc Pro code is copied (design/ui-system/buttons-and-dock.md, Dock). */
 export const arcSpring = {
   snappy: { type: "spring" as const, visualDuration: 0.26, bounce: 0.12 },
   morph: { type: "spring" as const, visualDuration: 0.42, bounce: 0.16 },
@@ -28,20 +30,27 @@ export type DockEntry = {
 export type DockItem = DockEntry | "sep";
 
 const isEntry = (item: DockItem): item is DockEntry => item !== "sep";
+/** Where a tray grows from and shrinks back to: just above its button, slightly smaller (#455). */
+const trayRest = { opacity: 0, y: 6, scale: 0.96 };
 
 /**
  * `value` marks the selected tool (shared tint). Choosing an item calls `onSelect(id)`; choosing a
  * tray member calls `onSelect(trayOwnerId, memberId)`. Keyboard: ←/→ move, Home/End jump, Enter/Space
  * run, ↑ opens a tray, Esc closes it. A `menu` item opens its menu upward instead of calling `onSelect`. Reduced motion jumps straight to the end state.
  */
-export function Dock({ items, value, onSelect, label = "工具", className = "", readout, tone }: {
+export function Dock({ items, value, onSelect, label: labelProp, className = "", readout, tone }: {
   items: DockItem[]; value?: string | null; onSelect: (id: string, member?: string) => void;
   label?: string; className?: string; readout?: ReactNode; tone?: "dark";
 }) {
+  const { t } = useTranslation("shell");
+  const label = labelProp ?? t("dock");
   const reduced = useReducedMotion();
   const instant = { duration: 0 };
   const [hovered, setHovered] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  // The tray still on screen, including while it shrinks back; the floating label waits until it is gone.
+  const [trayShown, setTrayShown] = useState<string | null>(null);
+  useEffect(() => { if (open && items.some((item) => isEntry(item) && item.id === open && item.tray)) setTrayShown(open); }, [open, items]);
   const root = useRef<HTMLDivElement>(null);
   const [tipX, setTipX] = useState(0);
   const entries = items.filter(isEntry);
@@ -85,7 +94,7 @@ export function Dock({ items, value, onSelect, label = "工具", className = "",
             <MenuPopup side="top" align="center" sideOffset={10} width={item.menuWidth} label={item.label}>{item.menu}</MenuPopup>
           </Menu.Root>
           : <motion.button type="button" className={`k-dock-item${item.tone ? ` is-${item.tone}` : ""}`} aria-pressed={item.tray ? undefined : value === item.id}
-            aria-label={item.shortcut ? `${item.label}，${item.shortcut}` : item.label} disabled={item.disabled}
+            aria-label={item.shortcut ? t("dockItem", { label: item.label, shortcut: item.shortcut }) : item.label} disabled={item.disabled}
             aria-haspopup={item.tray ? "true" : undefined} aria-expanded={item.tray ? open === item.id : undefined}
             onFocus={() => setHovered(item.id)} onBlur={() => setHovered((h) => h === item.id ? null : h)}
             onClick={() => run(item)} onKeyDown={keys(item)}
@@ -94,21 +103,22 @@ export function Dock({ items, value, onSelect, label = "工具", className = "",
             <span className="k-dock-icon">{item.icon}</span>
             {!!item.badge && <span className="k-dock-badge">{item.badge}</span>}
           </motion.button>}
-          <AnimatePresence>
+          <AnimatePresence onExitComplete={() => setTrayShown((shown) => shown === item.id && open !== item.id ? null : shown)}>
             {item.tray && open === item.id && <motion.div className="k-dock-tray" role="group" aria-label={item.label}
-              initial={{ opacity: 0, y: reduced ? 0 : 6, scale: reduced ? 1 : 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0.12 } }} transition={reduced ? { duration: 0.12 } : arcSpring.smooth}
+              initial={reduced ? false : trayRest} animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduced ? { opacity: 0, transition: instant } : { ...trayRest, transition: arcSpring.snappy }}
+              transition={reduced ? instant : arcSpring.smooth}
               onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen(null); focusItem(item.id); } }}>
               {item.tray.map((member, i) => <motion.button type="button" key={member.id} className="k-dock-item" aria-label={member.label}
                 aria-pressed={item.trayValue === member.id} onClick={() => { setOpen(null); onSelect(item.id, member.id); }}
-                initial={{ opacity: 0, y: reduced ? 0 : 4 }} animate={{ opacity: 1, y: 0 }}
-                transition={reduced ? { duration: 0.12 } : { ...arcSpring.snappy, delay: i * 0.035 }}>
+                initial={reduced ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                transition={reduced ? instant : { ...arcSpring.snappy, delay: i * 0.035 }}>
                 <span className="k-dock-icon">{member.icon}</span></motion.button>)}
             </motion.div>}
           </AnimatePresence>
         </div>)}
       <AnimatePresence>
-        {tip && !((tip.tray || tip.menu) && open === tip.id) && <motion.div layoutId="k-dock-tip" className="k-dock-tip" aria-hidden="true"
+        {tip && open !== tip.id && trayShown !== tip.id && <motion.div layoutId="k-dock-tip" className="k-dock-tip" aria-hidden="true"
           style={{ left: tipX, x: "-50%" }} initial={{ opacity: 0, y: reduced ? 0 : 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
           transition={reduced ? { duration: 0.1 } : arcSpring.snappy}>
           {tip.label}{tip.shortcut && <Keys accelerator={tip.shortcut} />}{tip.note && <span className="k-dock-tip-note">{tip.note}</span>}

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { OPEN_MS, SEAL_MS, clamp, sealBookSVG } from "./shell/sealbook";
 import { Tip } from "./ui/Tip";
 import { useReducedMotion } from "./ui/reducedMotion";
@@ -12,6 +13,7 @@ import { useReducedMotion } from "./ui/reducedMotion";
  * 图形按进度绘制，动画中途再点会从屏幕上的那一帧折回，不会跳。快捷键 Ctrl+Shift+S 由主窗口处理。
  */
 export function SealBook({ on, onToggle, slow = 1 }: { on: boolean; onToggle: () => void; slow?: number }) {
+  const { t } = useTranslation("shell");
   const sealed = on;
   const reducedMotion = useReducedMotion();
   const svg = useRef<SVGSVGElement>(null);
@@ -41,9 +43,9 @@ export function SealBook({ on, onToggle, slow = 1 }: { on: boolean; onToggle: ()
     return () => cancelAnimationFrame(m.raf);
   }, [sealed, reducedMotion, slow]);
 
-  return <Tip side="right" label={`安全模式${sealed ? "：开，成人图已封印" : "：关"}`} keys="Ctrl+Shift+S">
+  return <Tip side="right" label={sealed ? t("safeMode.tipOn") : t("safeMode.tipOff")} keys="Ctrl+Shift+S">
     <button type="button" className={`rail-btn seal-book${sealed ? " is-sealed" : ""}`} aria-pressed={sealed}
-      aria-label={sealed ? "安全模式：开启" : "安全模式：关闭"} onClick={onToggle}>
+      aria-label={sealed ? t("safeMode.on") : t("safeMode.off")} onClick={onToggle}>
       <svg ref={svg} width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false" />
     </button>
   </Tip>;

@@ -1,0 +1,17 @@
+#!/bin/sh
+# Enable with: git config core.hooksPath .githooks
+# Runs the CI checks that take seconds locally, so a format or type error is
+# caught here instead of after a 10-minute CI run. Skip once with --no-verify.
+set -e
+cd "$(git rev-parse --show-toplevel)"
+
+fail() {
+  echo "pre-push: $1" >&2
+  echo "pre-push: fix it, or push with --no-verify to skip these checks." >&2
+  exit 1
+}
+
+cargo fmt --all --check >/dev/null 2>&1 || fail "Rust code is not formatted; run: cargo fmt --all"
+
+[ -x node_modules/.bin/tsc ] || fail "node_modules is missing; run: npm ci"
+npm run --silent typecheck || fail "TypeScript type check failed (npm run typecheck)"

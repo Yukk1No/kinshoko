@@ -206,7 +206,7 @@ describe("安全模式", () => {
       const { text, safeMode } = args as { text: string; safeMode: boolean };
       const held = hold?.();
       if (held) return held;
-      if (safeMode !== safeOn) return Promise.reject("安全模式刚切换过，请重新查找");
+      if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
       return text.trim() && !safeOn ? [adult] : [];
     };
 
@@ -306,7 +306,7 @@ describe("安全模式", () => {
           holding = false;
           return late;
         }
-        if (safeMode !== safeOn) return Promise.reject("安全模式刚切换过，请重新查找");
+        if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
         if (text === "只在成人") return safeOn ? [] : [adult];
         return text.trim() ? candidates : [];
       }, false);
@@ -316,7 +316,7 @@ describe("安全模式", () => {
       fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
       fireEvent.click(await screen.findByRole("button", { name: "给“蓝发”加相近标签" }));
       const dialog = await screen.findByRole("dialog", { name: "加相近标签" });
-      const pick = within(dialog).getByRole("combobox", { name: "挑一个库内标签" });
+      const pick = within(dialog).getByRole("combobox", { name: "挑本图库的标签" });
       fireEvent.change(pick, { target: { value: "只在成人" } });
       expect(await screen.findByRole("option", { name: /只在成人图出现的标签/ })).toBeTruthy();
 
@@ -347,7 +347,7 @@ describe("安全模式", () => {
       backend(library, clean, (cmd, args) => {
         if (cmd !== "plugin:library|resolve_search") return undefined;
         const { input, safeMode } = args as { input: SearchInput; safeMode: boolean };
-        if (safeMode !== safeOn) return Promise.reject("安全模式刚切换过，请重新查找");
+        if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
         return resolved(input);
       }, false);
       render(<App />);

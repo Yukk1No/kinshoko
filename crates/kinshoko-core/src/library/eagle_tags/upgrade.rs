@@ -59,7 +59,7 @@ pub(super) fn upgrade(tx: &Transaction) -> Result<(), Error> {
             tx,
             &tag_id,
             &name,
-            &source_names::detect_lang(&name, source_names::INTERFACE_LANG),
+            &source_names::detect_lang(&name, crate::interface_lang::current()),
             source_names::EAGLE,
         )?;
         converted.insert(tag_id);

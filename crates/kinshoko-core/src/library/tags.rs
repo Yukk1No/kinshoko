@@ -58,7 +58,7 @@ impl TagNamespace {
             other => {
                 return Err(rusqlite::Error::InvalidColumnType(
                     0,
-                    format!("未知的标签命名空间 {other}"),
+                    format!("unknown tag namespace {other}"),
                     rusqlite::types::Type::Text,
                 ));
             }
@@ -94,6 +94,11 @@ impl FactSource {
     /// 包内每个来源快照各占一层，同字节去重不合并整理信息的身份。
     pub fn package_image(package_id: &str, library_id: &str, image_id: &str) -> FactSource {
         FactSource(format!("package:{package_id}:{library_id}:{image_id}"))
+    }
+
+    /// 订阅收进来的作品（#368），例如 `pixiv:12345`。同一作品的各页共用一层。
+    pub fn subscription(source: &str, work_id: &str) -> FactSource {
+        FactSource(format!("{source}:{work_id}"))
     }
 
     /// 从备份恢复。

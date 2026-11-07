@@ -19,7 +19,9 @@ use crate::fidelity::inspect::summarise;
 
 pub use log_event::{Detail, Level, LibraryNo, LogEvent, PauseReason, PinSource, WindowKind};
 pub use run_log::{Clock, Moment, RunLog, run_log_default_for_version};
-pub use runtime::{CapabilityCheck, RuntimeAssessment, RuntimeCapabilities, RuntimeStatus};
+pub use runtime::{
+    CapabilityCheck, RuntimeAssessment, RuntimeCapabilities, RuntimeProblem, RuntimeStatus,
+};
 pub use timing::{HeldLock, set_timing_sink, took, took_if_slow};
 
 /// Tauri（wry）在没有指定启动参数时给 WebView2 的参数：关掉迷你菜单与 SmartScreen 检查。
@@ -94,6 +96,7 @@ pub enum DisplayColourMode {
     Unknown,
 }
 
+// 不上界面：只写进诊断报告
 impl DisplayColourMode {
     fn label(self) -> &'static str {
         match self {
@@ -111,6 +114,7 @@ pub fn report(app: &AppFacts, system: &SystemFacts, generated_at: u64) -> String
 }
 
 /// 含当前窗口能力检查的同一脱敏报告。没有测量时明确保留未执行状态。
+// 不上界面：诊断报告，导出后贴进问题反馈
 pub fn report_with_runtime(
     app: &AppFacts,
     system: &SystemFacts,
@@ -211,6 +215,7 @@ pub fn report_with_runtime(
 }
 
 /// 显示器配置文件只写它自带的名称、ICC 版本与类型，以及字节的 SHA-256 前 12 位（便于比对）。
+// 不上界面：只写进诊断报告
 fn describe_profile(icc: Option<&[u8]>) -> String {
     let Some(icc) = icc else {
         return "无配置文件（按 sRGB）".to_owned();
@@ -248,6 +253,7 @@ fn profile_text(text: &ProfileText) -> Option<String> {
 }
 
 /// 系统报来的文字去掉控制字符；从第一个像路径或文件名的词起，到行尾都换成 `<路径>`。
+// 不上界面：诊断报告与运行日志的脱敏占位
 pub fn scrub(text: &str) -> String {
     let clean: String = text
         .chars()

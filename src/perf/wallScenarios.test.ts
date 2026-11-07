@@ -162,6 +162,6 @@ describe("runWallScenarios", () => {
     const report = await runWallScenarios({ env: display.env, only: [], calibrateMs: 50 });
     expect(report.warnings).toEqual([expect.stringContaining("120")]);
     document.body.innerHTML = "";
-    await expect(runWallScenarios({ env: display.env, only: [], calibrateMs: 50 })).rejects.toThrow("图片墙");
+    await expect(runWallScenarios({ env: display.env, only: [], calibrateMs: 50 })).rejects.toThrow("Image wall");
   });
 });

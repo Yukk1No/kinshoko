@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-// 颜色只在令牌文件里写值（design/ui-system/README.md「令牌来源」）；其他样式表只写 var(--token)。
+// 颜色只在令牌文件里写值（design/ui-system/tokens-and-components.md「令牌来源」）；其他样式表只写 var(--token)。
 const TOKEN_FILE = "./tokens.css";
 // 确有理由写死颜色的样式表列在这里，并写明理由。目前没有。
 const ALLOWED: Record<string, string> = {};

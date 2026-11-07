@@ -73,8 +73,14 @@ const find = async xpath => { const element = await wd("POST", `${base}/element`
 const clickXPath = async xpath => wd("POST", `${base}/element/${await find(xpath)}/click`, {});
 const click = text => clickXPath(`//button[normalize-space()='${text}']`);
 const screenshot = async name => writeFileSync(join(output, `${name}.png`), Buffer.from(await wd("GET", `${base}/screenshot`), "base64"));
-const browse = (scope = "all") => lib("browse", { query: { scope: { kind: scope }, conditions: { conditions: [] }, cursor: null, limit: 100, thumbnailPx: 256 } });
+// 只看目标图库；卡片的 id 换成它在这个图库里的图 id。
+const browse = async () => {
+  const query = { scope: { kind: "library", libraryId, scope: { kind: "all" } }, conditions: { conditions: [] }, cursor: null, limit: 100, knownPlaceholders: [] };
+  const page = await invoke("plugin:library|workspace_browse", { query, safeMode: await invoke("plugin:library|safe_mode") });
+  return { ...page, cards: page.cards.map((card) => ({ ...card, id: card.sources.find((source) => source.libraryId === libraryId).imageId })) };
+};
 const detail = id => lib("image", { imageId: id });
+const sidebar = async () => lib("workspace_sidebar", { safeMode: await invoke("plugin:library|safe_mode") });
 const policy = () => exec("return !!document.querySelector('[aria-label=\"Eagle 重导选择\"]')");
 const defaultChecked = () => exec("return [...document.querySelectorAll('[aria-label=\"Eagle 重导选择\"] input')].map(i=>i.checked)");
 async function closeTagStep() {
@@ -111,7 +117,7 @@ async function deleteViaUi(id) {
   await selectCard(id); await click("永久删除…");
   await until("delete preview", () => find("//*[@role='alertdialog' and @aria-label='永久删除']"));
   await click("确认永久删除");
-  await until("permanent delete", async () => (await lib("sidebar")).trash === 0);
+  await until("permanent delete", async () => (await sidebar()).trash === 0);
 }
 async function startSession() {
   driver = spawn(driverArg, ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], {
@@ -142,9 +148,9 @@ try {
 
   await prepare();
   check(JSON.stringify(await defaultChecked()) === "[true,false]", "Selected parent folder is recognized as Eagle and defaults to skipping deleted content");
-  const before = await lib("sidebar");
+  const before = await sidebar();
   await screenshot("default-choice"); await clickXPath("//*[@aria-label='Eagle 重导选择']//button[normalize-space()='取消']");
-  check((await browse()).total === 0 && (await lib("sidebar")).folders.length === before.folders.length, "Cancelling before start leaves the target library unchanged");
+  check((await browse()).total === 0 && (await sidebar()).folders.length === before.folders.length, "Cancelling before start leaves the target library unchanged");
   await prepare(); await finishImport();
   let cards = await browse(); const first = cards.cards[0].id;
   check(cards.total === 1, "Default wizard imports new Eagle content");

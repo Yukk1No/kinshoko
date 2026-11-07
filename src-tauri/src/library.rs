@@ -12,6 +12,9 @@
 //! - 安全模式（#60）：开关保存在应用壳设置里，打开资料库与切换时设给当前资料库。这里的命令都是
 //!   浏览视角；参考视角的句柄在装配（打开资料库）时取走，只交给参考组与桌面钉图，不经命令给前端。
 
+use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
+
 mod approx;
 mod groups;
 mod import_preview;
@@ -51,12 +54,11 @@ use std::sync::{Arc, Mutex, Weak};
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::diagnostics::{LibraryNo, LogEvent};
 use kinshoko_core::library::{
-    BrowsePage, BrowseQuery, EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping,
-    ExternalVocabulary, ImageDetail, ImageEdit, ImageRating, ImageTags, ImportOptions,
-    ImportSource, LibraryEvent, LibraryInfo, MappedExternal, PermanentDeletePreview,
-    PersonalApproxEntry, RecoveryReport, ReferenceLens, SafeMode, SafeModeScope, Sidebar, TagAlias,
-    TagEdit, TagGroupView, TagNamespace, TagTranslations, Vocabulary,
-    discover_eagle_libraries as discover_eagle,
+    EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping, ExternalVocabulary, ImageDetail,
+    ImageEdit, ImageRating, ImportOptions, ImportSource, LibraryEvent, LibraryInfo, MappedExternal,
+    PermanentDeletePreview, PersonalApproxEntry, RecoveryReport, ReferenceLens, SafeMode,
+    SafeModeScope, Sidebar, TagAlias, TagEdit, TagGroupView, TagNamespace, TagTranslations,
+    Vocabulary, discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::library_batch::{
     LibraryBatchFailure, LibraryDeletePreview, LibraryDeleteToken, LibraryTarget, each_library,
@@ -175,20 +177,32 @@ impl LibraryState {
 
     /// 活动资料库，不核对身份。只给不经界面请求的入口用（缩略图协议、安全模式开关）。
     #[track_caller]
-    fn active(&self) -> Result<Arc<Library>, String> {
+    fn active(&self) -> Result<Arc<Library>, CommandError> {
         lock_libraries(self)
             .as_ref()
             .and_then(DeviceLibraries::current)
-            .ok_or_else(|| "还没有打开资料库".to_owned())
+            .ok_or_else(|| CommandError::new(ErrorKind::LibraryNotOpen, "还没有打开资料库"))
     }
 }
 
 /// 本设备登记表与活动资料库；登记表第一次用到时才打开，打开时按设置里的安全模式范围设好。
 #[track_caller]
+/// 检查标签对应期间安全模式变了。
+fn mapping_safe_mode_changed() -> CommandError {
+    CommandError::new(
+        ErrorKind::TagMappingSafeModeChanged,
+        "安全模式已变化，请重新检查标签对应",
+    )
+}
+
+pub(crate) fn groups_not_ready() -> CommandError {
+    CommandError::new(ErrorKind::ReferenceGroupsNotReady, "参考组还没有准备好")
+}
+
 fn with_libraries<T>(
     state: &LibraryState,
     action: impl FnOnce(&mut DeviceLibraries) -> Result<T, DeviceLibraryError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     with_libraries_at(state, Location::caller(), action)
 }
 
@@ -197,28 +211,27 @@ fn with_libraries_at<T>(
     state: &LibraryState,
     site: &'static Location<'static>,
     action: impl FnOnce(&mut DeviceLibraries) -> Result<T, DeviceLibraryError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     let mut libraries = lock_libraries_at(state, site);
     if libraries.is_none() {
-        let mut opened =
-            DeviceLibraries::open(&state.device_dir).map_err(|error| error.to_string())?;
+        let mut opened = DeviceLibraries::open(&state.device_dir).map_err(CommandError::from)?;
         // 刚打开，还没有句柄：只记下范围，不会失败。
         opened
             .set_safe_mode_scope(state.safe_mode.current().scope)
-            .map_err(|error| error.to_string())?;
+            .map_err(CommandError::from)?;
         *libraries = Some(opened);
     }
-    action(libraries.as_mut().expect("登记表已打开")).map_err(|error| error.to_string())
+    action(libraries.as_mut().expect("登记表已打开")).map_err(CommandError::from)
 }
 
 #[track_caller]
 fn with_catalog<T>(
     catalog: &CatalogSearch,
     action: impl FnOnce(&mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, String> {
+) -> Result<T, CommandError> {
     catalog
         .with_catalog_at(Location::caller(), action)
-        .map_err(|e| e.to_string())
+        .map_err(CommandError::from)
 }
 
 /// 登记表的锁，等锁、持锁久了记进运行日志（#337）。
@@ -268,19 +281,15 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             settings_backup::export_application_settings,
             settings_backup::preview_application_settings,
             settings_backup::restore_application_settings,
-            source_actions::workspace_preview_source_delete,
-            source_actions::workspace_permanent_source_delete,
             source_actions::workspace_source_group,
-            source_actions::workspace_source_inspection,
-            source_actions::workspace_source_candidates,
-            source_actions::workspace_edit_source,
             source_actions::workspace_edit_sources,
-            source_actions::workspace_edit_source_tags,
             workspace::workspace_status,
             workspace::workspace_browse,
             workspace::workspace_resolve,
             workspace::workspace_candidates,
-            workspace::workspace_image,
+            workspace::workspace_library_candidates,
+            workspace::image,
+            workspace::catalog_image_tags,
             workspace::workspace_card,
             workspace::workspace_sidebar,
             workspace::workspace_directories,
@@ -288,19 +297,21 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             workspace::workspace_local_tags,
             current_library,
             create_library,
+            create_library_unopened,
+            save_memory,
+            remember_import_destination,
+            remember_new_library_parent,
+            pictures_folder,
             registered_libraries,
             register_library,
             switch_library,
             unregister_library,
-            browse,
-            image,
             edit,
             preview_permanent_delete,
             permanent_delete,
             preview_empty_trash,
             preview_permanent_delete_batch,
             permanent_delete_batch,
-            sidebar,
             create_folder,
             rename_folder,
             delete_folder,
@@ -312,15 +323,12 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             import_preview::read_import_preview,
             import_preview::close_import_preview,
             save_destination::dismiss_import,
-            save_destination::workspace_copy_source,
             import_contains_eagle,
             cancel_import,
             pick_folder,
             pick_files,
             discover_eagle_libraries,
             confirm_eagle_location,
-            image_tags,
-            catalog_image_tags,
             inspect_tag_catalog,
             correct_tag_mapping,
             portable::publish_tag_definitions,
@@ -366,10 +374,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 dirs.settings(),
             )
             .map_err(std::io::Error::other)?;
-            // 硬件档保存在应用壳设置里；这里只读一次，之后由设置命令同步。
             let saved = kinshoko_core::AppSettings::open(dirs.settings()).ok();
-            let preferred = saved.as_ref().and_then(|s| s.tagging_device());
-            crate::tagging::setup(app, dirs.models().to_path_buf(), preferred);
             // 读不到设置时按 SafeModeState 的默认值：开启，默认范围。
             let safe_mode = saved.as_ref().map_or_else(
                 || SafeModeState::default().current(),
@@ -378,7 +383,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             let state = LibraryState::new(device_dir, safe_mode);
             state.detached.set_safe_mode_scope(safe_mode.scope);
             app.manage(state);
-            workspace::monitor(app.clone());
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol("thumb", |ctx, request, responder| {
@@ -392,6 +396,18 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 }
 
 /// 设置里的安全模式（[`SafeModeState`]）；资料库插件还没装配时按其默认值。
+/// 开始自动标签与工作区监视。在资料库状态登记好（发布闸门取自它）、运行日志打开之后调用一次：
+/// 打标子进程的显存额度与标准错误要记进运行日志，打标一开始就要用到它。
+pub fn start_background<R: Runtime>(app: &AppHandle<R>) {
+    let dirs = crate::data_dirs::app_data(app);
+    // 硬件档保存在应用壳设置里；这里只读一次，之后由设置命令同步。
+    let preferred = kinshoko_core::AppSettings::open(dirs.settings())
+        .ok()
+        .and_then(|s| s.tagging_device());
+    crate::tagging::setup(app, dirs.models().to_path_buf(), preferred);
+    workspace::monitor(app.clone());
+}
+
 fn saved_mode<R: Runtime>(app: &AppHandle<R>) -> SafeMode {
     app.try_state::<LibraryState>().map_or_else(
         || SafeModeState::default().current(),
@@ -399,17 +415,27 @@ fn saved_mode<R: Runtime>(app: &AppHandle<R>) -> SafeMode {
     )
 }
 
+/// 这张图此刻能不能显示（已登记、没被安全模式隐藏），与 `thumb` 协议同一套核对。
+pub(crate) fn image_shown<R: Runtime>(
+    app: &AppHandle<R>,
+    library_id: &str,
+    image_id: &str,
+) -> bool {
+    let mut slow = false;
+    workspace::read_image(app, library_id, image_id, &mut slow).is_ok()
+}
+
 /// 设置里的安全模式开关；还没迁移的命令组用它“开始记下、结束复核”。
-fn saved_safe_mode<R: Runtime>(app: &AppHandle<R>) -> bool {
+pub(crate) fn saved_safe_mode<R: Runtime>(app: &AppHandle<R>) -> bool {
     saved_mode(app).on
 }
 
 async fn blocking<T: Send + 'static>(
-    f: impl FnOnce() -> Result<T, String> + Send + 'static,
-) -> Result<T, String> {
+    f: impl FnOnce() -> Result<T, CommandError> + Send + 'static,
+) -> Result<T, CommandError> {
     tauri::async_runtime::spawn_blocking(f)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(CommandError::system)?
 }
 
 #[cfg(test)]

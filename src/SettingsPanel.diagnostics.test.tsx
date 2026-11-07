@@ -61,7 +61,7 @@ describe("设置：诊断", () => {
 
 describe("设置：更新", () => {
   it("没有配置更新公钥的构建说明不检查更新", async () => {
-    backend((cmd) => (cmd === "update_status" ? { state: "disabled", message: "未配置更新公钥，自动更新未启用。请使用新版安装包手动更新。" } : undefined));
+    backend((cmd) => (cmd === "update_status" ? { state: "disabled", message: { code: "updateNoPublicKey" } } : undefined));
     render(<SettingsPanel initialTab="update" />);
 
     expect(await screen.findByText(/未配置更新公钥/)).toBeTruthy();
@@ -121,7 +121,7 @@ describe("设置：更新", () => {
   });
 
   it("手动更新与未启用自动更新的构建不显示更新通道", async () => {
-    for (const status of [{ state: "manual", message: "当前使用安装包手动更新。" }, { state: "disabled", message: "未配置更新公钥，自动更新未启用。" }]) {
+    for (const status of [{ state: "manual", message: { code: "updateManual" } }, { state: "disabled", message: { code: "updateNoPublicKey" } }]) {
       backend((cmd) => (cmd === "update_status" ? status : undefined));
       render(<SettingsPanel initialTab="update" />);
       expect(await screen.findByText(status.state === "manual" ? "手动更新" : "自动更新")).toBeTruthy();

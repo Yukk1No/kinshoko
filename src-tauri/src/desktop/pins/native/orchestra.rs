@@ -41,7 +41,9 @@ pub const ANIM_FRAME: Duration = Duration::from_millis(4);
 /// 提示在钉图上留多久（沿用以前钉图层的 1600 ms）。
 pub const NOTICE_MS: u64 = 1600;
 /// 读不到图、又没有别的原因时写的话（沿用以前钉图层的同一句）。
-pub const MISSING: &str = "参考图无法读取：图库没有打开，或原图已缺失";
+pub fn missing() -> String {
+    crate::ui_text::text(crate::ui_text::Text::PinUnreadable).to_owned()
+}
 /// 光标在钉图上时拦下的键：Esc 关闭，H／V 翻转，R／Shift+R 旋转。菜单打开时一个都不拦。
 const KEYS: [Key; 4] = [
     Key::Escape,

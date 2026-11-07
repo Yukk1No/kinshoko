@@ -48,9 +48,7 @@ impl ReferenceGroups {
         out: &Path,
         catalog: &crate::tag_catalog::TagCatalog,
     ) -> Result<PackageManifest, GroupError> {
-        let snapshot = catalog
-            .inspect()
-            .map_err(|e| GroupError::Library(e.to_string()))?;
+        let snapshot = catalog.inspect().map_err(GroupError::library)?;
         package::export(
             &self.get(id)?,
             source,
@@ -94,13 +92,15 @@ impl ReferenceGroups {
         library: &Library,
         catalog: &mut crate::tag_catalog::TagCatalog,
     ) -> Result<ReferenceGroup, GroupError> {
-        let snapshot = catalog
-            .inspect()
-            .map_err(|error| GroupError::Library(error.to_string()))?;
+        let snapshot = catalog.inspect().map_err(GroupError::library)?;
         let imported = self.prepare_package_import(package, library, Some(&snapshot))?;
-        catalog.publish_library_definitions(library).map_err(|error| GroupError::Library(format!(
-            "内容已写入，但资料库标签定义尚未更新：{error}。请重试保存标签定义或重新导入参考组包。"
-        )))?;
+        catalog.publish_library_definitions(library).map_err(|error| {
+            GroupError::library(crate::CommandError::caused_by(
+                error,
+                |cause| crate::command_error::ErrorKind::PackageDefinitionsNotSaved { cause },
+                |error| format!("内容已写入，但资料库标签定义尚未更新：{error}。请重试保存标签定义或重新导入参考组包。"),
+            ))
+        })?;
         imported.finish()
     }
 }

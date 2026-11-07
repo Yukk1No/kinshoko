@@ -149,6 +149,11 @@ mod search_cache;
 mod source_actions;
 #[path = "source_batch.rs"]
 mod source_batch;
+#[path = "source_references.rs"]
+mod source_references;
+
+#[path = "subscription/mod.rs"]
+mod subscription;
 #[path = "tag_catalog.rs"]
 mod tag_catalog;
 #[path = "tag_names/mod.rs"]
@@ -175,6 +180,10 @@ mod workspace;
 mod workspace_folders;
 #[path = "workspace_gate.rs"]
 mod workspace_gate;
+#[path = "workspace_image_reads.rs"]
+mod workspace_image_reads;
+#[path = "workspace_image_writes.rs"]
+mod workspace_image_writes;
 #[path = "workspace_paging.rs"]
 mod workspace_paging;
 #[path = "workspace_thumbnails.rs"]

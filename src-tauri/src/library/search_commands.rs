@@ -1,6 +1,7 @@
 //! 查找、安全模式、近似对应与外部词表的命令。
 
 use super::*;
+use kinshoko_core::CommandError;
 
 /// 搜索框打字时的分级候选（#161），与资料库无关。`safe_mode` 是界面当前的视角；应用的安全
 /// 模式设置开着时也按开着处理，切换的这一刻不会露出范围内的分级候选。“R18”与要隐藏的分级
@@ -25,13 +26,13 @@ pub(super) async fn search_candidates<R: Runtime>(
     lang: String,
     limit: u32,
     safe_mode: bool,
-) -> Result<Vec<Candidate>, String> {
+) -> Result<Vec<Candidate>, CommandError> {
     let catalog = state.search.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
         let search = catalog
             .search(&library, safe_mode)
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         Ok(search.candidates(&text, &lang, limit as usize))
     })
     .await
@@ -47,7 +48,7 @@ pub(super) async fn resolve_search<R: Runtime>(
     input: SearchInput,
     lang: String,
     safe_mode: bool,
-) -> Result<ConditionTree, String> {
+) -> Result<ConditionTree, CommandError> {
     let catalog = state.search.clone();
     crate::run_log::record(LogEvent::SearchResolved {
         terms: input.conditions.len().min(u32::MAX as usize) as u32,
@@ -56,7 +57,7 @@ pub(super) async fn resolve_search<R: Runtime>(
         let library = readable(&app, &library_id)?;
         let search = catalog
             .search(&library, safe_mode)
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         Ok(search.resolve(&input, &lang))
     })
     .await
@@ -64,7 +65,7 @@ pub(super) async fn resolve_search<R: Runtime>(
 
 /// 安全模式是否开启（全局设置）。
 #[tauri::command]
-pub(super) async fn safe_mode(state: State<'_, LibraryState>) -> Result<bool, String> {
+pub(super) async fn safe_mode(state: State<'_, LibraryState>) -> Result<bool, CommandError> {
     Ok(state.safe_mode.current().on)
 }
 
@@ -76,7 +77,7 @@ pub(super) async fn set_safe_mode<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
     on: bool,
-) -> Result<bool, String> {
+) -> Result<bool, CommandError> {
     // 分段耗时（#183）：开发构建在控制台输出等锁、写设置、切换资料库各用了多久。
     #[cfg(debug_assertions)]
     let started = std::time::Instant::now();
@@ -94,8 +95,8 @@ pub(super) async fn set_safe_mode<R: Runtime>(
                 let Some(shell) = app.try_state::<ShellState>() else {
                     return Ok(());
                 };
-                let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
-                shell.settings.set_safe_mode(on).map_err(|e| e.to_string())
+                let mut shell = shell.0.lock().map_err(CommandError::system)?;
+                shell.settings.set_safe_mode(on).map_err(CommandError::from)
             },
         )?;
         #[cfg(debug_assertions)]
@@ -134,7 +135,7 @@ pub(super) async fn set_safe_mode_scope<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
     scope: SafeModeScope,
-) -> Result<kinshoko_core::ShellSettingsView, String> {
+) -> Result<kinshoko_core::ShellSettingsView, CommandError> {
     let view = {
         let _visibility = lock(&state.visibility_commit);
         // 与开关相同：进行中的读取与发送都要按新视角重新核对；保存不成时退回原值。
@@ -143,12 +144,12 @@ pub(super) async fn set_safe_mode_scope<R: Runtime>(
             |_| {
                 import_preview::revoke(&app);
                 let shell = app.state::<ShellState>();
-                let mut shell = shell.0.lock().map_err(|e| e.to_string())?;
+                let mut shell = shell.0.lock().map_err(CommandError::system)?;
                 shell
                     .settings
                     .set_safe_mode_scope(scope)
-                    .map_err(|e| e.to_string())?;
-                Ok::<_, String>(shell.view())
+                    .map_err(CommandError::from)?;
+                Ok::<_, CommandError>(shell.view())
             },
         )?;
         state.detached.set_safe_mode_scope(scope);
@@ -179,12 +180,12 @@ pub(super) async fn set_tag_approx<R: Runtime>(
     a: String,
     b: String,
     relation: ApproxRelation,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let library = writable(&app, &library_id)?;
         library
             .set_tag_approx(&a, &b, relation)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -196,10 +197,12 @@ pub(super) async fn remove_tag_approx<R: Runtime>(
     library_id: String,
     a: String,
     b: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let library = writable(&app, &library_id)?;
-        library.remove_tag_approx(&a, &b).map_err(|e| e.to_string())
+        library
+            .remove_tag_approx(&a, &b)
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -211,7 +214,7 @@ pub(super) async fn personal_approx<R: Runtime>(
     state: State<'_, LibraryState>,
     library_id: String,
     lang: String,
-) -> Result<Vec<PersonalApproxEntry>, String> {
+) -> Result<Vec<PersonalApproxEntry>, CommandError> {
     let catalog = state.search.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
@@ -238,7 +241,7 @@ pub(super) fn bundled_translations() -> TagTranslations {
 /// 会读文件，不要在主线程上调用。
 pub(super) fn external_vocabulary<R: Runtime>(
     app: &AppHandle<R>,
-) -> Result<ExternalVocabulary, String> {
+) -> Result<ExternalVocabulary, CommandError> {
     let state = app.state::<LibraryState>();
     let csv = crate::tagging::vocabulary_csv(app);
     let mut cached = lock(&state.external_vocabulary);
@@ -262,7 +265,7 @@ pub(super) async fn eagle_tag_mapping<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     lang: String,
-) -> Result<EagleTagMapping, String> {
+) -> Result<EagleTagMapping, CommandError> {
     let library = save_destination::fixed_library(
         &app,
         &kinshoko_core::library::SaveDestination {
@@ -274,7 +277,7 @@ pub(super) async fn eagle_tag_mapping<R: Runtime>(
         let vocabulary = external_vocabulary(&app)?;
         let mapping = library
             .map_eagle_tags(&vocabulary, &lang)
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         save_destination::publish_saved(&app, &library)?;
         Ok(mapping)
     })
@@ -288,7 +291,7 @@ pub(super) async fn map_tag_external<R: Runtime>(
     library_id: String,
     tag_id: String,
     external: String,
-) -> Result<MappedExternal, String> {
+) -> Result<MappedExternal, CommandError> {
     let library = save_destination::fixed_library(
         &app,
         &kinshoko_core::library::SaveDestination {
@@ -300,7 +303,7 @@ pub(super) async fn map_tag_external<R: Runtime>(
         let vocabulary = external_vocabulary(&app)?;
         let mapping = library
             .map_tag_external(&tag_id, &external, &vocabulary)
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         save_destination::publish_saved(&app, &library)?;
         Ok(mapping)
     })
@@ -315,7 +318,7 @@ pub(super) async fn set_source_name_lang<R: Runtime>(
     tag_id: String,
     name: String,
     lang: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     let library = save_destination::fixed_library(
         &app,
         &kinshoko_core::library::SaveDestination {
@@ -326,7 +329,7 @@ pub(super) async fn set_source_name_lang<R: Runtime>(
     blocking(move || {
         library
             .set_source_name_lang(&tag_id, &name, &lang)
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
         save_destination::publish_saved(&app, &library)
     })
     .await
@@ -338,7 +341,7 @@ pub(super) async fn external_suggestions<R: Runtime>(
     app: AppHandle<R>,
     text: String,
     limit: u32,
-) -> Result<Vec<String>, String> {
+) -> Result<Vec<String>, CommandError> {
     blocking(move || Ok(external_vocabulary(&app)?.suggest(&text, limit as usize))).await
 }
 
@@ -348,11 +351,11 @@ pub(super) async fn image_rating<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     image_id: String,
-) -> Result<ImageRating, String> {
+) -> Result<ImageRating, CommandError> {
     blocking(move || {
         readable(&app, &library_id)?
             .image_rating(&image_id)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }

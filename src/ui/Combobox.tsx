@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useId, useRef, useState } from "react";
+import { i18n } from "../i18n/instance";
 import type { InputHTMLAttributes, KeyboardEvent, MouseEvent, ReactNode, RefObject } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { Languages, Plus } from "lucide-react";
@@ -163,7 +164,7 @@ export function Combobox<T extends ComboboxOption>({
         onClick={(event) => pick(option, event)}>
         <span className="k-item-ind" aria-hidden="true">{option.create ? <Plus size={16} /> : option.icon}</span>
         <span className="k-item-label">{option.label}</span>
-        {option.untranslated && <Tip label="未翻译"><span className="k-option-flag" role="img" aria-label="未翻译"><Languages size={14} aria-hidden="true" /></span></Tip>}
+        {option.untranslated && <Tip label={i18n.t("tags:untranslatedFlag")}><span className="k-option-flag" role="img" aria-label={i18n.t("tags:untranslatedFlag")}><Languages size={14} aria-hidden="true" /></span></Tip>}
         {option.via && <span className="k-option-via">{option.via}</span>}
         {option.meta !== undefined && option.meta !== null && <span className="k-item-meta">{option.meta}</span>}
       </div>

@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { MenuPopup } from "../ui/Menu";
 import type { WallMenuTarget } from "./WallMenu";
@@ -11,14 +12,14 @@ import { mountWindow, type MountWindow } from "./prefetch";
 import { useUiScale } from "../shell/uiScale";
 import { useDevicePixelRatio } from "../ui/devicePixelRatio";
 import {
-  CAP_RATIO, EMPTY, GAP, NO_CONDITIONS, OVERSCAN, PAD, SAVE_ANCHOR_MS, TARGET, anchorKey, loadAnchor,
-  saveAnchor, type BrowserCard, type LayoutSnapshot, type WallHandle, type WallProps,
+  CAP_RATIO, GAP, NO_CONDITIONS, OVERSCAN, PAD, SAVE_ANCHOR_MS, TARGET, loadAnchor,
+  saveAnchor, type BrowserCard, type WallHandle, type WallProps,
 } from "./wallShared";
 import { wallCardNode, type CardHandlers } from "./WallCard";
 import { useDoubleClickGuard } from "./useDoubleClickGuard";
 import { useWallPages } from "./useWallPages";
 import { useReleaseLanding, useSealRelease } from "./useSealRelease";
-import { useMeasureBeforeReflow, useReflowAfterLayout, useWidthSync } from "./useReflow";
+import { useMeasureBeforeReflow, useReflowAfterLayout, useReflowState, useWidthSync } from "./useReflow";
 import { usePrefetchThumbnails } from "./usePrefetchThumbnails";
 import { thumbnailTier } from "./thumbnailTier";
 import { useReturnFocus, useViewerLeave } from "./useViewerReturn";
@@ -45,12 +46,12 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   onDensityPreview,
   onDensityCommit,
   onTotalChange,
-  libraryId,
   scope,
   conditions = NO_CONDITIONS,
   reloadKey,
   safeMode = true,
   holdReflow = false,
+  settle = null,
   selected,
   onSelectionChange,
   onOpenImage,
@@ -58,9 +59,10 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   menu,
   onCardCommand,
   onPaste,
+  emptyAction,
 }, ref) {
   const searching = conditions.conditions.length > 0;
-  const storeKey = searching ? null : workspaceScope ? `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}` : anchorKey(libraryId, scope);
+  const storeKey = searching ? null : `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}`;
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [previewDensity, setPreviewDensity] = useState<number | null>(null);
@@ -88,16 +90,16 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { onTotalChange?.(total); }, [onTotalChange, total]);
   /**
-   * 请求代次：重新浏览、视角（资料库、范围、条件、安全模式）变化与卸载时前进。
+   * 请求代次：重新浏览、视角（浏览范围、条件、安全模式）变化与卸载时前进。
    * 响应回来时代次已经不同就整个丢掉，不改卡片、游标、数量、错误与加载状态（#77 UI-A）。
    */
   const generation = useRef(0);
   /** 正在进行的请求所属代次；没有时为 null。被作废的请求不会占着它。 */
   const inflight = useRef<number | null>(null);
   /** 当前视角。请求发出时按这里取，不用首次渲染时的值。 */
-  const view = useRef({ libraryId, scope, conditions, workspaceScope, safeMode });
-  view.current = { libraryId, scope, conditions, workspaceScope, safeMode };
-  const lens = `${libraryId}\n${JSON.stringify(scope)}\n${JSON.stringify(conditions)}\n${safeMode}\n${JSON.stringify(workspaceScope)}`;
+  const view = useRef({ conditions, workspaceScope, safeMode });
+  view.current = { conditions, workspaceScope, safeMode };
+  const lens = `${JSON.stringify(conditions)}\n${safeMode}\n${JSON.stringify(workspaceScope)}`;
   useLayoutEffect(() => {
     // 视角变了：还在路上的请求按旧视角作废，旧游标也不再接着翻；等调用方按新视角重新浏览。
     generation.current += 1;
@@ -117,23 +119,9 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const lastOpened = useRef<string | null>(null);
   const wasViewing = useRef(false);
   const layoutWidth = useRef(0);
-  const beforeReflow = useRef(new Map<string, DOMRect>());
-  const motions = useRef(new Map<string, Animation>());
+  const { beforeReflow, motions, safeReflow, beforeBoxes, reflowMotion, slideMotion } = useReflowState();
   /** 先移走、后端还没做完的卡片（#290）；见 useWallPages。 */
   const pendingRemoval = useRef(new Set<string>());
-  /**
-   * 安全模式切换那一刻量下的卡片位置。资料库按新视角送回卡片后，留下的卡片从这里滑到新位置，
-   * 节奏按原型的封印／释放重排（从点下去的时刻算起）。
-   */
-  const safeReflow = useRef<{
-    rects: Map<string, DOMRect>; boxes: LayoutSnapshot; at: number; delay: number; duration: number;
-    /** 存下之后卡片又被别的重排挪过（例如墙变宽）：起点按用时量到的位置，不用存下的。 */
-    moved?: boolean;
-  } | null>(null);
-  /** 封印／释放重排前的布局：点下去时不在视口里的卡片，从这里算出起点（#154）。 */
-  const beforeBoxes = useRef<LayoutSnapshot | null>(null);
-  /** 这一次重排的节奏；null 时是平常的 200 ms。 */
-  const reflowMotion = useRef<{ at: number; delay: number; duration: number } | null>(null);
 
   /** 原生滚轮监听读最新的渲染结果。 */
   const live = useRef({ layout: null as ReturnType<typeof masonry> | null, ids: [] as string[], density, previewDensity, onDensityPreview, onDensityCommit });
@@ -141,7 +129,6 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const releasePage = useRef(false);
   const measureBeforeReflow = useMeasureBeforeReflow({ scroller, motions, safeReflow, reflowMotion, beforeReflow, beforeBoxes, live });
 
-  useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
   /** 封印后按原型节奏移走飞走的图的那一帧（requestAnimationFrame id）；0 表示没有。 */
   const sealDrop = useRef(0);
   useEffect(() => () => cancelAnimationFrame(sealDrop.current), []);
@@ -222,6 +209,8 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   // 屏幕上的宽度与每行张数不变。缩略图按卡片的 CSS 宽度乘实际的设备像素比请求。
   const uiScale = useUiScale();
   const dpr = useDevicePixelRatio();
+  // 卡片里有文案：换界面语言时重建。
+  const { t, i18n: { language } } = useTranslation("wall");
   const thumbnailPx = useMemo(
     () => Math.ceil((density / uiScale) * 1.5 * dpr),
     [density, uiScale, dpr],
@@ -230,14 +219,14 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const tier = thumbnailTier(thumbnailPx);
 
   useEffect(() => { onCardsChange?.(cards); }, [cards, onCardsChange]);
-  useWallCaptureSources({ viewerOpen, scroller, cards, libraryId });
+  useWallCaptureSources({ viewerOpen, scroller, cards });
   const { loadMore } = useWallPages({
     cards, setCards, cursor, setCursor, setTotal, setError, generation, inflight, view, restoring, anchor, shownCards,
-    measureBeforeReflow, onWorkspaceStatus, releasePage, thumbnailPx, reloadKey, loadMoreRef, workspaceScope, safeMode,
+    measureBeforeReflow, onWorkspaceStatus, releasePage, reloadKey, loadMoreRef, workspaceScope, safeMode,
     pendingRemoval,
   });
 
-  const { holdForDoubleClick } = useWidthSync({ holdReflow, scroller, layoutWidth, measureBeforeReflow, setWidth, syncMount });
+  const { holdForDoubleClick } = useWidthSync({ holdReflow, settle, slideMotion, scroller, layoutWidth, measureBeforeReflow, setWidth, syncMount });
 
   const { revealed, arriving, fxHost, fx, releaseDue, book, releaseOnScreen } = useSealRelease({
     safeMode, cards, setCards, scroller, shownCards, live, safeReflow, sealDrop, measureBeforeReflow, viewerOpen, releasePage,
@@ -255,7 +244,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
 
   useReflowAfterLayout({
     scroller, width, cards, zoomPin, ids, layout, anchor, storeKey, settledTop, cursor, restoring, beforeReflow, reflowMotion,
-    beforeBoxes, syncMount, motions,
+    beforeBoxes, syncMount, motions, slideMotion,
   });
 
   live.current = { layout, ids, density, previewDensity, onDensityPreview, onDensityCommit };
@@ -313,7 +302,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   useReturnFocus({ returnTo, scroller, position, layout, syncMount });
 
   /** 上次渲染的卡片元素，按 id；布局、选择、遮蔽都没变的卡片原样沿用。 */
-  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; leaving: boolean; landing: boolean; tier: number; node: ReactNode }>());
+  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; leaving: boolean; landing: boolean; tier: number; language: string; node: ReactNode }>());
   useLayoutEffect(() => { renderedCards.current = nextRendered; });
   const cardHandlers = useRef<CardHandlers>(null!);
   usePrefetchThumbnails({ layout, mount, cards, scrollDirection, thumbnailPx });
@@ -335,12 +324,15 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   return (
     <ContextMenu.Root disabled={!menu} onOpenChange={(next) => { if (!next) setMenuTarget(null); }}>
     <ContextMenu.Trigger render={<div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
-      role="listbox" aria-label="图片墙" aria-multiselectable="true" tabIndex={-1} onKeyDown={wallKey} onClick={clearOnBlankClick}
+      role="listbox" aria-label={t("label")} aria-multiselectable="true" tabIndex={-1} onKeyDown={wallKey} onClick={clearOnBlankClick}
       inert={viewerOpen}
       onContextMenuCapture={(e) => { if (menu) targetMenu(e); }} />}>
       {error && <p role="alert">{error}</p>}
       {total === 0 ? (
-        <p className="wall-empty">{searching ? "没有符合条件的参考图。" : EMPTY[scope.kind]}</p>
+        <div className="wall-empty">
+          <p>{searching ? t("empty.searching") : t(`empty.${scope.kind}`)}</p>
+          {emptyAction?.(searching)}
+        </div>
       ) : (
         <div className="wall-canvas" style={{ height: layout.height }}>
           {mounted.map((i) => {
@@ -354,19 +346,19 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
             const landing = arriving.has(card.id);
             // 没变的卡片沿用上次的元素，React 跳过整张卡片的比对（#109）。
             const kept = renderedCards.current.get(card.id);
-            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.leaving === leaving && kept.landing === landing && kept.tier === tier) {
+            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.leaving === leaving && kept.landing === landing && kept.tier === tier && kept.language === language) {
               nextRendered.set(card.id, kept);
               return kept.node;
             }
             const node = wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened });
-            nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, tier, node });
+            nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, tier, language, node });
             return node;
           })}
         </div>
       )}
       {createPortal(<div className="fx-layer" ref={fxHost} aria-hidden="true" />, document.body)}
     </ContextMenu.Trigger>
-    {menu && menuTarget && <MenuPopup label={menuTarget.kind === "blank" ? "图片墙菜单" : menuTarget.cards.length > 1 ? `${menuTarget.cards.length} 张参考图的菜单` : "参考图菜单"} width={232}>
+    {menu && menuTarget && <MenuPopup label={menuTarget.kind === "blank" ? t("menu.blankLabel") : menuTarget.cards.length > 1 ? t("menu.cardsLabel", { count: menuTarget.cards.length }) : t("menu.cardLabel")} width={232}>
       {menu(menuTarget)}
     </MenuPopup>}
     </ContextMenu.Root>

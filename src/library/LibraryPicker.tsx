@@ -1,47 +1,48 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
+import { useTranslation } from "react-i18next";
 import { ChevronRight, FolderOpen, FolderPlus, Library, Lightbulb, Pin, Plus, RefreshCw, Settings2 } from "lucide-react";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
+import { describeCommandError } from "../ipc/commandError";
 import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, unregisterLibrary } from "../ipc";
 import { BrandMark } from "../ui/BrandMark";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
 import { Tip } from "../ui/Tip";
-import { offerUndoRemoval, reRegister } from "./undoRemoval";
+import { offerUndoRemoval } from "./undoRemoval";
 
 /**
- * 本设备的资料库登记与取消登记（界面称“图库”，design/ui-system/copy-map.md）。
+ * 本设备的资料库登记与取消登记（界面称“图库”，design/ui-system/interface-terms.md）。
  * `menu`：侧栏标题行“图库 ＋”（方案 D，#113）：＋ 菜单为打开 / 新建 / 管理。画师不选“当前图库”
  * （ADR-0008），这里没有切换；`inline`：还没有图库时的欢迎页（#172 原型 A：先选新建或打开，新建再填表）。
  * 打开菜单或管理对话框时重新读取登记，不可用的登记仍可重新连接（重新检查）或移除。
  */
-export function LibraryPicker({ current, onChanged, onCreate, blocked = false, layout = "menu" }: {
-  current: LibraryInfo | null | undefined;
+export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = false, layout = "menu" }: {
+  /** 启动时后端还没打开上次的资料库：先不让操作。 */
+  ready?: boolean;
   onChanged: (library: LibraryInfo | null) => void;
   onCreate: () => void;
   blocked?: boolean;
   layout?: "menu" | "inline";
 }) {
+  const { t } = useTranslation("library");
   const [entries, setEntries] = useState<LibraryRegistration[]>([]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const [managing, setManaging] = useState(false);
   const toast = useToast();
-  const disabled = busy || blocked || current === undefined;
-  const latest = useRef(current);
-  latest.current = current;
+  const disabled = busy || blocked || !ready;
 
   useEffect(() => {
-    if (current === undefined) return;
+    if (!ready) return;
     let alive = true;
     registeredLibraries().then(
       (value) => alive && setEntries(value),
       (e) => alive && fail(String(e)),
     );
     return () => { alive = false; };
-  }, [current?.id, current?.root, current === undefined, revision]);
+  }, [ready, revision]);
 
   // Registrations can also change outside this picker (content restore, unregistration elsewhere).
   // Re-read the list when the workspace's provider set changes.
@@ -57,12 +58,11 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
   }, []);
 
   function fail(message: string) {
-    if (toast) toast.error(message); else setError(message);
+    toast.error(message);
   }
   const refresh = () => setRevision((value) => value + 1);
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
-    setError(null);
     try { await action(); }
     catch (e) { fail(String(e)); }
     finally {
@@ -78,54 +78,53 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
   const remove = (id: string) => run(async () => {
     const entry = entries.find((e) => e.library.id === id);
     await unregisterLibrary(id);
-    if (current?.id === id) onChanged(null);
+    onChanged(null);
     if (entry && !entry.unavailable) offerUndoRemoval(toast, entry.library,
-      (root) => run(async () => onChanged(await reRegister(root, latest.current?.id))), fail);
+      (root) => run(async () => onChanged(await registerLibrary(root))), fail);
   });
 
   const status = <>
-    {busy && <span className="sr-only" role="status">正在处理图库…</span>}
-    {error && <p className="library-error" role="alert">{error}</p>}
+    {busy && <span className="sr-only" role="status">{t("picker.busy")}</span>}
   </>;
 
   if (layout === "inline") return <div className="welcome">
     <section className="welcome-card" aria-labelledby="welcome-title">
       <div className="welcome-head">
         <BrandMark size={48} />
-        <h1 id="welcome-title">欢迎使用 Kinshoko</h1>
-        <p>先准备一个图库，用来存放参考图。</p>
+        <h1 id="welcome-title">{t("welcome.title")}</h1>
+        <p>{t("welcome.lead")}</p>
       </div>
       <div className="welcome-choices">
         <button type="button" className="welcome-choice is-main" disabled={disabled} aria-labelledby="welcome-create" aria-describedby="welcome-create-desc" onClick={onCreate}>
           <span className="welcome-choice-tile" aria-hidden="true"><FolderPlus size={20} /></span>
-          <span className="welcome-choice-text"><b id="welcome-create">新建图库</b><span id="welcome-create-desc">在你选的位置新建文件夹</span></span>
+          <span className="welcome-choice-text"><b id="welcome-create">{t("welcome.create")}</b><span id="welcome-create-desc">{t("welcome.createHint")}</span></span>
           <ChevronRight size={16} aria-hidden="true" className="welcome-choice-chev" />
         </button>
         <button type="button" className="welcome-choice" disabled={disabled} aria-labelledby="welcome-open" aria-describedby="welcome-open-desc" onClick={() => void register()}>
           <span className="welcome-choice-tile" aria-hidden="true"><FolderOpen size={20} /></span>
-          <span className="welcome-choice-text"><b id="welcome-open">打开图库</b><span id="welcome-open-desc">选择已有图库所在的文件夹</span></span>
+          <span className="welcome-choice-text"><b id="welcome-open">{t("welcome.open")}</b><span id="welcome-open-desc">{t("welcome.openHint")}</span></span>
           <ChevronRight size={16} aria-hidden="true" className="welcome-choice-chev" />
         </button>
       </div>
       {status}
     </section>
     <div className="welcome-tips">
-      <p className="welcome-tip"><Lightbulb size={14} aria-hidden="true" />用过 Eagle？建好图库后从“导入”迁入</p>
-      <p className="welcome-tip"><Pin size={14} aria-hidden="true" />截图和钉图不需要图库，随时可用</p>
+      <p className="welcome-tip"><Lightbulb size={14} aria-hidden="true" />{t("welcome.eagleTip")}</p>
+      <p className="welcome-tip"><Pin size={14} aria-hidden="true" />{t("welcome.captureTip")}</p>
     </div>
   </div>;
 
   return <>
     <div className="pane-library-title">
-      <h2 className="pane-title">图库</h2>
+      <h2 className="pane-title">{t("picker.title")}</h2>
       <Menu.Root modal={false} onOpenChange={(open) => { if (open) refresh(); }}>
-        <Tip label="打开、新建或管理图库"><Menu.Trigger className="k-icon-btn lib-add" aria-label="打开、新建或管理图库" disabled={current === undefined}>
+        <Tip label={t("picker.addLabel")}><Menu.Trigger className="k-icon-btn lib-add" aria-label={t("picker.addLabel")} disabled={!ready}>
           <Plus size={15} aria-hidden="true" />
         </Menu.Trigger></Tip>
-        <MenuPopup width={200} label="图库">
-          <MenuItem icon={<FolderOpen size={14} />} disabled={disabled} onClick={() => void register()}>打开图库…</MenuItem>
-          <MenuItem icon={<FolderPlus size={14} />} disabled={disabled} onClick={onCreate}>新建图库…</MenuItem>
-          <MenuItem icon={<Settings2 size={14} />} onClick={() => { refresh(); setManaging(true); }}>管理图库</MenuItem>
+        <MenuPopup width={200} label={t("picker.title")}>
+          <MenuItem icon={<FolderOpen size={14} />} disabled={disabled} onClick={() => void register()}>{t("picker.open")}</MenuItem>
+          <MenuItem icon={<FolderPlus size={14} />} disabled={disabled} onClick={onCreate}>{t("picker.create")}</MenuItem>
+          <MenuItem icon={<Settings2 size={14} />} onClick={() => { refresh(); setManaging(true); }}>{t("picker.manage")}</MenuItem>
         </MenuPopup>
       </Menu.Root>
     </div>
@@ -134,28 +133,29 @@ export function LibraryPicker({ current, onChanged, onCreate, blocked = false, l
       <Dialog.Portal>
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog library-manage">
-          <Dialog.Title className="k-dialog-title">管理图库</Dialog.Title>
-          <Dialog.Description className="k-dialog-desc">移除只是不再显示，文件不会删除。</Dialog.Description>
-          {entries.length > 0 ? <ul className="k-list library-list" aria-label="本设备的图库">
+          <Dialog.Title className="k-dialog-title">{t("manage.title")}</Dialog.Title>
+          <Dialog.Description className="k-dialog-desc">{t("manage.lead")}</Dialog.Description>
+          {entries.length > 0 ? <ul className="k-list library-list" aria-label={t("manage.listLabel")}>
             {entries.map(({ library, unavailable }) => <li key={library.id} className="k-list-row">
               <span className="k-list-icon" aria-hidden="true"><Library size={16} /></span>
               <div className="k-list-text">
                 <div className="k-list-title">{library.name}</div>
                 <Tip label={library.root} align="start"><div className="k-list-desc">{library.root}</div></Tip>
-                {unavailable && <p className="k-list-desc is-warn" role="status">{unavailable}</p>}
+                {unavailable && <p className="k-list-desc is-warn" role="status">{describeCommandError(unavailable)}</p>}
               </div>
               <div className="k-list-end">
-                <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}><span className="k-label">{unavailable ? "未连接" : "已连接"}</span></span>
-                {unavailable && <button type="button" className="k-btn is-sm" disabled={disabled} onClick={refresh}><RefreshCw size={13} aria-hidden="true" /><span className="k-label">重新连接</span></button>}
-                <Tip label="文件不会删除"><button type="button" className="k-btn is-sm" disabled={disabled} aria-label={`移除 ${library.name}`} onClick={() => void remove(library.id)}><span className="k-label">移除</span></button></Tip>
+                <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}><span className="k-label">{unavailable ? t("manage.offline") : t("manage.online")}</span></span>
+                {unavailable && <button type="button" className="k-btn is-sm" disabled={disabled} onClick={refresh}><RefreshCw size={13} aria-hidden="true" /><span className="k-label">{t("manage.reconnect")}</span></button>}
+                <Tip label={t("manage.removeTitle")}><button type="button" className="k-btn is-sm" disabled={disabled} aria-label={t("manage.removeLabel", { name: library.name })}
+                  onClick={() => void remove(library.id)}><span className="k-label">{t("manage.remove")}</span></button></Tip>
               </div>
             </li>)}
-          </ul> : <p className="k-dialog-desc">还没有打开的图库。</p>}
+          </ul> : <p className="k-dialog-desc">{t("manage.none")}</p>}
           <div className="k-dialog-foot">
-            <button type="button" className="k-btn" disabled={disabled} onClick={() => void register()}><FolderOpen size={14} aria-hidden="true" /><span className="k-label">打开图库…</span></button>
-            <button type="button" className="k-btn" disabled={disabled} onClick={() => { setManaging(false); onCreate(); }}><FolderPlus size={14} aria-hidden="true" /><span className="k-label">新建图库…</span></button>
+            <button type="button" className="k-btn" disabled={disabled} onClick={() => void register()}><FolderOpen size={14} aria-hidden="true" /><span className="k-label">{t("picker.open")}</span></button>
+            <button type="button" className="k-btn" disabled={disabled} onClick={() => { setManaging(false); onCreate(); }}><FolderPlus size={14} aria-hidden="true" /><span className="k-label">{t("picker.create")}</span></button>
             <span className="k-grow" />
-            <Dialog.Close className="k-btn is-primary"><span className="k-label">完成</span></Dialog.Close>
+            <Dialog.Close className="k-btn is-primary"><span className="k-label">{t("manage.done")}</span></Dialog.Close>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>

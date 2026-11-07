@@ -37,7 +37,7 @@
 /* margin-left: auto keeps the controls at the end of the row even when the row's other items stop growing (the top bar's search has a maximum width). */
 .k-win-ctrls { display: flex; align-items: center; gap: 2px; flex: none; margin-left: auto; }
 .k-win-div { width: 1px; height: 22px; background: var(--line); margin: 0 4px 0 2px; }
-.k-win-btn { position: relative; width: 38px; height: 26px; padding: 0; border: 0; border-radius: 7px; display: grid; place-items: center; background: transparent; color: var(--ink-2);
+.k-win-btn { position: relative; width: 38px; height: 26px; padding: 0; border: 0; border-radius: var(--r-s); display: grid; place-items: center; background: transparent; color: var(--ink-2);
   transition: background var(--t-fast), color var(--t-fast); }
 /* Glyphs are drawn on the device-pixel grid and placed by WinCtrls (winGlyphs.ts); keep antialiasing for diagonals and corners. */
 .k-win-btn svg { position: absolute; display: block; }
@@ -49,15 +49,18 @@
 /* ---- Popups: menus and popovers (Base UI parts) ---- */
 /* 菜单、小确认、悬停提示常在对话框（.k-dialog 91）里打开，浮层要压在对话框之上。 */
 .k-positioner { z-index: 95; outline: 0; }
-.k-popup { min-width: 200px; max-height: min(var(--available-height, 480px), 480px); overflow: auto; padding: 5px; background: var(--surface); color: var(--ink);
-  border-radius: var(--r-m); box-shadow: var(--shadow-pop); outline: 0;
-  transform-origin: var(--transform-origin); transition: transform 220ms var(--spring), opacity 150ms; }
-.k-popup[data-starting-style], .k-popup[data-ending-style] { opacity: 0; transform: scale(0.96) translateY(-4px); }
-/* 贴在按钮旁的小确认（Popconfirm）：间距与字号同改名浮层 .k-rename。 */
-.k-popconfirm { width: 260px; min-width: 0; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-.k-popconfirm-desc { margin: 0; font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
-.k-popconfirm-acts { display: flex; gap: 6px; justify-content: flex-end; }
-.k-item { position: relative; display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px 0 8px; border-radius: var(--r-item); outline: 0; cursor: default;
+.k-popup { min-width: 200px; max-height: min(var(--available-height, 480px), 480px); overflow: auto; padding: 8px; background: var(--surface); color: var(--ink);
+  border-radius: var(--r-l); box-shadow: var(--shadow-pop); outline: 0;
+  --k-pop-x: 0px; --k-pop-y: 0px;
+  transform-origin: var(--transform-origin); transition: transform var(--t-pop) var(--spring), opacity var(--t-fast); }
+/* 从触发点那一侧滑出，再缩回同一侧（#455）：在下方的从上往下，在上方的从下往上，左右同理。
+   级联菜单的进退场在 menu.css，这里不管。 */
+.k-popup[data-side="bottom"] { --k-pop-y: -4px; }
+.k-popup[data-side="top"] { --k-pop-y: 4px; }
+.k-popup:is([data-side="left"], [data-side="inline-start"]) { --k-pop-x: 4px; }
+.k-popup:is([data-side="right"], [data-side="inline-end"]) { --k-pop-x: -4px; }
+.k-popup:not([data-k-level]):is([data-starting-style], [data-ending-style]) { opacity: 0; transform: translate(var(--k-pop-x), var(--k-pop-y)) scale(0.96); }
+.k-item { position: relative; display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px 0 8px; border-radius: var(--r-s); outline: 0; cursor: default;
   user-select: none; white-space: nowrap; color: var(--ink); }
 .k-item[data-highlighted] { background: var(--hover); }
 .k-item[data-disabled] { opacity: 0.5; }
@@ -79,6 +82,7 @@
 .k-item.has-meta .k-item-label { display: flex; align-items: center; gap: 8px; }
 /* the group name lines up with the item text: item padding 8 + indicator 16 + gap 8 */
 .k-menu-label { padding: 6px 10px 2px 32px; font-size: 12px; line-height: 18px; color: var(--ink-2); font-weight: 600; }
+
 
 /* ---- Import button: one target, the source is chosen in its menu (design system ImportButton) ---- */
 .k-import { display: inline-flex; align-items: center; gap: 2px; flex: none; height: 36px; padding: 0 8px 0 10px; border: 0; border-radius: var(--r); background: transparent; color: var(--ink-2);
@@ -102,28 +106,28 @@
 .k-switch[data-checked] { background: var(--accent); }
 .k-switch[data-disabled] { opacity: 0.5; cursor: default; }
 .k-switch-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--on-solid); box-shadow: var(--knob-shadow);
-  transition: transform 250ms var(--spring); }
+  transition: transform var(--t-slow) var(--spring); }
 .k-switch[data-checked] .k-switch-thumb { transform: translateX(14px); }
 .k-switch.is-sm { width: 28px; height: 16px; }
 .k-switch.is-sm .k-switch-thumb { width: 12px; height: 12px; }
 .k-switch.is-sm[data-checked] .k-switch-thumb { transform: translateX(12px); }
 
 /* ---- Segmented switch ---- */
-/* slot 10, padding 3, item 7: concentric */
-.k-seg { display: flex; padding: 3px; border-radius: var(--r); background: var(--sunken); box-shadow: inset 0 0 0 1px var(--line); gap: 2px; }
-.k-seg-item { flex: 1; min-width: 0; height: 30px; padding: 0 8px; border: 0; border-radius: var(--r-item); background: transparent; color: var(--ink-2); font-weight: 500;
+/* slot 12, padding 4, item 8: concentric */
+.k-seg { display: flex; padding: 4px; border-radius: var(--r); background: var(--sunken); box-shadow: inset 0 0 0 1px var(--line); gap: 2px; }
+.k-seg-item { flex: 1; min-width: 0; height: 28px; padding: 0 8px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink-2); font-weight: 500;
   display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; overflow: hidden;
   transition: background var(--t-fast), color var(--t-fast); }
 .k-seg-item:hover:not([data-disabled]) { color: var(--ink); }
-.k-seg-item[data-pressed] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line), var(--shadow-raise); }
+.k-seg-item[data-pressed] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
 .k-seg-item[data-disabled] { opacity: 0.5; cursor: default; }
 
 /* ---- Dock (after Arc Pro dock behaviour) ---- */
-.k-dock { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 6px; border-radius: var(--r-xl);
+.k-dock { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 8px; border-radius: var(--r-xl);
   background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(18px) saturate(1.2);
   box-shadow: var(--shadow-pop); }
 .k-dock-cell { position: relative; }
-.k-dock-item { position: relative; width: 40px; height: 40px; padding: 0; border: 0; border-radius: var(--r-m); display: grid; place-items: center; background: transparent; color: var(--ink-2); }
+.k-dock-item { position: relative; width: 40px; height: 40px; padding: 0; border: 0; border-radius: var(--r); display: grid; place-items: center; background: transparent; color: var(--ink-2); }
 .k-dock-item:hover:not(:disabled) { color: var(--ink); background: var(--hover); }
 .k-dock-item[aria-pressed="true"] { color: var(--accent-strong); }
 .k-dock-item[aria-pressed="true"]:hover { background: transparent; }
@@ -131,17 +135,18 @@
 .k-dock-item.is-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 88%, var(--bg)); color: var(--bg); }
 .k-dock-item.is-danger:hover:not(:disabled) { color: var(--danger); background: var(--hover); }
 .k-dock-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.k-dock-sel { position: absolute; inset: 0; border-radius: var(--r-m); background: var(--accent-soft); }
+.k-dock-sel { position: absolute; inset: 0; border-radius: var(--r); background: var(--accent-soft); }
 .k-dock-icon { position: relative; display: grid; place-items: center; }
 .k-dock-sep { width: 1px; height: 22px; margin: 0 5px; background: var(--line-2); }
 .k-dock-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--r-pill); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 16px; font-weight: 600; text-align: center; }
 .k-dock-tip { position: absolute; bottom: calc(100% + 10px); display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-s); background: var(--surface); color: var(--ink);
   font-size: 12px; line-height: 18px; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-pop); }
-.k-dock-tip-note { color: var(--ink-2); }
-/* 提示与菜单同底（--surface），键帽沿用设置里的 .k-key，只收紧高度以放进一行提示。 */
+.k-dock-tip-note { opacity: 0.7; }
+/* 墨紫提示里的键帽：设置里 .k-key 的反色版，底色与下沿取前景色的淡色。 */
 .k-tip-line { display: flex; align-items: center; gap: 8px; }
-:is(.k-tip, .k-dock-tip) .k-key { padding: 0 6px; line-height: 18px; }
-.k-dock-tray { position: absolute; bottom: calc(100% + 10px); left: 50%; translate: -50% 0; display: flex; gap: 2px; padding: 6px; border-radius: var(--r-xl);
+:is(.k-tip, .k-dock-tip) .k-key { padding: 0 6px; line-height: 18px; background: color-mix(in srgb, var(--bg) 16%, transparent); color: inherit;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--bg) 30%, transparent); }
+.k-dock-tray { position: absolute; bottom: calc(100% + 10px); left: 50%; translate: -50% 0; display: flex; gap: 2px; padding: 8px; border-radius: var(--r-xl);
   background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(18px);
   box-shadow: var(--shadow-pop); transform-origin: 50% 100%; }
 .k-dock-tray .k-dock-item[aria-pressed="true"] { box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--accent-soft); }
@@ -156,22 +161,28 @@
 /* `.k-dock.is-dark` takes the dark theme's tokens (src/styles.css), so it needs no rules of its own. */
 
 /* ---- Dialog shell (Base UI Dialog / AlertDialog) and settings-style lists ---- */
-.k-backdrop { position: fixed; inset: 0; z-index: 90; background: var(--overlay); transition: opacity 200ms; }
+.k-backdrop { position: fixed; inset: 0; z-index: 90; background: var(--overlay); transition: opacity var(--t); }
 .k-backdrop[data-starting-style], .k-backdrop[data-ending-style] { opacity: 0; }
 .k-dialog { position: fixed; left: 50%; top: 50%; z-index: 91; width: min(560px, calc(100vw - 48px)); max-height: calc(100vh - 48px); overflow: auto; translate: -50% -50%;
-  padding: 20px; border-radius: var(--r-xl); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-dialog);
-  transition: transform 220ms var(--spring), opacity 160ms; }
+  padding: 20px; border-radius: var(--r-2xl); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-dialog);
+  transition: transform var(--t-pop) var(--spring), opacity var(--t-fast); }
 .k-dialog[data-starting-style], .k-dialog[data-ending-style] { opacity: 0; transform: scale(0.97); }
 .k-dialog-title { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; }
 .k-dialog-desc { margin: 4px 0 14px; color: var(--ink-2); font-size: 13px; }
 .k-dialog-foot { display: flex; align-items: center; gap: 8px; margin-top: 20px; }
+/* 对话框里会变高的一段（DialogHeight，#453）。外扩 4 px 再用内边距补回，滚动与过渡时的裁切不碰到焦点环。 */
+.k-dialog-height { flex: 0 1 auto; min-height: 0; margin: -4px; padding: 4px; overflow: auto; gap: inherit; }
+.k-dialog-height[data-moving] { overflow: hidden; transition: height var(--t-slow) var(--ease); }
+.k-dialog-height-inner, .k-dialog-swap, .k-dialog-swap-page { display: flex; flex-direction: column; gap: inherit; min-width: 0; }
+.k-dialog-swap { position: relative; }
+.k-dialog-swap-step { gap: inherit; }
 .k-grow { flex: 1; }
 /* two or more facts side by side: spacing separates them, never a middle dot */
 .k-parts { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; min-width: 0; }
-.k-list { list-style: none; margin: 0; padding: 0; border-radius: var(--r-m); box-shadow: inset 0 0 0 1px var(--line); }
+.k-list { list-style: none; margin: 0; padding: 0; border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--line); }
 .k-list-row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 12px; border-top: 1px solid var(--line); }
 .k-list-row:first-child { border-top: 0; }
-.k-list-icon { width: 28px; height: 28px; flex: none; border-radius: var(--r-s); display: grid; place-items: center; background: var(--surface-2); color: var(--ink-2); }
+.k-list-icon { width: 28px; height: 28px; flex: none; border-radius: var(--r-xs); display: grid; place-items: center; background: var(--surface-2); color: var(--ink-2); }
 .k-list-text { flex: 1; min-width: 0; }
 .k-list-title { font-weight: 500; }
 .k-list-desc { margin: 0; color: var(--ink-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

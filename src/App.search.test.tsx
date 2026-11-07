@@ -13,7 +13,7 @@ describe("查找", () => {
   const lastQuery = () =>
     (sent("plugin:library|browse").at(-1) as { query: { conditions: ConditionTree } }).query;
 
-  it("切换整理资料库保留全局条件，旧候选和旧条件树按代次重新解析", async () => {
+  it("登记另一个图库保留全局条件，旧候选和旧条件树按代次重新解析", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
     let finishCandidates!: (value: Candidate[]) => void;
     let finishTree!: (value: ConditionTree) => void;
@@ -186,7 +186,7 @@ describe("近似查找", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "给“蓝发”加相近标签" }));
     const dialog = await screen.findByRole("dialog", { name: "加相近标签" });
-    fireEvent.change(within(dialog).getByRole("combobox", { name: "挑一个库内标签" }), {
+    fireEvent.change(within(dialog).getByRole("combobox", { name: "挑本图库的标签" }), {
       target: { value: "某" },
     });
     fireEvent.click(await screen.findByRole("option", { name: /作者：某某/ }));
@@ -211,7 +211,7 @@ describe("近似查找", () => {
     render(<App />);
     await pickBlue();
 
-    const hints = within(chips()).getAllByRole("img", { name: "没有外部对应，不参与内置近似对应表" });
+    const hints = within(chips()).getAllByRole("img", { name: "没有外部对应，不参与内置相近标签" });
     expect(hints).toHaveLength(1);
     expect(hints[0].previousElementSibling?.textContent).toBe("蓝发");
   });

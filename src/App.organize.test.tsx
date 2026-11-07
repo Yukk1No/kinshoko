@@ -88,7 +88,7 @@ describe("整理", () => {
     fireEvent.keyDown(card("a"), { key: " " });
     expect(selectionBar()).toBeNull();
     fireEvent.contextMenu(card("a"));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "还原" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "恢复" }));
     await waitFor(() =>
       expect(sent("plugin:library|workspace_edit_sources").at(-1)).toMatchObject({ targets: [{ imageId: "a" }], edits: [{ kind: "restore" }] }),
     );
@@ -100,15 +100,15 @@ describe("整理", () => {
     await screen.findAllByRole("img");
     const island = () => screen.getByRole("group", { name: "图片大小" });
     fireEvent.keyDown(card("a"), { key: " " });
-    expect(island().classList.contains("is-collapsed")).toBe(false);
+    expect(island().hasAttribute("data-collapsed")).toBe(false);
     fireEvent.click(card("b"), { ctrlKey: true });
-    expect(island().classList.contains("is-collapsed")).toBe(true);
+    expect(island().hasAttribute("data-collapsed")).toBe(true);
     expect(screen.queryByRole("slider", { name: "图片大小" })).toBeNull();
     expect(within(island()).getByRole("button", { name: "图片大小" })).toBeTruthy();
 
     fireEvent.click(within(selectionBar()!).getByRole("button", { name: "取消选择" }));
     await waitFor(() => expect(selectionBar()).toBeNull());
-    expect(island().classList.contains("is-collapsed")).toBe(false);
+    expect(island().hasAttribute("data-collapsed")).toBe(false);
     expect(screen.getByRole("slider", { name: "图片大小" })).toBeTruthy();
   });
 
@@ -150,23 +150,40 @@ describe("整理", () => {
     );
   });
 
+  it("在窗口打开时以外的图库里只选一张，详情面板与窗口打开的图库相同，不走来源整理（#422）", async () => {
+    const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
+    backend(library, clean, (cmd) => {
+      if (cmd === "plugin:library|registered_libraries") return [library, other].map((library) => ({ library, unavailable: null }));
+      return undefined;
+    });
+    render(<App />);
+    await screen.findAllByRole("img");
+    fireEvent.click(await screen.findByRole("button", { name: "私人收藏（2 张）" }));
+    await waitFor(() => expect(sent("plugin:library|browse").at(-1)).toMatchObject({ libraryId: "L2" }));
+    await waitFor(() => expect(card("a")).toBeTruthy());
+    fireEvent.keyDown(card("a"), { key: " " });
+
+    await waitFor(() => expect(sent("plugin:library|image").at(-1)).toEqual({ libraryId: "L2", imageId: "a" }));
+    await waitFor(() => expect(selectionPanel()).toBeTruthy());
+  });
+
   it("回收站里永久删除：先列出受影响的参考组，过期时重新预览后再确认", async () => {
     let previews = 0;
     let stale = true;
     backend(library, clean, (cmd, args) => {
-      if (cmd === "plugin:library|workspace_preview_source_delete") {
+      if (cmd === "plugin:library|preview_permanent_delete") {
         previews += 1;
-        const ids = [(args as { target: { imageId: string } }).target.imageId];
+        const { ids } = args as { ids: string[] };
         return {
           imageIds: ids,
           groups: previews === 1 ? [] : [{ groupId: "G1", name: "手的参考", imageIds: ids }],
           token: `T${previews}`,
         };
       }
-      if (cmd === "plugin:library|workspace_permanent_source_delete") {
+      if (cmd === "plugin:library|permanent_delete") {
         if (stale) {
           stale = false;
-          return Promise.reject("回收站或参考组在确认前有变化，请重新查看将受影响的参考组");
+          return Promise.reject({ code: "deletePreviewStale" });
         }
         return null;
       }
@@ -183,7 +200,7 @@ describe("整理", () => {
     // 只选一张时没有悬浮栏（#180）：从右键菜单彻底删除。
     fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.contextMenu(card("a"));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "彻底删除…" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "永久删除…" }));
 
     // 没有受影响的参考组：直接确认。
     expect(await screen.findByText(/永久删除这 1 张图/)).toBeTruthy();
@@ -196,9 +213,9 @@ describe("整理", () => {
     expect(screen.getByText(/刚有变化/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
     await waitFor(() =>
-      expect(sent("plugin:library|workspace_permanent_source_delete")).toMatchObject([
-        { target: { libraryId: "L1", imageId: "a" }, token: "T1" },
-        { target: { libraryId: "L1", imageId: "a" }, token: "T2" },
+      expect(sent("plugin:library|permanent_delete")).toMatchObject([
+        { libraryId: "L1", ids: ["a"], token: "T1" },
+        { libraryId: "L1", ids: ["a"], token: "T2" },
       ]),
     );
     await waitFor(() => expect(selectionPanel()).toBeNull());
@@ -206,8 +223,8 @@ describe("整理", () => {
 
   it("收起详情面板后，永久删除的确认仍是可见、可操作的提醒对话框", async () => {
     backend(library, clean, (cmd, args) => {
-      if (cmd === "plugin:library|workspace_preview_source_delete") return { imageIds: [(args as { target: { imageId: string } }).target.imageId], groups: [], token: "T1" };
-      if (cmd === "plugin:library|workspace_permanent_source_delete") return null;
+      if (cmd === "plugin:library|preview_permanent_delete") return { imageIds: (args as { ids: string[] }).ids, groups: [], token: "T1" };
+      if (cmd === "plugin:library|permanent_delete") return null;
       return undefined;
     });
     render(<App />);
@@ -218,7 +235,7 @@ describe("整理", () => {
     fireEvent.click(await screen.findByRole("button", { name: "收起详情" }));
     await waitFor(() => expect(screen.getByLabelText("详情", { selector: "aside" }).getAttribute("data-collapsed")).toBe("true"));
     fireEvent.contextMenu(card("a"));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "彻底删除…" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "永久删除…" }));
     const dialog = await screen.findByRole("alertdialog", { name: "永久删除" });
     expect(dialog.closest("[inert], [aria-hidden='true']")).toBeNull();
     expect(dialog.closest("aside")).toBeNull();
@@ -227,7 +244,7 @@ describe("整理", () => {
     expect(confirm.className).toContain("k-btn");
     expect(confirm.className).toContain("is-danger");
     fireEvent.click(confirm);
-    await waitFor(() => expect(sent("plugin:library|workspace_permanent_source_delete")).toMatchObject([{ target: { libraryId: "L1", imageId: "a" }, token: "T1" }]));
+    await waitFor(() => expect(sent("plugin:library|permanent_delete")).toMatchObject([{ libraryId: "L1", ids: ["a"], token: "T1" }]));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
   });
 

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { Profiler } from "react";
+import { workspacePage } from "../test/workspacePage";
 import { DRAG_IMAGES, Wall } from "./Wall";
 
 // #102 故事17/18（#109）：滚动时不逐事件渲染、按方向预取缩略图；鼠标滚轮插值。
@@ -22,13 +23,13 @@ beforeEach(() => {
   vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("reduce") && reduced, media: query, addEventListener() {}, removeEventListener() {} }));
   mockConvertFileSrc("windows");
   mockIPC((cmd) => {
-    if (cmd !== "plugin:library|browse") throw new Error(cmd);
-    return { cards: Array.from({ length: 400 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 5) * 40, thumbnail: `L1/${i}/256` })), total: 400, nextCursor: null };
+    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
+    return workspacePage(Array.from({ length: 400 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 5) * 40 })));
   });
 });
 afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
-const props = { libraryId: "L1", scope: { kind: "all" as const }, reloadKey: 0, selected: new Set<string>(),
+const props = { workspaceScope: { kind: "all" as const }, scope: { kind: "all" as const }, reloadKey: 0, selected: new Set<string>(),
   onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false };
 
 async function setup() {
@@ -89,7 +90,7 @@ it("滚动位置在停手后与卸载时记住（不在每个滚动事件里写�
   for (let top = 1000; top <= 3000; top += 50) scrollTo(top);
   expect(setItem.mock.calls.length).toBeLessThan(5);
   view.unmount();
-  const saved = JSON.parse(localStorage.getItem("kinshoko.wall.anchor.L1")!);
+  const saved = JSON.parse(localStorage.getItem('kinshoko.wall.workspace.{"kind":"all"}')!);
   expect(saved.id).toBeTruthy();
   setItem.mockRestore();
 });

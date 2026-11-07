@@ -14,19 +14,22 @@ mod library;
 mod plugin_acl_tests;
 mod run_log;
 mod shell;
+mod subscription;
 mod tagging;
+mod ui_text;
 mod updater;
 
 use tauri::RunEvent;
 
 pub fn run() {
+    shell::start_interface_language();
     // 数据根目录在建应用之前定下来：各插件的 setup 与第一个窗口都要用（#145）。
     let data = match data_dirs::prepare() {
         Ok(data) => data,
         Err(message) => {
             eprintln!("{message}");
             #[cfg(windows)]
-            desktop::win32::show_error("Kinshoko 无法启动", &message);
+            desktop::win32::show_error(ui_text::text(ui_text::Text::StartupFailed), &message);
             std::process::exit(1);
         }
     };
@@ -56,9 +59,11 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle();
             shell::start(handle)?;
+            library::start_background(handle);
             updater::manage(handle);
             backup::manage(handle);
             desktop::create_tray(handle)?;
+            subscription::manage(handle);
             let args: Vec<String> = std::env::args().collect();
             if let Some(options) = fidelity_gate::options(&args) {
                 fidelity_gate::start(handle, options);
@@ -83,10 +88,13 @@ pub fn run() {
             run_log::log_timing,
             commands::set_viewer_background,
             commands::migrate_viewer_background,
+            commands::interface_language,
+            commands::set_interface_language,
             commands::ui_scale,
             commands::set_ui_scale,
             commands::double_click,
             commands::set_inspector_width,
+            commands::set_inspector_open,
             diagnostics::diagnostics_report,
             diagnostics::runtime_status,
             diagnostics::open_runtime_update,
@@ -111,6 +119,20 @@ pub fn run() {
             tagging::tagging_set_device,
             tagging::tagging_pick_package,
             tagging::tagging_import_package,
+            subscription::subscription_status,
+            subscription::set_subscriptions_enabled,
+            subscription::subscription_check_now,
+            subscription::subscriptions,
+            subscription::subscription_recent,
+            subscription::subscription_mark_seen,
+            subscription::roster::subscription_find_artist,
+            subscription::roster::subscription_following,
+            subscription::roster::subscription_add,
+            subscription::roster::subscription_set_options,
+            subscription::roster::subscription_remove,
+            subscription::login::subscription_login,
+            subscription::login::subscription_logout,
+            subscription::login::subscription_cancel_login,
             fidelity_gate::gate_plan,
             fidelity_gate::gate_pins,
             fidelity_gate::gate_image,

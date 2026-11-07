@@ -1,4 +1,4 @@
-// 图片墙各部分共用的常量、类型与位置记忆（从 Wall.tsx 原样搬出）。
+// 图片墙各部分共用的常量、类型与位置记忆。
 import type { ReactNode } from "react";
 import type { WallMenuTarget } from "./WallMenu";
 import type { BrowseScope } from "../bindings/BrowseScope";
@@ -8,6 +8,7 @@ import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import type { Anchor, Box } from "./layout";
+import type { PanelSlide } from "../shell/usePanelSlide";
 
 // 常量沿用 #13 样稿（Wall.tsx）。
 export const GAP = 8;
@@ -58,12 +59,12 @@ export type WallHandle = {
 /** 卡片上的快捷键（与右键菜单同一选择规则）：P 钉住、F1 进入查看器框选、Del 移到回收站、Ctrl+C 复制图片。 */
 export type CardCommand = "pin" | "crop" | "trash" | "copy";
 
-/** 图片墙上的卡片：工作区的卡片（不带缩略图地址，按来源与档位拼，见 `cardThumbnail`），或只浏览单个资料库的旧卡片。 */
-export type BrowserCard = Omit<ImageCard, "thumbnail"> & Partial<Pick<ImageCard, "thumbnail">>
-  & Partial<Pick<WorkspaceCard, "libraryId" | "imageId" | "sources">>;
+/** 图片墙上的卡片：工作区的卡片，不带缩略图地址，按来源与档位拼（见 `cardThumbnail`）。 */
+export type BrowserCard = Omit<ImageCard, "thumbnail">
+  & Pick<WorkspaceCard, "libraryId" | "imageId"> & Partial<Pick<WorkspaceCard, "sources">>;
 
 export type WallProps = {
-  workspaceScope?: WorkspaceScope;
+  workspaceScope: WorkspaceScope;
   onInspectSources?: (card: WorkspaceCard) => void;
   onCardsChange?: (cards: BrowserCard[]) => void;
   /** 只有当前请求已完整接受的工作区快照，才能成为父界面的已知状态。 */
@@ -75,7 +76,6 @@ export type WallProps = {
   /** Ctrl+滚轮最后一格后 220 ms 提交的图片大小，与滑条提交同一个值。 */
   onDensityCommit?: (value: number) => void;
   onTotalChange?: (count: number | null) => void;
-  libraryId: string;
   scope: BrowseScope;
   /** Search 给出的条件树；没有条件时是范围内的全部。条件变化时由调用方换 key 重建，从顶部看起。 */
   conditions?: ConditionTree;
@@ -87,11 +87,16 @@ export type WallProps = {
    */
   safeMode?: boolean;
   /**
-   * 容器宽度还没稳定（详情面板开合的过渡中、拖动面板边缘时，#162/#157）：保持现在的布局，
+   * 容器宽度还没稳定（拖动面板边缘时，#157）：保持现在的布局，
    * 多出的部分被裁掉；变回 false 时按稳定后的宽度只重排一次。单击卡片后的双击间隔里同样不重排（#179），
    * 两者都结束时才重排。
    */
   holdReflow?: boolean;
+  /**
+   * 旁边的面板正在滑到终点（侧栏与详情面板开合，#162、#450）：一开始就按终点宽度重排，卡片按面板过渡的时长、缓动与起点滑过去，
+   * 和墙边一起平移的那部分合起来是一段不折返的移动。进行中不跟着容器宽度逐帧重排；结束后宽度若与终点不符再排一次。
+   */
+  settle?: PanelSlide | null;
   selected: ReadonlySet<string>;
   onSelectionChange: (selected: Set<string>) => void;
   onOpenImage: (card: BrowserCard) => void;
@@ -102,6 +107,8 @@ export type WallProps = {
   onCardCommand?: (command: CardCommand, cards: BrowserCard[], point: { x: number; y: number }) => void;
   /** Ctrl+V：从剪贴板导入（#105）。主窗口里焦点不在输入框、没有模态与查看器时都响应。 */
   onPaste?: () => void;
+  /** 空状态下紧跟在那句话后面的操作（空图库的导入、没有结果时的清除条件）；不给出时只有那句话。 */
+  emptyAction?: (searching: boolean) => ReactNode;
 };
 
 /** 按键落在可输入的地方（输入框、文本框、可编辑区域）：Ctrl+V 是粘贴文字，不是导入。 */
@@ -111,19 +118,6 @@ export const editable = (target: EventTarget | null) =>
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
 export const scopeKey = (scope: BrowseScope) =>
   (scope.kind === "folder" || scope.kind === "folderTree") ? `${scope.kind}.${scope.id}` : scope.kind;
-
-export const anchorKey = (libraryId: string, scope: BrowseScope) =>
-  scope.kind === "all"
-    ? `kinshoko.wall.anchor.${libraryId}`
-    : `kinshoko.wall.anchor.${libraryId}.${scopeKey(scope)}`;
-
-export const EMPTY: Record<BrowseScope["kind"], string> = {
-  all: "图库里还没有参考图。点右上角的“导入”，或直接拖进窗口。",
-  folder: "这个文件夹里还没有参考图。选中图片后点“移到”，或把图片拖到侧栏的文件夹上。",
-  folderTree: "这个文件夹及其子文件夹还没有参考图。",
-  unassigned: "这个图库没有未归类的参考图。",
-  trash: "回收站是空的。",
-};
 
 export const NO_CONDITIONS: ConditionTree = { conditions: [] };
 

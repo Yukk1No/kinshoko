@@ -18,37 +18,6 @@ impl Library {
             .write_revoked
             .store(true, super::Ordering::SeqCst);
     }
-    /// Snapshot for a visible, explicit source; original-only reference access remains private.
-    pub fn content_snapshot(&self, image_id: &str) -> Result<super::ImageSnapshot, Error> {
-        self.image(image_id)?;
-        super::ReferenceLens::open_detached(&self.info().root, &self.info().id)?.snapshot(image_id)
-    }
-
-    /// Copy content and source facts. Existing manual note/rating/tag decisions are retained.
-    pub fn copy_from(&self, source: &Library, image_id: &str) -> Result<String, Error> {
-        self.copy_snapshot_from(source, image_id, &source.content_snapshot(image_id)?)
-    }
-
-    /// Allows the application catalog to attach current portable definitions to the same snapshot.
-    pub fn copy_snapshot_from(
-        &self,
-        source: &Library,
-        image_id: &str,
-        snapshot: &super::ImageSnapshot,
-    ) -> Result<String, Error> {
-        source.image(image_id)?;
-        let path = source.original_path(image_id)?;
-        let origin = super::PackageOrigin {
-            package_id: format!("copy-{}", source.info().id),
-            source_library_id: source.info().id.clone(),
-            source_image_id: image_id.into(),
-            group_id: "source-copy".into(),
-            group_name: format!("从「{}」复制", source.info().name),
-            exported_at: super::now_ms(),
-            location: path.to_string_lossy().into_owned(),
-        };
-        self.import_from_package(&origin, &std::fs::read(path)?, snapshot)
-    }
 
     /// A fixed destination view reuses this provider's inner handle; it never reopens or activates it.
     pub fn for_destination(&self, destination: &SaveDestination) -> Result<Library, Error> {
@@ -76,10 +45,7 @@ impl Library {
 pub(super) fn validate(inner: &super::Inner, destination: &SaveDestination) -> Result<(), Error> {
     validate_authority(&inner.write_revoked)?;
     if inner.detached {
-        return Err(Error::Io(std::io::Error::new(
-            std::io::ErrorKind::PermissionDenied,
-            "此资料库为只读提供方",
-        )));
+        return Err(Error::ReadOnlyProvider);
     }
     if destination.library_id != inner.info.id
         || Library::inspect(&inner.root)?.id != destination.library_id
@@ -113,10 +79,7 @@ pub(super) fn assign(
 
 pub(super) fn validate_authority(revoked: &std::sync::atomic::AtomicBool) -> Result<(), Error> {
     if revoked.load(super::Ordering::SeqCst) {
-        return Err(Error::Io(std::io::Error::new(
-            std::io::ErrorKind::NotConnected,
-            "资料库已取消登记，保存目标不可用",
-        )));
+        return Err(Error::DestinationRevoked);
     }
     Ok(())
 }

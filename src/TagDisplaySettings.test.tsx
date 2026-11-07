@@ -18,7 +18,7 @@ function backend() {
   const sent: TagDisplay[] = [];
   const view = (): ShellSettingsView => ({
     autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
-    runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", updateChannel: "stable", tagDisplay: saved,
+    runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", inspectorOpen: false, updateChannel: "stable", tagDisplay: saved,
   });
   mockIPC((cmd, args) => {
     if (cmd === "shell_settings") return view();
@@ -36,7 +36,7 @@ function backend() {
 }
 
 async function openAppearance(onChange?: (view: ShellSettingsView) => void) {
-  render(<SettingsPanel library={null} initialTab="tags" onChange={onChange} />);
+  render(<SettingsPanel initialTab="tags" onChange={onChange} />);
   fireEvent.click(await screen.findByRole("button", { name: "外观" }));
   return {
     high: await screen.findByRole("spinbutton", { name: "高档下限" }) as HTMLInputElement,
@@ -46,14 +46,14 @@ async function openAppearance(onChange?: (view: ShellSettingsView) => void) {
 }
 
 describe("设置：标签外观", () => {
-  it("默认：按可信度分档，高档下限 0.80、低档上限 0.40，步长 0.05，低档虚线框开", async () => {
+  it("默认：按可信度分档，高档下限 80、低档上限 40，步长 5，低档虚线框开", async () => {
     backend();
     const { high, low, outline } = await openAppearance();
     expect(screen.getByRole("button", { name: "按可信度分档" }).getAttribute("aria-pressed")).toBe("true");
-    expect(high.value).toBe("0.80");
-    expect(low.value).toBe("0.40");
-    expect(high.step).toBe("0.05");
-    expect(low.step).toBe("0.05");
+    expect(high.value).toBe("80");
+    expect(low.value).toBe("40");
+    expect(high.step).toBe("5");
+    expect(low.step).toBe("5");
     expect(outline.getAttribute("aria-checked")).toBe("true");
   });
 
@@ -63,7 +63,7 @@ describe("设置：标签外观", () => {
     const { high, outline } = await openAppearance((view) => seen.push(view));
     fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
     await waitFor(() => expect(seen.at(-1)?.tagDisplay.style).toBe("grouped"));
-    fireEvent.change(high, { target: { value: "0.75" } });
+    fireEvent.change(high, { target: { value: "75" } });
     await waitFor(() => expect(seen.at(-1)?.tagDisplay.high).toBe(0.75));
     fireEvent.click(outline);
     await waitFor(() => expect(seen.at(-1)?.tagDisplay.lowOutline).toBe(false));
@@ -75,7 +75,7 @@ describe("设置：标签外观", () => {
     const waiting: (() => void)[] = [];
     const view = (tagDisplay: TagDisplay): ShellSettingsView => ({
       autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
-      runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", updateChannel: "stable", tagDisplay,
+      runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", inspectorOpen: false, updateChannel: "stable", tagDisplay,
     });
     mockIPC((cmd, args) => {
       if (cmd === "shell_settings") return view(saved);
@@ -98,7 +98,7 @@ describe("设置：标签外观", () => {
     fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
     fireEvent.click(outline);
     await release();
-    fireEvent.change(high, { target: { value: "0.75" } });
+    fireEvent.change(high, { target: { value: "75" } });
     // 修好后保存一次只发一个，后面的排队，所以要一个个放行到没有为止。
     while (waiting.length > 0) await release();
     expect(saved).toEqual({ style: "grouped", high: 0.75, low: 0.4, lowOutline: false });
@@ -106,11 +106,42 @@ describe("设置：标签外观", () => {
     expect(screen.getByRole("button", { name: "按出处分组" }).getAttribute("aria-pressed")).toBe("true");
   });
 
+  it("保存还没回来时切走再回来，外观接着显示最后改成的那份，再改也在它之上（#321）", async () => {
+    let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
+    const waiting: (() => void)[] = [];
+    const view = (): ShellSettingsView => ({
+      autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
+      runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", inspectorOpen: false, updateChannel: "stable", tagDisplay: saved,
+    });
+    mockIPC((cmd, args) => {
+      if (cmd === "shell_settings") return view();
+      if (cmd === "set_tag_display") {
+        const display = (args as { display: TagDisplay }).display;
+        return new Promise<ShellSettingsView>((resolve) => waiting.push(() => { saved = display; resolve(view()); }));
+      }
+      if (cmd === "plugin:library|safe_mode") return true;
+      return undefined;
+    }, { shouldMockEvents: true });
+    const { outline } = await openAppearance();
+    fireEvent.click(outline);
+    fireEvent.click(screen.getByRole("button", { name: "显示名" }));
+    fireEvent.click(screen.getByRole("button", { name: "外观" }));
+    expect((await screen.findByRole("switch", { name: "低档虚线框" })).getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
+    await waitFor(() => expect(waiting.length).toBeGreaterThan(0));
+    while (waiting.length > 0) {
+      waiting.shift()!();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    expect(saved).toEqual({ style: "grouped", high: 0.8, low: 0.4, lowOutline: false });
+    expect(screen.getByRole("switch", { name: "低档虚线框" }).getAttribute("aria-checked")).toBe("false");
+  });
+
   it("保存失败时控件回到已保存的设置，之后的改动不夹带失败的那项", async () => {
     let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
     const view = (): ShellSettingsView => ({
       autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
-      runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", updateChannel: "stable", tagDisplay: saved,
+      runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", inspectorOpen: false, updateChannel: "stable", tagDisplay: saved,
     });
     let failNext = true;
     mockIPC((cmd, args) => {
@@ -135,35 +166,35 @@ describe("设置：标签外观", () => {
   it("拒绝低档上限 ≥ 高档下限：说明原因，不保存", async () => {
     const store = backend();
     const { low, high } = await openAppearance();
-    fireEvent.change(low, { target: { value: "0.80" } });
+    fireEvent.change(low, { target: { value: "80" } });
     expect((await screen.findByRole("alert")).textContent).toContain("低档上限要小于高档下限");
-    fireEvent.change(high, { target: { value: "0.35" } });
+    fireEvent.change(high, { target: { value: "35" } });
     expect(screen.getByRole("alert").textContent).toContain("低档上限要小于高档下限");
     expect(store.sent).toEqual([]);
     expect(store.saved()).toEqual({ style: "bands", high: 0.8, low: 0.4, lowOutline: true });
   });
 
-  it("“恢复默认”回到 0.80 / 0.40", async () => {
+  it("“恢复默认”回到 80 / 40", async () => {
     const store = backend();
     const { high, low } = await openAppearance();
-    fireEvent.change(high, { target: { value: "0.9" } });
-    fireEvent.change(low, { target: { value: "0.5" } });
+    fireEvent.change(high, { target: { value: "90" } });
+    fireEvent.change(low, { target: { value: "50" } });
     await waitFor(() => expect(store.saved()).toMatchObject({ high: 0.9, low: 0.5 }));
     fireEvent.click(screen.getByRole("button", { name: "恢复默认" }));
     await waitFor(() => expect(store.saved()).toEqual({ style: "bands", high: 0.8, low: 0.4, lowOutline: true }));
-    expect(high.value).toBe("0.80");
-    expect(low.value).toBe("0.40");
+    expect(high.value).toBe("80");
+    expect(low.value).toBe("40");
   });
 
   it("设置在重新挂载后仍然保留", async () => {
     backend();
     const first = await openAppearance();
-    fireEvent.change(first.low, { target: { value: "0.45" } });
+    fireEvent.change(first.low, { target: { value: "45" } });
     fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "按出处分组" }).getAttribute("aria-pressed")).toBe("true"));
     cleanup();
     const again = await openAppearance();
-    expect(again.low.value).toBe("0.45");
+    expect(again.low.value).toBe("45");
     expect(screen.getByRole("button", { name: "按出处分组" }).getAttribute("aria-pressed")).toBe("true");
   });
 });

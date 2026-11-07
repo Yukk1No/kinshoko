@@ -1,4 +1,6 @@
 //! Content dependencies explain identities without carrying application preferences.
+use crate::CommandError;
+use crate::command_error::ErrorKind;
 use crate::library::{LocalizedName, TagAlias, TagNamespace};
 use crate::tag_catalog::ExternalTagIdentity;
 use serde::{Deserialize, Serialize};
@@ -28,7 +30,7 @@ pub struct PortableTagBinding {
 }
 
 impl PortableTagDefinition {
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> Result<(), CommandError> {
         if self.id.is_empty()
             || self.id.len() > 128
             || !self
@@ -36,7 +38,10 @@ impl PortableTagDefinition {
                 .bytes()
                 .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
         {
-            return Err("统一标签身份无效".into());
+            return Err(CommandError::new(
+                ErrorKind::InvalidTagIdentity,
+                "统一标签身份无效",
+            ));
         }
         let mut languages = std::collections::BTreeSet::new();
         for name in &self.default_names {
@@ -44,14 +49,20 @@ impl PortableTagDefinition {
                 || name.name.trim().is_empty()
                 || !languages.insert(&name.lang)
             {
-                return Err("标签默认名称无效或语言重复".into());
+                return Err(CommandError::new(
+                    ErrorKind::InvalidDefaultNames,
+                    "标签默认名称无效或语言重复",
+                ));
             }
         }
         for alias in &self.aliases {
             if alias.name.trim().is_empty()
                 || alias.lang.as_ref().is_some_and(|l| l.trim().is_empty())
             {
-                return Err("标签别名无效".into());
+                return Err(CommandError::new(
+                    ErrorKind::InvalidTagAlias,
+                    "标签别名无效",
+                ));
             }
         }
         if self
@@ -59,7 +70,10 @@ impl PortableTagDefinition {
             .iter()
             .any(|e| e.vocabulary.trim().is_empty() || e.name.trim().is_empty())
         {
-            return Err("标签外部对应无效".into());
+            return Err(CommandError::new(
+                ErrorKind::InvalidExternalMapping,
+                "标签外部对应无效",
+            ));
         }
         Ok(())
     }

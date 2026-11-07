@@ -112,7 +112,7 @@ fn tagging_yields_while_a_full_screen_program_is_in_front_and_continues_afterwar
     config.poll_interval = Duration::from_millis(20);
     let watched = full_screen.clone();
     config.foreground = Some(ForegroundCheck::new(move || watched.load(Ordering::SeqCst)));
-    let tagging = Tagging::start(library, Arc::new(fake.clone()), config);
+    let tagging = Tagging::start(Arc::new(vec![library]), Arc::new(fake.clone()), config);
     tagging.download();
     wait_for(&tagging, "开始打标", |s| {
         matches!(s, TaggingStatus::Running { .. })

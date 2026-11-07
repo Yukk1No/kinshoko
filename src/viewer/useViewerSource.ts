@@ -3,7 +3,7 @@ import type { ImageCard } from "../bindings/ImageCard";
 import { displayScaledUrl, displayUrl } from "../ipc";
 
 /**
- * 查看器显示哪张位图：缩放停手后才换的精确来源、换来源期间的替身，以及读取失败（#128，从 Viewer 拆出）。
+ * 查看器显示哪张位图：缩放停手后才换的精确来源、换来源期间的替身，以及读取失败（#128）。
  */
 export function useViewerSource({ libraryId, card, mode, physicalWidth }: {
   libraryId: string; card: Omit<ImageCard, "thumbnail"> & Partial<Pick<ImageCard, "thumbnail">>; mode: "fit" | "pixels" | "zoom"; physicalWidth: number;

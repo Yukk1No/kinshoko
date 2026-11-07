@@ -2,7 +2,6 @@ import { expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { mockIPC } from "@tauri-apps/api/mocks";
 import { PIN_LIMIT, staggeredPins } from "./useWallActions";
-import { ToastProvider } from "../ui/Toast";
 import { api, calls, card, Harness, named, setupWallActions } from "./useWallActions.fixtures";
 
 setupWallActions();
@@ -25,7 +24,7 @@ it("不超过 20 张时直接钉住，每张按来源钉", async () => {
 
 it("超过 20 张不弹确认：直接钉前 20 张，再用轻提示说明", async () => {
   const many = Array.from({ length: 23 }, (_, i) => card(String(i)));
-  render(<ToastProvider><Harness /></ToastProvider>);
+  render(<><Harness /></>);
   act(() => api.pin(many, { x: 0, y: 0 }));
   await waitFor(() => expect(pins()).toHaveLength(20));
   expect(screen.queryByRole("alertdialog")).toBeNull();
@@ -93,14 +92,14 @@ it("加入参考组按每张图的来源加入", async () => {
 it("一张图的彻底删除按它显示的来源预览并确认", async () => {
   mockIPC((cmd, args) => {
     calls.push({ cmd, args: args as Record<string, unknown> });
-    if (cmd.endsWith("workspace_preview_source_delete")) return { imageIds: ["i1"], groups: [], token: "t" };
+    if (cmd.endsWith("|preview_permanent_delete")) return { imageIds: ["i1"], groups: [], token: "t" };
     return null;
   });
   render(<Harness />);
   act(() => api.purge([card("1")]));
   fireEvent.click(await screen.findByRole("button", { name: "确认永久删除" }));
-  await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:library|workspace_permanent_source_delete")).toBe(true));
-  expect(calls.find((c) => c.cmd === "plugin:library|workspace_permanent_source_delete")!.args).toMatchObject({ target: { libraryId: "L1", imageId: "i1" }, token: "t" });
+  await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:library|permanent_delete")).toBe(true));
+  expect(calls.find((c) => c.cmd === "plugin:library|permanent_delete")!.args).toMatchObject({ libraryId: "L1", ids: ["i1"], token: "t" });
 });
 
 it("跨图库的多张彻底删除：按图库分组预览，列出受影响的参考组，确认后逐组删除（#112）", async () => {
@@ -136,40 +135,40 @@ it("某个图库断连时其他图库照常删除，并按图库报告没完成�
     calls.push({ cmd, args: args as Record<string, unknown> });
     if (cmd === "plugin:library|preview_permanent_delete_batch") return [
       { libraryId: "L1", preview: { imageIds: ["i1"], groups: [], token: "t1" }, error: null },
-      { libraryId: "L2", preview: null, error: "资料库暂时不可用：E:\\私人收藏" },
+      { libraryId: "L2", preview: null, error: { code: "message", message: "图库暂时无法连接：E:\\私人收藏" } },
       { libraryId: "L3", preview: { imageIds: ["i3"], groups: [], token: "t3" }, error: null },
     ];
-    if (cmd === "plugin:library|permanent_delete_batch") return [{ libraryId: "L3", error: "导入收尾失败" }];
+    if (cmd === "plugin:library|permanent_delete_batch") return [{ libraryId: "L3", error: { code: "message", message: "导入收尾失败" } }];
     return null;
   });
   const onError = vi.fn(), onChanged = vi.fn();
   render(<Harness onError={onError} onChanged={onChanged} />);
   act(() => api.purge([named("1", "L1", "工作参考"), named("2", "L2", "私人收藏"), named("3", "L3", "移动盘")]));
   expect(await screen.findByText("永久删除这 2 张图？原图与整理结果都会删除，无法恢复。")).toBeTruthy();
-  expect(screen.getByText("「私人收藏」的 1 张这次删不了：资料库暂时不可用：E:\\私人收藏")).toBeTruthy();
+  expect(screen.getByText("「私人收藏」的 1 张这次无法删除：图库暂时无法连接：E:\\私人收藏")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
   await waitFor(() => expect(onError).toHaveBeenCalled());
   expect(calls.find((c) => c.cmd === "plugin:library|permanent_delete_batch")!.args).toEqual({ groups: [
     { libraryId: "L1", imageIds: ["i1"], token: "t1" }, { libraryId: "L3", imageIds: ["i3"], token: "t3" },
   ] });
-  expect(onError).toHaveBeenCalledWith("有图库没有删完。「私人收藏」：资料库暂时不可用：E:\\私人收藏；「移动盘」：导入收尾失败");
+  expect(onError).toHaveBeenCalledWith("有图库没有删完。「私人收藏」：图库暂时无法连接：E:\\私人收藏；「移动盘」：导入收尾失败");
   expect(onChanged).toHaveBeenCalled();
 });
 
 it("是否直接在文件夹里按卡片显示的来源读详情的文件夹（不算子文件夹）", async () => {
   mockIPC((cmd, args) => {
     calls.push({ cmd, args: args as Record<string, unknown> });
-    if (cmd === "plugin:library|workspace_image") return { folders: [{ id: "f9", name: "手部" }] };
+    if (cmd === "plugin:library|image") return { folders: [{ id: "f9", name: "手部" }] };
     return null;
   });
   render(<Harness />);
   await expect(api.inFolder(card("1", "L2"), "f9")).resolves.toBe(true);
   await expect(api.inFolder(card("1", "L2"), "f1")).resolves.toBe(false);
-  expect(calls.find((c) => c.cmd === "plugin:library|workspace_image")!.args).toEqual({ libraryId: "L2", imageId: "i1" });
+  expect(calls.find((c) => c.cmd === "plugin:library|image")!.args).toEqual({ libraryId: "L2", imageId: "i1" });
 });
 
 it("部分图库已删除、其他图库预览过期时取消重新列出：已删的图照样刷新并取消选择", async () => {
-  const stale = "回收站或参考组在确认前有变化，请重新查看将受影响的参考组";
+  const stale = { code: "deletePreviewStale" };
   let previews = 0;
   mockIPC((cmd, args) => {
     calls.push({ cmd, args: args as Record<string, unknown> });

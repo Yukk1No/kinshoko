@@ -2630,7 +2630,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
 name = "kinshoko"
-version = "1.0.0"
+version = "1.1.0-beta.2"
 dependencies = [
  "arboard",
  "chrono",
@@ -2643,6 +2643,7 @@ dependencies = [
  "pin-shell",
  "serde",
  "serde_json",
+ "sys-locale",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",
@@ -2659,7 +2660,7 @@ dependencies = [
 
 [[package]]
 name = "kinshoko-core"
-version = "1.0.0"
+version = "1.1.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "bytemuck",
@@ -2669,6 +2670,7 @@ dependencies = [
  "half",
  "image",
  "jpeg-encoder",
+ "md-5",
  "moxcms 0.9.1",
  "png 0.18.1",
  "rusqlite",
@@ -2689,7 +2691,7 @@ dependencies = [
 
 [[package]]
 name = "kinshoko-tagger"
-version = "1.0.0"
+version = "1.1.0-beta.2"
 dependencies = [
  "csv",
  "image",
@@ -2907,6 +2909,16 @@ checksum = "3f607c237553f086e7043417a51df26b2eb899d3caff94e6a67592ff992fedc7"
 dependencies = [
  "autocfg",
  "rawpointer",
+]
+
+[[package]]
+name = "md-5"
+version = "0.10.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf"
+dependencies = [
+ "cfg-if",
+ "digest",
 ]
 
 [[package]]
@@ -3778,7 +3790,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pin-render"
-version = "1.0.0"
+version = "1.1.0-beta.2"
 dependencies = [
  "bytemuck",
  "image",
@@ -3789,7 +3801,7 @@ dependencies = [
 
 [[package]]
 name = "pin-shell"
-version = "1.0.0"
+version = "1.1.0-beta.2"
 dependencies = [
  "kinshoko-core",
  "wgpu",

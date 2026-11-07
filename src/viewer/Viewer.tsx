@@ -1,25 +1,30 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ImageCard } from "../bindings/ImageCard";
 import type { Region } from "../bindings/Region";
-import { copyReferenceImage, imageDetail, workspaceImage, isUnknownImage, pinReference, revealReferenceImage } from "../ipc";
+import { copyReferenceImage, workspaceImage, isUnknownImage, pinReference, revealReferenceImage } from "../ipc";
 import type { KeyboardEvent } from "react";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
 import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
 import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Pin, Plus, RotateCcw, X } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
+import { useTranslation } from "react-i18next";
+import { formatNumber } from "../i18n/format";
+import { useToast } from "../ui/Toast";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import { Dock } from "../ui/Dock";
+import { Tip } from "../ui/Tip";
 import { FollowDock } from "../ui/FollowDock";
 import { OriginalStar } from "../ui/OriginalStar";
 import { type Background, DOCK_RESERVE, useViewerBackground, viewerDockItems, ViewerImages, ViewerMenu } from "./ViewerParts";
 import { useViewerSource } from "./useViewerSource";
-import { Tip } from "../ui/Tip";
+import type { ViewerFlightAttr, ViewerPlaced } from "./ViewerFlight";
 
 type Props = {
-  workspace?: boolean;
   libraryId: string;
   card: Omit<ImageCard, "thumbnail"> & Partial<Pick<ImageCard, "thumbnail">>;
   onClose: () => void;
+  /** 画师按返回或 Esc；不给出时同 onClose。onClose 还用于这张图已不在时关闭。 */
+  onBack?: () => void;
   /** 资料库报告列表过期时递增：重新确认这张图还在（可能被删除或被安全模式封印）。 */
   reloadKey?: number;
   /** 这张图在当前浏览结果里的位置（从 0 起）；给出时标题行显示序号与上一张 / 下一张。 */
@@ -33,6 +38,12 @@ type Props = {
   /** 旁边的详情侧栏是否显示着（#179）：I 键、dock 的“详情”与右键菜单的“详情”切换它。 */
   inspectorOpen?: boolean;
   onToggleInspector?: () => void;
+  /** 开合过渡的阶段（#449）；不给出时直接显示。 */
+  flight?: ViewerFlightAttr;
+  /** 不显示原图：飞行元素正代替它，或这张图在安全模式下被遮蔽。 */
+  hideImage?: boolean;
+  /** 报告图此刻的位置与位图状态，飞行元素据此起落。 */
+  onPlaced?: (placed: ViewerPlaced) => void;
 };
 
 
@@ -43,7 +54,8 @@ type Props = {
  * 钉到桌面（#65）：“钉住整图”，或 Shift+拖动（或先按“框选局部”）框出一块，按 Enter 或“钉住局部”。
  * 选区按原图像素记，标出“宽 × 高 原始像素”，缩放平移时边界不变。
  */
-export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = false, position, onStep, startCrop = false, onTrash, inspectorOpen = false, onToggleInspector }: Props) {
+export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey = 0, position, onStep, startCrop = false, onTrash, inspectorOpen = false, onToggleInspector, flight, hideImage = false, onPlaced }: Props) {
+  const { t } = useTranslation(["viewer", "common"]);
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0, dpr: window.devicePixelRatio || 1 });
@@ -57,7 +69,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   const [selecting, setSelecting] = useState(false);
   const select = useRef<{ id: number; start: Point } | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [pinStatus, setPinStatus] = useState<string | null>(null);
+  const toast = useToast();
   const [name, setName] = useState<string | null>(null);
   const { dpr } = viewport;
   const closeRef = useRef(onClose);
@@ -116,7 +128,6 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     setCrop(null);
     setSelecting(false);
     setDragging(false);
-    setPinStatus(null);
     setLoadedSrc(null);
     setDerived(null);
     select.current = null;
@@ -126,18 +137,22 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   useLayoutEffect(() => { if (startCrop) setSelecting(true); }, []);
   useCaptureSources(() => {
     const image = stage.current?.querySelector<HTMLImageElement>("img.viewer-image");
-    if (!image || !exactSource || loadedSrc !== src || failedSrc === src) return [];
+    if (!image || hideImage || !exactSource || loadedSrc !== src || failedSrc === src) return [];
     const reference = captureImage(image, stage.current!, libraryId, card.id, card.width, card.height);
     return reference ? [reference] : [];
   }, 100);
   // 这张图已不在（被删除，或安全模式下被封印，查询返回 UnknownImage）时回到图片墙。
   useEffect(() => {
     let alive = true;
-    (workspace ? workspaceImage : imageDetail)(libraryId, card.id).then(
+    workspaceImage(libraryId, card.id).then(
       (detail) => { if (alive) setName(detail?.originalName ?? null); },
       (e) => { if (alive && isUnknownImage(e)) closeRef.current(); });
     return () => { alive = false; };
-  }, [libraryId, card.id, reloadKey, failedSrc, workspace]);
+  }, [libraryId, card.id, reloadKey, failedSrc]);
+  const settled = ready || failed;
+  useLayoutEffect(() => {
+    if (viewport.width > 0) onPlaced?.({ rect: { x: viewport.left + left, y: viewport.top + top, width, height }, src: ready ? src : null, settled });
+  }, [viewport.width, viewport.left, viewport.top, left, top, width, height, src, ready, settled, onPlaced]);
   const shown = { left, top, width, height };
   const placed = { width, height, left: 0, top: 0, transform: `translate(${left}px, ${top}px)` };
   const natural = { width: card.width, height: card.height };
@@ -150,26 +165,18 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   /** 钉到桌面：整图（crop 为 null）或选区；钉图以它此刻在查看器里的位置为中心出现。 */
   const pin = (region: Region | null) => {
     const rect: CssRect = region ? cropOnScreen(region, shown, natural) : { x: left, y: top, width, height };
-    setPinStatus(null);
     pinReference(libraryId, card.id, region, toScreenRect(rect, viewport, dpr)).then(
-      () => setPinStatus(region ? "已钉住局部" : "已钉住整图"),
-      (e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(`无法钉住：${String(e)}`); },
+      () => toast.show({ title: region ? t("pinnedPart") : t("pinnedWhole"), tone: "success" }),
+      (e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.pinFailed", { error: String(e) })); },
     );
   };
-  useEffect(() => {
-    if (!pinStatus) return;
-    const timer = window.setTimeout(() => setPinStatus(null), 2000);
-    return () => window.clearTimeout(timer);
-  }, [pinStatus]);
-  /** 复制图片、在资源管理器中显示（#105 的命令，#114 的查看器菜单）：结果在钉图提示的位置说明。 */
+  /** 复制图片、在资源管理器中显示（#105 的命令，#114 的查看器菜单）。 */
   const copy = () => {
-    setPinStatus(null);
-    copyReferenceImage(libraryId, card.id).then(() => setPinStatus("已复制图片"),
-      (e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(`无法复制图片：${String(e)}`); });
+    copyReferenceImage(libraryId, card.id).then(() => toast.show({ title: t("common:image.copied"), tone: "success" }),
+      (e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.copyFailed", { error: String(e) })); });
   };
   const reveal = () => {
-    setPinStatus(null);
-    revealReferenceImage(libraryId, card.id).catch((e) => { if (isUnknownImage(e)) closeRef.current(); else setPinStatus(`无法在资源管理器中显示：${String(e)}`); });
+    revealReferenceImage(libraryId, card.id).catch((e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.revealFailed", { error: String(e) })); });
   };
   /** 钉住局部：已有选区就钉住它，否则进入框选。 */
   const pinPart = () => { if (crop) pin(crop); else setSelecting(true); };
@@ -186,7 +193,7 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
     if (e.key === "Escape") {
       e.preventDefault(); e.stopPropagation();
       // 先取消框选，再回到图片墙。
-      if (crop || selecting) cancelCrop(); else onClose();
+      if (crop || selecting) cancelCrop(); else onBack();
       return;
     }
     // dock 的快捷键与点按 dock 走同一处理；方向键在 dock 内只移动焦点。
@@ -225,21 +232,21 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
   };
   const toolValue = selecting ? "crop" : mode === "zoom" ? null : mode;
   return (
-    <section ref={root} className="viewer" role="region" aria-label="原图查看器"
-      tabIndex={-1} onKeyDown={keyDown}>
+    <section ref={root} className="viewer" role="region" aria-label={t("label")}
+      tabIndex={-1} onKeyDown={keyDown} data-flight={flight} inert={flight === "land" || flight === "fade-out"}>
       <header className="viewer-bar">
-        <button type="button" className="k-btn is-quiet viewer-back" aria-label="返回图片墙" onClick={onClose}><ArrowLeft size={16} /><span className="k-label">返回</span></button>
+        <button type="button" className="k-btn is-quiet viewer-back" aria-label={t("backLabel")} onClick={onBack}><ArrowLeft size={16} /><span className="k-label">{t("back")}</span></button>
         <Tip label={name}><span className="viewer-title">{name}</span></Tip>
         {position && <>
-          <span className="viewer-index">{position.index + 1} / {position.total}</span>
-          <Tip label="上一张" keys="←"><button type="button" className="k-icon-btn" aria-label="上一张" disabled={position.index <= 0} onClick={() => onStep?.(-1)}><ChevronLeft size={16} /></button></Tip>
-          <Tip label="下一张" keys="→"><button type="button" className="k-icon-btn" aria-label="下一张" disabled={position.index >= position.total - 1} onClick={() => onStep?.(1)}><ChevronRight size={16} /></button></Tip>
+          <span className="viewer-index">{formatNumber(position.index + 1)} / {formatNumber(position.total)}</span>
+          <Tip label={t("previous")} keys="←"><button type="button" className="k-icon-btn" aria-label={t("previous")} disabled={position.index <= 0} onClick={() => onStep?.(-1)}><ChevronLeft size={16} /></button></Tip>
+          <Tip label={t("next")} keys="→"><button type="button" className="k-icon-btn" aria-label={t("next")} disabled={position.index >= position.total - 1} onClick={() => onStep?.(1)}><ChevronRight size={16} /></button></Tip>
         </>}
         <span className="k-grow" />
         <div className="viewer-zoom">
-          <Tip label="缩小"><button type="button" className="k-icon-btn" aria-label="缩小" onClick={() => zoomAt(0.8)}><Minus size={15} /></button></Tip>
-          <output aria-label="缩放比例">{Math.round(physicalWidth / card.width * 100)}%</output>
-          <Tip label="放大"><button type="button" className="k-icon-btn" aria-label="放大" onClick={() => zoomAt(1.25)}><Plus size={15} /></button></Tip>
+          <Tip label={t("zoomOut")}><button type="button" className="k-icon-btn" aria-label={t("zoomOut")} onClick={() => zoomAt(0.8)}><Minus size={15} /></button></Tip>
+          <output aria-label={t("zoomLevel")}>{Math.round(physicalWidth / card.width * 100)}%</output>
+          <Tip label={t("zoomIn")}><button type="button" className="k-icon-btn" aria-label={t("zoomIn")} onClick={() => zoomAt(1.25)}><Plus size={15} /></button></Tip>
         </div>
       </header>
       <ContextMenu.Root>
@@ -274,18 +281,17 @@ export function Viewer({ libraryId, card, onClose, reloadKey = 0, workspace = fa
         onLostPointerCapture={() => { drag.current = null; select.current = null; setDragging(false); }} />}>
         <ViewerImages viewport={viewport} src={src} swapIn={swapIn} setFailedSrc={setFailedSrc} placed={placed} scale={scale} ready={ready}
           derived={derived} setDerived={setDerived} derivedMounted={derivedMounted} derivedStandIn={derivedStandIn} lastStandIn={lastStandIn}
-          isOriginal={isOriginal} failed={failed} setRetry={setRetry} />
-        {cropRect && crop && <div className="viewer-crop" aria-label="选区"
+          isOriginal={isOriginal} failed={failed} setRetry={setRetry} hidden={hideImage} />
+        {cropRect && crop && <div className="viewer-crop" aria-label={t("selection")}
           style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }} />}
         {shownCropRect && crop && <FollowDock anchor={shownCropRect} bounds={viewport} reserveBottom={DOCK_RESERVE}>
-          <Dock label="框选" onSelect={cropTool} readout={<Tip label="原始像素" side="top"><span className="k-original">{crop.width} × {crop.height}<span className="sr-only">原始像素</span><OriginalStar /></span></Tip>} items={[
-            { id: "pin", label: "钉住局部", icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary" },
-            { id: "redo", label: "重选", icon: <RotateCcw size={18} strokeWidth={1.75} /> },
-            { id: "cancel", label: "取消", icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },
+          <Dock label={t("crop.label")} onSelect={cropTool} readout={<Tip label={t("originalPixels")} side="top"><span className="k-original">{crop.width} × {crop.height}<span className="sr-only">{t("originalPixels")}</span><OriginalStar /></span></Tip>} items={[
+            { id: "pin", label: t("common:image.pinPart"), icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary" },
+            { id: "redo", label: t("crop.redo"), icon: <RotateCcw size={18} strokeWidth={1.75} /> },
+            { id: "cancel", label: t("crop.cancel"), icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },
           ]} />
         </FollowDock>}
-        {pinStatus && <p className="viewer-pin-status" role="status">{pinStatus}</p>}
-        <div className="viewer-dock"><Dock label="查看工具" items={viewerTools} value={toolValue} onSelect={tool} /></div>
+        <div className="viewer-dock"><Dock label={t("tools.label")} items={viewerTools} value={toolValue} onSelect={tool} /></div>
       </ContextMenu.Trigger>
       {/* 查看器右键菜单（#102 表“查看器”行，#114）：每项另有 dock 按钮或快捷键。 */}
       <ViewerMenu pin={pin} pinPart={pinPart} copy={copy} reveal={reveal} reset={reset} background={background} setBackground={setBackground}

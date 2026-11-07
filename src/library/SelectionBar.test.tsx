@@ -53,6 +53,16 @@ describe("多选悬浮栏（#180）", () => {
     await waitFor(() => expect(onClear).toHaveBeenCalled());
   });
 
+  it("重读期间（自动打标每写一张图一次）文件夹列表不清空，按钮不闪成禁用", async () => {
+    backend();
+    const props = { libraryId: "L1", scope: { kind: "all" } as BrowseScope, ids: ["a", "b"], onClear: () => {}, onError: () => {}, left: 0, onWidth: () => {} };
+    const { rerender } = render(<SelectionBar {...props} reloadKey={0} />);
+    const put = screen.getByRole("button", { name: "移到文件夹" });
+    await waitFor(() => expect(put).toHaveProperty("disabled", false));
+    rerender(<SelectionBar {...props} reloadKey={1} />);
+    expect(put).toHaveProperty("disabled", false);
+  });
+
   it("没有文件夹时“放入文件夹”禁用", async () => {
     backend([]);
     const { bar } = renderBar();

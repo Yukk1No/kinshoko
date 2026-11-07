@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc/invoke";
 import { startupThumbnailShown } from "./startupGate";
 
 /** 首屏的几个时刻（#313），与后端 `StartupStep` 一一对应。 */

@@ -1,4 +1,4 @@
-// 双击按第一下的图判定（#179），从 Wall.tsx 原样搬出。
+// 双击按第一下的图判定（#179）。
 import { useEffect, useRef } from "react";
 import { doubleClickSettings, isSecondPress, loadDoubleClickSettings, type Press } from "./doubleClick";
 

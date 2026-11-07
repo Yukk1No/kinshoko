@@ -20,16 +20,36 @@ impl CaptureHistory {
         Ok(())
     }
 
-    /// 取走截图 `id` 关联的全部参考组成员；不在历史中时为空。
-    pub fn take_members(&mut self, id: &str) -> Vec<GroupMemberRef> {
+    /// 截图 `id` 关联的参考组成员；不在历史中时为空。只读，关联留着。
+    pub fn linked_members(&self, id: &str) -> Vec<GroupMemberRef> {
+        self.entries
+            .iter()
+            .find(|s| s.id == id)
+            .map(|s| s.members.clone())
+            .unwrap_or_default()
+    }
+
+    /// 去掉截图 `id` 与 `done` 里成员的关联（改连已完成或关联已明确失效）。写不进索引时报错，
+    /// 内存里也照旧留着，下次收藏再处理。
+    pub fn unlink_members(
+        &mut self,
+        id: &str,
+        done: &[GroupMemberRef],
+    ) -> Result<(), HistoryError> {
         let Some(stored) = self.entries.iter_mut().find(|s| s.id == id) else {
-            return Vec::new();
+            return Ok(());
         };
-        let members = std::mem::take(&mut stored.members);
-        if !members.is_empty() {
-            // 写不进索引只会让下次收藏再试一次改连，已改连的成员会被略过。
-            let _ = self.save();
+        if !stored.members.iter().any(|m| done.contains(m)) {
+            return Ok(());
         }
-        members
+        let before = stored.members.clone();
+        stored.members.retain(|m| !done.contains(m));
+        if let Err(e) = self.save() {
+            if let Some(stored) = self.entries.iter_mut().find(|s| s.id == id) {
+                stored.members = before;
+            }
+            return Err(e.into());
+        }
+        Ok(())
     }
 }

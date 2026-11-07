@@ -8,23 +8,6 @@
 }
 
 
-/* 拖进主窗口时整窗提示，不拦截指针。 */
-.drop-hint {
-  position: fixed;
-  inset: 12px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 3px dashed var(--accent-strong);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--bg) 85%, transparent);
-  color: var(--accent-strong);
-  font-size: 16px;
-  font-weight: 600;
-  pointer-events: none;
-}
-
 .import-report header {
   display: flex;
   align-items: center;
@@ -81,10 +64,17 @@
 }
 
 .wall-empty {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
   margin: 48px auto;
   text-align: center;
-  opacity: 0.7;
+  color: var(--ink-2);
 }
+
+.wall-empty > p { margin: 0; }
+
+.wall-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 
 .card {
   position: absolute;
@@ -94,8 +84,8 @@
 }
 
 .card:hover {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
+  outline: 1px solid var(--line-2);
+  outline-offset: -1px;
 }
 
 .card[aria-selected="true"] {
@@ -109,12 +99,12 @@
   height: 100%;
   object-fit: contain;
   /* 释放：遮蔽慢慢淡出。 */
-  transition: filter 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: filter 420ms var(--ease);
 }
 
 /* 安全模式（#60）：遮蔽 = 模糊 14px＋92% 墨色。开启时 200ms 内到位（约 170ms 起已无法辨认），
    释放未播完时开启也从当前样子直接转回遮蔽。 */
-.card::after {
+.card::after, .viewer-flier::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -122,18 +112,18 @@
   background: var(--veil);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: opacity 420ms var(--ease);
 }
 
 /* 封印中交给影子的卡片：不显示、不可操作，只占位（#154）。 */
 .card[data-leaving="true"], .card[data-leaving="true"] + .card-sources { visibility: hidden; }
 
-.card[data-veiled="true"] img {
+.card[data-veiled="true"] img, .viewer-flier[data-veiled="true"] img {
   filter: blur(14px);
   transition: filter 200ms ease-out;
 }
 
-.card[data-veiled="true"]::after {
+.card[data-veiled="true"]::after, .viewer-flier[data-veiled="true"]::after {
   opacity: 0.92;
   transition: opacity 200ms ease-out;
 }
@@ -148,11 +138,11 @@
 
 .card img[data-loaded] {
   opacity: 1;
-  transition: filter 420ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 160ms ease-out;
+  transition: filter 420ms var(--ease), opacity 160ms ease-out;
 }
 
 .card img[data-loaded="instant"] {
-  transition: filter 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: filter 420ms var(--ease);
 }
 
 .card-placeholder {
@@ -193,7 +183,7 @@
 
 .settings-hint {
   margin: 4px 0 8px;
-  opacity: 0.6;
+  color: var(--ink-2);
   font-size: 12px;
 }
 
@@ -222,26 +212,6 @@
   white-space: pre-wrap;
 }
 
-.update-banner {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 6px 12px;
-  border-top: 1px solid var(--line);
-  font-size: 13px;
-}
-
-.runtime-notice {
-  flex: 0 0 auto;
-  max-height: 40vh;
-  overflow: auto;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--bg);
-  font-size: 13px;
-}
-
-.runtime-notice p, .runtime-notice ul { margin: 6px 0; }
 .runtime-details { margin: 10px 0; }
 
 /* 本地备份与恢复（#69） */
@@ -260,10 +230,6 @@
   margin: 4px 0 8px;
   padding-left: 20px;
   font-size: 13px;
-}
-
-.backup-reminder {
-  color: var(--danger);
 }
 
 .settings-shortcuts th {
@@ -319,8 +285,8 @@
 }
 
 .sidebar-item[data-drop] {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
+  outline: 1px solid var(--line-2);
+  outline-offset: -1px;
 }
 
 .sidebar-count {
@@ -342,16 +308,6 @@
 
 .sidebar-tree .sidebar-tree {
   padding-left: 14px;
-}
-
-.app-problem {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin: 0;
-  padding: 6px 12px;
-  color: var(--accent-strong);
-  border-bottom: 1px solid var(--line);
 }
 
 .selection {

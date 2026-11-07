@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { FolderOpen, FolderPlus, ListX, RefreshCw, Trash2 } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
+import { useTranslation } from "react-i18next";
 import { FluidList, FluidRow } from "../ui/FluidList";
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
@@ -24,12 +25,13 @@ export function folderPath(nodes: FolderNode[], id: string, parent: string[] = [
 export function LibraryMenuItems({ provider, onNewFolder, onReveal, onRecheck, onRemove }: {
   provider: WorkspaceDirectory; onNewFolder: () => void; onReveal: () => void; onRecheck?: () => void; onRemove: () => void;
 }) {
+  const { t } = useTranslation("library", { keyPrefix: "libraryMenu" });
   return <>
-    <MenuItem icon={<FolderPlus size={14} />} disabled={!provider.sidebar || Boolean(provider.registration.unavailable)} onClick={onNewFolder}>新建文件夹</MenuItem>
-    <MenuItem icon={<FolderOpen size={14} />} onClick={onReveal}>在资源管理器中打开</MenuItem>
-    {provider.registration.unavailable && onRecheck && <MenuItem icon={<RefreshCw size={14} />} onClick={onRecheck}>重新连接</MenuItem>}
+    <MenuItem icon={<FolderPlus size={14} />} disabled={!provider.sidebar || Boolean(provider.registration.unavailable)} onClick={onNewFolder}>{t("newFolder")}</MenuItem>
+    <MenuItem icon={<FolderOpen size={14} />} onClick={onReveal}>{t("reveal")}</MenuItem>
+    {provider.registration.unavailable && onRecheck && <MenuItem icon={<RefreshCw size={14} />} onClick={onRecheck}>{t("reconnect")}</MenuItem>}
     <MenuSeparator />
-    <MenuItem icon={<ListX size={14} />} onClick={onRemove}>从列表移除</MenuItem>
+    <MenuItem icon={<ListX size={14} />} onClick={onRemove}>{t("remove")}</MenuItem>
   </>;
 }
 
@@ -40,15 +42,16 @@ export function LibraryMenuItems({ provider, onNewFolder, onReveal, onRecheck, o
 export function TrashRow({ label, count, current, expanded, disabled, onClick, menu }: {
   label: string; count: number | undefined; current?: boolean; expanded?: boolean; disabled?: boolean; onClick: () => void; menu: ReactNode;
 }) {
+  const { t } = useTranslation("library", { keyPrefix: "trash" });
   return <FluidList><FluidRow index={0}>
     <ContextMenu.Root>
       <ContextMenu.Trigger render={<Tip label={label} align="start"><button type="button" className="sidebar-item k-row" aria-current={current ? "page" : undefined} aria-expanded={expanded}
-        disabled={disabled} aria-label={`回收站（${label}，${count ?? "…"} 张）`} onClick={onClick} /></Tip>}>
+        disabled={disabled} aria-label={count === undefined ? t("labelLoading", { library: label }) : t("label", { library: label, count })} onClick={onClick} /></Tip>}>
         <span className="k-row-icon" aria-hidden="true"><Trash2 size={15} /></span>
-        <span className="sidebar-label k-label">回收站</span>
+        <span className="sidebar-label k-label">{t("title")}</span>
         <span className="sidebar-count k-label">{count ?? ""}</span>
       </ContextMenu.Trigger>
-      <MenuPopup label="回收站的操作" width={220}>{menu}</MenuPopup>
+      <MenuPopup label={t("actions")} width={220}>{menu}</MenuPopup>
     </ContextMenu.Root>
   </FluidRow></FluidList>;
 }

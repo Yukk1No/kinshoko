@@ -1,5 +1,5 @@
 /**
- * Window-control glyphs drawn on the device-pixel grid (design/ui-system/README.md, 窗口框架).
+ * Window-control glyphs drawn on the device-pixel grid (design/ui-system/window-frame-and-sidebar.md, 窗口框架).
  *
  * A 10 px glyph with a 1.2 px stroke never lines up with device pixels at 125 %, 150 % or any fractional scale,
  * and the buttons themselves sit at fractional device positions. With crisp-edge rendering each edge then snaps

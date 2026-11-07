@@ -76,7 +76,7 @@ impl ImageGate {
         &self,
         registration: &crate::RegisteredLibrary,
         scope: crate::library::SafeModeScope,
-    ) -> Result<Arc<crate::library::Library>, String> {
+    ) -> Result<Arc<crate::library::Library>, crate::CommandError> {
         let now = stamp(&registration.root);
         if let Some(held) = lock(&self.readers).get(&registration.id)
             && held.root == registration.root
@@ -88,7 +88,7 @@ impl ImageGate {
         }
         let library = DeviceLibraries::read_registered(registration).map_err(|e| {
             lock(&self.readers).remove(&registration.id);
-            e.to_string()
+            crate::CommandError::from(e)
         })?;
         library.init_safe_mode_scope(scope);
         library.set_safe_mode(false);

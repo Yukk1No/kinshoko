@@ -1,18 +1,20 @@
 //! Save actions resolve one identity-checked provider under a short registry lock.
 //! The returned Arc stays with the work; browsing never selects its destination.
+
 use super::*;
+use kinshoko_core::CommandError;
 use kinshoko_core::{ImportTaskSnapshot, library::SaveDestination};
 
 pub(super) fn fixed_library<R: Runtime>(
     app: &AppHandle<R>,
     destination: &SaveDestination,
-) -> Result<Arc<Library>, String> {
+) -> Result<Arc<Library>, CommandError> {
     let state = app.state::<LibraryState>();
     let _transition = lock(&state.transition);
     let library = with_libraries(&state, |device| device.write(&destination.library_id))?;
     library
         .validate_destination(destination)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     state.configure_library(&library);
     library.set_safe_mode(saved_safe_mode(app));
     Ok(library)
@@ -23,12 +25,12 @@ fn save<R: Runtime, T>(
     app: &AppHandle<R>,
     destination: &SaveDestination,
     publish: bool,
-    f: impl FnOnce(&Library) -> Result<T, String>,
-) -> Result<T, String> {
+    f: impl FnOnce(&Library) -> Result<T, CommandError>,
+) -> Result<T, CommandError> {
     let library = fixed_library(app, destination)?;
     let bound = library
         .for_destination(destination)
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
     let value = f(&bound)?;
     if publish {
         publish_saved(app, &library)?;
@@ -38,21 +40,21 @@ fn save<R: Runtime, T>(
 pub fn with_destination<R: Runtime, T>(
     app: &AppHandle<R>,
     destination: &SaveDestination,
-    f: impl FnOnce(&Library) -> Result<T, String>,
-) -> Result<T, String> {
+    f: impl FnOnce(&Library) -> Result<T, CommandError>,
+) -> Result<T, CommandError> {
     save(app, destination, false, f)
 }
 pub fn with_destination_published<R: Runtime, T>(
     app: &AppHandle<R>,
     destination: &SaveDestination,
-    f: impl FnOnce(&Library) -> Result<T, String>,
-) -> Result<T, String> {
+    f: impl FnOnce(&Library) -> Result<T, CommandError>,
+) -> Result<T, CommandError> {
     save(app, destination, true, f)
 }
 pub(super) fn publish_saved<R: Runtime>(
     app: &AppHandle<R>,
     library: &Library,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     let state = app.state::<LibraryState>();
     library
         .validate_destination(&SaveDestination {
@@ -60,16 +62,24 @@ pub(super) fn publish_saved<R: Runtime>(
             folder_id: None,
         })
         .map_err(|error| {
-            format!(
-                "内容处理结果已保留，资料库标签定义未更新：{error}。可在统一标签目录重试保存定义。"
+            CommandError::caused_by(
+                error,
+                |cause| ErrorKind::ProcessedDefinitionsNotSaved { cause },
+                |error| format!("内容处理结果已保留，资料库标签定义未更新：{error}。可在统一标签目录重试保存定义。"),
             )
         })?;
     with_catalog(&state.search, |catalog| {
         catalog.publish_library_definitions(library)
     })
-    .map_err(|e| format!("内容已保存，资料库标签定义未更新：{e}。可在统一标签目录重试保存定义。"))
+    .map_err(|e| {
+        CommandError::caused_by(
+            e,
+            |cause| ErrorKind::SavedDefinitionsNotSaved { cause },
+            |e| format!("内容已保存，资料库标签定义未更新：{e}。可在统一标签目录重试保存定义。"),
+        )
+    })
 }
-fn complete<R: Runtime>(app: &AppHandle<R>, owner: &str, id: &str, warning: Option<String>) {
+fn complete<R: Runtime>(app: &AppHandle<R>, owner: &str, id: &str, warning: Option<CommandError>) {
     let state = app.state::<LibraryState>();
     if let Err(error) = with_libraries(&state, |device| {
         device.complete_import_publication(owner, id, warning)
@@ -82,7 +92,7 @@ pub(super) fn begin<R: Runtime>(
     destination: SaveDestination,
     source: ImportSource,
     options: ImportOptions,
-) -> Result<String, String> {
+) -> Result<String, CommandError> {
     let library = fixed_library(app, &destination)?;
     let events = library.events();
     let state = app.state::<LibraryState>();
@@ -112,8 +122,14 @@ pub(super) fn begin<R: Runtime>(
             app,
             &destination.library_id,
             &id,
-            Some(format!(
-                "导入任务已启动，标签定义发布未启动：{error}。内容处理完毕后，可在统一标签目录重试保存定义。"
+            Some(CommandError::caused_by(
+                error,
+                |cause| ErrorKind::ImportPublicationNotStarted { cause },
+                |error| {
+                    format!(
+                        "导入任务已启动，标签定义发布未启动：{error}。内容处理完毕后，可在统一标签目录重试保存定义。"
+                    )
+                },
             )),
         );
     }
@@ -123,7 +139,7 @@ pub(super) fn begin<R: Runtime>(
 #[tauri::command]
 pub(super) async fn import_tasks<R: Runtime>(
     app: AppHandle<R>,
-) -> Result<Vec<ImportTaskSnapshot>, String> {
+) -> Result<Vec<ImportTaskSnapshot>, CommandError> {
     blocking(move || import_preview::receipts(&app)).await
 }
 #[tauri::command]
@@ -131,7 +147,7 @@ pub(super) async fn dismiss_import<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     task_id: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         with_visibility_commit(&app, |_| {
             import_preview::revoke(&app);
@@ -139,48 +155,6 @@ pub(super) async fn dismiss_import<R: Runtime>(
             with_libraries(&state, |device| {
                 device.dismiss_import(&library_id, &task_id)
             })
-        })
-    })
-    .await
-}
-
-#[tauri::command]
-pub(super) async fn workspace_copy_source<R: Runtime>(
-    app: AppHandle<R>,
-    target: kinshoko_core::workspace::WorkspaceSourceTarget,
-    destination: SaveDestination,
-    safe_mode: bool,
-) -> Result<String, String> {
-    blocking(move || {
-        let source = source_actions::action(
-            &app,
-            &target,
-            safe_mode,
-            |workspace, device, catalog, target| {
-                workspace.read_source(device, catalog, target, safe_mode)
-            },
-        )?;
-        let mut snapshot = source
-            .content_snapshot(&target.image_id)
-            .map_err(|e| e.to_string())?;
-        let state = app.state::<LibraryState>();
-        // Source access completed before taking catalog; never invert device → catalog order.
-        with_catalog(&state.search, |catalog| {
-            catalog.synchronize(&source)?;
-            catalog
-                .inspect()?
-                .apply_content_definitions(&source.info().id, &mut snapshot)?;
-            let definitions = snapshot
-                .tags
-                .iter()
-                .filter_map(|tag| tag.definition.clone())
-                .collect::<Vec<_>>();
-            catalog.validate_content_dependencies(&definitions)
-        })?;
-        with_destination_published(&app, &destination, |library| {
-            library
-                .copy_snapshot_from(&source, &target.image_id, &snapshot)
-                .map_err(|e| e.to_string())
         })
     })
     .await

@@ -2,12 +2,16 @@
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
-import type { BrowsePage } from "../bindings/BrowsePage";
+import type { WorkspacePage } from "../bindings/WorkspacePage";
+import { workspaceCard } from "../test/workspacePage";
 import { Wall } from "./Wall";
+
+/** 用例给出的一页；工作区快照由替身补上。 */
+export type FxPage = Omit<WorkspacePage, "status">;
 
 /** 各用例共用、可改写的状态：每个用例开始时重置。 */
 export const fx = {
-  resolvers: [] as ((page: BrowsePage) => void)[],
+  resolvers: [] as ((page: FxPage) => void)[],
   bookReads: 0,
   book: null as unknown as HTMLButtonElement,
   reduce: false,
@@ -44,8 +48,10 @@ export function installSealFx() {
     document.body.appendChild(fx.book);
     mockConvertFileSrc("windows");
     mockIPC((cmd) => {
-      if (cmd !== "plugin:library|browse") throw new Error(cmd);
-      return new Promise<BrowsePage>((resolve) => { fx.resolvers.push(resolve); });
+      if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
+      return new Promise<WorkspacePage>((resolve) => {
+        fx.resolvers.push((page) => resolve({ ...page, status: { revision: "r", libraries: [] } }));
+      });
     });
   });
   afterEach(() => {
@@ -54,10 +60,10 @@ export function installSealFx() {
   });
 }
 
-export const card = (id: string, adult = false) => ({ id, width: 100, height: 100, thumbnail: `L1/${id}/256`, adult });
-export const PAGE: BrowsePage = { cards: [card("a", true), card("g")], total: 2, nextCursor: null };
+export const card = (id: string, adult = false) => workspaceCard({ id, width: 100, height: 100, adult });
+export const PAGE: FxPage = { cards: [card("a", true), card("g")], total: 2, nextCursor: null };
 export const base = {
-  libraryId: "L1", scope: { kind: "all" as const }, selected: new Set<string>(),
+  workspaceScope: { kind: "all" as const }, scope: { kind: "all" as const }, selected: new Set<string>(),
   onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false,
 };
 export const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });

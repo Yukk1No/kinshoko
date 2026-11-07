@@ -10,23 +10,22 @@ import type { SimilarTag } from "../bindings/SimilarTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { Term } from "../bindings/Term";
 import type { TermInput } from "../bindings/TermInput";
+import type { ReactElement } from "react";
 import { Popover } from "@base-ui/react/popover";
-import { Menu } from "@base-ui/react/menu";
-import { Search } from "lucide-react";
+import { Ban, Search, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Combobox, Highlight, type ComboboxOption } from "../ui/Combobox";
 import { ExactToggle } from "./ExactToggle";
 import { tagOption } from "./tagOptions";
 import { chipsThatFit } from "./fitChips";
 import { RatingName, tagName } from "./tagLabel";
 import { TermView } from "./TermView";
-import { MenuItem, MenuLabel, MenuPopup } from "../ui/Menu";
-import type { ReactElement } from "react";
-import { ratingCandidates, searchCandidates, workspaceCandidates, workspaceSourceCandidates, setTagApprox, editSharedApprox } from "../ipc";
+import { Menu, MenuItem, MenuLabel, MenuPopup } from "../ui/Menu";
+import { useUiLang } from "../i18n";
+import { ratingCandidates, searchCandidates, workspaceCandidates, workspaceLibraryCandidates, setTagApprox, editSharedApprox } from "../ipc";
 
-export { TagMarks, tagName, UNTRANSLATED_HINT } from "./tagLabel";
+export { TagMarks, tagName, untranslatedHint } from "./tagLabel";
 
-/** 界面语言。多语言界面随后续切片加入。 */
-export const UI_LANG = "zh-CN";
 export const LIMIT = 8;
 
 /**
@@ -34,9 +33,9 @@ export const LIMIT = 8;
  * 当前相同时显示；切换安全模式、词表变化或换了资料库后，旧候选这一帧就不再显示，迟到的
  * 响应也写不回来。后端按同一视角核对（`LensChanged`）。
  */
-export type Lens = { libraryId: string; safe: boolean; generation: number; workspace?: boolean; sourceTarget?: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget };
+export type Lens = { libraryId: string; safe: boolean; generation: number; workspace?: boolean; /** 给这个资料库的图挑标签：封印按全部来源算（#425）。 */ picking?: boolean };
 type Found = { key: string; list: Candidate[] };
-const lensKey = (lens: Lens, text: string) => JSON.stringify([lens.libraryId, lens.safe, lens.generation, lens.workspace, lens.sourceTarget, text]);
+const lensKey = (lens: Lens, text: string) => JSON.stringify([lens.libraryId, lens.safe, lens.generation, lens.workspace, lens.picking, text]);
 
 /** 按 `lens` 与 `text` 取得候选；身份变了的旧结果不返回。标签整理面板挑标签时也用它。 */
 export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true): Candidate[] {
@@ -49,21 +48,22 @@ export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => 
  */
 export function useCandidateState(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true, limit = LIMIT): { list: Candidate[]; ready: boolean } {
   const [found, setFound] = useState<Found>({ key: "", list: [] });
-  const key = lensKey(lens, text) + `#${limit}`;
+  const lang = useUiLang();
+  const key = lensKey(lens, text) + `#${limit}#${lang}`;
   const { libraryId, safe } = lens;
   const keepRef = useRef(keep);
   keepRef.current = keep;
   useEffect(() => {
     let alive = true;
     if (!text.trim()) return;
-    (lens.sourceTarget ? workspaceSourceCandidates(lens.sourceTarget, text, UI_LANG, safe) : lens.workspace ? workspaceCandidates(text, UI_LANG, limit, safe) : searchCandidates(libraryId, text, UI_LANG, limit, safe)).then(
+    (lens.picking ? workspaceLibraryCandidates(libraryId, text, lang, limit, safe) : lens.workspace ? workspaceCandidates(text, lang, limit, safe) : searchCandidates(libraryId, text, lang, limit, safe)).then(
       (list) => alive && setFound({ key, list: list.filter((c) => keepRef.current(c)) }),
       () => alive && setFound({ key, list: [] }),
     );
     return () => {
       alive = false;
     };
-  }, [key, libraryId, safe, text, limit]);
+  }, [key, libraryId, safe, text, limit, lang]);
   const ready = found.key === key && !!text.trim();
   return { list: ready ? found.list : [], ready };
 }
@@ -127,7 +127,7 @@ type Props = {
   /** 在相近标签旁标出来源（内置／个人），设置中开启。 */
   showSource: boolean;
   onChange: (input: SearchInput) => void;
-  onError: (message: string) => void;
+  onError: (error: unknown) => void;
 };
 
 /**
@@ -139,6 +139,7 @@ type Props = {
  * （记进个人近似对应表）；“＋”从可见标签里挑一个加为相近；“精确查找”一键不展开。
  */
 export function SearchBox({ libraryId, safe, generation, input, tree, showSource, onChange, onError, workspace = false }: Props) {
+  const { t } = useTranslation("search");
   const [text, setText] = useState("");
   const lens: Lens = { libraryId, safe, generation, workspace };
   const candidates = useCandidates(lens, text);
@@ -163,10 +164,10 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   const query = text.trim();
   const rows: (ComboboxOption & { term: TermInput })[] = query
     ? [
-        { id: "text", icon: <Search size={14} />, label: `查找“${query}”`, term: { kind: "text", text: query, dismissed: [] } },
+        { id: "text", icon: <Search size={14} />, label: t("findText", { text: query }), term: { kind: "text", text: query, dismissed: [] } },
         ...ratings.map((r) => ({
           id: `rating-${r.rating.ratings.join("-")}`, label: <RatingName rating={r.rating} />,
-          via: r.via ? <>又名 <Highlight text={r.via} query={query} /></> : undefined,
+          via: r.via ? <>{t("ratingVia")} <Highlight text={r.via} query={query} /></> : undefined,
           term: { kind: "rating" as const, ratings: r.rating.ratings },
         })),
         ...candidates.map((c) => ({ ...tagOption(c, query), term: { kind: "tag" as const, id: c.tag.id, dismissed: [] } })),
@@ -214,12 +215,12 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   /** “以后都不展开”：每一对都记为不相近；词表变化后条件会重新解析。 */
   const dismissForever = (similar: SimilarTag) => {
     (workspace ? editSharedApprox({ kind: "set", rules: similar.of.map((id) => ({ a: id, b: similar.tag.id, relation: "notSimilar" })) }, safe) : Promise.all(similar.of.map((id) => setTagApprox(libraryId, id, similar.tag.id, "notSimilar")))).catch((e) =>
-      onError(String(e)),
+      onError(e),
     );
   };
 
   const addSimilar = (to: TagLabel, tag: TagLabel) => {
-    (workspace ? editSharedApprox({ kind: "set", rules: [{ a: to.id, b: tag.id, relation: "similar" }] }, safe) : setTagApprox(libraryId, to.id, tag.id, "similar")).catch((e) => onError(String(e)));
+    (workspace ? editSharedApprox({ kind: "set", rules: [{ a: to.id, b: tag.id, relation: "similar" }] }, safe) : setTagApprox(libraryId, to.id, tag.id, "similar")).catch((e) => onError(e));
   };
 
   /**
@@ -228,17 +229,17 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
    */
   const chip = (c: SearchInput["conditions"][number], i: number, collapsed = false, last = false) => {
     const resolved: Condition | undefined = tree?.conditions[i];
-    const terms = c.any.map((t, j) => ({ input: t, place: j, term: resolved && resolvedTerm(resolved, t) }));
-    const visible = resolved ? terms.filter((t) => t.term) : terms;
+    const terms = c.any.map((input, j) => ({ input, place: j, term: resolved && resolvedTerm(resolved, input) }));
+    const visible = resolved ? terms.filter((x) => x.term) : terms;
     return (
       <li key={i} className="search-chip" data-negate={c.negate || undefined} data-collapsed={collapsed || undefined} aria-hidden={collapsed || undefined} inert={collapsed || undefined}>
-        {c.negate && <span className="search-chip-not">不要</span>}
+        {c.negate && <span className="search-chip-not">{t("not")}</span>}
         {visible.length === 0 ? (
-          <span className="search-chip-missing">已删除的标签</span>
+          <span className="search-chip-missing">{t("missingTag")}</span>
         ) : (
-          visible.map(({ input: t, place, term }, k) => (
+          visible.map(({ input, place, term }, k) => (
             <span key={place} className="search-term">
-              {k > 0 && <span className="search-chip-or"> 或 </span>}
+              {k > 0 && <span className="search-chip-or">{t("or")}</span>}
               {term ? (
                 <TermView
                   term={term}
@@ -246,29 +247,29 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
                   // 菜单与浮层随视角（图库、安全模式、词表代次）重建：视角变了就收起。
                   dismiss={(similar, button) => <Menu.Root key={context} modal={false}>
                     <Menu.Trigger render={button} />
-                    <MenuPopup>
-                      <MenuLabel>不展开“{tagName(similar.tag)}”：</MenuLabel>
-                      <MenuItem onClick={() => dismissOnce({ condition: i, term: place, similar })}>只这次</MenuItem>
-                      <MenuItem onClick={() => dismissForever(similar)}>以后都不展开</MenuItem>
+                    <MenuPopup label={t("dismiss.label")}>
+                      <MenuLabel>{t("dismiss.prompt", { name: tagName(similar.tag) })}</MenuLabel>
+                      <MenuItem icon={<X size={16} strokeWidth={1.75} />} onClick={() => dismissOnce({ condition: i, term: place, similar })}>{t("dismiss.once")}</MenuItem>
+                      <MenuItem icon={<Ban size={16} strokeWidth={1.75} />} onClick={() => dismissForever(similar)}>{t("dismiss.forever")}</MenuItem>
                     </MenuPopup>
                   </Menu.Root>}
                   add={(to, button) => <AddSimilar key={context} lens={lens} to={to} button={button} onPick={(tag) => addSimilar(to, tag)} />}
                 />
               ) : (
-                <span>{inputLabel(t)}</span>
+                <span>{inputLabel(input)}</span>
               )}
             </span>
           ))
         )}
         <button
           type="button"
-          aria-label={c.negate ? "不再排除这个条件" : "排除这个条件"}
+          aria-label={c.negate ? t("include") : t("exclude")}
           aria-pressed={c.negate}
           onClick={() => toggle(i)}
         >
           ⊘
         </button>
-        <button type="button" aria-label="去掉这个条件" onClick={() => { remove(i); if (last) field.current?.focus(); }}>
+        <button type="button" aria-label={t("remove")} onClick={() => { remove(i); if (last) field.current?.focus(); }}>
           ×
         </button>
       </li>
@@ -278,14 +279,14 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   const hiddenCount = Math.max(input.conditions.length - fit, 0);
   return (
     <div className="search" ref={root}>
-      <ul className="search-chips" aria-label="查找条件">
+      <ul className="search-chips" aria-label={t("conditions")}>
         {hiddenCount > 0 && (
           <li className="search-more">
             <Popover.Root>
-              <Popover.Trigger className="search-more-btn" aria-label={`还有 ${hiddenCount} 个条件`}>+{hiddenCount}</Popover.Trigger>
+              <Popover.Trigger className="search-more-btn" aria-label={t("hiddenConditions", { count: hiddenCount })}>+{hiddenCount}</Popover.Trigger>
               <Popover.Portal>
                 <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={8}>
-                  <Popover.Popup className="k-popup search-more-pop" aria-label="收起的查找条件">
+                  <Popover.Popup className="k-popup search-more-pop" aria-label={t("collapsedConditions")}>
                     <ul className="search-chips">{input.conditions.slice(0, hiddenCount).map((c, i) => chip(c, i, false, hiddenCount === 1))}</ul>
                   </Popover.Popup>
                 </Popover.Positioner>
@@ -300,8 +301,8 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
           bare
           anchor={root}
           inputRef={field}
-          label="查找参考图"
-          placeholder="查找标签或文字"
+          label={t("label")}
+          placeholder={t("placeholder")}
           value={text}
           options={rows}
           onValueChange={setText}
@@ -322,13 +323,14 @@ function AddSimilar({ lens, to, button, onPick }: {
   button: ReactElement;
   onPick: (tag: TagLabel) => void;
 }) {
+  const { t } = useTranslation("search");
   const [open, setOpen] = useState(false);
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger render={button} />
       <Popover.Portal>
-        <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={6}>
-          <Popover.Popup className="k-popup k-add-similar" aria-label="加相近标签">
+        <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={8}>
+          <Popover.Popup className="k-popup k-add-similar" aria-label={t("add.label")}>
             {open && <AddSimilarPicker lens={lens} to={to} onPick={(tag) => { setOpen(false); onPick(tag); }} onCancel={() => setOpen(false)} />}
           </Popover.Popup>
         </Popover.Positioner>
@@ -343,17 +345,18 @@ function AddSimilarPicker({ lens, to, onPick, onCancel }: {
   onPick: (tag: TagLabel) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation("search");
   const [text, setText] = useState("");
   const { list: found, ready } = useCandidateState(lens, text, (c) => c.tag.id !== to.id);
   return <>
-    <p className="k-add-similar-head">查“{tagName(to)}”时也找：</p>
+    <p className="k-add-similar-head">{t("add.prompt", { name: tagName(to) })}</p>
     <Combobox
-      label={lens.workspace ? "挑一个统一标签" : "挑一个库内标签"}
+      label={lens.workspace ? t("add.pickShared") : t("add.pickLibrary")}
       autoFocus
       embedded
       value={text}
       options={found.map((c) => tagOption(c, text))}
-      empty={ready && found.length === 0 ? "没有匹配的标签" : undefined}
+      empty={ready && found.length === 0 ? t("add.none") : undefined}
       onValueChange={setText}
       onSelect={(option) => onPick(option.tag)}
       onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}

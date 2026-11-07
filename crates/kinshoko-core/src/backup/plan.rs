@@ -27,7 +27,8 @@ const RETRY_AFTER_MS: i64 = 30 * 60 * 1000;
 #[ts(export)]
 pub struct BackupFailure {
     pub at: Stamp,
-    pub reason: String,
+    /// 失败的原因；旧版本写下的是中文句子。
+    pub reason: crate::command_error::StoredReason,
     /// 备份目标不在（移动盘没插等）。
     pub target_unavailable: bool,
 }
@@ -181,25 +182,22 @@ impl BackupPlan {
     }
 
     /// 记下一次失败（或不完整的备份）；界面据此提醒，下次再试。
-    pub fn record_failure(&mut self, at: Stamp, error: &BackupError) -> io::Result<()> {
-        self.record_problem(
-            at,
-            error.to_string(),
-            matches!(error, BackupError::TargetUnavailable(_)),
-        )
+    pub fn record_failure(&mut self, at: Stamp, error: BackupError) -> io::Result<()> {
+        let target_unavailable = matches!(error, BackupError::TargetUnavailable(_));
+        self.record_problem(at, error.into(), target_unavailable)
     }
 
     /// 记下备份没有完成的原因（例如原图内容不符）。
     pub fn record_problem(
         &mut self,
         at: Stamp,
-        reason: String,
+        reason: crate::CommandError,
         target_unavailable: bool,
     ) -> io::Result<()> {
         self.update(|f| {
             f.last_failure = Some(BackupFailure {
                 at,
-                reason,
+                reason: reason.into(),
                 target_unavailable,
             })
         })

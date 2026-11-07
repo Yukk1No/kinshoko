@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc/invoke";
 
 /** 每次界面加载最多记这么多条，出错循环时不挤掉别的日志。 */
 const LIMIT = 100;
@@ -18,7 +18,7 @@ export function recordUncaughtErrors(target: Window): () => void {
     void invoke("log_frontend", { level: "error", message }).catch(() => {});
   };
   const onError = (event: ErrorEvent) => send(event.message || describe(event.error));
-  const onRejection = (event: PromiseRejectionEvent) => send(`未处理的 Promise 拒绝：${describe(event.reason)}`);
+  const onRejection = (event: PromiseRejectionEvent) => send(`Unhandled promise rejection: ${describe(event.reason)}`);
   target.addEventListener("error", onError);
   target.addEventListener("unhandledrejection", onRejection);
   return () => {

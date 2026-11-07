@@ -1,7 +1,7 @@
 /* #79 → design system v3: cream paper and ink purple from the prototype, sakura accent by day and gold by night;
    a few values deepened so every text colour reaches 4.5:1. The wall and card stay neutral grey so the frame never tints
    the reference images. Components write semantic tokens only. This file is the single source of the tokens; the design system's tokens.json is exported from it
-   (design/ui-system/README.md).
+   (design/ui-system/tokens-and-components.md).
    The formal app keeps its real library, search, import and native pin components. */
 :root {
   /* #28: Inter for Latin and digits, Source Han Sans SC for CJK (src/fonts.ts); the Windows stack is the fallback. */
@@ -43,6 +43,8 @@
   --exact-on-bg: rgba(227, 179, 79, 0.16); --exact-on-ink: #9a6a10;
   --exact-on-inset: inset 0 1px 1.5px rgba(110, 75, 10, 0.16), inset 0 0 0 0.5px rgba(160, 112, 15, 0.22);
   --range-track: var(--line-2); --range-fill: var(--ink-2); --range-inset: inset 0 1px 1px rgba(43, 39, 71, 0.18);
+  /* scrollbar thumb at rest, hovered, dragged; the track stays transparent */
+  --scroll-thumb: rgba(43, 39, 71, 0.16); --scroll-thumb-hover: rgba(43, 39, 71, 0.36); --scroll-thumb-active: rgba(43, 39, 71, 0.5);
   --knob: #fffdf8;
   --knob-shadow: 0 0 0 0.5px rgba(43, 39, 71, 0.28), 0 1px 1.5px rgba(43, 39, 71, 0.28), 0 4px 10px rgba(43, 39, 71, 0.16);
   --knob-shadow-pressed: 0 0 0 0.5px rgba(43, 39, 71, 0.3), 0 1px 3px rgba(43, 39, 71, 0.18);
@@ -71,10 +73,11 @@
   /* viewer grounds: neutral greys and checks; the mid ground stays at 50 % gray for judging values */
   --ground-dark: #202020; --ground-mid: #808080; --ground-light: #d9d9d9; --checker-a: #d9d9d9; --checker-b: #8d8d8d;
 
-  --r-xs: 6px; --r-item: 7px; --r-s: 8px; --r: 10px; --r-m: 12px; --r-xl: 18px; --r-pill: 999px;
+  /* radii on a 4 px grid, nested by r = R - p (outer radius minus the padding between); never below 4 */
+  --r-xs: 4px; --r-s: 8px; --r: 12px; --r-l: 16px; --r-xl: 20px; --r-2xl: 32px; --r-pill: 999px;
   --spring: cubic-bezier(0.2, 0.9, 0.25, 1.05);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --t-fast: 120ms; --t: 200ms; --t-slow: 260ms;
+  --t-fast: 120ms; --t: 200ms; --t-slow: 260ms; --t-pop: 220ms;
   color-scheme: light;
 }
 /* Dark: ink purple ground, cream text, gold accent (日间樱、夜间金). `.k-dock.is-dark` borrows the dark tokens in either theme. */
@@ -93,6 +96,7 @@
     --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
     --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
     --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
+    --scroll-thumb: rgba(244, 236, 220, 0.14); --scroll-thumb-hover: rgba(244, 236, 220, 0.32); --scroll-thumb-active: rgba(244, 236, 220, 0.46);
     --knob: #fbf6ec;
     --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
     --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
@@ -120,6 +124,7 @@
   --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
   --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
   --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
+  --scroll-thumb: rgba(244, 236, 220, 0.14); --scroll-thumb-hover: rgba(244, 236, 220, 0.32); --scroll-thumb-active: rgba(244, 236, 220, 0.46);
   --knob: #fbf6ec;
   --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
   --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
@@ -132,10 +137,44 @@
   --well-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.5), inset 0 0 0 0.5px rgba(244, 236, 220, 0.06);
   color-scheme: dark;
 }
-@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; } }
-:root[data-reduced-motion] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; }
+@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-pop: 0ms; } }
+:root[data-reduced-motion] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-pop: 0ms; }
+/* The one global switch for reduced motion, for rules that hardcode a duration: animations jump to their end state in one frame and
+   transitions apply at once. `.subs-spin` is the exception: a spinner is the only sign of progress, so it keeps its own slower rotation. */
+@media (prefers-reduced-motion: reduce) {
+  *:where(:not(.subs-spin)), *:where(:not(.subs-spin))::before, *:where(:not(.subs-spin))::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0ms !important;
+    transition-duration: 0ms !important; transition-delay: 0ms !important;
+  }
+}
+:root[data-reduced-motion] *:where(:not(.subs-spin)), :root[data-reduced-motion] *:where(:not(.subs-spin))::before, :root[data-reduced-motion] *:where(:not(.subs-spin))::after {
+  animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0ms !important;
+  transition-duration: 0ms !important; transition-delay: 0ms !important;
+}
 
 /* seal colours (brand invariant): the prototype's rules; deep sakura by day (3.42:1 on the rail), gold by night */
 :root { --seal-acc: #c85672; --seal-ink: var(--ink); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seal-acc: #e3b34f; } }
 :root[data-theme="dark"] { --seal-acc: #e3b34f; }
+
+/* menus (cascade menus, menu.css `[data-k-level]`): the cascade menu's shape on the V3 palette; each token follows its theme */
+:root {
+  --menu-surface: var(--surface); --menu-border: var(--line);
+  --menu-ink: var(--ink); --menu-hover: var(--hover); --menu-quiet: var(--ink-2); --menu-icon: var(--ink-3); --menu-chevron: var(--ink-3);
+  --menu-shadow: var(--shadow-pop);
+  --menu-brand-filter: none;
+}
+/* monochrome brand icons invert in dark */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --menu-brand-filter: invert(1); } }
+:root[data-theme="dark"] { --menu-brand-filter: invert(1); }
+
+/* Continuous corners as progressive enhancement: Chrome and Edge 139+ draw the superellipse, other browsers keep the plain border-radius.
+   Pills and circles stay fully round. */
+@supports (corner-shape: superellipse(1.25)) {
+  :where(*) { corner-shape: superellipse(1.25); }
+  .lib-dot, .k-density-island, .k-density-knob, .k-tagging-dot, .k-tagging-activity, .k-range, .wall-canvas > .card-sources,
+  .startup-bar, .startup-bar *, .capture-tip, .badge, .rail-badge, .fx-burst, .search-chip, .k-radio-card input, .k-steps i, .k-task-progress,
+  .k-chip, .k-chip-x, .k-switch, .k-switch-thumb, .k-dock-badge, .k-pill { corner-shape: round; }
+  /* search chips in the top bar and its overflow popover are rounded boxes, not pills */
+  .topbar > .search .search-chip, .search-more-pop .search-chip { corner-shape: superellipse(1.25); }
+}

@@ -86,6 +86,7 @@ pub enum TagFailure {
     DeviceLost(String),
 }
 
+// 不上界面：交给界面时转成错误代码（From<TagFailure> for CommandError），Display 只进日志
 impl std::fmt::Display for TagFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -93,6 +94,20 @@ impl std::fmt::Display for TagFailure {
             TagFailure::Crashed(r) => write!(f, "打标子进程异常退出：{r}"),
             TagFailure::DeviceLost(r) => write!(f, "显卡被重置或显存不足：{r}"),
         }
+    }
+}
+
+/// 交给界面的是错误代码与子进程给出的原因；Display 是日志里的说明。
+impl From<TagFailure> for crate::CommandError {
+    fn from(failure: TagFailure) -> Self {
+        use crate::command_error::ErrorKind;
+        let text = failure.to_string();
+        let kind = match failure {
+            TagFailure::BadImage(detail) => ErrorKind::TaggingBadImage { detail },
+            TagFailure::Crashed(detail) => ErrorKind::TaggingCrashed { detail },
+            TagFailure::DeviceLost(detail) => ErrorKind::TaggingDeviceLost { detail },
+        };
+        crate::CommandError::new(kind, text)
     }
 }
 

@@ -39,7 +39,7 @@ describe("标签分组", () => {
       return button;
     });
     fireEvent.click(addMember);
-    fireEvent.change(within(hair).getByRole("combobox", { name: "挑一个统一标签" }), { target: { value: "蓝" } });
+    fireEvent.change(within(hair).getByRole("combobox", { name: "挑一个标签" }), { target: { value: "蓝" } });
     fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
     await waitFor(() =>
       expect(sent("plugin:library|edit_shared_tag_group")).toEqual([{ edit: { kind: "addMembers", groupId: "G1", tagIds: ["T-blue"] }, safeMode: true }]),
@@ -103,8 +103,8 @@ describe("标签分组", () => {
 
     const deletes = sent("plugin:library|edit_shared_tag_group").length;
     fireEvent.click(within(groups).getByRole("button", { name: "删除标签分组“头发颜色”" }));
-    // #98: deleting a group asks first (a small confirm by the button); nothing is sent before the confirmation.
-    const confirm = (await screen.findByText("「头发颜色」会被删除，图片的标签不变。")).closest<HTMLElement>("[role='dialog']")!;
+    // #98: deleting a group asks first; nothing is sent before the confirmation.
+    const confirm = (await screen.findByText("「头发颜色」会被删除，图片的标签不变。")).closest<HTMLElement>("[role='alertdialog']")!;
     expect(sent("plugin:library|edit_shared_tag_group").length).toBe(deletes);
     expect(within(groups).getByRole("group", { name: "头发颜色", hidden: true })).toBeTruthy();
     fireEvent.click(within(confirm).getByRole("button", { name: "删除分组" }));

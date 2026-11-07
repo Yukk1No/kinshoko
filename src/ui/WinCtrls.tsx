@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { glyphGrid, glyphPath, snapGlyph, type GlyphKind } from "./winGlyphs";
 import { Tip } from "./Tip";
@@ -48,12 +49,13 @@ function useSnappedGlyphs(group: RefObject<HTMLDivElement | null>, maximized: bo
 }
 
 /**
- * Window controls for the frameless main window (design/ui-system/README.md, 窗口框架).
+ * Window controls for the frameless main window (design/ui-system/window-frame-and-sidebar.md, 窗口框架).
  * They sit at the end of whichever header row is right-most; that row is the window's safe area.
  * Maximized or not, they keep the same size, inset and corners; only the middle glyph changes to restore.
  * Closing keeps today's semantics: only this window closes, Kinshoko stays in the tray (ADR 0004).
  */
 export function WinCtrls() {
+  const { t } = useTranslation("shell");
   const [maximized, setMaximized] = useState(false);
   const group = useRef<HTMLDivElement>(null);
   const dpr = useSnappedGlyphs(group, maximized);
@@ -72,14 +74,14 @@ export function WinCtrls() {
   };
   return <div ref={group} className="k-win-ctrls">
     <span className="k-win-div" aria-hidden="true" />
-    <Tip label="最小化"><button type="button" className="k-win-btn" aria-label="最小化" onClick={run((win) => win.minimize())}>
+    <Tip label={t("window.minimize")}><button type="button" className="k-win-btn" aria-label={t("window.minimize")} onClick={run((win) => win.minimize())}>
       <Glyph kind="minimize" dpr={dpr} />
     </button></Tip>
-    <Tip label={maximized ? "还原" : "最大化"}><button type="button" className="k-win-btn" aria-label={maximized ? "还原" : "最大化"}
+    <Tip label={maximized ? t("window.restore") : t("window.maximize")}><button type="button" className="k-win-btn" aria-label={maximized ? t("window.restore") : t("window.maximize")}
       onClick={run((win) => win.toggleMaximize())}>
       <Glyph kind={maximized ? "restore" : "maximize"} dpr={dpr} />
     </button></Tip>
-    <Tip label="关闭" align="end"><button type="button" className="k-win-btn is-close" aria-label="关闭" onClick={run((win) => win.close())}>
+    <Tip label={t("window.close")} align="end"><button type="button" className="k-win-btn is-close" aria-label={t("window.close")} onClick={run((win) => win.close())}>
       <Glyph kind="close" dpr={dpr} />
     </button></Tip>
   </div>;

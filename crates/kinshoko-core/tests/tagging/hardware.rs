@@ -1,6 +1,12 @@
 //! 硬件档：显卡与 CPU 档的选择、退让、换档时的下载确认。
 
 use super::*;
+use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
+
+fn no_gpu() -> CommandError {
+    CommandError::new(ErrorKind::TaggingNoGpu, "没有独立显卡")
+}
 
 #[test]
 fn after_repeated_gpu_resets_tagging_falls_back_to_the_cpu_model() {
@@ -159,7 +165,7 @@ fn choosing_the_gpu_without_a_usable_gpu_stops_instead_of_using_the_cpu() {
     assert_eq!(
         status,
         TaggingStatus::NoDevice {
-            reason: "没有独立显卡".into()
+            reasons: vec![no_gpu()]
         }
     );
     std::thread::sleep(Duration::from_millis(100));
@@ -175,13 +181,20 @@ fn choosing_the_gpu_with_too_little_video_memory_says_so() {
     let mut config = f.config(vec![gpu, cpu]);
     config.preferred = Some(Device::DirectMl);
     let tagging = f.start(config);
-    let status = wait_for(&tagging, "显存不够", |s| {
+    let status = wait_for(&tagging, "显存不足", |s| {
         matches!(s, TaggingStatus::NoDevice { .. })
     });
-    let TaggingStatus::NoDevice { reason } = status else {
+    let TaggingStatus::NoDevice { reasons } = status else {
         unreachable!()
     };
-    assert!(reason.contains("显存额度不够"), "{reason}");
+    let [reason] = reasons.as_slice() else {
+        panic!("{reasons:?}")
+    };
+    assert!(
+        matches!(&reason.kind, ErrorKind::TaggingVramShort { .. }),
+        "{reason:?}"
+    );
+    let reason = reason.to_string();
     assert!(
         !reason.contains("测试模型"),
         "原因里不出现模型条目名：{reason}"
@@ -205,7 +218,7 @@ fn automatic_falls_back_to_the_cpu_but_asks_before_downloading_it() {
             model: cpu.label.clone(),
             size: cpu.size,
             downloaded: 0,
-            fallback: Some("没有独立显卡".into()),
+            fallback: Some(vec![no_gpu()]),
             cancelled: false,
         }
     );
@@ -225,8 +238,9 @@ fn a_confirmed_gpu_download_does_not_download_the_cpu_model_after_falling_back()
         matches!(s, TaggingStatus::NeedsDownload { .. })
     });
     assert!(
-        matches!(&status, TaggingStatus::NeedsDownload { model, fallback: Some(reason), .. }
-            if *model == cpu.label && reason.contains("显卡多次出错")),
+        matches!(&status, TaggingStatus::NeedsDownload { model, fallback: Some(reasons), .. }
+            if *model == cpu.label
+                && matches!(reasons.as_slice(), [r] if r.kind == ErrorKind::TaggingGpuUnreliable)),
         "{status:?}"
     );
     std::thread::sleep(Duration::from_millis(100));

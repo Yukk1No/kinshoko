@@ -5,7 +5,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 
-use kinshoko_core::{AppSettings, GlobalShortcuts, HotkeyRegistrar, ShortcutAction};
+use kinshoko_core::{AppSettings, GlobalShortcuts, HotkeyFailure, HotkeyRegistrar, ShortcutAction};
 
 /// 假的系统热键表。`taken` 是别的程序（例如绘画软件或 Snipaste）已占用的键。
 #[derive(Clone, Default)]
@@ -33,10 +33,10 @@ impl FakeHotkeys {
 }
 
 impl HotkeyRegistrar for FakeHotkeys {
-    fn register(&mut self, action: ShortcutAction, accelerator: &str) -> Result<(), String> {
+    fn register(&mut self, action: ShortcutAction, accelerator: &str) -> Result<(), HotkeyFailure> {
         let mut table = self.inner.lock().unwrap();
         if table.taken.contains(accelerator) || table.ours.contains_key(accelerator) {
-            return Err("已被其他程序占用".to_owned());
+            return Err(HotkeyFailure::Taken);
         }
         table.ours.insert(accelerator.to_owned(), action);
         Ok(())
@@ -61,7 +61,7 @@ fn on_start_every_bound_key_is_registered_and_a_key_held_elsewhere_is_reported()
     let capture = &shortcuts.bindings(&settings)[0];
     assert_eq!(capture.action, ShortcutAction::Capture);
     assert_eq!(capture.accelerator.as_deref(), Some("F1"));
-    assert_eq!(capture.problem.as_deref(), Some("已被其他程序占用"));
+    assert_eq!(capture.problem, Some(HotkeyFailure::Taken));
     assert_eq!(shortcuts.bindings(&settings)[1].problem, None);
 }
 

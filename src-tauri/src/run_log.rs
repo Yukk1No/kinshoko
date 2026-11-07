@@ -2,6 +2,8 @@
 //! 记下 panic，并给其他模块一个不必带 `AppHandle` 的入口。能写什么见
 //! `kinshoko_core::diagnostics::LogEvent`；日志不上传，由画师在设置里导出。
 
+use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::fmt::Display;
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
@@ -27,6 +29,7 @@ impl Clock for LocalClock {
 }
 
 /// 按设置打开运行日志并记下 panic。在建任何窗口之前调用一次。
+// 不上界面：panic 写进运行日志
 pub fn start(app: &AppHandle, settings: &AppSettings) {
     let dir = crate::data_dirs::app_data(app).logs();
     let log = RunLog::open(dir, settings.run_log(), Arc::new(LocalClock));
@@ -112,9 +115,9 @@ pub fn window_created(window: WindowKind, started: Instant) {
 pub async fn set_run_log(
     state: State<'_, ShellState>,
     on: bool,
-) -> Result<kinshoko_core::ShellSettingsView, String> {
-    let mut shell = state.0.lock().map_err(|e| e.to_string())?;
-    shell.settings.set_run_log(on).map_err(|e| e.to_string())?;
+) -> Result<kinshoko_core::ShellSettingsView, CommandError> {
+    let mut shell = state.0.lock().map_err(CommandError::system)?;
+    shell.settings.set_run_log(on).map_err(CommandError::from)?;
     if let Some(log) = log() {
         log.set_enabled(on);
     }
@@ -123,9 +126,16 @@ pub async fn set_run_log(
 
 /// 删掉已记录的运行日志。
 #[tauri::command]
-pub async fn clear_run_log() -> Result<(), String> {
+pub async fn clear_run_log() -> Result<(), CommandError> {
     match log() {
-        Some(log) => log.clear().map_err(|e| format!("清除运行日志失败：{e}")),
+        Some(log) => log.clear().map_err(|e| {
+            CommandError::new(
+                ErrorKind::ClearRunLogFailed {
+                    detail: e.to_string(),
+                },
+                format!("清除运行日志失败：{e}"),
+            )
+        }),
         None => Ok(()),
     }
 }
@@ -150,6 +160,7 @@ pub enum StartupStep {
     TwentyThumbnails,
 }
 
+// 不上界面：首屏耗时写进运行日志
 impl StartupStep {
     fn label(self) -> &'static str {
         match self {

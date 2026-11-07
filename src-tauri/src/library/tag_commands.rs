@@ -1,49 +1,13 @@
 //! 标签、标签目录、别名与标签组的命令。
 
 use super::*;
-
-/// 一张参考图的标签，名称按界面语言 `lang`。
-#[tauri::command]
-pub(super) async fn image_tags<R: Runtime>(
-    app: AppHandle<R>,
-    state: State<'_, LibraryState>,
-    library_id: String,
-    image_id: String,
-    lang: String,
-) -> Result<ImageTags, String> {
-    let catalog = state.search.clone();
-    blocking(move || {
-        let library = readable(&app, &library_id)?;
-        with_catalog(&catalog, |catalog| {
-            Ok(catalog.image_tags(&library, &image_id, &lang)?.image)
-        })
-    })
-    .await
-}
-
-#[tauri::command]
-pub(super) async fn catalog_image_tags<R: Runtime>(
-    app: AppHandle<R>,
-    state: State<'_, LibraryState>,
-    library_id: String,
-    image_id: String,
-    lang: String,
-) -> Result<CatalogImageTags, String> {
-    let catalog = state.search.clone();
-    blocking(move || {
-        let library = readable(&app, &library_id)?;
-        with_catalog(&catalog, |catalog| {
-            catalog.image_tags(&library, &image_id, &lang)
-        })
-    })
-    .await
-}
+use kinshoko_core::CommandError;
 
 #[tauri::command]
 pub(super) async fn inspect_tag_catalog<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
-) -> Result<TagCatalogWorkspace, String> {
+) -> Result<TagCatalogWorkspace, CommandError> {
     let reader = app.clone();
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
@@ -56,7 +20,7 @@ pub(super) async fn inspect_tag_catalog<R: Runtime>(
     })
     .await?;
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新检查标签对应".into());
+        return Err(mapping_safe_mode_changed());
     }
     Ok(result)
 }
@@ -68,7 +32,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
     library_id: String,
     local_tag_id: String,
     correction: CatalogCorrection,
-) -> Result<TagCatalogWorkspace, String> {
+) -> Result<TagCatalogWorkspace, CommandError> {
     let reader = app.clone();
     let generation = state.safe_mode.snapshot();
     let safe = saved_safe_mode(&app);
@@ -79,7 +43,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
             |workspace, libraries, catalog| {
                 let library = libraries
                     .read(&library_id)
-                    .map_err(|e| CatalogError::Io(std::io::Error::other(e.to_string())))?;
+                    .map_err(|e| CatalogError::Command(Box::new(e.into())))?;
                 library.set_safe_mode(safe);
                 catalog.correct(&library, &local_tag_id, correction)?;
                 workspace.inspect_catalog(libraries, catalog, safe)
@@ -97,14 +61,20 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
             EVENT,
             LibraryEvent::VocabularyChanged {
                 library_id: active.info().id.clone(),
-                revision: active.vocabulary_revision().map_err(|e| e.to_string())?,
+                revision: active.vocabulary_revision().map_err(CommandError::from)?,
             },
         );
     }
     if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err("安全模式已变化，请重新检查标签对应".into());
+        return Err(mapping_safe_mode_changed());
     }
-    publication.map_err(|error| format!("标签对应已保存在程序中，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))?;
+    publication.map_err(|error| {
+        CommandError::caused_by(
+            error,
+            |cause| ErrorKind::MappingDefinitionsNotSaved { cause },
+            |error| format!("标签对应已保存在程序中，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"),
+        )
+    })?;
     Ok(result)
 }
 
@@ -115,11 +85,18 @@ pub(super) async fn edit_tags<R: Runtime>(
     library_id: String,
     image_ids: Vec<String>,
     edits: Vec<TagEdit>,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
-        let library = writable(&app, &library_id)?;
-        library.edit_tags(&image_ids, &edits).map_err(|e| e.to_string())?;
-        publish_definition_dependencies(&app, &library_id).map_err(|error| format!("标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"))
+        organize_commands::write_visible(&app, &library_id, &image_ids, |library| {
+            library.edit_tags(&image_ids, &edits)
+        })?;
+        publish_definition_dependencies(&app, &library_id).map_err(|error| {
+            CommandError::caused_by(
+                error,
+                |cause| ErrorKind::TagEditDefinitionsNotSaved { cause },
+                |error| format!("标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"),
+            )
+        })
     })
     .await
 }
@@ -129,7 +106,7 @@ pub(super) async fn vocabulary<R: Runtime>(
     app: AppHandle<R>,
     state: State<'_, LibraryState>,
     library_id: String,
-) -> Result<Vocabulary, String> {
+) -> Result<Vocabulary, CommandError> {
     let catalog = state.search.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
@@ -145,7 +122,7 @@ pub(super) async fn tag_groups<R: Runtime>(
     state: State<'_, LibraryState>,
     library_id: String,
     lang: String,
-) -> Result<Vec<TagGroupView>, String> {
+) -> Result<Vec<TagGroupView>, CommandError> {
     let catalog = state.search.clone();
     blocking(move || {
         let library = readable(&app, &library_id)?;
@@ -162,7 +139,7 @@ pub(super) async fn add_tag_alias<R: Runtime>(
     library_id: String,
     tag_id: String,
     alias: TagAlias,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     names::edit_local_alias(
         app,
         &state,
@@ -180,7 +157,7 @@ pub(super) async fn remove_tag_alias<R: Runtime>(
     library_id: String,
     tag_id: String,
     alias: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     names::edit_local_alias(
         app,
         &state,
@@ -198,12 +175,12 @@ pub(super) async fn create_tag_group<R: Runtime>(
     library_id: String,
     name: String,
     namespace: Option<TagNamespace>,
-) -> Result<String, String> {
+) -> Result<String, CommandError> {
     blocking(move || {
         let library = writable(&app, &library_id)?;
         library
             .create_tag_group(&name, namespace)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -214,12 +191,12 @@ pub(super) async fn rename_tag_group<R: Runtime>(
     library_id: String,
     group_id: String,
     name: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let library = writable(&app, &library_id)?;
         library
             .rename_tag_group(&group_id, &name)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -229,12 +206,12 @@ pub(super) async fn delete_tag_group<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
     group_id: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let library = writable(&app, &library_id)?;
         library
             .delete_tag_group(&group_id)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -245,12 +222,12 @@ pub(super) async fn add_to_tag_group<R: Runtime>(
     library_id: String,
     group_id: String,
     tag_ids: Vec<String>,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let library = writable(&app, &library_id)?;
         library
             .add_to_tag_group(&group_id, &tag_ids)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }
@@ -261,12 +238,12 @@ pub(super) async fn remove_from_tag_group<R: Runtime>(
     library_id: String,
     group_id: String,
     tag_ids: Vec<String>,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let library = writable(&app, &library_id)?;
         library
             .remove_from_tag_group(&group_id, &tag_ids)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
 }

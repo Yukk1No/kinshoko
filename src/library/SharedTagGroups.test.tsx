@@ -43,7 +43,7 @@ describe("T05 shared groups", () => {
   });
   it("renders global groups in settings with no current library", async () => {
     backend(); render(<SettingsPanel initialTab="tags" />); fireEvent.click(await screen.findByRole("button", { name: "分组" }));
-    const settingsGroups = await screen.findByRole("region", { name: "全局标签分组" });
+    const settingsGroups = await screen.findByRole("region", { name: "标签分组" });
     expect(await within(settingsGroups).findByRole("group", { name: "发色" })).toBeTruthy();
   });
   it("keeps a settings rename draft when the monitor repeats the current revision", async () => {
@@ -76,7 +76,7 @@ describe("T05 shared groups", () => {
     ] }] });
   });
   it("安全模式刚切换（LensChanged）时读分组不报错：确认后会按新视角重读（#176）", async () => {
-    backend(() => Promise.reject("安全模式刚切换过，请重新查找"));
+    backend(() => Promise.reject({ code: "lensChanged" }));
     const barError = vi.fn(), paneError = vi.fn();
     render(<TagGroupBar workspace libraryId="" safe generation={0} input={{ conditions: [], exact: true }} onChange={vi.fn()} onError={barError} />);
     render(<TagGroupsPane libraryId="" safe generation={0} onBrowse={vi.fn()} onError={paneError} />);

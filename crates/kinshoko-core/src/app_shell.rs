@@ -30,11 +30,13 @@ pub fn app_info() -> AppInfo {
 pub enum UpdateStatus {
     /// 公开构建缺少自动更新条件；说明具体原因。
     Disabled {
-        message: String,
+        #[ts(as = "crate::command_error::ErrorKind")]
+        message: crate::CommandError,
     },
     /// 此构建由画师运行安装包更新。
     Manual {
-        message: String,
+        #[ts(as = "crate::command_error::ErrorKind")]
+        message: crate::CommandError,
     },
     /// 还没有检查过。
     Unchecked,
@@ -45,9 +47,10 @@ pub enum UpdateStatus {
         /// 发布说明。
         notes: Option<String>,
     },
-    /// 检查或安装失败；`message` 是给画师看的中文。
+    /// 检查或安装失败的原因。
     Failed {
-        message: String,
+        #[ts(as = "crate::command_error::ErrorKind")]
+        message: crate::CommandError,
     },
 }
 
@@ -117,25 +120,28 @@ impl UpdatePolicy {
                 .iter()
                 .any(|channel| channel.endpoint() == url)
         };
+        use crate::CommandError;
+        use crate::command_error::ErrorKind;
+        let disabled = |kind, text: &str| UpdateStatus::Disabled {
+            message: CommandError::new(kind, text),
+        };
         let status = match stage.unwrap_or("private") {
             "private" => UpdateStatus::Manual {
-                message: "当前使用安装包手动更新。".to_owned(),
+                message: CommandError::new(ErrorKind::UpdateManual, "当前使用安装包手动更新。"),
             },
-            "public" if pubkey.is_none_or(|key| key.trim().is_empty()) => UpdateStatus::Disabled {
-                message: "未配置更新公钥，自动更新未启用。请使用新版安装包手动更新。".to_owned(),
-            },
-            "public" if endpoints.is_empty() || !endpoints.iter().all(original) => {
-                UpdateStatus::Disabled {
-                    message:
-                        "未配置原仓库的公开更新入口，自动更新未启用。请使用新版安装包手动更新。"
-                            .to_owned(),
-                }
-            }
+            "public" if pubkey.is_none_or(|key| key.trim().is_empty()) => disabled(
+                ErrorKind::UpdateNoPublicKey,
+                "未配置更新公钥，自动更新未启用。请使用新版安装包手动更新。",
+            ),
+            "public" if endpoints.is_empty() || !endpoints.iter().all(original) => disabled(
+                ErrorKind::UpdateNoEndpoint,
+                "未配置原仓库的公开更新入口，自动更新未启用。请使用新版安装包手动更新。",
+            ),
             "public" => UpdateStatus::Unchecked,
-            _ => UpdateStatus::Disabled {
-                message: "更新阶段配置无法识别，自动更新未启用。请使用新版安装包手动更新。"
-                    .to_owned(),
-            },
+            _ => disabled(
+                ErrorKind::UpdateUnknownStage,
+                "更新阶段配置无法识别，自动更新未启用。请使用新版安装包手动更新。",
+            ),
         };
         Self(status)
     }
@@ -145,7 +151,7 @@ impl UpdatePolicy {
     }
 
     /// 检查和安装在各自执行前都必须再次通过此边界。
-    pub fn require_automatic(&self) -> Result<(), String> {
+    pub fn require_automatic(&self) -> Result<(), crate::CommandError> {
         match &self.0 {
             UpdateStatus::Unchecked => Ok(()),
             UpdateStatus::Manual { message } | UpdateStatus::Disabled { message } => {

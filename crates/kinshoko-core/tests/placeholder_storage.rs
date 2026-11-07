@@ -1,4 +1,4 @@
-//! 占位图存在资料库里（#313）：不另存文件；#313 之前存成文件的旧资料库升级后读进库里再删掉文件；
+//! 占位图存在资料库里（#313）：不另存文件；旧版存成文件的资料库升级后读进库里再删掉文件；
 //! 永久删除原图时一并删掉。读写数据库文件检查存储、模拟旧格式，其余经 `Library` 的对外接口。
 
 use std::collections::BTreeMap;
@@ -56,7 +56,7 @@ fn stored(root: &Path) -> BTreeMap<String, (String, Vec<u8>)> {
         .unwrap()
 }
 
-/// 缓存目录里的占位图文件（#313 之前的存法）。
+/// 缓存目录里的占位图文件（旧版的存法）。
 fn placeholder_files(root: &Path) -> Vec<PathBuf> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
@@ -94,7 +94,7 @@ fn imported_placeholders_live_in_the_library_database_not_in_files() {
     assert!(cards(&library).iter().all(|c| c.placeholder.is_some()));
 }
 
-/// #313 之前的资料库：占位图是 `cache/thumbs/<管线>/sdr/<前两位>/<sha>-p32.<webp|png>` 文件，没有
+/// 旧版资料库：占位图是 `cache/thumbs/<管线>/sdr/<前两位>/<sha>-p32.<webp|png>` 文件，没有
 /// `placeholder` 表。只读打开要先升级；打开（升级）后后台把这些文件原样读进库里，再删掉文件。
 #[test]
 fn a_library_from_before_the_move_imports_its_placeholder_files_once() {

@@ -77,9 +77,9 @@ describe("分档阈值的约束", () => {
   });
 
   it("阈值在 0 到 1 之间", () => {
-    expect(thresholdProblem({ high: 1.05, low: 0.4 })).toBe("阈值要在 0 到 1 之间");
-    expect(thresholdProblem({ high: 0.8, low: -0.05 })).toBe("阈值要在 0 到 1 之间");
-    expect(thresholdProblem({ high: Number.NaN, low: 0.4 })).toBe("阈值要在 0 到 1 之间");
+    expect(thresholdProblem({ high: 1.05, low: 0.4 })).toBe("要在 0% 到 100% 之间");
+    expect(thresholdProblem({ high: 0.8, low: -0.05 })).toBe("要在 0% 到 100% 之间");
+    expect(thresholdProblem({ high: Number.NaN, low: 0.4 })).toBe("要在 0% 到 100% 之间");
   });
 
   it("默认是底色分档、0.80 / 0.40、低档加虚线框", () => {

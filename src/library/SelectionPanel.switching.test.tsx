@@ -43,10 +43,8 @@ function backend(answer: (cmd: string, id: string) => unknown = () => undefined)
     const id = (args as { imageId?: string }).imageId ?? "";
     const custom = answer(name, id);
     if (custom !== undefined) return custom;
-    if (name === "workspace_sidebar" || name === "sidebar") return { all: 3, trash: 0, folders: [{ id: "f", name: "人物", count: 1, children: [] }] };
     if (name === "image") return detail(id);
     if (name === "catalog_image_tags") return tags(id);
-    if (name === "image_tags") return tags(id).image;
     return undefined;
   });
   return calls;
@@ -54,12 +52,12 @@ function backend(answer: (cmd: string, id: string) => unknown = () => undefined)
 
 function panel(id: string) {
   return (
-    <SelectionPanel workspace libraryId="L1" scope={{ kind: "all" }} selected={new Set([id])}
+    <SelectionPanel libraryId="L1" selected={new Set([id])}
       onClear={() => {}} reloadKey={0} onError={() => {}} />
   );
 }
 
-it("连续切换选中图时，不再重新读取文件夹树", async () => {
+it("连续切换选中图时，不读文件夹树", async () => {
   const calls = backend();
   const view = render(panel("a"));
   await screen.findByText("a.png");
@@ -69,7 +67,7 @@ it("连续切换选中图时，不再重新读取文件夹树", async () => {
   await screen.findByText("c.png");
   await screen.findByText("c 的标签");
 
-  expect(calls.workspace_sidebar).toBe(1);
+  expect(calls.workspace_sidebar).toBeUndefined();
 });
 
 it("一次选中，详情和标签的后端查询各只发一次", async () => {
@@ -79,8 +77,7 @@ it("一次选中，详情和标签的后端查询各只发一次", async () => {
   await screen.findByText("a 的标签");
 
   expect(calls.image).toBe(1);
-  // image_tags 与 catalog_image_tags 在后端是同一个查询（统一标签目录读这张图的标签）。
-  expect((calls.image_tags ?? 0) + (calls.catalog_image_tags ?? 0)).toBe(1);
+  expect(calls.catalog_image_tags).toBe(1);
 });
 
 function deferred() {
@@ -132,25 +129,15 @@ it("迟到的旧响应不会写进新选中的图", async () => {
   expect(screen.queryByText("b 的标签")).toBeNull();
 });
 
-it("跨库视角下，一次选中只调用一次 workspaceSourceInspection", async () => {
-  const calls: Record<string, number> = {};
-  mockIPC((cmd, args) => {
-    calls[cmd] = (calls[cmd] ?? 0) + 1;
-    const id = (args as { target?: { imageId: string } }).target?.imageId ?? "";
-    if (cmd === "plugin:library|workspace_source_inspection") return { detail: detail(id), tags: tags(id), sidebar: { all: 1, trash: 0, folders: [] } };
-    if (cmd === "plugin:library|workspace_sidebar") return { all: 1, trash: 0, folders: [] };
-    if (cmd === "plugin:desktop|reference_groups") return [];
-    return undefined;
-  });
+it("同一文件多份时与普通面板读同一套接口，各只发一次", async () => {
+  const calls = backend();
   const card: WorkspaceCard = { id: "same-bytes", width: 10, height: 10, adult: false, libraryId: "B", imageId: "b", sources: [
     { libraryId: "B", libraryName: "移动盘参考", imageId: "b", matches: true, unavailable: null, deleted: false },
   ] };
-  render(<WorkspaceSources card={card} onClose={() => {}} onView={() => {}} />);
-  screen.getByRole("button", { name: "整理此来源" }).click();
+  render(<WorkspaceSources card={card} onClose={() => {}} />);
   await screen.findByText("b.png");
   await screen.findByText("b 的标签");
 
-  expect(calls["plugin:library|workspace_source_inspection"]).toBe(1);
-  // 来源检查已经带着文件夹树。
-  expect(calls["plugin:library|workspace_sidebar"] ?? 0).toBe(0);
+  expect(calls.image).toBe(1);
+  expect(calls.catalog_image_tags).toBe(1);
 });

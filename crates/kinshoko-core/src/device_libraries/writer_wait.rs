@@ -1,4 +1,4 @@
-//! 按需取得可写句柄与等导入收尾（ADR-0008，从 device_libraries.rs 原样搬出）。
+//! 按需取得可写句柄与等导入收尾（ADR-0008）。
 
 use super::*;
 
@@ -71,6 +71,7 @@ pub enum WriterWaitError<E> {
     TimedOut(OrganizeWaiting),
 }
 
+// 不上界面：领域错误交给界面时转成错误代码（command_error），Display 只进日志
 impl<E: fmt::Display> fmt::Display for WriterWaitError<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

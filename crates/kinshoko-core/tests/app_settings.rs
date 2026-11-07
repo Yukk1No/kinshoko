@@ -27,6 +27,18 @@ fn turning_autostart_off_is_remembered_after_restart() {
 }
 
 #[test]
+fn subscriptions_are_on_after_a_fresh_install_and_turning_them_off_is_remembered() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(settings.subscriptions());
+
+    settings.set_subscriptions(false).unwrap();
+    drop(settings);
+
+    assert!(!AppSettings::open(dir.path()).unwrap().subscriptions());
+}
+
+#[test]
 fn safe_mode_is_on_after_a_fresh_install_and_turning_it_off_is_remembered() {
     let dir = tempfile::tempdir().unwrap();
     let mut settings = AppSettings::open(dir.path()).unwrap();
@@ -363,6 +375,18 @@ fn the_details_panel_width_is_unset_until_the_artist_drags_it_and_then_remembere
         AppSettings::open(dir.path()).unwrap().inspector_width(),
         Some(412)
     );
+}
+
+#[test]
+fn the_details_panel_starts_closed_and_remembers_what_the_artist_chose() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(!settings.inspector_open());
+
+    settings.set_inspector_open(true).unwrap();
+    drop(settings);
+
+    assert!(AppSettings::open(dir.path()).unwrap().inspector_open());
 }
 
 #[test]

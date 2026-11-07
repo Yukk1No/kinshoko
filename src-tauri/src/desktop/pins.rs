@@ -15,6 +15,8 @@
 //! 拖动和缩放由原生钉图自己的指针输入驱动（笔与鼠标同一套处理；Windows Ink 下没有系统拖动需要的
 //! 鼠标事件，#7）。
 
+use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::{Condvar, Mutex};
@@ -45,8 +47,18 @@ pub use opening::*;
 const OFFSET: f64 = 16.0;
 /// F1 登记原生钉图时用的“窗口”名：原生钉图没有 WebView 窗口，遮挡按窗口句柄查。
 const NATIVE_SURFACE: &str = "native-pin";
-const CLOSED: &str = "钉图已关闭";
-const LOCKED: &str = "钉图已锁定";
+fn pin_closed() -> CommandError {
+    CommandError::new(ErrorKind::PinClosed, "钉图已关闭")
+}
+
+fn pin_locked() -> CommandError {
+    CommandError::new(ErrorKind::PinLocked, "钉图已锁定")
+}
+
+/// 截图钉图要用的截图已不在截图历史中。
+fn pin_capture_gone() -> CommandError {
+    CommandError::new(ErrorKind::PinCaptureGone, "截图已不在截图历史中")
+}
 
 /// 本次运行中打开着的钉图。
 pub struct PinRecord {
@@ -172,7 +184,7 @@ pub(super) fn open_reference_selection(
     app: &AppHandle,
     mut pin: SavedPin,
     at: ScreenRect,
-) -> Result<String, String> {
+) -> Result<String, CommandError> {
     let (monitor, dpi) = monitor_at(at.x, at.y).unwrap_or((at, 1.0));
     pin.placement.scale = initial_scale(pin.width, pin.height, monitor);
     let (width, height) = pin.window_size();

@@ -11,11 +11,11 @@ let calls: Call[];
 const card: WorkspaceCard = { id: "bytes", width: 120, height: 90, adult: false,
   libraryId: "A", imageId: "a", sources: [
     { libraryId: "A", libraryName: "甲库", imageId: "a", unavailable: null, matches: true, deleted: false },
-    { libraryId: "B", libraryName: "乙库", imageId: "b", unavailable: "离线", matches: false, deleted: false },
+    { libraryId: "B", libraryName: "乙库", imageId: "b", unavailable: { code: "system" as const, detail: "离线" }, matches: false, deleted: false },
   ] };
 const page = (cards: WorkspaceCard[]): WorkspacePage => ({ cards, total: cards.length, nextCursor: null,
   status: { revision: "r", libraries: [] } });
-const base = { libraryId: "active-write-target", scope: { kind: "all" as const }, selected: new Set<string>(),
+const base = { scope: { kind: "all" as const }, selected: new Set<string>(),
   onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false };
 const settle = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
 beforeEach(() => {

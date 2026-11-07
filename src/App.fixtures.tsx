@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { SearchBox, UI_LANG } from "./search/SearchBox";
+import { SearchBox } from "./search/SearchBox";
+import { useUiLang } from "./i18n";
 import { onLibraryEvent, resolveSearch, setSafeMode } from "./ipc";
 import { workspaceFixture } from "./test/workspace-fixture";
 import { afterEach, beforeEach, expect, vi } from "vitest";
@@ -19,7 +20,7 @@ import type { SearchInput } from "./bindings/SearchInput";
 import type { TagLabel } from "./bindings/TagLabel";
 import { chooseValue } from "./test/select";
 
-// App 的测试共用的后端模拟、数据与操作步骤（从 App.test.tsx 拆出）。
+// App 的测试共用的后端模拟、数据与操作步骤。
 
 /** 浏览器里的双击：两次按下与单击，再一次 dblclick。双击按第一下的图判定（#179）。 */
 export function doubleClick(target: Element) {
@@ -118,7 +119,7 @@ export function resolved(input: SearchInput): ConditionTree {
         if (t.kind === "tag") {
           return { kind: "tag" as const, tag: tags[t.id], similar: similar([t.id], t.dismissed) };
         }
-        if (t.kind === "rating") return { kind: "rating" as const, rating: { ratings: t.ratings, name: t.ratings.join("、") } };
+        if (t.kind === "rating") return { kind: "rating" as const, rating: { ratings: t.ratings, r18: false } };
         const matched = Object.values(tags).filter((l) => l.name.includes(t.text));
         return {
           kind: "text" as const,
@@ -139,6 +140,8 @@ export type Call = { cmd: string; args: unknown };
 /** 设置中的“显示相近标签来源”。 */
 export let showApproxSource = false;
 export let keepSelectionOnSafeMode = false;
+/** 详情面板的开合。这些用例多在面板里操作，默认开着；要看关着时的行为用 `setInspectorOpen`。 */
+export let inspectorOpen = true;
 export let calls: Call[];
 /** 后端的安全模式开关。 */
 export let safeOn = true;
@@ -147,6 +150,7 @@ export let gone = new Set<string>();
 /** 测试文件不能给导入的绑定赋值：改共享状态走这几个函数。 */
 export const setShowApproxSource = (on: boolean) => { showApproxSource = on; };
 export const setKeepSelectionOnSafeMode = (on: boolean) => { keepSelectionOnSafeMode = on; };
+export const setInspectorOpen = (on: boolean) => { inspectorOpen = on; };
 export const setCalls = (next: Call[]) => { calls = next; };
 export const setSafeOn = (on: boolean) => { safeOn = on; };
 
@@ -197,7 +201,7 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
           return side;
         case "plugin:library|image": {
           const { imageId } = args as { imageId: string };
-          if (gone.has(imageId)) return Promise.reject("资料库中没有这张参考图");
+          if (gone.has(imageId)) return Promise.reject({ code: "unknownImage" });
           return detail(imageId, null);
         }
         case "plugin:library|edit": {
@@ -214,9 +218,9 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
         case "plugin:library|resolve_search":
           return resolved((args as { input: SearchInput }).input);
         case "tagging_status":
-          return { libraryId: (args as { libraryId: string }).libraryId, status: { state: "starting" } };
+          return { state: "starting" };
         case "shell_settings":
-          return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode };
+          return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorOpen };
         default:
           return null;
       }
@@ -227,6 +231,7 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
 
 /** Existing library-local approximation controls remain separate until global rules (T06) land. */
 export function LocalSearchFixture() {
+  const lang = useUiLang();
   const [input, setInput] = useState<SearchInput>({ conditions: [], exact: false });
   const [tree, setTree] = useState<ConditionTree | null>(null);
   const [safe, setSafe] = useState(safeOn);
@@ -250,9 +255,9 @@ export function LocalSearchFixture() {
   }, []);
   useEffect(() => {
     let alive = true;
-    resolveSearch(library.id, input, UI_LANG, safe).then((tree) => alive && setTree(tree), () => {});
+    resolveSearch(library.id, input, lang, safe).then((tree) => alive && setTree(tree), () => {});
     return () => { alive = false; };
-  }, [input, safe, generation]);
+  }, [input, safe, generation, lang]);
   return <>
     <button type="button" aria-label={`安全模式：${safe ? "开启" : "关闭"}`} aria-pressed={safe}
       onClick={() => { setSafe(!safe); void setSafeMode(!safe); }}>安全模式</button>
@@ -312,6 +317,7 @@ beforeEach(() => {
   window.__KINSHOKO_TEST_PICKS__ = [];
   showApproxSource = false;
   keepSelectionOnSafeMode = false;
+  inspectorOpen = true;
 });
 
 afterEach(async () => {

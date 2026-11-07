@@ -35,6 +35,7 @@ pub enum ApproxTableError {
     UnknownFormatVersion(u32),
 }
 
+// 不上界面：只在读随软件分发的内置表时经 expect 报出，属于开发错误
 impl fmt::Display for ApproxTableError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

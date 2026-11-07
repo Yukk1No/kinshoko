@@ -3,7 +3,6 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { emit } from "@tauri-apps/api/event";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { UpdateNotice, UpdateSection } from "./Update";
-import { ToastProvider } from "./ui/Toast";
 
 afterEach(() => {
   cleanup();
@@ -20,7 +19,7 @@ function backend(handle: (cmd: string) => unknown) {
 }
 
 describe("主窗口的更新通知", () => {
-  const notice = () => render(<ToastProvider><UpdateNotice /></ToastProvider>);
+  const notice = () => render(<><UpdateNotice /></>);
 
   it("还没检查过时检查一次，有新版本就在右下角通知，可以安装", async () => {
     const calls = backend((cmd) => {
@@ -39,7 +38,7 @@ describe("主窗口的更新通知", () => {
     expect(await screen.findByText("正在更新到 0.2.0")).toBeTruthy();
 
     await act(async () => { await emit("update-progress", { downloaded: 3 * 1024 * 1024, total: 12 * 1024 * 1024 }); });
-    expect(await screen.findByText("正在下载 3.0／12.0 MB")).toBeTruthy();
+    expect(await screen.findByText("正在下载 3 MB／12 MB")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "安装并重启" })).toBeNull();
   });
 
@@ -102,7 +101,7 @@ describe("主窗口的更新通知", () => {
 describe("设置中的更新方式", () => {
   it("手动更新构建说明安装包步骤，并且没有自动检查和安装按钮", async () => {
     const calls = backend((cmd) => cmd === "update_status" ? {
-      state: "manual", message: "当前使用安装包手动更新。",
+      state: "manual", message: { code: "updateManual" },
     } : null);
     render(<UpdateSection />);
 
@@ -117,7 +116,7 @@ describe("设置中的更新方式", () => {
 
 it("公开阶段未满足自动更新条件时显示原因且不提供操作", async () => {
   backend((cmd) => cmd === "update_status" ? {
-    state: "disabled", message: "未配置原仓库的公开更新入口，自动更新未启用。请使用新版安装包手动更新。",
+    state: "disabled", message: { code: "updateNoEndpoint" },
   } : null);
   render(<UpdateSection />);
   expect(await screen.findByText(/未配置原仓库的公开更新入口/)).toBeTruthy();

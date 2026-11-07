@@ -37,9 +37,9 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
     if (command === "plugin:library|current_library") return libraries[0].library;
     if (command === "plugin:library|registered_libraries") return libraries;
     if (command === "plugin:library|workspace_status") return initialReply ?? status(state.initialRevision);
-    if (command === "plugin:library|workspace_directories") return { status: status(state.wallRevision), providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
+    if (command === "plugin:library|workspace_directories") return { status: status(state.wallRevision), registrationOrder: [], providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
     if (command === "plugin:library|workspace_tag_groups" || command === "plugin:library|import_tasks") return [];
-    if (command === "tagging_status") return { libraryId: "A", status: { state: "starting" } };
+    if (command === "tagging_status") return { state: "starting" };
     if (command === "plugin:library|workspace_browse") {
       if (state.nextBrowse) { const next = state.nextBrowse; state.nextBrowse = null; return next(); }
       if (state.browseReply) return state.browseReply;
@@ -47,26 +47,19 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
         cards: state.available ? [{ id: state.contentId, libraryId: "A", imageId: state.imageId, width: 100, height: 100, adult: false,
           sources: [{ libraryId: "A", libraryName: "甲库", imageId: state.imageId, unavailable: null, matches: true, deleted: state.deleted },
             // 来源按钮只在两个及以上图库时出现（#221）：需要按钮的用例再挂一份离线来源。
-            ...(state.inTwoLibraries ? [{ libraryId: "B", libraryName: "乙库", imageId: "b", unavailable: "离线", matches: false, deleted: false }] : [])] }] : [],
+            ...(state.inTwoLibraries ? [{ libraryId: "B", libraryName: "乙库", imageId: "b", unavailable: { code: "system" as const, detail: "离线" }, matches: false, deleted: false }] : [])] }] : [],
         total: state.available ? 1 : 0, nextCursor: null, status: status(state.wallRevision),
       };
     }
-    if (command === "plugin:library|workspace_image") {
-      if (!state.available) return Promise.reject("资料库中没有这张参考图");
+    if (command === "plugin:library|image") {
+      if (!state.available) return Promise.reject({ code: "unknownImage" });
       return { id: (args as { imageId: string }).imageId, originalName: "参考图", width: 100, height: 100, collectedAt: 1000, sourceLinks: [],
         folders: [], note: { manual: null, sources: [] }, deletedAt: null, versions: { previous: null, newer: [] },
         rating: { imageId: "a", suggested: null, manual: null, effective: null } };
     }
-    if (command === "plugin:library|workspace_source_inspection") {
-      if (!state.available) return Promise.reject("此来源已封印");
-      return { detail: { id: state.imageId, originalName: "参考图", width: 100, height: 100, collectedAt: 1000, sourceLinks: [],
-        folders: [], note: { manual: "来源备注", sources: [] }, deletedAt: null, versions: { previous: null, newer: [] },
-        rating: { imageId: state.imageId, suggested: null, manual: null, effective: null } },
-        tags: { image: { tags: [], rejected: [] }, identities: [] }, sidebar: { all: 1, trash: 0, folders: [] } };
-    }
     if (command === "plugin:desktop|reference_groups") return [];
     if (command === "plugin:library|catalog_image_tags") return { image: { imageId: state.imageId, tags: [], rejected: [] }, identities: [] };
-    if (command === "plugin:library|workspace_sidebar" || command === "plugin:library|sidebar") return { all: state.available ? 1 : 0, trash: 0, folders: [] };
+    if (command === "plugin:library|workspace_sidebar") return { all: state.available ? 1 : 0, trash: 0, folders: [] };
     if (command === "shell_settings") return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid" };
     if (command === "app_info") return { productName: "Kinshoko", version: "1" };
     if (command === "plugin:library|workspace_edit_sources") return [];
@@ -146,7 +139,6 @@ it("后台已知副本分级使聚合图封印时，保留来源详情面板，�
   const inspector = screen.getByLabelText("详情", { selector: "aside" });
   // 详情面板没有缩略图（#179）。
   expect(within(inspector).queryByRole("img")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "整理此来源" }));
   await screen.findByRole("textbox", { name: "备注" });
   // Background tagging revokes the aggregate through the public provider snapshot; no manual onClear action.
   Object.assign(state, { initialRevision: "r3", wallRevision: "r3", available: false });
@@ -154,7 +146,7 @@ it("后台已知副本分级使聚合图封印时，保留来源详情面板，�
   await waitFor(() => expect(screen.getByRole("listbox", { name: "图片墙" }).dataset.total).toBe("0"));
   expect(screen.getByLabelText("详情", { selector: "aside" })).toBe(inspector);
   expect(within(inspector).queryByRole("img")).toBeNull();
-  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "此来源已封印");
+  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "图库中没有这张参考图");
 });
 
 it("首个修订通知先于初始状态和浏览响应到达时，图片墙重读当前修订", async () => {
@@ -235,4 +227,30 @@ it("查看器是否给“移到回收站”看正在看的这份来源，不看�
   fireEvent.contextMenu(viewer.querySelector<HTMLElement>(".viewer-stage")!, { clientX: 50, clientY: 50 });
   const menu = await screen.findByRole("menu", { name: "查看器菜单" });
   expect(within(menu).queryByRole("menuitem", { name: "移到回收站" })).toBeNull();
+});
+
+it("从真实的图片墙飞进查看器；返回时查看器留到落地，图片墙当场接回焦点（#449）", async () => {
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    if (!this.classList.contains("card")) return new DOMRect(0, 0, 1000, 800);
+    return new DOMRect(parseFloat(this.style.left), parseFloat(this.style.top), parseFloat(this.style.width), parseFloat(this.style.height));
+  });
+  workspace();
+  render(<App />);
+  const image = await screen.findByRole("img", { name: "参考图" });
+  const card = image.closest<HTMLElement>('[role="option"]')!;
+  doubleClick(card);
+  const viewer = await screen.findByRole("region", { name: "原图查看器" });
+  const flier = () => document.querySelector<HTMLElement>(".viewer-flier");
+  expect(viewer.dataset.flight).toBe("fly-in");
+  expect(flier()!.querySelector("img")!.getAttribute("src")).toBe(image.getAttribute("src"));
+  expect(card.dataset.flying).toBe("");
+  expect(document.querySelector<HTMLElement>(".app-body")!.dataset.viewerFlying).toBe("true");
+
+  fireEvent.click(within(viewer).getByRole("button", { name: "返回图片墙" }));
+  expect(screen.getByRole("region", { name: "原图查看器" }).dataset.flight).toBe("land");
+  expect(document.activeElement).toBe(card);
+  await waitFor(() => expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull(), { timeout: 4000 });
+  expect(card.dataset.flying).toBeUndefined();
+  expect(document.querySelector<HTMLElement>(".app-body")!.dataset.viewerFlying).toBeUndefined();
+  vi.restoreAllMocks();
 });

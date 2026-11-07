@@ -23,6 +23,8 @@
 
 Kinshoko is a reference library for illustrators: images are tagged as you save them, a search finds what you want to draw, and what you find pins next to your canvas.
 
+Kinshoko is built mainly by AI coding agents under the maintainer's direction; see [How Kinshoko is built](CONTRIBUTING.md#how-kinshoko-is-built).
+
 > [!NOTE]
 > Kinshoko runs on Windows 10/11 x64. The interface is in Simplified Chinese for now.
 

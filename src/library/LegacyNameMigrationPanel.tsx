@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { formatNumber } from "../i18n/format";
 import { Dialog } from "@base-ui/react/dialog";
 import { Sparkles, Tag, X } from "lucide-react";
 import type { LegacyNameGroup } from "../bindings/LegacyNameGroup";
 import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrationWorkspace";
 import type { LegacyNameMigrationPreview } from "../bindings/LegacyNameMigrationPreview";
 import type { LegacyNameResolution } from "../bindings/LegacyNameResolution";
-import { confirmLegacyNames, onLibraryEvent, onSafeModeSetting, planLegacyNames, previewLegacyNames } from "../ipc";
+import { describeCommandError } from "../ipc/commandError";
+import { confirmLegacyNames, onLibraryEvent, onSafeModeSetting, onWorkspaceChanged, planLegacyNames, previewLegacyNames } from "../ipc";
 import { languageName } from "../tags/languages";
+import { DialogHeight, DialogSwap } from "../ui/DialogHeight";
+import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
+import { usePersistentToast } from "../ui/Toast";
 
 
 /** 向导确认后通知各处的“旧名称待确认”提示重新读取。 */
@@ -32,6 +38,7 @@ const followsDefaultInBulk = (group: LegacyNameGroup, selected: Record<string, s
  * 全部选完后先由核心预览最终显示，确认后一次写入；取消或关闭会放弃本次草稿，不写入任何东西。
  */
 export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const { t } = useTranslation("legacyNames");
   const [view, setView] = useState<LegacyNameMigrationWorkspace | null>(null);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [page, setPage] = useState(0);
@@ -102,17 +109,17 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
 
   const options = group ? [
     // 选项名用 #78 规定的“跟随默认”与“保留为全局偏好”，具体名称紧跟其后。
-    { value: "default", title: group.defaultName ? `跟随默认「${group.defaultName}」` : "跟随默认",
-      desc: group.existingPreference ? `会撤回你的叫法「${group.existingPreference}」` : group.defaultName ? "以后跟着默认名更新" : "本语言还没有默认名，按其他语言显示" },
-    ...group.sources.map((source, index) => ({ value: `legacy:${index}`, title: `保留为全局偏好「${source.legacyName}」`,
-      desc: `保存为显示名，来自${libraryName(source.libraryId)}` })),
-    ...(group.existingPreference !== null ? [{ value: "preference", title: `保留为全局偏好「${group.existingPreference}」`, desc: "继续用你之前定的叫法" }] : []),
+    { value: "default", title: group.defaultName ? t("option.followDefaultNamed", { name: group.defaultName }) : t("option.followDefault"),
+      desc: group.existingPreference ? t("option.withdrawsPreference", { name: group.existingPreference }) : group.defaultName ? t("option.followsUpdates") : t("option.noDefault") },
+    ...group.sources.map((source, index) => ({ value: `legacy:${index}`, title: t("option.keepAsPreference", { name: source.legacyName }),
+      desc: t("option.savedFrom", { library: libraryName(source.libraryId) }) })),
+    ...(group.existingPreference !== null ? [{ value: "preference", title: t("option.keepAsPreference", { name: group.existingPreference }), desc: t("option.keepPrevious") }] : []),
   ] : [];
   const shown = group ? group.defaultName ?? group.sources[0]?.legacyName ?? group.catalogId : "";
   // 预览表的标签列写标签名（默认名，没有时用旧名），不写内部编号。
   const tagLabel = (catalogId: string) => {
     const entry = groups.find((candidate) => candidate.catalogId === catalogId);
-    return entry?.defaultName ?? entry?.sources[0]?.legacyName ?? "未命名标签";
+    return entry?.defaultName ?? entry?.sources[0]?.legacyName ?? t("unnamed");
   };
   const outcomes = validPreview ? preview!.outcomes : [];
 
@@ -120,68 +127,72 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
     <Dialog.Portal>
       <Dialog.Backdrop className="k-backdrop" />
       <Dialog.Popup className="k-dialog k-wizard legacy-name-migration">
-        <Dialog.Close className="k-icon-btn k-dialog-x" aria-label="关闭"><X size={16} aria-hidden="true" /></Dialog.Close>
-        <Dialog.Title className="k-dialog-title">确认旧名称</Dialog.Title>
-        <Dialog.Description className="k-dialog-desc">较早的图库里有不同叫法，选一个就好。</Dialog.Description>
-        {busy && <p className="k-set-note" role="status">正在读取或保存旧名称…</p>}
+        <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("close")}><X size={16} aria-hidden="true" /></Dialog.Close>
+        <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+        <Dialog.Description className="k-dialog-desc">{t("lead")}</Dialog.Description>
+        <DialogHeight>
+        {busy && <p className="k-set-note" role="status">{t("busy")}</p>}
         {error && <p className="k-set-error" role="alert">{error}</p>}
-        {view?.libraries.filter((entry) => entry.unavailable).map((entry) => <p key={entry.library.id} className="k-set-note" role="status">{entry.library.name}：{entry.unavailable}。重新连接后再确认它的旧名称。</p>)}
-        {saved && <p role="status">旧名称已确认。</p>}
-        {view && groups.length === 0 && <p className="k-set-note">没有待确认的旧名称了。</p>}
+        {view?.libraries.filter((entry) => entry.unavailable).map((entry) => <p key={entry.library.id} className="k-set-note" role="status">{t("libraryOffline", { library: entry.library.name, reason: describeCommandError(entry.unavailable!) })}</p>)}
+        {saved && <p role="status">{t("saved")}</p>}
+        {view && groups.length === 0 && <p className="k-set-note">{t("none")}</p>}
         {groups.length > 0 && <>
           <div className="k-steps-row">
             <div className="k-steps" aria-hidden="true">{groups.length <= 12
               ? groups.map((entry, index) => <i key={key(entry)} className={index === page ? "is-current" : selected[key(entry)] ? "is-done" : ""} />)
               : <i className="is-done" style={{ flex: "none", width: `${(chosen / groups.length) * 100}%` }} />}</div>
-            <span className="k-steps-count tabular">{reviewing ? "确认" : `${page + 1} / ${groups.length}`}</span>
+            <span className="k-steps-count tabular">{reviewing ? t("reviewStep") : t("step", { current: page + 1, total: groups.length })}</span>
           </div>
-          <p className="k-set-note" role="status">已选 {chosen} / {groups.length}</p>
+          <p className="k-set-note" role="status">{t("chosen", { chosen, total: groups.length })}</p>
         </>}
+        {(group || reviewing) && <DialogSwap step={reviewing ? groups.length : page}>
         {group && <>
           <div className="k-big-tag">
             <span className="k-big-tag-icon" aria-hidden="true"><Tag size={18} /></span>
             <div><div className="k-big-tag-name">{shown}</div>
-              <div className="k-list-desc">用在 {group.affectedLibraries.length} 个图库：{group.affectedLibraries.map(libraryName).join("、")}</div></div>
+              <div className="k-list-desc">{t("usedIn", { count: group.affectedLibraries.length, libraries: group.affectedLibraries.map(libraryName).join(t("librarySeparator")) })}</div></div>
           </div>
-          {differentOldNames(group) && <p className="k-list-desc is-warn">这几个图库叫法不同，请选一个。</p>}
+          {differentOldNames(group) && <p className="k-list-desc is-warn">{t("differentNames")}</p>}
           {group.existingPreference !== null && group.sources.some((source) => source.legacyName !== group.existingPreference) &&
-            <p className="k-list-desc is-warn">和你之前定的「{group.existingPreference}」不同，确认前看看结果。</p>}
-          <div className="k-radio-cards" role="radiogroup" aria-label="名称归属">
+            <p className="k-list-desc is-warn">{t("differsFromPreference", { name: group.existingPreference })}</p>}
+          <div className="k-radio-cards" role="radiogroup" aria-label={t("choiceLabel")}>
             {options.map((option) => <label key={option.value} className={`k-radio-card${value === option.value ? " is-on" : ""}`}>
               <input type="radio" name={`legacy-${key(group)}`} value={option.value} checked={value === option.value} disabled={busy}
                 onChange={() => setSelected({ ...selected, [key(group)]: option.value })} />
               <span><span className="k-radio-title">{option.title}</span><span className="k-radio-desc">{option.desc}</span></span>
             </label>)}
           </div>
-          <p className="k-set-note">另一个名字会留作别名，照样能搜到。其他语言的叫法不受影响。</p>
+          <p className="k-set-note">{t("aliasNote")}</p>
         </>}
         {reviewing && <>
-          {previewBusy && <p role="status">正在核对最终显示…</p>}
+          {previewBusy && <p role="status">{t("checking")}</p>}
           {validPreview && <>
-            <table className="k-preview-table" aria-label="迁移后最终显示">
-              <thead><tr><th>标签</th><th>最终显示</th><th>改过的显示名</th></tr></thead>
+            <table className="k-preview-table" aria-label={t("preview.label")}>
+              <thead><tr><th>{t("preview.tag")}</th><th>{t("preview.display")}</th><th>{t("preview.preference")}</th></tr></thead>
               <tbody>{outcomes.slice(previewPage * PREVIEW_PAGE, (previewPage + 1) * PREVIEW_PAGE).map((outcome) => <tr key={`${outcome.catalogId}/${outcome.lang}`}>
-                <td>{tagLabel(outcome.catalogId)}（{languageName(outcome.lang)}）</td><td>{outcome.displayName}</td><td>{outcome.preferenceName ?? "无，跟随默认"}</td></tr>)}</tbody>
+                <td>{t("preview.tagInLanguage", { tag: tagLabel(outcome.catalogId), language: languageName(outcome.lang) })}</td><td>{outcome.displayName}</td><td>{outcome.preferenceName ?? t("preview.noPreference")}</td></tr>)}</tbody>
             </table>
             {outcomes.length > PREVIEW_PAGE && <div className="k-dialog-foot is-tight">
-              <span className="k-set-note">{previewPage * PREVIEW_PAGE + 1}–{Math.min((previewPage + 1) * PREVIEW_PAGE, outcomes.length)} / {outcomes.length}</span>
+              <span className="k-set-note">{formatNumber(previewPage * PREVIEW_PAGE + 1)}–{formatNumber(Math.min((previewPage + 1) * PREVIEW_PAGE, outcomes.length))} / {formatNumber(outcomes.length)}</span>
               <span className="k-grow" />
-              <button type="button" className="k-btn is-sm" disabled={previewPage === 0} onClick={() => setPreviewPage(previewPage - 1)}><span className="k-label">上一页</span></button>
-              <button type="button" className="k-btn is-sm" disabled={(previewPage + 1) * PREVIEW_PAGE >= outcomes.length} onClick={() => setPreviewPage(previewPage + 1)}><span className="k-label">下一页</span></button>
+              <button type="button" className="k-btn is-sm" disabled={previewPage === 0} onClick={() => setPreviewPage(previewPage - 1)}><span className="k-label">{t("preview.previousPage")}</span></button>
+              <button type="button" className="k-btn is-sm" disabled={(previewPage + 1) * PREVIEW_PAGE >= outcomes.length} onClick={() => setPreviewPage(previewPage + 1)}><span className="k-label">{t("preview.nextPage")}</span></button>
             </div>}
           </>}
         </>}
+        </DialogSwap>}
+        </DialogHeight>
         <div className="k-dialog-foot">
-          {groups.length > 0 && !reviewing && !saved && <button type="button" className="k-btn is-ghost is-flush" disabled={busy || bulk.length === 0} onClick={bulkFollow}><span className="k-label">剩下的都用默认（{bulk.length}）</span></button>}
+          {groups.length > 0 && !reviewing && !saved && <button type="button" className="k-btn is-ghost is-flush" disabled={busy || bulk.length === 0} onClick={bulkFollow}><span className="k-label">{t("bulk", { count: bulk.length })}</span></button>}
           <span className="k-grow" />
           {groups.length === 0 || saved
-            ? <Dialog.Close className="k-btn is-primary"><span className="k-label">完成</span></Dialog.Close>
+            ? <Dialog.Close className="k-btn is-primary"><span className="k-label">{t("done")}</span></Dialog.Close>
             : <>
-              <Dialog.Close className="k-btn" disabled={busy}><span className="k-label">取消</span></Dialog.Close>
-              <button type="button" className="k-btn" disabled={busy || page === 0} onClick={() => setPage(page - 1)}><span className="k-label">上一个</span></button>
+              <Dialog.Close className="k-btn" disabled={busy}><span className="k-label">{t("cancel")}</span></Dialog.Close>
+              <button type="button" className="k-btn" disabled={busy || page === 0} onClick={() => setPage(page - 1)}><span className="k-label">{t("previous")}</span></button>
               {reviewing
-                ? <button type="button" className="k-btn is-primary" disabled={busy || !validPreview} onClick={() => { if (view && validPreview) void run(() => confirmLegacyNames(view.plan.revision, decisions), true); }}><span className="k-label">确认名称</span></button>
-                : <button type="button" className="k-btn is-primary" disabled={busy} onClick={forward}><span className="k-label">下一个</span></button>}
+                ? <button type="button" className="k-btn is-primary" disabled={busy || !validPreview} onClick={() => { if (view && validPreview) void run(() => confirmLegacyNames(view.plan.revision, decisions), true); }}><span className="k-label">{t("confirm")}</span></button>
+                : <button type="button" className="k-btn is-primary" disabled={busy} onClick={forward}><span className="k-label">{t("next")}</span></button>}
             </>}
         </div>
       </Dialog.Popup>
@@ -199,6 +210,7 @@ const REREAD_DELAY_MS = 200;
  */
 function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps: unknown[]) {
   const [count, setCount] = useState(0);
+  const [settled, setSettled] = useState(false);
   const matcher = useRef(match);
   matcher.current = match;
   useEffect(() => {
@@ -207,7 +219,7 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
     let running = false;
     let stale = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    setCount(0);
+    setCount(0); setSettled(false);
     const start = () => {
       timer = undefined;
       if (!alive) return;
@@ -218,6 +230,7 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
         if (alive && request === generation) setCount(view?.plan.groups.filter((group) => matcher.current(group)).length ?? 0);
       }).catch(() => {}).finally(() => {
         running = false;
+        if (alive && request === generation) setSettled(true);
         if (alive && stale) schedule();
       });
     };
@@ -225,32 +238,51 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
     const read = () => { stale = true; schedule(); };
     start();
     const unlisten = onLibraryEvent((event) => { if (event.kind === "vocabularyChanged" || event.kind === "taskFinished") read(); });
-    const safeStop = onSafeModeSetting(() => { generation++; setCount(0); });
+    const safeStop = onSafeModeSetting(() => { generation++; setCount(0); setSettled(false); read(); });
+    // 待确认的旧名称合计所有图库：登记或可用状态变了就重读；只是修订前进（每次写入都有）不读。
+    let registrations: string | null = null;
+    const workspaceStop = onWorkspaceChanged((status) => {
+      const next = status.libraries.map((entry) => `${entry.library.id}:${entry.unavailable ? 0 : 1}`).sort().join("|");
+      if (next === registrations) return;
+      registrations = next;
+      read();
+    });
     window.addEventListener(CHANGED, read);
     return () => {
       alive = false; generation++;
       clearTimeout(timer);
       window.removeEventListener(CHANGED, read);
       void unlisten.then((stop) => stop()).catch(() => {}); void safeStop.then((stop) => stop()).catch(() => {});
+      void workspaceStop.then((stop) => stop()).catch(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
-  return count;
+  return { count, settled };
 }
 
-/** 打开带旧名称的图库时的横幅：保留原显示，提供“逐个确认”。 */
-export function LegacyNameMigrationNotice({ libraryId, safe, onOpen }: { libraryId: string; safe: boolean; onOpen: () => void }) {
-  const pending = usePendingLegacyNames((group) => group.sources.some((source) => source.libraryId === libraryId), [libraryId, safe]);
-  return pending > 0 ? <p className="legacy-name-notice k-notice" role="status"><Sparkles size={14} aria-hidden="true" />
-    <span className="k-grow"><b>旧名称待确认</b>　这个图库里有 {pending} 个较早的叫法</span>
-    <button type="button" className="k-btn is-sm" onClick={onOpen}><span className="k-label">逐个确认</span></button></p> : null;
+/**
+ * 主窗口的旧名称通知（#433）：关掉后只有待确认数量超过关掉时的数量才再弹，所以切换安全模式不会打扰。
+ * 重读期间沿用上次的数量，切换安全模式时通知不闪。
+ */
+export function LegacyNameMigrationNotice({ safe, enabled, hidden, onOpen }: { safe: boolean; enabled: boolean; hidden: boolean; onOpen: () => void }) {
+  const { t } = useTranslation("legacyNames", { keyPrefix: "notice" });
+  const { count, settled } = usePendingLegacyNames(() => true, [safe]);
+  const pending = useRef(0);
+  if (settled) pending.current = count;
+  usePersistentToast(enabled && pending.current > 0
+    ? { title: t("title", { count: pending.current }), action: { label: t("open"), onClick: onOpen } }
+    : null, { hidden, level: pending.current });
+  return null;
 }
 
-/** 设置 › 标签 › 显示名底部的提示条。 */
-export function LegacyNameBanner({ onOpen }: { onOpen?: () => void }) {
-  const pending = usePendingLegacyNames(() => true, []);
+/** 设置 › 标签 › 显示名底部：通知关掉后从这里进向导。 */
+export function LegacyNameEntry({ onOpen }: { onOpen?: () => void }) {
+  const { t } = useTranslation("legacyNames");
+  const { count: pending } = usePendingLegacyNames(() => true, []);
   if (pending === 0 || !onOpen) return null;
-  return <div className="k-notice legacy-name-banner" role="status"><Sparkles size={15} aria-hidden="true" />
-    <span className="k-grow"><b>{pending} 个旧名称待确认</b>　来自较早的图库</span>
-    <button type="button" className="k-btn is-sm" onClick={onOpen}><span className="k-label">逐个确认</span></button></div>;
+  return <SettingsGroup label={t("entry.title")}>
+    <SettingsRow icon={<Sparkles size={16} />} title={t("entry.title")} hint={t("entry.hint")} warn={<span role="status">{t("notice.title", { count: pending })}</span>}>
+      <button type="button" className="k-btn is-sm" onClick={onOpen}><span className="k-label">{t("notice.open")}</span></button>
+    </SettingsRow>
+  </SettingsGroup>;
 }

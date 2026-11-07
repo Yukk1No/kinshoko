@@ -1,4 +1,4 @@
-//! 工作区快照：各提供方的清单、标签计数与安全索引，提供方与标签目录的修订号不变时复用（从 workspace.rs 原样搬出）。
+//! 工作区快照：各提供方的清单、标签计数与安全索引，提供方与标签目录的修订号不变时复用。
 use super::*;
 
 impl Workspace {
@@ -26,7 +26,9 @@ impl Workspace {
         let scope = device.safe_mode_scope();
         for registration in device.libraries() {
             let result = self.gate.reader(registration, scope).and_then(|library| {
-                let revisions = library.provider_revision().map_err(|e| e.to_string())?;
+                let revisions = library
+                    .provider_revision()
+                    .map_err(crate::CommandError::from)?;
                 Ok((library, revisions))
             });
             match result {

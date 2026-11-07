@@ -149,7 +149,7 @@ fn snapshot(conn: &Connection, image_id: &str) -> Result<ImageSnapshot, Error> {
             .optional()?
             .map(|json| {
                 serde_json::from_str::<crate::portable_tags::PortableTagDefinition>(&json)
-                    .map_err(|e| Error::TagDefinitions(e.to_string()))
+                    .map_err(Error::tag_definitions)
             })
             .transpose()?;
         let mut snapshot_tag = SnapshotTag {

@@ -1,4 +1,4 @@
-//! 整理信息摘要：恢复后核对整理结果与快照一致（从 backup.rs 原样搬出）。
+//! 整理信息摘要：恢复后核对整理结果与快照一致。
 
 use super::*;
 
@@ -44,6 +44,7 @@ pub(super) fn curation(
     };
     let mut out = Vec::new();
     for (table, cols) in specs {
+        // 不上界面：清单里哈希的占位，只拿来与快照比对；改了会让旧快照里缺表的比对不再一致
         out.push(digest(conn, &table, &cols).unwrap_or_else(|_| TableDigest {
             table: table.clone(),
             columns: cols.clone(),

@@ -315,7 +315,10 @@ fn export_is_refused_when_a_member_original_is_unavailable() {
     match result {
         Err(GroupError::MembersUnavailable(members)) => {
             assert_eq!(members.len(), 1, "{members:?}");
-            assert!(members[0].contains(&studio.group.members[3].id));
+            assert_eq!(
+                members[0].member.as_deref(),
+                Some(studio.group.members[3].id.as_str())
+            );
         }
         other => panic!("{other:?}"),
     }
@@ -360,9 +363,10 @@ fn package_import_uses_the_bound_destination_for_every_member_original() {
     assert_eq!(image_count(&other.library), 3);
 }
 
-/// Package snapshots and cross-library copy both merge suggested ratings into existing content.
+/// Package snapshots merge suggested ratings into existing content.
 /// The app's final clipboard commit uses the same gate as this real destination library.
-fn assert_rating_publication_waits_for_final_commit(copy: bool) {
+#[test]
+fn package_rating_publication_waits_for_the_final_visibility_commit() {
     use std::sync::{Arc, Barrier, Mutex, mpsc};
     use std::time::Duration;
 
@@ -392,18 +396,13 @@ fn assert_rating_publication_waits_for_final_commit(copy: bool) {
     let (finished_while_held, rating_while_held) = std::thread::scope(|scope| {
         let worker_ready = ready.clone();
         let target = &other;
-        let source = &studio.a;
         let package = &package;
         let worker = scope.spawn(move || {
             worker_ready.wait();
-            if copy {
-                target.library.copy_from(source, source_id).unwrap();
-            } else {
-                target
-                    .groups
-                    .import_package(package, &target.library)
-                    .unwrap();
-            }
+            target
+                .groups
+                .import_package(package, &target.library)
+                .unwrap();
             let _ = done_tx.send(());
         });
         ready.wait();
@@ -425,16 +424,6 @@ fn assert_rating_publication_waits_for_final_commit(copy: bool) {
         rating_while_held, None,
         "existing content became sealed during another authorized final commit"
     );
-}
-
-#[test]
-fn package_rating_publication_waits_for_the_final_visibility_commit() {
-    assert_rating_publication_waits_for_final_commit(false);
-}
-
-#[test]
-fn copied_rating_publication_waits_for_the_final_visibility_commit() {
-    assert_rating_publication_waits_for_final_commit(true);
 }
 
 #[test]

@@ -92,7 +92,7 @@ fn shape(tree: &ConditionTree) -> Vec<(bool, Vec<String>)> {
                         let ids: Vec<&str> = tags.iter().map(|t| t.id.as_str()).collect();
                         format!("text:{text}[{}]", ids.join(","))
                     }
-                    Term::Rating { rating } => format!("rating:{}", rating.name),
+                    Term::Rating { rating } => format!("rating:{:?}", rating.ratings),
                 })
                 .collect();
             (*negate, terms)

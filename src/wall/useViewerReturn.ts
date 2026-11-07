@@ -1,4 +1,4 @@
-// 离开查看器后接回图片墙上最后查看的那张（#179），从 Wall.tsx 原样搬出。
+// 离开查看器后接回图片墙上最后查看的那张（#179）。
 import { useLayoutEffect, useRef } from "react";
 import type { MutableRefObject } from "react";
 import type { masonry } from "./layout";

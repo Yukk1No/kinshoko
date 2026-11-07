@@ -2,7 +2,7 @@ import { thumbnailTier } from "./wall/thumbnailTier";
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { App } from "./App";
-import { library, page, tags, showApproxSource, keepSelectionOnSafeMode, calls, setCalls, clean, backend, sent, importAction, expandLibrary } from "./App.fixtures";
+import { library, page, tags, showApproxSource, keepSelectionOnSafeMode, calls, setCalls, clean, backend, sent, importAction, expandLibrary, setInspectorOpen } from "./App.fixtures";
 
 describe("主窗口", () => {
   it("查找头部显示真实结果数，图片大小滑块改变布局，导入操作按需展开", async () => {
@@ -60,13 +60,12 @@ describe("主窗口", () => {
     expect(island.closest("main")).toBe(screen.getByRole("listbox", { name: "图片墙" }).closest("main"));
   });
 
-  it("尚未打开资料库时仍能从图标轨打开截图历史与钉剪贴板入口", async () => {
+  it("尚未打开资料库时仍能从图标轨打开截图", async () => {
     backend(null);
     render(<App />);
     await screen.findByRole("button", { name: "新建图库" });
-    fireEvent.click(screen.getByRole("button", { name: "截图历史" }));
-    expect(await screen.findByRole("region", { name: "截图历史" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^钉住剪贴板/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "截图" }));
+    expect(await screen.findByRole("region", { name: "截图" })).toBeTruthy();
   });
 
   it("查找区域的标签分组展开后可以添加、取消条件，并保留文件夹范围", async () => {
@@ -78,15 +77,15 @@ describe("主窗口", () => {
     fireEvent.click(await screen.findByRole("button", { name: "人物（1 张）" }));
     const bar = await screen.findByRole("toolbar", { name: "标签分组" });
     fireEvent.click(within(bar).getByRole("button", { name: "发色" }));
-    fireEvent.click(within(bar).getByRole("button", { name: /蓝发/ }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: /发色/ })).getByRole("button", { name: /蓝发/ }));
     expect(await screen.findByRole("list", { name: "查找条件" })).toBeTruthy();
     await waitFor(() => expect(screen.getByRole("list", { name: "查找条件" }).textContent).toContain("蓝发"));
     expect(screen.getByRole("button", { name: "人物（1 张）" }).getAttribute("aria-current")).toBe("page");
-    fireEvent.click(within(bar).getByRole("button", { name: /蓝发/ }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: /发色/ })).getByRole("button", { name: /蓝发/ }));
     await waitFor(() => expect(screen.getByRole("list", { name: "查找条件" }).textContent).toBe(""));
   });
 
-  it("收起侧栏过程中按每次可用宽度连续重排，并保持阅读偏移", async () => {
+  it("侧栏开合时图片墙一开始就按终点宽度排好，过渡中与结束时不再重排，并保持阅读偏移", async () => {
     let available = 1000;
     const observers = new Set<() => void>();
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => available });
@@ -96,23 +95,72 @@ describe("主窗口", () => {
       observe() {}
       disconnect() { observers.delete(this.callback); }
     });
+    // 详情面板按新装的默认关着：这里只看侧栏。
+    setInspectorOpen(false);
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
     const wall = screen.getByRole("listbox", { name: "图片墙" });
     const card = document.querySelector<HTMLElement>('[data-id="a"]')!;
+    const sidebar = document.querySelector<HTMLElement>(".sidebar-slot")!;
+    // 收起前侧栏宽 256：墙最终会宽 256。
+    vi.spyOn(sidebar, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 256, 800));
     wall.scrollTop = 60;
     fireEvent.scroll(wall);
     const offset = parseFloat(card.style.top) - wall.scrollTop;
     const initial = parseFloat(card.style.width);
+    const resize = (next: number) => { available = next; act(() => observers.forEach((notify) => notify())); };
     fireEvent.click(screen.getByRole("button", { name: "收起侧栏" }));
-    available = 1100;
-    act(() => observers.forEach((resize) => resize()));
-    expect(parseFloat(card.style.width)).toBeGreaterThan(initial);
+    act(() => { sidebar.dispatchEvent(new TransitionEvent("transitionrun", { propertyName: "width" })); });
+    const settled = parseFloat(card.style.width);
+    expect(settled).toBeGreaterThan(initial);
     expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
-    available = 1248;
-    act(() => observers.forEach((resize) => resize()));
-    expect(parseFloat(card.style.width)).toBeCloseTo(238.4);
+    for (const next of [1040, 1100, 1180, 1256]) resize(next);
+    expect(parseFloat(card.style.width)).toBe(settled);
+    act(() => { sidebar.dispatchEvent(new TransitionEvent("transitionend", { propertyName: "width" })); });
+    expect(parseFloat(card.style.width)).toBe(settled);
+    expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
+  });
+
+  it("详情面板开合时图片墙一开始就按终点宽度排好，过渡中与结束时不再重排，并保持阅读偏移（#450）", async () => {
+    let available = 1000;
+    const observers = new Set<() => void>();
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => available });
+    vi.stubGlobal("ResizeObserver", class {
+      callback: () => void;
+      constructor(callback: () => void) { this.callback = callback; observers.add(callback); }
+      observe() {}
+      disconnect() { observers.delete(this.callback); }
+    });
+    vi.stubGlobal("innerWidth", 1600);
+    setInspectorOpen(false);
+    backend(library);
+    render(<App />);
+    await screen.findAllByRole("img");
+    const wall = screen.getByRole("listbox", { name: "图片墙" });
+    const card = document.querySelector<HTMLElement>('[data-id="a"]')!;
+    const inspector = document.querySelector<HTMLElement>(".inspector")!;
+    const sidebar = document.querySelector<HTMLElement>(".sidebar-slot")!;
+    // 现在详情 0、侧栏 256：详情打开后墙窄 320。
+    vi.spyOn(inspector, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 0, 800));
+    vi.spyOn(sidebar, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 256, 800));
+    wall.scrollTop = 60;
+    fireEvent.scroll(wall);
+    const offset = parseFloat(card.style.top) - wall.scrollTop;
+    const initial = parseFloat(card.style.width);
+    const resize = (next: number) => { available = next; act(() => observers.forEach((notify) => notify())); };
+    fireEvent.click(screen.getByRole("button", { name: "显示详情" }));
+    await waitFor(() => expect(inspector.getAttribute("data-collapsed")).toBe("false"));
+    // 过渡开始之前，墙还是原来的布局。
+    expect(parseFloat(card.style.width)).toBe(initial);
+    act(() => { inspector.dispatchEvent(new TransitionEvent("transitionrun", { propertyName: "width" })); });
+    const settled = parseFloat(card.style.width);
+    expect(settled).toBeLessThan(initial);
+    expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
+    for (const next of [960, 880, 760, 680]) resize(next);
+    expect(parseFloat(card.style.width)).toBe(settled);
+    act(() => { inspector.dispatchEvent(new TransitionEvent("transitionend", { propertyName: "width" })); });
+    expect(parseFloat(card.style.width)).toBe(settled);
     expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
   });
 
@@ -154,8 +202,8 @@ describe("主窗口", () => {
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1544 });
     let saved: number | undefined;
     backend(library, clean, (cmd, args) => {
-      if (cmd === "set_inspector_width") { saved = (args as { width: number }).width; return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved }; }
-      if (cmd === "shell_settings") return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved };
+      if (cmd === "set_inspector_width") { saved = (args as { width: number }).width; return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved, inspectorOpen: true }; }
+      if (cmd === "shell_settings") return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved, inspectorOpen: true };
       return undefined;
     });
     const first = render(<App />);
@@ -176,7 +224,7 @@ describe("主窗口", () => {
     expect(document.documentElement.style.getPropertyValue("--inspector-width")).toBe("450px");
   });
 
-  it("图标轨切换上下文侧栏时保留查找和图片墙，重复点按收起侧栏", async () => {
+  it("图标轨切换上下文侧栏时保留查找和图片墙，点当前图标收起侧栏，收起后点别的图标或按 Ctrl+数字展开", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
@@ -189,7 +237,15 @@ describe("主窗口", () => {
     expect(screen.getByRole("combobox", { name: "查找参考图" })).toBeTruthy();
     fireEvent.click(groups);
     expect(groups.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.click(within(nav).getByRole("button", { name: "图片与文件夹" }));
+    const browse = within(nav).getByRole("button", { name: "图片与文件夹" });
+    fireEvent.click(browse);
+    expect(browse.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("complementary", { name: "文件夹" })).toBeTruthy();
+    fireEvent.click(browse);
+    expect(browse.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.keyDown(window, { key: "2", ctrlKey: true });
+    expect(groups.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(browse);
     expect(screen.getByRole("complementary", { name: "文件夹" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "工作参考 的操作" })).toBeTruthy();
   });

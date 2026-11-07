@@ -1,4 +1,3 @@
-import type { SaveDestination } from "../bindings/SaveDestination";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
@@ -11,7 +10,8 @@ import type { WorkspacePage } from "../bindings/WorkspacePage";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import type { CatalogNameEdit } from "../bindings/CatalogNameEdit";
-import { Channel, invoke } from "@tauri-apps/api/core";
+import { Channel } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { CatalogCorrection } from "../bindings/CatalogCorrection";
 import type { CatalogImageTags } from "../bindings/CatalogImageTags";
@@ -21,11 +21,9 @@ import type { ConditionTree } from "../bindings/ConditionTree";
 import type { SearchInput } from "../bindings/SearchInput";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageEdit } from "../bindings/ImageEdit";
-import type { PermanentDeletePreview } from "../bindings/PermanentDeletePreview";
 import type { ReferenceGroup } from "../bindings/ReferenceGroup";
 import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { Sidebar } from "../bindings/Sidebar";
-import type { TagEdit } from "../bindings/TagEdit";
 import type { TagNamespace } from "../bindings/TagNamespace";
 import type { TagGroupView } from "../bindings/TagGroupView";
 import { lib, desk } from "./plugins";
@@ -60,8 +58,9 @@ export function workspaceResolve(input: SearchInput, lang: string, safeMode: boo
 export function workspaceCandidates(text: string, lang: string, limit: number, safeMode: boolean): Promise<Candidate[]> {
   return invoke<Candidate[]>(lib("workspace_candidates"), { text, lang, limit, safeMode });
 }
+/** 单图详情的读取：详情、标签（上面的 catalogImageTags）与文件夹都按资料库与图寻址，封印由后端复核（#424）。 */
 export function workspaceImage(libraryId: string, imageId: string): Promise<ImageDetail> {
-  return invoke<ImageDetail>(lib("workspace_image"), { libraryId, imageId });
+  return invoke<ImageDetail>(lib("image"), { libraryId, imageId });
 }
 /** 一张图的卡片，与图片墙同样构成（id 是字节身份、带全部来源）；不经图片墙打开的入口用。 */
 export function workspaceCard(libraryId: string, imageId: string, safeMode: boolean): Promise<WorkspaceCard> {
@@ -86,33 +85,19 @@ export function editTagName(catalogId: string, edit: CatalogNameEdit): Promise<T
 
 
 // Explicit aggregate-source actions keep browsing and the current library independent.
-export function workspaceSourceInspection(target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, lang: string): Promise<import("../bindings/WorkspaceSourceInspection").WorkspaceSourceInspection> {
-  return invoke(lib("workspace_source_inspection"), { target, safeMode, lang });
-}
-export function workspaceEditSource(target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, edits: ImageEdit[]): Promise<void> {
-  return invoke(lib("workspace_edit_source"), { target, safeMode, edits });
-}
 /** 跨图库的多份来源一次整理（#290）：后端按图库分组，每个图库只切一次可写句柄；返回没完成的图库与原因。 */
 export function workspaceEditSources(targets: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget[], safeMode: boolean, edits: ImageEdit[]): Promise<import("../bindings/LibraryBatchFailure").LibraryBatchFailure[]> {
   return invoke(lib("workspace_edit_sources"), { targets, safeMode, edits });
 }
-export function workspaceEditSourceTags(target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, edits: TagEdit[]): Promise<void> {
-  return invoke(lib("workspace_edit_source_tags"), { target, safeMode, edits });
-}
-export function workspaceSourceCandidates(target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, text: string, lang: string, safeMode: boolean): Promise<Candidate[]> {
-  return invoke(lib("workspace_source_candidates"), { target, text, lang, safeMode });
-}
 
+/** 给 `libraryId` 里的图挑标签的候选：标签 id 是这个资料库的，封印按全部来源算（#425）。 */
+export function workspaceLibraryCandidates(libraryId: string, text: string, lang: string, limit: number, safeMode: boolean): Promise<Candidate[]> {
+  return invoke(lib("workspace_library_candidates"), { libraryId, text, lang, limit, safeMode });
+}
 export function workspaceSourceGroup(target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, choice: { groupId: string; name?: never } | { name: string; groupId?: never }): Promise<ReferenceGroup> {
   return invoke(lib("workspace_source_group"), { target, safeMode, groupId: choice.groupId ?? null, name: choice.name ?? null });
 }
 
-export function workspacePreviewSourceDelete(target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean): Promise<PermanentDeletePreview> {
-  return invoke(lib("workspace_preview_source_delete"), { target, safeMode });
-}
-export function workspacePermanentSourceDelete(target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget, safeMode: boolean, token: string): Promise<void> {
-  return invoke(lib("workspace_permanent_source_delete"), { target, safeMode, token });
-}
 
 export function workspaceDirectories(safeMode: boolean): Promise<WorkspaceDirectories> {
   return invoke<WorkspaceDirectories>(lib("workspace_directories"), { safeMode });
@@ -135,7 +120,6 @@ export function dismissImport(libraryId:string,taskId:string): Promise<void> { r
 
 export function takeCollectionRequest(): Promise<string|null> { return invoke<string|null>(desk("take_collection_request")); }
 export function onCollectionRequest(handler:()=>void): Promise<UnlistenFn> { return listen("capture-collection-request",handler); }
-export function workspaceCopySource(target:import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget,destination:SaveDestination,safeMode:boolean): Promise<string> { return invoke<string>(lib("workspace_copy_source"),{target,destination,safeMode}); }
 /** Application groups are independent of the active provider; counts use all-source safety. */
 export function sharedTagGroups(lang: string, safeMode: boolean): Promise<CatalogGroupView[]> {
   return invoke<CatalogGroupView[]>(lib("shared_tag_groups"), { lang, safeMode });
@@ -197,4 +181,5 @@ export function restoreApplicationSettings(path: string, fingerprint: string): P
 export function setViewerBackground(background: import("../bindings/ViewerBackground").ViewerBackground): Promise<ShellSettingsView> { return invoke("set_viewer_background", { background }); }
 /** 保存主窗口详情面板的宽度（#157）；后端把它收进 280–560。 */
 export function setInspectorWidth(width: number): Promise<ShellSettingsView> { return invoke("set_inspector_width", { width }); }
+export function setInspectorOpen(open: boolean): Promise<ShellSettingsView> { return invoke("set_inspector_open", { open }); }
 export function migrateViewerBackground(background: import("../bindings/ViewerBackground").ViewerBackground): Promise<ShellSettingsView> { return invoke("migrate_viewer_background", { background }); }

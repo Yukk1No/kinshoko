@@ -2,10 +2,9 @@
 // 减少动态效果时没有影子，直接到结束状态。
 import { describe, expect, it, vi } from "vitest";
 import { act, render } from "@testing-library/react";
-import type { BrowsePage } from "../bindings/BrowsePage";
 import { RELEASE, SEAL } from "../shell/sealfx";
 import { Wall } from "./Wall";
-import { answer, base, card, frames, fx, ghosts, installSealFx, node, PAGE, settle, wallWith } from "./Wall.seal-fx.fixtures";
+import { answer, base, card, frames, fx, ghosts, installSealFx, node, PAGE, settle, wallWith, type FxPage } from "./Wall.seal-fx.fixtures";
 
 installSealFx();
 
@@ -69,7 +68,7 @@ describe("封印", () => {
   });
 
   it("补位时挪动的卡片都滑过去，包括点下去时还在视口下方、补位后才进视口的", async () => {
-    const many: BrowsePage = { cards: [card("a", true), ...Array.from({ length: 60 }, (_, i) => card(`g${i}`))], total: 61, nextCursor: null };
+    const many: FxPage = { cards: [card("a", true), ...Array.from({ length: 60 }, (_, i) => card(`g${i}`))], total: 61, nextCursor: null };
     const view = render(<Wall {...base} reloadKey={0} safeMode={false} />);
     await answer(many);
     await act(() => new Promise<void>((r) => requestAnimationFrame(() => r())));
@@ -107,7 +106,7 @@ describe("封印", () => {
   });
 
   it("墙上没有成人图时开启：之后无关的重新浏览按平常的 200 ms 重排，不沿用切换时的位置与节奏", async () => {
-    const plain: BrowsePage = { cards: [card("g"), card("h")], total: 2, nextCursor: null };
+    const plain: FxPage = { cards: [card("g"), card("h")], total: 2, nextCursor: null };
     const view = await wallWith(false, plain);
     const glides: { id: string; timing: KeyframeAnimationOptions }[] = [];
     HTMLElement.prototype.animate = function (this: HTMLElement, _k: Keyframe[], timing: KeyframeAnimationOptions) {
@@ -240,9 +239,9 @@ describe("释放", () => {
   it("让位的卡片右下角的图库标记跟着卡片一起滑，不先跳到新位置（#176）", async () => {
     const sourced = (id: string, adult = false) => ({ ...card(id, adult), libraryId: "L1", imageId: id,
       // 标记只在两个及以上图库时出现（#221）。
-      sources: [{ libraryId: "L1", libraryName: "角色参考", imageId: id, unavailable: false },
-        { libraryId: "L2", libraryName: "场景参考", imageId: id, unavailable: false }] });
-    const both: BrowsePage = { cards: [sourced("a", true), sourced("g")], total: 2, nextCursor: null };
+      sources: [{ libraryId: "L1", libraryName: "角色参考", imageId: id, unavailable: null, matches: true, deleted: false },
+        { libraryId: "L2", libraryName: "场景参考", imageId: id, unavailable: null, matches: true, deleted: false }] });
+    const both: FxPage = { cards: [sourced("a", true), sourced("g")], total: 2, nextCursor: null };
     const view = await wallWith(true, { cards: [sourced("g")], total: 1, nextCursor: null });
     const glides: { el: HTMLElement; keyframes: Keyframe[]; timing: KeyframeAnimationOptions }[] = [];
     HTMLElement.prototype.animate = function (this: HTMLElement, keyframes: Keyframe[], timing: KeyframeAnimationOptions) {

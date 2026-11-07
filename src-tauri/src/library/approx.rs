@@ -1,12 +1,14 @@
 //! Thin adapter for application-wide approximate judgments.
+
 use super::*;
+use kinshoko_core::CommandError;
 use kinshoko_core::tag_catalog::{CatalogApproxEdit, CatalogApproxView};
 #[tauri::command]
 pub(super) async fn shared_personal_approx<R: Runtime>(
     app: AppHandle<R>,
     lang: String,
     safe_mode: bool,
-) -> Result<CatalogApproxView, String> {
+) -> Result<CatalogApproxView, CommandError> {
     blocking(move || {
         workspace::stable(&app, safe_mode, |w, d, c| {
             w.personal_approx(d, c, &lang, safe_mode)
@@ -19,7 +21,7 @@ pub(super) async fn edit_shared_approx<R: Runtime>(
     app: AppHandle<R>,
     edit: CatalogApproxEdit,
     safe_mode: bool,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let generation = workspace::generation(&app);
         workspace::current(&app, safe_mode, generation)?;

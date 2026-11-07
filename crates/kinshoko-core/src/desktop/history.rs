@@ -107,11 +107,12 @@ pub enum HistoryError {
     /// 截图已不在历史中。
     Unknown,
     /// 资料库没能收下这张截图，附导入给出的原因。
-    Collect(String),
+    Collect(Box<crate::CommandError>),
     Io(io::Error),
     Image(image::ImageError),
 }
 
+// 不上界面：领域错误交给界面时转成错误代码（command_error），Display 只进日志
 impl fmt::Display for HistoryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -195,12 +196,17 @@ impl CaptureCollection {
             .wait();
         let image_id = match report.items.into_iter().next().map(|item| item.outcome) {
             Some(ImportOutcome::ReadFailed { reason }) => {
-                return Err(HistoryError::Collect(reason));
+                return Err(HistoryError::Collect(Box::new(reason)));
             }
             Some(outcome) if outcome.image_id().is_some() => {
                 outcome.image_id().unwrap_or_default().to_owned()
             }
-            _ => return Err(HistoryError::Collect("资料库没有收下这张截图".to_owned())),
+            _ => {
+                return Err(HistoryError::Collect(Box::new(crate::CommandError::new(
+                    crate::command_error::ErrorKind::CaptureNotAccepted,
+                    "资料库没有收下这张截图",
+                ))));
+            }
         };
         Ok(CollectedCaptureDraft {
             source: self,

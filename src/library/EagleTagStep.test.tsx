@@ -47,11 +47,11 @@ describe("迁入向导：标签的外部对应", () => {
     backend();
     render(<EagleTagStep libraryId="L1" onClose={() => {}} />);
 
-    const list = await screen.findByRole("list", { name: "没对上外部对应的标签" });
+    const list = await screen.findByRole("list", { name: "未匹配外部对应的标签" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(2);
-    expect(within(list).getAllByRole("img", { name: "没有外部对应，不参与内置近似对应表" })).toHaveLength(2);
-    expect(screen.getByText(/已自动对上 2 个标签/)).toBeTruthy();
-    expect(screen.getByText(/不参与内置近似对应表/, { selector: "p" })).toBeTruthy();
+    expect(within(list).getAllByRole("img", { name: "没有外部对应，不参与内置相近标签" })).toHaveLength(2);
+    expect(screen.getByText(/已自动匹配 2 个标签/)).toBeTruthy();
+    expect(screen.getByText(/不参与内置相近标签/, { selector: "p" })).toBeTruthy();
   });
 
   it("外部对应已属于另一个标签的 Eagle 标签注明已并入它", async () => {

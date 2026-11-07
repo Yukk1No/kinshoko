@@ -15,9 +15,6 @@ use super::tags::LocalizedName;
 /// 未注明语言（BCP 47 的 `und`）。
 pub const UND: &str = "und";
 
-/// 界面语言。界面目前只有简体中文（前端的 `UI_LANG`）；只有汉字的来源名称按它判断语言。
-pub(super) const INTERFACE_LANG: &str = "zh-CN";
-
 /// Eagle 迁入带来的来源名称。
 pub(super) const EAGLE: &str = "eagle";
 

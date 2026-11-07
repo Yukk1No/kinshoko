@@ -4,6 +4,7 @@ import { App } from "./App";
 import { CaptureOverlay } from "./desktop/CaptureOverlay";
 import { DesktopMenuView } from "./desktop/PinMenu";
 import { FidelityGate } from "./fidelity/FidelityGate";
+import { followInterfaceLanguage } from "./i18n";
 import { RuntimeProvider } from "./RuntimeSupport";
 import { recordUncaughtErrors } from "./runLog";
 import { markStartup } from "./startupTiming";
@@ -11,6 +12,7 @@ import { blockBrowserMenu } from "./ui/browserMenu";
 import { TipProvider } from "./ui/Tip";
 import "./styles.css";
 import "./ui/ui.css";
+import "./ui/menu.css";
 import "./ui/toast.css";
 import "./ui/fields.css";
 import "./shell/main-window.css";
@@ -22,6 +24,7 @@ import "./ui/settings.css";
 import "./ui/dialogs.css";
 import "./search/search-bar.css";
 import "./ui/text-select.css";
+import "./subscriptions/subscriptions.css";
 
 // 同一个页面承载四种窗口：主窗口、截图框选窗口（?view=capture）、钉图的菜单窗口（?view=desktop-menu，
 // #106）与还原度门槛实验窗口（?view=fidelity-gate）。钉图是原生窗口，不用这个页面（ADR 0013）。
@@ -30,6 +33,8 @@ const view = params.get("view");
 document.documentElement.dataset.view = view ?? "main";
 // 每种窗口都不弹 WebView 自带的浏览器菜单（#229）。
 blockBrowserMenu(window);
+// 每种窗口都跟着核心的界面语言，切换后立即更新（#354）。
+followInterfaceLanguage();
 // 没有接住的错误记进运行日志（#219）。
 recordUncaughtErrors(window);
 // 首屏耗时（#313）：页面脚本开始执行。

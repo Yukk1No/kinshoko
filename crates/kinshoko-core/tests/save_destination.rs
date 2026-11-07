@@ -115,7 +115,7 @@ fn deleting_the_destination_during_import_reports_remaining_failures_instead_of_
         .unwrap();
     tx.commit().unwrap();
     let report = task.wait();
-    assert!(report.items.iter().any(|item| matches!(&item.outcome, ImportOutcome::ReadFailed {reason} if reason.contains("保存目标不可用") || reason.contains("没有这个文件夹"))));
+    assert!(report.items.iter().any(|item| matches!(&item.outcome, ImportOutcome::ReadFailed {reason} if reason.to_string().contains("保存目标不可用") || reason.to_string().contains("没有这个文件夹"))));
     assert!(
         report
             .items
@@ -214,94 +214,6 @@ fn screenshot_collection_uses_the_explicit_destination_and_keeps_original_bytes(
         before
     );
     assert_eq!(history.collect(&capture.id, &target).unwrap(), collected);
-}
-
-#[test]
-fn copying_keeps_source_provenance_and_the_existing_targets_manual_curation() {
-    use kinshoko_core::library::{ImageEdit, TagEdit, TagNamespace, TagRef};
-    let dir = tempfile::tempdir().unwrap();
-    let source = Library::create(&dir.path().join("source"), "来源库").unwrap();
-    let target = Library::create(&dir.path().join("target"), "目标库").unwrap();
-    let folder = target.create_folder("复制位置", None).unwrap();
-    let png = dir.path().join("source.png");
-    image::RgbImage::from_pixel(18, 22, image::Rgb([20, 40, 60]))
-        .save(&png)
-        .unwrap();
-    source
-        .import(ImportSource {
-            paths: vec![png.clone()],
-        })
-        .wait();
-    target.import(ImportSource { paths: vec![png] }).wait();
-    let source_id = source.browse(&query(BrowseScope::All)).unwrap().cards[0]
-        .id
-        .clone();
-    let target_id = target.browse(&query(BrowseScope::All)).unwrap().cards[0]
-        .id
-        .clone();
-    source
-        .edit(
-            std::slice::from_ref(&source_id),
-            &[ImageEdit::SetNote {
-                text: "原来源备注".into(),
-            }],
-        )
-        .unwrap();
-    target
-        .edit(
-            std::slice::from_ref(&target_id),
-            &[ImageEdit::SetNote {
-                text: "目标独立备注".into(),
-            }],
-        )
-        .unwrap();
-    target
-        .edit_tags(
-            std::slice::from_ref(&target_id),
-            &[TagEdit::Add {
-                tag: TagRef::Named {
-                    namespace: TagNamespace::General,
-                    name: "目标独立标签".into(),
-                    lang: "zh".into(),
-                },
-            }],
-        )
-        .unwrap();
-    let target_tags = target.image_tags(&target_id, "zh").unwrap();
-    let destination = SaveDestination {
-        library_id: target.info().id.clone(),
-        folder_id: Some(folder.clone()),
-    };
-    let copied = target
-        .for_destination(&destination)
-        .unwrap()
-        .copy_from(&source, &source_id)
-        .unwrap();
-    assert_eq!(copied, target_id);
-    assert_eq!(
-        target.image(&target_id).unwrap().note.manual.as_deref(),
-        Some("目标独立备注")
-    );
-    assert_eq!(target.image_tags(&target_id, "zh").unwrap(), target_tags);
-    assert!(
-        target
-            .image_sources(&target_id)
-            .unwrap()
-            .iter()
-            .any(|s| s.source.contains(&source.info().id)),
-        "复制必须保留原资料库来源身份"
-    );
-    assert_eq!(
-        target
-            .browse(&query(BrowseScope::Folder { id: folder }))
-            .unwrap()
-            .total,
-        1
-    );
-    assert_eq!(
-        source.image(&source_id).unwrap().note.manual.as_deref(),
-        Some("原来源备注")
-    );
 }
 
 #[test]
@@ -440,7 +352,14 @@ fn publication_failure_stays_on_its_original_task_receipt_after_browsing_changes
         .complete_import_publication(
             &a.info().id,
             &task,
-            Some("内容已保存，资料库定义未更新，可在统一标签目录重试".into()),
+            Some(kinshoko_core::CommandError::new(
+                kinshoko_core::command_error::ErrorKind::ImportPublicationNotStarted {
+                    cause: Box::new(kinshoko_core::command_error::ErrorKind::System {
+                        detail: "spawn".into(),
+                    }),
+                },
+                "导入任务已启动，标签定义发布未启动",
+            )),
         )
         .unwrap();
     let receipt = device.import_task(&task).unwrap();

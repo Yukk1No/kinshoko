@@ -5,7 +5,9 @@ import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-app
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
 
-const EXPIRED = "浏览结果已变化，请从头重新浏览";
+const EXPIRED: unknown = { code: "cursorExpired" };
+/** 修订变化在中文界面上的说明；不应留在界面上。 */
+const EXPIRED_TEXT = "浏览结果已变化，请从头重新浏览";
 const libraries = [{ library: { id: "A", name: "甲库", root: "A" }, unavailable: null }];
 
 beforeEach(() => {
@@ -21,8 +23,8 @@ afterEach(async () => { cleanup(); await new Promise((resolve) => setTimeout(res
  * calls of that command are rejected the way the library rejects a read whose revision moved.
  */
 function workspace() {
-  const state = { revision: "r1", failing: null as string | null, failures: 0, calls: 0, failure: EXPIRED };
-  mockIPC((command, args) => {
+  const state = { revision: "r1", failing: null as string | null, failures: 0, calls: 0, failure: EXPIRED as unknown };
+  mockIPC((command) => {
     if (command === state.failing) {
       state.calls += 1;
       if (state.calls <= state.failures) return Promise.reject(state.failure);
@@ -32,10 +34,10 @@ function workspace() {
     if (command === "plugin:library|current_library") return libraries[0].library;
     if (command === "plugin:library|registered_libraries") return libraries;
     if (command === "plugin:library|workspace_status") return status;
-    if (command === "plugin:library|workspace_directories") return { status, providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
+    if (command === "plugin:library|workspace_directories") return { status, registrationOrder: [], providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
     if (command === "plugin:library|workspace_tag_groups") return [{ id: "g", name: "人物分组", namespace: null, tags: [] }];
     if (command === "plugin:library|import_tasks") return [];
-    if (command === "tagging_status") return { libraryId: (args as { libraryId: string }).libraryId, status: { state: "starting" } };
+    if (command === "tagging_status") return { state: "starting" };
     if (command === "plugin:library|workspace_browse") return {
       cards: [{ id: "bytes", libraryId: "A", imageId: "a", width: 100, height: 100, thumbnail: "A/a/128", adult: false,
         sources: [{ libraryId: "A", libraryName: "甲库", imageId: "a", unavailable: null, matches: true, deleted: false }] }],
@@ -55,7 +57,7 @@ async function settled() {
 }
 
 /** A library change lands (copy, import…): the workspace moves to r2 and re-reads. */
-async function changed(state: ReturnType<typeof workspace>, command: string, failures: number, failure = EXPIRED) {
+async function changed(state: ReturnType<typeof workspace>, command: string, failures: number, failure: unknown = EXPIRED) {
   Object.assign(state, { failing: `plugin:library|${command}`, failures, calls: 0, failure, revision: "r2" });
   await act(() => emit("workspace-changed", { revision: "r2", libraries }));
 }
@@ -66,7 +68,7 @@ it("变更后标签分组读取期间修订又变了：重新读取并显示分�
   await changed(state, "workspace_tag_groups", 1);
   await waitFor(() => expect(state.calls).toBeGreaterThan(state.failures));
   expect(await screen.findByRole("button", { name: /人物分组/ })).toBeTruthy();
-  expect(screen.queryAllByText(EXPIRED)).toHaveLength(0);
+  expect(screen.queryAllByText(EXPIRED_TEXT)).toHaveLength(0);
 });
 
 it("连续变更期间目录读取多次遇到修订变化：变更停下后显示目录，不留下横幅或提示", async () => {
@@ -76,7 +78,7 @@ it("连续变更期间目录读取多次遇到修订变化：变更停下后显�
   await changed(state, "workspace_directories", 8);
   await waitFor(() => expect(state.calls).toBeGreaterThan(state.failures));
   expect(await screen.findByRole("button", { name: "甲库（1 张）" })).toBeTruthy();
-  await waitFor(() => expect(screen.queryAllByText(EXPIRED)).toHaveLength(0));
+  await waitFor(() => expect(screen.queryAllByText(EXPIRED_TEXT)).toHaveLength(0));
   expect(screen.queryByText("正在读取图库…")).toBeNull();
 });
 

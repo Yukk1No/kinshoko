@@ -6,13 +6,12 @@ pub use import_preview::{
     ImportPreviewContent, ImportPreviewSession, PreparedImportPreview, ResolvedImportPreview,
 };
 mod source;
-pub use source::{
-    WorkspaceSourceBatch, WorkspaceSourceInspection, WorkspaceSourceTarget, group_sources,
-};
+pub use source::{WorkspaceSourceBatch, WorkspaceSourceTarget, group_sources};
 mod browse;
 use browse::BrowseCache;
 pub use browse::PendingPage;
 mod gate;
+mod image_read;
 pub use gate::ImageGate;
 mod snapshot;
 mod vocabulary;
@@ -69,7 +68,8 @@ pub struct WorkspaceSource {
     pub library_id: String,
     pub library_name: String,
     pub image_id: String,
-    pub unavailable: Option<String>,
+    #[ts(as = "Option<crate::command_error::ErrorKind>")]
+    pub unavailable: Option<crate::CommandError>,
     pub matches: bool,
     pub deleted: bool,
 }
@@ -126,6 +126,8 @@ pub struct WorkspaceDirectory {
 pub struct WorkspaceDirectories {
     pub status: WorkspaceStatus,
     pub providers: Vec<WorkspaceDirectory>,
+    /// 资料库 id，登记最早的在前。`providers` 按 id 排，保存入口的兜底按这个（ADR-0016）。
+    pub registration_order: Vec<String>,
 }
 #[derive(Clone)]
 struct Provider {
@@ -335,6 +337,7 @@ impl Workspace {
         Ok(WorkspaceDirectories {
             status: snapshot.status(safe),
             providers,
+            registration_order: device.libraries().iter().map(|r| r.id.clone()).collect(),
         })
     }
     /// Compatibility projection of one provider; forest reads use `directories`.
@@ -395,7 +398,7 @@ impl Workspace {
     ) -> Result<std::sync::Arc<crate::library::Library>, CatalogError> {
         self.gate
             .reader(registration, device.safe_mode_scope())
-            .map_err(|e| CatalogError::Io(std::io::Error::other(e)))
+            .map_err(|e| CatalogError::Command(Box::new(e)))
     }
     /// O(log n) authorization after bounded provider/catalog revision checks, including trash views.
     pub fn contains(

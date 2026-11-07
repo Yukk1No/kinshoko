@@ -1,5 +1,6 @@
 import type { SaveDestination } from "../bindings/SaveDestination";
-import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { invoke } from "./invoke";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { GatePlan } from "../bindings/GatePlan";

@@ -1,5 +1,6 @@
 //! 永久删除预览（#67）经参考组用途 port 查询哪些参考组用到了将删除的图。
 
+use crate::command_error::ErrorKind;
 use serde::Serialize;
 use ts_rs::TS;
 
@@ -34,12 +35,14 @@ impl ReferenceGroupUsage for ReferenceGroups {
     ) -> Result<Vec<GroupUsage>, GroupError> {
         let mut out = Vec::new();
         for summary in self.list()? {
-            if summary.problem.is_some() {
-                return Err(GroupError::Invalid(format!(
-                    "无法核对参考组“{}”：{}",
-                    summary.name,
-                    summary.problem.unwrap_or_default()
-                )));
+            if let Some(problem) = summary.problem {
+                return Err(GroupError::invalid(
+                    ErrorKind::GroupUnreadable {
+                        name: summary.name.clone(),
+                        cause: Box::new(problem.kind.clone()),
+                    },
+                    format!("无法核对参考组“{}”：{problem}", summary.name),
+                ));
             }
             if !summary.library_ids.iter().any(|l| l == library_id) {
                 continue;

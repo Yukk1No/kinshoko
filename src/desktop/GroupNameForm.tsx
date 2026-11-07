@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Tip } from "../ui/Tip";
 
 /**
@@ -16,16 +17,17 @@ export function GroupNameForm({ title, label, placeholder, value, onChange, onSu
   primary?: boolean;
   className?: string;
 }) {
+  const { t } = useTranslation("desktop", { keyPrefix: "nameForm" });
   return <form className={`group-name-form ${className}`} onSubmit={(e) => { e.preventDefault(); if (value.trim() && !busy && !blocked) onSubmit(); }}
     onKeyDown={(e) => { if (e.key === "Escape" && !busy) { e.preventDefault(); e.stopPropagation(); onCancel(); } }}>
     <div className="group-name-head">
       <span className="k-field-label">{title}</span>
-      <Tip label="取消" keys="Esc"><button type="button" className="k-icon-btn is-sm" aria-label="取消" disabled={busy} onClick={onCancel}><X size={14} aria-hidden="true" /></button></Tip>
+      <Tip label={t("cancel")} keys="Esc"><button type="button" className="k-icon-btn is-sm" aria-label={t("cancel")} disabled={busy} onClick={onCancel}><X size={14} aria-hidden="true" /></button></Tip>
     </div>
     <div className="k-field-row">
       <input className="k-input" aria-label={label} placeholder={placeholder} autoFocus disabled={busy}
         value={value} onChange={(e) => onChange(e.target.value)} />
-      <button type="submit" className={`k-btn${primary ? " is-primary" : ""}`} disabled={!value.trim() || busy || blocked}><span className="k-label">保存</span></button>
+      <button type="submit" className={`k-btn${primary ? " is-primary" : ""}`} disabled={!value.trim() || busy || blocked}><span className="k-label">{t("save")}</span></button>
     </div>
   </form>;
 }

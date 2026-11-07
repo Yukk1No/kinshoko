@@ -1,7 +1,7 @@
 //! 把模型的原始结果变成标签建议与分级建议：按类别阈值取标签，分级取分级类别中最高分的一项。
 //! 标签按外部名称写入（ADR-0003），首次进库时由翻译表给出各语言的初始名称。
 
-use crate::library::{ContentRating, RatingFact, SourceTag, TagNamespace, TagRef};
+use crate::library::{ContentRating, RatingFact, SourceTag, TagNamespace, TagRef, TaggingResult};
 
 use super::models::ModelSpec;
 use super::port::RawTag;
@@ -17,12 +17,7 @@ fn namespace(category: u8) -> Option<TagNamespace> {
     }
 }
 
-pub(super) struct Suggestions {
-    pub tags: Vec<SourceTag>,
-    pub rating: Option<RatingFact>,
-}
-
-pub(super) fn interpret(spec: &ModelSpec, raw: &[RawTag]) -> Suggestions {
+pub(super) fn interpret(spec: &ModelSpec, raw: &[RawTag]) -> TaggingResult {
     let tags = raw
         .iter()
         .filter(|t| Some(t.category) != spec.rating_category)
@@ -47,5 +42,5 @@ pub(super) fn interpret(spec: &ModelSpec, raw: &[RawTag]) -> Suggestions {
                 score: Some(score),
             })
     });
-    Suggestions { tags, rating }
+    TaggingResult { tags, rating }
 }

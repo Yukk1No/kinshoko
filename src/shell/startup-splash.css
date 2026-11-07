@@ -7,7 +7,7 @@
   overflow: hidden;
 }
 .startup-splash[data-phase="leaving"] { pointer-events: none; }
-.startup-splash[data-phase="leaving"][data-reduced] { opacity: 0; transition: opacity 200ms var(--ease); }
+.startup-splash[data-phase="leaving"][data-reduced] { opacity: 0; transition: opacity var(--t) var(--ease); }
 
 /* 背景：七列淡色矩形，相邻列反向缓慢漂动；只在上下边缘渐隐，字标周围不留白。 */
 .startup-wall {
@@ -68,7 +68,7 @@
   border-radius: var(--r-pill);
   background: var(--line);
   overflow: hidden;
-  transition: opacity 200ms var(--ease);
+  transition: opacity var(--t) var(--ease);
 }
 .startup-bar > span {
   display: block;
@@ -76,7 +76,7 @@
   border-radius: inherit;
   background: var(--accent);
   transform-origin: left center;
-  transition: transform 260ms var(--ease);
+  transition: transform var(--t-slow) var(--ease);
 }
 .startup-splash[data-phase="leaving"] .startup-bar { opacity: 0; }
 

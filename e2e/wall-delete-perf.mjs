@@ -136,7 +136,7 @@ try {
   result.library = library.id;
   const importStart = Date.now();
   await session.invoke("start_import", { libraryId: library.id, source: { paths: [samples] } });
-  await until("导入完成", async () => (await session.invoke("sidebar", { libraryId: library.id })).all === expected, 3_600_000, 1000);
+  await until("导入完成", async () => (await session.invoke("workspace_sidebar", { libraryId: library.id, safeMode: await session.invoke("safe_mode") })).all === expected, 3_600_000, 1000);
   result.importMs = Date.now() - importStart;
   console.log(`导入 ${expected} 张：${result.importMs} ms`);
   await until("侧栏出现资料库", () => session.exec("return Boolean(document.querySelector(`[data-library-id=\"${arguments[0]}\"] .lib-head-name`));", [library.id]));

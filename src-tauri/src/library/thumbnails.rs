@@ -36,12 +36,15 @@ pub(super) fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> 
         return not_found();
     };
     if logged {
-        let path = if slow {
-            "缩略图：核对（加锁路径）"
-        } else {
-            "缩略图：核对（快路径）"
-        };
-        took(path, started, None);
+        took(
+            if slow {
+                "缩略图：核对（加锁路径）"
+            } else {
+                "缩略图：核对（快路径）"
+            },
+            started,
+            None,
+        );
     }
     let reading = std::time::Instant::now();
     // `full`：1:1 与放大时显示的文件（Library::display，ADR-0005）。看图界面只用这条路，

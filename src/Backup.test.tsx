@@ -74,7 +74,7 @@ describe("设置：备份", () => {
     fireEvent.click(within(where).getByRole("button", { name: "选择…" }));
     await screen.findByText("E:\\备份");
     expect(calls.find((c) => c.cmd === "set_backup_target")?.args).toEqual({ target: "E:\\备份" });
-    expect(screen.getByText("2026-10-05 08:00")).toBeTruthy();
+    expect(screen.getByText(/10月5日 08:00$/)).toBeTruthy();
     expect(screen.getByText("已备份")).toBeTruthy();
   });
 
@@ -98,7 +98,7 @@ describe("设置：备份", () => {
       }),
     );
     expect(await screen.findByText(/参考组「眼睛参考」引用的「旧库」不在这次备份里/)).toBeTruthy();
-    expect(screen.getByText(/约 30\.0 MB，这次新写入 2\.0 MB（新原图 1 张）/)).toBeTruthy();
+    expect(screen.getByText(/约 30 MB，这次新写入 2 MB（新原图 1 张）/)).toBeTruthy();
   });
 
   it("可以马上备份；备份进行中显示进度", async () => {
@@ -151,7 +151,7 @@ describe("设置：备份", () => {
     render(<BackupSettings />);
 
     fireEvent.click(await screen.findByRole("button", { name: "选择备份…" }));
-    fireEvent.click(await screen.findByRole("button", { name: "恢复 2026-10-05 08:00 的备份" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^恢复 .*10月5日 08:00 的备份$/ }));
     expect(await screen.findByText("完整")).toBeTruthy();
     expect(screen.getByText(/原图 12 张哈希一致/)).toBeTruthy();
     expect(screen.getByText(/主库（恢复）/)).toBeTruthy();
@@ -170,7 +170,7 @@ describe("备份提醒", () => {
             ...withTarget,
             plan: {
               ...withTarget.plan,
-              lastFailure: { at, reason: "备份目标不在：E:\\备份。请接上移动盘", targetUnavailable: true },
+              lastFailure: { at, reason: "备份位置不在：E:\\备份。请接上移动盘", targetUnavailable: true },
             },
           }
         : undefined,
@@ -179,6 +179,32 @@ describe("备份提醒", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toMatch(/备份没有完成.*下次退出或空闲时再试/);
     expect(alert.textContent).toMatch(/请接上移动盘/);
+  });
+
+  it("在窗口里是一条出错轻提示，不再是横幅（#388）", async () => {
+    backend((cmd) =>
+      cmd === "backup_status"
+        ? { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } }
+        : undefined,
+    );
+    render(<><BackupReminder /></>);
+    const title = (await screen.findAllByText("备份没有完成：备份目标不在")).find((node) => node.closest(".k-toast"))!;
+    expect(title.closest(".k-toast")?.getAttribute("data-tone")).toBe("error");
+    expect(title.closest(".k-toast")?.textContent).toContain("下次退出或空闲时再试");
+    expect(document.querySelectorAll(".k-toast")).toHaveLength(1);
+  });
+
+  it("提醒重新挂载时不叠出重复的出错提示", async () => {
+    backend((cmd) =>
+      cmd === "backup_status"
+        ? { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } }
+        : undefined,
+    );
+    const view = render(<><BackupReminder key="a" /></>);
+    await waitFor(() => expect(document.querySelectorAll(".k-toast")).toHaveLength(1));
+    view.rerender(<><BackupReminder key="b" /></>);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await waitFor(() => expect(document.querySelectorAll(".k-toast:not([data-ending-style])")).toHaveLength(1));
   });
 
   it("没有失败时不打扰", async () => {

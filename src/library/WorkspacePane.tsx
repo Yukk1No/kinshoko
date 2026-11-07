@@ -1,19 +1,22 @@
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, Images, MoreHorizontal, Trash2 } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
+import { useTranslation } from "react-i18next";
 import { FluidList, FluidRow } from "../ui/FluidList";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { PermanentDeleteConfirm } from "./SelectionPanel";
 import { Switch } from "../ui/Switch";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
+import { describeCommandError } from "../ipc/commandError";
 import { isCursorExpired, isLensChanged, moveFolder, revealLibrary, unregisterLibrary, workspaceDirectories } from "../ipc";
 import { acceptsDrag, DRAG_FOLDER, DRAG_FOLDER_LIBRARY, LAST, SidebarPane } from "./SidebarPane";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { folderPath, LibraryMenuItems, TrashRow } from "./WorkspacePaneRows";
-import { Tip } from "../ui/Tip";
+import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { useToast } from "../ui/Toast";
+import { Tip } from "../ui/Tip";
 import { offerUndoRemoval } from "./undoRemoval";
 // 来源整理拆到 WorkspaceSources.tsx；从这里导入的调用方照旧可用。
 export { WorkspaceSources } from "./WorkspaceSources";
@@ -22,23 +25,22 @@ export { WorkspaceSources } from "./WorkspaceSources";
 export const SPRING_OPEN_MS = 600;
 
 /**
- * 侧栏（方案 D，#113；design/ui-system/README.md 侧栏布局）：顶部固定“全部图片”与跨库合计；中间是
+ * 侧栏（方案 D，#113；design/ui-system/window-frame-and-sidebar.md 侧栏布局）：顶部固定“全部图片”与跨库合计；中间是
  * Finder 式的图库分组，选中哪个图库内的范围就只展开哪个，选“全部图片”时全部折起，箭头可临时多展开；
  * 拖动图片或文件夹悬停在折起的图库上约 0.6 秒自动展开，放下或离开后恢复。每个已连接图库的目录都能
  * 直接整理（ADR-0008）；未连接的图库只占一行并可就地重新连接。底部固定跟随所选图库的回收站。
  */
 export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onError, onRecheck, onRemoved, onRestore, children }: {
   status: WorkspaceStatus | null; scope: WorkspaceScope; onScope: (scope: WorkspaceScope) => void;
-  safeMode: boolean; reloadKey: number; onError: (message: string) => void;
+  safeMode: boolean; reloadKey: number; onError: (error: unknown) => void;
   /** 重新检查未连接的图库（移动盘接回后）。 */
   onRecheck?: () => void;
   /** 图库标题菜单“从列表移除”完成后（取消登记，文件不删）。 */
   onRemoved?: (libraryId: string) => void;
-  /** 移除后的“撤销”：重新登记这个位置。 */
+  /** 移除后点“撤销”：按原位置重新登记。 */
   onRestore?: (root: string) => Promise<void>;
   children?: ReactNode;
 }) {
-  const toast = useToast();
   // 代次（登记了哪些图库、各自是否可用、安全模式）变了，旧目录在新结果到达前就不再显示。内容变化
   // （status.revision 随每次进库前进，导入期间约每 1.5 秒一次）与单纯重读（reloadKey，每次列表过期加一）
   // 只重读：沿用上一份目录直到新结果到达，资料库行不因计数刷新整行变成不可用（#121）。
@@ -57,7 +59,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
         } catch (error) {
           if (!alive || isLensChanged(error)) return;
           if (isCursorExpired(error) && attempt < 3) continue;
-          onError(String(error));
+          onError(error);
           return;
         }
       }
@@ -106,22 +108,24 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
     };
   }, []);
 
+  const { t } = useTranslation("library");
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
   const [headDrop, setHeadDrop] = useState<string | null>(null);
   const [trashList, setTrashList] = useState(false);
   /** 正在确认清空回收站的图库。 */
   const [emptying, setEmptying] = useState<{ libraryId: string; name: string } | null>(null);
-  const reveal = (libraryId: string) => { revealLibrary(libraryId).catch((e) => onError(`无法在资源管理器中打开：${String(e)}`)); };
+  const reveal = (libraryId: string) => { revealLibrary(libraryId).catch((e) => onError(t("scope.revealFailed", { error: String(e) }))); };
   // 移除完成时按那时的范围判断：正浏览这个图库（任一范围）就回到“全部图片”（同时清掉选择），
   // 不再向已取消登记的图库请求浏览。
   const latestScope = useRef(scope);
   latestScope.current = scope;
-  const remove = (registration: WorkspaceDirectory["registration"]) => { const libraryId = registration.library.id; unregisterLibrary(libraryId).then(() => {
+  const toast = useToast();
+  const remove = ({ library, unavailable }: LibraryRegistration) => { unregisterLibrary(library.id).then(() => {
     const current = latestScope.current;
-    if (current.kind === "library" && current.libraryId === libraryId) onScope({ kind: "all" });
-    onRemoved?.(libraryId);
-    if (onRestore && !registration.unavailable) offerUndoRemoval(toast, registration.library, onRestore, onError);
-  }, (e) => onError(String(e))); };
+    if (current.kind === "library" && current.libraryId === library.id) onScope({ kind: "all" });
+    onRemoved?.(library.id);
+    if (!unavailable && onRestore) offerUndoRemoval(toast, library, onRestore, onError);
+  }, (e) => onError(e)); };
   const emptyItem = (p: WorkspaceDirectory, label: string) => <MenuItem key={p.registration.library.id} icon={<Trash2 size={14} />} danger
     disabled={!p.sidebar || p.sidebar.trash === 0} onClick={() => setEmptying({ libraryId: p.registration.library.id, name: p.registration.library.name })}>{label}</MenuItem>;
 
@@ -133,8 +137,8 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
   const local = scope.kind === "library" ? scope.scope : null;
   const isFolder = local?.kind === "folder" || local?.kind === "folderTree";
   const path = isFolder && selected?.sidebar ? folderPath(selected.sidebar.folders, local.id) : null;
-  const range = scope.kind === "all" ? "全部图库" : selected ? selected.registration.library.name + " / " +
-    (selected.registration.unavailable ? "未连接" : isFolder ? path?.join(" / ") ?? (forest ? "文件夹已失效" : "正在读取目录") : local?.kind === "trash" ? "回收站" : local?.kind === "unassigned" ? "未归类" : "全部图片") : forest ? "图库已失效" : "正在读取图库";
+  const range = scope.kind === "all" ? t("scope.allLibraries") : selected ? t("scope.path", { library: selected.registration.library.name, place:
+    selected.registration.unavailable ? t("scope.offline") : isFolder ? path?.join(" / ") ?? (forest ? t("scope.folderGone") : t("scope.loadingFolders")) : local?.kind === "trash" ? t("scope.trash") : local?.kind === "unassigned" ? t("scope.unassigned") : t("scope.allImages") }) : forest ? t("scope.libraryGone") : t("scope.loadingLibraries");
   const total = forest ? connected.reduce((sum, p) => sum + (p.sidebar?.all ?? 0), 0) : undefined;
   const trashTotal = forest ? connected.reduce((sum, p) => sum + (p.sidebar?.trash ?? 0), 0) : undefined;
   const trashOf = (id: string): WorkspaceScope => ({ kind: "library", libraryId: id, scope: { kind: "trash" } });
@@ -156,19 +160,20 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
     },
   });
 
-  return <nav className="workspace-scope side-bands" aria-label="查找范围">
-    <div className="workspace-current-scope sr-only" role="status">范围：{range}</div>
+  return <nav className="workspace-scope side-bands" aria-label={t("scope.label")}>
+    <div className="workspace-current-scope sr-only" role="status">{t("scope.current", { range })}</div>
     <div className="side-top">
       <FluidList><FluidRow index={0}>
         <button type="button" className="sidebar-item k-row" aria-current={scope.kind === "all" ? "page" : undefined}
-          aria-label={total === undefined ? "全部图片" : `全部图片（${total} 张）`}
+          aria-label={total === undefined ? t("scope.allImages") : t("scope.allImagesCount", { count: total })}
           onClick={() => onScope({ kind: "all" })}><span className="k-row-icon" aria-hidden="true"><Images size={15} /></span>
-          <span className="sidebar-label k-label">全部图片</span><span className="sidebar-count k-label">{total ?? ""}</span></button>
+          <span className="sidebar-label k-label">{t("scope.allImages")}</span><span className="sidebar-count k-label">{total ?? ""}</span></button>
       </FluidRow></FluidList>
     </div>
     <div className="side-scroll">
     {providers.map((provider) => {
-      const { registration: { library, unavailable }, sidebar, unassigned, descendants: counts } = provider;
+      const { registration: { library, unavailable: offline }, sidebar, unassigned, descendants: counts } = provider;
+      const unavailable = offline ? describeCommandError(offline) : null;
       const available = !unavailable && Boolean(sidebar);
       const expanded = available && (openIds.has(library.id) || sprung === library.id);
       const selectedRoot = scope.kind === "library" && scope.libraryId === library.id;
@@ -179,7 +184,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
         const folder = e.dataTransfer.getData(DRAG_FOLDER);
         const from = e.dataTransfer.getData(DRAG_FOLDER_LIBRARY);
         if (!folder || (from && from !== library.id)) return;
-        void moveFolder(library.id, folder, null, LAST).catch((error) => onError(String(error)));
+        void moveFolder(library.id, folder, null, LAST).catch((error) => onError(error));
       };
       return <section key={library.id} className="workspace-provider lib-group" data-library-id={library.id}
         data-offline={unavailable ? "true" : undefined} {...springHandlers(library.id, available && !expanded)}>
@@ -187,15 +192,14 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
         {/* 图库标题的右键菜单与 ⋯ 同一组菜单项；未连接时名称按钮禁用（不接收指针），右键落在这一行上。 */}
         <Tip label={unavailable ? `${library.root}\n${unavailable}` : undefined}>
         <ContextMenu.Trigger render={<div className="workspace-provider-root lib-head" />}>
-          {available ? <button type="button" className="workspace-expand" aria-label={`${expanded ? "收起" : "展开"}${library.name}`}
+          {available ? <button type="button" className="workspace-expand" aria-label={expanded ? t("scope.collapse", { name: library.name }) : t("scope.expand", { name: library.name })}
             aria-expanded={expanded} onClick={() => {
               if (sprung === library.id) setSprung(null);
               toggle(library.id, !expanded);
             }}>{expanded ? <ChevronDown size={12} aria-hidden="true" /> : <ChevronRight size={12} aria-hidden="true" />}</button>
             : <span className="workspace-expand" aria-hidden="true" />}
-          <Tip label={unavailable ? undefined : library.root} align="start">
-          <button type="button" className={`sidebar-item lib-head-name${unavailable ? " is-off" : ""}`} disabled={!available}
-            aria-label={unavailable ? library.name + "（未连接）" : `${library.name}（${sidebar?.all ?? "…"} 张）`}
+          <Tip label={unavailable ? undefined : library.root} align="start"><button type="button" className={`sidebar-item lib-head-name${unavailable ? " is-off" : ""}`} disabled={!available}
+            aria-label={unavailable ? t("scope.libraryOffline", { name: library.name }) : sidebar ? t("scope.libraryCount", { name: library.name, count: sidebar.all }) : t("scope.libraryCountLoading", { name: library.name })}
             aria-current={selectedRoot && scope.scope.kind === "all" ? "page" : undefined}
             data-drop={headDrop === library.id || undefined}
             onDragOver={(e) => { if (available && e.dataTransfer.types.includes(DRAG_FOLDER)) { e.preventDefault(); setHeadDrop(library.id); } }}
@@ -204,20 +208,19 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
             onClick={() => onScope({ kind: "library", libraryId: library.id, scope: { kind: "all" } })}>
             <span className="sidebar-label k-label">{library.name}</span>
             {unavailable ? <span className="lib-dot is-off" aria-hidden="true" /> : <span className="sidebar-count k-label">{sidebar?.all ?? "…"}</span>}
-          </button>
-          </Tip>
-          {unavailable && onRecheck && <button type="button" className="offline-retry" onClick={onRecheck}><span className="k-label">重新连接</span></button>}
+          </button></Tip>
+          {unavailable && onRecheck && <button type="button" className="offline-retry" onClick={onRecheck}><span className="k-label">{t("scope.reconnect")}</span></button>}
           <Menu.Root modal={false}>
-            <Tip label="图库操作"><Menu.Trigger className="k-icon-btn lib-more" aria-label={`${library.name} 的操作`}>
+            <Tip label={t("scope.libraryActionsTitle")}><Menu.Trigger className="k-icon-btn lib-more" aria-label={t("scope.libraryActions", { name: library.name })}>
               <MoreHorizontal size={14} aria-hidden="true" />
             </Menu.Trigger></Tip>
-            <MenuPopup width={200} label={`${library.name} 的操作`}>
+            <MenuPopup width={200} label={t("scope.libraryActions", { name: library.name })}>
               {libraryItems}
             </MenuPopup>
           </Menu.Root>
         </ContextMenu.Trigger>
         </Tip>
-        <MenuPopup width={200} label={`${library.name} 的操作`}>{libraryItems}</MenuPopup>
+        <MenuPopup width={200} label={t("scope.libraryActions", { name: library.name })}>{libraryItems}</MenuPopup>
         </ContextMenu.Root>
         {expanded && sidebar && <SidebarPane directory={sidebar} unassigned={unassigned} descendantCounts={counts} includeDescendants={descendants}
           libraryName={library.name} libraryId={library.id}
@@ -228,27 +231,28 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
       </section>;
     })}
     <div className="sub-toggle workspace-descendants">
-      <Switch size="sm" label="含子文件夹" checked={isFolder ? local.kind === "folderTree" : descendants}
+      <Switch size="sm" label={t("scope.descendants")} checked={isFolder ? local.kind === "folderTree" : descendants}
         disabled={!isFolder || !path || Boolean(selected?.registration.unavailable)}
         onCheckedChange={(checked) => {
           if (!isFolder || scope.kind !== "library") return;
           setDescendants(checked); onScope({ ...scope, scope: { kind: checked ? "folderTree" : "folder", id: local.id } });
         }} />
-      <span className="k-label" aria-hidden="true">含子文件夹</span>
+      <span className="k-label" aria-hidden="true">{t("scope.descendants")}</span>
     </div>
     {children}
     </div>
     <div className="side-foot">
       {scope.kind === "library" ? selected && <TrashRow label={selected.registration.library.name} count={selected.sidebar?.trash}
         current={scope.scope.kind === "trash"} disabled={!selected.sidebar} onClick={() => onScope(trashOf(selected.registration.library.id))}
-        menu={emptyItem(selected, "清空回收站…")} />
+        menu={emptyItem(selected, t("trash.empty"))} />
       : <>
-        <TrashRow label="全部图库" count={trashTotal} disabled={connected.length === 0} expanded={connected.length > 1 ? trashList : undefined}
+        <TrashRow label={t("trash.allLibraries")} count={trashTotal} disabled={connected.length === 0} expanded={connected.length > 1 ? trashList : undefined}
           onClick={() => connected.length === 1 ? onScope(trashOf(connected[0].registration.library.id)) : setTrashList((open) => !open)}
-          menu={connected.map((p) => emptyItem(p, connected.length === 1 ? "清空回收站…" : `清空「${p.registration.library.name}」的回收站…`))} />
-        {trashList && connected.length > 1 && <div role="group" aria-label="各图库的回收站" className="trash-groups">
+          menu={connected.map((p) => emptyItem(p, connected.length === 1 ? t("trash.empty") : t("trash.emptyOf", { name: p.registration.library.name })))} />
+        {trashList && connected.length > 1 && <div role="group" aria-label={t("trash.perLibrary")} className="trash-groups">
           <FluidList>{connected.map((p, index) => <FluidRow key={p.registration.library.id} index={index}>
-            <Tip label={p.registration.library.root} align="start"><button type="button" className="sidebar-item k-row trash-group-row" aria-label={`${p.registration.library.name}（${p.sidebar?.trash ?? 0} 张）`} onClick={() => onScope(trashOf(p.registration.library.id))}>
+            <Tip label={p.registration.library.root} align="start"><button type="button" className="sidebar-item k-row trash-group-row" aria-label={t("trash.libraryCount", { name: p.registration.library.name, count: p.sidebar?.trash ?? 0 })}
+              onClick={() => onScope(trashOf(p.registration.library.id))}>
               <span className="sidebar-label k-label">{p.registration.library.name}</span>
               <span className="sidebar-count k-label">{p.sidebar?.trash ?? 0}</span>
             </button></Tip>

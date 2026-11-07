@@ -103,17 +103,22 @@ impl ExternalVocabulary {
     }
 
     /// 读打标模型的词表 `selected_tags.csv`（`name` 列）。
-    pub fn read_tags_csv(path: &Path) -> Result<Vec<String>, String> {
-        let mut reader = csv::Reader::from_path(path).map_err(|e| e.to_string())?;
+    pub fn read_tags_csv(path: &Path) -> Result<Vec<String>, crate::CommandError> {
+        let mut reader = csv::Reader::from_path(path).map_err(crate::CommandError::system)?;
         let column = reader
             .headers()
-            .map_err(|e| e.to_string())?
+            .map_err(crate::CommandError::system)?
             .iter()
             .position(|h| h == "name")
-            .ok_or("词表缺少 name 列")?;
+            .ok_or_else(|| {
+                crate::CommandError::new(
+                    crate::command_error::ErrorKind::VocabularyNoNameColumn,
+                    "词表缺少 name 列",
+                )
+            })?;
         let mut names = Vec::new();
         for record in reader.records() {
-            let record = record.map_err(|e| e.to_string())?;
+            let record = record.map_err(crate::CommandError::system)?;
             if let Some(name) = record.get(column) {
                 names.push(name.to_owned());
             }

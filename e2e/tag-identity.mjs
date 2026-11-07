@@ -75,8 +75,8 @@ try {
   const create = async (name, label) => {
     const info = await session.invoke("create_library", { parent: libraries, name });
     await session.invoke("start_import", { libraryId: info.id, source: { paths: [imagePath] } });
-    const page = await until(`import ${name}`, async () => { const page = await session.invoke("browse", { libraryId: info.id, query: { scope: { kind: "all" }, conditions: { conditions: [] }, cursor: null, limit: 20, thumbnailPx: 128 } }); return page.cards.length === 1 ? page : null; });
-    const imageId = page.cards[0].id;
+    const page = await until(`import ${name}`, async () => { const page = await session.invoke("workspace_browse", { query: { scope: { kind: "library", libraryId: info.id, scope: { kind: "all" } }, conditions: { conditions: [] }, cursor: null, limit: 20, knownPlaceholders: [] }, safeMode: await session.invoke("safe_mode") }); return page.cards.length === 1 ? page : null; });
+    const imageId = page.cards[0].sources.find((source) => source.libraryId === info.id).imageId;
     await session.invoke("edit_tags", { libraryId: info.id, imageIds: [imageId], edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: label, lang: "zh-CN" } }] });
     const vocabulary = await session.invoke("vocabulary", { libraryId: info.id });
     const localId = vocabulary.tags[0].id;
@@ -87,7 +87,7 @@ try {
   const second = await create("第二库", "青丝");
   let snapshot = await session.invoke("inspect_tag_catalog");
   const target = snapshot.catalog.mappings.find((m) => m.libraryId === first.info.id).catalogId;
-  const secondBefore = await session.invoke("image_tags", { libraryId: second.info.id, imageId: second.imageId, lang: "zh-CN" });
+  const secondBefore = (await session.invoke("catalog_image_tags", { libraryId: second.info.id, imageId: second.imageId, lang: "zh-CN" })).image;
   assert(snapshot.catalog.tags.length === 2, "ambiguous aliases do not merge identities");
   assert(first.localId !== second.localId, "real libraries use different local IDs");
   await session.close(); session = null; quitOwnApp(); await delay(700);
@@ -112,7 +112,7 @@ try {
   await session.invoke("switch_library", { libraryId: first.info.id });
   await session.invoke("edit_tags", { libraryId: first.info.id, imageIds: [first.imageId], edits: [{ kind: "reject", tag: { kind: "id", id: first.localId } }] });
   await session.invoke("switch_library", { libraryId: second.info.id });
-  const afterOtherDecision = await session.invoke("image_tags", { libraryId: second.info.id, imageId: second.imageId, lang: "zh-CN" });
+  const afterOtherDecision = (await session.invoke("catalog_image_tags", { libraryId: second.info.id, imageId: second.imageId, lang: "zh-CN" })).image;
   assert(JSON.stringify(afterOtherDecision) === JSON.stringify(secondBefore), "other library's rejection does not change local image decision");
   await session.close(); session = null; quitOwnApp(); await delay(700);
   session = await Session.start();

@@ -84,7 +84,7 @@ try {
     });
     const images = {};
     for (const card of page.cards) {
-      const detail = await session.invoke("workspace_image", { libraryId: info.id, imageId: card.imageId });
+      const detail = await session.invoke("image", { libraryId: info.id, imageId: card.imageId });
       images[detail.originalName] = card.imageId;
     }
     const root = await session.invoke("create_folder", { libraryId: info.id, name: "人物", parent: null });
@@ -128,7 +128,7 @@ try {
   await uiTotal(2);
   const nested = (await browse(scoped(first.info.id, { kind: "folderTree", id: first.root }))).cards.find(c => c.imageId === first.images["nested.png"]);
   assert(nested.sources.length === 2 && nested.sources.filter(s => s.matches).length === 1, "folder matching is complete per source before byte deduplication");
-  assert((await session.invoke("workspace_image", { libraryId: first.info.id, imageId: first.images["nested.png"] })).folders.length === 2, "multiple folder memberships remain visible through formal source detail");
+  assert((await session.invoke("image", { libraryId: first.info.id, imageId: first.images["nested.png"] })).folders.length === 2, "multiple folder memberships remain visible through formal source detail");
   await session.screenshot("descendant-scope.png");
   await session.click(`//*[@data-library-id='${first.info.id}']//button[.//span[text()='未归类']]`);
   await uiTotal(1);

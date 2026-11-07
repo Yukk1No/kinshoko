@@ -9,7 +9,7 @@ import type { BrowseScope } from "../bindings/BrowseScope";
 afterEach(cleanup);
 
 const card = (id: string, extra: Partial<BrowserCard> = {}): BrowserCard => ({
-  id, width: 100, height: 100, thumbnail: `L1/${id}/256`, adult: false, libraryId: "L1", imageId: `i${id}`,
+  id, width: 100, height: 100, adult: false, libraryId: "L1", imageId: `i${id}`,
   sources: [{ libraryId: "L1", libraryName: "库一", imageId: `i${id}`, unavailable: null, matches: true, deleted: false }], ...extra,
 });
 
@@ -52,23 +52,23 @@ it("单张：复制图片与在资源管理器中显示作用于这一张（#105
   expect(again.a.reveal).toHaveBeenCalledWith(one);
 });
 
-it("单张：在文件夹范围里多出“从此文件夹移出”，多来源时多出“查看来源”", () => {
+it("单张：在文件夹范围里多出“移出此文件夹”，多来源时多出“查看来源”", () => {
   const twoSources = card("1", { sources: [
     { libraryId: "L1", libraryName: "库一", imageId: "i1", unavailable: null, matches: true, deleted: false },
     { libraryId: "L2", libraryName: "库二", imageId: "j1", unavailable: null, matches: true, deleted: false },
   ] });
   const { rows, a } = show({ kind: "cards", cards: [twoSources], point }, { kind: "folder", id: "f9" });
-  expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "复制图片Ctrl C", "移到文件夹", "从此文件夹移出", "加入参考组", "内容分级", "查看来源", "在资源管理器中显示", "移到回收站Del"]);
-  fireEvent.click(screen.getByRole("menuitem", { name: "从此文件夹移出" }));
+  expect(rows()).toEqual(["打开Enter", "钉住整图P", "框选局部钉住F1", "复制图片Ctrl C", "移到文件夹", "移出此文件夹", "加入参考组", "内容分级", "查看来源", "在资源管理器中显示", "移到回收站Del"]);
+  fireEvent.click(screen.getByRole("menuitem", { name: "移出此文件夹" }));
   expect(a.edit).toHaveBeenCalledWith([twoSources], [{ kind: "removeFromFolder", folderId: "f9" }], true);
 });
 
-it("单张：含子文件夹的范围（默认）里，图直接在这个文件夹时也有“从此文件夹移出”，在子文件夹里的没有", async () => {
+it("单张：含子文件夹的范围（默认）里，图直接在这个文件夹时也有“移出此文件夹”，在子文件夹里的没有", async () => {
   const direct = card("1");
   const a = actions();
   a.inFolder = vi.fn(async (c: BrowserCard) => c.id === "1");
   show({ kind: "cards", cards: [direct], point }, { kind: "folderTree", id: "f9" }, a);
-  fireEvent.click(await screen.findByRole("menuitem", { name: "从此文件夹移出" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "移出此文件夹" }));
   expect(a.inFolder).toHaveBeenCalledWith(direct, "f9");
   expect(a.edit).toHaveBeenCalledWith([direct], [{ kind: "removeFromFolder", folderId: "f9" }], true);
   cleanup();
@@ -79,7 +79,7 @@ it("单张：含子文件夹的范围（默认）里，图直接在这个文件�
   const { rows } = show({ kind: "cards", cards: [nested], point }, { kind: "folderTree", id: "f9" }, b);
   await waitFor(() => expect(b.inFolder).toHaveBeenCalledWith(nested, "f9"));
   await act(async () => {});
-  expect(rows()).not.toContain("从此文件夹移出");
+  expect(rows()).not.toContain("移出此文件夹");
 });
 
 it("单张：各项调用对应的动作", () => {
@@ -112,12 +112,12 @@ it("多张：钉住 N 张、复制禁用并提示一次只能复制一张，回�
 it("回收站范围：还原与彻底删除，彻底删除置底", () => {
   const cards = [card("1"), card("2")];
   const { rows, a } = show({ kind: "cards", cards, point }, { kind: "trash" });
-  expect(rows()).toEqual(["还原", "彻底删除…"]);
-  fireEvent.click(screen.getByRole("menuitem", { name: "还原" }));
+  expect(rows()).toEqual(["恢复", "永久删除…"]);
+  fireEvent.click(screen.getByRole("menuitem", { name: "恢复" }));
   expect(a.edit).toHaveBeenCalledWith(cards, [{ kind: "restore" }], true);
   cleanup();
   const again = show({ kind: "cards", cards, point }, { kind: "trash" });
-  const purge = screen.getByRole("menuitem", { name: "彻底删除…" });
+  const purge = screen.getByRole("menuitem", { name: "永久删除…" });
   expect(purge.className).toContain("is-danger");
   fireEvent.click(purge);
   expect(again.a.purge).toHaveBeenCalledWith(cards);

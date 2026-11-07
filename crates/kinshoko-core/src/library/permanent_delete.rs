@@ -99,7 +99,7 @@ fn groups_using(
 ) -> Result<Vec<GroupUsage>, Error> {
     usage
         .groups_using(&inner.info.id, ids)
-        .map_err(|e| Error::ReferenceGroups(e.to_string()))
+        .map_err(Error::reference_groups)
 }
 
 pub(super) fn preview(

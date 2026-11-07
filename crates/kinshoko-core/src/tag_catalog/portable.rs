@@ -18,7 +18,7 @@ pub(super) fn import_definition(
 ) -> Result<(), CatalogError> {
     definition
         .validate()
-        .map_err(CatalogError::InvalidDefinition)?;
+        .map_err(|e| CatalogError::InvalidDefinition(Box::new(e)))?;
     if let Some(raw) = tx
         .query_row(
             "SELECT definition FROM catalog_tag WHERE id=?1",
@@ -77,13 +77,16 @@ impl CatalogInspection {
         for definition in definitions {
             definition
                 .validate()
-                .map_err(CatalogError::InvalidDefinition)?;
+                .map_err(|e| CatalogError::InvalidDefinition(Box::new(e)))?;
             if let Some(prior) = identities.insert(&definition.id, definition)
                 && prior != definition
             {
-                return Err(CatalogError::InvalidDefinition(
-                    "同一身份包含不同定义".into(),
-                ));
+                return Err(CatalogError::InvalidDefinition(Box::new(
+                    crate::CommandError::new(
+                        crate::command_error::ErrorKind::ConflictingTagDefinitions,
+                        "同一身份包含不同定义",
+                    ),
+                )));
             }
             if let Some(existing) = self.tags.iter().find(|tag| tag.id == definition.id)
                 && existing.namespace != definition.namespace

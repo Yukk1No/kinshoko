@@ -7,6 +7,8 @@
 //! 钉图渲染层另有一项离屏比较（[`pins`]）。带 `--exit` 时保存后退出，退出码表示是否通过，
 //! 供 CI 使用。
 
+use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 
@@ -52,13 +54,13 @@ struct Prepared {
 
 #[derive(Default)]
 pub struct GateState {
-    slot: Mutex<Option<Result<Arc<Prepared>, String>>>,
+    slot: Mutex<Option<Result<Arc<Prepared>, CommandError>>>,
     ready: Condvar,
     exit: Mutex<bool>,
 }
 
 impl GateState {
-    fn wait(&self) -> Result<Arc<Prepared>, String> {
+    fn wait(&self) -> Result<Arc<Prepared>, CommandError> {
         let mut slot = self.slot.lock().unwrap_or_else(|e| e.into_inner());
         loop {
             if let Some(result) = slot.as_ref() {
@@ -124,10 +126,10 @@ fn primary_display(app: &AppHandle) -> pins::MainDisplay {
     pins::MainDisplay { name, icc }
 }
 
-fn prepare(report_dir: &Path, display: pins::MainDisplay) -> Result<Prepared, String> {
+fn prepare(report_dir: &Path, display: pins::MainDisplay) -> Result<Prepared, CommandError> {
     let stamp = chrono_stamp();
     let dir = report_dir.join(format!("run-{stamp}"));
-    let run = gate::prepare(&dir).map_err(|e| e.to_string())?;
+    let run = gate::prepare(&dir).map_err(CommandError::from)?;
     Ok(Prepared {
         run,
         report_dir: report_dir.to_path_buf(),
@@ -210,7 +212,7 @@ $json = [pscustomobject]@{ os = $os; windows = $cv; gpus = $gpu; monitors = $mon
 
 /// 等样本库准备好后返回实验计划。
 #[tauri::command]
-pub async fn gate_plan(app: AppHandle) -> Result<GatePlan, String> {
+pub async fn gate_plan(app: AppHandle) -> Result<GatePlan, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<GateState>();
         let prepared = state.wait()?;
@@ -223,12 +225,12 @@ pub async fn gate_plan(app: AppHandle) -> Result<GatePlan, String> {
         })
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(CommandError::system)?
 }
 
 /// 钉图离屏渲染 vs 正式派生图（见 [`pins`]）。第一次调用时在 GPU 上画全部样本。
 #[tauri::command]
-pub async fn gate_pins(app: AppHandle) -> Result<PinGate, String> {
+pub async fn gate_pins(app: AppHandle) -> Result<PinGate, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         let prepared = app.state::<GateState>().wait()?;
         Ok(prepared
@@ -237,7 +239,7 @@ pub async fn gate_pins(app: AppHandle) -> Result<PinGate, String> {
             .clone())
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(CommandError::system)?
 }
 
 /// 样本的原文件（`original`）、应用 1:1 显示的文件（`display`，见 `Library::display`）或
@@ -248,7 +250,7 @@ pub async fn gate_image(
     image_id: String,
     what: String,
     px: Option<u32>,
-) -> Result<Response, String> {
+) -> Result<Response, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         let prepared = app.state::<GateState>().wait()?;
         let library = &prepared.run.library;
@@ -256,15 +258,20 @@ pub async fn gate_image(
             ("original", _) => library.original_path(&image_id),
             ("display", _) => library.display(&image_id).map(|d| d.path),
             ("thumbnail", Some(px)) => library.thumbnail(&image_id, px),
-            _ => return Err(format!("未知的取图方式：{what}")),
+            _ => {
+                return Err(CommandError::new(
+                    ErrorKind::UnknownFidelitySample { what: what.clone() },
+                    format!("未知的取图方式：{what}"),
+                ));
+            }
         }
-        .map_err(|e| e.to_string())?;
+        .map_err(CommandError::from)?;
         std::fs::read(path)
             .map(Response::new)
-            .map_err(|e| e.to_string())
+            .map_err(CommandError::from)
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(CommandError::system)?
 }
 
 /// 保存报告（JSON 与 Markdown），返回 JSON 的路径。`--exit` 时随后退出。
@@ -275,20 +282,20 @@ pub async fn gate_save(
     report: serde_json::Value,
     markdown: String,
     passed: bool,
-) -> Result<PathBuf, String> {
+) -> Result<PathBuf, CommandError> {
     let prepared = state.wait()?;
     let stamp = chrono_stamp();
     let json = prepared
         .report_dir
         .join(format!("fidelity-report-{stamp}.json"));
     let md = json.with_extension("md");
-    std::fs::create_dir_all(&prepared.report_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&prepared.report_dir).map_err(CommandError::from)?;
     std::fs::write(
         &json,
-        serde_json::to_vec_pretty(&report).map_err(|e| e.to_string())?,
+        serde_json::to_vec_pretty(&report).map_err(CommandError::from)?,
     )
-    .map_err(|e| e.to_string())?;
-    std::fs::write(&md, markdown).map_err(|e| e.to_string())?;
+    .map_err(CommandError::from)?;
+    std::fs::write(&md, markdown).map_err(CommandError::from)?;
     if *state.exit.lock().unwrap_or_else(|e| e.into_inner()) {
         app.exit(if passed { 0 } else { 1 });
     }

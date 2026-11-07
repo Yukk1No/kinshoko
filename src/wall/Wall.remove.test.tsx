@@ -31,7 +31,7 @@ const total = () => document.querySelector<HTMLElement>(".wall")?.dataset.total;
 
 it("先移走卡片，不等重新浏览；放回的那部分回到原位（#290）", async () => {
   const ref = createRef<WallHandle>();
-  render(<Wall ref={ref} libraryId="A" scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
+  render(<Wall ref={ref} scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
     onOpenImage={() => {}} viewerOpen={false} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
   await settle();
   expect(shown()).toEqual(["a", "b", "c", "d"]);
@@ -49,7 +49,7 @@ it("先移走卡片，不等重新浏览；放回的那部分回到原位（#290
 
 it("只放回后面那张时也回到原位：前面那张已移走也不乱序", async () => {
   const ref = createRef<WallHandle>();
-  render(<Wall ref={ref} libraryId="A" scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
+  render(<Wall ref={ref} scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
     onOpenImage={() => {}} viewerOpen={false} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
   await settle();
   let first!: (ids: string[]) => void, second!: (ids: string[]) => void;
@@ -75,7 +75,7 @@ it("移走时还在路上的下一页回来也不把移走的卡片带回来（#
     return new Promise<WorkspacePage>((resolve) => { second = resolve; });
   });
   const ref = createRef<WallHandle>();
-  render(<Wall ref={ref} libraryId="A" scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
+  render(<Wall ref={ref} scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
     onOpenImage={() => {}} viewerOpen={false} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
   await settle();
   expect(total()).toBe("501");
@@ -92,7 +92,7 @@ it("全部移走再全部放回仍按原来的先后，几千张也不卡住", a
   const many = Array.from({ length: 2400 }, (_, i) => `c${i}`);
   mockIPC(() => ({ cards: many.map(card), total: many.length, nextCursor: null, status: { revision: "r", libraries: [] } }) satisfies WorkspacePage);
   const ref = createRef<WallHandle>();
-  render(<Wall ref={ref} libraryId="A" scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
+  render(<Wall ref={ref} scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
     onOpenImage={() => {}} viewerOpen={false} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
   await settle();
   let putBack!: (ids: string[]) => void;
@@ -118,7 +118,7 @@ it("整理还没结束时不翻下一页，重新浏览回来的页也去掉移�
       : { cards: [card("last")], total: 501, nextCursor: null, status: { revision: "r", libraries: [] } } satisfies WorkspacePage;
   });
   const ref = createRef<WallHandle>();
-  const props = { libraryId: "A", scope: { kind: "all" as const }, selected: new Set<string>(), onSelectionChange: () => {},
+  const props = { scope: { kind: "all" as const }, selected: new Set<string>(), onSelectionChange: () => {},
     onOpenImage: () => {}, viewerOpen: false, workspaceScope: { kind: "all" as const }, safeMode: true };
   const view = render(<Wall ref={ref} {...props} reloadKey={0} />);
   await settle();

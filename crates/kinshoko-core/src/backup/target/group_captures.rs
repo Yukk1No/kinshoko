@@ -70,7 +70,12 @@ pub(super) fn load(groups_dir: &Path, group: &ManifestGroup) -> Result<CaptureFi
                 .ok()
                 .filter(|b| sha256(b) == c.sha256)
                 .ok_or_else(|| {
-                    BackupError::Incomplete(format!("参考组“{}”的截图快照不符", group.name))
+                    BackupError::incomplete(
+                        crate::command_error::ErrorKind::SnapshotCapturesMismatch {
+                            name: group.name.clone(),
+                        },
+                        format!("参考组“{}”的截图快照不符", group.name),
+                    )
                 })?;
             Ok((c.file.clone(), bytes))
         })
@@ -83,7 +88,7 @@ pub(super) fn check(
     restored_id: &str,
     member: &GroupMember,
     group: &ManifestGroup,
-) -> Option<String> {
+) -> Option<CommandError> {
     let MemberSource::Capture { capture_file } = &member.source else {
         return None;
     };
@@ -93,9 +98,15 @@ pub(super) fn check(
         .and_then(|p| fs::read(p).ok());
     match (expected, actual) {
         (Some(c), Some(bytes)) if sha256(&bytes) == c.sha256 => None,
-        _ => Some(format!(
-            "参考组“{}”的成员 {} 的截图与快照不一致",
-            group.name, member.id
+        _ => Some(CommandError::new(
+            ErrorKind::CheckCaptureMismatch {
+                name: group.name.clone(),
+                member: member.id.clone(),
+            },
+            format!(
+                "参考组“{}”的成员 {} 的截图与快照不一致",
+                group.name, member.id
+            ),
         )),
     }
 }

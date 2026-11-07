@@ -12,13 +12,13 @@
    显示几个已由 chipsThatFit 算好，整排也不压缩：再窄先让输入框变窄，“+n”保持完整。 */
 .topbar > .search .search-chips, .topbar > .search .search-chip { flex: none; }
 .search-more { display: flex; flex: none; }
-.search-more-btn { height: 26px; min-width: 32px; max-width: 40px; padding: 0 8px; border: 0; border-radius: 8px; background: var(--surface-2); color: var(--ink-2);
+.search-more-btn { height: 26px; min-width: 32px; max-width: 40px; padding: 0 8px; border: 0; border-radius: var(--r-s); background: var(--surface-2); color: var(--ink-2);
   font: inherit; font-weight: 500; font-variant-numeric: tabular-nums; cursor: pointer; transition: background var(--t-fast), color var(--t-fast); }
 .search-more-btn:hover, .search-more-btn[data-popup-open] { background: var(--accent-soft); color: var(--accent-strong); }
 .search-more-pop { width: max-content; max-width: min(360px, calc(100vw - 32px)); padding: 8px; }
 .search-more-pop .search-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 /* 与顶栏里的标签块同样子（main-window.css），长的可以换行。 */
-.search-more-pop .search-chip { max-width: 100%; min-height: 26px; padding: 0 4px 0 9px; border: 0; border-radius: 8px; background: var(--surface-2); font-weight: 500; white-space: normal; }
+.search-more-pop .search-chip { max-width: 100%; min-height: 26px; padding: 0 4px 0 9px; border: 0; border-radius: var(--r-s); background: var(--surface-2); font-weight: 500; white-space: normal; }
 .search-more-pop .search-chip[data-negate] { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); }
 
 /* 主区再窄：查找框独占顶栏第二行，铺满宽度；第一行留给侧栏开关、导入与窗口控件，仍可拖动窗口。 */

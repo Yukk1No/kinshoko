@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { Tip } from "../ui/Tip";
 
@@ -35,6 +36,7 @@ type Props = {
  * 详情面板左边缘的拖动手柄（#157）。往左拖变宽；双击回到 320；聚焦后左右方向键每次 16px。
  */
 export function InspectorResizer({ width, onResize }: Props) {
+  const { t } = useTranslation("shell");
   const drag = useRef<{ x: number; width: number; pointer: number; last: number } | null>(null);
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
@@ -63,12 +65,12 @@ export function InspectorResizer({ width, onResize }: Props) {
     onResize(clampInspectorWidth(width + delta), true);
   };
   return (
-    <Tip label="调整宽度" side="left">
+    <Tip label={t("resizeInspectorTitle")} side="left">
     <div
       className="insp-resizer"
       role="separator"
       aria-orientation="vertical"
-      aria-label="调整详情宽度"
+      aria-label={t("resizeInspector")}
       aria-valuenow={width}
       aria-valuemin={INSPECTOR_WIDTH.min}
       aria-valuemax={widest()}

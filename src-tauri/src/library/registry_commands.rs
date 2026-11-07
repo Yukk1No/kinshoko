@@ -1,12 +1,14 @@
 //! 登记、创建与切换资料库的命令。
 
 use super::*;
+use kinshoko_core::CommandError;
 
-/// 当前资料库；启动后第一次调用时打开本设备上次打开的资料库。
+/// 启动时打开本设备上次打开的资料库并装配后端（可写句柄、缩略图协议、事件转发）。界面不用
+/// 返回值判断任何事（ADR-0016），它留给 e2e 核对后端状态。
 #[tauri::command]
 pub(super) async fn current_library<R: Runtime>(
     app: AppHandle<R>,
-) -> Result<Option<LibraryInfo>, String> {
+) -> Result<Option<LibraryInfo>, CommandError> {
     blocking(move || Ok(restore(&app)?.map(|library| library.info().clone()))).await
 }
 
@@ -16,7 +18,7 @@ pub(super) async fn create_library<R: Runtime>(
     app: AppHandle<R>,
     parent: PathBuf,
     name: String,
-) -> Result<LibraryInfo, String> {
+) -> Result<LibraryInfo, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
@@ -30,11 +32,81 @@ pub(super) async fn create_library<R: Runtime>(
     .await
 }
 
+/// 在 `parent` 下新建名为 `name` 的资料库文件夹并登记到本设备，但不切换过去（#370：订阅榜单时
+/// 新建「pixiv 榜单」，画师还留在当前图库）。
+#[tauri::command]
+pub(super) async fn create_library_unopened<R: Runtime>(
+    app: AppHandle<R>,
+    parent: PathBuf,
+    name: String,
+) -> Result<kinshoko_core::RegisteredLibrary, CommandError> {
+    blocking(move || {
+        let state = app.state::<LibraryState>();
+        let root = parent.join(name.trim());
+        Library::create(&root, &name).map_err(DeviceLibraryError::Library)?;
+        let registered = with_visibility_commit(&app, |_| {
+            with_libraries(&state, |libraries| libraries.add_registration(&root))
+        })?;
+        state.release_readers();
+        Ok(registered)
+    })
+    .await
+}
+
+/// 保存入口各自记住的位置（ADR-0016）。
+#[tauri::command]
+pub(super) async fn save_memory<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<kinshoko_core::SaveMemory, CommandError> {
+    blocking(move || {
+        with_libraries(&app.state::<LibraryState>(), |libraries| {
+            Ok(libraries.save_memory())
+        })
+    })
+    .await
+}
+
+/// 导入对话框里亲手选定了保存目标。
+#[tauri::command]
+pub(super) async fn remember_import_destination<R: Runtime>(
+    app: AppHandle<R>,
+    destination: kinshoko_core::library::SaveDestination,
+) -> Result<(), CommandError> {
+    blocking(move || {
+        with_libraries(&app.state::<LibraryState>(), |libraries| {
+            libraries.remember_import_destination(&destination)
+        })
+    })
+    .await
+}
+
+/// 亲手选定了新建资料库的位置。
+#[tauri::command]
+pub(super) async fn remember_new_library_parent<R: Runtime>(
+    app: AppHandle<R>,
+    parent: PathBuf,
+) -> Result<(), CommandError> {
+    blocking(move || {
+        with_libraries(&app.state::<LibraryState>(), |libraries| {
+            libraries.remember_new_library_parent(&parent)
+        })
+    })
+    .await
+}
+
+/// 系统的「图片」文件夹，新建资料库时没有已有资料库可以挨着放才用它；不存在时为空。
+#[tauri::command]
+pub(super) async fn pictures_folder<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<Option<PathBuf>, CommandError> {
+    Ok(app.path().picture_dir().ok().filter(|dir| dir.is_dir()))
+}
+
 /// 本设备登记的资料库，以及这次检查时不可用的原因（例如移动盘没插）。
 #[tauri::command]
 pub(super) async fn registered_libraries<R: Runtime>(
     app: AppHandle<R>,
-) -> Result<Vec<LibraryRegistration>, String> {
+) -> Result<Vec<LibraryRegistration>, CommandError> {
     blocking(move || {
         let registered = with_libraries(&app.state::<LibraryState>(), |libraries| {
             Ok(libraries.libraries().to_vec())
@@ -49,7 +121,7 @@ pub(super) async fn registered_libraries<R: Runtime>(
 pub(super) async fn register_library<R: Runtime>(
     app: AppHandle<R>,
     root: PathBuf,
-) -> Result<LibraryInfo, String> {
+) -> Result<LibraryInfo, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
@@ -66,7 +138,7 @@ pub(super) async fn register_library<R: Runtime>(
 pub(super) async fn switch_library<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
-) -> Result<LibraryInfo, String> {
+) -> Result<LibraryInfo, CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
@@ -83,7 +155,7 @@ pub(super) async fn switch_library<R: Runtime>(
 pub(super) async fn unregister_library<R: Runtime>(
     app: AppHandle<R>,
     library_id: String,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let state = app.state::<LibraryState>();
         let _transition = lock(&state.transition);
@@ -100,11 +172,10 @@ pub(super) async fn unregister_library<R: Runtime>(
             *lock(&state.forwarded) = None;
             state.search.invalidate();
             *lock(&state.reference) = None;
-            // Tagging::drop joins a worker that may be waiting for visibility_commit.
-            // Registry revocation has committed and released that gate before this join.
-            crate::tagging::detach(&app);
         }
         state.release_readers();
+        // 打标正在打这个库时中止那一批并等它放下句柄（#414）；发布闸门已放开。
+        crate::tagging::release(&app, &library_id);
         Ok(())
     })
     .await

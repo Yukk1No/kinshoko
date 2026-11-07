@@ -20,7 +20,7 @@ export async function tab(name: string) {
 export const defaults: ShellSettingsView = {
   autostart: true,
   shortcuts: [
-    { action: "capture", accelerator: "F1", problem: "已被其他程序占用" },
+    { action: "capture", accelerator: "F1", problem: { kind: "taken" } },
     { action: "pinClipboard", accelerator: "F3", problem: null },
     { action: "hideAllPins", accelerator: "F4", problem: null },
   ],
@@ -32,7 +32,7 @@ export const defaults: ShellSettingsView = {
   pinEdgeContrast: false,
   safeModeScope: "questionable",
   tagDisplay: { style: "bands", high: 0.8, low: 0.4, lowOutline: true },
-  updateChannel: "stable",
+  inspectorOpen: false, updateChannel: "stable",
 };
 
 /** 记录前端发出的命令，按给定的处理函数回应。 */

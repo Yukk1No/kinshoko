@@ -1,4 +1,4 @@
-//! 工作区的标签目录与词表：按安全模式与实际使用决定哪些定义可见，以及用它们的整理入口（从 workspace.rs 原样搬出）。
+//! 工作区的标签目录与词表：按安全模式与实际使用决定哪些定义可见，以及用它们的整理入口。
 use super::*;
 
 pub(super) fn local_labels(
@@ -288,5 +288,55 @@ impl Workspace {
     ) -> Result<crate::tag_catalog::CatalogApproxView, CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
         catalog.approx_view(management_vocabulary(&snapshot, safe), lang)
+    }
+}
+
+impl Workspace {
+    /// 给 `library_id` 里的图挑标签的候选（#425）：标签 id 是这个资料库的，计数不算回收站和封印的图。
+    /// 封印按全部来源算：只用在被封印的图上的标签不列出，没有用过的定义照常列出，同 `visible_catalog`。
+    #[allow(clippy::too_many_arguments)]
+    pub fn library_candidates(
+        &mut self,
+        device: &DeviceLibraries,
+        catalog: &mut TagCatalog,
+        library_id: &str,
+        text: &str,
+        lang: &str,
+        limit: usize,
+        safe: bool,
+        builtin: &BuiltinApproxTable,
+    ) -> Result<Vec<Candidate>, CatalogError> {
+        let snapshot = self.snapshot(device, catalog)?;
+        let provider = snapshot
+            .providers
+            .iter()
+            .find(|p| p.registration.library.id == library_id)
+            .ok_or(Error::SourceChanged)?;
+        if let Some(reason) = &provider.registration.unavailable {
+            return Err(CatalogError::Command(Box::new(reason.clone())));
+        }
+        let raw = provider.vocabulary.as_ref().ok_or(Error::SourceChanged)?;
+        let mut vocabulary = snapshot.catalog.search_vocabulary(library_id, raw);
+        let mut counts = BTreeMap::<&str, u32>::new();
+        let mut sealed = BTreeSet::<&str>::new();
+        let mut unsealed = BTreeSet::<&str>::new();
+        for image in &provider.images {
+            let tags = image.tags.iter().map(String::as_str);
+            if safe && snapshot.adult.contains(&image.sha256) {
+                sealed.extend(tags);
+                continue;
+            }
+            unsealed.extend(tags.clone());
+            if !image.deleted {
+                for tag in tags {
+                    *counts.entry(tag).or_default() += 1;
+                }
+            }
+        }
+        vocabulary.tags.retain_mut(|tag| {
+            tag.count = counts.get(tag.id.as_str()).copied().unwrap_or(0);
+            !sealed.contains(tag.id.as_str()) || unsealed.contains(tag.id.as_str())
+        });
+        Ok(Search::new(&vocabulary, builtin).candidates(text, lang, limit))
     }
 }

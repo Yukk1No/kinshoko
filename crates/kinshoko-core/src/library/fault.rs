@@ -24,6 +24,13 @@ pub(crate) const BACKUP_AFTER_COPY: &str = "backup_after_copy";
 /// 永久删除：参考图记录已删除并提交，原文件还没有清除。
 pub(super) const PERMANENT_DELETE_AFTER_COMMIT: &str = "permanent_delete_after_commit";
 
+/// 提交打标结果：事务里已写入模型标签，还没有写分级建议。
+pub(super) const TAGGING_AFTER_TAGS: &str = "tagging_commit_after_tags";
+/// 提交打标结果：事务里已写入分级建议，还没有记完成状态。
+pub(super) const TAGGING_AFTER_RATING: &str = "tagging_commit_after_rating";
+/// 提交打标结果：事务里已记完成状态，COMMIT 之前。
+pub(super) const TAGGING_AFTER_STATE: &str = "tagging_commit_after_state";
+
 struct Armed {
     point: String,
     nth: u32,

@@ -1,5 +1,18 @@
-//! 导入预览回执的撤销与收窄：关闭、换代、删除、断开与身份替换（从 import_preview.rs 原样搬出）。
+//! 导入预览回执的撤销与收窄：关闭、换代、删除、断开与身份替换。
 use super::*;
+
+fn content_of(
+    library: &kinshoko_core::Library,
+    image: &str,
+) -> (
+    kinshoko_core::library::ImageDetail,
+    kinshoko_core::library::ImageTags,
+) {
+    (
+        library.image(image).unwrap(),
+        library.image_tags(image, "zh-CN").unwrap(),
+    )
+}
 
 #[test]
 fn close_and_next_receipt_generation_reject_late_bytes_foreign_ids_and_historical_tokens() {
@@ -134,7 +147,7 @@ fn mixed_receipt_coarsens_all_successes_keeps_real_failures_and_does_not_change_
     let vi = import(&f.target, &visible);
     let new = png(f.dir.path(), "new-unknown.png", 160);
     let failed = f.dir.path().join("missing-file.png");
-    let before = f.target.content_snapshot(&f.target_image).unwrap();
+    let before = content_of(&f.target, &f.target_image);
     let original = std::fs::read(f.target.original_path(&f.target_image).unwrap()).unwrap();
     let task = receipt(
         &mut f.device,
@@ -185,7 +198,7 @@ fn mixed_receipt_coarsens_all_successes_keeps_real_failures_and_does_not_change_
     f.workspace
         .complete_import_preview(&mut f.device, &mut f.catalog, read, true)
         .unwrap();
-    assert_eq!(f.target.content_snapshot(&f.target_image).unwrap(), before);
+    assert_eq!(content_of(&f.target, &f.target_image), before);
     assert_eq!(
         std::fs::read(f.target.original_path(&f.target_image).unwrap()).unwrap(),
         original

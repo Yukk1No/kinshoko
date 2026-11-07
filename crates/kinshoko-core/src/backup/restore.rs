@@ -145,10 +145,19 @@ pub(super) fn recover(groups: &ReferenceGroups) -> Result<u32, BackupError> {
         if path.extension().and_then(|s| s.to_str()) != Some("json") {
             continue;
         }
-        let journal: Journal = serde_json::from_slice(&fs::read(&path)?)
-            .map_err(|e| BackupError::Incomplete(format!("内容恢复记录损坏：{e}")))?;
+        let journal: Journal = serde_json::from_slice(&fs::read(&path)?).map_err(|e| {
+            BackupError::incomplete(
+                crate::command_error::ErrorKind::RestoreJournalDamaged {
+                    detail: e.to_string(),
+                },
+                format!("内容恢复记录损坏：{e}"),
+            )
+        })?;
         if path.file_stem().and_then(|s| s.to_str()) != Some(journal.id.as_str()) {
-            return Err(BackupError::Incomplete("内容恢复记录身份不符".into()));
+            return Err(BackupError::incomplete(
+                crate::command_error::ErrorKind::RestoreJournalMismatch,
+                "内容恢复记录身份不符",
+            ));
         }
         rollback(&journal, groups)?;
         fs::remove_file(path)?;
@@ -164,18 +173,25 @@ fn rollback(journal: &Journal, groups: &ReferenceGroups) -> Result<(), BackupErr
         || journal.stage.file_name().and_then(|s| s.to_str())
             != Some(format!(".kinshoko-restore-{}.incomplete", journal.id).as_str())
     {
-        return Err(BackupError::Incomplete("内容恢复记录的位置无效".into()));
+        return Err(BackupError::incomplete(
+            crate::command_error::ErrorKind::RestoreJournalLocation,
+            "内容恢复记录的位置无效",
+        ));
     }
     if journal.stage.exists() && fs::read(journal.stage.join("owner"))? != journal.id.as_bytes() {
-        return Err(BackupError::Incomplete(
-            "内容恢复暂存位置不属于本批次".into(),
+        return Err(BackupError::incomplete(
+            crate::command_error::ErrorKind::RestoreStageNotOwned,
+            "内容恢复暂存位置不属于本批次",
         ));
     }
     // Validate all identities before deleting anything, including after a user moved/replaced a path.
     for restored in &journal.libraries {
         let info = restored;
         if info.root.parent() != journal.stage.parent() || info.root == journal.stage {
-            return Err(BackupError::Incomplete("内容恢复结果的位置无效".into()));
+            return Err(BackupError::incomplete(
+                crate::command_error::ErrorKind::RestoreResultLocation,
+                "内容恢复结果的位置无效",
+            ));
         }
         if !info.root.exists() {
             continue;
@@ -186,8 +202,9 @@ fn rollback(journal: &Journal, groups: &ReferenceGroups) -> Result<(), BackupErr
             .iter()
             .any(|p| p.old_library_id == restored.old_id && p.backup_id == journal.backup_id)
         {
-            return Err(BackupError::Incomplete(
-                "内容恢复结果身份不符，不清理现有资料库".into(),
+            return Err(BackupError::incomplete(
+                crate::command_error::ErrorKind::RestoreLibraryMismatch,
+                "内容恢复结果身份不符，不清理现有资料库",
             ));
         }
     }
@@ -199,8 +216,9 @@ fn rollback(journal: &Journal, groups: &ReferenceGroups) -> Result<(), BackupErr
                 }) => {}
             Err(GroupError::UnknownGroup) => {}
             Ok(_) => {
-                return Err(BackupError::Incomplete(
-                    "内容恢复参考组身份不符，不清理现有参考组".into(),
+                return Err(BackupError::incomplete(
+                    crate::command_error::ErrorKind::RestoreGroupMismatch,
+                    "内容恢复参考组身份不符，不清理现有参考组",
                 ));
             }
             Err(e) => return Err(e.into()),

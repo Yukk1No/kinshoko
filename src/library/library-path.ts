@@ -12,3 +12,12 @@ export function libraryPathHint(root: string, roots: readonly string[]): string 
   }
   return root;
 }
+
+/** 上级文件夹；拿不到时为空。盘符根目录保留末尾的分隔符，免得拼成相对路径。 */
+export function parentFolder(root: string): string | null {
+  const trimmed = root.replace(/[\\/]+$/, "");
+  const at = Math.max(trimmed.lastIndexOf("\\"), trimmed.lastIndexOf("/"));
+  if (at <= 0) return null;
+  const parent = trimmed.slice(0, at);
+  return /^[A-Za-z]:$/.test(parent) ? `${parent}\\` : parent;
+}

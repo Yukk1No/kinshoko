@@ -2,6 +2,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { Wall } from "./Wall";
+import { workspacePage } from "../test/workspacePage";
 
 const events = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>());
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async (name, callback) => { events.set(name, callback); return () => events.delete(name); }) }));
@@ -18,10 +19,10 @@ it("F1 requests the current loaded visible source after immediate scroll, rather
   const reports: any[] = [];
   mockConvertFileSrc("windows");
   mockIPC((command, args) => {
-    if (command === "plugin:library|browse") return { cards: [{ id: "original", width: 2400, height: 1600, adult: false, thumbnail: "read-only/original/256" }], total: 1, nextCursor: null };
+    if (command === "plugin:library|workspace_browse") return workspacePage([{ id: "original", width: 2400, height: 1600 }], 1, null, "read-only");
     if (command === "plugin:desktop|report_capture_references") reports.push(args);
   });
-  render(<Wall libraryId="read-only" scope={{ kind: "all" }} reloadKey={0} selected={new Set()} onSelectionChange={() => {}} onOpenImage={() => {}} viewerOpen={false} />);
+  render(<Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={new Set()} onSelectionChange={() => {}} onOpenImage={() => {}} viewerOpen={false} />);
   const img = await screen.findByRole("img");
   Object.defineProperties(img, { complete: { configurable: true, value: true }, naturalWidth: { configurable: true, value: 240 }, naturalHeight: { configurable: true, value: 160 } });
   fireEvent.load(img);

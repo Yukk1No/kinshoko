@@ -2,7 +2,7 @@
   "name": "kinshoko",
   "private": true,
   "license": "GPL-3.0-or-later",
-  "version": "1.0.0",
+  "version": "1.1.0-beta.2",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -15,15 +15,18 @@
     "vite:build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "check": "node scripts/check.mjs",
     "bindings": "node -e \"require('node:fs').rmSync('src/bindings',{recursive:true,force:true})\" && cargo test -p kinshoko-core --lib"
   },
   "dependencies": {
     "@base-ui/react": "1.6.0",
     "@tauri-apps/api": "2.12.1",
+    "i18next": "26.4.6",
     "lucide-react": "1.52.0",
     "motion": "14.1.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "react-i18next": "17.0.18"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.1",

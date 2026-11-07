@@ -2,4 +2,8 @@
 import type { WorkspaceDirectory } from "./WorkspaceDirectory";
 import type { WorkspaceStatus } from "./WorkspaceStatus";
 
-export type WorkspaceDirectories = { status: WorkspaceStatus, providers: Array<WorkspaceDirectory>, };
+export type WorkspaceDirectories = { status: WorkspaceStatus, providers: Array<WorkspaceDirectory>, 
+/**
+ * 资料库 id，登记最早的在前。`providers` 按 id 排，保存入口的兜底按这个（ADR-0016）。
+ */
+registrationOrder: Array<string>, };

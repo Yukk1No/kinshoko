@@ -1,9 +1,9 @@
-//! 活动资料库的装配与事件转发（从 library.rs 原样搬出）。
+//! 活动资料库的装配与事件转发。
 
 use super::*;
 
 /// 核心已完成切换，这里装配新的活动资料库：设上保存的安全模式、取走参考视角、清掉旧库的
-/// Search 快照、为它开始打标，并转发它的事件。每个活动句柄只装配一次；事件按句柄转发，
+/// Search 快照、让自动打标先打它，并转发它的事件。每个活动句柄只装配一次；事件按句柄转发，
 /// 切换后旧句柄（例如导入仍持有的库）的事件照常带着它的资料库身份送到界面。
 ///
 /// 新打开的资料库在核心里先是封存状态（安全模式开），这里再按设置放开。
@@ -44,8 +44,8 @@ pub(super) fn forward_events<R: Runtime>(
     state.search.invalidate();
     took("装配：设置与放掉只读句柄", started, None);
     let started = std::time::Instant::now();
-    crate::tagging::attach(app, library);
-    took("装配：启动自动打标", started, None);
+    crate::tagging::prefer(app, &info.id);
+    took("装配：优先打标", started, None);
     let mut handles = lock(&state.forwarded_handles);
     handles.retain(|handle| handle.strong_count() > 0);
     if handles.iter().any(|handle| Weak::ptr_eq(handle, &weak)) {
@@ -55,8 +55,7 @@ pub(super) fn forward_events<R: Runtime>(
     drop(handles);
     let (app, search) = (app.clone(), state.search.clone());
     // 每个句柄的事件都转发，直到句柄关闭（ADR-0008）：可写句柄切到别的库后，原库仍在进行的导入的
-    // 进度、结束与列表变化照常送到界面。事件都带资料库身份，界面只采纳它正在显示的库的安全模式与
-    // 导入事件，不串台。
+    // 进度、结束与列表变化照常送到界面。事件都带资料库身份，导入回执归它自己的任务，不串台。
     std::thread::Builder::new()
         .name("kinshoko-library-events".into())
         .spawn(move || {

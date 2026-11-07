@@ -20,7 +20,7 @@ import type { TagNamespace } from "../bindings/TagNamespace";
 import type { TagRef } from "../bindings/TagRef";
 import type { Vocabulary } from "../bindings/Vocabulary";
 
-// 标签整理测试共用的后端模拟与操作步骤（从 TagOrganize.test.tsx 拆出）。
+// 标签整理测试共用的后端模拟与操作步骤。
 
 export const library: LibraryInfo = { id: "L1", name: "工作参考", root: "D:\\参考\\工作参考" };
 export const page: BrowsePage = {
@@ -188,7 +188,7 @@ export class FakeTags {
             ? { kind: "tag" as const, tag: this.label(t.id), similar: [] }
             : t.kind === "text"
               ? { kind: "text" as const, text: t.text, tags: [], similar: [], ratings: [] }
-              : { kind: "rating" as const, rating: { ratings: t.ratings, name: t.ratings.join("、") } },
+              : { kind: "rating" as const, rating: { ratings: t.ratings, r18: false } },
         ),
       })),
     };
@@ -285,9 +285,9 @@ export function backend() {
           announce([]); return null;
         }
         case "tagging_status":
-          return { libraryId: "L1", status: { state: "starting" } };
+          return { state: "starting" };
         case "shell_settings":
-          return { autostart: true, shortcuts: [], showApproxSource: false };
+          return { autostart: true, shortcuts: [], showApproxSource: false, inspectorOpen: true };
         default:
           return null;
       }

@@ -10,7 +10,7 @@ import { LibraryPicker } from "./LibraryPicker";
 
 const opened = { id: "L1", name: "工作参考", root: "D:\\参考" };
 const restored = { id: "R1", name: "同名资料库（恢复）", root: "D:\\synthetic-t20\\恢复\\A" };
-let registered: { library: typeof restored; unavailable: string | null }[];
+let registered: { library: typeof restored; unavailable: import("../bindings/CommandError").CommandError | null }[];
 let reads: number;
 
 beforeEach(() => {
@@ -25,7 +25,7 @@ afterEach(async () => { cleanup(); await act(async () => {}); clearMocks(); });
 
 it("侧栏标题是“图库”与一个 ＋ 菜单（打开 / 新建 / 管理），没有图库切换", async () => {
   const create = vi.fn();
-  render(<LibraryPicker current={opened} onChanged={() => {}} onCreate={create} />);
+  render(<LibraryPicker onChanged={() => {}} onCreate={create} />);
   await act(async () => {});
   expect(screen.getByRole("heading", { name: "图库" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: /^当前图库/ })).toBeNull();
@@ -38,7 +38,7 @@ it("侧栏标题是“图库”与一个 ＋ 菜单（打开 / 新建 / 管理�
 });
 
 it("其他入口登记的新资料库随工作区变化出现在“管理图库”里", async () => {
-  render(<LibraryPicker current={opened} onChanged={() => {}} onCreate={() => {}} />);
+  render(<LibraryPicker onChanged={() => {}} onCreate={() => {}} />);
   await act(async () => {});
   fireEvent.click(screen.getByRole("button", { name: "打开、新建或管理图库" }));
   fireEvent.click(await screen.findByRole("menuitem", { name: "管理图库" }));
@@ -46,7 +46,7 @@ it("其他入口登记的新资料库随工作区变化出现在“管理图库�
   await act(async () => {});
   expect(within(dialog).queryByText("同名资料库（恢复）")).toBeNull();
 
-  registered = [...registered, { library: restored, unavailable: "移动盘没插" }];
+  registered = [...registered, { library: restored, unavailable: { code: "system" as const, detail: "移动盘没插" } }];
   const before = reads;
   await act(async () => { await emit("workspace-changed", { revision: "r2", libraries: structuredClone(registered) }); });
   await act(async () => {});

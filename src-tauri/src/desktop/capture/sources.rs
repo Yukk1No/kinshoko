@@ -1,6 +1,8 @@
 //! 框选开始时登记哪些参考图：钉图，以及主窗口里画出的参考图（向页面要一帧当前几何）。
 //! 截图前后各要一次，两帧一致才冻结；遮挡关系与图像一起固定。
 
+use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
 use std::sync::{Condvar, Mutex};
 use std::time::{Duration, Instant};
 
@@ -36,9 +38,12 @@ pub fn report_capture_references(
     window: tauri::WebviewWindow,
     request: String,
     frame: CaptureReferenceFrame,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     if window.label() != "main" || !frame.dpr.is_finite() || frame.dpr <= 0.0 {
-        return Err("参考图范围报告无效".into());
+        return Err(CommandError::new(
+            ErrorKind::CaptureSourceBoundsInvalid,
+            "参考图范围报告无效",
+        ));
     }
     let identity = window_identity(&window)?;
     let channel = &state(&app).capture_frames;
@@ -54,10 +59,10 @@ pub fn report_capture_references(
     Ok(())
 }
 
-fn window_identity(window: &tauri::WebviewWindow) -> Result<isize, String> {
+fn window_identity(window: &tauri::WebviewWindow) -> Result<isize, CommandError> {
     #[cfg(windows)]
     {
-        Ok(window.hwnd().map_err(|e| e.to_string())?.0 as isize)
+        Ok(window.hwnd().map_err(CommandError::system)?.0 as isize)
     }
     #[cfg(not(windows))]
     {
@@ -73,26 +78,29 @@ pub(super) struct MainMetrics {
     size: tauri::PhysicalSize<u32>,
     dpi: u64,
 }
-pub(super) fn main_metrics(app: &AppHandle) -> Result<Option<MainMetrics>, String> {
+pub(super) fn main_metrics(app: &AppHandle) -> Result<Option<MainMetrics>, CommandError> {
     let Some(window) = app.get_webview_window("main") else {
         return Ok(None);
     };
-    if !window.is_visible().map_err(|e| e.to_string())?
-        || window.is_minimized().map_err(|e| e.to_string())?
+    if !window.is_visible().map_err(CommandError::system)?
+        || window.is_minimized().map_err(CommandError::system)?
     {
         return Ok(None);
     }
     Ok(Some(MainMetrics {
         identity: window_identity(&window)?,
-        origin: window.inner_position().map_err(|e| e.to_string())?,
-        size: window.inner_size().map_err(|e| e.to_string())?,
-        dpi: window.scale_factor().map_err(|e| e.to_string())?.to_bits(),
+        origin: window.inner_position().map_err(CommandError::system)?,
+        size: window.inner_size().map_err(CommandError::system)?,
+        dpi: window
+            .scale_factor()
+            .map_err(CommandError::system)?
+            .to_bits(),
     }))
 }
 pub(super) fn request_main_frame(
     app: &AppHandle,
     metrics: &MainMetrics,
-) -> Result<CaptureReferenceFrame, String> {
+) -> Result<CaptureReferenceFrame, CommandError> {
     let token = uuid::Uuid::new_v4().simple().to_string();
     let channel = &state(app).capture_frames;
     *lock(&channel.pending) = Some(FrameRequest {
@@ -105,12 +113,15 @@ pub(super) fn request_main_frame(
         "capture-reference-request",
         serde_json::json!({ "request": token }),
     )
-    .map_err(|e| e.to_string())?;
+    .map_err(CommandError::system)?;
     let deadline = Instant::now() + Duration::from_secs(3);
     let mut pending = lock(&channel.pending);
     loop {
         let Some(request) = pending.as_mut().filter(|p| p.token == token) else {
-            return Err("主窗口已重建，请重新框选".into());
+            return Err(CommandError::new(
+                ErrorKind::CaptureMainWindowRebuilt,
+                "主窗口已重建，请重新框选",
+            ));
         };
         if let Some(frame) = request.frame.take() {
             *pending = None;
@@ -118,7 +129,10 @@ pub(super) fn request_main_frame(
         }
         let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
             *pending = None;
-            return Err("无法确认当前可见参考图，请重新框选".into());
+            return Err(CommandError::new(
+                ErrorKind::CaptureSourcesUnconfirmed,
+                "无法确认当前可见参考图，请重新框选",
+            ));
         };
         pending = channel
             .changed
@@ -131,13 +145,15 @@ pub(super) fn request_main_frame(
 pub(super) fn references(
     app: &AppHandle,
     main: Option<(&MainMetrics, &CaptureReferenceFrame)>,
-) -> Result<Vec<ReferenceSurface>, String> {
+) -> Result<Vec<ReferenceSurface>, CommandError> {
     let mut surfaces = pins::capture_surfaces(app);
     if let Some((metrics, frame)) = main {
         for source in &frame.references {
             let library =
                 crate::library::visible_source(app, &source.library_id, &source.image_id)?;
-            let image = library.image(&source.image_id).map_err(|e| e.to_string())?;
+            let image = library
+                .image(&source.image_id)
+                .map_err(CommandError::from)?;
             let pin = SavedPin::reference(
                 &format!("wall-{}-{}", source.library_id, source.image_id),
                 &source.library_id,
@@ -150,7 +166,7 @@ pub(super) fn references(
                 None,
                 Placement::default(),
             )
-            .map_err(|e| e.to_string())?;
+            .map_err(CommandError::from)?;
             let screen = |r: ScreenRect| ScreenRect {
                 x: metrics.origin.x + r.x,
                 y: metrics.origin.y + r.y,

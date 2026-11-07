@@ -1,12 +1,16 @@
 import { SaveDestinationDialog } from "../library/SaveDestination";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../i18n/instance";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { BookmarkPlus, FolderInput, Layers, ListTree, MoreHorizontal, PackageOpen, Trash2 } from "lucide-react";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
-import { CaptureGroupSaveDialog, captureChoices, type CaptureSave } from "./CaptureGroupSaveDialog";
+import { CaptureGroupSaveDialog } from "./CaptureGroupSaveDialog";
+import { draftCaptureSave, type CaptureSaveDraft, type CaptureSavePlan } from "./captureSavePlan";
 import { GroupNameForm } from "./GroupNameForm";
 import { useToast } from "../ui/Toast";
 import { ago } from "./relativeTime";
+import { describeCommandError, unavailableReasonText } from "../ipc/commandError";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -30,16 +34,15 @@ import {
   saveReferenceGroup,
 } from "../ipc";
 import { Tip } from "../ui/Tip";
-import { Popconfirm } from "../ui/Popconfirm";
 
 type SaveTarget = { name: string } | { groupId: string };
 
 function memberState(status: MemberStatus): string {
   switch (status.state.kind) {
     case "available":
-      return status.state.sealed ? "安全模式下原位遮蔽" : "可用";
+      return i18n.t(status.state.sealed ? "desktop:groups.sealed" : "desktop:groups.available");
     case "unavailable":
-      return status.state.message;
+      return unavailableReasonText(status.state.reason);
   }
 }
 
@@ -52,24 +55,19 @@ function memberState(status: MemberStatus): string {
  * 参考组包（#68）：导出时带上所用原图与整理信息快照，可带到别的电脑；导入时原图进当前资料库
  * （`libraryId`），另存为新的参考组。
  */
-export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
+export function ReferenceGroupsPanel() {
   const [groups, setGroups] = useState<GroupSummary[] | null>(null);
   const [libraryNames, setLibraryNames] = useState<Map<string, string>>(new Map());
   const [libraryOptions, setLibraryOptions] = useState<LibraryRegistration[]>([]);
   const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const toast = useToast();
-  /** 结果用轻提示回报；没有 ToastProvider 时（单独渲染面板）写在面板里。 */
-  const tell = (text: string | null) => {
-    if (!text) return;
-    if (toast) toast.show({ title: text, tone: "success" });
-    else setNotice(text);
-  };
+  const { t } = useTranslation("desktop", { keyPrefix: "groups" });
+  const tell = (text: string | null) => { if (text) toast.show({ title: text, tone: "success" }); };
   const [expanded, setExpanded] = useState<ReferenceGroupView | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [captureSave, setCaptureSave] = useState<CaptureSave<SaveTarget> | null>(null);
+  const [removing, setRemoving] = useState<{ groupId: string; memberId: string } | null>(null);
+  const [captureSave, setCaptureSave] = useState<CaptureSaveDraft<SaveTarget> | null>(null);
   const [importing,setImporting]=useState(false);
   const [naming, setNaming] = useState(false);
   const [active, setActive] = useState<string | null>(null);
@@ -80,7 +78,7 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
   const reload = useCallback(() => {
     referenceGroups()
       .then(setGroups)
-      .catch((e) => setError(String(e)));
+      .catch((e) => toast.error(String(e)));
     registeredLibraries()
       .then((list) => {
         setLibraryNames(new Map(list.map((r) => [r.library.id, r.library.name])));
@@ -107,17 +105,15 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
   }, [groups, expanded]);
 
   const run = async (action: () => Promise<unknown>, done?: (value: unknown) => string | null) => {
-    setError(null);
-    setNotice(null);
     try {
       const value = await action();
       if (done) tell(done(value));
     } catch (e) {
-      setError(String(e));
+      toast.error(String(e));
     }
   };
 
-  const libraries = (ids: string[]) => ids.map((id) => libraryNames.get(id) ?? "未登记的图库").join("、") || "不在图库里";
+  const libraries = (ids: string[]) => ids.map((id) => libraryNames.get(id) ?? t("unregisteredLibrary")).join(t("librarySeparator")) || t("notInLibrary");
 
   // 卡片缩略图：读一次成员状态；参考组更新后重读。
   useEffect(() => {
@@ -143,11 +139,11 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
       else await saveReferenceGroup(target.name);
       setName("");
       setNaming(false);
-      tell("已把桌面钉图存为参考组");
+      tell(t("savedNew"));
     } else {
       if (choices.length) await savePinsToGroup(target.groupId, choices);
       else await savePinsToGroup(target.groupId);
-      tell("已把桌面钉图存进这个参考组");
+      tell(t("savedInto"));
     }
     setCaptureSave(null);
   };
@@ -156,44 +152,35 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
     try {
       const entries = await ("groupId" in target ? groupSaveCaptures(target.groupId) : groupSaveCaptures());
       if (!entries.length) { await save(target, []); return; }
-      const choices: Record<string, string> = {};
-      for (const entry of entries) {
-        const collected = entry.collected.length === 1 ? entry.collected[0] : null;
-        choices[entry.id] = collected && libraryOptions.some((l) => l.library.id === collected.libraryId && !l.unavailable)
-          ? collected.libraryId : "";
-      }
-      setCaptureSave({ target, entries, choices, folders:{} });
+      setCaptureSave(draftCaptureSave(target, entries, libraryOptions));
     } finally { setSaving(false); }
   };
-  const confirmCaptures = async () => {
-    if (!captureSave) return;
+  const confirmCaptures = async (plan: CaptureSavePlan<SaveTarget>) => {
     setSaving(true);
     try {
-      await run(() => save(captureSave.target, captureChoices(captureSave)));
+      await run(() => save(plan.target, plan.choices));
     } finally { setSaving(false); }
   };
 
   const deletingGroup = groups?.find((g) => g.id === deleting);
   return (
-    <section className="reference-groups" aria-label="参考组">
+    <section className="reference-groups" aria-label={t("label")}>
       <header className="reference-groups-bar">
-        <h2>参考组</h2>
-        {naming ? <GroupNameForm className="is-new" title="新参考组" label="新参考组名称" placeholder="给这组钉图起个名字"
+        <h2>{t("label")}</h2>
+        {naming ? <GroupNameForm className="is-new" title={t("newTitle")} label={t("newLabel")} placeholder={t("newPlaceholder")}
           value={name} onChange={setName} busy={saving} blocked={!!captureSave}
           onCancel={() => { setNaming(false); setName(""); }} onSubmit={() => void run(() => beginSave({ name }))} /> : <button type="button" className="k-btn is-primary group-save" disabled={!!captureSave || saving} onClick={() => setNaming(true)}>
-          <BookmarkPlus size={15} aria-hidden="true" /><span className="k-label">存下桌面钉图</span>
+          <BookmarkPlus size={15} aria-hidden="true" /><span className="k-label">{t("savePins")}</span>
         </button>}
       </header>
-      {importing && <SaveDestinationDialog title="导入参考组包" confirmLabel="选择参考组包并导入" onClose={() => setImporting(false)} onConfirm={async (destination) => {
+      {importing && <SaveDestinationDialog title={t("importTitle")} confirmLabel={t("importConfirm")} onClose={() => setImporting(false)} onConfirm={async (destination) => {
         const group = await importReferenceGroupPackage(destination.libraryId, destination);
-        if (group) tell(`已导入参考组「${group.name}」，原图保存到所选图库和文件夹`);
+        if (group) tell(t("imported", { name: group.name }));
       }} />}
-      {error && <p className="group-note is-error" role="alert">{error}</p>}
-      {notice && <p className="group-note" role="status">{notice}</p>}
       {captureSave && <CaptureGroupSaveDialog value={captureSave} onChange={setCaptureSave} libraries={libraryOptions} saving={saving}
-        onClose={() => setCaptureSave(null)} onConfirm={() => void confirmCaptures()} />}
+        onClose={() => setCaptureSave(null)} onConfirm={(plan) => void confirmCaptures(plan)} />}
       {groups && groups.length === 0 && (
-        <p className="reference-groups-empty">还没有参考组。把整图或局部钉到桌面摆好，再在这里存下。</p>
+        <p className="reference-groups-empty">{t("empty")}</p>
       )}
       <ul className="reference-groups-list">
         {groups?.map((g) => {
@@ -210,56 +197,52 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
                 </span>}
                 {renaming?.id !== g.id && <strong className="reference-group-name">{g.name}</strong>}
                 {g.problem
-                  ? <span className="reference-group-problem">{g.problem}</span>
-                  : <span className="reference-group-meta k-parts"><span>{g.memberCount} 张</span><span>{libraries(g.libraryIds)}</span><span>{ago(g.updatedAt)}</span></span>}
+                  ? <span className="reference-group-problem">{describeCommandError(g.problem)}</span>
+                  : <span className="reference-group-meta k-parts"><span>{t("memberCount", { count: g.memberCount })}</span><span>{libraries(g.libraryIds)}</span><span>{ago(g.updatedAt)}</span></span>}
               </button>
               {renaming?.id === g.id && (
-                <GroupNameForm title="改名" label="参考组名称" value={renaming.name} primary={false}
+                <GroupNameForm title={t("renameTitle")} label={t("nameLabel")} value={renaming.name} primary={false}
                   onChange={(value) => setRenaming({ id: g.id, name: value })} onCancel={() => setRenaming(null)}
                   onSubmit={() => void run(() => renameReferenceGroup(g.id, renaming.name), () => (setRenaming(null), null))} />
               )}
               {on && renaming?.id !== g.id && (g.problem ? (
                 <span className="reference-group-actions">
-                  <button type="button" className="k-btn is-sm" onClick={() => setDeleting(g.id)}><Trash2 size={13} aria-hidden="true" /><span className="k-label">删除</span></button>
+                  <button type="button" className="k-btn is-sm" onClick={() => setDeleting(g.id)}><Trash2 size={13} aria-hidden="true" /><span className="k-label">{t("delete")}</span></button>
                 </span>
               ) : (
                 <span className="reference-group-actions">
                   <button type="button" className="k-btn is-sm" onClick={() => void run(
                     () => openReferenceGroup(g.id),
-                    (n) => (n === 0 ? "成员都已在桌面上" : `已钉出 ${String(n)} 个成员`),
-                  )}><Layers size={13} aria-hidden="true" /><span className="k-label">摆到桌面</span></button>
-                  <button type="button" className="k-btn is-sm" onClick={() => setRenaming({ id: g.id, name: g.name })}><span className="k-label">改名</span></button>
+                    (n) => (n === 0 ? t("allOnDesktop") : t("opened", { count: Number(n) })),
+                  )}><Layers size={13} aria-hidden="true" /><span className="k-label">{t("open")}</span></button>
+                  <button type="button" className="k-btn is-sm" onClick={() => setRenaming({ id: g.id, name: g.name })}><span className="k-label">{t("rename")}</span></button>
                   <Menu.Root>
-                    <Tip label="更多操作"><Menu.Trigger className="k-icon-btn" aria-label="更多操作"><MoreHorizontal size={15} aria-hidden="true" /></Menu.Trigger></Tip>
-                    <MenuPopup label={`${g.name} 的更多操作`}>
+                    <Tip label={t("more")}><Menu.Trigger className="k-icon-btn" aria-label={t("more")}><MoreHorizontal size={15} aria-hidden="true" /></Menu.Trigger></Tip>
+                    <MenuPopup label={t("moreLabel", { name: g.name })}>
                       <MenuItem icon={<BookmarkPlus size={14} />} disabled={!!captureSave || saving}
-                        onClick={() => void run(() => beginSave({ groupId: g.id }))}>存入桌面钉图</MenuItem>
+                        onClick={() => void run(() => beginSave({ groupId: g.id }))}>{t("saveInto")}</MenuItem>
                       <MenuItem icon={<ListTree size={14} />} onClick={() => toggleMembers(g.id)}>
-                        {expanded?.group.id === g.id ? "收起成员" : "查看成员"}</MenuItem>
+                        {expanded?.group.id === g.id ? t("hideMembers") : t("showMembers")}</MenuItem>
                       <MenuItem icon={<PackageOpen size={14} />} onClick={() => void run(
                         () => exportReferenceGroupPackage(g.id),
-                        (path) => (path ? `已导出参考组包：${String(path)}` : null),
-                      )}>导出参考组包</MenuItem>
+                        (path) => (path ? t("exported", { path: String(path) }) : null),
+                      )}>{t("export")}</MenuItem>
                       <MenuSeparator />
-                      <MenuItem icon={<Trash2 size={14} />} danger onClick={() => setDeleting(g.id)}>删除</MenuItem>
+                      <MenuItem icon={<Trash2 size={14} />} danger onClick={() => setDeleting(g.id)}>{t("delete")}</MenuItem>
                     </MenuPopup>
                   </Menu.Root>
                 </span>
               ))}
               {expanded?.group.id === g.id && (
-                <ol className="reference-group-members" aria-label={`${g.name} 的成员`}>
+                <ol className="reference-group-members" aria-label={t("membersLabel", { name: g.name })}>
                   {expanded.members.map((m, i) => {
                     const crop = expanded.group.members[i]?.crop;
                     return (
                       <li key={m.memberId} className={m.state.kind === "unavailable" ? "reference-group-member-unavailable" : undefined}>
-                        <span className="k-parts"><span>{"libraryId" in m ? libraryNames.get(m.libraryId) ?? "未登记的图库" : "参考组里的截图"}</span><span>{crop ? `局部 ${crop.width} × ${crop.height}` : "整图"}</span></span>
+                        <span className="k-parts"><span>{"libraryId" in m ? libraryNames.get(m.libraryId) ?? t("unregisteredLibrary") : t("captureMember")}</span><span>{crop ? t("crop", { width: crop.width, height: crop.height }) : t("whole")}</span></span>
                         <span>{memberState(m)}</span>
-                        {"libraryId" in m
-                          ? <button type="button" className="k-btn is-sm" onClick={() => void run(() => removeGroupMember(g.id, m.memberId))}><span className="k-label">移出</span></button>
-                          : <Popconfirm description="这张截图只存在这个参考组里，移出后一起删除。" confirm="移出并删除"
-                            onConfirm={() => void run(() => removeGroupMember(g.id, m.memberId))}>
-                            <button type="button" className="k-btn is-sm"><span className="k-label">移出</span></button>
-                          </Popconfirm>}
+                        {/* 截图只存在参考组里：移出就删掉，先确认；图库里的图直接移出。 */}
+                        <button type="button" className="k-btn is-sm" onClick={() => "libraryId" in m ? void run(() => removeGroupMember(g.id, m.memberId)) : setRemoving({ groupId: g.id, memberId: m.memberId })}><span className="k-label">{t("remove")}</span></button>
                       </li>
                     );
                   })}
@@ -270,21 +253,39 @@ export function ReferenceGroupsPanel({}: { libraryId?: string | null }) {
         })}
       </ul>
       <footer className="reference-groups-foot">
-        <button type="button" className="k-btn is-sm is-ghost" onClick={() => setImporting(true)}><FolderInput size={13} aria-hidden="true" /><span className="k-label">导入参考组包</span></button>
+        <button type="button" className="k-btn is-sm is-ghost" onClick={() => setImporting(true)}><FolderInput size={13} aria-hidden="true" /><span className="k-label">{t("import")}</span></button>
       </footer>
       <AlertDialog.Root open={!!deletingGroup} onOpenChange={(open) => { if (!open) setDeleting(null); }}>
         <AlertDialog.Portal>
           <AlertDialog.Backdrop className="k-backdrop" />
           <AlertDialog.Popup className="k-dialog is-alert">
-            <AlertDialog.Title className="k-dialog-title">删除参考组</AlertDialog.Title>
-            <AlertDialog.Description className="k-dialog-desc">「{deletingGroup?.name}」会被删除，图库里的原图不受影响；只存在这个参考组里的截图一起删除。</AlertDialog.Description>
+            <AlertDialog.Title className="k-dialog-title">{t("deleteTitle")}</AlertDialog.Title>
+            <AlertDialog.Description className="k-dialog-desc">{t("deleteDescription", { name: deletingGroup?.name })}</AlertDialog.Description>
             <div className="k-dialog-foot">
               <span className="k-grow" />
-              <AlertDialog.Close className="k-btn"><span className="k-label">取消</span></AlertDialog.Close>
+              <AlertDialog.Close className="k-btn"><span className="k-label">{t("cancel")}</span></AlertDialog.Close>
               <button type="button" className="k-btn is-danger" onClick={() => {
                 const id = deleting!;
                 void run(() => deleteReferenceGroup(id), () => (setDeleting(null), null));
-              }}><span className="k-label">删除参考组</span></button>
+              }}><span className="k-label">{t("deleteConfirm")}</span></button>
+            </div>
+          </AlertDialog.Popup>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
+      <AlertDialog.Root open={!!removing} onOpenChange={(open) => { if (!open) setRemoving(null); }}>
+        <AlertDialog.Portal>
+          <AlertDialog.Backdrop className="k-backdrop" />
+          <AlertDialog.Popup className="k-dialog is-alert">
+            <AlertDialog.Title className="k-dialog-title">{t("removeCaptureTitle")}</AlertDialog.Title>
+            <AlertDialog.Description className="k-dialog-desc">{t("removeCaptureDescription")}</AlertDialog.Description>
+            <div className="k-dialog-foot">
+              <span className="k-grow" />
+              <AlertDialog.Close className="k-btn"><span className="k-label">{t("cancel")}</span></AlertDialog.Close>
+              <button type="button" className="k-btn is-danger" onClick={() => {
+                const { groupId, memberId } = removing!;
+                setRemoving(null);
+                void run(() => removeGroupMember(groupId, memberId));
+              }}><span className="k-label">{t("removeCaptureConfirm")}</span></button>
             </div>
           </AlertDialog.Popup>
         </AlertDialog.Portal>

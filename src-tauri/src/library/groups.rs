@@ -1,5 +1,7 @@
 //! Thin adapter for application groups. No active library is required or mutated.
+
 use super::*;
+use kinshoko_core::CommandError;
 use kinshoko_core::tag_catalog::{CatalogGroupEdit, CatalogGroupView};
 
 #[tauri::command]
@@ -7,7 +9,7 @@ pub(super) async fn shared_tag_groups<R: Runtime>(
     app: AppHandle<R>,
     lang: String,
     safe_mode: bool,
-) -> Result<Vec<CatalogGroupView>, String> {
+) -> Result<Vec<CatalogGroupView>, CommandError> {
     blocking(move || {
         workspace::stable(&app, safe_mode, |workspace, device, catalog| {
             workspace.shared_tag_groups(device, catalog, &lang, safe_mode)
@@ -21,7 +23,7 @@ pub(super) async fn create_shared_tag_group<R: Runtime>(
     app: AppHandle<R>,
     name: String,
     namespace: Option<TagNamespace>,
-) -> Result<String, String> {
+) -> Result<String, CommandError> {
     blocking(move || {
         let safe = saved_safe_mode(&app);
         workspace::action(&app, safe, |workspace, device, catalog| {
@@ -38,7 +40,7 @@ pub(super) async fn edit_shared_tag_group<R: Runtime>(
     app: AppHandle<R>,
     edit: CatalogGroupEdit,
     safe_mode: bool,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     blocking(move || {
         let generation = workspace::generation(&app);
         workspace::current(&app, safe_mode, generation)?;

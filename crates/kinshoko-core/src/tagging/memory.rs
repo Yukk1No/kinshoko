@@ -19,6 +19,8 @@ struct State {
     gpu: Option<u64>,
     available_ram: u64,
     outputs: HashMap<PathBuf, Vec<RawTag>>,
+    /// 没有单独设置的图返回的结果。
+    default_output: Vec<RawTag>,
     /// 原图 → 还要让会话崩溃几次。
     crashes: HashMap<PathBuf, u32>,
     /// 原图 → 还要报告几次显卡重置。
@@ -54,9 +56,14 @@ impl InMemoryTagger {
         self.lock().available_ram = bytes;
     }
 
-    /// 对这张原图返回的原始结果。没有设置的图返回空结果。
+    /// 对这张原图返回的原始结果。没有设置的图返回 [`Self::set_default_output`] 的结果，默认为空。
     pub fn set_output(&self, image: &Path, tags: Vec<RawTag>) {
         self.lock().outputs.insert(image.to_path_buf(), tags);
+    }
+
+    /// 没有单独设置的图返回的原始结果：导入前还不知道原图路径时用它，免得调度器抢在设置之前打完。
+    pub fn set_default_output(&self, tags: Vec<RawTag>) {
+        self.lock().default_output = tags;
     }
 
     /// 打这张图时让会话崩溃 `times` 次（之后正常）。
@@ -148,9 +155,10 @@ impl TaggerSession for Session {
         if self.ended() {
             return Err(ended());
         }
-        // 模拟推理耗时；会话被结束时立即返回，像子进程被结束一样。
-        let until = Instant::now() + self.tagger.lock().delay;
-        while Instant::now() < until {
+        // 模拟推理耗时；会话被结束时立即返回，像子进程被结束一样。每次都重读耗时，测试缩短耗时后
+        // 正在打的这张也随之结束。
+        let started = Instant::now();
+        while started.elapsed() < self.tagger.lock().delay {
             if self.ended() {
                 return Err(ended());
             }
@@ -171,7 +179,10 @@ impl TaggerSession for Session {
             return Err(TagFailure::BadImage(reason.clone()));
         }
         s.tagged.push((image.to_path_buf(), self.device));
-        Ok(s.outputs.get(image).cloned().unwrap_or_default())
+        Ok(s.outputs
+            .get(image)
+            .cloned()
+            .unwrap_or_else(|| s.default_output.clone()))
     }
 }
 
