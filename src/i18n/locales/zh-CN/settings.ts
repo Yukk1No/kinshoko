@@ -32,10 +32,10 @@ export default {
     /** 全局快捷键的动作名，键是 `ShortcutAction`。 */
     action: {
       capture: "截图",
-      pinClipboard: "钉剪贴板",
+      pinClipboard: "钉住剪贴板",
       hideAllPins: "收起钉图",
     },
-    notRegistered: "未注册：{{reason}}",
+    notRegistered: "无法使用：{{reason}}",
     record: "按下新的组合键",
     recordPlaceholder: "按下新的组合键…",
     cancel: "取消",
@@ -107,12 +107,10 @@ export default {
     group: "信息",
     report: "诊断信息",
     reportHint: "不含图片和文件名",
-    reportNote: "存成文件时附上最近 7 天的运行日志，打包成一个 zip，由你决定要不要发出去。",
     show: "查看",
     save: "存成文件…",
     runLog: "运行日志",
     runLogHint: "只存本机，不上传",
-    runLogNote: "记下出错和截图、钉图、自动标签的时间点，帮开发者排查问题；不记文件名、路径、标签与图片。最多留 7 天、20 MB。",
     clearRunLog: "清除日志",
     srgb: "按 sRGB 显示",
     srgbHint: "排查偏色时打开",
@@ -124,7 +122,7 @@ export default {
     open: "打开",
     failed: "运行环境检查未通过",
     problem: {
-      decodeMissing: "当前 WebView2 缺少图片解码接口（HTMLImageElement.decode），参考图无法显示。",
+      decodeMissing: "WebView2 版本过旧，参考图无法显示。",
       decodeFailed: "当前 WebView2 未能解码内置 PNG 样本，参考图显示能力未确认。",
       decodeTimedOut: "内置 PNG 解码检查超时，参考图显示能力未确认。",
     },
@@ -141,6 +139,6 @@ export default {
     unknownVersion: "未查询到",
     recheckHint: "更新组件后点一下",
     check: "检查",
-    checkFailed: "能力检查失败：{{error}}",
+    checkFailed: "检查没有完成：{{error}}",
   },
 };

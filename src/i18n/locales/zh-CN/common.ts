@@ -38,7 +38,6 @@ export default {
     putIn: "放到：{{place}}",
     loading: "正在读取图库…",
     unavailable: "这个位置暂时无法使用。请接上原图库，或换一个位置。",
-    description: "选好图库和文件夹。",
     save: "保存",
     cancel: "取消",
     saving: "正在保存…",

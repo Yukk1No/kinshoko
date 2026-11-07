@@ -8,7 +8,7 @@ const pins: Translation<typeof zh> = {
     copied: "Copied",
     chooseSaveLocation: "Choose where to save it in the main window",
     collectFirst: "Collect the capture into a library before adding it to a reference group",
-    savedToGroup: "Saved back to reference group “{{name}}”",
+    savedToGroup: "Updated reference group “{{name}}”",
     addedToGroup: "Added to reference group “{{name}}”",
   },
 };

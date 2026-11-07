@@ -48,8 +48,8 @@ describe("缩放滑块左边的打标图标", () => {
   it("打标时显示，悬停可见进度，点击打开设置 › 自动标签", async () => {
     backend(running(128));
     const { onOpenSettings } = mount();
-    const button = await screen.findByRole("button", { name: /自动标签：正在自动标签，已完成 128 张（显卡）/ });
-    expect(button.getAttribute("title")).toBe("正在自动标签，已完成 128 张（显卡）");
+    const button = await screen.findByRole("button", { name: /自动标签：正在自动加标签，已完成 128 张（显卡）/ });
+    expect(button.getAttribute("title")).toBe("正在自动加标签，已完成 128 张（显卡）");
     expect(button.dataset.activity).toBe("busy");
     fireEvent.click(button);
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
@@ -58,7 +58,7 @@ describe("缩放滑块左边的打标图标", () => {
   it("右下角收起时（#180）换成小圆点，状态仍可读", async () => {
     backend(running(128));
     render(<><TaggingActivity collapsed onOpenSettings={() => {}} /></>);
-    const dot = await screen.findByRole("img", { name: "自动标签：正在自动标签，已完成 128 张（显卡）" });
+    const dot = await screen.findByRole("img", { name: "自动标签：正在自动加标签，已完成 128 张（显卡）" });
     expect(dot.classList.contains("k-tagging-dot")).toBe(true);
     expect(dot.dataset.activity).toBe("busy");
     expect(icon()).toBeNull();
@@ -304,7 +304,7 @@ describe("一轮打完的通知", () => {
     await push(running(11));
     await push(idle(12));
     await push(idle(12));
-    await waitFor(() => expect(toasts()).toEqual(["自动标签：新增 2 张"]));
+    await waitFor(() => expect(toasts()).toEqual(["自动标签：已完成 2 张"]));
     await act(async () => { vi.advanceTimersByTime(6_000); });
     await waitFor(() => expect(toasts()).toEqual([]));
   });

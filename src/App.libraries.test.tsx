@@ -120,7 +120,7 @@ describe("主窗口", () => {
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\新"];
     fireEvent.click(within(dialog).getByRole("button", { name: "选择存放位置…" }));
     expect(await within(dialog).findByText("D:\\新\\我的参考")).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "建立图库" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "新建图库" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "新建图库" })).toBeNull());
     expect(sent("plugin:library|create_library")).toEqual([{ parent: "D:\\新", name: "我的参考" }]);
@@ -203,11 +203,11 @@ describe("主窗口", () => {
     fireEvent.change(await screen.findByLabelText("图库名称"), {
       target: { value: "工作参考" },
     });
-    expect((screen.getByRole("button", { name: "建立图库" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "新建图库" }) as HTMLButtonElement).disabled).toBe(true);
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
     fireEvent.click(within(screen.getByRole("group", { name: "存放位置" })).getByRole("button", { name: "选择存放位置…" }));
     expect(await screen.findByText("D:\\参考\\工作参考")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "建立图库" }));
+    fireEvent.click(screen.getByRole("button", { name: "新建图库" }));
 
     expect(await screen.findByRole("button", { name: "工作参考（2 张）" })).toBeTruthy();
     expect(sent("plugin:library|create_library")).toEqual([
@@ -220,7 +220,7 @@ describe("主窗口", () => {
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "新建图库" }));
     expect(await screen.findByText("C:\\Users\\画师\\Pictures\\我的参考")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "建立图库" }));
+    fireEvent.click(screen.getByRole("button", { name: "新建图库" }));
     await waitFor(() => expect(sent("plugin:library|create_library")).toEqual([
       { parent: "C:\\Users\\画师\\Pictures", name: "我的参考" },
     ]));

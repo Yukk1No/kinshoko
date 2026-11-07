@@ -12,7 +12,7 @@ export default {
   webView2PageFailed: "Couldn't open Microsoft's WebView2 download page. Visit https://developer.microsoft.com/en-us/microsoft-edge/webview2/ in your browser",
   visitWebView2Page: "Visit https://developer.microsoft.com/en-us/microsoft-edge/webview2/ in your browser",
   openExplorerFailed: "Couldn't open File Explorer: {{detail}}",
-  openInFileManager: "Open this in your file manager: {{path}}",
+  openInFileManager: "Open this in File Explorer: {{path}}",
   noMonitor: "Couldn't find the display",
   updateCheckFailed: "Couldn't check for updates. Check your network and try again.",
   updateManual: "This build is updated by running the installer.",
@@ -20,7 +20,7 @@ export default {
   updateNoEndpoint: "No public update address for the original repository is configured, so automatic updates are off. Update with a new installer.",
   updateUnknownStage: "The update stage setting isn't recognized, so automatic updates are off. Update with a new installer.",
   updateNotPending: "There's no update to install. Check for updates first.",
-  updateSignatureInvalid: "The update package's signature is wrong, so it wasn't installed.",
+  updateSignatureInvalid: "The update package didn't pass verification and wasn't installed. Download it again or update manually.",
   updateInstallFailed: "Couldn't download or install the update. Try again later.",
 
   tagMappingSafeModeChanged: "Safe mode just changed. Check the tag mappings again",
@@ -47,12 +47,12 @@ export default {
   backupOrRestoreRunning: "A backup or restore is running. Wait for it to finish",
 
   noCaptureInProgress: "There's no capture in progress",
-  captureSessionExpired: "This capture is no longer valid. Select the area again",
+  captureSessionExpired: "This capture was interrupted. Select the area again",
   captureSourceClosed: "The reference image was closed. Select the area again",
   captureSourceMoving: "The reference image is moving. Select the area again",
   captureSafeModeChanged: "Safe mode just changed. Select the area again",
-  captureSourceBoundsInvalid: "The reported reference image bounds aren't valid",
-  captureMainWindowRebuilt: "The main window was reopened. Select the area again",
+  captureSourceBoundsInvalid: "Couldn't find where the reference image is. Select the area again",
+  captureMainWindowRebuilt: "The main window was just refreshed. Select the area again",
   captureSourcesUnconfirmed: "Couldn't confirm which reference images are visible. Select the area again",
 
   pinClosed: "The pin is closed",
