@@ -38,11 +38,11 @@ fn capture_left_history() -> CommandError {
     )
 }
 
-fn changed(app: &AppHandle) {
+pub(super) fn changed(app: &AppHandle) {
     let _ = app.emit(CHANGED_EVENT, ());
 }
 
-async fn blocking<T: Send + 'static>(
+pub(super) async fn blocking<T: Send + 'static>(
     f: impl FnOnce() -> Result<T, CommandError> + Send + 'static,
 ) -> Result<T, CommandError> {
     tauri::async_runtime::spawn_blocking(f)
@@ -398,33 +398,6 @@ pub async fn rename_reference_group(
             .map_err(CommandError::from)?;
         changed(&app);
         Ok(group)
-    })
-    .await
-}
-
-/// 删除参考组和它自带的截图。引用的图与资料库不受影响；桌面上来自它的钉图留着，只是不再记得
-/// 这个参考组（自带截图的钉图仍显示截图历史里的那份）。
-#[tauri::command]
-pub async fn delete_reference_group(app: AppHandle, group_id: String) -> Result<(), CommandError> {
-    blocking(move || {
-        lock(&state(&app).groups)
-            .delete(&group_id)
-            .map_err(CommandError::from)?;
-        {
-            let mut store = lock(&state(&app).store);
-            let ids: Vec<String> = store
-                .pins()
-                .iter()
-                .filter(|p| p.member.as_ref().is_some_and(|m| m.group_id == group_id))
-                .map(|p| p.id.clone())
-                .collect();
-            for id in ids {
-                store.edit(&id, |p| p.member = None);
-            }
-            let _ = store.save();
-        }
-        changed(&app);
-        Ok(())
     })
     .await
 }

@@ -112,9 +112,8 @@ export default {
     whole: "整图",
     remove: "移出",
     import: "导入参考组包",
-    deleteTitle: "删除参考组",
-    deleteDescription: "「{{name}}」会被删除，图库里的原图不受影响；只存在这个参考组里的截图一起删除。",
-    cancel: "取消",
+    deleted: "已删除参考组",
+    undo: "撤销",
   },
   /** 截图怎样存进参考组（`CaptureGroupSaveDialog`）。 */
   captureSave: {

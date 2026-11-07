@@ -112,9 +112,8 @@ const desktop: Translation<typeof zh> = {
     whole: "Whole image",
     remove: "Remove",
     import: "Import reference group package",
-    deleteTitle: "Delete reference group",
-    deleteDescription: "“{{name}}” will be deleted. Originals in your libraries are not affected; screenshots kept only in this reference group are deleted with it.",
-    cancel: "Cancel",
+    deleted: "Reference group deleted",
+    undo: "Undo",
   },
   captureSave: {
     title: "How to save screenshots into the reference group",

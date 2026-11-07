@@ -18,6 +18,7 @@ use kinshoko_core::CommandError;
 mod capture;
 mod clipboard;
 mod edge;
+mod group_trash;
 mod groups;
 mod image_actions;
 mod menu;
@@ -178,7 +179,9 @@ pub fn init() -> TauriPlugin<Wry> {
             groups::save_pins_to_group,
             groups::open_reference_group,
             groups::rename_reference_group,
-            groups::delete_reference_group,
+            group_trash::delete_reference_group,
+            group_trash::restore_reference_group,
+            group_trash::purge_deleted_reference_group,
             groups::remove_group_member,
             groups::export_reference_group_package,
             groups::import_reference_group_package,
@@ -193,6 +196,8 @@ pub fn init() -> TauriPlugin<Wry> {
             let history = CaptureHistory::open(&dir.join(HISTORY_DIR))?;
             let store = PinStore::open(&dir)?;
             let groups = ReferenceGroups::open(&dir.join(GROUPS_DIR))?;
+            // 上次退出时撤销提示还没过期的已删除参考组，这里清掉。
+            let _ = groups.purge_all_trashed();
             // 启动时清掉一天前暂存的剪贴板图片（取消了导入、之后没再粘贴的也不会一直留着）。
             let staged = dir.join(image_actions::CLIPBOARD_IMPORT_DIR);
             std::thread::spawn(move || {
