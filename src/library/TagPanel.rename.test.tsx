@@ -35,13 +35,13 @@ function backend() {
 
 const chips = () => screen.getByRole("list", { name: "有效标签" });
 
-it("点“文/A”打开改名框，保存当前界面语言的名称偏好，之后标签按新名字显示、不再有“文/A”", async () => {
+it("点“文/A”打开重命名框，保存当前界面语言的名称偏好，之后标签按新名字显示、不再有“文/A”", async () => {
   const state = backend();
   render(<TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} />);
-  const button = await screen.findByRole("button", { name: "给“ahoge”改名" });
+  const button = await screen.findByRole("button", { name: "重命名“ahoge”" });
   expect(button.getAttribute("title")).toBe("尚未翻译");
   fireEvent.click(button);
-  const dialog = await screen.findByRole("dialog", { name: "给“ahoge”改名" });
+  const dialog = await screen.findByRole("dialog", { name: "重命名“ahoge”" });
   expect(dialog.textContent).toContain("词表更新不会替换这个名字，可以在设置里恢复默认");
   expect(dialog.textContent).not.toContain("简体中文");
   const input = within(dialog).getByRole("textbox", { name: "显示名" });
@@ -52,15 +52,15 @@ it("点“文/A”打开改名框，保存当前界面语言的名称偏好，�
   fireEvent.click(save);
   await waitFor(() => expect(within(chips()).getByText("呆毛")).toBeTruthy());
   expect(state.edits).toEqual([{ catalogId: "c-ahoge", edit: { kind: "prefer", name: { lang: "zh-CN", name: "呆毛" } } }]);
-  expect(screen.queryByRole("button", { name: /改名/ })).toBeNull();
-  expect(screen.queryByRole("dialog", { name: "给“ahoge”改名" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /重命名/ })).toBeNull();
+  expect(screen.queryByRole("dialog", { name: "重命名“ahoge”" })).toBeNull();
 });
 
 it("和另一个标签的显示名相同时提示两者仍是不同的标签，但仍可保存", async () => {
   const state = backend();
   render(<TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} />);
-  fireEvent.click(await screen.findByRole("button", { name: "给“ahoge”改名" }));
-  const dialog = await screen.findByRole("dialog", { name: "给“ahoge”改名" });
+  fireEvent.click(await screen.findByRole("button", { name: "重命名“ahoge”" }));
+  const dialog = await screen.findByRole("dialog", { name: "重命名“ahoge”" });
   fireEvent.change(within(dialog).getByRole("textbox", { name: "显示名" }), { target: { value: "阿呆毛" } });
   await within(dialog).findByText("已有标签叫“阿呆毛”，两者仍是不同的标签");
   fireEvent.click(within(dialog).getByRole("button", { name: "保存显示名" }));
@@ -71,11 +71,11 @@ it("和另一个标签的显示名相同时提示两者仍是不同的标签，�
 it("取消不保存", async () => {
   const state = backend();
   render(<TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} />);
-  fireEvent.click(await screen.findByRole("button", { name: "给“ahoge”改名" }));
-  const dialog = await screen.findByRole("dialog", { name: "给“ahoge”改名" });
+  fireEvent.click(await screen.findByRole("button", { name: "重命名“ahoge”" }));
+  const dialog = await screen.findByRole("dialog", { name: "重命名“ahoge”" });
   fireEvent.change(within(dialog).getByRole("textbox", { name: "显示名" }), { target: { value: "呆毛" } });
   fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
-  await waitFor(() => expect(screen.queryByRole("dialog", { name: "给“ahoge”改名" })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "重命名“ahoge”" })).toBeNull());
   expect(state.edits).toEqual([]);
 });
 
@@ -83,8 +83,8 @@ it("弹框里的链接打开设置的显示名，并定位到这个标签", asyn
   backend();
   const open = vi.fn();
   render(<OpenTagNameSettings.Provider value={open}><TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} /></OpenTagNameSettings.Provider>);
-  fireEvent.click(await screen.findByRole("button", { name: "给“ahoge”改名" }));
-  const dialog = await screen.findByRole("dialog", { name: "给“ahoge”改名" });
+  fireEvent.click(await screen.findByRole("button", { name: "重命名“ahoge”" }));
+  const dialog = await screen.findByRole("dialog", { name: "重命名“ahoge”" });
   fireEvent.click(within(dialog).getByRole("button", { name: "在设置中管理“ahoge”的名称和别名" }));
   expect(open).toHaveBeenCalledWith("c-ahoge");
 });
@@ -92,14 +92,14 @@ it("弹框里的链接打开设置的显示名，并定位到这个标签", asyn
 it("之后词表更新、标签重新读取时，仍显示画师起的名字", async () => {
   const state = backend();
   const { rerender } = render(<TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} />);
-  fireEvent.click(await screen.findByRole("button", { name: "给“ahoge”改名" }));
-  const dialog = await screen.findByRole("dialog", { name: "给“ahoge”改名" });
+  fireEvent.click(await screen.findByRole("button", { name: "重命名“ahoge”" }));
+  const dialog = await screen.findByRole("dialog", { name: "重命名“ahoge”" });
   fireEvent.change(within(dialog).getByRole("textbox", { name: "显示名" }), { target: { value: "呆毛" } });
   fireEvent.click(within(dialog).getByRole("button", { name: "保存显示名" }));
   await waitFor(() => expect(within(chips()).getByText("呆毛")).toBeTruthy());
   // 词表变化事件让代次递增：重新读取后名字不变，“文/A”也不回来。
   rerender(<TagPanel libraryId="L1" ids={["a"]} safe={false} generation={1} onError={() => {}} />);
   await waitFor(() => expect(within(chips()).getByText("呆毛")).toBeTruthy());
-  expect(screen.queryByRole("button", { name: /改名/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /重命名/ })).toBeNull();
   expect(state.edits).toHaveLength(1);
 });

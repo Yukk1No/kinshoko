@@ -23,7 +23,7 @@ it("中文文案与 1.0 的后端原文一致，参数填进去", () => {
     .toBe("「甲库」、「乙库」的导入迟迟没有完成，这次整理没有执行，请稍后再试");
   expect(describeCommandError({ code: "groupMembersUnavailable", members: [{ member: "a.png", reason: { kind: "originalMissing" } }, { member: null, reason: { kind: "libraryNotRegistered" } }] }))
     .toBe("有成员无法读取原图，无法导出参考组包：成员 a.png：原图文件缺失；本设备没有打开这个图库");
-  expect(describeCommandError({ code: "shortcutUsedBy", action: "pinClipboard" })).toBe("这个快捷键已用于“钉剪贴板”");
+  expect(describeCommandError({ code: "shortcutUsedBy", action: "pinClipboard" })).toBe("这个快捷键已用于“钉住剪贴板”");
   expect(describeCommandError({ code: "captureSourceUnavailable", reason: { kind: "imageMissing" } })).toBe("参考图已从图库中删除");
   expect(describeCommandError({ code: "message", message: "原样显示" })).toBe("原样显示");
   expect(describeCommandError({ code: "system", detail: "Access is denied." })).toBe("Access is denied.");

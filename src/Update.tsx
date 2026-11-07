@@ -120,12 +120,12 @@ export function UpdateSection({ version = null, channel, onChannel }: {
             </SettingsRow>
           )}
           {status.state === "available" && (
-            <SettingsRow icon={<Download size={16} />} title={t("install.title", { version: status.version })} meta={installing ? progressText(progress) : undefined} hint={t("install.hint")}
+            <SettingsRow icon={<Download size={16} />} title={t("install.title", { version: status.version })} meta={installing ? progressText(progress) : undefined}
               below={status.notes && <p className="k-set-note update-notes">{status.notes}</p>}>
               {!installing && <button type="button" className="k-btn is-sm is-primary" onClick={() => void install()}><span className="k-label">{t("install.action")}</span></button>}
             </SettingsRow>
           )}
-          <SettingsRow icon={<RefreshCw size={16} />} title={t("check.title")} hint={t("check.hint")}
+          <SettingsRow icon={<RefreshCw size={16} />} title={t("check.title")}
             below={(status.state === "failed" || error !== null) && <>
               {status.state === "failed" && <p className="k-set-error" role="alert">{describeCommandError(status.message)}</p>}
               {error !== null && <p className="k-set-error" role="alert">{error}</p>}

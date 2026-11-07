@@ -42,7 +42,6 @@ export function SharedTagGroupsSettings({ onError }: { onError: (error: unknown)
     return () => { alive = false; for (const stop of [mode, workspace]) void stop.then((unlisten) => unlisten()).catch(() => {}); };
   }, [onError]);
   return <>
-    <p className="k-set-note">{t("settingsNote")}</p>
     {safe === null ? <p role="status">{t("settingsLoading")}</p> : <TagGroupsPane label={t("settingsLabel")} safe={safe} generation={generation} onError={onError} />}
   </>;
 }

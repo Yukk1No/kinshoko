@@ -48,7 +48,7 @@ describe("T05 shared groups", () => {
   it("keeps a settings rename draft when the monitor repeats the current revision", async () => {
     backend(); render(<SharedTagGroupsSettings onError={vi.fn()} />);
     const group = await screen.findByRole("group", { name: "发色" });
-    fireEvent.click(within(group).getByRole("button", { name: "改名标签分组“发色”" }));
+    fireEvent.click(within(group).getByRole("button", { name: "重命名标签分组“发色”" }));
     fireEvent.change(screen.getByRole("textbox", { name: "标签分组名称" }), { target: { value: "正在整理" } });
     await act(async () => { await emit("workspace-changed", { revision: "R1", libraries: [] }); });
     expect(screen.getByRole<HTMLInputElement>("textbox", { name: "标签分组名称" }).value).toBe("正在整理");

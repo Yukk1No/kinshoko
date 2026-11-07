@@ -98,7 +98,7 @@ try {
   session = await Session.start();
   await session.click(setting);
   const groupPath = "//section[@aria-label='全局标签分组']//div[@role='group' and @aria-label='安全整理后']";
-  const rename = `${groupPath}//button[@aria-label='改名标签分组“安全整理后”']`;
+  const rename = `${groupPath}//button[@aria-label='重命名标签分组“安全整理后”']`;
   await until("loaded global rename control", () => session.find(rename));
   const revisionBefore = await session.invoke("workspace_status", { safeMode: true });
   await session.click(rename);

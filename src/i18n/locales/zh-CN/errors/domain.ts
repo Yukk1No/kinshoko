@@ -13,10 +13,10 @@ export default {
   libraryName: "「{{name}}」",
   librarySeparator: "、",
 
-  catalogIo: "无法保存标签定义：{{detail}}",
-  catalogStorage: "无法读取标签定义：{{detail}}",
-  catalogData: "标签定义无效：{{detail}}",
-  catalogInvalidDefinition: "标签定义无效：{{cause}}",
+  catalogIo: "无法保存标签信息：{{detail}}",
+  catalogStorage: "无法读取标签信息：{{detail}}",
+  catalogData: "标签信息无效：{{detail}}",
+  catalogInvalidDefinition: "标签信息无效：{{cause}}",
   catalogInvalidGroupMembers: "分组成员无效，按类别的分组会自动列出该类标签",
   catalogUnknownGroup: "没有这个标签分组",
   catalogUnknownTag: "没有这个标签",
@@ -26,7 +26,7 @@ export default {
   catalogStaleApproxConflict: "相近标签已变化，请重新查看冲突后选择",
   catalogStaleNameMigration: "名称或标签对应已变化，请重新打开“确认旧名称”",
   catalogIncompleteNameMigration: "这一批的每个旧名称都选好后再确认",
-  catalogUnsupportedFormat: "标签定义由更新版本的 Kinshoko 写成，请更新 Kinshoko",
+  catalogUnsupportedFormat: "标签信息由更新版本的 Kinshoko 写成，请更新 Kinshoko",
 
   groupIo: "无法读写参考组：{{detail}}",
   unknownGroup: "没有这个参考组，可能已被删除",
@@ -51,7 +51,7 @@ export default {
   backupFromNewerVersion: "由更新版本的 Kinshoko 写成（格式版本 {{version}}）",
   snapshotDatabaseKey: "数据库快照文件键无效",
   snapshotLibraryMismatch: "图库“{{name}}”的数据库快照不符",
-  snapshotDefinitionsConflict: "标签定义与当前程序冲突，未恢复内容：{{cause}}",
+  snapshotDefinitionsConflict: "标签信息与当前程序冲突，未恢复内容：{{cause}}",
   snapshotGroupUnreadable: "参考组“{{name}}”：{{detail}}",
   snapshotGroupMismatch: "参考组“{{name}}”的快照不符",
   snapshotCapturesMismatch: "参考组“{{name}}”的截图快照不符",
@@ -87,7 +87,7 @@ export default {
   hotkey: {
     unknownKey: "无法识别这个按键",
     taken: "已被其他程序占用",
-    refused: "系统拒绝注册（{{detail}}）",
+    refused: "系统不允许使用这个快捷键（{{detail}}）",
   },
   tagThresholdsInvalid: "低档上限要小于高档下限，且都在 0% 到 100% 之间",
   uiScaleUnsupported: "没有 {{percent}}% 这一档界面缩放",
@@ -104,7 +104,7 @@ export default {
   /** 快捷键动作的名称，与设置里一致。 */
   shortcutAction: {
     capture: "截图",
-    pinClipboard: "钉剪贴板",
+    pinClipboard: "钉住剪贴板",
     hideAllPins: "收起钉图",
   },
 

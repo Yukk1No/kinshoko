@@ -47,7 +47,6 @@ export function SealedImportPreview({ libraryId, taskId, onClose }: { libraryId:
       <Dialog.Popup className="k-dialog sealed-import-preview">
         <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("close")}><X size={16} aria-hidden="true" /></Dialog.Close>
         <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
-        <Dialog.Description className="k-dialog-desc">{t("description")}</Dialog.Description>
         {problem ? <p className="k-set-error" role="alert">{t("stopped", { problem })}</p> : images.length === 0 && <p className="k-set-note" role="status">{t("loading")}</p>}
         <div className="sealed-import-preview-images">{images.map(image => <img key={image.id} src={image.url} alt={t("alt")} />)}</div>
       </Dialog.Popup>

@@ -62,12 +62,10 @@ export function TagIdentityPanel() {
     finally { if (request === generation.current) { setBusy(false); running.current = false; if (dirty.current) { dirty.current = false; void run(inspectTagCatalog, undefined, true); } } }
   };
   return <section className="tag-identity" aria-label={t("identity.label")}>
-    <p className="k-set-note">{t("identity.note")}</p>
     <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => void run(inspectTagCatalog)}><span className="k-label">{t("identity.inspect")}</span></button>
     {busy && <p role="status">{t("identity.loading")}</p>}
     {error && <p role="alert">{error}</p>}
     {workspace && <>
-      <p className="settings-hint">{t("identity.publishHint")}</p>
       {workspace.libraries.map(({library, unavailable}) => <div key={"definitions-" + library.id} className="settings-actions">
         <span className="k-parts" title={library.root}><span>{library.name}</span><span className="k-set-note">{libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span></span>
         <button type="button" className="k-btn is-sm" aria-label={t("identity.publishLabel", { name: library.name })} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), t("identity.published"))}><span className="k-label">{t("identity.publish")}</span></button>

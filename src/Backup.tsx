@@ -126,7 +126,7 @@ export function BackupSettings() {
 
   return (
     <section className="backup-settings" aria-label={t("label")}>
-      <SettingsGroup label={t("group")} note={t("groupNote")}>
+      <SettingsGroup label={t("group")}>
         <SettingsRow icon={<HardDrive size={16} />} title={t("target")}
           meta={plan.target ?? t("noTarget")} hint={t("targetHint")} label={t("target")}>
           <button type="button" className="k-btn is-sm" onClick={() => void choose().catch((e) => setError(errorText(e)))}>
@@ -225,7 +225,6 @@ function RestoreView({ onError }: { onError: (error: unknown) => void }) {
       below={(snapshots !== null || busy || report !== null) && <>
         {snapshots !== null && snapshots.length === 0 && <p className="k-set-note">{t("empty")}</p>}
         {snapshots !== null && snapshots.length > 0 && <>
-          <p className="k-set-note">{t("note")}</p>
           <ul className="backup-snapshots">
             {snapshots.map((s) => (
               <li key={s.id}>

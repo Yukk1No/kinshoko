@@ -17,7 +17,7 @@ export default {
     disabled: "这个版本未开启",
   },
   channel: {
-    title: "更新通道",
+    title: "版本类型",
     stable: "正式版",
     beta: "测试版",
     stableHint: "只收正式版",
@@ -25,18 +25,16 @@ export default {
   },
   install: {
     title: "可以更新到 {{version}}",
-    hint: "装好后自动重启",
     action: "安装并重启",
   },
   check: {
     title: "检查更新",
-    hint: "从发布页查找新版本",
     action: "检查更新",
   },
   progress: {
     starting: "正在下载更新…",
     downloaded: "正在下载 {{downloaded}}",
-    downloadedOfTotal: "正在下载 {{downloaded}}／{{total}}",
+    downloadedOfTotal: "正在下载 {{downloaded}} / {{total}}",
   },
   notice: {
     available: "Kinshoko {{version}} 可以更新",

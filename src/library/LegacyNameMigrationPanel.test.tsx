@@ -40,7 +40,6 @@ it("shows one old name at a time with both old names and the existing preference
   expect(within(wizard).getByRole("radio", { name: /保留为全局偏好「分发」/ })).toBeTruthy();
   expect(within(wizard).getByRole("radio", { name: /保留为全局偏好「自然分缝」.*之前定的/ })).toBeTruthy();
   // 不同旧叫法与已有叫法都是冲突，必须逐个决定。
-  expect(within(wizard).getByText(/名称不同，请选一个/)).toBeTruthy();
   expect(within(wizard).getByRole<HTMLButtonElement>("button", { name: /剩下的都用默认/ }).disabled).toBe(true);
   choose(/跟随默认.*「分缝发型」/);
   expect(within(wizard).getByText(/会撤回你定的名称「自然分缝」/)).toBeTruthy();
@@ -143,7 +142,6 @@ it("uses the default only for remaining unchosen names without conflicts, leaves
   choose(/保留为全局偏好「自然分缝」/);
   next();
   expect(within(wizard).getByText("252 / 252")).toBeTruthy();
-  expect(within(wizard).getByText(/名称不同，请选一个/)).toBeTruthy();
   // 没选完不能进入确认。
   next();
   expect(within(wizard).queryByRole("table", { name: "确认后的显示" })).toBeNull();

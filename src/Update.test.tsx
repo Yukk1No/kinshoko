@@ -38,7 +38,7 @@ describe("主窗口的更新通知", () => {
     expect(await screen.findByText("正在更新到 0.2.0")).toBeTruthy();
 
     await act(async () => { await emit("update-progress", { downloaded: 3 * 1024 * 1024, total: 12 * 1024 * 1024 }); });
-    expect(await screen.findByText("正在下载 3 MB／12 MB")).toBeTruthy();
+    expect(await screen.findByText("正在下载 3 MB / 12 MB")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "安装并重启" })).toBeNull();
   });
 
