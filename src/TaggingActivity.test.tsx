@@ -349,7 +349,7 @@ describe("一轮打完的通知", () => {
     await push(running(11));
     await push(idle(12));
     await push(idle(12));
-    await waitFor(() => expect(toasts()).toEqual(["自动标签：新增 2 张"]));
+    await waitFor(() => expect(toasts()).toEqual(["自动标签：已完成 2 张"]));
     await act(async () => { vi.advanceTimersByTime(6_000); });
     await waitFor(() => expect(toasts()).toEqual([]));
   });

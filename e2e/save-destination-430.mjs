@@ -203,7 +203,7 @@ try {
   await until("create form", () => session.exec("return Boolean(document.querySelector('.create-library-dialog'));"));
   await session.click("//button[normalize-space()='选择存放位置…']");
   await until("parent chosen", async () => !(await has("尚未选择")));
-  await session.click("//button[normalize-space()='建立图库']");
+  await session.click("//button[normalize-space()='新建图库']");
   await until("back on wall", () => session.exec("return !document.querySelector('.create-library-dialog') && Boolean(document.querySelector('.rail'));"));
   await until("new library in sidebar", () => has("我的参考"));
   await settle();

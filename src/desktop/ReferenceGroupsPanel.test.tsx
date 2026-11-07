@@ -180,7 +180,6 @@ describe("参考组面板", () => {
     fireEvent.change(screen.getByLabelText("新参考组名称"), { target: { value: "一次性" } });
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
     const dialog = await screen.findByRole("dialog", { name: "截图怎样存进参考组" });
-    expect(within(dialog).getByText(/只存在参考组里的截图不进图库/)).toBeTruthy();
     await chooseValue(within(dialog).getByRole("combobox", { name: "截图 1 存到哪里" }), "group");
     expect(within(dialog).getByRole("combobox", { name: "截图 1 的文件夹" }).hasAttribute("data-disabled")).toBe(true);
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "确认并保存" })); });
@@ -247,7 +246,7 @@ describe("参考组面板", () => {
 
   it("重命名", async () => {
     await show();
-    fireEvent.click(screen.getByRole("button", { name: "改名" }));
+    fireEvent.click(screen.getByRole("button", { name: "重命名" }));
     fireEvent.change(screen.getByLabelText("参考组名称"), { target: { value: "发型" } });
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "保存" }));

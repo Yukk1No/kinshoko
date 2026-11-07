@@ -42,7 +42,7 @@ describe("导入结束走轻提示（#388）", () => {
     expect(title.closest(".k-toast")?.textContent).toContain("放到 参考 / 未归类");
     expect(screen.queryByRole("region", { name: "导入结果" })).toBeNull();
     const region = await openReceipt();
-    fireEvent.click(screen.getByRole("button", { name: "未导入 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "未导入 1 张" }));
     expect(region.textContent).toContain("missing.png");
     expect(screen.queryByText("导入完成", { selector: ".k-toast-title" })).toBeNull();
   });
@@ -66,10 +66,10 @@ describe("导入结束走轻提示（#388）", () => {
     await waitFor(() => expect(document.querySelector(".k-toast")).toBeNull());
   });
 
-  it("任务有警告（标签定义没存进图库）时提示写出警告、带“查看”且不自动消失", async () => {
+  it("任务有警告（标签信息没存进图库）时提示写出警告、带“查看”且不自动消失", async () => {
     serve([{ ...receipt, warnings: [{ code: "savedDefinitionsNotSaved", cause: { code: "system", detail: "磁盘已满" } }], report: { ...receipt.report!, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } }]);
     render(<>{menu()}</>);
-    expect((await screen.findByText("导入完成")).closest(".k-toast")?.textContent).toContain("图库里的标签定义还没更新：磁盘已满");
+    expect((await screen.findByText("导入完成")).closest(".k-toast")?.textContent).toContain("图库里的标签信息还没更新：磁盘已满");
     expect(screen.getByRole("button", { name: "查看" })).toBeTruthy();
   });
 
@@ -86,7 +86,7 @@ describe("导入结束走轻提示（#388）", () => {
     await screen.findByText("导入完成");
     await screen.findByRole("region", { name: "导入进度" }, { timeout: 3000 });
     const region = await openReceipt();
-    fireEvent.click(screen.getByRole("button", { name: "未导入 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "未导入 1 张" }));
     expect(region.textContent).toContain("missing.png");
   });
 
@@ -136,7 +136,7 @@ describe("导入回执上下文撤销", () => {
       const region = await openReceipt();
       expect(region.textContent).toContain("已存在 1");
       expect(region.textContent).toContain("更新 1");
-      fireEvent.click(screen.getByRole("button", { name: "未导入 1" }));
+      fireEvent.click(screen.getByRole("button", { name: "未导入 1 张" }));
       await waitFor(() => expect(calls).toBe(2));
       await act(() => emit(event, payload));
       expect(region.textContent).not.toMatch(/新增|已存在|更新/);

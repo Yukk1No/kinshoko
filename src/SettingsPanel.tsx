@@ -258,14 +258,13 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
             <SettingsGroup label={t("diag.group")}>
               <SettingsRow icon={<FileText size={16} />} title={t("diag.report")} hint={t("diag.reportHint")}
                 below={<>
-                  <p className="k-set-note">{t("diag.reportNote")}</p>
                   {diagnostics.text !== null && <pre className="settings-diagnostics" aria-label={t("diag.report")}>{diagnostics.text}</pre>}
                 </>}>
                 <button type="button" className="k-btn is-sm" onClick={diagnostics.show}><span className="k-label">{t("diag.show")}</span></button>
                 <button type="button" className="k-btn is-sm" onClick={diagnostics.save}><span className="k-label">{t("diag.save")}</span></button>
               </SettingsRow>
               <SettingsRow icon={<Activity size={16} />} title={t("diag.runLog")} hint={t("diag.runLogHint")}
-                below={<p className="k-set-note">{t("diag.runLogNote")}
+                below={<p className="k-set-note">
                   <button type="button" className="k-link" onClick={() => void clearRunLog().catch((e) => setError(errorText(e)))}>{t("diag.clearRunLog")}</button></p>}>
                 <Switch label={t("diag.runLog")} checked={view.runLog} onCheckedChange={(on) => void apply({ kind: "runLog", on })} />
               </SettingsRow>

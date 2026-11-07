@@ -23,7 +23,7 @@ describe("设置：诊断", () => {
     expect(screen.getByText(/重启 Kinshoko 后生效/)).toBeTruthy();
   });
 
-  it("运行日志跟随保存的设置，可以关掉与清除，说明不记文件名与图片", async () => {
+  it("运行日志跟随保存的设置，可以关掉与清除", async () => {
     const calls = backend((cmd) => {
       if (cmd === "set_run_log") return { ...defaults, runLog: false };
       if (cmd === "clear_run_log") return null;
@@ -32,7 +32,6 @@ describe("设置：诊断", () => {
     render(<SettingsPanel initialTab="diag" />);
 
     const toggle = await screen.findByRole("switch", { name: "运行日志", checked: true });
-    expect(screen.getByText(/不记文件名、路径、标签与图片/)).toBeTruthy();
     expect(screen.queryByRole("switch", { name: "使用记录" })).toBeNull();
     fireEvent.click(toggle);
     await screen.findByRole("switch", { name: "运行日志", checked: false });
@@ -53,7 +52,6 @@ describe("设置：诊断", () => {
     fireEvent.click(await screen.findByRole("button", { name: "查看" }));
 
     expect((await screen.findByLabelText("诊断信息")).textContent).toContain("WebView2：154.0");
-    expect(screen.getByText(/附上最近 7 天的运行日志/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "存成文件…" }));
     await waitFor(() => expect(calls.some((c) => c.cmd === "export_diagnostics")).toBe(true));
   });

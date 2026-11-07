@@ -138,7 +138,7 @@ export function importUi(app, { until }) {
    await app.session.type("//label[contains(.,'图库名称')]/input",name);
    await pick(parent);
    await readyClick("//button[normalize-space()='选择存放位置…']");
-   await readyClick("//button[normalize-space()='建立图库']");
+   await readyClick("//button[normalize-space()='新建图库']");
   };
   return { query, local, task, finish, lit, dialogX, importDialog, libraryChoice, folderChoice, shown, setSelect, choose, pick, readyClick, openImport, startOpened, begin, exists, chooseNextTarget, openPane, shownCurrentName, browseAll, runningCard, createLibraryFromMenu, eagleDialog };
 }

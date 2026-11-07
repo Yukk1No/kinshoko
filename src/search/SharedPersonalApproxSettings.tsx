@@ -46,7 +46,6 @@ export function SharedPersonalApproxSettings({onError}:{onError:(error:unknown)=
   };
   const busy=pending===key;
   return <section aria-label={t("label")} aria-busy={busy}>
-    <p className="k-set-note">{t("note")}</p>
     {view===null?<p role="status">{t("loading")}</p>:<>
       {view.entries.length===0?<p className="k-set-note">{t("empty")}</p>:<table className="settings-approx" aria-label={t("table")}><tbody>
         {view.entries.map(entry=><tr key={`${entry.a.id}/${entry.b.id}`}>
