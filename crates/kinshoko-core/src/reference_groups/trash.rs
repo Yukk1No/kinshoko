@@ -7,7 +7,8 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use super::{EXTENSION, GroupError, ReferenceGroups};
+use super::{EXTENSION, GroupError, ReferenceGroups, RelinkReport};
+use crate::desktop::CaptureHistory;
 
 /// 刚删除、还能撤销的参考组暂放在 `trash/` 下。
 const TRASH_DIR: &str = "trash";
@@ -71,6 +72,42 @@ impl ReferenceGroups {
         self.move_back(id, &slot)?;
         let _ = fs::remove_dir_all(&slot);
         Ok(())
+    }
+
+    /// 撤销 [`Self::trash`] 并补上期间发生的收藏：参考组在回收位置时，从截图历史收藏了属于它的
+    /// 组内截图（那时 [`Self::relink_collected`] 留着关联不动），放回后把这些成员改为引用收藏的参考图。
+    /// 返回补上的改连结果。
+    pub fn untrash_reconciling(
+        &self,
+        id: &str,
+        history: &mut CaptureHistory,
+    ) -> Result<RelinkReport, GroupError> {
+        self.untrash(id)?;
+        let mut report = RelinkReport::default();
+        for entry in history.entries() {
+            let Some(collected) = entry.collected.first() else {
+                continue;
+            };
+            if !history
+                .linked_members(&entry.id)
+                .iter()
+                .any(|m| m.group_id == id)
+            {
+                continue;
+            }
+            let done = self.relink_collected(history, &entry.id, collected);
+            report.relinked.extend(done.relinked);
+            report.skipped.extend(done.skipped);
+            report.failed.extend(done.failed);
+            report.unlink_error = report.unlink_error.or(done.unlink_error);
+        }
+        Ok(report)
+    }
+
+    /// 参考组 `id` 现在暂放在回收位置。
+    pub(super) fn is_trashed(&self, id: &str) -> bool {
+        self.trash_slot(id)
+            .is_ok_and(|slot| slot.join(format!("{id}.{EXTENSION}")).exists())
     }
 
     /// 撤销提示过期：真正删除回收位置里的这个参考组。没有时什么也不做。

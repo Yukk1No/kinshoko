@@ -58,12 +58,25 @@ pub async fn restore_reference_group(
     deleted: DeletedGroup,
 ) -> Result<(), CommandError> {
     blocking(move || {
-        lock(&state(&app).groups)
-            .untrash(&deleted.group_id)
-            .map_err(CommandError::from)?;
+        // 与其他写参考组的命令一样持着参考组锁；先参考组、后截图历史。
+        let report = {
+            let groups = lock(&state(&app).groups);
+            let mut history = lock(&state(&app).history);
+            groups
+                .untrash_reconciling(&deleted.group_id, &mut history)
+                .map_err(CommandError::from)?
+        };
         {
             let mut store = lock(&state(&app).store);
             for UnlinkedPin { pin_id, member_id } in deleted.unlinked_pins {
+                // 撤销前已收藏、成员改连到图库的：钉图仍显示截图，不再记成这个成员，和删除后一样独立。
+                let gone = report
+                    .relinked
+                    .iter()
+                    .any(|m| m.group_id == deleted.group_id && m.member_id == member_id);
+                if gone {
+                    continue;
+                }
                 let free = store
                     .pins()
                     .iter()
