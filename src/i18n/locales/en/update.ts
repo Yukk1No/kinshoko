@@ -19,7 +19,7 @@ const update: Translation<typeof zh> = {
     disabled: "Not enabled in this build",
   },
   channel: {
-    title: "Update channel",
+    title: "Release type",
     stable: "Stable",
     beta: "Beta",
     stableHint: "Stable releases only",
@@ -27,12 +27,10 @@ const update: Translation<typeof zh> = {
   },
   install: {
     title: "Update to {{version}}",
-    hint: "Restarts when installed",
     action: "Install and restart",
   },
   check: {
     title: "Check for updates",
-    hint: "Look for a new release",
     action: "Check for updates",
   },
   progress: {

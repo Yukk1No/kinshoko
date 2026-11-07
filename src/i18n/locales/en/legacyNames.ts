@@ -4,7 +4,6 @@ import type { Translation } from "../../translation";
 const legacyNames: Translation<typeof zh> = {
   close: "Close",
   title: "Confirm older names",
-  lead: "Older libraries call some tags differently. Just pick one.",
   busy: "Loading or saving older names…",
   libraryOffline: "{{library}}: {{reason}}. Reconnect it, then confirm its older names.",
   saved: "Older names confirmed.",
@@ -15,10 +14,8 @@ const legacyNames: Translation<typeof zh> = {
   usedIn_one: "Used in {{count, number}} library: {{libraries}}",
   usedIn_other: "Used in {{count, number}} libraries: {{libraries}}",
   librarySeparator: ", ",
-  differentNames: "These libraries use different names. Pick one.",
   differsFromPreference: "This differs from “{{name}}”, which you set before. Check the result before confirming.",
   choiceLabel: "Name to use",
-  aliasNote: "The other name stays as an alias and still finds the tag. Names in other languages aren't affected.",
   option: {
     followDefaultNamed: "Follow the default “{{name}}”",
     followDefault: "Follow the default",

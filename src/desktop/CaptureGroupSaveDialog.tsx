@@ -45,7 +45,6 @@ export function CaptureGroupSaveDialog<T>({ value, onChange, libraries, saving, 
       <Dialog.Backdrop className="k-backdrop" />
       <Dialog.Popup className="k-dialog k-save-dialog capture-group-save">
         <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
-        <Dialog.Description className="k-dialog-desc">{t("description")}</Dialog.Description>
         <ul className="capture-save-list">
           {value.entries.map((entry, i) => {
             const current = destinationOf(value, entry.id);
