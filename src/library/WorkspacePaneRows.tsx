@@ -45,12 +45,12 @@ export function TrashRow({ label, count, current, expanded, disabled, onClick, m
   const { t } = useTranslation("library", { keyPrefix: "trash" });
   return <FluidList><FluidRow index={0}>
     <ContextMenu.Root>
-      <ContextMenu.Trigger render={<Tip label={label} align="start"><button type="button" className="sidebar-item k-row" aria-current={current ? "page" : undefined} aria-expanded={expanded}
-        disabled={disabled} aria-label={count === undefined ? t("labelLoading", { library: label }) : t("label", { library: label, count })} onClick={onClick} /></Tip>}>
+      <Tip label={label} align="start"><ContextMenu.Trigger render={<button type="button" className="sidebar-item k-row" aria-current={current ? "page" : undefined} aria-expanded={expanded}
+        disabled={disabled} aria-label={count === undefined ? t("labelLoading", { library: label }) : t("label", { library: label, count })} onClick={onClick} />}>
         <span className="k-row-icon" aria-hidden="true"><Trash2 size={15} /></span>
         <span className="sidebar-label k-label">{t("title")}</span>
         <span className="sidebar-count k-label">{count ?? ""}</span>
-      </ContextMenu.Trigger>
+      </ContextMenu.Trigger></Tip>
       <MenuPopup label={t("actions")} width={220}>{menu}</MenuPopup>
     </ContextMenu.Root>
   </FluidRow></FluidList>;

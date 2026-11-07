@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { WorkspacePane } from "./WorkspacePane";
 import { ToastProvider } from "../ui/Toast";
+import { tipText } from "../test/tip";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { BrowseScope } from "../bindings/BrowseScope";
@@ -204,6 +205,8 @@ it("回收站：清空回收站先列出将永久删除的张数，确认后按�
   answers["plugin:library|preview_empty_trash"] = { imageIds: ["x", "y"], groups: [{ groupId: "g", name: "光影", imageIds: ["x"] }], token: "t" };
   await show(inA({ kind: "all" }));
   const trash = screen.getByRole("button", { name: "回收站（人物参考，2 张）" });
+  // 同一行既有悬停提示又有右键菜单：提示包在右键菜单的触发器外面。
+  expect(await tipText(trash)).toBe("人物参考");
   const menu = await openOn(trash, "回收站的操作");
   expect(rows(menu)).toEqual(["清空回收站…"]);
   expect(within(menu).getByRole("menuitem").className).toContain("is-danger");
