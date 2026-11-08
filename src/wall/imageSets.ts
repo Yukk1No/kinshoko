@@ -25,6 +25,12 @@ export function cardInset(card: BrowserCard, columnWidth: number, uiScale: numbe
   return stackInset(set.key, set.pages.map((page) => ({ w: page.width, h: page.height })), columnWidth, CAP_RATIO, 1 / uiScale);
 }
 
+/** 收着 `id` 这一页的那一摞（封面 id）；`id` 本身就在墙上或不在这些格子里时为 null。 */
+export function stackHolding(cards: readonly BrowserCard[], id: string) {
+  if (cards.some((card) => card.id === id)) return null;
+  return cards.find((card) => card.set?.pages.some((page) => page.id === id))?.id ?? null;
+}
+
 /** 要记下的滚动位置：落在托盘里的页上时记成这一摞，下次进来托盘是关着的，页不在墙上。 */
 export function storableAnchor(anchor: Anchor | null, shown: BrowserCard[], tray: Omit<TrayInput, "pad"> | null, trayIds: ReadonlySet<string>) {
   return anchor && tray && trayIds.has(anchor.id) ? { id: shown[tray.at].id, delta: 0 } : anchor;

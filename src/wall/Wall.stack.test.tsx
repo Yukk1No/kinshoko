@@ -273,3 +273,14 @@ it("从一个托盘直接换到下一摞：被点的那一摞留在屏幕原处�
   const after = parseFloat(card("q0")!.style.top) - wall.scrollTop;
   expect(Math.abs(after - before)).toBeLessThan(40);
 });
+
+it("关着叠放时记下的位置落在一摞的第 2 页往后：打开叠放后回到这一摞", async () => {
+  Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 260 });
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 200 });
+  localStorage.setItem('kinshoko.wall.workspace.{"kind":"all"}', JSON.stringify({ id: "p2", delta: 0 }));
+  render(<Harness />);
+  await screen.findAllByRole("option");
+  const wall = document.querySelector<HTMLElement>(".wall")!;
+  await vi.waitFor(() => expect(wall.scrollTop).toBeCloseTo(parseFloat(card("p0")!.style.top), 0));
+  expect(wall.scrollTop).toBeGreaterThan(0);
+});

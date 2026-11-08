@@ -11,6 +11,7 @@ import { PAGE, type BrowserCard } from "./wallShared";
 import { startupWallPage } from "../startupGate";
 import { markStartup } from "../startupTiming";
 import { errorText } from "../ipc/commandError";
+import { stackHolding } from "./imageSets";
 
 /** 报上已有占位图时，在原有卡片里往后多看几张：前面新进来几张图时，这一页仍大多报得上。 */
 const KNOWN_MARGIN = 100;
@@ -108,9 +109,11 @@ export function useWallPages({
               after = page.nextCursor;
               count = page.total;
               stacked = (page.images ?? page.total) - page.total;
-              // 恢复位置时一直取到锚定的那张图为止。
+              // 恢复位置时一直取到锚定的那张图为止。那张图收在一摞里时（关着叠放时记下的，#418）换成这一摞。
               const target = restoring.current ? anchor.current?.id : undefined;
-              if (next.length >= want && !(target && !next.some((c) => c.id === target))) break;
+              const stack = target ? stackHolding(next, target) : null;
+              if (stack && stack !== target) anchor.current = { id: stack, delta: 0 };
+              if (next.length >= want && !(target && !stack && !next.some((c) => c.id === target))) break;
             } while (after);
           } catch (e) {
             if (current() && isCursorExpired(e) && attempt < 3) continue;
