@@ -79,7 +79,7 @@ describe("英文界面：备份与画面保真检查", () => {
     render(<ApplicationSettingsBackup restore={async () => { throw new Error("unused"); }} />);
     fireEvent.change(screen.getByRole("textbox", { name: "Preferences backup file" }), { target: { value: "C:/b.kinshoko-settings" } });
     fireEvent.click(screen.getByRole("button", { name: "Read" }));
-    expect(await screen.findByRole("group", { name: "Confirm replacing preferences" })).toBeTruthy();
+    expect(await screen.findByRole("group", { name: "Replace preferences" })).toBeTruthy();
     expectNoChinese(document.body);
   });
 
