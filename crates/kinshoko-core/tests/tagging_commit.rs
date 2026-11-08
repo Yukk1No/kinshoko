@@ -332,6 +332,15 @@ fn failed_images_in_the_trash_are_not_counted() {
     );
 }
 
+/// 加失败分类那次迁移之前的库版本：迁移按位置记版本号，后面再加迁移也不变。
+fn before_tagging_failure() -> usize {
+    include_str!("../src/library/store.rs")
+        .lines()
+        .filter(|line| line.trim_start().starts_with("M::up"))
+        .position(|line| line.contains("tagging_state::add_tagging_failure"))
+        .expect("失败分类迁移必须存在")
+}
+
 // 升级前记下的失败只有原因文字：按反复崩溃的原因前缀分出两类，崩溃的才在启动时重试。
 #[test]
 fn failures_recorded_before_the_upgrade_are_sorted_by_their_reason() {
@@ -348,15 +357,12 @@ fn failures_recorded_before_the_upgrade_are_sorted_by_their_reason() {
     drop(library);
     {
         let conn = rusqlite::Connection::open(root.join("library.sqlite")).unwrap();
-        let version: i64 = conn
-            .query_row("PRAGMA user_version", [], |r| r.get(0))
-            .unwrap();
         conn.execute_batch(&format!(
             "UPDATE tagging_state SET reason = '打标子进程在这张图上反复出错：会话结束'
                WHERE image_id = '{crashed}';
              ALTER TABLE tagging_state DROP COLUMN failure;
              PRAGMA user_version = {};",
-            version - 1
+            before_tagging_failure()
         ))
         .unwrap();
     }

@@ -43,6 +43,7 @@ fn query(limit: u32, cursor: Option<String>) -> WorkspaceQuery {
         cursor,
         limit,
         known_placeholders: Vec::new(),
+        stack_sets: false,
     }
 }
 

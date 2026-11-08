@@ -34,6 +34,7 @@ fn pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnec
         cursor: None,
         limit: 10,
         known_placeholders: Vec::new(),
+        stack_sets: false,
     };
     let page = workspace
         .browse(&device, &mut catalog, &query, true)

@@ -10,6 +10,8 @@ use kinshoko_core::Library;
 use kinshoko_core::library::{BrowseQuery, ImageCard, ImageEdit, ImportSource};
 use kinshoko_core::reference_groups::{GroupError, GroupUsage, ReferenceGroupUsage};
 
+/// 占位图迁移（0313）及其后的迁移个数：模拟旧格式时退回到它之前。之后的迁移都能重跑。
+/// 资料库迁移每多一个，这里加一。
 fn import(library: &Library, dir: &Path, seed: u8) -> String {
     let path = dir.join(format!("{seed}.png"));
     RgbaImage::from_fn(60 + u32::from(seed), 40, |x, y| {
