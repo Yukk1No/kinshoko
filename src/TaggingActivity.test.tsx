@@ -27,7 +27,7 @@ function mount(onOpenSettings = vi.fn()) {
 }
 
 const running = (tagged: number, done = 0, remaining = 1): TaggingStatus => ({ state: "running", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged, done, remaining });
-const idle = (tagged: number): TaggingStatus => ({ state: "idle", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged, unknown: 0 });
+const idle = (tagged: number): TaggingStatus => ({ state: "idle", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged, unknown: 0, failed: { unreadable: 0, crashed: 0 } });
 const needsDownload = (downloaded = 0, cancelled = false): TaggingStatus => ({ state: "needsDownload", model: "PixAI", size: 992_916_002, downloaded, fallback: null, cancelled });
 const downloading = (downloaded: number): TaggingStatus => ({ state: "downloading", model: "PixAI", downloaded, total: 1_000_000_000 });
 /** 等待后端首次读取与订阅都到位，后面的推送才收得到。 */
@@ -40,26 +40,65 @@ const icon = () => screen.queryByRole("button", { name: /自动标签/ });
 afterEach(async () => {
   cleanup();
   vi.useRealTimers();
+  vi.restoreAllMocks();
   // 卸载时异步取消事件订阅，等它完成再撤掉模拟。
   await new Promise((resolve) => setTimeout(resolve, 0));
   clearMocks();
 });
 
 describe("缩放滑块左边的打标图标", () => {
-  it("打标时显示，悬停可见进度，点击打开设置 › 自动标签", async () => {
-    backend(running(128));
+  it("打标时显示还剩几张，点击暂停（#475），不打开设置", async () => {
+    backend(running(128, 0, 88));
     const { onOpenSettings } = mount();
-    const button = await screen.findByRole("button", { name: /自动标签：正在自动加标签，已完成 128 张（显卡）/ });
-    expect(await tipText(button)).toBe("正在自动加标签，已完成 128 张（显卡）");
+    const button = await screen.findByRole("button", { name: "暂停自动标签：还剩 88 张" });
+    expect(await tipText(button)).toBe("还剩 88 张");
     expect(button.dataset.activity).toBe("busy");
+    // 悬停时图标变成暂停：两枚图标叠在一起，CSS 切换。
+    expect(button.querySelector(".k-tagging-next")).not.toBeNull();
     fireEvent.click(button);
+    await waitFor(() => expect(actions.some((a) => a.command === "tagging_pause")).toBe(true));
+    expect(onOpenSettings).not.toHaveBeenCalled();
+  });
+
+  it("暂停时点击继续，标签留着暂停前还剩的张数", async () => {
+    backend(running(10, 0, 88));
+    mount();
+    await screen.findByRole("button", { name: /还剩 88 张/ });
+    await push({ state: "paused" });
+    const button = await screen.findByRole("button", { name: "继续自动标签：已暂停，还剩 88 张" });
+    fireEvent.click(button);
+    await waitFor(() => expect(actions.some((a) => a.command === "tagging_resume")).toBe(true));
+  });
+
+  it("打完几张后按最近几张的用时写出预计用时；暂停时留着", async () => {
+    let now = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    backend(running(0, 0, 100));
+    mount();
+    await screen.findByRole("button", { name: "暂停自动标签：还剩 100 张" });
+    for (let done = 1; done <= 3; done++) {
+      now += 6_000;
+      await push(running(done, done, 100 - done));
+    }
+    // 每张 6 秒，还剩 97 张：约 10 分钟。
+    await screen.findByRole("button", { name: "暂停自动标签：还剩 97 张，约 10 分钟" });
+    await push({ state: "paused" });
+    await screen.findByRole("button", { name: "继续自动标签：已暂停，还剩 97 张，约 10 分钟" });
+  });
+
+  it("右键只有自动标签设置", async () => {
+    backend(running(1));
+    const { onOpenSettings } = mount();
+    fireEvent.contextMenu(await screen.findByRole("button", { name: /暂停自动标签/ }), { clientX: 10, clientY: 10 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "自动标签设置" }));
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("menuitem", { name: "忽略" })).toBeNull();
   });
 
   it("右下角收起时（#180）换成小圆点，状态仍可读", async () => {
     backend(running(128));
     render(<><TaggingActivity collapsed onOpenSettings={() => {}} /></>);
-    const dot = await screen.findByRole("img", { name: "自动标签：正在自动加标签，已完成 128 张（显卡）" });
+    const dot = await screen.findByRole("img", { name: "自动标签：还剩 1 张" });
     expect(dot.classList.contains("k-tagging-dot")).toBe(true);
     expect(dot.dataset.activity).toBe("busy");
     expect(icon()).toBeNull();
@@ -69,10 +108,10 @@ describe("缩放滑块左边的打标图标", () => {
     ["下载", downloading(450_000_000), "正在下载自动标签模型 45%"],
     ["加载模型", { state: "starting" }, "正在加载自动标签模型"],
     ["校验模型", { state: "preparing", model: "PixAI" }, "正在校验自动标签模型"],
-  ])("%s时显示并写出进度", async (_, status, text) => {
+  ])("%s时显示并写出进度，点击暂停", async (_, status, text) => {
     backend(status);
     mount();
-    const button = await screen.findByRole("button", { name: `自动标签：${text}，打开自动标签设置` });
+    const button = await screen.findByRole("button", { name: `暂停自动标签：${text}` });
     expect(button.dataset.activity).toBe("busy");
   });
 
@@ -117,7 +156,7 @@ describe("缩放滑块左边的打标图标", () => {
   it("多选收起时右上角是迷你进度环", async () => {
     backend(running(10, 1, 1));
     render(<><TaggingActivity collapsed onOpenSettings={() => {}} /></>);
-    const dot = await screen.findByRole("img", { name: /已完成 10 张/ });
+    const dot = await screen.findByRole("img", { name: /还剩 1 张/ });
     expect(dot.querySelector(".k-tagging-arc")?.getAttribute("stroke-dasharray")).toBe("50 100");
   });
 
@@ -144,6 +183,13 @@ describe("缩放滑块左边的打标图标", () => {
     expect(document.querySelector(".k-tagging-arc")).toBeNull();
     fireEvent.click(button);
     expect(onOpenSettings).toHaveBeenCalled();
+  });
+
+  it("停住的状态没有动作，悬停不变形", async () => {
+    backend(needsDownload());
+    mount();
+    const button = await screen.findByRole("button", { name: /需要下载自动标签模型，打开自动标签设置/ });
+    expect(button.querySelector(".k-tagging-next")).toBeNull();
   });
 
   it("停住的状态在多选收起时不挂小圆点", async () => {

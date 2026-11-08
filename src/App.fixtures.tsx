@@ -66,6 +66,7 @@ export const detail = (id: string, manual: string | null): ImageDetail => ({
   collectedAt: 1756571097667,
   sourceLinks: [],
   versions: { previous: null, newer: [] },
+  taggingFailure: null,
   width: 100,
   height: 200,
   folders: [{ id: "F1", name: "人物" }],
@@ -120,6 +121,7 @@ export function resolved(input: SearchInput): ConditionTree {
           return { kind: "tag" as const, tag: tags[t.id], similar: similar([t.id], t.dismissed) };
         }
         if (t.kind === "rating") return { kind: "rating" as const, rating: { ratings: t.ratings, r18: false } };
+        if (t.kind === "taggingUnfinished") return { kind: "taggingUnfinished" as const };
         const matched = Object.values(tags).filter((l) => l.name.includes(t.text));
         return {
           kind: "text" as const,

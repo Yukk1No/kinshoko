@@ -3,7 +3,7 @@ use image::{Rgba, RgbaImage};
 use kinshoko_core::DeviceLibraries;
 use kinshoko_core::approx::BuiltinApproxTable;
 use kinshoko_core::library::{
-    ContentRating, FactSource, ImageEdit, ImportSource, Library, RatingFact,
+    ContentRating, FactSource, ImageEdit, ImportSource, Library, RatingFact, TaggingOutcome,
 };
 use kinshoko_core::search::{ConditionInput, SearchInput, TermInput};
 use kinshoko_core::tag_catalog::TagCatalog;
@@ -219,4 +219,57 @@ fn rating_conditions_see_a_source_rating_change_that_stays_on_one_side_of_safe_m
     assert_eq!(total(&mut workspace), 0);
     rate(ContentRating::Sensitive);
     assert_eq!(total(&mut workspace), 1);
+}
+
+/// 打标失败的记录变了（记下、单张重试）不推进修订号：按自动标签未完成查找的结果不能复用（#475 评审）。
+#[test]
+fn unfinished_tagging_conditions_see_failures_recorded_and_retried() {
+    let dir = tempfile::tempdir().unwrap();
+    let app = dir.path().join("app");
+    let mut device = DeviceLibraries::open(&app).unwrap();
+    let a = device.create(&dir.path().join("a"), "A").unwrap();
+    let id = files(dir.path(), &[&a], 45).remove(0);
+    let mut catalog = TagCatalog::open(&app).unwrap();
+    let mut workspace = Workspace::open(&app).unwrap();
+    let unfinished = workspace
+        .resolve(
+            &device,
+            &mut catalog,
+            &SearchInput {
+                conditions: vec![ConditionInput {
+                    any: vec![TermInput::TaggingUnfinished],
+                    negate: false,
+                }],
+                exact: true,
+            },
+            "en",
+            true,
+            &BuiltinApproxTable::default(),
+        )
+        .unwrap();
+    let mut total = |workspace: &mut Workspace| {
+        workspace
+            .browse(
+                &device,
+                &mut catalog,
+                &WorkspaceQuery {
+                    conditions: unfinished.clone(),
+                    ..query()
+                },
+                true,
+            )
+            .unwrap()
+            .total
+    };
+    assert_eq!(total(&mut workspace), 0);
+    a.finish_tagging(
+        &FactSource::model("test"),
+        &id,
+        TaggingOutcome::BadImage("unreadable".into()),
+    )
+    .unwrap();
+    assert_eq!(total(&mut workspace), 1);
+    a.edit(std::slice::from_ref(&id), &[ImageEdit::RetryTagging])
+        .unwrap();
+    assert_eq!(total(&mut workspace), 0);
 }
