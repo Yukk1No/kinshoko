@@ -45,6 +45,15 @@ pub(crate) fn clipboard_image(lang: &str, stamp: u128, attempt: u32) -> String {
     }
 }
 
+/// 首次预置的标签分组的名称：发色、瞳色（#484）。
+pub(crate) fn preset_group_names(lang: &str) -> [&'static str; 2] {
+    if english(lang) {
+        ["Hair color", "Eye color"]
+    } else {
+        ["发色", "瞳色"]
+    }
+}
+
 /// 数据迁到新位置后，旧文件夹里留下的说明；`left` 是没有迁移的条目。
 pub(crate) fn migration_note(lang: &str, target: &Path, left: &[&str]) -> String {
     let en = english(lang);
@@ -94,6 +103,8 @@ mod tests {
             "Main (restored 2026-11-01) 2"
         );
         assert_eq!(restored_library_name(EN, "Main"), "Main (restored)");
+        assert_eq!(preset_group_names(ZH_CN), ["发色", "瞳色"]);
+        assert_eq!(preset_group_names(EN), ["Hair color", "Eye color"]);
         assert_eq!(clipboard_image(ZH_CN, 7, 0), "剪贴板图片-7.png");
         assert_eq!(clipboard_image(EN, 7, 1), "clipboard-image-7-1.png");
         let note = migration_note(EN, Path::new("D:/data"), &["x"]);

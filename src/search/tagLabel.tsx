@@ -3,6 +3,7 @@ import type { RatingLabel } from "../bindings/RatingLabel";
 import type { TagLabel } from "../bindings/TagLabel";
 import { Languages } from "lucide-react";
 import { i18n } from "../i18n";
+import { Tip } from "../ui/Tip";
 
 /** 分级的显示名：“R18”，或依次写出各档的名称。 */
 export const ratingName = (rating: RatingLabel) =>
@@ -31,17 +32,16 @@ export function TagMarks({ tag, untranslated }: { tag: TagLabel; untranslated?: 
   return (
     <>
       {tag.untranslated && (untranslated ??
-        <span className="untranslated" role="img" aria-label={untranslatedHint()} title={untranslatedHint()}>
+        <Tip label={untranslatedHint()}><span className="untranslated" role="img" aria-label={untranslatedHint()}>
           <Languages size={12} aria-hidden="true" />
-        </span>
+        </span></Tip>
       )}
       {!tag.hasExternal && (
-        <span
+        <Tip label={i18n.t("tags:noExternal")}><span
           className="no-external"
           role="img"
           aria-label={i18n.t("tags:noExternal")}
-          title={i18n.t("tags:noExternal")}
-        />
+        /></Tip>
       )}
     </>
   );

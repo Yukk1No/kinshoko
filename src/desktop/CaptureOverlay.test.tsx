@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { tipText } from "../test/tip";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { CaptureOverlay } from "./CaptureOverlay";
@@ -214,7 +215,7 @@ describe("截图读数区分原始像素（#103）", () => {
     // 颜色来自 --star 令牌（ui.css），不写在图形上。
     expect(mark.querySelector("path")!.getAttribute("fill")).toBeNull();
     // 设计系统 v2：读数后直接挂星，“原始像素”只在悬停提示与读屏文字里。
-    expect(mark.parentElement!.getAttribute("title")).toBe("原始像素");
+    expect(await tipText(mark.parentElement!)).toBe("原始像素");
     expect(mark.parentElement!.textContent).toBe("500 × 400原始像素");
     expect(mark.parentElement!.lastChild).toBe(mark);
   });

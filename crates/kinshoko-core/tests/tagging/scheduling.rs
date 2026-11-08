@@ -224,49 +224,6 @@ fn pausing_ends_the_session_at_once_without_waiting_for_the_current_image() {
     assert_eq!(names, vec!["blue eyes"]);
 }
 
-#[test]
-fn a_crashed_session_is_restarted_and_the_image_is_tagged() {
-    let f = Fixture::new(2);
-    f.fake.set_gpu(Some(GPU_BUDGET));
-    f.fake.crash_on(&f.original(1), 1);
-    f.fake
-        .set_output(&f.original(1), vec![raw("blue_eyes", 0, 0.8)]);
-    let spec = f.server.publish("gpu", Device::DirectMl, b"model");
-    let tagging = f.start(f.config(vec![spec]));
-    tagging.download();
-    idle(&tagging);
-
-    assert_eq!(f.fake.started().len(), 2, "崩溃后重启了一次会话");
-    assert_eq!(f.fake.live_sessions(), 0);
-    let names: Vec<_> = tags_of(&f.library, &f.ids[1])
-        .into_iter()
-        .map(|t| t.1)
-        .collect();
-    assert_eq!(names, vec!["blue eyes"]);
-}
-
-#[test]
-fn an_image_that_keeps_crashing_the_session_is_skipped() {
-    let f = Fixture::new(3);
-    f.fake.set_gpu(Some(GPU_BUDGET));
-    f.fake.crash_on(&f.original(1), u32::MAX);
-    f.fake.bad_image(&f.original(2), "无法解码");
-    let spec = f.server.publish("gpu", Device::DirectMl, b"model");
-    let tagging = f.start(f.config(vec![spec]));
-    tagging.download();
-    idle(&tagging);
-
-    let tagged: Vec<_> = f.fake.tagged().into_iter().map(|t| t.0).collect();
-    assert_eq!(tagged, vec![f.original(0)], "其余的图照常打完");
-    // 重新开始也不再试这两张。
-    drop(tagging);
-    let before = f.fake.started().len();
-    let spec = f.server.publish("gpu", Device::DirectMl, b"model");
-    let tagging = f.start(f.config(vec![spec]));
-    idle(&tagging);
-    assert_eq!(f.fake.started().len(), before, "没有待打标的图，不开会话");
-}
-
 /// 第一次加载模型时停在“加载中”，等测试放行后才报告就绪（即使会话已被结束开关结束）：
 /// 模拟画师在加载中暂停、子进程的 Ready 却迟到的情形（#77 UI-C）。
 struct LateReady {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { PanelLeftOpen, PanelRight } from "lucide-react";
 import { useImportShortcut } from "./useImportShortcut";
@@ -6,8 +6,6 @@ import { useInspectorShortcut } from "./useInspectorShortcut";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
-import { referenceCard } from "../desktop/openInKinshoko";
-import { errorText, isCursorExpired } from "../ipc";
 import { ImportMenu, type ImportControl } from "../library/ImportMenu";
 import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
@@ -16,6 +14,7 @@ import { usePanelSlide } from "../shell/usePanelSlide";
 import { TaggingActivity } from "../TaggingActivity";
 import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
+import { Tip } from "../ui/Tip";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "../wall/Wall";
 import { useStackSetsSetting } from "../wall/imageSets";
 import { WallFloats } from "../wall/WallFloats";
@@ -28,7 +27,10 @@ import { TagGroupsDialog } from "./TagGroupsDialog";
 import { useImportTasks } from "./useImportTasks";
 import { useInvalidation } from "./useInvalidation";
 import { useLibraryEvents } from "./useLibraryEvents";
+import { useReferenceRequest } from "./useReferenceRequest";
 import { useSearchTree } from "./useSearchTree";
+import { useWorkspaceError } from "./useWorkspaceError";
+import { useShowUnfinishedTagging } from "./useShowUnfinishedTagging";
 import { useViewerStep } from "./useViewerStep";
 import { WorkspaceInspector } from "./WorkspaceInspector";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
@@ -60,7 +62,9 @@ export function LibraryWorkspace({
   inspectorShown,
   onInspectorShown,
   onLibraryRemoved,
+  onLibraryRestore,
   onOpenTaggingSettings,
+  unfinishedTaggingRequest = 0,
 }: WorkspaceProps) {
   const { t } = useTranslation(["workspace", "viewer"]);
   const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
@@ -89,17 +93,7 @@ export function LibraryWorkspace({
   useImportShortcut(importControl, hidden);
   const [editingGroups, setEditingGroups] = useState(false);
   useEffect(()=>{if(captureRequest){setViewing(null);setSources(null);}},[captureRequest]);
-  // 钉图菜单“在 Kinshoko 中打开”（#106）：按当前安全模式读这张参考图，读到才打开查看器。
-  useEffect(() => {
-    if (!referenceRequest) return;
-    let alive = true;
-    const { libraryId: from, imageId } = referenceRequest;
-    referenceCard(from, imageId, safe).then(
-      (card) => { if (!alive) return; setViewCrop(false); setViewing(card); },
-      (e) => { if (alive) toast.error(t("openFailed", { error: String(e) })); },
-    );
-    return () => { alive = false; };
-  }, [referenceRequest]);
+  useReferenceRequest(referenceRequest, safe, (card) => { setViewCrop(false); setViewing(card); });
   /**
    * 词表代次：词表、图片或安全模式变化时递增，重新解析条件、重新取得候选（标签可能改名、
    * 删除、新增了叫法，或在安全模式下被封印）。与后端 Search 缓存的修订号和安全模式对应。
@@ -108,16 +102,7 @@ export function LibraryWorkspace({
   const { invalidate, observations } = useInvalidation({
     wall, loadedCards, setViewing: (next) => { flight.cut(); setViewing(next); }, setSelected, setSources, setReloadKey, setVocabularyKey,
   });
-  /**
-   * 工作区读取期间修订变了（CursorExpired）：那次读到的结果已经过时，不是要用户处理的问题。
-   * 像收到变更通知一样按新修订重读；变更停下后读取成功，不留下常驻横幅（#98）。
-   * 同修订的变更通知会被略过，所以不能只等通知来补读。
-   */
-  const onError = useCallback((error: unknown) => {
-    // 真实错误进轻提示（#98），一直留到画师按“知道了”；没有提示容器时退回就地横幅。
-    if (!isCursorExpired(error)) { toast.error(errorText(error)); return; }
-    invalidate({ kind: "cursorExpired" });
-  }, [toast, invalidate]);
+  const onError = useWorkspaceError(toast, invalidate);
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
   const viewerOpen = viewing !== null;
@@ -145,6 +130,8 @@ export function LibraryWorkspace({
   useLibraryEvents({ toast, imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport });
 
   const { search, setSearch, tree, treeSafe, searching } = useSearchTree({ safe, vocabularyKey, onError, setReloadKey });
+
+  const showUnfinishedTagging = useShowUnfinishedTagging({ request: unfinishedTaggingRequest, onOpenBrowse, setSearch, setWorkspaceScope, invalidate });
 
   // 窄窗口里侧栏与详情面板按余量一起让位，主区不低于 300（#274）。
   const [appBody, setAppBody] = useState<HTMLDivElement | null>(null);
@@ -190,7 +177,7 @@ export function LibraryWorkspace({
         {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
         <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} paneRef={setSidebarElement} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
           status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} recheck={recheck}
-          onLibraryRemoved={onLibraryRemoved} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
+          onLibraryRemoved={onLibraryRemoved} onLibraryRestore={onLibraryRestore} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
           onScope={(next) => {
             // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
             setWorkspaceScope(next); invalidate({ kind: "scopeChanged" });
@@ -198,7 +185,7 @@ export function LibraryWorkspace({
           }} />
         <main className="app-main main">
           <header className="topbar" data-tauri-drag-region>
-            {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={t("expandPane")} title={t("expandPaneTitle")}><PanelLeftOpen size={16} aria-hidden="true" /></button>}
+            {!paneOpen && <Tip label={t("expandPane")} keys="Ctrl+B"><button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={t("expandPane")}><PanelLeftOpen size={16} aria-hidden="true" /></button></Tip>}
           <SearchBox
             workspace
             libraryId="workspace"
@@ -234,7 +221,7 @@ export function LibraryWorkspace({
               invalidate({ kind: "conditionsChanged" });
             }} />
           {!inspectorOpen && <>
-            <button type="button" className="k-icon-btn" aria-label={t("viewer:tools.showInspector")} title={t("viewer:tools.showInspector")} onClick={toggleInspector}><PanelRight size={16} aria-hidden="true" /></button>
+            <Tip label={t("viewer:tools.showInspector")}><button type="button" className="k-icon-btn" aria-label={t("viewer:tools.showInspector")} onClick={toggleInspector}><PanelRight size={16} aria-hidden="true" /></button></Tip>
             <WinCtrls />
           </>}
           </header>
@@ -295,7 +282,7 @@ export function LibraryWorkspace({
           {/* 图片墙右下角：打标图标（#144）在图片大小浮岛（#102 方案 C3，与 Ctrl+滚轮缩放成对）的左边。
               选了两张及以上时底部升起多选悬浮栏（#98，#180），右下角收成圆形按钮让位；查看器打开时悬浮栏隐藏。 */}
           <WallFloats
-            tagging={(collapsed) => <TaggingActivity collapsed={collapsed} onOpenSettings={onOpenTaggingSettings} />}
+            tagging={(collapsed) => <TaggingActivity collapsed={collapsed} onOpenSettings={onOpenTaggingSettings} onShowUnfinished={showUnfinishedTagging} />}
             density={viewerOpen ? null : { value: density, preview: zoomPreview, onPreview: (v) => wall.current?.previewDensity(v), onCommit: setDensity }}
             bar={inspected !== null || hidden || viewerOpen ? null
               : selectionLibrary !== null ? (panelIds.length > 1 ? {

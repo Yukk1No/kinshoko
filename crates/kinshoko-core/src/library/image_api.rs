@@ -83,8 +83,15 @@ impl Library {
 
     /// 删除文件夹（#114），连同它的子文件夹。图片不删：只去掉这些文件夹的归属，没有其他文件夹的
     /// 图回到未归类（回收站里的图留在回收站）。来自 Eagle 的文件夹删掉后，重导不再把它建回来。
-    pub fn delete_folder(&self, folder_id: &str) -> Result<(), Error> {
+    ///
+    /// 返回删掉的那一棵的快照；交给 [`Library::restore_folder`] 就原样放回。后端不留存快照。
+    pub fn delete_folder(&self, folder_id: &str) -> Result<DeletedFolders, Error> {
         folders::delete(&self.inner, folder_id)
+    }
+
+    /// 撤销 [`Library::delete_folder`]：名称、位置、子文件夹、成员、顺序都放回原样。
+    pub fn restore_folder(&self, deleted: DeletedFolders) -> Result<(), Error> {
+        folders::restore(&self.inner, deleted)
     }
 
     /// 参考图的全部来源，按记录先后。之后并入查看器详情 `image(id)`。

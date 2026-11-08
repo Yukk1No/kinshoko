@@ -318,7 +318,7 @@ export function FidelityGate() {
             <span className="k-field-label">{t("remarks")}</span>
             <input className="k-input" value={manual.remarks} onChange={(e) => setManual({ ...manual, remarks: e.target.value })} />
           </label>
-          <button type="button" onClick={() => void save()}>
+          <button type="button" className="k-btn is-sm" onClick={() => void save()}>
             {t("save")}
           </button>
         </fieldset>

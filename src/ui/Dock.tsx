@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
+import { Keys } from "./Keys";
 import { Menu, MenuPopup } from "./Menu";
 import { useReducedMotion } from "./reducedMotion";
 
@@ -120,7 +121,7 @@ export function Dock({ items, value, onSelect, label: labelProp, className = "",
         {tip && open !== tip.id && trayShown !== tip.id && <motion.div layoutId="k-dock-tip" className="k-dock-tip" aria-hidden="true"
           style={{ left: tipX, x: "-50%" }} initial={{ opacity: 0, y: reduced ? 0 : 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
           transition={reduced ? { duration: 0.1 } : arcSpring.snappy}>
-          {tip.label}{tip.shortcut && <kbd>{tip.shortcut}</kbd>}{tip.note && <span className="k-dock-tip-note">{tip.note}</span>}
+          {tip.label}{tip.shortcut && <Keys accelerator={tip.shortcut} />}{tip.note && <span className="k-dock-tip-note">{tip.note}</span>}
         </motion.div>}
       </AnimatePresence>
     </div>

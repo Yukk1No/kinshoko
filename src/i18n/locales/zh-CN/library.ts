@@ -68,6 +68,8 @@ export default {
     reveal: "在资源管理器中显示",
     reconnect: "重新连接",
     remove: "从列表移除",
+    removed: "已从列表移除",
+    undo: "撤销",
   },
   trash: {
     title: "回收站",
@@ -92,13 +94,10 @@ export default {
     newSubfolder: "新建子文件夹",
     rename: "重命名",
     moveToTop: "移到顶层",
-    delete: "删除文件夹…",
+    delete: "删除文件夹",
   },
   deleteFolder: {
-    title: "删除文件夹",
-    confirm: "删除文件夹「{{name}}」？文件夹里的图片不会删除；不在其他文件夹里的图片回到未归类。",
-    subfolders_other: "其中的 {{count, number}} 个子文件夹也会一并删除，里面的图片同样保留。",
-    cancel: "取消",
-    submit: "删除文件夹",
+    done: "已删除文件夹",
+    undo: "撤销",
   },
 };

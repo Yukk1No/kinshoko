@@ -1,5 +1,5 @@
 import { useCaptureSources } from "./desktop/captureSources";
-import { onCollectionRequest, takeCollectionRequest } from "./ipc";
+import { onCollectionRequest, registerLibrary, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PanelLeftClose, X } from "lucide-react";
@@ -51,6 +51,7 @@ import { markStartup } from "./startupTiming";
 import { releaseStartup, startupLibraryOpened } from "./startupGate";
 import { StartupSplash } from "./shell/StartupSplash";
 import { LoginExpiredNotice, SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
+import { Tip } from "./ui/Tip";
 
 /**
  * 主窗口：本设备登记的资料库（#49）；上次的库不可用时仍可选择其他库、重新登记或新建。状态栏可打开截图历史与设置。
@@ -79,6 +80,8 @@ function MainWindow() {
   const [captureRequest,setCaptureRequest]=useState<{id:string;stamp:number}|null>(null);
   const collectionHandled=useCallback(()=>setCaptureRequest(null),[]);
   const [referenceRequest, setReferenceRequest] = useState<{ libraryId: string; imageId: string; stamp: number } | null>(null);
+  /** 设置 › 自动标签里的“查看”（#475）：每按一次加一，图片墙筛出没有完成自动标签的图。 */
+  const [unfinishedRequest, setUnfinishedRequest] = useState(0);
   const [section, setSection] = useState<Section>("browse");
   const [paneOpen, setPaneOpen] = useState(true);
   const subscriptions = useSubscriptionSection(section, setSection);
@@ -301,7 +304,9 @@ function MainWindow() {
           inspectorShown={inspectorShown}
           onInspectorShown={changeInspectorShown}
           onLibraryRemoved={() => changed(null)}
+          onLibraryRestore={async (root) => changed(await registerLibrary(root))}
           onOpenTaggingSettings={() => openSettings("tagging")}
+          unfinishedTaggingRequest={unfinishedRequest}
         />
       )}
       <SubscriptionSection subscriptions={subscriptions} safe={lensSafe} paneOpen={paneOpen} onPaneToggle={() => setPaneOpen((open) => !open)}
@@ -313,7 +318,7 @@ function MainWindow() {
         <div className="app-empty-workspace">
           {!hasProviders && paneOpen && section !== "browse" && <aside className="pane empty-context" aria-label={section === "groups" ? t("emptyPane.groups") : t("emptyPane.capturesLabel")}>
             <header className="pane-head" data-tauri-drag-region><h2 className="pane-title">{section === "groups" ? t("emptyPane.groups") : t("emptyPane.captures")}</h2>
-              <button type="button" className="k-icon-btn" aria-label={t("emptyPane.collapse")} title={t("emptyPane.collapse")} onClick={() => setPaneOpen(false)}><PanelLeftClose size={16} aria-hidden="true" /></button></header>
+              <Tip label={t("emptyPane.collapse")} keys="Ctrl+B"><button type="button" className="k-icon-btn" aria-label={t("emptyPane.collapse")} onClick={() => setPaneOpen(false)}><PanelLeftClose size={16} aria-hidden="true" /></button></Tip></header>
             {section === "groups" ? <ReferenceGroupsPanel /> : <CaptureHistoryPanel request={captureRequest} onRequestHandled={collectionHandled} />}
           </aside>}
         <main className="app-main app-main-centered">
@@ -350,6 +355,7 @@ function MainWindow() {
               uiScale={uiScalePercent}
               onUiScale={(percent) => void chooseUiScale(percent)}
               subscriptions={subscriptions.settings}
+              onShowUnfinishedTagging={() => { setShowSettings(false); setUnfinishedRequest((n) => n + 1); }}
             />
           </Dialog.Popup>
         </Dialog.Portal>

@@ -1,6 +1,7 @@
 import { ChevronDown, Download, FileImage, FolderOpen, ListChecks } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Menu, MenuItem, MenuPopup } from "./Menu";
+import { Tip } from "./Tip";
 
 /** Eagle has no lucide icon; a small line mark in the same weight. */
 const EagleMark = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 14c4-1 6-4 9-9 1 4 3 6 9 7-4 1-7 3-9 8-1-3-4-5-9-6Z" /></svg>;
@@ -15,10 +16,10 @@ export function ImportButton({ onFiles, onFolder, onEagle, onShowTasks, busy = f
 }) {
   const { t } = useTranslation("shell", { keyPrefix: "import" });
   return <Menu.Root modal={false}>
-    <Menu.Trigger className="k-import" aria-label={busy ? t("busyLabel") : t("label")} title={t("label")} aria-busy={busy || undefined} disabled={busy && !onShowTasks}>
+    <Tip label={t("label")}><Menu.Trigger className="k-import" aria-label={busy ? t("busyLabel") : t("label")} aria-busy={busy || undefined} disabled={busy && !onShowTasks}>
       <Download size={18} strokeWidth={1.75} aria-hidden="true" />
       <ChevronDown className="k-import-chev" size={14} aria-hidden="true" />
-    </Menu.Trigger>
+    </Menu.Trigger></Tip>
     <MenuPopup align="end" sideOffset={8} width={220}>
       <MenuItem icon={<FileImage size={14} />} kbd="Ctrl O" disabled={busy || !canStart} onClick={onFiles}>{t("files")}</MenuItem>
       <MenuItem icon={<FolderOpen size={14} />} disabled={busy || !canStart} onClick={onFolder}>{t("folder")}</MenuItem>

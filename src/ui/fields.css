@@ -34,8 +34,6 @@ input.k-input { display: inline-block; text-overflow: ellipsis; }
 .k-input-clear:hover { background: var(--hover); color: var(--ink); }
 
 /* ---- Combobox ---- */
-/* 候选与选择列表常在对话框（.k-dialog 91）里打开，浮层要压在对话框之上。 */
-.k-positioner.is-field { z-index: 95; }
 .k-combo { position: relative; min-width: 0; }
 .k-combo:not(.is-bare) { display: flex; flex-direction: column; }
 .k-combo.is-bare { display: flex; }
@@ -43,6 +41,8 @@ input.k-input { display: inline-block; text-overflow: ellipsis; }
 /* 列表与输入框同宽，最多约 8 行（8 × 32 + 内边距），超出滚动。 */
 .k-listbox { width: var(--anchor-width); min-width: 0; max-height: min(296px, var(--available-height, 296px)); overflow-y: auto; margin: 0; list-style: none; box-sizing: border-box; }
 .k-listbox .k-sep { margin: 4px 0; }
+/* 放在浮层里的列表：和输入框同在一个外框，没有自己的边框与阴影。 */
+.k-listbox.is-embedded { width: auto; max-height: 240px; margin-top: 6px; }
 .k-option { cursor: pointer; }
 .k-option mark { background: none; color: inherit; font-weight: 600; }
 .k-option .k-item-label { flex: 0 1 auto; }

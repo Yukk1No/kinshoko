@@ -1,4 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Tip } from "./Tip";
 
 /**
  * 设置与对话框里的一行（设计系统 SettingsList）：图标、名称、右侧控件，没有描述行。
@@ -36,7 +37,7 @@ export function SettingsRow({ icon, title, hint, meta, warn, children, label, cl
       if (!ids.includes(hintId)) control.setAttribute("aria-describedby", [...ids, hintId].join(" "));
     }
   });
-  return <li ref={row} className={`k-list-row k-set-row ${className}`} aria-label={label} title={hint}>
+  return <Tip label={hint} focus={false} align="start"><li ref={row} className={`k-list-row k-set-row ${className}`} aria-label={label}>
     <div className="k-set-row-main">
       {icon && <span className="k-list-icon" aria-hidden="true">{icon}</span>}
       <div className="k-list-text">
@@ -53,7 +54,7 @@ export function SettingsRow({ icon, title, hint, meta, warn, children, label, cl
       onTransitionEnd={(e) => { if (!belowOpen && e.target === e.currentTarget) clearBelow(); }}>
       <div className="k-set-row-below-clip"><div className="k-set-row-below-body">{belowOpen ? below : lastBelow.current}</div></div>
     </div>}
-  </li>;
+  </li></Tip>;
 }
 
 /**

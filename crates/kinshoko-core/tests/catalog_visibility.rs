@@ -206,7 +206,11 @@ fn names_and_groups_share_online_and_known_offline_veto_without_losing_unused_de
         let groups = workspace
             .shared_tag_groups(device, catalog, "en", true)
             .unwrap();
-        let members = groups[0]
+        let group = groups
+            .iter()
+            .filter(|g| g.name == "all definitions")
+            .collect::<Vec<_>>();
+        let members = group[0]
             .tags
             .iter()
             .map(|t| t.tag.name.as_str())
@@ -215,7 +219,7 @@ fn names_and_groups_share_online_and_known_offline_veto_without_losing_unused_de
         assert!(members.contains(&"still-visible"));
         assert!(members.contains(&"unused-definition"));
         assert_eq!(
-            groups[0]
+            group[0]
                 .tags
                 .iter()
                 .find(|t| t.tag.name == "still-visible")
@@ -224,7 +228,7 @@ fn names_and_groups_share_online_and_known_offline_veto_without_losing_unused_de
             1
         );
         assert_eq!(
-            groups[0]
+            group[0]
                 .tags
                 .iter()
                 .find(|t| t.tag.name == "unused-definition")

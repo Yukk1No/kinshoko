@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { tipText } from "../test/tip";
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import { SharedTagGroupsSettings, TagGroupsPane } from "./TagGroupsPane";
@@ -32,7 +33,7 @@ describe("T05 shared groups", () => {
     render(<TagGroupsPane libraryId="" safe generation={0} onBrowse={browse} onError={vi.fn()} />);
     const group = await screen.findByRole("group", { name: "发色" });
     // 来源是次要信息：放在名称旁图标的悬停提示里（设计系统：次要信息收进悬停提示）。
-    expect(within(group).getByRole("img", { name: "来自：角色参考 / 发色" }).getAttribute("title")).toBe("来自：角色参考 / 发色");
+    expect(await tipText(within(group).getByRole("img", { name: "来自：角色参考 / 发色" }))).toContain("来自：角色参考 / 发色");
     fireEvent.click(within(group).getByRole("button", { name: "发色（2 个标签）" }));
     expect(browse).toHaveBeenCalledWith(["shared-blue", "shared-purple"]);
     fireEvent.click(within(group).getByRole("button", { name: "下移标签分组“发色”" }));

@@ -6,6 +6,7 @@ import { FluidList, FluidRow } from "../ui/FluidList";
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import type { FolderNode } from "../bindings/FolderNode";
+import { Tip } from "../ui/Tip";
 
 export function folderPath(nodes: FolderNode[], id: string, parent: string[] = []): string[] | null {
   for (const node of nodes) {
@@ -44,12 +45,12 @@ export function TrashRow({ label, count, current, expanded, disabled, onClick, m
   const { t } = useTranslation("library", { keyPrefix: "trash" });
   return <FluidList><FluidRow index={0}>
     <ContextMenu.Root>
-      <ContextMenu.Trigger render={<button type="button" className="sidebar-item k-row" aria-current={current ? "page" : undefined} aria-expanded={expanded}
-        disabled={disabled} aria-label={count === undefined ? t("labelLoading", { library: label }) : t("label", { library: label, count })} title={label} onClick={onClick} />}>
+      <Tip label={label} align="start"><ContextMenu.Trigger render={<button type="button" className="sidebar-item k-row" aria-current={current ? "page" : undefined} aria-expanded={expanded}
+        disabled={disabled} aria-label={count === undefined ? t("labelLoading", { library: label }) : t("label", { library: label, count })} onClick={onClick} />}>
         <span className="k-row-icon" aria-hidden="true"><Trash2 size={15} /></span>
         <span className="sidebar-label k-label">{t("title")}</span>
         <span className="sidebar-count k-label">{count ?? ""}</span>
-      </ContextMenu.Trigger>
+      </ContextMenu.Trigger></Tip>
       <MenuPopup label={t("actions")} width={220}>{menu}</MenuPopup>
     </ContextMenu.Root>
   </FluidRow></FluidList>;

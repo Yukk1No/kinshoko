@@ -19,6 +19,7 @@ import { UntranslatedRename } from "../tags/UntranslatedRename";
 import { tagStanding, type TagStanding } from "../tags/tagConfidence";
 import { useTagDisplay } from "../tags/TagDisplayContext";
 import { AtSign, Ban, Check, Tags, Undo2, X } from "lucide-react";
+import { Tip } from "../ui/Tip";
 
 type Props = {
   libraryId: string;
@@ -144,11 +145,11 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
             <button type="button" className="k-tag-tip-btn" aria-label={t("panel.clearLabel", { name })}
               onClick={() => decide("clear", byId(tag))}><Undo2 size={12} aria-hidden="true" /><span className="k-label">{t("panel.revert")}</span></button>
           ) : (
-            <button type="button" className="k-tag-tip-btn" aria-label={t("panel.keepLabel", { name })} title={t("panel.keepTitle")}
-              onClick={() => decide("add", byId(tag))}><Check size={12} aria-hidden="true" /><span className="k-label">{t("panel.keep")}</span></button>
+            <Tip label={t("panel.keepTitle")}><button type="button" className="k-tag-tip-btn" aria-label={t("panel.keepLabel", { name })}
+              onClick={() => decide("add", byId(tag))}><Check size={12} aria-hidden="true" /><span className="k-label">{t("panel.keep")}</span></button></Tip>
           )}
-          <button type="button" className="k-tag-tip-btn" aria-label={t("panel.rejectLabel", { name })} title={t("panel.rejectTitle")}
-            onClick={() => decide("reject", byId(tag))}><Ban size={12} aria-hidden="true" /><span className="k-label">{t("panel.reject")}</span></button>
+          <Tip label={t("panel.rejectTitle")}><button type="button" className="k-tag-tip-btn" aria-label={t("panel.rejectLabel", { name })}
+            onClick={() => decide("reject", byId(tag))}><Ban size={12} aria-hidden="true" /><span className="k-label">{t("panel.reject")}</span></button></Tip>
           <button type="button" className="k-tag-tip-btn" aria-label={t("panel.aliasesLabel", { name })}
             onClick={() => setAliasFor(tag)}><AtSign size={12} aria-hidden="true" /><span className="k-label">{t("panel.aliases")}</span></button>
         </>} />
@@ -185,8 +186,8 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
                   <li key={tag.id} className="tag-row k-tag-chip is-rejected">
                     <span className="tag-name">{name}</span>
                     <TagMarks tag={tag} untranslated={rename && <UntranslatedRename tag={tag} catalogId={rename.catalogId} onSaved={rename.onSaved} />} />
-                    <button type="button" className="k-tag-restore" aria-label={t("panel.restoreLabel", { name })} title={t("panel.restoreTitle")}
-                      onClick={() => decide("clear", byId(tag))}>{t("panel.restore")}</button>
+                    <Tip label={t("panel.restoreTitle")}><button type="button" className="k-tag-restore" aria-label={t("panel.restoreLabel", { name })}
+                      onClick={() => decide("clear", byId(tag))}>{t("panel.restore")}</button></Tip>
                   </li>
                 );
               })}
@@ -200,7 +201,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
           label={t("panel.field")}
           placeholder={t("panel.placeholder")}
           value={text}
-          leading={<Select className="k-tag-kind" label={t("panel.namespaceLabel")} title={t("panel.namespaceTitle")} value={namespace} options={NAMESPACES.map((value) => ({ value, label: t(`namespaceOption.${value}`) }))} onChange={setNamespace} />}
+          leading={<Select className="k-tag-kind" label={t("panel.namespaceLabel")} tip={t("panel.namespaceTitle")} value={namespace} options={NAMESPACES.map((value) => ({ value, label: t(`namespaceOption.${value}`) }))} onChange={setNamespace} />}
           options={addOptions}
           empty={query && ready && found.length === 0 ? t("panel.noMatch") : undefined}
           onValueChange={setText}
@@ -214,8 +215,8 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
         {ids.length > 1 && <p className="selection-hint insp-hint">{t("panel.many", { count: ids.length })}</p>}
         {hasText && <div className="selection-actions k-tag-add-acts">
           <button type="button" className="k-btn is-sm is-primary" aria-label={t("panel.addLabel")} onClick={() => decide("add")}><span className="k-label">{t("panel.add")}</span></button>
-          <button type="button" className="k-btn is-sm is-ghost" aria-label={t("panel.excludeLabel")} title={t("panel.excludeTitle")} onClick={() => decide("reject")}><span className="k-label">{t("panel.exclude")}</span></button>
-          <button type="button" className="k-btn is-sm is-ghost" aria-label={t("panel.clearDecisionLabel")} title={t("panel.revert")} onClick={() => decide("clear")}><span className="k-label">{t("panel.revert")}</span></button>
+          <Tip label={t("panel.excludeTitle")}><button type="button" className="k-btn is-sm is-ghost" aria-label={t("panel.excludeLabel")} onClick={() => decide("reject")}><span className="k-label">{t("panel.exclude")}</span></button></Tip>
+          <Tip label={t("panel.revert")}><button type="button" className="k-btn is-sm is-ghost" aria-label={t("panel.clearDecisionLabel")} onClick={() => decide("clear")}><span className="k-label">{t("panel.revert")}</span></button></Tip>
         </div>}
       </div>
       {aliasFor && (
@@ -278,15 +279,14 @@ function AliasEditor({
           {entry.aliases.map((a) => (
             <li key={a.name}>
               <span>{a.name}</span>
-              <button
+              <Tip label={t("alias.removeTitle")}><button
                 type="button"
                 className="k-icon-btn is-xs"
                 aria-label={t("alias.removeLabel", { name: a.name })}
-                title={t("alias.removeTitle")}
                 onClick={() => removeTagAlias(libraryId, tag.id, a.name).catch((e) => onError(e))}
               >
                 <X size={12} aria-hidden="true" />
-              </button>
+              </button></Tip>
             </li>
           ))}
         </ul>

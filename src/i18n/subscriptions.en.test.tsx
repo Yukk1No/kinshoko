@@ -7,6 +7,7 @@ import { SubscriptionSettings } from "../subscriptions/SubscriptionSettings";
 import { SubscriptionsPage } from "../subscriptions/SubscriptionsPage";
 import { account, list, NOW, recent, status } from "../subscriptions/subscriptions.fixtures";
 import { expectNoChinese } from "../test/noChinese";
+import { tipText } from "../test/tip";
 
 // 英文界面下订阅页与设置 › 订阅没有中文（#368）。订阅名是画师的数据，不算。
 const names = list.map((s) => s.name);
@@ -43,7 +44,7 @@ describe("英文界面：订阅", () => {
     }
     page(status());
     expect(await screen.findByText("Synced 10 minutes ago")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /灯里/ }).getAttribute("title")).toBe("Last check didn't finish: Couldn't reach pixiv");
+    expect(await tipText(screen.getByRole("button", { name: /灯里/ }))).toBe("Last check didn't finish: Couldn't reach pixiv");
   });
 
   it("空状态、首次使用说明与添加菜单", async () => {
