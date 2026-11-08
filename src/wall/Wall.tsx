@@ -157,7 +157,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const zoom = useRef<ZoomState>({ value: null, timer: 0, count: createNotchCounter(), pin: null });
   const smoothRef = useRef<ReturnType<typeof createSmoothWheel> | null>(null);
 
-  const returnTo = useViewerLeave({ viewerOpen, selected, lastOpened, wasViewing, smoothRef });
+  const returnTo = useViewerLeave({ viewerOpen, selected, lastOpened, wasViewing, smoothRef, cards: shown });
 
   const openTrayRef = useRef<(card: BrowserCard) => void>(() => {});
   const leaveTrayRef = useRef<() => void>(() => {});
@@ -299,7 +299,6 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
 
 
   // 卡片的事件处理读这里的最新版本，沿用的卡片元素因此不会拿着旧的选择与回调。
-  // 换托盘：旧托盘里的页先离开选择。
   const switchTray = (card: BrowserCard) => { pruneTray(); openTray(card); };
   openTrayRef.current = switchTray;
   cardHandlers.current = {

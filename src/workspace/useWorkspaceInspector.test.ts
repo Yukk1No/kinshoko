@@ -55,13 +55,20 @@ it("没读到过的选择定不下图库，不猜一个", () => {
   expect(result.current.eligible).toBe(false);
 });
 
-it("查看器走到收在一摞里的页（#418）：选择改为这一摞，关查看器时回到它", () => {
-  const setSelected = vi.fn();
+it("查看器走到收在一摞里的页（#418）：详情面板整理正在看的这一页，不是封面；关查看器后选择回到这一摞", () => {
+  let selected = new Set(["b"]);
+  const setSelected = vi.fn((next: Set<string> | ((previous: Set<string>) => Set<string>)) => {
+    selected = typeof next === "function" ? next(selected) : next;
+  });
   const stack = { ...card("a0", "L1"), set: { key: "pixiv:1", pages: [card("a0", "L1"), card("a1", "L1")] } } as unknown as BrowserCard;
-  renderHook(() => useWorkspaceInspector({
-    selected: new Set(["b"]), setSelected, loadedCards: [stack, card("b", "L1")], workspaceScope: { kind: "all" },
-    sources: null, setSources: () => {}, hidden: false, viewing: card("a1", "L1"), inspectorShown: true, onInspectorShown: () => {},
-  }));
-  const update = setSelected.mock.calls.at(-1)![0] as (previous: Set<string>) => Set<string>;
-  expect([...update(new Set(["b"]))]).toEqual(["a0"]);
+  const loadedCards = [stack, card("b", "L1")];
+  const { result, rerender } = renderHook(({ viewing, chosen }) => useWorkspaceInspector({
+    selected: chosen, setSelected, loadedCards, workspaceScope: { kind: "all" },
+    sources: null, setSources: () => {}, hidden: false, viewing, inspectorShown: true, onInspectorShown: () => {},
+  }), { initialProps: { viewing: card("a1", "L1") as BrowserCard | null, chosen: selected } });
+  expect([...selected]).toEqual(["a1"]);
+  rerender({ viewing: card("a1", "L1"), chosen: selected });
+  expect(result.current.panelIds).toEqual(["a1"]);
+  rerender({ viewing: null, chosen: selected });
+  expect([...selected]).toEqual(["a0"]);
 });

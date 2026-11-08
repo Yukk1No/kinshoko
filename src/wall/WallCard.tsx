@@ -51,11 +51,14 @@ export type CardHandlers = {
   check: (card: BrowserCard) => void;
 };
 
+/** 一摞下面的纸（#418）：照样淡入，但不算进启动时“缩略图已显示”的计数（那里按格子数等）。 */
+const markSheetLoaded = (e: { currentTarget: HTMLImageElement }) => { e.currentTarget.dataset.loaded ||= "fade"; };
+
 /** 缩略图与它的占位图（#110）：缩略图到达前放大模糊显示；遮蔽中的图不露出它的色彩。 */
-function picture(card: BrowserCard, thumbnailPx: number, veiled: boolean) {
+function picture(card: BrowserCard, thumbnailPx: number, veiled: boolean, sheet = false) {
   return <>
     <img src={thumbnailUrl(cardThumbnail(card, thumbnailPx))} alt={i18n.t("wall:card.alt")} decoding="async" draggable={false}
-      ref={markCachedThumbnail} onLoad={markThumbnailLoaded} />
+      ref={markCachedThumbnail} onLoad={sheet ? markSheetLoaded : markThumbnailLoaded} />
     {card.placeholder && !veiled && <div className="card-placeholder" aria-hidden="true"
       style={{ backgroundImage: `url("${card.placeholder}")` }} />}
   </>;
@@ -79,7 +82,7 @@ function stackFace(card: BrowserCard, b: Box, inset: number, uiScale: number, th
       return <div key={page.id} className="stack-sheet" aria-hidden="true" data-veiled={veiled || hidden.has(page.id)}
         style={{ left: `${inset}px`, top: `${inset}px`, width: `${sheet.w}px`, height: `${sheet.h}px`,
           ["--rest" as string]: pose(sheet.rest), ["--hot" as string]: pose(sheet.hot) }}>
-        {picture(page, thumbnailPx, veiled || hidden.has(page.id))}
+        {picture(page, thumbnailPx, veiled || hidden.has(page.id), true)}
       </div>;
     })}
     <div className="stack-cover" style={{ left: `${inset}px`, top: `${inset}px`, width: `${face.w}px`, height: `${face.h}px` }}>

@@ -3,13 +3,17 @@ import { useLayoutEffect, useRef } from "react";
 import type { MutableRefObject } from "react";
 import type { masonry } from "./layout";
 import type { createSmoothWheel } from "./smoothWheel";
+import { stackHolding } from "./imageSets";
+import type { BrowserCard } from "./wallShared";
 
-export function useViewerLeave({ viewerOpen, selected, lastOpened, wasViewing, smoothRef }: {
+export function useViewerLeave({ viewerOpen, selected, lastOpened, wasViewing, smoothRef, cards }: {
   viewerOpen: boolean;
   selected: ReadonlySet<string>;
   lastOpened: MutableRefObject<string | null>;
   wasViewing: MutableRefObject<boolean>;
   smoothRef: MutableRefObject<ReturnType<typeof createSmoothWheel> | null>;
+  /** 墙上的格子：最后看的页收在一摞里时（#418）接回这一摞。 */
+  cards: BrowserCard[];
 }) {
 
   // 查看中换图时选择跟着走（#179）：最后查看的就是选中的那张，它一直挂载着，返回时接回焦点。
@@ -19,7 +23,7 @@ export function useViewerLeave({ viewerOpen, selected, lastOpened, wasViewing, s
   useLayoutEffect(() => {
     // 打开查看器时停下滚轮惯性，返回时图片墙仍在打开时的位置。
     if (viewerOpen) smoothRef.current?.stop();
-    if (wasViewing.current && !viewerOpen && lastOpened.current) returnTo.current = lastOpened.current;
+    if (wasViewing.current && !viewerOpen && lastOpened.current) returnTo.current = stackHolding(cards, lastOpened.current) ?? lastOpened.current;
     wasViewing.current = viewerOpen;
   }, [viewerOpen]);
   return returnTo;
