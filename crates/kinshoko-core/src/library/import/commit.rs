@@ -194,6 +194,26 @@ pub(super) struct Record {
     pub(super) options: ImportOptions,
     pub(super) destination: SaveDestination,
     pub(super) task_created_images: Arc<Mutex<HashSet<String>>>,
+    /// 任务的取消标记：Eagle 条目等发布锁时据此放弃（见 [`commit_record_returning`]）。
+    pub(super) cancel: Option<Arc<AtomicBool>>,
+}
+
+/// 等发布锁，任务取消时放弃。
+fn lock_unless_cancelled<'a>(
+    gate: &'a Mutex<()>,
+    cancel: &AtomicBool,
+) -> Option<std::sync::MutexGuard<'a, ()>> {
+    loop {
+        match gate.try_lock() {
+            Ok(guard) => return Some(guard),
+            Err(std::sync::TryLockError::Poisoned(e)) => return Some(e.into_inner()),
+            Err(std::sync::TryLockError::WouldBlock) => {}
+        }
+        if cancel.load(std::sync::atomic::Ordering::SeqCst) {
+            return None;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(2));
+    }
 }
 
 pub(super) fn commit_record(
@@ -218,11 +238,13 @@ pub(super) fn commit_record_returning(
     let authority = inner.write_revoked.clone();
     let candidate_id = record.id.clone();
     let task_created_images = record.task_created_images.clone();
-    // Package snapshots (including cross-library copy) and subscriptions can change an existing
-    // image's effective rating. Acquire before queuing the writer job: acquiring inside that job
-    // would invert the scheduler's gate -> writer order. Ordinary/Eagle tasks never write
-    // rating facts and must not wait on this gate while unregister settles their workers.
-    let writes_rating = record.package.is_some() || record.subscription.is_some();
+    // Package snapshots (including cross-library copy), subscriptions and Eagle items (R-18
+    // markers) can change an existing image's effective rating. Acquire before queuing the
+    // writer job: acquiring inside that job would invert the scheduler's gate -> writer order.
+    // Eagle items run inside import tasks, which unregister cancels and then settles while
+    // holding this gate, so they only poll it and give up once their task is cancelled.
+    let writes_rating =
+        record.package.is_some() || record.subscription.is_some() || record.eagle.is_some();
     let gate = writes_rating
         .then(|| {
             inner
@@ -233,9 +255,16 @@ pub(super) fn commit_record_returning(
         })
         .flatten();
     let (committed, record) = {
-        let _publication = gate
-            .as_ref()
-            .map(|gate| gate.lock().unwrap_or_else(|e| e.into_inner()));
+        let _publication = match (&gate, &record.cancel) {
+            (Some(gate), Some(cancel)) if record.eagle.is_some() => {
+                match lock_unless_cancelled(gate, cancel) {
+                    Some(guard) => Some(guard),
+                    None => return (Err(Error::DestinationRevoked), record),
+                }
+            }
+            (Some(gate), _) => Some(gate.lock().unwrap_or_else(|e| e.into_inner())),
+            (None, _) => None,
+        };
         inner.writer.run(move |conn| {
             let committed = save::validate_authority(&authority)
                 .and_then(|()| commit(conn, &record, pending.as_deref(), &translations));

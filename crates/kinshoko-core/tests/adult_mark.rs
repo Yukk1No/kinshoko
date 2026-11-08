@@ -89,7 +89,8 @@ fn earlier_libraries_drop_r18_tags_from_eagle_and_pixiv_layers() {
     let images = import(&library, &fixture);
     drop(library);
     {
-        // 退回上一版：Eagle 条目带着 R-18 标签、没有分级；另一张图的 pixiv 来源层也带 R-18。
+        // 退回上一版：Eagle 条目带着 R-18 标签、没有分级；另一张图的 pixiv 来源层也带 R-18，
+        // 还有一位叫 R-18 的作者。
         let conn = rusqlite::Connection::open(root.join("library.sqlite")).unwrap();
         let migrations = include_str!("../src/library/store.rs")
             .lines()
@@ -99,8 +100,13 @@ fn earlier_libraries_drop_r18_tags_from_eagle_and_pixiv_layers() {
             "UPDATE tag_source_name SET name = 'R-18' WHERE name = '占位';
              DELETE FROM rating_fact;
              INSERT INTO tag_fact (image_id, tag_id, source, score)
-                 SELECT '{}', tag_id, 'pixiv:9', NULL FROM tag_source_name WHERE name = 'R-18';
-             PRAGMA user_version = {};",
+                 SELECT '{0}', tag_id, 'pixiv:9', NULL FROM tag_source_name WHERE name = 'R-18';
+             INSERT INTO tag (id, namespace, created_at) VALUES ('artist-r18', 'artist', 0);
+             INSERT INTO tag_source_name (tag_id, name, lang, source)
+                 VALUES ('artist-r18', 'R-18', 'und', 'pixiv');
+             INSERT INTO tag_fact (image_id, tag_id, source, score)
+                 VALUES ('{0}', 'artist-r18', 'pixiv:9', NULL);
+             PRAGMA user_version = {1};",
             images[1],
             migrations - 1
         ))
@@ -112,7 +118,8 @@ fn earlier_libraries_drop_r18_tags_from_eagle_and_pixiv_layers() {
 
     assert_eq!(shown(&library, &images[0]), ["原神"]);
     assert_eq!(rating(&library, &images[0]), Some(ContentRating::Explicit));
-    assert_eq!(shown(&library, &images[1]), ["原神"]);
+    // 作者不是成人记号，留着。
+    assert_eq!(shown(&library, &images[1]), ["R-18", "原神"]);
     // pixiv 的分级来自作品本身，迁移不另记。
     assert_eq!(rating(&library, &images[1]), None);
 }

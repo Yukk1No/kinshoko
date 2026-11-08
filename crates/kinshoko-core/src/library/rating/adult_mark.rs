@@ -55,12 +55,15 @@ pub(in crate::library) fn marks_adult(names: &[String]) -> bool {
 }
 
 /// 按来源标签原文重写这一来源层的分级：有成人记号时记为成人，否则这一层没有分级。
+/// 有效分级因此变了时列表修订号前进：安全模式下浏览结果集跟着变，旧的分页游标要失效。
 pub(in crate::library) fn replace_rating_from_tags(
     tx: &Transaction,
     source: &FactSource,
     image_id: &str,
     names: &[String],
 ) -> rusqlite::Result<()> {
+    let effective = format!("SELECT {}", super::effective_rank_sql("?1"));
+    let before: Option<i64> = tx.query_row(&effective, [image_id], |r| r.get(0))?;
     tx.execute(
         "DELETE FROM rating_fact WHERE image_id = ?1 AND source = ?2",
         params![image_id, source.as_str()],
@@ -71,6 +74,10 @@ pub(in crate::library) fn replace_rating_from_tags(
             params![image_id, source.as_str(), ContentRating::Explicit.as_str()],
         )?;
     }
+    let after: Option<i64> = tx.query_row(&effective, [image_id], |r| r.get(0))?;
+    if before != after {
+        tx.execute("UPDATE list_revision SET value = value + 1", [])?;
+    }
     Ok(())
 }
 
@@ -79,16 +86,18 @@ const NORMALIZED_SQL: &str =
     "upper(replace(replace(replace(replace(name, '-', ''), '_', ''), ' ', ''), char(12288), ''))";
 
 /// 迁移：已经进库的 pixiv 订阅与 Eagle 来源层按上面的规则改写。Eagle 条目带 R-18 或 R-18G
-/// 的记为成人分级；两种来源层的 R-18 标签去掉。人工加的标签不动。
+/// 的记为成人分级；两种来源层的 R-18 标签去掉。只看一般标签：叫 R-18 的作者等不受影响；
+/// 人工加的标签不动。
 pub(in crate::library) fn upgrade_existing(tx: &Transaction) -> rusqlite_migration::HookResult {
     let marked = |normalized: &str| {
         format!(
-            "SELECT tag_id FROM tag_source_name WHERE {NORMALIZED_SQL} = '{normalized}'
-             UNION SELECT tag_id FROM tag_name WHERE {NORMALIZED_SQL} = '{normalized}'"
+            "SELECT id FROM tag WHERE namespace = 'general' AND id IN (
+                 SELECT tag_id FROM tag_source_name WHERE {NORMALIZED_SQL} = '{normalized}'
+                 UNION SELECT tag_id FROM tag_name WHERE {NORMALIZED_SQL} = '{normalized}')"
         )
     };
     let (r18, r18g) = (marked("R18"), marked("R18G"));
-    tx.execute(
+    let added = tx.execute(
         &format!(
             "INSERT OR IGNORE INTO rating_fact (image_id, source, rating, score)
              SELECT DISTINCT image_id, source, ?1, NULL FROM tag_fact
@@ -103,6 +112,9 @@ pub(in crate::library) fn upgrade_existing(tx: &Transaction) -> rusqlite_migrati
         ),
         [],
     )?;
+    if added > 0 {
+        tx.execute("UPDATE list_revision SET value = value + 1", [])?;
+    }
     if removed > 0 {
         tx.execute("UPDATE vocabulary_revision SET value = value + 1", [])?;
     }
