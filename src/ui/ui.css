@@ -52,7 +52,7 @@
 .k-win-btn:hover { background: var(--hover); color: var(--ink); }
 .k-win-btn:active { background: var(--press); }
 .k-win-btn.is-close:hover { background: var(--danger-solid); color: var(--on-solid); }
-.k-win-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.k-win-btn:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 
 /* ---- Popups: menus and popovers (Base UI parts) ---- */
 /* 菜单、小确认、悬停提示常在对话框（.k-dialog 91）里打开，浮层要压在对话框之上。 */
@@ -143,7 +143,7 @@
 .k-dock-item.is-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 88%, var(--bg)); color: var(--bg); }
 .k-dock-item.is-danger:hover:not(:disabled) { color: var(--danger); background: var(--hover); }
 .k-dock-item:disabled, .k-import:disabled { opacity: 0.5; cursor: default; }
-.k-dock-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.k-dock-item:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .k-dock-sel { position: absolute; inset: 0; border-radius: var(--r); background: var(--accent-soft); }
 .k-dock-icon { position: relative; display: grid; place-items: center; }
 .k-dock-sep { width: 1px; height: 22px; margin: 0 5px; background: var(--line-2); }

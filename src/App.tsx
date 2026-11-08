@@ -111,6 +111,7 @@ function MainWindow() {
   }, []);
   /** 设置页交来过快照后，启动时读到的那份已经旧了，回得晚也不再接受（#321）。 */
   const settingsChanged = useRef(false);
+  const settingsPopup = useRef<HTMLDivElement>(null);
   const acceptChangedSettings = useCallback((view: ShellSettingsView) => {
     settingsChanged.current = true;
     acceptShellSettings(view);
@@ -340,7 +341,7 @@ function MainWindow() {
       <Dialog.Root open={showSettings} onOpenChange={setShowSettings}>
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />
-          <Dialog.Popup className="k-dialog k-settings-dialog">
+          <Dialog.Popup ref={settingsPopup} initialFocus={settingsPopup} className="k-dialog k-settings-dialog">
             <Dialog.Title className="sr-only">{t("settingsTitle")}</Dialog.Title>
             {/* 关闭按钮不归设置面板管：读取中或读取失败时也在。 */}
             <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("closeSettings")}><X size={16} aria-hidden="true" /></Dialog.Close>

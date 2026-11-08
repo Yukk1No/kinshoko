@@ -38,7 +38,7 @@
 .group-card-head { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-width: 0; padding: 8px; border: 0; border-radius: var(--r-s);
   background: transparent; color: var(--ink); text-align: left; font: inherit; }
 .reference-group:not(.is-on) .group-card-head:hover { background: var(--hover); }
-.group-card-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.group-card-head:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-inset); }
 .group-thumbs { display: flex; gap: 4px; margin-bottom: 6px; max-width: 100%; overflow: hidden; }
 .group-thumb { width: 44px; height: 44px; flex: none; border-radius: var(--r-xs); overflow: hidden; background: var(--card); }
 .group-thumb:nth-child(even) { width: 34px; }

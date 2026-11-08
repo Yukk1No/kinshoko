@@ -170,8 +170,8 @@
 }
 
 .search-chip button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 0;
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
 .search-field {

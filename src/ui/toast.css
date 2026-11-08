@@ -25,7 +25,7 @@ body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-toasts {
 .k-toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x) + 120%)) translateY(var(--offset-y)); }
 .k-toast[data-ending-style][data-swipe-direction="down"] { transform: translateY(calc(var(--toast-swipe-movement-y) + 120%)); }
 .k-toast[data-limited] { opacity: 0; }
-.k-toast:focus-visible { box-shadow: 0 0 0 2px var(--accent), var(--shadow-toast); }
+.k-toast:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .k-toast-content { box-sizing: border-box; height: 100%; display: flex; align-items: center; gap: 12px; padding: 8px; overflow: hidden; border-radius: inherit;
   transition: opacity var(--t-slow) var(--ease); }
 .k-toast-content[data-behind] { opacity: 0; }
@@ -57,7 +57,7 @@ body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-toasts {
    It keeps its width while hidden: folding it away made hovering narrow the text, which then wrapped and grew the toast (#388). */
 .k-toast:not([data-tone="error"]) .k-toast-close { opacity: 0; }
 .k-toast:not([data-tone="error"]):is(:hover, :focus-within) .k-toast-close { opacity: 1; }
-.k-toast-action:focus-visible, .k-toast-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.k-toast-action:focus-visible, .k-toast-close:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 
 @media (prefers-reduced-motion: reduce) { .k-toasts, .k-toast { transition-duration: 0ms; } }
 :root[data-reduced-motion] .k-toasts, :root[data-reduced-motion] .k-toast { transition-duration: 0ms; }

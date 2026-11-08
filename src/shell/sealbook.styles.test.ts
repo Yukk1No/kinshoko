@@ -12,7 +12,7 @@ const PROTOTYPE_RULES = [
   ".seal-book.is-sealed:hover { --bb: color-mix(in srgb, var(--seal-acc) 20%, var(--rail)); }",
   ".seal-book.is-sealed:active { --bb: color-mix(in srgb, var(--ink) 12%, var(--rail)); }",
   ".seal-book:hover svg { transform: none; }",
-  ".seal-book:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }",
+  ".seal-book:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }",
 ];
 const PROTOTYPE_COLOURS = [
   ":root { --seal-acc: #c85672; --seal-ink: var(--ink); }",
