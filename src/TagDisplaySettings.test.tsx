@@ -1,4 +1,4 @@
-// 设置 › 标签 › 外观（#160）：标签风格 B / C、可信度分档阈值、低档虚线框；本设备设置，改了立即告诉主窗口。
+// 设置 › 标签 › 外观（#160）：标签风格 B / C、可信度分档阈值；本设备设置，改了立即告诉主窗口。
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
@@ -14,7 +14,7 @@ afterEach(async () => {
 
 /** 像核心一样保存标签外观：阈值交叉时拒绝，原来的设置不变。 */
 function backend() {
-  let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
+  let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4 };
   const sent: TagDisplay[] = [];
   const view = (): ShellSettingsView => ({
     autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
@@ -41,37 +41,34 @@ async function openAppearance(onChange?: (view: ShellSettingsView) => void) {
   return {
     high: await screen.findByRole("spinbutton", { name: "高档下限" }) as HTMLInputElement,
     low: screen.getByRole("spinbutton", { name: "低档上限" }) as HTMLInputElement,
-    outline: screen.getByRole("switch", { name: "低档虚线框" }),
   };
 }
 
 describe("设置：标签外观", () => {
-  it("默认：按可信度分档，高档下限 80、低档上限 40，步长 5，低档虚线框开", async () => {
+  it("默认：按可信度分档，高档下限 80、低档上限 40，步长 5；没有低档虚线框开关（#482）", async () => {
     backend();
-    const { high, low, outline } = await openAppearance();
+    const { high, low } = await openAppearance();
     expect(screen.getByRole("button", { name: "按可信度分档" }).getAttribute("aria-pressed")).toBe("true");
     expect(high.value).toBe("80");
     expect(low.value).toBe("40");
     expect(high.step).toBe("5");
     expect(low.step).toBe("5");
-    expect(outline.getAttribute("aria-checked")).toBe("true");
+    expect(screen.queryByRole("switch", { name: "低档虚线框" })).toBeNull();
   });
 
-  it("切到按出处分组、改阈值、关虚线框，都立即保存并告诉主窗口", async () => {
+  it("切到按出处分组、改阈值，都立即保存并告诉主窗口", async () => {
     const store = backend();
     const seen: ShellSettingsView[] = [];
-    const { high, outline } = await openAppearance((view) => seen.push(view));
+    const { high } = await openAppearance((view) => seen.push(view));
     fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
     await waitFor(() => expect(seen.at(-1)?.tagDisplay.style).toBe("grouped"));
     fireEvent.change(high, { target: { value: "75" } });
     await waitFor(() => expect(seen.at(-1)?.tagDisplay.high).toBe(0.75));
-    fireEvent.click(outline);
-    await waitFor(() => expect(seen.at(-1)?.tagDisplay.lowOutline).toBe(false));
-    expect(store.saved()).toEqual({ style: "grouped", high: 0.75, low: 0.4, lowOutline: false });
+    expect(store.saved()).toEqual({ style: "grouped", high: 0.75, low: 0.4 });
   });
 
   it("前一次保存还没回来时连着改几项，后改的不被先回来的结果盖掉", async () => {
-    let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
+    let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4 };
     const waiting: (() => void)[] = [];
     const view = (tagDisplay: TagDisplay): ShellSettingsView => ({
       autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
@@ -94,20 +91,20 @@ describe("设置：标签外观", () => {
       // 让回复走完 invoke 和 React 的重新渲染。
       await new Promise((resolve) => setTimeout(resolve, 20));
     };
-    const { high, outline } = await openAppearance();
+    const { high, low } = await openAppearance();
     fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
-    fireEvent.click(outline);
+    fireEvent.change(low, { target: { value: "35" } });
     await release();
     fireEvent.change(high, { target: { value: "75" } });
     // 修好后保存一次只发一个，后面的排队，所以要一个个放行到没有为止。
     while (waiting.length > 0) await release();
-    expect(saved).toEqual({ style: "grouped", high: 0.75, low: 0.4, lowOutline: false });
-    expect(screen.getByRole("switch", { name: "低档虚线框" }).getAttribute("aria-checked")).toBe("false");
+    expect(saved).toEqual({ style: "grouped", high: 0.75, low: 0.35 });
+    expect(low.value).toBe("35");
     expect(screen.getByRole("button", { name: "按出处分组" }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("保存还没回来时切走再回来，外观接着显示最后改成的那份，再改也在它之上（#321）", async () => {
-    let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
+    let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4 };
     const waiting: (() => void)[] = [];
     const view = (): ShellSettingsView => ({
       autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
@@ -122,23 +119,23 @@ describe("设置：标签外观", () => {
       if (cmd === "plugin:library|safe_mode") return true;
       return undefined;
     }, { shouldMockEvents: true });
-    const { outline } = await openAppearance();
-    fireEvent.click(outline);
+    const { low } = await openAppearance();
+    fireEvent.change(low, { target: { value: "35" } });
     fireEvent.click(screen.getByRole("button", { name: "显示名" }));
     fireEvent.click(screen.getByRole("button", { name: "外观" }));
-    expect((await screen.findByRole("switch", { name: "低档虚线框" })).getAttribute("aria-checked")).toBe("false");
+    expect((await screen.findByRole("spinbutton", { name: "低档上限" }) as HTMLInputElement).value).toBe("35");
     fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
     await waitFor(() => expect(waiting.length).toBeGreaterThan(0));
     while (waiting.length > 0) {
       waiting.shift()!();
       await new Promise((resolve) => setTimeout(resolve, 20));
     }
-    expect(saved).toEqual({ style: "grouped", high: 0.8, low: 0.4, lowOutline: false });
-    expect(screen.getByRole("switch", { name: "低档虚线框" }).getAttribute("aria-checked")).toBe("false");
+    expect(saved).toEqual({ style: "grouped", high: 0.8, low: 0.35 });
+    expect((screen.getByRole("spinbutton", { name: "低档上限" }) as HTMLInputElement).value).toBe("35");
   });
 
   it("保存失败时控件回到已保存的设置，之后的改动不夹带失败的那项", async () => {
-    let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
+    let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4 };
     const view = (): ShellSettingsView => ({
       autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
       runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", inspectorOpen: false, updateChannel: "stable", tagDisplay: saved,
@@ -154,13 +151,13 @@ describe("设置：标签外观", () => {
       if (cmd === "plugin:library|safe_mode") return true;
       return undefined;
     }, { shouldMockEvents: true });
-    const { outline } = await openAppearance();
-    fireEvent.click(outline);
+    const { low } = await openAppearance();
+    fireEvent.change(low, { target: { value: "35" } });
     await waitFor(() => expect(screen.getByText(/无法写入设置文件/)).toBeTruthy());
-    await waitFor(() => expect(outline.getAttribute("aria-checked")).toBe("true"));
+    await waitFor(() => expect(low.value).toBe("40"));
     fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
     await waitFor(() => expect(saved.style).toBe("grouped"));
-    expect(saved).toEqual({ style: "grouped", high: 0.8, low: 0.4, lowOutline: true });
+    expect(saved).toEqual({ style: "grouped", high: 0.8, low: 0.4 });
   });
 
   it("拒绝低档上限 ≥ 高档下限：说明原因，不保存", async () => {
@@ -171,7 +168,7 @@ describe("设置：标签外观", () => {
     fireEvent.change(high, { target: { value: "35" } });
     expect(screen.getByRole("alert").textContent).toContain("低档上限要小于高档下限");
     expect(store.sent).toEqual([]);
-    expect(store.saved()).toEqual({ style: "bands", high: 0.8, low: 0.4, lowOutline: true });
+    expect(store.saved()).toEqual({ style: "bands", high: 0.8, low: 0.4 });
   });
 
   it("“恢复默认”回到 80 / 40", async () => {
@@ -181,7 +178,7 @@ describe("设置：标签外观", () => {
     fireEvent.change(low, { target: { value: "50" } });
     await waitFor(() => expect(store.saved()).toMatchObject({ high: 0.9, low: 0.5 }));
     fireEvent.click(screen.getByRole("button", { name: "恢复默认" }));
-    await waitFor(() => expect(store.saved()).toEqual({ style: "bands", high: 0.8, low: 0.4, lowOutline: true }));
+    await waitFor(() => expect(store.saved()).toEqual({ style: "bands", high: 0.8, low: 0.4 }));
     expect(high.value).toBe("80");
     expect(low.value).toBe("40");
   });

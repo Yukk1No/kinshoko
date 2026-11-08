@@ -111,16 +111,13 @@
    一个加标签字段（类别 + 输入）。 */
 .k-tags { gap: 8px; font-size: 12px; }
 .k-tags .k-tag-chips { flex-direction: row; flex-wrap: wrap; gap: 6px; }
-.k-tags .k-tag-chip { position: relative; display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 4px; min-height: 26px; padding: 0 8px; border-radius: var(--r-s); background: var(--surface-2); color: var(--ink); cursor: default; }
-.k-tags .k-tag-chip.is-manual { background: var(--manual-soft); box-shadow: inset 0 0 0 1px var(--manual); color: var(--ink); }
+.k-tags .k-tag-chip { position: relative; display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 4px; min-height: 26px; padding: 0 8px; border-radius: var(--r-s); background: var(--tag-fill); color: var(--ink); cursor: default; }
 .k-tags .k-tag-chip .tag-name { font-weight: 500; white-space: nowrap; }
 .k-tags .k-tag-chip:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-/* B：模型标签按可信度三档——高档深底，中档常规底（同导入），低档不填底、字变浅；只改颜色，不改尺寸。
-   低档虚线框是设置里的开关（默认开，验收后改定，见 #160）；用 outline，不占排版。 */
-.k-tags .k-tag-chip[data-band="high"] { background: var(--tag-conf-high); }
-.k-tags .k-tag-chip[data-band="low"] { background: transparent; color: var(--ink-2); }
-.k-tags [data-low-outline] .k-tag-chip[data-band="low"] { outline: 1px dashed var(--line-2); outline-offset: -1px; }
-.k-tags [data-low-outline] .k-tag-chip[data-band="low"]:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+/* B：按准不准分三档（#482）——人写的（人工、导入）和模型高档有底；模型中档（含没有分数的）无底细线框；
+   低档无底虚线框、字变浅。只改颜色和线，不改尺寸；虚线用 outline，不占排版。 */
+.k-tags .k-tag-chip[data-band="mid"] { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); }
+.k-tags .k-tag-chip[data-band="low"] { background: transparent; outline: 1px dashed var(--line-2); outline-offset: -1px; color: var(--ink-2); }.k-tags .k-tag-chip[data-band="low"]:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 /* C：按出处分组，模型标签底边一条可信度刻度，长度等于可信度。 */
 .k-tags .k-tag-group { display: flex; flex-direction: column; gap: 6px; }
 .k-tags .k-tag-chip:has(.k-tag-meter) { overflow: hidden; }
@@ -128,6 +125,9 @@
 /* 悬停浮层：在 portal 里，不占标签的位置（#159）；出处每行一条，操作在底部。 */
 .k-tag-tip { display: flex; flex-direction: column; gap: 1px; max-width: 260px; line-height: 18px; }
 .k-tag-tip .k-tag-tip-line.is-dim { opacity: 0.7; }
+/* 打标模型那行与“自动标签”分组标题前的星（#482）：星在 Kinshoko 里代表“智能”，跟文字同色。 */
+.k-tag-tip .k-tag-tip-line:has(> .lucide), .k-tags .k-tags-sub:has(> .lucide) { display: flex; align-items: center; gap: 4px; }
+:is(.k-tag-tip-line, .k-tags-sub) > .lucide { flex: none; }
 .k-tag-tip .k-tag-tip-acts { display: flex; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, var(--bg) 20%, transparent); }
 .k-tag-tip .k-tag-tip-btn { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px; border: 0; border-radius: var(--r-xs); background: color-mix(in srgb, var(--bg) 12%, transparent); color: inherit; font: inherit; font-size: 12px; cursor: pointer; }
 .k-tag-tip .k-tag-tip-btn:hover { background: color-mix(in srgb, var(--bg) 22%, transparent); }

@@ -176,7 +176,7 @@ describe("偏好设置备份", () => {
 
   it("恢复还没回来时改标签外观，只把改的那项叠到恢复的结果上（#321）", async () => {
     let releaseRestore = () => {};
-    const backup: ShellSettingsView = { ...defaults, tagDisplay: { style: "grouped", high: 0.9, low: 0.2, lowOutline: true } };
+    const backup: ShellSettingsView = { ...defaults, tagDisplay: { style: "bands", high: 0.9, low: 0.2 } };
     const calls = backend((cmd, args) => {
       if (cmd === "plugin:library|preview_application_settings") return { fingerprint: "fixed-backup", safeMode: true, forceSrgb: false };
       if (cmd === "plugin:library|restore_application_settings") {
@@ -191,10 +191,10 @@ describe("偏好设置备份", () => {
     fireEvent.click(await screen.findByRole("button", { name: "替换偏好设置" }));
     await tab("标签");
     fireEvent.click(await screen.findByRole("button", { name: "外观" }));
-    fireEvent.click(await screen.findByRole("switch", { name: "低档虚线框" }));
+    fireEvent.click(await screen.findByRole("button", { name: "按出处分组" }));
     releaseRestore();
     await waitFor(() => expect(calls.find((c) => c.cmd === "set_tag_display")?.args).toEqual({
-      display: { style: "grouped", high: 0.9, low: 0.2, lowOutline: false },
+      display: { style: "grouped", high: 0.9, low: 0.2 },
     }));
     await waitFor(() => expect((screen.getByRole("spinbutton", { name: "高档下限" }) as HTMLInputElement).value).toBe("90"));
   });

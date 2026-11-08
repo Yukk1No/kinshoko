@@ -82,7 +82,7 @@ describe("分档阈值的约束", () => {
     expect(thresholdProblem({ high: Number.NaN, low: 0.4 })).toBe("要在 0% 到 100% 之间");
   });
 
-  it("默认是底色分档、0.80 / 0.40、低档加虚线框", () => {
-    expect(DEFAULT_TAG_DISPLAY).toEqual({ style: "bands", high: 0.8, low: 0.4, lowOutline: true });
+  it("默认是按可信度分三档、0.80 / 0.40", () => {
+    expect(DEFAULT_TAG_DISPLAY).toEqual({ style: "bands", high: 0.8, low: 0.4 });
   });
 });

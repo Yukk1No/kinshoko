@@ -3,6 +3,7 @@ import type { TagStyle } from "./TagStyle";
 
 /**
  * 标签外观与可信度分档（#160）。阈值按两位小数保存，必须满足 `0 ≤ low < high ≤ 1`。
+ * 旧设置文件里的 `lowOutline`（低档虚线框开关，#482 去掉，虚线一直显示）读入时忽略，再保存时不写。
  */
 export type TagDisplay = { style: TagStyle, 
 /**
@@ -12,8 +13,4 @@ high: number,
 /**
  * 低档上限：可信度低于它的模型标签归低档。
  */
-low: number, 
-/**
- * 低档标签加虚线外框；默认开（维护者验收决定），关掉后只把字变浅。
- */
-lowOutline: boolean, };
+low: number, };

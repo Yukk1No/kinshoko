@@ -4,14 +4,16 @@ import { useTranslation } from "react-i18next";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagOrigin } from "../bindings/TagOrigin";
 import { TagMarks, tagName, untranslatedHint } from "../search/SearchBox";
-import { confidenceBand, confidencePercent, originLine, tagStanding, type ConfidenceThresholds } from "./tagConfidence";
+import { Sparkles } from "lucide-react";
+import { confidenceBand, confidencePercent, isModel, originLine, tagStanding, type ConfidenceThresholds } from "./tagConfidence";
 import { useTagDisplay } from "./TagDisplayContext";
 import { UntranslatedRename } from "./UntranslatedRename";
 
-/** 模型标签的档位（`data-band`）；人工添加的、导入的、没有分数的不分档。 */
+/** 模型标签的档位（`data-band`）；没有分数的按中档（#482）。人工添加的、导入的不分档。 */
 export function chipBand(origins: TagOrigin[], thresholds: ConfidenceThresholds) {
   const standing = tagStanding(origins);
-  return standing.kind === "model" && standing.score !== null ? confidenceBand(standing.score, thresholds) : undefined;
+  if (standing.kind !== "model") return undefined;
+  return standing.score === null ? "mid" : confidenceBand(standing.score, thresholds);
 }
 
 /** 可信度刻度条（C）：底边一条细线，长度等于可信度。 */
@@ -49,8 +51,9 @@ export function TagChip({ tag, origins, notes = [], actions, meter = false, rena
   const name = tagName(tag);
   const standing = tagStanding(origins);
   const manual = standing.kind === "manual";
-  const lines = [...new Set(origins.map((o) => originLine(o, display)))];
-  if (tag.untranslated) lines.push(untranslatedHint());
+  // 出自打标模型的那行前面是星，星在 Kinshoko 里代表“智能”（#482）。
+  const lines = [...new Map(origins.map((o) => [originLine(o, display), isModel(o)] as const)).entries()];
+  if (tag.untranslated) lines.push([untranslatedHint(), false]);
   return (
     <Popover.Root open={open && !renaming} onOpenChange={setOpen}>
       <Popover.Trigger openOnHover delay={250} closeDelay={160} nativeButton={false}
@@ -63,7 +66,7 @@ export function TagChip({ tag, origins, notes = [], actions, meter = false, rena
       <Popover.Portal>
         <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={6}>
           <Popover.Popup className="k-tip k-tag-tip" aria-label={t("origin.label", { name })} initialFocus={false} finalFocus={false}>
-            {lines.map((line) => <span key={line} className="k-tag-tip-line">{line}</span>)}
+            {lines.map(([line, model]) => <span key={line} className="k-tag-tip-line">{model && <Sparkles size={12} aria-hidden="true" />}{line}</span>)}
             {notes.map((note) => <span key={note} className="k-tag-tip-line is-dim">{note}</span>)}
             <span className="k-tag-tip-acts">{actions}</span>
           </Popover.Popup>

@@ -109,8 +109,6 @@ const tagSettings: Translation<typeof zh> = {
     low: "Low below",
     lowLabel: "Low upper bound",
     reset: "Restore defaults",
-    lowOutline: "Dashed outline for low",
-    lowOutlineHint: "Low-confidence tags get a dashed outline; when off, only their text is lighter",
     outOfRange: "Must be between 0% and 100%",
     lowAboveHigh: "The low upper bound must be less than the high lower bound",
   },
