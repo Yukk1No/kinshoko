@@ -70,6 +70,8 @@ const library: Translation<typeof zh> = {
     reveal: "Show in File Explorer",
     reconnect: "Reconnect",
     remove: "Remove from list",
+    removed: "Removed from list",
+    undo: "Undo",
   },
   trash: {
     title: "Trash",

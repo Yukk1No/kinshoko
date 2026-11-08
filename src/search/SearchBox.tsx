@@ -10,8 +10,9 @@ import type { SimilarTag } from "../bindings/SimilarTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { Term } from "../bindings/Term";
 import type { TermInput } from "../bindings/TermInput";
+import type { ReactElement } from "react";
 import { Popover } from "@base-ui/react/popover";
-import { Search } from "lucide-react";
+import { Ban, Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Combobox, Highlight, type ComboboxOption } from "../ui/Combobox";
 import { ExactToggle } from "./ExactToggle";
@@ -19,6 +20,7 @@ import { tagOption } from "./tagOptions";
 import { chipsThatFit } from "./fitChips";
 import { RatingName, tagName } from "./tagLabel";
 import { TermView } from "./TermView";
+import { Menu, MenuItem, MenuLabel, MenuPopup } from "../ui/Menu";
 import { useUiLang } from "../i18n";
 import { ratingCandidates, searchCandidates, workspaceCandidates, workspaceLibraryCandidates, setTagApprox, editSharedApprox } from "../ipc";
 
@@ -139,15 +141,10 @@ type Props = {
 export function SearchBox({ libraryId, safe, generation, input, tree, showSource, onChange, onError, workspace = false }: Props) {
   const { t } = useTranslation("search");
   const [text, setText] = useState("");
-  const [dismissing, setDismissing] = useState<(Place & { similar: SimilarTag; lens: string }) | null>(null);
-  const [adding, setAdding] = useState<{ tag: TagLabel; lens: string } | null>(null);
   const lens: Lens = { libraryId, safe, generation, workspace };
   const candidates = useCandidates(lens, text);
   const ratings = useRatingCandidates(lens, text);
   const context = lensKey(lens, "");
-  const dismissingNow = dismissing?.lens === context ? dismissing : null;
-  const addingNow = adding?.lens === context ? adding.tag : null;
-  useEffect(() => { setDismissing(null); setAdding(null); }, [context]);
 
   // 放不下的条件标签收进“+n”（#222）：每次绘制后和查找框变宽变窄时量一次，个数变了才重绘。
   const root = useRef<HTMLDivElement>(null);
@@ -213,19 +210,16 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
             },
       ),
     );
-    setDismissing(null);
   };
 
   /** “以后都不展开”：每一对都记为不相近；词表变化后条件会重新解析。 */
   const dismissForever = (similar: SimilarTag) => {
-    setDismissing(null);
     (workspace ? editSharedApprox({ kind: "set", rules: similar.of.map((id) => ({ a: id, b: similar.tag.id, relation: "notSimilar" })) }, safe) : Promise.all(similar.of.map((id) => setTagApprox(libraryId, id, similar.tag.id, "notSimilar")))).catch((e) =>
       onError(e),
     );
   };
 
   const addSimilar = (to: TagLabel, tag: TagLabel) => {
-    setAdding(null);
     (workspace ? editSharedApprox({ kind: "set", rules: [{ a: to.id, b: tag.id, relation: "similar" }] }, safe) : setTagApprox(libraryId, to.id, tag.id, "similar")).catch((e) => onError(e));
   };
 
@@ -250,8 +244,16 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
                 <TermView
                   term={term}
                   showSource={showSource}
-                  onDismiss={(similar) => setDismissing({ condition: i, term: place, similar, lens: context })}
-                  onAdd={(to) => setAdding({ tag: to, lens: context })}
+                  // 菜单与浮层随视角（图库、安全模式、词表代次）重建：视角变了就收起。
+                  dismiss={(similar, button) => <Menu.Root key={context} modal={false}>
+                    <Menu.Trigger render={button} />
+                    <MenuPopup label={t("dismiss.label")}>
+                      <MenuLabel>{t("dismiss.prompt", { name: tagName(similar.tag) })}</MenuLabel>
+                      <MenuItem icon={<X size={16} strokeWidth={1.75} />} onClick={() => dismissOnce({ condition: i, term: place, similar })}>{t("dismiss.once")}</MenuItem>
+                      <MenuItem icon={<Ban size={16} strokeWidth={1.75} />} onClick={() => dismissForever(similar)}>{t("dismiss.forever")}</MenuItem>
+                    </MenuPopup>
+                  </Menu.Root>}
+                  add={(to, button) => <AddSimilar key={context} lens={lens} to={to} button={button} onPick={(tag) => addSimilar(to, tag)} />}
                 />
               ) : (
                 <span>{inputLabel(input)}</span>
@@ -311,33 +313,33 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
         />
       </div>
       <ExactToggle exact={input.exact} onChange={(exact) => onChange({ ...input, exact })} />
-      {dismissingNow && (
-        <div className="search-popover" role="dialog" aria-label={t("dismiss.label")}>
-          <p>{t("dismiss.prompt", { name: tagName(dismissingNow.similar.tag) })}</p>
-          <button type="button" className="k-btn is-sm" onClick={() => dismissOnce(dismissingNow)}>
-            {t("dismiss.once")}
-          </button>
-          <button type="button" className="k-btn is-sm" onClick={() => dismissForever(dismissingNow.similar)}>
-            {t("dismiss.forever")}
-          </button>
-          <button type="button" className="k-btn is-sm" onClick={() => setDismissing(null)}>
-            {t("dismiss.cancel")}
-          </button>
-        </div>
-      )}
-      {addingNow && (
-        <AddSimilar key={addingNow.id} lens={lens} to={addingNow} onPick={(tag) => addSimilar(addingNow, tag)} onCancel={() => setAdding(null)} />
-      )}
     </div>
   );
 }
-/** “＋”：按名称或别名从可见标签里挑一个，加为 `to` 的相近标签。 */
-function AddSimilar({
-  lens,
-  to,
-  onPick,
-  onCancel,
-}: {
+/** “＋”：贴着按钮的浮层，按名称或别名从可见标签里挑一个，加为 `to` 的相近标签。Esc 或点别处收起。 */
+function AddSimilar({ lens, to, button, onPick }: {
+  lens: Lens;
+  to: TagLabel;
+  button: ReactElement;
+  onPick: (tag: TagLabel) => void;
+}) {
+  const { t } = useTranslation("search");
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger render={button} />
+      <Popover.Portal>
+        <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={8}>
+          <Popover.Popup className="k-popup k-add-similar" aria-label={t("add.label")}>
+            {open && <AddSimilarPicker lens={lens} to={to} onPick={(tag) => { setOpen(false); onPick(tag); }} onCancel={() => setOpen(false)} />}
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
+function AddSimilarPicker({ lens, to, onPick, onCancel }: {
   lens: Lens;
   to: TagLabel;
   onPick: (tag: TagLabel) => void;
@@ -346,23 +348,18 @@ function AddSimilar({
   const { t } = useTranslation("search");
   const [text, setText] = useState("");
   const { list: found, ready } = useCandidateState(lens, text, (c) => c.tag.id !== to.id);
-
-  return (
-    <div className="search-popover" role="dialog" aria-label={t("add.label")}>
-      <p>{t("add.prompt", { name: tagName(to) })}</p>
-      <Combobox
-        label={lens.workspace ? t("add.pickShared") : t("add.pickLibrary")}
-        autoFocus
-        value={text}
-        options={found.map((c) => tagOption(c, text))}
-        empty={ready && found.length === 0 ? t("add.none") : undefined}
-        onValueChange={setText}
-        onSelect={(option) => onPick(option.tag)}
-        onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
-      />
-      <button type="button" className="k-btn is-sm" onClick={onCancel}>
-        {t("add.cancel")}
-      </button>
-    </div>
-  );
+  return <>
+    <p className="k-add-similar-head">{t("add.prompt", { name: tagName(to) })}</p>
+    <Combobox
+      label={lens.workspace ? t("add.pickShared") : t("add.pickLibrary")}
+      autoFocus
+      embedded
+      value={text}
+      options={found.map((c) => tagOption(c, text))}
+      empty={ready && found.length === 0 ? t("add.none") : undefined}
+      onValueChange={setText}
+      onSelect={(option) => onPick(option.tag)}
+      onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
+    />
+  </>;
 }

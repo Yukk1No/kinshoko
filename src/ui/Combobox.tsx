@@ -3,6 +3,7 @@ import { i18n } from "../i18n/instance";
 import type { InputHTMLAttributes, KeyboardEvent, MouseEvent, ReactNode, RefObject } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { Languages, Plus } from "lucide-react";
+import { Tip } from "./Tip";
 
 /** 一个候选。`label` 通常用 `Highlight` 标出匹配的字；`create` 是放在最后的新建项。 */
 export type ComboboxOption = {
@@ -60,10 +61,12 @@ type Props<T extends ComboboxOption> = {
   leading?: ReactNode;
   /** 侧栏行内（24 高）。 */
   inline?: boolean;
+  /** 列表放在输入框下方、同一个外框里（已经在浮层里的输入框），不再另浮一层。 */
+  embedded?: boolean;
   invalid?: boolean;
   className?: string;
   inputRef?: RefObject<HTMLInputElement | null>;
-} & Pick<InputHTMLAttributes<HTMLInputElement>, "placeholder" | "disabled" | "autoFocus" | "id" | "title" | "onFocus" | "onBlur">;
+} & Pick<InputHTMLAttributes<HTMLInputElement>, "placeholder" | "disabled" | "autoFocus" | "id" | "onFocus" | "onBlur">;
 
 /**
  * 带候选列表的输入框（设计系统 Combobox）：输入框 `role="combobox"`，高亮项用 `aria-activedescendant`
@@ -72,7 +75,7 @@ type Props<T extends ComboboxOption> = {
  */
 export function Combobox<T extends ComboboxOption>({
   value, onValueChange, options, onSelect, label, empty, autoHighlight = true, onBackspaceEmpty, onKeyDown,
-  bare, anchor, leading, inline, invalid, className = "", inputRef, placeholder, disabled, autoFocus, id, title, onFocus, onBlur,
+  bare, anchor, leading, inline, embedded, invalid, className = "", inputRef, placeholder, disabled, autoFocus, id, onFocus, onBlur,
 }: Props<T>) {
   const base = useId();
   const listId = `${base}-list`;
@@ -140,7 +143,7 @@ export function Combobox<T extends ComboboxOption>({
   const input = <input
     ref={field} id={id} role="combobox" aria-label={label} aria-autocomplete="list" aria-expanded={shown}
     aria-controls={shown ? listId : undefined} aria-activedescendant={shown && current >= 0 ? optionId(current) : undefined}
-    autoComplete="off" spellCheck={false} placeholder={placeholder} disabled={disabled} autoFocus={autoFocus} title={title}
+    autoComplete="off" spellCheck={false} placeholder={placeholder} disabled={disabled} autoFocus={autoFocus}
     value={value}
     onChange={(event) => { onValueChange(event.target.value); setOpen(true); }}
     onKeyDown={keyDown}
@@ -161,7 +164,7 @@ export function Combobox<T extends ComboboxOption>({
         onClick={(event) => pick(option, event)}>
         <span className="k-item-ind" aria-hidden="true">{option.create ? <Plus size={16} /> : option.icon}</span>
         <span className="k-item-label">{option.label}</span>
-        {option.untranslated && <span className="k-option-flag" role="img" aria-label={i18n.t("tags:untranslatedFlag")} title={i18n.t("tags:untranslatedFlag")}><Languages size={14} aria-hidden="true" /></span>}
+        {option.untranslated && <Tip label={i18n.t("tags:untranslatedFlag")}><span className="k-option-flag" role="img" aria-label={i18n.t("tags:untranslatedFlag")}><Languages size={14} aria-hidden="true" /></span></Tip>}
         {option.via && <span className="k-option-via">{option.via}</span>}
         {option.meta !== undefined && option.meta !== null && <span className="k-item-meta">{option.meta}</span>}
       </div>
@@ -180,7 +183,8 @@ export function Combobox<T extends ComboboxOption>({
     {bare ? input : <div className={`k-input${inline ? " is-inline" : ""} ${className}`} data-disabled={disabled || undefined} data-invalid={invalid || undefined}>
       {leading}{input}
     </div>}
-    <Popover.Root open={shown} modal={false}>
+    {embedded ? shown && <div ref={list} id={listId} role="listbox" aria-label={label} className="k-listbox is-embedded"
+      onMouseDown={(event) => event.preventDefault()}>{content}</div> : <Popover.Root open={shown} modal={false}>
       <Popover.Portal>
         <Popover.Positioner className="k-positioner is-field" anchor={anchor ?? box} side="bottom" align="start" sideOffset={4}>
           <Popover.Popup ref={list} id={listId} role="listbox" aria-label={label} className="k-popup k-listbox" initialFocus={false} finalFocus={false}
@@ -190,6 +194,6 @@ export function Combobox<T extends ComboboxOption>({
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>
-    </Popover.Root>
+    </Popover.Root>}
   </div>;
 }

@@ -61,6 +61,6 @@ export default {
     title: "删除分组",
     description: "「{{name}}」会被删除，图片的标签不变。",
     cancel: "取消",
-    submit: "删除",
+    submit: "删除分组",
   },
 };

@@ -9,6 +9,8 @@ import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, u
 import { BrandMark } from "../ui/BrandMark";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
+import { Tip } from "../ui/Tip";
+import { offerUndoRemoval } from "./undoRemoval";
 
 /**
  * 本设备的资料库登记与取消登记（界面称“图库”，design/ui-system/interface-terms.md）。
@@ -74,8 +76,11 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
     if (root) onChanged(await registerLibrary(root));
   });
   const remove = (id: string) => run(async () => {
+    const entry = entries.find((e) => e.library.id === id);
     await unregisterLibrary(id);
     onChanged(null);
+    if (entry && !entry.unavailable) offerUndoRemoval(toast, entry.library,
+      (root) => run(async () => onChanged(await registerLibrary(root))), fail);
   });
 
   const status = <>
@@ -108,9 +113,9 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
     <div className="pane-library-title">
       <h2 className="pane-title">{t("picker.title")}</h2>
       <Menu.Root modal={false} onOpenChange={(open) => { if (open) refresh(); }}>
-        <Menu.Trigger className="k-icon-btn lib-add" aria-label={t("picker.addLabel")} title={t("picker.addLabel")} disabled={!ready}>
+        <Tip label={t("picker.addLabel")}><Menu.Trigger className="k-icon-btn lib-add" aria-label={t("picker.addLabel")} disabled={!ready}>
           <Plus size={15} aria-hidden="true" />
-        </Menu.Trigger>
+        </Menu.Trigger></Tip>
         <MenuPopup width={200} label={t("picker.title")}>
           <MenuItem icon={<FolderOpen size={14} />} disabled={disabled} onClick={() => void register()}>{t("picker.open")}</MenuItem>
           <MenuItem icon={<FolderPlus size={14} />} disabled={disabled} onClick={onCreate}>{t("picker.create")}</MenuItem>
@@ -129,14 +134,14 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
               <span className="k-list-icon" aria-hidden="true"><Library size={16} /></span>
               <div className="k-list-text">
                 <div className="k-list-title">{library.name}</div>
-                <div className="k-list-desc" title={library.root}>{library.root}</div>
+                <Tip label={library.root} align="start"><div className="k-list-desc">{library.root}</div></Tip>
                 {unavailable && <p className="k-list-desc is-warn" role="status">{describeCommandError(unavailable)}</p>}
               </div>
               <div className="k-list-end">
                 <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}><span className="k-label">{unavailable ? t("manage.offline") : t("manage.online")}</span></span>
                 {unavailable && <button type="button" className="k-btn is-sm" disabled={disabled} onClick={refresh}><RefreshCw size={13} aria-hidden="true" /><span className="k-label">{t("manage.reconnect")}</span></button>}
-                <button type="button" className="k-btn is-sm" disabled={disabled} aria-label={t("manage.removeLabel", { name: library.name })}
-                  title={t("manage.removeTitle")} onClick={() => void remove(library.id)}><span className="k-label">{t("manage.remove")}</span></button>
+                <Tip label={t("manage.removeTitle")}><button type="button" className="k-btn is-sm" disabled={disabled} aria-label={t("manage.removeLabel", { name: library.name })}
+                  onClick={() => void remove(library.id)}><span className="k-label">{t("manage.remove")}</span></button></Tip>
               </div>
             </li>)}
           </ul> : <p className="k-dialog-desc">{t("manage.none")}</p>}

@@ -8,11 +8,12 @@ import { ReferenceGroupsPanel } from "../desktop/ReferenceGroupsPanel";
 import { WorkspacePane } from "../library/WorkspacePane";
 import { useFloatEscape } from "../shell/paneFit";
 import type { Section } from "../shell/Rail";
+import { Tip } from "../ui/Tip";
 
 /** 工作区左栏：文件夹（图库与查找范围）、参考组或截图历史。 */
 export function WorkspaceSidebar({
   section, paneOpen, floating, paneRef, onPaneToggle, libraryControls, status, workspaceScope, safe, reloadKey, onError, onMessage, recheck,
-  onLibraryRemoved, onScope, captureRequest, onCaptureRequestHandled,
+  onLibraryRemoved, onLibraryRestore, onScope, captureRequest, onCaptureRequestHandled,
 }: {
   section: Section;
   paneOpen: boolean;
@@ -30,6 +31,7 @@ export function WorkspaceSidebar({
   onMessage?: (message: string) => void;
   recheck: () => void;
   onLibraryRemoved?: (libraryId: string) => void;
+  onLibraryRestore?: (root: string) => Promise<void>;
   onScope: (next: WorkspaceScope) => void;
   captureRequest?: { id: string; stamp: number } | null;
   onCaptureRequestHandled?: () => void;
@@ -51,11 +53,11 @@ export function WorkspaceSidebar({
       <header className="pane-head" data-tauri-drag-region>
         {section === "browse" ? <div className="pane-library">{libInPane && libraryControls}</div>
           : <h1 className="pane-title">{sectionName}</h1>}
-        <button type="button" className="k-icon-btn" aria-label={t("collapsePane")} title={t("collapsePaneTitle")} onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button>
+        <Tip label={t("collapsePane")} keys="Ctrl+B"><button type="button" className="k-icon-btn" aria-label={t("collapsePane")} onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button></Tip>
       </header>
       <div className="pane-body" hidden={section !== "browse"}>
       <WorkspacePane status={status} scope={workspaceScope} safeMode={safe}
-        reloadKey={reloadKey} onError={onError} onMessage={onMessage} onRecheck={recheck} onRemoved={onLibraryRemoved} onScope={onScope}>
+        reloadKey={reloadKey} onError={onError} onMessage={onMessage} onRecheck={recheck} onRemoved={onLibraryRemoved} onRestore={onLibraryRestore} onScope={onScope}>
       </WorkspacePane>
       </div>
       {section === "groups" && <ReferenceGroupsPanel />}

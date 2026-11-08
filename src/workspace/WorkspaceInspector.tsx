@@ -7,6 +7,7 @@ import { WorkspaceSources } from "../library/WorkspacePane";
 import { InspectorResizer } from "../shell/InspectorResizer";
 import { WinCtrls } from "../ui/WinCtrls";
 import type { WorkspaceInspectorState } from "./useWorkspaceInspector";
+import { Tip } from "../ui/Tip";
 
 /** 工作区右侧的详情面板：明确打开的来源整理，或当前选择的整理；没有可整理的内容时留空，宽度不变。收起时不读详情。 */
 export function WorkspaceInspector({
@@ -42,7 +43,7 @@ export function WorkspaceInspector({
           onInspectorWidth(width);
         }} />
         <header className="insp-head" data-tauri-drag-region>
-          <button type="button" className="k-icon-btn" aria-label={t("inspector.collapse")} title={t("inspector.collapse")} onClick={closeInspector}><PanelRightClose size={16} aria-hidden="true" /></button>
+          <Tip label={t("inspector.collapse")}><button type="button" className="k-icon-btn" aria-label={t("inspector.collapse")} onClick={closeInspector}><PanelRightClose size={16} aria-hidden="true" /></button></Tip>
           <span className="insp-title">{t("inspector.title")}</span>
           {inspectorOpen && <WinCtrls />}
         </header>

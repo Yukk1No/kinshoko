@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { App } from "./App";
 
@@ -39,5 +39,6 @@ it("保存为关闭安全模式且活动库断连时，仍显示可用提供方�
   expect(screen.getByRole("button", { name: /^全部图片/ })).toBeTruthy();
   // 未连接的图库只占一行（方案 D，#113）：同一行末尾“重新连接”，原因在悬停提示里（设计系统 v2）。
   const retry = await screen.findByRole("button", { name: "重新连接" });
-  expect(retry.title).toBe("移动盘未连接");
+  fireEvent.focus(retry.closest(".lib-head")!);
+  expect(await screen.findByText(/移动盘未连接/, { selector: ".k-tip" })).toBeTruthy();
 });

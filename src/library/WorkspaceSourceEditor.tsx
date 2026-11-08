@@ -12,7 +12,7 @@ export function WorkspaceSourceEditor({ source, safe, reloadKey, onClose }: {
   const { t } = useTranslation("inspector", { keyPrefix: "source" });
   const toast = useToast();
   const onError = useCallback((e: unknown) => { toast.error(errorText(e)); }, [toast]);
-  return <div className="workspace-source-editor" aria-label={t("label")} title={source.libraryId + "/" + source.imageId}>
+  return <div className="workspace-source-editor" aria-label={t("label")}>
     <SelectionPanel libraryId={source.libraryId} selected={new Set([source.imageId])}
       safeMode={safe} reloadKey={reloadKey} generation={reloadKey} onError={onError} onClear={onClose} />
   </div>;

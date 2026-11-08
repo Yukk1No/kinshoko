@@ -100,7 +100,7 @@
 .k-exact .k-exact-line { opacity: 0; transform: scaleX(0.6); }
 .k-exact[data-pressed] .k-exact-wave { opacity: 0; transform: scaleY(0.4); }
 .k-exact[data-pressed] .k-exact-line { opacity: 1; transform: none; }
-.k-tip { padding: 5px 8px; border-radius: var(--r-s); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 18px; box-shadow: var(--shadow-pop);
+.k-tip { max-width: 360px; white-space: pre-line; overflow-wrap: anywhere; padding: 5px 8px; border-radius: var(--r-s); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 18px; box-shadow: var(--shadow-pop);
   transform-origin: var(--transform-origin); transition: transform var(--t-fast) var(--spring), opacity var(--t-fast); }
 .k-tip[data-starting-style], .k-tip[data-ending-style] { opacity: 0; transform: scale(0.96); }
 

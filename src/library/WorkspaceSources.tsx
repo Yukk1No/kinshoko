@@ -33,7 +33,7 @@ export function WorkspaceSources({ card, onClose, safe = true, reloadKey = 0, re
     onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } }}>
     {card.sources.length > 1 && <Segmented label={t("picker")} value={editing ? keyOf(editing) : null} onChange={setPicked}
       options={card.sources.map((source) => ({ value: keyOf(source), label: source.libraryName, disabled: !!source.unavailable,
-        title: [hint(source.libraryId), source.deleted ? t("trash") : null, source.unavailable ? t("offline") : null].filter(Boolean).join(t("titleSeparator")) || undefined }))} />}
+        tip: [hint(source.libraryId), source.deleted ? t("trash") : null, source.unavailable ? t("offline") : null].filter(Boolean).join(t("titleSeparator")) || undefined }))} />}
     {editing?.unavailable ? <p className="insp-hint" role="status">{describeCommandError(editing.unavailable)}</p>
       : editing && <WorkspaceSourceEditor key={keyOf(editing)} source={editing}
         safe={safe} reloadKey={reloadKey} onClose={onClose} />}

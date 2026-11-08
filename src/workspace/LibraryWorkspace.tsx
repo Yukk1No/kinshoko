@@ -16,6 +16,7 @@ import { usePanelSlide } from "../shell/usePanelSlide";
 import { TaggingActivity } from "../TaggingActivity";
 import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
+import { Tip } from "../ui/Tip";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "../wall/Wall";
 import { WallFloats } from "../wall/WallFloats";
 import { WallMenu } from "../wall/WallMenu";
@@ -59,6 +60,7 @@ export function LibraryWorkspace({
   inspectorShown,
   onInspectorShown,
   onLibraryRemoved,
+  onLibraryRestore,
   onOpenTaggingSettings,
 }: WorkspaceProps) {
   const { t } = useTranslation(["workspace", "viewer"]);
@@ -116,7 +118,6 @@ export function LibraryWorkspace({
     if (!isCursorExpired(error)) { toast.error(errorText(error)); return; }
     invalidate({ kind: "cursorExpired" });
   }, [toast, invalidate]);
-  const onMessage = useCallback((message: string) => { toast.error(message); }, [toast]);
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
   const viewerOpen = viewing !== null;
@@ -165,7 +166,7 @@ export function LibraryWorkspace({
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
   const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
-    safe, onError: onMessage,
+    safe, onError: toast.error,
     onOpen: (card) => { setViewCrop(false); setViewing(card); },
     onCrop: (card) => { setViewCrop(true); setViewing(card); },
     onInspect: (card) => openSources(card as WorkspaceCard),
@@ -188,8 +189,8 @@ export function LibraryWorkspace({
       <div className="app-body" ref={setAppBody} data-viewer-flying={flight.dim || undefined} style={{ "--sidebar-width": `${panes.sidebar}px` } as CSSProperties}>
         {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
         <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} paneRef={setSidebarElement} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
-          status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} onMessage={onMessage} recheck={recheck}
-          onLibraryRemoved={onLibraryRemoved} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
+          status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} onMessage={toast.error} recheck={recheck}
+          onLibraryRemoved={onLibraryRemoved} onLibraryRestore={onLibraryRestore} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
           onScope={(next) => {
             // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
             setWorkspaceScope(next); invalidate({ kind: "scopeChanged" });
@@ -197,7 +198,7 @@ export function LibraryWorkspace({
           }} />
         <main className="app-main main">
           <header className="topbar" data-tauri-drag-region>
-            {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={t("expandPane")} title={t("expandPaneTitle")}><PanelLeftOpen size={16} aria-hidden="true" /></button>}
+            {!paneOpen && <Tip label={t("expandPane")} keys="Ctrl+B"><button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={t("expandPane")}><PanelLeftOpen size={16} aria-hidden="true" /></button></Tip>}
           <SearchBox
             workspace
             libraryId="workspace"
@@ -233,7 +234,7 @@ export function LibraryWorkspace({
               invalidate({ kind: "conditionsChanged" });
             }} />
           {!inspectorOpen && <>
-            <button type="button" className="k-icon-btn" aria-label={t("viewer:tools.showInspector")} title={t("viewer:tools.showInspector")} onClick={toggleInspector}><PanelRight size={16} aria-hidden="true" /></button>
+            <Tip label={t("viewer:tools.showInspector")}><button type="button" className="k-icon-btn" aria-label={t("viewer:tools.showInspector")} onClick={toggleInspector}><PanelRight size={16} aria-hidden="true" /></button></Tip>
             <WinCtrls />
           </>}
           </header>
@@ -296,10 +297,10 @@ export function LibraryWorkspace({
             density={viewerOpen ? null : { value: density, preview: zoomPreview, onPreview: (v) => wall.current?.previewDensity(v), onCommit: setDensity }}
             bar={inspected !== null || hidden || viewerOpen ? null
               : selectionLibrary !== null ? (panelIds.length > 1 ? {
-                libraryId: selectionLibrary, scope, ids: panelIds, onClear: () => setSelected(new Set()), reloadKey, onError, onMessage, safeMode: safe,
+                libraryId: selectionLibrary, scope, ids: panelIds, onClear: () => setSelected(new Set()), reloadKey, onError, safeMode: safe,
               } : null)
               : selectedCards.length > 1 ? {
-                libraryId: null, scope, ids: selectedCards.map((card) => card.id), onClear: () => setSelected(new Set()), reloadKey, onError, onMessage, safeMode: safe,
+                libraryId: null, scope, ids: selectedCards.map((card) => card.id), onClear: () => setSelected(new Set()), reloadKey, onError, safeMode: safe,
                 acrossLibraries: {
                   folderLibrary: new Set(selectedCards.map((card) => card.libraryId)).size === 1 ? selectedCards[0].libraryId ?? null : null,
                   edit: (edits, clear) => wallActions.edit(selectedCards, edits, clear),

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "re
 import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { glyphGrid, glyphPath, snapGlyph, type GlyphKind } from "./winGlyphs";
+import { Tip } from "./Tip";
 
 /** The window this page runs in; null outside Tauri (tests without a mocked window, plain browser). */
 function currentWindow() {
@@ -73,15 +74,15 @@ export function WinCtrls() {
   };
   return <div ref={group} className="k-win-ctrls">
     <span className="k-win-div" aria-hidden="true" />
-    <button type="button" className="k-win-btn" aria-label={t("window.minimize")} title={t("window.minimize")} onClick={run((win) => win.minimize())}>
+    <Tip label={t("window.minimize")}><button type="button" className="k-win-btn" aria-label={t("window.minimize")} onClick={run((win) => win.minimize())}>
       <Glyph kind="minimize" dpr={dpr} />
-    </button>
-    <button type="button" className="k-win-btn" aria-label={maximized ? t("window.restore") : t("window.maximize")} title={maximized ? t("window.restore") : t("window.maximize")}
+    </button></Tip>
+    <Tip label={maximized ? t("window.restore") : t("window.maximize")}><button type="button" className="k-win-btn" aria-label={maximized ? t("window.restore") : t("window.maximize")}
       onClick={run((win) => win.toggleMaximize())}>
       <Glyph kind={maximized ? "restore" : "maximize"} dpr={dpr} />
-    </button>
-    <button type="button" className="k-win-btn is-close" aria-label={t("window.close")} title={t("window.close")} onClick={run((win) => win.close())}>
+    </button></Tip>
+    <Tip label={t("window.close")} align="end"><button type="button" className="k-win-btn is-close" aria-label={t("window.close")} onClick={run((win) => win.close())}>
       <Glyph kind="close" dpr={dpr} />
-    </button>
+    </button></Tip>
   </div>;
 }

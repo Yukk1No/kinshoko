@@ -12,6 +12,7 @@ import { formatNumber } from "../i18n/format";
 import { useToast } from "../ui/Toast";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import { Dock } from "../ui/Dock";
+import { Tip } from "../ui/Tip";
 import { FollowDock } from "../ui/FollowDock";
 import { OriginalStar } from "../ui/OriginalStar";
 import { type Background, DOCK_RESERVE, useViewerBackground, viewerDockItems, ViewerImages, ViewerMenu } from "./ViewerParts";
@@ -236,17 +237,17 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
       tabIndex={-1} onKeyDown={keyDown} data-flight={flight} inert={flight === "land" || flight === "fade-out"}>
       <header className="viewer-bar">
         <button type="button" className="k-btn is-quiet viewer-back" aria-label={t("backLabel")} onClick={onBack}><ArrowLeft size={16} /><span className="k-label">{t("back")}</span></button>
-        <span className="viewer-title" title={name ?? undefined}>{name}</span>
+        <Tip label={name}><span className="viewer-title">{name}</span></Tip>
         {position && <>
           <span className="viewer-index">{formatNumber(position.index + 1)} / {formatNumber(position.total)}</span>
-          <button type="button" className="k-icon-btn" aria-label={t("previous")} title={t("previousTitle")} disabled={position.index <= 0} onClick={() => onStep?.(-1)}><ChevronLeft size={16} /></button>
-          <button type="button" className="k-icon-btn" aria-label={t("next")} title={t("nextTitle")} disabled={position.index >= position.total - 1} onClick={() => onStep?.(1)}><ChevronRight size={16} /></button>
+          <Tip label={t("previous")} keys="←"><button type="button" className="k-icon-btn" aria-label={t("previous")} disabled={position.index <= 0} onClick={() => onStep?.(-1)}><ChevronLeft size={16} /></button></Tip>
+          <Tip label={t("next")} keys="→"><button type="button" className="k-icon-btn" aria-label={t("next")} disabled={position.index >= position.total - 1} onClick={() => onStep?.(1)}><ChevronRight size={16} /></button></Tip>
         </>}
         <span className="k-grow" />
         <div className="viewer-zoom">
-          <button type="button" className="k-icon-btn" aria-label={t("zoomOut")} title={t("zoomOut")} onClick={() => zoomAt(0.8)}><Minus size={15} /></button>
+          <Tip label={t("zoomOut")}><button type="button" className="k-icon-btn" aria-label={t("zoomOut")} onClick={() => zoomAt(0.8)}><Minus size={15} /></button></Tip>
           <output aria-label={t("zoomLevel")}>{Math.round(physicalWidth / card.width * 100)}%</output>
-          <button type="button" className="k-icon-btn" aria-label={t("zoomIn")} title={t("zoomIn")} onClick={() => zoomAt(1.25)}><Plus size={15} /></button>
+          <Tip label={t("zoomIn")}><button type="button" className="k-icon-btn" aria-label={t("zoomIn")} onClick={() => zoomAt(1.25)}><Plus size={15} /></button></Tip>
         </div>
       </header>
       <ContextMenu.Root>
@@ -285,7 +286,7 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
         {cropRect && crop && <div className="viewer-crop" aria-label={t("selection")}
           style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }} />}
         {shownCropRect && crop && <FollowDock anchor={shownCropRect} bounds={viewport} reserveBottom={DOCK_RESERVE}>
-          <Dock label={t("crop.label")} onSelect={cropTool} readout={<span className="k-original" title={t("originalPixels")}>{crop.width} × {crop.height}<span className="sr-only">{t("originalPixels")}</span><OriginalStar /></span>} items={[
+          <Dock label={t("crop.label")} onSelect={cropTool} readout={<Tip label={t("originalPixels")} side="top"><span className="k-original">{crop.width} × {crop.height}<span className="sr-only">{t("originalPixels")}</span><OriginalStar /></span></Tip>} items={[
             { id: "pin", label: t("common:image.pinPart"), icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary" },
             { id: "redo", label: t("crop.redo"), icon: <RotateCcw size={18} strokeWidth={1.75} /> },
             { id: "cancel", label: t("crop.cancel"), icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },

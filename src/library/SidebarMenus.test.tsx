@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { WorkspacePane } from "./WorkspacePane";
 import { ToastProvider } from "../ui/Toast";
+import { tipText } from "../test/tip";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { BrowseScope } from "../bindings/BrowseScope";
@@ -113,6 +114,19 @@ it("移除当前范围所在的图库后回到“全部图片”；移除别的�
   expect(onScope).toHaveBeenCalledWith({ kind: "all" });
 });
 
+it("从列表移除后轻提示里可撤销：按原位置重新登记", async () => {
+  const onRestore = vi.fn(() => Promise.resolve());
+  mockIPC((command) => (command === "plugin:library|workspace_directories" ? forest() : null));
+  render(<ToastProvider><WorkspacePane status={{ revision: "r", libraries: registrations }} scope={inA({ kind: "all" })} safeMode reloadKey={0}
+    onScope={onScope} onError={onError} onRestore={onRestore} /></ToastProvider>);
+  await settle(); await settle();
+  const headB = within(section("B")).getByRole("button", { name: "风景参考（3 张）" });
+  fireEvent.click(within(await openOn(headB, "风景参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
+  expect(await screen.findByText("已从列表移除")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+  expect(onRestore).toHaveBeenCalledWith(registrations[1].library.root);
+});
+
 it("文件夹：菜单项与表一致，顶层文件夹不能“移到顶层”；菜单键打开同一菜单", async () => {
   await show(inA({ kind: "all" }));
   const top = within(section("A")).getByRole("button", { name: "人物（1 张）" });
@@ -189,6 +203,8 @@ it("回收站：清空回收站先列出将永久删除的张数，确认后按�
   answers["plugin:library|preview_empty_trash"] = { imageIds: ["x", "y"], groups: [{ groupId: "g", name: "光影", imageIds: ["x"] }], token: "t" };
   await show(inA({ kind: "all" }));
   const trash = screen.getByRole("button", { name: "回收站（人物参考，2 张）" });
+  // 同一行既有悬停提示又有右键菜单：提示包在右键菜单的触发器外面。
+  expect(await tipText(trash)).toBe("人物参考");
   const menu = await openOn(trash, "回收站的操作");
   expect(rows(menu)).toEqual(["清空回收站…"]);
   expect(within(menu).getByRole("menuitem").className).toContain("is-danger");
