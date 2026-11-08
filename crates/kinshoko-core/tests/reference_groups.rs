@@ -344,3 +344,52 @@ fn pins_remember_the_member_they_were_saved_as() {
     assert_eq!(b.members.len(), 2);
     assert_eq!(b.members[1].placement.x, 500);
 }
+
+/// 删除参考组可撤销（#480）：先移到回收位置，撤销后名称、成员、每个成员的裁切与摆放、组内截图都与删除前一致；
+/// 回收位置里的不出现在列表中，过期清理或重新打开后不留任何东西。
+#[test]
+fn a_deleted_group_comes_back_exactly_until_it_is_purged() {
+    let dir = tempfile::tempdir().unwrap();
+    let groups = ReferenceGroups::open(dir.path()).unwrap();
+    let made = groups
+        .create(
+            "手部",
+            &mut [
+                pin("p1", "lib-a", "img-1", Some(region(10, 20, 300, 200)), 5),
+                pin("p2", "lib-b", "img-2", None, -30),
+            ],
+        )
+        .unwrap();
+    let other = groups
+        .create("别的", &mut [pin("p3", "lib-a", "img-3", None, 0)])
+        .unwrap();
+    let captures = dir.path().join(format!("{}.captures", made.id));
+    std::fs::create_dir_all(&captures).unwrap();
+    std::fs::write(captures.join("a.png"), b"shot").unwrap();
+    let before = groups.get(&made.id).unwrap();
+
+    groups.trash(&made.id).unwrap();
+    assert_eq!(groups.get(&made.id), Err(GroupError::UnknownGroup));
+    assert_eq!(groups.list().unwrap().len(), 1);
+    assert!(!captures.exists());
+
+    groups.untrash(&made.id).unwrap();
+    assert_eq!(groups.get(&made.id).unwrap(), before);
+    assert_eq!(std::fs::read(captures.join("a.png")).unwrap(), b"shot");
+    assert_eq!(groups.list().unwrap().len(), 2);
+    assert_eq!(groups.untrash(&made.id), Err(GroupError::UnknownGroup));
+
+    // 提示过期：清理后撤销不了，也不留文件。
+    groups.trash(&made.id).unwrap();
+    groups.purge(&made.id).unwrap();
+    assert_eq!(groups.untrash(&made.id), Err(GroupError::UnknownGroup));
+    assert!(!captures.exists());
+
+    // 程序在撤销提示期间退出：程序启动时清掉回收位置里剩下的，不留垃圾。
+    groups.trash(&other.id).unwrap();
+    drop(groups);
+    let groups = ReferenceGroups::open(dir.path()).unwrap();
+    groups.purge_all_trashed().unwrap();
+    assert_eq!(groups.untrash(&other.id), Err(GroupError::UnknownGroup));
+    assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
+}

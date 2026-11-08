@@ -198,6 +198,10 @@ impl ReferenceGroups {
     ) -> RelinkReport {
         let mut report = RelinkReport::default();
         for member in history.linked_members(capture_id) {
+            // 参考组刚删除、还在回收位置（可撤销）：关联留着，撤销时补上（untrash_reconciling）。
+            if self.is_trashed(&member.group_id) {
+                continue;
+            }
             match self.relink(&member, collected) {
                 Ok(true) => report.relinked.push(member),
                 Ok(false) => report.skipped.push(member),
