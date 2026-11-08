@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-// Ported from bd8aea44:prototype/reference-browser/src/components/Rail.tsx: the same lucide icons,
-// logo path, indicator and dark number badges. The badge counts are the app's real ones.
-import { History, Images, Layers, Rss, Settings } from 'lucide-react';
+// Ported from bd8aea44:prototype/reference-browser/src/components/Rail.tsx: lucide icons, logo path,
+// indicator and dark number badges. The badge counts are the app's real ones. 参考组不用 Layers：
+// 三层叠片在绘画软件里是“图层”，换成拼贴板（LayoutDashboard）；截图用取景框，时钟只说得出“历史”；订阅用收件盘，pixiv 订阅不是 RSS。悬停动效见 shell.css 的 `.rail-ic-*`。
+import { LayoutDashboard, Settings } from 'lucide-react';
+import { RailImagesIcon, RailInboxIcon, RailViewfinderIcon, type RailIcon } from './RailIcons';
 import { SealBook } from '../SealBook';
 import { BrandMark } from '../ui/BrandMark';
 import { Tip } from '../ui/Tip';
@@ -20,11 +22,11 @@ type Props = {
   subscriptions?: { newCount: number } | null;
 };
 
-const ITEMS: { id: Section; icon: typeof Images; key: string }[] = [
-  { id: 'browse', icon: Images, key: 'Ctrl+1' },
-  { id: 'groups', icon: Layers, key: 'Ctrl+2' },
-  { id: 'captures', icon: History, key: 'Ctrl+3' },
-  { id: 'subscriptions', icon: Rss, key: 'Ctrl+4' },
+const ITEMS: { id: Section; icon: RailIcon; key: string }[] = [
+  { id: 'browse', icon: RailImagesIcon, key: 'Ctrl+1' },
+  { id: 'groups', icon: LayoutDashboard, key: 'Ctrl+2' },
+  { id: 'captures', icon: RailViewfinderIcon, key: 'Ctrl+3' },
+  { id: 'subscriptions', icon: RailInboxIcon, key: 'Ctrl+4' },
 ];
 
 /** 角标的数字：超过 99 写“99+”。 */
@@ -74,7 +76,7 @@ export function Rail(p: Props) {
         <button data-section={id} type="button"
           className={`rail-btn${p.section === id ? ' is-active' : ''}`} aria-current={p.section === id ? 'page' : undefined}
           aria-label={label} aria-expanded={p.section === id ? p.paneOpen : undefined} onClick={() => p.onSection(id)}>
-          <Icon size={20} strokeWidth={1.75} />
+          <Icon size={20} strokeWidth={1.75} className={`rail-ic rail-ic-${id}`} />
           {!!badges[id] && <span className="rail-badge tabular">{badgeText(badges[id])}</span>}
         </button>
       </Tip>; })}
@@ -83,7 +85,7 @@ export function Rail(p: Props) {
       <SealBook on={p.safeMode} onToggle={p.onSafeMode} />
       <Tip side="right" label={t("nav.settingsTip")}>
         <button type="button" className="rail-btn" aria-label={t("nav.settings")} onClick={p.onSettings}>
-          <Settings size={20} strokeWidth={1.75} />
+          <Settings size={20} strokeWidth={1.75} className="rail-ic rail-ic-settings" />
         </button>
       </Tip>
     </div>

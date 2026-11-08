@@ -60,10 +60,11 @@ describe("图标轨", () => {
     expect(current.hasAttribute("aria-pressed")).toBe(false);
   });
 
-  it("图标用 lucide 原图标", () => {
+  it("参考组用拼贴板、截图用取景框：不用三层叠片（绘画软件里是图层）和时钟", () => {
     backend([], []);
     rail(false);
-    expect(screen.getByRole("button", { name: "参考组" }).querySelector("svg.lucide-layers")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "参考组" }).querySelector("svg.lucide-layout-dashboard")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "截图" }).querySelector("svg.rail-ic-captures .view-frame")).not.toBeNull();
     expect(screen.getByRole("button", { name: "设置" }).querySelector("svg.lucide-settings")).not.toBeNull();
   });
 });
