@@ -172,7 +172,7 @@ export function UpdateNotice() {
         stopProgress();
         present(id, () => ({
           title: i18n.t("update:notice.failed"), description: String(reason), tone: "error",
-          action: { label: i18n.t("update:notice.retry"), onClick: () => install(id, version) },
+          action: { label: i18n.t("update:notice.retry"), onClick: () => install(id, version), keepOpen: true },
         }));
       });
     };
@@ -183,7 +183,7 @@ export function UpdateNotice() {
       const { version } = status;
       const available = () => ({
         title: i18n.t("update:notice.available", { version }), timeout: 0,
-        action: { label: i18n.t("update:install.action"), onClick: () => install(id, version) },
+        action: { label: i18n.t("update:install.action"), onClick: () => install(id, version), keepOpen: true },
       });
       const id: string = toast.show({ ...available(), onClose: () => { if (shown === id) shown = null; } });
       shown = id;
