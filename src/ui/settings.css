@@ -18,7 +18,7 @@
   font: inherit; text-align: left; transition: background var(--t-fast), color var(--t-fast); }
 .k-set-tab:hover { background: var(--hover); color: var(--ink); }
 .k-set-tab[data-active] { background: transparent; color: var(--ink); font-weight: 500; }
-.k-set-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.k-set-tab:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-inset); }
 .k-set-version { margin: 0; padding: 0 10px; font-size: 12px; color: var(--ink-2); }
 /* 滚动条的位置一直留着（12 px，右内边距相应少 12）：切页与过渡结束时内容宽度不变。 */
 .k-dialog-height.k-set-main { position: relative; min-width: 0; margin: 0; padding: 20px 12px 24px 24px; scrollbar-gutter: stable; }
@@ -73,7 +73,7 @@
 .k-set-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .k-search { flex: 1; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-3); }
 .k-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; }
-.k-search:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
+.k-search:focus-within { outline: var(--focus-ring); outline-offset: var(--focus-inset); }
 .k-lang { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
 .k-lang .k-input { width: 72px; }
 .k-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }

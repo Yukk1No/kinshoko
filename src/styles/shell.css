@@ -18,7 +18,7 @@
 .seal-book.is-sealed:hover { --bb: color-mix(in srgb, var(--seal-acc) 20%, var(--rail)); }
 .seal-book.is-sealed:active { --bb: color-mix(in srgb, var(--ink) 12%, var(--rail)); }
 .seal-book:hover svg { transform: none; }
-.seal-book:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.seal-book:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 /* seal and release ghosts (src/shell/sealfx.ts), verbatim from the prototype: above the wall, the viewer and the rail */
 .fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 38; overflow: hidden; }
 .fx-ghost { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; border-radius: var(--r-s); overflow: hidden; background: var(--card); box-shadow: var(--shadow-pin); will-change: transform, opacity; }
@@ -50,5 +50,5 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .topbar > .search { flex: 1; min-width: 0; border: 0; padding: 0; }
 .selection-hint { font-size: 12px; line-height: 18px; color: var(--ink-2); white-space: nowrap; }
 .wall { scrollbar-gutter: stable; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 

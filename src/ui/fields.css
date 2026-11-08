@@ -17,9 +17,9 @@ input.k-input { display: inline-block; text-overflow: ellipsis; }
 .k-input, .k-combo { flex: 1 1 auto; }
 .k-field > .k-input, .k-field > .k-combo, .k-combo > .k-input { flex: none; }
 .k-input:hover:not(:focus-within):not([data-disabled]):not(:disabled):not([data-invalid]) { box-shadow: inset 0 0 0 1px var(--ink-3); }
-.k-input:focus-within, .k-input[data-focus] { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
+.k-input:focus-within, .k-input[data-focus] { outline: var(--focus-ring); outline-offset: var(--focus-inset); }
 .k-input[data-invalid], .k-input[aria-invalid="true"] { box-shadow: inset 0 0 0 1px var(--danger); }
-.k-input[data-invalid]:focus-within, .k-input[aria-invalid="true"]:focus { box-shadow: inset 0 0 0 1.5px var(--danger), 0 0 0 4px color-mix(in srgb, var(--danger) 16%, transparent); }
+.k-input[data-invalid]:focus-within, .k-input[aria-invalid="true"]:focus { outline-color: var(--danger); }
 .k-input[data-disabled], .k-input:disabled { opacity: 0.5; }
 .k-input::placeholder, .k-input input::placeholder { color: var(--ink-2); opacity: 1; }
 .k-input:has(> .lucide:first-child) { padding-left: 8px; } /* 光学对齐，与按钮相同 */
@@ -58,7 +58,7 @@ input.k-input { display: inline-block; text-overflow: ellipsis; }
   background: var(--surface); color: var(--ink); font: inherit; text-align: left; box-shadow: inset 0 0 0 1px var(--line-2); transition: box-shadow var(--t-fast); }
 .k-select:has(> .lucide:first-child) { padding-left: 8px; }
 .k-select:hover:not(:disabled):not([data-disabled]):not([data-popup-open]):not(:focus-visible) { box-shadow: inset 0 0 0 1px var(--ink-3); }
-.k-select:focus-visible, .k-select[data-popup-open] { outline: 0; box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
+.k-select:focus-visible, .k-select[data-popup-open] { outline: var(--focus-ring); outline-offset: var(--focus-inset); }
 .k-select:disabled, .k-select[data-disabled] { opacity: 0.5; }
 .k-select-value { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .k-select > .lucide { flex: none; color: var(--ink-3); }

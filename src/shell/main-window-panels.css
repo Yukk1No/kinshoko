@@ -8,7 +8,7 @@
 .inspector[data-resizing="true"] { transition: none; }
 .insp-resizer { position: absolute; z-index: 2; top: 0; bottom: 0; left: 0; width: 6px; cursor: ew-resize; touch-action: none; }
 .insp-resizer:hover, .insp-resizer:active { background: linear-gradient(to right, var(--line-2) 0 2px, transparent 2px); }
-.insp-resizer:focus-visible { outline: 0; background: linear-gradient(to right, var(--accent) 0 2px, transparent 2px); }
+.insp-resizer:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-inset); }
 .insp-head { width: calc(var(--inspector-width, 320px) - 1px); height: 56px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-bottom: 1px solid var(--line); }
 .insp-title { flex: 1; min-width: 0; overflow-wrap: anywhere; color: var(--ink-2); font-weight: 500; }
 .insp-body { width: calc(var(--inspector-width, 320px) - 1px); flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 16px; }
@@ -36,7 +36,7 @@
 .inspector .selection-note { display: flex; flex-direction: column; gap: 0; }
 .inspector .selection-note textarea { min-height: 60px; padding: 8px 10px; border: 0; border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--line-2); background: var(--surface);
   color: var(--ink); font-size: 12px; line-height: 18px; resize: vertical; }
-.inspector .selection-note textarea:focus { outline: 0; box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px var(--accent-soft); }
+.inspector .selection-note textarea:focus { outline: var(--focus-ring); outline-offset: var(--focus-inset); }
 .inspector .selection-note + .selection-actions { margin-top: 8px; }
 .insp-rate .k-seg-item { font-size: 12px; }
 .inspector .selection-rating { display: block; font-size: 13px; }
@@ -66,7 +66,7 @@
   box-shadow: inset 0 0 0 1px var(--line); text-align: left; transition: box-shadow var(--t-fast), transform var(--t-fast) var(--spring); }
 .welcome-choice:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--line-2); }
 .welcome-choice:active:not(:disabled) { transform: scale(0.99); }
-.welcome-choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.welcome-choice:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .welcome-choice:disabled { opacity: 0.55; cursor: default; }
 .welcome-choice-tile { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: var(--r-s); background: var(--surface-2); color: var(--ink-2); }
 .welcome-choice.is-main .welcome-choice-tile { background: var(--ink); color: var(--bg); }
@@ -114,13 +114,13 @@
 .k-tags .k-tag-chip { position: relative; display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 4px; min-height: 26px; padding: 0 8px; border-radius: var(--r-s); background: var(--surface-2); color: var(--ink); cursor: default; }
 .k-tags .k-tag-chip.is-manual { background: var(--manual-soft); box-shadow: inset 0 0 0 1px var(--manual); color: var(--ink); }
 .k-tags .k-tag-chip .tag-name { font-weight: 500; white-space: nowrap; }
-.k-tags .k-tag-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.k-tags .k-tag-chip:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 /* B：模型标签按可信度三档——高档深底，中档常规底（同导入），低档不填底、字变浅；只改颜色，不改尺寸。
    低档虚线框是设置里的开关（默认开，验收后改定，见 #160）；用 outline，不占排版。 */
 .k-tags .k-tag-chip[data-band="high"] { background: var(--tag-conf-high); }
 .k-tags .k-tag-chip[data-band="low"] { background: transparent; color: var(--ink-2); }
 .k-tags [data-low-outline] .k-tag-chip[data-band="low"] { outline: 1px dashed var(--line-2); outline-offset: -1px; }
-.k-tags [data-low-outline] .k-tag-chip[data-band="low"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.k-tags [data-low-outline] .k-tag-chip[data-band="low"]:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 /* C：按出处分组，模型标签底边一条可信度刻度，长度等于可信度。 */
 .k-tags .k-tag-group { display: flex; flex-direction: column; gap: 6px; }
 .k-tags .k-tag-chip:has(.k-tag-meter) { overflow: hidden; }
@@ -131,12 +131,12 @@
 .k-tag-tip .k-tag-tip-acts { display: flex; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, var(--bg) 20%, transparent); }
 .k-tag-tip .k-tag-tip-btn { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px; border: 0; border-radius: var(--r-xs); background: color-mix(in srgb, var(--bg) 12%, transparent); color: inherit; font: inherit; font-size: 12px; cursor: pointer; }
 .k-tag-tip .k-tag-tip-btn:hover { background: color-mix(in srgb, var(--bg) 22%, transparent); }
-.k-tag-tip .k-tag-tip-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.k-tag-tip .k-tag-tip-btn:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 /* 尚未翻译的“文/A”可以点（#182）：就地弹出改名框，保存当前界面语言的名称偏好。 */
 .k-tags .untranslated.is-action { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: -4px; padding: 0; border: 0; border-radius: var(--r-xs);
   background: none; color: inherit; cursor: pointer; }
 .k-tags .untranslated.is-action:hover, .k-tags .untranslated.is-action[data-popup-open] { opacity: 1; background: var(--hover); }
-.k-tags .untranslated.is-action:focus-visible { opacity: 1; outline: 2px solid var(--accent); outline-offset: 1px; }
+.k-tags .untranslated.is-action:focus-visible { opacity: 1; outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .k-rename { width: 280px; padding: 14px; }
 .k-rename form { display: flex; flex-direction: column; gap: 8px; }
 .k-rename .k-rename-title { margin: 0; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }

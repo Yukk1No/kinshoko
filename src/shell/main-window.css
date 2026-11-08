@@ -73,7 +73,7 @@
 .topbar.is-empty { justify-content: flex-end; }
 .topbar > .search { flex: 1; min-width: 0; max-width: 960px; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; height: 40px; padding: 0 4px 0 12px;
   border-radius: var(--r); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); border: 0; overflow: visible; }
-.topbar > .search:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
+.topbar > .search:focus-within { outline: var(--focus-ring); outline-offset: var(--focus-inset); }
 .topbar > .search .search-chip { height: 28px; padding: 0 4px 0 8px; border: 0; border-radius: var(--r-s); background: var(--surface-2); font-weight: 500; }
 .topbar > .search .search-chip[data-negate] { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); text-decoration: line-through; }
 .topbar > .search .search-field { min-width: 120px; }
@@ -92,9 +92,8 @@
   transition: box-shadow var(--t) var(--ease), background-color var(--t) var(--ease), color var(--t) var(--ease), transform var(--t-fast) var(--spring); }
 .k-exact:hover { background-color: var(--hover); color: var(--ink); }
 .k-exact:active { transform: scale(0.94); }
-.k-exact:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--accent); }
+.k-exact:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .k-exact[data-pressed] { background-color: var(--exact-on-bg); color: var(--exact-on-ink); box-shadow: var(--exact-on-inset); }
-.k-exact[data-pressed]:focus-visible { box-shadow: var(--exact-on-inset), 0 0 0 2px var(--accent); }
 .k-exact-glyph { display: block; overflow: visible; }
 .k-exact-glyph path { transform-box: view-box; transform-origin: 8px 8px; transition: opacity var(--t-fast) var(--ease), transform var(--t-pop) var(--spring); }
 .k-exact .k-exact-line { opacity: 0; transform: scaleX(0.6); }
@@ -125,7 +124,7 @@
 .k-density-knob { order: 1; flex: none; width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--ink-2); transition: color var(--t-fast) var(--ease); }
 .k-density-island[data-open] .k-density-knob { margin-left: calc(var(--density-gap) - 12px); color: var(--ink-3); }
 .k-density-knob:hover, .k-density-island[data-open] .k-density-knob:hover { color: var(--ink); }
-.k-density-knob:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.k-density-knob:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-inset); }
 /* 收回时滑条脱离排版，形状才缩得回去。 */
 .k-density-island:not([data-open]) .k-density-row { position: absolute; top: 0; right: calc(28px + var(--density-gap)); pointer-events: none; }
 /* 升到上方时越过选择栏（高 56 px）再隔开 8 px；形状与原位之间的整块都算在内，指针斜着移过去也不收回。
@@ -146,7 +145,7 @@
   background: color-mix(in srgb, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   box-shadow: var(--shadow-pop); color: var(--accent-strong); }
 .k-tagging-activity:hover { color: var(--ink); }
-.k-tagging-activity:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.k-tagging-activity:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .k-tagging-activity[data-activity="paused"] { color: var(--ink-2); }
 /* 停住、等画师处理（需要下载、出错、不可用）：静止的图标，没有环，不闪烁；点开去设置处理。 */
 .k-tagging-activity[data-activity="stopped"] { color: var(--ink-2); }
@@ -189,7 +188,7 @@
 .k-range:hover::-webkit-slider-thumb { transform: scale(1.1); }
 .k-range:active::-webkit-slider-thumb { transform: scale(0.94); box-shadow: var(--knob-shadow-pressed); }
 .k-range:focus-visible { outline: 0; }
-.k-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent), var(--knob-shadow); }
+.k-range:focus-visible::-webkit-slider-thumb { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 @media (prefers-reduced-motion: reduce) { .k-exact, .k-exact-glyph path, .k-tip, .k-range::-webkit-slider-thumb { transition-duration: 0ms; } }
 :root[data-reduced-motion] :is(.k-exact, .k-exact-glyph path, .k-tip) { transition-duration: 0ms; }
 :root[data-reduced-motion] .k-range::-webkit-slider-thumb { transition-duration: 0ms; }
