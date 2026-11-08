@@ -62,11 +62,10 @@ pub(super) async fn delete_shared_tag_group<R: Runtime>(
     blocking(move || {
         let generation = workspace::generation(&app);
         workspace::current(&app, safe_mode, generation)?;
-        let deleted = workspace::action(&app, safe_mode, |_, _, catalog| {
+        // 删除一提交就把快照交回界面：这之后即使安全模式变了也不再报错，否则撤销就丢了。
+        workspace::action(&app, safe_mode, |_, _, catalog| {
             catalog.delete_group(&group_id)
-        })?;
-        workspace::current(&app, safe_mode, generation)?;
-        Ok(deleted)
+        })
     })
     .await
 }

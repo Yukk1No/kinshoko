@@ -153,8 +153,9 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
       if (target && !target.disabled) { target.focus(); return; }
     }
   }, [fresh, busy, groups]);
-  const run = async (action: Promise<unknown>) => {
-    remember();
+  const run = async (action: Promise<unknown>, focus?: string) => {
+    // 明确指定了焦点去处（如删除分组后的相邻分组）就用它，不取当前聚焦的按钮：那个按钮随行消失。
+    if (focus !== undefined) restore.current = focus; else remember();
     setPendingKey(key);
     try {
       await action;
@@ -174,13 +175,12 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
   const remove = (group: CatalogGroupView) => {
     // 删掉的分组没有可回的位置：回到相邻分组，没有时回到“新建分组”。
     const at = groups.findIndex((g) => g.id === group.id), next = groups[at + 1] ?? groups[at - 1];
-    remember(next ? `${next.id}:name` : "new");
     void run(deleteSharedTagGroup(group.id, safe).then((deleted) => {
       toast.show({
         title: t("deleted.done"), description: group.name, tone: "success",
         action: { label: t("deleted.undo"), onClick: () => { void restoreSharedTagGroup(deleted).then(() => setRefresh((n) => n + 1), onError); } },
       });
-    }));
+    }), next ? `${next.id}:name` : "new");
   };
   // 设计系统 SettingsList 的外框：每个分组一行，28 px 图标方块、名称、靠右的成员数（命名空间分组是胶囊）；
   // 悬停或键盘聚焦时露出改名、上移、下移、删除。成员是 TagChip，悬停露出前移、后移、移出，末尾是幽灵按钮“加标签”。

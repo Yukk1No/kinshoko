@@ -24,6 +24,12 @@ beforeEach(() => {
       if (edit.kind === "removeMembers") groups = groups.map((g) => g.id === edit.groupId ? { ...g, tags: g.tags.filter((t) => !edit.tagIds.includes(t.tag.id)) } : g);
       return null;
     }
+    if (command === "plugin:library|delete_shared_tag_group") {
+      const id = (payload as { groupId: string }).groupId;
+      const ord = groups.findIndex((g) => g.id === id);
+      const [gone] = groups.splice(ord, 1);
+      return { id, name: gone.name, namespace: null, ord, members: [], migratedFrom: [] };
+    }
     return null;
   });
 });
@@ -57,4 +63,12 @@ it("移出成员后，焦点落在所在分组上，不丢到页面", async () =
   await press("把“紫发”移出“发色”");
   await waitFor(() => expect(screen.queryByRole("button", { name: "把“紫发”移出“发色”" })).toBeNull());
   expect((document.activeElement as HTMLElement).getAttribute("aria-label")).toBe("发色（1 个标签）");
+});
+
+it("用键盘删除分组后，焦点落在相邻分组上，不跳到“新建分组”", async () => {
+  render(<ToastProvider><TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} /></ToastProvider>);
+  await press("删除标签分组“服装”");
+  await waitFor(() => expect(screen.queryByRole("group", { name: "服装" })).toBeNull());
+  // 姿势没有成员，名称按钮不可用，焦点退到它的其他操作；总之在相邻分组里。
+  expect(screen.getByRole("group", { name: "姿势" }).contains(document.activeElement)).toBe(true);
 });
