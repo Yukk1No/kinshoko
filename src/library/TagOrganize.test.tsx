@@ -5,8 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { App } from "../App";
-import { fake, sent, card, tagList, openChip, selectOnly } from "./TagOrganize.fixtures";
-import { chooseValue } from "../test/select";
+import { fake, sent, card, tagList, openChip, selectOnly, addTag } from "./TagOrganize.fixtures";
 
 describe("单张图的标签与人工标签决定", () => {
   it("列出有效标签及出处；否决模型标签后移到“已否决”，撤销否决又回到模型建议", async () => {
@@ -43,14 +42,10 @@ describe("单张图的标签与人工标签决定", () => {
     await selectOnly("a");
     await screen.findByRole("list", { name: "有效标签" });
 
-    const add = async (namespace: string, name: string) => {
-      await chooseValue(screen.getByRole("combobox", { name: "类别" }), namespace);
-      fireEvent.change(screen.getByRole("combobox", { name: "标签名" }), { target: { value: name } });
-      fireEvent.click(screen.getByRole("button", { name: "添加标签" }));
-    };
-    await add("artist", "某某");
+    await addTag("某某", { kind: "作者" });
     await waitFor(() => expect(tagList().textContent).toContain("作者：某某"));
-    await add("general", "某某");
+    // 已有“作者：某某”，第一行是它；同名的一般标签要选新建项（类别默认一般）。
+    await addTag("某某", { create: true });
     await waitFor(() => expect(within(tagList()).getAllByText(/某某/)).toHaveLength(2));
     expect(sent("plugin:library|edit_tags")).toEqual([
       { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "add", tag: { kind: "named", namespace: "artist", name: "某某", lang: "zh-CN" } }] },
@@ -86,8 +81,7 @@ describe("批量标签决定", () => {
     expect(await screen.findByText("已选 2 张")).toBeTruthy();
     expect(screen.queryByRole("list", { name: "有效标签" })).toBeNull();
 
-    fireEvent.change(screen.getByRole("combobox", { name: "标签名" }), { target: { value: "侧脸" } });
-    fireEvent.click(screen.getByRole("button", { name: "添加标签" }));
+    await addTag("侧脸");
     await waitFor(() =>
       expect(sent("plugin:library|edit_tags")).toEqual([
         {
@@ -99,8 +93,7 @@ describe("批量标签决定", () => {
     );
     expect(fake.effective("b").size).toBe(1);
 
-    fireEvent.change(screen.getByRole("combobox", { name: "标签名" }), { target: { value: "微笑" } });
-    fireEvent.click(screen.getByRole("button", { name: "否决标签" }));
+    await addTag("微笑", { reject: true });
     await waitFor(() => expect(sent("plugin:library|edit_tags")).toHaveLength(2));
     expect(sent("plugin:library|edit_tags")[1]).toMatchObject({ imageIds: ["a", "b"], edits: [{ kind: "reject" }] });
     expect(fake.effective("a").has("T-smile")).toBe(false);
@@ -140,8 +133,7 @@ describe("标签别名", () => {
     await screen.findAllByRole("img");
     fireEvent.keyDown(card("b"), { key: " " });
     await screen.findByRole("list", { name: "有效标签" });
-    fireEvent.change(screen.getByRole("combobox", { name: "标签名" }), { target: { value: "蓝头发" } });
-    fireEvent.click(screen.getByRole("button", { name: "添加标签" }));
+    await addTag("蓝头发");
     await waitFor(() => expect(tagList().textContent).toContain("蓝发"));
     expect(fake.tags.size).toBe(2);
   });

@@ -13,12 +13,11 @@ import { LIMIT, TagMarks, tagName, useCandidateState } from "../search/SearchBox
 import { useUiLang } from "../i18n";
 import { tagOption } from "../search/tagOptions";
 import { Combobox, type ComboboxOption } from "../ui/Combobox";
-import { Select } from "../ui/Select";
 import { TagChip } from "../tags/TagChip";
 import { UntranslatedRename } from "../tags/UntranslatedRename";
 import { tagStanding, type TagStanding } from "../tags/tagConfidence";
 import { useTagDisplay } from "../tags/TagDisplayContext";
-import { AtSign, Ban, Check, Sparkles, Tags, Undo2, X } from "lucide-react";
+import { AtSign, Ban, Check, Plus, Sparkles, Tags, Undo2, X } from "lucide-react";
 import { Tip } from "../ui/Tip";
 
 type Props = {
@@ -57,6 +56,26 @@ function groupByStanding(tags: ImageTag[]): Group[] {
 }
 
 const byId = (tag: TagLabel): TagRef => ({ kind: "id", id: tag.id });
+
+/**
+ * 输入框里的字：开头写了类别（“角色：初音”“作品:xx”，与标签的显示名同一写法）就按它新建，候选也只列这个类别。
+ * 全角、半角冒号都认；不写类别时 `namespace` 为 null。
+ */
+export function parseTyped(text: string, prefixOf: (namespace: TagNamespace) => string): { namespace: TagNamespace | null; name: string } {
+  const trimmed = text.trim();
+  for (const namespace of NAMESPACES) {
+    const prefix = prefixOf(namespace).trim().replace(/[:：]$/, "");
+    if (!prefix) continue;
+    const head = trimmed.slice(0, prefix.length + 1);
+    if (head.length === prefix.length + 1 && /[:：]$/.test(head) && head.slice(0, -1).toLocaleLowerCase() === prefix.toLocaleLowerCase())
+      return { namespace, name: trimmed.slice(prefix.length + 1).trim() };
+  }
+  return { namespace: null, name: trimmed };
+}
+
+/** 回车与 Alt+回车、单击与 Ctrl+单击：后者排除，与查找框的写法相同。 */
+const wantsReject = (event: { type: string; altKey: boolean; ctrlKey: boolean; metaKey: boolean }) =>
+  event.type === "keydown" ? event.altKey : event.ctrlKey || event.metaKey;
 
 /**
  * 选中参考图的标签（#51）：只选一张时列出有效标签及出处、被否决的标签，可以确认、否决或清除
@@ -108,13 +127,15 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
       (e) => { if (currentKey.current === identityKey) onError(e); },
     );
 
-  const typed = (): TagRef | null => {
-    const name = text.trim();
-    return name ? { kind: "named", namespace, name, lang } : null;
-  };
+  // 写了类别前缀的按前缀，否则按新建项上选的类别。
+  const parsed = parseTyped(text, (value) => t(`namespace.${value}`));
+  const kind = parsed.namespace ?? namespace;
+  const typed = (): TagRef | null => parsed.name ? { kind: "named", namespace: kind, name: parsed.name, lang } : null;
   const decide = (kind: TagEdit["kind"], tag: TagRef | null = typed()) => {
     if (!tag) return;
     setText("");
+    // 新建项上选的类别只管这一次。
+    setNamespace("general");
     void edit([{ kind, tag }]);
   };
 
@@ -125,16 +146,32 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
     return identity && { catalogId: identity.catalogId, onSaved: renamed };
   };
 
-  const hasText = !!text.trim();
   // 添加标签的候选：已经有的标签不列；最后是新建项，输入的正是某个标签的名称或别名时不给。
-  const query = text.trim();
+  const query = parsed.name;
   const has = new Set(single ? tags?.tags.map((entry) => entry.tag.id) : []);
+  const keepKind = (c: { tag: TagLabel }) => parsed.namespace === null || c.tag.namespace === parsed.namespace;
   // 已经有的标签之后要去掉：多取这么多个，去掉后仍能列满。
-  const { list: candidates, ready } = useCandidateState({ libraryId, safe, generation, picking: true }, text, undefined, LIMIT + has.size);
-  const found = candidates.filter((c) => !has.has(c.tag.id)).slice(0, LIMIT);
-  const exact = candidates.some((c) => c.tag.namespace === namespace && (c.tag.name === query || c.via === query));
-  const addOptions: (ComboboxOption & { tag: TagLabel | null })[] = found.map((c) => tagOption(c, query));
-  if (query && ready && !exact) addOptions.push({ id: "create", create: true, tag: null, label: t("panel.create", { name: query }) });
+  const { list: candidates, ready } = useCandidateState({ libraryId, safe, generation, picking: true }, query, undefined, LIMIT + has.size);
+  const found = candidates.filter((c) => !has.has(c.tag.id) && keepKind(c)).slice(0, LIMIT);
+  const exact = candidates.some((c) => c.tag.namespace === kind && (c.tag.name === query || c.via === query));
+  // 候选行尾：排除；选了几张时还有改回自动（单张的已有标签在标签自己的浮层里改回）。悬停“排除”时名称划掉，示意结果。
+  const rowActions = (tag: TagLabel) => {
+    const name = tagName(tag);
+    return <>
+      <Tip label={t("panel.rejectTitle")}><button type="button" tabIndex={-1} className="k-option-act is-reject" aria-label={t("panel.rejectLabel", { name })}
+        onClick={() => decide("reject", byId(tag))}><Ban size={14} aria-hidden="true" /></button></Tip>
+      {ids.length > 1 && <Tip label={t("panel.revert")}><button type="button" tabIndex={-1} className="k-option-act" aria-label={t("panel.clearLabel", { name })}
+        onClick={() => decide("clear", byId(tag))}><Undo2 size={14} aria-hidden="true" /></button></Tip>}
+    </>;
+  };
+  // 新建项行尾：选类别。写了类别前缀时点别的类别，去掉前缀改用点的那个。
+  const kindPicker = <span className="k-tag-kinds" role="radiogroup" aria-label={t("panel.namespaceLabel")}>
+    {NAMESPACES.map((value) => <button key={value} type="button" tabIndex={-1} role="radio" aria-checked={value === kind}
+      className="k-tag-kind" onClick={() => { if (parsed.namespace) setText(query); setNamespace(value); }}>
+      <span className="k-label">{t(`namespaceOption.${value}`)}</span></button>)}
+  </span>;
+  const addOptions: (ComboboxOption & { tag: TagLabel | null })[] = found.map((c) => ({ ...tagOption(c, query), actions: rowActions(c.tag) }));
+  if (query && ready && !exact) addOptions.push({ id: "create", create: true, tag: null, label: t("panel.create", { name: query }), actions: kindPicker });
   const chip = ({ tag, origins }: ImageTag, meter: boolean) => {
     const manual = origins.some((o) => o.kind === "manual");
     const name = tagName(tag);
@@ -159,7 +196,8 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
   };
   // 详情面板的标签（#98，design/ui-system/interface-text-rules.md 与 interface-terms.md；#160）：现有标签是小标签，只写名称；
   // 出处、可信度和“保留／改回自动／不要／别名”在悬停或聚焦时的浮层里。外观按设置：B 按准不准分三档（#482），
-  // C 按出处分组加刻度。两种都是人写的在前、模型标签在后。输入框一个，打字后才出现“添加／排除／改回自动”。
+  // C 按出处分组加刻度。两种都是人写的在前、模型标签在后。添加只有一个输入框：候选行回车添加、Alt+回车或行尾按钮排除，
+  // 新建项的行尾选类别；不另放按钮行。
   return (
     <section className="tag-panel insp-sec k-tags" aria-label={t("panel.label")}>
       <h4><Tags size={13} aria-hidden="true" />{t("panel.title")}</h4>
@@ -203,23 +241,17 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
           label={t("panel.field")}
           placeholder={t("panel.placeholder")}
           value={text}
-          leading={<Select className="k-tag-kind" label={t("panel.namespaceLabel")} tip={t("panel.namespaceTitle")} value={namespace} options={NAMESPACES.map((value) => ({ value, label: t(`namespaceOption.${value}`) }))} onChange={setNamespace} />}
+          leading={<Plus size={16} aria-hidden="true" />}
           options={addOptions}
           empty={query && ready && found.length === 0 ? t("panel.noMatch") : undefined}
           onValueChange={setText}
-          onSelect={(option) => decide("add", option.tag ? byId(option.tag) : typed())}
+          onSelect={(option, event) => decide(wantsReject(event) ? "reject" : "add", option.tag ? byId(option.tag) : typed())}
           onKeyDown={(e) => {
-            // 候选还没到时，回车照样按输入的名称添加。
-            if (e.key === "Enter" && !ready) { e.preventDefault(); decide("add"); }
+            // 候选还没到时，回车照样按输入的名称添加（Alt+回车排除）。
+            if (e.key === "Enter" && !ready) { e.preventDefault(); decide(e.altKey ? "reject" : "add"); }
             if (e.key === "Escape") setText("");
           }}
         />
-        {ids.length > 1 && <p className="selection-hint insp-hint">{t("panel.many", { count: ids.length })}</p>}
-        {hasText && <div className="selection-actions k-tag-add-acts">
-          <button type="button" className="k-btn is-sm is-primary" aria-label={t("panel.addLabel")} onClick={() => decide("add")}><span className="k-label">{t("panel.add")}</span></button>
-          <Tip label={t("panel.excludeTitle")}><button type="button" className="k-btn is-sm is-ghost" aria-label={t("panel.excludeLabel")} onClick={() => decide("reject")}><span className="k-label">{t("panel.exclude")}</span></button></Tip>
-          <Tip label={t("panel.revert")}><button type="button" className="k-btn is-sm is-ghost" aria-label={t("panel.clearDecisionLabel")} onClick={() => decide("clear")}><span className="k-label">{t("panel.revert")}</span></button></Tip>
-        </div>}
       </div>
       {aliasFor && (
         <AliasEditor
