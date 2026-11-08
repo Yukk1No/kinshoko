@@ -153,8 +153,9 @@
 /* 添加标签的新建项（在浮层里）：名称下面一行选类别，与名称左对齐（16 指示列 + 8 间距）；四个 24 高的小块，
    选中的是 accent-soft 底配 accent-strong 字。详情面板最窄 280，排在同一行会把名称挤得折行。 */
 .k-option.is-create:has(.k-tag-kinds) { flex-wrap: wrap; row-gap: 2px; padding-block: 4px; }
-.k-option.is-create > .k-option-acts:has(.k-tag-kinds) { flex-basis: 100%; margin: 0 0 0 16px; padding-left: 8px; box-sizing: border-box; }
+.k-option.is-create > .k-option-acts:has(.k-tag-kinds) { flex-basis: 100%; margin: 0 -6px 0 16px; padding-left: 8px; box-sizing: border-box; }
 .k-tag-kinds { display: flex; gap: 2px; margin-left: -6px; }
+.k-tag-kinds-clear { margin-left: auto; }
 .k-tag-kind { display: inline-flex; align-items: center; height: 24px; padding: 0 6px; border: 0; border-radius: var(--r-xs); background: none; color: var(--ink-2);
   font: inherit; font-size: 12px; cursor: pointer; }
 .k-tag-kind:hover { background: var(--press); color: var(--ink); }

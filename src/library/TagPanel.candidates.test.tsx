@@ -39,10 +39,12 @@ it("已经有的标签排在前面时，仍列满其余匹配的标签", async (
 describe("添加标签的输入框", () => {
   const setup = (ids: string[]) => {
     const edits: unknown[] = [];
+    const limits: number[] = [];
     mockIPC((cmd, args) => {
       if (cmd.endsWith("catalog_image_tags")) return { image: { imageId: "a", rejected: [], tags: [] }, identities: [] };
       if (cmd.endsWith("workspace_library_candidates")) {
-        const { text } = args as { text: string };
+        const { text, limit } = args as { text: string; limit: number };
+        limits.push(limit);
         return [tag("t-cat", "猫"), { ...tag("t-artist", "某某"), namespace: "artist" }].filter((t) => t.name.includes(text.trim())).map((t) => ({ tag: t, via: null, count: 3 }));
       }
       if (cmd.endsWith("edit_tags")) { edits.push((args as { edits: unknown[] }).edits[0]); return null; }
@@ -55,7 +57,7 @@ describe("添加标签的输入框", () => {
       fireEvent.change(input, { target: { value } });
       return screen.findByRole("listbox", { name: "标签名" });
     };
-    return { edits, input, type };
+    return { edits, limits, input, type };
   };
 
   it("候选行尾的“排除”否决这个标签，Alt+回车同样排除；不再有按钮行与说明句", async () => {
@@ -78,6 +80,22 @@ describe("添加标签的输入框", () => {
     fireEvent.click(await within(list).findByRole("button", { name: "清除对“猫”的人工决定" }));
     await waitFor(() => expect(edits).toEqual([{ kind: "clear", tag: { kind: "id", id: "t-cat" } }]));
     expect(screen.queryByText(/一起记下/)).toBeNull();
+  });
+
+  it("选了几张时新建项上也能按输入的名称改回自动（在所有图上都被排除的标签不在候选里）", async () => {
+    const { edits, type } = setup(["a", "b"]);
+    const list = await type("眼镜");
+    const row = await within(list).findByRole("option", { name: /^新建“眼镜”/ });
+    fireEvent.click(within(row).getByRole("button", { name: "清除对“眼镜”的人工决定" }));
+    await waitFor(() => expect(edits).toEqual([{ kind: "clear", tag: { kind: "named", namespace: "general", name: "眼镜", lang: "zh-CN" } }]));
+  });
+
+  it("写了类别前缀时多取候选再按类别筛，不被别的类别挤掉", async () => {
+    const { limits, type } = setup(["a"]);
+    await within(await type("猫")).findByRole("option", { name: /猫/ });
+    expect(limits.at(-1)).toBe(8);
+    await within(await type("作者：某")).findByRole("option", { name: /某某/ });
+    expect(limits.at(-1)).toBeGreaterThanOrEqual(500);
   });
 
   it("名称前写类别（作者：）就按这个类别新建，候选也只列这个类别；选过的类别只管一次", async () => {

@@ -32,6 +32,8 @@ type Props = {
 };
 
 const NAMESPACES: TagNamespace[] = ["general", "artist", "character", "work"];
+/** 写了类别前缀时取多少个候选再按类别筛（后端只按名称截断）。 */
+const PREFIXED_POOL = 500;
 
 type Group = { kind: TagStanding["kind"]; tags: ImageTag[] };
 
@@ -153,8 +155,10 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
   const query = parsed.name;
   const has = new Set(single ? tags?.tags.map((entry) => entry.tag.id) : []);
   const keepKind = (c: { tag: TagLabel }) => parsed.namespace === null || c.tag.namespace === parsed.namespace;
-  // 已经有的标签之后要去掉：多取这么多个，去掉后仍能列满。
-  const { list: candidates, ready } = useCandidateState({ libraryId, safe, generation, picking: true }, query, undefined, LIMIT + has.size);
+  // 已经有的标签之后要去掉：多取这么多个，去掉后仍能列满。写了类别前缀时，候选在截断之后才按类别筛，
+  // 排在前面的别的类别会把这个类别挤掉：多取一大截再筛。
+  const { list: candidates, ready } = useCandidateState({ libraryId, safe, generation, picking: true }, query, undefined,
+    parsed.namespace ? PREFIXED_POOL : LIMIT + has.size);
   const found = candidates.filter((c) => !has.has(c.tag.id) && keepKind(c)).slice(0, LIMIT);
   const exact = candidates.some((c) => c.tag.namespace === kind && (c.tag.name === query || c.via === query));
   // 候选行尾：排除；选了几张时还有改回自动（单张的已有标签在标签自己的浮层里改回）。悬停“排除”时名称划掉，示意结果。
@@ -168,11 +172,16 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
     </>;
   };
   // 新建项行尾：选类别。写了类别前缀时点别的类别，去掉前缀改用点的那个。
-  const kindPicker = <span className="k-tag-kinds" role="radiogroup" aria-label={t("panel.namespaceLabel")}>
-    {NAMESPACES.map((value) => <button key={value} type="button" tabIndex={-1} role="radio" aria-checked={value === kind}
-      className="k-tag-kind" onClick={() => { if (parsed.namespace) setText(query); setNamespace(value); }}>
-      <span className="k-label">{t(`namespaceOption.${value}`)}</span></button>)}
-  </span>;
+  // 选了几张时末尾还有改回自动：在所有图上都被排除的标签不在候选里（候选只列有图的），只能按输入的名称改回。
+  const kindPicker = <>
+    <span className="k-tag-kinds" role="radiogroup" aria-label={t("panel.namespaceLabel")}>
+      {NAMESPACES.map((value) => <button key={value} type="button" tabIndex={-1} role="radio" aria-checked={value === kind}
+        className="k-tag-kind" onClick={() => { if (parsed.namespace) setText(query); setNamespace(value); }}>
+        <span className="k-label">{t(`namespaceOption.${value}`)}</span></button>)}
+    </span>
+    {ids.length > 1 && <Tip label={t("panel.revert")}><button type="button" tabIndex={-1} className="k-option-act k-tag-kinds-clear"
+      aria-label={t("panel.clearLabel", { name: query })} onClick={() => decide("clear")}><Undo2 size={14} aria-hidden="true" /></button></Tip>}
+  </>;
   const addOptions: (ComboboxOption & { tag: TagLabel | null })[] = found.map((c) => ({ ...tagOption(c, query), actions: rowActions(c.tag) }));
   if (query && ready && !exact) addOptions.push({ id: "create", create: true, tag: null, label: t("panel.create", { name: query }), actions: kindPicker });
   const chip = ({ tag, origins }: ImageTag, meter: boolean) => {
