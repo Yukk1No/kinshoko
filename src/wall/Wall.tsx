@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -12,10 +12,13 @@ import { mountWindow, type MountWindow } from "./prefetch";
 import { useUiScale } from "../shell/uiScale";
 import { useDevicePixelRatio } from "../ui/devicePixelRatio";
 import {
-  CAP_RATIO, GAP, NO_CONDITIONS, OVERSCAN, PAD, SAVE_ANCHOR_MS, TARGET, loadAnchor,
+  CAP_RATIO, GAP, NO_CONDITIONS, OVERSCAN, PAD, SAVE_ANCHOR_MS, SCROLLING_MS, TARGET, loadAnchor,
   saveAnchor, type BrowserCard, type WallHandle, type WallProps,
 } from "./wallShared";
 import { wallCardNode, type CardHandlers } from "./WallCard";
+import { layoutItems, storableAnchor, TRAY_PAD, useCloseTrayOnTopbar, useOpenTray, veiledSheets } from "./imageSets";
+import { useTrayMotion } from "./useTrayMotion";
+import { useWallHandle } from "./useWallHandle";
 import { useDoubleClickGuard } from "./useDoubleClickGuard";
 import { useWallPages } from "./useWallPages";
 import { useReleaseLanding, useSealRelease } from "./useSealRelease";
@@ -60,6 +63,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   onCardCommand,
   onPaste,
   emptyAction,
+  stackSets = false,
 }, ref) {
   const searching = conditions.conditions.length > 0;
   const storeKey = searching ? null : `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}`;
@@ -85,10 +89,14 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   /** 墙上现在的卡片，给异步回来的页面和动画计时比较用。 */
   const shownCards = useRef(cards);
   shownCards.current = cards;
+  /** 墙上实际排的格子（#418）：打开托盘的那一摞换成它的各页。 */
+  const { openSet, setOpenSet, shown, tray, trayIds } = useOpenTray(cards, stackSets);
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => { onTotalChange?.(total); }, [onTotalChange, total]);
+  /** 叠在一摞里、不占格子的张数（#418）；顶栏报的是张数，不是格数。 */
+  const [stacked, setStacked] = useState(0);
+  useEffect(() => { onTotalChange?.(total === null ? null : total + stacked); }, [onTotalChange, total, stacked]);
   /**
    * 请求代次：重新浏览、视角（浏览范围、条件、安全模式）变化与卸载时前进。
    * 响应回来时代次已经不同就整个丢掉，不改卡片、游标、数量、错误与加载状态（#77 UI-A）。
@@ -112,6 +120,8 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   }, [lens]);
   /** 正在看的那张图。重开或重新浏览后滚回这里。 */
   const anchor = useRef<Anchor | null>(storeKey ? loadAnchor(storeKey) : null);
+  /** 要记下的位置（见 storableAnchor）。 */
+  const anchorToStore = useRef(() => anchor.current);
   /** Shift 单击的起点。 */
   const pivot = useRef<string | null>(null);
   const restoring = useRef(true);
@@ -119,7 +129,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const lastOpened = useRef<string | null>(null);
   const wasViewing = useRef(false);
   const layoutWidth = useRef(0);
-  const { beforeReflow, motions, safeReflow, beforeBoxes, reflowMotion, slideMotion } = useReflowState();
+  const { beforeReflow, motions, safeReflow, beforeBoxes, reflowMotion, slideMotion, trayMotion } = useReflowState();
   /** 先移走、后端还没做完的卡片（#290）；见 useWallPages。 */
   const pendingRemoval = useRef(new Set<string>());
 
@@ -134,55 +144,9 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   useEffect(() => () => cancelAnimationFrame(sealDrop.current), []);
   const loadMoreRef = useRef<() => void>(() => {});
   const selectAllRef = useRef<() => void>(() => {});
-  useImperativeHandle(ref, () => ({
-    previewDensity(value) { measureBeforeReflow(); setPreviewDensity(value); },
-    invalidate() { generation.current += 1; inflight.current = null; },
-    loadMore() { loadMoreRef.current(); },
-    selectAll() { selectAllRef.current(); },
-    remove(ids) {
-      const removing = new Set(ids);
-      /** 移走时墙上每张卡片的位置：放回时按它排回原来的先后。 */
-      const rank = new Map(shownCards.current.map((card, index) => [card.id, index]));
-      let removed = shownCards.current.filter((card) => removing.has(card.id));
-      if (!removed.length) return () => {};
-      for (const card of removed) pendingRemoval.current.add(card.id);
-      const batch = removed.map((card) => card.id);
-      // 还在路上的下一页是按移走前的卡片拼的，回来会把移走的卡片带回来：作废它。整理完的重新浏览会再取。
-      generation.current += 1;
-      inflight.current = null;
-      measureBeforeReflow();
-      setCards((now) => now.filter((card) => !removing.has(card.id)));
-      setTotal((count) => (count === null ? count : count - removed.length));
-      return (failedIds) => {
-        // 后端做完了：这批不再算“正在移走”，恢复翻页。
-        for (const id of batch) pendingRemoval.current.delete(id);
-        const failing = new Set(failedIds);
-        const shown = new Set(shownCards.current.map((card) => card.id));
-        const returning = removed.filter((card) => failing.has(card.id) && !shown.has(card.id));
-        removed = removed.filter((card) => !returning.includes(card));
-        if (!returning.length) return;
-        generation.current += 1;
-        inflight.current = null;
-        measureBeforeReflow();
-        // 一次归并：放回的卡片按原来的位置，插到原来排在它后面的第一张墙上卡片之前。
-        const back = [...returning].sort((x, y) => rank.get(x.id)! - rank.get(y.id)!);
-        setCards((now) => {
-          const present = new Set(now.map((card) => card.id));
-          const pending = back.filter((card) => !present.has(card.id));
-          const next: BrowserCard[] = [];
-          let i = 0;
-          for (const card of now) {
-            const at = rank.get(card.id);
-            if (at !== undefined) while (i < pending.length && rank.get(pending[i].id)! < at) next.push(pending[i++]);
-            next.push(card);
-          }
-          next.push(...pending.slice(i));
-          return next;
-        });
-        setTotal((count) => (count === null ? count : count + returning.length));
-      };
-    },
-  }), [measureBeforeReflow]);
+  useWallHandle({
+    ref, measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal,
+  });
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 
   /**
@@ -193,16 +157,21 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const zoom = useRef<ZoomState>({ value: null, timer: 0, count: createNotchCounter(), pin: null });
   const smoothRef = useRef<ReturnType<typeof createSmoothWheel> | null>(null);
 
-  const returnTo = useViewerLeave({ viewerOpen, selected, lastOpened, wasViewing, smoothRef });
+  const returnTo = useViewerLeave({ viewerOpen, selected, lastOpened, wasViewing, smoothRef, cards: shown });
 
+  const openTrayRef = useRef<(card: BrowserCard) => void>(() => {});
+  const leaveTrayRef = useRef<() => void>(() => {});
+  useCloseTrayOnTopbar(openSet, leaveTrayRef);
   const open = (card: BrowserCard) => {
     pivot.current = card.id;
+    // 打开一摞是打开它的托盘（#418），不进查看器。
+    if (card.set && !trayIds.has(card.id)) { openTrayRef.current(card); return; }
     lastOpened.current = card.id;
     onOpenImage(card);
   };
 
   const { pendingClick, lastPress, openById } = useDoubleClickGuard();
-  openById.current = (id) => { const card = cards.find((c) => c.id === id); if (card) open(card); };
+  openById.current = (id) => { const card = shown.find((c) => c.id === id); if (card) open(card); };
 
 
   // 界面缩放（#173）：图片大小是界面缩放 100% 时的 CSS 宽度，卡片按界面缩放缩小 CSS 宽度，
@@ -218,12 +187,12 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   // 换档位时卡片的缩略图地址跟着变（工作区的卡片在这里拼地址，#313），沿用的卡片元素要重建。
   const tier = thumbnailTier(thumbnailPx);
 
-  useEffect(() => { onCardsChange?.(cards); }, [cards, onCardsChange]);
-  useWallCaptureSources({ viewerOpen, scroller, cards });
+  useEffect(() => { onCardsChange?.(shown); }, [shown, onCardsChange]);
+  useWallCaptureSources({ viewerOpen, scroller, cards: shown });
   const { loadMore } = useWallPages({
     cards, setCards, cursor, setCursor, setTotal, setError, generation, inflight, view, restoring, anchor, shownCards,
     measureBeforeReflow, onWorkspaceStatus, releasePage, reloadKey, loadMoreRef, workspaceScope, safeMode,
-    pendingRemoval,
+    pendingRemoval, stackSets, setStacked,
   });
 
   const { holdForDoubleClick } = useWidthSync({ holdReflow, settle, slideMotion, scroller, layoutWidth, measureBeforeReflow, setWidth, syncMount });
@@ -232,44 +201,52 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
     safeMode, cards, setCards, scroller, shownCards, live, safeReflow, sealDrop, measureBeforeReflow, viewerOpen, releasePage,
   });
 
-  const ids = useMemo(() => cards.map((c) => c.id), [cards]);
+  const ids = useMemo(() => shown.map((c) => c.id), [shown]);
   const layout = useMemo(
     () =>
       masonry(
-        cards.map((c) => ({ w: c.width, h: c.height })),
+        layoutItems(shown, uiScale),
         { width, target: (previewDensity ?? density) / uiScale, gap: GAP / uiScale, pad: PAD / uiScale, capRatio: CAP_RATIO },
+        tray && { ...tray, pad: TRAY_PAD / uiScale },
       ),
-    [cards, width, density, previewDensity, uiScale],
+    [shown, tray, width, density, previewDensity, uiScale],
   );
 
   useReflowAfterLayout({
-    scroller, width, cards, zoomPin, ids, layout, anchor, storeKey, settledTop, cursor, restoring, beforeReflow, reflowMotion,
-    beforeBoxes, syncMount, motions, slideMotion,
+    scroller, width, cards: shown, zoomPin, ids, layout, anchor, anchorToStore, storeKey, settledTop, cursor, restoring, beforeReflow, reflowMotion,
+    beforeBoxes, syncMount, motions, slideMotion, trayMotion,
   });
 
   live.current = { layout, ids, density, previewDensity, onDensityPreview, onDensityCommit };
 
   useWallZoom({ scroller, zoom, live, smoothRef, zoomPin, setPreviewDensity, measureBeforeReflow });
 
+  const scrollingTimer = useRef(0);
+  useEffect(() => () => clearTimeout(scrollingTimer.current), []);
   /** 停手后才写本地存储（#109：不在每个滚动事件里同步写）；卸载与页面隐藏时立即写。 */
   const pendingSave = useRef<{ key: string; timer: number } | null>(null);
+  anchorToStore.current = () => storableAnchor(anchor.current, shown, tray, trayIds);
   const flushSave = useCallback(() => {
     const pending = pendingSave.current;
     if (!pending) return;
     clearTimeout(pending.timer);
     pendingSave.current = null;
-    saveAnchor(pending.key, anchor.current);
+    saveAnchor(pending.key, anchorToStore.current());
   }, []);
   useEffect(() => {
     window.addEventListener("pagehide", flushSave);
     return () => { window.removeEventListener("pagehide", flushSave); flushSave(); };
   }, [flushSave]);
 
-  useReleaseLanding({ releaseDue, safeMode, cards, layout, width, releasePage, fx, book, viewerOpen, releaseOnScreen });
+  useReleaseLanding({ releaseDue, safeMode, cards: shown, layout, width, releasePage, fx, book, viewerOpen, releaseOnScreen });
 
   const onScroll = () => {
     const el = scroller.current!;
     syncMount(el);
+    // 滚动中不拿起一摞（#418）。
+    el.dataset.scrolling = "";
+    clearTimeout(scrollingTimer.current);
+    scrollingTimer.current = window.setTimeout(() => { delete el.dataset.scrolling; }, SCROLLING_MS);
     if (el.scrollTop !== lastScrollTop.current) scrollDirection.current = el.scrollTop > lastScrollTop.current ? 1 : -1;
     lastScrollTop.current = el.scrollTop;
     // 自己为锚点做的滚动不重新取锚，否则每次重排都会漂到另一张图。
@@ -293,7 +270,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
     const found = new Set(visible(layout, mount.top, mount.bottom));
     // 查看器里调整窗口宽度后，最后查看的卡片仍能接回焦点（最多多保留一张）。
     for (const id of [lastOpened.current, ...beforeReflow.current.keys(), ...motions.current.keys()]) {
-      const i = id === null ? undefined : position.get(id);
+      const i = id === null || trayMotion.current?.flights.has(id) ? undefined : position.get(id); // 托盘里飞的页不强行挂载（#418）
       if (i !== undefined) found.add(i);
     }
     return [...found].sort((a, b) => a - b);
@@ -302,15 +279,19 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   useReturnFocus({ returnTo, scroller, position, layout, syncMount });
 
   /** 上次渲染的卡片元素，按 id；布局、选择、遮蔽都没变的卡片原样沿用。 */
-  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; leaving: boolean; landing: boolean; tier: number; language: string; node: ReactNode }>());
+  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; leaving: boolean; landing: boolean; tier: number; language: string; trayPage: number; veiledPages: string; node: ReactNode }>());
   useLayoutEffect(() => { renderedCards.current = nextRendered; });
   const cardHandlers = useRef<CardHandlers>(null!);
-  usePrefetchThumbnails({ layout, mount, cards, scrollDirection, thumbnailPx });
+  usePrefetchThumbnails({ layout, mount, cards: shown, scrollDirection, thumbnailPx });
 
   const [menuTarget, setMenuTarget] = useState<WallMenuTarget | null>(null);
-  const { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart } = wallInteractions({
-    ids, cards, selected, onSelectionChange, pivot, lastPress, pendingClick, holdForDoubleClick, open, selectAllRef,
-    setMenuTarget, menu, onCardCommand, scope, workspaceScope,
+  const { openTray, closeTray } = useTrayMotion({
+    scroller, layout, ids, shown, tray, openSet, setOpenSet, anchor, settledTop, beforeReflow, measureBeforeReflow, trayMotion, thumbnailPx,
+    veiled: (card) => card.adult && (safeMode || !revealed.has(card.id)), safeMode,
+  });
+  const { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart, trayClick, leaveTray, pruneTray, toggle } = wallInteractions({
+    ids, cards: shown, selected, onSelectionChange, pivot, lastPress, pendingClick, holdForDoubleClick, open, selectAllRef,
+    setMenuTarget, menu, onCardCommand, scope, workspaceScope, trayIds, closeTray,
   });
   selectAllRef.current = () => onSelectionChange(new Set(ids));
 
@@ -318,7 +299,16 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
 
 
   // 卡片的事件处理读这里的最新版本，沿用的卡片元素因此不会拿着旧的选择与回调。
-  cardHandlers.current = { click, open, cardKey, dragStart, inspect: onInspectSources };
+  const switchTray = (card: BrowserCard) => { pruneTray(); openTray(card); };
+  openTrayRef.current = switchTray;
+  cardHandlers.current = {
+    click, open, cardKey, dragStart,
+    // 托盘开着时点别的格子的来源按钮：先关托盘（#418），这一格留在屏幕原处。
+    inspect: onInspectSources && ((card) => { if (trayIds.size && !trayIds.has(card.id)) leaveTray(card.id); onInspectSources(card); }),
+    openTray: (card) => { if (card.set) switchTray(card); },
+    check: toggle,
+  };
+  leaveTrayRef.current = leaveTray;
   const nextRendered: typeof renderedCards.current = new Map();
 
   return (
@@ -335,25 +325,32 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
         </div>
       ) : (
         <div className="wall-canvas" style={{ height: layout.height }}>
+          {layout.tray && <div className="wall-tray" onClick={trayClick}
+            style={{ left: `${layout.tray.x}px`, top: `${layout.tray.y}px`, width: `${layout.tray.w}px`, height: `${layout.tray.h}px` }} />}
           {mounted.map((i) => {
-            const card = cards[i];
+            const card = shown[i];
             const b = layout.boxes[i];
             const veiled = card.adult && (safeMode || !revealed.has(card.id));
+            const veiledPages = veiledSheets(card, safeMode, revealed);
             // 安全模式下墙上的成人卡片只会是刚开启、等资料库确认的那些：影子已替它飞向封印书，
             // 原地不再留着遮蔽的图，只先占着位置，确认后其余卡片再补位（#154）。
             const leaving = card.adult && safeMode;
             const chosen = selected.has(card.id);
             const landing = arriving.has(card.id);
+            // 托盘里的页记下页码（从 1 起）。
+            const trayPage = tray && i >= tray.at && i < tray.at + tray.count ? i - tray.at + 1 : 0;
             // 没变的卡片沿用上次的元素，React 跳过整张卡片的比对（#109）。
             const kept = renderedCards.current.get(card.id);
-            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.leaving === leaving && kept.landing === landing && kept.tier === tier && kept.language === language) {
+            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.leaving === leaving && kept.landing === landing && kept.tier === tier && kept.language === language && kept.trayPage === trayPage && kept.veiledPages === veiledPages) {
               nextRendered.set(card.id, kept);
               return kept.node;
             }
-            const node = wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened });
-            nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, tier, language, node });
+            const node = wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened, trayPage, uiScale, veiledPages });
+            nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, tier, language, trayPage, veiledPages, node });
             return node;
           })}
+          {/* 托盘关上时各页飞回一摞的影子（#418），由 useTrayMotion 直接放进来。 */}
+          <div className="wall-ghosts" aria-hidden="true" />
         </div>
       )}
       {createPortal(<div className="fx-layer" ref={fxHost} aria-hidden="true" />, document.body)}

@@ -36,8 +36,9 @@ export function useSealRelease({
       return;
     }
     // 先以遮蔽的样子出现，下一帧再放出，遮蔽才有过渡可以淡出。
+    // 一摞里的各页（#418）也算：托盘里的页与纸张按自己的 adult 放出，不只看封面。
     const frame = requestAnimationFrame(() =>
-      setRevealed(new Set(cards.filter((c) => c.adult).map((c) => c.id))),
+      setRevealed(new Set(cards.flatMap((c) => [c, ...(c.set?.pages ?? [])]).filter((c) => c.adult).map((c) => c.id))),
     );
     return () => cancelAnimationFrame(frame);
   }, [cards, safeMode]);
@@ -81,7 +82,8 @@ export function useSealRelease({
     if (!el) return [];
     const view = el.getBoundingClientRect();
     return [...el.querySelectorAll<HTMLElement>(".card")].flatMap((node) => {
-      const rect = node.getBoundingClientRect(), img = node.querySelector("img");
+      // 一摞取封面那张图，不取下面的纸（#418）。
+      const rect = node.getBoundingClientRect(), img = node.querySelector<HTMLImageElement>(":scope > img, :scope > .stack-cover > img");
       const seen = rect.width > 0 && rect.height > 0 && rect.bottom >= view.top && rect.top <= view.bottom;
       return seen && img ? [{ id: node.dataset.id!, src: img.currentSrc || img.src, rect }] : [];
     });

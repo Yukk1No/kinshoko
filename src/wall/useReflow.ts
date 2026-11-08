@@ -7,6 +7,8 @@ import { doubleClickSettings } from "./doubleClick";
 import { captureAnchor, resolveAnchor, zoomScrollTop, type Anchor, type masonry } from "./layout";
 import { RELEASE_WAIT, saveAnchor, type LayoutSnapshot } from "./wallShared";
 import type { PanelSlide } from "../shell/usePanelSlide";
+import { tokenEasing, type TrayMotion } from "./useTrayMotion";
+import { tokenMs } from "../viewer/ViewerFlight";
 
 type SafeReflow = {
   rects: Map<string, DOMRect>; boxes: LayoutSnapshot; at: number; delay: number; duration: number;
@@ -30,8 +32,10 @@ export function useReflowState() {
   const reflowMotion = useRef<Motion | null>(null);
   /** 这一次重排跟着面板过渡走（settle）：卡片动画用面板的时长、缓动与起点。 */
   const slideMotion = useRef<PanelSlide | null>(null);
+  /** 这一次重排是托盘开合（#418）：飞的那几页用弹簧，其余格子用缓动，时长都是 `--t-slow`。 */
+  const trayMotion = useRef<TrayMotion | null>(null);
   useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
-  return { beforeReflow, motions, safeReflow, beforeBoxes, reflowMotion, slideMotion };
+  return { beforeReflow, motions, safeReflow, beforeBoxes, reflowMotion, slideMotion, trayMotion };
 }
 
 export function useMeasureBeforeReflow({ scroller, motions, safeReflow, reflowMotion, beforeReflow, beforeBoxes, live }: {
@@ -85,8 +89,8 @@ export function useMeasureBeforeReflow({ scroller, motions, safeReflow, reflowMo
 }
 
 export function useReflowAfterLayout({
-  scroller, width, cards, zoomPin, ids, layout, anchor, storeKey, settledTop, cursor, restoring, beforeReflow, reflowMotion,
-  beforeBoxes, syncMount, motions, slideMotion,
+  scroller, width, cards, zoomPin, ids, layout, anchor, anchorToStore, storeKey, settledTop, cursor, restoring, beforeReflow, reflowMotion,
+  beforeBoxes, syncMount, motions, slideMotion, trayMotion,
 }: {
   scroller: MutableRefObject<HTMLDivElement | null>;
   width: number;
@@ -96,6 +100,8 @@ export function useReflowAfterLayout({
   layout: ReturnType<typeof masonry>;
   anchor: MutableRefObject<Anchor | null>;
   storeKey: string | null;
+  /** 要记下的位置：托盘里的页换成这一摞（#418）。 */
+  anchorToStore: MutableRefObject<() => Anchor | null>;
   settledTop: MutableRefObject<number | null>;
   cursor: string | null;
   restoring: MutableRefObject<boolean>;
@@ -105,6 +111,7 @@ export function useReflowAfterLayout({
   syncMount: (el: HTMLElement) => void;
   motions: MutableRefObject<Map<string, Animation>>;
   slideMotion: MutableRefObject<PanelSlide | null>;
+  trayMotion: MutableRefObject<TrayMotion | null>;
 }) {
   // 布局变化（宽度、新的一批卡片）后把锚定的图放回原来的位置。
   useLayoutEffect(() => {
@@ -118,7 +125,7 @@ export function useReflowAfterLayout({
       // 缩放：光标下那张图的中心放回光标的高度（列数会变，只锚纵向，#122）；随后以新布局里视口顶部的图为锚，提交时布局不变、位置不动。
       top = zoomScrollTop(layout, pinned, pin!.pointerY, el.clientHeight);
       anchor.current = captureAnchor(layout, ids, top, el.clientHeight);
-      if (storeKey) saveAnchor(storeKey, anchor.current);
+      if (storeKey) saveAnchor(storeKey, anchorToStore.current());
     } else {
       top = resolveAnchor(layout, ids, anchor.current);
     }
@@ -129,6 +136,8 @@ export function useReflowAfterLayout({
     // 锚定的图找到了，或已取完全部仍没有（图已不在），都结束恢复。
     if (top !== null || !anchor.current || !cursor) restoring.current = false;
     const from = beforeReflow.current, safe = reflowMotion.current, fromBoxes = beforeBoxes.current, slide = slideMotion.current;
+    const trayed = trayMotion.current;
+    trayMotion.current = null;
     slideMotion.current = null;
     beforeReflow.current = new Map();
     reflowMotion.current = null;
@@ -147,7 +156,10 @@ export function useReflowAfterLayout({
       ? { duration: slide.duration, easing: slide.easing }
       : safe
       ? { duration: safe.duration, delay: Math.max(0, safe.at + safe.delay - performance.now()), easing: "cubic-bezier(0.65, 0, 0.35, 1)", fill: "backwards" }
+      : trayed
+      ? { duration: tokenMs("--t-slow"), easing: tokenEasing("--ease") }
       : { duration: 200, easing: "cubic-bezier(0.2,0.8,0.2,1)" };
+    const flight: KeyframeAnimationOptions | null = trayed ? { ...timing, easing: tokenEasing("--spring") } : null;
     if ((from.size || fromBoxes) && !reducedNow()) {
       const targets = [...el.querySelectorAll<HTMLElement>(".card")].flatMap((node) => {
         const next = node.getBoundingClientRect();
@@ -158,24 +170,31 @@ export function useReflowAfterLayout({
         if (!next.width || !next.height || typeof node.animate !== "function") continue;
         // 没有移动、没有变大小的卡片不起动画（#109：读下一页时已有卡片的位置不变）。
         if (Math.abs(old.left - next.left) < 0.5 && Math.abs(old.top - next.top) < 0.5 && Math.abs(old.width - next.width) < 0.5 && Math.abs(old.height - next.height) < 0.5) continue;
+        const own = flight && trayed!.flights.has(node.dataset.id!) ? flight : timing;
         const motion = node.animate([
           { transform: `translate(${old.left - next.left}px, ${old.top - next.top}px) scale(${old.width / next.width}, ${old.height / next.height})` },
           { transform: "none" },
-        ], timing);
+        ], own);
         // 与面板的过渡对齐起点：两段同节奏的移动合起来才是一段直线。
         if (slide?.startTime != null) motion.startTime = slide.startTime;
         motions.current.set(node.dataset.id!, motion);
         motion.onfinish = () => motions.current.delete(node.dataset.id!);
-        // 图库标记是卡片的兄弟、按新位置摆着：跟卡片右下角一起从旧位置滑过来，保留它自身的 translate(-100%, -100%)。
-        const badge = node.nextElementSibling;
-        if (badge instanceof HTMLElement && badge.classList.contains("card-sources")) {
-          const badgeMotion = badge.animate([
+        // 卡片的按钮是它的兄弟、按新位置摆着：图库标记跟卡片右下角一起从旧位置滑过来，保留它自身的
+        // translate(-100%, -100%)；一摞的张数与托盘里页角的勾（#418）跟左上角。
+        for (let badge = node.nextElementSibling; badge instanceof HTMLElement && !badge.classList.contains("card"); badge = badge.nextElementSibling) {
+          const corner = badge.classList.contains("card-sources") ? "sources" : badge.classList.contains("card-count") || badge.classList.contains("card-check") ? "top" : null;
+          if (!corner) continue;
+          const keyframes = corner === "sources" ? [
             { transform: `translate(${old.right - next.right}px, ${old.bottom - next.bottom}px) translate(-100%, -100%)` },
             { transform: "translate(-100%, -100%)" },
-          ], timing);
+          ] : [
+            { transform: `translate(${old.left - next.left}px, ${old.top - next.top}px)` },
+            { transform: "none" },
+          ];
+          const badgeMotion = badge.animate(keyframes, own);
           if (slide?.startTime != null) badgeMotion.startTime = slide.startTime;
           const key = `${node.dataset.id!}
-sources`;
+${badge.className}`;
           motions.current.set(key, badgeMotion);
           badgeMotion.onfinish = () => motions.current.delete(key);
         }

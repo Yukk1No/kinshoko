@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type Dispatch, type SetStateAction, useMemo } from "react";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceCard as SourcesCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { useInspectorWidth } from "../shell/InspectorResizer";
 import type { BrowserCard } from "../wall/Wall";
+import { stackHolding } from "../wall/imageSets";
 
 /** 详情面板（#98）：整理哪些图、是否打开、宽度与开合过渡。 */
 export function useWorkspaceInspector({
@@ -29,7 +30,9 @@ export function useWorkspaceInspector({
   // 详情面板整理哪个图库（ADR-0008，#113）：范围是某个图库时就是它；“全部图片”下选中的图都只有同一个图库的
   // 来源时是那个库。单选、多选都可以整理任何一个图库（#422）；单选一张有几份来源的图、定不下图库时，走下面的来源整理；
   // 多选定不下图库时面板内容留空，宽度不变，选择的反馈在多选悬浮栏。
-  const readCards = loadedCards.filter((card) => selected.has(card.id));
+  // 一摞收着的各页（#418）也算已读：查看器走到它们时，详情面板整理的是正在看的这一页。
+  const allCards = useMemo(() => loadedCards.flatMap((card) => card.set ? [card, ...card.set.pages.slice(1) as BrowserCard[]] : [card]), [loadedCards]);
+  const readCards = allCards.filter((card) => selected.has(card.id));
   // 列表重读期间选中的图暂时不在已读卡片里：沿用这组选择上次读到的卡片，面板不变空，等修剪选择后再定。
   const lastSelection = useRef<{ key: string; cards: BrowserCard[] } | null>(null);
   if (readCards.length) lastSelection.current = { key: selectionKey, cards: readCards };
@@ -62,10 +65,15 @@ export function useWorkspaceInspector({
     if (!viewing) {
       // 离开查看器：为墙外那张图打开的来源整理随之收起。
       if (viewedSources.current) { viewedSources.current = false; setSources(null); }
+      // 最后看的是收在一摞里的页（#418）：墙上看不见它，选择回到这一摞。
+      setSelected((previous) => {
+        const stack = previous.size === 1 ? stackHolding(loadedCards, previous.values().next().value!) : null;
+        return stack ? new Set([stack]) : previous;
+      });
       return;
     }
     viewedSources.current = false;
-    if (!loadedCards.some((card) => card.id === viewing.id)) {
+    if (!allCards.some((card) => card.id === viewing.id)) {
       if (viewing.libraryId && viewing.imageId && viewing.sources?.length) {
         viewedSources.current = true;
         setSources(viewing as WorkspaceCard);

@@ -15,6 +15,8 @@ export default {
     sourcesLabel_other: "在 {{count, number}} 个图库，查看详情",
     sourcesTitle_other: "在 {{count, number}} 个图库",
     sourcesCount_other: "{{count, number}} 处",
+    stackLabel_other: "{{count, number}} 张",
+    pageLabel: "第 {{page, number}} 页",
   },
   density: {
     label: "图片大小",
@@ -25,6 +27,7 @@ export default {
   },
   menu: {
     blankLabel: "图片墙菜单",
+    stackSets: "叠放图集",
     cardLabel: "参考图菜单",
     cardsLabel_other: "{{count, number}} 张参考图的菜单",
     open: "打开",

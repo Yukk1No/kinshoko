@@ -54,7 +54,8 @@ const transformTo = (box: FlightRect, rect: FlightRect) => ({
 });
 
 const cardImage = (el: HTMLElement) => {
-  const img = el.querySelector("img");
+  // 一摞（#418）取封面那张图，不取下面的纸：纸上的页可能是遮着的成人内容。
+  const img = el.querySelector<HTMLImageElement>(":scope > img, :scope > .stack-cover > img");
   return img?.currentSrc || img?.getAttribute("src") || "";
 };
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type Dispatch, type RefObject, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, type Dispatch, type RefObject, type SetStateAction } from "react";
 import type { BrowserCard, WallHandle } from "../wall/Wall";
 
 export function useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall }: {
@@ -8,12 +8,16 @@ export function useViewerStep({ viewing, setViewing, loadedCards, resultCount, w
   resultCount: number | null;
   wall: RefObject<WallHandle | null>;
 }) {
-  /** 查看器里的上一张 / 下一张按图片墙的顺序走；走过已读到的卡片时先读下一页，读到后再换图。 */
-  const viewingIndex = viewing ? loadedCards.findIndex((card) => card.id === viewing.id) : -1;
+  /**
+   * 查看器里的上一张 / 下一张按图片墙的顺序走；走过已读到的卡片时先读下一页，读到后再换图。
+   * 叠成一摞的图集（#418）按它的各页走：墙上一摞只占一格，查看器的序号与张数（resultCount）仍按每一张图算。
+   */
+  const sequence = useMemo(() => loadedCards.flatMap((card) => card.set ? card.set.pages as BrowserCard[] : [card]), [loadedCards]);
+  const viewingIndex = viewing ? sequence.findIndex((card) => card.id === viewing.id) : -1;
   const pendingStep = useRef<{ from: string; index: number } | null>(null);
   const step = (delta: -1 | 1) => {
     const index = viewingIndex + delta;
-    const next = loadedCards[index];
+    const next = sequence[index];
     if (next) { pendingStep.current = null; setViewing(next); return; }
     if (delta === 1 && viewing && index < (resultCount ?? 0)) {
       pendingStep.current = { from: viewing.id, index };
@@ -24,10 +28,10 @@ export function useViewerStep({ viewing, setViewing, loadedCards, resultCount, w
     const pending = pendingStep.current;
     if (!pending) return;
     // 换了图、关了查看器或结果变了：放弃这次等待。
-    if (viewing?.id !== pending.from || loadedCards[pending.index - 1]?.id !== pending.from) { pendingStep.current = null; return; }
-    const next = loadedCards[pending.index];
+    if (viewing?.id !== pending.from || sequence[pending.index - 1]?.id !== pending.from) { pendingStep.current = null; return; }
+    const next = sequence[pending.index];
     if (next) { pendingStep.current = null; setViewing(next); }
-  }, [loadedCards, viewing]);
+  }, [sequence, viewing]);
 
-  return { viewingIndex, step };
+  return { viewingIndex, step, loaded: sequence.length };
 }

@@ -16,6 +16,7 @@ import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
 import { Tip } from "../ui/Tip";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "../wall/Wall";
+import { useStackSetsSetting } from "../wall/imageSets";
 import { WallFloats } from "../wall/WallFloats";
 import { WallMenu } from "../wall/WallMenu";
 import { WallEmptyAction } from "./WallEmptyAction";
@@ -81,6 +82,7 @@ export function LibraryWorkspace({
   const { imports, running, setRunning, report, setReport, started } = useImportTasks();
   const scope: BrowseScope = workspaceScope.kind === "library" ? workspaceScope.scope : { kind: "all" };
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const stacking = useStackSetsSetting(() => setSelected(new Set()));
   const [viewing, setViewing] = useState<BrowserCard | null>(null);
   const wallHost = useRef<HTMLDivElement>(null);
   const flight = useViewerFlight({ viewing, safe, host: wallHost, instant: hidden || !!captureRequest });
@@ -107,10 +109,10 @@ export function LibraryWorkspace({
   // 修订变化后的选择修剪：等图片墙读完新的结果，然后只保留仍在的图。范围或安全模式变了时图片墙先清空（等它读完）；
   // 只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
   useEffect(() => { invalidate({ kind: "pageAccepted", ready: resultCount !== null }); }, [loadedCards, resultCount]);
-  const { viewingIndex, step } = useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall });
+  const { viewingIndex, step, loaded } = useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall });
   /** 序号在飞回途中留着：顶栏淡出时不跳动。 */
   const viewerPosition = useRef<{ index: number; total: number } | undefined>(undefined);
-  if (viewing) viewerPosition.current = viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) };
+  if (viewing) viewerPosition.current = viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loaded) };
   const { status, onWallStatus, recheck } = useWorkspaceStatus({ safe, onError, invalidate, observations });
 
   // 视角一变就在这次渲染里推进重读序号（#183）：图片墙的重新浏览与视角变化在同一次提交里、
@@ -245,7 +247,8 @@ export function LibraryWorkspace({
             onDensityPreview={setZoomPreview}
             onDensityCommit={(value) => { setZoomPreview(null); setDensity(value); }}
             onTotalChange={setResultCount}
-            key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}`}
+            key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}/${stacking.on}`}
+            stackSets={stacking.on}
             workspaceScope={workspaceScope}
             onInspectSources={openSources}
             onCardsChange={setLoadedCards}
@@ -264,7 +267,8 @@ export function LibraryWorkspace({
             }}
             onOpenImage={(card) => { setViewCrop(false); setViewing(card); }}
             viewerOpen={viewerOpen}
-            menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} inspectorOpen={inspectorOpen} onToggleInspector={toggleInspector} />}
+            menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} inspectorOpen={inspectorOpen} onToggleInspector={toggleInspector}
+              stackSets={stacking.menu} />}
             onCardCommand={(command, cards, point) => {
               if (command === "pin") wallActions.pin(cards, point);
               else if (command === "crop") wallActions.crop(cards[0]);
