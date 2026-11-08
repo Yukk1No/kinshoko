@@ -11,7 +11,8 @@ export type ToastOptions = {
   tone?: ToastTone;
   /** ms; 0 keeps it until dismissed. Errors default to 0 so a real failure is never lost. */
   timeout?: number;
-  action?: { label: string; onClick: () => void };
+  /** Choosing the action closes the toast, unless `keepOpen` (the caller then updates it in place, e.g. 安装 → 正在下载). */
+  action?: { label: string; onClick: () => void; keepOpen?: boolean };
   /** Called once the toast closes, whether dismissed by the artist or closed by code. */
   onClose?: () => void;
 };
@@ -35,15 +36,19 @@ function Bridge({ children }: { children: ReactNode }) {
   const latest = useRef(manager);
   latest.current = manager;
   const api = useMemo<ToastApi>(() => {
-    const content = ({ title, description, tone = "info", timeout, action }: Omit<ToastOptions, "onClose">) => ({
+    const content = ({ title, description, tone = "info", timeout, action }: Omit<ToastOptions, "onClose">, id: () => string) => ({
       title, description, type: tone, timeout: timeout ?? (tone === "error" ? 0 : action ? ACTION_TIMEOUT : 5000), priority: tone === "error" ? "high" as const : "low" as const,
-      actionProps: action ? { children: action.label, onClick: action.onClick } : undefined,
+      actionProps: action ? { children: action.label, onClick: () => { action.onClick(); if (!action.keepOpen) latest.current.close(id()); } } : undefined,
     });
-    const show = ({ onClose, ...options }: ToastOptions): string => latest.current.add({ ...content(options), onClose });
+    const show = ({ onClose, ...options }: ToastOptions): string => {
+      let id = "";
+      id = latest.current.add({ ...content(options, () => id), onClose });
+      return id;
+    };
     return {
       show,
       error: (message, options = {}) => show({ ...options, title: message, tone: "error" }),
-      update: (id, options) => latest.current.update(id, content(options)),
+      update: (id, options) => latest.current.update(id, content(options, () => id)),
       close: (id) => latest.current.close(id),
     };
   }, []);
@@ -126,7 +131,8 @@ export function usePersistentToast(notice: PersistentToast | null, { hidden = fa
     dismissedAt.current = null;
     const { title, description, tone, action } = notice;
     const content = { title, description, tone, timeout: 0,
-      action: action && { label: action.label, onClick: () => latest.current.notice?.action?.onClick() } };
+      // Its own lifetime rules decide when it goes, so choosing the action does not count as dismissing it.
+      action: action && { label: action.label, onClick: () => latest.current.notice?.action?.onClick(), keepOpen: true } };
     if (shown.current !== null) { toast.update(shown.current, content); return; }
     const id: string = toast.show({ ...content, onClose: () => {
       if (shown.current !== id) return;

@@ -123,12 +123,12 @@ export function ReferenceGroupsPanel() {
         title: t("deleted"), description: g.name, tone: "success",
         action: { label: t("undo"), onClick: () => {
           undone = true;
-          restoreReferenceGroup(deleted).catch((e) => { toast.error(String(e)); });
+          restoreReferenceGroup(deleted).catch((e) => { toast.error(errorText(e)); });
         } },
         onClose: () => { if (!undone) void purgeDeletedReferenceGroup(g.id).catch(() => {}); },
       });
     } catch (e) {
-      toast.error(String(e));
+      toast.error(errorText(e));
     }
   };
 
