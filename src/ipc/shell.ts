@@ -41,6 +41,11 @@ export function taggingResume(): Promise<void> {
   return invoke<void>("tagging_resume");
 }
 
+/** 重试没有完成自动标签的图（#475）：各库无法读取与出错的图各再打一次。 */
+export function taggingRetryFailed(): Promise<void> {
+  return invoke<void>("tagging_retry_failed");
+}
+
 /** 设置中的打标模型名称、各硬件档的需求与是否已下载，以及画师选的硬件档。 */
 export function taggingModels(): Promise<ModelChoice> {
   return invoke<ModelChoice>("tagging_models");

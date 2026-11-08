@@ -5,6 +5,7 @@
 mod support;
 
 mod download;
+mod failures;
 mod hardware;
 mod libraries;
 mod scheduling;

@@ -12,4 +12,4 @@ dismissed: Array<string>, } | { "kind": "text", text: string,
 /**
  * “只这次”不展开的相近标签（`tag_id`）。
  */
-dismissed: Array<string>, } | { "kind": "rating", ratings: Array<ContentRating>, };
+dismissed: Array<string>, } | { "kind": "rating", ratings: Array<ContentRating>, } | { "kind": "taggingUnfinished" };

@@ -115,6 +115,7 @@ pub fn run() {
             tagging::tagging_cancel_download,
             tagging::tagging_pause,
             tagging::tagging_resume,
+            tagging::tagging_retry_failed,
             tagging::tagging_models,
             tagging::tagging_set_device,
             tagging::tagging_pick_package,

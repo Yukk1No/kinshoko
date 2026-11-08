@@ -20,7 +20,7 @@ function termTitle(term: Term) {
 /** 这一项只有一个标签时是它：“＋”加的相近标签以它为另一端。分级项没有。 */
 export function soleTag(term: Term): TagLabel | null {
   if (term.kind === "tag") return term.tag;
-  if (term.kind === "rating") return null;
+  if (term.kind === "rating" || term.kind === "taggingUnfinished") return null;
   return term.tags.length === 1 ? term.tags[0] : null;
 }
 
@@ -44,6 +44,7 @@ export function TermView({
   const { t } = useTranslation("search");
   const sole = soleTag(term);
   if (term.kind === "rating") return <RatingName rating={term.rating} />;
+  if (term.kind === "taggingUnfinished") return <span>{t("taggingUnfinished")}</span>;
   return (
     <>
       {term.kind === "tag" ? (
