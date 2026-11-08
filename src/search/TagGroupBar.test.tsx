@@ -105,6 +105,26 @@ describe("标签组下拉（#451）", () => {
     expect(document.activeElement).toBe(hairBtn);
   });
 
+  it("“任一成员”再点一次是取消，不叠一条一样的条件", async () => {
+    const change = vi.fn();
+    const red = { kind: "tag" as const, id: "red", dismissed: [] };
+    const green = { kind: "tag" as const, id: "green", dismissed: [] };
+    const blue = { conditions: [{ any: [{ kind: "tag" as const, id: "blue", dismissed: [] }], negate: false }], exact: false };
+    const view = render(bar({ onChange: change, input: blue }));
+    fireEvent.click(await button(/瞳色/));
+    const any = screen.getByRole("button", { name: "按“瞳色”任一标签查找" });
+    expect(any.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(any);
+    expect(change).toHaveBeenLastCalledWith({ ...blue, conditions: [...blue.conditions, { any: [red, green], negate: false }] });
+    const on = { ...blue, conditions: [...blue.conditions, { any: [green, red], negate: false }] };
+    view.rerender(bar({ onChange: change, input: on }));
+    fireEvent.click(await button(/瞳色/));
+    const pressed = screen.getByRole("button", { name: "按“瞳色”任一标签查找" });
+    expect(pressed.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(pressed);
+    expect(change).toHaveBeenLastCalledWith(blue);
+  });
+
   it("词表刷新时弹层留着并显示新数据；所开的组没了就关闭", async () => {
     const view = render(bar());
     fireEvent.click(await button(/发色/));

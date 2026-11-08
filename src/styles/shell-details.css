@@ -25,6 +25,9 @@
 .group-pop-viewport > [data-previous] { top: 0; left: 0; }
 .group-pop-viewport > [data-current][data-starting-style], .group-pop-viewport > [data-previous][data-ending-style] { opacity: 0; }
 .group-any { margin-bottom: 8px; }
+/* 已按“任一成员”查找：同分组里选中的标签（樱色 / 金色浅底），再点取消。 */
+.group-any[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-strong); box-shadow: none; }
+.group-any[aria-pressed="true"]:hover { box-shadow: inset 0 0 0 1px var(--accent); }
 
 /* 分组里的标签：点一下加为条件（樱色 / 金色浅底），右键排除（同顶栏里排除的条件：无底细线、删除线），
    一张图也没有的标签无底、淡字。 */

@@ -15,7 +15,9 @@ const search: Translation<typeof zh> = {
   collapsedConditions: "Collapsed search conditions",
   not: "Not",
   missingTag: "Deleted tag",
-  or: " or ",
+  /** 一个条件里几项任一之间的分隔；读屏读 `orSpoken`。 */
+  or: ", ",
+  orSpoken: "or",
   exclude: "Exclude this condition",
   include: "Stop excluding this condition",
   remove: "Remove this condition",
