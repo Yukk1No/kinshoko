@@ -44,8 +44,8 @@ export type CardHandlers = {
   cardKey: (card: BrowserCard, e: KeyboardEvent<HTMLElement>) => void;
   dragStart: (id: string, e: DragEvent) => void;
   inspect?: (card: WorkspaceCard) => void;
-  /** 点一摞的张数：打开或关上它的托盘（#418）。 */
-  toggleTray: (card: BrowserCard) => void;
+  /** 点一摞的张数：打开它的托盘（#418）。 */
+  openTray: (card: BrowserCard) => void;
   /** 点托盘里页角的勾：增减这一页的选择，与 Ctrl 单击相同。 */
   check: (card: BrowserCard) => void;
 };
@@ -86,7 +86,7 @@ function stackFace(card: BrowserCard, b: Box, inset: number, uiScale: number, th
   </>;
 }
 
-export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened, trayPage = 0, trayCount = 0, uiScale = 1 }: {
+export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened, trayPage = 0, uiScale = 1 }: {
   card: BrowserCard;
   thumbnailPx: number;
   b: Box;
@@ -99,15 +99,13 @@ export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, s
   lastOpened: MutableRefObject<string | null>;
   /** 托盘里的第几页（从 1 起，#418）；不在托盘里为 0。 */
   trayPage?: number;
-  /** 打开的托盘里的页数。 */
-  trayCount?: number;
   /** 界面缩放：一摞的纸边按 CSS 像素算。 */
   uiScale?: number;
 }): ReactNode {
   const sources = card.libraryId && card.imageId ? card.sources ?? [] : [];
   const stack = card.set && trayPage === 0 ? card.set : null;
-  // 张数按钮在封面左上角；托盘打开时留在第 1 页上，再点一次叠回去。
-  const count = stack ? stack.pages.length : trayPage === 1 ? trayCount : 0;
+  // 张数按钮在封面左上角；托盘里的页不带张数，也不带页码。
+  const count = stack ? stack.pages.length : 0;
   const corner = stack ? cardInset(card, b.w, uiScale) : 0;
   return (
     <Fragment key={card.id}>
@@ -126,7 +124,6 @@ export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, s
       style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px`, ...(stack && { ["--stack-inset" as string]: `${corner}px` }) }}
     >
       {stack ? stackFace(card, b, corner, uiScale, thumbnailPx, veiled) : picture(card, thumbnailPx, veiled)}
-      {trayPage > 0 && <span className="card-page" aria-hidden="true">{i18n.t("wall:card.pageOf", { page: trayPage, count: trayCount })}</span>}
     </div>
     {/* 托盘里页角的勾（#418）：增减这一页的选择。紧跟在卡片后面（悬停卡片时露出）；第 1 页的左上角是张数，勾放在右上角。 */}
     {trayPage > 0 && <button type="button" role="checkbox" className="card-check" data-card={card.id}
@@ -135,9 +132,9 @@ export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, s
       onClick={(e) => { e.stopPropagation(); cardHandlers.current.check(card); }}
       onKeyDown={(e) => e.stopPropagation()}>{CHECK_ICON}</button>}
     {count >= 2 && <button type="button" className="card-count" data-card={card.id}
-      aria-label={i18n.t("wall:card.stackLabel", { count })} aria-expanded={trayPage === 1}
+      aria-label={i18n.t("wall:card.stackLabel", { count })} aria-expanded={false}
       style={{ left: `${b.x + corner + 6}px`, top: `${b.y + corner + 6}px` }}
-      onClick={(e) => { e.stopPropagation(); cardHandlers.current.toggleTray(card); }}
+      onClick={(e) => { e.stopPropagation(); cardHandlers.current.openTray(card); }}
       onKeyDown={(e) => e.stopPropagation()}>{STACK_ICON}<span className="k-label">{count}</span></button>}
     {/* 来源按钮是卡片选项的兄弟，不在选项里：选项内不放可聚焦的子元素。只在一个图库的图不放按钮（#221），所在图库在详情里看。 */}
     {sources.length >= 2 && <button type="button" className="card-sources" data-card={card.id}

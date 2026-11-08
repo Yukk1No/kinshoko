@@ -17,7 +17,6 @@ export default {
     sourcesCount_other: "{{count, number}} 处",
     stackLabel_other: "{{count, number}} 张",
     pageLabel: "第 {{page, number}} 页",
-    pageOf: "{{page, number}} / {{count, number}}",
   },
   density: {
     label: "图片大小",

@@ -61,17 +61,15 @@ it("一摞占一格：封面下露出后面几页，左上角是张数按钮", a
   expect(tray()).toBeNull();
 });
 
-it("点张数在原位打开托盘，各页按页序排进去；再点一次张数叠回去", async () => {
+it("点张数在原位打开托盘，各页按页序排进去；托盘里的页不带张数，也不带页码", async () => {
   render(<Harness />);
   await screen.findAllByRole("option");
   fireEvent.click(count());
   expect(tray()).not.toBeNull();
   expect(shownIds()).toEqual(["a", "p0", "p1", "p2", "b"]);
   expect(card("p0")!.querySelector(".stack-sheet")).toBeNull();
-  expect(count().getAttribute("aria-expanded")).toBe("true");
-  fireEvent.click(count());
-  expect(tray()).toBeNull();
-  expect(shownIds()).toEqual(["a", "p0", "b"]);
+  expect(document.querySelector(".card-count")).toBeNull();
+  expect(document.querySelector(".card-page")).toBeNull();
 });
 
 it("单击一摞选中整摞；再单击、双击或回车打开托盘，不进查看器", async () => {

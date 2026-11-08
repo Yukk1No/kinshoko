@@ -21,7 +21,6 @@ const wall: Translation<typeof zh> = {
     stackLabel_one: "{{count, number}} image",
     stackLabel_other: "{{count, number}} images",
     pageLabel: "Page {{page, number}}",
-    pageOf: "{{page, number}} / {{count, number}}",
   },
   density: {
     label: "Image size",

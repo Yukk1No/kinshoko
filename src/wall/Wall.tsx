@@ -300,8 +300,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
     click, open, cardKey, dragStart,
     // 托盘开着时点别的格子的来源按钮：先关托盘（#418），这一格留在屏幕原处。
     inspect: onInspectSources && ((card) => { if (trayIds.size && !trayIds.has(card.id)) leaveTray(card.id); onInspectSources(card); }),
-    // 托盘里第 1 页上的张数（那一页不带图集）与已打开的那一摞：叠回去。
-    toggleTray: (card) => { if (!card.set || openSet === card.set.key) leaveTray(); else openTray(card); },
+    openTray: (card) => { if (card.set) openTray(card); },
     check: toggle,
   };
   leaveTrayRef.current = leaveTray;
@@ -341,7 +340,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
               nextRendered.set(card.id, kept);
               return kept.node;
             }
-            const node = wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened, trayPage, trayCount: tray?.count ?? 0, uiScale });
+            const node = wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened, trayPage, uiScale });
             nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, tier, language, trayPage, expanded, node });
             return node;
           })}
