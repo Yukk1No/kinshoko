@@ -11,6 +11,7 @@ import { expectNoChinese } from "../test/noChinese";
 const ipc = vi.hoisted(() => ({
   groups: vi.fn(),
   group: vi.fn(),
+  remove: vi.fn(() => Promise.resolve({ groupId: "g1", name: "Hair", unlinkedPins: [] })),
   captures: vi.fn(() => Promise.resolve([{ id: "shot-1", width: 100, height: 80, collected: [{ libraryId: "lib-a" }] }])),
 }));
 vi.mock("../ipc", () => ({
@@ -18,6 +19,9 @@ vi.mock("../ipc", () => ({
   referenceGroups: ipc.groups,
   referenceGroup: ipc.group,
   groupSaveCaptures: ipc.captures,
+  deleteReferenceGroup: ipc.remove,
+  restoreReferenceGroup: () => Promise.resolve(),
+  purgeDeletedReferenceGroup: () => Promise.resolve(),
   captureHistory: () => Promise.resolve([
     { id: "c1", width: 412, height: 380, createdAt: Date.now() - 5 * 60_000, pinned: true, collected: [] },
     { id: "c2", width: 200, height: 100, createdAt: Date.now() - 3 * 86_400_000, pinned: false, collected: [{ libraryId: "lib-a" }] },
@@ -106,7 +110,7 @@ describe("英文界面：桌面", () => {
     expectNoChinese(document.body);
   });
 
-  it("参考组：卡片、成员、更多操作、删除确认与截图入组", async () => {
+  it("参考组：卡片、成员、更多操作、删除可撤销与截图入组", async () => {
     ipc.groups.mockResolvedValue([summary]);
     ipc.group.mockResolvedValue(view);
     render(<SaveDestinationProvider safe><ReferenceGroupsPanel /></SaveDestinationProvider>);
@@ -124,9 +128,9 @@ describe("英文界面：桌面", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "More actions" }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
-    const confirm = await screen.findByRole("alertdialog", { name: "Delete reference group" });
-    expectNoChinese(confirm, data);
-    fireEvent.click(within(confirm).getByRole("button", { name: "Cancel" }));
+    expect(await screen.findByText("Reference group deleted")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy();
+    expect(screen.queryByRole("alertdialog")).toBeNull();
     await settle();
 
     fireEvent.click(screen.getByRole("button", { name: "Save desktop pins" }));

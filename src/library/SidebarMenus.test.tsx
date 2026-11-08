@@ -22,6 +22,7 @@ let calls: { command: string; args: Record<string, unknown> }[];
 let answers: Record<string, unknown>;
 const onScope = vi.fn();
 const onError = vi.fn();
+const onMessage = vi.fn();
 beforeEach(() => {
   calls = [];
   answers = {};
@@ -34,10 +35,10 @@ async function show(scope: WorkspaceScope, value = forest(), extra: Partial<Para
     if (command === "plugin:library|workspace_directories") return value;
     calls.push({ command, args: args as Record<string, unknown> });
     const answer = answers[command];
-    if (answer instanceof Error) throw answer.message;
+    if (answer instanceof Error) throw { code: "message", message: answer.message };
     return answer ?? null;
   });
-  const view = render(<ToastProvider><WorkspacePane status={{ revision: "r", libraries: registrations }} scope={scope} safeMode reloadKey={0} onScope={onScope} onError={onError} {...extra} /></ToastProvider>);
+  const view = render(<ToastProvider><WorkspacePane status={{ revision: "r", libraries: registrations }} scope={scope} safeMode reloadKey={0} onScope={onScope} onError={onError} onMessage={onMessage} {...extra} /></ToastProvider>);
   await settle(); await settle();
   return view;
 }
@@ -81,7 +82,7 @@ it("图库标题：在资源管理器中显示、重新连接与从列表移除"
 
   answers["plugin:desktop|reveal_library"] = new Error("图库暂时无法连接：D:\\A\\参考");
   fireEvent.click(within(await openOn(headA, "人物参考 的操作")).getByRole("menuitem", { name: "在资源管理器中显示" }));
-  await waitFor(() => expect(onError).toHaveBeenCalledWith("无法在资源管理器中显示：图库暂时无法连接：D:\\A\\参考"));
+  await waitFor(() => expect(onMessage).toHaveBeenCalledWith("无法在资源管理器中显示：图库暂时无法连接：D:\\A\\参考"));
 
   const headB = within(section("B")).getByRole("button", { name: "风景参考（未连接）" });
   fireEvent.click(within(await openOn(headB, "风景参考 的操作")).getByRole("menuitem", { name: "重新连接" }));
@@ -104,7 +105,7 @@ it("移除当前范围所在的图库后回到“全部图片”；移除别的�
   const headA = within(section("A")).getByRole("button", { name: "人物参考（3 张）" });
   answers["plugin:library|unregister_library"] = new Error("还有导入在进行");
   fireEvent.click(within(await openOn(headA, "人物参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
-  await waitFor(() => expect(onError).toHaveBeenCalledWith("还有导入在进行"));
+  await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "还有导入在进行" })));
   expect(onScope).not.toHaveBeenCalled();
 
   delete answers["plugin:library|unregister_library"];
@@ -195,7 +196,7 @@ it("撤销失败时报错", async () => {
   answers["plugin:library|restore_folder"] = new Error("放回失败");
   fireEvent.click(within(await openOn(within(section("A")).getByRole("button", { name: "动作（1 张）" }), "动作 的操作")).getByRole("menuitem", { name: "删除文件夹" }));
   fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
-  await waitFor(() => expect(onError).toHaveBeenCalledWith("放回失败"));
+  await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "放回失败" })));
 });
 
 it("回收站：清空回收站先列出将永久删除的张数，确认后按预览的令牌删除", async () => {

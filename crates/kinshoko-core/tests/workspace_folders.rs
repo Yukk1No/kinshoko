@@ -28,6 +28,7 @@ fn query(library: &Library, scope: BrowseScope) -> WorkspaceQuery {
         cursor: None,
         limit: 100,
         known_placeholders: Vec::new(),
+        stack_sets: false,
     }
 }
 #[test]

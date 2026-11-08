@@ -19,6 +19,8 @@ export default {
   include: "不再排除这个条件",
   remove: "去掉这个条件",
   quoted: "“{{text}}”",
+  /** 查找条件：没有完成自动标签的图（#475），从自动标签的状态进来。 */
+  taggingUnfinished: "自动标签未完成",
   alsoTags: "也匹配标签：{{tags}}",
   alsoRatings: "也匹配分级：{{ratings}}",
   listSeparator: "、",
@@ -29,7 +31,6 @@ export default {
     personal: "个人",
     dismissLabel: "不带“{{name}}”的相近标签",
     addLabel: "给“{{name}}”加相近标签",
-    addGlyph: "＋",
   },
   dismiss: {
     label: "不带相近标签",

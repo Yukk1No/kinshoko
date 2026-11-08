@@ -24,6 +24,7 @@ fn several_sources_of_one_library_are_edited_in_one_action() {
                 cursor: None,
                 limit: 10,
                 known_placeholders: Vec::new(),
+                stack_sets: false,
             },
             true,
         )

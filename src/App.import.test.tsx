@@ -115,16 +115,17 @@ describe("主窗口", () => {
     );
   });
 
-  it("打标卡片不再占侧栏；缩放滑块左边的打标图标打开设置 › 自动标签（#144）", async () => {
+  it("打标卡片不再占侧栏；缩放滑块左边的打标图标右键打开设置 › 自动标签（#144、#475）", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
-    const icon = await screen.findByRole("button", { name: /自动标签：正在加载自动标签模型/ });
+    const icon = await screen.findByRole("button", { name: /暂停自动标签：正在加载自动标签模型/ });
     expect(document.querySelector(".side-foot .tagging")).toBeNull();
     expect(screen.queryByText(/自动标签：正在加载自动标签模型…/)).toBeNull();
     expect(icon.closest(".k-wall-badge")?.nextElementSibling?.getAttribute("aria-label")).toBe("图片大小");
 
-    fireEvent.click(icon);
+    fireEvent.contextMenu(icon, { clientX: 10, clientY: 10 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "自动标签设置" }));
     const dialog = await screen.findByRole("dialog", { name: "程序设置" });
     expect(await within(dialog).findByRole("heading", { name: "自动标签", level: 3 })).toBeTruthy();
   });
@@ -256,7 +257,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
           return { matched: [], unmatched: [], vocabularySize: 0 };
         case "plugin:library|start_import": {
           const failure = failures.shift();
-          if (failure) return Promise.reject(failure);
+          if (failure) return Promise.reject({ code: "message", message: failure });
           return new Promise<string>((resolve) => answers.push(resolve));
         }
         default:

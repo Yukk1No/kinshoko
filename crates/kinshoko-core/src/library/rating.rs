@@ -7,7 +7,7 @@
 //!   封印都由它算出，人工分级接进这里就同时作用于两者。
 //! - 被封印只有一条判定（#223）：安全模式开启，且有效分级在安全模式范围（[`SafeModeScope`]）内。
 //!   SQL 里用 [`in_scope_sql`]，内存里用 [`SafeMode::seals`]；不允许别处写死“≥ 敏感”。
-//! - 打标进度按模型来源记录：没有记录的图就是待打标的图；无法打标的图记下原因，不再重试。
+//! - 打标进度（待打标、打不上标、重试）见 [`super::tagging_state`]。
 //! - 一次成功推理的模型标签、分级建议与完成状态只经 [`commit_tagging_result`] 在同一个事务里
 //!   提交（#318）：要么整份结果连同完成状态都在，要么都不在。
 
@@ -16,8 +16,9 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::events::LibraryEvent;
+use super::tagging_state::{TaggingOutcome, record_tagging_in};
 use super::tags::{self, FactSource};
-use super::{Error, Inner, fault, now_ms};
+use super::{Error, Inner, fault};
 
 /// 内容分级，从宽到严排列。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, TS)]
@@ -201,15 +202,6 @@ pub struct ImageRating {
     pub manual: Option<ContentRating>,
     /// 有效分级：人工分级优先，否则是自动分级。
     pub effective: Option<ContentRating>,
-}
-
-/// 一张图的打标结果。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TaggingOutcome {
-    /// 建议已写入。
-    Done,
-    /// 这张图无法打标（例如解码失败或反复让打标子进程崩溃），附原因；不再重试。
-    Failed(String),
 }
 
 /// 模型来源对一张参考图的一次成功推理：标签建议与分级建议，作为一份结果整体提交
@@ -403,73 +395,7 @@ pub(super) fn set_manual(
     Ok(resealed)
 }
 
-pub(super) fn images_to_tag(
-    inner: &Inner,
-    source: &FactSource,
-    limit: u32,
-) -> Result<Vec<String>, Error> {
-    let conn = inner.readers.get();
-    let mut stmt = conn.prepare_cached(
-        "SELECT i.id FROM image i
-         WHERE i.deleted_at IS NULL AND NOT EXISTS (
-            SELECT 1 FROM tagging_state s WHERE s.image_id = i.id AND s.source = ?1)
-         ORDER BY i.seq DESC LIMIT ?2",
-    )?;
-    let ids = stmt
-        .query_map(params![source.as_str(), limit], |r| r.get(0))?
-        .collect::<Result<Vec<String>, _>>()?;
-    Ok(ids)
-}
-
-pub(super) fn count_images_to_tag(inner: &Inner, source: &FactSource) -> Result<u32, Error> {
-    let conn = inner.readers.get();
-    let count = conn.query_row(
-        "SELECT COUNT(*) FROM image i
-         WHERE i.deleted_at IS NULL AND NOT EXISTS (
-            SELECT 1 FROM tagging_state s WHERE s.image_id = i.id AND s.source = ?1)",
-        [source.as_str()],
-        |r| r.get(0),
-    )?;
-    Ok(count)
-}
-
-pub(super) fn finish_tagging(
-    inner: &Inner,
-    source: &FactSource,
-    image_id: &str,
-    outcome: TaggingOutcome,
-) -> Result<(), Error> {
-    let (source, id) = (source.clone(), image_id.to_owned());
-    inner.writer.run(move |conn| {
-        let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-        record_tagging_in(&tx, &source, &id, &outcome)?;
-        tx.commit()?;
-        Ok::<_, Error>(())
-    })
-}
-
-fn record_tagging_in(
-    tx: &rusqlite::Transaction,
-    source: &FactSource,
-    id: &str,
-    outcome: &TaggingOutcome,
-) -> Result<(), Error> {
-    require_image(tx, id)?;
-    let (status, reason) = match outcome {
-        TaggingOutcome::Done => ("done", None),
-        TaggingOutcome::Failed(reason) => ("failed", Some(reason.as_str())),
-    };
-    tx.execute(
-        "INSERT INTO tagging_state (image_id, source, status, reason, at)
-         VALUES (?1, ?2, ?3, ?4, ?5)
-         ON CONFLICT (image_id, source)
-         DO UPDATE SET status = excluded.status, reason = excluded.reason, at = excluded.at",
-        params![id, source.as_str(), status, reason, now_ms()],
-    )?;
-    Ok(())
-}
-
-fn require_image(tx: &rusqlite::Transaction, image_id: &str) -> Result<(), Error> {
+pub(super) fn require_image(tx: &rusqlite::Transaction, image_id: &str) -> Result<(), Error> {
     tx.query_row("SELECT 1 FROM image WHERE id = ?1", [image_id], |_| Ok(()))
         .optional()?
         .ok_or(Error::UnknownImage)

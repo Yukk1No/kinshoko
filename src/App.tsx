@@ -51,6 +51,7 @@ import { markStartup } from "./startupTiming";
 import { releaseStartup, startupLibraryOpened } from "./startupGate";
 import { StartupSplash } from "./shell/StartupSplash";
 import { LoginExpiredNotice, SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
+import { errorText } from "./ipc/commandError";
 import { Tip } from "./ui/Tip";
 
 /**
@@ -80,6 +81,8 @@ function MainWindow() {
   const [captureRequest,setCaptureRequest]=useState<{id:string;stamp:number}|null>(null);
   const collectionHandled=useCallback(()=>setCaptureRequest(null),[]);
   const [referenceRequest, setReferenceRequest] = useState<{ libraryId: string; imageId: string; stamp: number } | null>(null);
+  /** 设置 › 自动标签里的“查看”（#475）：每按一次加一，图片墙筛出没有完成自动标签的图。 */
+  const [unfinishedRequest, setUnfinishedRequest] = useState(0);
   const [section, setSection] = useState<Section>("browse");
   const [paneOpen, setPaneOpen] = useState(true);
   const subscriptions = useSubscriptionSection(section, setSection);
@@ -158,7 +161,7 @@ function MainWindow() {
       },
       (e) => {
         applySafe({ kind: "failed" });
-        toast.error(i18n.t("shell:safeMode.toggleFailed", { error: String(e) }));
+        toast.error(i18n.t("shell:safeMode.toggleFailed", { error: errorText(e) }));
         recheckSafe();
       },
     );
@@ -204,7 +207,7 @@ function MainWindow() {
         // 打不开就不等首屏：进主界面，由图库选择页处理。
         releaseStartup();
         if (!alive) return;
-        setOpenError(String(e));
+        setOpenError(errorText(e));
         setOpened(true);
       },
     );
@@ -304,6 +307,7 @@ function MainWindow() {
           onLibraryRemoved={() => changed(null)}
           onLibraryRestore={async (root) => changed(await registerLibrary(root))}
           onOpenTaggingSettings={() => openSettings("tagging")}
+          unfinishedTaggingRequest={unfinishedRequest}
         />
       )}
       <SubscriptionSection subscriptions={subscriptions} safe={lensSafe} paneOpen={paneOpen} onPaneToggle={() => setPaneOpen((open) => !open)}
@@ -352,6 +356,7 @@ function MainWindow() {
               uiScale={uiScalePercent}
               onUiScale={(percent) => void chooseUiScale(percent)}
               subscriptions={subscriptions.settings}
+              onShowUnfinishedTagging={() => { setShowSettings(false); setUnfinishedRequest((n) => n + 1); }}
             />
           </Dialog.Popup>
         </Dialog.Portal>

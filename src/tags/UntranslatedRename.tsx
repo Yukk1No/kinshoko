@@ -9,6 +9,7 @@ import { editTagName, inspectTagCatalog } from "../ipc";
 import { useUiLang } from "../i18n";
 import { currentName } from "./catalogName";
 import { useOpenTagNameSettings } from "./TagNameSettings";
+import { errorText } from "../ipc/commandError";
 
 // 改名框在 portal 里，React 事件仍沿组件树冒泡到外层的标签（它本身是出处浮层的触发器）：在这里截住。
 const stop = (event: SyntheticEvent) => event.stopPropagation();
@@ -57,7 +58,7 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
     setBusy(true); setError(null);
     editTagName(catalogId, { kind: "prefer", name: { lang, name: text } }).then(
       () => { setBusy(false); setOpen(false); onOpenChange?.(false); onSaved(); },
-      (reason) => { setBusy(false); setError(String(reason)); },
+      (reason) => { setBusy(false); setError(errorText(reason)); },
     );
   };
   return (

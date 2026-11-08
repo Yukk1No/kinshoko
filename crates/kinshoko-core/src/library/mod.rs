@@ -37,6 +37,7 @@ pub(crate) mod fault;
 mod filter;
 mod folders;
 mod image_api;
+pub(crate) mod image_set;
 mod import;
 mod lens;
 mod package;
@@ -52,6 +53,7 @@ mod store;
 mod subscription_import;
 mod tag_api;
 pub(crate) mod tag_definitions;
+mod tagging_state;
 mod tags;
 mod thumbnail;
 mod types;
@@ -88,13 +90,13 @@ pub use import::{ImportStages, ImportTask};
 pub use lens::{ReferenceImage, ReferenceLens};
 pub use package::{ImageSnapshot, PackageOrigin, SnapshotTag};
 pub use permanent_delete::PermanentDeletePreview;
-pub use rating::{
-    ContentRating, ImageRating, RatingFact, SafeMode, SafeModeScope, TaggingOutcome, TaggingResult,
-};
+pub use rating::{ContentRating, ImageRating, RatingFact, SafeMode, SafeModeScope, TaggingResult};
 pub use save::SaveDestination;
 pub use sidebar::Sidebar;
 pub use source_names::{UND, compose as compose_names, detect_lang};
 pub use subscription_import::SubscriptionPage;
+pub(crate) use tagging_state::CRASHED_REASON;
+pub use tagging_state::{FailedTagging, RetryTagging, TaggingFailure, TaggingOutcome};
 pub use tags::{
     FactSource, ImageTag, ImageTags, LocalizedName, PersonalApproxEntry, SourceTag, TagAlias,
     TagCount, TagEdit, TagGroupDefinition, TagGroupView, TagLabel, TagNamespace, TagOrigin, TagRef,

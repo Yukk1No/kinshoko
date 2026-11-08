@@ -20,6 +20,7 @@ const search: Translation<typeof zh> = {
   include: "Stop excluding this condition",
   remove: "Remove this condition",
   quoted: "“{{text}}”",
+  taggingUnfinished: "Auto-tagging unfinished",
   alsoTags: "Also matches tags: {{tags}}",
   alsoRatings: "Also matches ratings: {{ratings}}",
   listSeparator: ", ",
@@ -30,7 +31,6 @@ const search: Translation<typeof zh> = {
     personal: "Personal",
     dismissLabel: "Don't expand “{{name}}”",
     addLabel: "Add a similar tag to “{{name}}”",
-    addGlyph: "+",
   },
   dismiss: {
     label: "Don't expand similar tag",

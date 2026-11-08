@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use super::rating::{self, ContentRating, ImageRating, SafeModeScope};
+use super::tagging_state::{self, TaggingFailure};
 use super::{Error, Inner, LibraryEvent, folders, lens, now_ms, tags};
 
 /// 对参考图的一项编辑。一次 `edit` 把编辑列表按顺序用在每张图上，全部成功才提交。
@@ -34,6 +35,8 @@ pub enum ImageEdit {
     SetRating { rating: ContentRating },
     /// 撤掉画师的分级，退回自动分级。
     RevertRating,
+    /// 打不上标的图重新待打标（#475）；已打完的不重打。
+    RetryTagging,
 }
 
 /// 参考图所在的一个文件夹。
@@ -100,6 +103,8 @@ pub struct ImageDetail {
     pub rating: ImageRating,
     /// 来源内容变化留下的新旧版本。
     pub versions: ImageVersions,
+    /// 打不上标时属于哪类（#475）；打完了、还没打或在等重试时为空。
+    pub tagging_failure: Option<TaggingFailure>,
 }
 
 pub(super) fn edit(
@@ -242,6 +247,7 @@ fn apply(
             return rating::set_manual(conn, ids, Some(*rating), scope);
         }
         ImageEdit::RevertRating => return rating::set_manual(conn, ids, None, scope),
+        ImageEdit::RetryTagging => tagging_state::retry_images(conn, ids)?,
     }
     Ok(false)
 }
@@ -315,5 +321,6 @@ pub(super) fn detail(conn: &Connection, lens: &str, id: &str) -> Result<ImageDet
         deleted_at,
         rating: rating::rating_of(conn, id)?,
         versions: ImageVersions { previous, newer },
+        tagging_failure: tagging_state::failure_of(conn, id)?,
     })
 }

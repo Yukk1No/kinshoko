@@ -5,6 +5,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { GatePlan } from "../bindings/GatePlan";
 import type { PinGate } from "../bindings/PinGate";
+import type { DeletedGroup } from "../bindings/DeletedGroup";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroup } from "../bindings/ReferenceGroup";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -44,8 +45,19 @@ export function renameReferenceGroup(groupId: string, name: string): Promise<Ref
   return invoke<ReferenceGroup>(desk("rename_reference_group"), { groupId, name });
 }
 
-export function deleteReferenceGroup(groupId: string): Promise<void> {
-  return invoke<void>(desk("delete_reference_group"), { groupId });
+/** 删除参考组（#480）：先暂放在回收位置，返回的内容交给 {@link restoreReferenceGroup} 撤销；提示过期后交给 {@link purgeDeletedReferenceGroup} 真正删除。 */
+export function deleteReferenceGroup(groupId: string): Promise<DeletedGroup> {
+  return invoke<DeletedGroup>(desk("delete_reference_group"), { groupId });
+}
+
+/** 撤销 {@link deleteReferenceGroup}：参考组原样放回，桌面上还在的钉图重新记起自己是哪个成员。 */
+export function restoreReferenceGroup(deleted: DeletedGroup): Promise<void> {
+  return invoke<void>(desk("restore_reference_group"), { deleted });
+}
+
+/** 撤销提示过期：真正删除暂放的参考组。 */
+export function purgeDeletedReferenceGroup(groupId: string): Promise<void> {
+  return invoke<void>(desk("purge_deleted_reference_group"), { groupId });
 }
 
 export function removeGroupMember(groupId: string, memberId: string): Promise<ReferenceGroup> {

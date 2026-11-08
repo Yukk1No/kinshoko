@@ -13,6 +13,7 @@ fn query(known: Vec<String>) -> WorkspaceQuery {
         cursor: None,
         limit: 10,
         known_placeholders: known,
+        stack_sets: false,
     }
 }
 

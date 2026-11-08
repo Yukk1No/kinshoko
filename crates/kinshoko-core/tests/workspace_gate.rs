@@ -49,6 +49,7 @@ fn refresh(workspace: &mut Workspace, device: &DeviceLibraries, catalog: &mut Ta
                 cursor: None,
                 limit: 10,
                 known_placeholders: Vec::new(),
+                stack_sets: false,
             },
             false,
         )

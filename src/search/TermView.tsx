@@ -6,6 +6,7 @@ import { RatingName, ratingName, TagMarks, tagName } from "./tagLabel";
 import { i18n } from "../i18n";
 import { useTranslation } from "react-i18next";
 import { Tip } from "../ui/Tip";
+import { Plus, X } from "lucide-react";
 
 /** 文字项也匹配的标签与分级，鼠标悬停时显示，画师能看见文字查到了什么。 */
 function termTitle(term: Term) {
@@ -20,7 +21,7 @@ function termTitle(term: Term) {
 /** 这一项只有一个标签时是它：“＋”加的相近标签以它为另一端。分级项没有。 */
 export function soleTag(term: Term): TagLabel | null {
   if (term.kind === "tag") return term.tag;
-  if (term.kind === "rating") return null;
+  if (term.kind === "rating" || term.kind === "taggingUnfinished") return null;
   return term.tags.length === 1 ? term.tags[0] : null;
 }
 
@@ -44,6 +45,7 @@ export function TermView({
   const { t } = useTranslation("search");
   const sole = soleTag(term);
   if (term.kind === "rating") return <RatingName rating={term.rating} />;
+  if (term.kind === "taggingUnfinished") return <span>{t("taggingUnfinished")}</span>;
   return (
     <>
       {term.kind === "tag" ? (
@@ -65,13 +67,13 @@ export function TermView({
               {showSource && (
                 <span className="search-similar-source">{s.source === "builtin" ? t("similar.builtin") : t("similar.personal")}</span>
               )}
-              {dismiss(s, <button type="button" aria-label={t("similar.dismissLabel", { name: tagName(s.tag) })}>×</button>)}
+              {dismiss(s, <button type="button" aria-label={t("similar.dismissLabel", { name: tagName(s.tag) })}><X size={12} strokeWidth={2} aria-hidden="true" /></button>)}
             </span>
           ))}
         </span>
       )}
       {sole && personal && (
-        add(sole, <button type="button" aria-label={t("similar.addLabel", { name: tagName(sole) })}>{t("similar.addGlyph")}</button>)
+        add(sole, <button type="button" aria-label={t("similar.addLabel", { name: tagName(sole) })}><Plus size={14} strokeWidth={1.75} aria-hidden="true" /></button>)
       )}
     </>
   );

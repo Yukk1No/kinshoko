@@ -188,6 +188,8 @@ mod workspace_folders;
 mod workspace_gate;
 #[path = "workspace_image_reads.rs"]
 mod workspace_image_reads;
+#[path = "workspace_image_sets.rs"]
+mod workspace_image_sets;
 #[path = "workspace_image_writes.rs"]
 mod workspace_image_writes;
 #[path = "workspace_paging.rs"]

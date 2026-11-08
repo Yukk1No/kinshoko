@@ -1,4 +1,6 @@
+import { errorText } from "../ipc/commandError";
 import { useEffect, useRef, useState } from "react";
+import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import { formatMoment } from "../i18n/format";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
@@ -9,6 +11,7 @@ import type { ImageRating } from "../bindings/ImageRating";
 import type { FolderNode } from "../bindings/FolderNode";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageEdit } from "../bindings/ImageEdit";
+import type { TaggingFailure } from "../bindings/TaggingFailure";
 import type { PermanentDeletePreview } from "../bindings/PermanentDeletePreview";
 import {
   editImages,
@@ -72,6 +75,17 @@ function RatingPicker({
   );
 }
 
+/** 这张图没有完成自动标签（#475）：一行状态与重试，原因在悬停提示。紧跟在标签面板下面。 */
+function TaggingUnfinished({ failure, edit }: { failure: TaggingFailure; edit: (edits: ImageEdit[]) => void }) {
+  const { t } = useTranslation("inspector");
+  return (
+    <div className="insp-tagging">
+      <Tip label={t(`tagging.${failure}`)}><span>{t("tagging.unfinished")}</span></Tip>
+      <button type="button" className="k-btn is-ghost is-sm" onClick={() => edit([{ kind: "retryTagging" }])}><span className="k-label">{t("tagging.retry")}</span></button>
+    </div>
+  );
+}
+
 /** 只选中一张时：所在文件夹、内容分级与备注。 */
 function Detail({
   detail,
@@ -104,11 +118,12 @@ function Detail({
       </div>
       {detail.versions.previous && <p className="selection-version">{t("file.newVersion")}</p>}
       {detail.versions.newer.length > 0 && <p className="selection-version">{t("file.oldVersion")}</p>}
+      {detail.taggingFailure && <TaggingUnfinished failure={detail.taggingFailure} edit={edit} />}
       <RatingPicker rating={detail.rating} edit={edit} />
       <section className="insp-sec selection-folders" aria-label={t("folders.label")}>
         <h4>{t("folders.title")}</h4>
         {detail.folders.length
-          ? <ul className="insp-chips">{detail.folders.map((folder) => <li key={folder.id} className="insp-chip"><span className="k-label">{folder.name}</span></li>)}</ul>
+          ? <ul className="insp-chips">{detail.folders.map((folder) => <li key={folder.id} className="insp-chip"><Name className="k-label">{folder.name}</Name></li>)}</ul>
           : <p className="insp-hint">{t("folders.none")}</p>}
       </section>
       {/* 备注（#98）：字段用改版样式；有未保存的改动才出现“保存”，有自己写的备注才能“用来源的”。 */}
@@ -170,7 +185,7 @@ export function PermanentDeleteConfirm({
   safeMode?: boolean;
   onDone: () => void;
   onCancel: () => void;
-  onError: (error: unknown) => void;
+  onError: (message: string) => void;
 }) {
   const [preview, setPreview] = useState<PermanentDeletePreview | null>(null);
   const [changed, setChanged] = useState(false);
@@ -183,7 +198,7 @@ export function PermanentDeleteConfirm({
     (emptyTrash ? previewEmptyTrash(libraryId) : previewPermanentDelete(libraryId, ids)).then(
       (value) => { if (currentKey.current === key) setPreview(value); }, (e) => {
       if (currentKey.current !== key) return;
-      onError(e);
+      onError(errorText(e));
       onCancel();
     });
 
@@ -210,7 +225,7 @@ export function PermanentDeleteConfirm({
           setPreview(null);
           void load();
         } else {
-          onError(e);
+          onError(errorText(e));
         }
       },
     );
@@ -293,7 +308,8 @@ export function SelectionPanel({
     return () => {
       alive = false;
     };
-  }, [libraryId, single, reloadKey, onError, detailKey]);
+    // 词表代次随 imagesChanged 前进（例如这张图打标失败被记下，#475）：重读详情，但不算换了一张，不先变成不可操作。
+  }, [libraryId, single, reloadKey, onError, detailKey, generation]);
   const detail = loaded?.detail ?? null;
   const stale = loaded?.key !== detailKey;
 

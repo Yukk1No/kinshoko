@@ -10,6 +10,8 @@ use kinshoko_core::Library;
 use kinshoko_core::library::{BrowseQuery, ImageCard, ImageEdit, ImportSource};
 use kinshoko_core::reference_groups::{GroupError, GroupUsage, ReferenceGroupUsage};
 
+/// 占位图迁移（0313）及其后的迁移个数：模拟旧格式时退回到它之前。之后的迁移都能重跑。
+/// 资料库迁移每多一个，这里加一。
 fn import(library: &Library, dir: &Path, seed: u8) -> String {
     let path = dir.join(format!("{seed}.png"));
     RgbaImage::from_fn(60 + u32::from(seed), 40, |x, y| {
@@ -42,6 +44,15 @@ fn cards(library: &Library) -> Vec<ImageCard> {
 
 fn db(root: &Path) -> rusqlite::Connection {
     rusqlite::Connection::open(root.join("library.sqlite")).unwrap()
+}
+
+/// 占位图迁移（#313）之前的库版本。按迁移名确定，不受后续追加数量影响；之后的迁移都可以重跑。
+fn before_placeholders() -> usize {
+    include_str!("../src/library/store.rs")
+        .lines()
+        .filter(|line| line.trim_start().starts_with("M::up"))
+        .position(|line| line.contains("migrations/0313_placeholders.sql\""))
+        .expect("占位图迁移必须存在")
 }
 
 /// 库里存的占位图：SHA-256 → (内容类型, 字节)。
@@ -124,15 +135,12 @@ fn a_library_from_before_the_move_imports_its_placeholder_files_once() {
         std::fs::write(file, bytes).unwrap();
     }
     {
-        let conn = db(&root);
-        let version: i64 = conn
-            .query_row("PRAGMA user_version", [], |r| r.get(0))
+        db(&root)
+            .execute_batch(&format!(
+                "DROP TABLE placeholder; PRAGMA user_version = {};",
+                before_placeholders()
+            ))
             .unwrap();
-        conn.execute_batch(&format!(
-            "DROP TABLE placeholder; PRAGMA user_version = {};",
-            version - 1
-        ))
-        .unwrap();
     }
     assert_eq!(placeholder_files(&root).len(), 3);
     assert!(matches!(
@@ -183,15 +191,12 @@ fn a_library_from_the_expand_step_drops_its_leftover_files() {
         std::fs::write(file, bytes).unwrap();
     }
     {
-        let conn = db(&root);
-        let version: i64 = conn
-            .query_row("PRAGMA user_version", [], |r| r.get(0))
+        db(&root)
+            .execute_batch(&format!(
+                "DROP TABLE IF EXISTS placeholder_files_pending; PRAGMA user_version = {};",
+                before_placeholders()
+            ))
             .unwrap();
-        conn.execute_batch(&format!(
-            "DROP TABLE IF EXISTS placeholder_files_pending; PRAGMA user_version = {};",
-            version - 1
-        ))
-        .unwrap();
     }
     assert_eq!(placeholder_files(&root).len(), 3);
 

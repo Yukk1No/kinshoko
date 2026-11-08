@@ -31,7 +31,7 @@ pub(super) fn local_tree(
                     .any
                     .iter()
                     .flat_map(|term| match term {
-                        Term::Rating { .. } => vec![term.clone()],
+                        Term::Rating { .. } | Term::TaggingUnfinished => vec![term.clone()],
                         Term::Tag { tag, similar } => std::iter::once(tag)
                             .chain(similar.iter().map(|s| &s.tag))
                             .flat_map(|label| local_labels(label, catalog, library))

@@ -9,7 +9,7 @@ struct BrowseRow {
 
 /// 最近几组排好的浏览结果，键与游标里的相同（#288）：同一组结果翻页、从头重读只切片。
 /// 键里含修订号、范围与条件，修订号一变旧结果就再也取不到，不需要另外失效。留几组而不是一组，
-/// 免得两处用不同条件交替浏览时互相挤掉。按分级查找的结果不留（[`reads_ratings`]）。
+/// 免得两处用不同条件交替浏览时互相挤掉。按分级、按自动标签未完成查找的结果不留（[`uncached`]）。
 #[derive(Default)]
 pub(super) struct BrowseCache {
     results: std::collections::VecDeque<(String, std::sync::Arc<Vec<BrowseRow>>)>,
@@ -81,6 +81,7 @@ impl Workspace {
             &status.revision,
             &query.scope,
             &query.conditions,
+            query.stack_sets,
         ))?);
         let offset = match &query.cursor {
             None => 0,
@@ -92,8 +93,9 @@ impl Workspace {
                 offset.parse::<usize>().map_err(|_| Error::InvalidCursor)?
             }
         };
-        // 按分级查找的结果不复用：来源分级没跨过安全模式范围时不推进修订号。
-        let reuse = !reads_ratings(&query.conditions);
+        // 按分级查找的结果不复用：来源分级没跨过安全模式范围时不推进修订号。打标失败的记录变了
+        // （记下、重试）也不推进修订号，按自动标签未完成查找的结果同样不复用（#475）。
+        let reuse = !uncached(&query.conditions);
         let cached = reuse.then(|| self.browse_cache.get(&key)).flatten();
         let hit = cached.is_some();
         let collecting = std::time::Instant::now();
@@ -107,6 +109,11 @@ impl Workspace {
             }
         };
         let total = rows.len() as u32;
+        let images = query.stack_sets.then(|| {
+            rows.iter()
+                .map(|row| row.card.set.as_ref().map_or(1, |set| set.pages.len()) as u32)
+                .sum()
+        });
         let limit = query.limit.clamp(1, 1000) as usize;
         let next = offset.saturating_add(limit);
         let next_cursor = (next < rows.len()).then(|| format!("{key}:{next}"));
@@ -120,8 +127,10 @@ impl Workspace {
             .providers
             .iter()
             .filter(|p| {
+                // 一摞里露出的页可能来自别的资料库，也要读它的占位图。
                 cards
                     .iter()
+                    .chain(stacked_pages(&cards))
                     .any(|c| c.library_id == p.registration.library.id)
             })
             .map(|p| p.registration.library.clone())
@@ -130,6 +139,7 @@ impl Workspace {
             page: WorkspacePage {
                 cards,
                 total,
+                images,
                 next_cursor,
                 status,
             },
@@ -209,6 +219,7 @@ impl Workspace {
             image_id: image_id.into(),
             sources,
             id: hash,
+            set: None,
         })
     }
 }
@@ -237,8 +248,10 @@ impl PendingPage {
             let Some(library) = gate.held(source) else {
                 continue;
             };
+            // 一摞的封面就是卡片本身；露在下面的几层与它一起读。
             let shas = cards
                 .iter()
+                .chain(stacked_pages(cards))
                 .filter(|c| c.library_id == source.id && !self.known.contains(&c.id))
                 .map(|c| c.id.as_str())
                 .collect::<Vec<_>>();
@@ -247,19 +260,36 @@ impl PendingPage {
             }
         }
         for card in cards.iter_mut() {
-            card.placeholder = found.remove(&card.id);
+            card.placeholder = found.get(&card.id).cloned();
+            if let Some(set) = &mut card.set {
+                for page in set.pages.iter_mut().take(STACK_PLACEHOLDER_PAGES) {
+                    page.placeholder = found.get(&page.id).cloned();
+                }
+            }
         }
     }
 }
 
-/// 条件里有没有按有效分级匹配的项（点选的分级，或文字也匹配某档分级的名称）。
-fn reads_ratings(tree: &ConditionTree) -> bool {
+/// 各摞里带占位图的页，封面除外。
+fn stacked_pages(cards: &[WorkspaceCard]) -> impl Iterator<Item = &WorkspaceCard> {
+    cards.iter().flat_map(|card| {
+        card.set
+            .iter()
+            .flat_map(|set| set.pages.iter().take(STACK_PLACEHOLDER_PAGES))
+            .filter(move |page| page.id != card.id)
+    })
+}
+
+/// 条件里有没有修订号管不到的项：按有效分级匹配的（点选的分级，或文字也匹配某档分级的名称），
+/// 或自动标签未完成。
+fn uncached(tree: &ConditionTree) -> bool {
     tree.conditions
         .iter()
         .flat_map(|c| &c.any)
         .any(|term| match term {
             Term::Rating { .. } => true,
             Term::Text { ratings, .. } => !ratings.is_empty(),
+            Term::TaggingUnfinished => true,
             Term::Tag { .. } => false,
         })
 }
@@ -316,6 +346,11 @@ fn collect_rows(
             continue;
         };
         let source_library = &provider.registration.library.id;
+        // 显示用的那份认出的图集优先；它认不出时看同一份字节的其他来源。
+        let set = image
+            .set
+            .clone()
+            .or_else(|| sources.iter().find_map(|(_, i)| i.set.clone()));
         let newest = sources
             .iter()
             .filter(|(p, i)| matched(p, i))
@@ -324,6 +359,8 @@ fn collect_rows(
             .unwrap_or(0);
         rows.push((
             newest,
+            set,
+            image.seq,
             BrowseRow {
                 card: WorkspaceCard {
                     id,
@@ -344,10 +381,68 @@ fn collect_rows(
                             matches: matched(p, i),
                         })
                         .collect(),
+                    set: None,
                 },
             },
         ));
     }
-    rows.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.card.id.cmp(&b.1.card.id)));
-    Ok(rows.into_iter().map(|(_, row)| row).collect())
+    rows.sort_by(|a, b| b.0.cmp(&a.0).then(a.3.card.id.cmp(&b.3.card.id)));
+    if !query.stack_sets {
+        return Ok(rows.into_iter().map(|(.., row)| row).collect());
+    }
+    Ok(stack(
+        rows.into_iter()
+            .map(|(_, set, seq, row)| (set, seq, row.card)),
+    ))
+}
+
+/// 同一图集的卡片合成一格（#418），占最新那一页的位置；封面是页序最前的一页。一次遍历，O(n)
+/// 加各图集内的排序。只剩一页的图集照常是单张。
+fn stack(
+    rows: impl Iterator<
+        Item = (
+            Option<crate::library::image_set::ImageSetPage>,
+            i64,
+            WorkspaceCard,
+        ),
+    >,
+) -> Vec<BrowseRow> {
+    // 每格：图集键（单张为空）与各页（页码、加入先后、卡片）。
+    type Cell = (Option<String>, Vec<(Option<u32>, i64, WorkspaceCard)>);
+    let mut cells: Vec<Cell> = Vec::new();
+    let mut at = std::collections::HashMap::<String, usize>::new();
+    for (set, seq, card) in rows {
+        match set {
+            None => cells.push((None, vec![(None, seq, card)])),
+            Some(set) => match at.get(&set.key) {
+                Some(&i) => cells[i].1.push((set.page, seq, card)),
+                None => {
+                    at.insert(set.key.clone(), cells.len());
+                    cells.push((Some(set.key), vec![(set.page, seq, card)]));
+                }
+            },
+        }
+    }
+    cells
+        .into_iter()
+        .map(|(key, mut pages)| {
+            let card = match key {
+                Some(key) if pages.len() > 1 => {
+                    // 认出页序的在前、按页序；认不出的随后，按加入的先后。
+                    pages.sort_by_key(|(page, seq, _)| (page.is_none(), *page, *seq));
+                    let pages: Vec<WorkspaceCard> =
+                        pages.into_iter().map(|(.., card)| card).collect();
+                    WorkspaceCard {
+                        set: Some(WorkspaceImageSet {
+                            key,
+                            pages: pages.clone(),
+                        }),
+                        ..pages[0].clone()
+                    }
+                }
+                _ => pages.remove(0).2,
+            };
+            BrowseRow { card }
+        })
+        .collect()
 }

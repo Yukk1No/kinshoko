@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { PanelLeftOpen, PanelRight } from "lucide-react";
 import { useImportShortcut } from "./useImportShortcut";
@@ -6,8 +6,6 @@ import { useInspectorShortcut } from "./useInspectorShortcut";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
-import { referenceCard } from "../desktop/openInKinshoko";
-import { errorText, isCursorExpired } from "../ipc";
 import { ImportMenu, type ImportControl } from "../library/ImportMenu";
 import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
@@ -28,7 +26,10 @@ import { TagGroupsDialog } from "./TagGroupsDialog";
 import { useImportTasks } from "./useImportTasks";
 import { useInvalidation } from "./useInvalidation";
 import { useLibraryEvents } from "./useLibraryEvents";
+import { useReferenceRequest } from "./useReferenceRequest";
 import { useSearchTree } from "./useSearchTree";
+import { useWorkspaceError } from "./useWorkspaceError";
+import { useShowUnfinishedTagging } from "./useShowUnfinishedTagging";
 import { useViewerStep } from "./useViewerStep";
 import { WorkspaceInspector } from "./WorkspaceInspector";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
@@ -62,6 +63,7 @@ export function LibraryWorkspace({
   onLibraryRemoved,
   onLibraryRestore,
   onOpenTaggingSettings,
+  unfinishedTaggingRequest = 0,
 }: WorkspaceProps) {
   const { t } = useTranslation(["workspace", "viewer"]);
   const keepSelectionOnSafeRef = useRef(keepSelectionOnSafe);
@@ -89,17 +91,7 @@ export function LibraryWorkspace({
   useImportShortcut(importControl, hidden);
   const [editingGroups, setEditingGroups] = useState(false);
   useEffect(()=>{if(captureRequest){setViewing(null);setSources(null);}},[captureRequest]);
-  // 钉图菜单“在 Kinshoko 中打开”（#106）：按当前安全模式读这张参考图，读到才打开查看器。
-  useEffect(() => {
-    if (!referenceRequest) return;
-    let alive = true;
-    const { libraryId: from, imageId } = referenceRequest;
-    referenceCard(from, imageId, safe).then(
-      (card) => { if (!alive) return; setViewCrop(false); setViewing(card); },
-      (e) => { if (alive) toast.error(t("openFailed", { error: String(e) })); },
-    );
-    return () => { alive = false; };
-  }, [referenceRequest]);
+  useReferenceRequest(referenceRequest, safe, (card) => { setViewCrop(false); setViewing(card); });
   /**
    * 词表代次：词表、图片或安全模式变化时递增，重新解析条件、重新取得候选（标签可能改名、
    * 删除、新增了叫法，或在安全模式下被封印）。与后端 Search 缓存的修订号和安全模式对应。
@@ -108,16 +100,7 @@ export function LibraryWorkspace({
   const { invalidate, observations } = useInvalidation({
     wall, loadedCards, setViewing: (next) => { flight.cut(); setViewing(next); }, setSelected, setSources, setReloadKey, setVocabularyKey,
   });
-  /**
-   * 工作区读取期间修订变了（CursorExpired）：那次读到的结果已经过时，不是要用户处理的问题。
-   * 像收到变更通知一样按新修订重读；变更停下后读取成功，不留下常驻横幅（#98）。
-   * 同修订的变更通知会被略过，所以不能只等通知来补读。
-   */
-  const onError = useCallback((error: unknown) => {
-    // 真实错误进轻提示（#98），一直留到画师按“知道了”；没有提示容器时退回就地横幅。
-    if (!isCursorExpired(error)) { toast.error(errorText(error)); return; }
-    invalidate({ kind: "cursorExpired" });
-  }, [toast, invalidate]);
+  const onError = useWorkspaceError(toast, invalidate);
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
   const viewerOpen = viewing !== null;
@@ -146,6 +129,8 @@ export function LibraryWorkspace({
 
   const { search, setSearch, tree, treeSafe, searching } = useSearchTree({ safe, vocabularyKey, onError, setReloadKey });
 
+  const showUnfinishedTagging = useShowUnfinishedTagging({ request: unfinishedTaggingRequest, onOpenBrowse, setSearch, setWorkspaceScope, invalidate });
+
   // 窄窗口里侧栏与详情面板按余量一起让位，主区不低于 300（#274）。
   const [appBody, setAppBody] = useState<HTMLDivElement | null>(null);
   const bodyWidth = useWidth(appBody);
@@ -166,7 +151,7 @@ export function LibraryWorkspace({
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
   const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
-    safe, onError,
+    safe, onError: toast.error,
     onOpen: (card) => { setViewCrop(false); setViewing(card); },
     onCrop: (card) => { setViewCrop(true); setViewing(card); },
     onInspect: (card) => openSources(card as WorkspaceCard),
@@ -189,7 +174,7 @@ export function LibraryWorkspace({
       <div className="app-body" ref={setAppBody} data-viewer-flying={flight.dim || undefined} style={{ "--sidebar-width": `${panes.sidebar}px` } as CSSProperties}>
         {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
         <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} paneRef={setSidebarElement} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
-          status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} recheck={recheck}
+          status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} onMessage={toast.error} recheck={recheck}
           onLibraryRemoved={onLibraryRemoved} onLibraryRestore={onLibraryRestore} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
           onScope={(next) => {
             // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
@@ -293,7 +278,7 @@ export function LibraryWorkspace({
           {/* 图片墙右下角：打标图标（#144）在图片大小浮岛（#102 方案 C3，与 Ctrl+滚轮缩放成对）的左边。
               选了两张及以上时底部升起多选悬浮栏（#98，#180），右下角收成圆形按钮让位；查看器打开时悬浮栏隐藏。 */}
           <WallFloats
-            tagging={(collapsed) => <TaggingActivity collapsed={collapsed} onOpenSettings={onOpenTaggingSettings} />}
+            tagging={(collapsed) => <TaggingActivity collapsed={collapsed} onOpenSettings={onOpenTaggingSettings} onShowUnfinished={showUnfinishedTagging} />}
             density={viewerOpen ? null : { value: density, preview: zoomPreview, onPreview: (v) => wall.current?.previewDensity(v), onCommit: setDensity }}
             bar={inspected !== null || hidden || viewerOpen ? null
               : selectionLibrary !== null ? (panelIds.length > 1 ? {

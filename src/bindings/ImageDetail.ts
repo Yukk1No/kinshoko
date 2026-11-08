@@ -3,6 +3,7 @@ import type { FolderRef } from "./FolderRef";
 import type { ImageNote } from "./ImageNote";
 import type { ImageRating } from "./ImageRating";
 import type { ImageVersions } from "./ImageVersions";
+import type { TaggingFailure } from "./TaggingFailure";
 
 /**
  * 查看单张参考图所需的详情。
@@ -27,4 +28,8 @@ rating: ImageRating,
 /**
  * 来源内容变化留下的新旧版本。
  */
-versions: ImageVersions, };
+versions: ImageVersions, 
+/**
+ * 打不上标时属于哪类（#475）；打完了、还没打或在等重试时为空。
+ */
+taggingFailure: TaggingFailure | null, };

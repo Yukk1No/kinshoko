@@ -60,6 +60,9 @@ pub struct WorkspaceQuery {
     /// 调用方已经有占位图的卡片 id（#313）：占位图按内容寻址、永远不变，这些卡片不再带它。
     #[serde(default)]
     pub known_placeholders: Vec<String>,
+    /// 同一图集叠成一摞（#418）：每个图集只占一格，各页放进卡片的 [`WorkspaceCard::set`]。
+    #[serde(default)]
+    pub stack_sets: bool,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -92,7 +95,23 @@ pub struct WorkspaceCard {
     pub library_id: String,
     pub image_id: String,
     pub sources: Vec<WorkspaceSource>,
+    /// 叠成一摞时（[`WorkspaceQuery::stack_sets`]）这一格的图集：至少两页，卡片本身是封面，即第一页。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub set: Option<WorkspaceImageSet>,
 }
+/// 图片墙上叠成一摞的图集（#418）：只含这次浏览能显示的页（符合查找、不被安全模式封印），按页序排。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct WorkspaceImageSet {
+    /// 图集键，例如 `pixiv:123`。
+    pub key: String,
+    /// 各页的卡片，第一页是封面。只有前 [`STACK_PLACEHOLDER_PAGES`] 页带占位图。
+    pub pages: Vec<WorkspaceCard>,
+}
+/// 一摞里带占位图的页数：封面与露在下面的三层。
+pub const STACK_PLACEHOLDER_PAGES: usize = 4;
 #[derive(Debug, Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -106,7 +125,12 @@ pub struct WorkspaceStatus {
 pub struct WorkspacePage {
     pub cards: Vec<WorkspaceCard>,
     pub next_cursor: Option<String>,
+    /// 结果的格数：叠成一摞时一摞算一格。
     pub total: u32,
+    /// 叠成一摞时（[`WorkspaceQuery::stack_sets`]）结果里的张数；不叠放时与 `total` 相同，省略。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub images: Option<u32>,
     pub status: WorkspaceStatus,
 }
 /// One provider root. Missing providers keep their identity and reason, without stale folders/counts.

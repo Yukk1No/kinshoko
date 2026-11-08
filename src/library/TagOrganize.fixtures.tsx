@@ -37,6 +37,7 @@ export const detail = (id: string): ImageDetail => ({
   collectedAt: 0,
   sourceLinks: [],
   versions: { previous: null, newer: [] },
+  taggingFailure: null,
   width: 100,
   height: 200,
   folders: [],
@@ -188,7 +189,9 @@ export class FakeTags {
             ? { kind: "tag" as const, tag: this.label(t.id), similar: [] }
             : t.kind === "text"
               ? { kind: "text" as const, text: t.text, tags: [], similar: [], ratings: [] }
-              : { kind: "rating" as const, rating: { ratings: t.ratings, r18: false } },
+              : t.kind === "rating"
+                ? { kind: "rating" as const, rating: { ratings: t.ratings, r18: false } }
+                : { kind: "taggingUnfinished" as const },
         ),
       })),
     };

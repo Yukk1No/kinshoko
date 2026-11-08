@@ -5,9 +5,9 @@ import type { HardwareOption } from "./bindings/HardwareOption";
 import type { ModelChoice } from "./bindings/ModelChoice";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
-import { importModelPackage, pickModelPackage, taggingCancelDownload, taggingDownload, taggingModels, taggingPause, taggingResume, taggingSetDevice } from "./ipc";
+import { importModelPackage, pickModelPackage, taggingCancelDownload, taggingDownload, taggingModels, taggingPause, taggingResume, taggingRetryFailed, taggingSetDevice } from "./ipc";
 import { useTaggingStatus } from "./useTaggingStatus";
-import { describeCommandError, describeCommandErrors } from "./ipc/commandError";
+import { describeCommandError, describeCommandErrors, errorText } from "./ipc/commandError";
 import { Select } from "./ui/Select";
 import { i18n } from "./i18n/instance";
 import { formatBytes, percentOf } from "./i18n/format";
@@ -41,7 +41,11 @@ function automatic(status: TaggingStatus | null): string {
  * 没有网络时导入模型包。状态是所有资料库合计（#414），与图片墙右下角的图标同一套处理。
  * 换硬件档后已经打过标的图不重打。
  */
-export function AutoTaggingSettings({ hasLibrary }: { hasLibrary: boolean }) {
+export function AutoTaggingSettings({ hasLibrary, onShowUnfinished }: {
+  hasLibrary: boolean;
+  /** 关掉设置回到图片墙，筛出没有完成自动标签的图（#475）。 */
+  onShowUnfinished?: () => void;
+}) {
   // 随界面语言重新渲染（文案经 `t` 取，不在组件里订阅）。
   useTranslation("tagging");
   const status = useTaggingStatus();
@@ -76,7 +80,7 @@ export function AutoTaggingSettings({ hasLibrary }: { hasLibrary: boolean }) {
         if (done) toast.show({ title: done, tone: "success" });
       }
     } catch (reason) {
-      setError(String(reason));
+      setError(errorText(reason));
     }
   }
 
@@ -91,7 +95,7 @@ export function AutoTaggingSettings({ hasLibrary }: { hasLibrary: boolean }) {
   const selected = choice?.options.find((o) => o.device === choice.selected);
   return <>
     <SettingsGroup label={t("group")}>
-      <TaggingStatusRow hasLibrary={hasLibrary} status={status} />
+      <TaggingStatusRow hasLibrary={hasLibrary} status={status} onShowUnfinished={onShowUnfinished} />
     </SettingsGroup>
     {choice && <SettingsGroup label={t("modelGroup")}>
       <SettingsRow label={t("model")} icon={<Tags size={16} />} title={t("model")} hint={t("modelHint")}>
@@ -110,8 +114,8 @@ export function AutoTaggingSettings({ hasLibrary }: { hasLibrary: boolean }) {
   </>;
 }
 
-/** 打标状态一行：状态文字与对应的操作（暂停、继续、下载、取消下载）；下载时行下方显示进度条。 */
-function TaggingStatusRow({ hasLibrary, status }: { hasLibrary: boolean; status: TaggingStatus | null }) {
+/** 打标状态一行：状态文字与对应的操作（暂停、继续、下载、取消下载、查看与重试没有完成的图）；下载时行下方显示进度条。 */
+function TaggingStatusRow({ hasLibrary, status, onShowUnfinished }: { hasLibrary: boolean; status: TaggingStatus | null; onShowUnfinished?: () => void }) {
   const row = (desc: ReactNode, action?: ReactNode, below?: ReactNode) =>
     <SettingsRow label={t("status")} icon={<Sparkles size={16} />} title={t("status")} meta={desc} below={below}>{action}</SettingsRow>;
   // 打标属于本设备，打开的图库读不到时其他图库也照常打：状态与操作照常显示，只有空闲时写还没有图库。
@@ -135,9 +139,19 @@ function TaggingStatusRow({ hasLibrary, status }: { hasLibrary: boolean; status:
     // Windows 设置里的“请勿打扰”开关，所以不提它。
     case "yieldedToFullScreen":
       return row(t("yielded"), pause);
-    // 有资料库暂时打不开、数不出未打标的张数时，不报已全部打完（#414）。
-    case "idle":
-      return row(status.unknown > 0 ? t("unknown", { count: status.unknown }) : t("idle"));
+    // 有资料库暂时打不开、数不出未打标的张数（#414），或有图没有完成（#475）时，不报已全部打完。
+    case "idle": {
+      const unfinished = status.failed.unreadable + status.failed.crashed;
+      const parts = [
+        status.unknown > 0 && t("unknown", { count: status.unknown }),
+        unfinished > 0 && t("unfinished", { count: unfinished }),
+      ].filter(Boolean);
+      if (parts.length === 0) return row(t("idle"));
+      return row(parts.join(t("separator")), unfinished > 0 && <>
+        {onShowUnfinished && <button type="button" className="k-btn is-sm is-ghost" onClick={onShowUnfinished}><span className="k-label">{t("show")}</span></button>}
+        {button(t("retry"), taggingRetryFailed)}
+      </>);
+    }
     case "needsDownload": {
       const need = status.fallback === null
         ? t("needsModel", { size: formatBytes(status.size) })

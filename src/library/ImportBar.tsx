@@ -20,6 +20,7 @@ import { cancelImport, confirmEagleLocation, discoverEagleLibraries, importConta
 import { EagleLibrariesDialog, ImportPlanDialog, ImportResultCard, type ImportPlan } from "./ImportBarParts";
 import { useImportNotices } from "./useImportNotices";
 import { useImportRecovery } from "./useImportRecovery";
+import { errorText } from "../ipc/commandError";
 
 export type RunningImport = { taskId: string | null; progress: ImportProgress; libraryId?:string; destination?:SaveDestination; libraryName?:string; folderName?:string };
 /** 已结束的导入任务与它的报告。 */
@@ -123,7 +124,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
       setPlan(null);
       setEagleLibraries(null);
     } catch (error) {
-      if (alive.current) toast.error(t("failed.start", { error: String(error) }));
+      if (alive.current) toast.error(t("failed.start", { error: errorText(error) }));
     }
   };
   // 手选、拖入、恢复中断与失败重试都经过同一只读预检；取消选择不会启动任务或写入来源。
@@ -140,7 +141,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
         await start(paths, false, options, fixed);
       }
     } catch (error) {
-      if (alive.current) toast.error(t("failed.inspect", { error: String(error) }));
+      if (alive.current) toast.error(t("failed.inspect", { error: errorText(error) }));
     } finally {
       if (alive.current) setPreparing(false);
     }
@@ -179,7 +180,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
       const found = await discoverEagleLibraries();
       if (alive.current) setEagleLibraries(found);
     } catch (error) {
-      if (alive.current) toast.error(t("failed.findEagle", { error: String(error) }));
+      if (alive.current) toast.error(t("failed.findEagle", { error: errorText(error) }));
     } finally {
       if (alive.current) setLookingForEagle(false);
     }
@@ -220,7 +221,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
       setConfirmed((done) => [...done, relocation.to]);
       await begin([relocation.to], true, finished ? optionsByTask.current.get(finished.taskId) : undefined, finished?.destination);
     } catch (error) {
-      if (alive.current) toast.error(t("failed.confirmEagle", { error: String(error) }));
+      if (alive.current) toast.error(t("failed.confirmEagle", { error: errorText(error) }));
     }
   };
   const reimport = (paths: string[], library: string) => latest.current.begin(paths, false, undefined, { libraryId: library, folderId: null });
@@ -262,7 +263,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
         {cardNotes}
         <div className="k-task-acts">
           <button type="button" className="k-btn is-sm" aria-label={t("progress.cancelLabel")} disabled={!running.taskId}
-            onClick={() => running.taskId && cancelImport(running.libraryId??libraryId, running.taskId).catch((e) => alive.current && toast.error(t("failed.cancel", { error: String(e) })))}><span className="k-label">{t("progress.cancel")}</span></button>
+            onClick={() => running.taskId && cancelImport(running.libraryId??libraryId, running.taskId).catch((e) => alive.current && toast.error(t("failed.cancel", { error: errorText(e) })))}><span className="k-label">{t("progress.cancel")}</span></button>
           <button type="button" className="k-btn is-sm is-ghost" onClick={() => setBackground(running.taskId ?? "")}><span className="k-label">{t("progress.background")}</span></button>
         </div>
       </section>

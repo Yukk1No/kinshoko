@@ -118,6 +118,7 @@ fn builtin_updates_and_search_operators_preserve_explicit_judgments_and_atomic_e
                 cursor: None,
                 limit: 100,
                 known_placeholders: Vec::new(),
+                stack_sets: false,
             },
             true,
         )
