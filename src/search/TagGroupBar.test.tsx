@@ -125,6 +125,13 @@ describe("标签组下拉（#451）", () => {
     expect(change).toHaveBeenLastCalledWith(blue);
   });
 
+  it("条件里重复的同一标签不算整组都选了", async () => {
+    const red = { kind: "tag" as const, id: "red", dismissed: [] };
+    render(bar({ input: { conditions: [{ any: [red, red], negate: false }], exact: false } }));
+    fireEvent.click(await button(/瞳色/));
+    expect(screen.getByRole("button", { name: "按“瞳色”任一标签查找" }).getAttribute("aria-pressed")).toBe("false");
+  });
+
   it("词表刷新时弹层留着并显示新数据；所开的组没了就关闭", async () => {
     const view = render(bar());
     fireEvent.click(await button(/发色/));
