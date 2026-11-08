@@ -290,7 +290,7 @@ describe("参考组面板", () => {
   });
 
   it("撤销失败时报错", async () => {
-    ipc.restore.mockRejectedValueOnce("放回失败");
+    ipc.restore.mockRejectedValueOnce({ code: "message", message: "放回失败" });
     await show();
     await more("删除");
     await act(async () => { fireEvent.click(await screen.findByRole("button", { name: "撤销" })); });
