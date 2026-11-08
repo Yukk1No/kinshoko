@@ -76,7 +76,7 @@ pub(in crate::library) fn replace_rating_from_tags(
 
 /// 与 [`normalize`] 相同的写法归一，SQL 版。
 const NORMALIZED_SQL: &str =
-    "upper(replace(replace(replace(replace(name, '-', ''), '_', ''), ' ', ''), '　', ''))";
+    "upper(replace(replace(replace(replace(name, '-', ''), '_', ''), ' ', ''), char(12288), ''))";
 
 /// 迁移：已经进库的 pixiv 订阅与 Eagle 来源层按上面的规则改写。Eagle 条目带 R-18 或 R-18G
 /// 的记为成人分级；两种来源层的 R-18 标签去掉。人工加的标签不动。
