@@ -188,7 +188,7 @@ fn artist_can_rename_reorder_and_organize_shared_members_without_changing_images
         .unwrap();
     assert_eq!(
         groups.iter().map(|g| g.name.as_str()).collect::<Vec<_>>(),
-        ["作品", "头发颜色"]
+        ["作品", "头发颜色", "发色", "瞳色"]
     );
     assert_eq!(
         groups[1]
@@ -218,7 +218,7 @@ fn artist_can_rename_reorder_and_organize_shared_members_without_changing_images
             true,
         )
         .unwrap();
-    assert_eq!(catalog.group_definitions().unwrap().len(), 1);
+    assert_eq!(catalog.group_definitions().unwrap().len(), 3);
     assert_eq!(a.image_tags(&ai, "en").unwrap(), before_a);
     assert_eq!(b.image_tags(&bi, "en").unwrap(), before_b);
 }
@@ -436,6 +436,10 @@ fn cross_source_adult_veto_hides_group_members_and_atomic_edit_preserves_them() 
     )
     .unwrap();
     let visible = w.tag_groups(&d, &mut c, "", "en", true).unwrap();
+    let visible = visible
+        .into_iter()
+        .filter(|g| g.name == "分组")
+        .collect::<Vec<_>>();
     assert_eq!(
         visible[0]
             .tags
@@ -468,7 +472,7 @@ fn cross_source_adult_veto_hides_group_members_and_atomic_edit_preserves_them() 
         .is_err()
     );
     assert_eq!(
-        c.group_definitions().unwrap()[0].members,
+        c.group_definitions().unwrap()[2].members,
         [blue.clone(), secret.clone()]
     );
     // Legitimate edits from the filtered management view must preserve invisible members.

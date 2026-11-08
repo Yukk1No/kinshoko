@@ -12,6 +12,7 @@ import { modalOpen } from "../ui/modal";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
+import { Tip } from "../ui/Tip";
 import { accountActions } from "./accountActions";
 import { checkedText, checkView, failureText, retryText } from "./checkStatus";
 import { FirstRunDialog, firstRunSeen, markFirstRunSeen } from "./FirstRunDialog";
@@ -118,8 +119,8 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
     <aside className="sidebar-slot pane subs-pane" data-collapsed={!paneOpen} aria-label={t("title")} aria-hidden={!paneOpen} inert={!paneOpen}>
       <header className="pane-head" data-tauri-drag-region>
         <h1 className="pane-title subs-pane-title">{t("title")}</h1>
-        {account && addMenu(<button type="button" className="k-icon-btn" aria-label={t("add")} title={t("add")}><Plus size={18} strokeWidth={1.75} aria-hidden="true" /></button>)}
-        <button type="button" className="k-icon-btn subs-collapse" aria-label={tw("collapsePane")} title={tw("collapsePaneTitle")} onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button>
+        {account && addMenu(<Tip label={t("add")}><button type="button" className="k-icon-btn" aria-label={t("add")}><Plus size={18} strokeWidth={1.75} aria-hidden="true" /></button></Tip>)}
+        <Tip label={tw("collapsePane")} keys="Ctrl+B"><button type="button" className="k-icon-btn subs-collapse" aria-label={tw("collapsePane")} onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button></Tip>
       </header>
       <div className="subs-list">
         {hasList && <>
@@ -137,16 +138,16 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
               {rows.map((s) => {
                 const count = freshBySubscription.get(s.id) ?? 0;
                 return <div key={s.id} className={`subs-row-wrap${rowMenu === s.id ? " is-menu" : ""}`}>
-                  <button type="button" className={`subs-row is-item${selected === s.id ? " is-on" : ""}`}
-                    aria-current={selected === s.id ? "true" : undefined} title={s.lastError ? failureText(s.lastError) : undefined}
+                  <Tip label={s.lastError ? failureText(s.lastError) : undefined} align="start"><button type="button" className={`subs-row is-item${selected === s.id ? " is-on" : ""}`}
+                    aria-current={selected === s.id ? "true" : undefined}
                     onClick={() => setSelected(selected === s.id ? null : s.id)}
                     onContextMenu={(e) => { e.preventDefault(); setRowMenu(s.id); }}>
                     <span className="subs-row-name">{displayName(t, s)}</span>
                     {s.lastError && <TriangleAlert className="subs-row-warn" size={14} strokeWidth={2} role="img" aria-label={t("lastFailed")} />}
                     {count > 0 && <span className="subs-row-fresh tabular">{formatNumber(count)}</span>}
-                  </button>
+                  </button></Tip>
                   <Menu.Root modal={false} open={rowMenu === s.id} onOpenChange={(open) => setRowMenu(open ? s.id : null)}>
-                    <Menu.Trigger className="k-icon-btn subs-row-more" aria-label={t("row.more")} title={t("row.more")}><MoreHorizontal size={16} aria-hidden="true" /></Menu.Trigger>
+                    <Tip label={t("row.more")}><Menu.Trigger className="k-icon-btn subs-row-more" aria-label={t("row.more")}><MoreHorizontal size={16} aria-hidden="true" /></Menu.Trigger></Tip>
                     <MenuPopup label={t("row.more")} width={180}>
                       {k.settings && <MenuItem onClick={() => setEditing(s)}>{t("row.settings")}</MenuItem>}
                       {k.settings && <MenuSeparator />}
@@ -173,7 +174,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
           </span>
           {login.state === "expired" && <button type="button" className="k-btn is-primary" onClick={actions.signIn}><span className="k-label">{t("account.signInAgain")}</span></button>}
           <Menu.Root modal={false}>
-            <Menu.Trigger className="k-icon-btn" aria-label={t("account.menu")} title={t("account.menu")}><MoreHorizontal size={16} aria-hidden="true" /></Menu.Trigger>
+            <Tip label={t("account.menu")}><Menu.Trigger className="k-icon-btn" aria-label={t("account.menu")}><MoreHorizontal size={16} aria-hidden="true" /></Menu.Trigger></Tip>
             <MenuPopup label={t("account.menu")} width={200} side="top">
               <MenuItem icon={<Info size={16} strokeWidth={1.75} />} onClick={() => setFirstRun(true)}>{t("account.risks")}</MenuItem>
               <MenuSeparator />
@@ -189,13 +190,13 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
     </aside>
     <main className="app-main subs-main">
       <header className="topbar subs-topbar" data-tauri-drag-region>
-        {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={tw("expandPane")} title={tw("expandPaneTitle")}><PanelLeftOpen size={16} aria-hidden="true" /></button>}
+        {!paneOpen && <Tip label={tw("expandPane")} keys="Ctrl+B"><button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={tw("expandPane")}><PanelLeftOpen size={16} aria-hidden="true" /></button></Tip>}
         {hasList && <h1 className="subs-title">{t("recent.title")}<span className="subs-title-count tabular">{t("recent.count", { count: shown.length })}</span>
           {skipped > 0 && <span className="subs-title-count">{t("recent.skipped", { count: skipped })}</span>}</h1>}
         <span className="k-grow" />
         {check.kind === "idle" && <>
           <span className="subs-check">{checkedText(check.lastCheckedAt, now)}</span>
-          <button type="button" className="k-icon-btn" aria-label={t("check.now")} title={t("check.now")} onClick={checkNow}><RefreshCw size={16} strokeWidth={1.75} aria-hidden="true" /></button>
+          <Tip label={t("check.now")}><button type="button" className="k-icon-btn" aria-label={t("check.now")} onClick={checkNow}><RefreshCw size={16} strokeWidth={1.75} aria-hidden="true" /></button></Tip>
         </>}
         {check.kind === "checking" && <span className="subs-check" role="status"><LoaderCircle className="subs-spin is-accent" size={14} aria-hidden="true" />{t("check.checking")}</span>}
         {check.kind === "backoff" && <span className="subs-check" role="status"><Clock size={14} strokeWidth={1.75} aria-hidden="true" />{retryText(check.until)}</span>}
@@ -248,7 +249,7 @@ function Tiles({ images, label, onOpen, onFail }: {
 }) {
   return <ul className="subs-tiles">
     {images.map((image) => <li key={imageKey(image)}>
-      <button type="button" className="subs-tile" data-library-id={image.libraryId} data-image-id={image.imageId} aria-label={label} title={label} onClick={() => onOpen(image.libraryId, image.imageId)}>
+      <button type="button" className="subs-tile" data-library-id={image.libraryId} data-image-id={image.imageId} aria-label={label} onClick={() => onOpen(image.libraryId, image.imageId)}>
         <img src={thumbnailUrl(`${image.libraryId}/${image.imageId}/${TILE_PX}`)} alt="" decoding="async" draggable={false}
           onError={() => onFail(imageKey(image))} />
       </button>

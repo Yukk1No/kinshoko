@@ -5,9 +5,14 @@ import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { SaveDestinationProvider } from "../library/SaveDestination";
 import { chooseOption } from "../test/select";
+import { tipText } from "../test/tip";
 import { parentFolder } from "../library/library-path";
 import { SubscriptionsPage } from "./SubscriptionsPage";
 import { account, NOW, status, subscription } from "./subscriptions.fixtures";
+
+/** 新建图库选好的位置：显示的是缩短的预览，完整路径在悬停提示里。 */
+const chosenParent = async (dialog: HTMLElement) =>
+  tipText(await waitFor(() => dialog.querySelector<HTMLElement>(".create-library-path.is-set .create-library-path-text") ?? Promise.reject(new Error("还没选好位置"))));
 
 // 订阅榜单（#370）：对话框、单独的图库、R-18 榜与安全模式、订阅设置。
 
@@ -93,7 +98,7 @@ describe("订阅榜单", () => {
     backend([], "E:/别处");
     page(status());
     const dialog = await openRankingDialog();
-    await within(dialog).findByTitle("E:/别处");
+    expect(await chosenParent(dialog)).toBe("E:/别处");
     fireEvent.click(within(dialog).getByRole("button", { name: /订阅 1 个榜单/ }));
     await waitFor(() => expect(sent("plugin:library|create_library_unopened")).toEqual([{ parent: "E:/别处", name: "pixiv 榜单" }]));
     expect(sent("plugin:library|remember_new_library_parent")).toEqual([]);
@@ -105,7 +110,7 @@ describe("订阅榜单", () => {
     const dialog = await openRankingDialog();
     window.__KINSHOKO_TEST_PICKS__ = ["F:/亲手选"];
     fireEvent.click(within(dialog).getByRole("button", { name: /选择|更改/ }));
-    await within(dialog).findByTitle("F:/亲手选");
+    expect(await chosenParent(dialog)).toBe("F:/亲手选");
     fireEvent.click(within(dialog).getByRole("button", { name: /订阅 1 个榜单/ }));
     await waitFor(() => expect(sent("plugin:library|remember_new_library_parent")).toEqual([{ parent: "F:/亲手选" }]));
   });

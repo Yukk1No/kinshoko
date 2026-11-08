@@ -10,7 +10,6 @@ export default {
   /** 起名与改名的表单（`GroupNameForm`）。 */
   nameForm: {
     cancel: "取消",
-    cancelTitle: "取消 Esc",
     save: "保存",
   },
   /** 桌面钉图的右键菜单（`PinMenu.tsx`）。 */
@@ -114,6 +113,10 @@ export default {
     import: "导入参考组包",
     deleted: "已删除参考组",
     undo: "撤销",
+    removeCaptureTitle: "移出截图",
+    removeCaptureDescription: "这张截图只存在这个参考组里，移出后一起删除。",
+    removeCaptureConfirm: "移出并删除",
+    cancel: "取消",
   },
   /** 截图怎样存进参考组（`CaptureGroupSaveDialog`）。 */
   captureSave: {
@@ -138,5 +141,9 @@ export default {
     cancel: "取消",
     saving: "正在保存…",
     confirm: "确认并保存",
+    discardTitle: "放弃选好的去处",
+    discardDescription: "这次选的去处不会保存。",
+    discardConfirm: "放弃并关闭",
+    keepEditing: "继续选择",
   },
 };

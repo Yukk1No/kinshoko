@@ -51,9 +51,9 @@ describe("设置 › 自动标签 › 自动打标", () => {
     ["打标", { state: "running", model: "x", device: "directMl", gpu: "RX 6500 XT", tagged: 12, done: 0, remaining: 30 }, /已完成 12 张，还剩 30 张（显卡）/, "暂停"],
     ["暂停", { state: "paused" }, /已暂停/, "继续"],
     ["全屏程序在前台", { state: "yieldedToFullScreen" }, /因全屏程序或演示模式暂停，回到桌面后自动继续/, "暂停"],
-    ["打完", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0 }, /已全部完成/, null],
+    ["打完", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0, failed: { unreadable: 0, crashed: 0 } }, /已全部完成/, null],
     // 有图库暂时打不开、数不出还剩几张时，不报已全部完成（#414）。
-    ["有图库打不开", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 1 }, /^1 个图库暂时无法读取$/, null],
+    ["有图库打不开", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 1, failed: { unreadable: 0, crashed: 0 } }, /^1 个图库暂时无法读取$/, null],
     ["没有可用设备", { state: "noDevice", reasons: [{ code: "taggingNoGpu" }, { code: "taggingRamShort", need: "5.4 GB" }] }, /自动标签不可用：没有独立显卡；可用内存不够（需要约 5.4 GB）/, null],
     ["出错", { state: "failed", reason: { code: "downloadFailed", detail: "超时" } }, /下载失败：超时.*稍后会自动重试/, null],
   ])("%s时显示对应的状态与操作", async (_, status, text, action) => {
@@ -62,6 +62,22 @@ describe("设置 › 自动标签 › 自动打标", () => {
     await waitFor(() => expect(within(statusRow()).getByText(text)).toBeTruthy());
     const buttons = within(statusRow()).queryAllByRole("button").map((b) => b.textContent);
     expect(buttons).toEqual(action === null ? [] : [action]);
+  });
+
+  // 有图没有完成（#475）：不报已全部完成，可以查看与重试；同时有图库打不开时两句都写。
+  it.each<[string, number, string]>([
+    ["有图没有完成", 0, "3 张没有完成"],
+    ["同时有图库打不开", 1, "1 个图库暂时无法读取，3 张没有完成"],
+  ])("%s时写出张数，可以查看与重试", async (_, unknown, text) => {
+    const calls = backend({ status: { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown, failed: { unreadable: 2, crashed: 1 } } });
+    const shown: string[] = [];
+    render(<AutoTaggingSettings hasLibrary onShowUnfinished={() => shown.push("shown")} />);
+    await waitFor(() => expect(within(statusRow()).getByText(text)).toBeTruthy());
+    expect(within(statusRow()).getAllByRole("button").map((b) => b.textContent)).toEqual(["查看", "重试"]);
+    fireEvent.click(within(statusRow()).getByRole("button", { name: "查看" }));
+    expect(shown).toEqual(["shown"]);
+    fireEvent.click(within(statusRow()).getByRole("button", { name: "重试" }));
+    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_retry_failed", args: {} }));
   });
 
   it("首次使用显示需要下载的大小，确认后才下载", async () => {
@@ -122,7 +138,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
   });
 
   it("还没有资料库时说明打开图库后才开始", async () => {
-    backend({ status: { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0 } });
+    backend({ status: { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0, failed: { unreadable: 0, crashed: 0 } } });
     render(<AutoTaggingSettings hasLibrary={false} />);
     await waitFor(() => expect(within(statusRow()).getByText("添加图库后开始")).toBeTruthy());
   });
@@ -200,7 +216,7 @@ describe("设置 › 自动标签 › 模型", () => {
     render(<AutoTaggingSettings hasLibrary />);
     await waitFor(async () => expect(await optionNames(await hardware())).toContainEqual(expect.stringMatching(/CPU，.*需下载/)));
     downloaded = true;
-    await act(() => emit("tagging-status", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0 }));
+    await act(() => emit("tagging-status", { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0, failed: { unreadable: 0, crashed: 0 } }));
     await waitFor(async () => expect(await optionNames(await hardware())).toContain("CPU，内存约 4.7 GB，已下载"));
   });
 

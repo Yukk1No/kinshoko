@@ -12,6 +12,7 @@ import { useToast } from "../ui/Toast";
 import { useUiLang } from "../i18n";
 import { i18n } from "../i18n/instance";
 import { useTranslation } from "react-i18next";
+import { Tip } from "../ui/Tip";
 
 const namespaceName = (namespace: TagNamespace) => i18n.t(`tags:namespaceOption.${namespace}`);
 const nameOf = (tag: CatalogTag, lang: string) => tag.names.find((n) => n.lang === lang)?.name ?? tag.names[0]?.name ?? tag.external[0]?.name.replaceAll("_", " ") ?? i18n.t("tags:unnamed");
@@ -67,7 +68,7 @@ export function TagIdentityPanel() {
     {error && <p role="alert">{error}</p>}
     {workspace && <>
       {workspace.libraries.map(({library, unavailable}) => <div key={"definitions-" + library.id} className="settings-actions">
-        <span className="k-parts" title={library.root}><span>{library.name}</span><span className="k-set-note">{libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span></span>
+        <Tip label={library.root} align="start"><span className="k-parts"><span>{library.name}</span><span className="k-set-note">{libraryPathHint(library.root, workspace.libraries.map((entry) => entry.library.root))}</span></span></Tip>
         <button type="button" className="k-btn is-sm" aria-label={t("identity.publishLabel", { name: library.name })} disabled={busy || Boolean(unavailable)} onClick={() => void run(() => publishTagDefinitions(library.id), t("identity.published"))}><span className="k-label">{t("identity.publish")}</span></button>
       </div>)}
       {workspace.libraries.filter((entry) => entry.unavailable).map(({ library, unavailable }) => <p key={library.id} role="status">{t("libraryUnavailable", { name: library.name, reason: describeCommandError(unavailable!) })}</p>)}

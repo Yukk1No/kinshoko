@@ -7,6 +7,7 @@ import { TagMarks, tagName } from "./SearchBox";
 import { useUiLang } from "../i18n";
 import { i18n } from "../i18n/instance";
 import { useTranslation } from "react-i18next";
+import { Tip } from "../ui/Tip";
 
 const relationName=(relation:string)=>i18n.t(relation==="similar"?"tagSettings:approx.similar":"tagSettings:approx.notSimilar");
 /** Same formal settings structure, with stable shared identities and source-aware conflict choices. */
@@ -52,13 +53,13 @@ export function SharedPersonalApproxSettings({onError}:{onError:(error:unknown)=
           <td>{tagName(entry.a)}<TagMarks tag={entry.a}/>{t("pairSeparator")}{tagName(entry.b)}<TagMarks tag={entry.b}/></td>
           <td>{relationName(entry.relation)}</td>
           <td><button type="button" className="k-btn is-sm is-quiet" disabled={busy} onClick={()=>void edit({kind:"remove",a:entry.a.id,b:entry.b.id})}><span className="k-label">{t("remove")}</span></button></td>
-          {!!entry.sources.length&&<td>{t("from")}{entry.sources.map(source=><span key={source.libraryId} title={source.libraryRoot}>{t("source",{name:source.libraryName,path:libraryPathHint(source.libraryRoot, entry.sources.map(item => item.libraryRoot))})}</span>)}</td>}
+          {!!entry.sources.length&&<td>{t("from")}{entry.sources.map(source=><Tip key={source.libraryId} label={source.libraryRoot}><span>{t("source",{name:source.libraryName,path:libraryPathHint(source.libraryRoot, entry.sources.map(item => item.libraryRoot))})}</span></Tip>)}</td>}
         </tr>)}
       </tbody></table>}
       {view.conflicts.map(conflict=><div role="group" aria-label={t("conflict")} className="k-approx-conflict" key={`${conflict.a.id}/${conflict.b.id}`}>
         <h3>{t("pair",{a:tagName(conflict.a),b:tagName(conflict.b)})}</h3>
         <p className="k-set-note">{conflict.current===null?t("undecided"):t("current",{relation:relationName(conflict.current)})}</p>
-        <ul>{conflict.sources.map((source,index)=><li key={`${source.libraryId}/${index}`} title={source.libraryRoot}>{t("sourceRelation",{name:source.libraryName,path:libraryPathHint(source.libraryRoot, conflict.sources.map(item => item.libraryRoot)),relation:relationName(source.relation)})}</li>)}</ul>
+        <ul>{conflict.sources.map((source,index)=><Tip key={`${source.libraryId}/${index}`} label={source.libraryRoot}><li>{t("sourceRelation",{name:source.libraryName,path:libraryPathHint(source.libraryRoot, conflict.sources.map(item => item.libraryRoot)),relation:relationName(source.relation)})}</li></Tip>)}</ul>
         <div className="k-set-inline">{([{relation:"similar",name:t("similar")},{relation:"notSimilar",name:t("notSimilar")},{relation:null,name:t("keep")}] as const).map(choice=><button key={choice.name} type="button" className="k-btn is-sm" disabled={busy} onClick={()=>void edit({kind:"resolveConflict",a:conflict.a.id,b:conflict.b.id,revision:view.revision,relation:choice.relation})}><span className="k-label">{choice.name}</span></button>)}</div>
       </div>)}
     </>}

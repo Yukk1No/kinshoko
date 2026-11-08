@@ -3,7 +3,7 @@
 //! （[`crate::reference_groups::ReferenceGroups::relink_collected`]）。
 //! 关联存在索引里，条目被丢弃时一起消失；参考组那份截图不受影响。
 
-use super::{CaptureHistory, HistoryError};
+use super::{CaptureEntry, CaptureHistory, HistoryError};
 use crate::desktop::GroupMemberRef;
 
 impl CaptureHistory {
@@ -27,6 +27,15 @@ impl CaptureHistory {
             .find(|s| s.id == id)
             .map(|s| s.members.clone())
             .unwrap_or_default()
+    }
+
+    /// 与参考组 `group_id` 的成员有关联的截图，包括已从历史列表删掉、但还被钉图显示的。
+    pub fn entries_linked_to(&self, group_id: &str) -> Vec<CaptureEntry> {
+        self.entries
+            .iter()
+            .filter(|s| s.members.iter().any(|m| m.group_id == group_id))
+            .map(|s| self.view(s))
+            .collect()
     }
 
     /// 去掉截图 `id` 与 `done` 里成员的关联（改连已完成或关联已明确失效）。写不进索引时报错，

@@ -11,6 +11,7 @@ import type { FolderNode } from "../bindings/FolderNode";
 import { isCursorExpired, onWorkspaceChanged, rememberImportDestination, rememberNewLibraryParent, saveMemory, workspaceDirectories } from "../ipc";
 import { libraryPathHint } from "./library-path";
 import { Select } from "../ui/Select";
+import { Tip } from "../ui/Tip";
 
 type SaveContext = {
   destination: SaveDestination | null;
@@ -140,7 +141,7 @@ export function SaveDestinationPicker({ value, onChange, disabled = false, putIn
           ]} />
       </div>
     </div>
-    {value && <p className="save-final-position k-set-note" title={provider?.registration.library.root}>{t("putIn", { place: destinationLabel(value, providers) })}</p>}
+    {value && <Tip label={provider?.registration.library.root} align="start"><p className="save-final-position k-set-note">{t("putIn", { place: destinationLabel(value, providers) })}</p></Tip>}
     {(!ready || problem) && <p className="k-set-note" role="status">{problem ?? t("loading")}</p>}
     {value && ready && !destinationAvailable(value, providers)
       && <p className="k-set-error" role="alert">{t("unavailable")}</p>}

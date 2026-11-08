@@ -68,6 +68,8 @@ export default {
     reveal: "在资源管理器中显示",
     reconnect: "重新连接",
     remove: "从列表移除",
+    removed: "已从列表移除",
+    undo: "撤销",
   },
   trash: {
     title: "回收站",

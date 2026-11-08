@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { WorkspaceSources } from "./WorkspacePane";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
+import { tipText } from "../test/tip";
 
 const card: WorkspaceCard = { id: "same-bytes", width: 100, height: 200, adult: false, libraryId: "A", imageId: "a", sources: [
   { libraryId: "A", libraryName: "工作参考", imageId: "a", matches: true, unavailable: null, deleted: false },
@@ -70,7 +71,7 @@ it("安全模式下把这一份改成成人分级，面板随之关闭", async (
   await waitFor(() => expect(close).toHaveBeenCalled());
 });
 
-it("同名图库在切换按钮的提示里显示最短独立路径", () => {
+it("同名图库在切换按钮的提示里显示最短独立路径", async () => {
   const sameNames = { ...card, sources: card.sources.map((source) => ({ ...source, libraryName: "同名资料库" })) };
   mockIPC(() => new Promise(() => {}));
   render(<WorkspaceSources card={sameNames} onClose={vi.fn()} registrations={[
@@ -78,8 +79,8 @@ it("同名图库在切换按钮的提示里显示最短独立路径", () => {
     { library: { id: "B", name: "同名资料库", root: "C:\\common\\second\\Art" }, unavailable: null },
   ]} />);
   const [a, b] = within(screen.getByRole("group", { name: "所在图库" })).getAllByRole("button");
-  expect(a.getAttribute("title")).toBe("…\\first\\Art");
-  expect(b.getAttribute("title")).toBe("…\\second\\Art");
+  expect(await tipText(a)).toBe("…\\first\\Art");
+  expect(await tipText(b)).toBe("…\\second\\Art");
 });
 
 it("只在一个图库的图直接显示详情，没有图库切换", async () => {

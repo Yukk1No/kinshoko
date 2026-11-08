@@ -233,6 +233,13 @@ pub async fn tagging_pause(state: State<'_, TaggingState>) -> Result<(), Command
     Ok(())
 }
 
+/// 重试打不上标的图（#475）：当前模型在各库打不上标的图各再打一次。
+#[tauri::command]
+pub async fn tagging_retry_failed(state: State<'_, TaggingState>) -> Result<(), CommandError> {
+    state.tagging()?.retry_failed();
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn tagging_resume(state: State<'_, TaggingState>) -> Result<(), CommandError> {
     state.tagging()?.resume();

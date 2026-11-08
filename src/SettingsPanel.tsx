@@ -25,6 +25,7 @@ import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { Switch } from "./ui/Switch";
 import { SealLock } from "./ui/SealLock";
 import { UI_SCALE_LEVELS } from "./shell/uiScale";
+import { Keys } from "./ui/Keys";
 import { Select } from "./ui/Select";
 import { tabName, tabsWith, type SettingsTab } from "./settingsTabs";
 import type { SubscriptionStatus } from "./bindings/SubscriptionStatus";
@@ -49,11 +50,7 @@ function acceleratorFromKey(e: KeyboardEvent): string | null {
   return parts.join("+");
 }
 
-/** 快捷键的显示：每个键一枚键帽，`KeyA` 写成 `A`；读屏读到的是完整写法。 */
-export function Keys({ accelerator }: { accelerator: string }) {
-  return <span className="k-keys" aria-label={accelerator}>{accelerator.split("+").map((key, index) =>
-    <kbd key={index} className="k-key" aria-hidden="true">{key.replace(/^Key(?=[A-Z]$)/, "").replace(/^Digit(?=\d$)/, "")}</kbd>)}</span>;
-}
+export { Keys } from "./ui/Keys";
 
 /** 查看器里的固定操作（#179）：缩放、平移、框选、换图、详情侧栏与返回。按键是滚轮、拖动这类操作时写它的键名。 */
 type ViewerKeyWord = "wheel" | "drag" | "shiftDrag";
@@ -93,13 +90,15 @@ type Props = {
   onUiScale?: (percent: number) => void;
   /** 订阅状态（主窗口持有）；没有时不显示订阅分页。 */
   subscriptions?: { status: SubscriptionStatus; onStatus: (status: SubscriptionStatus) => void } | null;
+  /** 自动标签里“查看”没有完成的图（#475）：关掉设置，回到图片墙筛出这些图。 */
+  onShowUnfinishedTagging?: () => void;
 };
 
 /**
  * 程序设置（#98）：竖排八个分页——通用、快捷键、标签、自动标签（#143）、备份、安全、更新、诊断。
  * 每项一行：图标 · 名称 · 一句描述 · 右侧控件。行为与原来的各节相同，只是重新归位。
  */
-export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibrary = false, initialTab = "general", initialTagFocus, version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale, subscriptions }: Props) {
+export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibrary = false, initialTab = "general", initialTagFocus, version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale, subscriptions, onShowUnfinishedTagging }: Props) {
   const { t } = useTranslation("settings");
   const settings = useShellSettings(shared, onChange);
   const { view, loadError, error, generation: settingsGeneration } = settings;
@@ -228,7 +227,7 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
             </>}
             {tagView === "mapping" && <TagIdentityPanel key={`identity/${settingsGeneration}`} />}
           </>, true)}
-          {page("tagging", <AutoTaggingSettings key={`tagging/${settingsGeneration}`} hasLibrary={hasLibrary} />)}
+          {page("tagging", <AutoTaggingSettings key={`tagging/${settingsGeneration}`} hasLibrary={hasLibrary} onShowUnfinished={onShowUnfinishedTagging} />)}
           {page("backup", <>
             <BackupSettings />
             <ApplicationSettingsBackup restore={restore} />

@@ -12,7 +12,6 @@ const desktop: Translation<typeof zh> = {
   },
   nameForm: {
     cancel: "Cancel",
-    cancelTitle: "Cancel Esc",
     save: "Save",
   },
   pinMenu: {
@@ -114,6 +113,10 @@ const desktop: Translation<typeof zh> = {
     import: "Import reference group package",
     deleted: "Reference group deleted",
     undo: "Undo",
+    removeCaptureTitle: "Remove screenshot",
+    removeCaptureDescription: "This screenshot is kept only in this reference group. Removing it deletes it.",
+    removeCaptureConfirm: "Remove and delete",
+    cancel: "Cancel",
   },
   captureSave: {
     title: "How to save screenshots into the reference group",
@@ -137,6 +140,10 @@ const desktop: Translation<typeof zh> = {
     cancel: "Cancel",
     saving: "Saving…",
     confirm: "Confirm and save",
+    discardTitle: "Discard chosen destinations",
+    discardDescription: "The destinations you chose won't be saved.",
+    discardConfirm: "Discard and close",
+    keepEditing: "Keep choosing",
   },
 };
 

@@ -6,4 +6,4 @@ import type { ContentRating } from "./ContentRating";
  *
  * 新的编辑种类（例如标签决定、分级）在这里加变体，并在本模块的 `apply` 里处理。
  */
-export type ImageEdit = { "kind": "addToFolder", folderId: string, } | { "kind": "removeFromFolder", folderId: string, } | { "kind": "setNote", text: string, } | { "kind": "revertNote" } | { "kind": "delete" } | { "kind": "restore" } | { "kind": "setRating", rating: ContentRating, } | { "kind": "revertRating" };
+export type ImageEdit = { "kind": "addToFolder", folderId: string, } | { "kind": "removeFromFolder", folderId: string, } | { "kind": "setNote", text: string, } | { "kind": "revertNote" } | { "kind": "delete" } | { "kind": "restore" } | { "kind": "setRating", rating: ContentRating, } | { "kind": "revertRating" } | { "kind": "retryTagging" };

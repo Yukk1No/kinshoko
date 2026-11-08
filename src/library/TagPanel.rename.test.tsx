@@ -1,6 +1,7 @@
 // 给尚未翻译的标签起名（#182）：详情面板里“文/A”图标是按钮，就地弹框保存当前界面语言的名称偏好。
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { tipText } from "../test/tip";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { ImageTags } from "../bindings/ImageTags";
 import type { TagLabel } from "../bindings/TagLabel";
@@ -39,7 +40,7 @@ it("点“文/A”打开重命名框，保存当前界面语言的名称偏好�
   const state = backend();
   render(<TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} />);
   const button = await screen.findByRole("button", { name: "重命名“ahoge”" });
-  expect(button.getAttribute("title")).toBe("尚未翻译");
+  expect(await tipText(button)).toBe("尚未翻译");
   fireEvent.click(button);
   const dialog = await screen.findByRole("dialog", { name: "重命名“ahoge”" });
   expect(dialog.textContent).toContain("词表更新不会替换这个名字，可以在设置里恢复默认");

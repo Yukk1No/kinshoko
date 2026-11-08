@@ -2,9 +2,7 @@
 export default {
   openFailed: "无法打开这张参考图：{{error}}",
   expandPane: "展开侧栏",
-  expandPaneTitle: "展开侧栏 Ctrl B",
   collapsePane: "收起侧栏",
-  collapsePaneTitle: "收起侧栏 Ctrl B",
   results: "查找结果",
   resultCount_other: "{{count, number}} 张",
   copyOneOnly: "一次只能复制一张",

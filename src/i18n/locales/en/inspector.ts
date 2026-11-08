@@ -21,6 +21,12 @@ const inspector: Translation<typeof zh> = {
     trashedCount_other: "{{count, number}} images",
     undo: "Undo",
   },
+  tagging: {
+    unfinished: "Auto-tagging unfinished",
+    retry: "Retry",
+    unreadable: "This image can't be read",
+    crashed: "An error occurred while processing this image",
+  },
   rating: {
     label: "Content rating",
     title: "Rating",

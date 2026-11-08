@@ -352,3 +352,24 @@ fn collecting_while_the_group_is_in_the_trash_is_applied_when_it_comes_back() {
     // 关联用过即去掉。
     assert!(desk.collect_from_history(&entry.id).is_empty());
 }
+
+#[test]
+fn a_pinned_capture_hidden_from_history_is_also_applied_when_the_group_comes_back() {
+    let mut desk = Desk::new();
+    let entry = desk.history.add(&shot(1)).unwrap();
+    let group = desk.keep_in_new_group("一次性", &entry.id);
+    // 截图还钉着，但已从截图历史列表里删掉。
+    desk.history.pin(&entry.id);
+    desk.history.delete(&entry.id).unwrap();
+    assert!(desk.history.entries().iter().all(|e| e.id != entry.id));
+
+    desk.groups.trash(&group.id).unwrap();
+    desk.collect(&entry.id);
+
+    let report = desk
+        .groups
+        .untrash_reconciling(&group.id, &mut desk.history)
+        .unwrap();
+    assert_eq!(report.relinked, vec![member(&group)]);
+    assert!(matches!(desk.source(&group), MemberSource::Library { .. }));
+}

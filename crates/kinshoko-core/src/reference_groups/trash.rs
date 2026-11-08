@@ -84,17 +84,11 @@ impl ReferenceGroups {
     ) -> Result<RelinkReport, GroupError> {
         self.untrash(id)?;
         let mut report = RelinkReport::default();
-        for entry in history.entries() {
+        // 含已从历史列表删掉、但还被钉图显示的截图：它们也能从钉图菜单收藏。
+        for entry in history.entries_linked_to(id) {
             let Some(collected) = entry.collected.first() else {
                 continue;
             };
-            if !history
-                .linked_members(&entry.id)
-                .iter()
-                .any(|m| m.group_id == id)
-            {
-                continue;
-            }
             let done = self.relink_collected(history, &entry.id, collected);
             report.relinked.extend(done.relinked);
             report.skipped.extend(done.skipped);

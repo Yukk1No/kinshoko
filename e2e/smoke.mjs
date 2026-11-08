@@ -248,7 +248,7 @@ try {
   await session.pick(libraryParent);
   await session.click(await session.find(button("选择存放位置…")));
   // 位置一栏预览新文件夹的完整路径：所选位置\图库名称（#172）。
-  await session.waitFor("显示所选位置", `//*[@title='${libraryParent}' and starts-with(normalize-space(), '${libraryParent}')]`);
+  await session.waitFor("显示所选位置", `//*[contains(@class,'create-library-path-text') and starts-with(normalize-space(), '${libraryParent}')]`);
   await session.click(await session.find(button("新建图库")));
   const created = await until("打开新资料库", () => session.currentLibrary("冒烟测试库"));
   result.library = created;
