@@ -14,10 +14,10 @@ export type Layout = {
 };
 
 /**
- * 一张图的尺寸。`inset`：一摞（#418）的封面四周留出的纸边（CSS 像素），盒子按封面比例算，再加上内缩，
- * 纸边因此不出格子。
+ * 一张图的尺寸。`inset`：一摞（#418）的封面四周留出的纸边，按列宽算（纸边随格子变宽）；盒子按封面比例算，
+ * 再加上内缩，纸边因此不出格子。
  */
-export type LayoutInput = readonly { w: number; h: number; inset?: number }[];
+export type LayoutInput = readonly { w: number; h: number; inset?: (columnWidth: number) => number }[];
 /** 打开的托盘：`items` 里从 `at` 起的 `count` 张是托盘里的页，按页序排成齐行；`pad` 是托盘的内边距。 */
 export type TrayInput = { at: number; count: number; pad: number };
 export type LayoutOptions = {
@@ -39,7 +39,7 @@ export function masonry(items: LayoutInput, o: LayoutOptions, trayInput: TrayInp
   const boxes: Box[] = new Array(items.length);
   const x = (lane: number) => o.pad + lane * (columnWidth + o.gap);
   const heightOf = (item: LayoutInput[number]) => {
-    const inset = item.inset ?? 0;
+    const inset = item.inset?.(columnWidth) ?? 0;
     const face = columnWidth - inset * 2;
     let h = face * (item.h / item.w);
     if (o.capRatio) h = Math.min(h, face * o.capRatio);

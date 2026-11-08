@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { MutableRefObject } from "react";
 import type { LayoutInput, TrayInput } from "./layout";
-import { STACK_INSET } from "./stackPaper";
-import { STACK_SETS_READY, type BrowserCard } from "./wallShared";
+import { stackInset } from "./stackPaper";
+import { CAP_RATIO, STACK_SETS_READY, type BrowserCard } from "./wallShared";
 
 /** 托盘的内边距（CSS 像素，界面缩放 100% 时；第 5 版原型）。 */
 export const TRAY_PAD = 14;
@@ -19,9 +19,17 @@ export function expandTray(cards: BrowserCard[], key: string | null): { shown: B
   return { shown: [...cards.slice(0, at), ...pages, ...cards.slice(at + 1)], tray: { at, count: pages.length } };
 }
 
+/** 一摞的格子四周的内缩（布局单位）：按最外扩的纸角算，见 stackInset。 */
+export function cardInset(card: BrowserCard, columnWidth: number, uiScale: number) {
+  const set = card.set!;
+  return stackInset(set.key, set.pages.map((page) => ({ w: page.width, h: page.height })), columnWidth, CAP_RATIO, 1 / uiScale);
+}
+
 /** 排瀑布流用的尺寸：一摞四周留出纸边的内缩。 */
 export function layoutItems(shown: BrowserCard[], uiScale: number): LayoutInput {
-  return shown.map((card) => card.set ? { w: card.width, h: card.height, inset: STACK_INSET / uiScale } : { w: card.width, h: card.height });
+  return shown.map((card) => card.set
+    ? { w: card.width, h: card.height, inset: (columnWidth: number) => cardInset(card, columnWidth, uiScale) }
+    : { w: card.width, h: card.height });
 }
 
 /**

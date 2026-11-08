@@ -185,7 +185,10 @@ try {
   await session.invoke("start_import", { libraryId: info.id, source: { paths: [eagle] } });
   await until("stacks on the wall", () => session.exec("return document.querySelectorAll('.wall-canvas > .card-count').length >= 4;"), 60000);
   // Eagle 导入后先问标签的外部对应：直接完成。
-  await until("tag mapping", () => session.exec("const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '完成'); if (b) b.click(); return Boolean(b) || !document.querySelector('[aria-label=\"标签的外部对应\"]');"), 10000).catch(() => {});
+  // 对话框有时在墙出现后才弹出：等它出现再点，点完确认它已关上。
+  const clickDone = "const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === '完成'); if (b) b.click(); return Boolean(b);";
+  await until("tag mapping", () => session.exec(clickDone), 20000).catch(() => {});
+  await until("tag mapping closed", () => session.exec("return ![...document.querySelectorAll('button')].some(x => x.textContent.trim() === '完成');"), 10000);
   await settle(); await closeToasts().catch(() => {}); await session.park(); await settle(); await settle();
 
   await step("wall at rest", () => session.shot("01-wall"));

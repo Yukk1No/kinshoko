@@ -17,7 +17,6 @@ import {
 } from "./wallShared";
 import { wallCardNode, type CardHandlers } from "./WallCard";
 import { layoutItems, TRAY_PAD, useCloseTrayOnTopbar, useOpenTray } from "./imageSets";
-import { STACK_INSET } from "./stackPaper";
 import { useTrayMotion } from "./useTrayMotion";
 import { useWallHandle } from "./useWallHandle";
 import { useDoubleClickGuard } from "./useDoubleClickGuard";
@@ -342,7 +341,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
               nextRendered.set(card.id, kept);
               return kept.node;
             }
-            const node = wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened, trayPage, trayCount: tray?.count ?? 0, inset: STACK_INSET / uiScale });
+            const node = wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened, trayPage, trayCount: tray?.count ?? 0, uiScale });
             nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, tier, language, trayPage, expanded, node });
             return node;
           })}

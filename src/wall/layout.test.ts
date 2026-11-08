@@ -146,9 +146,10 @@ describe("缩放后的滚动位置", () => {
 describe("一摞与托盘", () => {
   const opts = { width: 640, target: 200, gap: 8, pad: 12, capRatio: null };
 
-  it("一摞的盒子按封面比例算，四周多留出纸边的内缩", () => {
-    // 列宽 200，内缩 10：封面宽 180，方图高 180，长图高 360，盒子各加上下 20。
-    const l = masonry([{ w: 100, h: 100, inset: 10 }, { w: 100, h: 200, inset: 10 }], opts);
+  it("一摞的盒子按封面比例算，四周多留出纸边的内缩（内缩按列宽算）", () => {
+    // 列宽 200，内缩取列宽的 5%＝10：封面宽 180，方图高 180，长图高 360，盒子各加上下 20。
+    const inset = (columnWidth: number) => columnWidth * 0.05;
+    const l = masonry([{ w: 100, h: 100, inset }, { w: 100, h: 200, inset }], opts);
     expect(l.boxes.map((b) => [b.x, b.y, b.w, b.h])).toEqual([[12, 12, 200, 200], [220, 12, 200, 380]]);
   });
 

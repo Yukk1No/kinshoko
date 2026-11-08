@@ -6,7 +6,7 @@
 .card.is-stack { background: transparent; overflow: visible; }
 .card.is-stack:hover { outline: 0; z-index: 2; }
 .card.is-stack[aria-selected="true"] { box-shadow: none; }
-.card.is-stack::after { inset: 10px; }
+.card.is-stack::after { inset: var(--stack-inset); } /* 内缩按最外扩的纸角算，卡片上给出。 */
 .card.is-stack > .stack-sheet, .card.is-stack > .stack-cover { position: absolute; overflow: hidden; background: var(--card); border-radius: var(--r-s); }
 /* 下面几层的高度按页的比例但有上下限：图铺满这层纸，不露出纸底。 */
 .card.is-stack > .stack-sheet img { object-fit: cover; }

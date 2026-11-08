@@ -6,7 +6,6 @@ import { thumbnailUrl } from "../ipc";
 import { reducedNow } from "../ui/reducedMotion";
 import { tokenMs } from "../viewer/ViewerFlight";
 import type { Anchor, Layout } from "./layout";
-import { STACK_INSET } from "./stackPaper";
 import { cardThumbnail } from "./thumbnailTier";
 import type { BrowserCard } from "./wallShared";
 
@@ -101,7 +100,7 @@ export function useTrayMotion({
     const index = ids.indexOf(pending.stack);
     if (!node || !host || index < 0) return;
     const box = layout.boxes[index];
-    const inset = node.querySelector<HTMLElement>(".stack-cover")?.offsetLeft ?? STACK_INSET;
+    const inset = node.querySelector<HTMLElement>(".stack-cover")?.offsetLeft ?? 0;
     const to = { x: box.x + inset, y: box.y + inset, w: box.w - inset * 2, h: box.h - inset * 2 };
     const duration = tokenMs("--t-slow");
     const easing = tokenEasing("--spring");
