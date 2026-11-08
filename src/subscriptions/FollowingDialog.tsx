@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Name } from "../ui/Name";
 import { Dialog } from "@base-ui/react/dialog";
 import { ChevronLeft, CircleAlert, LoaderCircle, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -84,7 +85,7 @@ export function FollowingDialog({ status, list, onClose, onBack, onAdded }: {
                 <label className={`subs-follow-row${done ? " is-done" : ""}`}>
                   <input type="checkbox" disabled={busy || done} checked={done || picked.has(artist.userId)} onChange={() => toggle(artist.userId)} />
                   <span className="subs-avatar is-sm" aria-hidden="true">{artist.name.slice(0, 1).toUpperCase()}</span>
-                  <span className="subs-follow-name">{artist.name}</span>
+                  <Name className="subs-follow-name">{artist.name}</Name>
                   {done && <span className="k-pill"><span className="k-label">{t("subscribed")}</span></span>}
                 </label>
               </li>;

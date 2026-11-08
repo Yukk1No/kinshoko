@@ -125,7 +125,7 @@ describe("截图面板", () => {
   });
 
   it("失败写在面板里", async () => {
-    ipc.pin.mockRejectedValueOnce("这张截图已删除");
+    ipc.pin.mockRejectedValueOnce({ code: "message", message: "这张截图已删除" });
     await show([entry("s1", 3)]);
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "钉到桌面" })); });
     expect(screen.getByRole("alert").textContent).toBe("这张截图已删除");

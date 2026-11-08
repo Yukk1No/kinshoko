@@ -1,40 +1,45 @@
-/* Accepted tag-group popovers/chips, adapted from the fixed prototype styles. */
-.groupbar { flex: none; display: flex; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--bg); position: relative; z-index: 3; flex-wrap: wrap; }
-.group-btn { display: flex; border: 0; background: transparent; align-items: center; gap: 4px; height: 28px; padding: 0 8px 0 10px; border-radius: var(--r-s); color: var(--ink-2); transition: background-color var(--t) var(--ease), color var(--t) var(--ease); }
+/* 标签分组栏与分组浮层（#487）：按钮、浮层、标签块与设计系统 v3 的新组件同一套写法。
+   分组按钮是无底按钮（同导入），浮层是 .k-popup 的样子（16 圆角、8 内边距、--shadow-pop），
+   里面的标签块与顶栏查找框里的条件同样子：28 高、8 圆角（16 − 8）、实心 --surface-2 底。 */
+.groupbar { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-height: 41px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--bg); position: relative; z-index: 3; }
+.group-btn { display: flex; align-items: center; gap: 4px; height: 28px; padding: 0 6px 0 10px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink-2); font: inherit;
+  transition: background-color var(--t-fast), color var(--t-fast); }
 .group-btn:hover, .group-btn[data-popup-open] { background: var(--hover); color: var(--ink); }
+.group-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .group-btn.has-picked { color: var(--ink); font-weight: 500; }
 .group-btn svg { color: var(--ink-3); transition: transform var(--t-slow) var(--spring); }
 .group-btn[data-popup-open] svg { transform: rotate(180deg); }
-.badge { min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--r-pill); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 16px; font-weight: 600; text-align: center; }
+/* 已选几个：胶囊用 strong 字配 soft 底，与选中的标签块同色。 */
+.badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent-strong); font-size: 12px; line-height: 18px; font-weight: 600; text-align: center; }
 /* One popover for all groups. The arrow, the move to a new button and the size change share --t-slow and
    --spring so they read as one motion; the page around it stays still. Fixed content width: switching
    groups only changes the height, and the chips never rewrap mid-flight. */
 .group-pop-positioner { width: var(--positioner-width); height: var(--positioner-height); transition: top var(--t-slow) var(--spring), left var(--t-slow) var(--spring), right var(--t-slow) var(--spring), bottom var(--t-slow) var(--spring); }
 .group-pop-positioner[data-instant] { transition: none; }
-.group-pop { width: var(--popup-width, auto); height: var(--popup-height, auto); overflow: hidden; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: var(--shadow-pop); outline: 0; transform-origin: var(--transform-origin);
+.group-pop { width: var(--popup-width, auto); height: var(--popup-height, auto); overflow: hidden; background: var(--surface); color: var(--ink); border-radius: var(--r-l); box-shadow: var(--shadow-pop); outline: 0; transform-origin: var(--transform-origin);
   transition: width var(--t-slow) var(--spring), height var(--t-slow) var(--spring), transform var(--t-slow) var(--spring), opacity var(--t) var(--ease); }
-.group-pop[data-starting-style], .group-pop[data-ending-style] { opacity: 0; transform: scale(0.9); }
+.group-pop[data-starting-style], .group-pop[data-ending-style] { opacity: 0; transform: scale(0.96); }
 .group-pop[data-ending-style] { transition-timing-function: var(--ease); }
 .group-pop-viewport { position: relative; }
-.group-pop-viewport > [data-current], .group-pop-viewport > [data-previous] { width: min(440px, calc(100vw - 120px)); max-height: min(480px, calc(100vh - 120px)); overflow-y: auto; padding: 12px; transition: opacity var(--t) var(--ease); }
+.group-pop-viewport > [data-current], .group-pop-viewport > [data-previous] { width: min(440px, calc(100vw - 120px)); max-height: min(480px, calc(100vh - 120px)); overflow-y: auto; padding: 8px; transition: opacity var(--t) var(--ease); }
 .group-pop-viewport > [data-previous] { top: 0; left: 0; }
 .group-pop-viewport > [data-current][data-starting-style], .group-pop-viewport > [data-previous][data-ending-style] { opacity: 0; }
-.pop-hint { margin-top: 10px; font-size: 12px; color: var(--ink-2); }
+.group-any { margin-bottom: 8px; }
 
-/* chips */
+/* 分组里的标签：点一下加为条件（樱色 / 金色浅底），右键排除（同顶栏里排除的条件：无底细线、删除线），
+   一张图也没有的标签无底、淡字。 */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px; border-radius: var(--r-s); border: 1px solid var(--line); background: var(--surface); color: var(--ink); white-space: nowrap; }
-.chip.pick:hover:not(:disabled) { border-color: var(--line-2); background: var(--surface-2); }
-.chip.pick.is-on { background: var(--accent-soft); border-color: var(--accent); }
-.chip.pick.is-neg { border-style: dashed; text-decoration: line-through; color: var(--ink-2); }
-.chip .count { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
-.chip.pick.is-zero { color: var(--ink-2); border-style: dashed; }
-.chip.manual { border-color: color-mix(in srgb, var(--manual) 55%, transparent); background: var(--manual-soft); }
-.chip.auto { border-style: dashed; }
-.chip.is-rejected { color: var(--ink-2); text-decoration: line-through; border-style: dashed; height: 24px; font-size: 12px; }
-.chip-x { width: 16px; height: 16px; border-radius: var(--r-xs); display: grid; place-items: center; color: var(--ink-3); opacity: 0; margin-right: -4px; }
-.chip:hover .chip-x, .chip-x:focus-visible { opacity: 1; }
-.chip-x:hover { background: var(--hover); color: var(--ink); }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; border-radius: var(--r-s); background: var(--surface-2); color: var(--ink);
+  font: inherit; font-weight: 500; white-space: nowrap; transition: background-color var(--t-fast), color var(--t-fast), box-shadow var(--t-fast); }
+.chip .count { color: var(--ink-2); font-size: 12px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.chip.pick:hover { box-shadow: inset 0 0 0 1px var(--line-2); }
+.chip.pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip.pick.is-on { background: var(--accent-soft); color: var(--accent-strong); }
+.chip.pick.is-on .count { color: var(--accent-strong); }
+.chip.pick.is-on:hover { box-shadow: inset 0 0 0 1px var(--accent); }
+.chip.pick.is-neg { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); text-decoration: line-through; }
+.chip.pick.is-neg:hover { box-shadow: inset 0 0 0 1px var(--ink-3); }
+.chip.pick.is-zero { background: transparent; color: var(--ink-2); font-weight: 400; }
 
 .groupbar-empty { color: var(--ink-2); font-size: 12px; padding: 2px 0; }
 
@@ -54,7 +59,6 @@
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .import-menu { position: relative; flex: none; }
 
-.groupbar { min-height: 41px; align-items: center; }
 
 
 .legacy-name-migration .settings-shortcuts { width: 100%; table-layout: fixed; }
@@ -68,7 +72,6 @@
 .tag-group-origin { margin: 2px 8px 6px; color: var(--ink-2); font-size: 12px; overflow-wrap: anywhere; }
 .sidebar-tag-group-head { flex-wrap: wrap; }
 .sidebar-tag-group-head > .sidebar-item { flex: 1 1 100%; }
-.group-any { margin-bottom: 8px; font-size: 12px; }
 .settings .sidebar-tag-groups { max-width: 680px; }
 
 /* #78 T08: adapt the accepted folder workspace's separate provider roots and path hints. */

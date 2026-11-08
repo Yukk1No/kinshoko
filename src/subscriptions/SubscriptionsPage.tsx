@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import { formatNumber } from "../i18n/format";
 import { ChevronDown, Clock, Info, LoaderCircle, LogOut, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plus, RefreshCw, Rss, TriangleAlert, User } from "lucide-react";
@@ -142,7 +143,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
                     aria-current={selected === s.id ? "true" : undefined}
                     onClick={() => setSelected(selected === s.id ? null : s.id)}
                     onContextMenu={(e) => { e.preventDefault(); setRowMenu(s.id); }}>
-                    <span className="subs-row-name">{displayName(t, s)}</span>
+                    <Name className="subs-row-name">{displayName(t, s)}</Name>
                     {s.lastError && <TriangleAlert className="subs-row-warn" size={14} strokeWidth={2} role="img" aria-label={t("lastFailed")} />}
                     {count > 0 && <span className="subs-row-fresh tabular">{formatNumber(count)}</span>}
                   </button></Tip>
@@ -167,7 +168,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
         </> : account ? <>
           <span className="subs-avatar" aria-hidden="true">{account.name.slice(0, 1).toUpperCase()}</span>
           <span className="subs-account-text">
-            <span className="subs-account-name">{account.name}</span>
+            <Name className="subs-account-name">{account.name}</Name>
             {login.state === "expired"
               ? <span className="subs-account-sub is-warn">{t("account.expired")}</span>
               : <span className="subs-account-sub">{t("account.source")}</span>}

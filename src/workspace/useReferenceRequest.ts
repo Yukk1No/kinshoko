@@ -1,3 +1,4 @@
+import { errorText } from "../ipc/commandError";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { referenceCard } from "../desktop/openInKinshoko";
@@ -15,7 +16,7 @@ export function useReferenceRequest(request: WorkspaceProps["referenceRequest"],
     const { libraryId: from, imageId } = request;
     referenceCard(from, imageId, safe).then(
       (card) => { if (alive) open(card); },
-      (e) => { if (alive) toast.error(t("openFailed", { error: String(e) })); },
+      (e) => { if (alive) toast.error(t("openFailed", { error: errorText(e) })); },
     );
     return () => { alive = false; };
   }, [request]);

@@ -33,7 +33,7 @@ function UnmatchedRow({
   libraryId: string;
   onMapped: (mapped: MappedExternal) => void;
   onSkip: () => void;
-  onError: (error: unknown) => void;
+  onError: (message: string) => void;
 }) {
   const { t } = useTranslation("importing", { keyPrefix: "tagStep" });
   const name = tagName(item.tag);
@@ -58,7 +58,7 @@ function UnmatchedRow({
     try {
       onMapped(await mapTagExternal(libraryId, item.tag.id, external));
     } catch (error) {
-      onError(t("mapFailed", { name, error: String(error) }));
+      onError(t("mapFailed", { name, error: errorText(error) }));
       setBusy(false);
     }
   };
@@ -113,7 +113,7 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
         setMapping(value);
         setRemaining(value.unmatched);
       },
-      (e) => alive && setError(t("matchFailed", { error: String(e) })),
+      (e) => alive && setError(t("matchFailed", { error: errorText(e) })),
     );
     return () => {
       alive = false;
@@ -172,7 +172,7 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
               key={item.tag.id}
               item={item}
               libraryId={libraryId}
-              onError={(e) => setError(errorText(e))}
+              onError={setError}
               onSkip={() => drop(item.tag.id)}
               onMapped={(mapped) => {
                 setError(null);

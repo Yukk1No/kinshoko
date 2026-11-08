@@ -18,9 +18,9 @@
 .k-popup[data-k-level].is-submenu:is([data-side="left"], [data-side="inline-start"])[data-starting-style] { transform: translateX(8px) scale(0.88, 0.98); }
 .k-popup[data-k-level][data-ending-style] { opacity: 0; transition: opacity var(--menu-fade) ease-in; }
 .k-menu-title { padding: 4px 8px 2px; font-size: 11px; line-height: 14px; font-weight: 600; color: var(--menu-quiet); user-select: none;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color var(--menu-theme-fade); }
+  overflow-wrap: anywhere; transition: color var(--menu-theme-fade); }
 
-[data-k-level] .k-item { flex: none; height: 32px; min-height: 32px; padding: 0 8px; gap: 8px; border-radius: var(--r-s); color: var(--menu-ink);
+[data-k-level] .k-item { flex: none; min-height: 32px; padding: 4px 8px; gap: 8px; border-radius: var(--r-s); color: var(--menu-ink);
   font-size: 14px; font-weight: 500; transition: color var(--menu-theme-fade); }
 [data-k-level] .k-item.is-danger, [data-k-level] .k-item.is-danger .k-item-ind { color: var(--danger); }
 /* highlight comes from cascade state, not :hover and not Base UI's pointer-following data-highlighted:

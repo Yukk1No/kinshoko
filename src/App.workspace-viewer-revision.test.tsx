@@ -199,12 +199,12 @@ it.each(["explicit", "selected"])("列表失效时 %s 详情面板保留，重�
     await waitFor(() => expect(started).toBe(true));
     expect(screen.getByLabelText("详情", { selector: "aside" })).toBe(inspector);
     expect(within(inspector).queryByRole("img")).toBeNull();
-    await act(async () => { rejectBrowse("资料库暂不可读"); });
+    await act(async () => { rejectBrowse({ code: "message", message: "资料库暂不可读" } as never); });
     await screen.findByText("资料库暂不可读");
     expect(screen.getByLabelText("详情", { selector: "aside" })).toBe(inspector);
     expect(within(inspector).queryByRole("img")).toBeNull();
   } finally {
-    await act(async () => { rejectBrowse("资料库暂不可读"); });
+    await act(async () => { rejectBrowse({ code: "message", message: "资料库暂不可读" } as never); });
   }
 });
 

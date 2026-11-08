@@ -41,6 +41,7 @@
 | 下拉选择 | `Select` / `Combobox` | 标签选择用 `Combobox` |
 | 轻提示 | `Toast` | 替换常驻红字横幅；可撤销、自动消失。一次性的结果与出错都走它（导入结束、导入出错、备份没有完成），不另画卡片或横幅；有事等画师处理的常驻提示也走它（`usePersistentToast`），不自动消失，关掉后设置里还有入口（#433）；导入进度与导入前要回答的问题是右下角的任务卡，停在轻提示上方（#388） |
 | 图标提示 | `Tooltip` | 名称 + 快捷键 |
+| 标签分组栏 | `Popover` | 分组按钮同导入，无底、悬停出 `--hover` 底，已选个数是 `--accent-soft` 底的胶囊；所有分组共用一个浮层，外形同 `.k-popup`（16 圆角、8 内边距、`--shadow-pop`，不另加描边）。浮层里的标签块与查找框里的条件同样子：28 高、8 圆角、`--surface-2` 实心底；选中 `--accent-soft` 底配 `--accent-strong` 字，排除是无底细线加删除线，没有图的标签无底淡字（#487） |
 | 精确查找 | `Toggle` + `Tooltip` | 查找框尾部的图标开关（#102 方案 C3），见 [buttons-and-dock.md](buttons-and-dock.md)“按钮” |
 | 图片大小 | 原生 `range` + 自绘样式 | 图片墙右下角的浮岛，见 [buttons-and-dock.md](buttons-and-dock.md)“按钮”；保留原生滑条的键盘与提交行为 |
 | 导入 | `Menu` | 一个按钮打开菜单选来源（v2），见 [buttons-and-dock.md](buttons-and-dock.md)“按钮” |

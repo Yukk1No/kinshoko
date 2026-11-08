@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "./ui/Toast";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
 import { legacyViewerBackground, rememberViewerBackground } from "./viewer/background";
+import { errorText } from "./ipc/commandError";
 
 /** 设置 › 备份 › 偏好设置（原“程序设置备份”）：单独保存名称偏好、应用级词表、标签分组、相近规则和程序配置；替换前先读取并确认范围。 */
 export function ApplicationSettingsBackup({ restore: replace }: {
@@ -21,7 +22,7 @@ export function ApplicationSettingsBackup({ restore: replace }: {
   const toast = useToast();
   const run = async (action: () => Promise<void>) => {
     setBusy(true); setError(null);
-    try { await action(); } catch (reason) { setError(String(reason)); }
+    try { await action(); } catch (reason) { setError(errorText(reason)); }
     finally { setBusy(false); }
   };
   const exportFile = () => run(async () => {

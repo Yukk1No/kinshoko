@@ -113,6 +113,6 @@ export function SelectionBar({ libraryId, acrossLibraries, scope, ids, onClear, 
     <Dock label={t("selection.actions")} items={items} onSelect={run} className={compact ? "is-compact" : ""}
       readout={compact ? <b aria-label={t("selection.count", { count: ids.length })}>{t("selection.countShort", { count: ids.length })}</b> : <b>{t("selection.count", { count: ids.length })}</b>} />
     {purging && libraryId !== null && scope.kind === "trash" && <PermanentDeleteConfirm libraryId={libraryId} ids={ids} safeMode={safeMode}
-      onDone={() => { setPurging(false); onClear(); }} onCancel={() => setPurging(false)} onError={onError} />}
+      onDone={() => { setPurging(false); onClear(); }} onCancel={() => setPurging(false)} onError={toast.error} />}
   </motion.div>;
 }

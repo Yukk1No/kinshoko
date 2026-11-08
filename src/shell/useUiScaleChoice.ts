@@ -3,6 +3,7 @@ import { i18n } from "../i18n";
 import { setUiScale, uiScale } from "../ipc";
 import type { useToast } from "../ui/Toast";
 import { initialUiScale, stepUiScale, uiScaleStepForKey } from "./uiScale";
+import { errorText } from "../ipc/commandError";
 
 /** 主窗口的界面缩放（#173），从 App 搬出来。 */
 export function useUiScaleChoice(toast: ReturnType<typeof useToast>) {
@@ -33,7 +34,7 @@ export function useUiScaleChoice(toast: ReturnType<typeof useToast>) {
           uiScaleSaved.current = saved;
           if (uiScaleTarget.current === wanted) acceptUiScale(saved);
         } catch (e) {
-          toast.error(i18n.t("shell:uiScaleFailed", { error: String(e) }));
+          toast.error(i18n.t("shell:uiScaleFailed", { error: errorText(e) }));
           acceptUiScale(await uiScale().catch(() => uiScaleSaved.current));
         }
       }

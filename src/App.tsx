@@ -51,6 +51,7 @@ import { markStartup } from "./startupTiming";
 import { releaseStartup, startupLibraryOpened } from "./startupGate";
 import { StartupSplash } from "./shell/StartupSplash";
 import { LoginExpiredNotice, SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
+import { errorText } from "./ipc/commandError";
 import { Tip } from "./ui/Tip";
 
 /**
@@ -160,7 +161,7 @@ function MainWindow() {
       },
       (e) => {
         applySafe({ kind: "failed" });
-        toast.error(i18n.t("shell:safeMode.toggleFailed", { error: String(e) }));
+        toast.error(i18n.t("shell:safeMode.toggleFailed", { error: errorText(e) }));
         recheckSafe();
       },
     );
@@ -206,7 +207,7 @@ function MainWindow() {
         // 打不开就不等首屏：进主界面，由图库选择页处理。
         releaseStartup();
         if (!alive) return;
-        setOpenError(String(e));
+        setOpenError(errorText(e));
         setOpened(true);
       },
     );

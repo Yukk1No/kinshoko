@@ -12,7 +12,9 @@ const ipc = vi.hoisted(() => ({
   saveInto: vi.fn(() => Promise.resolve()),
   open: vi.fn(() => Promise.resolve(2)),
   rename: vi.fn(() => Promise.resolve()),
-  remove: vi.fn(() => Promise.resolve()),
+  remove: vi.fn((id: string) => Promise.resolve({ groupId: id, name: id === "g1" ? "头发参考" : id, unlinkedPins: [{ pinId: "pin-1", memberId: "m1" }] })),
+  restore: vi.fn(() => Promise.resolve()),
+  purge: vi.fn(() => Promise.resolve()),
   removeMember: vi.fn(() => Promise.resolve()),
   exportPackage: vi.fn((): Promise<string | null> => Promise.resolve("D:/导出/头发参考.kinshoko-group")),
   importPackage: vi.fn(() => Promise.resolve({ name: "别人的参考组" } as unknown)),
@@ -30,6 +32,8 @@ vi.mock("../ipc", () => ({
   openReferenceGroup: ipc.open,
   renameReferenceGroup: ipc.rename,
   deleteReferenceGroup: ipc.remove,
+  restoreReferenceGroup: ipc.restore,
+  purgeDeletedReferenceGroup: ipc.purge,
   removeGroupMember: ipc.removeMember,
   exportReferenceGroupPackage: ipc.exportPackage,
   importReferenceGroupPackage: ipc.importPackage,
@@ -263,16 +267,34 @@ describe("参考组面板", () => {
     expect(screen.getByText("安全模式下原位遮蔽")).toBeTruthy();
   });
 
-  it("删除要再确认一次", async () => {
+  it("删除参考组不先确认，直接删并给“撤销”；撤销把删除返回的内容带回去，不再真删", async () => {
     await show();
     await more("删除");
-    expect(ipc.remove).not.toHaveBeenCalled();
-    const confirm = await screen.findByRole("alertdialog", { name: "删除参考组" });
-    expect(confirm.textContent).toContain("头发参考");
-    await act(async () => {
-      fireEvent.click(within(confirm).getByRole("button", { name: "删除参考组" }));
-    });
+    expect(screen.queryByRole("alertdialog")).toBeNull();
     expect(ipc.remove).toHaveBeenCalledWith("g1");
+    expect(await screen.findByText("已删除参考组")).toBeTruthy();
+    expect(screen.getByText("头发参考", { selector: ".k-toast-desc" })).toBeTruthy();
+    expect(ipc.purge).not.toHaveBeenCalled();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "撤销" })); });
+    expect(ipc.restore).toHaveBeenCalledWith({ groupId: "g1", name: "头发参考", unlinkedPins: [{ pinId: "pin-1", memberId: "m1" }] });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "关闭提示" })); });
+    expect(ipc.purge).not.toHaveBeenCalled();
+  });
+
+  it("提示关闭而没撤销：真正删除暂放的参考组", async () => {
+    await show();
+    await more("删除");
+    await screen.findByText("已删除参考组");
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "关闭提示" })); });
+    await waitFor(() => expect(ipc.purge).toHaveBeenCalledWith("g1"));
+  });
+
+  it("撤销失败时报错", async () => {
+    ipc.restore.mockRejectedValueOnce("放回失败");
+    await show();
+    await more("删除");
+    await act(async () => { fireEvent.click(await screen.findByRole("button", { name: "撤销" })); });
+    expect(await screen.findByText(/放回失败/)).toBeTruthy();
   });
 
   it("重命名", async () => {
@@ -324,9 +346,7 @@ describe("参考组面板", () => {
     const bad = screen.getByText("参考组文件已损坏：不是 Kinshoko 参考组").closest("li")!;
     fireEvent.click(within(bad).getByRole("button", { name: /^bad/ }));
     expect(within(bad).queryByRole("button", { name: "摆到桌面" })).toBeNull();
-    fireEvent.click(within(bad).getByRole("button", { name: "删除" }));
-    const confirm = await screen.findByRole("alertdialog", { name: "删除参考组" });
-    await act(async () => { fireEvent.click(within(confirm).getByRole("button", { name: "删除参考组" })); });
+    await act(async () => { fireEvent.click(within(bad).getByRole("button", { name: "删除" })); });
     expect(ipc.remove).toHaveBeenCalledWith("bad");
   });
 
