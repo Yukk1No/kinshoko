@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Select as Base } from "@base-ui/react/select";
 import { Check, ChevronDown } from "lucide-react";
+import { Tip } from "./Tip";
 
 export type SelectOption<V extends string = string> = { value: V; label: ReactNode; disabled?: boolean };
 
@@ -9,16 +10,16 @@ export type SelectOption<V extends string = string> = { value: V; label: ReactNo
  * 列表是 Combobox 的 `.k-popup.k-listbox`，与触发器同宽、下方 4 px；当前值在指示列放勾。
  * `label` 是触发器的可访问名称；`icon` 是值前面的 16 px 图标。触发器与各项带 `data-value`，测试按值挑选。
  */
-export function Select<V extends string>({ value, options, onChange, label, disabled, icon, className = "", title }: {
+export function Select<V extends string>({ value, options, onChange, label, disabled, icon, className = "", tip }: {
   value: V; options: SelectOption<V>[]; onChange: (value: V) => void; label: string;
-  disabled?: boolean; icon?: ReactNode; className?: string; title?: string;
+  disabled?: boolean; icon?: ReactNode; className?: string; tip?: string;
 }) {
   return <Base.Root<V> value={value} disabled={disabled} items={options} onValueChange={(next) => { if (next !== null && next !== value) onChange(next); }}>
-    <Base.Trigger className={`k-select ${className}`} aria-label={label} title={title} data-value={value}>
+    <Tip label={tip}><Base.Trigger className={`k-select ${className}`} aria-label={label} data-value={value}>
       {icon}
       <Base.Value className="k-select-value" />
       <ChevronDown size={16} aria-hidden="true" />
-    </Base.Trigger>
+    </Base.Trigger></Tip>
     <Base.Portal>
       <Base.Positioner className="k-positioner is-field" alignItemWithTrigger={false} side="bottom" align="start" sideOffset={4}>
         <Base.Popup className="k-popup k-select-popup">

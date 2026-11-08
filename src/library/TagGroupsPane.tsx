@@ -16,6 +16,7 @@ import { createSharedTagGroup, editSharedTagGroup, sharedTagGroups, isLensChange
 import { LIMIT, TagMarks, tagName, useCandidateState, type Lens } from "../search/SearchBox";
 import { useUiLang } from "../i18n";
 import { NameInput } from "./SidebarPane";
+import { Tip } from "../ui/Tip";
 
 type Props = {
   /** Kept for callers from the previous local UI; group ownership is always application-wide. */
@@ -85,7 +86,7 @@ function PickTag({ lens, members, onPick, onCancel }: { lens: Lens; members: str
         onSelect={(option) => onPick(option.tag)}
         onKeyDown={(e) => escape(e, onCancel)}
       />
-      <button type="button" className="k-icon-btn is-xs" aria-label={t("cancelLabel")} title={t("cancelTitle")} onClick={onCancel}><X size={12} aria-hidden="true" /></button>
+      <Tip label={t("cancelTitle")} keys="Esc"><button type="button" className="k-icon-btn is-xs" aria-label={t("cancelLabel")} onClick={onCancel}><X size={12} aria-hidden="true" /></button></Tip>
     </li>
   );
 }
@@ -193,20 +194,19 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
           </div> : fresh && (
             <div className="k-group-head">
               <span className="k-group-icon" aria-hidden="true"><Tags size={16} /></span>
-              <button type="button" className="k-group-name" data-focus-key={`${group.id}:name`} aria-label={t("group.nameCount", { name: group.name, count: group.tags.length })}
-                disabled={busy || !onBrowse || !group.tags.length} title={onBrowse && group.tags.length ? t("group.browseTitle") : t("group.renameTitle")}
+              <Tip label={(origin ? t("group.origin", { origin }) + "\n" : "") + (onBrowse && group.tags.length ? t("group.browseTitle") : t("group.renameTitle"))} align="start"><button type="button" className="k-group-name" data-focus-key={`${group.id}:name`} aria-label={t("group.nameCount", { name: group.name, count: group.tags.length })}
+                disabled={busy || !onBrowse || !group.tags.length}
                 onClick={() => onBrowse?.(ids)} onDoubleClick={() => setRenaming(group.id)}>
                 <span className="k-group-label k-label">{group.name}</span>
-                {origin && <span className="k-group-origin" role="img" aria-label={t("group.origin", { origin })} title={t("group.origin", { origin })}><Link2 size={14} aria-hidden="true" /></span>}
-              </button>
+                {origin && <span className="k-group-origin" role="img" aria-label={t("group.origin", { origin })}><Link2 size={14} aria-hidden="true" /></span>}
+              </button></Tip>
               <span className="k-group-acts">
-                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:rename`} aria-label={t("group.renameLabel", { name: group.name })} title={t("group.renameAction")} disabled={busy} onClick={() => setRenaming(group.id)}><PenLine size={14} aria-hidden="true" /></button>
-                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:up`} aria-label={t("group.upLabel", { name: group.name })} title={t("group.up")} disabled={busy || index === 0}
-                  onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, -1) })}><ArrowUp size={14} aria-hidden="true" /></button>
-                <button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:down`} aria-label={t("group.downLabel", { name: group.name })} title={t("group.down")} disabled={busy || index === groups.length - 1}
-                  onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, 1) })}><ArrowDown size={14} aria-hidden="true" /></button>
-                <button type="button" className="k-icon-btn is-sm is-danger" data-focus-key={`${group.id}:delete`} aria-label={t("group.deleteLabel", { name: group.name })} disabled={busy}
-                  title={t("group.delete")} onClick={() => setDeleting(group.id)}><Trash2 size={14} aria-hidden="true" /></button>
+                <Tip label={t("group.renameAction")}><button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:rename`} aria-label={t("group.renameLabel", { name: group.name })} disabled={busy} onClick={() => setRenaming(group.id)}><PenLine size={14} aria-hidden="true" /></button></Tip>
+                <Tip label={t("group.up")}><button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:up`} aria-label={t("group.upLabel", { name: group.name })} disabled={busy || index === 0}
+                  onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, -1) })}><ArrowUp size={14} aria-hidden="true" /></button></Tip>
+                <Tip label={t("group.down")}><button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:down`} aria-label={t("group.downLabel", { name: group.name })} disabled={busy || index === groups.length - 1}
+                  onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, 1) })}><ArrowDown size={14} aria-hidden="true" /></button></Tip>
+                <Tip label={t("group.delete")}><button type="button" className="k-icon-btn is-sm is-danger" data-focus-key={`${group.id}:delete`} aria-label={t("group.deleteLabel", { name: group.name })} disabled={busy} onClick={() => setDeleting(group.id)}><Trash2 size={14} aria-hidden="true" /></button></Tip>
               </span>
               {custom ? <span className="k-group-count k-label">{t("group.tagCount", { count: group.tags.length })}</span>
                 : <span className="k-pill"><span className="k-label">{group.namespace && kindLabel(group.namespace)}</span></span>}
@@ -221,12 +221,12 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
                   <span className="k-group-chip-name k-label">{name}<TagMarks tag={tag} /></span><span className="k-group-chip-count k-label">{formatNumber(count)}</span>
                 </button>
                 {custom && <span className="k-group-member-acts">
-                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:prev`} aria-label={t("member.prevLabel", { tag: name, group: group.name })} title={t("member.prev")} disabled={busy || memberIndex === 0}
-                    onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, -1) })}><ArrowLeft size={12} aria-hidden="true" /></button>
-                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:next`} aria-label={t("member.nextLabel", { tag: name, group: group.name })} title={t("member.next")} disabled={busy || memberIndex === group.tags.length - 1}
-                    onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, 1) })}><ArrowRight size={12} aria-hidden="true" /></button>
-                  <button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:remove`} aria-label={t("member.removeLabel", { tag: name, group: group.name })} title={t("member.remove")} disabled={busy}
-                    onClick={() => void edit({ kind: "removeMembers", groupId: group.id, tagIds: [tag.id] })}><X size={12} aria-hidden="true" /></button>
+                  <Tip label={t("member.prev")}><button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:prev`} aria-label={t("member.prevLabel", { tag: name, group: group.name })} disabled={busy || memberIndex === 0}
+                    onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, -1) })}><ArrowLeft size={12} aria-hidden="true" /></button></Tip>
+                  <Tip label={t("member.next")}><button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:next`} aria-label={t("member.nextLabel", { tag: name, group: group.name })} disabled={busy || memberIndex === group.tags.length - 1}
+                    onClick={() => void edit({ kind: "orderMembers", groupId: group.id, tagIds: moved(ids, memberIndex, 1) })}><ArrowRight size={12} aria-hidden="true" /></button></Tip>
+                  <Tip label={t("member.remove")}><button type="button" className="k-group-chip-x" data-focus-key={`${group.id}:${tag.id}:remove`} aria-label={t("member.removeLabel", { tag: name, group: group.name })} disabled={busy}
+                    onClick={() => void edit({ kind: "removeMembers", groupId: group.id, tagIds: [tag.id] })}><X size={12} aria-hidden="true" /></button></Tip>
                 </span>}
               </li>;
             })}

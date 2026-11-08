@@ -25,6 +25,7 @@ import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { Switch } from "./ui/Switch";
 import { SealLock } from "./ui/SealLock";
 import { UI_SCALE_LEVELS } from "./shell/uiScale";
+import { Keys } from "./ui/Keys";
 import { Select } from "./ui/Select";
 import { tabName, tabsWith, type SettingsTab } from "./settingsTabs";
 import type { SubscriptionStatus } from "./bindings/SubscriptionStatus";
@@ -49,11 +50,7 @@ function acceleratorFromKey(e: KeyboardEvent): string | null {
   return parts.join("+");
 }
 
-/** 快捷键的显示：每个键一枚键帽，`KeyA` 写成 `A`；读屏读到的是完整写法。 */
-export function Keys({ accelerator }: { accelerator: string }) {
-  return <span className="k-keys" aria-label={accelerator}>{accelerator.split("+").map((key, index) =>
-    <kbd key={index} className="k-key" aria-hidden="true">{key.replace(/^Key(?=[A-Z]$)/, "").replace(/^Digit(?=\d$)/, "")}</kbd>)}</span>;
-}
+export { Keys } from "./ui/Keys";
 
 /** 查看器里的固定操作（#179）：缩放、平移、框选、换图、详情侧栏与返回。按键是滚轮、拖动这类操作时写它的键名。 */
 type ViewerKeyWord = "wheel" | "drag" | "shiftDrag";

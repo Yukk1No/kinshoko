@@ -53,7 +53,8 @@
 .k-win-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---- Popups: menus and popovers (Base UI parts) ---- */
-.k-positioner { z-index: 60; outline: 0; }
+/* 菜单、小确认、悬停提示常在对话框（.k-dialog 91）里打开，浮层要压在对话框之上。 */
+.k-positioner { z-index: 95; outline: 0; }
 .k-popup { min-width: 200px; max-height: min(var(--available-height, 480px), 480px); overflow: auto; padding: 8px; background: var(--surface); color: var(--ink);
   border-radius: var(--r-l); box-shadow: var(--shadow-pop); outline: 0;
   --k-pop-x: 0px; --k-pop-y: 0px;
@@ -145,10 +146,13 @@
 .k-dock-icon { position: relative; display: grid; place-items: center; }
 .k-dock-sep { width: 1px; height: 22px; margin: 0 5px; background: var(--line-2); }
 .k-dock-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--r-pill); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 16px; font-weight: 600; text-align: center; }
-.k-dock-tip { position: absolute; bottom: calc(100% + 10px); display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: var(--r-s); background: var(--ink); color: var(--bg);
+.k-dock-tip { position: absolute; bottom: calc(100% + 10px); display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-s); background: var(--surface); color: var(--ink);
   font-size: 12px; line-height: 18px; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-pop); }
 .k-dock-tip-note { opacity: 0.7; }
-.k-dock-tip kbd { font: inherit; padding: 0; border: 0; background: none; color: inherit; opacity: 0.7; }
+/* 墨紫提示里的键帽：设置里 .k-key 的反色版，底色与下沿取前景色的淡色。 */
+.k-tip-line { display: flex; align-items: center; gap: 8px; }
+:is(.k-tip, .k-dock-tip) .k-key { padding: 0 6px; line-height: 18px; background: color-mix(in srgb, var(--bg) 16%, transparent); color: inherit;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--bg) 30%, transparent); }
 .k-dock-tray { position: absolute; bottom: calc(100% + 10px); left: 50%; translate: -50% 0; display: flex; gap: 2px; padding: 8px; border-radius: var(--r-xl);
   background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(18px);
   box-shadow: var(--shadow-pop); transform-origin: 50% 100%; }

@@ -33,6 +33,8 @@ export type WorkspaceProps = {
   /** 顶栏下方的提示（运行时、旧名称、更新、备份提醒）。 */
   /** 侧栏图库标题菜单“从列表移除”之后（#114）。 */
   onLibraryRemoved?: (libraryId: string) => void;
+  /** 侧栏移除图库后点“撤销”：按原位置重新登记。 */
+  onLibraryRestore?: (root: string) => Promise<void>;
   /** 点打标图标：打开设置 › 自动标签（#144）。 */
   onOpenTaggingSettings: () => void;
 };

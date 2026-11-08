@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { Dock } from "../ui/Dock";
 import { FollowDock } from "../ui/FollowDock";
 import { OriginalStar } from "../ui/OriginalStar";
+import { Tip } from "../ui/Tip";
 
 /** 太小的选区多半是误点，不截。 */
 const MIN_SIZE = 4;
@@ -191,8 +192,8 @@ export function CaptureOverlay() {
             readout={busy
               ? <span role="status">{t(busy === "copy" ? original ? "copyingOriginal" : "copying" : original ? "pinningOriginal" : "pinning")}</span>
               : original
-              ? <span className="k-original" title={t("originalPixels")}>{original.width} × {original.height}<span className="sr-only">{t("originalPixels")}</span><OriginalStar /></span>
-              : <span title={t("screenPixels")}>{rect.width} × {rect.height}<span className="sr-only">{t("screenPixels")}</span></span>} items={[
+              ? <Tip label={t("originalPixels")} side="top"><span className="k-original">{original.width} × {original.height}<span className="sr-only">{t("originalPixels")}</span><OriginalStar /></span></Tip>
+              : <Tip label={t("screenPixels")} side="top"><span>{rect.width} × {rect.height}<span className="sr-only">{t("screenPixels")}</span></span></Tip>} items={[
               { id: "copy", label: t("copy"), icon: <Copy size={18} strokeWidth={1.75} />, shortcut: "Ctrl C", disabled: !!busy },
               { id: "pin", label: t("pin"), icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary", disabled: !!busy },
               "sep",

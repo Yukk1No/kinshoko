@@ -64,7 +64,8 @@ it("未连接的图库名称变淡带警示点，同一行末尾就地重新连�
   expect(within(a).queryByRole("status")).toBeNull();
   const retry = within(a).getByRole("button", { name: "重新连接" });
   expect(retry.closest(".lib-head")).toBe(within(a).getByRole("button", { name: "人物参考（未连接）" }).closest(".lib-head"));
-  expect(retry.title).toContain("移动盘没插");
+  fireEvent.focus(retry.closest(".lib-head")!);
+  expect((await screen.findByText(/移动盘没插/)).closest(".k-tip")).toBeTruthy();
   expect(within(a).queryByRole("button", { name: /^(展开|收起)/ })).toBeNull();
   fireEvent.click(retry);
   expect(recheck).toHaveBeenCalledTimes(1);

@@ -1,5 +1,6 @@
 import { afterEach, expect, it } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { tipText } from "../test/tip";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { TagNamePanel } from "./TagNamePanel";
@@ -23,7 +24,7 @@ it("loads the catalog and saves an equal-default preference explicitly, keeps al
   });
   render(<TagNamePanel />);
   const row = await screen.findByRole("listitem", { name: "分缝发型，默认" });
-  expect(row.getAttribute("title")).toMatch(/别名 分发/);
+  expect(await tipText(row)).toMatch(/别名 分发/);
   fireEvent.click(within(row).getByRole("button", { name: "重命名“分缝发型”" }));
   expect(within(row).getByRole("listitem").textContent).toBe("分发");
   fireEvent.click(within(row).getByRole("button", { name: "保存显示名" }));
