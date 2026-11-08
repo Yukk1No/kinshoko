@@ -168,10 +168,12 @@ impl Worker {
             return;
         };
         let source = FactSource::model(&spec.source);
+        self.retry_failed(&source);
         let Pick {
             batch,
             remaining,
             unknown,
+            failed,
         } = self.pick(&source);
         let Some((library, ids)) = batch else {
             self.done = 0;
@@ -182,6 +184,7 @@ impl Worker {
                 gpu: self.gpu_name(spec.device),
                 tagged: self.tagged,
                 unknown,
+                failed,
             });
             self.shared.sleep(self.config.poll_interval);
             return;
@@ -206,7 +209,7 @@ impl Worker {
     }
 
     /// 逐个询问各库：画师正在整理的库在前，其余按登记顺序。取第一个有未打标的图的库的一批，
-    /// 并数出各库的未打标张数合计。打不开或数不出来的库跳过，不中断其他库。
+    /// 并数出各库的未打标张数与打不上标的张数合计。打不开或数不出来的库跳过，不中断其他库。
     fn pick(&self, source: &FactSource) -> Pick {
         let mut order = self.libraries.library_ids();
         let preferred = self.shared.control().library.clone();
@@ -220,10 +223,14 @@ impl Worker {
                 pick.unknown += 1;
                 continue;
             };
-            let Ok(count) = library.count_images_to_tag(source) else {
+            let (Ok(count), Ok(failed)) = (
+                library.count_images_to_tag(source),
+                library.count_failed_tagging(source),
+            ) else {
                 pick.unknown += 1;
                 continue;
             };
+            pick.failed = pick.failed + failed;
             pick.remaining = pick.remaining.saturating_add(count);
             if count == 0 || pick.batch.is_some() {
                 continue;
@@ -397,7 +404,7 @@ impl Worker {
                 library.commit_tagging_result(source, id, &result)
             }
             Err(TagFailure::BadImage(reason)) => {
-                library.finish_tagging(source, id, TaggingOutcome::Failed(reason))
+                library.finish_tagging(source, id, TaggingOutcome::BadImage(reason))
             }
             Err(_) if self.shared.interrupted() => {
                 // 画师暂停（或停止、资料库取消登记）时结束了会话：这张不算出错，恢复后重打。
@@ -418,8 +425,8 @@ impl Worker {
                 if *crashes >= self.config.max_crashes_per_image {
                     self.crashes.remove(&crash_key);
                     // 不上界面：只记进资料库的打标记录，界面不读
-                    let reason = format!("打标子进程在这张图上反复出错：{failure}");
-                    let _ = library.finish_tagging(source, id, TaggingOutcome::Failed(reason));
+                    let reason = format!("{CRASHED_REASON}：{failure}");
+                    let _ = library.finish_tagging(source, id, TaggingOutcome::Crashed(reason));
                 }
                 self.fail(failure.into());
                 return false;

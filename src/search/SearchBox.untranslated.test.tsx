@@ -1,6 +1,7 @@
 // 搜索框候选里的未翻译标记（#160）：翻译图标，悬停提示“未翻译”（设计系统 Combobox）；不再写“文A”。
 import { afterEach, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { tipText } from "../test/tip";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { SearchBox } from "./SearchBox";
 
@@ -19,7 +20,7 @@ it("未翻译的候选标签名后面是翻译图标，没有“文A”", async 
     onChange={() => {}} onError={() => {}} />);
   fireEvent.change(screen.getByRole("combobox", { name: "查找参考图" }), { target: { value: "a" } });
   const raw = await screen.findByRole("option", { name: /ahoge/ });
-  expect(within(raw).getByRole("img", { name: "未翻译" }).getAttribute("title")).toBe("未翻译");
+  expect(await tipText(within(raw).getByRole("img", { name: "未翻译" }))).toBe("未翻译");
   const named = screen.getByRole("option", { name: /阿呆毛/ });
   expect(within(named).queryByRole("img", { name: "未翻译" })).toBeNull();
   expect(screen.getByRole("listbox").textContent).not.toContain("文A");

@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Tip } from "../ui/Tip";
 
 /**
  * 起名与改名（设计系统 TextField“配按钮”）：上方一行字段名与关闭按钮，下面输入框与“保存”并排，
@@ -21,7 +22,7 @@ export function GroupNameForm({ title, label, placeholder, value, onChange, onSu
     onKeyDown={(e) => { if (e.key === "Escape" && !busy) { e.preventDefault(); e.stopPropagation(); onCancel(); } }}>
     <div className="group-name-head">
       <span className="k-field-label">{title}</span>
-      <button type="button" className="k-icon-btn is-sm" aria-label={t("cancel")} title={t("cancelTitle")} disabled={busy} onClick={onCancel}><X size={14} aria-hidden="true" /></button>
+      <Tip label={t("cancel")} keys="Esc"><button type="button" className="k-icon-btn is-sm" aria-label={t("cancel")} disabled={busy} onClick={onCancel}><X size={14} aria-hidden="true" /></button></Tip>
     </div>
     <div className="k-field-row">
       <input className="k-input" aria-label={label} placeholder={placeholder} autoFocus disabled={busy}

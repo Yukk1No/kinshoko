@@ -43,6 +43,8 @@ mod capture_region;
 mod catalog_approx;
 #[path = "catalog_groups.rs"]
 mod catalog_groups;
+#[path = "catalog_preset_groups.rs"]
+mod catalog_preset_groups;
 #[path = "catalog_search.rs"]
 mod catalog_search;
 #[path = "catalog_source_names.rs"]
@@ -71,6 +73,8 @@ mod eagle_tag_collisions;
 mod eagle_tag_mapping;
 #[path = "edge_hide.rs"]
 mod edge_hide;
+#[path = "folder_undo.rs"]
+mod folder_undo;
 #[path = "global_shortcuts.rs"]
 mod global_shortcuts;
 #[path = "image_commands.rs"]

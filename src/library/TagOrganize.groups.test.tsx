@@ -34,7 +34,7 @@ describe("标签分组", () => {
     const hair = await within(groups).findByRole("group", { name: "发色" });
 
     const addMember = await waitFor(() => {
-      const button = within(hair).getByRole<HTMLButtonElement>("button", { name: "给“发色”加标签" });
+      const button = within(hair).getByRole<HTMLButtonElement>("button", { name: "给“发色”添加标签" });
       expect(button.disabled).toBe(false);
       return button;
     });
@@ -69,7 +69,7 @@ describe("标签分组", () => {
     expect(await within(await openGroups()).findByRole("button", { name: "蓝发（2 张）" })).toBeTruthy();
   });
 
-  it("改名、移出成员与删除分组；命名空间分组列出该命名空间的全部标签", async () => {
+  it("重命名、移出成员与删除分组；类别分组列出该类别的全部标签", async () => {
     fake.groups.push({ id: "G1", name: "发色", namespace: null, members: ["T-blue", "T-smile"] });
     render(<App />);
     const groups = await openGroups();
@@ -99,15 +99,15 @@ describe("标签分组", () => {
     fireEvent.keyDown(name, { key: "Enter" });
     const general = await within(groups).findByRole("group", { name: "一般" });
     await within(general).findByRole("button", { name: "微笑（1 张）" });
-    expect(within(general).queryByRole("button", { name: "给“一般”加标签" })).toBeNull();
+    expect(within(general).queryByRole("button", { name: "给“一般”添加标签" })).toBeNull();
 
     const deletes = sent("plugin:library|edit_shared_tag_group").length;
     fireEvent.click(within(groups).getByRole("button", { name: "删除标签分组“头发颜色”" }));
     // #98: deleting a group asks first; nothing is sent before the confirmation.
-    const confirm = await screen.findByRole("alertdialog", { name: "删除分组" });
+    const confirm = (await screen.findByText("「头发颜色」会被删除，图片的标签不变。")).closest<HTMLElement>("[role='alertdialog']")!;
     expect(sent("plugin:library|edit_shared_tag_group").length).toBe(deletes);
     expect(within(groups).getByRole("group", { name: "头发颜色", hidden: true })).toBeTruthy();
-    fireEvent.click(within(confirm).getByRole("button", { name: "删除" }));
+    fireEvent.click(within(confirm).getByRole("button", { name: "删除分组" }));
     await waitFor(() => expect(within(groups).queryByRole("group", { name: "头发颜色" })).toBeNull());
     expect(sent("plugin:library|edit_shared_tag_group").at(-1)).toEqual({ edit: { kind: "delete", groupId: "G1" }, safeMode: true });
   });

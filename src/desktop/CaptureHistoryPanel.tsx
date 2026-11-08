@@ -105,7 +105,6 @@ export function CaptureHistoryPanel({ request, onRequestHandled }: { request?: {
       {collecting && (
         <SaveDestinationDialog
           title={t("collectTitle")}
-          description={t("collectDescription")}
           summary={<CaptureSummary entry={entries?.find((entry) => entry.id === collecting)} id={collecting} />}
           confirmLabel={t("collectConfirm")}
           onClose={() => setCollecting(null)}

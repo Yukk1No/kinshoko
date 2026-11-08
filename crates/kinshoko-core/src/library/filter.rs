@@ -5,6 +5,7 @@
 //!   是原文件名、本库备注、来源备注与非本地文件来源的位置（如网址）；
 //! - 分级项：有效分级（[`rating::effective_rank_sql`]，人工分级优先）是其中任一档；还没有分级的图
 //!   不满足，排除时留下；
+//! - 自动标签未完成：有任一模型来源打不上标的记录（#475）；
 //! - 安全模式（#60）等浏览视角的过滤在调用方另加条件，与条件树无关。
 
 use rusqlite::Connection;
@@ -84,6 +85,9 @@ fn has_any_rating(ratings: &[ContentRating]) -> Option<String> {
 
 fn term(term: &Term, args: &mut Vec<Value>) -> String {
     match term {
+        Term::TaggingUnfinished => {
+            "image.id IN (SELECT image_id FROM tagging_state WHERE status = 'failed')".to_owned()
+        }
         Term::Rating { rating } => {
             has_any_rating(&rating.ratings).unwrap_or_else(|| "0".to_owned())
         }

@@ -4,17 +4,11 @@ import type { Translation } from "../../translation";
 const library: Translation<typeof zh> = {
   welcome: {
     title: "Welcome to Kinshoko",
-    lead: "First, set up a library to keep your reference images in.",
     create: "New library",
-    createHint: "Creates a folder where you choose",
     open: "Open library",
-    openHint: "Choose the folder of an existing library",
-    eagleTip: "Used Eagle? Once the library is set up, bring it in from Import",
-    captureTip: "Captures and pins work any time, no library needed",
   },
   create: {
     title: "New library",
-    lead: "Images are stored in this new folder",
     defaultName: "My references",
     name: "Library name",
     location: "Location",
@@ -34,7 +28,6 @@ const library: Translation<typeof zh> = {
   },
   manage: {
     title: "Manage libraries",
-    lead: "Removing only hides a library here. No files are deleted.",
     listLabel: "Libraries on this device",
     offline: "Not connected",
     online: "Connected",
@@ -70,13 +63,15 @@ const library: Translation<typeof zh> = {
     libraryActions: "Actions for {{name}}",
     libraryActionsTitle: "Library actions",
     descendants: "Include subfolders",
-    revealFailed: "Couldn't open in File Explorer: {{error}}",
+    revealFailed: "Couldn't show in File Explorer: {{error}}",
   },
   libraryMenu: {
     newFolder: "New folder",
-    reveal: "Open in File Explorer",
+    reveal: "Show in File Explorer",
     reconnect: "Reconnect",
     remove: "Remove from list",
+    removed: "Removed from list",
+    undo: "Undo",
   },
   trash: {
     title: "Trash",
@@ -105,15 +100,11 @@ const library: Translation<typeof zh> = {
     newSubfolder: "New subfolder",
     rename: "Rename",
     moveToTop: "Move to top level",
-    delete: "Delete folder…",
+    delete: "Delete folder",
   },
   deleteFolder: {
-    title: "Delete folder",
-    confirm: "Delete the folder “{{name}}”? The images in it are kept; images that aren't in another folder go back to Unsorted.",
-    subfolders_one: "Its {{count, number}} subfolder is deleted too; the images in it are kept as well.",
-    subfolders_other: "Its {{count, number}} subfolders are deleted too; the images in them are kept as well.",
-    cancel: "Cancel",
-    submit: "Delete folder",
+    done: "Folder deleted",
+    undo: "Undo",
   },
 };
 

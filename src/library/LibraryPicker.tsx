@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { useTranslation } from "react-i18next";
-import { ChevronRight, FolderOpen, FolderPlus, Library, Lightbulb, Pin, Plus, RefreshCw, Settings2 } from "lucide-react";
+import { ChevronRight, FolderOpen, FolderPlus, Library, Plus, RefreshCw, Settings2 } from "lucide-react";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import { describeCommandError } from "../ipc/commandError";
@@ -9,6 +9,8 @@ import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, u
 import { BrandMark } from "../ui/BrandMark";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
+import { Tip } from "../ui/Tip";
+import { offerUndoRemoval } from "./undoRemoval";
 
 /**
  * 本设备的资料库登记与取消登记（界面称“图库”，design/ui-system/interface-terms.md）。
@@ -74,8 +76,11 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
     if (root) onChanged(await registerLibrary(root));
   });
   const remove = (id: string) => run(async () => {
+    const entry = entries.find((e) => e.library.id === id);
     await unregisterLibrary(id);
     onChanged(null);
+    if (entry && !entry.unavailable) offerUndoRemoval(toast, entry.library,
+      (root) => run(async () => onChanged(await registerLibrary(root))), fail);
   });
 
   const status = <>
@@ -87,35 +92,30 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
       <div className="welcome-head">
         <BrandMark size={48} />
         <h1 id="welcome-title">{t("welcome.title")}</h1>
-        <p>{t("welcome.lead")}</p>
       </div>
       <div className="welcome-choices">
-        <button type="button" className="welcome-choice is-main" disabled={disabled} aria-labelledby="welcome-create" aria-describedby="welcome-create-desc" onClick={onCreate}>
+        <button type="button" className="welcome-choice is-main" disabled={disabled} aria-labelledby="welcome-create" onClick={onCreate}>
           <span className="welcome-choice-tile" aria-hidden="true"><FolderPlus size={20} /></span>
-          <span className="welcome-choice-text"><b id="welcome-create">{t("welcome.create")}</b><span id="welcome-create-desc">{t("welcome.createHint")}</span></span>
+          <span className="welcome-choice-text"><b id="welcome-create">{t("welcome.create")}</b></span>
           <ChevronRight size={16} aria-hidden="true" className="welcome-choice-chev" />
         </button>
-        <button type="button" className="welcome-choice" disabled={disabled} aria-labelledby="welcome-open" aria-describedby="welcome-open-desc" onClick={() => void register()}>
+        <button type="button" className="welcome-choice" disabled={disabled} aria-labelledby="welcome-open" onClick={() => void register()}>
           <span className="welcome-choice-tile" aria-hidden="true"><FolderOpen size={20} /></span>
-          <span className="welcome-choice-text"><b id="welcome-open">{t("welcome.open")}</b><span id="welcome-open-desc">{t("welcome.openHint")}</span></span>
+          <span className="welcome-choice-text"><b id="welcome-open">{t("welcome.open")}</b></span>
           <ChevronRight size={16} aria-hidden="true" className="welcome-choice-chev" />
         </button>
       </div>
       {status}
     </section>
-    <div className="welcome-tips">
-      <p className="welcome-tip"><Lightbulb size={14} aria-hidden="true" />{t("welcome.eagleTip")}</p>
-      <p className="welcome-tip"><Pin size={14} aria-hidden="true" />{t("welcome.captureTip")}</p>
-    </div>
   </div>;
 
   return <>
     <div className="pane-library-title">
       <h2 className="pane-title">{t("picker.title")}</h2>
       <Menu.Root modal={false} onOpenChange={(open) => { if (open) refresh(); }}>
-        <Menu.Trigger className="k-icon-btn lib-add" aria-label={t("picker.addLabel")} title={t("picker.addLabel")} disabled={!ready}>
+        <Tip label={t("picker.addLabel")}><Menu.Trigger className="k-icon-btn lib-add" aria-label={t("picker.addLabel")} disabled={!ready}>
           <Plus size={15} aria-hidden="true" />
-        </Menu.Trigger>
+        </Menu.Trigger></Tip>
         <MenuPopup width={200} label={t("picker.title")}>
           <MenuItem icon={<FolderOpen size={14} />} disabled={disabled} onClick={() => void register()}>{t("picker.open")}</MenuItem>
           <MenuItem icon={<FolderPlus size={14} />} disabled={disabled} onClick={onCreate}>{t("picker.create")}</MenuItem>
@@ -129,20 +129,19 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog library-manage">
           <Dialog.Title className="k-dialog-title">{t("manage.title")}</Dialog.Title>
-          <Dialog.Description className="k-dialog-desc">{t("manage.lead")}</Dialog.Description>
           {entries.length > 0 ? <ul className="k-list library-list" aria-label={t("manage.listLabel")}>
             {entries.map(({ library, unavailable }) => <li key={library.id} className="k-list-row">
               <span className="k-list-icon" aria-hidden="true"><Library size={16} /></span>
               <div className="k-list-text">
                 <div className="k-list-title">{library.name}</div>
-                <div className="k-list-desc" title={library.root}>{library.root}</div>
+                <Tip label={library.root} align="start"><div className="k-list-desc">{library.root}</div></Tip>
                 {unavailable && <p className="k-list-desc is-warn" role="status">{describeCommandError(unavailable)}</p>}
               </div>
               <div className="k-list-end">
                 <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}><span className="k-label">{unavailable ? t("manage.offline") : t("manage.online")}</span></span>
                 {unavailable && <button type="button" className="k-btn is-sm" disabled={disabled} onClick={refresh}><RefreshCw size={13} aria-hidden="true" /><span className="k-label">{t("manage.reconnect")}</span></button>}
-                <button type="button" className="k-btn is-sm" disabled={disabled} aria-label={t("manage.removeLabel", { name: library.name })}
-                  title={t("manage.removeTitle")} onClick={() => void remove(library.id)}><span className="k-label">{t("manage.remove")}</span></button>
+                <Tip label={t("manage.removeTitle")}><button type="button" className="k-btn is-sm" disabled={disabled} aria-label={t("manage.removeLabel", { name: library.name })}
+                  onClick={() => void remove(library.id)}><span className="k-label">{t("manage.remove")}</span></button></Tip>
               </div>
             </li>)}
           </ul> : <p className="k-dialog-desc">{t("manage.none")}</p>}

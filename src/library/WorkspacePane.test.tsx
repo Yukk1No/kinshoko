@@ -10,7 +10,8 @@ it("顶部“全部图片”带各库合计；每个图库一行：名称、张�
   await loaded();
   expect(screen.getByRole("button", { name: "全部图片（6 张）" })).toBeTruthy();
   const head = within(section("A")).getByRole("button", { name: "人物参考（3 张）" });
-  expect(head.title).toBe("D:\\A\\参考");
+  fireEvent.focus(head);
+  expect((await screen.findByText("D:\\A\\参考")).closest(".k-tip")).toBeTruthy();
   expect(section("A").textContent).not.toContain("D:\\A\\参考");
   expect(section("A").textContent).not.toContain("文件夹");
   fireEvent.click(head);

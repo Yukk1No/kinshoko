@@ -16,6 +16,13 @@ export default {
     trashedCount_other: "{{count, number}} 张",
     undo: "撤销",
   },
+  /** 打不上标的图（#475）：一行状态与重试，原因在悬停提示。 */
+  tagging: {
+    unfinished: "自动标签未完成",
+    retry: "重试",
+    unreadable: "无法读取这张图",
+    crashed: "处理这张图时出错",
+  },
   rating: {
     label: "内容分级",
     title: "分级",
@@ -40,10 +47,10 @@ export default {
     placeholder: "写点什么，例如看哪里",
     saveLabel: "保存备注",
     save: "保存",
-    revertLabel: "退回来源备注",
+    revertLabel: "改回来源备注",
     revertTitle: "改回来源提供的备注",
-    revertEmptyTitle: "来源没有提供备注，退回后备注为空",
-    revert: "用来源的",
+    revertEmptyTitle: "来源没有提供备注，改回后备注为空",
+    revert: "改回来源备注",
   },
   links: "来源链接",
   sources: {

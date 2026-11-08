@@ -5,6 +5,7 @@ import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { SubscriptionsPage } from "./SubscriptionsPage";
+import { tipText } from "../test/tip";
 import { account, list, NOW, recent, status } from "./subscriptions.fixtures";
 import { KINDS, type KindMount } from "./kinds";
 
@@ -82,7 +83,7 @@ describe("订阅页", () => {
     page(status());
     const row = await screen.findByRole("button", { name: /灯里/ });
     expect(within(row).getByRole("img", { name: "上次检查未完成" })).toBeTruthy();
-    expect(row.getAttribute("title")).toBe("上次检查未完成：无法连接 pixiv");
+    expect(await tipText(row)).toBe("上次检查未完成：无法连接 pixiv");
   });
 
   it("点名单里的一条只看它收进来的图，再点回到全部", async () => {
@@ -134,19 +135,19 @@ describe("订阅页", () => {
     expect(tiles()).toHaveLength(5);
   });
 
-  it("空闲时标题行右侧是“几分钟前查过”与立即检查", async () => {
+  it("空闲时标题行右侧是“几分钟前查过”与检查", async () => {
     backend();
     page(status());
     expect(await screen.findByText("同步于 10 分钟前")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "立即检查" }));
+    fireEvent.click(screen.getByRole("button", { name: "检查" }));
     await waitFor(() => expect(sent("subscription_check_now")).toHaveLength(1));
   });
 
-  it("检查中只显示“正在检查”，没有立即检查", async () => {
+  it("检查中只显示“正在检查”，没有检查", async () => {
     backend();
     page(status({ checking: true }));
     expect((await screen.findByRole("status")).textContent).toBe("正在检查");
-    expect(screen.queryByRole("button", { name: "立即检查" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "检查" })).toBeNull();
   });
 
   it("限流退避中显示几点再查", async () => {
@@ -156,7 +157,7 @@ describe("订阅页", () => {
     page(status({ backoffUntil: Math.max(until.getTime(), NOW + 60_000) }));
     const line = await screen.findByRole("status");
     expect(line.textContent).toMatch(/^将于 \d\d:\d\d 同步$/);
-    expect(screen.queryByRole("button", { name: "立即检查" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "检查" })).toBeNull();
   });
 
   it("登录失效：账号行能重新登录，标题行不显示检查状态", async () => {

@@ -30,7 +30,7 @@ const subscriptions: Translation<typeof zh> = {
     cancelled: "The check was cancelled",
   },
   check: {
-    now: "Check now",
+    now: "Check",
     never: "Not synced yet",
     justNow: "Synced just now",
     minutes_one: "Synced {{count}} minute ago",

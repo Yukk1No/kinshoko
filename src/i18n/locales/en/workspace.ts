@@ -4,9 +4,7 @@ import type { Translation } from "../../translation";
 const workspace: Translation<typeof zh> = {
   openFailed: "Couldn't open this reference image: {{error}}",
   expandPane: "Expand sidebar",
-  expandPaneTitle: "Expand sidebar Ctrl B",
   collapsePane: "Collapse sidebar",
-  collapsePaneTitle: "Collapse sidebar Ctrl B",
   results: "Search results",
   resultCount_one: "{{count, number}} image",
   resultCount_other: "{{count, number}} images",

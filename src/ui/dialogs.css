@@ -5,12 +5,13 @@
 /* 输入框、下拉选择与候选列表在 fields.css。 */
 .k-check { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
 .k-check input { accent-color: var(--accent-strong); margin: 0; }
-.k-link { border: 0; padding: 0; margin-left: 10px; background: none; color: var(--accent-strong); font: inherit; font-weight: 500; }
+.k-link { border: 0; border-radius: var(--r-s); padding: 0; margin-left: 10px; background: none; color: var(--accent-strong); font: inherit; font-weight: 500; }
 .k-link:hover { text-decoration: underline; }
-.k-btn.is-quiet { background: transparent; box-shadow: none; color: var(--ink-2); }
-.k-btn.is-quiet:hover:not(:disabled) { color: var(--ink); background: var(--hover); }
-.k-btn.is-flush { padding-left: 0; }
-.k-btn.is-flush:hover:not(:disabled) { background: transparent; text-decoration: underline; }
+.k-link:disabled { opacity: 0.5; cursor: default; }
+.k-btn.is-quiet { --k-face: transparent; --k-face-hover: var(--hover); --k-face-press: var(--press); --k-lift: none; --k-lift-hover: none; --k-lift-press: none; color: var(--ink-2); }
+.k-btn.is-quiet:hover:not(:disabled) { color: var(--ink); }
+.k-btn.is-flush { --k-face-hover: transparent; --k-face-press: transparent; padding-left: 0; }
+.k-btn.is-flush:hover:not(:disabled) { text-decoration: underline; }
 .k-btn:disabled { opacity: 0.5; cursor: default; }
 .k-pill { gap: 4px; white-space: nowrap; }
 .k-pill.is-accent { background: var(--accent-soft); color: var(--ink); }
@@ -138,8 +139,8 @@
 .k-group-icon { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: var(--r-xs); background: var(--surface-2); color: var(--ink-2); }
 .k-group-head { display: flex; align-items: center; gap: 12px; min-height: 32px; }
 .k-group-head.is-renaming > .k-input { flex: 1; }
-.k-group-name { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
-.k-group-name:disabled { opacity: 1; cursor: default; } /* 空分组不能按它查找，但名称照常显示，不随全局 button:disabled 变淡。 */
+.k-group-name { border-radius: var(--r-s); flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.k-group-name:disabled { opacity: 1; cursor: default; } /* 空分组不能按它查找，但名称照常显示，不会变淡。 */
 .k-group-name:hover:not(:disabled) .k-group-label { text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
 .k-group-name:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-xs); }
 .k-group-label { min-width: 0; font-weight: 500; }

@@ -1,6 +1,6 @@
 // #442：新建图库改为对话框、订阅里就地新建图库，在真实应用里的关键页面（日间与夜间）：
 // 首次使用的整页建库引导（与原来一致）、已有图库时从图库切换器新建、订阅画师时叠着新建图库、第一次订榜单的「新建图库」卡片。
-// 数据准备同 subscriptions-370.mjs：假账号、不到期的订阅，不访问 pixiv。不点“建立图库”“订阅”。
+// 数据准备同 subscriptions-370.mjs：假账号、不到期的订阅，不访问 pixiv。不点“新建图库”“订阅”。
 // Usage: node e2e/library-create-442.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
 // Usage: node e2e/library-create-442.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
 import { spawn, spawnSync } from "node:child_process";

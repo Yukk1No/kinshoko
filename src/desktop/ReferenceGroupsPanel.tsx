@@ -33,6 +33,7 @@ import {
   savePinsToGroup,
   saveReferenceGroup,
 } from "../ipc";
+import { Tip } from "../ui/Tip";
 
 type SaveTarget = { name: string } | { groupId: string };
 
@@ -65,6 +66,7 @@ export function ReferenceGroupsPanel() {
   const [expanded, setExpanded] = useState<ReferenceGroupView | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<{ groupId: string; memberId: string } | null>(null);
   const [captureSave, setCaptureSave] = useState<CaptureSaveDraft<SaveTarget> | null>(null);
   const [importing,setImporting]=useState(false);
   const [naming, setNaming] = useState(false);
@@ -215,7 +217,7 @@ export function ReferenceGroupsPanel() {
                   )}><Layers size={13} aria-hidden="true" /><span className="k-label">{t("open")}</span></button>
                   <button type="button" className="k-btn is-sm" onClick={() => setRenaming({ id: g.id, name: g.name })}><span className="k-label">{t("rename")}</span></button>
                   <Menu.Root>
-                    <Menu.Trigger className="k-icon-btn" aria-label={t("more")} title={t("more")}><MoreHorizontal size={15} aria-hidden="true" /></Menu.Trigger>
+                    <Tip label={t("more")}><Menu.Trigger className="k-icon-btn" aria-label={t("more")}><MoreHorizontal size={15} aria-hidden="true" /></Menu.Trigger></Tip>
                     <MenuPopup label={t("moreLabel", { name: g.name })}>
                       <MenuItem icon={<BookmarkPlus size={14} />} disabled={!!captureSave || saving}
                         onClick={() => void run(() => beginSave({ groupId: g.id }))}>{t("saveInto")}</MenuItem>
@@ -239,7 +241,8 @@ export function ReferenceGroupsPanel() {
                       <li key={m.memberId} className={m.state.kind === "unavailable" ? "reference-group-member-unavailable" : undefined}>
                         <span className="k-parts"><span>{"libraryId" in m ? libraryNames.get(m.libraryId) ?? t("unregisteredLibrary") : t("captureMember")}</span><span>{crop ? t("crop", { width: crop.width, height: crop.height }) : t("whole")}</span></span>
                         <span>{memberState(m)}</span>
-                        <button type="button" className="k-btn is-sm" onClick={() => void run(() => removeGroupMember(g.id, m.memberId))}><span className="k-label">{t("remove")}</span></button>
+                        {/* 截图只存在参考组里：移出就删掉，先确认；图库里的图直接移出。 */}
+                        <button type="button" className="k-btn is-sm" onClick={() => "libraryId" in m ? void run(() => removeGroupMember(g.id, m.memberId)) : setRemoving({ groupId: g.id, memberId: m.memberId })}><span className="k-label">{t("remove")}</span></button>
                       </li>
                     );
                   })}
@@ -264,7 +267,25 @@ export function ReferenceGroupsPanel() {
               <button type="button" className="k-btn is-danger" onClick={() => {
                 const id = deleting!;
                 void run(() => deleteReferenceGroup(id), () => (setDeleting(null), null));
-              }}><span className="k-label">{t("delete")}</span></button>
+              }}><span className="k-label">{t("deleteConfirm")}</span></button>
+            </div>
+          </AlertDialog.Popup>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
+      <AlertDialog.Root open={!!removing} onOpenChange={(open) => { if (!open) setRemoving(null); }}>
+        <AlertDialog.Portal>
+          <AlertDialog.Backdrop className="k-backdrop" />
+          <AlertDialog.Popup className="k-dialog is-alert">
+            <AlertDialog.Title className="k-dialog-title">{t("removeCaptureTitle")}</AlertDialog.Title>
+            <AlertDialog.Description className="k-dialog-desc">{t("removeCaptureDescription")}</AlertDialog.Description>
+            <div className="k-dialog-foot">
+              <span className="k-grow" />
+              <AlertDialog.Close className="k-btn"><span className="k-label">{t("cancel")}</span></AlertDialog.Close>
+              <button type="button" className="k-btn is-danger" onClick={() => {
+                const { groupId, memberId } = removing!;
+                setRemoving(null);
+                void run(() => removeGroupMember(groupId, memberId));
+              }}><span className="k-label">{t("removeCaptureConfirm")}</span></button>
             </div>
           </AlertDialog.Popup>
         </AlertDialog.Portal>

@@ -14,6 +14,7 @@ pub use approx::{
     CatalogApproxMigration, CatalogApproxOrigin, CatalogApproxSource, CatalogApproxView,
 };
 mod portable;
+mod preset;
 mod sync;
 mod views;
 pub use groups::{
@@ -26,6 +27,7 @@ pub use migration::{
 };
 pub use names::CatalogNameEdit;
 pub(crate) use names::fill_names;
+pub(crate) use preset::is_preset_member;
 use sync::insert_tag;
 
 use std::collections::BTreeSet;

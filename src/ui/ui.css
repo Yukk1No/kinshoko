@@ -13,18 +13,24 @@
 }
 
 /* ---- Buttons ---- */
-.k-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: var(--r);
-  font-weight: 500; white-space: nowrap; color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2);
-  transition: background var(--t-fast), transform var(--t-fast) var(--spring); }
+/* 每种按钮只换 --k-* 这几个值，悬停、按下的规则共用；材质令牌见 tokens.css 的 --btn-*。 */
+.k-btn { --k-face: var(--btn-face); --k-face-hover: var(--btn-face-hover); --k-face-press: var(--btn-face-press);
+  --k-lift: var(--btn-lift); --k-lift-hover: var(--btn-lift-hover); --k-lift-press: var(--btn-lift-press);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: var(--r);
+  font-weight: 500; white-space: nowrap; color: var(--ink); background: var(--k-face); box-shadow: var(--k-lift);
+  transition: background var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast) var(--spring); }
 .k-btn:has(> svg:first-child) { padding-left: 10px; } /* optical: an icon's side bearing reads as padding */
-.k-btn:hover:not(:disabled) { background: var(--surface-2); }
-.k-btn:active:not(:disabled) { transform: scale(0.97); }
-.k-btn.is-primary { background: var(--ink); color: var(--bg); box-shadow: none; }
-.k-btn.is-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 88%, var(--bg)); }
-.k-btn.is-ghost { background: transparent; box-shadow: none; color: var(--accent-strong); }
-.k-btn.is-ghost:hover:not(:disabled) { background: var(--accent-soft); }
-.k-btn.is-danger { background: var(--danger-solid); color: var(--on-solid); box-shadow: none; }
-.k-btn.is-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger-solid) 90%, var(--ink)); }
+.k-btn:hover:not(:disabled) { background: var(--k-face-hover); box-shadow: var(--k-lift-hover); }
+.k-btn:active:not(:disabled) { background: var(--k-face-press); box-shadow: var(--k-lift-press); transform: translateY(0.5px); }
+.k-btn.is-primary { --k-face: var(--btn-primary-face); --k-face-hover: var(--btn-primary-face-hover); --k-face-press: var(--btn-primary-face-press);
+  --k-lift: var(--btn-primary-lift); --k-lift-hover: var(--btn-primary-lift); --k-lift-press: var(--btn-primary-lift-press); color: var(--bg); }
+.k-btn.is-danger { --k-face: var(--btn-danger-face); --k-face-hover: var(--btn-danger-face-hover); --k-face-press: var(--btn-danger-face-press);
+  --k-lift: var(--btn-danger-lift); --k-lift-hover: var(--btn-danger-lift); --k-lift-press: var(--btn-danger-lift-press); color: var(--on-solid); }
+.k-btn.is-ghost { --k-face: transparent; --k-face-hover: var(--accent-soft); --k-face-press: var(--accent-soft);
+  --k-lift: none; --k-lift-hover: none; --k-lift-press: none; color: var(--accent-strong); }
+/* 不可用：留细线、去掉投影，实底按钮直接平掉 */
+.k-btn:disabled { --k-lift: var(--btn-lift-disabled); }
+.k-btn:is(.is-primary, .is-danger):disabled { --k-lift: none; }
 .k-btn.is-sm { height: 28px; padding: 0 10px; font-size: 12px; border-radius: var(--r-s); }
 .k-btn.is-sm:has(> svg:first-child) { padding-left: 8px; }
 .k-btn svg { flex: none; }
@@ -47,7 +53,8 @@
 .k-win-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---- Popups: menus and popovers (Base UI parts) ---- */
-.k-positioner { z-index: 60; outline: 0; }
+/* 菜单、小确认、悬停提示常在对话框（.k-dialog 91）里打开，浮层要压在对话框之上。 */
+.k-positioner { z-index: 95; outline: 0; }
 .k-popup { min-width: 200px; max-height: min(var(--available-height, 480px), 480px); overflow: auto; padding: 8px; background: var(--surface); color: var(--ink);
   border-radius: var(--r-l); box-shadow: var(--shadow-pop); outline: 0;
   --k-pop-x: 0px; --k-pop-y: 0px;
@@ -133,15 +140,19 @@
 .k-dock-item.is-primary { background: var(--ink); color: var(--bg); }
 .k-dock-item.is-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 88%, var(--bg)); color: var(--bg); }
 .k-dock-item.is-danger:hover:not(:disabled) { color: var(--danger); background: var(--hover); }
+.k-dock-item:disabled, .k-import:disabled { opacity: 0.5; cursor: default; }
 .k-dock-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .k-dock-sel { position: absolute; inset: 0; border-radius: var(--r); background: var(--accent-soft); }
 .k-dock-icon { position: relative; display: grid; place-items: center; }
 .k-dock-sep { width: 1px; height: 22px; margin: 0 5px; background: var(--line-2); }
 .k-dock-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--r-pill); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 16px; font-weight: 600; text-align: center; }
-.k-dock-tip { position: absolute; bottom: calc(100% + 10px); display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: var(--r-s); background: var(--ink); color: var(--bg);
+.k-dock-tip { position: absolute; bottom: calc(100% + 10px); display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-s); background: var(--surface); color: var(--ink);
   font-size: 12px; line-height: 18px; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-pop); }
 .k-dock-tip-note { opacity: 0.7; }
-.k-dock-tip kbd { font: inherit; padding: 0; border: 0; background: none; color: inherit; opacity: 0.7; }
+/* 墨紫提示里的键帽：设置里 .k-key 的反色版，底色与下沿取前景色的淡色。 */
+.k-tip-line { display: flex; align-items: center; gap: 8px; }
+:is(.k-tip, .k-dock-tip) .k-key { padding: 0 6px; line-height: 18px; background: color-mix(in srgb, var(--bg) 16%, transparent); color: inherit;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--bg) 30%, transparent); }
 .k-dock-tray { position: absolute; bottom: calc(100% + 10px); left: 50%; translate: -50% 0; display: flex; gap: 2px; padding: 8px; border-radius: var(--r-xl);
   background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(18px);
   box-shadow: var(--shadow-pop); transform-origin: 50% 100%; }

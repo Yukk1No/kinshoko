@@ -82,10 +82,10 @@ function UnmatchedRow({
         // 有高亮的候选时 Enter 由 Combobox 选它；没有时按输入的名称补上。
         onKeyDown={(e) => { if (e.key === "Enter" && !e.currentTarget.getAttribute("aria-activedescendant")) void submit(); }}
       />
-      <button type="button" aria-label={t("mapLabel", { name })} disabled={busy || !draft.trim()} onClick={() => void submit()}>
+      <button type="button" className="k-btn is-sm" aria-label={t("mapLabel", { name })} disabled={busy || !draft.trim()} onClick={() => void submit()}>
         {t("map")}
       </button>
-      <button type="button" aria-label={t("skipLabel", { name })} disabled={busy} onClick={onSkip}>
+      <button type="button" className="k-btn is-sm" aria-label={t("skipLabel", { name })} disabled={busy} onClick={onSkip}>
         {t("skip")}
       </button>
     </li>
@@ -130,15 +130,10 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
           {t("title")}
           {mapping && t("summary", { matched: mapping.matched.length, remaining: remaining.length })}
         </span>
-        <button type="button" onClick={onClose}>
+        <button type="button" className="k-btn is-sm" onClick={onClose}>
           {remaining.length ? t("skipAll") : t("done")}
         </button>
       </header>
-      <p>
-        {t("noteBefore")}
-        <span className="no-external" role="img" aria-label={t("noteIcon")} />
-        {t("noteAfter")}
-      </p>
       {mapping && mapping.vocabularySize === 0 && (
         <p>{t("noVocabulary")}</p>
       )}

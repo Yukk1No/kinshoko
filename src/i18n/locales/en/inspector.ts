@@ -21,6 +21,12 @@ const inspector: Translation<typeof zh> = {
     trashedCount_other: "{{count, number}} images",
     undo: "Undo",
   },
+  tagging: {
+    unfinished: "Auto-tagging unfinished",
+    retry: "Retry",
+    unreadable: "This image can't be read",
+    crashed: "An error occurred while processing this image",
+  },
   rating: {
     label: "Content rating",
     title: "Rating",
@@ -45,10 +51,10 @@ const inspector: Translation<typeof zh> = {
     placeholder: "Write something, e.g. what to look at",
     saveLabel: "Save note",
     save: "Save",
-    revertLabel: "Use the source's note",
+    revertLabel: "Restore the source's note",
     revertTitle: "Go back to the note from the source",
     revertEmptyTitle: "The source has no note; going back leaves the note empty",
-    revert: "Use source's",
+    revert: "Restore source note",
   },
   links: "Source links",
   sources: {

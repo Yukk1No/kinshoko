@@ -84,7 +84,7 @@ fn expanded(search: &Search, input: &SearchInput) -> Vec<(String, ApproxSource)>
     let tree = search.resolve(input, ZH);
     let similar = match &tree.conditions[0].any[0] {
         Term::Tag { similar, .. } | Term::Text { similar, .. } => similar,
-        Term::Rating { .. } => return Vec::new(),
+        Term::Rating { .. } | Term::TaggingUnfinished => return Vec::new(),
     };
     similar
         .iter()
@@ -223,7 +223,7 @@ fn just_this_once_leaves_a_neighbour_out_of_that_term_only() {
     let tree = search.resolve(&input, ZH);
     let similar_ids = |i: usize| match &tree.conditions[i].any[0] {
         Term::Tag { similar, .. } => similar.iter().map(|s| s.tag.id.clone()).collect(),
-        Term::Text { .. } | Term::Rating { .. } => Vec::<String>::new(),
+        Term::Text { .. } | Term::Rating { .. } | Term::TaggingUnfinished => Vec::<String>::new(),
     };
     assert_eq!(similar_ids(0), ["purple"]);
     assert_eq!(similar_ids(1), ["aqua", "purple"]);

@@ -85,7 +85,7 @@ shortcutTwoMainKeys: "A shortcut can only have one main key",
   hotkey: {
     unknownKey: "This key isn't recognized",
     taken: "Another program is already using it",
-    refused: "Windows refused to register it ({{detail}})",
+    refused: "Windows doesn't allow this shortcut ({{detail}})",
   },
   tagThresholdsInvalid: "The low tier's upper limit must be below the high tier's lower limit, and both must be between 0% and 100%",
     uiScaleUnsupported: "There's no {{percent}}% interface scale",

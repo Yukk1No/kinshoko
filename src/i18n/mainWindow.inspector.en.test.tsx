@@ -33,7 +33,7 @@ describe("英文界面：详情侧栏", () => {
     expect(lines).toEqual(["Auto tag, confidence 90% (high)", "Source: added by you", "Source: imported from Eagle"]);
   });
 
-  it("标签浮层：命名空间与未翻译提示", async () => {
+  it("标签浮层：类别与未翻译提示", async () => {
     render(<ul><TagChip tag={{ id: "t", name: "blue eyes", namespace: "character", untranslated: true, hasExternal: false }}
       origins={[{ kind: "source", source: "model:pixai", score: 0.5 }]} meter actions={null} /></ul>);
     fireEvent.focus(screen.getByRole("listitem"));

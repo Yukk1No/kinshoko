@@ -1,3 +1,4 @@
+import type { DeletedFolders } from "./bindings/DeletedFolders";
 import type { SaveDestination } from "./bindings/SaveDestination";
 import type { SaveMemory } from "./bindings/SaveMemory";
 import type { ImportOptions } from "./bindings/ImportOptions";
@@ -150,8 +151,13 @@ export function renameFolder(libraryId: string, folderId: string, name: string):
 }
 
 /** 删除文件夹及其子文件夹（#114）：图片不删，没有其他文件夹的回到未归类。 */
-export function deleteFolder(libraryId: string, folderId: string): Promise<void> {
-  return invoke<void>(lib("delete_folder"), { libraryId, folderId });
+export function deleteFolder(libraryId: string, folderId: string): Promise<DeletedFolders> {
+  return invoke<DeletedFolders>(lib("delete_folder"), { libraryId, folderId });
+}
+
+/** 撤销 {@link deleteFolder}：把它返回的内容原样放回（名称、位置、子文件夹、成员、顺序）。 */
+export function restoreFolder(libraryId: string, deleted: DeletedFolders): Promise<void> {
+  return invoke<void>(lib("restore_folder"), { libraryId, deleted });
 }
 
 /** 清空回收站的预览（#114）：这个图库回收站里看得见的全部图与受影响的参考组；确认后交给 {@link permanentDelete}。 */

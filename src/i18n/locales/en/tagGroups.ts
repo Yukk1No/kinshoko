@@ -4,7 +4,6 @@ import type { Translation } from "../../translation";
 const tagGroups: Translation<typeof zh> = {
   label: "Tag groups",
   settingsLabel: "Shared tag groups",
-  settingsNote: "Shared by all libraries. Changing groups doesn't change image tags.",
   settingsLoading: "Loading group settings…",
   updating: "Updating tag groups…",
   kind: {
@@ -66,7 +65,7 @@ const tagGroups: Translation<typeof zh> = {
     title: "Delete group",
     description: "“{{name}}” will be deleted. Image tags stay as they are.",
     cancel: "Cancel",
-    submit: "Delete",
+    submit: "Delete group",
   },
 };
 

@@ -25,6 +25,7 @@ function detail(id: string): ImageDetail {
     collectedAt: 0,
     sourceLinks: [],
     versions: { previous: null, newer: [] },
+    taggingFailure: null,
     rating: { imageId: id, suggested: null, manual: null, effective: null },
   };
 }

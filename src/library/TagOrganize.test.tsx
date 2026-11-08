@@ -1,5 +1,5 @@
 // 标签整理（#77 UI-B，#51，#42 用户故事 58、59、64、65、81）：在主窗口里查看单图的有效标签与
-// 出处，添加、否决、清除人工标签决定（含批量），给标签加别名并按别名查到，建立与编辑标签分组并
+// 出处，添加、否决、清除人工标签决定（含批量），给标签添加别名并按别名查到，建立与编辑标签分组并
 // 在侧栏按分组浏览。后端是有状态的模拟资料库：写入后像核心一样推送 vocabularyChanged／
 // imagesChanged，界面靠这些事件刷新词表、计数与候选（#76 的约定）。
 import { describe, expect, it } from "vitest";
@@ -38,13 +38,13 @@ describe("单张图的标签与人工标签决定", () => {
     expect(screen.queryByRole("list", { name: "已否决" })).toBeNull();
   });
 
-  it("按命名空间添加标签：同名不同命名空间是两个标签；人工添加的可以清除", async () => {
+  it("按类别添加标签：同名不同类别是两个标签；人工添加的可以清除", async () => {
     render(<App />);
     await selectOnly("a");
     await screen.findByRole("list", { name: "有效标签" });
 
     const add = async (namespace: string, name: string) => {
-      await chooseValue(screen.getByRole("combobox", { name: "命名空间" }), namespace);
+      await chooseValue(screen.getByRole("combobox", { name: "类别" }), namespace);
       fireEvent.change(screen.getByRole("combobox", { name: "标签名" }), { target: { value: name } });
       fireEvent.click(screen.getByRole("button", { name: "添加标签" }));
     };
@@ -108,14 +108,14 @@ describe("批量标签决定", () => {
 });
 
 describe("标签别名", () => {
-  it("给标签加别名后，搜索框按别名查到它；别名可以去掉", async () => {
+  it("给标签添加别名后，搜索框按别名查到它；别名可以去掉", async () => {
     render(<App />);
     await selectOnly("a");
     await screen.findByRole("list", { name: "有效标签" });
     fireEvent.click(within(await openChip("蓝发")).getByRole("button", { name: "“蓝发”的别名" }));
     const dialog = await screen.findByRole("dialog", { name: "“蓝发”的别名" });
     fireEvent.change(within(dialog).getByRole("textbox", { name: "新别名" }), { target: { value: "蓝头发" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: "加别名" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "添加别名" }));
     await waitFor(() =>
       expect(sent("plugin:library|add_tag_alias")).toEqual([
         { libraryId: "L1", tagId: "T-blue", alias: { name: "蓝头发", lang: "zh-CN" } },

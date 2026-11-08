@@ -14,7 +14,7 @@ describe("上次导入中断", () => {
 
     // 轻提示（#388）：撤回与不认识的文件各报数量，“重新导入”把撤回的文件再导一次。
     expect(await screen.findByText("上次导入中断")).toBeTruthy();
-    expect(screen.getByText(/1 个文件已撤回/).textContent).toContain("1 个不认识的文件");
+    expect(screen.getByText(/已撤销 1 个文件/).textContent).toContain("1 个无法识别的文件");
     fireEvent.click(screen.getByRole("button", { name: "重新导入" }));
     await confirmImport();
 
@@ -54,7 +54,7 @@ describe("上次导入中断", () => {
     });
     render(<App />);
 
-    expect(await screen.findByText(/私人收藏：1 个文件已撤回/)).toBeTruthy();
+    expect(await screen.findByText(/私人收藏：已撤销 1 个文件/)).toBeTruthy();
     expect(asked).toEqual(["L1", "L2"]);
     fireEvent.click(screen.getByRole("button", { name: "重新导入" }));
     await confirmImport();

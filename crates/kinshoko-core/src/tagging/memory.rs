@@ -83,6 +83,11 @@ impl InMemoryTagger {
             .insert(image.to_path_buf(), reason.to_owned());
     }
 
+    /// 这张图又能解码了（撤销 [`Self::bad_image`]）。
+    pub fn fix_image(&self, image: &Path) {
+        self.lock().bad.remove(image);
+    }
+
     /// 每张图推理要花的时间。
     pub fn set_delay(&self, delay: Duration) {
         self.lock().delay = delay;
