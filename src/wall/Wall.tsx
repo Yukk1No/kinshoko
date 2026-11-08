@@ -243,7 +243,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const onScroll = () => {
     const el = scroller.current!;
     syncMount(el);
-    // 滚动中不拿起一摞（#418）：停手一会儿后悬停才生效。直接写在节点上，不经 React 渲染。
+    // 滚动中不拿起一摞（#418）。
     el.dataset.scrolling = "";
     clearTimeout(scrollingTimer.current);
     scrollingTimer.current = window.setTimeout(() => { delete el.dataset.scrolling; }, SCROLLING_MS);
@@ -270,7 +270,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
     const found = new Set(visible(layout, mount.top, mount.bottom));
     // 查看器里调整窗口宽度后，最后查看的卡片仍能接回焦点（最多多保留一张）。
     for (const id of [lastOpened.current, ...beforeReflow.current.keys(), ...motions.current.keys()]) {
-      const i = id === null ? undefined : position.get(id);
+      const i = id === null || trayMotion.current?.flights.has(id) ? undefined : position.get(id); // 托盘里飞的页不强行挂载（#418）
       if (i !== undefined) found.add(i);
     }
     return [...found].sort((a, b) => a - b);
@@ -299,7 +299,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
 
 
   // 卡片的事件处理读这里的最新版本，沿用的卡片元素因此不会拿着旧的选择与回调。
-  // 换到另一摞的托盘：旧托盘里的页先离开选择。
+  // 换托盘：旧托盘里的页先离开选择。
   const switchTray = (card: BrowserCard) => { pruneTray(); openTray(card); };
   openTrayRef.current = switchTray;
   cardHandlers.current = {

@@ -14,8 +14,10 @@ let adultPages = new Set<string>();
 /** 第一张图很长：托盘要从它底下开始。 */
 let tallFirst = false;
 const page = (id: string) => workspaceCard({ id, width: 100, height: tallFirst && id === "a" ? 600 : 120, adult: adultPages.has(id) });
+/** 第一摞的页数。 */
+let setSize = 3;
 function browse(stackSets: boolean): WorkspacePage {
-  const set = { key: "pixiv:9", pages: [page("p0"), page("p1"), page("p2")] };
+  const set = { key: "pixiv:9", pages: Array.from({ length: setSize }, (_, i) => page(`p${i}`)) };
   const cards = stackSets
     ? [page("a"), { ...page("p0"), set }, page("b")]
     : [page("a"), page("p0"), page("p1"), page("p2"), page("b")];
@@ -27,6 +29,7 @@ beforeEach(() => {
   requests = [];
   secondSet = false;
   tallFirst = false;
+  setSize = 3;
   adultPages = new Set();
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
@@ -39,7 +42,7 @@ beforeEach(() => {
     return browse(query.stackSets);
   });
 });
-afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 function Harness({ stackSets = true, safeMode = false, onSelection, onOpen }: { stackSets?: boolean; safeMode?: boolean; onSelection?: (ids: string[]) => void; onOpen?: (id: string) => void }) {
   const [selected, setSelected] = useState(new Set<string>());
@@ -316,4 +319,17 @@ it("打开托盘时被点的那一摞留在屏幕原处：托盘从更长的一�
   fireEvent.click(count());
   const after = parseFloat(card("p0")!.style.top) - wall.scrollTop;
   expect(Math.abs(after - before)).toBeLessThan(40);
+});
+
+it("打开很多页的一摞：只挂载视口附近的页，不为飞出的动画把整摞都挂上", async () => {
+  setSize = 40;
+  Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 260 });
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 200 });
+  render(<Harness />);
+  await screen.findAllByRole("option");
+  // 封面量得到大小时才记下各页飞出的起点。
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 100, 120));
+  fireEvent.click(screen.getByRole("button", { name: "40 张" }));
+  expect(tray()).not.toBeNull();
+  expect(document.querySelectorAll(".wall-canvas > .card").length).toBeLessThan(20);
 });

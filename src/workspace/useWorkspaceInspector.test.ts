@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, renderHook } from "@testing-library/react";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { BrowserCard } from "../wall/Wall";
@@ -53,4 +53,15 @@ it("没读到过的选择定不下图库，不猜一个", () => {
   rerender({ selected: ["b"], cards: [] });
   expect(result.current.selectionLibrary).toBeNull();
   expect(result.current.eligible).toBe(false);
+});
+
+it("查看器走到收在一摞里的页（#418）：选择改为这一摞，关查看器时回到它", () => {
+  const setSelected = vi.fn();
+  const stack = { ...card("a0", "L1"), set: { key: "pixiv:1", pages: [card("a0", "L1"), card("a1", "L1")] } } as unknown as BrowserCard;
+  renderHook(() => useWorkspaceInspector({
+    selected: new Set(["b"]), setSelected, loadedCards: [stack, card("b", "L1")], workspaceScope: { kind: "all" },
+    sources: null, setSources: () => {}, hidden: false, viewing: card("a1", "L1"), inspectorShown: true, onInspectorShown: () => {},
+  }));
+  const update = setSelected.mock.calls.at(-1)![0] as (previous: Set<string>) => Set<string>;
+  expect([...update(new Set(["b"]))]).toEqual(["a0"]);
 });

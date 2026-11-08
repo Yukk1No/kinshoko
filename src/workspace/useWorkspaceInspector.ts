@@ -4,6 +4,7 @@ import type { WorkspaceCard as SourcesCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { useInspectorWidth } from "../shell/InspectorResizer";
 import type { BrowserCard } from "../wall/Wall";
+import { stackHolding } from "../wall/imageSets";
 
 /** 详情面板（#98）：整理哪些图、是否打开、宽度与开合过渡。 */
 export function useWorkspaceInspector({
@@ -65,7 +66,9 @@ export function useWorkspaceInspector({
       return;
     }
     viewedSources.current = false;
-    if (!loadedCards.some((card) => card.id === viewing.id)) {
+    // 收在一摞里的页（#418，查看器从一摞走到另一摞）：墙上对应的是这一摞，选择改为它，关查看器时回到它。
+    const onWall = loadedCards.some((card) => card.id === viewing.id) ? viewing.id : stackHolding(loadedCards, viewing.id);
+    if (!onWall) {
       if (viewing.libraryId && viewing.imageId && viewing.sources?.length) {
         viewedSources.current = true;
         setSources(viewing as WorkspaceCard);
@@ -73,7 +76,7 @@ export function useWorkspaceInspector({
       return;
     }
     setSources(null);
-    setSelected((previous) => previous.size === 1 && previous.has(viewing.id) ? previous : new Set([viewing.id]));
+    setSelected((previous) => previous.size === 1 && previous.has(onWall) ? previous : new Set([onWall]));
   }, [viewing]); // eslint-disable-line react-hooks/exhaustive-deps
   const [inspectorElement, setInspectorElement] = useState<HTMLElement | null>(null);
   // 拖动边缘时图片墙不逐帧重排，松手后重排一次（#157）。
