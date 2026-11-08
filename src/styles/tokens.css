@@ -24,6 +24,8 @@
   --accent: #e0768f;          /* sakura: selection, focus, indicator; never carries text */
   --accent-strong: #a63a55;   /* accent as text */
   --accent-soft: rgba(224, 118, 143, 0.14);
+  /* 焦点环只有一种（#489）：2 px 强调色实线。外移 2 px；只有贴边或会被裁切的地方用 --focus-inset（负偏移，画在元素里面）。 */
+  --focus-ring: 2px solid var(--accent); --focus-offset: 2px; --focus-inset: -2px;
   --on-accent: #2b2747;
   --manual: #8a5e08;          /* the artist's decisions, the logo's gold star */
   --manual-soft: rgba(227, 179, 79, 0.2);
