@@ -5,8 +5,8 @@ import type { LayoutInput, TrayInput } from "./layout";
 import { STACK_INSET } from "./stackPaper";
 import { STACK_SETS_READY, type BrowserCard } from "./wallShared";
 
-/** 托盘的上下内边距（CSS 像素，界面缩放 100% 时）。 */
-export const TRAY_PAD = 12;
+/** 托盘的内边距（CSS 像素，界面缩放 100% 时；第 5 版原型）。 */
+export const TRAY_PAD = 14;
 
 /**
  * 墙上实际排的格子：`key` 指向的那一摞换成它的各页（按页序，排进托盘），其余照旧。

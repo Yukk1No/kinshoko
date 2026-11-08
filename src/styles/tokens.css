@@ -31,6 +31,7 @@
   --card: #dcdbd8;
   /* 一摞的纸（#418）：细边线、落在下一层上的投影、顶边一线高光、墙上的接触阴影（RGB 三元组）。 */
   --sheet-edge: rgba(43, 39, 71, 0.2); --sheet-drop: rgba(43, 39, 71, 0.14); --sheet-light: rgba(255, 255, 255, 0.22); --contact: 43, 39, 71;
+  --tray: color-mix(in srgb, var(--wall) 94%, black); --tray-rim: rgba(255, 255, 255, 0.75);
   --splash-card: rgba(43, 39, 71, 0.04);   /* startup splash backdrop (#338), faint enough to sit under the logo */
   --danger: #b23a3a;
   --danger-solid: #b23a3a;    /* white text 5.9:1 */
@@ -103,7 +104,7 @@
     --accent: #e3b34f; --accent-strong: #e9c26e; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2b2747;
     --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18);
     --wall: #161618; --card: #222224; --splash-card: rgba(244, 236, 220, 0.05); --danger: #f08a8a; --danger-solid: #c94a4a;
-    --sheet-edge: rgba(0, 0, 0, 0.55); --sheet-drop: rgba(0, 0, 0, 0.4); --sheet-light: rgba(255, 255, 255, 0.1); --contact: 0, 0, 0;
+    --sheet-edge: rgba(0, 0, 0, 0.55); --sheet-drop: rgba(0, 0, 0, 0.4); --sheet-light: rgba(255, 255, 255, 0.1); --contact: 0, 0, 0; --tray: color-mix(in srgb, var(--wall) 70%, black); --tray-rim: rgba(255, 255, 255, 0.06);
     --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
     --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
     --inverse-danger: #b23a3a;
@@ -143,7 +144,7 @@
   --accent: #e3b34f; --accent-strong: #e9c26e; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2b2747;
   --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18);
   --wall: #161618; --card: #222224; --splash-card: rgba(244, 236, 220, 0.05); --danger: #f08a8a; --danger-solid: #c94a4a;
-  --sheet-edge: rgba(0, 0, 0, 0.55); --sheet-drop: rgba(0, 0, 0, 0.4); --sheet-light: rgba(255, 255, 255, 0.1); --contact: 0, 0, 0;
+  --sheet-edge: rgba(0, 0, 0, 0.55); --sheet-drop: rgba(0, 0, 0, 0.4); --sheet-light: rgba(255, 255, 255, 0.1); --contact: 0, 0, 0; --tray: color-mix(in srgb, var(--wall) 70%, black); --tray-rim: rgba(255, 255, 255, 0.06);
   --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
   --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
   --inverse-danger: #b23a3a;

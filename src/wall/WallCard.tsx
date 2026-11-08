@@ -125,6 +125,7 @@ export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, s
       style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` }}
     >
       {stack ? stackFace(card, b, inset, thumbnailPx, veiled) : picture(card, thumbnailPx, veiled)}
+      {trayPage > 0 && <span className="card-page" aria-hidden="true">{i18n.t("wall:card.pageOf", { page: trayPage, count: trayCount })}</span>}
     </div>
     {/* 托盘里页角的勾（#418）：增减这一页的选择。紧跟在卡片后面（悬停卡片时露出）；第 1 页的左上角是张数，勾放在右上角。 */}
     {trayPage > 0 && <button type="button" role="checkbox" className="card-check" data-card={card.id}

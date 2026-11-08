@@ -9,7 +9,7 @@ export type Layout = {
   boxes: Box[];
   /** 每一列的图片序号，按 y 递增。 */
   lanes: number[][];
-  /** 打开的托盘（#418）：跨满整宽，托盘里的页排在它里面。没有打开时为 null。 */
+  /** 打开的托盘（#418）：跨满墙的内宽，托盘里的页排在它里面。没有打开时为 null。 */
   tray: Box | null;
 };
 
@@ -18,7 +18,7 @@ export type Layout = {
  * 纸边因此不出格子。
  */
 export type LayoutInput = readonly { w: number; h: number; inset?: number }[];
-/** 打开的托盘：`items` 里从 `at` 起的 `count` 张是托盘里的页，按页序排成行；`pad` 是托盘的上下内边距。 */
+/** 打开的托盘：`items` 里从 `at` 起的 `count` 张是托盘里的页，按页序排成齐行；`pad` 是托盘的内边距。 */
 export type TrayInput = { at: number; count: number; pad: number };
 export type LayoutOptions = {
   width: number;
@@ -48,21 +48,14 @@ export function masonry(items: LayoutInput, o: LayoutOptions, trayInput: TrayInp
   let tray: Box | null = null;
   for (let index = 0; index < items.length; index++) {
     if (trayInput && index === trayInput.at && trayInput.count > 0) {
-      // 托盘从最高的一列底下开始；各页按页序从左到右排成行，每行从上一行最高的那页底下开始。
-      const top = Math.max(...heights);
-      let row = top + trayInput.pad;
-      let rowHeight = 0;
       const end = Math.min(items.length, index + trayInput.count);
+      const top = Math.max(...heights);
+      const bottom = trayRows(items, index, end, top, columnWidth, o, trayInput.pad, boxes);
       for (let page = index; page < end; page++) {
-        const lane = (page - index) % columns;
-        if (lane === 0 && page > index) { row += rowHeight + o.gap; rowHeight = 0; }
-        const h = heightOf(items[page]);
-        boxes[page] = { x: x(lane), y: row, w: columnWidth, h };
-        lanes[lane].push(page);
-        rowHeight = Math.max(rowHeight, h);
+        const center = boxes[page].x + boxes[page].w / 2 - o.pad;
+        lanes[Math.min(columns - 1, Math.max(0, Math.floor(center / (columnWidth + o.gap))))].push(page);
       }
-      const bottom = row + rowHeight + trayInput.pad;
-      tray = { x: 0, y: top, w: o.width, h: bottom - top };
+      tray = { x: o.pad, y: top, w: inner, h: bottom - top };
       heights.fill(bottom + o.gap);
       index = end - 1;
       continue;
@@ -77,6 +70,37 @@ export function masonry(items: LayoutInput, o: LayoutOptions, trayInput: TrayInp
   }
   const height = items.length ? Math.max(...heights) - o.gap + o.pad : 0;
   return { columns, columnWidth, height, boxes, lanes, tray };
+}
+
+/**
+ * 托盘里的各页（第 5 版原型的齐行排法）：托盘从 `top` 开始，左右缩在墙的边距里；各页按页序从左到右排，
+ * 行高以列宽为准，一行排不下时整行等比缩小到刚好排满，最后一行不撑满。返回托盘的底边。
+ */
+function trayRows(items: LayoutInput, from: number, end: number, top: number, rowHeight: number, o: LayoutOptions, pad: number, boxes: Box[]) {
+  const left = o.pad + pad;
+  const room = Math.max(1, o.width - left * 2);
+  const ratio = (item: LayoutInput[number]) => Math.min(item.h / item.w, o.capRatio ?? Infinity);
+  let y = top + pad;
+  let row: number[] = [];
+  const flush = (fit: boolean) => {
+    const natural = row.reduce((sum, page) => sum + rowHeight / ratio(items[page]), 0);
+    const h = fit ? rowHeight * (room - o.gap * (row.length - 1)) / natural : rowHeight;
+    let x = left;
+    for (const page of row) {
+      const w = h / ratio(items[page]);
+      boxes[page] = { x, y, w, h };
+      x += w + o.gap;
+    }
+    y += h + o.gap;
+    row = [];
+  };
+  for (let page = from; page < end; page++) {
+    row.push(page);
+    const natural = row.reduce((sum, p) => sum + rowHeight / ratio(items[p]), 0) + o.gap * (row.length - 1);
+    if (natural >= room) flush(true);
+  }
+  if (row.length) flush(false);
+  return y - o.gap + pad;
 }
 
 /** 与 [top, bottom) 相交的图片序号：每列二分查找。 */
