@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode }
 import { useTranslation } from "react-i18next";
 import { Toast } from "@base-ui/react/toast";
 import { CircleAlert, CircleCheck, Info, X } from "lucide-react";
+import { Tip } from "./Tip";
 
 export type ToastTone = "success" | "info" | "error";
 export type ToastOptions = {
@@ -74,8 +75,8 @@ function Stack() {
         </div>
         {toast.actionProps && <Toast.Action className="k-toast-action" />}
         {/* Our own close: Base UI's Toast.Close hides itself from assistive tech while the stack is collapsed. */}
-        <button type="button" className="k-toast-close" aria-label={toast.type === "error" ? t("toast.gotIt") : t("toast.dismissLabel")} title={toast.type === "error" ? t("toast.gotIt") : t("toast.dismiss")}
-          onClick={() => close(toast.id)}><X size={14} aria-hidden="true" /></button>
+        <Tip label={toast.type === "error" ? t("toast.gotIt") : t("toast.dismiss")}><button type="button" className="k-toast-close" aria-label={toast.type === "error" ? t("toast.gotIt") : t("toast.dismissLabel")}
+          onClick={() => close(toast.id)}><X size={14} aria-hidden="true" /></button></Tip>
       </Toast.Content>
     </Toast.Root>;
   });

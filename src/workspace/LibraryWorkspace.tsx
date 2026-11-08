@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { PanelLeftOpen, PanelRight } from "lucide-react";
 import { useImportShortcut } from "./useImportShortcut";
@@ -6,7 +6,6 @@ import { useInspectorShortcut } from "./useInspectorShortcut";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
-import { errorText, isCursorExpired } from "../ipc";
 import { ImportMenu, type ImportControl } from "../library/ImportMenu";
 import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
@@ -15,6 +14,7 @@ import { usePanelSlide } from "../shell/usePanelSlide";
 import { TaggingActivity } from "../TaggingActivity";
 import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
+import { Tip } from "../ui/Tip";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "../wall/Wall";
 import { WallFloats } from "../wall/WallFloats";
 import { WallMenu } from "../wall/WallMenu";
@@ -28,6 +28,7 @@ import { useInvalidation } from "./useInvalidation";
 import { useLibraryEvents } from "./useLibraryEvents";
 import { useReferenceRequest } from "./useReferenceRequest";
 import { useSearchTree } from "./useSearchTree";
+import { useWorkspaceError } from "./useWorkspaceError";
 import { useShowUnfinishedTagging } from "./useShowUnfinishedTagging";
 import { useViewerStep } from "./useViewerStep";
 import { WorkspaceInspector } from "./WorkspaceInspector";
@@ -60,6 +61,7 @@ export function LibraryWorkspace({
   inspectorShown,
   onInspectorShown,
   onLibraryRemoved,
+  onLibraryRestore,
   onOpenTaggingSettings,
   unfinishedTaggingRequest = 0,
 }: WorkspaceProps) {
@@ -98,16 +100,7 @@ export function LibraryWorkspace({
   const { invalidate, observations } = useInvalidation({
     wall, loadedCards, setViewing: (next) => { flight.cut(); setViewing(next); }, setSelected, setSources, setReloadKey, setVocabularyKey,
   });
-  /**
-   * 工作区读取期间修订变了（CursorExpired）：那次读到的结果已经过时，不是要用户处理的问题。
-   * 像收到变更通知一样按新修订重读；变更停下后读取成功，不留下常驻横幅（#98）。
-   * 同修订的变更通知会被略过，所以不能只等通知来补读。
-   */
-  const onError = useCallback((error: unknown) => {
-    // 真实错误进轻提示（#98），一直留到画师按“知道了”；没有提示容器时退回就地横幅。
-    if (!isCursorExpired(error)) { toast.error(errorText(error)); return; }
-    invalidate({ kind: "cursorExpired" });
-  }, [toast, invalidate]);
+  const onError = useWorkspaceError(toast, invalidate);
   const safeChanged = useRef(onSafeChanged);
   safeChanged.current = onSafeChanged;
   const viewerOpen = viewing !== null;
@@ -182,7 +175,7 @@ export function LibraryWorkspace({
         {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
         <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} paneRef={setSidebarElement} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
           status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} recheck={recheck}
-          onLibraryRemoved={onLibraryRemoved} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
+          onLibraryRemoved={onLibraryRemoved} onLibraryRestore={onLibraryRestore} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
           onScope={(next) => {
             // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
             setWorkspaceScope(next); invalidate({ kind: "scopeChanged" });
@@ -190,7 +183,7 @@ export function LibraryWorkspace({
           }} />
         <main className="app-main main">
           <header className="topbar" data-tauri-drag-region>
-            {!paneOpen && <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={t("expandPane")} title={t("expandPaneTitle")}><PanelLeftOpen size={16} aria-hidden="true" /></button>}
+            {!paneOpen && <Tip label={t("expandPane")} keys="Ctrl+B"><button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={t("expandPane")}><PanelLeftOpen size={16} aria-hidden="true" /></button></Tip>}
           <SearchBox
             workspace
             libraryId="workspace"
@@ -226,7 +219,7 @@ export function LibraryWorkspace({
               invalidate({ kind: "conditionsChanged" });
             }} />
           {!inspectorOpen && <>
-            <button type="button" className="k-icon-btn" aria-label={t("viewer:tools.showInspector")} title={t("viewer:tools.showInspector")} onClick={toggleInspector}><PanelRight size={16} aria-hidden="true" /></button>
+            <Tip label={t("viewer:tools.showInspector")}><button type="button" className="k-icon-btn" aria-label={t("viewer:tools.showInspector")} onClick={toggleInspector}><PanelRight size={16} aria-hidden="true" /></button></Tip>
             <WinCtrls />
           </>}
           </header>

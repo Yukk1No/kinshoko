@@ -186,7 +186,7 @@ try {
     await session.park(); await session.shot("09-multi-select");
     await session.click("//*[@role='toolbar' and @aria-label='已选参考图操作']//button[contains(@aria-label, '回收站') or contains(., '回收站')]");
     await settle(); await closeToasts().catch(() => {});
-    await until("trash count", () => session.exec("const b = document.querySelector('button.sidebar-item[title] .k-row-icon') && [...document.querySelectorAll('button.sidebar-item')].find(x => x.textContent.includes('回收站')); return Boolean(b && !b.disabled && b.querySelector('.sidebar-count')?.textContent.trim());"), 10000);
+    await until("trash count", () => session.exec("const b = [...document.querySelectorAll('button.sidebar-item')].find(x => x.textContent.includes('回收站')); return Boolean(b && !b.disabled && b.querySelector('.sidebar-count')?.textContent.trim());"), 10000);
     await session.exec("const b = [...document.querySelectorAll('button.sidebar-item')].find(x => x.textContent.includes('回收站')); const r = b.getBoundingClientRect(); b.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 })); return true;");
     await settle();
     await session.click("//*[@role='menuitem' and contains(., '清空')]");

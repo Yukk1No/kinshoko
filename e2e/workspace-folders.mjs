@@ -106,7 +106,13 @@ try {
   await until("both complete directory roots", () => session.exec("return [...document.querySelectorAll('.workspace-provider')].filter(el => el.querySelectorAll('[data-folder-id]').length === 3).length === 2;"));
   let forest = await session.invoke("workspace_directories", { safeMode: true });
   assert(forest.providers.length === 2 && forest.providers.every(p => p.sidebar.folders.some(f => f.name === "人物" && f.children[0]?.name === "动作")), "same-named libraries retain independent complete directory trees");
-  assert(await session.exec(`const a = ${rootElement(first.info.id)}.querySelector('.lib-head-name'); const b = ${rootElement(second.info.id)}.querySelector('.lib-head-name'); return a.title === arguments[0] && b.title === arguments[1] && a.title !== b.title;`, [first.info.root, second.info.root]), "same-named roots show distinct readable suffixes and retain complete paths");
+  // 完整路径在图库名的悬停提示里：悬停每个图库名，读弹出的提示。
+  const tipOf = async (library) => {
+    const id = await session.find(`//*[@data-library-id='${library}']//button[contains(@class,'lib-head-name')]`);
+    await wd("POST", `${session.base}/actions`, { actions: [{ type: "pointer", id: "tip-mouse", parameters: { pointerType: "mouse" }, actions: [{ type: "pointerMove", origin: { [ELEMENT]: id }, x: 0, y: 0 }] }] });
+    return until("library root tip", () => session.exec("const t = [...document.querySelectorAll('.k-tip')].at(-1); return t?.textContent.trim() === arguments[0] && t.textContent.trim();", [library === first.info.id ? first.info.root : second.info.root]), 8000);
+  };
+  assert(await tipOf(first.info.id) === first.info.root && await tipOf(second.info.id) === second.info.root && first.info.root !== second.info.root, "same-named roots show distinct readable suffixes and retain complete paths");
   const forestReady = () => session.exec("return document.querySelector('.wall')?.dataset.total === '4' && [...document.querySelectorAll('.workspace-provider')].filter(el => el.querySelectorAll('[data-folder-id]').length === 3).length === 2;");
   await until("settled directory forest screenshot", async () => { if (!await forestReady()) return false; await delay(250); return forestReady(); });
   await session.screenshot("directory-forest.png");

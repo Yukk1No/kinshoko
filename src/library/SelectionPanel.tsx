@@ -20,6 +20,7 @@ import {
   workspaceImage,
 } from "../ipc";
 import { TagPanel } from "./TagPanel";
+import { Tip } from "../ui/Tip";
 
 type Props = {
   libraryId: string;
@@ -77,7 +78,7 @@ function TaggingUnfinished({ failure, edit }: { failure: TaggingFailure; edit: (
   const { t } = useTranslation("inspector");
   return (
     <div className="insp-tagging">
-      <span title={t(`tagging.${failure}`)}>{t("tagging.unfinished")}</span>
+      <Tip label={t(`tagging.${failure}`)}><span>{t("tagging.unfinished")}</span></Tip>
       <button type="button" className="k-btn is-ghost is-sm" onClick={() => edit([{ kind: "retryTagging" }])}><span className="k-label">{t("tagging.retry")}</span></button>
     </div>
   );
@@ -110,7 +111,7 @@ function Detail({
   return (
     <div className="selection-detail" aria-busy={stale} inert={stale}>
       <div className="insp-file">
-        <div className="insp-file-name" title={detail.originalName}>{detail.originalName}</div>
+        <Tip label={detail.originalName} align="start"><div className="insp-file-name">{detail.originalName}</div></Tip>
         <div className="insp-file-meta k-parts"><span>{detail.width} × {detail.height}</span><span>{t("file.collectedAt", { at: formatMoment(detail.collectedAt) })}</span></div>
       </div>
       {detail.versions.previous && <p className="selection-version">{t("file.newVersion")}</p>}
@@ -138,16 +139,15 @@ function Detail({
           >
             <span className="k-label">{t("note.save")}</span>
           </button>}
-          <button
+          <Tip label={sources.length ? t("note.revertTitle") : t("note.revertEmptyTitle")}><button
             type="button"
             className="k-btn is-sm is-ghost"
             aria-label={t("note.revertLabel")}
             disabled={manual === null}
-            title={sources.length ? t("note.revertTitle") : t("note.revertEmptyTitle")}
             onClick={() => edit([{ kind: "revertNote" }])}
           >
             <span className="k-label">{t("note.revert")}</span>
-          </button>
+          </button></Tip>
         </div>}
       </section>
       {detail.sourceLinks?.length > 0 && (

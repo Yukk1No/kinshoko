@@ -65,7 +65,7 @@ const tagGroups: Translation<typeof zh> = {
     title: "Delete group",
     description: "“{{name}}” will be deleted. Image tags stay as they are.",
     cancel: "Cancel",
-    submit: "Delete",
+    submit: "Delete group",
   },
 };
 

@@ -4,6 +4,7 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageRating } from "../bindings/ImageRating";
 import { SelectionPanel } from "./SelectionPanel";
+import { tipText } from "../test/tip";
 
 const NO_TAGS = { image: { imageId: "img", tags: [], rejected: [] }, identities: [] };
 
@@ -145,7 +146,7 @@ describe("选中一张图：自动标签未完成（#475）", () => {
     const edits = backend({ ...detail({}), taggingFailure: failure }, detail({}));
     renderPanel();
     const line = await screen.findByText("自动标签未完成");
-    expect(line.getAttribute("title")).toBe(reason);
+    expect(await tipText(line)).toBe(reason);
     fireEvent.click(screen.getByRole("button", { name: "重试" }));
     await waitFor(() => expect(edits).toEqual([[{ kind: "retryTagging" }]]));
     await waitFor(() => expect(screen.queryByText("自动标签未完成")).toBeNull());

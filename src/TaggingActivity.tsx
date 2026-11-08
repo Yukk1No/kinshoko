@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Tooltip } from "@base-ui/react/tooltip";
 import { CircleAlert, Download, EyeOff, Images, MonitorPause, Pause, Play, RotateCw, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FailedTagging } from "./bindings/FailedTagging";
@@ -12,6 +11,7 @@ import { i18n } from "./i18n";
 import { formatBytes, percentOf } from "./i18n/format";
 import { useTaggingStatus } from "./useTaggingStatus";
 import { describeCommandError, describeCommandErrors } from "./ipc/commandError";
+import { Tip } from "./ui/Tip";
 
 /** 预计用时的说法：不到一分钟、几分钟或几小时。 */
 function etaText(ms: number): string {
@@ -252,9 +252,9 @@ export function TaggingActivity({ onOpenSettings, onShowUnfinished, collapsed = 
     // 小圆点只表示进行中的进度；停住的状态等收起结束后再回到原处的图标。
     if (stopped) return null;
     return (
-      <span className="k-tagging-dot" data-activity={activity} data-pending={pending} role="img" title={text} aria-label={i18n.t("tagging:label", { text })}>
+      <Tip label={text} side="top"><span className="k-tagging-dot" data-activity={activity} data-pending={pending} role="img" aria-label={i18n.t("tagging:label", { text })}>
         <Ring className="k-tagging-mini" size={12} radius={4.5} progress={ring} />
-      </span>
+      </span></Tip>
     );
   }
   const act = actOf(status);
@@ -264,28 +264,22 @@ export function TaggingActivity({ onOpenSettings, onShowUnfinished, collapsed = 
     else onOpenSettings();
   };
   return <>
-    <Tooltip.Root>
-      <Tooltip.Trigger delay={200} closeOnClick={false} render={
-        <button type="button" className="k-tagging-activity" data-activity={activity} data-pending={pending}
-          aria-label={act ? i18n.t(`tagging:act.${act}`, { text }) : i18n.t("tagging:openSettings", { text })} onClick={click}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            // 键盘打开的右键菜单没有指针位置：贴着图标左上角。
-            const box = e.currentTarget.getBoundingClientRect();
-            setMenu(e.clientX === 0 && e.clientY === 0 ? { x: box.left, y: box.top } : { x: e.clientX, y: e.clientY });
-          }} />}>
+    <Tip side="top" label={<>{label[0]}{label[1] && <span className="k-tip-note">{label[1]}</span>}</>}>
+      <button type="button" className="k-tagging-activity" data-activity={activity} data-pending={pending}
+        aria-label={act ? i18n.t(`tagging:act.${act}`, { text }) : i18n.t("tagging:openSettings", { text })} onClick={click}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          // 键盘打开的右键菜单没有指针位置：贴着图标左上角。
+          const box = e.currentTarget.getBoundingClientRect();
+          setMenu(e.clientX === 0 && e.clientY === 0 ? { x: box.left, y: box.top } : { x: e.clientX, y: e.clientY });
+        }}>
         <Ring className="k-tagging-ring" size={40} radius={18} progress={ring} />
         <span className="k-tagging-glyph" data-morph={next ? true : undefined}>
           <span className="k-tagging-now">{stateIcon(status)}</span>
           {next && <span className="k-tagging-next">{next.icon}</span>}
         </span>
-      </Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Positioner className="k-positioner" side="top" sideOffset={10}>
-          <Tooltip.Popup className="k-tip">{label[0]}{label[1] && <span className="k-tip-note">{label[1]}</span>}</Tooltip.Popup>
-        </Tooltip.Positioner>
-      </Tooltip.Portal>
-    </Tooltip.Root>
+      </button>
+    </Tip>
     {menu && <PointerMenu point={menu} label={i18n.t("tagging:menu.label")} onClose={() => setMenu(null)}>
       {unfinished.shown && <>
         <MenuItem icon={<Images size={16} aria-hidden="true" />} onClick={() => onShowUnfinished?.()}>{i18n.t("tagging:menu.show")}</MenuItem>

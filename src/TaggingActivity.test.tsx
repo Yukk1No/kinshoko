@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { tipText } from "./test/tip";
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
@@ -50,6 +51,7 @@ describe("缩放滑块左边的打标图标", () => {
     backend(running(128, 0, 88));
     const { onOpenSettings } = mount();
     const button = await screen.findByRole("button", { name: "暂停自动标签：还剩 88 张" });
+    expect(await tipText(button)).toBe("还剩 88 张");
     expect(button.dataset.activity).toBe("busy");
     // 悬停时图标变成暂停：两枚图标叠在一起，CSS 切换。
     expect(button.querySelector(".k-tagging-next")).not.toBeNull();

@@ -216,47 +216,12 @@
   font-size: 12px;
 }
 
-.search-popover {
-  position: absolute;
-  z-index: 11;
-  top: calc(100% + 4px);
-  left: 12px;
-  min-width: 240px;
-  padding: 8px 12px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: var(--r-l);
-  box-shadow: var(--shadow-pop);
-}
-
-.search-popover p {
-  margin: 0 0 6px;
-}
-
-.search-popover button {
-  margin-right: 6px;
-}
-
-.search-popover .k-combo {
-  margin-bottom: 6px;
-}
-
-.search-popover-list {
-  margin: 0 0 6px;
-  padding: 0;
-  list-style: none;
-}
-
-.search-popover-list li {
-  display: flex;
-  gap: 8px;
-  padding: 2px 4px;
-  cursor: pointer;
-}
-
-.search-popover-list li:hover {
-  background: var(--line);
-}
+/* “＋”加相近标签：贴着按钮的浮层（.k-popup），一行说明，下面是挑标签的候选框。 */
+/* “＋”加相近标签的浮层：沿用 .k-popup 的 8 px 内边距，里面的输入框与选项都用 16 − 8 = 8 px 圆角；
+   提示句与输入框里的文字左对齐（输入框左内边距 10），上下留出呼吸。 */
+.k-add-similar { width: 280px; display: flex; flex-direction: column; gap: 4px; }
+.k-add-similar-head { margin: 0; padding: 6px 10px 4px; font-size: 12px; line-height: 18px; font-weight: 600; color: var(--ink-2); overflow-wrap: anywhere; }
+.k-add-similar .k-input { border-radius: var(--r-s); }
 
 /* 没有外部对应的标签：不参与内置近似对应表。 */
 .no-external::before {

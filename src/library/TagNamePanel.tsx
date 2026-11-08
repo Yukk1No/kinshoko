@@ -16,6 +16,7 @@ import { externalOptions } from "./EagleTagStep";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n/instance";
 import type { TagNamespace } from "../bindings/TagNamespace";
+import { Tip } from "../ui/Tip";
 
 const LIMIT = 80;
 /** 行描述里的类别名；一般标签不写。 */
@@ -73,7 +74,7 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
         <input aria-label={t("names.filter")} value={filter} onChange={(event) => setFilter(event.target.value)} placeholder={t("names.filterPlaceholder")} /></label>
       <label className="k-check"><input type="checkbox" checked={preferencesOnly} onChange={(event) => setPreferencesOnly(event.target.checked)} />{t("names.renamedOnly")}</label>
       <label className="k-check"><input type="checkbox" checked={unmappedOnly} onChange={(event) => setUnmappedOnly(event.target.checked)} />{t("names.unmappedOnly")}</label>
-      <label className="k-lang" title={t("names.lang")}>{t("names.langShort")}<input className="k-input" aria-label={t("names.lang")} value={lang} onChange={(event) => setLang(event.target.value)} placeholder="zh-CN" /></label>
+      <label className="k-lang">{t("names.langShort")}<input className="k-input" aria-label={t("names.lang")} value={lang} onChange={(event) => setLang(event.target.value)} placeholder="zh-CN" /></label>
     </div>
     {busy && !workspace && <p className="k-set-note" role="status">{t("names.loading")}</p>}
     {error && <p className="k-set-error" role="alert">{error}</p>}
@@ -135,7 +136,7 @@ function NameRow({ tag, lang, busy, pending, mappings, libraryName, open, onTogg
       <details className="k-more"><summary>{t("details")}</summary><p className="k-parts"><span>{i18n.t(`tags:namespaceOption.${tag.namespace}`)}</span><span>{t("names.id", { id: tag.id })}</span></p><p>{t("names.external", { names: tag.external.map((entry) => `${entry.vocabulary}:${entry.name}`).join(t("separator")) || t("none") })}</p></details>
     </div>}>
     {pending ? <StatusPill tone="accent">{t("names.pending")}</StatusPill> : preference ? <StatusPill tone="mine">{t("names.renamed")}</StatusPill> : <StatusPill>{t("names.default")}</StatusPill>}
-    <button type="button" className="k-icon-btn" aria-expanded={open} aria-label={t("names.rename", { name })} title={t("names.renameTitle")} onClick={onToggle}><PenLine size={14} aria-hidden="true" /></button>
+    <Tip label={t("names.renameTitle")}><button type="button" className="k-icon-btn" aria-expanded={open} aria-label={t("names.rename", { name })} onClick={onToggle}><PenLine size={14} aria-hidden="true" /></button></Tip>
   </SettingsRow>;
 }
 

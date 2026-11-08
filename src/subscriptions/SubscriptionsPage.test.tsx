@@ -5,6 +5,7 @@ import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { SubscriptionsPage } from "./SubscriptionsPage";
+import { tipText } from "../test/tip";
 import { account, list, NOW, recent, status } from "./subscriptions.fixtures";
 import { KINDS, type KindMount } from "./kinds";
 
@@ -82,7 +83,7 @@ describe("订阅页", () => {
     page(status());
     const row = await screen.findByRole("button", { name: /灯里/ });
     expect(within(row).getByRole("img", { name: "上次检查未完成" })).toBeTruthy();
-    expect(row.getAttribute("title")).toBe("上次检查未完成：无法连接 pixiv");
+    expect(await tipText(row)).toBe("上次检查未完成：无法连接 pixiv");
   });
 
   it("点名单里的一条只看它收进来的图，再点回到全部", async () => {
