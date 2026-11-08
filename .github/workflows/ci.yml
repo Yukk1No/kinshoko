@@ -160,12 +160,37 @@ jobs:
   workflows:
     name: 工作流检查
     runs-on: ubuntu-latest
+    env:
+      ACTIONLINT_VERSION: 1.7.7
+      # actionlint_1.7.7_checksums.txt 里 linux_amd64 那一行；升级版本时一起改。
+      ACTIONLINT_SHA256: 023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
     steps:
       - uses: actions/checkout@v4
-      - name: actionlint
+
+      # 二进制按版本缓存，命中时不连 GitHub Release；2026-11-08 Release 附件对未认证请求
+      # 反复返回 504，这个 job 连续失败 5 次。未命中时带重试下载，并对照固定的 SHA256。
+      - name: 恢复 actionlint 缓存
+        id: actionlint-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/actionlint
+          key: actionlint-${{ env.ACTIONLINT_VERSION }}-linux-amd64
+
+      - name: 下载 actionlint（缓存未命中）
+        if: steps.actionlint-cache.outputs.cache-hit != 'true'
+        env:
+          DIR: ${{ runner.temp }}/actionlint
         run: |
-          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
-          ./actionlint -color
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -sSfL --retry 5 --retry-all-errors --retry-delay 10 --connect-timeout 30 --max-time 300 \
+            -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/$archive"
+          echo "$ACTIONLINT_SHA256  $RUNNER_TEMP/$archive" | sha256sum -c -
+          mkdir -p "$DIR"
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$DIR" actionlint
+
+      - name: actionlint
+        run: '"$RUNNER_TEMP/actionlint/actionlint" -color'
 
   # 界面文字应放进 i18n 资源（#359）：有命中即失败。PR 里这次新增的行排在最前面。
   hardcoded-text:
@@ -229,6 +254,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+
+      # NSIS 工具走缓存，tauri build 不再从 GitHub Release 现下载（同 release.yml）。
+      - uses: ./.github/actions/tauri-nsis
 
       - name: Tauri 原生构建与安装包
         run: npm run build

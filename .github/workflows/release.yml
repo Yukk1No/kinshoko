@@ -56,6 +56,10 @@ jobs:
           cache: npm
       - run: npm ci
 
+      # NSIS 工具走缓存（与 ci.yml 的 Windows 应用共用缓存键），tauri build 不再从 GitHub Release 现下载：
+      # 发 v1.1.0-beta.3 时这一步的下载反复 504，构建重跑了 4 次。标签上的运行能读到 main 上存的缓存。
+      - uses: ./.github/actions/tauri-nsis
+
       - name: 版本号与标签一致
         id: version
         shell: pwsh
