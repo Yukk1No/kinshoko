@@ -108,7 +108,7 @@
 @container main (max-width: 600px) { .bar-meta { display: none; } }
 
 /* 详情面板的标签与备注（#98，#160）：现有标签是小标签，只写名称；出处、可信度与操作在悬停或聚焦时的浮层里。
-   一个加标签字段（类别 + 输入）。 */
+   一个加标签的输入框，类别在新建项的行尾选。 */
 .k-tags { gap: 8px; font-size: 12px; }
 .k-tags .k-tag-chips { flex-direction: row; flex-wrap: wrap; gap: 6px; }
 .k-tags .k-tag-chip { position: relative; display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 4px; min-height: 26px; padding: 0 8px; border-radius: var(--r-s); background: var(--tag-fill); color: var(--ink); cursor: default; }
@@ -150,14 +150,16 @@
 .k-tags .k-tag-restore { height: 20px; padding: 0 6px; border: 0; border-radius: var(--r-xs); background: none; color: var(--accent-strong); font: inherit; font-size: 12px; }
 .k-tags .k-tag-restore:hover { background: var(--accent-soft); }
 .k-tags .k-tag-add { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
-/* 添加标签：输入框前是命名空间的小选择（24 高，与输入框同心：10 − 4 = 6）。 */
-.k-tag-field.k-input { padding-left: 4px; }
-.k-tag-field .k-select.k-tag-kind { flex: none; width: auto; height: 24px; gap: 2px; padding: 0 4px 0 8px; border-radius: var(--r-xs); background: var(--surface-2); color: var(--ink-2);
-  font-size: 12px; box-shadow: none; }
-.k-tag-field .k-select.k-tag-kind:hover:not(:disabled) { background: var(--hover); box-shadow: none; }
-.k-tag-field .k-select.k-tag-kind:focus-visible, .k-tag-field .k-select.k-tag-kind[data-popup-open] { box-shadow: none; background: var(--hover); color: var(--ink); }
-.k-tag-field .k-tag-kind > .lucide { width: 14px; height: 14px; }
-.k-tags .k-tag-add-acts { display: flex; gap: 6px; margin: 0; }
+/* 添加标签的新建项（在浮层里）：名称下面一行选类别，与名称左对齐（16 指示列 + 8 间距）；四个 24 高的小块，
+   选中的是 accent-soft 底配 accent-strong 字。详情面板最窄 280，排在同一行会把名称挤得折行。 */
+.k-option.is-create:has(.k-tag-kinds) { flex-wrap: wrap; row-gap: 2px; padding-block: 4px; }
+.k-option.is-create > .k-option-acts:has(.k-tag-kinds) { flex-basis: 100%; margin: 0 -6px 0 16px; padding-left: 8px; box-sizing: border-box; }
+.k-tag-kinds { display: flex; gap: 2px; margin-left: -6px; }
+.k-tag-kinds-clear { margin-left: auto; }
+.k-tag-kind { display: inline-flex; align-items: center; height: 24px; padding: 0 6px; border: 0; border-radius: var(--r-xs); background: none; color: var(--ink-2);
+  font: inherit; font-size: 12px; cursor: pointer; }
+.k-tag-kind:hover { background: var(--press); color: var(--ink); }
+.k-tag-kind[aria-checked="true"] { background: var(--accent-soft); color: var(--accent-strong); }
 .k-tag-alias { gap: 8px; padding: 8px; border: 0; border-radius: var(--r); background: var(--sunken); }
 .k-tag-alias .k-tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .k-tag-alias .k-tag-chips li { display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 3px 0 8px; border-radius: var(--r-xs); background: var(--surface); }

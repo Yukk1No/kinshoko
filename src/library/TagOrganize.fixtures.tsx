@@ -1,6 +1,6 @@
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
 import { workspaceFixture } from "../test/workspace-fixture";
-import { afterEach, beforeEach } from "vitest";
+import { afterEach, beforeEach, expect } from "vitest";
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
@@ -340,3 +340,23 @@ export async function selectOnly(id: string) {
   fireEvent.keyDown(card(id), { key: " " });
 }
 
+
+/**
+ * 在详情面板的“添加标签”里输入 `name` 并选一行：默认选第一行（匹配的标签，或没有匹配时的新建项）；
+ * `create` 选新建项，`kind` 先在新建项上选类别；`reject` 用 Alt+回车排除。
+ */
+export async function addTag(name: string, { create, kind, reject }: { create?: boolean; kind?: string; reject?: boolean } = {}) {
+  const input = screen.getByRole("combobox", { name: "标签名" });
+  input.focus();
+  fireEvent.change(input, { target: { value: name } });
+  const list = await screen.findByRole("listbox", { name: "标签名" });
+  if (create || kind) {
+    const row = await within(list).findByRole("option", { name: /^新建/ });
+    if (kind) fireEvent.click(within(row).getByRole("radio", { name: kind }));
+    await waitFor(() => expect(within(row).queryByRole("radio", { checked: true })?.textContent).toBe(kind ?? "一般"));
+    fireEvent.click(row);
+    return;
+  }
+  await within(list).findAllByRole("option");
+  fireEvent.keyDown(input, { key: "Enter", altKey: !!reject });
+}

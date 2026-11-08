@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "../App";
-import { fake, sent, card, selectOnly } from "./TagOrganize.fixtures";
+import { fake, sent, card, selectOnly, addTag } from "./TagOrganize.fixtures";
 import { chooseValue } from "../test/select";
 
 async function openGroups() {
@@ -64,8 +64,7 @@ describe("标签分组", () => {
     await screen.findAllByRole("img");
     fireEvent.keyDown(card("b"), { key: " " });
     await screen.findByRole("list", { name: "有效标签" });
-    fireEvent.change(screen.getByRole("combobox", { name: "标签名" }), { target: { value: "蓝发" } });
-    fireEvent.click(screen.getByRole("button", { name: "添加标签" }));
+    await addTag("蓝发");
     expect(await within(await openGroups()).findByRole("button", { name: "蓝发（2 张）" })).toBeTruthy();
   });
 

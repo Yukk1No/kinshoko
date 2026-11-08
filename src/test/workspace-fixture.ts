@@ -61,7 +61,7 @@ export function workspaceFixture(handler: Handler): Handler {
     }
     const remap: Record<string, string> = {
       workspace_sidebar: "sidebar", workspace_resolve: "resolve_search",
-      workspace_candidates: "search_candidates", workspace_tag_groups: "tag_groups",
+      workspace_candidates: "search_candidates", workspace_library_candidates: "search_candidates", workspace_tag_groups: "tag_groups",
     };
     const name = command.replace("plugin:library|", "");
     if (remap[name]) return handler("plugin:library|" + remap[name], { libraryId: current()?.id ?? "L1", ...args });

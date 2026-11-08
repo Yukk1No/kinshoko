@@ -20,6 +20,11 @@ export type ComboboxOption = {
   /** 分组名：和上一项不同时，先列一行分组名。 */
   group?: string;
   create?: boolean;
+  /**
+   * 行尾的小按钮（例如“排除”）。按钮不可聚焦（焦点留在输入框里），点它不选中这一行。
+   * 有 `meta` 时，高亮的行用按钮换掉读数，宽度不变。
+   */
+  actions?: ReactNode;
 };
 
 /** 把 `text` 里与 `query` 相同的部分（不分大小写）包进 `<mark>`。 */
@@ -167,6 +172,7 @@ export function Combobox<T extends ComboboxOption>({
         {option.untranslated && <Tip label={i18n.t("tags:untranslatedFlag")}><span className="k-option-flag" role="img" aria-label={i18n.t("tags:untranslatedFlag")}><Languages size={14} aria-hidden="true" /></span></Tip>}
         {option.via && <span className="k-option-via">{option.via}</span>}
         {option.meta !== undefined && option.meta !== null && <span className="k-item-meta">{option.meta}</span>}
+        {option.actions && <span className="k-option-acts" onClick={(event) => event.stopPropagation()}>{option.actions}</span>}
       </div>
     </Fragment>;
   });

@@ -52,6 +52,14 @@ input.k-input { display: inline-block; text-overflow: ellipsis; }
 /* 与候选名称左对齐：8 内边距 + 16 指示列 + 8 间距。 */
 .k-option-empty { display: flex; align-items: center; min-height: 32px; padding: 0 10px 0 32px; color: var(--ink-2); cursor: default; }
 .k-option.is-create .k-item-ind { color: var(--ink-3); }
+/* 行尾的小按钮（24 高，与 32 高、8 圆角的行同心：8 − 4 = 4）。有读数的行平时显示读数，高亮时换成按钮；名称不动。 */
+.k-option-acts { flex: none; display: flex; align-items: center; gap: 2px; margin: 0 -6px 0 auto; }
+.k-option .k-item-meta + .k-option-acts, .k-option[data-highlighted] .k-item-meta:has(+ .k-option-acts) { display: none; }
+.k-option[data-highlighted] .k-item-meta + .k-option-acts { display: flex; }
+.k-option-act { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-xs); background: none; color: var(--ink-3); cursor: pointer; }
+.k-option-act:hover { background: var(--press); color: var(--ink); }
+/* 悬停“排除”时名称划掉，与已排除的标签同样子。 */
+.k-option:has(.k-option-act.is-reject:hover) .k-item-label, .k-option:has(.k-option-act.is-reject:hover) .k-item-label mark { text-decoration: line-through; text-decoration-thickness: 1px; color: var(--ink-2); }
 
 /* ---- Select ---- */
 .k-select { display: flex; align-items: center; gap: 8px; box-sizing: border-box; width: 100%; min-width: 0; min-height: 32px; padding: 4px 8px 4px 10px; border: 0; border-radius: var(--r);
