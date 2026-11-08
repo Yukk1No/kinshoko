@@ -7,7 +7,9 @@
    glyphs instead. The 0.04em moves the text down by half that: Han ink sits ~0.02em above Inter's cap centre.
    Clip only inline: the trimmed box is shorter than the glyphs. WebView2 before Chromium 133 ignores text-box, so
    the nudge comes with the trim or not at all. */
-.k-label { min-width: 0; white-space: nowrap; overflow-x: clip; text-overflow: ellipsis; }
+.k-label { min-width: 0; overflow-x: clip; }
+/* 用户自己起的名字（Name 组件，src/ui/Name.tsx）是唯一可以用省略号截断的文字；程序自己的文字放不下就换行、改短或让容器变宽（#481）。 */
+.k-name { min-width: 0; white-space: nowrap; overflow-x: clip; text-overflow: ellipsis; }
 @supports (text-box: trim-both cap alphabetic) {
   .k-label { padding-top: 0.04em; text-box: trim-both cap alphabetic; }
 }
@@ -67,12 +69,12 @@
 .k-popup:is([data-side="right"], [data-side="inline-end"]) { --k-pop-x: -4px; }
 .k-popup:not([data-k-level]):is([data-starting-style], [data-ending-style]) { opacity: 0; transform: translate(var(--k-pop-x), var(--k-pop-y)) scale(0.96); }
 .k-item { position: relative; display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px 0 8px; border-radius: var(--r-s); outline: 0; cursor: default;
-  user-select: none; white-space: nowrap; color: var(--ink); }
+  user-select: none; color: var(--ink); }
 .k-item[data-highlighted] { background: var(--hover); }
 .k-item[data-disabled] { opacity: 0.5; }
 .k-item-ind { width: 16px; flex: none; display: grid; place-items: center; color: var(--ink-3); }
 .k-item-ind svg.lucide-check { color: var(--accent-strong); }
-.k-item-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.k-item-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .k-item-meta { margin-left: auto; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
 .k-item-meta.is-warn { color: var(--warn); }
 .k-item.is-danger { color: var(--danger); }
@@ -192,12 +194,12 @@
 .k-list-icon { width: 28px; height: 28px; flex: none; border-radius: var(--r-xs); display: grid; place-items: center; background: var(--surface-2); color: var(--ink-2); }
 .k-list-text { flex: 1; min-width: 0; }
 .k-list-title { font-weight: 500; }
-.k-list-desc { margin: 0; color: var(--ink-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-list-desc { margin: 0; color: var(--ink-2); font-size: 12px; overflow-wrap: anywhere; }
 .k-list-desc.is-warn { color: var(--warn); white-space: normal; overflow-wrap: anywhere; }
 .k-list-end { display: flex; align-items: center; gap: 8px; flex: none; }
 /* the item's current state (version, progress, place): ink-2 beside the control, never a line of its own */
-.k-list-meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; }
-.k-pill { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; background: var(--surface-2); color: var(--ink-2); }
+.k-list-meta { min-width: 0; overflow-wrap: anywhere; color: var(--ink-2); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; }
+.k-pill { display: inline-flex; white-space: nowrap; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; background: var(--surface-2); color: var(--ink-2); }
 /* a pill's text is the `*-strong` colour on its `*-soft` fill */
 .k-pill.is-ok { background: var(--ok-soft); color: var(--ok-strong); }
 .k-pill.is-warn { background: var(--warn-soft); color: var(--warn-strong); }

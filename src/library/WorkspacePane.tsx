@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { Name } from "../ui/Name";
 import { ChevronDown, ChevronRight, Images, MoreHorizontal, Trash2 } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { useTranslation } from "react-i18next";
@@ -206,7 +207,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
             onDragLeave={() => setHeadDrop(null)}
             onDrop={(e) => { e.preventDefault(); setHeadDrop(null); dropFolderHere(e); }}
             onClick={() => onScope({ kind: "library", libraryId: library.id, scope: { kind: "all" } })}>
-            <span className="sidebar-label k-label">{library.name}</span>
+            <Name className="sidebar-label k-label">{library.name}</Name>
             {unavailable ? <span className="lib-dot is-off" aria-hidden="true" /> : <span className="sidebar-count k-label">{sidebar?.all ?? "…"}</span>}
           </button></Tip>
           {unavailable && onRecheck && <button type="button" className="offline-retry" onClick={onRecheck}><span className="k-label">{t("scope.reconnect")}</span></button>}
@@ -253,7 +254,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
           <FluidList>{connected.map((p, index) => <FluidRow key={p.registration.library.id} index={index}>
             <Tip label={p.registration.library.root} align="start"><button type="button" className="sidebar-item k-row trash-group-row" aria-label={t("trash.libraryCount", { name: p.registration.library.name, count: p.sidebar?.trash ?? 0 })}
               onClick={() => onScope(trashOf(p.registration.library.id))}>
-              <span className="sidebar-label k-label">{p.registration.library.name}</span>
+              <Name className="sidebar-label k-label">{p.registration.library.name}</Name>
               <span className="sidebar-count k-label">{p.sidebar?.trash ?? 0}</span>
             </button></Tip>
           </FluidRow>)}</FluidList>

@@ -1,5 +1,6 @@
 import { errorText } from "../ipc/commandError";
 import { useEffect, useRef, useState } from "react";
+import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import { formatMoment } from "../i18n/format";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
@@ -122,7 +123,7 @@ function Detail({
       <section className="insp-sec selection-folders" aria-label={t("folders.label")}>
         <h4>{t("folders.title")}</h4>
         {detail.folders.length
-          ? <ul className="insp-chips">{detail.folders.map((folder) => <li key={folder.id} className="insp-chip"><span className="k-label">{folder.name}</span></li>)}</ul>
+          ? <ul className="insp-chips">{detail.folders.map((folder) => <li key={folder.id} className="insp-chip"><Name className="k-label">{folder.name}</Name></li>)}</ul>
           : <p className="insp-hint">{t("folders.none")}</p>}
       </section>
       {/* 备注（#98）：字段用改版样式；有未保存的改动才出现“保存”，有自己写的备注才能“用来源的”。 */}
