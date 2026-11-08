@@ -109,10 +109,10 @@ export function LibraryWorkspace({
   // 修订变化后的选择修剪：等图片墙读完新的结果，然后只保留仍在的图。范围或安全模式变了时图片墙先清空（等它读完）；
   // 只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
   useEffect(() => { invalidate({ kind: "pageAccepted", ready: resultCount !== null }); }, [loadedCards, resultCount]);
-  const { viewingIndex, step } = useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall });
+  const { viewingIndex, step, loaded } = useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall });
   /** 序号在飞回途中留着：顶栏淡出时不跳动。 */
   const viewerPosition = useRef<{ index: number; total: number } | undefined>(undefined);
-  if (viewing) viewerPosition.current = viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loadedCards.length) };
+  if (viewing) viewerPosition.current = viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loaded) };
   const { status, onWallStatus, recheck } = useWorkspaceStatus({ safe, onError, invalidate, observations });
 
   // 视角一变就在这次渲染里推进重读序号（#183）：图片墙的重新浏览与视角变化在同一次提交里、
