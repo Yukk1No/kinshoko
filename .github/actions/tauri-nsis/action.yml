@@ -1,0 +1,44 @@
+name: Tauri NSIS 工具
+description: >-
+  恢复或预取 tauri build 打 NSIS 安装包要用的工具（%LOCALAPPDATA%\tauri\NSIS），
+  让 tauri build 不再从 GitHub Release 现下载。放在 tauri build 之前。
+  缓存键含 Tauri CLI 版本（取自 package-lock.json）；未命中时用带重试的 curl 下载并校验 SHA1，
+  见 scripts/release/fetch-tauri-nsis.ps1。
+
+runs:
+  using: composite
+  steps:
+    - name: 读取 Tauri CLI 版本
+      id: cli
+      shell: pwsh
+      run: |
+        $lock = Get-Content package-lock.json -Raw | ConvertFrom-Json -AsHashtable
+        $version = $lock.packages['node_modules/@tauri-apps/cli'].version
+        if (-not $version) { throw "package-lock.json 里没有 @tauri-apps/cli" }
+        "version=$version" >> $env:GITHUB_OUTPUT
+
+    # 只在这里保存，不等 job 结束：后面构建或测试失败时缓存也留下来。
+    - name: 恢复 NSIS 工具缓存
+      id: restore
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/AppData/Local/tauri/NSIS
+        key: tauri-nsis-${{ runner.os }}-cli-${{ steps.cli.outputs.version }}
+
+    - name: 预取 NSIS 工具（缓存未命中）
+      id: fetch
+      if: steps.restore.outputs.cache-hit != 'true'
+      shell: pwsh
+      env:
+        CLI_VERSION: ${{ steps.cli.outputs.version }}
+      run: |
+        ./scripts/release/fetch-tauri-nsis.ps1 -CliVersion $env:CLI_VERSION
+        $fetched = Test-Path (Join-Path $env:LOCALAPPDATA 'tauri/NSIS/makensis.exe')
+        "fetched=$($fetched.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+
+    - name: 保存 NSIS 工具缓存
+      if: steps.fetch.outputs.fetched == 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/AppData/Local/tauri/NSIS
+        key: ${{ steps.restore.outputs.cache-primary-key }}
