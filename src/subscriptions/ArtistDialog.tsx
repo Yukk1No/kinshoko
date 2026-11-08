@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Name } from "../ui/Name";
 import { Dialog } from "@base-ui/react/dialog";
 import { CircleAlert, LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -95,7 +96,7 @@ export function ArtistDialog({ status, list, onClose, onAdded, onImport }: {
         {found && <div className="subs-artist-found">
           <span className="subs-avatar" aria-hidden="true">{found.name.slice(0, 1).toUpperCase()}</span>
           <span className="subs-account-text">
-            <span className="subs-account-name">{found.name}</span>
+            <Name className="subs-account-name">{found.name}</Name>
             <span className="subs-account-sub">{t("id", { id: found.userId })}</span>
           </span>
           {already && <span className="k-pill"><span className="k-label">{t("already")}</span></span>}

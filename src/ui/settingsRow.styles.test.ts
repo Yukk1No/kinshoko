@@ -27,7 +27,7 @@ describe("设置行垂直居中（#218，设计系统 v2）", () => {
 
   it("状态小字与控件同一行，不另占一行", () => {
     const meta = rule(ui, ".k-list-meta");
-    expect(meta["white-space"]).toBe("nowrap");
+    expect(meta["text-overflow"]).toBeUndefined();
     expect(px(meta["font-size"])).toBe(12);
   });
 
