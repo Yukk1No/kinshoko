@@ -8,7 +8,7 @@ import { PermanentDeleteConfirm } from "./SelectionPanel";
 import { Switch } from "../ui/Switch";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
-import { describeCommandError } from "../ipc/commandError";
+import { describeCommandError, errorText } from "../ipc/commandError";
 import { isCursorExpired, isLensChanged, moveFolder, revealLibrary, unregisterLibrary, workspaceDirectories } from "../ipc";
 import { acceptsDrag, DRAG_FOLDER, DRAG_FOLDER_LIBRARY, LAST, SidebarPane } from "./SidebarPane";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
@@ -30,9 +30,9 @@ export const SPRING_OPEN_MS = 600;
  * 拖动图片或文件夹悬停在折起的图库上约 0.6 秒自动展开，放下或离开后恢复。每个已连接图库的目录都能
  * 直接整理（ADR-0008）；未连接的图库只占一行并可就地重新连接。底部固定跟随所选图库的回收站。
  */
-export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onError, onRecheck, onRemoved, onRestore, children }: {
+export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onError, onMessage, onRecheck, onRemoved, onRestore, children }: {
   status: WorkspaceStatus | null; scope: WorkspaceScope; onScope: (scope: WorkspaceScope) => void;
-  safeMode: boolean; reloadKey: number; onError: (error: unknown) => void;
+  safeMode: boolean; reloadKey: number; onError: (error: unknown) => void; onMessage?: (message: string) => void;
   /** 重新检查未连接的图库（移动盘接回后）。 */
   onRecheck?: () => void;
   /** 图库标题菜单“从列表移除”完成后（取消登记，文件不删）。 */
@@ -114,7 +114,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
   const [trashList, setTrashList] = useState(false);
   /** 正在确认清空回收站的图库。 */
   const [emptying, setEmptying] = useState<{ libraryId: string; name: string } | null>(null);
-  const reveal = (libraryId: string) => { revealLibrary(libraryId).catch((e) => onError(t("scope.revealFailed", { error: String(e) }))); };
+  const reveal = (libraryId: string) => { revealLibrary(libraryId).catch((e) => onMessage?.(t("scope.revealFailed", { error: errorText(e) }))); };
   // 移除完成时按那时的范围判断：正浏览这个图库（任一范围）就回到“全部图片”（同时清掉选择），
   // 不再向已取消登记的图库请求浏览。
   const latestScope = useRef(scope);
@@ -124,7 +124,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
     const current = latestScope.current;
     if (current.kind === "library" && current.libraryId === library.id) onScope({ kind: "all" });
     onRemoved?.(library.id);
-    if (!unavailable && onRestore) offerUndoRemoval(toast, library, onRestore, onError);
+    if (!unavailable && onRestore) offerUndoRemoval(toast, library, onRestore, (message) => onMessage?.(message));
   }, (e) => onError(e)); };
   const emptyItem = (p: WorkspaceDirectory, label: string) => <MenuItem key={p.registration.library.id} icon={<Trash2 size={14} />} danger
     disabled={!p.sidebar || p.sidebar.trash === 0} onClick={() => setEmptying({ libraryId: p.registration.library.id, name: p.registration.library.name })}>{label}</MenuItem>;
@@ -261,6 +261,6 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
       </>}
     </div>
     {emptying && <PermanentDeleteConfirm libraryId={emptying.libraryId} ids={[]} emptyTrash={{ libraryName: emptying.name }}
-      onDone={() => setEmptying(null)} onCancel={() => setEmptying(null)} onError={onError} />}
+      onDone={() => setEmptying(null)} onCancel={() => setEmptying(null)} onError={(message) => onMessage?.(message)} />}
   </nav>;
 }

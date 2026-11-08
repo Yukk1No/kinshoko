@@ -151,7 +151,7 @@ export function LibraryWorkspace({
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
   const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
-    safe, onError,
+    safe, onError: toast.error,
     onOpen: (card) => { setViewCrop(false); setViewing(card); },
     onCrop: (card) => { setViewCrop(true); setViewing(card); },
     onInspect: (card) => openSources(card as WorkspaceCard),
@@ -174,7 +174,7 @@ export function LibraryWorkspace({
       <div className="app-body" ref={setAppBody} data-viewer-flying={flight.dim || undefined} style={{ "--sidebar-width": `${panes.sidebar}px` } as CSSProperties}>
         {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
         <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} paneRef={setSidebarElement} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
-          status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} recheck={recheck}
+          status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} onMessage={toast.error} recheck={recheck}
           onLibraryRemoved={onLibraryRemoved} onLibraryRestore={onLibraryRestore} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
           onScope={(next) => {
             // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。

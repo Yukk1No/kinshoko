@@ -11,7 +11,7 @@ import { importPrefill } from "./savePrefill";
 import type { SaveDestination } from "../bindings/SaveDestination";
 import { Select } from "../ui/Select";
 import { useTranslation } from "react-i18next";
-import { describeCommandError } from "../ipc/commandError";
+import { describeCommandError, errorText } from "../ipc/commandError";
 
 const POLL_MIN=400,POLL_MAX=3200;
 
@@ -77,7 +77,7 @@ export function ImportMenu({control,...p}:Omit<ComponentProps<typeof ImportBar>,
     if(signature!==last){last=signature;setTasks(next);}
    },error=>{
     // 读取期间修订变了只是过时，下一次轮询重读，不显示成问题（#98 本机 r16）。
-    if(alive&&expected===epoch&&!isCursorExpired(error))setProblem(String(error));
+    if(alive&&expected===epoch&&!isCursorExpired(error))setProblem(errorText(error));
    }).finally(schedule);
   }
   poke.current=()=>{delay=POLL_MIN;schedule();};
@@ -101,7 +101,7 @@ export function ImportMenu({control,...p}:Omit<ComponentProps<typeof ImportBar>,
  const blocked=busy.busy||active||inTrash;
  const clipboard=async()=>{
   if(inTrash)return;
-  if(blocked)throw t("busyClipboard");
+  if(blocked)throw { code: "message", message: t("busyClipboard") };
   const path=await stageClipboardImport();
   actions.current?.paths([path]);
  };
@@ -134,7 +134,7 @@ export function ImportMenu({control,...p}:Omit<ComponentProps<typeof ImportBar>,
       if(task?.report){
         optimistic.current.delete(task.taskId);dismissed.current.add(task.taskId);
         setTasks(previous=>previous.filter(t=>t.taskId!==task.taskId));
-        void dismissImport(task.destination.libraryId,task.taskId).catch(error=>{dismissed.current.delete(task.taskId);setProblem(String(error));});
+        void dismissImport(task.destination.libraryId,task.taskId).catch(error=>{dismissed.current.delete(task.taskId);setProblem(errorText(error));});
       }
       p.onDismissReport();
     }}/>

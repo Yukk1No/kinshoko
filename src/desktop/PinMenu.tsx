@@ -13,6 +13,7 @@ import {
   type PinMenuAction,
 } from "../ipc";
 import { pinNoticeText } from "./pinNotice";
+import { errorText } from "../ipc/commandError";
 
 /** 透明度子菜单的几档（百分比），与原生菜单相同。Ctrl+滚轮可以调到中间的值。 */
 export const OPACITY_STEPS = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
@@ -25,7 +26,7 @@ function GroupList({ load, act }: { load: () => Promise<GroupSummary[]>; act: (a
   const [state, setState] = useState<{ items: GroupSummary[] | null; problem: string | null }>({ items: null, problem: null });
   useEffect(() => {
     let alive = true;
-    load().then((items) => alive && setState({ items, problem: null }), (e) => alive && setState({ items: [], problem: String(e) }));
+    load().then((items) => alive && setState({ items, problem: null }), (e) => alive && setState({ items: [], problem: errorText(e) }));
     return () => { alive = false; };
     // 每次打开子菜单只读一次。
   }, []);

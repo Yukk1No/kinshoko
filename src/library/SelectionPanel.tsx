@@ -1,3 +1,4 @@
+import { errorText } from "../ipc/commandError";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatMoment } from "../i18n/format";
@@ -183,7 +184,7 @@ export function PermanentDeleteConfirm({
   safeMode?: boolean;
   onDone: () => void;
   onCancel: () => void;
-  onError: (error: unknown) => void;
+  onError: (message: string) => void;
 }) {
   const [preview, setPreview] = useState<PermanentDeletePreview | null>(null);
   const [changed, setChanged] = useState(false);
@@ -196,7 +197,7 @@ export function PermanentDeleteConfirm({
     (emptyTrash ? previewEmptyTrash(libraryId) : previewPermanentDelete(libraryId, ids)).then(
       (value) => { if (currentKey.current === key) setPreview(value); }, (e) => {
       if (currentKey.current !== key) return;
-      onError(e);
+      onError(errorText(e));
       onCancel();
     });
 
@@ -223,7 +224,7 @@ export function PermanentDeleteConfirm({
           setPreview(null);
           void load();
         } else {
-          onError(e);
+          onError(errorText(e));
         }
       },
     );

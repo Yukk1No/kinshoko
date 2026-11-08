@@ -236,7 +236,7 @@ describe("设置 › 自动标签 › 模型", () => {
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\坏包.zip"];
     backend({
       handle: (cmd) => {
-        if (cmd === "tagging_import_package") throw "模型包校验失败：model.onnx 已损坏";
+        if (cmd === "tagging_import_package") throw { code: "message", message: "模型包校验失败：model.onnx 已损坏" };
         return undefined;
       },
     });

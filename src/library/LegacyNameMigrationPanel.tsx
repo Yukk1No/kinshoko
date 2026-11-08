@@ -7,7 +7,7 @@ import type { LegacyNameGroup } from "../bindings/LegacyNameGroup";
 import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrationWorkspace";
 import type { LegacyNameMigrationPreview } from "../bindings/LegacyNameMigrationPreview";
 import type { LegacyNameResolution } from "../bindings/LegacyNameResolution";
-import { describeCommandError } from "../ipc/commandError";
+import { describeCommandError, errorText } from "../ipc/commandError";
 import { confirmLegacyNames, onLibraryEvent, onSafeModeSetting, onWorkspaceChanged, planLegacyNames, previewLegacyNames } from "../ipc";
 import { languageName } from "../tags/languages";
 import { DialogHeight, DialogSwap } from "../ui/DialogHeight";
@@ -64,7 +64,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
       if (request !== generation.current) return;
       setView(next); setSaved(confirming); setSelected({}); setPage(0);
       if (confirming) window.dispatchEvent(new Event(CHANGED));
-    } catch (reason) { if (request === generation.current) setError(String(reason)); }
+    } catch (reason) { if (request === generation.current) setError(errorText(reason)); }
     finally { if (request === generation.current) setBusy(false); }
   }
   useEffect(() => { if (open) void run(planLegacyNames); else reset(); }, [open]);
@@ -103,7 +103,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
     setPreviewBusy(true);
     void previewLegacyNames(view.plan.revision, decisions).then((next) => {
       if (alive && request === generation.current) { setPreview(next); setPreviewChoiceKey(choiceKey); }
-    }).catch((reason) => { if (alive && request === generation.current) setError(String(reason)); }).finally(() => { if (alive && request === generation.current) setPreviewBusy(false); });
+    }).catch((reason) => { if (alive && request === generation.current) setError(errorText(reason)); }).finally(() => { if (alive && request === generation.current) setPreviewBusy(false); });
     return () => { alive = false; };
   }, [view, selected]);
 
