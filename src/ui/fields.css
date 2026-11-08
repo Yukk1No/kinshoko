@@ -54,13 +54,13 @@ input.k-input { display: inline-block; text-overflow: ellipsis; }
 .k-option.is-create .k-item-ind { color: var(--ink-3); }
 
 /* ---- Select ---- */
-.k-select { display: flex; align-items: center; gap: 8px; box-sizing: border-box; width: 100%; min-width: 0; height: 32px; padding: 0 8px 0 10px; border: 0; border-radius: var(--r);
+.k-select { display: flex; align-items: center; gap: 8px; box-sizing: border-box; width: 100%; min-width: 0; min-height: 32px; padding: 4px 8px 4px 10px; border: 0; border-radius: var(--r);
   background: var(--surface); color: var(--ink); font: inherit; text-align: left; box-shadow: inset 0 0 0 1px var(--line-2); transition: box-shadow var(--t-fast); }
 .k-select:has(> .lucide:first-child) { padding-left: 8px; }
 .k-select:hover:not(:disabled):not([data-disabled]):not([data-popup-open]):not(:focus-visible) { box-shadow: inset 0 0 0 1px var(--ink-3); }
 .k-select:focus-visible, .k-select[data-popup-open] { outline: 0; box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 4px var(--accent-soft); }
 .k-select:disabled, .k-select[data-disabled] { opacity: 0.5; }
-.k-select-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-select-value { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .k-select > .lucide { flex: none; color: var(--ink-3); }
 .k-select > .lucide:last-child { transition: transform var(--t-slow) var(--spring); }
 .k-select[data-popup-open] > .lucide:last-child { transform: rotate(180deg); }

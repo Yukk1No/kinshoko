@@ -31,7 +31,6 @@ export default {
     personal: "个人",
     dismissLabel: "不带“{{name}}”的相近标签",
     addLabel: "给“{{name}}”加相近标签",
-    addGlyph: "＋",
   },
   dismiss: {
     label: "不带相近标签",

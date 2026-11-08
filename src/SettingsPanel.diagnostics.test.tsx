@@ -106,7 +106,7 @@ describe("设置：更新", () => {
   it("保存通道失败时留在原来的通道，不重新检查", async () => {
     const calls = backend((cmd) => {
       if (cmd === "update_status") return { state: "upToDate" };
-      if (cmd === "set_update_channel") throw "读写设置文件失败：磁盘已满";
+      if (cmd === "set_update_channel") throw { code: "message", message: "读写设置文件失败：磁盘已满" };
       return undefined;
     });
     render(<SettingsPanel initialTab="update" />);

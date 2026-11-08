@@ -1,8 +1,8 @@
 import { SaveDestinationDialog } from "../library/SaveDestination";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { i18n } from "../i18n/instance";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
+import { i18n } from "../i18n/instance";
 import { BookmarkPlus, FolderInput, Layers, ListTree, MoreHorizontal, PackageOpen, Trash2 } from "lucide-react";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import { CaptureGroupSaveDialog } from "./CaptureGroupSaveDialog";
@@ -10,7 +10,7 @@ import { draftCaptureSave, type CaptureSaveDraft, type CaptureSavePlan } from ".
 import { GroupNameForm } from "./GroupNameForm";
 import { useToast } from "../ui/Toast";
 import { ago } from "./relativeTime";
-import { describeCommandError, unavailableReasonText } from "../ipc/commandError";
+import { describeCommandError, errorText, unavailableReasonText } from "../ipc/commandError";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -18,6 +18,8 @@ import type { CaptureChoice } from "../bindings/CaptureChoice";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import {
   deleteReferenceGroup,
+  purgeDeletedReferenceGroup,
+  restoreReferenceGroup,
   exportReferenceGroupPackage,
   importReferenceGroupPackage,
   groupSaveCaptures,
@@ -65,7 +67,6 @@ export function ReferenceGroupsPanel() {
   const tell = (text: string | null) => { if (text) toast.show({ title: text, tone: "success" }); };
   const [expanded, setExpanded] = useState<ReferenceGroupView | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
   const [removing, setRemoving] = useState<{ groupId: string; memberId: string } | null>(null);
   const [captureSave, setCaptureSave] = useState<CaptureSaveDraft<SaveTarget> | null>(null);
   const [importing,setImporting]=useState(false);
@@ -78,7 +79,7 @@ export function ReferenceGroupsPanel() {
   const reload = useCallback(() => {
     referenceGroups()
       .then(setGroups)
-      .catch((e) => toast.error(String(e)));
+      .catch((e) => toast.error(errorText(e)));
     registeredLibraries()
       .then((list) => {
         setLibraryNames(new Map(list.map((r) => [r.library.id, r.library.name])));
@@ -108,6 +109,24 @@ export function ReferenceGroupsPanel() {
     try {
       const value = await action();
       if (done) tell(done(value));
+    } catch (e) {
+      toast.error(errorText(e));
+    }
+  };
+
+  /** 删除参考组能撤销，所以不先确认：直接删，再给带“撤销”的轻提示。提示关了还没撤销就真正删除暂放的那份。 */
+  const removeGroup = async (g: GroupSummary) => {
+    let undone = false;
+    try {
+      const deleted = await deleteReferenceGroup(g.id);
+      toast.show({
+        title: t("deleted"), description: g.name, tone: "success",
+        action: { label: t("undo"), onClick: () => {
+          undone = true;
+          restoreReferenceGroup(deleted).catch((e) => { toast.error(String(e)); });
+        } },
+        onClose: () => { if (!undone) void purgeDeletedReferenceGroup(g.id).catch(() => {}); },
+      });
     } catch (e) {
       toast.error(String(e));
     }
@@ -162,7 +181,6 @@ export function ReferenceGroupsPanel() {
     } finally { setSaving(false); }
   };
 
-  const deletingGroup = groups?.find((g) => g.id === deleting);
   return (
     <section className="reference-groups" aria-label={t("label")}>
       <header className="reference-groups-bar">
@@ -207,7 +225,7 @@ export function ReferenceGroupsPanel() {
               )}
               {on && renaming?.id !== g.id && (g.problem ? (
                 <span className="reference-group-actions">
-                  <button type="button" className="k-btn is-sm" onClick={() => setDeleting(g.id)}><Trash2 size={13} aria-hidden="true" /><span className="k-label">{t("delete")}</span></button>
+                  <button type="button" className="k-btn is-sm" onClick={() => void removeGroup(g)}><Trash2 size={13} aria-hidden="true" /><span className="k-label">{t("delete")}</span></button>
                 </span>
               ) : (
                 <span className="reference-group-actions">
@@ -228,7 +246,7 @@ export function ReferenceGroupsPanel() {
                         (path) => (path ? t("exported", { path: String(path) }) : null),
                       )}>{t("export")}</MenuItem>
                       <MenuSeparator />
-                      <MenuItem icon={<Trash2 size={14} />} danger onClick={() => setDeleting(g.id)}>{t("delete")}</MenuItem>
+                      <MenuItem icon={<Trash2 size={14} />} danger onClick={() => void removeGroup(g)}>{t("delete")}</MenuItem>
                     </MenuPopup>
                   </Menu.Root>
                 </span>
@@ -255,23 +273,6 @@ export function ReferenceGroupsPanel() {
       <footer className="reference-groups-foot">
         <button type="button" className="k-btn is-sm is-ghost" onClick={() => setImporting(true)}><FolderInput size={13} aria-hidden="true" /><span className="k-label">{t("import")}</span></button>
       </footer>
-      <AlertDialog.Root open={!!deletingGroup} onOpenChange={(open) => { if (!open) setDeleting(null); }}>
-        <AlertDialog.Portal>
-          <AlertDialog.Backdrop className="k-backdrop" />
-          <AlertDialog.Popup className="k-dialog is-alert">
-            <AlertDialog.Title className="k-dialog-title">{t("deleteTitle")}</AlertDialog.Title>
-            <AlertDialog.Description className="k-dialog-desc">{t("deleteDescription", { name: deletingGroup?.name })}</AlertDialog.Description>
-            <div className="k-dialog-foot">
-              <span className="k-grow" />
-              <AlertDialog.Close className="k-btn"><span className="k-label">{t("cancel")}</span></AlertDialog.Close>
-              <button type="button" className="k-btn is-danger" onClick={() => {
-                const id = deleting!;
-                void run(() => deleteReferenceGroup(id), () => (setDeleting(null), null));
-              }}><span className="k-label">{t("deleteConfirm")}</span></button>
-            </div>
-          </AlertDialog.Popup>
-        </AlertDialog.Portal>
-      </AlertDialog.Root>
       <AlertDialog.Root open={!!removing} onOpenChange={(open) => { if (!open) setRemoving(null); }}>
         <AlertDialog.Portal>
           <AlertDialog.Backdrop className="k-backdrop" />

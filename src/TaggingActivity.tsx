@@ -10,7 +10,7 @@ import { useToast } from "./ui/Toast";
 import { i18n } from "./i18n";
 import { formatBytes, percentOf } from "./i18n/format";
 import { useTaggingStatus } from "./useTaggingStatus";
-import { describeCommandError, describeCommandErrors } from "./ipc/commandError";
+import { describeCommandError, describeCommandErrors, errorText } from "./ipc/commandError";
 import { Tip } from "./ui/Tip";
 
 /** 预计用时的说法：不到一分钟、几分钟或几小时。 */
@@ -142,7 +142,7 @@ function useTaggingNotices(status: TaggingStatus | null) {
       closeDownload();
       void taggingDownload().then(
         () => toast.show({ title: i18n.t("tagging:notice.downloading") }),
-        (e) => toast.error(i18n.t("tagging:notice.downloadFailed", { error: String(e) })),
+        (e) => toast.error(i18n.t("tagging:notice.downloadFailed", { error: errorText(e) })),
       );
     };
     const id = toast.show({

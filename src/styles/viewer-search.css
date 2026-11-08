@@ -143,17 +143,35 @@
   color: var(--ink-2);
 }
 
+/* 条件里的小按钮（排除、去掉、相近标签的 × 与 ＋）：20 px 图标按钮，圆角 8 − 4 = 4，与标签块同心。 */
 .search-chip button {
-  border: none;
+  display: inline-grid;
+  place-items: center;
+  vertical-align: middle;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-xs);
   background: none;
-  padding: 0 4px;
-  color: var(--ink-2);
+  color: var(--ink-3);
   cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast);
 }
 
-.search-chip button:hover,
+.search-chip button:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
 .search-chip button[aria-pressed="true"] {
   color: var(--accent-strong);
+}
+
+.search-chip button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
 }
 
 .search-field {

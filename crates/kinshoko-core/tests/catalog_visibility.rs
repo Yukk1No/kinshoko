@@ -81,6 +81,7 @@ fn ordinary_name_settings_do_not_expose_tags_from_globally_vetoed_copies() {
                 cursor: None,
                 limit: 20,
                 known_placeholders: Vec::new(),
+                stack_sets: false,
             },
             true,
         )

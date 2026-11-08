@@ -7,7 +7,7 @@ import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
 import { importModelPackage, pickModelPackage, taggingCancelDownload, taggingDownload, taggingModels, taggingPause, taggingResume, taggingRetryFailed, taggingSetDevice } from "./ipc";
 import { useTaggingStatus } from "./useTaggingStatus";
-import { describeCommandError, describeCommandErrors } from "./ipc/commandError";
+import { describeCommandError, describeCommandErrors, errorText } from "./ipc/commandError";
 import { Select } from "./ui/Select";
 import { i18n } from "./i18n/instance";
 import { formatBytes, percentOf } from "./i18n/format";
@@ -80,7 +80,7 @@ export function AutoTaggingSettings({ hasLibrary, onShowUnfinished }: {
         if (done) toast.show({ title: done, tone: "success" });
       }
     } catch (reason) {
-      setError(String(reason));
+      setError(errorText(reason));
     }
   }
 

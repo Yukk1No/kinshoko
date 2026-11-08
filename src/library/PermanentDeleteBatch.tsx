@@ -23,7 +23,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
   libraryName: (libraryId: string) => string;
   onDone: () => void;
   onCancel: () => void;
-  onError: (error: unknown) => void;
+  onError: (message: string) => void;
 }) {
   const { t } = useTranslation("wall", { keyPrefix: "purge" });
   const [pending, setPending] = useState(targets);
@@ -41,7 +41,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
     setPreviews(null);
     previewPermanentDeleteBatch(pending).then((value) => { if (current) setPreviews(value); }, (e) => {
       if (!current) return;
-      onError(e);
+      onError(errorText(e));
       cancel();
     });
     return () => { current = false; };
@@ -84,7 +84,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
       (e) => {
         if (!alive.current) return;
         setBusy(false);
-        onError(e);
+        onError(errorText(e));
       },
     );
   };

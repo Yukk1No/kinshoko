@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import { formatNumber } from "../i18n/format";
 import { i18n } from "../i18n";
@@ -197,7 +198,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
               <Tip label={(origin ? t("group.origin", { origin }) + "\n" : "") + (onBrowse && group.tags.length ? t("group.browseTitle") : t("group.renameTitle"))} align="start"><button type="button" className="k-group-name" data-focus-key={`${group.id}:name`} aria-label={t("group.nameCount", { name: group.name, count: group.tags.length })}
                 disabled={busy || !onBrowse || !group.tags.length}
                 onClick={() => onBrowse?.(ids)} onDoubleClick={() => setRenaming(group.id)}>
-                <span className="k-group-label k-label">{group.name}</span>
+                <Name className="k-group-label k-label">{group.name}</Name>
                 {origin && <span className="k-group-origin" role="img" aria-label={t("group.origin", { origin })}><Link2 size={14} aria-hidden="true" /></span>}
               </button></Tip>
               <span className="k-group-acts">

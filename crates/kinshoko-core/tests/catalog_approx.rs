@@ -111,6 +111,7 @@ fn legacy_not_similar_applies_to_every_library_and_survives_restart() {
                 cursor: None,
                 limit: 100,
                 known_placeholders: Vec::new(),
+                stack_sets: false,
             },
             true,
         )
@@ -141,6 +142,7 @@ fn legacy_not_similar_applies_to_every_library_and_survives_restart() {
                 cursor: None,
                 limit: 100,
                 known_placeholders: Vec::new(),
+                stack_sets: false,
             },
             true,
         )
@@ -279,6 +281,7 @@ fn plus_supports_no_external_mapping_and_once_does_not_change_the_saved_rule() {
                     cursor: None,
                     limit: 100,
                     known_placeholders: Vec::new(),
+                    stack_sets: false,
                 },
                 true,
             )

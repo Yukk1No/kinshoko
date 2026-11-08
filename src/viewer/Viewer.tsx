@@ -18,6 +18,7 @@ import { OriginalStar } from "../ui/OriginalStar";
 import { type Background, DOCK_RESERVE, useViewerBackground, viewerDockItems, ViewerImages, ViewerMenu } from "./ViewerParts";
 import { useViewerSource } from "./useViewerSource";
 import type { ViewerFlightAttr, ViewerPlaced } from "./ViewerFlight";
+import { errorText } from "../ipc/commandError";
 
 type Props = {
   libraryId: string;
@@ -167,16 +168,16 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
     const rect: CssRect = region ? cropOnScreen(region, shown, natural) : { x: left, y: top, width, height };
     pinReference(libraryId, card.id, region, toScreenRect(rect, viewport, dpr)).then(
       () => toast.show({ title: region ? t("pinnedPart") : t("pinnedWhole"), tone: "success" }),
-      (e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.pinFailed", { error: String(e) })); },
+      (e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.pinFailed", { error: errorText(e) })); },
     );
   };
   /** 复制图片、在资源管理器中显示（#105 的命令，#114 的查看器菜单）。 */
   const copy = () => {
     copyReferenceImage(libraryId, card.id).then(() => toast.show({ title: t("common:image.copied"), tone: "success" }),
-      (e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.copyFailed", { error: String(e) })); });
+      (e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.copyFailed", { error: errorText(e) })); });
   };
   const reveal = () => {
-    revealReferenceImage(libraryId, card.id).catch((e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.revealFailed", { error: String(e) })); });
+    revealReferenceImage(libraryId, card.id).catch((e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.revealFailed", { error: errorText(e) })); });
   };
   /** 钉住局部：已有选区就钉住它，否则进入框选。 */
   const pinPart = () => { if (crop) pin(crop); else setSelecting(true); };

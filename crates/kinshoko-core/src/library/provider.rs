@@ -24,6 +24,9 @@ pub(crate) struct ProviderImage {
     pub tags: Vec<String>,
     #[serde(skip)]
     pub folders: Vec<String>,
+    /// 所在的图集（#418）；旧缓存里没有，按不在图集里算。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub set: Option<super::image_set::ImageSetPage>,
 }
 impl ProviderImage {
     /// 有效分级；旧缓存只知道是否含成人内容，按最严的一档（成人）算，任何范围下都遮蔽、不会漏出。
@@ -77,26 +80,37 @@ impl Library {
         let list_revision = tx.query_row("SELECT value FROM list_revision", [], |r| r.get(0))?;
         let vocabulary_revision =
             tx.query_row("SELECT value FROM vocabulary_revision", [], |r| r.get(0))?;
+        let mut names = std::collections::HashMap::<String, String>::new();
         let mut images = {
             let mut stmt = tx.prepare(&format!(
-                "SELECT id,sha256,seq,width,height,{},deleted_at IS NOT NULL FROM image ORDER BY seq DESC",
+                "SELECT id,sha256,seq,width,height,{},deleted_at IS NOT NULL,original_name FROM image ORDER BY seq DESC",
                 rating::effective_rank_sql("image.id")))?;
             stmt.query_map([], |r| {
-                Ok(ProviderImage {
-                    id: r.get(0)?,
-                    sha256: r.get(1)?,
-                    seq: r.get(2)?,
-                    width: r.get(3)?,
-                    height: r.get(4)?,
-                    rating: r
-                        .get::<_, Option<i64>>(5)?
-                        .and_then(ContentRating::from_rank),
-                    legacy_adult: false,
-                    deleted: r.get(6)?,
-                    tags: Vec::new(),
-                    folders: Vec::new(),
-                })
+                Ok((
+                    r.get::<_, String>(7)?,
+                    ProviderImage {
+                        id: r.get(0)?,
+                        sha256: r.get(1)?,
+                        seq: r.get(2)?,
+                        width: r.get(3)?,
+                        height: r.get(4)?,
+                        rating: r
+                            .get::<_, Option<i64>>(5)?
+                            .and_then(ContentRating::from_rank),
+                        legacy_adult: false,
+                        deleted: r.get(6)?,
+                        tags: Vec::new(),
+                        folders: Vec::new(),
+                        set: None,
+                    },
+                ))
             })?
+            .map(|row| {
+                row.map(|(name, image)| {
+                    names.insert(image.id.clone(), name);
+                    image
+                })
+            })
             .collect::<Result<Vec<_>, _>>()?
         };
         let mut tags = std::collections::HashMap::<String, Vec<String>>::new();
@@ -119,9 +133,31 @@ impl Library {
                 folders.entry(image).or_default().push(folder);
             }
         }
+        let mut sources =
+            std::collections::HashMap::<String, Vec<(String, String, Option<String>)>>::new();
+        {
+            let mut stmt = tx.prepare("SELECT image_id,source,location,url FROM image_source")?;
+            for row in stmt.query_map([], |r| {
+                Ok((r.get::<_, String>(0)?, (r.get(1)?, r.get(2)?, r.get(3)?)))
+            })? {
+                let (image, record) = row?;
+                sources.entry(image).or_default().push(record);
+            }
+        }
         for image in &mut images {
             image.tags = tags.remove(&image.id).unwrap_or_default();
             image.folders = folders.remove(&image.id).unwrap_or_default();
+            let records = sources.remove(&image.id).unwrap_or_default();
+            let records: Vec<_> = records
+                .iter()
+                .map(|(source, location, url)| super::image_set::SourceRecord {
+                    source,
+                    location,
+                    url: url.as_deref(),
+                })
+                .collect();
+            let name = names.get(&image.id).map_or("", String::as_str);
+            image.set = super::image_set::recognize(&records, name);
         }
         tx.finish()?;
         Ok(ProviderSnapshot {

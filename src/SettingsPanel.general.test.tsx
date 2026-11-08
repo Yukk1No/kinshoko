@@ -115,7 +115,7 @@ describe("设置：常驻与快捷键", () => {
 
   it("更换被拒绝时显示原因，原来的键不变", async () => {
     backend((cmd) => {
-      if (cmd === "rebind_shortcut") throw "这个快捷键已用于“钉住剪贴板”";
+      if (cmd === "rebind_shortcut") throw { code: "message", message: "这个快捷键已用于“钉住剪贴板”" };
       return undefined;
     });
     render(<SettingsPanel initialTab="keys" />);

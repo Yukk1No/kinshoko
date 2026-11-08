@@ -54,6 +54,7 @@ fn main() {
                         cursor: cursor.take(),
                         limit: std::env::var("PAGE").map_or(500, |v| v.parse().unwrap()),
                         known_placeholders: Vec::new(),
+                        stack_sets: false,
                     },
                     false,
                 )

@@ -1,4 +1,5 @@
 import { useState, type DragEvent, type KeyboardEvent } from "react";
+import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { FolderNode } from "../bindings/FolderNode";
@@ -187,7 +188,7 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
               }}
             />}>
               <span className="k-row-icon" aria-hidden="true">{node.children.length > 0 ? <FolderOpen size={15} /> : <Folder size={15} />}</span>
-              <span className="sidebar-label k-label">{node.name}</span>
+              <Name className="sidebar-label k-label">{node.name}</Name>
               <span className="sidebar-count k-label">{count(node)}</span>
             </ContextMenu.Trigger>
             <MenuPopup label={t("folders.actions", { name: node.name })} width={200}>

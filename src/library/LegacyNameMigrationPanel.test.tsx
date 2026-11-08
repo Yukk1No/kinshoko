@@ -87,7 +87,7 @@ it("keeps the complete draft after a failed write and allows a single atomic ret
     if (cmd.endsWith("plan_legacy_names")) return view();
     if (cmd.endsWith("preview_legacy_names")) return { revision: 7, outcomes: [{ catalogId: "shared", lang: "zh-CN", displayName: "核心预览结果", preferenceName: null }] };
     if (cmd.endsWith("confirm_legacy_names")) {
-      if (fail) throw new Error("磁盘写入失败");
+      if (fail) throw { code: "message", message: "磁盘写入失败" };
       return { ...view(), plan: { revision: 8, groups: [] } };
     }
   }, { shouldMockEvents: true });

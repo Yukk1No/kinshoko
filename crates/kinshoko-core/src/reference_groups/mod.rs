@@ -25,6 +25,7 @@ mod merge;
 mod package;
 mod packages;
 mod resolve;
+mod trash;
 mod usage;
 
 use crate::command_error::ErrorKind;
@@ -52,6 +53,7 @@ pub use resolve::{
     DetachedLenses, MemberState, MemberStatus, ReferenceGroupView, ReferenceSource, References,
     UnavailableReason, resolve,
 };
+pub use trash::{DeletedGroup, UnlinkedPin};
 pub use usage::{GroupUsage, ReferenceGroupUsage};
 
 const FORMAT: &str = "kinshoko.reference-group";
