@@ -284,3 +284,20 @@ it("关着叠放时记下的位置落在一摞的第 2 页往后：打开叠放�
   await vi.waitFor(() => expect(wall.scrollTop).toBeCloseTo(parseFloat(card("p0")!.style.top), 0));
   expect(wall.scrollTop).toBeGreaterThan(0);
 });
+
+it("滚到托盘深处按 Esc 关托盘：这一摞落在视口里，焦点回到它", async () => {
+  Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 260 });
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 200 });
+  render(<Harness />);
+  await screen.findAllByRole("option");
+  fireEvent.click(count());
+  const wall = document.querySelector<HTMLElement>(".wall")!;
+  wall.scrollTop = parseFloat(card("p2")!.style.top) + 10;
+  fireEvent.scroll(wall);
+  card("p2")!.focus();
+  fireEvent.keyDown(card("p2")!, { key: "Escape" });
+  expect(tray()).toBeNull();
+  const top = parseFloat(card("p0")!.style.top);
+  expect(wall.scrollTop).toBeLessThanOrEqual(top);
+  expect(document.activeElement).toBe(card("p0"));
+});

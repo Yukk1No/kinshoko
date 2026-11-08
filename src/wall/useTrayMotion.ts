@@ -86,7 +86,8 @@ export function useTrayMotion({
     const index = keep === undefined ? -1 : ids.indexOf(keep);
     const inTray = (id: string | undefined) => pages.some((page) => page.id === id);
     if (index >= 0) anchor.current = { id: keep!, delta: el.scrollTop - layout.boxes[index].y };
-    else if (!anchor.current || inTray(anchor.current.id)) anchor.current = { id: stack, delta: el.scrollTop - layout.tray!.y };
+    // 托盘顶已滚出视口时（看到托盘深处），这一摞贴着视口顶落下，不按到托盘顶的距离落到后面的格子里。
+    else if (!anchor.current || inTray(anchor.current.id)) anchor.current = { id: stack, delta: Math.min(0, el.scrollTop - layout.tray!.y) };
     settledTop.current = null;
     gather.current = reducedNow() ? null : {
       stack,
