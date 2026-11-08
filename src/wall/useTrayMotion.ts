@@ -55,11 +55,12 @@ export function useTrayMotion({
     const set = card.set;
     if (!set) return;
     measureBeforeReflow();
-    // 从一个托盘直接换到这一摞：旧托盘里的页要离开墙，锚点改到被点的这一摞，它留在屏幕原处。
-    const { layout, ids, openSet } = live.current;
+    // 锚点改到被点的这一摞，它留在屏幕原处、托盘从这里长出来：托盘从最长的一列底下开始，
+    // 不锚定时会把它挪出视口；从一个托盘直接换过来时，旧托盘里的页也要离开墙。
+    const { layout, ids } = live.current;
     const el = scroller.current;
     const index = ids.indexOf(card.id);
-    if (openSet !== null && el && index >= 0) {
+    if (el && index >= 0) {
       anchor.current = { id: card.id, delta: el.scrollTop - layout.boxes[index].y };
       settledTop.current = null;
     }

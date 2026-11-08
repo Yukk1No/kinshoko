@@ -11,7 +11,9 @@ let requests: { stackSets: boolean }[] = [];
 /** 第二摞（两页）接在后面；第 2 页往后里成人内容的页。 */
 let secondSet = false;
 let adultPages = new Set<string>();
-const page = (id: string) => workspaceCard({ id, width: 100, height: 120, adult: adultPages.has(id) });
+/** 第一张图很长：托盘要从它底下开始。 */
+let tallFirst = false;
+const page = (id: string) => workspaceCard({ id, width: 100, height: tallFirst && id === "a" ? 600 : 120, adult: adultPages.has(id) });
 function browse(stackSets: boolean): WorkspacePage {
   const set = { key: "pixiv:9", pages: [page("p0"), page("p1"), page("p2")] };
   const cards = stackSets
@@ -24,6 +26,7 @@ beforeEach(() => {
   localStorage.clear();
   requests = [];
   secondSet = false;
+  tallFirst = false;
   adultPages = new Set();
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
@@ -300,4 +303,17 @@ it("滚到托盘深处按 Esc 关托盘：这一摞落在视口里，焦点回�
   const top = parseFloat(card("p0")!.style.top);
   expect(wall.scrollTop).toBeLessThanOrEqual(top);
   expect(document.activeElement).toBe(card("p0"));
+});
+
+it("打开托盘时被点的那一摞留在屏幕原处：托盘从更长的一列底下开始，也不会把它挪出视口", async () => {
+  tallFirst = true;
+  Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 520 });
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 400 });
+  render(<Harness />);
+  await screen.findAllByRole("option");
+  const wall = document.querySelector<HTMLElement>(".wall")!;
+  const before = parseFloat(card("p0")!.style.top) - wall.scrollTop;
+  fireEvent.click(count());
+  const after = parseFloat(card("p0")!.style.top) - wall.scrollTop;
+  expect(Math.abs(after - before)).toBeLessThan(40);
 });
