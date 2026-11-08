@@ -267,10 +267,10 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
           aria-pressed={c.negate}
           onClick={() => toggle(i)}
         >
-          ⊘
+          <Ban size={14} strokeWidth={1.75} aria-hidden="true" />
         </button>
         <button type="button" aria-label={t("remove")} onClick={() => { remove(i); if (last) field.current?.focus(); }}>
-          ×
+          <X size={14} strokeWidth={1.75} aria-hidden="true" />
         </button>
       </li>
     );

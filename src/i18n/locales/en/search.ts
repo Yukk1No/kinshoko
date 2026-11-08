@@ -30,7 +30,6 @@ const search: Translation<typeof zh> = {
     personal: "Personal",
     dismissLabel: "Don't expand “{{name}}”",
     addLabel: "Add a similar tag to “{{name}}”",
-    addGlyph: "+",
   },
   dismiss: {
     label: "Don't expand similar tag",
