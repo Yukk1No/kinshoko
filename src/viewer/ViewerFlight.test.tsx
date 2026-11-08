@@ -93,6 +93,27 @@ describe("打开", () => {
     expect(screen.getByRole("alert")).toBeTruthy();
   });
 
+  it.each([
+    ["滚轮缩放", () => fireEvent.wheel(document.querySelector(".viewer-stage")!, { deltaY: -200, clientX: 500, clientY: 400 })],
+    ["按放大", () => fireEvent.click(screen.getByLabelText("放大"))],
+    ["拖动平移", () => {
+      const stage = document.querySelector(".viewer-stage")!;
+      fireEvent.pointerDown(stage, { button: 0, pointerId: 1, clientX: 500, clientY: 400 });
+      fireEvent.pointerMove(stage, { pointerId: 1, clientX: 540, clientY: 420 });
+      fireEvent.pointerUp(stage, { pointerId: 1 });
+    }],
+  ])("飞行中%s：飞行当场结束，不追着新位置飞出查看区", async (_, gesture) => {
+    render(<Harness />);
+    press("open-a");
+    expect(flier()).not.toBeNull();
+    act(gesture);
+    expect(flier()).toBeNull();
+    expect(viewer()!.dataset.flight).toBeUndefined();
+    expect(document.querySelector<HTMLElement>('.card[data-id="a"]')!.dataset.flying).toBeUndefined();
+    await loadOriginal();
+    expect(original().style.visibility).toBe("visible");
+  });
+
   it("飞行中换图：直接到位", () => {
     render(<Harness />);
     press("open-a");
