@@ -21,6 +21,9 @@ pub struct CatalogSettingsSnapshot {
     name_confirmations: Vec<(String, String, String)>,
     groups: Vec<CatalogGroupDefinition>,
     group_migrations: Vec<CatalogGroupMigration>,
+    /// 已经预置过的分组（#484）：删掉预置分组的决定随设置备份还原。
+    #[serde(default)]
+    presets: Vec<String>,
     approx: Vec<CatalogApproxDecision>,
     approx_migrations: Vec<CatalogApproxMigration>,
 }
@@ -200,6 +203,7 @@ impl TagCatalog {
             name_confirmations,
             groups: self.group_definitions()?,
             group_migrations: self.group_migrations()?,
+            presets: strings("SELECT key FROM catalog_preset ORDER BY key")?,
             approx: self.approx_decisions()?,
             approx_migrations: self.approx_migrations()?,
         })
@@ -307,7 +311,7 @@ impl TagCatalog {
         tx.execute_batch("DELETE FROM catalog_name_preference; DELETE FROM catalog_name_adoption;
             DELETE FROM catalog_removed_alias; DELETE FROM catalog_legacy_name_confirmation;
             DELETE FROM catalog_library_enrollment; DELETE FROM catalog_legacy_tag;
-            DELETE FROM catalog_group_migration; DELETE FROM catalog_group_member; DELETE FROM catalog_group;
+            DELETE FROM catalog_preset; DELETE FROM catalog_group_migration; DELETE FROM catalog_group_member; DELETE FROM catalog_group;
             DELETE FROM catalog_approx_migration; DELETE FROM catalog_approx;
             DELETE FROM library_tag_mapping; DELETE FROM catalog_external; DELETE FROM catalog_tag;")?;
         for tag in &snapshot.tags {
@@ -358,6 +362,9 @@ impl TagCatalog {
         }
         for (library, tag, catalog) in &snapshot.name_confirmations {
             tx.execute("INSERT INTO catalog_legacy_name_confirmation(library_id,local_tag_id,catalog_id) VALUES (?1,?2,?3)",params![library,tag,catalog])?;
+        }
+        for key in &snapshot.presets {
+            tx.execute("INSERT INTO catalog_preset(key) VALUES (?1)", [key])?;
         }
         for (ord, group) in snapshot.groups.iter().enumerate() {
             tx.execute(

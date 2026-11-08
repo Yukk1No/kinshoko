@@ -231,7 +231,19 @@ impl Workspace {
         builtin: &BuiltinApproxTable,
     ) -> Result<ConditionTree, CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
-        Ok(Search::new(global_vocabulary(&snapshot, safe), builtin).resolve(input, lang))
+        // 点分组里还没人用过的预置标签也要解析成它自己（#484），近似对应才能展开。
+        let mut vocabulary = global_vocabulary(&snapshot, safe).clone();
+        let present = vocabulary
+            .tags
+            .iter()
+            .map(|tag| tag.id.clone())
+            .collect::<BTreeSet<_>>();
+        vocabulary.tags.extend(
+            unattached_preset_tags(&snapshot)
+                .into_iter()
+                .filter(|tag| !present.contains(&tag.id)),
+        );
+        Ok(Search::new(&vocabulary, builtin).resolve(input, lang))
     }
     #[allow(clippy::too_many_arguments)]
     pub fn candidates(
