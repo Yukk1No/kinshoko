@@ -124,7 +124,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
     const current = latestScope.current;
     if (current.kind === "library" && current.libraryId === library.id) onScope({ kind: "all" });
     onRemoved?.(library.id);
-    if (!unavailable && onRestore) offerUndoRemoval(toast, library, onRestore, onError);
+    if (!unavailable && onRestore) offerUndoRemoval(toast, library, onRestore, (message) => onMessage?.(message));
   }, (e) => onError(e)); };
   const emptyItem = (p: WorkspaceDirectory, label: string) => <MenuItem key={p.registration.library.id} icon={<Trash2 size={14} />} danger
     disabled={!p.sidebar || p.sidebar.trash === 0} onClick={() => setEmptying({ libraryId: p.registration.library.id, name: p.registration.library.name })}>{label}</MenuItem>;
