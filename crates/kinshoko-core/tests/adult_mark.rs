@@ -83,14 +83,14 @@ fn eagle_r18_tags_become_the_adult_rating() {
 #[test]
 fn earlier_libraries_drop_r18_tags_from_eagle_and_pixiv_layers() {
     let dir = tempfile::tempdir().unwrap();
-    let fixture = fixture(dir.path(), &[&["占位", "原神"], &["原神"]]);
+    let fixture = fixture(dir.path(), &[&["占位", "原神"], &["原神"], &["别名占位"]]);
     let root = dir.path().join("kinshoko");
     let library = Library::create(&root, "参考").unwrap();
     let images = import(&library, &fixture);
     drop(library);
     {
         // 退回上一版：Eagle 条目带着 R-18 标签、没有分级；另一张图的 pixiv 来源层也带 R-18，
-        // 还有一位叫 R-18 的作者。
+        // 还有一位叫 R-18 的作者；第三张图的 R-18G 只是标签别名。
         let conn = rusqlite::Connection::open(root.join("library.sqlite")).unwrap();
         let migrations = include_str!("../src/library/store.rs")
             .lines()
@@ -106,6 +106,9 @@ fn earlier_libraries_drop_r18_tags_from_eagle_and_pixiv_layers() {
                  VALUES ('artist-r18', 'R-18', 'und', 'pixiv');
              INSERT INTO tag_fact (image_id, tag_id, source, score)
                  VALUES ('{0}', 'artist-r18', 'pixiv:9', NULL);
+             INSERT INTO tag_alias (tag_id, name, lang)
+                 SELECT tag_id, 'R-18G', NULL FROM tag_source_name WHERE name = '别名占位';
+             DELETE FROM tag_source_name WHERE name = '别名占位';
              PRAGMA user_version = {1};",
             images[1],
             migrations - 1
@@ -122,4 +125,5 @@ fn earlier_libraries_drop_r18_tags_from_eagle_and_pixiv_layers() {
     assert_eq!(shown(&library, &images[1]), ["R-18", "原神"]);
     // pixiv 的分级来自作品本身，迁移不另记。
     assert_eq!(rating(&library, &images[1]), None);
+    assert_eq!(rating(&library, &images[2]), Some(ContentRating::Explicit));
 }

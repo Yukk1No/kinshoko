@@ -86,14 +86,15 @@ const NORMALIZED_SQL: &str =
     "upper(replace(replace(replace(replace(name, '-', ''), '_', ''), ' ', ''), char(12288), ''))";
 
 /// 迁移：已经进库的 pixiv 订阅与 Eagle 来源层按上面的规则改写。Eagle 条目带 R-18 或 R-18G
-/// 的记为成人分级；两种来源层的 R-18 标签去掉。只看一般标签：叫 R-18 的作者等不受影响；
+/// 的记为成人分级（记号按来源名称、名称或别名认）；两种来源层的 R-18 标签去掉。只看一般标签：叫 R-18 的作者等不受影响；
 /// 人工加的标签不动。
 pub(in crate::library) fn upgrade_existing(tx: &Transaction) -> rusqlite_migration::HookResult {
     let marked = |normalized: &str| {
         format!(
             "SELECT id FROM tag WHERE namespace = 'general' AND id IN (
                  SELECT tag_id FROM tag_source_name WHERE {NORMALIZED_SQL} = '{normalized}'
-                 UNION SELECT tag_id FROM tag_name WHERE {NORMALIZED_SQL} = '{normalized}')"
+                 UNION SELECT tag_id FROM tag_name WHERE {NORMALIZED_SQL} = '{normalized}'
+                 UNION SELECT tag_id FROM tag_alias WHERE {NORMALIZED_SQL} = '{normalized}')"
         )
     };
     let (r18, r18g) = (marked("R18"), marked("R18G"));
