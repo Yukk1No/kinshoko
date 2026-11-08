@@ -266,14 +266,14 @@ export function backend() {
           return id;
         }
         case "plugin:library|delete_shared_tag_group": {
-          const position = fake.groups.findIndex((g) => g.id === a.groupId);
-          const [group] = fake.groups.splice(position, 1);
+          const ord = fake.groups.findIndex((g) => g.id === a.groupId);
+          const [group] = fake.groups.splice(ord, 1);
           announce([]);
-          return { id: group.id, name: group.name, namespace: group.namespace, position, members: [...group.members], migratedFrom: [] };
+          return { id: group.id, name: group.name, namespace: group.namespace, ord, members: [...group.members], migratedFrom: [] };
         }
         case "plugin:library|restore_shared_tag_group": {
-          const d = a.deleted as { id: string; name: string; namespace: TagNamespace | null; position: number; members: string[] };
-          fake.groups.splice(d.position, 0, { id: d.id, name: d.name, namespace: d.namespace, members: d.members });
+          const d = a.deleted as { id: string; name: string; namespace: TagNamespace | null; ord: number; members: string[] };
+          fake.groups.splice(Math.min(d.ord, fake.groups.length), 0, { id: d.id, name: d.name, namespace: d.namespace, members: d.members });
           announce([]);
           return null;
         }

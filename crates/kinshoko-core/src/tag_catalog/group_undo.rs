@@ -11,9 +11,10 @@ pub struct DeletedCatalogGroup {
     id: String,
     name: String,
     namespace: Option<TagNamespace>,
-    /// 删除前在分组栏里排第几（从 0 数）。
+    /// 删除时的排序号。删除不重排其他分组，放回时用同一个号，几个删除以任意顺序撤销
+    /// 都回到原来的位置（删除之后新建的分组排在后面，同号时先建的在前）。
     #[ts(type = "number")]
-    position: usize,
+    ord: i64,
     members: Vec<String>,
     /// 迁入这个分组的资料库旧分组（资料库 id，旧分组 id）。
     migrated_from: Vec<(String, String)>,
@@ -35,11 +36,11 @@ impl TagCatalog {
             .optional()?
             .ok_or(CatalogError::UnknownGroup)?;
         let namespace = namespace.map(|ns| serde_json::from_str(&ns)).transpose()?;
-        let position = tx.query_row(
-            "SELECT count(*) FROM catalog_group WHERE (ord,id) < (SELECT ord,id FROM catalog_group WHERE id=?1)",
+        let ord = tx.query_row(
+            "SELECT ord FROM catalog_group WHERE id=?1",
             [group_id],
             |r| r.get::<_, i64>(0),
-        )? as usize;
+        )?;
         let members = tx
             .prepare("SELECT catalog_id FROM catalog_group_member WHERE group_id=?1 ORDER BY ord,catalog_id")?
             .query_map([group_id], |r| r.get::<_, String>(0))?
@@ -55,7 +56,7 @@ impl TagCatalog {
             id: group_id.to_owned(),
             name,
             namespace,
-            position,
+            ord,
             members,
             migrated_from,
         })
@@ -79,26 +80,15 @@ impl TagCatalog {
         if exists {
             return Ok(());
         }
-        let mut order = tx
-            .prepare("SELECT id FROM catalog_group ORDER BY ord,id")?
-            .query_map([], |r| r.get::<_, String>(0))?
-            .collect::<Result<Vec<_>, _>>()?;
-        order.insert(deleted.position.min(order.len()), deleted.id.clone());
         let namespace = deleted
             .namespace
             .map(|ns| serde_json::to_string(&ns))
             .transpose()?;
         tx.execute(
             "INSERT INTO catalog_group(id,name,namespace,ord) VALUES (?1,?2,?3,?4)",
-            params![deleted.id, deleted.name, namespace, order.len() as i64],
+            params![deleted.id, deleted.name, namespace, deleted.ord],
         )?;
-        for (ord, id) in order.iter().enumerate() {
-            tx.execute(
-                "UPDATE catalog_group SET ord=?2 WHERE id=?1",
-                params![id, ord as i64],
-            )?;
-        }
-        let mut ord = 0i64;
+        let mut member_ord = 0i64;
         for member in &deleted.members {
             let known = tx
                 .query_row(
@@ -111,9 +101,9 @@ impl TagCatalog {
             if known {
                 tx.execute(
                     "INSERT OR IGNORE INTO catalog_group_member(group_id,catalog_id,ord) VALUES (?1,?2,?3)",
-                    params![deleted.id, member, ord],
+                    params![deleted.id, member, member_ord],
                 )?;
-                ord += 1;
+                member_ord += 1;
             }
         }
         for (library_id, group_id) in &deleted.migrated_from {

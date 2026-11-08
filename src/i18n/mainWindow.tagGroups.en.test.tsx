@@ -25,7 +25,7 @@ const groups: CatalogGroupView[] = [
 
 describe("英文界面：编辑分组", () => {
   it("分组、成员、新建与删除后的撤销提示", async () => {
-    const deleted = { id: "G1", name: "发色", namespace: null, position: 0, members: ["b"], migratedFrom: [] };
+    const deleted = { id: "G1", name: "发色", namespace: null, ord: 0, members: ["b"], migratedFrom: [] };
     mockIPC((cmd) => (cmd === "plugin:library|shared_tag_groups" ? groups : cmd === "plugin:library|delete_shared_tag_group" ? deleted : null), { shouldMockEvents: true });
     render(<ToastProvider><TagGroupsPane safe generation={0} onBrowse={vi.fn()} onError={vi.fn()} /></ToastProvider>);
     const group = await screen.findByRole("group", { name: "发色" });

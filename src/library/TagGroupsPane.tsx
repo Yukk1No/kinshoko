@@ -177,7 +177,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
     void run(deleteSharedTagGroup(group.id, safe).then((deleted) => {
       toast.show({
         title: t("deleted.done"), description: group.name, tone: "success",
-        action: { label: t("deleted.undo"), onClick: () => { void restoreSharedTagGroup(deleted, safe).then(() => setRefresh((n) => n + 1), onError); } },
+        action: { label: t("deleted.undo"), onClick: () => { void restoreSharedTagGroup(deleted).then(() => setRefresh((n) => n + 1), onError); } },
       });
     }));
   };

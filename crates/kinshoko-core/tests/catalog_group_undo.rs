@@ -150,3 +150,46 @@ fn undoing_after_deleting_every_group_does_not_trigger_the_preset_again() {
         .unwrap();
     assert_eq!(catalog.group_definitions().unwrap(), before);
 }
+
+/// 多个删除的撤销顺序和删除顺序不一致时，分组顺序也回到原样（任意撤销顺序）。
+#[test]
+fn undoing_several_deletes_in_any_order_restores_the_original_order() {
+    let all = ["甲", "乙", "丙", "丁", "戊"];
+    // 删 乙、甲、丁（顺序不同于位置），再按全部 6 种撤销顺序试。
+    let orders: [[usize; 3]; 6] = [
+        [0, 1, 2],
+        [0, 2, 1],
+        [1, 0, 2],
+        [1, 2, 0],
+        [2, 0, 1],
+        [2, 1, 0],
+    ];
+    for undo in orders {
+        let dir = tempfile::tempdir().unwrap();
+        let (_, mut catalog, _) = open(&dir.path().join("app"));
+        let ids: Vec<String> = all
+            .iter()
+            .map(|n| catalog.create_group(n, None).unwrap())
+            .collect();
+        let before = names(&catalog);
+        let deleted = [1usize, 0, 3].map(|i| catalog.delete_group(&ids[i]).unwrap());
+        assert_eq!(names(&catalog), ["丙", "戊"]);
+        for i in undo {
+            catalog.restore_group(deleted[i].clone()).unwrap();
+        }
+        assert_eq!(names(&catalog), before, "撤销顺序 {undo:?}");
+    }
+}
+
+/// 删除之后新建的分组排在最后；撤销最后一个分组时仍回到它原来的前一个之后、新分组之前。
+#[test]
+fn undoing_the_last_group_goes_after_its_old_neighbour() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_, mut catalog, _) = open(&dir.path().join("app"));
+    catalog.create_group("甲", None).unwrap();
+    let last = catalog.create_group("乙", None).unwrap();
+    let deleted = catalog.delete_group(&last).unwrap();
+    catalog.create_group("丙", None).unwrap();
+    catalog.restore_group(deleted).unwrap();
+    assert_eq!(names(&catalog), ["甲", "乙", "丙"]);
+}

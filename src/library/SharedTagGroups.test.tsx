@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { tipText } from "../test/tip";
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
@@ -66,6 +66,19 @@ describe("T05 shared groups", () => {
     await act(async () => { finish([{ ...groups[0], name: "旧视角", tags: [{ tag: { ...blue, name: "封印旧标签" }, count: 99 }] }]); });
     expect(screen.queryByText("封印旧标签")).toBeNull();
     expect(screen.queryByText("旧视角")).toBeNull();
+  });
+  it("undoing a group delete works after safe mode changed while the toast was shown", async () => {
+    const calls = backend();
+    const error = vi.fn();
+    const view = render(<ToastProvider><TagGroupsPane libraryId="" safe={false} generation={0} onBrowse={vi.fn()} onError={error} /></ToastProvider>);
+    fireEvent.click(await screen.findByRole("button", { name: "删除标签分组“作品”" }));
+    const undo = await screen.findByRole("button", { name: "撤销" });
+    view.rerender(<ToastProvider><TagGroupsPane libraryId="" safe generation={1} onBrowse={vi.fn()} onError={error} /></ToastProvider>);
+    fireEvent.click(undo);
+    await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:library|restore_shared_tag_group")).toBe(true));
+    const restore = calls.find((c) => c.cmd === "plugin:library|restore_shared_tag_group")!;
+    expect(restore.args).not.toHaveProperty("safeMode");
+    expect(error).not.toHaveBeenCalled();
   });
   it("the accepted popover can add a visible OR group condition", async () => {
     backend(); const change = vi.fn();

@@ -109,7 +109,9 @@ describe("标签分组", () => {
     expect(await screen.findByText("已删除分组")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "撤销" }));
     const back = await within(groups).findByRole("group", { name: "头发颜色" });
-    expect(sent("plugin:library|restore_shared_tag_group")).toMatchObject([{ deleted: { id: "G1", name: "头发颜色", position: 0 }, safeMode: true }]);
+    expect(sent("plugin:library|restore_shared_tag_group")).toMatchObject([{ deleted: { id: "G1", name: "头发颜色" } }])
+    // 撤销不带安全模式：提示出现后模式变了也能撤销。
+    expect(sent("plugin:library|restore_shared_tag_group")[0]).not.toHaveProperty("safeMode");
     expect(within(back).getAllByRole("button", { name: /张）/ }).length).toBeGreaterThan(0);
     expect(within(groups).getAllByRole("group").map((g) => g.getAttribute("aria-label"))[0]).toBe("头发颜色");
   });

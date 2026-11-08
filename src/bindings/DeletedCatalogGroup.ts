@@ -8,9 +8,10 @@ import type { TagNamespace } from "./TagNamespace";
  */
 export type DeletedCatalogGroup = { id: string, name: string, namespace: TagNamespace | null, 
 /**
- * 删除前在分组栏里排第几（从 0 数）。
+ * 删除时的排序号。删除不重排其他分组，放回时用同一个号，几个删除以任意顺序撤销
+ * 都回到原来的位置（删除之后新建的分组排在后面，同号时先建的在前）。
  */
-position: number, members: Array<string>, 
+ord: number, members: Array<string>, 
 /**
  * 迁入这个分组的资料库旧分组（资料库 id，旧分组 id）。
  */

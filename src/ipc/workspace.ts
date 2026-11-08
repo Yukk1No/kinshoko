@@ -137,8 +137,8 @@ export function deleteSharedTagGroup(groupId: string, safeMode: boolean): Promis
   return invoke<DeletedCatalogGroup>(lib("delete_shared_tag_group"), { groupId, safeMode });
 }
 /** 撤销 {@link deleteSharedTagGroup}：名称、位置、成员及顺序都放回。 */
-export function restoreSharedTagGroup(deleted: DeletedCatalogGroup, safeMode: boolean): Promise<void> {
-  return invoke<void>(lib("restore_shared_tag_group"), { deleted, safeMode });
+export function restoreSharedTagGroup(deleted: DeletedCatalogGroup): Promise<void> {
+  return invoke<void>(lib("restore_shared_tag_group"), { deleted });
 }
 
 /** Application-wide personal judgments; labels obey every known provider's safe-mode veto. */
