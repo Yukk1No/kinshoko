@@ -92,6 +92,8 @@
   --spring: cubic-bezier(0.2, 0.9, 0.25, 1.05);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --t-fast: 120ms; --t: 200ms; --t-slow: 260ms; --t-pop: 220ms;
+  /* 图标轨图标的悬停动作（信抽出来、图扇开）：位移比控件的状态变化大，要多一点时间看清；移出仍用 --t */
+  --t-icon: 420ms;
   color-scheme: light;
 }
 /* Dark: ink purple ground, cream text, gold accent (日间樱、夜间金). `.k-dock.is-dark` borrows the dark tokens in either theme. */
@@ -173,8 +175,8 @@
   --well-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.5), inset 0 0 0 0.5px rgba(244, 236, 220, 0.06);
   color-scheme: dark;
 }
-@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-pop: 0ms; } }
-:root[data-reduced-motion] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-pop: 0ms; }
+@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-pop: 0ms; --t-icon: 0ms; } }
+:root[data-reduced-motion] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-pop: 0ms; --t-icon: 0ms; }
 /* The one global switch for reduced motion, for rules that hardcode a duration: animations jump to their end state in one frame and
    transitions apply at once. `.subs-spin` is the exception: a spinner is the only sign of progress, so it keeps its own slower rotation. */
 @media (prefers-reduced-motion: reduce) {
