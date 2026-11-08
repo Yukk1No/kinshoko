@@ -8,17 +8,23 @@ import type { WorkspacePage } from "../bindings/WorkspacePage";
 
 // 同一图集叠成一摞，点开原位托盘（#418 第 5 版原型）。
 let requests: { stackSets: boolean }[] = [];
-const page = (id: string) => workspaceCard({ id, width: 100, height: 120 });
+/** 第二摞（两页）接在后面；第 2 页往后里成人内容的页。 */
+let secondSet = false;
+let adultPages = new Set<string>();
+const page = (id: string) => workspaceCard({ id, width: 100, height: 120, adult: adultPages.has(id) });
 function browse(stackSets: boolean): WorkspacePage {
   const set = { key: "pixiv:9", pages: [page("p0"), page("p1"), page("p2")] };
   const cards = stackSets
     ? [page("a"), { ...page("p0"), set }, page("b")]
     : [page("a"), page("p0"), page("p1"), page("p2"), page("b")];
+  if (secondSet && stackSets) cards.push({ ...page("q0"), set: { key: "pixiv:10", pages: [page("q0"), page("q1")] } });
   return { cards, total: cards.length, nextCursor: null, status: { revision: "r", libraries: [] }, ...(stackSets ? { images: 5 } : {}) };
 }
 beforeEach(() => {
   localStorage.clear();
   requests = [];
+  secondSet = false;
+  adultPages = new Set();
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
@@ -32,9 +38,9 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
 
-function Harness({ stackSets = true, onSelection, onOpen }: { stackSets?: boolean; onSelection?: (ids: string[]) => void; onOpen?: (id: string) => void }) {
+function Harness({ stackSets = true, safeMode = false, onSelection, onOpen }: { stackSets?: boolean; safeMode?: boolean; onSelection?: (ids: string[]) => void; onOpen?: (id: string) => void }) {
   const [selected, setSelected] = useState(new Set<string>());
-  return <Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={selected} stackSets={stackSets}
+  return <Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={selected} stackSets={stackSets} safeMode={safeMode}
     onSelectionChange={(next) => { onSelection?.([...next]); setSelected(next); }}
     onOpenImage={(card) => onOpen?.(card.id)} viewerOpen={false} />;
 }
@@ -162,4 +168,47 @@ it("顶栏报的是张数，不是格数：一摞里的页都算上", async () =
     onSelectionChange={() => {}} onOpenImage={() => {}} viewerOpen={false} onTotalChange={onTotal} />);
   await screen.findAllByRole("option");
   expect(onTotal).toHaveBeenLastCalledWith(5);
+});
+
+it("从一个托盘直接点另一摞的张数：旧托盘里第 2 页往后的选择随之取消", async () => {
+  secondSet = true;
+  const onSelection = vi.fn();
+  render(<Harness onSelection={onSelection} />);
+  await screen.findAllByRole("option");
+  fireEvent.click(count());
+  fireEvent.click(card("p1")!);
+  expect(onSelection).toHaveBeenLastCalledWith(["p1"]);
+  fireEvent.click(screen.getByRole("button", { name: "2 张" }));
+  expect(onSelection).toHaveBeenLastCalledWith([]);
+  expect(shownIds()).toEqual(["a", "p0", "b", "q0", "q1"]);
+});
+
+it("记住的滚动位置落在托盘里的页上时，记成这一摞：下次进来托盘是关着的", async () => {
+  // 墙窄到托盘里一行只放得下一页：第 3 页单独成行。
+  Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 260 });
+  const { unmount } = render(<Harness />);
+  await screen.findAllByRole("option");
+  fireEvent.click(count());
+  const wall = document.querySelector<HTMLElement>(".wall")!;
+  expect(parseFloat(card("p2")!.style.top)).toBeGreaterThan(parseFloat(card("p0")!.style.top));
+  wall.scrollTop = parseFloat(card("p2")!.style.top) - 4;
+  fireEvent.scroll(wall);
+  unmount();
+  expect(JSON.parse(localStorage.getItem('kinshoko.wall.workspace.{"kind":"all"}')!)).toMatchObject({ id: "p0" });
+});
+
+it("安全模式下，一摞里成人内容的页在纸上也遮着，封面不是成人内容也一样", async () => {
+  adultPages = new Set(["p1"]);
+  render(<Harness safeMode />);
+  await screen.findAllByRole("option");
+  const sheets = [...card("p0")!.querySelectorAll<HTMLElement>(".stack-sheet")];
+  expect(sheets.map((sheet) => sheet.dataset.veiled)).toEqual(["false", "true"]);
+});
+
+it("安全模式关着时，托盘里成人内容的页随墙上的图一起放出，不一直遮着", async () => {
+  adultPages = new Set(["p1"]);
+  render(<Harness />);
+  await screen.findAllByRole("option");
+  fireEvent.click(count());
+  await vi.waitFor(() => expect(card("p1")!.dataset.veiled).toBe("false"));
 });

@@ -65,7 +65,8 @@ function picture(card: BrowserCard, thumbnailPx: number, veiled: boolean) {
  * 一摞（#418）：封面摆正、四周留出纸边，下面露出后面几页（每层是那一页的缩略图），底下一块接触阴影，页数越多越重。
  * 摆法按图集键固定（见 stackPaper）。
  */
-function stackFace(card: BrowserCard, b: Box, inset: number, uiScale: number, thumbnailPx: number, veiled: boolean) {
+function stackFace(card: BrowserCard, b: Box, inset: number, uiScale: number, thumbnailPx: number, veiled: boolean, veiledPages: string) {
+  const hidden = new Set(veiledPages.split(" "));
   const pages = card.set!.pages;
   const face = { w: b.w - inset * 2, h: b.h - inset * 2 };
   const sheets = stackPaper(card.set!.key, pages.map((page) => ({ w: page.width, h: page.height })), face, 1 / uiScale);
@@ -75,10 +76,10 @@ function stackFace(card: BrowserCard, b: Box, inset: number, uiScale: number, th
       style={{ left: `${inset + 8}px`, width: `${face.w - 16}px`, top: `${inset + face.h - 9}px`, ["--weight" as string]: 0.4 + sheets.length * 0.15 }} />
     {sheets.map((sheet) => {
       const page = pages[sheet.page];
-      return <div key={page.id} className="stack-sheet" aria-hidden="true"
+      return <div key={page.id} className="stack-sheet" aria-hidden="true" data-veiled={veiled || hidden.has(page.id)}
         style={{ left: `${inset}px`, top: `${inset}px`, width: `${sheet.w}px`, height: `${sheet.h}px`,
           ["--rest" as string]: pose(sheet.rest), ["--hot" as string]: pose(sheet.hot) }}>
-        {picture(page, thumbnailPx, veiled || page.adult)}
+        {picture(page, thumbnailPx, veiled || hidden.has(page.id))}
       </div>;
     })}
     <div className="stack-cover" style={{ left: `${inset}px`, top: `${inset}px`, width: `${face.w}px`, height: `${face.h}px` }}>
@@ -87,7 +88,7 @@ function stackFace(card: BrowserCard, b: Box, inset: number, uiScale: number, th
   </>;
 }
 
-export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened, trayPage = 0, uiScale = 1 }: {
+export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened, trayPage = 0, uiScale = 1, veiledPages = "" }: {
   card: BrowserCard;
   thumbnailPx: number;
   b: Box;
@@ -102,6 +103,8 @@ export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, s
   trayPage?: number;
   /** 界面缩放：一摞的纸边按 CSS 像素算。 */
   uiScale?: number;
+  /** 一摞下面要遮住的页（成人内容、还没放出），以空格分隔的 id。 */
+  veiledPages?: string;
 }): ReactNode {
   const sources = card.libraryId && card.imageId ? card.sources ?? [] : [];
   const stack = card.set && trayPage === 0 ? card.set : null;
@@ -124,7 +127,7 @@ export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, s
       onDragStart={(e) => cardHandlers.current.dragStart(card.id, e)}
       style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px`, ...(stack && { ["--stack-inset" as string]: `${corner}px` }) }}
     >
-      {stack ? stackFace(card, b, corner, uiScale, thumbnailPx, veiled) : picture(card, thumbnailPx, veiled)}
+      {stack ? stackFace(card, b, corner, uiScale, thumbnailPx, veiled, veiledPages) : picture(card, thumbnailPx, veiled)}
     </div>
     {/* 托盘里页角的勾（#418）：增减这一页的选择。紧跟在卡片后面（悬停卡片时露出）；第 1 页的左上角是张数，勾放在右上角。 */}
     {trayPage > 0 && <button type="button" role="checkbox" className="card-check" data-card={card.id}

@@ -10,6 +10,8 @@
 .card.is-stack > .stack-sheet, .card.is-stack > .stack-cover { position: absolute; overflow: hidden; background: var(--card); border-radius: var(--r-s); }
 /* 下面几层的高度按页的比例但有上下限：图铺满这层纸，不露出纸底。 */
 .card.is-stack > .stack-sheet img { object-fit: cover; }
+/* 遮住的页（成人内容、还没放出）：纸上只留纸底，不露图。 */
+.card.is-stack > .stack-sheet[data-veiled="true"] img, .card.is-stack > .stack-sheet[data-veiled="true"] .card-placeholder { visibility: hidden; }
 .card.is-stack > .stack-sheet {
   pointer-events: none; transform-origin: 50% 50%; transform: var(--rest);
   box-shadow: 0 0 0 0.5px var(--sheet-edge), 0 1px 1.5px var(--sheet-drop);

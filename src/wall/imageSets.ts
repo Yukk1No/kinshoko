@@ -1,7 +1,7 @@
 // 图片墙上的图集（#418）：叠成一摞的格子，与打开时让出的原位托盘。
 import { useEffect, useMemo, useState } from "react";
 import type { MutableRefObject } from "react";
-import type { LayoutInput, TrayInput } from "./layout";
+import type { Anchor, LayoutInput, TrayInput } from "./layout";
 import { stackInset } from "./stackPaper";
 import { CAP_RATIO, STACK_SETS_READY, type BrowserCard } from "./wallShared";
 
@@ -23,6 +23,16 @@ export function expandTray(cards: BrowserCard[], key: string | null): { shown: B
 export function cardInset(card: BrowserCard, columnWidth: number, uiScale: number) {
   const set = card.set!;
   return stackInset(set.key, set.pages.map((page) => ({ w: page.width, h: page.height })), columnWidth, CAP_RATIO, 1 / uiScale);
+}
+
+/** 要记下的滚动位置：落在托盘里的页上时记成这一摞，下次进来托盘是关着的，页不在墙上。 */
+export function storableAnchor(anchor: Anchor | null, shown: BrowserCard[], tray: Omit<TrayInput, "pad"> | null, trayIds: ReadonlySet<string>) {
+  return anchor && tray && trayIds.has(anchor.id) ? { id: shown[tray.at].id, delta: 0 } : anchor;
+}
+
+/** 一摞下面要遮住的纸（以空格分隔的页 id）：按各页自己的 adult，封面不是成人内容时纸上的页也可能是。 */
+export function veiledSheets(card: BrowserCard, safeMode: boolean, revealed: ReadonlySet<string>) {
+  return card.set ? card.set.pages.filter((p) => p.adult && (safeMode || !revealed.has(p.id))).map((p) => p.id).join(" ") : "";
 }
 
 /** 排瀑布流用的尺寸：一摞四周留出纸边的内缩。 */

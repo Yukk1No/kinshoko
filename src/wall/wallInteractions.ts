@@ -55,10 +55,14 @@ export function wallInteractions({
       change(new Set([id]));
     }
   };
-  /** 关上托盘（#418）：托盘里第 2 页往后的页随之离开墙，也离开选择，免得操作落在看不见的图上。 */
-  const leaveTray = (keep?: string) => {
+  /** 托盘里第 2 页往后的页离开选择（关托盘、换到别的托盘时）：免得操作落在看不见的图上。 */
+  const pruneTray = () => {
     const next = withoutTray(selected, true);
     if (next.size !== selected.size) onSelectionChange(next);
+  };
+  /** 关上托盘（#418）：托盘里第 2 页往后的页随之离开墙，也离开选择。 */
+  const leaveTray = (keep?: string) => {
+    pruneTray();
     closeTray(keep);
   };
   /** 只取消托盘里的页的选择（Esc、点托盘背景）。 */
@@ -179,7 +183,7 @@ export function wallInteractions({
   };
   /** 点托盘里页角的勾：增减这一页的选择，与 Ctrl 单击相同。 */
   const toggle = (card: BrowserCard) => select(card.id, { ctrlKey: true, shiftKey: false, metaKey: false });
-  return { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart, trayClick, leaveTray, toggle };
+  return { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart, trayClick, leaveTray, pruneTray, toggle };
 }
 
 /** Ctrl+V：从剪贴板导入（#105）。主窗口里焦点不在输入框、没有模态与查看器时都响应。 */

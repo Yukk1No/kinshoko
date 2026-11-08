@@ -12,7 +12,8 @@ export function useWallCaptureSources({ viewerOpen, scroller, cards }: {
   useCaptureSources(() => {
     // 模态盖住图片墙时不登记来源；行内浮层（role="dialog" 的查找浮层等）不挡。
     if (viewerOpen || !scroller.current || modalOpen()) return null;
-    return [...scroller.current.querySelectorAll<HTMLImageElement>(".card img")].flatMap((image) => {
+    // 一摞只登记封面（#418）：下面的纸转过、裁过，也不是封面那张原图，框到纸边时按普通截图处理。
+    return [...scroller.current.querySelectorAll<HTMLImageElement>(".card > img, .card > .stack-cover > img")].flatMap((image) => {
       const node = image.closest<HTMLElement>(".card")!;
       const card = cards.find((item) => item.id === node.dataset.id);
       if (!card?.libraryId || node.dataset.veiled === "true") return [];

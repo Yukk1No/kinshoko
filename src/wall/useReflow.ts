@@ -89,7 +89,7 @@ export function useMeasureBeforeReflow({ scroller, motions, safeReflow, reflowMo
 }
 
 export function useReflowAfterLayout({
-  scroller, width, cards, zoomPin, ids, layout, anchor, storeKey, settledTop, cursor, restoring, beforeReflow, reflowMotion,
+  scroller, width, cards, zoomPin, ids, layout, anchor, anchorToStore, storeKey, settledTop, cursor, restoring, beforeReflow, reflowMotion,
   beforeBoxes, syncMount, motions, slideMotion, trayMotion,
 }: {
   scroller: MutableRefObject<HTMLDivElement | null>;
@@ -100,6 +100,8 @@ export function useReflowAfterLayout({
   layout: ReturnType<typeof masonry>;
   anchor: MutableRefObject<Anchor | null>;
   storeKey: string | null;
+  /** 要记下的位置：托盘里的页换成这一摞（#418）。 */
+  anchorToStore: MutableRefObject<() => Anchor | null>;
   settledTop: MutableRefObject<number | null>;
   cursor: string | null;
   restoring: MutableRefObject<boolean>;
@@ -123,7 +125,7 @@ export function useReflowAfterLayout({
       // 缩放：光标下那张图的中心放回光标的高度（列数会变，只锚纵向，#122）；随后以新布局里视口顶部的图为锚，提交时布局不变、位置不动。
       top = zoomScrollTop(layout, pinned, pin!.pointerY, el.clientHeight);
       anchor.current = captureAnchor(layout, ids, top, el.clientHeight);
-      if (storeKey) saveAnchor(storeKey, anchor.current);
+      if (storeKey) saveAnchor(storeKey, anchorToStore.current());
     } else {
       top = resolveAnchor(layout, ids, anchor.current);
     }
