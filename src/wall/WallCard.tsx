@@ -129,12 +129,12 @@ export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, s
     >
       {stack ? stackFace(card, b, corner, uiScale, thumbnailPx, veiled, veiledPages) : picture(card, thumbnailPx, veiled)}
     </div>
-    {/* 托盘里页角的勾（#418）：增减这一页的选择。紧跟在卡片后面（悬停卡片时露出）；第 1 页的左上角是张数，勾放在右上角。 */}
+    {/* 托盘里页角的勾（#418）：增减这一页的选择。紧跟在卡片后面（悬停卡片时露出）。回车、空格只按这个勾，Esc、Ctrl+A 等照常落到墙上。 */}
     {trayPage > 0 && <button type="button" role="checkbox" className="card-check" data-card={card.id}
       aria-checked={selected.has(card.id)} aria-label={i18n.t("wall:card.pageLabel", { page: trayPage })}
       style={{ left: `${b.x + b.w - 28}px`, top: `${b.y + 6}px` }}
       onClick={(e) => { e.stopPropagation(); cardHandlers.current.check(card); }}
-      onKeyDown={(e) => e.stopPropagation()}>{CHECK_ICON}</button>}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.stopPropagation(); }}>{CHECK_ICON}</button>}
     {count >= 2 && <button type="button" className="card-count" data-card={card.id}
       aria-label={i18n.t("wall:card.stackLabel", { count })} aria-expanded={false}
       style={{ left: `${b.x + corner + 6}px`, top: `${b.y + corner + 6}px` }}

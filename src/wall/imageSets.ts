@@ -54,10 +54,13 @@ export function useOpenTray(cards: BrowserCard[], stackSets: boolean) {
   return { openSet, setOpenSet, shown, tray, trayIds };
 }
 
-/** 「叠放图集」开关（#418），默认开；还没露出时（见 STACK_SETS_READY）关着，菜单里也没有这一项。 */
-export function useStackSetsSetting() {
+/**
+ * 「叠放图集」开关（#418），默认开；还没露出时（见 STACK_SETS_READY）关着，菜单里也没有这一项。
+ * 切换后墙重新挂载、页的格子变了：`onToggle` 让调用方清掉选择，免得详情面板还在编辑看不见的页。
+ */
+export function useStackSetsSetting(onToggle: () => void) {
   const [on, setOn] = useState(STACK_SETS_READY);
-  return { on, menu: STACK_SETS_READY ? { on, toggle: () => setOn((value) => !value) } : undefined };
+  return { on, menu: STACK_SETS_READY ? { on, toggle: () => { setOn((value) => !value); onToggle(); } } : undefined };
 }
 
 /** 托盘开着时点顶栏也关托盘；点详情面板不关，面板显示的正是托盘里的选择。 */

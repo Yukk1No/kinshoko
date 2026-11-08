@@ -75,7 +75,6 @@ export function LibraryWorkspace({
   const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
   const [reloadKey, setReloadKey] = useState(0);
   const [density, setDensity] = useState(240);
-  const stacking = useStackSetsSetting();
   /** 图片墙上 Ctrl+滚轮缩放中的预览值（#111），滑条跟着走。 */
   const [zoomPreview, setZoomPreview] = useState<number | null>(null);
   const [resultCount, setResultCount] = useState<number | null>(null);
@@ -83,6 +82,7 @@ export function LibraryWorkspace({
   const { imports, running, setRunning, report, setReport, started } = useImportTasks();
   const scope: BrowseScope = workspaceScope.kind === "library" ? workspaceScope.scope : { kind: "all" };
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const stacking = useStackSetsSetting(() => setSelected(new Set()));
   const [viewing, setViewing] = useState<BrowserCard | null>(null);
   const wallHost = useRef<HTMLDivElement>(null);
   const flight = useViewerFlight({ viewing, safe, host: wallHost, instant: hidden || !!captureRequest });

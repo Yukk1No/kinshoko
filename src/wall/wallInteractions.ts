@@ -133,7 +133,9 @@ export function wallInteractions({
   };
   const wallKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const chord = (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey;
-    const inTray = trayIds.size > 0 && trayIds.has((e.target as Element).closest?.<HTMLElement>(".card")?.dataset.id ?? "");
+    // 焦点在托盘里的页或它页角的勾（data-card）上。
+    const at = (e.target as Element).closest?.<HTMLElement>(".card, .card-check");
+    const inTray = trayIds.size > 0 && trayIds.has(at?.dataset.id ?? at?.dataset.card ?? "");
     if (e.key === "Escape" && trayIds.size && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
       // 托盘开着时（#418）：有选中的页先取消选择，再按一次关托盘。
       e.preventDefault();

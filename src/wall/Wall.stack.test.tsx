@@ -241,3 +241,18 @@ it("关托盘时飞回的影子也按安全模式遮：成人内容的页不露�
     delete (HTMLElement.prototype as { animate?: unknown }).animate;
   }
 });
+
+it("焦点在页角的勾上时，Esc 与 Ctrl+A 照常落到托盘：先取消页的选择，Ctrl+A 只选这一摞", async () => {
+  const onSelection = vi.fn();
+  render(<Harness onSelection={onSelection} />);
+  await screen.findAllByRole("option");
+  fireEvent.click(count());
+  const check = screen.getByRole("checkbox", { name: "第 2 页" });
+  fireEvent.click(check);
+  expect(onSelection).toHaveBeenLastCalledWith(["p1"]);
+  fireEvent.keyDown(check, { key: "a", ctrlKey: true });
+  expect(onSelection).toHaveBeenLastCalledWith(["p0", "p1", "p2"]);
+  fireEvent.keyDown(check, { key: "Escape" });
+  expect(onSelection).toHaveBeenLastCalledWith([]);
+  expect(tray()).not.toBeNull();
+});
