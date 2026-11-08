@@ -78,9 +78,12 @@ export function parseTyped(text: string, prefixOf: (namespace: TagNamespace) => 
   return { namespace: null, name: trimmed };
 }
 
-/** 回车与 Alt+回车、单击与 Ctrl+单击：后者排除，与查找框的写法相同。 */
-const wantsReject = (event: { type: string; altKey: boolean; ctrlKey: boolean; metaKey: boolean }) =>
-  event.type === "keydown" ? event.altKey : event.ctrlKey || event.metaKey;
+/**
+ * 在候选行上按键或单击做什么：回车 / 单击添加；Alt+回车 / Ctrl+单击排除，与查找框的写法相同；
+ * Shift+回车 / Shift+单击改回自动（行尾按钮不可聚焦，键盘靠它）。
+ */
+const decisionOf = (event: { type: string; altKey: boolean; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }): TagEdit["kind"] =>
+  event.shiftKey ? "clear" : (event.type === "keydown" ? event.altKey : event.ctrlKey || event.metaKey) ? "reject" : "add";
 
 /**
  * 选中参考图的标签（#51）：只选一张时列出有效标签及出处、被否决的标签，可以确认、否决或清除
@@ -165,9 +168,9 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
   const rowActions = (tag: TagLabel) => {
     const name = tagName(tag);
     return <>
-      <Tip label={t("panel.rejectTitle")}><button type="button" tabIndex={-1} className="k-option-act is-reject" aria-label={t("panel.rejectLabel", { name })}
+      <Tip label={t("panel.rejectTitle")} keys="Alt+Enter"><button type="button" tabIndex={-1} className="k-option-act is-reject" aria-label={t("panel.rejectLabel", { name })} aria-keyshortcuts="Alt+Enter"
         onClick={() => decide("reject", byId(tag))}><Ban size={14} aria-hidden="true" /></button></Tip>
-      {ids.length > 1 && <Tip label={t("panel.revert")}><button type="button" tabIndex={-1} className="k-option-act" aria-label={t("panel.clearLabel", { name })}
+      {ids.length > 1 && <Tip label={t("panel.revert")} keys="Shift+Enter"><button type="button" tabIndex={-1} className="k-option-act" aria-label={t("panel.clearLabel", { name })} aria-keyshortcuts="Shift+Enter"
         onClick={() => decide("clear", byId(tag))}><Undo2 size={14} aria-hidden="true" /></button></Tip>}
     </>;
   };
@@ -179,8 +182,8 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
         className="k-tag-kind" onClick={() => { if (parsed.namespace) setText(query); setNamespace(value); }}>
         <span className="k-label">{t(`namespaceOption.${value}`)}</span></button>)}
     </span>
-    {ids.length > 1 && <Tip label={t("panel.revert")}><button type="button" tabIndex={-1} className="k-option-act k-tag-kinds-clear"
-      aria-label={t("panel.clearLabel", { name: query })} onClick={() => decide("clear")}><Undo2 size={14} aria-hidden="true" /></button></Tip>}
+    {ids.length > 1 && <Tip label={t("panel.revert")} keys="Shift+Enter"><button type="button" tabIndex={-1} className="k-option-act k-tag-kinds-clear"
+      aria-label={t("panel.clearLabel", { name: query })} aria-keyshortcuts="Shift+Enter" onClick={() => decide("clear")}><Undo2 size={14} aria-hidden="true" /></button></Tip>}
   </>;
   const addOptions: (ComboboxOption & { tag: TagLabel | null })[] = found.map((c) => ({ ...tagOption(c, query), actions: rowActions(c.tag) }));
   if (query && ready && !exact) addOptions.push({ id: "create", create: true, tag: null, label: t("panel.create", { name: query }), actions: kindPicker });
@@ -257,10 +260,10 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
           options={addOptions}
           empty={query && ready && found.length === 0 ? t("panel.noMatch") : undefined}
           onValueChange={setText}
-          onSelect={(option, event) => decide(wantsReject(event) ? "reject" : "add", option.tag ? byId(option.tag) : typed())}
+          onSelect={(option, event) => decide(decisionOf(event), option.tag ? byId(option.tag) : typed())}
           onKeyDown={(e) => {
-            // 候选还没到时，回车照样按输入的名称添加（Alt+回车排除）。
-            if (e.key === "Enter" && !ready) { e.preventDefault(); decide(e.altKey ? "reject" : "add"); }
+            // 候选还没到时，回车照样按输入的名称添加（Alt+回车排除，Shift+回车改回自动）。
+            if (e.key === "Enter" && !ready) { e.preventDefault(); decide(decisionOf(e)); }
             if (e.key === "Escape") setText("");
           }}
         />

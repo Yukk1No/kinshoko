@@ -90,6 +90,17 @@ describe("添加标签的输入框", () => {
     await waitFor(() => expect(edits).toEqual([{ kind: "clear", tag: { kind: "named", namespace: "general", name: "眼镜", lang: "zh-CN" } }]));
   });
 
+  it("键盘：Shift+回车改回自动，候选行与新建项都可以", async () => {
+    const { edits, input, type } = setup(["a", "b"]);
+    await within(await type("猫")).findByRole("option", { name: /猫/ });
+    fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
+    await waitFor(() => expect(edits).toEqual([{ kind: "clear", tag: { kind: "id", id: "t-cat" } }]));
+    await within(await type("眼镜")).findByRole("option", { name: /^新建“眼镜”/ });
+    fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
+    await waitFor(() => expect(edits).toHaveLength(2));
+    expect(edits[1]).toEqual({ kind: "clear", tag: { kind: "named", namespace: "general", name: "眼镜", lang: "zh-CN" } });
+  });
+
   it("写了类别前缀时多取候选再按类别筛，不被别的类别挤掉", async () => {
     const { limits, type } = setup(["a"]);
     await within(await type("猫")).findByRole("option", { name: /猫/ });
