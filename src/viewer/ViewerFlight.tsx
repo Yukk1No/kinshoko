@@ -7,7 +7,11 @@ import type { BrowserCard } from "../wall/wallShared";
 
 export type FlightRect = { x: number; y: number; width: number; height: number };
 /** 查看器此刻把图放在哪（窗口坐标），以及位图读到了哪一步。 */
-export type ViewerPlaced = { rect: FlightRect; src: string | null; settled: boolean };
+export type ViewerPlaced = {
+  rect: FlightRect; src: string | null; settled: boolean;
+  /** 画师已经缩放或平移过：图的位置由画师说了算，飞行元素不再追着它飞。 */
+  manual?: boolean;
+};
 /** 查看器的过渡阶段，写在 `.viewer[data-flight]` 上，顶栏、Dock 与底色的进退由样式接管。 */
 export type ViewerFlightAttr = "fly-in" | "land" | "fade-in" | "fade-out";
 
@@ -165,6 +169,8 @@ export function useViewerFlight({ viewing, safe, host, instant }: {
     placed.current = next;
     setStage((current) => {
       if (current?.kind !== "fly" || current.direction !== "open") return current;
+      // 打开途中画师缩放或平移：当场结束飞行，换上查看器里的图。追着新落点飞会盖出查看区，还拖着弹簧的尾巴。
+      if (next.manual) return null;
       const { to, settled } = current;
       const same = to && to.x === next.rect.x && to.y === next.rect.y && to.width === next.rect.width && to.height === next.rect.height;
       return same && settled === next.settled ? current : { ...current, to: next.rect, settled: next.settled };

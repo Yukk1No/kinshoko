@@ -151,9 +151,10 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
     return () => { alive = false; };
   }, [libraryId, card.id, reloadKey, failedSrc]);
   const settled = ready || failed;
+  const manual = mode !== "fit" || offset.x !== 0 || offset.y !== 0;
   useLayoutEffect(() => {
-    if (viewport.width > 0) onPlaced?.({ rect: { x: viewport.left + left, y: viewport.top + top, width, height }, src: ready ? src : null, settled });
-  }, [viewport.width, viewport.left, viewport.top, left, top, width, height, src, ready, settled, onPlaced]);
+    if (viewport.width > 0) onPlaced?.({ rect: { x: viewport.left + left, y: viewport.top + top, width, height }, src: ready ? src : null, settled, manual });
+  }, [viewport.width, viewport.left, viewport.top, left, top, width, height, src, ready, settled, manual, onPlaced]);
   const shown = { left, top, width, height };
   const placed = { width, height, left: 0, top: 0, transform: `translate(${left}px, ${top}px)` };
   const natural = { width: card.width, height: card.height };
