@@ -67,6 +67,7 @@ pub(super) fn initialize(conn: &Connection) -> Result<(), CatalogError> {
           library_id TEXT NOT NULL, group_id TEXT NOT NULL, source TEXT NOT NULL,
           target TEXT REFERENCES catalog_group(id) ON DELETE SET NULL,
           PRIMARY KEY(library_id,group_id));
+        CREATE TABLE IF NOT EXISTS catalog_preset (key TEXT PRIMARY KEY);
         PRAGMA user_version=4;
         COMMIT;",
     )?;

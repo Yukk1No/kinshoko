@@ -113,6 +113,45 @@ pub(super) fn visible_catalog(snapshot: &Snapshot, safe: bool) -> CatalogInspect
     }
     catalog
 }
+/// 预置分组的成员还没有任何资料库带着它们时也要能选、能查（#484）；它们没有对应，不涉及安全模式。
+pub(super) fn unattached_preset_tags(snapshot: &Snapshot) -> Vec<VocabularyTag> {
+    let mapped = snapshot
+        .catalog
+        .mappings
+        .iter()
+        .map(|mapping| mapping.catalog_id.as_str())
+        .collect::<BTreeSet<_>>();
+    snapshot
+        .catalog
+        .tags
+        .iter()
+        .filter(|tag| {
+            !mapped.contains(tag.id.as_str())
+                && tag.namespace == crate::library::TagNamespace::General
+                && tag.external.iter().any(|e| {
+                    e.vocabulary == "danbooru" && crate::tag_catalog::is_preset_member(&e.name)
+                })
+        })
+        .cloned()
+        .map(|mut tag| {
+            crate::tag_catalog::fill_names(&mut tag, std::iter::empty());
+            VocabularyTag {
+                id: tag.id,
+                namespace: tag.namespace,
+                names: tag.names,
+                aliases: tag.aliases,
+                external: tag
+                    .external
+                    .into_iter()
+                    .filter(|entry| entry.vocabulary == "danbooru")
+                    .map(|entry| entry.name)
+                    .collect(),
+                count: 0,
+                source_names: Vec::new(),
+            }
+        })
+        .collect()
+}
 /// Search candidates remain tied to live effective usage. Management also retains legitimate zero-use definitions.
 pub(super) fn management_vocabulary(snapshot: &Snapshot, safe: bool) -> &Vocabulary {
     let cache = if safe {
@@ -127,7 +166,7 @@ pub(super) fn management_vocabulary(snapshot: &Snapshot, safe: bool) -> &Vocabul
             .iter()
             .map(|tag| tag.id.clone())
             .collect::<BTreeSet<_>>();
-        for tag in visible_catalog(snapshot, safe).tags {
+        for tag in visible_catalog(snapshot, safe).tags.into_iter() {
             if !present.contains(&tag.id) {
                 vocabulary.tags.push(VocabularyTag {
                     id: tag.id,
@@ -143,6 +182,11 @@ pub(super) fn management_vocabulary(snapshot: &Snapshot, safe: bool) -> &Vocabul
                     count: 0,
                     source_names: Vec::new(),
                 });
+            }
+        }
+        for tag in unattached_preset_tags(snapshot) {
+            if !present.contains(&tag.id) {
+                vocabulary.tags.push(tag);
             }
         }
         vocabulary.tags.sort_by(|a, b| a.id.cmp(&b.id));
