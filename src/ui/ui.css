@@ -194,9 +194,6 @@
 :is(.k-pill, .subs-unofficial, .subs-rank-hint, .lib-warn) > .k-warn-icon { margin: 0; }
 /* a pill that starts with the icon gives up 2 px on the left, as buttons with a leading icon do */
 :is(.k-pill, .subs-unofficial):has(> .k-warn-icon:first-child) { padding-left: 6px; }
-/* 人工标签名前的小金星（#482，ManualStar）：约为字号的 0.72，底边落在基线上，顶边齐大写字高 */
-.k-manual-star { display: inline-block; width: 0.72em; height: 0.72em; margin-inline-end: 0.28em; vertical-align: baseline; overflow: visible; }
-.k-manual-star path { fill: var(--manual); }
 .k-list-end { display: flex; align-items: center; gap: 8px; flex: none; }
 /* the item's current state (version, progress, place): ink-2 beside the control, never a line of its own */
 .k-list-meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; }

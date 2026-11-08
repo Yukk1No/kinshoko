@@ -63,7 +63,7 @@ describe("警告、强调、人工三种颜色分开（#482）", () => {
   for (const theme of ["day", "night"] as const) {
     const t = themeTokens(theme);
     it(`${theme === "day" ? "日间" : "夜间"}：警告色不和强调色、人工色、危险色共用一个值`, () => {
-      // 夜间强调色和人工色同为金色，靠金星而不是颜色分开；警告色和它们都不同。
+      // 夜间强调色和人工色同为金色（人工标签的样子按 #482 另改）；警告色和它们都不同。
       for (const other of ["--accent", "--manual", "--danger"]) expect(t["--warn"], other).not.toBe(t[other]);
       expect(t["--warn-strong"]).not.toBe(t["--manual-strong"]);
     });
