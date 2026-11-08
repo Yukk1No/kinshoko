@@ -61,13 +61,16 @@ const byId = (tag: TagLabel): TagRef => ({ kind: "id", id: tag.id });
  * 输入框里的字：开头写了类别（“角色：初音”“作品:xx”，与标签的显示名同一写法）就按它新建，候选也只列这个类别。
  * 全角、半角冒号都认；不写类别时 `namespace` 为 null。
  */
+// 半角或全角冒号结尾（全角写成转义，免得被当成写死的界面文字）。
+const ENDS_WITH_COLON = new RegExp("[:" + String.fromCharCode(0xff1a) + "]$");
+
 export function parseTyped(text: string, prefixOf: (namespace: TagNamespace) => string): { namespace: TagNamespace | null; name: string } {
   const trimmed = text.trim();
   for (const namespace of NAMESPACES) {
-    const prefix = prefixOf(namespace).trim().replace(/[:：]$/, "");
+    const prefix = prefixOf(namespace).trim().replace(ENDS_WITH_COLON, "");
     if (!prefix) continue;
     const head = trimmed.slice(0, prefix.length + 1);
-    if (head.length === prefix.length + 1 && /[:：]$/.test(head) && head.slice(0, -1).toLocaleLowerCase() === prefix.toLocaleLowerCase())
+    if (head.length === prefix.length + 1 && ENDS_WITH_COLON.test(head) && head.slice(0, -1).toLocaleLowerCase() === prefix.toLocaleLowerCase())
       return { namespace, name: trimmed.slice(prefix.length + 1).trim() };
   }
   return { namespace: null, name: trimmed };
