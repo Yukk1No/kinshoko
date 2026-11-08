@@ -23,7 +23,7 @@ const cardNode = (el: HTMLElement | null, id: string) =>
 type Ghost = { card: BrowserCard; from: { x: number; y: number; w: number; h: number } };
 
 export function useTrayMotion({
-  scroller, layout, ids, shown, tray, openSet, setOpenSet, anchor, settledTop, beforeReflow, measureBeforeReflow, trayMotion, thumbnailPx,
+  scroller, layout, ids, shown, tray, openSet, setOpenSet, anchor, settledTop, beforeReflow, measureBeforeReflow, trayMotion, thumbnailPx, veiled, safeMode,
 }: {
   scroller: MutableRefObject<HTMLDivElement | null>;
   layout: Layout;
@@ -38,9 +38,14 @@ export function useTrayMotion({
   measureBeforeReflow: (keepSafe?: boolean) => void;
   trayMotion: MutableRefObject<TrayMotion | null>;
   thumbnailPx: number;
+  /** 这一页现在要不要遮（成人内容、安全模式或还没放出）：影子照着遮。 */
+  veiled: (card: BrowserCard) => boolean;
+  safeMode: boolean;
 }) {
-  const live = useRef({ layout, ids, shown, tray, openSet });
-  live.current = { layout, ids, shown, tray, openSet };
+  const live = useRef({ layout, ids, shown, tray, openSet, veiled });
+  live.current = { layout, ids, shown, tray, openSet, veiled };
+  /** 关托盘时焦点在托盘里：渲染后交给这一摞，回车、Ctrl+A 照常可用。 */
+  const focusStack = useRef<string | null>(null);
   /** 刚打开的托盘：渲染后把焦点交给第一页。 */
   const focusFirst = useRef<string | null>(null);
   /** 刚关上的托盘：渲染后各页的影子从托盘里的位置飞回这一摞。 */
@@ -65,6 +70,8 @@ export function useTrayMotion({
     if (openSet === null || !tray || !el) { setOpenSet(null); return; }
     const pages = shown.slice(tray.at, tray.at + tray.count);
     const stack = pages[0].id;
+    const focused = document.activeElement;
+    focusStack.current = focused instanceof HTMLElement && pages.some((page) => page.id === focused.dataset.id || page.id === focused.dataset.card) ? stack : null;
     measureBeforeReflow();
     trayMotion.current = { flights: new Set([stack]) };
     // 被点的那一格留在屏幕原处；否则正在看的若是托盘里的页，这一摞落在托盘原来的位置。
@@ -87,11 +94,10 @@ export function useTrayMotion({
 
   useLayoutEffect(() => {
     const el = scroller.current;
-    const first = focusFirst.current;
+    const first = openSet !== null ? focusFirst.current : focusStack.current;
     focusFirst.current = null;
-    if (first && openSet !== null && el) {
-      cardNode(el, first)?.focus({ preventScroll: true });
-    }
+    focusStack.current = null;
+    if (first && el) cardNode(el, first)?.focus({ preventScroll: true });
     const pending = gather.current;
     gather.current = null;
     if (!pending || openSet !== null || !el) return;
@@ -111,7 +117,11 @@ export function useTrayMotion({
       const ghost = document.createElement("div");
       ghost.className = "tray-ghost";
       Object.assign(ghost.style, { left: `${to.x}px`, top: `${to.y}px`, width: `${to.w}px`, height: `${to.h}px` });
-      if (card.placeholder) ghost.style.backgroundImage = `url("${card.placeholder}")`;
+      // 成人内容的页：影子也遮着（CSS 只留纸底），飞到一半开了安全模式时再补上（见下方）。
+      const hidden = live.current.veiled(card);
+      ghost.dataset.veiled = String(hidden);
+      if (card.adult) ghost.dataset.adult = "";
+      if (card.placeholder && !hidden) ghost.style.backgroundImage = `url("${card.placeholder}")`;
       const img = document.createElement("img");
       img.src = thumbnailUrl(cardThumbnail(card, thumbnailPx));
       img.alt = "";
@@ -130,6 +140,15 @@ export function useTrayMotion({
     const timer = window.setTimeout(landed, duration);
     return () => { clearTimeout(timer); landed(); flights.forEach((flight) => flight.cancel()); };
   }, [openSet]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 影子飞到一半时开了安全模式：成人内容的页的影子立即遮住。
+  useLayoutEffect(() => {
+    if (!safeMode) return;
+    scroller.current?.querySelectorAll<HTMLElement>(".tray-ghost[data-adult]").forEach((ghost) => {
+      ghost.dataset.veiled = "true";
+      ghost.style.backgroundImage = "";
+    });
+  }, [safeMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { openTray, closeTray };
 }

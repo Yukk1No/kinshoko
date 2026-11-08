@@ -287,6 +287,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const [menuTarget, setMenuTarget] = useState<WallMenuTarget | null>(null);
   const { openTray, closeTray } = useTrayMotion({
     scroller, layout, ids, shown, tray, openSet, setOpenSet, anchor, settledTop, beforeReflow, measureBeforeReflow, trayMotion, thumbnailPx,
+    veiled: (card) => card.adult && (safeMode || !revealed.has(card.id)), safeMode,
   });
   const { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart, trayClick, leaveTray, pruneTray, toggle } = wallInteractions({
     ids, cards: shown, selected, onSelectionChange, pivot, lastPress, pendingClick, holdForDoubleClick, open, selectAllRef,

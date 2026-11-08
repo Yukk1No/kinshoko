@@ -36,6 +36,8 @@
   box-shadow: 0 0 0 0.5px var(--sheet-edge), 0 3px 6px var(--sheet-drop), 0 16px 30px -6px rgba(var(--contact), 0.4);
 }
 .card.is-stack:hover > .stack-contact { transform: translateY(5px) scaleX(1.06); opacity: calc(var(--weight) * 0.6); transition-delay: var(--t-fast); }
+/* 来源按钮在封面右下角：拿起的一摞（z-index 2）不能盖住它。 */
+.card.is-stack:hover + .card-count + .card-sources { z-index: 3; }
 .card.is-stack:hover + .card-count { transform: translateY(-3px); transition: transform var(--t-slow) var(--spring) var(--t-fast); }
 .wall-canvas > .card-count { transition: transform var(--t) var(--ease); }
 .card.is-stack[aria-selected="true"] > .stack-cover { box-shadow: 0 0 0 2px var(--wall), 0 0 0 4px var(--accent); }
@@ -86,3 +88,4 @@
 .wall-ghosts { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
 .tray-ghost { position: absolute; overflow: hidden; border-radius: var(--r-s); background: var(--card) center / cover; transform-origin: 0 0; box-shadow: 0 0 0 0.5px var(--sheet-edge), 0 1px 2px var(--sheet-drop); }
 .tray-ghost > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.tray-ghost[data-veiled="true"] > img { visibility: hidden; }

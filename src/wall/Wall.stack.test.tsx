@@ -212,3 +212,32 @@ it("安全模式关着时，托盘里成人内容的页随墙上的图一起放�
   fireEvent.click(count());
   await vi.waitFor(() => expect(card("p1")!.dataset.veiled).toBe("false"));
 });
+
+it("焦点在托盘里时按 Esc 关托盘，焦点回到这一摞，回车还能再打开", async () => {
+  render(<Harness />);
+  await screen.findAllByRole("option");
+  fireEvent.click(count());
+  card("p2")!.focus();
+  fireEvent.keyDown(card("p2")!, { key: "Escape" });
+  expect(tray()).toBeNull();
+  expect(document.activeElement).toBe(card("p0"));
+  fireEvent.keyDown(card("p0")!, { key: "Enter" });
+  expect(tray()).not.toBeNull();
+});
+
+it("关托盘时飞回的影子也按安全模式遮：成人内容的页不露图", async () => {
+  adultPages = new Set(["p1"]);
+  const flight = { cancel() {}, onfinish: null, oncancel: null };
+  HTMLElement.prototype.animate = vi.fn(() => flight) as never;
+  try {
+    render(<Harness safeMode />);
+    await screen.findAllByRole("option");
+    fireEvent.click(count());
+    fireEvent.keyDown(card("p1")!, { key: "Escape" });
+    const ghosts = [...document.querySelectorAll<HTMLElement>(".tray-ghost")];
+    expect(ghosts.map((ghost) => ghost.dataset.veiled)).toEqual(["false", "true"]);
+    expect(ghosts[1].style.backgroundImage).toBe("");
+  } finally {
+    delete (HTMLElement.prototype as { animate?: unknown }).animate;
+  }
+});
