@@ -68,6 +68,8 @@ fn main() {
                         "edit_shared_approx",
                         "create_shared_tag_group",
                         "edit_shared_tag_group",
+                        "delete_shared_tag_group",
+                        "restore_shared_tag_group",
                         "plan_legacy_names",
                         "preview_legacy_names",
                         "confirm_legacy_names",

@@ -61,11 +61,9 @@ const tagGroups: Translation<typeof zh> = {
     addLabel: "Add a tag to “{{group}}”",
     add: "Add tag",
   },
-  deleteConfirm: {
-    title: "Delete group",
-    description: "“{{name}}” will be deleted. Image tags stay as they are.",
-    cancel: "Cancel",
-    submit: "Delete group",
+  deleted: {
+    done: "Group deleted",
+    undo: "Undo",
   },
 };
 

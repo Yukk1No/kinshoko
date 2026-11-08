@@ -41,6 +41,8 @@ mod capture_readout;
 mod capture_region;
 #[path = "catalog_approx.rs"]
 mod catalog_approx;
+#[path = "catalog_group_undo.rs"]
+mod catalog_group_undo;
 #[path = "catalog_groups.rs"]
 mod catalog_groups;
 #[path = "catalog_preset_groups.rs"]

@@ -2,6 +2,7 @@ import { afterEach, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { TagGroupsPane } from "./TagGroupsPane";
+import { ToastProvider } from "../ui/Toast";
 
 afterEach(() => { cleanup(); clearMocks(); });
 
@@ -21,7 +22,7 @@ it("添加标签时不列已有成员，仍列满其余匹配的标签；Esc 收
     }
     return null;
   });
-  render(<TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} />);
+  render(<ToastProvider><TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} /></ToastProvider>);
   const add = await screen.findByRole("button", { name: "给“猫”添加标签" });
   await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(add);

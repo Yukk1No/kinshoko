@@ -101,15 +101,19 @@ describe("标签分组", () => {
     await within(general).findByRole("button", { name: "微笑（1 张）" });
     expect(within(general).queryByRole("button", { name: "给“一般”添加标签" })).toBeNull();
 
-    const deletes = sent("plugin:library|edit_shared_tag_group").length;
+    // #479: deleting a group does not ask first; the toast offers 撤销, which puts it back where it was.
     fireEvent.click(within(groups).getByRole("button", { name: "删除标签分组“头发颜色”" }));
-    // #98: deleting a group asks first; nothing is sent before the confirmation.
-    const confirm = (await screen.findByText("「头发颜色」会被删除，图片的标签不变。")).closest<HTMLElement>("[role='alertdialog']")!;
-    expect(sent("plugin:library|edit_shared_tag_group").length).toBe(deletes);
-    expect(within(groups).getByRole("group", { name: "头发颜色", hidden: true })).toBeTruthy();
-    fireEvent.click(within(confirm).getByRole("button", { name: "删除分组" }));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
     await waitFor(() => expect(within(groups).queryByRole("group", { name: "头发颜色" })).toBeNull());
-    expect(sent("plugin:library|edit_shared_tag_group").at(-1)).toEqual({ edit: { kind: "delete", groupId: "G1" }, safeMode: true });
+    expect(sent("plugin:library|delete_shared_tag_group")).toEqual([{ groupId: "G1", safeMode: true }]);
+    expect(await screen.findByText("已删除分组")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+    const back = await within(groups).findByRole("group", { name: "头发颜色" });
+    expect(sent("plugin:library|restore_shared_tag_group")).toMatchObject([{ deleted: { id: "G1", name: "头发颜色" } }])
+    // 撤销不带安全模式：提示出现后模式变了也能撤销。
+    expect(sent("plugin:library|restore_shared_tag_group")[0]).not.toHaveProperty("safeMode");
+    expect((await within(back).findAllByRole("button", { name: /张）/ })).length).toBeGreaterThan(0);
+    expect(within(groups).getAllByRole("group").map((g) => g.getAttribute("aria-label"))[0]).toBe("头发颜色");
   });
 
   it("安全模式切换后重新取得分组（被封印的图上的标签由资料库藏起）", async () => {

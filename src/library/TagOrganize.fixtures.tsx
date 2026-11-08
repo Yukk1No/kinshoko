@@ -268,6 +268,18 @@ export function backend() {
           announce([]);
           return id;
         }
+        case "plugin:library|delete_shared_tag_group": {
+          const ord = fake.groups.findIndex((g) => g.id === a.groupId);
+          const [group] = fake.groups.splice(ord, 1);
+          announce([]);
+          return { id: group.id, name: group.name, namespace: group.namespace, ord, members: [...group.members], migratedFrom: [] };
+        }
+        case "plugin:library|restore_shared_tag_group": {
+          const d = a.deleted as { id: string; name: string; namespace: TagNamespace | null; ord: number; members: string[] };
+          fake.groups.splice(Math.min(d.ord, fake.groups.length), 0, { id: d.id, name: d.name, namespace: d.namespace, members: d.members });
+          announce([]);
+          return null;
+        }
         case "plugin:library|edit_shared_tag_group": {
           const edit = (args as { edit: CatalogGroupEdit }).edit;
           switch (edit.kind) {
