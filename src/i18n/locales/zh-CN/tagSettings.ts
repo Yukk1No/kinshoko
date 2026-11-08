@@ -112,8 +112,6 @@ export default {
     low: "低档低于",
     lowLabel: "低档上限",
     reset: "恢复默认",
-    lowOutline: "低档虚线框",
-    lowOutlineHint: "低档标签加虚线外框；关掉后只把字变浅",
     outOfRange: "要在 0% 到 100% 之间",
     lowAboveHigh: "低档上限要小于高档下限",
   },

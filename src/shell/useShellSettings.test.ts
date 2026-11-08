@@ -12,7 +12,7 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("标签外观草稿", () => {
   it("恢复之前的外观保存失败，只清掉那一段的草稿；恢复之后排着的改动照样显示并写入", async () => {
-    const backup: ShellSettingsView = { ...defaults, tagDisplay: { style: "bands", high: 0.9, low: 0.2, lowOutline: true } };
+    const backup: ShellSettingsView = { ...defaults, tagDisplay: { style: "bands", high: 0.9, low: 0.2 } };
     const replies: Record<string, (() => void)[]> = { tag: [], restore: [] };
     const sent: TagDisplay[] = [];
     let failNextTag = true;
@@ -32,7 +32,7 @@ describe("标签外观草稿", () => {
     });
     const settings = createShellSettings();
     await settings.load();
-    settings.changeTagDisplay({ lowOutline: false });
+    settings.changeTagDisplay({ high: 0.85 });
     const restored = settings.restore("C:/backup/a.kinshoko-settings", "fixed-backup");
     settings.changeTagDisplay({ style: "grouped" });
     expect(settings.state().tagDraft?.style).toBe("grouped");
@@ -43,11 +43,11 @@ describe("标签外观草稿", () => {
     replies.restore.shift()!();
     await restored;
     await tick();
-    expect(settings.state().tagDraft).toEqual({ style: "grouped", high: 0.9, low: 0.2, lowOutline: true });
+    expect(settings.state().tagDraft).toEqual({ style: "grouped", high: 0.9, low: 0.2 });
     replies.tag.shift()!();
     await tick();
-    expect(sent.at(-1)).toEqual({ style: "grouped", high: 0.9, low: 0.2, lowOutline: true });
+    expect(sent.at(-1)).toEqual({ style: "grouped", high: 0.9, low: 0.2 });
     expect(settings.state().tagDraft).toBeNull();
-    expect(settings.state().view?.tagDisplay).toEqual({ style: "grouped", high: 0.9, low: 0.2, lowOutline: true });
+    expect(settings.state().view?.tagDisplay).toEqual({ style: "grouped", high: 0.9, low: 0.2 });
   });
 });

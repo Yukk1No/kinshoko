@@ -27,6 +27,7 @@ const tags: ImageTags = {
     { tag: label("t-window", "窗户"), origins: [model(0.31)] },
     { tag: label("t-solo", "单人"), origins: [model(0.42), { kind: "source", source: "model:other", score: 0.97 }] },
     { tag: label("t-pose", "姿势参考"), origins: [eagle] },
+    { tag: label("t-sketch", "草图"), origins: [model(null)] },
   ],
   rejected: [label("t-glasses", "眼镜")],
 };
@@ -96,14 +97,23 @@ describe("B：可信度三档底色（默认）", () => {
     expect(within(tip).getByRole("button", { name: "清除对“长发”的人工决定" })).toBeTruthy();
   });
 
-  it("低档虚线框默认开，关掉后低档标签不带虚线框", async () => {
+  it("没有分数的模型标签按中档；人写的排在前面，模型标签按可信度从高到低（#482）", async () => {
     renderPanel();
-    await screen.findByText("窗户");
-    expect(screen.getByRole("list", { name: "有效标签" }).dataset.lowOutline).toBe("");
-    cleanup();
-    renderPanel({ ...DEFAULT_TAG_DISPLAY, lowOutline: false });
-    await screen.findByText("窗户");
-    expect(screen.getByRole("list", { name: "有效标签" }).dataset.lowOutline).toBeUndefined();
+    const list = await screen.findByRole("list", { name: "有效标签" });
+    await screen.findByText("草图");
+    expect(chip("草图").dataset.band).toBe("mid");
+    expect(within(list).getAllByRole("listitem").map((li) => li.querySelector(".tag-name")!.textContent))
+      .toEqual(["构图练习", "长发", "姿势参考", "单人", "微笑", "ahoge", "室内", "窗户", "草图"]);
+  });
+
+  it("浮层里只有打标模型那行前面有星（#482）", async () => {
+    renderPanel();
+    await screen.findByText("长发");
+    fireEvent.focus(chip("长发"));
+    const tip = await screen.findByRole("dialog", { name: "“长发”的出处" });
+    const line = (text: string) => within(tip).getByText(text, { exact: false }).closest(".k-tag-tip-line")!;
+    expect(line("自动标签，可信度 99%").querySelector("svg")).not.toBeNull();
+    expect(line("来源：你添加的").querySelector("svg")).toBeNull();
   });
 });
 
@@ -135,14 +145,17 @@ describe("未翻译的标签", () => {
 });
 
 describe("C：按出处分组＋可信度刻度", () => {
-  it("分“你添加的 / 打标模型 / 导入”三组，模型组按分数降序，每个模型标签有刻度条", async () => {
+  it("分“你添加的 / 导入 / 自动标签”三组（#482），模型组按分数降序，有分数的模型标签有刻度条", async () => {
     renderPanel({ ...DEFAULT_TAG_DISPLAY, style: "grouped" });
     const manual = await screen.findByRole("list", { name: "你添加的" });
     const models = screen.getByRole("list", { name: "自动标签" });
     const imported = screen.getByRole("list", { name: "导入" });
+    const titles = [...document.querySelectorAll(".k-tag-group > .k-tags-sub")];
+    expect(titles.map((p) => p.textContent)).toEqual(["你添加的", "导入", "自动标签"]);
+    expect(titles.map((p) => p.querySelector("svg") !== null)).toEqual([false, false, true]);
     const names = (list: HTMLElement) => within(list).getAllByRole("listitem").map((li) => li.querySelector(".tag-name")!.textContent);
     expect(names(manual)).toEqual(["构图练习", "长发"]);
-    expect(names(models)).toEqual(["单人", "微笑", "ahoge", "室内", "窗户"]);
+    expect(names(models)).toEqual(["单人", "微笑", "ahoge", "室内", "窗户", "草图"]);
     expect(names(imported)).toEqual(["姿势参考"]);
     const meters = within(models).getAllByRole("meter");
     expect(meters.map((m) => m.getAttribute("aria-valuenow"))).toEqual(["97", "87", "64", "55", "31"]);

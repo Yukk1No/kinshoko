@@ -3,7 +3,7 @@ import { i18n } from "../i18n/instance";
 import { clampRatio } from "../i18n/format";
 import type { TagOrigin } from "../bindings/TagOrigin";
 
-/** 模型标签的可信度档位（#160）：高档深底，中档常规底，低档字变浅。 */
+/** 模型标签的可信度档位（#160，#482）：高档和人写的一样有底，中档细线框，低档虚线框、字变浅。 */
 export type ConfidenceBand = "high" | "mid" | "low";
 
 /** 分档阈值：`high` 是高档下限，`low` 是低档上限（不含），满足 `low < high`。 */
@@ -13,10 +13,10 @@ export type ConfidenceThresholds = { high: number; low: number };
 const EPSILON = 1e-6;
 
 /**
- * 标签外观的默认值，与核心的 `TagDisplay::default` 相同：底色分档，0.80 / 0.40，低档加虚线框。
+ * 标签外观的默认值，与核心的 `TagDisplay::default` 相同：按可信度分三档，0.80 / 0.40。
  * 阈值来自维护者测试库的 13,837 个模型标签，这样分高、中、低三档大约各占三分之一。
  */
-export const DEFAULT_TAG_DISPLAY: TagDisplay = { style: "bands", high: 0.8, low: 0.4, lowOutline: true };
+export const DEFAULT_TAG_DISPLAY: TagDisplay = { style: "bands", high: 0.8, low: 0.4 };
 
 /** 阈值哪里不合要求；没问题时返回 null。核心按同样的规则拒绝保存。 */
 export function thresholdProblem({ high, low }: ConfidenceThresholds): string | null {
@@ -44,7 +44,8 @@ export function confidencePercent(score: number): number {
 /** 有效标签按出处归类：人工确认或添加的（以及合并资料库时留下、暂按添加处理的决定冲突）不分档；模型给的取各模型来源的最高分；其余是导入等来源。 */
 export type TagStanding = { kind: "manual" } | { kind: "model"; score: number | null } | { kind: "imported" };
 
-const isModel = (origin: TagOrigin): origin is Extract<TagOrigin, { kind: "source" }> =>
+/** 出自打标模型的出处。 */
+export const isModel = (origin: TagOrigin): origin is Extract<TagOrigin, { kind: "source" }> =>
   origin.kind === "source" && origin.source.startsWith("model:");
 
 export function tagStanding(origins: TagOrigin[]): TagStanding {

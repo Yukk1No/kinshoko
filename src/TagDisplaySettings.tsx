@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { Gauge, Palette, RotateCcw, SquareDashed } from "lucide-react";
+import { Gauge, Palette, RotateCcw } from "lucide-react";
 import type { TagDisplay } from "./bindings/TagDisplay";
 import type { TagStyle } from "./bindings/TagStyle";
 import { DEFAULT_TAG_DISPLAY, thresholdProblem } from "./tags/tagConfidence";
 import { Segmented } from "./ui/Segmented";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
-import { Switch } from "./ui/Switch";
 import { useTranslation } from "react-i18next";
 
 // 输入框按整数百分比（0–100）写，和标签上的“可信度 87%”一致；存的仍是 0–1 的小数。
@@ -15,8 +14,7 @@ const shown = (value: number) => String(Math.round(value * 100));
 const parse = (text: string) => (text.trim() === "" ? Number.NaN : Math.round(Number(text)) / 100);
 
 /**
- * 设置 › 标签 › 外观（#160）：标签风格（B 按可信度分档，默认；C 按出处分组加刻度）、可信度分档阈值、
- * 低档虚线框。本设备设置，改了立即保存并生效，不需要重新打标。低档上限必须小于高档下限，不满足时不保存。
+ * 设置 › 标签 › 外观（#160）：标签风格（B 按准不准分三档，默认；C 按出处分组加刻度）与可信度分档阈值。本设备设置，改了立即保存并生效，不需要重新打标。低档上限必须小于高档下限，不满足时不保存。
  */
 export function TagDisplaySettings({ display, onChange }: {
   /** 还有没回来的保存时是最后改成的那份，否则是已接受的设置。 */
@@ -67,9 +65,6 @@ export function TagDisplaySettings({ display, onChange }: {
         setLow(shown(DEFAULT_TAG_DISPLAY.low));
         onChange({ high: DEFAULT_TAG_DISPLAY.high, low: DEFAULT_TAG_DISPLAY.low });
       }}><RotateCcw size={12} aria-hidden="true" /><span className="k-label">{t("reset")}</span></button>
-    </SettingsRow>
-    <SettingsRow icon={<SquareDashed size={16} />} title={t("lowOutline")} hint={t("lowOutlineHint")}>
-      <Switch label={t("lowOutline")} checked={display.lowOutline} onCheckedChange={(on) => onChange({ lowOutline: on })} />
     </SettingsRow>
   </SettingsGroup>;
 }

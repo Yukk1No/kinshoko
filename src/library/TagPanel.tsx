@@ -18,7 +18,7 @@ import { TagChip } from "../tags/TagChip";
 import { UntranslatedRename } from "../tags/UntranslatedRename";
 import { tagStanding, type TagStanding } from "../tags/tagConfidence";
 import { useTagDisplay } from "../tags/TagDisplayContext";
-import { AtSign, Ban, Check, Tags, Undo2, X } from "lucide-react";
+import { AtSign, Ban, Check, Sparkles, Tags, Undo2, X } from "lucide-react";
 import { Tip } from "../ui/Tip";
 
 type Props = {
@@ -36,20 +36,23 @@ const NAMESPACES: TagNamespace[] = ["general", "artist", "character", "work"];
 
 type Group = { kind: TagStanding["kind"]; tags: ImageTag[] };
 
-/** C 风格的分组：你添加的 / 打标模型（按可信度从高到低，没有分数的在后）/ 导入；空组不列。 */
+/**
+ * 按出处分组（#482）：你添加的 / 导入 / 打标模型（按可信度从高到低，没有分数的在后）；空组不列。
+ * 不分组时也按这个次序排成一列：人写的在前，模型标签在后。
+ */
 function groupByStanding(tags: ImageTag[]): Group[] {
   const groups: Group[] = [
     { kind: "manual", tags: [] },
-    { kind: "model", tags: [] },
     { kind: "imported", tags: [] },
+    { kind: "model", tags: [] },
   ];
   const scoreOf = new Map<ImageTag, number>();
   for (const entry of tags) {
     const standing = tagStanding(entry.origins);
     if (standing.kind === "model") scoreOf.set(entry, standing.score ?? -1);
-    groups[standing.kind === "manual" ? 0 : standing.kind === "model" ? 1 : 2].tags.push(entry);
+    groups[standing.kind === "manual" ? 0 : standing.kind === "imported" ? 1 : 2].tags.push(entry);
   }
-  groups[1].tags.sort((a, b) => scoreOf.get(b)! - scoreOf.get(a)!);
+  groups[2].tags.sort((a, b) => scoreOf.get(b)! - scoreOf.get(a)!);
   return groups.filter((group) => group.tags.length > 0);
 }
 
@@ -132,7 +135,6 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
   const exact = candidates.some((c) => c.tag.namespace === namespace && (c.tag.name === query || c.via === query));
   const addOptions: (ComboboxOption & { tag: TagLabel | null })[] = found.map((c) => tagOption(c, query));
   if (query && ready && !exact) addOptions.push({ id: "create", create: true, tag: null, label: t("panel.create", { name: query }) });
-  const lowOutline = display.lowOutline ? "" : undefined;
   const chip = ({ tag, origins }: ImageTag, meter: boolean) => {
     const manual = origins.some((o) => o.kind === "manual");
     const name = tagName(tag);
@@ -156,8 +158,8 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
     );
   };
   // 详情面板的标签（#98，design/ui-system/interface-text-rules.md 与 interface-terms.md；#160）：现有标签是小标签，只写名称；
-  // 出处、可信度和“保留／改回自动／不要／别名”在悬停或聚焦时的浮层里。外观按设置：B 按可信度分档底色，
-  // C 按出处分组加刻度。输入框一个，打字后才出现“添加／排除／改回自动”。
+  // 出处、可信度和“保留／改回自动／不要／别名”在悬停或聚焦时的浮层里。外观按设置：B 按准不准分三档（#482），
+  // C 按出处分组加刻度。两种都是人写的在前、模型标签在后。输入框一个，打字后才出现“添加／排除／改回自动”。
   return (
     <section className="tag-panel insp-sec k-tags" aria-label={t("panel.label")}>
       <h4><Tags size={13} aria-hidden="true" />{t("panel.title")}</h4>
@@ -166,15 +168,15 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
           {display.style === "grouped" && tags.tags.length > 0
             ? groupByStanding(tags.tags).map((group) => (
               <div key={group.kind} className="k-tag-group">
-                <p className="k-tags-sub">{t(`panel.group.${group.kind}`)}</p>
-                <ul className="tag-list k-tag-chips" aria-label={t(`panel.group.${group.kind}`)} data-low-outline={lowOutline} aria-busy={stale} inert={stale}>
+                <p className="k-tags-sub">{group.kind === "model" && <Sparkles size={12} aria-hidden="true" />}{t(`panel.group.${group.kind}`)}</p>
+                <ul className="tag-list k-tag-chips" aria-label={t(`panel.group.${group.kind}`)} aria-busy={stale} inert={stale}>
                   {group.tags.map((entry) => chip(entry, group.kind === "model"))}
                 </ul>
               </div>
             ))
-            : <ul className="tag-list k-tag-chips" aria-label={t("panel.active")} data-low-outline={lowOutline} aria-busy={stale} inert={stale}>
+            : <ul className="tag-list k-tag-chips" aria-label={t("panel.active")} aria-busy={stale} inert={stale}>
               {tags.tags.length === 0 && <li className="tag-empty k-tags-empty">{t("panel.empty")}</li>}
-              {tags.tags.map((entry) => chip(entry, false))}
+              {groupByStanding(tags.tags).flatMap((group) => group.tags).map((entry) => chip(entry, false))}
             </ul>}
           {tags.rejected.length > 0 && (<>
             <p className="k-tags-sub">{t("panel.excluded")}</p>

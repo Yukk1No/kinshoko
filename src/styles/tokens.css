@@ -27,7 +27,7 @@
   /* 焦点环只有一种（#489）：2 px 强调色实线。外移 2 px；只有贴边或会被裁切的地方用 --focus-inset（负偏移，画在元素里面）。 */
   --focus-ring: 2px solid var(--accent); --focus-offset: 2px; --focus-inset: -2px;
   --on-accent: #2b2747;
-  --manual: #8a5e08;          /* the artist's decisions, the logo's gold star */
+  --manual: #8a5e08;          /* the artist's decisions (the "mine" pill); no longer marks tag chips (#482) */
   --manual-soft: rgba(227, 179, 79, 0.2);
   --wall: #eae9e6;            /* neutral ground behind thumbnails */
   --card: #dcdbd8;
@@ -39,8 +39,8 @@
   --ok: #2f6b3e; --ok-strong: #2f6b3e; --ok-soft: #e3f1e6;
   /* danger text on an `ink` bar (the floating selection bar): the other theme's colour */
   --inverse-danger: #f08a8a;
-  /* 模型标签的可信度高档底色（#160）：比 --surface-2（中档）深一档；低档不填底色。 */
-  --tag-conf-high: #e2d6bf;
+  /* 详情面板里有底的标签（#482）：人写的与模型高档。夜间 --surface-2 贴近面板底，所以另取深一档。 */
+  --tag-fill: #f1ebdf;
   /* 精确查找开启时的金色浅槽、图片大小滑条（#102 方案 C3） */
   --exact-on-bg: rgba(227, 179, 79, 0.16); --exact-on-ink: #9a6a10;
   --exact-on-inset: inset 0 1px 1.5px rgba(110, 75, 10, 0.16), inset 0 0 0 0.5px rgba(160, 112, 15, 0.22);
@@ -106,7 +106,7 @@
     --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
     --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
     --inverse-danger: #b23a3a;
-    --tag-conf-high: #48426a;
+    --tag-fill: #48426a;
     --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
     --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
     --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
@@ -145,7 +145,7 @@
   --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
   --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
   --inverse-danger: #b23a3a;
-  --tag-conf-high: #48426a;
+  --tag-fill: #48426a;
   --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
   --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
   --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);

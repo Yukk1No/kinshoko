@@ -30,10 +30,11 @@ describe("详情面板的标签（#159、#160）", () => {
     for (const { sel, names } of states) expect(names.filter((name) => LAYOUT.test(name)), sel).toEqual([]);
   });
 
-  it("可信度档位与低档虚线框只改颜色、底色和外框线，不改尺寸", () => {
+  it("可信度档位只改颜色、底色和外框线，不改尺寸；高档和人写的一样，不另写规则（#482）", () => {
     const bands = rulesMatching((sel) => sel.includes("[data-band") && sel.includes(".k-tag-chip"));
-    expect(bands.map(({ sel }) => sel).join("\n")).toMatch(/data-band="high"/);
-    expect(bands.map(({ sel }) => sel).join("\n")).toMatch(/data-low-outline/);
+    expect(bands.map(({ sel }) => sel).join("\n")).toMatch(/data-band="mid"/);
+    expect(bands.map(({ sel }) => sel).join("\n")).toMatch(/data-band="low"/);
+    expect(bands.map(({ sel }) => sel).join("\n")).not.toMatch(/data-band="high"/);
     for (const { sel, names } of bands) expect(names.filter((name) => LAYOUT.test(name)), sel).toEqual([]);
   });
 

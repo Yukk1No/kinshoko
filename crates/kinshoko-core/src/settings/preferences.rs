@@ -18,7 +18,7 @@ pub enum ViewerBackground {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub enum TagStyle {
-    /// 模型标签按可信度分三档底色（默认）。
+    /// 按准不准分三档（默认，#482）：人写的与模型高档有底，中档细线框，低档虚线框。
     #[default]
     Bands,
     /// 详情面板按出处分组，模型标签底边一条可信度刻度。
@@ -26,6 +26,7 @@ pub enum TagStyle {
 }
 
 /// 标签外观与可信度分档（#160）。阈值按两位小数保存，必须满足 `0 ≤ low < high ≤ 1`。
+/// 旧设置文件里的 `lowOutline`（低档虚线框开关，#482 去掉，虚线一直显示）读入时忽略，再保存时不写。
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase", default)]
 #[ts(export)]
@@ -35,8 +36,6 @@ pub struct TagDisplay {
     pub high: f32,
     /// 低档上限：可信度低于它的模型标签归低档。
     pub low: f32,
-    /// 低档标签加虚线外框；默认开（维护者验收决定），关掉后只把字变浅。
-    pub low_outline: bool,
 }
 
 impl Default for TagDisplay {
@@ -46,7 +45,6 @@ impl Default for TagDisplay {
             style: TagStyle::Bands,
             high: 0.8,
             low: 0.4,
-            low_outline: true,
         }
     }
 }

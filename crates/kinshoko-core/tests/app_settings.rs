@@ -276,7 +276,7 @@ fn an_artist_who_turned_on_the_old_usage_log_keeps_logging_and_the_old_setting_g
 }
 
 #[test]
-fn tag_display_defaults_to_confidence_bands_at_080_and_040_with_low_outline() {
+fn tag_display_defaults_to_confidence_bands_at_080_and_040() {
     let dir = tempfile::tempdir().unwrap();
     let settings = AppSettings::open(dir.path()).unwrap();
     assert_eq!(
@@ -285,7 +285,6 @@ fn tag_display_defaults_to_confidence_bands_at_080_and_040_with_low_outline() {
             style: TagStyle::Bands,
             high: 0.8,
             low: 0.4,
-            low_outline: true,
         }
     );
 }
@@ -298,7 +297,6 @@ fn tag_display_changes_are_remembered() {
         style: TagStyle::Grouped,
         high: 0.75,
         low: 0.5,
-        low_outline: true,
     };
     settings.set_tag_display(changed).unwrap();
     drop(settings);
@@ -359,7 +357,31 @@ fn tag_display_fills_missing_fields_and_ignores_crossed_thresholds_in_the_file()
         "读到交叉的阈值时用默认阈值"
     );
     assert_eq!(read.style, TagStyle::Grouped);
-    assert!(read.low_outline);
+}
+
+#[test]
+fn tag_display_drops_the_removed_low_outline_switch_from_an_old_file() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("settings.json"),
+        r#"{"version":1,"tagDisplay":{"style":"grouped","high":0.7,"low":0.3,"lowOutline":false}}"#,
+    )
+    .unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    let read = settings.tag_display();
+    assert_eq!(
+        read,
+        TagDisplay {
+            style: TagStyle::Grouped,
+            high: 0.7,
+            low: 0.3,
+        },
+        "旧文件里的低档虚线框开关不影响其他外观设置"
+    );
+
+    settings.set_tag_display(read).unwrap();
+    let saved = std::fs::read_to_string(dir.path().join("settings.json")).unwrap();
+    assert!(!saved.contains("lowOutline"), "{saved}");
 }
 
 #[test]
