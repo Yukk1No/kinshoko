@@ -6,9 +6,56 @@
 .rail-items { position: relative; display: flex; flex-direction: column; gap: 4px; width: 100%; align-items: center; }
 .rail-indicator { position: absolute; left: 0; top: 0; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); transition: transform var(--t-slow) var(--ease), height var(--t-slow) var(--ease); }
 .rail-btn { position: relative; width: 40px; height: 40px; border-radius: var(--r); display: grid; place-items: center; color: var(--ink-2); transition: background var(--t-fast), color var(--t-fast); }
-.rail-btn svg { transition: transform var(--t) var(--ease); }
 .rail-btn:hover { background: var(--hover); color: var(--ink); }
-.rail-btn:hover svg { transform: translateY(-1px); }
+/* 图标轨的悬停动效：只动图标里的线条（位移不超过 2.5 px），各图标的动作贴着它的意思；移入用 --t-icon 加弹簧，移出用 --t 加 --ease。
+   lucide 按图标定义的顺序输出子元素，下面按 nth-child 指到具体的线条。按下时整个图标缩一点。 */
+.rail-ic { overflow: visible; transition: transform var(--t-fast) var(--ease); }
+.rail-ic > *, .rail-ic .rail-part { transform-box: view-box; transform-origin: 12px 12px; transition: transform var(--t) var(--ease), opacity var(--t) var(--ease); }
+.rail-btn:is(:hover, :focus-visible) :is(.rail-ic > *, .rail-ic .rail-part) { transition-duration: var(--t-icon); transition-timing-function: var(--spring); }
+.rail-btn:active .rail-ic { transform: scale(0.9); }
+/* 图片与文件夹（RailImagesIcon）：两张图沿底边扇开，像翻相册。后面那张画成完整的一张，被前面挡住的地方用遮罩藏起；
+   遮罩里的缺口在后面那张的坐标里，要跟着前面那张走，所以它的变换 = 后片的逆变换 · 前片的变换（静止时角度都是 0）。 */
+.rail-ic-browse :is(.images-back, .images-front, .images-cut) { transform-origin: 0 0; }
+.rail-ic-browse .images-cut { transform: translate(9px, 22px) rotate(0deg) translate(-9px, -22px) translate(15px, 16px) rotate(0deg) translate(-15px, -16px); }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-browse .images-back { transform: translate(9px, 22px) rotate(-9deg) translate(-9px, -22px); }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-browse .images-front { transform: translate(15px, 16px) rotate(6deg) translate(-15px, -16px); }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-browse .images-cut { transform: translate(9px, 22px) rotate(9deg) translate(-9px, -22px) translate(15px, 16px) rotate(6deg) translate(-15px, -16px); }
+/* 参考组（拼贴板）：重新排一下。左列高块变矮、矮块变高，右列反过来，排完是原来的镜像。
+   改的是方块的位置与高度（SVG 几何属性），不是缩放，线宽不变。lucide 的顺序：左上、右上、右下、左下。 */
+.rail-ic-groups > * { transition-property: y, height; }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-groups > :nth-child(1) { height: 5px; }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-groups > :nth-child(2) { height: 9px; }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-groups > :nth-child(3) { y: 16px; height: 5px; }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-groups > :nth-child(4) { y: 12px; height: 9px; }
+/* 截图（RailViewfinderIcon）：取景框四角往里收，框里的画随后描上一圈边，成了一张截下来的图。
+   边框的虚线从零长到一整圈（不用 dashoffset：零长度的一段会在起点留下线帽）。 */
+.rail-ic-captures .view-frame { stroke-dasharray: 0 1; transition-property: stroke-dasharray; }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-tl { transform: translate(1.5px, 1.5px); }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-tr { transform: translate(-1.5px, 1.5px); }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-br { transform: translate(-1.5px, -1.5px); }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-bl { transform: translate(1.5px, -1.5px); }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-frame { stroke-dasharray: 1 0; transition-delay: var(--t-fast); }
+/* 设置：齿轮转 60°（六个齿，转完和原来重合），轴心跟着收紧 */
+.rail-btn:is(:hover, :focus-visible) .rail-ic-settings > :nth-child(1) { transform: rotate(60deg); }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-settings > :nth-child(2) { transform: scale(0.83); }
+/* 订阅的几种候选（PROTOTYPE，src/shell/railIcons.prototype.ts）：一次性的动作约 0.6 秒，播完停住 */
+@keyframes rail-wave { 30% { opacity: 0.2; } }
+@keyframes rail-swing { 25% { transform: rotate(14deg); } 50% { transform: rotate(-10deg); } 75% { transform: rotate(5deg); } }
+@keyframes rail-clap { 30% { transform: translateX(-1.5px); } 60% { transform: translateX(1px); } }
+@keyframes rail-draw { from { stroke-dashoffset: 9; } }
+.rail-btn:is(:hover, :focus-visible) :is(.rail-ic-rss > :nth-child(1), .rail-ic-dish > :nth-child(1)) { animation: rail-wave 560ms var(--ease) 40ms; }
+.rail-btn:is(:hover, :focus-visible) :is(.rail-ic-rss > :nth-child(2), .rail-ic-dish > :nth-child(3)) { animation: rail-wave 560ms var(--ease) 160ms; }
+/* 收件盘（RailInboxIcon）：一封信从盘口被抽出来。信从盘沿后面露出（clipPath），盘身被信挡住的线用遮罩藏起，
+   遮罩里的缺口与信同一个类，一起动。信封盖不掀开：掀开后轮廓成了五边形，20 px 下像一座小房子。 */
+.rail-ic-inbox .inbox-letter { transform: translateY(14px); }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-inbox .inbox-letter { transform: none; }
+.rail-ic-bell > * { transform-origin: 12px 3px; }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-bell > :nth-child(2) { animation: rail-swing 600ms var(--ease); }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-bell > :nth-child(1) { animation: rail-clap 600ms var(--ease) 40ms; }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-mailbox > :nth-child(2) { transform: translateY(-2.5px); }
+.rail-ic-user > :nth-child(3) { stroke-dasharray: 9; }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-user > :nth-child(2) { transform: translateY(-1px); }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-user > :nth-child(3) { animation: rail-draw 380ms var(--ease); }
 .rail-btn.is-active { color: var(--ink); background: var(--accent-soft); }
 /* the seal book (#27): sealed = accent on the lock only; deeper day pink for >= 3:1 on every rail background */
 .seal-book { --bb: var(--rail); --seal-cut: var(--bb); background: var(--bb); }
