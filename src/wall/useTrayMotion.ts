@@ -55,6 +55,14 @@ export function useTrayMotion({
     const set = card.set;
     if (!set) return;
     measureBeforeReflow();
+    // 从一个托盘直接换到这一摞：旧托盘里的页要离开墙，锚点改到被点的这一摞，它留在屏幕原处。
+    const { layout, ids, openSet } = live.current;
+    const el = scroller.current;
+    const index = ids.indexOf(card.id);
+    if (openSet !== null && el && index >= 0) {
+      anchor.current = { id: card.id, delta: el.scrollTop - layout.boxes[index].y };
+      settledTop.current = null;
+    }
     // 各页从封面的位置飞出：封面就是第一页，其余各页的起点也设在封面上。
     const cover = cardNode(scroller.current, card.id)?.querySelector<HTMLElement>(".stack-cover");
     const from = cover?.getBoundingClientRect();

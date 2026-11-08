@@ -42,7 +42,7 @@
 .wall-canvas > .card-count { transition: transform var(--t) var(--ease); }
 .card.is-stack[aria-selected="true"] > .stack-cover { box-shadow: 0 0 0 2px var(--wall), 0 0 0 4px var(--accent); }
 .card.is-stack:focus-visible { outline: 0; }
-.card.is-stack:focus-visible > .stack-cover { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card.is-stack:focus-visible > .stack-cover { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 /* 滚动中：保持静止的样子。 */
 .wall[data-scrolling] .card.is-stack:hover > .stack-sheet { transform: var(--rest); transition: transform var(--t) var(--ease); }
 .wall[data-scrolling] .card.is-stack:hover > .stack-cover,

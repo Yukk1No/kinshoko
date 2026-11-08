@@ -256,3 +256,20 @@ it("焦点在页角的勾上时，Esc 与 Ctrl+A 照常落到托盘：先取消�
   expect(onSelection).toHaveBeenLastCalledWith([]);
   expect(tray()).not.toBeNull();
 });
+
+it("从一个托盘直接换到下一摞：被点的那一摞留在屏幕原处，不按旧托盘里的页去找位置", async () => {
+  secondSet = true;
+  // 墙窄到一行只放一页：托盘很长，滚到下一摞时视口顶上是旧托盘里的页。
+  Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 260 });
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 300 });
+  render(<Harness />);
+  await screen.findAllByRole("option");
+  fireEvent.click(count());
+  const wall = document.querySelector<HTMLElement>(".wall")!;
+  wall.scrollTop = parseFloat(card("p2")!.style.top) + 10;
+  fireEvent.scroll(wall);
+  const before = parseFloat(card("q0")!.style.top) - wall.scrollTop;
+  fireEvent.click(screen.getByRole("button", { name: "2 张" }));
+  const after = parseFloat(card("q0")!.style.top) - wall.scrollTop;
+  expect(Math.abs(after - before)).toBeLessThan(40);
+});
