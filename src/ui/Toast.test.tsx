@@ -38,6 +38,17 @@ it("确认类提示带操作，过一会儿自动消失", async () => {
   act(() => { api!.show({ title: "已复制", tone: "success", action: { label: "撤销", onClick: undo } }); });
   fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
   expect(undo).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(screen.queryByText("已复制")).toBeNull());
+});
+
+it("操作标了 keepOpen 时点了不关，留给调用方就地更新", async () => {
+  const install = vi.fn();
+  render(<><Grab /></>);
+  act(() => { api!.show({ title: "可以更新", timeout: 0, action: { label: "安装", onClick: install, keepOpen: true } }); });
+  fireEvent.click(await screen.findByRole("button", { name: "安装" }));
+  expect(install).toHaveBeenCalledTimes(1);
+  await new Promise((done) => setTimeout(done, 400));
+  expect(screen.getByText("可以更新")).toBeTruthy();
 });
 
 it("就地更新已显示的提示：换内容、去掉操作，关掉时仍回调原来的 onClose", async () => {

@@ -277,7 +277,8 @@ describe("参考组面板", () => {
     expect(ipc.purge).not.toHaveBeenCalled();
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "撤销" })); });
     expect(ipc.restore).toHaveBeenCalledWith({ groupId: "g1", name: "头发参考", unlinkedPins: [{ pinId: "pin-1", memberId: "m1" }] });
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "关闭提示" })); });
+    // 点了“撤销”提示随即关闭，关闭不再真删。
+    await waitFor(() => expect(screen.queryByText("已删除参考组")).toBeNull());
     expect(ipc.purge).not.toHaveBeenCalled();
   });
 
@@ -290,7 +291,7 @@ describe("参考组面板", () => {
   });
 
   it("撤销失败时报错", async () => {
-    ipc.restore.mockRejectedValueOnce("放回失败");
+    ipc.restore.mockRejectedValueOnce({ code: "message", message: "放回失败" });
     await show();
     await more("删除");
     await act(async () => { fireEvent.click(await screen.findByRole("button", { name: "撤销" })); });
