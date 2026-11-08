@@ -339,6 +339,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             approx::edit_shared_approx,
             groups::create_shared_tag_group,
             groups::edit_shared_tag_group,
+            groups::delete_shared_tag_group,
+            groups::restore_shared_tag_group,
             name_migration::plan_legacy_names,
             name_migration::preview_legacy_names,
             name_migration::confirm_legacy_names,

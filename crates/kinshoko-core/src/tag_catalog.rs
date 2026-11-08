@@ -13,6 +13,8 @@ pub use approx::{
     CatalogApproxConflict, CatalogApproxDecision, CatalogApproxEdit, CatalogApproxEntry,
     CatalogApproxMigration, CatalogApproxOrigin, CatalogApproxSource, CatalogApproxView,
 };
+mod group_undo;
+pub use group_undo::DeletedCatalogGroup;
 mod portable;
 mod preset;
 mod sync;

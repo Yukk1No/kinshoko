@@ -57,10 +57,8 @@ export default {
     addLabel: "给“{{group}}”添加标签",
     add: "添加标签",
   },
-  deleteConfirm: {
-    title: "删除分组",
-    description: "「{{name}}」会被删除，图片的标签不变。",
-    cancel: "取消",
-    submit: "删除分组",
+  deleted: {
+    done: "已删除分组",
+    undo: "撤销",
   },
 };

@@ -1,6 +1,7 @@
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
+import type { DeletedCatalogGroup } from "../bindings/DeletedCatalogGroup";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { LegacyNameMigrationPreview } from "../bindings/LegacyNameMigrationPreview";
 import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrationWorkspace";
@@ -131,6 +132,14 @@ export function editSharedTagGroup(edit: CatalogGroupEdit, safeMode: boolean): P
   return invoke<void>(lib("edit_shared_tag_group"), { edit, safeMode });
 }
 
+/** 删除分组（#479）：返回删掉的内容，交给 {@link restoreSharedTagGroup} 就原样放回。 */
+export function deleteSharedTagGroup(groupId: string, safeMode: boolean): Promise<DeletedCatalogGroup> {
+  return invoke<DeletedCatalogGroup>(lib("delete_shared_tag_group"), { groupId, safeMode });
+}
+/** 撤销 {@link deleteSharedTagGroup}：名称、位置、成员及顺序都放回。 */
+export function restoreSharedTagGroup(deleted: DeletedCatalogGroup, safeMode: boolean): Promise<void> {
+  return invoke<void>(lib("restore_shared_tag_group"), { deleted, safeMode });
+}
 
 /** Application-wide personal judgments; labels obey every known provider's safe-mode veto. */
 export function sharedPersonalApprox(lang: string, safeMode: boolean) {

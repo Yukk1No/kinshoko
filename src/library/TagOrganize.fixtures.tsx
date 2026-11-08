@@ -265,6 +265,18 @@ export function backend() {
           announce([]);
           return id;
         }
+        case "plugin:library|delete_shared_tag_group": {
+          const position = fake.groups.findIndex((g) => g.id === a.groupId);
+          const [group] = fake.groups.splice(position, 1);
+          announce([]);
+          return { id: group.id, name: group.name, namespace: group.namespace, position, members: [...group.members], migratedFrom: [] };
+        }
+        case "plugin:library|restore_shared_tag_group": {
+          const d = a.deleted as { id: string; name: string; namespace: TagNamespace | null; position: number; members: string[] };
+          fake.groups.splice(d.position, 0, { id: d.id, name: d.name, namespace: d.namespace, members: d.members });
+          announce([]);
+          return null;
+        }
         case "plugin:library|edit_shared_tag_group": {
           const edit = (args as { edit: CatalogGroupEdit }).edit;
           switch (edit.kind) {

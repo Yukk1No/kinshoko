@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { formatNumber } from "../i18n/format";
 import { i18n } from "../i18n";
 import type { KeyboardEvent } from "react";
-import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Link2, PenLine, Plus, Tags, Trash2, X } from "lucide-react";
 import { Combobox } from "../ui/Combobox";
 import { Select, type SelectOption } from "../ui/Select";
@@ -12,11 +11,12 @@ import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagNamespace } from "../bindings/TagNamespace";
-import { createSharedTagGroup, editSharedTagGroup, sharedTagGroups, isLensChanged } from "../ipc";
+import { createSharedTagGroup, deleteSharedTagGroup, editSharedTagGroup, restoreSharedTagGroup, sharedTagGroups, isLensChanged } from "../ipc";
 import { LIMIT, TagMarks, tagName, useCandidateState, type Lens } from "../search/SearchBox";
 import { useUiLang } from "../i18n";
 import { NameInput } from "./SidebarPane";
 import { Tip } from "../ui/Tip";
+import { useToast } from "../ui/Toast";
 
 type Props = {
   /** Kept for callers from the previous local UI; group ownership is always application-wide. */
@@ -100,7 +100,6 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [picking, setPicking] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const view = JSON.stringify([safe, generation]);
@@ -121,12 +120,11 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
     );
     return () => { alive = false; };
   }, [key, safe, onError, lang]);
-  useEffect(() => { setCreating(false); setRenaming(null); setPicking(null); setDeleting(null); }, [safe]);
+  useEffect(() => { setCreating(false); setRenaming(null); setPicking(null); }, [safe]);
   useEffect(() => {
     if (!fresh) return;
     setRenaming((id) => id !== null && !groups.some((group) => group.id === id) ? null : id);
     setPicking((id) => id !== null && !groups.some((group) => group.id === id) ? null : id);
-    setDeleting((id) => id !== null && !groups.some((group) => group.id === id) ? null : id);
   }, [fresh, groups]);
   // 操作期间按钮被禁用、刷新时行会重建，焦点会丢到页面上。记下焦点所在操作（data-focus-key），
   // 刷新完成后按同一键找回；该操作已不存在或不可用时，依次退到同成员或同分组的其他操作。
@@ -170,10 +168,22 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
     [result[index], result[other]] = [result[other], result[index]];
     return result;
   };
-  const deletingGroup = groups.find((group) => group.id === deleting);
+  const toast = useToast();
+  /** 删除分组能撤销，所以不先确认：直接删，再给一个带“撤销”的轻提示；撤销用的是删除时返回的内容。 */
+  const remove = (group: CatalogGroupView) => {
+    // 删掉的分组没有可回的位置：回到相邻分组，没有时回到“新建分组”。
+    const at = groups.findIndex((g) => g.id === group.id), next = groups[at + 1] ?? groups[at - 1];
+    remember(next ? `${next.id}:name` : "new");
+    void run(deleteSharedTagGroup(group.id, safe).then((deleted) => {
+      toast.show({
+        title: t("deleted.done"), description: group.name, tone: "success",
+        action: { label: t("deleted.undo"), onClick: () => { void restoreSharedTagGroup(deleted, safe).then(() => setRefresh((n) => n + 1), onError); } },
+      });
+    }));
+  };
   // 设计系统 SettingsList 的外框：每个分组一行，28 px 图标方块、名称、靠右的成员数（命名空间分组是胶囊）；
   // 悬停或键盘聚焦时露出改名、上移、下移、删除。成员是 TagChip，悬停露出前移、后移、移出，末尾是幽灵按钮“加标签”。
-  // 末行是“新建分组”。删除先确认（#98，design/ui-system/tokens-and-components.md）。
+  // 末行是“新建分组”。删除不先确认，轻提示带“撤销”（#479）。
   return (
     <section ref={section} className="sidebar-tag-groups k-groups" aria-label={label} aria-busy={busy || !fresh}>
       {!fresh && <p className="k-set-note" role="status">{t("updating")}</p>}
@@ -206,7 +216,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
                   onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, -1) })}><ArrowUp size={14} aria-hidden="true" /></button></Tip>
                 <Tip label={t("group.down")}><button type="button" className="k-icon-btn is-sm" data-focus-key={`${group.id}:down`} aria-label={t("group.downLabel", { name: group.name })} disabled={busy || index === groups.length - 1}
                   onClick={() => void edit({ kind: "orderGroups", groupIds: moved(groups.map((g) => g.id), index, 1) })}><ArrowDown size={14} aria-hidden="true" /></button></Tip>
-                <Tip label={t("group.delete")}><button type="button" className="k-icon-btn is-sm is-danger" data-focus-key={`${group.id}:delete`} aria-label={t("group.deleteLabel", { name: group.name })} disabled={busy} onClick={() => setDeleting(group.id)}><Trash2 size={14} aria-hidden="true" /></button></Tip>
+                <Tip label={t("group.delete")}><button type="button" className="k-icon-btn is-sm is-danger" data-focus-key={`${group.id}:delete`} aria-label={t("group.deleteLabel", { name: group.name })} disabled={busy} onClick={() => remove(group)}><Trash2 size={14} aria-hidden="true" /></button></Tip>
               </span>
               {custom ? <span className="k-group-count k-label">{t("group.tagCount", { count: group.tags.length })}</span>
                 : <span className="k-pill"><span className="k-label">{group.namespace && kindLabel(group.namespace)}</span></span>}
@@ -251,26 +261,6 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
       }} /> : <button type="button" className="k-group-create" aria-label={t("create.open")} data-focus-key="new" disabled={busy || !fresh} onClick={() => setCreating(true)}>
         <span className="k-group-icon" aria-hidden="true"><Plus size={16} /></span><span className="k-label">{t("create.button")}</span></button>}
       </div>
-      <AlertDialog.Root open={!!deletingGroup} onOpenChange={(open) => { if (!open) setDeleting(null); }}>
-        <AlertDialog.Portal>
-          <AlertDialog.Backdrop className="k-backdrop" />
-          <AlertDialog.Popup className="k-dialog is-alert">
-            <AlertDialog.Title className="k-dialog-title">{t("deleteConfirm.title")}</AlertDialog.Title>
-            <AlertDialog.Description className="k-dialog-desc">{t("deleteConfirm.description", { name: deletingGroup?.name })}</AlertDialog.Description>
-            <div className="k-dialog-foot">
-              <span className="k-grow" />
-              <AlertDialog.Close className="k-btn"><span className="k-label">{t("deleteConfirm.cancel")}</span></AlertDialog.Close>
-              <button type="button" className="k-btn is-danger" onClick={() => {
-                const id = deleting!; setDeleting(null);
-                // 删掉的分组没有可回的位置：回到相邻分组，没有时回到“新建分组”。
-                const at = groups.findIndex((g) => g.id === id), next = groups[at + 1] ?? groups[at - 1];
-                restore.current = next ? `${next.id}:name` : "new";
-                void edit({ kind: "delete", groupId: id });
-              }}><span className="k-label">{t("deleteConfirm.submit")}</span></button>
-            </div>
-          </AlertDialog.Popup>
-        </AlertDialog.Portal>
-      </AlertDialog.Root>
     </section>
   );
 }

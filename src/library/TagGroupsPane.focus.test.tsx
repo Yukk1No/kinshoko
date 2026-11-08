@@ -4,6 +4,7 @@ import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
 import { TagGroupsPane } from "./TagGroupsPane";
+import { ToastProvider } from "../ui/Toast";
 
 const tag = (id: string, name: string) => ({ tag: { id, namespace: "general" as const, name, untranslated: false, hasExternal: false }, count: 1 });
 let groups: CatalogGroupView[];
@@ -40,7 +41,7 @@ async function press(name: string) {
 }
 
 it("编辑分组的操作完成、列表刷新后，键盘焦点回到同一个操作上", async () => {
-  render(<TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} />);
+  render(<ToastProvider><TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} /></ToastProvider>);
   await press("下移标签分组“发色”");
   await waitFor(() => expect(screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"))).toEqual(["服装", "发色", "姿势"]));
   expect((document.activeElement as HTMLElement).getAttribute("aria-label")).toBe("下移标签分组“发色”");
@@ -52,7 +53,7 @@ it("编辑分组的操作完成、列表刷新后，键盘焦点回到同一个�
 });
 
 it("移出成员后，焦点落在所在分组上，不丢到页面", async () => {
-  render(<TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} />);
+  render(<ToastProvider><TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} /></ToastProvider>);
   await press("把“紫发”移出“发色”");
   await waitFor(() => expect(screen.queryByRole("button", { name: "把“紫发”移出“发色”" })).toBeNull());
   expect((document.activeElement as HTMLElement).getAttribute("aria-label")).toBe("发色（1 个标签）");

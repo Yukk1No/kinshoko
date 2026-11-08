@@ -6,6 +6,7 @@ import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import { TagGroupsPane } from "../library/TagGroupsPane";
 import { languageName, sourceLanguages } from "../tags/languages";
 import { expectNoChinese } from "../test/noChinese";
+import { ToastProvider } from "../ui/Toast";
 
 // 英文界面下“编辑分组”与标签语言名没有中文界面文案（#356）；分组名、标签名、图库名是画师的数据。
 beforeEach(async () => { await act(async () => { await i18n.changeLanguage("en"); }); });
@@ -23,16 +24,18 @@ const groups: CatalogGroupView[] = [
 ];
 
 describe("英文界面：编辑分组", () => {
-  it("分组、成员、新建与删除确认", async () => {
-    mockIPC((cmd) => (cmd === "plugin:library|shared_tag_groups" ? groups : null), { shouldMockEvents: true });
-    render(<TagGroupsPane safe generation={0} onBrowse={vi.fn()} onError={vi.fn()} />);
+  it("分组、成员、新建与删除后的撤销提示", async () => {
+    const deleted = { id: "G1", name: "发色", namespace: null, position: 0, members: ["b"], migratedFrom: [] };
+    mockIPC((cmd) => (cmd === "plugin:library|shared_tag_groups" ? groups : cmd === "plugin:library|delete_shared_tag_group" ? deleted : null), { shouldMockEvents: true });
+    render(<ToastProvider><TagGroupsPane safe generation={0} onBrowse={vi.fn()} onError={vi.fn()} /></ToastProvider>);
     const group = await screen.findByRole("group", { name: "发色" });
     expect(within(group).getByRole("button", { name: "发色 (1 tag)" })).toBeTruthy();
     expect(screen.getByText("All works")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "New tag group" }));
     expectNoChinese(document.body, ["发色", "蓝发", "作品", "角色参考"]);
     fireEvent.click(within(group).getByRole("button", { name: "Delete tag group “发色”" }));
-    expect(await screen.findByRole("alertdialog")).toBeTruthy();
+    expect(await screen.findByText("Group deleted")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy();
     expectNoChinese(document.body, ["发色", "蓝发", "作品", "角色参考"]);
   });
 
