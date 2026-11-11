@@ -16,3 +16,7 @@ LICENSE linguist-vendored
 .agents/skills/impeccable/scripts/impeccable text eol=lf
 # 认可原型从固定提交 bd8aea44 原样恢复，只作体验对照，不是手写维护的代码。
 design/prototype/** linguist-vendored
+
+# 第三方技能（modern-web-guidance），由安装器生成，不手工拆分
+.agents/skills/modern-web-guidance/** linguist-generated
+.claude/skills/modern-web-guidance/** linguist-generated
