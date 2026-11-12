@@ -2,7 +2,7 @@
 //!
 //! 本层现有两种策略：
 //!
-//! - **中毒后照常继续**：用 [`lock`]。数据在 panic 之后仍然可用，或者丢一次更新比整个功能停摆更好的状态，
+//! - **中毒后照常继续**：用 [`lock`]（数据在 panic 之后仍然可用时用它）。
 //!   现状是 `backup.rs`、`desktop/`、`library.rs`、`tagging.rs`、`updater.rs`、`subscription/`、`fidelity_gate/` 里各自的状态都用它。
 //! - **中毒后把错误交给界面**：`ShellState` 的锁用 `.lock().map_err(CommandError::system)?`
 //!   （`commands.rs` 起共 21 处）。为什么只有它用这一种：原因未查明
