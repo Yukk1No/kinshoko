@@ -15,6 +15,7 @@ mod plugin_acl_tests;
 mod run_log;
 mod shell;
 mod subscription;
+mod sync;
 mod tagging;
 mod ui_text;
 mod updater;
