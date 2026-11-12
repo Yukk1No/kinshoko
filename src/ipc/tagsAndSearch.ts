@@ -135,11 +135,6 @@ export function pickFiles(): Promise<string[]> {
   return t ? Promise.resolve(t.value ?? []) : invoke<string[]>(lib("pick_files"));
 }
 
-/** 一张参考图的内容分级（自动与有效）。 */
-export function imageRating(libraryId: string, imageId: string): Promise<ImageRating> {
-  return invoke<ImageRating>(lib("image_rating"), { libraryId, imageId });
-}
-
 /** 安全模式是否开启（全局设置，新装默认开启）。 */
 export function safeMode(): Promise<boolean> {
   return invoke<boolean>(lib("safe_mode"));

@@ -303,18 +303,3 @@ pub(super) async fn external_suggestions<R: Runtime>(
 ) -> Result<Vec<String>, CommandError> {
     blocking(move || Ok(external_vocabulary(&app)?.suggest(&text, limit as usize))).await
 }
-
-/// 一张参考图的内容分级（自动与有效）。
-#[tauri::command]
-pub(super) async fn image_rating<R: Runtime>(
-    app: AppHandle<R>,
-    library_id: String,
-    image_id: String,
-) -> Result<ImageRating, CommandError> {
-    blocking(move || {
-        readable(&app, &library_id)?
-            .image_rating(&image_id)
-            .map_err(CommandError::from)
-    })
-    .await
-}

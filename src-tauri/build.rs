@@ -86,7 +86,6 @@ fn main() {
                         "map_tag_external",
                         "set_source_name_lang",
                         "external_suggestions",
-                        "image_rating",
                         "safe_mode",
                         "set_safe_mode",
                         "set_safe_mode_scope",
