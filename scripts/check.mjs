@@ -2,7 +2,7 @@
 // 要报告“检查是否通过”时用的命令（npm run check）。每一步的结论只取决于它的退出码和实际跑了多少用例，
 // 所以 vitest 用例全过却因未处理错误失败、测试目标不存在、过滤后一条没跑，都会让命令以非零退出。
 //
-//   npm run check                        typecheck + vitest
+//   npm run check                        typecheck + 命令名对照 + vitest
 //   npm run check -- --rust              再加 cargo fmt --check、clippy、nextest（core）
 //   npm run check -- --rust-only         只跑 Rust 这三步
 //   npm run check -- App.import          只跑 vitest，参数原样透传
@@ -41,6 +41,11 @@ const cargo = args => ({ command: "cargo", args });
 
 const STEP = {
   typecheck: () => ({ name: "typecheck", ...tsc(["--noEmit"]) }),
+  commandNames: () => ({
+    name: "command names",
+    command: process.execPath,
+    args: ["scripts/check-command-names.mjs"],
+  }),
   vitest: args => ({ name: "vitest", kind: "vitest", ...vitest(args) }),
   frontend: () => ({
     name: "vite build (clippy needs dist/)",
@@ -77,7 +82,7 @@ export function planSteps({ rust, rustOnly, passthrough }, { hasDist = true } = 
   if (passthrough.length > 0) {
     return [rustOnly ? STEP.nextest(passthrough) : STEP.vitest(passthrough)];
   }
-  const steps = rustOnly ? [] : [STEP.typecheck(), STEP.vitest([])];
+  const steps = rustOnly ? [] : [STEP.typecheck(), STEP.commandNames(), STEP.vitest([])];
   if (rust || rustOnly) {
     steps.push(STEP.fmt());
     if (!hasDist) steps.push(STEP.frontend());
