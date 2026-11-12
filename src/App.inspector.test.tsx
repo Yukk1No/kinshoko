@@ -1,12 +1,13 @@
 // 详情面板跟着选择与查看器走：选择或正在看的图一变，面板不能无声消失，也不能留着别的图的内容。
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
 import { doubleClick } from "./App.fixtures";
 import type { WorkspaceCard } from "./bindings/WorkspaceCard";
 import type { WorkspaceSource } from "./bindings/WorkspaceSource";
+import { fakeBackend, shellSettings } from "./test/backend";
 
 const libraries = [
   { library: { id: "L1", name: "甲库", root: "A" }, unavailable: null },
@@ -23,32 +24,43 @@ const wallCards = [
 ];
 const outside = card("out", source("L1", "e1"), source("L2", "e2"));
 
-function backend(override?: (command: string, args: Record<string, string>) => unknown, shown = true) {
+type Args = Record<string, string>;
+/** 用例改写的回答，按命令名；返回 `undefined` 时照下面的默认回答。 */
+type Override = Record<string, (args: Args) => unknown>;
+
+function backend(override: Override = {}, shown = true) {
   const state = { cards: wallCards, open: null as unknown, shown, reads: [] as string[] };
-  mockIPC((command, raw) => {
-    const args = raw as Record<string, string>;
-    const answer = override?.(command, args);
-    if (answer !== undefined) return answer;
-    switch (command) {
-      case "plugin:library|safe_mode": return false;
-      case "plugin:library|registered_libraries": return libraries;
-      case "plugin:library|workspace_status": return status;
-      case "plugin:library|workspace_directories": return { status, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
-      case "plugin:library|workspace_tag_groups": case "plugin:library|import_tasks": case "plugin:desktop|reference_groups": case "plugin:library|workspace_candidates": return [];
-      case "plugin:library|workspace_browse": return { cards: state.cards, total: state.cards.length, nextCursor: null, status };
-      case "plugin:library|workspace_card": return args.imageId === "m2" ? card("both", source("L2", "m2"), source("L1", "m1"))
-        : args.imageId === "f1" ? card("out2", source("L1", "f1")) : outside;
-      case "plugin:library|image": state.reads.push(args.imageId); return { id: args.imageId, originalName: `${args.libraryId}/${args.imageId}`, width: 1, height: 1, collectedAt: 1000, sourceLinks: [], folders: [], note: { manual: null, sources: [] }, deletedAt: null, versions: { previous: null, newer: [] }, rating: { imageId: args.imageId, suggested: null, manual: null, effective: null } };
-      case "plugin:library|catalog_image_tags": return { image: { imageId: args.imageId, tags: [], rejected: [] }, identities: [] };
-      case "plugin:library|workspace_sidebar": return { all: 1, trash: 0, folders: [] };
-      case "plugin:desktop|take_open_request": { const next = state.open; state.open = null; return next; }
-      case "tagging_status": return { state: "starting" };
-      case "shell_settings": return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid", inspectorOpen: state.shown };
-      case "set_inspector_open": state.shown = (raw as { open: boolean }).open; return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid", inspectorOpen: state.shown };
-      case "app_info": return { productName: "Kinshoko", version: "1" };
-      default: return null;
-    }
-  }, { shouldMockEvents: true });
+  const view = () => shellSettings({ viewerBackground: "mid", inspectorOpen: state.shown });
+  const replies: Override = {
+    safe_mode: () => false,
+    registered_libraries: () => libraries,
+    workspace_status: () => status,
+    workspace_directories: () => ({ status, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) }),
+    workspace_tag_groups: () => [],
+    import_tasks: () => [],
+    reference_groups: () => [],
+    workspace_candidates: () => [],
+    workspace_browse: () => ({ cards: state.cards, total: state.cards.length, nextCursor: null, status }),
+    workspace_card: (args) => args.imageId === "m2" ? card("both", source("L2", "m2"), source("L1", "m1"))
+      : args.imageId === "f1" ? card("out2", source("L1", "f1")) : outside,
+    image: (args) => { state.reads.push(args.imageId); return { id: args.imageId, originalName: `${args.libraryId}/${args.imageId}`, width: 1, height: 1, collectedAt: 1000, sourceLinks: [], folders: [], note: { manual: null, sources: [] }, deletedAt: null, versions: { previous: null, newer: [] }, rating: { imageId: args.imageId, suggested: null, manual: null, effective: null } }; },
+    catalog_image_tags: (args) => ({ image: { imageId: args.imageId, tags: [], rejected: [] }, identities: [] }),
+    workspace_sidebar: () => ({ all: 1, trash: 0, folders: [] }),
+    take_open_request: () => { const next = state.open; state.open = null; return next; },
+    // 启动时取走留给主窗口的收集请求：没有。
+    take_collection_request: () => null,
+    tagging_status: () => ({ state: "starting" }),
+    shell_settings: view,
+    set_inspector_open: (args) => { state.shown = (args as unknown as { open: boolean }).open; return view(); },
+    app_info: () => ({ productName: "Kinshoko", version: "1" }),
+    // 没有上次打开的图库要接着打开。
+    current_library: () => null,
+  };
+  for (const [command, reply] of Object.entries(override)) {
+    const fallback = replies[command];
+    replies[command] = (args) => { const answer = reply(args); return answer !== undefined ? answer : fallback?.(args) ?? null; };
+  }
+  fakeBackend(replies);
   return state;
 }
 
@@ -57,9 +69,9 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-  mockConvertFileSrc("windows"); mockWindows("main");
+  mockConvertFileSrc("windows");
 });
-afterEach(async () => { cleanup(); await new Promise((done) => setTimeout(done, 0)); clearMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 const tile = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
 const panel = () => document.querySelector<HTMLElement>("aside.inspector");
@@ -134,18 +146,18 @@ describe("选择变化时", () => {
   it("启动时的设置回得晚，也不把画师刚开的面板盖回关着", async () => {
     let answer: (view: unknown) => void = () => {};
     const late = new Promise((done) => { answer = done; });
-    backend((command) => command === "shell_settings" ? late : undefined, false);
+    backend({ shell_settings: () => late }, false);
     render(<App />);
     await waitFor(() => expect(tile("a1")).toBeTruthy());
     fireEvent.keyDown(document.body, { key: "i" });
     expect(opened()).toBe(true);
-    await act(async () => { answer({ autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid", inspectorOpen: false }); await late; });
+    await act(async () => { answer(shellSettings({ viewerBackground: "mid", inspectorOpen: false })); await late; });
     expect(opened()).toBe(true);
   });
 
   it("亲手开过面板后，设置页交来的新快照（例如恢复备份）照样改面板的开合", async () => {
-    const view = { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid", inspectorOpen: false };
-    await start((command) => command === "set_autostart" ? view : undefined, false);
+    const view = shellSettings({ viewerBackground: "mid", inspectorOpen: false });
+    await start({ set_autostart: () => view }, false);
     fireEvent.keyDown(document.body, { key: "i" });
     expect(opened()).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "设置" }));
@@ -232,13 +244,12 @@ describe("图片墙重新读取时", () => {
   async function searching(select: string) {
     let resolved = 0;
     let release: ((page: unknown) => void) | null = null;
-    const state = await start((command) => {
-      if (command === "plugin:library|workspace_resolve") {
+    const state = await start({
+      workspace_resolve: () => {
         resolved += 1;
         return { conditions: [{ negate: false, any: [{ kind: "text", text: `蓝${resolved}`, tags: [], similar: [], ratings: [] }] }] };
-      }
-      if (command === "plugin:library|workspace_browse" && resolved > 1 && !release) return new Promise((done) => { release = done; });
-      return undefined;
+      },
+      workspace_browse: () => resolved > 1 && !release ? new Promise((done) => { release = done; }) : undefined,
     });
     const input = screen.getByRole("combobox", { name: "查找参考图" });
     fireEvent.change(input, { target: { value: "蓝" } });

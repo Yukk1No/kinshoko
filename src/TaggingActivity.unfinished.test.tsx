@@ -1,33 +1,24 @@
 // 右下角图标在有图没有完成自动标签时（#475）：常驻提示、点击重试、右键查看与忽略。
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { TaggingActivity } from "./TaggingActivity";
+import { fakeBackend, type FakeBackend } from "./test/backend";
 
-let actions: { command: string; args: unknown }[];
+let fake: FakeBackend;
+/** 前端发出的命令，按先后。 */
+const actions = () => fake.calls();
 
 function backend(status: TaggingStatus) {
-  actions = [];
-  mockWindows("main");
-  mockIPC((cmd, args) => {
-    actions.push({ command: cmd, args });
-    if (cmd === "tagging_status") return status;
-    return null;
-  }, { shouldMockEvents: true });
+  fake = fakeBackend({ tagging_status: status, tagging_retry_failed: null });
 }
 
 const push = (status: TaggingStatus) => act(() => emit("tagging-status", status));
 const mount = () => render(<TaggingActivity onOpenSettings={vi.fn()} />);
 const idle = (tagged: number): TaggingStatus => ({ state: "idle", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged, unknown: 0, failed: { unreadable: 0, crashed: 0 } });
-const settled = () => waitFor(() => expect(actions.some((a) => a.command === "tagging_status")).toBe(true));
+const settled = () => waitFor(() => expect(actions().some((a) => a.command === "tagging_status")).toBe(true));
 
-afterEach(async () => {
-  cleanup();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
-});
 
 describe("没有完成的图（#475）", () => {
   const unfinished = (unreadable: number, crashed: number): TaggingStatus => ({ ...idle(0), failed: { unreadable, crashed } } as TaggingStatus);
@@ -40,7 +31,7 @@ describe("没有完成的图（#475）", () => {
     const button = await screen.findByRole("button", { name: "重试没有完成的图：3 张没有完成，2 张无法读取，1 张出错" });
     expect(button.dataset.activity).toBe("unfinished");
     fireEvent.click(button);
-    await waitFor(() => expect(actions.some((a) => a.command === "tagging_retry_failed")).toBe(true));
+    await waitFor(() => expect(actions().some((a) => a.command === "tagging_retry_failed")).toBe(true));
   });
 
   it("只有一类时只写这一类", async () => {

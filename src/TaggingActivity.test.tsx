@@ -1,22 +1,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { tipText } from "./test/tip";
-import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { TaggingActivity } from "./TaggingActivity";
+import { fakeBackend, type FakeBackend } from "./test/backend";
 
-let actions: { command: string; args: unknown }[];
+let fake: FakeBackend;
+/** 前端发出的命令，按先后。 */
+const actions = () => fake.calls();
 
 /** 后端：`tagging_status` 回答所有资料库合计的状态（#414）；推送用 `push`。 */
 function backend(status: TaggingStatus) {
-  actions = [];
-  mockWindows("main");
-  mockIPC((cmd, args) => {
-    actions.push({ command: cmd, args });
-    if (cmd === "tagging_status") return status;
-    return null;
-  }, { shouldMockEvents: true });
+  fake = fakeBackend({ tagging_status: status, tagging_pause: null, tagging_resume: null, tagging_download: null, tagging_retry_failed: null });
 }
 
 const push = (status: TaggingStatus) => act(() => emit("tagging-status", status));
@@ -31,19 +27,15 @@ const idle = (tagged: number): TaggingStatus => ({ state: "idle", model: "PixAI"
 const needsDownload = (downloaded = 0, cancelled = false): TaggingStatus => ({ state: "needsDownload", model: "PixAI", size: 992_916_002, downloaded, fallback: null, cancelled });
 const downloading = (downloaded: number): TaggingStatus => ({ state: "downloading", model: "PixAI", downloaded, total: 1_000_000_000 });
 /** 等待后端首次读取与订阅都到位，后面的推送才收得到。 */
-const settled = () => waitFor(() => expect(actions.some((a) => a.command === "tagging_status")).toBe(true));
+const settled = () => waitFor(() => expect(actions().some((a) => a.command === "tagging_status")).toBe(true));
 /** 正在显示的通知标题（Base UI 另有一份播报副本，不算）。 */
 const toasts = () => [...document.querySelectorAll(".k-toast-title")].map((t) => t.textContent ?? "");
 const shown = (pattern: RegExp) => toasts().filter((t) => pattern.test(t)).length;
 const icon = () => screen.queryByRole("button", { name: /自动标签/ });
 
-afterEach(async () => {
-  cleanup();
+afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
-  // 卸载时异步取消事件订阅，等它完成再撤掉模拟。
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
 });
 
 describe("缩放滑块左边的打标图标", () => {
@@ -56,7 +48,7 @@ describe("缩放滑块左边的打标图标", () => {
     // 悬停时图标变成暂停：两枚图标叠在一起，CSS 切换。
     expect(button.querySelector(".k-tagging-next")).not.toBeNull();
     fireEvent.click(button);
-    await waitFor(() => expect(actions.some((a) => a.command === "tagging_pause")).toBe(true));
+    await waitFor(() => expect(actions().some((a) => a.command === "tagging_pause")).toBe(true));
     expect(onOpenSettings).not.toHaveBeenCalled();
   });
 
@@ -67,7 +59,7 @@ describe("缩放滑块左边的打标图标", () => {
     await push({ state: "paused" });
     const button = await screen.findByRole("button", { name: "继续自动标签：已暂停，还剩 88 张" });
     fireEvent.click(button);
-    await waitFor(() => expect(actions.some((a) => a.command === "tagging_resume")).toBe(true));
+    await waitFor(() => expect(actions().some((a) => a.command === "tagging_resume")).toBe(true));
   });
 
   it("打完几张后按最近几张的用时写出预计用时；暂停时留着", async () => {
@@ -210,10 +202,10 @@ describe("自动标签的右下角通知", () => {
     expect(await screen.findByText("需要下载自动标签模型（947 MB）")).toBeTruthy();
     await act(async () => { vi.advanceTimersByTime(60_000); });
     const download = screen.getByRole("button", { name: "下载" });
-    expect(actions.map((a) => a.command)).not.toContain("tagging_download");
+    expect(actions().map((a) => a.command)).not.toContain("tagging_download");
 
     fireEvent.click(download);
-    await waitFor(() => expect(actions.map((a) => a.command)).toContain("tagging_download"));
+    await waitFor(() => expect(actions().map((a) => a.command)).toContain("tagging_download"));
     await waitFor(() => expect(screen.queryByText(/需要下载自动标签模型/)).toBeNull());
     expect(await screen.findByText("正在下载自动标签模型")).toBeTruthy();
     await act(async () => { vi.advanceTimersByTime(6_000); });

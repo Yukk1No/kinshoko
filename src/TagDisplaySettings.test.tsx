@@ -1,37 +1,26 @@
 // 设置 › 标签 › 外观（#160）：标签风格 B / C、可信度分档阈值；本设备设置，改了立即告诉主窗口。
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { TagDisplay } from "./bindings/TagDisplay";
 import { SettingsPanel } from "./SettingsPanel";
-
-afterEach(async () => {
-  cleanup();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
-});
+import { fakeBackend, shellSettings } from "./test/backend";
 
 /** 像核心一样保存标签外观：阈值交叉时拒绝，原来的设置不变。 */
 function backend() {
   let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4 };
   const sent: TagDisplay[] = [];
-  const view = (): ShellSettingsView => ({
-    autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
-    runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", inspectorOpen: false, updateChannel: "stable", tagDisplay: saved,
-  });
-  mockIPC((cmd, args) => {
-    if (cmd === "shell_settings") return view();
-    if (cmd === "set_tag_display") {
+  const view = (): ShellSettingsView => shellSettings({ autostart: true, tagDisplay: saved });
+  fakeBackend({
+    shell_settings: view,
+    set_tag_display: (args) => {
       const display = (args as { display: TagDisplay }).display;
       sent.push(display);
       if (display.low >= display.high) throw { code: "message", message: "低档上限要小于高档下限，且都在 0 到 1 之间" };
       saved = display;
       return view();
-    }
-    if (cmd === "plugin:library|safe_mode") return true;
-    return undefined;
-  }, { shouldMockEvents: true });
+    },
+  });
   return { sent, saved: () => saved };
 }
 
@@ -70,21 +59,16 @@ describe("设置：标签外观", () => {
   it("前一次保存还没回来时连着改几项，后改的不被先回来的结果盖掉", async () => {
     let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4 };
     const waiting: (() => void)[] = [];
-    const view = (tagDisplay: TagDisplay): ShellSettingsView => ({
-      autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
-      runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", inspectorOpen: false, updateChannel: "stable", tagDisplay,
-    });
-    mockIPC((cmd, args) => {
-      if (cmd === "shell_settings") return view(saved);
-      if (cmd === "set_tag_display") {
+    const view = (tagDisplay: TagDisplay): ShellSettingsView => shellSettings({ autostart: true, tagDisplay });
+    fakeBackend({
+      shell_settings: () => view(saved),
+      set_tag_display: (args) => {
         // 按收到的顺序写入，回复要等测试放行。
         saved = (args as { display: TagDisplay }).display;
         const reply = view(saved);
         return new Promise<ShellSettingsView>((resolve) => waiting.push(() => resolve(reply)));
-      }
-      if (cmd === "plugin:library|safe_mode") return true;
-      return undefined;
-    }, { shouldMockEvents: true });
+      },
+    });
     const release = async () => {
       await waitFor(() => expect(waiting.length).toBeGreaterThan(0));
       waiting.shift()!();
@@ -106,19 +90,14 @@ describe("设置：标签外观", () => {
   it("保存还没回来时切走再回来，外观接着显示最后改成的那份，再改也在它之上（#321）", async () => {
     let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4 };
     const waiting: (() => void)[] = [];
-    const view = (): ShellSettingsView => ({
-      autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
-      runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", inspectorOpen: false, updateChannel: "stable", tagDisplay: saved,
-    });
-    mockIPC((cmd, args) => {
-      if (cmd === "shell_settings") return view();
-      if (cmd === "set_tag_display") {
+    const view = (): ShellSettingsView => shellSettings({ autostart: true, tagDisplay: saved });
+    fakeBackend({
+      shell_settings: view,
+      set_tag_display: (args) => {
         const display = (args as { display: TagDisplay }).display;
         return new Promise<ShellSettingsView>((resolve) => waiting.push(() => { saved = display; resolve(view()); }));
-      }
-      if (cmd === "plugin:library|safe_mode") return true;
-      return undefined;
-    }, { shouldMockEvents: true });
+      },
+    });
     const { low } = await openAppearance();
     fireEvent.change(low, { target: { value: "35" } });
     fireEvent.click(screen.getByRole("button", { name: "显示名" }));
@@ -136,21 +115,16 @@ describe("设置：标签外观", () => {
 
   it("保存失败时控件回到已保存的设置，之后的改动不夹带失败的那项", async () => {
     let saved: TagDisplay = { style: "bands", high: 0.8, low: 0.4 };
-    const view = (): ShellSettingsView => ({
-      autostart: true, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false,
-      runLog: false, keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable", inspectorOpen: false, updateChannel: "stable", tagDisplay: saved,
-    });
+    const view = (): ShellSettingsView => shellSettings({ autostart: true, tagDisplay: saved });
     let failNext = true;
-    mockIPC((cmd, args) => {
-      if (cmd === "shell_settings") return view();
-      if (cmd === "set_tag_display") {
+    fakeBackend({
+      shell_settings: view,
+      set_tag_display: (args) => {
         if (failNext) { failNext = false; throw { code: "message", message: "无法写入设置文件" }; }
         saved = (args as { display: TagDisplay }).display;
         return view();
-      }
-      if (cmd === "plugin:library|safe_mode") return true;
-      return undefined;
-    }, { shouldMockEvents: true });
+      },
+    });
     const { low } = await openAppearance();
     fireEvent.change(low, { target: { value: "35" } });
     await waitFor(() => expect(screen.getByText(/无法写入设置文件/)).toBeTruthy());

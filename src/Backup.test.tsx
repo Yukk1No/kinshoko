@@ -1,16 +1,14 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { BackupPreview } from "./bindings/BackupPreview";
 import type { BackupStatus } from "./bindings/BackupStatus";
 import type { RestoreReport } from "./bindings/RestoreReport";
 import type { SnapshotSummary } from "./bindings/SnapshotSummary";
 import { BackupReminder, BackupSettings } from "./Backup";
 import { chooseOption } from "./test/select";
+import { fakeBackend, type Replies } from "./test/backend";
 
 afterEach(() => {
-  cleanup();
-  clearMocks();
   delete window.__KINSHOKO_TEST_PICKS__;
 });
 
@@ -43,25 +41,15 @@ const narrowed: BackupPreview = {
   targetAvailable: true,
 };
 
-function backend(handle: (cmd: string, args: Record<string, unknown>) => unknown) {
-  const calls: { cmd: string; args: Record<string, unknown> }[] = [];
-  mockIPC((cmd, args) => {
-    const a = (args ?? {}) as Record<string, unknown>;
-    calls.push({ cmd, args: a });
-    if (cmd === "plugin:library|registered_libraries") return registrations;
-    if (cmd === "plugin:event|listen") return 1;
-    return handle(cmd, a);
-  });
-  return calls;
-}
+/** 备份设置的假后端：两个已登记的图库，其余照 `replies`。 */
+const backend = (replies: Replies) => fakeBackend({ registered_libraries: registrations, ...replies });
 
 describe("设置：备份", () => {
   it("还没有备份目标时提示选择，选好的目录交给核心保存", async () => {
-    const calls = backend((cmd) => {
-      if (cmd === "backup_status") return empty;
-      if (cmd === "set_backup_target") return withTarget;
-      if (cmd === "backup_preview") return { ...narrowed, scope: { ...narrowed.scope, uncovered: [] } };
-      return undefined;
+    const fake = backend({
+      backup_status: empty,
+      set_backup_target: withTarget,
+      backup_preview: { ...narrowed, scope: { ...narrowed.scope, uncovered: [] } },
     });
     window.__KINSHOKO_TEST_PICKS__ = ["E:\\备份"];
     render(<BackupSettings />);
@@ -72,17 +60,16 @@ describe("设置：备份", () => {
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "备份" }).disabled).toBe(true);
     fireEvent.click(within(where).getByRole("button", { name: "选择…" }));
     await screen.findByText("E:\\备份");
-    expect(calls.find((c) => c.cmd === "set_backup_target")?.args).toEqual({ target: "E:\\备份" });
+    expect(fake.calls("set_backup_target")[0]?.args).toEqual({ target: "E:\\备份" });
     expect(screen.getByText(/10月5日 08:00$/)).toBeTruthy();
     expect(screen.getByText("已备份")).toBeTruthy();
   });
 
   it("按库缩小范围时列出带上的参考组、没覆盖的内容与容量", async () => {
-    const calls = backend((cmd, args) => {
-      if (cmd === "backup_status") return withTarget;
-      if (cmd === "set_backup_selection") return { ...withTarget, plan: { ...withTarget.plan, selection: args.selection } };
-      if (cmd === "backup_preview") return narrowed;
-      return undefined;
+    const fake = backend({
+      backup_status: withTarget,
+      set_backup_selection: (args) => ({ ...withTarget, plan: { ...withTarget.plan, selection: args.selection } }),
+      backup_preview: narrowed,
     });
     render(<BackupSettings />);
 
@@ -92,7 +79,7 @@ describe("设置：备份", () => {
     await waitFor(() => expect((main as HTMLInputElement).checked).toBe(true));
     fireEvent.click(screen.getByRole("checkbox", { name: "带上参考组引用的图库" }));
     await waitFor(() =>
-      expect(calls.filter((c) => c.cmd === "set_backup_selection").at(-1)?.args).toEqual({
+      expect(fake.calls("set_backup_selection").at(-1)?.args).toEqual({
         selection: { kind: "libraries", ids: ["A"], includeLinked: false },
       }),
     );
@@ -101,21 +88,13 @@ describe("设置：备份", () => {
   });
 
   it("可以马上备份；备份进行中显示进度", async () => {
-    const calls = backend((cmd) => {
-      if (cmd === "backup_status") return withTarget;
-      if (cmd === "backup_preview") return narrowed;
-      return undefined;
-    });
+    const fake = backend({ backup_status: withTarget, backup_preview: narrowed, start_backup: null });
     render(<BackupSettings />);
     fireEvent.click(await screen.findByRole("button", { name: "备份" }));
-    await waitFor(() => expect(calls.some((c) => c.cmd === "start_backup")).toBe(true));
+    await waitFor(() => expect(fake.calls("start_backup").length > 0).toBe(true));
     cleanup();
 
-    backend((cmd) => {
-      if (cmd === "backup_status") return { ...withTarget, running: { done: 3, total: 10 } };
-      if (cmd === "backup_preview") return narrowed;
-      return undefined;
-    });
+    backend({ backup_status: { ...withTarget, running: { done: 3, total: 10 } }, backup_preview: narrowed });
     render(<BackupSettings />);
     expect(await screen.findByText("正在备份：原图 3 / 10")).toBeTruthy();
     expect((screen.getByRole("button", { name: "备份" }) as HTMLButtonElement).disabled).toBe(true);
@@ -139,12 +118,11 @@ describe("设置：备份", () => {
         groups: { checked: 1, problems: [] },
       },
     };
-    const calls = backend((cmd) => {
-      if (cmd === "backup_status") return withTarget;
-      if (cmd === "backup_preview") return narrowed;
-      if (cmd === "backup_snapshots") return [snapshot];
-      if (cmd === "restore_backup") return report;
-      return undefined;
+    const fake = backend({
+      backup_status: withTarget,
+      backup_preview: narrowed,
+      backup_snapshots: [snapshot],
+      restore_backup: report,
     });
     window.__KINSHOKO_TEST_PICKS__ = ["F:\\恢复"];
     render(<BackupSettings />);
@@ -154,7 +132,7 @@ describe("设置：备份", () => {
     expect(await screen.findByText("完整")).toBeTruthy();
     expect(screen.getByText(/原图 12 张已核对/)).toBeTruthy();
     expect(screen.getByText(/主库（恢复）/)).toBeTruthy();
-    expect(calls.find((c) => c.cmd === "restore_backup")?.args).toEqual({
+    expect(fake.calls("restore_backup")[0]?.args).toEqual({
       snapshotId: snapshot.id,
       into: "F:\\恢复",
     });
@@ -163,17 +141,15 @@ describe("设置：备份", () => {
 
 describe("备份提醒", () => {
   it("备份目标不在时提醒，下次再试", async () => {
-    backend((cmd) =>
-      cmd === "backup_status"
-        ? {
-            ...withTarget,
-            plan: {
-              ...withTarget.plan,
-              lastFailure: { at, reason: "备份位置不在：E:\\备份。请接上移动盘", targetUnavailable: true },
-            },
-          }
-        : undefined,
-    );
+    backend({
+      backup_status: {
+        ...withTarget,
+        plan: {
+          ...withTarget.plan,
+          lastFailure: { at, reason: "备份位置不在：E:\\备份。请接上移动盘", targetUnavailable: true },
+        },
+      },
+    });
     render(<BackupReminder />);
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toMatch(/备份没有完成.*下次退出或空闲时再试/);
@@ -181,11 +157,9 @@ describe("备份提醒", () => {
   });
 
   it("在窗口里是一条出错轻提示，不再是横幅（#388）", async () => {
-    backend((cmd) =>
-      cmd === "backup_status"
-        ? { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } }
-        : undefined,
-    );
+    backend({
+      backup_status: { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } },
+    });
     render(<><BackupReminder /></>);
     const title = (await screen.findAllByText("备份没有完成：备份目标不在")).find((node) => node.closest(".k-toast"))!;
     expect(title.closest(".k-toast")?.getAttribute("data-tone")).toBe("error");
@@ -194,11 +168,9 @@ describe("备份提醒", () => {
   });
 
   it("提醒重新挂载时不叠出重复的出错提示", async () => {
-    backend((cmd) =>
-      cmd === "backup_status"
-        ? { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } }
-        : undefined,
-    );
+    backend({
+      backup_status: { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } },
+    });
     const view = render(<><BackupReminder key="a" /></>);
     await waitFor(() => expect(document.querySelectorAll(".k-toast")).toHaveLength(1));
     view.rerender(<><BackupReminder key="b" /></>);
@@ -207,9 +179,9 @@ describe("备份提醒", () => {
   });
 
   it("没有失败时不打扰", async () => {
-    const calls = backend((cmd) => (cmd === "backup_status" ? withTarget : undefined));
+    const fake = backend({ backup_status: withTarget });
     render(<BackupReminder />);
-    await waitFor(() => expect(calls.some((c) => c.cmd === "backup_status")).toBe(true));
+    await waitFor(() => expect(fake.calls("backup_status").length > 0).toBe(true));
     expect(screen.queryByRole("alert")).toBeNull();
   });
 });
