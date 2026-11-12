@@ -26,7 +26,7 @@ export function usePrefetchThumbnails({ layout, mount, cards, scrollDirection, t
     if (!cards.length || mount.bottom <= mount.top) return;
     const order = prefetchOrder(layout, mount, scrollDirection.current, PREFETCH_PX).slice(0, PREFETCH_MAX);
     prefetcher.current?.want(order.map((i) => thumbnailUrl(cardThumbnail(cards[i], thumbnailPx))));
-  }, [layout, mount, cards, thumbnailPx]);
+  }, [layout, mount, cards, thumbnailPx, scrollDirection]);
   // 启动加载页按首屏真正挂上的卡片数等缩略图（#338）：挂载范围与 Wall.tsx 挂卡片用的同一个。
   useEffect(() => {
     if (cards.length && mount.bottom > mount.top) startupWallMounted(visible(layout, mount.top, mount.bottom).length);

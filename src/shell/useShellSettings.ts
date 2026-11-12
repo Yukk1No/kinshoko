@@ -156,6 +156,7 @@ export function useShellSettings(shared?: ShellSettings, onChange?: (view: Shell
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies(loadAttempt): 点“重试”时重读
   useEffect(() => {
     let alive = true;
     setLoadError(null);

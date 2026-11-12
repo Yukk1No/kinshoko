@@ -58,6 +58,7 @@ export function AutoTaggingSettings({ hasLibrary, onShowUnfinished }: {
 
   // 状态变了（例如下载完成、换了档）就重读各档是否已下载。
   const phase = status?.state ?? null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies(phase): 打标状态一变就重读各档，effect 里不读它
   useEffect(() => {
     let alive = true;
     const since = changes.current;

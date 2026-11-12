@@ -43,9 +43,11 @@ export function SelectionBar({ libraryId, acrossLibraries, scope, ids, onClear, 
   const selectionKey = ids.join("\n");
   const currentKey = useRef(selectionKey);
   currentKey.current = selectionKey;
+  // biome-ignore lint/correctness/useExhaustiveDependencies(selectionKey): 换了选中的图片就收起永久删除的确认
   useEffect(() => setPurging(false), [selectionKey]);
 
   const folderLibrary = libraryId ?? acrossLibraries?.folderLibrary ?? null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): reloadKey 变了要重新读文件夹列表
   useEffect(() => {
     if (folderLibrary === null) { setFolders(null); return; }
     let alive = true;

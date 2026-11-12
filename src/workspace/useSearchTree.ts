@@ -39,7 +39,7 @@ export function useSearchTree({ safe, vocabularyKey, onError, setReloadKey }: {
     return () => {
       alive = false;
     };
-  }, [search, searching, vocabularyKey, safe, onError, lang]);
+  }, [search, searching, vocabularyKey, safe, onError, lang, setReloadKey]);
 
   return { search, setSearch, tree, treeSafe, searching };
 }

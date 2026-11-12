@@ -68,6 +68,7 @@ export function usePanelSlide(panels: readonly SlidingPanel[]): PanelSlide | nul
       }
       setState({ running: 0, slide: null });
     };
-  }, panels.map((panel) => panel.element)); // eslint-disable-line react-hooks/exhaustive-deps
+    // biome-ignore lint/correctness/useExhaustiveDependencies: 只在面板元素换了时重装监听（面板个数不变）；其余从 latest 读
+  }, panels.map((panel) => panel.element));
   return state.slide;
 }

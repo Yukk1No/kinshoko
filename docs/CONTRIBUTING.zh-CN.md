@@ -42,7 +42,8 @@ npm run dev             # 开发模式启动应用（Vite 开发服务器 + 调�
 npm run build           # release 构建，生成 NSIS 安装包到 target/release/bundle/nsis/
 npm test                # 前端测试（Vitest）
 npm run typecheck       # TS 类型检查
-npm run check           # 类型检查 + 前端测试；只输出失败详情和汇总，退出码涵盖每一步
+npm run lint            # Biome 检查（hooks 依赖、hooks 在顶层、未使用的 import；不查格式）
+npm run check           # 类型检查 + Biome 检查 + 前端测试；只输出失败详情和汇总，退出码涵盖每一步
 npm run check -- --rust # 再加 cargo fmt --check、Clippy 和核心 crate 测试
 npm run check -- App.import   # 只跑 Vitest，参数原样透传
 npm run check -- --rust-only --test integration writer_switch::   # 只跑 nextest，参数原样透传
@@ -56,7 +57,7 @@ node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # 需 tauri-dr
 
 核心 crate 设了 `autotests = false`，`crates/kinshoko-core/tests/` 下的文件大多是 `integration` 目标的模块，不是单独的目标。单跑一个模块要写目标名，再按模块路径过滤：`cargo nextest run -p kinshoko-core --test integration writer_switch::`。写成 `--test writer_switch` 会报 “no test target named”；可用的目标见它 `Cargo.toml` 里的 `[[test]]`。
 
-CI 在 `windows-2022` 上运行 Rust 检查（格式、Clippy、核心 crate 测试、生成物检查）以及原生应用构建与 WebDriver 冒烟测试，在 `ubuntu-latest` 上运行 TS 类型检查、前端测试与工作流检查；应用这一组固定在 `windows-2022`，因为冒烟测试在 `windows-latest` 上还过不了，见 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)。提 PR 前请在本地跑过对应的检查。
+CI 在 `windows-2022` 上运行 Rust 检查（格式、Clippy、核心 crate 测试、生成物检查）以及原生应用构建与 WebDriver 冒烟测试，在 `ubuntu-latest` 上运行 TS 类型检查、Biome 检查、前端测试与工作流检查；应用这一组固定在 `windows-2022`，因为冒烟测试在 `windows-latest` 上还过不了，见 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)。提 PR 前请在本地跑过对应的检查。
 
 ## 目录
 

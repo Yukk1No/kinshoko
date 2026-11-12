@@ -4,13 +4,13 @@ import { evaluate, failureDetail, parseArgs, planSteps } from "./check.mjs";
 const stepNames = (argv, env) => planSteps(parseArgs(argv), env).map(step => step.name);
 
 describe("跑哪些步骤", () => {
-  it("默认是 typecheck 和 vitest", () => {
-    expect(stepNames([])).toEqual(["typecheck", "vitest"]);
+  it("默认是 typecheck、biome lint 和 vitest", () => {
+    expect(stepNames([])).toEqual(["typecheck", "biome lint", "vitest"]);
   });
 
   it("--rust 加上三步 Rust，--rust-only 只跑这三步", () => {
     const rust = ["cargo fmt", "clippy", "nextest (kinshoko-core)"];
-    expect(stepNames(["--rust"])).toEqual(["typecheck", "vitest", ...rust]);
+    expect(stepNames(["--rust"])).toEqual(["typecheck", "biome lint", "vitest", ...rust]);
     expect(stepNames(["--rust-only"])).toEqual(rust);
   });
 

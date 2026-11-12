@@ -61,7 +61,7 @@ export function useSealRelease({
       if (!s.has(id)) return s;
       const n = new Set(s); n.delete(id); return n;
     });
-  }, []);
+  }, [scroller]);
   useLayoutEffect(() => {
     const f = new SealFx(fxHost.current!);
     fx.current = f;
@@ -108,6 +108,7 @@ export function useSealRelease({
     setArriving(new Set(arrivals.map((a) => a.id)));
     f.release(arrivals, b, landed);
   };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在安全模式切换的那次提交里起封印或释放；其余（viewerOpen、cards 与每次渲染都是新的函数）只在那一刻读
   useLayoutEffect(() => {
     if (lastSafe.current === safeMode) return;
     lastSafe.current = safeMode;
@@ -152,7 +153,7 @@ export function useSealRelease({
       releaseDue.current = performance.now() + RELEASE_WAIT;
       releasePage.current = false;
     }
-  }, [safeMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [safeMode]);
   return { revealed, arriving, fxHost, fx, releaseDue, book, releaseOnScreen };
 }
 
@@ -169,6 +170,7 @@ export function useReleaseLanding({ releaseDue, safeMode, cards, layout, width, 
   releaseOnScreen: (f: SealFx, b: DOMRect) => void;
 }) {
   // 关闭安全模式后，资料库送回的成人图排好了位置：它们就是从书里飞出的落点。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 卡片、布局或宽度变了才检查落点；safeMode、viewerOpen 只在那一刻读，book 与 releaseOnScreen 每次渲染都是新函数
   useLayoutEffect(() => {
     const due = releaseDue.current;
     if (!due || safeMode || !cards.length || !width) return;
@@ -181,5 +183,5 @@ export function useReleaseLanding({ releaseDue, safeMode, cards, layout, width, 
     const f = fx.current, b = book();
     if (!f || !b || performance.now() > due || viewerOpen || reducedNow()) return;
     releaseOnScreen(f, b);
-  }, [cards, layout, width]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cards, layout, width]);
 }

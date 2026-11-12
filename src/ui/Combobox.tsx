@@ -95,13 +95,15 @@ export function Combobox<T extends ComboboxOption>({
 
   // 改了字或候选换了，高亮回到第一项（或不高亮）。
   const ids = options.map((o) => o.id).join("\n");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ids 与 value 是触发条件，effect 里不读
   useEffect(() => setActive(start), [ids, start, value]);
   const current = active >= 0 && active < options.length ? active : -1;
 
   // 高亮项滚进列表可见范围。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(optionId): 只在高亮项变了时滚动；optionId 每次渲染都是新函数（结果只取决于 useId）
   useEffect(() => {
     if (current >= 0) document.getElementById(optionId(current))?.scrollIntoView?.({ block: "nearest" });
-  }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [current]);
 
   const showEmpty = !!empty && value.trim() !== "";
   const shown = open && !disabled && (options.length > 0 || showEmpty);

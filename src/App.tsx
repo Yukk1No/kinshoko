@@ -215,7 +215,7 @@ function MainWindow() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [acceptSafe, acceptShellSettings, acceptUiScale, uiScaleWriting]);
 
   // 上次的图库打不开：报告一次，留到画师确认（原常驻横幅，#98）。
   useEffect(() => {
@@ -259,9 +259,9 @@ function MainWindow() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [subscriptions.onRef]);
 
-  const changed = (added: LibraryInfo | null) => {
+  const changed =(added: LibraryInfo | null) => {
     if (added) setHasProviders(true);
     workspaceStatus(lensSafe).then((status) => setHasProviders(status.libraries.length > 0), () => {});
     setOpenError(null);

@@ -78,6 +78,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
   const report = finished?.report ?? null;
   const contextKey = previewContextKey ?? libraryId;
   const [preview, setPreview] = useState<{ taskId: string; contextKey: string } | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 换了任务、预览范围或可用状态就收起预览，effect 里不读它们
   useEffect(() => { setPreview(null); }, [finished?.taskId, contextKey, enabled]);
   const [hovering, setHovering] = useState(false);
   const { recovery, dismiss: dismissRecovery } = useImportRecovery();

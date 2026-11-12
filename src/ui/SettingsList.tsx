@@ -23,6 +23,7 @@ export function SettingsRow({ icon, title, hint, meta, warn, children, label, cl
   if (belowOpen) lastBelow.current = below;
   const clearBelow = () => { lastBelow.current = null; setBelowCleared((n) => n + 1); };
   // 没有过渡可等（减弱动效时时长为 0，不会有 transitionend）就立刻卸掉。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(clearBelow): 只在展开、收起时判断；clearBelow 每次渲染都是新函数
   useLayoutEffect(() => {
     if (belowOpen || lastBelow.current === null || !belowArea.current) return;
     const durations = getComputedStyle(belowArea.current).transitionDuration.split(",").map((d) => parseFloat(d) || 0);

@@ -66,5 +66,5 @@ export function useWallHandle({
         setTotal((count) => (count === null ? count : count + returning.length));
       };
     },
-  }), [measureBeforeReflow]);
+  }), [measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal]);
 }

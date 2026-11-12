@@ -16,6 +16,8 @@ export function useMountedCards({ layout, mount, position, viewerOpen, selected,
   motions: MutableRefObject<Map<string, Animation>>;
   trayMotion: MutableRefObject<TrayMotion | null>;
 }) {
+  // biome-ignore lint/correctness/useExhaustiveDependencies(viewerOpen): 开关查看器时 lastOpened 变了，要重算
+  // biome-ignore lint/correctness/useExhaustiveDependencies(selected): 选中变了时 lastOpened 可能跟着变，要重算
   return useMemo(() => {
     const found = new Set(visible(layout, mount.top, mount.bottom));
     // 查看器里调整窗口宽度后，最后查看的卡片仍能接回焦点（最多多保留一张）。
@@ -24,5 +26,5 @@ export function useMountedCards({ layout, mount, position, viewerOpen, selected,
       if (i !== undefined) found.add(i);
     }
     return [...found].sort((a, b) => a - b);
-  }, [layout, mount, position, viewerOpen, selected]);
+  }, [layout, mount, position, viewerOpen, selected, lastOpened, beforeReflow, motions, trayMotion]);
 }

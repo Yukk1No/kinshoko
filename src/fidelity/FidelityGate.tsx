@@ -281,9 +281,9 @@ export function FidelityGate() {
     }
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在跑完时自动保存一次；save 每次渲染都是新函数
   useEffect(() => {
     if (done && plan?.autoSave) void save();
-    // 只在跑完时自动保存一次。
   }, [done]);
 
   return (

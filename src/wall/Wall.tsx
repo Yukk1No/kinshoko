@@ -109,6 +109,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const view = useRef({ conditions, workspaceScope, safeMode });
   view.current = { conditions, workspaceScope, safeMode };
   const lens = `${JSON.stringify(conditions)}\n${safeMode}\n${JSON.stringify(workspaceScope)}`;
+  // biome-ignore lint/correctness/useExhaustiveDependencies(lens): 视角变了就作废在途请求
   useLayoutEffect(() => {
     // 视角变了：还在路上的请求按旧视角作废，旧游标也不再接着翻；等调用方按新视角重新浏览。
     generation.current += 1;
@@ -148,6 +149,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   useWallHandle({
     ref, measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal,
   });
+  // biome-ignore lint/correctness/useExhaustiveDependencies(density): 落下新密度后清掉预览
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 
   /**

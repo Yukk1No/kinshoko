@@ -3,9 +3,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync, cpSync } from "node:fs";
 import { resolve, join, sep } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import { createHash } from "node:crypto";
-import { deflateSync } from "node:zlib";
 
 const [, , appArg, edgeArg, passedArg] = process.argv;
 if (!appArg || !edgeArg || !passedArg) throw new Error("Usage: node e2e/shared-tag-groups.mjs <kinshoko.exe> <msedgedriver.exe>");

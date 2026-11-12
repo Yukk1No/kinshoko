@@ -71,7 +71,7 @@ export function useTrayMotion({
     trayMotion.current = { flights: new Set(set.pages.map((page) => page.id)) };
     focusFirst.current = set.pages[0]?.id ?? null;
     setOpenSet(set.key);
-  }, [measureBeforeReflow, setOpenSet]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [measureBeforeReflow, setOpenSet, scroller, anchor, settledTop, beforeReflow, trayMotion]);
 
   const closeTray = useCallback((keep?: string) => {
     const { layout, ids, shown, tray, openSet } = live.current;
@@ -100,8 +100,9 @@ export function useTrayMotion({
       }),
     };
     setOpenSet(null);
-  }, [measureBeforeReflow, setOpenSet]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [measureBeforeReflow, setOpenSet, scroller, anchor, settledTop, trayMotion]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在托盘开合后的那次提交里交焦点、放影子；ids、layout、thumbnailPx 只在那一刻读
   useLayoutEffect(() => {
     const el = scroller.current;
     const first = openSet !== null ? focusFirst.current : focusStack.current;
@@ -149,7 +150,7 @@ export function useTrayMotion({
     if (!flights.length) { landed(); return; }
     const timer = window.setTimeout(landed, duration);
     return () => { clearTimeout(timer); landed(); flights.forEach((flight) => flight.cancel()); };
-  }, [openSet]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [openSet]);
 
   // 影子飞到一半时开了安全模式：成人内容的页的影子立即遮住。
   useLayoutEffect(() => {
@@ -158,7 +159,7 @@ export function useTrayMotion({
       ghost.dataset.veiled = "true";
       ghost.style.backgroundImage = "";
     });
-  }, [safeMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [safeMode, scroller]);
 
   return { openTray, closeTray };
 }
