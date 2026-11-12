@@ -5,11 +5,14 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use image::RgbaImage;
 use kinshoko_core::library::{BrowseQuery, BrowseScope, ImageEdit, ImportOutcome, ImportSource};
 use kinshoko_core::library_batch::{LibraryBatch, LibraryTarget, each_library, group_by_library};
 use kinshoko_core::reference_groups::{GroupError, GroupUsage, ReferenceGroupUsage};
 use kinshoko_core::{DeviceLibraries, Library, WriterAccess};
+
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::write_png;
 
 struct NoGroups;
 impl ReferenceGroupUsage for NoGroups {
@@ -25,14 +28,6 @@ fn target(library_id: &str, image_id: &str) -> LibraryTarget {
     }
 }
 
-fn write_png(path: &Path, seed: u8) -> PathBuf {
-    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    RgbaImage::from_fn(4, 4, |x, y| image::Rgba([seed, x as u8, y as u8, 255]))
-        .save(path)
-        .unwrap();
-    path.to_path_buf()
-}
-
 /// 建库，导入 `seeds` 对应的图并全部移进回收站，返回（根目录，id，图 id）。
 fn trashed_library(
     dir: &Path,
@@ -42,7 +37,7 @@ fn trashed_library(
     let root = dir.join(name);
     let library = Library::create(&root, name).unwrap();
     let paths = seeds
-        .map(|i| write_png(&dir.join(format!("in-{name}/{i:02}.png")), i))
+        .map(|i| write_png(&dir.join(format!("in-{name}/{i:02}.png")), 4, 4, i))
         .collect();
     let ids: Vec<String> = library
         .import(ImportSource { paths })

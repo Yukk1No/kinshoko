@@ -5,24 +5,11 @@ use std::path::{Path, PathBuf};
 
 use image::RgbaImage;
 use kinshoko_core::Library;
-use kinshoko_core::library::{BrowseQuery, ImportOutcome, ImportReport, ImportSource};
+use kinshoko_core::library::{BrowseQuery, ImportOutcome};
 
-/// 每个 `seed` 生成内容不同的 PNG。
-fn write_png(path: &Path, seed: u8) -> PathBuf {
-    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    RgbaImage::from_fn(12, 8, |x, y| image::Rgba([seed, x as u8, y as u8, 255]))
-        .save(path)
-        .unwrap();
-    path.to_path_buf()
-}
-
-fn import(library: &Library, paths: &[PathBuf]) -> ImportReport {
-    library
-        .import(ImportSource {
-            paths: paths.to_vec(),
-        })
-        .wait()
-}
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::{import_all, write_png};
 
 fn count(library: &Library) -> u32 {
     library
@@ -55,33 +42,33 @@ fn retrying_after_a_partial_failure_only_processes_the_failed_items_and_never_du
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "库").unwrap();
     let src = dir.path().join("参考");
-    let good = write_png(&src.join("好图.png"), 1);
-    write_png(&src.join("子/另一张.png"), 2);
+    let good = write_png(&src.join("好图.png"), 12, 8, 1);
+    write_png(&src.join("子/另一张.png"), 12, 8, 2);
     let broken = src.join("子/坏图.png");
     let head = std::fs::read(&good).unwrap();
     std::fs::write(&broken, &head[..20]).unwrap();
 
-    let first = import(&library, std::slice::from_ref(&src));
+    let first = import_all(&library, std::slice::from_ref(&src));
     assert_eq!(count(&library), 2);
     let retry = first.retry_source().expect("有失败项可重试");
     assert_eq!(retry.paths, vec![broken.clone()]);
 
     // 没修好就重试：仍然失败，不多出记录。
-    let again = import(&library, &retry.paths);
+    let again = import_all(&library, &retry.paths);
     assert_eq!(again.items.len(), 1);
     assert_eq!(kind(&again.items[0].outcome), "failed");
     assert_eq!(count(&library), 2);
 
     // 修好后重试：只补上那一项。
-    write_png(&broken, 3);
-    let fixed = import(&library, &again.retry_source().unwrap().paths);
+    write_png(&broken, 12, 8, 3);
+    let fixed = import_all(&library, &again.retry_source().unwrap().paths);
     assert_eq!(fixed.items.len(), 1);
     assert_eq!(kind(&fixed.items[0].outcome), "imported");
     assert_eq!(fixed.retry_source(), None);
     assert_eq!(count(&library), 3);
 
     // 整个文件夹再导一遍也不会重复。
-    let whole = import(&library, std::slice::from_ref(&src));
+    let whole = import_all(&library, std::slice::from_ref(&src));
     assert!(whole.items.iter().all(|i| kind(&i.outcome) == "merged"));
     assert_eq!(count(&library), 3);
 }
@@ -104,7 +91,7 @@ fn crc32(bytes: &[u8]) -> u32 {
 
 /// 容器与尺寸都有效、但像素压缩流损坏的 PNG：IDAT 的 zlib 头改成 0，CRC 重算。
 fn write_png_with_damaged_pixels(path: &Path) {
-    write_png(path, 9);
+    write_png(path, 12, 8, 9);
     let mut bytes = std::fs::read(path).unwrap();
     let at = bytes.windows(4).position(|w| w == b"IDAT").unwrap();
     let len = u32::from_be_bytes(bytes[at - 4..at].try_into().unwrap()) as usize;
@@ -130,14 +117,14 @@ fn damaged_compressed_pixels_are_a_read_failure() {
     let root = dir.path().join("lib");
     let library = Library::create(&root, "库").unwrap();
     let src = dir.path().join("参考");
-    write_png(&src.join("好图.png"), 1);
+    write_png(&src.join("好图.png"), 12, 8, 1);
     let broken = src.join("坏像素.png");
     write_png_with_damaged_pixels(&broken);
     image::open(&broken).expect_err("像素确实不可解码");
     let (w, h) = image::image_dimensions(&broken).expect("容器与尺寸仍有效");
     assert_eq!((w, h), (12, 8));
 
-    let first = import(&library, std::slice::from_ref(&src));
+    let first = import_all(&library, std::slice::from_ref(&src));
     let outcomes: Vec<_> = first.items.iter().map(|i| kind(&i.outcome)).collect();
     assert_eq!(outcomes, ["failed", "imported"], "{first:?}");
     assert_eq!(count(&library), 1, "坏像素不作为参考图发布");
@@ -157,8 +144,8 @@ fn damaged_compressed_pixels_are_a_read_failure() {
     assert_eq!(count(&library), 1);
 
     // 修好后只重试这一项。
-    write_png(&broken, 3);
-    let fixed = import(&library, &retry.paths);
+    write_png(&broken, 12, 8, 3);
+    let fixed = import_all(&library, &retry.paths);
     assert_eq!(fixed.items.len(), 1);
     assert_eq!(kind(&fixed.items[0].outcome), "imported");
     assert_eq!(fixed.retry_source(), None);
@@ -188,7 +175,7 @@ fn files_and_libraries_deeper_than_260_characters_import_and_reopen() {
     let root = deep_dir(&dir.path().join("库"), 270);
 
     let library = Library::create(&root, "深处的库").unwrap();
-    let report = import(&library, std::slice::from_ref(&src));
+    let report = import_all(&library, std::slice::from_ref(&src));
     let ImportOutcome::Imported { image_id } = &report.items[0].outcome else {
         panic!("{:?}", report.items[0].outcome)
     };
@@ -223,13 +210,13 @@ fn write_png_long(path: &Path, seed: u8) -> PathBuf {
 fn importing_the_same_bytes_twice_keeps_one_image_with_both_sources() {
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "库").unwrap();
-    let first = write_png(&dir.path().join("下载/原图.png"), 7);
+    let first = write_png(&dir.path().join("下载/原图.png"), 12, 8, 7);
     let second = dir.path().join("另一处/复制的.png");
     std::fs::create_dir_all(second.parent().unwrap()).unwrap();
     std::fs::copy(&first, &second).unwrap();
 
-    let a = import(&library, std::slice::from_ref(&first));
-    let b = import(&library, std::slice::from_ref(&second));
+    let a = import_all(&library, std::slice::from_ref(&first));
+    let b = import_all(&library, std::slice::from_ref(&second));
 
     let ImportOutcome::Imported { image_id } = &a.items[0].outcome else {
         panic!("{:?}", a.items[0].outcome)

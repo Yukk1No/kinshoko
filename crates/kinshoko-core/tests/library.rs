@@ -5,20 +5,15 @@ use std::path::{Path, PathBuf};
 
 use image::{ImageEncoder, RgbImage, RgbaImage};
 use kinshoko_core::Library;
-use kinshoko_core::library::{BrowseQuery, ImportOutcome, ImportReport, ImportSource};
+use kinshoko_core::library::{BrowseQuery, ImportOutcome, ImportSource};
 use sha2::{Digest, Sha256};
+
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::{import_all, write_png};
 
 fn sha256(path: &Path) -> String {
     format!("{:x}", Sha256::digest(std::fs::read(path).unwrap()))
-}
-
-/// 每次调用生成内容不同的图（`seed` 改变像素），尺寸为 `w × h`。
-fn write_png(path: &Path, w: u32, h: u32, seed: u8) -> PathBuf {
-    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    RgbaImage::from_fn(w, h, |x, y| image::Rgba([seed, x as u8, y as u8, 200]))
-        .save(path)
-        .unwrap();
-    path.to_path_buf()
 }
 
 fn write_jpeg(path: &Path, w: u32, h: u32, seed: u8, exif_orientation: Option<u16>) -> PathBuf {
@@ -58,14 +53,6 @@ fn exif_with_orientation(o: u16) -> Vec<u8> {
     e
 }
 
-fn import(library: &Library, paths: &[PathBuf]) -> ImportReport {
-    library
-        .import(ImportSource {
-            paths: paths.to_vec(),
-        })
-        .wait()
-}
-
 fn all(library: &Library) -> Vec<kinshoko_core::library::ImageCard> {
     library
         .browse(&BrowseQuery {
@@ -102,7 +89,7 @@ fn imported_files_keep_their_bytes_and_show_at_their_upright_size() {
     let webp = write_webp(&dir.path().join("in/c.webp"), 10, 50, 3);
     let before: Vec<String> = [&png, &jpeg, &webp].map(|p| sha256(p)).to_vec();
 
-    let report = import(&library, &[png.clone(), jpeg.clone(), webp.clone()]);
+    let report = import_all(&library, &[png.clone(), jpeg.clone(), webp.clone()]);
 
     assert!(!report.cancelled);
     let ids: Vec<String> = report
@@ -150,7 +137,7 @@ fn a_folder_import_walks_subfolders_and_lists_each_file_that_did_not_come_in() {
     let head = std::fs::read(src.join("a.png")).unwrap();
     std::fs::write(src.join("人物/坏图.png"), &head[..20]).unwrap();
 
-    let report = import(&library, std::slice::from_ref(&src));
+    let report = import_all(&library, std::slice::from_ref(&src));
 
     let mut outcomes: Vec<(String, &str)> = report
         .items
@@ -193,7 +180,7 @@ fn browsing_pages_through_every_image_once_with_a_keyset_cursor() {
     let files: Vec<PathBuf> = (0..25)
         .map(|i| write_png(&dir.path().join(format!("in/{i:02}.png")), 4, 4, i))
         .collect();
-    import(&library, &files);
+    import_all(&library, &files);
 
     let mut seen = Vec::new();
     let mut cursor = None;
@@ -242,7 +229,7 @@ fn after_closing_and_reopening_the_wall_shows_the_same_images_in_the_same_order(
             )
         })
         .collect();
-    import(&library, &files);
+    import_all(&library, &files);
     let before = all(&library);
     drop(library);
 
@@ -331,7 +318,7 @@ fn thumbnails_are_a_rebuildable_cache_at_the_requested_width_tier() {
     let wide = write_png(&dir.path().join("in/wide.png"), 1000, 500, 1);
     let small = write_png(&dir.path().join("in/small.png"), 100, 300, 2);
     let tall = write_jpeg(&dir.path().join("in/tall.jpg"), 600, 300, 3, Some(6));
-    let report = import(&library, &[wide, small, tall]);
+    let report = import_all(&library, &[wide, small, tall]);
     let id = |i: usize| match &report.items[i].outcome {
         ImportOutcome::Imported { image_id } => image_id.clone(),
         other => panic!("{other:?}"),

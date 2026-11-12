@@ -144,7 +144,7 @@ fn mixed_receipt_coarsens_all_successes_keeps_real_failures_and_does_not_change_
         )
         .unwrap();
     let visible = png(f.dir.path(), "visible-unknown.png", 140);
-    let vi = import(&f.target, &visible);
+    let vi = import_one(&f.target, &visible);
     let new = png(f.dir.path(), "new-unknown.png", 160);
     let failed = f.dir.path().join("missing-file.png");
     let before = content_of(&f.target, &f.target_image);
