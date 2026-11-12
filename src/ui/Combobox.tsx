@@ -4,6 +4,7 @@ import type { InputHTMLAttributes, KeyboardEvent, MouseEvent, ReactNode, RefObje
 import { Popover } from "@base-ui/react/popover";
 import { Languages, Plus } from "lucide-react";
 import { Tip } from "./Tip";
+import { isComposingKey } from "./composing";
 
 /** 一个候选。`label` 通常用 `Highlight` 标出匹配的字；`create` 是放在最后的新建项。 */
 export type ComboboxOption = {
@@ -113,7 +114,7 @@ export function Combobox<T extends ComboboxOption>({
 
   const keyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     // 输入法选字时的方向键和回车属于输入法，不动候选。
-    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+    if (isComposingKey(event)) return;
     onKeyDown?.(event);
     if (event.defaultPrevented) return;
     const n = options.length;

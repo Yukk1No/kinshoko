@@ -1,4 +1,5 @@
 import { useState, type DragEvent, type KeyboardEvent } from "react";
+import { isComposingKey } from "../ui/composing";
 import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import type { BrowseScope } from "../bindings/BrowseScope";
@@ -56,6 +57,7 @@ export function NameInput(props: {
 }) {
   const [value, setValue] = useState(props.initial);
   const key = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (isComposingKey(e)) return;
     if (e.key === "Enter") props.onDone(value.trim() || null);
     if (e.key === "Escape") props.onDone(null);
   };
