@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n";
 import type { Region } from "../bindings/Region";
-import { shellSettings, migrateViewerBackground, setViewerBackground } from "../ipc";
-import { legacyViewerBackground, rememberViewerBackground } from "./background";
+import { shellSettings, setViewerBackground } from "../ipc";
+import { cachedViewerBackground, rememberViewerBackground } from "./background";
 import { Copy, Crop as CropIcon, FolderSearch, PanelRight, Palette, Pin, Scan, Trash2 } from "lucide-react";
 import { Menu, MenuCheckboxItem, MenuItem, MenuPopup, MenuRadioItem, MenuSeparator, MenuSubmenu } from "../ui/Menu";
 import type { DockItem } from "../ui/Dock";
@@ -17,22 +17,21 @@ export const swatch = (ground: Background) => <span className="viewer-swatch" da
 export const OneToOne = ({ size = 19 }: { size?: number }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
   <rect x="3" y="5" width="18" height="14" rx="3" /><path d="M8.5 10v5M8 10.5l.5-.5M15.5 10v5M15 10.5l.5-.5" /><path d="M12 11.2v.1M12 14v.1" /></svg>;
 
-/** 查看器的背景：本设备设置，读到之前沿用旧的本机缓存。 */
+/** 查看器的背景：本设备设置，读到之前沿用本机缓存。只在画师选背景时写核心设置。 */
 export function useViewerBackground() {
-  const [background, setBackground] = useState<Background>(legacyViewerBackground);
-  const [backgroundReady, setBackgroundReady] = useState(false);
+  const [background, setBackground] = useState<Background>(cachedViewerBackground);
   useEffect(() => {
     let alive = true;
-    shellSettings().then(async (view) => view?.viewerBackground ?? (await migrateViewerBackground(legacyViewerBackground()))?.viewerBackground ?? "mid")
-      .then((value) => { if (alive) { setBackground(value); setBackgroundReady(true); } }, () => { /* A failed read must never write legacy cache over restored settings. */ });
+    shellSettings().then((view) => view?.viewerBackground ?? "mid")
+      .then((value) => { if (alive) { setBackground(value); rememberViewerBackground(value); } }, () => { /* 读取失败不往核心写任何东西。 */ });
     return () => { alive = false; };
   }, []);
-  useEffect(() => {
-    if (!backgroundReady) return;
-    rememberViewerBackground(background);
-    void setViewerBackground(background).catch(() => {});
-  }, [background, backgroundReady]);
-  return [background, setBackground] as const;
+  const choose = useCallback((next: Background) => {
+    setBackground(next);
+    rememberViewerBackground(next);
+    void setViewerBackground(next).catch(() => {});
+  }, []);
+  return [background, choose] as const;
 }
 
 /** 查看器 dock 的工具。 */

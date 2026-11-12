@@ -172,18 +172,6 @@ pub async fn set_inspector_open(
         .map_err(CommandError::from)?;
     Ok(shell.view())
 }
-#[tauri::command]
-pub async fn migrate_viewer_background(
-    state: State<'_, ShellState>,
-    background: kinshoko_core::ViewerBackground,
-) -> Result<ShellSettingsView, CommandError> {
-    let mut shell = state.0.lock().map_err(CommandError::system)?;
-    shell
-        .settings
-        .migrate_viewer_background(background)
-        .map_err(CommandError::from)?;
-    Ok(shell.view())
-}
 
 /// 系统的双击设置（#179）：图片墙按“第一下的图”判定双击时用。
 #[derive(serde::Serialize)]

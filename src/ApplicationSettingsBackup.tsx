@@ -1,12 +1,12 @@
 import { useState } from "react";
 import type { ApplicationSettingsRestored } from "./bindings/ApplicationSettingsRestored";
 import type { ApplicationSettingsPreview } from "./bindings/ApplicationSettingsPreview";
-import { describeCommandError, exportApplicationSettings, migrateViewerBackground, pickApplicationSettings, previewApplicationSettings } from "./ipc";
+import { describeCommandError, exportApplicationSettings, pickApplicationSettings, previewApplicationSettings } from "./ipc";
 import { Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "./ui/Toast";
 import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
-import { legacyViewerBackground, rememberViewerBackground } from "./viewer/background";
+import { rememberViewerBackground } from "./viewer/background";
 import { errorText } from "./ipc/commandError";
 
 /** 设置 › 备份 › 偏好设置（原“程序设置备份”）：单独保存名称偏好、应用级词表、标签分组、相近规则和程序配置；替换前先读取并确认范围。 */
@@ -28,7 +28,6 @@ export function ApplicationSettingsBackup({ restore: replace }: {
   const exportFile = () => run(async () => {
     const file = path.trim() || await pickApplicationSettings(true);
     if (!file) return;
-    await migrateViewerBackground(legacyViewerBackground());
     await exportApplicationSettings(file);
     setPath(file); setPreview(null); toast.show({ title: t("exported"), tone: "success" });
   });

@@ -191,4 +191,3 @@ export function setViewerBackground(background: import("../bindings/ViewerBackgr
 /** 保存主窗口详情面板的宽度（#157）；后端把它收进 280–560。 */
 export function setInspectorWidth(width: number): Promise<ShellSettingsView> { return invoke("set_inspector_width", { width }); }
 export function setInspectorOpen(open: boolean): Promise<ShellSettingsView> { return invoke("set_inspector_open", { open }); }
-export function migrateViewerBackground(background: import("../bindings/ViewerBackground").ViewerBackground): Promise<ShellSettingsView> { return invoke("migrate_viewer_background", { background }); }
