@@ -23,6 +23,7 @@ use tauri::{AppHandle, Emitter, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt as _;
 
 use crate::shell::ShellState;
+use crate::sync::lock;
 
 const EVENT: &str = "tagging-status";
 
@@ -86,10 +87,6 @@ pub fn vocabulary_csv<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
         .chain(models.iter())
         .find_map(|m| store.ready(m))
         .map(|m| m.tags_csv)
-}
-
-fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
 /// 应用启动时开始自动标签并推送状态变化。`preferred` 是设置里保存的硬件档。资料库状态

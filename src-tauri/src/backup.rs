@@ -8,12 +8,13 @@
 //!   只登记、不切换；参考组恢复为新的参考组，推送 `reference-groups` 让列表刷新。
 //! - 状态变化推送 `backup-status`（[`BackupStatus`]）。
 
+use crate::sync::lock;
 use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Mutex, MutexGuard};
 use std::time::Duration;
 
 use kinshoko_core::backup::{
@@ -38,10 +39,6 @@ pub struct BackupState {
     last_report: Mutex<Option<BackupReport>>,
     /// 正在备份或恢复：同一时间只做一件。
     busy: AtomicBool,
-}
-
-fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
 /// 现在，带本地时区偏移。

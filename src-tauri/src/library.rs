@@ -82,6 +82,7 @@ use tauri::{AppHandle, Emitter, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::shell::ShellState;
+use crate::sync::lock;
 use std::panic::Location;
 
 use kinshoko_core::diagnostics::HeldLock;
@@ -268,10 +269,6 @@ fn lock_libraries_at<'a>(
         guard,
         _held: HeldLock::acquired("登记表", site, waiting),
     }
-}
-
-fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
