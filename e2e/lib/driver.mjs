@@ -69,5 +69,5 @@ export function createDriver({
     );
   }
 
-  return { wd, until, quitOwnApp };
+  return { wd, until, quitOwnApp, delay };
 }

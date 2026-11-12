@@ -8,6 +8,8 @@ import { DatabaseSync } from "node:sqlite";
 import { createHash } from "node:crypto";
 import { deflateSync } from "node:zlib";
 import { driverClient } from "./shared-personal-approx.helpers.mjs";
+import { createDriver } from "./lib/driver.mjs";
+import { chunk } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg] = process.argv;
 if (!appArg || !edgeArg) throw new Error("Usage: node e2e/shared-personal-approx.mjs <kinshoko.exe> <msedgedriver.exe>");
@@ -23,14 +25,6 @@ const libraries = join(work, "libraries");
 mkdirSync(libraries);
 mkdirSync(join(work, "roaming")); mkdirSync(join(work, "local"));
 const imagePath = join(work, "image.png");
-function chunk(type, data) {
-  const body = Buffer.concat([Buffer.from(type), data]);
-  let crc = 0xffffffff;
-  for (const byte of body) { crc ^= byte; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1; }
-  const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-  const checksum = Buffer.alloc(4); checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, checksum]);
-}
 const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(3, 0); ihdr.writeUInt32BE(3, 4); ihdr[8] = 8; ihdr[9] = 2;
 const row = Buffer.from([0, 18, 28, 38, 18, 28, 38, 18, 28, 38]);
 writeFileSync(imagePath, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(Buffer.concat([row, row, row]))), chunk("IEND", Buffer.alloc(0))]));
@@ -39,15 +33,14 @@ const driverUrl = `http://127.0.0.1:${port}`;
 const { until, wd, delay, Session } = driverClient({ driverUrl, application, work });
 const assertions = [];
 function assert(ok, label) { if (!ok) throw new Error(label); assertions.push(label); console.log(`PASS ${label}`); }
-function quitOwnApp() {
-  return spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, windowsHide: true, stdio: "ignore" });
-}
+const { quitOwnApp } = createDriver({ driverUrl, application });
 const driver = spawn(process.argv[4] ?? "tauri-driver", ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], { env: { ...process.env, APPDATA: join(work, "roaming"), LOCALAPPDATA: join(work, "local"), KINSHOKO_DATA_DIR: join(work, "app-data"), KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") }, windowsHide: true, stdio: ["ignore", "inherit", "inherit"] });
 let session;
 const setting = "//button[@aria-label='设置' or normalize-space()='设置']";
 
 const oldSchema=readFileSync("crates/kinshoko-core/tests/fixtures/spec78-legacy-v16.sql","utf8");
 const oldSchemaSha256=createHash("sha256").update(oldSchema).digest("hex");
+// 例外（#521）：这张图的尺寸、颜色规则与 lib/fixtures.mjs 的 png 不同，合并会改变测试图的像素，所以留在本地。
 function png(red) { const row=Buffer.from([0,red,28,38,red,28,38,red,28,38]);return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk("IHDR",ihdr),chunk("IDAT",deflateSync(Buffer.concat([row,row,row]))),chunk("IEND",Buffer.alloc(0))]); }
 function oldLibrary(name,red,positive) {
   const root=join(libraries,name);mkdirSync(root);const db=new DatabaseSync(join(root,"library.sqlite"));db.exec(oldSchema);

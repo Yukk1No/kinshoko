@@ -16,6 +16,8 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
 import { copyStandaloneRuntime } from "./native-standalone-guard.mjs";
+import { createDriver } from "./lib/driver.mjs";
+import { chunk } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg, driverArg = "tauri-driver"] = process.argv;
 if (!appArg || !edgeArg) throw new Error("用法：node e2e/viewer-zoom-perf.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]");
@@ -27,19 +29,8 @@ const source = join(work, "zoom");
 const output = resolve(process.env.KINSHOKO_ZOOM_PERF_OUTPUT ?? "work/viewer-zoom-perf");
 for (const dir of [parent, source, output, join(work, "roaming"), join(work, "local")]) mkdirSync(dir, { recursive: true });
 
-const crcTable = Array.from({ length: 256 }, (_, c) => {
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-function chunk(type, data) {
-  const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type), data]);
-  let c = 0xffffffff;
-  for (const b of body) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
-  const crc = Buffer.alloc(4); crc.writeUInt32BE((c ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, crc]);
-}
 /** 3:2 合成原图：渐变底、细网格和随坐标变化的纹理，缩小时有可见细节，又不至于压不动。 */
+// 例外（#521）：这张图的尺寸、颜色规则与 lib/fixtures.mjs 的 png 不同，合并会改变测试图的像素，所以留在本地。
 function png(w, h) {
   const header = Buffer.alloc(13); header.writeUInt32BE(w); header.writeUInt32BE(h, 4); header[8] = 8; header[9] = 2;
   const stride = w * 3 + 1;
@@ -63,21 +54,7 @@ for (const [i, w] of SIZES.entries()) writeFileSync(join(source, names[i]), png(
 const PORT = Number(process.env.KINSHOKO_WEBDRIVER_PORT ?? 4457);
 const DRIVER = `http://127.0.0.1:${PORT}`;
 const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
-async function wd(method, path, body) {
-  const response = await fetch(DRIVER + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(120000) });
-  const result = await response.json();
-  if (!response.ok || result.status || result.value?.error) throw new Error(`${path}: ${JSON.stringify(result)}`);
-  return path === "/session" && result.sessionId ? { sessionId: result.sessionId, capabilities: result.value } : result.value;
-}
-async function until(what, read, ms = 60000) {
-  const end = Date.now() + ms;
-  let last;
-  while (Date.now() < end) {
-    try { const value = await read(); if (value) return value; } catch (error) { last = error; }
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  throw new Error(`等待超时：${what}${last ? ` (${last.message})` : ""}`);
-}
+const { wd, until } = createDriver({ driverUrl: DRIVER, timeout: 120000, legacyProtocol: true, untilTimeout: 60000, every: 100 });
 const driver = spawn(driverArg, ["--port", String(PORT), "--native-port", String(PORT + 1), "--native-driver", resolve(edgeArg)], {
   windowsHide: true,
   env: { ...process.env, APPDATA: join(work, "roaming"), LOCALAPPDATA: join(work, "local"), KINSHOKO_DATA_DIR: join(work, "app-data"), KINSHOKO_SKIP_AUTOSTART: "1" },

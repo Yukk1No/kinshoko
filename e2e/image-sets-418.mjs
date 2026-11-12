@@ -7,6 +7,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildFixture } from "./image-sets-418.fixture.mjs";
+import { createDriver } from "./lib/driver.mjs";
 
 const [, , appArg, edgeArg, outArg, ...flags] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/image-sets-418.mjs <kinshoko.exe> <msedgedriver.exe> <out> [--record]");
@@ -25,22 +26,8 @@ const { eagle, items } = buildFixture(work);
 if (flags.includes("--fixture-only")) { console.log(`Fixture: ${eagle} (${items} items)`); process.exit(0); }
 
 // ---- WebDriver ----
-async function wd(method, path, body) {
-  const response = await fetch(driverUrl + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
-  const result = await response.json();
-  if (!response.ok || result.value?.error) throw new Error(`${method} ${path}: ${JSON.stringify(result.value)}`);
-  return result.value;
-}
+const { wd, until, quitOwnApp } = createDriver({ driverUrl, application });
 const delay = (ms) => new Promise((done) => setTimeout(done, ms));
-async function until(label, read, timeout = 30000) {
-  const end = Date.now() + timeout;
-  let error;
-  while (Date.now() < end) {
-    try { const result = await read(); if (result) return result; } catch (reason) { error = reason; }
-    await delay(150);
-  }
-  throw new Error(`Timed out: ${label}${error ? ` (${error.message})` : ""}`);
-}
 class Session {
   static async start() {
     const result = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application } } } });
@@ -82,9 +69,6 @@ class Session {
     await this.theme("light");
     console.log("shot", name);
   }
-}
-function quitOwnApp() {
-  spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, stdio: "ignore", windowsHide: true });
 }
 /**
  * 应用窗口在屏幕上的矩形与主屏的尺寸，都按物理像素量（先声明感知 DPI）。WebView2 的设备像素比与屏幕坐标对不上，

@@ -6,6 +6,7 @@ import { mkdirSync, writeFileSync, readFileSync, renameSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, join } from "node:path";
 import { driverClient, writeTestPng } from "./source-actions.helpers.mjs";
+import { createDriver } from "./lib/driver.mjs";
 
 const [, , appArg, edgeArg] = process.argv;
 if (!appArg || !edgeArg) throw new Error("Usage: node e2e/source-actions.mjs <owned kinshoko.exe> <msedgedriver.exe>");
@@ -19,9 +20,7 @@ writeTestPng(imagePath);
 const port = 4570;
 const driverUrl = `http://127.0.0.1:${port}`;
 const { delay, until, assertions, assert, Session } = driverClient({ driverUrl, application, work });
-function quitOwnApp() {
-  return spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, stdio: "ignore" });
-}
+const { quitOwnApp } = createDriver({ driverUrl, application });
 
 const appData = join(work, "app-data");
 const scriptSource = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", windowsHide: true }).stdout.trim();

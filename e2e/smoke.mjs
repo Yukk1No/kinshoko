@@ -28,6 +28,7 @@ const DRIVER = `http://127.0.0.1:${port}`;
 // ---------- 样本 ----------
 
 /** 单色 RGB PNG。例外：与 lib/fixtures.mjs 的 png 签名与输出都不同（只有这里和 viewer 系列用单色），留在本地。 */
+// 例外（#521）：这张图的尺寸、颜色规则与 lib/fixtures.mjs 的 png 不同，合并会改变测试图的像素，所以留在本地。
 function png(w, h, [r, g, b]) {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(w, 0);

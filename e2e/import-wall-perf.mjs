@@ -15,6 +15,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
+import { createDriver } from "./lib/driver.mjs";
 
 const [, , appArg, edgeArg, samplesArg, roundsArg] = process.argv;
 if (!appArg || !edgeArg || !samplesArg) {
@@ -34,6 +35,7 @@ mkdirSync(libraries);
 const port = Number(process.env.KINSHOKO_PERF_PORT ?? 4460);
 const driverUrl = `http://127.0.0.1:${port}`;
 
+// 例外（#521）：这张图的尺寸、颜色规则与 lib/fixtures.mjs 的 png 不同，合并会改变测试图的像素，所以留在本地。
 function png(w, h, [r, g, b]) {
   const chunk = (type, data) => {
     const body = Buffer.concat([Buffer.from(type), data]);
@@ -51,22 +53,8 @@ const small = join(work, "b-images");
 mkdirSync(small);
 [[200, 80, 80], [80, 200, 80], [80, 80, 200], [200, 200, 80]].forEach((colour, i) => writeFileSync(join(small, `b-${i}.png`), png(64, 48 + i * 8, colour)));
 
-async function wd(method, path, body) {
-  const response = await fetch(driverUrl + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
-  const result = await response.json();
-  if (!response.ok || result.value?.error) throw new Error(`${method} ${path}: ${JSON.stringify(result.value).slice(0, 400)}`);
-  return result.value;
-}
+const { wd, until } = createDriver({ driverUrl });
 const delay = (ms) => new Promise((done) => setTimeout(done, ms));
-async function until(label, read, timeout = 30000, every = 150) {
-  const end = Date.now() + timeout;
-  let error;
-  while (Date.now() < end) {
-    try { const value = await read(); if (value) return value; } catch (reason) { error = reason; }
-    await delay(every);
-  }
-  throw new Error(`等待超时：${label}${error ? `（${error.message}）` : ""}`);
-}
 class Session {
   static async start() {
     const value = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application } } } });

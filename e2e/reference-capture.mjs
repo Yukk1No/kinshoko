@@ -8,6 +8,8 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSyn
 import { release, tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
+import { createDriver } from "./lib/driver.mjs";
+import { chunk } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg, driverArg = "tauri-driver"] = process.argv;
 if (!appArg || !edgeArg) throw new Error("node e2e/reference-capture.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]");
@@ -19,14 +21,6 @@ const parent = join(work, "libraries");
 const source = join(work, "source");
 for (const dir of [output, parent, source, join(work, "roaming"), join(work, "local")]) mkdirSync(dir, { recursive: true });
 copyFileSync(resolve(appArg), application);
-const table = Array.from({ length: 256 }, (_, c) => { for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ c >>> 1 : c >>> 1; return c >>> 0; });
-function chunk(type, bytes) {
-  const length = Buffer.alloc(4); length.writeUInt32BE(bytes.length);
-  const body = Buffer.concat([Buffer.from(type), bytes]);
-  let crc = 0xffffffff; for (const byte of body) crc = table[(crc ^ byte) & 255] ^ crc >>> 8;
-  const tail = Buffer.alloc(4); tail.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, tail]);
-}
 const header = Buffer.alloc(13); header.writeUInt32BE(2400); header.writeUInt32BE(1600, 4); header[8] = 8; header[9] = 6;
 const pixels = Buffer.alloc((2400 * 4 + 1) * 1600);
 for (let y = 0; y < 1600; y++) for (let x = 0; x < 2400; x++) {
@@ -39,17 +33,7 @@ const endpoint = `http://127.0.0.1:${port}`;
 const elementKey = "element-6066-11e4-a52e-4f735466cecf";
 const report = { story: [45, 46, 48, 49], ticket: 81, windows: release(), sourceRevision: process.env.KINSHOKO_SOURCE_REVISION ?? "uncommitted", checks: [] };
 function check(ok, label) { if (!ok) throw new Error(label); report.checks.push(label); console.log(`✓ ${label}`); }
-async function wd(method, path, body) {
-  const response = await fetch(endpoint + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(60000) });
-  const result = await response.json();
-  if (!response.ok || result.status || result.value?.error) throw new Error(`${path}: ${JSON.stringify(result)}`);
-  return path === "/session" && result.sessionId ? { sessionId: result.sessionId, capabilities: result.value } : result.value;
-}
-async function until(label, read) {
-  let last; const end = Date.now() + 30000;
-  while (Date.now() < end) { try { const value = await read(); if (value) return value; } catch (error) { last = error; } await new Promise((done) => setTimeout(done, 100)); }
-  throw new Error(`等待超时：${label}${last ? ` (${last.message})` : ""}`);
-}
+const { wd, until } = createDriver({ driverUrl: endpoint, timeout: 60000, legacyProtocol: true, every: 100 });
 let base;
 const exec = (script, args = []) => wd("POST", `${base}/execute/sync`, { script, args });
 async function invoke(command, args = {}) {

@@ -4,16 +4,12 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { createHash } from "node:crypto";
 import { deflateSync } from "node:zlib";
+import { createDriver } from "./lib/driver.mjs";
+import { chunk } from "./lib/fixtures.mjs";
+export { chunk };
 
-export function chunk(type, data) {
-  const body = Buffer.concat([Buffer.from(type), data]);
-  let crc = 0xffffffff;
-  for (const byte of body) { crc ^= byte; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1; }
-  const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-  const checksum = Buffer.alloc(4); checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, checksum]);
-}
 export const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(3, 0); ihdr.writeUInt32BE(3, 4); ihdr[8] = 8; ihdr[9] = 2;
+// 例外（#521）：这张图的尺寸、颜色规则与 lib/fixtures.mjs 的 png 不同，合并会改变测试图的像素，所以留在本地。
 export function png(red) {
   const row = Buffer.from([0, red, 28, 38, red, 28, 38, red, 28, 38]);
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(Buffer.concat([row, row, row]))), chunk("IEND", Buffer.alloc(0))]);
@@ -59,22 +55,7 @@ export function oldLibrary({ libraries, oldSchema }, name, primary, red, isAdult
 
 export function driverClient({ driverUrl, application, work }) {
   const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
-  async function wd(method, path, body) {
-    const response = await fetch(driverUrl + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
-    const result = await response.json();
-    if (!response.ok || result.value?.error) throw new Error(`${method} ${path}: ${JSON.stringify(result.value)}`);
-    return result.value;
-  }
-  const delay = (ms) => new Promise((done) => setTimeout(done, ms));
-  async function until(label, read, timeout = 30000) {
-    const end = Date.now() + timeout;
-    let error;
-    while (Date.now() < end) {
-      try { const result = await read(); if (result) return result; } catch (reason) { error = reason; }
-      await delay(150);
-    }
-    throw new Error(`Timed out: ${label}${error ? ` (${error.message})` : ""}`);
-  }
+  const { wd, until, delay } = createDriver({ driverUrl });
   class Session {
     static async start() {
       const result = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application, webviewOptions: { userDataFolder: join(work, "webview") } } } } });

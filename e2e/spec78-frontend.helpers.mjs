@@ -1,18 +1,8 @@
 // spec78-frontend.mjs 的测试图生成：最小的 PNG 编码器。
 import { deflateSync } from "node:zlib";
+import { chunk } from "./lib/fixtures.mjs";
 
-const crcTable = Array.from({ length: 256 }, (_, c) => {
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-function chunk(type, data) {
-  const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type), data]);
-  let c = 0xffffffff;
-  for (const b of body) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
-  const crc = Buffer.alloc(4); crc.writeUInt32BE((c ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, crc]);
-}
+// 例外（#521）：这张图的尺寸、颜色规则与 lib/fixtures.mjs 的 png 不同，合并会改变测试图的像素，所以留在本地。
 export function png(w, h, colour) {
   const header = Buffer.alloc(13); header.writeUInt32BE(w); header.writeUInt32BE(h, 4); header[8] = 8; header[9] = 2;
   const pixels = Buffer.alloc((w * 3 + 1) * h);
