@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { MenuPopup } from "../ui/Menu";
 import type { WallMenuTarget } from "./WallMenu";
-import { captureAnchor, masonry, visible, type Anchor, type Box } from "./layout";
+import { captureAnchor, masonry, type Anchor, type Box } from "./layout";
 import { createNotchCounter } from "./zoom";
 import type { createSmoothWheel } from "./smoothWheel";
 import { mountWindow, type MountWindow } from "./prefetch";
@@ -28,6 +28,7 @@ import { thumbnailTier } from "./thumbnailTier";
 import { useReturnFocus, useViewerLeave } from "./useViewerReturn";
 import { useWallCaptureSources } from "./useWallCaptureSources";
 import { useWallZoom, type ZoomState } from "./useWallZoom";
+import { useMountedCards } from "./useMountedCards";
 import { usePasteShortcut, wallInteractions } from "./wallInteractions";
 
 export { DRAG_IMAGE_SOURCES, DRAG_IMAGES, scopeKey } from "./wallShared";
@@ -266,15 +267,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   }, [cursor, mount, layout.height, loadMore]);
 
   const position = useMemo(() => new Map(ids.map((id, i) => [id, i])), [ids]);
-  const mounted = useMemo(() => {
-    const found = new Set(visible(layout, mount.top, mount.bottom));
-    // 查看器里调整窗口宽度后，最后查看的卡片仍能接回焦点（最多多保留一张）。
-    for (const id of [lastOpened.current, ...beforeReflow.current.keys(), ...motions.current.keys()]) {
-      const i = id === null || trayMotion.current?.flights.has(id) ? undefined : position.get(id); // 托盘里飞的页不强行挂载（#418）
-      if (i !== undefined) found.add(i);
-    }
-    return [...found].sort((a, b) => a - b);
-  }, [layout, mount, position, viewerOpen, selected]);
+  const mounted = useMountedCards({ layout, mount, position, viewerOpen, selected, lastOpened, beforeReflow, motions, trayMotion });
 
   useReturnFocus({ returnTo, scroller, position, layout, syncMount });
 
