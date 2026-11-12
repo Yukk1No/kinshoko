@@ -190,23 +190,6 @@ pub(super) async fn set_tag_approx<R: Runtime>(
     .await
 }
 
-/// 删除个人近似对应表中的一对。
-#[tauri::command]
-pub(super) async fn remove_tag_approx<R: Runtime>(
-    app: AppHandle<R>,
-    library_id: String,
-    a: String,
-    b: String,
-) -> Result<(), CommandError> {
-    blocking(move || {
-        let library = writable(&app, &library_id)?;
-        library
-            .remove_tag_approx(&a, &b)
-            .map_err(CommandError::from)
-    })
-    .await
-}
-
 /// 资料库设置中列出的个人近似对应表条目，名称按界面语言 `lang`。
 #[tauri::command]
 pub(super) async fn personal_approx<R: Runtime>(

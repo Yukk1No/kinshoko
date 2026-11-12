@@ -95,11 +95,6 @@ export function setTagApprox(
   return invoke<void>(lib("set_tag_approx"), { libraryId, a, b, relation });
 }
 
-/** 删除个人近似对应表中的一对，之后按内置近似对应表。 */
-export function removeTagApprox(libraryId: string, a: string, b: string): Promise<void> {
-  return invoke<void>(lib("remove_tag_approx"), { libraryId, a, b });
-}
-
 /** 个人近似对应表的条目，最近记下的在前，名称按界面语言 lang。 */
 export function personalApprox(libraryId: string, lang: string): Promise<PersonalApproxEntry[]> {
   return invoke<PersonalApproxEntry[]>(lib("personal_approx"), { libraryId, lang });

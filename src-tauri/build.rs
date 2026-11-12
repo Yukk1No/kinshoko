@@ -82,7 +82,6 @@ fn main() {
                         "rating_candidates",
                         "resolve_search",
                         "set_tag_approx",
-                        "remove_tag_approx",
                         "personal_approx",
                         "eagle_tag_mapping",
                         "map_tag_external",
