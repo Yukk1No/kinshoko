@@ -239,6 +239,7 @@ jobs:
     # https://github.com/tauri-apps/webdriver-example/actions/runs/37109073064
     # 对比实验：https://github.com/Yukk1No/kinshoko/actions/runs/37614514097
     # 等上游修好后再改回 windows-latest，冒烟测试保持阻断。
+    # 改回 windows-latest 时，同时抬 AGENTS.md 的“Runtime baseline”与 vite.config.ts 的 build.target。
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4

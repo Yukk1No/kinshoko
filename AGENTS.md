@@ -12,6 +12,13 @@ Before changing `.github/workflows/`, read `docs/agents/github-actions.md`.
 
 To report whether checks pass, use `npm run check` (`--rust` adds the Rust checks; usage at the top of `scripts/check.mjs`). Its exit code covers every step. A test run piped into `tail` or `grep` reports that tool's exit code instead, so read such output only for detail.
 
+## Runtime baseline
+
+The frontend runs only in WebView2 on Windows; the baseline is Chromium 131.
+Use features within the baseline directly: no fallbacks, vendor prefixes or feature detection. Newer features go behind `@supports` or feature detection and only enhance.
+When using modern-web-guidance, judge its fallbacks against this baseline.
+Change this number together with `build.target` in `vite.config.ts` and the CI runner image.
+
 ## Interface text
 
 Text the artist sees goes into `src/i18n/locales` (Rust-drawn tray, dialog and pin text into `src-tauri/src/ui_text.rs`), and a Rust failure shown in the interface is an error code (`ErrorKind`); Chinese that only reaches logs carries `// 不上界面：<reason>` on the line above its item. The CI job “写死的界面文字” fails on any other Chinese line.
