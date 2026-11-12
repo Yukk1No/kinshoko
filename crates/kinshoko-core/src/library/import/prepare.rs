@@ -399,6 +399,7 @@ pub(super) fn prepare(
         options,
         destination: context.destination.clone(),
         task_created_images: context.task_created_images.clone(),
+        cancel: context.cancel.clone(),
     };
 
     // 在暂存前快速跳过；事务提交时再次核对，覆盖导入与永久删除并发的情况。

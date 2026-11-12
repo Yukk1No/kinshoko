@@ -2,13 +2,15 @@
 //!
 //! - 来源链接指向作品页；作者与作品标签是来源名称（ADR-0012 的思路，来源名称记为 [`PIXIV`]），
 //!   作者在「作者」命名空间。作者只来自来源与人工，不从文字推测。
-//! - 来源标为成人的作品记为 explicit 分级事实。
+//! - 来源标为成人的作品记为 explicit 分级事实；pixiv 的 R-18 标签只体现为分级，不作为标签进库
+//!   （[`adult_mark`]）。
 //! - 不碰人工整理；同一页再次收进来只刷新这一层。
 
 use rusqlite::{Transaction, params};
 
 use super::Error;
 use super::rating::ContentRating;
+use super::rating::adult_mark;
 use super::tags::{self, FactSource, SourceTag, TagNamespace, TagRef};
 
 /// pixiv 带来的来源名称。
@@ -74,7 +76,7 @@ pub(super) fn commit(
         .author
         .iter()
         .map(|a| (TagNamespace::Artist, a))
-        .chain(page.tags.iter().map(|t| (TagNamespace::General, t)));
+        .chain(adult_mark::tags_to_keep(&page.tags).map(|t| (TagNamespace::General, t)));
     for (namespace, name) in named {
         match tags::resolve_source_named(tx, namespace, name, PIXIV) {
             Ok(id) => source_tags.push(SourceTag {

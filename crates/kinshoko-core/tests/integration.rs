@@ -13,6 +13,8 @@
 
 #![allow(clippy::duplicate_mod)]
 
+#[path = "adult_mark.rs"]
+mod adult_mark;
 #[path = "app_info.rs"]
 mod app_info;
 #[path = "app_settings.rs"]
