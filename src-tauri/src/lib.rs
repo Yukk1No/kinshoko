@@ -87,7 +87,6 @@ pub fn run() {
             run_log::log_frontend,
             run_log::log_timing,
             commands::set_viewer_background,
-            commands::migrate_viewer_background,
             commands::interface_language,
             commands::set_interface_language,
             commands::ui_scale,
