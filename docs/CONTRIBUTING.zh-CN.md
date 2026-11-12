@@ -25,7 +25,7 @@
 - Windows 10/11 x64，Visual Studio 2022 生成工具（“使用 C++ 的桌面开发”）。
 - Rust 1.95（由 `rust-toolchain.toml` 固定，rustup 会自动安装）。
 - Node.js 22 与 npm（锁文件为 `package-lock.json`）。
-- WebView2 Runtime（evergreen）。Windows 11 自带。
+- WebView2 Runtime（evergreen）。Windows 11 自带。前端基线为 Chromium 131，见 `AGENTS.md` 的 “Runtime baseline”。
 - Python 3：用于 pre-commit 钩子和 `scripts/probe/` 下的探测脚本。
 
 克隆后启用仓库的 git 钩子（pre-commit 拦截超过 5,000 token 的暂存文件；pre-push 跑 `cargo fmt --check` 和 `npm run typecheck`，约 10 秒）：
