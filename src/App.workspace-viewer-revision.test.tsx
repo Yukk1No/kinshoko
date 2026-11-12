@@ -1,11 +1,12 @@
 // #98: the real App and Wall must agree which public workspace snapshot authorized a card.
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
 import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
 import type { WorkspacePage } from "./bindings/WorkspacePage";
+import { fakeBackend, shellSettings, type FakeBackend } from "./test/backend";
 
 /** 浏览器里的双击：两次按下与单击，再一次 dblclick。双击按第一下的图判定（#179）。 */
 function doubleClick(target: Element) {
@@ -23,24 +24,25 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-  mockConvertFileSrc("windows"); mockWindows("main");
+  mockConvertFileSrc("windows");
 });
-afterEach(async () => { cleanup(); await new Promise(done => setTimeout(done, 0)); clearMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); });
+
+let fake: FakeBackend;
 
 function workspace(initialReply?: Promise<WorkspaceStatus>) {
   const state = { initialRevision: "r1", wallRevision: "r2", available: true, safe: false, deleted: false, imageId: "a", contentId: "bytes", inTwoLibraries: false,
-    nextBrowse: null as (() => Promise<WorkspacePage>) | null, browseReply: null as Promise<WorkspacePage> | null,
-    calls: [] as { command: string; args: unknown }[] };
-  mockIPC((command, args) => {
-    state.calls.push({ command, args });
-    if (command === "plugin:library|safe_mode") return state.safe;
-    if (command === "plugin:library|current_library") return libraries[0].library;
-    if (command === "plugin:library|registered_libraries") return libraries;
-    if (command === "plugin:library|workspace_status") return initialReply ?? status(state.initialRevision);
-    if (command === "plugin:library|workspace_directories") return { status: status(state.wallRevision), registrationOrder: [], providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
-    if (command === "plugin:library|workspace_tag_groups" || command === "plugin:library|import_tasks") return [];
-    if (command === "tagging_status") return { state: "starting" };
-    if (command === "plugin:library|workspace_browse") {
+    nextBrowse: null as (() => Promise<WorkspacePage>) | null, browseReply: null as Promise<WorkspacePage> | null };
+  fake = fakeBackend({
+    safe_mode: () => state.safe,
+    current_library: libraries[0].library,
+    registered_libraries: libraries,
+    workspace_status: () => initialReply ?? status(state.initialRevision),
+    workspace_directories: () => ({ status: status(state.wallRevision), registrationOrder: [], providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] }),
+    workspace_tag_groups: [],
+    import_tasks: [],
+    tagging_status: { state: "starting" },
+    workspace_browse: () => {
       if (state.nextBrowse) { const next = state.nextBrowse; state.nextBrowse = null; return next(); }
       if (state.browseReply) return state.browseReply;
       return {
@@ -50,21 +52,22 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
             ...(state.inTwoLibraries ? [{ libraryId: "B", libraryName: "乙库", imageId: "b", unavailable: { code: "system" as const, detail: "离线" }, matches: false, deleted: false }] : [])] }] : [],
         total: state.available ? 1 : 0, nextCursor: null, status: status(state.wallRevision),
       };
-    }
-    if (command === "plugin:library|image") {
+    },
+    image: (args) => {
       if (!state.available) return Promise.reject({ code: "unknownImage" });
       return { id: (args as { imageId: string }).imageId, originalName: "参考图", width: 100, height: 100, collectedAt: 1000, sourceLinks: [],
         folders: [], note: { manual: null, sources: [] }, deletedAt: null, versions: { previous: null, newer: [] },
         rating: { imageId: "a", suggested: null, manual: null, effective: null } };
-    }
-    if (command === "plugin:desktop|reference_groups") return [];
-    if (command === "plugin:library|catalog_image_tags") return { image: { imageId: state.imageId, tags: [], rejected: [] }, identities: [] };
-    if (command === "plugin:library|workspace_sidebar") return { all: state.available ? 1 : 0, trash: 0, folders: [] };
-    if (command === "shell_settings") return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid" };
-    if (command === "app_info") return { productName: "Kinshoko", version: "1" };
-    if (command === "plugin:library|workspace_edit_sources") return [];
-    return null;
-  }, { shouldMockEvents: true });
+    },
+    reference_groups: [],
+    catalog_image_tags: () => ({ image: { imageId: state.imageId, tags: [], rejected: [] }, identities: [] }),
+    workspace_sidebar: () => ({ all: state.available ? 1 : 0, trash: 0, folders: [] }),
+    shell_settings: shellSettings({ viewerBackground: "mid" }),
+    app_info: { productName: "Kinshoko", version: "1" },
+    workspace_edit_sources: [],
+    // 启动时取走留给主窗口的收集请求：没有。
+    take_collection_request: null,
+  });
   return state;
 }
 
@@ -209,13 +212,13 @@ it.each(["explicit", "selected"])("列表失效时 %s 详情面板保留，重�
 });
 
 it("查看器右键“移到回收站”把正在看的这份来源移进回收站并回到图片墙（#114）", async () => {
-  const state = workspace();
+  workspace();
   const viewer = await open();
   fireEvent.contextMenu(viewer.querySelector<HTMLElement>(".viewer-stage")!, { clientX: 50, clientY: 50 });
   const menu = await screen.findByRole("menu", { name: "查看器菜单" });
   fireEvent.click(within(menu).getByRole("menuitem", { name: "移到回收站" }));
   await waitFor(() => expect(screen.queryByRole("region", { name: "原图查看器" })).toBeNull());
-  await waitFor(() => expect(state.calls.filter((c) => c.command === "plugin:library|workspace_edit_sources").map((c) => c.args)).toEqual([
+  await waitFor(() => expect(fake.calls("workspace_edit_sources").map((c) => c.args)).toEqual([
     { targets: [{ libraryId: "A", imageId: "a", contentId: "bytes" }], safeMode: false, edits: [{ kind: "delete" }] },
   ]));
 });
