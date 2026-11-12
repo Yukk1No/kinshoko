@@ -2,42 +2,19 @@
 //! 结果集变了以后旧游标明确失效（`Error::CursorExpired`），调用方从第一页重读；
 //! 结果集不变时连续分页完整、不重复。用临时目录里的真库，经 `Library` 的对外接口。
 
-use std::path::Path;
-
-use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::approx::BuiltinApproxTable;
 use kinshoko_core::library::{
-    BrowsePage, BrowseQuery, BrowseScope, ContentRating, Error, FactSource, ImageEdit,
-    ImportOutcome, ImportSource, RatingFact, TagEdit, TagNamespace, TagRef,
+    BrowsePage, BrowseQuery, BrowseScope, ContentRating, Error, FactSource, ImageEdit, RatingFact,
+    TagEdit, TagNamespace, TagRef,
 };
 use kinshoko_core::search::{ConditionInput, ConditionTree, Search, SearchInput, TermInput};
 
-const ZH: &str = "zh-CN";
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::import_seeded;
 
-/// 按顺序导入 n 张内容不同的图，返回参考图 id（导入顺序）。
-fn import(library: &Library, dir: &Path, n: u8) -> Vec<String> {
-    let paths: Vec<_> = (0..n)
-        .map(|i| {
-            let path = dir.join(format!("in/{i}.png"));
-            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            RgbaImage::from_fn(4, 4, |x, y| image::Rgba([i, x as u8, y as u8, 255]))
-                .save(&path)
-                .unwrap();
-            path
-        })
-        .collect();
-    library
-        .import(ImportSource { paths })
-        .wait()
-        .items
-        .into_iter()
-        .map(|item| match item.outcome {
-            ImportOutcome::Imported { image_id } => image_id,
-            other => panic!("未导入：{other:?}"),
-        })
-        .collect()
-}
+const ZH: &str = "zh-CN";
 
 fn rate(library: &Library, id: &str, rating: ContentRating) {
     library
@@ -118,7 +95,8 @@ fn browse_cursor_expires_when_visibility_revision_advances() {
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "库").unwrap();
     library.set_safe_mode(false);
-    let [one, two, three] = <[String; 3]>::try_from(import(&library, dir.path(), 3)).unwrap();
+    let [one, two, three] =
+        <[String; 3]>::try_from(import_seeded(&library, dir.path(), 0..3)).unwrap();
     rate(&library, &three, ContentRating::Explicit);
     library.set_safe_mode(true);
 
@@ -154,7 +132,7 @@ fn stable_result_set_pages_through_completely_without_duplicates() {
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "库").unwrap();
     library.set_safe_mode(false);
-    let all = import(&library, dir.path(), 5);
+    let all = import_seeded(&library, dir.path(), 0..5);
     // 不改变结果集的写入（备注、无关打标、未跨过成人线的分级）不打断分页。
     let mut seen = Vec::new();
     let mut cursor = None;
@@ -182,7 +160,7 @@ fn cursor_expires_when_safe_mode_switches() {
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "库").unwrap();
     library.set_safe_mode(false);
-    let all = import(&library, dir.path(), 3);
+    let all = import_seeded(&library, dir.path(), 0..3);
     rate(&library, &all[0], ContentRating::Explicit);
 
     let cursor = page(&library, BrowseScope::All, None).next_cursor.unwrap();
@@ -196,8 +174,8 @@ fn cursor_only_continues_the_same_query_in_the_same_library() {
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "库").unwrap();
     let other = Library::create(&dir.path().join("other"), "另一个库").unwrap();
-    let all = import(&library, dir.path(), 3);
-    import(&other, &dir.path().join("o"), 3);
+    let all = import_seeded(&library, dir.path(), 0..3);
+    import_seeded(&other, &dir.path().join("o"), 0..3);
     let folder = library.create_folder("参考", None).unwrap();
     library
         .edit(
@@ -247,7 +225,8 @@ fn cursor_only_continues_the_same_query_in_the_same_library() {
 fn cursor_expires_when_an_image_joins_the_browsed_folder() {
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "库").unwrap();
-    let [one, two, three] = <[String; 3]>::try_from(import(&library, dir.path(), 3)).unwrap();
+    let [one, two, three] =
+        <[String; 3]>::try_from(import_seeded(&library, dir.path(), 0..3)).unwrap();
     let folder = library.create_folder("参考", None).unwrap();
     library
         .edit(
@@ -273,7 +252,8 @@ fn cursor_expires_when_an_image_joins_the_browsed_folder() {
 fn cursor_expires_when_a_note_change_alters_the_search_result() {
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "库").unwrap();
-    let [one, two, three] = <[String; 3]>::try_from(import(&library, dir.path(), 3)).unwrap();
+    let [one, two, three] =
+        <[String; 3]>::try_from(import_seeded(&library, dir.path(), 0..3)).unwrap();
     library
         .edit(
             &[one, two.clone()],
