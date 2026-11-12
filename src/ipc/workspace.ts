@@ -73,9 +73,6 @@ export function workspaceSidebar(libraryId: string, safeMode: boolean): Promise<
 export function workspaceTagGroups(libraryId: string, lang: string, safeMode: boolean): Promise<TagGroupView[]> {
   return invoke<TagGroupView[]>(lib("workspace_tag_groups"), { libraryId, lang, safeMode });
 }
-export function workspaceLocalTags(libraryId: string, ids: string[], safeMode: boolean): Promise<string[]> {
-  return invoke<string[]>(lib("workspace_local_tags"), { libraryId, ids, safeMode });
-}
 export function onWorkspaceChanged(handler: (status: WorkspaceStatus) => void): Promise<UnlistenFn> {
   return listen<WorkspaceStatus>("workspace-changed", (event) => handler(event.payload));
 }

@@ -40,7 +40,6 @@ export function workspaceFixture(handler: Handler): Handler {
         }))) } satisfies WorkspaceDirectories;
       });
     }
-    if (command === "plugin:library|workspace_local_tags") return args.ids;
     // Rating candidates (#161) need no library; fixtures that do not answer offer none.
     if (command === "plugin:library|rating_candidates") return Promise.resolve(handler(command, arguments_)).then((list) => list ?? []);
     if (command === "plugin:library|workspace_browse") {

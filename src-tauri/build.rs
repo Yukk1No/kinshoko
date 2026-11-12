@@ -21,7 +21,6 @@ fn main() {
                         "workspace_sidebar",
                         "workspace_directories",
                         "workspace_tag_groups",
-                        "workspace_local_tags",
                         "current_library",
                         "create_library",
                         "create_library_unopened",
