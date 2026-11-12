@@ -134,6 +134,7 @@ pub(super) async fn register_library<R: Runtime>(
 }
 
 /// 切换到已登记的资料库。旧库的导入在提交当前一项后结束，打标停止。
+// 仅 e2e 使用：application-settings-backup、save-destination、save-destination-followup、sealed-import-preview、source-actions、tag-identity、workspace-delete、workspace
 #[tauri::command]
 pub(super) async fn switch_library<R: Runtime>(
     app: AppHandle<R>,
