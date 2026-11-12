@@ -14,7 +14,9 @@ export default {
   collapsedConditions: "收起的查找条件",
   not: "不要",
   missingTag: "已删除的标签",
-  or: " 或 ",
+  /** 一个条件里几项任一之间的分隔；读屏读 `orSpoken`。 */
+  or: "、",
+  orSpoken: "或",
   exclude: "排除这个条件",
   include: "不再排除这个条件",
   remove: "去掉这个条件",

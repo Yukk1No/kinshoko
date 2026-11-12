@@ -33,12 +33,15 @@ export function TermView({
   term,
   showSource,
   personal = true,
+  brief = false,
   dismiss,
   add,
 }: {
   term: Term;
   showSource: boolean;
   personal?: boolean;
+  /** 只显示这一项本身，不列相近标签、不给“＋”。 */
+  brief?: boolean;
   dismiss: (similar: SimilarTag, button: ReactElement) => ReactNode;
   add: (to: TagLabel, button: ReactElement) => ReactNode;
 }) {
@@ -56,7 +59,7 @@ export function TermView({
       ) : (
         <Tip label={termTitle(term)}><span>{t("quoted", { text: term.text })}</span></Tip>
       )}
-      {term.similar.length > 0 && (
+      {!brief && term.similar.length > 0 && (
         <span className="search-similar">
           <span className="search-chip-or">{t("similar.or")}</span>
           {term.similar.map((s, k) => (
@@ -72,7 +75,7 @@ export function TermView({
           ))}
         </span>
       )}
-      {sole && personal && (
+      {sole && personal && !brief && (
         add(sole, <button type="button" aria-label={t("similar.addLabel", { name: tagName(sole) })}><Plus size={14} strokeWidth={1.75} aria-hidden="true" /></button>)
       )}
     </>

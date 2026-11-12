@@ -233,6 +233,8 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
     const resolved: Condition | undefined = tree?.conditions[i];
     const terms = c.any.map((input, j) => ({ input, place: j, term: resolved && resolvedTerm(resolved, input) }));
     const visible = resolved ? terms.filter((x) => x.term) : terms;
+    // 几个标签任一（比如按分组的“任一成员”）时只列标签名：相近标签照样参与查找，但列出来太长，读不过来。
+    const brief = visible.length > 1;
     return (
       <li key={i} className="search-chip" data-negate={c.negate || undefined} data-collapsed={collapsed || undefined} aria-hidden={collapsed || undefined} inert={collapsed || undefined}>
         {c.negate && <span className="search-chip-not">{t("not")}</span>}
@@ -241,11 +243,12 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
         ) : (
           visible.map(({ input, place, term }, k) => (
             <span key={place} className="search-term">
-              {k > 0 && <span className="search-chip-or">{t("or")}</span>}
+              {k > 0 && <span className="search-chip-or"><span aria-hidden="true">{t("or")}</span><span className="sr-only">{t("orSpoken")}</span></span>}
               {term ? (
                 <TermView
                   term={term}
                   showSource={showSource}
+                  brief={brief}
                   // 菜单与浮层随视角（图库、安全模式、词表代次）重建：视角变了就收起。
                   dismiss={(similar, button) => <Menu.Root key={context} modal={false}>
                     <Menu.Trigger render={button} />
