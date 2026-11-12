@@ -83,7 +83,7 @@ it("取消不保存", async () => {
 it("弹框里的链接打开设置的显示名，并定位到这个标签", async () => {
   backend();
   const open = vi.fn();
-  render(<OpenTagNameSettings.Provider value={open}><TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} /></OpenTagNameSettings.Provider>);
+  render(<OpenTagNameSettings value={open}><TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} /></OpenTagNameSettings>);
   fireEvent.click(await screen.findByRole("button", { name: "重命名“ahoge”" }));
   const dialog = await screen.findByRole("dialog", { name: "重命名“ahoge”" });
   fireEvent.click(within(dialog).getByRole("button", { name: "在设置中管理“ahoge”的名称和别名" }));

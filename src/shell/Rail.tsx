@@ -62,6 +62,7 @@ export function Rail(p: Props) {
   const badges: Partial<Record<Section, number>> = { ...useBadges(), subscriptions: p.subscriptions?.newCount || undefined };
   const items = ITEMS.filter((item) => item.id !== 'subscriptions' || p.subscriptions);
   const [indicator, setIndicator] = useState<{ top: number; height: number } | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(items.length): 多出或少了订阅一项时各项位置会变，重新量
   useLayoutEffect(() => {
     const el = nav.current?.querySelector<HTMLElement>(`[data-section="${p.section}"]`);
     if (el) setIndicator({ top: el.offsetTop + 8, height: el.offsetHeight - 16 });

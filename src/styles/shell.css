@@ -1,5 +1,4 @@
 /* The main window's layout and components. Colour, radius and motion tokens live in tokens.css; write var(--token) here, never a hex value. */
-:root { --font-ui: var(--font); --text: var(--ink); }
 .rail { width: 56px; flex: none; background: var(--rail); border-right: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; padding: 10px 0; z-index: 3; }
 .brand { height: 44px; display: grid; place-items: center; margin-bottom: 8px; }
 .brand-mark { fill: var(--ink); }

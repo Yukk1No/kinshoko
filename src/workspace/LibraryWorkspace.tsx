@@ -108,7 +108,8 @@ export function LibraryWorkspace({
   const viewerOpen = viewing !== null;
   // 修订变化后的选择修剪：等图片墙读完新的结果，然后只保留仍在的图。范围或安全模式变了时图片墙先清空（等它读完）；
   // 只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
-  useEffect(() => { invalidate({ kind: "pageAccepted", ready: resultCount !== null }); }, [loadedCards, resultCount]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(loadedCards): 图片墙每读完一页就报一次
+  useEffect(() => { invalidate({ kind: "pageAccepted", ready: resultCount !== null }); }, [loadedCards, resultCount, invalidate]);
   const { viewingIndex, step, loaded } = useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall });
   /** 序号在飞回途中留着：顶栏淡出时不跳动。 */
   const viewerPosition = useRef<{ index: number; total: number } | undefined>(undefined);
@@ -123,15 +124,16 @@ export function LibraryWorkspace({
     setReloadedFor(safe);
     setReloadKey((k) => k + 1);
   }
+  // biome-ignore lint/correctness/useExhaustiveDependencies(safe): 切换安全模式时报一次视角变化
   useEffect(() => {
     // 用户偏好：默认切换即清空；保留时由重读后的修剪去掉新视角里看不到的图。
     invalidate({ kind: "lensChanged", keepSelection: keepSelectionOnSafeRef.current });
-  }, [safe]);
+  }, [safe, invalidate]);
   useLibraryEvents({ toast, imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport });
 
-  const { search, setSearch, tree, treeSafe, searching } = useSearchTree({ safe, vocabularyKey, onError, setReloadKey });
+  const { search, changeSearch, tree, treeSafe, searching } = useSearchTree({ safe, vocabularyKey, onError, setReloadKey, invalidate });
 
-  const showUnfinishedTagging = useShowUnfinishedTagging({ request: unfinishedTaggingRequest, onOpenBrowse, setSearch, setWorkspaceScope, invalidate });
+  const showUnfinishedTagging = useShowUnfinishedTagging({ request: unfinishedTaggingRequest, onOpenBrowse, changeSearch, setWorkspaceScope });
 
   // 窄窗口里侧栏与详情面板按余量一起让位，主区不低于 300（#274）。
   const [appBody, setAppBody] = useState<HTMLDivElement | null>(null);
@@ -195,10 +197,7 @@ export function LibraryWorkspace({
             tree={searching && treeSafe === safe ? tree : null}
             showSource={showApproxSource}
             onError={onError}
-            onChange={(next) => {
-              setSearch(next);
-              invalidate({ kind: "conditionsChanged" });
-            }}
+            onChange={changeSearch}
           />
           <div className="bar-meta">
             <span className="result-count tabular k-label" role="status" aria-label={t("results")}>{resultCount === null ? "…" : t("resultCount", { count: resultCount })}</span>
@@ -207,18 +206,16 @@ export function LibraryWorkspace({
             running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
             onOpenTrash={(owner) => {
               onOpenBrowse();
-              setSearch({ conditions: [], exact: false });
               setWorkspaceScope({ kind: "library", libraryId:owner, scope: { kind: "trash" } });
               // 来源面板保持现状（与换左栏范围不同）。
-              invalidate({ kind: "conditionsChanged" });
+              changeSearch({ conditions: [], exact: false });
             }}
             onShowDestination={(destination) => {
               onOpenBrowse();
-              setSearch((prev) => ({ ...prev, conditions: [] }));
               setWorkspaceScope({ kind: "library", libraryId: destination.libraryId,
                 // 没选文件夹时打开整个图库：Eagle 导入与合并的重复项会保留原有文件夹，“未归类”可能一张也看不到。
                 scope: destination.folderId === null ? { kind: "all" } : { kind: "folder", id: destination.folderId } });
-              invalidate({ kind: "conditionsChanged" });
+              changeSearch((prev) => ({ ...prev, conditions: [] }));
             }} />
           {!inspectorOpen && <>
             <Tip label={t("viewer:tools.showInspector")}><button type="button" className="k-icon-btn" aria-label={t("viewer:tools.showInspector")} onClick={toggleInspector}><PanelRight size={16} aria-hidden="true" /></button></Tip>
@@ -227,15 +224,14 @@ export function LibraryWorkspace({
           </header>
           <div className="app-tagbar">
           <TagGroupBar workspace libraryId="workspace" safe={safe} generation={vocabularyKey} input={search}
-            onChange={(next) => { setSearch(next); invalidate({ kind: "conditionsChanged" }); }} onError={onError} onEdit={() => setEditingGroups(true)} />
+            onChange={changeSearch} onError={onError} onEdit={() => setEditingGroups(true)} />
           </div>
           <TagGroupsDialog open={editingGroups} onOpenChange={setEditingGroups} safe={safe} generation={vocabularyKey}
             onBrowse={(globalIds) => {
-              setSearch((prev) => ({
+              changeSearch((prev) => ({
                 ...prev,
                 conditions: [{ any: globalIds.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }],
               }));
-              invalidate({ kind: "conditionsChanged" });
               setEditingGroups(false);
             }}
             onError={onError} />
@@ -277,7 +273,7 @@ export function LibraryWorkspace({
             }}
             onPaste={wallActions.importClipboard}
             emptyAction={(empty) => <WallEmptyAction searching={empty} scope={scope} importControl={importControl}
-              onClearConditions={() => { setSearch((prev) => ({ ...prev, conditions: [] })); invalidate({ kind: "conditionsChanged" }); }} />}
+              onClearConditions={() => changeSearch((prev) => ({ ...prev, conditions: [] }))} />}
           />
           {/* 图片墙右下角：打标图标（#144）在图片大小浮岛（#102 方案 C3，与 Ctrl+滚轮缩放成对）的左边。
               选了两张及以上时底部升起多选悬浮栏（#98，#180），右下角收成圆形按钮让位；查看器打开时悬浮栏隐藏。 */}

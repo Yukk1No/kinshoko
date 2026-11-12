@@ -63,7 +63,7 @@ export function useCandidateState(lens: Lens, text: string, keep: (c: Candidate)
     return () => {
       alive = false;
     };
-  }, [key, libraryId, safe, text, limit, lang]);
+  }, [key, libraryId, safe, text, limit, lang, lens.picking, lens.workspace]);
   const ready = found.key === key && !!text.trim();
   return { list: ready ? found.list : [], ready };
 }

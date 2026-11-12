@@ -3,10 +3,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync, cpSync } from "node:fs";
 import { resolve, join, sep } from "node:path";
-
 import { createHash } from "node:crypto";
-
-import { DatabaseSync } from "node:sqlite";
 import { createDriver } from "./lib/driver.mjs";
 
 const [, , appArg, edgeArg, passedArg] = process.argv;

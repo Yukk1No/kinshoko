@@ -121,6 +121,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
     );
     return () => { alive = false; };
   }, [key, safe, onError, lang]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(safe): 切换安全模式时收起正在进行的编辑
   useEffect(() => { setCreating(false); setRenaming(null); setPicking(null); }, [safe]);
   useEffect(() => {
     if (!fresh) return;
@@ -137,6 +138,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
     restore.current = focused ?? fallback ?? restore.current;
   };
   // Layout effect: focus returns in the same commit that remounts the rows, before paint.
+  // biome-ignore lint/correctness/useExhaustiveDependencies(groups): 行重建后再找回焦点
   useLayoutEffect(() => {
     const wanted = restore.current;
     if (!fresh || busy || wanted === null || !section.current) return;

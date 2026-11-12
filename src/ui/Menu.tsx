@@ -88,12 +88,12 @@ export function MenuPopup({ children, width, side, align = "start", sideOffset =
   children: ReactNode; width?: number; side?: "top" | "bottom"; align?: "start" | "center" | "end"; sideOffset?: number; className?: string; label?: string;
 }) {
   const cascade = useRootCascade();
-  return <CascadeContext.Provider value={cascade}>
+  return <CascadeContext value={cascade}>
     <BaseMenu.Portal><BaseMenu.Positioner className="k-positioner" side={side} sideOffset={sideOffset} align={align}>
       <Level cascade={cascade} className={className} style={width ? { width } : undefined} label={label}>{children}</Level>
     </BaseMenu.Positioner></BaseMenu.Portal>
     {cascade.ctrl.debug && <MenuDebugOverlay ctrl={cascade.ctrl} />}
-  </CascadeContext.Provider>;
+  </CascadeContext>;
 }
 
 /** One menu row: leading icon aligned in an 18 px column, optional shortcut hint, danger rows in red. */
@@ -144,20 +144,20 @@ export function MenuSubmenu({ icon, label, children, disabled, meta, width, popu
   return <BaseMenu.SubmenuRoot disabled={disabled} open={row.open}
     onOpenChange={(next, details) => parent.ctrl.requestOpen(parent.depth, row.id, next, details.reason)}>
     <BaseMenu.SubmenuTrigger {...row.props} className="k-item is-sub" disabled={disabled} openOnHover={false}>
-      <SubmenuOpenContext.Provider value={row.open}>
+      <SubmenuOpenContext value={row.open}>
         <span className="k-item-ind" aria-hidden="true">{icon}</span>
         <span className="k-item-label">{label}</span>
         {meta !== undefined && <span className="k-item-meta">{meta}</span>}
         <ChevronRight className="k-item-sub" size={16} aria-hidden="true" />
-      </SubmenuOpenContext.Provider>
+      </SubmenuOpenContext>
     </BaseMenu.SubmenuTrigger>
-    <CascadeContext.Provider value={child}>
+    <CascadeContext value={child}>
       <BaseMenu.Portal>
         <BaseMenu.Positioner className="k-positioner" sideOffset={SUBMENU_SIDE_OFFSET} alignOffset={-(LEVEL_INSET + (title ? TITLE_BLOCK : 0))}>
           <Level cascade={child} className="is-submenu" title={title} label={popupLabel} style={width ? { width } : undefined}>{children}</Level>
         </BaseMenu.Positioner>
       </BaseMenu.Portal>
-    </CascadeContext.Provider>
+    </CascadeContext>
   </BaseMenu.SubmenuRoot>;
 }
 
@@ -203,14 +203,14 @@ export function PointerMenu({ point, label, onClose, children }: {
   }), [point.x, point.y]);
   const cascade = useRootCascade();
   return <ContextMenu.Root open onOpenChange={(next) => { if (!next) onClose(); }}>
-    <CascadeContext.Provider value={cascade}>
+    <CascadeContext value={cascade}>
       <BaseMenu.Portal>
         <BaseMenu.Positioner className="k-positioner" anchor={anchor} side="bottom" align="start" sideOffset={2} collisionPadding={4}>
           <Level cascade={cascade} label={label} onContextMenu={(e) => e.preventDefault()}>{children}</Level>
         </BaseMenu.Positioner>
       </BaseMenu.Portal>
       {cascade.ctrl.debug && <MenuDebugOverlay ctrl={cascade.ctrl} />}
-    </CascadeContext.Provider>
+    </CascadeContext>
   </ContextMenu.Root>;
 }
 
@@ -235,9 +235,9 @@ function MenuRoot<Payload>(props: BaseMenu.Root.Props<Payload>) {
     }
     onOpenChange?.(open, details);
   }, [ctrl, onOpenChange]);
-  return <CascadeContext.Provider value={cascade}>
+  return <CascadeContext value={cascade}>
     <BaseMenu.Root {...props} actionsRef={actionsRef} onOpenChange={openChange} />
-  </CascadeContext.Provider>;
+  </CascadeContext>;
 }
 
 /** 安全区调试层：蓝色 16% 填充、蓝色虚线描边的三角形，父层里生效的那一段，以及正在走的计时。 */

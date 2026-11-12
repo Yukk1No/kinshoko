@@ -202,6 +202,7 @@ export function PermanentDeleteConfirm({
       onCancel();
     });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: key 已含图库、所选与安全模式，内容变了才重读；load 每次渲染都是新函数
   useEffect(() => {
     setPreview(null);
     setChanged(false);
@@ -294,6 +295,8 @@ export function SelectionPanel({
   useEffect(() => { currentKey.current = requestKey; return () => { currentKey.current = ""; }; }, [requestKey]);
 
   const detailKey = JSON.stringify([requestKey, reloadKey]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): 重读信号，与下面的 generation 一样不在 effect 里读
+  // biome-ignore lint/correctness/useExhaustiveDependencies(generation): 词表代次前进时重读详情
   useEffect(() => {
     let alive = true;
     setFailed(false);

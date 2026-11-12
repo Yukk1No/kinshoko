@@ -76,5 +76,5 @@ export function useLibraryEvents({
       alive = false;
       void unlisten.then((stop) => stop());
     };
-  }, []);
+  }, [imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport]);
 }

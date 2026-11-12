@@ -2,7 +2,7 @@
 // Setup uses public Tauri actions; curation uses the rendered explicit-source controls.
 // Usage: node e2e/save-destination.mjs <owned kinshoko.exe> <matching msedgedriver.exe>
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync, readFileSync, renameSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, join } from "node:path";
 import { driverClient, importUi, writeTestPng } from "./save-destination.helpers.mjs";

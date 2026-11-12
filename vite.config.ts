@@ -12,7 +12,8 @@ export default defineConfig({
     watch: { ignored: ["**/src-tauri/**", "**/crates/**", "**/target/**"] },
   },
   build: {
-    target: "chrome120",
+    // 运行环境基线（WebView2 131）：与 AGENTS.md 的“Runtime baseline”和 CI 的系统镜像一起改。
+    target: "chrome131",
     outDir: "dist",
   },
   test: {

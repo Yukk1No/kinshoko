@@ -121,12 +121,13 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
     return () => {
       alive = false;
     };
-  }, [libraryId, single, safe, generation, refresh, onError, loadKey, lang]);
+  }, [libraryId, single, onError, loadKey, lang]);
   const tags = loaded?.tags ?? null;
   const identities = loaded?.identities ?? [];
   const stale = loaded !== null && loaded.key !== loadKey;
 
   // 换了选中的图，别名编辑跟着关掉。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(single): 换了选中的图就关掉别名编辑
   useEffect(() => setAliasFor(null), [single]);
 
   const edit = (edits: TagEdit[]) =>
@@ -302,6 +303,7 @@ function AliasEditor({
   const [draft, setDraft] = useState("");
   const name = tagName(tag);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies(generation): 词表代次前进时重读
   useEffect(() => {
     let alive = true;
     vocabulary(libraryId).then(

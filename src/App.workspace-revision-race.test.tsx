@@ -1,9 +1,10 @@
 // #98: a workspace read whose revision moved underneath it is a re-read signal, not a standing problem.
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
+import { fakeBackend, type Args } from "./test/backend";
 
 const EXPIRED: unknown = { code: "cursorExpired" };
 /** 修订变化在中文界面上的说明；不应留在界面上。 */
@@ -14,9 +15,9 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-  mockConvertFileSrc("windows"); mockWindows("main");
+  mockConvertFileSrc("windows");
 });
-afterEach(async () => { cleanup(); await new Promise((resolve) => setTimeout(resolve, 0)); clearMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 /**
  * The formal workspace IPC at revision `revision`. Once `failing` is set, the next `failures`
@@ -24,28 +25,34 @@ afterEach(async () => { cleanup(); await new Promise((resolve) => setTimeout(res
  */
 function workspace() {
   const state = { revision: "r1", failing: null as string | null, failures: 0, calls: 0, failure: EXPIRED as unknown };
-  mockIPC((command) => {
+  const status = () => ({ revision: state.revision, libraries });
+  const replies: Record<string, () => unknown> = {
+    safe_mode: () => false,
+    current_library: () => libraries[0].library,
+    registered_libraries: () => libraries,
+    workspace_status: status,
+    workspace_directories: () => ({ status: status(), registrationOrder: [], providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] }),
+    workspace_tag_groups: () => [{ id: "g", name: "人物分组", namespace: null, tags: [] }],
+    import_tasks: () => [],
+    tagging_status: () => ({ state: "starting" }),
+    workspace_browse: () => ({
+      cards: [{ id: "bytes", libraryId: "A", imageId: "a", width: 100, height: 100, thumbnail: "A/a/128", adult: false,
+        sources: [{ libraryId: "A", libraryName: "甲库", imageId: "a", unavailable: null, matches: true, deleted: false }] }],
+      total: 1, nextCursor: null, status: status(),
+    }),
+    app_info: () => ({ productName: "Kinshoko", version: "1" }),
+    // 启动时取走留给主窗口的收集请求：没有。
+    take_collection_request: () => null,
+  };
+  /** 设了 `failing` 的那条命令，接下来 `failures` 次按资料库拒绝修订已变的读取那样被拒绝。 */
+  const failable = (command: string, reply: () => unknown) => (_: Args) => {
     if (command === state.failing) {
       state.calls += 1;
       if (state.calls <= state.failures) return Promise.reject(state.failure);
     }
-    const status = { revision: state.revision, libraries };
-    if (command === "plugin:library|safe_mode") return false;
-    if (command === "plugin:library|current_library") return libraries[0].library;
-    if (command === "plugin:library|registered_libraries") return libraries;
-    if (command === "plugin:library|workspace_status") return status;
-    if (command === "plugin:library|workspace_directories") return { status, registrationOrder: [], providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] };
-    if (command === "plugin:library|workspace_tag_groups") return [{ id: "g", name: "人物分组", namespace: null, tags: [] }];
-    if (command === "plugin:library|import_tasks") return [];
-    if (command === "tagging_status") return { state: "starting" };
-    if (command === "plugin:library|workspace_browse") return {
-      cards: [{ id: "bytes", libraryId: "A", imageId: "a", width: 100, height: 100, thumbnail: "A/a/128", adult: false,
-        sources: [{ libraryId: "A", libraryName: "甲库", imageId: "a", unavailable: null, matches: true, deleted: false }] }],
-      total: 1, nextCursor: null, status,
-    };
-    if (command === "app_info") return { productName: "Kinshoko", version: "1" };
-    return null;
-  }, { shouldMockEvents: true });
+    return reply();
+  };
+  fakeBackend(Object.fromEntries(Object.entries(replies).map(([command, reply]) => [command, failable(command, reply)])));
   return state;
 }
 
@@ -58,7 +65,7 @@ async function settled() {
 
 /** A library change lands (copy, import…): the workspace moves to r2 and re-reads. */
 async function changed(state: ReturnType<typeof workspace>, command: string, failures: number, failure: unknown = EXPIRED) {
-  Object.assign(state, { failing: `plugin:library|${command}`, failures, calls: 0, failure, revision: "r2" });
+  Object.assign(state, { failing: command, failures, calls: 0, failure, revision: "r2" });
   await act(() => emit("workspace-changed", { revision: "r2", libraries }));
 }
 

@@ -30,8 +30,8 @@ pub(crate) mod win32;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Mutex, MutexGuard};
 
 use kinshoko_core::ShortcutAction;
 use kinshoko_core::desktop::{
@@ -45,6 +45,7 @@ use tauri::plugin::{Builder, TauriPlugin};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Listener, Manager, Wry};
 
+use crate::sync::lock;
 use crate::{library, shell};
 
 /// 框选计时（#127、#129）：设置了 [`TIMING_ENV`] 时，把 `capture.timing <阶段> at=<epoch 毫秒>` 追加到那个文件，
@@ -100,10 +101,6 @@ pub struct DesktopState {
     veils: Mutex<PinVeils>,
     /// 本设备的参考组（#66）。改动在锁里串行完成。
     groups: Mutex<ReferenceGroups>,
-}
-
-fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
 fn state(app: &AppHandle) -> &DesktopState {

@@ -24,11 +24,11 @@ const icon = (Icon: typeof X) => <Icon size={14} />;
 function GroupList({ load, act }: { load: () => Promise<GroupSummary[]>; act: (a: PinMenuAction) => void }) {
   const { t } = useTranslation("desktop", { keyPrefix: "pinMenu" });
   const [state, setState] = useState<{ items: GroupSummary[] | null; problem: string | null }>({ items: null, problem: null });
+  // biome-ignore lint/correctness/useExhaustiveDependencies(load): 每次打开子菜单只读一次；load 每次渲染都是新函数
   useEffect(() => {
     let alive = true;
     load().then((items) => alive && setState({ items, problem: null }), (e) => alive && setState({ items: [], problem: errorText(e) }));
     return () => { alive = false; };
-    // 每次打开子菜单只读一次。
   }, []);
   const { items, problem } = state;
   if (!items) return <MenuTip>{t("loadingGroups")}</MenuTip>;

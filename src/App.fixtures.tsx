@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { SearchBox } from "./search/SearchBox";
 import { useUiLang } from "./i18n";
-import { onLibraryEvent, resolveSearch, setSafeMode } from "./ipc";
-import { workspaceFixture } from "./test/workspace-fixture";
+import { onLibraryEvent, setSafeMode, workspaceResolve } from "./ipc";
 import { afterEach, beforeEach, expect, vi } from "vitest";
-import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowsePage } from "./bindings/BrowsePage";
@@ -18,7 +17,14 @@ import type { Candidate } from "./bindings/Candidate";
 import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
 import type { TagLabel } from "./bindings/TagLabel";
+import type { CatalogImageTags } from "./bindings/CatalogImageTags";
+import type { LibraryRegistration } from "./bindings/LibraryRegistration";
+import type { WorkspaceDirectories } from "./bindings/WorkspaceDirectories";
+import type { WorkspacePage } from "./bindings/WorkspacePage";
+import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
 import { chooseValue } from "./test/select";
+import { fakeBackend } from "./test/backend";
+import { wallPage as toWallPage } from "./test/workspacePage";
 
 // App 的测试共用的后端模拟、数据与操作步骤。
 
@@ -158,78 +164,115 @@ export const setSafeOn = (on: boolean) => { safeOn = on; };
 
 export const clean: RecoveryReport = { interrupted: [], orphans: [], discardedStaging: 0 };
 
+/** 图片墙一页（今天的 `workspace_browse` 回答），卡片默认属于 `library`。 */
+export const wallPage = (result: BrowsePage, owner: Pick<LibraryInfo, "id" | "name"> = library, revision?: string): WorkspacePage =>
+  toWallPage(result, owner, revision);
+
 export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
   override?: (cmd: string, args: unknown) => unknown, safe = true) {
   calls = [];
   safeOn = safe;
   gone = new Set();
-  mockWindows("main");
   let current = opened;
   let tasks = 0;
-  mockIPC(
-    workspaceFixture((cmd, args) => {
-      calls.push({ cmd, args });
-      const overridden = override?.(cmd, args);
-      if (overridden !== undefined) return overridden;
-      switch (cmd) {
-        case "app_info":
-          return info;
-        case "plugin:library|current_library":
-          return current;
-        case "plugin:library|create_library":
-          current = library;
-          return library;
-        case "plugin:library|registered_libraries":
-          return current ? [{ library: current, unavailable: null }] : [];
-        case "plugin:library|register_library":
-          current = { id: "L2", name: "私人收藏", root: (args as { root: string }).root };
-          return current;
-        case "plugin:library|unregister_library":
-          current = null;
-          return null;
-        case "plugin:library|browse":
-          return safeOn ? page : released;
-        case "plugin:library|safe_mode":
-          return safeOn;
-        case "plugin:library|set_safe_mode":
-          safeOn = (args as { on: boolean }).on;
-          return safeOn;
-        case "plugin:library|import_tasks":
-          return [];
-        case "plugin:library|start_import":
-          // 后端每个任务的 id 都不同。
-          return `T${++tasks}`;
-        case "plugin:library|sidebar":
-          return side;
-        case "plugin:library|image": {
-          const { imageId } = args as { imageId: string };
-          if (gone.has(imageId)) return Promise.reject({ code: "unknownImage" });
-          return detail(imageId, null);
-        }
-        case "plugin:library|edit": {
-          const { ids, edits } = args as { ids: string[]; edits: { kind: string; text?: string }[] };
-          const note = edits.find((e) => e.kind === "setNote")?.text ?? null;
-          return ids.map((id) => detail(id, note));
-        }
-        case "plugin:library|workspace_edit_sources":
-          return [];
-        case "plugin:library|recovery":
-          return recovery;
-        case "plugin:library|search_candidates":
-          return (args as { text: string }).text.trim() ? candidates : [];
-        case "plugin:library|resolve_search":
-          return resolved((args as { input: SearchInput }).input);
-        case "tagging_status":
-          return { state: "starting" };
-        case "shell_settings":
-          return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorOpen };
-        default:
-          return null;
-      }
+  let revision = 0;
+  type Args = Record<string, unknown>;
+  /** 记下命令、先让用例改写，再按下面的默认回答；没有默认回答的命令答 null。 */
+  const answer = (cmd: string, args: Args = {}): unknown => {
+    calls.push({ cmd, args });
+    const overridden = override?.(cmd, args);
+    if (overridden !== undefined) return overridden;
+    const reply = replies[cmd.replace(/^plugin:[^|]+\|/, "")];
+    return reply ? reply(args) : null;
+  };
+  const status = () => Promise.resolve(answer("plugin:library|registered_libraries")).then((libraries): WorkspaceStatus => ({
+    revision: `fixture-${revision}`, libraries: (libraries ?? []) as LibraryRegistration[],
+  }));
+  /** 登记变化后后端推送的通知：界面靠它重读，不靠“换了资料库”。 */
+  const registrationChanged = () => { revision++; void status().then((next) => emit("workspace-changed", next)); };
+  const replies: Record<string, (args: Args) => unknown> = {
+    app_info: () => info,
+    current_library: () => current,
+    create_library: () => current = library,
+    registered_libraries: () => current ? [{ library: current, unavailable: null }] : [],
+    register_library: (args) => current = { id: "L2", name: "私人收藏", root: args.root as string },
+    unregister_library: () => { current = null; return null; },
+    workspace_status: () => status(),
+    workspace_directories: () => Promise.resolve(answer("plugin:library|registered_libraries")).then(async (value) => {
+      const libraries = (value ?? []) as LibraryRegistration[];
+      return { status: { revision: `fixture-${revision}`, libraries }, registrationOrder: libraries.map((entry) => entry.library.id), providers: await Promise.all(libraries.map(async (registration) => ({
+        registration, unassigned: 0, descendants: {},
+        sidebar: registration.unavailable ? null : await answer("plugin:library|workspace_sidebar", { libraryId: registration.library.id }) as Sidebar,
+      }))) } satisfies WorkspaceDirectories;
     }),
-    { shouldMockEvents: true },
-  );
+    workspace_browse: (args) => {
+      const scope = (args.query as { scope: { libraryId?: string } }).scope;
+      const owner = { ...(current ?? library), id: scope.libraryId ?? current?.id ?? "L1", name: current?.name ?? "fixture" };
+      return wallPage(safeOn ? page : released, owner, `fixture-${revision}`);
+    },
+    workspace_sidebar: () => side,
+    workspace_tag_groups: () => [],
+    workspace_local_tags: (args) => args.ids,
+    rating_candidates: () => [],
+    safe_mode: () => safeOn,
+    set_safe_mode: (args) => { safeOn = args.on as boolean; return safeOn; },
+    import_tasks: () => [],
+    // 后端每个任务的 id 都不同。
+    start_import: () => `T${++tasks}`,
+    image: (args) => {
+      const imageId = args.imageId as string;
+      if (gone.has(imageId)) return Promise.reject({ code: "unknownImage" });
+      return detail(imageId, null);
+    },
+    catalog_image_tags: (args) => ({ image: { imageId: args.imageId as string, tags: [], rejected: [] }, identities: [] }) satisfies CatalogImageTags,
+    edit: (args) => {
+      const { ids, edits } = args as { ids: string[]; edits: { kind: string; text?: string }[] };
+      const note = edits.find((e) => e.kind === "setNote")?.text ?? null;
+      return ids.map((id) => detail(id, note));
+    },
+    workspace_edit_sources: () => [],
+    recovery: () => recovery,
+    workspace_candidates: (args) => (args.text as string).trim() ? candidates : [],
+    workspace_library_candidates: (args) => (args.text as string).trim() ? candidates : [],
+    search_candidates: (args) => (args.text as string).trim() ? candidates : [],
+    workspace_resolve: (args) => resolved(args.input as SearchInput),
+    tagging_status: () => ({ state: "starting" }),
+    shell_settings: () => ({ autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorOpen }),
+  };
+  // 过渡期（#520）：这些用例实际发出的命令都交给 answer，没列出的命令由 fakeBackend 拒绝。
+  // 阶段三把各用例改成直接向 fakeBackend 登记回答时，这张表删掉。
+  const fake = fakeBackend();
+  for (const command of APP_COMMANDS) fake.on(command, (args) => answer(command, args));
+  for (const command of REGISTRATION_COMMANDS) {
+    fake.on(command, (args) => Promise.resolve(answer(command, args)).then((value) => { registrationChanged(); return value; }));
+  }
 }
+
+/** App 用例实际发出的命令（完整命令名，交给转译层时要带前缀）。 */
+const APP_COMMANDS = [
+  "app_info", "backup_status", "double_click", "log_frontend", "log_timing", "migrate_viewer_background",
+  "plugin:desktop|capture_history", "plugin:desktop|clipboard_has_image", "plugin:desktop|reference_groups",
+  "plugin:desktop|stage_clipboard_import", "plugin:desktop|take_collection_request",
+  "plugin:desktop|take_open_request", "plugin:library|cancel_import", "plugin:library|catalog_image_tags",
+  "plugin:library|confirm_eagle_location", "plugin:library|create_folder", "plugin:library|create_library",
+  "plugin:library|current_library", "plugin:library|discover_eagle_libraries", "plugin:library|eagle_tag_mapping",
+  "plugin:library|edit", "plugin:library|image", "plugin:library|import_contains_eagle",
+  "plugin:library|import_tasks", "plugin:library|permanent_delete", "plugin:library|pick_files",
+  "plugin:library|pictures_folder", "plugin:library|plan_legacy_names", "plugin:library|preview_permanent_delete",
+  "plugin:library|rating_candidates", "plugin:library|recovery", "plugin:library|register_library",
+  "plugin:library|registered_libraries", "plugin:library|remember_new_library_parent",
+  "plugin:library|rename_folder", "plugin:library|safe_mode",
+  "plugin:library|save_memory", "plugin:library|search_candidates", "plugin:library|set_safe_mode",
+  "plugin:library|set_tag_approx", "plugin:library|start_import", "plugin:library|unregister_library",
+  "plugin:library|workspace_browse", "plugin:library|workspace_candidates", "plugin:library|workspace_card",
+  "plugin:library|workspace_directories", "plugin:library|workspace_edit_sources",
+  "plugin:library|workspace_resolve", "plugin:library|workspace_sidebar", "plugin:library|workspace_status",
+  "plugin:library|workspace_tag_groups", "plugin:window|is_maximized", "set_inspector_open", "set_inspector_width",
+  "set_ui_scale", "set_viewer_background", "shell_settings", "subscription_recent", "subscription_status",
+  "subscriptions", "tagging_models", "tagging_status", "ui_scale", "update_status",
+];
+/** 改变登记的命令：回答之后后端推送 workspace-changed。 */
+const REGISTRATION_COMMANDS = ["plugin:library|create_library", "plugin:library|register_library", "plugin:library|switch_library", "plugin:library|unregister_library"];
 
 /** Existing library-local approximation controls remain separate until global rules (T06) land. */
 export function LocalSearchFixture() {
@@ -255,9 +298,10 @@ export function LocalSearchFixture() {
     });
     return () => { void stop.then((stop) => stop()); };
   }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(generation): 资料库有变动就重新解析搜索
   useEffect(() => {
     let alive = true;
-    resolveSearch(library.id, input, lang, safe).then((tree) => alive && setTree(tree), () => {});
+    workspaceResolve(input, lang, safe).then((tree) => alive && setTree(tree), () => {});
     return () => { alive = false; };
   }, [input, safe, generation, lang]);
   return <>
@@ -269,6 +313,11 @@ export function LocalSearchFixture() {
 }
 
 export const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.args);
+/** 最后一次发出 `cmd` 之后，图片墙又浏览过。 */
+export const browsedAfter = (cmd: string) => {
+  const order = calls.map((c) => c.cmd);
+  return order.includes(cmd) && order.lastIndexOf("plugin:library|workspace_browse") > order.lastIndexOf(cmd);
+};
 /** 详情面板里整理选中图的那一块；没有选择时不在。 */
 export const selectionPanel = () => screen.queryByLabelText("已选参考图");
 /** 多选悬浮栏（#180）：只在选了两张及以上时出现。 */
@@ -298,7 +347,8 @@ export async function libraryAction(name: RegExp) {
 export async function openLibrary(root = "E:\\私人收藏") {
   window.__KINSHOKO_TEST_PICKS__ = [root];
   await libraryAction(/打开图库/);
-  await waitFor(() => expect(sent("plugin:library|browse").at(-1)).toMatchObject({ libraryId: "L2" }));
+  // 今天的图片墙按全部图库浏览，不带图库：等登记 L2 之后它重读一次。
+  await waitFor(() => expect(browsedAfter("plugin:library|register_library")).toBe(true));
 }
 /** 方案 D：选“全部图片”时图库都折起，先点箭头展开。 */
 export async function expandLibrary(name = "工作参考") {
@@ -322,11 +372,7 @@ beforeEach(() => {
   inspectorOpen = true;
 });
 
-afterEach(async () => {
-  cleanup();
-  // 卸载时异步取消事件订阅，等它完成再撤掉模拟。
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
+afterEach(() => {
   vi.unstubAllGlobals();
 });
 

@@ -19,7 +19,7 @@ export function FluidList({ children, className = "", gapClick = true }: { child
   return <div ref={ref} className={`k-fluid ${className}`} {...handlers}>
     {isMeasured && rect && <motion.span className="k-fluid-pill" aria-hidden="true" initial={false}
       animate={{ top: rect.top, height: rect.height }} transition={reduced ? { duration: 0 } : spring.moderate} />}
-    <Registry.Provider value={registerItem}>{children}</Registry.Provider>
+    <Registry value={registerItem}>{children}</Registry>
   </div>;
 }
 

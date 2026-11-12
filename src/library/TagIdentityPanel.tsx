@@ -29,6 +29,7 @@ export function TagIdentityPanel() {
   const inspected = useRef(false);
   const running = useRef(false);
   const dirty = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(run): 监听只装一次；run 每次渲染都是新函数，靠 ref 判断状态
   useEffect(() => {
     let alive = true;
     const unlisten = onSafeModeSetting(() => {

@@ -36,6 +36,7 @@ export function PermanentDeleteBatchConfirm({ targets, libraryName, onDone, onCa
   const deletedSome = useRef(false);
   const cancel = () => (deletedSome.current ? onDone() : onCancel());
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在待删范围变了时重新预览；cancel 与 onError 每次渲染都是新函数
   useEffect(() => {
     let current = true;
     setPreviews(null);
