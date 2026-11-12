@@ -2,12 +2,12 @@ import { thumbnailTier } from "./wall/thumbnailTier";
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { App } from "./App";
-import { library, page, tags, showApproxSource, keepSelectionOnSafeMode, calls, setCalls, clean, backend, sent, importAction, expandLibrary, setInspectorOpen } from "./App.fixtures";
+import { library, page, tags, showApproxSource, keepSelectionOnSafeMode, calls, setCalls, clean, backend, sent, importAction, expandLibrary, setInspectorOpen, wallPage } from "./App.fixtures";
 
 describe("主窗口", () => {
   it("查找头部显示真实结果数，图片大小滑块改变布局，导入操作按需展开", async () => {
     backend(library, clean, (command, args) => {
-      if (command === "plugin:library|browse" && (args as { query: { scope: { kind: string } } }).query.scope.kind.startsWith("folder")) return { cards: [page.cards[0]], total: 1, nextCursor: null };
+      if (command === "plugin:library|workspace_browse" && (args as { query: { scope: { scope?: { kind: string } } } }).query.scope.scope?.kind.startsWith("folder")) return wallPage({ cards: [page.cards[0]], total: 1, nextCursor: null });
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -69,7 +69,7 @@ describe("主窗口", () => {
   });
 
   it("查找区域的标签分组展开后可以添加、取消条件，并保留文件夹范围", async () => {
-    backend(library, clean, (command) => command === "plugin:library|tag_groups" ? [{
+    backend(library, clean, (command) => command === "plugin:library|workspace_tag_groups" ? [{
       id: "G1", name: "发色", namespace: null, tags: [{ tag: tags.B, count: 1 }],
     }] : undefined);
     render(<App />);

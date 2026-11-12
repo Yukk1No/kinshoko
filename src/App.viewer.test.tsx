@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { emit } from "@tauri-apps/api/event";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import { App } from "./App";
-import { doubleClick, library, gone, clean, backend, sent, push, libraryAction, openLibrary, expandLibrary } from "./App.fixtures";
+import { doubleClick, library, gone, clean, backend, sent, push, libraryAction, openLibrary, expandLibrary, wallPage } from "./App.fixtures";
 
 describe("主窗口", () => {
   it("双击打开原图；Esc 返回原位置并把焦点交还参考图", async () => {
@@ -132,8 +132,8 @@ describe("主窗口", () => {
     // 前面的用例保存过滚动锚点；从顶部开始，第一页就够。
     localStorage.clear();
     backend(library, clean, (cmd, args) => {
-      if (cmd !== "plugin:library|browse") return undefined;
-      return (args as { query: { cursor?: string | null } }).query.cursor ? more : first;
+      if (cmd !== "plugin:library|workspace_browse") return undefined;
+      return (args as { query: { cursor?: string | null } }).query.cursor ? more.then((rest) => wallPage(rest)) : wallPage(first);
     });
     render(<App />);
     await screen.findAllByRole("img");
