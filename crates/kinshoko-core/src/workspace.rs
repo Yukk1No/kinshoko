@@ -283,30 +283,6 @@ impl Workspace {
         let snapshot = self.snapshot(device, catalog)?;
         Ok(Search::new(global_vocabulary(&snapshot, safe), builtin).candidates(text, lang, limit))
     }
-    pub fn local_tags(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        library_id: &str,
-        ids: &[String],
-        safe: bool,
-    ) -> Result<Vec<String>, CatalogError> {
-        let snapshot = self.snapshot(device, catalog)?;
-        let vocabulary = global_vocabulary(&snapshot, safe);
-        Ok(snapshot
-            .catalog
-            .mappings
-            .iter()
-            .filter(|m| {
-                m.library_id == library_id
-                    && ids.contains(&m.local_tag_id)
-                    && vocabulary.tags.iter().any(|t| t.id == m.catalog_id)
-            })
-            .map(|m| m.catalog_id.clone())
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect())
-    }
     /// Shared groups use unified identities and the workspace's all-source safety view.
     pub fn tag_groups(
         &mut self,
