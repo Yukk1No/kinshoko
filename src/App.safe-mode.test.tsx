@@ -67,29 +67,29 @@ describe("安全模式", () => {
     render(<App />);
     await screen.findAllByRole("img");
     const button = await book();
-    const before = sent("plugin:library|browse").length;
+    const before = sent("plugin:library|workspace_browse").length;
 
     fireEvent.click(button);
     expect(button.getAttribute("aria-pressed")).toBe("false");
     await waitFor(() => expect(sent("plugin:library|set_safe_mode")).toEqual([{ on: false }]));
     // 后端还没提交：不按关闭发出注定被拒绝或作废的浏览。
     await act(async () => {});
-    expect(sent("plugin:library|browse").length).toBe(before);
+    expect(sent("plugin:library|workspace_browse").length).toBe(before);
 
     // 资料库事件先于命令返回到达，也不提前放开、不重读。
     await changed(false);
-    expect(sent("plugin:library|browse").length).toBe(before);
+    expect(sent("plugin:library|workspace_browse").length).toBe(before);
     expect(cardOf("x")).toBeNull();
 
     const committedAt = calls.length;
     await act(async () => { commit(false); });
     await waitFor(() => expect(cardOf("x")).toBeTruthy());
     await act(async () => {});
-    expect(sent("plugin:library|browse").length).toBe(before + 1);
+    expect(sent("plugin:library|workspace_browse").length).toBe(before + 1);
     // 后端按到达顺序在同一把锁上排队：图片墙的浏览先发出，状态、侧栏等刷新排在它后面。
     const after = calls.slice(committedAt).map((c) => c.cmd)
-      .filter((cmd) => cmd === "plugin:library|browse" || cmd === "plugin:library|registered_libraries");
-    expect(after[0]).toBe("plugin:library|browse");
+      .filter((cmd) => cmd === "plugin:library|workspace_browse" || cmd === "plugin:library|registered_libraries");
+    expect(after[0]).toBe("plugin:library|workspace_browse");
   });
 
   it("快速关了又开、返回乱序：最后停在开启，旧的关闭不放开视角（#183）", async () => {
@@ -103,7 +103,7 @@ describe("安全模式", () => {
     render(<App />);
     await screen.findAllByRole("img");
     const button = await book();
-    const before = sent("plugin:library|browse").length;
+    const before = sent("plugin:library|workspace_browse").length;
 
     fireEvent.click(button);
     fireEvent.click(button);
@@ -116,7 +116,7 @@ describe("安全模式", () => {
     await act(async () => {});
     expect(button.getAttribute("aria-pressed")).toBe("true");
     expect(cardOf("x")).toBeNull();
-    expect(sent("plugin:library|browse").length).toBe(before);
+    expect(sent("plugin:library|workspace_browse").length).toBe(before);
   });
 
   it("关闭失败：保持开启，不露出被封印的图", async () => {
@@ -124,12 +124,12 @@ describe("安全模式", () => {
     render(<App />);
     await screen.findAllByRole("img");
     const button = await book();
-    const before = sent("plugin:library|browse").length;
+    const before = sent("plugin:library|workspace_browse").length;
 
     fireEvent.click(button);
     await waitFor(() => expect(button.getAttribute("aria-pressed")).toBe("true"));
     await act(async () => {});
-    expect(sent("plugin:library|browse").length).toBe(before);
+    expect(sent("plugin:library|workspace_browse").length).toBe(before);
     expect(cardOf("x")).toBeNull();
   });
 
@@ -139,12 +139,12 @@ describe("安全模式", () => {
     await waitFor(() => expect(cardOf("x")).toBeTruthy());
     fireEvent.keyDown(cardOf("x")!, { key: " " });
     expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
-    const sidebars = sent("plugin:library|sidebar").length;
+    const sidebars = sent("plugin:library|workspace_sidebar").length;
 
     fireEvent.click(await book());
     await changed(true);
     await waitFor(() => expect(selectionPanel()).toBeNull());
-    await waitFor(() => expect(sent("plugin:library|sidebar").length).toBeGreaterThan(sidebars));
+    await waitFor(() => expect(sent("plugin:library|workspace_sidebar").length).toBeGreaterThan(sidebars));
   });
 
   it("默认关闭安全模式时也清空选择", async () => {
@@ -202,7 +202,7 @@ describe("安全模式", () => {
     const box = () => screen.findByRole("combobox", { name: "查找参考图" });
     /** 后端核对请求带的视角：与资料库的安全模式不同时拒绝，与真实命令一致。 */
     const lensChecked = (hold?: () => Promise<Candidate[]> | undefined) => (cmd: string, args: unknown) => {
-      if (cmd !== "plugin:library|search_candidates") return undefined;
+      if (cmd !== "plugin:library|workspace_candidates") return undefined;
       const { text, safeMode } = args as { text: string; safeMode: boolean };
       const held = hold?.();
       if (held) return held;
@@ -229,7 +229,7 @@ describe("安全模式", () => {
       fireEvent.blur(input);
       fireEvent.focus(input);
       await waitFor(() =>
-        expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ text: "只在成人", safeMode: true }),
+        expect(sent("plugin:library|workspace_candidates").at(-1)).toMatchObject({ text: "只在成人", safeMode: true }),
       );
       expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
       expect(screen.queryByRole("alert")).toBeNull();
@@ -249,7 +249,7 @@ describe("安全模式", () => {
       const input = await box();
       fireEvent.focus(input);
       fireEvent.change(input, { target: { value: "只在成人" } });
-      await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(1));
+      await waitFor(() => expect(sent("plugin:library|workspace_candidates")).toHaveLength(1));
       fireEvent.click(await book());
       await changed(true);
       await act(async () => {
@@ -266,7 +266,7 @@ describe("安全模式", () => {
       const input = await box();
       fireEvent.focus(input);
       fireEvent.change(input, { target: { value: "只在成人" } });
-      await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(1));
+      await waitFor(() => expect(sent("plugin:library|workspace_candidates")).toHaveLength(1));
       expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
 
       fireEvent.click(await book());
@@ -280,7 +280,7 @@ describe("安全模式", () => {
     it("词表变化后重新取得候选", async () => {
       let names = ["旧名"];
       backend(library, clean, (cmd) =>
-        cmd === "plugin:library|search_candidates"
+        cmd === "plugin:library|workspace_candidates"
           ? names.map((name) => ({ tag: label(name, "general", name), via: null, count: 1 }))
           : undefined,
       );
@@ -345,7 +345,7 @@ describe("安全模式", () => {
 
     it("条件解析带上当前视角，视角刚切换的拒绝不当作错误显示", async () => {
       backend(library, clean, (cmd, args) => {
-        if (cmd !== "plugin:library|resolve_search") return undefined;
+        if (cmd !== "plugin:library|workspace_resolve") return undefined;
         const { input, safeMode } = args as { input: SearchInput; safeMode: boolean };
         if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
         return resolved(input);
@@ -355,9 +355,9 @@ describe("安全模式", () => {
       const input = await box();
       fireEvent.change(input, { target: { value: "蓝" } });
       fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
-      await waitFor(() => expect(sent("plugin:library|resolve_search").at(-1)).toMatchObject({ safeMode: false }));
+      await waitFor(() => expect(sent("plugin:library|workspace_resolve").at(-1)).toMatchObject({ safeMode: false }));
       fireEvent.click(await book());
-      await waitFor(() => expect(sent("plugin:library|resolve_search").at(-1)).toMatchObject({ safeMode: true }));
+      await waitFor(() => expect(sent("plugin:library|workspace_resolve").at(-1)).toMatchObject({ safeMode: true }));
       await changed(true);
       await waitFor(() => expect(screen.getByRole("list", { name: "查找条件" }).textContent).toContain("水色发"));
       expect(screen.queryByRole("alert")).toBeNull();

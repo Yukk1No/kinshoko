@@ -9,8 +9,6 @@ import type { RatingCandidate } from "../bindings/RatingCandidate";
 import type { SafeModeScope } from "../bindings/SafeModeScope";
 import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { Candidate } from "../bindings/Candidate";
-import type { ConditionTree } from "../bindings/ConditionTree";
-import type { SearchInput } from "../bindings/SearchInput";
 import type { ImageRating } from "../bindings/ImageRating";
 import type { LibraryEvent } from "../bindings/LibraryEvent";
 import type { TagAlias } from "../bindings/TagAlias";
@@ -97,16 +95,6 @@ export function searchCandidates(
   safeMode: boolean,
 ): Promise<Candidate[]> {
   return invoke<Candidate[]>(lib("search_candidates"), { libraryId, text, lang, limit, safeMode });
-}
-
-/** 把搜索框里的条件解析成可见的条件树，交给 browse 执行。`safeMode` 同 {@link searchCandidates}。 */
-export function resolveSearch(
-  libraryId: string,
-  input: SearchInput,
-  lang: string,
-  safeMode: boolean,
-): Promise<ConditionTree> {
-  return invoke<ConditionTree>(lib("resolve_search"), { libraryId, input, lang, safeMode });
 }
 
 /** 在个人近似对应表中记下两个标签相近（“＋”）或不相近（“以后都不展开”）。 */
