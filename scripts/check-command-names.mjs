@@ -89,9 +89,10 @@ export function frontendCalls(source) {
   const text = stripComments(source);
   const calls = [];
   const add = (group, match, offset) => calls.push({ group, name: match[offset], line: lineOf(text, match.index) });
-  for (const m of text.matchAll(/\blib\(\s*(["'])(\w+)\1\s*\)/g)) add("library", m, 2);
-  for (const m of text.matchAll(/\bdesk\(\s*(["'])(\w+)\1\s*\)/g)) add("desktop", m, 2);
-  for (const m of text.matchAll(/\b(?:invoke|tauriInvoke)\b(?:<[^;]*?>)?\(\s*(["'])(\w+)\1/g)) add("app", m, 2);
+  // 字面量取整段引号内的内容（不限于标识符字符），写错成带空格或符号的名字也会被当作未注册报出来。
+  for (const m of text.matchAll(/\blib\(\s*(["'])([^"'\n]*)\1\s*\)/g)) add("library", m, 2);
+  for (const m of text.matchAll(/\bdesk\(\s*(["'])([^"'\n]*)\1\s*\)/g)) add("desktop", m, 2);
+  for (const m of text.matchAll(/\b(?:invoke|tauriInvoke)\b(?:<[^;]*?>)?\(\s*(["'])([^"'\n]*)\1/g)) add("app", m, 2);
   return calls;
 }
 

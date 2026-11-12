@@ -36,6 +36,10 @@ describe("前端一侧", () => {
     ]);
   });
 
+  it("名字里带空格等符号也要抓到，不能漏掉", () => {
+    expect(frontendCalls('invoke("log_frontend ", {}); lib("a-b")').map(c => c.name)).toEqual(["a-b", "log_frontend "]);
+  });
+
   it("带行号", () => {
     expect(frontendCalls('\n\nlib(\n"x")')[0].line).toBe(3);
   });
