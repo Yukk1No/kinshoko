@@ -190,30 +190,6 @@ pub(super) async fn set_tag_approx<R: Runtime>(
     .await
 }
 
-/// 资料库设置中列出的个人近似对应表条目，名称按界面语言 `lang`。
-#[tauri::command]
-pub(super) async fn personal_approx<R: Runtime>(
-    app: AppHandle<R>,
-    state: State<'_, LibraryState>,
-    library_id: String,
-    lang: String,
-) -> Result<Vec<PersonalApproxEntry>, CommandError> {
-    let catalog = state.search.clone();
-    blocking(move || {
-        let library = readable(&app, &library_id)?;
-        with_catalog(&catalog, |catalog| {
-            let snapshot = catalog.synchronize(&library)?;
-            let mut entries = library.personal_approx(&lang)?;
-            for entry in &mut entries {
-                entry.a = snapshot.display_label(&library.info().id, &entry.a, &lang);
-                entry.b = snapshot.display_label(&library.info().id, &entry.b, &lang);
-            }
-            Ok(entries)
-        })
-    })
-    .await
-}
-
 /// 随软件分发的翻译表（`crates/kinshoko-core/data/builtin-translation-table.json`），启动时取一次。唯一的注入点：
 /// 每个打开的资料库在装配时（[`forward_events`]）装上它，迁入向导的外部词表也按它匹配。
 pub(super) fn bundled_translations() -> TagTranslations {

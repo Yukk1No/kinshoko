@@ -95,11 +95,6 @@ export function setTagApprox(
   return invoke<void>(lib("set_tag_approx"), { libraryId, a, b, relation });
 }
 
-/** 个人近似对应表的条目，最近记下的在前，名称按界面语言 lang。 */
-export function personalApprox(libraryId: string, lang: string): Promise<PersonalApproxEntry[]> {
-  return invoke<PersonalApproxEntry[]>(lib("personal_approx"), { libraryId, lang });
-}
-
 /** Global safe-mode setting changes invalidate asynchronous browser inspection results. */
 export function onSafeModeSetting(handler: (on: boolean) => void): Promise<UnlistenFn> {
   return listen<boolean>("safe-mode-setting", (event) => handler(event.payload));

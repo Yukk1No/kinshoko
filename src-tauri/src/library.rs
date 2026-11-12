@@ -353,7 +353,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             rating_candidates,
             resolve_search,
             set_tag_approx,
-            personal_approx,
             eagle_tag_mapping,
             map_tag_external,
             set_source_name_lang,
