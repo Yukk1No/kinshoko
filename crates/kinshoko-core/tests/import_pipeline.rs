@@ -3,17 +3,12 @@
 
 use std::path::{Path, PathBuf};
 
-use image::{Rgba, RgbaImage};
 use kinshoko_core::Library;
 use kinshoko_core::library::{BrowseQuery, ImportOutcome, ImportSource, LibraryEvent};
 
-fn write_png(path: &Path, w: u32, h: u32, seed: u8) -> PathBuf {
-    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    RgbaImage::from_fn(w, h, |x, y| Rgba([seed, x as u8, y as u8, 255]))
-        .save(path)
-        .unwrap();
-    path.to_path_buf()
-}
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::write_png;
 
 fn browse(library: &Library) -> Vec<kinshoko_core::library::ImageCard> {
     library

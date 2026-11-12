@@ -4,23 +4,14 @@
 use std::sync::Arc;
 
 use image::{Rgba, RgbaImage};
-use kinshoko_core::library::{ContentRating, ImageEdit, ImportSource, SafeModeScope};
+use kinshoko_core::library::{ContentRating, ImageEdit, SafeModeScope};
 use kinshoko_core::tag_catalog::TagCatalog;
 use kinshoko_core::workspace::{ImageGate, Workspace, WorkspaceQuery, WorkspaceScope};
 use kinshoko_core::{DeviceLibraries, Library};
 
-fn import(library: &Library, path: &std::path::Path) -> String {
-    library
-        .import(ImportSource {
-            paths: vec![path.into()],
-        })
-        .wait()
-        .items[0]
-        .outcome
-        .image_id()
-        .unwrap()
-        .to_owned()
-}
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::import_one;
 
 fn png(dir: &std::path::Path, red: u8) -> std::path::PathBuf {
     let path = dir.join(format!("{red}.png"));
@@ -69,7 +60,7 @@ fn the_published_snapshot_authorizes_without_the_workspace() {
     let app = dir.path().join("app");
     let mut device = DeviceLibraries::open(&app).unwrap();
     let a = device.create(&dir.path().join("a"), "A").unwrap();
-    let id = import(&a, &png(dir.path(), 1));
+    let id = import_one(&a, &png(dir.path(), 1));
     let mut catalog = TagCatalog::open(&app).unwrap();
     let gate = Arc::new(ImageGate::default());
     assert_eq!(allowed(&gate, &a, &id, true), None, "还没有发布快照");
@@ -103,8 +94,8 @@ fn a_seal_after_publishing_is_never_authorized_from_the_stale_snapshot() {
     let b = device.create(&dir.path().join("b"), "B").unwrap();
     // 同一份字节在两个库里：另一个库给它打成年分级，也封印这一份（全局否决）。
     let path = png(dir.path(), 2);
-    let in_a = import(&a, &path);
-    let in_b = import(&b, &path);
+    let in_a = import_one(&a, &path);
+    let in_b = import_one(&b, &path);
     let mut catalog = TagCatalog::open(&app).unwrap();
     let gate = Arc::new(ImageGate::default());
     let mut workspace = Workspace::open_with_gate(&app, gate.clone()).unwrap();
@@ -139,7 +130,7 @@ fn a_registry_change_after_publishing_falls_back_to_the_locked_path() {
     let app = dir.path().join("app");
     let mut device = DeviceLibraries::open(&app).unwrap();
     let a = device.create(&dir.path().join("a"), "A").unwrap();
-    let id = import(&a, &png(dir.path(), 3));
+    let id = import_one(&a, &png(dir.path(), 3));
     let mut catalog = TagCatalog::open(&app).unwrap();
     let gate = Arc::new(ImageGate::default());
     let mut workspace = Workspace::open_with_gate(&app, gate.clone()).unwrap();

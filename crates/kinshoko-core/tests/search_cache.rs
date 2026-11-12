@@ -2,17 +2,18 @@
 //! 发生失效时旧构建不写回。构建经 `search_with` 的闭包注入，测试在“读完词表、还没写回”
 //! 这一刻改动资料库或清缓存，确定地重现命令层的交错，不靠并发循环碰运气。
 
-use std::path::Path;
 use std::sync::Arc;
 
-use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::approx::BuiltinApproxTable;
 use kinshoko_core::library::{
-    ContentRating, Error, FactSource, ImportOutcome, ImportSource, RatingFact, TagEdit,
-    TagNamespace, TagRef,
+    ContentRating, Error, FactSource, RatingFact, TagEdit, TagNamespace, TagRef,
 };
 use kinshoko_core::search::{Search, SearchCache};
+
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::import_seeded;
 
 const ZH: &str = "zh-CN";
 
@@ -20,29 +21,6 @@ struct Fixture {
     _dir: tempfile::TempDir,
     library: Arc<Library>,
     general: String,
-}
-
-fn import(library: &Library, dir: &Path, n: u8) -> Vec<String> {
-    let paths: Vec<_> = (0..n)
-        .map(|i| {
-            let path = dir.join(format!("in/{i}.png"));
-            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            RgbaImage::from_fn(4, 4, |x, y| image::Rgba([i, x as u8, y as u8, 255]))
-                .save(&path)
-                .unwrap();
-            path
-        })
-        .collect();
-    library
-        .import(ImportSource { paths })
-        .wait()
-        .items
-        .into_iter()
-        .map(|item| match item.outcome {
-            ImportOutcome::Imported { image_id } => image_id,
-            other => panic!("未导入：{other:?}"),
-        })
-        .collect()
 }
 
 fn tag(library: &Library, id: &str, name: &str) {
@@ -65,7 +43,8 @@ fn fixture(name: &str) -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let library = Arc::new(Library::create(&dir.path().join("lib"), name).unwrap());
     library.set_safe_mode(false);
-    let [general, explicit] = <[String; 2]>::try_from(import(&library, dir.path(), 2)).unwrap();
+    let [general, explicit] =
+        <[String; 2]>::try_from(import_seeded(&library, dir.path(), 0..2)).unwrap();
     library
         .replace_source_rating(
             &FactSource::model("test"),

@@ -1,23 +1,12 @@
 use image::{Rgba, RgbaImage};
-use kinshoko_core::library::{
-    ContentRating, ImageEdit, ImportSource, TagEdit, TagNamespace, TagRef,
-};
+use kinshoko_core::library::{ContentRating, ImageEdit, TagEdit, TagNamespace, TagRef};
 use kinshoko_core::tag_catalog::TagCatalog;
 use kinshoko_core::workspace::{Workspace, WorkspaceQuery, WorkspaceScope};
 use kinshoko_core::{DeviceLibraries, Library};
 
-fn import(library: &Library, path: &std::path::Path) -> String {
-    library
-        .import(ImportSource {
-            paths: vec![path.into()],
-        })
-        .wait()
-        .items[0]
-        .outcome
-        .image_id()
-        .unwrap()
-        .to_owned()
-}
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::import_one;
 
 fn tag(library: &Library, image: &str, name: &str) {
     library
@@ -53,9 +42,9 @@ fn ordinary_name_settings_do_not_expose_tags_from_globally_vetoed_copies() {
     RgbaImage::from_pixel(4, 3, Rgba([92, 34, 56, 255]))
         .save(&public)
         .unwrap();
-    let adult_image = import(&adult_library, &same);
-    let unknown_copy = import(&other_library, &same);
-    let public_image = import(&other_library, &public);
+    let adult_image = import_one(&adult_library, &same);
+    let unknown_copy = import_one(&other_library, &same);
+    let public_image = import_one(&other_library, &public);
     tag(&other_library, &unknown_copy, "sealed-copy-only-tag");
     tag(&other_library, &public_image, "legitimate-public-tag");
     adult_library.set_safe_mode(false);
@@ -123,9 +112,9 @@ fn names_and_groups_share_online_and_known_offline_veto_without_losing_unused_de
     RgbaImage::from_pixel(4, 3, Rgba([44, 22, 33, 255]))
         .save(&public)
         .unwrap();
-    let ai = import(&a, &same);
-    let bi = import(&b, &same);
-    let visible = import(&b, &public);
+    let ai = import_one(&a, &same);
+    let bi = import_one(&b, &same);
+    let visible = import_one(&b, &public);
     tag(&b, &bi, "sealed-only");
     tag(&b, &bi, "still-visible");
     tag(&b, &visible, "still-visible");

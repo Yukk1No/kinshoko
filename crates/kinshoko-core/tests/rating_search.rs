@@ -2,16 +2,17 @@
 //! 用临时目录里的真库，经 `Library` 与 `Search` 的对外接口；分级按模型来源写入。
 
 use std::collections::BTreeSet;
-use std::path::Path;
 
-use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::approx::BuiltinApproxTable;
 use kinshoko_core::library::{
-    BrowseQuery, ContentRating, FactSource, ImageEdit, ImportOutcome, ImportSource, RatingFact,
-    TagEdit, TagNamespace, TagRef,
+    BrowseQuery, ContentRating, FactSource, ImageEdit, RatingFact, TagEdit, TagNamespace, TagRef,
 };
 use kinshoko_core::search::{ConditionInput, Search, SearchInput, TermInput, rating_candidates};
+
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::import_seeded;
 
 const ZH: &str = "zh-CN";
 
@@ -44,29 +45,6 @@ struct Fixture {
     unrated: String,
 }
 
-fn import(library: &Library, dir: &Path, n: u8) -> Vec<String> {
-    let paths: Vec<_> = (0..n)
-        .map(|i| {
-            let path = dir.join(format!("in/{i}.png"));
-            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            RgbaImage::from_fn(4, 4, |x, y| image::Rgba([i, x as u8, y as u8, 255]))
-                .save(&path)
-                .unwrap();
-            path
-        })
-        .collect();
-    library
-        .import(ImportSource { paths })
-        .wait()
-        .items
-        .into_iter()
-        .map(|item| match item.outcome {
-            ImportOutcome::Imported { image_id } => image_id,
-            other => panic!("未导入：{other:?}"),
-        })
-        .collect()
-}
-
 fn rate(library: &Library, id: &str, rating: ContentRating) {
     library
         .replace_source_rating(
@@ -86,7 +64,7 @@ impl Fixture {
         let library = Library::create(&dir.path().join("lib"), "库").unwrap();
         library.set_safe_mode(false);
         let [general, sensitive, questionable, explicit, unrated] =
-            <[String; 5]>::try_from(import(&library, dir.path(), 5)).unwrap();
+            <[String; 5]>::try_from(import_seeded(&library, dir.path(), 0..5)).unwrap();
         rate(&library, &general, ContentRating::General);
         rate(&library, &sensitive, ContentRating::Sensitive);
         rate(&library, &questionable, ContentRating::Questionable);

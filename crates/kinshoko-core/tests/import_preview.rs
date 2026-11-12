@@ -7,24 +7,16 @@ use kinshoko_core::workspace::{Workspace, WorkspaceQuery};
 use kinshoko_core::{DeviceLibraries, Library};
 use std::path::Path;
 
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::import_one;
+
 fn png(root: &Path, name: &str, red: u8) -> std::path::PathBuf {
     let path = root.join(name);
     RgbaImage::from_pixel(7, 5, Rgba([red, 35, 57, 255]))
         .save(&path)
         .unwrap();
     path
-}
-fn import(library: &Library, path: &Path) -> String {
-    library
-        .import(ImportSource {
-            paths: vec![path.into()],
-        })
-        .wait()
-        .items[0]
-        .outcome
-        .image_id()
-        .unwrap()
-        .into()
 }
 fn receipt(device: &mut DeviceLibraries, owner: &str, paths: Vec<std::path::PathBuf>) -> String {
     let id = device
@@ -56,8 +48,8 @@ fn default_receipt_does_not_expose_sealed_duplicate_ids_or_success_totals() {
         .create(&dir.path().join("target"), "Unknown target")
         .unwrap();
     let same = png(dir.path(), "sealed-file-name.png", 20);
-    let ai = import(&adult, &same);
-    let ti = import(&target, &same);
+    let ai = import_one(&adult, &same);
+    let ti = import_one(&target, &same);
     adult
         .edit(
             &[ai],
@@ -117,8 +109,8 @@ fn explicit_consent_uses_only_the_actual_completed_cross_library_duplicate_recei
     let target = device.create(&dir.path().join("target"), "Target").unwrap();
     let same = png(dir.path(), "same.png", 45);
     let unrelated = png(dir.path(), "unrelated.png", 75);
-    let ai = import(&adult, &same);
-    let other = import(&adult, &unrelated);
+    let ai = import_one(&adult, &same);
+    let other = import_one(&adult, &unrelated);
     adult
         .edit(
             &[ai, other],
@@ -146,8 +138,8 @@ fn mode_transition_and_library_switch_revoke_a_completed_but_unreleased_read() {
     let adult = device.create(&dir.path().join("adult"), "Adult").unwrap();
     let target = device.create(&dir.path().join("target"), "Target").unwrap();
     let file = png(dir.path(), "same.png", 91);
-    let ai = import(&adult, &file);
-    import(&target, &file);
+    let ai = import_one(&adult, &file);
+    import_one(&target, &file);
     adult
         .edit(
             &[ai],
@@ -238,8 +230,8 @@ impl Fixture {
             .create(&dir.path().join("target"), "Unknown target")
             .unwrap();
         let same = png(dir.path(), "sealed-duplicate.png", 111);
-        let ai = import(&adult, &same);
-        let target_image = import(&target, &same);
+        let ai = import_one(&adult, &same);
+        let target_image = import_one(&target, &same);
         adult
             .edit(
                 &[ai],
@@ -301,7 +293,7 @@ fn eagle_refreshed_successes_do_not_leak_a_sealed_only_total() {
     let mut device = DeviceLibraries::open(&app).unwrap();
     let adult = device.create(&dir.path().join("adult"), "Adult").unwrap();
     let target = device.create(&dir.path().join("target"), "Target").unwrap();
-    let ai = import(&adult, &fixture.original(0));
+    let ai = import_one(&adult, &fixture.original(0));
     adult
         .edit(
             &[ai],

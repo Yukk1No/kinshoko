@@ -7,33 +7,20 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use image::RgbaImage;
 use kinshoko_core::Library;
-use kinshoko_core::library::{BrowseQuery, ImportOutcome, ImportReport, ImportSource};
+use kinshoko_core::library::{BrowseQuery, ImportOutcome};
 use sha2::{Digest, Sha256};
+
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::{import_all, write_png};
 
 const CHILD: &str = "child_imports_until_the_fault_point";
 const ROOT_ENV: &str = "KINSHOKO_TEST_LIBRARY";
 const FILES_ENV: &str = "KINSHOKO_TEST_FILES";
 
-fn write_png(path: &Path, seed: u8) -> PathBuf {
-    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    RgbaImage::from_fn(12, 8, |x, y| image::Rgba([seed, x as u8, y as u8, 255]))
-        .save(path)
-        .unwrap();
-    path.to_path_buf()
-}
-
 fn sha256(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
-}
-
-fn import(library: &Library, paths: &[PathBuf]) -> ImportReport {
-    library
-        .import(ImportSource {
-            paths: paths.to_vec(),
-        })
-        .wait()
 }
 
 fn count(library: &Library) -> u32 {
@@ -77,7 +64,7 @@ fn child_imports_until_the_fault_point() {
     let root = PathBuf::from(std::env::var_os(ROOT_ENV).unwrap());
     let files = std::env::split_paths(&std::env::var_os(FILES_ENV).unwrap()).collect::<Vec<_>>();
     let library = Library::open(&root).unwrap();
-    import(&library, &files);
+    import_all(&library, &files);
     panic!("没有在注入点崩溃");
 }
 
@@ -99,7 +86,7 @@ fn crash_at_the_second_item(point: &str, interrupted_is_listed: bool) {
     let root = dir.path().join("lib");
     drop(Library::create(&root, "库").unwrap());
     let files: Vec<PathBuf> = (0..3)
-        .map(|i| write_png(&dir.path().join(format!("in/{i}.png")), i))
+        .map(|i| write_png(&dir.path().join(format!("in/{i}.png")), 12, 8, i))
         .collect();
     let bytes: Vec<Vec<u8>> = files.iter().map(|f| std::fs::read(f).unwrap()).collect();
 
@@ -138,7 +125,7 @@ fn crash_at_the_second_item(point: &str, interrupted_is_listed: bool) {
     }
 
     // 重试全部：第一张合并，其余补上，不重复。
-    let retry = import(&library, &files);
+    let retry = import_all(&library, &files);
     let kinds: Vec<bool> = retry
         .items
         .iter()
@@ -179,7 +166,10 @@ fn unknown_files_among_the_originals_are_reported_but_kept() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().join("lib");
     let library = Library::create(&root, "库").unwrap();
-    import(&library, &[write_png(&dir.path().join("in/a.png"), 1)]);
+    import_all(
+        &library,
+        &[write_png(&dir.path().join("in/a.png"), 12, 8, 1)],
+    );
     drop(library);
     let stray = root.join("originals/ab/不认识的文件.png");
     std::fs::create_dir_all(stray.parent().unwrap()).unwrap();

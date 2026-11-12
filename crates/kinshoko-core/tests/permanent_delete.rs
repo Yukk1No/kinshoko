@@ -13,39 +13,19 @@ use std::path::{Path, PathBuf};
 use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::library::{
-    BrowseQuery, BrowseScope, ContentRating, Error, FactSource, ImageEdit, ImportOutcome,
-    ImportSource, LibraryEvent, SourceTag, TagEdit, TagNamespace, TagRef,
+    BrowseQuery, BrowseScope, ContentRating, Error, FactSource, ImageEdit, ImportSource,
+    LibraryEvent, SourceTag, TagEdit, TagNamespace, TagRef,
 };
 use kinshoko_core::reference_groups::{GroupError, GroupUsage, ReferenceGroupUsage};
 
-fn write_png(path: &Path, seed: u8) -> PathBuf {
-    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    RgbaImage::from_fn(4, 4, |x, y| image::Rgba([seed, x as u8, y as u8, 255]))
-        .save(path)
-        .unwrap();
-    path.to_path_buf()
-}
-
-fn import(library: &Library, dir: &Path, seeds: std::ops::Range<u8>) -> Vec<String> {
-    let paths = seeds
-        .map(|i| write_png(&dir.join(format!("in/{i:02}.png")), i))
-        .collect();
-    library
-        .import(ImportSource { paths })
-        .wait()
-        .items
-        .into_iter()
-        .map(|item| match item.outcome {
-            ImportOutcome::Imported { image_id } => image_id,
-            other => panic!("未导入：{other:?}"),
-        })
-        .collect()
-}
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::import_seeded;
 
 /// 新建资料库并导入 `n` 张内容不同的图，前 `trashed` 张移进回收站。
 fn library_with(dir: &Path, n: u8, trashed: usize) -> (Library, Vec<String>) {
     let library = Library::create(&dir.join("lib"), "库").unwrap();
-    let ids = import(&library, dir, 0..n);
+    let ids = import_seeded(&library, dir, 0..n);
     library.edit(&ids[..trashed], &[ImageEdit::Delete]).unwrap();
     (library, ids)
 }
@@ -227,7 +207,7 @@ fn cached_for(root: &Path, originals: &[PathBuf]) -> Vec<PathBuf> {
 fn confirming_the_preview_deletes_the_images_their_organisation_and_originals() {
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "库").unwrap();
-    let ids = import(&library, dir.path(), 0..3);
+    let ids = import_seeded(&library, dir.path(), 0..3);
     // 整理结果：文件夹、备注、标签、分级，都要随图一起删掉。
     let folder = library.create_folder("人物", None).unwrap();
     library
@@ -295,7 +275,7 @@ fn confirming_the_preview_deletes_the_images_their_organisation_and_originals() 
     let thumbs = cached_for(&library.info().root, &files[..2]);
     assert!(thumbs.is_empty(), "{thumbs:?}");
     // 同一张图还能重新导入。
-    let again = import(&library, dir.path(), 0..1);
+    let again = import_seeded(&library, dir.path(), 0..1);
     assert!(library.image(&again[0]).is_ok());
 
     let received: Vec<LibraryEvent> = events.try_iter().collect();
