@@ -55,10 +55,10 @@ use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::diagnostics::{LibraryNo, LogEvent};
 use kinshoko_core::library::{
     EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping, ExternalVocabulary, ImageDetail,
-    ImageEdit, ImageRating, ImportOptions, ImportSource, LibraryEvent, LibraryInfo, MappedExternal,
-    PermanentDeletePreview, PersonalApproxEntry, RecoveryReport, ReferenceLens, SafeMode,
-    SafeModeScope, Sidebar, TagAlias, TagEdit, TagGroupView, TagNamespace, TagTranslations,
-    Vocabulary, discover_eagle_libraries as discover_eagle,
+    ImageEdit, ImportOptions, ImportSource, LibraryEvent, LibraryInfo, MappedExternal,
+    PermanentDeletePreview, RecoveryReport, ReferenceLens, SafeMode, SafeModeScope, Sidebar,
+    TagAlias, TagEdit, TagGroupView, TagNamespace, TagTranslations, Vocabulary,
+    discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::library_batch::{
     LibraryBatchFailure, LibraryDeletePreview, LibraryDeleteToken, LibraryTarget, each_library,
