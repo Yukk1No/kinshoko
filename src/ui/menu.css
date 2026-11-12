@@ -4,7 +4,7 @@
 .k-popup[data-k-level] { display: flex; flex-direction: column; gap: 4px; min-width: 210px; max-width: 260px; width: max-content;
   max-height: min(420px, calc(100vh - 24px), var(--available-height, 100vh)); overflow: auto; padding: 6px;
   border: 1px solid var(--menu-border); border-radius: var(--r); background: var(--menu-surface); color: var(--menu-ink); box-shadow: var(--menu-shadow);
-  -webkit-backdrop-filter: blur(18px) saturate(135%); backdrop-filter: blur(18px) saturate(135%);
+  backdrop-filter: blur(18px) saturate(135%);
   transform-origin: var(--transform-origin);
   transition: opacity var(--menu-fade) ease-out, transform var(--menu-spring) var(--menu-spring-ease),
     background-color var(--menu-theme-fade), border-color var(--menu-theme-fade), box-shadow var(--menu-theme-fade), color var(--menu-theme-fade); }

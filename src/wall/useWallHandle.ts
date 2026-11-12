@@ -1,12 +1,12 @@
 // 图片墙对外的命令（WallHandle）：预览图片大小、作废在途响应、读下一页、全选，以及先移走卡片（#290）。
 import { useImperativeHandle } from "react";
-import type { Dispatch, ForwardedRef, MutableRefObject, SetStateAction } from "react";
+import type { Dispatch, Ref, MutableRefObject, SetStateAction } from "react";
 import type { BrowserCard, WallHandle } from "./wallShared";
 
 export function useWallHandle({
   ref, measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal,
 }: {
-  ref: ForwardedRef<WallHandle>;
+  ref: Ref<WallHandle> | undefined;
   measureBeforeReflow: (keepSafe?: boolean) => void;
   setPreviewDensity: Dispatch<SetStateAction<number | null>>;
   generation: MutableRefObject<number>;
@@ -66,5 +66,5 @@ export function useWallHandle({
         setTotal((count) => (count === null ? count : count + returning.length));
       };
     },
-  }), [measureBeforeReflow]);
+  }), [measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal]);
 }

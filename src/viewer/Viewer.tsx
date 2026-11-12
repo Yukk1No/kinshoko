@@ -125,6 +125,8 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
   const { loadedSrc, setLoadedSrc, derived, setDerived, failedSrc, setFailedSrc, setRetry, src, exactSource, isOriginal, ready, failed, derivedMounted, derivedStandIn, lastStandIn, swapIn } = useViewerSource({ libraryId, card, mode, physicalWidth });
   useLayoutEffect(() => root.current?.focus(), []);
   // A crop and an active gesture belong to one exact source, including same-sized images.
+  // biome-ignore lint/correctness/useExhaustiveDependencies(libraryId): 换了图就重置
+  // biome-ignore lint/correctness/useExhaustiveDependencies(card.id): 换了图就重置
   useLayoutEffect(() => {
     setCrop(null);
     setSelecting(false);
@@ -133,8 +135,9 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
     setDerived(null);
     select.current = null;
     drag.current = null;
-  }, [libraryId, card.id]);
+  }, [libraryId, card.id, setLoadedSrc, setDerived]);
   // 在上面的重置之后执行，只在打开时一次。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(startCrop): 只在打开时看一次
   useLayoutEffect(() => { if (startCrop) setSelecting(true); }, []);
   useCaptureSources(() => {
     const image = stage.current?.querySelector<HTMLImageElement>("img.viewer-image");
@@ -143,6 +146,8 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
     return reference ? [reference] : [];
   }, 100);
   // 这张图已不在（被删除，或安全模式下被封印，查询返回 UnknownImage）时回到图片墙。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): 资料库有变动时重新核对
+  // biome-ignore lint/correctness/useExhaustiveDependencies(failedSrc): 图读不出来时核对它是否还在
   useEffect(() => {
     let alive = true;
     workspaceImage(libraryId, card.id).then(

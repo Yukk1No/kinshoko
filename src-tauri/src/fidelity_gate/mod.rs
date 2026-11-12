@@ -18,6 +18,7 @@ use tauri::ipc::Response;
 use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
 
 use crate::data_dirs::SharedWebview as _;
+use crate::sync::lock;
 
 mod pins;
 
@@ -61,7 +62,7 @@ pub struct GateState {
 
 impl GateState {
     fn wait(&self) -> Result<Arc<Prepared>, CommandError> {
-        let mut slot = self.slot.lock().unwrap_or_else(|e| e.into_inner());
+        let mut slot = lock(&self.slot);
         loop {
             if let Some(result) = slot.as_ref() {
                 return result.clone();
@@ -74,8 +75,8 @@ impl GateState {
 /// 准备样本库（后台线程）并打开门槛实验窗口。
 pub fn start(app: &AppHandle, options: Options) {
     let state = app.state::<GateState>();
-    *state.exit.lock().unwrap_or_else(|e| e.into_inner()) = options.exit;
-    *state.slot.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *lock(&state.exit) = options.exit;
+    *lock(&state.slot) = None;
     let report_dir = options.report_dir.unwrap_or_else(|| {
         app.path()
             .desktop_dir()
@@ -89,7 +90,7 @@ pub fn start(app: &AppHandle, options: Options) {
         .spawn(move || {
             let result = prepare(&report_dir, display).map(Arc::new);
             let state = handle.state::<GateState>();
-            *state.slot.lock().unwrap_or_else(|e| e.into_inner()) = Some(result);
+            *lock(&state.slot) = Some(result);
             state.ready.notify_all();
         })
         .expect("无法启动门槛实验线程");
@@ -216,7 +217,7 @@ pub async fn gate_plan(app: AppHandle) -> Result<GatePlan, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<GateState>();
         let prepared = state.wait()?;
-        let auto_save = *state.exit.lock().unwrap_or_else(|e| e.into_inner());
+        let auto_save = *lock(&state.exit);
         Ok(GatePlan {
             items: prepared.run.items.clone(),
             environment: prepared.environment.clone(),
@@ -296,7 +297,7 @@ pub async fn gate_save(
     )
     .map_err(CommandError::from)?;
     std::fs::write(&md, markdown).map_err(CommandError::from)?;
-    if *state.exit.lock().unwrap_or_else(|e| e.into_inner()) {
+    if *lock(&state.exit) {
         app.exit(if passed { 0 } else { 1 });
     }
     Ok(json)

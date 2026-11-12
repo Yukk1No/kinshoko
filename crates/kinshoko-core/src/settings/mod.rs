@@ -185,15 +185,6 @@ impl AppSettings {
     ) -> Result<(), SettingsError> {
         self.update(|f| f.viewer_background = Some(background))
     }
-    pub fn migrate_viewer_background(
-        &mut self,
-        legacy: ViewerBackground,
-    ) -> Result<(), SettingsError> {
-        if self.file.viewer_background.is_none() {
-            self.set_viewer_background(legacy)?;
-        }
-        Ok(())
-    }
     pub fn autostart(&self) -> bool {
         self.file.autostart
     }

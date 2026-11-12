@@ -14,6 +14,7 @@ export function DensitySlider(p: { value: number; preview?: number | null; onPre
   const pending = useRef<number | null>(null);
   useEffect(() => setV(p.value), [p.value]);
   // Ctrl+wheel zoom on the wall previews the same value (#111): the thumb follows it; the wall commits it itself.
+  // biome-ignore lint/correctness/useExhaustiveDependencies(p.value): 只跟预览值；value 变了由上一个 effect 处理
   useEffect(() => { setV(p.preview ?? p.value); }, [p.preview]);
   const commit = (x: number) => {
     clearTimeout(timer.current);

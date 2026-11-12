@@ -5,6 +5,7 @@
 //! 私有阶段只用安装包手动更新。公开阶段必须明确声明原仓库已公开，并有原仓库入口与更新公钥。
 //! 签名私钥只在 GitHub 仓库的 Actions secret 里，不进仓库（见 docs/validation/release-checklist.md）。
 
+use crate::sync::lock;
 use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
 use std::sync::Mutex;
@@ -39,14 +40,11 @@ impl UpdaterState {
     }
 
     fn status(&self) -> UpdateStatus {
-        self.status
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
+        lock(&self.status).clone()
     }
 
     fn set(&self, status: UpdateStatus) -> UpdateStatus {
-        *self.status.lock().unwrap_or_else(|e| e.into_inner()) = status.clone();
+        *lock(&self.status) = status.clone();
         status
     }
 }
@@ -85,11 +83,11 @@ pub async fn check_update(
 ) -> Result<UpdateStatus, CommandError> {
     let policy = update_policy(&app);
     if policy.require_automatic().is_err() {
-        *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        *lock(&state.pending) = None;
         return Ok(state.set(policy.initial_status()));
     }
     // 新检查不能留下上一次的可安装对象（例如本次已最新或检查失败）。
-    *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *lock(&state.pending) = None;
     // 先记代次再读通道：读完之后换了通道，代次一定变了。
     let generation = state.generation.load(Ordering::SeqCst);
     let channel = update_channel(&app)?;
@@ -109,7 +107,7 @@ pub async fn check_update(
         Ok(Ok(updater)) => updater.check().await,
         Ok(Err(e)) | Err(e) => Err(e),
     };
-    let mut pending = state.pending.lock().unwrap_or_else(|e| e.into_inner());
+    let mut pending = lock(&state.pending);
     if state.generation.load(Ordering::SeqCst) != generation {
         // 检查期间换了通道：这是旧通道的结果，不保存。
         return Ok(state.status());
@@ -167,7 +165,7 @@ pub async fn set_update_channel(
 /// 并通知主窗口收起更新提示。
 pub fn channel_changed<R: Runtime>(app: &AppHandle<R>) {
     if let Some(state) = app.try_state::<UpdaterState>() {
-        let mut pending = state.pending.lock().unwrap_or_else(|e| e.into_inner());
+        let mut pending = lock(&state.pending);
         state.generation.fetch_add(1, Ordering::SeqCst);
         *pending = None;
         state.set(update_policy(app).initial_status());
@@ -183,16 +181,11 @@ pub async fn install_update(
 ) -> Result<(), CommandError> {
     let policy = update_policy(&app);
     if let Err(message) = policy.require_automatic() {
-        *state.pending.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        *lock(&state.pending) = None;
         state.set(policy.initial_status());
         return Err(message);
     }
-    let Some(update) = state
-        .pending
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .take()
-    else {
+    let Some(update) = lock(&state.pending).take() else {
         return Err(CommandError::new(
             ErrorKind::UpdateNotPending,
             "没有可以安装的更新，请先检查更新。",

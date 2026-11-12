@@ -52,7 +52,7 @@ function Bridge({ children }: { children: ReactNode }) {
       close: (id) => latest.current.close(id),
     };
   }, []);
-  return <Manager.Provider value={api}>{children}</Manager.Provider>;
+  return <Manager value={api}>{children}</Manager>;
 }
 
 const icons = { success: CircleCheck, info: Info, error: CircleAlert } as const;
@@ -125,6 +125,7 @@ export function usePersistentToast(notice: PersistentToast | null, { hidden = fa
     shown.current = null;
     if (id !== null) toast.close(id);
   };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: notice 每次渲染都是新对象，按它显示出来的各项比较，内容没变就不重放
   useEffect(() => {
     if (!notice && level === undefined) dismissedAt.current = null;
     if (!notice || hidden || (dismissedAt.current !== null && (level ?? 0) <= dismissedAt.current)) { close(); return; }
@@ -141,5 +142,6 @@ export function usePersistentToast(notice: PersistentToast | null, { hidden = fa
     } });
     shown.current = id;
   }, [notice === null, notice?.title, notice?.description, notice?.tone, notice?.action?.label, hidden, level]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(close): 只在卸载时收起；close 每次渲染都是新函数，只读 ref
   useEffect(() => close, []);
 }

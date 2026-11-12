@@ -51,6 +51,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
   const [saved, setSaved] = useState(false);
   const generation = useRef(0);
   function reset() { generation.current++; setView(null); setSelected({}); setPage(0); setError(null); setSaved(false); setBusy(false); }
+  // biome-ignore lint/correctness/useExhaustiveDependencies(reset): 监听只装一次；reset 每次渲染都是新函数，只调 setState 与 ref
   useEffect(() => {
     let alive = true;
     const stop = onSafeModeSetting(() => { if (alive) reset(); });
@@ -67,6 +68,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
     } catch (reason) { if (request === generation.current) setError(errorText(reason)); }
     finally { if (request === generation.current) setBusy(false); }
   }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在向导打开或关上时读取或清空；run 与 reset 每次渲染都是新函数
   useEffect(() => { if (open) void run(planLegacyNames); else reset(); }, [open]);
 
   const groups = view?.plan.groups ?? [];
@@ -95,6 +97,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
     const left = firstUnchosen(selected);
     setPage(left >= 0 ? left : groups.length);
   }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: complete、decisions、choiceKey 都由 view 与 selected 算出，decisions 每次渲染都是新数组
   useEffect(() => {
     let alive = true;
     const request = generation.current;
@@ -252,7 +255,7 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
       void unlisten.then((stop) => stop()).catch(() => {}); void safeStop.then((stop) => stop()).catch(() => {});
       void workspaceStop.then((stop) => stop()).catch(() => {});
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // biome-ignore lint/correctness/useExhaustiveDependencies: 何时重读由调用方的 deps 决定，回调里只读 ref 与局部变量
   }, deps);
   return { count, settled };
 }

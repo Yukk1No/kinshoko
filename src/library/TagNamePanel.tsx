@@ -48,6 +48,7 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
     catch (reason) { if (request === generation.current) setError(errorText(reason)); }
     finally { if (request === generation.current) setBusy(false); }
   };
+  // biome-ignore lint/correctness/useExhaustiveDependencies(run): 只在打开时读一次并装上监听；run 每次渲染都是新函数
   useEffect(() => {
     let alive = true;
     void run(inspectTagCatalog);

@@ -207,5 +207,5 @@ export function usePasteShortcut({ onPaste, viewerOpen, scroller }: {
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, []);
+  }, [scroller]);
 }

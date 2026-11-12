@@ -1,0 +1,63 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!.agents",
+      "!.claude",
+      "!src/bindings",
+      "!src/ui/vendor",
+      "!dist",
+      "!design",
+      "!docs"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "lineWidth": 120
+  },
+  "assist": {
+    "enabled": false
+  },
+  "linter": {
+    "rules": {
+      "preset": "none",
+      "correctness": {
+        "useExhaustiveDependencies": "error",
+        "useHookAtTopLevel": "error",
+        "noUnusedImports": "error"
+      }
+    }
+  },
+  "css": {
+    "linter": {
+      "enabled": false
+    }
+  },
+  "json": {
+    "linter": {
+      "enabled": false
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "e2e/**",
+        "scripts/**"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "useExhaustiveDependencies": "off",
+            "useHookAtTopLevel": "off"
+          }
+        }
+      }
+    }
+  ]
+}

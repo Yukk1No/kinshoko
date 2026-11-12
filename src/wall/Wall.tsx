@@ -1,11 +1,11 @@
-import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { MenuPopup } from "../ui/Menu";
 import type { WallMenuTarget } from "./WallMenu";
-import { captureAnchor, masonry, visible, type Anchor, type Box } from "./layout";
+import { captureAnchor, masonry, type Anchor, type Box } from "./layout";
 import { createNotchCounter } from "./zoom";
 import type { createSmoothWheel } from "./smoothWheel";
 import { mountWindow, type MountWindow } from "./prefetch";
@@ -13,7 +13,7 @@ import { useUiScale } from "../shell/uiScale";
 import { useDevicePixelRatio } from "../ui/devicePixelRatio";
 import {
   CAP_RATIO, GAP, NO_CONDITIONS, OVERSCAN, PAD, SAVE_ANCHOR_MS, SCROLLING_MS, TARGET, loadAnchor,
-  saveAnchor, type BrowserCard, type WallHandle, type WallProps,
+  saveAnchor, type BrowserCard, type WallProps,
 } from "./wallShared";
 import { wallCardNode, type CardHandlers } from "./WallCard";
 import { layoutItems, storableAnchor, TRAY_PAD, useCloseTrayOnTopbar, useOpenTray, veiledSheets } from "./imageSets";
@@ -28,6 +28,7 @@ import { thumbnailTier } from "./thumbnailTier";
 import { useReturnFocus, useViewerLeave } from "./useViewerReturn";
 import { useWallCaptureSources } from "./useWallCaptureSources";
 import { useWallZoom, type ZoomState } from "./useWallZoom";
+import { useMountedCards } from "./useMountedCards";
 import { usePasteShortcut, wallInteractions } from "./wallInteractions";
 
 export { DRAG_IMAGE_SOURCES, DRAG_IMAGES, scopeKey } from "./wallShared";
@@ -40,7 +41,7 @@ export type { BrowserCard, CardCommand, WallHandle } from "./wallShared";
  * Ctrl 单击增减选择，Shift 单击选中一段，单击空白处清空选择；选中的图可以拖到文件夹上。
  * 换范围或条件时由调用方换 key 重建。查找结果不记住位置，新的查找从顶部看起。
  */
-export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
+export function Wall({
   workspaceScope,
   onInspectSources,
   onCardsChange,
@@ -64,7 +65,8 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   onPaste,
   emptyAction,
   stackSets = false,
-}, ref) {
+  ref,
+}: WallProps) {
   const searching = conditions.conditions.length > 0;
   const storeKey = searching ? null : `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}`;
   const scroller = useRef<HTMLDivElement>(null);
@@ -108,6 +110,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   const view = useRef({ conditions, workspaceScope, safeMode });
   view.current = { conditions, workspaceScope, safeMode };
   const lens = `${JSON.stringify(conditions)}\n${safeMode}\n${JSON.stringify(workspaceScope)}`;
+  // biome-ignore lint/correctness/useExhaustiveDependencies(lens): 视角变了就作废在途请求
   useLayoutEffect(() => {
     // 视角变了：还在路上的请求按旧视角作废，旧游标也不再接着翻；等调用方按新视角重新浏览。
     generation.current += 1;
@@ -147,6 +150,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   useWallHandle({
     ref, measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal,
   });
+  // biome-ignore lint/correctness/useExhaustiveDependencies(density): 落下新密度后清掉预览
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 
   /**
@@ -266,15 +270,7 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   }, [cursor, mount, layout.height, loadMore]);
 
   const position = useMemo(() => new Map(ids.map((id, i) => [id, i])), [ids]);
-  const mounted = useMemo(() => {
-    const found = new Set(visible(layout, mount.top, mount.bottom));
-    // 查看器里调整窗口宽度后，最后查看的卡片仍能接回焦点（最多多保留一张）。
-    for (const id of [lastOpened.current, ...beforeReflow.current.keys(), ...motions.current.keys()]) {
-      const i = id === null || trayMotion.current?.flights.has(id) ? undefined : position.get(id); // 托盘里飞的页不强行挂载（#418）
-      if (i !== undefined) found.add(i);
-    }
-    return [...found].sort((a, b) => a - b);
-  }, [layout, mount, position, viewerOpen, selected]);
+  const mounted = useMountedCards({ layout, mount, position, viewerOpen, selected, lastOpened, beforeReflow, motions, trayMotion });
 
   useReturnFocus({ returnTo, scroller, position, layout, syncMount });
 
@@ -360,4 +356,4 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
     </MenuPopup>}
     </ContextMenu.Root>
   );
-});
+}

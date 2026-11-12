@@ -3,7 +3,7 @@
 // 用法：node e2e/viewer.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]
 // 本地并行测试宜以独立 identifier 构建；默认使用 4447 / 4448，不占用 #44 的端口。
 import { spawn } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { copyStandaloneRuntime } from "./native-standalone-guard.mjs";

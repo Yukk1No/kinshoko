@@ -34,6 +34,7 @@ export function useViewerSource({ libraryId, card, mode, physicalWidth }: {
   // 连续缩放时只在停手 120 ms 后换来源（#128），原图也一样：大图第一次上屏要整张解码上传，放在手势中间会卡一帧。
   // 每一格缩放都重新计时（100% 以上 desiredPx 不变，要看 physicalWidth）。期间已读完的位图按当前尺寸临时缩放显示，
   // 画面跟手；精确来源读完才换上，静止时看到的仍只来自 ADR-0005 的两条路。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: physicalWidth 与 cardKey 是重新计时的信号；setRequestedPx 每次渲染都是新函数
   useEffect(() => {
     if (mode !== "zoom") { setRequestedPx(desiredPx); return; }
     if (requestedPx === desiredPx || sourcePending) return;

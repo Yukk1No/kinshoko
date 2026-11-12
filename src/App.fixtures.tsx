@@ -298,6 +298,7 @@ export function LocalSearchFixture() {
     });
     return () => { void stop.then((stop) => stop()); };
   }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(generation): 资料库有变动就重新解析搜索
   useEffect(() => {
     let alive = true;
     workspaceResolve(input, lang, safe).then((tree) => alive && setTree(tree), () => {});

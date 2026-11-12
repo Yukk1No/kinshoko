@@ -34,6 +34,7 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
   const toast = useToast();
   const disabled = busy || blocked || !ready;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: revision 是重读信号；fail 每次渲染都是新函数，只调 toast
   useEffect(() => {
     if (!ready) return;
     let alive = true;

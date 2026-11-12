@@ -60,6 +60,7 @@ export function usePaneFold({ body, inspector, paneOpen, onPaneOpen }: {
   /** 变窄前侧栏开着没有；不窄时为 null。 */
   const before = useRef<boolean | null>(null);
   // 画出来之前就收起，免得侧栏先浮起来闪一下。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在变窄、变宽的那一刻处理；开合本身变了不能再触发，否则窄时点开会立刻被收起
   useLayoutEffect(() => {
     if (narrow && before.current === null) {
       before.current = paneOpen;
@@ -68,7 +69,7 @@ export function usePaneFold({ body, inspector, paneOpen, onPaneOpen }: {
       if (before.current !== paneOpen) onPaneOpen(before.current);
       before.current = null;
     }
-  }, [narrow]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [narrow]);
   return { sidebar: fitPanes(body, inspector, paneOpen && !narrow).sidebar, floating: paneOpen && narrow };
 }
 

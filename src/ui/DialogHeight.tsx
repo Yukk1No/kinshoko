@@ -88,6 +88,7 @@ export function DialogSwap({ step, axis = "x", children }: { step: number; axis?
     sign.current = step > previous.current ? 1 : -1;
     previous.current = step;
   }
+  // biome-ignore lint/correctness/useExhaustiveDependencies(step): 换步骤时才把外面的滚动归零
   useLayoutEffect(() => {
     const scroller = rootRef.current?.closest<HTMLElement>(".k-dialog-height");
     if (!scroller?.scrollTop) return;
