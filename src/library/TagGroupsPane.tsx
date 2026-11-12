@@ -5,6 +5,7 @@ import { formatNumber } from "../i18n/format";
 import { i18n } from "../i18n";
 import type { KeyboardEvent } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Link2, PenLine, Plus, Tags, Trash2, X } from "lucide-react";
+import { isComposingKey } from "../ui/composing";
 import { Combobox } from "../ui/Combobox";
 import { Select, type SelectOption } from "../ui/Select";
 import { tagOption } from "../search/tagOptions";
@@ -40,7 +41,7 @@ function escape(e: KeyboardEvent, done: () => void) {
 }
 
 /** 新建标签分组：列表末行展开成一行，名称和分组内容（自己挑选成员，或列出一个命名空间的全部标签）。 */
-function NewGroup({ onDone }: { onDone: (group: { name: string; namespace: TagNamespace | null } | null) => void }) {
+export function NewGroup({ onDone }: { onDone: (group: { name: string; namespace: TagNamespace | null } | null) => void }) {
   const { t } = useTranslation("tagGroups", { keyPrefix: "create" });
   const [name, setName] = useState("");
   const [kind, setKind] = useState<TagNamespace | "">("");
@@ -56,6 +57,7 @@ function NewGroup({ onDone }: { onDone: (group: { name: string; namespace: TagNa
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
+          if (isComposingKey(e)) return;
           if (e.key === "Enter") submit();
           escape(e, () => onDone(null));
         }}
