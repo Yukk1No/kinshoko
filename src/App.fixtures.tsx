@@ -4,8 +4,8 @@ import { useUiLang } from "./i18n";
 import { onLibraryEvent, resolveSearch, setSafeMode } from "./ipc";
 import { workspaceFixture } from "./test/workspace-fixture";
 import { afterEach, beforeEach, expect, vi } from "vitest";
-import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { BrowsePage } from "./bindings/BrowsePage";
@@ -19,6 +19,7 @@ import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
 import type { TagLabel } from "./bindings/TagLabel";
 import { chooseValue } from "./test/select";
+import { fakeBackend } from "./test/backend";
 
 // App 的测试共用的后端模拟、数据与操作步骤。
 
@@ -163,73 +164,97 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
   calls = [];
   safeOn = safe;
   gone = new Set();
-  mockWindows("main");
   let current = opened;
   let tasks = 0;
-  mockIPC(
-    workspaceFixture((cmd, args) => {
-      calls.push({ cmd, args });
-      const overridden = override?.(cmd, args);
-      if (overridden !== undefined) return overridden;
-      switch (cmd) {
-        case "app_info":
-          return info;
-        case "plugin:library|current_library":
-          return current;
-        case "plugin:library|create_library":
-          current = library;
-          return library;
-        case "plugin:library|registered_libraries":
-          return current ? [{ library: current, unavailable: null }] : [];
-        case "plugin:library|register_library":
-          current = { id: "L2", name: "私人收藏", root: (args as { root: string }).root };
-          return current;
-        case "plugin:library|unregister_library":
-          current = null;
-          return null;
-        case "plugin:library|browse":
-          return safeOn ? page : released;
-        case "plugin:library|safe_mode":
-          return safeOn;
-        case "plugin:library|set_safe_mode":
-          safeOn = (args as { on: boolean }).on;
-          return safeOn;
-        case "plugin:library|import_tasks":
-          return [];
-        case "plugin:library|start_import":
-          // 后端每个任务的 id 都不同。
-          return `T${++tasks}`;
-        case "plugin:library|sidebar":
-          return side;
-        case "plugin:library|image": {
-          const { imageId } = args as { imageId: string };
-          if (gone.has(imageId)) return Promise.reject({ code: "unknownImage" });
-          return detail(imageId, null);
-        }
-        case "plugin:library|edit": {
-          const { ids, edits } = args as { ids: string[]; edits: { kind: string; text?: string }[] };
-          const note = edits.find((e) => e.kind === "setNote")?.text ?? null;
-          return ids.map((id) => detail(id, note));
-        }
-        case "plugin:library|workspace_edit_sources":
-          return [];
-        case "plugin:library|recovery":
-          return recovery;
-        case "plugin:library|search_candidates":
-          return (args as { text: string }).text.trim() ? candidates : [];
-        case "plugin:library|resolve_search":
-          return resolved((args as { input: SearchInput }).input);
-        case "tagging_status":
-          return { state: "starting" };
-        case "shell_settings":
-          return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorOpen };
-        default:
-          return null;
+  const answer = workspaceFixture((cmd, args) => {
+    calls.push({ cmd, args });
+    const overridden = override?.(cmd, args);
+    if (overridden !== undefined) return overridden;
+    switch (cmd) {
+      case "app_info":
+        return info;
+      case "plugin:library|current_library":
+        return current;
+      case "plugin:library|create_library":
+        current = library;
+        return library;
+      case "plugin:library|registered_libraries":
+        return current ? [{ library: current, unavailable: null }] : [];
+      case "plugin:library|register_library":
+        current = { id: "L2", name: "私人收藏", root: (args as { root: string }).root };
+        return current;
+      case "plugin:library|unregister_library":
+        current = null;
+        return null;
+      case "plugin:library|browse":
+        return safeOn ? page : released;
+      case "plugin:library|safe_mode":
+        return safeOn;
+      case "plugin:library|set_safe_mode":
+        safeOn = (args as { on: boolean }).on;
+        return safeOn;
+      case "plugin:library|import_tasks":
+        return [];
+      case "plugin:library|start_import":
+        // 后端每个任务的 id 都不同。
+        return `T${++tasks}`;
+      case "plugin:library|sidebar":
+        return side;
+      case "plugin:library|image": {
+        const { imageId } = args as { imageId: string };
+        if (gone.has(imageId)) return Promise.reject({ code: "unknownImage" });
+        return detail(imageId, null);
       }
-    }),
-    { shouldMockEvents: true },
-  );
+      case "plugin:library|edit": {
+        const { ids, edits } = args as { ids: string[]; edits: { kind: string; text?: string }[] };
+        const note = edits.find((e) => e.kind === "setNote")?.text ?? null;
+        return ids.map((id) => detail(id, note));
+      }
+      case "plugin:library|workspace_edit_sources":
+        return [];
+      case "plugin:library|recovery":
+        return recovery;
+      case "plugin:library|search_candidates":
+        return (args as { text: string }).text.trim() ? candidates : [];
+      case "plugin:library|resolve_search":
+        return resolved((args as { input: SearchInput }).input);
+      case "tagging_status":
+        return { state: "starting" };
+      case "shell_settings":
+        return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorOpen };
+      default:
+        return null;
+    }
+  });
+  // 过渡期（#520 阶段一）：这些用例实际发出的命令都交给上面的处理函数回答，没列出的命令由 fakeBackend 拒绝。
+  // 阶段二改成直接按今天的命令登记回答时，这张表随转译层一起删掉。
+  const fake = fakeBackend();
+  for (const command of APP_COMMANDS) fake.on(command, (args) => answer(command, args));
 }
+
+/** App 用例实际发出的命令（完整命令名，交给转译层时要带前缀）。 */
+const APP_COMMANDS = [
+  "app_info", "backup_status", "double_click", "log_frontend", "log_timing", "migrate_viewer_background",
+  "plugin:desktop|capture_history", "plugin:desktop|clipboard_has_image", "plugin:desktop|reference_groups",
+  "plugin:desktop|stage_clipboard_import", "plugin:desktop|take_collection_request",
+  "plugin:desktop|take_open_request", "plugin:library|cancel_import", "plugin:library|catalog_image_tags",
+  "plugin:library|confirm_eagle_location", "plugin:library|create_folder", "plugin:library|create_library",
+  "plugin:library|current_library", "plugin:library|discover_eagle_libraries", "plugin:library|eagle_tag_mapping",
+  "plugin:library|edit", "plugin:library|image", "plugin:library|import_contains_eagle",
+  "plugin:library|import_tasks", "plugin:library|permanent_delete", "plugin:library|pick_files",
+  "plugin:library|pictures_folder", "plugin:library|plan_legacy_names", "plugin:library|preview_permanent_delete",
+  "plugin:library|rating_candidates", "plugin:library|recovery", "plugin:library|register_library",
+  "plugin:library|registered_libraries", "plugin:library|remember_new_library_parent",
+  "plugin:library|rename_folder", "plugin:library|resolve_search", "plugin:library|safe_mode",
+  "plugin:library|save_memory", "plugin:library|search_candidates", "plugin:library|set_safe_mode",
+  "plugin:library|set_tag_approx", "plugin:library|start_import", "plugin:library|unregister_library",
+  "plugin:library|workspace_browse", "plugin:library|workspace_candidates", "plugin:library|workspace_card",
+  "plugin:library|workspace_directories", "plugin:library|workspace_edit_sources",
+  "plugin:library|workspace_resolve", "plugin:library|workspace_sidebar", "plugin:library|workspace_status",
+  "plugin:library|workspace_tag_groups", "plugin:window|is_maximized", "set_inspector_open", "set_inspector_width",
+  "set_ui_scale", "set_viewer_background", "shell_settings", "subscription_recent", "subscription_status",
+  "subscriptions", "tagging_models", "tagging_status", "ui_scale", "update_status",
+];
 
 /** Existing library-local approximation controls remain separate until global rules (T06) land. */
 export function LocalSearchFixture() {
@@ -322,11 +347,7 @@ beforeEach(() => {
   inspectorOpen = true;
 });
 
-afterEach(async () => {
-  cleanup();
-  // 卸载时异步取消事件订阅，等它完成再撤掉模拟。
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
+afterEach(() => {
   vi.unstubAllGlobals();
 });
 

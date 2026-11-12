@@ -1,6 +1,7 @@
 import { createElement, type ComponentType, type ReactNode } from "react";
-import { configure } from "@testing-library/react";
-import { vi } from "vitest";
+import { cleanup, configure } from "@testing-library/react";
+import { clearMocks } from "@tauri-apps/api/mocks";
+import { afterEach, vi } from "vitest";
 // 组件按界面语言取文案（#353）：单独渲染组件的测试也要先初始化 i18n，默认简体中文。
 import "../i18n/instance";
 import { ToastProvider } from "../ui/Toast";
@@ -21,3 +22,10 @@ vi.mock("@testing-library/react", async (original) => {
 // base-ui 给高优先级轻提示（toast.error）另渲染一份隐藏的读屏文字（role="alert" aria-atomic）。按文字查找时
 // 跳过这份副本，否则两份都在：findByText 只有赶在第二份出现前查到才通过，CI 上时序一变就失败。
 configure({ asyncUtilTimeout: 5000, defaultIgnore: 'script, style, [role="alert"][aria-atomic="true"] > div' });
+
+// 每个用例之后：卸载界面，等卸载时异步取消的事件订阅完成，再撤掉 Tauri 的模拟（#520）。
+afterEach(async () => {
+  cleanup();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  clearMocks();
+});
