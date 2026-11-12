@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,7 @@ import { useUiScale } from "../shell/uiScale";
 import { useDevicePixelRatio } from "../ui/devicePixelRatio";
 import {
   CAP_RATIO, GAP, NO_CONDITIONS, OVERSCAN, PAD, SAVE_ANCHOR_MS, SCROLLING_MS, TARGET, loadAnchor,
-  saveAnchor, type BrowserCard, type WallHandle, type WallProps,
+  saveAnchor, type BrowserCard, type WallProps,
 } from "./wallShared";
 import { wallCardNode, type CardHandlers } from "./WallCard";
 import { layoutItems, storableAnchor, TRAY_PAD, useCloseTrayOnTopbar, useOpenTray, veiledSheets } from "./imageSets";
@@ -40,7 +40,7 @@ export type { BrowserCard, CardCommand, WallHandle } from "./wallShared";
  * Ctrl 单击增减选择，Shift 单击选中一段，单击空白处清空选择；选中的图可以拖到文件夹上。
  * 换范围或条件时由调用方换 key 重建。查找结果不记住位置，新的查找从顶部看起。
  */
-export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
+export function Wall({
   workspaceScope,
   onInspectSources,
   onCardsChange,
@@ -64,7 +64,8 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
   onPaste,
   emptyAction,
   stackSets = false,
-}, ref) {
+  ref,
+}: WallProps) {
   const searching = conditions.conditions.length > 0;
   const storeKey = searching ? null : `kinshoko.wall.workspace.${JSON.stringify(workspaceScope)}`;
   const scroller = useRef<HTMLDivElement>(null);
@@ -360,4 +361,4 @@ export const Wall = forwardRef<WallHandle, WallProps>(function Wall({
     </MenuPopup>}
     </ContextMenu.Root>
   );
-});
+}

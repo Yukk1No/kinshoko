@@ -28,10 +28,10 @@ const shownTier = () => Number(document.querySelector<HTMLImageElement>(".wall .
 async function wallAt(scale: number) {
   cssWidth = SCREEN_WIDTH / scale;
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: scale });
-  render(<UiScaleContext.Provider value={scale}>
+  render(<UiScaleContext value={scale}>
     <Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={new Set()} onSelectionChange={() => {}}
       onOpenImage={() => {}} viewerOpen={false} density={240} />
-  </UiScaleContext.Provider>);
+  </UiScaleContext>);
   await screen.findAllByRole("img");
   const cards = [...document.querySelectorAll<HTMLElement>(".wall .card")];
   const firstRow = cards.filter((card) => parseFloat(card.style.top) === parseFloat(cards[0].style.top));
@@ -58,10 +58,10 @@ it("界面缩放 150% 时缩略图按卡片的实际设备像素计算，与 100
 it("WebView 的设备像素比晚于界面缩放档位到达时，缩略图在它到达后按新值换档", async () => {
   cssWidth = SCREEN_WIDTH / 1.5;
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
-  render(<UiScaleContext.Provider value={1.5}>
+  render(<UiScaleContext value={1.5}>
     <Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={new Set()} onSelectionChange={() => {}}
       onOpenImage={() => {}} viewerOpen={false} density={240} />
-  </UiScaleContext.Provider>);
+  </UiScaleContext>);
   await screen.findAllByRole("img");
   expect(shownTier()).toBe(256);
 

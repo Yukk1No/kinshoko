@@ -79,7 +79,7 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
     const stop = onWorkspaceChanged(value => { if (value.revision !== revision) { refresh(); readMemory(); } });
     return () => { alive = false; clearTimeout(retry); void stop.then(fn => fn()); };
   }, [safe]);
-  return <Context.Provider value={{ destination, setDestination, providers, problem, ready, memory, rememberImport, rememberNewLibraryParent: rememberParent }}>{children}</Context.Provider>;
+  return <Context value={{ destination, setDestination, providers, problem, ready, memory, rememberImport, rememberNewLibraryParent: rememberParent }}>{children}</Context>;
 }
 
 export function folderChoices(nodes: FolderNode[], prefix = ""): { id: string; path: string }[] {

@@ -52,7 +52,7 @@ function Bridge({ children }: { children: ReactNode }) {
       close: (id) => latest.current.close(id),
     };
   }, []);
-  return <Manager.Provider value={api}>{children}</Manager.Provider>;
+  return <Manager value={api}>{children}</Manager>;
 }
 
 const icons = { success: CircleCheck, info: Info, error: CircleAlert } as const;
