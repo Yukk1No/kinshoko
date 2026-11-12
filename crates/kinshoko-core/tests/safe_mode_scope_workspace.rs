@@ -2,23 +2,14 @@
 //! 可写句柄、只读打开的句柄与工作区快照都按它；改范围后工作区修订号变化，旧游标作废。
 
 use image::{Rgba, RgbaImage};
-use kinshoko_core::library::{ContentRating, ImageEdit, ImportSource, SafeModeScope};
+use kinshoko_core::library::{ContentRating, ImageEdit, SafeModeScope};
 use kinshoko_core::tag_catalog::TagCatalog;
 use kinshoko_core::workspace::{Workspace, WorkspaceQuery, WorkspaceScope};
 use kinshoko_core::{DeviceLibraries, Library};
 
-fn import(library: &Library, path: &std::path::Path) -> String {
-    library
-        .import(ImportSource {
-            paths: vec![path.into()],
-        })
-        .wait()
-        .items[0]
-        .outcome
-        .image_id()
-        .unwrap()
-        .to_owned()
-}
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::import_one;
 
 fn file(dir: &std::path::Path, red: u8) -> std::path::PathBuf {
     let path = dir.join(format!("{red}.png"));
@@ -56,12 +47,12 @@ fn the_workspace_seals_by_the_device_scope_and_expires_cursors_when_it_changes()
     let b = device.create(&dir.path().join("b"), "B").unwrap();
     // 同一张图在两个库：A 没分级，B 分为轻度。另有 A 里分为敏感的一张、没分级的一张。
     let shared = file(dir.path(), 10);
-    import(&a, &shared);
-    let shared_b = import(&b, &shared);
+    import_one(&a, &shared);
+    let shared_b = import_one(&b, &shared);
     set_rating(&b, &shared_b, ContentRating::Sensitive);
-    let questionable = import(&a, &file(dir.path(), 20));
+    let questionable = import_one(&a, &file(dir.path(), 20));
     set_rating(&a, &questionable, ContentRating::Questionable);
-    import(&a, &file(dir.path(), 30));
+    import_one(&a, &file(dir.path(), 30));
 
     let mut catalog = TagCatalog::open(&app).unwrap();
     let mut workspace = Workspace::open(&app).unwrap();

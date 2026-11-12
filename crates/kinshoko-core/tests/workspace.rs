@@ -6,18 +6,6 @@ use kinshoko_core::tag_catalog::TagCatalog;
 use kinshoko_core::workspace::{Workspace, WorkspaceQuery, WorkspaceScope};
 use kinshoko_core::{DeviceLibraries, Library};
 
-fn import(library: &Library, path: &std::path::Path) -> String {
-    library
-        .import(ImportSource {
-            paths: vec![path.into()],
-        })
-        .wait()
-        .items[0]
-        .outcome
-        .image_id()
-        .unwrap()
-        .to_owned()
-}
 fn tag(library: &Library, id: &str, names: &[&str]) {
     library
         .replace_source_tags(
@@ -46,8 +34,8 @@ fn each_source_must_match_all_conditions_before_identical_bytes_are_aggregated()
     RgbaImage::from_pixel(4, 3, Rgba([12, 34, 56, 255]))
         .save(&file)
         .unwrap();
-    let ai = import(&a, &file);
-    let bi = import(&b, &file);
+    let ai = import_one(&a, &file);
+    let bi = import_one(&b, &file);
     tag(&a, &ai, &["blue_eyes"]);
     tag(&b, &bi, &["short_hair"]);
     let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
@@ -121,6 +109,10 @@ fn each_source_must_match_all_conditions_before_identical_bytes_are_aggregated()
 use kinshoko_core::library::{ContentRating, ImageEdit, TagEdit};
 use kinshoko_core::search::Condition;
 use kinshoko_core::tag_catalog::CatalogCorrection;
+
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::import_one;
 fn query() -> WorkspaceQuery {
     WorkspaceQuery {
         scope: WorkspaceScope::All,
@@ -136,7 +128,7 @@ fn files(dir: &std::path::Path, libraries: &[&Library], red: u8) -> Vec<String> 
     RgbaImage::from_pixel(4, 3, Rgba([red, 34, 56, 255]))
         .save(&path)
         .unwrap();
-    libraries.iter().map(|l| import(l, &path)).collect()
+    libraries.iter().map(|l| import_one(l, &path)).collect()
 }
 #[test]
 fn adult_in_nonmatching_out_of_scope_source_vetoes_cards_counts_and_candidates_without_changing_active_lens()
