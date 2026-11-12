@@ -1,14 +1,14 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { RuntimeDetails, RuntimeNotice, RuntimeProvider } from "./RuntimeSupport";
+import { fakeBackend } from "./test/backend";
 
-afterEach(() => { cleanup(); clearMocks(); vi.restoreAllMocks(); });
+afterEach(() => { vi.restoreAllMocks(); });
 
-const failing = (calls: string[] = []) => mockIPC((command) => {
-  calls.push(command);
-  return command === "runtime_status" ? { webview2: "154.0.4258.62", assessment: { problems: ["decodeMissing"] } } : null;
+const failing = () => fakeBackend({
+  runtime_status: { webview2: "154.0.4258.62", assessment: { problems: ["decodeMissing"] } },
+  open_runtime_update: null,
 });
 
 it("reports a failed capability as one notice that opens the details and leaves browsing usable", async () => {
@@ -25,7 +25,7 @@ it("reports a failed capability as one notice that opens the details and leaves 
 
 it("collapses the notice once a recheck passes and shows it again if the problem comes back", async () => {
   let problems = ["decodeMissing"];
-  mockIPC((command) => command === "runtime_status" ? { webview2: "1", assessment: { problems } } : null);
+  fakeBackend({ runtime_status: () => ({ webview2: "1", assessment: { problems } }) });
   render(<RuntimeProvider><RuntimeNotice hidden={false} onOpen={() => {}} /><RuntimeDetails /></RuntimeProvider>);
   await screen.findByText("运行环境检查未通过");
   fireEvent.click(screen.getByRole("button", { name: "知道了", hidden: true }));
@@ -53,11 +53,10 @@ it("steps aside while settings is open, without counting as dismissed", async ()
 });
 
 it("keeps the reason and the update action inside the settings runtime section", async () => {
-  const calls: string[] = [];
-  failing(calls);
+  const fake = failing();
   render(<RuntimeProvider><RuntimeDetails /></RuntimeProvider>);
   expect((await screen.findByRole("alert")).textContent).toContain("WebView2 版本过旧");
   expect(screen.getByText("微软 WebView2 下载页")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "打开" }));
-  await waitFor(() => expect(calls).toContain("open_runtime_update"));
+  await waitFor(() => expect(fake.calls().map((call) => call.command)).toContain("open_runtime_update"));
 });

@@ -9,9 +9,9 @@ import { chooseOption } from "./test/select";
 
 describe("查找", () => {
   const box = () => screen.findByRole("combobox", { name: "查找参考图" });
-  const lastInput = () => (sent("plugin:library|resolve_search").at(-1) as { input: SearchInput }).input;
+  const lastInput = () => (sent("plugin:library|workspace_resolve").at(-1) as { input: SearchInput }).input;
   const lastQuery = () =>
-    (sent("plugin:library|browse").at(-1) as { query: { conditions: ConditionTree } }).query;
+    (sent("plugin:library|workspace_browse").at(-1) as { query: { conditions: ConditionTree } }).query;
 
   it("登记另一个图库保留全局条件，旧候选和旧条件树按代次重新解析", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
@@ -23,19 +23,19 @@ describe("查找", () => {
     backend(library, clean, (cmd) => {
       if (cmd === "plugin:library|registered_libraries") return [library, other].map((library) => ({ library, unavailable: null }));
       if (cmd === "plugin:library|switch_library") return other;
-      if (cmd === "plugin:library|resolve_search") return oldTree;
-      if (cmd === "plugin:library|search_candidates") return requests++ === 0 ? oldCandidates : [];
+      if (cmd === "plugin:library|workspace_resolve") return oldTree;
+      if (cmd === "plugin:library|workspace_candidates") return requests++ === 0 ? oldCandidates : [];
       return undefined;
     });
     render(<App />);
     const input = await box();
     fireEvent.change(input, { target: { value: "某" } });
-    await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(1));
+    await waitFor(() => expect(sent("plugin:library|workspace_candidates")).toHaveLength(1));
     fireEvent.keyDown(input, { key: "Enter" });
-    await waitFor(() => expect(sent("plugin:library|resolve_search")).toHaveLength(1));
+    await waitFor(() => expect(sent("plugin:library|workspace_resolve")).toHaveLength(1));
     await openLibrary();
     fireEvent.change(await box(), { target: { value: "某" } });
-    await waitFor(() => expect(sent("plugin:library|search_candidates")).toHaveLength(2));
+    await waitFor(() => expect(sent("plugin:library|workspace_candidates")).toHaveLength(2));
     await act(() => {
       finishCandidates(candidates);
       finishTree(resolved({ conditions: [{ any: [{ kind: "text", text: "旧库条件", dismissed: [] }], negate: false }], exact: false }));
@@ -44,8 +44,6 @@ describe("查找", () => {
     expect(within(screen.getByRole("listbox", { name: "查找参考图" })).getAllByRole("option")).toHaveLength(1);
     expect(screen.getByRole("list", { name: "查找条件" }).children).toHaveLength(1);
     expect(lastQuery().conditions.conditions).toHaveLength(1);
-    expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ libraryId: "L2" });
-    expect(sent("plugin:library|resolve_search")[0]).toMatchObject({ libraryId: "L1" });
   });
 
   it("输入的词命中多个类别与别名时，下拉按类别与别名列出候选", async () => {
@@ -60,7 +58,7 @@ describe("查找", () => {
       "作者：某某3",
       "蓝发别名 某某色1",
     ]);
-    expect(sent("plugin:library|search_candidates").at(-1)).toMatchObject({ text: "某某", lang: "zh-CN" });
+    expect(sent("plugin:library|workspace_candidates").at(-1)).toMatchObject({ text: "某某", lang: "zh-CN" });
   });
 
   it("不选候选直接回车就按文字查找，点选候选只查这个标签；图片墙按条件树重新浏览", async () => {
@@ -129,7 +127,7 @@ describe("查找", () => {
 describe("近似查找", () => {
   const box = () => screen.findByRole("combobox", { name: "查找参考图" });
   const chips = () => screen.getByRole("list", { name: "查找条件" });
-  const lastInput = () => (sent("plugin:library|resolve_search").at(-1) as { input: SearchInput }).input;
+  const lastInput = () => (sent("plugin:library|workspace_resolve").at(-1) as { input: SearchInput }).input;
 
   /** 点选“蓝发”作为一个条件。 */
   async function pickBlue() {

@@ -48,7 +48,7 @@ describe("标签分组", () => {
 
     fireEvent.click(blue);
     await waitFor(() =>
-      expect(sent("plugin:library|browse").at(-1)).toMatchObject({
+      expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({
         query: { conditions: { conditions: [{ any: [{ kind: "tag", tag: { id: "T-blue" } }], negate: false }] } },
       }),
     );

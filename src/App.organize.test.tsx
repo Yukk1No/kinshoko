@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
-import { library, page, clean, backend, sent, selectionPanel, selectionBar, expandLibrary } from "./App.fixtures";
+import { library, page, clean, backend, sent, selectionPanel, selectionBar, expandLibrary, wallPage } from "./App.fixtures";
 
 describe("整理", () => {
   const card = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
@@ -20,15 +20,15 @@ describe("整理", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "发型（0 张）" }));
     await waitFor(() =>
-      expect(sent("plugin:library|browse").at(-1)).toMatchObject({
-        query: { scope: { kind: "folderTree", id: "F2" } },
+      expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({
+        query: { scope: { scope: { kind: "folderTree", id: "F2" } } },
       }),
     );
     // 选中了这个图库的文件夹：回收站是它的。
     fireEvent.click(screen.getByRole("button", { name: "回收站（工作参考，1 张）" }));
     await waitFor(() =>
-      expect(sent("plugin:library|browse").at(-1)).toMatchObject({
-        query: { scope: { kind: "trash" } },
+      expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({
+        query: { scope: { scope: { kind: "trash" } } },
       }),
     );
   });
@@ -133,7 +133,7 @@ describe("整理", () => {
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.click(await screen.findByRole("button", { name: "私人收藏（2 张）" }));
-    await waitFor(() => expect(sent("plugin:library|browse").at(-1)).toMatchObject({ libraryId: "L2" }));
+    await waitFor(() => expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } }));
     await waitFor(() => expect(card("a")).toBeTruthy());
     fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(card("b"), { ctrlKey: true });
@@ -159,7 +159,7 @@ describe("整理", () => {
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.click(await screen.findByRole("button", { name: "私人收藏（2 张）" }));
-    await waitFor(() => expect(sent("plugin:library|browse").at(-1)).toMatchObject({ libraryId: "L2" }));
+    await waitFor(() => expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } }));
     await waitFor(() => expect(card("a")).toBeTruthy());
     fireEvent.keyDown(card("a"), { key: " " });
 
@@ -291,10 +291,10 @@ describe("聚合来源操作的工作区通知", () => {
     await screen.findAllByRole("img");
     fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
     expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
-    const browses = sent("plugin:library|browse").length;
+    const browses = sent("plugin:library|workspace_browse").length;
     await act(() => emit("workspace-changed", { revision: "after-tag-edit", libraries: [{ library, unavailable: null }] }));
     // 图片墙按新修订重读之后，选择仍在，详情面板仍打开。
-    await waitFor(() => expect(sent("plugin:library|browse").length).toBeGreaterThan(browses));
+    await waitFor(() => expect(sent("plugin:library|workspace_browse").length).toBeGreaterThan(browses));
     await waitFor(() => expect(document.querySelector('[data-id="a"]')?.getAttribute("aria-selected")).toBe("true"));
     expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
     expect(screen.getByLabelText("详情", { selector: "aside" }).getAttribute("data-collapsed")).toBe("false");
@@ -302,7 +302,7 @@ describe("聚合来源操作的工作区通知", () => {
 
   it("新修订里已不存在的选中图（删除或移出当前范围）从选择中去掉", async () => {
     let gone = false;
-    backend(library, clean, (cmd) => cmd === "plugin:library|browse" && gone ? { ...page, cards: page.cards.filter((c) => c.id !== "a"), total: 1 } : undefined);
+    backend(library, clean, (cmd) => cmd === "plugin:library|workspace_browse" && gone ? wallPage({ ...page, cards: page.cards.filter((c) => c.id !== "a"), total: 1 }) : undefined);
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
@@ -317,7 +317,7 @@ describe("聚合来源操作的工作区通知", () => {
 
   it("唯一的选中图在新修订里不存在时清空选择，详情面板随之收起", async () => {
     let gone = false;
-    backend(library, clean, (cmd) => cmd === "plugin:library|browse" && gone ? { ...page, cards: page.cards.filter((c) => c.id !== "a"), total: 1 } : undefined);
+    backend(library, clean, (cmd) => cmd === "plugin:library|workspace_browse" && gone ? wallPage({ ...page, cards: page.cards.filter((c) => c.id !== "a"), total: 1 }) : undefined);
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });

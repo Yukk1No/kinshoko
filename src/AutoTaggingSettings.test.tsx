@@ -1,17 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import type { ModelChoice } from "./bindings/ModelChoice";
 import type { TaggingStatus } from "./bindings/TaggingStatus";
 import { AutoTaggingSettings } from "./AutoTaggingSettings";
 import { chooseOption, optionNames } from "./test/select";
+import { fakeBackend, type Replies } from "./test/backend";
 
-afterEach(async () => {
-  cleanup();
-  // 卸载时异步取消事件订阅，等它完成再撤掉模拟。
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
+afterEach(() => {
   delete window.__KINSHOKO_TEST_PICKS__;
 });
 
@@ -24,21 +20,9 @@ const choice: ModelChoice = {
   ],
 };
 
-type Call = { cmd: string; args: Record<string, unknown> };
-
-function backend({ status = { state: "paused" } as TaggingStatus, models = choice, handle = (() => undefined) as (cmd: string, args: Record<string, unknown>) => unknown } = {}) {
-  const calls: Call[] = [];
-  mockWindows("main");
-  mockIPC((cmd, args) => {
-    const a = (args ?? {}) as Record<string, unknown>;
-    calls.push({ cmd, args: a });
-    const handled = handle(cmd, a);
-    if (handled !== undefined) return handled;
-    if (cmd === "tagging_models") return models;
-    if (cmd === "tagging_status") return status;
-    return null;
-  }, { shouldMockEvents: true });
-  return calls;
+/** 自动标签设置的假后端：读回 `status` 与 `models`，其余命令照 `replies`。 */
+function backend({ status = { state: "paused" } as TaggingStatus, models = choice, replies = {} as Replies } = {}) {
+  return fakeBackend({ tagging_models: models, tagging_status: status, ...replies });
 }
 
 const statusRow = () => screen.getByRole("listitem", { name: "状态" });
@@ -69,7 +53,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
     ["有图没有完成", 0, "3 张没有完成"],
     ["同时有图库打不开", 1, "1 个图库暂时无法读取，3 张没有完成"],
   ])("%s时写出张数，可以查看与重试", async (_, unknown, text) => {
-    const calls = backend({ status: { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown, failed: { unreadable: 2, crashed: 1 } } });
+    const fake = backend({ status: { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown, failed: { unreadable: 2, crashed: 1 } }, replies: { tagging_retry_failed: null } });
     const shown: string[] = [];
     render(<AutoTaggingSettings hasLibrary onShowUnfinished={() => shown.push("shown")} />);
     await waitFor(() => expect(within(statusRow()).getByText(text)).toBeTruthy());
@@ -77,16 +61,16 @@ describe("设置 › 自动标签 › 自动打标", () => {
     fireEvent.click(within(statusRow()).getByRole("button", { name: "查看" }));
     expect(shown).toEqual(["shown"]);
     fireEvent.click(within(statusRow()).getByRole("button", { name: "重试" }));
-    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_retry_failed", args: {} }));
+    await waitFor(() => expect(fake.calls()).toContainEqual({ command: "tagging_retry_failed", args: {} }));
   });
 
   it("首次使用显示需要下载的大小，确认后才下载", async () => {
-    const calls = backend({ status: { state: "needsDownload", model: "x", size: 992_916_002, downloaded: 0, fallback: null, cancelled: false } });
+    const fake = backend({ status: { state: "needsDownload", model: "x", size: 992_916_002, downloaded: 0, fallback: null, cancelled: false }, replies: { tagging_download: null } });
     render(<AutoTaggingSettings hasLibrary />);
     await waitFor(() => expect(within(statusRow()).getByText(/需要下载模型（947 MB）/)).toBeTruthy());
-    expect(calls.some((c) => c.cmd === "tagging_download")).toBe(false);
+    expect(fake.calls("tagging_download").length > 0).toBe(false);
     fireEvent.click(within(statusRow()).getByRole("button", { name: "下载" }));
-    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_download", args: {} }));
+    await waitFor(() => expect(fake.calls()).toContainEqual({ command: "tagging_download", args: {} }));
   });
 
   it("下载过一部分时按钮是继续下载", async () => {
@@ -112,22 +96,22 @@ describe("设置 › 自动标签 › 自动打标", () => {
   });
 
   it("下载中可以暂停或取消（#213）", async () => {
-    const calls = backend({ status: { state: "downloading", model: "x", downloaded: 1, total: 2 } });
+    const fake = backend({ status: { state: "downloading", model: "x", downloaded: 1, total: 2 }, replies: { tagging_pause: null, tagging_cancel_download: null } });
     render(<AutoTaggingSettings hasLibrary />);
     fireEvent.click(await within(statusRow()).findByRole("button", { name: "暂停" }));
-    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_pause", args: {} }));
+    await waitFor(() => expect(fake.calls()).toContainEqual({ command: "tagging_pause", args: {} }));
     fireEvent.click(within(statusRow()).getByRole("button", { name: "取消下载" }));
-    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_cancel_download", args: {} }));
+    await waitFor(() => expect(fake.calls()).toContainEqual({ command: "tagging_cancel_download", args: {} }));
   });
 
   it("暂停与继续", async () => {
-    const calls = backend({ status: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 0, done: 0, remaining: 1 } });
+    const fake = backend({ status: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 0, done: 0, remaining: 1 }, replies: { tagging_pause: null, tagging_resume: null } });
     render(<AutoTaggingSettings hasLibrary />);
     fireEvent.click(await screen.findByRole("button", { name: "暂停" }));
-    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_pause", args: {} }));
+    await waitFor(() => expect(fake.calls()).toContainEqual({ command: "tagging_pause", args: {} }));
     await act(() => emit("tagging-status", { state: "paused" }));
     fireEvent.click(await screen.findByRole("button", { name: "继续" }));
-    await waitFor(() => expect(calls).toContainEqual({ cmd: "tagging_resume", args: {} }));
+    await waitFor(() => expect(fake.calls()).toContainEqual({ command: "tagging_resume", args: {} }));
   });
 
   it("打开的图库读不到、别的图库照常打标时，状态与暂停照常显示（#414）", async () => {
@@ -177,26 +161,25 @@ describe("设置 › 自动标签 › 模型", () => {
   });
 
   it("选一档即保存，并显示这一档的需求", async () => {
-    const calls = backend({ handle: (cmd, args) => (cmd === "tagging_set_device" ? { ...choice, selected: args.device } : undefined) });
+    const fake = backend({ replies: { tagging_set_device: (args) => ({ ...choice, selected: args.device }) } });
     render(<AutoTaggingSettings hasLibrary />);
     await chooseOption(await hardware(), /^CPU/);
     await waitFor(async () => expect((await hardware()).textContent).toMatch(/^CPU/));
-    expect(calls.find((c) => c.cmd === "tagging_set_device")?.args).toEqual({ device: "cpu" });
+    expect(fake.calls("tagging_set_device")[0]?.args).toEqual({ device: "cpu" });
     expect(screen.getByText("CPU，内存约 4.7 GB，需下载 1.8 GB", { selector: ".k-list-meta" })).toBeTruthy();
 
     await chooseOption(await hardware(), "自动");
-    await waitFor(() => expect(calls.filter((c) => c.cmd === "tagging_set_device").at(-1)?.args).toEqual({ device: null }));
+    await waitFor(() => expect(fake.calls("tagging_set_device").at(-1)?.args).toEqual({ device: null }));
   });
 
   it("换档之前开始的重新读取晚到时，不把刚选的档盖回去", async () => {
     let release = () => {};
     let reads = 0;
     backend({
-      handle: (cmd, args) => {
-        if (cmd === "tagging_set_device") return { ...choice, selected: args.device };
+      replies: {
+        tagging_set_device: (args) => ({ ...choice, selected: args.device }),
         // 第一次读取立即返回；之后（状态到达触发的重新读取）等换档完成后才送回换档前的结果。
-        if (cmd === "tagging_models" && reads++ > 0) return new Promise((done) => { release = () => done(choice); });
-        return undefined;
+        tagging_models: () => reads++ > 0 ? new Promise((done) => { release = () => done(choice); }) : choice,
       },
     });
     render(<AutoTaggingSettings hasLibrary />);
@@ -211,7 +194,7 @@ describe("设置 › 自动标签 › 模型", () => {
     let downloaded = false;
     backend({
       status: { state: "downloading", model: "x", downloaded: 1, total: 2 },
-      handle: (cmd) => (cmd === "tagging_models" ? { ...choice, options: [choice.options[0], { ...choice.options[1], downloaded }] } : undefined),
+      replies: { tagging_models: () => ({ ...choice, options: [choice.options[0], { ...choice.options[1], downloaded }] }) },
     });
     render(<AutoTaggingSettings hasLibrary />);
     await waitFor(async () => expect(await optionNames(await hardware())).toContainEqual(expect.stringMatching(/CPU，.*需下载/)));
@@ -222,22 +205,21 @@ describe("设置 › 自动标签 › 模型", () => {
 
   it("从文件导入模型包，校验通过后显示已下载", async () => {
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\离线\\pixai.zip"];
-    const calls = backend({
-      handle: (cmd) => (cmd === "tagging_import_package" ? { ...choice, options: [choice.options[0], { ...choice.options[1], downloaded: true }] } : undefined),
+    const fake = backend({
+      replies: { tagging_import_package: { ...choice, options: [choice.options[0], { ...choice.options[1], downloaded: true }] } },
     });
     render(<AutoTaggingSettings hasLibrary />);
     fireEvent.click(await screen.findByRole("button", { name: "导入模型包…" }));
     expect(await screen.findByText("模型包已导入")).toBeTruthy();
     expect(await optionNames(await hardware())).toContain("CPU，内存约 4.7 GB，已下载");
-    expect(calls.find((c) => c.cmd === "tagging_import_package")?.args).toEqual({ path: "D:\\离线\\pixai.zip" });
+    expect(fake.calls("tagging_import_package")[0]?.args).toEqual({ path: "D:\\离线\\pixai.zip" });
   });
 
   it("模型包校验不过时显示原因", async () => {
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\坏包.zip"];
     backend({
-      handle: (cmd) => {
-        if (cmd === "tagging_import_package") throw { code: "message", message: "模型包校验失败：model.onnx 已损坏" };
-        return undefined;
+      replies: {
+        tagging_import_package: () => { throw { code: "message", message: "模型包校验失败：model.onnx 已损坏" }; },
       },
     });
     render(<AutoTaggingSettings hasLibrary />);

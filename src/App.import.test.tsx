@@ -1,10 +1,9 @@
-import { workspaceFixture } from "./test/workspace-fixture";
 import { describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { mockIPC } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
 import { library, clean, backend, sent, push, importAction, chooseDestination, confirmImport } from "./App.fixtures";
+import { fakeBackend, shellSettings } from "./test/backend";
 
 /** 导入结束是一条轻提示（#388）；有要处理的项时，它的“查看”打开结果回执卡。 */
 const viewReceipt = async () => fireEvent.click(await screen.findByRole("button", { name: "查看" }));
@@ -30,9 +29,9 @@ describe("主窗口", () => {
     fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
     await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ libraryId: "L1", taskId: "T1" }]));
 
-    const browsed = sent("plugin:library|browse").length;
+    const browsed = sent("plugin:library|workspace_browse").length;
     await push({ kind: "listStale", libraryId: "L1" });
-    await waitFor(() => expect(sent("plugin:library|browse").length).toBeGreaterThan(browsed));
+    await waitFor(() => expect(sent("plugin:library|workspace_browse").length).toBeGreaterThan(browsed));
 
     await push({
       kind: "taskFinished",
@@ -131,11 +130,12 @@ describe("主窗口", () => {
   });
 
   it("从状态栏打开设置", async () => {
-    mockIPC(workspaceFixture((cmd) => {
-      if (cmd === "app_info") return { productName: "Kinshoko", version: "9.9.9" };
-      if (cmd === "shell_settings") return { autostart: true, shortcuts: [] };
-      return undefined;
-    }), { shouldMockEvents: true });
+    fakeBackend({
+      app_info: { productName: "Kinshoko", version: "9.9.9" },
+      shell_settings: shellSettings({ autostart: true }),
+      // 启动时取走留给主窗口的收集请求：没有。
+      take_collection_request: null,
+    });
     render(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: "设置" }));
