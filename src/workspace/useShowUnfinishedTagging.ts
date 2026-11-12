@@ -18,6 +18,7 @@ export function useShowUnfinishedTagging({ request, onOpenBrowse, changeSearch, 
     changeSearch((prev) => ({ ...prev, conditions: [{ any: [{ kind: "taggingUnfinished" }], negate: false }] }));
   };
   const handled = useRef(request);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(show): 只在 request 递增时执行；show 每次渲染都是新函数
   useEffect(() => {
     if (handled.current === request) return;
     handled.current = request;

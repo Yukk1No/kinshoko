@@ -85,7 +85,7 @@ export function useMeasureBeforeReflow({ scroller, motions, safeReflow, reflowMo
     }
     beforeReflow.current = reflowMotion.current ? held!.rects : measured;
     beforeBoxes.current = reflowMotion.current ? held!.boxes : null;
-  }, []);
+  }, [scroller, motions, safeReflow, reflowMotion, beforeReflow, beforeBoxes, live]);
 }
 
 export function useReflowAfterLayout({
@@ -114,6 +114,7 @@ export function useReflowAfterLayout({
   trayMotion: MutableRefObject<TrayMotion | null>;
 }) {
   // 布局变化（宽度、新的一批卡片）后把锚定的图放回原来的位置。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(storeKey): 只在布局变化后放回锚点；存位置的键变了不必重放
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el || !width || !cards.length) return;
@@ -200,7 +201,7 @@ ${badge.className}`;
         }
       }
     }
-  }, [layout, ids, width, cards.length, cursor, syncMount]);
+  }, [layout, ids, width, cards.length, cursor, syncMount, scroller, zoomPin, anchor, anchorToStore, settledTop, restoring, beforeReflow, reflowMotion, beforeBoxes, motions, slideMotion, trayMotion]);
 }
 
 /**
@@ -242,8 +243,9 @@ export function useWidthSync({ holdReflow, settle, slideMotion, scroller, layout
     const ro = new ResizeObserver(() => flushSync(sync));
     ro.observe(el);
     return () => ro.disconnect();
-  }, [measureBeforeReflow, syncMount]);
+  }, [measureBeforeReflow, syncMount, scroller, layoutWidth, setWidth]);
   // 面板开始滑：墙的终点宽度已知，现在就按它排，卡片随面板一起到位。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(holdReflow): 只在面板开始滑时排一次；松手（holdReflow 变 false）时由下面的 still 处理
   useLayoutEffect(() => {
     const el = scroller.current;
     // 拖动中不排；松手时这段滑动的变化量已经过时，等它结束再按实际宽度排。
@@ -254,7 +256,7 @@ export function useWidthSync({ holdReflow, settle, slideMotion, scroller, layout
     slideMotion.current = settle;
     layoutWidth.current = target;
     setWidth(target);
-  }, [settle]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [settle, measureBeforeReflow, slideMotion, scroller, layoutWidth, setWidth]);
   // 宽度稳定了：按最终宽度重排一次（双击间隔还没过时，由下面的计时到点后再排）。
   const still = !holdReflow && !settle;
   useLayoutEffect(() => { if (still) syncWidth.current(); }, [still]);

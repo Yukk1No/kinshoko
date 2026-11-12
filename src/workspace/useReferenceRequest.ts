@@ -10,6 +10,7 @@ import type { WorkspaceProps } from "./workspaceProps";
 export function useReferenceRequest(request: WorkspaceProps["referenceRequest"], safe: boolean, open: (card: BrowserCard) => void) {
   const { t } = useTranslation("workspace");
   const toast = useToast();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 每个请求只读一次；safe 按请求那一刻，open 每次渲染都是新函数，换界面语言不重读
   useEffect(() => {
     if (!request) return;
     let alive = true;

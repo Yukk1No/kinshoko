@@ -78,6 +78,7 @@ export function BackupSettings() {
 
   const selection = status?.plan.selection;
   const selectionKey = JSON.stringify(selection ?? null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 按范围的内容（selectionKey）而不是对象身份重新估计，备份目录变了也重估
   useEffect(() => {
     if (!selection) return;
     let alive = true;
@@ -282,7 +283,7 @@ export function BackupReminder() {
     if (shown.current?.at === at) return;
     if (shown.current) toast.close(shown.current.id);
     shown.current = at === null ? null : { at, id: toast.error(t("title", { reason }), { description: t("retry") }) };
-  }, [toast, at, reason]);
+  }, [toast, at, reason, t]);
   useEffect(() => () => { if (shown.current) toast.close(shown.current.id); shown.current = null; }, [toast]);
   return null;
 }

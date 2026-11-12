@@ -31,7 +31,7 @@ export function useViewerStep({ viewing, setViewing, loadedCards, resultCount, w
     if (viewing?.id !== pending.from || sequence[pending.index - 1]?.id !== pending.from) { pendingStep.current = null; return; }
     const next = sequence[pending.index];
     if (next) { pendingStep.current = null; setViewing(next); }
-  }, [sequence, viewing]);
+  }, [sequence, viewing, setViewing]);
 
   return { viewingIndex, step, loaded: sequence.length };
 }

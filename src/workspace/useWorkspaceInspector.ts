@@ -61,6 +61,7 @@ export function useWorkspaceInspector({
    * 查看器里的详情侧栏跟着正在看的图（#179）：打开或换图时选择改为这一张。不在图片墙上的图
    * （钉图菜单“在 Kinshoko 中打开”）走来源整理。
    */
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在打开查看器或换图时同步选择；墙上的卡片只在那一刻读
   useEffect(() => {
     if (!viewing) {
       // 离开查看器：为墙外那张图打开的来源整理随之收起。
@@ -82,7 +83,7 @@ export function useWorkspaceInspector({
     }
     setSources(null);
     setSelected((previous) => previous.size === 1 && previous.has(viewing.id) ? previous : new Set([viewing.id]));
-  }, [viewing]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [viewing]);
   const [inspectorElement, setInspectorElement] = useState<HTMLElement | null>(null);
   // 拖动边缘时图片墙不逐帧重排，松手后重排一次（#157）。
   const [draggedWidth, setDraggedWidth] = useState<number | null>(null);

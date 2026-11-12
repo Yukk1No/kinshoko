@@ -77,5 +77,5 @@ export function useWallZoom({ scroller, zoom, live, smoothRef, zoomPin, setPrevi
       // 缩放停手前离开（换范围重建图片墙）也落下画师选的大小。
       if (z.value !== null) commit();
     };
-  }, [measureBeforeReflow]);
+  }, [measureBeforeReflow, scroller, zoom, live, smoothRef, zoomPin, setPreviewDensity]);
 }

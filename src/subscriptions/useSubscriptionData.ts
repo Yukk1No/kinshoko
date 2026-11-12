@@ -39,6 +39,7 @@ export function useSubscriptionData(status: SubscriptionStatus, safe: boolean, r
   const signedIn = status.login.state !== "loggedOut";
   const errors = useRef(onError);
   errors.current = onError;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: safe、lens、reload 是重读信号，effect 从 lensRef 读视角
   useEffect(() => {
     if (!signedIn) { setList([]); setRecent([]); return; }
     let alive = true;

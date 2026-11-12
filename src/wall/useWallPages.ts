@@ -54,6 +54,8 @@ export function useWallPages({
   // identity change emptied the wall without the reload below ever running again (T20 r5/r6).
   const workspaceKey = JSON.stringify(workspaceScope);
   const clearedFor = useRef<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): 重新浏览时作废在途请求（卡片保留）
+  // biome-ignore lint/correctness/useExhaustiveDependencies(safeMode): 安全模式切换时作废在途请求（卡片保留）
   useLayoutEffect(() => {
     generation.current += 1;
     inflight.current = null;
@@ -68,7 +70,7 @@ export function useWallPages({
     setCards([]);
     setTotal(null);
     setCursor(null);
-  }, [reloadKey, safeMode, workspaceKey]);
+  }, [reloadKey, safeMode, workspaceKey, generation, inflight, restoring, setCards, setTotal, setCursor]);
   const loaded = useRef(0);
   loaded.current = cards.length;
 
@@ -148,7 +150,7 @@ export function useWallPages({
         if (inflight.current === gen) inflight.current = null;
       }
     },
-    [measureBeforeReflow, onWorkspaceStatus, stackSets],
+    [measureBeforeReflow, onWorkspaceStatus, stackSets, generation, inflight, view, shownCards, restoring, anchor, pendingRemoval, releasePage, setCards, setCursor, setTotal, setStacked, setError],
   );
 
   const loadMore = useCallback(async () => {
@@ -177,9 +179,10 @@ export function useWallPages({
       if (inflight.current === gen) inflight.current = null;
     }
     if (expired) void reload(Math.max(loaded.current, PAGE));
-  }, [cards, cursor, reload, onWorkspaceStatus, stackSets]);
+  }, [cards, cursor, reload, onWorkspaceStatus, stackSets, inflight, pendingRemoval, generation, view, setCards, setCursor, setTotal, setStacked, setError]);
   loadMoreRef.current = () => { void loadMore(); };
   // 布局效果：同一次提交里先于其他组件的刷新（被动效果）发出浏览，后端按到达顺序排队（#183）。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): reloadKey 变了就从头重新浏览
   useLayoutEffect(() => {
     void reload(Math.max(loaded.current, PAGE));
   }, [reload, reloadKey]);

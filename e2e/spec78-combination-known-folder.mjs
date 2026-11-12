@@ -2,7 +2,6 @@
 // spec78-combination-preflight.mjs re-exports everything exported here.
 import { writeFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
-import { sha256 } from "./spec78-combination-fixture.mjs";
 import { IDENTIFIER, python, ownedWork, fileRecord, knownFolderState, knownUnchanged } from "./spec78-combination-preflight.mjs";
 
 export function preserveKnownFolder(work, stem = "settings-before") {

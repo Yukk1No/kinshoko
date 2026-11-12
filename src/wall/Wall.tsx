@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { MenuPopup } from "../ui/Menu";
 import type { WallMenuTarget } from "./WallMenu";
-import { captureAnchor, masonry, visible, type Anchor, type Box } from "./layout";
+import { captureAnchor, masonry, type Anchor, type Box } from "./layout";
 import { createNotchCounter } from "./zoom";
 import type { createSmoothWheel } from "./smoothWheel";
 import { mountWindow, type MountWindow } from "./prefetch";
@@ -28,6 +28,7 @@ import { thumbnailTier } from "./thumbnailTier";
 import { useReturnFocus, useViewerLeave } from "./useViewerReturn";
 import { useWallCaptureSources } from "./useWallCaptureSources";
 import { useWallZoom, type ZoomState } from "./useWallZoom";
+import { useMountedCards } from "./useMountedCards";
 import { usePasteShortcut, wallInteractions } from "./wallInteractions";
 
 export { DRAG_IMAGE_SOURCES, DRAG_IMAGES, scopeKey } from "./wallShared";
@@ -109,6 +110,7 @@ export function Wall({
   const view = useRef({ conditions, workspaceScope, safeMode });
   view.current = { conditions, workspaceScope, safeMode };
   const lens = `${JSON.stringify(conditions)}\n${safeMode}\n${JSON.stringify(workspaceScope)}`;
+  // biome-ignore lint/correctness/useExhaustiveDependencies(lens): 视角变了就作废在途请求
   useLayoutEffect(() => {
     // 视角变了：还在路上的请求按旧视角作废，旧游标也不再接着翻；等调用方按新视角重新浏览。
     generation.current += 1;
@@ -148,6 +150,7 @@ export function Wall({
   useWallHandle({
     ref, measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal,
   });
+  // biome-ignore lint/correctness/useExhaustiveDependencies(density): 落下新密度后清掉预览
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
 
   /**
@@ -267,15 +270,7 @@ export function Wall({
   }, [cursor, mount, layout.height, loadMore]);
 
   const position = useMemo(() => new Map(ids.map((id, i) => [id, i])), [ids]);
-  const mounted = useMemo(() => {
-    const found = new Set(visible(layout, mount.top, mount.bottom));
-    // 查看器里调整窗口宽度后，最后查看的卡片仍能接回焦点（最多多保留一张）。
-    for (const id of [lastOpened.current, ...beforeReflow.current.keys(), ...motions.current.keys()]) {
-      const i = id === null || trayMotion.current?.flights.has(id) ? undefined : position.get(id); // 托盘里飞的页不强行挂载（#418）
-      if (i !== undefined) found.add(i);
-    }
-    return [...found].sort((a, b) => a - b);
-  }, [layout, mount, position, viewerOpen, selected]);
+  const mounted = useMountedCards({ layout, mount, position, viewerOpen, selected, lastOpened, beforeReflow, motions, trayMotion });
 
   useReturnFocus({ returnTo, scroller, position, layout, syncMount });
 

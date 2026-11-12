@@ -5,7 +5,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync, renameSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { createHash } from "node:crypto";
-import { assert, assertions, backup, boot, clearSession, closeSettings, configure, delay, hotkey, normalQuit, oldLibrary, openSettings, ownedWindows, quitOwnApp, restart, restore, session, setting, stopDriver, until, useProfile, wd } from "./application-settings-backup.helpers.mjs";
+import { assert, assertions, backup, boot, clearSession, closeSettings, configure, delay, hotkey, normalQuit, oldLibrary, openSettings, ownedWindows, quitOwnApp, restart, restore, session, stopDriver, until, useProfile, wd } from "./application-settings-backup.helpers.mjs";
 const [, , appArg, edgeArg] = process.argv;
 if (!appArg || !edgeArg) throw Error("Owned executable and matching Edge driver required");
 const application=resolve(appArg), manifest=JSON.parse(readFileSync("work/t13/native-source.json","utf8"));

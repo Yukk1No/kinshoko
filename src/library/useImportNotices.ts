@@ -35,6 +35,7 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
   latest.current = { reimport, onSelectTask, showSealed, onShowDestination };
 
   // 上次导入中断或原文件夹里有不认识的文件：每个图库提示一次，可直接把撤回的文件重新导入回那个图库。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(t): 换界面语言不收起重弹这条提示
   useEffect(() => {
     if (!recovery) return;
     const { interrupted, orphans } = recovery.report;
@@ -56,6 +57,7 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
   const view = (taskId: string, id: string) => () => { toast.close(id); latest.current.onSelectTask?.(taskId); setReceipt(true); };
   const target = finished?.destination ?? (finished?.libraryId ? { libraryId: finished.libraryId, folderId: null } : null);
   const show = (id: string) => target && onShowDestination ? () => { toast.close(id); latest.current.onShowDestination?.(target); } : undefined;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 按任务与 notice.key 判断要不要显示或原地更新；notice、view、show 每次渲染都是新的，receipt 只在提示出现那一刻读
   useEffect(() => {
     if (!finished || !notice) return;
     const taskId = finished.taskId;
@@ -83,6 +85,7 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
   }, [toast]);
 
   // 封印项重复：#78 规定的原文，不点名内容类别，不给数量。错过时可从回执里再展开。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(t): 换界面语言不收起重弹这条提示
   useEffect(() => {
     if (sealedTask === null) return;
     const id = toast.show({ title: t("sealed.prompt"), action: { label: t("sealed.expand"), onClick: () => { toast.close(id); latest.current.showSealed(sealedTask); } } });

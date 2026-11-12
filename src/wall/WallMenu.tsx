@@ -58,11 +58,11 @@ const icon = (Icon: typeof Pin) => <Icon size={14} />;
 function ClipboardImport({ actions, disabled }: { actions: WallMenuActions; disabled: boolean }) {
   const { t } = useTranslation(["wall", "common"]);
   const [hasImage, setHasImage] = useState<boolean | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(actions.clipboardHasImage): 每次打开菜单只读一次
   useEffect(() => {
     let alive = true;
     actions.clipboardHasImage().then((value) => alive && setHasImage(value), () => {});
     return () => { alive = false; };
-    // 每次打开菜单只读一次。
   }, []);
   return <MenuItem icon={icon(ClipboardPaste)} kbd="Ctrl V" disabled={disabled || hasImage === false} onClick={actions.importClipboard}>{t("menu.importClipboard")}</MenuItem>;
 }
@@ -70,11 +70,11 @@ function ClipboardImport({ actions, disabled }: { actions: WallMenuActions; disa
 /** 子菜单打开时才读的列表；读不到时显示原因。 */
 function useList<T>(load: () => Promise<T[]>) {
   const [state, setState] = useState<{ items: T[] | null; problem: string | null }>({ items: null, problem: null });
+  // biome-ignore lint/correctness/useExhaustiveDependencies(load): 每次打开子菜单只读一次；load 每次渲染都是新函数
   useEffect(() => {
     let alive = true;
     load().then((items) => alive && setState({ items, problem: null }), (e) => alive && setState({ items: [], problem: errorText(e) }));
     return () => { alive = false; };
-    // 每次打开子菜单只读一次。
   }, []);
   return state;
 }
@@ -105,12 +105,12 @@ function GroupList({ actions, cards }: { actions: WallMenuActions; cards: Browse
 function RemoveFromFolder({ card, folderId, direct, actions }: { card: BrowserCard; folderId: string; direct: boolean; actions: WallMenuActions }) {
   const { t } = useTranslation(["wall", "common"]);
   const [member, setMember] = useState(direct);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 每次打开菜单只问一次
   useEffect(() => {
     if (direct) return;
     let alive = true;
     actions.inFolder(card, folderId).then((value) => alive && setMember(value), () => {});
     return () => { alive = false; };
-    // 每次打开菜单只问一次。
   }, []);
   if (!member) return null;
   return <MenuItem icon={icon(FolderMinus)} onClick={() => actions.edit([card], [{ kind: "removeFromFolder", folderId }], true)}>{t("menu.removeFromFolder")}</MenuItem>;
