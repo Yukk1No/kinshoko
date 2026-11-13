@@ -59,7 +59,7 @@ export function useViewerSource({ libraryId, card, mode, physicalWidth }: {
       setLoadedSrc(loaded);
       if (!isOriginal(loaded)) setDerived({ src: loaded, loaded: false });
     };
-    if (typeof image.decode === "function") image.decode().then(done, done); else done();
+    image.decode().then(done, done);
   };
   return { loadedSrc, setLoadedSrc, derived, setDerived, failedSrc, setFailedSrc, setRetry, src, exactSource, isOriginal, ready, failed, derivedMounted, derivedStandIn, lastStandIn, swapIn };
 }

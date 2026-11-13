@@ -1,14 +1,14 @@
 // #157：拖动详情面板边缘时图片墙的宽度逐帧变化（开合改走 settle，见 Wall.settle.test）。宽度稳定前不重排，稳定后只重排一次，
 // 起一组位移动画，视口顶部的图不跳走；减少动态效果时直接到最终布局。
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, type MockInstance, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
-import { resize as report, setMedia } from "../test/platform";
+import { type FakeAnimation, resize as report, setMedia } from "../test/platform";
 import { workspacePage } from "../test/workspacePage";
 import { Wall } from "./Wall";
 
 let width: number;
-let motions: { id: string; cancel: ReturnType<typeof vi.fn> }[];
+let motions: { id: string; cancel: MockInstance; animation: FakeAnimation }[];
 
 beforeEach(() => {
   width = 1000;
@@ -24,11 +24,13 @@ beforeEach(() => {
     }
     return new DOMRect(0, 0, width, 800);
   });
-  HTMLElement.prototype.animate = function (this: HTMLElement) {
-    const motion = { id: this.dataset.id!, cancel: vi.fn(), onfinish: null };
-    motions.push(motion);
-    return motion as unknown as Animation;
-  };
+  // 用共用的假动画，另外记下每张卡片起的那一个。
+  const animate = HTMLElement.prototype.animate;
+  vi.spyOn(HTMLElement.prototype, "animate").mockImplementation(function (this: HTMLElement, ...args) {
+    const animation = animate.apply(this, args) as unknown as FakeAnimation;
+    motions.push({ id: this.dataset.id!, cancel: vi.spyOn(animation, "cancel"), animation });
+    return animation as unknown as Animation;
+  });
   mockConvertFileSrc("windows");
   mockIPC((cmd) => {
     if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
@@ -37,7 +39,6 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup(); clearMocks();
-  delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
   vi.restoreAllMocks(); vi.unstubAllGlobals();
 });
 
