@@ -56,7 +56,8 @@ export function useOpenTray(cards: BrowserCard[], stackSets: boolean) {
   const [openSet, setOpenSet] = useState<string | null>(null);
   const { shown, tray } = useMemo(() => expandTray(cards, stackSets ? openSet : null), [cards, openSet, stackSets]);
   const trayIds = useMemo(() => new Set(tray ? shown.slice(tray.at, tray.at + tray.count).map((c) => c.id) : []), [shown, tray]);
-  useEffect(() => { if (openSet !== null && !tray) setOpenSet(null); }, [openSet, tray]);
+  // 那一摞已不在结果里：在渲染中就关上托盘，不留一帧打开着的状态。
+  if (openSet !== null && !tray) setOpenSet(null);
   return { openSet, setOpenSet, shown, tray, trayIds };
 }
 

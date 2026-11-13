@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Profiler, useState } from "react";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { tipText } from "../test/tip";
 import { afterEach, describe, expect, it } from "vitest";
@@ -210,5 +210,23 @@ describe("Combobox", () => {
     expect(picked()).toBe("");
     key("ArrowDown");
     expect(highlighted()?.textContent).toContain("猫耳");
+  });
+});
+
+describe("Combobox 高亮跟着候选", () => {
+  it("候选换了，同一次提交里高亮就回到第一项，不留在旧的那项（#544）", async () => {
+    const seen: (string | null | undefined)[] = [];
+    const box = (options: ComboboxOption[]) => <Profiler id="combo" onRender={() => seen.push(highlighted()?.textContent)}>
+      <Combobox label="标签名" value="猫" onValueChange={() => {}} options={options} onSelect={() => {}} />
+    </Profiler>;
+    const view = render(box([{ id: "a", label: "甲" }, { id: "b", label: "乙" }]));
+    input().focus();
+    await act(async () => {});
+    key("ArrowDown");
+    expect(highlighted()?.textContent).toContain("乙");
+    seen.length = 0;
+    view.rerender(box([{ id: "c", label: "丙" }, { id: "d", label: "丁" }]));
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((text) => text?.includes("丙"))).toBe(true);
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { useMemo, useRef, useState, type ReactElement } from "react";
 import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import { formatNumber } from "../i18n/format";
@@ -76,7 +76,8 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
 
   const visible = useMemo(() => (list ?? []).filter((s) => !safe || !hiddenWhenSafe(s, kinds)), [list, safe, kinds]);
   const visibleIds = useMemo(() => new Set(visible.map((s) => s.id)), [visible]);
-  useEffect(() => { if (selected !== null && !visibleIds.has(selected)) setSelected(null); }, [selected, visibleIds]);
+  // 选中的订阅不在可见列表里（例如开了安全模式）就清掉；在渲染中比较，这一帧就不按它筛选。
+  if (selected !== null && !visibleIds.has(selected)) setSelected(null);
   const images = veiled ? [] : recent.filter((image) => (!safe || !image.explicit) && visibleIds.has(image.subscriptionId) && !failedTiles.has(imageKey(image)));
   const shown = selected === null ? images : images.filter((image) => image.subscriptionId === selected);
   const freshImages = shown.filter((image) => fresh.has(imageKey(image)));

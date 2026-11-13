@@ -202,10 +202,15 @@ export function PermanentDeleteConfirm({
       onCancel();
     });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: key 已含图库、所选与安全模式，内容变了才重读；load 每次渲染都是新函数
-  useEffect(() => {
+  // 换了范围先清掉旧的预览；在渲染中比较，这一帧就不显示上一批的数字。重读留在 effect 里。
+  const [previewFor, setPreviewFor] = useState(key);
+  if (previewFor !== key) {
+    setPreviewFor(key);
     setPreview(null);
     setChanged(false);
+  }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: key 已含图库、所选与安全模式，内容变了才重读；load 每次渲染都是新函数
+  useEffect(() => {
     void load();
   }, [libraryId, key]);
 

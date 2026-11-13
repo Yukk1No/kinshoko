@@ -127,9 +127,12 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
   const identities = loaded?.identities ?? [];
   const stale = loaded !== null && loaded.key !== loadKey;
 
-  // 换了选中的图，别名编辑跟着关掉。
-  // biome-ignore lint/correctness/useExhaustiveDependencies(single): 换了选中的图就关掉别名编辑
-  useEffect(() => setAliasFor(null), [single]);
+  // 换了选中的图，别名编辑跟着关掉。在渲染中比较，换图的这一帧就不显示上一张的编辑。
+  const [aliasImage, setAliasImage] = useState(single);
+  if (aliasImage !== single) {
+    setAliasImage(single);
+    setAliasFor(null);
+  }
 
   const edit = (edits: TagEdit[]) =>
     editTags(libraryId, ids, edits).then(
