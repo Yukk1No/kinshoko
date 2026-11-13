@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -11,13 +11,13 @@ import { errorText } from "../ipc/commandError";
  */
 export function SealedImportPreview({ libraryId, taskId, onClose }: { libraryId: string; taskId: string; onClose: () => void }) {
   const { t } = useTranslation("importing", { keyPrefix: "sealedPreview" });
-  const close = useRef(onClose); close.current = onClose;
+  const closePreview = useEffectEvent(onClose);
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
   useEffect(() => {
     let alive = true, sessionId: string | null = null;
     const urls = new Set<string>();
-    const end = () => { alive = false; for (const url of urls) URL.revokeObjectURL(url); urls.clear(); void closeImportPreview(sessionId).catch(() => {}); close.current(); };
+    const end = () => { alive = false; for (const url of urls) URL.revokeObjectURL(url); urls.clear(); void closeImportPreview(sessionId).catch(() => {}); closePreview(); };
     const hidden = () => { if (document.hidden) end(); };
     document.addEventListener("visibilitychange", hidden);
     const safe = onSafeModeSetting(end);
@@ -41,7 +41,7 @@ export function SealedImportPreview({ libraryId, taskId, onClose }: { libraryId:
   }, [libraryId, taskId]);
   // Esc 与关闭按钮经 onOpenChange 关闭；与原来的原生模态框一样，点遮罩不关闭（只在明确关闭或上下文变化时结束）。
   // 卸载时上面的清理结束预览会话并撤销图片。
-  return <Dialog.Root open disablePointerDismissal onOpenChange={(open) => { if (!open) close.current(); }}>
+  return <Dialog.Root open disablePointerDismissal onOpenChange={(open) => { if (!open) onClose(); }}>
     <Dialog.Portal>
       <Dialog.Backdrop className="k-backdrop" />
       <Dialog.Popup className="k-dialog sealed-import-preview">

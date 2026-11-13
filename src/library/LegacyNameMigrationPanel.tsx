@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatNumber } from "../i18n/format";
 import { Dialog } from "@base-ui/react/dialog";
@@ -211,8 +211,7 @@ const REREAD_DELAY_MS = 200;
 function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps: unknown[]) {
   const [count, setCount] = useState(0);
   const [settled, setSettled] = useState(false);
-  const matcher = useRef(match);
-  matcher.current = match;
+  const countMatching = useEffectEvent((groups: LegacyNameGroup[]) => groups.filter(match).length);
   useEffect(() => {
     let alive = true;
     let generation = 0;
@@ -227,7 +226,7 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
       running = true;
       const request = ++generation;
       void planLegacyNames().then((view) => {
-        if (alive && request === generation) setCount(view?.plan.groups.filter((group) => matcher.current(group)).length ?? 0);
+        if (alive && request === generation) setCount(view ? countMatching(view.plan.groups) : 0);
       }).catch(() => {}).finally(() => {
         running = false;
         if (alive && request === generation) setSettled(true);
@@ -255,7 +254,7 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
       void unlisten.then((stop) => stop()).catch(() => {}); void safeStop.then((stop) => stop()).catch(() => {});
       void workspaceStop.then((stop) => stop()).catch(() => {});
     };
-    // biome-ignore lint/correctness/useExhaustiveDependencies: 何时重读由调用方的 deps 决定，回调里只读 ref 与局部变量
+    // biome-ignore lint/correctness/useExhaustiveDependencies: 何时重读由调用方的 deps 决定，回调里只读局部变量与 countMatching
   }, deps);
   return { count, settled };
 }
