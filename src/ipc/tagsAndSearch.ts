@@ -4,16 +4,13 @@ import { invoke } from "./invoke";
 import { isErrorCode } from "./commandError";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { ApproxRelation } from "../bindings/ApproxRelation";
-import type { PersonalApproxEntry } from "../bindings/PersonalApproxEntry";
 import type { RatingCandidate } from "../bindings/RatingCandidate";
 import type { SafeModeScope } from "../bindings/SafeModeScope";
 import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { Candidate } from "../bindings/Candidate";
-import type { ImageRating } from "../bindings/ImageRating";
 import type { LibraryEvent } from "../bindings/LibraryEvent";
 import type { TagAlias } from "../bindings/TagAlias";
 import type { TagEdit } from "../bindings/TagEdit";
-import type { TagNamespace } from "../bindings/TagNamespace";
 import type { TagGroupView } from "../bindings/TagGroupView";
 import type { Vocabulary } from "../bindings/Vocabulary";
 import { lib, testPick } from "./plugins";
@@ -41,30 +38,6 @@ export function addTagAlias(libraryId: string, tagId: string, alias: TagAlias): 
 
 export function removeTagAlias(libraryId: string, tagId: string, alias: string): Promise<void> {
   return invoke<void>(lib("remove_tag_alias"), { libraryId, tagId, alias });
-}
-
-/** 建立标签分组，返回分组 id；给出 namespace 时分组是该命名空间的全部标签。 */
-export function createTagGroup(libraryId: string, name: string, namespace: TagNamespace | null): Promise<string> {
-  return invoke<string>(lib("create_tag_group"), { libraryId, name, namespace });
-}
-
-export function renameTagGroup(libraryId: string, groupId: string, name: string): Promise<void> {
-  return invoke<void>(lib("rename_tag_group"), { libraryId, groupId, name });
-}
-
-/** 删除标签分组；标签本身与标签决定不受影响。 */
-export function deleteTagGroup(libraryId: string, groupId: string): Promise<void> {
-  return invoke<void>(lib("delete_tag_group"), { libraryId, groupId });
-}
-
-/** 把标签加进画师整理的分组，排在最后。 */
-export function addToTagGroup(libraryId: string, groupId: string, tagIds: string[]): Promise<void> {
-  return invoke<void>(lib("add_to_tag_group"), { libraryId, groupId, tagIds });
-}
-
-/** 把标签移出画师整理的分组；安全模式下看不见的成员不受影响。 */
-export function removeFromTagGroup(libraryId: string, groupId: string, tagIds: string[]): Promise<void> {
-  return invoke<void>(lib("remove_from_tag_group"), { libraryId, groupId, tagIds });
 }
 
 /**
@@ -107,16 +80,6 @@ export function setTagApprox(
   return invoke<void>(lib("set_tag_approx"), { libraryId, a, b, relation });
 }
 
-/** 删除个人近似对应表中的一对，之后按内置近似对应表。 */
-export function removeTagApprox(libraryId: string, a: string, b: string): Promise<void> {
-  return invoke<void>(lib("remove_tag_approx"), { libraryId, a, b });
-}
-
-/** 个人近似对应表的条目，最近记下的在前，名称按界面语言 lang。 */
-export function personalApprox(libraryId: string, lang: string): Promise<PersonalApproxEntry[]> {
-  return invoke<PersonalApproxEntry[]>(lib("personal_approx"), { libraryId, lang });
-}
-
 /** Global safe-mode setting changes invalidate asynchronous browser inspection results. */
 export function onSafeModeSetting(handler: (on: boolean) => void): Promise<UnlistenFn> {
   return listen<boolean>("safe-mode-setting", (event) => handler(event.payload));
@@ -155,11 +118,6 @@ export function pickFolder(): Promise<string | null> {
 export function pickFiles(): Promise<string[]> {
   const t = testPick<string[]>();
   return t ? Promise.resolve(t.value ?? []) : invoke<string[]>(lib("pick_files"));
-}
-
-/** 一张参考图的内容分级（自动与有效）。 */
-export function imageRating(libraryId: string, imageId: string): Promise<ImageRating> {
-  return invoke<ImageRating>(lib("image_rating"), { libraryId, imageId });
 }
 
 /** 安全模式是否开启（全局设置，新装默认开启）。 */

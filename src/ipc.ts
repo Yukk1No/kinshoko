@@ -80,10 +80,6 @@ export function registerLibrary(root: string): Promise<LibraryInfo> {
   return invoke<LibraryInfo>(lib("register_library"), { root });
 }
 
-export function switchLibrary(libraryId: string): Promise<LibraryInfo> {
-  return invoke<LibraryInfo>(lib("switch_library"), { libraryId });
-}
-
 export function unregisterLibrary(libraryId: string): Promise<void> {
   return invoke<void>(lib("unregister_library"), { libraryId });
 }
