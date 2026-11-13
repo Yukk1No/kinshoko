@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { ResolvedTagIdentity } from "../bindings/ResolvedTagIdentity";
 import type { ImageTags } from "../bindings/ImageTags";
@@ -7,19 +7,21 @@ import type { TagLabel } from "../bindings/TagLabel";
 import type { TagNamespace } from "../bindings/TagNamespace";
 import type { ImageTag } from "../bindings/ImageTag";
 import type { TagRef } from "../bindings/TagRef";
-import type { VocabularyTag } from "../bindings/VocabularyTag";
-import { addTagAlias, catalogImageTags, editTags, removeTagAlias, vocabulary } from "../ipc";
+import { catalogImageTags, editTags } from "../ipc";
 import { LIMIT, TagMarks, tagName, useCandidateState } from "../search/SearchBox";
 import { useUiLang } from "../i18n";
 import { tagOption } from "../search/tagOptions";
-import { isComposingKey } from "../ui/composing";
 import { Combobox, type ComboboxOption } from "../ui/Combobox";
 import { TagChip } from "../tags/TagChip";
 import { UntranslatedRename } from "../tags/UntranslatedRename";
-import { tagStanding, type TagStanding } from "../tags/tagConfidence";
 import { useTagDisplay } from "../tags/TagDisplayContext";
-import { AtSign, Ban, Check, Plus, Sparkles, Tags, Undo2, X } from "lucide-react";
+import { AtSign, Ban, Check, Plus, Sparkles, Tags, Undo2 } from "lucide-react";
 import { Tip } from "../ui/Tip";
+import { AliasEditor } from "./TagAliasEditor";
+import { decisionOf, groupByStanding, NAMESPACES, ordered, parseTyped } from "./tagPanelInput";
+
+export { AliasEditor } from "./TagAliasEditor";
+export { parseTyped } from "./tagPanelInput";
 
 type Props = {
   libraryId: string;
@@ -30,68 +32,23 @@ type Props = {
   /** 词表代次（词表、图片或安全模式变化时递增）：重新取得标签、别名与候选。 */
   generation: number;
   onError: (error: unknown) => void;
+  /** 属性表的最后一行（#518）：分级的名称与控件，由详情面板在读到这张图的详情后给出。 */
+  rating?: { label: string; control: ReactNode };
 };
 
-const NAMESPACES: TagNamespace[] = ["general", "artist", "character", "work"];
+/** 一级标签（#518）：这三类在文件名下面的属性表里各占一行，与分级同级；其余是一般标签，留在“标签”区。 */
+const PRIMARY: TagNamespace[] = ["artist", "character", "work"];
 /** 写了类别前缀时取多少个候选再按类别筛（后端只按名称截断）。 */
 const PREFIXED_POOL = 500;
 
-type Group = { kind: TagStanding["kind"]; tags: ImageTag[] };
-
-/**
- * 按出处分组（#482）：你添加的 / 导入 / 打标模型（按可信度从高到低，没有分数的在后）；空组不列。
- * 不分组时也按这个次序排成一列：人写的在前，模型标签在后。
- */
-function groupByStanding(tags: ImageTag[]): Group[] {
-  const groups: Group[] = [
-    { kind: "manual", tags: [] },
-    { kind: "imported", tags: [] },
-    { kind: "model", tags: [] },
-  ];
-  const scoreOf = new Map<ImageTag, number>();
-  for (const entry of tags) {
-    const standing = tagStanding(entry.origins);
-    if (standing.kind === "model") scoreOf.set(entry, standing.score ?? -1);
-    groups[standing.kind === "manual" ? 0 : standing.kind === "imported" ? 1 : 2].tags.push(entry);
-  }
-  groups[2].tags.sort((a, b) => scoreOf.get(b)! - scoreOf.get(a)!);
-  return groups.filter((group) => group.tags.length > 0);
-}
-
 const byId = (tag: TagLabel): TagRef => ({ kind: "id", id: tag.id });
-
-/**
- * 输入框里的字：开头写了类别（“角色：初音”“作品:xx”，与标签的显示名同一写法）就按它新建，候选也只列这个类别。
- * 全角、半角冒号都认；不写类别时 `namespace` 为 null。
- */
-// 半角或全角冒号结尾（全角写成转义，免得被当成写死的界面文字）。
-const ENDS_WITH_COLON = new RegExp("[:" + String.fromCharCode(0xff1a) + "]$");
-
-export function parseTyped(text: string, prefixOf: (namespace: TagNamespace) => string): { namespace: TagNamespace | null; name: string } {
-  const trimmed = text.trim();
-  for (const namespace of NAMESPACES) {
-    const prefix = prefixOf(namespace).trim().replace(ENDS_WITH_COLON, "");
-    if (!prefix) continue;
-    const head = trimmed.slice(0, prefix.length + 1);
-    if (head.length === prefix.length + 1 && ENDS_WITH_COLON.test(head) && head.slice(0, -1).toLocaleLowerCase() === prefix.toLocaleLowerCase())
-      return { namespace, name: trimmed.slice(prefix.length + 1).trim() };
-  }
-  return { namespace: null, name: trimmed };
-}
-
-/**
- * 在候选行上按键或单击做什么：回车 / 单击添加；Alt+回车 / Ctrl+单击排除，与查找框的写法相同；
- * Shift+回车 / Shift+单击改回自动（行尾按钮不可聚焦，键盘靠它）。
- */
-const decisionOf = (event: { type: string; altKey: boolean; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }): TagEdit["kind"] =>
-  event.shiftKey ? "clear" : (event.type === "keydown" ? event.altKey : event.ctrlKey || event.metaKey) ? "reject" : "add";
 
 /**
  * 选中参考图的标签（#51）：只选一张时列出有效标签及出处、被否决的标签，可以确认、否决或清除
  * 人工标签决定，给标签加别名；选几张都能按命名空间与名称（或别名）一次添加、否决或清除。
  * 人工标签决定优先于来源事实，重新打标或重新迁入不会覆盖。
  */
-export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
+export function TagPanel({ libraryId, ids, safe, generation, onError, rating }: Props) {
   const { t } = useTranslation("tags");
   const single = ids.length === 1 ? ids[0] : null;
   // 读到的标签记着它属于哪一次读取：切换选中图时先留着上一张的（不可操作），新的到了再换（#158）。
@@ -173,7 +130,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
   const rowActions = (tag: TagLabel) => {
     const name = tagName(tag);
     return <>
-      <Tip label={t("panel.rejectTitle")} keys="Alt+Enter"><button type="button" tabIndex={-1} className="k-option-act is-reject" aria-label={t("panel.rejectLabel", { name })} aria-keyshortcuts="Alt+Enter"
+      <Tip label={t("panel.reject")} keys="Alt+Enter"><button type="button" tabIndex={-1} className="k-option-act is-reject" aria-label={t("panel.rejectLabel", { name })} aria-keyshortcuts="Alt+Enter"
         onClick={() => decide("reject", byId(tag))}><Ban size={14} aria-hidden="true" /></button></Tip>
       {ids.length > 1 && <Tip label={t("panel.revert")} keys="Shift+Enter"><button type="button" tabIndex={-1} className="k-option-act" aria-label={t("panel.clearLabel", { name })} aria-keyshortcuts="Shift+Enter"
         onClick={() => decide("clear", byId(tag))}><Undo2 size={14} aria-hidden="true" /></button></Tip>}
@@ -192,39 +149,61 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
   </>;
   const addOptions: (ComboboxOption & { tag: TagLabel | null })[] = found.map((c) => ({ ...tagOption(c, query), actions: rowActions(c.tag) }));
   if (query && ready && !exact) addOptions.push({ id: "create", create: true, tag: null, label: t("panel.create", { name: query }), actions: kindPicker });
-  const chip = ({ tag, origins }: ImageTag, meter: boolean) => {
+  const chip = ({ tag, origins }: ImageTag, meter: boolean, bare = false) => {
     const manual = origins.some((o) => o.kind === "manual");
     const name = tagName(tag);
     const unified = identities.filter((identity) => identity.localTagId === tag.id);
     return (
-      <TagChip key={tag.id} tag={tag} origins={origins} meter={meter} rename={renameFor(tag)}
+      <TagChip key={tag.id} tag={tag} origins={origins} meter={meter} bare={bare} rename={renameFor(tag)}
         notes={unified.map((identity) => t("panel.unifiedAs", { name: tagName(identity.tag) }))}
         actions={<>
           {manual ? (
             <button type="button" className="k-tag-tip-btn" aria-label={t("panel.clearLabel", { name })}
               onClick={() => decide("clear", byId(tag))}><Undo2 size={12} aria-hidden="true" /><span className="k-label">{t("panel.revert")}</span></button>
           ) : (
-            <Tip label={t("panel.keepTitle")}><button type="button" className="k-tag-tip-btn" aria-label={t("panel.keepLabel", { name })}
-              onClick={() => decide("add", byId(tag))}><Check size={12} aria-hidden="true" /><span className="k-label">{t("panel.keep")}</span></button></Tip>
+            <button type="button" className="k-tag-tip-btn" aria-label={t("panel.keepLabel", { name })}
+              onClick={() => decide("add", byId(tag))}><Check size={12} aria-hidden="true" /><span className="k-label">{t("panel.keep")}</span></button>
           )}
-          <Tip label={t("panel.rejectTitle")}><button type="button" className="k-tag-tip-btn" aria-label={t("panel.rejectLabel", { name })}
-            onClick={() => decide("reject", byId(tag))}><Ban size={12} aria-hidden="true" /><span className="k-label">{t("panel.reject")}</span></button></Tip>
+          <button type="button" className="k-tag-tip-btn" aria-label={t("panel.rejectLabel", { name })}
+            onClick={() => decide("reject", byId(tag))}><Ban size={12} aria-hidden="true" /><span className="k-label">{t("panel.reject")}</span></button>
           <button type="button" className="k-tag-tip-btn" aria-label={t("panel.aliasesLabel", { name })}
             onClick={() => setAliasFor(tag)}><AtSign size={12} aria-hidden="true" /><span className="k-label">{t("panel.aliases")}</span></button>
         </>} />
     );
   };
-  // 详情面板的标签（#98，design/ui-system/interface-text-rules.md 与 interface-terms.md；#160）：现有标签是小标签，只写名称；
-  // 出处、可信度和“保留／改回自动／不要／别名”在悬停或聚焦时的浮层里。外观按设置：B 按准不准分三档（#482），
-  // C 按出处分组加刻度。两种都是人写的在前、模型标签在后。添加只有一个输入框：候选行回车添加、Alt+回车或行尾按钮排除，
-  // 新建项的行尾选类别；不另放按钮行。
+  // 详情面板的标签（#98，#160，#518）：作者、角色、作品是一级标签，在文件名下面的属性表里各占一行，行首写类别，标签上不再写
+  // 前缀，没有标签的类别不占行；分级是属性表的最后一行。“标签”区只放一般标签。标签上只写名称，出处、可信度和
+  // “保留／改回自动／排除／别名”在悬停或聚焦时的浮层里。外观按设置：B 按准不准分三档（#482），C 按出处分组加刻度。
+  // 两种都是人写的在前、模型标签在后。添加只有一个输入框：候选行回车添加、Alt+回车或行尾按钮排除，新建项的行尾选类别。
+  const all = tags?.tags ?? [];
+  const general = all.filter((entry) => entry.tag.namespace === "general");
+  const primary = PRIMARY.map((value) => ({ namespace: value, tags: ordered(all.filter((entry) => entry.tag.namespace === value)) }))
+    .filter((row) => row.tags.length > 0);
+  const grouped = display.style === "grouped";
   return (
-    <section className="tag-panel insp-sec k-tags" aria-label={t("panel.label")}>
+    <>
+    {(primary.length > 0 || rating) && (
+      <dl className="insp-props k-tags">
+        {primary.map((row) => (
+          <div key={row.namespace} className="insp-prop">
+            <dt>{t(`namespaceOption.${row.namespace}`)}</dt>
+            <dd>
+              <ul className="tag-list k-tag-chips" aria-label={t(`namespaceOption.${row.namespace}`)} aria-busy={stale} inert={stale}>
+                {row.tags.map((entry) => chip(entry, grouped, true))}
+              </ul>
+            </dd>
+          </div>
+        ))}
+        {rating && <div className="insp-prop is-rating"><dt>{rating.label}</dt><dd>{rating.control}</dd></div>}
+      </dl>
+    )}
+    {/* aria-busy：这张图的标签还没读到，或还留着上一张的（src/perf/inspector.ts 靠它判断面板显示完了）。 */}
+    <section className="tag-panel insp-sec k-tags" aria-label={t("panel.label")} aria-busy={single !== null && (tags === null || stale)}>
       <h4><Tags size={13} aria-hidden="true" />{t("panel.title")}</h4>
       {tags && (
         <>
-          {display.style === "grouped" && tags.tags.length > 0
-            ? groupByStanding(tags.tags).map((group) => (
+          {grouped && general.length > 0
+            ? groupByStanding(general).map((group) => (
               <div key={group.kind} className="k-tag-group">
                 <p className="k-tags-sub">{group.kind === "model" && <Sparkles size={12} aria-hidden="true" />}{t(`panel.group.${group.kind}`)}</p>
                 <ul className="tag-list k-tag-chips" aria-label={t(`panel.group.${group.kind}`)} aria-busy={stale} inert={stale}>
@@ -232,22 +211,24 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
                 </ul>
               </div>
             ))
-            : <ul className="tag-list k-tag-chips" aria-label={t("panel.active")} aria-busy={stale} inert={stale}>
-              {tags.tags.length === 0 && <li className="tag-empty k-tags-empty">{t("panel.empty")}</li>}
-              {groupByStanding(tags.tags).flatMap((group) => group.tags).map((entry) => chip(entry, false))}
+            // 只有一级标签时不写“还没有标签”：上面的属性表里已经有了。
+            : (general.length > 0 || all.length === 0) && <ul className="tag-list k-tag-chips" aria-label={t("panel.active")} aria-busy={stale} inert={stale}>
+              {all.length === 0 && <li className="tag-empty k-tags-empty">{t("panel.empty")}</li>}
+              {ordered(general).map((entry) => chip(entry, false))}
             </ul>}
           {tags.rejected.length > 0 && (<>
             <p className="k-tags-sub">{t("panel.excluded")}</p>
-            <ul className="tag-list tag-list-rejected k-tag-chips" aria-label={t("panel.rejected")} aria-busy={stale} inert={stale}>
+            <ul className="tag-list tag-list-rejected k-tag-chips" aria-label={t("panel.excluded")} aria-busy={stale} inert={stale}>
               {tags.rejected.map((tag) => {
                 const name = tagName(tag);
                 const rename = renameFor(tag);
+                // 已排除的标签：名称划掉，末尾的图标把它改回自动（与候选行尾的“改回自动”同一个图标）；悬停图标时划线先去掉，示意结果。
                 return (
                   <li key={tag.id} className="tag-row k-tag-chip is-rejected">
                     <span className="tag-name">{name}</span>
                     <TagMarks tag={tag} untranslated={rename && <UntranslatedRename tag={tag} catalogId={rename.catalogId} onSaved={rename.onSaved} />} />
-                    <Tip label={t("panel.restoreTitle")}><button type="button" className="k-tag-restore" aria-label={t("panel.restoreLabel", { name })}
-                      onClick={() => decide("clear", byId(tag))}>{t("panel.restore")}</button></Tip>
+                    <Tip label={t("panel.revert")}><button type="button" className="k-tag-restore" aria-label={t("panel.clearLabel", { name })}
+                      onClick={() => decide("clear", byId(tag))}><Undo2 size={12} aria-hidden="true" /></button></Tip>
                   </li>
                 );
               })}
@@ -284,91 +265,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
         />
       )}
     </section>
+    </>
   );
 }
 
-/** 一个标签的别名：列出已有的，加新的叫法或去掉一个。别名随词表（vocabulary）刷新。 */
-export function AliasEditor({
-  libraryId,
-  tag,
-  generation,
-  onError,
-  onClose,
-}: {
-  libraryId: string;
-  tag: TagLabel;
-  generation: number;
-  onError: (error: unknown) => void;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation("tags");
-  const lang = useUiLang();
-  const [entry, setEntry] = useState<VocabularyTag | null>(null);
-  const [draft, setDraft] = useState("");
-  const name = tagName(tag);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies(generation): 词表代次前进时重读
-  useEffect(() => {
-    let alive = true;
-    vocabulary(libraryId).then(
-      (v) => alive && setEntry(v.tags.find((t) => t.id === tag.id) ?? null),
-      (e) => alive && onError(e),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [libraryId, tag.id, generation, onError]);
-
-  const add = () => {
-    const alias = draft.trim();
-    if (!alias) return;
-    setDraft("");
-    addTagAlias(libraryId, tag.id, { name: alias, lang }).catch((e) => onError(e));
-  };
-
-  return (
-    <div className="tag-alias-editor k-tag-alias" role="dialog" aria-label={t("panel.aliasesLabel", { name })}>
-      <p className="insp-hint">{t("alias.hint", { name })}</p>
-      {entry && entry.aliases.length > 0 ? (
-        <ul className="tag-aliases k-tag-chips">
-          {entry.aliases.map((a) => (
-            <li key={a.name}>
-              <span>{a.name}</span>
-              <Tip label={t("alias.removeTitle")}><button
-                type="button"
-                className="k-icon-btn is-xs"
-                aria-label={t("alias.removeLabel", { name: a.name })}
-                onClick={() => removeTagAlias(libraryId, tag.id, a.name).catch((e) => onError(e))}
-              >
-                <X size={12} aria-hidden="true" />
-              </button></Tip>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="selection-hint">{t("alias.none")}</p>
-      )}
-      <input
-        className="k-input"
-        placeholder={t("alias.placeholder")}
-        aria-label={t("alias.placeholder")}
-        autoFocus
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (isComposingKey(e)) return;
-          if (e.key === "Enter") add();
-          if (e.key === "Escape") onClose();
-        }}
-      />
-      <span className="k-tag-alias-acts">
-        <button type="button" className="k-btn is-sm" onClick={onClose}>
-          <span className="k-label">{t("alias.done")}</span>
-        </button>
-        <button type="button" className="k-btn is-sm is-primary" disabled={!draft.trim()} onClick={add}>
-          <span className="k-label">{t("alias.add")}</span>
-        </button>
-      </span>
-    </div>
-  );
-}

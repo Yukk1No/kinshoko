@@ -23,13 +23,14 @@ export default {
     unreadable: "无法读取这张图",
     crashed: "处理这张图时出错",
   },
+  /** 分级（#518）：星标在模型给的那一档上；画师改过之后，点带星的那一档改回自动。 */
   rating: {
     label: "内容分级",
     title: "分级",
-    unrated: "尚未分级",
-    manual: "已手动修正",
-    revert: "改回自动（{{auto}}）",
-    auto: "自动分级：{{auto}}",
+    revert: "改回自动",
+    /** 带星那一档的读屏名：分级是自动的 / 画师改过，点它改回自动。 */
+    autoOption: "{{rating}}，自动",
+    revertOption: "{{rating}}，改回自动",
   },
   file: {
     collectedAt: "收集于 {{at}}",
@@ -39,7 +40,6 @@ export default {
   folders: {
     label: "所在文件夹",
     title: "文件夹",
-    none: "不在任何文件夹里",
   },
   note: {
     title: "备注",

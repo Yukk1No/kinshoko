@@ -51,8 +51,28 @@ function renderPanel() {
   );
 }
 
-describe("选中一张图：内容分级", () => {
-  it("显示自动分级，画师改成别的分级后标明是人工修正", async () => {
+const stars = (rating: HTMLElement) => within(rating).getAllByRole("button").map((b) => b.querySelector("svg")?.getAttribute("class") ?? null);
+
+describe("选中一张图：内容分级（#518）", () => {
+  it("自动分级：选中的就是模型给的那一档，只有它带星；没有说明行", async () => {
+    const edits = backend(detail({}), detail({}));
+    renderPanel();
+
+    const rating = await screen.findByRole("group", { name: "内容分级" });
+    expect(within(rating).getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "false", "false", "true"]);
+    expect(stars(rating).map((star) => star !== null)).toEqual([false, false, false, true]);
+    // 自动的星跟文字同色（没有 is-idle）。
+    expect(stars(rating)[3]).not.toContain("is-idle");
+    expect(within(rating).getByRole("button", { name: "成人，自动" })).toBeTruthy();
+    expect(screen.queryByText(/自动分级|已手动修正/)).toBeNull();
+
+    // 点已经生效的自动那一档，不记成画师的分级。
+    fireEvent.click(within(rating).getByRole("button", { name: "成人，自动" }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(edits).toEqual([]);
+  });
+
+  it("画师改成别的分级：选中的换到那一档，星留在模型给的那一档上、变淡", async () => {
     const edits = backend(
       detail({}),
       detail({ manual: "general", effective: "general" }),
@@ -60,13 +80,26 @@ describe("选中一张图：内容分级", () => {
     renderPanel();
 
     const rating = await screen.findByRole("group", { name: "内容分级" });
-    expect(screen.getByText("自动分级：成人")).toBeTruthy();
-    expect(within(rating).getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "false", "false", "false"]);
-
     fireEvent.click(within(rating).getByRole("button", { name: "全年龄" }));
 
-    expect(await screen.findByText("已手动修正")).toBeTruthy();
+    const revert = await within(rating).findByRole("button", { name: "成人，改回自动" });
     expect(edits).toEqual([[{ kind: "setRating", rating: "general" }]]);
+    expect(within(rating).getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["true", "false", "false", "false"]);
+    expect(revert.querySelector("svg")!.getAttribute("class")).toContain("is-idle");
+    expect(await tipText(revert)).toBe("改回自动");
+    expect(screen.queryByText("已手动修正")).toBeNull();
+  });
+
+  it("没有自动分级时哪一档都不带星；画师选的那一档照常选中", async () => {
+    backend(detail({ suggested: null, manual: null, effective: null }), detail({ suggested: null, manual: "sensitive", effective: "sensitive" }));
+    renderPanel();
+
+    const rating = await screen.findByRole("group", { name: "内容分级" });
+    expect(within(rating).getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "false", "false", "false"]);
+    expect(stars(rating)).toEqual([null, null, null, null]);
+    fireEvent.click(within(rating).getByRole("button", { name: "轻度" }));
+    await waitFor(() => expect(within(rating).getByRole("button", { name: "轻度" }).getAttribute("aria-pressed")).toBe("true"));
+    expect(stars(rating)).toEqual([null, null, null, null]);
   });
 
   it("安全模式下改成含成人内容的分级，图被封印，随即取消选择", async () => {
@@ -92,16 +125,28 @@ describe("选中一张图：内容分级", () => {
     await waitFor(() => expect(cleared).toBe(true));
   });
 
-  it("改回自动即退回自动分级", async () => {
+  it("点带星的那一档就是改回自动，不另放按钮", async () => {
     const edits = backend(detail({ manual: "general", effective: "general" }), detail({}));
     renderPanel();
 
     const rating = await screen.findByRole("group", { name: "内容分级" });
     expect(within(rating).getByRole("button", { name: "全年龄" }).getAttribute("aria-pressed")).toBe("true");
-    fireEvent.click(screen.getByRole("button", { name: /改回自动/ }));
+    expect(within(rating).getAllByRole("button")).toHaveLength(4);
+    fireEvent.click(within(rating).getByRole("button", { name: "成人，改回自动" }));
 
     await waitFor(() => expect(edits).toEqual([[{ kind: "revertRating" }]]));
-    await waitFor(() => expect(screen.queryByText("已手动修正")).toBeNull());
+    expect((await within(rating).findByRole("button", { name: "成人，自动" })).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("分级是属性表的最后一行，排在文件夹与备注之前；不在任何文件夹里时没有文件夹这一块", async () => {
+    backend(detail({}), detail({}));
+    renderPanel();
+    const rating = await screen.findByRole("group", { name: "内容分级" });
+    const row = rating.closest(".insp-prop")!;
+    expect(row.querySelector("dt")!.textContent).toBe("分级");
+    expect(row.parentElement!.lastElementChild).toBe(row);
+    expect(screen.queryByRole("region", { name: "所在文件夹" })).toBeNull();
+    expect(screen.queryByText("不在任何文件夹里")).toBeNull();
   });
 });
 

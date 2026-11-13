@@ -4,7 +4,7 @@ import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import { formatMoment } from "../i18n/format";
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { Link2, ShieldCheck, Undo2 } from "lucide-react";
+import { Folder, Link2, Sparkles, StickyNote } from "lucide-react";
 import { Segmented } from "../ui/Segmented";
 import type { ContentRating } from "../bindings/ContentRating";
 import type { ImageRating } from "../bindings/ImageRating";
@@ -51,7 +51,10 @@ export function flattenFolders(nodes: FolderNode[], depth = 0): { id: string; la
 
 const RATINGS: ContentRating[] = ["general", "sensitive", "questionable", "explicit"];
 
-/** 内容分级：画师选的分级优先于自动分级；“改回自动”即退回自动分级。 */
+/**
+ * 内容分级（#518）：指示块始终停在当前生效的那一档，切换时滑过去。星标（“智能”）在模型给的那一档上：分级是自动的，
+ * 星跟文字同色；画师改过之后星留在原处、变成图标色，点带星的那一档就是改回自动。没有说明行，也没有另外的按钮。
+ */
 function RatingPicker({
   rating,
   edit,
@@ -60,18 +63,23 @@ function RatingPicker({
   edit: (edits: ImageEdit[]) => void;
 }) {
   const { t } = useTranslation(["inspector", "common"]);
-  const auto = rating.suggested ? t(`common:rating.${rating.suggested}`) : t("rating.unrated");
+  const { suggested, manual, effective } = rating;
+  // 画师的分级和模型的不一样时，带星的那一档是“改回自动”。
+  const overridden = manual !== null && suggested !== null && manual !== suggested;
   return (
-    <section className="insp-sec selection-rating" aria-label={t("rating.label")}>
-      <h4><ShieldCheck size={13} aria-hidden="true" />{t("rating.title")}</h4>
-      <Segmented<ContentRating> label={t("rating.label")} className="insp-rate" value={rating.manual}
-        onChange={(value) => edit([{ kind: "setRating", rating: value }])}
-        options={RATINGS.map((r) => ({ value: r, label: t(`common:rating.${r}`) }))} />
-      {rating.manual
-        ? <p className="insp-hint">{t("rating.manual")}
-          <button type="button" className="k-btn is-ghost is-sm" onClick={() => edit([{ kind: "revertRating" }])}><Undo2 size={12} aria-hidden="true" /><span className="k-label">{t("rating.revert", { auto })}</span></button></p>
-        : <p className="insp-hint">{t("rating.auto", { auto })}</p>}
-    </section>
+    <Segmented<ContentRating> label={t("rating.label")} className="insp-rate" value={effective}
+      onChange={(value) => edit([overridden && value === suggested ? { kind: "revertRating" } : { kind: "setRating", rating: value }])}
+      options={RATINGS.map((r) => {
+        const name = t(`common:rating.${r}`);
+        if (r !== suggested) return { value: r, label: name };
+        return {
+          value: r,
+          label: name,
+          icon: <Sparkles size={12} aria-hidden="true" className={manual === null ? "insp-rate-star" : "insp-rate-star is-idle"} />,
+          tip: overridden ? t("rating.revert") : undefined,
+          ariaLabel: overridden ? t("rating.revertOption", { rating: name }) : t("rating.autoOption", { rating: name }),
+        };
+      })} />
   );
 }
 
@@ -86,7 +94,7 @@ function TaggingUnfinished({ failure, edit }: { failure: TaggingFailure; edit: (
   );
 }
 
-/** 只选中一张时：所在文件夹、内容分级与备注。 */
+/** 只选中一张时：文件名、所在文件夹与备注。分级在标签面板的属性表里（见 SelectionPanel）。 */
 function Detail({
   detail,
   edit,
@@ -119,17 +127,15 @@ function Detail({
       {detail.versions.previous && <p className="selection-version">{t("file.newVersion")}</p>}
       {detail.versions.newer.length > 0 && <p className="selection-version">{t("file.oldVersion")}</p>}
       {detail.taggingFailure && <TaggingUnfinished failure={detail.taggingFailure} edit={edit} />}
-      <RatingPicker rating={detail.rating} edit={edit} />
-      <section className="insp-sec selection-folders" aria-label={t("folders.label")}>
-        <h4>{t("folders.title")}</h4>
-        {detail.folders.length
-          ? <ul className="insp-chips">{detail.folders.map((folder) => <li key={folder.id} className="insp-chip"><Name className="k-label">{folder.name}</Name></li>)}</ul>
-          : <p className="insp-hint">{t("folders.none")}</p>}
-      </section>
+      {/* 不在任何文件夹里时整块不出现（左栏已有“未归类”），与没有标签的类别不占行同一条规则。 */}
+      {detail.folders.length > 0 && <section className="insp-sec selection-folders" aria-label={t("folders.label")}>
+        <h4><Folder size={13} aria-hidden="true" />{t("folders.title")}</h4>
+        <ul className="insp-chips">{detail.folders.map((folder) => <li key={folder.id} className="insp-chip"><Name className="k-label">{folder.name}</Name></li>)}</ul>
+      </section>}
       {/* 备注（#98）：字段用改版样式；有未保存的改动才出现“保存”，有自己写的备注才能“用来源的”。 */}
       <section className="insp-sec k-note">
         <label className="selection-note">
-          <span className="insp-h">{manual === null && sources.length > 0 ? t("note.fromSource") : t("note.title")}</span>
+          <span className="insp-h"><StickyNote size={13} aria-hidden="true" />{manual === null && sources.length > 0 ? t("note.fromSource") : t("note.title")}</span>
           <textarea className="k-textarea" aria-label={t("note.title")} placeholder={t("note.placeholder")} value={draft} rows={3} onChange={(e) => setDraft(e.target.value)} />
         </label>
         {(draft !== saved || manual !== null) && <div className="selection-actions k-note-acts">
@@ -333,8 +339,11 @@ export function SelectionPanel({
 
   return (
     <div className="selection" aria-label={t("selection.label")}>
-      {/* 标签面板保持在原位置（编辑中的输入不因详情重读而重置）；详情面板用 CSS order 把文件名排在它前面。 */}
-      {!failed && <TagPanel libraryId={libraryId} ids={ids} safe={safeMode} generation={generation} onError={onError} />}
+      {/* 标签面板保持在原位置（编辑中的输入不因详情重读而重置）；详情面板用 CSS order 把文件名排在它前面。
+          分级是标签面板里属性表的最后一行（#518）：控件按图片重挂，换一张图时指示块直接出现在新位置，不从上一张的档位滑过来。 */}
+      {!failed && <TagPanel libraryId={libraryId} ids={ids} safe={safeMode} generation={generation} onError={onError}
+        rating={detail ? { label: t("rating.title"), control: <div className="insp-rate-slot" aria-busy={stale} inert={stale}>
+          <RatingPicker key={detail.id} rating={detail.rating} edit={(e) => void edit(e)} /></div> } : undefined} />}
       {detail && <Detail key={detail.id} detail={detail} stale={stale} edit={(e) => void edit(e)} />}
     </div>
   );
