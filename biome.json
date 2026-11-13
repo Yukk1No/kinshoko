@@ -31,6 +31,19 @@
         "useExhaustiveDependencies": "error",
         "useHookAtTopLevel": "error",
         "noUnusedImports": "error"
+      },
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "@tauri-apps/api/mocks": {
+                "importNames": ["mockIPC"],
+                "message": "测试用 src/test/backend.ts 的 fakeBackend 登记回答，不直接调 mockIPC（#520）。"
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -45,6 +58,16 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["src/test/backend.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": "off"
+          }
+        }
+      }
+    },
     {
       "includes": [
         "e2e/**",
