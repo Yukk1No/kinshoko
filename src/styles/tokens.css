@@ -29,6 +29,7 @@
   --on-accent: #2b2747;
   --manual: light-dark(#8a5e08, #e3b34f); /* the artist's decisions (the "mine" pill); no longer marks tag chips (#482) */
   --manual-soft: light-dark(rgba(227, 179, 79, 0.2), rgba(227, 179, 79, 0.18));
+  --manual-strong: light-dark(#5e4510, #f0cf86); /* manual as text on manual-soft (the "mine" pill) */
   --wall: light-dark(#eae9e6, #161618); /* neutral ground behind thumbnails */
   --card: light-dark(#dcdbd8, #222224);
   /* 一摞的纸（#418）：细边线、落在下一层上的投影、顶边一线高光、墙上的接触阴影（用时 color-mix 出透明度）。 */
@@ -42,9 +43,10 @@
   --danger: light-dark(#b23a3a, #f08a8a);
   --danger-solid: light-dark(#b23a3a, #c94a4a); /* white text 5.9:1 */
   --on-solid: #ffffff;
-  --warn: light-dark(#8a5e08, #e3b34f);
-  --warn-strong: light-dark(#5e4510, #f0cf86);
-  --warn-soft: light-dark(#fbf1d9, rgba(227, 179, 79, 0.12));
+  /* amber, apart from the manual gold and the danger red (#482); always beside a warning icon, since the hue sits close to red */
+  --warn: light-dark(#a14f12, #ec9a56);
+  --warn-strong: light-dark(#7c3a0e, #f6b885);
+  --warn-soft: light-dark(#fbeadb, rgba(236, 154, 86, 0.14));
   --ok: light-dark(#2f6b3e, #8fcb9c);
   --ok-strong: light-dark(#2f6b3e, #b5e3bf);
   --ok-soft: light-dark(#e3f1e6, rgba(127, 179, 138, 0.16));
@@ -150,7 +152,7 @@
    Pills and circles stay fully round. */
 @supports (corner-shape: superellipse(1.25)) {
   :where(*) { corner-shape: superellipse(1.25); }
-  .lib-dot, .k-density-island, .k-density-knob, .k-tagging-dot, .k-tagging-activity, .k-range, .wall-canvas > .card-sources, .wall-canvas > .card-count, .wall-canvas > .card-check,
+  .k-density-island, .k-density-knob, .k-tagging-dot, .k-tagging-activity, .k-range, .wall-canvas > .card-sources, .wall-canvas > .card-count, .wall-canvas > .card-check,
   .startup-bar, .startup-bar *, .capture-tip, .badge, .rail-badge, .fx-burst, .search-chip, .k-radio-card input, .k-steps i, .k-task-progress,
   .k-chip, .k-chip-x, .k-switch, .k-switch-thumb, .k-dock-badge, .k-pill { corner-shape: round; }
   /* search chips in the top bar and its overflow popover are rounded boxes, not pills */

@@ -12,6 +12,19 @@
 - **claude.ai 上的 Kinshoko 设计系统（`project/README.md`、`tokens.json`）从这个文件导出。** 改了令牌就把新值同步过去；两边不一致时以本文件为准。
 - 查颜色只看 `tokens.css`，不必在各个组件样式表里搜。
 
+### 强调、人工、警告三种意思（#482）
+
+三种颜色各管一件事，不能互相借用：
+
+| 令牌 | 意思 | 日间 | 夜间 | 怎么认出来 |
+| --- | --- | --- | --- | --- |
+| `--accent`、`--accent-soft` | 选中、焦点、指示条 | 樱 `#e0768f` | 金 `#e3b34f` | 描边加浅底（如 `.chip.pick.is-on`） |
+| `--manual`、`--manual-soft`、`--manual-strong` | 画师亲手做的决定 | `#8a5e08`，胶囊字 `#5e4510` | 金 `#e3b34f`，胶囊字 `#f0cf86` | 只用在 `.k-pill.is-mine`（浅底配 `--manual-strong` 字）；标签上不再用人工色（标签分三档） |
+| `--warn`、`--warn-strong`、`--warn-soft` | 要画师处理的问题 | 琥珀橙 `#a14f12`，胶囊字 `#7c3a0e` 配 `#fbeadb` | `#ec9a56`，胶囊字 `#f6b885` 配 `rgba(236, 154, 86, 0.14)` | 文字、胶囊和圆点处一律带警告图标（`WarnIcon`，lucide 三角，跟文字同色） |
+
+- 琥珀橙和危险红（日 `#b23a3a`、夜 `#f08a8a`）色相只差约 26°，警告不能只靠颜色，必须带图标。`StatusPill tone="warn"` 默认带图标；其他地方在文字前放 `<WarnIcon />`。本身就是图标的地方（订阅行失败、打标“有图没有完成”的状态图标）不再另加。
+- 对比度：`--warn` 在 `bg`、`surface`、`surface-2`、`sunken` 上日间 4.68–5.67、夜间 6.22–7.79；胶囊字在各自浅底上都过 4.5:1。`src/styles/tokens.styles.test.ts` 检查这些数值与三种颜色互不相同。
+
 ## 焦点环
 
 - **只有一种**：`outline: var(--focus-ring)`（2 px 实线 `--accent`，日间樱色、夜间金色），键盘焦点才画（`:focus-visible`）。输入框、下拉、查找框获得焦点时同样画这一圈，不再加光晕，也不用 `box-shadow` 或 `--ink` 描边代替。

@@ -9,6 +9,7 @@ import { CaptureGroupSaveDialog } from "./CaptureGroupSaveDialog";
 import { draftCaptureSave, type CaptureSaveDraft, type CaptureSavePlan } from "./captureSavePlan";
 import { GroupNameForm } from "./GroupNameForm";
 import { useToast } from "../ui/Toast";
+import { WarnIcon } from "../ui/WarnIcon";
 import { ago } from "./relativeTime";
 import { describeCommandError, errorText, unavailableReasonText } from "../ipc/commandError";
 import type { GroupSummary } from "../bindings/GroupSummary";
@@ -218,7 +219,7 @@ export function ReferenceGroupsPanel() {
                 </span>}
                 {renaming?.id !== g.id && <strong className="reference-group-name">{g.name}</strong>}
                 {g.problem
-                  ? <span className="reference-group-problem">{describeCommandError(g.problem)}</span>
+                  ? <span className="reference-group-problem"><WarnIcon />{describeCommandError(g.problem)}</span>
                   : <span className="reference-group-meta k-parts"><span>{t("memberCount", { count: g.memberCount })}</span><span>{libraries(g.libraryIds)}</span><span>{ago(g.updatedAt)}</span></span>}
               </button>
               {renaming?.id === g.id && (
@@ -261,7 +262,7 @@ export function ReferenceGroupsPanel() {
                     return (
                       <li key={m.memberId} className={m.state.kind === "unavailable" ? "reference-group-member-unavailable" : undefined}>
                         <span className="k-parts"><span>{"libraryId" in m ? libraryNames.get(m.libraryId) ?? t("unregisteredLibrary") : t("captureMember")}</span><span>{crop ? t("crop", { width: crop.width, height: crop.height }) : t("whole")}</span></span>
-                        <span>{memberState(m)}</span>
+                        <span>{m.state.kind === "unavailable" && <WarnIcon />}{memberState(m)}</span>
                         {/* 截图只存在参考组里：移出就删掉，先确认；图库里的图直接移出。 */}
                         <button type="button" className="k-btn is-sm" onClick={() => "libraryId" in m ? void run(() => removeGroupMember(g.id, m.memberId)) : setRemoving({ groupId: g.id, memberId: m.memberId })}><span className="k-label">{t("remove")}</span></button>
                       </li>
