@@ -105,16 +105,16 @@ export function wallInteractions({
   };
   /** 单击空白处清空选择（资源管理器的习惯）；按着修饰键时不动，落在滚动条上的不算。 */
   const clearOnBlankClick = (e: MouseEvent<HTMLDivElement>) => {
-    if (trayIds.size && !(e.target as Element).closest?.(`.card, ${CARD_BUTTONS}, .wall-tray`)) leaveTray();
+    if (trayIds.size && !(e.target instanceof Element && e.target.closest(`.card, ${CARD_BUTTONS}, .wall-tray`))) leaveTray();
     if (e.ctrlKey || e.metaKey || e.shiftKey || !selected.size) return;
-    if ((e.target as Element).closest?.(`.card, ${CARD_BUTTONS}`)) return;
+    if (e.target instanceof Element && e.target.closest(`.card, ${CARD_BUTTONS}`)) return;
     const el = e.currentTarget;
     if (e.clientX - el.getBoundingClientRect().left >= el.clientWidth) return;
     onSelectionChange(new Set());
   };
   const targetMenu = (e: MouseEvent) => {
     const point = { x: e.clientX, y: e.clientY };
-    const node = (e.target as Element).closest?.<HTMLElement>(`.card, ${CARD_BUTTONS}`);
+    const node = e.target instanceof Element ? e.target.closest<HTMLElement>(`.card, ${CARD_BUTTONS}`) : null;
     const id = node?.dataset.id ?? node?.dataset.card;
     const acted = id ? actOn(id) : [];
     setMenuTarget(acted.length ? { kind: "cards", cards: acted, point } : { kind: "blank", point });
@@ -134,7 +134,7 @@ export function wallInteractions({
   const wallKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const chord = (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey;
     // 焦点在托盘里的页或它页角的勾（data-card）上。
-    const at = (e.target as Element).closest?.<HTMLElement>(".card, .card-check");
+    const at = e.target instanceof Element ? e.target.closest<HTMLElement>(".card, .card-check") : null;
     const inTray = trayIds.size > 0 && trayIds.has(at?.dataset.id ?? at?.dataset.card ?? "");
     if (e.key === "Escape" && trayIds.size && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
       // 托盘开着时（#418）：有选中的页先取消选择，再按一次关托盘。
@@ -147,7 +147,7 @@ export function wallInteractions({
       else selectAllRef.current();
     } else if (chord && e.key.toLowerCase() === "c" && onCardCommand) {
       // 复制：焦点在卡片上时按右键的同一选择规则；否则是当前选择。多张由调用方提示一次只能复制一张。
-      const node = (e.target as Element).closest?.<HTMLElement>(".card");
+      const node = e.target instanceof Element ? e.target.closest<HTMLElement>(".card") : null;
       const acted = node?.dataset.id ? actOn(node.dataset.id) : cards.filter((c) => selected.has(c.id));
       if (!acted.length) return;
       e.preventDefault();
