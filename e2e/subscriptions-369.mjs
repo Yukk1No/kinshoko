@@ -3,13 +3,13 @@
 // 数据准备同 subscriptions-368.mjs：假账号、不到期的订阅，不访问 pixiv。查找画师与读关注会请求 pixiv，
 // 而 Tauri 的 IPC 在页面里改不了，所以不点“查找”“从 pixiv 关注导入”，也不点“订阅”“保存”“退订”。
 // Usage: node e2e/subscriptions-369.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { createDriver } from "./lib/driver.mjs";
-import { chunk, png } from "./lib/fixtures.mjs";
+import { png } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg, outArg] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/subscriptions-369.mjs <kinshoko.exe> <msedgedriver.exe> <out>");

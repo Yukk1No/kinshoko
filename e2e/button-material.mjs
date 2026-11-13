@@ -1,12 +1,12 @@
 // 按钮质感（方案 A）的日间、夜间截图：欢迎页、新建图库页、空图库与主按钮悬停、设置几页、多选、清空回收站的确认对话框。
 // 夜间用 :root[data-theme="dark"] 强制，与系统深色走同一套令牌。
 // Usage: node e2e/button-material.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { createDriver } from "./lib/driver.mjs";
-import { chunk, gradientPng as png } from "./lib/fixtures.mjs";
+import { gradientPng as png } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg, outArg] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/button-material.mjs <kinshoko.exe> <msedgedriver.exe> <out>");

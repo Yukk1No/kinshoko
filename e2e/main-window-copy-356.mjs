@@ -2,12 +2,12 @@
 // 依次截首次启动、图片墙、右键菜单、详情侧栏、查看器、查找、空状态与几个对话框。
 // 选择器用中文读屏名称：抽取前后的构建都能走通，也说明读屏名称没有变。
 // Usage: node e2e/main-window-copy-356.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { createDriver } from "./lib/driver.mjs";
-import { chunk, gradientPng as png } from "./lib/fixtures.mjs";
+import { gradientPng as png } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg, outArg] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/main-window-copy-356.mjs <kinshoko.exe> <msedgedriver.exe> <out>");

@@ -2,12 +2,12 @@
 // 文件夹与备注；同一张图在两个图库时，顶上切换图库。数据：先建「pixiv 榜单」导入带作者与 pixiv 标签的图，再建 Test
 // 并留在 Test（与订阅榜单默认新建、不切换过去相同）。不访问 pixiv。
 // Usage: node e2e/inspector-sources.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { createDriver } from "./lib/driver.mjs";
-import { chunk, png } from "./lib/fixtures.mjs";
+import { png } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg, outArg] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/inspector-sources.mjs <kinshoko.exe> <msedgedriver.exe> <out>");

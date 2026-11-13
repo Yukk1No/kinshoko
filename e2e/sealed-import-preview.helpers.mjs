@@ -1,5 +1,4 @@
-// sealed-import-preview.mjs helpers: the WebDriver client, the webview side of a receipt read and starting an import.
-import { spawnSync } from "node:child_process";
+// sealed-import-preview.mjs helpers: the webview side of a receipt read and starting an import.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createDriver } from "./lib/driver.mjs";

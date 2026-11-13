@@ -1,12 +1,12 @@
 // #180: app-window screenshots of the multi-select Dock bar and the collapsing bottom-right corner at three
 // wall widths, a frame sequence of the bar appearing and leaving, and the reduced-motion end state.
 // Usage: node e2e/selection-bar-180.mjs <kinshoko.exe> <matching msedgedriver.exe>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { createDriver } from "./lib/driver.mjs";
-import { chunk, gradientPng as png } from "./lib/fixtures.mjs";
+import { gradientPng as png } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg] = process.argv;
 if (!appArg || !edgeArg) throw new Error("Usage: node e2e/selection-bar-180.mjs <kinshoko.exe> <msedgedriver.exe>");

@@ -2,12 +2,12 @@
 // 依次截空图库、自动标签停下的图标、导入结束的提示、查找无结果、图片墙与菜单、多选、设置各页。
 // 夜间用 :root[data-theme="dark"] 强制，与系统深色走同一套令牌。
 // Usage: node e2e/usability-review-470.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { createDriver } from "./lib/driver.mjs";
-import { chunk, gradientPng as png } from "./lib/fixtures.mjs";
+import { gradientPng as png } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg, outArg] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/usability-review-470.mjs <kinshoko.exe> <msedgedriver.exe> <out>");

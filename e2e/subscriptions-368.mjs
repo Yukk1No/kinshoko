@@ -2,13 +2,13 @@
 // 新数据目录里建库、导入几张合成图；登录与订阅记录是直接写进数据目录的示例（假账号、不到期的订阅），
 // 不访问 pixiv：订阅都在 10 分钟前查过，检查线程不会开始检查。
 // Usage: node e2e/subscriptions-368.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { createDriver } from "./lib/driver.mjs";
-import { chunk, png } from "./lib/fixtures.mjs";
+import { png } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg, outArg] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/subscriptions-368.mjs <kinshoko.exe> <msedgedriver.exe> <out>");

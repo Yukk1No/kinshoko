@@ -1,12 +1,12 @@
 // #444：详情面板只由画师开合。日间与夜间各截一张：新装默认关着时单击选中、顶栏按钮打开、多选跨图库时的空面板、
 // 右键菜单里的“详情”勾选项。数据：两个图库各导入几张合成图，在“全部图片”下操作。
 // Usage: node e2e/inspector-on-demand-444.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { createDriver } from "./lib/driver.mjs";
-import { chunk, png } from "./lib/fixtures.mjs";
+import { png } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg, outArg] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/inspector-on-demand-444.mjs <kinshoko.exe> <msedgedriver.exe> <out>");

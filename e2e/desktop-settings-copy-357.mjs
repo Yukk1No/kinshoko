@@ -3,12 +3,12 @@
 // 钉图菜单与截图框选是另外的窗口，不在这里截（由 desktop.en.test.tsx 与各组件测试核对）。
 // 写法照 main-window-copy-356.mjs；选择器用中文读屏名称，抽取前后的构建都能走通。
 // Usage: node e2e/desktop-settings-copy-357.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { createDriver } from "./lib/driver.mjs";
-import { chunk, gradientPng as png } from "./lib/fixtures.mjs";
+import { gradientPng as png } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg, outArg] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/desktop-settings-copy-357.mjs <kinshoko.exe> <msedgedriver.exe> <out>");

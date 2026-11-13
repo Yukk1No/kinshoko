@@ -2,7 +2,7 @@
 // 依次核对：拖入提示与导入对话框的预填；打开和新建图库后选择、导入结果还在，旧名称提示跟着登记刷新；
 // 回收站里导入禁用、拖入只发通知；A 库导入中整理 B 库文件夹（ADR-0008）。
 // Usage: node e2e/save-destination-430.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";

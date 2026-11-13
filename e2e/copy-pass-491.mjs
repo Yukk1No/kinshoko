@@ -2,12 +2,12 @@
 // 右键菜单、文件夹、编辑分组、管理图库、从 Eagle 导入、参考组，以及设置各页（含标签的各个子页）。
 // 夜间用 :root[data-theme="dark"] 强制，与系统深色走同一套令牌。截图工具与 usability-review-470.mjs 相同。
 // Usage: node e2e/copy-pass-491.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { createDriver } from "./lib/driver.mjs";
-import { chunk, gradientPng as png } from "./lib/fixtures.mjs";
+import { gradientPng as png } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg, outArg] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/copy-pass-491.mjs <kinshoko.exe> <msedgedriver.exe> <out>");
