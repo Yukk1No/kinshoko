@@ -81,5 +81,4 @@
 
 @media (prefers-reduced-motion: reduce) {
   .startup-col-run { animation: none; }
-  .startup-bar > span { transition: none; }
 }

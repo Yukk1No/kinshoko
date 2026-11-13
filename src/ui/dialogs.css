@@ -53,10 +53,6 @@
 .k-preview-table th, .k-preview-table td { padding: 5px 8px; border-top: 1px solid var(--line); text-align: left; overflow-wrap: anywhere; }
 .k-preview-table th { color: var(--ink-2); font-weight: 600; border-top: 0; }
 
-@media (prefers-reduced-motion: reduce) {
-  .k-set-tab, .k-radio-card { transition-duration: 0ms; }
-}
-
 /* ---- Tag bar: 编辑分组 opens the group editor ---- */
 .groupbar-edit { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; border-radius: var(--r-s);
   background: transparent; color: var(--ink-2); font: inherit; font-size: 12px; }
@@ -196,11 +192,9 @@
 .k-group-new > .k-group-icon { margin-right: 4px; }
 .k-group-new > .k-input { flex: 1 1 140px; }
 .k-group-new > .k-group-kind { flex: none; width: 120px; }
-@media (prefers-reduced-motion: reduce) { .k-group-member-acts, .k-group-member, .k-group-acts, .k-group-add, .k-group-create { transition: none; } }
 .k-groups-dialog .k-groups { max-height: calc(100vh - 220px); margin-top: 6px; overflow: auto; }
 /* 详情面板打开时，右下角卡片停在面板左侧，不盖住面板底部的按钮（#98）。 */
 .k-task-cards { transition: right var(--t) var(--spring), bottom var(--t) var(--spring); }
-@media (prefers-reduced-motion: reduce) { .k-task-cards { transition: none; } }
 /* 有浮动的多选操作条（.selbar-float，浮岛高 56 px）时，卡片抬到操作条上方，同样不遮住它。 */
 body:has(.selbar-float):not(:has(.inspector[data-collapsed="false"])) .k-task-cards { bottom: calc(18px + 66px + var(--k-toast-stack, 0px)); max-height: calc(100vh - 100px - 66px - var(--k-toast-stack, 0px)); }
 body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-task-cards { bottom: calc(18px + 66px + var(--k-toast-stack, 0px)); max-height: calc(100vh - 100px - 66px - var(--k-toast-stack, 0px)); }

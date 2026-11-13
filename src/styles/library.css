@@ -160,15 +160,6 @@
   transition: opacity 0s linear 160ms;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .card img,
-  .card img[data-loaded],
-  .card img[data-loaded] + .card-placeholder,
-  .card::after {
-    transition: none;
-  }
-}
-
 /* 设置（#61） */
 
 .settings {
@@ -263,7 +254,6 @@
   box-sizing: border-box; width: 237px; max-height: 50%; overflow: auto; flex-shrink: 0;
   border-top: 1px solid var(--line); border-right: 1px solid var(--line);
 }
-@media (prefers-reduced-motion: reduce) { .sidebar-slot { transition: none; } }
 
 .sidebar-item {
   display: flex;

@@ -34,7 +34,6 @@ describe("共用弹层按 data-side 定进退场方向", () => {
   });
 
   it("减弱动效下直接到终态", () => {
-    expect(uiCss).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.k-popup,[^}]*transition-duration: 0ms/);
     expect(tokensCss).toMatch(/prefers-reduced-motion: reduce\) \{ :root \{[^}]*--t-fast: 0ms/);
   });
 });

@@ -76,7 +76,3 @@ select.k-select { display: block; padding-right: 28px; appearance: none; backgro
 /* Select 的浮层与触发器同宽，自己滚动；里面的列表不再限宽限高。 */
 .k-select-popup { box-sizing: border-box; width: var(--anchor-width); min-width: 0; max-height: min(306px, var(--available-height, 306px)); }
 .k-select-popup .k-listbox { width: auto; max-height: none; overflow: visible; }
-
-@media (prefers-reduced-motion: reduce) {
-  .k-input, .k-select, .k-select > .lucide:last-child { transition: none; }
-}
