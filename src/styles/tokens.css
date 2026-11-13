@@ -9,75 +9,96 @@
   --font-cjk: "Kinshoko Han Punct", var(--font);
   font-synthesis: none;
 
-  --bg: #f7f3ea;              /* paper */
-  --surface: #fffdf8;
-  --rail: #efe8da;
-  --surface-2: #f1ebdf;
-  --sunken: #ede7da;
-  --hover: rgba(43, 39, 71, 0.07);
-  --press: rgba(43, 39, 71, 0.12);
-  --ink: #2b2747;             /* ink purple: text */
-  --ink-2: #5b5773;           /* secondary text */
-  --ink-3: #76718c;           /* icons only */
-  --line: #e3daca;
-  --line-2: #d4c9b5;
-  --accent: #e0768f;          /* sakura: selection, focus, indicator; never carries text */
-  --accent-strong: #a63a55;   /* accent as text */
-  --accent-soft: rgba(224, 118, 143, 0.14);
+  --bg: light-dark(#f7f3ea, #1e1c2c); /* paper */
+  --surface: light-dark(#fffdf8, #252336);
+  --rail: light-dark(#efe8da, #17151f);
+  --surface-2: light-dark(#f1ebdf, #2c2940);
+  --sunken: light-dark(#ede7da, #19172a);
+  --hover: light-dark(rgba(43, 39, 71, 0.07), rgba(244, 236, 220, 0.07));
+  --press: light-dark(rgba(43, 39, 71, 0.12), rgba(244, 236, 220, 0.12));
+  --ink: light-dark(#2b2747, #f4ecdc); /* ink purple: text */
+  --ink-2: light-dark(#5b5773, #c8c0b2); /* secondary text */
+  --ink-3: light-dark(#76718c, #9890a8); /* icons only */
+  --line: light-dark(#e3daca, #353249);
+  --line-2: light-dark(#d4c9b5, #45415c);
+  --accent: light-dark(#e0768f, #e3b34f); /* sakura: selection, focus, indicator; never carries text */
+  --accent-strong: light-dark(#a63a55, #e9c26e); /* accent as text */
+  --accent-soft: light-dark(rgba(224, 118, 143, 0.14), rgba(227, 179, 79, 0.16));
   /* 焦点环只有一种（#489）：2 px 强调色实线。外移 2 px；只有贴边或会被裁切的地方用 --focus-inset（负偏移，画在元素里面）。 */
   --focus-ring: 2px solid var(--accent); --focus-offset: 2px; --focus-inset: -2px;
   --on-accent: #2b2747;
-  --manual: #8a5e08;          /* the artist's decisions (the "mine" pill); no longer marks tag chips (#482) */
-  --manual-soft: rgba(227, 179, 79, 0.2);
-  --wall: #eae9e6;            /* neutral ground behind thumbnails */
-  --card: #dcdbd8;
-  /* 一摞的纸（#418）：细边线、落在下一层上的投影、顶边一线高光、墙上的接触阴影（RGB 三元组）。 */
-  --sheet-edge: rgba(43, 39, 71, 0.2); --sheet-drop: rgba(43, 39, 71, 0.14); --sheet-light: rgba(255, 255, 255, 0.22); --contact: 43, 39, 71;
-  --tray: color-mix(in srgb, var(--wall) 94%, black); --tray-rim: rgba(255, 255, 255, 0.75);
-  --splash-card: rgba(43, 39, 71, 0.04);   /* startup splash backdrop (#338), faint enough to sit under the logo */
-  --danger: #b23a3a;
-  --danger-solid: #b23a3a;    /* white text 5.9:1 */
+  --manual: light-dark(#8a5e08, #e3b34f); /* the artist's decisions (the "mine" pill); no longer marks tag chips (#482) */
+  --manual-soft: light-dark(rgba(227, 179, 79, 0.2), rgba(227, 179, 79, 0.18));
+  --wall: light-dark(#eae9e6, #161618); /* neutral ground behind thumbnails */
+  --card: light-dark(#dcdbd8, #222224);
+  /* 一摞的纸（#418）：细边线、落在下一层上的投影、顶边一线高光、墙上的接触阴影（用时 color-mix 出透明度）。 */
+  --sheet-edge: light-dark(rgba(43, 39, 71, 0.2), rgba(0, 0, 0, 0.55));
+  --sheet-drop: light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.4));
+  --sheet-light: light-dark(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.1));
+  --contact: light-dark(#2b2747, #000);
+  --tray: light-dark(color-mix(in srgb, var(--wall) 94%, black), color-mix(in srgb, var(--wall) 70%, black));
+  --tray-rim: light-dark(rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.06));
+  --splash-card: light-dark(rgba(43, 39, 71, 0.04), rgba(244, 236, 220, 0.05)); /* startup splash backdrop (#338), faint enough to sit under the logo */
+  --danger: light-dark(#b23a3a, #f08a8a);
+  --danger-solid: light-dark(#b23a3a, #c94a4a); /* white text 5.9:1 */
   --on-solid: #ffffff;
-  --warn: #8a5e08; --warn-strong: #5e4510; --warn-soft: #fbf1d9;
-  --ok: #2f6b3e; --ok-strong: #2f6b3e; --ok-soft: #e3f1e6;
+  --warn: light-dark(#8a5e08, #e3b34f);
+  --warn-strong: light-dark(#5e4510, #f0cf86);
+  --warn-soft: light-dark(#fbf1d9, rgba(227, 179, 79, 0.12));
+  --ok: light-dark(#2f6b3e, #8fcb9c);
+  --ok-strong: light-dark(#2f6b3e, #b5e3bf);
+  --ok-soft: light-dark(#e3f1e6, rgba(127, 179, 138, 0.16));
   /* danger text on an `ink` bar (the floating selection bar): the other theme's colour */
-  --inverse-danger: #f08a8a;
+  --inverse-danger: light-dark(#f08a8a, #b23a3a);
   /* 详情面板里有底的标签（#482）：人写的与模型高档。夜间 --surface-2 贴近面板底，所以另取深一档。 */
-  --tag-fill: #f1ebdf;
+  --tag-fill: light-dark(#f1ebdf, #48426a);
   /* 精确查找开启时的金色浅槽、图片大小滑条（#102 方案 C3） */
-  --exact-on-bg: rgba(227, 179, 79, 0.16); --exact-on-ink: #9a6a10;
-  --exact-on-inset: inset 0 1px 1.5px rgba(110, 75, 10, 0.16), inset 0 0 0 0.5px rgba(160, 112, 15, 0.22);
-  --range-track: var(--line-2); --range-fill: var(--ink-2); --range-inset: inset 0 1px 1px rgba(43, 39, 71, 0.18);
+  --exact-on-bg: light-dark(rgba(227, 179, 79, 0.16), rgba(227, 179, 79, 0.18));
+  --exact-on-ink: light-dark(#9a6a10, #e9c26e);
+  --exact-on-inset: inset 0 1px 1.5px light-dark(rgba(110, 75, 10, 0.16), rgba(0, 0, 0, 0.4)), inset 0 0 0 0.5px light-dark(rgba(160, 112, 15, 0.22), rgba(227, 179, 79, 0.3));
+  --range-track: var(--line-2); --range-fill: var(--ink-2);
+  /* 日夜的模糊半径不同（1px 对 1.5px），长度放不进 light-dark()：拆成两层，各在另一个主题里透明。 */
+  --range-inset: inset 0 1px 1px light-dark(rgba(43, 39, 71, 0.18), transparent), inset 0 1px 1.5px light-dark(transparent, rgba(0, 0, 0, 0.55));
   /* scrollbar thumb at rest, hovered, dragged; the track stays transparent */
-  --scroll-thumb: rgba(43, 39, 71, 0.16); --scroll-thumb-hover: rgba(43, 39, 71, 0.36); --scroll-thumb-active: rgba(43, 39, 71, 0.5);
-  --knob: #fffdf8;
-  --knob-shadow: 0 0 0 0.5px rgba(43, 39, 71, 0.28), 0 1px 1.5px rgba(43, 39, 71, 0.28), 0 4px 10px rgba(43, 39, 71, 0.16);
-  --knob-shadow-pressed: 0 0 0 0.5px rgba(43, 39, 71, 0.3), 0 1px 3px rgba(43, 39, 71, 0.18);
+  --scroll-thumb: light-dark(rgba(43, 39, 71, 0.16), rgba(244, 236, 220, 0.14));
+  --scroll-thumb-hover: light-dark(rgba(43, 39, 71, 0.36), rgba(244, 236, 220, 0.32));
+  --scroll-thumb-active: light-dark(rgba(43, 39, 71, 0.5), rgba(244, 236, 220, 0.46));
+  --knob: light-dark(#fffdf8, #fbf6ec);
+  --knob-shadow: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.5)), 0 1px 1.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.45)), 0 4px 10px light-dark(rgba(43, 39, 71, 0.16), rgba(0, 0, 0, 0.4));
+  --knob-shadow-pressed: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.3), rgba(0, 0, 0, 0.5)), 0 1px 3px light-dark(rgba(43, 39, 71, 0.18), rgba(0, 0, 0, 0.35));
   /* 文字按钮：和滑条把手、提示条同一套材质，半像素细线、近处一层投影、上沿一道亮边；按下时投影收起 */
-  --btn-face: linear-gradient(#fffefb, #faf6ec); --btn-face-hover: linear-gradient(#ffffff, #fcf9f2); --btn-face-press: #f3eee3;
-  --btn-lift: 0 0 0 0.5px rgba(43, 39, 71, 0.24), 0 1px 1.5px rgba(43, 39, 71, 0.12), 0 2px 6px -1px rgba(43, 39, 71, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --btn-lift-hover: 0 0 0 0.5px rgba(43, 39, 71, 0.28), 0 1px 2px rgba(43, 39, 71, 0.14), 0 4px 10px -2px rgba(43, 39, 71, 0.12), inset 0 1px 0 #ffffff;
-  --btn-lift-press: 0 0 0 0.5px rgba(43, 39, 71, 0.28), inset 0 1px 1.5px rgba(43, 39, 71, 0.1);
-  --btn-lift-disabled: 0 0 0 0.5px rgba(43, 39, 71, 0.24);
-  --btn-primary-face: linear-gradient(#3b3661, #2b2747); --btn-primary-face-hover: linear-gradient(#433e6b, #312c50); --btn-primary-face-press: #2a2645;
-  --btn-primary-lift: 0 0 0 0.5px #1f1c36, 0 1px 2px rgba(43, 39, 71, 0.3), 0 3px 8px -2px rgba(43, 39, 71, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  --btn-primary-lift-press: 0 0 0 0.5px #1f1c36, inset 0 1px 2px rgba(0, 0, 0, 0.3);
-  --btn-danger-face: linear-gradient(#c24646, #ab3535); --btn-danger-face-hover: linear-gradient(#c94d4d, #b23a3a); --btn-danger-face-press: #a33232;
-  --btn-danger-lift: 0 0 0 0.5px #8a2828, 0 1px 2px rgba(120, 30, 30, 0.3), 0 3px 8px -2px rgba(120, 30, 30, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  --btn-danger-lift-press: 0 0 0 0.5px #8a2828, inset 0 1px 2px rgba(0, 0, 0, 0.25);
+  --btn-face: linear-gradient(light-dark(#fffefb, #302d47), light-dark(#faf6ec, #28253b));
+  --btn-face-hover: linear-gradient(light-dark(#ffffff, #36334f), light-dark(#fcf9f2, #2d2a42));
+  --btn-face-press: light-dark(#f3eee3, #242134);
+  --btn-lift: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.24), rgba(0, 0, 0, 0.65)), 0 1px 1.5px light-dark(rgba(43, 39, 71, 0.12), rgba(0, 0, 0, 0.4)), 0 2px 6px -1px light-dark(rgba(43, 39, 71, 0.08), rgba(0, 0, 0, 0.35)), inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.08));
+  --btn-lift-hover: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.7)), 0 1px 2px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.45)), 0 4px 10px -2px light-dark(rgba(43, 39, 71, 0.12), rgba(0, 0, 0, 0.45)), inset 0 1px 0 light-dark(#ffffff, rgba(244, 236, 220, 0.11));
+  /* 内凹一层的模糊半径日夜不同（1.5px 对 2px），同 --range-inset 拆成两层。 */
+  --btn-lift-press: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.7)), inset 0 1px 1.5px light-dark(rgba(43, 39, 71, 0.1), transparent), inset 0 1px 2px light-dark(transparent, rgba(0, 0, 0, 0.4));
+  --btn-lift-disabled: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.24), rgba(0, 0, 0, 0.65));
+  --btn-primary-face: linear-gradient(light-dark(#3b3661, #fdf9f1), light-dark(#2b2747, #ece3d1));
+  --btn-primary-face-hover: linear-gradient(light-dark(#433e6b, #fffcf6), light-dark(#312c50, #f2eadb));
+  --btn-primary-face-press: light-dark(#2a2645, #e6dcc8);
+  /* 夜间多一道下沿暗线，日间这一层透明 */
+  --btn-primary-lift: 0 0 0 0.5px light-dark(#1f1c36, rgba(0, 0, 0, 0.6)), 0 1px 2px light-dark(rgba(43, 39, 71, 0.3), rgba(0, 0, 0, 0.45)), 0 3px 8px -2px light-dark(rgba(43, 39, 71, 0.35), rgba(0, 0, 0, 0.45)), inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.14), #ffffff), inset 0 -1px 0 light-dark(transparent, rgba(110, 90, 60, 0.18));
+  --btn-primary-lift-press: 0 0 0 0.5px light-dark(#1f1c36, rgba(0, 0, 0, 0.6)), inset 0 1px 2px light-dark(rgba(0, 0, 0, 0.3), rgba(110, 90, 60, 0.35));
+  --btn-danger-face: linear-gradient(light-dark(#c24646, #d25454), light-dark(#ab3535, #bb4141));
+  --btn-danger-face-hover: linear-gradient(light-dark(#c94d4d, #d85b5b), light-dark(#b23a3a, #c24747));
+  --btn-danger-face-press: light-dark(#a33232, #b33c3c);
+  --btn-danger-lift: 0 0 0 0.5px light-dark(#8a2828, rgba(0, 0, 0, 0.6)), 0 1px 2px light-dark(rgba(120, 30, 30, 0.3), rgba(0, 0, 0, 0.45)), 0 3px 8px -2px light-dark(rgba(120, 30, 30, 0.3), rgba(0, 0, 0, 0.45)), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --btn-danger-lift-press: 0 0 0 0.5px light-dark(#8a2828, rgba(0, 0, 0, 0.6)), inset 0 1px 2px light-dark(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.35));
   /* the wordmark's gold star, the same in both themes */
   --star: #e3b34f;
   /* 安全模式遮蔽的墨色 */
-  --veil: #2b2747;
+  --veil: light-dark(#2b2747, #0f0e17);
   /* shadows and the dialog overlay take ink purple, not black; only things that float get one */
-  --shadow-raise: 0 1px 2px rgba(43, 39, 71, 0.08);
-  --shadow-pop: 0 0 0 1px rgba(43, 39, 71, 0.06), 0 2px 4px rgba(43, 39, 71, 0.06), 0 12px 32px rgba(43, 39, 71, 0.14);
-  --shadow-dialog: 0 24px 64px rgba(30, 28, 44, 0.3);
+  --shadow-raise: 0 1px 2px light-dark(rgba(43, 39, 71, 0.08), rgba(0, 0, 0, 0.4));
+  /* 夜间没有近处那一层，那一层夜间透明 */
+  --shadow-pop: 0 0 0 1px light-dark(rgba(43, 39, 71, 0.06), rgba(244, 236, 220, 0.08)), 0 2px 4px light-dark(rgba(43, 39, 71, 0.06), transparent), 0 12px 32px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.45));
+  --shadow-dialog: 0 24px 64px light-dark(rgba(30, 28, 44, 0.3), rgba(0, 0, 0, 0.55));
   /* a frosted toast: a hairline, a near drop, a far drop pulled in, and a lit top edge */
-  --shadow-toast: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 0 0.5px rgba(43, 39, 71, 0.1), 0 1px 2px rgba(43, 39, 71, 0.07),
-    0 4px 8px -2px rgba(43, 39, 71, 0.06), 0 16px 32px -8px rgba(43, 39, 71, 0.2);
+  --shadow-toast: inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.8), rgba(244, 236, 220, 0.08)), 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.1), rgba(244, 236, 220, 0.1)), 0 1px 2px light-dark(rgba(43, 39, 71, 0.07), rgba(0, 0, 0, 0.45)), 0 4px 8px -2px light-dark(rgba(43, 39, 71, 0.06), rgba(0, 0, 0, 0.3)), 0 16px 32px -8px light-dark(rgba(43, 39, 71, 0.2), rgba(0, 0, 0, 0.6));
   /* a sunken well for an icon (toast) */
-  --well-inset: inset 0 1px 1.5px rgba(43, 39, 71, 0.12), inset 0 0 0 0.5px rgba(43, 39, 71, 0.08);
+  --well-inset: inset 0 1px 1.5px light-dark(rgba(43, 39, 71, 0.12), rgba(0, 0, 0, 0.5)), inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.08), rgba(244, 236, 220, 0.06));
   --shadow-pin: 0 2px 6px rgba(0, 0, 0, 0.25), 0 12px 32px rgba(0, 0, 0, 0.22);
   --overlay: rgba(30, 28, 44, 0.38);      /* behind dialogs, outside a crop */
   /* over images and the frozen screen, the same in both themes */
@@ -97,89 +118,12 @@
   --t-fast: 120ms; --t: 200ms; --t-slow: 260ms; --t-pop: 220ms;
   /* 图标轨图标的悬停动作（信抽出来、图扇开）：位移比控件的状态变化大，要多一点时间看清；移出仍用 --t */
   --t-icon: 420ms;
-  color-scheme: light;
+  color-scheme: light dark;
 }
-/* Dark: ink purple ground, cream text, gold accent (日间樱、夜间金). `.k-dock.is-dark` borrows the dark tokens in either theme. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #1e1c2c; --surface: #252336; --rail: #17151f; --surface-2: #2c2940; --sunken: #19172a;
-    --hover: rgba(244, 236, 220, 0.07); --press: rgba(244, 236, 220, 0.12);
-    --ink: #f4ecdc; --ink-2: #c8c0b2; --ink-3: #9890a8; --line: #353249; --line-2: #45415c;
-    --accent: #e3b34f; --accent-strong: #e9c26e; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2b2747;
-    --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18);
-    --wall: #161618; --card: #222224; --splash-card: rgba(244, 236, 220, 0.05); --danger: #f08a8a; --danger-solid: #c94a4a;
-    --sheet-edge: rgba(0, 0, 0, 0.55); --sheet-drop: rgba(0, 0, 0, 0.4); --sheet-light: rgba(255, 255, 255, 0.1); --contact: 0, 0, 0; --tray: color-mix(in srgb, var(--wall) 70%, black); --tray-rim: rgba(255, 255, 255, 0.06);
-    --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
-    --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
-    --inverse-danger: #b23a3a;
-    --tag-fill: #48426a;
-    --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
-    --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
-    --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
-    --scroll-thumb: rgba(244, 236, 220, 0.14); --scroll-thumb-hover: rgba(244, 236, 220, 0.32); --scroll-thumb-active: rgba(244, 236, 220, 0.46);
-    --knob: #fbf6ec;
-    --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
-    --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
-    --btn-face: linear-gradient(#302d47, #28253b); --btn-face-hover: linear-gradient(#36334f, #2d2a42); --btn-face-press: #242134;
-    --btn-lift: 0 0 0 0.5px rgba(0, 0, 0, 0.65), 0 1px 1.5px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(244, 236, 220, 0.08);
-    --btn-lift-hover: 0 0 0 0.5px rgba(0, 0, 0, 0.7), 0 1px 2px rgba(0, 0, 0, 0.45), 0 4px 10px -2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(244, 236, 220, 0.11);
-    --btn-lift-press: 0 0 0 0.5px rgba(0, 0, 0, 0.7), inset 0 1px 2px rgba(0, 0, 0, 0.4);
-    --btn-lift-disabled: 0 0 0 0.5px rgba(0, 0, 0, 0.65);
-    --btn-primary-face: linear-gradient(#fdf9f1, #ece3d1); --btn-primary-face-hover: linear-gradient(#fffcf6, #f2eadb); --btn-primary-face-press: #e6dcc8;
-    --btn-primary-lift: 0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.45), 0 3px 8px -2px rgba(0, 0, 0, 0.45), inset 0 1px 0 #ffffff, inset 0 -1px 0 rgba(110, 90, 60, 0.18);
-    --btn-primary-lift-press: 0 0 0 0.5px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(110, 90, 60, 0.35);
-    --btn-danger-face: linear-gradient(#d25454, #bb4141); --btn-danger-face-hover: linear-gradient(#d85b5b, #c24747); --btn-danger-face-press: #b33c3c;
-    --btn-danger-lift: 0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.45), 0 3px 8px -2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    --btn-danger-lift-press: 0 0 0 0.5px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(0, 0, 0, 0.35);
-    --veil: #0f0e17;
-    --shadow-raise: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
-    --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
-    --shadow-toast: inset 0 1px 0 rgba(244, 236, 220, 0.08), 0 0 0 0.5px rgba(244, 236, 220, 0.1), 0 1px 2px rgba(0, 0, 0, 0.45),
-      0 4px 8px -2px rgba(0, 0, 0, 0.3), 0 16px 32px -8px rgba(0, 0, 0, 0.6);
-    --well-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.5), inset 0 0 0 0.5px rgba(244, 236, 220, 0.06);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"], .k-dock.is-dark {
-  --bg: #1e1c2c; --surface: #252336; --rail: #17151f; --surface-2: #2c2940; --sunken: #19172a;
-  --hover: rgba(244, 236, 220, 0.07); --press: rgba(244, 236, 220, 0.12);
-  --ink: #f4ecdc; --ink-2: #c8c0b2; --ink-3: #9890a8; --line: #353249; --line-2: #45415c;
-  --accent: #e3b34f; --accent-strong: #e9c26e; --accent-soft: rgba(227, 179, 79, 0.16); --on-accent: #2b2747;
-  --manual: #e3b34f; --manual-soft: rgba(227, 179, 79, 0.18);
-  --wall: #161618; --card: #222224; --splash-card: rgba(244, 236, 220, 0.05); --danger: #f08a8a; --danger-solid: #c94a4a;
-  --sheet-edge: rgba(0, 0, 0, 0.55); --sheet-drop: rgba(0, 0, 0, 0.4); --sheet-light: rgba(255, 255, 255, 0.1); --contact: 0, 0, 0; --tray: color-mix(in srgb, var(--wall) 70%, black); --tray-rim: rgba(255, 255, 255, 0.06);
-  --warn: #e3b34f; --warn-strong: #f0cf86; --warn-soft: rgba(227, 179, 79, 0.12);
-  --ok: #8fcb9c; --ok-strong: #b5e3bf; --ok-soft: rgba(127, 179, 138, 0.16);
-  --inverse-danger: #b23a3a;
-  --tag-fill: #48426a;
-  --exact-on-bg: rgba(227, 179, 79, 0.18); --exact-on-ink: #e9c26e;
-  --exact-on-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.4), inset 0 0 0 0.5px rgba(227, 179, 79, 0.3);
-  --range-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.55);
-  --scroll-thumb: rgba(244, 236, 220, 0.14); --scroll-thumb-hover: rgba(244, 236, 220, 0.32); --scroll-thumb-active: rgba(244, 236, 220, 0.46);
-  --knob: #fbf6ec;
-  --knob-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 1.5px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.4);
-  --knob-shadow-pressed: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
-  --btn-face: linear-gradient(#302d47, #28253b); --btn-face-hover: linear-gradient(#36334f, #2d2a42); --btn-face-press: #242134;
-  --btn-lift: 0 0 0 0.5px rgba(0, 0, 0, 0.65), 0 1px 1.5px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(244, 236, 220, 0.08);
-  --btn-lift-hover: 0 0 0 0.5px rgba(0, 0, 0, 0.7), 0 1px 2px rgba(0, 0, 0, 0.45), 0 4px 10px -2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(244, 236, 220, 0.11);
-  --btn-lift-press: 0 0 0 0.5px rgba(0, 0, 0, 0.7), inset 0 1px 2px rgba(0, 0, 0, 0.4);
-  --btn-lift-disabled: 0 0 0 0.5px rgba(0, 0, 0, 0.65);
-  --btn-primary-face: linear-gradient(#fdf9f1, #ece3d1); --btn-primary-face-hover: linear-gradient(#fffcf6, #f2eadb); --btn-primary-face-press: #e6dcc8;
-  --btn-primary-lift: 0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.45), 0 3px 8px -2px rgba(0, 0, 0, 0.45), inset 0 1px 0 #ffffff, inset 0 -1px 0 rgba(110, 90, 60, 0.18);
-  --btn-primary-lift-press: 0 0 0 0.5px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(110, 90, 60, 0.35);
-  --btn-danger-face: linear-gradient(#d25454, #bb4141); --btn-danger-face-hover: linear-gradient(#d85b5b, #c24747); --btn-danger-face-press: #b33c3c;
-  --btn-danger-lift: 0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.45), 0 3px 8px -2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  --btn-danger-lift-press: 0 0 0 0.5px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(0, 0, 0, 0.35);
-  --veil: #0f0e17;
-  --shadow-raise: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-pop: 0 0 0 1px rgba(244, 236, 220, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
-  --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
-  --shadow-toast: inset 0 1px 0 rgba(244, 236, 220, 0.08), 0 0 0 0.5px rgba(244, 236, 220, 0.1), 0 1px 2px rgba(0, 0, 0, 0.45),
-    0 4px 8px -2px rgba(0, 0, 0, 0.3), 0 16px 32px -8px rgba(0, 0, 0, 0.6);
-  --well-inset: inset 0 1px 1.5px rgba(0, 0, 0, 0.5), inset 0 0 0 0.5px rgba(244, 236, 220, 0.06);
-  color-scheme: dark;
-}
+/* Dark: ink purple ground, cream text, gold accent (日间樱、夜间金). Each colour token above holds both values in light-dark(), which
+   resolves by the color-scheme of the element that uses it; so these rules only switch the scheme. `.k-dock.is-dark` is dark in either theme. */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"], .k-dock.is-dark { color-scheme: dark; }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-pop: 0ms; --t-icon: 0ms; } }
 :root[data-reduced-motion] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-pop: 0ms; --t-icon: 0ms; }
 /* The one global switch for reduced motion, for rules that hardcode a duration: animations jump to their end state in one frame and
