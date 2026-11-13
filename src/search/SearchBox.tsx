@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import type { Candidate } from "../bindings/Candidate";
 import type { Condition } from "../bindings/Condition";
@@ -51,13 +51,12 @@ export function useCandidateState(lens: Lens, text: string, keep: (c: Candidate)
   const lang = useUiLang();
   const key = lensKey(lens, text) + `#${limit}#${lang}`;
   const { libraryId, safe } = lens;
-  const keepRef = useRef(keep);
-  keepRef.current = keep;
+  const filterKept = useEffectEvent((list: Candidate[]) => list.filter((c) => keep(c)));
   useEffect(() => {
     let alive = true;
     if (!text.trim()) return;
     (lens.picking ? workspaceLibraryCandidates(libraryId, text, lang, limit, safe) : lens.workspace ? workspaceCandidates(text, lang, limit, safe) : searchCandidates(libraryId, text, lang, limit, safe)).then(
-      (list) => alive && setFound({ key, list: list.filter((c) => keepRef.current(c)) }),
+      (list) => alive && setFound({ key, list: filterKept(list) }),
       () => alive && setFound({ key, list: [] }),
     );
     return () => {
