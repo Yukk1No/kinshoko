@@ -3,20 +3,17 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { resize as report, setMedia } from "../test/platform";
 import { workspacePage } from "../test/workspacePage";
 import { Wall } from "./Wall";
 import type { PanelSlide } from "../shell/usePanelSlide";
 
 let width: number;
-let observers: (() => void)[];
 let motions: { id: string; cancel: ReturnType<typeof vi.fn>; options: KeyframeAnimationOptions; startTime: number | null }[];
-let reduce: boolean;
 
 beforeEach(() => {
   width = 1000;
-  observers = [];
   motions = [];
-  reduce = false;
   localStorage.clear();
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => width });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
@@ -33,16 +30,6 @@ beforeEach(() => {
     motions.push(motion);
     return motion as unknown as Animation;
   };
-  vi.stubGlobal("ResizeObserver", class {
-    constructor(private callback: () => void) {}
-    observe() { observers.push(() => this.callback()); }
-    disconnect() {}
-  });
-  vi.stubGlobal("matchMedia", (query: string) => ({
-    matches: reduce && query.includes("reduce"),
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  }));
   mockConvertFileSrc("windows");
   mockIPC((cmd) => {
     if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
@@ -70,7 +57,7 @@ async function setup() {
 }
 
 /** 面板宽度过渡的一帧：容器变宽，ResizeObserver 报告一次。 */
-const resize = (next: number) => act(() => { width = next; observers.forEach((notify) => notify()); });
+const resize = (next: number) => act(() => { width = next; report(document.querySelector(".wall")!); });
 const placement = () => [...document.querySelectorAll<HTMLElement>(".wall .card")]
   .map((node) => [node.dataset.id, node.style.left, node.style.top, node.style.width].join(" "));
 const collapse: PanelSlide = { by: 256, duration: 260, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", startTime: 1234 };
@@ -179,7 +166,7 @@ it("拖动面板边缘（holdReflow）期间另一个面板的 slide 不触发�
 });
 
 it("减弱动效：按终点宽度排，没有卡片动画", async () => {
-  reduce = true;
+  setMedia("(prefers-reduced-motion: reduce)", true);
   const { slide } = await setup();
   const before = placement();
   slide(expand);

@@ -5,11 +5,11 @@ import { DialogHeight, DialogSwap } from "./DialogHeight";
 import settings from "./settings.css?raw";
 import ui from "./ui.css?raw";
 import tokens from "../styles/tokens.css?raw";
+import { resize, setMedia } from "../test/platform";
 
 // jsdom 不排版：内层高度由测试给，外层在 height 为 auto 时等于内层（不超过上限）。
 let content = 100;
 let cap = Infinity;
-let report: () => void = () => {};
 // 每次读外层高度时记下当时写着的 height，用来确认过渡的起点。
 let readsWhileSet: string[] = [];
 
@@ -17,18 +17,13 @@ const outerOf = (container: HTMLElement) => container.querySelector<HTMLElement>
 
 function changeTo(height: number) {
   content = height;
-  act(() => report());
+  act(() => resize(document.querySelector(".k-dialog-height-inner")!));
 }
 
 beforeEach(() => {
   content = 100;
   cap = Infinity;
   readsWhileSet = [];
-  vi.stubGlobal("ResizeObserver", class {
-    constructor(callback: () => void) { report = callback; }
-    observe() {}
-    disconnect() {}
-  });
   vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
     if (this.classList.contains("k-dialog-height-inner")) return content;
     if (this.style.height) readsWhileSet.push(this.style.height);
@@ -75,7 +70,7 @@ describe("DialogHeight", () => {
   });
 
   it("系统要求减少动画时直接到终态", () => {
-    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("reduce"), addEventListener() {}, removeEventListener() {} }));
+    setMedia("(prefers-reduced-motion: reduce)", true);
     const { container } = render(<DialogHeight>内容</DialogHeight>);
     changeTo(300);
     const outer = outerOf(container);

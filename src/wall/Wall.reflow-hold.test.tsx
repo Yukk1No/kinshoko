@@ -3,19 +3,16 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { resize as report, setMedia } from "../test/platform";
 import { workspacePage } from "../test/workspacePage";
 import { Wall } from "./Wall";
 
 let width: number;
-let observers: (() => void)[];
 let motions: { id: string; cancel: ReturnType<typeof vi.fn> }[];
-let reduce: boolean;
 
 beforeEach(() => {
   width = 1000;
-  observers = [];
   motions = [];
-  reduce = false;
   localStorage.clear();
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => width });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
@@ -32,16 +29,6 @@ beforeEach(() => {
     motions.push(motion);
     return motion as unknown as Animation;
   };
-  vi.stubGlobal("ResizeObserver", class {
-    constructor(private callback: () => void) {}
-    observe() { observers.push(() => this.callback()); }
-    disconnect() {}
-  });
-  vi.stubGlobal("matchMedia", (query: string) => ({
-    matches: reduce && query.includes("reduce"),
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  }));
   mockConvertFileSrc("windows");
   mockIPC((cmd) => {
     if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
@@ -69,7 +56,7 @@ async function setup() {
 }
 
 /** 面板宽度过渡的一帧：容器变窄，ResizeObserver 报告一次。 */
-const resize = (next: number) => act(() => { width = next; observers.forEach((notify) => notify()); });
+const resize = (next: number) => act(() => { width = next; report(document.querySelector(".wall")!); });
 const placement = () => [...document.querySelectorAll<HTMLElement>(".wall .card")]
   .map((node) => [node.dataset.id, node.style.left, node.style.top, node.style.width].join(" "));
 
@@ -118,7 +105,7 @@ it("重排前后视口顶部的那张图不跳走", async () => {
 });
 
 it("减少动态效果时没有动画，直接到最终布局", async () => {
-  reduce = true;
+  setMedia("(prefers-reduced-motion: reduce)", true);
   const { hold } = await setup();
   const before = placement();
   hold(true);

@@ -83,12 +83,12 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
       return prev.width === next.width && prev.height === next.height && prev.left === next.left && prev.top === next.top && prev.dpr === next.dpr ? prev : next;
     });
     sync();
-    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(sync);
-    ro?.observe(el);
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
     window.addEventListener("resize", sync);
-    const resolution = window.matchMedia?.(`(resolution: ${dpr}dppx)`);
-    resolution?.addEventListener("change", sync);
-    return () => { ro?.disconnect(); window.removeEventListener("resize", sync); resolution?.removeEventListener("change", sync); };
+    const resolution = window.matchMedia(`(resolution: ${dpr}dppx)`);
+    resolution.addEventListener("change", sync);
+    return () => { ro.disconnect(); window.removeEventListener("resize", sync); resolution.removeEventListener("change", sync); };
   }, [dpr]);
   const fitWidth = Math.min(card.width, Math.floor(viewport.width * dpr), Math.floor(Math.floor(viewport.height * dpr) * card.width / card.height));
   const physicalWidth = Math.max(1, mode === "fit" ? fitWidth : Math.round(card.width * (mode === "pixels" ? 1 : zoomScale)));
@@ -261,7 +261,7 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
         onPointerDown={(e) => {
           if (e.button !== 0 || drag.current || select.current || (e.target as Element).closest("button, .k-dock")) return;
           e.preventDefault();
-          e.currentTarget.setPointerCapture?.(e.pointerId);
+          e.currentTarget.setPointerCapture(e.pointerId);
           if (e.shiftKey || selecting) {
             select.current = { id: e.pointerId, start: stagePoint(e) };
             setDragging(true);

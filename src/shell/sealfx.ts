@@ -1,5 +1,5 @@
 // Copied verbatim from bd8aea44:prototype/reference-browser/src/sealfx.ts (#27). The only changes are
-// the two guards on the Web Animations calls (finish, burst), which jsdom does not implement, and the
+// the guard on the Web Animations call in burst, which jsdom does not implement, and the
 // frame loop reading every ghost's target before writing any style (#176: no forced style recalc per ghost).
 // Seal and release effects for the image wall (#27, Q97, Q104, Q105, Q109, Q111).
 // Cards that leave or enter the wall are drawn as "ghosts" in a fixed layer above everything and
@@ -117,7 +117,7 @@ export class SealFx {
   /** "可打断" (Q105): jump every ghost to the end of its flight. */
   finish() {
     for (const g of [...this.ghosts.values()]) this.end(g);
-    this.burstEl.getAnimations?.().forEach((a) => a.finish());
+    this.burstEl.getAnimations().forEach((a) => a.finish());
   }
 
   /** Reduced motion turned on mid-effect, or the wall was rebuilt: end everything now. */

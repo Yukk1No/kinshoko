@@ -12,7 +12,6 @@ it("F1 requests the current loaded visible source after immediate scroll, rather
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.5 });
-  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
     return this.matches("img") ? new DOMRect(100, 120, 240, 160) : new DOMRect(0, 60, 1000, 740);
   });

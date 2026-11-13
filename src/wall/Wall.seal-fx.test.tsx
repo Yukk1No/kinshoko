@@ -3,6 +3,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { act, render } from "@testing-library/react";
 import { RELEASE, SEAL } from "../shell/sealfx";
+import { setMedia } from "../test/platform";
 import { Wall } from "./Wall";
 import { answer, base, card, frames, fx, ghosts, installSealFx, node, PAGE, settle, wallWith, type FxPage } from "./Wall.seal-fx.fixtures";
 
@@ -97,7 +98,7 @@ describe("封印", () => {
   });
 
   it("减少动态效果时没有影子，封印的图直接离开，不等资料库确认", async () => {
-    fx.reduce = true;
+    setMedia("(prefers-reduced-motion: reduce)", true);
     const view = await wallWith(false);
     view.rerender(<Wall {...base} reloadKey={0} safeMode />);
     expect(node("a")).toBeNull();
@@ -215,7 +216,7 @@ describe("释放", () => {
   });
 
   it("减少动态效果时回来的图直接显示，没有影子", async () => {
-    fx.reduce = true;
+    setMedia("(prefers-reduced-motion: reduce)", true);
     const view = await wallWith(true);
     view.rerender(<Wall {...base} reloadKey={0} safeMode={false} />);
     view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
@@ -230,8 +231,7 @@ describe("释放", () => {
     view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
     await answer();
     expect(ghosts()).toBe(1);
-    fx.reduce = true;
-    act(() => fx.mediaListeners.forEach((f) => f()));
+    act(() => setMedia("(prefers-reduced-motion: reduce)", true));
     expect(ghosts()).toBe(0);
     expect(node("a").classList.contains("is-arriving")).toBe(false);
   });
@@ -248,7 +248,6 @@ describe("释放", () => {
       glides.push({ el: this, keyframes, timing });
       return { cancel() {}, finish() {}, onfinish: null } as unknown as Animation;
     } as HTMLElement["animate"];
-    HTMLElement.prototype.getAnimations = () => []; // 书的光晕（sealfx.burst）先取消旧动画
     try {
       view.rerender(<Wall {...base} reloadKey={0} safeMode={false} />);
       view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
@@ -265,7 +264,6 @@ describe("释放", () => {
       ]);
     } finally {
       delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
-      delete (HTMLElement.prototype as Partial<HTMLElement>).getAnimations;
     }
   });
 });

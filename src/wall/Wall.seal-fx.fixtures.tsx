@@ -14,8 +14,6 @@ export const fx = {
   resolvers: [] as ((page: FxPage) => void)[],
   bookReads: 0,
   book: null as unknown as HTMLButtonElement,
-  reduce: false,
-  mediaListeners: [] as (() => void)[],
 };
 
 /** 在调用它的测试文件里装上 jsdom 排版替身、封印书与浏览应答。 */
@@ -23,8 +21,6 @@ export function installSealFx() {
   beforeEach(() => {
     fx.resolvers = [];
     fx.bookReads = 0;
-    fx.reduce = false;
-    fx.mediaListeners = [];
     localStorage.clear();
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
     Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
@@ -37,12 +33,6 @@ export function installSealFx() {
       if (this.classList.contains("seal-book")) { fx.bookReads++; return new DOMRect(8, 700, 40, 40); }
       return new DOMRect(0, 0, 1000, 800);
     });
-    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-    vi.stubGlobal("matchMedia", (query: string) => ({
-      matches: fx.reduce && query.includes("reduce"),
-      addEventListener: (_: string, f: () => void) => { fx.mediaListeners.push(f); },
-      removeEventListener: () => {},
-    }));
     fx.book = document.createElement("button");
     fx.book.className = "rail-btn seal-book";
     document.body.appendChild(fx.book);

@@ -37,7 +37,6 @@ export function useWidth(element: HTMLElement | null): number {
   useLayoutEffect(() => {
     if (!element) return;
     setWidth(element.clientWidth);
-    if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(() => setWidth(element.clientWidth));
     observer.observe(element);
     return () => observer.disconnect();
