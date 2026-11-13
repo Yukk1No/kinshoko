@@ -55,6 +55,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
   useEffect(() => {
     let alive = true;
     const stop = onSafeModeSetting(() => { if (alive) reset(); });
+    // 忽略失败：收尾时取消监听；之后的事件不再处理。
     return () => { alive = false; generation.current++; void stop.then((unlisten) => unlisten()).catch(() => {}); };
   }, []);
   async function run(action: () => Promise<LegacyNameMigrationWorkspace>, confirming = false) {
@@ -252,8 +253,8 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
       alive = false; generation++;
       clearTimeout(timer);
       window.removeEventListener(CHANGED, read);
-      void unlisten.then((stop) => stop()).catch(() => {}); void safeStop.then((stop) => stop()).catch(() => {});
-      void workspaceStop.then((stop) => stop()).catch(() => {});
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
+      for (const stop of [unlisten, safeStop, workspaceStop]) void stop.then((off) => off()).catch(() => {});
     };
     // biome-ignore lint/correctness/useExhaustiveDependencies: 何时重读由调用方的 deps 决定，回调里只读 ref 与局部变量
   }, deps);

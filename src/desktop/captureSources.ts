@@ -115,6 +115,7 @@ function install() {
     if (version !== installation || request !== requestGeneration || !providers.size) return;
     if (observer.takeRecords().length || document.getAnimations?.().some((a) => a.playState === "running" && a.effect instanceof KeyframeEffect && a.effect.target instanceof Element && a.effect.target.closest(".card,.viewer-stage"))) dirty();
     const references = collect([...providers]);
+    // 忽略失败：交不上时后端等满 3 秒自己报错，截图那边会提示。
     await reportCaptureReferences(payload.request, { instance, generation, dpr: window.devicePixelRatio || 1, references }).catch(() => {});
   }).then((off) => { if (version === installation) unlisten = off; else off(); }).catch(() => {});
   stop = () => {

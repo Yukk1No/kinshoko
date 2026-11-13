@@ -30,6 +30,7 @@ function useInstall() {
     if (!installing) return;
     const unlisten = onUpdateProgress(setProgress);
     return () => {
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
       void unlisten.then((f) => f()).catch(() => {});
     };
   }, [installing]);
@@ -154,6 +155,7 @@ export function UpdateNotice() {
     let content: (() => Omit<ToastOptions, "onClose">) | null = null;
     let progress: Promise<() => void> | null = null;
     const stopProgress = () => {
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
       void progress?.then((f) => f()).catch(() => {});
       progress = null;
     };
@@ -206,6 +208,7 @@ export function UpdateNotice() {
       close();
       stopProgress();
       i18n.off("languageChanged", relabel);
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
       void unlisten.then((f) => f()).catch(() => {});
     };
   }, [toast]);

@@ -15,6 +15,7 @@ export function recordUncaughtErrors(target: Window): () => void {
   let count = 0;
   const send = (message: string) => {
     if (++count > LIMIT) return;
+    // 忽略失败：写日志本身失败时没有别处可记。
     void invoke("log_frontend", { level: "error", message }).catch(() => {});
   };
   const onError = (event: ErrorEvent) => send(event.message || describe(event.error));

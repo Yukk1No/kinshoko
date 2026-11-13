@@ -120,6 +120,7 @@ export function DesktopMenuView() {
     if (!now || handled.current === now.generation) return;
     handled.current = now.generation;
     setOpen(null);
+    // 忽略失败：命令本身不会失败，只在菜单窗口已经关掉时被拒；界面已经收起菜单。
     void closeDesktopMenu(now.generation).catch(() => {});
   }, []);
   const act = useCallback((action: PinMenuAction) => {
@@ -151,6 +152,7 @@ export function DesktopMenuView() {
   // 菜单画好后才显示窗口并拿焦点，免得先闪一下空窗口。
   useEffect(() => {
     if (!open) return;
+    // 忽略失败：命令本身不会失败，只在菜单窗口已经关掉时被拒。
     const frame = requestAnimationFrame(() => void desktopMenuShown(open.generation).catch(() => {}));
     return () => cancelAnimationFrame(frame);
   }, [open]);

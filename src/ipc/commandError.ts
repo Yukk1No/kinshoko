@@ -134,11 +134,12 @@ function rawText(error: unknown): string {
 
 /**
  * 界面上显示错误的唯一出口（#483）：命令失败按代码取文案；其他错误只显示通用说明，
- * 原文写进运行日志。界面代码不直接 `String(e)`，由 scripts/check-error-text.mjs 把关。
+ * 原文写进运行日志。界面代码不直接 `String(e)`，由 src/ipc/errorTextUsage.test.ts 把关。
  */
 export function errorText(error: unknown): string {
   if (error instanceof CommandFailure) return error.message;
   if (isCommandError(error)) return describeCommandError(error);
+  // 忽略失败：写日志本身失败时没有别处可记。
   void tauriInvoke("log_frontend", { level: "error", message: `Unexpected error: ${rawText(error)}` }).catch(() => {});
   return t("generic");
 }

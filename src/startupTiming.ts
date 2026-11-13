@@ -13,6 +13,7 @@ let thumbnails = 0;
 export function markStartup(step: StartupStep): void {
   if (marked.has(step)) return;
   marked.add(step);
+  // 忽略失败：只是运行日志里少记一个时刻。
   void invoke("log_timing", { step, ms: Math.round(performance.now()) }).catch(() => {});
 }
 

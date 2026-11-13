@@ -32,6 +32,7 @@ export function SharedPersonalApproxSettings({onError}:{onError:(error:unknown)=
     void safeMode().then(async(on)=>{if(!alive||mode.current!==initial||typeof on!=="boolean")return;await baseline(on,initial);if(alive&&mode.current===initial)setSafe(on);}).catch(error=>{if(alive&&mode.current===initial)onError(error);});
     const stopMode=onSafeModeSetting(on=>{if(!alive)return;mode.current++;setSafe(on);setGeneration(n=>n+1);void baseline(on,mode.current);});
     const stopWorkspace=onWorkspaceChanged(status=>{if(!alive)return;events.current++;if(revision.current===status.revision)return;revision.current=status.revision;setGeneration(n=>n+1);});
+    // 忽略失败：收尾时取消监听；之后的事件不再处理。
     return ()=>{alive=false;for(const stop of [stopMode,stopWorkspace])void stop.then(unlisten=>unlisten()).catch(()=>{});};
   },[onError]);
   useEffect(()=>{
