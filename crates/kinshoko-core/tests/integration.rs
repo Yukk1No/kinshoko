@@ -153,6 +153,8 @@ mod save_destination;
 mod search;
 #[path = "search_cache.rs"]
 mod search_cache;
+#[path = "setting_change.rs"]
+mod setting_change;
 #[path = "source_actions.rs"]
 mod source_actions;
 #[path = "source_batch.rs"]

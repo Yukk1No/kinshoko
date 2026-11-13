@@ -41,8 +41,8 @@ pub use device_libraries::{
 };
 pub use library::Library;
 pub use settings::{
-    AppSettings, SettingsError, SettingsSnapshot, ShortcutAction, TagDisplay, TagStyle,
-    ViewerBackground,
+    AppSettings, SettingChange, SettingsError, SettingsSnapshot, ShortcutAction, TagDisplay,
+    TagStyle, ViewerBackground,
 };
 pub use shortcuts::{
     GlobalShortcuts, HotkeyFailure, HotkeyRegistrar, ShellSettingsView, ShortcutBinding,
