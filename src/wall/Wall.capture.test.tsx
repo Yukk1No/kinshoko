@@ -1,12 +1,13 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { Wall } from "./Wall";
 import { workspacePage } from "../test/workspacePage";
+import { fakeBackend } from "../test/backend";
 
 const events = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>());
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async (name, callback) => { events.set(name, callback); return () => events.delete(name); }) }));
-afterEach(() => { cleanup(); clearMocks(); events.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { events.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 it("F1 requests the current loaded visible source after immediate scroll, rather than the last reported card", async () => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
@@ -17,9 +18,9 @@ it("F1 requests the current loaded visible source after immediate scroll, rather
   });
   const reports: any[] = [];
   mockConvertFileSrc("windows");
-  mockIPC((command, args) => {
-    if (command === "plugin:library|workspace_browse") return workspacePage([{ id: "original", width: 2400, height: 1600 }], 1, null, "read-only");
-    if (command === "plugin:desktop|report_capture_references") reports.push(args);
+  fakeBackend({
+    workspace_browse: workspacePage([{ id: "original", width: 2400, height: 1600 }], 1, null, "read-only"),
+    report_capture_references: (args) => { reports.push(args); return null; },
   });
   render(<Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={new Set()} onSelectionChange={() => {}} onOpenImage={() => {}} viewerOpen={false} />);
   const img = await screen.findByRole("img");

@@ -1,11 +1,12 @@
 // #157：拖动详情面板边缘时图片墙的宽度逐帧变化（开合改走 settle，见 Wall.settle.test）。宽度稳定前不重排，稳定后只重排一次，
 // 起一组位移动画，视口顶部的图不跳走；减少动态效果时直接到最终布局。
 import { afterEach, beforeEach, expect, it, type MockInstance, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { type FakeAnimation, resize as report, setMedia } from "../test/platform";
 import { workspacePage } from "../test/workspacePage";
 import { Wall } from "./Wall";
+import { fakeBackend } from "../test/backend";
 
 let width: number;
 let motions: { id: string; cancel: MockInstance; animation: FakeAnimation }[];
@@ -32,13 +33,9 @@ beforeEach(() => {
     return animation as unknown as Animation;
   });
   mockConvertFileSrc("windows");
-  mockIPC((cmd) => {
-    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
-    return workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 })));
-  });
+  fakeBackend({ workspace_browse: () => workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 }))) });
 });
 afterEach(() => {
-  cleanup(); clearMocks();
   vi.restoreAllMocks(); vi.unstubAllGlobals();
 });
 

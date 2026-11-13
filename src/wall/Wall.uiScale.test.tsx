@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { UiScaleContext } from "../shell/uiScale";
 import { workspacePage } from "../test/workspacePage";
 import { Wall } from "./Wall";
+import { fakeBackend } from "../test/backend";
 
 // #173：界面缩放只放大文字、按钮、侧栏；同一图片大小下，卡片在屏幕上的宽度与每行张数不变。
 // 界面缩放 s 时，同一块屏幕的 CSS 宽度是原来的 1/s，devicePixelRatio 是系统的 s 倍。
@@ -14,12 +15,9 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => cssWidth });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  mockIPC((cmd) => {
-    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
-    return workspacePage(Array.from({ length: 40 }, (_, i) => ({ id: String(i), width: 100, height: 100 })));
-  });
+  fakeBackend({ workspace_browse: () => workspacePage(Array.from({ length: 40 }, (_, i) => ({ id: String(i), width: 100, height: 100 }))) });
 });
-afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 /** 墙上第一张卡片缩略图地址里的档位（`L1/0/档位`）。 */
 const shownTier = () => Number(document.querySelector<HTMLImageElement>(".wall .card img")!.getAttribute("src")!.split("/").at(-1));

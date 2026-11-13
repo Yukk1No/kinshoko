@@ -1,12 +1,13 @@
 // 面板开合（settle，侧栏与详情面板同一条路）：过渡一开始就按终点宽度重排，卡片按面板过渡的时长、缓动与起点滑过去；
 // 进行中容器逐帧变宽不再重排，结束时宽度与终点相符就不再排。
 import { afterEach, beforeEach, expect, it, type MockInstance, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { type FakeAnimation, resize as report, setMedia } from "../test/platform";
 import { workspacePage } from "../test/workspacePage";
 import { Wall } from "./Wall";
 import type { PanelSlide } from "../shell/usePanelSlide";
+import { fakeBackend } from "../test/backend";
 
 let width: number;
 let motions: { id: string; cancel: MockInstance; animation: FakeAnimation }[];
@@ -33,13 +34,9 @@ beforeEach(() => {
     return animation as unknown as Animation;
   });
   mockConvertFileSrc("windows");
-  mockIPC((cmd) => {
-    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
-    return workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 })));
-  });
+  fakeBackend({ workspace_browse: () => workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 }))) });
 });
 afterEach(() => {
-  cleanup(); clearMocks();
   vi.restoreAllMocks(); vi.unstubAllGlobals();
 });
 

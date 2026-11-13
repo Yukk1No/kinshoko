@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { useState } from "react";
 import { Wall } from "./Wall";
 import { workspaceCard } from "../test/workspacePage";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
+import { fakeBackend } from "../test/backend";
 
 // 同一图集叠成一摞，点开原位托盘（#418 第 5 版原型）。
 let requests: { stackSets: boolean }[] = [];
@@ -34,14 +35,15 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  mockIPC((cmd, args) => {
-    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
-    const query = (args as { query: { stackSets: boolean } }).query;
-    requests.push(query);
-    return browse(query.stackSets);
+  fakeBackend({
+    workspace_browse: (args) => {
+      const query = (args as { query: { stackSets: boolean } }).query;
+      requests.push(query);
+      return browse(query.stackSets);
+    },
   });
 });
-afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 function Harness({ stackSets = true, safeMode = false, onSelection, onOpen }: { stackSets?: boolean; safeMode?: boolean; onSelection?: (ids: string[]) => void; onOpen?: (id: string) => void }) {
   const [selected, setSelected] = useState(new Set<string>());
