@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "motion/react";
 import { FolderInput, FolderMinus, RotateCcw, Trash2, X } from "lucide-react";
@@ -55,13 +55,12 @@ export function SelectionBar({ libraryId, acrossLibraries, scope, ids, onClear, 
     return () => { alive = false; };
   }, [folderLibrary, reloadKey, safeMode]);
 
-  // 观察者只接一次，回调读最新的 onWidth 与 compact。
-  const report = useRef({ onWidth, compact });
-  report.current = { onWidth, compact };
+  // 观察者只接一次，报告时读这次渲染的 onWidth 与 compact。
+  const reportWidth = useEffectEvent((width: number) => onWidth(width, compact));
   useLayoutEffect(() => {
     const el = root.current;
     if (!el) return;
-    const measure = () => report.current.onWidth(el.offsetWidth, report.current.compact);
+    const measure = () => reportWidth(el.offsetWidth);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);

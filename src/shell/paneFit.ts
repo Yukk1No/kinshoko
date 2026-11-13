@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { INSPECTOR_WIDTH } from "./InspectorResizer";
 
 /** 侧栏宽度：平时 256，窗口窄时最窄让到 200。 */
@@ -77,11 +77,10 @@ export function usePaneFold({ body, inspector, paneOpen, onPaneOpen }: {
  * 里面的弹出层已经用掉的 Esc（defaultPrevented）不算。
  */
 export function useFloatEscape(floating: boolean, onClose: () => void) {
-  const close = useRef(onClose);
-  close.current = onClose;
+  const closeFloat = useEffectEvent(onClose);
   useEffect(() => {
     if (!floating) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) { e.preventDefault(); close.current(); } };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) { e.preventDefault(); closeFloat(); } };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [floating]);

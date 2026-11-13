@@ -1,6 +1,6 @@
 import { SealedImportPreview } from "./SealedImportPreview";
 import type { SaveDestination } from "../bindings/SaveDestination";
-import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
+import { useEffect, useEffectEvent, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { formatNumber, percentOf } from "../i18n/format";
@@ -16,7 +16,7 @@ import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
 import { EagleTagStep } from "./EagleTagStep";
 import type { EagleLocationChoice } from "../bindings/EagleLocationChoice";
 import type { EagleRelocation } from "../bindings/EagleRelocation";
-import { cancelImport, confirmEagleLocation, discoverEagleLibraries, importContainsEagle, onFileDrop, pickFiles, pickFolder, startImport } from "../ipc";
+import { cancelImport, confirmEagleLocation, discoverEagleLibraries, importContainsEagle, onFileDrop, pickFiles, pickFolder, startImport, type FileDrop } from "../ipc";
 import { EagleLibrariesDialog, ImportPlanDialog, ImportResultCard, type ImportPlan } from "./ImportBarParts";
 import { useImportNotices } from "./useImportNotices";
 import { useImportRecovery } from "./useImportRecovery";
@@ -187,27 +187,27 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
     }
   };
 
-  // 拖放的回调只注册一次，经 ref 读到最新的状态。
-  const latest = useRef({ busy, begin, dropBlocked, noticeBlockedDrop: () => {}, noticeBusyDrop: () => {} });
-  latest.current = { ...latest.current, busy, begin, dropBlocked };
+  // 拖放的回调只注册一次，处理时读这次渲染的状态。
+  const handleDrop = useEffectEvent((drop: FileDrop) => {
+    if (!alive.current || !enabled) return;
+    switch (drop.kind) {
+      case "enter":
+        setHovering(!busy && !dropBlocked);
+        break;
+      case "drop":
+        setHovering(false);
+        if (dropBlocked) toast.show({ title: t("drop.inTrash") });
+        // 正在导入时拖进来的不排队：说一声，免得松手后什么都没发生。
+        else if (busy) toast.show({ title: t("drop.busy") });
+        else void begin(drop.paths);
+        break;
+      case "leave":
+        setHovering(false);
+        break;
+    }
+  });
   useEffect(() => {
-    const unlisten = onFileDrop((drop) => {
-      if (!alive.current || !enabledRef.current) return;
-      switch (drop.kind) {
-        case "enter":
-          setHovering(!latest.current.busy && !latest.current.dropBlocked);
-          break;
-        case "drop":
-          setHovering(false);
-          if (latest.current.dropBlocked) latest.current.noticeBlockedDrop();
-          else if (latest.current.busy) latest.current.noticeBusyDrop();
-          else void latest.current.begin(drop.paths);
-          break;
-        case "leave":
-          setHovering(false);
-          break;
-      }
-    });
+    const unlisten = onFileDrop(handleDrop);
     return () => {
       void unlisten.then((stop) => stop());
     };
@@ -225,7 +225,7 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
       if (alive.current) toast.error(t("failed.confirmEagle", { error: errorText(error) }));
     }
   };
-  const reimport = (paths: string[], library: string) => latest.current.begin(paths, false, undefined, { libraryId: library, folderId: null });
+  const reimport = (paths: string[], library: string) => begin(paths, false, undefined, { libraryId: library, folderId: null });
 
   const minimized = running !== null && background === (running.taskId ?? "");
   const owner = ownerLabel ?? (finished?.libraryName ? t("owner", { library: finished.libraryName, folder: finished.folderName ?? t("unassigned") }) : running?.libraryName ? t("owner", { library: running.libraryName, folder: running.folderName ?? t("unassigned") }) : null);
@@ -235,10 +235,6 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
 
   const { receiptOpen, setReceipt, closeReceipt } = useImportNotices({ finished, owner, warnings, onSelectTask, onShowDestination, recovery, dismissRecovery,
     reimport: (paths, library) => void reimport(paths, library), sealedTask: sealed ? sealed.taskId : null, showSealed: (taskId) => setPreview({ taskId, contextKey }) });
-
-  latest.current.noticeBlockedDrop = () => { toast.show({ title: t("drop.inTrash") }); };
-  // 正在导入时拖进来的不排队：说一声，免得松手后什么都没发生。
-  latest.current.noticeBusyDrop = () => { toast.show({ title: t("drop.busy") }); };
 
   const cards = <>
     {relocations.map((relocation) => (

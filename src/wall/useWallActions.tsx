@@ -73,7 +73,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
 
   const pinNow = async (cards: BrowserCard[], point: Point) => {
     const { onError } = options.current;
-    const rects = staggeredPins(point, cards.length, window.devicePixelRatio || 1);
+    const rects = staggeredPins(point, cards.length, window.devicePixelRatio);
     // 依次钉住：后钉的盖在先钉的上面，错开的顺序与图片墙一致。
     for (const [i, card] of cards.entries()) {
       const target = targetOf(card);

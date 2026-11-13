@@ -124,7 +124,7 @@ describe("查看器程序配置", () => {
     const writes: unknown[] = [];
     mockIPC((command, args) => {
       if (command === "shell_settings") return { viewerBackground: "light" };
-      if (command === "set_viewer_background") writes.push(args);
+      if (command === "change_setting") { const { kind, ...fields } = (args as { change: { kind: string } }).change; if (kind === "viewerBackground") writes.push(fields); }
       return null;
     });
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
@@ -143,7 +143,7 @@ describe("查看器程序配置", () => {
     const writes: unknown[] = [];
     mockIPC((command, args) => {
       if (command === "shell_settings") throw new Error("temporarily unavailable");
-      if (command === "set_viewer_background") writes.push(args);
+      if (command === "change_setting") { const { kind, ...fields } = (args as { change: { kind: string } }).change; if (kind === "viewerBackground") writes.push(fields); }
       return null;
     });
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);

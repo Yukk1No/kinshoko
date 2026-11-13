@@ -1,5 +1,5 @@
 // Reused from bd8aea44:prototype/reference-browser/src/components/DensitySlider.tsx.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 
 const MIN = 140;
@@ -23,9 +23,8 @@ export function DensitySlider(p: { value: number; preview?: number | null; onPre
     if (x === p.value) p.onPreview(null); else p.onCommit(x);
   };
   // Closing the settings dialog mid-pause (Esc) still lands the size the artist chose.
-  const latest = useRef(commit);
-  latest.current = commit;
-  useEffect(() => () => { clearTimeout(timer.current); if (pending.current !== null) latest.current(pending.current); }, []);
+  const commitPending = useEffectEvent(() => { if (pending.current !== null) commit(pending.current); });
+  useEffect(() => () => { clearTimeout(timer.current); commitPending(); }, []);
   // The travelled part of the track is painted from --fill (a native range has no pseudo-element for it).
   const fill = `${((v - MIN) / (MAX - MIN)) * 100}%`;
   const input = <input type="range" className="k-range" min={MIN} max={MAX} step={10} value={v} aria-label={p.label}

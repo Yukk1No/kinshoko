@@ -5,7 +5,7 @@ import { i18n, SOURCE_LANG, supported, type UiLang } from "./instance";
 export { SOURCE_LANG, UI_LANGS, type UiLang } from "./instance";
 
 const syncDocumentLang = (lang: string) => {
-  if (typeof document !== "undefined") document.documentElement.lang = lang;
+  document.documentElement.lang = lang;
 };
 // 首帧的语言也写进文档（index.html 写的是 zh-CN），读屏软件按它朗读。
 syncDocumentLang(i18n.language);

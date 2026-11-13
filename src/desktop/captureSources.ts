@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { reportCaptureReferences } from "../ipc";
 import { logFailure } from "../runLog";
@@ -47,7 +47,7 @@ export function captureImage(image: HTMLImageElement, clip: HTMLElement, library
   const scale = Math.min(box.width / width, box.height / height);
   const shown = { left: box.left + (box.width - width * scale) / 2, top: box.top + (box.height - height * scale) / 2, right: box.left + (box.width + width * scale) / 2, bottom: box.top + (box.height + height * scale) / 2 };
   const visible = { left: Math.max(shown.left, limit.left, 0), top: Math.max(shown.top, limit.top, 0), right: Math.min(shown.right, limit.right, window.innerWidth), bottom: Math.min(shown.bottom, limit.bottom, window.innerHeight) };
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = window.devicePixelRatio;
   const physical = (rect: typeof shown, inset = false): ScreenRect => {
     const left = (inset ? Math.ceil : Math.round)(rect.left * dpr);
     const top = (inset ? Math.ceil : Math.round)(rect.top * dpr);
@@ -88,10 +88,9 @@ function collect(all: Provider[]): CaptureReference[] {
 
 /** The native action requests a fresh frame before and after capture. No persistent rectangle cache. */
 export function useCaptureSources(read: Provider["read"], priority: number) {
-  const current = useRef(read);
-  current.current = read;
+  const readSources = useEffectEvent(read);
   useEffect(() => {
-    const provider = { priority, read: () => current.current() };
+    const provider = { priority, read: () => readSources() };
     providers.add(provider);
     if (providers.size === 1) install();
     return () => { providers.delete(provider); if (!providers.size) stop?.(); generation += 1; };
@@ -117,7 +116,7 @@ function install() {
     if (observer.takeRecords().length || document.getAnimations().some((a) => a.playState === "running" && a.effect instanceof KeyframeEffect && a.effect.target instanceof Element && a.effect.target.closest(".card,.viewer-stage"))) dirty();
     const references = collect([...providers]);
     // 忽略失败：交不上时后端等满 3 秒自己报错，截图那边会提示。
-    await reportCaptureReferences(payload.request, { instance, generation, dpr: window.devicePixelRatio || 1, references }).catch(() => {});
+    await reportCaptureReferences(payload.request, { instance, generation, dpr: window.devicePixelRatio, references }).catch(() => {});
   // 装不上时每次截图都等满 3 秒、由后端报错；记一条，排查时知道是这边没在听。
   }).then((off) => { if (version === installation) unlisten = off; else off(); }).catch((e) => logFailure("listen capture-reference-request", e));
   stop = () => {

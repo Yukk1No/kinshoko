@@ -13,7 +13,7 @@ function backend() {
   const view = (): ShellSettingsView => shellSettings({ autostart: true, tagDisplay: saved });
   fakeBackend({
     shell_settings: view,
-    set_tag_display: (args) => {
+    "change_setting:tagDisplay": (args) => {
       const display = (args as { display: TagDisplay }).display;
       sent.push(display);
       if (display.low >= display.high) throw { code: "message", message: "低档上限要小于高档下限，且都在 0 到 1 之间" };
@@ -62,7 +62,7 @@ describe("设置：标签外观", () => {
     const view = (tagDisplay: TagDisplay): ShellSettingsView => shellSettings({ autostart: true, tagDisplay });
     fakeBackend({
       shell_settings: () => view(saved),
-      set_tag_display: (args) => {
+      "change_setting:tagDisplay": (args) => {
         // 按收到的顺序写入，回复要等测试放行。
         saved = (args as { display: TagDisplay }).display;
         const reply = view(saved);
@@ -93,7 +93,7 @@ describe("设置：标签外观", () => {
     const view = (): ShellSettingsView => shellSettings({ autostart: true, tagDisplay: saved });
     fakeBackend({
       shell_settings: view,
-      set_tag_display: (args) => {
+      "change_setting:tagDisplay": (args) => {
         const display = (args as { display: TagDisplay }).display;
         return new Promise<ShellSettingsView>((resolve) => waiting.push(() => { saved = display; resolve(view()); }));
       },
@@ -119,7 +119,7 @@ describe("设置：标签外观", () => {
     let failNext = true;
     fakeBackend({
       shell_settings: view,
-      set_tag_display: (args) => {
+      "change_setting:tagDisplay": (args) => {
         if (failNext) { failNext = false; throw { code: "message", message: "无法写入设置文件" }; }
         saved = (args as { display: TagDisplay }).display;
         return view();

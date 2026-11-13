@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n";
 import type { Region } from "../bindings/Region";
-import { shellSettings, setViewerBackground } from "../ipc";
+import { changeSetting, shellSettings } from "../ipc";
 import { cachedViewerBackground, rememberViewerBackground } from "./background";
 import { Copy, Crop as CropIcon, FolderSearch, PanelRight, Palette, Pin, Scan, Trash2 } from "lucide-react";
 import { Menu, MenuCheckboxItem, MenuItem, MenuPopup, MenuRadioItem, MenuSeparator, MenuSubmenu } from "../ui/Menu";
@@ -30,7 +30,7 @@ export function useViewerBackground() {
     setBackground(next);
     rememberViewerBackground(next);
     // 忽略失败：本机缓存已记下；写不进核心设置时只是下次启动不记得背景。
-    void setViewerBackground(next).catch(() => {});
+    void changeSetting({ kind: "viewerBackground", background: next }).catch(() => {});
   }, []);
   return [background, choose] as const;
 }

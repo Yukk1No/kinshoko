@@ -23,7 +23,7 @@ export function useDoubleClickGuard() {
       swallowing = false;
       lastPress.current = press;
       if (!first || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
-      if (!isSecondPress(first, press, doubleClickSettings(), window.devicePixelRatio || 1)) return;
+      if (!isSecondPress(first, press, doubleClickSettings(), window.devicePixelRatio)) return;
       lastPress.current = null;
       e.preventDefault();
       e.stopImmediatePropagation();

@@ -14,7 +14,7 @@ describe("标签外观草稿", () => {
     const sent: TagDisplay[] = [];
     let failNextTag = true;
     backend({
-      set_tag_display: (args) => {
+      "change_setting:tagDisplay": (args) => {
         const display = (args as { display: TagDisplay }).display;
         sent.push(display);
         const fail = failNextTag;

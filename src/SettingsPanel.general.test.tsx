@@ -46,13 +46,13 @@ describe("设置：常驻与快捷键", () => {
   });
 
   it("关掉开机自启后显示核心保存的结果", async () => {
-    const fake = backend({ set_autostart: { ...defaults, autostart: false } });
+    const fake = backend({ "change_setting:autostart": { ...defaults, autostart: false } });
     render(<SettingsPanel />);
 
     fireEvent.click(await screen.findByRole("switch", { name: "开机启动" }));
 
     await screen.findByRole("switch", { name: "开机启动", checked: false });
-    expect(fake.calls("set_autostart")[0]?.args).toEqual({ on: false });
+    expect(fake.calls("change_setting:autostart")[0]?.args).toEqual({ on: false });
   });
 
   it("快捷键页列出查看器的操作提示（#179，原在查看器的信息浮层里）", async () => {

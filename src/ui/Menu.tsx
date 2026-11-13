@@ -230,7 +230,8 @@ function MenuRoot<Payload>(props: BaseMenu.Root.Props<Payload>) {
   const { onOpenChange } = props;
   const openChange = useCallback((open: boolean, details: BaseMenu.Root.ChangeEventDetails) => {
     if (open) {
-      const anchor = (details.event?.target as Element | null)?.closest?.<HTMLElement>("[aria-haspopup]") ?? null;
+      const target = details.event?.target;
+      const anchor = target instanceof Element ? target.closest<HTMLElement>("[aria-haspopup]") : null;
       ctrl.openedFrom(anchor, details.event instanceof MouseEvent);
     }
     onOpenChange?.(open, details);

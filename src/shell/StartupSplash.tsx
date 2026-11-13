@@ -94,7 +94,7 @@ export function StartupSplash() {
 
   useEffect(() => {
     if (phase !== "leaving") return;
-    performance.mark?.("startup-exit-start");
+    performance.mark("startup-exit-start");
     const overlay = root.current, mark = logo.current, glyph = star.current;
     if (reduced || !overlay || !mark || !glyph) {
       const timer = setTimeout(() => setPhase("gone"), FADE_MS);
@@ -116,7 +116,7 @@ export function StartupSplash() {
       glyph.setAttribute("transform", `translate(132 58) rotate(${rot.toFixed(2)}) scale(${k.toFixed(4)}) translate(-132 -58)`);
       if (t >= POP_MS) overlay.style.clipPath = starHole(box.width, box.height, cx, cy, s0 * k, rot);
       if (grow < 1) frame = requestAnimationFrame(step);
-      else { performance.mark?.("startup-exit-end"); setPhase("gone"); }
+      else { performance.mark("startup-exit-end"); setPhase("gone"); }
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);

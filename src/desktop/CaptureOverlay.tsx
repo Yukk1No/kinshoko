@@ -89,7 +89,7 @@ export function CaptureOverlay() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       // 聚焦在 dock 按钮上时，Enter／空格只执行那个按钮。
-      if ((e.key === "Enter" || e.key === " ") && (e.target as Element | null)?.closest?.(".capture-tools button")) return;
+      if ((e.key === "Enter" || e.key === " ") && e.target instanceof Element && e.target.closest(".capture-tools button")) return;
       if (e.key === "Escape") finish("cancel");
       else if (e.key === "Enter" || e.key === "F3") finish("pin");
       else if (e.ctrlKey && e.key.toLowerCase() === "c") finish("copy");

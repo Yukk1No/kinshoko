@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
@@ -33,19 +33,16 @@ export function useSubscriptionData(status: SubscriptionStatus, safe: boolean, r
   }, []);
   /** 读到 `recent` 时的视角：后端按图库的有效分级去掉了成人作品，前端只知道来源的标记。 */
   const [recentLens, setRecentLens] = useState({ safe, lens });
-  const lensRef = useRef({ safe, lens });
-  lensRef.current = { safe, lens };
   const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set());
   const signedIn = status.login.state !== "loggedOut";
-  const errors = useRef(onError);
-  errors.current = onError;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: safe、lens、reload 是重读信号，effect 从 lensRef 读视角
+  const reportError = useEffectEvent(onError);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(reload): reload 是重读信号，effect 里不读它
   useEffect(() => {
     if (!signedIn) { setList([]); setRecent([]); return; }
     let alive = true;
-    const under = lensRef.current;
+    const under = { safe, lens };
     const unseen = status.newCount > 0;
-    listSubscriptions().then((next) => alive && setList(next), (e) => { if (alive) { setList([]); errors.current(e); } });
+    listSubscriptions().then((next) => alive && setList(next), (e) => { if (alive) { setList([]); reportError(e); } });
     // 把这次的视角交给后端：后端按它与设置里的安全模式中更严的一个过滤，标成 `under.safe` 不会放宽。
     subscriptionRecent(under.safe).then((next) => {
       if (!alive) return;
@@ -57,7 +54,7 @@ export function useSubscriptionData(status: SubscriptionStatus, safe: boolean, r
       // 标完后端推送状态，数为零就不再标。
       // 忽略失败：没标上时入口上的数还在，下次读到时再标。
       if (arrived.length > 0 || unseen) void subscriptionMarkSeen().catch(() => {});
-    }, (e) => { if (alive) errors.current(e); });
+    }, (e) => { if (alive) reportError(e); });
     return () => { alive = false; };
   }, [status, signedIn, safe, lens, reload]);
   /** 安全模式开着，而 `recent` 不是按现在的开关与范围读的。 */
