@@ -1,19 +1,16 @@
 import { expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { mockIPC } from "@tauri-apps/api/mocks";
 import type { BrowserCard } from "./Wall";
-import { api, calls, card, Harness, named, setupWallActions } from "./useWallActions.fixtures";
+import { api, backend, calls, card, Harness, named, setupWallActions } from "./useWallActions.fixtures";
 
 /** 移到回收站与还原：一次批量命令、先移走卡片、失败放回（#290）。 */
 setupWallActions();
 
-const EDIT_SOURCES = "plugin:library|workspace_edit_sources";
+const EDIT_SOURCES = "workspace_edit_sources";
 type Target = { libraryId: string; imageId: string; contentId: string };
 const targetsOf = (call: { args: Record<string, unknown> }) => call.args.targets as Target[];
 /** 批量整理命令：这些图库失败（按图库返回原因），其余照常完成。 */
-const failing = (reasons: Record<string, string>) => mockIPC((cmd, args) => {
-  calls.push({ cmd, args: args as Record<string, unknown> });
-  if (cmd !== EDIT_SOURCES) return null;
+const failing = (reasons: Record<string, string>) => backend.on(EDIT_SOURCES, (args) => {
   const libraries = [...new Set((args as { targets: Target[] }).targets.map((t) => t.libraryId))];
   return libraries.filter((id) => id in reasons).map((libraryId) => ({ libraryId, error: { code: "message", message: reasons[libraryId] } }));
 });
@@ -24,7 +21,7 @@ it("移到回收站不先确认，轻提示里的“撤销”把同一批图还�
   act(() => api.edit([card("1"), card("2", "L2")], [{ kind: "delete" }], true));
   expect(await screen.findByText("已移到回收站")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "撤销" }));
-  const edits = () => calls.filter((c) => c.cmd === EDIT_SOURCES);
+  const edits = () => calls(EDIT_SOURCES);
   await waitFor(() => expect(edits()).toHaveLength(2));
   expect([targetsOf(edits()[1]), edits()[1].args.edits]).toEqual([
     [{ libraryId: "L1", imageId: "i1", contentId: "1" }, { libraryId: "L2", imageId: "i2", contentId: "2" }],
@@ -41,7 +38,7 @@ it("跨图库移到回收站时一个图库失败：已移走的那部分照样�
   expect(screen.getByText("2 张")).toBeTruthy();
   expect(onError).toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "撤销" }));
-  const restores = () => calls.filter((c) => c.cmd === EDIT_SOURCES && (c.args.edits as { kind: string }[])[0].kind === "restore");
+  const restores = () => calls(EDIT_SOURCES).filter((c) => (c.args.edits as { kind: string }[])[0].kind === "restore");
   await waitFor(() => expect(restores()).toHaveLength(1));
   expect(targetsOf(restores()[0]).map((t) => t.libraryId)).toEqual(["L1", "L3"]);
 });
@@ -52,7 +49,7 @@ it("一次删除 N 张图只调一次批量命令，带上每张图的来源；�
   render(<Harness onChanged={onChanged} onClearSelection={onClearSelection} />);
   act(() => api.edit([card("1"), card("2", "L2"), card("3")], [{ kind: "delete" }], true));
   await waitFor(() => expect(onChanged).toHaveBeenCalled());
-  const edits = calls.filter((c) => c.cmd === EDIT_SOURCES);
+  const edits = calls(EDIT_SOURCES);
   expect(edits).toHaveLength(1);
   expect(targetsOf(edits[0])).toEqual([
     { libraryId: "L1", imageId: "i1", contentId: "1" }, { libraryId: "L2", imageId: "i2", contentId: "2" },
@@ -64,10 +61,7 @@ it("一次删除 N 张图只调一次批量命令，带上每张图的来源；�
 
 it("点删除后先移走卡片，不等后端；失败的图库那部分放回原位并给出原因（#290）", async () => {
   let answer: ((failed: { libraryId: string; error: unknown }[]) => void) | undefined;
-  mockIPC((cmd, args) => {
-    calls.push({ cmd, args: args as Record<string, unknown> });
-    return cmd === EDIT_SOURCES ? new Promise((resolve) => { answer = resolve; }) : null;
-  });
+  backend.on(EDIT_SOURCES, () => new Promise<unknown>((resolve) => { answer = resolve; }));
   const putBack = vi.fn();
   const removeCards = vi.fn((_cards: BrowserCard[]) => putBack);
   const onError = vi.fn(), onChanged = vi.fn();
@@ -98,10 +92,7 @@ it("另一个资料库里那份来源仍在视图里的卡片不先移走：删�
 });
 
 it("批量命令整个失败时全部放回并给出原因；不移走卡片的整理不先移走", async () => {
-  mockIPC((cmd, args) => {
-    calls.push({ cmd, args: args as Record<string, unknown> });
-    return cmd === EDIT_SOURCES ? Promise.reject({ code: "message", message: "安全模式刚切换" }) : null;
-  });
+  backend.on(EDIT_SOURCES, () => Promise.reject({ code: "message", message: "安全模式刚切换" }));
   const putBack = vi.fn();
   const removeCards = vi.fn((_cards: BrowserCard[]) => putBack);
   const onError = vi.fn(), onChanged = vi.fn(), onClearSelection = vi.fn();

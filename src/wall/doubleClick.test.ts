@@ -1,8 +1,8 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { DEFAULT_DOUBLE_CLICK, doubleClickSettings, isSecondPress, loadDoubleClickSettings, resetDoubleClickSettings } from "./doubleClick";
+import { fakeBackend } from "../test/backend";
 
-afterEach(() => { clearMocks(); resetDoubleClickSettings(); vi.restoreAllMocks(); });
+afterEach(() => { resetDoubleClickSettings(); vi.restoreAllMocks(); });
 
 const first = { at: 1000, x: 100, y: 100 };
 
@@ -23,16 +23,16 @@ it("判定矩形按物理像素：缩放 150% 时 CSS 坐标移动 1.5 就超过
 });
 
 it("按系统设置判定；读不到时用 500 ms / 4 px", async () => {
-  mockIPC((cmd) => { if (cmd === "double_click") return { intervalMs: 300, width: 10, height: 6 }; throw new Error(cmd); });
+  fakeBackend({ double_click: { intervalMs: 300, width: 10, height: 6 } });
   expect(doubleClickSettings()).toEqual(DEFAULT_DOUBLE_CLICK);
   await loadDoubleClickSettings();
   expect(doubleClickSettings()).toEqual({ intervalMs: 300, width: 10, height: 6 });
   resetDoubleClickSettings();
-  mockIPC((cmd) => { if (cmd === "double_click") return null; throw new Error(cmd); });
+  fakeBackend({ double_click: null });
   await loadDoubleClickSettings();
   expect(doubleClickSettings()).toEqual({ intervalMs: 500, width: 4, height: 4 });
   resetDoubleClickSettings();
-  mockIPC(() => { throw new Error("no backend"); });
+  fakeBackend();
   await loadDoubleClickSettings();
   expect(doubleClickSettings()).toEqual(DEFAULT_DOUBLE_CLICK);
 });

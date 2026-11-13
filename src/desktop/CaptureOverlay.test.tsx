@@ -1,14 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { tipText } from "../test/tip";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { CaptureOverlay } from "./CaptureOverlay";
+import { type FakeBackend, fakeBackend } from "../test/backend";
 
 let reduced = false;
 vi.mock("motion/react", async (actual) => ({ ...(await actual<typeof import("motion/react")>()), useReducedMotion: () => reduced }));
 
-let calls: { cmd: string; args: any }[];
+let backend: FakeBackend;
 /** 冻结时登记的参考图在框选窗口里的范围（物理像素）与原图倍率：选区完全落在里面时读原始像素。 */
 let reference: { x: number; y: number; width: number; height: number; scale: number } | null;
 /** 原生端此刻的冻结屏幕；会话结束时为 null。 */
@@ -19,25 +20,19 @@ beforeEach(() => {
   frozen = { image: "screen/tok", width: 2400, height: 1500 };
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.25 });
   mockConvertFileSrc("windows");
-  calls = [];
-  mockIPC((cmd, args) => {
-    calls.push({ cmd, args });
-    if (cmd === "plugin:desktop|frozen_screen") return frozen;
-    if (cmd === "plugin:desktop|capture_readout") {
+  backend = fakeBackend({
+    frozen_screen: () => frozen,
+    capture_readout: (args) => {
       const { region: r } = args as { region: { x: number; y: number; width: number; height: number } };
       const inside = reference && r.x >= reference.x && r.y >= reference.y && r.x + r.width <= reference.x + reference.width && r.y + r.height <= reference.y + reference.height;
       return inside ? { width: r.width * reference!.scale, height: r.height * reference!.scale } : null;
-    }
-    return null;
-  }, { shouldMockEvents: true });
+    },
+    capture_ready: null,
+    finish_capture: null,
+    cancel_capture: null,
+  });
 });
-afterEach(async () => {
-  cleanup();
-  // 卸载时异步取消事件订阅，等它完成再撤掉模拟。
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
-});
-const sent = (name: string) => calls.filter((c) => c.cmd === `plugin:desktop|${name}`).map((c) => c.args);
+const sent = (name: string) => backend.calls(name).map((c) => c.args);
 
 async function open() {
   const { container } = render(<CaptureOverlay />);
