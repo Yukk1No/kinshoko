@@ -49,8 +49,8 @@ export function TagIdentityPanel() {
       alive = false;
       inspected.current = false; dirty.current = false;
       generation.current++;
-      void unlisten.then((stop) => stop()).catch(() => {});
-      void vocabulary.then((stop) => stop()).catch(() => {});
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
+      for (const stop of [unlisten, vocabulary]) void stop.then((off) => off()).catch(() => {});
     };
   }, []);
   const run = async (action: () => Promise<TagCatalogWorkspace>, success?: string, automatic = false) => {

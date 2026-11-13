@@ -154,6 +154,6 @@ export function saveAnchor(key: string, anchor: Anchor | null) {
   try {
     if (anchor) localStorage.setItem(key, JSON.stringify(anchor));
   } catch {
-    // 本地存储不可用时只是不记住位置。
+    // 忽略失败：本地存储不可用时只是不记住位置。
   }
 }

@@ -18,7 +18,7 @@ export const safeTiming = {
     if (!ENABLED) return;
     started = performance.now();
     seen.clear();
-    try { performance.mark("safe-mode:toggle"); } catch { /* 没有性能面板时只写控制台 */ }
+    try { performance.mark("safe-mode:toggle"); } catch { /* 忽略失败：没有性能面板时只写控制台。 */ }
     console.debug(`[safe-mode] toggled → ${on ? "on" : "off"}`);
   },
   mark(stage: SafeStage) {
@@ -26,7 +26,7 @@ export const safeTiming = {
     const ms = performance.now() - started;
     if (ms > WINDOW_MS) { started = null; return; }
     seen.add(stage);
-    try { performance.measure(`safe-mode:${stage}`, "safe-mode:toggle"); } catch { /* 同上 */ }
+    try { performance.measure(`safe-mode:${stage}`, "safe-mode:toggle"); } catch { /* 忽略失败：没有性能面板时只写控制台。 */ }
     console.debug(`[safe-mode] ${stage} +${ms.toFixed(1)} ms`);
   },
 };
