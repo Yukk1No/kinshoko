@@ -73,9 +73,6 @@ export function workspaceSidebar(libraryId: string, safeMode: boolean): Promise<
 export function workspaceTagGroups(libraryId: string, lang: string, safeMode: boolean): Promise<TagGroupView[]> {
   return invoke<TagGroupView[]>(lib("workspace_tag_groups"), { libraryId, lang, safeMode });
 }
-export function workspaceLocalTags(libraryId: string, ids: string[], safeMode: boolean): Promise<string[]> {
-  return invoke<string[]>(lib("workspace_local_tags"), { libraryId, ids, safeMode });
-}
 export function onWorkspaceChanged(handler: (status: WorkspaceStatus) => void): Promise<UnlistenFn> {
   return listen<WorkspaceStatus>("workspace-changed", (event) => handler(event.payload));
 }
@@ -191,4 +188,3 @@ export function setViewerBackground(background: import("../bindings/ViewerBackgr
 /** 保存主窗口详情面板的宽度（#157）；后端把它收进 280–560。 */
 export function setInspectorWidth(width: number): Promise<ShellSettingsView> { return invoke("set_inspector_width", { width }); }
 export function setInspectorOpen(open: boolean): Promise<ShellSettingsView> { return invoke("set_inspector_open", { open }); }
-export function migrateViewerBackground(background: import("../bindings/ViewerBackground").ViewerBackground): Promise<ShellSettingsView> { return invoke("migrate_viewer_background", { background }); }

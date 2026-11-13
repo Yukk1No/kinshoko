@@ -49,14 +49,6 @@ fn invalid_or_changed_packages_leave_existing_configuration_usable() {
         settings.viewer_background(),
         Some(kinshoko_core::ViewerBackground::Mid)
     );
-    settings
-        .migrate_viewer_background(kinshoko_core::ViewerBackground::Light)
-        .unwrap();
-    assert_eq!(
-        settings.viewer_background(),
-        Some(kinshoko_core::ViewerBackground::Mid),
-        "legacy storage must not undo a replacement"
-    );
 }
 
 #[test]

@@ -2,16 +2,18 @@
 //! 用临时目录里的真库，经 `Library` 的对外接口；分级按模型来源写入（与打标子进程写入的方式相同）。
 
 use std::collections::BTreeSet;
-use std::path::Path;
 
-use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::library::{
-    BrowseQuery, BrowseScope, ContentRating, Error, FactSource, ImageEdit, ImportOutcome,
-    ImportSource, LibraryEvent, RatingFact, TagAlias, TagEdit, TagNamespace, TagRef,
+    BrowseQuery, BrowseScope, ContentRating, Error, FactSource, ImageEdit, LibraryEvent,
+    RatingFact, TagAlias, TagEdit, TagNamespace, TagRef,
 };
 use kinshoko_core::search::{ConditionInput, Search, SearchInput, TermInput};
+
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::import_seeded;
 
 const ZH: &str = "zh-CN";
 
@@ -28,29 +30,6 @@ struct Fixture {
     trashed_explicit: String,
     trashed_general: String,
     folder: String,
-}
-
-fn import(library: &Library, dir: &Path, n: u8) -> Vec<String> {
-    let paths: Vec<_> = (0..n)
-        .map(|i| {
-            let path = dir.join(format!("in/{i}.png"));
-            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            RgbaImage::from_fn(4, 4, |x, y| image::Rgba([i, x as u8, y as u8, 255]))
-                .save(&path)
-                .unwrap();
-            path
-        })
-        .collect();
-    library
-        .import(ImportSource { paths })
-        .wait()
-        .items
-        .into_iter()
-        .map(|item| match item.outcome {
-            ImportOutcome::Imported { image_id } => image_id,
-            other => panic!("未导入：{other:?}"),
-        })
-        .collect()
 }
 
 fn rate(library: &Library, id: &str, rating: ContentRating) {
@@ -87,7 +66,7 @@ impl Fixture {
         let dir = tempfile::tempdir().unwrap();
         let library = Library::create(&dir.path().join("lib"), "库").unwrap();
         library.set_safe_mode(false);
-        let ids = import(&library, dir.path(), 7);
+        let ids = import_seeded(&library, dir.path(), 0..7);
         let [
             general,
             sensitive,

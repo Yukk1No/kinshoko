@@ -56,6 +56,7 @@ export function Dock({ items, value, onSelect, label: labelProp, className = "",
   const entries = items.filter(isEntry);
   const tip = entries.find((item) => item.id === hovered);
   // The label rides over the centre of the hovered slot, measured from the real layout.
+  // biome-ignore lint/correctness/useExhaustiveDependencies(items.length): 项数变了各格位置会变，重新量
   useLayoutEffect(() => {
     const cell = hovered ? root.current?.querySelector<HTMLElement>(`[data-dock-id="${hovered}"]`) : null;
     if (cell) setTipX(cell.offsetLeft + cell.offsetWidth / 2);

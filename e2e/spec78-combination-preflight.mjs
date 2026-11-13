@@ -1,7 +1,7 @@
 // Offline build provenance and read-only preflight for the T20 combined native workflow.
 // No process that owns a window starts when this module is imported or a plan is frozen.
 import { spawnSync } from "node:child_process";
-import { constants, closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { sha256 } from "./spec78-combination-fixture.mjs";
 import { checkAttributedBuild } from "./spec78-combination-build.mjs";

@@ -15,6 +15,8 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+pub(super) mod adult_mark;
+
 use super::events::LibraryEvent;
 use super::tagging_state::{TaggingOutcome, record_tagging_in};
 use super::tags::{self, FactSource};

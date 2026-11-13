@@ -6,7 +6,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
-import { chunk, ihdr, oldLibrary } from "./legacy-tag-names.helpers.mjs";
+import { chunk, oldLibrary } from "./legacy-tag-names.helpers.mjs";
 
 const [, , appArg, edgeArg, outArg] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/save-destination-430.mjs <kinshoko.exe> <msedgedriver.exe> <out>");

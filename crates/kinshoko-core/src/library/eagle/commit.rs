@@ -1,6 +1,7 @@
 //! 写入一个 Eagle 条目的来源层（与原图同一事务）。
 
 use super::*;
+use crate::library::rating::adult_mark;
 
 /// 这个 Eagle 条目在本库里的状况。
 pub(in crate::library) enum Existing {
@@ -65,10 +66,8 @@ pub(in crate::library) fn commit(
     } = context;
     let source = FactSource::eagle(&format!("{}:{}", item.source_id, item.metadata.id));
     // Eagle 原文是本库的来源名称，不是某种语言的名称（ADR-0012）。
-    let source_tags = item
-        .metadata
-        .tags
-        .iter()
+    // R-18 只体现为分级，不作为标签进库（见 adult_mark）。
+    let source_tags = adult_mark::tags_to_keep(&item.metadata.tags)
         .map(|name| {
             Ok(SourceTag {
                 tag: TagRef::Id {
@@ -84,6 +83,7 @@ pub(in crate::library) fn commit(
         })
         .collect::<Result<Vec<_>, Error>>()?;
     tags::replace_source_tags_in(tx, translations, &source, image_id, &source_tags)?;
+    adult_mark::replace_rating_from_tags(tx, &source, image_id, &item.metadata.tags)?;
     // 文件夹归属只跟随 Eagle 自上次迁入以来的改动。
     let previous_raw: Option<String> = tx
         .query_row(

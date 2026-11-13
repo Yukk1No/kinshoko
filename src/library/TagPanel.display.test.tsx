@@ -38,9 +38,9 @@ function renderPanel(display: TagDisplay = DEFAULT_TAG_DISPLAY) {
     return null;
   });
   return render(
-    <TagDisplayContext.Provider value={display}>
+    <TagDisplayContext value={display}>
       <TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} />
-    </TagDisplayContext.Provider>,
+    </TagDisplayContext>,
   );
 }
 

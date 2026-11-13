@@ -28,11 +28,10 @@ const workspace = {
 const data = ["工作参考", "蓝瞳", "碧眼", "简体中文"];
 
 function show() {
-  backend((cmd) => {
-    if (cmd === "plugin:library|inspect_tag_catalog") return workspace;
-    if (cmd === "plugin:library|shared_personal_approx") return { revision: 1, entries: [], conflicts: [] };
-    if (cmd === "plugin:library|shared_tag_groups") return [];
-    return undefined;
+  backend({
+    inspect_tag_catalog: workspace,
+    shared_personal_approx: { revision: 1, entries: [], conflicts: [] },
+    shared_tag_groups: [],
   });
   render(<SettingsPanel safe onSafeMode={() => {}} />);
 }

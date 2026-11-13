@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use crate::sync::lock;
 use kinshoko_core::command_error::CommandError;
 use kinshoko_core::subscription::SubscriptionStatus;
 use kinshoko_core::subscription::pixiv::{LoginRequest, callback_code};
@@ -75,7 +76,7 @@ pub async fn subscription_login(app: AppHandle, title: String) -> Result<(), Com
         }
         let (app, request, _) = &closed;
         if let Some(state) = app.try_state::<SubscriptionState>() {
-            let mut login = state.login.lock().unwrap_or_else(|e| e.into_inner());
+            let mut login = lock(&state.login);
             if login
                 .as_ref()
                 .is_some_and(|current| Arc::ptr_eq(current, request))
@@ -93,7 +94,7 @@ pub async fn subscription_login(app: AppHandle, title: String) -> Result<(), Com
 #[tauri::command]
 pub async fn subscription_cancel_login(app: AppHandle) -> Result<SubscriptionStatus, CommandError> {
     let state = require(&app)?;
-    state.login.lock().unwrap_or_else(|e| e.into_inner()).take();
+    lock(&state.login).take();
     if let Some(window) = app.get_webview_window(LOGIN_WINDOW) {
         let _ = window.destroy();
     }
@@ -110,7 +111,7 @@ fn finish_login(app: &AppHandle, request: Arc<LoginRequest>, code: &str) {
     let result = request.finish(code);
     {
         // 与退出登录同一把锁：核对这次登录仍有效和保存会话之间，退出登录插不进来。
-        let mut login = state.login.lock().unwrap_or_else(|e| e.into_inner());
+        let mut login = lock(&state.login);
         if !login
             .as_ref()
             .is_some_and(|current| Arc::ptr_eq(current, &request))
@@ -146,7 +147,7 @@ pub async fn subscription_logout(app: AppHandle) -> Result<SubscriptionStatus, C
     }
     {
         // 作废还在换会话的登录，免得它晚到的结果把登录写回来。
-        let mut login = state.login.lock().unwrap_or_else(|e| e.into_inner());
+        let mut login = lock(&state.login);
         *login = None;
         state.account.log_out().map_err(CommandError::system)?;
     }

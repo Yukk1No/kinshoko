@@ -102,7 +102,6 @@
    张数在更窄时收起（#98）。图片大小浮岛一直保留，只缩短滑条（#102）。 */
 .app-main { container: main / inline-size; }
 .topbar > .search .search-chips { display: flex; flex: 0 1 auto; min-width: 0; gap: 6px; margin: 0; padding: 0; overflow-x: auto; scrollbar-width: none; }
-.topbar > .search .search-chips::-webkit-scrollbar { display: none; }
 .topbar > .search .search-field { flex: 1 1 72px; min-width: 72px; }
 @container main (max-width: 600px) { .k-wall-corner { right: 16px; bottom: 16px; } .selbar-float { bottom: 16px; } .k-density-slot { --density-gap: 8px; --density-pad: 12px; } .k-density-island .k-range { width: 96px; } }
 @container main (max-width: 600px) { .bar-meta { display: none; } }

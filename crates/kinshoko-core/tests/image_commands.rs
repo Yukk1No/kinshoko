@@ -1,26 +1,15 @@
 //! 复制图片、在资源管理器中显示、从剪贴板导入（#102 T3，#105）：经 Library 的对外接口，用真库、真文件。
 //! 应用壳只把这里给出的像素放进剪贴板、把这里给出的路径交给资源管理器、把这里写出的文件交给导入。
 
-use std::path::Path;
-
 use image::{Rgba, RgbaImage};
 use kinshoko_core::Library;
 use kinshoko_core::library::{
-    ContentRating, Error, ImageEdit, ImportOutcome, ImportSource, forget_staged_clipboard_images,
-    stage_clipboard_image,
+    ContentRating, Error, ImageEdit, forget_staged_clipboard_images, stage_clipboard_image,
 };
 
-fn import(library: &Library, path: &Path) -> String {
-    let report = library
-        .import(ImportSource {
-            paths: vec![path.to_owned()],
-        })
-        .wait();
-    match &report.items[0].outcome {
-        ImportOutcome::Imported { image_id } => image_id.clone(),
-        other => panic!("未导入：{other:?}"),
-    }
-}
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::import_one;
 
 /// 一张带半透明的图：每个像素都不同，复制后能逐像素核对。
 fn sample(width: u32, height: u32) -> RgbaImage {
@@ -39,7 +28,7 @@ fn library_with(image: &RgbaImage, name: &str) -> (tempfile::TempDir, Library, S
     let library = Library::create(&dir.path().join("参考"), "参考").unwrap();
     let input = dir.path().join(name);
     image.save(&input).unwrap();
-    let id = import(&library, &input);
+    let id = import_one(&library, &input);
     (dir, library, id)
 }
 
@@ -141,7 +130,7 @@ fn a_clipboard_image_is_staged_as_a_lossless_png_that_imports_normally() {
 
     // 走普通导入：进库的原图就是剪贴板里的像素。
     let library = Library::create(&dir.path().join("参考"), "参考").unwrap();
-    let id = import(&library, &path);
+    let id = import_one(&library, &path);
     assert_eq!(library.clipboard_pixels(&id).unwrap(), pasted);
 }
 

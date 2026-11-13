@@ -109,7 +109,7 @@
 /* 图片大小浮岛（#102 方案 C3）：半透明 --surface、背景模糊、全圆角；两端小图 / 大图。 */
 .k-density-slot { --density-gap: 10px; --density-pad: 14px; display: inline-flex; }
 .k-density-island { display: inline-flex; align-items: center; height: 40px; padding: 0 var(--density-pad); overflow: hidden;
-  background: color-mix(in srgb, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(12px);
   box-shadow: var(--shadow-pop); color: var(--ink-3); }
 .k-density-row { display: flex; align-items: center; gap: var(--density-gap); height: 40px; flex: none; }
 .k-density-row > svg { flex: none; }
@@ -142,7 +142,7 @@
    整圈强调色慢慢明暗；星星不转，两颗小星交替闪烁。暂停时环停在原处变灰，图标换成暂停。
    减少动态效果时不闪不明暗，进度环本身表示“进行中”。 */
 .k-tagging-activity { position: relative; width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(12px);
   box-shadow: var(--shadow-pop); color: var(--accent-strong); }
 .k-tagging-activity:hover { color: var(--ink); }
 .k-tagging-activity:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
@@ -180,10 +180,10 @@
 
 /* 滑条：4 px 下沉轨道、已走过的一段 --range-fill；18 px 纸白圆钮带细描边与两层投影，悬停放大、按下压下。
    WebView2 是 Chromium，只需 -webkit- 伪元素。 */
-.k-range { -webkit-appearance: none; appearance: none; height: 22px; margin: 0; padding: 0; background: transparent; cursor: pointer; }
+.k-range { appearance: none; height: 22px; margin: 0; padding: 0; background: transparent; cursor: pointer; }
 .k-range::-webkit-slider-runnable-track { height: 4px; border-radius: var(--r-pill);
   background: linear-gradient(var(--range-fill), var(--range-fill)) 0 0 / var(--fill, 0%) 100% no-repeat, var(--range-track); box-shadow: var(--range-inset); }
-.k-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; margin-top: -7px; border: 0; border-radius: 50%;
+.k-range::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; margin-top: -7px; border: 0; border-radius: 50%;
   background: var(--knob); box-shadow: var(--knob-shadow); transition: transform var(--t-fast) var(--spring), box-shadow var(--t-fast) var(--ease); }
 .k-range:hover::-webkit-slider-thumb { transform: scale(1.1); }
 .k-range:active::-webkit-slider-thumb { transform: scale(0.94); box-shadow: var(--knob-shadow-pressed); }

@@ -12,6 +12,7 @@ import { addTagAlias, catalogImageTags, editTags, removeTagAlias, vocabulary } f
 import { LIMIT, TagMarks, tagName, useCandidateState } from "../search/SearchBox";
 import { useUiLang } from "../i18n";
 import { tagOption } from "../search/tagOptions";
+import { isComposingKey } from "../ui/composing";
 import { Combobox, type ComboboxOption } from "../ui/Combobox";
 import { TagChip } from "../tags/TagChip";
 import { UntranslatedRename } from "../tags/UntranslatedRename";
@@ -121,12 +122,13 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
     return () => {
       alive = false;
     };
-  }, [libraryId, single, safe, generation, refresh, onError, loadKey, lang]);
+  }, [libraryId, single, onError, loadKey, lang]);
   const tags = loaded?.tags ?? null;
   const identities = loaded?.identities ?? [];
   const stale = loaded !== null && loaded.key !== loadKey;
 
   // 换了选中的图，别名编辑跟着关掉。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(single): 换了选中的图就关掉别名编辑
   useEffect(() => setAliasFor(null), [single]);
 
   const edit = (edits: TagEdit[]) =>
@@ -283,7 +285,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError }: Props) {
 }
 
 /** 一个标签的别名：列出已有的，加新的叫法或去掉一个。别名随词表（vocabulary）刷新。 */
-function AliasEditor({
+export function AliasEditor({
   libraryId,
   tag,
   generation,
@@ -302,6 +304,7 @@ function AliasEditor({
   const [draft, setDraft] = useState("");
   const name = tagName(tag);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies(generation): 词表代次前进时重读
   useEffect(() => {
     let alive = true;
     vocabulary(libraryId).then(
@@ -350,6 +353,7 @@ function AliasEditor({
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {
+          if (isComposingKey(e)) return;
           if (e.key === "Enter") add();
           if (e.key === "Escape") onClose();
         }}

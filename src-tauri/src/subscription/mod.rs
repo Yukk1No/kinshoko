@@ -21,6 +21,7 @@ use kinshoko_core::subscription::{
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 
 use crate::shell::ShellState;
+use crate::sync::lock;
 
 mod badge;
 pub mod login;
@@ -63,7 +64,7 @@ pub struct SubscriptionState {
 
 impl SubscriptionState {
     fn poke(&self, check_all: bool) {
-        let mut wake = self.wake.lock().unwrap_or_else(|e| e.into_inner());
+        let mut wake = lock(&self.wake);
         wake.pending = true;
         wake.check_all |= check_all;
         self.signal.notify_all();
@@ -161,7 +162,7 @@ fn run(app: &AppHandle) {
     let mut sleep = Duration::ZERO;
     loop {
         let check_all = {
-            let wake = state.wake.lock().unwrap_or_else(|e| e.into_inner());
+            let wake = lock(&state.wake);
             let (mut wake, _) = state
                 .signal
                 .wait_timeout_while(wake, sleep, |w| !w.pending)

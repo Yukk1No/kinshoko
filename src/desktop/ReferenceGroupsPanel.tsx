@@ -86,7 +86,7 @@ export function ReferenceGroupsPanel() {
         setLibraryOptions(list);
       })
       .catch(() => {});
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     reload();
@@ -135,6 +135,7 @@ export function ReferenceGroupsPanel() {
   const libraries = (ids: string[]) => ids.map((id) => libraryNames.get(id) ?? t("unregisteredLibrary")).join(t("librarySeparator")) || t("notInLibrary");
 
   // 卡片缩略图：读一次成员状态；参考组更新后重读。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(thumbs.get): 只读它跳过已缓存的；加进依赖会在每张缩略图回来时取消并重发其余请求
   useEffect(() => {
     if (!groups) return;
     let alive = true;
@@ -145,7 +146,7 @@ export function ReferenceGroupsPanel() {
       }, () => {});
     }
     return () => { alive = false; };
-  }, [groups]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [groups]);
 
   const current = groups?.some((g) => g.id === active) ? active : groups?.[0]?.id ?? null;
 

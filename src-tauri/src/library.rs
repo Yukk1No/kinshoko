@@ -55,10 +55,10 @@ use kinshoko_core::approx::{ApproxRelation, BuiltinApproxTable};
 use kinshoko_core::diagnostics::{LibraryNo, LogEvent};
 use kinshoko_core::library::{
     EagleDiscoveryOptions, EagleLibraryCandidate, EagleTagMapping, ExternalVocabulary, ImageDetail,
-    ImageEdit, ImageRating, ImportOptions, ImportSource, LibraryEvent, LibraryInfo, MappedExternal,
-    PermanentDeletePreview, PersonalApproxEntry, RecoveryReport, ReferenceLens, SafeMode,
-    SafeModeScope, Sidebar, TagAlias, TagEdit, TagGroupView, TagNamespace, TagTranslations,
-    Vocabulary, discover_eagle_libraries as discover_eagle,
+    ImageEdit, ImportOptions, ImportSource, LibraryEvent, LibraryInfo, MappedExternal,
+    PermanentDeletePreview, RecoveryReport, ReferenceLens, SafeMode, SafeModeScope, Sidebar,
+    TagAlias, TagEdit, TagGroupView, TagNamespace, TagTranslations, Vocabulary,
+    discover_eagle_libraries as discover_eagle,
 };
 use kinshoko_core::library_batch::{
     LibraryBatchFailure, LibraryDeletePreview, LibraryDeleteToken, LibraryTarget, each_library,
@@ -82,6 +82,7 @@ use tauri::{AppHandle, Emitter, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::shell::ShellState;
+use crate::sync::lock;
 use std::panic::Location;
 
 use kinshoko_core::diagnostics::HeldLock;
@@ -270,10 +271,6 @@ fn lock_libraries_at<'a>(
     }
 }
 
-fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
-}
-
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("library")
         .invoke_handler(tauri::generate_handler![
@@ -294,7 +291,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             workspace::workspace_sidebar,
             workspace::workspace_directories,
             workspace::workspace_tag_groups,
-            workspace::workspace_local_tags,
             current_library,
             create_library,
             create_library_unopened,
@@ -349,22 +345,13 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             tag_groups,
             add_tag_alias,
             remove_tag_alias,
-            create_tag_group,
-            rename_tag_group,
-            delete_tag_group,
-            add_to_tag_group,
-            remove_from_tag_group,
             search_candidates,
             rating_candidates,
-            resolve_search,
             set_tag_approx,
-            remove_tag_approx,
-            personal_approx,
             eagle_tag_mapping,
             map_tag_external,
             set_source_name_lang,
             external_suggestions,
-            image_rating,
             safe_mode,
             set_safe_mode,
             set_safe_mode_scope

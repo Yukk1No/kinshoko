@@ -1,9 +1,10 @@
 // 查看没有完成自动标签的图（#475）：从右下角图标的右键菜单或设置 › 自动标签的“查看”回到图片墙，
 // 范围是全部图库，查找框里只有可以去掉的条件块“自动标签未完成”。
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { App } from "./App";
+import { fakeBackend, shellSettings } from "./test/backend";
 import type { SearchInput } from "./bindings/SearchInput";
 import type { WorkspaceCard } from "./bindings/WorkspaceCard";
 
@@ -15,28 +16,29 @@ const unfinished = { state: "idle", model: "x", device: "cpu", gpu: null, tagged
 
 function backend() {
   const resolved: SearchInput[] = [];
-  mockIPC((command, raw) => {
-    const args = raw as Record<string, unknown>;
-    switch (command) {
-      case "plugin:library|safe_mode": return false;
-      case "plugin:library|registered_libraries": return libraries;
-      case "plugin:library|workspace_status": return status;
-      case "plugin:library|workspace_directories": return { status, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
-      case "plugin:library|workspace_tag_groups": case "plugin:library|import_tasks": case "plugin:desktop|reference_groups": case "plugin:library|workspace_candidates": return [];
-      case "plugin:library|workspace_browse": return { cards, total: cards.length, nextCursor: null, status };
-      case "plugin:library|workspace_sidebar": return { all: 1, trash: 0, folders: [] };
-      case "plugin:library|workspace_resolve": {
-        const input = args.input as SearchInput;
-        resolved.push(input);
-        return { conditions: input.conditions.map((c) => ({ negate: c.negate, any: c.any.map(() => ({ kind: "taggingUnfinished" })) })) };
-      }
-      case "tagging_status": return unfinished;
-      case "tagging_models": return { model: "x", selected: null, options: [] };
-      case "shell_settings": return { autostart: false, shortcuts: [], showApproxSource: false, viewerBackground: "mid", inspectorOpen: false };
-      case "app_info": return { productName: "Kinshoko", version: "1" };
-      default: return null;
-    }
-  }, { shouldMockEvents: true });
+  fakeBackend({
+    safe_mode: false,
+    registered_libraries: libraries,
+    workspace_status: status,
+    workspace_directories: { status, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) },
+    workspace_tag_groups: [],
+    import_tasks: [],
+    reference_groups: [],
+    workspace_candidates: [],
+    workspace_browse: { cards, total: cards.length, nextCursor: null, status },
+    workspace_sidebar: { all: 1, trash: 0, folders: [] },
+    workspace_resolve: (args) => {
+      const input = args.input as SearchInput;
+      resolved.push(input);
+      return { conditions: input.conditions.map((c) => ({ negate: c.negate, any: c.any.map(() => ({ kind: "taggingUnfinished" })) })) };
+    },
+    tagging_status: unfinished,
+    tagging_models: { model: "x", selected: null, options: [] },
+    shell_settings: shellSettings({ viewerBackground: "mid" }),
+    app_info: { productName: "Kinshoko", version: "1" },
+    // 启动时取走留给主窗口的收集请求：没有。
+    take_collection_request: null,
+  });
   return resolved;
 }
 
@@ -45,9 +47,9 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-  mockConvertFileSrc("windows"); mockWindows("main");
+  mockConvertFileSrc("windows");
 });
-afterEach(async () => { cleanup(); await new Promise((done) => setTimeout(done, 0)); clearMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 const chips = () => screen.getByRole("list", { name: "查找条件" });
 const filtered = (resolved: SearchInput[]) => waitFor(() => {

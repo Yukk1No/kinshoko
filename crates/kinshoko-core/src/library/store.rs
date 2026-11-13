@@ -48,6 +48,8 @@ fn migration_list() -> Vec<M<'static>> {
         // #475：加列不能写成可重跑的 SQL，在钩子里先看列在不在。
         M::up_with_hook("", super::tagging_state::add_tagging_failure),
         M::up(include_str!("migrations/0418_image_set_revision.sql")),
+        // 已进库的 pixiv 订阅与 Eagle 来源层：R-18 标签改为成人分级。
+        M::up_with_hook("", super::rating::adult_mark::upgrade_existing),
     ]
 }
 

@@ -157,6 +157,9 @@ pub(super) async fn workspace_resolve<R: Runtime>(
     lang: String,
     safe_mode: bool,
 ) -> Result<ConditionTree, CommandError> {
+    crate::run_log::record(LogEvent::SearchResolved {
+        terms: input.conditions.len().min(u32::MAX as usize) as u32,
+    });
     blocking(move || {
         let catalog = app.state::<LibraryState>().search.clone();
         stable(&app, safe_mode, |w, d, c| {
@@ -339,21 +342,6 @@ pub(super) async fn workspace_sidebar<R: Runtime>(
     })
     .await
 }
-#[tauri::command]
-pub(super) async fn workspace_local_tags<R: Runtime>(
-    app: AppHandle<R>,
-    library_id: String,
-    ids: Vec<String>,
-    safe_mode: bool,
-) -> Result<Vec<String>, CommandError> {
-    blocking(move || {
-        stable(&app, safe_mode, |w, d, c| {
-            w.local_tags(d, c, &library_id, &ids, safe_mode)
-        })
-    })
-    .await
-}
-
 #[tauri::command]
 pub(super) async fn workspace_directories<R: Runtime>(
     app: AppHandle<R>,

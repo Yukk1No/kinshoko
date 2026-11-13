@@ -49,7 +49,7 @@ export class Session {
   constructor(id) { this.base = `/session/${id}`; }
   exec(script, args = []) { return wd("POST", `${this.base}/execute/sync`, { script, args }); }
   async invoke(command, args = {}) {
-    const result = await wd("POST", `${this.base}/execute/async`, { script: "const done = arguments[arguments.length - 1]; window.__TAURI_INTERNALS__.invoke((arguments[0].includes(':') || arguments[0].startsWith('shell_') || ['set_autostart','set_show_approx_source','set_force_srgb','set_usage_log','set_viewer_background','migrate_viewer_background'].includes(arguments[0]) || arguments[0].startsWith('rebind_') || arguments[0].startsWith('tagging_') || arguments[0].startsWith('clear_usage') || arguments[0].startsWith('diagnostics_') ? arguments[0] : 'plugin:library|' + arguments[0]), arguments[1]).then(value => done({ value }), error => done({ failure: String(error) }));", args: [command, args] });
+    const result = await wd("POST", `${this.base}/execute/async`, { script: "const done = arguments[arguments.length - 1]; window.__TAURI_INTERNALS__.invoke((arguments[0].includes(':') || arguments[0].startsWith('shell_') || ['set_autostart','set_show_approx_source','set_force_srgb','set_usage_log','set_viewer_background'].includes(arguments[0]) || arguments[0].startsWith('rebind_') || arguments[0].startsWith('tagging_') || arguments[0].startsWith('clear_usage') || arguments[0].startsWith('diagnostics_') ? arguments[0] : 'plugin:library|' + arguments[0]), arguments[1]).then(value => done({ value }), error => done({ failure: String(error) }));", args: [command, args] });
     if (result.failure) throw new Error(`${command}: ${result.failure}`);
     return result.value;
   }

@@ -2,33 +2,13 @@
 //! 通过 `Library` 与 `Workspace` 的对外接口，用临时目录里的真 SQLite 与真文件；模拟缺少或过期的
 //! 占位图时直接改数据库文件。存储与旧资料库的迁移见 `placeholder_storage.rs`。
 
-use std::path::{Path, PathBuf};
-
 use base64::Engine;
-use image::{Rgba, RgbaImage};
 use kinshoko_core::Library;
-use kinshoko_core::library::{BrowseQuery, ImageCard, ImportSource};
+use kinshoko_core::library::{BrowseQuery, ImageCard};
 
-fn write_png(path: &Path, w: u32, h: u32, seed: u8) -> PathBuf {
-    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    RgbaImage::from_fn(w, h, |x, y| Rgba([seed, x as u8, y as u8, 255]))
-        .save(path)
-        .unwrap();
-    path.to_path_buf()
-}
-
-fn import(library: &Library, path: &Path) -> String {
-    library
-        .import(ImportSource {
-            paths: vec![path.to_path_buf()],
-        })
-        .wait()
-        .items[0]
-        .outcome
-        .image_id()
-        .unwrap()
-        .to_owned()
-}
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::{import_one, write_png};
 
 fn cards(library: &Library) -> Vec<ImageCard> {
     library
@@ -57,7 +37,7 @@ fn data_url(url: &str) -> (String, Vec<u8>) {
 fn an_imported_image_is_browsed_with_a_tiny_placeholder_of_the_same_shape() {
     let dir = tempfile::tempdir().unwrap();
     let library = Library::create(&dir.path().join("lib"), "库").unwrap();
-    let id = import(
+    let id = import_one(
         &library,
         &write_png(&dir.path().join("wide.png"), 400, 200, 7),
     );
@@ -102,7 +82,7 @@ fn a_placeholder_is_colour_managed_like_the_thumbnail() {
         let path = dir.path().join("samples").join(&sample.file_name);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(&path, &sample.bytes).unwrap();
-        let id = import(&library, &path);
+        let id = import_one(&library, &path);
         let card = cards(&library).into_iter().find(|c| c.id == id).unwrap();
         let (mime, placeholder) = data_url(card.placeholder.as_deref().expect("有占位图"));
         let thumbnail = std::fs::read(library.thumbnail(&id, 128).unwrap()).unwrap();
@@ -129,7 +109,7 @@ fn opening_a_library_fills_in_missing_placeholders_in_the_background() {
     let library_id = library.info().id.clone();
     let ids: Vec<String> = (0..3)
         .map(|i| {
-            import(
+            import_one(
                 &library,
                 &write_png(&dir.path().join(format!("{i}.png")), 64, 48, i),
             )
@@ -172,8 +152,8 @@ fn workspace_cards_carry_the_placeholder_of_their_display_source() {
     let mut device = DeviceLibraries::open(&app).unwrap();
     let a = device.create(&dir.path().join("a"), "A").unwrap();
     let b = device.create(&dir.path().join("b"), "B").unwrap();
-    import(&a, &write_png(&dir.path().join("a.png"), 40, 80, 1));
-    import(&b, &write_png(&dir.path().join("b.png"), 80, 40, 2));
+    import_one(&a, &write_png(&dir.path().join("a.png"), 40, 80, 1));
+    import_one(&b, &write_png(&dir.path().join("b.png"), 80, 40, 2));
     let mut catalog = TagCatalog::open(&app).unwrap();
     let mut workspace = Workspace::open(&app).unwrap();
 
@@ -212,7 +192,7 @@ fn placeholders_of_an_older_pipeline_version_are_not_shown() {
     let root = dir.path().join("lib");
     let library = Library::create(&root, "库").unwrap();
     let library_id = library.info().id.clone();
-    import(&library, &write_png(&dir.path().join("a.png"), 64, 48, 1));
+    import_one(&library, &write_png(&dir.path().join("a.png"), 64, 48, 1));
     assert!(cards(&library)[0].placeholder.is_some());
     drop(library);
     rusqlite::Connection::open(root.join("library.sqlite"))

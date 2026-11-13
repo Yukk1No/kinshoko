@@ -2,7 +2,7 @@
 // Setup uses the same public Tauri actions as the UI; correspondence is corrected through rendered controls.
 // Usage: node e2e/tag-identity.mjs <owned kinshoko.exe> <matching msedgedriver.exe>
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync, readFileSync, renameSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, join } from "node:path";
 import { deflateSync } from "node:zlib";

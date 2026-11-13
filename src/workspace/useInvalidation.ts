@@ -21,6 +21,7 @@ export function useInvalidation({ wall, loadedCards, setViewing, setSelected, se
   const state = useRef(initialInvalidation);
   const cards = useRef(loadedCards);
   cards.current = loadedCards;
+  // biome-ignore lint/correctness/useExhaustiveDependencies(setViewing): LibraryWorkspace 每次渲染传入新的箭头函数，加进来 invalidate 就每次都变，各处订阅跟着重装
   const invalidate = useCallback<Invalidate>((event) => {
     const outcome = decide(state.current, event);
     state.current = outcome.state;
@@ -39,7 +40,7 @@ export function useInvalidation({ wall, loadedCards, setViewing, setSelected, se
     if (d.reload) setReloadKey((k) => k + 1);
     if (d.refreshVocabulary) setVocabularyKey((k) => k + 1);
     return d;
-  }, []);
+  }, [wall, setSelected, setSources, setReloadKey, setVocabularyKey]);
   /** 当前观察序号：状态读取发出时记下，交回 `statusObserved` 的 `startedAt`。 */
   const observations = useCallback(() => state.current.observations, []);
   return { invalidate, observations };

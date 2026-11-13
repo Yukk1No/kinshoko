@@ -119,22 +119,22 @@ describe("查看器程序配置", () => {
   const card = { id: "background", width: 800, height: 600, thumbnail: "", adult: false };
   afterEach(() => { clearMocks(); localStorage.clear(); });
 
-  it("已恢复的背景优先于本机旧缓存，并保存后续选择", async () => {
+  it("已恢复的背景优先于本机缓存；打开查看器不写设置，选一次背景恰好写一次", async () => {
     localStorage.setItem("kinshoko.viewer.background", "dark");
     const writes: unknown[] = [];
     mockIPC((command, args) => {
       if (command === "shell_settings") return { viewerBackground: "light" };
       if (command === "set_viewer_background") writes.push(args);
-      if (command === "migrate_viewer_background") throw new Error("must not migrate again");
       return null;
     });
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
-    await waitFor(() => expect(writes).toEqual([{ background: "light" }]));
     fireEvent.click(screen.getByRole("button", { name: "背景" }));
     const tray = screen.getByRole("group", { name: "背景" });
-    expect(within(tray).getByRole("button", { name: "浅灰" }).getAttribute("aria-pressed")).toBe("true");
+    await waitFor(() => expect(within(tray).getByRole("button", { name: "浅灰" }).getAttribute("aria-pressed")).toBe("true"));
+    expect(writes).toEqual([]);
+    expect(localStorage.getItem("kinshoko.viewer.background")).toBe("light");
     fireEvent.click(within(tray).getByRole("button", { name: "棋盘格" }));
-    await waitFor(() => expect(writes.at(-1)).toEqual({ background: "checker" }));
+    await waitFor(() => expect(writes).toEqual([{ background: "checker" }]));
     expect(screen.getByAltText("正在查看的参考图").parentElement!.dataset.background).toBe("checker");
   });
 
@@ -143,7 +143,7 @@ describe("查看器程序配置", () => {
     const writes: unknown[] = [];
     mockIPC((command, args) => {
       if (command === "shell_settings") throw new Error("temporarily unavailable");
-      if (command === "set_viewer_background" || command === "migrate_viewer_background") writes.push(args);
+      if (command === "set_viewer_background") writes.push(args);
       return null;
     });
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);

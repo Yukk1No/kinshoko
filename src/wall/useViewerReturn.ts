@@ -20,12 +20,13 @@ export function useViewerLeave({ viewerOpen, selected, lastOpened, wasViewing, s
   if (viewerOpen && selected.size === 1) lastOpened.current = selected.values().next().value!;
   /** 离开查看器后要滚入可见、接回焦点的卡片。 */
   const returnTo = useRef<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies(cards): 只在开关查看器时判断；墙上的格子只在那一刻读
   useLayoutEffect(() => {
     // 打开查看器时停下滚轮惯性，返回时图片墙仍在打开时的位置。
     if (viewerOpen) smoothRef.current?.stop();
     if (wasViewing.current && !viewerOpen && lastOpened.current) returnTo.current = stackHolding(cards, lastOpened.current) ?? lastOpened.current;
     wasViewing.current = viewerOpen;
-  }, [viewerOpen]);
+  }, [viewerOpen, smoothRef, wasViewing, lastOpened]);
   return returnTo;
 }
 

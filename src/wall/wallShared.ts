@@ -1,5 +1,5 @@
 // 图片墙各部分共用的常量、类型与位置记忆。
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import type { WallMenuTarget } from "./WallMenu";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ConditionTree } from "../bindings/ConditionTree";
@@ -69,6 +69,7 @@ export type BrowserCard = Omit<ImageCard, "thumbnail">
   & Pick<WorkspaceCard, "libraryId" | "imageId"> & Partial<Pick<WorkspaceCard, "sources" | "set">>;
 
 export type WallProps = {
+  ref?: Ref<WallHandle>;
   workspaceScope: WorkspaceScope;
   onInspectSources?: (card: WorkspaceCard) => void;
   onCardsChange?: (cards: BrowserCard[]) => void;

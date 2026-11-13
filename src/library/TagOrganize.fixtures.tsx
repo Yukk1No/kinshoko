@@ -1,8 +1,7 @@
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
-import { workspaceFixture } from "../test/workspace-fixture";
-import { afterEach, beforeEach, expect } from "vitest";
-import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { beforeEach, expect } from "vitest";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import type { BrowsePage } from "../bindings/BrowsePage";
 import type { Candidate } from "../bindings/Candidate";
@@ -19,6 +18,9 @@ import type { TagLabel } from "../bindings/TagLabel";
 import type { TagNamespace } from "../bindings/TagNamespace";
 import type { TagRef } from "../bindings/TagRef";
 import type { Vocabulary } from "../bindings/Vocabulary";
+import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
+import { fakeBackend } from "../test/backend";
+import { wallPage } from "../test/workspacePage";
 
 // 标签整理测试共用的后端模拟与操作步骤。
 
@@ -213,103 +215,134 @@ export function announce(images: string[]) {
 
 export function backend() {
   calls = [];
-  mockWindows("main");
-  mockIPC(
-    workspaceFixture((cmd, args) => {
-      calls.push({ cmd, args });
-      const a = args as Record<string, never>;
-      switch (cmd) {
-        case "app_info":
-          return { productName: "Kinshoko", version: "9.9.9" };
-        case "plugin:library|current_library":
-          return library;
-        case "plugin:library|registered_libraries":
-          return [{ library, unavailable: null }];
-        case "plugin:library|browse":
-          return page;
-        case "plugin:library|safe_mode":
-          return true;
-        case "plugin:library|sidebar":
-          return { all: 2, trash: 0, folders: [] };
-        case "plugin:library|image":
-          return detail(a.imageId);
-        case "plugin:library|recovery":
-          return { interrupted: [], orphans: [], discardedStaging: 0 };
-        case "plugin:library|image_tags":
-          return fake.imageTags(a.imageId);
-        case "plugin:library|edit_tags":
-          fake.editTags(a.imageIds, a.edits);
-          announce(a.imageIds);
-          return null;
-        case "plugin:library|vocabulary":
-          return fake.vocabulary();
-        case "plugin:library|tag_groups":
-          return fake.tagGroups();
-        case "plugin:library|shared_tag_groups":
-          return fake.tagGroups().map((group) => ({ ...group, sources: [] }));
-        case "plugin:library|search_candidates":
-          return fake.candidates(a.text);
-        case "plugin:library|resolve_search":
-          return fake.resolveSearch(a.input);
-        case "plugin:library|add_tag_alias": {
-          fake.tags.get(a.tagId)!.aliases.push(a.alias as TagAlias);
-          announce([]);
-          return null;
-        }
-        case "plugin:library|remove_tag_alias": {
-          const t = fake.tags.get(a.tagId)!;
-          t.aliases = t.aliases.filter((x) => x.name !== a.alias);
-          announce([]);
-          return null;
-        }
-        case "plugin:library|create_shared_tag_group": {
-          const id = `G${fake.groups.length + 1}`;
-          fake.groups.push({ id, name: a.name, namespace: a.namespace, members: [] });
-          announce([]);
-          return id;
-        }
-        case "plugin:library|delete_shared_tag_group": {
-          const ord = fake.groups.findIndex((g) => g.id === a.groupId);
-          const [group] = fake.groups.splice(ord, 1);
-          announce([]);
-          return { id: group.id, name: group.name, namespace: group.namespace, ord, members: [...group.members], migratedFrom: [] };
-        }
-        case "plugin:library|restore_shared_tag_group": {
-          const d = a.deleted as { id: string; name: string; namespace: TagNamespace | null; ord: number; members: string[] };
-          fake.groups.splice(Math.min(d.ord, fake.groups.length), 0, { id: d.id, name: d.name, namespace: d.namespace, members: d.members });
-          announce([]);
-          return null;
-        }
-        case "plugin:library|edit_shared_tag_group": {
-          const edit = (args as { edit: CatalogGroupEdit }).edit;
-          switch (edit.kind) {
-            case "rename": fake.groups.find((g) => g.id === edit.groupId)!.name = edit.name; break;
-            case "delete": fake.groups = fake.groups.filter((g) => g.id !== edit.groupId); break;
-            case "addMembers": {
-              const group = fake.groups.find((g) => g.id === edit.groupId)!;
-              for (const id of edit.tagIds) if (!group.members.includes(id)) group.members.push(id);
-              break;
-            }
-            case "removeMembers": {
-              const group = fake.groups.find((g) => g.id === edit.groupId)!;
-              group.members = group.members.filter((id) => !edit.tagIds.includes(id)); break;
-            }
-            case "orderMembers": fake.groups.find((g) => g.id === edit.groupId)!.members = edit.tagIds; break;
-            case "orderGroups": fake.groups.sort((a, b) => edit.groupIds.indexOf(a.id) - edit.groupIds.indexOf(b.id)); break;
-          }
-          announce([]); return null;
-        }
-        case "tagging_status":
-          return { state: "starting" };
-        case "shell_settings":
-          return { autostart: true, shortcuts: [], showApproxSource: false, inspectorOpen: true };
-        default:
-          return null;
+  const sidebar = { all: 2, trash: 0, folders: [] };
+  const registrations = [{ library, unavailable: null }];
+  const status = { revision: "fixture-0", libraries: registrations };
+  /** 记下命令，按下面的回答；没有写到的命令答 null。 */
+  const answer = (cmd: string, args: Record<string, unknown>): unknown => {
+    calls.push({ cmd, args });
+    const a = args as Record<string, never>;
+    switch (cmd) {
+      case "app_info":
+        return { productName: "Kinshoko", version: "9.9.9" };
+      case "plugin:library|current_library":
+        return library;
+      case "plugin:library|registered_libraries":
+        return [{ library, unavailable: null }];
+      case "plugin:library|workspace_status":
+        return status;
+      case "plugin:library|workspace_directories":
+        return { status, registrationOrder: [library.id], providers: [{ registration: registrations[0], unassigned: 0, descendants: {}, sidebar }] } satisfies WorkspaceDirectories;
+      case "plugin:library|workspace_browse":
+        return wallPage(page, library);
+      case "plugin:library|safe_mode":
+        return true;
+      case "plugin:library|workspace_sidebar":
+        return sidebar;
+      case "plugin:library|image":
+        return detail(a.imageId);
+      case "plugin:library|recovery":
+        return { interrupted: [], orphans: [], discardedStaging: 0 };
+      case "plugin:library|catalog_image_tags":
+        return { image: fake.imageTags(a.imageId), identities: [] };
+      case "plugin:library|edit_tags":
+        fake.editTags(a.imageIds, a.edits);
+        announce(a.imageIds);
+        return null;
+      case "plugin:library|vocabulary":
+        return fake.vocabulary();
+      case "plugin:library|workspace_tag_groups":
+        return fake.tagGroups();
+      case "plugin:library|shared_tag_groups":
+        return fake.tagGroups().map((group) => ({ ...group, sources: [] }));
+      case "plugin:library|workspace_local_tags":
+        return a.ids;
+      case "plugin:library|rating_candidates":
+        return [];
+      case "plugin:library|search_candidates":
+      case "plugin:library|workspace_candidates":
+      case "plugin:library|workspace_library_candidates":
+        return fake.candidates(a.text);
+      case "plugin:library|workspace_resolve":
+        return fake.resolveSearch(a.input);
+      case "plugin:library|add_tag_alias": {
+        fake.tags.get(a.tagId)!.aliases.push(a.alias as TagAlias);
+        announce([]);
+        return null;
       }
-    }),
-    { shouldMockEvents: true },
-  );
+      case "plugin:library|remove_tag_alias": {
+        const t = fake.tags.get(a.tagId)!;
+        t.aliases = t.aliases.filter((x) => x.name !== a.alias);
+        announce([]);
+        return null;
+      }
+      case "plugin:library|create_shared_tag_group": {
+        const id = `G${fake.groups.length + 1}`;
+        fake.groups.push({ id, name: a.name, namespace: a.namespace, members: [] });
+        announce([]);
+        return id;
+      }
+      case "plugin:library|delete_shared_tag_group": {
+        const ord = fake.groups.findIndex((g) => g.id === a.groupId);
+        const [group] = fake.groups.splice(ord, 1);
+        announce([]);
+        return { id: group.id, name: group.name, namespace: group.namespace, ord, members: [...group.members], migratedFrom: [] };
+      }
+      case "plugin:library|restore_shared_tag_group": {
+        const d = a.deleted as { id: string; name: string; namespace: TagNamespace | null; ord: number; members: string[] };
+        fake.groups.splice(Math.min(d.ord, fake.groups.length), 0, { id: d.id, name: d.name, namespace: d.namespace, members: d.members });
+        announce([]);
+        return null;
+      }
+      case "plugin:library|edit_shared_tag_group": {
+        const edit = (args as { edit: CatalogGroupEdit }).edit;
+        switch (edit.kind) {
+          case "rename": fake.groups.find((g) => g.id === edit.groupId)!.name = edit.name; break;
+          case "delete": fake.groups = fake.groups.filter((g) => g.id !== edit.groupId); break;
+          case "addMembers": {
+            const group = fake.groups.find((g) => g.id === edit.groupId)!;
+            for (const id of edit.tagIds) if (!group.members.includes(id)) group.members.push(id);
+            break;
+          }
+          case "removeMembers": {
+            const group = fake.groups.find((g) => g.id === edit.groupId)!;
+            group.members = group.members.filter((id) => !edit.tagIds.includes(id)); break;
+          }
+          case "orderMembers": fake.groups.find((g) => g.id === edit.groupId)!.members = edit.tagIds; break;
+          case "orderGroups": fake.groups.sort((a, b) => edit.groupIds.indexOf(a.id) - edit.groupIds.indexOf(b.id)); break;
+        }
+        announce([]); return null;
+      }
+      case "tagging_status":
+        return { state: "starting" };
+      case "shell_settings":
+        return { autostart: true, shortcuts: [], showApproxSource: false, inspectorOpen: true };
+      default:
+        return null;
+    }
+  };
+  // 过渡期（#520）：这些用例实际发出的命令都交给 answer，没列出的命令由 fakeBackend 拒绝。
+  const backend = fakeBackend();
+  for (const command of TAG_COMMANDS) backend.on(command, (args) => answer(command, args));
 }
+
+/** 标签整理用例实际发出的命令。 */
+const TAG_COMMANDS = [
+  "app_info", "backup_status", "double_click", "log_timing", "plugin:desktop|capture_history",
+  "plugin:desktop|reference_groups", "plugin:desktop|take_collection_request", "plugin:desktop|take_open_request",
+  "plugin:library|add_tag_alias", "plugin:library|catalog_image_tags", "plugin:library|create_shared_tag_group",
+  "plugin:library|current_library", "plugin:library|delete_shared_tag_group", "plugin:library|edit_shared_tag_group",
+  "plugin:library|edit_tags", "plugin:library|image", "plugin:library|import_tasks",
+  "plugin:library|plan_legacy_names", "plugin:library|rating_candidates", "plugin:library|recovery",
+  "plugin:library|registered_libraries", "plugin:library|remove_tag_alias",
+  "plugin:library|restore_shared_tag_group", "plugin:library|safe_mode", "plugin:library|save_memory",
+  "plugin:library|shared_tag_groups", "plugin:library|vocabulary", "plugin:library|workspace_browse",
+  "plugin:library|workspace_candidates", "plugin:library|workspace_directories",
+  "plugin:library|workspace_library_candidates", "plugin:library|workspace_resolve",
+  "plugin:library|workspace_sidebar", "plugin:library|workspace_status", "plugin:library|workspace_tag_groups",
+  "plugin:window|is_maximized", "shell_settings", "subscription_status", "tagging_status", "ui_scale",
+  "update_status",
+];
 
 export const card = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
 export const tagList = () => screen.getByRole("list", { name: "有效标签" });
@@ -329,11 +362,6 @@ beforeEach(() => {
   backend();
 });
 
-afterEach(async () => {
-  cleanup();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
-});
 
 export async function selectOnly(id: string) {
   await screen.findAllByRole("img");

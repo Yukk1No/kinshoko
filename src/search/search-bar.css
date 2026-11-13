@@ -17,9 +17,11 @@
 .search-more-btn:hover, .search-more-btn[data-popup-open] { background: var(--accent-soft); color: var(--accent-strong); }
 .search-more-pop { width: max-content; max-width: min(360px, calc(100vw - 32px)); padding: 8px; }
 .search-more-pop .search-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
-/* 与顶栏里的标签块同样子（main-window.css），长的可以换行。 */
-.search-more-pop .search-chip { max-width: 100%; min-height: 28px; padding: 0 4px 0 9px; border: 0; border-radius: var(--r-s); background: var(--surface-2); font-weight: 500; white-space: normal; }
+/* 与顶栏里的标签块同样子（main-window.css），长的按文字换行。块里是行内排版而不是 flex：
+   flex 子项能缩到最小内容宽，中文会被挤成一字一行。只在“、”和按钮处换行，标签名不从中间断开。 */
+.search-more-pop .search-chip { display: block; max-width: 100%; padding: 4px 4px 4px 9px; border: 0; border-radius: var(--r-s); background: var(--surface-2); font-weight: 500; line-height: 20px; white-space: normal; word-break: keep-all; }
 .search-more-pop .search-chip[data-negate] { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); }
+.search-more-pop .search-chip button { vertical-align: middle; }
 
 /* 主区再窄：查找框独占顶栏第二行，铺满宽度；第一行留给侧栏开关、导入与窗口控件，仍可拖动窗口。 */
 @container main (max-width: 560px) {

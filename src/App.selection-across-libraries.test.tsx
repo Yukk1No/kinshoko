@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { App } from "./App";
-import { backend, clean, library, page, selectionBar, sent } from "./App.fixtures";
+import { backend, clean, library, page, selectionBar, sent, wallPage } from "./App.fixtures";
 
 const source = (libraryId: string, imageId: string) => ({ libraryId, libraryName: libraryId, imageId, matches: true, unavailable: null, deleted: false });
 /** 每张卡片的来源；第一份是卡片显示的那份。 */
@@ -14,8 +14,8 @@ const sources: Record<string, ReturnType<typeof source>[]> = {
 
 function start() {
   const first = page.cards[0];
-  backend(library, clean, (cmd) => cmd === "plugin:library|browse"
-    ? { ...page, total: 4, nextCursor: null, cards: Object.keys(sources).map((id) => ({ ...first, id, thumbnail: `L1/${id}/256` })) }
+  backend(library, clean, (cmd) => cmd === "plugin:library|workspace_browse"
+    ? wallPage({ ...page, total: 4, nextCursor: null, cards: Object.keys(sources).map((id) => ({ ...first, id, thumbnail: `L1/${id}/256` })) })
     : undefined);
   const internals = (window as unknown as { __TAURI_INTERNALS__: { invoke: (...args: unknown[]) => Promise<unknown> } }).__TAURI_INTERNALS__;
   const invoke = internals.invoke;

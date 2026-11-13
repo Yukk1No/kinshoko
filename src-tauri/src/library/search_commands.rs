@@ -38,31 +38,6 @@ pub(super) async fn search_candidates<R: Runtime>(
     .await
 }
 
-/// 把搜索框里的条件解析成可见的条件树，交给 `browse` 执行。`safe_mode` 同
-/// [`search_candidates`]。
-#[tauri::command]
-pub(super) async fn resolve_search<R: Runtime>(
-    app: AppHandle<R>,
-    state: State<'_, LibraryState>,
-    library_id: String,
-    input: SearchInput,
-    lang: String,
-    safe_mode: bool,
-) -> Result<ConditionTree, CommandError> {
-    let catalog = state.search.clone();
-    crate::run_log::record(LogEvent::SearchResolved {
-        terms: input.conditions.len().min(u32::MAX as usize) as u32,
-    });
-    blocking(move || {
-        let library = readable(&app, &library_id)?;
-        let search = catalog
-            .search(&library, safe_mode)
-            .map_err(CommandError::from)?;
-        Ok(search.resolve(&input, &lang))
-    })
-    .await
-}
-
 /// 安全模式是否开启（全局设置）。
 #[tauri::command]
 pub(super) async fn safe_mode(state: State<'_, LibraryState>) -> Result<bool, CommandError> {
@@ -190,47 +165,6 @@ pub(super) async fn set_tag_approx<R: Runtime>(
     .await
 }
 
-/// 删除个人近似对应表中的一对。
-#[tauri::command]
-pub(super) async fn remove_tag_approx<R: Runtime>(
-    app: AppHandle<R>,
-    library_id: String,
-    a: String,
-    b: String,
-) -> Result<(), CommandError> {
-    blocking(move || {
-        let library = writable(&app, &library_id)?;
-        library
-            .remove_tag_approx(&a, &b)
-            .map_err(CommandError::from)
-    })
-    .await
-}
-
-/// 资料库设置中列出的个人近似对应表条目，名称按界面语言 `lang`。
-#[tauri::command]
-pub(super) async fn personal_approx<R: Runtime>(
-    app: AppHandle<R>,
-    state: State<'_, LibraryState>,
-    library_id: String,
-    lang: String,
-) -> Result<Vec<PersonalApproxEntry>, CommandError> {
-    let catalog = state.search.clone();
-    blocking(move || {
-        let library = readable(&app, &library_id)?;
-        with_catalog(&catalog, |catalog| {
-            let snapshot = catalog.synchronize(&library)?;
-            let mut entries = library.personal_approx(&lang)?;
-            for entry in &mut entries {
-                entry.a = snapshot.display_label(&library.info().id, &entry.a, &lang);
-                entry.b = snapshot.display_label(&library.info().id, &entry.b, &lang);
-            }
-            Ok(entries)
-        })
-    })
-    .await
-}
-
 /// 随软件分发的翻译表（`crates/kinshoko-core/data/builtin-translation-table.json`），启动时取一次。唯一的注入点：
 /// 每个打开的资料库在装配时（[`forward_events`]）装上它，迁入向导的外部词表也按它匹配。
 pub(super) fn bundled_translations() -> TagTranslations {
@@ -343,19 +277,4 @@ pub(super) async fn external_suggestions<R: Runtime>(
     limit: u32,
 ) -> Result<Vec<String>, CommandError> {
     blocking(move || Ok(external_vocabulary(&app)?.suggest(&text, limit as usize))).await
-}
-
-/// 一张参考图的内容分级（自动与有效）。
-#[tauri::command]
-pub(super) async fn image_rating<R: Runtime>(
-    app: AppHandle<R>,
-    library_id: String,
-    image_id: String,
-) -> Result<ImageRating, CommandError> {
-    blocking(move || {
-        readable(&app, &library_id)?
-            .image_rating(&image_id)
-            .map_err(CommandError::from)
-    })
-    .await
 }

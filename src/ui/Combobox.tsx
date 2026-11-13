@@ -4,6 +4,7 @@ import type { InputHTMLAttributes, KeyboardEvent, MouseEvent, ReactNode, RefObje
 import { Popover } from "@base-ui/react/popover";
 import { Languages, Plus } from "lucide-react";
 import { Tip } from "./Tip";
+import { isComposingKey } from "./composing";
 
 /** 一个候选。`label` 通常用 `Highlight` 标出匹配的字；`create` 是放在最后的新建项。 */
 export type ComboboxOption = {
@@ -95,13 +96,15 @@ export function Combobox<T extends ComboboxOption>({
 
   // 改了字或候选换了，高亮回到第一项（或不高亮）。
   const ids = options.map((o) => o.id).join("\n");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ids 与 value 是触发条件，effect 里不读
   useEffect(() => setActive(start), [ids, start, value]);
   const current = active >= 0 && active < options.length ? active : -1;
 
   // 高亮项滚进列表可见范围。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(optionId): 只在高亮项变了时滚动；optionId 每次渲染都是新函数（结果只取决于 useId）
   useEffect(() => {
     if (current >= 0) document.getElementById(optionId(current))?.scrollIntoView?.({ block: "nearest" });
-  }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [current]);
 
   const showEmpty = !!empty && value.trim() !== "";
   const shown = open && !disabled && (options.length > 0 || showEmpty);
@@ -113,7 +116,7 @@ export function Combobox<T extends ComboboxOption>({
 
   const keyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     // 输入法选字时的方向键和回车属于输入法，不动候选。
-    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+    if (isComposingKey(event)) return;
     onKeyDown?.(event);
     if (event.defaultPrevented) return;
     const n = options.length;

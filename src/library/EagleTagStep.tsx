@@ -118,9 +118,9 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
     return () => {
       alive = false;
     };
-  }, [libraryId, lang]);
+  }, [libraryId, lang, t]);
 
-  const drop = (id: string) => setRemaining((rows) => rows.filter((r) => r.tag.id !== id));
+  const drop =(id: string) => setRemaining((rows) => rows.filter((r) => r.tag.id !== id));
   const merged = mapping?.matched.filter((m) => m.mergedInto) ?? [];
 
   return (

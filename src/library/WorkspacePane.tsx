@@ -49,6 +49,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
   const key = JSON.stringify([generation, status?.revision, reloadKey]);
   const [loaded, setLoaded] = useState<{ generation: string; forest: WorkspaceDirectories } | null>(null);
   const [descendants, setDescendants] = useState(!(scope.kind === "library" && scope.scope.kind === "folder"));
+  // biome-ignore lint/correctness/useExhaustiveDependencies(key): 目录内容变化与单纯重读（revision、reloadKey）都靠 key 触发
   useEffect(() => {
     let alive = true;
     const load = async () => {
@@ -67,7 +68,7 @@ export function WorkspacePane({ status, scope, onScope, safeMode, reloadKey, onE
     };
     void load();
     return () => { alive = false; };
-  }, [key, safeMode, onError]);
+  }, [key, generation, safeMode, onError]);
 
   // 展开规则：选中某库内的范围时只展开该库，选“全部图片”时全部折起；所选图库变了才重置，
   // 期间点箭头的临时展开保留。在渲染中比较而不用 effect，换库的这一帧就不闪出旧的展开。

@@ -193,7 +193,9 @@ impl Fixture {
 #[test]
 fn collected_pages_carry_author_source_link_tags_and_explicit_rating() {
     let f = Fixture::new();
-    let mut source = FakeSource::with(vec![work("100", WorkKind::Illustration, true, 2)]);
+    let mut adult = work("100", WorkKind::Illustration, true, 2);
+    adult.tags.extend(["R-18".into(), "R-18G".into()]);
+    let mut source = FakeSource::with(vec![adult]);
     let report = f.check(&mut source).unwrap();
     assert_eq!(report.collected, 2);
 
@@ -217,6 +219,15 @@ fn collected_pages_carry_author_source_link_tags_and_explicit_rating() {
         );
         assert!(
             names.contains(&(TagNamespace::General, "オリジナル")),
+            "{names:?}"
+        );
+        // R-18 已体现为分级，不作为标签；R-18G 多一层意思，保留。
+        assert!(
+            !names.contains(&(TagNamespace::General, "R-18")),
+            "{names:?}"
+        );
+        assert!(
+            names.contains(&(TagNamespace::General, "R-18G")),
             "{names:?}"
         );
     }

@@ -19,7 +19,7 @@ describe("回收站范围下的导入", () => {
     // 拖放监听异步注册：等它就绪。
     await tick();
     fireEvent.click(await screen.findByRole("button", { name: "回收站（全部图库，1 张）" }));
-    await waitFor(() => expect(sent("plugin:library|browse").at(-1)).toMatchObject({ query: { scope: { kind: "trash" } } }));
+    await waitFor(() => expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({ query: { scope: { scope: { kind: "trash" } } } }));
     await tick();
   }
 
@@ -32,7 +32,7 @@ describe("回收站范围下的导入", () => {
   it("离开回收站后导入按钮恢复", async () => {
     await inTrash();
     fireEvent.click(screen.getByRole("button", { name: "全部图片（2 张）" }));
-    await waitFor(() => expect(sent("plugin:library|browse").at(-1)).toMatchObject({ query: { scope: { kind: "all" } } }));
+    await waitFor(() => expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({ query: { scope: { kind: "all" } } }));
     fireEvent.click(screen.getByRole("button", { name: "导入" }));
     expect(disabled(await screen.findByRole("menuitem", { name: /^图片/ }))).toBe(false);
     fireEvent.keyDown(screen.getByRole("menuitem", { name: /^图片/ }), { key: "Escape" });
@@ -47,7 +47,7 @@ describe("回收站范围下的导入", () => {
       return undefined;
     });
     fireEvent.click(screen.getByRole("button", { name: "全部图片（2 张）" }));
-    await waitFor(() => expect(sent("plugin:library|browse").at(-1)).toMatchObject({ query: { scope: { kind: "all" } } }));
+    await waitFor(() => expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({ query: { scope: { kind: "all" } } }));
     fireEvent.keyDown(document, { key: "v", ctrlKey: true });
     await waitFor(() => expect(sent("plugin:desktop|stage_clipboard_import")).toHaveLength(1));
   });

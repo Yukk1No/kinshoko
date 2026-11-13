@@ -27,12 +27,11 @@
 }
 :root {
   color-scheme: light dark;
-  --font-ui: "Kinshoko Inter", "Kinshoko Han", "Segoe UI", "Microsoft YaHei UI", "Segoe UI Emoji", system-ui, sans-serif;
-  font-family: var(--font-ui);
+  font-family: var(--font);
   font-synthesis: none;
   font-size: 13px;
 }
-:lang(zh), :lang(ja) { font-family: "Kinshoko Han Punct", var(--font-ui); }
+:lang(zh), :lang(ja) { font-family: "Kinshoko Han Punct", var(--font); }
 button, input, textarea, select { font: inherit; }
 b, strong, th, h1, h2, h3, h4, h5, h6 { font-weight: 600; }
 /* design system v2: three sizes only, title 16 / body 13 / small 12; hierarchy comes from weight and colour */
@@ -49,7 +48,7 @@ body,
 
 body {
   background: var(--bg);
-  color: var(--text);
+  color: var(--ink);
   line-height: 1.5;
 }
 

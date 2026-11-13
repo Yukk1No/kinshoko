@@ -15,6 +15,7 @@ mod plugin_acl_tests;
 mod run_log;
 mod shell;
 mod subscription;
+mod sync;
 mod tagging;
 mod ui_text;
 mod updater;
@@ -87,7 +88,6 @@ pub fn run() {
             run_log::log_frontend,
             run_log::log_timing,
             commands::set_viewer_background,
-            commands::migrate_viewer_background,
             commands::interface_language,
             commands::set_interface_language,
             commands::ui_scale,

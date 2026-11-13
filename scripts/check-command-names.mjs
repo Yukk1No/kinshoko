@@ -23,7 +23,9 @@ export const GROUPS = {
 /** 注册了却不在前端出现的命令：组 → { 命令名: 理由 }。 */
 export const EXCEPTIONS = {
   app: {},
-  library: {},
+  library: {
+    switch_library: "仅 e2e 使用",
+  },
   desktop: {
     pin_clipboard: "仅 e2e 使用",
     start_capture: "仅 e2e 使用",

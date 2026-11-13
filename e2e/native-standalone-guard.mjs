@@ -3,7 +3,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, copyFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { ownedWork, preserveKnownFolder, restoreKnownFolder } from "./spec78-combination-preflight.mjs";
 
 const hash = file => createHash("sha256").update(readFileSync(file)).digest("hex");

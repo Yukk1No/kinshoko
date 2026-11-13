@@ -4,25 +4,20 @@
 
 use std::path::{Path, PathBuf};
 
-use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::library::{
     BrowseQuery, BrowseScope, Error, FolderNode, ImageEdit, ImageNote, ImportOutcome, ImportSource,
 };
 
-fn write_png(path: &Path, seed: u8) -> PathBuf {
-    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-    RgbaImage::from_fn(4, 4, |x, y| image::Rgba([seed, x as u8, y as u8, 255]))
-        .save(path)
-        .unwrap();
-    path.to_path_buf()
-}
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::write_png;
 
 /// 新建资料库并导入 `n` 张内容不同的图，返回参考图 id（按导入顺序）。
 pub(super) fn library_with(dir: &Path, n: u8) -> (Library, Vec<String>) {
     let library = Library::create(&dir.join("lib"), "库").unwrap();
     let files: Vec<PathBuf> = (0..n)
-        .map(|i| write_png(&dir.join(format!("in/{i:02}.png")), i))
+        .map(|i| write_png(&dir.join(format!("in/{i:02}.png")), 4, 4, i))
         .collect();
     let report = library.import(ImportSource { paths: files }).wait();
     let ids = report
@@ -518,7 +513,7 @@ fn a_folder_receiving_an_import_cannot_be_deleted_until_the_import_ends() {
     let folder = library.create_folder("手部", Some(&parent)).unwrap();
     let other = library.create_folder("风景", None).unwrap();
     let files: Vec<PathBuf> = (0..60)
-        .map(|i| write_png(&dir.path().join(format!("in/{i:02}.png")), i))
+        .map(|i| write_png(&dir.path().join(format!("in/{i:02}.png")), 4, 4, i))
         .collect();
     let task = library
         .import_to(

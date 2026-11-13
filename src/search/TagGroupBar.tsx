@@ -48,6 +48,13 @@ export function TagGroupBar(p: Props) {
     const any = c.any.filter((t) => t.kind !== "tag" || t.id !== id);
     return any.length ? [{ ...c, any }] : [];
   });
+  // “任一成员”加的条件：不排除，恰好是这一组的全部标签。再点一次就去掉它，不再叠一条一样的。
+  // 按去重后的标签比较：同一标签在条件里出现两次时，不能冒充别的成员。
+  const isAny = (g: TagGroupView) => (c: SearchInput["conditions"][number]) => {
+    if (c.negate || !c.any.every((t) => t.kind === "tag")) return false;
+    const ids = new Set(c.any.map((t) => t.kind === "tag" ? t.id : ""));
+    return ids.size === g.tags.length && g.tags.every(({ tag }) => ids.has(tag.id));
+  };
   const remove = (id: string) => p.onChange({ ...p.input, conditions: without(id) });
   const add = (id: string, mode: "and" | "or", negate = false) => {
     const conditions = without(id);
@@ -79,7 +86,10 @@ export function TagGroupBar(p: Props) {
               <Popover.Viewport className="group-pop-viewport">
                 {g && <>
                   <Popover.Close className="group-any k-btn is-sm" aria-label={t("groups.anyLabel", { name: g.name })} disabled={!g.tags.length}
-                    onClick={() => p.onChange({ ...p.input, conditions: [...p.input.conditions, { any: g.tags.map(({ tag }) => ({ kind: "tag", id: tag.id, dismissed: [] })), negate: false }] })}>{t("groups.any")}</Popover.Close>
+                    aria-pressed={p.input.conditions.some(isAny(g))}
+                    onClick={() => p.onChange({ ...p.input, conditions: p.input.conditions.some(isAny(g))
+                      ? p.input.conditions.filter((c) => !isAny(g)(c))
+                      : [...p.input.conditions, { any: g.tags.map(({ tag }) => ({ kind: "tag", id: tag.id, dismissed: [] })), negate: false }] })}>{t("groups.any")}</Popover.Close>
                   <div className="chips">
                     {g.tags.map(({ tag, count }) => {
                       const c = used(tag.id);

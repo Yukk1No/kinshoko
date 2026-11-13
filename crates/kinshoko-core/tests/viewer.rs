@@ -3,19 +3,11 @@
 use std::path::Path;
 
 use kinshoko_core::Library;
-use kinshoko_core::library::{DisplayRoute, ImportOutcome, ImportSource};
+use kinshoko_core::library::DisplayRoute;
 
-fn import(library: &Library, path: &Path) -> String {
-    let report = library
-        .import(ImportSource {
-            paths: vec![path.to_owned()],
-        })
-        .wait();
-    match &report.items[0].outcome {
-        ImportOutcome::Imported { image_id } => image_id.clone(),
-        other => panic!("未导入：{other:?}"),
-    }
-}
+#[path = "support/library.rs"]
+mod support_library;
+use support_library::import_one;
 
 /// 显示文件解码后的尺寸。
 fn size(path: &Path) -> (u32, u32) {
@@ -31,7 +23,7 @@ fn static_sdr_at_original_pixels_and_above_uses_the_unchanged_original() {
         .save(&input)
         .unwrap();
     let bytes = std::fs::read(&input).unwrap();
-    let id = import(&library, &input);
+    let id = import_one(&library, &input);
 
     for px in [120, 132, 240, 480] {
         let display = library.display_scaled(&id, px).unwrap();
@@ -51,7 +43,7 @@ fn fitting_uses_an_exact_size_lossless_derivative_and_rebuilds_a_missing_cache()
         .save(&input)
         .unwrap();
     let original = std::fs::read(&input).unwrap();
-    let id = import(&library, &input);
+    let id = import_one(&library, &input);
 
     let display = library.display_scaled(&id, 37).unwrap();
     assert_eq!(display.route, DisplayRoute::SdrDerivative);
@@ -104,7 +96,7 @@ fn animations_use_a_still_first_frame_at_every_zoom() {
 
     for input in [gif, apng, webp] {
         let original = std::fs::read(&input).unwrap();
-        let id = import(&library, &input);
+        let id = import_one(&library, &input);
         for px in [6, 12, 24, 48] {
             let display = library.display_scaled(&id, px).unwrap();
             assert_eq!(
@@ -192,7 +184,7 @@ fn hdr_marked_originals_use_sdr_derivatives_even_at_original_pixels_and_above() 
     inputs.push(gain_map);
 
     for input in inputs {
-        let id = import(&library, &input);
+        let id = import_one(&library, &input);
         for px in [6, 12, 24] {
             let display = library.display_scaled(&id, px).unwrap();
             assert_eq!(
@@ -244,7 +236,7 @@ fn all_eight_exif_orientations_keep_original_bytes_and_upright_derivatives() {
             .unwrap();
         let input = dir.path().join(format!("方向-{orientation}.png"));
         std::fs::write(&input, &bytes).unwrap();
-        let id = import(&library, &input);
+        let id = import_one(&library, &input);
         let detail = library.image(&id).unwrap();
         assert_eq!(
             (detail.width, detail.height),
