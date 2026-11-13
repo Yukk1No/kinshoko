@@ -1,25 +1,11 @@
 // shared-personal-approx.mjs helpers: the WebDriver client (tauri-driver session, polling, element actions).
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { createDriver } from "./lib/driver.mjs";
 
 export function driverClient({ driverUrl, application, work }) {
   const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
-  async function wd(method, path, body) {
-    const response = await fetch(driverUrl + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
-    const result = await response.json();
-    if (!response.ok || result.value?.error) throw new Error(`${method} ${path}: ${JSON.stringify(result.value)}`);
-    return result.value;
-  }
-  const delay = (ms) => new Promise((done) => setTimeout(done, ms));
-  async function until(label, read, timeout = 30000) {
-    const end = Date.now() + timeout;
-    let error;
-    while (Date.now() < end) {
-      try { const result = await read(); if (result) return result; } catch (reason) { error = reason; }
-      await delay(150);
-    }
-    throw new Error(`Timed out: ${label}${error ? ` (${error.message})` : ""}`);
-  }
+  const { wd, until, delay } = createDriver({ driverUrl });
   class Session {
     static async start() {
       const result = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application, webviewOptions: { userDataFolder: join(work, "webview") } } } } });

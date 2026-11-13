@@ -2,21 +2,15 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { deflateSync } from "node:zlib";
+import { chunk } from "./lib/fixtures.mjs";
 
-function chunk(type, data) {
-  const body = Buffer.concat([Buffer.from(type), data]);
-  let crc = 0xffffffff;
-  for (const byte of body) { crc ^= byte; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1; }
-  const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-  const checksum = Buffer.alloc(4); checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, checksum]);
-}
 const hsl = (h, s, l) => {
   const a = s * Math.min(l, 1 - l);
   const f = (n) => { const k = (n + h / 30) % 12; return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
   return [f(0), f(8), f(4)];
 };
 /** 合成图：两种颜色沿对角线渐变，一块亮斑，同一作品的各页色相相近。`seed` 让每张图内容都不同（导入按内容去重）。 */
+// 例外（#521）：这张图的尺寸、颜色规则与 lib/fixtures.mjs 的 png 不同，合并会改变测试图的像素，所以留在本地。
 function png(width, height, hue, seed) {
   const header = Buffer.alloc(13); header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4); header[8] = 8; header[9] = 2;
   const [a, b, c] = [hsl(hue, 0.45, 0.62), hsl((hue + 30) % 360, 0.38, 0.36), hsl((hue + 40) % 360, 0.5, 0.85)];

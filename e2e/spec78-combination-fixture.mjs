@@ -5,16 +5,10 @@ import { resolve, join, sep } from "node:path";
 import { createHash } from "node:crypto";
 import { deflateSync } from "node:zlib";
 import { DatabaseSync } from "node:sqlite";
+import { chunk } from "./lib/fixtures.mjs";
 
 export const sha256 = (value) => createHash("sha256").update(value).digest("hex");
-function chunk(type, data) {
-  const body = Buffer.concat([Buffer.from(type), data]);
-  let crc = 0xffffffff;
-  for (const byte of body) { crc ^= byte; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1; }
-  const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-  const checksum = Buffer.alloc(4); checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, checksum]);
-}
+// 例外（#521）：这张图的尺寸、颜色规则与 lib/fixtures.mjs 的 png 不同，合并会改变测试图的像素，所以留在本地。
 function png(path, width, height, channels, pixel) {
   const header = Buffer.alloc(13); header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4); header[8] = 8; header[9] = channels === 4 ? 6 : 2;
   const stride = 1 + width * channels;

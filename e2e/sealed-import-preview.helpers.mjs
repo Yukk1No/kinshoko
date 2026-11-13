@@ -1,11 +1,10 @@
-// sealed-import-preview.mjs helpers: the WebDriver client, the webview side of a receipt read and starting an import.
-import { spawnSync } from "node:child_process";
+// sealed-import-preview.mjs helpers: the webview side of a receipt read and starting an import.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { createDriver } from "./lib/driver.mjs";
 
 export function driverClient({ url, application, work, result }) {
-  async function until(label, read, timeout = 30000) { let error; for (const end = Date.now() + timeout; Date.now() < end; await delay(150)) { try { const value = await read(); if (value) return value; } catch (reason) { error = reason; } } throw Error(`Timed out: ${label}${error ? ` (${error.message})` : ""}`); }
-  async function wd(method, path, body) { const response = await fetch(url + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) }); const data = await response.json(); if (!response.ok || data.value?.error) throw Error(`${method} ${path}: ${JSON.stringify(data.value)}`); return data.value; }
+  const { wd, until, quitOwnApp } = createDriver({ driverUrl: url, application });
   // Serialised into the real webview; this is the same public Channel protocol as src/ipc.ts.
   function receiptRead(args, onFirstChunk, actionReturnedAt) {
     return new Promise(resolve => {
@@ -51,6 +50,5 @@ export function driverClient({ url, application, work, result }) {
   }
   async function openMenu(session) { if (!await session.exec("return document.querySelector('[aria-label=导入参考图]')?.getAttribute('aria-expanded')==='true';")) await session.click("//button[@aria-label='导入参考图']"); }
   async function begin(session, targetId, paths) { const previous = new Set((await session.invoke("import_tasks")).map(t => t.taskId)); await openMenu(session); await until("destination choices", () => session.exec("return [...document.querySelectorAll('.k-destination-grid > label:nth-of-type(1) select option')].some(o=>o.value===arguments[0]);", [targetId])); await session.selectCss(".k-destination-grid > label:nth-of-type(1) select", targetId); await session.selectCss(".k-destination-grid > label:nth-of-type(2) select", ""); await session.exec("window.__KINSHOKO_TEST_PICKS__=[arguments[0]];", [paths]); await session.click("//button[normalize-space()='导入文件…']"); await session.click("//button[normalize-space()='开始导入']"); return until("fixed receipt owner", async () => (await session.invoke("import_tasks")).find(t => !previous.has(t.taskId))); }
-  function quitOwnApp() { return spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, windowsHide: true, stdio: "ignore" }); }
   return { until, wd, Session, begin, quitOwnApp };
 }

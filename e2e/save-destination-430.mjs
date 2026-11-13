@@ -2,11 +2,12 @@
 // 依次核对：拖入提示与导入对话框的预填；打开和新建图库后选择、导入结果还在，旧名称提示跟着登记刷新；
 // 回收站里导入禁用、拖入只发通知；A 库导入中整理 B 库文件夹（ADR-0008）。
 // Usage: node e2e/save-destination-430.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
 import { chunk, oldLibrary } from "./legacy-tag-names.helpers.mjs";
+import { createDriver } from "./lib/driver.mjs";
 
 const [, , appArg, edgeArg, outArg] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/save-destination-430.mjs <kinshoko.exe> <msedgedriver.exe> <out>");
@@ -16,6 +17,7 @@ mkdirSync(work, { recursive: true });
 const port = 4612;
 const driverUrl = `http://127.0.0.1:${port}`;
 
+// 例外（#521）：这张图的尺寸、颜色规则与 lib/fixtures.mjs 的 png 不同，合并会改变测试图的像素，所以留在本地。
 function png(path, width, height, seed) {
   const header = Buffer.alloc(13); header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4); header[8] = 8; header[9] = 2;
   const a = [(seed * 67) % 200 + 40, (seed * 131) % 200 + 40, (seed * 29) % 200 + 40];
@@ -33,22 +35,8 @@ function png(path, width, height, seed) {
   return path;
 }
 
-async function wd(method, path, body) {
-  const response = await fetch(driverUrl + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
-  const result = await response.json();
-  if (!response.ok || result.value?.error) throw new Error(`${method} ${path}: ${JSON.stringify(result.value)}`);
-  return result.value;
-}
+const { wd, until, quitOwnApp } = createDriver({ driverUrl, application });
 const delay = (ms) => new Promise((done) => setTimeout(done, ms));
-async function until(label, read, timeout = 30000) {
-  const end = Date.now() + timeout;
-  let error;
-  while (Date.now() < end) {
-    try { const result = await read(); if (result) return result; } catch (reason) { error = reason; }
-    await delay(150);
-  }
-  throw new Error(`Timed out: ${label}${error ? ` (${error.message})` : ""}`);
-}
 const results = [];
 function check(ok, label) { results.push({ ok: Boolean(ok), label }); console.log(`${ok ? "PASS" : "FAIL"} ${label}`); }
 class Session {
@@ -73,9 +61,6 @@ class Session {
   rect(rect) { return wd("POST", `${this.base}/window/rect`, rect); }
   close() { return wd("DELETE", this.base); }
   async shot(name) { writeFileSync(join(work, name), Buffer.from(await wd("GET", `${this.base}/screenshot`), "base64")); console.log("shot", name); }
-}
-function quitOwnApp() {
-  spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, stdio: "ignore", windowsHide: true });
 }
 
 const driver = spawn("tauri-driver", ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], {

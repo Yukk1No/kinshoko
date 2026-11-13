@@ -7,6 +7,7 @@ import { resolve, join } from "node:path";
 import { createHash } from "node:crypto";
 import { deflateSync } from "node:zlib";
 import { chunk, ihdr, oldLibrary } from "./legacy-tag-names.helpers.mjs";
+import { createDriver } from "./lib/driver.mjs";
 
 const [, , appArg, edgeArg] = process.argv;
 if (!appArg || !edgeArg) throw new Error("Usage: node e2e/legacy-tag-names.mjs <kinshoko.exe> <msedgedriver.exe>");
@@ -24,22 +25,8 @@ writeFileSync(imagePath, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26
 const port = Number(process.env.KINSHOKO_WEBDRIVER_PORT ?? 4458);
 const driverUrl = `http://127.0.0.1:${port}`;
 const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
-async function wd(method, path, body) {
-  const response = await fetch(driverUrl + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
-  const result = await response.json();
-  if (!response.ok || result.value?.error) throw new Error(`${method} ${path}: ${JSON.stringify(result.value)}`);
-  return result.value;
-}
+const { wd, until, quitOwnApp } = createDriver({ driverUrl, application });
 const delay = (ms) => new Promise((done) => setTimeout(done, ms));
-async function until(label, read, timeout = 30000) {
-  const end = Date.now() + timeout;
-  let error;
-  while (Date.now() < end) {
-    try { const result = await read(); if (result) return result; } catch (reason) { error = reason; }
-    await delay(150);
-  }
-  throw new Error(`Timed out: ${label}${error ? ` (${error.message})` : ""}`);
-}
 const assertions = [];
 function assert(ok, label) { if (!ok) throw new Error(label); assertions.push(label); console.log(`PASS ${label}`); }
 class Session {
@@ -80,9 +67,6 @@ class Session {
   }
   close() { return wd("DELETE", this.base); }
   async screenshot(name) { writeFileSync(join(work, name), Buffer.from(await wd("GET", `${this.base}/screenshot`), "base64")); }
-}
-function quitOwnApp() {
-  return spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, windowsHide: true, stdio: "ignore" });
 }
 const driver = spawn(process.argv[4] ?? "tauri-driver", ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], { env: { ...process.env, APPDATA: join(work, "roaming"), LOCALAPPDATA: join(work, "local"), KINSHOKO_DATA_DIR: join(work, "app-data"), KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") }, windowsHide: true, stdio: ["ignore", "inherit", "inherit"] });
 let session;

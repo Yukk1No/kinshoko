@@ -5,6 +5,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { deflateSync } from "node:zlib";
+import { chunk } from "./lib/fixtures.mjs";
 
 let application, edgeArg, work, libraries, oldSchema, port, driverUrl, sha, data, profile, driver;
 export let session;
@@ -12,14 +13,16 @@ export function configure(values) { ({ application, edgeArg, work, libraries, ol
 export function useProfile(appData, webview) { data = appData; profile = webview; }
 export function clearSession() { session = null; }
 
-export function chunk(type,bytes){const body=Buffer.concat([Buffer.from(type),bytes]);let crc=0xffffffff;for(const byte of body){crc^=byte;for(let i=0;i<8;i++)crc=crc&1?0xedb88320^(crc>>>1):crc>>>1;}const length=Buffer.alloc(4);length.writeUInt32BE(bytes.length);const checksum=Buffer.alloc(4);checksum.writeUInt32BE((crc^0xffffffff)>>>0);return Buffer.concat([length,body,checksum]);}
 export const ihdr=Buffer.alloc(13);ihdr.writeUInt32BE(3,0);ihdr.writeUInt32BE(3,4);ihdr[8]=8;ihdr[9]=2;
+// 例外（#521）：这张图的尺寸、颜色规则与 lib/fixtures.mjs 的 png 不同，合并会改变测试图的像素，所以留在本地。
 export function png(red){const row=Buffer.from([0,red,28,38,red,28,38,red,28,38]);return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk("IHDR",ihdr),chunk("IDAT",deflateSync(Buffer.concat([row,row,row]))),chunk("IEND",Buffer.alloc(0))]);}
 export function oldLibrary(name,red,positive){const root=join(libraries,name);mkdirSync(root);const db=new DatabaseSync(join(root,"library.sqlite"));db.exec(oldSchema);const identity=value=>sha(name+value).slice(0,32),id=identity("library");db.prepare("INSERT INTO library VALUES (?,?,1,1000)").run(id,name);const tags={},originals=[];
 function tag(key,label){const local=identity(key);tags[key]=local;db.prepare("INSERT INTO tag VALUES (?,'general',1000)").run(local);db.prepare("INSERT INTO tag_name VALUES (?,'zh-CN',?)").run(local,label);db.prepare("INSERT INTO tag_external VALUES (?,?)").run(key,local);return local;}
 const blue=tag("blue_eyes","蓝瞳"),aqua=tag("aqua_eyes","水色瞳"),sky=tag("spec78_sky","天空色");
 function add(key,color,tag){const bytes=png(color),hash=sha(bytes),rel=`originals/${hash.slice(0,2)}/${hash}.png`;mkdirSync(join(root,"originals",hash.slice(0,2)),{recursive:true});writeFileSync(join(root,rel),bytes);const imageId=identity(key);db.prepare("INSERT INTO image(id,sha256,size,format,rel_path,width,height,orientation,original_name,imported_at,rating_manual,note_manual) VALUES(?,?,?,'png',?,3,3,1,?,1000,'general',?)").run(imageId,hash,bytes.length,rel,key+".png","原有备注 "+name);db.prepare("INSERT INTO tag_fact VALUES (?,?,'model:old',0.9)").run(imageId,tag);originals.push({imageId,path:join(root,rel),sha:hash});return imageId;}
 add("blue",red,blue);add("aqua",red+10,aqua);add("sky",red+20,sky);db.prepare("INSERT INTO personal_approx VALUES (?,?,?,1000)").run(blue,aqua,positive?"similar":"notSimilar");const group=identity("group");db.prepare("INSERT INTO tag_group VALUES (?,?,'general',0,1000)").run(group,"旧组 "+name);db.prepare("INSERT INTO tag_group_member VALUES (?,?,0)").run(group,blue);db.close();return {info:{id,root,name},tags,originals};}
+// 例外（#521）：wd、until、quitOwnApp 留在本地——driverUrl、application 要等 configure() 才有值，createDriver 需要创建时就拿到。
+export { chunk };
 export const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
 export async function wd(method, path, body) {
   const response = await fetch(driverUrl + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });

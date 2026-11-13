@@ -8,6 +8,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { copyStandaloneRuntime } from "./native-standalone-guard.mjs";
 import { png } from "./spec78-frontend.helpers.mjs";
 import { escClosesActivePin, folderSearchRoundTrip, writePrototypeInput } from "./spec78-frontend.steps.mjs";
+import { createDriver } from "./lib/driver.mjs";
 
 const [, , appArg, edgeArg, driverArg = "tauri-driver"] = process.argv;
 if (!appArg || !edgeArg) throw new Error("用法：node e2e/spec78-frontend.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]");
@@ -27,21 +28,7 @@ writeFileSync(join(source, "超宽横图.png"), png(600, 100, (x, y) => x < 4 ||
 const PORT = Number(process.env.KINSHOKO_WEBDRIVER_PORT ?? 4467);
 const DRIVER = `http://127.0.0.1:${PORT}`;
 const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
-async function wd(method, path, body) {
-  const response = await fetch(DRIVER + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(70000) });
-  const result = await response.json();
-  if (!response.ok || result.status || result.value?.error) throw new Error(`${path}: ${JSON.stringify(result)}`);
-  return path === "/session" && result.sessionId ? { sessionId: result.sessionId, capabilities: result.value } : result.value;
-}
-async function until(what, read) {
-  const end = Date.now() + 30000;
-  let last;
-  while (Date.now() < end) {
-    try { const value = await read(); if (value) return value; } catch (error) { last = error; }
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  throw new Error(`等待超时：${what}${last ? ` (${last.message})` : ""}`);
-}
+const { wd, until } = createDriver({ driverUrl: DRIVER, timeout: 70000, legacyProtocol: true, every: 100 });
 function check(ok, label) { if (!ok) throw new Error(label); console.log(`✓ ${label}`); }
 const driver = spawn(driverArg, ["--port", String(PORT), "--native-port", String(PORT + 1), "--native-driver", resolve(edgeArg)], {
   windowsHide: true,

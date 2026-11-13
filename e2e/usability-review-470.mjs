@@ -2,10 +2,12 @@
 // 依次截空图库、自动标签停下的图标、导入结束的提示、查找无结果、图片墙与菜单、多选、设置各页。
 // 夜间用 :root[data-theme="dark"] 强制，与系统深色走同一套令牌。
 // Usage: node e2e/usability-review-470.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录>
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { deflateSync } from "node:zlib";
+
+import { createDriver } from "./lib/driver.mjs";
+import { gradientPng as png } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeArg, outArg] = process.argv;
 if (!appArg || !edgeArg || !outArg) throw new Error("Usage: node e2e/usability-review-470.mjs <kinshoko.exe> <msedgedriver.exe> <out>");
@@ -16,45 +18,8 @@ const port = 4582;
 const driverUrl = `http://127.0.0.1:${port}`;
 const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
 
-function chunk(type, data) {
-  const body = Buffer.concat([Buffer.from(type), data]);
-  let crc = 0xffffffff;
-  for (const byte of body) { crc ^= byte; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1; }
-  const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-  const checksum = Buffer.alloc(4); checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
-  return Buffer.concat([length, body, checksum]);
-}
-/** 合成图：两种颜色沿对角线渐变。 */
-function png(path, width, height, [a, b]) {
-  const header = Buffer.alloc(13); header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4); header[8] = 8; header[9] = 2;
-  const rows = [];
-  for (let y = 0; y < height; y++) {
-    const row = Buffer.alloc(1 + width * 3);
-    for (let x = 0; x < width; x++) {
-      const t = (x / width + y / height) / 2;
-      for (let c = 0; c < 3; c++) row[1 + x * 3 + c] = Math.round(a[c] * (1 - t) + b[c] * t);
-    }
-    rows.push(row);
-  }
-  writeFileSync(path, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header), chunk("IDAT", deflateSync(Buffer.concat(rows))), chunk("IEND", Buffer.alloc(0))]));
-}
-
-async function wd(method, path, body) {
-  const response = await fetch(driverUrl + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
-  const result = await response.json();
-  if (!response.ok || result.value?.error) throw new Error(`${method} ${path}: ${JSON.stringify(result.value)}`);
-  return result.value;
-}
+const { wd, until, quitOwnApp } = createDriver({ driverUrl, application });
 const delay = (ms) => new Promise((done) => setTimeout(done, ms));
-async function until(label, read, timeout = 30000) {
-  const end = Date.now() + timeout;
-  let error;
-  while (Date.now() < end) {
-    try { const result = await read(); if (result) return result; } catch (reason) { error = reason; }
-    await delay(150);
-  }
-  throw new Error(`Timed out: ${label}${error ? ` (${error.message})` : ""}`);
-}
 class Session {
   static async start() {
     const result = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application } } } });
@@ -100,9 +65,6 @@ class Session {
     const id = (await wd("POST", `${this.base}/element`, { using: "css selector", value: css }))[ELEMENT];
     return this.capture(name, () => `${this.base}/element/${id}/screenshot`);
   }
-}
-function quitOwnApp() {
-  spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_E2E_EXECUTABLE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"], { env: { ...process.env, KINSHOKO_E2E_EXECUTABLE: application }, stdio: "ignore", windowsHide: true });
 }
 
 const driver = spawn("tauri-driver", ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], {

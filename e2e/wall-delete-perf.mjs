@@ -13,6 +13,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { createDriver } from "./lib/driver.mjs";
 
 const [, , appArg, edgeArg, samplesArg, roundsArg] = process.argv;
 if (!appArg || !edgeArg || !samplesArg) {
@@ -35,22 +36,8 @@ mkdirSync(libraries);
 const port = Number(process.env.KINSHOKO_PERF_PORT ?? 4470);
 const driverUrl = `http://127.0.0.1:${port}`;
 
-async function wd(method, path, body) {
-  const response = await fetch(driverUrl + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
-  const result = await response.json();
-  if (!response.ok || result.value?.error) throw new Error(`${method} ${path}: ${JSON.stringify(result.value).slice(0, 400)}`);
-  return result.value;
-}
+const { wd, until } = createDriver({ driverUrl });
 const delay = (ms) => new Promise((done) => setTimeout(done, ms));
-async function until(label, read, timeout = 30000, every = 150) {
-  const end = Date.now() + timeout;
-  let error;
-  while (Date.now() < end) {
-    try { const value = await read(); if (value) return value; } catch (reason) { error = reason; }
-    await delay(every);
-  }
-  throw new Error(`等待超时：${label}${error ? `（${error.message}）` : ""}`);
-}
 class Session {
   static async start() {
     const value = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application } } } });
@@ -118,7 +105,6 @@ const ROUND = `
     count, removedMs: at(removedAt), totalMs: at(totalAt), doneMs: at(doneAt), stableMs: at(Math.max(last, removedAt, totalAt, doneAt)),
   };
 `;
-
 
 const result = { application, samples, expected, rounds, sizes: SIZES, quietMs: QUIET_MS, startedAt: new Date().toISOString() };
 const save = () => writeFileSync(join(work, "result.json"), JSON.stringify(result, null, 2));

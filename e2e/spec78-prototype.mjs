@@ -4,6 +4,7 @@ import { spawn, execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join, dirname, basename } from "node:path";
+import { createDriver } from "./lib/driver.mjs";
 const [, , driverArg, outputArg = "docs/implementation/evidence/spec78-t01"] = process.argv;
 if (!driverArg) throw new Error("Usage: node e2e/spec78-prototype.mjs <msedgedriver.exe> [evidence-directory]");
 const output = resolve(outputArg);
@@ -14,22 +15,12 @@ const vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host",
 const driver = spawn(resolve(driverArg), ["--port=" + port], { windowsHide: true, stdio: ["ignore", "inherit", "inherit"] });
 const DRIVER = "http://127.0.0.1:" + port;
 let base;
-async function wd(method, path, body) {
-  const response = await fetch(DRIVER + path, { method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(60000) });
-  const json = await response.json();
-  if (!response.ok || json.value?.error) throw new Error(JSON.stringify(json));
-  return json.value;
-}
+const { wd, until } = createDriver({ driverUrl: DRIVER, timeout: 60000, every: 100 });
 const exec = (script, args = []) => wd("POST", base + "/execute/sync", { script, args });
 const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
 const key = (value) => wd("POST",base+"/actions",{actions:[{type:"key",id:"keyboard",actions:[{type:"keyDown",value},{type:"keyUp",value}]}]});
 const element = async (xpath) => (await wd("POST",base+"/element",{using:"xpath",value:xpath}))[ELEMENT];
 const click = async (xpath) => wd("POST",base+"/element/"+await element(xpath)+"/click",{});
-const until = async (label, read) => {
-  const end = Date.now() + 30000;
-  while (Date.now() < end) { try { const result = await read(); if (result) return result; } catch {} await new Promise(r => setTimeout(r, 100)); }
-  throw new Error("Timeout: " + label);
-};
 const check = (ok, label) => { if (!ok) throw new Error(label); console.log("✓ " + label); };
 const setViewport = async (target) => {
   for (let i=0;i<12;i++) {

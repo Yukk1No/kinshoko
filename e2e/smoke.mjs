@@ -12,6 +12,8 @@ import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { deflateSync } from "node:zlib";
+import { createDriver } from "./lib/driver.mjs";
+import { chunk } from "./lib/fixtures.mjs";
 
 const [, , appArg, edgeDriverArg] = process.argv;
 if (!appArg) {
@@ -25,25 +27,8 @@ const DRIVER = `http://127.0.0.1:${port}`;
 
 // ---------- 样本 ----------
 
-const crcTable = Array.from({ length: 256 }, (_, n) => {
-  let c = n;
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-const crc32 = (buf) => {
-  let c = 0xffffffff;
-  for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-};
-function chunk(type, data) {
-  const len = Buffer.alloc(4);
-  len.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(crc32(body));
-  return Buffer.concat([len, body, crc]);
-}
-/** 单色 RGB PNG。 */
+/** 单色 RGB PNG。例外：与 lib/fixtures.mjs 的 png 签名与输出都不同（只有这里和 viewer 系列用单色），留在本地。 */
+// 例外（#521）：这张图的尺寸、颜色规则与 lib/fixtures.mjs 的 png 不同，合并会改变测试图的像素，所以留在本地。
 function png(w, h, [r, g, b]) {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(w, 0);
@@ -85,33 +70,9 @@ writeFileSync(join(source, "说明.txt"), "不是图片");
 
 // ---------- WebDriver ----------
 
-async function wd(method, path, body) {
-  const res = await fetch(DRIVER + path, {
-    method,
-    headers: { "content-type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`${method} ${path} → ${res.status} ${JSON.stringify(json)}`);
-  return json.value;
-}
+const { wd, until } = createDriver({ driverUrl: DRIVER, every: 200 });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function until(what, fn, timeout = 30000) {
-  const end = Date.now() + timeout;
-  let last;
-  while (Date.now() < end) {
-    try {
-      const v = await fn();
-      if (v) return v;
-    } catch (e) {
-      last = e;
-    }
-    await sleep(200);
-  }
-  throw new Error(`等待超时：${what}${last ? `（${last.message}）` : ""}`);
-}
 
 // W3C WebDriver 规定的元素引用键（§12.1 web element identifier）。
 const ELEMENT = "element-6066-11e4-a52e-4f735466cecf";
