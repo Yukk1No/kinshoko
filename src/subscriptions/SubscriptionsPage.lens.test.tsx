@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { ReceivedImage } from "../bindings/ReceivedImage";
 import { useCaptureSources } from "../desktop/captureSources";
 import { SubscriptionsPage } from "./SubscriptionsPage";
 import { list, NOW, recent, status } from "./subscriptions.fixtures";
+import { fakeBackend } from "../test/backend";
 
 // 安全模式范围收紧时先遮住已载入的图（开关不变），与截图时登记订阅页的缩略图（#368）。
 const events = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>());
@@ -20,16 +21,15 @@ beforeEach(() => {
   localStorage.setItem("kinshoko.subscriptions.firstRunSeen", "1");
   reads = [];
   reports.length = 0;
-  mockWindows("main");
   mockConvertFileSrc("windows");
-  mockIPC((cmd, args) => {
-    if (cmd === "subscriptions") return list;
-    if (cmd === "subscription_recent") return new Promise((resolve, reject) => reads.push({ resolve, reject }));
-    if (cmd === "plugin:desktop|report_capture_references") reports.push(args);
-    return null;
-  }, { shouldMockEvents: true });
+  fakeBackend({
+    subscriptions: list,
+    subscription_recent: () => new Promise((resolve, reject) => reads.push({ resolve, reject })),
+    report_capture_references: (args) => { reports.push(args); return null; },
+    subscription_mark_seen: null,
+  });
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); localStorage.clear(); clearMocks(); events.clear(); });
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); localStorage.clear(); events.clear(); });
 
 const tiles = () => screen.queryAllByRole("button", { name: "在图库中打开" });
 const page = () => render(<SubscriptionsPage status={status()} onStatus={vi.fn()} safe paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} />);

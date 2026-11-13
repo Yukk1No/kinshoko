@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { Viewer } from "./Viewer";
+import { fakeBackend } from "../test/backend";
 
 const events = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>());
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async (name, callback) => { events.set(name, callback); return () => events.delete(name); }) }));
@@ -16,14 +17,12 @@ beforeEach(() => {
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.5 });
   mockConvertFileSrc("windows");
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe("查看器设备像素", () => {
   it("F1 reads only the currently loaded image through a fresh native request", async () => {
     const reports: any[] = [];
-    mockIPC((command, args) => {
-      if (command === "plugin:desktop|report_capture_references") reports.push(args);
-    });
+    fakeBackend({ image: {}, report_capture_references: (args) => { reports.push(args); return null; } });
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 800));
     const { unmount } = render(<Viewer libraryId="L1" card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }} onClose={() => {}} />);
     await waitFor(() => expect(events.has("capture-reference-request")).toBe(true));
@@ -37,7 +36,6 @@ describe("查看器设备像素", () => {
     await waitFor(() => expect(reports).toHaveLength(2));
     expect(reports[1]).toMatchObject({ request: "loaded", frame: { references: [{ libraryId: "L1", imageId: "a", shown: { x: 0, y: 100, width: 1500, height: 1000 }, visible: { x: 0, y: 100, width: 1500, height: 1000 } }] } });
     unmount();
-    clearMocks();
   });
 
   it("工具栏起点不是完整设备像素时，仍按整个窗口对齐图片起点", () => {

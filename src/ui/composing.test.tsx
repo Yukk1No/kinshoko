@@ -1,13 +1,11 @@
 // 输入法选字时按下的回车、Esc 属于输入法：三个普通输入框不提交、不取消（#542）。
-import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { NameInput } from "./NameInput";
 import { NewGroup } from "../library/TagGroupsPane";
 import { AliasEditor } from "../library/TagPanel";
 import { ToastProvider } from "./Toast";
-
-afterEach(() => { cleanup(); clearMocks(); });
+import { fakeBackend } from "../test/backend";
 
 const composing: KeyboardEventInit[] = [{ isComposing: true }, { keyCode: 229 }];
 const box = () => screen.getByRole("textbox");
@@ -35,20 +33,17 @@ it("新建标签分组：选字时的回车和 Esc 不提交也不取消，普�
 });
 
 it("标签别名：选字时的回车和 Esc 不添加也不关闭，普通回车添加", async () => {
-  const commands: string[] = [];
-  mockIPC((command) => {
-    commands.push(command);
-    return command.endsWith("vocabulary") ? { tags: [] } : null;
-  });
+  const backend = fakeBackend({ vocabulary: { tags: [] }, add_tag_alias: null });
+  const commands = () => backend.calls().map((call) => call.command);
   const onClose = vi.fn();
   const tag = { id: "t1", namespace: "general" as const, name: "猫", untranslated: false, hasExternal: false };
   render(<ToastProvider><AliasEditor libraryId="L" tag={tag} generation={0} onError={() => {}} onClose={onClose} /></ToastProvider>);
   type("小猫");
   for (const init of composing) { press("Enter", init); press("Escape", init); }
-  expect(commands.some((c) => c.includes("alias"))).toBe(false);
+  expect(commands().some((c) => c.includes("alias"))).toBe(false);
   expect(onClose).not.toHaveBeenCalled();
   press("Enter");
-  expect(commands.some((c) => c.includes("alias"))).toBe(true);
+  expect(commands().some((c) => c.includes("alias"))).toBe(true);
   press("Escape");
   expect(onClose).toHaveBeenCalledTimes(1);
 });

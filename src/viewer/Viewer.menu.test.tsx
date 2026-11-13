@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
+import { type FakeBackend, fakeBackend } from "../test/backend";
 import { Viewer } from "./Viewer";
 
 const events = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>());
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async (name, callback) => { events.set(name, callback); return () => events.delete(name); }) }));
-
 
 beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
@@ -13,25 +13,20 @@ beforeEach(() => {
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.5 });
   mockConvertFileSrc("windows");
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe("查看器右键菜单（#114）", () => {
   const card = { id: "a", width: 800, height: 600, thumbnail: "", adult: false };
-  let calls: { cmd: string; args: unknown }[];
+  let backend: FakeBackend;
   let fail: string | null;
   beforeEach(() => {
     Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 800));
-    calls = [];
     fail = null;
-    mockIPC((cmd, args) => {
-      calls.push({ cmd, args });
-      if (cmd === "plugin:library|image") return {};
-      if (fail && cmd.startsWith("plugin:desktop|")) throw { code: "message", message: fail };
-      return null;
-    });
+    /** 桌面命令（复制、显示、钉住）答 void；`fail` 让它们失败。 */
+    const desktop = () => { if (fail) throw { code: "message", message: fail }; return null; };
+    backend = fakeBackend({ image: {}, copy_reference_image: desktop, reveal_reference_image: desktop, pin_reference: desktop });
   });
-  afterEach(() => clearMocks());
   const stageOf = () => screen.getByAltText("正在查看的参考图").parentElement!;
   const openMenu = async () => {
     fireEvent.contextMenu(stageOf(), { clientX: 200, clientY: 200 });
@@ -58,10 +53,10 @@ describe("查看器右键菜单（#114）", () => {
   it("复制图片与在资源管理器中显示作用于正在看的这张；失败时说明原因", async () => {
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
     fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: "复制图片" }));
-    await waitFor(() => expect(calls.find((c) => c.cmd === "plugin:desktop|copy_reference_image")?.args).toEqual({ libraryId: "L1", imageId: "a" }));
+    await waitFor(() => expect(backend.calls("copy_reference_image")[0]?.args).toEqual({ libraryId: "L1", imageId: "a" }));
     expect(await screen.findByText("已复制图片")).toBeTruthy();
     fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: "在资源管理器中显示" }));
-    await waitFor(() => expect(calls.find((c) => c.cmd === "plugin:desktop|reveal_reference_image")?.args).toEqual({ libraryId: "L1", imageId: "a" }));
+    await waitFor(() => expect(backend.calls("reveal_reference_image")[0]?.args).toEqual({ libraryId: "L1", imageId: "a" }));
     fail = "原文件不在了";
     fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: "在资源管理器中显示" }));
     expect(await screen.findByText("无法在资源管理器中显示：原文件不在了")).toBeTruthy();
@@ -82,7 +77,7 @@ describe("查看器右键菜单（#114）", () => {
     fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^钉住局部/ }));
     expect(screen.getByRole("button", { name: /^框选局部/ }).getAttribute("aria-pressed")).toBe("true");
     await act(async () => { fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^钉住整图/ })); });
-    expect(calls.filter((c) => c.cmd === "plugin:desktop|pin_reference")).toHaveLength(1);
+    expect(backend.calls("pin_reference")).toHaveLength(1);
   });
 
   it("背景子菜单：选另一种即换上", async () => {
