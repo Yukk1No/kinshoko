@@ -1,12 +1,11 @@
-import { afterEach, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { expect, it } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
+import { fakeBackend } from "../test/backend";
 import { TagIdentityPanel } from "./TagIdentityPanel";
 import { chooseValue, optionNames } from "../test/select";
 
-afterEach(() => { cleanup(); clearMocks(); });
 
 it("inspects ambiguous local tags and saves an explicit shared correspondence", async () => {
   const tag = (id: string, name: string) => ({ id, namespace: "general", names: [{ lang: "zh-CN", name }], aliases: [], external: [] });
@@ -16,14 +15,14 @@ it("inspects ambiguous local tags and saves an explicit shared correspondence", 
     libraries: [{ library: { id: "a", name: "第一库", root: "a" }, unavailable: null }, { library: { id: "b", name: "第二库", root: "b" }, unavailable: null }],
     catalog: { revision: 1, tags: [tag("blue", "蓝发"), tag("azure", "青丝")], mappings: [mapping("a", "local-a", "blue", "蓝发"), mapping("b", "local-b", "azure", "青丝")] },
   };
-  mockIPC((cmd, args) => {
-    if (cmd.endsWith("inspect_tag_catalog")) return workspace;
-    if (cmd.endsWith("correct_tag_mapping")) {
+  fakeBackend({
+    inspect_tag_catalog: () => workspace,
+    correct_tag_mapping: (args) => {
       const a = args as { libraryId: string; localTagId: string; correction: { kind: string; catalogId: string } };
       expect(a).toEqual({ libraryId: "b", localTagId: "local-b", correction: { kind: "use", catalogId: "blue" } });
       workspace = { ...workspace, catalog: { ...workspace.catalog, revision: 2, mappings: workspace.catalog.mappings.map((m) => m.localTagId === a.localTagId ? { ...m, catalogId: a.correction.catalogId, basis: "corrected" } : m) } };
       return workspace;
-    }
+    },
   });
   render(<TagIdentityPanel />);
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
@@ -48,10 +47,13 @@ it.each(["inspect", "correct"])("clears inspected records and discards a late %s
   let inspected = false;
   let finish: (workspace: TagCatalogWorkspace) => void = () => { throw new Error("request was not started"); };
   const pending = new Promise<TagCatalogWorkspace>((resolve) => { finish = resolve; });
-  mockIPC((cmd) => {
-    if (cmd.endsWith("inspect_tag_catalog") && !inspected) { inspected = true; return workspace; }
-    if (cmd.endsWith("inspect_tag_catalog") || cmd.endsWith("correct_tag_mapping")) return pending;
-  }, { shouldMockEvents: true });
+  fakeBackend({
+    inspect_tag_catalog: () => {
+      if (!inspected) { inspected = true; return workspace; }
+      return pending;
+    },
+    correct_tag_mapping: () => pending,
+  });
   render(<TagIdentityPanel />);
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
   const row = await screen.findByRole("row", { name: /资料库.*封印标签/ });
@@ -67,7 +69,7 @@ it.each(["inspect", "correct"])("clears inspected records and discards a late %s
 it("refreshes inspected shared labels after a global name vocabulary event", async () => {
   const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "旧名称" }], aliases: [], external: [], count: 1 };
   let current = "默认名称";
-  mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? { libraries: [], catalog: { revision: 1, tags: [{ ...local, id: "shared", names: [{ lang: "zh-CN", name: current }], defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "a", localTagId: "local", catalogId: "shared", legacy: local, basis: "independent", nameProvenance: "catalog" }] } } : undefined, { shouldMockEvents: true });
+  fakeBackend({ inspect_tag_catalog: () => ({ libraries: [], catalog: { revision: 1, tags: [{ ...local, id: "shared", names: [{ lang: "zh-CN", name: current }], defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "a", localTagId: "local", catalogId: "shared", legacy: local, basis: "independent", nameProvenance: "catalog" }] } }) });
   render(<TagIdentityPanel />);
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
   await screen.findByText("默认名称");
@@ -80,13 +82,13 @@ it("offers an explicit provider publication retry without discarding the saved a
   const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "白" }], aliases: [], external: [], count: 1 };
   const workspace: TagCatalogWorkspace = { libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }], catalog: { revision: 2, tags: [{ ...local, id: "split", defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "b", localTagId: "local", catalogId: "split", legacy: local, basis: "corrected", nameProvenance: "catalog" }] } };
   let attempt = 0;
-  mockIPC((cmd, args) => {
-    if (cmd.endsWith("inspect_tag_catalog")) return workspace;
-    if (cmd.endsWith("publish_tag_definitions")) {
+  fakeBackend({
+    inspect_tag_catalog: () => workspace,
+    publish_tag_definitions: (args) => {
       expect(args).toEqual({ libraryId: "b" });
       if (++attempt === 1) throw { code: "message", message: "标签信息未保存：磁盘已满。程序中的对应已保留，请重试。" };
       return workspace;
-    }
+    },
   });
   render(<TagIdentityPanel />);
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
@@ -107,14 +109,14 @@ it("keeps a correction publication failure through queued and later vocabulary r
   let rejectCorrection: (reason: string) => void = () => { throw Error("correction did not start"); };
   const pending = new Promise<TagCatalogWorkspace>((_, reject) => { rejectCorrection = reject; });
   let inspections = 0;
-  mockIPC((cmd) => {
-    if (cmd.endsWith("inspect_tag_catalog")) {
+  fakeBackend({
+    inspect_tag_catalog: () => {
       if (++inspections === 4) throw { code: "message", message: "自动读取暂时失败" };
       return inspections === 1 ? workspace : corrected;
-    }
-    if (cmd.endsWith("correct_tag_mapping")) return pending;
-    if (cmd.endsWith("publish_tag_definitions")) return corrected;
-  }, { shouldMockEvents: true });
+    },
+    correct_tag_mapping: () => pending,
+    publish_tag_definitions: () => corrected,
+  });
   render(<TagIdentityPanel />);
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
   const row = await screen.findByRole("row", { name: /画稿库.*白/ });
@@ -142,7 +144,7 @@ it("keeps a correction publication failure through queued and later vocabulary r
 it("keeps a correction chosen right after the rows appear, before their mount effects run", async () => {
   const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "白" }], aliases: [], external: [], count: 1 };
   const workspace: TagCatalogWorkspace = { libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }], catalog: { revision: 2, tags: [{ ...local, id: "old", defaultNames: local.names, namePreferences: [] }, { ...local, id: "split", names: [{ lang: "zh-CN", name: "独立的白" }], defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "b", localTagId: "local", catalogId: "old", legacy: local, basis: "independent", nameProvenance: "catalog" }] } };
-  mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? workspace : undefined);
+  fakeBackend({ inspect_tag_catalog: () => workspace });
   render(<TagIdentityPanel />);
   // MutationObserver 回调是微任务：在 React 提交之后、被动 effect 之前就点开选择，等同于手比挂载 effect 快。
   const opened = new Promise<HTMLElement>((done) => {

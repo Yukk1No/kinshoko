@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { beforeEach, expect, it } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
+import { fakeBackend } from "../test/backend";
 import { TagGroupsPane } from "./TagGroupsPane";
 import { ToastProvider } from "../ui/Toast";
 
@@ -15,25 +15,23 @@ beforeEach(() => {
     { id: "B", name: "服装", namespace: null, tags: [], sources: [] },
     { id: "C", name: "姿势", namespace: null, tags: [], sources: [] },
   ];
-  mockIPC((command, payload) => {
-    if (command === "plugin:library|shared_tag_groups") return structuredClone(groups);
-    if (command === "plugin:library|edit_shared_tag_group") {
-      const edit = (payload as { edit: CatalogGroupEdit }).edit;
+  fakeBackend({
+    shared_tag_groups: () => structuredClone(groups),
+    edit_shared_tag_group: (payload) => {
+      const edit = payload.edit as CatalogGroupEdit;
       if (edit.kind === "orderGroups") groups = edit.groupIds.map((id) => groups.find((g) => g.id === id)!);
       if (edit.kind === "orderMembers") groups = groups.map((g) => g.id === edit.groupId ? { ...g, tags: edit.tagIds.map((id) => g.tags.find((t) => t.tag.id === id)!) } : g);
       if (edit.kind === "removeMembers") groups = groups.map((g) => g.id === edit.groupId ? { ...g, tags: g.tags.filter((t) => !edit.tagIds.includes(t.tag.id)) } : g);
       return null;
-    }
-    if (command === "plugin:library|delete_shared_tag_group") {
-      const id = (payload as { groupId: string }).groupId;
+    },
+    delete_shared_tag_group: (payload) => {
+      const id = payload.groupId as string;
       const ord = groups.findIndex((g) => g.id === id);
       const [gone] = groups.splice(ord, 1);
       return { id, name: gone.name, namespace: null, ord, members: [], migratedFrom: [] };
-    }
-    return null;
+    },
   });
 });
-afterEach(() => { cleanup(); clearMocks(); });
 
 const settle = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
 

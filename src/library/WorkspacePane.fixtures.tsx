@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, vi } from "vitest";
-import { act, cleanup, render, within } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { act, render, within } from "@testing-library/react";
+import { type Args, fakeBackend } from "../test/backend";
 import { WorkspacePane } from "./WorkspacePane";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
@@ -17,15 +17,14 @@ export const section = (id: string) => document.querySelector<HTMLElement>(`[dat
 export const arrow = (id: string) => within(section(id)).getByRole("button", { name: new RegExp(`^(展开|收起)${names[id]}$`) });
 export const expanded = (id: string) => arrow(id).getAttribute("aria-expanded") === "true";
 export const inA = (local: BrowseScope): WorkspaceScope => ({ kind: "library", libraryId: "A", scope: local });
+/** 目录读取的回答：留在 `pending` 里，由测试放出。 */
+export const directories = (args: Args) => new Promise<WorkspaceDirectories>((resolve, reject) => pending.push({ safeMode: args.safeMode as boolean, resolve, reject }));
 beforeEach(() => {
   pending = [];
   props.onScope.mockClear(); props.onError.mockClear();
-  mockIPC((command, args) => {
-    if (command === "plugin:library|workspace_directories") return new Promise<WorkspaceDirectories>((resolve, reject) => pending.push({ safeMode: (args as { safeMode: boolean }).safeMode, resolve, reject }));
-    throw new Error(command);
-  });
+  fakeBackend({ workspace_directories: directories });
 });
-afterEach(() => { vi.useRealTimers(); cleanup(); clearMocks(); });
+afterEach(() => { vi.useRealTimers(); });
 export async function loaded(view = render(<WorkspacePane {...props} />), value = forest()) {
   await settle();
   await act(async () => pending.at(-1)!.resolve(value));
