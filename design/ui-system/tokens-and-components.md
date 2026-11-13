@@ -2,7 +2,11 @@
 
 ## 令牌来源
 
-`src/styles/tokens.css` 是界面令牌的唯一来源：日间 `:root`、夜间两套写法（跟随系统的 `prefers-color-scheme` 与手动的 `data-theme="dark"`）、封印书的 `--seal-acc`，以及圆角与动效时长。
+`src/styles/tokens.css` 是界面令牌的唯一来源：`:root` 里的颜色令牌、封印书的 `--seal-acc`，以及圆角与动效时长。
+
+- **日夜两个值写在同一条声明里**：`--ink: light-dark(#2b2747, #f4ecdc);`，先日间后夜间。取哪个值由用到令牌的元素的 `color-scheme` 决定：`:root` 是 `light dark`（跟随系统），`data-theme="light"` / `data-theme="dark"` 强制一种，`.k-dock.is-dark` 在日间也是 `dark`。这几条规则只切 `color-scheme`，不再重写令牌；新令牌照这个写法加，不要另开夜间块。
+- **`light-dark()` 只装颜色。** 长度、透明度百分比这类值放不进去：阴影某一层的模糊半径日夜不同时，拆成两层，各写各的半径，颜色分别是 `light-dark(日间色, transparent)` 与 `light-dark(transparent, 夜间色)`（见 `--range-inset`）；一边多出的一层，另一边写 `transparent`。要按透明度用的颜色令牌（如 `--contact`）在用处写 `color-mix(in srgb, var(--contact) 30%, transparent)`。
+- `--seal-acc` 是品牌不变项，保留原型的三条规则，不改成 `light-dark()`。
 
 - **改颜色只改这一个文件。** 其他样式表只写 `var(--token)`，不写十六进制颜色；`src/styles/tokens.styles.test.ts` 会扫描 `src/` 下所有样式表，在令牌文件之外发现十六进制颜色就失败。确有理由写死的，列进该测试的 `ALLOWED` 并写明理由。
 - **claude.ai 上的 Kinshoko 设计系统（`project/README.md`、`tokens.json`）从这个文件导出。** 改了令牌就把新值同步过去；两边不一致时以本文件为准。

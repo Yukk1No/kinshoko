@@ -230,7 +230,7 @@ pub fn register_restored<R: Runtime>(
 
 /// Current authority generation for native capture actions.
 pub fn capture_generation<R: Runtime>(app: &AppHandle<R>) -> SafeModeSnapshot {
-    workspace::generation(app)
+    app.state::<LibraryState>().safe_mode.snapshot()
 }
 
 /// Revoke receipt consent when its main window is destroyed.
@@ -252,10 +252,7 @@ pub fn revoke_import_preview_context<R: Runtime>(app: &AppHandle<R>) {
 /// generation, then perform the actual send/copy/pin before returning. This does not reject
 /// safe mode itself: an explicit, scoped preview capability can be valid while safe mode is on.
 ///
-/// Worker threads only; never await, re-enter, or acquire this while holding resource locks.
-/// Lock order: transition (when needed), visibility_commit, then library/catalog/workspace/Shell
-/// and desktop resources. Main-thread callbacks must not wait for this permit or ShellState;
-/// registrations and native window creation may synchronously dispatch to that thread.
+/// 取锁顺序与线程限制见 [`super::lens`] 的模块说明。
 pub(crate) fn with_visibility_commit<R: Runtime, T>(
     app: &AppHandle<R>,
     commit: impl FnOnce(SafeModeSnapshot) -> T,

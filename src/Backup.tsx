@@ -55,6 +55,7 @@ function useBackupStatus(): [BackupStatus | null, (s: BackupStatus) => void] {
     const unlisten = onBackupStatus((s) => alive && setStatus(s));
     return () => {
       alive = false;
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
       void unlisten.then((f) => f()).catch(() => {});
     };
   }, []);

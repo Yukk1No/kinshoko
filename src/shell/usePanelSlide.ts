@@ -30,7 +30,7 @@ export function usePanelSlide(panels: readonly SlidingPanel[]): PanelSlide | nul
     setState({ running: 0, slide: null });
     const elements = panels.flatMap((panel) => panel.element ?? []);
     const own = (e: Event) => e.target === e.currentTarget && (e as TransitionEvent).propertyName === "width";
-    const widthTransition = (element: HTMLElement) => element.getAnimations?.().find((a) => (a as CSSTransition).transitionProperty === "width");
+    const widthTransition = (element: HTMLElement) => element.getAnimations().find((a) => (a as CSSTransition).transitionProperty === "width");
     const slideOf = (element: HTMLElement): PanelSlide => {
       const transition = widthTransition(element);
       const timing = transition?.effect?.getTiming();

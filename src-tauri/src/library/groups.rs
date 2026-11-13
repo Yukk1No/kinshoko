@@ -11,9 +11,14 @@ pub(super) async fn shared_tag_groups<R: Runtime>(
     safe_mode: bool,
 ) -> Result<Vec<CatalogGroupView>, CommandError> {
     blocking(move || {
-        workspace::stable(&app, safe_mode, |workspace, device, catalog| {
-            workspace.shared_tag_groups(device, catalog, &lang, safe_mode)
-        })
+        with_lens(
+            &app,
+            safe_mode,
+            Hold::Stable,
+            |workspace, device, catalog| {
+                workspace.shared_tag_groups(device, catalog, &lang, safe_mode)
+            },
+        )
     })
     .await
 }
@@ -26,7 +31,7 @@ pub(super) async fn create_shared_tag_group<R: Runtime>(
 ) -> Result<String, CommandError> {
     blocking(move || {
         let safe = saved_safe_mode(&app);
-        workspace::action(&app, safe, |workspace, device, catalog| {
+        with_lens(&app, safe, Hold::Read, |workspace, device, catalog| {
             // Existing source groups enroll before a new group is appended.
             workspace.status(device, catalog, safe)?;
             catalog.create_group(&name, namespace)
@@ -42,12 +47,14 @@ pub(super) async fn edit_shared_tag_group<R: Runtime>(
     safe_mode: bool,
 ) -> Result<(), CommandError> {
     blocking(move || {
-        let generation = workspace::generation(&app);
-        workspace::current(&app, safe_mode, generation)?;
-        workspace::action(&app, safe_mode, |workspace, device, catalog| {
+        let lens = app
+            .state::<LibraryState>()
+            .safe_mode
+            .lens_expecting(safe_mode)?;
+        with_lens(&app, safe_mode, Hold::Read, |workspace, device, catalog| {
             workspace.edit_group(device, catalog, &edit, safe_mode)
         })?;
-        workspace::current(&app, safe_mode, generation)
+        Ok(lens.confirm(&app.state::<LibraryState>().safe_mode)?)
     })
     .await
 }
@@ -60,10 +67,11 @@ pub(super) async fn delete_shared_tag_group<R: Runtime>(
     safe_mode: bool,
 ) -> Result<DeletedCatalogGroup, CommandError> {
     blocking(move || {
-        let generation = workspace::generation(&app);
-        workspace::current(&app, safe_mode, generation)?;
+        app.state::<LibraryState>()
+            .safe_mode
+            .lens_expecting(safe_mode)?;
         // 删除一提交就把快照交回界面：这之后即使安全模式变了也不再报错，否则撤销就丢了。
-        workspace::action(&app, safe_mode, |_, _, catalog| {
+        with_lens(&app, safe_mode, Hold::Read, |_, _, catalog| {
             catalog.delete_group(&group_id)
         })
     })
@@ -79,7 +87,9 @@ pub(super) async fn restore_shared_tag_group<R: Runtime>(
     blocking(move || {
         // 撤销只放回配置，不看哪种显示范围；提示出现后安全模式变了也照样能撤销。
         let safe = saved_safe_mode(&app);
-        workspace::action(&app, safe, |_, _, catalog| catalog.restore_group(deleted))
+        with_lens(&app, safe, Hold::Read, |_, _, catalog| {
+            catalog.restore_group(deleted)
+        })
     })
     .await
 }

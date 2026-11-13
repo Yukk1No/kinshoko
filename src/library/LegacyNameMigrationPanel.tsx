@@ -10,6 +10,7 @@ import type { LegacyNameResolution } from "../bindings/LegacyNameResolution";
 import { describeCommandError, errorText } from "../ipc/commandError";
 import { confirmLegacyNames, onLibraryEvent, onSafeModeSetting, onWorkspaceChanged, planLegacyNames, previewLegacyNames } from "../ipc";
 import { languageName } from "../tags/languages";
+import { logFailure } from "../runLog";
 import { DialogHeight, DialogSwap } from "../ui/DialogHeight";
 import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
 import { usePersistentToast } from "../ui/Toast";
@@ -55,6 +56,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
   useEffect(() => {
     let alive = true;
     const stop = onSafeModeSetting(() => { if (alive) reset(); });
+    // 忽略失败：收尾时取消监听；之后的事件不再处理。
     return () => { alive = false; generation.current++; void stop.then((unlisten) => unlisten()).catch(() => {}); };
   }, []);
   async function run(action: () => Promise<LegacyNameMigrationWorkspace>, confirming = false) {
@@ -228,7 +230,8 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
       const request = ++generation;
       void planLegacyNames().then((view) => {
         if (alive && request === generation) setCount(view?.plan.groups.filter((group) => matcher.current(group)).length ?? 0);
-      }).catch(() => {}).finally(() => {
+      // 读不出时数量按 0，不弹通知；向导里打开时会显示原因。记一条，排查时知道通知为什么没出现。
+      }).catch((e) => logFailure("plan legacy names", e)).finally(() => {
         running = false;
         if (alive && request === generation) setSettled(true);
         if (alive && stale) schedule();
@@ -252,8 +255,8 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
       alive = false; generation++;
       clearTimeout(timer);
       window.removeEventListener(CHANGED, read);
-      void unlisten.then((stop) => stop()).catch(() => {}); void safeStop.then((stop) => stop()).catch(() => {});
-      void workspaceStop.then((stop) => stop()).catch(() => {});
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
+      for (const stop of [unlisten, safeStop, workspaceStop]) void stop.then((off) => off()).catch(() => {});
     };
     // biome-ignore lint/correctness/useExhaustiveDependencies: 何时重读由调用方的 deps 决定，回调里只读 ref 与局部变量
   }, deps);

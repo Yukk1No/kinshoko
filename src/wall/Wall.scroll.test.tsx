@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { Profiler } from "react";
+import { setMedia } from "../test/platform";
 import { workspacePage } from "../test/workspacePage";
 import { DRAG_IMAGES, Wall } from "./Wall";
 
@@ -12,15 +13,11 @@ vi.mock("./prefetch", async (original) => ({
   decodeThumbnail: (url: string) => { decoded.push(url); return Promise.resolve(); },
 }));
 
-let reduced: boolean;
 beforeEach(() => {
   decoded.length = 0;
-  reduced = false;
   localStorage.clear();
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1121 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
-  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-  vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("reduce") && reduced, media: query, addEventListener() {}, removeEventListener() {} }));
   mockConvertFileSrc("windows");
   mockIPC((cmd) => {
     if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
@@ -109,7 +106,7 @@ it("鼠标滚轮：接管原生滚动，下一帧就动，平滑落在一格之�
 
 it("“减少动画”时滚轮走原生", async () => {
   const { wall } = await setup();
-  reduced = true;
+  act(() => setMedia("(prefers-reduced-motion: reduce)", true));
   expect(fireEvent.wheel(wall, { deltaY: 100, deltaMode: 0 })).toBe(true);
 });
 

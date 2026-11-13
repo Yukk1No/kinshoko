@@ -9,19 +9,19 @@ pub(super) async fn inspect_tag_catalog<R: Runtime>(
     state: State<'_, LibraryState>,
 ) -> Result<TagCatalogWorkspace, CommandError> {
     let reader = app.clone();
-    let generation = state.safe_mode.snapshot();
-    let safe = saved_safe_mode(&app);
+    let lens = state.safe_mode.lens();
     // 经共享的工作区读（#337）：复用它的快照。
     let result = blocking(move || {
         workspace::with_resources(
             &reader.state::<LibraryState>(),
-            |workspace, libraries, catalog| workspace.inspect_catalog(libraries, catalog, safe),
+            |workspace, libraries, catalog| {
+                workspace.inspect_catalog(libraries, catalog, lens.on())
+            },
         )
     })
     .await?;
-    if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err(mapping_safe_mode_changed());
-    }
+    lens.confirm(&state.safe_mode)
+        .map_err(|_| mapping_safe_mode_changed())?;
     Ok(result)
 }
 
@@ -34,8 +34,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
     correction: CatalogCorrection,
 ) -> Result<TagCatalogWorkspace, CommandError> {
     let reader = app.clone();
-    let generation = state.safe_mode.snapshot();
-    let safe = saved_safe_mode(&app);
+    let lens = state.safe_mode.lens();
     let publish_library_id = library_id.clone();
     let result = blocking(move || {
         workspace::with_resources(
@@ -44,9 +43,9 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
                 let library = libraries
                     .read(&library_id)
                     .map_err(|e| CatalogError::Command(Box::new(e.into())))?;
-                library.set_safe_mode(safe);
+                library.set_safe_mode(lens.on());
                 catalog.correct(&library, &local_tag_id, correction)?;
-                workspace.inspect_catalog(libraries, catalog, safe)
+                workspace.inspect_catalog(libraries, catalog, lens.on())
             },
         )
     })
@@ -65,9 +64,8 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
             },
         );
     }
-    if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err(mapping_safe_mode_changed());
-    }
+    lens.confirm(&state.safe_mode)
+        .map_err(|_| mapping_safe_mode_changed())?;
     publication.map_err(|error| {
         CommandError::caused_by(
             error,

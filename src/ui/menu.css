@@ -32,7 +32,6 @@
 [data-k-level] .k-item.is-tip { height: auto; min-height: 30px; color: var(--menu-quiet); font-weight: 400; }
 [data-k-level] .k-item-ind { width: 18px; color: var(--menu-icon); transition: color var(--menu-theme-fade); }
 [data-k-level] .k-item-ind > svg { width: 18px; height: 18px; }
-[data-k-level] .k-item-ind .is-brand-mono { filter: var(--menu-brand-filter); }
 [data-k-level] .k-item-meta, [data-k-level] .k-kbd { color: var(--menu-quiet); font-weight: 400; }
 [data-k-level] .k-item-sub { width: 16px; height: 16px; color: var(--menu-chevron); transition: color var(--menu-theme-fade); }
 [data-k-level] .k-sep { flex: none; margin: 0 8px; background: var(--menu-border); }

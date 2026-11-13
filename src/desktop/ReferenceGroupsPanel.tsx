@@ -85,7 +85,8 @@ export function ReferenceGroupsPanel() {
         setLibraryNames(new Map(list.map((r) => [r.library.id, r.library.name])));
         setLibraryOptions(list);
       })
-      .catch(() => {});
+      // 读不出图库时卡片上的图库名都会写成“未打开的图库”，与参考组读不出一样提示。
+      .catch((e) => toast.error(errorText(e)));
   }, [toast]);
 
   useEffect(() => {
@@ -125,6 +126,7 @@ export function ReferenceGroupsPanel() {
           undone = true;
           restoreReferenceGroup(deleted).catch((e) => { toast.error(errorText(e)); });
         } },
+        // 忽略失败：删不掉的暂放内容由程序下次启动时清掉，界面上参考组已经删除。
         onClose: () => { if (!undone) void purgeDeletedReferenceGroup(g.id).catch(() => {}); },
       });
     } catch (e) {

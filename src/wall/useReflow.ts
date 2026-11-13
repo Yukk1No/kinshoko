@@ -168,7 +168,7 @@ export function useReflowAfterLayout({
         return old ? [{ node, old, next }] : [];
       });
       for (const { node, old, next } of targets) {
-        if (!next.width || !next.height || typeof node.animate !== "function") continue;
+        if (!next.width || !next.height) continue;
         // 没有移动、没有变大小的卡片不起动画（#109：读下一页时已有卡片的位置不变）。
         if (Math.abs(old.left - next.left) < 0.5 && Math.abs(old.top - next.top) < 0.5 && Math.abs(old.width - next.width) < 0.5 && Math.abs(old.height - next.height) < 0.5) continue;
         const own = flight && trayed!.flights.has(node.dataset.id!) ? flight : timing;
@@ -239,7 +239,6 @@ export function useWidthSync({ holdReflow, settle, slideMotion, scroller, layout
     };
     syncWidth.current = sync;
     sync();
-    if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(() => flushSync(sync));
     ro.observe(el);
     return () => ro.disconnect();

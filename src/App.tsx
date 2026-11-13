@@ -109,15 +109,17 @@ function MainWindow() {
   const showApproxSource = settingsView?.showApproxSource ?? false;
   const keepSelectionOnSafe = settingsView?.keepSelectionOnSafeMode ?? false;
   const tagDisplay: TagDisplay = settingsView?.tagDisplay ?? DEFAULT_TAG_DISPLAY;
-  /** 详情面板宽度先在界面上生效，再写进本设备设置；写不进时只是下次不记得。 */
+  /** 详情面板宽度先在界面上生效，再写进本设备设置。 */
   const changeInspectorWidth = useCallback((width: number) => {
     setInspectorWidthState(width);
+    // 忽略失败：只是下次不记得。
     void changeSetting({ kind: "inspectorWidth", width }).catch(() => {});
   }, []);
   /** 详情面板的开合同样先生效再写设置。 */
   const changeInspectorShown = useCallback((open: boolean) => {
     inspectorChosen.current = true;
     setInspectorShownState(open);
+    // 忽略失败：只是下次不记得。
     void changeSetting({ kind: "inspectorOpen", open }).catch(() => {});
   }, []);
   const { uiScalePercent, uiScaleWriting, acceptUiScale, chooseUiScale } = useUiScaleChoice(toast);

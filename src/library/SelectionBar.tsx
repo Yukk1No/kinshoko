@@ -63,7 +63,6 @@ export function SelectionBar({ libraryId, acrossLibraries, scope, ids, onClear, 
     if (!el) return;
     const measure = () => report.current.onWidth(el.offsetWidth, report.current.compact);
     measure();
-    if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();

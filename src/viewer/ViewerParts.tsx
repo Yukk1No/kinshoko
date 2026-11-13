@@ -29,6 +29,7 @@ export function useViewerBackground() {
   const choose = useCallback((next: Background) => {
     setBackground(next);
     rememberViewerBackground(next);
+    // 忽略失败：本机缓存已记下；写不进核心设置时只是下次启动不记得背景。
     void changeSetting({ kind: "viewerBackground", background: next }).catch(() => {});
   }, []);
   return [background, choose] as const;

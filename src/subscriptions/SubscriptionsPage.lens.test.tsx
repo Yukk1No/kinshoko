@@ -59,7 +59,6 @@ function HiddenViewer() {
 }
 
 it("截图时登记看得见的缩略图，钉出来的是图库里那张图（图库查看器藏在后面也一样）", async () => {
-  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
     return this.matches("img") ? new DOMRect(100, 120, 200, 300) : new DOMRect(0, 0, 1000, 800);
   });
