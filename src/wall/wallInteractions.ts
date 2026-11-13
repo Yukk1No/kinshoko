@@ -1,5 +1,5 @@
 // 图片墙上的选择、键盘、右键与拖出，以及 Ctrl+V 导入（#105）。
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import type { DragEvent, KeyboardEvent, MouseEvent, MutableRefObject, ReactNode } from "react";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
@@ -194,18 +194,15 @@ export function usePasteShortcut({ onPaste, viewerOpen, scroller }: {
   viewerOpen: boolean;
   scroller: MutableRefObject<HTMLDivElement | null>;
 }) {
-  const paste = useRef({ onPaste, viewerOpen });
-  paste.current = { onPaste, viewerOpen };
+  const pasteOnKey = useEffectEvent((e: globalThis.KeyboardEvent) => {
+    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== "v" || e.defaultPrevented) return;
+    const el = scroller.current;
+    if (!onPaste || !el || viewerOpen || modalOpen() || el.closest("[hidden], [inert]") || editable(e.target)) return;
+    e.preventDefault();
+    onPaste();
+  });
   useEffect(() => {
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== "v" || e.defaultPrevented) return;
-      const { onPaste, viewerOpen } = paste.current;
-      const el = scroller.current;
-      if (!onPaste || !el || viewerOpen || modalOpen() || el.closest("[hidden], [inert]") || editable(e.target)) return;
-      e.preventDefault();
-      onPaste();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [scroller]);
+    document.addEventListener("keydown", pasteOnKey);
+    return () => document.removeEventListener("keydown", pasteOnKey);
+  }, []);
 }
