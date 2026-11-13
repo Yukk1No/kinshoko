@@ -41,7 +41,7 @@ export function InspectorResizer({ width, onResize }: Props) {
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     e.preventDefault();
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = { x: e.clientX, width, pointer: e.pointerId, last: width };
   };
   const move = (e: PointerEvent<HTMLDivElement>) => {

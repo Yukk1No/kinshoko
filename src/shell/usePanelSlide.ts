@@ -14,7 +14,7 @@ export type PanelSlide = {
 /** 图片墙旁边的一个面板。`finalWidth` 是它这次开合的终点宽度；浮在墙上、不占墙的宽度时为 null。 */
 export type SlidingPanel = { element: HTMLElement | null; finalWidth: number | null };
 
-const widthTransition = (element: HTMLElement) => element.getAnimations?.().find((a) => (a as CSSTransition).transitionProperty === "width");
+const widthTransition = (element: HTMLElement) => element.getAnimations().find((a) => (a as CSSTransition).transitionProperty === "width");
 
 /**
  * 任一面板的宽度过渡进行中时给出 PanelSlide，全部结束后为 null。过渡一开始就知道终点，

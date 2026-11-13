@@ -3,6 +3,7 @@ import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
+import type { FakeAnimation } from "../test/platform";
 import { workspaceCard } from "../test/workspacePage";
 import { Wall } from "./Wall";
 
@@ -14,8 +15,6 @@ export const fx = {
   resolvers: [] as ((page: FxPage) => void)[],
   bookReads: 0,
   book: null as unknown as HTMLButtonElement,
-  reduce: false,
-  mediaListeners: [] as (() => void)[],
 };
 
 /** 在调用它的测试文件里装上 jsdom 排版替身、封印书与浏览应答。 */
@@ -23,8 +22,6 @@ export function installSealFx() {
   beforeEach(() => {
     fx.resolvers = [];
     fx.bookReads = 0;
-    fx.reduce = false;
-    fx.mediaListeners = [];
     localStorage.clear();
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
     Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
@@ -37,12 +34,6 @@ export function installSealFx() {
       if (this.classList.contains("seal-book")) { fx.bookReads++; return new DOMRect(8, 700, 40, 40); }
       return new DOMRect(0, 0, 1000, 800);
     });
-    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-    vi.stubGlobal("matchMedia", (query: string) => ({
-      matches: fx.reduce && query.includes("reduce"),
-      addEventListener: (_: string, f: () => void) => { fx.mediaListeners.push(f); },
-      removeEventListener: () => {},
-    }));
     fx.book = document.createElement("button");
     fx.book.className = "rail-btn seal-book";
     document.body.appendChild(fx.book);
@@ -71,6 +62,20 @@ export const answer = async (page = PAGE) => { await settle(); await act(async (
 export const node = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`)!;
 export const ghosts = () => document.querySelectorAll(".fx-ghost").length;
 export const frames = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
+
+/** 一次 animate() 调用：目标、关键帧、时间参数与共用的假动画。 */
+export type Started = { el: HTMLElement; id: string; keyframes: Keyframe[]; timing: KeyframeAnimationOptions; animation: FakeAnimation };
+/** 照常用共用的假动画，另外按顺序记下每次 animate()；afterEach 的 restoreAllMocks 撤掉记录。 */
+export function recordAnimations(): Started[] {
+  const animate = HTMLElement.prototype.animate;
+  const started: Started[] = [];
+  vi.spyOn(HTMLElement.prototype, "animate").mockImplementation(function (this: HTMLElement, keyframes, options) {
+    const animation = animate.call(this, keyframes, options);
+    started.push({ el: this, id: this.dataset.id!, keyframes: keyframes as Keyframe[], timing: options as KeyframeAnimationOptions, animation: animation as unknown as FakeAnimation });
+    return animation;
+  });
+  return started;
+}
 
 export async function wallWith(safeMode: boolean, page = PAGE) {
   const view = render(<Wall {...base} reloadKey={0} safeMode={safeMode} />);

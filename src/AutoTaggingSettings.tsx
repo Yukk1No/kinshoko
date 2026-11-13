@@ -117,12 +117,13 @@ export function AutoTaggingSettings({ hasLibrary, onShowUnfinished }: {
 
 /** 打标状态一行：状态文字与对应的操作（暂停、继续、下载、取消下载、查看与重试没有完成的图）；下载时行下方显示进度条。 */
 function TaggingStatusRow({ hasLibrary, status, onShowUnfinished }: { hasLibrary: boolean; status: TaggingStatus | null; onShowUnfinished?: () => void }) {
+  const toast = useToast();
   const row = (desc: ReactNode, action?: ReactNode, below?: ReactNode) =>
     <SettingsRow label={t("status")} icon={<Sparkles size={16} />} title={t("status")} meta={desc} below={below}>{action}</SettingsRow>;
   // 打标属于本设备，打开的图库读不到时其他图库也照常打：状态与操作照常显示，只有空闲时写还没有图库。
   if (!status) return row(hasLibrary ? t("loading") : t("noLibrary"));
   if (!hasLibrary && status.state === "idle") return row(t("noLibrary"));
-  const act = (f: () => Promise<void>) => () => void f().catch(() => {});
+  const act = (f: () => Promise<void>) => () => void f().catch((e) => toast.error(i18n.t("tagging:notice.actionFailed", { error: errorText(e) })));
   const button = (name: string, f: () => Promise<void>, primary = false) =>
     <button type="button" className={`k-btn is-sm${primary ? "" : " is-ghost"}`} onClick={act(f)}><span className="k-label">{name}</span></button>;
   const pause = button(t("pause"), taggingPause);

@@ -46,13 +46,14 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
   const [problem, setProblem] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [memory, setMemory] = useState(NOTHING_REMEMBERED);
-  // 记忆写不进时只是下次不记得，不打扰这次保存。
   const rememberImport = (importDestination: SaveDestination) => {
     setMemory((value) => ({ ...value, importDestination }));
+    // 忽略失败：写不进时只是下次不记得，不打扰这次保存。
     void rememberImportDestination(importDestination).catch(() => {});
   };
   const rememberParent = (newLibraryParent: string) => {
     setMemory((value) => ({ ...value, newLibraryParent }));
+    // 忽略失败：写不进时只是下次不记得，不打扰这次保存。
     void rememberNewLibraryParent(newLibraryParent).catch(() => {});
   };
   useEffect(() => {

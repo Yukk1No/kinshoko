@@ -2,7 +2,11 @@ import { thumbnailTier } from "./wall/thumbnailTier";
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { App } from "./App";
+import { resize as report } from "./test/platform";
 import { library, page, tags, showApproxSource, keepSelectionOnSafeMode, calls, setCalls, clean, backend, sent, importAction, expandLibrary, setInspectorOpen, wallPage } from "./App.fixtures";
+
+/** 宽度变了：工作区与图片墙各自的 ResizeObserver 报告一次。 */
+const reportResize = () => act(() => { for (const el of document.querySelectorAll(".app-body, .wall")) report(el); });
 
 describe("主窗口", () => {
   it("查找头部显示真实结果数，图片大小滑块改变布局，导入操作按需展开", async () => {
@@ -87,14 +91,7 @@ describe("主窗口", () => {
 
   it("侧栏开合时图片墙一开始就按终点宽度排好，过渡中与结束时不再重排，并保持阅读偏移", async () => {
     let available = 1000;
-    const observers = new Set<() => void>();
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => available });
-    vi.stubGlobal("ResizeObserver", class {
-      callback: () => void;
-      constructor(callback: () => void) { this.callback = callback; observers.add(callback); }
-      observe() {}
-      disconnect() { observers.delete(this.callback); }
-    });
     // 详情面板按新装的默认关着：这里只看侧栏。
     setInspectorOpen(false);
     backend(library);
@@ -109,7 +106,7 @@ describe("主窗口", () => {
     fireEvent.scroll(wall);
     const offset = parseFloat(card.style.top) - wall.scrollTop;
     const initial = parseFloat(card.style.width);
-    const resize = (next: number) => { available = next; act(() => observers.forEach((notify) => notify())); };
+    const resize = (next: number) => { available = next; reportResize(); };
     fireEvent.click(screen.getByRole("button", { name: "收起侧栏" }));
     act(() => { sidebar.dispatchEvent(new TransitionEvent("transitionrun", { propertyName: "width" })); });
     const settled = parseFloat(card.style.width);
@@ -124,14 +121,7 @@ describe("主窗口", () => {
 
   it("详情面板开合时图片墙一开始就按终点宽度排好，过渡中与结束时不再重排，并保持阅读偏移（#450）", async () => {
     let available = 1000;
-    const observers = new Set<() => void>();
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => available });
-    vi.stubGlobal("ResizeObserver", class {
-      callback: () => void;
-      constructor(callback: () => void) { this.callback = callback; observers.add(callback); }
-      observe() {}
-      disconnect() { observers.delete(this.callback); }
-    });
     vi.stubGlobal("innerWidth", 1600);
     setInspectorOpen(false);
     backend(library);
@@ -148,7 +138,7 @@ describe("主窗口", () => {
     fireEvent.scroll(wall);
     const offset = parseFloat(card.style.top) - wall.scrollTop;
     const initial = parseFloat(card.style.width);
-    const resize = (next: number) => { available = next; act(() => observers.forEach((notify) => notify())); };
+    const resize = (next: number) => { available = next; reportResize(); };
     fireEvent.click(screen.getByRole("button", { name: "显示详情" }));
     await waitFor(() => expect(inspector.getAttribute("data-collapsed")).toBe("false"));
     // 过渡开始之前，墙还是原来的布局。
@@ -166,14 +156,7 @@ describe("主窗口", () => {
 
   it("拖动详情面板边缘时图片墙不逐帧重排，松手后重排一次（#157）", async () => {
     let available = 1000;
-    const observers = new Set<() => void>();
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => available });
-    vi.stubGlobal("ResizeObserver", class {
-      callback: () => void;
-      constructor(callback: () => void) { this.callback = callback; observers.add(callback); }
-      observe() {}
-      disconnect() { observers.delete(this.callback); }
-    });
     vi.stubGlobal("innerWidth", 1600);
     backend(library);
     render(<App />);
@@ -187,7 +170,7 @@ describe("主窗口", () => {
     for (const x of [980, 940, 900]) {
       fireEvent.pointerMove(handle, { clientX: x, pointerId: 1 });
       available = 1000 - (1000 - x);
-      act(() => observers.forEach((resize) => resize()));
+      reportResize();
       expect(card.style.width).toBe(initial);
     }
     fireEvent.pointerUp(handle, { clientX: 900, pointerId: 1 });

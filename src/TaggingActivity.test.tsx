@@ -52,6 +52,14 @@ describe("缩放滑块左边的打标图标", () => {
     expect(onOpenSettings).not.toHaveBeenCalled();
   });
 
+  it("点击后命令失败时提示原因（#529）", async () => {
+    backend(running(128, 0, 88));
+    fake.on("tagging_pause", () => { throw { code: "message", message: "子进程没有回应" }; });
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: "暂停自动标签：还剩 88 张" }));
+    await waitFor(() => expect(toasts()).toContain("自动标签操作没有完成：子进程没有回应"));
+  });
+
   it("暂停时点击继续，标签留着暂停前还剩的张数", async () => {
     backend(running(10, 0, 88));
     mount();

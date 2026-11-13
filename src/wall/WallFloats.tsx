@@ -44,7 +44,6 @@ export function WallFloats({ bar, tagging, density }: {
       if (corner.current) setCornerRight(parseFloat(getComputedStyle(corner.current).right) || 0);
     };
     measure();
-    if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
     observer.observe(host);
     return () => observer.disconnect();

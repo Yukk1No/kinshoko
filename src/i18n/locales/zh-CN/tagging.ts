@@ -49,6 +49,8 @@ export default {
     unavailable: "自动标签不可用：{{reason}}",
     downloading: "正在下载自动标签模型",
     downloadFailed: "无法下载自动标签模型：{{error}}",
+    /** 暂停、继续、下载、取消下载、重试这些按钮的命令失败。 */
+    actionFailed: "自动标签操作没有完成：{{error}}",
     needsDownload: "需要下载自动标签模型（{{size}}）",
     resume: "继续下载",
     download: "下载",

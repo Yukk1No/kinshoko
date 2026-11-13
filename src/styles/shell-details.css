@@ -46,8 +46,6 @@
 
 .groupbar-empty { color: var(--ink-2); font-size: 12px; padding: 2px 0; }
 
-.library-tools-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-.library-tools-actions button { padding: 4px 8px; font-size: 12px; }
 
 .app-empty-workspace { display: flex; flex: 1; min-height: 0; }
 .empty-context { width: 248px; flex: none; overflow: auto; background: var(--surface); }
@@ -72,9 +70,6 @@
 .workspace-scope { padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
 .workspace-provider { min-width: 0; }
 
-.tag-group-origin { margin: 2px 8px 6px; color: var(--ink-2); font-size: 12px; overflow-wrap: anywhere; }
-.sidebar-tag-group-head { flex-wrap: wrap; }
-.sidebar-tag-group-head > .sidebar-item { flex: 1 1 100%; }
 .settings .sidebar-tag-groups { max-width: 680px; }
 
 /* #78 T08: adapt the accepted folder workspace's separate provider roots and path hints. */

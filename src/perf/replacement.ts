@@ -101,7 +101,7 @@ export function createReplacementProbe(wall: HTMLElement, now: () => number = ()
       if (interval) finish(interval, now());
     };
     // decode() 失败（地址被换掉、资源不可用）不算替换完成：区间保持未完成，之后按离开或结束时仍未完成计。
-    void (typeof img.decode === "function" ? img.decode().then(settle, () => {}) : settle());
+    void img.decode().then(settle, () => {});
   };
   const watchImage = (img: HTMLImageElement) => {
     if (watched.has(img)) return;
