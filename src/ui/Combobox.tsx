@@ -103,7 +103,7 @@ export function Combobox<T extends ComboboxOption>({
   // 高亮项滚进列表可见范围。
   // biome-ignore lint/correctness/useExhaustiveDependencies(optionId): 只在高亮项变了时滚动；optionId 每次渲染都是新函数（结果只取决于 useId）
   useEffect(() => {
-    if (current >= 0) document.getElementById(optionId(current))?.scrollIntoView?.({ block: "nearest" });
+    if (current >= 0) document.getElementById(optionId(current))?.scrollIntoView({ block: "nearest" });
   }, [current]);
 
   const showEmpty = !!empty && value.trim() !== "";

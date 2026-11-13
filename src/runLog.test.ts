@@ -1,5 +1,6 @@
 import { afterEach, expect, it } from "vitest";
-import { recordUncaughtErrors } from "./runLog";
+import { logFailure, recordUncaughtErrors } from "./runLog";
+import { CommandFailure } from "./ipc/commandError";
 import { fakeBackend } from "./test/backend";
 
 let stop: (() => void) | null = null;
@@ -39,4 +40,16 @@ it("出错循环时每次加载最多记 100 条", async () => {
   await Promise.resolve();
 
   expect(calls()).toHaveLength(100);
+});
+
+it("界面无从提示的失败记一条警告：命令失败只记错误代码（#529）", async () => {
+  const calls = backend();
+  logFailure("window control", new CommandFailure({ code: "pinClosed" }));
+  logFailure("listen", new Error("event plugin gone"));
+  await Promise.resolve();
+
+  expect(calls()).toEqual([
+    { level: "warn", message: "window control: pinClosed" },
+    { level: "warn", message: "listen: event plugin gone" },
+  ]);
 });

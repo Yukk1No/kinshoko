@@ -155,7 +155,7 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   measure.current = () => setFit(chipsThatFit(root.current));
   useLayoutEffect(() => measure.current());
   useLayoutEffect(() => {
-    if (typeof ResizeObserver === "undefined" || !root.current) return;
+    if (!root.current) return;
     const observer = new ResizeObserver(() => measure.current());
     observer.observe(root.current);
     return () => observer.disconnect();

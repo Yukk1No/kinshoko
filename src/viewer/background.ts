@@ -4,9 +4,9 @@ export function cachedViewerBackground(): ViewerBackground {
   try {
     const saved = localStorage.getItem("kinshoko.viewer.background");
     if (saved === "dark" || saved === "mid" || saved === "light" || saved === "checker") return saved;
-  } catch { /* Use the same default when local storage is unavailable. */ }
+  } catch { /* 忽略失败：本机存储不可用时用同一个默认值。 */ }
   return "mid";
 }
 export function rememberViewerBackground(background: ViewerBackground) {
-  try { localStorage.setItem("kinshoko.viewer.background",background); } catch { /* The core still persists the choice. */ }
+  try { localStorage.setItem("kinshoko.viewer.background",background); } catch { /* 忽略失败：核心设置仍会记下这次的选择。 */ }
 }

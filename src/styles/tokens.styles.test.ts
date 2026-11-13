@@ -16,9 +16,16 @@ function hexLiterals(css: string): string[] {
 describe("颜色令牌", () => {
   it("令牌文件定义了 v3 的日夜主色", () => {
     const tokens = sheets[TOKEN_FILE];
-    for (const value of ["--bg: #f7f3ea", "--ink: #2b2747", "--accent: #e0768f", "--bg: #1e1c2c", "--seal-acc: #c85672"]) {
+    for (const value of ["--bg: light-dark(#f7f3ea, #1e1c2c)", "--ink: light-dark(#2b2747, #f4ecdc)", "--accent: light-dark(#e0768f, #e3b34f)", "--seal-acc: #c85672"]) {
       expect(tokens).toContain(value);
     }
+  });
+
+  it("夜间值只写一遍：主题规则只切 color-scheme", () => {
+    const tokens = sheets[TOKEN_FILE];
+    expect(tokens).toContain(':root[data-theme="light"] { color-scheme: light; }');
+    expect(tokens).toContain(':root[data-theme="dark"], .k-dock.is-dark { color-scheme: dark; }');
+    expect(tokens.match(/#1e1c2c/g)).toHaveLength(1);
   });
 
   it("令牌文件之外的样式表不写十六进制颜色", () => {

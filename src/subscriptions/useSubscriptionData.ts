@@ -52,6 +52,7 @@ export function useSubscriptionData(status: SubscriptionStatus, safe: boolean, r
       if (arrived.length > 0) setFresh((seen) => new Set([...seen, ...arrived.map(imageKey)]));
       // 入口上的数按来源的标记算，图库里改成成人的图在这里读不到：只看入口上的数，读到的为空也标为已看。
       // 标完后端推送状态，数为零就不再标。
+      // 忽略失败：没标上时入口上的数还在，下次读到时再标。
       if (arrived.length > 0 || unseen) void subscriptionMarkSeen().catch(() => {});
     }, (e) => { if (alive) reportError(e); });
     return () => { alive = false; };

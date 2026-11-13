@@ -37,6 +37,7 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
       if (generation.current === request) setChecking(false);
     }
   }, []);
+  // 忽略失败：失败时 check 已把原因放进 error，设置 › 诊断里显示。
   useEffect(() => { void check().catch(() => {}); return () => { generation.current += 1; }; }, [check]);
   return <RuntimeContext value={{ status, error, checking, check }}>{children}</RuntimeContext>;
 }
@@ -83,6 +84,7 @@ export function RuntimeDetails() {
         <button type="button" className="k-btn is-sm" onClick={() => void openRuntimeUpdate().catch((e) => setError(errorText(e)))}><span className="k-label">{t("open")}</span></button>
       </SettingsRow>}
       <SettingsRow icon={<RefreshCw size={16} />} title={t("recheck")} hint={t("recheckHint")}>
+        {/* 忽略失败：失败时 check 已把原因放进 error，显示在这一组下面。 */}
         <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch(() => {})}><span className="k-label">{t("check")}</span></button>
       </SettingsRow>
     </SettingsGroup>

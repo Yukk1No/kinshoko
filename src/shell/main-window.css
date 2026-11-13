@@ -203,7 +203,6 @@
   box-sizing: border-box; width: max-content; white-space: nowrap; line-height: 1; border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--ink); font-size: 12px; font-weight: 600; box-shadow: var(--shadow-raise); }
 .wall-canvas > .card-sources > svg { flex: none; }
 .wall-canvas > .card-sources:hover { background: var(--surface); }
-.wall-canvas > .card-sources.is-single { width: 22px; padding: 0; justify-content: center; }
 .card[aria-selected="true"] { outline: 0; box-shadow: 0 0 0 2px var(--wall), 0 0 0 4px var(--accent); }
 
 /* ---- Floating multi-select bar ---- */

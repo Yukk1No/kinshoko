@@ -15,7 +15,7 @@ export function DialogHeight({ children, className = "" }: { children: ReactNode
   useLayoutEffect(() => {
     const outer = outerRef.current;
     const inner = innerRef.current;
-    if (!outer || !inner || typeof ResizeObserver === "undefined") return;
+    if (!outer || !inner) return;
     let natural = inner.offsetHeight;
     let settled = outer.offsetHeight;
     const moving = () => outer.hasAttribute("data-moving");

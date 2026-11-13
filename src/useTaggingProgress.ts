@@ -59,7 +59,7 @@ function writeIgnored(count: number) {
   try {
     localStorage.setItem(IGNORED_KEY, String(count));
   } catch {
-    // 本机存储不可用时只是记不住，下次启动再显示。
+    // 忽略失败：本机存储不可用时只是记不住，下次启动再显示。
   }
 }
 

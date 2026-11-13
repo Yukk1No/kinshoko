@@ -33,7 +33,6 @@ beforeEach(() => {
   adultPages = new Set();
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
-  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   mockConvertFileSrc("windows");
   mockIPC((cmd, args) => {
     if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
@@ -233,19 +232,13 @@ it("焦点在托盘里时按 Esc 关托盘，焦点回到这一摞，回车还�
 
 it("关托盘时飞回的影子也按安全模式遮：成人内容的页不露图", async () => {
   adultPages = new Set(["p1"]);
-  const flight = { cancel() {}, onfinish: null, oncancel: null };
-  HTMLElement.prototype.animate = vi.fn(() => flight) as never;
-  try {
-    render(<Harness safeMode />);
-    await screen.findAllByRole("option");
-    fireEvent.click(count());
-    fireEvent.keyDown(card("p1")!, { key: "Escape" });
-    const ghosts = [...document.querySelectorAll<HTMLElement>(".tray-ghost")];
-    expect(ghosts.map((ghost) => ghost.dataset.veiled)).toEqual(["false", "true"]);
-    expect(ghosts[1].style.backgroundImage).toBe("");
-  } finally {
-    delete (HTMLElement.prototype as { animate?: unknown }).animate;
-  }
+  render(<Harness safeMode />);
+  await screen.findAllByRole("option");
+  fireEvent.click(count());
+  fireEvent.keyDown(card("p1")!, { key: "Escape" });
+  const ghosts = [...document.querySelectorAll<HTMLElement>(".tray-ghost")];
+  expect(ghosts.map((ghost) => ghost.dataset.veiled)).toEqual(["false", "true"]);
+  expect(ghosts[1].style.backgroundImage).toBe("");
 });
 
 it("焦点在页角的勾上时，Esc 与 Ctrl+A 照常落到托盘：先取消页的选择，Ctrl+A 只选这一摞", async () => {

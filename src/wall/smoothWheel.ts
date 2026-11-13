@@ -55,7 +55,7 @@ export function createSmoothWheel(el: HTMLElement, o: SmoothWheelOptions) {
   const now = o.now ?? (() => performance.now());
   const raf = o.raf ?? ((cb) => requestAnimationFrame(cb));
   const caf = o.caf ?? ((id) => cancelAnimationFrame(id));
-  const reduced = o.reducedMotion ?? (() => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
+  const reduced = o.reducedMotion ?? (() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   let spring: Spring | null = null;
   /** 上一帧写入的位置；读回不一致说明别处滚动了。 */
   let written = 0;

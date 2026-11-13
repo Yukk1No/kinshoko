@@ -11,6 +11,7 @@ import { checkUpdate, installUpdate, onUpdateChannelChanged, onUpdateProgress, u
 import { CommandFailure, describeCommandError, errorText } from "./ipc/commandError";
 import { i18n } from "./i18n";
 import { formatBytes } from "./i18n/format";
+import { logFailure } from "./runLog";
 
 /** 下载进度的文字，例如“正在下载 3.2 MB／12 MB”。 */
 function progressText(p: UpdateProgress | null): string {
@@ -30,6 +31,7 @@ function useInstall() {
     if (!installing) return;
     const unlisten = onUpdateProgress(setProgress);
     return () => {
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
       void unlisten.then((f) => f()).catch(() => {});
     };
   }, [installing]);
@@ -154,6 +156,7 @@ export function UpdateNotice() {
     let content: (() => Omit<ToastOptions, "onClose">) | null = null;
     let progress: Promise<() => void> | null = null;
     const stopProgress = () => {
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
       void progress?.then((f) => f()).catch(() => {});
       progress = null;
     };
@@ -188,7 +191,8 @@ export function UpdateNotice() {
       const id: string = toast.show({ ...available(), onClose: () => { if (shown === id) shown = null; } });
       shown = id;
       content = available;
-    })().catch(() => {});
+    // 自动检查不是画师点的，失败不打扰；设置 › 更新里点检查会显示原因。记一条供排查。
+    })().catch((e) => logFailure("automatic update check", e));
     const relabel = () => { if (shown !== null && content) toast.update(shown, content()); };
     i18n.on("languageChanged", relabel);
     const close = () => {
@@ -206,6 +210,7 @@ export function UpdateNotice() {
       close();
       stopProgress();
       i18n.off("languageChanged", relabel);
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
       void unlisten.then((f) => f()).catch(() => {});
     };
   }, [toast]);

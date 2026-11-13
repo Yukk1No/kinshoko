@@ -138,7 +138,6 @@ export function useTrayMotion({
       img.alt = "";
       ghost.appendChild(img);
       host.appendChild(ghost);
-      if (typeof ghost.animate !== "function") { ghost.remove(); continue; }
       const flight = ghost.animate([
         { transform: `translate(${from.x - to.x}px, ${from.y - to.y}px) scale(${from.w / to.w}, ${from.h / to.h})` },
         { transform: "none" },

@@ -30,6 +30,8 @@ pub use portable::{
 mod source_actions;
 pub use save_destination::{with_destination, with_destination_published};
 mod access;
+mod lens;
+use lens::{Hold, with_lens};
 mod workspace;
 pub use access::*;
 mod import_commands;

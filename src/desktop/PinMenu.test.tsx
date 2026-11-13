@@ -209,6 +209,16 @@ describe("菜单窗口", () => {
     }
   });
 
+  it("命令本身被拒时（#529）同样在钉图上说一句", async () => {
+    render(<DesktopMenuView />);
+    await settle();
+    ipc.action.mockRejectedValueOnce({ code: "message", message: "做的线程出错" });
+    act(() => ipc.next!(open(8)));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /水平翻转/ }));
+    await settle();
+    expect(ipc.notice).toHaveBeenCalledWith("P1", "做的线程出错");
+  });
+
   it("Esc、点外部或窗口失去焦点都关闭菜单，同一次只关一回", async () => {
     render(<DesktopMenuView />);
     await settle();

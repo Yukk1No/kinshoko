@@ -57,6 +57,7 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
       generation.current++;
       setWorkspace(null); setError(null); setBusy(false); setEditing(null);
     });
+    // 忽略失败：收尾时取消监听；之后的事件不再处理。
     return () => { alive = false; generation.current++; void unlisten.then((stop) => stop()).catch(() => {}); };
   }, []);
   const language = lang.trim();

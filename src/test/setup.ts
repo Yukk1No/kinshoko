@@ -4,6 +4,7 @@ import { clearMocks } from "@tauri-apps/api/mocks";
 import { afterEach, vi } from "vitest";
 // 组件按界面语言取文案（#353）：单独渲染组件的测试也要先初始化 i18n，默认简体中文。
 import "../i18n/instance";
+import { resetPlatform } from "./platform";
 import { ToastProvider } from "../ui/Toast";
 
 // 窗口里的组件都在 ToastProvider 之内，单独渲染时也一样（#433）。
@@ -23,9 +24,11 @@ vi.mock("@testing-library/react", async (original) => {
 // 跳过这份副本，否则两份都在：findByText 只有赶在第二份出现前查到才通过，CI 上时序一变就失败。
 configure({ asyncUtilTimeout: 5000, defaultIgnore: 'script, style, [role="alert"][aria-atomic="true"] > div' });
 
-// 每个用例之后：卸载界面，等卸载时异步取消的事件订阅完成，再撤掉 Tauri 的模拟（#520）。
+// 每个用例之后：卸载界面，等卸载时异步取消的事件订阅完成，再撤掉 Tauri 的模拟（#520），
+// 最后让补上的浏览器接口回到初始状态（#537）。
 afterEach(async () => {
   cleanup();
   await new Promise((resolve) => setTimeout(resolve, 0));
   clearMocks();
+  resetPlatform();
 });

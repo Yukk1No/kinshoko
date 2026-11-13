@@ -31,13 +31,13 @@ it("过渡开始时给出墙宽变化量（面板现在的宽度减终点）与�
 it("能读到面板的 CSS 过渡时，节奏与起点取自它", () => {
   panelAt(0);
   const transition = { transitionProperty: "width", startTime: 500, effect: { getTiming: () => ({ duration: 300, easing: "linear" }) } };
-  (HTMLElement.prototype as { getAnimations?: () => unknown[] }).getAnimations = () => [transition];
+  const animations = vi.spyOn(Element.prototype, "getAnimations").mockReturnValue([transition as unknown as Animation]);
   try {
     const { container } = render(<Panel final={256} />);
     fire(container.querySelector("aside")!, "transitionrun");
     expect(seen).toEqual({ by: -256, duration: 300, easing: "linear", startTime: 500 });
   } finally {
-    delete (HTMLElement.prototype as { getAnimations?: unknown }).getAnimations;
+    animations.mockRestore();
   }
 });
 
@@ -65,8 +65,7 @@ it("中途反向时取消先到（新过渡已存在）：slide 不断，直到�
   rect.mockReturnValue(new DOMRect(0, 0, 100, 800));
   rerender(<Panel final={256} />);
   const transition = { transitionProperty: "width", startTime: null, effect: { getTiming: () => ({ duration: 120, easing: "linear" }) } };
-  const animations = vi.fn(() => [transition]);
-  (HTMLElement.prototype as { getAnimations?: () => unknown[] }).getAnimations = animations;
+  const animations = vi.spyOn(Element.prototype, "getAnimations").mockReturnValue([transition as unknown as Animation]);
   try {
     fire(panel, "transitioncancel");
     expect(seen).toBe(first);
@@ -76,7 +75,7 @@ it("中途反向时取消先到（新过渡已存在）：slide 不断，直到�
     fire(panel, "transitionend");
     expect(seen).toBeNull();
   } finally {
-    delete (HTMLElement.prototype as { getAnimations?: unknown }).getAnimations;
+    animations.mockRestore();
   }
 });
 

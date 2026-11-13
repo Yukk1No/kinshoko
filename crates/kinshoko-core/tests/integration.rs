@@ -143,6 +143,8 @@ mod reference_pin;
 mod run_log;
 #[path = "safe_mode.rs"]
 mod safe_mode;
+#[path = "safe_mode_lens.rs"]
+mod safe_mode_lens;
 #[path = "safe_mode_scope.rs"]
 mod safe_mode_scope;
 #[path = "safe_mode_scope_workspace.rs"]
