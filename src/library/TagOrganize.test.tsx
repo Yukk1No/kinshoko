@@ -19,7 +19,7 @@ describe("单张图的标签与人工标签决定", () => {
 
     fireEvent.click(within(tip).getByRole("button", { name: "否决“微笑”" }));
     await waitFor(() =>
-      expect(sent("plugin:library|edit_tags")).toEqual([
+      expect(sent("edit_tags")).toEqual([
         { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "reject", tag: { kind: "id", id: "T-smile" } }] },
       ]),
     );
@@ -29,7 +29,7 @@ describe("单张图的标签与人工标签决定", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "撤销否决“微笑”" }));
     await waitFor(() => expect(tagList().textContent).toContain("微笑"));
-    expect(sent("plugin:library|edit_tags").at(-1)).toEqual({
+    expect(sent("edit_tags").at(-1)).toEqual({
       libraryId: "L1",
       imageIds: ["a"],
       edits: [{ kind: "clear", tag: { kind: "id", id: "T-smile" } }],
@@ -47,7 +47,7 @@ describe("单张图的标签与人工标签决定", () => {
     // 已有“作者：某某”，第一行是它；同名的一般标签要选新建项（类别默认一般）。
     await addTag("某某", { create: true });
     await waitFor(() => expect(within(tagList()).getAllByText(/某某/)).toHaveLength(2));
-    expect(sent("plugin:library|edit_tags")).toEqual([
+    expect(sent("edit_tags")).toEqual([
       { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "add", tag: { kind: "named", namespace: "artist", name: "某某", lang: "zh-CN" } }] },
       { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: "某某", lang: "zh-CN" } }] },
     ]);
@@ -66,7 +66,7 @@ describe("单张图的标签与人工标签决定", () => {
     await waitFor(() =>
       expect(within(tagList()).getByText("蓝发").closest("li")!.className).toContain("is-manual"),
     );
-    expect(sent("plugin:library|edit_tags")).toEqual([
+    expect(sent("edit_tags")).toEqual([
       { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "add", tag: { kind: "id", id: "T-blue" } }] },
     ]);
   });
@@ -83,7 +83,7 @@ describe("批量标签决定", () => {
 
     await addTag("侧脸");
     await waitFor(() =>
-      expect(sent("plugin:library|edit_tags")).toEqual([
+      expect(sent("edit_tags")).toEqual([
         {
           libraryId: "L1",
           imageIds: ["a", "b"],
@@ -94,8 +94,8 @@ describe("批量标签决定", () => {
     expect(fake.effective("b").size).toBe(1);
 
     await addTag("微笑", { reject: true });
-    await waitFor(() => expect(sent("plugin:library|edit_tags")).toHaveLength(2));
-    expect(sent("plugin:library|edit_tags")[1]).toMatchObject({ imageIds: ["a", "b"], edits: [{ kind: "reject" }] });
+    await waitFor(() => expect(sent("edit_tags")).toHaveLength(2));
+    expect(sent("edit_tags")[1]).toMatchObject({ imageIds: ["a", "b"], edits: [{ kind: "reject" }] });
     expect(fake.effective("a").has("T-smile")).toBe(false);
   });
 });
@@ -110,7 +110,7 @@ describe("标签别名", () => {
     fireEvent.change(within(dialog).getByRole("textbox", { name: "新别名" }), { target: { value: "蓝头发" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "添加别名" }));
     await waitFor(() =>
-      expect(sent("plugin:library|add_tag_alias")).toEqual([
+      expect(sent("add_tag_alias")).toEqual([
         { libraryId: "L1", tagId: "T-blue", alias: { name: "蓝头发", lang: "zh-CN" } },
       ]),
     );
@@ -124,7 +124,7 @@ describe("标签别名", () => {
 
     fireEvent.click(within(dialog).getByRole("button", { name: "去掉别名“蓝头发”" }));
     await waitFor(() => expect(within(dialog).queryByText("蓝头发")).toBeNull());
-    expect(sent("plugin:library|remove_tag_alias")).toEqual([{ libraryId: "L1", tagId: "T-blue", alias: "蓝头发" }]);
+    expect(sent("remove_tag_alias")).toEqual([{ libraryId: "L1", tagId: "T-blue", alias: "蓝头发" }]);
   });
 
   it("添加标签时输入别名，落到原来的标签上", async () => {

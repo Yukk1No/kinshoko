@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
 import { library, page, clean, backend, sent, selectionPanel, selectionBar, expandLibrary, wallPage } from "./App.fixtures";
+import type { Args } from "./test/backend";
 
 describe("整理", () => {
   const card = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
@@ -20,14 +21,14 @@ describe("整理", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "发型（0 张）" }));
     await waitFor(() =>
-      expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({
+      expect(sent("workspace_browse").at(-1)).toMatchObject({
         query: { scope: { scope: { kind: "folderTree", id: "F2" } } },
       }),
     );
     // 选中了这个图库的文件夹：回收站是它的。
     fireEvent.click(screen.getByRole("button", { name: "回收站（工作参考，1 张）" }));
     await waitFor(() =>
-      expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({
+      expect(sent("workspace_browse").at(-1)).toMatchObject({
         query: { scope: { scope: { kind: "trash" } } },
       }),
     );
@@ -44,7 +45,7 @@ describe("整理", () => {
     fireEvent.change(input, { target: { value: "姿势" } });
     fireEvent.keyDown(input, { key: "Enter" });
     await waitFor(() =>
-      expect(sent("plugin:library|create_folder")).toEqual([{ libraryId: "L1", name: "姿势", parent: "F1" }]),
+      expect(sent("create_folder")).toEqual([{ libraryId: "L1", name: "姿势", parent: "F1" }]),
     );
 
     fireEvent.doubleClick(screen.getByRole("button", { name: "发型（0 张）" }));
@@ -52,7 +53,7 @@ describe("整理", () => {
     fireEvent.change(rename, { target: { value: "发型与刘海" } });
     fireEvent.keyDown(rename, { key: "Enter" });
     await waitFor(() =>
-      expect(sent("plugin:library|rename_folder")).toEqual([{ libraryId: "L1", folderId: "F2", name: "发型与刘海" }]),
+      expect(sent("rename_folder")).toEqual([{ libraryId: "L1", folderId: "F2", name: "发型与刘海" }]),
     );
   });
 
@@ -70,14 +71,14 @@ describe("整理", () => {
     fireEvent.click(put);
     fireEvent.click(await screen.findByRole("menuitem", { name: /发型/ }));
     await waitFor(() =>
-      expect(sent("plugin:library|edit")).toEqual([
+      expect(sent("edit")).toEqual([
         { libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "addToFolder", folderId: "F2" }] },
       ]),
     );
 
     fireEvent.click(screen.getByRole("button", { name: "移到回收站，Del" }));
     await waitFor(() =>
-      expect(sent("plugin:library|edit").at(-1)).toEqual({ libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "delete" }] }),
+      expect(sent("edit").at(-1)).toEqual({ libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "delete" }] }),
     );
     await waitFor(() => expect(selectionPanel()).toBeNull());
     await waitFor(() => expect(selectionBar()).toBeNull());
@@ -90,7 +91,7 @@ describe("整理", () => {
     fireEvent.contextMenu(card("a"));
     fireEvent.click(await screen.findByRole("menuitem", { name: "恢复" }));
     await waitFor(() =>
-      expect(sent("plugin:library|workspace_edit_sources").at(-1)).toMatchObject({ targets: [{ imageId: "a" }], edits: [{ kind: "restore" }] }),
+      expect(sent("workspace_edit_sources").at(-1)).toMatchObject({ targets: [{ imageId: "a" }], edits: [{ kind: "restore" }] }),
     );
   });
 
@@ -126,14 +127,13 @@ describe("整理", () => {
 
   it("在窗口打开时以外的图库里多选，详情面板照样批量整理，请求带上那个图库（ADR-0008，#113）", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
-    backend(library, clean, (cmd) => {
-      if (cmd === "plugin:library|registered_libraries") return [library, other].map((library) => ({ library, unavailable: null }));
-      return undefined;
+    backend(library, clean, {
+      registered_libraries: () => [library, other].map((library) => ({ library, unavailable: null })),
     });
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.click(await screen.findByRole("button", { name: "私人收藏（2 张）" }));
-    await waitFor(() => expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } }));
+    await waitFor(() => expect(sent("workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } }));
     await waitFor(() => expect(card("a")).toBeTruthy());
     fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(card("b"), { ctrlKey: true });
@@ -144,7 +144,7 @@ describe("整理", () => {
     fireEvent.click(put);
     fireEvent.click(await screen.findByRole("menuitem", { name: /发型/ }));
     await waitFor(() =>
-      expect(sent("plugin:library|edit")).toEqual([
+      expect(sent("edit")).toEqual([
         { libraryId: "L2", ids: ["a", "b"], edits: [{ kind: "addToFolder", folderId: "F2" }] },
       ]),
     );
@@ -152,26 +152,25 @@ describe("整理", () => {
 
   it("在窗口打开时以外的图库里只选一张，详情面板与窗口打开的图库相同，不走来源整理（#422）", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
-    backend(library, clean, (cmd) => {
-      if (cmd === "plugin:library|registered_libraries") return [library, other].map((library) => ({ library, unavailable: null }));
-      return undefined;
+    backend(library, clean, {
+      registered_libraries: () => [library, other].map((library) => ({ library, unavailable: null })),
     });
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.click(await screen.findByRole("button", { name: "私人收藏（2 张）" }));
-    await waitFor(() => expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } }));
+    await waitFor(() => expect(sent("workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } }));
     await waitFor(() => expect(card("a")).toBeTruthy());
     fireEvent.keyDown(card("a"), { key: " " });
 
-    await waitFor(() => expect(sent("plugin:library|image").at(-1)).toEqual({ libraryId: "L2", imageId: "a" }));
+    await waitFor(() => expect(sent("image").at(-1)).toEqual({ libraryId: "L2", imageId: "a" }));
     await waitFor(() => expect(selectionPanel()).toBeTruthy());
   });
 
   it("回收站里永久删除：先列出受影响的参考组，过期时重新预览后再确认", async () => {
     let previews = 0;
     let stale = true;
-    backend(library, clean, (cmd, args) => {
-      if (cmd === "plugin:library|preview_permanent_delete") {
+    backend(library, clean, {
+      preview_permanent_delete: (args: Args) => {
         previews += 1;
         const { ids } = args as { ids: string[] };
         return {
@@ -179,15 +178,14 @@ describe("整理", () => {
           groups: previews === 1 ? [] : [{ groupId: "G1", name: "手的参考", imageIds: ids }],
           token: `T${previews}`,
         };
-      }
-      if (cmd === "plugin:library|permanent_delete") {
+      },
+      permanent_delete: () => {
         if (stale) {
           stale = false;
           return Promise.reject({ code: "deletePreviewStale" });
         }
         return null;
-      }
-      return undefined;
+      },
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -213,7 +211,7 @@ describe("整理", () => {
     expect(screen.getByText(/刚有变化/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
     await waitFor(() =>
-      expect(sent("plugin:library|permanent_delete")).toMatchObject([
+      expect(sent("permanent_delete")).toMatchObject([
         { libraryId: "L1", ids: ["a"], token: "T1" },
         { libraryId: "L1", ids: ["a"], token: "T2" },
       ]),
@@ -222,10 +220,9 @@ describe("整理", () => {
   });
 
   it("收起详情面板后，永久删除的确认仍是可见、可操作的提醒对话框", async () => {
-    backend(library, clean, (cmd, args) => {
-      if (cmd === "plugin:library|preview_permanent_delete") return { imageIds: (args as { ids: string[] }).ids, groups: [], token: "T1" };
-      if (cmd === "plugin:library|permanent_delete") return null;
-      return undefined;
+    backend(library, clean, {
+      preview_permanent_delete: (args: Args) => ({ imageIds: (args as { ids: string[] }).ids, groups: [], token: "T1" }),
+      permanent_delete: null,
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -244,7 +241,7 @@ describe("整理", () => {
     expect(confirm.className).toContain("k-btn");
     expect(confirm.className).toContain("is-danger");
     fireEvent.click(confirm);
-    await waitFor(() => expect(sent("plugin:library|permanent_delete")).toMatchObject([{ libraryId: "L1", ids: ["a"], token: "T1" }]));
+    await waitFor(() => expect(sent("permanent_delete")).toMatchObject([{ libraryId: "L1", ids: ["a"], token: "T1" }]));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
   });
 
@@ -258,7 +255,7 @@ describe("整理", () => {
     fireEvent.change(screen.getByLabelText("备注"), { target: { value: "看左手" } });
     fireEvent.click(screen.getByRole("button", { name: "保存备注" }));
     await waitFor(() =>
-      expect(sent("plugin:library|edit").at(-1)).toEqual({
+      expect(sent("edit").at(-1)).toEqual({
         libraryId: "L1",
         ids: ["a"],
         edits: [{ kind: "setNote", text: "看左手" }],
@@ -268,7 +265,7 @@ describe("整理", () => {
     await waitFor(() => expect((revert as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(revert);
     await waitFor(() =>
-      expect(sent("plugin:library|edit").at(-1)).toEqual({ libraryId: "L1", ids: ["a"], edits: [{ kind: "revertNote" }] }),
+      expect(sent("edit").at(-1)).toEqual({ libraryId: "L1", ids: ["a"], edits: [{ kind: "revertNote" }] }),
     );
   });
 });
@@ -291,10 +288,10 @@ describe("聚合来源操作的工作区通知", () => {
     await screen.findAllByRole("img");
     fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
     expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
-    const browses = sent("plugin:library|workspace_browse").length;
+    const browses = sent("workspace_browse").length;
     await act(() => emit("workspace-changed", { revision: "after-tag-edit", libraries: [{ library, unavailable: null }] }));
     // 图片墙按新修订重读之后，选择仍在，详情面板仍打开。
-    await waitFor(() => expect(sent("plugin:library|workspace_browse").length).toBeGreaterThan(browses));
+    await waitFor(() => expect(sent("workspace_browse").length).toBeGreaterThan(browses));
     await waitFor(() => expect(document.querySelector('[data-id="a"]')?.getAttribute("aria-selected")).toBe("true"));
     expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
     expect(screen.getByLabelText("详情", { selector: "aside" }).getAttribute("data-collapsed")).toBe("false");
@@ -302,7 +299,7 @@ describe("聚合来源操作的工作区通知", () => {
 
   it("新修订里已不存在的选中图（删除或移出当前范围）从选择中去掉", async () => {
     let gone = false;
-    backend(library, clean, (cmd) => cmd === "plugin:library|workspace_browse" && gone ? wallPage({ ...page, cards: page.cards.filter((c) => c.id !== "a"), total: 1 }) : undefined);
+    backend(library, clean, { workspace_browse: () => gone ? wallPage({ ...page, cards: page.cards.filter((c) => c.id !== "a"), total: 1 }) : undefined });
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });
@@ -317,7 +314,7 @@ describe("聚合来源操作的工作区通知", () => {
 
   it("唯一的选中图在新修订里不存在时清空选择，详情面板随之收起", async () => {
     let gone = false;
-    backend(library, clean, (cmd) => cmd === "plugin:library|workspace_browse" && gone ? wallPage({ ...page, cards: page.cards.filter((c) => c.id !== "a"), total: 1 }) : undefined);
+    backend(library, clean, { workspace_browse: () => gone ? wallPage({ ...page, cards: page.cards.filter((c) => c.id !== "a"), total: 1 }) : undefined });
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.keyDown(document.querySelector<HTMLElement>('[data-id="a"]')!, { key: " " });

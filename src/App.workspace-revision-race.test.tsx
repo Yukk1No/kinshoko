@@ -4,6 +4,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
+import { appStartup } from "./App.fixtures";
 import { fakeBackend, type Args } from "./test/backend";
 
 const EXPIRED: unknown = { code: "cursorExpired" };
@@ -41,7 +42,7 @@ function workspace() {
     }),
     app_info: () => ({ productName: "Kinshoko", version: "1" }),
     // 启动时取走留给主窗口的收集请求：没有。
-    take_collection_request: () => null,
+    ...appStartup,
   };
   /** 设了 `failing` 的那条命令，接下来 `failures` 次按资料库拒绝修订已变的读取那样被拒绝。 */
   const failable = (command: string, reply: () => unknown) => (_: Args) => {

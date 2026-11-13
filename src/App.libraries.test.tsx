@@ -6,9 +6,8 @@ import { library, clean, backend, sent, selectionPanel, push, importAction, libr
 describe("主窗口", () => {
   it("打开另一个图库不动选择和进行中的导入（ADR-0008）", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
-    backend(library, clean, (cmd) => {
-      if (cmd === "plugin:library|registered_libraries") return [library, other].map((library) => ({ library, unavailable: null }));
-      return undefined;
+    backend(library, clean, {
+      registered_libraries: () => [library, other].map((library) => ({ library, unavailable: null })),
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -31,7 +30,7 @@ describe("主窗口", () => {
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
     fireEvent.click(importAction("导入文件夹…"));
     await confirmImport();
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(1));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 2 } });
     const finish = () => push({
       kind: "taskFinished",
@@ -61,7 +60,7 @@ describe("主窗口", () => {
     expect(screen.getByText("D:\\参考\\坏.png")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
     await confirmImport();
-    await waitFor(() => expect(sent("plugin:library|start_import")).toEqual([
+    await waitFor(() => expect(sent("start_import")).toEqual([
       { libraryId: "L1", source: { paths: ["D:\\参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
       { libraryId: "L1", source: { paths: ["D:\\参考\\坏.png"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
     ]));
@@ -71,14 +70,14 @@ describe("主窗口", () => {
     ["是同一个库", { kind: "moved", sourceId: "S1" }],
     ["是另一个库", { kind: "separate" }],
   ])("Eagle 资料库疑似搬家时先问画师（%s），确认后再迁入", async (button, choice) => {
-    backend(library);
+    backend(library, clean, { confirm_eagle_location: null });
     render(<App />);
     await screen.findAllByRole("img");
 
     window.__KINSHOKO_TEST_PICKS__ = ["E:\\新\\主库.library"];
     fireEvent.click(importAction("导入文件夹…"));
     await confirmImport();
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(1));
     await push({
       kind: "taskFinished",
       libraryId: "L1",
@@ -95,11 +94,11 @@ describe("主窗口", () => {
     expect(within(prompt).getByText(/100% 的图已经从另一个位置导入过/)).toBeTruthy();
     fireEvent.click(within(prompt).getByRole("button", { name: button }));
     fireEvent.click(await screen.findByRole("button", { name: "开始导入" }));
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(2));
-    expect(sent("plugin:library|confirm_eagle_location")).toEqual([
+    await waitFor(() => expect(sent("start_import")).toHaveLength(2));
+    expect(sent("confirm_eagle_location")).toEqual([
       { libraryId: "L1", path: "E:\\新\\主库.library", choice },
     ]);
-    expect(sent("plugin:library|start_import").at(-1)).toEqual({
+    expect(sent("start_import").at(-1)).toEqual({
       libraryId: "L1",
       source: { paths: ["E:\\新\\主库.library"] },
       options: { eagleDeletedContent: "skipDeleted" },
@@ -123,8 +122,8 @@ describe("主窗口", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "新建图库" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "新建图库" })).toBeNull());
-    expect(sent("plugin:library|create_library")).toEqual([{ parent: "D:\\新", name: "我的参考" }]);
-    expect(sent("plugin:library|create_library_unopened")).toEqual([]);
+    expect(sent("create_library")).toEqual([{ parent: "D:\\新", name: "我的参考" }]);
+    expect(sent("create_library_unopened")).toEqual([]);
     expect(document.querySelector('[data-id="a"]')).toBeTruthy();
   });
 
@@ -132,30 +131,27 @@ describe("主窗口", () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
     let resolvePick!: (paths: string[]) => void;
     const picked = new Promise<string[]>((resolve) => { resolvePick = resolve; });
-    backend(library, clean, (cmd) => {
-      if (cmd === "plugin:library|registered_libraries") return [library, other].map((library) => ({ library, unavailable: null }));
-      if (cmd === "plugin:library|switch_library") return other;
-      if (cmd === "plugin:library|pick_files") return picked;
-      return undefined;
+    backend(library, clean, {
+      registered_libraries: () => [library, other].map((library) => ({ library, unavailable: null })),
+      pick_files: () => picked,
     });
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.click(importAction("导入文件…"));
-    await waitFor(() => expect(sent("plugin:library|pick_files").length).toBe(1));
+    await waitFor(() => expect(sent("pick_files").length).toBe(1));
     await openLibrary();
     await act(() => resolvePick(["D:\\参考.png"]));
-    expect(sent("plugin:library|start_import")).toEqual([]);
+    expect(sent("start_import")).toEqual([]);
   });
 
   it("未连接的图库在侧栏只占一行并可就地重新连接，管理图库里显示原因（#113）", async () => {
     const other = { id: "L2", name: "移动盘参考", root: "E:\\移动盘参考" };
     const reason = "图库暂时无法连接：E:\\移动盘参考。请确认移动盘已连接，搬家后重新登记。";
     const unavailable = { code: "system" as const, detail: reason };
-    backend(library, clean, (cmd) => {
-      if (cmd === "plugin:library|registered_libraries") return [
+    backend(library, clean, {
+      registered_libraries: () => [
         { library, unavailable: null }, { library: other, unavailable },
-      ];
-      return undefined;
+      ],
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -164,9 +160,9 @@ describe("主窗口", () => {
     const group = offline.closest("section")!;
     // 设计系统 v2：不再另起一行说明，“重新连接”在图库名同一行末尾。
     expect(within(group).queryByRole("status")).toBeNull();
-    const reads = sent("plugin:library|registered_libraries").length;
+    const reads = sent("workspace_directories").length;
     fireEvent.click(within(group).getByRole("button", { name: "重新连接" }));
-    await waitFor(() => expect(sent("plugin:library|registered_libraries").length).toBeGreaterThan(reads));
+    await waitFor(() => expect(sent("workspace_directories").length).toBeGreaterThan(reads));
     await libraryAction(/管理图库/);
     const manage = await screen.findByRole("dialog", { name: "管理图库" });
     expect(within(manage).getByText(reason)).toBeTruthy();
@@ -183,7 +179,7 @@ describe("主窗口", () => {
   });
 
   it("设置读不出来时，设置对话框仍有关闭按钮，并显示原因与重试", async () => {
-    backend(library, clean, (cmd) => cmd === "shell_settings" ? Promise.reject("设置文件被占用") : undefined);
+    backend(library, clean, { shell_settings: () => Promise.reject("设置文件被占用") });
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.click(screen.getByRole("button", { name: "设置" }));
@@ -210,26 +206,26 @@ describe("主窗口", () => {
     fireEvent.click(screen.getByRole("button", { name: "新建图库" }));
 
     expect(await screen.findByRole("button", { name: "工作参考（2 张）" })).toBeTruthy();
-    expect(sent("plugin:library|create_library")).toEqual([
+    expect(sent("create_library")).toEqual([
       { parent: "D:\\参考", name: "工作参考" },
     ]);
   });
 
   it("没有图库时新建图库预填系统的图片文件夹", async () => {
-    backend(null, clean, (cmd) => (cmd === "plugin:library|pictures_folder" ? "C:\\Users\\画师\\Pictures" : undefined));
+    backend(null, clean, { pictures_folder: "C:\\Users\\画师\\Pictures" });
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: "新建图库" }));
     expect(await screen.findByText("C:\\Users\\画师\\Pictures\\我的参考")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "新建图库" }));
-    await waitFor(() => expect(sent("plugin:library|create_library")).toEqual([
+    await waitFor(() => expect(sent("create_library")).toEqual([
       { parent: "C:\\Users\\画师\\Pictures", name: "我的参考" },
     ]));
     // 预填的位置不写进“上次新建资料库的位置”。
-    expect(sent("plugin:library|remember_new_library_parent")).toEqual([]);
+    expect(sent("remember_new_library_parent")).toEqual([]);
   });
 
   it("已有图库时新建图库预填到那个图库旁边", async () => {
-    backend(library, clean, (cmd) => (cmd === "plugin:library|pictures_folder" ? "C:\\Users\\画师\\Pictures" : undefined));
+    backend(library, clean, { pictures_folder: "C:\\Users\\画师\\Pictures" });
     render(<App />);
     await screen.findAllByRole("img");
     await libraryAction(/新建图库/);
@@ -246,7 +242,7 @@ describe("主窗口", () => {
     fireEvent.click(screen.getByRole("button", { name: "返回" }));
     window.__KINSHOKO_TEST_PICKS__ = ["E:\\私人收藏"];
     fireEvent.click(await screen.findByRole("button", { name: "打开图库" }));
-    await waitFor(() => expect(sent("plugin:library|register_library")).toEqual([{ root: "E:\\私人收藏" }]));
+    await waitFor(() => expect(sent("register_library")).toEqual([{ root: "E:\\私人收藏" }]));
   });
 
   it("打开的资料库在图片墙上按资料库记录的比例显示缩略图", async () => {
@@ -268,16 +264,16 @@ describe("主窗口", () => {
 
 describe("导入快捷键 Ctrl O", () => {
   it("在图片墙上打开选择文件；设置等对话框开着时不响应", async () => {
-    backend(library, clean, (cmd) => (cmd === "plugin:library|pick_files" ? [] : undefined));
+    backend(library, clean, { pick_files: [] });
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.keyDown(window, { key: "o", ctrlKey: true });
-    await waitFor(() => expect(sent("plugin:library|pick_files").length).toBe(1));
+    await waitFor(() => expect(sent("pick_files").length).toBe(1));
 
     fireEvent.click(screen.getByRole("button", { name: "设置" }));
     await screen.findByRole("dialog");
     fireEvent.keyDown(window, { key: "o", ctrlKey: true });
     await act(async () => { await Promise.resolve(); });
-    expect(sent("plugin:library|pick_files").length).toBe(1);
+    expect(sent("pick_files").length).toBe(1);
   });
 });

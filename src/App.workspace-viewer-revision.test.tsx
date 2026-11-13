@@ -6,6 +6,7 @@ import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
 import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
 import type { WorkspacePage } from "./bindings/WorkspacePage";
+import { appStartup } from "./App.fixtures";
 import { fakeBackend, shellSettings, type FakeBackend } from "./test/backend";
 
 /** 浏览器里的双击：两次按下与单击，再一次 dblclick。双击按第一下的图判定（#179）。 */
@@ -65,7 +66,7 @@ function workspace(initialReply?: Promise<WorkspaceStatus>) {
     app_info: { productName: "Kinshoko", version: "1" },
     workspace_edit_sources: [],
     // 启动时取走留给主窗口的收集请求：没有。
-    take_collection_request: null,
+    ...appStartup,
   });
   return state;
 }

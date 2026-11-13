@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { App } from "./App";
+import { appStartup } from "./App.fixtures";
 import { fakeBackend } from "./test/backend";
 
 beforeEach(() => {
@@ -33,7 +34,7 @@ it("保存为关闭安全模式且活动库断连时，仍显示可用提供方�
     },
     app_info: { productName: "Kinshoko", version: "1" },
     // 启动时取走留给主窗口的收集请求：没有。
-    take_collection_request: null,
+    ...appStartup,
   });
   render(<App />);
   expect(await screen.findByRole("img", { name: "参考图" })).toBeTruthy();

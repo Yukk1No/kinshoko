@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { App } from "./App";
+import { appStartup } from "./App.fixtures";
 import { fakeBackend, shellSettings } from "./test/backend";
 import type { SearchInput } from "./bindings/SearchInput";
 import type { WorkspaceCard } from "./bindings/WorkspaceCard";
@@ -37,7 +38,7 @@ function backend() {
     shell_settings: shellSettings({ viewerBackground: "mid" }),
     app_info: { productName: "Kinshoko", version: "1" },
     // 启动时取走留给主窗口的收集请求：没有。
-    take_collection_request: null,
+    ...appStartup,
   });
   return resolved;
 }

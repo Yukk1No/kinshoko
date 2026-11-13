@@ -3,15 +3,16 @@ import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { App } from "./App";
 import { resize as report } from "./test/platform";
-import { library, page, tags, showApproxSource, keepSelectionOnSafeMode, calls, setCalls, clean, backend, sent, importAction, expandLibrary, setInspectorOpen, wallPage } from "./App.fixtures";
+import { library, page, tags, showApproxSource, keepSelectionOnSafeMode, calls, clean, backend, sent, importAction, expandLibrary, setInspectorOpen, wallPage } from "./App.fixtures";
+import type { Args } from "./test/backend";
 
 /** 宽度变了：工作区与图片墙各自的 ResizeObserver 报告一次。 */
 const reportResize = () => act(() => { for (const el of document.querySelectorAll(".app-body, .wall")) report(el); });
 
 describe("主窗口", () => {
   it("查找头部显示真实结果数，图片大小滑块改变布局，导入操作按需展开", async () => {
-    backend(library, clean, (command, args) => {
-      if (command === "plugin:library|workspace_browse" && (args as { query: { scope: { scope?: { kind: string } } } }).query.scope.scope?.kind.startsWith("folder")) return wallPage({ cards: [page.cards[0]], total: 1, nextCursor: null });
+    backend(library, clean, {
+      workspace_browse: (args: Args) => (args as { query: { scope: { scope?: { kind: string } } } }).query.scope.scope?.kind.startsWith("folder") ? wallPage({ cards: [page.cards[0]], total: 1, nextCursor: null }) : undefined,
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -39,7 +40,7 @@ describe("主窗口", () => {
     const slider = screen.getByRole("slider", { name: "图片大小" }) as HTMLInputElement;
     const card = wall.querySelector<HTMLElement>(".card")!;
     const before = parseFloat(card.style.width);
-    setCalls([]);
+    const from = calls().length;
     expect(fireEvent.wheel(wall, { deltaY: -100, ctrlKey: true, clientX: 50, clientY: 50 })).toBe(false);
     fireEvent.wheel(wall, { deltaY: -100, ctrlKey: true, clientX: 50, clientY: 50 });
     fireEvent.wheel(wall, { deltaY: -100, ctrlKey: true, clientX: 50, clientY: 50 });
@@ -47,7 +48,7 @@ describe("主窗口", () => {
     expect(parseFloat(wall.querySelector<HTMLElement>(".card")!.style.width)).toBeGreaterThan(before);
     const tier = thumbnailTier(Math.ceil(320 * 1.5 * (window.devicePixelRatio || 1)));
     await waitFor(() => expect(wall.querySelector("img")!.getAttribute("src")).toMatch(new RegExp(`/${tier}$`)));
-    expect(calls.some((c) => c.cmd === "plugin:library|workspace_browse" || c.cmd === "plugin:library|browse")).toBe(false);
+    expect(calls().slice(from).some((c) => c.command === "workspace_browse")).toBe(false);
     expect(slider.value).toBe("320");
   });
 
@@ -73,9 +74,9 @@ describe("主窗口", () => {
   });
 
   it("查找区域的标签分组展开后可以添加、取消条件，并保留文件夹范围", async () => {
-    backend(library, clean, (command) => command === "plugin:library|workspace_tag_groups" ? [{
+    backend(library, clean, { workspace_tag_groups: [{
       id: "G1", name: "发色", namespace: null, tags: [{ tag: tags.B, count: 1 }],
-    }] : undefined);
+    }] });
     render(<App />);
     await expandLibrary();
     fireEvent.click(await screen.findByRole("button", { name: "人物（1 张）" }));
@@ -184,10 +185,9 @@ describe("主窗口", () => {
     // 工作区够宽，详情面板不用为主区让位（#274）。
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1544 });
     let saved: number | undefined;
-    backend(library, clean, (cmd, args) => {
-      if (cmd === "change_setting:inspectorWidth") { saved = (args as { width: number }).width; return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved, inspectorOpen: true }; }
-      if (cmd === "shell_settings") return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved, inspectorOpen: true };
-      return undefined;
+    backend(library, clean, {
+      "change_setting:inspectorWidth": (args: Args) => { saved = (args as { width: number }).width; return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved, inspectorOpen: true }; },
+      shell_settings: () => ({ autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved, inspectorOpen: true }),
     });
     const first = render(<App />);
     await screen.findAllByRole("img");

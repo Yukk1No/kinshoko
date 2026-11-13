@@ -16,15 +16,14 @@ describe("A 库导入中，整理 B 库文件夹", () => {
 
   async function organizeInB() {
     let tasks: unknown[] = [importing];
-    backend(library, clean, (cmd) => {
-      if (cmd === "plugin:library|registered_libraries") return [library, other].map((library) => ({ library, unavailable: null }));
-      if (cmd === "plugin:library|import_tasks") return tasks;
-      return undefined;
+    backend(library, clean, {
+      registered_libraries: () => [library, other].map((library) => ({ library, unavailable: null })),
+      import_tasks: () => tasks,
     });
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.click(await screen.findByRole("button", { name: "私人收藏（2 张）" }));
-    await waitFor(() => expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } }));
+    await waitFor(() => expect(sent("workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } }));
     await waitFor(() => expect(card("a")).toBeTruthy());
     fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(card("b"), { ctrlKey: true });
@@ -38,7 +37,7 @@ describe("A 库导入中，整理 B 库文件夹", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "移到文件夹" }));
     fireEvent.click(await screen.findByRole("menuitem", { name: /发型/ }));
-    await waitFor(() => expect(sent("plugin:library|edit")).toEqual([
+    await waitFor(() => expect(sent("edit")).toEqual([
       { libraryId: "L2", ids: ["a", "b"], edits: [{ kind: "addToFolder", folderId: "F2" }] },
     ]));
 
@@ -48,7 +47,7 @@ describe("A 库导入中，整理 B 库文件夹", () => {
     expect(within(selectionBar()!).getByText("已选 2 张")).toBeTruthy();
     expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("2 / 5")).toBeTruthy();
     expect(screen.getByText(`放到 ${library.name} / 未归类`)).toBeTruthy();
-    expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } });
+    expect(sent("workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } });
   });
 
   it("等 A 的导入收尾时只给轻提示，A 的结果回执照样归 A", async () => {
@@ -64,7 +63,7 @@ describe("A 库导入中，整理 B 库文件夹", () => {
 
     await waitFor(() => expect(screen.queryByRole("region", { name: "导入进度" })).toBeNull());
     expect(within(selectionBar()!).getByText("已选 2 张")).toBeTruthy();
-    expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } });
+    expect(sent("workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } });
   });
 
   it("B 的句柄与 A 的句柄各确认一次安全模式：只算一次", async () => {
@@ -83,9 +82,8 @@ describe("A 库导入中，整理 B 库文件夹", () => {
   });
 
   it("回收站按回执所属的图库打开，不用缺省图库", async () => {
-    backend(library, clean, (cmd) => {
-      if (cmd === "plugin:library|registered_libraries") return [library, other].map((library) => ({ library, unavailable: null }));
-      return undefined;
+    backend(library, clean, {
+      registered_libraries: () => [library, other].map((library) => ({ library, unavailable: null })),
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -95,6 +93,6 @@ describe("A 库导入中，整理 B 库文件夹", () => {
     fireEvent.click(await screen.findByRole("button", { name: "查看" }));
     fireEvent.click(await screen.findByRole("button", { name: "去回收站" }));
 
-    await waitFor(() => expect(sent("plugin:library|workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2", scope: { kind: "trash" } } } }));
+    await waitFor(() => expect(sent("workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2", scope: { kind: "trash" } } } }));
   });
 });

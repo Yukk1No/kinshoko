@@ -14,14 +14,14 @@ const sources: Record<string, ReturnType<typeof source>[]> = {
 
 function start() {
   const first = page.cards[0];
-  backend(library, clean, (cmd) => cmd === "plugin:library|workspace_browse"
-    ? wallPage({ ...page, total: 4, nextCursor: null, cards: Object.keys(sources).map((id) => ({ ...first, id, thumbnail: `L1/${id}/256` })) })
-    : undefined);
+  backend(library, clean, {
+    workspace_browse: () => wallPage({ ...page, total: 4, nextCursor: null, cards: Object.keys(sources).map((id) => ({ ...first, id, thumbnail: `L1/${id}/256` })) }),
+  });
   const internals = (window as unknown as { __TAURI_INTERNALS__: { invoke: (...args: unknown[]) => Promise<unknown> } }).__TAURI_INTERNALS__;
   const invoke = internals.invoke;
   internals.invoke = async (...args) => {
     const value = await invoke(...args);
-    if (args[0] !== "plugin:library|workspace_browse") return value;
+    if (!String(args[0]).endsWith("|workspace_browse")) return value;
     const result = value as { cards: { id: string }[] };
     return { ...result, cards: result.cards.map((card) => ({ ...card, libraryId: sources[card.id][0].libraryId, imageId: sources[card.id][0].imageId, sources: sources[card.id] })) };
   };
@@ -60,7 +60,7 @@ describe("多选悬浮栏：选择跨图库", () => {
     pick("a", "x", "m");
     await settled();
     fireEvent.click(within(await bar()).getByRole("button", { name: "移到回收站，Del" }));
-    await waitFor(() => expect(sent("plugin:library|workspace_edit_sources").at(-1)).toMatchObject({
+    await waitFor(() => expect(sent("workspace_edit_sources").at(-1)).toMatchObject({
       targets: [
         { libraryId: "L1", imageId: "a", contentId: "a" },
         { libraryId: "L2", imageId: "x", contentId: "x" },
@@ -68,7 +68,7 @@ describe("多选悬浮栏：选择跨图库", () => {
       ],
       edits: [{ kind: "delete" }],
     }));
-    expect(sent("plugin:library|edit")).toEqual([]);
+    expect(sent("edit")).toEqual([]);
     await waitFor(() => expect(selectionBar()).toBeNull());
   });
 
@@ -81,7 +81,7 @@ describe("多选悬浮栏：选择跨图库", () => {
     await waitFor(() => expect(put).toHaveProperty("disabled", false));
     fireEvent.click(put);
     fireEvent.click(await screen.findByRole("menuitem", { name: /发型/ }));
-    await waitFor(() => expect(sent("plugin:library|workspace_edit_sources").at(-1)).toMatchObject({
+    await waitFor(() => expect(sent("workspace_edit_sources").at(-1)).toMatchObject({
       targets: [{ libraryId: "L1", imageId: "a" }, { libraryId: "L1", imageId: "m" }],
       edits: [{ kind: "addToFolder", folderId: "F2" }],
     }));
