@@ -125,7 +125,6 @@
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"], .k-dock.is-dark { color-scheme: dark; }
 @media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-pop: 0ms; --t-icon: 0ms; } }
-:root[data-reduced-motion] { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-pop: 0ms; --t-icon: 0ms; }
 /* The one global switch for reduced motion, for rules that hardcode a duration: animations jump to their end state in one frame and
    transitions apply at once. `.subs-spin` is the exception: a spinner is the only sign of progress, so it keeps its own slower rotation. */
 @media (prefers-reduced-motion: reduce) {
@@ -133,10 +132,6 @@
     animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0ms !important;
     transition-duration: 0ms !important; transition-delay: 0ms !important;
   }
-}
-:root[data-reduced-motion] *:where(:not(.subs-spin)), :root[data-reduced-motion] *:where(:not(.subs-spin))::before, :root[data-reduced-motion] *:where(:not(.subs-spin))::after {
-  animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0ms !important;
-  transition-duration: 0ms !important; transition-delay: 0ms !important;
 }
 
 /* seal colours (brand invariant): the prototype's rules; deep sakura by day (3.42:1 on the rail), gold by night */

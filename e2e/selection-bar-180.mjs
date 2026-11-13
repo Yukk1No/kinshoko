@@ -132,6 +132,7 @@ try {
   results.framesOut = await frames("out", () => clearSelection());
 
   // 5. Reduced motion: the end state right after selecting, no animation.
+  // 需要先在系统设置里关掉动画效果：程序不再读根元素上的 data-reduced-motion（#538），这一步已不起作用。
   await session.exec("document.documentElement.setAttribute('data-reduced-motion', ''); return true;");
   await pick(ids[0], false); await delay(200);
   await pick(ids[1], true); await pick(ids[2], true); await delay(60);

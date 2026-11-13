@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { backend, resetSettingsTest, tab } from "./SettingsPanel.fixtures";
 import { SettingsPanel } from "./SettingsPanel";
+import { setMedia } from "./test/platform";
 import { cssRule } from "./ui/cssRule";
 import settingsCss from "./ui/settings.css?raw";
 
@@ -24,7 +25,6 @@ beforeEach(() => {
 
 afterEach(async () => {
   vi.restoreAllMocks();
-  document.documentElement.removeAttribute("data-reduced-motion");
   await resetSettingsTest();
 });
 
@@ -72,7 +72,7 @@ describe("设置页 tab（#454）", () => {
   });
 
   it("减弱动效下旧页立刻换成新页，底板不过渡", async () => {
-    document.documentElement.setAttribute("data-reduced-motion", "");
+    setMedia("(prefers-reduced-motion: reduce)", true);
     render(<SettingsPanel initialTab="general" />);
     const general = await screen.findByRole("tab", { name: "通用" });
     const heading = screen.getByRole("heading", { name: "通用", level: 3 });

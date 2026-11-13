@@ -60,4 +60,3 @@ body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-toasts {
 .k-toast-action:focus-visible, .k-toast-close:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 
 @media (prefers-reduced-motion: reduce) { .k-toasts, .k-toast { transition-duration: 0ms; } }
-:root[data-reduced-motion] .k-toasts, :root[data-reduced-motion] .k-toast { transition-duration: 0ms; }

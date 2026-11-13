@@ -50,4 +50,3 @@
 @media (prefers-reduced-motion: reduce) {
   .k-popup[data-k-level], .k-folder path { transition-duration: 0ms; }
 }
-:root[data-reduced-motion] .k-popup[data-k-level], :root[data-reduced-motion] .k-folder path { transition-duration: 0ms; }

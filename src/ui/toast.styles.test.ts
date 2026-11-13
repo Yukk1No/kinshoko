@@ -75,7 +75,7 @@ describe("轻提示是磨砂卡片（设计系统 v3）", () => {
   });
 
   it("减少动画时不过渡", () => {
-    expect(rule(":root[data-reduced-motion] .k-toasts, :root[data-reduced-motion] .k-toast")["transition-duration"]).toBe("0ms");
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{ \.k-toasts, \.k-toast \{ transition-duration: 0ms; \} \}/);
   });
 
   it("不写死颜色", () => {

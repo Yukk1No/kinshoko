@@ -34,7 +34,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
-  document.documentElement.removeAttribute("data-reduced-motion");
 });
 
 describe("DialogHeight", () => {
@@ -58,15 +57,6 @@ describe("DialogHeight", () => {
     changeTo(300);
     fireEvent.transitionEnd(screen.getByTestId("child"), { propertyName: "height" });
     expect(outerOf(container).style.height).toBe("300px");
-  });
-
-  it("程序开启减弱动效时直接到终态", () => {
-    document.documentElement.setAttribute("data-reduced-motion", "");
-    const { container } = render(<DialogHeight>内容</DialogHeight>);
-    changeTo(300);
-    const outer = outerOf(container);
-    expect(outer.style.height).toBe("");
-    expect(outer.hasAttribute("data-moving")).toBe(false);
   });
 
   it("系统要求减少动画时直接到终态", () => {
@@ -109,7 +99,6 @@ describe("DialogHeight", () => {
 
   it("过渡只用令牌，令牌在减弱动效下为 0", () => {
     expect(cssRule(ui, ".k-dialog-height[data-moving]").transition).toBe("height var(--t-slow) var(--ease)");
-    expect(tokens).toMatch(/:root\[data-reduced-motion\] \{[^}]*--t-slow: 0ms/);
     expect(tokens).toMatch(/prefers-reduced-motion: reduce\) \{ :root \{[^}]*--t-slow: 0ms/);
   });
 });
@@ -126,7 +115,7 @@ describe("设置对话框", () => {
 
 describe("DialogSwap", () => {
   it("减弱动效下旧内容立刻换成新内容", () => {
-    document.documentElement.setAttribute("data-reduced-motion", "");
+    setMedia("(prefers-reduced-motion: reduce)", true);
     const { rerender } = render(<DialogSwap step={0}>第一步</DialogSwap>);
     rerender(<DialogSwap step={1}>第二步</DialogSwap>);
     expect(screen.queryByText("第一步")).toBeNull();
@@ -152,7 +141,7 @@ describe("DialogSwap", () => {
   });
 
   it("减弱动效下外面滚动过时，新内容同样从顶部开始", () => {
-    document.documentElement.setAttribute("data-reduced-motion", "");
+    setMedia("(prefers-reduced-motion: reduce)", true);
     const { container, rerender } = render(<DialogHeight><DialogSwap step={0}>丙页</DialogSwap></DialogHeight>);
     const outer = outerOf(container);
     outer.scrollTop = 300;

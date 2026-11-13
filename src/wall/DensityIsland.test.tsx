@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { DensityIsland } from "./DensityIsland";
+import { setMedia } from "../test/platform";
 
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
@@ -84,7 +85,6 @@ describe("多选时收成圆形按钮（#180），按钮自身形变为滑条（
     const button = within(slot).getByRole("button", { name: "图片大小" });
     return { onCommit, view, slot, button, shape: slot.querySelector(".k-density-island") as HTMLElement };
   };
-  afterEach(() => { document.documentElement.removeAttribute("data-reduced-motion"); });
 
   it("只剩图片大小按钮；悬停时同一个形状长出滑条，移开后收回", () => {
     const { slot, button, shape, onCommit } = setupKnob();
@@ -187,7 +187,7 @@ describe("多选时收成圆形按钮（#180），按钮自身形变为滑条（
   });
 
   it("减弱动效下直接到终态：内容交替不等动画，展开、收回当帧就到位", () => {
-    document.documentElement.setAttribute("data-reduced-motion", "");
+    setMedia("(prefers-reduced-motion: reduce)", true);
     const { slot, button } = setupKnob();
     const row = slot.querySelector(".k-density-row") as HTMLElement;
     expect(row.style.opacity).toBe("0");

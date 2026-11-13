@@ -57,10 +57,6 @@
   .card.is-stack:hover > .stack-sheet { transform: var(--rest); }
   .card.is-stack:hover > .stack-cover, .card.is-stack:hover + .card-count, .card.is-stack:hover > .stack-contact { transform: none; }
 }
-:root[data-reduced-motion] .card.is-stack:hover > .stack-sheet { transform: var(--rest); }
-:root[data-reduced-motion] .card.is-stack:hover > .stack-cover,
-:root[data-reduced-motion] .card.is-stack:hover + .card-count,
-:root[data-reduced-motion] .card.is-stack:hover > .stack-contact { transform: none; }
 
 /* 张数：封面左上角，样子同右下角的来源按钮。托盘里页角的勾在右上角，悬停或选中时出现。 */
 .wall-canvas > .card-count, .wall-canvas > .card-check {
