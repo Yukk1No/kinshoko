@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { flushSync } from "react-dom";
 
 /** 图片墙旁边的面板正在滑到终点：墙的宽度会变多少，以及这段宽度过渡的节奏。 */
@@ -14,6 +14,8 @@ export type PanelSlide = {
 /** 图片墙旁边的一个面板。`finalWidth` 是它这次开合的终点宽度；浮在墙上、不占墙的宽度时为 null。 */
 export type SlidingPanel = { element: HTMLElement | null; finalWidth: number | null };
 
+const widthTransition = (element: HTMLElement) => element.getAnimations?.().find((a) => (a as CSSTransition).transitionProperty === "width");
+
 /**
  * 任一面板的宽度过渡进行中时给出 PanelSlide，全部结束后为 null。过渡一开始就知道终点，
  * 图片墙可以直接按终点宽度排好，让卡片和面板同起同落，不跟着面板平移后再折回来。
@@ -23,30 +25,28 @@ export type SlidingPanel = { element: HTMLElement | null; finalWidth: number | n
  * 浏览器在同一帧里先派发过渡事件、后报告尺寸变化，要赶在尺寸观察之前（#162）。面板的个数不能变。
  */
 export function usePanelSlide(panels: readonly SlidingPanel[]): PanelSlide | null {
-  const latest = useRef(panels);
-  latest.current = panels;
+  /** 监听只在面板元素换了时重装，量的时候读这次渲染的面板（各自的终点宽度）。 */
+  const slideFor = useEffectEvent((element: HTMLElement): PanelSlide | null => {
+    if (panels.find((panel) => panel.element === element)?.finalWidth === null) return null;
+    const transition = widthTransition(element);
+    const timing = transition?.effect?.getTiming();
+    const style = getComputedStyle(element);
+    return {
+      by: panels.reduce((sum, { element: panel, finalWidth }) =>
+        panel && finalWidth !== null ? sum + panel.getBoundingClientRect().width - finalWidth : sum, 0),
+      duration: typeof timing?.duration === "number" ? timing.duration : parseFloat(style.transitionDuration) * 1000 || 0,
+      easing: timing?.easing ?? style.transitionTimingFunction ?? "ease",
+      startTime: typeof transition?.startTime === "number" ? transition.startTime : null,
+    };
+  });
   const [state, setState] = useState<{ running: number; slide: PanelSlide | null }>({ running: 0, slide: null });
   useEffect(() => {
     setState({ running: 0, slide: null });
     const elements = panels.flatMap((panel) => panel.element ?? []);
     const own = (e: Event) => e.target === e.currentTarget && (e as TransitionEvent).propertyName === "width";
-    const widthTransition = (element: HTMLElement) => element.getAnimations?.().find((a) => (a as CSSTransition).transitionProperty === "width");
-    const slideOf = (element: HTMLElement): PanelSlide => {
-      const transition = widthTransition(element);
-      const timing = transition?.effect?.getTiming();
-      const style = getComputedStyle(element);
-      return {
-        by: latest.current.reduce((sum, { element: panel, finalWidth }) =>
-          panel && finalWidth !== null ? sum + panel.getBoundingClientRect().width - finalWidth : sum, 0),
-        duration: typeof timing?.duration === "number" ? timing.duration : parseFloat(style.transitionDuration) * 1000 || 0,
-        easing: timing?.easing ?? style.transitionTimingFunction ?? "ease",
-        startTime: typeof transition?.startTime === "number" ? transition.startTime : null,
-      };
-    };
     const start = (e: Event) => {
       if (!own(e)) return;
-      const element = e.currentTarget as HTMLElement;
-      const slide = latest.current.find((panel) => panel.element === element)?.finalWidth === null ? null : slideOf(element);
+      const slide = slideFor(e.currentTarget as HTMLElement);
       flushSync(() => setState((s) => ({ running: s.running + 1, slide: slide ?? s.slide })));
     };
     const stop = (e: Event) => {
@@ -68,7 +68,7 @@ export function usePanelSlide(panels: readonly SlidingPanel[]): PanelSlide | nul
       }
       setState({ running: 0, slide: null });
     };
-    // biome-ignore lint/correctness/useExhaustiveDependencies: 只在面板元素换了时重装监听（面板个数不变）；其余从 latest 读
+    // biome-ignore lint/correctness/useExhaustiveDependencies: 只在面板元素换了时重装监听（面板个数不变）；量的时候由 slideFor 读这次渲染的面板
   }, panels.map((panel) => panel.element));
   return state.slide;
 }
