@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { createRef } from "react";
 import { i18n } from ".";
 import type { ImportReport } from "../bindings/ImportReport";
@@ -9,14 +8,12 @@ import { importNotice } from "../library/ImportBarParts";
 import { SaveDestinationProvider } from "../library/SaveDestination";
 import { EagleTagStep } from "../library/EagleTagStep";
 import { expectNoChinese } from "../test/noChinese";
+import { fakeBackend } from "../test/backend";
 
 // 英文界面下导入（确认对话框、进度与结果、上次中断、Eagle 迁入与标签的外部对应）没有中文界面文案（#357）。
 // 图库名、Eagle 库名、标签名与文件路径是画师的数据。
 beforeEach(async () => { await act(async () => { await i18n.changeLanguage("en"); }); });
 afterEach(async () => {
-  cleanup();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
   await act(async () => { await i18n.changeLanguage("zh-CN"); });
 });
 
@@ -35,22 +32,19 @@ const report: ImportReport = {
 };
 
 function backend() {
-  mockWindows("main");
-  mockIPC((cmd) => {
-    if (cmd === "plugin:library|recovery") return { interrupted: ["D:/图/半张.png"], orphans: ["x"] };
-    if (cmd === "plugin:library|workspace_directories") {
+  fakeBackend({
+    recovery: { interrupted: ["D:/图/半张.png"], orphans: ["x"] },
+    workspace_directories: () => {
       const registration = { library: { id: "L1", name: "参考", root: "D:/参考" }, unavailable: null };
       return { status: { revision: "r", libraries: [registration] }, providers: [{ registration, unassigned: 0, descendants: {}, sidebar: null }] };
-    }
-    if (cmd === "plugin:library|discover_eagle_libraries")
-      return [{ name: "主库", path: "D:/Eagle/main.library", items: 3, version: "4.0.0", foundBy: "settings" }];
-    if (cmd === "plugin:library|eagle_tag_mapping") return {
+    },
+    discover_eagle_libraries: [{ name: "主库", path: "D:/Eagle/main.library", items: 3, version: "4.0.0", foundBy: "settings" }],
+    eagle_tag_mapping: {
       matched: [{ tag: { id: "t1", namespace: "general", name: "蓝瞳", untranslated: false, hasExternal: true }, count: 5, external: ["blue_eyes"], basis: "name", mergedInto: null }],
       unmatched: [{ tag: { id: "t2", namespace: "general", name: "水色", untranslated: false, hasExternal: false }, count: 3, candidates: ["aqua", "aqua_eyes"] }],
       vocabularySize: 0,
-    };
-    return undefined;
-  }, { shouldMockEvents: true });
+    },
+  });
 }
 
 const actions = createRef<ImportActions>() as { current: ImportActions | null };

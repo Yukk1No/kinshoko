@@ -1,7 +1,7 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TagGroupBar } from "./TagGroupBar";
+import { fakeBackend } from "../test/backend";
 
 const tag = (id: string, name: string) => ({ tag: { id, name, namespace: "general", untranslated: false, hasExternal: false }, count: 1 });
 const hair = { id: "hair", name: "发色", namespace: null, tags: [tag("blue", "蓝发")] };
@@ -16,9 +16,8 @@ const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)
 
 beforeEach(() => {
   groups = [hair, eyes];
-  mockIPC((command) => command === "plugin:library|tag_groups" ? groups : null, { shouldMockEvents: true });
+  fakeBackend({ tag_groups: () => groups });
 });
-afterEach(() => { cleanup(); clearMocks(); });
 
 describe("标签组下拉（#451）", () => {
   it("点按钮展开，再点收回", async () => {
