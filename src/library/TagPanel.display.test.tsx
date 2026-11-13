@@ -1,5 +1,6 @@
 // 标签的出处与可信度（#160）：标签上只显示名称，模型标签按可信度分档（B，默认）或按出处分组加刻度（C）；
 // 出处、精确可信度和操作在悬停或聚焦时的浮层里；未翻译的标签名后面是翻译图标。
+import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ImageTags } from "../bindings/ImageTags";
@@ -11,8 +12,8 @@ import { DEFAULT_TAG_DISPLAY } from "../tags/tagConfidence";
 import { TagDisplayContext } from "../tags/TagDisplayContext";
 import { TagPanel } from "./TagPanel";
 
-const label = (id: string, name: string, untranslated = false): TagLabel =>
-  ({ id, namespace: "general", name, untranslated, hasExternal: true });
+const label = (id: string, name: string, untranslated = false, namespace: TagLabel["namespace"] = "general"): TagLabel =>
+  ({ id, namespace, name, untranslated, hasExternal: true });
 const model = (score: number | null): TagOrigin => ({ kind: "source", source: "model:pixai", score });
 const eagle: TagOrigin = { kind: "source", source: "eagle:lib1", score: null };
 
@@ -32,11 +33,11 @@ const tags: ImageTags = {
   rejected: [label("t-glasses", "眼镜")],
 };
 
-function renderPanel(display: TagDisplay = DEFAULT_TAG_DISPLAY) {
-  fakeBackend({ catalog_image_tags: { image: tags, identities: [] } });
+function renderPanel(display: TagDisplay = DEFAULT_TAG_DISPLAY, image: ImageTags = tags, rating?: { label: string; control: ReactNode }) {
+  fakeBackend({ catalog_image_tags: { image, identities: [] } });
   return render(
     <TagDisplayContext value={display}>
-      <TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} />
+      <TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} rating={rating} />
     </TagDisplayContext>,
   );
 }
@@ -76,8 +77,8 @@ describe("B：可信度三档底色（默认）", () => {
     fireEvent.focus(chip("微笑"));
     const tip = await screen.findByRole("dialog", { name: "“微笑”的出处" });
     expect(tip.textContent).toContain("自动标签，可信度 87%（高）");
-    expect(within(tip).getByRole("button", { name: "确认“微笑”" })).toBeTruthy();
-    expect(within(tip).getByRole("button", { name: "否决“微笑”" })).toBeTruthy();
+    expect(within(tip).getByRole("button", { name: "保留“微笑”" })).toBeTruthy();
+    expect(within(tip).getByRole("button", { name: "排除“微笑”" })).toBeTruthy();
   });
 
   it("悬停标签时也出浮层；人工添加的写“你添加的”", async () => {
@@ -89,7 +90,7 @@ describe("B：可信度三档底色（默认）", () => {
     const tip = await screen.findByRole("dialog", { name: "“长发”的出处" });
     expect(tip.textContent).toContain("来源：你添加的");
     expect(tip.textContent).toContain("自动标签，可信度 99%（高）");
-    expect(within(tip).getByRole("button", { name: "清除对“长发”的人工决定" })).toBeTruthy();
+    expect(within(tip).getByRole("button", { name: "把“长发”改回自动" })).toBeTruthy();
   });
 
   it("没有分数的模型标签按中档；人写的排在前面，模型标签按可信度从高到低（#482）", async () => {
@@ -156,5 +157,63 @@ describe("C：按出处分组＋可信度刻度", () => {
     expect(meters.map((m) => m.getAttribute("aria-valuenow"))).toEqual(["97", "87", "64", "55", "31"]);
     expect(within(manual).queryAllByRole("meter")).toEqual([]);
     expect(screen.queryByRole("list", { name: "有效标签" })).toBeNull();
+  });
+});
+
+describe("一级标签：作者、角色、作品在属性表里各占一行（#518）", () => {
+  const primary: ImageTags = {
+    imageId: "a",
+    tags: [
+      { tag: label("t-hair", "长发"), origins: [model(0.9)] },
+      { tag: label("t-work", "VOCALOID", false, "work"), origins: [eagle] },
+      { tag: label("t-luka", "巡音流歌", false, "character"), origins: [model(0.55)] },
+      { tag: label("t-miku", "初音未来", false, "character"), origins: [{ kind: "manual" }] },
+      { tag: label("t-artist", "米山舞", false, "artist"), origins: [eagle] },
+    ],
+    rejected: [label("t-rin", "镜音铃", false, "character")],
+  };
+  const rows = () => [...document.querySelectorAll(".insp-props > .insp-prop")].map((row) =>
+    [row.querySelector("dt")!.textContent, ...[...row.querySelectorAll(".tag-name")].map((name) => name.textContent)]);
+
+  it("按“作者 / 角色 / 作品”排，行首写类别，标签上不写前缀；一般标签留在“标签”区", async () => {
+    renderPanel(DEFAULT_TAG_DISPLAY, primary);
+    await screen.findByText("初音未来");
+    // 行内也是人写的在前、模型标签在后。
+    expect(rows()).toEqual([["作者", "米山舞"], ["角色", "初音未来", "巡音流歌"], ["作品", "VOCALOID"]]);
+    expect(document.querySelector(".insp-props")!.textContent).not.toContain("：");
+    const general = screen.getByRole("list", { name: "有效标签" });
+    expect(within(general).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["长发"]);
+  });
+
+  it("三档外观和浮层照旧，浮层的名称带类别", async () => {
+    renderPanel(DEFAULT_TAG_DISPLAY, primary);
+    const luka = (await screen.findByText("巡音流歌")).closest("li")!;
+    expect(luka.dataset.band).toBe("mid");
+    fireEvent.focus(luka);
+    const tip = await screen.findByRole("dialog", { name: "“角色：巡音流歌”的出处" });
+    expect(within(tip).getByRole("button", { name: "排除“角色：巡音流歌”" })).toBeTruthy();
+  });
+
+  it("没有标签的类别不占行；已排除的一级标签写全名，列在“已排除”里", async () => {
+    renderPanel(DEFAULT_TAG_DISPLAY, { ...primary, tags: primary.tags.filter((entry) => entry.tag.namespace !== "character") });
+    await screen.findByText("米山舞");
+    expect(rows()).toEqual([["作者", "米山舞"], ["作品", "VOCALOID"]]);
+    const excluded = screen.getByRole("list", { name: "已排除" });
+    expect(excluded.textContent).toBe("角色：镜音铃");
+    expect(within(excluded).getByRole("button", { name: "把“角色：镜音铃”改回自动" })).toBeTruthy();
+  });
+
+  it("分级是最后一行；只有一级标签时“标签”区不写“还没有标签”", async () => {
+    renderPanel(DEFAULT_TAG_DISPLAY, { ...primary, tags: primary.tags.filter((entry) => entry.tag.namespace === "artist") }, { label: "分级", control: <span>控件</span> });
+    await screen.findByText("米山舞");
+    expect([...document.querySelectorAll(".insp-props > .insp-prop > dt")].map((dt) => dt.textContent)).toEqual(["作者", "分级"]);
+    expect(screen.queryByText("还没有标签")).toBeNull();
+    expect(screen.queryByRole("list", { name: "有效标签" })).toBeNull();
+  });
+
+  it("一张标签都没有时没有属性表，“标签”区写“还没有标签”", async () => {
+    renderPanel(DEFAULT_TAG_DISPLAY, { imageId: "a", tags: [], rejected: [] });
+    expect(await screen.findByText("还没有标签")).toBeTruthy();
+    expect(document.querySelector(".insp-props")).toBeNull();
   });
 });

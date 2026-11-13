@@ -35,6 +35,8 @@ type Props = {
   meter?: boolean;
   /** 有统一标签身份时，尚未翻译的“文/A”是改名按钮（#182）。 */
   rename?: { catalogId: string; onSaved: () => void };
+  /** 标签上不写类别前缀（#518）：属性表里作者、角色、作品各占一行，行首已经写了类别。浮层的名称仍带前缀。 */
+  bare?: boolean;
 };
 
 /**
@@ -42,7 +44,7 @@ type Props = {
  * 悬停或聚焦时出浮层，写出处、精确可信度和操作按钮。浮层在 portal 里，不占标签的位置，
  * 悬停前后标签尺寸不变（#159）。
  */
-export function TagChip({ tag, origins, notes = [], actions, meter = false, rename }: Props) {
+export function TagChip({ tag, origins, notes = [], actions, meter = false, rename, bare = false }: Props) {
   const { t } = useTranslation("tags");
   const display = useTagDisplay();
   const [open, setOpen] = useState(false);
@@ -59,7 +61,7 @@ export function TagChip({ tag, origins, notes = [], actions, meter = false, rena
       <Popover.Trigger openOnHover delay={250} closeDelay={160} nativeButton={false}
         render={<li role="listitem" tabIndex={0} className={`tag-row k-tag-chip${manual ? " is-manual" : ""}`}
           data-band={display.style === "bands" ? chipBand(origins, display) : undefined} onFocus={() => setOpen(true)} />}>
-        <span className="tag-name">{name}</span>
+        <span className="tag-name">{bare ? tag.name : name}</span>
         <TagMarks tag={tag} untranslated={rename && <UntranslatedRename tag={tag} catalogId={rename.catalogId} onSaved={rename.onSaved} onOpenChange={setRenaming} />} />
         {meter && standing.kind === "model" && standing.score !== null && <ConfidenceMeter score={standing.score} />}
       </Popover.Trigger>

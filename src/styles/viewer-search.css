@@ -83,14 +83,6 @@
     linear-gradient(var(--guide), var(--guide)) 0 33.33% / 100% 1px no-repeat,
     linear-gradient(var(--guide), var(--guide)) 0 66.66% / 100% 1px no-repeat;
 }
-/* 内容分级（#53）：人工分级优先于自动分级。 */
-.selection-rating {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-
 .selection-hint {
   color: var(--ink-2);
 }

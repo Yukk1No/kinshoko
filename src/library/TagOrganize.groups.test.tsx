@@ -139,7 +139,7 @@ describe("重新打开资料库", () => {
     expect(await within(groups).findByRole("button", { name: "蓝发（1 张）" })).toBeTruthy();
     await closeGroups();
     await selectOnly("a");
-    const rejected = await screen.findByRole("list", { name: "已否决" });
+    const rejected = await screen.findByRole("list", { name: "已排除" });
     expect(rejected.textContent).toContain("微笑");
   });
 });

@@ -30,10 +30,9 @@ const inspector: Translation<typeof zh> = {
   rating: {
     label: "Content rating",
     title: "Rating",
-    unrated: "Not rated yet",
-    manual: "Set by hand",
-    revert: "Back to automatic ({{auto}})",
-    auto: "Automatic rating: {{auto}}",
+    revert: "Back to automatic",
+    autoOption: "{{rating}}, automatic",
+    revertOption: "{{rating}}, back to automatic",
   },
   file: {
     collectedAt: "Collected {{at}}",
@@ -43,7 +42,6 @@ const inspector: Translation<typeof zh> = {
   folders: {
     label: "Folders",
     title: "Folders",
-    none: "Not in any folder",
   },
   note: {
     title: "Note",

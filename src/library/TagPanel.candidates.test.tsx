@@ -59,9 +59,9 @@ describe("添加标签的输入框", () => {
   it("候选行尾的“排除”否决这个标签，Alt+回车同样排除；不再有按钮行与说明句", async () => {
     const { edits, input, type } = setup(["a"]);
     const list = await type("猫");
-    fireEvent.click(await within(list).findByRole("button", { name: "否决“猫”" }));
+    fireEvent.click(await within(list).findByRole("button", { name: "排除“猫”" }));
     await waitFor(() => expect(edits).toEqual([{ kind: "reject", tag: { kind: "id", id: "t-cat" } }]));
-    expect(within(list).queryByRole("button", { name: "清除对“猫”的人工决定" })).toBeNull();
+    expect(within(list).queryByRole("button", { name: "把“猫”改回自动" })).toBeNull();
 
     await within(await type("猫")).findByRole("option", { name: /猫/ });
     fireEvent.keyDown(input, { key: "Enter", altKey: true });
@@ -73,7 +73,7 @@ describe("添加标签的输入框", () => {
   it("选了几张时候选行尾还有“改回自动”", async () => {
     const { edits, type } = setup(["a", "b"]);
     const list = await type("猫");
-    fireEvent.click(await within(list).findByRole("button", { name: "清除对“猫”的人工决定" }));
+    fireEvent.click(await within(list).findByRole("button", { name: "把“猫”改回自动" }));
     await waitFor(() => expect(edits).toEqual([{ kind: "clear", tag: { kind: "id", id: "t-cat" } }]));
     expect(screen.queryByText(/一起记下/)).toBeNull();
   });
@@ -82,7 +82,7 @@ describe("添加标签的输入框", () => {
     const { edits, type } = setup(["a", "b"]);
     const list = await type("眼镜");
     const row = await within(list).findByRole("option", { name: /^新建“眼镜”/ });
-    fireEvent.click(within(row).getByRole("button", { name: "清除对“眼镜”的人工决定" }));
+    fireEvent.click(within(row).getByRole("button", { name: "把“眼镜”改回自动" }));
     await waitFor(() => expect(edits).toEqual([{ kind: "clear", tag: { kind: "named", namespace: "general", name: "眼镜", lang: "zh-CN" } }]));
   });
 

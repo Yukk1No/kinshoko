@@ -6,7 +6,7 @@
 // 精度是一帧。只量主窗口的“选中一张”：来源整理（.workspace-sources）走另一条读取，跳过。
 
 import { browserEnv, type ProbeEnv } from "./frameProbe";
-import { i18n } from "../i18n/instance";
+
 
 export const INSPECTOR_BUDGET_MS = 100;
 
@@ -48,11 +48,11 @@ export function summarizeSelections(samples: number[], { timedOut, skipped }: { 
 
 const busy = (el: Element | null) => !el || el.getAttribute("aria-busy") === "true";
 
-/** 详情面板正在显示 id 这张图：面板标明的选择就是它，详情与有效标签都已是新读到的。 */
+/** 详情面板正在显示 id 这张图：面板标明的选择就是它，详情与标签都已是新读到的（标签面板自己标着 aria-busy）。 */
 export function inspectorShows(inspector: ParentNode, id: string): boolean {
   const marker = inspector instanceof Element && inspector.hasAttribute("data-selection") ? inspector : inspector.querySelector("[data-selection]");
   if (marker?.getAttribute("data-selection") !== id) return false;
-  return !busy(inspector.querySelector(".selection-detail")) && !busy(inspector.querySelector(`.tag-panel [aria-label="${i18n.t("tags:panel.active")}"]`));
+  return !busy(inspector.querySelector(".selection-detail")) && !busy(inspector.querySelector(".tag-panel"));
 }
 
 const nextFrame = (env: ProbeEnv) => new Promise<number>((resolve) => env.raf(resolve));

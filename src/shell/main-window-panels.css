@@ -17,7 +17,8 @@
 .insp-sec h4, .insp-h { margin: 0 0 8px; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
 .insp-hint { margin: 6px 0 0; color: var(--ink-2); font-size: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .insp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.insp-chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px; border-radius: var(--r-s); background: var(--surface-2); font-size: 12px; }
+/* 底色用 --tag-fill，和标签一样：--surface-2 在夜间面板上看不出来。 */
+.insp-chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px; border-radius: var(--r-s); background: var(--tag-fill); font-size: 12px; }
 .insp-links { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
 .insp-links li { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--ink-2); }
 .insp-links li svg { flex: none; color: var(--ink-3); }
@@ -37,8 +38,23 @@
   color: var(--ink); font-size: 12px; line-height: 18px; resize: vertical; }
 .inspector .selection-note textarea:focus { outline: var(--focus-ring); outline-offset: var(--focus-inset); }
 .inspector .selection-note + .selection-actions { margin-top: 8px; }
-.insp-rate .k-seg-item { font-size: 12px; }
-.inspector .selection-rating { display: block; font-size: 13px; }
+/* 属性表（#518）：文件名下面，作者、角色、作品（一级标签）与分级各占一行，四行同级。左列是类别名，宽度取最长的那个；
+   右列是内容。没有标签的类别不占行；分级总在最后一行。类别名与右列第一行的内容对齐中线（行高等于右列的行高）。 */
+.insp-props.k-tags { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 12px; margin: 0; }
+.insp-prop { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: start; }
+.insp-prop > dt { font-size: 12px; font-weight: 600; line-height: 28px; color: var(--ink-2); }
+.insp-prop.is-rating > dt { line-height: 36px; }
+.insp-prop > dd { min-width: 0; margin: 0; }
+/* 一级标签比一般标签大一号：28 高、13 px。三档外观与浮层不变。 */
+.insp-props .k-tag-chip { min-height: 28px; padding-inline: 10px; font-size: 13px; }
+.insp-props .k-tag-chip .tag-name { line-height: 20px; }
+/* 分级在属性表里比整行窄：各档先按文字占宽，余下的平分，“全年龄”前面加了星也放得下（面板最窄 280）。 */
+.insp-rate .k-seg-item { flex: 1 1 auto; padding: 0 6px; gap: 4px; font-size: 12px; }
+/* 星标代表“智能”（#482）：在模型给的那一档上，跟文字同色。画师改过之后星留在原处，变成图标色；悬停那一档时星亮回文字色，
+   示意点下去改回自动。 */
+.insp-rate-star { transition: color var(--t-fast); }
+.insp-rate-star.is-idle { color: var(--ink-3); }
+.insp-rate .k-seg-item:hover .insp-rate-star.is-idle { color: currentColor; }
 .workspace-sources { display: flex; flex-direction: column; gap: 16px; }
 .workspace-source-editor { display: flex; flex-direction: column; gap: 16px; margin: 0; }
 
@@ -99,9 +115,12 @@
 /* 详情面板的标签与备注（#98，#160）：现有标签是小标签，只写名称；出处、可信度与操作在悬停或聚焦时的浮层里。
    一个加标签的输入框，类别在新建项的行尾选。 */
 .k-tags { gap: 8px; font-size: 12px; }
+/* 小标题到内容的距离由上面的 gap 给，和文件夹、备注一样是 8。 */
+.k-tags > h4 { margin-bottom: 0; }
 .k-tags .k-tag-chips { flex-direction: row; flex-wrap: wrap; gap: 6px; }
-.k-tags .k-tag-chip { position: relative; display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 4px; min-height: 26px; padding: 0 8px; border-radius: var(--r-s); background: var(--tag-fill); color: var(--ink); cursor: default; }
-.k-tags .k-tag-chip .tag-name { font-weight: 500; white-space: nowrap; }
+.k-tags .k-tag-chip { position: relative; display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 4px; max-width: 100%; min-height: 26px; padding: 4px 8px; border-radius: var(--r-s); background: var(--tag-fill); color: var(--ink); cursor: default; }
+/* 名称比面板还宽时在标签里折行，不撑出面板。 */
+.k-tags .k-tag-chip .tag-name { min-width: 0; font-weight: 500; line-height: 18px; overflow-wrap: anywhere; text-wrap: balance; }
 .k-tags .k-tag-chip:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 /* B：按准不准分三档（#482）——人写的（人工、导入）和模型高档有底；模型中档（含没有分数的）无底细线框；
    低档无底虚线框、字变浅。只改颜色和线，不改尺寸；虚线用 outline，不占排版。 */
@@ -136,8 +155,11 @@
 .k-tags .k-tags-sub { margin: 2px 0 -2px; color: var(--ink-2); font-size: 12px; }
 .k-tags .k-tag-chip.is-rejected { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); }
 .k-tags .k-tag-chip.is-rejected .tag-name { text-decoration: line-through; opacity: 1; font-weight: 400; }
-.k-tags .k-tag-restore { height: 20px; padding: 0 6px; border: 0; border-radius: var(--r-xs); background: none; color: var(--accent-strong); font: inherit; font-size: 12px; }
-.k-tags .k-tag-restore:hover { background: var(--accent-soft); }
+/* 已排除的标签末尾是“改回自动”的图标；悬停它时名称的划线先去掉，示意结果（候选行尾悬停“排除”时名称划掉，方向相反）。 */
+.k-tags .k-tag-restore { flex: none; display: grid; place-items: center; width: 20px; height: 20px; margin-right: -4px; padding: 0; border: 0; border-radius: var(--r-xs); background: none; color: var(--ink-3); cursor: pointer; }
+.k-tags .k-tag-restore:hover { background: var(--hover); color: var(--ink); }
+.k-tags .k-tag-restore:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.k-tags .k-tag-chip.is-rejected:has(.k-tag-restore:hover) .tag-name { text-decoration: none; color: var(--ink); }
 .k-tags .k-tag-add { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
 /* 添加标签的新建项（在浮层里）：名称下面一行选类别，与名称左对齐（16 指示列 + 8 间距）；四个 24 高的小块，
    选中的是 accent-soft 底配 accent-strong 字。详情面板最窄 280，排在同一行会把名称挤得折行。 */
@@ -153,6 +175,7 @@
 .k-tag-alias .k-tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .k-tag-alias .k-tag-chips li { display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 3px 0 8px; border-radius: var(--r-xs); background: var(--surface); }
 .k-tag-alias .k-input { flex: none; }
+.k-tag-alias-title { margin: 0; font-size: 12px; font-weight: 600; color: var(--ink-2); overflow-wrap: anywhere; }
 .k-tag-alias-acts { display: flex; gap: 6px; justify-content: flex-end; }
 .k-note .k-note-acts { display: flex; gap: 4px; justify-content: flex-end; margin-top: 6px; }
 /* 不可用的“用来源的”明显变淡。 */

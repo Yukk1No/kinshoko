@@ -4,12 +4,12 @@ import type { ProbeEnv } from "./frameProbe";
 
 afterEach(() => { document.body.innerHTML = ""; });
 
-/** 详情面板的样子：标明的选择、详情、有效标签；busy 表示还留着上一张的。 */
+/** 详情面板的样子：标明的选择、详情、标签面板；busy 表示还留着上一张的。 */
 function inspector({ id = "a", busy = false, detail = true, tags = true } = {}) {
   const root = document.createElement("aside");
   root.dataset.selection = id;
   if (detail) root.insertAdjacentHTML("beforeend", `<div class="selection-detail" aria-busy="${busy}"></div>`);
-  if (tags) root.insertAdjacentHTML("beforeend", `<section class="tag-panel"><ul aria-label="有效标签" aria-busy="${busy}"></ul></section>`);
+  if (tags) root.insertAdjacentHTML("beforeend", `<section class="tag-panel" aria-busy="${busy}"></section>`);
   return root;
 }
 

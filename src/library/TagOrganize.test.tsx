@@ -8,7 +8,7 @@ import { App } from "../App";
 import { fake, sent, card, tagList, openChip, selectOnly, addTag } from "./TagOrganize.fixtures";
 
 describe("单张图的标签与人工标签决定", () => {
-  it("列出有效标签及出处；否决模型标签后移到“已否决”，撤销否决又回到模型建议", async () => {
+  it("列出有效标签及出处；排除模型标签后移到“已排除”，改回自动又回到模型建议", async () => {
     render(<App />);
     await selectOnly("a");
     const list = await screen.findByRole("list", { name: "有效标签" });
@@ -17,24 +17,24 @@ describe("单张图的标签与人工标签决定", () => {
     const tip = await openChip("微笑");
     expect(tip.textContent).toContain("自动标签，可信度 92%（高）");
 
-    fireEvent.click(within(tip).getByRole("button", { name: "否决“微笑”" }));
+    fireEvent.click(within(tip).getByRole("button", { name: "排除“微笑”" }));
     await waitFor(() =>
       expect(sent("edit_tags")).toEqual([
         { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "reject", tag: { kind: "id", id: "T-smile" } }] },
       ]),
     );
-    const rejected = await screen.findByRole("list", { name: "已否决" });
+    const rejected = await screen.findByRole("list", { name: "已排除" });
     await waitFor(() => expect(rejected.textContent).toContain("微笑"));
     expect(tagList().textContent).not.toContain("微笑");
 
-    fireEvent.click(screen.getByRole("button", { name: "撤销否决“微笑”" }));
+    fireEvent.click(screen.getByRole("button", { name: "把“微笑”改回自动" }));
     await waitFor(() => expect(tagList().textContent).toContain("微笑"));
     expect(sent("edit_tags").at(-1)).toEqual({
       libraryId: "L1",
       imageIds: ["a"],
       edits: [{ kind: "clear", tag: { kind: "id", id: "T-smile" } }],
     });
-    expect(screen.queryByRole("list", { name: "已否决" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "已排除" })).toBeNull();
   });
 
   it("按类别添加标签：同名不同类别是两个标签；人工添加的可以清除", async () => {
@@ -43,26 +43,33 @@ describe("单张图的标签与人工标签决定", () => {
     await screen.findByRole("list", { name: "有效标签" });
 
     await addTag("某某", { kind: "作者" });
-    await waitFor(() => expect(tagList().textContent).toContain("作者：某某"));
+    // 作者是一级标签（#518）：在属性表“作者”那一行，标签上不写前缀，也不在一般标签里。
+    const artists = await screen.findByRole("list", { name: "作者" });
+    await waitFor(() => expect(artists.textContent).toBe("某某"));
+    expect(tagList().textContent).not.toContain("某某");
     // 已有“作者：某某”，第一行是它；同名的一般标签要选新建项（类别默认一般）。
     await addTag("某某", { create: true });
-    await waitFor(() => expect(within(tagList()).getAllByText(/某某/)).toHaveLength(2));
+    await waitFor(() => expect(tagList().textContent).toContain("某某"));
     expect(sent("edit_tags")).toEqual([
       { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "add", tag: { kind: "named", namespace: "artist", name: "某某", lang: "zh-CN" } }] },
       { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: "某某", lang: "zh-CN" } }] },
     ]);
-    expect(tagList().querySelectorAll(".k-tag-chip.is-manual")).toHaveLength(2);
+    expect(document.querySelectorAll(".k-tag-chip.is-manual")).toHaveLength(2);
     expect((await openChip("某某")).textContent).toContain("来源：你添加的");
 
-    fireEvent.click(within(await openChip("作者：某某")).getByRole("button", { name: "清除对“作者：某某”的人工决定" }));
-    await waitFor(() => expect(tagList().textContent).not.toContain("作者：某某"));
+    // 浮层和读屏名仍写全名“作者：某某”。
+    fireEvent.focus(within(artists).getByText("某某").closest("li")!);
+    const tip = await screen.findByRole("dialog", { name: "“作者：某某”的出处" });
+    fireEvent.click(within(tip).getByRole("button", { name: "把“作者：某某”改回自动" }));
+    // 这一类没有标签了，这一行不再占位。
+    await waitFor(() => expect(screen.queryByRole("list", { name: "作者" })).toBeNull());
   });
 
-  it("模型建议的标签可以确认为人工添加，之后重新打标不会去掉它", async () => {
+  it("模型建议的标签可以保留为人工添加，之后重新打标不会去掉它", async () => {
     render(<App />);
     await selectOnly("a");
     await screen.findByRole("list", { name: "有效标签" });
-    fireEvent.click(within(await openChip("蓝发")).getByRole("button", { name: "确认“蓝发”" }));
+    fireEvent.click(within(await openChip("蓝发")).getByRole("button", { name: "保留“蓝发”" }));
     await waitFor(() =>
       expect(within(tagList()).getByText("蓝发").closest("li")!.className).toContain("is-manual"),
     );
