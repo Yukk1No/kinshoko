@@ -1,14 +1,13 @@
 // 给尚未翻译的标签起名（#182）：详情面板里“文/A”图标是按钮，就地弹框保存当前界面语言的名称偏好。
-import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fakeBackend } from "../test/backend";
 import { tipText } from "../test/tip";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { ImageTags } from "../bindings/ImageTags";
 import type { TagLabel } from "../bindings/TagLabel";
 import { OpenTagNameSettings } from "../tags/TagNameSettings";
 import { TagPanel } from "./TagPanel";
 
-afterEach(() => { cleanup(); clearMocks(); });
 
 const label = (id: string, name: string, untranslated = false): TagLabel => ({ id, namespace: "general", name, untranslated, hasExternal: true });
 const image = (ahoge: TagLabel): ImageTags => ({ imageId: "a", tags: [{ tag: ahoge, origins: [{ kind: "source", source: "model:pixai", score: 0.64 }] }], rejected: [] });
@@ -18,18 +17,17 @@ const catalogTag = (id: string, zh: string | null, external: string) => ({ id, n
 /** 后端：一张图一个尚未翻译的标签；保存名称偏好后它按新名字显示。 */
 function backend() {
   const state = { name: null as string | null, edits: [] as unknown[] };
-  mockIPC((cmd, args) => {
-    if (cmd === "plugin:library|catalog_image_tags") {
+  fakeBackend({
+    catalog_image_tags: () => {
       const tag = state.name ? label("t-ahoge", state.name) : label("t-ahoge", "ahoge", true);
       return { image: image(tag), identities: [{ localTagId: "t-ahoge", catalogId: "c-ahoge", tag }] };
-    }
-    if (cmd === "plugin:library|inspect_tag_catalog") return { libraries: [], catalog: { revision: 1, mappings: [], tags: [catalogTag("c-ahoge", null, "ahoge"), catalogTag("c-other", "阿呆毛", "other_hair")] } };
-    if (cmd === "plugin:library|edit_tag_name") {
+    },
+    inspect_tag_catalog: { libraries: [], catalog: { revision: 1, mappings: [], tags: [catalogTag("c-ahoge", null, "ahoge"), catalogTag("c-other", "阿呆毛", "other_hair")] } },
+    edit_tag_name: (args) => {
       state.edits.push(args);
       state.name = (args as { edit: { name: { name: string } } }).edit.name.name;
       return { libraries: [], catalog: { revision: 2, mappings: [], tags: [] } };
-    }
-    return null;
+    },
   });
   return state;
 }

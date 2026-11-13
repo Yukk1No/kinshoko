@@ -1,11 +1,11 @@
 // 标签的出处与可信度（#160）：标签上只显示名称，模型标签按可信度分档（B，默认）或按出处分组加刻度（C）；
 // 出处、精确可信度和操作在悬停或聚焦时的浮层里；未翻译的标签名后面是翻译图标。
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ImageTags } from "../bindings/ImageTags";
 import type { TagDisplay } from "../bindings/TagDisplay";
 import type { TagLabel } from "../bindings/TagLabel";
+import { fakeBackend } from "../test/backend";
 import type { TagOrigin } from "../bindings/TagOrigin";
 import { DEFAULT_TAG_DISPLAY } from "../tags/tagConfidence";
 import { TagDisplayContext } from "../tags/TagDisplayContext";
@@ -33,10 +33,7 @@ const tags: ImageTags = {
 };
 
 function renderPanel(display: TagDisplay = DEFAULT_TAG_DISPLAY) {
-  mockIPC((cmd) => {
-    if (cmd === "plugin:library|catalog_image_tags") return { image: tags, identities: [] };
-    return null;
-  });
+  fakeBackend({ catalog_image_tags: { image: tags, identities: [] } });
   return render(
     <TagDisplayContext value={display}>
       <TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} />
@@ -45,8 +42,6 @@ function renderPanel(display: TagDisplay = DEFAULT_TAG_DISPLAY) {
 }
 
 const chip = (name: string) => within(screen.getByRole("list", { name: "有效标签" })).getByText(name).closest("li")!;
-
-afterEach(() => { cleanup(); clearMocks(); });
 
 describe("B：可信度三档底色（默认）", () => {
   it("标签上只有名称，没有“模型 0.xx”“人工添加”“Eagle”等文字", async () => {

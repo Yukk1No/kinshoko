@@ -1,26 +1,25 @@
-import { afterEach, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { expect, it } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fakeBackend } from "../test/backend";
 import { tipText } from "../test/tip";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { TagNamePanel } from "./TagNamePanel";
 import { chooseValue } from "../test/select";
 
-afterEach(() => { cleanup(); clearMocks(); });
 const tag = () => ({ id: "shared", namespace: "general", names: [{ lang: "zh-CN", name: "分缝发型" }, { lang: "en", name: "Parted hair" }], defaultNames: [{ lang: "zh-CN", name: "分缝发型" }, { lang: "en", name: "Parted hair" }], namePreferences: [] as { lang: string; name: string }[], aliases: [{ name: "分发", lang: "zh-CN" }], external: [{ vocabulary: "danbooru", name: "parted_hair" }] });
 const workspace = () => ({ libraries: [], catalog: { revision: 1, tags: [tag()], mappings: [] } });
 
 it("loads the catalog and saves an equal-default preference explicitly, keeps aliases separate and resets the preference", async () => {
   let data = workspace();
   const edits: unknown[] = [];
-  mockIPC((cmd, args) => {
-    if (cmd.endsWith("inspect_tag_catalog")) return data;
-    if (cmd.endsWith("edit_tag_name")) {
+  fakeBackend({
+    inspect_tag_catalog: () => data,
+    edit_tag_name: (args) => {
       edits.push(args);
       const edit = (args as { edit: { kind: string; name?: { lang: string; name: string } } }).edit;
       data = { ...data, catalog: { ...data.catalog, revision: data.catalog.revision + 1, tags: [{ ...data.catalog.tags[0], namePreferences: edit.kind === "prefer" && edit.name ? [edit.name] : [] }] } };
       return data;
-    }
+    },
   });
   render(<TagNamePanel />);
   const row = await screen.findByRole("listitem", { name: "分缝发型，默认" });
@@ -42,7 +41,7 @@ it("discards a late name edit result when safe mode changes", async () => {
   const data = workspace();
   let finish: (value: ReturnType<typeof workspace>) => void = () => {};
   const pending = new Promise<ReturnType<typeof workspace>>((resolve) => { finish = resolve; });
-  mockIPC((cmd) => cmd.endsWith("edit_tag_name") ? pending : cmd.endsWith("inspect_tag_catalog") ? data : undefined, { shouldMockEvents: true });
+  fakeBackend({ edit_tag_name: () => pending, inspect_tag_catalog: () => data });
   render(<TagNamePanel />);
   fireEvent.click(await screen.findByRole("button", { name: "重命名“分缝发型”" }));
   fireEvent.click(screen.getByRole("button", { name: "保存显示名" }));
@@ -54,7 +53,7 @@ it("discards a late name edit result when safe mode changes", async () => {
 it("edits one selected tag at a time and finds it by a separate alias in a large catalog", async () => {
   const data = workspace();
   data.catalog.tags = Array.from({ length: 150 }, (_, index) => ({ ...tag(), id: `shared-${index}`, names: [{ lang: "zh-CN", name: `发型 ${index}` }], aliases: [{ lang: "zh-CN", name: index === 149 ? "目标别名" : `叫法 ${index}` }] }));
-  mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? data : undefined);
+  fakeBackend({ inspect_tag_catalog: () => data });
   render(<TagNamePanel />);
   const list = await screen.findByRole("list", { name: "标签" });
   expect(within(list).getAllByRole("listitem")).toHaveLength(80);
@@ -70,7 +69,7 @@ it("edits one selected tag at a time and finds it by a separate alias in a large
 it("can select an untranslated tag and find it by its external name", async () => {
   const data = workspace();
   data.catalog.tags = [{ ...tag(), names: [], defaultNames: [], aliases: [], external: [{ vocabulary: "danbooru", name: "untranslated_hair" }] }];
-  mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? data : undefined);
+  fakeBackend({ inspect_tag_catalog: () => data });
   render(<TagNamePanel />);
   fireEvent.change(screen.getByRole("textbox", { name: "查找要重命名的标签" }), { target: { value: "untranslated_hair" } });
   fireEvent.click(await screen.findByRole("button", { name: "重命名“untranslated hair”" }));
@@ -79,7 +78,7 @@ it("can select an untranslated tag and find it by its external name", async () =
 
 it("marks a tag whose old library name is still pending", async () => {
   const data = { ...workspace(), catalog: { ...workspace().catalog, mappings: [{ libraryId: "a", localTagId: "x", catalogId: "shared", legacy: { id: "x", namespace: "general", names: [], aliases: [], external: [] }, nameProvenance: "pending", basis: "external" }] } };
-  mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? data : undefined);
+  fakeBackend({ inspect_tag_catalog: () => data });
   render(<TagNamePanel />);
   expect(await screen.findByRole("listitem", { name: "分缝发型，待确认" })).toBeTruthy();
 });
@@ -87,7 +86,7 @@ it("marks a tag whose old library name is still pending", async () => {
 it("uses one set of words: renamed/default status and an only-renamed filter", async () => {
   const data = workspace();
   data.catalog.tags = [{ ...tag(), namePreferences: [{ lang: "zh-CN", name: "分缝发型" }] }, { ...tag(), id: "other", names: [{ lang: "zh-CN", name: "长发" }] }];
-  mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? data : undefined);
+  fakeBackend({ inspect_tag_catalog: () => data });
   render(<TagNamePanel />);
   expect(await screen.findByRole("listitem", { name: "分缝发型，已重命名" })).toBeTruthy();
   fireEvent.click(screen.getByRole("checkbox", { name: "只看改过名的" }));
@@ -97,7 +96,7 @@ it("uses one set of words: renamed/default status and an only-renamed filter", a
 it("opens with the requested tag first and expanded, even past the listing limit (#182)", async () => {
   const data = workspace();
   data.catalog.tags = Array.from({ length: 120 }, (_, index) => ({ ...tag(), id: `shared-${index}`, names: [{ lang: "zh-CN", name: `发型 ${index}` }], aliases: [] }));
-  mockIPC((cmd) => cmd.endsWith("inspect_tag_catalog") ? data : undefined);
+  fakeBackend({ inspect_tag_catalog: () => data });
   render(<TagNamePanel focus="shared-110" />);
   const row = await screen.findByRole("listitem", { name: "发型 110，默认" });
   expect(within(screen.getByRole("list", { name: "标签" })).getAllByRole("listitem")[0]).toBe(row);
@@ -110,12 +109,11 @@ it("lists tags without an external mapping, corrects a source name's language an
   const mapping = { libraryId: "L1", localTagId: "local-eagle", catalogId: "eagle", nameProvenance: "catalog", basis: "independent", sourceNames: [{ lang: "en", name: "hatsune miku" }],
     legacy: { id: "local-eagle", namespace: "general", names: [], aliases: [], external: [], count: 1, sourceNames: [] } };
   const data = { libraries: [{ library: { id: "L1", name: "参考" }, unavailable: null }], catalog: { revision: 1, tags: [{ ...tag(), sourceNames: [] }, eagle], mappings: [mapping] } };
-  const calls: { cmd: string; args: unknown }[] = [];
-  mockIPC((cmd, args) => {
-    calls.push({ cmd, args });
-    if (cmd.endsWith("inspect_tag_catalog")) return data;
-    if (cmd.endsWith("map_tag_external")) return { external: "hatsune_miku", known: true, mergedInto: null };
-    if (cmd.endsWith("external_suggestions")) return ["hatsune_miku"];
+  const fake = fakeBackend({
+    inspect_tag_catalog: () => data,
+    set_source_name_lang: () => data,
+    map_tag_external: { external: "hatsune_miku", known: true, mergedInto: null },
+    external_suggestions: ["hatsune_miku"],
   });
   render(<TagNamePanel />);
   await screen.findByRole("listitem", { name: /分缝发型/ });
@@ -125,9 +123,9 @@ it("lists tags without an external mapping, corrects a source name's language an
   fireEvent.click(within(row).getByRole("button", { name: "重命名“hatsune miku”" }));
 
   await chooseValue(within(row).getByRole("combobox", { name: "“hatsune miku”的语言" }), "ja");
-  await waitFor(() => expect(calls).toContainEqual({ cmd: "plugin:library|set_source_name_lang", args: { libraryId: "L1", tagId: "local-eagle", name: "hatsune miku", lang: "ja" } }));
+  await waitFor(() => expect(fake.calls()).toContainEqual({ command: "set_source_name_lang", args: { libraryId: "L1", tagId: "local-eagle", name: "hatsune miku", lang: "ja" } }));
 
   fireEvent.change(within(row).getByRole("combobox", { name: "“hatsune miku”的外部对应" }), { target: { value: "hatsune_miku" } });
   fireEvent.click(within(row).getByRole("button", { name: "补上外部对应" }));
-  await waitFor(() => expect(calls).toContainEqual({ cmd: "plugin:library|map_tag_external", args: { libraryId: "L1", tagId: "local-eagle", external: "hatsune_miku" } }));
+  await waitFor(() => expect(fake.calls()).toContainEqual({ command: "map_tag_external", args: { libraryId: "L1", tagId: "local-eagle", external: "hatsune_miku" } }));
 });
