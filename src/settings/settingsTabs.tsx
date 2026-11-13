@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Activity, Archive, Keyboard, RefreshCw, Rss, Settings2, ShieldCheck, Sparkles, Tags } from "lucide-react";
-import { i18n } from "./i18n/instance";
+import { i18n } from "../i18n/instance";
 
 export type SettingsTab = "general" | "keys" | "tags" | "tagging" | "backup" | "safety" | "subscriptions" | "update" | "diag";
 const TABS: { value: SettingsTab; icon: ReactNode }[] = [

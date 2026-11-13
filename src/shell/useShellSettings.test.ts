@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { TagDisplay } from "../bindings/TagDisplay";
-import { backend, defaults } from "../SettingsPanel.fixtures";
+import { backend, defaults } from "../settings/SettingsPanel.fixtures";
 import { createShellSettings } from "./useShellSettings";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));

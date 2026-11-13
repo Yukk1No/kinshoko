@@ -1,4 +1,4 @@
-/** 设置（`src/SettingsPanel.tsx`）的分页、通用、快捷键、安全与诊断，以及运行环境（`src/RuntimeSupport.tsx`）。 */
+/** 设置（`src/settings/SettingsPanel.tsx`）的分页、通用、快捷键、安全与诊断，以及运行环境（`src/RuntimeSupport.tsx`）。 */
 export default {
   label: "设置",
   heading: "设置",

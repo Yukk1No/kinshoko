@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import type { BackupPreview } from "./bindings/BackupPreview";
-import type { BackupStatus } from "./bindings/BackupStatus";
-import type { RestoreReport } from "./bindings/RestoreReport";
-import type { SnapshotSummary } from "./bindings/SnapshotSummary";
+import type { BackupPreview } from "../bindings/BackupPreview";
+import type { BackupStatus } from "../bindings/BackupStatus";
+import type { RestoreReport } from "../bindings/RestoreReport";
+import type { SnapshotSummary } from "../bindings/SnapshotSummary";
 import { BackupReminder, BackupSettings } from "./Backup";
-import { chooseOption } from "./test/select";
-import { fakeBackend, type Replies } from "./test/backend";
+import { chooseOption } from "../test/select";
+import { fakeBackend, type Replies } from "../test/backend";
 
 afterEach(() => {
   delete window.__KINSHOKO_TEST_PICKS__;

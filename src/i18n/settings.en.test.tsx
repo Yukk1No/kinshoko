@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { i18n } from ".";
 import type { TagCatalogWorkspace } from "../bindings/TagCatalogWorkspace";
-import { SettingsPanel } from "../SettingsPanel";
-import { backend, resetSettingsTest, tab } from "../SettingsPanel.fixtures";
+import { SettingsPanel } from "../settings/SettingsPanel";
+import { backend, resetSettingsTest, tab } from "../settings/SettingsPanel.fixtures";
 import { thresholdProblem } from "../tags/tagConfidence";
 import { expectNoChinese } from "../test/noChinese";
 

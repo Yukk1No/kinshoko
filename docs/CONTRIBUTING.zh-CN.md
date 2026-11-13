@@ -66,7 +66,7 @@ CI 在 `windows-2022` 上运行 Rust 检查（格式、Clippy、核心 crate 测
 | `crates/kinshoko-core/` | 领域核心 crate，不依赖 Tauri。领域逻辑都放这里，测试在它的对外接口上用临时目录里的真 SQLite 与真文件。 |
 | `crates/kinshoko-tagger/` | 打标子进程：ONNX Runtime + DirectML 推理，没有独显时走 CPU。 |
 | `src-tauri/` | Tauri 2 应用壳（crate `kinshoko`）。命令层只做转发、类型转换和事件推送。 |
-| `src/` | React 19＋TS＋Vite 前端；`src/ipc.ts` 是调用 Tauri 命令的唯一入口。 |
+| `src/` | React 19＋TS＋Vite 前端；`src/ipc.ts` 是调用 Tauri 命令的唯一入口。`src/` 根目录只放入口与启动相关的文件，功能代码进各自的文件夹。 |
 | `src/bindings/` | ts-rs 从核心 crate 生成的前后端契约类型，**不要手改**，生成后提交。 |
 | `e2e/` | Tauri WebDriver 冒烟测试（建库、导入、浏览、重开），只用 Node 自带模块。 |
 | `tools/` | 自带依赖或锁文件的独立工具（探针、内置表格的生成器），不在 Cargo 工作区内。 |

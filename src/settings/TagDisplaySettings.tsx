@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Gauge, Palette, RotateCcw } from "lucide-react";
-import type { TagDisplay } from "./bindings/TagDisplay";
-import type { TagStyle } from "./bindings/TagStyle";
-import { DEFAULT_TAG_DISPLAY, thresholdProblem } from "./tags/tagConfidence";
-import { Segmented } from "./ui/Segmented";
-import { SettingsGroup, SettingsRow } from "./ui/SettingsList";
+import type { TagDisplay } from "../bindings/TagDisplay";
+import type { TagStyle } from "../bindings/TagStyle";
+import { DEFAULT_TAG_DISPLAY, thresholdProblem } from "../tags/tagConfidence";
+import { Segmented } from "../ui/Segmented";
+import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
 import { useTranslation } from "react-i18next";
 
 // 输入框按整数百分比（0–100）写，和标签上的“可信度 87%”一致；存的仍是 0–1 的小数。

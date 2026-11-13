@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { OPEN_MS, SEAL_MS, clamp, sealBookSVG } from "./shell/sealbook";
-import { Tip } from "./ui/Tip";
-import { useReducedMotion } from "./ui/reducedMotion";
+import { OPEN_MS, SEAL_MS, clamp, sealBookSVG } from "./sealbook";
+import { Tip } from "../ui/Tip";
+import { useReducedMotion } from "../ui/reducedMotion";
 
 // The drawing and the progress-driven seal / release motion are copied verbatim from the approved
 // prototype (bd8aea44:prototype/reference-browser/src/components/SealBook.tsx, round-5 A1 round lock).

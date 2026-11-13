@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { afterEach, expect, it } from "vitest";
-import { SettingsPanel } from "../SettingsPanel";
+import { SettingsPanel } from "../settings/SettingsPanel";
 import type { TagLabel } from "../bindings/TagLabel";
 const label=(id:string,name:string):TagLabel=>({id,name,namespace:"general",untranslated:false,hasExternal:false});
 const defaults={autostart:false,shortcuts:[],showApproxSource:false,forceSrgb:false,forceSrgbInEffect:false,runLog:false};

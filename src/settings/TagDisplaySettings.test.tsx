@@ -1,10 +1,10 @@
 // 设置 › 标签 › 外观（#160）：标签风格 B / C、可信度分档阈值；本设备设置，改了立即告诉主窗口。
 import { describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { ShellSettingsView } from "./bindings/ShellSettingsView";
-import type { TagDisplay } from "./bindings/TagDisplay";
+import type { ShellSettingsView } from "../bindings/ShellSettingsView";
+import type { TagDisplay } from "../bindings/TagDisplay";
 import { SettingsPanel } from "./SettingsPanel";
-import { fakeBackend, shellSettings } from "./test/backend";
+import { fakeBackend, shellSettings } from "../test/backend";
 
 /** 像核心一样保存标签外观：阈值交叉时拒绝，原来的设置不变。 */
 function backend() {

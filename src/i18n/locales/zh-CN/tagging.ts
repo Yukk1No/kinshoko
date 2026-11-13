@@ -1,4 +1,4 @@
-/** 自动标签：主窗口里的状态（`src/TaggingActivity.tsx`，图片墙右下角的图标与通知）与设置 › 自动标签（`src/AutoTaggingSettings.tsx`）。 */
+/** 自动标签：主窗口里的状态（`src/tagging/TaggingActivity.tsx`，图片墙右下角的图标与通知）与设置 › 自动标签（`src/settings/AutoTaggingSettings.tsx`）。 */
 export default {
   /** 自动标签所用的设备；键是 `Device`。 */
   device: {

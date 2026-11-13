@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 // 三层叠片在绘画软件里是“图层”，换成拼贴板（LayoutDashboard）；截图用取景框，时钟只说得出“历史”；订阅用收件盘，pixiv 订阅不是 RSS。悬停动效见 shell.css 的 `.rail-ic-*`。
 import { LayoutDashboard, Settings } from 'lucide-react';
 import { RailImagesIcon, RailInboxIcon, RailViewfinderIcon, type RailIcon } from './RailIcons';
-import { SealBook } from '../SealBook';
+import { SealBook } from './SealBookToggle';
 import { BrandMark } from '../ui/BrandMark';
 import { Tip } from '../ui/Tip';
 import { captureHistory, onCaptureHistory, onReferenceGroupsChanged, referenceGroups } from '../ipc';

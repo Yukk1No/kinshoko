@@ -2,7 +2,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { NameInput } from "../library/SidebarPane";
+import { NameInput } from "./NameInput";
 import { NewGroup } from "../library/TagGroupsPane";
 import { AliasEditor } from "../library/TagPanel";
 import { ToastProvider } from "./Toast";

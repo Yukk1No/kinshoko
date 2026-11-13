@@ -2,9 +2,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
-import type { TaggingStatus } from "./bindings/TaggingStatus";
+import type { TaggingStatus } from "../bindings/TaggingStatus";
 import { TaggingActivity } from "./TaggingActivity";
-import { fakeBackend, type FakeBackend } from "./test/backend";
+import { fakeBackend, type FakeBackend } from "../test/backend";
 
 let fake: FakeBackend;
 /** 前端发出的命令，按先后。 */

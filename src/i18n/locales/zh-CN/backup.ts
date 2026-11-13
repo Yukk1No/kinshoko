@@ -1,4 +1,4 @@
-/** 设置 › 备份：图库备份与恢复（`src/Backup.tsx`）、偏好设置备份（`src/ApplicationSettingsBackup.tsx`），以及备份没完成的提醒。 */
+/** 设置 › 备份：图库备份与恢复（`src/settings/Backup.tsx`）、偏好设置备份（`src/settings/ApplicationSettingsBackup.tsx`），以及备份没完成的提醒。 */
 export default {
   /** 列举时的分隔：“A、B”。 */
   separator: "、",

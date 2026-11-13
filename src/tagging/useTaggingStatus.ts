@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { TaggingStatus } from "./bindings/TaggingStatus";
-import { onTaggingStatus, taggingStatus } from "./ipc";
+import type { TaggingStatus } from "../bindings/TaggingStatus";
+import { onTaggingStatus, taggingStatus } from "../ipc";
 
 /**
  * 自动标签的状态。后端全设备一个打标调度，覆盖所有资料库（ADR-0008 修订，#414）：状态是各库合计，

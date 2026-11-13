@@ -78,7 +78,7 @@ cargo test -p kinshoko-core --test catalog_groups --test catalog_visibility --te
 cargo clippy --workspace --all-targets --locked -j2 -- -D warnings
 cargo fmt --all --check
 npm test
-npm test -- src/App.test.tsx src/library/WorkspaceSources.test.tsx src/library/SharedTagGroups.test.tsx src/library/TagOrganize.test.tsx src/SettingsPanel.test.tsx
+npm test -- src/App.test.tsx src/library/WorkspaceSources.test.tsx src/library/SharedTagGroups.test.tsx src/library/TagOrganize.test.tsx src/settings/SettingsPanel.test.tsx
 npm run typecheck
 npm run vite:build
 $env:TAURI_CONFIG = '{"identifier":"dev.kinshoko.spec78t05test"}'

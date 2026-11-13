@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { BackupPreview } from "./bindings/BackupPreview";
-import { useToast } from "./ui/Toast";
-import type { BackupStatus } from "./bindings/BackupStatus";
-import type { LibraryRegistration } from "./bindings/LibraryRegistration";
-import type { RestoreReport } from "./bindings/RestoreReport";
-import type { ScopeSelection } from "./bindings/ScopeSelection";
-import type { SnapshotSummary } from "./bindings/SnapshotSummary";
-import type { Stamp } from "./bindings/Stamp";
-import type { Uncovered } from "./bindings/Uncovered";
+import type { BackupPreview } from "../bindings/BackupPreview";
+import { useToast } from "../ui/Toast";
+import type { BackupStatus } from "../bindings/BackupStatus";
+import type { LibraryRegistration } from "../bindings/LibraryRegistration";
+import type { RestoreReport } from "../bindings/RestoreReport";
+import type { ScopeSelection } from "../bindings/ScopeSelection";
+import type { SnapshotSummary } from "../bindings/SnapshotSummary";
+import type { Stamp } from "../bindings/Stamp";
+import type { Uncovered } from "../bindings/Uncovered";
 import {
   backupPreview,
   backupSnapshots,
@@ -20,14 +20,14 @@ import {
   setBackupTarget,
   startBackup,
   errorText,
-} from "./ipc";
+} from "../ipc";
 import { Archive, CircleCheck, HardDrive, Library, RotateCcw } from "lucide-react";
-import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
-import { Select } from "./ui/Select";
+import { SettingsGroup, SettingsRow, StatusPill } from "../ui/SettingsList";
+import { Select } from "../ui/Select";
 import { useTranslation } from "react-i18next";
-import { i18n } from "./i18n/instance";
-import { formatBytes, formatMoment } from "./i18n/format";
-import { describeCommandError, storedReasonText } from "./ipc/commandError";
+import { i18n } from "../i18n/instance";
+import { formatBytes, formatMoment } from "../i18n/format";
+import { describeCommandError, storedReasonText } from "../ipc/commandError";
 
 /** 日期时间，按记录时的时区偏移，例如“10月5日 08:00”；不在今年时带年份。 */
 export function stampText(s: Stamp): string {
