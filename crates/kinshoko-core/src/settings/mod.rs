@@ -19,8 +19,10 @@ use crate::diagnostics::run_log_default_for_version;
 use crate::library::SafeModeScope;
 use crate::tagging::{Device, catalog};
 
+mod change;
 mod error;
 mod preferences;
+pub use change::SettingChange;
 pub use error::SettingsError;
 pub use preferences::*;
 

@@ -23,7 +23,6 @@ import type { SearchInput } from "../bindings/SearchInput";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageEdit } from "../bindings/ImageEdit";
 import type { ReferenceGroup } from "../bindings/ReferenceGroup";
-import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { Sidebar } from "../bindings/Sidebar";
 import type { TagNamespace } from "../bindings/TagNamespace";
 import type { TagGroupView } from "../bindings/TagGroupView";
@@ -184,7 +183,3 @@ export function pickApplicationSettings(save: boolean): Promise<string | null> {
 export function exportApplicationSettings(path: string): Promise<void> { return invoke<void>(lib("export_application_settings"), { path }); }
 export function previewApplicationSettings(path: string): Promise<import("../bindings/ApplicationSettingsPreview").ApplicationSettingsPreview> { return invoke(lib("preview_application_settings"), { path }); }
 export function restoreApplicationSettings(path: string, fingerprint: string): Promise<import("../bindings/ApplicationSettingsRestored").ApplicationSettingsRestored> { return invoke(lib("restore_application_settings"), { path, fingerprint }); }
-export function setViewerBackground(background: import("../bindings/ViewerBackground").ViewerBackground): Promise<ShellSettingsView> { return invoke("set_viewer_background", { background }); }
-/** 保存主窗口详情面板的宽度（#157）；后端把它收进 280–560。 */
-export function setInspectorWidth(width: number): Promise<ShellSettingsView> { return invoke("set_inspector_width", { width }); }
-export function setInspectorOpen(open: boolean): Promise<ShellSettingsView> { return invoke("set_inspector_open", { open }); }
