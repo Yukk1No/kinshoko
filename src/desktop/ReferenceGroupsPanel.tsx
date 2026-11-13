@@ -85,7 +85,8 @@ export function ReferenceGroupsPanel() {
         setLibraryNames(new Map(list.map((r) => [r.library.id, r.library.name])));
         setLibraryOptions(list);
       })
-      .catch(() => {});
+      // 读不出图库时卡片上的图库名都会写成“未打开的图库”，与参考组读不出一样提示。
+      .catch((e) => toast.error(errorText(e)));
   }, [toast]);
 
   useEffect(() => {

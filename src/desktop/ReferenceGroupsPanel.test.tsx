@@ -18,6 +18,11 @@ const ipc = vi.hoisted(() => ({
   removeMember: vi.fn(() => Promise.resolve()),
   exportPackage: vi.fn((): Promise<string | null> => Promise.resolve("D:/导出/头发参考.kinshoko-group")),
   importPackage: vi.fn(() => Promise.resolve({ name: "别人的参考组" } as unknown)),
+  libraries: vi.fn(() =>
+    Promise.resolve([
+      { library: { id: "lib-a", name: "主库", root: "D:/a" }, unavailable: null },
+      { library: { id: "lib-b", name: "移动盘库", root: "E:/b" }, unavailable: { code: "system" as const, detail: "没插" } },
+    ])),
 }));
 
 vi.mock("../ipc", () => ({
@@ -40,11 +45,7 @@ vi.mock("../ipc", () => ({
   onReferenceGroupsChanged: () => Promise.resolve(() => {}),
   onWorkspaceChanged: () => Promise.resolve(() => {}),
   workspaceDirectories: () => Promise.resolve({ status:{revision:"test",libraries:[]}, providers:[{registration:{library:{id:"lib-a",name:"主库",root:"D:/a"},unavailable:null},sidebar:{all:0,trash:0,folders:[{id:"folder-a",name:"截图目录",children:[],count:0}]},unassigned:0,descendants:{}}] }),
-  registeredLibraries: () =>
-    Promise.resolve([
-      { library: { id: "lib-a", name: "主库", root: "D:/a" }, unavailable: null },
-      { library: { id: "lib-b", name: "移动盘库", root: "E:/b" }, unavailable: { code: "system" as const, detail: "没插" } },
-    ]),
+  registeredLibraries: ipc.libraries,
 }));
 
 import { ReferenceGroupsPanel } from "./ReferenceGroupsPanel";
@@ -288,6 +289,12 @@ describe("参考组面板", () => {
     await screen.findByText("已删除参考组");
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "关闭提示" })); });
     await waitFor(() => expect(ipc.purge).toHaveBeenCalledWith("g1"));
+  });
+
+  it("读不出图库名时报错（#529）", async () => {
+    ipc.libraries.mockRejectedValueOnce({ code: "message", message: "图库表读不出" });
+    await show();
+    expect(await screen.findByText(/图库表读不出/)).toBeTruthy();
   });
 
   it("撤销失败时报错", async () => {

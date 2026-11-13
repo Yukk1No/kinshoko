@@ -10,6 +10,7 @@ import type { LegacyNameResolution } from "../bindings/LegacyNameResolution";
 import { describeCommandError, errorText } from "../ipc/commandError";
 import { confirmLegacyNames, onLibraryEvent, onSafeModeSetting, onWorkspaceChanged, planLegacyNames, previewLegacyNames } from "../ipc";
 import { languageName } from "../tags/languages";
+import { logFailure } from "../runLog";
 import { DialogHeight, DialogSwap } from "../ui/DialogHeight";
 import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
 import { usePersistentToast } from "../ui/Toast";
@@ -229,7 +230,8 @@ function usePendingLegacyNames(match: (group: LegacyNameGroup) => boolean, deps:
       const request = ++generation;
       void planLegacyNames().then((view) => {
         if (alive && request === generation) setCount(view?.plan.groups.filter((group) => matcher.current(group)).length ?? 0);
-      }).catch(() => {}).finally(() => {
+      // 读不出时数量按 0，不弹通知；向导里打开时会显示原因。记一条，排查时知道通知为什么没出现。
+      }).catch((e) => logFailure("plan legacy names", e)).finally(() => {
         running = false;
         if (alive && request === generation) setSettled(true);
         if (alive && stale) schedule();

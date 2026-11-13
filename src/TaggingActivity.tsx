@@ -236,6 +236,7 @@ export function TaggingActivity({ onOpenSettings, onShowUnfinished, collapsed = 
   // 状态文字按界面语言取：换语言时重绘。
   useTranslation();
   const status = useTaggingStatus();
+  const toast = useToast();
   useTaggingNotices(status);
   const ring = useRingProgress(status);
   const progress = useTaggingProgress(status);
@@ -260,7 +261,7 @@ export function TaggingActivity({ onOpenSettings, onShowUnfinished, collapsed = 
   const act = actOf(status);
   const next = act && ACT[act];
   const click = () => {
-    if (next) void next.run().catch(() => {});
+    if (next) void next.run().catch((e) => toast.error(i18n.t("tagging:notice.actionFailed", { error: errorText(e) })));
     else onOpenSettings();
   };
   return <>
