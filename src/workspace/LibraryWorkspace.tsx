@@ -1,29 +1,22 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { PanelLeftOpen, PanelRight } from "lucide-react";
 import { useImportShortcut } from "./useImportShortcut";
 import { useInspectorShortcut } from "./useInspectorShortcut";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
-import { ImportMenu, type ImportControl } from "../library/ImportMenu";
-import { SearchBox } from "../search/SearchBox";
-import { TagGroupBar } from "../search/TagGroupBar";
+import { type ImportControl } from "../library/ImportMenu";
 import { fitPanes, isNarrow, usePaneFold, useWidth } from "../shell/paneFit";
 import { usePanelSlide } from "../shell/usePanelSlide";
 import { TaggingActivity } from "../tagging/TaggingActivity";
 import { useToast } from "../ui/Toast";
-import { WinCtrls } from "../ui/WinCtrls";
-import { Tip } from "../ui/Tip";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "../wall/Wall";
 import { useStackSetsSetting, viewedPage } from "../wall/imageSets";
 import { WallFloats } from "../wall/WallFloats";
 import { WallMenu } from "../wall/WallMenu";
 import { WallEmptyAction } from "./WallEmptyAction";
 import { useWallActions } from "../wall/useWallActions";
-import { Viewer } from "../viewer/Viewer";
 import { useViewerFlight } from "../viewer/ViewerFlight";
-import { TagGroupsDialog } from "./TagGroupsDialog";
 import { useImportTasks } from "./useImportTasks";
 import { useInvalidation } from "./useInvalidation";
 import { useLibraryEvents } from "./useLibraryEvents";
@@ -35,6 +28,9 @@ import { useViewerStep } from "./useViewerStep";
 import { WorkspaceInspector } from "./WorkspaceInspector";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
 import { useWorkspaceInspector } from "./useWorkspaceInspector";
+import { wallFloatBar } from "./wallFloatBar";
+import { ViewerLayer } from "./ViewerLayer";
+import { WorkspaceTopbar } from "./WorkspaceTopbar";
 import { useWorkspaceStatus } from "./useWorkspaceStatus";
 import type { WorkspaceProps } from "./workspaceProps";
 
@@ -92,7 +88,6 @@ export function LibraryWorkspace({
   if (!viewing && viewCrop) setViewCrop(false);
   const importControl = useRef<ImportControl>(null);
   useImportShortcut(importControl, hidden);
-  const [editingGroups, setEditingGroups] = useState(false);
   // 有截图请求时关掉查看器与来源面板；在渲染中比较，截图请求到的这一帧就不再画查看器。
   const [handledCapture, setHandledCapture] = useState(captureRequest);
   if (handledCapture !== captureRequest) {
@@ -193,55 +188,7 @@ export function LibraryWorkspace({
             if (panes.floating) onPaneOpen(false);
           }} />
         <main className="app-main main">
-          <header className="topbar" data-tauri-drag-region>
-            {!paneOpen && <Tip label={t("expandPane")} keys="Ctrl+B"><button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={t("expandPane")}><PanelLeftOpen size={16} aria-hidden="true" /></button></Tip>}
-          <SearchBox
-            workspace
-            libraryId="workspace"
-            safe={safe}
-            generation={vocabularyKey}
-            input={search}
-            tree={searching && treeSafe === safe ? tree : null}
-            showSource={showApproxSource}
-            onError={onError}
-            onChange={changeSearch}
-          />
-          <div className="bar-meta">
-            <span className="result-count tabular k-label" role="status" aria-label={t("results")}>{resultCount === null ? "…" : t("resultCount", { count: resultCount })}</span>
-          </div>
-          <ImportMenu control={importControl} scope={workspaceScope} enabled={!hidden}
-            running={running} finished={report} onStarted={started} onDismissReport={() => setReport(null)}
-            onOpenTrash={(owner) => {
-              onOpenBrowse();
-              setWorkspaceScope({ kind: "library", libraryId:owner, scope: { kind: "trash" } });
-              // 来源面板保持现状（与换左栏范围不同）。
-              changeSearch({ conditions: [], exact: false });
-            }}
-            onShowDestination={(destination) => {
-              onOpenBrowse();
-              setWorkspaceScope({ kind: "library", libraryId: destination.libraryId,
-                // 没选文件夹时打开整个图库：Eagle 导入与合并的重复项会保留原有文件夹，“未归类”可能一张也看不到。
-                scope: destination.folderId === null ? { kind: "all" } : { kind: "folder", id: destination.folderId } });
-              changeSearch((prev) => ({ ...prev, conditions: [] }));
-            }} />
-          {!inspectorOpen && <>
-            <Tip label={t("viewer:tools.showInspector")}><button type="button" className="k-icon-btn" aria-label={t("viewer:tools.showInspector")} onClick={toggleInspector}><PanelRight size={16} aria-hidden="true" /></button></Tip>
-            <WinCtrls />
-          </>}
-          </header>
-          <div className="app-tagbar">
-          <TagGroupBar workspace libraryId="workspace" safe={safe} generation={vocabularyKey} input={search}
-            onChange={changeSearch} onError={onError} onEdit={() => setEditingGroups(true)} />
-          </div>
-          <TagGroupsDialog open={editingGroups} onOpenChange={setEditingGroups} safe={safe} generation={vocabularyKey}
-            onBrowse={(globalIds) => {
-              changeSearch((prev) => ({
-                ...prev,
-                conditions: [{ any: globalIds.map((id) => ({ kind: "tag", id, dismissed: [] })), negate: false }],
-              }));
-              setEditingGroups(false);
-            }}
-            onError={onError} />
+          <WorkspaceTopbar paneOpen={paneOpen} onPaneToggle={onPaneToggle} safe={safe} vocabularyKey={vocabularyKey} search={search} searching={searching} treeSafe={treeSafe} tree={tree} changeSearch={changeSearch} showApproxSource={showApproxSource} onError={onError} resultCount={resultCount} importControl={importControl} workspaceScope={workspaceScope} setWorkspaceScope={setWorkspaceScope} hidden={hidden} running={running} report={report} started={started} setReport={setReport} onOpenBrowse={onOpenBrowse} inspectorOpen={inspectorOpen} toggleInspector={toggleInspector} />
           {/* 图片墙所在的区域：查看器盖在这里（#179），左栏、顶栏与详情侧栏照常可用。 */}
           <div className="wall-host" ref={wallHost}>
           <Wall
@@ -287,37 +234,9 @@ export function LibraryWorkspace({
           <WallFloats
             tagging={(collapsed) => <TaggingActivity collapsed={collapsed} onOpenSettings={onOpenTaggingSettings} onShowUnfinished={showUnfinishedTagging} />}
             density={viewerOpen ? null : { value: density, preview: zoomPreview, onPreview: (v) => wall.current?.previewDensity(v), onCommit: setDensity }}
-            bar={inspected !== null || hidden || viewerOpen ? null
-              : selectionLibrary !== null ? (panelIds.length > 1 ? {
-                libraryId: selectionLibrary, scope, ids: panelIds, onClear: () => setSelected(new Set()), reloadKey, onError, safeMode: safe,
-              } : null)
-              : selectedCards.length > 1 ? {
-                libraryId: null, scope, ids: selectedCards.map((card) => card.id), onClear: () => setSelected(new Set()), reloadKey, onError, safeMode: safe,
-                acrossLibraries: {
-                  folderLibrary: new Set(selectedCards.map((card) => card.libraryId)).size === 1 ? selectedCards[0].libraryId ?? null : null,
-                  edit: (edits, clear) => wallActions.edit(selectedCards, edits, clear),
-                },
-              } : null}
+            bar={wallFloatBar({ inspected, hidden, viewerOpen, selectionLibrary, panelIds, scope, setSelected, reloadKey, onError, safe, selectedCards, wallActions })}
           />
-          {flight.card && (
-            <Viewer
-              key={flight.session}
-              flight={flight.attr}
-              hideImage={flight.hideImage}
-              onPlaced={flight.onPlaced}
-              libraryId={flight.card.libraryId}
-              card={{ ...flight.card, id: flight.card.imageId ?? flight.card.id }}
-              onClose={() => setViewing(null)}
-              onBack={() => { flight.back(); setViewing(null); }}
-              reloadKey={reloadKey}
-              position={viewerPosition.current}
-              onStep={step}
-              startCrop={viewCrop}
-              inspectorOpen={inspectorOpen}
-              onToggleInspector={toggleInspector}
-              onTrash={!viewing || (viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.deleted ?? scope.kind === "trash") ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
-            />
-          )}
+          <ViewerLayer flight={flight} viewing={viewing} setViewing={setViewing} reloadKey={reloadKey} viewerPosition={viewerPosition} step={step} viewCrop={viewCrop} inspectorOpen={inspectorOpen} toggleInspector={toggleInspector} scope={scope} wallActions={wallActions} />
           {flight.flier}
           </div>
         </main>

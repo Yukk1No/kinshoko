@@ -1,12 +1,13 @@
 import { useCaptureSources } from "./desktop/captureSources";
+import { EmptyWorkspace } from "./shell/EmptyWorkspace";
+import { useSafeMode } from "./shell/useSafeMode";
 import { onCollectionRequest, registerLibrary, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { PanelLeftClose, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "./i18n";
 import { ToastProvider, useToast } from "./ui/Toast";
-import { WinCtrls } from "./ui/WinCtrls";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { ShellSettingsView } from "./bindings/ShellSettingsView";
 import type { LibraryInfo } from "./bindings/LibraryInfo";
@@ -16,16 +17,12 @@ import {
   openLastLibrary,
   workspaceStatus,
   onWorkspaceChanged,
-  onSafeModeSetting,
   safeMode,
-  setSafeMode,
   changeSetting,
   uiScale,
 } from "./ipc";
 import { useOpenInKinshoko } from "./desktop/openInKinshoko";
-import { CaptureHistoryPanel } from "./desktop/CaptureHistoryPanel";
-import { ReferenceGroupsPanel } from "./desktop/ReferenceGroupsPanel";
-import { CreateLibrary, CreateLibraryDialog } from "./library/CreateLibrary";
+import { CreateLibraryDialog } from "./library/CreateLibrary";
 import { LegacyNameMigrationNotice, LegacyNameWizard } from "./library/LegacyNameMigrationPanel";
 import { LibraryPicker } from "./library/LibraryPicker";
 import { Rail, type Section } from "./shell/Rail";
@@ -37,8 +34,6 @@ import { BackupReminder } from "./settings/Backup";
 import { Dialog } from "@base-ui/react/dialog";
 import { UpdateNotice } from "./Update";
 import { RuntimeNotice } from "./RuntimeSupport";
-import { INITIAL_SAFE_LENS, needsRecheck, reduceSafeLens, type SafeLensAction } from "./shell/safeLens";
-import { safeTiming } from "./shell/safeTiming";
 import type { TagDisplay } from "./bindings/TagDisplay";
 import { DEFAULT_TAG_DISPLAY } from "./tags/tagConfidence";
 import { TagDisplayContext } from "./tags/TagDisplayContext";
@@ -50,7 +45,6 @@ import { releaseStartup, startupLibraryOpened } from "./startupGate";
 import { StartupSplash } from "./shell/StartupSplash";
 import { LoginExpiredNotice, SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
 import { errorText } from "./ipc/commandError";
-import { Tip } from "./ui/Tip";
 
 /**
  * 主窗口：本设备登记的资料库（#49）；上次的库不可用时仍可选择其他库、重新登记或新建。状态栏可打开截图历史与设置。
@@ -123,44 +117,7 @@ function MainWindow() {
     void changeSetting({ kind: "inspectorOpen", open }).catch(() => {});
   }, []);
   const { uiScalePercent, uiScaleWriting, acceptUiScale, chooseUiScale } = useUiScaleChoice(toast);
-  /**
-   * 安全模式。读到设置之前按开启处理，不会先露出被封印的图。`safe` 是开关上显示的状态；
-   * 查询资料库用 `lensSafe`：关闭时等后端确认才放开（#183，见 safeLens）。
-   */
-  const [safeState, setSafeState] = useState(INITIAL_SAFE_LENS);
-  const safeStateRef = useRef(safeState);
-  const applySafe = useCallback((action: SafeLensAction) => {
-    safeStateRef.current = reduceSafeLens(safeStateRef.current, action);
-    setSafeState(safeStateRef.current);
-  }, []);
-  const { shown: safe, lens: lensSafe } = safeState;
-  const acceptSafe = useCallback((on: boolean) => applySafe({ kind: "external", on }), [applySafe]);
-  /** 以后端保存的设置为准；读不到时按开启处理。 */
-  const recheckSafe = useCallback(() => {
-    safeMode().then(
-      (on) => acceptSafe(on !== false),
-      () => acceptSafe(true),
-    );
-  }, [acceptSafe]);
-  const toggleSafe = useCallback(() => {
-    // 不等后端：这一帧就开始遮蔽（或打开封印书）。
-    applySafe({ kind: "toggle" });
-    const next = safeStateRef.current.shown;
-    safeTiming.toggled(next);
-    setSafeMode(next).then(
-      (on) => {
-        safeTiming.mark("backend-confirmed");
-        applySafe({ kind: "settled", on });
-        // 快速连点时返回可能乱序：与最后一次点击不一致就读一次设置校准。
-        if (needsRecheck(safeStateRef.current, on)) recheckSafe();
-      },
-      (e) => {
-        applySafe({ kind: "failed" });
-        toast.error(i18n.t("shell:safeMode.toggleFailed", { error: errorText(e) }));
-        recheckSafe();
-      },
-    );
-  }, [toast, applySafe, recheckSafe]);
+  const { safe, lensSafe, acceptSafe, toggleSafe } = useSafeMode();
 
   // 钉图菜单“在 Kinshoko 中打开”（#106）：参考图在查看器里打开，截图打开截图历史。
   useOpenInKinshoko((request) => {
@@ -227,22 +184,6 @@ function MainWindow() {
     const stop = onWorkspaceChanged(accept);
     return () => { alive = false; void stop.then((stop) => stop()); };
   }, [lensSafe]);
-
-  useEffect(() => {
-    const stop = onSafeModeSetting(acceptSafe);
-    return () => { void stop.then((stop) => stop()); };
-  }, [acceptSafe]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        toggleSafe();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [toggleSafe]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -312,25 +253,7 @@ function MainWindow() {
           setReferenceRequest((last) => ({ libraryId, imageId, stamp: (last?.stamp ?? 0) + 1 }));
         }} />
       {empty && !subscriptions.page && (
-        <div className="app-empty-workspace">
-          {!hasProviders && paneOpen && section !== "browse" && <aside className="pane empty-context" aria-label={section === "groups" ? t("emptyPane.groups") : t("emptyPane.capturesLabel")}>
-            <header className="pane-head" data-tauri-drag-region><h2 className="pane-title">{section === "groups" ? t("emptyPane.groups") : t("emptyPane.captures")}</h2>
-              <Tip label={t("emptyPane.collapse")} keys="Ctrl+B"><button type="button" className="k-icon-btn" aria-label={t("emptyPane.collapse")} onClick={() => setPaneOpen(false)}><PanelLeftClose size={16} aria-hidden="true" /></button></Tip></header>
-            {section === "groups" ? <ReferenceGroupsPanel /> : <CaptureHistoryPanel request={captureRequest} onRequestHandled={collectionHandled} />}
-          </aside>}
-        <main className="app-main app-main-centered">
-          <header className="topbar is-empty" data-tauri-drag-region><span className="k-grow" /><WinCtrls /></header>
-          <div className="app-empty-body">
-          {!opened ? (
-            <p role="status">{t("opening")}</p>
-          ) : createPage ? (
-            <CreateLibrary onCreated={changed} onBusyChange={setCreating} onBack={() => setShowCreate(false)} backLabel={t("back")} />
-          ) : (
-            <LibraryPicker layout="inline" ready={opened} onChanged={changed} onCreate={() => setShowCreate(true)} blocked={creating} />
-          )}
-          </div>
-        </main>
-        </div>
+        <EmptyWorkspace hasProviders={hasProviders} paneOpen={paneOpen} section={section} setPaneOpen={setPaneOpen} captureRequest={captureRequest} collectionHandled={collectionHandled} opened={opened} createPage={createPage} changed={changed} setCreating={setCreating} setShowCreate={setShowCreate} creating={creating} />
       )}
       {showCreate && hasProviders && <CreateLibraryDialog opens onClose={() => setShowCreate(false)} onCreated={changed} onBusyChange={setCreating} />}
       <Dialog.Root open={showSettings} onOpenChange={setShowSettings}>

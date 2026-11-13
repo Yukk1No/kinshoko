@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import css from "./ui.css?raw";
+import css from "./uiCss";
 import { cssRule } from "./cssRule";
 
 const rule = (selector: string) => cssRule(css, selector);

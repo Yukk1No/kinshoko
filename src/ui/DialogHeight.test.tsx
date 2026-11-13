@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cssRule } from "./cssRule";
 import { DialogHeight, DialogSwap } from "./DialogHeight";
 import settings from "./settings.css?raw";
-import ui from "./ui.css?raw";
+import ui from "./uiCss";
 import tokens from "../styles/tokens.css?raw";
 import { resize, setMedia } from "../test/platform";
 

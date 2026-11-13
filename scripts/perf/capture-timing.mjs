@@ -19,6 +19,10 @@ import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { release, tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
+import { createOsHelpers } from "./capture-timing-os.mjs";
+import { generateFixtures } from "./capture-timing-fixtures.mjs";
+import { createCapture } from "./capture-timing-capture.mjs";
+import { summarize } from "./capture-timing-summary.mjs";
 
 const [, , appArg, edgeArg, driverArg = "tauri-driver"] = process.argv;
 if (!appArg || !edgeArg) throw new Error("node scripts/perf/capture-timing.mjs <kinshoko.exe> <msedgedriver.exe> [tauri-driver.exe]");
@@ -34,27 +38,7 @@ const repeats = Number(process.env.KINSHOKO_CAPTURE_REPEATS ?? 3);
 for (const dir of [output, parent, source, join(work, "roaming"), join(work, "local")]) mkdirSync(dir, { recursive: true });
 copyFileSync(resolve(appArg), application);
 
-// 合成原图：渐变叠低幅噪声，压缩后的体积接近真实插画／照片。同一种子逐字节相同。
-const FIXTURES = (process.env.KINSHOKO_CAPTURE_FIXTURES ?? "a-2400x1600.png,b-6000x4000.png,c-6000x4000.jpg,d-9000x6000.jpg,e-6000x4000.webp").split(",");
-const generated = spawnSync(python, ["-I", "-c", `
-import sys, random
-from PIL import Image
-out = sys.argv[1]
-for spec in sys.argv[2:]:
-    name, ext = spec.rsplit('.', 1)
-    w, h = map(int, name.split('-')[1].split('x'))
-    rng = random.Random(name)
-    base = Image.linear_gradient('L').resize((w, h))
-    noise = Image.frombytes('L', (w, h), rng.randbytes(w * h))
-    r = Image.blend(base, noise, 0.25)
-    g = Image.blend(base.transpose(Image.Transpose.ROTATE_90).resize((w, h)), noise, 0.15)
-    b = Image.blend(base.transpose(Image.Transpose.FLIP_TOP_BOTTOM), noise, 0.35)
-    im = Image.merge('RGB', (r, g, b))
-    fmt = {'png': 'PNG', 'jpg': 'JPEG', 'webp': 'WEBP'}[ext]
-    im.save(f"{out}/{spec}", fmt, **({'quality': 90} if fmt != 'PNG' else {}))
-`, source, ...FIXTURES], { encoding: "utf8", windowsHide: true });
-if (generated.status !== 0) throw new Error(generated.stderr);
-
+const FIXTURES = generateFixtures(python, source);
 const port = Number(process.env.KINSHOKO_WEBDRIVER_PORT ?? 4467);
 const endpoint = `http://127.0.0.1:${port}`;
 const elementKey = "element-6066-11e4-a52e-4f735466cecf";
@@ -85,55 +69,7 @@ const find = async (xpath) => { const element = await wd("POST", `${base}/elemen
 const click = async (text) => wd("POST", `${base}/element/${await find(`//button[normalize-space()='${text}' or @aria-label='${text}' or starts-with(@aria-label,'${text}，')]`)}/click`, {});
 const viewerImage = () => exec(`const i = document.querySelector('.viewer-stage img'); if (!i?.complete || !i.naturalWidth || getComputedStyle(i).visibility !== 'visible') return null; const r=i.getBoundingClientRect(); return { left:Math.round(r.left*devicePixelRatio), top:Math.round(r.top*devicePixelRatio), width:Math.round(r.width*devicePixelRatio), height:Math.round(r.height*devicePixelRatio), name: document.querySelector('.viewer-title')?.textContent ?? '' };`);
 
-// 开发机上常驻的已安装 Kinshoko 占着 F1：测试实例把框选改绑到不冲突的组合键，之后走同一条
-// 全局快捷键 → on_shortcut → capture::start 路径。绝不按 F1，免得触发画师自己的实例。
-const HOTKEY = "Ctrl+Shift+F9";
-/** 真实按键：光标放到参考图中央（决定冻结哪台显示器），再经 keybd_event 按 HOTKEY。返回按下时刻（epoch ms）。 */
-function pressHotkey(x, y) {
-  const run = spawnSync(python, ["-I", "-c", `
-import ctypes, sys, time
-u = ctypes.windll.user32
-u.SetCursorPos(int(sys.argv[1]), int(sys.argv[2]))
-time.sleep(0.05)
-u.keybd_event(0x11, 0, 0, 0)
-u.keybd_event(0x10, 0, 0, 0)
-t = time.time() * 1000
-u.keybd_event(0x78, 0, 0, 0)
-u.keybd_event(0x78, 0, 2, 0)
-u.keybd_event(0x10, 0, 2, 0)
-u.keybd_event(0x11, 0, 2, 0)
-print(f"{t:.1f}")
-`, String(x), String(y)], { encoding: "utf8", windowsHide: true });
-  if (run.status !== 0) throw new Error(run.stderr);
-  return Number(run.stdout.trim());
-}
-/** 只把本次测试 exe 的主窗口（标题 Kinshoko）置顶；不碰其他进程的窗口。 */
-function topmost() {
-  const run = spawnSync(python, ["-I", "-c", `
-import ctypes, ctypes.wintypes as w, sys
-u = ctypes.windll.user32; k = ctypes.windll.kernel32
-found = []
-def cb(h, _):
-    pid = w.DWORD(); u.GetWindowThreadProcessId(h, ctypes.byref(pid))
-    hp = k.OpenProcess(0x1000, False, pid.value)
-    if not hp: return True
-    buf = ctypes.create_unicode_buffer(1024); n = w.DWORD(1024)
-    ok = k.QueryFullProcessImageNameW(hp, 0, buf, ctypes.byref(n)); k.CloseHandle(hp)
-    t = ctypes.create_unicode_buffer(256); u.GetWindowTextW(h, t, 256)
-    if ok and buf.value.lower().endswith(sys.argv[1].lower()) and t.value == "Kinshoko" and u.IsWindowVisible(h):
-        found.append(h)
-    return True
-u.EnumWindows(ctypes.WINFUNCTYPE(ctypes.c_bool, w.HWND, w.LPARAM)(cb), 0)
-for h in found: u.SetWindowPos(h, -1, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010)
-print(len(found))
-`, basename(application)], { encoding: "utf8", windowsHide: true });
-  if (run.status !== 0 || run.stdout.trim() !== "1") throw new Error(`无法置顶测试主窗口：${run.stderr || run.stdout}`);
-}
-/** 在 (x, y) 右键：框选窗口置顶铺满显示器，右键即取消，不依赖它拿到键盘焦点。只在已显示后调用。 */
-function rightClick(x, y) {
-  const run = spawnSync(python, ["-I", "-c", "import ctypes,sys; u=ctypes.windll.user32; u.SetCursorPos(int(sys.argv[1]),int(sys.argv[2])); u.mouse_event(8,0,0,0,0); u.mouse_event(16,0,0,0,0)", String(x), String(y)], { windowsHide: true });
-  if (run.status !== 0) throw new Error("右键失败");
-}
+const { HOTKEY, pressHotkey, topmost, rightClick } = createOsHelpers(python, application);
 /** 测试 exe 及其全部子进程（WebView2）的进程数、工作集与私有内存（MB），与 docs/validation/resident-memory.md 同口径。 */
 function memory() {
   const run = spawnSync("powershell", ["-NoProfile", "-Command", `
@@ -159,76 +95,8 @@ const after = (list, since) => list.filter((m) => m.at >= since);
 const first = (list, name) => list.find((m) => m.name === name);
 const round = (v) => (v === undefined || Number.isNaN(v) ? null : Math.round(v));
 
-/** 一次 F1：按键 → 显示，再在参考图内完成 action。返回各阶段相对按键的毫秒数。 */
-async function capture(shown, action) {
-  const before = await windows();
-  const pressed = pressHotkey(shown.x + Math.floor(shown.width / 2), shown.y + Math.floor(shown.height / 2));
-  const visible = await until("框选窗口已显示", async () => (await windows()).includes("capture") && (await native("is_visible", "capture")), 30000, 10);
-  const seenVisible = Date.now();
-  const origin = await native("inner_position", "capture");
-  const region = { x: shown.x + Math.floor(shown.width / 4) - origin.x, y: shown.y + Math.floor(shown.height / 4) - origin.y, width: Math.max(4, Math.floor(shown.width / 8)), height: Math.max(4, Math.floor(shown.height / 8)) };
-  const frozen = await desktop("frozen_screen");
-  const readout = await desktop("capture_readout", { region, token: frozen.image.slice("screen/".length) });
-  const confirmed = Date.now();
-  await desktop("finish_capture", { region, action, token: frozen.image.slice("screen/".length) });
-  let pinShown = null;
-  if (action === "pin") {
-    const label = await until("新钉图", async () => (await windows()).find((l) => l.startsWith("pin-") && !before.includes(l)), 30000, 10);
-    await until("钉图已显示", () => native("is_visible", label), 30000, 10);
-    pinShown = Date.now();
-    // 钉图留着会盖住下一次的选区（走普通截图）：关掉它，并确认已关闭。
-    await invoke("plugin:window|close", { label });
-    await until("钉图已关闭", async () => !(await windows()).includes(label));
-  }
-  // 修复前框选窗口用完即销毁，修复后（#129）只隐藏：两种都算结束。
-  await until("框选窗口已关闭", async () => !(await windows()).includes("capture") || !(await native("is_visible", "capture")));
-  await sleep(300);
-  const m = after(marks(), pressed - 5);
-  const at = (name) => first(m, name)?.at;
-  const rel = (t) => round(t - pressed);
-  const finish = at("finish.begin");
-  const stages = {
-    keyToStart: rel(at("start")), grabbed: rel(at("grabbed")),
-    windowBuilt: rel(at("window.built")), pageAsksFrozen: rel(at("frozen_screen")),
-    pngBegin: rel(at("png.begin")), pngEnd: rel(at("png.end")),
-    shown: rel(at("shown")), harnessSawVisible: rel(seenVisible),
-    pngBytes: Number(/bytes=(\d+)/.exec(first(m, "png.end")?.detail ?? "")?.[1] ?? 0),
-    references: Number(/references=(\d+)/.exec(first(m, "frozen")?.detail ?? "")?.[1] ?? -1),
-    covered: Number(/covered=(\d+)/.exec(first(m, "frozen")?.detail ?? "")?.[1] ?? -1),
-  };
-  const result = {
-    original: readout,
-    confirmToFinishBegin: round(finish - confirmed),
-    prepare: round(at("finish.prepared") - finish),
-    finishEnd: round(at("finish.end") - finish),
-    pinWindowBegin: round(at("pin.window.begin") - finish),
-    pinReady: round(at("pin.ready") - finish),
-    harnessPinShown: pinShown ? round(pinShown - confirmed) : null,
-  };
-  return { action, stages, result, visible: !!visible };
-}
+const capture = createCapture({ pressHotkey, windows, until, native, desktop, invoke, sleep, marks, after, first, round });
 
-/** 中位数／最大值汇总，便于修复前后对比。 */
-function summarize(r) {
-  const median = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor((s.length - 1) / 2)]; };
-  const stat = (a) => (a.length ? { median: median(a), max: Math.max(...a), n: a.length } : null);
-  const rest = r.runs.filter((x) => !x.appColdStart);
-  const out = {
-    firstCaptureShown: r.runs.find((x) => x.appColdStart)?.stages.shown ?? null,
-    keyToShown: stat(rest.map((x) => x.stages.shown)),
-    keyToWindowReady: stat(rest.map((x) => x.stages.windowBuilt)),
-    frozenPng: stat(rest.map((x) => x.stages.pngEnd - x.stages.pngBegin)),
-    referenceRuns: `${r.runs.filter((x) => x.result.original).length}/${r.runs.length}`,
-    images: {},
-  };
-  for (const image of [...new Set(r.runs.map((x) => x.image))].sort()) {
-    const of = (action) => r.runs.filter((x) => x.image === image && x.action === action && x.result.original);
-    out.images[image] = { copyToClipboard: of("copy").map((x) => x.result.finishEnd), pinToShown: of("pin").map((x) => x.result.harnessPinShown) };
-  }
-  if (r.tray) out.tray = r.tray.map((t) => ({ gapMs: t.gapMs, shown: t.shown }));
-  if (r.memory) out.memory = r.memory;
-  return out;
-}
 
 const driver = spawn(driverArg, ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], { windowsHide: true, env: { ...process.env, APPDATA: join(work, "roaming"), LOCALAPPDATA: join(work, "local"), KINSHOKO_DATA_DIR: data, KINSHOKO_SKIP_AUTOSTART: "1", KINSHOKO_CAPTURE_TIMING_LOG: marksFile }, stdio: ["ignore", "inherit", "inherit"] });
 const stopped = new Promise((done) => driver.once("exit", done));

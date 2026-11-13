@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import css from "./toast.css?raw";
-import uiCss from "./ui.css?raw";
-import dialogsCss from "./dialogs.css?raw";
+import uiCss from "./uiCss";
+import dialogsCss from "./dialogsCss";
 import { cssRule } from "./cssRule";
 
 const rule = (selector: string) => cssRule(css, selector);

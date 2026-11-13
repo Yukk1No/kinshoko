@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import uiCss from "./ui.css?raw";
+import uiCss from "./uiCss";
 import menuCss from "./menu.css?raw";
 import tokensCss from "../styles/tokens.css?raw";
 import { cssRule } from "./cssRule";

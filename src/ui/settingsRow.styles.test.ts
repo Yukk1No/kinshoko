@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import settings from "./settings.css?raw";
-import ui from "./ui.css?raw";
+import ui from "./uiCss";
 
 /** 一条规则的声明（选择器须完全相同）。 */
 function rule(css: string, selector: string): Record<string, string> {

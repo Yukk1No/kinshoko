@@ -2,18 +2,17 @@ import { useMemo, useRef, useState, type ReactElement } from "react";
 import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import { formatNumber } from "../i18n/format";
-import { ChevronDown, Clock, Info, LoaderCircle, LogOut, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plus, RefreshCw, Rss, TriangleAlert, User } from "lucide-react";
+import { Clock, LoaderCircle, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plus, RefreshCw, Rss, TriangleAlert, } from "lucide-react";
 import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
-import { errorText, thumbnailUrl } from "../ipc";
+import { errorText, } from "../ipc";
 import { subscriptionCheckNow } from "../ipc/subscriptions";
 import { modalOpen } from "../ui/modal";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
-import { WarnIcon } from "../ui/WarnIcon";
 import { Tip } from "../ui/Tip";
 import { accountActions } from "./accountActions";
 import { checkedText, checkView, failureText, retryText } from "./checkStatus";
@@ -21,10 +20,10 @@ import { FirstRunDialog, firstRunSeen, markFirstRunSeen } from "./FirstRunDialog
 import { hiddenWhenSafe, KINDS, kindOf, type KindMount } from "./kinds";
 import { displayName } from "./rankingNames";
 import { RemoveDialog } from "./RemoveDialog";
+import { SubscriptionsAccount } from "./SubscriptionsAccount";
+import { SubscriptionsEmpty } from "./SubscriptionsEmpty";
+import { Tiles } from "./SubscriptionsTiles";
 import { imageKey, useNow, useSubscriptionData } from "./useSubscriptionData";
-
-/** 图片墙的缩略图档位（`thumbnailTier` 的一档），五列左右时够清楚。 */
-const TILE_PX = 384;
 
 /**
  * 订阅页（#368，原型第 1–12 号画板）：左侧订阅名单与账号，右侧最近收进来的图。
@@ -163,33 +162,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
           })}
         </>}
       </div>
-      <div className="subs-account">
-        {signingIn ? <>
-          <span className="subs-avatar is-empty" aria-hidden="true"><LoaderCircle className="subs-spin" size={16} /></span>
-          <span className="subs-account-text is-muted">{t("account.signingIn")}</span>
-        </> : account ? <>
-          <span className="subs-avatar" aria-hidden="true">{account.name.slice(0, 1).toUpperCase()}</span>
-          <span className="subs-account-text">
-            <Name className="subs-account-name">{account.name}</Name>
-            {login.state === "expired"
-              ? <span className="subs-account-sub is-warn"><WarnIcon />{t("account.expired")}</span>
-              : <span className="subs-account-sub">{t("account.source")}</span>}
-          </span>
-          {login.state === "expired" && <button type="button" className="k-btn is-primary" onClick={actions.signIn}><span className="k-label">{t("account.signInAgain")}</span></button>}
-          <Menu.Root modal={false}>
-            <Tip label={t("account.menu")}><Menu.Trigger className="k-icon-btn" aria-label={t("account.menu")}><MoreHorizontal size={16} aria-hidden="true" /></Menu.Trigger></Tip>
-            <MenuPopup label={t("account.menu")} width={200} side="top">
-              <MenuItem icon={<Info size={16} strokeWidth={1.75} />} onClick={() => setFirstRun(true)}>{t("account.risks")}</MenuItem>
-              <MenuSeparator />
-              <MenuItem icon={<LogOut size={16} strokeWidth={1.75} />} onClick={actions.signOut}>{t("account.signOut")}</MenuItem>
-            </MenuPopup>
-          </Menu.Root>
-        </> : <>
-          <span className="subs-avatar is-empty" aria-hidden="true"><User size={16} strokeWidth={1.75} /></span>
-          <span className="subs-account-text is-muted">{t("account.signedOut")}</span>
-          <button type="button" className="k-btn" onClick={actions.signIn}><span className="k-label">{t("account.signIn")}</span></button>
-        </>}
-      </div>
+      <SubscriptionsAccount signingIn={signingIn} account={account} login={login} actions={actions} setFirstRun={setFirstRun} />
     </aside>
     <main className="app-main subs-main">
       <header className="topbar subs-topbar" data-tauri-drag-region>
@@ -215,28 +188,7 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
           <h2 className="subs-section is-quiet">{t("recent.earlier")}</h2>
           <Tiles images={earlier} label={t("recent.open")} onOpen={onOpenImage} onFail={onFail} />
         </section>}
-      </div> : list !== null && <div className="subs-empty">
-        <span className="subs-empty-icon" aria-hidden="true">{signingIn ? <LoaderCircle className="subs-spin is-accent" size={24} /> : <Rss size={24} strokeWidth={1.75} />}</span>
-        {signingIn ? <>
-          <h1 className="subs-empty-title">{t("empty.waitingTitle")}</h1>
-          <div className="subs-empty-actions">
-            <button type="button" className="k-btn is-quiet" onClick={actions.cancel}><span className="k-label">{t("empty.cancel")}</span></button>
-            <button type="button" className="k-btn" onClick={actions.signIn}><span className="k-label">{t("empty.backToWindow")}</span></button>
-          </div>
-        </> : account ? <>
-          <h1 className="subs-empty-title">{t("empty.noSubsTitle")}</h1>
-          <div className="subs-empty-actions">
-            {addMenu(<button type="button" className="k-btn is-primary"><span className="k-label">{t("add")}</span><ChevronDown size={14} strokeWidth={2} aria-hidden="true" /></button>)}
-          </div>
-        </> : <>
-          <h1 className="subs-empty-title">{t("empty.signedOutTitle")}</h1>
-          <p className="subs-empty-hint">{t("empty.signedOutHint")}</p>
-          <div className="subs-empty-actions">
-            <button type="button" className="k-btn" onClick={() => setFirstRun(true)}><span className="k-label">{t("account.risks")}</span></button>
-            <button type="button" className="k-btn is-primary" onClick={actions.signIn}><span className="k-label">{t("empty.signIn")}</span></button>
-          </div>
-        </>}
-      </div>}
+      </div> : list !== null && <SubscriptionsEmpty signingIn={signingIn} account={account} actions={actions} addMenu={addMenu} setFirstRun={setFirstRun} />}
     </main>
     {adding?.add?.({ ...flow, onClose: () => setAdding(null), onAdded: changed })}
     {editing && mountOf(editing)?.settings?.({ ...flow, subscription: editing, onClose: () => setEditing(null), onSaved: changed })}
@@ -246,17 +198,3 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
       onSignIn={() => { closeFirstRun(); actions.signIn(); }} />
   </>;
 }
-
-function Tiles({ images, label, onOpen, onFail }: {
-  images: ReceivedImage[]; label: string; onOpen: (libraryId: string, imageId: string) => void; onFail: (key: string) => void;
-}) {
-  return <ul className="subs-tiles">
-    {images.map((image) => <li key={imageKey(image)}>
-      <button type="button" className="subs-tile" data-library-id={image.libraryId} data-image-id={image.imageId} aria-label={label} onClick={() => onOpen(image.libraryId, image.imageId)}>
-        <img src={thumbnailUrl(`${image.libraryId}/${image.imageId}/${TILE_PX}`)} alt="" decoding="async" draggable={false}
-          onError={() => onFail(imageKey(image))} />
-      </button>
-    </li>)}
-  </ul>;
-}
-

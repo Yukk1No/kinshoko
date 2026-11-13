@@ -1,0 +1,129 @@
+/* Dialogs, part 2: import task cards, dialog bodies and the rest. Loaded right after dialogs.css. */
+/* ---- Import task cards, bottom right ---- */
+/* They share the corner with the toasts (toast.css) and sit above the collapsed toast stack, whose height Toast.tsx publishes. */
+.k-task-cards { position: fixed; right: 18px; bottom: calc(18px + var(--k-toast-stack, 0px)); z-index: 50; width: 340px; max-width: calc(100vw - 36px);
+  max-height: calc(100vh - 100px - var(--k-toast-stack, 0px)); overflow: auto; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.k-task-cards:empty { display: none; }
+/* Same material and type as a toast (toast.css): a frosted card, the icon in a 28 px well, a 13 px title; the body lines up
+   under the title, past the icon well. Only an error tints the icon (#388). */
+.k-task { pointer-events: auto; box-sizing: border-box; padding: 8px; border-radius: var(--r-l); color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(20px) saturate(1.2); box-shadow: var(--shadow-toast); }
+.k-task:not(.is-row) { padding-left: 48px; }
+.k-task:not(.is-row) > .k-task-top { margin-left: -40px; }
+.k-task.is-row { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.k-task-top { display: flex; align-items: center; gap: 12px; min-height: 28px; }
+.k-task-top b { flex: 1; min-width: 0; font-size: 13px; font-weight: 500; line-height: 20px; }
+.k-task-icon { flex: none; box-sizing: content-box; padding: 6px; border-radius: var(--r-s); background: var(--sunken); box-shadow: var(--well-inset); color: var(--ink-2); }
+.k-task-icon.is-error { color: var(--danger); }
+.k-task-top .k-icon-btn.is-sm { width: 28px; height: 28px; border-radius: var(--r-s); color: var(--ink-3); }
+.k-task-top .k-icon-btn.is-sm:hover { background: var(--hover); color: var(--ink); }
+.k-task-count { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.k-task-sub { margin: 2px 0 0; color: var(--ink-2); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+.k-task-sub.is-warn { color: var(--warn); }
+.k-task-sub.is-danger, .k-task-stats .is-danger, .k-task-stats .is-danger b { color: var(--danger); }
+.k-task-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0 0; font-size: 12px; color: var(--ink-2); }
+.k-task-stats b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.k-task-acts { display: flex; gap: 8px; margin-top: 10px; }
+.k-task-toggle { display: inline-flex; align-items: center; gap: 4px; margin: -2px -4px; padding: 2px 4px; border: 0; border-radius: var(--r-xs); background: none; color: var(--danger); font: inherit; cursor: pointer; }
+.k-task-toggle:hover { background: var(--surface-2); }
+.k-task-toggle:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.k-task-toggle svg { transition: transform var(--t); }
+.k-task-toggle[aria-expanded="true"] svg { transform: rotate(90deg); }
+.k-task-more { margin-top: 6px; font-size: 12px; color: var(--ink-2); }
+.k-task-more summary { cursor: pointer; }
+.k-task-more ul { margin: 4px 0 0; padding-left: 16px; max-height: 120px; overflow: auto; }
+.k-task-more .import-report-reason { margin-left: 6px; color: var(--danger); }
+.k-task-switch { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-2); }
+.k-task-switch .k-select { flex: 1; min-width: 0; }
+.k-icon-btn.is-sm { width: 24px; height: 24px; border-radius: var(--r-xs); }
+.k-task-progress { appearance: none; display: block; width: 100%; height: 6px; margin-top: 10px; border: 0; border-radius: var(--r-pill); overflow: hidden; background: var(--sunken); }
+.k-task-progress::-webkit-progress-bar { background: var(--sunken); border-radius: var(--r-pill); }
+.k-task-progress::-webkit-progress-value { background: var(--accent); border-radius: var(--r-pill); transition: width var(--t); }
+.k-task .k-seal-lock { flex: none; margin: 0 2px; }
+
+/* Drop hint: the whole window is the drop target. */
+.k-drop-hint { position: fixed; inset: 12px; z-index: 80; display: grid; place-items: center; border-radius: var(--r-xl); pointer-events: none;
+  border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent-soft) 60%, transparent); color: var(--accent-strong); }
+.k-drop-hint-icon { display: grid; place-items: center; width: 72px; height: 72px; border-radius: var(--r-xl); background: var(--surface); box-shadow: var(--shadow-pop); }
+
+@media (prefers-reduced-motion: reduce) {
+  .k-task-progress::-webkit-progress-value, .k-task-toggle svg { transition-duration: 0ms; }
+}
+
+/* 编辑分组（#98）：平铺在对话框上，不套卡片（#488）。分组之间是 1 px line 分隔线，没有外框和底色；
+   每个分组一行：28 px 图标列、名称、靠右的成员数或命名空间胶囊；下面是与名称左对齐的成员（28 + 12 = 40）。
+   成员是对话框里唯一带底色的一层（--surface-2 实心，同查找框里的条件）。
+   末行是“新建分组”，点开就地变成新建表单。 */
+.k-groups { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.k-group-list { min-width: 0; }
+.k-group-rows:not(:empty) { border-bottom: 1px solid var(--line); }
+.k-group { padding: 10px 0 12px; border-top: 1px solid var(--line); }
+.k-group-rows > .k-group:first-child { border-top: 0; }
+.k-group-icon { width: 28px; height: 28px; flex: none; display: grid; place-items: center; color: var(--ink-3); }
+.k-group-head { display: flex; align-items: center; gap: 12px; min-height: 32px; }
+.k-group-head.is-renaming > .k-input { flex: 1; }
+.k-group-name { border-radius: var(--r-s); flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.k-group-name:disabled { opacity: 1; cursor: default; } /* 空分组不能按它查找，但名称照常显示，不会变淡。 */
+.k-group-name:hover:not(:disabled) .k-group-label { text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
+.k-group-name:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); border-radius: var(--r-xs); }
+.k-group-label { min-width: 0; font-weight: 500; }
+.k-group-origin { flex: none; display: inline-flex; color: var(--ink-3); }
+.k-group-count { flex: none; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.k-group-head > .k-pill { flex: none; }
+/* 改名、上移、下移、删除：悬停或键盘聚焦时出现（:focus-visible，对话框打开时的初始焦点不算）。 */
+.k-group-acts { display: flex; gap: 2px; flex: none; opacity: 0; transition: opacity var(--t-fast); }
+.k-group:hover .k-group-acts, .k-group-head:has(:focus-visible) .k-group-acts { opacity: 1; }
+@media (hover: none) { .k-group-acts { opacity: 1; } }
+.k-icon-btn.is-danger:hover:not(:disabled) { color: var(--danger); background: var(--hover); }
+.k-icon-btn.is-xs { width: 20px; height: 20px; border-radius: var(--r-xs); }
+.k-icon-btn:disabled { opacity: 0.5; cursor: default; }
+/* 成员：26 高、r-s、--surface-2 实心底，不加描边；悬停或聚焦时出 1 px line-2 内描边。计数 12 px ink-2。 */
+.k-group-members { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 0; padding: 0 0 0 40px; list-style: none; }
+.k-group-members > li { display: inline-flex; min-width: 0; }
+.k-group-member { align-items: center; height: 26px; border-radius: var(--r-s); background: var(--surface-2); transition: background var(--t-fast), box-shadow var(--t-fast); }
+.k-group-member:hover, .k-group-member:has(:focus-visible) { box-shadow: inset 0 0 0 1px var(--line-2); }
+.k-group-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: 0; border-radius: var(--r-s); background: none; color: var(--ink); font: inherit; cursor: pointer; }
+.k-group-chip:disabled { opacity: 1; cursor: default; }
+.k-group-chip:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.k-group-chip-name { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.k-group-chip-name .untranslated, .k-group-chip-name .no-external { display: inline-flex; color: var(--ink-3); }
+.k-group-chip-count { white-space: nowrap; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+/* 前移、后移、移出：TagChip 的 chip-x（16 px、ink-3）。收起时宽度为 0 但仍可用 Tab 聚焦；悬停或聚焦时展开。 */
+.k-group-member-acts { display: inline-flex; gap: 1px; max-width: 0; overflow: hidden; opacity: 0; margin-left: -4px; transition: max-width var(--t-fast), opacity var(--t-fast); }
+.k-group-member:hover .k-group-member-acts, .k-group-member:has(:focus-visible) .k-group-member-acts { max-width: 64px; opacity: 1; padding-right: 5px; }
+@media (hover: none) { .k-group-member-acts { max-width: 64px; opacity: 1; padding-right: 5px; } }
+.k-group-chip-x { width: 16px; height: 16px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-xs); background: none; color: var(--ink-3); cursor: pointer; }
+.k-group-chip-x:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+.k-group-chip-x:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.k-group-chip-x:disabled { opacity: 0.4; cursor: default; }
+/* 加标签：行内的轻操作，设计系统 Button is-ghost（accent-strong 字，悬停 accent-soft）。 */
+.k-group-add { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px 0 6px; border: 0; border-radius: var(--r-s);
+  background: transparent; color: var(--accent-strong); font: inherit; font-weight: 500; cursor: pointer; transition: background var(--t-fast); }
+.k-group-add:hover:not(:disabled) { background: var(--accent-soft); }
+.k-group-add:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.k-group-add:disabled { opacity: 0.5; cursor: default; }
+.k-group-pick { align-items: center; gap: 4px; }
+.k-group-pick > .k-combo { flex: none; width: 200px; }
+.k-group-pick .k-input.is-inline { height: 26px; padding: 0 8px; border-radius: var(--r-s); }
+/* 末行：新建分组（与分组行同样的图标方块与对齐），点开换成新建表单。 */
+.k-group-create { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 10px 0; border: 0; border-radius: 0;
+  background: none; color: var(--accent-strong); font: inherit; font-weight: 500; text-align: left; cursor: pointer; transition: background var(--t-fast); }
+.k-group-create > .k-group-icon { border-radius: var(--r-xs); background: var(--accent-soft); color: var(--accent-strong); }
+.k-group-create:hover:not(:disabled) .k-label { text-decoration: underline; text-decoration-color: currentColor; text-underline-offset: 3px; }
+.k-group-create:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-inset); border-radius: var(--r-s); }
+.k-group-create:disabled { opacity: 0.5; cursor: default; }
+.k-group-new { display: flex; align-items: center; gap: 8px; padding: 10px 0; }
+.k-group-new > .k-group-icon { margin-right: 4px; }
+.k-group-new > .k-input { flex: 1 1 140px; }
+.k-group-new > .k-group-kind { flex: none; width: 120px; }
+.k-groups-dialog .k-groups { max-height: calc(100vh - 220px); margin-top: 6px; overflow: auto; }
+/* 详情面板打开时，右下角卡片停在面板左侧，不盖住面板底部的按钮（#98）。 */
+.k-task-cards { transition: right var(--t) var(--spring), bottom var(--t) var(--spring); }
+/* 有浮动的多选操作条（.selbar-float，浮岛高 56 px）时，卡片抬到操作条上方，同样不遮住它。 */
+body:has(.selbar-float):not(:has(.inspector[data-collapsed="false"])) .k-task-cards { bottom: calc(18px + 66px + var(--k-toast-stack, 0px)); max-height: calc(100vh - 100px - 66px - var(--k-toast-stack, 0px)); }
+body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-task-cards { bottom: calc(18px + 66px + var(--k-toast-stack, 0px)); max-height: calc(100vh - 100px - 66px - var(--k-toast-stack, 0px)); }
+/* 标签外观的分档阈值（#160）：短标签 + 窄数字框，一行放下两个阈值和“恢复默认”。 */
+.k-set-number { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+/* 窄时两个阈值和“恢复默认”折行，靠右对齐，不溢出设置窗口。 */
+.k-set-row.is-thresholds .k-set-row-main > .k-list-end { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px 12px; }
+.k-set-row.is-thresholds .k-list-end > .k-btn { white-space: nowrap; }

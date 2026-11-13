@@ -8,6 +8,8 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { copyStandaloneRuntime } from "./native-standalone-guard.mjs";
 import { png, PIN_TOAST_PROBE } from "./viewer.helpers.mjs";
+import { createAndImport } from "./viewer.import.mjs";
+import { checkAnchors } from "./viewer.anchor.mjs";
 import { createDriver } from "./lib/driver.mjs";
 
 const [, , appArg, edgeArg, driverArg = "tauri-driver"] = process.argv;
@@ -51,27 +53,7 @@ try {
   const additionalBrowserArguments = forcedDpr ? [`force-device-scale-factor=${Number(forcedDpr)}`] : [];
   const session = await wd("POST", "/session", { capabilities: { alwaysMatch: { "tauri:options": { application, webviewOptions: { userDataFolder: join(work, "webview"), additionalBrowserArguments } } } } });
   base = `/session/${session.sessionId}`;
-  await wd("POST", `${base}/element/${await until("欢迎页", () => find("//button[@aria-labelledby='welcome-create']"))}/click`, {}); // #172：欢迎页先选“新建图库”
-  const name = await until("建库引导", () => find("//label[contains(., '图库名称')]/input"));
-  await wd("POST", `${base}/element/${name}/clear`, {});
-  await wd("POST", `${base}/element/${name}/value`, { text: "原图查看器验证" });
-  await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [parent]);
-  await click("选择存放位置…");
-  await click("新建图库");
-  // #113: no current library in the UI (ADR-0008); the new library shows up as a sidebar group head “名称（N 张）”.
-  await until("打开图库", () => find("//nav[@aria-label='查找范围']//*[@data-library-id]//button[contains(@class,'lib-head-name') and starts-with(@aria-label,'原图查看器验证（') and not(@disabled)]"));
-  check(true, "在独立数据目录建立测试资料库");
-  await exec("window.__KINSHOKO_TEST_PICKS__ = [arguments[0]]", [source]);
-  // 设计系统 v2: 导入 is one button; the folder entry is in its menu; the dialog comes prefilled with the library (#416).
-  await click("导入");
-  await wd("POST", `${base}/element/${await until("文件夹菜单项", () => find("//*[@role='menuitem' and normalize-space()='文件夹']"))}/click`, {});
-  await until("开始导入可用", () => exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
-  await click("开始导入");
-  await until("导入完成", () => exec("return [...document.querySelectorAll('.k-toast')].some(t=>t.querySelector('.k-toast-title')?.textContent==='导入完成'&&t.querySelector('.k-toast-stats')?.textContent.includes('新增 41'));"));
-  // 导入结束是一条轻提示（#388），没有回执卡可关；收起提示，免得盖住右下角。
-  await exec("document.querySelectorAll('.k-toast .k-toast-close').forEach(b=>b.click())");
-  await until("提示已收起", () => exec("return !document.querySelector('.k-toast')"));
-  check(true, "导入 41 张测试参考图，未下载打标模型");
+  await createAndImport({ wd, until, find, click, exec, check, base, parent, source });
   // 详情面板只由画师开合，新装默认关着：先用顶栏按钮打开，之后选择、查看都不改变它。
   await click("显示详情");
   await until("详情面板打开", () => exec("return document.querySelector('aside.inspector')?.dataset.collapsed === 'false'"));
@@ -152,36 +134,7 @@ try {
   await viewerKey("\uE00C");
   await until("Esc 返回", () => exec("return !document.querySelector('.viewer')"));
 
-  const anchor = await exec(`const wall = document.querySelector('.wall'); wall.scrollTop = 720; wall.dispatchEvent(new Event('scroll'));
-    const top = wall.getBoundingClientRect().top; const cards = [...wall.querySelectorAll('.card')].map(c => ({ id: c.dataset.id, r: c.getBoundingClientRect() })).filter(c => c.r.bottom > top + 8 && c.r.top < top + wall.clientHeight).sort((a,b) => a.r.top - b.r.top || a.r.left - b.r.left);
-    return { id: cards[0].id, offset: cards[0].r.top - top };`);
-  const reading = await exec(`const wall = document.querySelector('.wall'); const top = wall.getBoundingClientRect().top;
-    const card = [...wall.querySelectorAll('.card')].find(c => { const r = c.getBoundingClientRect(); return r.top >= top && r.bottom <= top + wall.clientHeight; });
-    card.focus({preventScroll:true}); return { id: card.dataset.id, top: wall.scrollTop };`);
-  const key = async (value) => wd("POST", `${base}/actions`, { actions: [{type:"key",id:"keyboard",actions:[{type:"keyDown",value},{type:"keyUp",value}]}] });
-  await key("\uE007"); // Enter
-  await until("键盘打开查看器", image);
-  await key("\uE00C"); // Escape
-  await until("键盘返回图片墙", () => exec("return !document.querySelector('.viewer')"));
-  // 查看时选择跟着这张图（#179）：返回后这张图仍在视口里并获得焦点。
-  check(await exec(`const c = document.activeElement, wall = document.querySelector('.wall'), w = wall.getBoundingClientRect(), r = c?.getBoundingClientRect();
-    return c?.dataset.id === arguments[0].id && c.getAttribute('aria-selected') === 'true' && r.bottom > w.top && r.top < w.bottom;`, [reading]), "滚动后用回车查看，Esc 返回后那张图在视口里、仍选中并获得焦点");
-  const anchorOffset = () => exec(`const c = document.querySelector('[data-id="' + arguments[0] + '"]'); const wall = document.querySelector('.wall'); if (!c || c.getAnimations().some(a => a.playState === 'running')) return null; return c.getBoundingClientRect().top - wall.getBoundingClientRect().top;`, [anchor.id]);
-  const anchorStable = async () => {
-    const moving = await exec("return document.querySelector('.sidebar-slot').getAnimations().some(a => a.playState === 'running')");
-    const offset = await anchorOffset();
-    return !moving && offset !== null && Math.abs(offset - anchor.offset) < 1;
-  };
-  await click("收起侧栏");
-  await until("收起侧栏锚点稳定", anchorStable);
-  await click("展开侧栏");
-  await until("展开侧栏锚点稳定", anchorStable);
-  check(true, "侧栏往返重排保持同一张图的偏移");
-  await wd("POST", `${base}/window/rect`, { width: 1050, height: 800 });
-  await until("窗口变窄锚点稳定", anchorStable);
-  await wd("POST", `${base}/window/rect`, { width: 1280, height: 800 });
-  await until("窗口变宽锚点稳定", anchorStable);
-  check(true, "原生窗口宽度往返保持同一张图的偏移");
+  const { anchor, reading } = await checkAnchors({ wd, until, exec, click, check, base, image });
   writeFileSync(join(output, "report.json"), JSON.stringify({ fitted, original, enlarged, fonts, fitAfterFonts, anchor, reading }, null, 2));
   console.log("查看器冒烟测试通过");
 } catch (error) {

@@ -4,18 +4,17 @@ import type { Region } from "../bindings/Region";
 import { copyReferenceImage, workspaceImage, isUnknownImage, pinReference, revealReferenceImage } from "../ipc";
 import type { KeyboardEvent } from "react";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
-import { cropFromDrag, cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
-import { ArrowLeft, ChevronLeft, ChevronRight, Minus, Pin, Plus, RotateCcw, X } from "lucide-react";
+import { cropOnScreen, toScreenRect, type CssRect, type Point } from "./crop";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { useTranslation } from "react-i18next";
-import { formatNumber } from "../i18n/format";
 import { useToast } from "../ui/Toast";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import { Dock } from "../ui/Dock";
-import { Tip } from "../ui/Tip";
-import { FollowDock } from "../ui/FollowDock";
-import { OriginalStar } from "../ui/OriginalStar";
-import { type Background, DOCK_RESERVE, useViewerBackground, viewerDockItems, ViewerImages, ViewerMenu } from "./ViewerParts";
+import { type Background, useViewerBackground, viewerDockItems, ViewerImages, ViewerMenu } from "./ViewerParts";
+import { ViewerBar } from "./ViewerBar";
+import { CropDock } from "./CropDock";
+import { useViewerViewport } from "./useViewerViewport";
+import { stagePointerHandlers } from "./stagePointer";
 import { useViewerSource } from "./useViewerSource";
 import type { ViewerFlightAttr, ViewerPlaced } from "./ViewerFlight";
 import { errorText } from "../ipc/commandError";
@@ -59,7 +58,7 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
   const { t } = useTranslation(["viewer", "common"]);
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
-  const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0, dpr: window.devicePixelRatio });
+  const { viewport, dpr } = useViewerViewport(stage);
   const [mode, setMode] = useState<"fit" | "pixels" | "zoom">("fit");
   const [zoomScale, setZoomScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -72,24 +71,8 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
   const [dragging, setDragging] = useState(false);
   const toast = useToast();
   const [name, setName] = useState<string | null>(null);
-  const { dpr } = viewport;
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
-  useLayoutEffect(() => {
-    const el = stage.current!;
-    const sync = () => setViewport((prev) => {
-      const rect = el.getBoundingClientRect();
-      const next = { width: el.clientWidth, height: el.clientHeight, left: rect.left, top: rect.top, dpr: window.devicePixelRatio };
-      return prev.width === next.width && prev.height === next.height && prev.left === next.left && prev.top === next.top && prev.dpr === next.dpr ? prev : next;
-    });
-    sync();
-    const ro = new ResizeObserver(sync);
-    ro.observe(el);
-    window.addEventListener("resize", sync);
-    const resolution = window.matchMedia(`(resolution: ${dpr}dppx)`);
-    resolution.addEventListener("change", sync);
-    return () => { ro.disconnect(); window.removeEventListener("resize", sync); resolution.removeEventListener("change", sync); };
-  }, [dpr]);
   const fitWidth = Math.min(card.width, Math.floor(viewport.width * dpr), Math.floor(Math.floor(viewport.height * dpr) * card.width / card.height));
   const physicalWidth = Math.max(1, mode === "fit" ? fitWidth : Math.round(card.width * (mode === "pixels" ? 1 : zoomScale)));
   const physicalHeight = Math.max(1, Math.round(card.height * physicalWidth / card.width));
@@ -241,63 +224,16 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
   return (
     <section ref={root} className="viewer" role="region" aria-label={t("label")}
       tabIndex={-1} onKeyDown={keyDown} data-flight={flight} inert={flight === "land" || flight === "fade-out"}>
-      <header className="viewer-bar">
-        <button type="button" className="k-btn is-quiet viewer-back" aria-label={t("backLabel")} onClick={onBack}><ArrowLeft size={16} /><span className="k-label">{t("back")}</span></button>
-        <Tip label={name}><span className="viewer-title">{name}</span></Tip>
-        {position && <>
-          <span className="viewer-index">{formatNumber(position.index + 1)} / {formatNumber(position.total)}</span>
-          <Tip label={t("previous")} keys="←"><button type="button" className="k-icon-btn" aria-label={t("previous")} disabled={position.index <= 0} onClick={() => onStep?.(-1)}><ChevronLeft size={16} /></button></Tip>
-          <Tip label={t("next")} keys="→"><button type="button" className="k-icon-btn" aria-label={t("next")} disabled={position.index >= position.total - 1} onClick={() => onStep?.(1)}><ChevronRight size={16} /></button></Tip>
-        </>}
-        <span className="k-grow" />
-        <div className="viewer-zoom">
-          <Tip label={t("zoomOut")}><button type="button" className="k-icon-btn" aria-label={t("zoomOut")} onClick={() => zoomAt(0.8)}><Minus size={15} /></button></Tip>
-          <output aria-label={t("zoomLevel")}>{Math.round(physicalWidth / card.width * 100)}%</output>
-          <Tip label={t("zoomIn")}><button type="button" className="k-icon-btn" aria-label={t("zoomIn")} onClick={() => zoomAt(1.25)}><Plus size={15} /></button></Tip>
-        </div>
-      </header>
+      <ViewerBar name={name} position={position} onBack={onBack} onStep={onStep} zoomAt={zoomAt} physicalWidth={physicalWidth} card={card} />
       <ContextMenu.Root>
       <ContextMenu.Trigger render={<div className="viewer-stage" ref={stage} data-background={background}
-        onPointerDown={(e) => {
-          if (e.button !== 0 || drag.current || select.current || (e.target as Element).closest("button, .k-dock")) return;
-          e.preventDefault();
-          e.currentTarget.setPointerCapture(e.pointerId);
-          if (e.shiftKey || selecting) {
-            select.current = { id: e.pointerId, start: stagePoint(e) };
-            setDragging(true);
-            return;
-          }
-          drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, offset };
-        }}
-        onPointerMove={(e) => {
-          const s = select.current;
-          if (s && s.id === e.pointerId) {
-            const next = cropFromDrag(s.start, stagePoint(e), shown, natural);
-            if (next) setCrop(next);
-            return;
-          }
-          const start = drag.current;
-          if (!start || start.id !== e.pointerId) return;
-          setOffset({ x: start.offset.x + e.clientX - start.x, y: start.offset.y + e.clientY - start.y });
-        }}
-        onPointerUp={(e) => {
-          if (drag.current?.id === e.pointerId) drag.current = null;
-          if (select.current?.id === e.pointerId) { select.current = null; setSelecting(false); setDragging(false); }
-        }}
-        onPointerCancel={() => { drag.current = null; select.current = null; setDragging(false); }}
-        onLostPointerCapture={() => { drag.current = null; select.current = null; setDragging(false); }} />}>
+        {...stagePointerHandlers({ drag, select, selecting, stagePoint, setDragging, setSelecting, shown, natural, setCrop, offset, setOffset })} />}>
         <ViewerImages viewport={viewport} src={src} swapIn={swapIn} setFailedSrc={setFailedSrc} placed={placed} scale={scale} ready={ready}
           derived={derived} setDerived={setDerived} derivedMounted={derivedMounted} derivedStandIn={derivedStandIn} lastStandIn={lastStandIn}
           isOriginal={isOriginal} failed={failed} setRetry={setRetry} hidden={hideImage} />
         {cropRect && crop && <div className="viewer-crop" aria-label={t("selection")}
           style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }} />}
-        {shownCropRect && crop && <FollowDock anchor={shownCropRect} bounds={viewport} reserveBottom={DOCK_RESERVE}>
-          <Dock label={t("crop.label")} onSelect={cropTool} readout={<Tip label={t("originalPixels")} side="top"><span className="k-original">{crop.width} × {crop.height}<span className="sr-only">{t("originalPixels")}</span><OriginalStar /></span></Tip>} items={[
-            { id: "pin", label: t("common:image.pinPart"), icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary" },
-            { id: "redo", label: t("crop.redo"), icon: <RotateCcw size={18} strokeWidth={1.75} /> },
-            { id: "cancel", label: t("crop.cancel"), icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger" },
-          ]} />
-        </FollowDock>}
+        {shownCropRect && crop && <CropDock shownCropRect={shownCropRect} crop={crop} viewport={viewport} cropTool={cropTool} />}
         <div className="viewer-dock"><Dock label={t("tools.label")} items={viewerTools} value={toolValue} onSelect={tool} /></div>
       </ContextMenu.Trigger>
       {/* 查看器右键菜单（#102 表“查看器”行，#114）：每项另有 dock 按钮或快捷键。 */}
