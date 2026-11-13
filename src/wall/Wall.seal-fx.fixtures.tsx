@@ -1,11 +1,12 @@
 // 封印／释放动画测试（Wall.seal-fx*.test.tsx）共用的替身与工具。
-import { act, cleanup, render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
 import type { FakeAnimation } from "../test/platform";
 import { workspaceCard } from "../test/workspacePage";
 import { Wall } from "./Wall";
+import { fakeBackend } from "../test/backend";
 
 /** 用例给出的一页；工作区快照由替身补上。 */
 export type FxPage = Omit<WorkspacePage, "status">;
@@ -38,15 +39,15 @@ export function installSealFx() {
     fx.book.className = "rail-btn seal-book";
     document.body.appendChild(fx.book);
     mockConvertFileSrc("windows");
-    mockIPC((cmd) => {
-      if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
-      return new Promise<WorkspacePage>((resolve) => {
-        fx.resolvers.push((page) => resolve({ ...page, status: { revision: "r", libraries: [] } }));
-      });
+    fakeBackend({
+      workspace_browse: () => {
+        return new Promise<WorkspacePage>((resolve) => {
+          fx.resolvers.push((page) => resolve({ ...page, status: { revision: "r", libraries: [] } }));
+        });
+      },
     });
   });
-  afterEach(() => {
-    cleanup(); clearMocks(); fx.book.remove();
+  afterEach(() => { fx.book.remove();
     vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers();
   });
 }

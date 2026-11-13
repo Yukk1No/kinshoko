@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
 import { Wall } from "./Wall";
+import { fakeBackend } from "../test/backend";
 
 let replies: ((page: WorkspacePage) => void)[];
 beforeEach(() => {
@@ -11,12 +12,9 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 961 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 669 });
   mockConvertFileSrc("windows");
-  mockIPC((command) => {
-    if (command !== "plugin:library|workspace_browse") throw new Error(command);
-    return new Promise<WorkspacePage>((resolve) => replies.push(resolve));
-  });
+  fakeBackend({ workspace_browse: () => new Promise<WorkspacePage>((resolve) => replies.push(resolve)) });
 });
-afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 it("provider refresh keeps the viewed card in place while the new page loads and after it replaces the old one", async () => {
   const cards = Array.from({ length: 121 }, (_, index) => ({

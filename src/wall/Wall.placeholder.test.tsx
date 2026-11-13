@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { Wall } from "./Wall";
 import { type CardSeed, workspacePage } from "../test/workspacePage";
+import { fakeBackend } from "../test/backend";
 
 // #110：缩略图到达前先显示随浏览页带回的占位图，缩略图到达后淡入并盖住它。
 const PLACEHOLDER = "data:image/webp;base64,UklGRg==";
@@ -13,12 +14,9 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
   cards = [];
-  mockIPC((cmd) => {
-    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
-    return workspacePage(cards);
-  });
+  fakeBackend({ workspace_browse: () => workspacePage(cards) });
 });
-afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); localStorage.clear(); });
+afterEach(() => { vi.unstubAllGlobals(); localStorage.clear(); });
 
 const wall = (safeMode = false) => render(<Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} safeMode={safeMode}
   selected={new Set()} onSelectionChange={() => {}} onOpenImage={() => {}} viewerOpen={false} />);

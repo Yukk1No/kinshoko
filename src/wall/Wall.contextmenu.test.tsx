@@ -1,23 +1,21 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { createRef, useState } from "react";
 import { Wall, type WallHandle } from "./Wall";
 import type { WallMenuTarget } from "./WallMenu";
 import { MenuItem } from "../ui/Menu";
 import { workspacePage } from "../test/workspacePage";
+import { fakeBackend } from "../test/backend";
 
 beforeEach(() => {
   localStorage.clear();
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  mockIPC((cmd) => {
-    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
-    return workspacePage(Array.from({ length: 6 }, (_, i) => ({ id: String(i), width: 100, height: 100 })));
-  });
+  fakeBackend({ workspace_browse: () => workspacePage(Array.from({ length: 6 }, (_, i) => ({ id: String(i), width: 100, height: 100 }))) });
 });
-afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 const describe = (target: WallMenuTarget) => target.kind === "cards" ? `卡片 ${target.cards.map((c) => c.id).join(",")}` : "空白处";
 

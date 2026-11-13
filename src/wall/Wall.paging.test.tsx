@@ -2,8 +2,8 @@
 // 重新浏览取到一半游标过期时从第一页重取。IPC 用受控 Promise 决定响应先后。
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createRef } from "react";
-import { act, cleanup, render } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, render } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
 import type { WorkspaceQuery } from "../bindings/WorkspaceQuery";
@@ -11,6 +11,7 @@ import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { type CardSeed, workspacePage } from "../test/workspacePage";
 import { Wall, type WallHandle } from "./Wall";
 import { PAGE } from "./wallShared";
+import { fakeBackend } from "../test/backend";
 
 type Call = { query: WorkspaceQuery; safeMode: boolean; resolve: (page: WorkspacePage) => void; reject: (e: unknown) => void };
 let calls: Call[];
@@ -21,14 +22,15 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  mockIPC((cmd, args) => {
-    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
-    return new Promise<WorkspacePage>((resolve, reject) => {
-      calls.push({ ...(args as { query: WorkspaceQuery; safeMode: boolean }), resolve, reject });
-    });
+  fakeBackend({
+    workspace_browse: (args) => {
+      return new Promise<WorkspacePage>((resolve, reject) => {
+        calls.push({ ...(args as { query: WorkspaceQuery; safeMode: boolean }), resolve, reject });
+      });
+    },
   });
 });
-afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 const EXPIRED = { code: "cursorExpired" };
 const EXPIRED_TEXT = "浏览结果已变化，请从头重新浏览";
