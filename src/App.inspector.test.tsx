@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
-import { doubleClick } from "./App.fixtures";
+import { doubleClick, appStartup } from "./App.fixtures";
 import type { WorkspaceCard } from "./bindings/WorkspaceCard";
 import type { WorkspaceSource } from "./bindings/WorkspaceSource";
 import { fakeBackend, shellSettings } from "./test/backend";
@@ -48,7 +48,7 @@ function backend(override: Override = {}, shown = true) {
     workspace_sidebar: () => ({ all: 1, trash: 0, folders: [] }),
     take_open_request: () => { const next = state.open; state.open = null; return next; },
     // 启动时取走留给主窗口的收集请求：没有。
-    take_collection_request: () => null,
+    ...appStartup,
     tagging_status: () => ({ state: "starting" }),
     shell_settings: view,
     "change_setting:inspectorOpen": (args) => { state.shown = (args as unknown as { open: boolean }).open; return view(); },

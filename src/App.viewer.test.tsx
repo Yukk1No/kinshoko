@@ -4,6 +4,7 @@ import { emit } from "@tauri-apps/api/event";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import { App } from "./App";
 import { doubleClick, library, gone, clean, backend, sent, push, libraryAction, openLibrary, expandLibrary, wallPage } from "./App.fixtures";
+import type { Args } from "./test/backend";
 
 describe("主窗口", () => {
   it("双击打开原图；Esc 返回原位置并把焦点交还参考图", async () => {
@@ -131,9 +132,8 @@ describe("主窗口", () => {
     const rest: BrowsePage = { cards: [{ id: "last", width: 100, height: 100, thumbnail: "L1/last/256", adult: false }], nextCursor: null, total: 501 };
     // 前面的用例保存过滚动锚点；从顶部开始，第一页就够。
     localStorage.clear();
-    backend(library, clean, (cmd, args) => {
-      if (cmd !== "plugin:library|workspace_browse") return undefined;
-      return (args as { query: { cursor?: string | null } }).query.cursor ? more.then((rest) => wallPage(rest)) : wallPage(first);
+    backend(library, clean, {
+      workspace_browse: (args: Args) => (args as { query: { cursor?: string | null } }).query.cursor ? more.then((rest) => wallPage(rest)) : wallPage(first),
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -223,10 +223,10 @@ describe("主窗口", () => {
     render(<App />);
     await screen.findAllByRole("img");
     await openLibrary();
-    expect(sent("plugin:library|register_library")).toEqual([{ root: "E:\\私人收藏" }]);
+    expect(sent("register_library")).toEqual([{ root: "E:\\私人收藏" }]);
     await libraryAction(/管理图库/);
     fireEvent.click(await screen.findByRole("button", { name: "移除 私人收藏" }));
-    await waitFor(() => expect(sent("plugin:library|unregister_library")).toEqual([{ libraryId: "L2" }]));
+    await waitFor(() => expect(sent("unregister_library")).toEqual([{ libraryId: "L2" }]));
     fireEvent.click(screen.getByRole("button", { name: "完成" }));
     expect(await screen.findByRole("button", { name: "新建图库" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "打开图库" })).toBeTruthy();

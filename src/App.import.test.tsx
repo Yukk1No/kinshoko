@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
-import { library, clean, backend, sent, push, importAction, chooseDestination, confirmImport } from "./App.fixtures";
+import { library, clean, backend, sent, push, importAction, chooseDestination, confirmImport, appStartup } from "./App.fixtures";
 import { fakeBackend, shellSettings } from "./test/backend";
 
 /** 导入结束是一条轻提示（#388）；有要处理的项时，它的“查看”打开结果回执卡。 */
@@ -18,7 +18,7 @@ describe("主窗口", () => {
     fireEvent.click(importAction("导入文件夹…"));
     await confirmImport();
     await waitFor(() =>
-      expect(sent("plugin:library|start_import")).toEqual([
+      expect(sent("start_import")).toEqual([
       { libraryId: "L1", source: { paths: ["D:\\下载\\参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
       ]),
     );
@@ -27,11 +27,11 @@ describe("主窗口", () => {
     expect(screen.getByRole("progressbar", { name: "导入进度" }).getAttribute("aria-valuenow")).toBe("1");
     expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 4")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
-    await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ libraryId: "L1", taskId: "T1" }]));
+    await waitFor(() => expect(sent("cancel_import")).toEqual([{ libraryId: "L1", taskId: "T1" }]));
 
-    const browsed = sent("plugin:library|workspace_browse").length;
+    const browsed = sent("workspace_browse").length;
     await push({ kind: "listStale", libraryId: "L1" });
-    await waitFor(() => expect(sent("plugin:library|workspace_browse").length).toBeGreaterThan(browsed));
+    await waitFor(() => expect(sent("workspace_browse").length).toBeGreaterThan(browsed));
 
     await push({
       kind: "taskFinished",
@@ -76,7 +76,7 @@ describe("主窗口", () => {
     await confirmImport();
 
     await waitFor(() =>
-      expect(sent("plugin:library|start_import")).toEqual([
+      expect(sent("start_import")).toEqual([
         { libraryId: "L1", source: { paths: ["D:\\图\\a.png", "D:\\一批参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
       ]),
     );
@@ -108,7 +108,7 @@ describe("主窗口", () => {
     await confirmImport();
 
     await waitFor(() =>
-      expect(sent("plugin:library|start_import")).toEqual([
+      expect(sent("start_import")).toEqual([
         { libraryId: "L1", source: { paths: ["D:\\参考\\坏.png"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
       ]),
     );
@@ -134,7 +134,7 @@ describe("主窗口", () => {
       app_info: { productName: "Kinshoko", version: "9.9.9" },
       shell_settings: shellSettings({ autostart: true }),
       // 启动时取走留给主窗口的收集请求：没有。
-      take_collection_request: null,
+      ...appStartup,
     });
     render(<App />);
 
@@ -161,13 +161,13 @@ describe("导入任务的终态（#76）", () => {
   it("结束事件早于启动命令的响应时，迟到的响应和进度不会复活已结束的任务", async () => {
     let answer!: (taskId: string) => void;
     const response = new Promise<string>((resolve) => { answer = resolve; });
-    backend(library, clean, (cmd) => (cmd === "plugin:library|start_import" ? response : undefined));
+    backend(library, clean, { start_import: () => response });
     render(<App />);
     await screen.findAllByRole("img");
     window.__KINSHOKO_TEST_PICKS__ = [["D:\\参考\\坏.png"]];
     fireEvent.click(importButton());
     await confirmImport();
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(1));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 1 } });
     await failed("T1");
     await act(async () => {
@@ -186,19 +186,19 @@ describe("导入任务的终态（#76）", () => {
     fireEvent.keyDown(files, { key: "Escape" });
     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
     await confirmImport();
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(2));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(2));
   });
 
   it("进度早于启动命令的响应时，响应到达后仍可取消", async () => {
     let answer!: (taskId: string) => void;
     const response = new Promise<string>((resolve) => { answer = resolve; });
-    backend(library, clean, (cmd) => (cmd === "plugin:library|start_import" ? response : undefined));
+    backend(library, clean, { start_import: () => response });
     render(<App />);
     await screen.findAllByRole("img");
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
     fireEvent.click(importAction("导入文件夹…"));
     await confirmImport();
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(1));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 3 } });
     await act(async () => {
       answer("T1");
@@ -207,23 +207,23 @@ describe("导入任务的终态（#76）", () => {
 
     expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 3")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
-    await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ libraryId: "L1", taskId: "T1" }]));
+    await waitFor(() => expect(sent("cancel_import")).toEqual([{ libraryId: "L1", taskId: "T1" }]));
   });
 
   it("旧任务与别的资料库的迟到事件不会覆盖新任务", async () => {
     let next = 0;
-    backend(library, clean, (cmd) => (cmd === "plugin:library|start_import" ? `T${++next}` : undefined));
+    backend(library, clean, { start_import: () => `T${++next}` });
     render(<App />);
     await screen.findAllByRole("img");
     window.__KINSHOKO_TEST_PICKS__ = [["D:\\参考\\坏.png"]];
     fireEvent.click(importButton());
     await confirmImport();
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(1));
     await failed("T1");
     await viewReceipt();
     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
     await confirmImport();
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(2));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(2));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T2", progress: { done: 1, total: 5 } });
 
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 1 } });
@@ -233,7 +233,7 @@ describe("导入任务的终态（#76）", () => {
     expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 5")).toBeTruthy();
     expect(screen.queryByLabelText("导入结果")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
-    await waitFor(() => expect(sent("plugin:library|cancel_import")).toEqual([{ libraryId: "L1", taskId: "T2" }]));
+    await waitFor(() => expect(sent("cancel_import")).toEqual([{ libraryId: "L1", taskId: "T2" }]));
   });
 });
 
@@ -249,20 +249,14 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
   function eagleBackend() {
     const answers: ((taskId: string) => void)[] = [];
     const failures: string[] = [];
-    backend(library, clean, (cmd) => {
-      switch (cmd) {
-        case "plugin:library|discover_eagle_libraries":
-          return [{ name: "主库", path: "D:/Eagle/主库.library", items: 3, version: "4.0.0", foundBy: "settings" }];
-        case "plugin:library|eagle_tag_mapping":
-          return { matched: [], unmatched: [], vocabularySize: 0 };
-        case "plugin:library|start_import": {
-          const failure = failures.shift();
-          if (failure) return Promise.reject({ code: "message", message: failure });
-          return new Promise<string>((resolve) => answers.push(resolve));
-        }
-        default:
-          return undefined;
-      }
+    backend(library, clean, {
+      discover_eagle_libraries: [{ name: "主库", path: "D:/Eagle/主库.library", items: 3, version: "4.0.0", foundBy: "settings" }],
+      eagle_tag_mapping: { matched: [], unmatched: [], vocabularySize: 0 },
+      start_import: () => {
+        const failure = failures.shift();
+        if (failure) return Promise.reject({ code: "message", message: failure });
+        return new Promise<string>((resolve) => answers.push(resolve));
+      },
     });
     const answer = (taskId: string) =>
       act(async () => {
@@ -280,7 +274,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     window.__KINSHOKO_TEST_PICKS__ = [["D:\\参考\\a.png"]];
     fireEvent.click(importAction("导入文件…"));
     await confirmImport();
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(count));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(count));
   }
 
   it.each(["文件夹", "拖放"])("从通用%s入口识别到 Eagle，结束事件先到也只打开一次标签步骤", async (entrance) => {
@@ -296,7 +290,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
       await act(() => emit("tauri://drag-drop", { paths, position: { x: 10, y: 10 } }));
       await confirmImport();
     }
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(1));
     await finished("T1", true);
     await answer("T1");
     expect(await screen.findByRole("region", { name: "标签的外部对应" })).toBeTruthy();
@@ -310,7 +304,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     render(<App />);
     await screen.findAllByRole("img");
     await startEagle();
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(1));
     await finished("T1");
     await answer("T1");
 
@@ -330,7 +324,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     render(<App />);
     await screen.findAllByRole("img");
     await startEagle();
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(1));
     await answer("T1");
     expect(step()).toBeNull();
     await finished("T1");
@@ -359,7 +353,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     render(<App />);
     await screen.findAllByRole("img");
     await startEagle();
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(1));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(1));
     await answer("T1");
     await finished("T1");
     expect(await screen.findByRole("region", { name: "标签的外部对应" })).toBeTruthy();
@@ -378,7 +372,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     expect(await screen.findAllByText("无法开始导入：资料库正忙")).not.toHaveLength(0);
     expect(step()).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "开始导入" }));
-    await waitFor(() => expect(sent("plugin:library|start_import")).toHaveLength(4));
+    await waitFor(() => expect(sent("start_import")).toHaveLength(4));
     await finished("T3");
     await answer("T3");
     expect(await screen.findByRole("region", { name: "标签的外部对应" })).toBeTruthy();
