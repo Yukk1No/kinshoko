@@ -188,12 +188,6 @@
   background: transparent;
 }
 
-/* 标签分组面板（编辑分组）的候选里仍用。 */
-.search-candidate-via {
-  font-size: 12px;
-  opacity: 0.7;
-}
-
 /* 未翻译标记（#160）：lucide 的 Languages 图标，跟着文字颜色，略淡。 */
 .untranslated {
   display: inline-flex;
@@ -252,9 +246,3 @@
 .settings-approx td {
   padding: 2px 8px 2px 0;
 }
-
-.app-status-actions {
-  display: flex;
-  gap: 6px;
-}
-
