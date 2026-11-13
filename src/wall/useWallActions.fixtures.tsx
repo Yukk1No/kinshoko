@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, vi } from "vitest";
-import { cleanup } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { fakeBackend, type FakeBackend } from "../test/backend";
 import { useWallActions, type WallActionsOptions } from "./useWallActions";
 import type { WallMenuActions } from "./WallMenu";
 import type { BrowserCard } from "./Wall";
@@ -9,13 +8,15 @@ import type { BrowserCard } from "./Wall";
 export const card = (id: string, libraryId = "L1"): BrowserCard => ({
   id, width: 100, height: 100, adult: false, libraryId, imageId: `i${id}`, sources: [],
 });
-export let calls: { cmd: string; args: Record<string, unknown> }[];
+export let backend: FakeBackend;
+/** 收到过的调用，按先后；给了命令名就只看那一条命令的。 */
+export const calls = (command?: string) => backend.calls(command);
 export function setupWallActions() {
   beforeEach(() => {
-    calls = [];
-    mockIPC((cmd, args) => { calls.push({ cmd, args: args as Record<string, unknown> }); return null; });
+    // 图片墙动作发出的命令都答 void；用例要别的回答时用 `backend.on` 改。
+    backend = fakeBackend({ pin_reference: null, copy_reference_image: null, reveal_reference_image: null, workspace_source_group: null, permanent_delete: null });
   });
-  afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
+  afterEach(() => { vi.unstubAllGlobals(); });
 }
 
 export let api: WallMenuActions;
