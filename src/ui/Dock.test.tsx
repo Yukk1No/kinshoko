@@ -1,10 +1,9 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { FolderInput, X } from "lucide-react";
 import { Dock } from "./Dock";
 import { MenuItem } from "./Menu";
-
-afterEach(() => { cleanup(); document.documentElement.removeAttribute("data-reduced-motion"); });
+import { setMedia } from "../test/platform";
 
 const trayDock = () => render(<Dock label="查看" onSelect={() => {}} items={[
   { id: "ground", label: "背景", icon: <X size={16} />, trayValue: "grey", tray: [
@@ -29,7 +28,7 @@ describe("Dock 抽屉进出对称（#455）", () => {
   });
 
   it("减弱动效下直接到终态：打开当场不透明、不偏移，关上马上卸载", async () => {
-    document.documentElement.setAttribute("data-reduced-motion", "");
+    setMedia("(prefers-reduced-motion: reduce)", true);
     trayDock();
     const button = screen.getByRole("button", { name: "背景" });
     fireEvent.click(button);

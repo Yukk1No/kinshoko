@@ -4,6 +4,8 @@
 // 所以静止起步时误差按 e^(−t/τ) 收敛（第一帧就动、不越过目标），连续快滚时速度叠加。
 // 精确式触控板、笔（产生的不是 wheel 事件）、按住指针（拖滚动条）与“减少动画”都走浏览器原生滚动。
 
+import { reducedNow } from "../ui/reducedMotion";
+
 /** 弹簧的时间常数（毫秒）：一格后 120 ms 走完约 63%，约 360 ms 走完 95%。 */
 export const SPRING_TAU_MS = 120;
 
@@ -55,7 +57,7 @@ export function createSmoothWheel(el: HTMLElement, o: SmoothWheelOptions) {
   const now = o.now ?? (() => performance.now());
   const raf = o.raf ?? ((cb) => requestAnimationFrame(cb));
   const caf = o.caf ?? ((id) => cancelAnimationFrame(id));
-  const reduced = o.reducedMotion ?? (() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const reduced = o.reducedMotion ?? reducedNow;
   let spring: Spring | null = null;
   /** 上一帧写入的位置；读回不一致说明别处滚动了。 */
   let written = 0;

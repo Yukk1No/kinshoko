@@ -44,7 +44,6 @@
 .subs-spin.is-accent, .subs-check .subs-spin.is-accent { color: var(--accent); }
 @keyframes subs-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .subs-spin { animation-duration: 2.4s; } }
-:root[data-reduced-motion] .subs-spin { animation-duration: 2.4s; }
 
 
 /* ---- 最近收到：两段瀑布流 ---- */

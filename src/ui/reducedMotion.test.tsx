@@ -1,16 +1,15 @@
-import { afterEach, expect, it } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { expect, it } from "vitest";
+import { act, render, screen } from "@testing-library/react";
+import { setMedia } from "../test/platform";
 import { useReducedMotion } from "./reducedMotion";
-
-afterEach(() => { cleanup(); document.documentElement.removeAttribute("data-reduced-motion"); });
 
 function Probe() { return <span>{useReducedMotion() ? "reduced" : "full"}</span>; }
 
-it("根元素上的减少动画标记切换后立即生效（#180）", async () => {
+it("系统设置的减弱动效切换后立即生效（#180）", () => {
   render(<Probe />);
   expect(screen.getByText("full")).toBeTruthy();
-  await act(async () => { document.documentElement.setAttribute("data-reduced-motion", ""); });
+  act(() => setMedia("(prefers-reduced-motion: reduce)", true));
   expect(screen.getByText("reduced")).toBeTruthy();
-  await act(async () => { document.documentElement.removeAttribute("data-reduced-motion"); });
+  act(() => setMedia("(prefers-reduced-motion: reduce)", false));
   expect(screen.getByText("full")).toBeTruthy();
 });

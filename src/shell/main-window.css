@@ -165,7 +165,6 @@
 @media (prefers-reduced-motion: reduce) {
   .k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b { animation: none !important; transition: none; }
 }
-:root[data-reduced-motion] :is(.k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b) { animation: none !important; transition: none; }
 /* 有图没有完成（#475）：提示图标用警示色，没有环，常驻到画师忽略。 */
 .k-tagging-activity[data-activity="unfinished"] { color: var(--warn); }
 .k-tagging-activity[data-activity="unfinished"]:hover { color: var(--warn-strong); }
@@ -176,7 +175,6 @@
 .k-tagging-activity:is(:hover, :focus-visible) [data-morph] .k-tagging-now { opacity: 0; transform: scaleY(0.4); }
 .k-tagging-activity:is(:hover, :focus-visible) [data-morph] .k-tagging-next { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .k-tagging-glyph > span { transform: none !important; transition: opacity 120ms var(--ease); } }
-:root[data-reduced-motion] .k-tagging-glyph > span { transform: none !important; transition: opacity 120ms var(--ease); }
 
 /* 滑条：4 px 下沉轨道、已走过的一段 --range-fill；18 px 纸白圆钮带细描边与两层投影，悬停放大、按下压下。
    WebView2 是 Chromium，只需 -webkit- 伪元素。 */
@@ -190,8 +188,6 @@
 .k-range:focus-visible { outline: 0; }
 .k-range:focus-visible::-webkit-slider-thumb { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 @media (prefers-reduced-motion: reduce) { .k-exact, .k-exact-glyph path, .k-tip, .k-range::-webkit-slider-thumb { transition-duration: 0ms; } }
-:root[data-reduced-motion] :is(.k-exact, .k-exact-glyph path, .k-tip) { transition-duration: 0ms; }
-:root[data-reduced-motion] .k-range::-webkit-slider-thumb { transition-duration: 0ms; }
 .app-tagbar { flex: none; }
 .app-tagbar .groupbar { background: var(--bg); border-bottom: 1px solid var(--line); padding: 4px 12px; }
 

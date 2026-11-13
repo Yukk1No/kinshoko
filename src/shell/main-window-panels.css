@@ -87,10 +87,8 @@
 .k-btn.is-lg { height: 40px; padding: 0 18px; border-radius: var(--r); }
 .k-btn.is-lg:has(> svg:first-child) { padding-left: 16px; }
 @media (prefers-reduced-motion: reduce) { .welcome { animation: none; } }
-:root[data-reduced-motion] .welcome { animation: none; }
 
 @media (prefers-reduced-motion: reduce) { .sidebar-slot, .inspector { transition: none; } }
-:root[data-reduced-motion] .sidebar-slot, :root[data-reduced-motion] .inspector { transition: none; }
 
 /* 窄主区（例如打开详情面板）：查找框收窄而不换行——条件标签横向滚动，精确查找开关保持在尾部；
    张数在更窄时收起（#98）。图片大小浮岛一直保留，只缩短滑条（#102）。 */

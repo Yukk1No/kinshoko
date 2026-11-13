@@ -5,6 +5,7 @@ import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import type { BrowserCard } from "../wall/wallShared";
 import { Viewer } from "./Viewer";
 import { useViewerFlight } from "./ViewerFlight";
+import { setMedia } from "../test/platform";
 
 const LANDED = { timeout: 4000 };
 const makeCard = (id: string, adult = false) => ({ id, libraryId: "L1", imageId: id, width: 1000, height: 800, adult, thumbnail: "" }) as unknown as BrowserCard;
@@ -57,7 +58,6 @@ afterEach(() => {
   cleanup();
   clearMocks();
   vi.restoreAllMocks();
-  document.documentElement.removeAttribute("data-reduced-motion");
   document.documentElement.style.removeProperty("--t");
 });
 
@@ -200,7 +200,7 @@ describe("墙外的图退回淡入淡出", () => {
 
 describe("减弱动效", () => {
   it("开合都直接切换：没有飞行元素，也没有过渡阶段", async () => {
-    document.documentElement.setAttribute("data-reduced-motion", "");
+    setMedia("(prefers-reduced-motion: reduce)", true);
     document.documentElement.style.setProperty("--t", "20ms");
     render(<Harness />);
     press("open-a");
@@ -218,7 +218,7 @@ describe("过渡中途不再要动画", () => {
     render(<Harness />);
     press("open-a");
     expect(flier()).not.toBeNull();
-    document.documentElement.setAttribute("data-reduced-motion", "");
+    act(() => setMedia("(prefers-reduced-motion: reduce)", true));
     await waitFor(() => expect(flier()).toBeNull(), LANDED);
     expect(viewer()!.dataset.flight).toBeUndefined();
     await loadOriginal();
@@ -229,7 +229,7 @@ describe("过渡中途不再要动画", () => {
     render(<Harness initial={cards.a} />);
     press("close");
     expect(flier()).not.toBeNull();
-    document.documentElement.setAttribute("data-reduced-motion", "");
+    act(() => setMedia("(prefers-reduced-motion: reduce)", true));
     await waitFor(() => expect(viewer()).toBeNull());
     expect(flier()).toBeNull();
   });
