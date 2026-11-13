@@ -15,7 +15,8 @@ const fidelity: Translation<typeof zh> = {
     unsupported: "Not supported",
   },
   title: "Color fidelity gate",
-  intro: "WebView2 decodes both the image the app shows at 1:1 (the original, or a full-size derivative for animated, HDR, lookup-table ICC and CMYK images) and the thumbnail, reads patches back from a display-p3 canvas and compares ΔE2000 (threshold {{threshold}}, assumed). Samples shown via a derivative must also be within < {{threshold}} of their nominal values. When the original is shown directly, “1:1 vs nominal” is WebView2's own interpretation and is only recorded.",
+  intro:
+    "WebView2 decodes both the image the app shows at 1:1 (the original, or a full-size derivative for animated, HDR, lookup-table ICC and CMYK images) and the thumbnail, reads patches back from a display-p3 canvas and compares ΔE2000 (threshold {{threshold}}, assumed). Samples shown via a derivative must also be within < {{threshold}} of their nominal values. When the original is shown directly, “1:1 vs nominal” is WebView2's own interpretation and is only recorded.",
   preparing: "Generating and importing samples…",
   progress: "{{done}}/{{total}} samples",
   canvasSpace: "; note: canvas color space is {{space}}",
@@ -50,7 +51,8 @@ const fidelity: Translation<typeof zh> = {
     remarks: "- Remarks: {{remarks}}",
     none: "none",
     samples: "## Samples",
-    header: "| Sample | Experiment | 1:1 display | Gated | Max ΔE2000 (gate) | 1:1 vs nominal | Thumbnail vs nominal | WebView2 original vs nominal (recorded only) | Result | SHA-256 |",
+    header:
+      "| Sample | Experiment | 1:1 display | Gated | Max ΔE2000 (gate) | 1:1 vs nominal | Thumbnail vs nominal | WebView2 original vs nominal (recorded only) | Result | SHA-256 |",
     derivative: "derivative",
     original: "original",
     pinsTitle: "## Off-screen pin rendering vs production derivative",

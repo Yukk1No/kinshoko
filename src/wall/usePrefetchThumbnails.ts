@@ -8,7 +8,13 @@ import { createPrefetcher, decodeThumbnail, prefetchOrder, type MountWindow } fr
 import { cardThumbnail } from "./thumbnailTier";
 import { PREFETCH_MAX, PREFETCH_PX, type BrowserCard } from "./wallShared";
 
-export function usePrefetchThumbnails({ layout, mount, cards, scrollDirection, thumbnailPx }: {
+export function usePrefetchThumbnails({
+  layout,
+  mount,
+  cards,
+  scrollDirection,
+  thumbnailPx,
+}: {
   layout: ReturnType<typeof masonry>;
   mount: MountWindow;
   cards: BrowserCard[];
@@ -20,7 +26,10 @@ export function usePrefetchThumbnails({ layout, mount, cards, scrollDirection, t
   useEffect(() => {
     const prefetch = createPrefetcher({ load: decodeThumbnail });
     prefetcher.current = prefetch;
-    return () => { prefetch.dispose(); prefetcher.current = null; };
+    return () => {
+      prefetch.dispose();
+      prefetcher.current = null;
+    };
   }, []);
   useEffect(() => {
     if (!cards.length || mount.bottom <= mount.top) return;

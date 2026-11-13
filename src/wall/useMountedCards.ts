@@ -5,7 +5,17 @@ import { visible, type masonry } from "./layout";
 import type { MountWindow } from "./prefetch";
 import type { TrayMotion } from "./useTrayMotion";
 
-export function useMountedCards({ layout, mount, position, viewerOpen, selected, lastOpened, beforeReflow, motions, trayMotion }: {
+export function useMountedCards({
+  layout,
+  mount,
+  position,
+  viewerOpen,
+  selected,
+  lastOpened,
+  beforeReflow,
+  motions,
+  trayMotion,
+}: {
   layout: ReturnType<typeof masonry>;
   mount: MountWindow;
   position: Map<string, number>;

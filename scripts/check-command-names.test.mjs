@@ -29,7 +29,7 @@ describe("前端一侧", () => {
         desk("start_capture"));
       // invoke("in_comment");
     `;
-    expect(frontendCalls(source).map(c => [c.group, c.name])).toEqual([
+    expect(frontendCalls(source).map((c) => [c.group, c.name])).toEqual([
       ["library", "list_images"],
       ["desktop", "start_capture"],
       ["app", "app_info"],
@@ -37,7 +37,10 @@ describe("前端一侧", () => {
   });
 
   it("名字里带空格等符号也要抓到，不能漏掉", () => {
-    expect(frontendCalls('invoke("log_frontend ", {}); lib("a-b")').map(c => c.name)).toEqual(["a-b", "log_frontend "]);
+    expect(frontendCalls('invoke("log_frontend ", {}); lib("a-b")').map((c) => c.name)).toEqual([
+      "a-b",
+      "log_frontend ",
+    ]);
   });
 
   it("带行号", () => {
@@ -58,12 +61,12 @@ describe("核对", () => {
   });
 
   it("名字注册在别的组里也算写错", () => {
-    const calls = allUsed.map(c => (c.name === "list_images" ? { ...c, group: "app" } : c));
+    const calls = allUsed.map((c) => (c.name === "list_images" ? { ...c, group: "app" } : c));
     expect(problems(calls).length).toBeGreaterThan(0);
   });
 
   it("注册了却没人用的命令失败，写进例外表后通过", () => {
-    const calls = allUsed.filter(c => c.group !== "desktop");
+    const calls = allUsed.filter((c) => c.group !== "desktop");
     expect(problems(calls)[0]).toContain("start_capture");
     expect(problems(calls, { ...noExceptions, desktop: { start_capture: "仅 e2e 使用" } })).toEqual([]);
   });

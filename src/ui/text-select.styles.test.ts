@@ -4,14 +4,17 @@ import { appCss } from "../test/appCss";
 
 // 主界面默认不能拖选文字（#224）：误拖出的选区没有用处，只有要复制的内容才放开。
 // jsdom 不做层叠，这里按样式表锁住声明。
-const rules = (selector: string, sheet = css) => [...sheet.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-  .filter(([, sel]) => sel.split(",").some((part) => part.trim() === selector))
-  .map(([, , body]) => body);
+const rules = (selector: string, sheet = css) =>
+  [...sheet.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, sel]) => sel.split(",").some((part) => part.trim() === selector))
+    .map(([, , body]) => body);
 const declares = (selector: string, property: string, value: string, sheet = css) =>
-  rules(selector, sheet).some((body) => body.split(";").some((decl) => {
-    const [name, ...rest] = decl.split(":");
-    return name.trim() === property && rest.join(":").trim() === value;
-  }));
+  rules(selector, sheet).some((body) =>
+    body.split(";").some((decl) => {
+      const [name, ...rest] = decl.split(":");
+      return name.trim() === property && rest.join(":").trim() === value;
+    }),
+  );
 
 describe("文字选取（#224）", () => {
   it("主窗口 body 默认不能选文字，弹层等一并继承；实验窗口等不受影响", () => {

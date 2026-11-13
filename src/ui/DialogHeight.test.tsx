@@ -53,7 +53,11 @@ describe("DialogHeight", () => {
   });
 
   it("子元素自己的过渡结束不算", () => {
-    const { container } = render(<DialogHeight><span data-testid="child">内容</span></DialogHeight>);
+    const { container } = render(
+      <DialogHeight>
+        <span data-testid="child">内容</span>
+      </DialogHeight>,
+    );
     changeTo(300);
     fireEvent.transitionEnd(screen.getByTestId("child"), { propertyName: "height" });
     expect(outerOf(container).style.height).toBe("300px");
@@ -123,18 +127,34 @@ describe("DialogSwap", () => {
   });
 
   it("退场中的旧内容不可操作，结束后移除", async () => {
-    const { rerender } = render(<DialogSwap step={0}><button type="button">旧</button></DialogSwap>);
-    rerender(<DialogSwap step={1}><button type="button">新</button></DialogSwap>);
+    const { rerender } = render(
+      <DialogSwap step={0}>
+        <button type="button">旧</button>
+      </DialogSwap>,
+    );
+    rerender(
+      <DialogSwap step={1}>
+        <button type="button">新</button>
+      </DialogSwap>,
+    );
     screen.getByRole("button", { name: "新" });
     expect(screen.queryByRole("button", { name: "旧" })).toBeNull();
     await waitFor(() => expect(screen.queryByText("旧")).toBeNull());
   });
 
   it("外面滚动过时，新内容从顶部开始，旧内容留在原来看到的位置", () => {
-    const { container, rerender } = render(<DialogHeight><DialogSwap step={0}>甲页</DialogSwap></DialogHeight>);
+    const { container, rerender } = render(
+      <DialogHeight>
+        <DialogSwap step={0}>甲页</DialogSwap>
+      </DialogHeight>,
+    );
     const outer = outerOf(container);
     outer.scrollTop = 300;
-    rerender(<DialogHeight><DialogSwap step={1}>乙页</DialogSwap></DialogHeight>);
+    rerender(
+      <DialogHeight>
+        <DialogSwap step={1}>乙页</DialogSwap>
+      </DialogHeight>,
+    );
     expect(outer.scrollTop).toBe(0);
     expect(screen.getByText("甲页").closest<HTMLElement>("[inert]")!.style.translate).toBe("0 -300px");
     expect(screen.getByText("乙页").style.translate).toBe("");
@@ -142,10 +162,18 @@ describe("DialogSwap", () => {
 
   it("减弱动效下外面滚动过时，新内容同样从顶部开始", () => {
     setMedia("(prefers-reduced-motion: reduce)", true);
-    const { container, rerender } = render(<DialogHeight><DialogSwap step={0}>丙页</DialogSwap></DialogHeight>);
+    const { container, rerender } = render(
+      <DialogHeight>
+        <DialogSwap step={0}>丙页</DialogSwap>
+      </DialogHeight>,
+    );
     const outer = outerOf(container);
     outer.scrollTop = 300;
-    rerender(<DialogHeight><DialogSwap step={1}>丁页</DialogSwap></DialogHeight>);
+    rerender(
+      <DialogHeight>
+        <DialogSwap step={1}>丁页</DialogSwap>
+      </DialogHeight>,
+    );
     expect(outer.scrollTop).toBe(0);
   });
 

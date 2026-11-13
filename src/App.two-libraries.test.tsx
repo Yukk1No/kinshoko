@@ -10,8 +10,14 @@ describe("A 库导入中，整理 B 库文件夹", () => {
   const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
   const card = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
   const importing = {
-    taskId: "T1", destination: { libraryId: "L1", folderId: null }, libraryName: library.name, folderName: null,
-    progress: { done: 1, total: 5 }, report: null, finishing: false, warnings: [],
+    taskId: "T1",
+    destination: { libraryId: "L1", folderId: null },
+    libraryName: library.name,
+    folderName: null,
+    progress: { done: 1, total: 5 },
+    report: null,
+    finishing: false,
+    warnings: [],
   };
 
   async function organizeInB() {
@@ -23,12 +29,18 @@ describe("A 库导入中，整理 B 库文件夹", () => {
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.click(await screen.findByRole("button", { name: "私人收藏（2 张）" }));
-    await waitFor(() => expect(sent("workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } }));
+    await waitFor(() =>
+      expect(sent("workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2" } } }),
+    );
     await waitFor(() => expect(card("a")).toBeTruthy());
     fireEvent.keyDown(card("a"), { key: " " });
     fireEvent.click(card("b"), { ctrlKey: true });
     await waitFor(() => expect(selectionBar()).toBeTruthy());
-    return { finishTasks: (value: unknown[]) => { tasks = value; } };
+    return {
+      finishTasks: (value: unknown[]) => {
+        tasks = value;
+      },
+    };
   }
 
   it("整理请求带着 B；可写句柄切到 B 后，范围、选择和 A 的进度都不动", async () => {
@@ -37,9 +49,11 @@ describe("A 库导入中，整理 B 库文件夹", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "移到文件夹" }));
     fireEvent.click(await screen.findByRole("menuitem", { name: /发型/ }));
-    await waitFor(() => expect(sent("edit")).toEqual([
-      { libraryId: "L2", ids: ["a", "b"], edits: [{ kind: "addToFolder", folderId: "F2" }] },
-    ]));
+    await waitFor(() =>
+      expect(sent("edit")).toEqual([
+        { libraryId: "L2", ids: ["a", "b"], edits: [{ kind: "addToFolder", folderId: "F2" }] },
+      ]),
+    );
 
     await act(() => emit("writable-library", other));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 2, total: 5 } });
@@ -58,7 +72,16 @@ describe("A 库导入中，整理 B 库文件夹", () => {
     expect(await screen.findByText("导入完成后再整理")).toBeTruthy();
 
     finishTasks([]);
-    const report = { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] };
+    const report = {
+      cancelled: true,
+      items: [],
+      fromEagle: false,
+      sealedDuplicates: false,
+      privateSummary: false,
+      trashDuplicates: false,
+      eagleMissing: 0,
+      eagleRelocations: [],
+    };
     await push({ kind: "taskFinished", libraryId: "L1", taskId: "T1", report });
 
     await waitFor(() => expect(screen.queryByRole("region", { name: "导入进度" })).toBeNull());
@@ -88,11 +111,24 @@ describe("A 库导入中，整理 B 库文件夹", () => {
     render(<App />);
     await screen.findAllByRole("img");
 
-    const report = { cancelled: false, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: true, eagleMissing: 0, eagleRelocations: [] };
+    const report = {
+      cancelled: false,
+      items: [],
+      fromEagle: false,
+      sealedDuplicates: false,
+      privateSummary: false,
+      trashDuplicates: true,
+      eagleMissing: 0,
+      eagleRelocations: [],
+    };
     await push({ kind: "taskFinished", libraryId: "L2", taskId: "T9", report });
     fireEvent.click(await screen.findByRole("button", { name: "查看" }));
     fireEvent.click(await screen.findByRole("button", { name: "去回收站" }));
 
-    await waitFor(() => expect(sent("workspace_browse").at(-1)).toMatchObject({ query: { scope: { libraryId: "L2", scope: { kind: "trash" } } } }));
+    await waitFor(() =>
+      expect(sent("workspace_browse").at(-1)).toMatchObject({
+        query: { scope: { libraryId: "L2", scope: { kind: "trash" } } },
+      }),
+    );
   });
 });

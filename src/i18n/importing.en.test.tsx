@@ -12,13 +12,22 @@ import { fakeBackend } from "../test/backend";
 
 // 英文界面下导入（确认对话框、进度与结果、上次中断、Eagle 迁入与标签的外部对应）没有中文界面文案（#357）。
 // 图库名、Eagle 库名、标签名与文件路径是画师的数据。
-beforeEach(async () => { await act(async () => { await i18n.changeLanguage("en"); }); });
+beforeEach(async () => {
+  await act(async () => {
+    await i18n.changeLanguage("en");
+  });
+});
 afterEach(async () => {
-  await act(async () => { await i18n.changeLanguage("zh-CN"); });
+  await act(async () => {
+    await i18n.changeLanguage("zh-CN");
+  });
 });
 
 const data = ["参考", "主库", "蓝瞳", "水色", "D:/图/坏.png", "D:/图/新.png", "D:/图/半张.png"];
-const settle = () => act(async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); });
+const settle = () =>
+  act(async () => {
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+  });
 
 const report: ImportReport = {
   items: [
@@ -26,9 +35,13 @@ const report: ImportReport = {
     { path: "D:/图/坏.png", outcome: { kind: "unsupported" } },
     { path: "D:/图/旧.png", outcome: { kind: "skippedDeleted" } },
   ],
-  cancelled: false, fromEagle: false, eagleMissing: 2,
+  cancelled: false,
+  fromEagle: false,
+  eagleMissing: 2,
   eagleRelocations: [{ sourceId: "s1", from: "D:/Eagle/old.library", to: "E:/Eagle/new.library", overlapPercent: 80 }],
-  sealedDuplicates: false, privateSummary: false, trashDuplicates: true,
+  sealedDuplicates: false,
+  privateSummary: false,
+  trashDuplicates: true,
 };
 
 function backend() {
@@ -36,22 +49,49 @@ function backend() {
     recovery: { interrupted: ["D:/图/半张.png"], orphans: ["x"] },
     workspace_directories: () => {
       const registration = { library: { id: "L1", name: "参考", root: "D:/参考" }, unavailable: null };
-      return { status: { revision: "r", libraries: [registration] }, providers: [{ registration, unassigned: 0, descendants: {}, sidebar: null }] };
+      return {
+        status: { revision: "r", libraries: [registration] },
+        providers: [{ registration, unassigned: 0, descendants: {}, sidebar: null }],
+      };
     },
-    discover_eagle_libraries: [{ name: "主库", path: "D:/Eagle/main.library", items: 3, version: "4.0.0", foundBy: "settings" }],
+    discover_eagle_libraries: [
+      { name: "主库", path: "D:/Eagle/main.library", items: 3, version: "4.0.0", foundBy: "settings" },
+    ],
     eagle_tag_mapping: {
-      matched: [{ tag: { id: "t1", namespace: "general", name: "蓝瞳", untranslated: false, hasExternal: true }, count: 5, external: ["blue_eyes"], basis: "name", mergedInto: null }],
-      unmatched: [{ tag: { id: "t2", namespace: "general", name: "水色", untranslated: false, hasExternal: false }, count: 3, candidates: ["aqua", "aqua_eyes"] }],
+      matched: [
+        {
+          tag: { id: "t1", namespace: "general", name: "蓝瞳", untranslated: false, hasExternal: true },
+          count: 5,
+          external: ["blue_eyes"],
+          basis: "name",
+          mergedInto: null,
+        },
+      ],
+      unmatched: [
+        {
+          tag: { id: "t2", namespace: "general", name: "水色", untranslated: false, hasExternal: false },
+          count: 3,
+          candidates: ["aqua", "aqua_eyes"],
+        },
+      ],
       vocabularySize: 0,
     },
   });
 }
 
 const actions = createRef<ImportActions>() as { current: ImportActions | null };
-const bar = (finished: ImportReport | null) =>
-  <ImportBar actionsRef={actions} enabled libraryId="L1" libraryName="参考" running={null}
-    finished={finished && { taskId: "task-1", report: finished, libraryName: "参考", folderName: null } as never}
-    onStarted={() => {}} onDismissReport={() => {}} />;
+const bar = (finished: ImportReport | null) => (
+  <ImportBar
+    actionsRef={actions}
+    enabled
+    libraryId="L1"
+    libraryName="参考"
+    running={null}
+    finished={finished && ({ taskId: "task-1", report: finished, libraryName: "参考", folderName: null } as never)}
+    onStarted={() => {}}
+    onDismissReport={() => {}}
+  />
+);
 
 describe("英文界面：导入", () => {
   it("结果卡片、上次中断与 Eagle 库换了位置", async () => {
@@ -71,7 +111,9 @@ describe("英文界面：导入", () => {
     backend();
     render(bar(null));
     await settle();
-    act(() => { actions.current!.eagle(); });
+    act(() => {
+      actions.current!.eagle();
+    });
     const found = await screen.findByRole("dialog", { name: "Import from Eagle" });
     expect(within(found).getByText("3 images")).toBeTruthy();
     expectNoChinese(document.body, data);

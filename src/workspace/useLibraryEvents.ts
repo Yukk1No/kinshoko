@@ -9,7 +9,13 @@ import type { Invalidate } from "./useInvalidation";
 
 /** 资料库事件：列表与词表失效、安全模式确认、导入进度与结束；另一个图库整理等导入收尾时的轻提示。 */
 export function useLibraryEvents({
-  toast, imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport,
+  toast,
+  imports,
+  invalidate,
+  safeChanged,
+  keepSelectionOnSafeRef,
+  setRunning,
+  setReport,
 }: {
   toast: ToastApi;
   imports: RefObject<ImportTasks>;
@@ -24,8 +30,13 @@ export function useLibraryEvents({
     let alive = true;
     const unlisten = onOrganizeWaiting((waiting) => {
       if (!alive) return;
-      const names = waiting.finishing.map((name) => i18n.t("workspace:organizeWaiting.name", { name })).join(i18n.t("workspace:organizeWaiting.separator"));
-      toast.show({ title: i18n.t("workspace:organizeWaiting.title"), description: i18n.t("workspace:organizeWaiting.description", { names }) });
+      const names = waiting.finishing
+        .map((name) => i18n.t("workspace:organizeWaiting.name", { name }))
+        .join(i18n.t("workspace:organizeWaiting.separator"));
+      toast.show({
+        title: i18n.t("workspace:organizeWaiting.title"),
+        description: i18n.t("workspace:organizeWaiting.description", { names }),
+      });
     });
     return () => {
       alive = false;

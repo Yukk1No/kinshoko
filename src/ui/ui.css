@@ -7,131 +7,485 @@
    glyphs instead. The 0.04em moves the text down by half that: Han ink sits ~0.02em above Inter's cap centre.
    Clip only inline: the trimmed box is shorter than the glyphs. WebView2 before Chromium 133 ignores text-box, so
    the nudge comes with the trim or not at all. */
-.k-label { min-width: 0; overflow-x: clip; }
+.k-label {
+  min-width: 0;
+  overflow-x: clip;
+}
 /* 用户自己起的名字（Name 组件，src/ui/Name.tsx）是唯一可以用省略号截断的文字；程序自己的文字放不下就换行、改短或让容器变宽（#481）。 */
-.k-name { min-width: 0; white-space: nowrap; overflow-x: clip; text-overflow: ellipsis; }
+.k-name {
+  min-width: 0;
+  white-space: nowrap;
+  overflow-x: clip;
+  text-overflow: ellipsis;
+}
 @supports (text-box: trim-both cap alphabetic) {
-  .k-label { padding-top: 0.04em; text-box: trim-both cap alphabetic; }
+  .k-label {
+    padding-top: 0.04em;
+    text-box: trim-both cap alphabetic;
+  }
 }
 
 /* ---- Buttons ---- */
 /* 每种按钮只换 --k-* 这几个值，悬停、按下的规则共用；材质令牌见 tokens.css 的 --btn-*。 */
-.k-btn { --k-face: var(--btn-face); --k-face-hover: var(--btn-face-hover); --k-face-press: var(--btn-face-press);
-  --k-lift: var(--btn-lift); --k-lift-hover: var(--btn-lift-hover); --k-lift-press: var(--btn-lift-press);
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: var(--r);
-  font-weight: 500; white-space: nowrap; color: var(--ink); background: var(--k-face); box-shadow: var(--k-lift);
-  transition: background var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast) var(--spring); }
-.k-btn:has(> svg:first-child) { padding-left: 10px; } /* optical: an icon's side bearing reads as padding */
-.k-btn:hover:not(:disabled) { background: var(--k-face-hover); box-shadow: var(--k-lift-hover); }
-.k-btn:active:not(:disabled) { background: var(--k-face-press); box-shadow: var(--k-lift-press); transform: translateY(0.5px); }
-.k-btn.is-primary { --k-face: var(--btn-primary-face); --k-face-hover: var(--btn-primary-face-hover); --k-face-press: var(--btn-primary-face-press);
-  --k-lift: var(--btn-primary-lift); --k-lift-hover: var(--btn-primary-lift); --k-lift-press: var(--btn-primary-lift-press); color: var(--bg); }
-.k-btn.is-danger { --k-face: var(--btn-danger-face); --k-face-hover: var(--btn-danger-face-hover); --k-face-press: var(--btn-danger-face-press);
-  --k-lift: var(--btn-danger-lift); --k-lift-hover: var(--btn-danger-lift); --k-lift-press: var(--btn-danger-lift-press); color: var(--on-solid); }
-.k-btn.is-ghost { --k-face: transparent; --k-face-hover: var(--accent-soft); --k-face-press: var(--accent-soft);
-  --k-lift: none; --k-lift-hover: none; --k-lift-press: none; color: var(--accent-strong); }
+.k-btn {
+  --k-face: var(--btn-face);
+  --k-face-hover: var(--btn-face-hover);
+  --k-face-press: var(--btn-face-press);
+  --k-lift: var(--btn-lift);
+  --k-lift-hover: var(--btn-lift-hover);
+  --k-lift-press: var(--btn-lift-press);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r);
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--k-face);
+  box-shadow: var(--k-lift);
+  transition:
+    background var(--t-fast),
+    box-shadow var(--t-fast),
+    transform var(--t-fast) var(--spring);
+}
+.k-btn:has(> svg:first-child) {
+  padding-left: 10px;
+} /* optical: an icon's side bearing reads as padding */
+.k-btn:hover:not(:disabled) {
+  background: var(--k-face-hover);
+  box-shadow: var(--k-lift-hover);
+}
+.k-btn:active:not(:disabled) {
+  background: var(--k-face-press);
+  box-shadow: var(--k-lift-press);
+  transform: translateY(0.5px);
+}
+.k-btn.is-primary {
+  --k-face: var(--btn-primary-face);
+  --k-face-hover: var(--btn-primary-face-hover);
+  --k-face-press: var(--btn-primary-face-press);
+  --k-lift: var(--btn-primary-lift);
+  --k-lift-hover: var(--btn-primary-lift);
+  --k-lift-press: var(--btn-primary-lift-press);
+  color: var(--bg);
+}
+.k-btn.is-danger {
+  --k-face: var(--btn-danger-face);
+  --k-face-hover: var(--btn-danger-face-hover);
+  --k-face-press: var(--btn-danger-face-press);
+  --k-lift: var(--btn-danger-lift);
+  --k-lift-hover: var(--btn-danger-lift);
+  --k-lift-press: var(--btn-danger-lift-press);
+  color: var(--on-solid);
+}
+.k-btn.is-ghost {
+  --k-face: transparent;
+  --k-face-hover: var(--accent-soft);
+  --k-face-press: var(--accent-soft);
+  --k-lift: none;
+  --k-lift-hover: none;
+  --k-lift-press: none;
+  color: var(--accent-strong);
+}
 /* 不可用：留细线、去掉投影，实底按钮直接平掉 */
-.k-btn:disabled { --k-lift: var(--btn-lift-disabled); }
-.k-btn:is(.is-primary, .is-danger):disabled { --k-lift: none; }
-.k-btn.is-sm { height: 28px; padding: 0 10px; font-size: 12px; border-radius: var(--r-s); }
-.k-btn.is-sm:has(> svg:first-child) { padding-left: 8px; }
-.k-btn svg { flex: none; }
-.k-icon-btn { width: 32px; height: 32px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink-2); }
-.k-icon-btn:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
-.k-icon-btn:active:not(:disabled) { background: var(--press); }
-.k-kbd { margin-left: auto; font: 12px/18px var(--font); color: var(--ink-2); padding: 0 5px; border-radius: var(--r-xs); box-shadow: inset 0 0 0 1px var(--line-2); background: none; border: 0; }
+.k-btn:disabled {
+  --k-lift: var(--btn-lift-disabled);
+}
+.k-btn:is(.is-primary, .is-danger):disabled {
+  --k-lift: none;
+}
+.k-btn.is-sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: var(--r-s);
+}
+.k-btn.is-sm:has(> svg:first-child) {
+  padding-left: 8px;
+}
+.k-btn svg {
+  flex: none;
+}
+.k-icon-btn {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-s);
+  background: transparent;
+  color: var(--ink-2);
+}
+.k-icon-btn:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--ink);
+}
+.k-icon-btn:active:not(:disabled) {
+  background: var(--press);
+}
+.k-kbd {
+  margin-left: auto;
+  font: 12px / 18px var(--font);
+  color: var(--ink-2);
+  padding: 0 5px;
+  border-radius: var(--r-xs);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  background: none;
+  border: 0;
+}
 
 /* ---- Window controls (frameless main window) ---- */
 /* margin-left: auto keeps the controls at the end of the row even when the row's other items stop growing (the top bar's search has a maximum width). */
-.k-win-ctrls { display: flex; align-items: center; gap: 2px; flex: none; margin-left: auto; }
-.k-win-div { width: 1px; height: 22px; background: var(--line); margin: 0 4px 0 2px; }
-.k-win-btn { position: relative; width: 38px; height: 26px; padding: 0; border: 0; border-radius: var(--r-s); display: grid; place-items: center; background: transparent; color: var(--ink-2);
-  transition: background var(--t-fast), color var(--t-fast); }
+.k-win-ctrls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  margin-left: auto;
+}
+.k-win-div {
+  width: 1px;
+  height: 22px;
+  background: var(--line);
+  margin: 0 4px 0 2px;
+}
+.k-win-btn {
+  position: relative;
+  width: 38px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-s);
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--ink-2);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
+}
 /* Glyphs are drawn on the device-pixel grid and placed by WinCtrls (winGlyphs.ts); keep antialiasing for diagonals and corners. */
-.k-win-btn svg { position: absolute; display: block; }
-.k-win-btn:hover { background: var(--hover); color: var(--ink); }
-.k-win-btn:active { background: var(--press); }
-.k-win-btn.is-close:hover { background: var(--danger-solid); color: var(--on-solid); }
-.k-win-btn:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.k-win-btn svg {
+  position: absolute;
+  display: block;
+}
+.k-win-btn:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+.k-win-btn:active {
+  background: var(--press);
+}
+.k-win-btn.is-close:hover {
+  background: var(--danger-solid);
+  color: var(--on-solid);
+}
+.k-win-btn:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
 
 /* ---- Popups: menus and popovers (Base UI parts) ---- */
 /* 菜单、小确认、悬停提示常在对话框（.k-dialog 91）里打开，浮层要压在对话框之上。 */
-.k-positioner { z-index: 95; outline: 0; }
-.k-popup { min-width: 200px; max-height: min(var(--available-height, 480px), 480px); overflow: auto; padding: 8px; background: var(--surface); color: var(--ink);
-  border-radius: var(--r-l); box-shadow: var(--shadow-pop); outline: 0;
-  --k-pop-x: 0px; --k-pop-y: 0px;
-  transform-origin: var(--transform-origin); transition: transform var(--t-pop) var(--spring), opacity var(--t-fast); }
+.k-positioner {
+  z-index: 95;
+  outline: 0;
+}
+.k-popup {
+  min-width: 200px;
+  max-height: min(var(--available-height, 480px), 480px);
+  overflow: auto;
+  padding: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--r-l);
+  box-shadow: var(--shadow-pop);
+  outline: 0;
+  --k-pop-x: 0px;
+  --k-pop-y: 0px;
+  transform-origin: var(--transform-origin);
+  transition:
+    transform var(--t-pop) var(--spring),
+    opacity var(--t-fast);
+}
 /* 从触发点那一侧滑出，再缩回同一侧（#455）：在下方的从上往下，在上方的从下往上，左右同理。
    级联菜单的进退场在 menu.css，这里不管。 */
-.k-popup[data-side="bottom"] { --k-pop-y: -4px; }
-.k-popup[data-side="top"] { --k-pop-y: 4px; }
-.k-popup:is([data-side="left"], [data-side="inline-start"]) { --k-pop-x: 4px; }
-.k-popup:is([data-side="right"], [data-side="inline-end"]) { --k-pop-x: -4px; }
-.k-popup:not([data-k-level]):is([data-starting-style], [data-ending-style]) { opacity: 0; transform: translate(var(--k-pop-x), var(--k-pop-y)) scale(0.96); }
-.k-item { position: relative; display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px 0 8px; border-radius: var(--r-s); outline: 0; cursor: default;
-  user-select: none; color: var(--ink); }
-.k-item[data-highlighted] { background: var(--hover); }
-.k-item[data-disabled] { opacity: 0.5; }
-.k-item-ind { width: 16px; flex: none; display: grid; place-items: center; color: var(--ink-3); }
-.k-item-ind svg.lucide-check { color: var(--accent-strong); }
-.k-item-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.k-item-meta { margin-left: auto; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
-.k-item-meta.is-warn { color: var(--warn); }
-.k-item.is-danger { color: var(--danger); }
-.k-item.is-danger .k-item-ind { color: var(--danger); }
+.k-popup[data-side="bottom"] {
+  --k-pop-y: -4px;
+}
+.k-popup[data-side="top"] {
+  --k-pop-y: 4px;
+}
+.k-popup:is([data-side="left"], [data-side="inline-start"]) {
+  --k-pop-x: 4px;
+}
+.k-popup:is([data-side="right"], [data-side="inline-end"]) {
+  --k-pop-x: -4px;
+}
+.k-popup:not([data-k-level]):is([data-starting-style], [data-ending-style]) {
+  opacity: 0;
+  transform: translate(var(--k-pop-x), var(--k-pop-y)) scale(0.96);
+}
+.k-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 10px 0 8px;
+  border-radius: var(--r-s);
+  outline: 0;
+  cursor: default;
+  user-select: none;
+  color: var(--ink);
+}
+.k-item[data-highlighted] {
+  background: var(--hover);
+}
+.k-item[data-disabled] {
+  opacity: 0.5;
+}
+.k-item-ind {
+  width: 16px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+.k-item-ind svg.lucide-check {
+  color: var(--accent-strong);
+}
+.k-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.k-item-meta {
+  margin-left: auto;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.k-item-meta.is-warn {
+  color: var(--warn);
+}
+.k-item.is-danger {
+  color: var(--danger);
+}
+.k-item.is-danger .k-item-ind {
+  color: var(--danger);
+}
 /* a status row in a submenu (loading, empty, error): ink-2 text, never highlighted */
-.k-item.is-tip { min-height: 30px; color: var(--ink-2); font-size: 12px; line-height: 18px; white-space: normal; }
-.k-item.is-tip:hover { background: none; }
-.k-sep { height: 1px; background: var(--line); margin: 4px 8px; }
+.k-item.is-tip {
+  min-height: 30px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: normal;
+}
+.k-item.is-tip:hover {
+  background: none;
+}
+.k-sep {
+  height: 1px;
+  background: var(--line);
+  margin: 4px 8px;
+}
 /* 子菜单行（“放入文件夹 ▸”）：右侧箭头，展开时保持高亮。 */
-.k-item-sub { flex: none; margin-left: 4px; color: var(--ink-3); }
-.k-item-meta + .k-item-sub { margin-left: 6px; }
-.k-item.is-sub[data-popup-open] { background: var(--hover); }
-.k-item.has-meta .k-item-label { display: flex; align-items: center; gap: 8px; }
+.k-item-sub {
+  flex: none;
+  margin-left: 4px;
+  color: var(--ink-3);
+}
+.k-item-meta + .k-item-sub {
+  margin-left: 6px;
+}
+.k-item.is-sub[data-popup-open] {
+  background: var(--hover);
+}
+.k-item.has-meta .k-item-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 /* the group name lines up with the item text: item padding 8 + indicator 16 + gap 8 */
-.k-menu-label { padding: 6px 10px 2px 32px; font-size: 12px; line-height: 18px; color: var(--ink-2); font-weight: 600; }
-
+.k-menu-label {
+  padding: 6px 10px 2px 32px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ink-2);
+  font-weight: 600;
+}
 
 /* ---- Import button: one target, the source is chosen in its menu (design system ImportButton) ---- */
-.k-import { display: inline-flex; align-items: center; gap: 2px; flex: none; height: 36px; padding: 0 8px 0 10px; border: 0; border-radius: var(--r); background: transparent; color: var(--ink-2);
-  transition: background var(--t-fast), color var(--t-fast), transform var(--t-fast) var(--spring); }
-.k-import:hover:not(:disabled), .k-import[data-popup-open] { background: var(--hover); color: var(--ink); }
-.k-import:active:not(:disabled) { transform: scale(0.97); }
-.k-import .k-import-chev { color: var(--ink-3); transition: transform var(--t-slow) var(--spring); }
-.k-import[data-popup-open] .k-import-chev { transform: rotate(180deg); }
-.k-import[aria-busy="true"] > svg:first-child { animation: k-busy 1.2s var(--ease) infinite; }
-@keyframes k-busy { 50% { opacity: 0.35; } }
-@media (prefers-reduced-motion: reduce) { .k-import[aria-busy="true"] > svg:first-child { animation: none; } }
+.k-import {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  height: 36px;
+  padding: 0 8px 0 10px;
+  border: 0;
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--ink-2);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast),
+    transform var(--t-fast) var(--spring);
+}
+.k-import:hover:not(:disabled),
+.k-import[data-popup-open] {
+  background: var(--hover);
+  color: var(--ink);
+}
+.k-import:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.k-import .k-import-chev {
+  color: var(--ink-3);
+  transition: transform var(--t-slow) var(--spring);
+}
+.k-import[data-popup-open] .k-import-chev {
+  transform: rotate(180deg);
+}
+.k-import[aria-busy="true"] > svg:first-child {
+  animation: k-busy 1.2s var(--ease) infinite;
+}
+@keyframes k-busy {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-import[aria-busy="true"] > svg:first-child {
+    animation: none;
+  }
+}
 
 /* ---- Fluid hover list ---- */
-.k-fluid { position: relative; }
-.k-fluid-pill { position: absolute; left: 0; right: 0; border-radius: var(--r-s); background: var(--hover); pointer-events: none; }
-.k-fluid-row { position: relative; }
+.k-fluid {
+  position: relative;
+}
+.k-fluid-pill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: var(--r-s);
+  background: var(--hover);
+  pointer-events: none;
+}
+.k-fluid-row {
+  position: relative;
+}
 
 /* ---- Switch ---- */
-.k-switch { position: relative; display: inline-block; flex: none; width: 34px; height: 20px; padding: 0; border: 0; border-radius: var(--r-pill); background: var(--line-2);
-  transition: background var(--t); cursor: pointer; }
-.k-switch[data-checked] { background: var(--accent); }
-.k-switch[data-disabled] { opacity: 0.5; cursor: default; }
-.k-switch-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--on-solid); box-shadow: var(--knob-shadow);
-  transition: transform var(--t-slow) var(--spring); }
-.k-switch[data-checked] .k-switch-thumb { transform: translateX(14px); }
-.k-switch.is-sm { width: 28px; height: 16px; }
-.k-switch.is-sm .k-switch-thumb { width: 12px; height: 12px; }
-.k-switch.is-sm[data-checked] .k-switch-thumb { transform: translateX(12px); }
+.k-switch {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 34px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--line-2);
+  transition: background var(--t);
+  cursor: pointer;
+}
+.k-switch[data-checked] {
+  background: var(--accent);
+}
+.k-switch[data-disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+.k-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--on-solid);
+  box-shadow: var(--knob-shadow);
+  transition: transform var(--t-slow) var(--spring);
+}
+.k-switch[data-checked] .k-switch-thumb {
+  transform: translateX(14px);
+}
+.k-switch.is-sm {
+  width: 28px;
+  height: 16px;
+}
+.k-switch.is-sm .k-switch-thumb {
+  width: 12px;
+  height: 12px;
+}
+.k-switch.is-sm[data-checked] .k-switch-thumb {
+  transform: translateX(12px);
+}
 
 /* ---- Segmented switch ---- */
 /* slot 12, padding 4, item 8: concentric */
-.k-seg { position: relative; display: flex; padding: 4px; border-radius: var(--r); background: var(--sunken); box-shadow: inset 0 0 0 1px var(--line); gap: 2px; }
+.k-seg {
+  position: relative;
+  display: flex;
+  padding: 4px;
+  border-radius: var(--r);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+  gap: 2px;
+}
 /* The chosen segment's block: one thumb under the items, placed by Segmented.tsx from the chosen item's box. It slides only when
    the choice changes (--t-slow with the spring, like the switch knob); reduced motion zeroes --t-slow. */
-.k-seg-thumb { position: absolute; top: 0; left: 0; border-radius: var(--r-s); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); pointer-events: none;
-  transition: transform var(--t-slow) var(--spring), width var(--t-slow) var(--spring); }
-.k-seg-item { position: relative; flex: 1; min-width: 0; height: 28px; padding: 0 8px; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink-2); font-weight: 500;
-  display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; overflow: hidden;
-  transition: color var(--t-fast); }
-.k-seg-item > svg { flex: none; }
-.k-seg-item:hover:not([data-disabled]) { color: var(--ink); }
-.k-seg-item[data-pressed] { color: var(--ink); }
-.k-seg-item[data-disabled] { opacity: 0.5; cursor: default; }
-
+.k-seg-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: var(--r-s);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  pointer-events: none;
+  transition:
+    transform var(--t-slow) var(--spring),
+    width var(--t-slow) var(--spring);
+}
+.k-seg-item {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-s);
+  background: transparent;
+  color: var(--ink-2);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: color var(--t-fast);
+}
+.k-seg-item > svg {
+  flex: none;
+}
+.k-seg-item:hover:not([data-disabled]) {
+  color: var(--ink);
+}
+.k-seg-item[data-pressed] {
+  color: var(--ink);
+}
+.k-seg-item[data-disabled] {
+  opacity: 0.5;
+  cursor: default;
+}

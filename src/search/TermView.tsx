@@ -12,8 +12,10 @@ import { Plus, X } from "lucide-react";
 function termTitle(term: Term) {
   if (term.kind !== "text") return undefined;
   const lines = [
-    term.tags.length > 0 && i18n.t("search:alsoTags", { tags: term.tags.map(tagName).join(i18n.t("search:listSeparator")) }),
-    term.ratings.length > 0 && i18n.t("search:alsoRatings", { ratings: term.ratings.map(ratingName).join(i18n.t("search:listSeparator")) }),
+    term.tags.length > 0 &&
+      i18n.t("search:alsoTags", { tags: term.tags.map(tagName).join(i18n.t("search:listSeparator")) }),
+    term.ratings.length > 0 &&
+      i18n.t("search:alsoRatings", { ratings: term.ratings.map(ratingName).join(i18n.t("search:listSeparator")) }),
   ].filter(Boolean);
   return lines.length ? lines.join("\n") : undefined;
 }
@@ -57,7 +59,9 @@ export function TermView({
           <TagMarks tag={term.tag} />
         </>
       ) : (
-        <Tip label={termTitle(term)}><span>{t("quoted", { text: term.text })}</span></Tip>
+        <Tip label={termTitle(term)}>
+          <span>{t("quoted", { text: term.text })}</span>
+        </Tip>
       )}
       {!brief && term.similar.length > 0 && (
         <span className="search-similar">
@@ -68,16 +72,29 @@ export function TermView({
               <span>{tagName(s.tag)}</span>
               <TagMarks tag={s.tag} />
               {showSource && (
-                <span className="search-similar-source">{s.source === "builtin" ? t("similar.builtin") : t("similar.personal")}</span>
+                <span className="search-similar-source">
+                  {s.source === "builtin" ? t("similar.builtin") : t("similar.personal")}
+                </span>
               )}
-              {dismiss(s, <button type="button" aria-label={t("similar.dismissLabel", { name: tagName(s.tag) })}><X size={12} strokeWidth={2} aria-hidden="true" /></button>)}
+              {dismiss(
+                s,
+                <button type="button" aria-label={t("similar.dismissLabel", { name: tagName(s.tag) })}>
+                  <X size={12} strokeWidth={2} aria-hidden="true" />
+                </button>,
+              )}
             </span>
           ))}
         </span>
       )}
-      {sole && personal && !brief && (
-        add(sole, <button type="button" aria-label={t("similar.addLabel", { name: tagName(sole) })}><Plus size={14} strokeWidth={1.75} aria-hidden="true" /></button>)
-      )}
+      {sole &&
+        personal &&
+        !brief &&
+        add(
+          sole,
+          <button type="button" aria-label={t("similar.addLabel", { name: tagName(sole) })}>
+            <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
+          </button>,
+        )}
     </>
   );
 }

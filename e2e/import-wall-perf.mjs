@@ -40,18 +40,37 @@ function png(w, h, [r, g, b]) {
   const chunk = (type, data) => {
     const body = Buffer.concat([Buffer.from(type), data]);
     let crc = 0xffffffff;
-    for (const byte of body) { crc ^= byte; for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1; }
-    const length = Buffer.alloc(4); length.writeUInt32BE(data.length);
-    const checksum = Buffer.alloc(4); checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
+    for (const byte of body) {
+      crc ^= byte;
+      for (let i = 0; i < 8; i++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1;
+    }
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length);
+    const checksum = Buffer.alloc(4);
+    checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
     return Buffer.concat([length, body, checksum]);
   };
-  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2;
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 2;
   const row = Buffer.concat([Buffer.from([0]), Buffer.from(Array(w).fill([r, g, b]).flat())]);
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(Buffer.concat(Array(h).fill(row)))), chunk("IEND", Buffer.alloc(0))]);
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", deflateSync(Buffer.concat(Array(h).fill(row)))),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
 }
 const small = join(work, "b-images");
 mkdirSync(small);
-[[200, 80, 80], [80, 200, 80], [80, 80, 200], [200, 200, 80]].forEach((colour, i) => writeFileSync(join(small, `b-${i}.png`), png(64, 48 + i * 8, colour)));
+[
+  [200, 80, 80],
+  [80, 200, 80],
+  [80, 80, 200],
+  [200, 200, 80],
+].forEach((colour, i) => writeFileSync(join(small, `b-${i}.png`), png(64, 48 + i * 8, colour)));
 
 const { wd, until } = createDriver({ driverUrl });
 const delay = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -62,38 +81,75 @@ class Session {
     await until("Tauri IPC", () => session.exec("return Boolean(window.__TAURI_INTERNALS__?.invoke);"));
     return session;
   }
-  constructor(id) { this.base = `/session/${id}`; }
-  exec(script, args = []) { return wd("POST", `${this.base}/execute/sync`, { script, args }); }
+  constructor(id) {
+    this.base = `/session/${id}`;
+  }
+  exec(script, args = []) {
+    return wd("POST", `${this.base}/execute/sync`, { script, args });
+  }
   async run(script, args = []) {
-    const result = await wd("POST", `${this.base}/execute/async`, { script: `const done = arguments[arguments.length - 1]; (async () => { ${script} })().then(value => done({ value }), error => done({ failure: String(error?.stack ?? error) }));`, args });
+    const result = await wd("POST", `${this.base}/execute/async`, {
+      script: `const done = arguments[arguments.length - 1]; (async () => { ${script} })().then(value => done({ value }), error => done({ failure: String(error?.stack ?? error) }));`,
+      args,
+    });
     if (result?.failure) throw new Error(result.failure);
     return result.value;
   }
-  invoke(command, args = {}) { return this.run("return await window.__TAURI_INTERNALS__.invoke('plugin:library|' + arguments[0], arguments[1]);", [command, args]); }
-  async screenshot(file) { writeFileSync(file, Buffer.from(await wd("GET", `${this.base}/screenshot`), "base64")); }
+  invoke(command, args = {}) {
+    return this.run("return await window.__TAURI_INTERNALS__.invoke('plugin:library|' + arguments[0], arguments[1]);", [
+      command,
+      args,
+    ]);
+  }
+  async screenshot(file) {
+    writeFileSync(file, Buffer.from(await wd("GET", `${this.base}/screenshot`), "base64"));
+  }
 }
 
 const result = { application, samples, expected, rounds, startedAt: new Date().toISOString() };
 const save = () => writeFileSync(join(work, "result.json"), JSON.stringify(result, null, 2));
-const driver = spawn(process.env.TAURI_DRIVER ?? "tauri-driver", ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], {
-  env: { ...process.env, KINSHOKO_DATA_DIR: join(work, "app-data"), KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") },
-  windowsHide: true, stdio: ["ignore", "inherit", "inherit"],
-});
+const driver = spawn(
+  process.env.TAURI_DRIVER ?? "tauri-driver",
+  ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)],
+  {
+    env: {
+      ...process.env,
+      KINSHOKO_DATA_DIR: join(work, "app-data"),
+      KINSHOKO_SKIP_AUTOSTART: "1",
+      WEBVIEW2_USER_DATA_FOLDER: join(work, "webview"),
+    },
+    windowsHide: true,
+    stdio: ["ignore", "inherit", "inherit"],
+  },
+);
 let session;
 try {
   await until("tauri-driver", () => fetch(`${driverUrl}/status`).then((r) => r.ok));
   session = await Session.start();
   // WebDriver 的 maximize 对 Tauri 窗口不生效；点应用自己的最大化按钮（与负责人验收时相同的最大化窗口）。
-  await until("最大化按钮", () => session.exec("const b = document.querySelector('.k-win-btn[aria-label=\"最大化\"]'); if (!b) return false; b.click(); return true;"));
-  await until("窗口已最大化", () => session.exec("return Boolean(document.querySelector('.k-win-btn[aria-label=\"还原\"]'));"));
+  await until("最大化按钮", () =>
+    session.exec(
+      "const b = document.querySelector('.k-win-btn[aria-label=\"最大化\"]'); if (!b) return false; b.click(); return true;",
+    ),
+  );
+  await until("窗口已最大化", () =>
+    session.exec("return Boolean(document.querySelector('.k-win-btn[aria-label=\"还原\"]'));"),
+  );
   const b = await session.invoke("create_library", { parent: libraries, name: "另一库" });
   await session.invoke("start_import", { libraryId: b.id, source: { paths: [small] } });
-  await until("库 B 导入", async () => (await session.invoke("workspace_sidebar", { libraryId: b.id, safeMode: await session.invoke("safe_mode") })).all === 4);
+  await until(
+    "库 B 导入",
+    async () =>
+      (await session.invoke("workspace_sidebar", { libraryId: b.id, safeMode: await session.invoke("safe_mode") }))
+        .all === 4,
+  );
   const a = await session.invoke("create_library", { parent: libraries, name: "帧时间基线" });
   result.libraries = { a: a.id, b: b.id };
-  await until("侧栏出现两个资料库", () => session.exec("return document.querySelectorAll('nav[aria-label=\"查找范围\"] [data-library-id]').length === 2;"));
+  await until("侧栏出现两个资料库", () =>
+    session.exec("return document.querySelectorAll('nav[aria-label=\"查找范围\"] [data-library-id]').length === 2;"),
+  );
   // 选中 A 的“全部图片”，展开它的目录：观察的就是负责人截图里的那一行。
-  await session.exec("document.querySelector(`[data-library-id=\"${arguments[0]}\"] .lib-head-name`).click();", [a.id]);
+  await session.exec('document.querySelector(`[data-library-id="${arguments[0]}"] .lib-head-name`).click();', [a.id]);
 
   // #121：每帧记录 A、B 两行标题按钮是否还是同一个节点、是否变成不可用、张数文字。
   await session.exec(`
@@ -124,37 +180,65 @@ try {
   await session.screenshot(join(work, "importing-1.png"));
   await session.exec("document.querySelector('nav[aria-label=\"查找范围\"] .side-top button').click();");
   await delay(1500);
-  await session.exec("document.querySelector(`[data-library-id=\"${arguments[0]}\"] .lib-head-name`).click();", [a.id]);
+  await session.exec('document.querySelector(`[data-library-id="${arguments[0]}"] .lib-head-name`).click();', [a.id]);
   await delay(1500);
   await session.invoke("create_folder", { libraryId: b.id, name: "导入中新建", parent: null });
   await delay(1500);
   await session.screenshot(join(work, "importing-2.png"));
-  await until("导入完成", () => session.exec("return !document.querySelector('[aria-label=\"导入进度\"]');"), 3_600_000, 500);
-  const imported = (await session.invoke("workspace_sidebar", { libraryId: a.id, safeMode: await session.invoke("safe_mode") })).all;
+  await until(
+    "导入完成",
+    () => session.exec("return !document.querySelector('[aria-label=\"导入进度\"]');"),
+    3_600_000,
+    500,
+  );
+  const imported = (
+    await session.invoke("workspace_sidebar", { libraryId: a.id, safeMode: await session.invoke("safe_mode") })
+  ).all;
   // 读取或解码失败的项也会让进度条消失：张数必须与样本里不同内容的张数完全一致，否则不算这次测量。
-  if (imported !== expected) throw new Error(`导入结果不完整：进库 ${imported} 张，样本里有 ${expected} 张不同内容的图`);
+  if (imported !== expected)
+    throw new Error(`导入结果不完整：进库 ${imported} 张，样本里有 ${expected} 张不同内容的图`);
   result.import = { ms: Date.now() - importStart, all: imported, expected };
   result.import.imagesPerSec = Math.round((result.import.all / (result.import.ms / 1000)) * 10) / 10;
-  result.sidebar = await session.exec("window.__rowWatch.stop = true; const { stop, ...rows } = window.__rowWatch; return rows;");
+  result.sidebar = await session.exec(
+    "window.__rowWatch.stop = true; const { stop, ...rows } = window.__rowWatch; return rows;",
+  );
   console.log("导入", JSON.stringify(result.import), "侧栏", JSON.stringify(result.sidebar));
   save();
 
   // #123：浏览 A 的全部图片；每轮先量缩略图替换时间，再量帧时间（顺序的理由见文件开头）。
-  await session.exec("document.querySelector(`[data-library-id=\"${arguments[0]}\"] .lib-head-name`).click();", [a.id]);
-  await until("图片墙满 5000", () => session.exec("return Number(document.querySelector('.wall')?.dataset.total) >= arguments[0];", [result.import.all]), 60000);
+  await session.exec('document.querySelector(`[data-library-id="${arguments[0]}"] .lib-head-name`).click();', [a.id]);
+  await until(
+    "图片墙满 5000",
+    () =>
+      session.exec("return Number(document.querySelector('.wall')?.dataset.total) >= arguments[0];", [
+        result.import.all,
+      ]),
+    60000,
+  );
   await until("探针", () => session.exec("return Boolean(window.__kinshokoPerf);"));
   await delay(2000);
   result.rounds = [];
   for (let round = 1; round <= rounds; round++) {
     const only = ["wheel-steady", "wheel-burst"];
-    const replacement = await session.run("return await window.__kinshokoPerf.run({ only: arguments[0], sampleThumbnails: false, observeReplacement: true });", [only]);
-    const frames = await session.run("return await window.__kinshokoPerf.run({ only: arguments[0], sampleThumbnails: false });", [only]);
+    const replacement = await session.run(
+      "return await window.__kinshokoPerf.run({ only: arguments[0], sampleThumbnails: false, observeReplacement: true });",
+      [only],
+    );
+    const frames = await session.run(
+      "return await window.__kinshokoPerf.run({ only: arguments[0], sampleThumbnails: false });",
+      [only],
+    );
     const pick = (report, field) => Object.fromEntries(report.scenarios.map((s) => [s.name, field(s)]));
     const entry = {
       round,
       environment: frames.environment,
       warnings: frames.warnings,
-      frames: pick(frames, (s) => ({ p95: s.frames.p95, p99: s.frames.p99, dropRate60: s.frames.dropRate60, pass: s.frames.pass })),
+      frames: pick(frames, (s) => ({
+        p95: s.frames.p95,
+        p99: s.frames.p99,
+        dropRate60: s.frames.dropRate60,
+        pass: s.frames.pass,
+      })),
       replacement: pick(replacement, (s) => s.replacement),
     };
     result.rounds.push(entry);
@@ -180,7 +264,11 @@ try {
     "while ($queue.Count) { $id = $queue.Dequeue(); if ($tree.ContainsKey($id)) { continue }; $tree[$id] = $true; foreach ($p in $all) { if ($p.ParentProcessId -eq $id) { $queue.Enqueue([int]$p.ProcessId) } } }",
     "$all | Where-Object { $tree.ContainsKey([int]$_.ProcessId) -and $_.ExecutablePath -eq $env:KINSHOKO_PERF_EXE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
   ].join("; ");
-  if (driver.pid) spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", cleanup], { env: { ...process.env, KINSHOKO_PERF_EXE: application, KINSHOKO_PERF_DRIVER_PID: String(driver.pid) }, windowsHide: true });
+  if (driver.pid)
+    spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", cleanup], {
+      env: { ...process.env, KINSHOKO_PERF_EXE: application, KINSHOKO_PERF_DRIVER_PID: String(driver.pid) },
+      windowsHide: true,
+    });
   driver.kill();
   console.log(`结果：${join(work, "result.json")}`);
 }

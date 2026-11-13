@@ -21,7 +21,8 @@ beforeEach(() => {
   // jsdom 不排版：卡片按自己的内联位置（减去墙的滚动）给矩形，墙占满视口。
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
     if (this.classList.contains("card")) {
-      const s = this.style, top = this.closest<HTMLElement>(".wall")?.scrollTop ?? 0;
+      const s = this.style,
+        top = this.closest<HTMLElement>(".wall")?.scrollTop ?? 0;
       return new DOMRect(parseFloat(s.left), parseFloat(s.top) - top, parseFloat(s.width), parseFloat(s.height));
     }
     return new DOMRect(0, 0, width, 800);
@@ -34,14 +35,25 @@ beforeEach(() => {
     return animation as unknown as Animation;
   });
   mockConvertFileSrc("windows");
-  fakeBackend({ workspace_browse: () => workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 }))) });
+  fakeBackend({
+    workspace_browse: () =>
+      workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 }))),
+  });
 });
 afterEach(() => {
-  vi.restoreAllMocks(); vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
-const props = { workspaceScope: { kind: "all" as const }, scope: { kind: "all" as const }, reloadKey: 0, selected: new Set<string>(),
-  onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false };
+const props = {
+  workspaceScope: { kind: "all" as const },
+  scope: { kind: "all" as const },
+  reloadKey: 0,
+  selected: new Set<string>(),
+  onSelectionChange: () => {},
+  onOpenImage: () => {},
+  viewerOpen: false,
+};
 
 async function setup() {
   const view = render(<Wall {...props} />);
@@ -50,14 +62,21 @@ async function setup() {
   wall.scrollTop = 2000;
   fireEvent.scroll(wall);
   motions = [];
-  const slide = (settle: PanelSlide | null, holdReflow = false) => view.rerender(<Wall {...props} settle={settle} holdReflow={holdReflow} />);
+  const slide = (settle: PanelSlide | null, holdReflow = false) =>
+    view.rerender(<Wall {...props} settle={settle} holdReflow={holdReflow} />);
   return { wall, slide };
 }
 
 /** 面板宽度过渡的一帧：容器变宽，ResizeObserver 报告一次。 */
-const resize = (next: number) => act(() => { width = next; report(document.querySelector(".wall")!); });
-const placement = () => [...document.querySelectorAll<HTMLElement>(".wall .card")]
-  .map((node) => [node.dataset.id, node.style.left, node.style.top, node.style.width].join(" "));
+const resize = (next: number) =>
+  act(() => {
+    width = next;
+    report(document.querySelector(".wall")!);
+  });
+const placement = () =>
+  [...document.querySelectorAll<HTMLElement>(".wall .card")].map((node) =>
+    [node.dataset.id, node.style.left, node.style.top, node.style.width].join(" "),
+  );
 const collapse: PanelSlide = { by: 256, duration: 260, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", startTime: 1234 };
 
 it("面板一开始滑就按终点宽度重排，进行中与结束时都不再排", async () => {
@@ -77,7 +96,10 @@ it("卡片的位移动画用面板过渡的时长、缓动与起点", async () =
   slide(collapse);
   expect(motions.length).toBeGreaterThan(0);
   for (const motion of motions) {
-    expect(motion.animation.effect.getTiming()).toMatchObject({ duration: 260, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" });
+    expect(motion.animation.effect.getTiming()).toMatchObject({
+      duration: 260,
+      easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+    });
     expect(motion.animation.startTime).toBe(1234);
   }
   // 之后与面板无关的重排回到平常的节奏。
@@ -85,7 +107,11 @@ it("卡片的位移动画用面板过渡的时长、缓动与起点", async () =
   motions = [];
   resize(900);
   expect(motions.length).toBeGreaterThan(0);
-  expect(motions.every((motion) => motion.animation.effect.getTiming().duration === 200 && motion.animation.startTime === null)).toBe(true);
+  expect(
+    motions.every(
+      (motion) => motion.animation.effect.getTiming().duration === 200 && motion.animation.startTime === null,
+    ),
+  ).toBe(true);
 });
 
 it("结束时宽度与终点不符，按实际宽度再排一次", async () => {
@@ -127,7 +153,11 @@ it("中途反向：从当前位置按新过渡排回新的终点，只重排这�
   expect(placement()).toEqual(before);
   expect(first.every((motion) => motion.cancel.mock.calls.length === 1)).toBe(true);
   expect(motions.length).toBeGreaterThan(0);
-  expect(motions.every((motion) => motion.animation.effect.getTiming().duration === 130 && motion.animation.startTime === 1300)).toBe(true);
+  expect(
+    motions.every(
+      (motion) => motion.animation.effect.getTiming().duration === 130 && motion.animation.startTime === 1300,
+    ),
+  ).toBe(true);
   const back = motions.length;
   for (const next of [900, 960, 1000]) resize(next);
   slide(null);
@@ -138,7 +168,8 @@ it("中途反向：从当前位置按新过渡排回新的终点，只重排这�
 it("两个面板一起滑时第二个开始不重复排", async () => {
   const { slide } = await setup();
   slide(expand);
-  const settled = placement(), started = motions.length;
+  const settled = placement(),
+    started = motions.length;
   // 同一帧里第二个面板的 transitionrun：算出的终点相同。
   slide({ ...expand });
   expect(placement()).toEqual(settled);

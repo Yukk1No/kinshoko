@@ -19,8 +19,17 @@ const drawn = (markup: string) => {
   return svg.innerHTML;
 };
 
-const rail = (safeMode: boolean) => render(<Rail section="browse" paneOpen safeMode={safeMode}
-  onSection={() => {}} onSafeMode={() => {}} onSettings={() => {}} />);
+const rail = (safeMode: boolean) =>
+  render(
+    <Rail
+      section="browse"
+      paneOpen
+      safeMode={safeMode}
+      onSection={() => {}}
+      onSafeMode={() => {}}
+      onSettings={() => {}}
+    />,
+  );
 
 describe("图标轨", () => {
   it("封印书画的是原型的第五轮 A1 圆锁（合上为开启，翻开为关闭）", () => {
@@ -56,7 +65,9 @@ describe("图标轨", () => {
     backend([], []);
     rail(false);
     expect(screen.getByRole("button", { name: "参考组" }).querySelector("svg.lucide-layout-dashboard")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "截图" }).querySelector("svg.rail-ic-captures .view-frame")).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "截图" }).querySelector("svg.rail-ic-captures .view-frame"),
+    ).not.toBeNull();
     expect(screen.getByRole("button", { name: "设置" }).querySelector("svg.lucide-settings")).not.toBeNull();
   });
 });

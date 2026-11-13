@@ -47,10 +47,7 @@ function UnmatchedRow({
       setSuggestions(item.candidates);
       return;
     }
-    externalSuggestions(text, SUGGESTIONS).then(
-      setSuggestions,
-      () => {},
-    );
+    externalSuggestions(text, SUGGESTIONS).then(setSuggestions, () => {});
   };
   const submit = async (external = draft.trim()) => {
     if (!external) return;
@@ -66,7 +63,10 @@ function UnmatchedRow({
   return (
     <li>
       <span className="k-parts">
-        <span>{name}<TagMarks tag={item.tag} /></span>
+        <span>
+          {name}
+          <TagMarks tag={item.tag} />
+        </span>
         <span>{t("count", { count: item.count })}</span>
       </span>
       {item.candidates.length > 1 && <span className="import-report-reason">{t("ambiguous")}</span>}
@@ -78,14 +78,31 @@ function UnmatchedRow({
         autoHighlight={false}
         options={externalOptions(suggestions, draft)}
         onValueChange={change}
-        onSelect={(option) => { setDraft(option.id); void submit(option.id); }}
+        onSelect={(option) => {
+          setDraft(option.id);
+          void submit(option.id);
+        }}
         // 有高亮的候选时 Enter 由 Combobox 选它；没有时按输入的名称补上。
-        onKeyDown={(e) => { if (e.key === "Enter" && !e.currentTarget.getAttribute("aria-activedescendant")) void submit(); }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.currentTarget.getAttribute("aria-activedescendant")) void submit();
+        }}
       />
-      <button type="button" className="k-btn is-sm" aria-label={t("mapLabel", { name })} disabled={busy || !draft.trim()} onClick={() => void submit()}>
+      <button
+        type="button"
+        className="k-btn is-sm"
+        aria-label={t("mapLabel", { name })}
+        disabled={busy || !draft.trim()}
+        onClick={() => void submit()}
+      >
         {t("map")}
       </button>
-      <button type="button" className="k-btn is-sm" aria-label={t("skipLabel", { name })} disabled={busy} onClick={onSkip}>
+      <button
+        type="button"
+        className="k-btn is-sm"
+        aria-label={t("skipLabel", { name })}
+        disabled={busy}
+        onClick={onSkip}
+      >
         {t("skip")}
       </button>
     </li>
@@ -120,7 +137,7 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
     };
   }, [libraryId, lang, t]);
 
-  const drop =(id: string) => setRemaining((rows) => rows.filter((r) => r.tag.id !== id));
+  const drop = (id: string) => setRemaining((rows) => rows.filter((r) => r.tag.id !== id));
   const merged = mapping?.matched.filter((m) => m.mergedInto) ?? [];
 
   return (
@@ -134,17 +151,13 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
           {remaining.length ? t("skipAll") : t("done")}
         </button>
       </header>
-      {mapping && mapping.vocabularySize === 0 && (
-        <p>{t("noVocabulary")}</p>
-      )}
+      {mapping && mapping.vocabularySize === 0 && <p>{t("noVocabulary")}</p>}
       {error && <p role="alert">{error}</p>}
       {merged.length > 0 && (
         <ul aria-label={t("mergedLabel")}>
           {merged.map((m) => (
             <li key={m.tag.id}>
-              <span>
-                {t("mergedInto", { tag: tagName(m.tag), into: m.mergedInto ? tagName(m.mergedInto) : "" })}
-              </span>
+              <span>{t("mergedInto", { tag: tagName(m.tag), into: m.mergedInto ? tagName(m.mergedInto) : "" })}</span>
               <span className="import-report-reason">{t("mergedReason")}</span>
             </li>
           ))}
@@ -158,9 +171,7 @@ export function EagleTagStep({ libraryId, onClose }: Props) {
                 {d.name} → {d.mapped.external}
               </span>
               {d.mapped.mergedInto && <span className="import-report-reason">{t("mappedMerged")}</span>}
-              {!d.mapped.known && (
-                <span className="import-report-reason">{t("unknown")}</span>
-              )}
+              {!d.mapped.known && <span className="import-report-reason">{t("unknown")}</span>}
             </li>
           ))}
         </ul>

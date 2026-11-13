@@ -37,7 +37,9 @@ export async function chooseValue(trigger: HTMLElement, value: string) {
 /** 展开 Select 读出各项名称，再收起。 */
 export async function optionNames(trigger: HTMLElement) {
   const list = await open(trigger);
-  const names = within(list).getAllByRole("option").map((o) => o.textContent ?? "");
+  const names = within(list)
+    .getAllByRole("option")
+    .map((o) => o.textContent ?? "");
   fireEvent.keyDown(document.activeElement ?? list, { key: "Escape" });
   await act(async () => {});
   return names;

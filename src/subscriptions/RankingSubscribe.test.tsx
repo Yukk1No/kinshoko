@@ -13,7 +13,13 @@ import { type FakeBackend, fakeBackend } from "../test/backend";
 
 /** 新建图库选好的位置：显示的是缩短的预览，完整路径在悬停提示里。 */
 const chosenParent = async (dialog: HTMLElement) =>
-  tipText(await waitFor(() => dialog.querySelector<HTMLElement>(".create-library-path.is-set .create-library-path-text") ?? Promise.reject(new Error("还没选好位置"))));
+  tipText(
+    await waitFor(
+      () =>
+        dialog.querySelector<HTMLElement>(".create-library-path.is-set .create-library-path-text") ??
+        Promise.reject(new Error("还没选好位置")),
+    ),
+  );
 
 // 订阅榜单（#370）：对话框、单独的图库、R-18 榜与安全模式、订阅设置。
 
@@ -23,7 +29,11 @@ const libraries = [
   { library: { id: "L2", name: "私人", root: "D:/参考图/私人" }, unavailable: null },
 ];
 const ranking = (id: string, period: "day" | "week" | "month", top: number, patch: Partial<Subscription> = {}) =>
-  subscription(id, "存下的名字", { target: { kind: "pixivRanking", period, top, explicit: false }, backlog: { kind: "all" }, ...patch });
+  subscription(id, "存下的名字", {
+    target: { kind: "pixivRanking", period, top, explicit: false },
+    backlog: { kind: "all" },
+    ...patch,
+  });
 
 function backend(subs: Subscription[] = [], newLibraryParent: string | null = null) {
   mockConvertFileSrc("windows");
@@ -31,7 +41,16 @@ function backend(subs: Subscription[] = [], newLibraryParent: string | null = nu
     subscriptions: subs,
     save_memory: { importDestination: null, newLibraryParent },
     subscription_recent: [],
-    workspace_directories: { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) },
+    workspace_directories: {
+      status: { revision: "t", libraries },
+      registrationOrder: [],
+      providers: libraries.map((registration) => ({
+        registration,
+        sidebar: { all: 0, trash: 0, folders: [] },
+        unassigned: 0,
+        descendants: {},
+      })),
+    },
     create_library_unopened: { id: "L9", name: "pixiv 榜单", root: "D:/参考图/pixiv 榜单" },
     subscription_add: [],
     subscription_set_options: () => subs[0],
@@ -41,9 +60,18 @@ function backend(subs: Subscription[] = [], newLibraryParent: string | null = nu
 const sent = (command: string) => fake.calls(command).map((call) => call.args);
 
 function page(s: SubscriptionStatus, safe = false) {
-  return render(<SaveDestinationProvider safe={safe}>
-    <SubscriptionsPage status={s} onStatus={vi.fn()} safe={safe} paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} />
-  </SaveDestinationProvider>);
+  return render(
+    <SaveDestinationProvider safe={safe}>
+      <SubscriptionsPage
+        status={s}
+        onStatus={vi.fn()}
+        safe={safe}
+        paneOpen
+        onPaneToggle={vi.fn()}
+        onOpenImage={vi.fn()}
+      />
+    </SaveDestinationProvider>,
+  );
 }
 
 async function openRankingDialog() {
@@ -71,19 +99,35 @@ describe("订阅榜单", () => {
     expect((within(dialog).getByRole("textbox", { name: "图库名称" }) as HTMLInputElement).value).toBe("pixiv 榜单");
     expect(await within(dialog).findByText("D:/参考图\\pixiv 榜单")).toBeTruthy();
     // 点周榜的「前 10」顺带勾上周榜。
-    fireEvent.click(within(within(dialog).getByRole("group", { name: "周榜同步前几名" })).getByRole("button", { name: "前 10" }));
+    fireEvent.click(
+      within(within(dialog).getByRole("group", { name: "周榜同步前几名" })).getByRole("button", { name: "前 10" }),
+    );
     expect((within(dialog).getByRole("checkbox", { name: "周榜" }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(within(dialog).getByRole("switch", { name: "漫画" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "订阅 2 个榜单" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
     expect(sent("create_library_unopened")).toEqual([{ parent: "D:/参考图", name: "pixiv 榜单" }]);
     expect(sent("create_library")).toEqual([]);
-    expect(sent("subscription_add")[0]).toEqual({ subscriptions: [
-      { target: { kind: "pixivRanking", period: "day", top: 50, explicit: false }, name: "日榜 前 50", libraryId: "L9",
-        includeExplicit: true, includeManga: true, backlog: { kind: "all" } },
-      { target: { kind: "pixivRanking", period: "week", top: 10, explicit: false }, name: "周榜 前 10", libraryId: "L9",
-        includeExplicit: true, includeManga: true, backlog: { kind: "all" } },
-    ] });
+    expect(sent("subscription_add")[0]).toEqual({
+      subscriptions: [
+        {
+          target: { kind: "pixivRanking", period: "day", top: 50, explicit: false },
+          name: "日榜 前 50",
+          libraryId: "L9",
+          includeExplicit: true,
+          includeManga: true,
+          backlog: { kind: "all" },
+        },
+        {
+          target: { kind: "pixivRanking", period: "week", top: 10, explicit: false },
+          name: "周榜 前 10",
+          libraryId: "L9",
+          includeExplicit: true,
+          includeManga: true,
+          backlog: { kind: "all" },
+        },
+      ],
+    });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
@@ -120,7 +164,9 @@ describe("订阅榜单", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "订阅 1 个榜单" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
     expect(sent("create_library_unopened")).toEqual([]);
-    expect((sent("subscription_add")[0] as { subscriptions: { libraryId: string }[] }).subscriptions[0].libraryId).toBe("L2");
+    expect((sent("subscription_add")[0] as { subscriptions: { libraryId: string }[] }).subscriptions[0].libraryId).toBe(
+      "L2",
+    );
   });
 
   it("已有榜单订阅：已订阅的标出名次，默认放进同一个图库，换了别的图库时提示可能重复收", async () => {
@@ -156,7 +202,9 @@ describe("订阅榜单", () => {
     expect((within(dialog).getByRole("checkbox", { name: "周榜" }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(within(dialog).getByRole("button", { name: "订阅 1 个榜单" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
-    expect((sent("subscription_add")[0] as { subscriptions: { libraryId: string }[] }).subscriptions[0].libraryId).toBe("L9");
+    expect((sent("subscription_add")[0] as { subscriptions: { libraryId: string }[] }).subscriptions[0].libraryId).toBe(
+      "L9",
+    );
     expect(sent("create_library_unopened")).toEqual([{ parent: "D:/参考图", name: "我的参考" }]);
   });
 
@@ -173,8 +221,11 @@ describe("订阅榜单", () => {
       fireEvent.click(within(dialog).getByRole("radio", { name: /放进已有图库/ }));
       fireEvent.click(within(dialog).getByRole("button", { name: "订阅 2 个榜单" }));
       await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
-      expect((sent("subscription_add")[0] as { subscriptions: { target: unknown; name: string }[] }).subscriptions[1]).toMatchObject({
-        target: { kind: "pixivRanking", period: "week", top: 10, explicit: true }, name: "R-18 周榜 前 10",
+      expect(
+        (sent("subscription_add")[0] as { subscriptions: { target: unknown; name: string }[] }).subscriptions[1],
+      ).toMatchObject({
+        target: { kind: "pixivRanking", period: "week", top: 10, explicit: true },
+        name: "R-18 周榜 前 10",
       });
       cleanup();
     }
@@ -189,7 +240,10 @@ describe("订阅榜单", () => {
     expect(within(dialog).getByRole("button", { name: "订阅 1 个榜单" })).toBeTruthy();
     cleanup();
 
-    for (const s of [status({ login: { state: "expired", account } }), status({ login: { state: "loggedIn", account: { ...account, explicitAllowed: false } } })]) {
+    for (const s of [
+      status({ login: { state: "expired", account } }),
+      status({ login: { state: "loggedIn", account: { ...account, explicitAllowed: false } } }),
+    ]) {
       backend();
       page(s);
       dialog = await openRankingDialog();
@@ -209,11 +263,17 @@ describe("订阅榜单", () => {
     expect(within(settings).queryByText(/图库/)).toBeNull();
     fireEvent.click(within(settings).getByRole("button", { name: "前 100" }));
     fireEvent.click(within(settings).getByRole("button", { name: "保存" }));
-    await waitFor(() => expect(sent("subscription_set_options")).toEqual([{ id: "r1", includeExplicit: true, includeManga: false, top: 100 }]));
+    await waitFor(() =>
+      expect(sent("subscription_set_options")).toEqual([
+        { id: "r1", includeExplicit: true, includeManga: false, top: 100 },
+      ]),
+    );
   });
 
   it("R-18 榜在安全模式下照常列在名单上（藏的只是 R-18 的图）", async () => {
-    backend([subscription("r2", "存下的名字", { target: { kind: "pixivRanking", period: "day", top: 10, explicit: true } })]);
+    backend([
+      subscription("r2", "存下的名字", { target: { kind: "pixivRanking", period: "day", top: 10, explicit: true } }),
+    ]);
     page(status(), true);
     expect(await screen.findByRole("button", { name: "R-18 日榜 前 10" })).toBeTruthy();
   });

@@ -7,7 +7,9 @@ import { TagGroupBar } from "../search/TagGroupBar";
 import { fakeBackend } from "../test/backend";
 
 afterEach(async () => {
-  await act(async () => { await i18n.changeLanguage("zh-CN"); });
+  await act(async () => {
+    await i18n.changeLanguage("zh-CN");
+  });
 });
 
 /** 模拟核心：界面语言从 `lang` 开始；标签分组按请求的语言给名称。 */
@@ -25,10 +27,20 @@ function backend(lang: string) {
   return asked;
 }
 
-const page = () => render(<>
-  <UpdateSection version="Kinshoko 1.1.0" />
-  <TagGroupBar libraryId="lib" safe={false} generation={0} input={{ conditions: [], exact: false }} onChange={() => {}} onError={() => {}} />
-</>);
+const page = () =>
+  render(
+    <>
+      <UpdateSection version="Kinshoko 1.1.0" />
+      <TagGroupBar
+        libraryId="lib"
+        safe={false}
+        generation={0}
+        input={{ conditions: [], exact: false }}
+        onChange={() => {}}
+        onError={() => {}}
+      />
+    </>,
+  );
 
 describe("界面语言", () => {
   it("没有指定时是简体中文，与 1.0 一致", async () => {
@@ -56,12 +68,16 @@ describe("界面语言", () => {
     page();
     expect(await screen.findByText("眼睛")).toBeTruthy();
 
-    await act(async () => { await emit("interface-language", "en"); });
+    await act(async () => {
+      await emit("interface-language", "en");
+    });
     expect(await screen.findByText("Eyes")).toBeTruthy();
     expect(screen.getByText("Up to date")).toBeTruthy();
     expect(asked.at(-1)).toBe("en");
 
-    await act(async () => { await emit("interface-language", "zh-CN"); });
+    await act(async () => {
+      await emit("interface-language", "zh-CN");
+    });
     expect(await screen.findByText("眼睛")).toBeTruthy();
     expect(screen.getByText("已是最新")).toBeTruthy();
     stop();
@@ -73,10 +89,16 @@ describe("界面语言", () => {
       update_status: { state: "available", version: "1.2.0", notes: null },
     });
     const stop = followInterfaceLanguage();
-    render(<><UpdateNotice /></>);
+    render(
+      <>
+        <UpdateNotice />
+      </>,
+    );
     expect(await screen.findByText("Kinshoko 1.2.0 可以更新")).toBeTruthy();
 
-    await act(async () => { await emit("interface-language", "en"); });
+    await act(async () => {
+      await emit("interface-language", "en");
+    });
     expect(await screen.findByText("Kinshoko 1.2.0 is available")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Install and restart" })).toBeTruthy();
     stop();
@@ -95,11 +117,15 @@ describe("界面语言", () => {
     i18n.addResourceBundle("en", "probe", { images_one: "{{count}} image", images_other: "{{count}} images" });
     i18n.addResourceBundle("zh-CN", "probe", { images_other: "{{count}} 张" });
     const t = i18n.t as unknown as (key: string, options: object) => string;
-    await act(async () => { await i18n.changeLanguage("en"); });
+    await act(async () => {
+      await i18n.changeLanguage("en");
+    });
     expect(t("probe:images", { count: 1 })).toBe("1 image");
     expect(t("probe:images", { count: 3 })).toBe("3 images");
     expect(i18n.t("update:install.title", { version: "1.2.0" })).toBe("Update to 1.2.0");
-    await act(async () => { await i18n.changeLanguage("zh-CN"); });
+    await act(async () => {
+      await i18n.changeLanguage("zh-CN");
+    });
     expect(t("probe:images", { count: 1 })).toBe("1 张");
     await waitFor(() => expect(i18n.t("update:install.title", { version: "1.2.0" })).toBe("可以更新到 1.2.0"));
   });

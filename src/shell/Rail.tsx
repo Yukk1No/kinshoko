@@ -1,16 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 // Ported from bd8aea44:prototype/reference-browser/src/components/Rail.tsx: lucide icons, logo path,
 // indicator and dark number badges. The badge counts are the app's real ones. 参考组不用 Layers：
 // 三层叠片在绘画软件里是“图层”，换成拼贴板（LayoutDashboard）；截图用取景框，时钟只说得出“历史”；订阅用收件盘，pixiv 订阅不是 RSS。悬停动效见 shell.css 的 `.rail-ic-*`。
-import { LayoutDashboard, Settings } from 'lucide-react';
-import { RailImagesIcon, RailInboxIcon, RailViewfinderIcon, type RailIcon } from './RailIcons';
-import { SealBook } from './SealBookToggle';
-import { BrandMark } from '../ui/BrandMark';
-import { Tip } from '../ui/Tip';
-import { captureHistory, onCaptureHistory, onReferenceGroupsChanged, referenceGroups } from '../ipc';
+import { LayoutDashboard, Settings } from "lucide-react";
+import { RailImagesIcon, RailInboxIcon, RailViewfinderIcon, type RailIcon } from "./RailIcons";
+import { SealBook } from "./SealBookToggle";
+import { BrandMark } from "../ui/BrandMark";
+import { Tip } from "../ui/Tip";
+import { captureHistory, onCaptureHistory, onReferenceGroupsChanged, referenceGroups } from "../ipc";
 
-export type Section = 'browse' | 'groups' | 'captures' | 'subscriptions';
+export type Section = "browse" | "groups" | "captures" | "subscriptions";
 type Props = {
   section: Section;
   paneOpen: boolean;
@@ -23,14 +23,14 @@ type Props = {
 };
 
 const ITEMS: { id: Section; icon: RailIcon; key: string }[] = [
-  { id: 'browse', icon: RailImagesIcon, key: 'Ctrl+1' },
-  { id: 'groups', icon: LayoutDashboard, key: 'Ctrl+2' },
-  { id: 'captures', icon: RailViewfinderIcon, key: 'Ctrl+3' },
-  { id: 'subscriptions', icon: RailInboxIcon, key: 'Ctrl+4' },
+  { id: "browse", icon: RailImagesIcon, key: "Ctrl+1" },
+  { id: "groups", icon: LayoutDashboard, key: "Ctrl+2" },
+  { id: "captures", icon: RailViewfinderIcon, key: "Ctrl+3" },
+  { id: "subscriptions", icon: RailInboxIcon, key: "Ctrl+4" },
 ];
 
 /** 角标的数字：超过 99 写“99+”。 */
-const badgeText = (n: number) => (n > 99 ? '99+' : String(n));
+const badgeText = (n: number) => (n > 99 ? "99+" : String(n));
 
 const count = (list: readonly unknown[]) => (list.length > 0 ? list.length : undefined);
 
@@ -40,15 +40,28 @@ function useBadges(): Partial<Record<Section, number>> {
   const [captures, setCaptures] = useState<number>();
   useEffect(() => {
     let alive = true;
-    const reloadGroups = () => referenceGroups().then((list) => alive && setGroups(count(list)), () => {});
+    const reloadGroups = () =>
+      referenceGroups().then(
+        (list) => alive && setGroups(count(list)),
+        () => {},
+      );
     reloadGroups();
-    captureHistory().then((list) => alive && setCaptures(count(list)), () => {});
+    captureHistory().then(
+      (list) => alive && setCaptures(count(list)),
+      () => {},
+    );
     const stopGroups = onReferenceGroupsChanged(reloadGroups);
     const stopCaptures = onCaptureHistory((list) => alive && setCaptures(count(list)));
     return () => {
       alive = false;
-      void stopGroups.then((stop) => stop(), () => {});
-      void stopCaptures.then((stop) => stop(), () => {});
+      void stopGroups.then(
+        (stop) => stop(),
+        () => {},
+      );
+      void stopCaptures.then(
+        (stop) => stop(),
+        () => {},
+      );
     };
   }, []);
   return { groups, captures };
@@ -59,36 +72,58 @@ function useBadges(): Partial<Record<Section, number>> {
 export function Rail(p: Props) {
   const { t } = useTranslation("shell");
   const nav = useRef<HTMLDivElement>(null);
-  const badges: Partial<Record<Section, number>> = { ...useBadges(), subscriptions: p.subscriptions?.newCount || undefined };
-  const items = ITEMS.filter((item) => item.id !== 'subscriptions' || p.subscriptions);
+  const badges: Partial<Record<Section, number>> = {
+    ...useBadges(),
+    subscriptions: p.subscriptions?.newCount || undefined,
+  };
+  const items = ITEMS.filter((item) => item.id !== "subscriptions" || p.subscriptions);
   const [indicator, setIndicator] = useState<{ top: number; height: number } | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies(items.length): 多出或少了订阅一项时各项位置会变，重新量
   useLayoutEffect(() => {
     const el = nav.current?.querySelector<HTMLElement>(`[data-section="${p.section}"]`);
     if (el) setIndicator({ top: el.offsetTop + 8, height: el.offsetHeight - 16 });
   }, [p.section, items.length]);
-  return <nav className="rail" aria-label={t("nav.label")}>
-    <div className="brand" data-tauri-drag-region="deep">
-      <BrandMark size={28} />
-    </div>
-    <div className="rail-items" ref={nav}>
-      {indicator && <span className="rail-indicator" style={{ transform: `translateY(${indicator.top}px)`, height: indicator.height }} aria-hidden="true" />}
-      {items.map(({ id, icon: Icon, key }) => { const label = t(`nav.${id}`); return <Tip key={id} side="right" label={label} keys={key}>
-        <button data-section={id} type="button"
-          className={`rail-btn${p.section === id ? ' is-active' : ''}`} aria-current={p.section === id ? 'page' : undefined}
-          aria-label={label} aria-expanded={p.section === id ? p.paneOpen : undefined} onClick={() => p.onSection(id)}>
-          <Icon size={20} strokeWidth={1.75} className={`rail-ic rail-ic-${id}`} />
-          {!!badges[id] && <span className="rail-badge tabular">{badgeText(badges[id])}</span>}
-        </button>
-      </Tip>; })}
-    </div>
-    <div className="rail-foot">
-      <SealBook on={p.safeMode} onToggle={p.onSafeMode} />
-      <Tip side="right" label={t("nav.settingsTip")}>
-        <button type="button" className="rail-btn" aria-label={t("nav.settings")} onClick={p.onSettings}>
-          <Settings size={20} strokeWidth={1.75} className="rail-ic rail-ic-settings" />
-        </button>
-      </Tip>
-    </div>
-  </nav>;
+  return (
+    <nav className="rail" aria-label={t("nav.label")}>
+      <div className="brand" data-tauri-drag-region="deep">
+        <BrandMark size={28} />
+      </div>
+      <div className="rail-items" ref={nav}>
+        {indicator && (
+          <span
+            className="rail-indicator"
+            style={{ transform: `translateY(${indicator.top}px)`, height: indicator.height }}
+            aria-hidden="true"
+          />
+        )}
+        {items.map(({ id, icon: Icon, key }) => {
+          const label = t(`nav.${id}`);
+          return (
+            <Tip key={id} side="right" label={label} keys={key}>
+              <button
+                data-section={id}
+                type="button"
+                className={`rail-btn${p.section === id ? " is-active" : ""}`}
+                aria-current={p.section === id ? "page" : undefined}
+                aria-label={label}
+                aria-expanded={p.section === id ? p.paneOpen : undefined}
+                onClick={() => p.onSection(id)}
+              >
+                <Icon size={20} strokeWidth={1.75} className={`rail-ic rail-ic-${id}`} />
+                {!!badges[id] && <span className="rail-badge tabular">{badgeText(badges[id])}</span>}
+              </button>
+            </Tip>
+          );
+        })}
+      </div>
+      <div className="rail-foot">
+        <SealBook on={p.safeMode} onToggle={p.onSafeMode} />
+        <Tip side="right" label={t("nav.settingsTip")}>
+          <button type="button" className="rail-btn" aria-label={t("nav.settings")} onClick={p.onSettings}>
+            <Settings size={20} strokeWidth={1.75} className="rail-ic rail-ic-settings" />
+          </button>
+        </Tip>
+      </div>
+    </nav>
+  );
 }

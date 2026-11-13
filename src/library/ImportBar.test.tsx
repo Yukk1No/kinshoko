@@ -6,11 +6,22 @@ import { createRef } from "react";
 import { fakeBackend } from "../test/backend";
 import { ImportBar, type ImportActions } from "./ImportBar";
 
-const report: ImportReport = { items: [], cancelled: false, fromEagle: false, eagleMissing: 0, eagleRelocations: [], sealedDuplicates: false, privateSummary: false, trashDuplicates: false };
+const report: ImportReport = {
+  items: [],
+  cancelled: false,
+  fromEagle: false,
+  eagleMissing: 0,
+  eagleRelocations: [],
+  sealedDuplicates: false,
+  privateSummary: false,
+  trashDuplicates: false,
+};
 
 function backend() {
   fakeBackend({
-    discover_eagle_libraries: [{ name: "主库", path: "D:/Eagle/主库.library", items: 3, version: "4.0.0", foundBy: "settings" }],
+    discover_eagle_libraries: [
+      { name: "主库", path: "D:/Eagle/主库.library", items: 3, version: "4.0.0", foundBy: "settings" },
+    ],
     start_import: "task-1",
     eagle_tag_mapping: { matched: [], unmatched: [], vocabularySize: 0 },
   });
@@ -18,7 +29,10 @@ function backend() {
 
 /** 导入入口在顶栏的分体按钮里（#98），它经 `actionsRef` 调用导入栏；测试同样经它调用。 */
 const actions = createRef<ImportActions>() as { current: ImportActions | null };
-const fromEagle = () => act(() => { actions.current!.eagle(); });
+const fromEagle = () =>
+  act(() => {
+    actions.current!.eagle();
+  });
 
 /** 结束的通知带“查看”，点了才打开回执卡。 */
 const openReceipt = async () => {
@@ -91,7 +105,6 @@ describe("导入栏：Eagle 迁入后的标签外部对应", () => {
   });
 });
 
-
 describe("封印重复项回执", () => {
   it("默认只提示存在封印重复项，不显示成功项数量或内容", async () => {
     backend();
@@ -103,36 +116,43 @@ describe("封印重复项回执", () => {
   });
 });
 
-
 it("关闭期间迟到的预览字节不会创建图片，且回执仍需重新明确展开", async () => {
   let release!: () => void, channel: Channel<ArrayBuffer> | undefined;
-  const pending = new Promise<void>(resolve => { release = resolve; });
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
   const fake = fakeBackend({
     open_import_preview: { id: "receipt-session", items: ["opaque-item"] },
-    read_import_preview: (args) => { channel = args.onChunk as Channel<ArrayBuffer>; return pending; },
+    read_import_preview: (args) => {
+      channel = args.onChunk as Channel<ArrayBuffer>;
+      return pending;
+    },
     close_import_preview: null,
   });
   const calls = () => fake.calls().map((call) => call.command);
   const create = vi.fn(() => "blob:preview");
   vi.stubGlobal("URL", { createObjectURL: create, revokeObjectURL: vi.fn() });
-  HTMLDialogElement.prototype.showModal = function() { this.setAttribute("open", ""); };
-  HTMLDialogElement.prototype.close = function() { this.removeAttribute("open"); };
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute("open");
+  };
   const { rerender } = render(bar({ report: { ...report, sealedDuplicates: true, privateSummary: true } }));
   fireEvent.click(await screen.findByRole("button", { name: "展开" }));
   await waitFor(() => expect(calls()).toContain("read_import_preview"));
   fireEvent.click(screen.getByRole("button", { name: "关闭重复项预览" }));
   await waitFor(() => expect(calls()).toContain("close_import_preview"));
-  channel!.onmessage(new Uint8Array([137,80,78,71]).buffer);
+  channel!.onmessage(new Uint8Array([137, 80, 78, 71]).buffer);
   channel!.onmessage(new ArrayBuffer(0));
   release();
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
   expect(create).not.toHaveBeenCalled();
   expect(screen.queryByRole("dialog", { name: "本次封印重复项" })).toBeNull();
   rerender(bar({ report: { ...report, sealedDuplicates: true, privateSummary: true } }));
   expect(screen.queryByRole("dialog", { name: "本次封印重复项" })).toBeNull();
   vi.unstubAllGlobals();
 });
-
 
 it("展开后是界面系统的对话框：标题用规格原话，关闭按钮可用", async () => {
   fakeBackend({
@@ -151,16 +171,33 @@ it("展开后是界面系统的对话框：标题用规格原话，关闭按钮�
 it("切换到另一张回执不会自动沿用前一张回执的明确同意", async () => {
   const opened: string[] = [];
   fakeBackend({
-    open_import_preview: (args) => { opened.push(args.taskId as string); return { id: "session", items: [] }; },
+    open_import_preview: (args) => {
+      opened.push(args.taskId as string);
+      return { id: "session", items: [] };
+    },
   });
-  HTMLDialogElement.prototype.showModal = function() { this.setAttribute("open", ""); };
-  HTMLDialogElement.prototype.close = function() { this.removeAttribute("open"); };
-  const receiptBar = (taskId: string) => <ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={{ taskId, report: { ...report, sealedDuplicates: true, privateSummary: true } }} onStarted={() => {}} onDismissReport={() => {}} />;
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute("open");
+  };
+  const receiptBar = (taskId: string) => (
+    <ImportBar
+      enabled
+      libraryId="L1"
+      libraryName="参考"
+      running={null}
+      finished={{ taskId, report: { ...report, sealedDuplicates: true, privateSummary: true } }}
+      onStarted={() => {}}
+      onDismissReport={() => {}}
+    />
+  );
   const { rerender } = render(receiptBar("task-first"));
   fireEvent.click(await screen.findByRole("button", { name: "展开" }));
   await waitFor(() => expect(opened).toEqual(["task-first"]));
   rerender(receiptBar("task-next"));
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
   expect(opened).toEqual(["task-first"]);
   expect(screen.queryByRole("dialog", { name: "本次封印重复项" })).toBeNull();
 });
@@ -169,8 +206,13 @@ describe("导入对话框与右下角卡片（#98）", () => {
   it("Eagle 的删过的图默认继续跳过，选“这次也导入”只对这次任务生效", async () => {
     const started: unknown[] = [];
     fakeBackend({
-      discover_eagle_libraries: [{ name: "主库", path: "D:/Eagle/主库.library", items: 3, version: "4.0.0", foundBy: "settings" }],
-      start_import: (args) => { started.push(args); return "task-1"; },
+      discover_eagle_libraries: [
+        { name: "主库", path: "D:/Eagle/主库.library", items: 3, version: "4.0.0", foundBy: "settings" },
+      ],
+      start_import: (args) => {
+        started.push(args);
+        return "task-1";
+      },
     });
     render(bar({ report: null }));
     await fromEagle();
@@ -189,9 +231,19 @@ describe("导入对话框与右下角卡片（#98）", () => {
   it("进度卡显示保存位置与进度，可以后台进行，再从导入菜单找回", async () => {
     backend();
     const actions = { current: null as null | { showTasks: () => void } };
-    const view = () => <ImportBar enabled libraryId="L1" libraryName="参考" ownerLabel="参考 / 人物"
-      running={{ taskId: "task-1", progress: { done: 12, total: 38 } }} finished={null} onStarted={() => {}} onDismissReport={() => {}}
-      actionsRef={actions as never} />;
+    const view = () => (
+      <ImportBar
+        enabled
+        libraryId="L1"
+        libraryName="参考"
+        ownerLabel="参考 / 人物"
+        running={{ taskId: "task-1", progress: { done: 12, total: 38 } }}
+        finished={null}
+        onStarted={() => {}}
+        onDismissReport={() => {}}
+        actionsRef={actions as never}
+      />
+    );
     const { rerender } = render(view());
     const card = await screen.findByRole("region", { name: "导入进度" });
     expect(within(card).getByText("放到 参考 / 人物")).toBeTruthy();
@@ -208,11 +260,29 @@ describe("导入对话框与右下角卡片（#98）", () => {
 
   it("结果卡列出新增、已存在与失败，重试只针对读取失败的项", async () => {
     backend();
-    const finished = { taskId: "task-1", report: { ...report, items: [
-      { path: "a.png", outcome: { kind: "imported", imageId: "a" } }, { path: "b.png", outcome: { kind: "merged", imageId: "b" } },
-      { path: "c.txt", outcome: { kind: "unsupported" } }, { path: "d.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } },
-    ] } } as never;
-    render(<ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={finished} onStarted={() => {}} onDismissReport={() => {}} />);
+    const finished = {
+      taskId: "task-1",
+      report: {
+        ...report,
+        items: [
+          { path: "a.png", outcome: { kind: "imported", imageId: "a" } },
+          { path: "b.png", outcome: { kind: "merged", imageId: "b" } },
+          { path: "c.txt", outcome: { kind: "unsupported" } },
+          { path: "d.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } },
+        ],
+      },
+    } as never;
+    render(
+      <ImportBar
+        enabled
+        libraryId="L1"
+        libraryName="参考"
+        running={null}
+        finished={finished}
+        onStarted={() => {}}
+        onDismissReport={() => {}}
+      />,
+    );
     const card = await openReceipt();
     expect(card.textContent).toContain("新增 1");
     expect(card.textContent).toContain("已存在 1");
@@ -232,8 +302,21 @@ describe("导入对话框与右下角卡片（#98）", () => {
 
   it("全部导入成功时没有未导入这一行，也就没有可点开的东西", async () => {
     backend();
-    const finished = { taskId: "task-1", report: { ...report, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } } as never;
-    render(<ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={finished} onStarted={() => {}} onDismissReport={() => {}} />);
+    const finished = {
+      taskId: "task-1",
+      report: { ...report, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] },
+    } as never;
+    render(
+      <ImportBar
+        enabled
+        libraryId="L1"
+        libraryName="参考"
+        running={null}
+        finished={finished}
+        onStarted={() => {}}
+        onDismissReport={() => {}}
+      />,
+    );
     const title = await screen.findByText("导入完成");
     expect(title.closest(".k-toast")?.textContent).not.toContain("未导入");
     expect(screen.queryByRole("button", { name: "查看" })).toBeNull();
@@ -241,8 +324,19 @@ describe("导入对话框与右下角卡片（#98）", () => {
 
   it("换一个任务的回执时收起未导入的文件", async () => {
     backend();
-    const failing = (taskId: string, path: string) => ({ taskId, report: { ...report, items: [{ path, outcome: { kind: "unsupported" } }] } }) as never;
-    const ui = (finished: never) => <ImportBar enabled libraryId="L1" libraryName="参考" running={null} finished={finished} onStarted={() => {}} onDismissReport={() => {}} />;
+    const failing = (taskId: string, path: string) =>
+      ({ taskId, report: { ...report, items: [{ path, outcome: { kind: "unsupported" } }] } }) as never;
+    const ui = (finished: never) => (
+      <ImportBar
+        enabled
+        libraryId="L1"
+        libraryName="参考"
+        running={null}
+        finished={finished}
+        onStarted={() => {}}
+        onDismissReport={() => {}}
+      />
+    );
     const view = render(ui(failing("task-1", "a.txt")));
     fireEvent.click(within(await openReceipt()).getByRole("button", { name: "未导入 1 张" }));
     expect(screen.getByText("a.txt")).toBeTruthy();

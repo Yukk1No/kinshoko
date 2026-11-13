@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { evaluate, failureDetail, parseArgs, planSteps } from "./check.mjs";
 
-const stepNames = (argv, env) => planSteps(parseArgs(argv), env).map(step => step.name);
+const stepNames = (argv, env) => planSteps(parseArgs(argv), env).map((step) => step.name);
 
 describe("跑哪些步骤", () => {
   it("默认是 typecheck、命令名对照、biome lint 和 vitest", () => {

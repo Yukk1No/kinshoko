@@ -38,7 +38,8 @@ export function useTaggingProgress(status: TaggingStatus | null): TaggingProgres
     }
     last.current = { done: status.done, at: now };
     const known = samples.current;
-    const eta = known.length >= MIN_SAMPLES ? (known.reduce((a, b) => a + b, 0) / known.length) * status.remaining : null;
+    const eta =
+      known.length >= MIN_SAMPLES ? (known.reduce((a, b) => a + b, 0) / known.length) * status.remaining : null;
     setProgress({ remaining: status.remaining, eta });
   }, [status]);
   return progress;

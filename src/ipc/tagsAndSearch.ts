@@ -71,12 +71,7 @@ export function searchCandidates(
 }
 
 /** 在个人近似对应表中记下两个标签相近（“＋”）或不相近（“以后都不展开”）。 */
-export function setTagApprox(
-  libraryId: string,
-  a: string,
-  b: string,
-  relation: ApproxRelation,
-): Promise<void> {
+export function setTagApprox(libraryId: string, a: string, b: string, relation: ApproxRelation): Promise<void> {
   return invoke<void>(lib("set_tag_approx"), { libraryId, a, b, relation });
 }
 

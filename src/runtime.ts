@@ -3,7 +3,8 @@
 import type { CapabilityCheck } from "./bindings/CapabilityCheck";
 import type { RuntimeCapabilities } from "./bindings/RuntimeCapabilities";
 
-const WHITE_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC";
+const WHITE_PNG =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC";
 async function checkImageDecode(): Promise<CapabilityCheck> {
   const image = new Image();
   if (typeof image.decode !== "function") return "missing";
@@ -11,8 +12,13 @@ async function checkImageDecode(): Promise<CapabilityCheck> {
   try {
     image.src = WHITE_PNG;
     return await Promise.race<CapabilityCheck>([
-      image.decode().then(() => image.naturalWidth === 1 && image.naturalHeight === 1 ? "available" : "failed", () => "failed"),
-      new Promise<CapabilityCheck>((resolve) => { timer = setTimeout(() => resolve("timedOut"), 5000); }),
+      image.decode().then(
+        () => (image.naturalWidth === 1 && image.naturalHeight === 1 ? "available" : "failed"),
+        () => "failed",
+      ),
+      new Promise<CapabilityCheck>((resolve) => {
+        timer = setTimeout(() => resolve("timedOut"), 5000);
+      }),
     ]);
   } catch {
     return "failed";

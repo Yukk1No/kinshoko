@@ -9,9 +9,15 @@ import type { Invalidate } from "./useInvalidation";
  * 同修订的变更通知会被略过，所以不能只等通知来补读。
  */
 export function useWorkspaceError(toast: ToastApi, invalidate: Invalidate) {
-  return useCallback((error: unknown) => {
-    // 真实错误进轻提示（#98），一直留到画师按“知道了”；没有提示容器时退回就地横幅。
-    if (!isCursorExpired(error)) { toast.error(errorText(error)); return; }
-    invalidate({ kind: "cursorExpired" });
-  }, [toast, invalidate]);
+  return useCallback(
+    (error: unknown) => {
+      // 真实错误进轻提示（#98），一直留到画师按“知道了”；没有提示容器时退回就地横幅。
+      if (!isCursorExpired(error)) {
+        toast.error(errorText(error));
+        return;
+      }
+      invalidate({ kind: "cursorExpired" });
+    },
+    [toast, invalidate],
+  );
 }

@@ -28,9 +28,7 @@ describe("标签分组", () => {
     const name = within(groups).getByRole("textbox", { name: "新标签分组名称" });
     fireEvent.change(name, { target: { value: "发色" } });
     fireEvent.keyDown(name, { key: "Enter" });
-    await waitFor(() =>
-      expect(sent("create_shared_tag_group")).toEqual([{ name: "发色", namespace: null }]),
-    );
+    await waitFor(() => expect(sent("create_shared_tag_group")).toEqual([{ name: "发色", namespace: null }]));
     const hair = await within(groups).findByRole("group", { name: "发色" });
 
     const addMember = await waitFor(() => {
@@ -42,7 +40,9 @@ describe("标签分组", () => {
     fireEvent.change(within(hair).getByRole("combobox", { name: "挑一个标签" }), { target: { value: "蓝" } });
     fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
     await waitFor(() =>
-      expect(sent("edit_shared_tag_group")).toEqual([{ edit: { kind: "addMembers", groupId: "G1", tagIds: ["T-blue"] }, safeMode: true }]),
+      expect(sent("edit_shared_tag_group")).toEqual([
+        { edit: { kind: "addMembers", groupId: "G1", tagIds: ["T-blue"] }, safeMode: true },
+      ]),
     );
     const blue = await within(groups).findByRole("button", { name: "蓝发（1 张）" });
 
@@ -77,7 +77,10 @@ describe("标签分组", () => {
 
     fireEvent.click(within(hair).getByRole("button", { name: "把“微笑”移出“发色”" }));
     await waitFor(() => expect(within(groups).queryByRole("button", { name: "微笑（1 张）" })).toBeNull());
-    expect(sent("edit_shared_tag_group").at(-1)).toEqual({ edit: { kind: "removeMembers", groupId: "G1", tagIds: ["T-smile"] }, safeMode: true });
+    expect(sent("edit_shared_tag_group").at(-1)).toEqual({
+      edit: { kind: "removeMembers", groupId: "G1", tagIds: ["T-smile"] },
+      safeMode: true,
+    });
 
     const currentHair = await within(groups).findByRole("group", { name: "发色" });
     fireEvent.doubleClick(within(currentHair).getByRole("button", { name: /^发色/ }));
@@ -85,13 +88,18 @@ describe("标签分组", () => {
     fireEvent.change(rename, { target: { value: "头发颜色" } });
     fireEvent.keyDown(rename, { key: "Enter" });
     expect(await within(groups).findByRole("group", { name: "头发颜色" })).toBeTruthy();
-    expect(sent("edit_shared_tag_group").at(-1)).toEqual({ edit: { kind: "rename", groupId: "G1", name: "头发颜色" }, safeMode: true });
+    expect(sent("edit_shared_tag_group").at(-1)).toEqual({
+      edit: { kind: "rename", groupId: "G1", name: "头发颜色" },
+      safeMode: true,
+    });
 
-    fireEvent.click(await waitFor(() => {
-      const button = within(groups).getByRole<HTMLButtonElement>("button", { name: "新建标签分组" });
-      expect(button.disabled).toBe(false);
-      return button;
-    }));
+    fireEvent.click(
+      await waitFor(() => {
+        const button = within(groups).getByRole<HTMLButtonElement>("button", { name: "新建标签分组" });
+        expect(button.disabled).toBe(false);
+        return button;
+      }),
+    );
     await chooseValue(within(groups).getByRole("combobox", { name: "分组内容" }), "general");
     const name = within(groups).getByRole("textbox", { name: "新标签分组名称" });
     fireEvent.change(name, { target: { value: "一般" } });
@@ -108,11 +116,15 @@ describe("标签分组", () => {
     expect(await screen.findByText("已删除分组")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "撤销" }));
     const back = await within(groups).findByRole("group", { name: "头发颜色" });
-    expect(sent("restore_shared_tag_group")).toMatchObject([{ deleted: { id: "G1", name: "头发颜色" } }])
+    expect(sent("restore_shared_tag_group")).toMatchObject([{ deleted: { id: "G1", name: "头发颜色" } }]);
     // 撤销不带安全模式：提示出现后模式变了也能撤销。
     expect(sent("restore_shared_tag_group")[0]).not.toHaveProperty("safeMode");
     expect((await within(back).findAllByRole("button", { name: /张）/ })).length).toBeGreaterThan(0);
-    expect(within(groups).getAllByRole("group").map((g) => g.getAttribute("aria-label"))[0]).toBe("头发颜色");
+    expect(
+      within(groups)
+        .getAllByRole("group")
+        .map((g) => g.getAttribute("aria-label"))[0],
+    ).toBe("头发颜色");
   });
 
   it("安全模式切换后重新取得分组（被封印的图上的标签由资料库藏起）", async () => {

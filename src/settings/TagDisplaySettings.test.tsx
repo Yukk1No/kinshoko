@@ -28,7 +28,7 @@ async function openAppearance(onChange?: (view: ShellSettingsView) => void) {
   render(<SettingsPanel initialTab="tags" onChange={onChange} />);
   fireEvent.click(await screen.findByRole("button", { name: "外观" }));
   return {
-    high: await screen.findByRole("spinbutton", { name: "高档下限" }) as HTMLInputElement,
+    high: (await screen.findByRole("spinbutton", { name: "高档下限" })) as HTMLInputElement,
     low: screen.getByRole("spinbutton", { name: "低档上限" }) as HTMLInputElement,
   };
 }
@@ -95,14 +95,19 @@ describe("设置：标签外观", () => {
       shell_settings: view,
       "change_setting:tagDisplay": (args) => {
         const display = (args as { display: TagDisplay }).display;
-        return new Promise<ShellSettingsView>((resolve) => waiting.push(() => { saved = display; resolve(view()); }));
+        return new Promise<ShellSettingsView>((resolve) =>
+          waiting.push(() => {
+            saved = display;
+            resolve(view());
+          }),
+        );
       },
     });
     const { low } = await openAppearance();
     fireEvent.change(low, { target: { value: "35" } });
     fireEvent.click(screen.getByRole("button", { name: "显示名" }));
     fireEvent.click(screen.getByRole("button", { name: "外观" }));
-    expect((await screen.findByRole("spinbutton", { name: "低档上限" }) as HTMLInputElement).value).toBe("35");
+    expect(((await screen.findByRole("spinbutton", { name: "低档上限" })) as HTMLInputElement).value).toBe("35");
     fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
     await waitFor(() => expect(waiting.length).toBeGreaterThan(0));
     while (waiting.length > 0) {
@@ -120,7 +125,10 @@ describe("设置：标签外观", () => {
     fakeBackend({
       shell_settings: view,
       "change_setting:tagDisplay": (args) => {
-        if (failNext) { failNext = false; throw { code: "message", message: "无法写入设置文件" }; }
+        if (failNext) {
+          failNext = false;
+          throw { code: "message", message: "无法写入设置文件" };
+        }
         saved = (args as { display: TagDisplay }).display;
         return view();
       },
@@ -162,7 +170,9 @@ describe("设置：标签外观", () => {
     const first = await openAppearance();
     fireEvent.change(first.low, { target: { value: "45" } });
     fireEvent.click(screen.getByRole("button", { name: "按出处分组" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "按出处分组" }).getAttribute("aria-pressed")).toBe("true"));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "按出处分组" }).getAttribute("aria-pressed")).toBe("true"),
+    );
     cleanup();
     const again = await openAppearance();
     expect(again.low.value).toBe("45");

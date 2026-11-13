@@ -41,7 +41,10 @@ export function summarizeReplacement(
   intervals: { latency?: number; abandonedAfter?: number; pendingFor?: number; instant?: boolean }[],
   budgetMs = REPLACEMENT_BUDGET_MS,
 ): ReplacementReport {
-  const done = intervals.filter((i) => i.latency !== undefined).map((i) => i.latency!).sort((a, b) => a - b);
+  const done = intervals
+    .filter((i) => i.latency !== undefined)
+    .map((i) => i.latency!)
+    .sort((a, b) => a - b);
   const abandoned = intervals.filter((i) => i.abandonedAfter !== undefined);
   const pending = intervals.filter((i) => i.pendingFor !== undefined);
   const overBudget = done.filter((ms) => ms > budgetMs).length;
@@ -66,7 +69,15 @@ export function summarizeReplacement(
   };
 }
 
-type Interval = { card: Element; start: number; latency?: number; abandonedAfter?: number; pendingFor?: number; instant?: boolean; closed: boolean };
+type Interval = {
+  card: Element;
+  start: number;
+  latency?: number;
+  abandonedAfter?: number;
+  pendingFor?: number;
+  instant?: boolean;
+  closed: boolean;
+};
 
 const loaded = (img: HTMLImageElement) => img.complete && img.naturalWidth > 0;
 
@@ -116,26 +127,29 @@ export function createReplacementProbe(wall: HTMLElement, now: () => number = ()
 
   return {
     start() {
-      intersection = new IntersectionObserver((entries) => {
-        for (const entry of entries) {
-          // entry.time 是算出相交状态的那一帧，与 performance.now() 同一时基。
-          const at = entry.time;
-          if (entry.isIntersecting) {
-            if (open.has(entry.target)) continue;
-            const interval: Interval = { card: entry.target, start: at, closed: false };
-            intervals.push(interval);
-            open.set(entry.target, interval);
-            // 已加载不等于已解码（decoding="async"）：同样等 decode() 完成再记。
-            const img = entry.target.querySelector("img");
-            if (img && loaded(img)) {
-              interval.instant = true;
-              settleAfterDecode(img);
+      intersection = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            // entry.time 是算出相交状态的那一帧，与 performance.now() 同一时基。
+            const at = entry.time;
+            if (entry.isIntersecting) {
+              if (open.has(entry.target)) continue;
+              const interval: Interval = { card: entry.target, start: at, closed: false };
+              intervals.push(interval);
+              open.set(entry.target, interval);
+              // 已加载不等于已解码（decoding="async"）：同样等 decode() 完成再记。
+              const img = entry.target.querySelector("img");
+              if (img && loaded(img)) {
+                interval.instant = true;
+                settleAfterDecode(img);
+              }
+            } else {
+              abandon(entry.target, at);
             }
-          } else {
-            abandon(entry.target, at);
           }
-        }
-      }, { root: wall, threshold: 0 });
+        },
+        { root: wall, threshold: 0 },
+      );
       mutation = new MutationObserver((records) => {
         const at = now();
         for (const record of records) {

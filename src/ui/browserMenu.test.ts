@@ -2,8 +2,13 @@ import { afterEach, beforeEach, expect, it } from "vitest";
 import { blockBrowserMenu } from "./browserMenu";
 
 let stop: () => void;
-beforeEach(() => { stop = blockBrowserMenu(window); });
-afterEach(() => { stop(); document.body.innerHTML = ""; });
+beforeEach(() => {
+  stop = blockBrowserMenu(window);
+});
+afterEach(() => {
+  stop();
+  document.body.innerHTML = "";
+});
 
 const rightClick = (node: Element) => {
   const e = new window.MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2 });
@@ -19,14 +24,14 @@ it("侧栏、导航栏这类没有自己菜单的地方右键，不弹浏览器�
 });
 
 it("子元素拦住冒泡也不弹（stopPropagation）", () => {
-  document.body.innerHTML = '<div><p>提示</p></div>';
+  document.body.innerHTML = "<div><p>提示</p></div>";
   document.querySelector("div")!.addEventListener("contextmenu", (e) => e.stopPropagation());
   expect(rightClick(document.querySelector("p")!)).toBe(true);
 });
 
 it.each([
   ['<input type="search" />', "input"],
-  ['<input />', "input"],
+  ["<input />", "input"],
   ["<textarea></textarea>", "textarea"],
   ['<div contenteditable="true"><span>名字</span></div>', "span"],
 ])("能输入文字的地方保留系统的剪切、复制、粘贴菜单：%s", (markup, selector) => {
@@ -35,7 +40,7 @@ it.each([
 });
 
 it.each([
-  ['<input disabled />', "input"],
+  ["<input disabled />", "input"],
   ["<textarea disabled></textarea>", "textarea"],
   ["<fieldset disabled><input /></fieldset>", "input"],
 ])("被禁用的输入框不放行：%s", (markup, selector) => {

@@ -6,13 +6,30 @@ import { cardAt, type masonry } from "./layout";
 import { ZOOM_COMMIT_MS, createNotchCounter, zoomDensity } from "./zoom";
 import { createSmoothWheel } from "./smoothWheel";
 
-export type ZoomState = { value: number | null; timer: number; count: ReturnType<typeof createNotchCounter>; pin: { id: string; x: number; y: number } | null };
+export type ZoomState = {
+  value: number | null;
+  timer: number;
+  count: ReturnType<typeof createNotchCounter>;
+  pin: { id: string; x: number; y: number } | null;
+};
 export type LiveWall = {
-  layout: ReturnType<typeof masonry> | null; ids: string[]; density: number; previewDensity: number | null;
-  onDensityPreview?: (value: number | null) => void; onDensityCommit?: (value: number) => void;
+  layout: ReturnType<typeof masonry> | null;
+  ids: string[];
+  density: number;
+  previewDensity: number | null;
+  onDensityPreview?: (value: number | null) => void;
+  onDensityCommit?: (value: number) => void;
 };
 
-export function useWallZoom({ scroller, zoom, live, smoothRef, zoomPin, setPreviewDensity, measureBeforeReflow }: {
+export function useWallZoom({
+  scroller,
+  zoom,
+  live,
+  smoothRef,
+  zoomPin,
+  setPreviewDensity,
+  measureBeforeReflow,
+}: {
   scroller: MutableRefObject<HTMLDivElement | null>;
   zoom: MutableRefObject<ZoomState>;
   live: MutableRefObject<LiveWall>;
@@ -41,7 +58,9 @@ export function useWallZoom({ scroller, zoom, live, smoothRef, zoomPin, setPrevi
       }
     };
     // 鼠标滚轮插值与惯性（#109）；Ctrl 的滚轮留给下面的缩放。
-    const smooth = createSmoothWheel(el, { limit: () => Math.max(0, (live.current.layout?.height ?? 0) - el.clientHeight) });
+    const smooth = createSmoothWheel(el, {
+      limit: () => Math.max(0, (live.current.layout?.height ?? 0) - el.clientHeight),
+    });
     smoothRef.current = smooth;
     const wheel = (e: WheelEvent) => {
       if (!e.ctrlKey) return;

@@ -6,7 +6,12 @@ import type { WorkspaceScope } from "../bindings/WorkspaceScope";
  * 筛出没有完成自动标签的图（#475）：回到全部图库，查找框里只留这一个条件块，画师可以去掉。
  * 返回右下角图标“查看这些图”用的函数；设置里的“查看”经 `request` 递增触发。
  */
-export function useShowUnfinishedTagging({ request, onOpenBrowse, changeSearch, setWorkspaceScope }: {
+export function useShowUnfinishedTagging({
+  request,
+  onOpenBrowse,
+  changeSearch,
+  setWorkspaceScope,
+}: {
   request: number;
   onOpenBrowse: () => void;
   changeSearch: Dispatch<SetStateAction<SearchInput>>;

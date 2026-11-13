@@ -5,7 +5,12 @@ import { type FakeBackend, fakeBackend } from "../test/backend";
 import { Viewer } from "./Viewer";
 
 const events = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>());
-vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async (name, callback) => { events.set(name, callback); return () => events.delete(name); }) }));
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(async (name, callback) => {
+    events.set(name, callback);
+    return () => events.delete(name);
+  }),
+}));
 
 beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
@@ -13,7 +18,10 @@ beforeEach(() => {
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.5 });
   mockConvertFileSrc("windows");
 });
-afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 describe("查看器右键菜单（#114）", () => {
   const card = { id: "a", width: 800, height: 600, thumbnail: "", adult: false };
@@ -24,8 +32,16 @@ describe("查看器右键菜单（#114）", () => {
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 800));
     fail = null;
     /** 桌面命令（复制、显示、钉住）答 void；`fail` 让它们失败。 */
-    const desktop = () => { if (fail) throw { code: "message", message: fail }; return null; };
-    backend = fakeBackend({ image: {}, copy_reference_image: desktop, reveal_reference_image: desktop, pin_reference: desktop });
+    const desktop = () => {
+      if (fail) throw { code: "message", message: fail };
+      return null;
+    };
+    backend = fakeBackend({
+      image: {},
+      copy_reference_image: desktop,
+      reveal_reference_image: desktop,
+      pin_reference: desktop,
+    });
   });
   const stageOf = () => screen.getByAltText("正在查看的参考图").parentElement!;
   const openMenu = async () => {
@@ -37,9 +53,21 @@ describe("查看器右键菜单（#114）", () => {
   it("菜单项与 #102 表一致：危险项置底红字，三条分隔线", async () => {
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} onTrash={() => {}} />);
     const menu = await openMenu();
-    expect(rows(menu)).toEqual(["钉住整图P", "钉住局部F1", "复制图片", "适应窗口0", "原始像素1", "背景", "详情I", "在资源管理器中显示", "移到回收站"]);
+    expect(rows(menu)).toEqual([
+      "钉住整图P",
+      "钉住局部F1",
+      "复制图片",
+      "适应窗口0",
+      "原始像素1",
+      "背景",
+      "详情I",
+      "在资源管理器中显示",
+      "移到回收站",
+    ]);
     expect(within(menu).getAllByRole("separator")).toHaveLength(3);
-    const danger = within(menu).getAllByRole("menuitem").filter((item) => item.className.includes("is-danger"));
+    const danger = within(menu)
+      .getAllByRole("menuitem")
+      .filter((item) => item.className.includes("is-danger"));
     expect(danger.map((item) => item.textContent)).toEqual(["移到回收站"]);
   });
 
@@ -53,10 +81,14 @@ describe("查看器右键菜单（#114）", () => {
   it("复制图片与在资源管理器中显示作用于正在看的这张；失败时说明原因", async () => {
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
     fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: "复制图片" }));
-    await waitFor(() => expect(backend.calls("copy_reference_image")[0]?.args).toEqual({ libraryId: "L1", imageId: "a" }));
+    await waitFor(() =>
+      expect(backend.calls("copy_reference_image")[0]?.args).toEqual({ libraryId: "L1", imageId: "a" }),
+    );
     expect(await screen.findByText("已复制图片")).toBeTruthy();
     fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: "在资源管理器中显示" }));
-    await waitFor(() => expect(backend.calls("reveal_reference_image")[0]?.args).toEqual({ libraryId: "L1", imageId: "a" }));
+    await waitFor(() =>
+      expect(backend.calls("reveal_reference_image")[0]?.args).toEqual({ libraryId: "L1", imageId: "a" }),
+    );
     fail = "原文件不在了";
     fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: "在资源管理器中显示" }));
     expect(await screen.findByText("无法在资源管理器中显示：原文件不在了")).toBeTruthy();
@@ -76,7 +108,9 @@ describe("查看器右键菜单（#114）", () => {
     expect(toggle).toHaveBeenCalledTimes(1);
     fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^钉住局部/ }));
     expect(screen.getByRole("button", { name: /^框选局部/ }).getAttribute("aria-pressed")).toBe("true");
-    await act(async () => { fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^钉住整图/ })); });
+    await act(async () => {
+      fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^钉住整图/ }));
+    });
     expect(backend.calls("pin_reference")).toHaveLength(1);
   });
 

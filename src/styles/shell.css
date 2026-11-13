@@ -1,86 +1,360 @@
 /* The main window's layout and components. Colour, radius and motion tokens live in tokens.css; write var(--token) here, never a hex value. */
-.rail { width: 56px; flex: none; background: var(--rail); border-right: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; padding: 10px 0; z-index: 3; }
-.brand { height: 44px; display: grid; place-items: center; margin-bottom: 8px; }
-.brand-mark { fill: var(--ink); }
-.rail-items { position: relative; display: flex; flex-direction: column; gap: 4px; width: 100%; align-items: center; }
-.rail-indicator { position: absolute; left: 0; top: 0; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); transition: transform var(--t-slow) var(--ease), height var(--t-slow) var(--ease); }
-.rail-btn { position: relative; width: 40px; height: 40px; border-radius: var(--r); display: grid; place-items: center; color: var(--ink-2); transition: background var(--t-fast), color var(--t-fast); }
-.rail-btn:hover { background: var(--hover); color: var(--ink); }
+.rail {
+  width: 56px;
+  flex: none;
+  background: var(--rail);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+  z-index: 3;
+}
+.brand {
+  height: 44px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 8px;
+}
+.brand-mark {
+  fill: var(--ink);
+}
+.rail-items {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  align-items: center;
+}
+.rail-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+  transition:
+    transform var(--t-slow) var(--ease),
+    height var(--t-slow) var(--ease);
+}
+.rail-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r);
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
+}
+.rail-btn:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
 /* 图标轨的悬停动效：只动图标里的线条（位移不超过 2.5 px），各图标的动作贴着它的意思；移入用 --t-icon 加弹簧，移出用 --t 加 --ease。
    lucide 按图标定义的顺序输出子元素，下面按 nth-child 指到具体的线条。按下时整个图标缩一点。 */
-.rail-ic { overflow: visible; transition: transform var(--t-fast) var(--ease); }
-.rail-ic > *, .rail-ic .rail-part { transform-box: view-box; transform-origin: 12px 12px; transition: transform var(--t) var(--ease), opacity var(--t) var(--ease); }
-.rail-btn:is(:hover, :focus-visible) :is(.rail-ic > *, .rail-ic .rail-part) { transition-duration: var(--t-icon); transition-timing-function: var(--spring); }
-.rail-btn:active .rail-ic { transform: scale(0.9); }
+.rail-ic {
+  overflow: visible;
+  transition: transform var(--t-fast) var(--ease);
+}
+.rail-ic > *,
+.rail-ic .rail-part {
+  transform-box: view-box;
+  transform-origin: 12px 12px;
+  transition:
+    transform var(--t) var(--ease),
+    opacity var(--t) var(--ease);
+}
+.rail-btn:is(:hover, :focus-visible) :is(.rail-ic > *, .rail-ic .rail-part) {
+  transition-duration: var(--t-icon);
+  transition-timing-function: var(--spring);
+}
+.rail-btn:active .rail-ic {
+  transform: scale(0.9);
+}
 /* 图片与文件夹（RailImagesIcon）：两张图沿底边扇开，像翻相册。后面那张画成完整的一张，被前面挡住的地方用遮罩藏起；
    遮罩里的缺口在后面那张的坐标里，要跟着前面那张走，所以它的变换 = 后片的逆变换 · 前片的变换（静止时角度都是 0）。 */
-.rail-ic-browse :is(.images-back, .images-front, .images-cut) { transform-origin: 0 0; }
-.rail-ic-browse .images-cut { transform: translate(9px, 22px) rotate(0deg) translate(-9px, -22px) translate(15px, 16px) rotate(0deg) translate(-15px, -16px); }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-browse .images-back { transform: translate(9px, 22px) rotate(-9deg) translate(-9px, -22px); }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-browse .images-front { transform: translate(15px, 16px) rotate(6deg) translate(-15px, -16px); }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-browse .images-cut { transform: translate(9px, 22px) rotate(9deg) translate(-9px, -22px) translate(15px, 16px) rotate(6deg) translate(-15px, -16px); }
+.rail-ic-browse :is(.images-back, .images-front, .images-cut) {
+  transform-origin: 0 0;
+}
+.rail-ic-browse .images-cut {
+  transform: translate(9px, 22px) rotate(0deg) translate(-9px, -22px) translate(15px, 16px) rotate(0deg)
+    translate(-15px, -16px);
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-browse .images-back {
+  transform: translate(9px, 22px) rotate(-9deg) translate(-9px, -22px);
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-browse .images-front {
+  transform: translate(15px, 16px) rotate(6deg) translate(-15px, -16px);
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-browse .images-cut {
+  transform: translate(9px, 22px) rotate(9deg) translate(-9px, -22px) translate(15px, 16px) rotate(6deg)
+    translate(-15px, -16px);
+}
 /* 参考组（拼贴板）：重新排一下。左列高块变矮、矮块变高，右列反过来，排完是原来的镜像。
    改的是方块的位置与高度（SVG 几何属性），不是缩放，线宽不变。lucide 的顺序：左上、右上、右下、左下。 */
-.rail-ic-groups > * { transition-property: y, height; }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-groups > :nth-child(1) { height: 5px; }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-groups > :nth-child(2) { height: 9px; }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-groups > :nth-child(3) { y: 16px; height: 5px; }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-groups > :nth-child(4) { y: 12px; height: 9px; }
+.rail-ic-groups > * {
+  transition-property: y, height;
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-groups > :nth-child(1) {
+  height: 5px;
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-groups > :nth-child(2) {
+  height: 9px;
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-groups > :nth-child(3) {
+  y: 16px;
+  height: 5px;
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-groups > :nth-child(4) {
+  y: 12px;
+  height: 9px;
+}
 /* 截图（RailViewfinderIcon）：取景框四角往里收，框里的画随后描上一圈边，成了一张截下来的图。
    边框的虚线从零长到一整圈（不用 dashoffset：零长度的一段会在起点留下线帽）。 */
-.rail-ic-captures .view-frame { stroke-dasharray: 0 1; transition-property: stroke-dasharray; }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-tl { transform: translate(1.5px, 1.5px); }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-tr { transform: translate(-1.5px, 1.5px); }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-br { transform: translate(-1.5px, -1.5px); }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-bl { transform: translate(1.5px, -1.5px); }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-frame { stroke-dasharray: 1 0; transition-delay: var(--t-fast); }
+.rail-ic-captures .view-frame {
+  stroke-dasharray: 0 1;
+  transition-property: stroke-dasharray;
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-tl {
+  transform: translate(1.5px, 1.5px);
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-tr {
+  transform: translate(-1.5px, 1.5px);
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-br {
+  transform: translate(-1.5px, -1.5px);
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-bl {
+  transform: translate(1.5px, -1.5px);
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-captures .view-frame {
+  stroke-dasharray: 1 0;
+  transition-delay: var(--t-fast);
+}
 /* 设置：齿轮转 60°（六个齿，转完和原来重合），轴心跟着收紧 */
-.rail-btn:is(:hover, :focus-visible) .rail-ic-settings > :nth-child(1) { transform: rotate(60deg); }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-settings > :nth-child(2) { transform: scale(0.83); }
+.rail-btn:is(:hover, :focus-visible) .rail-ic-settings > :nth-child(1) {
+  transform: rotate(60deg);
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-settings > :nth-child(2) {
+  transform: scale(0.83);
+}
 /* 订阅（RailInboxIcon，收件盘）：一封信从盘口被抽出来。信从盘沿后面露出（clipPath），盘身被信挡住的线用遮罩藏起，
    遮罩里的缺口与信同一个类，一起动。信封盖不掀开：掀开后轮廓成了五边形，20 px 下像一座小房子。 */
-.rail-ic-subscriptions .inbox-letter { transform: translateY(14px); }
-.rail-btn:is(:hover, :focus-visible) .rail-ic-subscriptions .inbox-letter { transform: none; }
-.rail-btn.is-active { color: var(--ink); background: var(--accent-soft); }
+.rail-ic-subscriptions .inbox-letter {
+  transform: translateY(14px);
+}
+.rail-btn:is(:hover, :focus-visible) .rail-ic-subscriptions .inbox-letter {
+  transform: none;
+}
+.rail-btn.is-active {
+  color: var(--ink);
+  background: var(--accent-soft);
+}
 /* the seal book (#27): sealed = accent on the lock only; deeper day pink for >= 3:1 on every rail background */
-.seal-book { --bb: var(--rail); --seal-cut: var(--bb); background: var(--bb); }
-.seal-book:hover { --bb: color-mix(in srgb, var(--ink) 7%, var(--rail)); background: var(--bb); }
-.seal-book:active { --bb: color-mix(in srgb, var(--ink) 12%, var(--rail)); }
-.seal-book.is-sealed { --bb: color-mix(in srgb, var(--seal-acc) 14%, var(--rail)); }
-.seal-book.is-sealed:hover { --bb: color-mix(in srgb, var(--seal-acc) 20%, var(--rail)); }
-.seal-book.is-sealed:active { --bb: color-mix(in srgb, var(--ink) 12%, var(--rail)); }
-.seal-book:hover svg { transform: none; }
-.seal-book:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.seal-book {
+  --bb: var(--rail);
+  --seal-cut: var(--bb);
+  background: var(--bb);
+}
+.seal-book:hover {
+  --bb: color-mix(in srgb, var(--ink) 7%, var(--rail));
+  background: var(--bb);
+}
+.seal-book:active {
+  --bb: color-mix(in srgb, var(--ink) 12%, var(--rail));
+}
+.seal-book.is-sealed {
+  --bb: color-mix(in srgb, var(--seal-acc) 14%, var(--rail));
+}
+.seal-book.is-sealed:hover {
+  --bb: color-mix(in srgb, var(--seal-acc) 20%, var(--rail));
+}
+.seal-book.is-sealed:active {
+  --bb: color-mix(in srgb, var(--ink) 12%, var(--rail));
+}
+.seal-book:hover svg {
+  transform: none;
+}
+.seal-book:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
 /* seal and release ghosts (src/shell/sealfx.ts), verbatim from the prototype: above the wall, the viewer and the rail */
-.fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 38; overflow: hidden; }
-.fx-ghost { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; border-radius: var(--r-s); overflow: hidden; background: var(--card); box-shadow: var(--shadow-pin); will-change: transform, opacity; }
-.fx-ghost img { width: 100%; height: 100%; display: block; object-fit: contain; }
-.fx-wash { position: absolute; inset: 0; background: var(--veil); opacity: 0; }
-.fx-burst { position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--seal-acc); box-shadow: 0 0 24px var(--seal-acc); opacity: 0; }
-.card.is-arriving, .card.is-arriving + .card-sources { visibility: hidden; }
+.fx-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 38;
+  overflow: hidden;
+}
+.fx-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 50% 50%;
+  border-radius: var(--r-s);
+  overflow: hidden;
+  background: var(--card);
+  box-shadow: var(--shadow-pin);
+  will-change: transform, opacity;
+}
+.fx-ghost img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+.fx-wash {
+  position: absolute;
+  inset: 0;
+  background: var(--veil);
+  opacity: 0;
+}
+.fx-burst {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--seal-acc);
+  box-shadow: 0 0 24px var(--seal-acc);
+  opacity: 0;
+}
+.card.is-arriving,
+.card.is-arriving + .card-sources {
+  visibility: hidden;
+}
 /* 藏着的卡片看不见遮蔽的变化：不跑模糊与墨色的过渡（模糊滤镜的过渡不能交给合成器，会让主线程每帧重绘，#176）。 */
-.card[data-leaving="true"] img, .card[data-leaving="true"]::after,
-.card.is-arriving img, .card.is-arriving::after { transition: none; }
-.rail-badge { position: absolute; top: 2px; right: 1px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--r-pill); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 16px; font-weight: 600; text-align: center; }
-.rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
+.card[data-leaving="true"] img,
+.card[data-leaving="true"]::after,
+.card.is-arriving img,
+.card.is-arriving::after {
+  transition: none;
+}
+.rail-badge {
+  position: absolute;
+  top: 2px;
+  right: 1px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  text-align: center;
+}
+.rail-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
-body { font-size: 13px; line-height: 20px; overflow: hidden; }
-* { box-sizing: border-box; }
-.app-shell { flex-direction: row; }
-.app-column { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative; }
-.rail-slot { display: flex; flex: none; z-index: 4; }
-.rail-btn { padding: 0; border: 0; background: transparent; }
-.app-body { min-width: 0; }
-.sidebar-slot { width: 248px; background: var(--surface); transition: width var(--t-slow) var(--ease); }
-.sidebar-slot[data-collapsed="true"] { width: 0; border-right-width: 0; }
-.sidebar-slot .sidebar { width: auto; flex: none; overflow: visible; }
-.pane-head { height: 52px; min-height: 52px; width: 247px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--line); }
-.pane-head h1 { overflow-wrap: anywhere; }
-.pane-body { width: 247px; flex: 1; min-height: 0; overflow-y: auto; padding: 10px 8px 16px; }
-.pane-body[hidden] { display: none; }
-.topbar { display: flex; align-items: center; min-height: 52px; flex: none; padding: 8px 12px; gap: 8px; background: var(--surface); border-bottom: 1px solid var(--line); z-index: 2; }
-.topbar > .search { flex: 1; min-width: 0; border: 0; padding: 0; }
-.selection-hint { font-size: 12px; line-height: 18px; color: var(--ink-2); white-space: nowrap; }
-.wall { scrollbar-gutter: stable; }
-:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-
+body {
+  font-size: 13px;
+  line-height: 20px;
+  overflow: hidden;
+}
+* {
+  box-sizing: border-box;
+}
+.app-shell {
+  flex-direction: row;
+}
+.app-column {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.rail-slot {
+  display: flex;
+  flex: none;
+  z-index: 4;
+}
+.rail-btn {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.app-body {
+  min-width: 0;
+}
+.sidebar-slot {
+  width: 248px;
+  background: var(--surface);
+  transition: width var(--t-slow) var(--ease);
+}
+.sidebar-slot[data-collapsed="true"] {
+  width: 0;
+  border-right-width: 0;
+}
+.sidebar-slot .sidebar {
+  width: auto;
+  flex: none;
+  overflow: visible;
+}
+.pane-head {
+  height: 52px;
+  min-height: 52px;
+  width: 247px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+.pane-head h1 {
+  overflow-wrap: anywhere;
+}
+.pane-body {
+  width: 247px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 8px 16px;
+}
+.pane-body[hidden] {
+  display: none;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  flex: none;
+  padding: 8px 12px;
+  gap: 8px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  z-index: 2;
+}
+.topbar > .search {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+.selection-hint {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.wall {
+  scrollbar-gutter: stable;
+}
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}

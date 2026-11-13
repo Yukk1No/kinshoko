@@ -16,7 +16,13 @@ const tag = (id: string, name: string, hasExternal: boolean): TagLabel => ({
 const mapping: EagleTagMapping = {
   matched: [
     { tag: tag("t-blue", "蓝瞳", true), count: 5, external: ["blue_eyes"], basis: "name", mergedInto: null },
-    { tag: tag("t-raw", "blue eyes", false), count: 5, external: ["blue_eyes"], basis: "name", mergedInto: tag("t-blue", "蓝瞳", true) },
+    {
+      tag: tag("t-raw", "blue eyes", false),
+      count: 5,
+      external: ["blue_eyes"],
+      basis: "name",
+      mergedInto: tag("t-blue", "蓝瞳", true),
+    },
   ],
   unmatched: [
     { tag: tag("t-aqua", "水色", false), count: 3, candidates: [] },
@@ -72,7 +78,9 @@ describe("迁入向导：标签的外部对应", () => {
     fakeBackend({
       eagle_tag_mapping: mapping,
       external_suggestions: [],
-      map_tag_external: () => { throw { code: "unknownTag" }; },
+      map_tag_external: () => {
+        throw { code: "unknownTag" };
+      },
     });
     render(<EagleTagStep libraryId="L1" onClose={() => {}} />);
 

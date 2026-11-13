@@ -1,9 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
-import { createSharedTagGroup, deleteSharedTagGroup, editSharedTagGroup, restoreSharedTagGroup, sharedTagGroups, isLensChanged } from "../ipc";
+import {
+  createSharedTagGroup,
+  deleteSharedTagGroup,
+  editSharedTagGroup,
+  restoreSharedTagGroup,
+  sharedTagGroups,
+  isLensChanged,
+} from "../ipc";
 import { type Lens } from "../search/SearchBox";
 import { useUiLang } from "../i18n";
 import { useToast } from "../ui/Toast";
@@ -18,7 +25,7 @@ type Props = {
   onError: (error: unknown) => void;
 };
 
-import { NewGroup, } from "./TagGroupsRows";
+import { NewGroup } from "./TagGroupsRows";
 import { GroupRow } from "./TagGroupsRow";
 
 export { NewGroup };
@@ -28,7 +35,11 @@ export { NewGroup };
 export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labelProp }: Props) {
   const { t } = useTranslation("tagGroups");
   const label = labelProp ?? t("label");
-  const [found, setFound] = useState<{ key: string; safe: boolean | null; groups: CatalogGroupView[] }>({ key: "", safe: null, groups: [] });
+  const [found, setFound] = useState<{ key: string; safe: boolean | null; groups: CatalogGroupView[] }>({
+    key: "",
+    safe: null,
+    groups: [],
+  });
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [picking, setPicking] = useState<string | null>(null);
@@ -37,7 +48,8 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
   const view = JSON.stringify([safe, generation]);
   const lang = useUiLang();
   const key = JSON.stringify([view, refresh, lang]);
-  const current = useRef(key); current.current = key;
+  const current = useRef(key);
+  current.current = key;
   // Preserve editor identity during refresh, but never display stale server labels or members.
   const groups = found.safe === safe ? found.groups : [];
   const fresh = found.key === key;
@@ -47,17 +59,25 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
   useEffect(() => {
     let alive = true;
     sharedTagGroups(lang, safe).then(
-      (value) => { if (alive && current.current === key) setFound({ key, safe, groups: value }); },
-      (error) => { if (alive && current.current === key && !isLensChanged(error)) onError(error); },
+      (value) => {
+        if (alive && current.current === key) setFound({ key, safe, groups: value });
+      },
+      (error) => {
+        if (alive && current.current === key && !isLensChanged(error)) onError(error);
+      },
     );
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [key, safe, onError, lang]);
   // 切换安全模式时收起正在进行的编辑；读到新的分组后，清掉已不存在的分组上的编辑。
   // 都在渲染中比较，这一帧就不显示旧的编辑。
   const [editingUnder, setEditingUnder] = useState(safe);
   if (editingUnder !== safe) {
     setEditingUnder(safe);
-    setCreating(false); setRenaming(null); setPicking(null);
+    setCreating(false);
+    setRenaming(null);
+    setPicking(null);
   }
   const gone = (id: string | null) => fresh && id !== null && !groups.some((group) => group.id === id);
   if (gone(renaming)) setRenaming(null);
@@ -80,55 +100,113 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
     const parts = wanted.split(":");
     const group = parts[0];
     const chain = [wanted];
-    if (parts.length === 3) chain.push(...["prev", "next", "remove", "chip"].map((action) => `${group}:${parts[1]}:${action}`));
+    if (parts.length === 3)
+      chain.push(...["prev", "next", "remove", "chip"].map((action) => `${group}:${parts[1]}:${action}`));
     else chain.push(`${group}:up`, `${group}:down`);
     chain.push(`${group}:name`, `${group}:rename`, "new");
     const targets = [...section.current.querySelectorAll<HTMLButtonElement>("[data-focus-key]")];
     for (const candidate of chain) {
       const target = targets.find((element) => element.dataset.focusKey === candidate);
-      if (target && !target.disabled) { target.focus(); return; }
+      if (target && !target.disabled) {
+        target.focus();
+        return;
+      }
     }
   }, [fresh, busy, groups]);
   const run = async (action: Promise<unknown>, focus?: string) => {
     // 明确指定了焦点去处（如删除分组后的相邻分组）就用它，不取当前聚焦的按钮：那个按钮随行消失。
-    if (focus !== undefined) restore.current = focus; else remember();
+    if (focus !== undefined) restore.current = focus;
+    else remember();
     setPendingKey(key);
     try {
       await action;
       if (current.current === key) setRefresh((n) => n + 1);
     } catch (error) {
       if (current.current === key) onError(error);
-    } finally { setPendingKey((pending) => pending === key ? null : pending); }
+    } finally {
+      setPendingKey((pending) => (pending === key ? null : pending));
+    }
   };
   const edit = (action: CatalogGroupEdit) => run(editSharedTagGroup(action, safe));
   const toast = useToast();
   /** 删除分组能撤销，所以不先确认：直接删，再给一个带“撤销”的轻提示；撤销用的是删除时返回的内容。 */
   const remove = (group: CatalogGroupView) => {
     // 删掉的分组没有可回的位置：回到相邻分组，没有时回到“新建分组”。
-    const at = groups.findIndex((g) => g.id === group.id), next = groups[at + 1] ?? groups[at - 1];
-    void run(deleteSharedTagGroup(group.id, safe).then((deleted) => {
-      toast.show({
-        title: t("deleted.done"), description: group.name, tone: "success",
-        action: { label: t("deleted.undo"), onClick: () => { void restoreSharedTagGroup(deleted).then(() => setRefresh((n) => n + 1), onError); } },
-      });
-    }), next ? `${next.id}:name` : "new");
+    const at = groups.findIndex((g) => g.id === group.id),
+      next = groups[at + 1] ?? groups[at - 1];
+    void run(
+      deleteSharedTagGroup(group.id, safe).then((deleted) => {
+        toast.show({
+          title: t("deleted.done"),
+          description: group.name,
+          tone: "success",
+          action: {
+            label: t("deleted.undo"),
+            onClick: () => {
+              void restoreSharedTagGroup(deleted).then(() => setRefresh((n) => n + 1), onError);
+            },
+          },
+        });
+      }),
+      next ? `${next.id}:name` : "new",
+    );
   };
   // 设计系统 SettingsList 的外框：每个分组一行，28 px 图标方块、名称、靠右的成员数（命名空间分组是胶囊）；
   // 悬停或键盘聚焦时露出改名、上移、下移、删除。成员是 TagChip，悬停露出前移、后移、移出，末尾是幽灵按钮“加标签”。
   // 末行是“新建分组”。删除不先确认，轻提示带“撤销”（#479）。
   return (
     <section ref={section} className="sidebar-tag-groups k-groups" aria-label={label} aria-busy={busy || !fresh}>
-      {!fresh && <p className="k-set-note" role="status">{t("updating")}</p>}
+      {!fresh && (
+        <p className="k-set-note" role="status">
+          {t("updating")}
+        </p>
+      )}
       <div className="k-group-list">
-      <div className="k-group-rows">
-      {groups.map((group, index) => <GroupRow key={group.id} group={group} index={index} groups={groups} fresh={fresh} busy={busy} renaming={renaming} setRenaming={setRenaming} picking={picking} setPicking={setPicking} onBrowse={onBrowse} edit={edit} remove={remove} remember={remember} section={section} lens={lens} />)}
-      </div>
-      {creating ? <NewGroup onDone={(group) => {
-        setCreating(false);
-        remember("new");
-        if (group) void run(createSharedTagGroup(group.name, group.namespace));
-      }} /> : <button type="button" className="k-group-create" aria-label={t("create.open")} data-focus-key="new" disabled={busy || !fresh} onClick={() => setCreating(true)}>
-        <span className="k-group-icon" aria-hidden="true"><Plus size={16} /></span><span className="k-label">{t("create.button")}</span></button>}
+        <div className="k-group-rows">
+          {groups.map((group, index) => (
+            <GroupRow
+              key={group.id}
+              group={group}
+              index={index}
+              groups={groups}
+              fresh={fresh}
+              busy={busy}
+              renaming={renaming}
+              setRenaming={setRenaming}
+              picking={picking}
+              setPicking={setPicking}
+              onBrowse={onBrowse}
+              edit={edit}
+              remove={remove}
+              remember={remember}
+              section={section}
+              lens={lens}
+            />
+          ))}
+        </div>
+        {creating ? (
+          <NewGroup
+            onDone={(group) => {
+              setCreating(false);
+              remember("new");
+              if (group) void run(createSharedTagGroup(group.name, group.namespace));
+            }}
+          />
+        ) : (
+          <button
+            type="button"
+            className="k-group-create"
+            aria-label={t("create.open")}
+            data-focus-key="new"
+            disabled={busy || !fresh}
+            onClick={() => setCreating(true)}
+          >
+            <span className="k-group-icon" aria-hidden="true">
+              <Plus size={16} />
+            </span>
+            <span className="k-label">{t("create.button")}</span>
+          </button>
+        )}
       </div>
     </section>
   );

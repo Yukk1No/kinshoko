@@ -12,9 +12,23 @@ export function useSubscriptionStatus(): [SubscriptionStatus | null, (status: Su
     let alive = true;
     // 推送先到时以推送为准，之后读到的旧状态不再覆盖。
     let pushed = false;
-    const stop = onSubscriptionStatus((next) => { pushed = true; if (alive) setStatus(next); });
-    subscriptionStatus().then((next) => { if (alive && !pushed) setStatus(next); }, () => {});
-    return () => { alive = false; void stop.then((fn) => fn(), () => {}); };
+    const stop = onSubscriptionStatus((next) => {
+      pushed = true;
+      if (alive) setStatus(next);
+    });
+    subscriptionStatus().then(
+      (next) => {
+        if (alive && !pushed) setStatus(next);
+      },
+      () => {},
+    );
+    return () => {
+      alive = false;
+      void stop.then(
+        (fn) => fn(),
+        () => {},
+      );
+    };
   }, []);
   return [status, setStatus];
 }

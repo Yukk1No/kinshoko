@@ -50,7 +50,9 @@ export function useSafeMode() {
 
   useEffect(() => {
     const stop = onSafeModeSetting(acceptSafe);
-    return () => { void stop.then((stop) => stop()); };
+    return () => {
+      void stop.then((stop) => stop());
+    };
   }, [acceptSafe]);
 
   useEffect(() => {

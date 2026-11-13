@@ -9,16 +9,42 @@ import { fakeBackend } from "../test/backend";
 
 type Call = { query: WorkspaceQuery; safeMode: boolean; resolve: (page: WorkspacePage) => void };
 let calls: Call[];
-const card: WorkspaceCard = { id: "bytes", width: 120, height: 90, adult: false,
-  libraryId: "A", imageId: "a", sources: [
+const card: WorkspaceCard = {
+  id: "bytes",
+  width: 120,
+  height: 90,
+  adult: false,
+  libraryId: "A",
+  imageId: "a",
+  sources: [
     { libraryId: "A", libraryName: "甲库", imageId: "a", unavailable: null, matches: true, deleted: false },
-    { libraryId: "B", libraryName: "乙库", imageId: "b", unavailable: { code: "system" as const, detail: "离线" }, matches: false, deleted: false },
-  ] };
-const page = (cards: WorkspaceCard[]): WorkspacePage => ({ cards, total: cards.length, nextCursor: null,
-  status: { revision: "r", libraries: [] } });
-const base = { scope: { kind: "all" as const }, selected: new Set<string>(),
-  onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false };
-const settle = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    {
+      libraryId: "B",
+      libraryName: "乙库",
+      imageId: "b",
+      unavailable: { code: "system" as const, detail: "离线" },
+      matches: false,
+      deleted: false,
+    },
+  ],
+};
+const page = (cards: WorkspaceCard[]): WorkspacePage => ({
+  cards,
+  total: cards.length,
+  nextCursor: null,
+  status: { revision: "r", libraries: [] },
+});
+const base = {
+  scope: { kind: "all" as const },
+  selected: new Set<string>(),
+  onSelectionChange: () => {},
+  onOpenImage: () => {},
+  viewerOpen: false,
+};
+const settle = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
 beforeEach(() => {
   calls = [];
   localStorage.clear();
@@ -27,16 +53,29 @@ beforeEach(() => {
   mockConvertFileSrc("windows");
   fakeBackend({
     workspace_browse: (args) => {
-      return new Promise<WorkspacePage>((resolve) => calls.push({ ...(args as { query: WorkspaceQuery; safeMode: boolean }), resolve }));
+      return new Promise<WorkspacePage>((resolve) =>
+        calls.push({ ...(args as { query: WorkspaceQuery; safeMode: boolean }), resolve }),
+      );
     },
   });
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 it("工作区使用范围查询并将全部来源交给检查入口，活动写入库不参与读取选择", async () => {
   const inspect = vi.fn();
   const open = vi.fn();
-  render(<Wall {...base} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode onInspectSources={inspect} onOpenImage={open} />);
+  render(
+    <Wall
+      {...base}
+      reloadKey={0}
+      workspaceScope={{ kind: "all" }}
+      safeMode
+      onInspectSources={inspect}
+      onOpenImage={open}
+    />,
+  );
   await settle();
   expect(calls[0].query.scope).toEqual({ kind: "all" });
   await act(async () => calls[0].resolve(page([card])));
@@ -92,7 +131,10 @@ it("自动打标期间修订号前进时，新一页迟迟不到也一直显示�
   await act(async () => calls[1].resolve(page([{ ...card, id: "stale" }])));
   expect(document.querySelector('[data-id="stale"]')).toBeNull();
   await act(async () => calls.at(-1)!.resolve(page([card, tagged])));
-  expect([...document.querySelectorAll<HTMLElement>(".card")].map((node) => node.dataset.id)).toEqual(["bytes", "tagged"]);
+  expect([...document.querySelectorAll<HTMLElement>(".card")].map((node) => node.dataset.id)).toEqual([
+    "bytes",
+    "tagged",
+  ]);
   expect(document.querySelector<HTMLElement>(".wall")?.dataset.total).toBe("2");
 });
 
@@ -108,7 +150,10 @@ it("安全模式切换时卡片留在原位：成人卡片立即遮蔽，新的�
   // App 切换安全模式时同时让 reloadKey 前进。封印动画要从这些卡片飞出，墙不能先空一下。
   view.rerender(<Wall {...base} reloadKey={1} workspaceScope={{ kind: "all" }} safeMode />);
   await settle();
-  expect([...document.querySelectorAll<HTMLElement>(".card")].map((node) => node.dataset.id)).toEqual(["bytes", "adult"]);
+  expect([...document.querySelectorAll<HTMLElement>(".card")].map((node) => node.dataset.id)).toEqual([
+    "bytes",
+    "adult",
+  ]);
   // 成人卡片交给飞向封印书的影子：原地不再留着遮蔽的图，但先占着位置，资料库确认后其余卡片才补位。
   expect(document.querySelector<HTMLElement>('.card[data-id="adult"]')?.dataset.veiled).toBe("true");
   expect(document.querySelector<HTMLElement>('.card[data-id="adult"]')?.dataset.leaving).toBe("true");
@@ -126,7 +171,14 @@ it("工作区范围切换时，旧范围的卡片不再显示 (#142)", async () 
   await settle();
   await act(async () => calls[0].resolve(page([card])));
   expect(document.querySelectorAll(".card")).toHaveLength(1);
-  view.rerender(<Wall {...base} reloadKey={1} workspaceScope={{ kind: "library", libraryId: "B", scope: { kind: "all" } }} safeMode />);
+  view.rerender(
+    <Wall
+      {...base}
+      reloadKey={1}
+      workspaceScope={{ kind: "library", libraryId: "B", scope: { kind: "all" } }}
+      safeMode
+    />,
+  );
   await settle();
   expect(document.querySelector(".card")).toBeNull();
 });
@@ -134,7 +186,14 @@ it("工作区范围切换时，旧范围的卡片不再显示 (#142)", async () 
 it("安全模式和资料库范围改变时，旧候选页立即作废", async () => {
   const view = render(<Wall {...base} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode={false} />);
   await settle();
-  view.rerender(<Wall {...base} reloadKey={1} workspaceScope={{ kind: "library", libraryId: "A", scope: { kind: "all" } }} safeMode />);
+  view.rerender(
+    <Wall
+      {...base}
+      reloadKey={1}
+      workspaceScope={{ kind: "library", libraryId: "A", scope: { kind: "all" } }}
+      safeMode
+    />,
+  );
   await settle();
   expect(calls.at(-1)).toMatchObject({ safeMode: true, query: { scope: { kind: "library", libraryId: "A" } } });
   await act(async () => calls.at(-1)!.resolve(page([])));
@@ -168,6 +227,8 @@ it("在“全部图片”里也能拖出卡片：带上每张图在各已连接�
   expect(node("bytes").getAttribute("draggable")).toBe("true");
   expect(node("offline").getAttribute("draggable")).toBe("false");
   const data = new Map<string, string>();
-  fireEvent.dragStart(node("bytes"), { dataTransfer: { setData: (type: string, value: string) => data.set(type, value), effectAllowed: "" } });
+  fireEvent.dragStart(node("bytes"), {
+    dataTransfer: { setData: (type: string, value: string) => data.set(type, value), effectAllowed: "" },
+  });
   expect(JSON.parse(data.get(DRAG_IMAGE_SOURCES)!)).toEqual({ A: ["a"] });
 });

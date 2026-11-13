@@ -57,8 +57,11 @@ const result = {
   source: process.env.GITHUB_SHA ?? process.env.KINSHOKO_SMOKE_SOURCE ?? null,
   application,
   binarySha256: createHash("sha256").update(readFileSync(application)).digest("hex"),
-  harnessSha256: createHash("sha256").update(readFileSync(fileURLToPath(import.meta.url))).digest("hex"),
-  startedAt: new Date().toISOString(), assertions: [],
+  harnessSha256: createHash("sha256")
+    .update(readFileSync(fileURLToPath(import.meta.url)))
+    .digest("hex"),
+  startedAt: new Date().toISOString(),
+  assertions: [],
 };
 mkdirSync(join(source, "人物"), { recursive: true });
 writeFileSync(join(source, "横图.png"), png(300, 150, [200, 80, 80]));
@@ -119,12 +122,15 @@ class Session {
    * “名称（N 张）”；未连接时为“名称（未连接）”，不算。界面上不再有“当前图库”（ADR-0008）。
    */
   currentLibrary(name) {
-    return this.exec(`
+    return this.exec(
+      `
       const group = [...document.querySelectorAll('nav[aria-label="查找范围"] [data-library-id]')]
         .find((node) => node.querySelector('.lib-head-name .sidebar-label')?.textContent.trim() === arguments[0]);
       const head = group?.querySelector('.lib-head-name');
       return group && head && !head.disabled && /（\\d+ 张）$/.test(head.getAttribute('aria-label') ?? '')
-        ? { id: group.dataset.libraryId, name: arguments[0] } : null;`, [name]);
+        ? { id: group.dataset.libraryId, name: arguments[0] } : null;`,
+      [name],
+    );
   }
   /** 图片墙上已挂载的卡片 id，以及缩略图是否都已解码。 */
   wall() {
@@ -168,14 +174,26 @@ async function quitApp() {
     $own | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
     $own.ProcessId | ConvertTo-Json -Compress`;
   const stopped = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", script], {
-    env: { ...process.env, KINSHOKO_SMOKE_EXE: application }, windowsHide: true, encoding: "utf8",
+    env: { ...process.env, KINSHOKO_SMOKE_EXE: application },
+    windowsHide: true,
+    encoding: "utf8",
   });
   if (stopped.status !== 0) throw new Error(`无法核对测试程序：${stopped.stderr}`);
   await until("应用进程退出", () => {
-    const out = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command",
-      "@(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_SMOKE_EXE }).Count"], {
-      env: { ...process.env, KINSHOKO_SMOKE_EXE: application }, windowsHide: true, encoding: "utf8",
-    });
+    const out = spawnSync(
+      "powershell",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "@(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:KINSHOKO_SMOKE_EXE }).Count",
+      ],
+      {
+        env: { ...process.env, KINSHOKO_SMOKE_EXE: application },
+        windowsHide: true,
+        encoding: "utf8",
+      },
+    );
     if (out.status !== 0) throw new Error(out.stderr);
     return out.stdout.trim() === "0";
   });
@@ -189,9 +207,20 @@ function assert(ok, message) {
   console.log(`✓ ${message}`);
 }
 
-const driverArgs = ["--port", String(port), "--native-port", String(port + 1), ...(edgeDriverArg ? ["--native-driver", resolve(edgeDriverArg)] : [])];
+const driverArgs = [
+  "--port",
+  String(port),
+  "--native-port",
+  String(port + 1),
+  ...(edgeDriverArg ? ["--native-driver", resolve(edgeDriverArg)] : []),
+];
 const driver = spawn(process.argv[4] ?? "tauri-driver", driverArgs, {
-  env: { ...process.env, KINSHOKO_DATA_DIR: dataDir, KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") },
+  env: {
+    ...process.env,
+    KINSHOKO_DATA_DIR: dataDir,
+    KINSHOKO_SKIP_AUTOSTART: "1",
+    WEBVIEW2_USER_DATA_FOLDER: join(work, "webview"),
+  },
   windowsHide: true,
   stdio: ["ignore", "inherit", "inherit"],
 });
@@ -209,7 +238,10 @@ try {
   await session.pick(libraryParent);
   await session.click(await session.find(button("选择存放位置…")));
   // 位置一栏预览新文件夹的完整路径：所选位置\图库名称（#172）。
-  await session.waitFor("显示所选位置", `//*[contains(@class,'create-library-path-text') and starts-with(normalize-space(), '${libraryParent}')]`);
+  await session.waitFor(
+    "显示所选位置",
+    `//*[contains(@class,'create-library-path-text') and starts-with(normalize-space(), '${libraryParent}')]`,
+  );
   await session.click(await session.find(button("新建图库")));
   const created = await until("打开新资料库", () => session.currentLibrary("冒烟测试库"));
   result.library = created;
@@ -223,14 +255,39 @@ try {
   // 保存位置是设计系统的 Select（不是原生 select）：点开“放到图库”，等新建的图库可选后点它；文件夹默认“未归类”。
   const target = "//*[contains(@class,'k-import-dialog')]//*[@role='combobox' and @aria-label='放到图库']";
   await session.click(await session.waitFor("保存目标选择", target));
-  await session.click(await session.waitFor("保存目标资料库已加载", `//*[contains(@class,'k-select-popup') and @data-open]//*[@role='option' and @data-value='${created.id}' and not(@data-disabled)]`));
-  await until("保存目标已选好", () => session.exec("return document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.dataset.value === arguments[1];", [target, created.id]));
-  await until("开始导入可用", () => session.exec("return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)"));
+  await session.click(
+    await session.waitFor(
+      "保存目标资料库已加载",
+      `//*[contains(@class,'k-select-popup') and @data-open]//*[@role='option' and @data-value='${created.id}' and not(@data-disabled)]`,
+    ),
+  );
+  await until("保存目标已选好", () =>
+    session.exec(
+      "return document.evaluate(arguments[0], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.dataset.value === arguments[1];",
+      [target, created.id],
+    ),
+  );
+  await until("开始导入可用", () =>
+    session.exec(
+      "return [...document.querySelectorAll('.k-import-dialog button')].some(b=>b.textContent.trim()==='开始导入'&&!b.disabled)",
+    ),
+  );
   await session.click(await session.find(button("开始导入")));
-  await until("导入完成", () => session.exec("return [...document.querySelectorAll('.k-toast')].some(t=>t.querySelector('.k-toast-title')?.textContent==='导入完成'&&t.querySelector('.k-toast-stats')?.textContent.includes('新增 3'));"), 60000);
+  await until(
+    "导入完成",
+    () =>
+      session.exec(
+        "return [...document.querySelectorAll('.k-toast')].some(t=>t.querySelector('.k-toast-title')?.textContent==='导入完成'&&t.querySelector('.k-toast-stats')?.textContent.includes('新增 3'));",
+      ),
+    60000,
+  );
   // 结束是一条轻提示（#388）；有未导入的文件时它的“查看”打开结果回执。
   await session.click(await session.find("//*[contains(@class,'k-toast')]//button[normalize-space()='查看']"));
-  await session.click(await session.find("//section[@aria-label='导入结果']//button[@aria-expanded='false' and starts-with(normalize-space(), '未导入')]"));
+  await session.click(
+    await session.find(
+      "//section[@aria-label='导入结果']//button[@aria-expanded='false' and starts-with(normalize-space(), '未导入')]",
+    ),
+  );
   await session.find(`//section[@aria-label='导入结果']//li[contains(., '说明.txt') and contains(., '不支持的格式')]`);
   assert(true, "导入 3 张图，不支持的文件逐个列出");
 
@@ -266,8 +323,13 @@ try {
   result.status = "failed";
   result.error = String(e);
   if (session) {
-    await session.exec("return document.documentElement.outerHTML").then(html => writeFileSync(join(work, "failure.html"), html)).catch(() => {});
-    await wd("GET", `${session.base}/screenshot`).then(data => writeFileSync(join(work, "failure.png"), Buffer.from(data, "base64"))).catch(() => {});
+    await session
+      .exec("return document.documentElement.outerHTML")
+      .then((html) => writeFileSync(join(work, "failure.html"), html))
+      .catch(() => {});
+    await wd("GET", `${session.base}/screenshot`)
+      .then((data) => writeFileSync(join(work, "failure.png"), Buffer.from(data, "base64")))
+      .catch(() => {});
   }
   console.error(e);
   process.exitCode = 1;

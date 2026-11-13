@@ -26,28 +26,52 @@ type Props = {
   wallActions: WallMenuActions;
 };
 
-export function ViewerLayer({ flight, viewing, setViewing, reloadKey, viewerPosition, step, viewCrop, inspectorOpen, toggleInspector, scope, wallActions }: Props) {
+export function ViewerLayer({
+  flight,
+  viewing,
+  setViewing,
+  reloadKey,
+  viewerPosition,
+  step,
+  viewCrop,
+  inspectorOpen,
+  toggleInspector,
+  scope,
+  wallActions,
+}: Props) {
   return (
     <>
-          {flight.card && (
-            <Viewer
-              key={flight.session}
-              flight={flight.attr}
-              hideImage={flight.hideImage}
-              onPlaced={flight.onPlaced}
-              libraryId={flight.card.libraryId}
-              card={{ ...flight.card, id: flight.card.imageId ?? flight.card.id }}
-              onClose={() => setViewing(null)}
-              onBack={() => { flight.back(); setViewing(null); }}
-              reloadKey={reloadKey}
-              position={viewerPosition.current}
-              onStep={step}
-              startCrop={viewCrop}
-              inspectorOpen={inspectorOpen}
-              onToggleInspector={toggleInspector}
-              onTrash={!viewing || (viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.deleted ?? scope.kind === "trash") ? undefined : () => { wallActions.edit([viewing], [{ kind: "delete" }], true); setViewing(null); }}
-            />
-          )}
+      {flight.card && (
+        <Viewer
+          key={flight.session}
+          flight={flight.attr}
+          hideImage={flight.hideImage}
+          onPlaced={flight.onPlaced}
+          libraryId={flight.card.libraryId}
+          card={{ ...flight.card, id: flight.card.imageId ?? flight.card.id }}
+          onClose={() => setViewing(null)}
+          onBack={() => {
+            flight.back();
+            setViewing(null);
+          }}
+          reloadKey={reloadKey}
+          position={viewerPosition.current}
+          onStep={step}
+          startCrop={viewCrop}
+          inspectorOpen={inspectorOpen}
+          onToggleInspector={toggleInspector}
+          onTrash={
+            !viewing ||
+            (viewing.sources?.find((source) => source.libraryId === viewing.libraryId)?.deleted ??
+              scope.kind === "trash")
+              ? undefined
+              : () => {
+                  wallActions.edit([viewing], [{ kind: "delete" }], true);
+                  setViewing(null);
+                }
+          }
+        />
+      )}
     </>
   );
 }

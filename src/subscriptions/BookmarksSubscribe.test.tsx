@@ -21,7 +21,16 @@ function backend(subs: Subscription[]) {
   fake = fakeBackend({
     subscriptions: subs,
     subscription_recent: [],
-    workspace_directories: { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) },
+    workspace_directories: {
+      status: { revision: "t", libraries },
+      registrationOrder: [],
+      providers: libraries.map((registration) => ({
+        registration,
+        sidebar: { all: 0, trash: 0, folders: [] },
+        unassigned: 0,
+        descendants: {},
+      })),
+    },
     subscription_add: [],
     subscription_set_options: () => subs[0],
   });
@@ -30,9 +39,18 @@ function backend(subs: Subscription[]) {
 const sent = (command: string) => fake.calls(command).map((call) => call.args);
 
 function page(s: SubscriptionStatus, safe = false) {
-  return render(<SaveDestinationProvider safe={safe}>
-    <SubscriptionsPage status={s} onStatus={vi.fn()} safe={safe} paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} />
-  </SaveDestinationProvider>);
+  return render(
+    <SaveDestinationProvider safe={safe}>
+      <SubscriptionsPage
+        status={s}
+        onStatus={vi.fn()}
+        safe={safe}
+        paneOpen
+        onPaneToggle={vi.fn()}
+        onOpenImage={vi.fn()}
+      />
+    </SaveDestinationProvider>,
+  );
 }
 
 async function openMenu() {
@@ -60,14 +78,28 @@ describe("同步 pixiv 收藏夹", () => {
     const dialog = await screen.findByRole("dialog", { name: "同步 pixiv 收藏夹" });
     expect(within(dialog).getByText("非官方")).toBeTruthy();
     for (const group of ["已有的公开收藏", "已有的非公开收藏"]) {
-      expect(within(within(dialog).getByRole("radiogroup", { name: group })).getByRole("radio", { name: "不同步" })).toHaveProperty("checked", true);
+      expect(
+        within(within(dialog).getByRole("radiogroup", { name: group })).getByRole("radio", { name: "不同步" }),
+      ).toHaveProperty("checked", true);
     }
-    await waitFor(() => expect(within(dialog).getByRole("button", { name: "开始同步" }).hasAttribute("disabled")).toBe(false));
+    await waitFor(() =>
+      expect(within(dialog).getByRole("button", { name: "开始同步" }).hasAttribute("disabled")).toBe(false),
+    );
     fireEvent.click(within(dialog).getByRole("button", { name: "开始同步" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
-    expect(sent("subscription_add")[0]).toEqual({ subscriptions: [{
-      target: { kind: "pixivBookmarks" }, name: "", libraryId: "L1", includeExplicit: true, includeManga: false, backlog: { kind: "newOnly" }, privateBacklog: { kind: "newOnly" },
-    }] });
+    expect(sent("subscription_add")[0]).toEqual({
+      subscriptions: [
+        {
+          target: { kind: "pixivBookmarks" },
+          name: "",
+          libraryId: "L1",
+          includeExplicit: true,
+          includeManga: false,
+          backlog: { kind: "newOnly" },
+          privateBacklog: { kind: "newOnly" },
+        },
+      ],
+    });
   });
 
   it("公开收藏选最近 50 张、非公开全部同步，不同步 R-18", async () => {
@@ -76,12 +108,20 @@ describe("同步 pixiv 收藏夹", () => {
     fireEvent.click(await openMenu());
     const dialog = await screen.findByRole("dialog", { name: "同步 pixiv 收藏夹" });
     fireEvent.change(within(dialog).getByRole("textbox", { name: "最近几张公开收藏" }), { target: { value: "50" } });
-    fireEvent.click(within(within(dialog).getByRole("radiogroup", { name: "已有的非公开收藏" })).getByRole("radio", { name: "全部" }));
+    fireEvent.click(
+      within(within(dialog).getByRole("radiogroup", { name: "已有的非公开收藏" })).getByRole("radio", { name: "全部" }),
+    );
     fireEvent.click(within(dialog).getByRole("switch", { name: "R-18 作品" }));
-    await waitFor(() => expect(within(dialog).getByRole("button", { name: "开始同步" }).hasAttribute("disabled")).toBe(false));
+    await waitFor(() =>
+      expect(within(dialog).getByRole("button", { name: "开始同步" }).hasAttribute("disabled")).toBe(false),
+    );
     fireEvent.click(within(dialog).getByRole("button", { name: "开始同步" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
-    expect(sent("subscription_add")[0]).toMatchObject({ subscriptions: [{ includeExplicit: false, backlog: { kind: "recent", count: 50 }, privateBacklog: { kind: "all" } }] });
+    expect(sent("subscription_add")[0]).toMatchObject({
+      subscriptions: [
+        { includeExplicit: false, backlog: { kind: "recent", count: 50 }, privateBacklog: { kind: "all" } },
+      ],
+    });
   });
 
   it("账号没开 R-18 时不出现 R-18 一行，按默认收", async () => {
@@ -104,6 +144,10 @@ describe("同步 pixiv 收藏夹", () => {
     expect(within(dialog).getByText("我的收藏夹")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("switch", { name: "漫画" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "保存" }));
-    await waitFor(() => expect(sent("subscription_set_options")).toEqual([{ id: "b1", includeExplicit: true, includeManga: false, top: null }]));
+    await waitFor(() =>
+      expect(sent("subscription_set_options")).toEqual([
+        { id: "b1", includeExplicit: true, includeManga: false, top: null },
+      ]),
+    );
   });
 });

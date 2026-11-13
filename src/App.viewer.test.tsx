@@ -3,7 +3,19 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { emit } from "@tauri-apps/api/event";
 import type { BrowsePage } from "./bindings/BrowsePage";
 import { App } from "./App";
-import { doubleClick, library, gone, clean, backend, sent, push, libraryAction, openLibrary, expandLibrary, wallPage } from "./App.fixtures";
+import {
+  doubleClick,
+  library,
+  gone,
+  clean,
+  backend,
+  sent,
+  push,
+  libraryAction,
+  openLibrary,
+  expandLibrary,
+  wallPage,
+} from "./App.fixtures";
 import type { Args } from "./test/backend";
 
 describe("主窗口", () => {
@@ -52,10 +64,14 @@ describe("主窗口", () => {
     const viewer = await screen.findByRole("region", { name: "原图查看器" });
     expect(within(viewer).getByText(`1 / ${ids.length}`)).toBeTruthy();
     fireEvent.click(within(viewer).getByRole("button", { name: "下一张" }));
-    await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/L1/${ids[1]}/full`));
+    await waitFor(() =>
+      expect(viewer.querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/L1/${ids[1]}/full`),
+    );
     expect(within(viewer).getByText(`2 / ${ids.length}`)).toBeTruthy();
     fireEvent.keyDown(viewer, { key: "ArrowLeft" });
-    await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/L1/${ids[0]}/full`));
+    await waitFor(() =>
+      expect(viewer.querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/L1/${ids[0]}/full`),
+    );
   });
 
   it("查看器只盖住图片墙（#179）：左栏、顶栏可用，详情侧栏在旁边跟着 ←/→ 换图，I 键显示或隐藏它", async () => {
@@ -70,7 +86,12 @@ describe("主窗口", () => {
     expect(viewer.closest(".wall-host")).toBeTruthy();
     expect(screen.queryByRole("group", { name: "图片大小" })).toBeNull();
     expect(screen.getByRole("listbox", { name: "图片墙" }).hasAttribute("inert")).toBe(true);
-    for (const area of [document.querySelector(".rail-slot")!, screen.getByRole("complementary", { name: "文件夹" }), document.querySelector(".topbar")!, inspector()!]) {
+    for (const area of [
+      document.querySelector(".rail-slot")!,
+      screen.getByRole("complementary", { name: "文件夹" }),
+      document.querySelector(".topbar")!,
+      inspector()!,
+    ]) {
       expect(area.closest("[inert]")).toBeNull();
     }
     expect(inspector()!.dataset.selection).toBe(ids[0]);
@@ -81,7 +102,9 @@ describe("主窗口", () => {
     fireEvent.keyDown(viewer, { key: "i" });
     expect(inspector()!.dataset.collapsed).toBe("true");
     fireEvent.keyDown(viewer, { key: "ArrowLeft" });
-    await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/L1/${ids[0]}/full`));
+    await waitFor(() =>
+      expect(viewer.querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/L1/${ids[0]}/full`),
+    );
     expect(inspector()!.dataset.collapsed).toBe("true");
     fireEvent.click(within(viewer).getByRole("button", { name: /^显示详情/ }));
     expect(inspector()!.dataset.collapsed).toBe("false");
@@ -126,14 +149,29 @@ describe("主窗口", () => {
 
   it("查看器的下一张越过已读到的卡片时，先读下一页再换图", async () => {
     let second!: (value: BrowsePage) => void;
-    const more = new Promise<BrowsePage>((resolve) => { second = resolve; });
-    const cards = Array.from({ length: 500 }, (_, i) => ({ id: `p${i}`, width: 100, height: 100, thumbnail: `L1/p${i}/256`, adult: false }));
+    const more = new Promise<BrowsePage>((resolve) => {
+      second = resolve;
+    });
+    const cards = Array.from({ length: 500 }, (_, i) => ({
+      id: `p${i}`,
+      width: 100,
+      height: 100,
+      thumbnail: `L1/p${i}/256`,
+      adult: false,
+    }));
     const first: BrowsePage = { cards, nextCursor: "c2", total: 501 };
-    const rest: BrowsePage = { cards: [{ id: "last", width: 100, height: 100, thumbnail: "L1/last/256", adult: false }], nextCursor: null, total: 501 };
+    const rest: BrowsePage = {
+      cards: [{ id: "last", width: 100, height: 100, thumbnail: "L1/last/256", adult: false }],
+      nextCursor: null,
+      total: 501,
+    };
     // 前面的用例保存过滚动锚点；从顶部开始，第一页就够。
     localStorage.clear();
     backend(library, clean, {
-      workspace_browse: (args: Args) => (args as { query: { cursor?: string | null } }).query.cursor ? more.then((rest) => wallPage(rest)) : wallPage(first),
+      workspace_browse: (args: Args) =>
+        (args as { query: { cursor?: string | null } }).query.cursor
+          ? more.then((rest) => wallPage(rest))
+          : wallPage(first),
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -141,15 +179,24 @@ describe("主窗口", () => {
     const wall = screen.getByRole("listbox", { name: "图片墙" });
     wall.scrollTop = parseFloat(wall.querySelector<HTMLElement>(".wall-canvas")!.style.height) - 800;
     fireEvent.scroll(wall);
-    const lastLoaded = await waitFor(() => { const node = document.querySelector<HTMLElement>('[data-id="p499"]'); if (!node) throw new Error("not mounted"); return node; });
+    const lastLoaded = await waitFor(() => {
+      const node = document.querySelector<HTMLElement>('[data-id="p499"]');
+      if (!node) throw new Error("not mounted");
+      return node;
+    });
     doubleClick(lastLoaded);
     const viewer = await screen.findByRole("region", { name: "原图查看器" });
     expect(within(viewer).getByText("500 / 501")).toBeTruthy();
     const next = within(viewer).getByRole("button", { name: "下一张" });
     expect((next as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(next);
-    await act(async () => { second(rest); await more; });
-    await waitFor(() => expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/L1/last/full"));
+    await act(async () => {
+      second(rest);
+      await more;
+    });
+    await waitFor(() =>
+      expect(viewer.querySelector("img")?.getAttribute("src")).toBe("http://thumb.localhost/L1/last/full"),
+    );
     expect(within(viewer).getByText("501 / 501")).toBeTruthy();
   });
 
@@ -231,5 +278,4 @@ describe("主窗口", () => {
     expect(await screen.findByRole("button", { name: "新建图库" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "打开图库" })).toBeTruthy();
   });
-
 });

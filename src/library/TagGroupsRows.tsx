@@ -21,18 +21,26 @@ const kindOptions = (): SelectOption<TagNamespace | "">[] => KINDS.map((value) =
 /** Esc 只收起这一行编辑，不连带关掉外面的“编辑分组”对话框。 */
 export function escape(e: KeyboardEvent, done: () => void) {
   if (e.key !== "Escape") return;
-  e.preventDefault(); e.stopPropagation(); done();
+  e.preventDefault();
+  e.stopPropagation();
+  done();
 }
 
 /** 新建标签分组：列表末行展开成一行，名称和分组内容（自己挑选成员，或列出一个命名空间的全部标签）。 */
-export function NewGroup({ onDone }: { onDone: (group: { name: string; namespace: TagNamespace | null } | null) => void }) {
+export function NewGroup({
+  onDone,
+}: {
+  onDone: (group: { name: string; namespace: TagNamespace | null } | null) => void;
+}) {
   const { t } = useTranslation("tagGroups", { keyPrefix: "create" });
   const [name, setName] = useState("");
   const [kind, setKind] = useState<TagNamespace | "">("");
   const submit = () => onDone(name.trim() ? { name: name.trim(), namespace: kind || null } : null);
   return (
     <div className="k-group-new">
-      <span className="k-group-icon" aria-hidden="true"><Tags size={16} /></span>
+      <span className="k-group-icon" aria-hidden="true">
+        <Tags size={16} />
+      </span>
       <input
         className="k-input"
         aria-label={t("nameLabel")}
@@ -47,14 +55,28 @@ export function NewGroup({ onDone }: { onDone: (group: { name: string; namespace
         }}
       />
       <Select label={t("kindLabel")} className="k-group-kind" value={kind} onChange={setKind} options={kindOptions()} />
-      <button type="button" className="k-btn" onClick={() => onDone(null)}><span className="k-label">{t("cancel")}</span></button>
-      <button type="button" className="k-btn" disabled={!name.trim()} onClick={submit}><span className="k-label">{t("submit")}</span></button>
+      <button type="button" className="k-btn" onClick={() => onDone(null)}>
+        <span className="k-label">{t("cancel")}</span>
+      </button>
+      <button type="button" className="k-btn" disabled={!name.trim()} onClick={submit}>
+        <span className="k-label">{t("submit")}</span>
+      </button>
     </div>
   );
 }
 
 /** “给分组加标签”：成员行末尾的输入框，按名称或别名从工作区可见标签里挑一个；已在分组里的不再列出，条数照样补足。 */
-export function PickTag({ lens, members, onPick, onCancel }: { lens: Lens; members: string[]; onPick: (tag: TagLabel) => void; onCancel: () => void }) {
+export function PickTag({
+  lens,
+  members,
+  onPick,
+  onCancel,
+}: {
+  lens: Lens;
+  members: string[];
+  onPick: (tag: TagLabel) => void;
+  onCancel: () => void;
+}) {
   const { t } = useTranslation("tagGroups", { keyPrefix: "pick" });
   const [text, setText] = useState("");
   const { list, ready } = useCandidateState(lens, text, undefined, LIMIT + members.length);
@@ -73,7 +95,11 @@ export function PickTag({ lens, members, onPick, onCancel }: { lens: Lens; membe
         onSelect={(option) => onPick(option.tag)}
         onKeyDown={(e) => escape(e, onCancel)}
       />
-      <Tip label={t("cancelTitle")} keys="Esc"><button type="button" className="k-icon-btn is-xs" aria-label={t("cancelLabel")} onClick={onCancel}><X size={12} aria-hidden="true" /></button></Tip>
+      <Tip label={t("cancelTitle")} keys="Esc">
+        <button type="button" className="k-icon-btn is-xs" aria-label={t("cancelLabel")} onClick={onCancel}>
+          <X size={12} aria-hidden="true" />
+        </button>
+      </Tip>
     </li>
   );
 }

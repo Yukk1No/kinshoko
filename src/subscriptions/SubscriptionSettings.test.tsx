@@ -15,7 +15,8 @@ function serve() {
   });
 }
 
-const settings = (s: SubscriptionStatus, onStatus = vi.fn()) => render(<SubscriptionSettings status={s} onStatus={onStatus} error={null} onError={vi.fn()} />);
+const settings = (s: SubscriptionStatus, onStatus = vi.fn()) =>
+  render(<SubscriptionSettings status={s} onStatus={onStatus} error={null} onError={vi.fn()} />);
 const rows = () => screen.getAllByRole("listitem").map((row) => row.querySelector(".k-list-title")?.textContent);
 
 describe("设置 › 订阅", () => {

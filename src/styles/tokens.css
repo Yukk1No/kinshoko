@@ -5,7 +5,9 @@
    The formal app keeps its real library, search, import and native pin components. */
 :root {
   /* #28: Inter for Latin and digits, Source Han Sans SC for CJK (src/fonts.ts); the Windows stack is the fallback. */
-  --font: "Kinshoko Inter", "Kinshoko Han", "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Segoe UI Emoji", system-ui, sans-serif;
+  --font:
+    "Kinshoko Inter", "Kinshoko Han", "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Segoe UI Emoji",
+    system-ui, sans-serif;
   --font-cjk: "Kinshoko Han Punct", var(--font);
   font-synthesis: none;
 
@@ -25,9 +27,14 @@
   --accent-strong: light-dark(#a63a55, #e9c26e); /* accent as text */
   --accent-soft: light-dark(rgba(224, 118, 143, 0.14), rgba(227, 179, 79, 0.16));
   /* 焦点环只有一种（#489）：2 px 强调色实线。外移 2 px；只有贴边或会被裁切的地方用 --focus-inset（负偏移，画在元素里面）。 */
-  --focus-ring: 2px solid var(--accent); --focus-offset: 2px; --focus-inset: -2px;
+  --focus-ring: 2px solid var(--accent);
+  --focus-offset: 2px;
+  --focus-inset: -2px;
   --on-accent: #2b2747;
-  --manual: light-dark(#8a5e08, #e3b34f); /* the artist's decisions (the "mine" pill); no longer marks tag chips (#482) */
+  --manual: light-dark(
+    #8a5e08,
+    #e3b34f
+  ); /* the artist's decisions (the "mine" pill); no longer marks tag chips (#482) */
   --manual-soft: light-dark(rgba(227, 179, 79, 0.2), rgba(227, 179, 79, 0.18));
   --manual-strong: light-dark(#5e4510, #f0cf86); /* manual as text on manual-soft (the "mine" pill) */
   --wall: light-dark(#eae9e6, #161618); /* neutral ground behind thumbnails */
@@ -39,7 +46,10 @@
   --contact: light-dark(#2b2747, #000);
   --tray: light-dark(color-mix(in srgb, var(--wall) 94%, black), color-mix(in srgb, var(--wall) 70%, black));
   --tray-rim: light-dark(rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.06));
-  --splash-card: light-dark(rgba(43, 39, 71, 0.04), rgba(244, 236, 220, 0.05)); /* startup splash backdrop (#338), faint enough to sit under the logo */
+  --splash-card: light-dark(
+    rgba(43, 39, 71, 0.04),
+    rgba(244, 236, 220, 0.05)
+  ); /* startup splash backdrop (#338), faint enough to sit under the logo */
   --danger: light-dark(#b23a3a, #f08a8a);
   --danger-solid: light-dark(#b23a3a, #c94a4a); /* white text 5.9:1 */
   --on-solid: #ffffff;
@@ -57,37 +67,72 @@
   /* 精确查找开启时的金色浅槽、图片大小滑条（#102 方案 C3） */
   --exact-on-bg: light-dark(rgba(227, 179, 79, 0.16), rgba(227, 179, 79, 0.18));
   --exact-on-ink: light-dark(#9a6a10, #e9c26e);
-  --exact-on-inset: inset 0 1px 1.5px light-dark(rgba(110, 75, 10, 0.16), rgba(0, 0, 0, 0.4)), inset 0 0 0 0.5px light-dark(rgba(160, 112, 15, 0.22), rgba(227, 179, 79, 0.3));
-  --range-track: var(--line-2); --range-fill: var(--ink-2);
+  --exact-on-inset:
+    inset 0 1px 1.5px light-dark(rgba(110, 75, 10, 0.16), rgba(0, 0, 0, 0.4)),
+    inset 0 0 0 0.5px light-dark(rgba(160, 112, 15, 0.22), rgba(227, 179, 79, 0.3));
+  --range-track: var(--line-2);
+  --range-fill: var(--ink-2);
   /* 日夜的模糊半径不同（1px 对 1.5px），长度放不进 light-dark()：拆成两层，各在另一个主题里透明。 */
-  --range-inset: inset 0 1px 1px light-dark(rgba(43, 39, 71, 0.18), transparent), inset 0 1px 1.5px light-dark(transparent, rgba(0, 0, 0, 0.55));
+  --range-inset:
+    inset 0 1px 1px light-dark(rgba(43, 39, 71, 0.18), transparent),
+    inset 0 1px 1.5px light-dark(transparent, rgba(0, 0, 0, 0.55));
   /* scrollbar thumb at rest, hovered, dragged; the track stays transparent */
   --scroll-thumb: light-dark(rgba(43, 39, 71, 0.16), rgba(244, 236, 220, 0.14));
   --scroll-thumb-hover: light-dark(rgba(43, 39, 71, 0.36), rgba(244, 236, 220, 0.32));
   --scroll-thumb-active: light-dark(rgba(43, 39, 71, 0.5), rgba(244, 236, 220, 0.46));
   --knob: light-dark(#fffdf8, #fbf6ec);
-  --knob-shadow: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.5)), 0 1px 1.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.45)), 0 4px 10px light-dark(rgba(43, 39, 71, 0.16), rgba(0, 0, 0, 0.4));
-  --knob-shadow-pressed: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.3), rgba(0, 0, 0, 0.5)), 0 1px 3px light-dark(rgba(43, 39, 71, 0.18), rgba(0, 0, 0, 0.35));
+  --knob-shadow:
+    0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.5)),
+    0 1px 1.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.45)),
+    0 4px 10px light-dark(rgba(43, 39, 71, 0.16), rgba(0, 0, 0, 0.4));
+  --knob-shadow-pressed:
+    0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.3), rgba(0, 0, 0, 0.5)),
+    0 1px 3px light-dark(rgba(43, 39, 71, 0.18), rgba(0, 0, 0, 0.35));
   /* 文字按钮：和滑条把手、提示条同一套材质，半像素细线、近处一层投影、上沿一道亮边；按下时投影收起 */
   --btn-face: linear-gradient(light-dark(#fffefb, #302d47), light-dark(#faf6ec, #28253b));
   --btn-face-hover: linear-gradient(light-dark(#ffffff, #36334f), light-dark(#fcf9f2, #2d2a42));
   --btn-face-press: light-dark(#f3eee3, #242134);
-  --btn-lift: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.24), rgba(0, 0, 0, 0.65)), 0 1px 1.5px light-dark(rgba(43, 39, 71, 0.12), rgba(0, 0, 0, 0.4)), 0 2px 6px -1px light-dark(rgba(43, 39, 71, 0.08), rgba(0, 0, 0, 0.35)), inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.08));
-  --btn-lift-hover: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.7)), 0 1px 2px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.45)), 0 4px 10px -2px light-dark(rgba(43, 39, 71, 0.12), rgba(0, 0, 0, 0.45)), inset 0 1px 0 light-dark(#ffffff, rgba(244, 236, 220, 0.11));
+  --btn-lift:
+    0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.24), rgba(0, 0, 0, 0.65)),
+    0 1px 1.5px light-dark(rgba(43, 39, 71, 0.12), rgba(0, 0, 0, 0.4)),
+    0 2px 6px -1px light-dark(rgba(43, 39, 71, 0.08), rgba(0, 0, 0, 0.35)),
+    inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.08));
+  --btn-lift-hover:
+    0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.7)),
+    0 1px 2px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.45)),
+    0 4px 10px -2px light-dark(rgba(43, 39, 71, 0.12), rgba(0, 0, 0, 0.45)),
+    inset 0 1px 0 light-dark(#ffffff, rgba(244, 236, 220, 0.11));
   /* 内凹一层的模糊半径日夜不同（1.5px 对 2px），同 --range-inset 拆成两层。 */
-  --btn-lift-press: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.7)), inset 0 1px 1.5px light-dark(rgba(43, 39, 71, 0.1), transparent), inset 0 1px 2px light-dark(transparent, rgba(0, 0, 0, 0.4));
+  --btn-lift-press:
+    0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.7)),
+    inset 0 1px 1.5px light-dark(rgba(43, 39, 71, 0.1), transparent),
+    inset 0 1px 2px light-dark(transparent, rgba(0, 0, 0, 0.4));
   --btn-lift-disabled: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.24), rgba(0, 0, 0, 0.65));
   --btn-primary-face: linear-gradient(light-dark(#3b3661, #fdf9f1), light-dark(#2b2747, #ece3d1));
   --btn-primary-face-hover: linear-gradient(light-dark(#433e6b, #fffcf6), light-dark(#312c50, #f2eadb));
   --btn-primary-face-press: light-dark(#2a2645, #e6dcc8);
   /* 夜间多一道下沿暗线，日间这一层透明 */
-  --btn-primary-lift: 0 0 0 0.5px light-dark(#1f1c36, rgba(0, 0, 0, 0.6)), 0 1px 2px light-dark(rgba(43, 39, 71, 0.3), rgba(0, 0, 0, 0.45)), 0 3px 8px -2px light-dark(rgba(43, 39, 71, 0.35), rgba(0, 0, 0, 0.45)), inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.14), #ffffff), inset 0 -1px 0 light-dark(transparent, rgba(110, 90, 60, 0.18));
-  --btn-primary-lift-press: 0 0 0 0.5px light-dark(#1f1c36, rgba(0, 0, 0, 0.6)), inset 0 1px 2px light-dark(rgba(0, 0, 0, 0.3), rgba(110, 90, 60, 0.35));
+  --btn-primary-lift:
+    0 0 0 0.5px light-dark(#1f1c36, rgba(0, 0, 0, 0.6)), 0 1px 2px light-dark(
+      rgba(43, 39, 71, 0.3),
+      rgba(0, 0, 0, 0.45)
+    ), 0 3px 8px -2px light-dark(rgba(43, 39, 71, 0.35), rgba(0, 0, 0, 0.45)), inset 0 1px 0 light-dark(
+      rgba(255, 255, 255, 0.14),
+      #ffffff
+    ), inset 0 -1px 0 light-dark(transparent, rgba(110, 90, 60, 0.18));
+  --btn-primary-lift-press:
+    0 0 0 0.5px light-dark(#1f1c36, rgba(0, 0, 0, 0.6)),
+    inset 0 1px 2px light-dark(rgba(0, 0, 0, 0.3), rgba(110, 90, 60, 0.35));
   --btn-danger-face: linear-gradient(light-dark(#c24646, #d25454), light-dark(#ab3535, #bb4141));
   --btn-danger-face-hover: linear-gradient(light-dark(#c94d4d, #d85b5b), light-dark(#b23a3a, #c24747));
   --btn-danger-face-press: light-dark(#a33232, #b33c3c);
-  --btn-danger-lift: 0 0 0 0.5px light-dark(#8a2828, rgba(0, 0, 0, 0.6)), 0 1px 2px light-dark(rgba(120, 30, 30, 0.3), rgba(0, 0, 0, 0.45)), 0 3px 8px -2px light-dark(rgba(120, 30, 30, 0.3), rgba(0, 0, 0, 0.45)), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  --btn-danger-lift-press: 0 0 0 0.5px light-dark(#8a2828, rgba(0, 0, 0, 0.6)), inset 0 1px 2px light-dark(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.35));
+  --btn-danger-lift:
+    0 0 0 0.5px light-dark(#8a2828, rgba(0, 0, 0, 0.6)),
+    0 1px 2px light-dark(rgba(120, 30, 30, 0.3), rgba(0, 0, 0, 0.45)),
+    0 3px 8px -2px light-dark(rgba(120, 30, 30, 0.3), rgba(0, 0, 0, 0.45)), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --btn-danger-lift-press:
+    0 0 0 0.5px light-dark(#8a2828, rgba(0, 0, 0, 0.6)),
+    inset 0 1px 2px light-dark(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.35));
   /* the wordmark's gold star, the same in both themes */
   --star: #e3b34f;
   /* 安全模式遮蔽的墨色 */
@@ -95,66 +140,152 @@
   /* shadows and the dialog overlay take ink purple, not black; only things that float get one */
   --shadow-raise: 0 1px 2px light-dark(rgba(43, 39, 71, 0.08), rgba(0, 0, 0, 0.4));
   /* 夜间没有近处那一层，那一层夜间透明 */
-  --shadow-pop: 0 0 0 1px light-dark(rgba(43, 39, 71, 0.06), rgba(244, 236, 220, 0.08)), 0 2px 4px light-dark(rgba(43, 39, 71, 0.06), transparent), 0 12px 32px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.45));
+  --shadow-pop:
+    0 0 0 1px light-dark(rgba(43, 39, 71, 0.06), rgba(244, 236, 220, 0.08)),
+    0 2px 4px light-dark(rgba(43, 39, 71, 0.06), transparent),
+    0 12px 32px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.45));
   --shadow-dialog: 0 24px 64px light-dark(rgba(30, 28, 44, 0.3), rgba(0, 0, 0, 0.55));
   /* a frosted toast: a hairline, a near drop, a far drop pulled in, and a lit top edge */
-  --shadow-toast: inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.8), rgba(244, 236, 220, 0.08)), 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.1), rgba(244, 236, 220, 0.1)), 0 1px 2px light-dark(rgba(43, 39, 71, 0.07), rgba(0, 0, 0, 0.45)), 0 4px 8px -2px light-dark(rgba(43, 39, 71, 0.06), rgba(0, 0, 0, 0.3)), 0 16px 32px -8px light-dark(rgba(43, 39, 71, 0.2), rgba(0, 0, 0, 0.6));
+  --shadow-toast:
+    inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.8), rgba(244, 236, 220, 0.08)), 0 0 0 0.5px light-dark(
+      rgba(43, 39, 71, 0.1),
+      rgba(244, 236, 220, 0.1)
+    ), 0 1px 2px light-dark(rgba(43, 39, 71, 0.07), rgba(0, 0, 0, 0.45)), 0 4px 8px -2px light-dark(
+      rgba(43, 39, 71, 0.06),
+      rgba(0, 0, 0, 0.3)
+    ), 0 16px 32px -8px light-dark(rgba(43, 39, 71, 0.2), rgba(0, 0, 0, 0.6));
   /* a sunken well for an icon (toast) */
-  --well-inset: inset 0 1px 1.5px light-dark(rgba(43, 39, 71, 0.12), rgba(0, 0, 0, 0.5)), inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.08), rgba(244, 236, 220, 0.06));
+  --well-inset:
+    inset 0 1px 1.5px light-dark(rgba(43, 39, 71, 0.12), rgba(0, 0, 0, 0.5)),
+    inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.08), rgba(244, 236, 220, 0.06));
   --shadow-pin: 0 2px 6px rgba(0, 0, 0, 0.25), 0 12px 32px rgba(0, 0, 0, 0.22);
-  --overlay: rgba(30, 28, 44, 0.38);      /* behind dialogs, outside a crop */
+  --overlay: rgba(30, 28, 44, 0.38); /* behind dialogs, outside a crop */
   /* over images and the frozen screen, the same in both themes */
-  --scrim-label: rgba(0, 0, 0, 0.6);      /* labels on top of an image */
-  --scrim-capture: rgba(0, 0, 0, 0.25);   /* T17 冻结像素核对依据，不要改 */
+  --scrim-label: rgba(0, 0, 0, 0.6); /* labels on top of an image */
+  --scrim-capture: rgba(0, 0, 0, 0.25); /* T17 冻结像素核对依据，不要改 */
   --scrim-capture-out: rgba(0, 0, 0, 0.35);
-  --guide: rgba(255, 255, 255, 0.4);      /* crop thirds */
+  --guide: rgba(255, 255, 255, 0.4); /* crop thirds */
   --pin-ring: rgba(255, 255, 255, 0.6);
-  --pin-shadow-near: rgba(0, 0, 0, 0.3); --pin-shadow-far: rgba(0, 0, 0, 0.28);
+  --pin-shadow-near: rgba(0, 0, 0, 0.3);
+  --pin-shadow-far: rgba(0, 0, 0, 0.28);
   /* viewer grounds: neutral greys and checks; the mid ground stays at 50 % gray for judging values */
-  --ground-dark: #202020; --ground-mid: #808080; --ground-light: #d9d9d9; --checker-a: #d9d9d9; --checker-b: #8d8d8d;
+  --ground-dark: #202020;
+  --ground-mid: #808080;
+  --ground-light: #d9d9d9;
+  --checker-a: #d9d9d9;
+  --checker-b: #8d8d8d;
 
   /* radii on a 4 px grid, nested by r = R - p (outer radius minus the padding between); never below 4 */
-  --r-xs: 4px; --r-s: 8px; --r: 12px; --r-l: 16px; --r-xl: 20px; --r-2xl: 32px; --r-pill: 999px;
+  --r-xs: 4px;
+  --r-s: 8px;
+  --r: 12px;
+  --r-l: 16px;
+  --r-xl: 20px;
+  --r-2xl: 32px;
+  --r-pill: 999px;
   --spring: cubic-bezier(0.2, 0.9, 0.25, 1.05);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --t-fast: 120ms; --t: 200ms; --t-slow: 260ms; --t-pop: 220ms;
+  --t-fast: 120ms;
+  --t: 200ms;
+  --t-slow: 260ms;
+  --t-pop: 220ms;
   /* 图标轨图标的悬停动作（信抽出来、图扇开）：位移比控件的状态变化大，要多一点时间看清；移出仍用 --t */
   --t-icon: 420ms;
   color-scheme: light dark;
 }
 /* Dark: ink purple ground, cream text, gold accent (日间樱、夜间金). Each colour token above holds both values in light-dark(), which
    resolves by the color-scheme of the element that uses it; so these rules only switch the scheme. `.k-dock.is-dark` is dark in either theme. */
-:root[data-theme="light"] { color-scheme: light; }
-:root[data-theme="dark"], .k-dock.is-dark { color-scheme: dark; }
-@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t: 0ms; --t-slow: 0ms; --t-pop: 0ms; --t-icon: 0ms; } }
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"],
+.k-dock.is-dark {
+  color-scheme: dark;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 0ms;
+    --t: 0ms;
+    --t-slow: 0ms;
+    --t-pop: 0ms;
+    --t-icon: 0ms;
+  }
+}
 /* The one global switch for reduced motion, for rules that hardcode a duration: animations jump to their end state in one frame and
    transitions apply at once. `.subs-spin` is the exception: a spinner is the only sign of progress, so it keeps its own slower rotation. */
 @media (prefers-reduced-motion: reduce) {
-  *:where(:not(.subs-spin)), *:where(:not(.subs-spin))::before, *:where(:not(.subs-spin))::after {
-    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0ms !important;
-    transition-duration: 0ms !important; transition-delay: 0ms !important;
+  *:where(:not(.subs-spin)),
+  *:where(:not(.subs-spin))::before,
+  *:where(:not(.subs-spin))::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0ms !important;
+    transition-delay: 0ms !important;
   }
 }
 
 /* seal colours (brand invariant): the prototype's rules; deep sakura by day (3.42:1 on the rail), gold by night */
-:root { --seal-acc: #c85672; --seal-ink: var(--ink); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seal-acc: #e3b34f; } }
-:root[data-theme="dark"] { --seal-acc: #e3b34f; }
+:root {
+  --seal-acc: #c85672;
+  --seal-ink: var(--ink);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --seal-acc: #e3b34f;
+  }
+}
+:root[data-theme="dark"] {
+  --seal-acc: #e3b34f;
+}
 
 /* menus (cascade menus, menu.css `[data-k-level]`): the cascade menu's shape on the V3 palette; each token follows its theme */
 :root {
-  --menu-surface: var(--surface); --menu-border: var(--line);
-  --menu-ink: var(--ink); --menu-hover: var(--hover); --menu-quiet: var(--ink-2); --menu-icon: var(--ink-3); --menu-chevron: var(--ink-3);
+  --menu-surface: var(--surface);
+  --menu-border: var(--line);
+  --menu-ink: var(--ink);
+  --menu-hover: var(--hover);
+  --menu-quiet: var(--ink-2);
+  --menu-icon: var(--ink-3);
+  --menu-chevron: var(--ink-3);
   --menu-shadow: var(--shadow-pop);
 }
 
 /* Continuous corners as progressive enhancement: Chrome and Edge 139+ draw the superellipse, other browsers keep the plain border-radius.
    Pills and circles stay fully round. */
 @supports (corner-shape: superellipse(1.25)) {
-  :where(*) { corner-shape: superellipse(1.25); }
-  .k-density-island, .k-density-knob, .k-tagging-dot, .k-tagging-activity, .k-range, .wall-canvas > .card-sources, .wall-canvas > .card-count, .wall-canvas > .card-check,
-  .startup-bar, .startup-bar *, .capture-tip, .badge, .rail-badge, .fx-burst, .search-chip, .k-radio-card input, .k-steps i, .k-task-progress,
-  .k-chip, .k-chip-x, .k-switch, .k-switch-thumb, .k-dock-badge, .k-pill { corner-shape: round; }
+  :where(*) {
+    corner-shape: superellipse(1.25);
+  }
+  .k-density-island,
+  .k-density-knob,
+  .k-tagging-dot,
+  .k-tagging-activity,
+  .k-range,
+  .wall-canvas > .card-sources,
+  .wall-canvas > .card-count,
+  .wall-canvas > .card-check,
+  .startup-bar,
+  .startup-bar *,
+  .capture-tip,
+  .badge,
+  .rail-badge,
+  .fx-burst,
+  .search-chip,
+  .k-radio-card input,
+  .k-steps i,
+  .k-task-progress,
+  .k-chip,
+  .k-chip-x,
+  .k-switch,
+  .k-switch-thumb,
+  .k-dock-badge,
+  .k-pill {
+    corner-shape: round;
+  }
   /* search chips in the top bar and its overflow popover are rounded boxes, not pills */
-  .topbar > .search .search-chip, .search-more-pop .search-chip { corner-shape: superellipse(1.25); }
+  .topbar > .search .search-chip,
+  .search-more-pop .search-chip {
+    corner-shape: superellipse(1.25);
+  }
 }

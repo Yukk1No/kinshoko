@@ -37,16 +37,29 @@ function setup() {
   const core = fakeCore();
   const accepted: View[] = [];
   const submitter = createSettingsSubmitter<View>({ onAccepted: (view) => accepted.push(view) });
-  const autostart = (on: boolean): SettingsCommand<View> =>
-    ({ key: "autostart", merge: "latest", run: core.send(`autostart=${on}`, (v) => ({ ...v, autostart: on })) });
+  const autostart = (on: boolean): SettingsCommand<View> => ({
+    key: "autostart",
+    merge: "latest",
+    run: core.send(`autostart=${on}`, (v) => ({ ...v, autostart: on })),
+  });
   const display = (style: string, outline: boolean): SettingsCommand<View> => ({
-    key: "display", merge: "latest", dropPendingOnFailure: true,
+    key: "display",
+    merge: "latest",
+    dropPendingOnFailure: true,
     run: core.send(`display=${style}/${outline}`, (v) => ({ ...v, style, outline })),
   });
-  const rebind = (key: string): SettingsCommand<View> =>
-    ({ key: "shortcut", merge: "keep", run: core.send(`rebind=${key}`, (v) => ({ ...v, keys: [...v.keys, key] })) });
-  const restore = (view: View): SettingsCommand<View> =>
-    ({ key: "restore", merge: "keep", replaces: true, quiet: true, run: core.send("restore", () => view) });
+  const rebind = (key: string): SettingsCommand<View> => ({
+    key: "shortcut",
+    merge: "keep",
+    run: core.send(`rebind=${key}`, (v) => ({ ...v, keys: [...v.keys, key] })),
+  });
+  const restore = (view: View): SettingsCommand<View> => ({
+    key: "restore",
+    merge: "keep",
+    replaces: true,
+    quiet: true,
+    run: core.send("restore", () => view),
+  });
   return { core, accepted, submitter, autostart, display, rebind, restore };
 }
 
@@ -61,7 +74,10 @@ describe("设置提交模型", () => {
     await core.release();
     expect(await first).toEqual({ ok: true });
     expect(await second).toEqual({ ok: true });
-    expect(accepted.map((v) => [v.autostart, v.style])).toEqual([[false, "bands"], [false, "grouped"]]);
+    expect(accepted.map((v) => [v.autostart, v.style])).toEqual([
+      [false, "bands"],
+      [false, "grouped"],
+    ]);
     expect(submitter.state().view).toEqual(core.saved());
   });
 

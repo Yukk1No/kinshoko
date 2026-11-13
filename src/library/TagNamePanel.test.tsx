@@ -6,7 +6,21 @@ import { emit } from "@tauri-apps/api/event";
 import { TagNamePanel } from "./TagNamePanel";
 import { chooseValue } from "../test/select";
 
-const tag = () => ({ id: "shared", namespace: "general", names: [{ lang: "zh-CN", name: "分缝发型" }, { lang: "en", name: "Parted hair" }], defaultNames: [{ lang: "zh-CN", name: "分缝发型" }, { lang: "en", name: "Parted hair" }], namePreferences: [] as { lang: string; name: string }[], aliases: [{ name: "分发", lang: "zh-CN" }], external: [{ vocabulary: "danbooru", name: "parted_hair" }] });
+const tag = () => ({
+  id: "shared",
+  namespace: "general",
+  names: [
+    { lang: "zh-CN", name: "分缝发型" },
+    { lang: "en", name: "Parted hair" },
+  ],
+  defaultNames: [
+    { lang: "zh-CN", name: "分缝发型" },
+    { lang: "en", name: "Parted hair" },
+  ],
+  namePreferences: [] as { lang: string; name: string }[],
+  aliases: [{ name: "分发", lang: "zh-CN" }],
+  external: [{ vocabulary: "danbooru", name: "parted_hair" }],
+});
 const workspace = () => ({ libraries: [], catalog: { revision: 1, tags: [tag()], mappings: [] } });
 
 it("loads the catalog and saves an equal-default preference explicitly, keeps aliases separate and resets the preference", async () => {
@@ -17,7 +31,14 @@ it("loads the catalog and saves an equal-default preference explicitly, keeps al
     edit_tag_name: (args) => {
       edits.push(args);
       const edit = (args as { edit: { kind: string; name?: { lang: string; name: string } } }).edit;
-      data = { ...data, catalog: { ...data.catalog, revision: data.catalog.revision + 1, tags: [{ ...data.catalog.tags[0], namePreferences: edit.kind === "prefer" && edit.name ? [edit.name] : [] }] } };
+      data = {
+        ...data,
+        catalog: {
+          ...data.catalog,
+          revision: data.catalog.revision + 1,
+          tags: [{ ...data.catalog.tags[0], namePreferences: edit.kind === "prefer" && edit.name ? [edit.name] : [] }],
+        },
+      };
       return data;
     },
   });
@@ -28,7 +49,10 @@ it("loads the catalog and saves an equal-default preference explicitly, keeps al
   expect(within(row).getByRole("listitem").textContent).toBe("分发");
   fireEvent.click(within(row).getByRole("button", { name: "保存显示名" }));
   await within(row).findByText("已重命名");
-  expect(edits[0]).toEqual({ catalogId: "shared", edit: { kind: "prefer", name: { lang: "zh-CN", name: "分缝发型" } } });
+  expect(edits[0]).toEqual({
+    catalogId: "shared",
+    edit: { kind: "prefer", name: { lang: "zh-CN", name: "分缝发型" } },
+  });
   fireEvent.click(within(row).getByRole("button", { name: "恢复默认" }));
   await within(row).findByText("默认");
   expect(edits[1]).toEqual({ catalogId: "shared", edit: { kind: "reset", lang: "zh-CN" } });
@@ -40,19 +64,30 @@ it("loads the catalog and saves an equal-default preference explicitly, keeps al
 it("discards a late name edit result when safe mode changes", async () => {
   const data = workspace();
   let finish: (value: ReturnType<typeof workspace>) => void = () => {};
-  const pending = new Promise<ReturnType<typeof workspace>>((resolve) => { finish = resolve; });
+  const pending = new Promise<ReturnType<typeof workspace>>((resolve) => {
+    finish = resolve;
+  });
   fakeBackend({ edit_tag_name: () => pending, inspect_tag_catalog: () => data });
   render(<TagNamePanel />);
   fireEvent.click(await screen.findByRole("button", { name: "重命名“分缝发型”" }));
   fireEvent.click(screen.getByRole("button", { name: "保存显示名" }));
-  await act(async () => { await emit("safe-mode-setting", true); finish(data); await pending; });
+  await act(async () => {
+    await emit("safe-mode-setting", true);
+    finish(data);
+    await pending;
+  });
   expect(screen.queryByRole("button", { name: "保存显示名" })).toBeNull();
   expect(screen.queryByRole("listitem", { name: /分缝发型/ })).toBeNull();
 });
 
 it("edits one selected tag at a time and finds it by a separate alias in a large catalog", async () => {
   const data = workspace();
-  data.catalog.tags = Array.from({ length: 150 }, (_, index) => ({ ...tag(), id: `shared-${index}`, names: [{ lang: "zh-CN", name: `发型 ${index}` }], aliases: [{ lang: "zh-CN", name: index === 149 ? "目标别名" : `叫法 ${index}` }] }));
+  data.catalog.tags = Array.from({ length: 150 }, (_, index) => ({
+    ...tag(),
+    id: `shared-${index}`,
+    names: [{ lang: "zh-CN", name: `发型 ${index}` }],
+    aliases: [{ lang: "zh-CN", name: index === 149 ? "目标别名" : `叫法 ${index}` }],
+  }));
   fakeBackend({ inspect_tag_catalog: () => data });
   render(<TagNamePanel />);
   const list = await screen.findByRole("list", { name: "标签" });
@@ -68,16 +103,41 @@ it("edits one selected tag at a time and finds it by a separate alias in a large
 
 it("can select an untranslated tag and find it by its external name", async () => {
   const data = workspace();
-  data.catalog.tags = [{ ...tag(), names: [], defaultNames: [], aliases: [], external: [{ vocabulary: "danbooru", name: "untranslated_hair" }] }];
+  data.catalog.tags = [
+    {
+      ...tag(),
+      names: [],
+      defaultNames: [],
+      aliases: [],
+      external: [{ vocabulary: "danbooru", name: "untranslated_hair" }],
+    },
+  ];
   fakeBackend({ inspect_tag_catalog: () => data });
   render(<TagNamePanel />);
-  fireEvent.change(screen.getByRole("textbox", { name: "查找要重命名的标签" }), { target: { value: "untranslated_hair" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "查找要重命名的标签" }), {
+    target: { value: "untranslated_hair" },
+  });
   fireEvent.click(await screen.findByRole("button", { name: "重命名“untranslated hair”" }));
   expect(screen.getByRole("textbox", { name: /的显示名/ }).getAttribute("value")).toBe("untranslated hair");
 });
 
 it("marks a tag whose old library name is still pending", async () => {
-  const data = { ...workspace(), catalog: { ...workspace().catalog, mappings: [{ libraryId: "a", localTagId: "x", catalogId: "shared", legacy: { id: "x", namespace: "general", names: [], aliases: [], external: [] }, nameProvenance: "pending", basis: "external" }] } };
+  const data = {
+    ...workspace(),
+    catalog: {
+      ...workspace().catalog,
+      mappings: [
+        {
+          libraryId: "a",
+          localTagId: "x",
+          catalogId: "shared",
+          legacy: { id: "x", namespace: "general", names: [], aliases: [], external: [] },
+          nameProvenance: "pending",
+          basis: "external",
+        },
+      ],
+    },
+  };
   fakeBackend({ inspect_tag_catalog: () => data });
   render(<TagNamePanel />);
   expect(await screen.findByRole("listitem", { name: "分缝发型，待确认" })).toBeTruthy();
@@ -85,7 +145,10 @@ it("marks a tag whose old library name is still pending", async () => {
 
 it("uses one set of words: renamed/default status and an only-renamed filter", async () => {
   const data = workspace();
-  data.catalog.tags = [{ ...tag(), namePreferences: [{ lang: "zh-CN", name: "分缝发型" }] }, { ...tag(), id: "other", names: [{ lang: "zh-CN", name: "长发" }] }];
+  data.catalog.tags = [
+    { ...tag(), namePreferences: [{ lang: "zh-CN", name: "分缝发型" }] },
+    { ...tag(), id: "other", names: [{ lang: "zh-CN", name: "长发" }] },
+  ];
   fakeBackend({ inspect_tag_catalog: () => data });
   render(<TagNamePanel />);
   expect(await screen.findByRole("listitem", { name: "分缝发型，已重命名" })).toBeTruthy();
@@ -95,7 +158,12 @@ it("uses one set of words: renamed/default status and an only-renamed filter", a
 
 it("opens with the requested tag first and expanded, even past the listing limit (#182)", async () => {
   const data = workspace();
-  data.catalog.tags = Array.from({ length: 120 }, (_, index) => ({ ...tag(), id: `shared-${index}`, names: [{ lang: "zh-CN", name: `发型 ${index}` }], aliases: [] }));
+  data.catalog.tags = Array.from({ length: 120 }, (_, index) => ({
+    ...tag(),
+    id: `shared-${index}`,
+    names: [{ lang: "zh-CN", name: `发型 ${index}` }],
+    aliases: [],
+  }));
   fakeBackend({ inspect_tag_catalog: () => data });
   render(<TagNamePanel focus="shared-110" />);
   const row = await screen.findByRole("listitem", { name: "发型 110，默认" });
@@ -105,10 +173,36 @@ it("opens with the requested tag first and expanded, even past the listing limit
 });
 
 it("lists tags without an external mapping, corrects a source name's language and maps one like the import wizard (#217)", async () => {
-  const eagle = { ...tag(), id: "eagle", names: [{ lang: "en", name: "hatsune miku" }], defaultNames: [], aliases: [], external: [], sourceNames: [{ lang: "en", name: "hatsune miku" }] };
-  const mapping = { libraryId: "L1", localTagId: "local-eagle", catalogId: "eagle", nameProvenance: "catalog", basis: "independent", sourceNames: [{ lang: "en", name: "hatsune miku" }],
-    legacy: { id: "local-eagle", namespace: "general", names: [], aliases: [], external: [], count: 1, sourceNames: [] } };
-  const data = { libraries: [{ library: { id: "L1", name: "参考" }, unavailable: null }], catalog: { revision: 1, tags: [{ ...tag(), sourceNames: [] }, eagle], mappings: [mapping] } };
+  const eagle = {
+    ...tag(),
+    id: "eagle",
+    names: [{ lang: "en", name: "hatsune miku" }],
+    defaultNames: [],
+    aliases: [],
+    external: [],
+    sourceNames: [{ lang: "en", name: "hatsune miku" }],
+  };
+  const mapping = {
+    libraryId: "L1",
+    localTagId: "local-eagle",
+    catalogId: "eagle",
+    nameProvenance: "catalog",
+    basis: "independent",
+    sourceNames: [{ lang: "en", name: "hatsune miku" }],
+    legacy: {
+      id: "local-eagle",
+      namespace: "general",
+      names: [],
+      aliases: [],
+      external: [],
+      count: 1,
+      sourceNames: [],
+    },
+  };
+  const data = {
+    libraries: [{ library: { id: "L1", name: "参考" }, unavailable: null }],
+    catalog: { revision: 1, tags: [{ ...tag(), sourceNames: [] }, eagle], mappings: [mapping] },
+  };
   const fake = fakeBackend({
     inspect_tag_catalog: () => data,
     set_source_name_lang: () => data,
@@ -123,9 +217,21 @@ it("lists tags without an external mapping, corrects a source name's language an
   fireEvent.click(within(row).getByRole("button", { name: "重命名“hatsune miku”" }));
 
   await chooseValue(within(row).getByRole("combobox", { name: "“hatsune miku”的语言" }), "ja");
-  await waitFor(() => expect(fake.calls()).toContainEqual({ command: "set_source_name_lang", args: { libraryId: "L1", tagId: "local-eagle", name: "hatsune miku", lang: "ja" } }));
+  await waitFor(() =>
+    expect(fake.calls()).toContainEqual({
+      command: "set_source_name_lang",
+      args: { libraryId: "L1", tagId: "local-eagle", name: "hatsune miku", lang: "ja" },
+    }),
+  );
 
-  fireEvent.change(within(row).getByRole("combobox", { name: "“hatsune miku”的外部对应" }), { target: { value: "hatsune_miku" } });
+  fireEvent.change(within(row).getByRole("combobox", { name: "“hatsune miku”的外部对应" }), {
+    target: { value: "hatsune_miku" },
+  });
   fireEvent.click(within(row).getByRole("button", { name: "补上外部对应" }));
-  await waitFor(() => expect(fake.calls()).toContainEqual({ command: "map_tag_external", args: { libraryId: "L1", tagId: "local-eagle", external: "hatsune_miku" } }));
+  await waitFor(() =>
+    expect(fake.calls()).toContainEqual({
+      command: "map_tag_external",
+      args: { libraryId: "L1", tagId: "local-eagle", external: "hatsune_miku" },
+    }),
+  );
 });

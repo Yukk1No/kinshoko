@@ -12,8 +12,12 @@ import { DEFAULT_TAG_DISPLAY } from "../tags/tagConfidence";
 import { TagDisplayContext } from "../tags/TagDisplayContext";
 import { TagPanel } from "./TagPanel";
 
-const label = (id: string, name: string, untranslated = false, namespace: TagLabel["namespace"] = "general"): TagLabel =>
-  ({ id, namespace, name, untranslated, hasExternal: true });
+const label = (
+  id: string,
+  name: string,
+  untranslated = false,
+  namespace: TagLabel["namespace"] = "general",
+): TagLabel => ({ id, namespace, name, untranslated, hasExternal: true });
 const model = (score: number | null): TagOrigin => ({ kind: "source", source: "model:pixai", score });
 const eagle: TagOrigin = { kind: "source", source: "eagle:lib1", score: null };
 
@@ -33,7 +37,11 @@ const tags: ImageTags = {
   rejected: [label("t-glasses", "眼镜")],
 };
 
-function renderPanel(display: TagDisplay = DEFAULT_TAG_DISPLAY, image: ImageTags = tags, rating?: { label: string; control: ReactNode }) {
+function renderPanel(
+  display: TagDisplay = DEFAULT_TAG_DISPLAY,
+  image: ImageTags = tags,
+  rating?: { label: string; control: ReactNode },
+) {
   fakeBackend({ catalog_image_tags: { image, identities: [] } });
   return render(
     <TagDisplayContext value={display}>
@@ -42,14 +50,18 @@ function renderPanel(display: TagDisplay = DEFAULT_TAG_DISPLAY, image: ImageTags
   );
 }
 
-const chip = (name: string) => within(screen.getByRole("list", { name: "有效标签" })).getByText(name).closest("li")!;
+const chip = (name: string) =>
+  within(screen.getByRole("list", { name: "有效标签" }))
+    .getByText(name)
+    .closest("li")!;
 
 describe("B：可信度三档底色（默认）", () => {
   it("标签上只有名称，没有“模型 0.xx”“人工添加”“Eagle”等文字", async () => {
     renderPanel();
     const list = await screen.findByRole("list", { name: "有效标签" });
     await waitFor(() => expect(list.textContent).toContain("微笑"));
-    for (const text of ["模型", "人工添加", "Eagle", "参考组包", "0.87", "文A"]) expect(list.textContent).not.toContain(text);
+    for (const text of ["模型", "人工添加", "Eagle", "参考组包", "0.87", "文A"])
+      expect(list.textContent).not.toContain(text);
   });
 
   it("模型标签按最高分分档；人工添加的和导入的不分档", async () => {
@@ -98,8 +110,11 @@ describe("B：可信度三档底色（默认）", () => {
     const list = await screen.findByRole("list", { name: "有效标签" });
     await screen.findByText("草图");
     expect(chip("草图").dataset.band).toBe("mid");
-    expect(within(list).getAllByRole("listitem").map((li) => li.querySelector(".tag-name")!.textContent))
-      .toEqual(["构图练习", "长发", "姿势参考", "单人", "微笑", "ahoge", "室内", "窗户", "草图"]);
+    expect(
+      within(list)
+        .getAllByRole("listitem")
+        .map((li) => li.querySelector(".tag-name")!.textContent),
+    ).toEqual(["构图练习", "长发", "姿势参考", "单人", "微笑", "ahoge", "室内", "窗户", "草图"]);
   });
 
   it("浮层里只有打标模型那行前面有星（#482）", async () => {
@@ -149,7 +164,10 @@ describe("C：按出处分组＋可信度刻度", () => {
     const titles = [...document.querySelectorAll(".k-tag-group > .k-tags-sub")];
     expect(titles.map((p) => p.textContent)).toEqual(["你添加的", "导入", "自动标签"]);
     expect(titles.map((p) => p.querySelector("svg") !== null)).toEqual([false, false, true]);
-    const names = (list: HTMLElement) => within(list).getAllByRole("listitem").map((li) => li.querySelector(".tag-name")!.textContent);
+    const names = (list: HTMLElement) =>
+      within(list)
+        .getAllByRole("listitem")
+        .map((li) => li.querySelector(".tag-name")!.textContent);
     expect(names(manual)).toEqual(["构图练习", "长发"]);
     expect(names(models)).toEqual(["单人", "微笑", "ahoge", "室内", "窗户", "草图"]);
     expect(names(imported)).toEqual(["姿势参考"]);
@@ -172,17 +190,28 @@ describe("一级标签：作者、角色、作品在属性表里各占一行（#
     ],
     rejected: [label("t-rin", "镜音铃", false, "character")],
   };
-  const rows = () => [...document.querySelectorAll(".insp-props > .insp-prop")].map((row) =>
-    [row.querySelector("dt")!.textContent, ...[...row.querySelectorAll(".tag-name")].map((name) => name.textContent)]);
+  const rows = () =>
+    [...document.querySelectorAll(".insp-props > .insp-prop")].map((row) => [
+      row.querySelector("dt")!.textContent,
+      ...[...row.querySelectorAll(".tag-name")].map((name) => name.textContent),
+    ]);
 
   it("按“作者 / 角色 / 作品”排，行首写类别，标签上不写前缀；一般标签留在“标签”区", async () => {
     renderPanel(DEFAULT_TAG_DISPLAY, primary);
     await screen.findByText("初音未来");
     // 行内也是人写的在前、模型标签在后。
-    expect(rows()).toEqual([["作者", "米山舞"], ["角色", "初音未来", "巡音流歌"], ["作品", "VOCALOID"]]);
+    expect(rows()).toEqual([
+      ["作者", "米山舞"],
+      ["角色", "初音未来", "巡音流歌"],
+      ["作品", "VOCALOID"],
+    ]);
     expect(document.querySelector(".insp-props")!.textContent).not.toContain("：");
     const general = screen.getByRole("list", { name: "有效标签" });
-    expect(within(general).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["长发"]);
+    expect(
+      within(general)
+        .getAllByRole("listitem")
+        .map((li) => li.textContent),
+    ).toEqual(["长发"]);
   });
 
   it("三档外观和浮层照旧，浮层的名称带类别", async () => {
@@ -195,18 +224,31 @@ describe("一级标签：作者、角色、作品在属性表里各占一行（#
   });
 
   it("没有标签的类别不占行；已排除的一级标签写全名，列在“已排除”里", async () => {
-    renderPanel(DEFAULT_TAG_DISPLAY, { ...primary, tags: primary.tags.filter((entry) => entry.tag.namespace !== "character") });
+    renderPanel(DEFAULT_TAG_DISPLAY, {
+      ...primary,
+      tags: primary.tags.filter((entry) => entry.tag.namespace !== "character"),
+    });
     await screen.findByText("米山舞");
-    expect(rows()).toEqual([["作者", "米山舞"], ["作品", "VOCALOID"]]);
+    expect(rows()).toEqual([
+      ["作者", "米山舞"],
+      ["作品", "VOCALOID"],
+    ]);
     const excluded = screen.getByRole("list", { name: "已排除" });
     expect(excluded.textContent).toBe("角色：镜音铃");
     expect(within(excluded).getByRole("button", { name: "把“角色：镜音铃”改回自动" })).toBeTruthy();
   });
 
   it("分级是最后一行；只有一级标签时“标签”区不写“还没有标签”", async () => {
-    renderPanel(DEFAULT_TAG_DISPLAY, { ...primary, tags: primary.tags.filter((entry) => entry.tag.namespace === "artist") }, { label: "分级", control: <span>控件</span> });
+    renderPanel(
+      DEFAULT_TAG_DISPLAY,
+      { ...primary, tags: primary.tags.filter((entry) => entry.tag.namespace === "artist") },
+      { label: "分级", control: <span>控件</span> },
+    );
     await screen.findByText("米山舞");
-    expect([...document.querySelectorAll(".insp-props > .insp-prop > dt")].map((dt) => dt.textContent)).toEqual(["作者", "分级"]);
+    expect([...document.querySelectorAll(".insp-props > .insp-prop > dt")].map((dt) => dt.textContent)).toEqual([
+      "作者",
+      "分级",
+    ]);
     expect(screen.queryByText("还没有标签")).toBeNull();
     expect(screen.queryByRole("list", { name: "有效标签" })).toBeNull();
   });

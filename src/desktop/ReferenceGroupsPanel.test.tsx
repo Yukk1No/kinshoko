@@ -7,12 +7,20 @@ import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
 const ipc = vi.hoisted(() => ({
   groups: vi.fn(),
   group: vi.fn(),
-  captures: vi.fn(() => Promise.resolve<Array<{ id: string; width: number; height: number; collected: unknown[] }>>([])),
+  captures: vi.fn(() =>
+    Promise.resolve<Array<{ id: string; width: number; height: number; collected: unknown[] }>>([]),
+  ),
   save: vi.fn(() => Promise.resolve()),
   saveInto: vi.fn(() => Promise.resolve()),
   open: vi.fn(() => Promise.resolve(2)),
   rename: vi.fn(() => Promise.resolve()),
-  remove: vi.fn((id: string) => Promise.resolve({ groupId: id, name: id === "g1" ? "头发参考" : id, unlinkedPins: [{ pinId: "pin-1", memberId: "m1" }] })),
+  remove: vi.fn((id: string) =>
+    Promise.resolve({
+      groupId: id,
+      name: id === "g1" ? "头发参考" : id,
+      unlinkedPins: [{ pinId: "pin-1", memberId: "m1" }],
+    }),
+  ),
   restore: vi.fn(() => Promise.resolve()),
   purge: vi.fn(() => Promise.resolve()),
   removeMember: vi.fn(() => Promise.resolve()),
@@ -21,8 +29,12 @@ const ipc = vi.hoisted(() => ({
   libraries: vi.fn(() =>
     Promise.resolve([
       { library: { id: "lib-a", name: "主库", root: "D:/a" }, unavailable: null },
-      { library: { id: "lib-b", name: "移动盘库", root: "E:/b" }, unavailable: { code: "system" as const, detail: "没插" } },
-    ])),
+      {
+        library: { id: "lib-b", name: "移动盘库", root: "E:/b" },
+        unavailable: { code: "system" as const, detail: "没插" },
+      },
+    ]),
+  ),
 }));
 
 vi.mock("../ipc", () => ({
@@ -44,7 +56,18 @@ vi.mock("../ipc", () => ({
   importReferenceGroupPackage: ipc.importPackage,
   onReferenceGroupsChanged: () => Promise.resolve(() => {}),
   onWorkspaceChanged: () => Promise.resolve(() => {}),
-  workspaceDirectories: () => Promise.resolve({ status:{revision:"test",libraries:[]}, providers:[{registration:{library:{id:"lib-a",name:"主库",root:"D:/a"},unavailable:null},sidebar:{all:0,trash:0,folders:[{id:"folder-a",name:"截图目录",children:[],count:0}]},unassigned:0,descendants:{}}] }),
+  workspaceDirectories: () =>
+    Promise.resolve({
+      status: { revision: "test", libraries: [] },
+      providers: [
+        {
+          registration: { library: { id: "lib-a", name: "主库", root: "D:/a" }, unavailable: null },
+          sidebar: { all: 0, trash: 0, folders: [{ id: "folder-a", name: "截图目录", children: [], count: 0 }] },
+          unassigned: 0,
+          descendants: {},
+        },
+      ],
+    }),
   registeredLibraries: ipc.libraries,
 }));
 
@@ -97,10 +120,21 @@ const view: ReferenceGroupView = {
 async function show() {
   ipc.groups.mockResolvedValue([
     summary,
-    { ...summary, id: "bad", name: "bad", memberCount: 0, libraryIds: [], problem: { code: "groupInvalid", cause: { code: "notAGroup" } } },
+    {
+      ...summary,
+      id: "bad",
+      name: "bad",
+      memberCount: 0,
+      libraryIds: [],
+      problem: { code: "groupInvalid", cause: { code: "notAGroup" } },
+    },
   ]);
   ipc.group.mockResolvedValue(view);
-  render(<SaveDestinationProvider safe><ReferenceGroupsPanel /></SaveDestinationProvider>);
+  render(
+    <SaveDestinationProvider safe>
+      <ReferenceGroupsPanel />
+    </SaveDestinationProvider>,
+  );
   await act(async () => {
     for (let i = 0; i < 5; i++) await Promise.resolve();
   });
@@ -115,7 +149,9 @@ afterEach(() => {
 async function more(item: string) {
   fireEvent.click(screen.getByRole("button", { name: "更多操作" }));
   const entry = await screen.findByRole("menuitem", { name: item });
-  await act(async () => { fireEvent.click(entry); });
+  await act(async () => {
+    fireEvent.click(entry);
+  });
 }
 
 describe("参考组面板", () => {
@@ -142,7 +178,9 @@ describe("参考组面板", () => {
     const save = screen.getByRole("button", { name: "保存" }) as HTMLButtonElement;
     expect(save.disabled).toBe(true);
     fireEvent.change(screen.getByLabelText("新参考组名称"), { target: { value: "手部" } });
-    await act(async () => { fireEvent.click(save); });
+    await act(async () => {
+      fireEvent.click(save);
+    });
     expect(ipc.save).toHaveBeenCalledWith("手部");
     expect(await screen.findByText("已把桌面钉图存为参考组")).toBeTruthy();
   });
@@ -174,8 +212,12 @@ describe("参考组面板", () => {
     expect(folder.hasAttribute("data-disabled")).toBe(true);
     await chooseValue(within(dialog).getByRole("combobox", { name: "截图 1 存到哪里" }), "lib-a");
     await chooseValue(within(dialog).getByRole("combobox", { name: "截图 1 的文件夹" }), "folder-a");
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "确认并保存" })); });
-    expect(ipc.save).toHaveBeenCalledWith("截图参考", [{ captureId: "shot-1", libraryId: "lib-a", folderId: "folder-a" }]);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "确认并保存" }));
+    });
+    expect(ipc.save).toHaveBeenCalledWith("截图参考", [
+      { captureId: "shot-1", libraryId: "lib-a", folderId: "folder-a" },
+    ]);
   });
 
   it("截图可以只存在参考组里：不选图库和文件夹，交给保存入口", async () => {
@@ -187,8 +229,12 @@ describe("参考组面板", () => {
     const dialog = await screen.findByRole("dialog", { name: "截图怎样存进参考组" });
     await chooseValue(within(dialog).getByRole("combobox", { name: "截图 1 存到哪里" }), "group");
     expect(within(dialog).getByRole("combobox", { name: "截图 1 的文件夹" }).hasAttribute("data-disabled")).toBe(true);
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "确认并保存" })); });
-    expect(ipc.save).toHaveBeenCalledWith("一次性", [{ captureId: "shot-1", libraryId: null, folderId: null, keepInGroup: true }]);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "确认并保存" }));
+    });
+    expect(ipc.save).toHaveBeenCalledWith("一次性", [
+      { captureId: "shot-1", libraryId: null, folderId: null, keepInGroup: true },
+    ]);
   });
 
   it("截图去处没改过直接取消；改过以后取消先在按钮旁确认，放弃才关", async () => {
@@ -223,8 +269,14 @@ describe("参考组面板", () => {
       group: { ...view.group, members: [capture] },
       members: [{ memberId: "m4", captureFile: "m4.png", state: { kind: "available", sealed: false } }],
     } satisfies ReferenceGroupView);
-    render(<SaveDestinationProvider safe><ReferenceGroupsPanel /></SaveDestinationProvider>);
-    await act(async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); });
+    render(
+      <SaveDestinationProvider safe>
+        <ReferenceGroupsPanel />
+      </SaveDestinationProvider>,
+    );
+    await act(async () => {
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+    });
     const card = screen.getByText("头发参考").closest("li")!;
     expect([...card.querySelectorAll("img")].map((img) => img.getAttribute("src"))).toEqual(["capture://group/g1/m4"]);
     expect(card.querySelector(".reference-group-meta")!.textContent).toContain("不在图库里");
@@ -235,7 +287,9 @@ describe("参考组面板", () => {
     fireEvent.click(within(members).getByRole("button", { name: "移出" }));
     expect(ipc.removeMember).not.toHaveBeenCalled();
     const confirm = await screen.findByRole("alertdialog", { name: "移出截图" });
-    await act(async () => { fireEvent.click(within(confirm).getByRole("button", { name: "移出并删除" })); });
+    await act(async () => {
+      fireEvent.click(within(confirm).getByRole("button", { name: "移出并删除" }));
+    });
     expect(ipc.removeMember).toHaveBeenCalledWith("g1", "m4");
   });
 
@@ -251,11 +305,19 @@ describe("参考组面板", () => {
   it("操作只出现在选中的卡片上；点另一张卡片换过去", async () => {
     ipc.groups.mockResolvedValue([summary, { ...summary, id: "g2", name: "手部" }]);
     ipc.group.mockResolvedValue(view);
-    render(<SaveDestinationProvider safe><ReferenceGroupsPanel /></SaveDestinationProvider>);
-    await act(async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); });
+    render(
+      <SaveDestinationProvider safe>
+        <ReferenceGroupsPanel />
+      </SaveDestinationProvider>,
+    );
+    await act(async () => {
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+    });
     expect(screen.getAllByRole("button", { name: "摆到桌面" })).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: /^手部/ }));
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "摆到桌面" })); });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "摆到桌面" }));
+    });
     expect(ipc.open).toHaveBeenCalledWith("g2");
   });
 
@@ -276,8 +338,14 @@ describe("参考组面板", () => {
     expect(await screen.findByText("已删除参考组")).toBeTruthy();
     expect(screen.getByText("头发参考", { selector: ".k-toast-desc" })).toBeTruthy();
     expect(ipc.purge).not.toHaveBeenCalled();
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "撤销" })); });
-    expect(ipc.restore).toHaveBeenCalledWith({ groupId: "g1", name: "头发参考", unlinkedPins: [{ pinId: "pin-1", memberId: "m1" }] });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+    });
+    expect(ipc.restore).toHaveBeenCalledWith({
+      groupId: "g1",
+      name: "头发参考",
+      unlinkedPins: [{ pinId: "pin-1", memberId: "m1" }],
+    });
     // 点了“撤销”提示随即关闭，关闭不再真删。
     await waitFor(() => expect(screen.queryByText("已删除参考组")).toBeNull());
     expect(ipc.purge).not.toHaveBeenCalled();
@@ -287,7 +355,9 @@ describe("参考组面板", () => {
     await show();
     await more("删除");
     await screen.findByText("已删除参考组");
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "关闭提示" })); });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "关闭提示" }));
+    });
     await waitFor(() => expect(ipc.purge).toHaveBeenCalledWith("g1"));
   });
 
@@ -301,7 +371,9 @@ describe("参考组面板", () => {
     ipc.restore.mockRejectedValueOnce({ code: "message", message: "放回失败" });
     await show();
     await more("删除");
-    await act(async () => { fireEvent.click(await screen.findByRole("button", { name: "撤销" })); });
+    await act(async () => {
+      fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
+    });
     expect(await screen.findByText(/放回失败/)).toBeTruthy();
   });
 
@@ -335,10 +407,12 @@ describe("参考组面板", () => {
       fireEvent.click(screen.getByRole("button", { name: "导入参考组包" }));
     });
     expect(ipc.importPackage).not.toHaveBeenCalled();
-    await chooseValue(screen.getByRole("combobox",{name:"图库"}),"lib-a");
-    await chooseValue(screen.getByRole("combobox",{name:"文件夹"}),"folder-a");
-    await act(async()=>{fireEvent.click(screen.getByRole("button",{name:"选择参考组包并导入"}));});
-    expect(ipc.importPackage).toHaveBeenCalledWith("lib-a",{libraryId:"lib-a",folderId:"folder-a"});
+    await chooseValue(screen.getByRole("combobox", { name: "图库" }), "lib-a");
+    await chooseValue(screen.getByRole("combobox", { name: "文件夹" }), "folder-a");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "选择参考组包并导入" }));
+    });
+    expect(ipc.importPackage).toHaveBeenCalledWith("lib-a", { libraryId: "lib-a", folderId: "folder-a" });
     expect(await screen.findByText(/别人的参考组/)).toBeTruthy();
   });
 
@@ -354,7 +428,9 @@ describe("参考组面板", () => {
     const bad = screen.getByText("参考组文件已损坏：不是 Kinshoko 参考组").closest("li")!;
     fireEvent.click(within(bad).getByRole("button", { name: /^bad/ }));
     expect(within(bad).queryByRole("button", { name: "摆到桌面" })).toBeNull();
-    await act(async () => { fireEvent.click(within(bad).getByRole("button", { name: "删除" })); });
+    await act(async () => {
+      fireEvent.click(within(bad).getByRole("button", { name: "删除" }));
+    });
     expect(ipc.remove).toHaveBeenCalledWith("bad");
   });
 

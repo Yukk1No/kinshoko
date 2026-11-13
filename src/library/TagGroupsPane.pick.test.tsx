@@ -4,8 +4,13 @@ import { fakeBackend } from "../test/backend";
 import { TagGroupsPane } from "./TagGroupsPane";
 import { ToastProvider } from "../ui/Toast";
 
-
-const tag = (id: string, name: string) => ({ id, namespace: "general" as const, name, untranslated: false, hasExternal: true });
+const tag = (id: string, name: string) => ({
+  id,
+  namespace: "general" as const,
+  name,
+  untranslated: false,
+  hasExternal: true,
+});
 
 // 给分组添加标签（设计系统 Combobox）：已在分组里的标签不列，但不能占掉候选的名额；Esc 只收起输入框。
 it("添加标签时不列已有成员，仍列满其余匹配的标签；Esc 收起后焦点回到“添加标签”", async () => {
@@ -13,14 +18,20 @@ it("添加标签时不列已有成员，仍列满其余匹配的标签；Esc 收
   const others = Array.from({ length: 9 }, (_, i) => tag(`t-${i}`, `猫${i}`));
   const limits: number[] = [];
   fakeBackend({
-    shared_tag_groups: [{ id: "G", name: "猫", namespace: null, tags: members.map((t) => ({ tag: t, count: 1 })), sources: [] }],
+    shared_tag_groups: [
+      { id: "G", name: "猫", namespace: null, tags: members.map((t) => ({ tag: t, count: 1 })), sources: [] },
+    ],
     workspace_candidates: (args) => {
       const { limit } = args as { limit: number };
       limits.push(limit);
       return [...members, ...others].slice(0, limit).map((t, i) => ({ tag: t, via: null, count: 20 - i }));
     },
   });
-  render(<ToastProvider><TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} /></ToastProvider>);
+  render(
+    <ToastProvider>
+      <TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} />
+    </ToastProvider>,
+  );
   const add = await screen.findByRole("button", { name: "给“猫”添加标签" });
   await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(add);
@@ -30,7 +41,9 @@ it("添加标签时不列已有成员，仍列满其余匹配的标签；Esc 收
 
   const list = await screen.findByRole("listbox", { name: "挑一个标签" });
   await within(list).findByRole("option", { name: /猫7/ });
-  const names = within(list).getAllByRole("option").map((o) => o.textContent);
+  const names = within(list)
+    .getAllByRole("option")
+    .map((o) => o.textContent);
   expect(names.filter((n) => /猫耳|猫尾/.test(n ?? ""))).toEqual([]);
   expect(names.filter((n) => /^猫\d/.test(n ?? ""))).toHaveLength(8);
   expect(limits.at(-1)).toBe(10);

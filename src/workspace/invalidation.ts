@@ -67,14 +67,23 @@ export type Decision = {
 };
 
 const NOTHING: Decision = {
-  acceptStatus: false, revokeWall: false, closeViewer: false, clearSelection: false, clearSources: false,
-  pruneSelection: false, reload: false, refreshVocabulary: false,
+  acceptStatus: false,
+  revokeWall: false,
+  closeViewer: false,
+  clearSelection: false,
+  clearSources: false,
+  pruneSelection: false,
+  reload: false,
+  refreshVocabulary: false,
 };
 
 export type Outcome = { state: InvalidationState; decision: Decision };
 
 const keep = (state: InvalidationState): Outcome => ({ state, decision: NOTHING });
-const act = (state: InvalidationState, decision: Partial<Decision>): Outcome => ({ state, decision: { ...NOTHING, ...decision } });
+const act = (state: InvalidationState, decision: Partial<Decision>): Outcome => ({
+  state,
+  decision: { ...NOTHING, ...decision },
+});
 
 /** 修订前进后的整套动作：撤销旧内容、关查看器、读完后修剪、重读、刷新词表。 */
 const REVISION_ADVANCED: Partial<Decision> = { closeViewer: true, reload: true, refreshVocabulary: true };
@@ -95,11 +104,14 @@ export function decide(state: InvalidationState, event: InvalidationEvent): Outc
       // （这个视角下的第一份快照只是采用）。
       const pushed = event.origin === "notification" || event.origin === "recheck";
       const advanced = pushed || observed.revision !== null;
-      const next = { ...observed, revision: event.revision, prune: advanced ? "reset" as const : observed.prune };
+      const next = { ...observed, revision: event.revision, prune: advanced ? ("reset" as const) : observed.prune };
       return act(next, { acceptStatus: true, revokeWall: pushed, ...(advanced ? REVISION_ADVANCED : {}) });
     }
     case "listInvalidated":
-      return act({ ...state, observations: state.observations + 1, prune: "reset" }, { revokeWall: true, reload: true });
+      return act(
+        { ...state, observations: state.observations + 1, prune: "reset" },
+        { revokeWall: true, reload: true },
+      );
     case "vocabularyInvalidated":
       return act(state, { refreshVocabulary: true });
     case "cursorExpired":
@@ -107,14 +119,24 @@ export function decide(state: InvalidationState, event: InvalidationEvent): Outc
       return act(state, { reload: true, refreshVocabulary: true });
     case "lensChanged":
       // 变严不等重读：查看器当即关闭；按偏好当即清空选择，或等新结果就绪后修剪。
-      return act({ ...state, prune: "reset" }, {
-        closeViewer: true, refreshVocabulary: true,
-        clearSelection: !event.keepSelection, clearSources: !event.keepSelection,
-      });
+      return act(
+        { ...state, prune: "reset" },
+        {
+          closeViewer: true,
+          refreshVocabulary: true,
+          clearSelection: !event.keepSelection,
+          clearSources: !event.keepSelection,
+        },
+      );
     case "safeConfirmed":
       // 关闭时查询视角在确认那一刻才放开，由 lensChanged 那一路整批重读一次；这里再重读会作废它（#183）。
       if (!event.on) return keep(state);
-      return act(state, { clearSelection: !event.keepSelection, closeViewer: true, reload: true, refreshVocabulary: true });
+      return act(state, {
+        clearSelection: !event.keepSelection,
+        closeViewer: true,
+        reload: true,
+        refreshVocabulary: true,
+      });
     case "scopeChanged":
       return act(state, { clearSelection: true, clearSources: true, closeViewer: true });
     case "conditionsChanged":

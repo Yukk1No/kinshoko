@@ -20,14 +20,19 @@ export function SealBook({ on, onToggle, slow = 1 }: { on: boolean; onToggle: ()
   const motion = useRef({ p: sealed ? 0 : 1, from: sealed ? 0 : 1, at: 0, raf: 0, drawn: -1 });
 
   useEffect(() => {
-    const m = motion.current, target = sealed ? 0 : 1;
+    const m = motion.current,
+      target = sealed ? 0 : 1;
     const draw = (p: number) => {
       if (p === m.drawn || !svg.current) return;
       svg.current.innerHTML = sealBookSVG(p);
       m.drawn = p;
     };
     cancelAnimationFrame(m.raf);
-    if (reducedMotion) { m.p = target; draw(target); return; }
+    if (reducedMotion) {
+      m.p = target;
+      draw(target);
+      return;
+    }
     m.from = m.p;
     m.at = performance.now();
     // A reversal mid-way only travels back the distance it covered.
@@ -43,10 +48,17 @@ export function SealBook({ on, onToggle, slow = 1 }: { on: boolean; onToggle: ()
     return () => cancelAnimationFrame(m.raf);
   }, [sealed, reducedMotion, slow]);
 
-  return <Tip side="right" label={sealed ? t("safeMode.tipOn") : t("safeMode.tipOff")} keys="Ctrl+Shift+S">
-    <button type="button" className={`rail-btn seal-book${sealed ? " is-sealed" : ""}`} aria-pressed={sealed}
-      aria-label={sealed ? t("safeMode.on") : t("safeMode.off")} onClick={onToggle}>
-      <svg ref={svg} width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false" />
-    </button>
-  </Tip>;
+  return (
+    <Tip side="right" label={sealed ? t("safeMode.tipOn") : t("safeMode.tipOff")} keys="Ctrl+Shift+S">
+      <button
+        type="button"
+        className={`rail-btn seal-book${sealed ? " is-sealed" : ""}`}
+        aria-pressed={sealed}
+        aria-label={sealed ? t("safeMode.on") : t("safeMode.off")}
+        onClick={onToggle}
+      >
+        <svg ref={svg} width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false" />
+      </button>
+    </Tip>
+  );
 }

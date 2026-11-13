@@ -3,7 +3,10 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { DensityIsland } from "./DensityIsland";
 import { setMedia } from "../test/platform";
 
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 const setup = (value = 240) => {
   const onPreview = vi.fn();

@@ -35,7 +35,8 @@ export function stampText(s: Stamp): string {
 }
 
 function uncoveredText(u: Uncovered): string {
-  if (u.kind === "unreadableGroup") return i18n.t("backup:uncovered.unreadable", { group: u.group.name, problem: storedReasonText(u.problem) });
+  if (u.kind === "unreadableGroup")
+    return i18n.t("backup:uncovered.unreadable", { group: u.group.name, problem: storedReasonText(u.problem) });
   return u.libraryName === null
     ? i18n.t("backup:uncovered.libraryClosed", { group: u.group.name })
     : i18n.t("backup:uncovered.libraryLeftOut", { group: u.group.name, library: u.libraryName });
@@ -129,46 +130,107 @@ export function BackupSettings() {
   return (
     <section className="backup-settings" aria-label={t("label")}>
       <SettingsGroup label={t("group")}>
-        <SettingsRow icon={<HardDrive size={16} />} title={t("target")}
-          meta={plan.target ?? t("noTarget")} hint={t("targetHint")} label={t("target")}>
-          <button type="button" className="k-btn is-sm" onClick={() => void choose().catch((e) => setError(errorText(e)))}>
+        <SettingsRow
+          icon={<HardDrive size={16} />}
+          title={t("target")}
+          meta={plan.target ?? t("noTarget")}
+          hint={t("targetHint")}
+          label={t("target")}
+        >
+          <button
+            type="button"
+            className="k-btn is-sm"
+            onClick={() => void choose().catch((e) => setError(errorText(e)))}
+          >
             <span className="k-label">{plan.target === null ? t("choose") : t("change")}</span>
           </button>
         </SettingsRow>
-        <SettingsRow icon={<Archive size={16} />} title={t("last")} hint={t("lastHint")}
-          meta={running !== null ? <span role="status">{t("running", { done: running.done, total: running.total })}</span>
-            : plan.lastSuccess !== null ? stampText(plan.lastSuccess) : t("never")}
-          warn={plan.lastFailure !== null && <span role="alert">{t("failed", { at: stampText(plan.lastFailure.at), reason: storedReasonText(plan.lastFailure.reason) })}</span>}>
-          {plan.lastFailure === null && plan.lastSuccess !== null && running === null && <StatusPill tone="ok" icon={<CircleCheck size={12} aria-hidden="true" />}>{t("done")}</StatusPill>}
-          <button type="button" className="k-btn is-sm is-primary" disabled={plan.target === null || running !== null}
-            onClick={() => void startBackup().catch((e) => setError(errorText(e)))}><span className="k-label">{t("start")}</span></button>
+        <SettingsRow
+          icon={<Archive size={16} />}
+          title={t("last")}
+          hint={t("lastHint")}
+          meta={
+            running !== null ? (
+              <span role="status">{t("running", { done: running.done, total: running.total })}</span>
+            ) : plan.lastSuccess !== null ? (
+              stampText(plan.lastSuccess)
+            ) : (
+              t("never")
+            )
+          }
+          warn={
+            plan.lastFailure !== null && (
+              <span role="alert">
+                {t("failed", { at: stampText(plan.lastFailure.at), reason: storedReasonText(plan.lastFailure.reason) })}
+              </span>
+            )
+          }
+        >
+          {plan.lastFailure === null && plan.lastSuccess !== null && running === null && (
+            <StatusPill tone="ok" icon={<CircleCheck size={12} aria-hidden="true" />}>
+              {t("done")}
+            </StatusPill>
+          )}
+          <button
+            type="button"
+            className="k-btn is-sm is-primary"
+            disabled={plan.target === null || running !== null}
+            onClick={() => void startBackup().catch((e) => setError(errorText(e)))}
+          >
+            <span className="k-label">{t("start")}</span>
+          </button>
         </SettingsRow>
-        <SettingsRow icon={<Library size={16} />} title={t("scope")}
+        <SettingsRow
+          icon={<Library size={16} />}
+          title={t("scope")}
           meta={preview ? t("estimate", { size: formatBytes(preview.estimate.totalBytes) }) : t("estimating")}
-          below={<>
-            {narrowed !== null && <div className="backup-libraries" role="group" aria-label={t("libraries")}>
-              {libraries.map(({ library }) => (
-                <label key={library.id} className="k-check">
-                  <input type="checkbox" checked={narrowed.ids.includes(library.id)}
-                    onChange={(e) => toggleLibrary(library.id, e.currentTarget.checked)} />
-                  {library.name}
-                </label>
-              ))}
-              <label className="k-check">
-                <input type="checkbox" checked={narrowed.includeLinked}
-                  onChange={(e) => select({ ...narrowed, includeLinked: e.currentTarget.checked })} />
-                {t("includeLinked")}
-              </label>
-            </div>}
-            {preview !== null && <PreviewView preview={preview} />}
-          </>}>
-          <Select label={t("scope")} value={narrowed === null ? "all" : "libraries"}
-            onChange={(value) => select(value === "all" ? { kind: "all" } : { kind: "libraries", ids: [], includeLinked: true })}
-            options={[{ value: "all", label: t("all") }, { value: "libraries", label: t("selected") }]} />
+          below={
+            <>
+              {narrowed !== null && (
+                <div className="backup-libraries" role="group" aria-label={t("libraries")}>
+                  {libraries.map(({ library }) => (
+                    <label key={library.id} className="k-check">
+                      <input
+                        type="checkbox"
+                        checked={narrowed.ids.includes(library.id)}
+                        onChange={(e) => toggleLibrary(library.id, e.currentTarget.checked)}
+                      />
+                      {library.name}
+                    </label>
+                  ))}
+                  <label className="k-check">
+                    <input
+                      type="checkbox"
+                      checked={narrowed.includeLinked}
+                      onChange={(e) => select({ ...narrowed, includeLinked: e.currentTarget.checked })}
+                    />
+                    {t("includeLinked")}
+                  </label>
+                </div>
+              )}
+              {preview !== null && <PreviewView preview={preview} />}
+            </>
+          }
+        >
+          <Select
+            label={t("scope")}
+            value={narrowed === null ? "all" : "libraries"}
+            onChange={(value) =>
+              select(value === "all" ? { kind: "all" } : { kind: "libraries", ids: [], includeLinked: true })
+            }
+            options={[
+              { value: "all", label: t("all") },
+              { value: "libraries", label: t("selected") },
+            ]}
+          />
         </SettingsRow>
         <RestoreView onError={(e) => setError(errorText(e))} />
       </SettingsGroup>
-      {error !== null && <p className="k-set-error" role="alert">{error}</p>}
+      {error !== null && (
+        <p className="k-set-error" role="alert">
+          {error}
+        </p>
+      )}
     </section>
   );
 }
@@ -181,7 +243,11 @@ function PreviewView({ preview }: { preview: BackupPreview }) {
     <div className="backup-preview" aria-label={t("preview.label")}>
       <p>{t("preview.scope", { libraries: names(scope.libraries), groups: names(scope.groups) })}</p>
       <p>
-        {t("preview.size", { total: formatBytes(estimate.totalBytes), fresh: formatBytes(estimate.newBytes), count: estimate.newOriginals })}
+        {t("preview.size", {
+          total: formatBytes(estimate.totalBytes),
+          fresh: formatBytes(estimate.newBytes),
+          count: estimate.newOriginals,
+        })}
         {!preview.targetAvailable && t("preview.targetMissing")}
       </p>
       {(scope.uncovered.length > 0 || estimate.unavailable.length > 0) && (
@@ -223,24 +289,50 @@ function RestoreView({ onError }: { onError: (error: unknown) => void }) {
   };
 
   return (
-    <SettingsRow icon={<RotateCcw size={16} />} title={t("title")} hint={t("hint")} className="backup-restore"
-      below={(snapshots !== null || busy || report !== null) && <>
-        {snapshots !== null && snapshots.length === 0 && <p className="k-set-note">{t("empty")}</p>}
-        {snapshots !== null && snapshots.length > 0 && <>
-          <ul className="backup-snapshots">
-            {snapshots.map((s) => (
-              <li key={s.id}>
-                <button type="button" className="k-btn is-sm" disabled={busy} aria-label={t("snapshotLabel", { at: stampText(s.createdAt) })}
-                  onClick={() => void restore(s)}><span className="k-label">{stampText(s.createdAt)}</span></button>
-                <span>{t("snapshot", { libraries: s.libraries.map((l) => l.name).join(i18n.t("backup:separator")) || i18n.t("backup:none"), count: s.groups.length })}</span>
-              </li>
-            ))}
-          </ul>
-        </>}
-        {busy && <p role="status">{t("busy")}</p>}
-        {report !== null && <RestoreResult report={report} />}
-      </>}>
-      <button type="button" className="k-btn is-sm" onClick={() => void list()}><span className="k-label">{t("choose")}</span></button>
+    <SettingsRow
+      icon={<RotateCcw size={16} />}
+      title={t("title")}
+      hint={t("hint")}
+      className="backup-restore"
+      below={
+        (snapshots !== null || busy || report !== null) && (
+          <>
+            {snapshots !== null && snapshots.length === 0 && <p className="k-set-note">{t("empty")}</p>}
+            {snapshots !== null && snapshots.length > 0 && (
+              <>
+                <ul className="backup-snapshots">
+                  {snapshots.map((s) => (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        className="k-btn is-sm"
+                        disabled={busy}
+                        aria-label={t("snapshotLabel", { at: stampText(s.createdAt) })}
+                        onClick={() => void restore(s)}
+                      >
+                        <span className="k-label">{stampText(s.createdAt)}</span>
+                      </button>
+                      <span>
+                        {t("snapshot", {
+                          libraries:
+                            s.libraries.map((l) => l.name).join(i18n.t("backup:separator")) || i18n.t("backup:none"),
+                          count: s.groups.length,
+                        })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {busy && <p role="status">{t("busy")}</p>}
+            {report !== null && <RestoreResult report={report} />}
+          </>
+        )
+      }
+    >
+      <button type="button" className="k-btn is-sm" onClick={() => void list()}>
+        <span className="k-label">{t("choose")}</span>
+      </button>
     </SettingsRow>
   );
 }
@@ -253,8 +345,14 @@ function RestoreResult({ report }: { report: RestoreReport }) {
   return (
     <div className="backup-result" aria-label={t("restore.result")}>
       <p role={problems.length === 0 ? "status" : "alert"}>
-        <StatusPill tone={problems.length === 0 ? "ok" : "warn"}>{problems.length === 0 ? t("restore.complete") : t("restore.problems")}</StatusPill>{" "}
-        {t("restore.check", { originals: check.originals.checked, curation: check.curation.checked, groups: check.groups.checked })}
+        <StatusPill tone={problems.length === 0 ? "ok" : "warn"}>
+          {problems.length === 0 ? t("restore.complete") : t("restore.problems")}
+        </StatusPill>{" "}
+        {t("restore.check", {
+          originals: check.originals.checked,
+          curation: check.curation.checked,
+          groups: check.groups.checked,
+        })}
         {problems.length === 0 ? t("restore.consistent") : t("restore.checked")}
       </p>
       {problems.length > 0 && (
@@ -264,7 +362,12 @@ function RestoreResult({ report }: { report: RestoreReport }) {
           ))}
         </ul>
       )}
-      <p>{t("restore.restored", { libraries: names(report.libraries.map((l) => l.library.name)), groups: names(report.groups.map((g) => g.name)) })}</p>
+      <p>
+        {t("restore.restored", {
+          libraries: names(report.libraries.map((l) => l.library.name)),
+          groups: names(report.groups.map((g) => g.name)),
+        })}
+      </p>
     </div>
   );
 }
@@ -279,12 +382,19 @@ export function BackupReminder() {
   const { t } = useTranslation("backup", { keyPrefix: "reminder" });
   const failure = status?.plan.lastFailure ?? null;
   const shown = useRef<{ at: number; id: string } | null>(null);
-  const at = failure?.at.unixMs ?? null, reason = failure ? storedReasonText(failure.reason) : "";
+  const at = failure?.at.unixMs ?? null,
+    reason = failure ? storedReasonText(failure.reason) : "";
   useEffect(() => {
     if (shown.current?.at === at) return;
     if (shown.current) toast.close(shown.current.id);
     shown.current = at === null ? null : { at, id: toast.error(t("title", { reason }), { description: t("retry") }) };
   }, [toast, at, reason, t]);
-  useEffect(() => () => { if (shown.current) toast.close(shown.current.id); shown.current = null; }, [toast]);
+  useEffect(
+    () => () => {
+      if (shown.current) toast.close(shown.current.id);
+      shown.current = null;
+    },
+    [toast],
+  );
   return null;
 }

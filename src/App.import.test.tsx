@@ -2,7 +2,17 @@ import { describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
-import { library, clean, backend, sent, push, importAction, chooseDestination, confirmImport, appStartup } from "./App.fixtures";
+import {
+  library,
+  clean,
+  backend,
+  sent,
+  push,
+  importAction,
+  chooseDestination,
+  confirmImport,
+  appStartup,
+} from "./App.fixtures";
 import { fakeBackend, shellSettings } from "./test/backend";
 
 /** 导入结束是一条轻提示（#388）；有要处理的项时，它的“查看”打开结果回执卡。 */
@@ -19,7 +29,12 @@ describe("主窗口", () => {
     await confirmImport();
     await waitFor(() =>
       expect(sent("start_import")).toEqual([
-      { libraryId: "L1", source: { paths: ["D:\\下载\\参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
+        {
+          libraryId: "L1",
+          source: { paths: ["D:\\下载\\参考"] },
+          options: { eagleDeletedContent: "skipDeleted" },
+          destination: { libraryId: "L1", folderId: null },
+        },
       ]),
     );
 
@@ -39,12 +54,19 @@ describe("主窗口", () => {
       taskId: "T1",
       report: {
         cancelled: true,
-        fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
+        fromEagle: false,
+        sealedDuplicates: false,
+        privateSummary: false,
+        trashDuplicates: false,
+        eagleMissing: 0,
         eagleRelocations: [],
         items: [
           { path: "D:\\下载\\参考\\a.png", outcome: { kind: "imported", imageId: "a" } },
           { path: "D:\\下载\\参考\\说明.txt", outcome: { kind: "unsupported" } },
-          { path: "D:\\下载\\参考\\坏.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "无法解码" } } },
+          {
+            path: "D:\\下载\\参考\\坏.png",
+            outcome: { kind: "readFailed", reason: { code: "system", detail: "无法解码" } },
+          },
         ],
       },
     });
@@ -65,19 +87,24 @@ describe("主窗口", () => {
     await screen.findAllByRole("img");
 
     // 拖放监听异步注册：等它就绪；先选好保存位置（原先在点开的导入面板里选）。
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     await chooseDestination();
     const position = { x: 10, y: 10 };
-    await act(() =>
-      emit("tauri://drag-enter", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }),
-    );
+    await act(() => emit("tauri://drag-enter", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }));
     expect(screen.getByRole("img", { name: "松开即可导入到 工作参考" })).toBeTruthy();
     await act(() => emit("tauri://drag-drop", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }));
     await confirmImport();
 
     await waitFor(() =>
       expect(sent("start_import")).toEqual([
-        { libraryId: "L1", source: { paths: ["D:\\图\\a.png", "D:\\一批参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
+        {
+          libraryId: "L1",
+          source: { paths: ["D:\\图\\a.png", "D:\\一批参考"] },
+          options: { eagleDeletedContent: "skipDeleted" },
+          destination: { libraryId: "L1", folderId: null },
+        },
       ]),
     );
     expect(screen.queryByRole("img", { name: "松开即可导入到 工作参考" })).toBeNull();
@@ -94,7 +121,11 @@ describe("主窗口", () => {
       taskId: "T0",
       report: {
         cancelled: false,
-        fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
+        fromEagle: false,
+        sealedDuplicates: false,
+        privateSummary: false,
+        trashDuplicates: false,
+        eagleMissing: 0,
         eagleRelocations: [],
         items: [
           { path: "D:\\参考\\a.png", outcome: { kind: "imported", imageId: "a" } },
@@ -109,7 +140,12 @@ describe("主窗口", () => {
 
     await waitFor(() =>
       expect(sent("start_import")).toEqual([
-        { libraryId: "L1", source: { paths: ["D:\\参考\\坏.png"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
+        {
+          libraryId: "L1",
+          source: { paths: ["D:\\参考\\坏.png"] },
+          options: { eagleDeletedContent: "skipDeleted" },
+          destination: { libraryId: "L1", folderId: null },
+        },
       ]),
     );
   });
@@ -146,21 +182,30 @@ describe("主窗口", () => {
 
 describe("导入任务的终态（#76）", () => {
   const importButton = () => importAction("导入文件…") as HTMLButtonElement;
-  const failed = (taskId: string) => push({
-    kind: "taskFinished",
-    libraryId: "L1",
-    taskId,
-    report: {
-      cancelled: false,
-      items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } }],
-      fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
-      eagleRelocations: [],
-    },
-  });
+  const failed = (taskId: string) =>
+    push({
+      kind: "taskFinished",
+      libraryId: "L1",
+      taskId,
+      report: {
+        cancelled: false,
+        items: [
+          { path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } },
+        ],
+        fromEagle: false,
+        sealedDuplicates: false,
+        privateSummary: false,
+        trashDuplicates: false,
+        eagleMissing: 0,
+        eagleRelocations: [],
+      },
+    });
 
   it("结束事件早于启动命令的响应时，迟到的响应和进度不会复活已结束的任务", async () => {
     let answer!: (taskId: string) => void;
-    const response = new Promise<string>((resolve) => { answer = resolve; });
+    const response = new Promise<string>((resolve) => {
+      answer = resolve;
+    });
     backend(library, clean, { start_import: () => response });
     render(<App />);
     await screen.findAllByRole("img");
@@ -191,7 +236,9 @@ describe("导入任务的终态（#76）", () => {
 
   it("进度早于启动命令的响应时，响应到达后仍可取消", async () => {
     let answer!: (taskId: string) => void;
-    const response = new Promise<string>((resolve) => { answer = resolve; });
+    const response = new Promise<string>((resolve) => {
+      answer = resolve;
+    });
     backend(library, clean, { start_import: () => response });
     render(<App />);
     await screen.findAllByRole("img");
@@ -228,7 +275,21 @@ describe("导入任务的终态（#76）", () => {
 
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 1 } });
     await failed("T1");
-    await push({ kind: "taskFinished", libraryId: "L2", taskId: "T9", report: { cancelled: true, items: [], fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] } });
+    await push({
+      kind: "taskFinished",
+      libraryId: "L2",
+      taskId: "T9",
+      report: {
+        cancelled: true,
+        items: [],
+        fromEagle: false,
+        sealedDuplicates: false,
+        privateSummary: false,
+        trashDuplicates: false,
+        eagleMissing: 0,
+        eagleRelocations: [],
+      },
+    });
 
     expect(within(screen.getByRole("region", { name: "导入进度" })).getByText("1 / 5")).toBeTruthy();
     expect(screen.queryByLabelText("导入结果")).toBeNull();
@@ -239,18 +300,30 @@ describe("导入任务的终态（#76）", () => {
 
 describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
   const step = () => screen.queryByRole("region", { name: "标签的外部对应" });
-  const finished = (taskId: string, fromEagle = false) => push({
-    kind: "taskFinished",
-    libraryId: "L1",
-    taskId,
-    report: { cancelled: false, items: [], fromEagle, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [] },
-  });
+  const finished = (taskId: string, fromEagle = false) =>
+    push({
+      kind: "taskFinished",
+      libraryId: "L1",
+      taskId,
+      report: {
+        cancelled: false,
+        items: [],
+        fromEagle,
+        sealedDuplicates: false,
+        privateSummary: false,
+        trashDuplicates: false,
+        eagleMissing: 0,
+        eagleRelocations: [],
+      },
+    });
   /** 启动命令的响应由测试放出；`fail` 让下一次启动出错。 */
   function eagleBackend() {
     const answers: ((taskId: string) => void)[] = [];
     const failures: string[] = [];
     backend(library, clean, {
-      discover_eagle_libraries: [{ name: "主库", path: "D:/Eagle/主库.library", items: 3, version: "4.0.0", foundBy: "settings" }],
+      discover_eagle_libraries: [
+        { name: "主库", path: "D:/Eagle/主库.library", items: 3, version: "4.0.0", foundBy: "settings" },
+      ],
       eagle_tag_mapping: { matched: [], unmatched: [], vocabularySize: 0 },
       start_import: () => {
         const failure = failures.shift();
@@ -285,7 +358,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     if (entrance === "文件夹") {
       window.__KINSHOKO_TEST_PICKS__ = paths;
       fireEvent.click(importAction("导入文件夹…"));
-    await confirmImport();
+      await confirmImport();
     } else {
       await act(() => emit("tauri://drag-drop", { paths, position: { x: 10, y: 10 } }));
       await confirmImport();
@@ -378,4 +451,3 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
     expect(await screen.findByRole("region", { name: "标签的外部对应" })).toBeTruthy();
   });
 });
-

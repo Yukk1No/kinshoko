@@ -31,7 +31,11 @@ describe("控件文字垂直居中", () => {
   });
 
   it("套了 .k-label 的侧栏与分组名不再用 overflow: hidden 截断", () => {
-    for (const [css, selector] of [[shell, ".k-row .sidebar-label"], [shell, ".lib-head-name .sidebar-label"], [dialogs, ".k-group-label"]] as const) {
+    for (const [css, selector] of [
+      [shell, ".k-row .sidebar-label"],
+      [shell, ".lib-head-name .sidebar-label"],
+      [dialogs, ".k-group-label"],
+    ] as const) {
       expect(cssRule(css, selector).overflow).toBeUndefined();
     }
   });

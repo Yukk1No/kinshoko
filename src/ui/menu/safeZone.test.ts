@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { approachBand, approachStrip, headingToSubmenu, pointInTriangle, safeTriangle, submenuSide } from "./safeZone";
 
-const a = { x: 0, y: 0 }, b = { x: 10, y: 0 }, c = { x: 0, y: 10 };
+const a = { x: 0, y: 0 },
+  b = { x: 10, y: 0 },
+  c = { x: 0, y: 10 };
 
 describe("点在三角形内", () => {
   it("内部的点在内", () => expect(pointInTriangle({ x: 2, y: 2 }, a, b, c)).toBe(true));
@@ -32,7 +34,11 @@ describe("朝子菜单的那一段宽度", () => {
 describe("安全三角形", () => {
   const sub = { left: 192, top: 40, right: 420, bottom: 240 };
   it("子菜单在右时连到它左边的上下两角", () => {
-    expect(safeTriangle({ x: 150, y: 60 }, sub, "right")).toEqual([{ x: 150, y: 60 }, { x: 192, y: 40 }, { x: 192, y: 240 }]);
+    expect(safeTriangle({ x: 150, y: 60 }, sub, "right")).toEqual([
+      { x: 150, y: 60 },
+      { x: 192, y: 40 },
+      { x: 192, y: 240 },
+    ]);
   });
   it("翻到左边时连到它右边的上下两角", () => {
     expect(safeTriangle({ x: 500, y: 60 }, sub, "left")[1]).toEqual({ x: 420, y: 40 });
@@ -60,7 +66,11 @@ describe("是否正在去子菜单的路上", () => {
   it("子菜单翻到左边时用它的右边", () => {
     const right = { left: 400, top: 0, right: 600, bottom: 300 };
     const left = { left: 180, top: 40, right: 408, bottom: 240 };
-    expect(headingToSubmenu({ apex: { x: 460, y: 60 }, point: { x: 440, y: 80 }, parent: right, submenu: left })).toBe(true);
-    expect(headingToSubmenu({ apex: { x: 460, y: 60 }, point: { x: 480, y: 80 }, parent: right, submenu: left })).toBe(false);
+    expect(headingToSubmenu({ apex: { x: 460, y: 60 }, point: { x: 440, y: 80 }, parent: right, submenu: left })).toBe(
+      true,
+    );
+    expect(headingToSubmenu({ apex: { x: 460, y: 60 }, point: { x: 480, y: 80 }, parent: right, submenu: left })).toBe(
+      false,
+    );
   });
 });

@@ -1,11 +1,11 @@
-import { type KeyboardEvent, } from "react";
+import { type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { ShortcutAction } from "../bindings/ShortcutAction";
 import type { ShortcutBinding } from "../bindings/ShortcutBinding";
 import { hotkeyFailureText } from "../ipc";
 import { type ShellSettingsIntent } from "../shell/useShellSettings";
-import { SettingsGroup, SettingsRow, } from "../ui/SettingsList";
+import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
 import { Keys } from "../ui/Keys";
 
 // 设置 › 快捷键分页，原样从 SettingsPanel.tsx 移出。
@@ -30,8 +30,17 @@ function acceleratorFromKey(e: KeyboardEvent): string | null {
 /** 查看器里的固定操作（#179）：缩放、平移、框选、换图、详情侧栏与返回。按键是滚轮、拖动这类操作时写它的键名。 */
 type ViewerKeyWord = "wheel" | "drag" | "shiftDrag";
 const VIEWER_KEYS: [action: string, keys: string | { word: ViewerKeyWord }][] = [
-  ["zoom", { word: "wheel" }], ["pan", { word: "drag" }], ["crop", { word: "shiftDrag" }], ["cropMode", "F1"], ["previous", "←"], ["next", "→"],
-  ["fit", "0"], ["actual", "1"], ["pin", "P"], ["details", "I"], ["back", "Esc"],
+  ["zoom", { word: "wheel" }],
+  ["pan", { word: "drag" }],
+  ["crop", { word: "shiftDrag" }],
+  ["cropMode", "F1"],
+  ["previous", "←"],
+  ["next", "→"],
+  ["fit", "0"],
+  ["actual", "1"],
+  ["pin", "P"],
+  ["details", "I"],
+  ["back", "Esc"],
 ];
 
 type Props = {
@@ -58,33 +67,88 @@ export function KeysPage({ view, recording, setRecording, apply }: Props) {
   }
 
   return (
-          <><SettingsGroup label={t("keys.group")}>
-            {view.shortcuts.map((binding: ShortcutBinding) => {
-              const label = t(`keys.action.${binding.action}`);
-              const isRecording = recording === binding.action;
-              return <SettingsRow key={binding.action} label={label} title={label} className={isRecording ? "is-recording" : ""}
-                warn={binding.problem !== null && t("keys.notRegistered", { reason: hotkeyFailureText(binding.problem) })}>
-                {isRecording ? <>
-                  <input className="k-key-recorder" aria-label={t("keys.record")} placeholder={t("keys.recordPlaceholder")} autoFocus readOnly
-                    onKeyDown={(e) => onRecordKey(binding.action, e)} onBlur={() => setRecording(null)} />
-                  <button type="button" className="k-btn is-sm" onMouseDown={(e) => e.preventDefault()} onClick={() => setRecording(null)}><span className="k-label">{t("keys.cancel")}</span></button>
-                </> : <>
-                  {binding.accelerator === null ? <span className="k-set-muted">{t("keys.unset")}</span> : <Keys accelerator={binding.accelerator} />}
-                  {binding.accelerator !== null && <button type="button" className="k-btn is-sm is-quiet"
-                    onClick={() => void apply({ kind: "shortcut", action: binding.action, accelerator: null })}><span className="k-label">{t("keys.clear")}</span></button>}
-                  <button type="button" className="k-btn is-sm" onClick={() => setRecording(binding.action)}><span className="k-label">{binding.accelerator === null ? t("keys.set") : t("keys.change")}</span></button>
-                </>}
-              </SettingsRow>;
-            })}
-            {([["safeMode", "Ctrl+Shift+S"], ["zoomIn", "Ctrl+="], ["zoomOut", "Ctrl+-"], ["zoomReset", "Ctrl+0"], ["details", "I"]] as const).map(([action, keys]) =>
-              <SettingsRow key={action} label={t(`keys.${action}`)} title={t(`keys.${action}`)} hint={t("keys.fixedHint")}><Keys accelerator={keys} /></SettingsRow>)}
-          </SettingsGroup>
-          {/* 查看器的操作提示（#179，原在查看器的信息浮层里）。 */}
-          <SettingsGroup label={t("keys.viewerGroup")}>
-            {VIEWER_KEYS.map(([action, keys]) => {
-              const title = t(`keys.viewer.${action}` as "keys.viewer.zoom");
-              return <SettingsRow key={action} label={title} title={title}><Keys accelerator={typeof keys === "string" ? keys : t(`keys.key.${keys.word}`)} /></SettingsRow>;
-            })}
-          </SettingsGroup></>
+    <>
+      <SettingsGroup label={t("keys.group")}>
+        {view.shortcuts.map((binding: ShortcutBinding) => {
+          const label = t(`keys.action.${binding.action}`);
+          const isRecording = recording === binding.action;
+          return (
+            <SettingsRow
+              key={binding.action}
+              label={label}
+              title={label}
+              className={isRecording ? "is-recording" : ""}
+              warn={binding.problem !== null && t("keys.notRegistered", { reason: hotkeyFailureText(binding.problem) })}
+            >
+              {isRecording ? (
+                <>
+                  <input
+                    className="k-key-recorder"
+                    aria-label={t("keys.record")}
+                    placeholder={t("keys.recordPlaceholder")}
+                    autoFocus
+                    readOnly
+                    onKeyDown={(e) => onRecordKey(binding.action, e)}
+                    onBlur={() => setRecording(null)}
+                  />
+                  <button
+                    type="button"
+                    className="k-btn is-sm"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setRecording(null)}
+                  >
+                    <span className="k-label">{t("keys.cancel")}</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  {binding.accelerator === null ? (
+                    <span className="k-set-muted">{t("keys.unset")}</span>
+                  ) : (
+                    <Keys accelerator={binding.accelerator} />
+                  )}
+                  {binding.accelerator !== null && (
+                    <button
+                      type="button"
+                      className="k-btn is-sm is-quiet"
+                      onClick={() => void apply({ kind: "shortcut", action: binding.action, accelerator: null })}
+                    >
+                      <span className="k-label">{t("keys.clear")}</span>
+                    </button>
+                  )}
+                  <button type="button" className="k-btn is-sm" onClick={() => setRecording(binding.action)}>
+                    <span className="k-label">{binding.accelerator === null ? t("keys.set") : t("keys.change")}</span>
+                  </button>
+                </>
+              )}
+            </SettingsRow>
+          );
+        })}
+        {(
+          [
+            ["safeMode", "Ctrl+Shift+S"],
+            ["zoomIn", "Ctrl+="],
+            ["zoomOut", "Ctrl+-"],
+            ["zoomReset", "Ctrl+0"],
+            ["details", "I"],
+          ] as const
+        ).map(([action, keys]) => (
+          <SettingsRow key={action} label={t(`keys.${action}`)} title={t(`keys.${action}`)} hint={t("keys.fixedHint")}>
+            <Keys accelerator={keys} />
+          </SettingsRow>
+        ))}
+      </SettingsGroup>
+      {/* 查看器的操作提示（#179，原在查看器的信息浮层里）。 */}
+      <SettingsGroup label={t("keys.viewerGroup")}>
+        {VIEWER_KEYS.map(([action, keys]) => {
+          const title = t(`keys.viewer.${action}` as "keys.viewer.zoom");
+          return (
+            <SettingsRow key={action} label={title} title={title}>
+              <Keys accelerator={typeof keys === "string" ? keys : t(`keys.key.${keys.word}`)} />
+            </SettingsRow>
+          );
+        })}
+      </SettingsGroup>
+    </>
   );
 }

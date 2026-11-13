@@ -92,16 +92,31 @@ export function LibraryWorkspace({
   const [handledCapture, setHandledCapture] = useState(captureRequest);
   if (handledCapture !== captureRequest) {
     setHandledCapture(captureRequest);
-    if (captureRequest) { setViewing(null); setSources(null); }
+    if (captureRequest) {
+      setViewing(null);
+      setSources(null);
+    }
   }
-  useReferenceRequest(referenceRequest, safe, (card) => { setViewCrop(false); setViewing(card); });
+  useReferenceRequest(referenceRequest, safe, (card) => {
+    setViewCrop(false);
+    setViewing(card);
+  });
   /**
    * 词表代次：词表、图片或安全模式变化时递增，重新解析条件、重新取得候选（标签可能改名、
    * 删除、新增了叫法，或在安全模式下被封印）。与后端 Search 缓存的修订号和安全模式对应。
    */
   const [vocabularyKey, setVocabularyKey] = useState(0);
   const { invalidate, observations } = useInvalidation({
-    wall, loadedCards, setViewing: (next) => { flight.cut(); setViewing(next); }, setSelected, setSources, setReloadKey, setVocabularyKey,
+    wall,
+    loadedCards,
+    setViewing: (next) => {
+      flight.cut();
+      setViewing(next);
+    },
+    setSelected,
+    setSources,
+    setReloadKey,
+    setVocabularyKey,
   });
   const onError = useWorkspaceError(toast, invalidate);
   const safeChanged = useRef(onSafeChanged);
@@ -110,11 +125,15 @@ export function LibraryWorkspace({
   // 修订变化后的选择修剪：等图片墙读完新的结果，然后只保留仍在的图。范围或安全模式变了时图片墙先清空（等它读完）；
   // 只是修订前进时图片墙保留旧卡片、原地换成新的一页（#142），这一页到达就修剪。
   // biome-ignore lint/correctness/useExhaustiveDependencies(loadedCards): 图片墙每读完一页就报一次
-  useEffect(() => { invalidate({ kind: "pageAccepted", ready: resultCount !== null }); }, [loadedCards, resultCount, invalidate]);
+  useEffect(() => {
+    invalidate({ kind: "pageAccepted", ready: resultCount !== null });
+  }, [loadedCards, resultCount, invalidate]);
   const { viewingIndex, step, loaded } = useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall });
   /** 序号在飞回途中留着：顶栏淡出时不跳动。 */
   const viewerPosition = useRef<{ index: number; total: number } | undefined>(undefined);
-  if (viewing) viewerPosition.current = viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loaded) };
+  if (viewing)
+    viewerPosition.current =
+      viewingIndex < 0 ? undefined : { index: viewingIndex, total: Math.max(resultCount ?? 0, loaded) };
   const { status, onWallStatus, recheck } = useWorkspaceStatus({ safe, onError, invalidate, observations });
 
   // 视角一变就在这次渲染里推进重读序号（#183）：图片墙的重新浏览与视角变化在同一次提交里、
@@ -132,21 +151,56 @@ export function LibraryWorkspace({
   }, [safe, invalidate]);
   useLibraryEvents({ toast, imports, invalidate, safeChanged, keepSelectionOnSafeRef, setRunning, setReport });
 
-  const { search, changeSearch, tree, treeSafe, searching } = useSearchTree({ safe, vocabularyKey, onError, setReloadKey, invalidate });
+  const { search, changeSearch, tree, treeSafe, searching } = useSearchTree({
+    safe,
+    vocabularyKey,
+    onError,
+    setReloadKey,
+    invalidate,
+  });
 
-  const showUnfinishedTagging = useShowUnfinishedTagging({ request: unfinishedTaggingRequest, onOpenBrowse, changeSearch, setWorkspaceScope });
+  const showUnfinishedTagging = useShowUnfinishedTagging({
+    request: unfinishedTaggingRequest,
+    onOpenBrowse,
+    changeSearch,
+    setWorkspaceScope,
+  });
 
   // 窄窗口里侧栏与详情面板按余量一起让位，主区不低于 300（#274）。
   const [appBody, setAppBody] = useState<HTMLDivElement | null>(null);
   const bodyWidth = useWidth(appBody);
   const inspector = useWorkspaceInspector({
-    selected, setSelected, loadedCards, workspaceScope, sources, setSources, hidden, viewing, inspectorWidth, inspectorShown, onInspectorShown,
+    selected,
+    setSelected,
+    loadedCards,
+    workspaceScope,
+    sources,
+    setSources,
+    hidden,
+    viewing,
+    inspectorWidth,
+    inspectorShown,
+    onInspectorShown,
     fitPanel: (width) => fitPanes(bodyWidth, width, paneOpen && !isNarrow(bodyWidth, width)).inspector,
   });
-  const { selectionLibrary, selectedCards, inspected, panelIds, inspectorOpen, draggedWidth, toggleInspector, openSources } = inspector;
+  const {
+    selectionLibrary,
+    selectedCards,
+    inspected,
+    panelIds,
+    inspectorOpen,
+    draggedWidth,
+    toggleInspector,
+    openSources,
+  } = inspector;
   useInspectorShortcut(toggleInspector, hidden || viewing !== null);
   const [sidebarElement, setSidebarElement] = useState<HTMLElement | null>(null);
-  const panes = usePaneFold({ body: bodyWidth, inspector: inspectorOpen ? inspector.panelWidth : 0, paneOpen, onPaneOpen });
+  const panes = usePaneFold({
+    body: bodyWidth,
+    inspector: inspectorOpen ? inspector.panelWidth : 0,
+    paneOpen,
+    onPaneOpen,
+  });
   // 面板开合时图片墙一开始就按终点宽度排，卡片随面板一起滑到位；浮在墙上的侧栏不占墙的宽度。
   // 窄窗口里两边会一起让位或收回，变化一并算进终点。
   const panelSlide = usePanelSlide([
@@ -156,10 +210,17 @@ export function LibraryWorkspace({
 
   // 图片墙的右键菜单与卡片快捷键（#102）。
   const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
-    safe, onError: toast.error,
+    safe,
+    onError: toast.error,
     // 从整摞打开查看器（#418）：看它的第 1 页，左右先在这一摞里翻，翻完接着墙上的下一格。
-    onOpen: (card) => { setViewCrop(false); setViewing(viewedPage(card)); },
-    onCrop: (card) => { setViewCrop(true); setViewing(viewedPage(card)); },
+    onOpen: (card) => {
+      setViewCrop(false);
+      setViewing(viewedPage(card));
+    },
+    onCrop: (card) => {
+      setViewCrop(true);
+      setViewing(viewedPage(card));
+    },
     onInspect: (card) => openSources(card as WorkspaceCard),
     onChanged: () => invalidate({ kind: "contentEdited" }),
     removeCards: (cards) => {
@@ -168,86 +229,206 @@ export function LibraryWorkspace({
     },
     onClearSelection: () => setSelected(new Set()),
     importFrom: (source) => importControl.current?.[source](),
-    importClipboard: async () => { await importControl.current?.clipboard(); },
-    onNotice: (message) => { toast.show({ title: message, tone: "success" }); },
+    importClipboard: async () => {
+      await importControl.current?.clipboard();
+    },
+    onNotice: (message) => {
+      toast.show({ title: message, tone: "success" });
+    },
     selectAll: () => wall.current?.selectAll(),
     setDensity,
   });
 
   return (
     <>
-    <div className="app-workspace workspace" hidden={hidden}>
-      <div className="app-body" ref={setAppBody} data-viewer-flying={flight.dim || undefined} style={{ "--sidebar-width": `${panes.sidebar}px` } as CSSProperties}>
-        {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
-        <WorkspaceSidebar section={section} paneOpen={paneOpen} floating={panes.floating} paneRef={setSidebarElement} onPaneToggle={onPaneToggle} libraryControls={libraryControls}
-          status={status} workspaceScope={workspaceScope} safe={safe} reloadKey={reloadKey} onError={onError} onMessage={toast.error} recheck={recheck}
-          onLibraryRemoved={onLibraryRemoved} onLibraryRestore={onLibraryRestore} captureRequest={captureRequest} onCaptureRequestHandled={onCaptureRequestHandled}
-          onScope={(next) => {
-            // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
-            setWorkspaceScope(next); invalidate({ kind: "scopeChanged" });
-            if (panes.floating) onPaneOpen(false);
-          }} />
-        <main className="app-main main">
-          <WorkspaceTopbar paneOpen={paneOpen} onPaneToggle={onPaneToggle} safe={safe} vocabularyKey={vocabularyKey} search={search} searching={searching} treeSafe={treeSafe} tree={tree} changeSearch={changeSearch} showApproxSource={showApproxSource} onError={onError} resultCount={resultCount} importControl={importControl} workspaceScope={workspaceScope} setWorkspaceScope={setWorkspaceScope} hidden={hidden} running={running} report={report} started={started} setReport={setReport} onOpenBrowse={onOpenBrowse} inspectorOpen={inspectorOpen} toggleInspector={toggleInspector} />
-          {/* 图片墙所在的区域：查看器盖在这里（#179），左栏、顶栏与详情侧栏照常可用。 */}
-          <div className="wall-host" ref={wallHost}>
-          <Wall
-            ref={wall}
-            density={density}
-            onDensityPreview={setZoomPreview}
-            onDensityCommit={(value) => { setZoomPreview(null); setDensity(value); }}
-            onTotalChange={setResultCount}
-            key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}/${stacking.on}`}
-            stackSets={stacking.on}
+      <div className="app-workspace workspace" hidden={hidden}>
+        <div
+          className="app-body"
+          ref={setAppBody}
+          data-viewer-flying={flight.dim || undefined}
+          style={{ "--sidebar-width": `${panes.sidebar}px` } as CSSProperties}
+        >
+          {panes.floating && <div className="pane-scrim" aria-hidden="true" onClick={() => onPaneOpen(false)} />}
+          <WorkspaceSidebar
+            section={section}
+            paneOpen={paneOpen}
+            floating={panes.floating}
+            paneRef={setSidebarElement}
+            onPaneToggle={onPaneToggle}
+            libraryControls={libraryControls}
+            status={status}
             workspaceScope={workspaceScope}
-            onInspectSources={openSources}
-            onCardsChange={setLoadedCards}
-            onWorkspaceStatus={onWallStatus}
-            scope={scope}
-            conditions={tree}
+            safe={safe}
             reloadKey={reloadKey}
-            safeMode={safe}
-            holdReflow={draggedWidth !== null}
-            settle={panelSlide}
-            selected={selected}
-            onSelectionChange={(next) => {
-              // 来源按钮打开的整理只对那一张：画师改了选择，面板跟着选择走。
-              setSelected(next);
-              setSources(null);
+            onError={onError}
+            onMessage={toast.error}
+            recheck={recheck}
+            onLibraryRemoved={onLibraryRemoved}
+            onLibraryRestore={onLibraryRestore}
+            captureRequest={captureRequest}
+            onCaptureRequestHandled={onCaptureRequestHandled}
+            onScope={(next) => {
+              // 查看中在左栏换范围：离开查看器，进入新的范围（#179）。
+              setWorkspaceScope(next);
+              invalidate({ kind: "scopeChanged" });
+              if (panes.floating) onPaneOpen(false);
             }}
-            onOpenImage={(card) => { setViewCrop(false); setViewing(card); }}
-            viewerOpen={viewerOpen}
-            menu={(target) => <WallMenu target={target} scope={scope} density={density} actions={wallActions} inspectorOpen={inspectorOpen} onToggleInspector={toggleInspector}
-              stackSets={stacking.menu} />}
-            onCardCommand={(command, cards, point) => {
-              if (command === "pin") wallActions.pin(cards, point);
-              else if (command === "crop") wallActions.crop(cards[0]);
-              else if (command === "copy") { if (cards.length === 1) wallActions.copy(cards[0]); else toast.show({ title: t("copyOneOnly") }); }
-              else wallActions.edit(cards, [{ kind: "delete" }], true);
-            }}
-            onPaste={wallActions.importClipboard}
-            emptyAction={(empty) => <WallEmptyAction searching={empty} scope={scope} importControl={importControl}
-              onClearConditions={() => changeSearch((prev) => ({ ...prev, conditions: [] }))} />}
           />
-          {/* 图片墙右下角：打标图标（#144）在图片大小浮岛（#102 方案 C3，与 Ctrl+滚轮缩放成对）的左边。
+          <main className="app-main main">
+            <WorkspaceTopbar
+              paneOpen={paneOpen}
+              onPaneToggle={onPaneToggle}
+              safe={safe}
+              vocabularyKey={vocabularyKey}
+              search={search}
+              searching={searching}
+              treeSafe={treeSafe}
+              tree={tree}
+              changeSearch={changeSearch}
+              showApproxSource={showApproxSource}
+              onError={onError}
+              resultCount={resultCount}
+              importControl={importControl}
+              workspaceScope={workspaceScope}
+              setWorkspaceScope={setWorkspaceScope}
+              hidden={hidden}
+              running={running}
+              report={report}
+              started={started}
+              setReport={setReport}
+              onOpenBrowse={onOpenBrowse}
+              inspectorOpen={inspectorOpen}
+              toggleInspector={toggleInspector}
+            />
+            {/* 图片墙所在的区域：查看器盖在这里（#179），左栏、顶栏与详情侧栏照常可用。 */}
+            <div className="wall-host" ref={wallHost}>
+              <Wall
+                ref={wall}
+                density={density}
+                onDensityPreview={setZoomPreview}
+                onDensityCommit={(value) => {
+                  setZoomPreview(null);
+                  setDensity(value);
+                }}
+                onTotalChange={setResultCount}
+                key={`${JSON.stringify(workspaceScope)}/${scopeKey(scope)}/${JSON.stringify(tree)}/${stacking.on}`}
+                stackSets={stacking.on}
+                workspaceScope={workspaceScope}
+                onInspectSources={openSources}
+                onCardsChange={setLoadedCards}
+                onWorkspaceStatus={onWallStatus}
+                scope={scope}
+                conditions={tree}
+                reloadKey={reloadKey}
+                safeMode={safe}
+                holdReflow={draggedWidth !== null}
+                settle={panelSlide}
+                selected={selected}
+                onSelectionChange={(next) => {
+                  // 来源按钮打开的整理只对那一张：画师改了选择，面板跟着选择走。
+                  setSelected(next);
+                  setSources(null);
+                }}
+                onOpenImage={(card) => {
+                  setViewCrop(false);
+                  setViewing(card);
+                }}
+                viewerOpen={viewerOpen}
+                menu={(target) => (
+                  <WallMenu
+                    target={target}
+                    scope={scope}
+                    density={density}
+                    actions={wallActions}
+                    inspectorOpen={inspectorOpen}
+                    onToggleInspector={toggleInspector}
+                    stackSets={stacking.menu}
+                  />
+                )}
+                onCardCommand={(command, cards, point) => {
+                  if (command === "pin") wallActions.pin(cards, point);
+                  else if (command === "crop") wallActions.crop(cards[0]);
+                  else if (command === "copy") {
+                    if (cards.length === 1) wallActions.copy(cards[0]);
+                    else toast.show({ title: t("copyOneOnly") });
+                  } else wallActions.edit(cards, [{ kind: "delete" }], true);
+                }}
+                onPaste={wallActions.importClipboard}
+                emptyAction={(empty) => (
+                  <WallEmptyAction
+                    searching={empty}
+                    scope={scope}
+                    importControl={importControl}
+                    onClearConditions={() => changeSearch((prev) => ({ ...prev, conditions: [] }))}
+                  />
+                )}
+              />
+              {/* 图片墙右下角：打标图标（#144）在图片大小浮岛（#102 方案 C3，与 Ctrl+滚轮缩放成对）的左边。
               选了两张及以上时底部升起多选悬浮栏（#98，#180），右下角收成圆形按钮让位；查看器打开时悬浮栏隐藏。 */}
-          <WallFloats
-            tagging={(collapsed) => <TaggingActivity collapsed={collapsed} onOpenSettings={onOpenTaggingSettings} onShowUnfinished={showUnfinishedTagging} />}
-            density={viewerOpen ? null : { value: density, preview: zoomPreview, onPreview: (v) => wall.current?.previewDensity(v), onCommit: setDensity }}
-            bar={wallFloatBar({ inspected, hidden, viewerOpen, selectionLibrary, panelIds, scope, setSelected, reloadKey, onError, safe, selectedCards, wallActions })}
-          />
-          <ViewerLayer flight={flight} viewing={viewing} setViewing={setViewing} reloadKey={reloadKey} viewerPosition={viewerPosition} step={step} viewCrop={viewCrop} inspectorOpen={inspectorOpen} toggleInspector={toggleInspector} scope={scope} wallActions={wallActions} />
-          {flight.flier}
-          </div>
-        </main>
-        {!hidden && (
-          <WorkspaceInspector inspector={inspector} status={status} safe={safe} reloadKey={reloadKey} vocabularyKey={vocabularyKey}
-            setSelected={setSelected}
-            onError={onError} onInspectorWidth={onInspectorWidth} />
-        )}
+              <WallFloats
+                tagging={(collapsed) => (
+                  <TaggingActivity
+                    collapsed={collapsed}
+                    onOpenSettings={onOpenTaggingSettings}
+                    onShowUnfinished={showUnfinishedTagging}
+                  />
+                )}
+                density={
+                  viewerOpen
+                    ? null
+                    : {
+                        value: density,
+                        preview: zoomPreview,
+                        onPreview: (v) => wall.current?.previewDensity(v),
+                        onCommit: setDensity,
+                      }
+                }
+                bar={wallFloatBar({
+                  inspected,
+                  hidden,
+                  viewerOpen,
+                  selectionLibrary,
+                  panelIds,
+                  scope,
+                  setSelected,
+                  reloadKey,
+                  onError,
+                  safe,
+                  selectedCards,
+                  wallActions,
+                })}
+              />
+              <ViewerLayer
+                flight={flight}
+                viewing={viewing}
+                setViewing={setViewing}
+                reloadKey={reloadKey}
+                viewerPosition={viewerPosition}
+                step={step}
+                viewCrop={viewCrop}
+                inspectorOpen={inspectorOpen}
+                toggleInspector={toggleInspector}
+                scope={scope}
+                wallActions={wallActions}
+              />
+              {flight.flier}
+            </div>
+          </main>
+          {!hidden && (
+            <WorkspaceInspector
+              inspector={inspector}
+              status={status}
+              safe={safe}
+              reloadKey={reloadKey}
+              vocabularyKey={vocabularyKey}
+              setSelected={setSelected}
+              onError={onError}
+              onInspectorWidth={onInspectorWidth}
+            />
+          )}
+        </div>
       </div>
-    </div>
-    {wallDialogs}
+      {wallDialogs}
     </>
   );
 }

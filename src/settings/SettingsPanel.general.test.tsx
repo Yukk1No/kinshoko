@@ -13,13 +13,18 @@ describe("设置：读取", () => {
     backend({
       shell_settings: () => {
         attempts += 1;
-        if (attempts === 1) return new Promise((_, reject) => { fail = reject; });
+        if (attempts === 1)
+          return new Promise((_, reject) => {
+            fail = reject;
+          });
         return defaults;
       },
     });
     render(<SettingsPanel />);
     expect(await screen.findByRole("status")).toHaveProperty("textContent", "正在读取设置…");
-    await act(async () => { fail("设置文件被占用"); });
+    await act(async () => {
+      fail("设置文件被占用");
+    });
     expect((await screen.findByRole("alert")).textContent).toContain("设置文件被占用");
     fireEvent.click(screen.getByRole("button", { name: "重试" }));
     expect(await screen.findByRole("switch", { name: "开机启动" })).toBeTruthy();
@@ -68,10 +73,7 @@ describe("设置：常驻与快捷键", () => {
     const fake = backend({
       rebind_shortcut: {
         ...defaults,
-        shortcuts: [
-          { action: "capture", accelerator: "Ctrl+Alt+A", problem: null },
-          ...defaults.shortcuts.slice(1),
-        ],
+        shortcuts: [{ action: "capture", accelerator: "Ctrl+Alt+A", problem: null }, ...defaults.shortcuts.slice(1)],
       },
     });
     render(<SettingsPanel initialTab="keys" />);
@@ -95,7 +97,11 @@ describe("设置：常驻与快捷键", () => {
   it("按 Esc 放弃更换，不发出命令", async () => {
     const fake = backend();
     const outer: string[] = [];
-    render(<div onKeyDown={(e) => outer.push(e.key)}><SettingsPanel initialTab="keys" /></div>);
+    render(
+      <div onKeyDown={(e) => outer.push(e.key)}>
+        <SettingsPanel initialTab="keys" />
+      </div>,
+    );
     const capture = await screen.findByRole("listitem", { name: "截图" });
 
     fireEvent.click(within(capture).getByRole("button", { name: "更换" }));
@@ -109,7 +115,9 @@ describe("设置：常驻与快捷键", () => {
 
   it("更换被拒绝时显示原因，原来的键不变", async () => {
     backend({
-      rebind_shortcut: () => { throw { code: "message", message: "这个快捷键已用于“钉住剪贴板”" }; },
+      rebind_shortcut: () => {
+        throw { code: "message", message: "这个快捷键已用于“钉住剪贴板”" };
+      },
     });
     render(<SettingsPanel initialTab="keys" />);
     const hide = await screen.findByRole("listitem", { name: "收起钉图" });
@@ -117,10 +125,7 @@ describe("设置：常驻与快捷键", () => {
     fireEvent.click(within(hide).getByRole("button", { name: "更换" }));
     fireEvent.keyDown(within(hide).getByRole("textbox"), { key: "F3", code: "F3" });
 
-    expect(await screen.findByRole("alert")).toHaveProperty(
-      "textContent",
-      "这个快捷键已用于“钉住剪贴板”",
-    );
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "这个快捷键已用于“钉住剪贴板”");
     expect(within(hide).getByText("F4")).toBeTruthy();
   });
 
@@ -171,7 +176,11 @@ describe("设置：界面缩放", () => {
     render(<SettingsPanel uiScale={100} onUiScale={() => {}} />);
     await tab("快捷键");
 
-    for (const [name, keys] of [["放大界面", "Ctrl+="], ["缩小界面", "Ctrl+-"], ["界面复位到 100%", "Ctrl+0"]]) {
+    for (const [name, keys] of [
+      ["放大界面", "Ctrl+="],
+      ["缩小界面", "Ctrl+-"],
+      ["界面复位到 100%", "Ctrl+0"],
+    ]) {
       const row = screen.getByRole("listitem", { name });
       expect(within(row).getByLabelText(keys)).toBeTruthy();
       expect(within(row).queryByRole("button")).toBeNull();

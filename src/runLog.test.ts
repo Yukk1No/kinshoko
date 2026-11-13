@@ -20,7 +20,9 @@ it("界面里没有接住的错误与被拒绝的 Promise 记进运行日志", a
   const calls = backend();
   stop = recordUncaughtErrors(window);
 
-  window.dispatchEvent(new ErrorEvent("error", { message: "TypeError: x is undefined", error: new TypeError("x is undefined") }));
+  window.dispatchEvent(
+    new ErrorEvent("error", { message: "TypeError: x is undefined", error: new TypeError("x is undefined") }),
+  );
   const rejection = new Event("unhandledrejection") as PromiseRejectionEvent;
   Object.defineProperty(rejection, "reason", { value: new Error("读取失败") });
   window.dispatchEvent(rejection);

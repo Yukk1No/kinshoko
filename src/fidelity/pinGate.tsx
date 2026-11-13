@@ -25,7 +25,11 @@ export function pinGateMarkdown(pins: PinGate): string[] {
   const lines = [
     t("report.pinsTitle"),
     "",
-    t("report.pinsVerdict", { verdict: t(pinGatePassed(pins) ? "passed" : "failed"), adapter: pins.adapter || "—", display: pins.display }),
+    t("report.pinsVerdict", {
+      verdict: t(pinGatePassed(pins) ? "passed" : "failed"),
+      adapter: pins.adapter || "—",
+      display: pins.display,
+    }),
     "",
   ];
   if (pins.error) return [...lines, t("error", { error: pins.error }), ""];
@@ -46,7 +50,11 @@ export function PinGateSection({ pins }: { pins: PinGate | null }) {
       {!pins && <p>{t("pins.drawing")}</p>}
       {pins && (
         <p>
-          {t("pins.summary", { adapter: pins.adapter || "—", display: pins.display, verdict: t(pinGatePassed(pins) ? "passed" : "failed") })}
+          {t("pins.summary", {
+            adapter: pins.adapter || "—",
+            display: pins.display,
+            verdict: t(pinGatePassed(pins) ? "passed" : "failed"),
+          })}
           {pins.error && t("pins.error", { error: pins.error })}
         </p>
       )}

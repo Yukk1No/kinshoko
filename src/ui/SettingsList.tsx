@@ -9,8 +9,25 @@ import { Tip } from "./Tip";
  * 用 `ink-2` 小字放在控件左边；`warn` 是需要用户处理的问题，仍在名称下方占一行。
  * 设置项改动即生效，不加“保存”按钮。`label` 给整行一个无障碍名称（例如快捷键行按动作名查找）。
  */
-export function SettingsRow({ icon, title, hint, meta, warn, children, label, className = "", below }: {
-  icon?: ReactNode; title: ReactNode; hint?: string; meta?: ReactNode; warn?: ReactNode; children?: ReactNode; label?: string; className?: string;
+export function SettingsRow({
+  icon,
+  title,
+  hint,
+  meta,
+  warn,
+  children,
+  label,
+  className = "",
+  below,
+}: {
+  icon?: ReactNode;
+  title: ReactNode;
+  hint?: string;
+  meta?: ReactNode;
+  warn?: ReactNode;
+  children?: ReactNode;
+  label?: string;
+  className?: string;
   /** 行下方展开的内容（例如预览、确认、编辑器），与这一行同属一项。 */
   below?: ReactNode;
 }) {
@@ -22,41 +39,79 @@ export function SettingsRow({ icon, title, hint, meta, warn, children, label, cl
   const belowArea = useRef<HTMLDivElement>(null);
   const [, setBelowCleared] = useState(0);
   if (belowOpen) lastBelow.current = below;
-  const clearBelow = () => { lastBelow.current = null; setBelowCleared((n) => n + 1); };
+  const clearBelow = () => {
+    lastBelow.current = null;
+    setBelowCleared((n) => n + 1);
+  };
   // 没有过渡可等（减弱动效时时长为 0，不会有 transitionend）就立刻卸掉。
   // biome-ignore lint/correctness/useExhaustiveDependencies(clearBelow): 只在展开、收起时判断；clearBelow 每次渲染都是新函数
   useLayoutEffect(() => {
     if (belowOpen || lastBelow.current === null || !belowArea.current) return;
-    const durations = getComputedStyle(belowArea.current).transitionDuration.split(",").map((d) => parseFloat(d) || 0);
+    const durations = getComputedStyle(belowArea.current)
+      .transitionDuration.split(",")
+      .map((d) => parseFloat(d) || 0);
     if (Math.max(0, ...durations) === 0) clearBelow();
   }, [belowOpen]);
   // 控件由调用方给出（开关、下拉、按钮，或行下方的文件输入与按钮）：把补充说明挂到这一行的每个控件上。
   useLayoutEffect(() => {
     if (!hint) return;
-    const controls = row.current?.querySelectorAll<HTMLElement>(":is(.k-set-row-main .k-list-end, .k-set-row-below) :is(button, input, select, textarea, [role='switch'], [tabindex])") ?? [];
+    const controls =
+      row.current?.querySelectorAll<HTMLElement>(
+        ":is(.k-set-row-main .k-list-end, .k-set-row-below) :is(button, input, select, textarea, [role='switch'], [tabindex])",
+      ) ?? [];
     for (const control of controls) {
       const ids = (control.getAttribute("aria-describedby") ?? "").split(" ").filter(Boolean);
       if (!ids.includes(hintId)) control.setAttribute("aria-describedby", [...ids, hintId].join(" "));
     }
   });
-  return <Tip label={hint} focus={false} align="start"><li ref={row} className={`k-list-row k-set-row ${className}`} aria-label={label}>
-    <div className="k-set-row-main">
-      {icon && <span className="k-list-icon" aria-hidden="true">{icon}</span>}
-      <div className="k-list-text">
-        <div className="k-list-title">{title}</div>
-        {hint && <p id={hintId} className="k-set-hint">{hint}</p>}
-        {warn && <p className="k-list-desc is-warn"><WarnIcon />{warn}</p>}
-      </div>
-      {(meta !== undefined || children !== undefined) && <div className="k-list-end">
-        {meta !== undefined && <span className="k-list-meta">{meta}</span>}
-        {children}
-      </div>}
-    </div>
-    {(belowOpen || lastBelow.current !== null) && <div ref={belowArea} className="k-set-row-below" data-open={belowOpen ? "" : undefined} inert={!belowOpen}
-      onTransitionEnd={(e) => { if (!belowOpen && e.target === e.currentTarget) clearBelow(); }}>
-      <div className="k-set-row-below-clip"><div className="k-set-row-below-body">{belowOpen ? below : lastBelow.current}</div></div>
-    </div>}
-  </li></Tip>;
+  return (
+    <Tip label={hint} focus={false} align="start">
+      <li ref={row} className={`k-list-row k-set-row ${className}`} aria-label={label}>
+        <div className="k-set-row-main">
+          {icon && (
+            <span className="k-list-icon" aria-hidden="true">
+              {icon}
+            </span>
+          )}
+          <div className="k-list-text">
+            <div className="k-list-title">{title}</div>
+            {hint && (
+              <p id={hintId} className="k-set-hint">
+                {hint}
+              </p>
+            )}
+            {warn && (
+              <p className="k-list-desc is-warn">
+                <WarnIcon />
+                {warn}
+              </p>
+            )}
+          </div>
+          {(meta !== undefined || children !== undefined) && (
+            <div className="k-list-end">
+              {meta !== undefined && <span className="k-list-meta">{meta}</span>}
+              {children}
+            </div>
+          )}
+        </div>
+        {(belowOpen || lastBelow.current !== null) && (
+          <div
+            ref={belowArea}
+            className="k-set-row-below"
+            data-open={belowOpen ? "" : undefined}
+            inert={!belowOpen}
+            onTransitionEnd={(e) => {
+              if (!belowOpen && e.target === e.currentTarget) clearBelow();
+            }}
+          >
+            <div className="k-set-row-below-clip">
+              <div className="k-set-row-below-body">{belowOpen ? below : lastBelow.current}</div>
+            </div>
+          </div>
+        )}
+      </li>
+    </Tip>
+  );
 }
 
 /**
@@ -64,13 +119,30 @@ export function SettingsRow({ icon, title, hint, meta, warn, children, label, cl
  * `note` 是说明这一整组的小字，放在卡片下方、仍在托盘里，和它说明的行算同一组。
  */
 export function SettingsGroup({ label, note, children }: { label: string; note?: ReactNode; children: ReactNode }) {
-  return <div className="k-set-group">
-    <ul className="k-list k-set-list" aria-label={label}>{children}</ul>
-    {note && <p className="k-set-note">{note}</p>}
-  </div>;
+  return (
+    <div className="k-set-group">
+      <ul className="k-list k-set-list" aria-label={label}>
+        {children}
+      </ul>
+      {note && <p className="k-set-note">{note}</p>}
+    </div>
+  );
 }
 
 /** 状态胶囊：完成（绿）、注意（橙，默认带警告图标）或普通；胶囊里必须有文字，图标放在文字前。 */
-export function StatusPill({ tone = "plain", icon, children }: { tone?: "ok" | "warn" | "plain" | "accent" | "mine"; icon?: ReactNode; children: ReactNode }) {
-  return <span className={`k-pill${tone === "plain" ? "" : ` is-${tone}`}`}>{icon ?? (tone === "warn" && <WarnIcon />)}<span className="k-label">{children}</span></span>;
+export function StatusPill({
+  tone = "plain",
+  icon,
+  children,
+}: {
+  tone?: "ok" | "warn" | "plain" | "accent" | "mine";
+  icon?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <span className={`k-pill${tone === "plain" ? "" : ` is-${tone}`}`}>
+      {icon ?? (tone === "warn" && <WarnIcon />)}
+      <span className="k-label">{children}</span>
+    </span>
+  );
 }

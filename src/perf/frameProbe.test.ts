@@ -8,12 +8,23 @@ function fakeEnv(supported: string[] = ["longtask", "long-animation-frame"]) {
   const observers: { cb: PerformanceObserverCallback; types: string[]; connected: boolean }[] = [];
   const env: ProbeEnv = {
     now: () => 1000,
-    raf: (cb) => { const id = nextId++; queue.push({ id, cb }); return id; },
-    caf: (id) => { queue = queue.filter((f) => f.id !== id); },
+    raf: (cb) => {
+      const id = nextId++;
+      queue.push({ id, cb });
+      return id;
+    },
+    caf: (id) => {
+      queue = queue.filter((f) => f.id !== id);
+    },
     observe(types, cb) {
       const entry = { cb, types: types.filter((t) => supported.includes(t)), connected: true };
       observers.push(entry);
-      return { types: entry.types, disconnect: () => { entry.connected = false; } };
+      return {
+        types: entry.types,
+        disconnect: () => {
+          entry.connected = false;
+        },
+      };
     },
   };
   return {
@@ -27,7 +38,9 @@ function fakeEnv(supported: string[] = ["longtask", "long-animation-frame"]) {
     emit(entries: Partial<PerformanceEntry & Record<string, unknown>>[]) {
       for (const o of observers) {
         if (!o.connected) continue;
-        const list = { getEntries: () => entries.filter((e) => o.types.includes(e.entryType as string)) } as unknown as PerformanceObserverEntryList;
+        const list = {
+          getEntries: () => entries.filter((e) => o.types.includes(e.entryType as string)),
+        } as unknown as PerformanceObserverEntryList;
         o.cb(list, {} as PerformanceObserver);
       }
     },
@@ -53,17 +66,32 @@ describe("createFrameProbe", () => {
     fake.emit([
       { entryType: "longtask", startTime: 1100, duration: 70, name: "self" },
       {
-        entryType: "long-animation-frame", startTime: 1300, duration: 95, name: "long-animation-frame",
-        renderStart: 1370, blockingDuration: 45,
-        scripts: [{ sourceURL: "http://x/assets/index.js", sourceFunctionName: "onScroll", invoker: "DIV.onscroll", duration: 60 }],
+        entryType: "long-animation-frame",
+        startTime: 1300,
+        duration: 95,
+        name: "long-animation-frame",
+        renderStart: 1370,
+        blockingDuration: 45,
+        scripts: [
+          {
+            sourceURL: "http://x/assets/index.js",
+            sourceFunctionName: "onScroll",
+            invoker: "DIV.onscroll",
+            duration: 60,
+          },
+        ],
       },
     ]);
     const capture = probe.stop();
     expect(capture.longTasks).toEqual([
       { kind: "longtask", start: 100, duration: 70, name: "self" },
       {
-        kind: "long-animation-frame", start: 300, duration: 95, name: "long-animation-frame",
-        renderDuration: 25, blockingDuration: 45,
+        kind: "long-animation-frame",
+        start: 300,
+        duration: 95,
+        name: "long-animation-frame",
+        renderDuration: 25,
+        blockingDuration: 45,
         scripts: [{ source: "http://x/assets/index.js#onScroll", invoker: "DIV.onscroll", duration: 60 }],
       },
     ]);

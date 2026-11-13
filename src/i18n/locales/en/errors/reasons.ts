@@ -41,7 +41,8 @@ export default {
   packageCaptureMismatch: "Capture {{file}} doesn't match the manifest",
   packageImageMissing: "Original {{file}} is missing",
   packageImageMismatch: "Original {{file}} doesn't match the manifest",
-  packageImportStopped: "The package import finished {{done}} of {{total}} items; item {{number}} failed: {{cause}}. What was written is kept; the reference group hasn't been saved.",
+  packageImportStopped:
+    "The package import finished {{done}} of {{total}} items; item {{number}} failed: {{cause}}. What was written is kept; the reference group hasn't been saved.",
 
   importWriteFailed: "Couldn't write to the library: {{cause}}",
   importTargetUnavailable: "The save location isn't available: {{cause}}",
@@ -54,7 +55,8 @@ export default {
   packageShaMismatch: "It doesn't match the SHA-256 recorded in the reference group package",
   deletionMemoryUnreadable: "Couldn't read what was deleted before: {{detail}}",
   eagleMetadataInvalid: "The Eagle metadata is missing required fields or isn't valid: {{detail}}",
-  eagleRelocationUnconfirmed: "This Eagle library looks like a registered source that has moved. Confirm before bringing it in",
+  eagleRelocationUnconfirmed:
+    "This Eagle library looks like a registered source that has moved. Confirm before bringing it in",
   eagleFoldersInvalid: "An Eagle folder's id or name isn't valid, or an id repeats",
   eagleItemPathInvalid: "The Eagle item path isn't valid",
   eagleItemFieldInvalid: "The Eagle item's {{field}} isn't valid",

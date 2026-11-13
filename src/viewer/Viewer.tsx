@@ -46,7 +46,6 @@ type Props = {
   onPlaced?: (placed: ViewerPlaced) => void;
 };
 
-
 /**
  * 查看器盖在图片墙所在的区域（#179），原位置与已加载的卡片保留；左侧栏、顶栏与旁边的详情侧栏照常可用。
  * 图片的信息与标签都在详情侧栏里，查看器不另放信息浮层；缩放比例在工具栏上。
@@ -54,7 +53,22 @@ type Props = {
  * 钉到桌面（#65）：“钉住整图”，或 Shift+拖动（或先按“框选局部”）框出一块，按 Enter 或“钉住局部”。
  * 选区按原图像素记，标出“宽 × 高 原始像素”，缩放平移时边界不变。
  */
-export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey = 0, position, onStep, startCrop = false, onTrash, inspectorOpen = false, onToggleInspector, flight, hideImage = false, onPlaced }: Props) {
+export function Viewer({
+  libraryId,
+  card,
+  onClose,
+  onBack = onClose,
+  reloadKey = 0,
+  position,
+  onStep,
+  startCrop = false,
+  onTrash,
+  inspectorOpen = false,
+  onToggleInspector,
+  flight,
+  hideImage = false,
+  onPlaced,
+}: Props) {
   const { t } = useTranslation(["viewer", "common"]);
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -73,25 +87,35 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
   const [name, setName] = useState<string | null>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
-  const fitWidth = Math.min(card.width, Math.floor(viewport.width * dpr), Math.floor(Math.floor(viewport.height * dpr) * card.width / card.height));
-  const physicalWidth = Math.max(1, mode === "fit" ? fitWidth : Math.round(card.width * (mode === "pixels" ? 1 : zoomScale)));
-  const physicalHeight = Math.max(1, Math.round(card.height * physicalWidth / card.width));
+  const fitWidth = Math.min(
+    card.width,
+    Math.floor(viewport.width * dpr),
+    Math.floor((Math.floor(viewport.height * dpr) * card.width) / card.height),
+  );
+  const physicalWidth = Math.max(
+    1,
+    mode === "fit" ? fitWidth : Math.round(card.width * (mode === "pixels" ? 1 : zoomScale)),
+  );
+  const physicalHeight = Math.max(1, Math.round((card.height * physicalWidth) / card.width));
   const width = physicalWidth / dpr;
   const height = physicalHeight / dpr;
   // 工具栏本身可落在部分设备像素上，起点必须相对整个窗口对齐，再换回观察层坐标。
   const left = Math.round((viewport.left + (viewport.width - width) / 2 + offset.x) * dpr) / dpr - viewport.left;
   const top = Math.round((viewport.top + (viewport.height - height) / 2 + offset.y) * dpr) / dpr - viewport.top;
   const scale = physicalWidth / card.width;
-  const reset = (next: "fit" | "pixels") => { setMode(next); setOffset({ x: 0, y: 0 }); };
+  const reset = (next: "fit" | "pixels") => {
+    setMode(next);
+    setOffset({ x: 0, y: 0 });
+  };
   const zoomAt = (factor: number, x = viewport.width / 2, y = viewport.height / 2) => {
     const next = Math.min(32, Math.max(1 / card.width, scale * factor));
     const nextWidth = Math.max(1, Math.round(card.width * next));
-    const nextHeight = Math.max(1, Math.round(card.height * nextWidth / card.width));
+    const nextHeight = Math.max(1, Math.round((card.height * nextWidth) / card.width));
     setMode("zoom");
     setZoomScale(next);
     setOffset({
-      x: x - (x - left) / width * (nextWidth / dpr) - (viewport.width - nextWidth / dpr) / 2,
-      y: y - (y - top) / height * (nextHeight / dpr) - (viewport.height - nextHeight / dpr) / 2,
+      x: x - ((x - left) / width) * (nextWidth / dpr) - (viewport.width - nextWidth / dpr) / 2,
+      y: y - ((y - top) / height) * (nextHeight / dpr) - (viewport.height - nextHeight / dpr) / 2,
     });
   };
   useEffect(() => {
@@ -100,12 +124,33 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
       event.preventDefault();
       const rect = el.getBoundingClientRect();
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.height : 1;
-      zoomAt(Math.exp(-Math.max(-600, Math.min(600, event.deltaY * unit)) * 0.002), event.clientX - rect.left, event.clientY - rect.top);
+      zoomAt(
+        Math.exp(-Math.max(-600, Math.min(600, event.deltaY * unit)) * 0.002),
+        event.clientX - rect.left,
+        event.clientY - rect.top,
+      );
     };
     el.addEventListener("wheel", wheel, { passive: false });
     return () => el.removeEventListener("wheel", wheel);
   });
-  const { loadedSrc, setLoadedSrc, derived, setDerived, failedSrc, setFailedSrc, setRetry, src, exactSource, isOriginal, ready, failed, derivedMounted, derivedStandIn, lastStandIn, swapIn } = useViewerSource({ libraryId, card, mode, physicalWidth });
+  const {
+    loadedSrc,
+    setLoadedSrc,
+    derived,
+    setDerived,
+    failedSrc,
+    setFailedSrc,
+    setRetry,
+    src,
+    exactSource,
+    isOriginal,
+    ready,
+    failed,
+    derivedMounted,
+    derivedStandIn,
+    lastStandIn,
+    swapIn,
+  } = useViewerSource({ libraryId, card, mode, physicalWidth });
   useLayoutEffect(() => root.current?.focus(), []);
   // A crop and an active gesture belong to one exact source, including same-sized images.
   // biome-ignore lint/correctness/useExhaustiveDependencies(libraryId): 换了图就重置
@@ -121,7 +166,9 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
   }, [libraryId, card.id, setLoadedSrc, setDerived]);
   // 在上面的重置之后执行，只在打开时一次。
   // biome-ignore lint/correctness/useExhaustiveDependencies(startCrop): 只在打开时看一次
-  useLayoutEffect(() => { if (startCrop) setSelecting(true); }, []);
+  useLayoutEffect(() => {
+    if (startCrop) setSelecting(true);
+  }, []);
   useCaptureSources(() => {
     const image = stage.current?.querySelector<HTMLImageElement>("img.viewer-image");
     if (!image || hideImage || !exactSource || loadedSrc !== src || failedSrc === src) return [];
@@ -134,14 +181,27 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
   useEffect(() => {
     let alive = true;
     workspaceImage(libraryId, card.id).then(
-      (detail) => { if (alive) setName(detail?.originalName ?? null); },
-      (e) => { if (alive && isUnknownImage(e)) closeRef.current(); });
-    return () => { alive = false; };
+      (detail) => {
+        if (alive) setName(detail?.originalName ?? null);
+      },
+      (e) => {
+        if (alive && isUnknownImage(e)) closeRef.current();
+      },
+    );
+    return () => {
+      alive = false;
+    };
   }, [libraryId, card.id, reloadKey, failedSrc]);
   const settled = ready || failed;
   const manual = mode !== "fit" || offset.x !== 0 || offset.y !== 0;
   useLayoutEffect(() => {
-    if (viewport.width > 0) onPlaced?.({ rect: { x: viewport.left + left, y: viewport.top + top, width, height }, src: ready ? src : null, settled, manual });
+    if (viewport.width > 0)
+      onPlaced?.({
+        rect: { x: viewport.left + left, y: viewport.top + top, width, height },
+        src: ready ? src : null,
+        settled,
+        manual,
+      });
   }, [viewport.width, viewport.left, viewport.top, left, top, width, height, src, ready, settled, manual, onPlaced]);
   const shown = { left, top, width, height };
   const placed = { width, height, left: 0, top: 0, transform: `translate(${left}px, ${top}px)` };
@@ -157,43 +217,74 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
     const rect: CssRect = region ? cropOnScreen(region, shown, natural) : { x: left, y: top, width, height };
     pinReference(libraryId, card.id, region, toScreenRect(rect, viewport, dpr)).then(
       () => toast.show({ title: region ? t("pinnedPart") : t("pinnedWhole"), tone: "success" }),
-      (e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.pinFailed", { error: errorText(e) })); },
+      (e) => {
+        if (isUnknownImage(e)) closeRef.current();
+        else toast.error(t("common:image.pinFailed", { error: errorText(e) }));
+      },
     );
   };
   /** 复制图片、在资源管理器中显示（#105 的命令，#114 的查看器菜单）。 */
   const copy = () => {
-    copyReferenceImage(libraryId, card.id).then(() => toast.show({ title: t("common:image.copied"), tone: "success" }),
-      (e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.copyFailed", { error: errorText(e) })); });
+    copyReferenceImage(libraryId, card.id).then(
+      () => toast.show({ title: t("common:image.copied"), tone: "success" }),
+      (e) => {
+        if (isUnknownImage(e)) closeRef.current();
+        else toast.error(t("common:image.copyFailed", { error: errorText(e) }));
+      },
+    );
   };
   const reveal = () => {
-    revealReferenceImage(libraryId, card.id).catch((e) => { if (isUnknownImage(e)) closeRef.current(); else toast.error(t("common:image.revealFailed", { error: errorText(e) })); });
+    revealReferenceImage(libraryId, card.id).catch((e) => {
+      if (isUnknownImage(e)) closeRef.current();
+      else toast.error(t("common:image.revealFailed", { error: errorText(e) }));
+    });
   };
   /** 钉住局部：已有选区就钉住它，否则进入框选。 */
-  const pinPart = () => { if (crop) pin(crop); else setSelecting(true); };
-  const cancelCrop = () => { setCrop(null); setSelecting(false); setDragging(false); select.current = null; };
+  const pinPart = () => {
+    if (crop) pin(crop);
+    else setSelecting(true);
+  };
+  const cancelCrop = () => {
+    setCrop(null);
+    setSelecting(false);
+    setDragging(false);
+    select.current = null;
+  };
   const toggleSelecting = () => setSelecting((on) => !on);
   const keyDown = (e: KeyboardEvent<HTMLElement>) => {
     // 右键菜单渲染在 portal 里，按键仍沿 React 树冒泡到这里：菜单里的按键归菜单处理。
     if (e.target instanceof Element && e.target.closest("[role='menu']")) return;
     if (isMenuKey(e)) {
-      e.preventDefault(); e.stopPropagation();
+      e.preventDefault();
+      e.stopPropagation();
       if (stage.current) openMenuAt(stage.current);
       return;
     }
     if (e.key === "Escape") {
-      e.preventDefault(); e.stopPropagation();
+      e.preventDefault();
+      e.stopPropagation();
       // 先取消框选，再回到图片墙。
-      if (crop || selecting) cancelCrop(); else onBack();
+      if (crop || selecting) cancelCrop();
+      else onBack();
       return;
     }
     // dock 的快捷键与点按 dock 走同一处理；方向键在 dock 内只移动焦点。
     if (!e.ctrlKey && !e.altKey && !e.metaKey) {
       const inDock = e.target instanceof Element && !!e.target.closest(".k-dock");
       const shortcut: Record<string, () => void> = {
-        "0": () => reset("fit"), "1": () => reset("pixels"), F1: toggleSelecting,
-        p: () => pin(null), P: () => pin(null), i: () => onToggleInspector?.(), I: () => onToggleInspector?.(),
+        "0": () => reset("fit"),
+        "1": () => reset("pixels"),
+        F1: toggleSelecting,
+        p: () => pin(null),
+        P: () => pin(null),
+        i: () => onToggleInspector?.(),
+        I: () => onToggleInspector?.(),
       };
-      if (shortcut[e.key]) { e.preventDefault(); shortcut[e.key](); return; }
+      if (shortcut[e.key]) {
+        e.preventDefault();
+        shortcut[e.key]();
+        return;
+      }
       if (!inDock && position && onStep && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
         e.preventDefault();
         const delta = e.key === "ArrowLeft" ? -1 : 1;
@@ -203,7 +294,9 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
       }
     }
     if (e.key === "Enter" && crop && !(e.target instanceof Element && e.target.closest("button, select"))) {
-      e.preventDefault(); pin(crop); return;
+      e.preventDefault();
+      pin(crop);
+      return;
     }
   };
   const shownCropRect = cropRect && crop && !dragging ? cropRect : null;
@@ -217,28 +310,100 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
   };
   const cropTool = (id: string) => {
     if (id === "pin" && crop) pin(crop);
-    else if (id === "redo") { setCrop(null); setSelecting(true); }
-    else if (id === "cancel") cancelCrop();
+    else if (id === "redo") {
+      setCrop(null);
+      setSelecting(true);
+    } else if (id === "cancel") cancelCrop();
   };
   const toolValue = selecting ? "crop" : mode === "zoom" ? null : mode;
   return (
-    <section ref={root} className="viewer" role="region" aria-label={t("label")}
-      tabIndex={-1} onKeyDown={keyDown} data-flight={flight} inert={flight === "land" || flight === "fade-out"}>
-      <ViewerBar name={name} position={position} onBack={onBack} onStep={onStep} zoomAt={zoomAt} physicalWidth={physicalWidth} card={card} />
+    <section
+      ref={root}
+      className="viewer"
+      role="region"
+      aria-label={t("label")}
+      tabIndex={-1}
+      onKeyDown={keyDown}
+      data-flight={flight}
+      inert={flight === "land" || flight === "fade-out"}
+    >
+      <ViewerBar
+        name={name}
+        position={position}
+        onBack={onBack}
+        onStep={onStep}
+        zoomAt={zoomAt}
+        physicalWidth={physicalWidth}
+        card={card}
+      />
       <ContextMenu.Root>
-      <ContextMenu.Trigger render={<div className="viewer-stage" ref={stage} data-background={background}
-        {...stagePointerHandlers({ drag, select, selecting, stagePoint, setDragging, setSelecting, shown, natural, setCrop, offset, setOffset })} />}>
-        <ViewerImages viewport={viewport} src={src} swapIn={swapIn} setFailedSrc={setFailedSrc} placed={placed} scale={scale} ready={ready}
-          derived={derived} setDerived={setDerived} derivedMounted={derivedMounted} derivedStandIn={derivedStandIn} lastStandIn={lastStandIn}
-          isOriginal={isOriginal} failed={failed} setRetry={setRetry} hidden={hideImage} />
-        {cropRect && crop && <div className="viewer-crop" aria-label={t("selection")}
-          style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }} />}
-        {shownCropRect && crop && <CropDock shownCropRect={shownCropRect} crop={crop} viewport={viewport} cropTool={cropTool} />}
-        <div className="viewer-dock"><Dock label={t("tools.label")} items={viewerTools} value={toolValue} onSelect={tool} /></div>
-      </ContextMenu.Trigger>
-      {/* 查看器右键菜单（#102 表“查看器”行，#114）：每项另有 dock 按钮或快捷键。 */}
-      <ViewerMenu pin={pin} pinPart={pinPart} copy={copy} reveal={reveal} reset={reset} background={background} setBackground={setBackground}
-        inspectorOpen={inspectorOpen} onToggleInspector={onToggleInspector} onTrash={onTrash} />
+        <ContextMenu.Trigger
+          render={
+            <div
+              className="viewer-stage"
+              ref={stage}
+              data-background={background}
+              {...stagePointerHandlers({
+                drag,
+                select,
+                selecting,
+                stagePoint,
+                setDragging,
+                setSelecting,
+                shown,
+                natural,
+                setCrop,
+                offset,
+                setOffset,
+              })}
+            />
+          }
+        >
+          <ViewerImages
+            viewport={viewport}
+            src={src}
+            swapIn={swapIn}
+            setFailedSrc={setFailedSrc}
+            placed={placed}
+            scale={scale}
+            ready={ready}
+            derived={derived}
+            setDerived={setDerived}
+            derivedMounted={derivedMounted}
+            derivedStandIn={derivedStandIn}
+            lastStandIn={lastStandIn}
+            isOriginal={isOriginal}
+            failed={failed}
+            setRetry={setRetry}
+            hidden={hideImage}
+          />
+          {cropRect && crop && (
+            <div
+              className="viewer-crop"
+              aria-label={t("selection")}
+              style={{ left: cropRect.x, top: cropRect.y, width: cropRect.width, height: cropRect.height }}
+            />
+          )}
+          {shownCropRect && crop && (
+            <CropDock shownCropRect={shownCropRect} crop={crop} viewport={viewport} cropTool={cropTool} />
+          )}
+          <div className="viewer-dock">
+            <Dock label={t("tools.label")} items={viewerTools} value={toolValue} onSelect={tool} />
+          </div>
+        </ContextMenu.Trigger>
+        {/* 查看器右键菜单（#102 表“查看器”行，#114）：每项另有 dock 按钮或快捷键。 */}
+        <ViewerMenu
+          pin={pin}
+          pinPart={pinPart}
+          copy={copy}
+          reveal={reveal}
+          reset={reset}
+          background={background}
+          setBackground={setBackground}
+          inspectorOpen={inspectorOpen}
+          onToggleInspector={onToggleInspector}
+          onTrash={onTrash}
+        />
       </ContextMenu.Root>
     </section>
   );

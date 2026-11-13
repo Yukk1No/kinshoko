@@ -12,7 +12,11 @@ export function tagOption(c: Candidate, query: string): TagOption {
     id: c.tag.id,
     tag: c.tag,
     label: <Highlight text={tagName(c.tag)} query={query} />,
-    via: c.via ? <>{i18n.t("search:tagVia")} <Highlight text={c.via} query={query} /></> : undefined,
+    via: c.via ? (
+      <>
+        {i18n.t("search:tagVia")} <Highlight text={c.via} query={query} />
+      </>
+    ) : undefined,
     untranslated: c.tag.untranslated,
     meta: c.count,
   };

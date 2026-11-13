@@ -13,14 +13,26 @@ const ipc = vi.hoisted(() => ({
   close: vi.fn((_generation: number) => Promise.resolve()),
   action: vi.fn((_pin: string, _action: string, _generation: number) => Promise.resolve(null as PinNotice | null)),
   notice: vi.fn((_pin: string, _text: string) => Promise.resolve()),
-  groups: vi.fn(() => Promise.resolve([
-    { id: "g1", name: "光影", memberCount: 2, libraryIds: ["L1"], updatedAt: 0, problem: null },
-    { id: "g2", name: "坏的", memberCount: 0, libraryIds: [], updatedAt: 0, problem: { code: "groupInvalid" as const, cause: { code: "notAGroup" as const } } },
-  ])),
+  groups: vi.fn(() =>
+    Promise.resolve([
+      { id: "g1", name: "光影", memberCount: 2, libraryIds: ["L1"], updatedAt: 0, problem: null },
+      {
+        id: "g2",
+        name: "坏的",
+        memberCount: 0,
+        libraryIds: [],
+        updatedAt: 0,
+        problem: { code: "groupInvalid" as const, cause: { code: "notAGroup" as const } },
+      },
+    ]),
+  ),
 }));
 vi.mock("../ipc", () => ({
   desktopMenu: () => Promise.resolve(ipc.first),
-  onDesktopMenu: (handler: (open: PinMenuOpen) => void) => { ipc.next = handler; return Promise.resolve(() => {}); },
+  onDesktopMenu: (handler: (open: PinMenuOpen) => void) => {
+    ipc.next = handler;
+    return Promise.resolve(() => {});
+  },
   desktopMenuShown: ipc.shown,
   closeDesktopMenu: ipc.close,
   pinMenuAction: ipc.action,
@@ -31,24 +43,52 @@ vi.mock("../ipc", () => ({
 import { DesktopMenuView, menuAnchor, PinMenuItems } from "./PinMenu";
 import { Menu } from "../ui/Menu";
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); ipc.first = null; ipc.next = null; });
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+  ipc.first = null;
+  ipc.next = null;
+});
 
 const capture: PinMenu = {
-  pin: "P1", capture: true, opacity: 70, locked: false, actualSize: false, veiled: false, canCollect: true, group: null,
+  pin: "P1",
+  capture: true,
+  opacity: 70,
+  locked: false,
+  actualSize: false,
+  veiled: false,
+  canCollect: true,
+  group: null,
   confirmReveal: false,
 };
 const reference: PinMenu = {
-  pin: "P2", capture: false, opacity: 100, locked: false, actualSize: true, veiled: true, canCollect: false, group: "光影",
+  pin: "P2",
+  capture: false,
+  opacity: 100,
+  locked: false,
+  actualSize: true,
+  veiled: true,
+  canCollect: false,
+  group: "光影",
   confirmReveal: false,
 };
 
 function show(menu: PinMenu) {
   const act = vi.fn();
-  render(<Menu.Root open><Menu.Portal><Menu.Positioner><Menu.Popup aria-label="钉图菜单">
-    <PinMenuItems menu={menu} act={act} groups={ipc.groups} />
-  </Menu.Popup></Menu.Positioner></Menu.Portal></Menu.Root>);
+  render(
+    <Menu.Root open>
+      <Menu.Portal>
+        <Menu.Positioner>
+          <Menu.Popup aria-label="钉图菜单">
+            <PinMenuItems menu={menu} act={act} groups={ipc.groups} />
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>,
+  );
   const popup = screen.getByRole("menu", { name: "钉图菜单" });
-  const rows = () => [...popup.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"]')].map((row) => row.textContent);
+  const rows = () =>
+    [...popup.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"]')].map((row) => row.textContent);
   return { act, popup, rows };
 }
 
@@ -56,10 +96,18 @@ describe("钉图菜单项", () => {
   it("截图钉图：保留原生菜单全部项，再加在 Kinshoko 中打开、加入参考组、收起钉图与关闭钉图", () => {
     const { rows, popup } = show(capture);
     expect(rows()).toEqual([
-      "水平翻转H", "垂直翻转V", "顺时针旋转 90°R", "逆时针旋转 90°Shift R",
-      "原始大小（100%）", "透明度70%", "锁定位置与大小",
-      "收藏到…", "复制",
-      "在 Kinshoko 中打开", "加入参考组", "收起钉图",
+      "水平翻转H",
+      "垂直翻转V",
+      "顺时针旋转 90°R",
+      "逆时针旋转 90°Shift R",
+      "原始大小（100%）",
+      "透明度70%",
+      "锁定位置与大小",
+      "收藏到…",
+      "复制",
+      "在 Kinshoko 中打开",
+      "加入参考组",
+      "收起钉图",
       "关闭钉图Esc",
     ]);
     expect(within(popup).getAllByRole("separator")).toHaveLength(4);
@@ -68,10 +116,19 @@ describe("钉图菜单项", () => {
   it("资料库钉图：没有收藏；遮蔽时有“显示这张图”、复制不可用，来自参考组时有“更新参考组”", () => {
     const { rows } = show(reference);
     expect(rows()).toEqual([
-      "水平翻转H", "垂直翻转V", "顺时针旋转 90°R", "逆时针旋转 90°Shift R",
-      "原始大小（100%）", "透明度100%", "锁定位置与大小",
-      "复制", "显示这张图（安全模式下已遮蔽）", "更新参考组「光影」",
-      "在 Kinshoko 中打开", "加入参考组", "收起钉图",
+      "水平翻转H",
+      "垂直翻转V",
+      "顺时针旋转 90°R",
+      "逆时针旋转 90°Shift R",
+      "原始大小（100%）",
+      "透明度100%",
+      "锁定位置与大小",
+      "复制",
+      "显示这张图（安全模式下已遮蔽）",
+      "更新参考组「光影」",
+      "在 Kinshoko 中打开",
+      "加入参考组",
+      "收起钉图",
       "关闭钉图Esc",
     ]);
   });
@@ -94,9 +151,22 @@ describe("钉图菜单项", () => {
   it("点了小圆锁：只问“显示这张图？”，显示即 reveal，取消只关菜单", () => {
     const dismiss = vi.fn();
     const act = vi.fn();
-    render(<Menu.Root open><Menu.Portal><Menu.Positioner><Menu.Popup aria-label="钉图菜单">
-      <PinMenuItems menu={{ ...reference, confirmReveal: true }} act={act} dismiss={dismiss} groups={ipc.groups} />
-    </Menu.Popup></Menu.Positioner></Menu.Portal></Menu.Root>);
+    render(
+      <Menu.Root open>
+        <Menu.Portal>
+          <Menu.Positioner>
+            <Menu.Popup aria-label="钉图菜单">
+              <PinMenuItems
+                menu={{ ...reference, confirmReveal: true }}
+                act={act}
+                dismiss={dismiss}
+                groups={ipc.groups}
+              />
+            </Menu.Popup>
+          </Menu.Positioner>
+        </Menu.Portal>
+      </Menu.Root>,
+    );
     expect(screen.getByText("显示这张图？")).toBeTruthy();
     expect(screen.getAllByRole("menuitem").map((r) => r.textContent)).toEqual(["显示", "取消"]);
     fireEvent.click(screen.getByRole("menuitem", { name: "取消" }));
@@ -108,12 +178,29 @@ describe("钉图菜单项", () => {
   it("各项调用对应的动作", () => {
     const { act } = show(capture);
     const click = (name: RegExp | string) => fireEvent.click(screen.getByRole("menuitem", { name }));
-    click(/水平翻转/); click(/垂直翻转/); click(/顺时针/); click(/逆时针/);
-    click("原始大小（100%）"); fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "锁定位置与大小" }));
-    click("收藏到…"); click("复制");
-    click("在 Kinshoko 中打开"); click("收起钉图"); click(/关闭钉图/);
+    click(/水平翻转/);
+    click(/垂直翻转/);
+    click(/顺时针/);
+    click(/逆时针/);
+    click("原始大小（100%）");
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "锁定位置与大小" }));
+    click("收藏到…");
+    click("复制");
+    click("在 Kinshoko 中打开");
+    click("收起钉图");
+    click(/关闭钉图/);
     expect(act.mock.calls.map(([a]) => a)).toEqual([
-      "flipH", "flipV", "rotateCw", "rotateCcw", "actualSize", "lock", "collect", "copy", "openInKinshoko", "edgeHide", "close",
+      "flipH",
+      "flipV",
+      "rotateCw",
+      "rotateCcw",
+      "actualSize",
+      "lock",
+      "collect",
+      "copy",
+      "openInKinshoko",
+      "edgeHide",
+      "close",
     ]);
   });
 
@@ -135,7 +222,18 @@ describe("钉图菜单项", () => {
     const { act } = show(capture);
     fireEvent.click(screen.getByRole("menuitem", { name: /透明度/ }));
     const items = await screen.findAllByRole("menuitemradio");
-    expect(items.map((i) => i.textContent)).toEqual(["100%", "90%", "80%", "70%", "60%", "50%", "40%", "30%", "20%", "10%"]);
+    expect(items.map((i) => i.textContent)).toEqual([
+      "100%",
+      "90%",
+      "80%",
+      "70%",
+      "60%",
+      "50%",
+      "40%",
+      "30%",
+      "20%",
+      "10%",
+    ]);
     expect(screen.getByRole("menuitemradio", { name: "70%" }).getAttribute("aria-checked")).toBe("true");
     fireEvent.click(screen.getByRole("menuitemradio", { name: "40%" }));
     expect(act).toHaveBeenCalledWith("opacity:40");
@@ -158,9 +256,14 @@ describe("钉图菜单项", () => {
 
 describe("菜单窗口", () => {
   const open = (generation: number, menu: PinMenu = capture): PinMenuOpen => ({
-    generation, menu, surface: { window: { x: -1920, y: 0, width: 1920, height: 1080 }, x: 300, y: 150 },
+    generation,
+    menu,
+    surface: { window: { x: -1920, y: 0, width: 1920, height: 1080 }, x: 300, y: 150 },
   });
-  const settle = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); });
+  const settle = () =>
+    act(async () => {
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+    });
 
   it("锚点按页面的缩放比例从物理像素换算成 CSS 像素", () => {
     expect(menuAnchor(open(1), 1.5)).toEqual({ x: 200, y: 100 });
@@ -173,7 +276,9 @@ describe("菜单窗口", () => {
     render(<DesktopMenuView />);
     await settle();
     expect(await screen.findByRole("menu", { name: "钉图菜单" })).toBeTruthy();
-    await act(async () => { await new Promise((r) => requestAnimationFrame(() => r(null))); });
+    await act(async () => {
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+    });
     expect(ipc.shown).toHaveBeenCalledWith(3);
   });
 
@@ -227,7 +332,9 @@ describe("菜单窗口", () => {
     fireEvent.keyDown(menu, { key: "Escape" });
     await settle();
     expect(ipc.close).toHaveBeenCalledWith(5);
-    act(() => { window.dispatchEvent(new Event("blur")); });
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+    });
     expect(ipc.close).toHaveBeenCalledTimes(1);
 
     act(() => ipc.next!(open(6)));
@@ -238,7 +345,9 @@ describe("菜单窗口", () => {
 
     act(() => ipc.next!(open(7)));
     await screen.findByRole("menu", { name: "钉图菜单" });
-    act(() => { window.dispatchEvent(new Event("blur")); });
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+    });
     expect(ipc.close).toHaveBeenLastCalledWith(7);
     expect(ipc.close).toHaveBeenCalledTimes(3);
   });
@@ -253,7 +362,9 @@ describe("菜单窗口", () => {
       fireEvent.mouseEnter(trigger);
       fireEvent.pointerMove(trigger, { pointerType: "mouse" });
       fireEvent.mouseMove(trigger);
-      await act(async () => { await new Promise((r) => setTimeout(r, 200)); });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 200));
+      });
       await settle();
       expect(screen.queryByRole("menu", { name: "钉图菜单" })).toBeTruthy();
       expect(ipc.close).not.toHaveBeenCalled();
@@ -266,7 +377,8 @@ describe("菜单窗口", () => {
     const rect = (x: number, y: number, w: number, h: number) => DOMRect.fromRect({ x, y, width: w, height: h });
     const boxes = new Map<Element, DOMRect>();
     const spy = vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
-      for (const [el, box] of boxes) if (el === this || (el.parentElement === this && this.classList.contains("k-positioner"))) return box;
+      for (const [el, box] of boxes)
+        if (el === this || (el.parentElement === this && this.classList.contains("k-positioner"))) return box;
       return rect(0, 0, 0, 0);
     });
     try {
@@ -275,7 +387,10 @@ describe("菜单窗口", () => {
       act(() => ipc.next!(open(11, reference)));
       const trigger = await screen.findByRole("menuitem", { name: /透明度/ });
       boxes.set(trigger, rect(0, 100, 200, 30));
-      const wait = (ms: number) => act(async () => { await new Promise((r) => setTimeout(r, ms)); });
+      const wait = (ms: number) =>
+        act(async () => {
+          await new Promise((r) => setTimeout(r, ms));
+        });
       const at = (x: number, y: number) => ({ clientX: x, clientY: y, pointerType: "mouse" as const });
       fireEvent.pointerEnter(trigger, at(100, 115));
       fireEvent.mouseEnter(trigger, at(100, 115));

@@ -11,14 +11,25 @@ import type { BrowseScope } from "../bindings/BrowseScope";
 import { expectNoChinese } from "../test/noChinese";
 
 // 英文界面下主窗口各处没有中文界面文案（#356）。中文界面的文案由各组件自己的测试核对。
-beforeEach(async () => { await act(async () => { await i18n.changeLanguage("en"); }); });
+beforeEach(async () => {
+  await act(async () => {
+    await i18n.changeLanguage("en");
+  });
+});
 afterEach(async () => {
   cleanup();
-  await act(async () => { await i18n.changeLanguage("zh-CN"); });
+  await act(async () => {
+    await i18n.changeLanguage("zh-CN");
+  });
 });
 
 const card = (id: string): BrowserCard => ({
-  id, width: 100, height: 100, adult: false, libraryId: "L1", imageId: `i${id}`,
+  id,
+  width: 100,
+  height: 100,
+  adult: false,
+  libraryId: "L1",
+  imageId: `i${id}`,
   sources: [
     { libraryId: "L1", libraryName: "库一", imageId: `i${id}`, unavailable: null, matches: true, deleted: false },
     { libraryId: "L2", libraryName: "库二", imageId: `j${id}`, unavailable: null, matches: true, deleted: false },
@@ -26,14 +37,33 @@ const card = (id: string): BrowserCard => ({
 });
 
 const actions = (): WallMenuActions => ({
-  open: vi.fn(), pin: vi.fn(), crop: vi.fn(), edit: vi.fn(), addToGroup: vi.fn(), inspectSources: vi.fn(),
-  purge: vi.fn(), importFrom: vi.fn(), selectAll: vi.fn(), setDensity: vi.fn(),
-  copy: vi.fn(), reveal: vi.fn(), importClipboard: vi.fn(), clipboardHasImage: vi.fn(async () => true),
-  folders: vi.fn(async () => []), inFolder: vi.fn(async () => true), groups: vi.fn(async () => []),
+  open: vi.fn(),
+  pin: vi.fn(),
+  crop: vi.fn(),
+  edit: vi.fn(),
+  addToGroup: vi.fn(),
+  inspectSources: vi.fn(),
+  purge: vi.fn(),
+  importFrom: vi.fn(),
+  selectAll: vi.fn(),
+  setDensity: vi.fn(),
+  copy: vi.fn(),
+  reveal: vi.fn(),
+  importClipboard: vi.fn(),
+  clipboardHasImage: vi.fn(async () => true),
+  folders: vi.fn(async () => []),
+  inFolder: vi.fn(async () => true),
+  groups: vi.fn(async () => []),
 });
 
 function wallMenu(target: WallMenuTarget, scope: BrowseScope = { kind: "all" }) {
-  render(<ContextMenu.Root open><MenuPopup label="menu"><WallMenu target={target} scope={scope} density={240} actions={actions()} /></MenuPopup></ContextMenu.Root>);
+  render(
+    <ContextMenu.Root open>
+      <MenuPopup label="menu">
+        <WallMenu target={target} scope={scope} density={240} actions={actions()} />
+      </MenuPopup>
+    </ContextMenu.Root>,
+  );
   return screen.getByRole("menu");
 }
 
@@ -64,8 +94,22 @@ describe("英文界面：图片墙", () => {
 
 describe("英文界面：查看器与导入按钮", () => {
   it("查看器菜单", () => {
-    render(<ContextMenu.Root open><ViewerMenu pin={vi.fn()} pinPart={vi.fn()} copy={vi.fn()} reveal={vi.fn()} reset={vi.fn()}
-      background="mid" setBackground={vi.fn()} inspectorOpen onToggleInspector={vi.fn()} onTrash={vi.fn()} /></ContextMenu.Root>);
+    render(
+      <ContextMenu.Root open>
+        <ViewerMenu
+          pin={vi.fn()}
+          pinPart={vi.fn()}
+          copy={vi.fn()}
+          reveal={vi.fn()}
+          reset={vi.fn()}
+          background="mid"
+          setBackground={vi.fn()}
+          inspectorOpen
+          onToggleInspector={vi.fn()}
+          onTrash={vi.fn()}
+        />
+      </ContextMenu.Root>,
+    );
     fireEvent.click(screen.getByRole("menuitem", { name: "Background" }));
     expectNoChinese(document.body);
   });

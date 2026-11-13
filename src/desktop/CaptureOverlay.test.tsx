@@ -7,7 +7,10 @@ import { CaptureOverlay } from "./CaptureOverlay";
 import { type FakeBackend, fakeBackend } from "../test/backend";
 
 let reduced = false;
-vi.mock("motion/react", async (actual) => ({ ...(await actual<typeof import("motion/react")>()), useReducedMotion: () => reduced }));
+vi.mock("motion/react", async (actual) => ({
+  ...(await actual<typeof import("motion/react")>()),
+  useReducedMotion: () => reduced,
+}));
 
 let backend: FakeBackend;
 /** 冻结时登记的参考图在框选窗口里的范围（物理像素）与原图倍率：选区完全落在里面时读原始像素。 */
@@ -24,7 +27,12 @@ beforeEach(() => {
     frozen_screen: () => frozen,
     capture_readout: (args) => {
       const { region: r } = args as { region: { x: number; y: number; width: number; height: number } };
-      const inside = reference && r.x >= reference.x && r.y >= reference.y && r.x + r.width <= reference.x + reference.width && r.y + r.height <= reference.y + reference.height;
+      const inside =
+        reference &&
+        r.x >= reference.x &&
+        r.y >= reference.y &&
+        r.x + r.width <= reference.x + reference.width &&
+        r.y + r.height <= reference.y + reference.height;
       return inside ? { width: r.width * reference!.scale, height: r.height * reference!.scale } : null;
     },
     capture_ready: null,
@@ -65,7 +73,11 @@ describe("截图框选（#98 dock）", () => {
     const dock = screen.getByRole("toolbar", { name: "截图" });
     expect(within(dock).getByText("125 × 100")).toBeTruthy();
     expect(within(dock).getByText("屏幕像素")).toBeTruthy();
-    expect(within(dock).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["复制，Ctrl C", "钉住，Enter", "取消，Esc"]);
+    expect(
+      within(dock)
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["复制，Ctrl C", "钉住，Enter", "取消，Esc"]);
     expect(within(dock).getByRole("button", { name: /^钉住/ }).className).toContain("is-primary");
     expect(within(dock).getByRole("button", { name: /^取消/ }).className).toContain("is-danger");
     expect(root.querySelectorAll(".capture-handle")).toHaveLength(8);
@@ -76,22 +88,30 @@ describe("截图框选（#98 dock）", () => {
     // 冻结屏幕 2400×1500 物理像素，1.25 倍：指针最多到 (2399, 1499)，即 CSS (1919.2, 1199.2)。
     select(root, [100, 80], [1919.2, 1199.2]);
     fireEvent.keyDown(window, { key: "Enter" });
-    expect(sent("finish_capture")).toEqual([{ region: { x: 125, y: 100, width: 2275, height: 1400 }, action: "pin", token: "tok" }]);
+    expect(sent("finish_capture")).toEqual([
+      { region: { x: 125, y: 100, width: 2275, height: 1400 }, action: "pin", token: "tok" },
+    ]);
   });
 
   it.each([
-    ["复制", "copy"], ["钉住", "pin"],
+    ["复制", "copy"],
+    ["钉住", "pin"],
   ] as const)("点 dock 的%s与快捷键发出同一个结束请求", async (label, action) => {
     let { root } = await open();
     select(root, [100, 80], [200, 160]);
     const region = { x: 125, y: 100, width: 125, height: 100 };
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${label}`) })); });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${label}`) }));
+    });
     cleanup();
     ({ root } = await open());
     select(root, [100, 80], [200, 160]);
     if (action === "copy") fireEvent.keyDown(window, { key: "c", ctrlKey: true });
     else fireEvent.keyDown(window, { key: "Enter" });
-    expect(sent("finish_capture")).toEqual([{ region, action, token: "tok" }, { region, action, token: "tok" }]);
+    expect(sent("finish_capture")).toEqual([
+      { region, action, token: "tok" },
+      { region, action, token: "tok" },
+    ]);
   });
 
   it("取消与 Esc 只取消；在 dock 上按下不会开始新选区", async () => {
@@ -129,7 +149,9 @@ describe("调整已有选区（与常见截图工具相同）", () => {
     select(root, [150, 120], [190, 100]);
     expect(dock().getByText("125 × 100")).toBeTruthy();
     fireEvent.keyDown(window, { key: "Enter" });
-    expect(sent("finish_capture")).toEqual([{ region: { x: 175, y: 75, width: 125, height: 100 }, action: "pin", token: "tok" }]);
+    expect(sent("finish_capture")).toEqual([
+      { region: { x: 175, y: 75, width: 125, height: 100 }, action: "pin", token: "tok" },
+    ]);
   });
 
   it("移动时整个选区夹在显示器里", async () => {
@@ -137,7 +159,9 @@ describe("调整已有选区（与常见截图工具相同）", () => {
     select(root, [100, 80], [200, 160]);
     select(root, [150, 120], [-500, -500]);
     fireEvent.keyDown(window, { key: "Enter" });
-    expect(sent("finish_capture")).toEqual([{ region: { x: 0, y: 0, width: 125, height: 100 }, action: "pin", token: "tok" }]);
+    expect(sent("finish_capture")).toEqual([
+      { region: { x: 0, y: 0, width: 125, height: 100 }, action: "pin", token: "tok" },
+    ]);
   });
 
   it("按住右下角拖动调整大小，左上角不动；按住左边只动左边", async () => {
@@ -147,7 +171,9 @@ describe("调整已有选区（与常见截图工具相同）", () => {
     expect(dock().getByText("175 × 150")).toBeTruthy();
     select(root, [99, 150], [119, 10]);
     fireEvent.keyDown(window, { key: "Enter" });
-    expect(sent("finish_capture")).toEqual([{ region: { x: 150, y: 100, width: 150, height: 150 }, action: "pin", token: "tok" }]);
+    expect(sent("finish_capture")).toEqual([
+      { region: { x: 150, y: 100, width: 150, height: 150 }, action: "pin", token: "tok" },
+    ]);
   });
 
   it("在选区外拖动重新框选", async () => {
@@ -177,7 +203,9 @@ describe("调整已有选区（与常见截图工具相同）", () => {
     fireEvent.pointerDown(root, { pointerId: 6, button: 0, clientX: 150, clientY: 120 });
     fireEvent.pointerUp(root, { pointerId: 6, clientX: 150, clientY: 120 });
     fireEvent.doubleClick(root, { clientX: 150, clientY: 120 });
-    expect(sent("finish_capture")).toEqual([{ region: { x: 125, y: 100, width: 125, height: 100 }, action: "pin", token: "tok" }]);
+    expect(sent("finish_capture")).toEqual([
+      { region: { x: 125, y: 100, width: 125, height: 100 }, action: "pin", token: "tok" },
+    ]);
   });
 
   it("聚焦在 dock 按钮上按 Enter 只执行那个按钮", async () => {
@@ -191,7 +219,10 @@ describe("调整已有选区（与常见截图工具相同）", () => {
 });
 
 describe("截图读数区分原始像素（#103）", () => {
-  const readout = () => within(screen.getByRole("toolbar", { name: "截图" })).getByText(/像素$/).closest(".k-dock-readout") as HTMLElement;
+  const readout = () =>
+    within(screen.getByRole("toolbar", { name: "截图" }))
+      .getByText(/像素$/)
+      .closest(".k-dock-readout") as HTMLElement;
   const star = () => readout().querySelector<SVGSVGElement>("svg.k-original-star");
 
   it("选区完全落在参考图上时读原图对应区域的原始像素，并带上 logo 的星", async () => {
@@ -199,13 +230,18 @@ describe("截图读数区分原始像素（#103）", () => {
     reference = { x: 100, y: 50, width: 600, height: 400, scale: 4 };
     const { root } = await open();
     select(root, [100, 80], [200, 160]);
-    expect(sent("capture_readout")).toContainEqual({ region: { x: 125, y: 100, width: 125, height: 100 }, token: "tok" });
+    expect(sent("capture_readout")).toContainEqual({
+      region: { x: 125, y: 100, width: 125, height: 100 },
+      token: "tok",
+    });
     expect(await within(readout()).findByText("原始像素")).toBeTruthy();
     expect(within(readout()).getByText("500 × 400")).toBeTruthy();
     expect(within(readout()).queryByText("屏幕像素")).toBeNull();
     const mark = star()!;
     expect(mark.getAttribute("aria-hidden")).toBe("true");
-    expect(mark.querySelector("path")!.getAttribute("d")).toBe("M132 32 C136.16 53.84 136.16 53.84 158 58 C136.16 62.16 136.16 62.16 132 84 C127.84 62.16 127.84 62.16 106 58 C127.84 53.84 127.84 53.84 132 32 Z");
+    expect(mark.querySelector("path")!.getAttribute("d")).toBe(
+      "M132 32 C136.16 53.84 136.16 53.84 158 58 C136.16 62.16 136.16 62.16 132 84 C127.84 62.16 127.84 62.16 106 58 C127.84 53.84 127.84 53.84 132 32 Z",
+    );
     // 颜色来自 --star 令牌（ui.css），不写在图形上。
     expect(mark.querySelector("path")!.getAttribute("fill")).toBeNull();
     // 设计系统 v2：读数后直接挂星，“原始像素”只在悬停提示与读屏文字里。
@@ -260,11 +296,15 @@ describe("框选窗口用完只隐藏，下一次复用（#129）", () => {
     select(root, [100, 80], [200, 160]);
     expect(screen.getByRole("toolbar", { name: "截图" })).toBeTruthy();
     frozen = null;
-    await act(async () => { await emit("capture-session"); });
+    await act(async () => {
+      await emit("capture-session");
+    });
     expect(screen.queryByAltText("")).toBeNull();
     expect(screen.queryByRole("toolbar")).toBeNull();
     frozen = { image: "screen/tok2", width: 2400, height: 1500 };
-    await act(async () => { await emit("capture-session"); });
+    await act(async () => {
+      await emit("capture-session");
+    });
     const image = await screen.findByAltText("");
     expect(image.getAttribute("src")).toContain("tok2");
     expect(screen.queryByRole("toolbar")).toBeNull();
@@ -280,7 +320,9 @@ describe("框选窗口用完只隐藏，下一次复用（#129）", () => {
     await within(screen.getByRole("toolbar", { name: "截图" })).findByText("原始像素");
     reference = null;
     frozen = { image: "screen/tok2", width: 2400, height: 1500 };
-    await act(async () => { await emit("capture-session"); });
+    await act(async () => {
+      await emit("capture-session");
+    });
     await screen.findByAltText("");
     root = document.querySelector<HTMLElement>(".capture")!;
     select(root, [100, 80], [200, 160]);
@@ -294,10 +336,16 @@ describe("确认后立刻显示进度，结果可用才关（#127）", () => {
     const { root } = await open();
     select(root, [100, 80], [200, 160]);
     await within(screen.getByRole("toolbar", { name: "截图" })).findByText("原始像素");
-    await act(async () => { fireEvent.keyDown(window, { key: "c", ctrlKey: true }); });
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "c", ctrlKey: true });
+    });
     const dock = screen.getByRole("toolbar", { name: "截图" });
     expect(within(dock).getByRole("status").textContent).toBe("正在复制原图…");
-    expect(within(dock).getAllByRole("button").every((b) => (b as HTMLButtonElement).disabled || b.getAttribute("aria-disabled") === "true")).toBe(true);
+    expect(
+      within(dock)
+        .getAllByRole("button")
+        .every((b) => (b as HTMLButtonElement).disabled || b.getAttribute("aria-disabled") === "true"),
+    ).toBe(true);
     expect(root.className).toContain("is-busy");
     fireEvent.keyDown(window, { key: "Enter" });
     fireEvent.keyDown(window, { key: "Escape" });
@@ -311,10 +359,14 @@ describe("确认后立刻显示进度，结果可用才关（#127）", () => {
   it("屏幕截图钉住时显示“正在钉住…”；原生端结束会话后进度消失", async () => {
     const { root } = await open();
     select(root, [100, 80], [200, 160]);
-    await act(async () => { fireEvent.keyDown(window, { key: "Enter" }); });
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "Enter" });
+    });
     expect(within(screen.getByRole("toolbar", { name: "截图" })).getByRole("status").textContent).toBe("正在钉住…");
     frozen = null;
-    await act(async () => { await emit("capture-session"); });
+    await act(async () => {
+      await emit("capture-session");
+    });
     expect(screen.queryByRole("status")).toBeNull();
     expect(root.isConnected).toBe(false);
   });

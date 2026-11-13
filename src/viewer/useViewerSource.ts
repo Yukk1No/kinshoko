@@ -5,8 +5,16 @@ import { displayScaledUrl, displayUrl } from "../ipc";
 /**
  * 查看器显示哪张位图：缩放停手后才换的精确来源、换来源期间的替身，以及读取失败（#128）。
  */
-export function useViewerSource({ libraryId, card, mode, physicalWidth }: {
-  libraryId: string; card: Omit<ImageCard, "thumbnail"> & Partial<Pick<ImageCard, "thumbnail">>; mode: "fit" | "pixels" | "zoom"; physicalWidth: number;
+export function useViewerSource({
+  libraryId,
+  card,
+  mode,
+  physicalWidth,
+}: {
+  libraryId: string;
+  card: Omit<ImageCard, "thumbnail"> & Partial<Pick<ImageCard, "thumbnail">>;
+  mode: "fit" | "pixels" | "zoom";
+  physicalWidth: number;
 }) {
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   /**
@@ -36,7 +44,10 @@ export function useViewerSource({ libraryId, card, mode, physicalWidth }: {
   // 画面跟手；精确来源读完才换上，静止时看到的仍只来自 ADR-0005 的两条路。
   // biome-ignore lint/correctness/useExhaustiveDependencies: physicalWidth 与 cardKey 是重新计时的信号；setRequestedPx 每次渲染都是新函数
   useEffect(() => {
-    if (mode !== "zoom") { setRequestedPx(desiredPx); return; }
+    if (mode !== "zoom") {
+      setRequestedPx(desiredPx);
+      return;
+    }
     if (requestedPx === desiredPx || sourcePending) return;
     const timer = window.setTimeout(() => setRequestedPx(desiredPx), 120);
     return () => window.clearTimeout(timer);
@@ -49,8 +60,12 @@ export function useViewerSource({ libraryId, card, mode, physicalWidth }: {
    * 要用时已经读完；读完之前由最近读完的位图当替身。精确来源读取失败时不留替身，只显示错误。
    */
   const derivedMounted = derived !== null && derived.src !== src;
-  const derivedStandIn = derivedMounted && derived.loaded && !failed && !(ready && exactSource)
-    && (desiredPx < card.width || (!ready && loadedSrc === derived.src));
+  const derivedStandIn =
+    derivedMounted &&
+    derived.loaded &&
+    !failed &&
+    !(ready && exactSource) &&
+    (desiredPx < card.width || (!ready && loadedSrc === derived.src));
   const lastStandIn = !ready && !derivedStandIn && !failed ? loadedSrc : null;
   /** 解码完再换上，换图那一帧不空白；换走或换了图的元素不再回写。 */
   const swapIn = (image: HTMLImageElement, loaded: string) => {
@@ -61,5 +76,22 @@ export function useViewerSource({ libraryId, card, mode, physicalWidth }: {
     };
     image.decode().then(done, done);
   };
-  return { loadedSrc, setLoadedSrc, derived, setDerived, failedSrc, setFailedSrc, setRetry, src, exactSource, isOriginal, ready, failed, derivedMounted, derivedStandIn, lastStandIn, swapIn };
+  return {
+    loadedSrc,
+    setLoadedSrc,
+    derived,
+    setDerived,
+    failedSrc,
+    setFailedSrc,
+    setRetry,
+    src,
+    exactSource,
+    isOriginal,
+    ready,
+    failed,
+    derivedMounted,
+    derivedStandIn,
+    lastStandIn,
+    swapIn,
+  };
 }

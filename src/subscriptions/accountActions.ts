@@ -9,12 +9,17 @@ type Report = (message: string) => void;
 export function accountActions(report: Report, accept: (status: SubscriptionStatus) => void) {
   return {
     signIn: () => {
-      subscriptionLogin(i18n.t("subscriptions:account.windowTitle"))
-        .catch((e) => report(i18n.t("subscriptions:account.failed", { error: errorText(e) })));
+      subscriptionLogin(i18n.t("subscriptions:account.windowTitle")).catch((e) =>
+        report(i18n.t("subscriptions:account.failed", { error: errorText(e) })),
+      );
     },
-    cancel: () => { subscriptionCancelLogin().then(accept, (e) => report(errorText(e))); },
+    cancel: () => {
+      subscriptionCancelLogin().then(accept, (e) => report(errorText(e)));
+    },
     signOut: () => {
-      subscriptionLogout().then(accept, (e) => report(i18n.t("subscriptions:account.signOutFailed", { error: errorText(e) })));
+      subscriptionLogout().then(accept, (e) =>
+        report(i18n.t("subscriptions:account.signOutFailed", { error: errorText(e) })),
+      );
     },
   };
 }

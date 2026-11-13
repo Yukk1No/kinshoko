@@ -16,8 +16,12 @@ const indicatorTop = () => indicator().style.getPropertyValue("--active-tab-top"
 
 beforeEach(() => {
   backend();
-  vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (this: HTMLElement) { return this.getAttribute("role") === "tab" ? 176 : 0; });
-  vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) { return this.getAttribute("role") === "tab" ? 34 : 0; });
+  vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (this: HTMLElement) {
+    return this.getAttribute("role") === "tab" ? 176 : 0;
+  });
+  vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
+    return this.getAttribute("role") === "tab" ? 34 : 0;
+  });
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
     return rectAt(this.getAttribute("role") === "tab" ? tabTop(this) : 0);
   });

@@ -23,19 +23,23 @@ export function glyphGrid(dpr: number): GlyphGrid {
 
 /** SVG path data in device-pixel units (viewBox 0 0 size size). */
 export function glyphPath(kind: GlyphKind, { size: n, stroke: s }: GlyphGrid): string {
-  const h = s / 2, p = Math.max(1, Math.round(n * 0.05));
-  const lo = p + h, hi = n - p - h; // stroke centres whose outer edges land on p and n - p
+  const h = s / 2,
+    p = Math.max(1, Math.round(n * 0.05));
+  const lo = p + h,
+    hi = n - p - h; // stroke centres whose outer edges land on p and n - p
   if (kind === "minimize") {
     const y = Math.floor((n - s) / 2) + h;
     return `M${p} ${y}H${n - p}`;
   }
   if (kind === "maximize") return box(lo, lo, hi, hi, Math.max(h, Math.round(n * 0.16)));
   if (kind === "restore") {
-    const a = Math.round(n * 0.2), r = Math.max(h, Math.round(n * 0.12));
+    const a = Math.round(n * 0.2),
+      r = Math.max(h, Math.round(n * 0.12));
     const front = box(lo, lo + a, hi - a, hi, r);
     // The back square shows only above and right of the front one.
-    const back = `M${lo + a} ${lo + a}V${lo + r}A${r} ${r} 0 0 1 ${lo + a + r} ${lo}H${hi - r}A${r} ${r} 0 0 1 ${hi} ${lo + r}V${hi - a - r}`
-      + `A${r} ${r} 0 0 1 ${hi - r} ${hi - a}H${hi - a}`;
+    const back =
+      `M${lo + a} ${lo + a}V${lo + r}A${r} ${r} 0 0 1 ${lo + a + r} ${lo}H${hi - r}A${r} ${r} 0 0 1 ${hi} ${lo + r}V${hi - a - r}` +
+      `A${r} ${r} 0 0 1 ${hi - r} ${hi - a}H${hi - a}`;
     return front + back;
   }
   const c = Math.round(n * 0.15);
@@ -43,15 +47,21 @@ export function glyphPath(kind: GlyphKind, { size: n, stroke: s }: GlyphGrid): s
 }
 
 function box(x0: number, y0: number, x1: number, y1: number, r: number) {
-  return `M${x0 + r} ${y0}H${x1 - r}A${r} ${r} 0 0 1 ${x1} ${y0 + r}V${y1 - r}A${r} ${r} 0 0 1 ${x1 - r} ${y1}`
-    + `H${x0 + r}A${r} ${r} 0 0 1 ${x0} ${y1 - r}V${y0 + r}A${r} ${r} 0 0 1 ${x0 + r} ${y0}Z`;
+  return (
+    `M${x0 + r} ${y0}H${x1 - r}A${r} ${r} 0 0 1 ${x1} ${y0 + r}V${y1 - r}A${r} ${r} 0 0 1 ${x1 - r} ${y1}` +
+    `H${x0 + r}A${r} ${r} 0 0 1 ${x0} ${y1 - r}V${y0 + r}A${r} ${r} 0 0 1 ${x0 + r} ${y0}Z`
+  );
 }
 
 /**
  * Where to put a glyph of `size` device pixels so it is centred in a box (CSS px rect) and starts on a whole
  * device pixel. Returns the offset from the box's top-left corner in CSS px.
  */
-export function snapGlyph(box: { left: number; top: number; width: number; height: number }, size: number, dpr: number) {
+export function snapGlyph(
+  box: { left: number; top: number; width: number; height: number },
+  size: number,
+  dpr: number,
+) {
   const at = (start: number, length: number) => Math.round((start + length / 2) * dpr - size / 2) / dpr - start;
   return { left: at(box.left, box.width), top: at(box.top, box.height) };
 }

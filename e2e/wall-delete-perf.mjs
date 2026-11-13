@@ -45,15 +45,29 @@ class Session {
     await until("Tauri IPC", () => session.exec("return Boolean(window.__TAURI_INTERNALS__?.invoke);"));
     return session;
   }
-  constructor(id) { this.base = `/session/${id}`; }
-  exec(script, args = []) { return wd("POST", `${this.base}/execute/sync`, { script, args }); }
+  constructor(id) {
+    this.base = `/session/${id}`;
+  }
+  exec(script, args = []) {
+    return wd("POST", `${this.base}/execute/sync`, { script, args });
+  }
   async run(script, args = []) {
-    const result = await wd("POST", `${this.base}/execute/async`, { script: `const done = arguments[arguments.length - 1]; (async () => { ${script} })().then(value => done({ value }), error => done({ failure: String(error?.stack ?? error) }));`, args });
+    const result = await wd("POST", `${this.base}/execute/async`, {
+      script: `const done = arguments[arguments.length - 1]; (async () => { ${script} })().then(value => done({ value }), error => done({ failure: String(error?.stack ?? error) }));`,
+      args,
+    });
     if (result?.failure) throw new Error(result.failure);
     return result.value;
   }
-  invoke(command, args = {}) { return this.run("return await window.__TAURI_INTERNALS__.invoke('plugin:library|' + arguments[0], arguments[1]);", [command, args]); }
-  async screenshot(file) { writeFileSync(file, Buffer.from(await wd("GET", `${this.base}/screenshot`), "base64")); }
+  invoke(command, args = {}) {
+    return this.run("return await window.__TAURI_INTERNALS__.invoke('plugin:library|' + arguments[0], arguments[1]);", [
+      command,
+      args,
+    ]);
+  }
+  async screenshot(file) {
+    writeFileSync(file, Buffer.from(await wd("GET", `${this.base}/screenshot`), "base64"));
+  }
 }
 
 /** 页面里跑的一轮：选中墙顶部 N 张、按 Del，逐帧记录到稳定为止。 */
@@ -106,36 +120,88 @@ const ROUND = `
   };
 `;
 
-const result = { application, samples, expected, rounds, sizes: SIZES, quietMs: QUIET_MS, startedAt: new Date().toISOString() };
+const result = {
+  application,
+  samples,
+  expected,
+  rounds,
+  sizes: SIZES,
+  quietMs: QUIET_MS,
+  startedAt: new Date().toISOString(),
+};
 const save = () => writeFileSync(join(work, "result.json"), JSON.stringify(result, null, 2));
-const driver = spawn(process.env.TAURI_DRIVER ?? "tauri-driver", ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)], {
-  env: { ...process.env, KINSHOKO_DATA_DIR: join(work, "app-data"), KINSHOKO_SKIP_AUTOSTART: "1", WEBVIEW2_USER_DATA_FOLDER: join(work, "webview") },
-  windowsHide: true, stdio: ["ignore", "inherit", "inherit"],
-});
+const driver = spawn(
+  process.env.TAURI_DRIVER ?? "tauri-driver",
+  ["--port", String(port), "--native-port", String(port + 1), "--native-driver", resolve(edgeArg)],
+  {
+    env: {
+      ...process.env,
+      KINSHOKO_DATA_DIR: join(work, "app-data"),
+      KINSHOKO_SKIP_AUTOSTART: "1",
+      WEBVIEW2_USER_DATA_FOLDER: join(work, "webview"),
+    },
+    windowsHide: true,
+    stdio: ["ignore", "inherit", "inherit"],
+  },
+);
 let session;
 try {
   await until("tauri-driver", () => fetch(`${driverUrl}/status`).then((r) => r.ok));
   session = await Session.start();
-  await until("最大化按钮", () => session.exec("const b = document.querySelector('.k-win-btn[aria-label=\"最大化\"]'); if (!b) return false; b.click(); return true;"));
-  await until("窗口已最大化", () => session.exec("return Boolean(document.querySelector('.k-win-btn[aria-label=\"还原\"]'));"));
+  await until("最大化按钮", () =>
+    session.exec(
+      "const b = document.querySelector('.k-win-btn[aria-label=\"最大化\"]'); if (!b) return false; b.click(); return true;",
+    ),
+  );
+  await until("窗口已最大化", () =>
+    session.exec("return Boolean(document.querySelector('.k-win-btn[aria-label=\"还原\"]'));"),
+  );
   const library = await session.invoke("create_library", { parent: libraries, name: "删除耗时" });
   result.library = library.id;
   const importStart = Date.now();
   await session.invoke("start_import", { libraryId: library.id, source: { paths: [samples] } });
-  await until("导入完成", async () => (await session.invoke("workspace_sidebar", { libraryId: library.id, safeMode: await session.invoke("safe_mode") })).all === expected, 3_600_000, 1000);
+  await until(
+    "导入完成",
+    async () =>
+      (
+        await session.invoke("workspace_sidebar", {
+          libraryId: library.id,
+          safeMode: await session.invoke("safe_mode"),
+        })
+      ).all === expected,
+    3_600_000,
+    1000,
+  );
   result.importMs = Date.now() - importStart;
   console.log(`导入 ${expected} 张：${result.importMs} ms`);
-  await until("侧栏出现资料库", () => session.exec("return Boolean(document.querySelector(`[data-library-id=\"${arguments[0]}\"] .lib-head-name`));", [library.id]));
-  await session.exec("document.querySelector(`[data-library-id=\"${arguments[0]}\"] .lib-head-name`).click();", [library.id]);
-  await until(`图片墙满 ${expected}`, () => session.exec("return Number(document.querySelector('.wall')?.dataset.total) === arguments[0] && document.querySelectorAll('.wall .card').length > 20;", [expected]), 120000);
+  await until("侧栏出现资料库", () =>
+    session.exec('return Boolean(document.querySelector(`[data-library-id="${arguments[0]}"] .lib-head-name`));', [
+      library.id,
+    ]),
+  );
+  await session.exec('document.querySelector(`[data-library-id="${arguments[0]}"] .lib-head-name`).click();', [
+    library.id,
+  ]);
+  await until(
+    `图片墙满 ${expected}`,
+    () =>
+      session.exec(
+        "return Number(document.querySelector('.wall')?.dataset.total) === arguments[0] && document.querySelectorAll('.wall .card').length > 20;",
+        [expected],
+      ),
+    120000,
+  );
   await delay(3000);
   result.rounds = [];
   for (const scenario of SCENARIOS) {
     if (scenario === "all-loaded") {
       // 滚到底直到不再变高（各页都读到了），再回到顶部。
-      let stable = 0, height = 0;
+      let stable = 0,
+        height = 0;
       while (stable < 4) {
-        const next = await session.exec("const w = document.querySelector('.wall'); w.scrollTop = w.scrollHeight; return w.scrollHeight;");
+        const next = await session.exec(
+          "const w = document.querySelector('.wall'); w.scrollTop = w.scrollHeight; return w.scrollHeight;",
+        );
         stable = next === height ? stable + 1 : 0;
         height = next;
         await delay(400);
@@ -149,22 +215,49 @@ try {
         entry.round = round;
         entry.scenario = scenario;
         result.rounds.push(entry);
-        console.log(`${scenario} 第 ${round} 轮 ${count} 张`, JSON.stringify({ removedMs: entry.removedMs, totalMs: entry.totalMs, doneMs: entry.doneMs, stableMs: entry.stableMs }));
+        console.log(
+          `${scenario} 第 ${round} 轮 ${count} 张`,
+          JSON.stringify({
+            removedMs: entry.removedMs,
+            totalMs: entry.totalMs,
+            doneMs: entry.doneMs,
+            stableMs: entry.stableMs,
+          }),
+        );
         save();
-        if (round === 1 && count === SIZES.at(-1)) await session.screenshot(join(work, `after-delete-${scenario}-${count}.png`));
+        if (round === 1 && count === SIZES.at(-1))
+          await session.screenshot(join(work, `after-delete-${scenario}-${count}.png`));
         // 撤销：点轻提示里的“撤销”，等墙回到原来的张数并安静下来。
-        await until("撤销按钮", () => session.exec("const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === '撤销'); if (!b) return false; b.click(); return true;"), 10000);
-        await until("撤销后张数恢复", () => session.exec("return Number(document.querySelector('.wall')?.dataset.total) === arguments[0];", [expected]), 60000);
+        await until(
+          "撤销按钮",
+          () =>
+            session.exec(
+              "const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === '撤销'); if (!b) return false; b.click(); return true;",
+            ),
+          10000,
+        );
+        await until(
+          "撤销后张数恢复",
+          () =>
+            session.exec("return Number(document.querySelector('.wall')?.dataset.total) === arguments[0];", [expected]),
+          60000,
+        );
         await delay(3000);
       }
     }
   }
   const summary = {};
-  for (const scenario of SCENARIOS) for (const count of SIZES) {
-    const runs = result.rounds.filter((r) => r.count === count && r.scenario === scenario);
-    const median = (field) => runs.map((r) => r[field]).sort((a, b) => a - b)[Math.floor(runs.length / 2)];
-    summary[`${scenario}/${count}`] = { removedMs: median("removedMs"), totalMs: median("totalMs"), doneMs: median("doneMs"), stableMs: median("stableMs") };
-  }
+  for (const scenario of SCENARIOS)
+    for (const count of SIZES) {
+      const runs = result.rounds.filter((r) => r.count === count && r.scenario === scenario);
+      const median = (field) => runs.map((r) => r[field]).sort((a, b) => a - b)[Math.floor(runs.length / 2)];
+      summary[`${scenario}/${count}`] = {
+        removedMs: median("removedMs"),
+        totalMs: median("totalMs"),
+        doneMs: median("doneMs"),
+        stableMs: median("stableMs"),
+      };
+    }
   result.summary = summary;
   console.log("中位数", JSON.stringify(summary));
   result.status = "done";
@@ -185,7 +278,11 @@ try {
     "while ($queue.Count) { $id = $queue.Dequeue(); if ($tree.ContainsKey($id)) { continue }; $tree[$id] = $true; foreach ($p in $all) { if ($p.ParentProcessId -eq $id) { $queue.Enqueue([int]$p.ProcessId) } } }",
     "$all | Where-Object { $tree.ContainsKey([int]$_.ProcessId) -and $_.ExecutablePath -eq $env:KINSHOKO_PERF_EXE } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
   ].join("; ");
-  if (driver.pid) spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", cleanup], { env: { ...process.env, KINSHOKO_PERF_EXE: application, KINSHOKO_PERF_DRIVER_PID: String(driver.pid) }, windowsHide: true });
+  if (driver.pid)
+    spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", cleanup], {
+      env: { ...process.env, KINSHOKO_PERF_EXE: application, KINSHOKO_PERF_DRIVER_PID: String(driver.pid) },
+      windowsHide: true,
+    });
   driver.kill();
   console.log(`结果：${join(work, "result.json")}`);
 }

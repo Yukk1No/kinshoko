@@ -16,8 +16,8 @@ const PROTOTYPE_RULES = [
 ];
 const PROTOTYPE_COLOURS = [
   ":root { --seal-acc: #c85672; --seal-ink: var(--ink); }",
-  "@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) { --seal-acc: #e3b34f; } }",
-  ":root[data-theme=\"dark\"] { --seal-acc: #e3b34f; }",
+  '@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seal-acc: #e3b34f; } }',
+  ':root[data-theme="dark"] { --seal-acc: #e3b34f; }',
 ];
 
 const lines = css.split(/\r?\n/).map((line) => line.trim());

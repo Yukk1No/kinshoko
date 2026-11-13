@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, type MutableRefObject, type RefObject } from "react";
-import { captureAnchor, masonry, type Anchor, } from "./layout";
-import {SAVE_ANCHOR_MS, SCROLLING_MS, 
-  saveAnchor, type BrowserCard, 
-} from "./wallShared";
-import { storableAnchor, useOpenTray, } from "./imageSets";
-
+import { captureAnchor, masonry, type Anchor } from "./layout";
+import { SAVE_ANCHOR_MS, SCROLLING_MS, saveAnchor, type BrowserCard } from "./wallShared";
+import { storableAnchor, useOpenTray } from "./imageSets";
 
 // 图片墙的滚动处理（挂载范围、方向、位置的记录），原样从 Wall.tsx 移出。
 
@@ -25,7 +22,22 @@ type Args = {
   storeKey: string | null;
 };
 
-export function useWallScroll({ scroller, syncMount, scrollDirection, lastScrollTop, settledTop, restoring, anchor, anchorToStore, shown, tray, trayIds, layout, ids, storeKey }: Args) {
+export function useWallScroll({
+  scroller,
+  syncMount,
+  scrollDirection,
+  lastScrollTop,
+  settledTop,
+  restoring,
+  anchor,
+  anchorToStore,
+  shown,
+  tray,
+  trayIds,
+  layout,
+  ids,
+  storeKey,
+}: Args) {
   const scrollingTimer = useRef(0);
   useEffect(() => () => clearTimeout(scrollingTimer.current), []);
   /** 停手后才写本地存储（#109：不在每个滚动事件里同步写）；卸载与页面隐藏时立即写。 */
@@ -40,7 +52,10 @@ export function useWallScroll({ scroller, syncMount, scrollDirection, lastScroll
   }, [anchorToStore]);
   useEffect(() => {
     window.addEventListener("pagehide", flushSave);
-    return () => { window.removeEventListener("pagehide", flushSave); flushSave(); };
+    return () => {
+      window.removeEventListener("pagehide", flushSave);
+      flushSave();
+    };
   }, [flushSave]);
 
   const onScroll = () => {
@@ -49,7 +64,9 @@ export function useWallScroll({ scroller, syncMount, scrollDirection, lastScroll
     // 滚动中不拿起一摞（#418）。
     el.dataset.scrolling = "";
     clearTimeout(scrollingTimer.current);
-    scrollingTimer.current = window.setTimeout(() => { delete el.dataset.scrolling; }, SCROLLING_MS);
+    scrollingTimer.current = window.setTimeout(() => {
+      delete el.dataset.scrolling;
+    }, SCROLLING_MS);
     if (el.scrollTop !== lastScrollTop.current) scrollDirection.current = el.scrollTop > lastScrollTop.current ? 1 : -1;
     lastScrollTop.current = el.scrollTop;
     // 自己为锚点做的滚动不重新取锚，否则每次重排都会漂到另一张图。

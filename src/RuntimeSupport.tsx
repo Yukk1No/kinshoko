@@ -28,17 +28,28 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
     try {
       const facts = await probeRuntime();
       const next = await runtimeStatus(facts);
-      if (generation.current === request) { setStatus(next); setError(null); }
+      if (generation.current === request) {
+        setStatus(next);
+        setError(null);
+      }
       return facts;
     } catch (reason) {
-      if (generation.current === request) { setStatus(null); setError(errorText(reason)); }
+      if (generation.current === request) {
+        setStatus(null);
+        setError(errorText(reason));
+      }
       throw reason;
     } finally {
       if (generation.current === request) setChecking(false);
     }
   }, []);
   // 忽略失败：失败时 check 已把原因放进 error，设置 › 诊断里显示。
-  useEffect(() => { void check().catch(() => {}); return () => { generation.current += 1; }; }, [check]);
+  useEffect(() => {
+    void check().catch(() => {});
+    return () => {
+      generation.current += 1;
+    };
+  }, [check]);
   return <RuntimeContext value={{ status, error, checking, check }}>{children}</RuntimeContext>;
 }
 
@@ -46,11 +57,18 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
 export function useDiagnosticsReport(onError: (error: unknown) => void) {
   const runtime = useContext(RuntimeContext);
   const [text, setText] = useState<string | null>(null);
-  const facts = () => runtime ? runtime.check() : Promise.resolve(undefined);
+  const facts = () => (runtime ? runtime.check() : Promise.resolve(undefined));
   return {
     text,
-    show: () => void facts().then(diagnosticsReport).then(setText).catch((e) => onError(e)),
-    save: () => void facts().then(exportDiagnostics).catch((e) => onError(e)),
+    show: () =>
+      void facts()
+        .then(diagnosticsReport)
+        .then(setText)
+        .catch((e) => onError(e)),
+    save: () =>
+      void facts()
+        .then(exportDiagnostics)
+        .catch((e) => onError(e)),
   };
 }
 
@@ -59,7 +77,10 @@ export function RuntimeNotice({ hidden, onOpen }: { hidden: boolean; onOpen: () 
   const runtime = useContext(RuntimeContext);
   const { t } = useTranslation("settings", { keyPrefix: "runtime" });
   const failed = !!runtime?.status?.assessment.problems.length;
-  usePersistentToast(failed ? { title: t("failed"), tone: "error", action: { label: t("view"), onClick: onOpen } } : null, { hidden });
+  usePersistentToast(
+    failed ? { title: t("failed"), tone: "error", action: { label: t("view"), onClick: onOpen } } : null,
+    { hidden },
+  );
   return null;
 }
 
@@ -72,23 +93,61 @@ export function RuntimeDetails() {
   const status = runtime.status;
   const problems = status?.assessment.problems ?? [];
   const failed = problems.length > 0;
-  const state = runtime.checking ? <StatusPill>{t("checking")}</StatusPill>
-    : !status ? <StatusPill tone="warn">{t("incomplete")}</StatusPill>
-    : failed ? <StatusPill tone="warn">{t("notPassed")}</StatusPill>
-    : <StatusPill tone="ok" icon={<CircleCheck size={12} aria-hidden="true" />}>{t("ok")}</StatusPill>;
-  return <section className="runtime-details" aria-label={t("label")}>
-    <SettingsGroup label={t("label")}>
-      <SettingsRow icon={<Monitor size={16} />} title={t("display")} meta={t("webview2", { version: status?.webview2 ?? t("unknownVersion") })}
-        warn={failed && <span role="alert">{problems.map((problem) => t(`problem.${problem}`)).join(" ")}</span>}>{state}</SettingsRow>
-      {failed && <SettingsRow icon={<Download size={16} />} title={t("download")} hint={t("advice")}>
-        <button type="button" className="k-btn is-sm" onClick={() => void openRuntimeUpdate().catch((e) => setError(errorText(e)))}><span className="k-label">{t("open")}</span></button>
-      </SettingsRow>}
-      <SettingsRow icon={<RefreshCw size={16} />} title={t("recheck")} hint={t("recheckHint")}>
-        {/* 忽略失败：失败时 check 已把原因放进 error，显示在这一组下面。 */}
-        <button type="button" className="k-btn is-sm" disabled={runtime.checking} onClick={() => void runtime.check().catch(() => {})}><span className="k-label">{t("check")}</span></button>
-      </SettingsRow>
-    </SettingsGroup>
-    {error && <p className="k-set-error" role="alert">{error}</p>}
-    {runtime.error && <p className="k-set-error" role="alert">{t("checkFailed", { error: runtime.error })}</p>}
-  </section>;
+  const state = runtime.checking ? (
+    <StatusPill>{t("checking")}</StatusPill>
+  ) : !status ? (
+    <StatusPill tone="warn">{t("incomplete")}</StatusPill>
+  ) : failed ? (
+    <StatusPill tone="warn">{t("notPassed")}</StatusPill>
+  ) : (
+    <StatusPill tone="ok" icon={<CircleCheck size={12} aria-hidden="true" />}>
+      {t("ok")}
+    </StatusPill>
+  );
+  return (
+    <section className="runtime-details" aria-label={t("label")}>
+      <SettingsGroup label={t("label")}>
+        <SettingsRow
+          icon={<Monitor size={16} />}
+          title={t("display")}
+          meta={t("webview2", { version: status?.webview2 ?? t("unknownVersion") })}
+          warn={failed && <span role="alert">{problems.map((problem) => t(`problem.${problem}`)).join(" ")}</span>}
+        >
+          {state}
+        </SettingsRow>
+        {failed && (
+          <SettingsRow icon={<Download size={16} />} title={t("download")} hint={t("advice")}>
+            <button
+              type="button"
+              className="k-btn is-sm"
+              onClick={() => void openRuntimeUpdate().catch((e) => setError(errorText(e)))}
+            >
+              <span className="k-label">{t("open")}</span>
+            </button>
+          </SettingsRow>
+        )}
+        <SettingsRow icon={<RefreshCw size={16} />} title={t("recheck")} hint={t("recheckHint")}>
+          {/* 忽略失败：失败时 check 已把原因放进 error，显示在这一组下面。 */}
+          <button
+            type="button"
+            className="k-btn is-sm"
+            disabled={runtime.checking}
+            onClick={() => void runtime.check().catch(() => {})}
+          >
+            <span className="k-label">{t("check")}</span>
+          </button>
+        </SettingsRow>
+      </SettingsGroup>
+      {error && (
+        <p className="k-set-error" role="alert">
+          {error}
+        </p>
+      )}
+      {runtime.error && (
+        <p className="k-set-error" role="alert">
+          {t("checkFailed", { error: runtime.error })}
+        </p>
+      )}
+    </section>
+  );
 }

@@ -2,12 +2,22 @@ import { useMemo, useRef, useState, type ReactElement } from "react";
 import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import { formatNumber } from "../i18n/format";
-import { Clock, LoaderCircle, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plus, RefreshCw, Rss, TriangleAlert, } from "lucide-react";
+import {
+  Clock,
+  LoaderCircle,
+  MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  RefreshCw,
+  Rss,
+  TriangleAlert,
+} from "lucide-react";
 import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { captureImage, useCaptureSources } from "../desktop/captureSources";
-import { errorText, } from "../ipc";
+import { errorText } from "../ipc";
 import { subscriptionCheckNow } from "../ipc/subscriptions";
 import { modalOpen } from "../ui/modal";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
@@ -30,7 +40,15 @@ import { imageKey, useNow, useSubscriptionData } from "./useSubscriptionData";
  * 安全模式开着时不显示成人作品与 `hiddenWhenSafe` 的订阅，也不出现 R-18 字样；切换当即生效，
  * 不等后端重读。画师、榜单、收藏夹的添加流程由 #369–#371 挂在 `kinds` 上。
  */
-export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneToggle, onOpenImage, kinds = KINDS }: {
+export function SubscriptionsPage({
+  status,
+  onStatus,
+  safe,
+  paneOpen,
+  onPaneToggle,
+  onOpenImage,
+  kinds = KINDS,
+}: {
   status: SubscriptionStatus;
   onStatus: (status: SubscriptionStatus) => void;
   safe: boolean;
@@ -44,7 +62,9 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   const { t } = useTranslation("subscriptions");
   const { t: tw } = useTranslation("workspace");
   const toast = useToast();
-  const report = (message: string) => { toast.error(message); };
+  const report = (message: string) => {
+    toast.error(message);
+  };
   const onError = (e: unknown) => report(errorText(e));
   const now = useNow();
   /** 添加、改设置或退订后加一，重读名单。 */
@@ -62,8 +82,13 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   const [selected, setSelected] = useState<string | null>(null);
   // 缩略图读不出来可能只是暂时的（例如安全模式下被分级挡住）：记下时连同这次读到的结果与安全模式，
   // 换了安全模式或重读后就不算了，再试一次。
-  const [failures, setFailures] = useState<{ recent: ReceivedImage[]; safe: boolean; keys: ReadonlySet<string> } | null>(null);
-  const current = (f: typeof failures): ReadonlySet<string> => (f?.recent === recent && f.safe === safe ? f.keys : new Set());
+  const [failures, setFailures] = useState<{
+    recent: ReceivedImage[];
+    safe: boolean;
+    keys: ReadonlySet<string>;
+  } | null>(null);
+  const current = (f: typeof failures): ReadonlySet<string> =>
+    f?.recent === recent && f.safe === safe ? f.keys : new Set();
   const failedTiles = current(failures);
   const onFail = (key: string) => setFailures((f) => ({ recent, safe, keys: new Set([...current(f), key]) }));
   const login = status.login;
@@ -72,19 +97,28 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   const actions = accountActions(report, onStatus);
 
   const [firstRun, setFirstRun] = useState(() => login.state === "loggedOut" && !status.signingIn && !firstRunSeen());
-  const closeFirstRun = () => { markFirstRunSeen(); setFirstRun(false); };
+  const closeFirstRun = () => {
+    markFirstRunSeen();
+    setFirstRun(false);
+  };
 
   const visible = useMemo(() => (list ?? []).filter((s) => !safe || !hiddenWhenSafe(s, kinds)), [list, safe, kinds]);
   const visibleIds = useMemo(() => new Set(visible.map((s) => s.id)), [visible]);
   // 选中的订阅不在可见列表里（例如开了安全模式）就清掉；在渲染中比较，这一帧就不按它筛选。
   if (selected !== null && !visibleIds.has(selected)) setSelected(null);
-  const images = veiled ? [] : recent.filter((image) => (!safe || !image.explicit) && visibleIds.has(image.subscriptionId) && !failedTiles.has(imageKey(image)));
+  const images = veiled
+    ? []
+    : recent.filter(
+        (image) =>
+          (!safe || !image.explicit) && visibleIds.has(image.subscriptionId) && !failedTiles.has(imageKey(image)),
+      );
   const shown = selected === null ? images : images.filter((image) => image.subscriptionId === selected);
   const freshImages = shown.filter((image) => fresh.has(imageKey(image)));
   const earlier = shown.filter((image) => !fresh.has(imageKey(image)));
   const freshBySubscription = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const image of images) if (fresh.has(imageKey(image))) counts.set(image.subscriptionId, (counts.get(image.subscriptionId) ?? 0) + 1);
+    for (const image of images)
+      if (fresh.has(imageKey(image))) counts.set(image.subscriptionId, (counts.get(image.subscriptionId) ?? 0) + 1);
     return counts;
   }, [images, fresh]);
 
@@ -108,93 +142,243 @@ export function SubscriptionsPage({ status, onStatus, safe, paneOpen, onPaneTogg
   const mountOf = (s: Subscription) => kinds.find((k) => k.kind === kindOf(s.target));
   const flow = { status, safe, list: list ?? [] };
   const check = checkView(status, visible, now);
-  const checkNow = () => { subscriptionCheckNow().catch((e) => report(t("check.failed", { error: errorText(e) }))); };
+  const checkNow = () => {
+    subscriptionCheckNow().catch((e) => report(t("check.failed", { error: errorText(e) })));
+  };
 
-  const addMenu = (trigger: ReactElement) => <Menu.Root modal={false}>
-    <Menu.Trigger render={trigger} />
-    <MenuPopup label={t("add")} width={200}>
-      {kinds.map((k) => <MenuItem key={k.kind} icon={k.icon(16)} disabled={!k.add || (k.full?.(list ?? []) ?? false)} onClick={() => setAdding(k)}>{t(`addMenu.${k.kind}`)}</MenuItem>)}
-    </MenuPopup>
-  </Menu.Root>;
+  const addMenu = (trigger: ReactElement) => (
+    <Menu.Root modal={false}>
+      <Menu.Trigger render={trigger} />
+      <MenuPopup label={t("add")} width={200}>
+        {kinds.map((k) => (
+          <MenuItem
+            key={k.kind}
+            icon={k.icon(16)}
+            disabled={!k.add || (k.full?.(list ?? []) ?? false)}
+            onClick={() => setAdding(k)}
+          >
+            {t(`addMenu.${k.kind}`)}
+          </MenuItem>
+        ))}
+      </MenuPopup>
+    </Menu.Root>
+  );
 
-  return <>
-    <aside className="sidebar-slot pane subs-pane" data-collapsed={!paneOpen} aria-label={t("title")} aria-hidden={!paneOpen} inert={!paneOpen}>
-      <header className="pane-head" data-tauri-drag-region>
-        <h1 className="pane-title subs-pane-title">{t("title")}</h1>
-        {account && addMenu(<Tip label={t("add")}><button type="button" className="k-icon-btn" aria-label={t("add")}><Plus size={18} strokeWidth={1.75} aria-hidden="true" /></button></Tip>)}
-        <Tip label={tw("collapsePane")} keys="Ctrl+B"><button type="button" className="k-icon-btn subs-collapse" aria-label={tw("collapsePane")} onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button></Tip>
-      </header>
-      <div className="subs-list">
-        {hasList && <>
-          <button type="button" className={`subs-row is-all${selected === null ? " is-on" : ""}`} aria-current={selected === null ? "true" : undefined} onClick={() => setSelected(null)}>
-            <Rss size={16} strokeWidth={1.75} aria-hidden="true" />
-            <span className="subs-row-name">{t("all")}</span>
-            <span className="subs-row-count tabular">{formatNumber(images.length)}</span>
-          </button>
-          <div className="subs-sep" />
-          {kinds.map((k) => {
-            const rows = visible.filter((s) => kindOf(s.target) === k.kind);
-            if (rows.length === 0) return null;
-            return <section key={k.kind} className="subs-group" aria-label={t(`groups.${k.kind}`)}>
-              <h2 className="subs-group-head"><span className="subs-group-icon">{k.icon(14)}</span>{t(`groups.${k.kind}`)}</h2>
-              {rows.map((s) => {
-                const count = freshBySubscription.get(s.id) ?? 0;
-                return <div key={s.id} className={`subs-row-wrap${rowMenu === s.id ? " is-menu" : ""}`}>
-                  <Tip label={s.lastError ? failureText(s.lastError) : undefined} align="start"><button type="button" className={`subs-row is-item${selected === s.id ? " is-on" : ""}`}
-                    aria-current={selected === s.id ? "true" : undefined}
-                    onClick={() => setSelected(selected === s.id ? null : s.id)}
-                    onContextMenu={(e) => { e.preventDefault(); setRowMenu(s.id); }}>
-                    <Name className="subs-row-name">{displayName(t, s)}</Name>
-                    {s.lastError && <TriangleAlert className="subs-row-warn" size={14} strokeWidth={2} role="img" aria-label={t("lastFailed")} />}
-                    {count > 0 && <span className="subs-row-fresh tabular">{formatNumber(count)}</span>}
-                  </button></Tip>
-                  <Menu.Root modal={false} open={rowMenu === s.id} onOpenChange={(open) => setRowMenu(open ? s.id : null)}>
-                    <Tip label={t("row.more")}><Menu.Trigger className="k-icon-btn subs-row-more" aria-label={t("row.more")}><MoreHorizontal size={16} aria-hidden="true" /></Menu.Trigger></Tip>
-                    <MenuPopup label={t("row.more")} width={180}>
-                      {k.settings && <MenuItem onClick={() => setEditing(s)}>{t("row.settings")}</MenuItem>}
-                      {k.settings && <MenuSeparator />}
-                      <MenuItem danger onClick={() => setRemoving(s)}>{t("row.remove")}</MenuItem>
-                    </MenuPopup>
-                  </Menu.Root>
-                </div>;
+  return (
+    <>
+      <aside
+        className="sidebar-slot pane subs-pane"
+        data-collapsed={!paneOpen}
+        aria-label={t("title")}
+        aria-hidden={!paneOpen}
+        inert={!paneOpen}
+      >
+        <header className="pane-head" data-tauri-drag-region>
+          <h1 className="pane-title subs-pane-title">{t("title")}</h1>
+          {account &&
+            addMenu(
+              <Tip label={t("add")}>
+                <button type="button" className="k-icon-btn" aria-label={t("add")}>
+                  <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
+                </button>
+              </Tip>,
+            )}
+          <Tip label={tw("collapsePane")} keys="Ctrl+B">
+            <button
+              type="button"
+              className="k-icon-btn subs-collapse"
+              aria-label={tw("collapsePane")}
+              onClick={onPaneToggle}
+            >
+              <PanelLeftClose size={16} aria-hidden="true" />
+            </button>
+          </Tip>
+        </header>
+        <div className="subs-list">
+          {hasList && (
+            <>
+              <button
+                type="button"
+                className={`subs-row is-all${selected === null ? " is-on" : ""}`}
+                aria-current={selected === null ? "true" : undefined}
+                onClick={() => setSelected(null)}
+              >
+                <Rss size={16} strokeWidth={1.75} aria-hidden="true" />
+                <span className="subs-row-name">{t("all")}</span>
+                <span className="subs-row-count tabular">{formatNumber(images.length)}</span>
+              </button>
+              <div className="subs-sep" />
+              {kinds.map((k) => {
+                const rows = visible.filter((s) => kindOf(s.target) === k.kind);
+                if (rows.length === 0) return null;
+                return (
+                  <section key={k.kind} className="subs-group" aria-label={t(`groups.${k.kind}`)}>
+                    <h2 className="subs-group-head">
+                      <span className="subs-group-icon">{k.icon(14)}</span>
+                      {t(`groups.${k.kind}`)}
+                    </h2>
+                    {rows.map((s) => {
+                      const count = freshBySubscription.get(s.id) ?? 0;
+                      return (
+                        <div key={s.id} className={`subs-row-wrap${rowMenu === s.id ? " is-menu" : ""}`}>
+                          <Tip label={s.lastError ? failureText(s.lastError) : undefined} align="start">
+                            <button
+                              type="button"
+                              className={`subs-row is-item${selected === s.id ? " is-on" : ""}`}
+                              aria-current={selected === s.id ? "true" : undefined}
+                              onClick={() => setSelected(selected === s.id ? null : s.id)}
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                setRowMenu(s.id);
+                              }}
+                            >
+                              <Name className="subs-row-name">{displayName(t, s)}</Name>
+                              {s.lastError && (
+                                <TriangleAlert
+                                  className="subs-row-warn"
+                                  size={14}
+                                  strokeWidth={2}
+                                  role="img"
+                                  aria-label={t("lastFailed")}
+                                />
+                              )}
+                              {count > 0 && <span className="subs-row-fresh tabular">{formatNumber(count)}</span>}
+                            </button>
+                          </Tip>
+                          <Menu.Root
+                            modal={false}
+                            open={rowMenu === s.id}
+                            onOpenChange={(open) => setRowMenu(open ? s.id : null)}
+                          >
+                            <Tip label={t("row.more")}>
+                              <Menu.Trigger className="k-icon-btn subs-row-more" aria-label={t("row.more")}>
+                                <MoreHorizontal size={16} aria-hidden="true" />
+                              </Menu.Trigger>
+                            </Tip>
+                            <MenuPopup label={t("row.more")} width={180}>
+                              {k.settings && <MenuItem onClick={() => setEditing(s)}>{t("row.settings")}</MenuItem>}
+                              {k.settings && <MenuSeparator />}
+                              <MenuItem danger onClick={() => setRemoving(s)}>
+                                {t("row.remove")}
+                              </MenuItem>
+                            </MenuPopup>
+                          </Menu.Root>
+                        </div>
+                      );
+                    })}
+                  </section>
+                );
               })}
-            </section>;
-          })}
-        </>}
-      </div>
-      <SubscriptionsAccount signingIn={signingIn} account={account} login={login} actions={actions} setFirstRun={setFirstRun} />
-    </aside>
-    <main className="app-main subs-main">
-      <header className="topbar subs-topbar" data-tauri-drag-region>
-        {!paneOpen && <Tip label={tw("expandPane")} keys="Ctrl+B"><button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={tw("expandPane")}><PanelLeftOpen size={16} aria-hidden="true" /></button></Tip>}
-        {hasList && <h1 className="subs-title">{t("recent.title")}<span className="subs-title-count tabular">{t("recent.count", { count: shown.length })}</span>
-          {skipped > 0 && <span className="subs-title-count">{t("recent.skipped", { count: skipped })}</span>}</h1>}
-        <span className="k-grow" />
-        {check.kind === "idle" && <>
-          <span className="subs-check">{checkedText(check.lastCheckedAt, now)}</span>
-          <Tip label={t("check.now")}><button type="button" className="k-icon-btn" aria-label={t("check.now")} onClick={checkNow}><RefreshCw size={16} strokeWidth={1.75} aria-hidden="true" /></button></Tip>
-        </>}
-        {check.kind === "checking" && <span className="subs-check" role="status"><LoaderCircle className="subs-spin is-accent" size={14} aria-hidden="true" />{t("check.checking")}</span>}
-        {check.kind === "backoff" && <span className="subs-check" role="status"><Clock size={14} strokeWidth={1.75} aria-hidden="true" />{retryText(check.until)}</span>}
-        <WinCtrls />
-      </header>
-      {hasList ? <div className="subs-wall" ref={wall}>
-        {shown.length === 0 && !veiled && <p className="subs-none">{t("recent.none")}</p>}
-        {freshImages.length > 0 && <section aria-label={t("recent.fresh")}>
-          <h2 className="subs-section">{t("recent.fresh")}<span className="subs-section-count tabular">{formatNumber(freshImages.length)}</span></h2>
-          <Tiles images={freshImages} label={t("recent.open")} onOpen={onOpenImage} onFail={onFail} />
-        </section>}
-        {earlier.length > 0 && <section aria-label={t("recent.earlier")}>
-          <h2 className="subs-section is-quiet">{t("recent.earlier")}</h2>
-          <Tiles images={earlier} label={t("recent.open")} onOpen={onOpenImage} onFail={onFail} />
-        </section>}
-      </div> : list !== null && <SubscriptionsEmpty signingIn={signingIn} account={account} actions={actions} addMenu={addMenu} setFirstRun={setFirstRun} />}
-    </main>
-    {adding?.add?.({ ...flow, onClose: () => setAdding(null), onAdded: changed })}
-    {editing && mountOf(editing)?.settings?.({ ...flow, subscription: editing, onClose: () => setEditing(null), onSaved: changed })}
-    {removing && <RemoveDialog subscription={removing} onClose={() => setRemoving(null)}
-      onRemoved={() => { if (selected === removing.id) setSelected(null); changed(); }} />}
-    <FirstRunDialog open={firstRun} signedIn={account !== null} onClose={closeFirstRun}
-      onSignIn={() => { closeFirstRun(); actions.signIn(); }} />
-  </>;
+            </>
+          )}
+        </div>
+        <SubscriptionsAccount
+          signingIn={signingIn}
+          account={account}
+          login={login}
+          actions={actions}
+          setFirstRun={setFirstRun}
+        />
+      </aside>
+      <main className="app-main subs-main">
+        <header className="topbar subs-topbar" data-tauri-drag-region>
+          {!paneOpen && (
+            <Tip label={tw("expandPane")} keys="Ctrl+B">
+              <button type="button" className="k-icon-btn" onClick={onPaneToggle} aria-label={tw("expandPane")}>
+                <PanelLeftOpen size={16} aria-hidden="true" />
+              </button>
+            </Tip>
+          )}
+          {hasList && (
+            <h1 className="subs-title">
+              {t("recent.title")}
+              <span className="subs-title-count tabular">{t("recent.count", { count: shown.length })}</span>
+              {skipped > 0 && <span className="subs-title-count">{t("recent.skipped", { count: skipped })}</span>}
+            </h1>
+          )}
+          <span className="k-grow" />
+          {check.kind === "idle" && (
+            <>
+              <span className="subs-check">{checkedText(check.lastCheckedAt, now)}</span>
+              <Tip label={t("check.now")}>
+                <button type="button" className="k-icon-btn" aria-label={t("check.now")} onClick={checkNow}>
+                  <RefreshCw size={16} strokeWidth={1.75} aria-hidden="true" />
+                </button>
+              </Tip>
+            </>
+          )}
+          {check.kind === "checking" && (
+            <span className="subs-check" role="status">
+              <LoaderCircle className="subs-spin is-accent" size={14} aria-hidden="true" />
+              {t("check.checking")}
+            </span>
+          )}
+          {check.kind === "backoff" && (
+            <span className="subs-check" role="status">
+              <Clock size={14} strokeWidth={1.75} aria-hidden="true" />
+              {retryText(check.until)}
+            </span>
+          )}
+          <WinCtrls />
+        </header>
+        {hasList ? (
+          <div className="subs-wall" ref={wall}>
+            {shown.length === 0 && !veiled && <p className="subs-none">{t("recent.none")}</p>}
+            {freshImages.length > 0 && (
+              <section aria-label={t("recent.fresh")}>
+                <h2 className="subs-section">
+                  {t("recent.fresh")}
+                  <span className="subs-section-count tabular">{formatNumber(freshImages.length)}</span>
+                </h2>
+                <Tiles images={freshImages} label={t("recent.open")} onOpen={onOpenImage} onFail={onFail} />
+              </section>
+            )}
+            {earlier.length > 0 && (
+              <section aria-label={t("recent.earlier")}>
+                <h2 className="subs-section is-quiet">{t("recent.earlier")}</h2>
+                <Tiles images={earlier} label={t("recent.open")} onOpen={onOpenImage} onFail={onFail} />
+              </section>
+            )}
+          </div>
+        ) : (
+          list !== null && (
+            <SubscriptionsEmpty
+              signingIn={signingIn}
+              account={account}
+              actions={actions}
+              addMenu={addMenu}
+              setFirstRun={setFirstRun}
+            />
+          )
+        )}
+      </main>
+      {adding?.add?.({ ...flow, onClose: () => setAdding(null), onAdded: changed })}
+      {editing &&
+        mountOf(editing)?.settings?.({
+          ...flow,
+          subscription: editing,
+          onClose: () => setEditing(null),
+          onSaved: changed,
+        })}
+      {removing && (
+        <RemoveDialog
+          subscription={removing}
+          onClose={() => setRemoving(null)}
+          onRemoved={() => {
+            if (selected === removing.id) setSelected(null);
+            changed();
+          }}
+        />
+      )}
+      <FirstRunDialog
+        open={firstRun}
+        signedIn={account !== null}
+        onClose={closeFirstRun}
+        onSignIn={() => {
+          closeFirstRun();
+          actions.signIn();
+        }}
+      />
+    </>
+  );
 }

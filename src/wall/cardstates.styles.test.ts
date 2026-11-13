@@ -6,11 +6,17 @@ const lines = css.split(/\r?\n/).map((line) => line.trim());
 
 describe("藏着的卡片连同来源按钮一起藏", () => {
   it("飞回中的卡片：来源按钮等落地后再出现", () => {
-    expect(lines.some((line) => line.includes(".card.is-arriving + .card-sources") && line.includes("visibility: hidden"))).toBe(true);
+    expect(
+      lines.some((line) => line.includes(".card.is-arriving + .card-sources") && line.includes("visibility: hidden")),
+    ).toBe(true);
   });
 
   it("交给封印影子的卡片：来源按钮同样不显示", () => {
-    expect(lines.some((line) => line.includes('.card[data-leaving="true"] + .card-sources') && line.includes("visibility: hidden"))).toBe(true);
+    expect(
+      lines.some(
+        (line) => line.includes('.card[data-leaving="true"] + .card-sources') && line.includes("visibility: hidden"),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -21,11 +27,16 @@ describe("藏着的卡片不跑遮蔽过渡", () => {
     return i < 0 ? "" : css.slice(i, css.indexOf("}", i));
   };
   it("交给封印影子的卡片与飞回中的卡片：图片的模糊和墨色都不过渡", () => {
-    for (const selector of ['.card[data-leaving="true"] img', '.card[data-leaving="true"]::after', ".card.is-arriving img", ".card.is-arriving::after"]) {
+    for (const selector of [
+      '.card[data-leaving="true"] img',
+      '.card[data-leaving="true"]::after',
+      ".card.is-arriving img",
+      ".card.is-arriving::after",
+    ]) {
       expect(rule(selector), selector).toMatch(/transition:\s*none/);
     }
   });
   it("这条规则写在遮蔽过渡之后，同等优先级时由它生效", () => {
-    expect(css.indexOf('.card.is-arriving img')).toBeGreaterThan(css.indexOf('.card img[data-loaded="instant"]'));
+    expect(css.indexOf(".card.is-arriving img")).toBeGreaterThan(css.indexOf('.card img[data-loaded="instant"]'));
   });
 });

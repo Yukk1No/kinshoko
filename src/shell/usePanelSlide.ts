@@ -14,7 +14,8 @@ export type PanelSlide = {
 /** 图片墙旁边的一个面板。`finalWidth` 是它这次开合的终点宽度；浮在墙上、不占墙的宽度时为 null。 */
 export type SlidingPanel = { element: HTMLElement | null; finalWidth: number | null };
 
-const widthTransition = (element: HTMLElement) => element.getAnimations().find((a) => (a as CSSTransition).transitionProperty === "width");
+const widthTransition = (element: HTMLElement) =>
+  element.getAnimations().find((a) => (a as CSSTransition).transitionProperty === "width");
 
 /**
  * 任一面板的宽度过渡进行中时给出 PanelSlide，全部结束后为 null。过渡一开始就知道终点，
@@ -32,43 +33,54 @@ export function usePanelSlide(panels: readonly SlidingPanel[]): PanelSlide | nul
     const timing = transition?.effect?.getTiming();
     const style = getComputedStyle(element);
     return {
-      by: panels.reduce((sum, { element: panel, finalWidth }) =>
-        panel && finalWidth !== null ? sum + panel.getBoundingClientRect().width - finalWidth : sum, 0),
-      duration: typeof timing?.duration === "number" ? timing.duration : parseFloat(style.transitionDuration) * 1000 || 0,
+      by: panels.reduce(
+        (sum, { element: panel, finalWidth }) =>
+          panel && finalWidth !== null ? sum + panel.getBoundingClientRect().width - finalWidth : sum,
+        0,
+      ),
+      duration:
+        typeof timing?.duration === "number" ? timing.duration : parseFloat(style.transitionDuration) * 1000 || 0,
       easing: timing?.easing ?? style.transitionTimingFunction ?? "ease",
       startTime: typeof transition?.startTime === "number" ? transition.startTime : null,
     };
   });
   const [state, setState] = useState<{ running: number; slide: PanelSlide | null }>({ running: 0, slide: null });
-  useEffect(() => {
-    setState({ running: 0, slide: null });
-    const elements = panels.flatMap((panel) => panel.element ?? []);
-    const own = (e: Event) => e.target === e.currentTarget && (e as TransitionEvent).propertyName === "width";
-    const start = (e: Event) => {
-      if (!own(e)) return;
-      const slide = slideFor(e.currentTarget as HTMLElement);
-      flushSync(() => setState((s) => ({ running: s.running + 1, slide: slide ?? s.slide })));
-    };
-    const stop = (e: Event) => {
-      if (!own(e)) return;
-      // 中途反向时 Chromium 先发取消，新过渡的 transitionrun 下一帧才到：slide 先留着，墙不按中途的宽度多排一次。
-      const replaced = e.type === "transitioncancel" && widthTransition(e.currentTarget as HTMLElement) !== undefined;
-      flushSync(() => setState((s) => (s.running <= 1 ? { running: 0, slide: replaced ? s.slide : null } : { ...s, running: s.running - 1 })));
-    };
-    for (const element of elements) {
-      element.addEventListener("transitionrun", start);
-      element.addEventListener("transitionend", stop);
-      element.addEventListener("transitioncancel", stop);
-    }
-    return () => {
-      for (const element of elements) {
-        element.removeEventListener("transitionrun", start);
-        element.removeEventListener("transitionend", stop);
-        element.removeEventListener("transitioncancel", stop);
-      }
+  useEffect(
+    () => {
       setState({ running: 0, slide: null });
-    };
-    // biome-ignore lint/correctness/useExhaustiveDependencies: 只在面板元素换了时重装监听（面板个数不变）；量的时候由 slideFor 读这次渲染的面板
-  }, panels.map((panel) => panel.element));
+      const elements = panels.flatMap((panel) => panel.element ?? []);
+      const own = (e: Event) => e.target === e.currentTarget && (e as TransitionEvent).propertyName === "width";
+      const start = (e: Event) => {
+        if (!own(e)) return;
+        const slide = slideFor(e.currentTarget as HTMLElement);
+        flushSync(() => setState((s) => ({ running: s.running + 1, slide: slide ?? s.slide })));
+      };
+      const stop = (e: Event) => {
+        if (!own(e)) return;
+        // 中途反向时 Chromium 先发取消，新过渡的 transitionrun 下一帧才到：slide 先留着，墙不按中途的宽度多排一次。
+        const replaced = e.type === "transitioncancel" && widthTransition(e.currentTarget as HTMLElement) !== undefined;
+        flushSync(() =>
+          setState((s) =>
+            s.running <= 1 ? { running: 0, slide: replaced ? s.slide : null } : { ...s, running: s.running - 1 },
+          ),
+        );
+      };
+      for (const element of elements) {
+        element.addEventListener("transitionrun", start);
+        element.addEventListener("transitionend", stop);
+        element.addEventListener("transitioncancel", stop);
+      }
+      return () => {
+        for (const element of elements) {
+          element.removeEventListener("transitionrun", start);
+          element.removeEventListener("transitionend", stop);
+          element.removeEventListener("transitioncancel", stop);
+        }
+        setState({ running: 0, slide: null });
+      };
+      // biome-ignore lint/correctness/useExhaustiveDependencies: 只在面板元素换了时重装监听（面板个数不变）；量的时候由 slideFor 读这次渲染的面板
+    },
+    panels.map((panel) => panel.element),
+  );
   return state.slide;
 }

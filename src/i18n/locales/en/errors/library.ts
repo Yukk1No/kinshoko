@@ -11,7 +11,8 @@ export default {
   sourceChanged: "The source records have changed. Choose the library source again",
   unknownFolder: "This folder isn't in the library",
   folderCycle: "A folder can't be moved into itself or one of its subfolders",
-  folderReceivingImport: "This folder (or one of its subfolders) is receiving an import. Delete it after the import finishes",
+  folderReceivingImport:
+    "This folder (or one of its subfolders) is receiving an import. Delete it after the import finishes",
   invalidCursor: "Invalid browsing position",
   cursorExpired: "The results have changed. Browse again from the start",
   invalidDisplaySize: "The display size must be greater than zero",
@@ -30,7 +31,8 @@ export default {
   mergeTargetGone: "The reference image with the same content has been permanently deleted",
   namespaceGroup: "This group lists tags by category. Its members can't be changed by hand",
   notInTrash: "Only images in the trash can be permanently deleted",
-  deletePreviewStale: "The trash or reference groups changed before you confirmed. Review the affected reference groups again",
+  deletePreviewStale:
+    "The trash or reference groups changed before you confirmed. Review the affected reference groups again",
   referenceGroupsUnchecked: "Couldn't check the reference groups, so nothing was deleted: {{cause}}",
   io: "Couldn't read or write a file: {{detail}}",
   database: "Library database error: {{detail}}",

@@ -3,10 +3,11 @@ import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { createLibraryParentPrefill, importPrefill, newLibraryParentPrefill } from "./savePrefill";
 
-const provider = (id: string, root: string, { unavailable = false, folders = [] as string[] } = {}) => ({
-  registration: { library: { id, name: id, root }, unavailable: unavailable ? { code: "unavailable" } : null },
-  sidebar: unavailable ? null : { folders: folders.map((folder) => ({ id: folder, name: folder, children: [] })) },
-}) as unknown as WorkspaceDirectory;
+const provider = (id: string, root: string, { unavailable = false, folders = [] as string[] } = {}) =>
+  ({
+    registration: { library: { id, name: id, root }, unavailable: unavailable ? { code: "unavailable" } : null },
+    sidebar: unavailable ? null : { folders: folders.map((folder) => ({ id: folder, name: folder, children: [] })) },
+  }) as unknown as WorkspaceDirectory;
 
 const a = provider("A", "D:/参考/甲", { folders: ["fa"] });
 const b = provider("B", "E:/收藏/乙", { folders: ["fb"] });
@@ -16,24 +17,46 @@ const inLibrary = (libraryId: string, scope: object) => ({ kind: "library", libr
 describe("导入预填（ADR-0016）", () => {
   it("在文件夹里导入用这个文件夹，比上次选的优先", () => {
     const remembered = { libraryId: "A", folderId: "fa" };
-    expect(importPrefill(inLibrary("B", { kind: "folder", id: "fb" }), remembered, [a, b])).toEqual({ libraryId: "B", folderId: "fb" });
-    expect(importPrefill(inLibrary("B", { kind: "folderTree", id: "fb" }), remembered, [a, b])).toEqual({ libraryId: "B", folderId: "fb" });
+    expect(importPrefill(inLibrary("B", { kind: "folder", id: "fb" }), remembered, [a, b])).toEqual({
+      libraryId: "B",
+      folderId: "fb",
+    });
+    expect(importPrefill(inLibrary("B", { kind: "folderTree", id: "fb" }), remembered, [a, b])).toEqual({
+      libraryId: "B",
+      folderId: "fb",
+    });
   });
 
-  it.each([["全部", { kind: "all" }], ["未归类", { kind: "unassigned" }], ["回收站", { kind: "trash" }]])("在资料库的%s里导入放进它的未归类", (_, scope) => {
-    expect(importPrefill(inLibrary("B", scope), { libraryId: "A", folderId: "fa" }, [a, b])).toEqual({ libraryId: "B", folderId: null });
+  it.each([
+    ["全部", { kind: "all" }],
+    ["未归类", { kind: "unassigned" }],
+    ["回收站", { kind: "trash" }],
+  ])("在资料库的%s里导入放进它的未归类", (_, scope) => {
+    expect(importPrefill(inLibrary("B", scope), { libraryId: "A", folderId: "fa" }, [a, b])).toEqual({
+      libraryId: "B",
+      folderId: null,
+    });
   });
 
   it("「全部图片」下用上次亲手选的保存目标", () => {
-    expect(importPrefill({ kind: "all" }, { libraryId: "B", folderId: "fb" }, [a, b])).toEqual({ libraryId: "B", folderId: "fb" });
+    expect(importPrefill({ kind: "all" }, { libraryId: "B", folderId: "fb" }, [a, b])).toEqual({
+      libraryId: "B",
+      folderId: "fb",
+    });
   });
 
   it("记住的文件夹已删除时落到那个资料库的未归类", () => {
-    expect(importPrefill({ kind: "all" }, { libraryId: "B", folderId: "已删" }, [a, b])).toEqual({ libraryId: "B", folderId: null });
+    expect(importPrefill({ kind: "all" }, { libraryId: "B", folderId: "已删" }, [a, b])).toEqual({
+      libraryId: "B",
+      folderId: null,
+    });
   });
 
   it("记住的资料库暂时不可用或没记过时，落到登记最早的可用资料库的未归类", () => {
-    expect(importPrefill({ kind: "all" }, { libraryId: "C", folderId: null }, [offline, a, b])).toEqual({ libraryId: "A", folderId: null });
+    expect(importPrefill({ kind: "all" }, { libraryId: "C", folderId: null }, [offline, a, b])).toEqual({
+      libraryId: "A",
+      folderId: null,
+    });
     expect(importPrefill({ kind: "all" }, null, [offline, a, b])).toEqual({ libraryId: "A", folderId: null });
   });
 

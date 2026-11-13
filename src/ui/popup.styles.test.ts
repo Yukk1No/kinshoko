@@ -30,7 +30,9 @@ describe("共用弹层按 data-side 定进退场方向", () => {
 
   it("级联菜单不吃这条：它的进场按 menu.css，退场只淡出", () => {
     expect(cssRule(menuCss, ".k-popup[data-k-level][data-ending-style]").transform).toBeUndefined();
-    expect(cssRule(menuCss, '.k-popup[data-k-level][data-side="top"][data-starting-style]').transform).toContain("translateY(6px)");
+    expect(cssRule(menuCss, '.k-popup[data-k-level][data-side="top"][data-starting-style]').transform).toContain(
+      "translateY(6px)",
+    );
   });
 
   it("减弱动效下直接到终态", () => {

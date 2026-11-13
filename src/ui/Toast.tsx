@@ -36,9 +36,24 @@ function Bridge({ children }: { children: ReactNode }) {
   const latest = useRef(manager);
   latest.current = manager;
   const api = useMemo<ToastApi>(() => {
-    const content = ({ title, description, tone = "info", timeout, action }: Omit<ToastOptions, "onClose">, id: () => string) => ({
-      title, description, type: tone, timeout: timeout ?? (tone === "error" ? 0 : action ? ACTION_TIMEOUT : 5000), priority: tone === "error" ? "high" as const : "low" as const,
-      actionProps: action ? { children: action.label, onClick: () => { action.onClick(); if (!action.keepOpen) latest.current.close(id()); } } : undefined,
+    const content = (
+      { title, description, tone = "info", timeout, action }: Omit<ToastOptions, "onClose">,
+      id: () => string,
+    ) => ({
+      title,
+      description,
+      type: tone,
+      timeout: timeout ?? (tone === "error" ? 0 : action ? ACTION_TIMEOUT : 5000),
+      priority: tone === "error" ? ("high" as const) : ("low" as const),
+      actionProps: action
+        ? {
+            children: action.label,
+            onClick: () => {
+              action.onClick();
+              if (!action.keepOpen) latest.current.close(id());
+            },
+          }
+        : undefined,
     });
     const show = ({ onClose, ...options }: ToastOptions): string => {
       let id = "";
@@ -48,7 +63,11 @@ function Bridge({ children }: { children: ReactNode }) {
     return {
       show,
       error: (message, options = {}) => show({ ...options, title: message, tone: "error" }),
-      update: (id, options) => latest.current.update(id, content(options, () => id)),
+      update: (id, options) =>
+        latest.current.update(
+          id,
+          content(options, () => id),
+        ),
       close: (id) => latest.current.close(id),
     };
   }, []);
@@ -66,24 +85,38 @@ function Stack() {
   const stack = shown.length === 0 ? 0 : (shown[0].height ?? 0) + (shown.length - 1) * 8 + 8;
   useEffect(() => {
     document.documentElement.style.setProperty("--k-toast-stack", `${stack}px`);
-    return () => { document.documentElement.style.removeProperty("--k-toast-stack"); };
+    return () => {
+      document.documentElement.style.removeProperty("--k-toast-stack");
+    };
   }, [stack]);
   return toasts.map((toast) => {
     const Icon = icons[(toast.type as ToastTone | undefined) ?? "info"] ?? Info;
-    return <Toast.Root key={toast.id} toast={toast} className="k-toast" data-tone={toast.type}>
-      {/* Content clips a taller toast to the frontmost one's height while the stack is collapsed. */}
-      <Toast.Content className="k-toast-content">
-        <span className="k-toast-icon"><Icon size={16} aria-hidden="true" /></span>
-        <div className="k-toast-text">
-          <Toast.Title className="k-toast-title" />
-          <Toast.Description className="k-toast-desc" />
-        </div>
-        {toast.actionProps && <Toast.Action className="k-toast-action" />}
-        {/* Our own close: Base UI's Toast.Close hides itself from assistive tech while the stack is collapsed. */}
-        <Tip label={toast.type === "error" ? t("toast.gotIt") : t("toast.dismiss")}><button type="button" className="k-toast-close" aria-label={toast.type === "error" ? t("toast.gotIt") : t("toast.dismissLabel")}
-          onClick={() => close(toast.id)}><X size={14} aria-hidden="true" /></button></Tip>
-      </Toast.Content>
-    </Toast.Root>;
+    return (
+      <Toast.Root key={toast.id} toast={toast} className="k-toast" data-tone={toast.type}>
+        {/* Content clips a taller toast to the frontmost one's height while the stack is collapsed. */}
+        <Toast.Content className="k-toast-content">
+          <span className="k-toast-icon">
+            <Icon size={16} aria-hidden="true" />
+          </span>
+          <div className="k-toast-text">
+            <Toast.Title className="k-toast-title" />
+            <Toast.Description className="k-toast-desc" />
+          </div>
+          {toast.actionProps && <Toast.Action className="k-toast-action" />}
+          {/* Our own close: Base UI's Toast.Close hides itself from assistive tech while the stack is collapsed. */}
+          <Tip label={toast.type === "error" ? t("toast.gotIt") : t("toast.dismiss")}>
+            <button
+              type="button"
+              className="k-toast-close"
+              aria-label={toast.type === "error" ? t("toast.gotIt") : t("toast.dismissLabel")}
+              onClick={() => close(toast.id)}
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
+          </Tip>
+        </Toast.Content>
+      </Toast.Root>
+    );
   });
 }
 
@@ -93,10 +126,16 @@ function Stack() {
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation("shell");
-  return <Toast.Provider limit={4}>
-    <Bridge>{children}</Bridge>
-    <Toast.Portal><Toast.Viewport className="k-toasts" aria-label={t("toast.label")}><Stack /></Toast.Viewport></Toast.Portal>
-  </Toast.Provider>;
+  return (
+    <Toast.Provider limit={4}>
+      <Bridge>{children}</Bridge>
+      <Toast.Portal>
+        <Toast.Viewport className="k-toasts" aria-label={t("toast.label")}>
+          <Stack />
+        </Toast.Viewport>
+      </Toast.Portal>
+    </Toast.Provider>
+  );
 }
 
 export function useToast(): ToastApi {
@@ -114,7 +153,10 @@ export type PersistentToast = Pick<ToastOptions, "title" | "description" | "tone
  * Without `level`, a dismissal lasts until `notice` next becomes null, so a new occurrence shows again;
  * with `level`, it lasts until the level exceeds the one dismissed.
  */
-export function usePersistentToast(notice: PersistentToast | null, { hidden = false, level }: { hidden?: boolean; level?: number } = {}) {
+export function usePersistentToast(
+  notice: PersistentToast | null,
+  { hidden = false, level }: { hidden?: boolean; level?: number } = {},
+) {
   const toast = useToast();
   const latest = useRef({ notice, level });
   latest.current = { notice, level };
@@ -128,18 +170,36 @@ export function usePersistentToast(notice: PersistentToast | null, { hidden = fa
   // biome-ignore lint/correctness/useExhaustiveDependencies: notice 每次渲染都是新对象，按它显示出来的各项比较，内容没变就不重放
   useEffect(() => {
     if (!notice && level === undefined) dismissedAt.current = null;
-    if (!notice || hidden || (dismissedAt.current !== null && (level ?? 0) <= dismissedAt.current)) { close(); return; }
+    if (!notice || hidden || (dismissedAt.current !== null && (level ?? 0) <= dismissedAt.current)) {
+      close();
+      return;
+    }
     dismissedAt.current = null;
     const { title, description, tone, action } = notice;
-    const content = { title, description, tone, timeout: 0,
+    const content = {
+      title,
+      description,
+      tone,
+      timeout: 0,
       // Its own lifetime rules decide when it goes, so choosing the action does not count as dismissing it.
-      action: action && { label: action.label, onClick: () => latest.current.notice?.action?.onClick(), keepOpen: true } };
-    if (shown.current !== null) { toast.update(shown.current, content); return; }
-    const id: string = toast.show({ ...content, onClose: () => {
-      if (shown.current !== id) return;
-      shown.current = null;
-      dismissedAt.current = latest.current.level ?? 0;
-    } });
+      action: action && {
+        label: action.label,
+        onClick: () => latest.current.notice?.action?.onClick(),
+        keepOpen: true,
+      },
+    };
+    if (shown.current !== null) {
+      toast.update(shown.current, content);
+      return;
+    }
+    const id: string = toast.show({
+      ...content,
+      onClose: () => {
+        if (shown.current !== id) return;
+        shown.current = null;
+        dismissedAt.current = latest.current.level ?? 0;
+      },
+    });
     shown.current = id;
   }, [notice === null, notice?.title, notice?.description, notice?.tone, notice?.action?.label, hidden, level]);
   // biome-ignore lint/correctness/useExhaustiveDependencies(close): 只在卸载时收起；close 每次渲染都是新函数，只读 ref

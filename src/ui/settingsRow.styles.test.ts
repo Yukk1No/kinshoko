@@ -7,11 +7,19 @@ function rule(css: string, selector: string): Record<string, string> {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const body = css.match(new RegExp(`(?:^|\\})\\s*${escaped}\\s*\\{([^}]*)\\}`, "m"))?.[1];
   if (body === undefined) throw new Error(`缺少规则 ${selector}`);
-  return Object.fromEntries(body.split(";").map((d) => d.split(/:(.*)/s).map((s) => s.trim())).filter(([k]) => k));
+  return Object.fromEntries(
+    body
+      .split(";")
+      .map((d) => d.split(/:(.*)/s).map((s) => s.trim()))
+      .filter(([k]) => k),
+  );
 }
 const px = (value: string) => Number(value.replace("px", ""));
 /** `padding` 简写的上、下内边距。 */
-const padding = (value: string) => { const [top, , bottom = top] = value.split(/\s+/).map(px); return [top, bottom]; };
+const padding = (value: string) => {
+  const [top, , bottom = top] = value.split(/\s+/).map(px);
+  return [top, bottom];
+};
 
 // jsdom 不排版，按样式表里的数字算设置行的高度（单位 px）。
 // 设计系统 v2：每行只有图标、名称、控件，没有描述行；补充说明在悬停提示里，状态是控件左边的小字。

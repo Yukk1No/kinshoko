@@ -12,7 +12,8 @@ export type CommandErrorCode = CommandError["code"];
 
 type Params = Record<string, string | number | CommandError>;
 // 错误代码是运行时的值；每个代码都有文案由 commandError.test.ts 在类型检查时核对。
-const t = (key: string, params?: Params): string => (i18n.t as (key: string, options?: object) => string)(`errors:${key}`, params);
+const t = (key: string, params?: Params): string =>
+  (i18n.t as (key: string, options?: object) => string)(`errors:${key}`, params);
 
 /** 参考图此刻取不到的原因。 */
 export function unavailableReasonText(reason: UnavailableReason): string {
@@ -45,11 +46,17 @@ export function describeCommandError(error: CommandError): string {
     case "system":
       return error.detail;
     case "organizeTimedOut":
-      return t("organizeTimedOut", { libraries: error.libraries.map((name) => t("libraryName", { name })).join(t("librarySeparator")) });
+      return t("organizeTimedOut", {
+        libraries: error.libraries.map((name) => t("libraryName", { name })).join(t("librarySeparator")),
+      });
     case "groupMembersUnavailable":
       return t("groupMembersUnavailable", {
         members: error.members
-          .map((m) => (m.member === null ? unavailable(m.reason) : t("memberUnavailable", { member: m.member, reason: unavailable(m.reason) })))
+          .map((m) =>
+            m.member === null
+              ? unavailable(m.reason)
+              : t("memberUnavailable", { member: m.member, reason: unavailable(m.reason) }),
+          )
           .join(t("memberSeparator")),
       });
     case "shortcutUsedBy":
@@ -70,12 +77,21 @@ export function describeCommandError(error: CommandError): string {
     case "backupProblems":
       return error.problems.map(describeCommandError).join(t("problemSeparator"));
     case "checkTableMismatch":
-      return t(error.sameContent ? "checkTableRowCount" : "checkTableMismatch", { table: error.table, snapshot: error.snapshot, restored: error.restored });
+      return t(error.sameContent ? "checkTableRowCount" : "checkTableMismatch", {
+        table: error.table,
+        snapshot: error.snapshot,
+        restored: error.restored,
+      });
     default: {
       const { code, ...params } = error as { code: string } & Params;
       if (!i18n.exists(`errors:${code}`)) return t("unknown", { code, raw: JSON.stringify(error) });
       // 由别的错误引起时（`cause`），先写出原因再拼进说明。
-      const filled = Object.fromEntries(Object.entries(params).map(([name, value]) => [name, isCommandError(value) ? describeCommandError(value) : value]));
+      const filled = Object.fromEntries(
+        Object.entries(params).map(([name, value]) => [
+          name,
+          isCommandError(value) ? describeCommandError(value) : value,
+        ]),
+      );
       return t(code, filled);
     }
   }

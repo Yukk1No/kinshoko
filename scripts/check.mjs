@@ -20,7 +20,7 @@ const MAX_TAIL_LINES = 30;
 export function parseArgs(argv) {
   const rust = argv.includes("--rust");
   const rustOnly = argv.includes("--rust-only");
-  const passthrough = argv.filter(arg => arg !== "--rust" && arg !== "--rust-only");
+  const passthrough = argv.filter((arg) => arg !== "--rust" && arg !== "--rust-only");
   if (rust && rustOnly) return { error: "--rust and --rust-only are mutually exclusive" };
   if (rust && passthrough.length > 0) {
     return {
@@ -32,13 +32,13 @@ export function parseArgs(argv) {
   return { rust, rustOnly, passthrough };
 }
 
-const tsc = args => ({ command: process.execPath, args: ["node_modules/typescript/bin/tsc", ...args] });
-const vitest = args => ({
+const tsc = (args) => ({ command: process.execPath, args: ["node_modules/typescript/bin/tsc", ...args] });
+const vitest = (args) => ({
   command: process.execPath,
   args: ["node_modules/vitest/vitest.mjs", "run", "--reporter=dot", "--silent=passed-only", ...args],
 });
-const cargo = args => ({ command: "cargo", args });
-const biome = args => ({ command: process.execPath, args: ["node_modules/@biomejs/biome/bin/biome", ...args] });
+const cargo = (args) => ({ command: "cargo", args });
+const biome = (args) => ({ command: process.execPath, args: ["node_modules/@biomejs/biome/bin/biome", ...args] });
 
 const STEP = {
   typecheck: () => ({ name: "typecheck", ...tsc(["--noEmit"]) }),
@@ -49,7 +49,7 @@ const STEP = {
   }),
   // 只查 biome.json 里开的规则，不查格式（#523）。
   lint: () => ({ name: "biome lint", ...biome(["lint", "--colors=off"]) }),
-  vitest: args => ({ name: "vitest", kind: "vitest", ...vitest(args) }),
+  vitest: (args) => ({ name: "vitest", kind: "vitest", ...vitest(args) }),
   frontend: () => ({
     name: "vite build (clippy needs dist/)",
     command: process.execPath,
@@ -60,7 +60,7 @@ const STEP = {
     name: "clippy",
     ...cargo(["clippy", "--quiet", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"]),
   }),
-  nextest: args => ({
+  nextest: (args) => ({
     name: "nextest (kinshoko-core)",
     kind: "nextest",
     ...cargo([
@@ -130,7 +130,7 @@ const DETAIL_START = {
 
 export function failureDetail(kind, output, logPath) {
   let lines = output.trimEnd().split(/\r?\n/);
-  const start = kind ? lines.findIndex(line => DETAIL_START[kind].test(line)) : -1;
+  const start = kind ? lines.findIndex((line) => DETAIL_START[kind].test(line)) : -1;
   if (start > 0) lines = lines.slice(start);
   if (lines.length <= MAX_HEAD_LINES + MAX_TAIL_LINES) return lines.join("\n");
   const omitted = lines.length - MAX_HEAD_LINES - MAX_TAIL_LINES;
@@ -176,7 +176,7 @@ function main() {
     return result;
   });
 
-  const failed = results.filter(result => !result.ok).length;
+  const failed = results.filter((result) => !result.ok).length;
   if (failed === 0) rmSync(logDir, { recursive: true, force: true });
   const scope = options.passthrough.length > 0 ? "filtered run, other checks did not run" : "all planned checks ran";
   const rustScope = options.rust || options.rustOnly ? "" : ", Rust not checked (add --rust)";

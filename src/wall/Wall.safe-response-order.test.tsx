@@ -9,7 +9,12 @@ import { type CardSeed, workspacePage } from "../test/workspacePage";
 import { Wall } from "./Wall";
 import { fakeBackend } from "../test/backend";
 
-type Call = { query: WorkspaceQuery; safeMode: boolean; resolve: (page: WorkspacePage) => void; reject: (e: unknown) => void };
+type Call = {
+  query: WorkspaceQuery;
+  safeMode: boolean;
+  resolve: (page: WorkspacePage) => void;
+  reject: (e: unknown) => void;
+};
 let calls: Call[];
 
 beforeEach(() => {
@@ -26,17 +31,27 @@ beforeEach(() => {
     },
   });
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const card = (id: string, adult = false): CardSeed => ({ id, width: 100, height: 100, adult });
-const page = (cards: CardSeed[], total: number, nextCursor: string | null = null) => workspacePage(cards, total, nextCursor);
+const page = (cards: CardSeed[], total: number, nextCursor: string | null = null) =>
+  workspacePage(cards, total, nextCursor);
 
 const base = {
-  workspaceScope: { kind: "all" as const }, scope: { kind: "all" as const }, selected: new Set<string>(),
-  onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false,
+  workspaceScope: { kind: "all" as const },
+  scope: { kind: "all" as const },
+  selected: new Set<string>(),
+  onSelectionChange: () => {},
+  onOpenImage: () => {},
+  viewerOpen: false,
 };
 
-const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+const settle = () =>
+  act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
 const wall = () => document.querySelector<HTMLElement>(".wall")!;
 const shown = () => [...document.querySelectorAll<HTMLElement>(".card")].map((c) => c.dataset.id);
 

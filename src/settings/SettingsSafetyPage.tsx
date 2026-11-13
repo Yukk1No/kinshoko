@@ -1,6 +1,5 @@
-
 import { useTranslation } from "react-i18next";
-import { Layers, MousePointerClick, ShieldCheck, } from "lucide-react";
+import { Layers, MousePointerClick, ShieldCheck } from "lucide-react";
 import type { SafeModeScope } from "../bindings/SafeModeScope";
 import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import { type ShellSettingsIntent } from "../shell/useShellSettings";
@@ -25,21 +24,47 @@ type Props = {
 export function SafetyPage({ view, safe, onSafeMode, apply }: Props) {
   const { t } = useTranslation("settings");
   return (
-          <SettingsGroup label={t("safety.group")}>
-            <SettingsRow icon={<SealLock size={10} />} title={t("safety.safeMode")} hint={t("safety.safeModeHint")}>
-              <Keys accelerator="Ctrl+Shift+S" />
-              {safe !== undefined && onSafeMode && <Switch label={t("safety.safeMode")} checked={safe} onCheckedChange={(on) => { if (on !== safe) onSafeMode(); }} />}
-            </SettingsRow>
-            <SettingsRow icon={<Layers size={16} />} title={t("safety.scope")} hint={t("safety.scopeHint")}>
-              <Segmented<SafeModeScope> label={t("safety.scope")} value={view.safeModeScope ?? "questionable"}
-                onChange={(scope) => void apply({ kind: "safeModeScope", scope })} options={SAFE_MODE_SCOPES.map((value) => ({ value, label: t(`safety.scopeOption.${value}`) }))} />
-            </SettingsRow>
-            <SettingsRow icon={<MousePointerClick size={16} />} title={t("safety.keepSelection")} hint={t("safety.keepSelectionHint")}>
-              <Switch label={t("safety.keepSelection")} checked={view.keepSelectionOnSafeMode ?? false} onCheckedChange={(on) => void apply({ kind: "keepSelectionOnSafeMode", on })} />
-            </SettingsRow>
-            <SettingsRow icon={<ShieldCheck size={16} />} title={t("safety.groupsAndPins")} hint={t("safety.groupsAndPinsHint")}>
-              <StatusPill tone={safe === false ? "plain" : "ok"}>{safe === false ? t("safety.off") : t("safety.on")}</StatusPill>
-            </SettingsRow>
-          </SettingsGroup>
+    <SettingsGroup label={t("safety.group")}>
+      <SettingsRow icon={<SealLock size={10} />} title={t("safety.safeMode")} hint={t("safety.safeModeHint")}>
+        <Keys accelerator="Ctrl+Shift+S" />
+        {safe !== undefined && onSafeMode && (
+          <Switch
+            label={t("safety.safeMode")}
+            checked={safe}
+            onCheckedChange={(on) => {
+              if (on !== safe) onSafeMode();
+            }}
+          />
+        )}
+      </SettingsRow>
+      <SettingsRow icon={<Layers size={16} />} title={t("safety.scope")} hint={t("safety.scopeHint")}>
+        <Segmented<SafeModeScope>
+          label={t("safety.scope")}
+          value={view.safeModeScope ?? "questionable"}
+          onChange={(scope) => void apply({ kind: "safeModeScope", scope })}
+          options={SAFE_MODE_SCOPES.map((value) => ({ value, label: t(`safety.scopeOption.${value}`) }))}
+        />
+      </SettingsRow>
+      <SettingsRow
+        icon={<MousePointerClick size={16} />}
+        title={t("safety.keepSelection")}
+        hint={t("safety.keepSelectionHint")}
+      >
+        <Switch
+          label={t("safety.keepSelection")}
+          checked={view.keepSelectionOnSafeMode ?? false}
+          onCheckedChange={(on) => void apply({ kind: "keepSelectionOnSafeMode", on })}
+        />
+      </SettingsRow>
+      <SettingsRow
+        icon={<ShieldCheck size={16} />}
+        title={t("safety.groupsAndPins")}
+        hint={t("safety.groupsAndPinsHint")}
+      >
+        <StatusPill tone={safe === false ? "plain" : "ok"}>
+          {safe === false ? t("safety.off") : t("safety.on")}
+        </StatusPill>
+      </SettingsRow>
+    </SettingsGroup>
   );
 }

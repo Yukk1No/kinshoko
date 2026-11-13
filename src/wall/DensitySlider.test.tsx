@@ -8,9 +8,11 @@ afterEach(cleanup);
 /** 每次提交都记下滑块当时的值：属性变了以后，第一次提交里就不能还是旧值（#544）。 */
 function renderSlider(value: number, preview: number | null = null) {
   const seen: string[] = [];
-  const slider = (v: number, p: number | null) => <Profiler id="slider" onRender={() => seen.push((screen.getByRole("slider") as HTMLInputElement).value)}>
-    <DensitySlider value={v} preview={p} label="大小" onPreview={() => {}} onCommit={() => {}} />
-  </Profiler>;
+  const slider = (v: number, p: number | null) => (
+    <Profiler id="slider" onRender={() => seen.push((screen.getByRole("slider") as HTMLInputElement).value)}>
+      <DensitySlider value={v} preview={p} label="大小" onPreview={() => {}} onCommit={() => {}} />
+    </Profiler>
+  );
   const view = render(slider(value, preview));
   return { seen, rerender: (v: number, p: number | null = null) => view.rerender(slider(v, p)) };
 }

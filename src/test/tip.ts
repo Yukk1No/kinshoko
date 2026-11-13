@@ -6,10 +6,13 @@ export async function tipText(el: Element): Promise<string> {
   fireEvent.pointerEnter(el, { pointerType: "mouse" });
   fireEvent.mouseEnter(el);
   fireEvent.mouseMove(el);
-  const tip = await waitFor(() => {
-    const open = [...document.querySelectorAll<HTMLElement>(".k-tip")].at(-1);
-    if (!open) throw new Error("提示没有打开");
-    return open;
-  }, { timeout: 2000 });
+  const tip = await waitFor(
+    () => {
+      const open = [...document.querySelectorAll<HTMLElement>(".k-tip")].at(-1);
+      if (!open) throw new Error("提示没有打开");
+      return open;
+    },
+    { timeout: 2000 },
+  );
   return tip.textContent ?? "";
 }

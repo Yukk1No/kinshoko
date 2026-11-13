@@ -5,7 +5,21 @@ import { act, render } from "@testing-library/react";
 import { RELEASE, SEAL } from "../shell/sealfx";
 import { setMedia } from "../test/platform";
 import { Wall } from "./Wall";
-import { answer, base, card, frames, fx, ghosts, installSealFx, node, PAGE, recordAnimations, settle, wallWith, type FxPage } from "./Wall.seal-fx.fixtures";
+import {
+  answer,
+  base,
+  card,
+  frames,
+  fx,
+  ghosts,
+  installSealFx,
+  node,
+  PAGE,
+  recordAnimations,
+  settle,
+  wallWith,
+  type FxPage,
+} from "./Wall.seal-fx.fixtures";
 
 installSealFx();
 
@@ -31,7 +45,12 @@ describe("封印", () => {
     // 资料库按安全模式送回：成人图不在了，留下的 g 补到它的位置。
     await answer({ cards: [card("g")], total: 1, nextCursor: null });
     const g = glides.find((x) => x.id === "g")!;
-    expect(g.timing).toMatchObject({ duration: 620, delay: SEAL.flyAt + 20 - 100, easing: "cubic-bezier(0.65, 0, 0.35, 1)", fill: "backwards" });
+    expect(g.timing).toMatchObject({
+      duration: 620,
+      delay: SEAL.flyAt + 20 - 100,
+      easing: "cubic-bezier(0.65, 0, 0.35, 1)",
+      fill: "backwards",
+    });
   });
 
   it("资料库确认得晚也按原型的节奏补位：影子起飞后 280 ms 就开始，资料库回来不打断", async () => {
@@ -52,21 +71,33 @@ describe("封印", () => {
   });
 
   it("补位时挪动的卡片都滑过去，包括点下去时还在视口下方、补位后才进视口的", async () => {
-    const many: FxPage = { cards: [card("a", true), ...Array.from({ length: 60 }, (_, i) => card(`g${i}`))], total: 61, nextCursor: null };
+    const many: FxPage = {
+      cards: [card("a", true), ...Array.from({ length: 60 }, (_, i) => card(`g${i}`))],
+      total: 61,
+      nextCursor: null,
+    };
     const view = render(<Wall {...base} reloadKey={0} safeMode={false} />);
     await answer(many);
     await act(() => new Promise<void>((r) => requestAnimationFrame(() => r())));
     vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance"] });
-    const place = () => new Map([...document.querySelectorAll<HTMLElement>(".card")].map((n) => [n.dataset.id!, { left: parseFloat(n.style.left), top: parseFloat(n.style.top) }]));
+    const place = () =>
+      new Map(
+        [...document.querySelectorAll<HTMLElement>(".card")].map((n) => [
+          n.dataset.id!,
+          { left: parseFloat(n.style.left), top: parseFloat(n.style.top) },
+        ]),
+      );
     const before = place();
     const glided = recordAnimations();
     view.rerender(<Wall {...base} reloadKey={1} safeMode />);
     await frames(SEAL.flyAt + 20 + 16);
     const after = place();
-    const moved = [...after].filter(([id, p]) => {
-      const old = before.get(id);
-      return old && (old.left !== p.left || old.top !== p.top);
-    }).map(([id]) => id);
+    const moved = [...after]
+      .filter(([id, p]) => {
+        const old = before.get(id);
+        return old && (old.left !== p.left || old.top !== p.top);
+      })
+      .map(([id]) => id);
     // 有在视口（800）以下起步的卡片也挪了，确认这条测试覆盖到了它们。
     expect(moved.some((id) => before.get(id)!.top > 800)).toBe(true);
     expect(moved.filter((id) => !glided.some((x) => x.id === id))).toEqual([]);
@@ -112,7 +143,16 @@ describe("每次提交只排一次版（#176 性能）", () => {
     const order: string[] = [];
     const scroller = document.querySelector<HTMLElement>(".wall")!;
     const top = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
-    Object.defineProperty(scroller, "scrollTop", { configurable: true, get() { order.push("read"); return top.get!.call(this); }, set(v) { top.set!.call(this, v); } });
+    Object.defineProperty(scroller, "scrollTop", {
+      configurable: true,
+      get() {
+        order.push("read");
+        return top.get!.call(this);
+      },
+      set(v) {
+        top.set!.call(this, v);
+      },
+    });
     const animate = HTMLElement.prototype.animate;
     vi.spyOn(HTMLElement.prototype, "animate").mockImplementation(function (this: HTMLElement, keyframes, options) {
       order.push("animate");
@@ -204,10 +244,16 @@ describe("释放", () => {
   });
 
   it("让位的卡片右下角的图库标记跟着卡片一起滑，不先跳到新位置（#176）", async () => {
-    const sourced = (id: string, adult = false) => ({ ...card(id, adult), libraryId: "L1", imageId: id,
+    const sourced = (id: string, adult = false) => ({
+      ...card(id, adult),
+      libraryId: "L1",
+      imageId: id,
       // 标记只在两个及以上图库时出现（#221）。
-      sources: [{ libraryId: "L1", libraryName: "角色参考", imageId: id, unavailable: null, matches: true, deleted: false },
-        { libraryId: "L2", libraryName: "场景参考", imageId: id, unavailable: null, matches: true, deleted: false }] });
+      sources: [
+        { libraryId: "L1", libraryName: "角色参考", imageId: id, unavailable: null, matches: true, deleted: false },
+        { libraryId: "L2", libraryName: "场景参考", imageId: id, unavailable: null, matches: true, deleted: false },
+      ],
+    });
     const both: FxPage = { cards: [sourced("a", true), sourced("g")], total: 2, nextCursor: null };
     const view = await wallWith(true, { cards: [sourced("g")], total: 1, nextCursor: null });
     const glides = recordAnimations();

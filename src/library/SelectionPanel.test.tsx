@@ -8,7 +8,6 @@ import { tipText } from "../test/tip";
 
 const NO_TAGS = { image: { imageId: "img", tags: [], rejected: [] }, identities: [] };
 
-
 function detail(rating: Partial<ImageRating>): ImageDetail {
   return {
     id: "img",
@@ -41,17 +40,14 @@ function backend(initial: ImageDetail, afterEdit: ImageDetail) {
 
 function renderPanel() {
   render(
-    <SelectionPanel
-      libraryId="L1"
-      selected={new Set(["img"])}
-      onClear={() => {}}
-      reloadKey={0}
-      onError={() => {}}
-    />,
+    <SelectionPanel libraryId="L1" selected={new Set(["img"])} onClear={() => {}} reloadKey={0} onError={() => {}} />,
   );
 }
 
-const stars = (rating: HTMLElement) => within(rating).getAllByRole("button").map((b) => b.querySelector("svg")?.getAttribute("class") ?? null);
+const stars = (rating: HTMLElement) =>
+  within(rating)
+    .getAllByRole("button")
+    .map((b) => b.querySelector("svg")?.getAttribute("class") ?? null);
 
 describe("选中一张图：内容分级（#518）", () => {
   it("自动分级：选中的就是模型给的那一档，只有它带星；没有说明行", async () => {
@@ -59,7 +55,11 @@ describe("选中一张图：内容分级（#518）", () => {
     renderPanel();
 
     const rating = await screen.findByRole("group", { name: "内容分级" });
-    expect(within(rating).getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "false", "false", "true"]);
+    expect(
+      within(rating)
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-pressed")),
+    ).toEqual(["false", "false", "false", "true"]);
     expect(stars(rating).map((star) => star !== null)).toEqual([false, false, false, true]);
     // 自动的星跟文字同色（没有 is-idle）。
     expect(stars(rating)[3]).not.toContain("is-idle");
@@ -73,10 +73,7 @@ describe("选中一张图：内容分级（#518）", () => {
   });
 
   it("画师改成别的分级：选中的换到那一档，星留在模型给的那一档上、变淡", async () => {
-    const edits = backend(
-      detail({}),
-      detail({ manual: "general", effective: "general" }),
-    );
+    const edits = backend(detail({}), detail({ manual: "general", effective: "general" }));
     renderPanel();
 
     const rating = await screen.findByRole("group", { name: "内容分级" });
@@ -84,21 +81,34 @@ describe("选中一张图：内容分级（#518）", () => {
 
     const revert = await within(rating).findByRole("button", { name: "成人，改回自动" });
     expect(edits).toEqual([[{ kind: "setRating", rating: "general" }]]);
-    expect(within(rating).getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["true", "false", "false", "false"]);
+    expect(
+      within(rating)
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-pressed")),
+    ).toEqual(["true", "false", "false", "false"]);
     expect(revert.querySelector("svg")!.getAttribute("class")).toContain("is-idle");
     expect(await tipText(revert)).toBe("改回自动");
     expect(screen.queryByText("已手动修正")).toBeNull();
   });
 
   it("没有自动分级时哪一档都不带星；画师选的那一档照常选中", async () => {
-    backend(detail({ suggested: null, manual: null, effective: null }), detail({ suggested: null, manual: "sensitive", effective: "sensitive" }));
+    backend(
+      detail({ suggested: null, manual: null, effective: null }),
+      detail({ suggested: null, manual: "sensitive", effective: "sensitive" }),
+    );
     renderPanel();
 
     const rating = await screen.findByRole("group", { name: "内容分级" });
-    expect(within(rating).getAllByRole("button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "false", "false", "false"]);
+    expect(
+      within(rating)
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-pressed")),
+    ).toEqual(["false", "false", "false", "false"]);
     expect(stars(rating)).toEqual([null, null, null, null]);
     fireEvent.click(within(rating).getByRole("button", { name: "轻度" }));
-    await waitFor(() => expect(within(rating).getByRole("button", { name: "轻度" }).getAttribute("aria-pressed")).toBe("true"));
+    await waitFor(() =>
+      expect(within(rating).getByRole("button", { name: "轻度" }).getAttribute("aria-pressed")).toBe("true"),
+    );
     expect(stars(rating)).toEqual([null, null, null, null]);
   });
 
@@ -135,7 +145,9 @@ describe("选中一张图：内容分级（#518）", () => {
     fireEvent.click(within(rating).getByRole("button", { name: "成人，改回自动" }));
 
     await waitFor(() => expect(edits).toEqual([[{ kind: "revertRating" }]]));
-    expect((await within(rating).findByRole("button", { name: "成人，自动" })).getAttribute("aria-pressed")).toBe("true");
+    expect((await within(rating).findByRole("button", { name: "成人，自动" })).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
   });
 
   it("分级是属性表的最后一行，排在文件夹与备注之前；不在任何文件夹里时没有文件夹这一块", async () => {
@@ -150,15 +162,21 @@ describe("选中一张图：内容分级（#518）", () => {
   });
 });
 
-
 it("当前选择的有效详情请求失败仍交给错误提示", async () => {
   const problems: string[] = [];
   fakeBackend({
     catalog_image_tags: NO_TAGS,
     image: () => Promise.reject("读取资料库失败"),
   });
-  render(<SelectionPanel libraryId="L1" selected={new Set(["img"])}
-    reloadKey={0} onClear={() => {}} onError={(message) => problems.push(String(message))} />);
+  render(
+    <SelectionPanel
+      libraryId="L1"
+      selected={new Set(["img"])}
+      reloadKey={0}
+      onClear={() => {}}
+      onError={(message) => problems.push(String(message))}
+    />,
+  );
   await waitFor(() => expect(problems).toEqual(["读取资料库失败"]));
 });
 
@@ -168,8 +186,9 @@ it("单张详情读失败后改成多选，标签面板照常出现", async () =
     catalog_image_tags: NO_TAGS,
     workspace_sidebar: { all: 2, trash: 0, folders: [] },
   });
-  const panel = (ids: string[]) => <SelectionPanel libraryId="L1" selected={new Set(ids)}
-    reloadKey={0} onClear={() => {}} onError={() => {}} />;
+  const panel = (ids: string[]) => (
+    <SelectionPanel libraryId="L1" selected={new Set(ids)} reloadKey={0} onClear={() => {}} onError={() => {}} />
+  );
   const view = render(panel(["a"]));
   await waitFor(() => expect(screen.queryByRole("region", { name: "标签" })).toBeNull());
   view.rerender(panel(["a", "b"]));
@@ -197,7 +216,16 @@ describe("选中一张图：自动标签未完成（#475）", () => {
       image: () => ({ ...detail({}), taggingFailure: failure }),
     });
     const onError = () => {};
-    const panel = (generation: number) => <SelectionPanel libraryId="L1" selected={new Set(["img"])} onClear={() => {}} reloadKey={0} onError={onError} generation={generation} />;
+    const panel = (generation: number) => (
+      <SelectionPanel
+        libraryId="L1"
+        selected={new Set(["img"])}
+        onClear={() => {}}
+        reloadKey={0}
+        onError={onError}
+        generation={generation}
+      />
+    );
     const view = render(panel(0));
     await screen.findByRole("group", { name: "内容分级" });
     expect(screen.queryByText("自动标签未完成")).toBeNull();

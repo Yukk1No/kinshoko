@@ -8,11 +8,27 @@ import type { TagLabel } from "../bindings/TagLabel";
 import { OpenTagNameSettings } from "../tags/TagNameSettings";
 import { TagPanel } from "./TagPanel";
 
-
-const label = (id: string, name: string, untranslated = false): TagLabel => ({ id, namespace: "general", name, untranslated, hasExternal: true });
-const image = (ahoge: TagLabel): ImageTags => ({ imageId: "a", tags: [{ tag: ahoge, origins: [{ kind: "source", source: "model:pixai", score: 0.64 }] }], rejected: [] });
-const catalogTag = (id: string, zh: string | null, external: string) => ({ id, namespace: "general", names: zh ? [{ lang: "zh-CN", name: zh }] : [], defaultNames: zh ? [{ lang: "zh-CN", name: zh }] : [],
-  namePreferences: [] as { lang: string; name: string }[], aliases: [], external: [{ vocabulary: "danbooru", name: external }] });
+const label = (id: string, name: string, untranslated = false): TagLabel => ({
+  id,
+  namespace: "general",
+  name,
+  untranslated,
+  hasExternal: true,
+});
+const image = (ahoge: TagLabel): ImageTags => ({
+  imageId: "a",
+  tags: [{ tag: ahoge, origins: [{ kind: "source", source: "model:pixai", score: 0.64 }] }],
+  rejected: [],
+});
+const catalogTag = (id: string, zh: string | null, external: string) => ({
+  id,
+  namespace: "general",
+  names: zh ? [{ lang: "zh-CN", name: zh }] : [],
+  defaultNames: zh ? [{ lang: "zh-CN", name: zh }] : [],
+  namePreferences: [] as { lang: string; name: string }[],
+  aliases: [],
+  external: [{ vocabulary: "danbooru", name: external }],
+});
 
 /** 后端：一张图一个尚未翻译的标签；保存名称偏好后它按新名字显示。 */
 function backend() {
@@ -22,7 +38,14 @@ function backend() {
       const tag = state.name ? label("t-ahoge", state.name) : label("t-ahoge", "ahoge", true);
       return { image: image(tag), identities: [{ localTagId: "t-ahoge", catalogId: "c-ahoge", tag }] };
     },
-    inspect_tag_catalog: { libraries: [], catalog: { revision: 1, mappings: [], tags: [catalogTag("c-ahoge", null, "ahoge"), catalogTag("c-other", "阿呆毛", "other_hair")] } },
+    inspect_tag_catalog: {
+      libraries: [],
+      catalog: {
+        revision: 1,
+        mappings: [],
+        tags: [catalogTag("c-ahoge", null, "ahoge"), catalogTag("c-other", "阿呆毛", "other_hair")],
+      },
+    },
     edit_tag_name: (args) => {
       state.edits.push(args);
       state.name = (args as { edit: { name: { name: string } } }).edit.name.name;
@@ -50,7 +73,9 @@ it("点“文/A”打开重命名框，保存当前界面语言的名称偏好�
   fireEvent.change(input, { target: { value: "  呆毛 " } });
   fireEvent.click(save);
   await waitFor(() => expect(within(chips()).getByText("呆毛")).toBeTruthy());
-  expect(state.edits).toEqual([{ catalogId: "c-ahoge", edit: { kind: "prefer", name: { lang: "zh-CN", name: "呆毛" } } }]);
+  expect(state.edits).toEqual([
+    { catalogId: "c-ahoge", edit: { kind: "prefer", name: { lang: "zh-CN", name: "呆毛" } } },
+  ]);
   expect(screen.queryByRole("button", { name: /重命名/ })).toBeNull();
   expect(screen.queryByRole("dialog", { name: "重命名“ahoge”" })).toBeNull();
 });
@@ -81,7 +106,11 @@ it("取消不保存", async () => {
 it("弹框里的链接打开设置的显示名，并定位到这个标签", async () => {
   backend();
   const open = vi.fn();
-  render(<OpenTagNameSettings value={open}><TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} /></OpenTagNameSettings>);
+  render(
+    <OpenTagNameSettings value={open}>
+      <TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} />
+    </OpenTagNameSettings>,
+  );
   fireEvent.click(await screen.findByRole("button", { name: "重命名“ahoge”" }));
   const dialog = await screen.findByRole("dialog", { name: "重命名“ahoge”" });
   fireEvent.click(within(dialog).getByRole("button", { name: "在设置中管理“ahoge”的名称和别名" }));
