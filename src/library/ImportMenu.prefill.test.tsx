@@ -1,14 +1,12 @@
-import { afterEach, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { expect, it } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createRef } from "react";
-import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import type { SaveMemory } from "../bindings/SaveMemory";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
+import { fakeBackend } from "../test/backend";
 import { chooseOption } from "../test/select";
 import { ImportMenu, type ImportControl } from "./ImportMenu";
 import { SaveDestinationProvider } from "./SaveDestination";
-
-afterEach(async () => { cleanup(); await new Promise(resolve => setTimeout(resolve, 0)); clearMocks(); });
 
 const libraries = [
   { library: { id: "A", name: "最早库", root: "C:/a" }, unavailable: null },
@@ -19,18 +17,16 @@ const folders = [{ id: "fb", name: "人物", count: 0, children: [] }];
 function setup({ scope = { kind: "all" }, memory = { importDestination: null, newLibraryParent: null }, listed = libraries }: { scope?: WorkspaceScope; memory?: SaveMemory; listed?: typeof libraries } = {}) {
   const started: unknown[] = [], remembered: unknown[] = [];
   let next = 0;
-  mockWindows("main");
-  mockIPC((cmd, args) => {
-    if (cmd === "plugin:library|workspace_directories") return { status: { revision: "t", libraries }, registrationOrder: libraries.map((entry) => entry.library.id), providers: listed.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders }, unassigned: 0, descendants: {} })) };
-    if (cmd === "plugin:library|save_memory") return memory;
-    if (cmd === "plugin:library|remember_import_destination") { remembered.push((args as { destination: unknown }).destination); return null; }
-    if (cmd === "plugin:library|import_tasks") return [];
-    if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
-    if (cmd === "plugin:desktop|stage_clipboard_import") return "C:/data/剪贴板.png";
-    if (cmd === "plugin:library|import_contains_eagle") return false;
-    if (cmd === "plugin:library|start_import") { started.push((args as { destination: unknown }).destination); return `T${++next}`; }
-    return null;
-  }, { shouldMockEvents: true });
+  fakeBackend({
+    workspace_directories: { status: { revision: "t", libraries }, registrationOrder: libraries.map((entry) => entry.library.id), providers: listed.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders }, unassigned: 0, descendants: {} })) },
+    save_memory: memory,
+    remember_import_destination: (args) => { remembered.push(args.destination); return null; },
+    import_tasks: [],
+    recovery: { interrupted: [], orphans: [] },
+    stage_clipboard_import: "C:/data/剪贴板.png",
+    import_contains_eagle: false,
+    start_import: (args) => { started.push(args.destination); return `T${++next}`; },
+  });
   const control = createRef<ImportControl>();
   const ui = (value: WorkspaceScope) => <><SaveDestinationProvider safe={false}><ImportMenu control={control} scope={value} enabled running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider></>;
   const view = render(ui(scope));

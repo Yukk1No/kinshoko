@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fakeBackend } from "../test/backend";
 import { tipText } from "../test/tip";
-import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import { TagGroupsPane } from "./TagGroupsPane";
 import { SharedTagGroupsSettings } from "./SharedTagGroupsSettings";
@@ -15,23 +15,17 @@ const groups: CatalogGroupView[] = [{ id: "G1", name: "发色", namespace: null,
   tags: [{ tag: blue, count: 1 }, { tag: purple, count: 1 }],
   sources: [{ libraryId: "A", libraryName: "角色参考", groupId: "old-group", groupName: "发色" }],
 }, { id: "G2", name: "作品", namespace: "work", tags: [], sources: [] }];
-afterEach(() => { cleanup(); clearMocks(); });
 function backend(read: () => unknown = () => groups) {
-  const calls: { cmd: string; args: unknown }[] = [];
-  mockWindows("main");
-  mockIPC((cmd, args) => {
-    calls.push({ cmd, args });
-    if (cmd === "plugin:library|shared_tag_groups" || cmd === "plugin:library|workspace_tag_groups") return read();
-    if (cmd === "shell_settings") return { autostart: false, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false, runLog: false };
-    if (cmd === "plugin:library|safe_mode") return true;
-    if (cmd === "plugin:library|workspace_status") return { revision: "R1", libraries: [] };
-    return null;
-  }, { shouldMockEvents: true });
-  return calls;
+  return fakeBackend({
+    shared_tag_groups: () => read(),
+    workspace_tag_groups: () => read(),
+    workspace_status: { revision: "R1", libraries: [] },
+  });
 }
 describe("T05 shared groups", () => {
   it("manages global groups without an active library and exposes migration provenance and sorting", async () => {
-    const calls = backend(); const browse = vi.fn();
+    const fake = backend(); const browse = vi.fn();
+    fake.on("edit_shared_tag_group", null);
     render(<ToastProvider><TagGroupsPane libraryId="" safe generation={0} onBrowse={browse} onError={vi.fn()} /></ToastProvider>);
     const group = await screen.findByRole("group", { name: "发色" });
     // 来源是次要信息：放在名称旁图标的悬停提示里（设计系统：次要信息收进悬停提示）。
@@ -40,8 +34,8 @@ describe("T05 shared groups", () => {
     expect(browse).toHaveBeenCalledWith(["shared-blue", "shared-purple"]);
     fireEvent.click(within(group).getByRole("button", { name: "下移标签分组“发色”" }));
     await act(async () => {});
-    expect(calls.find((call) => call.cmd === "plugin:library|edit_shared_tag_group")?.args).toEqual({ edit: { kind: "orderGroups", groupIds: ["G2", "G1"] }, safeMode: true });
-    expect(calls.some((call) => call.cmd === "plugin:library|tag_groups")).toBe(false);
+    expect(fake.calls("edit_shared_tag_group")[0]?.args).toEqual({ edit: { kind: "orderGroups", groupIds: ["G2", "G1"] }, safeMode: true });
+    expect(fake.calls("tag_groups")).toEqual([]);
   });
   it("renders global groups in settings with no current library", async () => {
     backend(); render(<SettingsPanel initialTab="tags" />); fireEvent.click(await screen.findByRole("button", { name: "分组" }));
@@ -69,15 +63,17 @@ describe("T05 shared groups", () => {
     expect(screen.queryByText("旧视角")).toBeNull();
   });
   it("undoing a group delete works after safe mode changed while the toast was shown", async () => {
-    const calls = backend();
+    const fake = backend();
+    fake.on("delete_shared_tag_group", { id: "G2", name: "作品", namespace: "work", ord: 1, members: [], migratedFrom: [] });
+    fake.on("restore_shared_tag_group", null);
     const error = vi.fn();
     const view = render(<ToastProvider><TagGroupsPane libraryId="" safe={false} generation={0} onBrowse={vi.fn()} onError={error} /></ToastProvider>);
     fireEvent.click(await screen.findByRole("button", { name: "删除标签分组“作品”" }));
     const undo = await screen.findByRole("button", { name: "撤销" });
     view.rerender(<ToastProvider><TagGroupsPane libraryId="" safe generation={1} onBrowse={vi.fn()} onError={error} /></ToastProvider>);
     fireEvent.click(undo);
-    await waitFor(() => expect(calls.some((c) => c.cmd === "plugin:library|restore_shared_tag_group")).toBe(true));
-    const restore = calls.find((c) => c.cmd === "plugin:library|restore_shared_tag_group")!;
+    await waitFor(() => expect(fake.calls("restore_shared_tag_group")).not.toEqual([]));
+    const restore = fake.calls("restore_shared_tag_group")[0]!;
     expect(restore.args).not.toHaveProperty("safeMode");
     expect(error).not.toHaveBeenCalled();
   });
