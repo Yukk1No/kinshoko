@@ -29,14 +29,13 @@ pub(super) async fn edit_tag_name<R: Runtime>(
     edit: CatalogNameEdit,
 ) -> Result<TagCatalogWorkspace, CommandError> {
     let reader = app.clone();
-    let generation = state.safe_mode.snapshot();
-    let safe = saved_safe_mode(&app);
+    let lens = state.safe_mode.lens();
     // 经共享的工作区读可见目录（#337）：复用它的快照。
     let result = blocking(move || {
         workspace::with_resources(
             &reader.state::<LibraryState>(),
             |workspace, libraries, catalog| {
-                let visible = workspace.inspect_catalog(libraries, catalog, safe)?;
+                let visible = workspace.inspect_catalog(libraries, catalog, lens.on())?;
                 if !visible.catalog.tags.iter().any(|tag| tag.id == catalog_id) {
                     return Err(CatalogError::UnknownTag);
                 }
@@ -54,18 +53,18 @@ pub(super) async fn edit_tag_name<R: Runtime>(
                         catalog.remove_alias(&catalog_id, &alias)?;
                     }
                 }
-                workspace.inspect_catalog(libraries, catalog, safe)
+                workspace.inspect_catalog(libraries, catalog, lens.on())
             },
         )
     })
     .await?;
     refresh_labels(&app, &state)?;
-    if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err(CommandError::new(
+    lens.confirm(&state.safe_mode).map_err(|_| {
+        CommandError::new(
             ErrorKind::TagNamesSafeModeChanged,
             "安全模式已变化，请重新读取标签名称",
-        ));
-    }
+        )
+    })?;
     Ok(result)
 }
 
