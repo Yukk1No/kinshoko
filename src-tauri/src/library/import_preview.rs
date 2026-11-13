@@ -2,15 +2,8 @@
 
 use super::*;
 use kinshoko_core::CommandError;
-use kinshoko_core::workspace::{ImportPreviewSession, Workspace};
+use kinshoko_core::workspace::ImportPreviewSession;
 
-fn action<R: Runtime, T>(
-    app: &AppHandle<R>,
-    f: impl FnOnce(&mut Workspace, &mut DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, CommandError> {
-    let state = app.state::<LibraryState>();
-    workspace::with_resources(&state, f)
-}
 // Caller holds the visibility permit, except for the window-destruction dispatch fence.
 pub(super) fn revoke<R: Runtime>(app: &AppHandle<R>) {
     let state = app.state::<LibraryState>();
@@ -33,29 +26,21 @@ pub(super) async fn open_import_preview<R: Runtime>(
             .fetch_add(1, Ordering::SeqCst)
             + 1
     });
-    let mode_generation = workspace::generation(&app);
+    let lens = app.state::<LibraryState>().safe_mode.lens_expecting(true);
     blocking(move || {
         with_visibility_commit(&app, |_| {
-            workspace::current(&app, true, mode_generation)?;
-            if app
-                .state::<LibraryState>()
-                .import_preview_generation
-                .load(Ordering::SeqCst)
-                != generation
-            {
+            let state = app.state::<LibraryState>();
+            let lens = lens?;
+            lens.confirm(&state.safe_mode)?;
+            if state.import_preview_generation.load(Ordering::SeqCst) != generation {
                 return Err(kinshoko_core::library::Error::LensChanged.into());
             }
-            let session = action(&app, |w, d, c| {
+            let session = workspace::with_resources(&state, |w, d, c| {
                 w.open_import_preview(d, c, &library_id, &task_id, true)
             })?;
-            if app
-                .state::<LibraryState>()
-                .import_preview_generation
-                .load(Ordering::SeqCst)
-                != generation
-                || workspace::current(&app, true, mode_generation).is_err()
+            if state.import_preview_generation.load(Ordering::SeqCst) != generation
+                || lens.confirm(&state.safe_mode).is_err()
             {
-                let state = app.state::<LibraryState>();
                 if let Some(device) = lock_libraries(&state).as_mut() {
                     device.close_import_preview(Some(&session.id));
                 }
@@ -100,37 +85,29 @@ pub(super) async fn read_import_preview<R: Runtime>(
         .state::<LibraryState>()
         .import_preview_generation
         .load(Ordering::SeqCst);
-    let mode_generation = workspace::generation(&app);
+    let lens = app.state::<LibraryState>().safe_mode.lens_expecting(true);
     blocking(move || {
-        workspace::current(&app, true, mode_generation)?;
-        let request = action(&app, |w, d, c| {
+        let state = app.state::<LibraryState>();
+        let lens = lens?;
+        lens.confirm(&state.safe_mode)?;
+        let request = workspace::with_resources(&state, |w, d, c| {
             w.prepare_import_preview(d, c, &session_id, &item_id, true, target_px)
         })?;
         let resolved = request.resolve().map_err(CommandError::from)?;
-        let content = with_visibility_commit(&app, |current_mode_generation| {
-            if current_mode_generation != mode_generation {
-                return Err(kinshoko_core::library::Error::LensChanged.into());
-            }
-            workspace::current(&app, true, mode_generation)?;
-            action(&app, |w, d, c| {
+        let content = with_visibility_commit(&app, |_| {
+            lens.confirm(&state.safe_mode)?;
+            workspace::with_resources(&state, |w, d, c| {
                 w.complete_import_preview(d, c, resolved, true)
             })
         })?;
         let mut offset = 0;
         loop {
             let is_end = offset == content.bytes().len();
-            offset = with_visibility_commit(&app, |current_mode_generation| {
-                if current_mode_generation != mode_generation
-                    || app
-                        .state::<LibraryState>()
-                        .import_preview_generation
-                        .load(Ordering::SeqCst)
-                        != generation
-                {
+            offset = with_visibility_commit(&app, |_| {
+                if state.import_preview_generation.load(Ordering::SeqCst) != generation {
                     return Err(kinshoko_core::library::Error::LensChanged.into());
                 }
-                workspace::current(&app, true, mode_generation)?;
-                let state = app.state::<LibraryState>();
+                lens.confirm(&state.safe_mode)?;
                 with_libraries(&state, |device| {
                     Ok(
                         device.commit_import_preview_chunk(&content, offset, 1023, true, |chunk| {
@@ -157,9 +134,9 @@ pub(super) async fn read_import_preview<R: Runtime>(
 pub(super) fn receipts<R: Runtime>(
     app: &AppHandle<R>,
 ) -> Result<Vec<kinshoko_core::ImportTaskSnapshot>, CommandError> {
-    let safe = saved_safe_mode(app);
-    let expected = workspace::generation(app);
-    let receipts = action(app, |w, d, c| w.import_receipts(d, c, safe))?;
-    workspace::current(app, safe, expected)?;
+    let state = app.state::<LibraryState>();
+    let lens = state.safe_mode.lens();
+    let receipts = workspace::with_resources(&state, |w, d, c| w.import_receipts(d, c, lens.on()))?;
+    lens.confirm(&state.safe_mode)?;
     Ok(receipts)
 }

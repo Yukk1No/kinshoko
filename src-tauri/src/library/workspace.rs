@@ -35,63 +35,6 @@ pub(super) fn with_resources<T>(
     })?
 }
 
-#[track_caller]
-pub(super) fn action<R: Runtime, T>(
-    app: &AppHandle<R>,
-    safe: bool,
-    f: impl FnOnce(&mut Workspace, &DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, CommandError> {
-    let state = app.state::<LibraryState>();
-    if saved_safe_mode(app) != safe {
-        return Err(kinshoko_core::library::Error::LensChanged.into());
-    }
-    with_resources(&state, |workspace, device, catalog| {
-        f(workspace, device, catalog)
-    })
-}
-pub(super) fn generation<R: Runtime>(app: &AppHandle<R>) -> SafeModeSnapshot {
-    app.state::<LibraryState>().safe_mode.snapshot()
-}
-pub(super) fn current<R: Runtime>(
-    app: &AppHandle<R>,
-    safe: bool,
-    expected: SafeModeSnapshot,
-) -> Result<(), CommandError> {
-    if !app.state::<LibraryState>().safe_mode.still(&expected) || saved_safe_mode(app) != safe {
-        Err(kinshoko_core::library::Error::LensChanged.into())
-    } else {
-        Ok(())
-    }
-}
-/// [`action`] 加上代次复核：做完时安全模式变过就丢弃结果。
-#[track_caller]
-pub(super) fn guarded<R: Runtime, T>(
-    app: &AppHandle<R>,
-    safe: bool,
-    f: impl FnOnce(&mut Workspace, &DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, CommandError> {
-    let expected = generation(app);
-    let value = action(app, safe, f)?;
-    current(app, safe, expected)?;
-    Ok(value)
-}
-/// [`guarded`] 再加上前后修订号复核，给自己不复核修订号的读取用。
-#[track_caller]
-pub(super) fn stable<R: Runtime, T>(
-    app: &AppHandle<R>,
-    safe: bool,
-    f: impl FnOnce(&mut Workspace, &DeviceLibraries, &mut TagCatalog) -> Result<T, CatalogError>,
-) -> Result<T, CommandError> {
-    guarded(app, safe, |workspace, device, catalog| {
-        let before = workspace.status(device, catalog, safe)?;
-        let value = f(workspace, device, catalog)?;
-        let after = workspace.status(device, catalog, safe)?;
-        if before.revision != after.revision {
-            return Err(kinshoko_core::library::Error::CursorExpired.into());
-        }
-        Ok(value)
-    })
-}
 pub(super) fn monitor<R: Runtime>(app: AppHandle<R>) {
     std::thread::Builder::new()
         .name("kinshoko-workspace-events".into())
@@ -100,7 +43,8 @@ pub(super) fn monitor<R: Runtime>(app: AppHandle<R>) {
             loop {
                 std::thread::sleep(std::time::Duration::from_millis(1500));
                 let safe = saved_safe_mode(&app);
-                if let Ok(status) = action(&app, safe, |w, d, c| w.status(d, c, safe))
+                if let Ok(status) =
+                    with_lens(&app, safe, Hold::Read, |w, d, c| w.status(d, c, safe))
                     && status.revision != previous
                 {
                     previous = status.revision.clone();
@@ -115,7 +59,12 @@ pub(super) async fn workspace_status<R: Runtime>(
     app: AppHandle<R>,
     safe_mode: bool,
 ) -> Result<WorkspaceStatus, CommandError> {
-    blocking(move || stable(&app, safe_mode, |w, d, c| w.status(d, c, safe_mode))).await
+    blocking(move || {
+        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
+            w.status(d, c, safe_mode)
+        })
+    })
+    .await
 }
 #[tauri::command]
 pub(super) async fn workspace_browse<R: Runtime>(
@@ -128,18 +77,21 @@ pub(super) async fn workspace_browse<R: Runtime>(
         // 分段（#288）。
         let started = std::time::Instant::now();
         // 锁里只取当页的行；占位图在锁外读，读完再按修订号复核（#313）。读盘慢时不拖住缩略图请求。
-        // 不用 `stable`：`confirm` 自己复核修订号，前后再各取一次状态只是多做几遍核对。
-        let expected = generation(&app);
-        let pending = action(&app, safe_mode, |w, d, c| {
+        // 不用 `Hold::Stable`：`confirm` 自己复核修订号，前后再各取一次状态只是多做几遍核对。
+        let state = app.state::<LibraryState>();
+        let lens = state.safe_mode.lens();
+        let pending = with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
             took("浏览：等资源锁", started, None);
             w.browse_rows(d, c, &query, safe_mode)
         });
         let page = pending.and_then(|mut pending| {
             let reading = std::time::Instant::now();
-            pending.fill_placeholders(&app.state::<LibraryState>().gate);
+            pending.fill_placeholders(&state.gate);
             took("浏览：读占位图", reading, None);
-            let page = action(&app, safe_mode, |w, d, c| w.confirm(d, c, pending))?;
-            current(&app, safe_mode, expected)?;
+            let page = with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
+                w.confirm(d, c, pending)
+            })?;
+            lens.confirm(&state.safe_mode)?;
             Ok(page)
         });
         match &page {
@@ -159,7 +111,7 @@ pub(super) async fn workspace_resolve<R: Runtime>(
 ) -> Result<ConditionTree, CommandError> {
     blocking(move || {
         let catalog = app.state::<LibraryState>().search.clone();
-        stable(&app, safe_mode, |w, d, c| {
+        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
             w.resolve(d, c, &input, &lang, safe_mode, catalog.builtin_approx())
         })
     })
@@ -175,7 +127,7 @@ pub(super) async fn workspace_candidates<R: Runtime>(
 ) -> Result<Vec<Candidate>, CommandError> {
     blocking(move || {
         let catalog = app.state::<LibraryState>().search.clone();
-        stable(&app, safe_mode, |w, d, c| {
+        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
             w.candidates(
                 d,
                 c,
@@ -201,7 +153,7 @@ pub(super) async fn workspace_library_candidates<R: Runtime>(
 ) -> Result<Vec<Candidate>, CommandError> {
     blocking(move || {
         let catalog = app.state::<LibraryState>().search.clone();
-        guarded(&app, safe_mode, |w, d, c| {
+        with_lens(&app, safe_mode, Hold::Confirmed, |w, d, c| {
             w.library_candidates(
                 d,
                 c,
@@ -223,7 +175,7 @@ pub(super) fn read<R: Runtime>(
     image_id: &str,
 ) -> Result<Arc<Library>, CommandError> {
     let safe = saved_safe_mode(app);
-    stable(app, safe, |workspace, device, catalog| {
+    with_lens(app, safe, Hold::Stable, |workspace, device, catalog| {
         if !workspace.contains(device, catalog, library_id, image_id, safe)? {
             return Err(kinshoko_core::library::Error::UnknownImage.into());
         }
@@ -246,7 +198,7 @@ pub(super) fn read_image<R: Runtime>(
     slow: &mut bool,
 ) -> Result<Arc<Library>, CommandError> {
     let state = app.state::<LibraryState>();
-    let expected = generation(app);
+    let lens = state.safe_mode.lens();
     let mode = saved_mode(app);
     let library = match state
         .gate
@@ -255,12 +207,12 @@ pub(super) fn read_image<R: Runtime>(
         Some(result) => result.map_err(CommandError::from)?,
         None => {
             *slow = true;
-            action(app, mode.on, |workspace, device, catalog| {
+            with_lens(app, mode.on, Hold::Read, |workspace, device, catalog| {
                 workspace.image_reader(device, catalog, library_id, image_id, mode.on)
             })?
         }
     };
-    current(app, mode.on, expected)?;
+    lens.confirm(&state.safe_mode)?;
     Ok(library)
 }
 /// 一张图的详情。详情、标签、文件夹的可见性复核与安全模式封印都在 core（#424）。
@@ -305,7 +257,7 @@ pub(super) async fn workspace_card<R: Runtime>(
     safe_mode: bool,
 ) -> Result<WorkspaceCard, CommandError> {
     blocking(move || {
-        stable(&app, safe_mode, |w, d, c| {
+        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
             w.card(d, c, &library_id, &image_id, safe_mode)
         })
     })
@@ -320,7 +272,7 @@ pub(super) async fn workspace_tag_groups<R: Runtime>(
     safe_mode: bool,
 ) -> Result<Vec<TagGroupView>, CommandError> {
     blocking(move || {
-        stable(&app, safe_mode, |w, d, c| {
+        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
             w.tag_groups(d, c, &library_id, &lang, safe_mode)
         })
     })
@@ -333,7 +285,7 @@ pub(super) async fn workspace_sidebar<R: Runtime>(
     safe_mode: bool,
 ) -> Result<Sidebar, CommandError> {
     blocking(move || {
-        stable(&app, safe_mode, |w, d, c| {
+        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
             w.sidebar(d, c, &library_id, safe_mode)
         })
     })
@@ -344,5 +296,10 @@ pub(super) async fn workspace_directories<R: Runtime>(
     app: AppHandle<R>,
     safe_mode: bool,
 ) -> Result<WorkspaceDirectories, CommandError> {
-    blocking(move || stable(&app, safe_mode, |w, d, c| w.directories(d, c, safe_mode))).await
+    blocking(move || {
+        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
+            w.directories(d, c, safe_mode)
+        })
+    })
+    .await
 }

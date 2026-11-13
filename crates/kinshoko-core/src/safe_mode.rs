@@ -103,7 +103,11 @@ impl SafeModeState {
     /// 同 [`Self::lens`]，但界面传来的开关 `on` 与设置不一致时直接得到 [`LensStale`]。
     pub fn lens_expecting(&self, on: bool) -> Result<Lens, LensStale> {
         let lens = self.lens();
-        if lens.on == on { Ok(lens) } else { Err(LensStale) }
+        if lens.on == on {
+            Ok(lens)
+        } else {
+            Err(LensStale)
+        }
     }
 
     pub fn snapshot(&self) -> SafeModeSnapshot {

@@ -35,8 +35,7 @@ pub(super) async fn publish_tag_definitions<R: Runtime>(
     state: State<'_, LibraryState>,
     library_id: String,
 ) -> Result<TagCatalogWorkspace, CommandError> {
-    let generation = state.safe_mode.snapshot();
-    let safe = saved_safe_mode(&app);
+    let lens = state.safe_mode.lens();
     let worker = app.clone();
     let result = blocking(move || {
         publish_definition_dependencies(&worker, &library_id).map_err(|error| {
@@ -48,12 +47,11 @@ pub(super) async fn publish_tag_definitions<R: Runtime>(
         })?;
         let state = worker.state::<LibraryState>();
         workspace::with_resources(&state, |workspace, libraries, catalog| {
-            workspace.inspect_catalog(libraries, catalog, safe)
+            workspace.inspect_catalog(libraries, catalog, lens.on())
         })
     }).await?;
-    if !state.safe_mode.still(&generation) || saved_safe_mode(&app) != safe {
-        return Err(mapping_safe_mode_changed());
-    }
+    lens.confirm(&state.safe_mode)
+        .map_err(|_| mapping_safe_mode_changed())?;
     Ok(result)
 }
 

@@ -75,53 +75,29 @@ pub(super) async fn safe_mode(state: State<'_, LibraryState>) -> Result<bool, Co
 #[tauri::command]
 pub(super) async fn set_safe_mode<R: Runtime>(
     app: AppHandle<R>,
-    state: State<'_, LibraryState>,
     on: bool,
 ) -> Result<bool, CommandError> {
-    // 分段耗时（#183）：开发构建在控制台输出等锁、写设置、切换资料库各用了多久。
-    #[cfg(debug_assertions)]
-    let started = std::time::Instant::now();
-    #[cfg(debug_assertions)]
-    let saved_at;
-    {
-        let _visibility = lock(&state.visibility_commit);
-        #[cfg(debug_assertions)]
-        let locked_at = started.elapsed();
-        // Revoke even a repeated setting or failed save; pending work must revalidate.
-        state.safe_mode.try_commit(
-            |mode| mode.on = on,
-            |_| {
-                import_preview::revoke(&app);
-                let Some(shell) = app.try_state::<ShellState>() else {
-                    return Ok(());
-                };
-                let mut shell = shell.0.lock().map_err(CommandError::system)?;
-                shell.settings.set_safe_mode(on).map_err(CommandError::from)
-            },
-        )?;
-        #[cfg(debug_assertions)]
-        {
-            saved_at = started.elapsed();
-            eprintln!(
-                "safe_mode.set on={on} lock_ms={:.1} save_ms={:.1}",
-                locked_at.as_secs_f64() * 1e3,
-                (saved_at - locked_at).as_secs_f64() * 1e3
-            );
-        }
-        // 可写库与导入仍持有的库都跟着设置（ADR-0008：可写句柄会按需切换）。
-        if let Some(libraries) = lock_libraries(&state).as_ref() {
-            libraries.set_safe_mode(on);
-        }
-        // Do not let delayed/reordered event workers preserve a reveal across off -> on.
-        crate::desktop::safe_mode_committed(&app, on);
-    }
+    lens::commit_safe_mode(
+        &app,
+        format_args!("safe_mode.set on={on}"),
+        |mode| mode.on = on,
+        || {
+            let Some(shell) = app.try_state::<ShellState>() else {
+                return Ok(());
+            };
+            let mut shell = shell.0.lock().map_err(CommandError::system)?;
+            shell.settings.set_safe_mode(on).map_err(CommandError::from)
+        },
+        |state| {
+            // 可写库与导入仍持有的库都跟着设置（ADR-0008：可写句柄会按需切换）。
+            if let Some(libraries) = lock_libraries(state).as_ref() {
+                libraries.set_safe_mode(on);
+            }
+            // Do not let delayed/reordered event workers preserve a reveal across off -> on.
+            crate::desktop::safe_mode_committed(&app, on);
+        },
+    )?;
     let _ = app.emit(SAFE_MODE_EVENT, on);
-    #[cfg(debug_assertions)]
-    eprintln!(
-        "safe_mode.set on={on} switch_ms={:.1} total_ms={:.1}",
-        (started.elapsed() - saved_at).as_secs_f64() * 1e3,
-        started.elapsed().as_secs_f64() * 1e3
-    );
     Ok(on)
 }
 
@@ -136,37 +112,36 @@ pub(super) async fn set_safe_mode_scope<R: Runtime>(
     state: State<'_, LibraryState>,
     scope: SafeModeScope,
 ) -> Result<kinshoko_core::ShellSettingsView, CommandError> {
-    let view = {
-        let _visibility = lock(&state.visibility_commit);
-        // 与开关相同：进行中的读取与发送都要按新视角重新核对；保存不成时退回原值。
-        let view = state.safe_mode.try_commit(
-            |mode| mode.scope = scope,
-            |_| {
-                import_preview::revoke(&app);
-                let shell = app.state::<ShellState>();
-                let mut shell = shell.0.lock().map_err(CommandError::system)?;
-                shell
-                    .settings
-                    .set_safe_mode_scope(scope)
-                    .map_err(CommandError::from)?;
-                Ok::<_, CommandError>(shell.view())
-            },
-        )?;
-        state.detached.set_safe_mode_scope(scope);
-        if let Some(libraries) = lock_libraries(&state).as_mut()
-            && let Err(error) = libraries.set_safe_mode_scope(scope)
-        {
-            // 视角已换上；只是修订号没写成，游标与工作区快照仍按视角作废。
-            crate::run_log::warn("安全模式范围的修订号未写入", error);
-        }
-        state.search.invalidate();
-        crate::desktop::safe_mode_scope_committed(&app, scope);
-        view
-    };
+    // 与开关相同：进行中的读取与发送都要按新视角重新核对；保存不成时退回原值。
+    let view = lens::commit_safe_mode(
+        &app,
+        format_args!("safe_mode.scope scope={scope:?}"),
+        |mode| mode.scope = scope,
+        || {
+            let shell = app.state::<ShellState>();
+            let mut shell = shell.0.lock().map_err(CommandError::system)?;
+            shell
+                .settings
+                .set_safe_mode_scope(scope)
+                .map_err(CommandError::from)?;
+            Ok(shell.view())
+        },
+        |state| {
+            state.detached.set_safe_mode_scope(scope);
+            if let Some(libraries) = lock_libraries(state).as_mut()
+                && let Err(error) = libraries.set_safe_mode_scope(scope)
+            {
+                // 视角已换上；只是修订号没写成，游标与工作区快照仍按视角作废。
+                crate::run_log::warn("安全模式范围的修订号未写入", error);
+            }
+            state.search.invalidate();
+            crate::desktop::safe_mode_scope_committed(&app, scope);
+        },
+    )?;
     let safe = state.safe_mode.current().on;
     // 与开关同一个通知：钉图重新核对，跟着安全模式重读的界面（词表、分组、导入……）都重读。
     let _ = app.emit(SAFE_MODE_EVENT, safe);
-    if let Ok(status) = workspace::action(&app, safe, |w, d, c| w.status(d, c, safe)) {
+    if let Ok(status) = with_lens(&app, safe, Hold::Read, |w, d, c| w.status(d, c, safe)) {
         let _ = app.emit(workspace::EVENT, status);
     }
     Ok(view)

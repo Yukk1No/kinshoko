@@ -10,7 +10,7 @@ pub(super) async fn shared_personal_approx<R: Runtime>(
     safe_mode: bool,
 ) -> Result<CatalogApproxView, CommandError> {
     blocking(move || {
-        workspace::stable(&app, safe_mode, |w, d, c| {
+        with_lens(&app, safe_mode, Hold::Stable, |w, d, c| {
             w.personal_approx(d, c, &lang, safe_mode)
         })
     })
@@ -23,13 +23,17 @@ pub(super) async fn edit_shared_approx<R: Runtime>(
     safe_mode: bool,
 ) -> Result<(), CommandError> {
     blocking(move || {
-        let generation = workspace::generation(&app);
-        workspace::current(&app, safe_mode, generation)?;
-        workspace::action(&app, safe_mode, |w, d, c| {
+        let lens = app
+            .state::<LibraryState>()
+            .safe_mode
+            .lens_expecting(safe_mode)?;
+        with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
             w.edit_approx(d, c, &edit, safe_mode)
         })?;
-        workspace::current(&app, safe_mode, generation)?;
-        let status = workspace::action(&app, safe_mode, |w, d, c| w.status(d, c, safe_mode))?;
+        lens.confirm(&app.state::<LibraryState>().safe_mode)?;
+        let status = with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
+            w.status(d, c, safe_mode)
+        })?;
         let _ = app.emit(workspace::EVENT, status);
         Ok(())
     })
