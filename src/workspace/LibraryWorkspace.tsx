@@ -88,11 +88,17 @@ export function LibraryWorkspace({
   const flight = useViewerFlight({ viewing, safe, host: wallHost, instant: hidden || !!captureRequest });
   /** 查看器打开时即进入框选（图片墙右键“框选局部钉住”或 F1）。 */
   const [viewCrop, setViewCrop] = useState(false);
-  useEffect(() => { if (!viewing) setViewCrop(false); }, [viewing]);
+  // 查看器关上时框选跟着收起（在渲染中，不留一帧）。
+  if (!viewing && viewCrop) setViewCrop(false);
   const importControl = useRef<ImportControl>(null);
   useImportShortcut(importControl, hidden);
   const [editingGroups, setEditingGroups] = useState(false);
-  useEffect(()=>{if(captureRequest){setViewing(null);setSources(null);}},[captureRequest]);
+  // 有截图请求时关掉查看器与来源面板；在渲染中比较，截图请求到的这一帧就不再画查看器。
+  const [handledCapture, setHandledCapture] = useState(captureRequest);
+  if (handledCapture !== captureRequest) {
+    setHandledCapture(captureRequest);
+    if (captureRequest) { setViewing(null); setSources(null); }
+  }
   useReferenceRequest(referenceRequest, safe, (card) => { setViewCrop(false); setViewing(card); });
   /**
    * 词表代次：词表、图片或安全模式变化时递增，重新解析条件、重新取得候选（标签可能改名、

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import { editable } from "../wall/wallShared";
 
 /**
@@ -6,15 +6,14 @@ import { editable } from "../wall/wallShared";
  * 打字时，或对话框、菜单开着时不响应。
  */
 export function useInspectorShortcut(toggle: () => void, disabled: boolean) {
-  const latest = useRef(toggle);
-  latest.current = toggle;
+  const toggleInspector = useEffectEvent(toggle);
   useEffect(() => {
     if (disabled) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || e.key.toLowerCase() !== "i") return;
       if (e.defaultPrevented || editable(e.target) || document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
       e.preventDefault();
-      latest.current();
+      toggleInspector();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

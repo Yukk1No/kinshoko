@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { onSafeModeSetting, onWorkspaceChanged } from "../ipc";
 import { useToast } from "../ui/Toast";
 import { useTranslation } from "react-i18next";
@@ -72,17 +72,16 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
     shownNotices.current.set(taskId, id);
   }, [toast, finished?.taskId, notice?.key]);
   // 安全模式或工作区变化时，别的任务留着的提示无法跟着收起数字，直接收起；所选任务的提示由上面原地更新。
-  const selectedTask = useRef<string | null>(null);
-  selectedTask.current = finished?.taskId ?? null;
+  const selectedTask = finished?.taskId ?? null;
+  const conceal = useEffectEvent(() => {
+    for (const [taskId, id] of shownNotices.current) {
+      if (id && taskId !== selectedTask) { toast.close(id); shownNotices.current.set(taskId, null); }
+    }
+  });
   useEffect(() => {
-    const conceal = () => {
-      for (const [taskId, id] of shownNotices.current) {
-        if (id && taskId !== selectedTask.current) { toast.close(id); shownNotices.current.set(taskId, null); }
-      }
-    };
     const safe = onSafeModeSetting(conceal), workspace = onWorkspaceChanged(conceal);
     return () => { void safe.then((stop) => stop()); void workspace.then((stop) => stop()); };
-  }, [toast]);
+  }, []);
 
   // 封印项重复：#78 规定的原文，不点名内容类别，不给数量。错过时可从回执里再展开。
   // biome-ignore lint/correctness/useExhaustiveDependencies(t): 换界面语言不收起重弹这条提示

@@ -123,13 +123,16 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
     );
     return () => { alive = false; };
   }, [key, safe, onError, lang]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies(safe): 切换安全模式时收起正在进行的编辑
-  useEffect(() => { setCreating(false); setRenaming(null); setPicking(null); }, [safe]);
-  useEffect(() => {
-    if (!fresh) return;
-    setRenaming((id) => id !== null && !groups.some((group) => group.id === id) ? null : id);
-    setPicking((id) => id !== null && !groups.some((group) => group.id === id) ? null : id);
-  }, [fresh, groups]);
+  // 切换安全模式时收起正在进行的编辑；读到新的分组后，清掉已不存在的分组上的编辑。
+  // 都在渲染中比较，这一帧就不显示旧的编辑。
+  const [editingUnder, setEditingUnder] = useState(safe);
+  if (editingUnder !== safe) {
+    setEditingUnder(safe);
+    setCreating(false); setRenaming(null); setPicking(null);
+  }
+  const gone = (id: string | null) => fresh && id !== null && !groups.some((group) => group.id === id);
+  if (gone(renaming)) setRenaming(null);
+  if (gone(picking)) setPicking(null);
   // 操作期间按钮被禁用、刷新时行会重建，焦点会丢到页面上。记下焦点所在操作（data-focus-key），
   // 刷新完成后按同一键找回；该操作已不存在或不可用时，依次退到同成员或同分组的其他操作。
   const section = useRef<HTMLElement>(null);

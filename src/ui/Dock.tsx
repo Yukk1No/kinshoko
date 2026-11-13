@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { Keys } from "./Keys";
@@ -50,7 +50,8 @@ export function Dock({ items, value, onSelect, label: labelProp, className = "",
   const [open, setOpen] = useState<string | null>(null);
   // The tray still on screen, including while it shrinks back; the floating label waits until it is gone.
   const [trayShown, setTrayShown] = useState<string | null>(null);
-  useEffect(() => { if (open && items.some((item) => isEntry(item) && item.id === open && item.tray)) setTrayShown(open); }, [open, items]);
+  // 在渲染中跟上：托盘打开的这一帧，浮动标签就让开。
+  if (open && trayShown !== open && items.some((item) => isEntry(item) && item.id === open && item.tray)) setTrayShown(open);
   const root = useRef<HTMLDivElement>(null);
   const [tipX, setTipX] = useState(0);
   const entries = items.filter(isEntry);

@@ -1,5 +1,5 @@
 // Reused from bd8aea44:prototype/reference-browser/src/components/DensitySlider.tsx.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 
 const MIN = 140;
@@ -8,14 +8,17 @@ const MAX = 420;
 /** Accepted slider gestures and delayed keyboard commit; the formal Wall measures its current cards
  * before each preview, then updates the real layout without requesting thumbnails until commit. */
 export function DensitySlider(p: { value: number; preview?: number | null; onPreview: (v: number | null) => void; onCommit: (v: number) => void; showValue?: boolean; label?: string }) {
-  const [v, setV] = useState(p.value);
+  const [v, setV] = useState(p.preview ?? p.value);
   const timer = useRef(0);
   const dragging = useRef(false);
   const pending = useRef<number | null>(null);
-  useEffect(() => setV(p.value), [p.value]);
-  // Ctrl+wheel zoom on the wall previews the same value (#111): the thumb follows it; the wall commits it itself.
-  // biome-ignore lint/correctness/useExhaustiveDependencies(p.value): 只跟预览值；value 变了由上一个 effect 处理
-  useEffect(() => { setV(p.preview ?? p.value); }, [p.preview]);
+  // 滑块跟着 value；Ctrl+滚轮缩放的预览值（#111）变了时跟着预览值，落下由图片墙自己做。
+  // 在渲染中比较而不用 effect，属性变了的这一帧就画在新位置。
+  const [followed, setFollowed] = useState({ value: p.value, preview: p.preview });
+  if (followed.value !== p.value || followed.preview !== p.preview) {
+    setFollowed({ value: p.value, preview: p.preview });
+    setV(followed.preview !== p.preview ? p.preview ?? p.value : p.value);
+  }
   const commit = (x: number) => {
     clearTimeout(timer.current);
     dragging.current = false;
@@ -23,9 +26,8 @@ export function DensitySlider(p: { value: number; preview?: number | null; onPre
     if (x === p.value) p.onPreview(null); else p.onCommit(x);
   };
   // Closing the settings dialog mid-pause (Esc) still lands the size the artist chose.
-  const latest = useRef(commit);
-  latest.current = commit;
-  useEffect(() => () => { clearTimeout(timer.current); if (pending.current !== null) latest.current(pending.current); }, []);
+  const commitPending = useEffectEvent(() => { if (pending.current !== null) commit(pending.current); });
+  useEffect(() => () => { clearTimeout(timer.current); commitPending(); }, []);
   // The travelled part of the track is painted from --fill (a native range has no pseudo-element for it).
   const fill = `${((v - MIN) / (MAX - MIN)) * 100}%`;
   const input = <input type="range" className="k-range" min={MIN} max={MAX} step={10} value={v} aria-label={p.label}
