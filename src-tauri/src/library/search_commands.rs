@@ -38,31 +38,6 @@ pub(super) async fn search_candidates<R: Runtime>(
     .await
 }
 
-/// 把搜索框里的条件解析成可见的条件树，交给 `browse` 执行。`safe_mode` 同
-/// [`search_candidates`]。
-#[tauri::command]
-pub(super) async fn resolve_search<R: Runtime>(
-    app: AppHandle<R>,
-    state: State<'_, LibraryState>,
-    library_id: String,
-    input: SearchInput,
-    lang: String,
-    safe_mode: bool,
-) -> Result<ConditionTree, CommandError> {
-    let catalog = state.search.clone();
-    crate::run_log::record(LogEvent::SearchResolved {
-        terms: input.conditions.len().min(u32::MAX as usize) as u32,
-    });
-    blocking(move || {
-        let library = readable(&app, &library_id)?;
-        let search = catalog
-            .search(&library, safe_mode)
-            .map_err(CommandError::from)?;
-        Ok(search.resolve(&input, &lang))
-    })
-    .await
-}
-
 /// 安全模式是否开启（全局设置）。
 #[tauri::command]
 pub(super) async fn safe_mode(state: State<'_, LibraryState>) -> Result<bool, CommandError> {

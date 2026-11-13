@@ -157,6 +157,9 @@ pub(super) async fn workspace_resolve<R: Runtime>(
     lang: String,
     safe_mode: bool,
 ) -> Result<ConditionTree, CommandError> {
+    crate::run_log::record(LogEvent::SearchResolved {
+        terms: input.conditions.len().min(u32::MAX as usize) as u32,
+    });
     blocking(move || {
         let catalog = app.state::<LibraryState>().search.clone();
         stable(&app, safe_mode, |w, d, c| {
