@@ -67,11 +67,80 @@ export function setMedia(query: string, matches: boolean): void {
   }
 }
 
-/** 每个用例之后回到初始状态：没有观察者，媒体查询都不命中。 */
+const running = new Map<Element, FakeAnimation[]>();
+
+// jsdom 没有 KeyframeEffect：只记下目标、关键帧与时间参数，供测试检查。
+class FakeKeyframeEffect {
+  constructor(
+    readonly target: Element,
+    private readonly keyframes: Keyframe[] | PropertyIndexedKeyframes | null,
+    private readonly timing: KeyframeEffectOptions,
+  ) {}
+  getKeyframes() {
+    return this.keyframes;
+  }
+  getTiming() {
+    return this.timing;
+  }
+}
+
+/**
+ * Element.animate 返回的假动画。不自动结束：测试用 animations(el) 拿到它，自己调 finish() 或 cancel()；
+ * 自动结束等于又造了一条真实应用里没有的时序。
+ */
+export class FakeAnimation extends EventTarget {
+  readonly effect: FakeKeyframeEffect;
+  startTime: number | null = null;
+  playState: AnimationPlayState = "running";
+  onfinish: ((this: Animation, event: AnimationPlaybackEvent) => unknown) | null = null;
+  oncancel: ((this: Animation, event: AnimationPlaybackEvent) => unknown) | null = null;
+  readonly finished: Promise<Animation>;
+  private settle!: { resolve: (animation: Animation) => void; reject: (reason: unknown) => void };
+  constructor(target: Element, keyframes: Keyframe[] | PropertyIndexedKeyframes | null, options?: number | KeyframeAnimationOptions) {
+    super();
+    this.effect = new FakeKeyframeEffect(target, keyframes, typeof options === "number" ? { duration: options } : { ...options });
+    this.finished = new Promise((resolve, reject) => { this.settle = { resolve, reject }; });
+    // 和浏览器一样，取消时 finished 的拒绝不算未处理。
+    this.finished.catch(() => {});
+    const list = running.get(target);
+    if (list) list.push(this);
+    else running.set(target, [this]);
+  }
+  finish() {
+    if (this.playState !== "running") return;
+    this.end("finished");
+    this.settle.resolve(this as unknown as Animation);
+    this.fire("finish", this.onfinish);
+  }
+  cancel() {
+    if (this.playState !== "running") return;
+    this.end("idle");
+    this.settle.reject(new DOMException("The user aborted a request.", "AbortError"));
+    this.fire("cancel", this.oncancel);
+  }
+  private end(state: AnimationPlayState) {
+    this.playState = state;
+    const list = running.get(this.effect.target);
+    list?.splice(list.indexOf(this), 1);
+  }
+  private fire(type: string, handler: FakeAnimation["onfinish"]) {
+    const event = new Event(type) as AnimationPlaybackEvent;
+    handler?.call(this as unknown as Animation, event);
+    this.dispatchEvent(event);
+  }
+}
+
+/** 这个元素上还没结束的动画；测试用它检查关键帧，或手动结束动画。 */
+export function animations(target: Element): FakeAnimation[] {
+  return [...(running.get(target) ?? [])];
+}
+
+/** 每个用例之后回到初始状态：没有观察者，媒体查询都不命中，没有未结束的动画。 */
 export function resetPlatform(): void {
   observed.clear();
   media.clear();
   mediaLists.clear();
+  running.clear();
 }
 
 globalThis.ResizeObserver = FakeResizeObserver;
@@ -82,9 +151,19 @@ window.matchMedia = (query: string) => {
   return list;
 };
 
-// jsdom 没有实现 Web Animations：没有正在播放的动画。
-Element.prototype.getAnimations = () => [];
-document.getAnimations = () => [];
+// jsdom 没有实现 Web Animations。getAnimations 只报 animate() 起的、还没结束的动画（没有 CSS 过渡）。
+(globalThis as { KeyframeEffect?: unknown }).KeyframeEffect ??= FakeKeyframeEffect;
+// animate 装在 HTMLElement 与 SVGElement 上，不装在 Element.prototype 上：motion 见到 Element.prototype.animate
+// 就改走 WAAPI，要用到这个假动画没有的 currentTime、pause() 等；这样它照旧走自己逐帧推进的那条路。
+const animate = function (this: Element, keyframes: Keyframe[] | PropertyIndexedKeyframes | null, options?: number | KeyframeAnimationOptions) {
+  return new FakeAnimation(this, keyframes, options) as unknown as Animation;
+};
+HTMLElement.prototype.animate = animate;
+SVGElement.prototype.animate = animate;
+Element.prototype.getAnimations = function (this: Element) {
+  return animations(this) as unknown as Animation[];
+};
+document.getAnimations = () => [...running.values()].flat() as unknown as Animation[];
 // base-ui 见到 getAnimations 就改为隔一帧再等动画结束才收起弹层；关掉它，弹层照旧同步收起。
 (globalThis as { BASE_UI_ANIMATIONS_DISABLED?: boolean }).BASE_UI_ANIMATIONS_DISABLED = true;
 
@@ -104,3 +183,6 @@ Element.prototype.hasPointerCapture = function (this: Element, pointerId: number
 
 // jsdom 不排版，也没有 scrollIntoView。
 Element.prototype.scrollIntoView = () => {};
+
+// jsdom 不解码图片，也没有 HTMLImageElement.decode：当作立即解码完成。
+HTMLImageElement.prototype.decode = () => Promise.resolve();

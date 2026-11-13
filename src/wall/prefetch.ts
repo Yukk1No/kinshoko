@@ -40,7 +40,7 @@ export function decodeThumbnail(url: string): Promise<unknown> {
   const image = new Image();
   image.decoding = "async";
   image.src = url;
-  return typeof image.decode === "function" ? image.decode() : Promise.resolve();
+  return image.decode();
 }
 
 /**

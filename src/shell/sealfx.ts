@@ -1,6 +1,5 @@
-// Copied verbatim from bd8aea44:prototype/reference-browser/src/sealfx.ts (#27). The only changes are
-// the guard on the Web Animations call in burst, which jsdom does not implement, and the
-// frame loop reading every ghost's target before writing any style (#176: no forced style recalc per ghost).
+// Copied verbatim from bd8aea44:prototype/reference-browser/src/sealfx.ts (#27). The only change is
+// the frame loop reading every ghost's target before writing any style (#176: no forced style recalc per ghost).
 // Seal and release effects for the image wall (#27, Q97, Q104, Q105, Q109, Q111).
 // Cards that leave or enter the wall are drawn as "ghosts" in a fixed layer above everything and
 // fly between their place on the wall and the seal book. Every ghost keeps its current values,
@@ -168,7 +167,6 @@ export class SealFx {
 
   private burst(at: number, book: DOMRect) {
     const el = this.burstEl;
-    if (typeof el.animate !== 'function') return;
     el.style.left = `${book.left + book.width / 2 - 20}px`;
     el.style.top = `${book.top + book.height / 2 - 20}px`;
     el.getAnimations().forEach((a) => a.cancel());

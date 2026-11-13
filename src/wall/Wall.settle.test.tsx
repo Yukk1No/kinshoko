@@ -1,15 +1,15 @@
 // 面板开合（settle，侧栏与详情面板同一条路）：过渡一开始就按终点宽度重排，卡片按面板过渡的时长、缓动与起点滑过去；
 // 进行中容器逐帧变宽不再重排，结束时宽度与终点相符就不再排。
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, type MockInstance, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
-import { resize as report, setMedia } from "../test/platform";
+import { type FakeAnimation, resize as report, setMedia } from "../test/platform";
 import { workspacePage } from "../test/workspacePage";
 import { Wall } from "./Wall";
 import type { PanelSlide } from "../shell/usePanelSlide";
 
 let width: number;
-let motions: { id: string; cancel: ReturnType<typeof vi.fn>; options: KeyframeAnimationOptions; startTime: number | null }[];
+let motions: { id: string; cancel: MockInstance; animation: FakeAnimation }[];
 
 beforeEach(() => {
   width = 1000;
@@ -25,11 +25,13 @@ beforeEach(() => {
     }
     return new DOMRect(0, 0, width, 800);
   });
-  HTMLElement.prototype.animate = function (this: HTMLElement, _frames: Keyframe[], options: KeyframeAnimationOptions) {
-    const motion = { id: this.dataset.id!, cancel: vi.fn(), onfinish: null, options, startTime: null };
-    motions.push(motion);
-    return motion as unknown as Animation;
-  };
+  // 用共用的假动画，另外记下每张卡片起的那一个。
+  const animate = HTMLElement.prototype.animate;
+  vi.spyOn(HTMLElement.prototype, "animate").mockImplementation(function (this: HTMLElement, ...args) {
+    const animation = animate.apply(this, args) as unknown as FakeAnimation;
+    motions.push({ id: this.dataset.id!, cancel: vi.spyOn(animation, "cancel"), animation });
+    return animation as unknown as Animation;
+  });
   mockConvertFileSrc("windows");
   mockIPC((cmd) => {
     if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
@@ -38,7 +40,6 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup(); clearMocks();
-  delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
   vi.restoreAllMocks(); vi.unstubAllGlobals();
 });
 
@@ -79,15 +80,15 @@ it("卡片的位移动画用面板过渡的时长、缓动与起点", async () =
   slide(collapse);
   expect(motions.length).toBeGreaterThan(0);
   for (const motion of motions) {
-    expect(motion.options).toMatchObject({ duration: 260, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" });
-    expect(motion.startTime).toBe(1234);
+    expect(motion.animation.effect.getTiming()).toMatchObject({ duration: 260, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" });
+    expect(motion.animation.startTime).toBe(1234);
   }
   // 之后与面板无关的重排回到平常的节奏。
   slide(null);
   motions = [];
   resize(900);
   expect(motions.length).toBeGreaterThan(0);
-  expect(motions.every((motion) => motion.options.duration === 200 && motion.startTime === null)).toBe(true);
+  expect(motions.every((motion) => motion.animation.effect.getTiming().duration === 200 && motion.animation.startTime === null)).toBe(true);
 });
 
 it("结束时宽度与终点不符，按实际宽度再排一次", async () => {
@@ -129,7 +130,7 @@ it("中途反向：从当前位置按新过渡排回新的终点，只重排这�
   expect(placement()).toEqual(before);
   expect(first.every((motion) => motion.cancel.mock.calls.length === 1)).toBe(true);
   expect(motions.length).toBeGreaterThan(0);
-  expect(motions.every((motion) => motion.options.duration === 130 && motion.startTime === 1300)).toBe(true);
+  expect(motions.every((motion) => motion.animation.effect.getTiming().duration === 130 && motion.animation.startTime === 1300)).toBe(true);
   const back = motions.length;
   for (const next of [900, 960, 1000]) resize(next);
   slide(null);

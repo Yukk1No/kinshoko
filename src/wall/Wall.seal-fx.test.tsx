@@ -5,7 +5,7 @@ import { act, render } from "@testing-library/react";
 import { RELEASE, SEAL } from "../shell/sealfx";
 import { setMedia } from "../test/platform";
 import { Wall } from "./Wall";
-import { answer, base, card, frames, fx, ghosts, installSealFx, node, PAGE, settle, wallWith, type FxPage } from "./Wall.seal-fx.fixtures";
+import { answer, base, card, frames, fx, ghosts, installSealFx, node, PAGE, recordAnimations, settle, wallWith, type FxPage } from "./Wall.seal-fx.fixtures";
 
 installSealFx();
 
@@ -24,48 +24,31 @@ describe("封印", () => {
 
   it("资料库送回卡片后，留下的卡片按原型的节奏补位：影子起飞后 280 ms 开始，620 ms", async () => {
     const view = await wallWith(false);
-    const glides: { id: string; timing: KeyframeAnimationOptions }[] = [];
-    HTMLElement.prototype.animate = function (this: HTMLElement, _k: Keyframe[], timing: KeyframeAnimationOptions) {
-      glides.push({ id: this.dataset.id!, timing });
-      return { cancel() {}, finish() {}, onfinish: null } as unknown as Animation;
-    } as HTMLElement["animate"];
-    try {
-      view.rerender(<Wall {...base} reloadKey={0} safeMode />);
-      await frames(100); // 资料库 100 ms 后确认
-      view.rerender(<Wall {...base} reloadKey={1} safeMode />);
-      // 资料库按安全模式送回：成人图不在了，留下的 g 补到它的位置。
-      await answer({ cards: [card("g")], total: 1, nextCursor: null });
-      const g = glides.find((x) => x.id === "g")!;
-      expect(g.timing).toMatchObject({ duration: 620, delay: SEAL.flyAt + 20 - 100, easing: "cubic-bezier(0.65, 0, 0.35, 1)", fill: "backwards" });
-    } finally {
-      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
-    }
+    const glides = recordAnimations();
+    view.rerender(<Wall {...base} reloadKey={0} safeMode />);
+    await frames(100); // 资料库 100 ms 后确认
+    view.rerender(<Wall {...base} reloadKey={1} safeMode />);
+    // 资料库按安全模式送回：成人图不在了，留下的 g 补到它的位置。
+    await answer({ cards: [card("g")], total: 1, nextCursor: null });
+    const g = glides.find((x) => x.id === "g")!;
+    expect(g.timing).toMatchObject({ duration: 620, delay: SEAL.flyAt + 20 - 100, easing: "cubic-bezier(0.65, 0, 0.35, 1)", fill: "backwards" });
   });
 
   it("资料库确认得晚也按原型的节奏补位：影子起飞后 280 ms 就开始，资料库回来不打断", async () => {
     const view = await wallWith(false);
-    const glides: { id: string; timing: KeyframeAnimationOptions; cancelled: boolean }[] = [];
-    HTMLElement.prototype.animate = function (this: HTMLElement, _k: Keyframe[], timing: KeyframeAnimationOptions) {
-      const glide = { id: this.dataset.id!, timing, cancelled: false };
-      glides.push(glide);
-      return { cancel() { glide.cancelled = true; }, finish() {}, onfinish: null } as unknown as Animation;
-    } as HTMLElement["animate"];
-    try {
-      view.rerender(<Wall {...base} reloadKey={1} safeMode />);
-      await frames(SEAL.flyAt + 20 + 16);
-      // 资料库还没回来：飞走的图不再占位，g 补到它的位置。
-      expect(node("a")).toBeNull();
-      const g = glides.filter((x) => x.id === "g");
-      expect(g).toHaveLength(1);
-      expect(g[0].timing).toMatchObject({ duration: 620, easing: "cubic-bezier(0.65, 0, 0.35, 1)" });
-      expect(Number(g[0].timing.delay)).toBeLessThanOrEqual(16);
-      // 补位途中资料库送回同样的卡片：不取消、不重来。
-      await answer({ cards: [card("g")], total: 1, nextCursor: null });
-      expect(glides.filter((x) => x.id === "g")).toHaveLength(1);
-      expect(g[0].cancelled).toBe(false);
-    } finally {
-      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
-    }
+    const glides = recordAnimations();
+    view.rerender(<Wall {...base} reloadKey={1} safeMode />);
+    await frames(SEAL.flyAt + 20 + 16);
+    // 资料库还没回来：飞走的图不再占位，g 补到它的位置。
+    expect(node("a")).toBeNull();
+    const g = glides.filter((x) => x.id === "g");
+    expect(g).toHaveLength(1);
+    expect(g[0].timing).toMatchObject({ duration: 620, easing: "cubic-bezier(0.65, 0, 0.35, 1)" });
+    expect(Number(g[0].timing.delay)).toBeLessThanOrEqual(16);
+    // 补位途中资料库送回同样的卡片：不取消、不重来。
+    await answer({ cards: [card("g")], total: 1, nextCursor: null });
+    expect(glides.filter((x) => x.id === "g")).toHaveLength(1);
+    expect(g[0].animation.playState).not.toBe("idle");
   });
 
   it("补位时挪动的卡片都滑过去，包括点下去时还在视口下方、补位后才进视口的", async () => {
@@ -76,25 +59,17 @@ describe("封印", () => {
     vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance"] });
     const place = () => new Map([...document.querySelectorAll<HTMLElement>(".card")].map((n) => [n.dataset.id!, { left: parseFloat(n.style.left), top: parseFloat(n.style.top) }]));
     const before = place();
-    const glided = new Set<string>();
-    HTMLElement.prototype.animate = function (this: HTMLElement) {
-      glided.add(this.dataset.id!);
-      return { cancel() {}, finish() {}, onfinish: null } as unknown as Animation;
-    } as HTMLElement["animate"];
-    try {
-      view.rerender(<Wall {...base} reloadKey={1} safeMode />);
-      await frames(SEAL.flyAt + 20 + 16);
-      const after = place();
-      const moved = [...after].filter(([id, p]) => {
-        const old = before.get(id);
-        return old && (old.left !== p.left || old.top !== p.top);
-      }).map(([id]) => id);
-      // 有在视口（800）以下起步的卡片也挪了，确认这条测试覆盖到了它们。
-      expect(moved.some((id) => before.get(id)!.top > 800)).toBe(true);
-      expect(moved.filter((id) => !glided.has(id))).toEqual([]);
-    } finally {
-      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
-    }
+    const glided = recordAnimations();
+    view.rerender(<Wall {...base} reloadKey={1} safeMode />);
+    await frames(SEAL.flyAt + 20 + 16);
+    const after = place();
+    const moved = [...after].filter(([id, p]) => {
+      const old = before.get(id);
+      return old && (old.left !== p.left || old.top !== p.top);
+    }).map(([id]) => id);
+    // 有在视口（800）以下起步的卡片也挪了，确认这条测试覆盖到了它们。
+    expect(moved.some((id) => before.get(id)!.top > 800)).toBe(true);
+    expect(moved.filter((id) => !glided.some((x) => x.id === id))).toEqual([]);
   });
 
   it("减少动态效果时没有影子，封印的图直接离开，不等资料库确认", async () => {
@@ -109,24 +84,16 @@ describe("封印", () => {
   it("墙上没有成人图时开启：之后无关的重新浏览按平常的 200 ms 重排，不沿用切换时的位置与节奏", async () => {
     const plain: FxPage = { cards: [card("g"), card("h")], total: 2, nextCursor: null };
     const view = await wallWith(false, plain);
-    const glides: { id: string; timing: KeyframeAnimationOptions }[] = [];
-    HTMLElement.prototype.animate = function (this: HTMLElement, _k: Keyframe[], timing: KeyframeAnimationOptions) {
-      glides.push({ id: this.dataset.id!, timing });
-      return { cancel() {}, finish() {}, onfinish: null } as unknown as Animation;
-    } as HTMLElement["animate"];
-    try {
-      view.rerender(<Wall {...base} reloadKey={1} safeMode />);
-      await frames(SEAL.flyAt + 20 + 16);
-      await answer(plain); // 资料库送回同样的卡片
-      await frames(100);
-      // 之后一次无关的重新浏览在最前面多了一张图，g 与 h 让位。
-      view.rerender(<Wall {...base} reloadKey={2} safeMode />);
-      await answer({ cards: [card("n"), ...plain.cards], total: 3, nextCursor: null });
-      const g = glides.find((x) => x.id === "g")!;
-      expect(g.timing).toMatchObject({ duration: 200 });
-    } finally {
-      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
-    }
+    const glides = recordAnimations();
+    view.rerender(<Wall {...base} reloadKey={1} safeMode />);
+    await frames(SEAL.flyAt + 20 + 16);
+    await answer(plain); // 资料库送回同样的卡片
+    await frames(100);
+    // 之后一次无关的重新浏览在最前面多了一张图，g 与 h 让位。
+    view.rerender(<Wall {...base} reloadKey={2} safeMode />);
+    await answer({ cards: [card("n"), ...plain.cards], total: 3, nextCursor: null });
+    const g = glides.find((x) => x.id === "g")!;
+    expect(g.timing).toMatchObject({ duration: 200 });
   });
 });
 
@@ -146,17 +113,17 @@ describe("每次提交只排一次版（#176 性能）", () => {
     const scroller = document.querySelector<HTMLElement>(".wall")!;
     const top = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
     Object.defineProperty(scroller, "scrollTop", { configurable: true, get() { order.push("read"); return top.get!.call(this); }, set(v) { top.set!.call(this, v); } });
-    HTMLElement.prototype.animate = function () {
+    const animate = HTMLElement.prototype.animate;
+    vi.spyOn(HTMLElement.prototype, "animate").mockImplementation(function (this: HTMLElement, keyframes, options) {
       order.push("animate");
-      return { cancel() {}, finish() {}, onfinish: null } as unknown as Animation;
-    } as HTMLElement["animate"];
+      return animate.call(this, keyframes, options);
+    });
     try {
       view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
       await answer({ cards: [card("n"), ...PAGE.cards], total: 3, nextCursor: null });
       expect(order).toContain("animate");
       expect(order.slice(order.indexOf("animate"))).not.toContain("read");
     } finally {
-      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
       delete (scroller as Partial<HTMLElement>).scrollTop;
     }
   });
@@ -243,27 +210,19 @@ describe("释放", () => {
         { libraryId: "L2", libraryName: "场景参考", imageId: id, unavailable: null, matches: true, deleted: false }] });
     const both: FxPage = { cards: [sourced("a", true), sourced("g")], total: 2, nextCursor: null };
     const view = await wallWith(true, { cards: [sourced("g")], total: 1, nextCursor: null });
-    const glides: { el: HTMLElement; keyframes: Keyframe[]; timing: KeyframeAnimationOptions }[] = [];
-    HTMLElement.prototype.animate = function (this: HTMLElement, keyframes: Keyframe[], timing: KeyframeAnimationOptions) {
-      glides.push({ el: this, keyframes, timing });
-      return { cancel() {}, finish() {}, onfinish: null } as unknown as Animation;
-    } as HTMLElement["animate"];
-    try {
-      view.rerender(<Wall {...base} reloadKey={0} safeMode={false} />);
-      view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
-      await answer(both);
-      const glide = glides.find((x) => x.el === node("g"))!;
-      const badge = glides.find((x) => x.el.matches('.card-sources[data-card="g"]'));
-      expect(badge).toBeDefined();
-      expect(badge!.timing).toEqual(glide.timing);
-      // 卡片同大小只平移：标记从卡片旧位置的右下角滑回，保留自身的 translate(-100%, -100%)。
-      const [, dx, dy] = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(String(glide.keyframes[0].transform))!;
-      expect(badge!.keyframes).toEqual([
-        { transform: `translate(${dx}px, ${dy}px) translate(-100%, -100%)` },
-        { transform: "translate(-100%, -100%)" },
-      ]);
-    } finally {
-      delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
-    }
+    const glides = recordAnimations();
+    view.rerender(<Wall {...base} reloadKey={0} safeMode={false} />);
+    view.rerender(<Wall {...base} reloadKey={1} safeMode={false} />);
+    await answer(both);
+    const glide = glides.find((x) => x.el === node("g"))!;
+    const badge = glides.find((x) => x.el.matches('.card-sources[data-card="g"]'));
+    expect(badge).toBeDefined();
+    expect(badge!.timing).toEqual(glide.timing);
+    // 卡片同大小只平移：标记从卡片旧位置的右下角滑回，保留自身的 translate(-100%, -100%)。
+    const [, dx, dy] = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(String(glide.keyframes[0].transform))!;
+    expect(badge!.keyframes).toEqual([
+      { transform: `translate(${dx}px, ${dy}px) translate(-100%, -100%)` },
+      { transform: "translate(-100%, -100%)" },
+    ]);
   });
 });
