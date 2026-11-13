@@ -1,12 +1,14 @@
-import { afterEach, beforeEach, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { beforeEach, expect, it } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "../App";
+import { appStartup } from "../App.fixtures";
 import type { Candidate } from "../bindings/Candidate";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
+import { fakeBackend, shellSettings } from "../test/backend";
 
 const library = { id: "L1", name: "工作参考", root: "D:\\synthetic-t20\\工作参考" };
 const tag = { id: "shared-blue", namespace: "general" as const, name: "蓝发", untranslated: false, hasExternal: true };
@@ -23,42 +25,37 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  mockWindows("main");
-  mockIPC((command, payload) => {
-    const args = (payload ?? {}) as Record<string, unknown>;
-    switch (command) {
-      case "app_info": return { productName: "Kinshoko", version: "probe" };
-      case "plugin:library|current_library": return library;
-      case "plugin:library|registered_libraries": return status.libraries;
-      case "plugin:library|workspace_status": return structuredClone(status);
-      case "plugin:library|workspace_directories": return {
-        status: structuredClone(status),
-        providers: [{ registration: status.libraries[0], unassigned: 1, descendants: {}, sidebar: { all: 1, trash: 0, folders: [] } }],
-      };
-      case "plugin:library|workspace_browse": return { status: structuredClone(status), cards: [], nextCursor: null, total: 0 };
-      case "plugin:library|safe_mode": return true;
-      case "plugin:library|recovery": return { interrupted: [], orphans: [], discardedStaging: 0 };
-      case "plugin:library|shared_tag_groups": return readGroups();
-      case "plugin:library|workspace_tag_groups": return [];
-      case "plugin:library|workspace_resolve": return { conditions: [] };
-      case "plugin:library|workspace_candidates": return String(args.text).includes("蓝") ? readCandidates() : [];
-      case "plugin:library|create_shared_tag_group":
-        groups.push({ id: "G1", name: String(args.name), namespace: null, tags: [], sources: [] });
-        status = { ...status, revision: "workspace-r2" };
-        return "G1";
-      case "plugin:library|edit_shared_tag_group": {
-        const edit = args.edit as CatalogGroupEdit;
-        if (edit.kind !== "addMembers") throw new Error("Unexpected edit in picker regression");
-        groups[0] = { ...groups[0], tags: [{ tag, count: 1 }] };
-        return null;
-      }
-      case "tagging_status": return { state: "starting" };
-      case "shell_settings": return { autostart: false, shortcuts: [], showApproxSource: false };
-      default: return null;
-    }
-  }, { shouldMockEvents: true });
+  fakeBackend({
+    ...appStartup,
+    app_info: { productName: "Kinshoko", version: "probe" },
+    current_library: library,
+    registered_libraries: () => status.libraries,
+    workspace_status: () => structuredClone(status),
+    workspace_directories: () => ({
+      status: structuredClone(status),
+      providers: [{ registration: status.libraries[0], unassigned: 1, descendants: {}, sidebar: { all: 1, trash: 0, folders: [] } }],
+    }),
+    workspace_browse: () => ({ status: structuredClone(status), cards: [], nextCursor: null, total: 0 }),
+    recovery: { interrupted: [], orphans: [], discardedStaging: 0 },
+    shared_tag_groups: () => readGroups(),
+    workspace_tag_groups: [],
+    workspace_resolve: { conditions: [] },
+    workspace_candidates: (args) => String(args.text).includes("蓝") ? readCandidates() : [],
+    create_shared_tag_group: (args) => {
+      groups.push({ id: "G1", name: String(args.name), namespace: null, tags: [], sources: [] });
+      status = { ...status, revision: "workspace-r2" };
+      return "G1";
+    },
+    edit_shared_tag_group: (args) => {
+      const edit = args.edit as CatalogGroupEdit;
+      if (edit.kind !== "addMembers") throw new Error("Unexpected edit in picker regression");
+      groups[0] = { ...groups[0], tags: [{ tag, count: 1 }] };
+      return null;
+    },
+    tagging_status: { state: "starting" },
+    shell_settings: shellSettings(),
+  });
 });
-afterEach(async () => { cleanup(); await act(async () => {}); clearMocks(); });
 
 async function openPicker(beforePicker?: () => Promise<void>) {
   render(<App />);

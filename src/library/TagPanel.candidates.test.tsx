@@ -1,9 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fakeBackend } from "../test/backend";
 import { parseTyped, TagPanel } from "./TagPanel";
-
-afterEach(() => { cleanup(); clearMocks(); });
 
 const tag = (id: string, name: string) => ({ id, namespace: "general", name, untranslated: false, hasExternal: true });
 
@@ -12,14 +10,13 @@ it("已经有的标签排在前面时，仍列满其余匹配的标签", async (
   const assigned = ["猫耳", "猫尾"].map((name, i) => tag(`has-${i}`, name));
   const others = Array.from({ length: 9 }, (_, i) => tag(`t-${i}`, `猫${i}`));
   const limits: number[] = [];
-  mockIPC((cmd, args) => {
-    if (cmd.endsWith("catalog_image_tags")) return { image: { imageId: "a", rejected: [], tags: assigned.map((t) => ({ tag: t, origins: [{ kind: "manual" }] })) }, identities: [] };
-    if (cmd.endsWith("workspace_library_candidates")) {
+  fakeBackend({
+    catalog_image_tags: { image: { imageId: "a", rejected: [], tags: assigned.map((t) => ({ tag: t, origins: [{ kind: "manual" }] })) }, identities: [] },
+    workspace_library_candidates: (args) => {
       const { limit } = args as { limit: number };
       limits.push(limit);
       return [...assigned, ...others].slice(0, limit).map((t, i) => ({ tag: t, via: null, count: 20 - i }));
-    }
-    return null;
+    },
   });
   render(<TagPanel libraryId="L1" ids={["a"]} safe={false} generation={0} onError={() => {}} />);
   await screen.findByRole("list", { name: "有效标签" });
@@ -40,15 +37,14 @@ describe("添加标签的输入框", () => {
   const setup = (ids: string[]) => {
     const edits: unknown[] = [];
     const limits: number[] = [];
-    mockIPC((cmd, args) => {
-      if (cmd.endsWith("catalog_image_tags")) return { image: { imageId: "a", rejected: [], tags: [] }, identities: [] };
-      if (cmd.endsWith("workspace_library_candidates")) {
+    fakeBackend({
+      catalog_image_tags: { image: { imageId: "a", rejected: [], tags: [] }, identities: [] },
+      workspace_library_candidates: (args) => {
         const { text, limit } = args as { text: string; limit: number };
         limits.push(limit);
         return [tag("t-cat", "猫"), { ...tag("t-artist", "某某"), namespace: "artist" }].filter((t) => t.name.includes(text.trim())).map((t) => ({ tag: t, via: null, count: 3 }));
-      }
-      if (cmd.endsWith("edit_tags")) { edits.push((args as { edits: unknown[] }).edits[0]); return null; }
-      return null;
+      },
+      edit_tags: (args) => { edits.push((args as { edits: unknown[] }).edits[0]); return null; },
     });
     render(<TagPanel libraryId="L1" ids={ids} safe={false} generation={0} onError={() => {}} />);
     const input = screen.getByRole("combobox", { name: "标签名" });

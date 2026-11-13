@@ -1,10 +1,9 @@
-import { afterEach, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fakeBackend } from "../test/backend";
 import { TagGroupsPane } from "./TagGroupsPane";
 import { ToastProvider } from "../ui/Toast";
 
-afterEach(() => { cleanup(); clearMocks(); });
 
 const tag = (id: string, name: string) => ({ id, namespace: "general" as const, name, untranslated: false, hasExternal: true });
 
@@ -13,14 +12,13 @@ it("添加标签时不列已有成员，仍列满其余匹配的标签；Esc 收
   const members = ["猫耳", "猫尾"].map((name, i) => tag(`has-${i}`, name));
   const others = Array.from({ length: 9 }, (_, i) => tag(`t-${i}`, `猫${i}`));
   const limits: number[] = [];
-  mockIPC((cmd, args) => {
-    if (cmd.endsWith("shared_tag_groups")) return [{ id: "G", name: "猫", namespace: null, tags: members.map((t) => ({ tag: t, count: 1 })), sources: [] }];
-    if (cmd.endsWith("workspace_candidates")) {
+  fakeBackend({
+    shared_tag_groups: [{ id: "G", name: "猫", namespace: null, tags: members.map((t) => ({ tag: t, count: 1 })), sources: [] }],
+    workspace_candidates: (args) => {
       const { limit } = args as { limit: number };
       limits.push(limit);
       return [...members, ...others].slice(0, limit).map((t, i) => ({ tag: t, via: null, count: 20 - i }));
-    }
-    return null;
+    },
   });
   render(<ToastProvider><TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} /></ToastProvider>);
   const add = await screen.findByRole("button", { name: "给“猫”添加标签" });

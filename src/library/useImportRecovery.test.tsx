@@ -1,12 +1,11 @@
-import { afterEach, expect, it } from "vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import type { RecoveryReport } from "../bindings/RecoveryReport";
+import { fakeBackend } from "../test/backend";
 import { SaveDestinationProvider } from "./SaveDestination";
 import { useImportRecovery } from "./useImportRecovery";
 
-afterEach(async () => { cleanup(); await new Promise((resolve) => setTimeout(resolve, 0)); clearMocks(); });
 
 const interrupted = (path: string): RecoveryReport => ({ interrupted: [path], orphans: [], discardedStaging: 0 });
 const clean: RecoveryReport = { interrupted: [], orphans: [], discardedStaging: 0 };
@@ -19,16 +18,14 @@ function Probe() {
 /** 假后端：`registered` 决定登记了什么，`answers` 依次回答读对账结果的请求。 */
 function backend(answers: (RecoveryReport | Promise<RecoveryReport>)[]) {
   const state = { registered: true, revision: 0 };
-  mockWindows("main");
-  mockIPC((cmd) => {
-    if (cmd === "plugin:library|workspace_directories") {
+  fakeBackend({
+    workspace_directories: () => {
       const registration = { library: { id: "L1", name: "参考", root: "D:/参考" }, unavailable: null };
       const providers = state.registered ? [{ registration, unassigned: 0, descendants: {}, sidebar: null }] : [];
       return { status: { revision: String(state.revision), libraries: providers.map((p) => p.registration) }, providers };
-    }
-    if (cmd === "plugin:library|recovery") return answers.shift();
-    return undefined;
-  }, { shouldMockEvents: true });
+    },
+    recovery: () => answers.shift(),
+  });
   const setRegistered = (registered: boolean) => act(async () => {
     state.registered = registered;
     state.revision += 1;

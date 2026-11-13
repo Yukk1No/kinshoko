@@ -1,10 +1,9 @@
 import { expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { mockIPC } from "@tauri-apps/api/mocks";
+import { fakeBackend } from "../test/backend";
 import { WorkspacePane } from "./WorkspacePane";
 import { DRAG_IMAGE_SOURCES, DRAG_IMAGES } from "../wall/Wall";
-import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
-import { names, pending, props, settle, section, arrow, expanded, inA, loaded } from "./WorkspacePane.fixtures";
+import { directories, names, props, settle, section, arrow, expanded, inA, loaded } from "./WorkspacePane.fixtures";
 
 it("顶部“全部图片”带各库合计；每个图库一行：名称、张数，路径只在悬停提示里（方案 D）", async () => {
   await loaded();
@@ -39,12 +38,8 @@ it("选中某库内的范围时只展开该库，选“全部图片”时全部�
 });
 
 it("拖动图片悬停在折起的图库上约 0.6 秒自动展开，离开或放下后恢复折起", async () => {
-  const calls: { command: string; args: Record<string, unknown> }[] = [];
-  mockIPC((command, args) => {
-    if (command === "plugin:library|workspace_directories") return new Promise<WorkspaceDirectories>((resolve, reject) => pending.push({ safeMode: (args as { safeMode: boolean }).safeMode, resolve, reject }));
-    calls.push({ command, args: args as Record<string, unknown> });
-    return [];
-  });
+  const fake = fakeBackend({ workspace_directories: directories, edit: [] });
+  const calls = () => fake.calls().filter((call) => call.command !== "workspace_directories");
   await loaded();
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const data: Record<string, string> = { [DRAG_IMAGES]: JSON.stringify(["card-1"]), [DRAG_IMAGE_SOURCES]: JSON.stringify({ B: ["b-1"] }) };
@@ -74,7 +69,7 @@ it("拖动图片悬停在折起的图库上约 0.6 秒自动展开，离开或�
   expect(expanded("B")).toBe(false);
   vi.useRealTimers();
   await settle();
-  expect(calls).toEqual([{ command: "plugin:library|edit", args: { libraryId: "B", ids: ["b-1"], edits: [{ kind: "addToFolder", folderId: "B-child" }] } }]);
+  expect(calls()).toEqual([{ command: "edit", args: { libraryId: "B", ids: ["b-1"], edits: [{ kind: "addToFolder", folderId: "B-child" }] } }]);
 
   // 拖动在别处结束（取消）时也恢复。
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
@@ -97,13 +92,8 @@ it("已展开的图库不受拖动悬停影响，放下后保持展开", async (
 });
 
 it("每个已连接图库的目录都可以直接整理，请求带上该图库的身份（ADR-0008，#112）", async () => {
-  const calls: { command: string; args: Record<string, unknown> }[] = [];
-  mockIPC((command, args) => {
-    if (command === "plugin:library|workspace_directories") return new Promise<WorkspaceDirectories>((resolve, reject) => pending.push({ safeMode: (args as { safeMode: boolean }).safeMode, resolve, reject }));
-    calls.push({ command, args: args as Record<string, unknown> });
-    if (command === "plugin:library|create_folder") return "new-folder";
-    return null;
-  });
+  const fake = fakeBackend({ workspace_directories: directories, create_folder: "new-folder", rename_folder: null, move_folder: null });
+  const calls = () => fake.calls().filter((call) => call.command !== "workspace_directories");
   await loaded();
   // 新建文件夹在图库标题的 ⋯ 里；折起的图库随之展开。
   fireEvent.click(within(section("A")).getByRole("button", { name: "人物参考 的操作" }));
@@ -127,21 +117,17 @@ it("每个已连接图库的目录都可以直接整理，请求带上该图库�
   fireEvent.drop(headA, { dataTransfer: moving });
   fireEvent.drop(within(section("B")).getByRole("button", { name: "风景参考（3 张）" }), { dataTransfer: moving });
   await settle();
-  expect(calls).toEqual([
-    { command: "plugin:library|create_folder", args: { libraryId: "A", name: "姿势", parent: null } },
-    { command: "plugin:library|rename_folder", args: { libraryId: "A", folderId: "A-child", name: "跑跳" } },
-    { command: "plugin:library|move_folder", args: { libraryId: "A", folderId: "A-child", parent: null, position: 2 ** 31 } },
+  expect(calls()).toEqual([
+    { command: "create_folder", args: { libraryId: "A", name: "姿势", parent: null } },
+    { command: "rename_folder", args: { libraryId: "A", folderId: "A-child", name: "跑跳" } },
+    { command: "move_folder", args: { libraryId: "A", folderId: "A-child", parent: null, position: 2 ** 31 } },
   ]);
   expect(props.onError).not.toHaveBeenCalled();
 });
 
 it("新建文件夹放在所选库当前打开的文件夹里", async () => {
-  const calls: { command: string; args: Record<string, unknown> }[] = [];
-  mockIPC((command, args) => {
-    if (command === "plugin:library|workspace_directories") return new Promise<WorkspaceDirectories>((resolve, reject) => pending.push({ safeMode: (args as { safeMode: boolean }).safeMode, resolve, reject }));
-    calls.push({ command, args: args as Record<string, unknown> });
-    return "new";
-  });
+  const fake = fakeBackend({ workspace_directories: directories, create_folder: "new" });
+  const calls = () => fake.calls().filter((call) => call.command !== "workspace_directories");
   await loaded(render(<WorkspacePane {...props} scope={inA({ kind: "folderTree", id: "A-root" })} />));
   for (const id of ["A", "B"]) {
     fireEvent.click(within(section(id)).getByRole("button", { name: `${names[id]} 的操作` }));
@@ -151,7 +137,7 @@ it("新建文件夹放在所选库当前打开的文件夹里", async () => {
     fireEvent.keyDown(input, { key: "Enter" });
     await settle();
   }
-  expect(calls.map((call) => call.args)).toEqual([
+  expect(calls().map((call) => call.args)).toEqual([
     { libraryId: "A", name: "新", parent: "A-root" },
     { libraryId: "B", name: "新", parent: null },
   ]);
@@ -175,12 +161,8 @@ it("每库为独立根展示完整目录，选择目录默认包含子文件夹�
 });
 
 it("把图拖进任一图库的文件夹，放入的是这张图在那个图库里的来源（#112）", async () => {
-  const calls: { command: string; args: Record<string, unknown> }[] = [];
-  mockIPC((command, args) => {
-    if (command === "plugin:library|workspace_directories") return new Promise<WorkspaceDirectories>((resolve, reject) => pending.push({ safeMode: (args as { safeMode: boolean }).safeMode, resolve, reject }));
-    calls.push({ command, args: args as Record<string, unknown> });
-    return [];
-  });
+  const fake = fakeBackend({ workspace_directories: directories, edit: [] });
+  const calls = () => fake.calls().filter((call) => call.command !== "workspace_directories");
   await loaded(render(<WorkspacePane {...props} scope={inA({ kind: "all" })} />));
   const data: Record<string, string> = {
     [DRAG_IMAGES]: JSON.stringify(["card-1", "card-2"]),
@@ -191,8 +173,8 @@ it("把图拖进任一图库的文件夹，放入的是这张图在那个图库�
   fireEvent.dragOver(folder, { dataTransfer });
   fireEvent.drop(folder, { dataTransfer });
   await settle();
-  expect(calls).toEqual([
-    { command: "plugin:library|edit", args: { libraryId: "A", ids: ["a-1"], edits: [{ kind: "addToFolder", folderId: "A-child" }] } },
+  expect(calls()).toEqual([
+    { command: "edit", args: { libraryId: "A", ids: ["a-1"], edits: [{ kind: "addToFolder", folderId: "A-child" }] } },
   ]);
 });
 
