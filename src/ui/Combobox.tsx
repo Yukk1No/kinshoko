@@ -94,10 +94,14 @@ export function Combobox<T extends ComboboxOption>({
   const field = inputRef ?? ownInput;
   const list = useRef<HTMLDivElement>(null);
 
-  // 改了字或候选换了，高亮回到第一项（或不高亮）。
+  // 改了字或候选换了，高亮回到第一项（或不高亮）；在渲染中比较，这一帧就不高亮旧的那项。
   const ids = options.map((o) => o.id).join("\n");
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ids 与 value 是触发条件，effect 里不读
-  useEffect(() => setActive(start), [ids, start, value]);
+  const highlightKey = JSON.stringify([ids, start, value]);
+  const [highlightFor, setHighlightFor] = useState(highlightKey);
+  if (highlightFor !== highlightKey) {
+    setHighlightFor(highlightKey);
+    setActive(start);
+  }
   const current = active >= 0 && active < options.length ? active : -1;
 
   // 高亮项滚进列表可见范围。

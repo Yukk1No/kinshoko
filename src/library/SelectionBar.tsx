@@ -43,8 +43,12 @@ export function SelectionBar({ libraryId, acrossLibraries, scope, ids, onClear, 
   const selectionKey = ids.join("\n");
   const currentKey = useRef(selectionKey);
   currentKey.current = selectionKey;
-  // biome-ignore lint/correctness/useExhaustiveDependencies(selectionKey): 换了选中的图片就收起永久删除的确认
-  useEffect(() => setPurging(false), [selectionKey]);
+  // 换了选中的图片就收起永久删除的确认；在渲染中比较，换选择的这一帧就不显示旧的确认。
+  const [purgingFor, setPurgingFor] = useState(selectionKey);
+  if (purgingFor !== selectionKey) {
+    setPurgingFor(selectionKey);
+    setPurging(false);
+  }
 
   const folderLibrary = libraryId ?? acrossLibraries?.folderLibrary ?? null;
   // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): reloadKey 变了要重新读文件夹列表

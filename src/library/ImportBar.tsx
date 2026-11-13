@@ -78,9 +78,16 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
   const report = finished?.report ?? null;
   const contextKey = previewContextKey ?? libraryId;
   const [preview, setPreview] = useState<{ taskId: string; contextKey: string } | null>(null);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 换了任务、预览范围或可用状态就收起预览，effect 里不读它们
-  useEffect(() => { setPreview(null); }, [finished?.taskId, contextKey, enabled]);
+  // 换了任务、预览范围或可用状态就收起预览；在渲染中比较，这一帧就不显示旧的预览。
+  const previewScope = JSON.stringify([finished?.taskId, contextKey, enabled]);
+  const [previewFor, setPreviewFor] = useState(previewScope);
+  if (previewFor !== previewScope) {
+    setPreviewFor(previewScope);
+    setPreview(null);
+  }
   const [hovering, setHovering] = useState(false);
+  // 停用时不显示拖入的高亮。
+  if (!enabled && hovering) setHovering(false);
   const { recovery, dismiss: dismissRecovery } = useImportRecovery();
   const [eagleLibraries, setEagleLibraries] = useState<EagleLibraryCandidate[] | null>(null);
   const [lookingForEagle, setLookingForEagle] = useState(false);
@@ -108,10 +115,6 @@ export function ImportBar({ previewContextKey, dropBlocked = false, enabled, lib
       alive.current = false;
     };
   }, []);
-
-  useEffect(() => {
-    if (!enabled) setHovering(false);
-  }, [enabled]);
 
   const start = async (paths: string[], fromEagle = false, options?: ImportOptions, fixed?:SaveDestination) => {
     if (!alive.current || !enabledRef.current || !paths.length) return;

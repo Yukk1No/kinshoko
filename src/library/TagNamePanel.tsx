@@ -107,7 +107,12 @@ function NameRow({ tag, lang, busy, pending, mappings, libraryName, open, onTogg
   const aliases = tag.aliases.filter((entry) => entry.lang === null || entry.lang === lang);
   const [draft, setDraft] = useState(name);
   const [alias, setAlias] = useState("");
-  useEffect(() => setDraft(name), [name]);
+  // 名称变了，草稿跟着换；在渲染中比较，这一帧输入框就显示新名称。
+  const [draftOf, setDraftOf] = useState(name);
+  if (draftOf !== name) {
+    setDraftOf(name);
+    setDraft(name);
+  }
   const desc = [namespaceName(tag.namespace), preference ? t("names.defaultNameOf", { name: defaultName ?? t("names.noName") }) : t("names.defaultName"),
     aliases.length ? t("names.aliasesOf", { aliases: aliases.map((entry) => entry.name).join(t("separator")) }) : ""].filter(Boolean).join(t("names.descSeparator"));
   return <SettingsRow icon={<Tag size={15} />} title={name} hint={desc} label={t("names.rowLabel", { name, state: pending ? t("names.pending") : preference ? t("names.renamed") : t("names.default") })}

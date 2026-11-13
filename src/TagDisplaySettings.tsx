@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Gauge, Palette, RotateCcw } from "lucide-react";
 import type { TagDisplay } from "./bindings/TagDisplay";
 import type { TagStyle } from "./bindings/TagStyle";
@@ -26,13 +26,15 @@ export function TagDisplaySettings({ display, onChange }: {
   const [high, setHigh] = useState(shown(display.high));
   const [low, setLow] = useState(shown(display.low));
   const [problem, setProblem] = useState<string | null>(null);
-  // 阈值变了（包括保存失败后回到已接受的设置）时跟着改输入框。
-  useEffect(() => {
+  // 阈值变了（包括保存失败后回到已接受的设置）时跟着改输入框；在渲染中比较，这一帧就显示新的数。
+  const [followed, setFollowed] = useState({ high: display.high, low: display.low });
+  if (followed.high !== display.high || followed.low !== display.low) {
+    setFollowed({ high: display.high, low: display.low });
     // 自己刚保存的阈值与输入框里的数相同时不改写输入框，免得正在输入的“0.7”变成“0.70”。
     setHigh((text) => (parse(text) === display.high ? text : shown(display.high)));
     setLow((text) => (parse(text) === display.low ? text : shown(display.low)));
     setProblem(null);
-  }, [display.high, display.low]);
+  }
 
   const changeThresholds = (nextHigh: string, nextLow: string) => {
     setHigh(nextHigh);
