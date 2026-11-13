@@ -16,7 +16,7 @@ declare global {
 
 /** 页面启动时的档位：核心预先写入的值；没有或不是现有档位时为 100%。之后以 `ui_scale` 命令为准。 */
 export function initialUiScale(): number {
-  const seeded = typeof window === "undefined" ? undefined : window.__KINSHOKO_UI_SCALE__;
+  const seeded = window.__KINSHOKO_UI_SCALE__;
   return (UI_SCALE_LEVELS as readonly number[]).includes(seeded ?? NaN) ? seeded! : DEFAULT_UI_SCALE;
 }
 

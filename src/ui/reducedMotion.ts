@@ -16,9 +16,9 @@ export function useReducedMotion(): boolean {
     const query = window.matchMedia(REDUCED_QUERY);
     query.addEventListener("change", update);
     // 程序的减少动画开关写在根元素上，切换后立即生效。
-    const observer = typeof MutationObserver === "undefined" ? null : new MutationObserver(update);
-    observer?.observe(document.documentElement, { attributes: true, attributeFilter: ["data-reduced-motion"] });
-    return () => { query.removeEventListener("change", update); observer?.disconnect(); };
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-reduced-motion"] });
+    return () => { query.removeEventListener("change", update); observer.disconnect(); };
   }, []);
   return reduced;
 }

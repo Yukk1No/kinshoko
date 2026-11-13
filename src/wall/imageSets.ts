@@ -73,7 +73,7 @@ export function useStackSetsSetting(onToggle: () => void) {
 export function useCloseTrayOnTopbar(openSet: string | null, leaveTray: MutableRefObject<() => void>) {
   useEffect(() => {
     if (openSet === null) return;
-    const onDown = (e: PointerEvent) => { if ((e.target as Element | null)?.closest?.(".topbar")) leaveTray.current(); };
+    const onDown = (e: PointerEvent) => { if (e.target instanceof Element && e.target.closest(".topbar")) leaveTray.current(); };
     document.addEventListener("pointerdown", onDown, true);
     return () => document.removeEventListener("pointerdown", onDown, true);
   }, [openSet, leaveTray]);

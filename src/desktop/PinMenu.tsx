@@ -105,7 +105,7 @@ export function menuAnchor(open: PinMenuOpen, dpr: number): { x: number; y: numb
 export function DesktopMenuView() {
   const { t } = useTranslation("desktop", { keyPrefix: "pinMenu" });
   const [open, setOpen] = useState<PinMenuOpen | null>(null);
-  const [dpr, setDpr] = useState(() => window.devicePixelRatio || 1);
+  const [dpr, setDpr] = useState(() => window.devicePixelRatio);
   /** 已经处理过（选中或关闭）的那一次菜单，免得关闭时再发一次。 */
   const handled = useRef<number | null>(null);
   const current = useRef<PinMenuOpen | null>(null);
@@ -137,7 +137,7 @@ export function DesktopMenuView() {
     let alive = true;
     void desktopMenu().then((first) => { if (alive && first && !current.current) accept(first); }, () => {});
     const stop = onDesktopMenu((next) => { if (alive) accept(next); });
-    const onResize = () => setDpr(window.devicePixelRatio || 1);
+    const onResize = () => setDpr(window.devicePixelRatio);
     window.addEventListener("resize", onResize);
     window.addEventListener("blur", dismiss);
     return () => {

@@ -59,7 +59,7 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
   const { t } = useTranslation(["viewer", "common"]);
   const root = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
-  const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0, dpr: window.devicePixelRatio || 1 });
+  const [viewport, setViewport] = useState({ width: 0, height: 0, left: 0, top: 0, dpr: window.devicePixelRatio });
   const [mode, setMode] = useState<"fit" | "pixels" | "zoom">("fit");
   const [zoomScale, setZoomScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -79,7 +79,7 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
     const el = stage.current!;
     const sync = () => setViewport((prev) => {
       const rect = el.getBoundingClientRect();
-      const next = { width: el.clientWidth, height: el.clientHeight, left: rect.left, top: rect.top, dpr: window.devicePixelRatio || 1 };
+      const next = { width: el.clientWidth, height: el.clientHeight, left: rect.left, top: rect.top, dpr: window.devicePixelRatio };
       return prev.width === next.width && prev.height === next.height && prev.left === next.left && prev.top === next.top && prev.dpr === next.dpr ? prev : next;
     });
     sync();
@@ -191,7 +191,7 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
   const toggleSelecting = () => setSelecting((on) => !on);
   const keyDown = (e: KeyboardEvent<HTMLElement>) => {
     // 右键菜单渲染在 portal 里，按键仍沿 React 树冒泡到这里：菜单里的按键归菜单处理。
-    if ((e.target as Element).closest?.("[role='menu']")) return;
+    if (e.target instanceof Element && e.target.closest("[role='menu']")) return;
     if (isMenuKey(e)) {
       e.preventDefault(); e.stopPropagation();
       if (stage.current) openMenuAt(stage.current);
@@ -205,7 +205,7 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
     }
     // dock 的快捷键与点按 dock 走同一处理；方向键在 dock 内只移动焦点。
     if (!e.ctrlKey && !e.altKey && !e.metaKey) {
-      const inDock = !!(e.target as Element).closest?.(".k-dock");
+      const inDock = e.target instanceof Element && !!e.target.closest(".k-dock");
       const shortcut: Record<string, () => void> = {
         "0": () => reset("fit"), "1": () => reset("pixels"), F1: toggleSelecting,
         p: () => pin(null), P: () => pin(null), i: () => onToggleInspector?.(), I: () => onToggleInspector?.(),
@@ -219,7 +219,7 @@ export function Viewer({ libraryId, card, onClose, onBack = onClose, reloadKey =
         return;
       }
     }
-    if (e.key === "Enter" && crop && !(e.target as Element).closest?.("button, select")) {
+    if (e.key === "Enter" && crop && !(e.target instanceof Element && e.target.closest("button, select"))) {
       e.preventDefault(); pin(crop); return;
     }
   };
