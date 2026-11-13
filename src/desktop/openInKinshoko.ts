@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import type { OpenInKinshoko } from "../bindings/OpenInKinshoko";
 import { onOpenRequest, takeOpenRequest, workspaceCard } from "../ipc";
 import type { BrowserCard } from "../wall/Wall";
@@ -17,14 +17,13 @@ export function referenceCard(libraryId: string, imageId: string, safe: boolean)
  * 所以逐次排队去取：取到的总是当时最新的请求，后一次只会更新，不会有过时的读取吞掉最新请求。
  */
 export function useOpenInKinshoko(handle: (request: OpenInKinshoko) => void) {
-  const latest = useRef(handle);
-  latest.current = handle;
+  const openRequest = useEffectEvent(handle);
   useEffect(() => {
     let alive = true;
     let queue = Promise.resolve();
     const accept = () => {
       queue = queue.then(() => takeOpenRequest()).then((value) => {
-        if (alive && value) latest.current(value);
+        if (alive && value) openRequest(value);
       }, () => {});
     };
     const stop = onOpenRequest(accept).then((fn) => { if (alive) accept(); return fn; });

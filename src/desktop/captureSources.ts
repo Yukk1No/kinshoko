@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { reportCaptureReferences } from "../ipc";
 import type { CaptureReference } from "../bindings/CaptureReference";
@@ -87,10 +87,9 @@ function collect(all: Provider[]): CaptureReference[] {
 
 /** The native action requests a fresh frame before and after capture. No persistent rectangle cache. */
 export function useCaptureSources(read: Provider["read"], priority: number) {
-  const current = useRef(read);
-  current.current = read;
+  const readSources = useEffectEvent(read);
   useEffect(() => {
-    const provider = { priority, read: () => current.current() };
+    const provider = { priority, read: () => readSources() };
     providers.add(provider);
     if (providers.size === 1) install();
     return () => { providers.delete(provider); if (!providers.size) stop?.(); generation += 1; };
