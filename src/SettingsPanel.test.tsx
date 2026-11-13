@@ -24,7 +24,7 @@ describe("设置：近似查找", () => {
   ];
 
   it("相近标签来源标记默认关闭，打开后告诉主窗口", async () => {
-    const fake = backend({ set_show_approx_source: { ...defaults, showApproxSource: true } });
+    const fake = backend({ "change_setting:showApproxSource": { ...defaults, showApproxSource: true } });
     const seen: ShellSettingsView[] = [];
     render(<SettingsPanel onChange={(v) => seen.push(v)} initialTab="tags" />);
     fireEvent.click(await screen.findByRole("button", { name: "相近" }));
@@ -34,12 +34,12 @@ describe("设置：近似查找", () => {
     fireEvent.click(toggle);
 
     await screen.findByRole("switch", { name: "标出来源", checked: true });
-    expect(fake.calls("set_show_approx_source")[0]?.args).toEqual({ on: true });
+    expect(fake.calls("change_setting:showApproxSource")[0]?.args).toEqual({ on: true });
     expect(seen.at(-1)?.showApproxSource).toBe(true);
   });
 
   it("切换安全模式时保留选择默认关闭，打开后告诉主窗口", async () => {
-    const fake = backend({ set_keep_selection_on_safe_mode: { ...defaults, keepSelectionOnSafeMode: true } });
+    const fake = backend({ "change_setting:keepSelectionOnSafeMode": { ...defaults, keepSelectionOnSafeMode: true } });
     const seen: ShellSettingsView[] = [];
     render(<SettingsPanel onChange={(v) => seen.push(v)} initialTab="safety" safe onSafeMode={() => {}} />);
 
@@ -48,12 +48,12 @@ describe("设置：近似查找", () => {
     fireEvent.click(toggle);
 
     await screen.findByRole("switch", { name: "切换时保留选择", checked: true });
-    expect(fake.calls("set_keep_selection_on_safe_mode")[0]?.args).toEqual({ on: true });
+    expect(fake.calls("change_setting:keepSelectionOnSafeMode")[0]?.args).toEqual({ on: true });
     expect(seen.at(-1)?.keepSelectionOnSafeMode).toBe(true);
   });
 
   it("增强钉图边缘默认关闭，打开后保存（#239）", async () => {
-    const fake = backend({ set_pin_edge_contrast: { ...defaults, pinEdgeContrast: true } });
+    const fake = backend({ "change_setting:pinEdgeContrast": { ...defaults, pinEdgeContrast: true } });
     render(<SettingsPanel initialTab="general" />);
 
     const toggle = await screen.findByRole("switch", { name: "增强钉图边缘" });
@@ -61,7 +61,7 @@ describe("设置：近似查找", () => {
     fireEvent.click(toggle);
 
     await screen.findByRole("switch", { name: "增强钉图边缘", checked: true });
-    expect(fake.calls("set_pin_edge_contrast")[0]?.args).toEqual({ on: true });
+    expect(fake.calls("change_setting:pinEdgeContrast")[0]?.args).toEqual({ on: true });
   });
 
   it("安全模式范围默认敏感及以上，改选后保存并告诉主窗口", async () => {
@@ -181,7 +181,7 @@ describe("偏好设置备份", () => {
     const fake = backend({
       preview_application_settings: { fingerprint: "fixed-backup", safeMode: true, forceSrgb: false },
       restore_application_settings: () => new Promise((resolve) => { releaseRestore = () => resolve({ settings: backup, safeMode: true, problems: [] }); }),
-      set_tag_display: (args) => ({ ...backup, tagDisplay: args.display }),
+      "change_setting:tagDisplay": (args) => ({ ...backup, tagDisplay: args.display }),
     });
     render(<SettingsPanel initialTab="backup" />);
     fireEvent.change(await screen.findByRole("textbox", { name: "偏好设置备份文件" }), { target: { value: "C:/backup/a.kinshoko-settings" } });
@@ -191,7 +191,7 @@ describe("偏好设置备份", () => {
     fireEvent.click(await screen.findByRole("button", { name: "外观" }));
     fireEvent.click(await screen.findByRole("button", { name: "按出处分组" }));
     releaseRestore();
-    await waitFor(() => expect(fake.calls("set_tag_display")[0]?.args).toEqual({
+    await waitFor(() => expect(fake.calls("change_setting:tagDisplay")[0]?.args).toEqual({
       display: { style: "grouped", high: 0.9, low: 0.2 },
     }));
     await waitFor(() => expect((screen.getByRole("spinbutton", { name: "高档下限" }) as HTMLInputElement).value).toBe("90"));
@@ -201,7 +201,7 @@ describe("偏好设置备份", () => {
     let releaseAutostart = () => {};
     const restoredView: ShellSettingsView = { ...defaults, autostart: true, showApproxSource: true };
     const fake = backend({
-      set_autostart: () => new Promise((resolve) => { releaseAutostart = () => resolve({ ...defaults, autostart: false }); }),
+      "change_setting:autostart": () => new Promise((resolve) => { releaseAutostart = () => resolve({ ...defaults, autostart: false }); }),
       preview_application_settings: { fingerprint: "fixed-backup", safeMode: true, forceSrgb: false },
       restore_application_settings: { settings: restoredView, safeMode: true, problems: [] },
     });

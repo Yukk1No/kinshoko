@@ -24,6 +24,13 @@ describe("fakeBackend", () => {
     await expect(readShellSettings()).resolves.toMatchObject({ runLog: true });
   });
 
+  it("answers and records a setting change under the setting it changes", async () => {
+    const backend = fakeBackend({ "change_setting:forceSrgb": (args) => shellSettings({ forceSrgb: args.on as boolean }) });
+    await expect(invoke("change_setting", { change: { kind: "forceSrgb", on: true } })).resolves.toMatchObject({ forceSrgb: true });
+    expect(backend.calls("change_setting:forceSrgb")).toEqual([{ command: "change_setting:forceSrgb", args: { on: true } }]);
+    await expect(invoke("change_setting", { change: { kind: "autostart", on: false } })).rejects.toThrow("fake backend: no reply for change_setting:autostart");
+  });
+
   it("passes the arguments to a reply function and waits for its promise", async () => {
     fakeBackend({ echo: async (args) => args.text });
     await expect(invoke("echo", { text: "你好" })).resolves.toBe("你好");

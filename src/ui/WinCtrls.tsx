@@ -20,11 +20,11 @@ function Glyph({ kind, dpr }: { kind: GlyphKind; dpr: number }) {
 
 /** Keeps each glyph in `group` on whole device pixels as the controls move (window resize, scale change, panel transitions). */
 function useSnappedGlyphs(group: RefObject<HTMLDivElement | null>, maximized: boolean) {
-  const [dpr, setDpr] = useState(() => window.devicePixelRatio || 1);
+  const [dpr, setDpr] = useState(() => window.devicePixelRatio);
   // biome-ignore lint/correctness/useExhaustiveDependencies(maximized): 最大化或还原后按钮挪了位置，重新对齐
   useLayoutEffect(() => {
     const snap = () => {
-      const now = window.devicePixelRatio || 1;
+      const now = window.devicePixelRatio;
       if (now !== dpr) { setDpr(now); return; }
       const size = glyphGrid(dpr).size;
       for (const button of group.current?.querySelectorAll<HTMLElement>(".k-win-btn") ?? []) {

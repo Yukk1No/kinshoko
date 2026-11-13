@@ -7,7 +7,7 @@ afterEach(resetSettingsTest);
 
 describe("设置：诊断", () => {
   it("打开强制 sRGB 后提示重启生效", async () => {
-    const fake = backend({ set_force_srgb: { ...defaults, forceSrgb: true } });
+    const fake = backend({ "change_setting:forceSrgb": { ...defaults, forceSrgb: true } });
     render(<SettingsPanel />);
     await tab("诊断");
 
@@ -17,7 +17,7 @@ describe("设置：诊断", () => {
     fireEvent.click(toggle);
 
     await screen.findByRole("switch", { name: "按 sRGB 显示", checked: true });
-    expect(fake.calls("set_force_srgb")[0]?.args).toEqual({ on: true });
+    expect(fake.calls("change_setting:forceSrgb")[0]?.args).toEqual({ on: true });
     expect(screen.getByText(/重启 Kinshoko 后生效/)).toBeTruthy();
   });
 

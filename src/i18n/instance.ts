@@ -19,7 +19,7 @@ export const supported = (lang: unknown): lang is UiLang => (UI_LANGS as readonl
 
 /** 页面启动时的界面语言：核心预先写入的值；没有时为简体中文。之后以 `interface_language` 命令为准。 */
 function initialLang(): UiLang {
-  const seeded = typeof window === "undefined" ? undefined : window.__KINSHOKO_INTERFACE_LANG__;
+  const seeded = window.__KINSHOKO_INTERFACE_LANG__;
   return supported(seeded) ? seeded : SOURCE_LANG;
 }
 

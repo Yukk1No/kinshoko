@@ -1,7 +1,7 @@
 import { useCaptureSources } from "./desktop/captureSources";
 import { onCollectionRequest, registerLibrary, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { PanelLeftClose, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "./i18n";
@@ -19,9 +19,7 @@ import {
   onSafeModeSetting,
   safeMode,
   setSafeMode,
-  shellSettings,
-  setInspectorOpen,
-  setInspectorWidth,
+  changeSetting,
   uiScale,
 } from "./ipc";
 import { useOpenInKinshoko } from "./desktop/openInKinshoko";
@@ -93,42 +91,36 @@ function MainWindow() {
   /** undefined：还没读到登记。 */
   const [hasProviders, setHasProviders] = useState<boolean | undefined>(undefined);
   const [openError, setOpenError] = useState<string | null>(null);
-  /** 设置“显示相近标签来源（内置／个人）”，默认不显示。 */
-  const [showApproxSource, setShowApproxSource] = useState(false);
-  const [keepSelectionOnSafe, setKeepSelectionOnSafe] = useState(false);
-  /** 标签外观（#160）：详情面板与查看器从上下文读取，设置一改立即生效。 */
-  const [tagDisplay, setTagDisplay] = useState<TagDisplay>(DEFAULT_TAG_DISPLAY);
   const [inspectorWidth, setInspectorWidthState] = useState<number | undefined>(undefined);
   const [inspectorShown, setInspectorShownState] = useState(false);
   const inspectorChosen = useRef(false);
   /** `keepInspector`：启动时读到的快照回得晚，画师这次已亲手开合过详情面板，就不拿它盖回去。 */
   const acceptShellSettings = useCallback((view: ShellSettingsView, keepInspector = false) => {
-    setShowApproxSource(view.showApproxSource);
-    setTagDisplay(view.tagDisplay ?? DEFAULT_TAG_DISPLAY);
-    setKeepSelectionOnSafe(view.keepSelectionOnSafeMode ?? false);
     setInspectorWidthState(view.inspectorWidth);
     if (!keepInspector) setInspectorShownState(view.inspectorOpen ?? false);
   }, []);
-  /** 设置页交来过快照后，启动时读到的那份已经旧了，回得晚也不再接受（#321）。 */
-  const settingsChanged = useRef(false);
   const settingsPopup = useRef<HTMLDivElement>(null);
-  const acceptChangedSettings = useCallback((view: ShellSettingsView) => {
-    settingsChanged.current = true;
-    acceptShellSettings(view);
-  }, [acceptShellSettings]);
-  const [shellSettingsStore] = useState(() => createShellSettings(acceptChangedSettings));
+  const [shellSettingsStore] = useState(() => createShellSettings(acceptShellSettings));
+  /**
+   * 只读的几项直接取已接受的设置，读到之前用默认值：相近标签来源标记（默认不显示）、
+   * 切换安全模式时保留选择、标签外观（#160，详情面板与查看器从上下文读取，设置一改立即生效）。
+   */
+  const settingsView = useSyncExternalStore(shellSettingsStore.subscribe, shellSettingsStore.state).view;
+  const showApproxSource = settingsView?.showApproxSource ?? false;
+  const keepSelectionOnSafe = settingsView?.keepSelectionOnSafeMode ?? false;
+  const tagDisplay: TagDisplay = settingsView?.tagDisplay ?? DEFAULT_TAG_DISPLAY;
   /** 详情面板宽度先在界面上生效，再写进本设备设置。 */
   const changeInspectorWidth = useCallback((width: number) => {
     setInspectorWidthState(width);
     // 忽略失败：只是下次不记得。
-    void setInspectorWidth(width).catch(() => {});
+    void changeSetting({ kind: "inspectorWidth", width }).catch(() => {});
   }, []);
   /** 详情面板的开合同样先生效再写设置。 */
   const changeInspectorShown = useCallback((open: boolean) => {
     inspectorChosen.current = true;
     setInspectorShownState(open);
     // 忽略失败：只是下次不记得。
-    void setInspectorOpen(open).catch(() => {});
+    void changeSetting({ kind: "inspectorOpen", open }).catch(() => {});
   }, []);
   const { uiScalePercent, uiScaleWriting, acceptUiScale, chooseUiScale } = useUiScaleChoice(toast);
   /**
@@ -192,10 +184,11 @@ function MainWindow() {
       (on) => alive && acceptSafe(on !== false),
       () => {},
     );
-    shellSettings().then(
-      (view) => alive && view && !settingsChanged.current && acceptShellSettings(view, inspectorChosen.current),
-      () => undefined,
-    );
+    // 读取排在之前提交的写入之后、之后提交的写入之前（settingsSubmitter），所以读回的不会比设置页交来的旧。
+    void shellSettingsStore.load().then((result) => {
+      const view = shellSettingsStore.state().view;
+      if (alive && result.ok && view) acceptShellSettings(view, inspectorChosen.current);
+    });
     uiScale().then(
       (saved) => { if (alive && typeof saved === "number" && !uiScaleWriting.current) acceptUiScale(saved); },
       () => undefined,
@@ -217,7 +210,7 @@ function MainWindow() {
     return () => {
       alive = false;
     };
-  }, [acceptSafe, acceptShellSettings, acceptUiScale, uiScaleWriting]);
+  }, [acceptSafe, acceptShellSettings, acceptUiScale, shellSettingsStore, uiScaleWriting]);
 
   // 上次的图库打不开：报告一次，留到画师确认（原常驻横幅，#98）。
   useEffect(() => {

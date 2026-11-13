@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
  * 界面缩放由 WebView 异步生效，这个值可能晚于档位到达，所以要监听，不能只在渲染时读一次。
  */
 export function useDevicePixelRatio(): number {
-  const [dpr, setDpr] = useState(() => window.devicePixelRatio || 1);
+  const [dpr, setDpr] = useState(() => window.devicePixelRatio);
   useEffect(() => {
-    const sync = () => setDpr(window.devicePixelRatio || 1);
+    const sync = () => setDpr(window.devicePixelRatio);
     sync();
     // 缩放变化不一定改变视口大小，所以同时监听分辨率。
     const resolution = window.matchMedia(`(resolution: ${dpr}dppx)`);

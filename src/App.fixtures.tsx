@@ -267,8 +267,8 @@ const APP_COMMANDS = [
   "plugin:library|workspace_browse", "plugin:library|workspace_candidates", "plugin:library|workspace_card",
   "plugin:library|workspace_directories", "plugin:library|workspace_edit_sources",
   "plugin:library|workspace_resolve", "plugin:library|workspace_sidebar", "plugin:library|workspace_status",
-  "plugin:library|workspace_tag_groups", "plugin:window|is_maximized", "set_inspector_open", "set_inspector_width",
-  "set_ui_scale", "set_viewer_background", "shell_settings", "subscription_recent", "subscription_status",
+  "plugin:library|workspace_tag_groups", "plugin:window|is_maximized", "change_setting:inspectorOpen", "change_setting:inspectorWidth",
+  "set_ui_scale", "change_setting:viewerBackground", "shell_settings", "subscription_recent", "subscription_status",
   "subscriptions", "tagging_models", "tagging_status", "ui_scale", "update_status",
 ];
 /** 改变登记的命令：回答之后后端推送 workspace-changed。 */
