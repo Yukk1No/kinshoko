@@ -118,7 +118,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
   useEffect(() => {
     let alive = true;
     sharedTagGroups(lang, safe).then(
-      (value) => { if (alive && current.current === key) setFound({ key, safe, groups: value ?? [] }); },
+      (value) => { if (alive && current.current === key) setFound({ key, safe, groups: value }); },
       (error) => { if (alive && current.current === key && !isLensChanged(error)) onError(error); },
     );
     return () => { alive = false; };

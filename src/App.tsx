@@ -97,7 +97,7 @@ function MainWindow() {
   /** `keepInspector`：启动时读到的快照回得晚，画师这次已亲手开合过详情面板，就不拿它盖回去。 */
   const acceptShellSettings = useCallback((view: ShellSettingsView, keepInspector = false) => {
     setInspectorWidthState(view.inspectorWidth);
-    if (!keepInspector) setInspectorShownState(view.inspectorOpen ?? false);
+    if (!keepInspector) setInspectorShownState(view.inspectorOpen);
   }, []);
   const settingsPopup = useRef<HTMLDivElement>(null);
   const [shellSettingsStore] = useState(() => createShellSettings(acceptShellSettings));

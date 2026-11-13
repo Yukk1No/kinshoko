@@ -81,7 +81,7 @@ function NewLibraryForm({ opens, onCreated, onBusyChange, onCancel }: {
 
   useEffect(() => {
     let live = true;
-    picturesFolder().then((dir) => { if (live) setPictures(dir ?? null); }, () => {});
+    picturesFolder().then((dir) => { if (live) setPictures(dir); }, () => {});
     return () => { live = false; };
   }, []);
 

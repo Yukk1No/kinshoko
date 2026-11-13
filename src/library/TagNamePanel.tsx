@@ -154,7 +154,7 @@ function MapExternal({ name, busy, onMap }: { name: string; busy: boolean; onMap
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const change = (text: string) => {
     setDraft(text);
-    if (text.trim()) externalSuggestions(text, 8).then((found) => setSuggestions(found ?? []), () => {});
+    if (text.trim()) externalSuggestions(text, 8).then(setSuggestions, () => {});
   };
   return <div className="k-set-inline">
     <Combobox label={t("externalLabel", { name })} placeholder={t("externalPlaceholder")} value={draft} disabled={busy} autoHighlight={false}
