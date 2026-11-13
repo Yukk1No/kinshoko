@@ -14,6 +14,7 @@ import { logFailure } from "../runLog";
 import { DialogHeight, DialogSwap } from "../ui/DialogHeight";
 import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
 import { usePersistentToast } from "../ui/Toast";
+import { WarnIcon } from "../ui/WarnIcon";
 
 
 /** 向导确认后通知各处的“旧名称待确认”提示重新读取。 */
@@ -157,7 +158,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
               <div className="k-list-desc">{t("usedIn", { count: group.affectedLibraries.length, libraries: group.affectedLibraries.map(libraryName).join(t("librarySeparator")) })}</div></div>
           </div>
           {group.existingPreference !== null && group.sources.some((source) => source.legacyName !== group.existingPreference) &&
-            <p className="k-list-desc is-warn">{t("differsFromPreference", { name: group.existingPreference })}</p>}
+            <p className="k-list-desc is-warn"><WarnIcon />{t("differsFromPreference", { name: group.existingPreference })}</p>}
           <div className="k-radio-cards" role="radiogroup" aria-label={t("choiceLabel")}>
             {options.map((option) => <label key={option.value} className={`k-radio-card${value === option.value ? " is-on" : ""}`}>
               <input type="radio" name={`legacy-${key(group)}`} value={option.value} checked={value === option.value} disabled={busy}

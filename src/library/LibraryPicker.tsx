@@ -9,6 +9,7 @@ import { onWorkspaceChanged, pickFolder, registeredLibraries, registerLibrary, u
 import { BrandMark } from "../ui/BrandMark";
 import { Menu, MenuItem, MenuPopup } from "../ui/Menu";
 import { useToast } from "../ui/Toast";
+import { WarnIcon } from "../ui/WarnIcon";
 import { Tip } from "../ui/Tip";
 import { offerUndoRemoval } from "./undoRemoval";
 
@@ -136,10 +137,10 @@ export function LibraryPicker({ ready = true, onChanged, onCreate, blocked = fal
               <div className="k-list-text">
                 <div className="k-list-title">{library.name}</div>
                 <Tip label={library.root} align="start"><div className="k-list-desc">{library.root}</div></Tip>
-                {unavailable && <p className="k-list-desc is-warn" role="status">{describeCommandError(unavailable)}</p>}
+                {unavailable && <p className="k-list-desc is-warn" role="status"><WarnIcon />{describeCommandError(unavailable)}</p>}
               </div>
               <div className="k-list-end">
-                <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}><span className="k-label">{unavailable ? t("manage.offline") : t("manage.online")}</span></span>
+                <span className={`k-pill${unavailable ? " is-warn" : " is-ok"}`}>{unavailable && <WarnIcon />}<span className="k-label">{unavailable ? t("manage.offline") : t("manage.online")}</span></span>
                 {unavailable && <button type="button" className="k-btn is-sm" disabled={disabled} onClick={refresh}><RefreshCw size={13} aria-hidden="true" /><span className="k-label">{t("manage.reconnect")}</span></button>}
                 <Tip label={t("manage.removeTitle")}><button type="button" className="k-btn is-sm" disabled={disabled} aria-label={t("manage.removeLabel", { name: library.name })}
                   onClick={() => void remove(library.id)}><span className="k-label">{t("manage.remove")}</span></button></Tip>

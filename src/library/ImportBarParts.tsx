@@ -9,6 +9,7 @@ import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
 import { describeCommandError } from "../ipc/commandError";
 import type { FinishedImport, RunningImport } from "./ImportBar";
 import { DialogHeight } from "../ui/DialogHeight";
+import { WarnIcon } from "../ui/WarnIcon";
 import type { ToastOptions } from "../ui/Toast";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n/instance";
@@ -68,7 +69,7 @@ export function importNotice(report: ImportReport, owner: string | null, warning
           {shown.map(([label, n]) => <span key={label}>{label} <b>{t("amount", { count: n })}</b></span>)}
           {counts.rejected.length > 0 && <span className="is-danger">{t("rejected")} <b>{t("amount", { count: counts.rejected.length })}</b></span>}
         </span>
-        {warnings.map((warning, index) => <span key={index} className="k-toast-line is-warn">{warning}</span>)}
+        {warnings.map((warning, index) => <span key={index} className="k-toast-line is-warn"><WarnIcon />{warning}</span>)}
       </>,
       action: review ? { label: t("view"), onClick: view }
         : show && !report.cancelled && counts.imported + counts.merged + counts.refreshed + counts.newVersions > 0 ? { label: t("show"), onClick: show } : undefined,

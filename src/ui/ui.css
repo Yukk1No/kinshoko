@@ -196,6 +196,11 @@
 .k-list-title { font-weight: 500; }
 .k-list-desc { margin: 0; color: var(--ink-2); font-size: 12px; overflow-wrap: anywhere; }
 .k-list-desc.is-warn { color: var(--warn); white-space: normal; overflow-wrap: anywhere; }
+/* 警告图标（#482，WarnIcon）：在文字行里随第一行排，底边略低于基线，和汉字字面居中；在 flex 行里由 gap 隔开。 */
+.k-warn-icon { display: inline-block; flex: none; vertical-align: -0.15em; margin-inline-end: 0.3em; }
+:is(.k-pill, .subs-unofficial, .subs-rank-hint, .lib-warn) > .k-warn-icon { margin: 0; }
+/* a pill that starts with the icon gives up 2 px on the left, as buttons with a leading icon do */
+:is(.k-pill, .subs-unofficial):has(> .k-warn-icon:first-child) { padding-left: 6px; }
 .k-list-end { display: flex; align-items: center; gap: 8px; flex: none; }
 /* the item's current state (version, progress, place): ink-2 beside the control, never a line of its own */
 .k-list-meta { min-width: 0; overflow-wrap: anywhere; color: var(--ink-2); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; }

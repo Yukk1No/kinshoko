@@ -9,6 +9,7 @@ import { editTagName, inspectTagCatalog } from "../ipc";
 import { useUiLang } from "../i18n";
 import { currentName } from "./catalogName";
 import { useOpenTagNameSettings } from "./TagNameSettings";
+import { WarnIcon } from "../ui/WarnIcon";
 import { errorText } from "../ipc/commandError";
 
 // 改名框在 portal 里，React 事件仍沿组件树冒泡到外层的标签（它本身是出处浮层的触发器）：在这里截住。
@@ -76,7 +77,7 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
                 <input className="k-input" autoFocus value={draft} disabled={busy}
                   onChange={(event) => setDraft(event.target.value)} />
               </label>
-              {duplicate && <p className="k-list-desc is-warn" role="status">{t("duplicate", { name: text })}</p>}
+              {duplicate && <p className="k-list-desc is-warn" role="status"><WarnIcon />{t("duplicate", { name: text })}</p>}
               <Popover.Description className="k-set-note">{t("hint")}</Popover.Description>
               {error && <p className="k-set-error" role="alert">{error}</p>}
               <div className="k-rename-acts">

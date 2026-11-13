@@ -6,6 +6,7 @@ import { Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../ui/Toast";
 import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
+import { WarnIcon } from "../ui/WarnIcon";
 import { rememberViewerBackground } from "../viewer/background";
 import { errorText } from "../ipc/commandError";
 
@@ -60,7 +61,7 @@ export function ApplicationSettingsBackup({ restore: replace }: {
           </div>
           {busy && <p role="status">{t("busy")}</p>}
           {preview && <div className="k-confirm" role="group" aria-label={t("confirm")}>
-            <p>{t("replaces")}</p>
+            <p><WarnIcon />{t("replaces")}</p>
             <p>{t("deletes")}</p>
             <p>{t("safeModeAfter")}<strong>{preview.safeMode ? t("safeOn") : t("safeOff")}</strong>{t("srgbAfter", { state: preview.forceSrgb ? t("on") : t("off") })}</p>
             <div className="k-confirm-actions">
