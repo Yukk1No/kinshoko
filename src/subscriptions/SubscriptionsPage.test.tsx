@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
@@ -8,24 +8,24 @@ import { SubscriptionsPage } from "./SubscriptionsPage";
 import { tipText } from "../test/tip";
 import { account, list, NOW, recent, status } from "./subscriptions.fixtures";
 import { KINDS, type KindMount } from "./kinds";
+import { type FakeBackend, fakeBackend } from "../test/backend";
 
-let calls: { cmd: string; args: unknown }[] = [];
+let fake: FakeBackend;
 
 function backend(subs: Subscription[] = list, images: ReceivedImage[] = recent) {
-  calls = [];
-  mockWindows("main");
   mockConvertFileSrc("windows");
-  mockIPC((cmd, args) => {
-    calls.push({ cmd, args });
-    if (cmd === "subscriptions") return subs;
-    if (cmd === "subscription_recent") return images;
-    if (cmd === "subscription_cancel_login") return status({ login: { state: "loggedOut" } });
-    if (cmd === "subscription_logout") return status({ login: { state: "loggedOut" } });
-    return null;
-  }, { shouldMockEvents: true });
+  fake = fakeBackend({
+    subscriptions: subs,
+    subscription_recent: images,
+    subscription_cancel_login: status({ login: { state: "loggedOut" } }),
+    subscription_logout: status({ login: { state: "loggedOut" } }),
+    subscription_mark_seen: null,
+    subscription_check_now: null,
+    subscription_login: null,
+  });
 }
 
-const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.args);
+const sent = (command: string) => fake.calls(command).map((call) => call.args);
 
 function page(s: SubscriptionStatus, { safe = false, onOpenImage = vi.fn(), kinds }: { safe?: boolean; onOpenImage?: () => void; kinds?: KindMount[] } = {}) {
   const props = { status: s, onStatus: vi.fn(), paneOpen: true, onPaneToggle: vi.fn(), onOpenImage, kinds };
@@ -42,11 +42,8 @@ beforeEach(() => {
   localStorage.setItem("kinshoko.subscriptions.firstRunSeen", "1");
 });
 afterEach(async () => {
-  cleanup();
   vi.useRealTimers();
   localStorage.clear();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
 });
 
 describe("订阅页", () => {

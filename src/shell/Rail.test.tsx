@@ -1,23 +1,15 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { Rail } from "./Rail";
 import { sealBookSVG } from "./sealbook";
+import { fakeBackend } from "../test/backend";
 
 function backend(groups: unknown[], captures: unknown[]) {
-  mockWindows("main");
-  mockIPC((cmd) => {
-    if (cmd === "plugin:desktop|reference_groups") return groups;
-    if (cmd === "plugin:desktop|capture_history") return captures;
-    return null;
-  }, { shouldMockEvents: true });
+  fakeBackend({ reference_groups: groups, capture_history: captures });
 }
 
 afterEach(async () => {
-  cleanup();
   // 卸载时异步取消事件订阅，等它完成再撤掉模拟。
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
 });
 
 /** 与 innerHTML 同样序列化，便于比较。 */

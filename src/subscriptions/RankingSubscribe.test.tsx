@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { SaveDestinationProvider } from "../library/SaveDestination";
@@ -9,6 +9,7 @@ import { tipText } from "../test/tip";
 import { parentFolder } from "../library/library-path";
 import { SubscriptionsPage } from "./SubscriptionsPage";
 import { account, NOW, status, subscription } from "./subscriptions.fixtures";
+import { type FakeBackend, fakeBackend } from "../test/backend";
 
 /** 新建图库选好的位置：显示的是缩短的预览，完整路径在悬停提示里。 */
 const chosenParent = async (dialog: HTMLElement) =>
@@ -16,7 +17,7 @@ const chosenParent = async (dialog: HTMLElement) =>
 
 // 订阅榜单（#370）：对话框、单独的图库、R-18 榜与安全模式、订阅设置。
 
-let calls: { cmd: string; args: unknown }[] = [];
+let fake: FakeBackend;
 const libraries = [
   { library: { id: "L1", name: "主图库", root: "D:/参考图/主图库" }, unavailable: null },
   { library: { id: "L2", name: "私人", root: "D:/参考图/私人" }, unavailable: null },
@@ -25,24 +26,19 @@ const ranking = (id: string, period: "day" | "week" | "month", top: number, patc
   subscription(id, "存下的名字", { target: { kind: "pixivRanking", period, top, explicit: false }, backlog: { kind: "all" }, ...patch });
 
 function backend(subs: Subscription[] = [], newLibraryParent: string | null = null) {
-  calls = [];
-  mockWindows("main");
   mockConvertFileSrc("windows");
-  mockIPC((cmd, args) => {
-    calls.push({ cmd, args });
-    if (cmd === "subscriptions") return subs;
-    if (cmd === "plugin:library|save_memory") return { importDestination: null, newLibraryParent };
-    if (cmd === "subscription_recent") return [];
-    if (cmd === "plugin:library|workspace_directories") {
-      return { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
-    }
-    if (cmd === "plugin:library|create_library_unopened") return { id: "L9", name: "pixiv 榜单", root: "D:/参考图/pixiv 榜单" };
-    if (cmd === "subscription_add") return [];
-    return null;
-  }, { shouldMockEvents: true });
+  fake = fakeBackend({
+    subscriptions: subs,
+    save_memory: { importDestination: null, newLibraryParent },
+    subscription_recent: [],
+    workspace_directories: { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) },
+    create_library_unopened: { id: "L9", name: "pixiv 榜单", root: "D:/参考图/pixiv 榜单" },
+    subscription_add: [],
+    subscription_set_options: () => subs[0],
+  });
 }
 
-const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.args);
+const sent = (command: string) => fake.calls(command).map((call) => call.args);
 
 function page(s: SubscriptionStatus, safe = false) {
   return render(<SaveDestinationProvider safe={safe}>
@@ -61,11 +57,8 @@ beforeEach(() => {
   localStorage.setItem("kinshoko.subscriptions.firstRunSeen", "1");
 });
 afterEach(async () => {
-  cleanup();
   vi.useRealTimers();
   localStorage.clear();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
 });
 
 describe("订阅榜单", () => {
@@ -83,8 +76,8 @@ describe("订阅榜单", () => {
     fireEvent.click(within(dialog).getByRole("switch", { name: "漫画" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "订阅 2 个榜单" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
-    expect(sent("plugin:library|create_library_unopened")).toEqual([{ parent: "D:/参考图", name: "pixiv 榜单" }]);
-    expect(sent("plugin:library|create_library")).toEqual([]);
+    expect(sent("create_library_unopened")).toEqual([{ parent: "D:/参考图", name: "pixiv 榜单" }]);
+    expect(sent("create_library")).toEqual([]);
     expect(sent("subscription_add")[0]).toEqual({ subscriptions: [
       { target: { kind: "pixivRanking", period: "day", top: 50, explicit: false }, name: "日榜 前 50", libraryId: "L9",
         includeExplicit: true, includeManga: true, backlog: { kind: "all" } },
@@ -100,8 +93,8 @@ describe("订阅榜单", () => {
     const dialog = await openRankingDialog();
     expect(await chosenParent(dialog)).toBe("E:/别处");
     fireEvent.click(within(dialog).getByRole("button", { name: /订阅 1 个榜单/ }));
-    await waitFor(() => expect(sent("plugin:library|create_library_unopened")).toEqual([{ parent: "E:/别处", name: "pixiv 榜单" }]));
-    expect(sent("plugin:library|remember_new_library_parent")).toEqual([]);
+    await waitFor(() => expect(sent("create_library_unopened")).toEqual([{ parent: "E:/别处", name: "pixiv 榜单" }]));
+    expect(sent("remember_new_library_parent")).toEqual([]);
   });
 
   it("亲手选的新建位置写进记忆", async () => {
@@ -112,7 +105,7 @@ describe("订阅榜单", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: /选择|更改/ }));
     expect(await chosenParent(dialog)).toBe("F:/亲手选");
     fireEvent.click(within(dialog).getByRole("button", { name: /订阅 1 个榜单/ }));
-    await waitFor(() => expect(sent("plugin:library|remember_new_library_parent")).toEqual([{ parent: "F:/亲手选" }]));
+    await waitFor(() => expect(sent("remember_new_library_parent")).toEqual([{ parent: "F:/亲手选" }]));
   });
 
   it("也可以放进已有图库；一个都不勾时按钮不能点", async () => {
@@ -126,7 +119,7 @@ describe("订阅榜单", () => {
     await chooseOption(within(dialog).getByRole("combobox", { name: "放进已有图库" }), "私人");
     fireEvent.click(within(dialog).getByRole("button", { name: "订阅 1 个榜单" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
-    expect(sent("plugin:library|create_library_unopened")).toEqual([]);
+    expect(sent("create_library_unopened")).toEqual([]);
     expect((sent("subscription_add")[0] as { subscriptions: { libraryId: string }[] }).subscriptions[0].libraryId).toBe("L2");
   });
 
@@ -164,7 +157,7 @@ describe("订阅榜单", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "订阅 1 个榜单" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
     expect((sent("subscription_add")[0] as { subscriptions: { libraryId: string }[] }).subscriptions[0].libraryId).toBe("L9");
-    expect(sent("plugin:library|create_library_unopened")).toEqual([{ parent: "D:/参考图", name: "我的参考" }]);
+    expect(sent("create_library_unopened")).toEqual([{ parent: "D:/参考图", name: "我的参考" }]);
   });
 
   it("R-18 榜：登录着、账号开着 R-18 时才有，安全模式开着也照常能订；没有 R-18 月榜", async () => {

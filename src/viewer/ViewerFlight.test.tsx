@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { BrowserCard } from "../wall/wallShared";
 import { Viewer } from "./Viewer";
 import { useViewerFlight } from "./ViewerFlight";
 import { setMedia } from "../test/platform";
+import { fakeBackend } from "../test/backend";
 
 const LANDED = { timeout: 4000 };
 const makeCard = (id: string, adult = false) => ({ id, libraryId: "L1", imageId: id, width: 1000, height: 800, adult, thumbnail: "" }) as unknown as BrowserCard;
@@ -52,11 +53,9 @@ beforeEach(() => {
     return rect ? new DOMRect(rect[0], rect[1], rect[2], rect[3]) : new DOMRect(0, 0, 1000, 800);
   });
   mockConvertFileSrc("windows");
-  mockIPC(() => null);
+  fakeBackend({ image: {} });
 });
 afterEach(() => {
-  cleanup();
-  clearMocks();
   vi.restoreAllMocks();
   document.documentElement.style.removeProperty("--t");
 });

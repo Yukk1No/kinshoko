@@ -1,11 +1,10 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { afterEach, expect, it } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { expect, it } from "vitest";
 import type { Section } from "../shell/Rail";
 import { LoginExpiredNotice, useSubscriptionSection } from "./SubscriptionSection";
+import { fakeBackend } from "../test/backend";
 
 // 卸载时异步取消事件订阅，等它完成再撤掉模拟。
-afterEach(async () => { cleanup(); await new Promise((resolve) => setTimeout(resolve, 0)); clearMocks(); });
 
 const account = { id: "1", name: "画师" };
 const status = (over: object) => ({ enabled: true, login: { state: "expired", account }, signingIn: false, newCount: 0, checking: false, ...over });
@@ -16,13 +15,8 @@ function Host({ section = "browse", hidden = false }: { section?: Section; hidde
   return <LoginExpiredNotice subscriptions={subscriptions} hidden={hidden} />;
 }
 const serve = (initial: object) => {
-  const sent: string[] = [];
-  mockIPC((cmd) => {
-    sent.push(cmd);
-    if (cmd.endsWith("subscription_status")) return status(initial);
-    return null;
-  }, { shouldMockEvents: true });
-  return sent;
+  const backend = fakeBackend({ subscription_status: status(initial), subscription_login: null });
+  return { some: (match: (command: string) => boolean) => backend.calls().some((call) => match(call.command)) };
 };
 
 it("不在订阅页也提示，可以直接重新登录", async () => {
