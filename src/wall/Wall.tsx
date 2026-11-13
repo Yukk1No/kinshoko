@@ -148,7 +148,7 @@ export function Wall({
   const loadMoreRef = useRef<() => void>(() => {});
   const selectAllRef = useRef<() => void>(() => {});
   useWallHandle({
-    ref, measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal,
+    ref, measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal, setStacked,
   });
   // biome-ignore lint/correctness/useExhaustiveDependencies(density): 落下新密度后清掉预览
   useLayoutEffect(() => { setPreviewDensity(null); }, [density]);

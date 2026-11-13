@@ -1,5 +1,4 @@
 // #418 第 2 步：图片墙叠放图集与原位托盘的日间、夜间截图，可选录屏（悬停拿起、打开托盘、关上托盘）。
-// 应用要用 VITE_KINSHOKO_STACK_SETS=1 构建（第 3 步合并前，叠放只在开发构建或这个开关下露出）。
 // 墙上的图来自一个合成的 Eagle 资料库：几个 pixiv 多页作品（链接是作品页、文件名带 _p<n>），夹着普通单张。
 // 录屏用 ffmpeg 抓桌面上窗口所在的区域，窗口必须在前台、不被挡住：加 --record 才录，会占用屏幕。
 // Usage: node e2e/image-sets-418.mjs <kinshoko.exe> <matching msedgedriver.exe> <输出目录> [--record]

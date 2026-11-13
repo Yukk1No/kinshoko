@@ -4,7 +4,7 @@ import type { WorkspaceCard as SourcesCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { useInspectorWidth } from "../shell/InspectorResizer";
 import type { BrowserCard } from "../wall/Wall";
-import { stackHolding } from "../wall/imageSets";
+import { pagesOf, stackHolding, viewedPage } from "../wall/imageSets";
 
 /** 详情面板（#98）：整理哪些图、是否打开、宽度与开合过渡。 */
 export function useWorkspaceInspector({
@@ -32,7 +32,10 @@ export function useWorkspaceInspector({
   // 多选定不下图库时面板内容留空，宽度不变，选择的反馈在多选悬浮栏。
   // 一摞收着的各页（#418）也算已读：查看器走到它们时，详情面板整理的是正在看的这一页。
   const allCards = useMemo(() => loadedCards.flatMap((card) => card.set ? [card, ...card.set.pages.slice(1) as BrowserCard[]] : [card]), [loadedCards]);
-  const readCards = allCards.filter((card) => selected.has(card.id));
+  // 墙上选中整摞时（#418）整理它的全部页：加标签、移文件夹、删除都作用于每一页，多选悬浮栏报的是张数。
+  // 查看器开着时只整理正在看的这一页，即使它是封面。
+  const chosen = allCards.filter((card) => selected.has(card.id));
+  const readCards = viewing ? chosen.map(viewedPage) : pagesOf(chosen);
   // 列表重读期间选中的图暂时不在已读卡片里：沿用这组选择上次读到的卡片，面板不变空，等修剪选择后再定。
   const lastSelection = useRef<{ key: string; cards: BrowserCard[] } | null>(null);
   if (readCards.length) lastSelection.current = { key: selectionKey, cards: readCards };

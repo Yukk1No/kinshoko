@@ -6,6 +6,7 @@ import { clipboardHasImage, copyReferenceImage, pinReference, referenceGroups, r
 import { flattenFolders, PermanentDeleteConfirm } from "../library/SelectionPanel";
 import { libraryFailures, PermanentDeleteBatchConfirm } from "../library/PermanentDeleteBatch";
 import type { BrowserCard } from "./Wall";
+import { pagesOf } from "./imageSets";
 import type { ImportSource, WallMenuActions } from "./WallMenu";
 import { useToast } from "../ui/Toast";
 import { i18n } from "../i18n";
@@ -63,6 +64,7 @@ export type WallActionsOptions = {
 /**
  * 图片墙右键菜单与快捷键背后的动作：钉住（最多 20 张，超过只钉前 20 张）、按来源整理（移到回收站后可撤销）、加入参考组、
  * 彻底删除（先确认受影响的参考组）、复制图片、在资源管理器中显示与从剪贴板导入（#105）。
+ * 整摞（#418）：整理（删除、还原、移文件夹、分级）与彻底删除作用于它的全部页，钉住与加入参考组只取封面。
  * dialogs 由调用方放进界面。
  */
 export function useWallActions(o: WallActionsOptions): { actions: WallMenuActions; dialogs: ReactNode } {
@@ -141,8 +143,9 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
         if (ok) toast.show({ title: i18n.t("wall:notice.pinnedFirst", { count: PIN_LIMIT }), description: i18n.t("wall:notice.pinLimit", { count: PIN_LIMIT }), tone: "success" });
       });
     },
-    edit(cards, edits, clear) {
+    edit(stacks, edits, clear) {
       const { safe, onChanged, onClearSelection, onError, removeCards } = options.current;
+      const cards = pagesOf(stacks);
       cardsNamed.current = cards;
       const entries = cards.map((card) => ({ card, target: targetOf(card) }));
       // 移到回收站与还原让卡片离开当前视图：先移走，不等后端与整墙重读（#290）。别的来源还让它留在视图里的卡片不动。
@@ -185,8 +188,9 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     },
     purge(cards) {
       // 多张可以跨图库（ADR-0008）：后端按图库分组，逐组切换可写句柄删除。
-      cardsNamed.current = cards;
-      setPurging(cards);
+      const pages = pagesOf(cards);
+      cardsNamed.current = pages;
+      setPurging(pages);
     },
     inFolder: (card, folderId) => {
       const target = targetOf(card);

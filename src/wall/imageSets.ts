@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { MutableRefObject } from "react";
 import type { Anchor, LayoutInput, TrayInput } from "./layout";
 import { stackInset } from "./stackPaper";
-import { CAP_RATIO, STACK_SETS_READY, type BrowserCard } from "./wallShared";
+import { CAP_RATIO, type BrowserCard } from "./wallShared";
 
 /** 托盘的内边距（CSS 像素，界面缩放 100% 时；第 5 版原型）。 */
 export const TRAY_PAD = 14;
@@ -17,6 +17,19 @@ export function expandTray(cards: BrowserCard[], key: string | null): { shown: B
   if (at < 0) return { shown: cards, tray: null };
   const pages = cards[at].set!.pages;
   return { shown: [...cards.slice(0, at), ...pages, ...cards.slice(at + 1)], tray: { at, count: pages.length } };
+}
+
+/**
+ * 这些格子代表的各张图（#418）：整摞（带 `set` 的封面）换成它能显示的各页，按页序；托盘里的页与普通卡片照旧。
+ * 删除、整理、移文件夹作用于整摞的全部页；钉图、加入参考组、复制只取封面，不经过这里。
+ */
+export function pagesOf(cards: readonly BrowserCard[]): BrowserCard[] {
+  return cards.flatMap((card) => card.set ? card.set.pages as BrowserCard[] : [card]);
+}
+
+/** 查看器里看的那一张（#418）：从整摞打开时是它的第 1 页，不带 `set`，查看器里的删除因此只作用于这一页。 */
+export function viewedPage(card: BrowserCard): BrowserCard {
+  return card.set ? card.set.pages[0] as BrowserCard : card;
 }
 
 /** 一摞的格子四周的内缩（布局单位）：按最外扩的纸角算，见 stackInset。 */
@@ -62,12 +75,12 @@ export function useOpenTray(cards: BrowserCard[], stackSets: boolean) {
 }
 
 /**
- * 「叠放图集」开关（#418），默认开；还没露出时（见 STACK_SETS_READY）关着，菜单里也没有这一项。
+ * 「叠放图集」开关（#418），默认开。
  * 切换后墙重新挂载、页的格子变了：`onToggle` 让调用方清掉选择，免得详情面板还在编辑看不见的页。
  */
 export function useStackSetsSetting(onToggle: () => void) {
-  const [on, setOn] = useState(STACK_SETS_READY);
-  return { on, menu: STACK_SETS_READY ? { on, toggle: () => { setOn((value) => !value); onToggle(); } } : undefined };
+  const [on, setOn] = useState(true);
+  return { on, menu: { on, toggle: () => { setOn((value) => !value); onToggle(); } } };
 }
 
 /** 托盘开着时点顶栏也关托盘；点详情面板不关，面板显示的正是托盘里的选择。 */

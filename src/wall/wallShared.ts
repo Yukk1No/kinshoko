@@ -130,12 +130,6 @@ export const editable = (target: EventTarget | null) =>
 export const scopeKey = (scope: BrowseScope) =>
   (scope.kind === "folder" || scope.kind === "folderTree") ? `${scope.kind}.${scope.id}` : scope.kind;
 
-/**
- * 叠放图集（#418）还在分几个 PR 做：最后一个（查看器在图集内翻页、整摞操作）合并前只在开发构建里露出。
- * 出截图的发布构建用 `VITE_KINSHOKO_STACK_SETS=1` 打开。第 3 步合并时去掉这个开关，菜单项与默认开对所有构建生效。
- */
-export const STACK_SETS_READY = import.meta.env.DEV || import.meta.env.VITE_KINSHOKO_STACK_SETS === "1";
-
 /** 卡片旁边的按钮（来源、一摞的张数、托盘页角的勾，#418）：它们是卡片选项的兄弟，点它们不算点空白处。 */
 export const CARD_BUTTONS = ".card-sources, .card-count, .card-check";
 
