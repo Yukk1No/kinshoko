@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { Profiler } from "react";
 import { setMedia } from "../test/platform";
 import { workspacePage } from "../test/workspacePage";
 import { DRAG_IMAGES, Wall } from "./Wall";
+import { fakeBackend } from "../test/backend";
 
 // #102 故事17/18（#109）：滚动时不逐事件渲染、按方向预取缩略图；鼠标滚轮插值。
 const decoded = vi.hoisted(() => [] as string[]);
@@ -19,12 +20,9 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1121 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  mockIPC((cmd) => {
-    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
-    return workspacePage(Array.from({ length: 400 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 5) * 40 })));
-  });
+  fakeBackend({ workspace_browse: () => workspacePage(Array.from({ length: 400 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 5) * 40 }))) });
 });
-afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 const props = { workspaceScope: { kind: "all" as const }, scope: { kind: "all" as const }, reloadKey: 0, selected: new Set<string>(),
   onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false };

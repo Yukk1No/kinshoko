@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { createRef } from "react";
 import { Wall, type WallHandle } from "./Wall";
 import { thumbnailTier } from "./thumbnailTier";
 import { workspacePage } from "../test/workspacePage";
+import { fakeBackend } from "../test/backend";
 
 // #102 故事20/21（#111）：Ctrl+滚轮直接驱动密度，锚定光标下的图，停手 220 ms 后提交。
 let browsed: number;
@@ -14,13 +15,14 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1121 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  mockIPC((cmd) => {
-    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
-    browsed += 1;
-    return workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 })));
+  fakeBackend({
+    workspace_browse: () => {
+      browsed += 1;
+      return workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 })));
+    },
   });
 });
-afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 async function setup(density = 240) {
   const onDensityPreview = vi.fn();

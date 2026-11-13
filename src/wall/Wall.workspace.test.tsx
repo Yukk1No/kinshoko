@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, expect, it, onTestFinished, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
 import type { WorkspaceQuery } from "../bindings/WorkspaceQuery";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import { DRAG_IMAGE_SOURCES, Wall } from "./Wall";
+import { fakeBackend } from "../test/backend";
 
 type Call = { query: WorkspaceQuery; safeMode: boolean; resolve: (page: WorkspacePage) => void };
 let calls: Call[];
@@ -24,12 +25,13 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  mockIPC((command, args) => {
-    if (command !== "plugin:library|workspace_browse") throw new Error(command);
-    return new Promise<WorkspacePage>((resolve) => calls.push({ ...(args as { query: WorkspaceQuery; safeMode: boolean }), resolve }));
+  fakeBackend({
+    workspace_browse: (args) => {
+      return new Promise<WorkspacePage>((resolve) => calls.push({ ...(args as { query: WorkspaceQuery; safeMode: boolean }), resolve }));
+    },
   });
 });
-afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 it("工作区使用范围查询并将全部来源交给检查入口，活动写入库不参与读取选择", async () => {
   const inspect = vi.fn();

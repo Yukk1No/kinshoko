@@ -1,12 +1,13 @@
 // #77 UI-A / S4：图片墙只接受当前视角、当前请求的浏览响应；分页游标过期时从第一页重读。
 // IPC 用受控 Promise 决定响应先后。
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, render } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, render } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
 import type { WorkspaceQuery } from "../bindings/WorkspaceQuery";
 import { type CardSeed, workspacePage } from "../test/workspacePage";
 import { Wall } from "./Wall";
+import { fakeBackend } from "../test/backend";
 
 type Call = { query: WorkspaceQuery; safeMode: boolean; resolve: (page: WorkspacePage) => void; reject: (e: unknown) => void };
 let calls: Call[];
@@ -17,14 +18,15 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  mockIPC((cmd, args) => {
-    if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
-    return new Promise<WorkspacePage>((resolve, reject) => {
-      calls.push({ ...(args as { query: WorkspaceQuery; safeMode: boolean }), resolve, reject });
-    });
+  fakeBackend({
+    workspace_browse: (args) => {
+      return new Promise<WorkspacePage>((resolve, reject) => {
+        calls.push({ ...(args as { query: WorkspaceQuery; safeMode: boolean }), resolve, reject });
+      });
+    },
   });
 });
-afterEach(() => { cleanup(); clearMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 const card = (id: string, adult = false): CardSeed => ({ id, width: 100, height: 100, adult });
 const page = (cards: CardSeed[], total: number, nextCursor: string | null = null) => workspacePage(cards, total, nextCursor);
