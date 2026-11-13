@@ -148,6 +148,13 @@ impl<E: Into<ErrorKind> + fmt::Display> From<WriterWaitError<E>> for CommandErro
     }
 }
 
+/// 操作期间安全模式变过：默认报 [`library::Error::LensChanged`]。
+impl From<crate::safe_mode::LensStale> for CommandError {
+    fn from(stale: crate::safe_mode::LensStale) -> Self {
+        library::Error::from(stale).into()
+    }
+}
+
 /// 钉图、截图要用的参考图此刻取不到。
 impl From<UnavailableReason> for CommandError {
     fn from(reason: UnavailableReason) -> Self {
