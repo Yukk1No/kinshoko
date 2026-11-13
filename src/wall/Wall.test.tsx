@@ -2,20 +2,15 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
 import { Wall } from "./Wall";
+import { resize } from "../test/platform";
 import { workspacePage } from "../test/workspacePage";
 
 let width: number;
-let resize: () => void;
 beforeEach(() => {
   width = 1121;
   localStorage.clear();
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => width });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
-  vi.stubGlobal("ResizeObserver", class {
-    constructor(callback: () => void) { resize = callback; }
-    observe() {}
-    disconnect() {}
-  });
   mockConvertFileSrc("windows");
   mockIPC((cmd) => {
     if (cmd !== "plugin:library|workspace_browse") throw new Error(cmd);
@@ -36,11 +31,11 @@ it("1121 → 1369 → 1121 连续重排后同一张图保持偏移，多次自�
   expect(offset()).toBeCloseTo(-54.25);
 
   width = 1369;
-  act(() => resize());
+  act(() => resize(wall));
   expect(offset()).toBeCloseTo(-54.25);
   fireEvent.scroll(wall);
   fireEvent.scroll(wall);
   width = 1121;
-  act(() => resize());
+  act(() => resize(wall));
   expect(offset()).toBeCloseTo(-54.25);
 });

@@ -46,7 +46,6 @@ async function open() {
 }
 /** Drag from (x0, y0) to (x1, y1) in CSS pixels. */
 function select(root: HTMLElement, [x0, y0]: number[], [x1, y1]: number[]) {
-  root.setPointerCapture = () => {};
   fireEvent.pointerDown(root, { pointerId: 1, button: 0, clientX: x0, clientY: y0 });
   fireEvent.pointerMove(root, { pointerId: 1, clientX: x1, clientY: y1 });
   fireEvent.pointerUp(root, { pointerId: 1, clientX: x1, clientY: y1 });

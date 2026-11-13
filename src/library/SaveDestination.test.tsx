@@ -10,7 +10,7 @@ const libraries=[a,b].map(library=>({library,unavailable:null}));
 beforeEach(()=>{
  Object.defineProperty(HTMLElement.prototype,"clientWidth",{configurable:true,get:()=>1000});
  Object.defineProperty(HTMLElement.prototype,"clientHeight",{configurable:true,get:()=>800});
- vi.stubGlobal("ResizeObserver",class{observe(){} disconnect(){}}); mockConvertFileSrc("windows"); mockWindows("main");
+ mockConvertFileSrc("windows"); mockWindows("main");
 });
 afterEach(async()=>{cleanup();await new Promise(r=>setTimeout(r,0));clearMocks();vi.unstubAllGlobals();});
 it("global import shows the prefilled destination, can be changed by hand and does not change browse scope",async()=>{

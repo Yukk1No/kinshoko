@@ -7,7 +7,6 @@ import { fakeBackend } from "./test/backend";
 beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
-  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   mockConvertFileSrc("windows");
 });
 afterEach(() => { vi.unstubAllGlobals(); });

@@ -36,12 +36,12 @@ function useSnappedGlyphs(group: RefObject<HTMLDivElement | null>, maximized: bo
     };
     snap();
     // A scale change (another monitor, display settings) need not resize the viewport, so watch the resolution too.
-    const scale = window.matchMedia?.(`(resolution: ${dpr}dppx)`);
-    scale?.addEventListener("change", snap);
+    const scale = window.matchMedia(`(resolution: ${dpr}dppx)`);
+    scale.addEventListener("change", snap);
     window.addEventListener("resize", snap);
     document.addEventListener("transitionend", snap, true);
     return () => {
-      scale?.removeEventListener("change", snap);
+      scale.removeEventListener("change", snap);
       window.removeEventListener("resize", snap);
       document.removeEventListener("transitionend", snap, true);
     };

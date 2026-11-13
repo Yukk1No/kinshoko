@@ -1,21 +1,17 @@
 // #27：安全模式切换时详情面板收起、图片墙变宽，封印／释放动画照常。
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { act } from "@testing-library/react";
 import { SEAL } from "../shell/sealfx";
+import { resize } from "../test/platform";
 import { Wall } from "./Wall";
 import { answer, base, card, frames, ghosts, installSealFx, node, wallWith, type FxPage } from "./Wall.seal-fx.fixtures";
 
 installSealFx();
 
 describe("切换时详情面板随选择清空而收起，图片墙变宽", () => {
-  let resize: (() => void)[];
-  beforeEach(() => {
-    resize = [];
-    vi.stubGlobal("ResizeObserver", class { constructor(f: () => void) { resize.push(f); } observe() {} disconnect() {} });
-  });
   const widen = () => act(() => {
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1320 });
-    resize.forEach((f) => f());
+    resize(document.querySelector(".wall")!);
   });
 
   it("关闭：墙先变宽、资料库后送回成人图，影子照样从书里飞回", async () => {

@@ -23,7 +23,6 @@ beforeEach(() => {
   localStorage.clear();
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
-  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   mockConvertFileSrc("windows");
   mockIPC((command, args) => {
     if (command !== "plugin:library|workspace_browse") throw new Error(command);

@@ -239,7 +239,6 @@ export function useWidthSync({ holdReflow, settle, slideMotion, scroller, layout
     };
     syncWidth.current = sync;
     sync();
-    if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(() => flushSync(sync));
     ro.observe(el);
     return () => ro.disconnect();

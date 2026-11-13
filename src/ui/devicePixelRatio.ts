@@ -10,11 +10,11 @@ export function useDevicePixelRatio(): number {
     const sync = () => setDpr(window.devicePixelRatio || 1);
     sync();
     // 缩放变化不一定改变视口大小，所以同时监听分辨率。
-    const resolution = window.matchMedia?.(`(resolution: ${dpr}dppx)`);
-    resolution?.addEventListener("change", sync);
+    const resolution = window.matchMedia(`(resolution: ${dpr}dppx)`);
+    resolution.addEventListener("change", sync);
     window.addEventListener("resize", sync);
     return () => {
-      resolution?.removeEventListener("change", sync);
+      resolution.removeEventListener("change", sync);
       window.removeEventListener("resize", sync);
     };
   }, [dpr]);

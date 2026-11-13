@@ -104,8 +104,8 @@ function install() {
   const dirty = () => { generation += 1; };
   const observer = new MutationObserver(dirty);
   observer.observe(document.documentElement, { subtree: true, attributes: true, childList: true });
-  const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(dirty);
-  resize?.observe(document.documentElement);
+  const resize = new ResizeObserver(dirty);
+  resize.observe(document.documentElement);
   for (const name of ["scroll", "resize", "load", "error", "transitionrun", "transitionend", "animationstart", "animationend"]) window.addEventListener(name, dirty, true);
   const frame = () => new Promise<void>((done) => requestAnimationFrame(() => done()));
   void listen<{ request: string }>("capture-reference-request", async ({ payload }) => {
@@ -113,12 +113,12 @@ function install() {
     // Let committed layout and image paint reach the compositor before the native grab.
     await frame(); await frame();
     if (version !== installation || request !== requestGeneration || !providers.size) return;
-    if (observer.takeRecords().length || document.getAnimations?.().some((a) => a.playState === "running" && a.effect instanceof KeyframeEffect && a.effect.target instanceof Element && a.effect.target.closest(".card,.viewer-stage"))) dirty();
+    if (observer.takeRecords().length || document.getAnimations().some((a) => a.playState === "running" && a.effect instanceof KeyframeEffect && a.effect.target instanceof Element && a.effect.target.closest(".card,.viewer-stage"))) dirty();
     const references = collect([...providers]);
     await reportCaptureReferences(payload.request, { instance, generation, dpr: window.devicePixelRatio || 1, references }).catch(() => {});
   }).then((off) => { if (version === installation) unlisten = off; else off(); }).catch(() => {});
   stop = () => {
-    installation += 1; requestGeneration += 1; unlisten?.(); observer.disconnect(); resize?.disconnect();
+    installation += 1; requestGeneration += 1; unlisten?.(); observer.disconnect(); resize.disconnect();
     for (const name of ["scroll", "resize", "load", "error", "transitionrun", "transitionend", "animationstart", "animationend"]) window.removeEventListener(name, dirty, true);
     stop = null;
   };
