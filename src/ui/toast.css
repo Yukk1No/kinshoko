@@ -58,5 +58,3 @@ body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-toasts {
 .k-toast:not([data-tone="error"]) .k-toast-close { opacity: 0; }
 .k-toast:not([data-tone="error"]):is(:hover, :focus-within) .k-toast-close { opacity: 1; }
 .k-toast-action:focus-visible, .k-toast-close:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-
-@media (prefers-reduced-motion: reduce) { .k-toasts, .k-toast { transition-duration: 0ms; } }

@@ -74,10 +74,6 @@ describe("轻提示是磨砂卡片（设计系统 v3）", () => {
     expect(cssRule(dialogsCss, ".k-task-top b")["font-weight"]).toBe(rule(".k-toast-title")["font-weight"]);
   });
 
-  it("减少动画时不过渡", () => {
-    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{ \.k-toasts, \.k-toast \{ transition-duration: 0ms; \} \}/);
-  });
-
   it("不写死颜色", () => {
     const block = css.replace(/\/\*[\s\S]*?\*\//g, "");
     expect(block).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);

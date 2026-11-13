@@ -205,9 +205,5 @@
 .k-pill.is-warn { background: var(--warn-soft); color: var(--warn-strong); }
 .k-item-meta .is-warn { color: var(--warn); }
 
-@media (prefers-reduced-motion: reduce) {
-  .k-popup, .k-import, .k-import .k-import-chev, .k-switch-thumb, .k-btn { transition-duration: 0ms; }
-}
-
 /* ---- A dock that follows a selection (viewer crop, screen capture) ---- */
 .k-follow-dock { position: absolute; z-index: 3; cursor: default; pointer-events: auto; }
