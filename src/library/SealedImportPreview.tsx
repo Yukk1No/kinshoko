@@ -32,11 +32,11 @@ export function SealedImportPreview({
     let alive = true,
       sessionId: string | null = null;
     const urls = new Set<string>();
-    // 忽略失败：收尾时关掉预览；界面已经不再读它。
     const end = () => {
       alive = false;
       for (const url of urls) URL.revokeObjectURL(url);
       urls.clear();
+      // 忽略失败：收尾时关掉预览；界面已经不再读它。
       void closeImportPreview(sessionId).catch(() => {});
       closePreview();
     };
@@ -60,7 +60,6 @@ export function SealedImportPreview({
           urls.add(url);
           setImages((previous) => [...previous, { id, url }]);
         }
-        // 忽略失败：出错时顺手关掉预览；原因已经显示，界面不再读它。
       })
       .catch((error) => {
         if (alive) {
@@ -68,6 +67,7 @@ export function SealedImportPreview({
           for (const url of urls) URL.revokeObjectURL(url);
           urls.clear();
           setImages([]);
+          // 忽略失败：出错时顺手关掉预览；原因已经显示，界面不再读它。
           void closeImportPreview(sessionId).catch(() => {});
         }
       });

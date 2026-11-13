@@ -44,8 +44,9 @@ npm run dev             # run the app in dev mode (Vite dev server + debug build
 npm run build           # release build; the NSIS installer lands in target/release/bundle/nsis/
 npm test                # frontend tests (Vitest)
 npm run typecheck       # TypeScript type check
-npm run lint            # Biome lint (hook dependencies, hooks at top level, unused imports; no formatting)
-npm run check           # type check + Biome lint + frontend tests; prints only failures and a summary, exit code covers every step
+npm run lint            # Biome check: lint (hook dependencies, hooks at top level, unused imports) and formatting of src/, scripts/ and e2e/
+npm run format          # format src/, scripts/ and e2e/ with Biome (what npm run lint complains about)
+npm run check           # type check + Biome check + frontend tests; prints only failures and a summary, exit code covers every step
 npm run check -- --rust # also cargo fmt --check, Clippy and the core crate tests
 npm run check -- App.import   # only Vitest, arguments passed through
 npm run check -- --rust-only --test integration writer_switch::   # only nextest, arguments passed through
@@ -60,7 +61,9 @@ node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # needs tauri-
 
 The core crate sets `autotests = false`, and most files in `crates/kinshoko-core/tests/` are modules of the `integration` target, not targets of their own. To run one module, name the target and filter by module path: `cargo nextest run -p kinshoko-core --test integration writer_switch::`. `--test writer_switch` fails with "no test target named"; the available targets are the `[[test]]` entries in its `Cargo.toml`.
 
-CI runs the Rust checks (format, Clippy, core crate tests, pin renderer offscreen tests on WARP, generated-file check) and the native app build with the WebDriver smoke test on `windows-2022`, and the TypeScript type check, Biome lint, frontend tests and workflow lint on `ubuntu-latest`. The app job is pinned to `windows-2022` because the smoke test does not yet pass on `windows-latest`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run the relevant checks locally before opening a PR.
+CI runs the Rust checks (format, Clippy, core crate tests, pin renderer offscreen tests on WARP, generated-file check) and the native app build with the WebDriver smoke test on `windows-2022`, and the TypeScript type check, Biome check (lint and formatting), frontend tests and workflow lint on `ubuntu-latest`. The app job is pinned to `windows-2022` because the smoke test does not yet pass on `windows-latest`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run the relevant checks locally before opening a PR.
+
+To make `git blame` skip the one-off formatting commit, run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once (GitHub reads the file by itself).
 
 ## Layout
 

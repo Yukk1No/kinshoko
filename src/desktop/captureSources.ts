@@ -180,13 +180,14 @@ function install() {
     )
       dirty();
     const references = collect([...providers]);
-    // 忽略失败：交不上时后端等满 3 秒自己报错，截图那边会提示。
     await reportCaptureReferences(payload.request, {
       instance,
       generation,
       dpr: window.devicePixelRatio,
       references,
-    }).catch(() => {});
+    }).catch(() => {
+      // 忽略失败：交不上时后端等满 3 秒自己报错，截图那边会提示。
+    });
     // 装不上时每次截图都等满 3 秒、由后端报错；记一条，排查时知道是这边没在听。
   })
     .then((off) => {

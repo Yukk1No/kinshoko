@@ -65,10 +65,10 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
     const stop = onSafeModeSetting(() => {
       if (alive) reset();
     });
-    // 忽略失败：收尾时取消监听；之后的事件不再处理。
     return () => {
       alive = false;
       generation.current++;
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
       void stop.then((unlisten) => unlisten()).catch(() => {});
     };
   }, []);

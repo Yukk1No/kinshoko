@@ -43,8 +43,8 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
       if (generation.current === request) setChecking(false);
     }
   }, []);
-  // 忽略失败：失败时 check 已把原因放进 error，设置 › 诊断里显示。
   useEffect(() => {
+    // 忽略失败：失败时 check 已把原因放进 error，设置 › 诊断里显示。
     void check().catch(() => {});
     return () => {
       generation.current += 1;
@@ -127,11 +127,11 @@ export function RuntimeDetails() {
           </SettingsRow>
         )}
         <SettingsRow icon={<RefreshCw size={16} />} title={t("recheck")} hint={t("recheckHint")}>
-          {/* 忽略失败：失败时 check 已把原因放进 error，显示在这一组下面。 */}
           <button
             type="button"
             className="k-btn is-sm"
             disabled={runtime.checking}
+            // 忽略失败：失败时 check 已把原因放进 error，显示在这一组下面。
             onClick={() => void runtime.check().catch(() => {})}
           >
             <span className="k-label">{t("check")}</span>

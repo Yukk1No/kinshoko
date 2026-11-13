@@ -27,7 +27,7 @@ describe("颜色令牌", () => {
   });
 
   it("夜间值只写一遍：主题规则只切 color-scheme", () => {
-    const tokens = sheets[TOKEN_FILE];
+    const tokens = sheets[TOKEN_FILE].replace(/\s+/g, " ");
     expect(tokens).toContain(':root[data-theme="light"] { color-scheme: light; }');
     expect(tokens).toContain(':root[data-theme="dark"], .k-dock.is-dark { color-scheme: dark; }');
     expect(tokens.match(/#1e1c2c/g)).toHaveLength(1);

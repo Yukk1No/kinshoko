@@ -74,10 +74,10 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
       setBusy(false);
       setEditing(null);
     });
-    // 忽略失败：收尾时取消监听；之后的事件不再处理。
     return () => {
       alive = false;
       generation.current++;
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
       void unlisten.then((stop) => stop()).catch(() => {});
     };
   }, []);

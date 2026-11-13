@@ -5,6 +5,7 @@ import { DialogHeight, DialogSwap } from "./DialogHeight";
 import settings from "./settings.css?raw";
 import ui from "./uiCss";
 import tokens from "../styles/tokens.css?raw";
+import { flatCss } from "../test/flatCss";
 import { resize, setMedia } from "../test/platform";
 
 // jsdom 不排版：内层高度由测试给，外层在 height 为 auto 时等于内层（不超过上限）。
@@ -103,7 +104,7 @@ describe("DialogHeight", () => {
 
   it("过渡只用令牌，令牌在减弱动效下为 0", () => {
     expect(cssRule(ui, ".k-dialog-height[data-moving]").transition).toBe("height var(--t-slow) var(--ease)");
-    expect(tokens).toMatch(/prefers-reduced-motion: reduce\) \{ :root \{[^}]*--t-slow: 0ms/);
+    expect(flatCss(tokens)).toMatch(/prefers-reduced-motion: reduce\) \{ :root \{[^}]*--t-slow: 0ms/);
   });
 });
 

@@ -78,8 +78,8 @@ export function usePanelSlide(panels: readonly SlidingPanel[]): PanelSlide | nul
         }
         setState({ running: 0, slide: null });
       };
-      // biome-ignore lint/correctness/useExhaustiveDependencies: 只在面板元素换了时重装监听（面板个数不变）；量的时候由 slideFor 读这次渲染的面板
     },
+    // biome-ignore lint/correctness/useExhaustiveDependencies: 只在面板元素换了时重装监听（面板个数不变）；量的时候由 slideFor 读这次渲染的面板
     panels.map((panel) => panel.element),
   );
   return state.slide;

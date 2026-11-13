@@ -48,9 +48,9 @@ export function SharedTagGroupsSettings({ onError }: { onError: (error: unknown)
       workspaceRevision.current = status.revision;
       setGeneration((n) => n + 1);
     });
-    // 忽略失败：收尾时取消监听；之后的事件不再处理。
     return () => {
       alive = false;
+      // 忽略失败：收尾时取消监听；之后的事件不再处理。
       for (const stop of [mode, workspace]) void stop.then((unlisten) => unlisten()).catch(() => {});
     };
   }, [onError]);

@@ -136,8 +136,8 @@ export function ReferenceGroupsPanel() {
             });
           },
         },
-        // 忽略失败：删不掉的暂放内容由程序下次启动时清掉，界面上参考组已经删除。
         onClose: () => {
+          // 忽略失败：删不掉的暂放内容由程序下次启动时清掉，界面上参考组已经删除。
           if (!undone) void purgeDeletedReferenceGroup(g.id).catch(() => {});
         },
       });

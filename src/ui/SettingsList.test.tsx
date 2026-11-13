@@ -2,6 +2,7 @@ import { afterEach, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { SettingsGroup, SettingsRow } from "./SettingsList";
 import settings from "./settings.css?raw";
+import { flatCss } from "../test/flatCss";
 
 afterEach(cleanup);
 
@@ -30,7 +31,7 @@ it("行下方的控件（例如备份的文件输入与按钮）同样读到补�
 });
 
 it("键盘聚焦到这一行的控件时显示补充说明", () => {
-  expect(settings).toMatch(/\.k-set-row:has\(:focus-visible\) \.k-set-hint \{ display: block; \}/);
+  expect(flatCss(settings)).toMatch(/\.k-set-row:has\(:focus-visible\) \.k-set-hint \{ display: block; \}/);
 });
 
 // #310：组名不再显示（会和页面标题重复、对不齐），只作无障碍名称；整组的说明放进组的容器里。

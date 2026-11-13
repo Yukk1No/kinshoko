@@ -3,6 +3,7 @@ import uiCss from "./uiCss";
 import menuCss from "./menu.css?raw";
 import tokensCss from "../styles/tokens.css?raw";
 import { cssRule } from "./cssRule";
+import { flatCss } from "../test/flatCss";
 
 const rule = (selector: string) => cssRule(uiCss, selector);
 
@@ -36,6 +37,6 @@ describe("共用弹层按 data-side 定进退场方向", () => {
   });
 
   it("减弱动效下直接到终态", () => {
-    expect(tokensCss).toMatch(/prefers-reduced-motion: reduce\) \{ :root \{[^}]*--t-fast: 0ms/);
+    expect(flatCss(tokensCss)).toMatch(/prefers-reduced-motion: reduce\) \{ :root \{[^}]*--t-fast: 0ms/);
   });
 });
