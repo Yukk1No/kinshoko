@@ -1,12 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrationWorkspace";
 import { i18n } from "../i18n/instance";
+import { fakeBackend } from "../test/backend";
 import { LegacyNameMigrationNotice } from "./LegacyNameMigrationPanel";
 
-afterEach(() => { cleanup(); clearMocks(); });
 const view = (): LegacyNameMigrationWorkspace => ({
   libraries: [{ library: { id: "a", name: "旧库 a", root: "C:/a" }, unavailable: null }],
   plan: { revision: 7, groups: [{ catalogId: "shared", namespace: "general", lang: "zh-CN", defaultName: "分缝发型", existingPreference: null, affectedLibraries: ["a"], sources: [{ libraryId: "a", localTagId: "local-a", legacyName: "分发", currentName: "分发" }] }] },
@@ -14,7 +13,7 @@ const view = (): LegacyNameMigrationWorkspace => ({
 
 describe("主窗口的旧名称通知（#433）", () => {
   const groups = (count: number) => ({ ...view(), plan: { revision: 7, groups: Array.from({ length: count }, (_, index) => ({ ...view().plan.groups[0], catalogId: `c${index}` })) } });
-  const serve = (read: () => LegacyNameMigrationWorkspace) => mockIPC((cmd) => cmd.endsWith("plan_legacy_names") ? read() : undefined, { shouldMockEvents: true });
+  const serve = (read: () => LegacyNameMigrationWorkspace) => fakeBackend({ plan_legacy_names: () => read() });
   const dismiss = async () => {
     fireEvent.click(screen.getByRole("button", { name: "关闭提示", hidden: true }));
     await waitFor(() => expect(screen.queryByText(/旧名称待确认/)).toBeNull());

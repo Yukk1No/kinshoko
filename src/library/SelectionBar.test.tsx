@@ -1,22 +1,16 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { BrowseScope } from "../bindings/BrowseScope";
+import { fakeBackend } from "../test/backend";
 import { SelectionBar } from "./SelectionBar";
-
-afterEach(() => {
-  cleanup();
-  clearMocks();
-});
 
 const FOLDERS = [{ id: "F1", name: "人物", count: 1, children: [{ id: "F2", name: "发型", count: 0, children: [] }] }];
 
 function backend(folders: unknown[] = FOLDERS) {
   const edits: unknown[] = [];
-  mockIPC((cmd, args) => {
-    if (cmd === "plugin:library|workspace_sidebar") return { all: 2, trash: 0, folders };
-    if (cmd === "plugin:library|edit") { edits.push(args); return []; }
-    return undefined;
+  fakeBackend({
+    workspace_sidebar: { all: 2, trash: 0, folders },
+    edit: (args) => { edits.push(args); return []; },
   });
   return edits;
 }

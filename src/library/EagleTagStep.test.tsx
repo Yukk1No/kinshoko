@@ -1,14 +1,9 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { EagleTagMapping } from "../bindings/EagleTagMapping";
 import type { TagLabel } from "../bindings/TagLabel";
+import { fakeBackend } from "../test/backend";
 import { EagleTagStep } from "./EagleTagStep";
-
-afterEach(() => {
-  cleanup();
-  clearMocks();
-});
 
 const tag = (id: string, name: string, hasExternal: boolean): TagLabel => ({
   id,
@@ -31,15 +26,11 @@ const mapping: EagleTagMapping = {
 };
 
 function backend() {
-  const calls: { cmd: string; args: unknown }[] = [];
-  mockIPC((cmd, args) => {
-    calls.push({ cmd, args });
-    if (cmd === "plugin:library|eagle_tag_mapping") return mapping;
-    if (cmd === "plugin:library|external_suggestions") return ["aqua_eyes"];
-    if (cmd === "plugin:library|map_tag_external") return { external: "aqua_eyes", known: true, mergedInto: null };
-    return undefined;
+  return fakeBackend({
+    eagle_tag_mapping: mapping,
+    external_suggestions: ["aqua_eyes"],
+    map_tag_external: { external: "aqua_eyes", known: true, mergedInto: null },
   });
-  return calls;
 }
 
 describe("迁入向导：标签的外部对应", () => {
@@ -62,7 +53,7 @@ describe("迁入向导：标签的外部对应", () => {
   });
 
   it("画师给一个标签补上外部对应，它从列表中移除", async () => {
-    const calls = backend();
+    const fake = backend();
     render(<EagleTagStep libraryId="L1" onClose={() => {}} />);
 
     const input = await screen.findByRole("combobox", { name: "水色 的外部对应" });
@@ -71,18 +62,17 @@ describe("迁入向导：标签的外部对应", () => {
 
     expect(await screen.findByText(/水色 → aqua_eyes/)).toBeTruthy();
     expect(screen.queryByRole("combobox", { name: "水色 的外部对应" })).toBeNull();
-    expect(calls).toContainEqual({
-      cmd: "plugin:library|map_tag_external",
+    expect(fake.calls()).toContainEqual({
+      command: "map_tag_external",
       args: { libraryId: "L1", tagId: "t-aqua", external: "Aqua Eyes" },
     });
   });
 
   it("补上外部对应失败时，界面上能看到标签名和后端给的说明", async () => {
-    mockIPC((cmd) => {
-      if (cmd === "plugin:library|eagle_tag_mapping") return mapping;
-      if (cmd === "plugin:library|external_suggestions") return [];
-      if (cmd === "plugin:library|map_tag_external") throw { code: "unknownTag" };
-      return undefined;
+    fakeBackend({
+      eagle_tag_mapping: mapping,
+      external_suggestions: [],
+      map_tag_external: () => { throw { code: "unknownTag" }; },
     });
     render(<EagleTagStep libraryId="L1" onClose={() => {}} />);
 
@@ -94,7 +84,7 @@ describe("迁入向导：标签的外部对应", () => {
   });
 
   it("用 ↓ 高亮一个候选再回车，只补上这一个，不再另按输入补一次", async () => {
-    const calls = backend();
+    const fake = backend();
     render(<EagleTagStep libraryId="L1" onClose={() => {}} />);
 
     const input = await screen.findByRole("combobox", { name: "水色 的外部对应" });
@@ -105,8 +95,8 @@ describe("迁入向导：标签的外部对应", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     expect(await screen.findByText(/水色 → aqua_eyes/)).toBeTruthy();
-    expect(calls.filter((c) => c.cmd === "plugin:library|map_tag_external")).toEqual([
-      { cmd: "plugin:library|map_tag_external", args: { libraryId: "L1", tagId: "t-aqua", external: "aqua_eyes" } },
+    expect(fake.calls("map_tag_external")).toEqual([
+      { command: "map_tag_external", args: { libraryId: "L1", tagId: "t-aqua", external: "aqua_eyes" } },
     ]);
   });
 
