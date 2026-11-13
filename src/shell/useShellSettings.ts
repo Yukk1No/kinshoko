@@ -19,8 +19,11 @@ import {
 import { DEFAULT_TAG_DISPLAY } from "../tags/tagConfidence";
 import { createSettingsSubmitter, type SettingsCommand, type SubmitterState } from "./settingsSubmitter";
 
-/** 走统一改动入口、值就是最终结果的开关（标签外观另有合并规则，见下）。 */
-type SettingSwitch = Extract<SettingChange, { kind: "autostart" | "showApproxSource" | "keepSelectionOnSafeMode" | "pinEdgeContrast" | "forceSrgb" }>;
+/**
+ * 设置页直接交给统一改动入口、值就是最终结果的那几项。`SettingChange` 新加的分支自动在内；
+ * 标签外观另有合并规则（见下），查看器背景与详情面板不经设置页。
+ */
+type SettingSwitch = Exclude<SettingChange, { kind: "tagDisplay" | "viewerBackground" | "inspectorWidth" | "inspectorOpen" }>;
 
 /** 设置页能提交的改动；每种怎样合并见 `shellSettingsCommand`。 */
 export type ShellSettingsIntent =
@@ -39,23 +42,19 @@ const latest = (key: string, run: () => Promise<ShellSettingsView>): Command => 
 
 /**
  * 每种改动的合并策略。
- * - 开关、安全模式范围：只留最后一次。
+ * - 开关、安全模式范围：只留最后一次。走统一改动入口的开关共用最后一个分支。
  * - 标签外观：连着改只发最新的一份；失败时排着的也作废，因为它们夹带了失败的那项。
  * - 快捷键：每次更换都执行，核心逐次检查冲突并报原因。
  * - 更新通道：每次都执行，成功后设置页按新通道重新检查。
  */
 export function shellSettingsCommand(intent: ShellSettingsIntent, accepted: () => ShellSettingsView | null): Command {
   switch (intent.kind) {
-    case "autostart":
-    case "showApproxSource":
-    case "keepSelectionOnSafeMode":
-    case "pinEdgeContrast":
-    case "forceSrgb": return latest(intent.kind, () => changeSetting(intent));
     case "runLog": return latest(intent.kind, () => setRunLog(intent.on));
     case "safeModeScope": return latest(intent.kind, () => setSafeModeScope(intent.scope));
     case "tagDisplay": return { key: intent.kind, merge: "latest", dropPendingOnFailure: true, run: () => changeSetting({ kind: "tagDisplay", display: { ...(accepted()?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...intent.change } }) };
     case "shortcut": return { key: `shortcut/${intent.action}`, merge: "keep", run: () => rebindShortcut(intent.action, intent.accelerator) };
     case "updateChannel": return { key: intent.kind, merge: "keep", run: () => setUpdateChannel(intent.channel) };
+    default: return latest(intent.kind, () => changeSetting(intent));
   }
 }
 
