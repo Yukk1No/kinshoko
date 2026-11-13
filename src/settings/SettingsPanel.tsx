@@ -2,34 +2,34 @@ import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { useTranslation } from "react-i18next";
 import { Activity, FileText, Layers, Monitor, MousePointerClick, Pin, Power, Scaling, ShieldCheck, Tags } from "lucide-react";
-import type { SafeModeScope } from "./bindings/SafeModeScope";
-import type { ShellSettingsView } from "./bindings/ShellSettingsView";
-import type { ShortcutAction } from "./bindings/ShortcutAction";
-import type { ShortcutBinding } from "./bindings/ShortcutBinding";
-import { clearRunLog, errorText, hotkeyFailureText } from "./ipc";
-import { useShellSettings, type ShellSettings, type ShellSettingsIntent } from "./shell/useShellSettings";
-import { SharedPersonalApproxSettings } from "./search/SharedPersonalApproxSettings";
-import { LegacyNameEntry } from "./library/LegacyNameMigrationPanel";
-import { SharedTagGroupsSettings } from "./library/TagGroupsPane";
-import { TagNamePanel } from "./library/TagNamePanel";
-import { TagIdentityPanel } from "./library/TagIdentityPanel";
+import type { SafeModeScope } from "../bindings/SafeModeScope";
+import type { ShellSettingsView } from "../bindings/ShellSettingsView";
+import type { ShortcutAction } from "../bindings/ShortcutAction";
+import type { ShortcutBinding } from "../bindings/ShortcutBinding";
+import { clearRunLog, errorText, hotkeyFailureText } from "../ipc";
+import { useShellSettings, type ShellSettings, type ShellSettingsIntent } from "../shell/useShellSettings";
+import { SharedPersonalApproxSettings } from "../search/SharedPersonalApproxSettings";
+import { LegacyNameEntry } from "../library/LegacyNameMigrationPanel";
+import { SharedTagGroupsSettings } from "../library/SharedTagGroupsSettings";
+import { TagNamePanel } from "../library/TagNamePanel";
+import { TagIdentityPanel } from "../library/TagIdentityPanel";
 import { ApplicationSettingsBackup } from "./ApplicationSettingsBackup";
 import { TagDisplaySettings } from "./TagDisplaySettings";
 import { BackupSettings } from "./Backup";
 import { AutoTaggingSettings } from "./AutoTaggingSettings";
-import { UpdateSection } from "./Update";
-import { RuntimeDetails, useDiagnosticsReport } from "./RuntimeSupport";
-import { Segmented } from "./ui/Segmented";
-import { DialogHeight, DialogSwap } from "./ui/DialogHeight";
-import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
-import { Switch } from "./ui/Switch";
-import { SealLock } from "./ui/SealLock";
-import { UI_SCALE_LEVELS } from "./shell/uiScale";
-import { Keys } from "./ui/Keys";
-import { Select } from "./ui/Select";
+import { UpdateSection } from "../Update";
+import { RuntimeDetails, useDiagnosticsReport } from "../RuntimeSupport";
+import { Segmented } from "../ui/Segmented";
+import { DialogHeight, DialogSwap } from "../ui/DialogHeight";
+import { SettingsGroup, SettingsRow, StatusPill } from "../ui/SettingsList";
+import { Switch } from "../ui/Switch";
+import { SealLock } from "../ui/SealLock";
+import { UI_SCALE_LEVELS } from "../shell/uiScale";
+import { Keys } from "../ui/Keys";
+import { Select } from "../ui/Select";
 import { tabName, tabsWith, type SettingsTab } from "./settingsTabs";
-import type { SubscriptionStatus } from "./bindings/SubscriptionStatus";
-import { SubscriptionSettings } from "./subscriptions/SubscriptionSettings";
+import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
+import { SubscriptionSettings } from "../subscriptions/SubscriptionSettings";
 
 export type { SettingsTab };
 
@@ -49,8 +49,6 @@ function acceleratorFromKey(e: KeyboardEvent): string | null {
   parts.push(e.code);
   return parts.join("+");
 }
-
-export { Keys } from "./ui/Keys";
 
 /** 查看器里的固定操作（#179）：缩放、平移、框选、换图、详情侧栏与返回。按键是滚轮、拖动这类操作时写它的键名。 */
 type ViewerKeyWord = "wheel" | "drag" | "shiftDrag";

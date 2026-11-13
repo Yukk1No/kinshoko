@@ -1,6 +1,6 @@
 import { fireEvent, screen } from "@testing-library/react";
-import type { ShellSettingsView } from "./bindings/ShellSettingsView";
-import { fakeBackend, shellSettings, type Replies } from "./test/backend";
+import type { ShellSettingsView } from "../bindings/ShellSettingsView";
+import { fakeBackend, shellSettings, type Replies } from "../test/backend";
 
 /** 每个设置测试之后撤掉测试用的选择；卸载界面与撤掉模拟在 src/test/setup.ts。 */
 export function resetSettingsTest() {

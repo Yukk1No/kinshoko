@@ -1,6 +1,6 @@
 /**
  * 设置 › 标签：显示名（`library/TagNamePanel.tsx`）、对应（`library/TagIdentityPanel.tsx`）、
- * 相近（`search/SharedPersonalApproxSettings.tsx`）与外观（`TagDisplaySettings.tsx`）。
+ * 相近（`search/SharedPersonalApproxSettings.tsx`）与外观（`settings/TagDisplaySettings.tsx`）。
  */
 export default {
   /** 列举时的分隔：“A、B”。 */

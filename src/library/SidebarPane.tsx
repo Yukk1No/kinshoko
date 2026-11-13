@@ -1,5 +1,5 @@
-import { useState, type DragEvent, type KeyboardEvent } from "react";
-import { isComposingKey } from "../ui/composing";
+import { useState, type DragEvent } from "react";
+import { NameInput } from "../ui/NameInput";
 import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import type { BrowseScope } from "../bindings/BrowseScope";
@@ -47,31 +47,6 @@ const same = (a: BrowseScope, b: BrowseScope) =>
 /** 文件夹及其全部子文件夹的 id。 */
 function subtree(node: FolderNode): string[] {
   return [node.id, ...node.children.flatMap(subtree)];
-}
-
-/** 只在文本框里按 Enter 提交、Esc 放弃。 */
-export function NameInput(props: {
-  label: string;
-  initial: string;
-  onDone: (name: string | null) => void;
-}) {
-  const [value, setValue] = useState(props.initial);
-  const key = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (isComposingKey(e)) return;
-    if (e.key === "Enter") props.onDone(value.trim() || null);
-    if (e.key === "Escape") props.onDone(null);
-  };
-  return (
-    <input
-      className="k-input is-inline"
-      aria-label={props.label}
-      autoFocus
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onKeyDown={key}
-      onBlur={() => props.onDone(value.trim() || null)}
-    />
-  );
 }
 
 /** 放进某个图库文件夹的图：图片墙按图库给出每张图的来源，只取它在这个库里的来源（#112）。 */

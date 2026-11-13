@@ -11,7 +11,7 @@ import { SearchBox } from "../search/SearchBox";
 import { TagGroupBar } from "../search/TagGroupBar";
 import { fitPanes, isNarrow, usePaneFold, useWidth } from "../shell/paneFit";
 import { usePanelSlide } from "../shell/usePanelSlide";
-import { TaggingActivity } from "../TaggingActivity";
+import { TaggingActivity } from "../tagging/TaggingActivity";
 import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
 import { Tip } from "../ui/Tip";

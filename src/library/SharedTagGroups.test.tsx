@@ -3,10 +3,11 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { tipText } from "../test/tip";
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
-import { SharedTagGroupsSettings, TagGroupsPane } from "./TagGroupsPane";
+import { TagGroupsPane } from "./TagGroupsPane";
+import { SharedTagGroupsSettings } from "./SharedTagGroupsSettings";
 import { emit } from "@tauri-apps/api/event";
 import { TagGroupBar } from "../search/TagGroupBar";
-import { SettingsPanel } from "../SettingsPanel";
+import { SettingsPanel } from "../settings/SettingsPanel";
 import { ToastProvider } from "../ui/Toast";
 const blue = { id: "shared-blue", namespace: "general" as const, name: "蓝发", untranslated: false, hasExternal: true };
 const purple = { ...blue, id: "shared-purple", name: "紫发" };

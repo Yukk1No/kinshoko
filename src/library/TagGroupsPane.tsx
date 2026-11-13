@@ -16,7 +16,7 @@ import type { TagNamespace } from "../bindings/TagNamespace";
 import { createSharedTagGroup, deleteSharedTagGroup, editSharedTagGroup, restoreSharedTagGroup, sharedTagGroups, isLensChanged } from "../ipc";
 import { LIMIT, TagMarks, tagName, useCandidateState, type Lens } from "../search/SearchBox";
 import { useUiLang } from "../i18n";
-import { NameInput } from "./SidebarPane";
+import { NameInput } from "../ui/NameInput";
 import { Tip } from "../ui/Tip";
 import { useToast } from "../ui/Toast";
 
@@ -272,6 +272,3 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
     </section>
   );
 }
-
-// 设置里的全局标签分组在它自己的文件里；旧的导入路径照常可用。
-export { SharedTagGroupsSettings } from "./SharedTagGroupsSettings";

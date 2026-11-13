@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { FailedTagging } from "./bindings/FailedTagging";
-import type { TaggingStatus } from "./bindings/TaggingStatus";
+import type { FailedTagging } from "../bindings/FailedTagging";
+import type { TaggingStatus } from "../bindings/TaggingStatus";
 
 /** 估算用的最近几张。 */
 const SAMPLES = 8;

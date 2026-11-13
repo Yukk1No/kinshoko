@@ -1,11 +1,11 @@
 import { emit } from "@tauri-apps/api/event";
 import { afterEach, describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import type { CatalogApproxEntry } from "./bindings/CatalogApproxEntry";
-import type { ShellSettingsView } from "./bindings/ShellSettingsView";
-import type { TagLabel } from "./bindings/TagLabel";
+import type { CatalogApproxEntry } from "../bindings/CatalogApproxEntry";
+import type { ShellSettingsView } from "../bindings/ShellSettingsView";
+import type { TagLabel } from "../bindings/TagLabel";
 import { SettingsPanel } from "./SettingsPanel";
-import { createShellSettings } from "./shell/useShellSettings";
+import { createShellSettings } from "../shell/useShellSettings";
 import { backend, defaults, resetSettingsTest, tab } from "./SettingsPanel.fixtures";
 
 afterEach(resetSettingsTest);

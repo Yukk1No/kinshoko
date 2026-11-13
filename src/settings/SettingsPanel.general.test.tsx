@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { SettingsPanel } from "./SettingsPanel";
 import { backend, defaults, resetSettingsTest, tab } from "./SettingsPanel.fixtures";
-import { chooseValue, optionNames } from "./test/select";
+import { chooseValue, optionNames } from "../test/select";
 
 afterEach(resetSettingsTest);
 

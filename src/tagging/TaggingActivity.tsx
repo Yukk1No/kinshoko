@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CircleAlert, Download, EyeOff, Images, MonitorPause, Pause, Play, RotateCw, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { FailedTagging } from "./bindings/FailedTagging";
-import type { TaggingStatus } from "./bindings/TaggingStatus";
-import { taggingDownload, taggingPause, taggingResume, taggingRetryFailed } from "./ipc";
-import { MenuItem, MenuSeparator, PointerMenu } from "./ui/Menu";
+import type { FailedTagging } from "../bindings/FailedTagging";
+import type { TaggingStatus } from "../bindings/TaggingStatus";
+import { taggingDownload, taggingPause, taggingResume, taggingRetryFailed } from "../ipc";
+import { MenuItem, MenuSeparator, PointerMenu } from "../ui/Menu";
 import { useTaggingProgress, useUnfinishedTagging, type TaggingProgress } from "./useTaggingProgress";
-import { useToast } from "./ui/Toast";
-import { i18n } from "./i18n";
-import { formatBytes, percentOf } from "./i18n/format";
+import { useToast } from "../ui/Toast";
+import { i18n } from "../i18n";
+import { formatBytes, percentOf } from "../i18n/format";
 import { useTaggingStatus } from "./useTaggingStatus";
-import { describeCommandError, describeCommandErrors, errorText } from "./ipc/commandError";
-import { Tip } from "./ui/Tip";
+import { describeCommandError, describeCommandErrors, errorText } from "../ipc/commandError";
+import { Tip } from "../ui/Tip";
 
 /** 预计用时的说法：不到一分钟、几分钟或几小时。 */
 function etaText(ms: number): string {
