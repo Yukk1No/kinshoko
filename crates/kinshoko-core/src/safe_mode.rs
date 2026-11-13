@@ -4,8 +4,9 @@
 //! 规则只在这里实现：
 //! - **取并集**（[`SafeModeState::effective`]）：界面当前的视角与设置里的开关取“或”，切换的
 //!   这一刻不会按关着的视角露出范围内的内容；范围总按设置。
-//! - **开始记下、结束复核**（[`SafeModeState::snapshot`] / [`SafeModeState::still`]）：只比较
-//!   代次。其间发生过任何一次提交（包括重复设成同一值、设置没保存成）即失效，调用方丢弃结果。
+//! - **开始记下、结束复核**（[`SafeModeState::lens`] / [`Lens::confirm`]）：记下开关与代次，
+//!   做完复核。其间发生过任何一次提交（包括重复设成同一值、设置没保存成）即失效，调用方丢弃
+//!   结果。只要代次时用 [`SafeModeState::snapshot`] / [`SafeModeState::still`]。
 //!
 //! 提交与外壳的可见性锁、通知资料库和桌面的顺序由应用壳负责；这里保证换值与代次前进是一步，
 //! 带保存的提交（[`SafeModeState::try_commit`]）保存成功才换值。
@@ -27,6 +28,40 @@ struct State {
 /// [`SafeModeState::snapshot`] 取下的代次。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SafeModeSnapshot(u64);
+
+/// 一次操作开始时记下的安全模式视角：当时的开关与代次。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Lens {
+    on: bool,
+    taken: SafeModeSnapshot,
+}
+
+/// 操作期间安全模式变过，结果要丢弃。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LensStale;
+
+impl From<LensStale> for crate::library::Error {
+    fn from(_: LensStale) -> Self {
+        crate::library::Error::LensChanged
+    }
+}
+
+impl Lens {
+    /// 记下时设置里的开关。
+    pub fn on(&self) -> bool {
+        self.on
+    }
+
+    /// 记下之后没有过提交，开关也没变；否则得到 [`LensStale`]，调用方丢弃结果。
+    pub fn confirm(&self, state: &SafeModeState) -> Result<(), LensStale> {
+        let current = state.lock();
+        if current.generation == self.taken.0 && current.mode.on == self.on {
+            Ok(())
+        } else {
+            Err(LensStale)
+        }
+    }
+}
 
 impl Default for SafeModeState {
     /// 还没按设置初始化时：开启，默认范围。
@@ -54,6 +89,25 @@ impl SafeModeState {
     pub fn effective(&self, view_on: bool) -> SafeMode {
         let mode = self.current();
         SafeMode::new(view_on || mode.on, mode.scope)
+    }
+
+    /// 按设置里的开关记下视角（命令自己不带 `safe` 参数时用）。开关与代次一起读。
+    pub fn lens(&self) -> Lens {
+        let state = self.lock();
+        Lens {
+            on: state.mode.on,
+            taken: SafeModeSnapshot(state.generation),
+        }
+    }
+
+    /// 同 [`Self::lens`]，但界面传来的开关 `on` 与设置不一致时直接得到 [`LensStale`]。
+    pub fn lens_expecting(&self, on: bool) -> Result<Lens, LensStale> {
+        let lens = self.lens();
+        if lens.on == on {
+            Ok(lens)
+        } else {
+            Err(LensStale)
+        }
     }
 
     pub fn snapshot(&self) -> SafeModeSnapshot {

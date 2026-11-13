@@ -114,6 +114,13 @@ describe("设置 › 自动标签 › 自动打标", () => {
     await waitFor(() => expect(fake.calls()).toContainEqual({ command: "tagging_resume", args: {} }));
   });
 
+  it("按钮的命令失败时提示原因（#529）", async () => {
+    backend({ status: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 0, done: 0, remaining: 1 }, replies: { tagging_pause: () => { throw { code: "message", message: "子进程没有回应" }; } } });
+    render(<AutoTaggingSettings hasLibrary />);
+    fireEvent.click(await screen.findByRole("button", { name: "暂停" }));
+    expect(await screen.findByText("自动标签操作没有完成：子进程没有回应", { selector: ".k-toast-title" })).toBeTruthy();
+  });
+
   it("打开的图库读不到、别的图库照常打标时，状态与暂停照常显示（#414）", async () => {
     backend({ status: { state: "running", model: "x", device: "cpu", gpu: null, tagged: 3, done: 0, remaining: 9 } });
     render(<AutoTaggingSettings hasLibrary={false} />);

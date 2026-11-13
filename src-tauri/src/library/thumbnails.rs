@@ -25,8 +25,7 @@ pub(super) fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> 
     };
     // Registered detached provider. The workspace safety veto includes nonmatching/offline sources.
     let state = app.state::<LibraryState>();
-    let generation = state.safe_mode.snapshot();
-    let safe = saved_safe_mode(app);
+    let lens = state.safe_mode.lens();
     // 核对与读文件前后各一次（#123）。平常按发布的快照放行，不拿全局锁、不重开资料库（#313）；
     // 本次运行的前若干个请求把分段耗时记进运行日志（#313），与浏览的耗时对照。
     let started = std::time::Instant::now();
@@ -73,8 +72,8 @@ pub(super) fn thumbnail_response<R: Runtime>(app: &AppHandle<R>, path: &str) -> 
     if logged {
         took("缩略图：取文件（含生成）", reading, None);
     }
-    if !state.safe_mode.still(&generation)
-        || saved_safe_mode(app) != safe
+    // 读完文件再复核视角，并按读文件前的同一道核对重新授权这张图。
+    if lens.confirm(&state.safe_mode).is_err()
         || workspace::read_image(app, library_id, image_id, &mut slow).is_err()
     {
         return not_found();

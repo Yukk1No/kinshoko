@@ -30,6 +30,8 @@ pub use portable::{
 mod source_actions;
 pub use save_destination::{with_destination, with_destination_published};
 mod access;
+mod lens;
+use lens::{Hold, with_lens};
 mod workspace;
 pub use access::*;
 mod import_commands;
@@ -347,7 +349,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             remove_tag_alias,
             search_candidates,
             rating_candidates,
-            resolve_search,
             set_tag_approx,
             eagle_tag_mapping,
             map_tag_external,

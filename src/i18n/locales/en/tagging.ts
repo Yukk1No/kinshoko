@@ -55,6 +55,7 @@ const tagging: Translation<typeof zh> = {
     unavailable: "Auto-tagging unavailable: {{reason}}",
     downloading: "Downloading the auto-tagging model",
     downloadFailed: "Couldn't download the auto-tagging model: {{error}}",
+    actionFailed: "Couldn't complete the auto-tagging action: {{error}}",
     needsDownload: "The auto-tagging model needs to be downloaded ({{size}})",
     resume: "Resume download",
     download: "Download",

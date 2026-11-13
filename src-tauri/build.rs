@@ -79,7 +79,6 @@ fn main() {
                         "remove_tag_alias",
                         "search_candidates",
                         "rating_candidates",
-                        "resolve_search",
                         "set_tag_approx",
                         "eagle_tag_mapping",
                         "map_tag_external",

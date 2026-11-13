@@ -11,7 +11,7 @@ export function firstRunSeen(): boolean {
 }
 
 export function markFirstRunSeen() {
-  try { localStorage.setItem(SEEN_KEY, "1"); } catch { /* 记不下就下次再说明 */ }
+  try { localStorage.setItem(SEEN_KEY, "1"); } catch { /* 忽略失败：记不下就下次再说明。 */ }
 }
 
 /**

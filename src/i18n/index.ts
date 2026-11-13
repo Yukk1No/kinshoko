@@ -26,6 +26,7 @@ export function followInterfaceLanguage(): () => void {
   interfaceLanguage().then((lang) => alive && applyInterfaceLanguage(lang), () => {});
   return () => {
     alive = false;
+    // 忽略失败：收尾时取消监听；之后的事件不再处理。
     void unlisten.then((f) => f()).catch(() => {});
   };
 }

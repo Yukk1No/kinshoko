@@ -102,6 +102,12 @@ export function menuAnchor(open: PinMenuOpen, dpr: number): { x: number; y: numb
  * Base UI 的碰撞规则让菜单与子菜单留在窗口（即这台显示器）之内。Esc、点外部、窗口失去焦点都关闭菜单；选中一项后由应用壳先收起
  * 菜单窗口再做这件事，提示显示在钉图上。窗口用完只隐藏，下次右键直接复用。
  */
+/** 在钉图上提示一句话。 */
+function tellPin(pin: string, text: string) {
+  // 忽略失败：命令本身不会失败，只在钉图已经关掉时被拒，那时没有地方提示。
+  void showPinNotice(pin, text).catch(() => {});
+}
+
 export function DesktopMenuView() {
   const { t } = useTranslation("desktop", { keyPrefix: "pinMenu" });
   const [open, setOpen] = useState<PinMenuOpen | null>(null);
@@ -120,6 +126,7 @@ export function DesktopMenuView() {
     if (!now || handled.current === now.generation) return;
     handled.current = now.generation;
     setOpen(null);
+    // 忽略失败：命令本身不会失败，只在菜单窗口已经关掉时被拒；界面已经收起菜单。
     void closeDesktopMenu(now.generation).catch(() => {});
   }, []);
   const act = useCallback((action: PinMenuAction) => {
@@ -128,9 +135,11 @@ export function DesktopMenuView() {
     handled.current = now.generation;
     setOpen(null);
     const pin = now.menu.pin;
-    void pinMenuAction(pin, action, now.generation)
-      .then((notice) => notice && showPinNotice(pin, pinNoticeText(notice)))
-      .catch(() => {});
+    // 做不成的动作后端已写成提示；命令本身被拒（做的线程出错）时同样在钉图上说一句。
+    void pinMenuAction(pin, action, now.generation).then(
+      (notice) => notice && tellPin(pin, pinNoticeText(notice)),
+      (reason) => tellPin(pin, errorText(reason)),
+    );
   }, []);
 
   useEffect(() => {
@@ -151,6 +160,7 @@ export function DesktopMenuView() {
   // 菜单画好后才显示窗口并拿焦点，免得先闪一下空窗口。
   useEffect(() => {
     if (!open) return;
+    // 忽略失败：命令本身不会失败，只在菜单窗口已经关掉时被拒。
     const frame = requestAnimationFrame(() => void desktopMenuShown(open.generation).catch(() => {}));
     return () => cancelAnimationFrame(frame);
   }, [open]);

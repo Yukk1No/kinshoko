@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { glyphGrid, glyphPath, snapGlyph, type GlyphKind } from "./winGlyphs";
 import { Tip } from "./Tip";
+import { logFailure } from "../runLog";
 
 /** The window this page runs in; null outside Tauri (tests without a mocked window, plain browser). */
 function currentWindow() {
@@ -71,7 +72,8 @@ export function WinCtrls() {
   }, []);
   const run = (action: (win: NonNullable<ReturnType<typeof currentWindow>>) => Promise<void>) => () => {
     const win = currentWindow();
-    if (win) void action(win).catch(() => {});
+    // 最小化、最大化、关闭没有合适的地方提示；记一条供排查。
+    if (win) void action(win).catch((e) => logFailure("window control", e));
   };
   return <div ref={group} className="k-win-ctrls">
     <span className="k-win-div" aria-hidden="true" />
