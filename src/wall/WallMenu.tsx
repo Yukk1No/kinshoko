@@ -7,6 +7,7 @@ import type { ContentRating } from "../bindings/ContentRating";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ImageEdit } from "../bindings/ImageEdit";
 import type { BrowserCard } from "./Wall";
+import { pagesOf } from "./imageSets";
 import { errorText } from "../ipc/commandError";
 
 /** 右键菜单作用的对象：一组卡片（右键的那张，或它所在的整组选择），或图片墙的空白处。point 为指针位置（CSS 像素，窗口客户区）。 */
@@ -118,7 +119,8 @@ function RemoveFromFolder({ card, folderId, direct, actions }: { card: BrowserCa
 
 function Organize({ cards, actions, scope, single }: { cards: BrowserCard[]; actions: WallMenuActions; scope: BrowseScope; single: boolean }) {
   const { t } = useTranslation(["wall", "common"]);
-  const libraries = new Set(cards.map((c) => c.libraryId ?? ""));
+  // 移文件夹作用于整摞的全部页（#418）：各页都在同一个图库时才能选那个库的文件夹。
+  const libraries = new Set(pagesOf(cards).map((c) => c.libraryId ?? ""));
   const libraryId = libraries.size === 1 ? [...libraries][0] : null;
   return <>
     <MenuSubmenu icon={<FolderGlyph />} label={t("menu.moveToFolder")} disabled={libraryId === null} popupLabel={t("menu.moveToFolder")} width={220}
@@ -141,6 +143,7 @@ function Organize({ cards, actions, scope, single }: { cards: BrowserCard[]; act
 /**
  * 图片墙的右键菜单内容（#102 “右键菜单”表的瀑布流各行）：单张、多张、回收站范围与空白处。
  * 复制图片、在资源管理器中显示与从剪贴板导入是 #105 的新能力。
+ * 整摞（#418）按格子算单张、多张；移到回收站写明一共几张，钉住的张数只算封面。
  */
 export function WallMenu({ target, scope, density, actions, inspectorOpen = false, onToggleInspector, stackSets }: {
   target: WallMenuTarget; scope: BrowseScope; density: number; actions: WallMenuActions;
@@ -175,6 +178,8 @@ export function WallMenu({ target, scope, density, actions, inspectorOpen = fals
     </>;
   }
   const { cards, point } = target;
+  /** 移到回收站作用的张数：整摞算上它的全部页。 */
+  const pages = pagesOf(cards).length;
   if (scope.kind === "trash") {
     return <>
       <MenuItem icon={icon(RotateCcw)} onClick={() => actions.edit(cards, [{ kind: "restore" }], true)}>{t("menu.restore")}</MenuItem>
@@ -197,7 +202,7 @@ export function WallMenu({ target, scope, density, actions, inspectorOpen = fals
       <MenuItem icon={icon(FolderSearch)} onClick={() => actions.reveal(card)}>{t("common:image.reveal")}</MenuItem>
       {inspector}
       <MenuSeparator />
-      <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>{t("common:image.trash")}</MenuItem>
+      <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>{pages > 1 ? t("menu.trashCount", { count: pages }) : t("common:image.trash")}</MenuItem>
     </>;
   }
   return <>
@@ -207,6 +212,6 @@ export function WallMenu({ target, scope, density, actions, inspectorOpen = fals
     <Organize cards={cards} actions={actions} scope={scope} single={false} />
     {inspector}
     <MenuSeparator />
-    <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>{t("menu.trashCount", { count: cards.length })}</MenuItem>
+    <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>{t("menu.trashCount", { count: pages })}</MenuItem>
   </>;
 }

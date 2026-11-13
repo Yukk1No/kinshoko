@@ -7,6 +7,7 @@ import { modalOpen } from "../ui/modal";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import type { Press } from "./doubleClick";
 import type { WallMenuTarget } from "./WallMenu";
+import { pagesOf } from "./imageSets";
 import { CARD_BUTTONS, DRAG_IMAGE_SOURCES, DRAG_IMAGES, editable, type BrowserCard, type CardCommand } from "./wallShared";
 
 export function wallInteractions({
@@ -167,12 +168,14 @@ export function wallInteractions({
       pivot.current = id;
       onSelectionChange(new Set(dragged));
     }
+    // 拖的是整摞时（#418）放进文件夹的是它的全部页，与“移到文件夹”相同。
+    const draggedPages = dragged.flatMap((id) => { const card = cards.find((c) => c.id === id); return card ? pagesOf([card]) : []; });
     const sourceIds = workspaceScope?.kind === "library"
-      ? dragged.flatMap((id) => cards.find((c) => c.id === id)?.sources?.filter((s) => s.libraryId === workspaceScope.libraryId && !s.unavailable).map((s) => s.imageId) ?? [])
-      : dragged;
+      ? draggedPages.flatMap((c) => c.sources?.filter((s) => s.libraryId === workspaceScope.libraryId && !s.unavailable).map((s) => s.imageId) ?? [])
+      : dragged.flatMap((id) => { const card = cards.find((c) => c.id === id); return card?.set ? card.set.pages.map((page) => page.id) : [id]; });
     e.dataTransfer.setData(DRAG_IMAGES, JSON.stringify(sourceIds));
     const bySource: Record<string, string[]> = {};
-    for (const source of dragged.flatMap((id) => cards.find((c) => c.id === id)?.sources ?? [])) {
+    for (const source of draggedPages.flatMap((c) => c.sources ?? [])) {
       if (!source.unavailable) (bySource[source.libraryId] ??= []).push(source.imageId);
     }
     e.dataTransfer.setData(DRAG_IMAGE_SOURCES, JSON.stringify(bySource));

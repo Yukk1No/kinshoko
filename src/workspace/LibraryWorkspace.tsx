@@ -16,7 +16,7 @@ import { useToast } from "../ui/Toast";
 import { WinCtrls } from "../ui/WinCtrls";
 import { Tip } from "../ui/Tip";
 import { scopeKey, Wall, type WallHandle, type BrowserCard } from "../wall/Wall";
-import { useStackSetsSetting } from "../wall/imageSets";
+import { useStackSetsSetting, viewedPage } from "../wall/imageSets";
 import { WallFloats } from "../wall/WallFloats";
 import { WallMenu } from "../wall/WallMenu";
 import { WallEmptyAction } from "./WallEmptyAction";
@@ -162,8 +162,9 @@ export function LibraryWorkspace({
   // 图片墙的右键菜单与卡片快捷键（#102）。
   const { actions: wallActions, dialogs: wallDialogs } = useWallActions({
     safe, onError: toast.error,
-    onOpen: (card) => { setViewCrop(false); setViewing(card); },
-    onCrop: (card) => { setViewCrop(true); setViewing(card); },
+    // 从整摞打开查看器（#418）：看它的第 1 页，左右先在这一摞里翻，翻完接着墙上的下一格。
+    onOpen: (card) => { setViewCrop(false); setViewing(viewedPage(card)); },
+    onCrop: (card) => { setViewCrop(true); setViewing(viewedPage(card)); },
     onInspect: (card) => openSources(card as WorkspaceCard),
     onChanged: () => invalidate({ kind: "contentEdited" }),
     removeCards: (cards) => {

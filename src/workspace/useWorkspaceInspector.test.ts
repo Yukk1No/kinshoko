@@ -72,3 +72,15 @@ it("查看器走到收在一摞里的页（#418）：详情面板整理正在看
   rerender({ viewing: null, chosen: selected });
   expect([...selected]).toEqual(["a0"]);
 });
+
+it("墙上选中整摞（#418）：详情面板与多选悬浮栏整理它的全部页；查看器里看封面时只整理这一页", () => {
+  const stack = { ...card("a0", "L1"), set: { key: "pixiv:1", pages: [card("a0", "L1"), card("a1", "L1"), card("a2", "L1")] } } as unknown as BrowserCard;
+  const { result } = inspector({ selected: ["a0", "b"], cards: [stack, card("b", "L1")] });
+  expect(result.current.panelIds).toEqual(["a0", "a1", "a2", "b"]);
+  expect(result.current.selectionLibrary).toBe("L1");
+  const viewed = renderHook(() => useWorkspaceInspector({
+    selected: new Set(["a0"]), setSelected: () => {}, loadedCards: [stack], workspaceScope: { kind: "all" },
+    sources: null, setSources: () => {}, hidden: false, viewing: card("a0", "L1"), inspectorShown: true, onInspectorShown: () => {},
+  }));
+  expect(viewed.result.current.panelIds).toEqual(["a0"]);
+});

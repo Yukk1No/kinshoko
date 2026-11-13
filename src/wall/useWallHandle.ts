@@ -3,8 +3,11 @@ import { useImperativeHandle } from "react";
 import type { Dispatch, Ref, MutableRefObject, SetStateAction } from "react";
 import type { BrowserCard, WallHandle } from "./wallShared";
 
+/** 这些格子里叠着、不占格子的页数（#418）。 */
+const stackedIn = (cards: BrowserCard[]) => cards.reduce((sum, card) => sum + (card.set ? card.set.pages.length - 1 : 0), 0);
+
 export function useWallHandle({
-  ref, measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal,
+  ref, measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal, setStacked,
 }: {
   ref: Ref<WallHandle> | undefined;
   measureBeforeReflow: (keepSafe?: boolean) => void;
@@ -17,6 +20,8 @@ export function useWallHandle({
   pendingRemoval: MutableRefObject<Set<string>>;
   setCards: Dispatch<SetStateAction<BrowserCard[]>>;
   setTotal: Dispatch<SetStateAction<number | null>>;
+  /** 叠在一摞里、不占格子的张数（#418）：移走或放回整摞时跟着增减，顶栏的张数不必等重新浏览。 */
+  setStacked: Dispatch<SetStateAction<number>>;
 }) {
   useImperativeHandle(ref, () => ({
     previewDensity(value) { measureBeforeReflow(); setPreviewDensity(value); },
@@ -37,6 +42,7 @@ export function useWallHandle({
       measureBeforeReflow();
       setCards((now) => now.filter((card) => !removing.has(card.id)));
       setTotal((count) => (count === null ? count : count - removed.length));
+      setStacked((count) => count - stackedIn(removed));
       return (failedIds) => {
         // 后端做完了：这批不再算“正在移走”，恢复翻页。
         for (const id of batch) pendingRemoval.current.delete(id);
@@ -64,7 +70,8 @@ export function useWallHandle({
           return next;
         });
         setTotal((count) => (count === null ? count : count + returning.length));
+        setStacked((count) => count + stackedIn(returning));
       };
     },
-  }), [measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal]);
+  }), [measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal, setStacked]);
 }
