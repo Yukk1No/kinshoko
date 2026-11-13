@@ -38,7 +38,7 @@ export function TagGroupBar(p: Props) {
   useEffect(() => {
     let alive = true;
     (p.workspace ? workspaceTagGroups(p.libraryId, lang, p.safe) : tagGroups(p.libraryId, lang)).then(
-      (next) => { if (alive && current.current === key) setFound({ lens, groups: next ?? [] }); },
+      (next) => { if (alive && current.current === key) setFound({ lens, groups: next }); },
       (error) => { if (alive && current.current === key && !isLensChanged(error)) p.onError(error); },
     );
     return () => { alive = false; };

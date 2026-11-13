@@ -74,7 +74,7 @@ export function BackupSettings() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    registeredLibraries().then((l) => setLibraries(l ?? []), () => {});
+    registeredLibraries().then(setLibraries, () => {});
   }, []);
 
   const selection = status?.plan.selection;
@@ -207,7 +207,7 @@ function RestoreView({ onError }: { onError: (error: unknown) => void }) {
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState<RestoreReport | null>(null);
 
-  const list = () => backupSnapshots().then((s) => setSnapshots(s ?? []), (e) => onError(e));
+  const list = () => backupSnapshots().then(setSnapshots, (e) => onError(e));
 
   const restore = async (snapshot: SnapshotSummary) => {
     const into = await pickFolder();

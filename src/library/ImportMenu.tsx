@@ -69,7 +69,7 @@ export function ImportMenu({control,...p}:Omit<ComponentProps<typeof ImportBar>,
   function refresh(){
    const expected=epoch;
    void importTasks().then(value=>{
-    if(!alive||expected!==epoch||!Array.isArray(value))return;
+    if(!alive||expected!==epoch)return;
     for(const t of value)optimistic.current.delete(t.taskId);
     const next=[...value,...optimistic.current.values()].filter(t=>!dismissed.current.has(t.taskId));
     const busy=next.some(t=>t.report===null||t.finishing);

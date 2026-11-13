@@ -32,7 +32,7 @@ const ITEMS: { id: Section; icon: RailIcon; key: string }[] = [
 /** 角标的数字：超过 99 写“99+”。 */
 const badgeText = (n: number) => (n > 99 ? '99+' : String(n));
 
-const count = (value: unknown) => (Array.isArray(value) && value.length > 0 ? value.length : undefined);
+const count = (list: readonly unknown[]) => (list.length > 0 ? list.length : undefined);
 
 /** 参考组与截图历史的数量（原型的深色数字角标）；图片与文件夹没有角标。 */
 function useBadges(): Partial<Record<Section, number>> {

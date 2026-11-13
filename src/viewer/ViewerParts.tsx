@@ -22,7 +22,7 @@ export function useViewerBackground() {
   const [background, setBackground] = useState<Background>(cachedViewerBackground);
   useEffect(() => {
     let alive = true;
-    shellSettings().then((view) => view?.viewerBackground ?? "mid")
+    shellSettings().then((view) => view.viewerBackground ?? "mid")
       .then((value) => { if (alive) { setBackground(value); rememberViewerBackground(value); } }, () => { /* 读取失败不往核心写任何东西。 */ });
     return () => { alive = false; };
   }, []);

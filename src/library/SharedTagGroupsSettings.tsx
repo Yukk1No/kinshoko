@@ -23,7 +23,7 @@ export function SharedTagGroupsSettings({ onError }: { onError: (error: unknown)
       }
     };
     void safeMode().then(async (value) => {
-      if (!alive || modeRevision.current !== revision || typeof value !== "boolean") return;
+      if (!alive || modeRevision.current !== revision) return;
       // Establish the monitor revision before exposing editable drafts, and the actual saved safety mode.
       await baseline(value, revision);
       if (alive && modeRevision.current === revision) setSafe(value);

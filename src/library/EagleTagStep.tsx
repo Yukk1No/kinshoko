@@ -48,7 +48,7 @@ function UnmatchedRow({
       return;
     }
     externalSuggestions(text, SUGGESTIONS).then(
-      (found) => setSuggestions(found ?? []),
+      setSuggestions,
       () => {},
     );
   };
