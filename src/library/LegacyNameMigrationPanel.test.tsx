@@ -1,12 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fakeBackend } from "../test/backend";
 import type { LegacyNameMigrationWorkspace } from "../bindings/LegacyNameMigrationWorkspace";
 import { emit } from "@tauri-apps/api/event";
 import { useState } from "react";
 import { LegacyNameEntry, LegacyNameMigrationNotice, LegacyNameWizard } from "./LegacyNameMigrationPanel";
 
-afterEach(() => { cleanup(); clearMocks(); });
 const view = (): LegacyNameMigrationWorkspace => ({
   libraries: ["a", "b"].map((id) => ({ library: { id, name: `旧库 ${id}`, root: `C:/${id}` }, unavailable: null })),
   plan: { revision: 7, groups: [{ catalogId: "shared", namespace: "general", lang: "zh-CN", defaultName: "分缝发型", existingPreference: "自然分缝", affectedLibraries: ["a", "b"], sources: [{ libraryId: "a", localTagId: "local-a", legacyName: "分发", currentName: "自然分缝" }, { libraryId: "b", localTagId: "local-b", legacyName: "分开的头发", currentName: "自然分缝" }] }] },
@@ -28,11 +27,11 @@ const confirmButton = () => screen.getByRole<HTMLButtonElement>("button", { name
 it("shows one old name at a time with both old names and the existing preference, cancels without writing and previews the final display before confirming", async () => {
   const data = view();
   const writes: unknown[] = [];
-  mockIPC((cmd, args) => {
-    if (cmd.endsWith("plan_legacy_names")) return data;
-    if (cmd.endsWith("preview_legacy_names")) return { revision: 7, outcomes: [{ catalogId: "shared", lang: "zh-CN", displayName: "核心预览结果", preferenceName: null }] };
-    if (cmd.endsWith("confirm_legacy_names")) { writes.push(args); return { ...data, plan: { revision: 8, groups: [] } }; }
-  }, { shouldMockEvents: true });
+  fakeBackend({
+    plan_legacy_names: data,
+    preview_legacy_names: { revision: 7, outcomes: [{ catalogId: "shared", lang: "zh-CN", displayName: "核心预览结果", preferenceName: null }] },
+    confirm_legacy_names: (args) => { writes.push(args); return { ...data, plan: { revision: 8, groups: [] } }; },
+  });
   render(<Host />);
   let wizard = await openWizard();
   await within(wizard).findByRole("radio", { name: /保留为全局偏好「分开的头发」/ });
@@ -65,7 +64,7 @@ it("shows one old name at a time with both old names and the existing preference
 
 it("offers the wizard when opening an old library whose name has already adopted a global preference", async () => {
   let opened = false;
-  mockIPC((cmd) => cmd.endsWith("plan_legacy_names") ? view() : undefined, { shouldMockEvents: true });
+  fakeBackend({ plan_legacy_names: () => view() });
   render(<LegacyNameMigrationNotice safe={true} enabled hidden={false} onOpen={() => { opened = true; }} />);
   expect(await screen.findByText(/旧名称待确认/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "逐个确认" }));
@@ -74,7 +73,7 @@ it("offers the wizard when opening an old library whose name has already adopted
 
 it("counts pending old names in the settings entry", async () => {
   let opened = false;
-  mockIPC((cmd) => cmd.endsWith("plan_legacy_names") ? view() : undefined, { shouldMockEvents: true });
+  fakeBackend({ plan_legacy_names: () => view() });
   render(<LegacyNameEntry onOpen={() => { opened = true; }} />);
   expect(await screen.findByText("1 个旧名称待确认")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "逐个确认" }));
@@ -83,14 +82,14 @@ it("counts pending old names in the settings entry", async () => {
 
 it("keeps the complete draft after a failed write and allows a single atomic retry", async () => {
   let fail = true;
-  mockIPC((cmd) => {
-    if (cmd.endsWith("plan_legacy_names")) return view();
-    if (cmd.endsWith("preview_legacy_names")) return { revision: 7, outcomes: [{ catalogId: "shared", lang: "zh-CN", displayName: "核心预览结果", preferenceName: null }] };
-    if (cmd.endsWith("confirm_legacy_names")) {
+  fakeBackend({
+    plan_legacy_names: () => view(),
+    preview_legacy_names: { revision: 7, outcomes: [{ catalogId: "shared", lang: "zh-CN", displayName: "核心预览结果", preferenceName: null }] },
+    confirm_legacy_names: () => {
       if (fail) throw { code: "message", message: "磁盘写入失败" };
       return { ...view(), plan: { revision: 8, groups: [] } };
-    }
-  }, { shouldMockEvents: true });
+    },
+  });
   render(<Host />);
   const wizard = await openWizard();
   await within(wizard).findByRole("radio", { name: /保留为全局偏好「自然分缝」/ });
@@ -111,7 +110,7 @@ it("keeps the complete draft after a failed write and allows a single atomic ret
 it("clears migration data on a safe-mode change and discards a late plan", async () => {
   let finish: (value: ReturnType<typeof view>) => void = () => {};
   const pending = new Promise<ReturnType<typeof view>>((resolve) => { finish = resolve; });
-  mockIPC((cmd) => cmd.endsWith("plan_legacy_names") ? pending : undefined, { shouldMockEvents: true });
+  fakeBackend({ plan_legacy_names: () => pending });
   render(<Host />);
   await openWizard();
   await act(async () => { await emit("safe-mode-setting", true); finish(view()); await pending; });
@@ -126,11 +125,11 @@ it("uses the default only for remaining unchosen names without conflicts, leaves
   data.plan.groups.push({ ...base, catalogId: "with-preference", sources: [base.sources[0]] });
   data.plan.groups.push({ ...base, catalogId: "old-conflict", existingPreference: null });
   let saved: unknown;
-  mockIPC((cmd, args) => {
-    if (cmd.endsWith("plan_legacy_names")) return data;
-    if (cmd.endsWith("preview_legacy_names")) return { revision: 7, outcomes: data.plan.groups.map((group, index) => ({ catalogId: group.catalogId, lang: group.lang, displayName: `最终名称 ${index}`, preferenceName: null })) };
-    if (cmd.endsWith("confirm_legacy_names")) { saved = args; return { ...data, plan: { revision: 8, groups: [] } }; }
-  }, { shouldMockEvents: true });
+  fakeBackend({
+    plan_legacy_names: data,
+    preview_legacy_names: { revision: 7, outcomes: data.plan.groups.map((group, index) => ({ catalogId: group.catalogId, lang: group.lang, displayName: `最终名称 ${index}`, preferenceName: null })) },
+    confirm_legacy_names: (args) => { saved = args; return { ...data, plan: { revision: 8, groups: [] } }; },
+  });
   render(<Host />);
   const wizard = await openWizard();
   fireEvent.click(await within(wizard).findByRole("button", { name: "剩下的都用默认（250）" }));
@@ -168,11 +167,11 @@ it("requires the preview for the current choices and ignores an earlier preview 
   let finish: (value: ReturnType<typeof outcome>) => void = () => {};
   const pending = new Promise<ReturnType<typeof outcome>>((resolve) => { finish = resolve; });
   const writes: unknown[] = [];
-  mockIPC((cmd, args) => {
-    if (cmd.endsWith("plan_legacy_names")) return view();
-    if (cmd.endsWith("preview_legacy_names")) return ++reads === 1 ? outcome("第一选择的预览") : pending;
-    if (cmd.endsWith("confirm_legacy_names")) { writes.push(args); return { ...view(), plan: { revision: 8, groups: [] } }; }
-  }, { shouldMockEvents: true });
+  fakeBackend({
+    plan_legacy_names: () => view(),
+    preview_legacy_names: () => ++reads === 1 ? outcome("第一选择的预览") : pending,
+    confirm_legacy_names: (args) => { writes.push(args); return { ...view(), plan: { revision: 8, groups: [] } }; },
+  });
   render(<Host />);
   const wizard = await openWizard();
   await within(wizard).findByRole("radio", { name: /保留为全局偏好「自然分缝」/ });
@@ -199,15 +198,16 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
   let inFlight = 0;
   let peak = 0;
   let calls = 0;
-  mockIPC((cmd) => {
-    if (!cmd.endsWith("plan_legacy_names")) return undefined;
-    calls++;
-    inFlight++;
-    peak = Math.max(peak, inFlight);
-    // 后端按收到请求时的词表作答，慢于事件间隔。
-    const answer = structuredClone(state);
-    return new Promise((resolve) => setTimeout(() => { inFlight--; resolve(answer); }, 25));
-  }, { shouldMockEvents: true });
+  fakeBackend({
+    plan_legacy_names: () => {
+      calls++;
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      // 后端按收到请求时的词表作答，慢于事件间隔。
+      const answer = structuredClone(state);
+      return new Promise((resolve) => setTimeout(() => { inFlight--; resolve(answer); }, 25));
+    },
+  });
   render(<LegacyNameMigrationNotice safe={true} enabled hidden={false} onOpen={() => {}} />);
   expect(await screen.findByText(/1 个旧名称待确认/)).toBeTruthy();
   calls = 0;
@@ -234,12 +234,13 @@ describe("登记的资料库变化时刷新旧名称提示（#426）", () => {
 
   function backend() {
     let pending = false, reads = 0;
-    mockIPC((cmd) => {
-      if (!cmd.endsWith("plan_legacy_names")) return undefined;
-      reads++;
-      const answer = view();
-      return pending ? answer : { ...answer, plan: { ...answer.plan, groups: [] } };
-    }, { shouldMockEvents: true });
+    fakeBackend({
+      plan_legacy_names: () => {
+        reads++;
+        const answer = view();
+        return pending ? answer : { ...answer, plan: { ...answer.plan, groups: [] } };
+      },
+    });
     return { setPending: (value: boolean) => { pending = value; }, reads: () => reads };
   }
 

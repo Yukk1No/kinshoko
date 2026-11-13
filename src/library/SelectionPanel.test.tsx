@@ -1,17 +1,13 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageRating } from "../bindings/ImageRating";
 import { SelectionPanel } from "./SelectionPanel";
+import { fakeBackend } from "../test/backend";
 import { tipText } from "../test/tip";
 
 const NO_TAGS = { image: { imageId: "img", tags: [], rejected: [] }, identities: [] };
 
-afterEach(() => {
-  cleanup();
-  clearMocks();
-});
 
 function detail(rating: Partial<ImageRating>): ImageDetail {
   return {
@@ -32,14 +28,13 @@ function detail(rating: Partial<ImageRating>): ImageDetail {
 
 function backend(initial: ImageDetail, afterEdit: ImageDetail) {
   const edits: unknown[] = [];
-  mockIPC((cmd, args) => {
-    if (cmd === "plugin:library|catalog_image_tags") return NO_TAGS;
-    if (cmd === "plugin:library|image") return initial;
-    if (cmd === "plugin:library|edit") {
-      edits.push((args as { edits: unknown }).edits);
+  fakeBackend({
+    catalog_image_tags: NO_TAGS,
+    image: initial,
+    edit: (args) => {
+      edits.push(args.edits);
       return [afterEdit];
-    }
-    return undefined;
+    },
   });
   return edits;
 }
@@ -113,10 +108,9 @@ describe("选中一张图：内容分级", () => {
 
 it("当前选择的有效详情请求失败仍交给错误提示", async () => {
   const problems: string[] = [];
-  mockIPC((command) => {
-    if (command === "plugin:library|catalog_image_tags") return NO_TAGS;
-    if (command === "plugin:library|image") return Promise.reject("读取资料库失败");
-    return undefined;
+  fakeBackend({
+    catalog_image_tags: NO_TAGS,
+    image: () => Promise.reject("读取资料库失败"),
   });
   render(<SelectionPanel libraryId="L1" selected={new Set(["img"])}
     reloadKey={0} onClear={() => {}} onError={(message) => problems.push(String(message))} />);
@@ -124,11 +118,10 @@ it("当前选择的有效详情请求失败仍交给错误提示", async () => {
 });
 
 it("单张详情读失败后改成多选，标签面板照常出现", async () => {
-  mockIPC((command) => {
-    if (command === "plugin:library|image") return Promise.reject({ code: "unknownImage" });
-    if (command === "plugin:library|catalog_image_tags") return NO_TAGS;
-    if (command === "plugin:library|workspace_sidebar") return { all: 2, trash: 0, folders: [] };
-    return [];
+  fakeBackend({
+    image: () => Promise.reject({ code: "unknownImage" }),
+    catalog_image_tags: NO_TAGS,
+    workspace_sidebar: { all: 2, trash: 0, folders: [] },
   });
   const panel = (ids: string[]) => <SelectionPanel libraryId="L1" selected={new Set(ids)}
     reloadKey={0} onClear={() => {}} onError={() => {}} />;
@@ -154,10 +147,9 @@ describe("选中一张图：自动标签未完成（#475）", () => {
 
   it("选着的图之后打标失败：收到图片变化的通知就补上这一行，不用重新选", async () => {
     let failure: "unreadable" | null = null;
-    mockIPC((cmd) => {
-      if (cmd === "plugin:library|catalog_image_tags") return NO_TAGS;
-      if (cmd === "plugin:library|image") return { ...detail({}), taggingFailure: failure };
-      return undefined;
+    fakeBackend({
+      catalog_image_tags: NO_TAGS,
+      image: () => ({ ...detail({}), taggingFailure: failure }),
     });
     const onError = () => {};
     const panel = (generation: number) => <SelectionPanel libraryId="L1" selected={new Set(["img"])} onClear={() => {}} reloadKey={0} onError={onError} generation={generation} />;

@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import type { Channel } from "@tauri-apps/api/core";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
+import { fakeBackend } from "../test/backend";
 import { ImportMenu } from "./ImportMenu";
 import { SaveDestinationProvider } from "./SaveDestination";
 
-afterEach(async () => { cleanup(); await new Promise(resolve => setTimeout(resolve, 0)); clearMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 const receipt: ImportTaskSnapshot = {
   taskId: "actual-task", destination: { libraryId: "L1", folderId: null }, libraryName: "参考", folderName: null,
@@ -27,12 +27,7 @@ function menu() { return <ImportMenu enabled running={null} finished={null} onSt
 
 describe("导入结束走轻提示（#388）", () => {
   function serve(tasks: ImportTaskSnapshot[]) {
-    mockWindows("main");
-    mockIPC(cmd => {
-      if (cmd === "plugin:library|import_tasks") return tasks;
-      if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
-      return undefined;
-    }, { shouldMockEvents: true });
+    fakeBackend({ import_tasks: tasks });
   }
 
   it("结束时只发一条轻提示，回执卡不自己弹出；“查看”打开它", async () => {
@@ -74,14 +69,9 @@ describe("导入结束走轻提示（#388）", () => {
   });
 
   it("“查看”先选中提示所属的任务，即使之后开始了别的导入", async () => {
-    mockWindows("main");
     const running: ImportTaskSnapshot = { ...receipt, taskId: "next-task", folderName: "人物", progress: { done: 1, total: 9 }, report: null };
     let calls = 0;
-    mockIPC(cmd => {
-      if (cmd === "plugin:library|import_tasks") return ++calls === 1 ? [receipt] : [receipt, running];
-      if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
-      return undefined;
-    }, { shouldMockEvents: true });
+    fakeBackend({ import_tasks: () => ++calls === 1 ? [receipt] : [receipt, running] });
     render(<>{menu()}</>);
     await screen.findByText("导入完成");
     await screen.findByRole("region", { name: "导入进度" }, { timeout: 3000 });
@@ -124,14 +114,9 @@ describe("导入结束走轻提示（#388）", () => {
 describe("导入回执上下文撤销", () => {
   for (const [event, payload] of [["safe-mode-setting", true], ["workspace-changed", { revision: "after", libraries: [] }]] as const) {
     it(`${event} 隐去旧成功统计，并拒绝迟到的旧快照`, async () => {
-      mockWindows("main");
       let calls = 0, release!: (value: ImportTaskSnapshot[]) => void;
       const pending = new Promise<ImportTaskSnapshot[]>(resolve => { release = resolve; });
-      mockIPC(cmd => {
-        if (cmd === "plugin:library|import_tasks") { calls++; return calls === 1 ? [receipt] : pending; }
-        if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
-        return undefined;
-      }, { shouldMockEvents: true });
+      fakeBackend({ import_tasks: () => { calls++; return calls === 1 ? [receipt] : pending; } });
       render(menu());
       const region = await openReceipt();
       expect(region.textContent).toContain("已存在 1");
@@ -151,27 +136,25 @@ describe("导入回执上下文撤销", () => {
 
 
 for (const phase of ["已显示图片", "读取尚未完成"] as const) it(`登记的资料库变化立即遮蔽${phase}，保留实际任务回执并要求再次同意`, async () => {
-  mockWindows("main");
   const closed: string[] = [];
   let registered = false;
   let libraries = [{ library: { id: "L1", name: "参考", root: "D:/a" }, unavailable: null } as LibraryRegistration];
   let channel: Channel<ArrayBuffer> | undefined, release!: () => void;
   const pending = new Promise<void>(resolve => { release = resolve; });
   const sealed = { ...receipt, progress: { done: 0, total: 0 }, report: { ...receipt.report!, items: [], sealedDuplicates: true, privateSummary: true } };
-  mockIPC((cmd, args) => {
-    if (cmd === "plugin:library|import_tasks") return [sealed];
-    if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
-    if (cmd === "plugin:library|open_import_preview") return { id: "actual-receipt-session", items: ["opaque-item"] };
-    if (cmd === "plugin:library|read_import_preview") {
-      channel = (args as { onChunk: Channel<ArrayBuffer> }).onChunk;
+  fakeBackend({
+    import_tasks: [sealed],
+    open_import_preview: { id: "actual-receipt-session", items: ["opaque-item"] },
+    read_import_preview: (args) => {
+      channel = args.onChunk as Channel<ArrayBuffer>;
       if (phase === "读取尚未完成") return pending;
       channel.onmessage(new Uint8Array([137, 80, 78, 71]).buffer);
       channel.onmessage(new ArrayBuffer(0));
-    }
-    if (cmd === "plugin:library|close_import_preview") closed.push((args as { sessionId: string }).sessionId);
-    if (cmd === "plugin:library|workspace_directories") { registered = true; return { status: { revision: "r", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) }; }
-    return undefined;
-  }, { shouldMockEvents: true });
+      return null;
+    },
+    close_import_preview: (args) => { closed.push(args.sessionId as string); return null; },
+    workspace_directories: () => { registered = true; return { status: { revision: "r", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) }; },
+  });
   const revoke = vi.fn(), create = vi.fn(() => "blob:actual-receipt-preview");
   vi.stubGlobal("URL", { createObjectURL: create, revokeObjectURL: revoke });
   HTMLDialogElement.prototype.showModal = function() { this.setAttribute("open", ""); };
@@ -203,15 +186,12 @@ for (const phase of ["已显示图片", "读取尚未完成"] as const) it(`登�
 });
 
 it("另一个图库的任务回执关闭后，不留下“正在导入”的空卡片，仍可开始导入（#98 本机 r14）", async () => {
-  mockWindows("main");
   const other = { ...receipt, taskId: "other-library-task", destination: { libraryId: "L2", folderId: null }, libraryName: "另一个" };
   let tasks: ImportTaskSnapshot[] = [other];
-  mockIPC(cmd => {
-    if (cmd === "plugin:library|import_tasks") return tasks;
-    if (cmd === "plugin:library|dismiss_import") { tasks = []; return null; }
-    if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
-    return undefined;
-  }, { shouldMockEvents: true });
+  fakeBackend({
+    import_tasks: () => tasks,
+    dismiss_import: () => { tasks = []; return null; },
+  });
   render(<ImportMenu enabled running={{ taskId: "other-library-task", progress: { done: 0, total: 0 } }}
     finished={null} onStarted={() => {}} onDismissReport={() => {}} />);
   await openReceipt();
@@ -224,13 +204,8 @@ it("另一个图库的任务回执关闭后，不留下“正在导入”的空�
 });
 
 it("回执轮询碰上浏览结果变化时只重读，不在卡片上留下“浏览结果已变化”（#98 本机 r16）", async () => {
-  mockWindows("main");
   let calls = 0;
-  mockIPC(cmd => {
-    if (cmd === "plugin:library|import_tasks") { calls++; if (calls === 1) throw { code: "cursorExpired" }; return [receipt]; }
-    if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
-    return undefined;
-  }, { shouldMockEvents: true });
+  fakeBackend({ import_tasks: () => { calls++; if (calls === 1) throw { code: "cursorExpired" }; return [receipt]; } });
   render(menu());
   const region = await openReceipt();
   await waitFor(() => expect(calls).toBeGreaterThan(2));
@@ -242,13 +217,8 @@ describe("导入任务轮询", () => {
   const poll = async (tasks: ImportTaskSnapshot[]) => {
     vi.useFakeTimers();
     try {
-      mockWindows("main");
       let calls = 0;
-      mockIPC(cmd => {
-        if (cmd === "plugin:library|import_tasks") { calls++; return tasks; }
-        if (cmd === "plugin:library|library_recovery") return { interrupted: [], orphans: [] };
-        return undefined;
-      }, { shouldMockEvents: true });
+      fakeBackend({ import_tasks: () => { calls++; return tasks; } });
       render(menu());
       await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
       return calls;

@@ -1,17 +1,13 @@
 // #158：连续切换选中图时，详情面板只读和这张图有关的内容，切换中不闪空白。
-import { afterEach, expect, it } from "vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { CatalogImageTags } from "../bindings/CatalogImageTags";
 import { SelectionPanel } from "./SelectionPanel";
 import { WorkspaceSources } from "./WorkspacePane";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
+import { fakeBackend } from "../test/backend";
 
-afterEach(() => {
-  cleanup();
-  clearMocks();
-});
 
 function detail(id: string): ImageDetail {
   return {
@@ -35,20 +31,17 @@ function tags(id: string): CatalogImageTags {
   return { image: { imageId: id, tags: [{ tag, origins: [{ kind: "manual" }] }], rejected: [] }, identities: [] };
 }
 
-/** 记下每条命令发了几次；`answer` 可以给某张图的回答换成未完成的 Promise。 */
+/** 回答单张图的详情与标签；`answer` 可以给某张图的回答换成未完成的 Promise。返回每条命令发了几次。 */
 function backend(answer: (cmd: string, id: string) => unknown = () => undefined) {
-  const calls: Record<string, number> = {};
-  mockIPC((cmd, args) => {
-    const name = cmd.replace("plugin:library|", "");
-    calls[name] = (calls[name] ?? 0) + 1;
-    const id = (args as { imageId?: string }).imageId ?? "";
-    const custom = answer(name, id);
-    if (custom !== undefined) return custom;
-    if (name === "image") return detail(id);
-    if (name === "catalog_image_tags") return tags(id);
-    return undefined;
+  const reply = (name: string, fallback: (id: string) => unknown) => (args: Record<string, unknown>) => {
+    const id = (args.imageId as string | undefined) ?? "";
+    return answer(name, id) ?? fallback(id);
+  };
+  const fake = fakeBackend({
+    image: reply("image", detail),
+    catalog_image_tags: reply("catalog_image_tags", tags),
   });
-  return calls;
+  return (command: string) => fake.calls(command).length;
 }
 
 function panel(id: string) {
@@ -68,7 +61,7 @@ it("连续切换选中图时，不读文件夹树", async () => {
   await screen.findByText("c.png");
   await screen.findByText("c 的标签");
 
-  expect(calls.workspace_sidebar).toBeUndefined();
+  expect(calls("workspace_sidebar")).toBe(0);
 });
 
 it("一次选中，详情和标签的后端查询各只发一次", async () => {
@@ -77,8 +70,8 @@ it("一次选中，详情和标签的后端查询各只发一次", async () => {
   await screen.findByText("a.png");
   await screen.findByText("a 的标签");
 
-  expect(calls.image).toBe(1);
-  expect(calls.catalog_image_tags).toBe(1);
+  expect(calls("image")).toBe(1);
+  expect(calls("catalog_image_tags")).toBe(1);
 });
 
 function deferred() {
@@ -139,6 +132,6 @@ it("同一文件多份时与普通面板读同一套接口，各只发一次", a
   await screen.findByText("b.png");
   await screen.findByText("b 的标签");
 
-  expect(calls.image).toBe(1);
-  expect(calls.catalog_image_tags).toBe(1);
+  expect(calls("image")).toBe(1);
+  expect(calls("catalog_image_tags")).toBe(1);
 });
