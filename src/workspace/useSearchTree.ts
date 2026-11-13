@@ -6,7 +6,13 @@ import { useUiLang } from "../i18n";
 import type { Invalidate } from "./useInvalidation";
 
 /** 查找条件与它解析成的条件树。 */
-export function useSearchTree({ safe, vocabularyKey, onError, setReloadKey, invalidate }: {
+export function useSearchTree({
+  safe,
+  vocabularyKey,
+  onError,
+  setReloadKey,
+  invalidate,
+}: {
   safe: boolean;
   vocabularyKey: number;
   onError: (error: unknown) => void;
@@ -16,10 +22,13 @@ export function useSearchTree({ safe, vocabularyKey, onError, setReloadKey, inva
   const lang = useUiLang();
   const [search, setSearch] = useState<SearchInput>({ conditions: [], exact: false });
   /** 改查找条件：图片墙随之重新查。 */
-  const changeSearch = useCallback((next: SetStateAction<SearchInput>) => {
-    setSearch(next);
-    invalidate({ kind: "conditionsChanged" });
-  }, [invalidate]);
+  const changeSearch = useCallback(
+    (next: SetStateAction<SearchInput>) => {
+      setSearch(next);
+      invalidate({ kind: "conditionsChanged" });
+    },
+    [invalidate],
+  );
   const [tree, setTree] = useState<ConditionTree>({ conditions: [] });
   /** 条件树是在哪个视角下解析的：与当前不同时，搜索框不显示它展开的标签名（#76）。 */
   const [treeSafe, setTreeSafe] = useState(safe);

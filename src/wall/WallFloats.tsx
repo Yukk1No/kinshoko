@@ -20,7 +20,11 @@ const RISE = 64;
  * 圆形按钮形变为滑条时（#452）悬浮栏不动，滑条按 densityMorphRises 避开它。
  * 放在图片墙所在的定位容器里，宽度量的就是这个容器。
  */
-export function WallFloats({ bar, tagging, density }: {
+export function WallFloats({
+  bar,
+  tagging,
+  density,
+}: {
   /** 多选悬浮栏；null 时不显示（单选、没有选择、查看器打开时）。 */
   bar: Omit<ComponentProps<typeof SelectionBar>, "left" | "onWidth"> | null;
   /** 打标图标；collapsed 时换成圆形按钮上的小圆点。 */
@@ -52,20 +56,32 @@ export function WallFloats({ bar, tagging, density }: {
   const collapsed = bar !== null;
   const compact = selectionBarCompact(wallWidth, widths.full);
   const barWidth = compact ? widths.compact : widths.full;
-  const onWidth = (width: number, compactBar: boolean) => setWidths((w) => compactBar ? { ...w, compact: width } : { ...w, full: width });
+  const onWidth = (width: number, compactBar: boolean) =>
+    setWidths((w) => (compactBar ? { ...w, compact: width } : { ...w, full: width }));
   const cornerLeft = wallWidth - cornerRight - KNOB;
   const place = selectionBarPlacement({ wallWidth, barWidth, cornerLeft });
   const hideCorner = collapsed && wallWidth > 0 && barWidth > 0 && place.hideCorner;
   const rise = densityMorphRises({ barRight: place.left + barWidth, cornerLeft, grow: SLIDER - KNOB });
   const morph = reduced ? { duration: 0 } : arcSpring.morph;
-  return <>
-    <motion.div ref={corner} className="k-wall-corner" data-collapsed={collapsed || undefined} aria-hidden={hideCorner || undefined} inert={hideCorner}
-      animate={{ opacity: hideCorner ? 0 : 1, scale: hideCorner ? 0.6 : 1 }} transition={morph}>
-      <motion.div className="k-wall-badge" initial={false} animate={{ y: rising ? -RISE : 0 }} transition={morph}>{tagging(collapsed)}</motion.div>
-      {density && <DensityIsland {...density} collapsed={collapsed} rise={rise} onRising={setRising} />}
-    </motion.div>
-    <AnimatePresence>
-      {bar && <SelectionBar key="selbar" {...bar} left={place.left} compact={compact} onWidth={onWidth} />}
-    </AnimatePresence>
-  </>;
+  return (
+    <>
+      <motion.div
+        ref={corner}
+        className="k-wall-corner"
+        data-collapsed={collapsed || undefined}
+        aria-hidden={hideCorner || undefined}
+        inert={hideCorner}
+        animate={{ opacity: hideCorner ? 0 : 1, scale: hideCorner ? 0.6 : 1 }}
+        transition={morph}
+      >
+        <motion.div className="k-wall-badge" initial={false} animate={{ y: rising ? -RISE : 0 }} transition={morph}>
+          {tagging(collapsed)}
+        </motion.div>
+        {density && <DensityIsland {...density} collapsed={collapsed} rise={rise} onRising={setRising} />}
+      </motion.div>
+      <AnimatePresence>
+        {bar && <SelectionBar key="selbar" {...bar} left={place.left} compact={compact} onWidth={onWidth} />}
+      </AnimatePresence>
+    </>
+  );
 }

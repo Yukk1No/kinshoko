@@ -6,7 +6,10 @@ import { fakeBackend } from "../test/backend";
 import { TagGroupsPane } from "./TagGroupsPane";
 import { ToastProvider } from "../ui/Toast";
 
-const tag = (id: string, name: string) => ({ tag: { id, namespace: "general" as const, name, untranslated: false, hasExternal: false }, count: 1 });
+const tag = (id: string, name: string) => ({
+  tag: { id, namespace: "general" as const, name, untranslated: false, hasExternal: false },
+  count: 1,
+});
 let groups: CatalogGroupView[];
 
 beforeEach(() => {
@@ -20,8 +23,14 @@ beforeEach(() => {
     edit_shared_tag_group: (payload) => {
       const edit = payload.edit as CatalogGroupEdit;
       if (edit.kind === "orderGroups") groups = edit.groupIds.map((id) => groups.find((g) => g.id === id)!);
-      if (edit.kind === "orderMembers") groups = groups.map((g) => g.id === edit.groupId ? { ...g, tags: edit.tagIds.map((id) => g.tags.find((t) => t.tag.id === id)!) } : g);
-      if (edit.kind === "removeMembers") groups = groups.map((g) => g.id === edit.groupId ? { ...g, tags: g.tags.filter((t) => !edit.tagIds.includes(t.tag.id)) } : g);
+      if (edit.kind === "orderMembers")
+        groups = groups.map((g) =>
+          g.id === edit.groupId ? { ...g, tags: edit.tagIds.map((id) => g.tags.find((t) => t.tag.id === id)!) } : g,
+        );
+      if (edit.kind === "removeMembers")
+        groups = groups.map((g) =>
+          g.id === edit.groupId ? { ...g, tags: g.tags.filter((t) => !edit.tagIds.includes(t.tag.id)) } : g,
+        );
       return null;
     },
     delete_shared_tag_group: (payload) => {
@@ -33,7 +42,10 @@ beforeEach(() => {
   });
 });
 
-const settle = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+const settle = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
 
 async function press(name: string) {
   const button = await screen.findByRole("button", { name });
@@ -45,9 +57,15 @@ async function press(name: string) {
 }
 
 it("编辑分组的操作完成、列表刷新后，键盘焦点回到同一个操作上", async () => {
-  render(<ToastProvider><TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} /></ToastProvider>);
+  render(
+    <ToastProvider>
+      <TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} />
+    </ToastProvider>,
+  );
   await press("下移标签分组“发色”");
-  await waitFor(() => expect(screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"))).toEqual(["服装", "发色", "姿势"]));
+  await waitFor(() =>
+    expect(screen.getAllByRole("group").map((g) => g.getAttribute("aria-label"))).toEqual(["服装", "发色", "姿势"]),
+  );
   expect((document.activeElement as HTMLElement).getAttribute("aria-label")).toBe("下移标签分组“发色”");
 
   await press("把“蓝发”在“发色”中后移");
@@ -57,14 +75,22 @@ it("编辑分组的操作完成、列表刷新后，键盘焦点回到同一个�
 });
 
 it("移出成员后，焦点落在所在分组上，不丢到页面", async () => {
-  render(<ToastProvider><TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} /></ToastProvider>);
+  render(
+    <ToastProvider>
+      <TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} />
+    </ToastProvider>,
+  );
   await press("把“紫发”移出“发色”");
   await waitFor(() => expect(screen.queryByRole("button", { name: "把“紫发”移出“发色”" })).toBeNull());
   expect((document.activeElement as HTMLElement).getAttribute("aria-label")).toBe("发色（1 个标签）");
 });
 
 it("用键盘删除分组后，焦点落在相邻分组上，不跳到“新建分组”", async () => {
-  render(<ToastProvider><TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} /></ToastProvider>);
+  render(
+    <ToastProvider>
+      <TagGroupsPane safe={false} generation={0} onBrowse={() => {}} onError={() => {}} />
+    </ToastProvider>,
+  );
   await press("删除标签分组“服装”");
   await waitFor(() => expect(screen.queryByRole("group", { name: "服装" })).toBeNull());
   // 姿势没有成员，名称按钮不可用，焦点退到它的其他操作；总之在相邻分组里。

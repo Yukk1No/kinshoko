@@ -96,10 +96,20 @@ export class FakeAnimation extends EventTarget {
   oncancel: ((this: Animation, event: AnimationPlaybackEvent) => unknown) | null = null;
   readonly finished: Promise<Animation>;
   private settle!: { resolve: (animation: Animation) => void; reject: (reason: unknown) => void };
-  constructor(target: Element, keyframes: Keyframe[] | PropertyIndexedKeyframes | null, options?: number | KeyframeAnimationOptions) {
+  constructor(
+    target: Element,
+    keyframes: Keyframe[] | PropertyIndexedKeyframes | null,
+    options?: number | KeyframeAnimationOptions,
+  ) {
     super();
-    this.effect = new FakeKeyframeEffect(target, keyframes, typeof options === "number" ? { duration: options } : { ...options });
-    this.finished = new Promise((resolve, reject) => { this.settle = { resolve, reject }; });
+    this.effect = new FakeKeyframeEffect(
+      target,
+      keyframes,
+      typeof options === "number" ? { duration: options } : { ...options },
+    );
+    this.finished = new Promise((resolve, reject) => {
+      this.settle = { resolve, reject };
+    });
     // 和浏览器一样，取消时 finished 的拒绝不算未处理。
     this.finished.catch(() => {});
     const list = running.get(target);
@@ -155,7 +165,11 @@ window.matchMedia = (query: string) => {
 (globalThis as { KeyframeEffect?: unknown }).KeyframeEffect ??= FakeKeyframeEffect;
 // animate 装在 HTMLElement 与 SVGElement 上，不装在 Element.prototype 上：motion 见到 Element.prototype.animate
 // 就改走 WAAPI，要用到这个假动画没有的 currentTime、pause() 等；这样它照旧走自己逐帧推进的那条路。
-const animate = function (this: Element, keyframes: Keyframe[] | PropertyIndexedKeyframes | null, options?: number | KeyframeAnimationOptions) {
+const animate = function (
+  this: Element,
+  keyframes: Keyframe[] | PropertyIndexedKeyframes | null,
+  options?: number | KeyframeAnimationOptions,
+) {
   return new FakeAnimation(this, keyframes, options) as unknown as Animation;
 };
 HTMLElement.prototype.animate = animate;

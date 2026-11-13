@@ -15,7 +15,15 @@ export function TipProvider({ children }: { children: ReactNode }) {
  * 取代原生 `title`：原生提示画在网页外面，键盘聚焦看不到，样式也不属于设计系统。
  * `keys` 是快捷键，排在名称后面，用键帽显示。`label` 为空时不弹。`focus={false}`：聚焦时不弹（这一行聚焦时已经把说明显示出来了）。
  */
-export function Tip({ label, keys, children, side = "bottom", align = "center", focus = true, ...trigger }: {
+export function Tip({
+  label,
+  keys,
+  children,
+  side = "bottom",
+  align = "center",
+  focus = true,
+  ...trigger
+}: {
   label: ReactNode;
   keys?: string;
   children: ReactElement;
@@ -25,12 +33,28 @@ export function Tip({ label, keys, children, side = "bottom", align = "center", 
 } & Omit<Tooltip.Trigger.Props, "render" | "children">) {
   // 别的触发器（菜单、小确认）把它当 render 时，传进来的属性与 ref 交给 Tooltip.Trigger，再落到 children 上。
   const empty = label === undefined || label === null || label === false || label === "";
-  return <Tooltip.Root disabled={empty} onOpenChange={(open, details) => { if (open && !focus && details.reason === "trigger-focus") details.cancel(); }}>
-    <Tooltip.Trigger {...trigger} render={children} />
-    <Tooltip.Portal>
-      <Tooltip.Positioner className="k-positioner" side={side} align={align} sideOffset={8}>
-        <Tooltip.Popup className="k-tip">{keys ? <span className="k-tip-line">{label}<Keys accelerator={keys} /></span> : label}</Tooltip.Popup>
-      </Tooltip.Positioner>
-    </Tooltip.Portal>
-  </Tooltip.Root>;
+  return (
+    <Tooltip.Root
+      disabled={empty}
+      onOpenChange={(open, details) => {
+        if (open && !focus && details.reason === "trigger-focus") details.cancel();
+      }}
+    >
+      <Tooltip.Trigger {...trigger} render={children} />
+      <Tooltip.Portal>
+        <Tooltip.Positioner className="k-positioner" side={side} align={align} sideOffset={8}>
+          <Tooltip.Popup className="k-tip">
+            {keys ? (
+              <span className="k-tip-line">
+                {label}
+                <Keys accelerator={keys} />
+              </span>
+            ) : (
+              label
+            )}
+          </Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
 }

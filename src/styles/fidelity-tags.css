@@ -76,7 +76,6 @@
   min-width: 0;
 }
 
-
 .tag-alias-editor {
   display: flex;
   flex-direction: column;
@@ -127,4 +126,3 @@
   gap: 4px;
   padding: 4px;
 }
-

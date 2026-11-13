@@ -6,7 +6,14 @@ import type { createSmoothWheel } from "./smoothWheel";
 import { stackHolding } from "./imageSets";
 import type { BrowserCard } from "./wallShared";
 
-export function useViewerLeave({ viewerOpen, selected, lastOpened, wasViewing, smoothRef, cards }: {
+export function useViewerLeave({
+  viewerOpen,
+  selected,
+  lastOpened,
+  wasViewing,
+  smoothRef,
+  cards,
+}: {
   viewerOpen: boolean;
   selected: ReadonlySet<string>;
   lastOpened: MutableRefObject<string | null>;
@@ -15,7 +22,6 @@ export function useViewerLeave({ viewerOpen, selected, lastOpened, wasViewing, s
   /** 墙上的格子：最后看的页收在一摞里时（#418）接回这一摞。 */
   cards: BrowserCard[];
 }) {
-
   // 查看中换图时选择跟着走（#179）：最后查看的就是选中的那张，它一直挂载着，返回时接回焦点。
   if (viewerOpen && selected.size === 1) lastOpened.current = selected.values().next().value!;
   /** 离开查看器后要滚入可见、接回焦点的卡片。 */
@@ -24,13 +30,20 @@ export function useViewerLeave({ viewerOpen, selected, lastOpened, wasViewing, s
   useLayoutEffect(() => {
     // 打开查看器时停下滚轮惯性，返回时图片墙仍在打开时的位置。
     if (viewerOpen) smoothRef.current?.stop();
-    if (wasViewing.current && !viewerOpen && lastOpened.current) returnTo.current = stackHolding(cards, lastOpened.current) ?? lastOpened.current;
+    if (wasViewing.current && !viewerOpen && lastOpened.current)
+      returnTo.current = stackHolding(cards, lastOpened.current) ?? lastOpened.current;
     wasViewing.current = viewerOpen;
   }, [viewerOpen, smoothRef, wasViewing, lastOpened]);
   return returnTo;
 }
 
-export function useReturnFocus({ returnTo, scroller, position, layout, syncMount }: {
+export function useReturnFocus({
+  returnTo,
+  scroller,
+  position,
+  layout,
+  syncMount,
+}: {
   returnTo: MutableRefObject<string | null>;
   scroller: MutableRefObject<HTMLDivElement | null>;
   position: Map<string, number>;
@@ -40,7 +53,8 @@ export function useReturnFocus({ returnTo, scroller, position, layout, syncMount
   // 离开查看器（#179）：最后查看的那张完全不在视口里（查看时换过图）就滚到视口中间，再接回焦点；
   // 还看得见时图片墙留在打开查看器时的位置。
   useLayoutEffect(() => {
-    const id = returnTo.current, el = scroller.current;
+    const id = returnTo.current,
+      el = scroller.current;
     if (!id || !el) return;
     returnTo.current = null;
     const i = position.get(id);

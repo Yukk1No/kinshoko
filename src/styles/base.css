@@ -2,27 +2,37 @@
 @font-face {
   font-family: "Kinshoko Inter";
   src: url("/fonts/Inter-Regular-hinted.woff2") format("woff2");
-  font-weight: 400; font-style: normal; font-display: swap;
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 @font-face {
   font-family: "Kinshoko Inter";
   src: url("/fonts/Inter-Medium-hinted.woff2") format("woff2");
-  font-weight: 500; font-style: normal; font-display: swap;
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
 }
 @font-face {
   font-family: "Kinshoko Inter";
   src: url("/fonts/Inter-SemiBold-hinted.woff2") format("woff2");
-  font-weight: 600; font-style: normal; font-display: swap;
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
 }
 @font-face {
   font-family: "Kinshoko Han";
   src: url("/fonts/SourceHanSansSC-VF.ttf.woff2") format("woff2");
-  font-weight: 250 900; font-style: normal; font-display: swap;
+  font-weight: 250 900;
+  font-style: normal;
+  font-display: swap;
 }
 @font-face {
   font-family: "Kinshoko Han Punct";
   src: url("/fonts/SourceHanSansSC-VF.ttf.woff2") format("woff2");
-  font-weight: 250 900; font-style: normal; font-display: swap;
+  font-weight: 250 900;
+  font-style: normal;
+  font-display: swap;
   unicode-range: U+2014, U+2018-2019, U+201C-201D, U+2026;
 }
 :root {
@@ -30,13 +40,47 @@
   font-synthesis: none;
   font-size: 13px;
 }
-:lang(zh), :lang(ja) { font-family: "Kinshoko Han Punct", var(--font); }
-button, input, textarea, select { font: inherit; }
-b, strong, th, h1, h2, h3, h4, h5, h6 { font-weight: 600; }
+:lang(zh),
+:lang(ja) {
+  font-family: "Kinshoko Han Punct", var(--font);
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+b,
+strong,
+th,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+}
 /* design system v2: three sizes only, title 16 / body 13 / small 12; hierarchy comes from weight and colour */
-h1, h2, h3, h4, h5, h6 { font-size: 16px; line-height: 24px; }
-small, code, kbd, pre, samp { font-size: 12px; }
-kbd { font-family: inherit; }  /* a shortcut is text, not code */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: 16px;
+  line-height: 24px;
+}
+small,
+code,
+kbd,
+pre,
+samp {
+  font-size: 12px;
+}
+kbd {
+  font-family: inherit;
+} /* a shortcut is text, not code */
 
 html,
 body,
@@ -52,8 +96,12 @@ body {
 }
 
 /* 按钮的外观由 .k-btn、.k-icon-btn 和各组件自己的类决定；这里只留手形光标。 */
-button { cursor: pointer; }
-button:disabled { cursor: default; }
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
 
 .app {
   display: flex;
@@ -85,17 +133,33 @@ button:disabled { cursor: default; }
   justify-content: center;
 }
 
-
 /* Scrollbars: a slim rounded thumb on a transparent track instead of WebView2's grey bar. The transparent border
    insets the thumb inside a 12px hit area and widens it a little under the pointer. Don't set scrollbar-width or
    scrollbar-color on an element unless you mean it: in Chromium either one switches these ::-webkit-scrollbar rules off. */
-::-webkit-scrollbar { width: 12px; height: 12px; background: transparent; }
-::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
-::-webkit-scrollbar-button { display: none; }
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+  background: transparent;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
 ::-webkit-scrollbar-thumb {
-  min-height: 32px; min-width: 32px;
-  border: 4px solid transparent; border-radius: var(--r-pill);
+  min-height: 32px;
+  min-width: 32px;
+  border: 4px solid transparent;
+  border-radius: var(--r-pill);
   background: var(--scroll-thumb) padding-box;
 }
-::-webkit-scrollbar-thumb:hover { border-width: 2px; background-color: var(--scroll-thumb-hover); }
-::-webkit-scrollbar-thumb:active { border-width: 2px; background-color: var(--scroll-thumb-active); }
+::-webkit-scrollbar-thumb:hover {
+  border-width: 2px;
+  background-color: var(--scroll-thumb-hover);
+}
+::-webkit-scrollbar-thumb:active {
+  border-width: 2px;
+  background-color: var(--scroll-thumb-active);
+}

@@ -8,16 +8,33 @@ import { expectNoChinese } from "../test/noChinese";
 import { fakeBackend } from "../test/backend";
 
 // 英文界面下详情侧栏的选择操作与标签浮层没有中文界面文案（#356）。
-beforeEach(async () => { await act(async () => { await i18n.changeLanguage("en"); }); });
+beforeEach(async () => {
+  await act(async () => {
+    await i18n.changeLanguage("en");
+  });
+});
 afterEach(async () => {
   await act(async () => {});
-  await act(async () => { await i18n.changeLanguage("zh-CN"); });
+  await act(async () => {
+    await i18n.changeLanguage("zh-CN");
+  });
 });
 
 describe("英文界面：详情侧栏", () => {
   it("选择操作条", async () => {
     fakeBackend({ workspace_sidebar: { all: 2, trash: 0, folders: [] } });
-    render(<SelectionBar libraryId="L1" scope={{ kind: "folder", id: "f" }} ids={["a", "b"]} onClear={vi.fn()} reloadKey={0} onError={vi.fn()} left={0} onWidth={vi.fn()} />);
+    render(
+      <SelectionBar
+        libraryId="L1"
+        scope={{ kind: "folder", id: "f" }}
+        ids={["a", "b"]}
+        onClear={vi.fn()}
+        reloadKey={0}
+        onError={vi.fn()}
+        left={0}
+        onWidth={vi.fn()}
+      />,
+    );
     expect(await screen.findByText("2 selected")).toBeTruthy();
     expectNoChinese(document.body);
   });
@@ -32,8 +49,16 @@ describe("英文界面：详情侧栏", () => {
   });
 
   it("标签浮层：类别与未翻译提示", async () => {
-    render(<ul><TagChip tag={{ id: "t", name: "blue eyes", namespace: "character", untranslated: true, hasExternal: false }}
-      origins={[{ kind: "source", source: "model:pixai", score: 0.5 }]} meter actions={null} /></ul>);
+    render(
+      <ul>
+        <TagChip
+          tag={{ id: "t", name: "blue eyes", namespace: "character", untranslated: true, hasExternal: false }}
+          origins={[{ kind: "source", source: "model:pixai", score: 0.5 }]}
+          meter
+          actions={null}
+        />
+      </ul>,
+    );
     fireEvent.focus(screen.getByRole("listitem"));
     expect(await screen.findByText("No English name yet; showing the original name")).toBeTruthy();
     expect(screen.getByText("Character: blue eyes")).toBeTruthy();

@@ -8,13 +8,27 @@ import type { masonry } from "./layout";
 import { RELEASE_WAIT, type BrowserCard, type LayoutSnapshot } from "./wallShared";
 
 type SafeReflow = {
-  rects: Map<string, DOMRect>; boxes: LayoutSnapshot; at: number; delay: number; duration: number;
+  rects: Map<string, DOMRect>;
+  boxes: LayoutSnapshot;
+  at: number;
+  delay: number;
+  duration: number;
   /** 存下之后卡片又被别的重排挪过（例如墙变宽）：起点按用时量到的位置，不用存下的。 */
   moved?: boolean;
 };
 
 export function useSealRelease({
-  safeMode, cards, setCards, scroller, shownCards, live, safeReflow, sealDrop, measureBeforeReflow, viewerOpen, releasePage,
+  safeMode,
+  cards,
+  setCards,
+  scroller,
+  shownCards,
+  live,
+  safeReflow,
+  sealDrop,
+  measureBeforeReflow,
+  viewerOpen,
+  releasePage,
 }: {
   safeMode: boolean;
   cards: BrowserCard[];
@@ -38,7 +52,14 @@ export function useSealRelease({
     // 先以遮蔽的样子出现，下一帧再放出，遮蔽才有过渡可以淡出。
     // 一摞里的各页（#418）也算：托盘里的页与纸张按自己的 adult 放出，不只看封面。
     const frame = requestAnimationFrame(() =>
-      setRevealed(new Set(cards.flatMap((c) => [c, ...(c.set?.pages ?? [])]).filter((c) => c.adult).map((c) => c.id))),
+      setRevealed(
+        new Set(
+          cards
+            .flatMap((c) => [c, ...(c.set?.pages ?? [])])
+            .filter((c) => c.adult)
+            .map((c) => c.id),
+        ),
+      ),
     );
     return () => cancelAnimationFrame(frame);
   }, [cards, safeMode]);
@@ -53,29 +74,42 @@ export function useSealRelease({
   /** 等着回来的图飞出的截止时刻（performance.now）；0 表示没有。 */
   const releaseDue = useRef(0);
   const reduced = useReducedMotion();
-  const landed = useCallback((id: string) => {
-    // 影子在这一帧移走：卡片同一帧就得显示，不能等 React 下一次提交，否则中间空出一帧，落地时闪一下。
-    // React 随后按 arriving 把类名设成同样的值。
-    scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.classList.remove("is-arriving");
-    setArriving((s) => {
-      if (!s.has(id)) return s;
-      const n = new Set(s); n.delete(id); return n;
-    });
-  }, [scroller]);
+  const landed = useCallback(
+    (id: string) => {
+      // 影子在这一帧移走：卡片同一帧就得显示，不能等 React 下一次提交，否则中间空出一帧，落地时闪一下。
+      // React 随后按 arriving 把类名设成同样的值。
+      scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.classList.remove("is-arriving");
+      setArriving((s) => {
+        if (!s.has(id)) return s;
+        const n = new Set(s);
+        n.delete(id);
+        return n;
+      });
+    },
+    [scroller],
+  );
   useLayoutEffect(() => {
     const f = new SealFx(fxHost.current!);
     fx.current = f;
-    return () => { fx.current = null; f.clear(); };
+    return () => {
+      fx.current = null;
+      f.clear();
+    };
   }, []);
   useEffect(() => {
     if (!reduced) return;
-    fx.current?.clear(); releaseDue.current = 0; setArriving(new Set());
+    fx.current?.clear();
+    releaseDue.current = 0;
+    setArriving(new Set());
   }, [reduced]);
   /** 视口里看得见的卡片。 */
   /** 现在的布局快照（还没按新的卡片重排）。 */
   const snapshotLayout = (): LayoutSnapshot => {
     const { layout: now, ids: shown } = live.current;
-    return { boxes: new Map(now ? shown.map((id, i) => [id, now.boxes[i]]) : []), scrollTop: scroller.current?.scrollTop ?? 0 };
+    return {
+      boxes: new Map(now ? shown.map((id, i) => [id, now.boxes[i]]) : []),
+      scrollTop: scroller.current?.scrollTop ?? 0,
+    };
   };
   const onScreen = () => {
     const el = scroller.current;
@@ -83,7 +117,8 @@ export function useSealRelease({
     const view = el.getBoundingClientRect();
     return [...el.querySelectorAll<HTMLElement>(".card")].flatMap((node) => {
       // 一摞取封面那张图，不取下面的纸（#418）。
-      const rect = node.getBoundingClientRect(), img = node.querySelector<HTMLImageElement>(":scope > img, :scope > .stack-cover > img");
+      const rect = node.getBoundingClientRect(),
+        img = node.querySelector<HTMLImageElement>(":scope > img, :scope > .stack-cover > img");
       const seen = rect.width > 0 && rect.height > 0 && rect.bottom >= view.top && rect.top <= view.bottom;
       return seen && img ? [{ id: node.dataset.id!, src: img.currentSrc || img.src, rect }] : [];
     });
@@ -96,13 +131,18 @@ export function useSealRelease({
   const book = () => document.querySelector(".seal-book")?.getBoundingClientRect();
   /** 视口里的成人卡片从书里飞回自己的位置（还在往书里飞的影子就地掉头），落地前卡片先藏着。 */
   const releaseOnScreen = (f: SealFx, b: DOMRect) => {
-    const arrivals: FxArrival[] = onScreenAdult().slice(0, MAX_GHOSTS).map(({ id, src, rect }) => ({
-      id, src, w: rect.width, h: rect.height,
-      target: () => {
-        const r = scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.getBoundingClientRect();
-        return r && r.width > 0 ? r : null;
-      },
-    }));
+    const arrivals: FxArrival[] = onScreenAdult()
+      .slice(0, MAX_GHOSTS)
+      .map(({ id, src, rect }) => ({
+        id,
+        src,
+        w: rect.width,
+        h: rect.height,
+        target: () => {
+          const r = scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.getBoundingClientRect();
+          return r && r.width > 0 ? r : null;
+        },
+      }));
     if (!arrivals.length) return;
     safeTiming.mark("release-animation-start");
     setArriving(new Set(arrivals.map((a) => a.id)));
@@ -117,10 +157,12 @@ export function useSealRelease({
     cancelAnimationFrame(sealDrop.current);
     sealDrop.current = 0;
     safeReflow.current = null;
-    const f = fx.current, b = book();
+    const f = fx.current,
+      b = book();
     if (!f || !b || viewerOpen || reducedNow()) {
       // 查看器盖着墙或减少动态效果：封印的图直接不见，放出的图直接在。
-      f?.clear(); setArriving(new Set());
+      f?.clear();
+      setArriving(new Set());
       if (safeMode && shownCards.current.some((c) => c.adult)) setCards((current) => current.filter((c) => !c.adult));
       return;
     }
@@ -131,8 +173,11 @@ export function useSealRelease({
     }
     // 原型：封印时留下的卡片等影子起飞后（flyAt + 20）用 620 ms 补位；释放时 40 ms 后用 680 ms 让位。
     safeReflow.current = {
-      rects: new Map(onScreen().map((c) => [c.id, c.rect])), boxes: snapshotLayout(), at: performance.now(),
-      delay: safeMode ? SEAL.flyAt + 20 : 40, duration: safeMode ? 620 : 680,
+      rects: new Map(onScreen().map((c) => [c.id, c.rect])),
+      boxes: snapshotLayout(),
+      at: performance.now(),
+      delay: safeMode ? SEAL.flyAt + 20 : 40,
+      duration: safeMode ? 620 : 680,
     };
     if (safeMode) {
       // 还在往外飞的影子先掉头（原型 Q111），再让墙上的成人图飞进书里。
@@ -141,10 +186,16 @@ export function useSealRelease({
       // 影子起飞后（flyAt + 20）就让出位置，不等资料库确认：资料库慢时补位不会停顿，回来的同一批卡片也不再重排。
       const dropAt = performance.now() + SEAL.flyAt + 20;
       const drop = () => {
-        if (performance.now() < dropAt) { sealDrop.current = requestAnimationFrame(drop); return; }
+        if (performance.now() < dropAt) {
+          sealDrop.current = requestAnimationFrame(drop);
+          return;
+        }
         sealDrop.current = 0;
         // 没有图要让位：撤掉切换时量下的位置，免得之后无关的重排沿用它和封印的节奏。
-        if (!shownCards.current.some((c) => c.adult)) { safeReflow.current = null; return; }
+        if (!shownCards.current.some((c) => c.adult)) {
+          safeReflow.current = null;
+          return;
+        }
         measureBeforeReflow();
         setCards((current) => current.filter((c) => !c.adult));
       };
@@ -157,7 +208,18 @@ export function useSealRelease({
   return { revealed, arriving, fxHost, fx, releaseDue, book, releaseOnScreen };
 }
 
-export function useReleaseLanding({ releaseDue, safeMode, cards, layout, width, releasePage, fx, book, viewerOpen, releaseOnScreen }: {
+export function useReleaseLanding({
+  releaseDue,
+  safeMode,
+  cards,
+  layout,
+  width,
+  releasePage,
+  fx,
+  book,
+  viewerOpen,
+  releaseOnScreen,
+}: {
   releaseDue: MutableRefObject<number>;
   safeMode: boolean;
   cards: BrowserCard[];
@@ -180,7 +242,8 @@ export function useReleaseLanding({ releaseDue, safeMode, cards, layout, width, 
     releaseDue.current = 0;
     if (!cards.some((c) => c.adult)) return;
     // 只在真有图要飞回时才量封印书：这个效果每次墙上的卡片变化都会跑，量它会多强制排一次版（#176）。
-    const f = fx.current, b = book();
+    const f = fx.current,
+      b = book();
     if (!f || !b || performance.now() > due || viewerOpen || reducedNow()) return;
     releaseOnScreen(f, b);
   }, [cards, layout, width]);

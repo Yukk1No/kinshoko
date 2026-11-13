@@ -9,7 +9,8 @@ export default {
   clearRunLogFailed: "Couldn't clear the run log: {{detail}}",
   runLogNotOpen: "The run log isn't open",
   diagnosticsSaveFailed: "Couldn't save the diagnostics: {{cause}}",
-  webView2PageFailed: "Couldn't open Microsoft's WebView2 download page. Visit https://developer.microsoft.com/en-us/microsoft-edge/webview2/ in your browser",
+  webView2PageFailed:
+    "Couldn't open Microsoft's WebView2 download page. Visit https://developer.microsoft.com/en-us/microsoft-edge/webview2/ in your browser",
   visitWebView2Page: "Visit https://developer.microsoft.com/en-us/microsoft-edge/webview2/ in your browser",
   openExplorerFailed: "Couldn't open File Explorer: {{detail}}",
   openInFileManager: "Open this in File Explorer: {{path}}",
@@ -17,24 +18,35 @@ export default {
   updateCheckFailed: "Couldn't check for updates. Check your network and try again.",
   updateManual: "This build is updated by running the installer.",
   updateNoPublicKey: "No update public key is configured, so automatic updates are off. Update with a new installer.",
-  updateNoEndpoint: "No public update address for the original repository is configured, so automatic updates are off. Update with a new installer.",
-  updateUnknownStage: "The update stage setting isn't recognized, so automatic updates are off. Update with a new installer.",
+  updateNoEndpoint:
+    "No public update address for the original repository is configured, so automatic updates are off. Update with a new installer.",
+  updateUnknownStage:
+    "The update stage setting isn't recognized, so automatic updates are off. Update with a new installer.",
   updateNotPending: "There's no update to install. Check for updates first.",
-  updateSignatureInvalid: "The update package didn't pass verification and wasn't installed. Download it again or update manually.",
+  updateSignatureInvalid:
+    "The update package didn't pass verification and wasn't installed. Download it again or update manually.",
   updateInstallFailed: "Couldn't download or install the update. Try again later.",
 
   tagMappingSafeModeChanged: "Safe mode just changed. Check the tag mappings again",
   tagNamesSafeModeChanged: "Safe mode just changed. Load the tag names again",
   nameMigrationSafeModeChanged: "Safe mode just changed. Open the name migration wizard again",
 
-  definitionsNotSaved: "Tag definitions weren't saved to the library: {{cause}}. Your mappings and name choices are kept in Kinshoko; once the library is writable, save the tag definitions again.",
-  mappingDefinitionsNotSaved: "The tag mapping is saved in Kinshoko, but the library's definitions weren't updated: {{cause}}. Save the tag definitions again from the unified tag catalog.",
-  tagEditDefinitionsNotSaved: "The tag changes are saved, but the library's definitions weren't updated: {{cause}}. Save the tag definitions again from the unified tag catalog.",
-  sourceTagDefinitionsNotSaved: "This source's tag changes are saved, but the library's definitions weren't updated: {{cause}}. Save the tag definitions again from the unified tag catalog.",
-  packageDefinitionsNotSaved: "The content was written, but the library's tag definitions weren't updated: {{cause}}. Save the tag definitions again or import the reference group package again.",
-  processedDefinitionsNotSaved: "The processed content is kept, but the library's tag definitions weren't updated: {{cause}}. You can save the definitions again from the unified tag catalog.",
-  savedDefinitionsNotSaved: "The content is saved, but the library's tag definitions weren't updated: {{cause}}. You can save the definitions again from the unified tag catalog.",
-  importPublicationNotStarted: "The import has started, but updating the library's tag definitions couldn't start: {{cause}}. Once the import finishes, you can save the definitions again from the unified tag catalog.",
+  definitionsNotSaved:
+    "Tag definitions weren't saved to the library: {{cause}}. Your mappings and name choices are kept in Kinshoko; once the library is writable, save the tag definitions again.",
+  mappingDefinitionsNotSaved:
+    "The tag mapping is saved in Kinshoko, but the library's definitions weren't updated: {{cause}}. Save the tag definitions again from the unified tag catalog.",
+  tagEditDefinitionsNotSaved:
+    "The tag changes are saved, but the library's definitions weren't updated: {{cause}}. Save the tag definitions again from the unified tag catalog.",
+  sourceTagDefinitionsNotSaved:
+    "This source's tag changes are saved, but the library's definitions weren't updated: {{cause}}. Save the tag definitions again from the unified tag catalog.",
+  packageDefinitionsNotSaved:
+    "The content was written, but the library's tag definitions weren't updated: {{cause}}. Save the tag definitions again or import the reference group package again.",
+  processedDefinitionsNotSaved:
+    "The processed content is kept, but the library's tag definitions weren't updated: {{cause}}. You can save the definitions again from the unified tag catalog.",
+  savedDefinitionsNotSaved:
+    "The content is saved, but the library's tag definitions weren't updated: {{cause}}. You can save the definitions again from the unified tag catalog.",
+  importPublicationNotStarted:
+    "The import has started, but updating the library's tag definitions couldn't start: {{cause}}. Once the import finishes, you can save the definitions again from the unified tag catalog.",
 
   autostartNotSynced: "Starting with Windows wasn't updated: {{cause}}",
   safeModeScopeIncomplete: "The safe mode scope didn't fully take effect: {{cause}}",
@@ -61,7 +73,8 @@ export default {
   pinCaptureGone: "The capture is no longer in the capture history",
   captureLeftHistory: "The capture is no longer in the history. Close this pin and try again",
   captureSavePlanChanged: "The captures on the desktop changed. Choose where to save each capture again",
-  captureCollectIncomplete: "Capture {{number}} wasn't collected: {{cause}}. The {{completed}} captures collected before it are kept; the reference group hasn't been saved.",
+  captureCollectIncomplete:
+    "Capture {{number}} wasn't collected: {{cause}}. The {{completed}} captures collected before it are kept; the reference group hasn't been saved.",
   clipboardNoImage: "There's no image on the clipboard",
   clipboardImageUnrecognized: "The image on the clipboard can't be recognized",
   copiedImageEmpty: "The image to copy is empty",

@@ -87,7 +87,8 @@ const settings: Translation<typeof zh> = {
     safeMode: "Safe mode",
     safeModeHint: "Hides images in scope and blurs them in pins",
     scope: "Safe mode scope",
-    scopeHint: "Which rating level and up to hide. Unrated images show as usual; “R18” in search means every level in scope",
+    scopeHint:
+      "Which rating level and up to hide. Unrated images show as usual; “R18” in search means every level in scope",
     scopeOption: {
       sensitive: "Mild and up",
       questionable: "Sensitive and up",
@@ -119,10 +120,13 @@ const settings: Translation<typeof zh> = {
     failed: "Runtime check didn't pass",
     problem: {
       decodeMissing: "WebView2 is out of date, so reference images can't be shown.",
-      decodeFailed: "This WebView2 couldn't decode the built-in PNG sample, so it's not confirmed that reference images can be shown.",
-      decodeTimedOut: "Decoding the built-in PNG sample timed out, so it's not confirmed that reference images can be shown.",
+      decodeFailed:
+        "This WebView2 couldn't decode the built-in PNG sample, so it's not confirmed that reference images can be shown.",
+      decodeTimedOut:
+        "Decoding the built-in PNG sample timed out, so it's not confirmed that reference images can be shown.",
     },
-    advice: "After updating WebView2, quit Kinshoko from the tray and restart it. If the problem continues, save the diagnostic information.",
+    advice:
+      "After updating WebView2, quit Kinshoko from the tray and restart it. If the problem continues, save the diagnostic information.",
     download: "Microsoft's WebView2 download page",
     recheck: "Check again",
     checking: "Checking",

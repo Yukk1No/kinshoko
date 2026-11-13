@@ -62,7 +62,12 @@ describe("瀑布流布局", () => {
 });
 
 describe("光标下的图", () => {
-  const items = [{ w: 100, h: 100 }, { w: 100, h: 200 }, { w: 100, h: 100 }, { w: 100, h: 100 }];
+  const items = [
+    { w: 100, h: 100 },
+    { w: 100, h: 200 },
+    { w: 100, h: 100 },
+    { w: 100, h: 100 },
+  ];
   const opts = { width: 424, target: 200, gap: 8, pad: 12, capRatio: null };
   // 两列，列宽 196：0 在左列顶（y 12–208），1 在右列顶（y 12–404），2 在左列第二（y 216–412）。
   const l = masonry(items, opts);
@@ -85,7 +90,8 @@ describe("缩放后的滚动位置", () => {
   const items = Array.from({ length: 2000 }, (_, i) => ({ w: 100, h: 100 + (i % 7) * 30 }));
   const opts = { width: 2000, target: 240, gap: 8, pad: 12, capRatio: null };
   const viewport = 1000;
-  const centerOnScreen = (l: ReturnType<typeof masonry>, i: number, top: number) => l.boxes[i].y + l.boxes[i].h / 2 - top;
+  const centerOnScreen = (l: ReturnType<typeof masonry>, i: number, top: number) =>
+    l.boxes[i].y + l.boxes[i].h / 2 - top;
 
   it.each([
     ["放大", 240, 260],
@@ -149,15 +155,28 @@ describe("一摞与托盘", () => {
   it("一摞的盒子按封面比例算，四周多留出纸边的内缩（内缩按列宽算）", () => {
     // 列宽 200，内缩取列宽的 5%＝10：封面宽 180，方图高 180，长图高 360，盒子各加上下 20。
     const inset = (columnWidth: number) => columnWidth * 0.05;
-    const l = masonry([{ w: 100, h: 100, inset }, { w: 100, h: 200, inset }], opts);
-    expect(l.boxes.map((b) => [b.x, b.y, b.w, b.h])).toEqual([[12, 12, 200, 200], [220, 12, 200, 380]]);
+    const l = masonry(
+      [
+        { w: 100, h: 100, inset },
+        { w: 100, h: 200, inset },
+      ],
+      opts,
+    );
+    expect(l.boxes.map((b) => [b.x, b.y, b.w, b.h])).toEqual([
+      [12, 12, 200, 200],
+      [220, 12, 200, 380],
+    ]);
   });
 
   it("托盘从最高的一列底下开始，缩进到墙的边距里；各页按页序排成齐行，墙的其余部分接在托盘下面", () => {
     const items = [
-      { w: 100, h: 100 }, { w: 100, h: 300 },
+      { w: 100, h: 100 },
+      { w: 100, h: 300 },
       // 托盘里的四页：三张方图，一张横图
-      { w: 100, h: 100 }, { w: 100, h: 100 }, { w: 100, h: 100 }, { w: 200, h: 100 },
+      { w: 100, h: 100 },
+      { w: 100, h: 100 },
+      { w: 100, h: 100 },
+      { w: 200, h: 100 },
       { w: 100, h: 100 },
     ];
     const l = masonry(items, opts, { at: 2, count: 4, pad: 12 });
@@ -166,7 +185,10 @@ describe("一摞与托盘", () => {
     // 最后一行不撑满：横图按行高 200 排，宽 400。托盘到 832+200+12=1044，高 424。
     expect(l.tray).toEqual({ x: 12, y: 620, w: 616, h: 424 });
     expect(l.boxes.slice(2, 6).map((b) => [b.x, b.y, b.w, b.h])).toEqual([
-      [24, 632, 192, 192], [224, 632, 192, 192], [424, 632, 192, 192], [24, 832, 400, 200],
+      [24, 632, 192, 192],
+      [224, 632, 192, 192],
+      [424, 632, 192, 192],
+      [24, 832, 400, 200],
     ]);
     // 托盘之后所有列从托盘底边加间距处接着排。
     expect([l.boxes[6].x, l.boxes[6].y]).toEqual([12, 1052]);
@@ -174,7 +196,14 @@ describe("一摞与托盘", () => {
   });
 
   it("比托盘还宽的一页单独成行，缩到托盘里的宽", () => {
-    const l = masonry([{ w: 400, h: 100 }, { w: 100, h: 100 }], opts, { at: 0, count: 2, pad: 12 });
+    const l = masonry(
+      [
+        { w: 400, h: 100 },
+        { w: 100, h: 100 },
+      ],
+      opts,
+      { at: 0, count: 2, pad: 12 },
+    );
     // 横图按行高 200 宽 800，超过 592：单独成行，缩到宽 592、高 148。
     expect(l.boxes[0]).toEqual({ x: 24, y: 24, w: 592, h: 148 });
     // 下一行只有一张方图，是最后一行，按行高排。
@@ -182,7 +211,12 @@ describe("一摞与托盘", () => {
   });
 
   it("托盘里的页按所在的列计入，挂载范围照常二分查找", () => {
-    const items = [{ w: 100, h: 100 }, { w: 100, h: 100 }, { w: 100, h: 100 }, { w: 100, h: 100 }];
+    const items = [
+      { w: 100, h: 100 },
+      { w: 100, h: 100 },
+      { w: 100, h: 100 },
+      { w: 100, h: 100 },
+    ];
     const l = masonry(items, opts, { at: 0, count: 4, pad: 12 });
     expect(visible(l, 0, 10_000)).toEqual([0, 1, 2, 3]);
     expect(visible(l, l.boxes[3].y, l.boxes[3].y + 10)).toEqual([3]);

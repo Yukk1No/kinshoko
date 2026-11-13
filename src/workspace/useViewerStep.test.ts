@@ -13,7 +13,9 @@ function setup(viewingId: string) {
   const setViewing = vi.fn();
   const loadMore = vi.fn();
   const wall = { current: { loadMore } as unknown as WallHandle };
-  const { result } = renderHook(() => useViewerStep({ viewing: page(viewingId), setViewing, loadedCards, resultCount: 6, wall }));
+  const { result } = renderHook(() =>
+    useViewerStep({ viewing: page(viewingId), setViewing, loadedCards, resultCount: 6, wall }),
+  );
   return { result, setViewing, loadMore };
 }
 
@@ -42,12 +44,19 @@ it("往回走：从下一摞的封面回到上一摞的最后一页", () => {
 function stepFrom(viewingId: string, loadedCards: BrowserCard[], resultCount: number) {
   const setViewing = vi.fn();
   const wall = { current: { loadMore: vi.fn() } as unknown as WallHandle };
-  const hook = renderHook(({ id }) => useViewerStep({ viewing: page(id), setViewing, loadedCards, resultCount, wall }), { initialProps: { id: viewingId } });
+  const hook = renderHook(
+    ({ id }) => useViewerStep({ viewing: page(id), setViewing, loadedCards, resultCount, wall }),
+    { initialProps: { id: viewingId } },
+  );
   return { ...hook, setViewing };
 }
 
 it("从一摞翻完接着墙上的下一格，那一格之后再进下一摞", () => {
-  const { result, rerender, setViewing } = stepFrom("a1", [stack("pixiv:1", ["a0", "a1"]), page("c"), stack("pixiv:2", ["b0", "b1"])], 5);
+  const { result, rerender, setViewing } = stepFrom(
+    "a1",
+    [stack("pixiv:1", ["a0", "a1"]), page("c"), stack("pixiv:2", ["b0", "b1"])],
+    5,
+  );
   act(() => result.current.step(1));
   expect(setViewing).toHaveBeenLastCalledWith(expect.objectContaining({ id: "c" }));
   rerender({ id: "c" });
@@ -57,7 +66,11 @@ it("从一摞翻完接着墙上的下一格，那一格之后再进下一摞", (
 });
 
 it("托盘开着时墙上排的是各页，查看器照样按页序走", () => {
-  const { result, setViewing } = stepFrom("a2", [page("a0"), page("a1"), page("a2"), stack("pixiv:2", ["b0", "b1"])], 5);
+  const { result, setViewing } = stepFrom(
+    "a2",
+    [page("a0"), page("a1"), page("a2"), stack("pixiv:2", ["b0", "b1"])],
+    5,
+  );
   expect(result.current.viewingIndex).toBe(2);
   act(() => result.current.step(1));
   expect(setViewing).toHaveBeenCalledWith(expect.objectContaining({ id: "b0" }));

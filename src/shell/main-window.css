@@ -2,208 +2,489 @@
    ui/ui.css; overrides the older shell rules where the structure changed. */
 
 /* ---- Frame: the header rows form one 56 px band that is the window's safe area ---- */
-.app-shell { background: var(--bg); }
-.rail { padding-top: 6px; }
-.rail .brand { height: 44px; }
-.app-body { flex: 1; min-height: 0; display: flex; }
-.app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; background: var(--bg); }
+.app-shell {
+  background: var(--bg);
+}
+.rail {
+  padding-top: 6px;
+}
+.rail .brand {
+  height: 44px;
+}
+.app-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--bg);
+}
 
 /* ---- Sidebar ---- */
-.sidebar-slot { width: 256px; flex: none; display: flex; flex-direction: column; overflow: hidden; background: var(--surface); border-right: 1px solid var(--line);
-  transition: width var(--t-slow) var(--ease); }
-.sidebar-slot[data-collapsed="true"] { width: 0; border-right-width: 0; }
-.pane-head { width: 255px; height: 56px; min-height: 56px; flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 0 10px; border-bottom: 0; }
-.pane-library { min-width: 0; flex: 1; display: flex; }
-.pane-title { margin: 0; padding-left: 6px; font-size: 16px; line-height: 24px; font-weight: 600; }
-.pane-body { width: 255px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0; }
-.pane-body[hidden] { display: none; }
-
+.sidebar-slot {
+  width: 256px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  transition: width var(--t-slow) var(--ease);
+}
+.sidebar-slot[data-collapsed="true"] {
+  width: 0;
+  border-right-width: 0;
+}
+.pane-head {
+  width: 255px;
+  height: 56px;
+  min-height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px;
+  border-bottom: 0;
+}
+.pane-library {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+}
+.pane-title {
+  margin: 0;
+  padding-left: 6px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.pane-body {
+  width: 255px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+.pane-body[hidden] {
+  display: none;
+}
 
 /* three bands: fixed top, scrolling libraries, fixed foot */
-.side-bands { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; margin: 0; border: 0; }
-.side-top { flex: none; padding: 0 8px 6px; border-bottom: 1px solid var(--line); }
-.side-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 8px 12px; }
-.side-foot { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-top: 1px solid var(--line); }
+.side-bands {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.side-top {
+  flex: none;
+  padding: 0 8px 6px;
+  border-bottom: 1px solid var(--line);
+}
+.side-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 8px 12px;
+}
+.side-foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--line);
+}
 
-.k-row { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; height: 30px; padding: 0 8px; border: 0; border-radius: var(--r-s);
-  background: transparent; color: var(--ink); text-align: left; line-height: 30px; }
-.k-row .k-row-icon { flex: none; display: grid; place-items: center; color: var(--ink-3); }
-.k-row .sidebar-label { flex: 1; }
-.k-row .sidebar-count { margin-left: auto; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; opacity: 1; }
-.k-row[aria-current="page"] { background: var(--accent-soft); color: var(--accent-strong); font-weight: 500; }
-.k-row[aria-current="page"] .k-row-icon, .k-row[aria-current="page"] .sidebar-count { color: var(--accent-strong); }
-.k-row:disabled { opacity: 0.55; cursor: default; }
-.k-row[data-drop] { box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--accent-soft); outline: 0; }
+.k-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-s);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  line-height: 30px;
+}
+.k-row .k-row-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+.k-row .sidebar-label {
+  flex: 1;
+}
+.k-row .sidebar-count {
+  margin-left: auto;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 1;
+}
+.k-row[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 500;
+}
+.k-row[aria-current="page"] .k-row-icon,
+.k-row[aria-current="page"] .sidebar-count {
+  color: var(--accent-strong);
+}
+.k-row:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.k-row[data-drop] {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  background: var(--accent-soft);
+  outline: 0;
+}
 /* the fluid pill draws the hover; plain :hover only where it is not running (touch, jsdom) */
-.k-fluid:not([data-fluid-hover-active-index]) .k-row:hover:not(:disabled):not([aria-current="page"]) { background: var(--hover); }
+.k-fluid:not([data-fluid-hover-active-index]) .k-row:hover:not(:disabled):not([aria-current="page"]) {
+  background: var(--hover);
+}
 
-.workspace-scope { padding: 0; border: 0; margin: 0; }
-.workspace-provider { min-width: 0; }
-.lib-head { display: flex; align-items: center; gap: 2px; height: 30px; margin-top: 12px; padding: 0; }
-.workspace-provider-root { display: flex; grid-template-columns: none; margin-top: 10px; }
-.workspace-expand { width: 18px; height: 22px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-xs); background: transparent; color: var(--ink-3); min-height: 0; }
-.workspace-expand:hover { background: var(--hover); color: var(--ink); }
+.workspace-scope {
+  padding: 0;
+  border: 0;
+  margin: 0;
+}
+.workspace-provider {
+  min-width: 0;
+}
+.lib-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  margin-top: 12px;
+  padding: 0;
+}
+.workspace-provider-root {
+  display: flex;
+  grid-template-columns: none;
+  margin-top: 10px;
+}
+.workspace-expand {
+  width: 18px;
+  height: 22px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--ink-3);
+  min-height: 0;
+}
+.workspace-expand:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
 /* the library name lines up with the row text below it: both sit 8 px in from the band */
-.lib-head-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: 0; border-radius: var(--r-xs); background: transparent;
-  color: var(--ink-2); font-size: 12px; line-height: 18px; font-weight: 600; text-align: left; }
-.lib-head-name:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
-.lib-head-name[aria-current="page"] { color: var(--accent-strong); background: var(--accent-soft); }
-.lib-head-name:disabled { opacity: 1; cursor: default; pointer-events: none; } /* 未连接：右键与悬停提示落在整行（.lib-head）上 */
-.lib-head-name .sidebar-label { flex: 1; }
-.lib-head-name .sidebar-count { font-weight: 500; opacity: 0.85; }
-.workspace-provider > .sidebar { padding: 0; border: 0; width: auto; overflow: visible; gap: 0; }
+.lib-head-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  text-align: left;
+}
+.lib-head-name:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--ink);
+}
+.lib-head-name[aria-current="page"] {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+.lib-head-name:disabled {
+  opacity: 1;
+  cursor: default;
+  pointer-events: none;
+} /* 未连接：右键与悬停提示落在整行（.lib-head）上 */
+.lib-head-name .sidebar-label {
+  flex: 1;
+}
+.lib-head-name .sidebar-count {
+  font-weight: 500;
+  opacity: 0.85;
+}
+.workspace-provider > .sidebar {
+  padding: 0;
+  border: 0;
+  width: auto;
+  overflow: visible;
+  gap: 0;
+}
 /* 方案 D（#113）：标题行“图库 ＋”；图库是 Finder 式分组，⋯ 悬停出现；未连接的图库名称变淡、带警告图标，同一行末尾是“重新连接”。 */
-.pane-library-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
-.pane-library-title .pane-title { flex: 1; min-width: 0; }
-.lib-add { width: 28px; height: 28px; border-radius: var(--r-s); }
-.lib-head-name.is-off .sidebar-label { opacity: 0.6; }
-.lib-warn { flex: none; display: grid; color: var(--warn); }
-.lib-more { width: 24px; height: 24px; flex: none; border-radius: var(--r-xs); opacity: 0; transition: opacity var(--t-fast); }
-.lib-head:hover .lib-more, .lib-more:focus-visible, .lib-more[data-popup-open] { opacity: 1; }
-.offline-retry { flex: none; display: inline-flex; align-items: center; height: 24px; padding: 0 6px; border: 0; border-radius: var(--r-xs); background: none; color: var(--accent-strong); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; }
-.offline-retry:hover { text-decoration: underline; }
-.trash-groups { padding-left: 22px; }
-.sidebar-tree .sidebar-tree { padding-left: 0; }
-.sidebar-folders { flex: none; }
-.sub-toggle { display: flex; align-items: center; gap: 8px; height: 32px; margin-top: 8px; padding: 0 8px; color: var(--ink-2); font-size: 12px; }
+.pane-library-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pane-library-title .pane-title {
+  flex: 1;
+  min-width: 0;
+}
+.lib-add {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-s);
+}
+.lib-head-name.is-off .sidebar-label {
+  opacity: 0.6;
+}
+.lib-warn {
+  flex: none;
+  display: grid;
+  color: var(--warn);
+}
+.lib-more {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: var(--r-xs);
+  opacity: 0;
+  transition: opacity var(--t-fast);
+}
+.lib-head:hover .lib-more,
+.lib-more:focus-visible,
+.lib-more[data-popup-open] {
+  opacity: 1;
+}
+.offline-retry {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: none;
+  color: var(--accent-strong);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.offline-retry:hover {
+  text-decoration: underline;
+}
+.trash-groups {
+  padding-left: 22px;
+}
+.sidebar-tree .sidebar-tree {
+  padding-left: 0;
+}
+.sidebar-folders {
+  flex: none;
+}
+.sub-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  margin-top: 8px;
+  padding: 0 8px;
+  color: var(--ink-2);
+  font-size: 12px;
+}
 
 /* ---- Main header ---- */
-.topbar { height: 56px; min-height: 56px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px; background: var(--bg); border-bottom: 0; z-index: 5; }
-.topbar.is-empty { justify-content: flex-end; }
-.topbar > .search { flex: 1; min-width: 0; max-width: 960px; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; height: 40px; padding: 0 4px 0 12px;
-  border-radius: var(--r); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); border: 0; overflow: visible; }
-.topbar > .search:focus-within { outline: var(--focus-ring); outline-offset: var(--focus-inset); }
-.topbar > .search .search-chip { height: 28px; padding: 0 4px 0 8px; border: 0; border-radius: var(--r-s); background: var(--surface-2); font-weight: 500; }
-.topbar > .search .search-chip[data-negate] { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); text-decoration: line-through; }
-.topbar > .search .search-field { min-width: 120px; }
-.topbar > .search .search-field input { border: 0; padding: 4px 2px; outline: 0; }
-.topbar > .search .search-field input:focus-visible { outline: 0; }
+.topbar {
+  height: 56px;
+  min-height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 0 16px;
+  background: var(--bg);
+  border-bottom: 0;
+  z-index: 5;
+}
+.topbar.is-empty {
+  justify-content: flex-end;
+}
+.topbar > .search {
+  flex: 1;
+  min-width: 0;
+  max-width: 960px;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 4px 0 12px;
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  border: 0;
+  overflow: visible;
+}
+.topbar > .search:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-inset);
+}
+.topbar > .search .search-chip {
+  height: 28px;
+  padding: 0 4px 0 8px;
+  border: 0;
+  border-radius: var(--r-s);
+  background: var(--surface-2);
+  font-weight: 500;
+}
+.topbar > .search .search-chip[data-negate] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  color: var(--ink-2);
+  text-decoration: line-through;
+}
+.topbar > .search .search-field {
+  min-width: 120px;
+}
+.topbar > .search .search-field input {
+  border: 0;
+  padding: 4px 2px;
+  outline: 0;
+}
+.topbar > .search .search-field input:focus-visible {
+  outline: 0;
+}
 /* 查找框与张数一组靠左，导入与窗口控件一组靠右：导入吃掉余下的宽度，宽屏时两组分开、紧凑时自然相邻。 */
-.topbar > .import-menu { margin-left: auto; }
-.topbar > .k-win-ctrls { margin-left: 0; }
-.bar-meta { display: inline-flex; flex: none; align-items: center; gap: 10px; height: 36px; padding: 0 6px 0 4px; color: var(--ink-2); }
-.bar-meta .result-count { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.topbar > .import-menu {
+  margin-left: auto;
+}
+.topbar > .k-win-ctrls {
+  margin-left: 0;
+}
+.bar-meta {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 6px 0 4px;
+  color: var(--ink-2);
+}
+.bar-meta .result-count {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
 
 /* 精确查找（#102 方案 C3）：查找框 40 高、圆角 12，开关 32 × 32 内缩 4 → 圆角 8，同心。
    关 = 与查找框同平面，只有灰色字形，悬停浮出 --hover；开 = 轻轻凹进的金色浅槽。 */
-.k-exact { position: relative; flex: none; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-s);
-  background: transparent; color: var(--ink-3); box-shadow: none; cursor: pointer;
-  transition: box-shadow var(--t) var(--ease), background-color var(--t) var(--ease), color var(--t) var(--ease), transform var(--t-fast) var(--spring); }
-.k-exact:hover { background-color: var(--hover); color: var(--ink); }
-.k-exact:active { transform: scale(0.94); }
-.k-exact:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-.k-exact[data-pressed] { background-color: var(--exact-on-bg); color: var(--exact-on-ink); box-shadow: var(--exact-on-inset); }
-.k-exact-glyph { display: block; overflow: visible; }
-.k-exact-glyph path { transform-box: view-box; transform-origin: 8px 8px; transition: opacity var(--t-fast) var(--ease), transform var(--t-pop) var(--spring); }
-.k-exact .k-exact-line { opacity: 0; transform: scaleX(0.6); }
-.k-exact[data-pressed] .k-exact-wave { opacity: 0; transform: scaleY(0.4); }
-.k-exact[data-pressed] .k-exact-line { opacity: 1; transform: none; }
-.k-tip { max-width: 360px; white-space: pre-line; overflow-wrap: anywhere; padding: 5px 8px; border-radius: var(--r-s); background: var(--ink); color: var(--bg); font-size: 12px; line-height: 18px; box-shadow: var(--shadow-pop);
-  transform-origin: var(--transform-origin); transition: transform var(--t-fast) var(--spring), opacity var(--t-fast); }
-.k-tip-note { margin-left: 8px; opacity: 0.7; }
-.k-tip[data-starting-style], .k-tip[data-ending-style] { opacity: 0; transform: scale(0.96); }
-
-/* 图片墙右下角：打标图标（#144）在图片大小浮岛左边，两者一起浮在图片墙上。 */
-.k-wall-corner { position: absolute; right: 24px; bottom: 20px; z-index: 6; display: flex; align-items: center; gap: 8px; }
-/* 图片大小浮岛（#102 方案 C3）：半透明 --surface、背景模糊、全圆角；两端小图 / 大图。 */
-.k-density-slot { --density-gap: 10px; --density-pad: 14px; display: inline-flex; }
-.k-density-island { display: inline-flex; align-items: center; height: 40px; padding: 0 var(--density-pad); overflow: hidden;
-  background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-pop); color: var(--ink-3); }
-.k-density-row { display: flex; align-items: center; gap: var(--density-gap); height: 40px; flex: none; }
-.k-density-row > svg { flex: none; }
-.k-density-island .k-range { width: 140px; }
-/* 多选时（#180）右下角收成一个 40 px 圆形按钮，悬停或点按时按钮自身形变为滑条（#452）：
-   占位始终 40 px，周围不动；形状贴右下长出，左边放不下时升到占位上方。打标状态是右上角的小圆点。 */
-.k-wall-corner { transform-origin: 100% 100%; }
-.k-density-slot[data-collapsed] { position: relative; width: 40px; height: 40px; }
-.k-density-slot[data-collapsed] .k-density-island { position: absolute; right: 0; bottom: 0; padding: 0; }
-.k-density-slot[data-collapsed] .k-density-island[data-open] { padding-left: var(--density-pad); }
-/* 按钮的图标留在原处，就是滑条右端的大图标；焦点顺序仍是先按钮后滑条。 */
-.k-density-knob { order: 1; flex: none; width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--ink-2); transition: color var(--t-fast) var(--ease); }
-.k-density-island[data-open] .k-density-knob { margin-left: calc(var(--density-gap) - 12px); color: var(--ink-3); }
-.k-density-knob:hover, .k-density-island[data-open] .k-density-knob:hover { color: var(--ink); }
-.k-density-knob:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-inset); }
-/* 收回时滑条脱离排版，形状才缩得回去。 */
-.k-density-island:not([data-open]) .k-density-row { position: absolute; top: 0; right: calc(28px + var(--density-gap)); pointer-events: none; }
-/* 升到上方时越过选择栏（高 56 px）再隔开 8 px；形状与原位之间的整块都算在内，指针斜着移过去也不收回。
-   打标小圆点放在 .k-wall-badge 里，由 WallFloats 带着走。 */
-.k-density-slot { --density-rise: 64px; }
-.k-density-slot[data-rising] .k-density-island { bottom: var(--density-rise); }
-.k-density-slot[data-rising]::before { content: ""; position: absolute; right: 0; bottom: 0; width: 214px; height: var(--density-rise); }
-.k-wall-badge { display: contents; }
-.k-wall-corner[data-collapsed] .k-wall-badge { display: block; position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.k-tagging-dot { pointer-events: auto; }
-/* 多选收起时的打标状态（#372）：按钮右上角一枚带纸色底的迷你进度环。 */
-.k-tagging-dot { position: absolute; top: -4px; right: -4px; z-index: 1; width: 16px; height: 16px; display: grid; place-items: center; border-radius: var(--r-pill);
-  background: var(--surface); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent); }
-/* 打标图标（#144、#372）：与浮岛同材质的小圆钮。外圈进度环随下载字节或这一轮的张数前进，加载时没有进度，
-   整圈强调色慢慢明暗；星星不转，两颗小星交替闪烁。暂停时环停在原处变灰，图标换成暂停。
-   减少动态效果时不闪不明暗，进度环本身表示“进行中”。 */
-.k-tagging-activity { position: relative; width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-pop); color: var(--accent-strong); }
-.k-tagging-activity:hover { color: var(--ink); }
-.k-tagging-activity:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-.k-tagging-activity[data-activity="paused"] { color: var(--ink-2); }
-/* 停住、等画师处理（需要下载、出错、不可用）：静止的图标，没有环，不闪烁；点开去设置处理。 */
-.k-tagging-activity[data-activity="stopped"] { color: var(--ink-2); }
-.k-tagging-activity[data-activity="stopped"]:hover { color: var(--ink); }
-[data-activity="stopped"] .k-tagging-track { stroke: color-mix(in srgb, var(--ink) 10%, transparent); }
-.k-tagging-ring { position: absolute; inset: 0; }
-.k-tagging-ring, .k-tagging-mini { transform: rotate(-90deg); fill: none; stroke-width: 2.5; }
-.k-tagging-mini { stroke-width: 2; }
-.k-tagging-track { stroke: color-mix(in srgb, var(--ink) 10%, transparent); }
-.k-tagging-arc { stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray 600ms var(--ease); }
-[data-activity="paused"] .k-tagging-arc { stroke: var(--ink-3); }
-[data-activity="busy"][data-pending] .k-tagging-track { stroke: var(--accent); opacity: 0.55; animation: k-tagging-breathe 2.4s ease-in-out infinite; }
-.k-twinkle-a { animation: k-tagging-twinkle 2.8s ease-in-out infinite; }
-.k-twinkle-b { animation: k-tagging-twinkle 2.8s ease-in-out 1.4s infinite; }
-@keyframes k-tagging-breathe { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.8; } }
-@keyframes k-tagging-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
-@media (prefers-reduced-motion: reduce) {
-  .k-tagging-track, .k-tagging-arc, .k-twinkle-a, .k-twinkle-b { animation: none !important; transition: none; }
+.k-exact {
+  position: relative;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-s);
+  background: transparent;
+  color: var(--ink-3);
+  box-shadow: none;
+  cursor: pointer;
+  transition:
+    box-shadow var(--t) var(--ease),
+    background-color var(--t) var(--ease),
+    color var(--t) var(--ease),
+    transform var(--t-fast) var(--spring);
 }
-/* 有图没有完成（#475）：提示图标用警示色，没有环，常驻到画师忽略。 */
-.k-tagging-activity[data-activity="unfinished"] { color: var(--warn); }
-.k-tagging-activity[data-activity="unfinished"]:hover { color: var(--warn-strong); }
-/* 悬停时图标变成点击后的动作（#475，照精确查找的开关）：当前的压扁淡出，动作的展开。减少动态效果时只淡入淡出。 */
-.k-tagging-glyph { position: relative; display: grid; place-items: center; }
-.k-tagging-glyph > span { grid-area: 1 / 1; display: grid; transition: opacity var(--t-fast) var(--ease), transform var(--t-pop) var(--spring); }
-.k-tagging-next { opacity: 0; transform: scaleX(0.6); }
-.k-tagging-activity:is(:hover, :focus-visible) [data-morph] .k-tagging-now { opacity: 0; transform: scaleY(0.4); }
-.k-tagging-activity:is(:hover, :focus-visible) [data-morph] .k-tagging-next { opacity: 1; transform: none; }
-@media (prefers-reduced-motion: reduce) { .k-tagging-glyph > span { transform: none !important; transition: opacity 120ms var(--ease); } }
-
-/* 滑条：4 px 下沉轨道、已走过的一段 --range-fill；18 px 纸白圆钮带细描边与两层投影，悬停放大、按下压下。
-   WebView2 是 Chromium，只需 -webkit- 伪元素。 */
-.k-range { appearance: none; height: 22px; margin: 0; padding: 0; background: transparent; cursor: pointer; }
-.k-range::-webkit-slider-runnable-track { height: 4px; border-radius: var(--r-pill);
-  background: linear-gradient(var(--range-fill), var(--range-fill)) 0 0 / var(--fill, 0%) 100% no-repeat, var(--range-track); box-shadow: var(--range-inset); }
-.k-range::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; margin-top: -7px; border: 0; border-radius: 50%;
-  background: var(--knob); box-shadow: var(--knob-shadow); transition: transform var(--t-fast) var(--spring), box-shadow var(--t-fast) var(--ease); }
-.k-range:hover::-webkit-slider-thumb { transform: scale(1.1); }
-.k-range:active::-webkit-slider-thumb { transform: scale(0.94); box-shadow: var(--knob-shadow-pressed); }
-.k-range:focus-visible { outline: 0; }
-.k-range:focus-visible::-webkit-slider-thumb { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-@media (prefers-reduced-motion: reduce) { .k-exact, .k-exact-glyph path, .k-tip, .k-range::-webkit-slider-thumb { transition-duration: 0ms; } }
-.app-tagbar { flex: none; }
-.app-tagbar .groupbar { background: var(--bg); border-bottom: 1px solid var(--line); padding: 4px 12px; }
-
-/* ---- Wall source chip: every card with sources; "N 处" when an image lives in two or more libraries.
-   A sibling of the card option (no focusable children inside an option), pinned to the card's bottom-right.
-   Its left edge sits at the card's right edge, so shrink-to-fit would only get the gap to the canvas edge (#124):
-   size it to its content and keep icon, count and "处" on one line. ---- */
-.wall-canvas > .card-sources { position: absolute; z-index: 1; transform: translate(-100%, -100%); display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; border: 0;
-  box-sizing: border-box; width: max-content; white-space: nowrap; line-height: 1; border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--ink); font-size: 12px; font-weight: 600; box-shadow: var(--shadow-raise); }
-.wall-canvas > .card-sources > svg { flex: none; }
-.wall-canvas > .card-sources:hover { background: var(--surface); }
-.card[aria-selected="true"] { outline: 0; box-shadow: 0 0 0 2px var(--wall), 0 0 0 4px var(--accent); }
-
-/* ---- Floating multi-select bar ---- */
-/* 多选悬浮栏（#180）：查看器同款 Dock，水平位置由 selectionBarPlacement 算出（transform）。 */
-.selbar-float { position: absolute; left: 0; bottom: 20px; z-index: 6; }
-/* 图片墙很窄时（selectionBarCompact）：读数只写“N 张”，让出宽度。 */
-.selbar-float .k-dock.is-compact .k-dock-readout { min-width: 0; padding: 0 8px 0 4px; margin-right: 4px; }
-
+.k-exact:hover {
+  background-color: var(--hover);
+  color: var(--ink);
+}
+.k-exact:active {
+  transform: scale(0.94);
+}
+.k-exact:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+.k-exact[data-pressed] {
+  background-color: var(--exact-on-bg);
+  color: var(--exact-on-ink);
+  box-shadow: var(--exact-on-inset);
+}
+.k-exact-glyph {
+  display: block;
+  overflow: visible;
+}
+.k-exact-glyph path {
+  transform-box: view-box;
+  transform-origin: 8px 8px;
+  transition:
+    opacity var(--t-fast) var(--ease),
+    transform var(--t-pop) var(--spring);
+}
+.k-exact .k-exact-line {
+  opacity: 0;
+  transform: scaleX(0.6);
+}
+.k-exact[data-pressed] .k-exact-wave {
+  opacity: 0;
+  transform: scaleY(0.4);
+}
+.k-exact[data-pressed] .k-exact-line {
+  opacity: 1;
+  transform: none;
+}
+.k-tip {
+  max-width: 360px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  padding: 5px 8px;
+  border-radius: var(--r-s);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 12px;
+  line-height: 18px;
+  box-shadow: var(--shadow-pop);
+  transform-origin: var(--transform-origin);
+  transition:
+    transform var(--t-fast) var(--spring),
+    opacity var(--t-fast);
+}
+.k-tip-note {
+  margin-left: 8px;
+  opacity: 0.7;
+}
+.k-tip[data-starting-style],
+.k-tip[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.96);
+}

@@ -10,11 +10,15 @@ import { ToastProvider } from "../ui/Toast";
 // 窗口里的组件都在 ToastProvider 之内，单独渲染时也一样（#433）。
 vi.mock("@testing-library/react", async (original) => {
   const library = await original<typeof import("@testing-library/react")>();
-  return { ...library, render: (ui: ReactNode, options?: { wrapper?: ComponentType<{ children: ReactNode }> }) => {
-    const Inner = options?.wrapper;
-    const wrapper = ({ children }: { children: ReactNode }) => createElement(ToastProvider, null, Inner ? createElement(Inner, null, children) : children);
-    return library.render(ui, { ...options, wrapper } as Parameters<typeof library.render>[1]);
-  } };
+  return {
+    ...library,
+    render: (ui: ReactNode, options?: { wrapper?: ComponentType<{ children: ReactNode }> }) => {
+      const Inner = options?.wrapper;
+      const wrapper = ({ children }: { children: ReactNode }) =>
+        createElement(ToastProvider, null, Inner ? createElement(Inner, null, children) : children);
+      return library.render(ui, { ...options, wrapper } as Parameters<typeof library.render>[1]);
+    },
+  };
 });
 
 // findBy*/waitFor 默认只等 1 秒。Windows CI 上 76 个 jsdom 文件并行时，打开对话框、读取预览这类

@@ -41,8 +41,9 @@ type Props = {
 };
 
 const same = (a: BrowseScope, b: BrowseScope) =>
-  (a.kind === b.kind || ([a.kind, b.kind].every((kind) => kind === "folder" || kind === "folderTree"))) &&
-  ((a.kind !== "folder" && a.kind !== "folderTree") || ((b.kind === "folder" || b.kind === "folderTree") && a.id === b.id));
+  (a.kind === b.kind || [a.kind, b.kind].every((kind) => kind === "folder" || kind === "folderTree")) &&
+  ((a.kind !== "folder" && a.kind !== "folderTree") ||
+    ((b.kind === "folder" || b.kind === "folderTree") && a.id === b.id));
 
 /** 文件夹及其全部子文件夹的 id。 */
 function subtree(node: FolderNode): string[] {
@@ -53,11 +54,12 @@ function subtree(node: FolderNode): string[] {
 export function droppedImages(e: DragEvent, libraryId: string): string[] {
   const sources = e.dataTransfer.getData(DRAG_IMAGE_SOURCES);
   return sources
-    ? (JSON.parse(sources) as Record<string, string[] | undefined>)[libraryId] ?? []
-    : JSON.parse(e.dataTransfer.getData(DRAG_IMAGES) || "[]") as string[];
+    ? ((JSON.parse(sources) as Record<string, string[] | undefined>)[libraryId] ?? [])
+    : (JSON.parse(e.dataTransfer.getData(DRAG_IMAGES) || "[]") as string[]);
 }
 
-const inTree = (nodes: FolderNode[], id: string): boolean => nodes.some((node) => node.id === id || inTree(node.children, id));
+const inTree = (nodes: FolderNode[], id: string): boolean =>
+  nodes.some((node) => node.id === id || inTree(node.children, id));
 
 export const acceptsDrag = (e: DragEvent) =>
   e.dataTransfer.types.includes(DRAG_IMAGES) || e.dataTransfer.types.includes(DRAG_FOLDER);
@@ -67,7 +69,21 @@ export const acceptsDrag = (e: DragEvent) =>
  * 双击或 F2 改名；把文件夹拖到同库的另一个文件夹上移进去；把图片墙上选中的图拖到文件夹上放进去。
  * 文件夹的右键菜单（#102 表“侧栏 · 文件夹”，#114）：新建子文件夹 · 重命名 · ─ · 移到顶层 · ─ · 删除文件夹。
  */
-export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onScope, onError, directory, unassigned, descendantCounts, includeDescendants = false, creating, parentForNew, onCreatingDone }: Props) {
+export function SidebarPane({
+  libraryId,
+  libraryName,
+  scope,
+  scopeSelected,
+  onScope,
+  onError,
+  directory,
+  unassigned,
+  descendantCounts,
+  includeDescendants = false,
+  creating,
+  parentForNew,
+  onCreatingDone,
+}: Props) {
   const { t } = useTranslation("library");
   const [renaming, setRenaming] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
@@ -90,14 +106,25 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
   /** 删除文件夹能撤销，所以不先确认：直接删，再给一个带“撤销”的轻提示；撤销用的是删除时返回的内容。 */
   const removeFolder = (node: FolderNode) => {
     const removed = subtree(node);
-    deleteFolder(libraryId, node.id).then((deleted) => {
-      // 正在看的文件夹（或它的子文件夹）没了：回到这个图库的全部。
-      if (scopeSelected && (scope.kind === "folder" || scope.kind === "folderTree") && removed.includes(scope.id)) onScope({ kind: "all" });
-      toast.show({
-        title: t("deleteFolder.done"), description: node.name, tone: "success",
-        action: { label: t("deleteFolder.undo"), onClick: () => { restoreFolder(libraryId, deleted).catch((e) => onError(e)); } },
-      });
-    }, (e) => onError(e));
+    deleteFolder(libraryId, node.id).then(
+      (deleted) => {
+        // 正在看的文件夹（或它的子文件夹）没了：回到这个图库的全部。
+        if (scopeSelected && (scope.kind === "folder" || scope.kind === "folderTree") && removed.includes(scope.id))
+          onScope({ kind: "all" });
+        toast.show({
+          title: t("deleteFolder.done"),
+          description: node.name,
+          tone: "success",
+          action: {
+            label: t("deleteFolder.undo"),
+            onClick: () => {
+              restoreFolder(libraryId, deleted).catch((e) => onError(e));
+            },
+          },
+        });
+      },
+      (e) => onError(e),
+    );
   };
 
   const over = (target: string) => (e: DragEvent) => {
@@ -119,8 +146,8 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
     if (images.length) void run(editImages(libraryId, images, [{ kind: "addToFolder", folderId }]));
   };
 
-  const count = (node: FolderNode) => includeDescendants ? descendantCounts?.[node.id] ?? node.count : node.count;
-  const current = (target: BrowseScope) => scopeSelected && same(scope, target) ? "page" as const : undefined;
+  const count = (node: FolderNode) => (includeDescendants ? (descendantCounts?.[node.id] ?? node.count) : node.count);
+  const current = (target: BrowseScope) => (scopeSelected && same(scope, target) ? ("page" as const) : undefined);
 
   // Rows join one fluid-hover list in visible (pre-order) order.
   let row = 0;
@@ -139,50 +166,81 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
             />
           ) : (
             <FluidRow index={row++}>
-            <ContextMenu.Root>
-            <ContextMenu.Trigger render={<button
-              type="button"
-              data-folder-id={node.id}
-              className="sidebar-item k-row"
-              style={{ paddingLeft: 8 + depth * 16 }}
-              data-drop={dropTarget === node.id || undefined}
-              aria-current={current({ kind: "folder", id: node.id })}
-              aria-label={t("folders.folderCount", { name: node.name, count: count(node) })}
-              draggable
-              onClick={() => onScope({ kind: "folder", id: node.id })}
-              onDoubleClick={() => setRenaming(node.id)}
-              onDragStart={(e) => {
-                e.dataTransfer.setData(DRAG_FOLDER, node.id);
-                e.dataTransfer.setData(DRAG_FOLDER_LIBRARY, libraryId);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              onDragOver={over(node.id)}
-              onDragLeave={() => setDropTarget(null)}
-              onDrop={drop(node.id)}
-              onKeyDown={(e) => {
-                if (e.key === "F2") { e.preventDefault(); setRenaming(node.id); }
-                else if (isMenuKey(e)) { e.preventDefault(); openMenuAt(e.currentTarget); }
-              }}
-            />}>
-              <span className="k-row-icon" aria-hidden="true">{node.children.length > 0 ? <FolderOpen size={15} /> : <Folder size={15} />}</span>
-              <Name className="sidebar-label k-label">{node.name}</Name>
-              <span className="sidebar-count k-label">{count(node)}</span>
-            </ContextMenu.Trigger>
-            <MenuPopup label={t("folders.actions", { name: node.name })} width={200}>
-              <MenuItem icon={<FolderPlus size={14} />} onClick={() => { onCreatingDone(); setCreatingUnder(node.id); }}>{t("folders.newSubfolder")}</MenuItem>
-              <MenuItem icon={<Pencil size={14} />} kbd="F2" onClick={() => setRenaming(node.id)}>{t("folders.rename")}</MenuItem>
-              <MenuSeparator />
-              <MenuItem icon={<FolderUp size={14} />} disabled={depth === 0} onClick={() => void run(moveFolder(libraryId, node.id, null, LAST))}>{t("folders.moveToTop")}</MenuItem>
-              <MenuSeparator />
-              <MenuItem icon={<FolderX size={14} />} danger onClick={() => removeFolder(node)}>{t("folders.delete")}</MenuItem>
-            </MenuPopup>
-            </ContextMenu.Root>
+              <ContextMenu.Root>
+                <ContextMenu.Trigger
+                  render={
+                    <button
+                      type="button"
+                      data-folder-id={node.id}
+                      className="sidebar-item k-row"
+                      style={{ paddingLeft: 8 + depth * 16 }}
+                      data-drop={dropTarget === node.id || undefined}
+                      aria-current={current({ kind: "folder", id: node.id })}
+                      aria-label={t("folders.folderCount", { name: node.name, count: count(node) })}
+                      draggable
+                      onClick={() => onScope({ kind: "folder", id: node.id })}
+                      onDoubleClick={() => setRenaming(node.id)}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData(DRAG_FOLDER, node.id);
+                        e.dataTransfer.setData(DRAG_FOLDER_LIBRARY, libraryId);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={over(node.id)}
+                      onDragLeave={() => setDropTarget(null)}
+                      onDrop={drop(node.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "F2") {
+                          e.preventDefault();
+                          setRenaming(node.id);
+                        } else if (isMenuKey(e)) {
+                          e.preventDefault();
+                          openMenuAt(e.currentTarget);
+                        }
+                      }}
+                    />
+                  }
+                >
+                  <span className="k-row-icon" aria-hidden="true">
+                    {node.children.length > 0 ? <FolderOpen size={15} /> : <Folder size={15} />}
+                  </span>
+                  <Name className="sidebar-label k-label">{node.name}</Name>
+                  <span className="sidebar-count k-label">{count(node)}</span>
+                </ContextMenu.Trigger>
+                <MenuPopup label={t("folders.actions", { name: node.name })} width={200}>
+                  <MenuItem
+                    icon={<FolderPlus size={14} />}
+                    onClick={() => {
+                      onCreatingDone();
+                      setCreatingUnder(node.id);
+                    }}
+                  >
+                    {t("folders.newSubfolder")}
+                  </MenuItem>
+                  <MenuItem icon={<Pencil size={14} />} kbd="F2" onClick={() => setRenaming(node.id)}>
+                    {t("folders.rename")}
+                  </MenuItem>
+                  <MenuSeparator />
+                  <MenuItem
+                    icon={<FolderUp size={14} />}
+                    disabled={depth === 0}
+                    onClick={() => void run(moveFolder(libraryId, node.id, null, LAST))}
+                  >
+                    {t("folders.moveToTop")}
+                  </MenuItem>
+                  <MenuSeparator />
+                  <MenuItem icon={<FolderX size={14} />} danger onClick={() => removeFolder(node)}>
+                    {t("folders.delete")}
+                  </MenuItem>
+                </MenuPopup>
+              </ContextMenu.Root>
             </FluidRow>
           )}
-          {(node.children.length > 0 || newParent === node.id) && <>
-            {node.children.length > 0 && tree(node.children, depth + 1)}
-            {newParent === node.id && newInput}
-          </>}
+          {(node.children.length > 0 || newParent === node.id) && (
+            <>
+              {node.children.length > 0 && tree(node.children, depth + 1)}
+              {newParent === node.id && newInput}
+            </>
+          )}
         </li>
       ))}
     </ul>
@@ -191,19 +249,28 @@ export function SidebarPane({ libraryId, libraryName, scope, scopeSelected, onSc
   return (
     <nav className="sidebar" aria-label={t("folders.treeOf", { name: libraryName })}>
       <FluidList>
-      {unassigned !== undefined && <FluidRow index={row++}>
-        <button type="button" className="sidebar-item k-row" aria-current={current({ kind: "unassigned" })}
-          aria-label={t("folders.unassignedCount", { count: unassigned })} onClick={() => onScope({ kind: "unassigned" })}>
-          <span className="k-row-icon" aria-hidden="true"><Inbox size={15} /></span>
-          <span className="sidebar-label k-label">{t("folders.unassigned")}</span>
-          <span className="sidebar-count k-label">{unassigned}</span>
-        </button>
-      </FluidRow>}
-      <div role="tree" aria-label={t("folders.tree")} className="sidebar-folders">
-        {tree(directory.folders)}
-        {/* 放在顶层，或要放进的文件夹已不在树里时放在最后。 */}
-        {newParent !== undefined && (newParent === null || !inTree(directory.folders, newParent)) && newInput}
-      </div>
+        {unassigned !== undefined && (
+          <FluidRow index={row++}>
+            <button
+              type="button"
+              className="sidebar-item k-row"
+              aria-current={current({ kind: "unassigned" })}
+              aria-label={t("folders.unassignedCount", { count: unassigned })}
+              onClick={() => onScope({ kind: "unassigned" })}
+            >
+              <span className="k-row-icon" aria-hidden="true">
+                <Inbox size={15} />
+              </span>
+              <span className="sidebar-label k-label">{t("folders.unassigned")}</span>
+              <span className="sidebar-count k-label">{unassigned}</span>
+            </button>
+          </FluidRow>
+        )}
+        <div role="tree" aria-label={t("folders.tree")} className="sidebar-folders">
+          {tree(directory.folders)}
+          {/* 放在顶层，或要放进的文件夹已不在树里时放在最后。 */}
+          {newParent !== undefined && (newParent === null || !inTree(directory.folders, newParent)) && newInput}
+        </div>
       </FluidList>
     </nav>
   );

@@ -11,7 +11,10 @@ import { fakeBackend } from "../test/backend";
 const decoded = vi.hoisted(() => [] as string[]);
 vi.mock("./prefetch", async (original) => ({
   ...(await original<typeof import("./prefetch")>()),
-  decodeThumbnail: (url: string) => { decoded.push(url); return Promise.resolve(); },
+  decodeThumbnail: (url: string) => {
+    decoded.push(url);
+    return Promise.resolve();
+  },
 }));
 
 beforeEach(() => {
@@ -20,19 +23,44 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1121 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  fakeBackend({ workspace_browse: () => workspacePage(Array.from({ length: 400 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 5) * 40 }))) });
+  fakeBackend({
+    workspace_browse: () =>
+      workspacePage(Array.from({ length: 400 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 5) * 40 }))),
+  });
 });
-afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 
-const props = { workspaceScope: { kind: "all" as const }, scope: { kind: "all" as const }, reloadKey: 0, selected: new Set<string>(),
-  onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false };
+const props = {
+  workspaceScope: { kind: "all" as const },
+  scope: { kind: "all" as const },
+  reloadKey: 0,
+  selected: new Set<string>(),
+  onSelectionChange: () => {},
+  onOpenImage: () => {},
+  viewerOpen: false,
+};
 
 async function setup() {
   let commits = 0;
-  const view = render(<Profiler id="wall" onRender={() => { commits += 1; }}><Wall {...props} /></Profiler>);
+  const view = render(
+    <Profiler
+      id="wall"
+      onRender={() => {
+        commits += 1;
+      }}
+    >
+      <Wall {...props} />
+    </Profiler>,
+  );
   await screen.findAllByRole("img");
   const wall = document.querySelector<HTMLElement>(".wall")!;
-  const scrollTo = (top: number) => { wall.scrollTop = top; fireEvent.scroll(wall); };
+  const scrollTo = (top: number) => {
+    wall.scrollTop = top;
+    fireEvent.scroll(wall);
+  };
   return { view, wall, scrollTo, commits: () => commits };
 }
 const mountedIds = () => [...document.querySelectorAll<HTMLElement>(".wall .card")].map((node) => node.dataset.id!);
@@ -95,10 +123,14 @@ it("鼠标滚轮：接管原生滚动，下一帧就动，平滑落在一格之�
   scrollTo(1000);
   vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance"] });
   expect(fireEvent.wheel(wall, { deltaY: 100, deltaMode: 0 })).toBe(false);
-  act(() => { vi.advanceTimersByTime(17); });
+  act(() => {
+    vi.advanceTimersByTime(17);
+  });
   expect(wall.scrollTop).toBeGreaterThan(1000);
   expect(wall.scrollTop).toBeLessThan(1100);
-  act(() => { vi.advanceTimersByTime(1500); });
+  act(() => {
+    vi.advanceTimersByTime(1500);
+  });
   expect(wall.scrollTop).toBe(1100);
 });
 
@@ -122,7 +154,9 @@ it("沿用的卡片元素仍按最新的选择处理拖动与 Ctrl 单击", asyn
   view.rerender(<Wall {...props} selected={new Set(["1", "2"])} onSelectionChange={onSelectionChange} />);
   expect(card("1")).toBe(first);
   const data = new Map<string, string>();
-  fireEvent.dragStart(card("1"), { dataTransfer: { setData: (type: string, value: string) => data.set(type, value), effectAllowed: "" } });
+  fireEvent.dragStart(card("1"), {
+    dataTransfer: { setData: (type: string, value: string) => data.set(type, value), effectAllowed: "" },
+  });
   expect(JSON.parse(data.get(DRAG_IMAGES)!).sort()).toEqual(["1", "2"]);
   fireEvent.click(card("3"), { ctrlKey: true });
   expect([...onSelectionChange.mock.lastCall![0]].sort()).toEqual(["1", "2", "3"]);

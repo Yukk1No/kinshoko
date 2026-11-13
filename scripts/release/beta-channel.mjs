@@ -58,10 +58,14 @@ function validate(tag, manifest, repo) {
 function checkClassification(version, prerelease) {
   const pre = version.includes("-");
   if (pre && !prerelease) {
-    throw new Error(`${version} 没有标为预发布：它可能已成为 GitHub 的 latest，正式版通道的画师会收到它。立即在 Release 页面勾上“Set as a pre-release”。`);
+    throw new Error(
+      `${version} 没有标为预发布：它可能已成为 GitHub 的 latest，正式版通道的画师会收到它。立即在 Release 页面勾上“Set as a pre-release”。`,
+    );
   }
   if (!pre && prerelease) {
-    throw new Error(`正式版 ${version} 标成了预发布：正式版通道收不到它。在 Release 页面取消“Set as a pre-release”并设为 latest，再转回草稿发布一次以写入测试版通道。`);
+    throw new Error(
+      `正式版 ${version} 标成了预发布：正式版通道收不到它。在 Release 页面取消“Set as a pre-release”并设为 latest，再转回草稿发布一次以写入测试版通道。`,
+    );
   }
 }
 
@@ -86,7 +90,9 @@ export function planBetaChannel({ tag, published, prerelease, current, repo }) {
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const [tag, repo, prerelease, publishedPath, currentPath] = process.argv.slice(2);
   if ((!publishedPath || !["true", "false"].includes(prerelease)) && tag !== CHANNEL_TAG) {
-    console.error("用法：node scripts/release/beta-channel.mjs <标签> <owner/repo> <是否预发布 true|false> <发布的 latest.json> [通道现有的 latest.json]");
+    console.error(
+      "用法：node scripts/release/beta-channel.mjs <标签> <owner/repo> <是否预发布 true|false> <发布的 latest.json> [通道现有的 latest.json]",
+    );
     process.exit(2);
   }
   const read = (path) => JSON.parse(readFileSync(path, "utf8"));

@@ -42,7 +42,8 @@ export default {
   packageCaptureMismatch: "截图 {{file}} 与清单记录不符",
   packageImageMissing: "缺少原图 {{file}}",
   packageImageMismatch: "原图 {{file}} 与清单记录不符",
-  packageImportStopped: "包导入已完成 {{done}} / {{total}} 项，第 {{number}} 项失败：{{cause}}。已写入内容保留；参考组尚未保存。",
+  packageImportStopped:
+    "包导入已完成 {{done}} / {{total}} 项，第 {{number}} 项失败：{{cause}}。已写入内容保留；参考组尚未保存。",
 
   importWriteFailed: "写入图库失败：{{cause}}",
   importTargetUnavailable: "保存目标不可用：{{cause}}",

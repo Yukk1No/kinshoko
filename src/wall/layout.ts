@@ -76,7 +76,16 @@ export function masonry(items: LayoutInput, o: LayoutOptions, trayInput: TrayInp
  * 托盘里的各页（第 5 版原型的齐行排法）：托盘从 `top` 开始，左右缩在墙的边距里；各页按页序从左到右排，
  * 行高以列宽为准，一行排不下时整行等比缩小到刚好排满，最后一行不撑满。返回托盘的底边。
  */
-function trayRows(items: LayoutInput, from: number, end: number, top: number, rowHeight: number, o: LayoutOptions, pad: number, boxes: Box[]) {
+function trayRows(
+  items: LayoutInput,
+  from: number,
+  end: number,
+  top: number,
+  rowHeight: number,
+  o: LayoutOptions,
+  pad: number,
+  boxes: Box[],
+) {
   const left = o.pad + pad;
   const room = Math.max(1, o.width - left * 2);
   const ratio = (item: LayoutInput[number]) => Math.min(item.h / item.w, o.capRatio ?? Infinity);
@@ -84,7 +93,7 @@ function trayRows(items: LayoutInput, from: number, end: number, top: number, ro
   let row: number[] = [];
   const flush = (fit: boolean) => {
     const natural = row.reduce((sum, page) => sum + rowHeight / ratio(items[page]), 0);
-    const h = fit ? rowHeight * (room - o.gap * (row.length - 1)) / natural : rowHeight;
+    const h = fit ? (rowHeight * (room - o.gap * (row.length - 1))) / natural : rowHeight;
     let x = left;
     for (const page of row) {
       const w = h / ratio(items[page]);
@@ -133,7 +142,10 @@ export function cardAt(layout: Layout, x: number, y: number): number {
     const dx = Math.max(b.x - x, 0, x - (b.x + b.w));
     const dy = Math.max(b.y - y, 0, y - (b.y + b.h));
     const distance = dx * dx + dy * dy;
-    if (distance < bestDistance) { best = i; bestDistance = distance; }
+    if (distance < bestDistance) {
+      best = i;
+      bestDistance = distance;
+    }
   }
   return best;
 }
@@ -159,11 +171,7 @@ export function captureAnchor(
   return { id: ids[best], delta: scrollTop - layout.boxes[best].y };
 }
 
-export function resolveAnchor(
-  layout: Layout,
-  ids: readonly string[],
-  anchor: Anchor | null,
-): number | null {
+export function resolveAnchor(layout: Layout, ids: readonly string[], anchor: Anchor | null): number | null {
   if (!anchor) return null;
   const i = ids.indexOf(anchor.id);
   if (i < 0) return null;

@@ -8,7 +8,6 @@ import { WorkspaceSources } from "./WorkspacePane";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import { fakeBackend } from "../test/backend";
 
-
 function detail(id: string): ImageDetail {
   return {
     id,
@@ -27,7 +26,13 @@ function detail(id: string): ImageDetail {
 }
 
 function tags(id: string): CatalogImageTags {
-  const tag = { id: `t-${id}`, namespace: "general" as const, name: `${id} 的标签`, untranslated: false, hasExternal: false };
+  const tag = {
+    id: `t-${id}`,
+    namespace: "general" as const,
+    name: `${id} 的标签`,
+    untranslated: false,
+    hasExternal: false,
+  };
   return { image: { imageId: id, tags: [{ tag, origins: [{ kind: "manual" }] }], rejected: [] }, identities: [] };
 }
 
@@ -45,10 +50,7 @@ function backend(answer: (cmd: string, id: string) => unknown = () => undefined)
 }
 
 function panel(id: string) {
-  return (
-    <SelectionPanel libraryId="L1" selected={new Set([id])}
-      onClear={() => {}} reloadKey={0} onError={() => {}} />
-  );
+  return <SelectionPanel libraryId="L1" selected={new Set([id])} onClear={() => {}} reloadKey={0} onError={() => {}} />;
 }
 
 it("连续切换选中图时，不读文件夹树", async () => {
@@ -78,7 +80,9 @@ function deferred() {
   const pending: Record<string, (value: unknown) => void> = {};
   const answer = (cmd: string, id: string) => {
     if (id === "a" || (cmd !== "image" && cmd !== "catalog_image_tags")) return undefined;
-    return new Promise((resolve) => { pending[`${cmd}/${id}`] = resolve; });
+    return new Promise((resolve) => {
+      pending[`${cmd}/${id}`] = resolve;
+    });
   };
   const finish = async (id: string) => {
     await act(async () => {
@@ -125,9 +129,17 @@ it("迟到的旧响应不会写进新选中的图", async () => {
 
 it("同一文件多份时与普通面板读同一套接口，各只发一次", async () => {
   const calls = backend();
-  const card: WorkspaceCard = { id: "same-bytes", width: 10, height: 10, adult: false, libraryId: "B", imageId: "b", sources: [
-    { libraryId: "B", libraryName: "移动盘参考", imageId: "b", matches: true, unavailable: null, deleted: false },
-  ] };
+  const card: WorkspaceCard = {
+    id: "same-bytes",
+    width: 10,
+    height: 10,
+    adult: false,
+    libraryId: "B",
+    imageId: "b",
+    sources: [
+      { libraryId: "B", libraryName: "移动盘参考", imageId: "b", matches: true, unavailable: null, deleted: false },
+    ],
+  };
   render(<WorkspaceSources card={card} onClose={() => {}} />);
   await screen.findByText("b.png");
   await screen.findByText("b 的标签");

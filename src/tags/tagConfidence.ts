@@ -56,7 +56,6 @@ export function tagStanding(origins: TagOrigin[]): TagStanding {
   return { kind: "model", score: scores.length ? Math.max(...scores) : null };
 }
 
-
 /** 浮层里一个出处的说明，例如“来源：打标模型 · 可信度 87%（高）”。 */
 export function originLine(origin: TagOrigin, thresholds: ConfidenceThresholds): string {
   if (origin.kind === "manual") return i18n.t("tags:origin.manual");
@@ -65,7 +64,10 @@ export function originLine(origin: TagOrigin, thresholds: ConfidenceThresholds):
   if (isModel(origin)) {
     return score === null
       ? i18n.t("tags:origin.model")
-      : i18n.t("tags:origin.modelScore", { percent: confidencePercent(score), band: i18n.t(`tags:origin.band.${confidenceBand(score, thresholds)}`) });
+      : i18n.t("tags:origin.modelScore", {
+          percent: confidencePercent(score),
+          band: i18n.t(`tags:origin.band.${confidenceBand(score, thresholds)}`),
+        });
   }
   if (source.startsWith("eagle:")) return i18n.t("tags:origin.eagle");
   if (source.startsWith("package:")) return i18n.t("tags:origin.package");

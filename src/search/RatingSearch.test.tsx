@@ -7,7 +7,13 @@ import type { TagLabel } from "../bindings/TagLabel";
 import { SearchBox } from "./SearchBox";
 import { fakeBackend } from "../test/backend";
 
-const shortHair: TagLabel = { id: "t-short", name: "短发", namespace: "general", untranslated: false, hasExternal: true };
+const shortHair: TagLabel = {
+  id: "t-short",
+  name: "短发",
+  namespace: "general",
+  untranslated: false,
+  hasExternal: true,
+};
 const r18: RatingCandidate = { rating: { ratings: ["questionable", "explicit"], r18: true }, via: null };
 const empty: SearchInput = { conditions: [], exact: false };
 
@@ -18,7 +24,12 @@ function backend(ratingCandidates: RatingCandidate[]) {
   });
 }
 
-function box(props: { input?: SearchInput; tree?: ConditionTree | null; safe?: boolean; onChange?: (input: SearchInput) => void }) {
+function box(props: {
+  input?: SearchInput;
+  tree?: ConditionTree | null;
+  safe?: boolean;
+  onChange?: (input: SearchInput) => void;
+}) {
   return render(
     <SearchBox
       libraryId="L1"
@@ -58,7 +69,10 @@ it("输入 R18 时下拉里有一个标明是分级的合并候选，点选后�
 it("分级候选可以放进上一个条件，作为“任一”", async () => {
   backend([r18]);
   const changes: SearchInput[] = [];
-  const input: SearchInput = { conditions: [{ any: [{ kind: "tag", id: shortHair.id, dismissed: [] }], negate: false }], exact: false };
+  const input: SearchInput = {
+    conditions: [{ any: [{ kind: "tag", id: shortHair.id, dismissed: [] }], negate: false }],
+    exact: false,
+  };
   box({ input, onChange: (value) => changes.push(value) });
   const field = screen.getByRole("combobox", { name: "查找参考图" });
   fireEvent.focus(field);

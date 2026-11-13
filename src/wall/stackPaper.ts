@@ -35,7 +35,7 @@ function rnd(n: number) {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
-const deg = (rad: number) => rad * 180 / Math.PI;
+const deg = (rad: number) => (rad * 180) / Math.PI;
 
 /**
  * 封面下的各层，从最下层排到紧贴封面的那层。`pages` 是各页的尺寸（第一页是封面），`face` 是封面在格子里的尺寸，
@@ -60,7 +60,9 @@ export function stackPaper(key: string, pages: readonly Size[], face: Size, px =
     const restEdge = (2.4 + 1.4 * k) * amount * unit;
     const hotEdge = (5 + 3 * k) * amount * unit;
     sheets.push({
-      page: k, w, h,
+      page: k,
+      w,
+      h,
       rest: { x: sign * 0.4 * k * unit, y: 0.5 * k * unit, r: sign * deg(restEdge / half) },
       hot: { x: sign * (1 + 1.2 * k) * unit, y: (-1 - 0.8 * k) * unit, r: sign * deg(hotEdge / half) },
     });
@@ -72,11 +74,19 @@ export function stackPaper(key: string, pages: readonly Size[], face: Size, px =
 function restReach(sheets: Sheet[], face: Size) {
   let reach = 0;
   for (const s of sheets) {
-    const cx = s.w / 2 + s.rest.x, cy = s.h / 2 + s.rest.y;
-    const a = s.rest.r * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a);
-    for (const [dx, dy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-      const x = cx + (dx * s.w / 2) * cos - (dy * s.h / 2) * sin;
-      const y = cy + (dx * s.w / 2) * sin + (dy * s.h / 2) * cos;
+    const cx = s.w / 2 + s.rest.x,
+      cy = s.h / 2 + s.rest.y;
+    const a = (s.rest.r * Math.PI) / 180,
+      cos = Math.cos(a),
+      sin = Math.sin(a);
+    for (const [dx, dy] of [
+      [-1, -1],
+      [1, -1],
+      [1, 1],
+      [-1, 1],
+    ]) {
+      const x = cx + ((dx * s.w) / 2) * cos - ((dy * s.h) / 2) * sin;
+      const y = cy + ((dx * s.w) / 2) * sin + ((dy * s.h) / 2) * cos;
       reach = Math.max(reach, -x, -y, x - face.w, y - face.h);
     }
   }
@@ -88,7 +98,13 @@ function restReach(sheets: Sheet[], face: Size) {
  * `boxWidth` 是格子宽（列宽），封面高按封面比例（不超过 `capRatio`）算，与瀑布流的算法一致。
  * 纸边随封面宽度变化，封面宽又取决于内缩，所以迭代到收敛，取最后两次里较大的那个（偏安全）。
  */
-export function stackInset(key: string, pages: readonly Size[], boxWidth: number, capRatio: number | null, px = 1): number {
+export function stackInset(
+  key: string,
+  pages: readonly Size[],
+  boxWidth: number,
+  capRatio: number | null,
+  px = 1,
+): number {
   const ratio = Math.min(pages[0].h / pages[0].w, capRatio ?? Infinity);
   const need = (inset: number) => {
     const w = Math.max(1, boxWidth - inset * 2);

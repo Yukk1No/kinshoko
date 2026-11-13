@@ -3,8 +3,18 @@
  * 圆形按钮（左边在 cornerLeft）不到 gap 时整体左移，刚好隔开 gap，但左边至少留 margin；还放不下就
  * 隐藏圆形按钮，悬浮栏回到居中（比悬浮栏还窄时贴左边）。
  */
-export function selectionBarPlacement({ wallWidth, barWidth, cornerLeft, gap = 8, margin = 16 }: {
-  wallWidth: number; barWidth: number; cornerLeft: number; gap?: number; margin?: number;
+export function selectionBarPlacement({
+  wallWidth,
+  barWidth,
+  cornerLeft,
+  gap = 8,
+  margin = 16,
+}: {
+  wallWidth: number;
+  barWidth: number;
+  cornerLeft: number;
+  gap?: number;
+  margin?: number;
 }): { left: number; hideCorner: boolean } {
   const centred = (wallWidth - barWidth) / 2;
   const limit = cornerLeft - gap - barWidth;
@@ -16,7 +26,17 @@ export function selectionBarPlacement({ wallWidth, barWidth, cornerLeft, gap = 8
 /**
  * 圆形按钮形变为滑条时（#452）向左长 grow：左边离悬浮栏右缘不到 gap 就改为向上升起，不盖住悬浮栏。
  */
-export function densityMorphRises({ barRight, cornerLeft, grow, gap = 8 }: { barRight: number; cornerLeft: number; grow: number; gap?: number }) {
+export function densityMorphRises({
+  barRight,
+  cornerLeft,
+  grow,
+  gap = 8,
+}: {
+  barRight: number;
+  cornerLeft: number;
+  grow: number;
+  gap?: number;
+}) {
   return cornerLeft - grow - gap < barRight;
 }
 

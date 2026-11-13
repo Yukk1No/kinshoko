@@ -82,7 +82,10 @@ export function createSmoothWheel(el: HTMLElement, o: SmoothWheelOptions) {
   const step = (t: number) => {
     frame = 0;
     if (!spring) return;
-    if (Math.abs(el.scrollTop - written) > 1.5) { spring = null; return; }
+    if (Math.abs(el.scrollTop - written) > 1.5) {
+      spring = null;
+      return;
+    }
     spring = springStep(spring, fresh ? Math.max(t - last, 1000 / 60) : Math.max(1, t - last));
     fresh = false;
     last = t;
@@ -108,7 +111,8 @@ export function createSmoothWheel(el: HTMLElement, o: SmoothWheelOptions) {
       return;
     }
     e.preventDefault();
-    const delta = e.deltaMode === 1 ? e.deltaY * LINE_PX : e.deltaMode === 2 ? e.deltaY * el.clientHeight * 0.875 : e.deltaY;
+    const delta =
+      e.deltaMode === 1 ? e.deltaY * LINE_PX : e.deltaMode === 2 ? e.deltaY * el.clientHeight * 0.875 : e.deltaY;
     // 静止或被别处滚动过：从当前位置起步。
     if (!spring || Math.abs(el.scrollTop - written) > 1.5) {
       spring = { position: el.scrollTop, velocity: 0, target: el.scrollTop };
@@ -119,8 +123,13 @@ export function createSmoothWheel(el: HTMLElement, o: SmoothWheelOptions) {
     spring = clamp(addNotch(spring, delta));
     if (!frame) frame = raf(step);
   };
-  const press = () => { pressed = true; stop(); };
-  const release = () => { pressed = false; };
+  const press = () => {
+    pressed = true;
+    stop();
+  };
+  const release = () => {
+    pressed = false;
+  };
 
   el.addEventListener("wheel", wheel, { passive: false });
   el.addEventListener("pointerdown", press);

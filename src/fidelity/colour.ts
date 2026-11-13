@@ -23,7 +23,7 @@ const mul = (m: number[][], v: number[]) => m.map((row) => row[0] * v[0] + row[1
 /** display-p3 编码值（0～1）→ Lab（D50）。 */
 export function p3ToLab([r, g, b]: [number, number, number]): Lab {
   const xyz = mul(D65_TO_D50, mul(P3_TO_XYZ_D65, [r, g, b].map(srgbEotf)));
-  const f = (t: number) => (t > 216 / 24389 ? Math.cbrt(t) : (24389 / 27 * t + 16) / 116);
+  const f = (t: number) => (t > 216 / 24389 ? Math.cbrt(t) : ((24389 / 27) * t + 16) / 116);
   const [fx, fy, fz] = xyz.map((v, i) => f(v / WHITE_D50[i]));
   return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
 }
@@ -91,11 +91,7 @@ export interface PatchMean {
 }
 
 /** 像素区域的平均编码值与 alpha（0～1）。`scale` 把原图坐标换算到这张图。 */
-export function patchMean(
-  data: { width: number; data: ArrayLike<number> },
-  rect: Rect,
-  scale = 1,
-): PatchMean {
+export function patchMean(data: { width: number; data: ArrayLike<number> }, rect: Rect, scale = 1): PatchMean {
   const x0 = Math.ceil(rect.x * scale);
   const y0 = Math.ceil(rect.y * scale);
   const x1 = Math.floor((rect.x + rect.width) * scale);

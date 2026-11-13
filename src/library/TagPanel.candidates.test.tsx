@@ -11,7 +11,10 @@ it("已经有的标签排在前面时，仍列满其余匹配的标签", async (
   const others = Array.from({ length: 9 }, (_, i) => tag(`t-${i}`, `猫${i}`));
   const limits: number[] = [];
   fakeBackend({
-    catalog_image_tags: { image: { imageId: "a", rejected: [], tags: assigned.map((t) => ({ tag: t, origins: [{ kind: "manual" }] })) }, identities: [] },
+    catalog_image_tags: {
+      image: { imageId: "a", rejected: [], tags: assigned.map((t) => ({ tag: t, origins: [{ kind: "manual" }] })) },
+      identities: [],
+    },
     workspace_library_candidates: (args) => {
       const { limit } = args as { limit: number };
       limits.push(limit);
@@ -26,7 +29,9 @@ it("已经有的标签排在前面时，仍列满其余匹配的标签", async (
 
   const list = await screen.findByRole("listbox", { name: "标签名" });
   await within(list).findByRole("option", { name: /猫7/ });
-  const names = within(list).getAllByRole("option").map((o) => o.textContent);
+  const names = within(list)
+    .getAllByRole("option")
+    .map((o) => o.textContent);
   expect(names.filter((n) => /猫耳|猫尾/.test(n ?? ""))).toEqual([]);
   expect(names.filter((n) => /^猫\d/.test(n ?? ""))).toHaveLength(8);
   expect(limits.at(-1)).toBe(10);
@@ -42,9 +47,14 @@ describe("添加标签的输入框", () => {
       workspace_library_candidates: (args) => {
         const { text, limit } = args as { text: string; limit: number };
         limits.push(limit);
-        return [tag("t-cat", "猫"), { ...tag("t-artist", "某某"), namespace: "artist" }].filter((t) => t.name.includes(text.trim())).map((t) => ({ tag: t, via: null, count: 3 }));
+        return [tag("t-cat", "猫"), { ...tag("t-artist", "某某"), namespace: "artist" }]
+          .filter((t) => t.name.includes(text.trim()))
+          .map((t) => ({ tag: t, via: null, count: 3 }));
       },
-      edit_tags: (args) => { edits.push((args as { edits: unknown[] }).edits[0]); return null; },
+      edit_tags: (args) => {
+        edits.push((args as { edits: unknown[] }).edits[0]);
+        return null;
+      },
     });
     render(<TagPanel libraryId="L1" ids={ids} safe={false} generation={0} onError={() => {}} />);
     const input = screen.getByRole("combobox", { name: "标签名" });
@@ -83,7 +93,11 @@ describe("添加标签的输入框", () => {
     const list = await type("眼镜");
     const row = await within(list).findByRole("option", { name: /^新建“眼镜”/ });
     fireEvent.click(within(row).getByRole("button", { name: "把“眼镜”改回自动" }));
-    await waitFor(() => expect(edits).toEqual([{ kind: "clear", tag: { kind: "named", namespace: "general", name: "眼镜", lang: "zh-CN" } }]));
+    await waitFor(() =>
+      expect(edits).toEqual([
+        { kind: "clear", tag: { kind: "named", namespace: "general", name: "眼镜", lang: "zh-CN" } },
+      ]),
+    );
   });
 
   it("键盘：Shift+回车改回自动，候选行与新建项都可以", async () => {
@@ -94,7 +108,10 @@ describe("添加标签的输入框", () => {
     await within(await type("眼镜")).findByRole("option", { name: /^新建“眼镜”/ });
     fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
     await waitFor(() => expect(edits).toHaveLength(2));
-    expect(edits[1]).toEqual({ kind: "clear", tag: { kind: "named", namespace: "general", name: "眼镜", lang: "zh-CN" } });
+    expect(edits[1]).toEqual({
+      kind: "clear",
+      tag: { kind: "named", namespace: "general", name: "眼镜", lang: "zh-CN" },
+    });
   });
 
   it("写了类别前缀时多取候选再按类别筛，不被别的类别挤掉", async () => {
@@ -111,7 +128,11 @@ describe("添加标签的输入框", () => {
     const row = await within(list).findByRole("option", { name: /^新建“新人”/ });
     expect(within(row).getByRole("radio", { checked: true }).textContent).toBe("作者");
     fireEvent.click(row);
-    await waitFor(() => expect(edits).toEqual([{ kind: "add", tag: { kind: "named", namespace: "artist", name: "新人", lang: "zh-CN" } }]));
+    await waitFor(() =>
+      expect(edits).toEqual([
+        { kind: "add", tag: { kind: "named", namespace: "artist", name: "新人", lang: "zh-CN" } },
+      ]),
+    );
 
     // 写了“作者：某某”就是已有的作者标签，不给新建项；不写类别时一般的“某某”可以新建。
     list = await type("作者:某某");
@@ -128,5 +149,8 @@ it("parseTyped 认全角、半角冒号，不分大小写；不写类别时原�
   expect(parseTyped(" 角色：初音 ", prefix)).toEqual({ namespace: "character", name: "初音" });
   expect(parseTyped("作品:某作", prefix)).toEqual({ namespace: "work", name: "某作" });
   expect(parseTyped("作者", prefix)).toEqual({ namespace: null, name: "作者" });
-  expect(parseTyped("artist: X", (ns) => (ns === "artist" ? "Artist: " : ""))).toEqual({ namespace: "artist", name: "X" });
+  expect(parseTyped("artist: X", (ns) => (ns === "artist" ? "Artist: " : ""))).toEqual({
+    namespace: "artist",
+    name: "X",
+  });
 });

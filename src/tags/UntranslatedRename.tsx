@@ -43,49 +43,102 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
     if (busy && !next) return;
     setOpen(next);
     onOpenChange?.(next);
-    if (next) { setDraft(""); setError(null); }
+    if (next) {
+      setDraft("");
+      setError(null);
+    }
   };
   useEffect(() => {
     if (!open) return;
     let alive = true;
     // 只为重名提示读一次目录；读不到时不提示，照样能保存。
-    inspectTagCatalog().then((workspace) => alive && setOthers(workspace.catalog.tags.filter((entry) => entry.id !== catalogId)), () => {});
-    return () => { alive = false; };
+    inspectTagCatalog().then(
+      (workspace) => alive && setOthers(workspace.catalog.tags.filter((entry) => entry.id !== catalogId)),
+      () => {},
+    );
+    return () => {
+      alive = false;
+    };
   }, [open, catalogId]);
   const text = draft.trim();
-  const duplicate = text !== "" && others.some((entry) => entry.namespace === tag.namespace && currentName(entry, lang) === text);
+  const duplicate =
+    text !== "" && others.some((entry) => entry.namespace === tag.namespace && currentName(entry, lang) === text);
   const save = () => {
     if (!text || busy) return;
-    setBusy(true); setError(null);
+    setBusy(true);
+    setError(null);
     editTagName(catalogId, { kind: "prefer", name: { lang, name: text } }).then(
-      () => { setBusy(false); setOpen(false); onOpenChange?.(false); onSaved(); },
-      (reason) => { setBusy(false); setError(errorText(reason)); },
+      () => {
+        setBusy(false);
+        setOpen(false);
+        onOpenChange?.(false);
+        onSaved();
+      },
+      (reason) => {
+        setBusy(false);
+        setError(errorText(reason));
+      },
     );
   };
   return (
     <Popover.Root open={open} onOpenChange={change}>
-      <Tip label={t("trigger")}><Popover.Trigger className="untranslated is-action" aria-label={t("label", { name })} {...contained}>
-        <Languages size={12} aria-hidden="true" />
-      </Popover.Trigger></Tip>
+      <Tip label={t("trigger")}>
+        <Popover.Trigger className="untranslated is-action" aria-label={t("label", { name })} {...contained}>
+          <Languages size={12} aria-hidden="true" />
+        </Popover.Trigger>
+      </Tip>
       <Popover.Portal>
         <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={6}>
           <Popover.Popup className="k-popup k-rename" {...contained}>
-            <form onSubmit={(event) => { event.preventDefault(); save(); }}>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                save();
+              }}
+            >
               <Popover.Title className="k-rename-title">{t("title", { name })}</Popover.Title>
               <label className="k-field">
                 <span className="k-field-label">{t("field")}</span>
-                <input className="k-input" autoFocus value={draft} disabled={busy}
-                  onChange={(event) => setDraft(event.target.value)} />
+                <input
+                  className="k-input"
+                  autoFocus
+                  value={draft}
+                  disabled={busy}
+                  onChange={(event) => setDraft(event.target.value)}
+                />
               </label>
-              {duplicate && <p className="k-list-desc is-warn" role="status"><WarnIcon />{t("duplicate", { name: text })}</p>}
+              {duplicate && (
+                <p className="k-list-desc is-warn" role="status">
+                  <WarnIcon />
+                  {t("duplicate", { name: text })}
+                </p>
+              )}
               <Popover.Description className="k-set-note">{t("hint")}</Popover.Description>
-              {error && <p className="k-set-error" role="alert">{error}</p>}
+              {error && (
+                <p className="k-set-error" role="alert">
+                  {error}
+                </p>
+              )}
               <div className="k-rename-acts">
-                <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => change(false)}><span className="k-label">{t("cancel")}</span></button>
-                <button type="submit" className="k-btn is-sm is-primary" disabled={busy || !text}><span className="k-label">{t("save")}</span></button>
+                <button type="button" className="k-btn is-sm" disabled={busy} onClick={() => change(false)}>
+                  <span className="k-label">{t("cancel")}</span>
+                </button>
+                <button type="submit" className="k-btn is-sm is-primary" disabled={busy || !text}>
+                  <span className="k-label">{t("save")}</span>
+                </button>
               </div>
-              {openSettings && <button type="button" className="k-link k-rename-more"
-                onClick={() => { change(false); openSettings(catalogId); }}>{t("manage", { name })}</button>}
+              {openSettings && (
+                <button
+                  type="button"
+                  className="k-link k-rename-more"
+                  onClick={() => {
+                    change(false);
+                    openSettings(catalogId);
+                  }}
+                >
+                  {t("manage", { name })}
+                </button>
+              )}
             </form>
           </Popover.Popup>
         </Popover.Positioner>

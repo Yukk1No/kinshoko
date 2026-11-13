@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { INSPECTOR_BUDGET_MS, inspectorShows, measureSelections, summarizeSelections } from "./inspector";
 import type { ProbeEnv } from "./frameProbe";
 
-afterEach(() => { document.body.innerHTML = ""; });
+afterEach(() => {
+  document.body.innerHTML = "";
+});
 
 /** 详情面板的样子：标明的选择、详情、标签面板；busy 表示还留着上一张的。 */
 function inspector({ id = "a", busy = false, detail = true, tags = true } = {}) {
@@ -32,7 +34,16 @@ describe("inspectorShows：面板标明的选择、详情、标签都是这张�
 
 it("summarizeSelections：分位数与合格线", () => {
   const report = summarizeSelections([30, 50, 120, 40], { timedOut: 0, skipped: 1 });
-  expect(report).toMatchObject({ measured: 4, p50: 40, p95: 120, max: 120, overBudget: 1, skipped: 1, budgetMs: INSPECTOR_BUDGET_MS, pass: false });
+  expect(report).toMatchObject({
+    measured: 4,
+    p50: 40,
+    p95: 120,
+    max: 120,
+    overBudget: 1,
+    skipped: 1,
+    budgetMs: INSPECTOR_BUDGET_MS,
+    pass: false,
+  });
   expect(summarizeSelections([30, 50], { timedOut: 0, skipped: 0 }).pass).toBe(true);
   expect(summarizeSelections([30], { timedOut: 1, skipped: 0 }).pass).toBe(false);
 });
@@ -42,7 +53,10 @@ it("measureSelections：逐张点选，记下点到详情面板显示完的时�
   const frames: FrameRequestCallback[] = [];
   const env: ProbeEnv = {
     now: () => time,
-    raf: (cb) => { frames.push(cb); return frames.length; },
+    raf: (cb) => {
+      frames.push(cb);
+      return frames.length;
+    },
     caf: () => {},
     observe: () => ({ types: [], disconnect: () => {} }),
   };

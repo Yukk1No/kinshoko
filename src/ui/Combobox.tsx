@@ -80,8 +80,29 @@ type Props<T extends ComboboxOption> = {
  * 最多约 8 行，超出滚动。获得焦点或打字时展开；↑↓ 移动高亮，Enter 选中并收起，Esc 与 Tab 收起。
  */
 export function Combobox<T extends ComboboxOption>({
-  value, onValueChange, options, onSelect, label, empty, autoHighlight = true, onBackspaceEmpty, onKeyDown,
-  bare, anchor, leading, inline, embedded, invalid, className = "", inputRef, placeholder, disabled, autoFocus, id, onFocus, onBlur,
+  value,
+  onValueChange,
+  options,
+  onSelect,
+  label,
+  empty,
+  autoHighlight = true,
+  onBackspaceEmpty,
+  onKeyDown,
+  bare,
+  anchor,
+  leading,
+  inline,
+  embedded,
+  invalid,
+  className = "",
+  inputRef,
+  placeholder,
+  disabled,
+  autoFocus,
+  id,
+  onFocus,
+  onBlur,
 }: Props<T>) {
   const base = useId();
   const listId = `${base}-list`;
@@ -129,7 +150,10 @@ export function Combobox<T extends ComboboxOption>({
       case "ArrowUp": {
         if (!n) return;
         event.preventDefault();
-        if (!shown) { setOpen(true); return; }
+        if (!shown) {
+          setOpen(true);
+          return;
+        }
         const step = event.key === "ArrowDown" ? 1 : -1;
         setActive(current < 0 ? (step > 0 ? 0 : n - 1) : (current + step + n) % n);
         return;
@@ -141,7 +165,11 @@ export function Combobox<T extends ComboboxOption>({
         }
         return;
       case "Escape":
-        if (shown) { event.preventDefault(); event.stopPropagation(); setOpen(false); }
+        if (shown) {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen(false);
+        }
         return;
       case "Tab":
         setOpen(false);
@@ -152,61 +180,146 @@ export function Combobox<T extends ComboboxOption>({
     }
   };
 
-  const input = <input
-    ref={field} id={id} role="combobox" aria-label={label} aria-autocomplete="list" aria-expanded={shown}
-    aria-controls={shown ? listId : undefined} aria-activedescendant={shown && current >= 0 ? optionId(current) : undefined}
-    autoComplete="off" spellCheck={false} placeholder={placeholder} disabled={disabled} autoFocus={autoFocus}
-    value={value}
-    onChange={(event) => { onValueChange(event.target.value); setOpen(true); }}
-    onKeyDown={keyDown}
-    onFocus={(event) => { setOpen(true); onFocus?.(event); }}
-    onBlur={(event) => { setOpen(false); onBlur?.(event); }}
-  />;
+  const input = (
+    <input
+      ref={field}
+      id={id}
+      role="combobox"
+      aria-label={label}
+      aria-autocomplete="list"
+      aria-expanded={shown}
+      aria-controls={shown ? listId : undefined}
+      aria-activedescendant={shown && current >= 0 ? optionId(current) : undefined}
+      autoComplete="off"
+      spellCheck={false}
+      placeholder={placeholder}
+      disabled={disabled}
+      autoFocus={autoFocus}
+      value={value}
+      onChange={(event) => {
+        onValueChange(event.target.value);
+        setOpen(true);
+      }}
+      onKeyDown={keyDown}
+      onFocus={(event) => {
+        setOpen(true);
+        onFocus?.(event);
+      }}
+      onBlur={(event) => {
+        setOpen(false);
+        onBlur?.(event);
+      }}
+    />
+  );
 
   let group: string | undefined;
   const rows = options.map((option, i) => {
     const heading = option.group !== undefined && option.group !== group ? option.group : null;
     group = option.group;
-    return <Fragment key={option.id}>
-      {heading !== null && <div className="k-menu-label" role="presentation">{heading}</div>}
-      {option.create && (i > 0 || showEmpty) && <div className="k-sep" role="separator" />}
-      <div id={optionId(i)} role="option" aria-selected={i === current}
-        className={`k-item k-option${option.create ? " is-create" : ""}`} data-highlighted={i === current ? "" : undefined}
-        onMouseMove={() => i !== current && setActive(i)}
-        onClick={(event) => pick(option, event)}>
-        <span className="k-item-ind" aria-hidden="true">{option.create ? <Plus size={16} /> : option.icon}</span>
-        <span className="k-item-label">{option.label}</span>
-        {option.untranslated && <Tip label={i18n.t("tags:untranslatedFlag")}><span className="k-option-flag" role="img" aria-label={i18n.t("tags:untranslatedFlag")}><Languages size={14} aria-hidden="true" /></span></Tip>}
-        {option.via && <span className="k-option-via">{option.via}</span>}
-        {option.meta !== undefined && option.meta !== null && <span className="k-item-meta">{option.meta}</span>}
-        {option.actions && <span className="k-option-acts" onClick={(event) => event.stopPropagation()}>{option.actions}</span>}
-      </div>
-    </Fragment>;
+    return (
+      <Fragment key={option.id}>
+        {heading !== null && (
+          <div className="k-menu-label" role="presentation">
+            {heading}
+          </div>
+        )}
+        {option.create && (i > 0 || showEmpty) && <div className="k-sep" role="separator" />}
+        <div
+          id={optionId(i)}
+          role="option"
+          aria-selected={i === current}
+          className={`k-item k-option${option.create ? " is-create" : ""}`}
+          data-highlighted={i === current ? "" : undefined}
+          onMouseMove={() => i !== current && setActive(i)}
+          onClick={(event) => pick(option, event)}
+        >
+          <span className="k-item-ind" aria-hidden="true">
+            {option.create ? <Plus size={16} /> : option.icon}
+          </span>
+          <span className="k-item-label">{option.label}</span>
+          {option.untranslated && (
+            <Tip label={i18n.t("tags:untranslatedFlag")}>
+              <span className="k-option-flag" role="img" aria-label={i18n.t("tags:untranslatedFlag")}>
+                <Languages size={14} aria-hidden="true" />
+              </span>
+            </Tip>
+          )}
+          {option.via && <span className="k-option-via">{option.via}</span>}
+          {option.meta !== undefined && option.meta !== null && <span className="k-item-meta">{option.meta}</span>}
+          {option.actions && (
+            <span className="k-option-acts" onClick={(event) => event.stopPropagation()}>
+              {option.actions}
+            </span>
+          )}
+        </div>
+      </Fragment>
+    );
   });
 
   // 收起时浮层还要淡出一会儿：这期间留着收起前的内容，不闪出一个空浮层。
-  const content = <>
-    {showEmpty && options.every((o) => o.create) && <div className="k-option-empty">{empty}</div>}
-    {rows}
-  </>;
+  const content = (
+    <>
+      {showEmpty && options.every((o) => o.create) && <div className="k-option-empty">{empty}</div>}
+      {rows}
+    </>
+  );
   const last = useRef(content);
   if (shown) last.current = content;
 
-  return <div ref={box} className={`k-combo${bare ? " is-bare" : ""} ${bare ? className : ""}`}>
-    {bare ? input : <div className={`k-input${inline ? " is-inline" : ""} ${className}`} data-disabled={disabled || undefined} data-invalid={invalid || undefined}>
-      {leading}{input}
-    </div>}
-    {embedded ? shown && <div ref={list} id={listId} role="listbox" aria-label={label} className="k-listbox is-embedded"
-      onMouseDown={(event) => event.preventDefault()}>{content}</div> : <Popover.Root open={shown} modal={false}>
-      <Popover.Portal>
-        <Popover.Positioner className="k-positioner is-field" anchor={anchor ?? box} side="bottom" align="start" sideOffset={4}>
-          <Popover.Popup ref={list} id={listId} role="listbox" aria-label={label} className="k-popup k-listbox" initialFocus={false} finalFocus={false}
-            // 点选时不让输入框失去焦点，列表不会先收起。
-            onMouseDown={(event) => event.preventDefault()}>
-            {shown ? content : last.current}
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>}
-  </div>;
+  return (
+    <div ref={box} className={`k-combo${bare ? " is-bare" : ""} ${bare ? className : ""}`}>
+      {bare ? (
+        input
+      ) : (
+        <div
+          className={`k-input${inline ? " is-inline" : ""} ${className}`}
+          data-disabled={disabled || undefined}
+          data-invalid={invalid || undefined}
+        >
+          {leading}
+          {input}
+        </div>
+      )}
+      {embedded ? (
+        shown && (
+          <div
+            ref={list}
+            id={listId}
+            role="listbox"
+            aria-label={label}
+            className="k-listbox is-embedded"
+            onMouseDown={(event) => event.preventDefault()}
+          >
+            {content}
+          </div>
+        )
+      ) : (
+        <Popover.Root open={shown} modal={false}>
+          <Popover.Portal>
+            <Popover.Positioner
+              className="k-positioner is-field"
+              anchor={anchor ?? box}
+              side="bottom"
+              align="start"
+              sideOffset={4}
+            >
+              <Popover.Popup
+                ref={list}
+                id={listId}
+                role="listbox"
+                aria-label={label}
+                className="k-popup k-listbox"
+                initialFocus={false}
+                finalFocus={false}
+                // 点选时不让输入框失去焦点，列表不会先收起。
+                onMouseDown={(event) => event.preventDefault()}
+              >
+                {shown ? content : last.current}
+              </Popover.Popup>
+            </Popover.Positioner>
+          </Popover.Portal>
+        </Popover.Root>
+      )}
+    </div>
+  );
 }

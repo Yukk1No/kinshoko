@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { App } from "./App";
-import { library, clean, backend, sent, selectionPanel, push, importAction, libraryAction, openLibrary, confirmImport } from "./App.fixtures";
+import {
+  library,
+  clean,
+  backend,
+  sent,
+  selectionPanel,
+  push,
+  importAction,
+  libraryAction,
+  openLibrary,
+  confirmImport,
+} from "./App.fixtures";
 
 describe("主窗口", () => {
   it("打开另一个图库不动选择和进行中的导入（ADR-0008）", async () => {
@@ -32,17 +43,24 @@ describe("主窗口", () => {
     await confirmImport();
     await waitFor(() => expect(sent("start_import")).toHaveLength(1));
     await push({ kind: "taskProgress", libraryId: "L1", taskId: "T1", progress: { done: 1, total: 2 } });
-    const finish = () => push({
-      kind: "taskFinished",
-      libraryId: "L1",
-      taskId: "T1",
-      report: {
-        cancelled: false,
-        fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
-        eagleRelocations: [],
-        items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } }],
-      },
-    });
+    const finish = () =>
+      push({
+        kind: "taskFinished",
+        libraryId: "L1",
+        taskId: "T1",
+        report: {
+          cancelled: false,
+          fromEagle: false,
+          sealedDuplicates: false,
+          privateSummary: false,
+          trashDuplicates: false,
+          eagleMissing: 0,
+          eagleRelocations: [],
+          items: [
+            { path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } },
+          ],
+        },
+      });
     if (stage === "已结束") await finish();
 
     await libraryAction(/新建图库/);
@@ -60,10 +78,22 @@ describe("主窗口", () => {
     expect(screen.getByText("D:\\参考\\坏.png")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "重试失败的 1 项" }));
     await confirmImport();
-    await waitFor(() => expect(sent("start_import")).toEqual([
-      { libraryId: "L1", source: { paths: ["D:\\参考"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
-      { libraryId: "L1", source: { paths: ["D:\\参考\\坏.png"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
-    ]));
+    await waitFor(() =>
+      expect(sent("start_import")).toEqual([
+        {
+          libraryId: "L1",
+          source: { paths: ["D:\\参考"] },
+          options: { eagleDeletedContent: "skipDeleted" },
+          destination: { libraryId: "L1", folderId: null },
+        },
+        {
+          libraryId: "L1",
+          source: { paths: ["D:\\参考\\坏.png"] },
+          options: { eagleDeletedContent: "skipDeleted" },
+          destination: { libraryId: "L1", folderId: null },
+        },
+      ]),
+    );
   });
 
   it.each([
@@ -85,8 +115,14 @@ describe("主窗口", () => {
       report: {
         cancelled: false,
         items: [],
-        fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0,
-        eagleRelocations: [{ sourceId: "S1", from: "D:\\旧\\主库.library", to: "E:\\新\\主库.library", overlapPercent: 100 }],
+        fromEagle: false,
+        sealedDuplicates: false,
+        privateSummary: false,
+        trashDuplicates: false,
+        eagleMissing: 0,
+        eagleRelocations: [
+          { sourceId: "S1", from: "D:\\旧\\主库.library", to: "E:\\新\\主库.library", overlapPercent: 100 },
+        ],
       },
     });
 
@@ -95,14 +131,12 @@ describe("主窗口", () => {
     fireEvent.click(within(prompt).getByRole("button", { name: button }));
     fireEvent.click(await screen.findByRole("button", { name: "开始导入" }));
     await waitFor(() => expect(sent("start_import")).toHaveLength(2));
-    expect(sent("confirm_eagle_location")).toEqual([
-      { libraryId: "L1", path: "E:\\新\\主库.library", choice },
-    ]);
+    expect(sent("confirm_eagle_location")).toEqual([{ libraryId: "L1", path: "E:\\新\\主库.library", choice }]);
     expect(sent("start_import").at(-1)).toEqual({
       libraryId: "L1",
       source: { paths: ["E:\\新\\主库.library"] },
       options: { eagleDeletedContent: "skipDeleted" },
-      destination:{libraryId:"L1",folderId:null},
+      destination: { libraryId: "L1", folderId: null },
     });
     expect(screen.queryByRole("alert", { name: "Eagle 库换了位置？" })).toBeNull();
   });
@@ -130,7 +164,9 @@ describe("主窗口", () => {
   it("选择导入文件的对话框等待期间打开另一个图库，迟到的选择也要先确认保存位置", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
     let resolvePick!: (paths: string[]) => void;
-    const picked = new Promise<string[]>((resolve) => { resolvePick = resolve; });
+    const picked = new Promise<string[]>((resolve) => {
+      resolvePick = resolve;
+    });
     backend(library, clean, {
       registered_libraries: () => [library, other].map((library) => ({ library, unavailable: null })),
       pick_files: () => picked,
@@ -150,7 +186,8 @@ describe("主窗口", () => {
     const unavailable = { code: "system" as const, detail: reason };
     backend(library, clean, {
       registered_libraries: () => [
-        { library, unavailable: null }, { library: other, unavailable },
+        { library, unavailable: null },
+        { library: other, unavailable },
       ],
     });
     render(<App />);
@@ -201,14 +238,14 @@ describe("主窗口", () => {
     });
     expect((screen.getByRole("button", { name: "新建图库" }) as HTMLButtonElement).disabled).toBe(true);
     window.__KINSHOKO_TEST_PICKS__ = ["D:\\参考"];
-    fireEvent.click(within(screen.getByRole("group", { name: "存放位置" })).getByRole("button", { name: "选择存放位置…" }));
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "存放位置" })).getByRole("button", { name: "选择存放位置…" }),
+    );
     expect(await screen.findByText("D:\\参考\\工作参考")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "新建图库" }));
 
     expect(await screen.findByRole("button", { name: "工作参考（2 张）" })).toBeTruthy();
-    expect(sent("create_library")).toEqual([
-      { parent: "D:\\参考", name: "工作参考" },
-    ]);
+    expect(sent("create_library")).toEqual([{ parent: "D:\\参考", name: "工作参考" }]);
   });
 
   it("没有图库时新建图库预填系统的图片文件夹", async () => {
@@ -217,9 +254,9 @@ describe("主窗口", () => {
     fireEvent.click(await screen.findByRole("button", { name: "新建图库" }));
     expect(await screen.findByText("C:\\Users\\画师\\Pictures\\我的参考")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "新建图库" }));
-    await waitFor(() => expect(sent("create_library")).toEqual([
-      { parent: "C:\\Users\\画师\\Pictures", name: "我的参考" },
-    ]));
+    await waitFor(() =>
+      expect(sent("create_library")).toEqual([{ parent: "C:\\Users\\画师\\Pictures", name: "我的参考" }]),
+    );
     // 预填的位置不写进“上次新建资料库的位置”。
     expect(sent("remember_new_library_parent")).toEqual([]);
   });
@@ -259,7 +296,6 @@ describe("主窗口", () => {
     expect(ratio(box(images[0]))).toBeCloseTo(2, 3);
     expect(ratio(box(images[1]))).toBeCloseTo(1 / 3, 3);
   });
-
 });
 
 describe("导入快捷键 Ctrl O", () => {
@@ -273,7 +309,9 @@ describe("导入快捷键 Ctrl O", () => {
     fireEvent.click(screen.getByRole("button", { name: "设置" }));
     await screen.findByRole("dialog");
     fireEvent.keyDown(window, { key: "o", ctrlKey: true });
-    await act(async () => { await Promise.resolve(); });
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(sent("pick_files").length).toBe(1);
   });
 });

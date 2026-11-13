@@ -23,7 +23,10 @@ import { createSettingsSubmitter, type SettingsCommand, type SubmitterState } fr
  * 设置页直接交给统一改动入口、值就是最终结果的那几项。`SettingChange` 新加的分支自动在内；
  * 标签外观另有合并规则（见下），查看器背景与详情面板不经设置页。
  */
-type SettingSwitch = Exclude<SettingChange, { kind: "tagDisplay" | "viewerBackground" | "inspectorWidth" | "inspectorOpen" }>;
+type SettingSwitch = Exclude<
+  SettingChange,
+  { kind: "tagDisplay" | "viewerBackground" | "inspectorWidth" | "inspectorOpen" }
+>;
 
 /** 设置页能提交的改动；每种怎样合并见 `shellSettingsCommand`。 */
 export type ShellSettingsIntent =
@@ -49,12 +52,31 @@ const latest = (key: string, run: () => Promise<ShellSettingsView>): Command => 
  */
 export function shellSettingsCommand(intent: ShellSettingsIntent, accepted: () => ShellSettingsView | null): Command {
   switch (intent.kind) {
-    case "runLog": return latest(intent.kind, () => setRunLog(intent.on));
-    case "safeModeScope": return latest(intent.kind, () => setSafeModeScope(intent.scope));
-    case "tagDisplay": return { key: intent.kind, merge: "latest", dropPendingOnFailure: true, run: () => changeSetting({ kind: "tagDisplay", display: { ...(accepted()?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...intent.change } }) };
-    case "shortcut": return { key: `shortcut/${intent.action}`, merge: "keep", run: () => rebindShortcut(intent.action, intent.accelerator) };
-    case "updateChannel": return { key: intent.kind, merge: "keep", run: () => setUpdateChannel(intent.channel) };
-    default: return latest(intent.kind, () => changeSetting(intent));
+    case "runLog":
+      return latest(intent.kind, () => setRunLog(intent.on));
+    case "safeModeScope":
+      return latest(intent.kind, () => setSafeModeScope(intent.scope));
+    case "tagDisplay":
+      return {
+        key: intent.kind,
+        merge: "latest",
+        dropPendingOnFailure: true,
+        run: () =>
+          changeSetting({
+            kind: "tagDisplay",
+            display: { ...(accepted()?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...intent.change },
+          }),
+      };
+    case "shortcut":
+      return {
+        key: `shortcut/${intent.action}`,
+        merge: "keep",
+        run: () => rebindShortcut(intent.action, intent.accelerator),
+      };
+    case "updateChannel":
+      return { key: intent.kind, merge: "keep", run: () => setUpdateChannel(intent.channel) };
+    default:
+      return latest(intent.kind, () => changeSetting(intent));
   }
 }
 
@@ -68,7 +90,9 @@ const LOAD = "load";
 export function createShellSettings(onChange?: (view: ShellSettingsView) => void) {
   const submitter = createSettingsSubmitter<ShellSettingsView>({
     describe: errorText,
-    onAccepted: (view, command) => { if (command.key !== LOAD) onChange?.(view); },
+    onAccepted: (view, command) => {
+      if (command.key !== LOAD) onChange?.(view);
+    },
   });
   // 标签外观连着改时，后一项在最后改成的那份之上改。草稿放在这里而不在外观分区里，
   // 切走再回来的分区接着在它之上改，失败作废的同项改动也就都是真依赖失败那次的。
@@ -81,9 +105,12 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
   let tagShown: Partial<TagDisplay> | null = null;
   let tagSegment = 0;
   let tagOutstanding = 0;
-  const tagDraft = () => (tagShown && { ...(submitter.state().view?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...tagShown });
+  const tagDraft = () => tagShown && { ...(submitter.state().view?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...tagShown };
   const listeners = new Set<() => void>();
-  let snapshot: SubmitterState<ShellSettingsView> & { tagDraft: TagDisplay | null } = { ...submitter.state(), tagDraft: null };
+  let snapshot: SubmitterState<ShellSettingsView> & { tagDraft: TagDisplay | null } = {
+    ...submitter.state(),
+    tagDraft: null,
+  };
   const refresh = () => {
     snapshot = { ...submitter.state(), tagDraft: tagDraft() };
     for (const listener of listeners) listener();
@@ -98,26 +125,36 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
     state: () => snapshot,
     subscribe(listener: () => void) {
       listeners.add(listener);
-      return () => { listeners.delete(listener); };
+      return () => {
+        listeners.delete(listener);
+      };
     },
     load: () => submitter.submit({ key: LOAD, merge: "keep", quiet: true, run: shellSettings }),
     submit,
     changeTagDisplay(change: Partial<TagDisplay>) {
       tagShown = { ...tagShown, ...change };
-      const queued = tagQueued = { ...tagQueued, ...change };
+      const queued = (tagQueued = { ...tagQueued, ...change });
       const segment = tagSegment;
       tagOutstanding += 1;
       refresh();
       const command = shellSettingsCommand({ kind: "tagDisplay", change: queued }, () => submitter.state().view);
-      void submitter.submit({ ...command, run: () => { if (tagQueued === queued) tagQueued = null; return command.run(); } }).then((result) => {
-        if (!result.ok) {
-          if (tagQueued === queued) tagQueued = null;
-          if (segment === tagSegment) tagShown = null;
-        }
-        tagOutstanding -= 1;
-        if (tagOutstanding === 0) tagShown = null;
-        refresh();
-      });
+      void submitter
+        .submit({
+          ...command,
+          run: () => {
+            if (tagQueued === queued) tagQueued = null;
+            return command.run();
+          },
+        })
+        .then((result) => {
+          if (!result.ok) {
+            if (tagQueued === queued) tagQueued = null;
+            if (segment === tagSegment) tagShown = null;
+          }
+          tagOutstanding -= 1;
+          if (tagOutstanding === 0) tagShown = null;
+          refresh();
+        });
     },
     /** 用备份整份替换偏好设置；失败时 reject，原因由调用方显示。 */
     async restore(path: string, fingerprint: string) {
@@ -126,7 +163,10 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
       tagSegment += 1;
       refresh();
       const result = await submitter.submit({
-        key: "restore", merge: "keep", replaces: true, quiet: true,
+        key: "restore",
+        merge: "keep",
+        replaces: true,
+        quiet: true,
         run: async () => (restored = await restoreApplicationSettings(path, fingerprint)).settings,
       });
       if (!result.ok) throw result.reason;
@@ -144,7 +184,9 @@ export type ShellSettings = ReturnType<typeof createShellSettings>;
  */
 export function useShellSettings(shared?: ShellSettings, onChange?: (view: ShellSettingsView) => void) {
   const onChangeRef = useRef(onChange);
-  useEffect(() => { onChangeRef.current = onChange; });
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
   const [store] = useState(() => shared ?? createShellSettings((view) => onChangeRef.current?.(view)));
   const state = useSyncExternalStore(store.subscribe, store.state);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -157,7 +199,9 @@ export function useShellSettings(shared?: ShellSettings, onChange?: (view: Shell
     void store.load().then((result) => {
       if (alive && !result.ok) setLoadError(String(result.reason));
     });
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [store, loadAttempt]);
 
   return {

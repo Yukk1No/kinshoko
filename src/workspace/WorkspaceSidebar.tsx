@@ -12,8 +12,24 @@ import { Tip } from "../ui/Tip";
 
 /** 工作区左栏：文件夹（图库与查找范围）、参考组或截图历史。 */
 export function WorkspaceSidebar({
-  section, paneOpen, floating, paneRef, onPaneToggle, libraryControls, status, workspaceScope, safe, reloadKey, onError, onMessage, recheck,
-  onLibraryRemoved, onLibraryRestore, onScope, captureRequest, onCaptureRequestHandled,
+  section,
+  paneOpen,
+  floating,
+  paneRef,
+  onPaneToggle,
+  libraryControls,
+  status,
+  workspaceScope,
+  safe,
+  reloadKey,
+  onError,
+  onMessage,
+  recheck,
+  onLibraryRemoved,
+  onLibraryRestore,
+  onScope,
+  captureRequest,
+  onCaptureRequestHandled,
 }: {
   section: Section;
   paneOpen: boolean;
@@ -46,22 +62,42 @@ export function WorkspaceSidebar({
       className="sidebar-slot pane"
       data-collapsed={!paneOpen}
       data-float={floating || undefined}
-      aria-label={section === "browse" ? t("pane.folders") : section === "groups" ? t("pane.groups") : t("pane.capturesLabel")}
+      aria-label={
+        section === "browse" ? t("pane.folders") : section === "groups" ? t("pane.groups") : t("pane.capturesLabel")
+      }
       aria-hidden={!paneOpen}
       inert={!paneOpen}
     >
       <header className="pane-head" data-tauri-drag-region>
-        {section === "browse" ? <div className="pane-library">{libInPane && libraryControls}</div>
-          : <h1 className="pane-title">{sectionName}</h1>}
-        <Tip label={t("collapsePane")} keys="Ctrl+B"><button type="button" className="k-icon-btn" aria-label={t("collapsePane")} onClick={onPaneToggle}><PanelLeftClose size={16} aria-hidden="true" /></button></Tip>
+        {section === "browse" ? (
+          <div className="pane-library">{libInPane && libraryControls}</div>
+        ) : (
+          <h1 className="pane-title">{sectionName}</h1>
+        )}
+        <Tip label={t("collapsePane")} keys="Ctrl+B">
+          <button type="button" className="k-icon-btn" aria-label={t("collapsePane")} onClick={onPaneToggle}>
+            <PanelLeftClose size={16} aria-hidden="true" />
+          </button>
+        </Tip>
       </header>
       <div className="pane-body" hidden={section !== "browse"}>
-      <WorkspacePane status={status} scope={workspaceScope} safeMode={safe}
-        reloadKey={reloadKey} onError={onError} onMessage={onMessage} onRecheck={recheck} onRemoved={onLibraryRemoved} onRestore={onLibraryRestore} onScope={onScope}>
-      </WorkspacePane>
+        <WorkspacePane
+          status={status}
+          scope={workspaceScope}
+          safeMode={safe}
+          reloadKey={reloadKey}
+          onError={onError}
+          onMessage={onMessage}
+          onRecheck={recheck}
+          onRemoved={onLibraryRemoved}
+          onRestore={onLibraryRestore}
+          onScope={onScope}
+        ></WorkspacePane>
       </div>
       {section === "groups" && <ReferenceGroupsPanel />}
-      {section === "captures" && <CaptureHistoryPanel request={captureRequest} onRequestHandled={onCaptureRequestHandled} />}
+      {section === "captures" && (
+        <CaptureHistoryPanel request={captureRequest} onRequestHandled={onCaptureRequestHandled} />
+      )}
     </aside>
   );
 }

@@ -8,11 +8,33 @@ import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import type { Press } from "./doubleClick";
 import type { WallMenuTarget } from "./WallMenu";
 import { pagesOf } from "./imageSets";
-import { CARD_BUTTONS, DRAG_IMAGE_SOURCES, DRAG_IMAGES, editable, type BrowserCard, type CardCommand } from "./wallShared";
+import {
+  CARD_BUTTONS,
+  DRAG_IMAGE_SOURCES,
+  DRAG_IMAGES,
+  editable,
+  type BrowserCard,
+  type CardCommand,
+} from "./wallShared";
 
 export function wallInteractions({
-  ids, cards, selected, onSelectionChange, pivot, lastPress, pendingClick, holdForDoubleClick, open, selectAllRef,
-  setMenuTarget, menu, onCardCommand, scope, workspaceScope, trayIds, closeTray,
+  ids,
+  cards,
+  selected,
+  onSelectionChange,
+  pivot,
+  lastPress,
+  pendingClick,
+  holdForDoubleClick,
+  open,
+  selectAllRef,
+  setMenuTarget,
+  menu,
+  onCardCommand,
+  scope,
+  workspaceScope,
+  trayIds,
+  closeTray,
 }: {
   ids: string[];
   cards: BrowserCard[];
@@ -73,7 +95,6 @@ export function wallInteractions({
     return true;
   };
 
-
   /**
    * 单击卡片（#179）：未选中的只选中它；当前唯一选中的那张打开查看器；多选中不按修饰键单击其中一张，
    * 选择收缩为这一张（资源管理器的习惯）。这一下记作双击的第一下。
@@ -91,7 +112,8 @@ export function wallInteractions({
     lastPress.current = null;
     pendingClick.current = { ...at, id: card.id, opened: opens };
     holdForDoubleClick();
-    if (opens) open(card); else select(card.id, e);
+    if (opens) open(card);
+    else select(card.id, e);
   };
 
   /**
@@ -106,7 +128,8 @@ export function wallInteractions({
   };
   /** 单击空白处清空选择（资源管理器的习惯）；按着修饰键时不动，落在滚动条上的不算。 */
   const clearOnBlankClick = (e: MouseEvent<HTMLDivElement>) => {
-    if (trayIds.size && !(e.target instanceof Element && e.target.closest(`.card, ${CARD_BUTTONS}, .wall-tray`))) leaveTray();
+    if (trayIds.size && !(e.target instanceof Element && e.target.closest(`.card, ${CARD_BUTTONS}, .wall-tray`)))
+      leaveTray();
     if (e.ctrlKey || e.metaKey || e.shiftKey || !selected.size) return;
     if (e.target instanceof Element && e.target.closest(`.card, ${CARD_BUTTONS}`)) return;
     const el = e.currentTarget;
@@ -121,16 +144,39 @@ export function wallInteractions({
     setMenuTarget(acted.length ? { kind: "cards", cards: acted, point } : { kind: "blank", point });
   };
   const cardKey = (card: BrowserCard, e: KeyboardEvent<HTMLElement>) => {
-    if (e.key === "Enter") { e.preventDefault(); open(card); return; }
-    if (e.key === " ") { e.preventDefault(); select(card.id, e); return; }
-    if (isMenuKey(e)) { e.preventDefault(); e.stopPropagation(); if (menu) openMenuAt(e.currentTarget); return; }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      open(card);
+      return;
+    }
+    if (e.key === " ") {
+      e.preventDefault();
+      select(card.id, e);
+      return;
+    }
+    if (isMenuKey(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (menu) openMenuAt(e.currentTarget);
+      return;
+    }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    const command: CardCommand | null = e.key === "p" || e.key === "P" ? "pin" : e.key === "F1" ? "crop" : e.key === "Delete" && scope.kind !== "trash" ? "trash" : null;
+    const command: CardCommand | null =
+      e.key === "p" || e.key === "P"
+        ? "pin"
+        : e.key === "F1"
+          ? "crop"
+          : e.key === "Delete" && scope.kind !== "trash"
+            ? "trash"
+            : null;
     if (!command || !onCardCommand) return;
     e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
     const acted = actOn(card.id);
-    onCardCommand(command, command === "crop" ? acted.filter((c) => c.id === card.id) : acted, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+    onCardCommand(command, command === "crop" ? acted.filter((c) => c.id === card.id) : acted, {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    });
   };
   const wallKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const chord = (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey;
@@ -169,10 +215,22 @@ export function wallInteractions({
       onSelectionChange(new Set(dragged));
     }
     // 拖的是整摞时（#418）放进文件夹的是它的全部页，与“移到文件夹”相同。
-    const draggedPages = dragged.flatMap((id) => { const card = cards.find((c) => c.id === id); return card ? pagesOf([card]) : []; });
-    const sourceIds = workspaceScope?.kind === "library"
-      ? draggedPages.flatMap((c) => c.sources?.filter((s) => s.libraryId === workspaceScope.libraryId && !s.unavailable).map((s) => s.imageId) ?? [])
-      : dragged.flatMap((id) => { const card = cards.find((c) => c.id === id); return card?.set ? card.set.pages.map((page) => page.id) : [id]; });
+    const draggedPages = dragged.flatMap((id) => {
+      const card = cards.find((c) => c.id === id);
+      return card ? pagesOf([card]) : [];
+    });
+    const sourceIds =
+      workspaceScope?.kind === "library"
+        ? draggedPages.flatMap(
+            (c) =>
+              c.sources
+                ?.filter((s) => s.libraryId === workspaceScope.libraryId && !s.unavailable)
+                .map((s) => s.imageId) ?? [],
+          )
+        : dragged.flatMap((id) => {
+            const card = cards.find((c) => c.id === id);
+            return card?.set ? card.set.pages.map((page) => page.id) : [id];
+          });
     e.dataTransfer.setData(DRAG_IMAGES, JSON.stringify(sourceIds));
     const bySource: Record<string, string[]> = {};
     for (const source of draggedPages.flatMap((c) => c.sources ?? [])) {
@@ -192,13 +250,18 @@ export function wallInteractions({
 }
 
 /** Ctrl+V：从剪贴板导入（#105）。主窗口里焦点不在输入框、没有模态与查看器时都响应。 */
-export function usePasteShortcut({ onPaste, viewerOpen, scroller }: {
+export function usePasteShortcut({
+  onPaste,
+  viewerOpen,
+  scroller,
+}: {
   onPaste: (() => void) | undefined;
   viewerOpen: boolean;
   scroller: MutableRefObject<HTMLDivElement | null>;
 }) {
   const pasteOnKey = useEffectEvent((e: globalThis.KeyboardEvent) => {
-    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== "v" || e.defaultPrevented) return;
+    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== "v" || e.defaultPrevented)
+      return;
     const el = scroller.current;
     if (!onPaste || !el || viewerOpen || modalOpen() || el.closest("[hidden], [inert]") || editable(e.target)) return;
     e.preventDefault();

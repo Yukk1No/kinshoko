@@ -5,7 +5,11 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { Segmented } from "./Segmented";
 import { resize } from "../test/platform";
 
-const OPTIONS = [{ value: "a", label: "甲" }, { value: "b", label: "乙" }, { value: "c", label: "丙" }];
+const OPTIONS = [
+  { value: "a", label: "甲" },
+  { value: "b", label: "乙" },
+  { value: "c", label: "丙" },
+];
 
 /** jsdom 不排版：给三段各 40 宽、依次排开。 */
 function layOut() {
@@ -19,8 +23,9 @@ function layOut() {
 }
 
 const thumb = () => document.querySelector<HTMLElement>(".k-seg-thumb")!;
-const panel = (value: string | null, onChange: (value: string) => void = () => {}) =>
-  <Segmented label="档位" value={value} options={OPTIONS} onChange={onChange} />;
+const panel = (value: string | null, onChange: (value: string) => void = () => {}) => (
+  <Segmented label="档位" value={value} options={OPTIONS} onChange={onChange} />
+);
 
 describe("分段控件的指示块", () => {
   it("没有选中时不出现；选中的那一段按下", () => {

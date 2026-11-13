@@ -11,7 +11,10 @@ beforeEach(() => {
   host = document.createElement("div");
   document.body.appendChild(host);
 });
-afterEach(() => { host.remove(); vi.useRealTimers(); });
+afterEach(() => {
+  host.remove();
+  vi.useRealTimers();
+});
 
 const ghosts = () => [...host.querySelectorAll<HTMLElement>(".fx-ghost")];
 const blurOf = (g: HTMLElement) => Number(/blur\(([\d.]+)px\)/.exec(g.querySelector("img")!.style.filter)?.[1] ?? 0);
@@ -36,7 +39,9 @@ describe("封印影子", () => {
   it("关闭：影子从书里出来，一路去掉模糊，落到卡片位置后报告落地", () => {
     const fx = new SealFx(host);
     const landed: string[] = [];
-    fx.release([{ id: "a", src: "a.png", w: 200, h: 160, target: () => rect(300, 100, 200, 160) }], BOOK, (id) => landed.push(id));
+    fx.release([{ id: "a", src: "a.png", w: 200, h: 160, target: () => rect(300, 100, 200, 160) }], BOOK, (id) =>
+      landed.push(id),
+    );
     expect(fx.releasing).toBe(true);
     vi.advanceTimersByTime(16);
     expect(blurOf(ghosts()[0])).toBe(14);
@@ -51,7 +56,9 @@ describe("封印影子", () => {
   it("释放途中又开启：还在飞的影子原地掉头飞回书里，不重新生成（原型 Q111）", () => {
     const fx = new SealFx(host);
     const landed: string[] = [];
-    fx.release([{ id: "a", src: "a.png", w: 200, h: 160, target: () => rect(300, 100, 200, 160) }], BOOK, (id) => landed.push(id));
+    fx.release([{ id: "a", src: "a.png", w: 200, h: 160, target: () => rect(300, 100, 200, 160) }], BOOK, (id) =>
+      landed.push(id),
+    );
     vi.advanceTimersByTime(RELEASE.flyAt + 300);
     const ghost = ghosts()[0];
     fx.seal([{ id: "a", src: "a.png", rect: rect(300, 100, 200, 160) }], BOOK);
@@ -65,7 +72,9 @@ describe("封印影子", () => {
   it("clear 让所有影子立刻走到终点（减少动态效果中途打开时用）", () => {
     const fx = new SealFx(host);
     const landed: string[] = [];
-    fx.release([{ id: "a", src: "a.png", w: 200, h: 160, target: () => rect(300, 100, 200, 160) }], BOOK, (id) => landed.push(id));
+    fx.release([{ id: "a", src: "a.png", w: 200, h: 160, target: () => rect(300, 100, 200, 160) }], BOOK, (id) =>
+      landed.push(id),
+    );
     fx.clear();
     expect(ghosts()).toHaveLength(0);
     expect(landed).toEqual(["a"]);
@@ -75,10 +84,16 @@ describe("封印影子", () => {
     const fx = new SealFx(host);
     let before: string[] | null = null;
     const writtenBeforeRead: boolean[] = [];
-    const at = (id: string, x: number) => ({ id, src: `${id}.png`, w: 100, h: 100, target: () => {
-      if (before) writtenBeforeRead.push(ghosts().some((g, i) => g.style.transform !== before![i]));
-      return rect(x, 100, 100, 100);
-    } });
+    const at = (id: string, x: number) => ({
+      id,
+      src: `${id}.png`,
+      w: 100,
+      h: 100,
+      target: () => {
+        if (before) writtenBeforeRead.push(ghosts().some((g, i) => g.style.transform !== before![i]));
+        return rect(x, 100, 100, 100);
+      },
+    });
     fx.release([at("a", 300), at("b", 500), at("c", 700)], BOOK, () => {});
     vi.advanceTimersByTime(RELEASE.flyAt + 2 * RELEASE.stagger + 50);
     before = ghosts().map((g) => g.style.transform);

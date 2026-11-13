@@ -13,7 +13,12 @@ import { Wall, type WallHandle } from "./Wall";
 import { PAGE } from "./wallShared";
 import { fakeBackend } from "../test/backend";
 
-type Call = { query: WorkspaceQuery; safeMode: boolean; resolve: (page: WorkspacePage) => void; reject: (e: unknown) => void };
+type Call = {
+  query: WorkspaceQuery;
+  safeMode: boolean;
+  resolve: (page: WorkspacePage) => void;
+  reject: (e: unknown) => void;
+};
 let calls: Call[];
 
 beforeEach(() => {
@@ -30,18 +35,31 @@ beforeEach(() => {
     },
   });
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const EXPIRED = { code: "cursorExpired" };
 const EXPIRED_TEXT = "浏览结果已变化，请从头重新浏览";
 const card = (id: string): CardSeed => ({ id, width: 100, height: 100 });
 const folder: WorkspaceScope = { kind: "library", libraryId: "L2", scope: { kind: "folder", id: "F" } };
-const tree: ConditionTree = { conditions: [{ any: [{ kind: "text", text: "手", tags: [], similar: [], ratings: [] }], negate: false }] };
-const base = {
-  workspaceScope: folder, scope: { kind: "folder" as const, id: "F" }, conditions: tree, reloadKey: 0,
-  selected: new Set<string>(), onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false,
+const tree: ConditionTree = {
+  conditions: [{ any: [{ kind: "text", text: "手", tags: [], similar: [], ratings: [] }], negate: false }],
 };
-const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+const base = {
+  workspaceScope: folder,
+  scope: { kind: "folder" as const, id: "F" },
+  conditions: tree,
+  reloadKey: 0,
+  selected: new Set<string>(),
+  onSelectionChange: () => {},
+  onOpenImage: () => {},
+  viewerOpen: false,
+};
+const settle = () =>
+  act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
 const shown = () => [...document.querySelectorAll<HTMLElement>(".card")].map((c) => c.dataset.id);
 const total = () => document.querySelector<HTMLElement>(".wall")!.dataset.total;
 
@@ -51,7 +69,10 @@ it("翻页带着同一范围、查找条件与安全模式，下一页接在后�
   render(<Wall ref={wall} {...base} safeMode onWorkspaceStatus={status} />);
   await settle();
   expect(calls).toHaveLength(1);
-  expect(calls[0]).toMatchObject({ safeMode: true, query: { scope: folder, conditions: tree, cursor: null, knownPlaceholders: [] } });
+  expect(calls[0]).toMatchObject({
+    safeMode: true,
+    query: { scope: folder, conditions: tree, cursor: null, knownPlaceholders: [] },
+  });
   const firstPage = Array.from({ length: PAGE }, (_, i) => card(`a${i}`));
   await act(async () => calls[0].resolve(workspacePage(firstPage, PAGE + 2, "c1")));
   await settle();
@@ -61,7 +82,10 @@ it("翻页带着同一范围、查找条件与安全模式，下一页接在后�
   act(() => wall.current!.loadMore());
   await settle();
   expect(calls).toHaveLength(2);
-  expect(calls[1]).toMatchObject({ safeMode: true, query: { scope: folder, conditions: tree, cursor: "c1", knownPlaceholders: [] } });
+  expect(calls[1]).toMatchObject({
+    safeMode: true,
+    query: { scope: folder, conditions: tree, cursor: "c1", knownPlaceholders: [] },
+  });
   await act(async () => calls[1].resolve(workspacePage([card("b"), card("c")], PAGE + 2)));
   await settle();
   expect(total()).toBe(String(PAGE + 2));

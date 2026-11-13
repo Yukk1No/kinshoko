@@ -18,29 +18,40 @@ export function useImportRecovery() {
   const read = useRef(new Map<string, object>());
   useEffect(() => {
     let alive = true;
-    const registered = new Set(providers.map(provider => provider.registration.library.id));
+    const registered = new Set(providers.map((provider) => provider.registration.library.id));
     for (const id of read.current.keys()) if (!registered.has(id)) read.current.delete(id);
-    setPending(previous => previous.every(entry => registered.has(entry.libraryId)) ? previous : previous.filter(entry => registered.has(entry.libraryId)));
+    setPending((previous) =>
+      previous.every((entry) => registered.has(entry.libraryId))
+        ? previous
+        : previous.filter((entry) => registered.has(entry.libraryId)),
+    );
     void (async () => {
-      for (const { registration: { library, unavailable } } of providers) {
+      for (const {
+        registration: { library, unavailable },
+      } of providers) {
         if (!alive) return;
         if (unavailable || read.current.has(library.id)) continue;
         const attempt = {};
         read.current.set(library.id, attempt);
         try {
           const report = await libraryRecovery(library.id);
-          if (read.current.get(library.id) === attempt && (report.interrupted.length > 0 || report.orphans.length > 0)) {
-            setPending(previous => [...previous, { libraryId: library.id, libraryName: library.name, report }]);
+          if (
+            read.current.get(library.id) === attempt &&
+            (report.interrupted.length > 0 || report.orphans.length > 0)
+          ) {
+            setPending((previous) => [...previous, { libraryId: library.id, libraryName: library.name, report }]);
           }
         } catch {
           if (read.current.get(library.id) === attempt) read.current.delete(library.id);
         }
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [providers]);
   const dismiss = useCallback((recovery: LibraryRecovery) => {
-    setPending(previous => previous.filter(entry => entry !== recovery));
+    setPending((previous) => previous.filter((entry) => entry !== recovery));
   }, []);
   // 一次提示一个资料库，关掉后轮到下一个。
   return { recovery: pending[0] ?? null, dismiss };

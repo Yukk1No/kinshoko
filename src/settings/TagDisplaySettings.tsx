@@ -16,7 +16,10 @@ const parse = (text: string) => (text.trim() === "" ? Number.NaN : Math.round(Nu
 /**
  * 设置 › 标签 › 外观（#160）：标签风格（B 按准不准分三档，默认；C 按出处分组加刻度）与可信度分档阈值。本设备设置，改了立即保存并生效，不需要重新打标。低档上限必须小于高档下限，不满足时不保存。
  */
-export function TagDisplaySettings({ display, onChange }: {
+export function TagDisplaySettings({
+  display,
+  onChange,
+}: {
   /** 还有没回来的保存时是最后改成的那份，否则是已接受的设置。 */
   display: TagDisplay;
   /** 在 `display` 之上改几项并保存；次序、合并与失败作废归设置页的提交模型（#321）。 */
@@ -45,28 +48,72 @@ export function TagDisplaySettings({ display, onChange }: {
     if (why === null && (thresholds.high !== display.high || thresholds.low !== display.low)) onChange(thresholds);
   };
 
-  return <SettingsGroup label={t("group")}>
-    <SettingsRow icon={<Palette size={16} />} title={t("style")} hint={t("styleHint")}>
-      <Segmented<TagStyle> label={t("style")} value={display.style} onChange={(style) => onChange({ style })} options={[
-        { value: "bands", label: t("bands") }, { value: "grouped", label: t("grouped") },
-      ]} />
-    </SettingsRow>
-    <SettingsRow className="is-thresholds" icon={<Gauge size={16} />} title={t("thresholds")} hint={t("thresholdsHint")}
-      below={problem !== null && <p className="k-set-error" role="alert">{problem}</p>}>
-      <label className="k-set-number">{t("high")}
-        <input className="k-input is-num" type="number" aria-label={t("highLabel")} min={STEP} max={100} step={STEP} value={high}
-          onChange={(e) => changeThresholds(e.target.value, low)} />
-      </label>
-      <label className="k-set-number">{t("low")}
-        <input className="k-input is-num" type="number" aria-label={t("lowLabel")} min={0} max={100 - STEP} step={STEP} value={low}
-          onChange={(e) => changeThresholds(high, e.target.value)} />
-      </label>
-      <button type="button" className="k-btn is-sm is-quiet" onClick={() => {
-        setProblem(null);
-        setHigh(shown(DEFAULT_TAG_DISPLAY.high));
-        setLow(shown(DEFAULT_TAG_DISPLAY.low));
-        onChange({ high: DEFAULT_TAG_DISPLAY.high, low: DEFAULT_TAG_DISPLAY.low });
-      }}><RotateCcw size={12} aria-hidden="true" /><span className="k-label">{t("reset")}</span></button>
-    </SettingsRow>
-  </SettingsGroup>;
+  return (
+    <SettingsGroup label={t("group")}>
+      <SettingsRow icon={<Palette size={16} />} title={t("style")} hint={t("styleHint")}>
+        <Segmented<TagStyle>
+          label={t("style")}
+          value={display.style}
+          onChange={(style) => onChange({ style })}
+          options={[
+            { value: "bands", label: t("bands") },
+            { value: "grouped", label: t("grouped") },
+          ]}
+        />
+      </SettingsRow>
+      <SettingsRow
+        className="is-thresholds"
+        icon={<Gauge size={16} />}
+        title={t("thresholds")}
+        hint={t("thresholdsHint")}
+        below={
+          problem !== null && (
+            <p className="k-set-error" role="alert">
+              {problem}
+            </p>
+          )
+        }
+      >
+        <label className="k-set-number">
+          {t("high")}
+          <input
+            className="k-input is-num"
+            type="number"
+            aria-label={t("highLabel")}
+            min={STEP}
+            max={100}
+            step={STEP}
+            value={high}
+            onChange={(e) => changeThresholds(e.target.value, low)}
+          />
+        </label>
+        <label className="k-set-number">
+          {t("low")}
+          <input
+            className="k-input is-num"
+            type="number"
+            aria-label={t("lowLabel")}
+            min={0}
+            max={100 - STEP}
+            step={STEP}
+            value={low}
+            onChange={(e) => changeThresholds(high, e.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className="k-btn is-sm is-quiet"
+          onClick={() => {
+            setProblem(null);
+            setHigh(shown(DEFAULT_TAG_DISPLAY.high));
+            setLow(shown(DEFAULT_TAG_DISPLAY.low));
+            onChange({ high: DEFAULT_TAG_DISPLAY.high, low: DEFAULT_TAG_DISPLAY.low });
+          }}
+        >
+          <RotateCcw size={12} aria-hidden="true" />
+          <span className="k-label">{t("reset")}</span>
+        </button>
+      </SettingsRow>
+    </SettingsGroup>
+  );
 }

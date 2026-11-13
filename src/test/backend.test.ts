@@ -7,14 +7,19 @@ import { fakeBackend, shellSettings } from "./backend";
 describe("fakeBackend", () => {
   it("rejects a command nobody answered and names it", async () => {
     fakeBackend();
-    await expect(invoke("plugin:library|browse", { libraryId: "L1" })).rejects.toThrow("fake backend: no reply for browse");
+    await expect(invoke("plugin:library|browse", { libraryId: "L1" })).rejects.toThrow(
+      "fake backend: no reply for browse",
+    );
   });
 
   it("answers shell_settings, safe_mode and workspace_status by default", async () => {
     fakeBackend();
     await expect(readShellSettings()).resolves.toEqual(shellSettings());
     await expect(invoke("plugin:library|safe_mode")).resolves.toBe(true);
-    await expect(invoke("plugin:library|workspace_status", { safeMode: true })).resolves.toEqual({ revision: "r1", libraries: [] });
+    await expect(invoke("plugin:library|workspace_status", { safeMode: true })).resolves.toEqual({
+      revision: "r1",
+      libraries: [],
+    });
   });
 
   it("lets on() and the initial replies replace a default", async () => {
@@ -25,10 +30,18 @@ describe("fakeBackend", () => {
   });
 
   it("answers and records a setting change under the setting it changes", async () => {
-    const backend = fakeBackend({ "change_setting:forceSrgb": (args) => shellSettings({ forceSrgb: args.on as boolean }) });
-    await expect(invoke("change_setting", { change: { kind: "forceSrgb", on: true } })).resolves.toMatchObject({ forceSrgb: true });
-    expect(backend.calls("change_setting:forceSrgb")).toEqual([{ command: "change_setting:forceSrgb", args: { on: true } }]);
-    await expect(invoke("change_setting", { change: { kind: "autostart", on: false } })).rejects.toThrow("fake backend: no reply for change_setting:autostart");
+    const backend = fakeBackend({
+      "change_setting:forceSrgb": (args) => shellSettings({ forceSrgb: args.on as boolean }),
+    });
+    await expect(invoke("change_setting", { change: { kind: "forceSrgb", on: true } })).resolves.toMatchObject({
+      forceSrgb: true,
+    });
+    expect(backend.calls("change_setting:forceSrgb")).toEqual([
+      { command: "change_setting:forceSrgb", args: { on: true } },
+    ]);
+    await expect(invoke("change_setting", { change: { kind: "autostart", on: false } })).rejects.toThrow(
+      "fake backend: no reply for change_setting:autostart",
+    );
   });
 
   it("passes the arguments to a reply function and waits for its promise", async () => {

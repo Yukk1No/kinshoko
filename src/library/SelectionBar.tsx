@@ -18,7 +18,19 @@ import { useToast } from "../ui/Toast";
  * onWidth 报告自己的宽度。升起、离开与左右挪动都用 Dock 的形变弹簧，减少动画时直接到位。
  * 选择定不下一个图库时（跨图库，或含多份来源的图）libraryId 是 null，操作交给 acrossLibraries。
  */
-export function SelectionBar({ libraryId, acrossLibraries, scope, ids, onClear, reloadKey, onError, safeMode = false, left, onWidth, compact = false }: {
+export function SelectionBar({
+  libraryId,
+  acrossLibraries,
+  scope,
+  ids,
+  onClear,
+  reloadKey,
+  onError,
+  safeMode = false,
+  left,
+  onWidth,
+  compact = false,
+}: {
   libraryId: string | null;
   /** 与右键菜单同一条写入：按卡片显示的那份来源、按图库分组。folderLibrary 是这些来源共同的图库，没有就不能放进文件夹。 */
   acrossLibraries?: { folderLibrary: string | null; edit: (edits: ImageEdit[], clear: boolean) => void };
@@ -53,10 +65,18 @@ export function SelectionBar({ libraryId, acrossLibraries, scope, ids, onClear, 
   const folderLibrary = libraryId ?? acrossLibraries?.folderLibrary ?? null;
   // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): reloadKey 变了要重新读文件夹列表
   useEffect(() => {
-    if (folderLibrary === null) { setFolders(null); return; }
+    if (folderLibrary === null) {
+      setFolders(null);
+      return;
+    }
     let alive = true;
-    workspaceSidebar(folderLibrary, safeMode).then((s) => alive && setFolders(flattenFolders(s.folders)), () => undefined);
-    return () => { alive = false; };
+    workspaceSidebar(folderLibrary, safeMode).then(
+      (s) => alive && setFolders(flattenFolders(s.folders)),
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
   }, [folderLibrary, reloadKey, safeMode]);
 
   // 观察者只接一次，报告时读这次渲染的 onWidth 与 compact。
@@ -73,33 +93,82 @@ export function SelectionBar({ libraryId, acrossLibraries, scope, ids, onClear, 
   }, []);
 
   const edit = (edits: ImageEdit[], clear: boolean) => {
-    if (libraryId === null) { acrossLibraries?.edit(edits, clear); return; }
-    const key = selectionKey, picked = ids;
+    if (libraryId === null) {
+      acrossLibraries?.edit(edits, clear);
+      return;
+    }
+    const key = selectionKey,
+      picked = ids;
     void editImages(libraryId, picked, edits).then(
       () => {
         if (clear && currentKey.current === key) onClear();
         // 移到回收站能撤销：不先确认，给一个带“撤销”的轻提示。
-        if (edits.length === 1 && edits[0].kind === "delete") toast.show({
-          title: t("selection.trashed"), description: t("selection.trashedCount", { count: picked.length }), tone: "success",
-          action: { label: t("selection.undo"), onClick: () => void editImages(libraryId, picked, [{ kind: "restore" }]).catch((e) => onError(e)) },
-        });
+        if (edits.length === 1 && edits[0].kind === "delete")
+          toast.show({
+            title: t("selection.trashed"),
+            description: t("selection.trashedCount", { count: picked.length }),
+            tone: "success",
+            action: {
+              label: t("selection.undo"),
+              onClick: () => void editImages(libraryId, picked, [{ kind: "restore" }]).catch((e) => onError(e)),
+            },
+          });
       },
-      (e) => { if (currentKey.current === key) onError(e); },
+      (e) => {
+        if (currentKey.current === key) onError(e);
+      },
     );
   };
 
   const hasFolders = !!folders?.length;
   const trash = scope.kind === "trash";
   const items: DockItem[] = [
-    ...trash ? [] : [{
-      id: "put", label: t("selection.moveToFolder"), icon: <FolderInput size={18} strokeWidth={1.75} />, disabled: !hasFolders,
-      note: folders && !hasFolders ? t("selection.noFolders") : undefined, menuWidth: 220,
-      menu: (folders ?? []).map((f) => <MenuItem key={f.id} onClick={() => edit([{ kind: "addToFolder", folderId: f.id }], false)}>{f.label}</MenuItem>),
-    }, ...scope.kind === "folder" ? [{ id: "remove", label: t("selection.removeFromFolder"), icon: <FolderMinus size={18} strokeWidth={1.75} /> }] : [], "sep" as const],
-    ...trash
-      ? [{ id: "restore", label: t("selection.restore"), icon: <RotateCcw size={18} strokeWidth={1.75} /> },
-        { id: "purge", label: t("selection.purge"), tone: "danger" as const, icon: <Trash2 size={18} strokeWidth={1.75} /> }]
-      : [{ id: "delete", label: t("selection.trash"), shortcut: "Del", tone: "danger" as const, icon: <Trash2 size={18} strokeWidth={1.75} /> }],
+    ...(trash
+      ? []
+      : [
+          {
+            id: "put",
+            label: t("selection.moveToFolder"),
+            icon: <FolderInput size={18} strokeWidth={1.75} />,
+            disabled: !hasFolders,
+            note: folders && !hasFolders ? t("selection.noFolders") : undefined,
+            menuWidth: 220,
+            menu: (folders ?? []).map((f) => (
+              <MenuItem key={f.id} onClick={() => edit([{ kind: "addToFolder", folderId: f.id }], false)}>
+                {f.label}
+              </MenuItem>
+            )),
+          },
+          ...(scope.kind === "folder"
+            ? [
+                {
+                  id: "remove",
+                  label: t("selection.removeFromFolder"),
+                  icon: <FolderMinus size={18} strokeWidth={1.75} />,
+                },
+              ]
+            : []),
+          "sep" as const,
+        ]),
+    ...(trash
+      ? [
+          { id: "restore", label: t("selection.restore"), icon: <RotateCcw size={18} strokeWidth={1.75} /> },
+          {
+            id: "purge",
+            label: t("selection.purge"),
+            tone: "danger" as const,
+            icon: <Trash2 size={18} strokeWidth={1.75} />,
+          },
+        ]
+      : [
+          {
+            id: "delete",
+            label: t("selection.trash"),
+            shortcut: "Del",
+            tone: "danger" as const,
+            icon: <Trash2 size={18} strokeWidth={1.75} />,
+          },
+        ]),
     { id: "clear", label: t("selection.clear"), icon: <X size={18} strokeWidth={1.75} /> },
   ];
   const run = (id: string) => {
@@ -111,12 +180,43 @@ export function SelectionBar({ libraryId, acrossLibraries, scope, ids, onClear, 
   };
 
   const instant = { duration: 0 };
-  return <motion.div ref={root} className="selbar-float"
-    initial={{ opacity: 0, y: reduced ? 0 : 24, x: left }} animate={{ opacity: 1, y: 0, x: left }} exit={{ opacity: 0, y: reduced ? 0 : 24 }}
-    transition={reduced ? instant : arcSpring.morph}>
-    <Dock label={t("selection.actions")} items={items} onSelect={run} className={compact ? "is-compact" : ""}
-      readout={compact ? <b aria-label={t("selection.count", { count: ids.length })}>{t("selection.countShort", { count: ids.length })}</b> : <b>{t("selection.count", { count: ids.length })}</b>} />
-    {purging && libraryId !== null && scope.kind === "trash" && <PermanentDeleteConfirm libraryId={libraryId} ids={ids} safeMode={safeMode}
-      onDone={() => { setPurging(false); onClear(); }} onCancel={() => setPurging(false)} onError={toast.error} />}
-  </motion.div>;
+  return (
+    <motion.div
+      ref={root}
+      className="selbar-float"
+      initial={{ opacity: 0, y: reduced ? 0 : 24, x: left }}
+      animate={{ opacity: 1, y: 0, x: left }}
+      exit={{ opacity: 0, y: reduced ? 0 : 24 }}
+      transition={reduced ? instant : arcSpring.morph}
+    >
+      <Dock
+        label={t("selection.actions")}
+        items={items}
+        onSelect={run}
+        className={compact ? "is-compact" : ""}
+        readout={
+          compact ? (
+            <b aria-label={t("selection.count", { count: ids.length })}>
+              {t("selection.countShort", { count: ids.length })}
+            </b>
+          ) : (
+            <b>{t("selection.count", { count: ids.length })}</b>
+          )
+        }
+      />
+      {purging && libraryId !== null && scope.kind === "trash" && (
+        <PermanentDeleteConfirm
+          libraryId={libraryId}
+          ids={ids}
+          safeMode={safeMode}
+          onDone={() => {
+            setPurging(false);
+            onClear();
+          }}
+          onCancel={() => setPurging(false)}
+          onError={toast.error}
+        />
+      )}
+    </motion.div>
+  );
 }

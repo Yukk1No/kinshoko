@@ -7,9 +7,19 @@ import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import { Wall, type WallHandle } from "./Wall";
 import { fakeBackend } from "../test/backend";
 
-const card = (id: string): WorkspaceCard => ({ id, width: 120, height: 90, adult: false,
-  libraryId: "A", imageId: id, sources: [] });
-const settle = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+const card = (id: string): WorkspaceCard => ({
+  id,
+  width: 120,
+  height: 90,
+  adult: false,
+  libraryId: "A",
+  imageId: id,
+  sources: [],
+});
+const settle = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
 let browses = 0;
 beforeEach(() => {
   browses = 0;
@@ -21,23 +31,43 @@ beforeEach(() => {
     workspace_browse: () => {
       browses += 1;
       const cards = ["a", "b", "c", "d"].map(card);
-      return { cards, total: cards.length, nextCursor: null, status: { revision: "r", libraries: [] } } satisfies WorkspacePage;
+      return {
+        cards,
+        total: cards.length,
+        nextCursor: null,
+        status: { revision: "r", libraries: [] },
+      } satisfies WorkspacePage;
     },
   });
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const shown = () => [...document.querySelectorAll<HTMLElement>(".card")].map((node) => node.dataset.id);
 const total = () => document.querySelector<HTMLElement>(".wall")?.dataset.total;
 
 it("先移走卡片，不等重新浏览；放回的那部分回到原位（#290）", async () => {
   const ref = createRef<WallHandle>();
-  render(<Wall ref={ref} scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
-    onOpenImage={() => {}} viewerOpen={false} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
+  render(
+    <Wall
+      ref={ref}
+      scope={{ kind: "all" }}
+      selected={new Set()}
+      onSelectionChange={() => {}}
+      onOpenImage={() => {}}
+      viewerOpen={false}
+      reloadKey={0}
+      workspaceScope={{ kind: "all" }}
+      safeMode
+    />,
+  );
   await settle();
   expect(shown()).toEqual(["a", "b", "c", "d"]);
   let putBack!: (ids: string[]) => void;
-  act(() => { putBack = ref.current!.remove(["b", "d"]); });
+  act(() => {
+    putBack = ref.current!.remove(["b", "d"]);
+  });
   expect(shown()).toEqual(["a", "c"]);
   expect(total()).toBe("2");
   act(() => putBack(["b"]));
@@ -50,16 +80,33 @@ it("先移走卡片，不等重新浏览；放回的那部分回到原位（#290
 
 it("只放回后面那张时也回到原位：前面那张已移走也不乱序", async () => {
   const ref = createRef<WallHandle>();
-  render(<Wall ref={ref} scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
-    onOpenImage={() => {}} viewerOpen={false} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
+  render(
+    <Wall
+      ref={ref}
+      scope={{ kind: "all" }}
+      selected={new Set()}
+      onSelectionChange={() => {}}
+      onOpenImage={() => {}}
+      viewerOpen={false}
+      reloadKey={0}
+      workspaceScope={{ kind: "all" }}
+      safeMode
+    />,
+  );
   await settle();
   let first!: (ids: string[]) => void, second!: (ids: string[]) => void;
-  act(() => { first = ref.current!.remove(["b", "c"]); });
+  act(() => {
+    first = ref.current!.remove(["b", "c"]);
+  });
   act(() => first(["c"]));
   expect(shown()).toEqual(["a", "c", "d"]);
   // 两次删除重叠、都失败：各自放回后仍是原来的先后。
-  act(() => { first = ref.current!.remove(["a"]); });
-  act(() => { second = ref.current!.remove(["c"]); });
+  act(() => {
+    first = ref.current!.remove(["a"]);
+  });
+  act(() => {
+    second = ref.current!.remove(["c"]);
+  });
   act(() => first(["a"]));
   act(() => second(["c"]));
   expect(shown()).toEqual(["a", "c", "d"]);
@@ -72,33 +119,76 @@ it("移走时还在路上的下一页回来也不把移走的卡片带回来（#
   fakeBackend({
     workspace_browse: (args) => {
       const cursor = (args as { query: { cursor: string | null } }).query.cursor;
-      if (cursor === null) return { cards: first, total: 501, nextCursor: "p2", status: { revision: "r", libraries: [] } } satisfies WorkspacePage;
-      return new Promise<WorkspacePage>((resolve) => { second = resolve; });
+      if (cursor === null)
+        return {
+          cards: first,
+          total: 501,
+          nextCursor: "p2",
+          status: { revision: "r", libraries: [] },
+        } satisfies WorkspacePage;
+      return new Promise<WorkspacePage>((resolve) => {
+        second = resolve;
+      });
     },
   });
   const ref = createRef<WallHandle>();
-  render(<Wall ref={ref} scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
-    onOpenImage={() => {}} viewerOpen={false} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
+  render(
+    <Wall
+      ref={ref}
+      scope={{ kind: "all" }}
+      selected={new Set()}
+      onSelectionChange={() => {}}
+      onOpenImage={() => {}}
+      viewerOpen={false}
+      reloadKey={0}
+      workspaceScope={{ kind: "all" }}
+      safeMode
+    />,
+  );
   await settle();
   expect(total()).toBe("501");
   act(() => ref.current!.loadMore());
   await settle();
   expect(second).toBeTypeOf("function");
-  act(() => { ref.current!.remove(["p0"]); });
-  await act(async () => second!({ cards: [card("last")], total: 501, nextCursor: null, status: { revision: "r", libraries: [] } }));
+  act(() => {
+    ref.current!.remove(["p0"]);
+  });
+  await act(async () =>
+    second!({ cards: [card("last")], total: 501, nextCursor: null, status: { revision: "r", libraries: [] } }),
+  );
   expect(shown()).not.toContain("p0");
   expect(total()).toBe("500");
 });
 
 it("全部移走再全部放回仍按原来的先后，几千张也不卡住", async () => {
   const many = Array.from({ length: 2400 }, (_, i) => `c${i}`);
-  fakeBackend({ workspace_browse: { cards: many.map(card), total: many.length, nextCursor: null, status: { revision: "r", libraries: [] } } satisfies WorkspacePage });
+  fakeBackend({
+    workspace_browse: {
+      cards: many.map(card),
+      total: many.length,
+      nextCursor: null,
+      status: { revision: "r", libraries: [] },
+    } satisfies WorkspacePage,
+  });
   const ref = createRef<WallHandle>();
-  render(<Wall ref={ref} scope={{ kind: "all" }} selected={new Set()} onSelectionChange={() => {}}
-    onOpenImage={() => {}} viewerOpen={false} reloadKey={0} workspaceScope={{ kind: "all" }} safeMode />);
+  render(
+    <Wall
+      ref={ref}
+      scope={{ kind: "all" }}
+      selected={new Set()}
+      onSelectionChange={() => {}}
+      onOpenImage={() => {}}
+      viewerOpen={false}
+      reloadKey={0}
+      workspaceScope={{ kind: "all" }}
+      safeMode
+    />,
+  );
   await settle();
   let putBack!: (ids: string[]) => void;
-  act(() => { putBack = ref.current!.remove(many); });
+  act(() => {
+    putBack = ref.current!.remove(many);
+  });
   expect(total()).toBe("0");
   const started = performance.now();
   act(() => putBack([...many].reverse()));
@@ -116,17 +206,36 @@ it("整理还没结束时不翻下一页，重新浏览回来的页也去掉移�
       if (cursor !== null) nextPages.push(cursor);
       // 后端还没删完：张数与第一页都还算着 p0。
       return cursor === null
-        ? { cards: first, total: 501, nextCursor: "p2", status: { revision: "r", libraries: [] } } satisfies WorkspacePage
-        : { cards: [card("last")], total: 501, nextCursor: null, status: { revision: "r", libraries: [] } } satisfies WorkspacePage;
+        ? ({
+            cards: first,
+            total: 501,
+            nextCursor: "p2",
+            status: { revision: "r", libraries: [] },
+          } satisfies WorkspacePage)
+        : ({
+            cards: [card("last")],
+            total: 501,
+            nextCursor: null,
+            status: { revision: "r", libraries: [] },
+          } satisfies WorkspacePage);
     },
   });
   const ref = createRef<WallHandle>();
-  const props = { scope: { kind: "all" as const }, selected: new Set<string>(), onSelectionChange: () => {},
-    onOpenImage: () => {}, viewerOpen: false, workspaceScope: { kind: "all" as const }, safeMode: true };
+  const props = {
+    scope: { kind: "all" as const },
+    selected: new Set<string>(),
+    onSelectionChange: () => {},
+    onOpenImage: () => {},
+    viewerOpen: false,
+    workspaceScope: { kind: "all" as const },
+    safeMode: true,
+  };
   const view = render(<Wall ref={ref} {...props} reloadKey={0} />);
   await settle();
   let done!: (ids: string[]) => void;
-  act(() => { done = ref.current!.remove(["p0"]); });
+  act(() => {
+    done = ref.current!.remove(["p0"]);
+  });
   act(() => ref.current!.loadMore());
   await settle();
   expect(nextPages).toEqual([]);

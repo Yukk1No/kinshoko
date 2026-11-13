@@ -3,7 +3,9 @@ import type { ProbeEnv } from "./frameProbe";
 import { installPerfProbe, type KinshokoPerf } from "./install";
 
 declare global {
-  interface Window { __kinshokoPerf?: KinshokoPerf }
+  interface Window {
+    __kinshokoPerf?: KinshokoPerf;
+  }
 }
 
 function ticking(frameMs: number) {
@@ -21,16 +23,29 @@ function ticking(frameMs: number) {
   setTimeout(pump, 0);
   const env: ProbeEnv = {
     now: () => t,
-    raf: (cb) => { queue.push(cb); return queue.length; },
-    caf: () => { queue = []; },
+    raf: (cb) => {
+      queue.push(cb);
+      return queue.length;
+    },
+    caf: () => {
+      queue = [];
+    },
     observe: () => ({ types: ["longtask"], disconnect() {} }),
   };
-  return { env, stop: () => { stopped = true; } };
+  return {
+    env,
+    stop: () => {
+      stopped = true;
+    },
+  };
 }
 
 describe("installPerfProbe", () => {
   let stop = () => {};
-  afterEach(() => { stop(); delete window.__kinshokoPerf; });
+  afterEach(() => {
+    stop();
+    delete window.__kinshokoPerf;
+  });
 
   it("在 window 上挂出探针入口", () => {
     installPerfProbe(window);

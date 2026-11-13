@@ -146,8 +146,13 @@ function setSlider(input: HTMLInputElement, value: number) {
 function ctrlWheel(wall: HTMLElement, deltaY: number): boolean {
   const rect = wall.getBoundingClientRect();
   const event = new WheelEvent("wheel", {
-    deltaY, deltaMode: 0, ctrlKey: true, bubbles: true, cancelable: true,
-    clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2,
+    deltaY,
+    deltaMode: 0,
+    ctrlKey: true,
+    bubbles: true,
+    cancelable: true,
+    clientX: rect.left + rect.width / 2,
+    clientY: rect.top + rect.height / 2,
   });
   wall.dispatchEvent(event);
   return event.defaultPrevented;
@@ -162,7 +167,14 @@ function summarizeGaps(samples: { visible: number; pending: number }[]) {
   };
 }
 
-async function runScroll(name: "wheel-steady" | "wheel-burst", wall: HTMLElement, env: ProbeEnv, refreshMs: number, o: Required<Omit<RunOptions, "env" | "only">>, durationOverride: number | undefined): Promise<ScenarioResult> {
+async function runScroll(
+  name: "wheel-steady" | "wheel-burst",
+  wall: HTMLElement,
+  env: ProbeEnv,
+  refreshMs: number,
+  o: Required<Omit<RunOptions, "env" | "only">>,
+  durationOverride: number | undefined,
+): Promise<ScenarioResult> {
   const duration = durationOverride ?? SCENARIOS[name].durationMs;
   const probe = createFrameProbe(env);
   const gaps: { visible: number; pending: number }[] = [];
@@ -244,7 +256,8 @@ export async function runWallScenarios(options: RunOptions = {}): Promise<WallPe
   const warnings: string[] = [];
   const totalAttr = wall.dataset.total;
   const total = totalAttr === undefined ? null : Number(totalAttr);
-  if (total === null || total < 5000) warnings.push(`The current scope has only ${total ?? "unknown"} images; the baseline needs a 5000-image library.`);
+  if (total === null || total < 5000)
+    warnings.push(`The current scope has only ${total ?? "unknown"} images; the baseline needs a 5000-image library.`);
   const slider = densityInput();
 
   // 空闲时校准显示器刷新间隔。
@@ -274,9 +287,11 @@ export async function runWallScenarios(options: RunOptions = {}): Promise<WallPe
   for (const name of options.only ?? SCENARIO_ORDER) {
     wall.scrollTop = 0;
     await wait(env, o.settleMs);
-    report.scenarios.push(name === "ctrl-wheel-zoom"
-      ? await runZoom(wall, env, refreshMs)
-      : await runScroll(name, wall, env, refreshMs, o, options.durationMs));
+    report.scenarios.push(
+      name === "ctrl-wheel-zoom"
+        ? await runZoom(wall, env, refreshMs)
+        : await runScroll(name, wall, env, refreshMs, o, options.durationMs),
+    );
   }
   wall.scrollTop = 0;
   return report;

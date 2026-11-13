@@ -12,8 +12,12 @@ export const doubleClickSettings = () => current;
 /** 读一次系统的双击设置（#179），之后沿用；读不到时保留默认值。 */
 export function loadDoubleClickSettings(): Promise<void> {
   loading ??= doubleClick().then(
-    (settings) => { current = settings ?? DEFAULT_DOUBLE_CLICK; },
-    () => { current = DEFAULT_DOUBLE_CLICK; },
+    (settings) => {
+      current = settings ?? DEFAULT_DOUBLE_CLICK;
+    },
+    () => {
+      current = DEFAULT_DOUBLE_CLICK;
+    },
   );
   return loading;
 }
@@ -32,7 +36,9 @@ export type Press = { at: number; x: number; y: number };
  * （矩形按物理像素，所以 CSS 坐标乘设备像素比）。只看时间和距离，不看落在哪个元素上。
  */
 export function isSecondPress(first: Press, press: Press, settings: DoubleClickSettings, dpr: number): boolean {
-  return press.at - first.at <= settings.intervalMs
-    && Math.abs(press.x - first.x) * dpr <= settings.width / 2
-    && Math.abs(press.y - first.y) * dpr <= settings.height / 2;
+  return (
+    press.at - first.at <= settings.intervalMs &&
+    Math.abs(press.x - first.x) * dpr <= settings.width / 2 &&
+    Math.abs(press.y - first.y) * dpr <= settings.height / 2
+  );
 }

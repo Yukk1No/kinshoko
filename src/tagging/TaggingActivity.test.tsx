@@ -12,20 +12,58 @@ const actions = () => fake.calls();
 
 /** 后端：`tagging_status` 回答所有资料库合计的状态（#414）；推送用 `push`。 */
 function backend(status: TaggingStatus) {
-  fake = fakeBackend({ tagging_status: status, tagging_pause: null, tagging_resume: null, tagging_download: null, tagging_retry_failed: null });
+  fake = fakeBackend({
+    tagging_status: status,
+    tagging_pause: null,
+    tagging_resume: null,
+    tagging_download: null,
+    tagging_retry_failed: null,
+  });
 }
 
 const push = (status: TaggingStatus) => act(() => emit("tagging-status", status));
 
 function mount(onOpenSettings = vi.fn()) {
-  const view = render(<><TaggingActivity onOpenSettings={onOpenSettings} /></>);
+  const view = render(
+    <>
+      <TaggingActivity onOpenSettings={onOpenSettings} />
+    </>,
+  );
   return { ...view, onOpenSettings };
 }
 
-const running = (tagged: number, done = 0, remaining = 1): TaggingStatus => ({ state: "running", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged, done, remaining });
-const idle = (tagged: number): TaggingStatus => ({ state: "idle", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged, unknown: 0, failed: { unreadable: 0, crashed: 0 } });
-const needsDownload = (downloaded = 0, cancelled = false): TaggingStatus => ({ state: "needsDownload", model: "PixAI", size: 992_916_002, downloaded, fallback: null, cancelled });
-const downloading = (downloaded: number): TaggingStatus => ({ state: "downloading", model: "PixAI", downloaded, total: 1_000_000_000 });
+const running = (tagged: number, done = 0, remaining = 1): TaggingStatus => ({
+  state: "running",
+  model: "PixAI",
+  device: "directMl",
+  gpu: "RX 6500 XT",
+  tagged,
+  done,
+  remaining,
+});
+const idle = (tagged: number): TaggingStatus => ({
+  state: "idle",
+  model: "PixAI",
+  device: "directMl",
+  gpu: "RX 6500 XT",
+  tagged,
+  unknown: 0,
+  failed: { unreadable: 0, crashed: 0 },
+});
+const needsDownload = (downloaded = 0, cancelled = false): TaggingStatus => ({
+  state: "needsDownload",
+  model: "PixAI",
+  size: 992_916_002,
+  downloaded,
+  fallback: null,
+  cancelled,
+});
+const downloading = (downloaded: number): TaggingStatus => ({
+  state: "downloading",
+  model: "PixAI",
+  downloaded,
+  total: 1_000_000_000,
+});
 /** 等待后端首次读取与订阅都到位，后面的推送才收得到。 */
 const settled = () => waitFor(() => expect(actions().some((a) => a.command === "tagging_status")).toBe(true));
 /** 正在显示的通知标题（Base UI 另有一份播报副本，不算）。 */
@@ -54,7 +92,9 @@ describe("缩放滑块左边的打标图标", () => {
 
   it("点击后命令失败时提示原因（#529）", async () => {
     backend(running(128, 0, 88));
-    fake.on("tagging_pause", () => { throw { code: "message", message: "子进程没有回应" }; });
+    fake.on("tagging_pause", () => {
+      throw { code: "message", message: "子进程没有回应" };
+    });
     mount();
     fireEvent.click(await screen.findByRole("button", { name: "暂停自动标签：还剩 88 张" }));
     await waitFor(() => expect(toasts()).toContain("自动标签操作没有完成：子进程没有回应"));
@@ -97,7 +137,11 @@ describe("缩放滑块左边的打标图标", () => {
 
   it("右下角收起时（#180）换成小圆点，状态仍可读", async () => {
     backend(running(128));
-    render(<><TaggingActivity collapsed onOpenSettings={() => {}} /></>);
+    render(
+      <>
+        <TaggingActivity collapsed onOpenSettings={() => {}} />
+      </>,
+    );
     const dot = await screen.findByRole("img", { name: "自动标签：还剩 1 张" });
     expect(dot.classList.contains("k-tagging-dot")).toBe(true);
     expect(dot.dataset.activity).toBe("busy");
@@ -155,7 +199,11 @@ describe("缩放滑块左边的打标图标", () => {
 
   it("多选收起时右上角是迷你进度环", async () => {
     backend(running(10, 1, 1));
-    render(<><TaggingActivity collapsed onOpenSettings={() => {}} /></>);
+    render(
+      <>
+        <TaggingActivity collapsed onOpenSettings={() => {}} />
+      </>,
+    );
     const dot = await screen.findByRole("img", { name: /还剩 1 张/ });
     expect(dot.querySelector(".k-tagging-arc")?.getAttribute("stroke-dasharray")).toBe("50 100");
   });
@@ -194,12 +242,15 @@ describe("缩放滑块左边的打标图标", () => {
 
   it("停住的状态在多选收起时不挂小圆点", async () => {
     backend(needsDownload());
-    render(<><TaggingActivity collapsed onOpenSettings={() => {}} /></>);
+    render(
+      <>
+        <TaggingActivity collapsed onOpenSettings={() => {}} />
+      </>,
+    );
     await settled();
     await act(async () => {});
     expect(document.querySelector(".k-tagging-dot")).toBeNull();
   });
-
 });
 
 describe("自动标签的右下角通知", () => {
@@ -208,7 +259,9 @@ describe("自动标签的右下角通知", () => {
     backend(needsDownload());
     mount();
     expect(await screen.findByText("需要下载自动标签模型（947 MB）")).toBeTruthy();
-    await act(async () => { vi.advanceTimersByTime(60_000); });
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
     const download = screen.getByRole("button", { name: "下载" });
     expect(actions().map((a) => a.command)).not.toContain("tagging_download");
 
@@ -216,7 +269,9 @@ describe("自动标签的右下角通知", () => {
     await waitFor(() => expect(actions().map((a) => a.command)).toContain("tagging_download"));
     await waitFor(() => expect(screen.queryByText(/需要下载自动标签模型/)).toBeNull());
     expect(await screen.findByText("正在下载自动标签模型")).toBeTruthy();
-    await act(async () => { vi.advanceTimersByTime(6_000); });
+    await act(async () => {
+      vi.advanceTimersByTime(6_000);
+    });
     await waitFor(() => expect(screen.queryByText("正在下载自动标签模型")).toBeNull());
   });
 });
@@ -265,7 +320,9 @@ describe("完成类通知", () => {
     await push({ state: "preparing", model: "PixAI" });
     await push({ state: "starting" });
     await waitFor(() => expect(shown(/已下载自动标签模型/)).toBe(1));
-    await act(async () => { vi.advanceTimersByTime(6_000); });
+    await act(async () => {
+      vi.advanceTimersByTime(6_000);
+    });
     await waitFor(() => expect(screen.queryByText("已下载自动标签模型")).toBeNull());
   });
 
@@ -299,7 +356,9 @@ describe("出错与不可用的通知去重", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("自动标签出错：下载失败：超时");
     await push({ state: "failed", reason: { code: "system", detail: "下载失败：超时" } });
     await push({ state: "failed", reason: { code: "system", detail: "下载失败：超时" } });
-    await act(async () => { vi.advanceTimersByTime(60_000); });
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
     expect(shown(/下载失败：超时/)).toBe(1);
 
     await push({ state: "failed", reason: { code: "system", detail: "磁盘已满" } });
@@ -328,7 +387,9 @@ describe("出错与不可用的通知去重", () => {
     mount();
     await waitFor(() => expect(toasts()).toEqual(["自动标签不可用：内存不足"]));
     await push({ state: "noDevice", reasons: [{ code: "system", detail: "内存不足" }] });
-    await act(async () => { vi.advanceTimersByTime(60_000); });
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
     expect(shown(/内存不足/)).toBe(1);
 
     fireEvent.click(screen.getByRole("button", { name: "关闭提示" }));
@@ -352,7 +413,9 @@ describe("一轮打完的通知", () => {
     await push(idle(12));
     await push(idle(12));
     await waitFor(() => expect(toasts()).toEqual(["自动标签：已完成 2 张"]));
-    await act(async () => { vi.advanceTimersByTime(6_000); });
+    await act(async () => {
+      vi.advanceTimersByTime(6_000);
+    });
     await waitFor(() => expect(toasts()).toEqual([]));
   });
 

@@ -3,7 +3,23 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import type { Candidate } from "./bindings/Candidate";
 import type { SearchInput } from "./bindings/SearchInput";
 import { App } from "./App";
-import { library, label, candidates, resolved, calls, safeOn, setKeepSelectionOnSafeMode, setSafeOn, clean, backend, LocalSearchFixture, sent, selectionPanel, selectionBar, push } from "./App.fixtures";
+import {
+  library,
+  label,
+  candidates,
+  resolved,
+  calls,
+  safeOn,
+  setKeepSelectionOnSafeMode,
+  setSafeOn,
+  clean,
+  backend,
+  LocalSearchFixture,
+  sent,
+  selectionPanel,
+  selectionBar,
+  push,
+} from "./App.fixtures";
 import type { Args } from "./test/backend";
 
 describe("安全模式", () => {
@@ -23,9 +39,7 @@ describe("安全模式", () => {
 
     fireEvent.keyDown(window, { key: "S", ctrlKey: true, shiftKey: true });
     expect(button.getAttribute("aria-pressed")).toBe("true");
-    await waitFor(() =>
-      expect(sent("set_safe_mode")).toEqual([{ on: false }, { on: true }]),
-    );
+    await waitFor(() => expect(sent("set_safe_mode")).toEqual([{ on: false }, { on: true }]));
   });
 
   it("开启的同一刻遮住将被封印的图，资料库确认后它们离开图片墙", async () => {
@@ -62,7 +76,13 @@ describe("安全模式", () => {
   it("关闭：开关当即显示为关，后端确认后只整批浏览一次，资料库事件不再重读（#183）", async () => {
     let commit: (on: boolean) => void = () => {};
     backend(library, clean, {
-      set_safe_mode: () => new Promise<boolean>((resolve) => { commit = (value) => { setSafeOn(value); resolve(value); }; }),
+      set_safe_mode: () =>
+        new Promise<boolean>((resolve) => {
+          commit = (value) => {
+            setSafeOn(value);
+            resolve(value);
+          };
+        }),
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -82,12 +102,16 @@ describe("安全模式", () => {
     expect(cardOf("x")).toBeNull();
 
     const committedAt = calls().length;
-    await act(async () => { commit(false); });
+    await act(async () => {
+      commit(false);
+    });
     await waitFor(() => expect(cardOf("x")).toBeTruthy());
     await act(async () => {});
     expect(sent("workspace_browse").length).toBe(before + 1);
     // 后端按到达顺序在同一把锁上排队：图片墙的浏览先发出，状态、侧栏等刷新排在它后面。
-    const after = calls().slice(committedAt).map((c) => c.command)
+    const after = calls()
+      .slice(committedAt)
+      .map((c) => c.command)
       .filter((command) => command === "workspace_browse" || command === "workspace_status");
     expect(after[0]).toBe("workspace_browse");
   });
@@ -111,8 +135,12 @@ describe("安全模式", () => {
     expect(button.getAttribute("aria-pressed")).toBe("true");
     await waitFor(() => expect(replies.length).toBe(2));
     // 后点的开启先返回，先点的关闭后返回。
-    await act(async () => { replies[1](true); });
-    await act(async () => { replies[0](false); });
+    await act(async () => {
+      replies[1](true);
+    });
+    await act(async () => {
+      replies[0](false);
+    });
     await waitFor(() => expect(sent("safe_mode").length).toBeGreaterThan(1));
     await act(async () => {});
     expect(button.getAttribute("aria-pressed")).toBe("true");
@@ -139,7 +167,8 @@ describe("安全模式", () => {
     render(<App />);
     await waitFor(() => expect(cardOf("x")).toBeTruthy());
     fireEvent.keyDown(cardOf("x")!, { key: " " });
-    expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
+    expect(selectionPanel()).toBeTruthy();
+    expect(selectionBar()).toBeNull();
     const sidebars = sent("workspace_directories").length;
 
     fireEvent.click(await book());
@@ -153,7 +182,8 @@ describe("安全模式", () => {
     render(<App />);
     await waitFor(() => expect(cardOf("a")).toBeTruthy());
     fireEvent.keyDown(cardOf("a")!, { key: " " });
-    expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
+    expect(selectionPanel()).toBeTruthy();
+    expect(selectionBar()).toBeNull();
 
     fireEvent.click(await book());
     await changed(false);
@@ -180,7 +210,8 @@ describe("安全模式", () => {
     fireEvent.click(await book());
     await changed(true);
     await waitFor(() => expect(cardOf("x")).toBeNull());
-    await waitFor(() => expect(selectionBar()).toBeNull()); expect(selectionPanel()).toBeTruthy();
+    await waitFor(() => expect(selectionBar()).toBeNull());
+    expect(selectionPanel()).toBeTruthy();
     expect(cardOf("a")?.getAttribute("aria-selected")).toBe("true");
   });
 
@@ -195,55 +226,68 @@ describe("安全模式", () => {
     fireEvent.click(await book());
     await changed(false);
     await waitFor(() => expect(cardOf("x")).toBeTruthy());
-    expect(selectionPanel()).toBeTruthy(); expect(selectionBar()).toBeNull();
+    expect(selectionPanel()).toBeTruthy();
+    expect(selectionBar()).toBeNull();
     expect(cardOf("a")?.getAttribute("aria-selected")).toBe("true");
   });
   describe("候选随视角作废（#76）", () => {
     const adult: Candidate = { tag: label("ADULT", "general", "只在成人图出现的标签"), via: null, count: 1 };
     const box = () => screen.findByRole("combobox", { name: "查找参考图" });
     /** 后端核对请求带的视角：与资料库的安全模式不同时拒绝，与真实命令一致。 */
-    const lensChecked = (hold?: () => Promise<Candidate[]> | undefined) => ({ workspace_candidates: (args: Args) => {
-      const { text, safeMode } = args as { text: string; safeMode: boolean };
-      const held = hold?.();
-      if (held) return held;
-      if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
-      return text.trim() && !safeOn ? [adult] : [];
-    } });
-
-    it.each(["封印书", "快捷键"])("用%s开启安全模式时立即清掉成人图独有的候选与数量，重新聚焦也不再出现", async (entry) => {
-      backend(library, clean, lensChecked(), false);
-      render(<App />);
-      await waitFor(() => expect(cardOf("x")).toBeTruthy());
-      const input = await box();
-      fireEvent.focus(input);
-      fireEvent.change(input, { target: { value: "只在成人" } });
-      expect(await screen.findByRole("option", { name: /只在成人图出现的标签/ })).toBeTruthy();
-
-      if (entry === "封印书") fireEvent.click(await book());
-      else fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
-      // 不等后端确认，也不用再打字。
-      expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
-      expect(document.querySelector(".k-option .k-item-meta")).toBeNull();
-
-      await changed(true);
-      fireEvent.blur(input);
-      fireEvent.focus(input);
-      await waitFor(() =>
-        expect(sent("workspace_candidates").at(-1)).toMatchObject({ text: "只在成人", safeMode: true }),
-      );
-      expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
-      expect(screen.queryByRole("alert")).toBeNull();
+    const lensChecked = (hold?: () => Promise<Candidate[]> | undefined) => ({
+      workspace_candidates: (args: Args) => {
+        const { text, safeMode } = args as { text: string; safeMode: boolean };
+        const held = hold?.();
+        if (held) return held;
+        if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
+        return text.trim() && !safeOn ? [adult] : [];
+      },
     });
+
+    it.each(["封印书", "快捷键"])(
+      "用%s开启安全模式时立即清掉成人图独有的候选与数量，重新聚焦也不再出现",
+      async (entry) => {
+        backend(library, clean, lensChecked(), false);
+        render(<App />);
+        await waitFor(() => expect(cardOf("x")).toBeTruthy());
+        const input = await box();
+        fireEvent.focus(input);
+        fireEvent.change(input, { target: { value: "只在成人" } });
+        expect(await screen.findByRole("option", { name: /只在成人图出现的标签/ })).toBeTruthy();
+
+        if (entry === "封印书") fireEvent.click(await book());
+        else fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
+        // 不等后端确认，也不用再打字。
+        expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
+        expect(document.querySelector(".k-option .k-item-meta")).toBeNull();
+
+        await changed(true);
+        fireEvent.blur(input);
+        fireEvent.focus(input);
+        await waitFor(() =>
+          expect(sent("workspace_candidates").at(-1)).toMatchObject({ text: "只在成人", safeMode: true }),
+        );
+        expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
+        expect(screen.queryByRole("alert")).toBeNull();
+      },
+    );
 
     it("切换前发出的候选请求迟到时不写回新视角", async () => {
       let finish!: (value: Candidate[]) => void;
-      const late = new Promise<Candidate[]>((resolve) => { finish = resolve; });
+      const late = new Promise<Candidate[]>((resolve) => {
+        finish = resolve;
+      });
       let first = true;
-      backend(library, clean, lensChecked(() => {
-        if (!first) return undefined;
-        first = false;
-        return late;
-      }), false);
+      backend(
+        library,
+        clean,
+        lensChecked(() => {
+          if (!first) return undefined;
+          first = false;
+          return late;
+        }),
+        false,
+      );
       render(<App />);
       await waitFor(() => expect(cardOf("x")).toBeTruthy());
       const input = await box();
@@ -295,18 +339,27 @@ describe("安全模式", () => {
 
     it("“加相近标签”的候选同样随视角作废，迟到的响应不写回", async () => {
       let finish!: (value: Candidate[]) => void;
-      const late = new Promise<Candidate[]>((resolve) => { finish = resolve; });
+      const late = new Promise<Candidate[]>((resolve) => {
+        finish = resolve;
+      });
       let holding = false;
-      backend(library, clean, { search_candidates: (args: Args) => {
-        const { text, safeMode } = args as { text: string; safeMode: boolean };
-        if (text === "只在成人" && holding) {
-          holding = false;
-          return late;
-        }
-        if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
-        if (text === "只在成人") return safeOn ? [] : [adult];
-        return text.trim() ? candidates : [];
-      } }, false);
+      backend(
+        library,
+        clean,
+        {
+          search_candidates: (args: Args) => {
+            const { text, safeMode } = args as { text: string; safeMode: boolean };
+            if (text === "只在成人" && holding) {
+              holding = false;
+              return late;
+            }
+            if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
+            if (text === "只在成人") return safeOn ? [] : [adult];
+            return text.trim() ? candidates : [];
+          },
+        },
+        false,
+      );
       render(<LocalSearchFixture />);
       const input = await box();
       fireEvent.change(input, { target: { value: "蓝" } });
@@ -331,21 +384,33 @@ describe("安全模式", () => {
       fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
       await changed(false);
       fireEvent.click(await screen.findByRole("button", { name: "给“蓝发”加相近标签" }));
-      fireEvent.change(within(await screen.findByRole("dialog", { name: "加相近标签" })).getByRole("combobox"), { target: { value: "只在成人" } });
+      fireEvent.change(within(await screen.findByRole("dialog", { name: "加相近标签" })).getByRole("combobox"), {
+        target: { value: "只在成人" },
+      });
       await waitFor(() => expect(holding).toBe(false));
       fireEvent.keyDown(window, { key: "s", ctrlKey: true, shiftKey: true });
       await changed(true);
-      await act(async () => { finish([adult]); await late; });
+      await act(async () => {
+        finish([adult]);
+        await late;
+      });
       expect(screen.queryByRole("dialog", { name: "加相近标签" })).toBeNull();
       expect(screen.queryByRole("option", { name: /只在成人图出现的标签/ })).toBeNull();
     });
 
     it("条件解析带上当前视角，视角刚切换的拒绝不当作错误显示", async () => {
-      backend(library, clean, { workspace_resolve: (args: Args) => {
-        const { input, safeMode } = args as { input: SearchInput; safeMode: boolean };
-        if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
-        return resolved(input);
-      } }, false);
+      backend(
+        library,
+        clean,
+        {
+          workspace_resolve: (args: Args) => {
+            const { input, safeMode } = args as { input: SearchInput; safeMode: boolean };
+            if (safeMode !== safeOn) return Promise.reject({ code: "lensChanged" });
+            return resolved(input);
+          },
+        },
+        false,
+      );
       render(<App />);
       await waitFor(() => expect(cardOf("x")).toBeTruthy());
       const input = await box();
@@ -360,4 +425,3 @@ describe("安全模式", () => {
     });
   });
 });
-

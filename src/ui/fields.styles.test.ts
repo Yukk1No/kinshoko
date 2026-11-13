@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import ui from "./ui.css?raw";
+import ui from "./uiCss";
 import { cssRule } from "./cssRule";
 
 describe("浮层", () => {

@@ -81,12 +81,7 @@ export const detail = (id: string, manual: string | null): ImageDetail => ({
   rating: { imageId: id, suggested: null, manual: null, effective: null },
 });
 
-export const label = (
-  id: string,
-  namespace: TagLabel["namespace"],
-  name: string,
-  hasExternal = false,
-): TagLabel => ({
+export const label = (id: string, namespace: TagLabel["namespace"], name: string, hasExternal = false): TagLabel => ({
   id,
   namespace,
   name,
@@ -154,16 +149,27 @@ export let safeOn = true;
 /** 后端查不到的图（已删除或被封印）：查询返回 UnknownImage。 */
 export let gone = new Set<string>();
 /** 测试文件不能给导入的绑定赋值：改共享状态走这几个函数。 */
-export const setShowApproxSource = (on: boolean) => { showApproxSource = on; };
-export const setKeepSelectionOnSafeMode = (on: boolean) => { keepSelectionOnSafeMode = on; };
-export const setInspectorOpen = (on: boolean) => { inspectorOpen = on; };
-export const setSafeOn = (on: boolean) => { safeOn = on; };
+export const setShowApproxSource = (on: boolean) => {
+  showApproxSource = on;
+};
+export const setKeepSelectionOnSafeMode = (on: boolean) => {
+  keepSelectionOnSafeMode = on;
+};
+export const setInspectorOpen = (on: boolean) => {
+  inspectorOpen = on;
+};
+export const setSafeOn = (on: boolean) => {
+  safeOn = on;
+};
 
 export const clean: RecoveryReport = { interrupted: [], orphans: [], discardedStaging: 0 };
 
 /** 图片墙一页（今天的 `workspace_browse` 回答），卡片默认属于 `library`。 */
-export const wallPage = (result: BrowsePage, owner: Pick<LibraryInfo, "id" | "name"> = library, revision?: string): WorkspacePage =>
-  toWallPage(result, owner, revision);
+export const wallPage = (
+  result: BrowsePage,
+  owner: Pick<LibraryInfo, "id" | "name"> = library,
+  revision?: string,
+): WorkspacePage => toWallPage(result, owner, revision);
 
 /** 渲染 `App` 的用例都要答的启动命令：启动时取留给主窗口的收集请求，没有。直接用 `fakeBackend` 的用例展开它。 */
 export const appStartup = { take_collection_request: () => null } satisfies Replies;
@@ -175,8 +181,12 @@ let fake: FakeBackend;
 /** 这次 `backend()` 收到过的调用，按先后。 */
 export const calls = () => fake.calls();
 
-export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = clean,
-  overrides: Overrides = {}, safe = true): FakeBackend {
+export function backend(
+  opened: LibraryInfo | null,
+  recovery: RecoveryReport = clean,
+  overrides: Overrides = {},
+  safe = true,
+): FakeBackend {
   safeOn = safe;
   gone = new Set();
   let current = opened;
@@ -191,30 +201,55 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
     if (!reply) throw new Error(`fake backend: no reply for ${command}`);
     return reply(args);
   };
-  const status = () => Promise.resolve(answer("registered_libraries")).then((libraries): WorkspaceStatus => ({
-    revision: `fixture-${revision}`, libraries: (libraries ?? []) as LibraryRegistration[],
-  }));
+  const status = () =>
+    Promise.resolve(answer("registered_libraries")).then(
+      (libraries): WorkspaceStatus => ({
+        revision: `fixture-${revision}`,
+        libraries: (libraries ?? []) as LibraryRegistration[],
+      }),
+    );
   /** 登记变化后后端推送的通知：界面靠它重读，不靠“换了资料库”。 */
-  const registrationChanged = () => { revision++; void status().then((next) => emit("workspace-changed", next)); };
+  const registrationChanged = () => {
+    revision++;
+    void status().then((next) => emit("workspace-changed", next));
+  };
   const replies: Record<string, (args: Args) => unknown> = {
     take_collection_request: appStartup.take_collection_request,
     app_info: () => info,
     current_library: () => current,
-    create_library: () => current = library,
-    registered_libraries: () => current ? [{ library: current, unavailable: null }] : [],
-    register_library: (args) => current = { id: "L2", name: "私人收藏", root: args.root as string },
-    unregister_library: () => { current = null; return null; },
+    create_library: () => (current = library),
+    registered_libraries: () => (current ? [{ library: current, unavailable: null }] : []),
+    register_library: (args) => (current = { id: "L2", name: "私人收藏", root: args.root as string }),
+    unregister_library: () => {
+      current = null;
+      return null;
+    },
     workspace_status: () => status(),
-    workspace_directories: () => Promise.resolve(answer("registered_libraries")).then(async (value) => {
-      const libraries = (value ?? []) as LibraryRegistration[];
-      return { status: { revision: `fixture-${revision}`, libraries }, registrationOrder: libraries.map((entry) => entry.library.id), providers: await Promise.all(libraries.map(async (registration) => ({
-        registration, unassigned: 0, descendants: {},
-        sidebar: registration.unavailable ? null : await answer("workspace_sidebar", { libraryId: registration.library.id }) as Sidebar,
-      }))) } satisfies WorkspaceDirectories;
-    }),
+    workspace_directories: () =>
+      Promise.resolve(answer("registered_libraries")).then(async (value) => {
+        const libraries = (value ?? []) as LibraryRegistration[];
+        return {
+          status: { revision: `fixture-${revision}`, libraries },
+          registrationOrder: libraries.map((entry) => entry.library.id),
+          providers: await Promise.all(
+            libraries.map(async (registration) => ({
+              registration,
+              unassigned: 0,
+              descendants: {},
+              sidebar: registration.unavailable
+                ? null
+                : ((await answer("workspace_sidebar", { libraryId: registration.library.id })) as Sidebar),
+            })),
+          ),
+        } satisfies WorkspaceDirectories;
+      }),
     workspace_browse: (args) => {
       const scope = (args.query as { scope: { libraryId?: string } }).scope;
-      const owner = { ...(current ?? library), id: scope.libraryId ?? current?.id ?? "L1", name: current?.name ?? "fixture" };
+      const owner = {
+        ...(current ?? library),
+        id: scope.libraryId ?? current?.id ?? "L1",
+        name: current?.name ?? "fixture",
+      };
       return wallPage(safeOn ? page : released, owner, `fixture-${revision}`);
     },
     workspace_sidebar: () => side,
@@ -222,7 +257,10 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
     workspace_local_tags: (args) => args.ids,
     rating_candidates: () => [],
     safe_mode: () => safeOn,
-    set_safe_mode: (args) => { safeOn = args.on as boolean; return safeOn; },
+    set_safe_mode: (args) => {
+      safeOn = args.on as boolean;
+      return safeOn;
+    },
     import_tasks: () => [],
     // 导入面板先问：选中的路径里没有 Eagle 资料库；没记过保存位置。
     import_contains_eagle: () => false,
@@ -234,7 +272,11 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
       if (gone.has(imageId)) return Promise.reject({ code: "unknownImage" });
       return detail(imageId, null);
     },
-    catalog_image_tags: (args) => ({ image: { imageId: args.imageId as string, tags: [], rejected: [] }, identities: [] }) satisfies CatalogImageTags,
+    catalog_image_tags: (args) =>
+      ({
+        image: { imageId: args.imageId as string, tags: [], rejected: [] },
+        identities: [],
+      }) satisfies CatalogImageTags,
     edit: (args) => {
       const { ids, edits } = args as { ids: string[]; edits: { kind: string; text?: string }[] };
       const note = edits.find((e) => e.kind === "setNote")?.text ?? null;
@@ -242,24 +284,35 @@ export function backend(opened: LibraryInfo | null, recovery: RecoveryReport = c
     },
     workspace_edit_sources: () => [],
     recovery: () => recovery,
-    workspace_candidates: (args) => (args.text as string).trim() ? candidates : [],
-    workspace_library_candidates: (args) => (args.text as string).trim() ? candidates : [],
-    search_candidates: (args) => (args.text as string).trim() ? candidates : [],
+    workspace_candidates: (args) => ((args.text as string).trim() ? candidates : []),
+    workspace_library_candidates: (args) => ((args.text as string).trim() ? candidates : []),
+    search_candidates: (args) => ((args.text as string).trim() ? candidates : []),
     workspace_resolve: (args) => resolved(args.input as SearchInput),
     tagging_status: () => ({ state: "starting" }),
     // 收集参考图的历史：还没有收集过。
     capture_history: () => [],
-    shell_settings: () => ({ autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorOpen }),
+    shell_settings: () => ({
+      autostart: true,
+      shortcuts: [],
+      showApproxSource,
+      keepSelectionOnSafeMode,
+      inspectorOpen,
+    }),
   };
   fake = fakeBackend();
-  for (const command of new Set([...Object.keys(replies), ...Object.keys(overrides)])) fake.on(command, (args) => answer(command, args));
+  for (const command of new Set([...Object.keys(replies), ...Object.keys(overrides)]))
+    fake.on(command, (args) => answer(command, args));
   // 改变登记的命令：回答之后后端推送 workspace-changed。
   for (const command of ["create_library", "register_library", "unregister_library"]) {
-    fake.on(command, (args) => Promise.resolve(answer(command, args)).then((value) => { registrationChanged(); return value; }));
+    fake.on(command, (args) =>
+      Promise.resolve(answer(command, args)).then((value) => {
+        registrationChanged();
+        return value;
+      }),
+    );
   }
   return fake;
 }
-
 
 /** Existing library-local approximation controls remain separate until global rules (T06) land. */
 export function LocalSearchFixture() {
@@ -272,7 +325,10 @@ export function LocalSearchFixture() {
     const toggle = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        setSafe((value) => { void setSafeMode(!value); return !value; });
+        setSafe((value) => {
+          void setSafeMode(!value);
+          return !value;
+        });
       }
     };
     window.addEventListener("keydown", toggle);
@@ -283,20 +339,46 @@ export function LocalSearchFixture() {
       if (event.kind === "safeModeChanged") setSafe(event.on);
       setGeneration((value) => value + 1);
     });
-    return () => { void stop.then((stop) => stop()); };
+    return () => {
+      void stop.then((stop) => stop());
+    };
   }, []);
   // biome-ignore lint/correctness/useExhaustiveDependencies(generation): 资料库有变动就重新解析搜索
   useEffect(() => {
     let alive = true;
-    workspaceResolve(input, lang, safe).then((tree) => alive && setTree(tree), () => {});
-    return () => { alive = false; };
+    workspaceResolve(input, lang, safe).then(
+      (tree) => alive && setTree(tree),
+      () => {},
+    );
+    return () => {
+      alive = false;
+    };
   }, [input, safe, generation, lang]);
-  return <>
-    <button type="button" aria-label={`安全模式：${safe ? "开启" : "关闭"}`} aria-pressed={safe}
-      onClick={() => { setSafe(!safe); void setSafeMode(!safe); }}>安全模式</button>
-    <SearchBox libraryId={library.id} safe={safe} generation={generation} input={input} tree={tree}
-      showSource={false} onChange={setInput} onError={() => {}} />
-  </>;
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={`安全模式：${safe ? "开启" : "关闭"}`}
+        aria-pressed={safe}
+        onClick={() => {
+          setSafe(!safe);
+          void setSafeMode(!safe);
+        }}
+      >
+        安全模式
+      </button>
+      <SearchBox
+        libraryId={library.id}
+        safe={safe}
+        generation={generation}
+        input={input}
+        tree={tree}
+        showSource={false}
+        onChange={setInput}
+        onError={() => {}}
+      />
+    </>
+  );
 }
 
 export const sent = (command: string) => fake.calls(command).map((call) => call.args);
@@ -316,13 +398,15 @@ export const push = (event: LibraryEvent) => act(() => emit("library-event", eve
  */
 export const importAction = (name: "导入文件…" | "导入文件夹…" | "从 Eagle 导入…") => {
   fireEvent.click(screen.getByRole("button", { name: /^(导入|正在导入)$/ }));
-  return screen.getByRole("menuitem", { name: name === "导入文件…" ? /^图片/ : name === "导入文件夹…" ? /^文件夹/ : /从 Eagle 导入|正在查找 Eagle/ });
+  return screen.getByRole("menuitem", {
+    name: name === "导入文件…" ? /^图片/ : name === "导入文件夹…" ? /^文件夹/ : /从 Eagle 导入|正在查找 Eagle/,
+  });
 };
 /** 导入面板里的保存位置为空时选当前库（与原来先选位置再选文件的操作等价）。 */
 export const chooseDestination = async () => {
   // 收起的导入面板也保留保存位置选择（hidden）；拖放提示显示的就是它。
-  const selector=screen.queryByRole("combobox",{name:"放到图库",hidden:true});
-  if(selector&&!selector.dataset.value&&!selector.hasAttribute("disabled"))await chooseValue(selector,"L1");
+  const selector = screen.queryByRole("combobox", { name: "放到图库", hidden: true });
+  if (selector && !selector.dataset.value && !selector.hasAttribute("disabled")) await chooseValue(selector, "L1");
 };
 /** 侧栏标题行“图库 ＋”的菜单（方案 D，#113）：打开 / 新建 / 管理，没有图库切换。 */
 export const libraryMenu = () => screen.findByRole("button", { name: "打开、新建或管理图库" });
@@ -342,9 +426,9 @@ export async function expandLibrary(name = "工作参考") {
   fireEvent.click(await screen.findByRole("button", { name: `展开${name}` }));
 }
 export async function confirmImport() {
-  const button=await screen.findByRole("button",{name:/^开始(?: Eagle)? 导入$|^开始导入$/});
+  const button = await screen.findByRole("button", { name: /^开始(?: Eagle)? 导入$|^开始导入$/ });
   await chooseDestination();
-  await waitFor(()=>expect((button as HTMLButtonElement).disabled).toBe(false));
+  await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(button);
 }
 
@@ -362,4 +446,3 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
 });
-

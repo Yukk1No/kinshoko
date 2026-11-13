@@ -64,7 +64,9 @@ type MomentOptions = {
 /** 日历日，用来比较是不是同一天、同一年。 */
 function calendar(ms: number, utc: boolean) {
   const d = new Date(ms);
-  return utc ? { y: d.getUTCFullYear(), m: d.getUTCMonth(), d: d.getUTCDate() } : { y: d.getFullYear(), m: d.getMonth(), d: d.getDate() };
+  return utc
+    ? { y: d.getUTCFullYear(), m: d.getUTCMonth(), d: d.getUTCDate() }
+    : { y: d.getFullYear(), m: d.getMonth(), d: d.getDate() };
 }
 
 /**
@@ -81,6 +83,10 @@ export function formatMoment(at: number, options: MomentOptions = {}): string {
   const zone: Intl.DateTimeFormatOptions = utc ? { timeZone: "UTC" } : {};
   const sameDay = when.y === today.y && when.m === today.m && when.d === today.d;
   if (time && todayAsTime && sameDay) return formatDateTime(at + shift, { ...timeFormat, ...zone });
-  const date: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", ...(when.y === today.y ? {} : { year: "numeric" }) };
+  const date: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    ...(when.y === today.y ? {} : { year: "numeric" }),
+  };
   return formatDateTime(at + shift, { ...date, ...(time ? timeFormat : {}), ...zone });
 }

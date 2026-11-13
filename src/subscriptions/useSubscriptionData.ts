@@ -19,7 +19,12 @@ export function useNow(): number {
  * 订阅名单与最近收进来的图，跟着订阅状态推送与安全模式视角重读。订阅页开着时把新图标为已看（入口与托盘清零），
  * 这次打开期间收到的仍排在“新收到”里，离开订阅页才归入“之前”。
  */
-export function useSubscriptionData(status: SubscriptionStatus, safe: boolean, reload: number, onError: (e: unknown) => void) {
+export function useSubscriptionData(
+  status: SubscriptionStatus,
+  safe: boolean,
+  reload: number,
+  onError: (e: unknown) => void,
+) {
   const [list, setList] = useState<Subscription[] | null>(null);
   const [recent, setRecent] = useState<ReceivedImage[]>([]);
   /**
@@ -29,7 +34,9 @@ export function useSubscriptionData(status: SubscriptionStatus, safe: boolean, r
   const [lens, setLens] = useState(0);
   useEffect(() => {
     const stop = onSafeModeSetting(() => setLens((n) => n + 1));
-    return () => { void stop.then((stop) => stop()); };
+    return () => {
+      void stop.then((stop) => stop());
+    };
   }, []);
   /** 读到 `recent` 时的视角：后端按图库的有效分级去掉了成人作品，前端只知道来源的标记。 */
   const [recentLens, setRecentLens] = useState({ safe, lens });
@@ -38,24 +45,43 @@ export function useSubscriptionData(status: SubscriptionStatus, safe: boolean, r
   const reportError = useEffectEvent(onError);
   // biome-ignore lint/correctness/useExhaustiveDependencies(reload): reload 是重读信号，effect 里不读它
   useEffect(() => {
-    if (!signedIn) { setList([]); setRecent([]); return; }
+    if (!signedIn) {
+      setList([]);
+      setRecent([]);
+      return;
+    }
     let alive = true;
     const under = { safe, lens };
     const unseen = status.newCount > 0;
-    listSubscriptions().then((next) => alive && setList(next), (e) => { if (alive) { setList([]); reportError(e); } });
+    listSubscriptions().then(
+      (next) => alive && setList(next),
+      (e) => {
+        if (alive) {
+          setList([]);
+          reportError(e);
+        }
+      },
+    );
     // 把这次的视角交给后端：后端按它与设置里的安全模式中更严的一个过滤，标成 `under.safe` 不会放宽。
-    subscriptionRecent(under.safe).then((next) => {
-      if (!alive) return;
-      setRecent(next);
-      setRecentLens(under);
-      const arrived = next.filter((image) => image.new);
-      if (arrived.length > 0) setFresh((seen) => new Set([...seen, ...arrived.map(imageKey)]));
-      // 入口上的数按来源的标记算，图库里改成成人的图在这里读不到：只看入口上的数，读到的为空也标为已看。
-      // 标完后端推送状态，数为零就不再标。
-      // 忽略失败：没标上时入口上的数还在，下次读到时再标。
-      if (arrived.length > 0 || unseen) void subscriptionMarkSeen().catch(() => {});
-    }, (e) => { if (alive) reportError(e); });
-    return () => { alive = false; };
+    subscriptionRecent(under.safe).then(
+      (next) => {
+        if (!alive) return;
+        setRecent(next);
+        setRecentLens(under);
+        const arrived = next.filter((image) => image.new);
+        if (arrived.length > 0) setFresh((seen) => new Set([...seen, ...arrived.map(imageKey)]));
+        // 入口上的数按来源的标记算，图库里改成成人的图在这里读不到：只看入口上的数，读到的为空也标为已看。
+        // 标完后端推送状态，数为零就不再标。
+        // 忽略失败：没标上时入口上的数还在，下次读到时再标。
+        if (arrived.length > 0 || unseen) void subscriptionMarkSeen().catch(() => {});
+      },
+      (e) => {
+        if (alive) reportError(e);
+      },
+    );
+    return () => {
+      alive = false;
+    };
   }, [status, signedIn, safe, lens, reload]);
   /** 安全模式开着，而 `recent` 不是按现在的开关与范围读的。 */
   const stale = safe && (!recentLens.safe || recentLens.lens !== lens);

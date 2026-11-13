@@ -1,10 +1,13 @@
 import { afterEach, expect, it } from "vitest";
 import { modalOpen } from "./modal";
 
-afterEach(() => { document.body.innerHTML = ""; });
+afterEach(() => {
+  document.body.innerHTML = "";
+});
 
 it("行内浮层（role=dialog 但不模态）不算打开了模态", () => {
-  document.body.innerHTML = '<div class="search-popover" role="dialog" aria-label="加相近标签"></div><div role="dialog" aria-label="“蓝发”的别名"></div>';
+  document.body.innerHTML =
+    '<div class="search-popover" role="dialog" aria-label="加相近标签"></div><div role="dialog" aria-label="“蓝发”的别名"></div>';
   expect(modalOpen()).toBe(false);
 });
 

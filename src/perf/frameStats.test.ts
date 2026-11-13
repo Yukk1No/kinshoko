@@ -79,7 +79,13 @@ describe("summarizeFrames", () => {
       refreshMs: 16,
       longTasks: [
         { kind: "longtask", start: 12.5, duration: 80, name: "self" },
-        { kind: "long-animation-frame", start: 100, duration: 120, name: "", scripts: [{ source: "Wall.tsx", duration: 90 }] },
+        {
+          kind: "long-animation-frame",
+          start: 100,
+          duration: 120,
+          name: "",
+          scripts: [{ source: "Wall.tsx", duration: 90 }],
+        },
       ],
     });
     expect(report.longTasks).toHaveLength(2);

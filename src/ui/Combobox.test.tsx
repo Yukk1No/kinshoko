@@ -14,22 +14,59 @@ const TAGS = [
 
 type Picked = { id: string; alt: boolean };
 
-function TagAdder({ added = [], onBackspace, autoHighlight, embedded }: { added?: string[]; onBackspace?: () => void; autoHighlight?: boolean; embedded?: boolean }) {
+function TagAdder({
+  added = [],
+  onBackspace,
+  autoHighlight,
+  embedded,
+}: {
+  added?: string[];
+  onBackspace?: () => void;
+  autoHighlight?: boolean;
+  embedded?: boolean;
+}) {
   const [text, setText] = useState("");
   const [picked, setPicked] = useState<Picked[]>([]);
   const query = text.trim();
-  const found = query ? TAGS.filter((t) => !added.includes(t.id) && (t.name.includes(query) || t.via?.includes(query))) : [];
-  const options: ComboboxOption[] = query ? [
-    ...found.map((t) => ({ id: t.id, label: <Highlight text={t.name} query={query} />, via: t.via && <>别名 <Highlight text={t.via} query={query} /></>, untranslated: t.untranslated, meta: t.count })),
-    { id: "create", create: true, label: `新建标签“${query}”` },
-  ] : [];
-  return <>
-    <Combobox label="标签名" placeholder="添加标签" value={text} onValueChange={setText} options={options} autoHighlight={autoHighlight} embedded={embedded}
-      empty={query && found.length === 0 ? "没有匹配的标签" : undefined}
-      onSelect={(option, event) => { setPicked((p) => [...p, { id: option.id, alt: event.altKey }]); setText(""); }}
-      onBackspaceEmpty={onBackspace} />
-    <output aria-label="已选">{picked.map((p) => p.id + (p.alt ? "+alt" : "")).join(",")}</output>
-  </>;
+  const found = query
+    ? TAGS.filter((t) => !added.includes(t.id) && (t.name.includes(query) || t.via?.includes(query)))
+    : [];
+  const options: ComboboxOption[] = query
+    ? [
+        ...found.map((t) => ({
+          id: t.id,
+          label: <Highlight text={t.name} query={query} />,
+          via: t.via && (
+            <>
+              别名 <Highlight text={t.via} query={query} />
+            </>
+          ),
+          untranslated: t.untranslated,
+          meta: t.count,
+        })),
+        { id: "create", create: true, label: `新建标签“${query}”` },
+      ]
+    : [];
+  return (
+    <>
+      <Combobox
+        label="标签名"
+        placeholder="添加标签"
+        value={text}
+        onValueChange={setText}
+        options={options}
+        autoHighlight={autoHighlight}
+        embedded={embedded}
+        empty={query && found.length === 0 ? "没有匹配的标签" : undefined}
+        onSelect={(option, event) => {
+          setPicked((p) => [...p, { id: option.id, alt: event.altKey }]);
+          setText("");
+        }}
+        onBackspaceEmpty={onBackspace}
+      />
+      <output aria-label="已选">{picked.map((p) => p.id + (p.alt ? "+alt" : "")).join(",")}</output>
+    </>
+  );
 }
 
 const input = () => screen.getByRole("combobox", { name: "标签名" });
@@ -145,7 +182,9 @@ describe("Combobox", () => {
 
     type("猫耳");
     await act(async () => {});
-    expect(within(screen.getByRole("listbox")).getAllByRole("option")[0].querySelector("mark")?.textContent).toBe("猫耳");
+    expect(within(screen.getByRole("listbox")).getAllByRole("option")[0].querySelector("mark")?.textContent).toBe(
+      "猫耳",
+    );
   });
 
   it("没有匹配时先写“没有匹配的标签”，新建项照常给出并被高亮", async () => {
@@ -189,7 +228,11 @@ describe("Combobox", () => {
   it("改了字高亮回到第一项，即使候选没变", async () => {
     function Fixed() {
       const [text, setText] = useState("");
-      const options = [{ id: "text", label: `查找“${text}”` }, { id: "a", label: "猫耳" }, { id: "b", label: "猫尾" }];
+      const options = [
+        { id: "text", label: `查找“${text}”` },
+        { id: "a", label: "猫耳" },
+        { id: "b", label: "猫尾" },
+      ];
       return <Combobox label="标签名" value={text} onValueChange={setText} options={options} onSelect={() => {}} />;
     }
     render(<Fixed />);
@@ -216,16 +259,28 @@ describe("Combobox", () => {
 describe("Combobox 高亮跟着候选", () => {
   it("候选换了，同一次提交里高亮就回到第一项，不留在旧的那项（#544）", async () => {
     const seen: (string | null | undefined)[] = [];
-    const box = (options: ComboboxOption[]) => <Profiler id="combo" onRender={() => seen.push(highlighted()?.textContent)}>
-      <Combobox label="标签名" value="猫" onValueChange={() => {}} options={options} onSelect={() => {}} />
-    </Profiler>;
-    const view = render(box([{ id: "a", label: "甲" }, { id: "b", label: "乙" }]));
+    const box = (options: ComboboxOption[]) => (
+      <Profiler id="combo" onRender={() => seen.push(highlighted()?.textContent)}>
+        <Combobox label="标签名" value="猫" onValueChange={() => {}} options={options} onSelect={() => {}} />
+      </Profiler>
+    );
+    const view = render(
+      box([
+        { id: "a", label: "甲" },
+        { id: "b", label: "乙" },
+      ]),
+    );
     input().focus();
     await act(async () => {});
     key("ArrowDown");
     expect(highlighted()?.textContent).toContain("乙");
     seen.length = 0;
-    view.rerender(box([{ id: "c", label: "丙" }, { id: "d", label: "丁" }]));
+    view.rerender(
+      box([
+        { id: "c", label: "丙" },
+        { id: "d", label: "丁" },
+      ]),
+    );
     expect(seen.length).toBeGreaterThan(0);
     expect(seen.every((text) => text?.includes("丙"))).toBe(true);
   });

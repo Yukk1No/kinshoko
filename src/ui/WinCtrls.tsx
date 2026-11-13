@@ -7,15 +7,30 @@ import { logFailure } from "../runLog";
 
 /** The window this page runs in; null outside Tauri (tests without a mocked window, plain browser). */
 function currentWindow() {
-  try { return getCurrentWindow(); } catch { return null; }
+  try {
+    return getCurrentWindow();
+  } catch {
+    return null;
+  }
 }
 
 function Glyph({ kind, dpr }: { kind: GlyphKind; dpr: number }) {
-  const grid = glyphGrid(dpr), css = grid.size / dpr;
-  return <svg width={css} height={css} viewBox={`0 0 ${grid.size} ${grid.size}`} fill="none" stroke="currentColor" strokeWidth={grid.stroke} aria-hidden="true"
-    style={{ left: `calc(50% - ${css / 2}px)`, top: `calc(50% - ${css / 2}px)` }}>
-    <path d={glyphPath(kind, grid)} />
-  </svg>;
+  const grid = glyphGrid(dpr),
+    css = grid.size / dpr;
+  return (
+    <svg
+      width={css}
+      height={css}
+      viewBox={`0 0 ${grid.size} ${grid.size}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={grid.stroke}
+      aria-hidden="true"
+      style={{ left: `calc(50% - ${css / 2}px)`, top: `calc(50% - ${css / 2}px)` }}
+    >
+      <path d={glyphPath(kind, grid)} />
+    </svg>
+  );
 }
 
 /** Keeps each glyph in `group` on whole device pixels as the controls move (window resize, scale change, panel transitions). */
@@ -25,7 +40,10 @@ function useSnappedGlyphs(group: RefObject<HTMLDivElement | null>, maximized: bo
   useLayoutEffect(() => {
     const snap = () => {
       const now = window.devicePixelRatio;
-      if (now !== dpr) { setDpr(now); return; }
+      if (now !== dpr) {
+        setDpr(now);
+        return;
+      }
       const size = glyphGrid(dpr).size;
       for (const button of group.current?.querySelectorAll<HTMLElement>(".k-win-btn") ?? []) {
         const svg = button.querySelector("svg");
@@ -65,27 +83,58 @@ export function WinCtrls() {
     let alive = true;
     const win = currentWindow();
     if (!win) return;
-    const read = () => void win.isMaximized().then((value) => { if (alive) setMaximized(value); }, () => {});
+    const read = () =>
+      void win.isMaximized().then(
+        (value) => {
+          if (alive) setMaximized(value);
+        },
+        () => {},
+      );
     read();
     const stop = win.onResized(read).catch(() => () => {});
-    return () => { alive = false; void stop.then((unlisten) => unlisten()); };
+    return () => {
+      alive = false;
+      void stop.then((unlisten) => unlisten());
+    };
   }, []);
   const run = (action: (win: NonNullable<ReturnType<typeof currentWindow>>) => Promise<void>) => () => {
     const win = currentWindow();
     // 最小化、最大化、关闭没有合适的地方提示；记一条供排查。
     if (win) void action(win).catch((e) => logFailure("window control", e));
   };
-  return <div ref={group} className="k-win-ctrls">
-    <span className="k-win-div" aria-hidden="true" />
-    <Tip label={t("window.minimize")}><button type="button" className="k-win-btn" aria-label={t("window.minimize")} onClick={run((win) => win.minimize())}>
-      <Glyph kind="minimize" dpr={dpr} />
-    </button></Tip>
-    <Tip label={maximized ? t("window.restore") : t("window.maximize")}><button type="button" className="k-win-btn" aria-label={maximized ? t("window.restore") : t("window.maximize")}
-      onClick={run((win) => win.toggleMaximize())}>
-      <Glyph kind={maximized ? "restore" : "maximize"} dpr={dpr} />
-    </button></Tip>
-    <Tip label={t("window.close")} align="end"><button type="button" className="k-win-btn is-close" aria-label={t("window.close")} onClick={run((win) => win.close())}>
-      <Glyph kind="close" dpr={dpr} />
-    </button></Tip>
-  </div>;
+  return (
+    <div ref={group} className="k-win-ctrls">
+      <span className="k-win-div" aria-hidden="true" />
+      <Tip label={t("window.minimize")}>
+        <button
+          type="button"
+          className="k-win-btn"
+          aria-label={t("window.minimize")}
+          onClick={run((win) => win.minimize())}
+        >
+          <Glyph kind="minimize" dpr={dpr} />
+        </button>
+      </Tip>
+      <Tip label={maximized ? t("window.restore") : t("window.maximize")}>
+        <button
+          type="button"
+          className="k-win-btn"
+          aria-label={maximized ? t("window.restore") : t("window.maximize")}
+          onClick={run((win) => win.toggleMaximize())}
+        >
+          <Glyph kind={maximized ? "restore" : "maximize"} dpr={dpr} />
+        </button>
+      </Tip>
+      <Tip label={t("window.close")} align="end">
+        <button
+          type="button"
+          className="k-win-btn is-close"
+          aria-label={t("window.close")}
+          onClick={run((win) => win.close())}
+        >
+          <Glyph kind="close" dpr={dpr} />
+        </button>
+      </Tip>
+    </div>
+  );
 }

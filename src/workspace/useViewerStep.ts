@@ -2,7 +2,13 @@ import { useEffect, useMemo, useRef, type Dispatch, type RefObject, type SetStat
 import type { BrowserCard, WallHandle } from "../wall/Wall";
 import { pagesOf } from "../wall/imageSets";
 
-export function useViewerStep({ viewing, setViewing, loadedCards, resultCount, wall }: {
+export function useViewerStep({
+  viewing,
+  setViewing,
+  loadedCards,
+  resultCount,
+  wall,
+}: {
   viewing: BrowserCard | null;
   setViewing: Dispatch<SetStateAction<BrowserCard | null>>;
   loadedCards: BrowserCard[];
@@ -21,7 +27,11 @@ export function useViewerStep({ viewing, setViewing, loadedCards, resultCount, w
   const step = (delta: -1 | 1) => {
     const index = viewingIndex + delta;
     const next = sequence[index];
-    if (next) { pendingStep.current = null; setViewing(next); return; }
+    if (next) {
+      pendingStep.current = null;
+      setViewing(next);
+      return;
+    }
     if (delta === 1 && viewing && index < (resultCount ?? 0)) {
       pendingStep.current = { from: viewing.id, index };
       wall.current?.loadMore();
@@ -31,9 +41,15 @@ export function useViewerStep({ viewing, setViewing, loadedCards, resultCount, w
     const pending = pendingStep.current;
     if (!pending) return;
     // 换了图、关了查看器或结果变了：放弃这次等待。
-    if (viewing?.id !== pending.from || sequence[pending.index - 1]?.id !== pending.from) { pendingStep.current = null; return; }
+    if (viewing?.id !== pending.from || sequence[pending.index - 1]?.id !== pending.from) {
+      pendingStep.current = null;
+      return;
+    }
     const next = sequence[pending.index];
-    if (next) { pendingStep.current = null; setViewing(next); }
+    if (next) {
+      pendingStep.current = null;
+      setViewing(next);
+    }
   }, [sequence, viewing, setViewing]);
 
   return { viewingIndex, step, loaded: sequence.length };

@@ -70,8 +70,11 @@ export function releaseStartup(): void {
 function subscribe(listener: () => void) {
   listeners.add(listener);
   // 超时从页面开始加载算起，与运行日志的首屏计时同一起点。
-  if (!timer && !state.released) timer = setTimeout(releaseStartup, Math.max(0, STARTUP_TIMEOUT_MS - performance.now()));
-  return () => { listeners.delete(listener); };
+  if (!timer && !state.released)
+    timer = setTimeout(releaseStartup, Math.max(0, STARTUP_TIMEOUT_MS - performance.now()));
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 /** 加载页的进度与是否放行。 */

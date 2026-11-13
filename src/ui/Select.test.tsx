@@ -16,7 +16,17 @@ const OPTIONS = [
 
 function Sort({ onPick = () => {} }: { onPick?: (value: string) => void }) {
   const [value, setValue] = useState("added");
-  return <Select label="排序" value={value} options={OPTIONS} onChange={(next) => { setValue(next); onPick(next); }} />;
+  return (
+    <Select
+      label="排序"
+      value={value}
+      options={OPTIONS}
+      onChange={(next) => {
+        setValue(next);
+        onPick(next);
+      }}
+    />
+  );
 }
 
 const trigger = () => screen.getByRole("combobox", { name: "排序" });

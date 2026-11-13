@@ -1,12 +1,10 @@
-import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { useTranslation } from "react-i18next";
-import { Activity, FileText, Layers, Monitor, MousePointerClick, Pin, Power, Scaling, ShieldCheck, Tags } from "lucide-react";
-import type { SafeModeScope } from "../bindings/SafeModeScope";
+import { Pin, Power, Scaling, Tags } from "lucide-react";
 import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { ShortcutAction } from "../bindings/ShortcutAction";
-import type { ShortcutBinding } from "../bindings/ShortcutBinding";
-import { clearRunLog, errorText, hotkeyFailureText } from "../ipc";
+import { errorText } from "../ipc";
 import { useShellSettings, type ShellSettings, type ShellSettingsIntent } from "../shell/useShellSettings";
 import { SharedPersonalApproxSettings } from "../search/SharedPersonalApproxSettings";
 import { LegacyNameEntry } from "../library/LegacyNameMigrationPanel";
@@ -18,50 +16,24 @@ import { TagDisplaySettings } from "./TagDisplaySettings";
 import { BackupSettings } from "./Backup";
 import { AutoTaggingSettings } from "./AutoTaggingSettings";
 import { UpdateSection } from "../Update";
-import { RuntimeDetails, useDiagnosticsReport } from "../RuntimeSupport";
+import { useDiagnosticsReport } from "../RuntimeSupport";
 import { Segmented } from "../ui/Segmented";
 import { DialogHeight, DialogSwap } from "../ui/DialogHeight";
-import { SettingsGroup, SettingsRow, StatusPill } from "../ui/SettingsList";
+import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
 import { Switch } from "../ui/Switch";
-import { SealLock } from "../ui/SealLock";
 import { UI_SCALE_LEVELS } from "../shell/uiScale";
-import { Keys } from "../ui/Keys";
 import { Select } from "../ui/Select";
 import { tabName, tabsWith, type SettingsTab } from "./settingsTabs";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
+import { KeysPage } from "./SettingsKeysPage";
+import { SafetyPage } from "./SettingsSafetyPage";
+import { DiagPage } from "./SettingsDiagPage";
 import { SubscriptionSettings } from "../subscriptions/SubscriptionSettings";
 
 export type { SettingsTab };
 
-const MODIFIER_KEYS = new Set(["Control", "Alt", "Shift", "Meta", "OS"]);
-
-/**
- * 把一次按键整理成全局快捷键的写法，主键用 `KeyboardEvent.code`，例如 `Ctrl+Alt+KeyA`。
- * 只按下修饰键时返回 null，继续等待主键。统一写法与合法性由核心判断。
- */
-function acceleratorFromKey(e: KeyboardEvent): string | null {
-  if (MODIFIER_KEYS.has(e.key)) return null;
-  const parts: string[] = [];
-  if (e.ctrlKey) parts.push("Ctrl");
-  if (e.altKey) parts.push("Alt");
-  if (e.shiftKey) parts.push("Shift");
-  if (e.metaKey) parts.push("Super");
-  parts.push(e.code);
-  return parts.join("+");
-}
-
-/** 查看器里的固定操作（#179）：缩放、平移、框选、换图、详情侧栏与返回。按键是滚轮、拖动这类操作时写它的键名。 */
-type ViewerKeyWord = "wheel" | "drag" | "shiftDrag";
-const VIEWER_KEYS: [action: string, keys: string | { word: ViewerKeyWord }][] = [
-  ["zoom", { word: "wheel" }], ["pan", { word: "drag" }], ["crop", { word: "shiftDrag" }], ["cropMode", "F1"], ["previous", "←"], ["next", "→"],
-  ["fit", "0"], ["actual", "1"], ["pin", "P"], ["details", "I"], ["back", "Esc"],
-];
-
 type TagView = "names" | "groups" | "approx" | "mapping" | "appearance";
 const TAG_VIEWS: TagView[] = ["names", "groups", "approx", "mapping", "appearance"];
-
-/** 安全模式范围（#223）的三档，从宽到严；名称与人工分级界面的分级名一致。 */
-const SAFE_MODE_SCOPES: SafeModeScope[] = ["sensitive", "questionable", "explicit"];
 
 type Props = {
   onRestored?: () => void;
@@ -96,7 +68,22 @@ type Props = {
  * 程序设置（#98）：竖排八个分页——通用、快捷键、标签、自动标签（#143）、备份、安全、更新、诊断。
  * 每项一行：图标 · 名称 · 一句描述 · 右侧控件。行为与原来的各节相同，只是重新归位。
  */
-export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibrary = false, initialTab = "general", initialTagFocus, version, safe, onSafeMode, onOpenNameWizard, uiScale, onUiScale, subscriptions, onShowUnfinishedTagging }: Props) {
+export function SettingsPanel({
+  settings: shared,
+  onChange,
+  onRestored,
+  hasLibrary = false,
+  initialTab = "general",
+  initialTagFocus,
+  version,
+  safe,
+  onSafeMode,
+  onOpenNameWizard,
+  uiScale,
+  onUiScale,
+  subscriptions,
+  onShowUnfinishedTagging,
+}: Props) {
   const { t } = useTranslation("settings");
   const settings = useShellSettings(shared, onChange);
   const { view, loadError, error, generation: settingsGeneration } = settings;
@@ -109,29 +96,25 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
   /** 提交一项改动；返回是否成功，失败时说明原因，界面留在已接受的设置上。 */
   const apply = (intent: ShellSettingsIntent) => settings.submit(intent);
 
-  function onRecordKey(action: ShortcutAction, e: KeyboardEvent<HTMLInputElement>) {
-    e.preventDefault();
-    // 录制中的 Esc 只取消录制，不关闭设置对话框。
-    e.stopPropagation();
-    if (e.key === "Escape") {
-      setRecording(null);
-      return;
-    }
-    const accelerator = acceleratorFromKey(e);
-    if (accelerator === null) return;
-    setRecording(null);
-    void apply({ kind: "shortcut", action, accelerator });
-  }
-
   if (view === null) {
-    return <section className="k-settings is-loading" aria-label={t("label")}>
-      {loadError === null
-        ? <p className="k-set-note" role="status">{t("loading")}</p>
-        : <div className="k-set-load-error">
-          <p className="k-set-error" role="alert">{t("loadFailed", { error: loadError })}</p>
-          <button type="button" className="k-btn" onClick={settings.retryLoad}><span className="k-label">{t("retry")}</span></button>
-        </div>}
-    </section>;
+    return (
+      <section className="k-settings is-loading" aria-label={t("label")}>
+        {loadError === null ? (
+          <p className="k-set-note" role="status">
+            {t("loading")}
+          </p>
+        ) : (
+          <div className="k-set-load-error">
+            <p className="k-set-error" role="alert">
+              {t("loadFailed", { error: loadError })}
+            </p>
+            <button type="button" className="k-btn" onClick={settings.retryLoad}>
+              <span className="k-label">{t("retry")}</span>
+            </button>
+          </div>
+        )}
+      </section>
+    );
   }
   const restore = async (path: string, fingerprint: string) => {
     const restored = await settings.restore(path, fingerprint);
@@ -139,22 +122,49 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
     return restored;
   };
   // 只渲染当前页，退场由 DialogSwap 保留旧元素。keepMounted 不能省：否则旧页一转为未选中，Tabs.Panel 就自己卸载，淡出看不到。
-  const panel = (value: SettingsTab, children: ReactNode, full = false) => value !== tab ? null
-    : <Tabs.Panel keepMounted value={value} className={full ? "k-set-page is-full" : "k-set-page"}>{children}</Tabs.Panel>;
-  const page = (value: SettingsTab, children: ReactNode, full = false) => panel(value, <>
-    <h3 className="k-set-title">{tabName(value)}</h3>
-    {error !== null && <p className="k-set-error" role="alert">{error}</p>}
-    {children}
-  </>, full);
+  const panel = (value: SettingsTab, children: ReactNode, full = false) =>
+    value !== tab ? null : (
+      <Tabs.Panel keepMounted value={value} className={full ? "k-set-page is-full" : "k-set-page"}>
+        {children}
+      </Tabs.Panel>
+    );
+  const page = (value: SettingsTab, children: ReactNode, full = false) =>
+    panel(
+      value,
+      <>
+        <h3 className="k-set-title">{tabName(value)}</h3>
+        {error !== null && (
+          <p className="k-set-error" role="alert">
+            {error}
+          </p>
+        )}
+        {children}
+      </>,
+      full,
+    );
 
   return (
     <section className="k-settings" aria-label={t("label")}>
-      <Tabs.Root value={tab} onValueChange={(next) => { setTab(next as SettingsTab); setRecording(null); setError(null); }} orientation="vertical" className="k-set-body">
+      <Tabs.Root
+        value={tab}
+        onValueChange={(next) => {
+          setTab(next as SettingsTab);
+          setRecording(null);
+          setError(null);
+        }}
+        orientation="vertical"
+        className="k-set-body"
+      >
         <nav className="k-set-nav">
           <h2 className="k-set-heading">{t("heading")}</h2>
           <Tabs.List className="k-set-tabs" aria-label={t("tabsLabel")} activateOnFocus>
             <Tabs.Indicator className="k-set-tab-indicator" />
-            {tabsWith(!!subscriptions).map((entry) => <Tabs.Tab key={entry.value} value={entry.value} className="k-set-tab">{entry.icon}<span className="k-label">{tabName(entry.value)}</span></Tabs.Tab>)}
+            {tabsWith(!!subscriptions).map((entry) => (
+              <Tabs.Tab key={entry.value} value={entry.value} className="k-set-tab">
+                {entry.icon}
+                <span className="k-label">{tabName(entry.value)}</span>
+              </Tabs.Tab>
+            ))}
           </Tabs.List>
           <span className="k-grow" />
           {version && <p className="k-set-version">{version}</p>}
@@ -162,113 +172,137 @@ export function SettingsPanel({ settings: shared, onChange, onRestored, hasLibra
         <DialogHeight className="k-set-main">
           {/* 序号按含订阅的完整顺序算：订阅状态晚到时，当前页的序号不变，不会多播一次交替。 */}
           <DialogSwap step={tabsWith(true).findIndex((entry) => entry.value === tab)} axis="y">
-          {page("general", <>
-            <SettingsGroup label={t("general.group")}>
-              <SettingsRow icon={<Power size={16} />} title={t("general.autostart")} hint={t("general.autostartHint")}>
-                <Switch label={t("general.autostart")} checked={view.autostart} onCheckedChange={(on) => void apply({ kind: "autostart", on })} />
-              </SettingsRow>
-              {uiScale !== undefined && onUiScale && <SettingsRow icon={<Scaling size={16} />} title={t("general.uiScale")} hint={t("general.uiScaleHint")}>
-                <Select label={t("general.uiScale")} value={String(uiScale)} onChange={(value) => onUiScale(Number(value))}
-                  options={UI_SCALE_LEVELS.map((percent) => ({ value: String(percent), label: `${percent}%` }))} />
-              </SettingsRow>}
-            </SettingsGroup>
-            <SettingsGroup label={t("general.pinsGroup")}>
-              <SettingsRow icon={<Pin size={16} />} title={t("general.pinEdge")} hint={t("general.pinEdgeHint")}>
-                <Switch label={t("general.pinEdge")} checked={view.pinEdgeContrast} onCheckedChange={(on) => void apply({ kind: "pinEdgeContrast", on })} />
-              </SettingsRow>
-            </SettingsGroup>
-          </>)}
-          {page("keys", <><SettingsGroup label={t("keys.group")}>
-            {view.shortcuts.map((binding: ShortcutBinding) => {
-              const label = t(`keys.action.${binding.action}`);
-              const isRecording = recording === binding.action;
-              return <SettingsRow key={binding.action} label={label} title={label} className={isRecording ? "is-recording" : ""}
-                warn={binding.problem !== null && t("keys.notRegistered", { reason: hotkeyFailureText(binding.problem) })}>
-                {isRecording ? <>
-                  <input className="k-key-recorder" aria-label={t("keys.record")} placeholder={t("keys.recordPlaceholder")} autoFocus readOnly
-                    onKeyDown={(e) => onRecordKey(binding.action, e)} onBlur={() => setRecording(null)} />
-                  <button type="button" className="k-btn is-sm" onMouseDown={(e) => e.preventDefault()} onClick={() => setRecording(null)}><span className="k-label">{t("keys.cancel")}</span></button>
-                </> : <>
-                  {binding.accelerator === null ? <span className="k-set-muted">{t("keys.unset")}</span> : <Keys accelerator={binding.accelerator} />}
-                  {binding.accelerator !== null && <button type="button" className="k-btn is-sm is-quiet"
-                    onClick={() => void apply({ kind: "shortcut", action: binding.action, accelerator: null })}><span className="k-label">{t("keys.clear")}</span></button>}
-                  <button type="button" className="k-btn is-sm" onClick={() => setRecording(binding.action)}><span className="k-label">{binding.accelerator === null ? t("keys.set") : t("keys.change")}</span></button>
-                </>}
-              </SettingsRow>;
-            })}
-            {([["safeMode", "Ctrl+Shift+S"], ["zoomIn", "Ctrl+="], ["zoomOut", "Ctrl+-"], ["zoomReset", "Ctrl+0"], ["details", "I"]] as const).map(([action, keys]) =>
-              <SettingsRow key={action} label={t(`keys.${action}`)} title={t(`keys.${action}`)} hint={t("keys.fixedHint")}><Keys accelerator={keys} /></SettingsRow>)}
-          </SettingsGroup>
-          {/* 查看器的操作提示（#179，原在查看器的信息浮层里）。 */}
-          <SettingsGroup label={t("keys.viewerGroup")}>
-            {VIEWER_KEYS.map(([action, keys]) => {
-              const title = t(`keys.viewer.${action}` as "keys.viewer.zoom");
-              return <SettingsRow key={action} label={title} title={title}><Keys accelerator={typeof keys === "string" ? keys : t(`keys.key.${keys.word}`)} /></SettingsRow>;
-            })}
-          </SettingsGroup></>)}
-          {page("tags", <>
-            <Segmented<TagView> className="k-set-seg" label={t("tags.viewLabel")} value={tagView} onChange={setTagView}
-              options={TAG_VIEWS.map((value) => ({ value, label: t(`tags.view.${value}`) }))} />
-            {tagView === "appearance" && <TagDisplaySettings key={`appearance/${settingsGeneration}`} display={settings.tagDisplay} onChange={settings.changeTagDisplay} />}
-            {tagView === "names" && <>
-              <TagNamePanel key={`names/${settingsGeneration}`} focus={initialTagFocus} />
-              <LegacyNameEntry onOpen={onOpenNameWizard} />
-            </>}
-            {tagView === "groups" && <SharedTagGroupsSettings key={`groups/${settingsGeneration}`} onError={(e) => setError(errorText(e))} />}
-            {tagView === "approx" && <>
-              <SettingsGroup label={t("tags.approxGroup")}>
-                <SettingsRow icon={<Tags size={16} />} title={t("tags.showSource")} hint={t("tags.showSourceHint")}>
-                  <Switch label={t("tags.showSource")} checked={view.showApproxSource} onCheckedChange={(on) => void apply({ kind: "showApproxSource", on })} />
-                </SettingsRow>
-              </SettingsGroup>
-              <SharedPersonalApproxSettings key={`approx/${settingsGeneration}`} onError={(e) => setError(errorText(e))} />
-            </>}
-            {tagView === "mapping" && <TagIdentityPanel key={`identity/${settingsGeneration}`} />}
-          </>, true)}
-          {page("tagging", <AutoTaggingSettings key={`tagging/${settingsGeneration}`} hasLibrary={hasLibrary} onShowUnfinished={onShowUnfinishedTagging} />)}
-          {page("backup", <>
-            <BackupSettings />
-            <ApplicationSettingsBackup restore={restore} />
-          </>)}
-          {page("safety", <SettingsGroup label={t("safety.group")}>
-            <SettingsRow icon={<SealLock size={10} />} title={t("safety.safeMode")} hint={t("safety.safeModeHint")}>
-              <Keys accelerator="Ctrl+Shift+S" />
-              {safe !== undefined && onSafeMode && <Switch label={t("safety.safeMode")} checked={safe} onCheckedChange={(on) => { if (on !== safe) onSafeMode(); }} />}
-            </SettingsRow>
-            <SettingsRow icon={<Layers size={16} />} title={t("safety.scope")} hint={t("safety.scopeHint")}>
-              <Segmented<SafeModeScope> label={t("safety.scope")} value={view.safeModeScope ?? "questionable"}
-                onChange={(scope) => void apply({ kind: "safeModeScope", scope })} options={SAFE_MODE_SCOPES.map((value) => ({ value, label: t(`safety.scopeOption.${value}`) }))} />
-            </SettingsRow>
-            <SettingsRow icon={<MousePointerClick size={16} />} title={t("safety.keepSelection")} hint={t("safety.keepSelectionHint")}>
-              <Switch label={t("safety.keepSelection")} checked={view.keepSelectionOnSafeMode ?? false} onCheckedChange={(on) => void apply({ kind: "keepSelectionOnSafeMode", on })} />
-            </SettingsRow>
-            <SettingsRow icon={<ShieldCheck size={16} />} title={t("safety.groupsAndPins")} hint={t("safety.groupsAndPinsHint")}>
-              <StatusPill tone={safe === false ? "plain" : "ok"}>{safe === false ? t("safety.off") : t("safety.on")}</StatusPill>
-            </SettingsRow>
-          </SettingsGroup>)}
-          {subscriptions && panel("subscriptions", <SubscriptionSettings status={subscriptions.status} onStatus={subscriptions.onStatus} error={error} onError={setError} />)}
-          {page("update", <UpdateSection version={version ?? null} channel={view.updateChannel} onChannel={(channel) => apply({ kind: "updateChannel", channel })} />)}
-          {page("diag", <>
-            <RuntimeDetails />
-            <SettingsGroup label={t("diag.group")}>
-              <SettingsRow icon={<FileText size={16} />} title={t("diag.report")} hint={t("diag.reportHint")}
-                below={<>
-                  {diagnostics.text !== null && <pre className="settings-diagnostics" aria-label={t("diag.report")}>{diagnostics.text}</pre>}
-                </>}>
-                <button type="button" className="k-btn is-sm" onClick={diagnostics.show}><span className="k-label">{t("diag.show")}</span></button>
-                <button type="button" className="k-btn is-sm" onClick={diagnostics.save}><span className="k-label">{t("diag.save")}</span></button>
-              </SettingsRow>
-              <SettingsRow icon={<Activity size={16} />} title={t("diag.runLog")} hint={t("diag.runLogHint")}
-                below={<p className="k-set-note">
-                  <button type="button" className="k-link" onClick={() => void clearRunLog().catch((e) => setError(errorText(e)))}>{t("diag.clearRunLog")}</button></p>}>
-                <Switch label={t("diag.runLog")} checked={view.runLog} onCheckedChange={(on) => void apply({ kind: "runLog", on })} />
-              </SettingsRow>
-              <SettingsRow icon={<Monitor size={16} />} title={t("diag.srgb")} hint={t("diag.srgbHint")}
-                warn={view.forceSrgb !== view.forceSrgbInEffect && t("diag.restartNeeded")}>
-                <Switch label={t("diag.srgb")} checked={view.forceSrgb} onCheckedChange={(on) => void apply({ kind: "forceSrgb", on })} />
-              </SettingsRow>
-            </SettingsGroup>
-          </>)}
+            {page(
+              "general",
+              <>
+                <SettingsGroup label={t("general.group")}>
+                  <SettingsRow
+                    icon={<Power size={16} />}
+                    title={t("general.autostart")}
+                    hint={t("general.autostartHint")}
+                  >
+                    <Switch
+                      label={t("general.autostart")}
+                      checked={view.autostart}
+                      onCheckedChange={(on) => void apply({ kind: "autostart", on })}
+                    />
+                  </SettingsRow>
+                  {uiScale !== undefined && onUiScale && (
+                    <SettingsRow
+                      icon={<Scaling size={16} />}
+                      title={t("general.uiScale")}
+                      hint={t("general.uiScaleHint")}
+                    >
+                      <Select
+                        label={t("general.uiScale")}
+                        value={String(uiScale)}
+                        onChange={(value) => onUiScale(Number(value))}
+                        options={UI_SCALE_LEVELS.map((percent) => ({ value: String(percent), label: `${percent}%` }))}
+                      />
+                    </SettingsRow>
+                  )}
+                </SettingsGroup>
+                <SettingsGroup label={t("general.pinsGroup")}>
+                  <SettingsRow icon={<Pin size={16} />} title={t("general.pinEdge")} hint={t("general.pinEdgeHint")}>
+                    <Switch
+                      label={t("general.pinEdge")}
+                      checked={view.pinEdgeContrast}
+                      onCheckedChange={(on) => void apply({ kind: "pinEdgeContrast", on })}
+                    />
+                  </SettingsRow>
+                </SettingsGroup>
+              </>,
+            )}
+            {page("keys", <KeysPage view={view} recording={recording} setRecording={setRecording} apply={apply} />)}
+            {page(
+              "tags",
+              <>
+                <Segmented<TagView>
+                  className="k-set-seg"
+                  label={t("tags.viewLabel")}
+                  value={tagView}
+                  onChange={setTagView}
+                  options={TAG_VIEWS.map((value) => ({ value, label: t(`tags.view.${value}`) }))}
+                />
+                {tagView === "appearance" && (
+                  <TagDisplaySettings
+                    key={`appearance/${settingsGeneration}`}
+                    display={settings.tagDisplay}
+                    onChange={settings.changeTagDisplay}
+                  />
+                )}
+                {tagView === "names" && (
+                  <>
+                    <TagNamePanel key={`names/${settingsGeneration}`} focus={initialTagFocus} />
+                    <LegacyNameEntry onOpen={onOpenNameWizard} />
+                  </>
+                )}
+                {tagView === "groups" && (
+                  <SharedTagGroupsSettings
+                    key={`groups/${settingsGeneration}`}
+                    onError={(e) => setError(errorText(e))}
+                  />
+                )}
+                {tagView === "approx" && (
+                  <>
+                    <SettingsGroup label={t("tags.approxGroup")}>
+                      <SettingsRow
+                        icon={<Tags size={16} />}
+                        title={t("tags.showSource")}
+                        hint={t("tags.showSourceHint")}
+                      >
+                        <Switch
+                          label={t("tags.showSource")}
+                          checked={view.showApproxSource}
+                          onCheckedChange={(on) => void apply({ kind: "showApproxSource", on })}
+                        />
+                      </SettingsRow>
+                    </SettingsGroup>
+                    <SharedPersonalApproxSettings
+                      key={`approx/${settingsGeneration}`}
+                      onError={(e) => setError(errorText(e))}
+                    />
+                  </>
+                )}
+                {tagView === "mapping" && <TagIdentityPanel key={`identity/${settingsGeneration}`} />}
+              </>,
+              true,
+            )}
+            {page(
+              "tagging",
+              <AutoTaggingSettings
+                key={`tagging/${settingsGeneration}`}
+                hasLibrary={hasLibrary}
+                onShowUnfinished={onShowUnfinishedTagging}
+              />,
+            )}
+            {page(
+              "backup",
+              <>
+                <BackupSettings />
+                <ApplicationSettingsBackup restore={restore} />
+              </>,
+            )}
+            {page("safety", <SafetyPage view={view} safe={safe} onSafeMode={onSafeMode} apply={apply} />)}
+            {subscriptions &&
+              panel(
+                "subscriptions",
+                <SubscriptionSettings
+                  status={subscriptions.status}
+                  onStatus={subscriptions.onStatus}
+                  error={error}
+                  onError={setError}
+                />,
+              )}
+            {page(
+              "update",
+              <UpdateSection
+                version={version ?? null}
+                channel={view.updateChannel}
+                onChannel={(channel) => apply({ kind: "updateChannel", channel })}
+              />,
+            )}
+            {page("diag", <DiagPage view={view} diagnostics={diagnostics} setError={setError} apply={apply} />)}
           </DialogSwap>
         </DialogHeight>
       </Tabs.Root>

@@ -15,20 +15,36 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => cssWidth });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  fakeBackend({ workspace_browse: () => workspacePage(Array.from({ length: 40 }, (_, i) => ({ id: String(i), width: 100, height: 100 }))) });
+  fakeBackend({
+    workspace_browse: () =>
+      workspacePage(Array.from({ length: 40 }, (_, i) => ({ id: String(i), width: 100, height: 100 }))),
+  });
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 /** 墙上第一张卡片缩略图地址里的档位（`L1/0/档位`）。 */
-const shownTier = () => Number(document.querySelector<HTMLImageElement>(".wall .card img")!.getAttribute("src")!.split("/").at(-1));
+const shownTier = () =>
+  Number(document.querySelector<HTMLImageElement>(".wall .card img")!.getAttribute("src")!.split("/").at(-1));
 
 async function wallAt(scale: number) {
   cssWidth = SCREEN_WIDTH / scale;
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: scale });
-  render(<UiScaleContext value={scale}>
-    <Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={new Set()} onSelectionChange={() => {}}
-      onOpenImage={() => {}} viewerOpen={false} density={240} />
-  </UiScaleContext>);
+  render(
+    <UiScaleContext value={scale}>
+      <Wall
+        workspaceScope={{ kind: "all" }}
+        scope={{ kind: "all" }}
+        reloadKey={0}
+        selected={new Set()}
+        onSelectionChange={() => {}}
+        onOpenImage={() => {}}
+        viewerOpen={false}
+        density={240}
+      />
+    </UiScaleContext>,
+  );
   await screen.findAllByRole("img");
   const cards = [...document.querySelectorAll<HTMLElement>(".wall .card")];
   const firstRow = cards.filter((card) => parseFloat(card.style.top) === parseFloat(cards[0].style.top));
@@ -55,15 +71,27 @@ it("界面缩放 150% 时缩略图按卡片的实际设备像素计算，与 100
 it("WebView 的设备像素比晚于界面缩放档位到达时，缩略图在它到达后按新值换档", async () => {
   cssWidth = SCREEN_WIDTH / 1.5;
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
-  render(<UiScaleContext value={1.5}>
-    <Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={new Set()} onSelectionChange={() => {}}
-      onOpenImage={() => {}} viewerOpen={false} density={240} />
-  </UiScaleContext>);
+  render(
+    <UiScaleContext value={1.5}>
+      <Wall
+        workspaceScope={{ kind: "all" }}
+        scope={{ kind: "all" }}
+        reloadKey={0}
+        selected={new Set()}
+        onSelectionChange={() => {}}
+        onOpenImage={() => {}}
+        viewerOpen={false}
+        density={240}
+      />
+    </UiScaleContext>,
+  );
   await screen.findAllByRole("img");
   expect(shownTier()).toBe(256);
 
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.5 });
-  await act(async () => { window.dispatchEvent(new Event("resize")); });
+  await act(async () => {
+    window.dispatchEvent(new Event("resize"));
+  });
 
   await waitFor(() => expect(shownTier()).toBe(384));
 });

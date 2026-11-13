@@ -16,13 +16,18 @@ function hexLiterals(css: string): string[] {
 describe("颜色令牌", () => {
   it("令牌文件定义了 v3 的日夜主色", () => {
     const tokens = sheets[TOKEN_FILE];
-    for (const value of ["--bg: light-dark(#f7f3ea, #1e1c2c)", "--ink: light-dark(#2b2747, #f4ecdc)", "--accent: light-dark(#e0768f, #e3b34f)", "--seal-acc: #c85672"]) {
+    for (const value of [
+      "--bg: light-dark(#f7f3ea, #1e1c2c)",
+      "--ink: light-dark(#2b2747, #f4ecdc)",
+      "--accent: light-dark(#e0768f, #e3b34f)",
+      "--seal-acc: #c85672",
+    ]) {
       expect(tokens).toContain(value);
     }
   });
 
   it("夜间值只写一遍：主题规则只切 color-scheme", () => {
-    const tokens = sheets[TOKEN_FILE];
+    const tokens = sheets[TOKEN_FILE].replace(/\s+/g, " ");
     expect(tokens).toContain(':root[data-theme="light"] { color-scheme: light; }');
     expect(tokens).toContain(':root[data-theme="dark"], .k-dock.is-dark { color-scheme: dark; }');
     expect(tokens.match(/#1e1c2c/g)).toHaveLength(1);
@@ -62,9 +67,14 @@ function rgba(value: string): [Rgb, number] {
 /** 前景色落在底色上的对比度；半透明的底先叠在 `under` 上。 */
 function contrast(fg: string, bg: string, under?: string): number {
   const [b, alpha] = rgba(bg);
-  const ground = alpha < 1 ? b.map((c, i) => c * alpha + rgba(under!)[0][i] * (1 - alpha)) as Rgb : b;
-  const lum = (rgb: Rgb) => rgb.map((c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; })
-    .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const ground = alpha < 1 ? (b.map((c, i) => c * alpha + rgba(under!)[0][i] * (1 - alpha)) as Rgb) : b;
+  const lum = (rgb: Rgb) =>
+    rgb
+      .map((c) => {
+        c /= 255;
+        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      })
+      .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0);
   const [hi, lo] = [lum(rgba(fg)[0]), lum(ground)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
 }

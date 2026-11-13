@@ -11,7 +11,12 @@ export function useInspectorShortcut(toggle: () => void, disabled: boolean) {
     if (disabled) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || e.key.toLowerCase() !== "i") return;
-      if (e.defaultPrevented || editable(e.target) || document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+      if (
+        e.defaultPrevented ||
+        editable(e.target) ||
+        document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')
+      )
+        return;
       e.preventDefault();
       toggleInspector();
     };

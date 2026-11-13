@@ -28,7 +28,10 @@ describe("挂载范围按块更新", () => {
 });
 
 describe("预取顺序", () => {
-  const layout = masonry(Array.from({ length: 200 }, () => ({ w: 100, h: 100 })), { width: 424, target: 200, gap: 8, pad: 12, capRatio: null });
+  const layout = masonry(
+    Array.from({ length: 200 }, () => ({ w: 100, h: 100 })),
+    { width: 424, target: 200, gap: 8, pad: 12, capRatio: null },
+  );
 
   it("向下滚时取挂载范围下方的图，近的在前；不取上方", () => {
     const order = prefetchOrder(layout, { top: 0, bottom: 1000 }, 1, 1200);
@@ -36,7 +39,9 @@ describe("预取顺序", () => {
     const ys = order.map((i) => layout.boxes[i].y);
     expect(Math.min(...ys)).toBeGreaterThanOrEqual(1000);
     expect(Math.max(...ys)).toBeLessThan(2200);
-    ys.forEach((y, k) => { if (k) expect(y).toBeGreaterThanOrEqual(ys[k - 1]); });
+    ys.forEach((y, k) => {
+      if (k) expect(y).toBeGreaterThanOrEqual(ys[k - 1]);
+    });
   });
 
   it("向上滚时取上方的图，离视口近的在前", () => {
@@ -44,7 +49,9 @@ describe("预取顺序", () => {
     const ys = order.map((i) => layout.boxes[i].y);
     expect(order.length).toBeGreaterThan(0);
     expect(order.every((i) => layout.boxes[i].y + layout.boxes[i].h < 3000)).toBe(true);
-    ys.forEach((y, k) => { if (k) expect(y).toBeLessThanOrEqual(ys[k - 1]); });
+    ys.forEach((y, k) => {
+      if (k) expect(y).toBeLessThanOrEqual(ys[k - 1]);
+    });
   });
 });
 
@@ -52,24 +59,33 @@ describe("预取队列", () => {
   it("同时最多解码几张；新的请求替换还没开始的旧请求；已取过的不再取", async () => {
     const started: string[] = [];
     const finish: (() => void)[] = [];
-    const prefetch = createPrefetcher({ concurrency: 2, load: (url) => { started.push(url); return new Promise<void>((r) => finish.push(r)); } });
+    const prefetch = createPrefetcher({
+      concurrency: 2,
+      load: (url) => {
+        started.push(url);
+        return new Promise<void>((r) => finish.push(r));
+      },
+    });
     prefetch.want(["a", "b", "c", "d"]);
     expect(started).toEqual(["a", "b"]);
     prefetch.want(["x", "a", "y"]);
     finish.shift()!();
-    await Promise.resolve(); await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
     expect(started).toEqual(["a", "b", "x"]);
     finish.shift()!();
-    await Promise.resolve(); await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
     expect(started).toEqual(["a", "b", "x", "y"]);
     finish.splice(0).forEach((f) => f());
-    await Promise.resolve(); await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
     prefetch.want(["a", "b", "x", "y"]);
     expect(started).toHaveLength(4);
   });
 
   it("解码失败也放行下一张；dispose 后不再开始", async () => {
-    const load = vi.fn((url: string) => url === "bad" ? Promise.reject(new Error("x")) : Promise.resolve());
+    const load = vi.fn((url: string) => (url === "bad" ? Promise.reject(new Error("x")) : Promise.resolve()));
     const prefetch = createPrefetcher({ concurrency: 1, load });
     prefetch.want(["bad", "ok"]);
     await vi.waitFor(() => expect(load).toHaveBeenCalledWith("ok"));

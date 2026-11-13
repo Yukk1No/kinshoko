@@ -21,12 +21,27 @@ beforeEach(() => {
   mockConvertFileSrc("windows");
   fakeBackend({ workspace_browse: () => browse() });
 });
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 function Harness({ wall, onTotal }: { wall?: Ref<WallHandle>; onTotal?: (count: number | null) => void }) {
   const [selected, setSelected] = useState(new Set<string>());
-  return <Wall ref={wall} workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={selected} stackSets
-    onSelectionChange={setSelected} onOpenImage={() => {}} viewerOpen={false} onTotalChange={onTotal} />;
+  return (
+    <Wall
+      ref={wall}
+      workspaceScope={{ kind: "all" }}
+      scope={{ kind: "all" }}
+      reloadKey={0}
+      selected={selected}
+      stackSets
+      onSelectionChange={setSelected}
+      onOpenImage={() => {}}
+      viewerOpen={false}
+      onTotalChange={onTotal}
+    />
+  );
 }
 const card = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`)!;
 
@@ -34,7 +49,9 @@ it("拖整摞到文件夹上：带着它的全部页，按页序", async () => {
   render(<Harness />);
   await screen.findAllByRole("option");
   const data = new Map<string, string>();
-  fireEvent.dragStart(card("p0"), { dataTransfer: { setData: (type: string, value: string) => data.set(type, value), effectAllowed: "" } });
+  fireEvent.dragStart(card("p0"), {
+    dataTransfer: { setData: (type: string, value: string) => data.set(type, value), effectAllowed: "" },
+  });
   expect(JSON.parse(data.get(DRAG_IMAGES)!)).toEqual(["p0", "p1", "p2"]);
   expect(JSON.parse(data.get(DRAG_IMAGE_SOURCES)!)).toEqual({ L1: ["p0", "p1", "p2"] });
 });
@@ -46,7 +63,9 @@ it("先移走整摞时顶栏的张数减去它的全部页，没做成放回时�
   await screen.findAllByRole("option");
   expect(onTotal).toHaveBeenLastCalledWith(5);
   let putBack: (failed: string[]) => void = () => {};
-  act(() => { putBack = wall.current!.remove(["p0", "p1", "p2"]); });
+  act(() => {
+    putBack = wall.current!.remove(["p0", "p1", "p2"]);
+  });
   expect(onTotal).toHaveBeenLastCalledWith(2);
   act(() => putBack(["p0", "p1", "p2"]));
   expect(onTotal).toHaveBeenLastCalledWith(5);
