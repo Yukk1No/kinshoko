@@ -193,7 +193,7 @@ describe("主窗口", () => {
     fireEvent.pointerUp(handle, { clientX: 900, pointerId: 1 });
     expect(card.style.width).not.toBe(initial);
     expect(handle.getAttribute("aria-valuenow")).toBe("420");
-    await waitFor(() => expect(sent("set_inspector_width")).toEqual([{ width: 420 }]));
+    await waitFor(() => expect(sent("change_setting:inspectorWidth")).toEqual([{ width: 420 }]));
   });
 
   it("详情面板的宽度是本设备设置：重新打开主窗口后沿用上次的宽度（#157）", async () => {
@@ -202,7 +202,7 @@ describe("主窗口", () => {
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1544 });
     let saved: number | undefined;
     backend(library, clean, (cmd, args) => {
-      if (cmd === "set_inspector_width") { saved = (args as { width: number }).width; return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved, inspectorOpen: true }; }
+      if (cmd === "change_setting:inspectorWidth") { saved = (args as { width: number }).width; return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved, inspectorOpen: true }; }
       if (cmd === "shell_settings") return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved, inspectorOpen: true };
       return undefined;
     });

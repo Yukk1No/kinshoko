@@ -51,7 +51,7 @@ function backend(override: Override = {}, shown = true) {
     take_collection_request: () => null,
     tagging_status: () => ({ state: "starting" }),
     shell_settings: view,
-    set_inspector_open: (args) => { state.shown = (args as unknown as { open: boolean }).open; return view(); },
+    "change_setting:inspectorOpen": (args) => { state.shown = (args as unknown as { open: boolean }).open; return view(); },
     app_info: () => ({ productName: "Kinshoko", version: "1" }),
     // 没有上次打开的图库要接着打开。
     current_library: () => null,
@@ -157,7 +157,7 @@ describe("选择变化时", () => {
 
   it("亲手开过面板后，设置页交来的新快照（例如恢复备份）照样改面板的开合", async () => {
     const view = shellSettings({ viewerBackground: "mid", inspectorOpen: false });
-    await start({ set_autostart: () => view }, false);
+    await start({ "change_setting:autostart": () => view }, false);
     fireEvent.keyDown(document.body, { key: "i" });
     expect(opened()).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "设置" }));

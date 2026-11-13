@@ -20,8 +20,7 @@ import {
   safeMode,
   setSafeMode,
   shellSettings,
-  setInspectorOpen,
-  setInspectorWidth,
+  changeSetting,
   uiScale,
 } from "./ipc";
 import { useOpenInKinshoko } from "./desktop/openInKinshoko";
@@ -120,13 +119,13 @@ function MainWindow() {
   /** 详情面板宽度先在界面上生效，再写进本设备设置；写不进时只是下次不记得。 */
   const changeInspectorWidth = useCallback((width: number) => {
     setInspectorWidthState(width);
-    void setInspectorWidth(width).catch(() => {});
+    void changeSetting({ kind: "inspectorWidth", width }).catch(() => {});
   }, []);
   /** 详情面板的开合同样先生效再写设置。 */
   const changeInspectorShown = useCallback((open: boolean) => {
     inspectorChosen.current = true;
     setInspectorShownState(open);
-    void setInspectorOpen(open).catch(() => {});
+    void changeSetting({ kind: "inspectorOpen", open }).catch(() => {});
   }, []);
   const { uiScalePercent, uiScaleWriting, acceptUiScale, chooseUiScale } = useUiScaleChoice(toast);
   /**

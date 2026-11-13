@@ -1,36 +1,31 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ApplicationSettingsRestored } from "../bindings/ApplicationSettingsRestored";
 import type { SafeModeScope } from "../bindings/SafeModeScope";
+import type { SettingChange } from "../bindings/SettingChange";
 import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { ShortcutAction } from "../bindings/ShortcutAction";
 import type { TagDisplay } from "../bindings/TagDisplay";
 import type { UpdateChannel } from "../bindings/UpdateChannel";
 import {
   errorText,
+  changeSetting,
   rebindShortcut,
   restoreApplicationSettings,
-  setAutostart,
-  setForceSrgb,
-  setKeepSelectionOnSafeMode,
-  setPinEdgeContrast,
   setRunLog,
   setSafeModeScope,
-  setShowApproxSource,
-  setTagDisplay,
   setUpdateChannel,
   shellSettings,
 } from "../ipc";
 import { DEFAULT_TAG_DISPLAY } from "../tags/tagConfidence";
 import { createSettingsSubmitter, type SettingsCommand, type SubmitterState } from "./settingsSubmitter";
 
+/** 走统一改动入口、值就是最终结果的开关（标签外观另有合并规则，见下）。 */
+type SettingSwitch = Extract<SettingChange, { kind: "autostart" | "showApproxSource" | "keepSelectionOnSafeMode" | "pinEdgeContrast" | "forceSrgb" }>;
+
 /** 设置页能提交的改动；每种怎样合并见 `shellSettingsCommand`。 */
 export type ShellSettingsIntent =
-  | { kind: "autostart"; on: boolean }
-  | { kind: "showApproxSource"; on: boolean }
-  | { kind: "keepSelectionOnSafeMode"; on: boolean }
-  | { kind: "pinEdgeContrast"; on: boolean }
+  | SettingSwitch
   | { kind: "runLog"; on: boolean }
-  | { kind: "forceSrgb"; on: boolean }
   | { kind: "safeModeScope"; scope: SafeModeScope }
   /** 只带改了的几项：执行时才叠到已接受的标签外观上，排在恢复之后的改动不会把恢复前的其余几项写回去。 */
   | { kind: "tagDisplay"; change: Partial<TagDisplay> }
@@ -51,14 +46,14 @@ const latest = (key: string, run: () => Promise<ShellSettingsView>): Command => 
  */
 export function shellSettingsCommand(intent: ShellSettingsIntent, accepted: () => ShellSettingsView | null): Command {
   switch (intent.kind) {
-    case "autostart": return latest(intent.kind, () => setAutostart(intent.on));
-    case "showApproxSource": return latest(intent.kind, () => setShowApproxSource(intent.on));
-    case "keepSelectionOnSafeMode": return latest(intent.kind, () => setKeepSelectionOnSafeMode(intent.on));
-    case "pinEdgeContrast": return latest(intent.kind, () => setPinEdgeContrast(intent.on));
+    case "autostart":
+    case "showApproxSource":
+    case "keepSelectionOnSafeMode":
+    case "pinEdgeContrast":
+    case "forceSrgb": return latest(intent.kind, () => changeSetting(intent));
     case "runLog": return latest(intent.kind, () => setRunLog(intent.on));
-    case "forceSrgb": return latest(intent.kind, () => setForceSrgb(intent.on));
     case "safeModeScope": return latest(intent.kind, () => setSafeModeScope(intent.scope));
-    case "tagDisplay": return { key: intent.kind, merge: "latest", dropPendingOnFailure: true, run: () => setTagDisplay({ ...(accepted()?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...intent.change }) };
+    case "tagDisplay": return { key: intent.kind, merge: "latest", dropPendingOnFailure: true, run: () => changeSetting({ kind: "tagDisplay", display: { ...(accepted()?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...intent.change } }) };
     case "shortcut": return { key: `shortcut/${intent.action}`, merge: "keep", run: () => rebindShortcut(intent.action, intent.accelerator) };
     case "updateChannel": return { key: intent.kind, merge: "keep", run: () => setUpdateChannel(intent.channel) };
   }

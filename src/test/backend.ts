@@ -29,6 +29,16 @@ export type FakeBackend = {
 /** 命令名去掉插件前缀：`plugin:library|browse` 与 `browse` 是同一条。 */
 const bare = (command: string) => command.replace(/^plugin:[^|]+\|/, "");
 
+/**
+ * 程序设置的统一改动命令（#527）按改的是哪一项分开：`change_setting` 带 `{ change: { kind: "forceSrgb", on } }`
+ * 时，回答与记录都用 `change_setting:forceSrgb`，参数是这项改动除 `kind` 以外的字段（`{ on }`）。
+ */
+function route(name: string, args: Args): { name: string; args: Args } {
+  if (name !== "change_setting") return { name, args };
+  const { kind, ...fields } = args.change as { kind: string } & Args;
+  return { name: `change_setting:${kind}`, args: fields };
+}
+
 /** 一份完整的默认设置；测试只改自己关心的字段。 */
 export function shellSettings(overrides: Partial<ShellSettingsView> = {}): ShellSettingsView {
   return {
@@ -48,7 +58,7 @@ export function shellSettings(overrides: Partial<ShellSettingsView> = {}): Shell
   } satisfies ShellSettingsView;
 }
 
-/** 测试用的假后端：按命令名登记回答。命令名带不带 `plugin:…|` 前缀都认。 */
+/** 测试用的假后端：按命令名登记回答。命令名带不带 `plugin:…|` 前缀都认；改设置的命令见 `route`。 */
 export function fakeBackend(replies: Replies = {}): FakeBackend {
   const table = new Map<string, AnyReply>();
   const log: Call[] = [];
@@ -59,8 +69,7 @@ export function fakeBackend(replies: Replies = {}): FakeBackend {
   for (const [command, reply] of Object.entries(replies)) on(command, reply);
   mockWindows("main");
   mockIPC(async (command, args) => {
-    const name = bare(command);
-    const given = (args ?? {}) as Args;
+    const { name, args: given } = route(bare(command), (args ?? {}) as Args);
     log.push({ command: name, args: given });
     if (!table.has(name)) throw new Error(`fake backend: no reply for ${name}`);
     const reply = table.get(name);

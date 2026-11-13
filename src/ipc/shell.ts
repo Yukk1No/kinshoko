@@ -9,6 +9,7 @@ import type { ScopeSelection } from "../bindings/ScopeSelection";
 import type { SnapshotSummary } from "../bindings/SnapshotSummary";
 import type { ModelChoice } from "../bindings/ModelChoice";
 import type { Device } from "../bindings/Device";
+import type { SettingChange } from "../bindings/SettingChange";
 import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { ShortcutAction } from "../bindings/ShortcutAction";
 import type { TaggingStatus } from "../bindings/TaggingStatus";
@@ -76,19 +77,12 @@ export function shellSettings(): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("shell_settings");
 }
 
-/** 开关开机自启。失败时 reject 一条给画师看的中文原因。 */
-export function setAutostart(on: boolean): Promise<ShellSettingsView> {
-  return invoke<ShellSettingsView>("set_autostart", { on });
-}
-
-/** 开关查找条件里相近标签的来源标记（内置／个人）。 */
-export function setShowApproxSource(on: boolean): Promise<ShellSettingsView> {
-  return invoke<ShellSettingsView>("set_show_approx_source", { on });
-}
-
-/** 保存标签外观与可信度分档（#160）；阈值交叉时 reject 中文原因，原来的设置不变。 */
-export function setTagDisplay(display: import("../bindings/TagDisplay").TagDisplay): Promise<ShellSettingsView> {
-  return invoke<ShellSettingsView>("set_tag_display", { display });
+/**
+ * 改一项程序设置（#527），返回改后的整份设置；失败时 reject 原因，原来的设置不变。
+ * 哪些设置走这里见 `SettingChange`；开机自启先改系统，增强钉图边缘改后已钉着的钉图立即重画。
+ */
+export function changeSetting(change: SettingChange): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("change_setting", { change });
 }
 
 /** 更换全局快捷键，立即生效；`null` 表示清除。失败时 reject 中文原因，原来的键不变。 */
@@ -97,21 +91,6 @@ export function rebindShortcut(
   accelerator: string | null,
 ): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("rebind_shortcut", { action, accelerator });
-}
-
-/** 诊断开关“强制 sRGB”：保存后重启 Kinshoko 生效。 */
-/** 切换安全模式时是否保留当前选择和详情面板。 */
-export function setKeepSelectionOnSafeMode(on: boolean): Promise<ShellSettingsView> {
-  return invoke<ShellSettingsView>("set_keep_selection_on_safe_mode", { on });
-}
-
-/** 开关“增强钉图边缘”（#239）：已经钉着的钉图立即重画。 */
-export function setPinEdgeContrast(on: boolean): Promise<ShellSettingsView> {
-  return invoke<ShellSettingsView>("set_pin_edge_contrast", { on });
-}
-
-export function setForceSrgb(on: boolean): Promise<ShellSettingsView> {
-  return invoke<ShellSettingsView>("set_force_srgb", { on });
 }
 
 /** 开关运行日志（只写本机），立即生效。 */
