@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
+import type { ViewerBackground } from "../bindings/ViewerBackground";
+import { type FakeBackend, fakeBackend, shellSettings } from "../test/backend";
 import { Viewer } from "./Viewer";
 
 const events = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>());
@@ -21,23 +23,17 @@ beforeEach(() => {
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.5 });
   mockConvertFileSrc("windows");
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe("从查看器钉到桌面（#65）", () => {
   const card = { id: "a", width: 800, height: 600, thumbnail: "", adult: false };
-  let calls: { cmd: string; args: unknown }[];
+  let backend: FakeBackend;
   beforeEach(() => {
     Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 800));
-    calls = [];
-    mockIPC((cmd, args) => {
-      calls.push({ cmd, args });
-      if (cmd === "plugin:library|image") return {};
-      return null;
-    });
+    backend = fakeBackend({ image: {}, pin_reference: null });
   });
-  afterEach(() => clearMocks());
-  const pins = () => calls.filter((c) => c.cmd === "plugin:desktop|pin_reference").map((c) => c.args);
+  const pins = () => backend.calls("pin_reference").map((c) => c.args);
 
   it("Shift+拖动按原图像素框出局部，缩放时边界不变，Enter 钉住", async () => {
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
@@ -114,18 +110,16 @@ describe("从查看器钉到桌面（#65）", () => {
   });
 });
 
-
 describe("查看器程序配置", () => {
   const card = { id: "background", width: 800, height: 600, thumbnail: "", adult: false };
-  afterEach(() => { clearMocks(); localStorage.clear(); });
+  afterEach(() => { localStorage.clear(); });
 
   it("已恢复的背景优先于本机缓存；打开查看器不写设置，选一次背景恰好写一次", async () => {
     localStorage.setItem("kinshoko.viewer.background", "dark");
     const writes: unknown[] = [];
-    mockIPC((command, args) => {
-      if (command === "shell_settings") return { viewerBackground: "light" };
-      if (command === "change_setting") { const { kind, ...fields } = (args as { change: { kind: string } }).change; if (kind === "viewerBackground") writes.push(fields); }
-      return null;
+    fakeBackend({
+      shell_settings: shellSettings({ viewerBackground: "light" }),
+      "change_setting:viewerBackground": (fields) => { writes.push(fields); return shellSettings({ viewerBackground: fields.background as ViewerBackground }); },
     });
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "背景" }));
@@ -141,10 +135,9 @@ describe("查看器程序配置", () => {
   it("首次读取程序配置失败时不把旧缓存写回", async () => {
     localStorage.setItem("kinshoko.viewer.background", "dark");
     const writes: unknown[] = [];
-    mockIPC((command, args) => {
-      if (command === "shell_settings") throw new Error("temporarily unavailable");
-      if (command === "change_setting") { const { kind, ...fields } = (args as { change: { kind: string } }).change; if (kind === "viewerBackground") writes.push(fields); }
-      return null;
+    fakeBackend({
+      shell_settings: () => { throw new Error("temporarily unavailable"); },
+      "change_setting:viewerBackground": (fields) => { writes.push(fields); return shellSettings({ viewerBackground: fields.background as ViewerBackground }); },
     });
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
     await act(async () => {});
@@ -154,19 +147,13 @@ describe("查看器程序配置", () => {
 
 describe("查看器标题行与 dock（#98）", () => {
   const card = { id: "a", width: 800, height: 600, thumbnail: "", adult: false };
-  let calls: { cmd: string; args: unknown }[];
+  let backend: FakeBackend;
   beforeEach(() => {
     Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 1000, 800));
-    calls = [];
-    mockIPC((cmd, args) => {
-      calls.push({ cmd, args });
-      if (cmd === "plugin:library|image") return { originalName: "晨光练习_04.png" };
-      return null;
-    });
+    backend = fakeBackend({ image: { originalName: "晨光练习_04.png" }, pin_reference: null });
   });
-  afterEach(() => clearMocks());
-  const pins = () => calls.filter((c) => c.cmd === "plugin:desktop|pin_reference").map((c) => c.args);
+  const pins = () => backend.calls("pin_reference").map((c) => c.args);
 
   it("标题行有返回、文件名、序号、上一张 / 下一张；窗口控件留在顶栏或详情侧栏（#179）", async () => {
     const step = vi.fn();
@@ -269,14 +256,13 @@ describe("查看器标题行与 dock（#98）", () => {
 
 describe("从图片墙进入框选（#102 右键“框选局部钉住”）", () => {
   it("startCrop 时打开即在框选模式，换到下一张后不再自动框选", () => {
-    mockIPC(() => null);
+    fakeBackend({ image: {} });
     const card = (id: string) => ({ id, width: 400, height: 300, thumbnail: "", adult: false });
     const { rerender } = render(<Viewer libraryId="L1" card={card("a")} startCrop onClose={() => {}} />);
     const pressed = () => screen.getByRole("button", { name: /^框选局部/ }).getAttribute("aria-pressed");
     expect(pressed()).toBe("true");
     rerender(<Viewer libraryId="L1" card={card("b")} startCrop onClose={() => {}} />);
     expect(pressed()).toBe("false");
-    clearMocks();
   });
 });
 

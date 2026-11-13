@@ -1,36 +1,31 @@
-import { afterEach, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { expect, it } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
+import { type FakeBackend, fakeBackend } from "../test/backend";
 import { WinCtrls } from "./WinCtrls";
 
-let calls: string[];
+let backend: FakeBackend;
 let maximized: boolean;
-function backend() {
-  calls = [];
+/** 发出过的命令名，按先后。 */
+const calls = () => backend.calls().map((call) => call.command);
+function serve() {
   maximized = false;
-  mockWindows("main");
-  mockIPC((cmd) => {
-    calls.push(cmd);
-    if (cmd === "plugin:window|is_maximized") return maximized;
-    return null;
-  }, { shouldMockEvents: true });
+  backend = fakeBackend({ is_maximized: () => maximized, minimize: null, toggle_maximize: null, close: null });
 }
-afterEach(async () => { cleanup(); await act(async () => {}); clearMocks(); });
 
 it("最小化、最大化与关闭调用主窗口自己的窗口接口", async () => {
-  backend();
+  serve();
   render(<WinCtrls />);
   fireEvent.click(screen.getByRole("button", { name: "最小化" }));
   fireEvent.click(screen.getByRole("button", { name: "最大化" }));
   fireEvent.click(screen.getByRole("button", { name: "关闭" }));
-  await waitFor(() => expect(calls).toEqual(expect.arrayContaining([
-    "plugin:window|minimize", "plugin:window|toggle_maximize", "plugin:window|close",
+  await waitFor(() => expect(calls()).toEqual(expect.arrayContaining([
+    "minimize", "toggle_maximize", "close",
   ])));
 });
 
 it("最大化后中间按钮换成还原，窗口还原后换回来", async () => {
-  backend();
+  serve();
   render(<WinCtrls />);
   expect(await screen.findByRole("button", { name: "最大化" })).toBeTruthy();
   maximized = true;
@@ -42,7 +37,7 @@ it("最大化后中间按钮换成还原，窗口还原后换回来", async () =
 });
 
 it("图形按当前缩放画在设备像素网格上：150% 时 15 像素见方、线宽 2 像素", async () => {
-  backend();
+  serve();
   const original = window.devicePixelRatio;
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.5 });
   try {

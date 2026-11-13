@@ -1,38 +1,33 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { SaveDestinationProvider } from "../library/SaveDestination";
 import { SubscriptionsPage } from "./SubscriptionsPage";
 import { account, list, NOW, status, subscription } from "./subscriptions.fixtures";
+import { type FakeBackend, fakeBackend } from "../test/backend";
 
 // pixiv 收藏夹同步（#371）：首次开启时公开、非公开收藏各选同步多少，以及 R-18；已经在同步时添加菜单里这一项变灰。
 
-let calls: { cmd: string; args: unknown }[] = [];
+let fake: FakeBackend;
 const libraries = [
   { library: { id: "L1", name: "主图库", root: "C:/lib1" }, unavailable: null },
   { library: { id: "L2", name: "pixiv 收藏", root: "C:/lib2" }, unavailable: null },
 ];
 
 function backend(subs: Subscription[]) {
-  calls = [];
-  mockWindows("main");
   mockConvertFileSrc("windows");
-  mockIPC((cmd, args) => {
-    calls.push({ cmd, args });
-    if (cmd === "subscriptions") return subs;
-    if (cmd === "subscription_recent") return [];
-    if (cmd === "plugin:library|workspace_directories") {
-      return { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
-    }
-    if (cmd === "subscription_add") return [];
-    if (cmd === "subscription_set_options") return subs[0];
-    return null;
-  }, { shouldMockEvents: true });
+  fake = fakeBackend({
+    subscriptions: subs,
+    subscription_recent: [],
+    workspace_directories: { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) },
+    subscription_add: [],
+    subscription_set_options: () => subs[0],
+  });
 }
 
-const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.args);
+const sent = (command: string) => fake.calls(command).map((call) => call.args);
 
 function page(s: SubscriptionStatus, safe = false) {
   return render(<SaveDestinationProvider safe={safe}>
@@ -53,11 +48,8 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  cleanup();
   vi.useRealTimers();
   localStorage.clear();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
 });
 
 describe("同步 pixiv 收藏夹", () => {

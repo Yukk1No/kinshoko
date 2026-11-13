@@ -1,16 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { SaveDestinationProvider } from "../library/SaveDestination";
 import { SubscriptionsPage } from "./SubscriptionsPage";
 import { chooseOption } from "../test/select";
 import { account, list, NOW, status, subscription } from "./subscriptions.fixtures";
+import { type FakeBackend, fakeBackend } from "../test/backend";
 
 // 订阅画师（#369）：添加对话框、从 pixiv 关注导入、订阅设置与退订。
 
-let calls: { cmd: string; args: unknown }[] = [];
+let fake: FakeBackend;
 /** 让“slow”那次查找回来。 */
 let finishSlow = () => {};
 const registered = [
@@ -19,33 +20,29 @@ const registered = [
 ];
 
 function backend(subs: Subscription[] = list, libraries = registered) {
-  calls = [];
-  mockWindows("main");
   mockConvertFileSrc("windows");
-  mockIPC((cmd, args) => {
-    calls.push({ cmd, args });
-    if (cmd === "subscriptions") return subs;
-    if (cmd === "plugin:library|create_library_unopened") {
+  fake = fakeBackend({
+    subscriptions: subs,
+    create_library_unopened: (args) => {
       const { parent, name } = args as { parent: string; name: string };
       return { id: "L9", name, root: `${parent}/${name}` };
-    }
-    if (cmd === "subscription_recent") return [];
-    if (cmd === "plugin:library|workspace_directories") {
-      return { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) };
-    }
-    if (cmd === "subscription_find_artist") {
+    },
+    subscription_recent: [],
+    workspace_directories: { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) },
+    subscription_find_artist: (args) => {
       const input = (args as { input: string }).input;
       if (input === "slow") return new Promise((resolve) => { finishSlow = () => resolve({ userId: "1", name: "Slow" }); });
       if (input.includes("404")) throw { code: "artistNotFound" };
       return { userId: "777", name: "Nanashi" };
-    }
-    if (cmd === "subscription_following") return [{ userId: "s1", name: "Mika" }, { userId: "21", name: "Akira" }, { userId: "22", name: "もち" }];
-    if (cmd === "subscription_add") return [];
-    return null;
-  }, { shouldMockEvents: true });
+    },
+    subscription_following: [{ userId: "s1", name: "Mika" }, { userId: "21", name: "Akira" }, { userId: "22", name: "もち" }],
+    subscription_add: [],
+    subscription_set_options: () => subs[0],
+    subscription_remove: null,
+  });
 }
 
-const sent = (cmd: string) => calls.filter((c) => c.cmd === cmd).map((c) => c.args);
+const sent = (command: string) => fake.calls(command).map((call) => call.args);
 
 function page(s: SubscriptionStatus, safe = false) {
   return render(<SaveDestinationProvider safe={safe}>
@@ -64,11 +61,8 @@ beforeEach(() => {
   localStorage.setItem("kinshoko.subscriptions.firstRunSeen", "1");
 });
 afterEach(async () => {
-  cleanup();
   vi.useRealTimers();
   localStorage.clear();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  clearMocks();
 });
 
 describe("订阅画师", () => {
@@ -234,9 +228,9 @@ describe("订阅画师", () => {
     fireEvent.click(within(create).getByRole("button", { name: "新建图库" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "新建图库" })).toBeNull());
-    expect(sent("plugin:library|create_library_unopened")).toEqual([{ parent: "D:/参考", name: "画师新作" }]);
-    expect(sent("plugin:library|create_library")).toEqual([]);
-    expect(sent("plugin:library|remember_new_library_parent")).toEqual([{ parent: "D:/参考" }]);
+    expect(sent("create_library_unopened")).toEqual([{ parent: "D:/参考", name: "画师新作" }]);
+    expect(sent("create_library")).toEqual([]);
+    expect(sent("remember_new_library_parent")).toEqual([{ parent: "D:/参考" }]);
     expect(screen.getByRole("dialog", { name: "订阅画师" })).toBe(dialog);
     expect(within(dialog).getByText("Nanashi")).toBeTruthy();
     expect((within(dialog).getByRole("radio", { name: /全部/ }) as HTMLInputElement).checked).toBe(true);
@@ -259,7 +253,7 @@ describe("订阅画师", () => {
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "新建图库" })).toBeNull());
     expect(screen.getByRole("dialog", { name: "订阅画师" })).toBeTruthy();
     expect(library.getAttribute("data-value")).toBe("L2");
-    expect(sent("plugin:library|create_library_unopened")).toEqual([]);
+    expect(sent("create_library_unopened")).toEqual([]);
   });
 
   it("一个图库都没有时，在订阅对话框里新建图库后能订阅", async () => {
