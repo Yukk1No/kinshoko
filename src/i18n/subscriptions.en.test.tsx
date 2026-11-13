@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { i18n } from ".";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { SubscriptionSettings } from "../subscriptions/SubscriptionSettings";
@@ -8,6 +8,7 @@ import { SubscriptionsPage } from "../subscriptions/SubscriptionsPage";
 import { account, list, NOW, recent, status } from "../subscriptions/subscriptions.fixtures";
 import { expectNoChinese } from "../test/noChinese";
 import { tipText } from "../test/tip";
+import { fakeBackend } from "../test/backend";
 
 // 英文界面下订阅页与设置 › 订阅没有中文（#368）。订阅名是画师的数据，不算。
 const names = list.map((s) => s.name);
@@ -15,21 +16,14 @@ const names = list.map((s) => s.name);
 beforeEach(async () => {
   vi.useFakeTimers({ toFake: ["Date"], now: NOW });
   localStorage.setItem("kinshoko.subscriptions.firstRunSeen", "1");
-  mockWindows("main");
   mockConvertFileSrc("windows");
-  mockIPC((cmd) => {
-    if (cmd === "subscriptions") return list;
-    if (cmd === "subscription_recent") return recent;
-    return null;
-  }, { shouldMockEvents: true });
+  fakeBackend({ subscriptions: list, subscription_recent: recent, subscription_mark_seen: null });
   await act(async () => { await i18n.changeLanguage("en"); });
 });
 afterEach(async () => {
-  cleanup();
   vi.useRealTimers();
   localStorage.clear();
   await act(async () => { await i18n.changeLanguage("zh-CN"); });
-  clearMocks();
 });
 
 const page = (s: SubscriptionStatus) => render(<SubscriptionsPage status={s} onStatus={vi.fn()} safe={false} paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} />);
@@ -57,7 +51,7 @@ describe("英文界面：订阅", () => {
     expect(await screen.findByText("Sign in in the window that opened")).toBeTruthy();
     expectNoChinese(document.body);
     cleanup();
-    mockIPC((cmd) => (cmd === "subscriptions" || cmd === "subscription_recent" ? [] : null), { shouldMockEvents: true });
+    fakeBackend({ subscriptions: [], subscription_recent: [] });
     page(status());
     expect(await screen.findByText("No subscriptions yet")).toBeTruthy();
     await act(async () => {});

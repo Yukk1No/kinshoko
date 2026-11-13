@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { i18n } from ".";
 import type { BackupStatus } from "../bindings/BackupStatus";
 import type { PinGate } from "../bindings/PinGate";
@@ -9,13 +8,12 @@ import { ApplicationSettingsBackup } from "../settings/ApplicationSettingsBackup
 import { FidelityGate } from "../fidelity/FidelityGate";
 import { PinGateSection, pinGateMarkdown } from "../fidelity/pinGate";
 import { expectNoChinese } from "../test/noChinese";
+import { fakeBackend } from "../test/backend";
 
 // 英文界面下备份与恢复、偏好设置备份、备份提醒与还原度门槛实验没有中文界面文案（#357）。
 // 图库名、参考组名与路径是画师的数据；备份失败的原因来自后端。
 beforeEach(async () => { await act(async () => { await i18n.changeLanguage("en"); }); });
 afterEach(async () => {
-  cleanup();
-  clearMocks();
   delete window.__KINSHOKO_TEST_PICKS__;
   await act(async () => { await i18n.changeLanguage("zh-CN"); });
 });
@@ -31,27 +29,25 @@ const status: BackupStatus = {
 const data = ["主库（恢复）", "主库", "旧库", "眼睛参考"];
 
 function backend() {
-  mockIPC((cmd) => {
-    if (cmd === "plugin:library|registered_libraries") return [{ library: { id: "A", name: "主库", root: "D:/a" }, unavailable: null }];
-    if (cmd === "plugin:event|listen") return 1;
-    if (cmd === "backup_status") return status;
-    if (cmd === "backup_preview") return {
+  fakeBackend({
+    registered_libraries: [{ library: { id: "A", name: "主库", root: "D:/a" }, unavailable: null }],
+    backup_status: status,
+    backup_preview: {
       scope: {
         libraries: [{ id: "A", name: "主库" }], groups: [{ id: "g1", name: "眼睛参考" }], steps: [],
         uncovered: [{ kind: "library", group: { id: "g1", name: "眼睛参考" }, libraryId: "B", libraryName: "旧库" }],
       },
       estimate: { totalBytes: 30 * 1024 * 1024, newBytes: 2 * 1024 * 1024, originals: 12, newOriginals: 1, unavailable: [] },
       targetAvailable: false,
-    };
-    if (cmd === "backup_snapshots") return [{ id: "s1", createdAt: at, libraries: [{ id: "A", name: "主库" }], groups: [{ id: "g1", name: "眼睛参考" }], skipped: [] }];
-    if (cmd === "restore_backup") return {
+    },
+    backup_snapshots: [{ id: "s1", createdAt: at, libraries: [{ id: "A", name: "主库" }], groups: [{ id: "g1", name: "眼睛参考" }], skipped: [] }],
+    restore_backup: {
       snapshotId: "s1",
       libraries: [{ oldId: "A", library: { id: "A2", name: "主库（恢复）", root: "F:/r" } }],
       groups: [{ oldId: "g1", id: "g2", name: "眼睛参考" }],
       check: { originals: { checked: 12, problems: [] }, curation: { checked: 20, problems: [] }, groups: { checked: 1, problems: [] } },
-    };
-    if (cmd === "plugin:library|preview_application_settings") return { fingerprint: "f", safeMode: false, forceSrgb: true };
-    return undefined;
+    },
+    preview_application_settings: { fingerprint: "f", safeMode: false, forceSrgb: true },
   });
 }
 
@@ -91,7 +87,7 @@ describe("英文界面：备份与画面保真检查", () => {
   });
 
   it("还原度门槛实验：页面与报告里的钉图一节", async () => {
-    mockIPC(() => new Promise(() => {}));
+    fakeBackend({ gate_plan: () => new Promise(() => {}) });
     render(<FidelityGate />);
     expect(screen.getByRole("heading", { name: "Color fidelity gate" })).toBeTruthy();
     render(<PinGateSection pins={pins} />);

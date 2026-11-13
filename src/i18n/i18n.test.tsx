@@ -1,30 +1,27 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { applyInterfaceLanguage, followInterfaceLanguage, i18n } from ".";
 import { UpdateNotice, UpdateSection } from "../Update";
 import { TagGroupBar } from "../search/TagGroupBar";
+import { fakeBackend } from "../test/backend";
 
 afterEach(async () => {
-  cleanup();
-  clearMocks();
   await act(async () => { await i18n.changeLanguage("zh-CN"); });
 });
 
 /** 模拟核心：界面语言从 `lang` 开始；标签分组按请求的语言给名称。 */
 function backend(lang: string) {
   const asked: string[] = [];
-  mockIPC((cmd, args) => {
-    if (cmd === "interface_language") return lang;
-    if (cmd === "update_status") return { state: "upToDate" };
-    if (cmd === "plugin:library|tag_groups") {
+  fakeBackend({
+    interface_language: lang,
+    update_status: { state: "upToDate" },
+    tag_groups: (args) => {
       const requested = (args as { lang: string }).lang;
       asked.push(requested);
       return [{ id: "g", name: requested === "en" ? "Eyes" : "眼睛", namespace: null, tags: [] }];
-    }
-    return null;
-  }, { shouldMockEvents: true });
+    },
+  });
   return asked;
 }
 
@@ -71,11 +68,10 @@ describe("界面语言", () => {
   });
 
   it("已经显示的更新通知随界面语言换文字", async () => {
-    mockIPC((cmd) => {
-      if (cmd === "interface_language") return "zh-CN";
-      if (cmd === "update_status") return { state: "available", version: "1.2.0", notes: null };
-      return null;
-    }, { shouldMockEvents: true });
+    fakeBackend({
+      interface_language: "zh-CN",
+      update_status: { state: "available", version: "1.2.0", notes: null },
+    });
     const stop = followInterfaceLanguage();
     render(<><UpdateNotice /></>);
     expect(await screen.findByText("Kinshoko 1.2.0 可以更新")).toBeTruthy();

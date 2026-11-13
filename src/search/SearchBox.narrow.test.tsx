@@ -1,16 +1,16 @@
 // 窄查找框（#222）：放不下的条件标签收进前面的“+n”，点开仍可读、可排除、可去掉；输入框留出最小宽度。
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { SearchInput } from "../bindings/SearchInput";
 import { SearchBox } from "./SearchBox";
+import { fakeBackend } from "../test/backend";
 
 const text = (t: string) => ({ any: [{ kind: "text" as const, text: t, dismissed: [] }], negate: false });
 const three: SearchInput = { conditions: [text("天空"), text("云"), text("夕阳")], exact: false };
 
 let searchWidth = 0;
 beforeEach(() => {
-  mockIPC(() => null);
+  fakeBackend();
   // jsdom 不排版：查找框宽 searchWidth，每个条件标签宽 100，精确查找开关宽 32。
   vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (this: HTMLElement) {
     return this.classList.contains("search") ? searchWidth : 0;
@@ -21,7 +21,7 @@ beforeEach(() => {
     return 0;
   });
 });
-afterEach(() => { cleanup(); clearMocks(); vi.restoreAllMocks(); });
+afterEach(() => { vi.restoreAllMocks(); });
 
 const box = (input: SearchInput, onChange = vi.fn()) => {
   render(<SearchBox libraryId="L1" safe={false} generation={0} input={input} tree={null} showSource={false} onChange={onChange} onError={() => {}} />);

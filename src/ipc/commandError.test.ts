@@ -1,12 +1,12 @@
 import { afterEach, expect, it } from "vitest";
-import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import type { CommandError } from "../bindings/CommandError";
 import { i18n } from "../i18n/instance";
 import zh from "../i18n/locales/zh-CN/errors";
 import { appInfo, isCursorExpired, isUnknownImage } from "../ipc";
 import { CommandFailure, describeCommandError, describeCommandErrors, errorCode, errorText, storedReasonText } from "./commandError";
+import { fakeBackend } from "../test/backend";
 
-afterEach(async () => { clearMocks(); await i18n.changeLanguage("zh-CN"); });
+afterEach(async () => { await i18n.changeLanguage("zh-CN"); });
 
 it("每个错误代码都有中文文案（按结构拼的几种除外）", () => {
   // 后端新增错误代码而这里没有文案时，类型检查报错。
@@ -59,7 +59,7 @@ it("英文界面按代码取英文文案", async () => {
 });
 
 it("命令失败时抛出带代码的错误，显示为说明文字", async () => {
-  mockIPC(() => Promise.reject({ code: "unknownImage" }));
+  fakeBackend({ app_info: () => Promise.reject({ code: "unknownImage" }) });
   const failure = await appInfo().then(() => null, (e: unknown) => e);
   expect(failure).toBeInstanceOf(CommandFailure);
   expect(errorCode(failure)).toBe("unknownImage");
@@ -70,7 +70,7 @@ it("命令失败时抛出带代码的错误，显示为说明文字", async () =
 });
 
 it("不是命令错误的失败原样交回", async () => {
-  mockIPC(() => Promise.reject("插件不在"));
+  fakeBackend({ app_info: () => Promise.reject("插件不在") });
   await expect(appInfo()).rejects.toBe("插件不在");
   expect(errorText({ code: "cursorExpired" })).toBe("浏览结果已变化，请从头重新浏览");
   expect(errorCode("浏览结果已变化，请从头重新浏览")).toBeUndefined();
@@ -78,7 +78,7 @@ it("不是命令错误的失败原样交回", async () => {
 
 it("插件失败与前端异常只显示通用说明，原文写进运行日志", async () => {
   const logged: string[] = [];
-  mockIPC((cmd, args) => { if (cmd === "log_frontend") logged.push((args as { message: string }).message); });
+  fakeBackend({ log_frontend: (args) => { logged.push((args as { message: string }).message); return null; } });
   expect(errorText(new TypeError("Cannot read properties of undefined"))).toBe("出了点问题，详情在运行日志里");
   expect(errorText("dialog plugin: permission denied")).toBe("出了点问题，详情在运行日志里");
   await new Promise((resolve) => setTimeout(resolve, 0));
