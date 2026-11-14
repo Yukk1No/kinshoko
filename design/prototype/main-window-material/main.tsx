@@ -48,3 +48,4 @@ createRoot(document.getElementById("root")!).render(
 // 第四轮：标签分组的两种新摆法。
 if (pose.variant === "c4a") mountGroups("panel");
 if (pose.variant === "c4b") mountGroups("side");
+if (pose.variant === "c4c") mountGroups("inline");

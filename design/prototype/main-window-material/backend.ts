@@ -64,7 +64,12 @@ const replies: Record<string, Reply> = {
     providers: registrations.map((registration) => ({ registration, unassigned: registration.library.id === "L1" ? 37 : 4, descendants: {}, sidebar: sidebars[registration.library.id] })),
   }),
   workspace_sidebar: (args) => sidebars[(args.libraryId as string) ?? "L1"],
-  workspace_browse: () => ({ cards, nextCursor: null, total: 1640, status }),
+  // 有查找条件时结果变少：张数随条件个数缩小，图片墙只留前面几张。
+  workspace_browse: (args) => {
+    const count = ((args.query as { conditions?: { conditions?: unknown[] } }).conditions?.conditions ?? []).length;
+    const total = [1640, 86, 23, 7][Math.min(count, 3)];
+    return { cards: cards.slice(0, Math.min(total, cards.length)), nextCursor: null, total, status };
+  },
   workspace_tag_groups: () => groups,
   shared_tag_groups: () => [],
   workspace_local_tags: (args) => args.ids,

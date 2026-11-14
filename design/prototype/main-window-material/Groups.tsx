@@ -1,11 +1,14 @@
 // 标签分组的两种新摆法（第四轮），都接在正式程序的查找条件上：选一个标签，查找框里真的多一个条件。
 //   panel：分组条取消，查找框后面一个“分组”按钮，点开的面板里所有分组的标签一次摆出来，“编辑分组”在面板底部。
 //   side： 分组成为左栏里的一段，用和文件夹一样的行，展开后点标签。
+//   inline：同 panel，但入口是查找框里的一个图标按钮（在精确查找开关前面），面板挂在查找框下面、与它同宽；
+//          张数也进查找框，只在有查找条件时出现。
 // 正式程序没有给原型留接口，这里从分组条的 React 节点上读它的 props（input 与 onChange）。只有原型能这么做。
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { Popover } from "@base-ui/react/popover";
 import { ChevronDown, ChevronRight, PenLine, Tags } from "lucide-react";
+import { Tip, TipProvider } from "../../../src/ui/Tip";
 import { groups } from "./backend";
 
 type Term = { kind: string; id?: string; dismissed?: string[] };
@@ -54,21 +57,38 @@ function useSearch() {
 /** 打开正式程序的“编辑分组”对话框：点它藏起来的那个按钮。 */
 const editGroups = () => document.querySelector<HTMLButtonElement>(".groupbar-edit")?.click();
 
-function GroupsPanel() {
+/** 正式程序顶栏里的张数文字（原型里藏起来了），有查找条件时拿来显示在查找框里。 */
+function useResultCount() {
+  const [text, setText] = useState("");
+  useEffect(() => {
+    const read = () => setText(document.querySelector(".result-count")?.textContent ?? "");
+    read();
+    const timer = setInterval(read, 150);
+    return () => clearInterval(timer);
+  }, []);
+  return text;
+}
+
+function GroupsPanel({ inline = false }: { inline?: boolean }) {
   const search = useSearch();
+  const count = useResultCount();
   const total = groups.reduce((sum, group) => sum + search.picked(group), 0);
   // 打开时焦点落在面板本身，不落在第一个“任一成员”上。
   const popup = useRef<HTMLDivElement>(null);
   return (
     <Popover.Root>
-      <Popover.Trigger className="proto-groups-btn">
+      {inline ? <>
+        {search.input.conditions.length > 0 && <span className="proto-count tabular k-label">{count}</span>}
+        <Tip label="标签分组"><Popover.Trigger className="proto-groups-icon" aria-label="标签分组"><Tags size={16} aria-hidden="true" /></Popover.Trigger></Tip>
+      </> : <Popover.Trigger className="proto-groups-btn">
         <Tags size={18} aria-hidden="true" /><span className="k-label">分组</span>
         {total > 0 && <span className="badge tabular">{total}</span>}
         <ChevronDown size={14} strokeWidth={2} aria-hidden="true" className="proto-groups-chev" />
-      </Popover.Trigger>
+      </Popover.Trigger>}
       <Popover.Portal>
-        <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={10}>
-          <Popover.Popup ref={popup} initialFocus={popup} className="k-popup proto-groups-pop" aria-label="标签分组">
+        <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={inline ? 8 : 10}
+          anchor={inline ? () => document.querySelector(".topbar > .search") : undefined}>
+          <Popover.Popup ref={popup} initialFocus={popup} className={`k-popup proto-groups-pop${inline ? " is-inline" : ""}`} aria-label="标签分组">
             <div className="proto-groups-list">
               {groups.map((group) => (
                 <section key={group.id} className="proto-group">
@@ -138,13 +158,14 @@ function SideGroups() {
 }
 
 /** 把原型的分组入口放进正式程序的界面里：顶栏的查找框后面，或左栏滚动区的末尾。界面重画把它挤掉时再放回去。 */
-export function mountGroups(mode: "panel" | "side") {
+export function mountGroups(mode: "panel" | "side" | "inline") {
   const host = document.createElement("div");
-  host.className = mode === "panel" ? "proto-groups-host" : "proto-side-host";
-  createRoot(host).render(mode === "panel" ? <GroupsPanel /> : <SideGroups />);
+  host.className = { panel: "proto-groups-host", side: "proto-side-host", inline: "proto-inline-host" }[mode];
+  createRoot(host).render(<TipProvider>{mode === "side" ? <SideGroups /> : <GroupsPanel inline={mode === "inline"} />}</TipProvider>);
   const place = () => {
     if (host.isConnected) return;
     if (mode === "panel") document.querySelector(".topbar > .search")?.after(host);
+    else if (mode === "inline") document.querySelector(".topbar > .search > .k-exact")?.before(host);
     else document.querySelector(".side-scroll")?.append(host);
   };
   place();

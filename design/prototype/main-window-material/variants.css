@@ -180,10 +180,10 @@
    C4b「分组进左栏」：分组是左栏里的一段，用和文件夹一样的行，选中的标签是凸起的小纸片。
    顺带按 #607：查找框开头加查找图标，最大宽度收到 560 px。组件在 Groups.tsx。
    ===================================================================================================== */
-:root:is([data-variant="c4a"], [data-variant="c4b"]) .app-main > .app-tagbar { display: none; }
-:root:is([data-variant="c4a"], [data-variant="c4b"]) .topbar { box-shadow: inset 0 -1px 0 var(--line); }
-:root:is([data-variant="c4a"], [data-variant="c4b"]) .topbar > .search { position: relative; max-width: 560px; padding-left: 36px; }
-:root:is([data-variant="c4a"], [data-variant="c4b"]) .topbar > .search::before { content: ""; position: absolute; left: 12px; top: 12px; width: 16px; height: 16px; background: var(--ink-3); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.34-4.34'/%3E%3C/svg%3E") center / contain no-repeat; }
+:root:is([data-variant="c4a"], [data-variant="c4b"], [data-variant="c4c"]) .app-main > .app-tagbar { display: none; }
+:root:is([data-variant="c4a"], [data-variant="c4b"], [data-variant="c4c"]) .topbar { box-shadow: inset 0 -1px 0 var(--line); }
+:root:is([data-variant="c4a"], [data-variant="c4b"], [data-variant="c4c"]) .topbar > .search { position: relative; max-width: 560px; padding-left: 36px; }
+:root:is([data-variant="c4a"], [data-variant="c4b"], [data-variant="c4c"]) .topbar > .search::before { content: ""; position: absolute; left: 12px; top: 12px; width: 16px; height: 16px; background: var(--ink-3); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.34-4.34'/%3E%3C/svg%3E") center / contain no-repeat; }
 
 .proto-groups-host { display: flex; flex: none; }
 .proto-groups-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 8px 0 10px; border: 0; border-radius: var(--r); background: transparent; color: var(--ink-2); font: inherit; font-weight: 500;
@@ -215,3 +215,16 @@
 .proto-tag-row[aria-pressed="true"] .sidebar-count { color: var(--accent-strong); }
 .proto-tag-row[data-negate] { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); font-weight: 400; text-decoration: line-through; }
 .proto-tag-row[data-negate] .sidebar-count { color: var(--ink-2); }
+
+/* C4c「图标进查找框」（维护者提的）：“分组”两个字换成图标按钮，放进查找框、精确查找开关的前面；面板挂在查找框下面、与它同宽。
+   张数不再常驻：没有查找条件时它等于左栏选中那一行的数字；有条件时出现在查找框里、图标的前面。 */
+:root[data-variant="c4c"] .bar-meta { display: none; }
+:root[data-variant="c4c"] .topbar > .search { max-width: 640px; }
+.proto-inline-host { display: flex; flex: none; align-items: center; gap: 6px; margin-right: -2px; }
+.proto-count { padding: 0 4px; color: var(--ink-2); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.proto-groups-icon { flex: none; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink-3); cursor: pointer;
+  transition: background-color var(--t) var(--ease), color var(--t) var(--ease), transform var(--t-fast) var(--spring); }
+.proto-groups-icon:hover, .proto-groups-icon[data-popup-open] { background-color: var(--hover); color: var(--ink); }
+.proto-groups-icon:active { transform: scale(0.94); }
+.proto-groups-icon:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.proto-groups-pop.is-inline { width: max(var(--anchor-width), 420px); }

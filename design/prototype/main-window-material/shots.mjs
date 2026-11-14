@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const [, , outArg, ...only] = process.argv;
 const out = resolve(outArg ?? join(here, "shots"));
-const variants = only.length ? only : ["now", "a", "b", "c", "c2", "c3", "c4", "c5", "c4a", "c4b"];
+const variants = only.length ? only : ["now", "a", "b", "c", "c2", "c3", "c4", "c5", "c4a", "c4b", "c4c"];
 const page = "http://127.0.0.1:1431/design/prototype/main-window-material/";
 const edge = [process.env.EDGE, "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe"].find((path) => path && existsSync(path));
 if (!edge) throw new Error("找不到 msedge.exe；用环境变量 EDGE 指给它");
@@ -83,12 +83,14 @@ async function open(variant, theme, width, height, scale, extra = "") {
   await evaluate("document.fonts.ready.then(() => true)");
   const row = await evaluate(`(() => { const r = [...document.querySelectorAll('.k-row')].find((el) => el.textContent.includes('服装')).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
   // 第四轮：分组的新摆法要看选了标签的样子。面板打开、选“蓝发”与“红瞳”；左栏展开“发色”与“瞳色”、同样选这两个。
-  if (variant === "c4a") {
-    await evaluate("document.querySelector('.proto-groups-btn').click()");
+  // 详情栏打开的那一张不摆这个姿势：留一张没有查找条件、面板收着的样子。
+  const posed = !extra.includes("inspector");
+  if (posed && (variant === "c4a" || variant === "c4c")) {
+    await evaluate("document.querySelector('.proto-groups-btn, .proto-groups-icon').click()");
     await until("分组面板", "document.querySelector('.proto-groups-pop') !== null");
     for (const name of ["蓝发", "红瞳"]) { await clickText(".proto-groups-pop .chip", name); await delay(300); }
   }
-  if (variant === "c4b") {
+  if (posed && variant === "c4b") {
     for (const name of ["发色", "瞳色"]) await clickText(".proto-side-groups .k-row", name);
     for (const name of ["蓝发", "红瞳"]) { await clickText(".proto-tag-row", name); await delay(300); }
   }
