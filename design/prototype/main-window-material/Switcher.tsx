@@ -8,11 +8,15 @@ export const VARIANTS = [
   { key: "c", name: "方案 C 叠" },
   { key: "c2", name: "C2 墙做桌面" },
   { key: "c3", name: "C3 顶栏一行" },
+  { key: "c4", name: "C4 米黄桌面" },
+  { key: "c5", name: "C5 纸铺到边" },
+  { key: "c4a", name: "C4a 分组进查找" },
+  { key: "c4b", name: "C4b 分组进左栏" },
 ] as const;
 
 export type Pose = { variant: string; theme: "light" | "dark" | null; specimen: boolean; bar: boolean };
 
-/** 地址栏参数：variant（now / a / b / c / c2 / c3）、theme（light / dark，不写跟随系统）、specimen=1（材质样本）、bar=0（截图时藏起切换条）。 */
+/** 地址栏参数：variant（now / a / b / c / c2 / c3 / c4 / c5 / c4a / c4b）、theme（light / dark，不写跟随系统）、specimen=1（材质样本）、bar=0（截图时藏起切换条）。 */
 export function readPose(): Pose {
   const params = new URLSearchParams(location.search);
   const variant = params.get("variant") ?? "now";

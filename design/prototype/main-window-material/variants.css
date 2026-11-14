@@ -6,14 +6,14 @@
   border-radius: 999px; background: #14131c; color: #f4ecdc; font: 500 12px/1 var(--font); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); color-scheme: dark; }
 .proto-bar button { height: 26px; min-width: 26px; padding: 0 8px; border: 0; border-radius: 999px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .proto-bar button:hover, .proto-bar button[aria-pressed="true"] { background: rgba(244, 236, 220, 0.16); }
-.proto-bar-name { min-width: 76px; padding: 0 4px; text-align: center; }
+.proto-bar-name { min-width: 104px; padding: 0 4px; text-align: center; }
 .proto-bar i { width: 1px; height: 16px; margin: 0 4px; background: rgba(244, 236, 220, 0.2); }
 .proto-specimen { position: fixed; right: 344px; bottom: 76px; z-index: 150; width: 320px; display: flex; flex-direction: column; gap: 12px; padding: 16px;
   border-radius: var(--r-l); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-pop); }
 .proto-specimen-row { display: flex; align-items: center; gap: 8px; }
 .proto-specimen .k-range { flex: 1; min-width: 0; }
 /* 启动加载页不在这次评审里：每换一次方案页面都重新加载，不必每次等它。 */
-.startup-splash { display: none; }
+.startup-splash { opacity: 0; pointer-events: none; }
 
 /* =====================================================================================================
    三套方案共用的一条：输入类控件是“槽”。日间槽底不变暗（仍是 --surface，字的对比度与现在相同），
@@ -77,7 +77,7 @@
    纸用按钮那套材质：半像素线、近处一层小投影、上沿亮边；投影落在桌面上，不落在图片墙上。
    状态都往上浮：选中的行是一张凸起的小纸片（按钮的面与投影），悬停仍是平的 --hover。
    ===================================================================================================== */
-:root:is([data-variant="c"], [data-variant="c2"], [data-variant="c3"]) {
+:root:is([data-variant="c"], [data-variant="c2"], [data-variant="c3"], [data-variant^="c4"], [data-variant="c5"]) {
   --desk: var(--rail);
   --sheet-gap: 8px;
   --sheet-main: light-dark(var(--surface), var(--bg));
@@ -90,8 +90,8 @@
   --well-inset-hover: inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.34)), inset 0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.18), rgba(0, 0, 0, 0.55)),
     inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.48), rgba(244, 236, 220, 0.24)), 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.07));
 }
-:root:is([data-variant="c"], [data-variant="c2"], [data-variant="c3"]) .app-shell { background: var(--desk); }
-:root:is([data-variant="c"], [data-variant="c2"], [data-variant="c3"]) .rail { border-right-color: transparent; background: transparent; }
+:root:is([data-variant="c"], [data-variant="c2"], [data-variant="c3"], [data-variant^="c4"], [data-variant="c5"]) .app-shell { background: var(--desk); }
+:root:is([data-variant="c"], [data-variant="c2"], [data-variant="c3"], [data-variant^="c4"], [data-variant="c5"]) .rail { border-right-color: transparent; background: transparent; }
 :root[data-variant="c"] .app-body { gap: var(--sheet-gap); padding: var(--sheet-gap) var(--sheet-gap) var(--sheet-gap) 0; }
 :root[data-variant="c"] :is(.sidebar-slot, .app-main, .inspector) { position: relative; border-radius: var(--r); box-shadow: var(--sheet-lift); }
 :root[data-variant="c"] .sidebar-slot { border-right-color: transparent; }
@@ -102,7 +102,7 @@
 :root[data-variant="c"] :is(.topbar, .app-tagbar .groupbar) { background: var(--sheet-main); }
 /* 上沿亮边画在最上面一层：纸里的内容有自己的底色，会盖住纸本身的内阴影。 */
 :root[data-variant="c"] :is(.sidebar-slot, .app-main, .inspector)::before { content: ""; position: absolute; inset: 0; z-index: 9; border-radius: inherit; box-shadow: var(--sheet-top); pointer-events: none; }
-:root:is([data-variant="c"], [data-variant="c2"], [data-variant="c3"]) :is(.k-row[aria-current="page"], .lib-head-name[aria-current="page"], .rail-btn.is-active:not(.seal-book)) { background: var(--btn-face); box-shadow: var(--btn-lift); }
+:root:is([data-variant="c"], [data-variant="c2"], [data-variant="c3"], [data-variant^="c4"], [data-variant="c5"]) :is(.k-row[aria-current="page"], .lib-head-name[aria-current="page"], .rail-btn.is-active:not(.seal-book)) { background: var(--btn-face); box-shadow: var(--btn-lift); }
 
 /* =====================================================================================================
    第二轮（维护者选了 C，要把占掉的图片墙面积找回来）。
@@ -143,3 +143,75 @@
   :root[data-variant="c3"] .app-tagbar .groupbar { flex: 1; flex-wrap: nowrap; min-height: 0; padding: 0; background: transparent; }
 }
 
+/* =====================================================================================================
+   第三轮（维护者：底色要回到米黄；详情栏默认收起，不必为它留位置）。
+   方案 C4「米黄桌面」：桌面回到图标轨的米黄，图片墙仍是中性灰，所以它要有边界：留在主区那张纸里（同 C）。
+   面积这样找回来：左栏与主区之间的 8 px 桌面算在左栏自己的宽度里（256 = 纸 248 + 桌面 8）；详情栏同理；
+   主区够宽（1100 px 起）时分组条并进顶栏那一行。投影都落在桌面上，图片墙上不画东西。
+   方案 C5 在 C4 上让主区那张纸铺到窗口的右边与下边，只留左上的圆角。
+   ===================================================================================================== */
+:root:is([data-variant^="c4"], [data-variant="c5"]) .app-body { padding: var(--sheet-gap) var(--sheet-gap) var(--sheet-gap) 0; }
+:root:is([data-variant^="c4"], [data-variant="c5"]) :is(.sidebar-slot, .app-main, .inspector) { position: relative; border-radius: var(--r); box-shadow: var(--sheet-lift); }
+:root:is([data-variant^="c4"], [data-variant="c5"]) :is(.sidebar-slot, .app-main, .inspector)::before { content: ""; position: absolute; inset: 0; z-index: 9; border-radius: inherit; box-shadow: var(--sheet-top); pointer-events: none; }
+:root:is([data-variant^="c4"], [data-variant="c5"]) .sidebar-slot:not([data-float]) { --sidebar-width: 248px; margin-right: var(--sheet-gap); border-right-color: transparent; }
+:root:is([data-variant^="c4"], [data-variant="c5"]) .sidebar-slot[data-collapsed="true"] { margin-right: 0; box-shadow: none; }
+:root:is([data-variant^="c4"], [data-variant="c5"]) .inspector { width: calc(var(--inspector-width, 320px) - var(--sheet-gap)); margin-left: var(--sheet-gap); border-left-color: transparent; }
+:root:is([data-variant^="c4"], [data-variant="c5"]) :is(.insp-head, .insp-body) { width: calc(var(--inspector-width, 320px) - var(--sheet-gap) - 1px); }
+:root:is([data-variant^="c4"], [data-variant="c5"]) .inspector[data-collapsed="true"] { width: 0; margin-left: 0; box-shadow: none; }
+:root:is([data-variant^="c4"], [data-variant="c5"]) .app-main { overflow: hidden; background: var(--sheet-main); }
+:root:is([data-variant^="c4"], [data-variant="c5"]) :is(.topbar, .app-tagbar .groupbar) { background: var(--sheet-main); }
+@container main (min-width: 1100px) {
+  :root:is([data-variant^="c4"], [data-variant="c5"]) .topbar { box-shadow: inset 0 -1px 0 var(--line); }
+  :root:is([data-variant^="c4"], [data-variant="c5"]) .topbar > .search { max-width: 480px; }
+  :root:is([data-variant^="c4"], [data-variant="c5"]) .bar-meta { anchor-name: --proto-meta; }
+  :root:is([data-variant^="c4"], [data-variant="c5"]) .topbar > .import-menu { anchor-name: --proto-import; }
+  :root:is([data-variant^="c4"], [data-variant="c5"]) .app-tagbar { position: absolute; z-index: 6; top: 0; left: calc(anchor(--proto-meta right) + 4px); right: calc(anchor(--proto-import left) + 4px); height: 56px; display: flex; align-items: center; }
+  :root:is([data-variant^="c4"], [data-variant="c5"]) .app-tagbar .groupbar { flex: 1; flex-wrap: nowrap; min-height: 0; padding: 0; border-bottom: 0; background: transparent; }
+}
+:root[data-variant="c5"] .app-body { padding: var(--sheet-gap) 0 0 0; }
+:root[data-variant="c5"] .sidebar-slot { margin-bottom: var(--sheet-gap); }
+:root[data-variant="c5"] .app-main { border-radius: var(--r) 0 0 0; }
+:root[data-variant="c5"] .app-body:has(> .inspector:not([data-collapsed="true"])) > .app-main { border-top-right-radius: var(--r); }
+:root[data-variant="c5"] .inspector { margin-right: var(--sheet-gap); margin-bottom: var(--sheet-gap); }
+
+/* =====================================================================================================
+   第四轮（维护者：C4 不错，标签分组和“编辑分组”要彻底调整）。两种摆法都取消分组条那一行，顶栏在任何宽度下都是一行。
+   C4a「分组进查找」：查找框后面一个“分组”按钮，点开的面板里所有分组的标签一次摆出来，“编辑分组”在面板底部。
+   C4b「分组进左栏」：分组是左栏里的一段，用和文件夹一样的行，选中的标签是凸起的小纸片。
+   顺带按 #607：查找框开头加查找图标，最大宽度收到 560 px。组件在 Groups.tsx。
+   ===================================================================================================== */
+:root:is([data-variant="c4a"], [data-variant="c4b"]) .app-main > .app-tagbar { display: none; }
+:root:is([data-variant="c4a"], [data-variant="c4b"]) .topbar { box-shadow: inset 0 -1px 0 var(--line); }
+:root:is([data-variant="c4a"], [data-variant="c4b"]) .topbar > .search { position: relative; max-width: 560px; padding-left: 36px; }
+:root:is([data-variant="c4a"], [data-variant="c4b"]) .topbar > .search::before { content: ""; position: absolute; left: 12px; top: 12px; width: 16px; height: 16px; background: var(--ink-3); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.34-4.34'/%3E%3C/svg%3E") center / contain no-repeat; }
+
+.proto-groups-host { display: flex; flex: none; }
+.proto-groups-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 8px 0 10px; border: 0; border-radius: var(--r); background: transparent; color: var(--ink-2); font: inherit; font-weight: 500;
+  transition: background var(--t-fast), color var(--t-fast), transform var(--t-fast) var(--spring); }
+.proto-groups-btn:hover, .proto-groups-btn[data-popup-open] { background: var(--hover); color: var(--ink); }
+.proto-groups-btn:active { transform: scale(0.97); }
+.proto-groups-btn > svg:first-child { color: var(--ink-3); }
+.proto-groups-chev { color: var(--ink-3); transition: transform var(--t-slow) var(--spring); }
+.proto-groups-btn[data-popup-open] .proto-groups-chev { transform: rotate(180deg); }
+.proto-groups-pop { width: min(480px, calc(100vw - 32px)); }
+.proto-groups-list { display: flex; flex-direction: column; gap: 16px; max-height: min(520px, calc(100vh - 220px)); overflow-y: auto; padding: 8px 8px 12px; }
+.proto-group header { display: flex; align-items: center; height: 22px; margin-bottom: 6px; }
+.proto-group h3 { margin: 0; font-size: 12px; line-height: 18px; font-weight: 600; color: var(--ink-2); }
+.proto-any { margin-left: auto; height: 22px; padding: 0 6px; border: 0; border-radius: var(--r-xs); background: transparent; color: var(--ink-2); font: inherit; font-size: 12px; opacity: 0; transition: opacity var(--t-fast), background var(--t-fast), color var(--t-fast); }
+.proto-group:hover .proto-any, .proto-any:focus-visible, .proto-any[aria-pressed="true"] { opacity: 1; }
+.proto-any:hover { background: var(--hover); color: var(--ink); }
+.proto-any[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-strong); }
+.proto-groups-edit { width: 100%; border: 0; background: none; font: inherit; text-align: left; color: var(--ink-2); }
+.proto-groups-edit:hover { background: var(--hover); color: var(--ink); }
+
+.proto-side-host { margin-top: 4px; }
+.proto-side-groups .lib-head { padding-left: 8px; }
+.proto-side-title { flex: 1; color: var(--ink-2); font-size: 12px; line-height: 18px; font-weight: 600; }
+.proto-side-groups .k-row { font: inherit; cursor: default; }
+.proto-side-groups .k-row:hover:not([aria-pressed="true"]) { background: var(--hover); }
+.proto-side-groups .k-row-icon { width: 16px; }
+.proto-tag-row { padding-left: 32px; }
+.proto-tag-row[aria-pressed="true"] { background: var(--btn-face); box-shadow: var(--btn-lift); color: var(--accent-strong); font-weight: 500; }
+.proto-tag-row[aria-pressed="true"] .sidebar-count { color: var(--accent-strong); }
+.proto-tag-row[data-negate] { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); font-weight: 400; text-decoration: line-through; }
+.proto-tag-row[data-negate] .sidebar-count { color: var(--ink-2); }

@@ -39,7 +39,7 @@ const cards = Array.from({ length: 96 }, (_, index) => {
 });
 
 const tag = (id: string, name: string, count: number) => ({ tag: { id, namespace: "general", name, untranslated: false, hasExternal: true }, count });
-const groups = [
+export const groups = [
   { id: "g-hair", name: "发色", namespace: null, tags: [tag("t1", "蓝发", 86), tag("t2", "银发", 64), tag("t3", "黑发", 211), tag("t4", "金发", 97)] },
   { id: "g-eyes", name: "瞳色", namespace: null, tags: [tag("t5", "蓝瞳", 132), tag("t6", "红瞳", 71), tag("t7", "金瞳", 40)] },
   { id: "g-light", name: "光线", namespace: null, tags: [tag("t8", "逆光", 58), tag("t9", "侧光", 44)] },
@@ -49,7 +49,8 @@ const groups = [
 const settings = {
   autostart: false, shortcuts: [], showApproxSource: false, forceSrgb: false, forceSrgbInEffect: false, runLog: false,
   keepSelectionOnSafeMode: false, pinEdgeContrast: false, safeModeScope: "questionable",
-  tagDisplay: { style: "bands", high: 0.8, low: 0.4 }, inspectorOpen: true, inspectorWidth: 320, updateChannel: "stable",
+  // 详情栏默认收起，与正式程序相同；?inspector=1 时打开（#606 要看空的详情栏）。
+  tagDisplay: { style: "bands", high: 0.8, low: 0.4 }, inspectorOpen: new URLSearchParams(location.search).get("inspector") === "1", inspectorWidth: 320, updateChannel: "stable",
 };
 
 const replies: Record<string, Reply> = {
@@ -71,7 +72,15 @@ const replies: Record<string, Reply> = {
   workspace_library_candidates: () => [],
   search_candidates: () => [],
   rating_candidates: () => [],
-  workspace_resolve: (args) => ({ conditions: (args.input as { conditions: unknown[] }).conditions.length ? [] : [] }),
+  // 查找条件照 id 填上标签名，查找框里因此显示真的条件；不做近似展开。
+  workspace_resolve: (args) => ({
+    conditions: (args.input as { conditions: { negate: boolean; any: { kind: string; id?: string; text?: string }[] }[] }).conditions.map((condition) => ({
+      negate: condition.negate,
+      any: condition.any.map((term) => term.kind === "tag"
+        ? { kind: "tag", tag: groups.flatMap((group) => group.tags).find(({ tag }) => tag.id === term.id)?.tag, similar: [] }
+        : { kind: "text", text: term.text ?? "", tags: [], similar: [], ratings: [] }),
+    })),
+  }),
   safe_mode: () => true,
   set_safe_mode: (args) => args.on,
   shell_settings: () => settings,

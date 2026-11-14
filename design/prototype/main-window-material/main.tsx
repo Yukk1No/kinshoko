@@ -1,8 +1,9 @@
-// 质感原型（#606）：主界面三套材质方案，在同一个页面上用 ?variant= 切换（now 是现状，a / b / c 是方案）。
+// 质感原型（#606）：主界面三套材质方案，在同一个页面上用 ?variant= 切换（now 是现状，a / b / c 是第一轮的方案，c2 之后是在 C 上迭代的）。
 // 页面上跑的是正式程序的 <App />（src/ 原样引用，尺寸与正式程序一致），后端换成 backend.ts 的样本数据；
 // 方案只是叠在最后的一张样式表 variants.css，按 <html data-variant> 生效。一次性代码，不进正式程序。
 import { createRoot } from "react-dom/client";
 import { installBackend } from "./backend";
+import { mountGroups } from "./Groups";
 import { Specimen } from "./Specimen";
 import { Switcher, readPose } from "./Switcher";
 
@@ -44,3 +45,6 @@ createRoot(document.getElementById("root")!).render(
     {pose.bar && <Switcher pose={pose} />}
   </TipProvider>,
 );
+// 第四轮：标签分组的两种新摆法。
+if (pose.variant === "c4a") mountGroups("panel");
+if (pose.variant === "c4b") mountGroups("side");
