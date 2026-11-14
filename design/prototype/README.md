@@ -23,4 +23,4 @@
 
 ## 主界面质感原型（#606）
 
-[main-window-material/](main-window-material/README.md) 是 #606 的一次性原型：查找框、左栏的行与面板的三套材质方案，叠在正式程序的界面上切换着看，附截图。选定的规则写进 `design/ui-system/` 之后，这个目录可以删掉。
+[main-window-material/](main-window-material/README.md) 是 #606 的一次性原型：查找框、左栏的行与面板的材质方案（第一轮 A、B、C，第二轮在 C 上迭代出 C2、C3），叠在正式程序的界面上切换着看，附截图。选定的规则写进 `design/ui-system/` 之后，这个目录可以删掉。

@@ -6,11 +6,13 @@ export const VARIANTS = [
   { key: "a", name: "方案 A 槽" },
   { key: "b", name: "方案 B 刻" },
   { key: "c", name: "方案 C 叠" },
+  { key: "c2", name: "C2 墙做桌面" },
+  { key: "c3", name: "C3 顶栏一行" },
 ] as const;
 
 export type Pose = { variant: string; theme: "light" | "dark" | null; specimen: boolean; bar: boolean };
 
-/** 地址栏参数：variant（now / a / b / c）、theme（light / dark，不写跟随系统）、specimen=1（材质样本）、bar=0（截图时藏起切换条）。 */
+/** 地址栏参数：variant（now / a / b / c / c2 / c3）、theme（light / dark，不写跟随系统）、specimen=1（材质样本）、bar=0（截图时藏起切换条）。 */
 export function readPose(): Pose {
   const params = new URLSearchParams(location.search);
   const variant = params.get("variant") ?? "now";

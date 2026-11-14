@@ -20,13 +20,13 @@
    深度只靠槽口：上沿一线暗边、落进来的内阴影、一圈半像素线、下沿外侧一道亮边。夜间槽底改用更暗的 --sunken
    （亮字配更暗的底，对比度只升不降）。各方案只换 --well-* 的值。
    ===================================================================================================== */
-:root:is([data-variant="a"], [data-variant="b"], [data-variant="c"]) :is(.topbar > .search, .k-input, .k-select, .inspector .selection-note textarea) {
+:root:not([data-variant="now"]) :is(.topbar > .search, .k-input, .k-select, .inspector .selection-note textarea) {
   background: var(--well-floor); box-shadow: var(--well-inset); transition: box-shadow var(--t-fast); }
-:root:is([data-variant="a"], [data-variant="b"], [data-variant="c"]) :is(.k-input, .k-select):hover:not(:focus-within, :focus-visible, [data-popup-open], :disabled, [data-disabled], [data-invalid]),
-:root:is([data-variant="a"], [data-variant="b"], [data-variant="c"]) .topbar > .search:hover:not(:focus-within) { box-shadow: var(--well-inset-hover); }
+:root:not([data-variant="now"]) :is(.k-input, .k-select):hover:not(:focus-within, :focus-visible, [data-popup-open], :disabled, [data-disabled], [data-invalid]),
+:root:not([data-variant="now"]) .topbar > .search:hover:not(:focus-within) { box-shadow: var(--well-inset-hover); }
 /* 分段控件的槽与选中的一段：槽同族，选中的一段是槽里凸起的面（同滑条把手）。只在材质样本里出现，供对照。 */
-:root:is([data-variant="a"], [data-variant="b"], [data-variant="c"]) .k-seg { box-shadow: var(--well-inset); }
-:root:is([data-variant="a"], [data-variant="b"], [data-variant="c"]) .k-seg-thumb { background: var(--btn-face); box-shadow: var(--btn-lift); }
+:root:not([data-variant="now"]) .k-seg { box-shadow: var(--well-inset); }
+:root:not([data-variant="now"]) .k-seg-thumb { background: var(--btn-face); box-shadow: var(--btn-lift); }
 
 /* =====================================================================================================
    方案 A「槽」：面板不动（底色两档加 1 px 线），材质只加在控件上。
@@ -77,7 +77,7 @@
    纸用按钮那套材质：半像素线、近处一层小投影、上沿亮边；投影落在桌面上，不落在图片墙上。
    状态都往上浮：选中的行是一张凸起的小纸片（按钮的面与投影），悬停仍是平的 --hover。
    ===================================================================================================== */
-:root[data-variant="c"] {
+:root:is([data-variant="c"], [data-variant="c2"], [data-variant="c3"]) {
   --desk: var(--rail);
   --sheet-gap: 8px;
   --sheet-main: light-dark(var(--surface), var(--bg));
@@ -90,8 +90,8 @@
   --well-inset-hover: inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.34)), inset 0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.18), rgba(0, 0, 0, 0.55)),
     inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.48), rgba(244, 236, 220, 0.24)), 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.07));
 }
-:root[data-variant="c"] .app-shell { background: var(--desk); }
-:root[data-variant="c"] .rail { border-right-color: transparent; background: transparent; }
+:root:is([data-variant="c"], [data-variant="c2"], [data-variant="c3"]) .app-shell { background: var(--desk); }
+:root:is([data-variant="c"], [data-variant="c2"], [data-variant="c3"]) .rail { border-right-color: transparent; background: transparent; }
 :root[data-variant="c"] .app-body { gap: var(--sheet-gap); padding: var(--sheet-gap) var(--sheet-gap) var(--sheet-gap) 0; }
 :root[data-variant="c"] :is(.sidebar-slot, .app-main, .inspector) { position: relative; border-radius: var(--r); box-shadow: var(--sheet-lift); }
 :root[data-variant="c"] .sidebar-slot { border-right-color: transparent; }
@@ -102,4 +102,44 @@
 :root[data-variant="c"] :is(.topbar, .app-tagbar .groupbar) { background: var(--sheet-main); }
 /* 上沿亮边画在最上面一层：纸里的内容有自己的底色，会盖住纸本身的内阴影。 */
 :root[data-variant="c"] :is(.sidebar-slot, .app-main, .inspector)::before { content: ""; position: absolute; inset: 0; z-index: 9; border-radius: inherit; box-shadow: var(--sheet-top); pointer-events: none; }
-:root[data-variant="c"] :is(.k-row[aria-current="page"], .lib-head-name[aria-current="page"], .rail-btn.is-active:not(.seal-book)) { background: var(--btn-face); box-shadow: var(--btn-lift); }
+:root:is([data-variant="c"], [data-variant="c2"], [data-variant="c3"]) :is(.k-row[aria-current="page"], .lib-head-name[aria-current="page"], .rail-btn.is-active:not(.seal-book)) { background: var(--btn-face); box-shadow: var(--btn-lift); }
+
+/* =====================================================================================================
+   第二轮（维护者选了 C，要把占掉的图片墙面积找回来）。
+   方案 C2「墙做桌面」：桌面就是图片墙的中性灰，图片墙从窗口顶铺到窗口底；左栏、顶栏加分组条、详情栏是浮在它上面的三张纸。
+   纸与纸之间的间隙就是墙本身，不再从图片墙里扣；纸的投影落在墙上，图片从顶栏那张纸的下沿滑进去。
+   ===================================================================================================== */
+:root:is([data-variant="c2"], [data-variant="c3"]) { --desk: var(--wall); }
+:root:is([data-variant="c2"], [data-variant="c3"]) .rail { --rail: var(--wall); }
+:root:is([data-variant="c2"], [data-variant="c3"]) :is(.sidebar-slot, .inspector) { position: relative; border-radius: var(--r); box-shadow: var(--sheet-lift); }
+:root:is([data-variant="c2"], [data-variant="c3"]) .sidebar-slot { margin: var(--sheet-gap) 0; border-right-color: transparent; }
+/* 详情栏右边的 8 px 桌面算在它自己的宽度里（320 = 纸 312 + 桌面 8），图片墙的宽度因此与现在相同。 */
+:root:is([data-variant="c2"], [data-variant="c3"]) .inspector { width: calc(var(--inspector-width, 320px) - var(--sheet-gap)); margin: var(--sheet-gap) var(--sheet-gap) var(--sheet-gap) 0; border-left-color: transparent; }
+:root:is([data-variant="c2"], [data-variant="c3"]) .inspector[data-collapsed="true"] { width: 0; }
+:root:is([data-variant="c2"], [data-variant="c3"]) :is(.insp-head, .insp-body) { width: calc(var(--inspector-width, 320px) - var(--sheet-gap) - 1px); }
+:root:is([data-variant="c2"], [data-variant="c3"]) :is(.sidebar-slot, .inspector)[data-collapsed="true"] { margin: var(--sheet-gap) 0; box-shadow: none; }
+:root:is([data-variant="c2"], [data-variant="c3"]) :is(.sidebar-slot, .inspector)::before { content: ""; position: absolute; inset: 0; z-index: 9; border-radius: inherit; box-shadow: var(--sheet-top); pointer-events: none; }
+:root:is([data-variant="c2"], [data-variant="c3"]) .app-main { background: var(--wall); }
+/* 顶栏与分组条是两个元素，合成一张纸：各画半张，接缝处的投影各自裁掉。 */
+:root:is([data-variant="c2"], [data-variant="c3"]) .topbar { margin: var(--sheet-gap) var(--sheet-gap) 0; border-radius: var(--r) var(--r) 0 0; background: var(--sheet-main);
+  box-shadow: var(--sheet-lift), var(--sheet-top); clip-path: inset(-24px -24px 0 -24px); }
+:root:is([data-variant="c2"], [data-variant="c3"]) .app-tagbar { position: relative; z-index: 5; margin: 0 var(--sheet-gap); border-radius: 0 0 var(--r) var(--r); box-shadow: var(--sheet-lift); clip-path: inset(0 -24px -24px -24px); }
+:root:is([data-variant="c2"], [data-variant="c3"]) .app-tagbar .groupbar { border-bottom: 0; border-radius: inherit; background: var(--sheet-main); }
+/* 图片墙的上沿藏到纸的下面 12 px：纸的下面两个角是圆的，图片要从圆角后面出来。 */
+:root:is([data-variant="c2"], [data-variant="c3"]) .wall-host { margin-top: calc(-1 * var(--r)); }
+:root:is([data-variant="c2"], [data-variant="c3"]) .wall { padding-top: var(--r); }
+
+/* =====================================================================================================
+   方案 C3「墙做桌面，顶栏一行」：在 C2 上，主区够宽（1100 px 起）时分组条并进顶栏那一行，排在张数与导入之间，
+   顶栏那张纸从 97 px 变成 56 px。窄的时候与 C2 相同。原型里用锚点定位摆过去，没有改组件。
+   ===================================================================================================== */
+@container main (min-width: 1100px) {
+  :root[data-variant="c3"] .topbar { border-radius: var(--r); clip-path: none; }
+  :root[data-variant="c3"] .topbar > .search { max-width: 480px; }
+  :root[data-variant="c3"] .bar-meta { anchor-name: --proto-meta; }
+  :root[data-variant="c3"] .topbar > .import-menu { anchor-name: --proto-import; }
+  :root[data-variant="c3"] .app-tagbar { position: absolute; z-index: 6; top: var(--sheet-gap); left: calc(anchor(--proto-meta right) + 4px); right: calc(anchor(--proto-import left) + 4px); height: 56px; margin: 0;
+    display: flex; align-items: center; border-radius: 0; box-shadow: none; clip-path: none; }
+  :root[data-variant="c3"] .app-tagbar .groupbar { flex: 1; flex-wrap: nowrap; min-height: 0; padding: 0; background: transparent; }
+}
+

@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const [, , outArg, ...only] = process.argv;
 const out = resolve(outArg ?? join(here, "shots"));
-const variants = only.length ? only : ["now", "a", "b", "c"];
+const variants = only.length ? only : ["now", "a", "b", "c", "c2", "c3"];
 const page = "http://127.0.0.1:1431/design/prototype/main-window-material/";
 const edge = [process.env.EDGE, "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe"].find((path) => path && existsSync(path));
 if (!edge) throw new Error("找不到 msedge.exe；用环境变量 EDGE 指给它");
@@ -63,8 +63,11 @@ const moveTo = (x, y) => send("Input.dispatchMouseEvent", { type: "mouseMoved", 
 async function open(variant, theme, width, height, scale, specimen = false) {
   await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: scale, mobile: false });
   await moveTo(width - 400, height - 200);
-  await send("Page.navigate", { url: `${page}?variant=${variant}&theme=${theme}&bar=0${specimen ? "&specimen=1" : ""}` });
-  await until("图片墙", "document.querySelectorAll('.card img').length > 0", 30000);
+  // 开发服务器偶尔回一张空白页（依赖重新打包的那一刻），重开一次就好。
+  for (let attempt = 1; ; attempt++) {
+    await send("Page.navigate", { url: `${page}?variant=${variant}&theme=${theme}&bar=0${specimen ? "&specimen=1" : ""}` });
+    try { await until("图片墙", "document.querySelectorAll('.card img').length > 0", 12000); break; } catch (error) { if (attempt === 3) throw error; }
+  }
   await clickText(".lib-head-name", "工作参考");
   await until("文件夹", "[...document.querySelectorAll('.k-row')].some((el) => el.textContent.includes('人物'))");
   await clickText(".k-row", "人物");
