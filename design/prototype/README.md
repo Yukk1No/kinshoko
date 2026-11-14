@@ -20,3 +20,7 @@
 ## #78 新增对齐来源
 
 [spec78-alignment/](spec78-alignment/README.md) 保存负责人 Q17 / Q26–28 使用的标签名称、资料库工作区和文件夹工作区 HTML 原稿与哈希。它们服务后续 T03 / T07 / T08 / T10；与旧浏览体验认可基线分别记录。
+
+## 主界面质感原型（#606）
+
+[main-window-material/](main-window-material/README.md) 是 #606 的一次性原型：查找框、左栏的行与面板的材质方案（第一轮 A、B、C，之后三轮在 C 上迭代到 C4，并重做了标签分组的摆法），叠在正式程序的界面上切换着看，附截图。选定的规则写进 `design/ui-system/` 之后，这个目录可以删掉。
