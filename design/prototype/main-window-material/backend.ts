@@ -1,4 +1,5 @@
-// 原型用的假后端：正式程序的界面照常运行，Tauri 命令在这里按命令名回答固定的样本数据。只读，不保存任何东西。
+// 原型用的假后端：正式程序的界面照常运行，Tauri 命令在这里按命令名回答固定的样本数据。不保存任何东西。
+import { emit } from "@tauri-apps/api/event";
 import { mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 
 type Args = Record<string, unknown>;
@@ -11,8 +12,9 @@ const libraries = [
 const registrations = libraries.map((library) => ({ library, unavailable: null }));
 const status = { revision: "prototype", libraries: registrations };
 
-const folder = (id: string, name: string, count: number, children: unknown[] = []) => ({ id, name, count, children });
-const sidebars: Record<string, unknown> = {
+type Folder = { id: string; name: string; count: number; children: Folder[] };
+const folder = (id: string, name: string, count: number, children: Folder[] = []): Folder => ({ id, name, count, children });
+const sidebars: Record<string, { all: number; trash: number; folders: Folder[] }> = {
   L1: {
     all: 1284, trash: 12,
     folders: [
@@ -53,7 +55,29 @@ const settings = {
   tagDisplay: { style: "bands", high: 0.8, low: 0.4 }, inspectorOpen: new URLSearchParams(location.search).get("inspector") === "1", inspectorWidth: 320, updateChannel: "stable",
 };
 
+/** 第六轮：移动文件夹。只改内存里的样本目录（刷新页面就复原），然后像正式后端一样推送 workspace-changed，左栏据此重读目录。 */
+let moves = 0;
+function moveFolder(libraryId: string, folderId: string, parent: string | null, position: number) {
+  const tree = sidebars[libraryId];
+  const take = (list: Folder[]): Folder | undefined => {
+    const at = list.findIndex((node) => node.id === folderId);
+    if (at >= 0) return list.splice(at, 1)[0];
+    for (const node of list) { const found = take(node.children); if (found) return found; }
+  };
+  const find = (list: Folder[], id: string): Folder | undefined => {
+    for (const node of list) { const found = node.id === id ? node : find(node.children, id); if (found) return found; }
+  };
+  const moved = take(tree.folders);
+  if (!moved) return null;
+  const siblings = parent === null ? tree.folders : find(tree.folders, parent)?.children ?? tree.folders;
+  siblings.splice(Math.min(position, siblings.length), 0, moved);
+  status.revision = `prototype-${++moves}`;
+  void emit("workspace-changed", { ...status });
+  return null;
+}
+
 const replies: Record<string, Reply> = {
+  move_folder: (args) => moveFolder(args.libraryId as string, args.folderId as string, args.parent as string | null, args.position as number),
   app_info: () => ({ productName: "Kinshoko", version: "原型" }),
   open_last_library: () => libraries[0],
   current_library: () => libraries[0],

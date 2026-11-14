@@ -3,6 +3,7 @@
 // 方案只是叠在最后的一张样式表 variants.css，按 <html data-variant> 生效。一次性代码，不进正式程序。
 import { createRoot } from "react-dom/client";
 import { installBackend } from "./backend";
+import { mountFolders } from "./Folders";
 import { mountGroups } from "./Groups";
 import { Specimen } from "./Specimen";
 import { Switcher, readPose } from "./Switcher";
@@ -49,3 +50,5 @@ createRoot(document.getElementById("root")!).render(
 if (pose.variant === "c4a") mountGroups("panel");
 if (pose.variant === "c4b") mountGroups("side");
 if (pose.variant === "c4c") mountGroups("inline");
+// 第六轮：C4d 在 C4c 上改查找框的选中样子与文件夹视图，并给文件夹加上拖动排序。
+if (pose.variant === "c4d") { mountGroups("inline"); mountFolders(); }
