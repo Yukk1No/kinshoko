@@ -33,9 +33,25 @@ function swatches(): Plugin {
   };
 }
 
+/** 根地址是正式程序的页面，离开 Tauri 只会停在加载动画上；这里把它带到原型页（最新一轮的方案）。 */
+function home(): Plugin {
+  return {
+    name: "prototype-home",
+    configureServer(server) {
+      server.middlewares.use((request, response, next) => {
+        const path = (request.url ?? "").split("?")[0];
+        if (path !== "/" && path !== "/index.html") return next();
+        response.statusCode = 302;
+        response.setHeader("Location", "/design/prototype/main-window-material/?variant=c4d");
+        response.end();
+      });
+    },
+  };
+}
+
 export default defineConfig({
   root,
-  plugins: [react(), swatches()],
+  plugins: [react(), swatches(), home()],
   clearScreen: false,
   server: { host: "127.0.0.1", port: 1431, strictPort: true, open: false, watch: { ignored: ["**/src-tauri/**", "**/crates/**", "**/target/**"] } },
 });
