@@ -1,0 +1,105 @@
+/* 质感原型（#606）的方案样式。按 <html data-variant> 生效，now 不加任何规则。
+   颜色只取 src/styles/tokens.css 里已有的色：墨紫 rgba(43, 39, 71)、奶油 rgba(244, 236, 220)、樱粉、金、黑、白，新值只是它们的透明度。 */
+
+/* ---- 原型自己的东西：切换条与材质样本，不属于被评审的设计 ---- */
+.proto-bar { position: fixed; left: 50%; bottom: 12px; z-index: 200; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; height: 36px; padding: 0 6px;
+  border-radius: 999px; background: #14131c; color: #f4ecdc; font: 500 12px/1 var(--font); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); color-scheme: dark; }
+.proto-bar button { height: 26px; min-width: 26px; padding: 0 8px; border: 0; border-radius: 999px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.proto-bar button:hover, .proto-bar button[aria-pressed="true"] { background: rgba(244, 236, 220, 0.16); }
+.proto-bar-name { min-width: 76px; padding: 0 4px; text-align: center; }
+.proto-bar i { width: 1px; height: 16px; margin: 0 4px; background: rgba(244, 236, 220, 0.2); }
+.proto-specimen { position: fixed; right: 344px; bottom: 76px; z-index: 150; width: 320px; display: flex; flex-direction: column; gap: 12px; padding: 16px;
+  border-radius: var(--r-l); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-pop); }
+.proto-specimen-row { display: flex; align-items: center; gap: 8px; }
+.proto-specimen .k-range { flex: 1; min-width: 0; }
+/* 启动加载页不在这次评审里：每换一次方案页面都重新加载，不必每次等它。 */
+.startup-splash { display: none; }
+
+/* =====================================================================================================
+   三套方案共用的一条：输入类控件是“槽”。日间槽底不变暗（仍是 --surface，字的对比度与现在相同），
+   深度只靠槽口：上沿一线暗边、落进来的内阴影、一圈半像素线、下沿外侧一道亮边。夜间槽底改用更暗的 --sunken
+   （亮字配更暗的底，对比度只升不降）。各方案只换 --well-* 的值。
+   ===================================================================================================== */
+:root:is([data-variant="a"], [data-variant="b"], [data-variant="c"]) :is(.topbar > .search, .k-input, .k-select, .inspector .selection-note textarea) {
+  background: var(--well-floor); box-shadow: var(--well-inset); transition: box-shadow var(--t-fast); }
+:root:is([data-variant="a"], [data-variant="b"], [data-variant="c"]) :is(.k-input, .k-select):hover:not(:focus-within, :focus-visible, [data-popup-open], :disabled, [data-disabled], [data-invalid]),
+:root:is([data-variant="a"], [data-variant="b"], [data-variant="c"]) .topbar > .search:hover:not(:focus-within) { box-shadow: var(--well-inset-hover); }
+/* 分段控件的槽与选中的一段：槽同族，选中的一段是槽里凸起的面（同滑条把手）。只在材质样本里出现，供对照。 */
+:root:is([data-variant="a"], [data-variant="b"], [data-variant="c"]) .k-seg { box-shadow: var(--well-inset); }
+:root:is([data-variant="a"], [data-variant="b"], [data-variant="c"]) .k-seg-thumb { background: var(--btn-face); box-shadow: var(--btn-lift); }
+
+/* =====================================================================================================
+   方案 A「槽」：面板不动（底色两档加 1 px 线），材质只加在控件上。
+   选中是一种东西：左栏的行、图标轨、dock 的选中块都是强调色浅底加半像素线，平的，不凹不凸。
+   ===================================================================================================== */
+:root[data-variant="a"] {
+  --well-floor: light-dark(var(--surface), var(--sunken));
+  --well-inset: inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.08), rgba(0, 0, 0, 0.3)), inset 0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.5)),
+    inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.3), rgba(0, 0, 0, 0.7)), 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.07));
+  --well-inset-hover: inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.34)), inset 0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.18), rgba(0, 0, 0, 0.55)),
+    inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.48), rgba(244, 236, 220, 0.24)), 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.07));
+  --sel-edge: inset 0 0 0 0.5px light-dark(rgba(224, 118, 143, 0.5), rgba(227, 179, 79, 0.42));
+}
+:root[data-variant="a"] :is(.k-row[aria-current="page"], .lib-head-name[aria-current="page"], .rail-btn.is-active:not(.seal-book), .k-dock-sel) { box-shadow: var(--sel-edge); }
+
+/* =====================================================================================================
+   方案 B「刻」：图标轨以外的界面是一整块板（左栏、顶栏、分组条、详情栏同一个底色），图片墙是板上开的窗。
+   板上的分界是刻线：一道暗线，旁边一道亮线（日间板是纸白，亮线看不见，靠暗线；夜间靠亮线）。
+   状态都往下压：悬停是浅凹，选中是强调色的浅槽，与精确查找开启时同一族。
+   ===================================================================================================== */
+:root[data-variant="b"] {
+  --chrome: light-dark(var(--surface), var(--bg));
+  --groove-dark: light-dark(rgba(43, 39, 71, 0.16), rgba(0, 0, 0, 0.6));
+  --groove-light: light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.07));
+  --well-floor: light-dark(var(--surface), var(--sunken));
+  --well-inset: inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.12), rgba(0, 0, 0, 0.4)), inset 0 3px 5px -1px light-dark(rgba(43, 39, 71, 0.2), rgba(0, 0, 0, 0.6)),
+    inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.34), rgba(0, 0, 0, 0.75)), 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.07));
+  --well-inset-hover: inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.44)), inset 0 3px 5px -1px light-dark(rgba(43, 39, 71, 0.24), rgba(0, 0, 0, 0.65)),
+    inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.52), rgba(244, 236, 220, 0.26)), 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.07));
+  --pressed-hover: inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.06), rgba(0, 0, 0, 0.3)), inset 0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.45)), 0 1px 0 var(--groove-light);
+  --pressed-on: inset 0 1px 0 light-dark(rgba(166, 58, 85, 0.16), rgba(0, 0, 0, 0.35)), inset 0 2px 3px -1px light-dark(rgba(166, 58, 85, 0.3), rgba(0, 0, 0, 0.5)),
+    inset 0 0 0 0.5px light-dark(rgba(224, 118, 143, 0.3), rgba(227, 179, 79, 0.28)), 0 1px 0 var(--groove-light);
+}
+:root[data-variant="b"] :is(.sidebar-slot, .inspector, .app-main, .topbar, .app-tagbar .groupbar) { background: var(--chrome); }
+:root[data-variant="b"] .rail { border-right-color: var(--groove-dark); }
+:root[data-variant="b"] .sidebar-slot { border-right-color: var(--groove-dark); box-shadow: inset 1px 0 0 var(--groove-light); }
+:root[data-variant="b"] .inspector { border-left-color: var(--groove-dark); }
+:root[data-variant="b"] :is(.topbar, .app-tagbar .groupbar) { box-shadow: inset 1px 0 0 var(--groove-light); }
+:root[data-variant="b"] .app-tagbar .groupbar { border-bottom-color: var(--groove-dark); }
+:root[data-variant="b"] :is(.side-top, .insp-head) { border-bottom-color: var(--groove-dark); box-shadow: 0 1px 0 var(--groove-light); }
+:root[data-variant="b"] .side-foot { border-top-color: var(--groove-dark); box-shadow: inset 0 1px 0 var(--groove-light); }
+:root[data-variant="b"] .insp-head { position: relative; z-index: 1; }
+:root[data-variant="b"] .k-fluid-pill { box-shadow: var(--pressed-hover); }
+:root[data-variant="b"] :is(.k-row[aria-current="page"], .lib-head-name[aria-current="page"], .rail-btn.is-active:not(.seal-book)) { box-shadow: var(--pressed-on); }
+
+/* =====================================================================================================
+   方案 C「叠」：窗口底是桌面（图标轨的底色），左栏、主区、详情栏是三张纸，之间露出 8 px 桌面。
+   纸用按钮那套材质：半像素线、近处一层小投影、上沿亮边；投影落在桌面上，不落在图片墙上。
+   状态都往上浮：选中的行是一张凸起的小纸片（按钮的面与投影），悬停仍是平的 --hover。
+   ===================================================================================================== */
+:root[data-variant="c"] {
+  --desk: var(--rail);
+  --sheet-gap: 8px;
+  --sheet-main: light-dark(var(--surface), var(--bg));
+  --sheet-lift: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.22), rgba(0, 0, 0, 0.75)), 0 1px 2px light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.45)),
+    0 6px 16px -6px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.4));
+  --sheet-top: inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.09));
+  --well-floor: light-dark(var(--surface), var(--sunken));
+  --well-inset: inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.08), rgba(0, 0, 0, 0.3)), inset 0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.5)),
+    inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.3), rgba(0, 0, 0, 0.7)), 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.07));
+  --well-inset-hover: inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.34)), inset 0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.18), rgba(0, 0, 0, 0.55)),
+    inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.48), rgba(244, 236, 220, 0.24)), 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.07));
+}
+:root[data-variant="c"] .app-shell { background: var(--desk); }
+:root[data-variant="c"] .rail { border-right-color: transparent; background: transparent; }
+:root[data-variant="c"] .app-body { gap: var(--sheet-gap); padding: var(--sheet-gap) var(--sheet-gap) var(--sheet-gap) 0; }
+:root[data-variant="c"] :is(.sidebar-slot, .app-main, .inspector) { position: relative; border-radius: var(--r); box-shadow: var(--sheet-lift); }
+:root[data-variant="c"] .sidebar-slot { border-right-color: transparent; }
+:root[data-variant="c"] .sidebar-slot[data-collapsed="true"] { margin-right: calc(-1 * var(--sheet-gap)); box-shadow: none; }
+:root[data-variant="c"] .inspector { border-left-color: transparent; }
+:root[data-variant="c"] .inspector[data-collapsed="true"] { margin-left: calc(-1 * var(--sheet-gap)); box-shadow: none; }
+:root[data-variant="c"] .app-main { overflow: hidden; background: var(--sheet-main); }
+:root[data-variant="c"] :is(.topbar, .app-tagbar .groupbar) { background: var(--sheet-main); }
+/* 上沿亮边画在最上面一层：纸里的内容有自己的底色，会盖住纸本身的内阴影。 */
+:root[data-variant="c"] :is(.sidebar-slot, .app-main, .inspector)::before { content: ""; position: absolute; inset: 0; z-index: 9; border-radius: inherit; box-shadow: var(--sheet-top); pointer-events: none; }
+:root[data-variant="c"] :is(.k-row[aria-current="page"], .lib-head-name[aria-current="page"], .rail-btn.is-active:not(.seal-book)) { background: var(--btn-face); box-shadow: var(--btn-lift); }
