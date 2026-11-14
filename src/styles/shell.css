@@ -81,6 +81,5 @@ body { font-size: 13px; line-height: 20px; overflow: hidden; }
 .topbar { display: flex; align-items: center; min-height: 52px; flex: none; padding: 8px 12px; gap: 8px; background: var(--surface); border-bottom: 1px solid var(--line); z-index: 2; }
 .topbar > .search { flex: 1; min-width: 0; border: 0; padding: 0; }
 .selection-hint { font-size: 12px; line-height: 18px; color: var(--ink-2); white-space: nowrap; }
-.wall { scrollbar-gutter: stable; }
 :focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 
