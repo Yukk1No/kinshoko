@@ -42,7 +42,7 @@ function home(): Plugin {
         const path = (request.url ?? "").split("?")[0];
         if (path !== "/" && path !== "/index.html") return next();
         response.statusCode = 302;
-        response.setHeader("Location", "/design/prototype/main-window-material/?variant=c4d");
+        response.setHeader("Location", "/design/prototype/main-window-material/?variant=c4e");
         response.end();
       });
     },

@@ -180,10 +180,10 @@
    C4b「分组进左栏」：分组是左栏里的一段，用和文件夹一样的行，选中的标签是凸起的小纸片。
    顺带按 #607：查找框开头加查找图标，最大宽度收到 560 px。组件在 Groups.tsx。
    ===================================================================================================== */
-:root:is([data-variant="c4a"], [data-variant="c4b"], [data-variant="c4c"], [data-variant="c4d"]) .app-main > .app-tagbar { display: none; }
-:root:is([data-variant="c4a"], [data-variant="c4b"], [data-variant="c4c"], [data-variant="c4d"]) .topbar { box-shadow: inset 0 -1px 0 var(--line); }
-:root:is([data-variant="c4a"], [data-variant="c4b"], [data-variant="c4c"], [data-variant="c4d"]) .topbar > .search { position: relative; max-width: 560px; padding-left: 36px; }
-:root:is([data-variant="c4a"], [data-variant="c4b"], [data-variant="c4c"], [data-variant="c4d"]) .topbar > .search::before { content: ""; position: absolute; left: 12px; top: 12px; width: 16px; height: 16px; background: var(--ink-3); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.34-4.34'/%3E%3C/svg%3E") center / contain no-repeat; }
+:root:is([data-variant="c4a"], [data-variant="c4b"], [data-variant="c4c"], [data-variant="c4d"], [data-variant="c4e"]) .app-main > .app-tagbar { display: none; }
+:root:is([data-variant="c4a"], [data-variant="c4b"], [data-variant="c4c"], [data-variant="c4d"], [data-variant="c4e"]) .topbar { box-shadow: inset 0 -1px 0 var(--line); }
+:root:is([data-variant="c4a"], [data-variant="c4b"], [data-variant="c4c"], [data-variant="c4d"], [data-variant="c4e"]) .topbar > .search { position: relative; max-width: 560px; padding-left: 36px; }
+:root:is([data-variant="c4a"], [data-variant="c4b"], [data-variant="c4c"], [data-variant="c4d"], [data-variant="c4e"]) .topbar > .search::before { content: ""; position: absolute; left: 12px; top: 12px; width: 16px; height: 16px; background: var(--ink-3); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.34-4.34'/%3E%3C/svg%3E") center / contain no-repeat; }
 
 .proto-groups-host { display: flex; flex: none; }
 .proto-groups-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 8px 0 10px; border: 0; border-radius: var(--r); background: transparent; color: var(--ink-2); font: inherit; font-weight: 500;
@@ -218,8 +218,8 @@
 
 /* C4c「图标进查找框」（维护者提的）：“分组”两个字换成图标按钮，放进查找框、精确查找开关的前面；面板挂在查找框下面、与它同宽。
    张数不再常驻：没有查找条件时它等于左栏选中那一行的数字；有条件时出现在查找框里、图标的前面。 */
-:root:is([data-variant="c4c"], [data-variant="c4d"]) .bar-meta { display: none; }
-:root:is([data-variant="c4c"], [data-variant="c4d"]) .topbar > .search { max-width: 640px; }
+:root:is([data-variant="c4c"], [data-variant="c4d"], [data-variant="c4e"]) .bar-meta { display: none; }
+:root:is([data-variant="c4c"], [data-variant="c4d"], [data-variant="c4e"]) .topbar > .search { max-width: 640px; }
 .proto-inline-host { display: flex; flex: none; align-items: center; gap: 6px; margin-right: -2px; }
 .proto-count { padding: 0 4px; color: var(--ink-2); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .proto-groups-icon { flex: none; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink-3); cursor: pointer;
@@ -238,7 +238,7 @@
       悬停的那一块有了边；选中的小纸片会滑到新的一行；图库之间一道分界线。
    3. 文件夹可以拖着排顺序（见 Folders.ts）。
    ===================================================================================================== */
-:root[data-variant="c4d"] {
+:root:is([data-variant="c4d"], [data-variant="c4e"]) {
   --well-focus: inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.06), rgba(0, 0, 0, 0.3)), inset 0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.5)),
     inset 0 0 0 1px light-dark(rgba(43, 39, 71, 0.55), rgba(244, 236, 220, 0.5)), 0 0 0 3px light-dark(rgba(43, 39, 71, 0.08), rgba(244, 236, 220, 0.08));
   --held-lift: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.7)), 0 2px 4px light-dark(rgba(43, 39, 71, 0.12), rgba(0, 0, 0, 0.45)),
@@ -248,41 +248,41 @@
 }
 
 /* ---- 1. 输入类控件选中 ---- */
-:root[data-variant="c4d"] :is(.topbar > .search, .k-input):not([data-invalid], [aria-invalid="true"]) { transition: box-shadow var(--t) var(--ease); }
-:root[data-variant="c4d"] :is(.topbar > .search, .k-input):not([data-invalid], [aria-invalid="true"]):focus-within,
-:root[data-variant="c4d"] .k-input[data-focus]:not([data-invalid], [aria-invalid="true"]),
-:root[data-variant="c4d"] .inspector .selection-note textarea:focus { outline: 0; box-shadow: var(--well-focus); }
-:root[data-variant="c4d"] .topbar > .search::before { transition: background-color var(--t) var(--ease); }
-:root[data-variant="c4d"] .topbar > .search:focus-within::before { background: var(--ink); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) :is(.topbar > .search, .k-input):not([data-invalid], [aria-invalid="true"]) { transition: box-shadow var(--t) var(--ease); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) :is(.topbar > .search, .k-input):not([data-invalid], [aria-invalid="true"]):focus-within,
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .k-input[data-focus]:not([data-invalid], [aria-invalid="true"]),
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .inspector .selection-note textarea:focus { outline: 0; box-shadow: var(--well-focus); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .topbar > .search::before { transition: background-color var(--t) var(--ease); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .topbar > .search:focus-within::before { background: var(--ink); }
 
 /* ---- 2. 文件夹视图 ---- */
-:root[data-variant="c4d"] .sidebar-slot :is(.k-row, .lib-head-name) { position: relative; isolation: isolate; transition: transform var(--t-fast) var(--spring); }
-:root[data-variant="c4d"] .sidebar-slot .k-row:active:not(:disabled) { transform: scale(0.985); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .sidebar-slot :is(.k-row, .lib-head-name) { position: relative; isolation: isolate; transition: transform var(--t-fast) var(--spring); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .sidebar-slot .k-row:active:not(:disabled) { transform: scale(0.985); }
 /* 选中的小纸片画在 ::before 上，换行时由 Folders.ts 让它从旧的一行滑过来。 */
-:root[data-variant="c4d"] .sidebar-slot :is(.k-row, .lib-head-name)[aria-current="page"] { background: transparent; box-shadow: none; }
-:root[data-variant="c4d"] .sidebar-slot :is(.k-row, .lib-head-name)[aria-current="page"]::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .sidebar-slot :is(.k-row, .lib-head-name)[aria-current="page"] { background: transparent; box-shadow: none; }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .sidebar-slot :is(.k-row, .lib-head-name)[aria-current="page"]::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
   background: var(--btn-face); box-shadow: var(--btn-lift); transform-origin: 0 0; }
-:root[data-variant="c4d"] .sidebar-slot .k-row[aria-current="page"] .sidebar-count { margin-right: -2px; padding: 5px 6px 4.5px; border-radius: var(--r-pill); background: var(--accent-soft); }
-:root[data-variant="c4d"] .k-fluid-pill { box-shadow: var(--row-edge); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .sidebar-slot .k-row[aria-current="page"] .sidebar-count { margin-right: -2px; padding: 5px 6px 4.5px; border-radius: var(--r-pill); background: var(--accent-soft); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .k-fluid-pill { box-shadow: var(--row-edge); }
 /* 文件夹图标：牛皮纸的底色，下面一点投影（夜间看不见投影，靠底色）。 */
-:root[data-variant="c4d"] .sidebar .k-row-icon :is(.lucide-folder, .lucide-folder-open) { fill: var(--manual-soft); stroke-width: 1.75; filter: drop-shadow(0 0.5px 0.5px light-dark(rgba(43, 39, 71, 0.22), transparent)); }
-:root[data-variant="c4d"] .sidebar .k-row[aria-current="page"] .k-row-icon :is(.lucide-folder, .lucide-folder-open) { fill: var(--accent-soft); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .sidebar .k-row-icon :is(.lucide-folder, .lucide-folder-open) { fill: var(--manual-soft); stroke-width: 1.75; filter: drop-shadow(0 0.5px 0.5px light-dark(rgba(43, 39, 71, 0.22), transparent)); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .sidebar .k-row[aria-current="page"] .k-row-icon :is(.lucide-folder, .lucide-folder-open) { fill: var(--accent-soft); }
 /* 子文件夹的引线：从上一层图标的中线垂下来。 */
-:root[data-variant="c4d"] .sidebar-tree .sidebar-tree { position: relative; }
-:root[data-variant="c4d"] .sidebar-tree .sidebar-tree::before { content: ""; position: absolute; left: 15px; top: 1px; bottom: 7px; width: 1px; background: var(--line-2); transition: opacity var(--t); }
-:root[data-variant="c4d"] .sidebar-tree .sidebar-tree .sidebar-tree::before { left: 31px; }
-:root[data-variant="c4d"] .sidebar-tree .sidebar-tree .sidebar-tree .sidebar-tree::before { left: 47px; }
-:root[data-variant="c4d"][data-dragging] .sidebar-tree .sidebar-tree::before { opacity: 0; }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .sidebar-tree .sidebar-tree { position: relative; }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .sidebar-tree .sidebar-tree::before { content: ""; position: absolute; left: 15px; top: 1px; bottom: 7px; width: 1px; background: var(--line-2); transition: opacity var(--t); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .sidebar-tree .sidebar-tree .sidebar-tree::before { left: 31px; }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .sidebar-tree .sidebar-tree .sidebar-tree .sidebar-tree::before { left: 47px; }
+:root:is([data-variant="c4d"], [data-variant="c4e"])[data-dragging] .sidebar-tree .sidebar-tree::before { opacity: 0; }
 /* 图库之间一道分界线。 */
-:root[data-variant="c4d"] .lib-group + .lib-group { margin-top: 10px; border-top: 1px solid var(--line); }
-:root[data-variant="c4d"] .lib-group + .lib-group > .lib-head { margin-top: 8px; }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .lib-group + .lib-group { margin-top: 10px; border-top: 1px solid var(--line); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .lib-group + .lib-group > .lib-head { margin-top: 8px; }
 /* 展开箭头：正式程序换的是两个图标，这里让新图标从另一个的角度转过来。 */
-:root[data-variant="c4d"] .workspace-expand svg { transition: rotate var(--t-slow) var(--spring); }
-:root[data-variant="c4d"] .workspace-expand[aria-expanded="true"] svg { @starting-style { rotate: -90deg; } }
-:root[data-variant="c4d"] .workspace-expand[aria-expanded="false"] svg { @starting-style { rotate: 90deg; } }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .workspace-expand svg { transition: rotate var(--t-slow) var(--spring); }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .workspace-expand[aria-expanded="true"] svg { @starting-style { rotate: -90deg; } }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .workspace-expand[aria-expanded="false"] svg { @starting-style { rotate: 90deg; } }
 
 /* ---- 3. 拖动 ---- */
-:root[data-variant="c4d"] .sidebar button[data-folder-id] { cursor: pointer; }
+:root:is([data-variant="c4d"], [data-variant="c4e"]) .sidebar button[data-folder-id] { cursor: pointer; }
 :root[data-dragging], :root[data-dragging] * { cursor: grabbing !important; }
 :root[data-dragging] .k-fluid-pill { opacity: 0; }
 :root[data-dragging] .sidebar .k-fluid-row { will-change: transform; }
@@ -302,3 +302,34 @@
 .proto-drag-line > i { display: block; height: 100%; border-radius: 1px; background: color-mix(in srgb, var(--ink) 15%, transparent); transform: scaleX(0); transition: transform 260ms var(--proto-settle); }
 .proto-drag-line[data-on] > i { transform: none; }
 @media (prefers-reduced-motion: reduce) { .proto-drag-line, .proto-drag-line > i, .proto-drag-ghost > .k-row { transition: none; } }
+
+/* =====================================================================================================
+   第七轮（维护者：选中并打开的文件夹质感廉价）。C4e 只改选中的那一行，其余同 C4d。
+   C4d 的毛病：白纸片放在白纸上，只剩一圈投影在撑，像网页上的卡片；张数套着粉色胶囊，像未读角标；
+   字、图标、张数三处都是强调色，挤在一起；打开的文件夹只是把线框图标涂满粉色。
+   C4e：
+   1. 纸片厚一点：细线更轻，下沿多一道厚度线，远处投影往下偏、收紧；上沿亮边、下沿一线暗。面上铺一层强调色（日间 6%，夜间 3%，金色铺多了发浑）。
+   2. 强调色只留在图标与张数上：名字回到墨色；张数去掉胶囊，只是强调色的数字。
+   3. 打开的文件夹画成两层：后面的夹子是强调色的淡底，前面翻开的一页更亮（日间纸白，夜间金色 62%），线框仍是强调色。
+   4. 它下面的子文件夹的引线染上一点强调色，看得出这一摞是它打开的。
+   ===================================================================================================== */
+:root[data-variant="c4e"] {
+  --sel-tint: light-dark(color-mix(in srgb, var(--accent) 6%, transparent), color-mix(in srgb, var(--accent) 3%, transparent));
+  --sel-lift: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.16), rgba(0, 0, 0, 0.6)), 0 1px 0 light-dark(rgba(43, 39, 71, 0.06), rgba(0, 0, 0, 0.3)),
+    0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.35)), 0 8px 14px -8px light-dark(rgba(43, 39, 71, 0.24), rgba(0, 0, 0, 0.6)),
+    inset 0 1px 0 light-dark(#ffffff, rgba(244, 236, 220, 0.12)), inset 0 -1px 0 light-dark(rgba(43, 39, 71, 0.035), rgba(0, 0, 0, 0.18));
+  --sel-thread: color-mix(in srgb, var(--accent) 35%, var(--line-2));
+}
+:root[data-variant="c4e"] .sidebar-slot :is(.k-row, .lib-head-name)[aria-current="page"] { color: var(--ink); }
+:root[data-variant="c4e"] .sidebar-slot :is(.k-row, .lib-head-name)[aria-current="page"]::before { background: linear-gradient(var(--sel-tint), var(--sel-tint)), var(--btn-face); box-shadow: var(--sel-lift); }
+:root[data-variant="c4e"] .sidebar-slot .k-row[aria-current="page"] .sidebar-count { margin-right: 0; padding: 0; border-radius: 0; background: none; color: var(--accent-strong); font-weight: 500; }
+:root[data-variant="c4e"] .sidebar .k-row[aria-current="page"] .k-row-icon :is(.lucide-folder, .lucide-folder-open) { fill: none; filter: none; }
+/* 打开的文件夹：两层底画在图标后面，线框在最上面。 */
+:root[data-variant="c4e"] .sidebar .k-row[aria-current="page"] .k-row-icon:has(.lucide-folder-open) { position: relative; isolation: isolate; }
+:root[data-variant="c4e"] .sidebar .k-row[aria-current="page"] .k-row-icon:has(.lucide-folder-open)::before,
+:root[data-variant="c4e"] .sidebar .k-row[aria-current="page"] .k-row-icon:has(.lucide-folder-open)::after { content: ""; position: absolute; inset: 0; z-index: -1; mask: var(--m) center / contain no-repeat; }
+:root[data-variant="c4e"] .sidebar .k-row[aria-current="page"] .k-row-icon:has(.lucide-folder-open)::before { background: light-dark(color-mix(in srgb, var(--accent) 32%, transparent), color-mix(in srgb, var(--accent) 24%, transparent));
+  --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 3h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2V14L18 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'/%3E%3C/svg%3E"); }
+:root[data-variant="c4e"] .sidebar .k-row[aria-current="page"] .k-row-icon:has(.lucide-folder-open)::after { background: light-dark(#fffefb, color-mix(in srgb, var(--accent) 62%, transparent));
+  --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 20 7.5 11.1A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6A2 2 0 0 1 18.45 20z'/%3E%3C/svg%3E"); }
+:root[data-variant="c4e"] .sidebar li:has(> .k-fluid-row > .k-row[aria-current="page"]) > .sidebar-tree::before { background: var(--sel-thread); }

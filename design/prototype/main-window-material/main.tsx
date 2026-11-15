@@ -51,4 +51,4 @@ if (pose.variant === "c4a") mountGroups("panel");
 if (pose.variant === "c4b") mountGroups("side");
 if (pose.variant === "c4c") mountGroups("inline");
 // 第六轮：C4d 在 C4c 上改查找框的选中样子与文件夹视图，并给文件夹加上拖动排序。
-if (pose.variant === "c4d") { mountGroups("inline"); mountFolders(); }
+if (pose.variant === "c4d" || pose.variant === "c4e") { mountGroups("inline"); mountFolders(); }

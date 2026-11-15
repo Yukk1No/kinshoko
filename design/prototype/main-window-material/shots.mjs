@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const [, , outArg, ...only] = process.argv;
 const out = resolve(outArg ?? join(here, "shots"));
-const variants = only.length ? only : ["now", "a", "b", "c", "c2", "c3", "c4", "c5", "c4a", "c4b", "c4c", "c4d"];
+const variants = only.length ? only : ["now", "a", "b", "c", "c2", "c3", "c4", "c5", "c4a", "c4b", "c4c", "c4d", "c4e"];
 const page = "http://127.0.0.1:1431/design/prototype/main-window-material/";
 const edge = [process.env.EDGE, "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe"].find((path) => path && existsSync(path));
 if (!edge) throw new Error("找不到 msedge.exe；用环境变量 EDGE 指给它");
@@ -218,6 +218,15 @@ try {
   for (const variant of variants) {
     for (const theme of ["light", "dark"]) {
       const tone = theme === "light" ? "day" : "night";
+      // 第七轮，200%：选中并展开的文件夹（“人物”）和它下面的子文件夹，指针移开，不带悬停。SHOTS_PART=folder 时只出这一张。
+      if (["c4d", "c4e"].includes(variant)) {
+        await open(variant, theme, 1280, 800, 2, "&plain=1");
+        await moveTo(1000, 700);
+        await delay(400);
+        const side = await rect(".sidebar-slot");
+        await shot(`${variant}-folder-${tone}`, { x: side.x - 12, y: 136, width: side.width + 20, height: 252 });
+      }
+      if (process.env.SHOTS_PART === "folder") continue;
       // SHOTS_PART=extra 时只出后面的放大图（调拖动的时候用）。
       if (process.env.SHOTS_PART !== "extra") {
         for (const [width, height] of [[1280, 800], [1920, 1080]]) {
