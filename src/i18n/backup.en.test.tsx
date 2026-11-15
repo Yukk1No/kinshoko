@@ -12,17 +12,32 @@ import { fakeBackend } from "../test/backend";
 
 // 英文界面下备份与恢复、偏好设置备份、备份提醒与还原度门槛实验没有中文界面文案（#357）。
 // 图库名、参考组名与路径是画师的数据；备份失败的原因来自后端。
-beforeEach(async () => { await act(async () => { await i18n.changeLanguage("en"); }); });
+beforeEach(async () => {
+  await act(async () => {
+    await i18n.changeLanguage("en");
+  });
+});
 afterEach(async () => {
   delete window.__KINSHOKO_TEST_PICKS__;
-  await act(async () => { await i18n.changeLanguage("zh-CN"); });
+  await act(async () => {
+    await i18n.changeLanguage("zh-CN");
+  });
 });
 
-const settle = () => act(async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); });
+const settle = () =>
+  act(async () => {
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+  });
 const at = { unixMs: 1_791_158_400_000, offsetMinutes: 480 };
 const status: BackupStatus = {
-  plan: { target: "E:/backup", selection: { kind: "libraries", ids: ["A"], includeLinked: true }, lastSuccess: at, lastSnapshot: "s1",
-    lastFailure: { at, reason: "drive missing", targetUnavailable: false }, due: false },
+  plan: {
+    target: "E:/backup",
+    selection: { kind: "libraries", ids: ["A"], includeLinked: true },
+    lastSuccess: at,
+    lastSnapshot: "s1",
+    lastFailure: { at, reason: "drive missing", targetUnavailable: false },
+    due: false,
+  },
   running: null,
   lastReport: null,
 };
@@ -34,25 +49,47 @@ function backend() {
     backup_status: status,
     backup_preview: {
       scope: {
-        libraries: [{ id: "A", name: "主库" }], groups: [{ id: "g1", name: "眼睛参考" }], steps: [],
+        libraries: [{ id: "A", name: "主库" }],
+        groups: [{ id: "g1", name: "眼睛参考" }],
+        steps: [],
         uncovered: [{ kind: "library", group: { id: "g1", name: "眼睛参考" }, libraryId: "B", libraryName: "旧库" }],
       },
-      estimate: { totalBytes: 30 * 1024 * 1024, newBytes: 2 * 1024 * 1024, originals: 12, newOriginals: 1, unavailable: [] },
+      estimate: {
+        totalBytes: 30 * 1024 * 1024,
+        newBytes: 2 * 1024 * 1024,
+        originals: 12,
+        newOriginals: 1,
+        unavailable: [],
+      },
       targetAvailable: false,
     },
-    backup_snapshots: [{ id: "s1", createdAt: at, libraries: [{ id: "A", name: "主库" }], groups: [{ id: "g1", name: "眼睛参考" }], skipped: [] }],
+    backup_snapshots: [
+      {
+        id: "s1",
+        createdAt: at,
+        libraries: [{ id: "A", name: "主库" }],
+        groups: [{ id: "g1", name: "眼睛参考" }],
+        skipped: [],
+      },
+    ],
     restore_backup: {
       snapshotId: "s1",
       libraries: [{ oldId: "A", library: { id: "A2", name: "主库（恢复）", root: "F:/r" } }],
       groups: [{ oldId: "g1", id: "g2", name: "眼睛参考" }],
-      check: { originals: { checked: 12, problems: [] }, curation: { checked: 20, problems: [] }, groups: { checked: 1, problems: [] } },
+      check: {
+        originals: { checked: 12, problems: [] },
+        curation: { checked: 20, problems: [] },
+        groups: { checked: 1, problems: [] },
+      },
     },
     preview_application_settings: { fingerprint: "f", safeMode: false, forceSrgb: true },
   });
 }
 
 const pins: PinGate = {
-  adapter: "GPU", display: "Monitor", error: null,
+  adapter: "GPU",
+  display: "Monitor",
+  error: null,
   items: [{ fileName: "a.png", gated: true, worstDeltaE: 0.5, mean: 0.1, p99: 1, max: 2, error: null }],
 } as unknown as PinGate;
 
@@ -62,7 +99,9 @@ describe("英文界面：备份与画面保真检查", () => {
     window.__KINSHOKO_TEST_PICKS__ = ["F:/r"];
     render(<BackupSettings />);
     await settle();
-    expect(await screen.findByText(/About 30 MB in total, 2 MB newly written this time \(1 new original\)/)).toBeTruthy();
+    expect(
+      await screen.findByText(/About 30 MB in total, 2 MB newly written this time \(1 new original\)/),
+    ).toBeTruthy();
     expectNoChinese(document.body, data);
     fireEvent.click(screen.getByRole("button", { name: "Choose a backup…" }));
     fireEvent.click(await screen.findByRole("button", { name: /^Restore the backup from/ }));
@@ -72,8 +111,16 @@ describe("英文界面：备份与画面保真检查", () => {
 
   it("偏好设置备份：读取后确认替换", async () => {
     backend();
-    render(<ApplicationSettingsBackup restore={async () => { throw new Error("unused"); }} />);
-    fireEvent.change(screen.getByRole("textbox", { name: "Preferences backup file" }), { target: { value: "C:/b.kinshoko-settings" } });
+    render(
+      <ApplicationSettingsBackup
+        restore={async () => {
+          throw new Error("unused");
+        }}
+      />,
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: "Preferences backup file" }), {
+      target: { value: "C:/b.kinshoko-settings" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Read" }));
     expect(await screen.findByRole("group", { name: "Replace preferences" })).toBeTruthy();
     expectNoChinese(document.body);

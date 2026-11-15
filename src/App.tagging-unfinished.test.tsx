@@ -11,9 +11,28 @@ import type { WorkspaceCard } from "./bindings/WorkspaceCard";
 
 const libraries = [{ library: { id: "L1", name: "甲库", root: "A" }, unavailable: null }];
 const status = { revision: "r1", libraries };
-const cards: WorkspaceCard[] = [{ id: "a1", libraryId: "L1", imageId: "i1", width: 100, height: 100, adult: false,
-  sources: [{ libraryId: "L1", libraryName: "甲库", imageId: "i1", unavailable: null, matches: true, deleted: false }] }];
-const unfinished = { state: "idle", model: "x", device: "cpu", gpu: null, tagged: 0, unknown: 0, failed: { unreadable: 1, crashed: 0 } };
+const cards: WorkspaceCard[] = [
+  {
+    id: "a1",
+    libraryId: "L1",
+    imageId: "i1",
+    width: 100,
+    height: 100,
+    adult: false,
+    sources: [
+      { libraryId: "L1", libraryName: "甲库", imageId: "i1", unavailable: null, matches: true, deleted: false },
+    ],
+  },
+];
+const unfinished = {
+  state: "idle",
+  model: "x",
+  device: "cpu",
+  gpu: null,
+  tagged: 0,
+  unknown: 0,
+  failed: { unreadable: 1, crashed: 0 },
+};
 
 function backend() {
   const resolved: SearchInput[] = [];
@@ -21,7 +40,16 @@ function backend() {
     safe_mode: false,
     registered_libraries: libraries,
     workspace_status: status,
-    workspace_directories: { status, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) },
+    workspace_directories: {
+      status,
+      registrationOrder: [],
+      providers: libraries.map((registration) => ({
+        registration,
+        sidebar: { all: 1, trash: 0, folders: [] },
+        unassigned: 0,
+        descendants: {},
+      })),
+    },
     workspace_tag_groups: [],
     import_tasks: [],
     reference_groups: [],
@@ -31,7 +59,12 @@ function backend() {
     workspace_resolve: (args) => {
       const input = args.input as SearchInput;
       resolved.push(input);
-      return { conditions: input.conditions.map((c) => ({ negate: c.negate, any: c.any.map(() => ({ kind: "taggingUnfinished" })) })) };
+      return {
+        conditions: input.conditions.map((c) => ({
+          negate: c.negate,
+          any: c.any.map(() => ({ kind: "taggingUnfinished" })),
+        })),
+      };
     },
     tagging_status: unfinished,
     tagging_models: { model: "x", selected: null, options: [] },
@@ -49,13 +82,16 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const chips = () => screen.getByRole("list", { name: "查找条件" });
-const filtered = (resolved: SearchInput[]) => waitFor(() => {
-  expect(resolved.at(-1)?.conditions).toEqual([{ any: [{ kind: "taggingUnfinished" }], negate: false }]);
-  expect(within(chips()).getByText("自动标签未完成")).toBeTruthy();
-});
+const filtered = (resolved: SearchInput[]) =>
+  waitFor(() => {
+    expect(resolved.at(-1)?.conditions).toEqual([{ any: [{ kind: "taggingUnfinished" }], negate: false }]);
+    expect(within(chips()).getByText("自动标签未完成")).toBeTruthy();
+  });
 
 describe("查看没有完成自动标签的图（#475）", () => {
   it("右下角图标右键“查看这些图”：查找框里加上条件块", async () => {

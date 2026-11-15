@@ -22,11 +22,22 @@ export function useOpenInKinshoko(handle: (request: OpenInKinshoko) => void) {
     let alive = true;
     let queue = Promise.resolve();
     const accept = () => {
-      queue = queue.then(() => takeOpenRequest()).then((value) => {
-        if (alive && value) openRequest(value);
-      }, () => {});
+      queue = queue
+        .then(() => takeOpenRequest())
+        .then(
+          (value) => {
+            if (alive && value) openRequest(value);
+          },
+          () => {},
+        );
     };
-    const stop = onOpenRequest(accept).then((fn) => { if (alive) accept(); return fn; });
-    return () => { alive = false; void stop.then((fn) => fn()); };
+    const stop = onOpenRequest(accept).then((fn) => {
+      if (alive) accept();
+      return fn;
+    });
+    return () => {
+      alive = false;
+      void stop.then((fn) => fn());
+    };
   }, []);
 }

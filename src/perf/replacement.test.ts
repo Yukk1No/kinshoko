@@ -12,8 +12,17 @@ it("完成延迟与离开视口时仍未完成的区间分开统计，缓存命�
     { pendingFor: 150 },
   ]);
   expect(report).toMatchObject({
-    completed: 4, instant: 1, overBudget: 1, p50: 40, p95: 250, max: 250,
-    abandoned: 2, abandonedOverBudget: 1, pendingAtEnd: 1, pendingAtEndOverBudget: 1, pass: false,
+    completed: 4,
+    instant: 1,
+    overBudget: 1,
+    p50: 40,
+    p95: 250,
+    max: 250,
+    abandoned: 2,
+    abandonedOverBudget: 1,
+    pendingAtEnd: 1,
+    pendingAtEndOverBudget: 1,
+    pass: false,
   });
 });
 

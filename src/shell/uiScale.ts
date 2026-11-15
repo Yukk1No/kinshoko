@@ -35,13 +35,20 @@ export function stepUiScale(current: number, step: UiScaleStep): number {
  * 主窗口按键对应的缩放动作：Ctrl+=（含 Ctrl++）、Ctrl+-、Ctrl+0，小键盘的 + - 0 同样有效。
  * 按字符判断，日文键盘上要按 Shift 才打得出的 = 也认。其余按键为 null。
  */
-export function uiScaleStepForKey(e: Pick<KeyboardEvent, "ctrlKey" | "metaKey" | "altKey" | "key">): UiScaleStep | null {
+export function uiScaleStepForKey(
+  e: Pick<KeyboardEvent, "ctrlKey" | "metaKey" | "altKey" | "key">,
+): UiScaleStep | null {
   if (!(e.ctrlKey || e.metaKey) || e.altKey) return null;
   switch (e.key) {
-    case "=": case "+": return "in";
-    case "-": return "out";
-    case "0": return "reset";
-    default: return null;
+    case "=":
+    case "+":
+      return "in";
+    case "-":
+      return "out";
+    case "0":
+      return "reset";
+    default:
+      return null;
   }
 }
 

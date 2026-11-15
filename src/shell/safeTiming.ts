@@ -5,7 +5,12 @@
  *
  * 各段：后端确认、资料库事件、开始重新浏览、卡片送回、释放动画开始。
  */
-export type SafeStage = "backend-confirmed" | "library-event" | "rebrowse-start" | "cards-returned" | "release-animation-start";
+export type SafeStage =
+  | "backend-confirmed"
+  | "library-event"
+  | "rebrowse-start"
+  | "cards-returned"
+  | "release-animation-start";
 
 const WINDOW_MS = 5000;
 /** 构建时折叠为常量，发行构建不记录。 */
@@ -18,15 +23,26 @@ export const safeTiming = {
     if (!ENABLED) return;
     started = performance.now();
     seen.clear();
-    try { performance.mark("safe-mode:toggle"); } catch { /* 忽略失败：没有性能面板时只写控制台。 */ }
+    try {
+      performance.mark("safe-mode:toggle");
+    } catch {
+      /* 忽略失败：没有性能面板时只写控制台。 */
+    }
     console.debug(`[safe-mode] toggled → ${on ? "on" : "off"}`);
   },
   mark(stage: SafeStage) {
     if (started === null || seen.has(stage)) return;
     const ms = performance.now() - started;
-    if (ms > WINDOW_MS) { started = null; return; }
+    if (ms > WINDOW_MS) {
+      started = null;
+      return;
+    }
     seen.add(stage);
-    try { performance.measure(`safe-mode:${stage}`, "safe-mode:toggle"); } catch { /* 忽略失败：没有性能面板时只写控制台。 */ }
+    try {
+      performance.measure(`safe-mode:${stage}`, "safe-mode:toggle");
+    } catch {
+      /* 忽略失败：没有性能面板时只写控制台。 */
+    }
     console.debug(`[safe-mode] ${stage} +${ms.toFixed(1)} ms`);
   },
 };

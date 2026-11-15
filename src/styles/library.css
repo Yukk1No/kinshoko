@@ -7,7 +7,6 @@
   min-width: 0;
 }
 
-
 .import-report header {
   display: flex;
   align-items: center;
@@ -72,9 +71,16 @@
   color: var(--ink-2);
 }
 
-.wall-empty > p { margin: 0; }
+.wall-empty > p {
+  margin: 0;
+}
 
-.wall-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.wall-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
 
 .card {
   position: absolute;
@@ -104,7 +110,8 @@
 
 /* 安全模式（#60）：遮蔽 = 模糊 14px＋92% 墨色。开启时 200ms 内到位（约 170ms 起已无法辨认），
    释放未播完时开启也从当前样子直接转回遮蔽。 */
-.card::after, .viewer-flier::after {
+.card::after,
+.viewer-flier::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -116,14 +123,19 @@
 }
 
 /* 封印中交给影子的卡片：不显示、不可操作，只占位（#154）。 */
-.card[data-leaving="true"], .card[data-leaving="true"] + .card-sources { visibility: hidden; }
+.card[data-leaving="true"],
+.card[data-leaving="true"] + .card-sources {
+  visibility: hidden;
+}
 
-.card[data-veiled="true"] img, .viewer-flier[data-veiled="true"] img {
+.card[data-veiled="true"] img,
+.viewer-flier[data-veiled="true"] img {
   filter: blur(14px);
   transition: filter 200ms ease-out;
 }
 
-.card[data-veiled="true"]::after, .viewer-flier[data-veiled="true"]::after {
+.card[data-veiled="true"]::after,
+.viewer-flier[data-veiled="true"]::after {
   opacity: 0.92;
   transition: opacity 200ms ease-out;
 }
@@ -138,7 +150,9 @@
 
 .card img[data-loaded] {
   opacity: 1;
-  transition: filter 420ms var(--ease), opacity 160ms ease-out;
+  transition:
+    filter 420ms var(--ease),
+    opacity 160ms ease-out;
 }
 
 .card img[data-loaded="instant"] {
@@ -197,7 +211,9 @@
   white-space: pre-wrap;
 }
 
-.runtime-details { margin: 10px 0; }
+.runtime-details {
+  margin: 10px 0;
+}
 
 /* 本地备份与恢复（#69） */
 
@@ -245,14 +261,30 @@
   gap: 2px;
 }
 .sidebar-slot {
-  width: 237px; flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden;
+  width: 237px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   transition: width var(--t-slow) var(--ease);
 }
-.sidebar-slot[data-collapsed="true"] { width: 0; }
-.sidebar-slot .sidebar { box-sizing: border-box; width: 237px; flex: 1; min-height: 0; }
+.sidebar-slot[data-collapsed="true"] {
+  width: 0;
+}
+.sidebar-slot .sidebar {
+  box-sizing: border-box;
+  width: 237px;
+  flex: 1;
+  min-height: 0;
+}
 .sidebar-slot .selection {
-  box-sizing: border-box; width: 237px; max-height: 50%; overflow: auto; flex-shrink: 0;
-  border-top: 1px solid var(--line); border-right: 1px solid var(--line);
+  box-sizing: border-box;
+  width: 237px;
+  max-height: 50%;
+  overflow: auto;
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+  border-right: 1px solid var(--line);
 }
 
 .sidebar-item {
@@ -277,8 +309,6 @@
   opacity: 0.6;
   font-variant-numeric: tabular-nums;
 }
-
-
 
 .sidebar-folders {
   flex: 1;
@@ -330,4 +360,3 @@
   font-size: 13px;
   resize: vertical;
 }
-

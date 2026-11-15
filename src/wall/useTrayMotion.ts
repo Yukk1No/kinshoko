@@ -23,7 +23,21 @@ const cardNode = (el: HTMLElement | null, id: string) =>
 type Ghost = { card: BrowserCard; from: { x: number; y: number; w: number; h: number } };
 
 export function useTrayMotion({
-  scroller, layout, ids, shown, tray, openSet, setOpenSet, anchor, settledTop, beforeReflow, measureBeforeReflow, trayMotion, thumbnailPx, veiled, safeMode,
+  scroller,
+  layout,
+  ids,
+  shown,
+  tray,
+  openSet,
+  setOpenSet,
+  anchor,
+  settledTop,
+  beforeReflow,
+  measureBeforeReflow,
+  trayMotion,
+  thumbnailPx,
+  veiled,
+  safeMode,
 }: {
   scroller: MutableRefObject<HTMLDivElement | null>;
   layout: Layout;
@@ -51,56 +65,72 @@ export function useTrayMotion({
   /** 刚关上的托盘：渲染后各页的影子从托盘里的位置飞回这一摞。 */
   const gather = useRef<{ stack: string; ghosts: Ghost[] } | null>(null);
 
-  const openTray = useCallback((card: BrowserCard) => {
-    const set = card.set;
-    if (!set) return;
-    measureBeforeReflow();
-    // 锚点改到被点的这一摞，它留在屏幕原处、托盘从这里长出来：托盘从最长的一列底下开始，
-    // 不锚定时会把它挪出视口；从一个托盘直接换过来时，旧托盘里的页也要离开墙。
-    const { layout, ids } = live.current;
-    const el = scroller.current;
-    const index = ids.indexOf(card.id);
-    if (el && index >= 0) {
-      anchor.current = { id: card.id, delta: el.scrollTop - layout.boxes[index].y };
-      settledTop.current = null;
-    }
-    // 各页从封面的位置飞出：封面就是第一页，其余各页的起点也设在封面上。
-    const cover = cardNode(scroller.current, card.id)?.querySelector<HTMLElement>(".stack-cover");
-    const from = cover?.getBoundingClientRect();
-    if (from && from.width > 0) for (const page of set.pages) beforeReflow.current.set(page.id, from);
-    trayMotion.current = { flights: new Set(set.pages.map((page) => page.id)) };
-    focusFirst.current = set.pages[0]?.id ?? null;
-    setOpenSet(set.key);
-  }, [measureBeforeReflow, setOpenSet, scroller, anchor, settledTop, beforeReflow, trayMotion]);
+  const openTray = useCallback(
+    (card: BrowserCard) => {
+      const set = card.set;
+      if (!set) return;
+      measureBeforeReflow();
+      // 锚点改到被点的这一摞，它留在屏幕原处、托盘从这里长出来：托盘从最长的一列底下开始，
+      // 不锚定时会把它挪出视口；从一个托盘直接换过来时，旧托盘里的页也要离开墙。
+      const { layout, ids } = live.current;
+      const el = scroller.current;
+      const index = ids.indexOf(card.id);
+      if (el && index >= 0) {
+        anchor.current = { id: card.id, delta: el.scrollTop - layout.boxes[index].y };
+        settledTop.current = null;
+      }
+      // 各页从封面的位置飞出：封面就是第一页，其余各页的起点也设在封面上。
+      const cover = cardNode(scroller.current, card.id)?.querySelector<HTMLElement>(".stack-cover");
+      const from = cover?.getBoundingClientRect();
+      if (from && from.width > 0) for (const page of set.pages) beforeReflow.current.set(page.id, from);
+      trayMotion.current = { flights: new Set(set.pages.map((page) => page.id)) };
+      focusFirst.current = set.pages[0]?.id ?? null;
+      setOpenSet(set.key);
+    },
+    [measureBeforeReflow, setOpenSet, scroller, anchor, settledTop, beforeReflow, trayMotion],
+  );
 
-  const closeTray = useCallback((keep?: string) => {
-    const { layout, ids, shown, tray, openSet } = live.current;
-    const el = scroller.current;
-    if (openSet === null || !tray || !el) { setOpenSet(null); return; }
-    const pages = shown.slice(tray.at, tray.at + tray.count);
-    const stack = pages[0].id;
-    const focused = document.activeElement;
-    focusStack.current = focused instanceof HTMLElement && pages.some((page) => page.id === focused.dataset.id || page.id === focused.dataset.card) ? stack : null;
-    measureBeforeReflow();
-    trayMotion.current = { flights: new Set([stack]) };
-    // 被点的那一格留在屏幕原处；否则正在看的若是托盘里的页，这一摞落在托盘原来的位置。
-    const index = keep === undefined ? -1 : ids.indexOf(keep);
-    const inTray = (id: string | undefined) => pages.some((page) => page.id === id);
-    if (index >= 0) anchor.current = { id: keep!, delta: el.scrollTop - layout.boxes[index].y };
-    // 托盘顶已滚出视口时（看到托盘深处），这一摞贴着视口顶落下，不按到托盘顶的距离落到后面的格子里。
-    else if (!anchor.current || inTray(anchor.current.id)) anchor.current = { id: stack, delta: Math.min(0, el.scrollTop - layout.tray!.y) };
-    settledTop.current = null;
-    gather.current = reducedNow() ? null : {
-      stack,
-      ghosts: pages.slice(1).flatMap((card, i) => {
-        const box = layout.boxes[tray.at + 1 + i];
-        // 只为看得见的页做影子：屏幕外的页直接回到摞里。
-        const visible = box.y + box.h >= el.scrollTop && box.y <= el.scrollTop + el.clientHeight;
-        return visible ? [{ card, from: box }] : [];
-      }),
-    };
-    setOpenSet(null);
-  }, [measureBeforeReflow, setOpenSet, scroller, anchor, settledTop, trayMotion]);
+  const closeTray = useCallback(
+    (keep?: string) => {
+      const { layout, ids, shown, tray, openSet } = live.current;
+      const el = scroller.current;
+      if (openSet === null || !tray || !el) {
+        setOpenSet(null);
+        return;
+      }
+      const pages = shown.slice(tray.at, tray.at + tray.count);
+      const stack = pages[0].id;
+      const focused = document.activeElement;
+      focusStack.current =
+        focused instanceof HTMLElement &&
+        pages.some((page) => page.id === focused.dataset.id || page.id === focused.dataset.card)
+          ? stack
+          : null;
+      measureBeforeReflow();
+      trayMotion.current = { flights: new Set([stack]) };
+      // 被点的那一格留在屏幕原处；否则正在看的若是托盘里的页，这一摞落在托盘原来的位置。
+      const index = keep === undefined ? -1 : ids.indexOf(keep);
+      const inTray = (id: string | undefined) => pages.some((page) => page.id === id);
+      if (index >= 0) anchor.current = { id: keep!, delta: el.scrollTop - layout.boxes[index].y };
+      // 托盘顶已滚出视口时（看到托盘深处），这一摞贴着视口顶落下，不按到托盘顶的距离落到后面的格子里。
+      else if (!anchor.current || inTray(anchor.current.id))
+        anchor.current = { id: stack, delta: Math.min(0, el.scrollTop - layout.tray!.y) };
+      settledTop.current = null;
+      gather.current = reducedNow()
+        ? null
+        : {
+            stack,
+            ghosts: pages.slice(1).flatMap((card, i) => {
+              const box = layout.boxes[tray.at + 1 + i];
+              // 只为看得见的页做影子：屏幕外的页直接回到摞里。
+              const visible = box.y + box.h >= el.scrollTop && box.y <= el.scrollTop + el.clientHeight;
+              return visible ? [{ card, from: box }] : [];
+            }),
+          };
+      setOpenSet(null);
+    },
+    [measureBeforeReflow, setOpenSet, scroller, anchor, settledTop, trayMotion],
+  );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: 只在托盘开合后的那次提交里交焦点、放影子；ids、layout、thumbnailPx 只在那一刻读
   useLayoutEffect(() => {
@@ -138,17 +168,29 @@ export function useTrayMotion({
       img.alt = "";
       ghost.appendChild(img);
       host.appendChild(ghost);
-      const flight = ghost.animate([
-        { transform: `translate(${from.x - to.x}px, ${from.y - to.y}px) scale(${from.w / to.w}, ${from.h / to.h})` },
-        { transform: "none" },
-      ], { duration, easing });
+      const flight = ghost.animate(
+        [
+          { transform: `translate(${from.x - to.x}px, ${from.y - to.y}px) scale(${from.w / to.w}, ${from.h / to.h})` },
+          { transform: "none" },
+        ],
+        { duration, easing },
+      );
       flight.onfinish = flight.oncancel = () => ghost.remove();
       flights.push(flight);
     }
-    const landed = () => { delete node.dataset.gathering; };
-    if (!flights.length) { landed(); return; }
+    const landed = () => {
+      delete node.dataset.gathering;
+    };
+    if (!flights.length) {
+      landed();
+      return;
+    }
     const timer = window.setTimeout(landed, duration);
-    return () => { clearTimeout(timer); landed(); flights.forEach((flight) => flight.cancel()); };
+    return () => {
+      clearTimeout(timer);
+      landed();
+      flights.forEach((flight) => flight.cancel());
+    };
   }, [openSet]);
 
   // 影子飞到一半时开了安全模式：成人内容的页的影子立即遮住。

@@ -4,27 +4,40 @@ import type { Candidate } from "./bindings/Candidate";
 import type { ConditionTree } from "./bindings/ConditionTree";
 import type { SearchInput } from "./bindings/SearchInput";
 import { App } from "./App";
-import { library, candidates, resolved, setShowApproxSource, clean, backend, LocalSearchFixture, sent, openLibrary } from "./App.fixtures";
+import {
+  library,
+  candidates,
+  resolved,
+  setShowApproxSource,
+  clean,
+  backend,
+  LocalSearchFixture,
+  sent,
+  openLibrary,
+} from "./App.fixtures";
 import type { Args } from "./test/backend";
 import { chooseOption } from "./test/select";
 
 describe("查找", () => {
   const box = () => screen.findByRole("combobox", { name: "查找参考图" });
   const lastInput = () => (sent("workspace_resolve").at(-1) as { input: SearchInput }).input;
-  const lastQuery = () =>
-    (sent("workspace_browse").at(-1) as { query: { conditions: ConditionTree } }).query;
+  const lastQuery = () => (sent("workspace_browse").at(-1) as { query: { conditions: ConditionTree } }).query;
 
   it("登记另一个图库保留全局条件，旧候选和旧条件树按代次重新解析", async () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
     let finishCandidates!: (value: Candidate[]) => void;
     let finishTree!: (value: ConditionTree) => void;
-    const oldCandidates = new Promise<Candidate[]>((resolve) => { finishCandidates = resolve; });
-    const oldTree = new Promise<ConditionTree>((resolve) => { finishTree = resolve; });
+    const oldCandidates = new Promise<Candidate[]>((resolve) => {
+      finishCandidates = resolve;
+    });
+    const oldTree = new Promise<ConditionTree>((resolve) => {
+      finishTree = resolve;
+    });
     let requests = 0;
     backend(library, clean, {
       registered_libraries: () => [library, other].map((library) => ({ library, unavailable: null })),
       workspace_resolve: () => oldTree,
-      workspace_candidates: () => requests++ === 0 ? oldCandidates : [],
+      workspace_candidates: () => (requests++ === 0 ? oldCandidates : []),
     });
     render(<App />);
     const input = await box();
@@ -37,7 +50,12 @@ describe("查找", () => {
     await waitFor(() => expect(sent("workspace_candidates")).toHaveLength(2));
     await act(() => {
       finishCandidates(candidates);
-      finishTree(resolved({ conditions: [{ any: [{ kind: "text", text: "旧库条件", dismissed: [] }], negate: false }], exact: false }));
+      finishTree(
+        resolved({
+          conditions: [{ any: [{ kind: "text", text: "旧库条件", dismissed: [] }], negate: false }],
+          exact: false,
+        }),
+      );
     });
 
     expect(within(screen.getByRole("listbox", { name: "查找参考图" })).getAllByRole("option")).toHaveLength(1);
@@ -50,13 +68,14 @@ describe("查找", () => {
     render(<App />);
     fireEvent.change(await box(), { target: { value: "某某" } });
 
-    await waitFor(() => expect(within(screen.getByRole("listbox", { name: "查找参考图" })).getAllByRole("option")).toHaveLength(4));
-    expect(within(screen.getByRole("listbox", { name: "查找参考图" })).getAllByRole("option").map((o) => o.textContent)).toEqual([
-      "查找“某某”",
-      "角色：某某8",
-      "作者：某某3",
-      "蓝发别名 某某色1",
-    ]);
+    await waitFor(() =>
+      expect(within(screen.getByRole("listbox", { name: "查找参考图" })).getAllByRole("option")).toHaveLength(4),
+    );
+    expect(
+      within(screen.getByRole("listbox", { name: "查找参考图" }))
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual(["查找“某某”", "角色：某某8", "作者：某某3", "蓝发别名 某某色1"]);
     expect(sent("workspace_candidates").at(-1)).toMatchObject({ text: "某某", lang: "zh-CN" });
   });
 
@@ -160,9 +179,7 @@ describe("近似查找", () => {
     const menu = await screen.findByRole("menu");
     expect(menu.textContent).toContain("不带“水色发”的相近标签：");
     fireEvent.click(within(menu).getByRole("menuitem", { name: "只这次" }));
-    await waitFor(() =>
-      expect(lastInput().conditions[0].any[0]).toEqual({ kind: "tag", id: "B", dismissed: ["Q"] }),
-    );
+    await waitFor(() => expect(lastInput().conditions[0].any[0]).toEqual({ kind: "tag", id: "B", dismissed: ["Q"] }));
     await waitFor(() => expect(chips().textContent).not.toContain("水色发"));
     expect(sent("set_tag_approx")).toEqual([]);
 
@@ -259,10 +276,14 @@ describe("界面缩放", () => {
     key("=");
     key("=");
     await waitFor(() => expect(sent("set_ui_scale")).toEqual([{ percent: 110 }]));
-    await act(async () => { pending.shift()!(); });
+    await act(async () => {
+      pending.shift()!();
+    });
 
     await waitFor(() => expect(sent("set_ui_scale")).toEqual([{ percent: 110 }, { percent: 150 }]));
-    await act(async () => { pending.shift()!(); });
+    await act(async () => {
+      pending.shift()!();
+    });
     await act(async () => {});
     expect(sent("set_ui_scale")).toHaveLength(2);
     expect(current).toBe(150);
@@ -293,4 +314,3 @@ describe("界面缩放", () => {
     await waitFor(() => expect(select.textContent).toBe("175%"));
   });
 });
-

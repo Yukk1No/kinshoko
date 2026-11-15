@@ -23,7 +23,10 @@ export function applyInterfaceLanguage(lang: string): void {
 export function followInterfaceLanguage(): () => void {
   let alive = true;
   const unlisten = onInterfaceLanguage(applyInterfaceLanguage);
-  interfaceLanguage().then((lang) => alive && applyInterfaceLanguage(lang), () => {});
+  interfaceLanguage().then(
+    (lang) => alive && applyInterfaceLanguage(lang),
+    () => {},
+  );
   return () => {
     alive = false;
     // 忽略失败：收尾时取消监听；之后的事件不再处理。

@@ -7,7 +7,6 @@
 
 import { browserEnv, type ProbeEnv } from "./frameProbe";
 
-
 export const INSPECTOR_BUDGET_MS = 100;
 
 export type InspectorReport = {
@@ -29,7 +28,10 @@ export type InspectorReport = {
 const quantile = (sorted: number[], q: number) =>
   sorted.length ? sorted[Math.min(sorted.length - 1, Math.ceil(q * sorted.length) - 1)] : null;
 
-export function summarizeSelections(samples: number[], { timedOut, skipped }: { timedOut: number; skipped: number }): InspectorReport {
+export function summarizeSelections(
+  samples: number[],
+  { timedOut, skipped }: { timedOut: number; skipped: number },
+): InspectorReport {
   const sorted = [...samples].sort((a, b) => a - b);
   const overBudget = sorted.filter((ms) => ms > INSPECTOR_BUDGET_MS).length;
   return {
@@ -50,7 +52,10 @@ const busy = (el: Element | null) => !el || el.getAttribute("aria-busy") === "tr
 
 /** 详情面板正在显示 id 这张图：面板标明的选择就是它，详情与标签都已是新读到的（标签面板自己标着 aria-busy）。 */
 export function inspectorShows(inspector: ParentNode, id: string): boolean {
-  const marker = inspector instanceof Element && inspector.hasAttribute("data-selection") ? inspector : inspector.querySelector("[data-selection]");
+  const marker =
+    inspector instanceof Element && inspector.hasAttribute("data-selection")
+      ? inspector
+      : inspector.querySelector("[data-selection]");
   if (marker?.getAttribute("data-selection") !== id) return false;
   return !busy(inspector.querySelector(".selection-detail")) && !busy(inspector.querySelector(".tag-panel"));
 }
@@ -68,24 +73,40 @@ export type SelectionOptions = {
   env?: ProbeEnv;
 };
 
-export async function measureSelections({ wall, inspector, count = 20, timeoutMs = 2000, settleFrames = 10, env = browserEnv() }: SelectionOptions): Promise<InspectorReport> {
+export async function measureSelections({
+  wall,
+  inspector,
+  count = 20,
+  timeoutMs = 2000,
+  settleFrames = 10,
+  env = browserEnv(),
+}: SelectionOptions): Promise<InspectorReport> {
   const samples: number[] = [];
   let timedOut = 0;
   let skipped = 0;
   for (const card of [...wall.querySelectorAll<HTMLElement>(".card")].slice(0, count)) {
     const id = card.dataset.id;
-    if (!id) { skipped++; continue; }
+    if (!id) {
+      skipped++;
+      continue;
+    }
     const start = env.now();
     card.click();
     for (;;) {
       await nextFrame(env);
       const box = inspector();
-      if (box?.querySelector(".workspace-sources")) { skipped++; break; }
+      if (box?.querySelector(".workspace-sources")) {
+        skipped++;
+        break;
+      }
       if (box && inspectorShows(box, id)) {
         samples.push(env.now() - start);
         break;
       }
-      if (env.now() - start > timeoutMs) { timedOut++; break; }
+      if (env.now() - start > timeoutMs) {
+        timedOut++;
+        break;
+      }
     }
     for (let i = 0; i < settleFrames; i++) await nextFrame(env);
   }

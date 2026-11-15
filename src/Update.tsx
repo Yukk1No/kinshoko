@@ -18,7 +18,10 @@ function progressText(p: UpdateProgress | null): string {
   if (p === null) return i18n.t("update:progress.starting");
   return p.total === null
     ? i18n.t("update:progress.downloaded", { downloaded: formatBytes(p.downloaded) })
-    : i18n.t("update:progress.downloadedOfTotal", { downloaded: formatBytes(p.downloaded), total: formatBytes(p.total) });
+    : i18n.t("update:progress.downloadedOfTotal", {
+        downloaded: formatBytes(p.downloaded),
+        total: formatBytes(p.total),
+      });
 }
 
 /** 安装：下载期间显示进度；成功时 Kinshoko 退出，由安装程序装好后重新启动。 */
@@ -54,7 +57,11 @@ function useInstall() {
  * 手动更新构建说明安装包步骤；自动更新构建缺少条件时说明原因，这两种情况不显示更新通道。
  * 换通道（#204）由设置页保存；保存成功后按新通道重新检查。
  */
-export function UpdateSection({ version = null, channel, onChannel }: {
+export function UpdateSection({
+  version = null,
+  channel,
+  onChannel,
+}: {
   version?: string | null;
   channel?: UpdateChannel;
   /** 保存更新通道；返回是否成功（失败原因由设置页显示）。 */
@@ -86,53 +93,120 @@ export function UpdateSection({ version = null, channel, onChannel }: {
     try {
       setStatus(await checkUpdate());
     } catch (reason) {
-      setStatus({ state: "failed", message: reason instanceof CommandFailure ? reason.error : { code: "system", detail: errorText(reason) } });
+      setStatus({
+        state: "failed",
+        message: reason instanceof CommandFailure ? reason.error : { code: "system", detail: errorText(reason) },
+      });
     } finally {
       setChecking(false);
     }
   };
 
   const changeChannel = async (next: UpdateChannel) => {
-    if (onChannel && await onChannel(next)) await check();
+    if (onChannel && (await onChannel(next))) await check();
   };
 
-  const pill = status.state === "upToDate" ? <StatusPill tone="ok" icon={<CircleCheck size={12} aria-hidden="true" />}>{t("upToDate")}</StatusPill>
-    : status.state === "available" ? <StatusPill tone="accent">{t("available")}</StatusPill>
-    : status.state === "failed" ? <StatusPill tone="warn">{t("checkFailed")}</StatusPill> : null;
+  const pill =
+    status.state === "upToDate" ? (
+      <StatusPill tone="ok" icon={<CircleCheck size={12} aria-hidden="true" />}>
+        {t("upToDate")}
+      </StatusPill>
+    ) : status.state === "available" ? (
+      <StatusPill tone="accent">{t("available")}</StatusPill>
+    ) : status.state === "failed" ? (
+      <StatusPill tone="warn">{t("checkFailed")}</StatusPill>
+    ) : null;
   return (
     <SettingsGroup label={t("group")}>
-      <SettingsRow icon={<Info size={16} />} title={t("currentVersion")} meta={version ?? "Kinshoko"}>{pill}</SettingsRow>
+      <SettingsRow icon={<Info size={16} />} title={t("currentVersion")} meta={version ?? "Kinshoko"}>
+        {pill}
+      </SettingsRow>
       {status.state === "manual" ? (
-        <SettingsRow icon={<Download size={16} />} title={t("manual.title")} hint={t("manual.hint")}
-          below={steps && <div className="k-set-note">
-            <p>{describeCommandError(status.message)}</p>
-            <p>{t("manual.steps")}</p>
-          </div>}>
-          <button type="button" className="k-btn is-sm" aria-expanded={steps} onClick={() => setSteps(!steps)}><span className="k-label">{steps ? t("manual.hideSteps") : t("manual.showSteps")}</span></button>
+        <SettingsRow
+          icon={<Download size={16} />}
+          title={t("manual.title")}
+          hint={t("manual.hint")}
+          below={
+            steps && (
+              <div className="k-set-note">
+                <p>{describeCommandError(status.message)}</p>
+                <p>{t("manual.steps")}</p>
+              </div>
+            )
+          }
+        >
+          <button type="button" className="k-btn is-sm" aria-expanded={steps} onClick={() => setSteps(!steps)}>
+            <span className="k-label">{steps ? t("manual.hideSteps") : t("manual.showSteps")}</span>
+          </button>
         </SettingsRow>
       ) : status.state === "disabled" ? (
-        <SettingsRow icon={<Download size={16} />} title={t("automatic.title")} meta={t("automatic.disabled")} below={<p className="k-set-note">{describeCommandError(status.message)}</p>} />
+        <SettingsRow
+          icon={<Download size={16} />}
+          title={t("automatic.title")}
+          meta={t("automatic.disabled")}
+          below={<p className="k-set-note">{describeCommandError(status.message)}</p>}
+        />
       ) : (
         <>
           {channel !== undefined && onChannel && (
-            <SettingsRow icon={<FlaskConical size={16} />} title={t("channel.title")} hint={channel === "beta" ? t("channel.betaHint") : t("channel.stableHint")}>
-              <Segmented<UpdateChannel> label={t("channel.title")} value={channel} onChange={(next) => void changeChannel(next)} options={[
-                { value: "stable", label: t("channel.stable") }, { value: "beta", label: t("channel.beta") },
-              ]} />
+            <SettingsRow
+              icon={<FlaskConical size={16} />}
+              title={t("channel.title")}
+              hint={channel === "beta" ? t("channel.betaHint") : t("channel.stableHint")}
+            >
+              <Segmented<UpdateChannel>
+                label={t("channel.title")}
+                value={channel}
+                onChange={(next) => void changeChannel(next)}
+                options={[
+                  { value: "stable", label: t("channel.stable") },
+                  { value: "beta", label: t("channel.beta") },
+                ]}
+              />
             </SettingsRow>
           )}
           {status.state === "available" && (
-            <SettingsRow icon={<Download size={16} />} title={t("install.title", { version: status.version })} meta={installing ? progressText(progress) : undefined}
-              below={status.notes && <p className="k-set-note update-notes">{status.notes}</p>}>
-              {!installing && <button type="button" className="k-btn is-sm is-primary" onClick={() => void install()}><span className="k-label">{t("install.action")}</span></button>}
+            <SettingsRow
+              icon={<Download size={16} />}
+              title={t("install.title", { version: status.version })}
+              meta={installing ? progressText(progress) : undefined}
+              below={status.notes && <p className="k-set-note update-notes">{status.notes}</p>}
+            >
+              {!installing && (
+                <button type="button" className="k-btn is-sm is-primary" onClick={() => void install()}>
+                  <span className="k-label">{t("install.action")}</span>
+                </button>
+              )}
             </SettingsRow>
           )}
-          <SettingsRow icon={<RefreshCw size={16} />} title={t("check.title")}
-            below={(status.state === "failed" || error !== null) && <>
-              {status.state === "failed" && <p className="k-set-error" role="alert">{describeCommandError(status.message)}</p>}
-              {error !== null && <p className="k-set-error" role="alert">{error}</p>}
-            </>}>
-            <button type="button" className="k-btn is-sm" disabled={checking || installing} onClick={() => void check()}><span className="k-label">{t("check.action")}</span></button>
+          <SettingsRow
+            icon={<RefreshCw size={16} />}
+            title={t("check.title")}
+            below={
+              (status.state === "failed" || error !== null) && (
+                <>
+                  {status.state === "failed" && (
+                    <p className="k-set-error" role="alert">
+                      {describeCommandError(status.message)}
+                    </p>
+                  )}
+                  {error !== null && (
+                    <p className="k-set-error" role="alert">
+                      {error}
+                    </p>
+                  )}
+                </>
+              )
+            }
+          >
+            <button
+              type="button"
+              className="k-btn is-sm"
+              disabled={checking || installing}
+              onClick={() => void check()}
+            >
+              <span className="k-label">{t("check.action")}</span>
+            </button>
           </SettingsRow>
         </>
       )}
@@ -165,8 +239,11 @@ export function UpdateNotice() {
       content = next;
       toast.update(id, next());
     };
-    const installing = (version: string, p: UpdateProgress | null) => () =>
-      ({ title: i18n.t("update:notice.installing", { version }), description: progressText(p), timeout: 0 });
+    const installing = (version: string, p: UpdateProgress | null) => () => ({
+      title: i18n.t("update:notice.installing", { version }),
+      description: progressText(p),
+      timeout: 0,
+    });
     const install = (id: string, version: string) => {
       present(id, installing(version, null));
       progress = onUpdateProgress((p) => present(id, installing(version, p)));
@@ -174,7 +251,9 @@ export function UpdateNotice() {
       installUpdate().catch((reason) => {
         stopProgress();
         present(id, () => ({
-          title: i18n.t("update:notice.failed"), description: errorText(reason), tone: "error",
+          title: i18n.t("update:notice.failed"),
+          description: errorText(reason),
+          tone: "error",
           action: { label: i18n.t("update:notice.retry"), onClick: () => install(id, version), keepOpen: true },
         }));
       });
@@ -185,15 +264,23 @@ export function UpdateNotice() {
       if (!alive || status?.state !== "available") return;
       const { version } = status;
       const available = () => ({
-        title: i18n.t("update:notice.available", { version }), timeout: 0,
+        title: i18n.t("update:notice.available", { version }),
+        timeout: 0,
         action: { label: i18n.t("update:install.action"), onClick: () => install(id, version), keepOpen: true },
       });
-      const id: string = toast.show({ ...available(), onClose: () => { if (shown === id) shown = null; } });
+      const id: string = toast.show({
+        ...available(),
+        onClose: () => {
+          if (shown === id) shown = null;
+        },
+      });
       shown = id;
       content = available;
-    // 自动检查不是画师点的，失败不打扰；设置 › 更新里点检查会显示原因。记一条供排查。
+      // 自动检查不是画师点的，失败不打扰；设置 › 更新里点检查会显示原因。记一条供排查。
     })().catch((e) => logFailure("automatic update check", e));
-    const relabel = () => { if (shown !== null && content) toast.update(shown, content()); };
+    const relabel = () => {
+      if (shown !== null && content) toast.update(shown, content());
+    };
     i18n.on("languageChanged", relabel);
     const close = () => {
       const id = shown;

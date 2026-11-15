@@ -86,10 +86,7 @@ export function changeSetting(change: SettingChange): Promise<ShellSettingsView>
 }
 
 /** 更换全局快捷键，立即生效；`null` 表示清除。失败时 reject 中文原因，原来的键不变。 */
-export function rebindShortcut(
-  action: ShortcutAction,
-  accelerator: string | null,
-): Promise<ShellSettingsView> {
+export function rebindShortcut(action: ShortcutAction, accelerator: string | null): Promise<ShellSettingsView> {
   return invoke<ShellSettingsView>("rebind_shortcut", { action, accelerator });
 }
 

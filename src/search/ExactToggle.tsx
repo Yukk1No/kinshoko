@@ -9,19 +9,43 @@ import { useTranslation } from "react-i18next";
  */
 export function ExactToggle({ exact, onChange }: { exact: boolean; onChange: (exact: boolean) => void }) {
   const { t } = useTranslation("search");
-  return <Tooltip.Root>
-    <Tooltip.Trigger closeOnClick={false}
-      render={<Toggle className="k-exact" aria-label={t("exact")} pressed={exact} onPressedChange={(next) => onChange(next)} />}>
-      <svg className="k-exact-glyph" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6"
-        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path className="k-exact-wave" d="M3 6c1.6-1.6 3.4-1.6 5 0s3.4 1.6 5 0M3 10c1.6-1.6 3.4-1.6 5 0s3.4 1.6 5 0" />
-        <path className="k-exact-line" d="M3.5 6h9M3.5 10h9" />
-      </svg>
-    </Tooltip.Trigger>
-    <Tooltip.Portal>
-      <Tooltip.Positioner className="k-positioner" side="bottom" sideOffset={8}>
-        <Tooltip.Popup className="k-tip">{t("exact")}</Tooltip.Popup>
-      </Tooltip.Positioner>
-    </Tooltip.Portal>
-  </Tooltip.Root>;
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger
+        closeOnClick={false}
+        render={
+          <Toggle
+            className="k-exact"
+            aria-label={t("exact")}
+            pressed={exact}
+            onPressedChange={(next) => onChange(next)}
+          />
+        }
+      >
+        <svg
+          className="k-exact-glyph"
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path
+            className="k-exact-wave"
+            d="M3 6c1.6-1.6 3.4-1.6 5 0s3.4 1.6 5 0M3 10c1.6-1.6 3.4-1.6 5 0s3.4 1.6 5 0"
+          />
+          <path className="k-exact-line" d="M3.5 6h9M3.5 10h9" />
+        </svg>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Positioner className="k-positioner" side="bottom" sideOffset={8}>
+          <Tooltip.Popup className="k-tip">{t("exact")}</Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
 }

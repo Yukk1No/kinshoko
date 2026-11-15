@@ -18,18 +18,32 @@ beforeEach(() => {
   fakeBackend({
     workspace_browse: () => {
       browsed += 1;
-      return workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 })));
+      return workspacePage(
+        Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 })),
+      );
     },
   });
 });
-afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 
 async function setup(density = 240) {
   const onDensityPreview = vi.fn();
   const onDensityCommit = vi.fn();
   const ref = createRef<WallHandle>();
-  const props = { workspaceScope: { kind: "all" as const }, scope: { kind: "all" as const }, reloadKey: 0, selected: new Set<string>(),
-    onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false, onDensityPreview, onDensityCommit };
+  const props = {
+    workspaceScope: { kind: "all" as const },
+    scope: { kind: "all" as const },
+    reloadKey: 0,
+    selected: new Set<string>(),
+    onSelectionChange: () => {},
+    onOpenImage: () => {},
+    viewerOpen: false,
+    onDensityPreview,
+    onDensityCommit,
+  };
   const view = render(<Wall ref={ref} {...props} density={density} />);
   await screen.findAllByRole("img");
   const wall = document.querySelector<HTMLElement>(".wall")!;
@@ -40,13 +54,19 @@ async function setup(density = 240) {
 }
 
 const box = (node: HTMLElement) => ({
-  left: parseFloat(node.style.left), top: parseFloat(node.style.top),
-  width: parseFloat(node.style.width), height: parseFloat(node.style.height),
+  left: parseFloat(node.style.left),
+  top: parseFloat(node.style.top),
+  width: parseFloat(node.style.width),
+  height: parseFloat(node.style.height),
 });
 const cards = () => [...document.querySelectorAll<HTMLElement>(".wall .card")];
 /** 墙上缩略图地址里的档位（`L1/id/档位`）。 */
-const shownTiers = () => new Set([...document.querySelectorAll<HTMLImageElement>(".wall .card img")]
-  .map((image) => Number(image.getAttribute("src")!.split("/").at(-1))));
+const shownTiers = () =>
+  new Set(
+    [...document.querySelectorAll<HTMLImageElement>(".wall .card img")].map((image) =>
+      Number(image.getAttribute("src")!.split("/").at(-1)),
+    ),
+  );
 /** jsdom 的图片墙在视口 (0, 0)：光标的 clientY 加上 scrollTop 即画布坐标。 */
 function cardUnder(wall: HTMLElement, x: number, y: number) {
   return cards().find((node) => {
@@ -81,7 +101,10 @@ it("缩放停在 140–420", async () => {
 
 it("缩放后光标下的那张图仍在视口里，中心仍在光标的高度", async () => {
   const { wall } = await setup();
-  for (const [x, y] of [[600, 400], [150, 120]] as const) {
+  for (const [x, y] of [
+    [600, 400],
+    [150, 120],
+  ] as const) {
     const target = cardUnder(wall, x, y).dataset.id!;
     for (let i = 0; i < 3; i++) ctrlWheel(wall, -100, x, y);
     const node = document.querySelector<HTMLElement>(`[data-id="${target}"]`)!;
@@ -97,19 +120,27 @@ it("滚动中只预览；最后一格后 220 ms 提交一次，提交后位置�
   const { wall, onDensityCommit, rerender } = await setup();
   vi.useFakeTimers();
   ctrlWheel(wall, -100);
-  act(() => { vi.advanceTimersByTime(150); });
+  act(() => {
+    vi.advanceTimersByTime(150);
+  });
   ctrlWheel(wall, -100);
   ctrlWheel(wall, -100);
-  act(() => { vi.advanceTimersByTime(219); });
+  act(() => {
+    vi.advanceTimersByTime(219);
+  });
   expect(onDensityCommit).not.toHaveBeenCalled();
-  act(() => { vi.advanceTimersByTime(1); });
+  act(() => {
+    vi.advanceTimersByTime(1);
+  });
   expect(onDensityCommit).toHaveBeenCalledTimes(1);
   expect(onDensityCommit).toHaveBeenLastCalledWith(320);
   const top = wall.scrollTop;
   const placed = cards().map((node) => [node.dataset.id, node.style.top, node.style.width]);
   const requests = browsed;
   vi.useRealTimers();
-  await act(async () => { rerender(320); });
+  await act(async () => {
+    rerender(320);
+  });
   expect(wall.scrollTop).toBe(top);
   expect(cards().map((node) => [node.dataset.id, node.style.top, node.style.width])).toEqual(placed);
   expect(browsed).toBe(requests);
@@ -121,7 +152,9 @@ it("提交的大小与原来同一个缩略图档位时不重新浏览，缩略�
   const requests = browsed;
   const dpr = window.devicePixelRatio || 1;
   expect(thumbnailTier(Math.ceil(250 * 1.5 * dpr))).toBe(thumbnailTier(Math.ceil(240 * 1.5 * dpr)));
-  await act(async () => { rerender(250); });
+  await act(async () => {
+    rerender(250);
+  });
   expect(browsed).toBe(requests);
   expect(shownTiers()).toEqual(new Set([thumbnailTier(Math.ceil(240 * 1.5 * dpr))]));
 });
@@ -131,14 +164,18 @@ it("缩回原来的大小时不提交，只撤掉预览", async () => {
   vi.useFakeTimers();
   ctrlWheel(wall, -100);
   ctrlWheel(wall, 100);
-  act(() => { vi.advanceTimersByTime(220); });
+  act(() => {
+    vi.advanceTimersByTime(220);
+  });
   expect(onDensityCommit).not.toHaveBeenCalled();
   expect(onDensityPreview).toHaveBeenLastCalledWith(null);
 });
 
 it("滑条预览仍以视口顶部的图为锚", async () => {
   const { wall, ref } = await setup();
-  const topCard = cards().filter((node) => box(node).top + box(node).height >= wall.scrollTop + 8).sort((a, b) => box(a).top - box(b).top || box(a).left - box(b).left)[0];
+  const topCard = cards()
+    .filter((node) => box(node).top + box(node).height >= wall.scrollTop + 8)
+    .sort((a, b) => box(a).top - box(b).top || box(a).left - box(b).left)[0];
   const offset = box(topCard).top - wall.scrollTop;
   act(() => ref.current!.previewDensity(320));
   const moved = box(document.querySelector<HTMLElement>(`[data-id="${topCard.dataset.id}"]`)!);

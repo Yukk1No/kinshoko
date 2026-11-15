@@ -10,7 +10,8 @@ const update: Translation<typeof zh> = {
   manual: {
     title: "Manual update",
     hint: "Quit from the tray, then run the new installer",
-    steps: "Quit Kinshoko from the tray, then run the new installer from the developer and install it to the same location. Open Kinshoko again to keep using your libraries, settings, reference groups and pins.",
+    steps:
+      "Quit Kinshoko from the tray, then run the new installer from the developer and install it to the same location. Open Kinshoko again to keep using your libraries, settings, reference groups and pins.",
     showSteps: "Show steps",
     hideSteps: "Hide steps",
   },
@@ -43,7 +44,6 @@ const update: Translation<typeof zh> = {
     installing: "Updating to {{version}}",
     failed: "Update failed",
     retry: "Retry",
-
   },
 };
 

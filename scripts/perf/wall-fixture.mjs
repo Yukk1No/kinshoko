@@ -12,7 +12,15 @@ import { deflateSync } from "node:zlib";
 
 /** 高宽比（高 / 宽）与出现权重。 */
 const RATIOS = [
-  [0.5, 1], [0.5625, 2], [0.75, 3], [1, 3], [1.333, 4], [1.5, 4], [1.778, 2], [2, 1], [3, 0.5],
+  [0.5, 1],
+  [0.5625, 2],
+  [0.75, 3],
+  [1, 3],
+  [1.333, 4],
+  [1.5, 4],
+  [1.778, 2],
+  [2, 1],
+  [3, 0.5],
 ];
 
 function mulberry32(seed) {
@@ -38,7 +46,8 @@ export function fixturePlan({ count = 5000, seed = 1, minSide = 640, maxSide = 1
   return Array.from({ length: count }, (_, i) => {
     const ratio = pickRatio();
     const long = Math.round(minSide + random() * (maxSide - minSide));
-    const [width, height] = ratio >= 1 ? [Math.max(1, Math.round(long / ratio)), long] : [long, Math.max(1, Math.round(long * ratio))];
+    const [width, height] =
+      ratio >= 1 ? [Math.max(1, Math.round(long / ratio)), long] : [long, Math.max(1, Math.round(long * ratio))];
     return { name: `wall-${String(i + 1).padStart(5, "0")}.png`, width, height, hue: Math.floor(random() * 360) };
   });
 }
@@ -106,7 +115,12 @@ export function writeFixture(dir, options = {}) {
     writeFileSync(join(dir, item.name), bytes);
     return { ...item, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
   });
-  const manifest = { generator: "scripts/perf/wall-fixture.mjs", seed: options.seed ?? 1, count: images.length, images };
+  const manifest = {
+    generator: "scripts/perf/wall-fixture.mjs",
+    seed: options.seed ?? 1,
+    count: images.length,
+    images,
+  };
   writeFileSync(join(dir, "fixture.json"), JSON.stringify(manifest, null, 2));
   return manifest;
 }

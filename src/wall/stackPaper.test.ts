@@ -3,15 +3,21 @@ import { stackInset, stackPaper, type Sheet } from "./stackPaper";
 
 /** 一层纸静止时四个角的位置：坐标原点是封面左上角，纸的左上角与封面对齐、绕中心转。 */
 function restCorners(sheet: Sheet) {
-  const cx = sheet.w / 2 + sheet.rest.x, cy = sheet.h / 2 + sheet.rest.y;
-  const a = sheet.rest.r * Math.PI / 180;
-  return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([dx, dy]) => ({
-    x: cx + (dx * sheet.w / 2) * Math.cos(a) - (dy * sheet.h / 2) * Math.sin(a),
-    y: cy + (dx * sheet.w / 2) * Math.sin(a) + (dy * sheet.h / 2) * Math.cos(a),
+  const cx = sheet.w / 2 + sheet.rest.x,
+    cy = sheet.h / 2 + sheet.rest.y;
+  const a = (sheet.rest.r * Math.PI) / 180;
+  return [
+    [-1, -1],
+    [1, -1],
+    [1, 1],
+    [-1, 1],
+  ].map(([dx, dy]) => ({
+    x: cx + ((dx * sheet.w) / 2) * Math.cos(a) - ((dy * sheet.h) / 2) * Math.sin(a),
+    y: cy + ((dx * sheet.w) / 2) * Math.sin(a) + ((dy * sheet.h) / 2) * Math.cos(a),
   }));
 }
 /** 纸边露出的长度：转角乘半条对角线。 */
-const edge = (sheet: Sheet, r: number) => Math.hypot(sheet.w, sheet.h) / 2 * Math.abs(r) * Math.PI / 180;
+const edge = (sheet: Sheet, r: number) => ((Math.hypot(sheet.w, sheet.h) / 2) * Math.abs(r) * Math.PI) / 180;
 
 // 一摞的纸张（#418，维护者 2026-11-07 定为「统一朝向」）：封面摆正，下面几层整体朝一边歪、越往下越歪。
 // 原型的格子封面宽 140 像素，像素数值都以它为准；格子更宽时纸边按比例加宽（维护者 2026-11-08）。
@@ -30,13 +36,36 @@ describe("一摞的纸张", () => {
   });
 
   it("下面几层与封面同宽，高度按各页自己的比例，最多比封面高出 7 像素（同原型）", () => {
-    const [deepest, , top] = stackPaper("pixiv:7", [{ w: 100, h: 100 }, { w: 100, h: 120 }, { w: 100, h: 130 }, { w: 100, h: 125 }], face);
+    const [deepest, , top] = stackPaper(
+      "pixiv:7",
+      [
+        { w: 100, h: 100 },
+        { w: 100, h: 120 },
+        { w: 100, h: 130 },
+        { w: 100, h: 125 },
+      ],
+      face,
+    );
     expect([top.w, deepest.w]).toEqual([140, 140]);
     expect(top.h).toBe(168);
     expect(deepest.h).toBe(175);
-    const [short] = stackPaper("pixiv:7", [{ w: 100, h: 100 }, { w: 100, h: 60 }], face);
+    const [short] = stackPaper(
+      "pixiv:7",
+      [
+        { w: 100, h: 100 },
+        { w: 100, h: 60 },
+      ],
+      face,
+    );
     expect(short.h).toBeCloseTo(180 * 0.84, 6);
-    const [tall] = stackPaper("pixiv:7", [{ w: 100, h: 100 }, { w: 100, h: 400 }], face);
+    const [tall] = stackPaper(
+      "pixiv:7",
+      [
+        { w: 100, h: 100 },
+        { w: 100, h: 400 },
+      ],
+      face,
+    );
     expect(tall.h).toBe(187);
   });
 
@@ -97,7 +126,12 @@ describe("一摞的纸张", () => {
 // 一摞在瀑布流里的安全边距：格子按静止时最外扩的那个纸角留出内缩，不按固定值。
 describe("一摞的安全边距", () => {
   const keys = Array.from({ length: 40 }, (_, i) => `pixiv:${2000 + i * 53}`);
-  const pages = [{ w: 100, h: 140 }, { w: 100, h: 150 }, { w: 100, h: 120 }, { w: 100, h: 160 }];
+  const pages = [
+    { w: 100, h: 140 },
+    { w: 100, h: 150 },
+    { w: 100, h: 120 },
+    { w: 100, h: 160 },
+  ];
   const outermost = (key: string, box: number, inset: number) => {
     const face = { w: box - inset * 2, h: (box - inset * 2) * 1.4 };
     let reach = 0;

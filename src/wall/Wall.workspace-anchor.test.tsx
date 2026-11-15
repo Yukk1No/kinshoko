@@ -14,23 +14,43 @@ beforeEach(() => {
   mockConvertFileSrc("windows");
   fakeBackend({ workspace_browse: () => new Promise<WorkspacePage>((resolve) => replies.push(resolve)) });
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 it("provider refresh keeps the viewed card in place while the new page loads and after it replaces the old one", async () => {
   const cards = Array.from({ length: 121 }, (_, index) => ({
-    id: String(index), width: 100, height: 100, adult: false, thumbnail: "A/" + index + "/256",
-    libraryId: "A", imageId: String(index), sources: [],
+    id: String(index),
+    width: 100,
+    height: 100,
+    adult: false,
+    thumbnail: "A/" + index + "/256",
+    libraryId: "A",
+    imageId: String(index),
+    sources: [],
   }));
-  const page: WorkspacePage = { cards, total: cards.length, nextCursor: null, status: { revision: "r", libraries: [] } };
-  const props = { scope: { kind: "all" as const }, workspaceScope: { kind: "all" as const },
-    safeMode: true, selected: new Set<string>(), onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false };
+  const page: WorkspacePage = {
+    cards,
+    total: cards.length,
+    nextCursor: null,
+    status: { revision: "r", libraries: [] },
+  };
+  const props = {
+    scope: { kind: "all" as const },
+    workspaceScope: { kind: "all" as const },
+    safeMode: true,
+    selected: new Set<string>(),
+    onSelectionChange: () => {},
+    onOpenImage: () => {},
+    viewerOpen: false,
+  };
   const view = render(<Wall {...props} reloadKey={0} />);
   await act(async () => replies[0](page));
   await screen.findAllByRole("img");
   const wall = document.querySelector<HTMLElement>(".wall")!;
   wall.scrollTop = 2000;
   fireEvent.scroll(wall);
-  const visibleBefore = [...wall.querySelectorAll<HTMLElement>(".card")].find(card => {
+  const visibleBefore = [...wall.querySelectorAll<HTMLElement>(".card")].find((card) => {
     const top = parseFloat(card.style.top);
     return top >= wall.scrollTop && top < wall.scrollTop + wall.clientHeight;
   })!;

@@ -231,7 +231,8 @@ jobs:
       - name: 前端与 Rust 的命令名对照
         run: node scripts/check-command-names.mjs
 
-      # 只查 biome.json 里开的三条规则（hooks 依赖、hooks 在顶层、未使用的 import），不查格式（#523）。
+      # biome.json 里开的三条规则（hooks 依赖、hooks 在顶层、未使用的 import），加上 src、scripts、e2e 的格式（#523）。
+      # 格式不对时本地跑 npm run format。
       - name: Biome 检查
         run: npm run lint
 

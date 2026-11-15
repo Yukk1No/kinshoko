@@ -3,7 +3,14 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { App } from "./App";
 import { backend, clean, library, page, selectionBar, sent, wallPage } from "./App.fixtures";
 
-const source = (libraryId: string, imageId: string) => ({ libraryId, libraryName: libraryId, imageId, matches: true, unavailable: null, deleted: false });
+const source = (libraryId: string, imageId: string) => ({
+  libraryId,
+  libraryName: libraryId,
+  imageId,
+  matches: true,
+  unavailable: null,
+  deleted: false,
+});
 /** 每张卡片的来源；第一份是卡片显示的那份。 */
 const sources: Record<string, ReturnType<typeof source>[]> = {
   a: [source("L1", "a")],
@@ -15,15 +22,30 @@ const sources: Record<string, ReturnType<typeof source>[]> = {
 function start() {
   const first = page.cards[0];
   backend(library, clean, {
-    workspace_browse: () => wallPage({ ...page, total: 4, nextCursor: null, cards: Object.keys(sources).map((id) => ({ ...first, id, thumbnail: `L1/${id}/256` })) }),
+    workspace_browse: () =>
+      wallPage({
+        ...page,
+        total: 4,
+        nextCursor: null,
+        cards: Object.keys(sources).map((id) => ({ ...first, id, thumbnail: `L1/${id}/256` })),
+      }),
   });
-  const internals = (window as unknown as { __TAURI_INTERNALS__: { invoke: (...args: unknown[]) => Promise<unknown> } }).__TAURI_INTERNALS__;
+  const internals = (window as unknown as { __TAURI_INTERNALS__: { invoke: (...args: unknown[]) => Promise<unknown> } })
+    .__TAURI_INTERNALS__;
   const invoke = internals.invoke;
   internals.invoke = async (...args) => {
     const value = await invoke(...args);
     if (!String(args[0]).endsWith("|workspace_browse")) return value;
     const result = value as { cards: { id: string }[] };
-    return { ...result, cards: result.cards.map((card) => ({ ...card, libraryId: sources[card.id][0].libraryId, imageId: sources[card.id][0].imageId, sources: sources[card.id] })) };
+    return {
+      ...result,
+      cards: result.cards.map((card) => ({
+        ...card,
+        libraryId: sources[card.id][0].libraryId,
+        imageId: sources[card.id][0].imageId,
+        sources: sources[card.id],
+      })),
+    };
   };
   render(<App />);
 }
@@ -33,7 +55,12 @@ const pick = (first: string, ...rest: string[]) => {
   fireEvent.keyDown(card(first), { key: " " });
   for (const id of rest) fireEvent.click(card(id), { ctrlKey: true });
 };
-const bar = () => waitFor(() => { const toolbar = selectionBar(); if (!toolbar) throw new Error("多选悬浮栏不在"); return toolbar; });
+const bar = () =>
+  waitFor(() => {
+    const toolbar = selectionBar();
+    if (!toolbar) throw new Error("多选悬浮栏不在");
+    return toolbar;
+  });
 /** 退场动画结束后读：离开中的悬浮栏还留在 DOM 里，不能算还在。 */
 const settled = () => new Promise((done) => setTimeout(done, 1000));
 
@@ -42,7 +69,9 @@ describe("多选悬浮栏：选择跨图库", () => {
     start();
     await screen.findAllByRole("img");
     pick("a", "b");
-    await waitFor(async () => expect(within(await bar()).getByRole("button", { name: "移到文件夹" })).toHaveProperty("disabled", false));
+    await waitFor(async () =>
+      expect(within(await bar()).getByRole("button", { name: "移到文件夹" })).toHaveProperty("disabled", false),
+    );
 
     fireEvent.click(card("x"), { ctrlKey: true });
     await settled();
@@ -51,7 +80,9 @@ describe("多选悬浮栏：选择跨图库", () => {
     expect(within(toolbar).getByRole("button", { name: "移到文件夹" })).toHaveProperty("disabled", true);
 
     fireEvent.click(card("x"), { ctrlKey: true });
-    await waitFor(() => expect(within(selectionBar()!).getByRole("button", { name: "移到文件夹" })).toHaveProperty("disabled", false));
+    await waitFor(() =>
+      expect(within(selectionBar()!).getByRole("button", { name: "移到文件夹" })).toHaveProperty("disabled", false),
+    );
   });
 
   it("移到回收站按图库写入，只动卡片显示的那份来源，然后取消选择", async () => {
@@ -60,14 +91,16 @@ describe("多选悬浮栏：选择跨图库", () => {
     pick("a", "x", "m");
     await settled();
     fireEvent.click(within(await bar()).getByRole("button", { name: "移到回收站，Del" }));
-    await waitFor(() => expect(sent("workspace_edit_sources").at(-1)).toMatchObject({
-      targets: [
-        { libraryId: "L1", imageId: "a", contentId: "a" },
-        { libraryId: "L2", imageId: "x", contentId: "x" },
-        { libraryId: "L1", imageId: "m", contentId: "m" },
-      ],
-      edits: [{ kind: "delete" }],
-    }));
+    await waitFor(() =>
+      expect(sent("workspace_edit_sources").at(-1)).toMatchObject({
+        targets: [
+          { libraryId: "L1", imageId: "a", contentId: "a" },
+          { libraryId: "L2", imageId: "x", contentId: "x" },
+          { libraryId: "L1", imageId: "m", contentId: "m" },
+        ],
+        edits: [{ kind: "delete" }],
+      }),
+    );
     expect(sent("edit")).toEqual([]);
     await waitFor(() => expect(selectionBar()).toBeNull());
   });
@@ -81,10 +114,15 @@ describe("多选悬浮栏：选择跨图库", () => {
     await waitFor(() => expect(put).toHaveProperty("disabled", false));
     fireEvent.click(put);
     fireEvent.click(await screen.findByRole("menuitem", { name: /发型/ }));
-    await waitFor(() => expect(sent("workspace_edit_sources").at(-1)).toMatchObject({
-      targets: [{ libraryId: "L1", imageId: "a" }, { libraryId: "L1", imageId: "m" }],
-      edits: [{ kind: "addToFolder", folderId: "F2" }],
-    }));
+    await waitFor(() =>
+      expect(sent("workspace_edit_sources").at(-1)).toMatchObject({
+        targets: [
+          { libraryId: "L1", imageId: "a" },
+          { libraryId: "L1", imageId: "m" },
+        ],
+        edits: [{ kind: "addToFolder", folderId: "F2" }],
+      }),
+    );
     expect(selectionBar()).toBeTruthy();
   });
 

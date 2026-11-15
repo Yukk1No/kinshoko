@@ -7,7 +7,8 @@ export default {
   destinationRevoked: "图库已移除，无法保存到这里",
   sourceOriginalMissing: "这个来源的原图不可用，请重新连接原图库",
   identityChanged: "{{root}} 已是另一个图库，请重新选择位置打开",
-  libraryUnavailable: "图库暂时无法连接：{{root}}。请确认移动盘已接上；图库换了位置的话，请重新打开新位置。原因：{{reason}}",
+  libraryUnavailable:
+    "图库暂时无法连接：{{root}}。请确认移动盘已接上；图库换了位置的话，请重新打开新位置。原因：{{reason}}",
   organizeTimedOut: "{{libraries}}的导入迟迟没有完成，这次整理没有执行，请稍后再试",
   /** 列出资料库名称时每个名称的写法与分隔符。 */
   libraryName: "「{{name}}」",

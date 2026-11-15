@@ -50,28 +50,58 @@ it("钉住与加入参考组只取封面", async () => {
 });
 
 it("整摞永久删除时确认框写明一共几张", async () => {
-  backend.on("preview_permanent_delete_batch", [{ libraryId: "L1", preview: { imageIds: ["ia0", "ia1", "ia2"], groups: [], token: "t" }, error: null }]);
+  backend.on("preview_permanent_delete_batch", [
+    { libraryId: "L1", preview: { imageIds: ["ia0", "ia1", "ia2"], groups: [], token: "t" }, error: null },
+  ]);
   render(<Harness />);
   act(() => api.purge([stack("pixiv:1", ["a0", "a1", "a2"])]));
   expect(await screen.findByText("永久删除这 3 张图？原图与整理结果都会删除，无法恢复。")).toBeTruthy();
-  expect(calls("preview_permanent_delete_batch")[0]!.args).toEqual({ targets: [
-    { libraryId: "L1", imageId: "ia0" }, { libraryId: "L1", imageId: "ia1" }, { libraryId: "L1", imageId: "ia2" },
-  ] });
+  expect(calls("preview_permanent_delete_batch")[0]!.args).toEqual({
+    targets: [
+      { libraryId: "L1", imageId: "ia0" },
+      { libraryId: "L1", imageId: "ia1" },
+      { libraryId: "L1", imageId: "ia2" },
+    ],
+  });
 });
 
 function menuActions(): WallMenuActions {
   return {
-    open: vi.fn(), pin: vi.fn(), crop: vi.fn(), edit: vi.fn(), addToGroup: vi.fn(), inspectSources: vi.fn(),
-    purge: vi.fn(), importFrom: vi.fn(), selectAll: vi.fn(), setDensity: vi.fn(),
-    copy: vi.fn(), reveal: vi.fn(), importClipboard: vi.fn(), clipboardHasImage: vi.fn(async () => true),
-    folders: vi.fn(async () => []), inFolder: vi.fn(async () => false), groups: vi.fn(async () => []),
+    open: vi.fn(),
+    pin: vi.fn(),
+    crop: vi.fn(),
+    edit: vi.fn(),
+    addToGroup: vi.fn(),
+    inspectSources: vi.fn(),
+    purge: vi.fn(),
+    importFrom: vi.fn(),
+    selectAll: vi.fn(),
+    setDensity: vi.fn(),
+    copy: vi.fn(),
+    reveal: vi.fn(),
+    importClipboard: vi.fn(),
+    clipboardHasImage: vi.fn(async () => true),
+    folders: vi.fn(async () => []),
+    inFolder: vi.fn(async () => false),
+    groups: vi.fn(async () => []),
   };
 }
 function menuRows(cards: BrowserCard[]) {
-  render(<ContextMenu.Root open><MenuPopup label="图片墙菜单">
-    <WallMenu target={{ kind: "cards", cards, point: { x: 0, y: 0 } }} scope={{ kind: "all" }} density={240} actions={menuActions()} />
-  </MenuPopup></ContextMenu.Root>);
-  return within(screen.getByRole("menu")).getAllByRole("menuitem").map((row) => row.textContent);
+  render(
+    <ContextMenu.Root open>
+      <MenuPopup label="图片墙菜单">
+        <WallMenu
+          target={{ kind: "cards", cards, point: { x: 0, y: 0 } }}
+          scope={{ kind: "all" }}
+          density={240}
+          actions={menuActions()}
+        />
+      </MenuPopup>
+    </ContextMenu.Root>,
+  );
+  return within(screen.getByRole("menu"))
+    .getAllByRole("menuitem")
+    .map((row) => row.textContent);
 }
 
 it("右键整摞：移到回收站写明这一摞的张数；多选时算上每一摞的全部页，钉住只算封面", () => {

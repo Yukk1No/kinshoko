@@ -6,7 +6,10 @@ describe("临界阻尼弹簧", () => {
   const rest = (at = 0): Spring => ({ position: at, velocity: 0, target: at });
   const run = (s: Spring, ms: number, frame = 1000 / 60) => {
     const path: number[] = [];
-    for (let t = 0; t < ms; t += frame) { s = springStep(s, frame); path.push(s.position); }
+    for (let t = 0; t < ms; t += frame) {
+      s = springStep(s, frame);
+      path.push(s.position);
+    }
     return { s, path };
   };
 
@@ -19,7 +22,10 @@ describe("临界阻尼弹簧", () => {
     expect(at120).toBeGreaterThan(55);
     expect(at120).toBeLessThan(70);
     const { s: end, path } = run(s, 1000);
-    path.forEach((p, i) => { expect(p).toBeLessThanOrEqual(100 + 1e-9); if (i) expect(p).toBeGreaterThanOrEqual(path[i - 1]); });
+    path.forEach((p, i) => {
+      expect(p).toBeLessThanOrEqual(100 + 1e-9);
+      if (i) expect(p).toBeGreaterThanOrEqual(path[i - 1]);
+    });
     expect(end.position).toBeCloseTo(100, 0);
   });
 
@@ -66,14 +72,25 @@ function harness(o: { reduced?: boolean; limit?: number } = {}) {
   let frames: ((t: number) => void)[] = [];
   const el = document.createElement("div");
   let top = 0;
-  Object.defineProperty(el, "scrollTop", { configurable: true, get: () => top, set: (v: number) => { top = Math.max(0, Math.min(v, o.limit ?? 10_000)); } });
+  Object.defineProperty(el, "scrollTop", {
+    configurable: true,
+    get: () => top,
+    set: (v: number) => {
+      top = Math.max(0, Math.min(v, o.limit ?? 10_000));
+    },
+  });
   Object.defineProperty(el, "clientHeight", { configurable: true, value: 800 });
   const smooth = createSmoothWheel(el, {
     limit: () => o.limit ?? 10_000,
     reducedMotion: () => o.reduced ?? false,
     now: () => now,
-    raf: (cb) => { frames.push(cb); return frames.length; },
-    caf: () => { frames = []; },
+    raf: (cb) => {
+      frames.push(cb);
+      return frames.length;
+    },
+    caf: () => {
+      frames = [];
+    },
   });
   const tick = (ms = 1000 / 60) => {
     now += ms;
@@ -87,7 +104,19 @@ function harness(o: { reduced?: boolean; limit?: number } = {}) {
     el.dispatchEvent(e);
     return e;
   };
-  return { el, smooth, tick, wheel, pending: () => frames.length, get top() { return top; }, set top(v: number) { top = v; } };
+  return {
+    el,
+    smooth,
+    tick,
+    wheel,
+    pending: () => frames.length,
+    get top() {
+      return top;
+    },
+    set top(v: number) {
+      top = v;
+    },
+  };
 }
 
 describe("图片墙的滚轮插值", () => {

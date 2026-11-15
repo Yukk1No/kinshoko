@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cssRule } from "./cssRule";
-import ui from "./ui.css?raw";
+import ui from "./uiCss";
 
 const sheets = import.meta.glob<string>("../**/*.css", { query: "?raw", import: "default", eager: true });
 

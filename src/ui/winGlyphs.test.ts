@@ -9,11 +9,17 @@ function straightCentres(d: string) {
   const out: ["x" | "y", number][] = [];
   let y = 0;
   for (const [, cmd, args] of d.matchAll(/([MHVLAZ])([^MHVLAZ]*)/g)) {
-    const n = args.trim().split(/[\s,]+/).filter(Boolean).map(Number);
+    const n = args
+      .trim()
+      .split(/[\s,]+/)
+      .filter(Boolean)
+      .map(Number);
     if (cmd === "M" || cmd === "L") y = n[1];
     if (cmd === "A") y = n[6];
     if (cmd === "H") out.push(["y", y]);
-    if (cmd === "V") { out.push(["x", n.at(-1)!]); }
+    if (cmd === "V") {
+      out.push(["x", n.at(-1)!]);
+    }
   }
   return out;
 }
@@ -37,7 +43,9 @@ describe.each(scales)("窗口控件图形在 %s 倍缩放下", (dpr) => {
   });
 
   it("关闭图形左右、上下对称", () => {
-    const n = glyphPath("close", grid).match(/-?\d+(\.\d+)?/g)!.map(Number);
+    const n = glyphPath("close", grid)
+      .match(/-?\d+(\.\d+)?/g)!
+      .map(Number);
     expect(n[0] + n[2]).toBe(grid.size);
     expect(n[1] + n[3]).toBe(grid.size);
   });
@@ -47,7 +55,8 @@ describe.each(scales)("窗口控件图形在 %s 倍缩放下", (dpr) => {
     const at = snapGlyph(box, grid.size, dpr);
     expect(whole((box.left + at.left) * dpr)).toBe(true);
     expect(whole((box.top + at.top) * dpr)).toBe(true);
-    const centre = (box.left + at.left) * dpr + grid.size / 2, wanted = (box.left + box.width / 2) * dpr;
+    const centre = (box.left + at.left) * dpr + grid.size / 2,
+      wanted = (box.left + box.width / 2) * dpr;
     expect(Math.abs(centre - wanted)).toBeLessThanOrEqual(0.5 + 1e-6);
   });
 });

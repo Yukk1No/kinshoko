@@ -9,11 +9,22 @@ beforeEach(() => {
   resized = [];
   vi.stubGlobal("innerWidth", 1600);
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 function Harness({ initial = 320 }: { initial?: number }) {
   const [width, setWidth] = useState(initial);
-  return <InspectorResizer width={width} onResize={(next, done) => { resized.push({ width: next, done }); setWidth(next); }} />;
+  return (
+    <InspectorResizer
+      width={width}
+      onResize={(next, done) => {
+        resized.push({ width: next, done });
+        setWidth(next);
+      }}
+    />
+  );
 }
 
 const handle = () => screen.getByRole("separator", { name: "调整详情宽度" });

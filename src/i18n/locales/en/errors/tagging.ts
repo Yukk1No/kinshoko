@@ -16,7 +16,8 @@ export default {
   modelDirFailed: "Couldn't create the model folder: {{detail}}",
   modelUnreadable: "Couldn't read the model: {{detail}}",
   modelChecksumFailed: "{{model}} failed verification and was deleted. It will be downloaded again later",
-  modelTagsChecksumFailed: "The tag list for {{model}} failed verification and was deleted. It will be downloaded again later",
+  modelTagsChecksumFailed:
+    "The tag list for {{model}} failed verification and was deleted. It will be downloaded again later",
   modelIncomplete: "{{model}} is still incomplete after preparing it",
   modelRewriteFailed: "Couldn't rewrite {{model}}: {{detail}}",
   modelRewriteMismatch: "The rewritten {{model}} failed verification",
@@ -29,8 +30,10 @@ export default {
   modelPackageTagsInvalid: "The tag list {{file}} in the model package isn't in the right format",
   modelPackageUnsupported: "{{file}} in the model package isn't a model Kinshoko supports",
   modelPackageUnpackFailed: "Couldn't extract the model: {{detail}}",
-  modelPackageDamaged: "The model package failed verification: {{file}} is damaged or isn't a version Kinshoko supports",
-  modelPackageTagsMismatch: "The tag list {{file}} in the model package doesn't match {{model}} (its contents, order or number of rows differ)",
+  modelPackageDamaged:
+    "The model package failed verification: {{file}} is damaged or isn't a version Kinshoko supports",
+  modelPackageTagsMismatch:
+    "The tag list {{file}} in the model package doesn't match {{model}} (its contents, order or number of rows differ)",
   modelInstallFailed: "Couldn't install the model: {{detail}}",
   modelImportIncomplete: "{{model}} is still incomplete after importing it",
   downloadRefused: "The download failed: the server returned {{status}}",

@@ -2,11 +2,7 @@ import { useState, type KeyboardEvent } from "react";
 import { isComposingKey } from "./composing";
 
 /** 只在文本框里按 Enter 提交、Esc 放弃。 */
-export function NameInput(props: {
-  label: string;
-  initial: string;
-  onDone: (name: string | null) => void;
-}) {
+export function NameInput(props: { label: string; initial: string; onDone: (name: string | null) => void }) {
   const [value, setValue] = useState(props.initial);
   const key = (e: KeyboardEvent<HTMLInputElement>) => {
     if (isComposingKey(e)) return;

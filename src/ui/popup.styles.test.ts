@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import uiCss from "./ui.css?raw";
+import uiCss from "./uiCss";
 import menuCss from "./menu.css?raw";
 import tokensCss from "../styles/tokens.css?raw";
 import { cssRule } from "./cssRule";
+import { flatCss } from "../test/flatCss";
 
 const rule = (selector: string) => cssRule(uiCss, selector);
 
@@ -30,10 +31,12 @@ describe("共用弹层按 data-side 定进退场方向", () => {
 
   it("级联菜单不吃这条：它的进场按 menu.css，退场只淡出", () => {
     expect(cssRule(menuCss, ".k-popup[data-k-level][data-ending-style]").transform).toBeUndefined();
-    expect(cssRule(menuCss, '.k-popup[data-k-level][data-side="top"][data-starting-style]').transform).toContain("translateY(6px)");
+    expect(cssRule(menuCss, '.k-popup[data-k-level][data-side="top"][data-starting-style]').transform).toContain(
+      "translateY(6px)",
+    );
   });
 
   it("减弱动效下直接到终态", () => {
-    expect(tokensCss).toMatch(/prefers-reduced-motion: reduce\) \{ :root \{[^}]*--t-fast: 0ms/);
+    expect(flatCss(tokensCss)).toMatch(/prefers-reduced-motion: reduce\) \{ :root \{[^}]*--t-fast: 0ms/);
   });
 });

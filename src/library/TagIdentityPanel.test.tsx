@@ -6,21 +6,49 @@ import { fakeBackend } from "../test/backend";
 import { TagIdentityPanel } from "./TagIdentityPanel";
 import { chooseValue, optionNames } from "../test/select";
 
-
 it("inspects ambiguous local tags and saves an explicit shared correspondence", async () => {
-  const tag = (id: string, name: string) => ({ id, namespace: "general", names: [{ lang: "zh-CN", name }], aliases: [], external: [] });
+  const tag = (id: string, name: string) => ({
+    id,
+    namespace: "general",
+    names: [{ lang: "zh-CN", name }],
+    aliases: [],
+    external: [],
+  });
   const local = (id: string, name: string) => ({ ...tag(id, name), count: 1 });
-  const mapping = (libraryId: string, localTagId: string, catalogId: string, name: string) => ({ libraryId, localTagId, catalogId, legacy: local(localTagId, name), basis: "independent", nameProvenance: "pending" });
+  const mapping = (libraryId: string, localTagId: string, catalogId: string, name: string) => ({
+    libraryId,
+    localTagId,
+    catalogId,
+    legacy: local(localTagId, name),
+    basis: "independent",
+    nameProvenance: "pending",
+  });
   let workspace = {
-    libraries: [{ library: { id: "a", name: "第一库", root: "a" }, unavailable: null }, { library: { id: "b", name: "第二库", root: "b" }, unavailable: null }],
-    catalog: { revision: 1, tags: [tag("blue", "蓝发"), tag("azure", "青丝")], mappings: [mapping("a", "local-a", "blue", "蓝发"), mapping("b", "local-b", "azure", "青丝")] },
+    libraries: [
+      { library: { id: "a", name: "第一库", root: "a" }, unavailable: null },
+      { library: { id: "b", name: "第二库", root: "b" }, unavailable: null },
+    ],
+    catalog: {
+      revision: 1,
+      tags: [tag("blue", "蓝发"), tag("azure", "青丝")],
+      mappings: [mapping("a", "local-a", "blue", "蓝发"), mapping("b", "local-b", "azure", "青丝")],
+    },
   };
   fakeBackend({
     inspect_tag_catalog: () => workspace,
     correct_tag_mapping: (args) => {
       const a = args as { libraryId: string; localTagId: string; correction: { kind: string; catalogId: string } };
       expect(a).toEqual({ libraryId: "b", localTagId: "local-b", correction: { kind: "use", catalogId: "blue" } });
-      workspace = { ...workspace, catalog: { ...workspace.catalog, revision: 2, mappings: workspace.catalog.mappings.map((m) => m.localTagId === a.localTagId ? { ...m, catalogId: a.correction.catalogId, basis: "corrected" } : m) } };
+      workspace = {
+        ...workspace,
+        catalog: {
+          ...workspace.catalog,
+          revision: 2,
+          mappings: workspace.catalog.mappings.map((m) =>
+            m.localTagId === a.localTagId ? { ...m, catalogId: a.correction.catalogId, basis: "corrected" } : m,
+          ),
+        },
+      };
       return workspace;
     },
   });
@@ -28,7 +56,9 @@ it("inspects ambiguous local tags and saves an explicit shared correspondence", 
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
   const row = await screen.findByRole("row", { name: /第二库.*青丝/ });
   await chooseValue(within(row).getByRole("combobox"), "blue");
-  await waitFor(() => expect(within(row).getByRole<HTMLButtonElement>("button", { name: "保存对应" }).disabled).toBe(false));
+  await waitFor(() =>
+    expect(within(row).getByRole<HTMLButtonElement>("button", { name: "保存对应" }).disabled).toBe(false),
+  );
   fireEvent.click(within(row).getByRole("button", { name: "保存对应" }));
   const corrected = await screen.findByRole("row", { name: /第二库.*青丝.*已纠正/ });
   expect(within(corrected).getByText("青丝")).toBeTruthy();
@@ -38,49 +68,150 @@ it("inspects ambiguous local tags and saves an explicit shared correspondence", 
   for (const name of await optionNames(within(corrected).getByRole("combobox"))) expect(name).not.toMatch(/blue|local/);
 });
 
-it.each(["inspect", "correct"])("clears inspected records and discards a late %s result when safe mode changes", async (action) => {
-  const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "封印标签" }], aliases: [], external: [], count: 1 };
-  const workspace: TagCatalogWorkspace = {
-    libraries: [{ library: { id: "a", name: "资料库", root: "a" }, unavailable: null }],
-    catalog: { revision: 1, tags: [{ ...local, id: "shared", defaultNames: local.names, namePreferences: [] }, { ...local, id: "other", defaultNames: local.names, namePreferences: [], names: [{ lang: "zh-CN", name: "另一个身份" }] }], mappings: [{ libraryId: "a", localTagId: "local", catalogId: "shared", legacy: local, basis: "independent", nameProvenance: "pending" }] },
-  };
-  let inspected = false;
-  let finish: (workspace: TagCatalogWorkspace) => void = () => { throw new Error("request was not started"); };
-  const pending = new Promise<TagCatalogWorkspace>((resolve) => { finish = resolve; });
-  fakeBackend({
-    inspect_tag_catalog: () => {
-      if (!inspected) { inspected = true; return workspace; }
-      return pending;
-    },
-    correct_tag_mapping: () => pending,
-  });
-  render(<TagIdentityPanel />);
-  fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
-  const row = await screen.findByRole("row", { name: /资料库.*封印标签/ });
-  if (action === "correct") {
-    await chooseValue(within(row).getByRole("combobox"), "other");
-    fireEvent.click(within(row).getByRole("button", { name: "保存对应" }));
-  } else {
+it.each(["inspect", "correct"])(
+  "clears inspected records and discards a late %s result when safe mode changes",
+  async (action) => {
+    const local = {
+      id: "local",
+      namespace: "general" as const,
+      names: [{ lang: "zh-CN", name: "封印标签" }],
+      aliases: [],
+      external: [],
+      count: 1,
+    };
+    const workspace: TagCatalogWorkspace = {
+      libraries: [{ library: { id: "a", name: "资料库", root: "a" }, unavailable: null }],
+      catalog: {
+        revision: 1,
+        tags: [
+          { ...local, id: "shared", defaultNames: local.names, namePreferences: [] },
+          {
+            ...local,
+            id: "other",
+            defaultNames: local.names,
+            namePreferences: [],
+            names: [{ lang: "zh-CN", name: "另一个身份" }],
+          },
+        ],
+        mappings: [
+          {
+            libraryId: "a",
+            localTagId: "local",
+            catalogId: "shared",
+            legacy: local,
+            basis: "independent",
+            nameProvenance: "pending",
+          },
+        ],
+      },
+    };
+    let inspected = false;
+    let finish: (workspace: TagCatalogWorkspace) => void = () => {
+      throw new Error("request was not started");
+    };
+    const pending = new Promise<TagCatalogWorkspace>((resolve) => {
+      finish = resolve;
+    });
+    fakeBackend({
+      inspect_tag_catalog: () => {
+        if (!inspected) {
+          inspected = true;
+          return workspace;
+        }
+        return pending;
+      },
+      correct_tag_mapping: () => pending,
+    });
+    render(<TagIdentityPanel />);
     fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
-  }
-  await act(async () => { await emit("safe-mode-setting", true); finish(workspace); await pending; });
-  expect(screen.queryByRole("row", { name: /资料库.*封印标签/ })).toBeNull();
-});
+    const row = await screen.findByRole("row", { name: /资料库.*封印标签/ });
+    if (action === "correct") {
+      await chooseValue(within(row).getByRole("combobox"), "other");
+      fireEvent.click(within(row).getByRole("button", { name: "保存对应" }));
+    } else {
+      fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
+    }
+    await act(async () => {
+      await emit("safe-mode-setting", true);
+      finish(workspace);
+      await pending;
+    });
+    expect(screen.queryByRole("row", { name: /资料库.*封印标签/ })).toBeNull();
+  },
+);
 it("refreshes inspected shared labels after a global name vocabulary event", async () => {
-  const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "旧名称" }], aliases: [], external: [], count: 1 };
+  const local = {
+    id: "local",
+    namespace: "general" as const,
+    names: [{ lang: "zh-CN", name: "旧名称" }],
+    aliases: [],
+    external: [],
+    count: 1,
+  };
   let current = "默认名称";
-  fakeBackend({ inspect_tag_catalog: () => ({ libraries: [], catalog: { revision: 1, tags: [{ ...local, id: "shared", names: [{ lang: "zh-CN", name: current }], defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "a", localTagId: "local", catalogId: "shared", legacy: local, basis: "independent", nameProvenance: "catalog" }] } }) });
+  fakeBackend({
+    inspect_tag_catalog: () => ({
+      libraries: [],
+      catalog: {
+        revision: 1,
+        tags: [
+          {
+            ...local,
+            id: "shared",
+            names: [{ lang: "zh-CN", name: current }],
+            defaultNames: local.names,
+            namePreferences: [],
+          },
+        ],
+        mappings: [
+          {
+            libraryId: "a",
+            localTagId: "local",
+            catalogId: "shared",
+            legacy: local,
+            basis: "independent",
+            nameProvenance: "catalog",
+          },
+        ],
+      },
+    }),
+  });
   render(<TagIdentityPanel />);
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
   await screen.findByText("默认名称");
   current = "新的共享名称";
-  await act(async () => { await emit("library-event", { kind: "vocabularyChanged", libraryId: "a", revision: 1 }); });
+  await act(async () => {
+    await emit("library-event", { kind: "vocabularyChanged", libraryId: "a", revision: 1 });
+  });
   await screen.findByText("新的共享名称");
 });
 
 it("offers an explicit provider publication retry without discarding the saved application mapping", async () => {
-  const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "白" }], aliases: [], external: [], count: 1 };
-  const workspace: TagCatalogWorkspace = { libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }], catalog: { revision: 2, tags: [{ ...local, id: "split", defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "b", localTagId: "local", catalogId: "split", legacy: local, basis: "corrected", nameProvenance: "catalog" }] } };
+  const local = {
+    id: "local",
+    namespace: "general" as const,
+    names: [{ lang: "zh-CN", name: "白" }],
+    aliases: [],
+    external: [],
+    count: 1,
+  };
+  const workspace: TagCatalogWorkspace = {
+    libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }],
+    catalog: {
+      revision: 2,
+      tags: [{ ...local, id: "split", defaultNames: local.names, namePreferences: [] }],
+      mappings: [
+        {
+          libraryId: "b",
+          localTagId: "local",
+          catalogId: "split",
+          legacy: local,
+          basis: "corrected",
+          nameProvenance: "catalog",
+        },
+      ],
+    },
+  };
   let attempt = 0;
   fakeBackend({
     inspect_tag_catalog: () => workspace,
@@ -102,12 +233,56 @@ it("offers an explicit provider publication retry without discarding the saved a
 });
 
 it("keeps a correction publication failure through queued and later vocabulary refreshes until an explicit retry", async () => {
-  const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "白" }], aliases: [], external: [], count: 1 };
-  const workspace: TagCatalogWorkspace = { libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }], catalog: { revision: 2, tags: [{ ...local, id: "old", defaultNames: local.names, namePreferences: [] }, { ...local, id: "split", names: [{ lang: "zh-CN", name: "独立的白" }], defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "b", localTagId: "local", catalogId: "old", legacy: local, basis: "independent", nameProvenance: "catalog" }] } };
-  const corrected: TagCatalogWorkspace = { ...workspace, catalog: { ...workspace.catalog, revision: 3, mappings: [{ ...workspace.catalog.mappings[0], catalogId: "split", basis: "corrected" }] } };
-  const failure = "标签对应已保存在程序里，但图库里的标签信息还没更新：磁盘已满。请在设置 › 标签 › 对应里重新存进图库。";
-  let rejectCorrection: (reason: string) => void = () => { throw Error("correction did not start"); };
-  const pending = new Promise<TagCatalogWorkspace>((_, reject) => { rejectCorrection = reject; });
+  const local = {
+    id: "local",
+    namespace: "general" as const,
+    names: [{ lang: "zh-CN", name: "白" }],
+    aliases: [],
+    external: [],
+    count: 1,
+  };
+  const workspace: TagCatalogWorkspace = {
+    libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }],
+    catalog: {
+      revision: 2,
+      tags: [
+        { ...local, id: "old", defaultNames: local.names, namePreferences: [] },
+        {
+          ...local,
+          id: "split",
+          names: [{ lang: "zh-CN", name: "独立的白" }],
+          defaultNames: local.names,
+          namePreferences: [],
+        },
+      ],
+      mappings: [
+        {
+          libraryId: "b",
+          localTagId: "local",
+          catalogId: "old",
+          legacy: local,
+          basis: "independent",
+          nameProvenance: "catalog",
+        },
+      ],
+    },
+  };
+  const corrected: TagCatalogWorkspace = {
+    ...workspace,
+    catalog: {
+      ...workspace.catalog,
+      revision: 3,
+      mappings: [{ ...workspace.catalog.mappings[0], catalogId: "split", basis: "corrected" }],
+    },
+  };
+  const failure =
+    "标签对应已保存在程序里，但图库里的标签信息还没更新：磁盘已满。请在设置 › 标签 › 对应里重新存进图库。";
+  let rejectCorrection: (reason: string) => void = () => {
+    throw Error("correction did not start");
+  };
+  const pending = new Promise<TagCatalogWorkspace>((_, reject) => {
+    rejectCorrection = reject;
+  });
   let inspections = 0;
   fakeBackend({
     inspect_tag_catalog: () => {
@@ -130,10 +305,14 @@ it("keeps a correction publication failure through queued and later vocabulary r
   await waitFor(() => expect(inspections).toBe(2));
   await screen.findByRole("row", { name: /画稿库.*白.*已纠正/ });
   expect(screen.getByRole("alert").textContent).toContain(failure);
-  await act(async () => { await emit("library-event", { kind: "vocabularyChanged", libraryId: "b", revision: 4 }); });
+  await act(async () => {
+    await emit("library-event", { kind: "vocabularyChanged", libraryId: "b", revision: 4 });
+  });
   await waitFor(() => expect(inspections).toBe(3));
   expect(screen.getByRole("alert").textContent).toContain(failure);
-  await act(async () => { await emit("library-event", { kind: "vocabularyChanged", libraryId: "b", revision: 5 }); });
+  await act(async () => {
+    await emit("library-event", { kind: "vocabularyChanged", libraryId: "b", revision: 5 });
+  });
   await waitFor(() => expect(inspections).toBe(4));
   expect(screen.getByRole("alert").textContent).toContain(failure);
   fireEvent.click(screen.getByRole("button", { name: "保存 画稿库 的标签信息" }));
@@ -142,8 +321,40 @@ it("keeps a correction publication failure through queued and later vocabulary r
 });
 
 it("keeps a correction chosen right after the rows appear, before their mount effects run", async () => {
-  const local = { id: "local", namespace: "general" as const, names: [{ lang: "zh-CN", name: "白" }], aliases: [], external: [], count: 1 };
-  const workspace: TagCatalogWorkspace = { libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }], catalog: { revision: 2, tags: [{ ...local, id: "old", defaultNames: local.names, namePreferences: [] }, { ...local, id: "split", names: [{ lang: "zh-CN", name: "独立的白" }], defaultNames: local.names, namePreferences: [] }], mappings: [{ libraryId: "b", localTagId: "local", catalogId: "old", legacy: local, basis: "independent", nameProvenance: "catalog" }] } };
+  const local = {
+    id: "local",
+    namespace: "general" as const,
+    names: [{ lang: "zh-CN", name: "白" }],
+    aliases: [],
+    external: [],
+    count: 1,
+  };
+  const workspace: TagCatalogWorkspace = {
+    libraries: [{ library: { id: "b", name: "画稿库", root: "D:/art" }, unavailable: null }],
+    catalog: {
+      revision: 2,
+      tags: [
+        { ...local, id: "old", defaultNames: local.names, namePreferences: [] },
+        {
+          ...local,
+          id: "split",
+          names: [{ lang: "zh-CN", name: "独立的白" }],
+          defaultNames: local.names,
+          namePreferences: [],
+        },
+      ],
+      mappings: [
+        {
+          libraryId: "b",
+          localTagId: "local",
+          catalogId: "old",
+          legacy: local,
+          basis: "independent",
+          nameProvenance: "catalog",
+        },
+      ],
+    },
+  };
   fakeBackend({ inspect_tag_catalog: () => workspace });
   render(<TagIdentityPanel />);
   // MutationObserver 回调是微任务：在 React 提交之后、被动 effect 之前就点开选择，等同于手比挂载 effect 快。
@@ -158,7 +369,9 @@ it("keeps a correction chosen right after the rows appear, before their mount ef
   });
   fireEvent.click(screen.getByRole("button", { name: "检查标签对应" }));
   await chooseValue(await opened, "split");
-  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  });
   const row = screen.getByRole("row", { name: /画稿库.*白/ });
   expect(within(row).getByRole("combobox").dataset.value).toBe("split");
   expect(within(row).getByRole<HTMLButtonElement>("button", { name: "保存对应" }).disabled).toBe(false);

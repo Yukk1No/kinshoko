@@ -74,8 +74,10 @@ const backup: Translation<typeof zh> = {
     read: "Read",
     busy: "Reading or saving preferences…",
     confirm: "Replace preferences",
-    replaces: "Replaces: name preferences, app vocabulary, tag groups, similarity rules, shortcuts, Safe mode, model choice, tag appearance, diagnostics and viewer background.",
-    deletes: "Name preferences and similarity rules not in the backup are deleted. Originals, notes, tags, ratings and folders in your libraries don't change.",
+    replaces:
+      "Replaces: name preferences, app vocabulary, tag groups, similarity rules, shortcuts, Safe mode, model choice, tag appearance, diagnostics and viewer background.",
+    deletes:
+      "Name preferences and similarity rules not in the backup are deleted. Originals, notes, tags, ratings and folders in your libraries don't change.",
     safeModeAfter: "Safe mode after restoring: ",
     safeOn: "On",
     safeOff: "Off (adult reference images can be shown)",

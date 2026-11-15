@@ -15,8 +15,17 @@ const SLIDE_MS = 260;
  * segments may differ in width. It only slides when the choice changes: the first placement and
  * resizes land at once.
  */
-export function Segmented<T extends string>({ value, options, onChange, label, className = "" }: {
-  value: T | null; onChange: (value: T) => void; label: string; className?: string;
+export function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+  className = "",
+}: {
+  value: T | null;
+  onChange: (value: T) => void;
+  label: string;
+  className?: string;
   options: { value: T; label: ReactNode; icon?: ReactNode; disabled?: boolean; tip?: string; ariaLabel?: string }[];
 }) {
   const group = useRef<HTMLDivElement>(null);
@@ -29,7 +38,10 @@ export function Segmented<T extends string>({ value, options, onChange, label, c
     const mark = thumb.current;
     const item = group.current?.querySelectorAll<HTMLElement>(".k-seg-item")[index];
     if (!mark) return;
-    if (!item) { mark.hidden = true; return; }
+    if (!item) {
+      mark.hidden = true;
+      return;
+    }
     mark.style.transition = slide ? "" : "none";
     mark.style.width = `${item.offsetWidth}px`;
     mark.style.height = `${item.offsetHeight}px`;
@@ -56,10 +68,26 @@ export function Segmented<T extends string>({ value, options, onChange, label, c
     return () => observer.disconnect();
   }, [options.length]);
 
-  return <ToggleGroup ref={group} className={`k-seg ${className}`} aria-label={label} value={value === null ? [] : [value]}
-    onValueChange={(next) => { const picked = next[0] as T | undefined; if (picked !== undefined && picked !== value) onChange(picked); }}>
-    <span ref={thumb} className="k-seg-thumb" aria-hidden="true" hidden />
-    {options.map((option) => <Tip key={option.value} label={option.tip}><Toggle value={option.value} className="k-seg-item" disabled={option.disabled}
-      aria-label={option.ariaLabel}>{option.icon}<span className="k-label">{option.label}</span></Toggle></Tip>)}
-  </ToggleGroup>;
+  return (
+    <ToggleGroup
+      ref={group}
+      className={`k-seg ${className}`}
+      aria-label={label}
+      value={value === null ? [] : [value]}
+      onValueChange={(next) => {
+        const picked = next[0] as T | undefined;
+        if (picked !== undefined && picked !== value) onChange(picked);
+      }}
+    >
+      <span ref={thumb} className="k-seg-thumb" aria-hidden="true" hidden />
+      {options.map((option) => (
+        <Tip key={option.value} label={option.tip}>
+          <Toggle value={option.value} className="k-seg-item" disabled={option.disabled} aria-label={option.ariaLabel}>
+            {option.icon}
+            <span className="k-label">{option.label}</span>
+          </Toggle>
+        </Tip>
+      ))}
+    </ToggleGroup>
+  );
 }

@@ -19,9 +19,14 @@ describe("标签外观草稿", () => {
         sent.push(display);
         const fail = failNextTag;
         failNextTag = false;
-        return new Promise((resolve, reject) => replies.tag.push(() => fail ? reject("无法写入设置文件") : resolve({ ...backup, tagDisplay: display })));
+        return new Promise((resolve, reject) =>
+          replies.tag.push(() => (fail ? reject("无法写入设置文件") : resolve({ ...backup, tagDisplay: display }))),
+        );
       },
-      restore_application_settings: () => new Promise((resolve) => replies.restore.push(() => resolve({ settings: backup, safeMode: true, problems: [] }))),
+      restore_application_settings: () =>
+        new Promise((resolve) =>
+          replies.restore.push(() => resolve({ settings: backup, safeMode: true, problems: [] })),
+        ),
     });
     const settings = createShellSettings();
     await settings.load();

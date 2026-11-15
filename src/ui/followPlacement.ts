@@ -6,8 +6,12 @@ export type Size = { width: number; height: number };
  * selection and centred on it; above it when there is no room below; pinned to the bottom of the usable
  * area when neither fits. Never leaves the bounds horizontally. `reserveBottom` keeps another dock clear.
  */
-export function followPlacement(anchor: Box, bounds: Size, size: Size,
-  { gap = 14, margin = 8, reserveBottom = 0 }: { gap?: number; margin?: number; reserveBottom?: number } = {}) {
+export function followPlacement(
+  anchor: Box,
+  bounds: Size,
+  size: Size,
+  { gap = 14, margin = 8, reserveBottom = 0 }: { gap?: number; margin?: number; reserveBottom?: number } = {},
+) {
   const floor = bounds.height - margin - reserveBottom;
   const below = anchor.y + anchor.height + gap;
   const above = anchor.y - gap - size.height;

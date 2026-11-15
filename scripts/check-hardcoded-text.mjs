@@ -53,7 +53,7 @@ const SKIP = [
 ];
 
 export function isSkipped(path) {
-  return SKIP.some(re => re.test(path));
+  return SKIP.some((re) => re.test(path));
 }
 
 /**
@@ -64,12 +64,12 @@ export function isSkipped(path) {
 export function stripComments(text, lang) {
   let code = "";
   let shape = "";
-  const blank = ch => (ch === "\n" ? "\n" : " ".repeat(ch.length));
+  const blank = (ch) => (ch === "\n" ? "\n" : " ".repeat(ch.length));
   const keep = (ch, inString) => {
     code += ch;
     shape += inString ? blank(ch) : ch;
   };
-  const drop = ch => {
+  const drop = (ch) => {
     code += blank(ch);
     shape += blank(ch);
   };
@@ -127,7 +127,10 @@ export function stripComments(text, lang) {
       // 原始字符串 r"…"、r#"…"#
       let j = i + 1;
       let hashes = 0;
-      while (text[j] === "#") { hashes++; j++; }
+      while (text[j] === "#") {
+        hashes++;
+        j++;
+      }
       if (text[j] === '"') {
         const close = '"' + "#".repeat(hashes);
         const end = text.indexOf(close, j + 1);
@@ -418,7 +421,7 @@ function listFiles(root, dir, exts) {
     if (entry.isDirectory()) {
       if (isSkippedDir(path)) continue;
       out.push(...listFiles(root, path, exts));
-    } else if (exts.some(ext => entry.name.endsWith(ext)) && !isSkipped(path)) {
+    } else if (exts.some((ext) => entry.name.endsWith(ext)) && !isSkipped(path)) {
       out.push(path);
     }
   }
@@ -427,11 +430,15 @@ function listFiles(root, dir, exts) {
 
 /** 相对 base 新增的行：Map<路径, Set<行号>>。 */
 function addedLines(root, base) {
-  const diff = execFileSync("git", ["diff", "--unified=0", "--no-color", "--no-renames", base, "--", ...ROOTS.map(r => r.dir)], {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-  });
+  const diff = execFileSync(
+    "git",
+    ["diff", "--unified=0", "--no-color", "--no-renames", base, "--", ...ROOTS.map((r) => r.dir)],
+    {
+      cwd: root,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    },
+  );
   const added = new Map();
   let file = null;
   for (const line of diff.split("\n")) {
@@ -486,19 +493,22 @@ function main() {
 
   const level = options.mode === "fail" ? "error" : "warning";
   const inActions = process.env.GITHUB_ACTIONS === "true";
-  const newCount = hits.filter(h => h.added).length;
+  const newCount = hits.filter((h) => h.added).length;
   for (const hit of hits) {
     const tag = hit.added ? "（新增）" : "";
     if (inActions) {
       const title = hit.added ? "新增的硬编码中文" : "硬编码中文";
-      console.log(`::${level} file=${escapeProperty(hit.path)},line=${hit.line},title=${escapeProperty(title)}::${escapeData(hit.text)}`);
+      console.log(
+        `::${level} file=${escapeProperty(hit.path)},line=${hit.line},title=${escapeProperty(title)}::${escapeData(hit.text)}`,
+      );
     } else {
       console.log(`${hit.path}:${hit.line}${tag}  ${hit.text}`);
     }
   }
-  const summary = hits.length === 0
-    ? "没有发现写死的中文。"
-    : `发现 ${hits.length} 行写死的中文${options.diffBase ? `，其中 ${newCount} 行是这次新增的` : ""}。界面文字请放进 i18n 资源（src/i18n/locales，Rust 侧 src-tauri/src/ui_text.rs）。`;
+  const summary =
+    hits.length === 0
+      ? "没有发现写死的中文。"
+      : `发现 ${hits.length} 行写死的中文${options.diffBase ? `，其中 ${newCount} 行是这次新增的` : ""}。界面文字请放进 i18n 资源（src/i18n/locales，Rust 侧 src-tauri/src/ui_text.rs）。`;
   console.log(summary);
   if (hits.length > 0 && options.mode === "fail") process.exitCode = 1;
 }

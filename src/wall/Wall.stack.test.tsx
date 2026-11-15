@@ -14,7 +14,8 @@ let secondSet = false;
 let adultPages = new Set<string>();
 /** 第一张图很长：托盘要从它底下开始。 */
 let tallFirst = false;
-const page = (id: string) => workspaceCard({ id, width: 100, height: tallFirst && id === "a" ? 600 : 120, adult: adultPages.has(id) });
+const page = (id: string) =>
+  workspaceCard({ id, width: 100, height: tallFirst && id === "a" ? 600 : 120, adult: adultPages.has(id) });
 /** 第一摞的页数。 */
 let setSize = 3;
 function browse(stackSets: boolean): WorkspacePage {
@@ -23,7 +24,13 @@ function browse(stackSets: boolean): WorkspacePage {
     ? [page("a"), { ...page("p0"), set }, page("b")]
     : [page("a"), page("p0"), page("p1"), page("p2"), page("b")];
   if (secondSet && stackSets) cards.push({ ...page("q0"), set: { key: "pixiv:10", pages: [page("q0"), page("q1")] } });
-  return { cards, total: cards.length, nextCursor: null, status: { revision: "r", libraries: [] }, ...(stackSets ? { images: 5 } : {}) };
+  return {
+    cards,
+    total: cards.length,
+    nextCursor: null,
+    status: { revision: "r", libraries: [] },
+    ...(stackSets ? { images: 5 } : {}),
+  };
 }
 beforeEach(() => {
   localStorage.clear();
@@ -43,16 +50,43 @@ beforeEach(() => {
     },
   });
 });
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
-function Harness({ stackSets = true, safeMode = false, onSelection, onOpen }: { stackSets?: boolean; safeMode?: boolean; onSelection?: (ids: string[]) => void; onOpen?: (id: string) => void }) {
+function Harness({
+  stackSets = true,
+  safeMode = false,
+  onSelection,
+  onOpen,
+}: {
+  stackSets?: boolean;
+  safeMode?: boolean;
+  onSelection?: (ids: string[]) => void;
+  onOpen?: (id: string) => void;
+}) {
   const [selected, setSelected] = useState(new Set<string>());
-  return <Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={selected} stackSets={stackSets} safeMode={safeMode}
-    onSelectionChange={(next) => { onSelection?.([...next]); setSelected(next); }}
-    onOpenImage={(card) => onOpen?.(card.id)} viewerOpen={false} />;
+  return (
+    <Wall
+      workspaceScope={{ kind: "all" }}
+      scope={{ kind: "all" }}
+      reloadKey={0}
+      selected={selected}
+      stackSets={stackSets}
+      safeMode={safeMode}
+      onSelectionChange={(next) => {
+        onSelection?.([...next]);
+        setSelected(next);
+      }}
+      onOpenImage={(card) => onOpen?.(card.id)}
+      viewerOpen={false}
+    />
+  );
 }
 const card = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`);
-const shownIds = () => [...document.querySelectorAll<HTMLElement>(".wall-canvas > .card")].map((node) => node.dataset.id);
+const shownIds = () =>
+  [...document.querySelectorAll<HTMLElement>(".wall-canvas > .card")].map((node) => node.dataset.id);
 const count = () => screen.getByRole("button", { name: "3 张" });
 const tray = () => document.querySelector(".wall-tray");
 
@@ -144,7 +178,9 @@ it("点托盘以外关托盘：点到别的格子时同时选中那一格；点�
   expect(tray()).toBeNull();
   expect(onSelection).toHaveBeenLastCalledWith(["b"]);
   fireEvent.click(count());
-  await act(async () => { fireEvent.click(document.querySelector(".wall")!); });
+  await act(async () => {
+    fireEvent.click(document.querySelector(".wall")!);
+  });
   expect(tray()).toBeNull();
 });
 
@@ -162,7 +198,14 @@ it("关托盘时第 2 页往后的选择随之取消，操作不会落在看不�
 });
 
 it("点顶栏也关托盘", async () => {
-  render(<><header className="topbar"><button type="button">导入</button></header><Harness /></>);
+  render(
+    <>
+      <header className="topbar">
+        <button type="button">导入</button>
+      </header>
+      <Harness />
+    </>,
+  );
   await screen.findAllByRole("option");
   fireEvent.click(count());
   fireEvent.pointerDown(screen.getByRole("button", { name: "导入" }));
@@ -171,8 +214,19 @@ it("点顶栏也关托盘", async () => {
 
 it("顶栏报的是张数，不是格数：一摞里的页都算上", async () => {
   const onTotal = vi.fn();
-  render(<Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={new Set()} stackSets
-    onSelectionChange={() => {}} onOpenImage={() => {}} viewerOpen={false} onTotalChange={onTotal} />);
+  render(
+    <Wall
+      workspaceScope={{ kind: "all" }}
+      scope={{ kind: "all" }}
+      reloadKey={0}
+      selected={new Set()}
+      stackSets
+      onSelectionChange={() => {}}
+      onOpenImage={() => {}}
+      viewerOpen={false}
+      onTotalChange={onTotal}
+    />,
+  );
   await screen.findAllByRole("option");
   expect(onTotal).toHaveBeenLastCalledWith(5);
 });

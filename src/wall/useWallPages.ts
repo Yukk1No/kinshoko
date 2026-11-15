@@ -17,9 +17,28 @@ import { stackHolding } from "./imageSets";
 const KNOWN_MARGIN = 100;
 
 export function useWallPages({
-  cards, setCards, cursor, setCursor, setTotal, setError, generation, inflight, view, restoring, anchor, shownCards,
-  measureBeforeReflow, onWorkspaceStatus, releasePage, reloadKey, loadMoreRef, workspaceScope, safeMode,
-  pendingRemoval, stackSets, setStacked,
+  cards,
+  setCards,
+  cursor,
+  setCursor,
+  setTotal,
+  setError,
+  generation,
+  inflight,
+  view,
+  restoring,
+  anchor,
+  shownCards,
+  measureBeforeReflow,
+  onWorkspaceStatus,
+  releasePage,
+  reloadKey,
+  loadMoreRef,
+  workspaceScope,
+  safeMode,
+  pendingRemoval,
+  stackSets,
+  setStacked,
 }: {
   cards: BrowserCard[];
   setCards: Dispatch<SetStateAction<BrowserCard[]>>;
@@ -87,8 +106,11 @@ export function useWallPages({
       const shown = shownCards.current;
       const held = new Map<string, string>();
       for (const card of shown) if (card.placeholder) held.set(card.id, card.placeholder);
-      const knownFrom = (start: number) => shown.slice(start, start + PAGE + KNOWN_MARGIN)
-        .filter((card) => card.placeholder).map((card) => card.id);
+      const knownFrom = (start: number) =>
+        shown
+          .slice(start, start + PAGE + KNOWN_MARGIN)
+          .filter((card) => card.placeholder)
+          .map((card) => card.id);
       try {
         // 取到一半结果集变了（游标过期）：从头再取，最多几次，仍不稳定才报错。
         for (let attempt = 0; ; attempt++) {
@@ -99,7 +121,17 @@ export function useWallPages({
           let acceptedStatus: WorkspaceStatus | null = null;
           try {
             do {
-              const page = await workspaceBrowse({ scope: workspaceScope, conditions, cursor: after, limit: PAGE, knownPlaceholders: knownFrom(next.length), stackSets }, safeMode);
+              const page = await workspaceBrowse(
+                {
+                  scope: workspaceScope,
+                  conditions,
+                  cursor: after,
+                  limit: PAGE,
+                  knownPlaceholders: knownFrom(next.length),
+                  stackSets,
+                },
+                safeMode,
+              );
               if (!current()) return;
               markStartup("wallFirstPage");
               startupWallPage(page.cards.length);
@@ -129,12 +161,16 @@ export function useWallPages({
           }
           // 送回的还是墙上这些卡片（封印后按节奏先移走了飞走的图）：不量也不重排，正在补位的动画不被打断。
           const prev = shownCards.current;
-          const unchanged = prev.length === next.length
-            && prev.every((c, i) => c.id === next[i].id && c.width === next[i].width && c.height === next[i].height);
+          const unchanged =
+            prev.length === next.length &&
+            prev.every((c, i) => c.id === next[i].id && c.width === next[i].width && c.height === next[i].height);
           if (!unchanged) measureBeforeReflow();
           // 顺序契约（#324）：先报这一页带回的状态，再交出卡片。状态若要求修剪选择，修剪就落在这一页上。
           if (acceptedStatus) onWorkspaceStatus?.(acceptedStatus, next);
-          if (!safeMode) { safeTiming.mark("cards-returned"); releasePage.current = true; }
+          if (!safeMode) {
+            safeTiming.mark("cards-returned");
+            releasePage.current = true;
+          }
           setCards(next);
           setCursor(after);
           setTotal(count);
@@ -150,7 +186,24 @@ export function useWallPages({
         if (inflight.current === gen) inflight.current = null;
       }
     },
-    [measureBeforeReflow, onWorkspaceStatus, stackSets, generation, inflight, view, shownCards, restoring, anchor, pendingRemoval, releasePage, setCards, setCursor, setTotal, setStacked, setError],
+    [
+      measureBeforeReflow,
+      onWorkspaceStatus,
+      stackSets,
+      generation,
+      inflight,
+      view,
+      shownCards,
+      restoring,
+      anchor,
+      pendingRemoval,
+      releasePage,
+      setCards,
+      setCursor,
+      setTotal,
+      setStacked,
+      setError,
+    ],
   );
 
   const loadMore = useCallback(async () => {
@@ -160,7 +213,10 @@ export function useWallPages({
     const { conditions, workspaceScope, safeMode } = view.current;
     let expired = false;
     try {
-      const page = await workspaceBrowse({ scope: workspaceScope, conditions, cursor, limit: PAGE, knownPlaceholders: [], stackSets }, safeMode);
+      const page = await workspaceBrowse(
+        { scope: workspaceScope, conditions, cursor, limit: PAGE, knownPlaceholders: [], stackSets },
+        safeMode,
+      );
       if (gen !== generation.current) return;
       const next = [...cards, ...page.cards];
       onWorkspaceStatus?.(page.status, next);
@@ -179,8 +235,25 @@ export function useWallPages({
       if (inflight.current === gen) inflight.current = null;
     }
     if (expired) void reload(Math.max(loaded.current, PAGE));
-  }, [cards, cursor, reload, onWorkspaceStatus, stackSets, inflight, pendingRemoval, generation, view, setCards, setCursor, setTotal, setStacked, setError]);
-  loadMoreRef.current = () => { void loadMore(); };
+  }, [
+    cards,
+    cursor,
+    reload,
+    onWorkspaceStatus,
+    stackSets,
+    inflight,
+    pendingRemoval,
+    generation,
+    view,
+    setCards,
+    setCursor,
+    setTotal,
+    setStacked,
+    setError,
+  ]);
+  loadMoreRef.current = () => {
+    void loadMore();
+  };
   // 布局效果：同一次提交里先于其他组件的刷新（被动效果）发出浏览，后端按到达顺序排队（#183）。
   // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): reloadKey 变了就从头重新浏览
   useLayoutEffect(() => {

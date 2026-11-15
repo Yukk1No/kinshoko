@@ -20,7 +20,9 @@ afterEach(() => {
 });
 
 /** 一帧一帧地走：每帧之间让 React 提交，像浏览器那样。 */
-const frames = (ms: number) => { for (let t = 0; t < ms; t += 16) act(() => vi.advanceTimersByTime(16)); };
+const frames = (ms: number) => {
+  for (let t = 0; t < ms; t += 16) act(() => vi.advanceTimersByTime(16));
+};
 const bar = () => document.querySelector<HTMLElement>(".startup-bar")!;
 
 describe("StartupSplash (#338)", () => {
@@ -30,7 +32,10 @@ describe("StartupSplash (#338)", () => {
     expect(splash.getAttribute("aria-busy")).toBe("true");
     expect(splash.textContent).toBe("");
     expect(splash.querySelector(".startup-logo")).toBeTruthy();
-    act(() => { startupWallPage(2); startupThumbnailShown(); });
+    act(() => {
+      startupWallPage(2);
+      startupThumbnailShown();
+    });
     expect(Number(bar().dataset.progress)).toBe(75);
     expect(screen.getByRole("status", { name: "正在打开图库" })).toBeTruthy();
   });
@@ -56,7 +61,9 @@ describe("StartupSplash (#338)", () => {
   it("opens a star-shaped hole that grows until the splash is gone", () => {
     reduced = false;
     // jsdom 不排版：给窗口与字标一个尺寸，开口才有位置。
-    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ x: 0, y: 0, width: 1280, height: 800 }));
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(
+      DOMRect.fromRect({ x: 0, y: 0, width: 1280, height: 800 }),
+    );
     render(<StartupSplash />);
     act(() => releaseStartup());
     const splash = screen.getByRole("status", { name: "正在打开图库" });

@@ -18,19 +18,38 @@ beforeEach(async () => {
   localStorage.setItem("kinshoko.subscriptions.firstRunSeen", "1");
   mockConvertFileSrc("windows");
   fakeBackend({ subscriptions: list, subscription_recent: recent, subscription_mark_seen: null });
-  await act(async () => { await i18n.changeLanguage("en"); });
+  await act(async () => {
+    await i18n.changeLanguage("en");
+  });
 });
 afterEach(async () => {
   vi.useRealTimers();
   localStorage.clear();
-  await act(async () => { await i18n.changeLanguage("zh-CN"); });
+  await act(async () => {
+    await i18n.changeLanguage("zh-CN");
+  });
 });
 
-const page = (s: SubscriptionStatus) => render(<SubscriptionsPage status={s} onStatus={vi.fn()} safe={false} paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} />);
+const page = (s: SubscriptionStatus) =>
+  render(
+    <SubscriptionsPage
+      status={s}
+      onStatus={vi.fn()}
+      safe={false}
+      paneOpen
+      onPaneToggle={vi.fn()}
+      onOpenImage={vi.fn()}
+    />,
+  );
 
 describe("英文界面：订阅", () => {
   it("订阅页：名单、两段图片墙与各检查状态", async () => {
-    for (const s of [status(), status({ checking: true }), status({ backoffUntil: NOW + 3_600_000 }), status({ login: { state: "expired", account } })]) {
+    for (const s of [
+      status(),
+      status({ checking: true }),
+      status({ backoffUntil: NOW + 3_600_000 }),
+      status({ login: { state: "expired", account } }),
+    ]) {
       page(s);
       await waitFor(() => expect(screen.getAllByRole("button", { name: "Open in library" })).toHaveLength(5));
       expectNoChinese(document.body, names);
@@ -38,7 +57,9 @@ describe("英文界面：订阅", () => {
     }
     page(status());
     expect(await screen.findByText("Synced 10 minutes ago")).toBeTruthy();
-    expect(await tipText(screen.getByRole("button", { name: /灯里/ }))).toBe("Last check didn't finish: Couldn't reach pixiv");
+    expect(await tipText(screen.getByRole("button", { name: /灯里/ }))).toBe(
+      "Last check didn't finish: Couldn't reach pixiv",
+    );
   });
 
   it("空状态、首次使用说明与添加菜单", async () => {

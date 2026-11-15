@@ -8,13 +8,32 @@ import { fakeBackend } from "../test/backend";
 import { ImportMenu } from "./ImportMenu";
 import { SaveDestinationProvider } from "./SaveDestination";
 
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const receipt: ImportTaskSnapshot = {
-  taskId: "actual-task", destination: { libraryId: "L1", folderId: null }, libraryName: "参考", folderName: null,
-  progress: { done: 3, total: 3 }, finishing: false, warnings: [],
-  report: { cancelled: false, fromEagle: false, eagleMissing: 0, eagleRelocations: [], sealedDuplicates: false, privateSummary: false, trashDuplicates: false,
-    items: [ { path: "sealed-name.png", outcome: { kind: "merged", imageId: "sealed-id" } }, { path: "visible-name.png", outcome: { kind: "refreshed", imageId: "visible-id" } }, { path: "missing.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "missing" } } } ] },
+  taskId: "actual-task",
+  destination: { libraryId: "L1", folderId: null },
+  libraryName: "参考",
+  folderName: null,
+  progress: { done: 3, total: 3 },
+  finishing: false,
+  warnings: [],
+  report: {
+    cancelled: false,
+    fromEagle: false,
+    eagleMissing: 0,
+    eagleRelocations: [],
+    sealedDuplicates: false,
+    privateSummary: false,
+    trashDuplicates: false,
+    items: [
+      { path: "sealed-name.png", outcome: { kind: "merged", imageId: "sealed-id" } },
+      { path: "visible-name.png", outcome: { kind: "refreshed", imageId: "visible-id" } },
+      { path: "missing.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "missing" } } },
+    ],
+  },
 };
 
 /** 结束的通知带“查看”，点了才打开回执卡。 */
@@ -23,7 +42,9 @@ const openReceipt = async () => {
   return screen.findByRole("region", { name: "导入结果" });
 };
 
-function menu() { return <ImportMenu enabled running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} />; }
+function menu() {
+  return <ImportMenu enabled running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} />;
+}
 
 describe("导入结束走轻提示（#388）", () => {
   function serve(tasks: ImportTaskSnapshot[]) {
@@ -43,7 +64,12 @@ describe("导入结束走轻提示（#388）", () => {
   });
 
   it("没有要处理的项时不带“查看”", async () => {
-    serve([{ ...receipt, report: { ...receipt.report!, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } }]);
+    serve([
+      {
+        ...receipt,
+        report: { ...receipt.report!, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] },
+      },
+    ]);
     render(<>{menu()}</>);
     expect((await screen.findByText("导入完成")).closest(".k-toast")?.textContent).toContain("新增 1");
     expect(screen.queryByRole("button", { name: "查看" })).toBeNull();
@@ -62,16 +88,30 @@ describe("导入结束走轻提示（#388）", () => {
   });
 
   it("任务有警告（标签信息没存进图库）时提示写出警告、带“查看”且不自动消失", async () => {
-    serve([{ ...receipt, warnings: [{ code: "savedDefinitionsNotSaved", cause: { code: "system", detail: "磁盘已满" } }], report: { ...receipt.report!, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] } }]);
+    serve([
+      {
+        ...receipt,
+        warnings: [{ code: "savedDefinitionsNotSaved", cause: { code: "system", detail: "磁盘已满" } }],
+        report: { ...receipt.report!, items: [{ path: "a.png", outcome: { kind: "imported", imageId: "a" } }] },
+      },
+    ]);
     render(<>{menu()}</>);
-    expect((await screen.findByText("导入完成")).closest(".k-toast")?.textContent).toContain("图库里的标签信息还没更新：磁盘已满");
+    expect((await screen.findByText("导入完成")).closest(".k-toast")?.textContent).toContain(
+      "图库里的标签信息还没更新：磁盘已满",
+    );
     expect(screen.getByRole("button", { name: "查看" })).toBeTruthy();
   });
 
   it("“查看”先选中提示所属的任务，即使之后开始了别的导入", async () => {
-    const running: ImportTaskSnapshot = { ...receipt, taskId: "next-task", folderName: "人物", progress: { done: 1, total: 9 }, report: null };
+    const running: ImportTaskSnapshot = {
+      ...receipt,
+      taskId: "next-task",
+      folderName: "人物",
+      progress: { done: 1, total: 9 },
+      report: null,
+    };
     let calls = 0;
-    fakeBackend({ import_tasks: () => ++calls === 1 ? [receipt] : [receipt, running] });
+    fakeBackend({ import_tasks: () => (++calls === 1 ? [receipt] : [receipt, running]) });
     render(<>{menu()}</>);
     await screen.findByText("导入完成");
     await screen.findByRole("region", { name: "导入进度" }, { timeout: 3000 });
@@ -82,8 +122,19 @@ describe("导入结束走轻提示（#388）", () => {
 
   describe("进度取事件和轮询里更靠前的", () => {
     const polled: ImportTaskSnapshot = { ...receipt, taskId: "T", progress: { done: 5, total: 30 }, report: null };
-    const card = (event: { done: number; total: number }) => <><ImportMenu enabled running={{ taskId: "T", progress: event }} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></>;
-    const shown = async (text: string) => expect((await screen.findByRole("region", { name: "导入进度" })).textContent).toContain(text);
+    const card = (event: { done: number; total: number }) => (
+      <>
+        <ImportMenu
+          enabled
+          running={{ taskId: "T", progress: event }}
+          finished={null}
+          onStarted={() => {}}
+          onDismissReport={() => {}}
+        />
+      </>
+    );
+    const shown = async (text: string) =>
+      expect((await screen.findByRole("region", { name: "导入进度" })).textContent).toContain(text);
 
     it("目标图库不是可写句柄时事件到不了：启动时记下的 0/0 不盖住轮询", async () => {
       serve([polled]);
@@ -112,11 +163,22 @@ describe("导入结束走轻提示（#388）", () => {
 });
 
 describe("导入回执上下文撤销", () => {
-  for (const [event, payload] of [["safe-mode-setting", true], ["workspace-changed", { revision: "after", libraries: [] }]] as const) {
+  for (const [event, payload] of [
+    ["safe-mode-setting", true],
+    ["workspace-changed", { revision: "after", libraries: [] }],
+  ] as const) {
     it(`${event} 隐去旧成功统计，并拒绝迟到的旧快照`, async () => {
-      let calls = 0, release!: (value: ImportTaskSnapshot[]) => void;
-      const pending = new Promise<ImportTaskSnapshot[]>(resolve => { release = resolve; });
-      fakeBackend({ import_tasks: () => { calls++; return calls === 1 ? [receipt] : pending; } });
+      let calls = 0,
+        release!: (value: ImportTaskSnapshot[]) => void;
+      const pending = new Promise<ImportTaskSnapshot[]>((resolve) => {
+        release = resolve;
+      });
+      fakeBackend({
+        import_tasks: () => {
+          calls++;
+          return calls === 1 ? [receipt] : pending;
+        },
+      });
       render(menu());
       const region = await openReceipt();
       expect(region.textContent).toContain("已存在 1");
@@ -126,7 +188,10 @@ describe("导入回执上下文撤销", () => {
       await act(() => emit(event, payload));
       expect(region.textContent).not.toMatch(/新增|已存在|更新/);
       expect(region.textContent).toContain("missing.png");
-      await act(async () => { release([receipt]); await pending; });
+      await act(async () => {
+        release([receipt]);
+        await pending;
+      });
       expect(region.textContent).not.toMatch(/新增|已存在|更新/);
       expect(region.textContent).not.toContain("sealed-name");
       expect(region.textContent).toContain("missing.png");
@@ -134,70 +199,118 @@ describe("导入回执上下文撤销", () => {
   }
 });
 
-
-for (const phase of ["已显示图片", "读取尚未完成"] as const) it(`登记的资料库变化立即遮蔽${phase}，保留实际任务回执并要求再次同意`, async () => {
-  const closed: string[] = [];
-  let registered = false;
-  let libraries = [{ library: { id: "L1", name: "参考", root: "D:/a" }, unavailable: null } as LibraryRegistration];
-  let channel: Channel<ArrayBuffer> | undefined, release!: () => void;
-  const pending = new Promise<void>(resolve => { release = resolve; });
-  const sealed = { ...receipt, progress: { done: 0, total: 0 }, report: { ...receipt.report!, items: [], sealedDuplicates: true, privateSummary: true } };
-  fakeBackend({
-    import_tasks: [sealed],
-    open_import_preview: { id: "actual-receipt-session", items: ["opaque-item"] },
-    read_import_preview: (args) => {
-      channel = args.onChunk as Channel<ArrayBuffer>;
-      if (phase === "读取尚未完成") return pending;
-      channel.onmessage(new Uint8Array([137, 80, 78, 71]).buffer);
-      channel.onmessage(new ArrayBuffer(0));
-      return null;
-    },
-    close_import_preview: (args) => { closed.push(args.sessionId as string); return null; },
-    workspace_directories: () => { registered = true; return { status: { revision: "r", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) }; },
-  });
-  const revoke = vi.fn(), create = vi.fn(() => "blob:actual-receipt-preview");
-  vi.stubGlobal("URL", { createObjectURL: create, revokeObjectURL: revoke });
-  HTMLDialogElement.prototype.showModal = function() { this.setAttribute("open", ""); };
-  HTMLDialogElement.prototype.close = function() { this.removeAttribute("open"); };
-  render(<SaveDestinationProvider safe><ImportMenu enabled running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider>);
-  await waitFor(() => expect(registered).toBe(true));
-  expect(await screen.findByText("有封印项重复，是否展开看看")).toBeTruthy();
-  fireEvent.click(await screen.findByRole("button", { name: "展开" }));
-  if (phase === "已显示图片") expect(await screen.findByRole("img", { name: "本次导入的重复项" })).toBeTruthy();
-  else await waitFor(() => expect(channel).toBeDefined());
-  libraries = [...libraries, { library: { id: "L2", name: "新登记", root: "E:/b" }, unavailable: null }];
-  await act(() => emit("workspace-changed", { revision: "r2", libraries }));
-  await waitFor(() => expect(screen.queryByRole("dialog", { name: "本次封印重复项" })).toBeNull());
-  expect(screen.queryByRole("dialog", { name: "本次封印重复项" })).toBeNull();
-  expect(screen.queryByRole("img")).toBeNull();
-  await waitFor(() => expect(closed).toContain("actual-receipt-session"));
-  if (phase === "已显示图片") expect(revoke).toHaveBeenCalledWith("blob:actual-receipt-preview");
-  else {
-    await act(async () => {
-      channel!.onmessage(new Uint8Array([137, 80, 78, 71]).buffer); channel!.onmessage(new ArrayBuffer(0)); release(); await pending;
+for (const phase of ["已显示图片", "读取尚未完成"] as const)
+  it(`登记的资料库变化立即遮蔽${phase}，保留实际任务回执并要求再次同意`, async () => {
+    const closed: string[] = [];
+    let registered = false;
+    let libraries = [{ library: { id: "L1", name: "参考", root: "D:/a" }, unavailable: null } as LibraryRegistration];
+    let channel: Channel<ArrayBuffer> | undefined, release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
     });
-    expect(create).not.toHaveBeenCalled();
+    const sealed = {
+      ...receipt,
+      progress: { done: 0, total: 0 },
+      report: { ...receipt.report!, items: [], sealedDuplicates: true, privateSummary: true },
+    };
+    fakeBackend({
+      import_tasks: [sealed],
+      open_import_preview: { id: "actual-receipt-session", items: ["opaque-item"] },
+      read_import_preview: (args) => {
+        channel = args.onChunk as Channel<ArrayBuffer>;
+        if (phase === "读取尚未完成") return pending;
+        channel.onmessage(new Uint8Array([137, 80, 78, 71]).buffer);
+        channel.onmessage(new ArrayBuffer(0));
+        return null;
+      },
+      close_import_preview: (args) => {
+        closed.push(args.sessionId as string);
+        return null;
+      },
+      workspace_directories: () => {
+        registered = true;
+        return {
+          status: { revision: "r", libraries },
+          registrationOrder: [],
+          providers: libraries.map((registration) => ({
+            registration,
+            sidebar: { all: 0, trash: 0, folders: [] },
+            unassigned: 0,
+            descendants: {},
+          })),
+        };
+      },
+    });
+    const revoke = vi.fn(),
+      create = vi.fn(() => "blob:actual-receipt-preview");
+    vi.stubGlobal("URL", { createObjectURL: create, revokeObjectURL: revoke });
+    HTMLDialogElement.prototype.showModal = function () {
+      this.setAttribute("open", "");
+    };
+    HTMLDialogElement.prototype.close = function () {
+      this.removeAttribute("open");
+    };
+    render(
+      <SaveDestinationProvider safe>
+        <ImportMenu enabled running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} />
+      </SaveDestinationProvider>,
+    );
+    await waitFor(() => expect(registered).toBe(true));
+    expect(await screen.findByText("有封印项重复，是否展开看看")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "展开" }));
+    if (phase === "已显示图片") expect(await screen.findByRole("img", { name: "本次导入的重复项" })).toBeTruthy();
+    else await waitFor(() => expect(channel).toBeDefined());
+    libraries = [...libraries, { library: { id: "L2", name: "新登记", root: "E:/b" }, unavailable: null }];
+    await act(() => emit("workspace-changed", { revision: "r2", libraries }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "本次封印重复项" })).toBeNull());
+    expect(screen.queryByRole("dialog", { name: "本次封印重复项" })).toBeNull();
     expect(screen.queryByRole("img")).toBeNull();
-  }
-  fireEvent.click(screen.getByRole("button", { name: "导入" }));
-  fireEvent.click(await screen.findByRole("menuitem", { name: "导入任务" }));
-  expect((await screen.findByRole("region", { name: "导入结果" })).textContent).toContain("放到 参考 / 未归类");
-  expect(screen.queryByRole("img")).toBeNull();
-});
+    await waitFor(() => expect(closed).toContain("actual-receipt-session"));
+    if (phase === "已显示图片") expect(revoke).toHaveBeenCalledWith("blob:actual-receipt-preview");
+    else {
+      await act(async () => {
+        channel!.onmessage(new Uint8Array([137, 80, 78, 71]).buffer);
+        channel!.onmessage(new ArrayBuffer(0));
+        release();
+        await pending;
+      });
+      expect(create).not.toHaveBeenCalled();
+      expect(screen.queryByRole("img")).toBeNull();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "导入" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "导入任务" }));
+    expect((await screen.findByRole("region", { name: "导入结果" })).textContent).toContain("放到 参考 / 未归类");
+    expect(screen.queryByRole("img")).toBeNull();
+  });
 
 it("另一个图库的任务回执关闭后，不留下“正在导入”的空卡片，仍可开始导入（#98 本机 r14）", async () => {
-  const other = { ...receipt, taskId: "other-library-task", destination: { libraryId: "L2", folderId: null }, libraryName: "另一个" };
+  const other = {
+    ...receipt,
+    taskId: "other-library-task",
+    destination: { libraryId: "L2", folderId: null },
+    libraryName: "另一个",
+  };
   let tasks: ImportTaskSnapshot[] = [other];
   fakeBackend({
     import_tasks: () => tasks,
-    dismiss_import: () => { tasks = []; return null; },
+    dismiss_import: () => {
+      tasks = [];
+      return null;
+    },
   });
-  render(<ImportMenu enabled running={{ taskId: "other-library-task", progress: { done: 0, total: 0 } }}
-    finished={null} onStarted={() => {}} onDismissReport={() => {}} />);
+  render(
+    <ImportMenu
+      enabled
+      running={{ taskId: "other-library-task", progress: { done: 0, total: 0 } }}
+      finished={null}
+      onStarted={() => {}}
+      onDismissReport={() => {}}
+    />,
+  );
   await openReceipt();
   fireEvent.click(screen.getByRole("button", { name: "关闭导入结果" }));
   await waitFor(() => expect(screen.queryByRole("region", { name: "导入结果" })).toBeNull());
-  await new Promise(resolve => setTimeout(resolve, 900));
+  await new Promise((resolve) => setTimeout(resolve, 900));
   expect(screen.queryByRole("region", { name: "导入进度" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "导入" }));
   expect((await screen.findByRole("menuitem", { name: /^图片/ })).getAttribute("aria-disabled")).not.toBe("true");
@@ -205,7 +318,13 @@ it("另一个图库的任务回执关闭后，不留下“正在导入”的空�
 
 it("回执轮询碰上浏览结果变化时只重读，不在卡片上留下“浏览结果已变化”（#98 本机 r16）", async () => {
   let calls = 0;
-  fakeBackend({ import_tasks: () => { calls++; if (calls === 1) throw { code: "cursorExpired" }; return [receipt]; } });
+  fakeBackend({
+    import_tasks: () => {
+      calls++;
+      if (calls === 1) throw { code: "cursorExpired" };
+      return [receipt];
+    },
+  });
   render(menu());
   const region = await openReceipt();
   await waitFor(() => expect(calls).toBeGreaterThan(2));
@@ -218,11 +337,20 @@ describe("导入任务轮询", () => {
     vi.useFakeTimers();
     try {
       let calls = 0;
-      fakeBackend({ import_tasks: () => { calls++; return tasks; } });
+      fakeBackend({
+        import_tasks: () => {
+          calls++;
+          return tasks;
+        },
+      });
       render(menu());
-      await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
       return calls;
-    } finally { vi.useRealTimers(); }
+    } finally {
+      vi.useRealTimers();
+    }
   };
 
   it("有进行中的任务时每 400 ms 读一次进度", async () => {
@@ -230,7 +358,10 @@ describe("导入任务轮询", () => {
     expect(await poll([running])).toBeGreaterThanOrEqual(20);
   });
 
-  it.each([["没有任务", [] as ImportTaskSnapshot[]], ["只有已结束的回执", [receipt]]])("%s时逐渐放慢，不再每 400 ms 读一次", async (_, tasks) => {
+  it.each([
+    ["没有任务", [] as ImportTaskSnapshot[]],
+    ["只有已结束的回执", [receipt]],
+  ])("%s时逐渐放慢，不再每 400 ms 读一次", async (_, tasks) => {
     expect(await poll(tasks)).toBeLessThanOrEqual(8);
   });
 });

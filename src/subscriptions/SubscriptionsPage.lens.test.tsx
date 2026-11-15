@@ -11,7 +11,12 @@ import { fakeBackend } from "../test/backend";
 const events = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>());
 // 窗口按钮的监听走 Tauri 自己的事件插件，这里用不着。
 vi.mock("../ui/WinCtrls", () => ({ WinCtrls: () => null }));
-vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async (name: string, callback: (event: { payload: unknown }) => void) => { events.set(name, callback); return () => events.delete(name); }) }));
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(async (name: string, callback: (event: { payload: unknown }) => void) => {
+    events.set(name, callback);
+    return () => events.delete(name);
+  }),
+}));
 
 let reads: { resolve: (images: ReceivedImage[]) => void; reject: (e: unknown) => void }[] = [];
 const reports: any[] = [];
@@ -25,14 +30,32 @@ beforeEach(() => {
   fakeBackend({
     subscriptions: list,
     subscription_recent: () => new Promise((resolve, reject) => reads.push({ resolve, reject })),
-    report_capture_references: (args) => { reports.push(args); return null; },
+    report_capture_references: (args) => {
+      reports.push(args);
+      return null;
+    },
     subscription_mark_seen: null,
   });
 });
-afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); localStorage.clear(); events.clear(); });
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+  localStorage.clear();
+  events.clear();
+});
 
 const tiles = () => screen.queryAllByRole("button", { name: "在图库中打开" });
-const page = () => render(<SubscriptionsPage status={status()} onStatus={vi.fn()} safe paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} />);
+const page = () =>
+  render(
+    <SubscriptionsPage
+      status={status()}
+      onStatus={vi.fn()}
+      safe
+      paneOpen
+      onPaneToggle={vi.fn()}
+      onOpenImage={vi.fn()}
+    />,
+  );
 
 it("安全模式开着时收紧范围：按新范围重读之前一张都不显示，重读失败也不显示", async () => {
   page();
@@ -67,7 +90,11 @@ it("截图时登记看得见的缩略图，钉出来的是图库里那张图（�
   await waitFor(() => expect(reads).toHaveLength(1));
   await act(async () => reads[0].resolve(recent.slice(0, 1)));
   const img = tiles()[0].querySelector("img")!;
-  Object.defineProperties(img, { complete: { configurable: true, value: true }, naturalWidth: { configurable: true, value: 384 }, naturalHeight: { configurable: true, value: 576 } });
+  Object.defineProperties(img, {
+    complete: { configurable: true, value: true },
+    naturalWidth: { configurable: true, value: 384 },
+    naturalHeight: { configurable: true, value: 576 },
+  });
   fireEvent.load(img);
   await waitFor(() => expect(events.has("capture-reference-request")).toBe(true));
   await act(async () => events.get("capture-reference-request")!({ payload: { request: "r" } }));

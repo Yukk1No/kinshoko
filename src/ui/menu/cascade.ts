@@ -28,7 +28,11 @@ export type CascadeDebug = {
 
 type Row = { id: string; depth: number; folder: boolean; disabled: boolean };
 type Pending = {
-  row: string; depth: number; kind: "open" | "safe"; startedAt: number; duration: number;
+  row: string;
+  depth: number;
+  kind: "open" | "safe";
+  startedAt: number;
+  duration: number;
   timer: ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>;
 };
 
@@ -63,7 +67,9 @@ export class CascadeController {
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
-    return () => { this.listeners.delete(listener); };
+    return () => {
+      this.listeners.delete(listener);
+    };
   };
   getState = () => this.state;
   getDebug = () => this.debugState;
@@ -72,7 +78,9 @@ export class CascadeController {
     this.state = { ...this.state, ...patch };
     this.emit();
   }
-  private emit() { for (const listener of this.listeners) listener(); }
+  private emit() {
+    for (const listener of this.listeners) listener();
+  }
 
   /** 第 d 层的浮层挂上或卸下。第 0 层挂上时开始听文档上的指针与键盘。 */
   registerLevel(depth: number, el: HTMLElement | null, prev?: HTMLElement | null) {
@@ -87,7 +95,8 @@ export class CascadeController {
   private attach(doc: Document) {
     const move = (e: PointerEvent | DragEvent) =>
       this.pointerMove({ x: e.clientX, y: e.clientY }, e.target as Element | null, {
-        touch: "pointerType" in e && e.pointerType === "touch", dragging: e.type === "dragover",
+        touch: "pointerType" in e && e.pointerType === "touch",
+        dragging: e.type === "dragover",
       });
     // 键盘接手：还在等的悬停与离开即关都不再生效，免得它们晚到一步盖掉键盘的操作。
     const key = () => {
@@ -95,7 +104,9 @@ export class CascadeController {
       this.cancelClose();
       if (this.state.input !== "keyboard") this.set({ input: "keyboard" });
     };
-    const leave = (e: MouseEvent) => { if (!e.relatedTarget) this.pointerLeftWindow(); };
+    const leave = (e: MouseEvent) => {
+      if (!e.relatedTarget) this.pointerLeftWindow();
+    };
     doc.addEventListener("pointermove", move, true);
     doc.addEventListener("dragover", move, true);
     doc.addEventListener("keydown", key, true);
@@ -179,7 +190,12 @@ export class CascadeController {
 
   private overRow(rowEl: HTMLElement, { touch, dragging }: { touch: boolean; dragging: boolean }) {
     const disabled = rowEl.hasAttribute("data-disabled");
-    const row: Row = { id: rowEl.dataset.kRow!, depth: Number(rowEl.dataset.kDepth), folder: !disabled && rowEl.dataset.kKind === "folder", disabled };
+    const row: Row = {
+      id: rowEl.dataset.kRow!,
+      depth: Number(rowEl.dataset.kDepth),
+      folder: !disabled && rowEl.dataset.kKind === "folder",
+      disabled,
+    };
     const child = this.state.open[row.depth] ?? null;
 
     if (child === row.id) {
@@ -198,16 +214,29 @@ export class CascadeController {
       const timer = setInterval(() => {
         if (!this.inSafeZone(row.depth) || this.now() - startedAt >= MENU_TIMING.safeWindowMax) this.commit(row);
       }, MENU_TIMING.safeRecheck);
-      this.pending = { row: row.id, depth: row.depth, kind: "safe", startedAt, duration: MENU_TIMING.safeWindowMax, timer };
+      this.pending = {
+        row: row.id,
+        depth: row.depth,
+        kind: "safe",
+        startedAt,
+        duration: MENU_TIMING.safeWindowMax,
+        timer,
+      };
       this.set({ skipped: row.id });
       return;
     }
     this.hoverAt(row.depth, row.disabled ? null : row.id);
     // 普通行只在有更深的子菜单时才需要等；没有就什么也不做。
     if (!row.folder && !child) return;
-    if (touch) { this.apply(row); return; }
+    if (touch) {
+      this.apply(row);
+      return;
+    }
     const duration = dragging && row.folder ? MENU_TIMING.dragOpenDelay : MENU_TIMING.openDelay;
-    const timer = setTimeout(() => { this.pending = null; this.apply(row); }, duration);
+    const timer = setTimeout(() => {
+      this.pending = null;
+      this.apply(row);
+    }, duration);
     this.pending = { row: row.id, depth: row.depth, kind: "open", startedAt: this.now(), duration, timer };
   }
 
@@ -242,12 +271,18 @@ export class CascadeController {
   private inSafeZone(depth: number) {
     const zone = this.zone(depth);
     if (!zone || this.history.length < 2) return false;
-    return headingToSubmenu({ apex: this.history[0], point: this.history[1], parent: zone.parent, submenu: zone.submenu });
+    return headingToSubmenu({
+      apex: this.history[0],
+      point: this.history[1],
+      parent: zone.parent,
+      submenu: zone.submenu,
+    });
   }
 
   private zone(depth: number) {
     if (!this.state.open[depth]) return null;
-    const parentEl = this.levels.get(depth), submenuEl = this.levels.get(depth + 1);
+    const parentEl = this.levels.get(depth),
+      submenuEl = this.levels.get(depth + 1);
     if (!parentEl || !submenuEl) return null;
     return { parent: boxOf(parentEl), submenu: boxOf(submenuEl) };
   }
@@ -259,7 +294,11 @@ export class CascadeController {
     const inAnchor = !!this.anchor && inside(point, boxOf(this.anchor));
     const inZone = this.state.open.some((id, d) => id && this.inSafeZone(d));
     const within = inLevel || inAnchor || inZone || [...this.levels.values()].some((el) => inside(point, boxOf(el)));
-    if (within) { this.armed = true; this.cancelClose(); return; }
+    if (within) {
+      this.armed = true;
+      this.cancelClose();
+      return;
+    }
     if (this.armed) this.scheduleClose();
   }
 
@@ -270,7 +309,10 @@ export class CascadeController {
   private scheduleClose() {
     if (this.closeTimer) return;
     this.closeStartedAt = this.now();
-    this.closeTimer = setTimeout(() => { this.closeTimer = null; this.closeAll?.(); }, MENU_TIMING.closeDelay);
+    this.closeTimer = setTimeout(() => {
+      this.closeTimer = null;
+      this.closeAll?.();
+    }, MENU_TIMING.closeDelay);
     this.debugTick();
   }
 
@@ -283,7 +325,9 @@ export class CascadeController {
 
   // ---- 调试层 ----
 
-  private debugTick() { if (this.debug) this.updateDebug(); }
+  private debugTick() {
+    if (this.debug) this.updateDebug();
+  }
 
   private updateDebug() {
     const depth = this.state.open.reduce((deepest, id, d) => (id ? d : deepest), -1);
@@ -295,9 +339,11 @@ export class CascadeController {
       triangle: zone && side && apex ? safeTriangle(apex, zone.submenu, side) : null,
       strip: zone && side ? approachStrip(zone.parent, side) : null,
       // 调试层的计时说明只给开发者看（关闭、安全区、悬停），不进界面文案（#356）。
-      timer: this.closeTimer ? { label: "close", startedAt: this.closeStartedAt, duration: MENU_TIMING.closeDelay }
-        : p ? { label: p.kind === "safe" ? "safe zone" : "hover", startedAt: p.startedAt, duration: p.duration }
-        : null,
+      timer: this.closeTimer
+        ? { label: "close", startedAt: this.closeStartedAt, duration: MENU_TIMING.closeDelay }
+        : p
+          ? { label: p.kind === "safe" ? "safe zone" : "hover", startedAt: p.startedAt, duration: p.duration }
+          : null,
     };
     this.emit();
   }
@@ -305,5 +351,9 @@ export class CascadeController {
 
 /** 调试层开关：在开发者工具里执行 localStorage.setItem("kinshoko.menuDebug", "1") 后重新打开菜单。默认关。 */
 export function menuDebugEnabled() {
-  try { return window.localStorage.getItem("kinshoko.menuDebug") === "1"; } catch { return false; }
+  try {
+    return window.localStorage.getItem("kinshoko.menuDebug") === "1";
+  } catch {
+    return false;
+  }
 }

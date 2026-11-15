@@ -12,7 +12,9 @@ const cross = (a: Point, b: Point, p: Point) => (b.x - a.x) * (p.y - a.y) - (b.y
 
 /** 三条边的叉积同号（或为零）时点在三角形内，边上也算。 */
 export function pointInTriangle(p: Point, a: Point, b: Point, c: Point) {
-  const d1 = cross(a, b, p), d2 = cross(b, c, p), d3 = cross(c, a, p);
+  const d1 = cross(a, b, p),
+    d2 = cross(b, c, p),
+    d3 = cross(c, a, p);
   const negative = d1 < 0 || d2 < 0 || d3 < 0;
   const positive = d1 > 0 || d2 > 0 || d3 > 0;
   return !(negative && positive);
@@ -38,8 +40,18 @@ export function approachStrip(parent: Box, side: Side): Box {
 }
 
 /** 指针是否正在去子菜单的路上。apex 取倒数第二次 pointermove 的位置，三角形不会缩到当前点上。 */
-export function headingToSubmenu({ apex, point, parent, submenu, side = submenuSide(parent, submenu) }: {
-  apex: Point; point: Point; parent: Box; submenu: Box; side?: Side;
+export function headingToSubmenu({
+  apex,
+  point,
+  parent,
+  submenu,
+  side = submenuSide(parent, submenu),
+}: {
+  apex: Point;
+  point: Point;
+  parent: Box;
+  submenu: Box;
+  side?: Side;
 }) {
   const strip = approachStrip(parent, side);
   if (point.x < strip.left || point.x > strip.right) return false;

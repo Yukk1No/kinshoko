@@ -72,7 +72,12 @@ export function subscriptionAdd(subscriptions: NewSubscription[]): Promise<Subsc
 }
 
 /** 改一条订阅收不收漫画与成人作品；榜单还可以改名次（`top`，#370）。 */
-export function subscriptionSetOptions(id: string, includeExplicit: boolean, includeManga: boolean, top: number | null = null): Promise<Subscription> {
+export function subscriptionSetOptions(
+  id: string,
+  includeExplicit: boolean,
+  includeManga: boolean,
+  top: number | null = null,
+): Promise<Subscription> {
   return invoke<Subscription>("subscription_set_options", { id, includeExplicit, includeManga, top });
 }
 

@@ -17,7 +17,9 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 /**
  * The formal workspace IPC at revision `revision`. Once `failing` is set, the next `failures`
@@ -31,14 +33,34 @@ function workspace() {
     current_library: () => libraries[0].library,
     registered_libraries: () => libraries,
     workspace_status: status,
-    workspace_directories: () => ({ status: status(), registrationOrder: [], providers: [{ registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} }] }),
+    workspace_directories: () => ({
+      status: status(),
+      registrationOrder: [],
+      providers: [
+        { registration: libraries[0], sidebar: { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} },
+      ],
+    }),
     workspace_tag_groups: () => [{ id: "g", name: "人物分组", namespace: null, tags: [] }],
     import_tasks: () => [],
     tagging_status: () => ({ state: "starting" }),
     workspace_browse: () => ({
-      cards: [{ id: "bytes", libraryId: "A", imageId: "a", width: 100, height: 100, thumbnail: "A/a/128", adult: false,
-        sources: [{ libraryId: "A", libraryName: "甲库", imageId: "a", unavailable: null, matches: true, deleted: false }] }],
-      total: 1, nextCursor: null, status: status(),
+      cards: [
+        {
+          id: "bytes",
+          libraryId: "A",
+          imageId: "a",
+          width: 100,
+          height: 100,
+          thumbnail: "A/a/128",
+          adult: false,
+          sources: [
+            { libraryId: "A", libraryName: "甲库", imageId: "a", unavailable: null, matches: true, deleted: false },
+          ],
+        },
+      ],
+      total: 1,
+      nextCursor: null,
+      status: status(),
     }),
     app_info: () => ({ productName: "Kinshoko", version: "1" }),
     // 启动时取走留给主窗口的收集请求：没有。
@@ -52,7 +74,9 @@ function workspace() {
     }
     return reply();
   };
-  fakeBackend(Object.fromEntries(Object.entries(replies).map(([command, reply]) => [command, failable(command, reply)])));
+  fakeBackend(
+    Object.fromEntries(Object.entries(replies).map(([command, reply]) => [command, failable(command, reply)])),
+  );
   return state;
 }
 
@@ -64,7 +88,12 @@ async function settled() {
 }
 
 /** A library change lands (copy, import…): the workspace moves to r2 and re-reads. */
-async function changed(state: ReturnType<typeof workspace>, command: string, failures: number, failure: unknown = EXPIRED) {
+async function changed(
+  state: ReturnType<typeof workspace>,
+  command: string,
+  failures: number,
+  failure: unknown = EXPIRED,
+) {
   Object.assign(state, { failing: command, failures, calls: 0, failure, revision: "r2" });
   await act(() => emit("workspace-changed", { revision: "r2", libraries }));
 }

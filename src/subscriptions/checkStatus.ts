@@ -37,13 +37,16 @@ export function checkedText(lastCheckedAt: number | null, now: number): string {
 
 /** “将于 14:30 同步”。 */
 export function retryText(until: number): string {
-  return i18n.t("subscriptions:check.retryAt", { time: formatDateTime(until, { hour: "2-digit", minute: "2-digit", hour12: false }) });
+  return i18n.t("subscriptions:check.retryAt", {
+    time: formatDateTime(until, { hour: "2-digit", minute: "2-digit", hour12: false }),
+  });
 }
 
 /** 名单上警示图标的说明：上次没查完的原因。 */
 export function failureText(error: SourceError): string {
-  const reason = error.code === "status"
-    ? i18n.t("subscriptions:reason.status", { status: error.status })
-    : i18n.t(`subscriptions:reason.${error.code}`);
+  const reason =
+    error.code === "status"
+      ? i18n.t("subscriptions:reason.status", { status: error.status })
+      : i18n.t(`subscriptions:reason.${error.code}`);
   return i18n.t("subscriptions:lastFailedTip", { reason });
 }

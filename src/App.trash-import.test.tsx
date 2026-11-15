@@ -8,9 +8,13 @@ import { backend, clean, library, push, sent } from "./App.fixtures";
 describe("回收站范围下的导入", () => {
   const paths = ["D:\\参考\\a.png"];
   const position = { x: 10, y: 10 };
-  const tick = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+  const tick = () =>
+    act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
   const menuItem = (name: RegExp) => screen.getByRole("menuitem", { name });
-  const disabled = (item: HTMLElement) => item.hasAttribute("data-disabled") || item.getAttribute("aria-disabled") === "true";
+  const disabled = (item: HTMLElement) =>
+    item.hasAttribute("data-disabled") || item.getAttribute("aria-disabled") === "true";
 
   async function inTrash(override?: Parameters<typeof backend>[2]) {
     backend(library, clean, override);
@@ -19,14 +23,17 @@ describe("回收站范围下的导入", () => {
     // 拖放监听异步注册：等它就绪。
     await tick();
     fireEvent.click(await screen.findByRole("button", { name: "回收站（全部图库，1 张）" }));
-    await waitFor(() => expect(sent("workspace_browse").at(-1)).toMatchObject({ query: { scope: { scope: { kind: "trash" } } } }));
+    await waitFor(() =>
+      expect(sent("workspace_browse").at(-1)).toMatchObject({ query: { scope: { scope: { kind: "trash" } } } }),
+    );
     await tick();
   }
 
   it("导入按钮的图片、文件夹、Eagle 都禁用", async () => {
     await inTrash();
     fireEvent.click(screen.getByRole("button", { name: "导入" }));
-    for (const name of [/^图片/, /^文件夹/, /从 Eagle 导入/]) expect(disabled(await screen.findByRole("menuitem", { name }))).toBe(true);
+    for (const name of [/^图片/, /^文件夹/, /从 Eagle 导入/])
+      expect(disabled(await screen.findByRole("menuitem", { name }))).toBe(true);
   });
 
   it("离开回收站后导入按钮恢复", async () => {
@@ -42,7 +49,11 @@ describe("回收站范围下的导入", () => {
   });
 
   it("离开回收站后 Ctrl V 恢复", async () => {
-    await inTrash({ stage_clipboard_import: () => { throw "剪贴板里没有图片"; } });
+    await inTrash({
+      stage_clipboard_import: () => {
+        throw "剪贴板里没有图片";
+      },
+    });
     fireEvent.click(screen.getByRole("button", { name: "全部图片（2 张）" }));
     await waitFor(() => expect(sent("workspace_browse").at(-1)).toMatchObject({ query: { scope: { kind: "all" } } }));
     fireEvent.keyDown(document, { key: "v", ctrlKey: true });
@@ -85,8 +96,16 @@ describe("回收站范围下的导入", () => {
   it("导入任务和结果卡的重试照常可用", async () => {
     await inTrash();
     const report = {
-      cancelled: false, fromEagle: false, sealedDuplicates: false, privateSummary: false, trashDuplicates: false, eagleMissing: 0, eagleRelocations: [],
-      items: [{ path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } }],
+      cancelled: false,
+      fromEagle: false,
+      sealedDuplicates: false,
+      privateSummary: false,
+      trashDuplicates: false,
+      eagleMissing: 0,
+      eagleRelocations: [],
+      items: [
+        { path: "D:\\参考\\坏.png", outcome: { kind: "readFailed", reason: { code: "system", detail: "被占用" } } },
+      ],
     };
     await push({ kind: "taskFinished", libraryId: "L1", taskId: "T1", report } as never);
 

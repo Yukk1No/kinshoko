@@ -6,9 +6,26 @@ import { Tip } from "../ui/Tip";
  * 起名与改名（设计系统 TextField“配按钮”）：上方一行字段名与关闭按钮，下面输入框与“保存”并排，
  * 同高 32、间距 8。Enter 保存，Esc 或关闭按钮取消。
  */
-export function GroupNameForm({ title, label, placeholder, value, onChange, onSubmit, onCancel, busy = false, blocked = false, primary = true, className = "" }: {
-  title: string; label: string; placeholder?: string; value: string; onChange: (value: string) => void;
-  onSubmit: () => void; onCancel: () => void;
+export function GroupNameForm({
+  title,
+  label,
+  placeholder,
+  value,
+  onChange,
+  onSubmit,
+  onCancel,
+  busy = false,
+  blocked = false,
+  primary = true,
+  className = "",
+}: {
+  title: string;
+  label: string;
+  placeholder?: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
   /** 正在保存：输入框与按钮都不能用。 */
   busy?: boolean;
   /** 暂时不能保存（另一次保存还没结束）。 */
@@ -18,16 +35,53 @@ export function GroupNameForm({ title, label, placeholder, value, onChange, onSu
   className?: string;
 }) {
   const { t } = useTranslation("desktop", { keyPrefix: "nameForm" });
-  return <form className={`group-name-form ${className}`} onSubmit={(e) => { e.preventDefault(); if (value.trim() && !busy && !blocked) onSubmit(); }}
-    onKeyDown={(e) => { if (e.key === "Escape" && !busy) { e.preventDefault(); e.stopPropagation(); onCancel(); } }}>
-    <div className="group-name-head">
-      <span className="k-field-label">{title}</span>
-      <Tip label={t("cancel")} keys="Esc"><button type="button" className="k-icon-btn is-sm" aria-label={t("cancel")} disabled={busy} onClick={onCancel}><X size={14} aria-hidden="true" /></button></Tip>
-    </div>
-    <div className="k-field-row">
-      <input className="k-input" aria-label={label} placeholder={placeholder} autoFocus disabled={busy}
-        value={value} onChange={(e) => onChange(e.target.value)} />
-      <button type="submit" className={`k-btn${primary ? " is-primary" : ""}`} disabled={!value.trim() || busy || blocked}><span className="k-label">{t("save")}</span></button>
-    </div>
-  </form>;
+  return (
+    <form
+      className={`group-name-form ${className}`}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (value.trim() && !busy && !blocked) onSubmit();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && !busy) {
+          e.preventDefault();
+          e.stopPropagation();
+          onCancel();
+        }
+      }}
+    >
+      <div className="group-name-head">
+        <span className="k-field-label">{title}</span>
+        <Tip label={t("cancel")} keys="Esc">
+          <button
+            type="button"
+            className="k-icon-btn is-sm"
+            aria-label={t("cancel")}
+            disabled={busy}
+            onClick={onCancel}
+          >
+            <X size={14} aria-hidden="true" />
+          </button>
+        </Tip>
+      </div>
+      <div className="k-field-row">
+        <input
+          className="k-input"
+          aria-label={label}
+          placeholder={placeholder}
+          autoFocus
+          disabled={busy}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <button
+          type="submit"
+          className={`k-btn${primary ? " is-primary" : ""}`}
+          disabled={!value.trim() || busy || blocked}
+        >
+          <span className="k-label">{t("save")}</span>
+        </button>
+      </div>
+    </form>
+  );
 }

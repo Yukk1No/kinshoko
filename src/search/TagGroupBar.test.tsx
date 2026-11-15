@@ -3,16 +3,31 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TagGroupBar } from "./TagGroupBar";
 import { fakeBackend } from "../test/backend";
 
-const tag = (id: string, name: string) => ({ tag: { id, name, namespace: "general", untranslated: false, hasExternal: false }, count: 1 });
+const tag = (id: string, name: string) => ({
+  tag: { id, name, namespace: "general", untranslated: false, hasExternal: false },
+  count: 1,
+});
 const hair = { id: "hair", name: "发色", namespace: null, tags: [tag("blue", "蓝发")] };
 const eyes = { id: "eyes", name: "瞳色", namespace: null, tags: [tag("red", "红瞳"), tag("green", "绿瞳")] };
 let groups = [hair, eyes];
 
-const bar = (over: Partial<Parameters<typeof TagGroupBar>[0]> = {}) =>
-  <TagGroupBar libraryId="lib" safe={false} generation={0} input={{ conditions: [], exact: false }} onChange={vi.fn()} onError={vi.fn()} {...over} />;
+const bar = (over: Partial<Parameters<typeof TagGroupBar>[0]> = {}) => (
+  <TagGroupBar
+    libraryId="lib"
+    safe={false}
+    generation={0}
+    input={{ conditions: [], exact: false }}
+    onChange={vi.fn()}
+    onError={vi.fn()}
+    {...over}
+  />
+);
 const button = (name: RegExp) => screen.findByRole("button", { name });
 const popup = () => screen.queryByRole("dialog");
-const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+const settle = () =>
+  act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
 
 beforeEach(() => {
   groups = [hair, eyes];
@@ -108,13 +123,19 @@ describe("标签组下拉（#451）", () => {
     const change = vi.fn();
     const red = { kind: "tag" as const, id: "red", dismissed: [] };
     const green = { kind: "tag" as const, id: "green", dismissed: [] };
-    const blue = { conditions: [{ any: [{ kind: "tag" as const, id: "blue", dismissed: [] }], negate: false }], exact: false };
+    const blue = {
+      conditions: [{ any: [{ kind: "tag" as const, id: "blue", dismissed: [] }], negate: false }],
+      exact: false,
+    };
     const view = render(bar({ onChange: change, input: blue }));
     fireEvent.click(await button(/瞳色/));
     const any = screen.getByRole("button", { name: "按“瞳色”任一标签查找" });
     expect(any.getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(any);
-    expect(change).toHaveBeenLastCalledWith({ ...blue, conditions: [...blue.conditions, { any: [red, green], negate: false }] });
+    expect(change).toHaveBeenLastCalledWith({
+      ...blue,
+      conditions: [...blue.conditions, { any: [red, green], negate: false }],
+    });
     const on = { ...blue, conditions: [...blue.conditions, { any: [green, red], negate: false }] };
     view.rerender(bar({ onChange: change, input: on }));
     fireEvent.click(await button(/瞳色/));

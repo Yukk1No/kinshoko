@@ -10,12 +10,17 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 it("保存为关闭安全模式且活动库断连时，仍显示可用提供方的现有工作区", async () => {
   const libraries = [
     { library: { id: "A", name: "可用甲库", root: "A" }, unavailable: null },
-    { library: { id: "B", name: "断连乙库", root: "B" }, unavailable: { code: "system" as const, detail: "移动盘未连接" } },
+    {
+      library: { id: "B", name: "断连乙库", root: "B" },
+      unavailable: { code: "system" as const, detail: "移动盘未连接" },
+    },
   ];
   fakeBackend({
     safe_mode: false,
@@ -25,12 +30,35 @@ it("保存为关闭安全模式且活动库断连时，仍显示可用提供方�
       if (args.safeMode) return Promise.reject({ code: "lensChanged" });
       return { revision: "unsafe", libraries };
     },
-    workspace_directories: { status: { revision: "unsafe", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: registration.unavailable ? null : { all: 1, trash: 0, folders: [] }, unassigned: 1, descendants: {} })) },
+    workspace_directories: {
+      status: { revision: "unsafe", libraries },
+      registrationOrder: [],
+      providers: libraries.map((registration) => ({
+        registration,
+        sidebar: registration.unavailable ? null : { all: 1, trash: 0, folders: [] },
+        unassigned: 1,
+        descendants: {},
+      })),
+    },
     import_tasks: [],
     workspace_browse: {
-      cards: [{ id: "bytes", libraryId: "A", imageId: "a", width: 100, height: 100, thumbnail: "A/a/128", adult: false,
-        sources: [{ libraryId: "A", libraryName: "可用甲库", imageId: "a", unavailable: null, matches: true, deleted: false }] }],
-      total: 1, nextCursor: null, status: { revision: "unsafe", libraries },
+      cards: [
+        {
+          id: "bytes",
+          libraryId: "A",
+          imageId: "a",
+          width: 100,
+          height: 100,
+          thumbnail: "A/a/128",
+          adult: false,
+          sources: [
+            { libraryId: "A", libraryName: "可用甲库", imageId: "a", unavailable: null, matches: true, deleted: false },
+          ],
+        },
+      ],
+      total: 1,
+      nextCursor: null,
+      status: { revision: "unsafe", libraries },
     },
     app_info: { productName: "Kinshoko", version: "1" },
     // 启动时取走留给主窗口的收集请求：没有。

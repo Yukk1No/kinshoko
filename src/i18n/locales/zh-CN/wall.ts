@@ -74,7 +74,8 @@ export default {
     checking: "正在核对参考组…",
     changed: "回收站或参考组刚有变化，已按最新情况重新列出。",
     confirmCount_other: "永久删除这 {{count, number}} 张图？原图与整理结果都会删除，无法恢复。",
-    confirmEmptyTrash_other: "永久删除「{{library}}」回收站里的 {{count, number}} 张图？原图与整理结果都会删除，无法恢复。",
+    confirmEmptyTrash_other:
+      "永久删除「{{library}}」回收站里的 {{count, number}} 张图？原图与整理结果都会删除，无法恢复。",
     nothing: "这些图这次都无法删除。",
     libraryUnavailable_other: "「{{library}}」的 {{count, number}} 张这次无法删除：{{reason}}",
     groupsIntro: "这些参考组用到了它们，删除后在这些参考组里显示为缺失：",

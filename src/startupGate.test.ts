@@ -1,8 +1,15 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  FIRST_SCREEN, STARTUP_TIMEOUT_MS, releaseStartup, resetStartupGate, startupLibraryOpened, startupThumbnailShown,
-  startupWallMounted, startupWallPage, useStartupGate,
+  FIRST_SCREEN,
+  STARTUP_TIMEOUT_MS,
+  releaseStartup,
+  resetStartupGate,
+  startupLibraryOpened,
+  startupThumbnailShown,
+  startupWallMounted,
+  startupWallPage,
+  useStartupGate,
 } from "./startupGate";
 
 beforeEach(() => {
@@ -16,7 +23,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const shown = (n: number) => { for (let i = 0; i < n; i++) startupThumbnailShown(); };
+const shown = (n: number) => {
+  for (let i = 0; i < n; i++) startupThumbnailShown();
+};
 
 describe("startup gate (#338)", () => {
   it("waits for the first screen of thumbnails, advancing as they arrive", () => {
@@ -41,7 +50,10 @@ describe("startup gate (#338)", () => {
 
   it("waits only for the cards the wall actually mounted when fewer than the first screen fit", () => {
     const { result } = renderHook(() => useStartupGate());
-    act(() => { startupWallPage(500); startupWallMounted(12); });
+    act(() => {
+      startupWallPage(500);
+      startupWallMounted(12);
+    });
     act(() => shown(11));
     expect(result.current.released).toBe(false);
     act(() => shown(1));
@@ -50,7 +62,11 @@ describe("startup gate (#338)", () => {
 
   it("follows the latest mounted count while the layout settles", () => {
     const { result } = renderHook(() => useStartupGate());
-    act(() => { startupWallPage(500); startupWallMounted(3); startupWallMounted(16); });
+    act(() => {
+      startupWallPage(500);
+      startupWallMounted(3);
+      startupWallMounted(16);
+    });
     act(() => shown(3));
     expect(result.current.released).toBe(false);
     act(() => shown(13));
@@ -91,7 +107,10 @@ describe("startup gate (#338)", () => {
   it("stays released once released", () => {
     const { result } = renderHook(() => useStartupGate());
     act(() => releaseStartup());
-    act(() => { startupLibraryOpened(); startupWallPage(500); });
+    act(() => {
+      startupLibraryOpened();
+      startupWallPage(500);
+    });
     expect(result.current).toEqual({ progress: 1, released: true });
   });
 });

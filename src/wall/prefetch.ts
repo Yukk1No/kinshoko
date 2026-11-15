@@ -11,7 +11,12 @@ export type MountWindow = { top: number; bottom: number };
  * 应挂载的画布范围 [top, bottom)。视口上下各留 overscan；只要视口上下仍各有 overscan 的一半在范围内，
  * 就返回原来的对象（调用方据此跳过 React 渲染），越出时才换到新的、按块对齐的范围。
  */
-export function mountWindow(prev: MountWindow | null, scrollTop: number, height: number, overscan: number): MountWindow {
+export function mountWindow(
+  prev: MountWindow | null,
+  scrollTop: number,
+  height: number,
+  overscan: number,
+): MountWindow {
   const margin = overscan / 2;
   if (prev && prev.top <= scrollTop - margin && prev.bottom >= scrollTop + height + margin) return prev;
   return {
@@ -47,7 +52,9 @@ export function decodeThumbnail(url: string): Promise<unknown> {
  * 预取队列：同时最多 concurrency 张；want() 用新的有序清单替换还没开始的请求；
  * 记得最近取过的 remember 个地址，不重复取。
  */
-export function createPrefetcher(o: { load?: (url: string) => Promise<unknown>; concurrency?: number; remember?: number } = {}) {
+export function createPrefetcher(
+  o: { load?: (url: string) => Promise<unknown>; concurrency?: number; remember?: number } = {},
+) {
   const load = o.load ?? decodeThumbnail;
   const concurrency = o.concurrency ?? 4;
   const remember = o.remember ?? 1500;
@@ -75,6 +82,9 @@ export function createPrefetcher(o: { load?: (url: string) => Promise<unknown>; 
       queue = urls.filter((url) => !done.has(url) && !running.has(url));
       pump();
     },
-    dispose() { disposed = true; queue = []; },
+    dispose() {
+      disposed = true;
+      queue = [];
+    },
   };
 }

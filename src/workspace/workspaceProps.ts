@@ -3,8 +3,8 @@ import type { Section } from "../shell/Rail";
 
 /** 工作区（LibraryWorkspace）的属性。 */
 export type WorkspaceProps = {
-  captureRequest?:{id:string;stamp:number}|null;
-  onCaptureRequestHandled?:()=>void;
+  captureRequest?: { id: string; stamp: number } | null;
+  onCaptureRequestHandled?: () => void;
   /** 钉图菜单“在 Kinshoko 中打开”的参考图（#106）：在查看器里打开。 */
   referenceRequest?: { libraryId: string; imageId: string; stamp: number } | null;
   section: Section;

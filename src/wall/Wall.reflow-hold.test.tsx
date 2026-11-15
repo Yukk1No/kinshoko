@@ -20,7 +20,8 @@ beforeEach(() => {
   // jsdom 不排版：卡片按自己的内联位置（减去墙的滚动）给矩形，墙占满视口。
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
     if (this.classList.contains("card")) {
-      const s = this.style, top = this.closest<HTMLElement>(".wall")?.scrollTop ?? 0;
+      const s = this.style,
+        top = this.closest<HTMLElement>(".wall")?.scrollTop ?? 0;
       return new DOMRect(parseFloat(s.left), parseFloat(s.top) - top, parseFloat(s.width), parseFloat(s.height));
     }
     return new DOMRect(0, 0, width, 800);
@@ -33,14 +34,25 @@ beforeEach(() => {
     return animation as unknown as Animation;
   });
   mockConvertFileSrc("windows");
-  fakeBackend({ workspace_browse: () => workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 }))) });
+  fakeBackend({
+    workspace_browse: () =>
+      workspacePage(Array.from({ length: 300 }, (_, i) => ({ id: String(i), width: 100, height: 100 + (i % 7) * 30 }))),
+  });
 });
 afterEach(() => {
-  vi.restoreAllMocks(); vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
-const props = { workspaceScope: { kind: "all" as const }, scope: { kind: "all" as const }, reloadKey: 0, selected: new Set<string>(),
-  onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false };
+const props = {
+  workspaceScope: { kind: "all" as const },
+  scope: { kind: "all" as const },
+  reloadKey: 0,
+  selected: new Set<string>(),
+  onSelectionChange: () => {},
+  onOpenImage: () => {},
+  viewerOpen: false,
+};
 
 async function setup() {
   const view = render(<Wall {...props} />);
@@ -54,9 +66,15 @@ async function setup() {
 }
 
 /** 面板宽度过渡的一帧：容器变窄，ResizeObserver 报告一次。 */
-const resize = (next: number) => act(() => { width = next; report(document.querySelector(".wall")!); });
-const placement = () => [...document.querySelectorAll<HTMLElement>(".wall .card")]
-  .map((node) => [node.dataset.id, node.style.left, node.style.top, node.style.width].join(" "));
+const resize = (next: number) =>
+  act(() => {
+    width = next;
+    report(document.querySelector(".wall")!);
+  });
+const placement = () =>
+  [...document.querySelectorAll<HTMLElement>(".wall .card")].map((node) =>
+    [node.dataset.id, node.style.left, node.style.top, node.style.width].join(" "),
+  );
 
 it("宽度未稳定时连续变化不重排，稳定后只重排一次", async () => {
   const { hold } = await setup();
@@ -89,11 +107,15 @@ it("一次开合只起一组位移动画，没有被打断后重来的动画", a
 
 it("重排前后视口顶部的那张图不跳走", async () => {
   const { wall, hold } = await setup();
-  const box = (node: HTMLElement) => ({ top: parseFloat(node.style.top), bottom: parseFloat(node.style.top) + parseFloat(node.style.height) });
+  const box = (node: HTMLElement) => ({
+    top: parseFloat(node.style.top),
+    bottom: parseFloat(node.style.top) + parseFloat(node.style.height),
+  });
   const top = [...document.querySelectorAll<HTMLElement>(".wall .card")]
     .filter((node) => box(node).bottom > wall.scrollTop)
     .sort((a, b) => box(a).top - box(b).top)[0];
-  const offset = box(top).top - wall.scrollTop, cardWidth = top.style.width;
+  const offset = box(top).top - wall.scrollTop,
+    cardWidth = top.style.width;
   hold(true);
   for (const next of [900, 760, 680]) resize(next);
   hold(false);
@@ -134,19 +156,27 @@ it("单击卡片后在双击间隔内不重排；间隔过后、过渡也结束�
     fireEvent.click(first, { clientX: 40, clientY: 40 });
     hold(true);
     for (const next of [940, 790, 680]) resize(next);
-    act(() => { vi.advanceTimersByTime(200); });
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
     // 过渡先结束：仍在双击间隔里，不重排。
     hold(false);
     expect(placement()).toEqual(before);
-    act(() => { vi.advanceTimersByTime(250); });
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
     expect(placement()).toEqual(before);
     motions = [];
-    act(() => { vi.advanceTimersByTime(60); });
+    act(() => {
+      vi.advanceTimersByTime(60);
+    });
     const after = placement();
     expect(after).not.toEqual(before);
     const ids = motions.map((motion) => motion.id);
     expect(new Set(ids).size).toBe(ids.length);
-    act(() => { vi.advanceTimersByTime(1000); });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
     resize(680);
     expect(placement()).toEqual(after);
   } finally {
@@ -164,7 +194,9 @@ it("双击间隔先过去、过渡后结束：过渡结束时重排一次", asyn
     fireEvent.click(first, { clientX: 40, clientY: 40 });
     hold(true);
     resize(800);
-    act(() => { vi.advanceTimersByTime(600); });
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
     expect(placement()).toEqual(before);
     hold(false);
     expect(placement()).not.toEqual(before);

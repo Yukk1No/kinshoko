@@ -33,14 +33,21 @@ beforeEach(() => {
     workspace_status: () => structuredClone(status),
     workspace_directories: () => ({
       status: structuredClone(status),
-      providers: [{ registration: status.libraries[0], unassigned: 1, descendants: {}, sidebar: { all: 1, trash: 0, folders: [] } }],
+      providers: [
+        {
+          registration: status.libraries[0],
+          unassigned: 1,
+          descendants: {},
+          sidebar: { all: 1, trash: 0, folders: [] },
+        },
+      ],
     }),
     workspace_browse: () => ({ status: structuredClone(status), cards: [], nextCursor: null, total: 0 }),
     recovery: { interrupted: [], orphans: [], discardedStaging: 0 },
     shared_tag_groups: () => readGroups(),
     workspace_tag_groups: [],
     workspace_resolve: { conditions: [] },
-    workspace_candidates: (args) => String(args.text).includes("蓝") ? readCandidates() : [],
+    workspace_candidates: (args) => (String(args.text).includes("蓝") ? readCandidates() : []),
     create_shared_tag_group: (args) => {
       groups.push({ id: "G1", name: String(args.name), namespace: null, tags: [], sources: [] });
       status = { ...status, revision: "workspace-r2" };
@@ -63,11 +70,13 @@ async function openPicker(beforePicker?: () => Promise<void>) {
   expect(await screen.findByRole("dialog", { name: "编辑分组" })).toBeTruthy();
   const region = await screen.findByRole("region", { name: "标签分组" });
   // The create button stays disabled until the first group refresh settles.
-  fireEvent.click(await waitFor(() => {
-    const button = within(region).getByRole<HTMLButtonElement>("button", { name: "新建标签分组" });
-    expect(button.disabled).toBe(false);
-    return button;
-  }));
+  fireEvent.click(
+    await waitFor(() => {
+      const button = within(region).getByRole<HTMLButtonElement>("button", { name: "新建标签分组" });
+      expect(button.disabled).toBe(false);
+      return button;
+    }),
+  );
   const name = within(region).getByRole("textbox", { name: "新标签分组名称" });
   fireEvent.change(name, { target: { value: "发色" } });
   fireEvent.keyDown(name, { key: "Enter" });
@@ -89,26 +98,42 @@ async function addMember(region: HTMLElement) {
 
 it("keeps the draft when the group creation workspace notification arrives after typing", async () => {
   const { region } = await openPicker();
-  await act(async () => { await emit("workspace-changed", structuredClone(status)); });
+  await act(async () => {
+    await emit("workspace-changed", structuredClone(status));
+  });
   await addMember(region);
 });
 
 it("keeps typing through repeated vocabulary notifications with the same library revision", async () => {
   const event = { kind: "vocabularyChanged", libraryId: "L1", revision: 1 };
-  const { region } = await openPicker(async () => { await act(async () => { await emit("library-event", event); }); });
-  await act(async () => { await emit("library-event", event); });
+  const { region } = await openPicker(async () => {
+    await act(async () => {
+      await emit("library-event", event);
+    });
+  });
+  await act(async () => {
+    await emit("library-event", event);
+  });
   await addMember(region);
 });
 
 it("keeps typing when the monitor repeats an observed workspace revision", async () => {
-  const { region } = await openPicker(async () => { await act(async () => { await emit("workspace-changed", structuredClone(status)); }); });
-  await act(async () => { await emit("workspace-changed", structuredClone(status)); });
+  const { region } = await openPicker(async () => {
+    await act(async () => {
+      await emit("workspace-changed", structuredClone(status));
+    });
+  });
+  await act(async () => {
+    await emit("workspace-changed", structuredClone(status));
+  });
   await addMember(region);
 });
 
 it("closes the draft and old candidates when the safety mode really changes", async () => {
   const { region } = await openPicker();
-  await act(async () => { await emit("safe-mode-setting", false); });
+  await act(async () => {
+    await emit("safe-mode-setting", false);
+  });
   expect(within(region).queryByRole("combobox", { name: "挑一个标签" })).toBeNull();
   expect(screen.queryByRole("option", { name: /蓝发/ })).toBeNull();
 });
@@ -116,21 +141,37 @@ it("closes the draft and old candidates when the safety mode really changes", as
 it("keeps the focused input while withholding stale labels and ignoring a late old candidate", async () => {
   const { region, input } = await openPicker();
   let finishOld!: (value: Candidate[]) => void;
-  readCandidates = () => new Promise((resolve) => { finishOld = resolve; });
+  readCandidates = () =>
+    new Promise((resolve) => {
+      finishOld = resolve;
+    });
   fireEvent.change(input, { target: { value: "蓝发" } });
   let finishNew!: (value: Candidate[]) => void;
   let finishGroups!: (value: CatalogGroupView[]) => void;
-  readCandidates = () => new Promise((resolve) => { finishNew = resolve; });
-  readGroups = () => new Promise((resolve) => { finishGroups = resolve; });
-  await act(async () => { await emit("library-event", { kind: "vocabularyChanged", libraryId: "L1", revision: 1 }); });
+  readCandidates = () =>
+    new Promise((resolve) => {
+      finishNew = resolve;
+    });
+  readGroups = () =>
+    new Promise((resolve) => {
+      finishGroups = resolve;
+    });
+  await act(async () => {
+    await emit("library-event", { kind: "vocabularyChanged", libraryId: "L1", revision: 1 });
+  });
   expect(within(region).getByRole("combobox", { name: "挑一个标签" })).toBe(input);
   expect(document.activeElement).toBe(input);
   expect(input.value).toBe("蓝发");
   expect(within(region).queryByRole("group", { name: "发色" })).toBeNull();
   expect(screen.queryByRole("option")).toBeNull();
-  await act(async () => { finishOld([{ tag: { ...tag, name: "失效的旧标签" }, via: null, count: 99 }]); });
+  await act(async () => {
+    finishOld([{ tag: { ...tag, name: "失效的旧标签" }, via: null, count: 99 }]);
+  });
   expect(within(region).queryByText("失效的旧标签")).toBeNull();
-  await act(async () => { finishNew([{ tag, via: null, count: 1 }]); finishGroups(structuredClone(groups)); });
+  await act(async () => {
+    finishNew([{ tag, via: null, count: 1 }]);
+    finishGroups(structuredClone(groups));
+  });
   expect(await screen.findByRole("option", { name: /蓝发/ })).toBeTruthy();
   expect(within(region).getByRole("combobox", { name: "挑一个标签" })).toBe(input);
 });
@@ -138,6 +179,8 @@ it("keeps the focused input while withholding stale labels and ignoring a late o
 it("closes a draft whose group was deleted during refresh", async () => {
   const { region } = await openPicker();
   groups = [];
-  await act(async () => { await emit("workspace-changed", { ...status, revision: "workspace-r3" }); });
+  await act(async () => {
+    await emit("workspace-changed", { ...status, revision: "workspace-r3" });
+  });
   expect(within(region).queryByRole("combobox", { name: "挑一个标签" })).toBeNull();
 });

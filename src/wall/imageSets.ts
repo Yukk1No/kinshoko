@@ -12,7 +12,10 @@ export const TRAY_PAD = 14;
  * 墙上实际排的格子：`key` 指向的那一摞换成它的各页（按页序，排进托盘），其余照旧。
  * 找不到这一摞时（已离开结果）没有托盘。
  */
-export function expandTray(cards: BrowserCard[], key: string | null): { shown: BrowserCard[]; tray: Omit<TrayInput, "pad"> | null } {
+export function expandTray(
+  cards: BrowserCard[],
+  key: string | null,
+): { shown: BrowserCard[]; tray: Omit<TrayInput, "pad"> | null } {
   const at = key === null ? -1 : cards.findIndex((card) => card.set?.key === key);
   if (at < 0) return { shown: cards, tray: null };
   const pages = cards[at].set!.pages;
@@ -24,18 +27,24 @@ export function expandTray(cards: BrowserCard[], key: string | null): { shown: B
  * 删除、整理、移文件夹作用于整摞的全部页；钉图、加入参考组、复制只取封面，不经过这里。
  */
 export function pagesOf(cards: readonly BrowserCard[]): BrowserCard[] {
-  return cards.flatMap((card) => card.set ? card.set.pages as BrowserCard[] : [card]);
+  return cards.flatMap((card) => (card.set ? (card.set.pages as BrowserCard[]) : [card]));
 }
 
 /** 查看器里看的那一张（#418）：从整摞打开时是它的第 1 页，不带 `set`，查看器里的删除因此只作用于这一页。 */
 export function viewedPage(card: BrowserCard): BrowserCard {
-  return card.set ? card.set.pages[0] as BrowserCard : card;
+  return card.set ? (card.set.pages[0] as BrowserCard) : card;
 }
 
 /** 一摞的格子四周的内缩（布局单位）：按最外扩的纸角算，见 stackInset。 */
 export function cardInset(card: BrowserCard, columnWidth: number, uiScale: number) {
   const set = card.set!;
-  return stackInset(set.key, set.pages.map((page) => ({ w: page.width, h: page.height })), columnWidth, CAP_RATIO, 1 / uiScale);
+  return stackInset(
+    set.key,
+    set.pages.map((page) => ({ w: page.width, h: page.height })),
+    columnWidth,
+    CAP_RATIO,
+    1 / uiScale,
+  );
 }
 
 /** 收着 `id` 这一页的那一摞（封面 id）；`id` 本身就在墙上或不在这些格子里时为 null。 */
@@ -45,20 +54,32 @@ export function stackHolding(cards: readonly BrowserCard[], id: string) {
 }
 
 /** 要记下的滚动位置：落在托盘里的页上时记成这一摞，下次进来托盘是关着的，页不在墙上。 */
-export function storableAnchor(anchor: Anchor | null, shown: BrowserCard[], tray: Omit<TrayInput, "pad"> | null, trayIds: ReadonlySet<string>) {
+export function storableAnchor(
+  anchor: Anchor | null,
+  shown: BrowserCard[],
+  tray: Omit<TrayInput, "pad"> | null,
+  trayIds: ReadonlySet<string>,
+) {
   return anchor && tray && trayIds.has(anchor.id) ? { id: shown[tray.at].id, delta: 0 } : anchor;
 }
 
 /** 一摞下面要遮住的纸（以空格分隔的页 id）：按各页自己的 adult，封面不是成人内容时纸上的页也可能是。 */
 export function veiledSheets(card: BrowserCard, safeMode: boolean, revealed: ReadonlySet<string>) {
-  return card.set ? card.set.pages.filter((p) => p.adult && (safeMode || !revealed.has(p.id))).map((p) => p.id).join(" ") : "";
+  return card.set
+    ? card.set.pages
+        .filter((p) => p.adult && (safeMode || !revealed.has(p.id)))
+        .map((p) => p.id)
+        .join(" ")
+    : "";
 }
 
 /** 排瀑布流用的尺寸：一摞四周留出纸边的内缩。 */
 export function layoutItems(shown: BrowserCard[], uiScale: number): LayoutInput {
-  return shown.map((card) => card.set
-    ? { w: card.width, h: card.height, inset: (columnWidth: number) => cardInset(card, columnWidth, uiScale) }
-    : { w: card.width, h: card.height });
+  return shown.map((card) =>
+    card.set
+      ? { w: card.width, h: card.height, inset: (columnWidth: number) => cardInset(card, columnWidth, uiScale) }
+      : { w: card.width, h: card.height },
+  );
 }
 
 /**
@@ -68,7 +89,10 @@ export function layoutItems(shown: BrowserCard[], uiScale: number): LayoutInput 
 export function useOpenTray(cards: BrowserCard[], stackSets: boolean) {
   const [openSet, setOpenSet] = useState<string | null>(null);
   const { shown, tray } = useMemo(() => expandTray(cards, stackSets ? openSet : null), [cards, openSet, stackSets]);
-  const trayIds = useMemo(() => new Set(tray ? shown.slice(tray.at, tray.at + tray.count).map((c) => c.id) : []), [shown, tray]);
+  const trayIds = useMemo(
+    () => new Set(tray ? shown.slice(tray.at, tray.at + tray.count).map((c) => c.id) : []),
+    [shown, tray],
+  );
   // 那一摞已不在结果里：在渲染中就关上托盘，不留一帧打开着的状态。
   if (openSet !== null && !tray) setOpenSet(null);
   return { openSet, setOpenSet, shown, tray, trayIds };
@@ -80,14 +104,25 @@ export function useOpenTray(cards: BrowserCard[], stackSets: boolean) {
  */
 export function useStackSetsSetting(onToggle: () => void) {
   const [on, setOn] = useState(true);
-  return { on, menu: { on, toggle: () => { setOn((value) => !value); onToggle(); } } };
+  return {
+    on,
+    menu: {
+      on,
+      toggle: () => {
+        setOn((value) => !value);
+        onToggle();
+      },
+    },
+  };
 }
 
 /** 托盘开着时点顶栏也关托盘；点详情面板不关，面板显示的正是托盘里的选择。 */
 export function useCloseTrayOnTopbar(openSet: string | null, leaveTray: MutableRefObject<() => void>) {
   useEffect(() => {
     if (openSet === null) return;
-    const onDown = (e: PointerEvent) => { if (e.target instanceof Element && e.target.closest(".topbar")) leaveTray.current(); };
+    const onDown = (e: PointerEvent) => {
+      if (e.target instanceof Element && e.target.closest(".topbar")) leaveTray.current();
+    };
     document.addEventListener("pointerdown", onDown, true);
     return () => document.removeEventListener("pointerdown", onDown, true);
   }, [openSet, leaveTray]);

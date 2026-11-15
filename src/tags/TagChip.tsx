@@ -5,7 +5,14 @@ import type { TagLabel } from "../bindings/TagLabel";
 import type { TagOrigin } from "../bindings/TagOrigin";
 import { TagMarks, tagName, untranslatedHint } from "../search/SearchBox";
 import { Sparkles } from "lucide-react";
-import { confidenceBand, confidencePercent, isModel, originLine, tagStanding, type ConfidenceThresholds } from "./tagConfidence";
+import {
+  confidenceBand,
+  confidencePercent,
+  isModel,
+  originLine,
+  tagStanding,
+  type ConfidenceThresholds,
+} from "./tagConfidence";
 import { useTagDisplay } from "./TagDisplayContext";
 import { UntranslatedRename } from "./UntranslatedRename";
 
@@ -20,8 +27,17 @@ export function chipBand(origins: TagOrigin[], thresholds: ConfidenceThresholds)
 export function ConfidenceMeter({ score }: { score: number }) {
   const { t } = useTranslation("tags");
   const percent = confidencePercent(score);
-  return <span className="k-tag-meter" role="meter" aria-label={t("origin.confidence")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}
-    style={{ width: `${percent}%` }} />;
+  return (
+    <span
+      className="k-tag-meter"
+      role="meter"
+      aria-label={t("origin.confidence")}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={percent}
+      style={{ width: `${percent}%` }}
+    />
+  );
 }
 
 type Props = {
@@ -58,18 +74,56 @@ export function TagChip({ tag, origins, notes = [], actions, meter = false, rena
   if (tag.untranslated) lines.push([untranslatedHint(), false]);
   return (
     <Popover.Root open={open && !renaming} onOpenChange={setOpen}>
-      <Popover.Trigger openOnHover delay={250} closeDelay={160} nativeButton={false}
-        render={<li role="listitem" tabIndex={0} className={`tag-row k-tag-chip${manual ? " is-manual" : ""}`}
-          data-band={display.style === "bands" ? chipBand(origins, display) : undefined} onFocus={() => setOpen(true)} />}>
+      <Popover.Trigger
+        openOnHover
+        delay={250}
+        closeDelay={160}
+        nativeButton={false}
+        render={
+          <li
+            role="listitem"
+            tabIndex={0}
+            className={`tag-row k-tag-chip${manual ? " is-manual" : ""}`}
+            data-band={display.style === "bands" ? chipBand(origins, display) : undefined}
+            onFocus={() => setOpen(true)}
+          />
+        }
+      >
         <span className="tag-name">{bare ? tag.name : name}</span>
-        <TagMarks tag={tag} untranslated={rename && <UntranslatedRename tag={tag} catalogId={rename.catalogId} onSaved={rename.onSaved} onOpenChange={setRenaming} />} />
+        <TagMarks
+          tag={tag}
+          untranslated={
+            rename && (
+              <UntranslatedRename
+                tag={tag}
+                catalogId={rename.catalogId}
+                onSaved={rename.onSaved}
+                onOpenChange={setRenaming}
+              />
+            )
+          }
+        />
         {meter && standing.kind === "model" && standing.score !== null && <ConfidenceMeter score={standing.score} />}
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={6}>
-          <Popover.Popup className="k-tip k-tag-tip" aria-label={t("origin.label", { name })} initialFocus={false} finalFocus={false}>
-            {lines.map(([line, model]) => <span key={line} className="k-tag-tip-line">{model && <Sparkles size={12} aria-hidden="true" />}{line}</span>)}
-            {notes.map((note) => <span key={note} className="k-tag-tip-line is-dim">{note}</span>)}
+          <Popover.Popup
+            className="k-tip k-tag-tip"
+            aria-label={t("origin.label", { name })}
+            initialFocus={false}
+            finalFocus={false}
+          >
+            {lines.map(([line, model]) => (
+              <span key={line} className="k-tag-tip-line">
+                {model && <Sparkles size={12} aria-hidden="true" />}
+                {line}
+              </span>
+            ))}
+            {notes.map((note) => (
+              <span key={note} className="k-tag-tip-line is-dim">
+                {note}
+              </span>
+            ))}
             <span className="k-tag-tip-acts">{actions}</span>
           </Popover.Popup>
         </Popover.Positioner>

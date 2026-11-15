@@ -22,12 +22,18 @@ export function referenceGroup(groupId: string): Promise<ReferenceGroupView> {
 }
 
 /** 把桌面钉图存成新的参考组；截图按逐张选择收藏后入组、只存在参考组里，或不加入。 */
-export function saveReferenceGroup(name: string, captures: import("../bindings/CaptureChoice").CaptureChoice[] = []): Promise<ReferenceGroup> {
+export function saveReferenceGroup(
+  name: string,
+  captures: import("../bindings/CaptureChoice").CaptureChoice[] = [],
+): Promise<ReferenceGroup> {
   return invoke<ReferenceGroup>(desk("save_reference_group"), { name, captures });
 }
 
 /** 把桌面上的资料库钉图存进已有的参考组：来自它的更新原成员，其他的加为新成员。 */
-export function savePinsToGroup(groupId: string, captures: import("../bindings/CaptureChoice").CaptureChoice[] = []): Promise<ReferenceGroup> {
+export function savePinsToGroup(
+  groupId: string,
+  captures: import("../bindings/CaptureChoice").CaptureChoice[] = [],
+): Promise<ReferenceGroup> {
   return invoke<ReferenceGroup>(desk("save_pins_to_group"), { groupId, captures });
 }
 
@@ -77,11 +83,15 @@ export function exportReferenceGroupPackage(groupId: string): Promise<string | n
 /**
  * 导入参考组包（#68）到资料库 `libraryId`，另存为新的参考组。弹出选择对话框；取消时为 null。
  */
-export function importReferenceGroupPackage(libraryId: string, destination?:SaveDestination): Promise<ReferenceGroup | null> {
+export function importReferenceGroupPackage(
+  libraryId: string,
+  destination?: SaveDestination,
+): Promise<ReferenceGroup | null> {
   const t = testPick<string | null>();
   if (t && t.value === null) return Promise.resolve(null);
   return invoke<ReferenceGroup | null>(desk("import_reference_group_package"), {
-    libraryId, ...(destination?{destination}:{}),
+    libraryId,
+    ...(destination ? { destination } : {}),
     path: t?.value ?? null,
   });
 }

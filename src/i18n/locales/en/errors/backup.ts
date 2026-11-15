@@ -1,13 +1,16 @@
 /** Parts a backup couldn't back up, and problems the round-trip check found after a restore (#359). */
 export default {
   problemSeparator: "; ",
-  restorePendingRollback: "The last library restore hasn't been rolled back yet: {{cause}}. It will be rolled back again when you retry the restore",
+  restorePendingRollback:
+    "The last library restore hasn't been rolled back yet: {{cause}}. It will be rolled back again when you retry the restore",
   restoredOriginalMismatch: "A restored original doesn't match: {{file}}",
   backupGroupProblem: "Reference group “{{name}}”: {{cause}}",
-  backupGroupNewLibrary: "Reference group “{{name}}” now refers to another library. Recalculate what to back up and try again",
+  backupGroupNewLibrary:
+    "Reference group “{{name}}” now refers to another library. Recalculate what to back up and try again",
   backupLibraryDefinitions: "Tag definitions of library “{{name}}”: {{cause}}",
   backupOriginalProblem: "Original {{file}} in library “{{name}}”: {{cause}}",
-  backupOriginalChanged: "The original doesn't match the library's record (it may have been changed outside Kinshoko), so this backup is incomplete",
+  backupOriginalChanged:
+    "The original doesn't match the library's record (it may have been changed outside Kinshoko), so this backup is incomplete",
   backupOriginalUnreadable: "Couldn't read the original: {{detail}}",
   backupLibraryNotRegistered: "This library isn't registered on this device",
   checkLibraryProblem: "{{name}}: {{cause}}",
@@ -20,7 +23,10 @@ export default {
   checkOriginalMissing: "Original {{file}} is missing",
   checkOriginalMismatch: "Original {{file}} doesn't match",
   checkOriginalUnreadable: "Couldn't read original {{file}}: {{detail}}",
-  checkOriginalCount: "The number of originals doesn't match: {{snapshot, number}} in the snapshot, {{restored, number}} after restoring",
-  checkTableRowCount: "Table {{table}}: {{snapshot, number}} rows in the snapshot, {{restored, number}} after restoring; the contents match",
-  checkTableMismatch: "Table {{table}}: {{snapshot, number}} rows in the snapshot, {{restored, number}} after restoring; the contents differ",
+  checkOriginalCount:
+    "The number of originals doesn't match: {{snapshot, number}} in the snapshot, {{restored, number}} after restoring",
+  checkTableRowCount:
+    "Table {{table}}: {{snapshot, number}} rows in the snapshot, {{restored, number}} after restoring; the contents match",
+  checkTableMismatch:
+    "Table {{table}}: {{snapshot, number}} rows in the snapshot, {{restored, number}} after restoring; the contents differ",
 };

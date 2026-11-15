@@ -9,7 +9,8 @@ export default {
   clearRunLogFailed: "清除运行日志失败：{{detail}}",
   runLogNotOpen: "运行日志没有打开",
   diagnosticsSaveFailed: "保存诊断信息失败：{{cause}}",
-  webView2PageFailed: "无法打开微软 WebView2 下载页。请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/",
+  webView2PageFailed:
+    "无法打开微软 WebView2 下载页。请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/",
   visitWebView2Page: "请在浏览器访问 https://developer.microsoft.com/en-us/microsoft-edge/webview2/",
   openExplorerFailed: "无法打开资源管理器：{{detail}}",
   openInFileManager: "请在资源管理器中打开：{{path}}",
@@ -28,13 +29,19 @@ export default {
   nameMigrationSafeModeChanged: "安全模式已变化，请重新打开“确认旧名称”",
 
   definitionsNotSaved: "标签信息未存进图库：{{cause}}。程序里的对应和名称选择已保留；图库可写后，请重试保存标签信息。",
-  mappingDefinitionsNotSaved: "标签对应已保存在程序里，但图库里的标签信息还没更新：{{cause}}。请在设置 › 标签 › 对应里重新存进图库。",
-  tagEditDefinitionsNotSaved: "标签整理已保存，但图库里的标签信息还没更新：{{cause}}。请在设置 › 标签 › 对应里重新存进图库。",
-  sourceTagDefinitionsNotSaved: "这个来源的标签整理已保存，但图库里的标签信息还没更新：{{cause}}。请在设置 › 标签 › 对应里重新存进图库。",
-  packageDefinitionsNotSaved: "内容已写入，但图库里的标签信息还没更新：{{cause}}。请在设置 › 标签 › 对应里重新存进图库，或重新导入参考组包。",
-  processedDefinitionsNotSaved: "内容处理结果已保留，图库里的标签信息还没更新：{{cause}}。可在设置 › 标签 › 对应里重新存进图库。",
+  mappingDefinitionsNotSaved:
+    "标签对应已保存在程序里，但图库里的标签信息还没更新：{{cause}}。请在设置 › 标签 › 对应里重新存进图库。",
+  tagEditDefinitionsNotSaved:
+    "标签整理已保存，但图库里的标签信息还没更新：{{cause}}。请在设置 › 标签 › 对应里重新存进图库。",
+  sourceTagDefinitionsNotSaved:
+    "这个来源的标签整理已保存，但图库里的标签信息还没更新：{{cause}}。请在设置 › 标签 › 对应里重新存进图库。",
+  packageDefinitionsNotSaved:
+    "内容已写入，但图库里的标签信息还没更新：{{cause}}。请在设置 › 标签 › 对应里重新存进图库，或重新导入参考组包。",
+  processedDefinitionsNotSaved:
+    "内容处理结果已保留，图库里的标签信息还没更新：{{cause}}。可在设置 › 标签 › 对应里重新存进图库。",
   savedDefinitionsNotSaved: "内容已保存，图库里的标签信息还没更新：{{cause}}。可在设置 › 标签 › 对应里重新存进图库。",
-  importPublicationNotStarted: "导入已开始，但无法开始更新图库里的标签信息：{{cause}}。导入完成后，可在设置 › 标签 › 对应里重新存进图库。",
+  importPublicationNotStarted:
+    "导入已开始，但无法开始更新图库里的标签信息：{{cause}}。导入完成后，可在设置 › 标签 › 对应里重新存进图库。",
 
   autostartNotSynced: "开机启动设置未同步：{{cause}}",
   safeModeScopeIncomplete: "安全模式范围未完全生效：{{cause}}",
@@ -61,7 +68,8 @@ export default {
   pinCaptureGone: "这张截图已删除",
   captureLeftHistory: "这张截图已删除，请关闭这张钉图后重试",
   captureSavePlanChanged: "桌面截图有变化，请重新选择每张截图存到哪里",
-  captureCollectIncomplete: "第 {{number}} 张截图的收藏未完成：{{cause}}。之前完成的 {{completed}} 张收藏已保留；参考组尚未保存。",
+  captureCollectIncomplete:
+    "第 {{number}} 张截图的收藏未完成：{{cause}}。之前完成的 {{completed}} 张收藏已保留；参考组尚未保存。",
   clipboardNoImage: "剪贴板里没有图片",
   clipboardImageUnrecognized: "剪贴板里的图片无法识别",
   copiedImageEmpty: "复制的图片是空的",

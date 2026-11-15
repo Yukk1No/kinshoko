@@ -45,11 +45,13 @@ export type SettingsSubmitter<View> = {
   showError: (error: string | null) => void;
 };
 
-export function createSettingsSubmitter<View>(options: {
-  /** 每接受一份快照调用一次，按接受的顺序。 */
-  onAccepted?: (view: View, command: SettingsCommand<View>) => void;
-  describe?: (reason: unknown) => string;
-} = {}): SettingsSubmitter<View> {
+export function createSettingsSubmitter<View>(
+  options: {
+    /** 每接受一份快照调用一次，按接受的顺序。 */
+    onAccepted?: (view: View, command: SettingsCommand<View>) => void;
+    describe?: (reason: unknown) => string;
+  } = {},
+): SettingsSubmitter<View> {
   const describe = options.describe ?? String;
   let state: SubmitterState<View> = { view: null, error: null, generation: 0 };
   const listeners = new Set<() => void>();
@@ -126,7 +128,9 @@ export function createSettingsSubmitter<View>(options: {
     state: () => state,
     subscribe(listener) {
       listeners.add(listener);
-      return () => { listeners.delete(listener); };
+      return () => {
+        listeners.delete(listener);
+      };
     },
     showError(error) {
       if (error !== state.error) update({ error });

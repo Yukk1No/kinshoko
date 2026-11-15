@@ -13,7 +13,7 @@ it("只从本次预览Channel组合字节，不把命令确认体当作内容", 
       return [9, 9];
     },
   });
-  expect([...await readImportPreview("receipt-session", "opaque-item")]).toEqual([137, 80, 78, 71]);
+  expect([...(await readImportPreview("receipt-session", "opaque-item"))]).toEqual([137, 80, 78, 71]);
 });
 
 it("已排队的字节在命令撤销时也不能成功返回", async () => {

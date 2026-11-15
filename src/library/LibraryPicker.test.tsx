@@ -16,7 +16,12 @@ let reads: number;
 beforeEach(() => {
   registered = [{ library: opened, unavailable: null }];
   reads = 0;
-  fakeBackend({ registered_libraries: () => { reads += 1; return structuredClone(registered); } });
+  fakeBackend({
+    registered_libraries: () => {
+      reads += 1;
+      return structuredClone(registered);
+    },
+  });
 });
 
 it("侧栏标题是“图库”与一个 ＋ 菜单（打开 / 新建 / 管理），没有图库切换", async () => {
@@ -27,7 +32,11 @@ it("侧栏标题是“图库”与一个 ＋ 菜单（打开 / 新建 / 管理�
   expect(screen.queryByRole("button", { name: /^当前图库/ })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "打开、新建或管理图库" }));
   const menu = await screen.findByRole("menu");
-  expect(within(menu).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["打开图库…", "新建图库…", "管理图库"]);
+  expect(
+    within(menu)
+      .getAllByRole("menuitem")
+      .map((item) => item.textContent),
+  ).toEqual(["打开图库…", "新建图库…", "管理图库"]);
   expect(within(menu).queryAllByRole("menuitemradio")).toEqual([]);
   fireEvent.click(within(menu).getByRole("menuitem", { name: "新建图库…" }));
   expect(create).toHaveBeenCalledTimes(1);
@@ -44,7 +53,9 @@ it("其他入口登记的新资料库随工作区变化出现在“管理图库�
 
   registered = [...registered, { library: restored, unavailable: { code: "system" as const, detail: "移动盘没插" } }];
   const before = reads;
-  await act(async () => { await emit("workspace-changed", { revision: "r2", libraries: structuredClone(registered) }); });
+  await act(async () => {
+    await emit("workspace-changed", { revision: "r2", libraries: structuredClone(registered) });
+  });
   await act(async () => {});
   expect(reads).toBeGreaterThan(before);
   expect(within(dialog).getByText("同名资料库（恢复）")).toBeTruthy();

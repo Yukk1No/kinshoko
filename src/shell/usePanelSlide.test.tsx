@@ -4,18 +4,31 @@ import { act, cleanup, render } from "@testing-library/react";
 import { useState } from "react";
 import { usePanelSlide, type PanelSlide } from "./usePanelSlide";
 
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 let seen: PanelSlide | null = null;
 function Panel({ final }: { final: number | null }) {
   const [element, setElement] = useState<HTMLElement | null>(null);
   seen = usePanelSlide([{ element, finalWidth: final }]);
-  return <aside ref={setElement} style={{ transitionProperty: "width", transitionDuration: "0.26s", transitionTimingFunction: "ease-out" }}><button type="button">收起</button></aside>;
+  return (
+    <aside
+      ref={setElement}
+      style={{ transitionProperty: "width", transitionDuration: "0.26s", transitionTimingFunction: "ease-out" }}
+    >
+      <button type="button">收起</button>
+    </aside>
+  );
 }
 
 const fire = (target: Element, type: string, propertyName = "width") =>
-  act(() => { target.dispatchEvent(new TransitionEvent(type, { propertyName, bubbles: true })); });
-const panelAt = (width: number) => vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, width, 800));
+  act(() => {
+    target.dispatchEvent(new TransitionEvent(type, { propertyName, bubbles: true }));
+  });
+const panelAt = (width: number) =>
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, width, 800));
 
 it("过渡开始时给出墙宽变化量（面板现在的宽度减终点）与过渡节奏，结束后为 null", () => {
   panelAt(256);
@@ -30,7 +43,11 @@ it("过渡开始时给出墙宽变化量（面板现在的宽度减终点）与�
 
 it("能读到面板的 CSS 过渡时，节奏与起点取自它", () => {
   panelAt(0);
-  const transition = { transitionProperty: "width", startTime: 500, effect: { getTiming: () => ({ duration: 300, easing: "linear" }) } };
+  const transition = {
+    transitionProperty: "width",
+    startTime: 500,
+    effect: { getTiming: () => ({ duration: 300, easing: "linear" }) },
+  };
   const animations = vi.spyOn(Element.prototype, "getAnimations").mockReturnValue([transition as unknown as Animation]);
   try {
     const { container } = render(<Panel final={256} />);
@@ -64,7 +81,11 @@ it("中途反向时取消先到（新过渡已存在）：slide 不断，直到�
   const first = seen;
   rect.mockReturnValue(new DOMRect(0, 0, 100, 800));
   rerender(<Panel final={256} />);
-  const transition = { transitionProperty: "width", startTime: null, effect: { getTiming: () => ({ duration: 120, easing: "linear" }) } };
+  const transition = {
+    transitionProperty: "width",
+    startTime: null,
+    effect: { getTiming: () => ({ duration: 120, easing: "linear" }) },
+  };
   const animations = vi.spyOn(Element.prototype, "getAnimations").mockReturnValue([transition as unknown as Animation]);
   try {
     fire(panel, "transitioncancel");
@@ -103,8 +124,16 @@ it("面板不占墙的宽度（浮起）时仍不给出变化量；其他元素�
 function Both({ sidebar = 200, inspector = 320 }: { sidebar?: number | null; inspector?: number }) {
   const [sidebarElement, setSidebar] = useState<HTMLElement | null>(null);
   const [inspectorElement, setInspector] = useState<HTMLElement | null>(null);
-  seen = usePanelSlide([{ element: sidebarElement, finalWidth: sidebar }, { element: inspectorElement, finalWidth: inspector }]);
-  return <><aside ref={setSidebar} /><section ref={setInspector} /></>;
+  seen = usePanelSlide([
+    { element: sidebarElement, finalWidth: sidebar },
+    { element: inspectorElement, finalWidth: inspector },
+  ]);
+  return (
+    <>
+      <aside ref={setSidebar} />
+      <section ref={setInspector} />
+    </>
+  );
 }
 const widths = (aside: number, section: number) =>
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
@@ -126,7 +155,8 @@ it("另一侧的面板同时变宽变窄时，它的变化量一并算进墙宽�
 it("两个面板一起滑：一个先结束时 slide 不变，全部结束才为 null", () => {
   widths(256, 0);
   const { container } = render(<Both />);
-  const aside = container.querySelector("aside")!, section = container.querySelector("section")!;
+  const aside = container.querySelector("aside")!,
+    section = container.querySelector("section")!;
   fire(aside, "transitionrun");
   fire(section, "transitionrun");
   const during = seen;

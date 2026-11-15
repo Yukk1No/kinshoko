@@ -2,7 +2,17 @@ import { useRef, useState, type ReactNode } from "react";
 import type { LibraryBatchFailure } from "../bindings/LibraryBatchFailure";
 import type { ScreenRect } from "../bindings/ScreenRect";
 import type { WorkspaceSourceTarget } from "../bindings/WorkspaceSourceTarget";
-import { clipboardHasImage, copyReferenceImage, pinReference, referenceGroups, revealReferenceImage, workspaceEditSources, workspaceImage, workspaceSidebar, workspaceSourceGroup } from "../ipc";
+import {
+  clipboardHasImage,
+  copyReferenceImage,
+  pinReference,
+  referenceGroups,
+  revealReferenceImage,
+  workspaceEditSources,
+  workspaceImage,
+  workspaceSidebar,
+  workspaceSourceGroup,
+} from "../ipc";
 import { flattenFolders, PermanentDeleteConfirm } from "../library/SelectionPanel";
 import { libraryFailures, PermanentDeleteBatchConfirm } from "../library/PermanentDeleteBatch";
 import type { BrowserCard } from "./Wall";
@@ -34,7 +44,9 @@ export function staggeredPins(point: Point, count: number, dpr: number): ScreenR
 
 /** 卡片显示的那份来源。 */
 const targetOf = (card: BrowserCard): WorkspaceSourceTarget => ({
-  libraryId: card.libraryId, imageId: card.imageId, contentId: card.id,
+  libraryId: card.libraryId,
+  imageId: card.imageId,
+  contentId: card.id,
 });
 
 /** 整理这份来源后卡片还在当前视图里：别的来源仍符合这个视图（例如另一个资料库里那份没进回收站）。 */
@@ -79,14 +91,20 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     // 依次钉住：后钉的盖在先钉的上面，错开的顺序与图片墙一致。
     for (const [i, card] of cards.entries()) {
       const target = targetOf(card);
-      try { await pinReference(target.libraryId, target.imageId, null, rects[i]); } catch (e) { onError(i18n.t("common:image.pinFailed", { error: errorText(e) })); return false; }
+      try {
+        await pinReference(target.libraryId, target.imageId, null, rects[i]);
+      } catch (e) {
+        onError(i18n.t("common:image.pinFailed", { error: errorText(e) }));
+        return false;
+      }
     }
     return true;
   };
 
   /** 卡片来源里写着的图库名；没有时用 id。 */
   const libraryName = (libraryId: string) =>
-    cardsNamed.current.flatMap((card) => card.sources ?? []).find((source) => source.libraryId === libraryId)?.libraryName ?? libraryId;
+    cardsNamed.current.flatMap((card) => card.sources ?? []).find((source) => source.libraryId === libraryId)
+      ?.libraryName ?? libraryId;
   const cardsNamed = useRef<BrowserCard[]>([]);
   /**
    * 加入参考组跨图库逐张执行（ADR-0008；整理走一次批量命令，见 `edit`）：后端按需把可写句柄切到每张图的图库；一个图库失败（断连等）时
@@ -94,20 +112,31 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
    * 可写句柄每个图库只切一次；一个图库失败（例如导入一直没收尾、等到上限）后跳过它剩下的图，
    * 不让每张图各等一次上限，其他图库也不必跟着等。
    */
-  const eachCard = async (cards: BrowserCard[], report: (failures: string) => string, run: (target: WorkspaceSourceTarget) => Promise<unknown>) => {
+  const eachCard = async (
+    cards: BrowserCard[],
+    report: (failures: string) => string,
+    run: (target: WorkspaceSourceTarget) => Promise<unknown>,
+  ) => {
     cardsNamed.current = cards;
     const byLibrary = new Map<string, { card: BrowserCard; target: WorkspaceSourceTarget }[]>();
     for (const card of cards) {
       const target = targetOf(card);
       const group = byLibrary.get(target.libraryId);
-      if (group) group.push({ card, target }); else byLibrary.set(target.libraryId, [{ card, target }]);
+      if (group) group.push({ card, target });
+      else byLibrary.set(target.libraryId, [{ card, target }]);
     }
     const failed: { libraryId: string; error: unknown }[] = [];
     /** 已完成的图：有图库失败时，撤销只作用于这些。 */
     const succeeded: BrowserCard[] = [];
     for (const [libraryId, entries] of byLibrary) {
       for (const { card, target } of entries) {
-        try { await run(target); succeeded.push(card); } catch (e) { failed.push({ libraryId, error: e }); break; }
+        try {
+          await run(target);
+          succeeded.push(card);
+        } catch (e) {
+          failed.push({ libraryId, error: e });
+          break;
+        }
       }
     }
     if (failed.length) options.current.onError(report(libraryFailures(failed, libraryName)));
@@ -124,12 +153,17 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     copy(card) {
       const { onNotice, onError } = options.current;
       const target = targetOf(card);
-      copyReferenceImage(target.libraryId, target.imageId).then(() => onNotice(i18n.t("common:image.copied")), (e) => onError(i18n.t("common:image.copyFailed", { error: errorText(e) })));
+      copyReferenceImage(target.libraryId, target.imageId).then(
+        () => onNotice(i18n.t("common:image.copied")),
+        (e) => onError(i18n.t("common:image.copyFailed", { error: errorText(e) })),
+      );
     },
     reveal(card) {
       const { onError } = options.current;
       const target = targetOf(card);
-      revealReferenceImage(target.libraryId, target.imageId).catch((e) => onError(i18n.t("common:image.revealFailed", { error: errorText(e) })));
+      revealReferenceImage(target.libraryId, target.imageId).catch((e) =>
+        onError(i18n.t("common:image.revealFailed", { error: errorText(e) })),
+      );
     },
     importClipboard() {
       const { importClipboard, onError } = options.current;
@@ -137,10 +171,18 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     },
     clipboardHasImage: () => clipboardHasImage(),
     pin(cards, point) {
-      if (cards.length <= PIN_LIMIT) { void pinNow(cards, point); return; }
+      if (cards.length <= PIN_LIMIT) {
+        void pinNow(cards, point);
+        return;
+      }
       // 超过上限不弹确认：钉住前 PIN_LIMIT 张，再告诉画师只钉了这么多。
       void pinNow(cards.slice(0, PIN_LIMIT), point).then((ok) => {
-        if (ok) toast.show({ title: i18n.t("wall:notice.pinnedFirst", { count: PIN_LIMIT }), description: i18n.t("wall:notice.pinLimit", { count: PIN_LIMIT }), tone: "success" });
+        if (ok)
+          toast.show({
+            title: i18n.t("wall:notice.pinnedFirst", { count: PIN_LIMIT }),
+            description: i18n.t("wall:notice.pinLimit", { count: PIN_LIMIT }),
+            tone: "success",
+          });
       });
     },
     edit(stacks, edits, clear) {
@@ -150,21 +192,29 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       const entries = cards.map((card) => ({ card, target: targetOf(card) }));
       // 移到回收站与还原让卡片离开当前视图：先移走，不等后端与整墙重读（#290）。别的来源还让它留在视图里的卡片不动。
       const leaving = edits.length === 1 && (edits[0].kind === "delete" || edits[0].kind === "restore");
-      const moved = leaving ? entries.filter(({ card, target }) => !staysAfter(card, target)).map(({ card }) => card) : [];
+      const moved = leaving
+        ? entries.filter(({ card, target }) => !staysAfter(card, target)).map(({ card }) => card)
+        : [];
       const putBack = moved.length ? removeCards?.(moved) : undefined;
       void (async () => {
         try {
           // 一次调用：后端按图库分组，每个图库只切一次可写句柄、整理一次；一个图库失败不影响其他图库（ADR-0008）。
           let failed: LibraryBatchFailure[];
           try {
-            failed = await workspaceEditSources(entries.map(({ target }) => target), safe, edits);
+            failed = await workspaceEditSources(
+              entries.map(({ target }) => target),
+              safe,
+              edits,
+            );
           } catch (e) {
             putBack?.(moved);
             onError(i18n.t("wall:notice.organizeFailed", { error: errorText(e) }));
             return;
           }
           const failedLibraries = new Set(failed.map((f) => f.libraryId));
-          const succeeded = entries.filter(({ target }) => !failedLibraries.has(target.libraryId)).map(({ card }) => card);
+          const succeeded = entries
+            .filter(({ target }) => !failedLibraries.has(target.libraryId))
+            .map(({ card }) => card);
           putBack?.(moved.filter((card) => !succeeded.includes(card)));
           if (failed.length) {
             onError(i18n.t("wall:notice.librariesNotOrganized", { failures: libraryFailures(failed, libraryName) }));
@@ -173,8 +223,14 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
           // 移到回收站能撤销，所以不先确认：直接做，再给一个带“撤销”的轻提示。有图库失败时，已移走的那部分照样能撤销。
           if (succeeded.length > 0 && edits.length === 1 && edits[0].kind === "delete") {
             toast.show({
-              title: i18n.t("wall:notice.trashed"), description: succeeded.length > 1 ? i18n.t("wall:notice.trashedCount", { count: succeeded.length }) : undefined, tone: "success",
-              action: { label: i18n.t("wall:notice.undo"), onClick: () => actions.edit(succeeded, [{ kind: "restore" }], false) },
+              title: i18n.t("wall:notice.trashed"),
+              description:
+                succeeded.length > 1 ? i18n.t("wall:notice.trashedCount", { count: succeeded.length }) : undefined,
+              tone: "success",
+              action: {
+                label: i18n.t("wall:notice.undo"),
+                onClick: () => actions.edit(succeeded, [{ kind: "restore" }], false),
+              },
             });
           }
         } finally {
@@ -184,7 +240,11 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     },
     addToGroup(cards, groupId) {
       const { safe } = options.current;
-      void eachCard(cards, (failures) => i18n.t("wall:notice.librariesNotAddedToGroup", { failures }), (target) => workspaceSourceGroup(target, safe, { groupId }));
+      void eachCard(
+        cards,
+        (failures) => i18n.t("wall:notice.librariesNotAddedToGroup", { failures }),
+        (target) => workspaceSourceGroup(target, safe, { groupId }),
+      );
     },
     purge(cards) {
       // 多张可以跨图库（ADR-0008）：后端按图库分组，逐组切换可写句柄删除。
@@ -194,33 +254,46 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
     },
     inFolder: (card, folderId) => {
       const target = targetOf(card);
-      return workspaceImage(target.libraryId, target.imageId).then((detail) => detail.folders.some((folder) => folder.id === folderId));
+      return workspaceImage(target.libraryId, target.imageId).then((detail) =>
+        detail.folders.some((folder) => folder.id === folderId),
+      );
     },
-    folders: (libraryId) => workspaceSidebar(libraryId, options.current.safe).then((sidebar) => flattenFolders(sidebar.folders)),
+    folders: (libraryId) =>
+      workspaceSidebar(libraryId, options.current.safe).then((sidebar) => flattenFolders(sidebar.folders)),
     groups: () => referenceGroups(),
   };
 
   const purgeTarget = purging?.length === 1 ? targetOf(purging[0]) : undefined;
-  const purged = () => { setPurging(null); options.current.onClearSelection(); options.current.onChanged(); };
-  const dialogs = <>
-    {purging && purgeTarget && <PermanentDeleteConfirm
-      libraryId={purgeTarget.libraryId}
-      ids={[purgeTarget.imageId]}
-      safeMode={o.safe}
-      onDone={purged}
-      onCancel={() => setPurging(null)}
-      onError={(message) => options.current.onError(message)}
-    />}
-    {purging && !purgeTarget && <PermanentDeleteBatchConfirm
-      targets={purging.map((card) => {
-        const { libraryId, imageId } = targetOf(card);
-        return { libraryId, imageId };
-      })}
-      libraryName={libraryName}
-      onDone={purged}
-      onCancel={() => setPurging(null)}
-      onError={(message) => options.current.onError(message)}
-    />}
-  </>;
+  const purged = () => {
+    setPurging(null);
+    options.current.onClearSelection();
+    options.current.onChanged();
+  };
+  const dialogs = (
+    <>
+      {purging && purgeTarget && (
+        <PermanentDeleteConfirm
+          libraryId={purgeTarget.libraryId}
+          ids={[purgeTarget.imageId]}
+          safeMode={o.safe}
+          onDone={purged}
+          onCancel={() => setPurging(null)}
+          onError={(message) => options.current.onError(message)}
+        />
+      )}
+      {purging && !purgeTarget && (
+        <PermanentDeleteBatchConfirm
+          targets={purging.map((card) => {
+            const { libraryId, imageId } = targetOf(card);
+            return { libraryId, imageId };
+          })}
+          libraryName={libraryName}
+          onDone={purged}
+          onCancel={() => setPurging(null)}
+          onError={(message) => options.current.onError(message)}
+        />
+      )}
+    </>
+  );
   return { actions, dialogs };
 }

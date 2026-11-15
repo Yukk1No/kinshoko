@@ -27,7 +27,14 @@ function backend(subs: Subscription[] = list, images: ReceivedImage[] = recent) 
 
 const sent = (command: string) => fake.calls(command).map((call) => call.args);
 
-function page(s: SubscriptionStatus, { safe = false, onOpenImage = vi.fn(), kinds }: { safe?: boolean; onOpenImage?: () => void; kinds?: KindMount[] } = {}) {
+function page(
+  s: SubscriptionStatus,
+  {
+    safe = false,
+    onOpenImage = vi.fn(),
+    kinds,
+  }: { safe?: boolean; onOpenImage?: () => void; kinds?: KindMount[] } = {},
+) {
   const props = { status: s, onStatus: vi.fn(), paneOpen: true, onPaneToggle: vi.fn(), onOpenImage, kinds };
   const view = render(<SubscriptionsPage {...props} safe={safe} />);
   return { ...view, setSafe: (next: boolean) => view.rerender(<SubscriptionsPage {...props} safe={next} />), props };
@@ -64,11 +71,17 @@ describe("订阅页", () => {
   });
 
   it("入口上还有数、读到的却没有新图（图库里改成了成人）：也标为已看", async () => {
-    backend(list, recent.map((image) => ({ ...image, new: false })));
+    backend(
+      list,
+      recent.map((image) => ({ ...image, new: false })),
+    );
     page(status({ newCount: 2 }), { safe: true });
     await waitFor(() => expect(sent("subscription_mark_seen")).toHaveLength(1));
     cleanup();
-    backend(list, recent.map((image) => ({ ...image, new: false })));
+    backend(
+      list,
+      recent.map((image) => ({ ...image, new: false })),
+    );
     page(status(), { safe: true });
     await waitFor(() => expect(sent("subscription_recent")).toHaveLength(1));
     await act(async () => {});
@@ -221,7 +234,11 @@ describe("订阅页", () => {
 
   it("挂上添加流程的一类可以用", async () => {
     backend([], []);
-    const add = vi.fn(({ onClose }: { onClose: () => void }) => <button type="button" onClick={onClose}>假的添加流程</button>);
+    const add = vi.fn(({ onClose }: { onClose: () => void }) => (
+      <button type="button" onClick={onClose}>
+        假的添加流程
+      </button>
+    ));
     page(status(), { kinds: KINDS.map((k) => (k.kind === "ranking" ? { ...k, add } : k)) });
     fireEvent.click((await screen.findAllByRole("button", { name: "添加订阅" }))[0]);
     fireEvent.click(await screen.findByRole("menuitem", { name: "榜单" }));
@@ -240,7 +257,11 @@ describe("订阅页", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "风险说明" }));
     const dialog = await screen.findByRole("dialog");
     // 已登录时只有“知道了”。
-    expect(within(dialog).getAllByRole("button").map((b) => b.textContent)).toEqual(["知道了"]);
+    expect(
+      within(dialog)
+        .getAllByRole("button")
+        .map((b) => b.textContent),
+    ).toEqual(["知道了"]);
   });
 
   it("这次打开期间收到的图留在“新存入”，状态推送后照样排在前面", async () => {
@@ -248,8 +269,13 @@ describe("订阅页", () => {
     const view = page(status());
     await waitFor(() => expect(tiles()).toHaveLength(5));
     // 标为已看之后后端再列出来时都不是新的了。
-    backend(list, recent.map((image) => ({ ...image, new: false })));
-    await act(async () => { view.rerender(<SubscriptionsPage {...view.props} status={status({ checking: true })} safe={false} />); });
+    backend(
+      list,
+      recent.map((image) => ({ ...image, new: false })),
+    );
+    await act(async () => {
+      view.rerender(<SubscriptionsPage {...view.props} status={status({ checking: true })} safe={false} />);
+    });
     await waitFor(() => expect(sent("subscription_recent")).toHaveLength(1));
     expect(within(screen.getByRole("region", { name: "新存入" })).getAllByRole("button")).toHaveLength(3);
   });

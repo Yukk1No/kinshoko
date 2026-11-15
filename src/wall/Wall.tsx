@@ -1,22 +1,30 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { MenuPopup } from "../ui/Menu";
 import type { WallMenuTarget } from "./WallMenu";
-import { captureAnchor, masonry, type Anchor, type Box } from "./layout";
+import { masonry, type Anchor } from "./layout";
 import { createNotchCounter } from "./zoom";
 import type { createSmoothWheel } from "./smoothWheel";
 import { mountWindow, type MountWindow } from "./prefetch";
 import { useUiScale } from "../shell/uiScale";
 import { useDevicePixelRatio } from "../ui/devicePixelRatio";
 import {
-  CAP_RATIO, GAP, NO_CONDITIONS, OVERSCAN, PAD, SAVE_ANCHOR_MS, SCROLLING_MS, TARGET, loadAnchor,
-  saveAnchor, type BrowserCard, type WallProps,
+  CAP_RATIO,
+  GAP,
+  NO_CONDITIONS,
+  OVERSCAN,
+  PAD,
+  TARGET,
+  loadAnchor,
+  type BrowserCard,
+  type WallProps,
 } from "./wallShared";
-import { wallCardNode, type CardHandlers } from "./WallCard";
-import { layoutItems, storableAnchor, TRAY_PAD, useCloseTrayOnTopbar, useOpenTray, veiledSheets } from "./imageSets";
+import { type CardHandlers } from "./WallCard";
+import { layoutItems, TRAY_PAD, useCloseTrayOnTopbar, useOpenTray } from "./imageSets";
+import { useWallScroll } from "./useWallScroll";
+import { mountedCardNode, type RenderedCards } from "./mountedCardNode";
 import { useTrayMotion } from "./useTrayMotion";
 import { useWallHandle } from "./useWallHandle";
 import { useDoubleClickGuard } from "./useDoubleClickGuard";
@@ -98,7 +106,9 @@ export function Wall({
   const [error, setError] = useState<string | null>(null);
   /** 叠在一摞里、不占格子的张数（#418）；顶栏报的是张数，不是格数。 */
   const [stacked, setStacked] = useState(0);
-  useEffect(() => { onTotalChange?.(total === null ? null : total + stacked); }, [onTotalChange, total, stacked]);
+  useEffect(() => {
+    onTotalChange?.(total === null ? null : total + stacked);
+  }, [onTotalChange, total, stacked]);
   /**
    * 请求代次：重新浏览、视角（浏览范围、条件、安全模式）变化与卸载时前进。
    * 响应回来时代次已经不同就整个丢掉，不改卡片、游标、数量、错误与加载状态（#77 UI-A）。
@@ -137,10 +147,25 @@ export function Wall({
   const pendingRemoval = useRef(new Set<string>());
 
   /** 原生滚轮监听读最新的渲染结果。 */
-  const live = useRef({ layout: null as ReturnType<typeof masonry> | null, ids: [] as string[], density, previewDensity, onDensityPreview, onDensityCommit });
+  const live = useRef({
+    layout: null as ReturnType<typeof masonry> | null,
+    ids: [] as string[],
+    density,
+    previewDensity,
+    onDensityPreview,
+    onDensityCommit,
+  });
   /** 关闭后资料库按新视角送回的那一页已经到了：之后再来的成人图不算这次释放。 */
   const releasePage = useRef(false);
-  const measureBeforeReflow = useMeasureBeforeReflow({ scroller, motions, safeReflow, reflowMotion, beforeReflow, beforeBoxes, live });
+  const measureBeforeReflow = useMeasureBeforeReflow({
+    scroller,
+    motions,
+    safeReflow,
+    reflowMotion,
+    beforeReflow,
+    beforeBoxes,
+    live,
+  });
 
   /** 封印后按原型节奏移走飞走的图的那一帧（requestAnimationFrame id）；0 表示没有。 */
   const sealDrop = useRef(0);
@@ -148,10 +173,23 @@ export function Wall({
   const loadMoreRef = useRef<() => void>(() => {});
   const selectAllRef = useRef<() => void>(() => {});
   useWallHandle({
-    ref, measureBeforeReflow, setPreviewDensity, generation, inflight, loadMoreRef, selectAllRef, shownCards, pendingRemoval, setCards, setTotal, setStacked,
+    ref,
+    measureBeforeReflow,
+    setPreviewDensity,
+    generation,
+    inflight,
+    loadMoreRef,
+    selectAllRef,
+    shownCards,
+    pendingRemoval,
+    setCards,
+    setTotal,
+    setStacked,
   });
   // biome-ignore lint/correctness/useExhaustiveDependencies(density): 落下新密度后清掉预览
-  useLayoutEffect(() => { setPreviewDensity(null); }, [density]);
+  useLayoutEffect(() => {
+    setPreviewDensity(null);
+  }, [density]);
 
   /**
    * Ctrl+滚轮缩放（#111）：光标下的那张图在预览后的布局里中心仍在光标的高度（列数会变，只锚纵向，#122）。只由下一次布局效果消费一次；
@@ -169,40 +207,85 @@ export function Wall({
   const open = (card: BrowserCard) => {
     pivot.current = card.id;
     // 打开一摞是打开它的托盘（#418），不进查看器。
-    if (card.set && !trayIds.has(card.id)) { openTrayRef.current(card); return; }
+    if (card.set && !trayIds.has(card.id)) {
+      openTrayRef.current(card);
+      return;
+    }
     lastOpened.current = card.id;
     onOpenImage(card);
   };
 
   const { pendingClick, lastPress, openById } = useDoubleClickGuard();
-  openById.current = (id) => { const card = shown.find((c) => c.id === id); if (card) open(card); };
-
+  openById.current = (id) => {
+    const card = shown.find((c) => c.id === id);
+    if (card) open(card);
+  };
 
   // 界面缩放（#173）：图片大小是界面缩放 100% 时的 CSS 宽度，卡片按界面缩放缩小 CSS 宽度，
   // 屏幕上的宽度与每行张数不变。缩略图按卡片的 CSS 宽度乘实际的设备像素比请求。
   const uiScale = useUiScale();
   const dpr = useDevicePixelRatio();
   // 卡片里有文案：换界面语言时重建。
-  const { t, i18n: { language } } = useTranslation("wall");
-  const thumbnailPx = useMemo(
-    () => Math.ceil((density / uiScale) * 1.5 * dpr),
-    [density, uiScale, dpr],
-  );
+  const {
+    t,
+    i18n: { language },
+  } = useTranslation("wall");
+  const thumbnailPx = useMemo(() => Math.ceil((density / uiScale) * 1.5 * dpr), [density, uiScale, dpr]);
   // 换档位时卡片的缩略图地址跟着变（工作区的卡片在这里拼地址，#313），沿用的卡片元素要重建。
   const tier = thumbnailTier(thumbnailPx);
 
-  useEffect(() => { onCardsChange?.(shown); }, [shown, onCardsChange]);
+  useEffect(() => {
+    onCardsChange?.(shown);
+  }, [shown, onCardsChange]);
   useWallCaptureSources({ viewerOpen, scroller, cards: shown });
   const { loadMore } = useWallPages({
-    cards, setCards, cursor, setCursor, setTotal, setError, generation, inflight, view, restoring, anchor, shownCards,
-    measureBeforeReflow, onWorkspaceStatus, releasePage, reloadKey, loadMoreRef, workspaceScope, safeMode,
-    pendingRemoval, stackSets, setStacked,
+    cards,
+    setCards,
+    cursor,
+    setCursor,
+    setTotal,
+    setError,
+    generation,
+    inflight,
+    view,
+    restoring,
+    anchor,
+    shownCards,
+    measureBeforeReflow,
+    onWorkspaceStatus,
+    releasePage,
+    reloadKey,
+    loadMoreRef,
+    workspaceScope,
+    safeMode,
+    pendingRemoval,
+    stackSets,
+    setStacked,
   });
 
-  const { holdForDoubleClick } = useWidthSync({ holdReflow, settle, slideMotion, scroller, layoutWidth, measureBeforeReflow, setWidth, syncMount });
+  const { holdForDoubleClick } = useWidthSync({
+    holdReflow,
+    settle,
+    slideMotion,
+    scroller,
+    layoutWidth,
+    measureBeforeReflow,
+    setWidth,
+    syncMount,
+  });
 
   const { revealed, arriving, fxHost, fx, releaseDue, book, releaseOnScreen } = useSealRelease({
-    safeMode, cards, setCards, scroller, shownCards, live, safeReflow, sealDrop, measureBeforeReflow, viewerOpen, releasePage,
+    safeMode,
+    cards,
+    setCards,
+    scroller,
+    shownCards,
+    live,
+    safeReflow,
+    sealDrop,
+    measureBeforeReflow,
+    viewerOpen,
+    releasePage,
   });
 
   const ids = useMemo(() => shown.map((c) => c.id), [shown]);
@@ -210,59 +293,73 @@ export function Wall({
     () =>
       masonry(
         layoutItems(shown, uiScale),
-        { width, target: (previewDensity ?? density) / uiScale, gap: GAP / uiScale, pad: PAD / uiScale, capRatio: CAP_RATIO },
+        {
+          width,
+          target: (previewDensity ?? density) / uiScale,
+          gap: GAP / uiScale,
+          pad: PAD / uiScale,
+          capRatio: CAP_RATIO,
+        },
         tray && { ...tray, pad: TRAY_PAD / uiScale },
       ),
     [shown, tray, width, density, previewDensity, uiScale],
   );
 
   useReflowAfterLayout({
-    scroller, width, cards: shown, zoomPin, ids, layout, anchor, anchorToStore, storeKey, settledTop, cursor, restoring, beforeReflow, reflowMotion,
-    beforeBoxes, syncMount, motions, slideMotion, trayMotion,
+    scroller,
+    width,
+    cards: shown,
+    zoomPin,
+    ids,
+    layout,
+    anchor,
+    anchorToStore,
+    storeKey,
+    settledTop,
+    cursor,
+    restoring,
+    beforeReflow,
+    reflowMotion,
+    beforeBoxes,
+    syncMount,
+    motions,
+    slideMotion,
+    trayMotion,
   });
 
   live.current = { layout, ids, density, previewDensity, onDensityPreview, onDensityCommit };
 
   useWallZoom({ scroller, zoom, live, smoothRef, zoomPin, setPreviewDensity, measureBeforeReflow });
 
-  const scrollingTimer = useRef(0);
-  useEffect(() => () => clearTimeout(scrollingTimer.current), []);
-  /** 停手后才写本地存储（#109：不在每个滚动事件里同步写）；卸载与页面隐藏时立即写。 */
-  const pendingSave = useRef<{ key: string; timer: number } | null>(null);
-  anchorToStore.current = () => storableAnchor(anchor.current, shown, tray, trayIds);
-  const flushSave = useCallback(() => {
-    const pending = pendingSave.current;
-    if (!pending) return;
-    clearTimeout(pending.timer);
-    pendingSave.current = null;
-    saveAnchor(pending.key, anchorToStore.current());
-  }, []);
-  useEffect(() => {
-    window.addEventListener("pagehide", flushSave);
-    return () => { window.removeEventListener("pagehide", flushSave); flushSave(); };
-  }, [flushSave]);
+  const { onScroll } = useWallScroll({
+    scroller,
+    syncMount,
+    scrollDirection,
+    lastScrollTop,
+    settledTop,
+    restoring,
+    anchor,
+    anchorToStore,
+    shown,
+    tray,
+    trayIds,
+    layout,
+    ids,
+    storeKey,
+  });
 
-  useReleaseLanding({ releaseDue, safeMode, cards: shown, layout, width, releasePage, fx, book, viewerOpen, releaseOnScreen });
-
-  const onScroll = () => {
-    const el = scroller.current!;
-    syncMount(el);
-    // 滚动中不拿起一摞（#418）。
-    el.dataset.scrolling = "";
-    clearTimeout(scrollingTimer.current);
-    scrollingTimer.current = window.setTimeout(() => { delete el.dataset.scrolling; }, SCROLLING_MS);
-    if (el.scrollTop !== lastScrollTop.current) scrollDirection.current = el.scrollTop > lastScrollTop.current ? 1 : -1;
-    lastScrollTop.current = el.scrollTop;
-    // 自己为锚点做的滚动不重新取锚，否则每次重排都会漂到另一张图。
-    const own = settledTop.current !== null && Math.abs(el.scrollTop - settledTop.current) < 1;
-    if (own || restoring.current) return;
-    settledTop.current = null;
-    anchor.current = captureAnchor(layout, ids, el.scrollTop, el.clientHeight);
-    if (storeKey) {
-      if (pendingSave.current) clearTimeout(pendingSave.current.timer);
-      pendingSave.current = { key: storeKey, timer: window.setTimeout(flushSave, SAVE_ANCHOR_MS) };
-    }
-  };
+  useReleaseLanding({
+    releaseDue,
+    safeMode,
+    cards: shown,
+    layout,
+    width,
+    releasePage,
+    fx,
+    book,
+    viewerOpen,
+    releaseOnScreen,
+  });
 
   // 接近底部时取下一页。
   useEffect(() => {
@@ -270,90 +367,184 @@ export function Wall({
   }, [cursor, mount, layout.height, loadMore]);
 
   const position = useMemo(() => new Map(ids.map((id, i) => [id, i])), [ids]);
-  const mounted = useMountedCards({ layout, mount, position, viewerOpen, selected, lastOpened, beforeReflow, motions, trayMotion });
+  const mounted = useMountedCards({
+    layout,
+    mount,
+    position,
+    viewerOpen,
+    selected,
+    lastOpened,
+    beforeReflow,
+    motions,
+    trayMotion,
+  });
 
   useReturnFocus({ returnTo, scroller, position, layout, syncMount });
 
   /** 上次渲染的卡片元素，按 id；布局、选择、遮蔽都没变的卡片原样沿用。 */
-  const renderedCards = useRef(new Map<string, { card: BrowserCard; box: Box; chosen: boolean; veiled: boolean; leaving: boolean; landing: boolean; tier: number; language: string; trayPage: number; veiledPages: string; node: ReactNode }>());
-  useLayoutEffect(() => { renderedCards.current = nextRendered; });
+  const renderedCards = useRef<RenderedCards>(new Map());
+  useLayoutEffect(() => {
+    renderedCards.current = nextRendered;
+  });
   const cardHandlers = useRef<CardHandlers>(null!);
   usePrefetchThumbnails({ layout, mount, cards: shown, scrollDirection, thumbnailPx });
 
   const [menuTarget, setMenuTarget] = useState<WallMenuTarget | null>(null);
   const { openTray, closeTray } = useTrayMotion({
-    scroller, layout, ids, shown, tray, openSet, setOpenSet, anchor, settledTop, beforeReflow, measureBeforeReflow, trayMotion, thumbnailPx,
-    veiled: (card) => card.adult && (safeMode || !revealed.has(card.id)), safeMode,
+    scroller,
+    layout,
+    ids,
+    shown,
+    tray,
+    openSet,
+    setOpenSet,
+    anchor,
+    settledTop,
+    beforeReflow,
+    measureBeforeReflow,
+    trayMotion,
+    thumbnailPx,
+    veiled: (card) => card.adult && (safeMode || !revealed.has(card.id)),
+    safeMode,
   });
-  const { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart, trayClick, leaveTray, pruneTray, toggle } = wallInteractions({
-    ids, cards: shown, selected, onSelectionChange, pivot, lastPress, pendingClick, holdForDoubleClick, open, selectAllRef,
-    setMenuTarget, menu, onCardCommand, scope, workspaceScope, trayIds, closeTray,
-  });
+  const { click, clearOnBlankClick, targetMenu, cardKey, wallKey, dragStart, trayClick, leaveTray, pruneTray, toggle } =
+    wallInteractions({
+      ids,
+      cards: shown,
+      selected,
+      onSelectionChange,
+      pivot,
+      lastPress,
+      pendingClick,
+      holdForDoubleClick,
+      open,
+      selectAllRef,
+      setMenuTarget,
+      menu,
+      onCardCommand,
+      scope,
+      workspaceScope,
+      trayIds,
+      closeTray,
+    });
   selectAllRef.current = () => onSelectionChange(new Set(ids));
 
   usePasteShortcut({ onPaste, viewerOpen, scroller });
 
-
   // 卡片的事件处理读这里的最新版本，沿用的卡片元素因此不会拿着旧的选择与回调。
-  const switchTray = (card: BrowserCard) => { pruneTray(); openTray(card); };
+  const switchTray = (card: BrowserCard) => {
+    pruneTray();
+    openTray(card);
+  };
   openTrayRef.current = switchTray;
   cardHandlers.current = {
-    click, open, cardKey, dragStart,
+    click,
+    open,
+    cardKey,
+    dragStart,
     // 托盘开着时点别的格子的来源按钮：先关托盘（#418），这一格留在屏幕原处。
-    inspect: onInspectSources && ((card) => { if (trayIds.size && !trayIds.has(card.id)) leaveTray(card.id); onInspectSources(card); }),
-    openTray: (card) => { if (card.set) switchTray(card); },
+    inspect:
+      onInspectSources &&
+      ((card) => {
+        if (trayIds.size && !trayIds.has(card.id)) leaveTray(card.id);
+        onInspectSources(card);
+      }),
+    openTray: (card) => {
+      if (card.set) switchTray(card);
+    },
     check: toggle,
   };
   leaveTrayRef.current = leaveTray;
   const nextRendered: typeof renderedCards.current = new Map();
 
   return (
-    <ContextMenu.Root disabled={!menu} onOpenChange={(next) => { if (!next) setMenuTarget(null); }}>
-    <ContextMenu.Trigger render={<div className="wall" ref={scroller} onScroll={onScroll} data-total={total ?? undefined}
-      role="listbox" aria-label={t("label")} aria-multiselectable="true" tabIndex={-1} onKeyDown={wallKey} onClick={clearOnBlankClick}
-      inert={viewerOpen}
-      onContextMenuCapture={(e) => { if (menu) targetMenu(e); }} />}>
-      {error && <p role="alert">{error}</p>}
-      {total === 0 ? (
-        <div className="wall-empty">
-          <p>{searching ? t("empty.searching") : t(`empty.${scope.kind}`)}</p>
-          {emptyAction?.(searching)}
-        </div>
-      ) : (
-        <div className="wall-canvas" style={{ height: layout.height }}>
-          {layout.tray && <div className="wall-tray" onClick={trayClick}
-            style={{ left: `${layout.tray.x}px`, top: `${layout.tray.y}px`, width: `${layout.tray.w}px`, height: `${layout.tray.h}px` }} />}
-          {mounted.map((i) => {
-            const card = shown[i];
-            const b = layout.boxes[i];
-            const veiled = card.adult && (safeMode || !revealed.has(card.id));
-            const veiledPages = veiledSheets(card, safeMode, revealed);
-            // 安全模式下墙上的成人卡片只会是刚开启、等资料库确认的那些：影子已替它飞向封印书，
-            // 原地不再留着遮蔽的图，只先占着位置，确认后其余卡片再补位（#154）。
-            const leaving = card.adult && safeMode;
-            const chosen = selected.has(card.id);
-            const landing = arriving.has(card.id);
-            // 托盘里的页记下页码（从 1 起）。
-            const trayPage = tray && i >= tray.at && i < tray.at + tray.count ? i - tray.at + 1 : 0;
-            // 没变的卡片沿用上次的元素，React 跳过整张卡片的比对（#109）。
-            const kept = renderedCards.current.get(card.id);
-            if (kept && kept.card === card && kept.box === b && kept.chosen === chosen && kept.veiled === veiled && kept.leaving === leaving && kept.landing === landing && kept.tier === tier && kept.language === language && kept.trayPage === trayPage && kept.veiledPages === veiledPages) {
-              nextRendered.set(card.id, kept);
-              return kept.node;
-            }
-            const node = wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened, trayPage, uiScale, veiledPages });
-            nextRendered.set(card.id, { card, box: b, chosen, veiled, leaving, landing, tier, language, trayPage, veiledPages, node });
-            return node;
-          })}
-          {/* 托盘关上时各页飞回一摞的影子（#418），由 useTrayMotion 直接放进来。 */}
-          <div className="wall-ghosts" aria-hidden="true" />
-        </div>
+    <ContextMenu.Root
+      disabled={!menu}
+      onOpenChange={(next) => {
+        if (!next) setMenuTarget(null);
+      }}
+    >
+      <ContextMenu.Trigger
+        render={
+          <div
+            className="wall"
+            ref={scroller}
+            onScroll={onScroll}
+            data-total={total ?? undefined}
+            role="listbox"
+            aria-label={t("label")}
+            aria-multiselectable="true"
+            tabIndex={-1}
+            onKeyDown={wallKey}
+            onClick={clearOnBlankClick}
+            inert={viewerOpen}
+            onContextMenuCapture={(e) => {
+              if (menu) targetMenu(e);
+            }}
+          />
+        }
+      >
+        {error && <p role="alert">{error}</p>}
+        {total === 0 ? (
+          <div className="wall-empty">
+            <p>{searching ? t("empty.searching") : t(`empty.${scope.kind}`)}</p>
+            {emptyAction?.(searching)}
+          </div>
+        ) : (
+          <div className="wall-canvas" style={{ height: layout.height }}>
+            {layout.tray && (
+              <div
+                className="wall-tray"
+                onClick={trayClick}
+                style={{
+                  left: `${layout.tray.x}px`,
+                  top: `${layout.tray.y}px`,
+                  width: `${layout.tray.w}px`,
+                  height: `${layout.tray.h}px`,
+                }}
+              />
+            )}
+            {mounted.map((i) => {
+              return mountedCardNode({
+                i,
+                shown,
+                layout,
+                safeMode,
+                revealed,
+                selected,
+                arriving,
+                tray,
+                renderedCards,
+                nextRendered,
+                tier,
+                language,
+                thumbnailPx,
+                workspaceScope,
+                cardHandlers,
+                lastOpened,
+                uiScale,
+              });
+            })}
+            {/* 托盘关上时各页飞回一摞的影子（#418），由 useTrayMotion 直接放进来。 */}
+            <div className="wall-ghosts" aria-hidden="true" />
+          </div>
+        )}
+        {createPortal(<div className="fx-layer" ref={fxHost} aria-hidden="true" />, document.body)}
+      </ContextMenu.Trigger>
+      {menu && menuTarget && (
+        <MenuPopup
+          label={
+            menuTarget.kind === "blank"
+              ? t("menu.blankLabel")
+              : menuTarget.cards.length > 1
+                ? t("menu.cardsLabel", { count: menuTarget.cards.length })
+                : t("menu.cardLabel")
+          }
+          width={232}
+        >
+          {menu(menuTarget)}
+        </MenuPopup>
       )}
-      {createPortal(<div className="fx-layer" ref={fxHost} aria-hidden="true" />, document.body)}
-    </ContextMenu.Trigger>
-    {menu && menuTarget && <MenuPopup label={menuTarget.kind === "blank" ? t("menu.blankLabel") : menuTarget.cards.length > 1 ? t("menu.cardsLabel", { count: menuTarget.cards.length }) : t("menu.cardLabel")} width={232}>
-      {menu(menuTarget)}
-    </MenuPopup>}
     </ContextMenu.Root>
   );
 }

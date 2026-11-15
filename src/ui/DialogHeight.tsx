@@ -42,7 +42,9 @@ export function DialogHeight({ children, className = "" }: { children: ReactNode
     const ended = (event: TransitionEvent) => {
       if (event.target === outer && event.propertyName === "height") rest();
     };
-    const resized = () => { if (!moving()) settled = outer.offsetHeight; };
+    const resized = () => {
+      if (!moving()) settled = outer.offsetHeight;
+    };
     observer.observe(inner);
     outer.addEventListener("transitionend", ended);
     window.addEventListener("resize", resized);
@@ -53,15 +55,23 @@ export function DialogHeight({ children, className = "" }: { children: ReactNode
     };
   }, []);
 
-  return <div ref={outerRef} className={`k-dialog-height ${className}`.trimEnd()}>
-    <div ref={innerRef} className="k-dialog-height-inner">{children}</div>
-  </div>;
+  return (
+    <div ref={outerRef} className={`k-dialog-height ${className}`.trimEnd()}>
+      <div ref={innerRef} className="k-dialog-height-inner">
+        {children}
+      </div>
+    </div>
+  );
 }
 
 /** 正在退场的旧内容不再接受焦点，也不再被读屏读到。 */
 function LeavingInert({ children }: { children: ReactNode }) {
   const present = useIsPresent();
-  return <div className="k-dialog-swap-page" inert={!present} aria-hidden={present ? undefined : true}>{children}</div>;
+  return (
+    <div className="k-dialog-swap-page" inert={!present} aria-hidden={present ? undefined : true}>
+      {children}
+    </div>
+  );
 }
 
 type SwapMotion = { axis: "x" | "y"; sign: number };
@@ -94,16 +104,35 @@ export function DialogSwap({ step, axis = "x", children }: { step: number; axis?
     if (!scroller?.scrollTop) return;
     const scrolled = scroller.scrollTop;
     scroller.scrollTop = 0;
-    rootRef.current!.querySelectorAll<HTMLElement>(":scope > .k-dialog-swap-step > [inert]").forEach((leaving) => { leaving.style.translate = `0 ${-scrolled}px`; });
+    rootRef.current!.querySelectorAll<HTMLElement>(":scope > .k-dialog-swap-step > [inert]").forEach((leaving) => {
+      leaving.style.translate = `0 ${-scrolled}px`;
+    });
   }, [step]);
-  if (reduced) return <div ref={rootRef} className="k-dialog-swap"><div key={step} className="k-dialog-swap-page">{children}</div></div>;
+  if (reduced)
+    return (
+      <div ref={rootRef} className="k-dialog-swap">
+        <div key={step} className="k-dialog-swap-page">
+          {children}
+        </div>
+      </div>
+    );
   const custom: SwapMotion = { axis, sign: sign.current };
-  return <div ref={rootRef} className="k-dialog-swap">
-    <AnimatePresence mode="popLayout" initial={false} custom={custom}>
-      <motion.div key={step} className="k-dialog-swap-step" custom={custom} variants={swapVariants}
-        initial="enter" animate="shown" exit="leave" transition={arcSpring.snappy}>
-        <LeavingInert>{children}</LeavingInert>
-      </motion.div>
-    </AnimatePresence>
-  </div>;
+  return (
+    <div ref={rootRef} className="k-dialog-swap">
+      <AnimatePresence mode="popLayout" initial={false} custom={custom}>
+        <motion.div
+          key={step}
+          className="k-dialog-swap-step"
+          custom={custom}
+          variants={swapVariants}
+          initial="enter"
+          animate="shown"
+          exit="leave"
+          transition={arcSpring.snappy}
+        >
+          <LeavingInert>{children}</LeavingInert>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
 }

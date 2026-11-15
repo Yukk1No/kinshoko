@@ -11,7 +11,11 @@ import { tokenEasing, type TrayMotion } from "./useTrayMotion";
 import { tokenMs } from "../viewer/ViewerFlight";
 
 type SafeReflow = {
-  rects: Map<string, DOMRect>; boxes: LayoutSnapshot; at: number; delay: number; duration: number;
+  rects: Map<string, DOMRect>;
+  boxes: LayoutSnapshot;
+  at: number;
+  delay: number;
+  duration: number;
   /** 存下之后卡片又被别的重排挪过（例如墙变宽）：起点按用时量到的位置，不用存下的。 */
   moved?: boolean;
 };
@@ -34,11 +38,24 @@ export function useReflowState() {
   const slideMotion = useRef<PanelSlide | null>(null);
   /** 这一次重排是托盘开合（#418）：飞的那几页用弹簧，其余格子用缓动，时长都是 `--t-slow`。 */
   const trayMotion = useRef<TrayMotion | null>(null);
-  useEffect(() => () => { motions.current.forEach((motion) => motion.cancel()); }, []);
+  useEffect(
+    () => () => {
+      motions.current.forEach((motion) => motion.cancel());
+    },
+    [],
+  );
   return { beforeReflow, motions, safeReflow, beforeBoxes, reflowMotion, slideMotion, trayMotion };
 }
 
-export function useMeasureBeforeReflow({ scroller, motions, safeReflow, reflowMotion, beforeReflow, beforeBoxes, live }: {
+export function useMeasureBeforeReflow({
+  scroller,
+  motions,
+  safeReflow,
+  reflowMotion,
+  beforeReflow,
+  beforeBoxes,
+  live,
+}: {
   scroller: MutableRefObject<HTMLDivElement | null>;
   motions: MutableRefObject<Map<string, Animation>>;
   safeReflow: MutableRefObject<SafeReflow | null>;
@@ -51,46 +68,69 @@ export function useMeasureBeforeReflow({ scroller, motions, safeReflow, reflowMo
    * 重排前量下卡片位置。`keepSafe`：这次重排与安全模式切换无关（墙的宽度变了，例如详情面板随选择清空而收起），
    * 按平常的节奏滑，切换时存下的节奏留给资料库送回卡片或封印让位那一次，起点换成现在的位置。
    */
-  return useCallback((keepSafe = false) => {
-    const el = scroller.current;
-    if (!el) return;
-    const viewport = el.getBoundingClientRect();
-    const measured = new Map<string, DOMRect>();
-    // 先读完所有当前矩形（包括动画中途的位置），再取消动画。
-    el.querySelectorAll<HTMLElement>(".card").forEach((node) => {
-      const rect = node.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0 && rect.bottom >= viewport.top && rect.top <= viewport.bottom) {
-        measured.set(node.dataset.id!, rect);
+  return useCallback(
+    (keepSafe = false) => {
+      const el = scroller.current;
+      if (!el) return;
+      const viewport = el.getBoundingClientRect();
+      const measured = new Map<string, DOMRect>();
+      // 先读完所有当前矩形（包括动画中途的位置），再取消动画。
+      el.querySelectorAll<HTMLElement>(".card").forEach((node) => {
+        const rect = node.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0 && rect.bottom >= viewport.top && rect.top <= viewport.bottom) {
+          measured.set(node.dataset.id!, rect);
+        }
+      });
+      // 还在滑的卡片（例如墙变宽的那段）量到的是动画中途的位置：这时存下的位置已经过时。
+      const moving = motions.current.size > 0;
+      motions.current.forEach((motion) => motion.cancel());
+      motions.current.clear();
+      const held = safeReflow.current;
+      if (keepSafe) {
+        if (held) held.moved = true;
+        reflowMotion.current = null;
+        beforeReflow.current = measured;
+        beforeBoxes.current = null;
+        return;
       }
-    });
-    // 还在滑的卡片（例如墙变宽的那段）量到的是动画中途的位置：这时存下的位置已经过时。
-    const moving = motions.current.size > 0;
-    motions.current.forEach((motion) => motion.cancel());
-    motions.current.clear();
-    const held = safeReflow.current;
-    if (keepSafe) {
-      if (held) held.moved = true;
-      reflowMotion.current = null;
-      beforeReflow.current = measured;
-      beforeBoxes.current = null;
-      return;
-    }
-    safeReflow.current = null;
-    reflowMotion.current = held && performance.now() - held.at < RELEASE_WAIT ? held : null;
-    if (reflowMotion.current && (held!.moved || moving)) {
-      const { layout: now, ids: shown } = live.current;
-      beforeReflow.current = measured;
-      beforeBoxes.current = { boxes: new Map(now ? shown.map((id, i) => [id, now.boxes[i]]) : []), scrollTop: el.scrollTop };
-      return;
-    }
-    beforeReflow.current = reflowMotion.current ? held!.rects : measured;
-    beforeBoxes.current = reflowMotion.current ? held!.boxes : null;
-  }, [scroller, motions, safeReflow, reflowMotion, beforeReflow, beforeBoxes, live]);
+      safeReflow.current = null;
+      reflowMotion.current = held && performance.now() - held.at < RELEASE_WAIT ? held : null;
+      if (reflowMotion.current && (held!.moved || moving)) {
+        const { layout: now, ids: shown } = live.current;
+        beforeReflow.current = measured;
+        beforeBoxes.current = {
+          boxes: new Map(now ? shown.map((id, i) => [id, now.boxes[i]]) : []),
+          scrollTop: el.scrollTop,
+        };
+        return;
+      }
+      beforeReflow.current = reflowMotion.current ? held!.rects : measured;
+      beforeBoxes.current = reflowMotion.current ? held!.boxes : null;
+    },
+    [scroller, motions, safeReflow, reflowMotion, beforeReflow, beforeBoxes, live],
+  );
 }
 
 export function useReflowAfterLayout({
-  scroller, width, cards, zoomPin, ids, layout, anchor, anchorToStore, storeKey, settledTop, cursor, restoring, beforeReflow, reflowMotion,
-  beforeBoxes, syncMount, motions, slideMotion, trayMotion,
+  scroller,
+  width,
+  cards,
+  zoomPin,
+  ids,
+  layout,
+  anchor,
+  anchorToStore,
+  storeKey,
+  settledTop,
+  cursor,
+  restoring,
+  beforeReflow,
+  reflowMotion,
+  beforeBoxes,
+  syncMount,
+  motions,
+  slideMotion,
+  trayMotion,
 }: {
   scroller: MutableRefObject<HTMLDivElement | null>;
   width: number;
@@ -136,7 +176,10 @@ export function useReflowAfterLayout({
     }
     // 锚定的图找到了，或已取完全部仍没有（图已不在），都结束恢复。
     if (top !== null || !anchor.current || !cursor) restoring.current = false;
-    const from = beforeReflow.current, safe = reflowMotion.current, fromBoxes = beforeBoxes.current, slide = slideMotion.current;
+    const from = beforeReflow.current,
+      safe = reflowMotion.current,
+      fromBoxes = beforeBoxes.current,
+      slide = slideMotion.current;
     const trayed = trayMotion.current;
     trayMotion.current = null;
     slideMotion.current = null;
@@ -146,20 +189,31 @@ export function useReflowAfterLayout({
     /** 点下去时不在视口里、没有量到矩形的卡片：按前后两次布局的位置差（含滚动差）推出它当时在哪。 */
     const index = fromBoxes ? new Map(ids.map((id, i) => [id, i])) : null;
     const derive = (id: string, next: DOMRect) => {
-      const prev = fromBoxes?.boxes.get(id), i = index?.get(id), cur = i === undefined ? undefined : layout.boxes[i];
+      const prev = fromBoxes?.boxes.get(id),
+        i = index?.get(id),
+        cur = i === undefined ? undefined : layout.boxes[i];
       if (!prev || !cur || !cur.w || !cur.h) return undefined;
-      return new DOMRect(next.left + prev.x - cur.x, next.top + (prev.y - fromBoxes!.scrollTop) - (cur.y - el.scrollTop),
-        next.width * prev.w / cur.w, next.height * prev.h / cur.h);
+      return new DOMRect(
+        next.left + prev.x - cur.x,
+        next.top + (prev.y - fromBoxes!.scrollTop) - (cur.y - el.scrollTop),
+        (next.width * prev.w) / cur.w,
+        (next.height * prev.h) / cur.h,
+      );
     };
     // 先读（挂载范围、各卡片矩形），再起滑动动画：起动画之后再读布局会再强制排一次版（#176）。
     syncMount(el);
     const timing: KeyframeAnimationOptions = slide
       ? { duration: slide.duration, easing: slide.easing }
       : safe
-      ? { duration: safe.duration, delay: Math.max(0, safe.at + safe.delay - performance.now()), easing: "cubic-bezier(0.65, 0, 0.35, 1)", fill: "backwards" }
-      : trayed
-      ? { duration: tokenMs("--t-slow"), easing: tokenEasing("--ease") }
-      : { duration: 200, easing: "cubic-bezier(0.2,0.8,0.2,1)" };
+        ? {
+            duration: safe.duration,
+            delay: Math.max(0, safe.at + safe.delay - performance.now()),
+            easing: "cubic-bezier(0.65, 0, 0.35, 1)",
+            fill: "backwards",
+          }
+        : trayed
+          ? { duration: tokenMs("--t-slow"), easing: tokenEasing("--ease") }
+          : { duration: 200, easing: "cubic-bezier(0.2,0.8,0.2,1)" };
     const flight: KeyframeAnimationOptions | null = trayed ? { ...timing, easing: tokenEasing("--spring") } : null;
     if ((from.size || fromBoxes) && !reducedNow()) {
       const targets = [...el.querySelectorAll<HTMLElement>(".card")].flatMap((node) => {
@@ -170,28 +224,49 @@ export function useReflowAfterLayout({
       for (const { node, old, next } of targets) {
         if (!next.width || !next.height) continue;
         // 没有移动、没有变大小的卡片不起动画（#109：读下一页时已有卡片的位置不变）。
-        if (Math.abs(old.left - next.left) < 0.5 && Math.abs(old.top - next.top) < 0.5 && Math.abs(old.width - next.width) < 0.5 && Math.abs(old.height - next.height) < 0.5) continue;
+        if (
+          Math.abs(old.left - next.left) < 0.5 &&
+          Math.abs(old.top - next.top) < 0.5 &&
+          Math.abs(old.width - next.width) < 0.5 &&
+          Math.abs(old.height - next.height) < 0.5
+        )
+          continue;
         const own = flight && trayed!.flights.has(node.dataset.id!) ? flight : timing;
-        const motion = node.animate([
-          { transform: `translate(${old.left - next.left}px, ${old.top - next.top}px) scale(${old.width / next.width}, ${old.height / next.height})` },
-          { transform: "none" },
-        ], own);
+        const motion = node.animate(
+          [
+            {
+              transform: `translate(${old.left - next.left}px, ${old.top - next.top}px) scale(${old.width / next.width}, ${old.height / next.height})`,
+            },
+            { transform: "none" },
+          ],
+          own,
+        );
         // 与面板的过渡对齐起点：两段同节奏的移动合起来才是一段直线。
         if (slide?.startTime != null) motion.startTime = slide.startTime;
         motions.current.set(node.dataset.id!, motion);
         motion.onfinish = () => motions.current.delete(node.dataset.id!);
         // 卡片的按钮是它的兄弟、按新位置摆着：图库标记跟卡片右下角一起从旧位置滑过来，保留它自身的
         // translate(-100%, -100%)；一摞的张数与托盘里页角的勾（#418）跟左上角。
-        for (let badge = node.nextElementSibling; badge instanceof HTMLElement && !badge.classList.contains("card"); badge = badge.nextElementSibling) {
-          const corner = badge.classList.contains("card-sources") ? "sources" : badge.classList.contains("card-count") || badge.classList.contains("card-check") ? "top" : null;
+        for (
+          let badge = node.nextElementSibling;
+          badge instanceof HTMLElement && !badge.classList.contains("card");
+          badge = badge.nextElementSibling
+        ) {
+          const corner = badge.classList.contains("card-sources")
+            ? "sources"
+            : badge.classList.contains("card-count") || badge.classList.contains("card-check")
+              ? "top"
+              : null;
           if (!corner) continue;
-          const keyframes = corner === "sources" ? [
-            { transform: `translate(${old.right - next.right}px, ${old.bottom - next.bottom}px) translate(-100%, -100%)` },
-            { transform: "translate(-100%, -100%)" },
-          ] : [
-            { transform: `translate(${old.left - next.left}px, ${old.top - next.top}px)` },
-            { transform: "none" },
-          ];
+          const keyframes =
+            corner === "sources"
+              ? [
+                  {
+                    transform: `translate(${old.right - next.right}px, ${old.bottom - next.bottom}px) translate(-100%, -100%)`,
+                  },
+                  { transform: "translate(-100%, -100%)" },
+                ]
+              : [{ transform: `translate(${old.left - next.left}px, ${old.top - next.top}px)` }, { transform: "none" }];
           const badgeMotion = badge.animate(keyframes, own);
           if (slide?.startTime != null) badgeMotion.startTime = slide.startTime;
           const key = `${node.dataset.id!}
@@ -201,14 +276,42 @@ ${badge.className}`;
         }
       }
     }
-  }, [layout, ids, width, cards.length, cursor, syncMount, scroller, zoomPin, anchor, anchorToStore, settledTop, restoring, beforeReflow, reflowMotion, beforeBoxes, motions, slideMotion, trayMotion]);
+  }, [
+    layout,
+    ids,
+    width,
+    cards.length,
+    cursor,
+    syncMount,
+    scroller,
+    zoomPin,
+    anchor,
+    anchorToStore,
+    settledTop,
+    restoring,
+    beforeReflow,
+    reflowMotion,
+    beforeBoxes,
+    motions,
+    slideMotion,
+    trayMotion,
+  ]);
 }
 
 /**
  * 容器宽度变化时重排；拖动面板边缘时与单击后的双击间隔里先不重排（#157、#179）。
  * 面板开合（settle）时一开始就按终点宽度排，进行中不再跟着容器变（#162）。
  */
-export function useWidthSync({ holdReflow, settle, slideMotion, scroller, layoutWidth, measureBeforeReflow, setWidth, syncMount }: {
+export function useWidthSync({
+  holdReflow,
+  settle,
+  slideMotion,
+  scroller,
+  layoutWidth,
+  measureBeforeReflow,
+  setWidth,
+  syncMount,
+}: {
   holdReflow: boolean;
   settle: PanelSlide | null;
   slideMotion: MutableRefObject<PanelSlide | null>;
@@ -258,7 +361,9 @@ export function useWidthSync({ holdReflow, settle, slideMotion, scroller, layout
   }, [settle, measureBeforeReflow, slideMotion, scroller, layoutWidth, setWidth]);
   // 宽度稳定了：按最终宽度重排一次（双击间隔还没过时，由下面的计时到点后再排）。
   const still = !holdReflow && !settle;
-  useLayoutEffect(() => { if (still) syncWidth.current(); }, [still]);
+  useLayoutEffect(() => {
+    if (still) syncWidth.current();
+  }, [still]);
   /** 单击卡片：双击间隔结束前不重排，结束时若宽度也稳定了就重排一次。 */
   const holdForDoubleClick = () => {
     const wait = doubleClickSettings().intervalMs;

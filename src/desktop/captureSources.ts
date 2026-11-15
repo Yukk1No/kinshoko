@@ -20,7 +20,8 @@ type Painted = { node: HTMLElement; rect: DOMRect }[];
 /** Inside `readCaptureFrame`: the shared rectangles, read on first use; `null` until then. */
 let frame: { nodes: Painted | null } | null = null;
 function paintedNodes(): Painted {
-  const read = () => [...document.querySelectorAll<HTMLElement>("body *")].map((node) => ({ node, rect: node.getBoundingClientRect() }));
+  const read = () =>
+    [...document.querySelectorAll<HTMLElement>("body *")].map((node) => ({ node, rect: node.getBoundingClientRect() }));
   if (!frame) return read();
   return (frame.nodes ??= read());
 }
@@ -38,15 +39,40 @@ export function readCaptureFrame<T>(read: () => T): T {
 }
 
 /** Read the painted image content, including contain letterboxing, viewport clipping and DOM overlays. */
-export function captureImage(image: HTMLImageElement, clip: HTMLElement, libraryId: string, imageId: string, width: number, height: number): CaptureReference | null {
+export function captureImage(
+  image: HTMLImageElement,
+  clip: HTMLElement,
+  libraryId: string,
+  imageId: string,
+  width: number,
+  height: number,
+): CaptureReference | null {
   const style = getComputedStyle(image);
-  if (!image.complete || !image.naturalWidth || !image.naturalHeight || style.visibility === "hidden" || style.display === "none" || Number(style.opacity || 1) === 0) return null;
+  if (
+    !image.complete ||
+    !image.naturalWidth ||
+    !image.naturalHeight ||
+    style.visibility === "hidden" ||
+    style.display === "none" ||
+    Number(style.opacity || 1) === 0
+  )
+    return null;
   const box = image.getBoundingClientRect();
   const limit = clip.getBoundingClientRect();
   if (box.width <= 0 || box.height <= 0 || limit.width <= 0 || limit.height <= 0) return null;
   const scale = Math.min(box.width / width, box.height / height);
-  const shown = { left: box.left + (box.width - width * scale) / 2, top: box.top + (box.height - height * scale) / 2, right: box.left + (box.width + width * scale) / 2, bottom: box.top + (box.height + height * scale) / 2 };
-  const visible = { left: Math.max(shown.left, limit.left, 0), top: Math.max(shown.top, limit.top, 0), right: Math.min(shown.right, limit.right, window.innerWidth), bottom: Math.min(shown.bottom, limit.bottom, window.innerHeight) };
+  const shown = {
+    left: box.left + (box.width - width * scale) / 2,
+    top: box.top + (box.height - height * scale) / 2,
+    right: box.left + (box.width + width * scale) / 2,
+    bottom: box.top + (box.height + height * scale) / 2,
+  };
+  const visible = {
+    left: Math.max(shown.left, limit.left, 0),
+    top: Math.max(shown.top, limit.top, 0),
+    right: Math.min(shown.right, limit.right, window.innerWidth),
+    bottom: Math.min(shown.bottom, limit.bottom, window.innerHeight),
+  };
   const dpr = window.devicePixelRatio;
   const physical = (rect: typeof shown, inset = false): ScreenRect => {
     const left = (inset ? Math.ceil : Math.round)(rect.left * dpr);
@@ -59,14 +85,24 @@ export function captureImage(image: HTMLImageElement, clip: HTMLElement, library
   if (!clipped.width || !clipped.height) return null;
   const covered: ScreenRect[] = [];
   // Only painted elements above this image count. Ancestors and transparent layout wrappers do not.
-  if (document.elementFromPoint) for (const { node, rect: r } of paintedNodes()) {
-    const intersection = { left: Math.max(r.left, visible.left), top: Math.max(r.top, visible.top), right: Math.min(r.right, visible.right), bottom: Math.min(r.bottom, visible.bottom) };
-    if (intersection.right <= intersection.left || intersection.bottom <= intersection.top) continue;
-    if (node === image || node.contains(image) || image.contains(node)) continue;
-    // Only the topmost element matters: elementFromPoint stops there, elementsFromPoint builds the whole stack.
-    const top = document.elementFromPoint((intersection.left + intersection.right) / 2, (intersection.top + intersection.bottom) / 2);
-    if (top && top !== image && !top.contains(image) && (top === node || node.contains(top))) covered.push(physical(intersection));
-  }
+  if (document.elementFromPoint)
+    for (const { node, rect: r } of paintedNodes()) {
+      const intersection = {
+        left: Math.max(r.left, visible.left),
+        top: Math.max(r.top, visible.top),
+        right: Math.min(r.right, visible.right),
+        bottom: Math.min(r.bottom, visible.bottom),
+      };
+      if (intersection.right <= intersection.left || intersection.bottom <= intersection.top) continue;
+      if (node === image || node.contains(image) || image.contains(node)) continue;
+      // Only the topmost element matters: elementFromPoint stops there, elementsFromPoint builds the whole stack.
+      const top = document.elementFromPoint(
+        (intersection.left + intersection.right) / 2,
+        (intersection.top + intersection.bottom) / 2,
+      );
+      if (top && top !== image && !top.contains(image) && (top === node || node.contains(top)))
+        covered.push(physical(intersection));
+    }
   return { libraryId, imageId, shown: physical(shown), visible: clipped, covered };
 }
 
@@ -93,7 +129,11 @@ export function useCaptureSources(read: Provider["read"], priority: number) {
     const provider = { priority, read: () => readSources() };
     providers.add(provider);
     if (providers.size === 1) install();
-    return () => { providers.delete(provider); if (!providers.size) stop?.(); generation += 1; };
+    return () => {
+      providers.delete(provider);
+      if (!providers.size) stop?.();
+      generation += 1;
+    };
   }, [priority]);
 }
 let stop: (() => void) | null = null;
@@ -101,27 +141,77 @@ function install() {
   const version = ++installation;
   let unlisten: UnlistenFn | null = null;
   let requestGeneration = 0;
-  const dirty = () => { generation += 1; };
+  const dirty = () => {
+    generation += 1;
+  };
   const observer = new MutationObserver(dirty);
   observer.observe(document.documentElement, { subtree: true, attributes: true, childList: true });
   const resize = new ResizeObserver(dirty);
   resize.observe(document.documentElement);
-  for (const name of ["scroll", "resize", "load", "error", "transitionrun", "transitionend", "animationstart", "animationend"]) window.addEventListener(name, dirty, true);
+  for (const name of [
+    "scroll",
+    "resize",
+    "load",
+    "error",
+    "transitionrun",
+    "transitionend",
+    "animationstart",
+    "animationend",
+  ])
+    window.addEventListener(name, dirty, true);
   const frame = () => new Promise<void>((done) => requestAnimationFrame(() => done()));
   void listen<{ request: string }>("capture-reference-request", async ({ payload }) => {
     const request = ++requestGeneration;
     // Let committed layout and image paint reach the compositor before the native grab.
-    await frame(); await frame();
+    await frame();
+    await frame();
     if (version !== installation || request !== requestGeneration || !providers.size) return;
-    if (observer.takeRecords().length || document.getAnimations().some((a) => a.playState === "running" && a.effect instanceof KeyframeEffect && a.effect.target instanceof Element && a.effect.target.closest(".card,.viewer-stage"))) dirty();
+    if (
+      observer.takeRecords().length ||
+      document
+        .getAnimations()
+        .some(
+          (a) =>
+            a.playState === "running" &&
+            a.effect instanceof KeyframeEffect &&
+            a.effect.target instanceof Element &&
+            a.effect.target.closest(".card,.viewer-stage"),
+        )
+    )
+      dirty();
     const references = collect([...providers]);
-    // 忽略失败：交不上时后端等满 3 秒自己报错，截图那边会提示。
-    await reportCaptureReferences(payload.request, { instance, generation, dpr: window.devicePixelRatio, references }).catch(() => {});
-  // 装不上时每次截图都等满 3 秒、由后端报错；记一条，排查时知道是这边没在听。
-  }).then((off) => { if (version === installation) unlisten = off; else off(); }).catch((e) => logFailure("listen capture-reference-request", e));
+    await reportCaptureReferences(payload.request, {
+      instance,
+      generation,
+      dpr: window.devicePixelRatio,
+      references,
+    }).catch(() => {
+      // 忽略失败：交不上时后端等满 3 秒自己报错，截图那边会提示。
+    });
+    // 装不上时每次截图都等满 3 秒、由后端报错；记一条，排查时知道是这边没在听。
+  })
+    .then((off) => {
+      if (version === installation) unlisten = off;
+      else off();
+    })
+    .catch((e) => logFailure("listen capture-reference-request", e));
   stop = () => {
-    installation += 1; requestGeneration += 1; unlisten?.(); observer.disconnect(); resize.disconnect();
-    for (const name of ["scroll", "resize", "load", "error", "transitionrun", "transitionend", "animationstart", "animationend"]) window.removeEventListener(name, dirty, true);
+    installation += 1;
+    requestGeneration += 1;
+    unlisten?.();
+    observer.disconnect();
+    resize.disconnect();
+    for (const name of [
+      "scroll",
+      "resize",
+      "load",
+      "error",
+      "transitionrun",
+      "transitionend",
+      "animationstart",
+      "animationend",
+    ])
+      window.removeEventListener(name, dirty, true);
     stop = null;
   };
 }
