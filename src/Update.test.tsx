@@ -8,7 +8,12 @@ import { fakeBackend, type FakeBackend } from "./test/backend";
 const sent = (fake: FakeBackend) => fake.calls().map((call) => call.command);
 
 describe("主窗口的更新通知", () => {
-  const notice = () => render(<><UpdateNotice /></>);
+  const notice = () =>
+    render(
+      <>
+        <UpdateNotice />
+      </>,
+    );
 
   it("还没检查过时检查一次，有新版本就在右下角通知，可以安装", async () => {
     const fake = fakeBackend({
@@ -25,7 +30,9 @@ describe("主窗口的更新通知", () => {
     await waitFor(() => expect(sent(fake)).toContain("install_update"));
     expect(await screen.findByText("正在更新到 0.2.0")).toBeTruthy();
 
-    await act(async () => { await emit("update-progress", { downloaded: 3 * 1024 * 1024, total: 12 * 1024 * 1024 }); });
+    await act(async () => {
+      await emit("update-progress", { downloaded: 3 * 1024 * 1024, total: 12 * 1024 * 1024 });
+    });
     expect(await screen.findByText("正在下载 3 MB / 12 MB")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "安装并重启" })).toBeNull();
   });
@@ -54,7 +61,9 @@ describe("主窗口的更新通知", () => {
     notice();
     expect(await screen.findByText("Kinshoko 1.0.0-beta.2 可以更新")).toBeTruthy();
 
-    await act(async () => { await emit("update-channel-changed"); });
+    await act(async () => {
+      await emit("update-channel-changed");
+    });
 
     await waitFor(() => expect(screen.queryByText(/可以更新/)).toBeNull());
   });

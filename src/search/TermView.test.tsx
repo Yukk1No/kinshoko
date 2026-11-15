@@ -3,10 +3,30 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { Term } from "../bindings/Term";
 import { TermView } from "./TermView";
 
-const label = (id: string, name: string) => ({ id, namespace: "general" as const, name, untranslated: false, hasExternal: true });
-const blue: Term = { kind: "tag", tag: label("blue", "蓝瞳"), similar: [{ tag: label("aqua", "水色瞳"), source: "builtin", of: ["blue"] }] };
-const view = (brief: boolean) => render(<span data-testid="term"><TermView term={blue} showSource={false} brief={brief}
-  dismiss={(_, button) => button} add={(_, button) => button} /></span>);
+const label = (id: string, name: string) => ({
+  id,
+  namespace: "general" as const,
+  name,
+  untranslated: false,
+  hasExternal: true,
+});
+const blue: Term = {
+  kind: "tag",
+  tag: label("blue", "蓝瞳"),
+  similar: [{ tag: label("aqua", "水色瞳"), source: "builtin", of: ["blue"] }],
+};
+const view = (brief: boolean) =>
+  render(
+    <span data-testid="term">
+      <TermView
+        term={blue}
+        showSource={false}
+        brief={brief}
+        dismiss={(_, button) => button}
+        add={(_, button) => button}
+      />
+    </span>,
+  );
 
 afterEach(cleanup);
 

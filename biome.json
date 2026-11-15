@@ -6,18 +6,10 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": [
-      "**",
-      "!.agents",
-      "!.claude",
-      "!src/bindings",
-      "!src/ui/vendor",
-      "!dist",
-      "!design",
-      "!docs"
-    ]
+    "includes": ["**", "!.agents", "!.claude", "!src/bindings", "!src/ui/vendor", "!dist", "!design", "!docs"]
   },
   "formatter": {
+    "includes": ["src/**", "scripts/**", "e2e/**", "!**/*.md"],
     "indentStyle": "space",
     "lineWidth": 120
   },
@@ -69,10 +61,7 @@
       }
     },
     {
-      "includes": [
-        "e2e/**",
-        "scripts/**"
-      ],
+      "includes": ["e2e/**", "scripts/**"],
       "linter": {
         "rules": {
           "correctness": {

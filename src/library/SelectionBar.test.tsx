@@ -10,13 +10,27 @@ function backend(folders: unknown[] = FOLDERS) {
   const edits: unknown[] = [];
   fakeBackend({
     workspace_sidebar: { all: 2, trash: 0, folders },
-    edit: (args) => { edits.push(args); return []; },
+    edit: (args) => {
+      edits.push(args);
+      return [];
+    },
   });
   return edits;
 }
 
 function renderBar(scope: BrowseScope = { kind: "all" }, onClear = vi.fn()) {
-  render(<SelectionBar libraryId="L1" scope={scope} ids={["a", "b"]} onClear={onClear} reloadKey={0} onError={() => {}} left={0} onWidth={() => {}} />);
+  render(
+    <SelectionBar
+      libraryId="L1"
+      scope={scope}
+      ids={["a", "b"]}
+      onClear={onClear}
+      reloadKey={0}
+      onError={() => {}}
+      left={0}
+      onWidth={() => {}}
+    />,
+  );
   return { onClear, bar: screen.getByRole("toolbar", { name: "已选参考图操作" }) };
 }
 
@@ -26,10 +40,15 @@ describe("多选悬浮栏（#180）", () => {
     const { bar } = renderBar();
     expect(bar.classList.contains("k-dock")).toBe(true);
     expect(within(bar).getByText("已选 2 张")).toBeTruthy();
-    expect(within(bar).getAllByRole("button").map((b) => b.getAttribute("aria-label")))
-      .toEqual(["移到文件夹", "移到回收站，Del", "取消选择"]);
+    expect(
+      within(bar)
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["移到文件夹", "移到回收站，Del", "取消选择"]);
     expect(bar.querySelector(".k-dock-item")?.textContent).toBe("");
-    await waitFor(() => expect(within(bar).getByRole("button", { name: "移到文件夹" })).toHaveProperty("disabled", false));
+    await waitFor(() =>
+      expect(within(bar).getByRole("button", { name: "移到文件夹" })).toHaveProperty("disabled", false),
+    );
   });
 
   it("放入文件夹弹出文件夹菜单，选中后放入；删除后取消选择", async () => {
@@ -39,17 +58,29 @@ describe("多选悬浮栏（#180）", () => {
     await waitFor(() => expect(put).toHaveProperty("disabled", false));
     fireEvent.click(put);
     fireEvent.click(await screen.findByRole("menuitem", { name: /发型/ }));
-    await waitFor(() => expect(edits).toEqual([{ libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "addToFolder", folderId: "F2" }] }]));
+    await waitFor(() =>
+      expect(edits).toEqual([{ libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "addToFolder", folderId: "F2" }] }]),
+    );
     expect(onClear).not.toHaveBeenCalled();
 
     fireEvent.click(within(bar).getByRole("button", { name: "移到回收站，Del" }));
-    await waitFor(() => expect(edits.at(-1)).toEqual({ libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "delete" }] }));
+    await waitFor(() =>
+      expect(edits.at(-1)).toEqual({ libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "delete" }] }),
+    );
     await waitFor(() => expect(onClear).toHaveBeenCalled());
   });
 
   it("重读期间（自动打标每写一张图一次）文件夹列表不清空，按钮不闪成禁用", async () => {
     backend();
-    const props = { libraryId: "L1", scope: { kind: "all" } as BrowseScope, ids: ["a", "b"], onClear: () => {}, onError: () => {}, left: 0, onWidth: () => {} };
+    const props = {
+      libraryId: "L1",
+      scope: { kind: "all" } as BrowseScope,
+      ids: ["a", "b"],
+      onClear: () => {},
+      onError: () => {},
+      left: 0,
+      onWidth: () => {},
+    };
     const { rerender } = render(<SelectionBar {...props} reloadKey={0} />);
     const put = screen.getByRole("button", { name: "移到文件夹" });
     await waitFor(() => expect(put).toHaveProperty("disabled", false));
@@ -68,13 +99,21 @@ describe("多选悬浮栏（#180）", () => {
     const edits = backend();
     const { bar } = renderBar({ kind: "folder", id: "F1" });
     fireEvent.click(within(bar).getByRole("button", { name: "移出此文件夹" }));
-    await waitFor(() => expect(edits).toEqual([{ libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "removeFromFolder", folderId: "F1" }] }]));
+    await waitFor(() =>
+      expect(edits).toEqual([
+        { libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "removeFromFolder", folderId: "F1" }] },
+      ]),
+    );
   });
 
   it("回收站范围是恢复和永久删除…", async () => {
     const edits = backend();
     const { bar } = renderBar({ kind: "trash" });
-    expect(within(bar).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["恢复", "永久删除…", "取消选择"]);
+    expect(
+      within(bar)
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["恢复", "永久删除…", "取消选择"]);
     fireEvent.click(within(bar).getByRole("button", { name: "恢复" }));
     await waitFor(() => expect(edits).toEqual([{ libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "restore" }] }]));
     fireEvent.click(within(bar).getByRole("button", { name: "永久删除…" }));
@@ -86,7 +125,19 @@ describe("很窄的图片墙（#180）", () => {
   it("紧凑时读数只写“N 张”，读屏仍是“已选 N 张”；报告宽度时标明是紧凑的", () => {
     backend();
     const onWidth = vi.fn();
-    render(<SelectionBar compact libraryId="L1" scope={{ kind: "all" }} ids={["a", "b"]} onClear={() => {}} reloadKey={0} onError={() => {}} left={0} onWidth={onWidth} />);
+    render(
+      <SelectionBar
+        compact
+        libraryId="L1"
+        scope={{ kind: "all" }}
+        ids={["a", "b"]}
+        onClear={() => {}}
+        reloadKey={0}
+        onError={() => {}}
+        left={0}
+        onWidth={onWidth}
+      />,
+    );
     const bar = screen.getByRole("toolbar", { name: "已选参考图操作" });
     expect(bar.classList.contains("is-compact")).toBe(true);
     expect(within(bar).getByLabelText("已选 2 张").textContent).toBe("2 张");

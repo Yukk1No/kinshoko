@@ -66,22 +66,22 @@ export function InspectorResizer({ width, onResize }: Props) {
   };
   return (
     <Tip label={t("resizeInspectorTitle")} side="left">
-    <div
-      className="insp-resizer"
-      role="separator"
-      aria-orientation="vertical"
-      aria-label={t("resizeInspector")}
-      aria-valuenow={width}
-      aria-valuemin={INSPECTOR_WIDTH.min}
-      aria-valuemax={widest()}
-      tabIndex={0}
-      onPointerDown={down}
-      onPointerMove={move}
-      onPointerUp={up}
-      onPointerCancel={up}
-      onDoubleClick={() => onResize(INSPECTOR_WIDTH.initial, true)}
-      onKeyDown={key}
-    />
+      <div
+        className="insp-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={t("resizeInspector")}
+        aria-valuenow={width}
+        aria-valuemin={INSPECTOR_WIDTH.min}
+        aria-valuemax={widest()}
+        tabIndex={0}
+        onPointerDown={down}
+        onPointerMove={move}
+        onPointerUp={up}
+        onPointerCancel={up}
+        onDoubleClick={() => onResize(INSPECTOR_WIDTH.initial, true)}
+        onKeyDown={key}
+      />
     </Tip>
   );
 }

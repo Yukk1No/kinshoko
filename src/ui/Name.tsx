@@ -9,7 +9,11 @@ export function Name({ children, full, className = "" }: { children: ReactNode; 
   const [cut, setCut] = useState(false);
   const text = full ?? (typeof children === "string" ? children : "");
   const measure = (el: HTMLElement) => setCut(el.scrollWidth > el.clientWidth);
-  return <Tip label={cut ? text : ""} focus={false}>
-    <span className={`k-name ${className}`.trim()} onPointerEnter={(e) => measure(e.currentTarget)}>{children}</span>
-  </Tip>;
+  return (
+    <Tip label={cut ? text : ""} focus={false}>
+      <span className={`k-name ${className}`.trim()} onPointerEnter={(e) => measure(e.currentTarget)}>
+        {children}
+      </span>
+    </Tip>
+  );
 }

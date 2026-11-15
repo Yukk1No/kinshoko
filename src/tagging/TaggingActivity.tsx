@@ -26,11 +26,17 @@ function failureKinds(failed: FailedTagging): string {
   return [
     failed.unreadable > 0 && i18n.t("tagging:activity.unreadable", { count: failed.unreadable }),
     failed.crashed > 0 && i18n.t("tagging:activity.crashed", { count: failed.crashed }),
-  ].filter(Boolean).join(i18n.t("tagging:activity.separator"));
+  ]
+    .filter(Boolean)
+    .join(i18n.t("tagging:activity.separator"));
 }
 
 /** 图标上的状态：悬停标签的两段（第二段颜色浅一些，可以没有）；不显示图标的状态为 null。 */
-function activityLabel(status: TaggingStatus, progress: TaggingProgress, unfinished: boolean): [string, string | null] | null {
+function activityLabel(
+  status: TaggingStatus,
+  progress: TaggingProgress,
+  unfinished: boolean,
+): [string, string | null] | null {
   const eta = progress.eta === null ? null : etaText(progress.eta);
   switch (status.state) {
     case "downloading":
@@ -42,7 +48,8 @@ function activityLabel(status: TaggingStatus, progress: TaggingProgress, unfinis
     case "running":
       return [i18n.t("tagging:activity.remaining", { count: status.remaining }), eta];
     case "paused":
-      return progress.remaining === null ? [i18n.t("tagging:activity.paused"), null]
+      return progress.remaining === null
+        ? [i18n.t("tagging:activity.paused"), null]
         : [i18n.t("tagging:activity.pausedRemaining", { count: progress.remaining }), eta];
     case "yieldedToFullScreen":
       return [i18n.t("tagging:activity.yieldedToFullScreen"), null];
@@ -55,7 +62,12 @@ function activityLabel(status: TaggingStatus, progress: TaggingProgress, unfinis
       return [i18n.t("tagging:activity.noDevice"), null];
     // 有图没有完成（#475）：常驻到画师忽略。
     case "idle":
-      return unfinished ? [i18n.t("tagging:activity.unfinished", { count: status.failed.unreadable + status.failed.crashed }), failureKinds(status.failed)] : null;
+      return unfinished
+        ? [
+            i18n.t("tagging:activity.unfinished", { count: status.failed.unreadable + status.failed.crashed }),
+            failureKinds(status.failed),
+          ]
+        : null;
   }
 }
 
@@ -106,22 +118,29 @@ function useTaggingNotices(status: TaggingStatus | null) {
     const before = previous.current;
     previous.current = status;
     // 下载中暂停或取消（#213）也不算下载完成。
-    if (before?.state === "downloading" && !["downloading", "failed", "needsDownload", "paused"].includes(status.state)) {
+    if (
+      before?.state === "downloading" &&
+      !["downloading", "failed", "needsDownload", "paused"].includes(status.state)
+    ) {
       toast.show({ title: i18n.t("tagging:notice.downloaded"), tone: "success" });
     }
     // 后端出错后定时重试并反复广播：一直是同一个原因时只报一次。
     const failed = status.state === "failed" ? describeCommandError(status.reason) : null;
     if (failed !== null && failure.current !== failed) {
       failure.current = failed;
-      toast.error(i18n.t("tagging:notice.failed", { reason: failed }), { description: i18n.t("tagging:notice.retrying") });
+      toast.error(i18n.t("tagging:notice.failed", { reason: failed }), {
+        description: i18n.t("tagging:notice.retrying"),
+      });
     }
     if (status.state === "idle" || status.state === "paused") failure.current = null;
     if (status.state === "running") roundStart.current ??= status.tagged;
     if (status.state === "idle") {
       // Running 在打每张之前推送，最后一张只在 Idle 的累计张数里。
-      const taggedThisRound = before?.state === "running" && roundStart.current !== null ? status.tagged - roundStart.current : 0;
+      const taggedThisRound =
+        before?.state === "running" && roundStart.current !== null ? status.tagged - roundStart.current : 0;
       roundStart.current = null;
-      if (taggedThisRound > 0) toast.show({ title: i18n.t("tagging:notice.tagged", { count: taggedThisRound }), tone: "success" });
+      if (taggedThisRound > 0)
+        toast.show({ title: i18n.t("tagging:notice.tagged", { count: taggedThisRound }), tone: "success" });
     }
     const missing = status.state === "noDevice" ? describeCommandErrors(status.reasons) : null;
     if (missing !== null && !unavailable.current.has(missing)) {
@@ -146,8 +165,12 @@ function useTaggingNotices(status: TaggingStatus | null) {
       );
     };
     const id = toast.show({
-      title: i18n.t("tagging:notice.needsDownload", { size: formatBytes(status.size) }), timeout: 0,
-      action: { label: status.downloaded > 0 ? i18n.t("tagging:notice.resume") : i18n.t("tagging:notice.download"), onClick: start },
+      title: i18n.t("tagging:notice.needsDownload", { size: formatBytes(status.size) }),
+      timeout: 0,
+      action: {
+        label: status.downloaded > 0 ? i18n.t("tagging:notice.resume") : i18n.t("tagging:notice.download"),
+        onClick: start,
+      },
       onClose: () => {
         if (download.current !== id) return;
         download.current = null;
@@ -178,8 +201,18 @@ function useRingProgress(status: TaggingStatus | null) {
 /** 闪光星（lucide Sparkles）：进行中两颗小星交替明暗，大星不动（#372）。 */
 function TwinkleSparkles({ size }: { size: number }) {
   return (
-    <svg className="k-tagging-sparkles" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      className="k-tagging-sparkles"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
       <path className="k-twinkle-a" d="M20 3v4M22 5h-4" />
       <path className="k-twinkle-b" d="M4 17v2M5 18H3" />
@@ -188,13 +221,31 @@ function TwinkleSparkles({ size }: { size: number }) {
 }
 
 /** 进度环：底圈加一段弧；没有进度时只有底圈，进行中时底圈换成强调色慢慢明暗。 */
-function Ring({ className, size, radius, progress }: { className: string; size: number; radius: number; progress: number | null }) {
+function Ring({
+  className,
+  size,
+  radius,
+  progress,
+}: {
+  className: string;
+  size: number;
+  radius: number;
+  progress: number | null;
+}) {
   const c = size / 2;
   return (
     <svg className={className} width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
       <circle className="k-tagging-track" cx={c} cy={c} r={radius} />
-      {progress !== null && <circle className="k-tagging-arc" cx={c} cy={c} r={radius} pathLength={100}
-        strokeDasharray={`${Math.round(progress * 1000) / 10} 100`} />}
+      {progress !== null && (
+        <circle
+          className="k-tagging-arc"
+          cx={c}
+          cy={c}
+          r={radius}
+          pathLength={100}
+          strokeDasharray={`${Math.round(progress * 1000) / 10} 100`}
+        />
+      )}
     </svg>
   );
 }
@@ -226,7 +277,11 @@ function stateIcon(status: TaggingStatus): ReactNode {
  * 上方的墨紫标签写剩余张数与预计用时，或没有完成的张数与原因。右键是查看这些图、忽略与自动标签设置；
  * 停住的状态（需要下载、出错、不可用）点击也打开设置。
  */
-export function TaggingActivity({ onOpenSettings, onShowUnfinished, collapsed = false }: {
+export function TaggingActivity({
+  onOpenSettings,
+  onShowUnfinished,
+  collapsed = false,
+}: {
   onOpenSettings: () => void;
   /** 回到图片墙，筛出没有完成自动标签的图（#475）。 */
   onShowUnfinished?: () => void;
@@ -245,17 +300,35 @@ export function TaggingActivity({ onOpenSettings, onShowUnfinished, collapsed = 
   const label = status && activityLabel(status, progress, unfinished.shown);
   if (!status || !label) return null;
   const text = label[1] ? i18n.t("tagging:activity.parts", { first: label[0], second: label[1] }) : label[0];
-  const stopped = status.state === "needsDownload" || status.state === "failed" || status.state === "noDevice" || status.state === "idle";
-  const activity = status.state === "idle" ? "unfinished" : stopped ? "stopped"
-    : status.state === "paused" || status.state === "yieldedToFullScreen" ? "paused" : "busy";
+  const stopped =
+    status.state === "needsDownload" ||
+    status.state === "failed" ||
+    status.state === "noDevice" ||
+    status.state === "idle";
+  const activity =
+    status.state === "idle"
+      ? "unfinished"
+      : stopped
+        ? "stopped"
+        : status.state === "paused" || status.state === "yieldedToFullScreen"
+          ? "paused"
+          : "busy";
   const pending = (!stopped && ring === null) || undefined;
   if (collapsed) {
     // 小圆点只表示进行中的进度；停住的状态等收起结束后再回到原处的图标。
     if (stopped) return null;
     return (
-      <Tip label={text} side="top"><span className="k-tagging-dot" data-activity={activity} data-pending={pending} role="img" aria-label={i18n.t("tagging:label", { text })}>
-        <Ring className="k-tagging-mini" size={12} radius={4.5} progress={ring} />
-      </span></Tip>
+      <Tip label={text} side="top">
+        <span
+          className="k-tagging-dot"
+          data-activity={activity}
+          data-pending={pending}
+          role="img"
+          aria-label={i18n.t("tagging:label", { text })}
+        >
+          <Ring className="k-tagging-mini" size={12} radius={4.5} progress={ring} />
+        </span>
+      </Tip>
     );
   }
   const act = actOf(status);
@@ -264,30 +337,56 @@ export function TaggingActivity({ onOpenSettings, onShowUnfinished, collapsed = 
     if (next) void next.run().catch((e) => toast.error(i18n.t("tagging:notice.actionFailed", { error: errorText(e) })));
     else onOpenSettings();
   };
-  return <>
-    <Tip side="top" label={<>{label[0]}{label[1] && <span className="k-tip-note">{label[1]}</span>}</>}>
-      <button type="button" className="k-tagging-activity" data-activity={activity} data-pending={pending}
-        aria-label={act ? i18n.t(`tagging:act.${act}`, { text }) : i18n.t("tagging:openSettings", { text })} onClick={click}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          // 键盘打开的右键菜单没有指针位置：贴着图标左上角。
-          const box = e.currentTarget.getBoundingClientRect();
-          setMenu(e.clientX === 0 && e.clientY === 0 ? { x: box.left, y: box.top } : { x: e.clientX, y: e.clientY });
-        }}>
-        <Ring className="k-tagging-ring" size={40} radius={18} progress={ring} />
-        <span className="k-tagging-glyph" data-morph={next ? true : undefined}>
-          <span className="k-tagging-now">{stateIcon(status)}</span>
-          {next && <span className="k-tagging-next">{next.icon}</span>}
-        </span>
-      </button>
-    </Tip>
-    {menu && <PointerMenu point={menu} label={i18n.t("tagging:menu.label")} onClose={() => setMenu(null)}>
-      {unfinished.shown && <>
-        <MenuItem icon={<Images size={16} aria-hidden="true" />} onClick={() => onShowUnfinished?.()}>{i18n.t("tagging:menu.show")}</MenuItem>
-        <MenuItem icon={<EyeOff size={16} aria-hidden="true" />} onClick={unfinished.ignore}>{i18n.t("tagging:menu.ignore")}</MenuItem>
-        <MenuSeparator />
-      </>}
-      <MenuItem icon={<Settings size={16} aria-hidden="true" />} onClick={onOpenSettings}>{i18n.t("tagging:menu.settings")}</MenuItem>
-    </PointerMenu>}
-  </>;
+  return (
+    <>
+      <Tip
+        side="top"
+        label={
+          <>
+            {label[0]}
+            {label[1] && <span className="k-tip-note">{label[1]}</span>}
+          </>
+        }
+      >
+        <button
+          type="button"
+          className="k-tagging-activity"
+          data-activity={activity}
+          data-pending={pending}
+          aria-label={act ? i18n.t(`tagging:act.${act}`, { text }) : i18n.t("tagging:openSettings", { text })}
+          onClick={click}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            // 键盘打开的右键菜单没有指针位置：贴着图标左上角。
+            const box = e.currentTarget.getBoundingClientRect();
+            setMenu(e.clientX === 0 && e.clientY === 0 ? { x: box.left, y: box.top } : { x: e.clientX, y: e.clientY });
+          }}
+        >
+          <Ring className="k-tagging-ring" size={40} radius={18} progress={ring} />
+          <span className="k-tagging-glyph" data-morph={next ? true : undefined}>
+            <span className="k-tagging-now">{stateIcon(status)}</span>
+            {next && <span className="k-tagging-next">{next.icon}</span>}
+          </span>
+        </button>
+      </Tip>
+      {menu && (
+        <PointerMenu point={menu} label={i18n.t("tagging:menu.label")} onClose={() => setMenu(null)}>
+          {unfinished.shown && (
+            <>
+              <MenuItem icon={<Images size={16} aria-hidden="true" />} onClick={() => onShowUnfinished?.()}>
+                {i18n.t("tagging:menu.show")}
+              </MenuItem>
+              <MenuItem icon={<EyeOff size={16} aria-hidden="true" />} onClick={unfinished.ignore}>
+                {i18n.t("tagging:menu.ignore")}
+              </MenuItem>
+              <MenuSeparator />
+            </>
+          )}
+          <MenuItem icon={<Settings size={16} aria-hidden="true" />} onClick={onOpenSettings}>
+            {i18n.t("tagging:menu.settings")}
+          </MenuItem>
+        </PointerMenu>
+      )}
+    </>
+  );
 }

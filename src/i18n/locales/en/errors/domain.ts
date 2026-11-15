@@ -7,7 +7,8 @@ export default {
   destinationRevoked: "The library was unregistered, so it can't be saved to",
   sourceOriginalMissing: "The original file from this source isn't available. Connect the original library",
   identityChanged: "{{root}} is now a different library. Choose the right location and register it again",
-  libraryUnavailable: "The library is unavailable right now: {{root}}. Make sure the removable drive is connected; if the library has moved, choose its new location and register it again. Reason: {{reason}}",
+  libraryUnavailable:
+    "The library is unavailable right now: {{root}}. Make sure the removable drive is connected; if the library has moved, choose its new location and register it again. Reason: {{reason}}",
   organizeTimedOut: "Imports into {{libraries}} haven't finished, so nothing was changed. Try again later",
   libraryName: "“{{name}}”",
   librarySeparator: ", ",
@@ -22,7 +23,8 @@ export default {
   catalogUnknownMapping: "This tag mapping isn't in the library",
   catalogNamespaceMismatch: "Tags in different namespaces can't share an identity",
   catalogInvalidName: "The name and language can't be empty",
-  catalogStaleApproxConflict: "Your personal similarity rules or sources have changed. Review the conflicts again and choose",
+  catalogStaleApproxConflict:
+    "Your personal similarity rules or sources have changed. Review the conflicts again and choose",
   catalogStaleNameMigration: "Names or tag mappings have changed. Open the migration assistant again",
   catalogIncompleteNameMigration: "Choose where each name in this batch belongs before confirming",
   catalogUnsupportedFormat: "The unified tag catalog was created by a newer version. Update Kinshoko",
@@ -30,15 +32,19 @@ export default {
   groupIo: "Couldn't read or write the reference group: {{detail}}",
   unknownGroup: "This reference group doesn't exist. It may have been deleted",
   invalidGroupName: "The reference group name can't be empty",
-  groupNoMembers: "There are no pins on the desktop that can be saved to a reference group. Collect captures into a library, or choose to keep them only in the reference group",
-  groupUnsupportedVersion: "This reference group was saved by a newer version of Kinshoko (format version {{version}}). Upgrade to open it",
+  groupNoMembers:
+    "There are no pins on the desktop that can be saved to a reference group. Collect captures into a library, or choose to keep them only in the reference group",
+  groupUnsupportedVersion:
+    "This reference group was saved by a newer version of Kinshoko (format version {{version}}). Upgrade to open it",
   groupInvalid: "The reference group file is damaged: {{cause}}",
-  groupMembersUnavailable: "Some members' originals aren't available, so the reference group package can't be exported: {{members}}",
+  groupMembersUnavailable:
+    "Some members' originals aren't available, so the reference group package can't be exported: {{members}}",
   memberSeparator: "; ",
   notAPackage: "This isn't a Kinshoko reference group package",
   packageDamaged: "The reference group package is damaged: {{cause}}",
 
-  backupTargetUnavailable: "The backup destination isn't available: {{path}}. Connect the removable drive or choose another backup folder. Kinshoko will try again next time",
+  backupTargetUnavailable:
+    "The backup destination isn't available: {{path}}. Connect the removable drive or choose another backup folder. Kinshoko will try again next time",
   unknownSnapshot: "This snapshot isn't in the backup destination",
   snapshotIncomplete: "This snapshot is incomplete or damaged and can't be restored: {{cause}}",
   backupIo: "Couldn't read or write the backup: {{detail}}",
@@ -54,15 +60,18 @@ export default {
   snapshotGroupUnreadable: "Reference group “{{name}}”: {{detail}}",
   snapshotGroupMismatch: "The snapshot of reference group “{{name}}” doesn't match",
   snapshotCapturesMismatch: "The capture snapshot of reference group “{{name}}” doesn't match",
-  restoreRoundTripMismatch: "The round-trip check after restoring didn't match. This batch was undone; you can try again",
-  restoreRollbackIncomplete: "{{cause}}; undoing this batch didn't finish: {{rollback}}. It will be undone again when you restart or retry the restore",
+  restoreRoundTripMismatch:
+    "The round-trip check after restoring didn't match. This batch was undone; you can try again",
+  restoreRollbackIncomplete:
+    "{{cause}}; undoing this batch didn't finish: {{rollback}}. It will be undone again when you restart or retry the restore",
   restoreJournalDamaged: "The content restore record is damaged: {{detail}}",
   restoreJournalMismatch: "The content restore record's identity doesn't match",
   restoreJournalLocation: "The content restore record's location isn't valid",
   restoreStageNotOwned: "The content restore staging location doesn't belong to this batch",
   restoreResultLocation: "The location of a restored item isn't valid",
   restoreLibraryMismatch: "A restored library's identity doesn't match, so existing libraries weren't cleaned up",
-  restoreGroupMismatch: "A restored reference group's identity doesn't match, so existing reference groups weren't cleaned up",
+  restoreGroupMismatch:
+    "A restored reference group's identity doesn't match, so existing reference groups weren't cleaned up",
 
   settingsIo: "Couldn't read or write the settings file: {{detail}}",
   settingsBackupIncompatible: "This isn't a compatible settings backup. Update Kinshoko or choose another backup",
@@ -79,7 +88,7 @@ export default {
   settingsRollbackJournalKept: "{{cause}}; the restore record was kept. Restart Kinshoko: {{rollback}}",
   shortcutUsedBy: "This shortcut is already used for “{{action}}”",
   shortcutUnavailable: "This shortcut can't be used: {{reason}}",
-shortcutTwoMainKeys: "A shortcut can only have one main key",
+  shortcutTwoMainKeys: "A shortcut can only have one main key",
   shortcutNoMainKey: "A shortcut needs a main key, not just modifier keys",
   shortcutHindersTyping: "Letter, number and symbol keys need Ctrl, Alt or Win, or they'd get in the way of typing",
   hotkey: {
@@ -87,8 +96,9 @@ shortcutTwoMainKeys: "A shortcut can only have one main key",
     taken: "Another program is already using it",
     refused: "Windows doesn't allow this shortcut ({{detail}})",
   },
-  tagThresholdsInvalid: "The low tier's upper limit must be below the high tier's lower limit, and both must be between 0% and 100%",
-    uiScaleUnsupported: "There's no {{percent}}% interface scale",
+  tagThresholdsInvalid:
+    "The low tier's upper limit must be below the high tier's lower limit, and both must be between 0% and 100%",
+  uiScaleUnsupported: "There's no {{percent}}% interface scale",
   uiScaleIo: "Couldn't save the interface scale: {{detail}}",
   subscriptionsUnavailable: "Couldn't open the subscription records",
   subscriptionsOff: "Subscriptions are turned off",

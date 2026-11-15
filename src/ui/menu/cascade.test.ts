@@ -4,7 +4,8 @@ import { MENU_TIMING } from "./timing";
 
 type Box = { left: number; top: number; right: number; bottom: number };
 const place = (el: Element, b: Box) => {
-  el.getBoundingClientRect = () => DOMRect.fromRect({ x: b.left, y: b.top, width: b.right - b.left, height: b.bottom - b.top });
+  el.getBoundingClientRect = () =>
+    DOMRect.fromRect({ x: b.left, y: b.top, width: b.right - b.left, height: b.bottom - b.top });
 };
 const level = (depth: number, b: Box) => {
   const el = document.createElement("div");
@@ -25,10 +26,16 @@ function setup() {
   let now = 0;
   const ctrl = new CascadeController(() => now);
   const root = level(0, { left: 0, top: 0, right: 200, bottom: 300 });
-  const a = row(root, "A", 0, "folder"), b = row(root, "B", 0, "folder"), c = row(root, "C", 0, "plain");
+  const a = row(root, "A", 0, "folder"),
+    b = row(root, "B", 0, "folder"),
+    c = row(root, "C", 0, "plain");
   ctrl.registerLevel(0, root);
-  const move = (x: number, y: number, target: Element | null, opts?: { touch?: boolean; dragging?: boolean }) => ctrl.pointerMove({ x, y }, target, opts);
-  const wait = (ms: number) => { now += ms; vi.advanceTimersByTime(ms); };
+  const move = (x: number, y: number, target: Element | null, opts?: { touch?: boolean; dragging?: boolean }) =>
+    ctrl.pointerMove({ x, y }, target, opts);
+  const wait = (ms: number) => {
+    now += ms;
+    vi.advanceTimersByTime(ms);
+  };
   const openA = () => {
     move(100, 20, a);
     wait(MENU_TIMING.openDelay);
@@ -39,8 +46,13 @@ function setup() {
   return { ctrl, root, a, b, c, move, wait, openA, state: () => ctrl.getState() };
 }
 
-beforeEach(() => { vi.useFakeTimers(); });
-afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ""; });
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+  document.body.innerHTML = "";
+});
 
 describe("悬停延时", () => {
   it("文件夹行悬停 220 ms 后才打开子菜单，行立刻高亮", () => {

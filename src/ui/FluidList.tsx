@@ -11,20 +11,49 @@ const Registry = createContext<Register | undefined>(undefined);
  * list, and a click in the gaps lands on the highlighted row. Rows join with `<FluidRow index>`; the
  * index is the row's visible order, so a tree passes its pre-order position.
  */
-export function FluidList({ children, className = "", gapClick = true }: { children: ReactNode; className?: string; gapClick?: boolean }) {
+export function FluidList({
+  children,
+  className = "",
+  gapClick = true,
+}: {
+  children: ReactNode;
+  className?: string;
+  gapClick?: boolean;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
   const { activeIndex, itemRects, isMeasured, handlers, registerItem } = useFluidHover(ref, { gapClick });
   const rect = activeIndex !== null ? itemRects[activeIndex] : undefined;
-  return <div ref={ref} className={`k-fluid ${className}`} {...handlers}>
-    {isMeasured && rect && <motion.span className="k-fluid-pill" aria-hidden="true" initial={false}
-      animate={{ top: rect.top, height: rect.height }} transition={reduced ? { duration: 0 } : spring.moderate} />}
-    <Registry value={registerItem}>{children}</Registry>
-  </div>;
+  return (
+    <div ref={ref} className={`k-fluid ${className}`} {...handlers}>
+      {isMeasured && rect && (
+        <motion.span
+          className="k-fluid-pill"
+          aria-hidden="true"
+          initial={false}
+          animate={{ top: rect.top, height: rect.height }}
+          transition={reduced ? { duration: 0 } : spring.moderate}
+        />
+      )}
+      <Registry value={registerItem}>{children}</Registry>
+    </div>
+  );
 }
 
-export function FluidRow({ index, children, className = "" }: { index: number; children: ReactNode; className?: string }) {
+export function FluidRow({
+  index,
+  children,
+  className = "",
+}: {
+  index: number;
+  children: ReactNode;
+  className?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   useRegisterFluidHoverItem(useContext(Registry), index, ref);
-  return <div ref={ref} className={`k-fluid-row ${className}`}>{children}</div>;
+  return (
+    <div ref={ref} className={`k-fluid-row ${className}`}>
+      {children}
+    </div>
+  );
 }

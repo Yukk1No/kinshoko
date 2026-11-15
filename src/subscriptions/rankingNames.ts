@@ -23,7 +23,12 @@ export function rankingKey(period: RankingPeriod, explicit: boolean): RankingKey
 }
 
 /** 名单上的名字（「日榜 前 50」）：按界面语言现拼，名次改了跟着变。 */
-export function rankingName(t: TFunction<"subscriptions">, period: RankingPeriod, explicit: boolean, top: number): string {
+export function rankingName(
+  t: TFunction<"subscriptions">,
+  period: RankingPeriod,
+  explicit: boolean,
+  top: number,
+): string {
   return t("ranking.name", { period: t(`ranking.period.${rankingKey(period, explicit)}`), count: top });
 }
 
@@ -31,8 +36,11 @@ export function rankingName(t: TFunction<"subscriptions">, period: RankingPeriod
 export function displayName(t: TFunction<"subscriptions">, subscription: { name: string; target: Target }): string {
   const { target } = subscription;
   switch (target.kind) {
-    case "pixivRanking": return rankingName(t, target.period, target.explicit, target.top);
-    case "pixivBookmarks": return t("bookmarks.name");
-    case "pixivArtist": return subscription.name;
+    case "pixivRanking":
+      return rankingName(t, target.period, target.explicit, target.top);
+    case "pixivBookmarks":
+      return t("bookmarks.name");
+    case "pixivArtist":
+      return subscription.name;
   }
 }

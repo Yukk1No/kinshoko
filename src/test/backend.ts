@@ -62,21 +62,26 @@ export function shellSettings(overrides: Partial<ShellSettingsView> = {}): Shell
 export function fakeBackend(replies: Replies = {}): FakeBackend {
   const table = new Map<string, AnyReply>();
   const log: Call[] = [];
-  const on = (command: string, reply: AnyReply) => { table.set(bare(command), reply); };
+  const on = (command: string, reply: AnyReply) => {
+    table.set(bare(command), reply);
+  };
   on("shell_settings", () => shellSettings());
   on("safe_mode", true);
   on("workspace_status", { revision: "r1", libraries: [] } satisfies WorkspaceStatus);
   for (const [command, reply] of Object.entries(replies)) on(command, reply);
   mockWindows("main");
-  mockIPC(async (command, args) => {
-    const { name, args: given } = route(bare(command), (args ?? {}) as Args);
-    log.push({ command: name, args: given });
-    if (!table.has(name)) throw new Error(`fake backend: no reply for ${name}`);
-    const reply = table.get(name);
-    return typeof reply === "function" ? reply(given) : reply;
-  }, { shouldMockEvents: true });
+  mockIPC(
+    async (command, args) => {
+      const { name, args: given } = route(bare(command), (args ?? {}) as Args);
+      log.push({ command: name, args: given });
+      if (!table.has(name)) throw new Error(`fake backend: no reply for ${name}`);
+      const reply = table.get(name);
+      return typeof reply === "function" ? reply(given) : reply;
+    },
+    { shouldMockEvents: true },
+  );
   return {
     on,
-    calls: (command) => command === undefined ? [...log] : log.filter((call) => call.command === bare(command)),
+    calls: (command) => (command === undefined ? [...log] : log.filter((call) => call.command === bare(command))),
   };
 }

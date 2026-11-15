@@ -31,7 +31,9 @@ export function useDoubleClickGuard() {
       // 万一单击始终没来（按下后指针被别处捕获），几秒后不再拦。
       swallowing = true;
       clearTimeout(release);
-      release = window.setTimeout(() => { swallowing = false; }, 5000);
+      release = window.setTimeout(() => {
+        swallowing = false;
+      }, 5000);
       if (!first.opened) openById.current(first.id);
     };
     const swallow = (e: Event) => {
@@ -39,7 +41,12 @@ export function useDoubleClickGuard() {
       e.preventDefault();
       e.stopImmediatePropagation();
       // 浏览器的 dblclick 紧跟着 click 在同一个任务里派发；之后的事件（例如键盘触发的单击）照常。
-      if (e.type === "click") { clearTimeout(release); release = window.setTimeout(() => { swallowing = false; }, 0); }
+      if (e.type === "click") {
+        clearTimeout(release);
+        release = window.setTimeout(() => {
+          swallowing = false;
+        }, 0);
+      }
     };
     const types = ["mousedown", "pointerup", "mouseup", "click", "dblclick"] as const;
     window.addEventListener("pointerdown", down, true);

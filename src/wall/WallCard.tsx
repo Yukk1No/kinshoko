@@ -31,7 +31,6 @@ export const markThumbnailLoaded = (e: { currentTarget: HTMLImageElement }) => {
   markThumbnailShown();
 };
 
-
 /** 来源按钮的图标：同一个元素，卡片重排重新渲染时 React 直接跳过它。 */
 const SOURCES_ICON = <Layers size={11} aria-hidden="true" />;
 /** 一摞的张数按钮（#418）：与来源按钮的 Layers 分开。 */
@@ -52,46 +51,115 @@ export type CardHandlers = {
 };
 
 /** 一摞下面的纸（#418）：照样淡入，但不算进启动时“缩略图已显示”的计数（那里按格子数等）。 */
-const markSheetLoaded = (e: { currentTarget: HTMLImageElement }) => { e.currentTarget.dataset.loaded ||= "fade"; };
+const markSheetLoaded = (e: { currentTarget: HTMLImageElement }) => {
+  e.currentTarget.dataset.loaded ||= "fade";
+};
 
 /** 缩略图与它的占位图（#110）：缩略图到达前放大模糊显示；遮蔽中的图不露出它的色彩。 */
 function picture(card: BrowserCard, thumbnailPx: number, veiled: boolean, sheet = false) {
-  return <>
-    <img src={thumbnailUrl(cardThumbnail(card, thumbnailPx))} alt={i18n.t("wall:card.alt")} decoding="async" draggable={false}
-      ref={markCachedThumbnail} onLoad={sheet ? markSheetLoaded : markThumbnailLoaded} />
-    {card.placeholder && !veiled && <div className="card-placeholder" aria-hidden="true"
-      style={{ backgroundImage: `url("${card.placeholder}")` }} />}
-  </>;
+  return (
+    <>
+      <img
+        src={thumbnailUrl(cardThumbnail(card, thumbnailPx))}
+        alt={i18n.t("wall:card.alt")}
+        decoding="async"
+        draggable={false}
+        ref={markCachedThumbnail}
+        onLoad={sheet ? markSheetLoaded : markThumbnailLoaded}
+      />
+      {card.placeholder && !veiled && (
+        <div
+          className="card-placeholder"
+          aria-hidden="true"
+          style={{ backgroundImage: `url("${card.placeholder}")` }}
+        />
+      )}
+    </>
+  );
 }
 
 /**
  * 一摞（#418）：封面摆正、四周留出纸边，下面露出后面几页（每层是那一页的缩略图），底下一块接触阴影，页数越多越重。
  * 摆法按图集键固定（见 stackPaper）。
  */
-function stackFace(card: BrowserCard, b: Box, inset: number, uiScale: number, thumbnailPx: number, veiled: boolean, veiledPages: string) {
+function stackFace(
+  card: BrowserCard,
+  b: Box,
+  inset: number,
+  uiScale: number,
+  thumbnailPx: number,
+  veiled: boolean,
+  veiledPages: string,
+) {
   const hidden = new Set(veiledPages.split(" "));
   const pages = card.set!.pages;
   const face = { w: b.w - inset * 2, h: b.h - inset * 2 };
-  const sheets = stackPaper(card.set!.key, pages.map((page) => ({ w: page.width, h: page.height })), face, 1 / uiScale);
-  const pose = ({ x, y, r }: { x: number; y: number; r: number }) => `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotate(${r.toFixed(2)}deg)`;
-  return <>
-    <div className="stack-contact" aria-hidden="true"
-      style={{ left: `${inset + 8}px`, width: `${face.w - 16}px`, top: `${inset + face.h - 9}px`, ["--weight" as string]: 0.4 + sheets.length * 0.15 }} />
-    {sheets.map((sheet) => {
-      const page = pages[sheet.page];
-      return <div key={page.id} className="stack-sheet" aria-hidden="true" data-veiled={veiled || hidden.has(page.id)}
-        style={{ left: `${inset}px`, top: `${inset}px`, width: `${sheet.w}px`, height: `${sheet.h}px`,
-          ["--rest" as string]: pose(sheet.rest), ["--hot" as string]: pose(sheet.hot) }}>
-        {picture(page, thumbnailPx, veiled || hidden.has(page.id), true)}
-      </div>;
-    })}
-    <div className="stack-cover" style={{ left: `${inset}px`, top: `${inset}px`, width: `${face.w}px`, height: `${face.h}px` }}>
-      {picture(card, thumbnailPx, veiled)}
-    </div>
-  </>;
+  const sheets = stackPaper(
+    card.set!.key,
+    pages.map((page) => ({ w: page.width, h: page.height })),
+    face,
+    1 / uiScale,
+  );
+  const pose = ({ x, y, r }: { x: number; y: number; r: number }) =>
+    `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotate(${r.toFixed(2)}deg)`;
+  return (
+    <>
+      <div
+        className="stack-contact"
+        aria-hidden="true"
+        style={{
+          left: `${inset + 8}px`,
+          width: `${face.w - 16}px`,
+          top: `${inset + face.h - 9}px`,
+          ["--weight" as string]: 0.4 + sheets.length * 0.15,
+        }}
+      />
+      {sheets.map((sheet) => {
+        const page = pages[sheet.page];
+        return (
+          <div
+            key={page.id}
+            className="stack-sheet"
+            aria-hidden="true"
+            data-veiled={veiled || hidden.has(page.id)}
+            style={{
+              left: `${inset}px`,
+              top: `${inset}px`,
+              width: `${sheet.w}px`,
+              height: `${sheet.h}px`,
+              ["--rest" as string]: pose(sheet.rest),
+              ["--hot" as string]: pose(sheet.hot),
+            }}
+          >
+            {picture(page, thumbnailPx, veiled || hidden.has(page.id), true)}
+          </div>
+        );
+      })}
+      <div
+        className="stack-cover"
+        style={{ left: `${inset}px`, top: `${inset}px`, width: `${face.w}px`, height: `${face.h}px` }}
+      >
+        {picture(card, thumbnailPx, veiled)}
+      </div>
+    </>
+  );
 }
 
-export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, selected, workspaceScope, cardHandlers, lastOpened, trayPage = 0, uiScale = 1, veiledPages = "" }: {
+export function wallCardNode({
+  card,
+  thumbnailPx,
+  b,
+  landing,
+  veiled,
+  leaving,
+  selected,
+  workspaceScope,
+  cardHandlers,
+  lastOpened,
+  trayPage = 0,
+  uiScale = 1,
+  veiledPages = "",
+}: {
   card: BrowserCard;
   thumbnailPx: number;
   b: Box;
@@ -109,46 +177,101 @@ export function wallCardNode({ card, thumbnailPx, b, landing, veiled, leaving, s
   /** 一摞下面要遮住的页（成人内容、还没放出），以空格分隔的 id。 */
   veiledPages?: string;
 }): ReactNode {
-  const sources = card.libraryId && card.imageId ? card.sources ?? [] : [];
+  const sources = card.libraryId && card.imageId ? (card.sources ?? []) : [];
   const stack = card.set && trayPage === 0 ? card.set : null;
   // 张数按钮在封面左上角；托盘里的页不带张数，也不带页码。
   const count = stack ? stack.pages.length : 0;
   const corner = stack ? cardInset(card, b.w, uiScale) : 0;
   return (
     <Fragment key={card.id}>
-    <div
-      className={`card${stack ? " is-stack" : ""}${trayPage ? " is-tray-page" : ""}${landing ? " is-arriving" : ""}`}
-      data-id={card.id}
-      aria-selected={selected.has(card.id)}
-      role="option"
-      tabIndex={0}
-      data-veiled={veiled}
-      data-leaving={leaving}
-      draggable={!workspaceScope || workspaceScope.kind === "library" || (card.sources?.some((source) => !source.unavailable) ?? false)}
-      onClick={(e) => cardHandlers.current.click(card, e)}
-      onKeyDown={(e) => cardHandlers.current.cardKey(card, e)}
-      onDragStart={(e) => cardHandlers.current.dragStart(card.id, e)}
-      style={{ left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px`, ...(stack && { ["--stack-inset" as string]: `${corner}px` }) }}
-    >
-      {stack ? stackFace(card, b, corner, uiScale, thumbnailPx, veiled, veiledPages) : picture(card, thumbnailPx, veiled)}
-    </div>
-    {/* 托盘里页角的勾（#418）：增减这一页的选择。紧跟在卡片后面（悬停卡片时露出）。回车、空格只按这个勾，Esc、Ctrl+A 等照常落到墙上。 */}
-    {trayPage > 0 && <button type="button" role="checkbox" className="card-check" data-card={card.id}
-      aria-checked={selected.has(card.id)} aria-label={i18n.t("wall:card.pageLabel", { page: trayPage })}
-      style={{ left: `${b.x + b.w - 28}px`, top: `${b.y + 6}px` }}
-      onClick={(e) => { e.stopPropagation(); cardHandlers.current.check(card); }}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.stopPropagation(); }}>{CHECK_ICON}</button>}
-    {count >= 2 && <button type="button" className="card-count" data-card={card.id}
-      aria-label={i18n.t("wall:card.stackLabel", { count })} aria-expanded={false}
-      style={{ left: `${b.x + corner + 6}px`, top: `${b.y + corner + 6}px` }}
-      onClick={(e) => { e.stopPropagation(); cardHandlers.current.openTray(card); }}
-      onKeyDown={(e) => e.stopPropagation()}>{STACK_ICON}<span className="k-label">{count}</span></button>}
-    {/* 来源按钮是卡片选项的兄弟，不在选项里：选项内不放可聚焦的子元素。只在一个图库的图不放按钮（#221），所在图库在详情里看。 */}
-    {sources.length >= 2 && <Tip label={i18n.t("wall:card.sourcesTitle", { count: sources.length })}><button type="button" className="card-sources" data-card={card.id}
-      aria-label={i18n.t("wall:card.sourcesLabel", { count: sources.length })}
-      style={{ left: `${b.x + b.w - corner - 8}px`, top: `${b.y + b.h - corner - 8}px` }}
-      onClick={(e) => { e.stopPropagation(); lastOpened.current = card.id; cardHandlers.current.inspect?.(card as WorkspaceCard); }}
-      onKeyDown={(e) => e.stopPropagation()}>{SOURCES_ICON}<span className="k-label">{i18n.t("wall:card.sourcesCount", { count: sources.length })}</span></button></Tip>}
+      <div
+        className={`card${stack ? " is-stack" : ""}${trayPage ? " is-tray-page" : ""}${landing ? " is-arriving" : ""}`}
+        data-id={card.id}
+        aria-selected={selected.has(card.id)}
+        role="option"
+        tabIndex={0}
+        data-veiled={veiled}
+        data-leaving={leaving}
+        draggable={
+          !workspaceScope ||
+          workspaceScope.kind === "library" ||
+          (card.sources?.some((source) => !source.unavailable) ?? false)
+        }
+        onClick={(e) => cardHandlers.current.click(card, e)}
+        onKeyDown={(e) => cardHandlers.current.cardKey(card, e)}
+        onDragStart={(e) => cardHandlers.current.dragStart(card.id, e)}
+        style={{
+          left: `${b.x}px`,
+          top: `${b.y}px`,
+          width: `${b.w}px`,
+          height: `${b.h}px`,
+          ...(stack && { ["--stack-inset" as string]: `${corner}px` }),
+        }}
+      >
+        {stack
+          ? stackFace(card, b, corner, uiScale, thumbnailPx, veiled, veiledPages)
+          : picture(card, thumbnailPx, veiled)}
+      </div>
+      {/* 托盘里页角的勾（#418）：增减这一页的选择。紧跟在卡片后面（悬停卡片时露出）。回车、空格只按这个勾，Esc、Ctrl+A 等照常落到墙上。 */}
+      {trayPage > 0 && (
+        <button
+          type="button"
+          role="checkbox"
+          className="card-check"
+          data-card={card.id}
+          aria-checked={selected.has(card.id)}
+          aria-label={i18n.t("wall:card.pageLabel", { page: trayPage })}
+          style={{ left: `${b.x + b.w - 28}px`, top: `${b.y + 6}px` }}
+          onClick={(e) => {
+            e.stopPropagation();
+            cardHandlers.current.check(card);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") e.stopPropagation();
+          }}
+        >
+          {CHECK_ICON}
+        </button>
+      )}
+      {count >= 2 && (
+        <button
+          type="button"
+          className="card-count"
+          data-card={card.id}
+          aria-label={i18n.t("wall:card.stackLabel", { count })}
+          aria-expanded={false}
+          style={{ left: `${b.x + corner + 6}px`, top: `${b.y + corner + 6}px` }}
+          onClick={(e) => {
+            e.stopPropagation();
+            cardHandlers.current.openTray(card);
+          }}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {STACK_ICON}
+          <span className="k-label">{count}</span>
+        </button>
+      )}
+      {/* 来源按钮是卡片选项的兄弟，不在选项里：选项内不放可聚焦的子元素。只在一个图库的图不放按钮（#221），所在图库在详情里看。 */}
+      {sources.length >= 2 && (
+        <Tip label={i18n.t("wall:card.sourcesTitle", { count: sources.length })}>
+          <button
+            type="button"
+            className="card-sources"
+            data-card={card.id}
+            aria-label={i18n.t("wall:card.sourcesLabel", { count: sources.length })}
+            style={{ left: `${b.x + b.w - corner - 8}px`, top: `${b.y + b.h - corner - 8}px` }}
+            onClick={(e) => {
+              e.stopPropagation();
+              lastOpened.current = card.id;
+              cardHandlers.current.inspect?.(card as WorkspaceCard);
+            }}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            {SOURCES_ICON}
+            <span className="k-label">{i18n.t("wall:card.sourcesCount", { count: sources.length })}</span>
+          </button>
+        </Tip>
+      )}
     </Fragment>
   );
 }

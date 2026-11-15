@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { findHardcodedText, isSkipped, isSkippedDir } from "./check-hardcoded-text.mjs";
 
-const lines = (text, path) => findHardcodedText(text, path).map(hit => hit.line);
+const lines = (text, path) => findHardcodedText(text, path).map((hit) => hit.line);
 
 describe("前端组件", () => {
   it("找出字符串、模板字符串与 JSX 文本里的中文", () => {
@@ -26,7 +26,7 @@ describe("前端组件", () => {
   });
 
   it("模板插值里嵌套的字符串照样查", () => {
-    const source = "const a = `${ok ? `好` : \"坏\"} x`;\n// 注释";
+    const source = 'const a = `${ok ? `好` : "坏"} x`;\n// 注释';
     expect(lines(source, "src/A.ts")).toEqual([1]);
   });
 
@@ -83,7 +83,7 @@ describe("Rust", () => {
       'unreachable!("不会到这里");',
       'eprintln!("写日志失败：{}", e);',
       "let c = d",
-      '    .expect(',
+      "    .expect(",
       '        "跨行的消息",',
       "    );",
       'Err(format!("无法打开：{e}"))',
@@ -178,7 +178,7 @@ describe("不查的文件", () => {
     "crates/kinshoko-core/examples/demo.rs",
     "crates/kinshoko-core/src/fidelity/gate.rs",
     "src-tauri/src/fidelity_gate/pins.rs",
-  ])("%s", path => {
+  ])("%s", (path) => {
     expect(isSkipped(path)).toBe(true);
   });
 

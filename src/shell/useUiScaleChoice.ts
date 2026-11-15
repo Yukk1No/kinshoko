@@ -21,27 +21,30 @@ export function useUiScaleChoice(toast: ReturnType<typeof useToast>) {
     uiScaleTarget.current = saved;
     setUiScalePercent(saved);
   }, []);
-  const chooseUiScale = useCallback(async (percent: number) => {
-    if (percent === uiScaleTarget.current) return;
-    uiScaleTarget.current = percent;
-    if (uiScaleWriting.current) return;
-    uiScaleWriting.current = true;
-    try {
-      while (uiScaleTarget.current !== uiScaleSaved.current) {
-        const wanted = uiScaleTarget.current;
-        try {
-          const saved = await setUiScale(wanted);
-          uiScaleSaved.current = saved;
-          if (uiScaleTarget.current === wanted) acceptUiScale(saved);
-        } catch (e) {
-          toast.error(i18n.t("shell:uiScaleFailed", { error: errorText(e) }));
-          acceptUiScale(await uiScale().catch(() => uiScaleSaved.current));
+  const chooseUiScale = useCallback(
+    async (percent: number) => {
+      if (percent === uiScaleTarget.current) return;
+      uiScaleTarget.current = percent;
+      if (uiScaleWriting.current) return;
+      uiScaleWriting.current = true;
+      try {
+        while (uiScaleTarget.current !== uiScaleSaved.current) {
+          const wanted = uiScaleTarget.current;
+          try {
+            const saved = await setUiScale(wanted);
+            uiScaleSaved.current = saved;
+            if (uiScaleTarget.current === wanted) acceptUiScale(saved);
+          } catch (e) {
+            toast.error(i18n.t("shell:uiScaleFailed", { error: errorText(e) }));
+            acceptUiScale(await uiScale().catch(() => uiScaleSaved.current));
+          }
         }
+      } finally {
+        uiScaleWriting.current = false;
       }
-    } finally {
-      uiScaleWriting.current = false;
-    }
-  }, [toast, acceptUiScale]);
+    },
+    [toast, acceptUiScale],
+  );
 
   // 界面缩放的固定按键；Ctrl+滚轮不在这里，它归图片墙的图片大小（#111）。
   useEffect(() => {

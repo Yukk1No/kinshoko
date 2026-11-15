@@ -1,7 +1,8 @@
 import { expect, it } from "vitest";
 import { INITIAL_SAFE_LENS, needsRecheck, reduceSafeLens, type SafeLens } from "./safeLens";
 
-const run = (...actions: Parameters<typeof reduceSafeLens>[1][]): SafeLens => actions.reduce(reduceSafeLens, INITIAL_SAFE_LENS);
+const run = (...actions: Parameters<typeof reduceSafeLens>[1][]): SafeLens =>
+  actions.reduce(reduceSafeLens, INITIAL_SAFE_LENS);
 
 it("读到设置之前按开启处理：显示与查询都是开", () => {
   expect(INITIAL_SAFE_LENS).toMatchObject({ shown: true, lens: true });
@@ -76,7 +77,12 @@ it("没有未完成的切换时，外部变化（恢复设置、别处切换）�
 });
 
 it("切换进行中外部报告开启：立即收紧视角（开启永远可以先生效），关闭的报告不放开", () => {
-  const off = run({ kind: "external", on: false }, { kind: "toggle" }, { kind: "settled", on: true }, { kind: "toggle" });
+  const off = run(
+    { kind: "external", on: false },
+    { kind: "toggle" },
+    { kind: "settled", on: true },
+    { kind: "toggle" },
+  );
   expect(off).toMatchObject({ shown: false, lens: true, pending: 1 });
   const loose = { ...off, lens: false };
   expect(reduceSafeLens(loose, { kind: "external", on: true })).toMatchObject({ lens: true, pending: 1 });

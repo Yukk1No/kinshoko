@@ -9,30 +9,84 @@ import { setMedia } from "../test/platform";
 import { fakeBackend } from "../test/backend";
 
 const LANDED = { timeout: 4000 };
-const makeCard = (id: string, adult = false) => ({ id, libraryId: "L1", imageId: id, width: 1000, height: 800, adult, thumbnail: "" }) as unknown as BrowserCard;
-const cards = { a: makeCard("a"), b: makeCard("b"), far: makeCard("far"), r18: makeCard("r18", true), veil: makeCard("veil", true) };
+const makeCard = (id: string, adult = false) =>
+  ({ id, libraryId: "L1", imageId: id, width: 1000, height: 800, adult, thumbnail: "" }) as unknown as BrowserCard;
+const cards = {
+  a: makeCard("a"),
+  b: makeCard("b"),
+  far: makeCard("far"),
+  r18: makeCard("r18", true),
+  veil: makeCard("veil", true),
+};
 
 /** 图片墙的替身：`a`、`b`、`r18`、`veil` 在视口里，`far` 滚出了视口，`gone` 不在墙上。 */
-function Harness({ initial = null, safe = false, instant = false }: { initial?: BrowserCard | null; safe?: boolean; instant?: boolean }) {
+function Harness({
+  initial = null,
+  safe = false,
+  instant = false,
+}: {
+  initial?: BrowserCard | null;
+  safe?: boolean;
+  instant?: boolean;
+}) {
   const [viewing, setViewing] = useState<BrowserCard | null>(initial);
   const host = useRef<HTMLDivElement>(null);
   const flight = useViewerFlight({ viewing, safe, host, instant });
   return (
     <div className="wall-host" ref={host}>
       <div className="wall" data-testid="wall">
-        <div className="card" data-id="a" data-rect="10,20,100,80"><img src="thumb://a" /></div>
-        <div className="card" data-id="b" data-rect="200,300,100,80"><img src="thumb://b" /></div>
-        <div className="card" data-id="far" data-rect="10,5000,100,80"><img src="thumb://far" /></div>
-        <div className="card" data-id="r18" data-rect="10,120,100,80" data-leaving={safe}><img src="thumb://r18" /></div>
-        <div className="card" data-id="veil" data-rect="10,220,100,80" data-veiled="true"><img src="thumb://veil" /></div>
+        <div className="card" data-id="a" data-rect="10,20,100,80">
+          <img src="thumb://a" />
+        </div>
+        <div className="card" data-id="b" data-rect="200,300,100,80">
+          <img src="thumb://b" />
+        </div>
+        <div className="card" data-id="far" data-rect="10,5000,100,80">
+          <img src="thumb://far" />
+        </div>
+        <div className="card" data-id="r18" data-rect="10,120,100,80" data-leaving={safe}>
+          <img src="thumb://r18" />
+        </div>
+        <div className="card" data-id="veil" data-rect="10,220,100,80" data-veiled="true">
+          <img src="thumb://veil" />
+        </div>
       </div>
-      {Object.values(cards).map((card) => <button key={card.id} onClick={() => setViewing(card)}>{`open-${card.id}`}</button>)}
+      {Object.values(cards).map((card) => (
+        <button key={card.id} onClick={() => setViewing(card)}>{`open-${card.id}`}</button>
+      ))}
       <button onClick={() => setViewing(makeCard("gone"))}>open-gone</button>
-      <button onClick={() => { flight.back(); setViewing(null); }}>close</button>
+      <button
+        onClick={() => {
+          flight.back();
+          setViewing(null);
+        }}
+      >
+        close
+      </button>
       <button onClick={() => setViewing(null)}>revoke</button>
-      <button onClick={() => { flight.cut(); setViewing(null); }}>revoke-landing</button>
-      {flight.card && <Viewer key={flight.session} libraryId="L1" card={flight.card} onClose={() => setViewing(null)} onBack={() => { flight.back(); setViewing(null); }}
-        flight={flight.attr} hideImage={flight.hideImage} onPlaced={flight.onPlaced} />}
+      <button
+        onClick={() => {
+          flight.cut();
+          setViewing(null);
+        }}
+      >
+        revoke-landing
+      </button>
+      {flight.card && (
+        <Viewer
+          key={flight.session}
+          libraryId="L1"
+          card={flight.card}
+          onClose={() => setViewing(null)}
+          onBack={() => {
+            flight.back();
+            setViewing(null);
+          }}
+          flight={flight.attr}
+          hideImage={flight.hideImage}
+          onPlaced={flight.onPlaced}
+        />
+      )}
       {flight.flier}
     </div>
   );
@@ -43,7 +97,12 @@ const viewer = () => document.querySelector<HTMLElement>(".viewer");
 const original = () => screen.getByAltText("正在查看的参考图") as HTMLImageElement;
 const press = (name: string) => fireEvent.click(screen.getByText(name));
 /** 让查看器的位图读完。 */
-const loadOriginal = async () => { await act(async () => { fireEvent.load(original()); await Promise.resolve(); }); };
+const loadOriginal = async () => {
+  await act(async () => {
+    fireEvent.load(original());
+    await Promise.resolve();
+  });
+};
 
 beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
@@ -93,14 +152,20 @@ describe("打开", () => {
   });
 
   it.each([
-    ["滚轮缩放", () => fireEvent.wheel(document.querySelector(".viewer-stage")!, { deltaY: -200, clientX: 500, clientY: 400 })],
+    [
+      "滚轮缩放",
+      () => fireEvent.wheel(document.querySelector(".viewer-stage")!, { deltaY: -200, clientX: 500, clientY: 400 }),
+    ],
     ["按放大", () => fireEvent.click(screen.getByLabelText("放大"))],
-    ["拖动平移", () => {
-      const stage = document.querySelector(".viewer-stage")!;
-      fireEvent.pointerDown(stage, { button: 0, pointerId: 1, clientX: 500, clientY: 400 });
-      fireEvent.pointerMove(stage, { pointerId: 1, clientX: 540, clientY: 420 });
-      fireEvent.pointerUp(stage, { pointerId: 1 });
-    }],
+    [
+      "拖动平移",
+      () => {
+        const stage = document.querySelector(".viewer-stage")!;
+        fireEvent.pointerDown(stage, { button: 0, pointerId: 1, clientX: 500, clientY: 400 });
+        fireEvent.pointerMove(stage, { pointerId: 1, clientX: 540, clientY: 420 });
+        fireEvent.pointerUp(stage, { pointerId: 1 });
+      },
+    ],
   ])("飞行中%s：飞行当场结束，不追着新位置飞出查看区", async (_, gesture) => {
     render(<Harness />);
     press("open-a");

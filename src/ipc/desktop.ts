@@ -16,7 +16,6 @@ import { desk } from "./plugins";
 
 // ---------- 截图与钉图（#62） ----------
 
-
 /** 框选窗口：要显示的冻结屏幕；没有进行中的截图时为 null。 */
 export function frozenScreen(): Promise<FrozenScreen | null> {
   return invoke<FrozenScreen | null>(desk("frozen_screen"));
@@ -95,8 +94,21 @@ export function edgeHide(): Promise<void> {
  * 钉图菜单里的一项（与 Rust `desktop/pins.rs` 的 `ACTION_*` 对应）。`opacity:<百分比>`、`group:<参考组 id>`。
  */
 export type PinMenuAction =
-  | "flipH" | "flipV" | "rotateCw" | "rotateCcw" | `opacity:${number}` | "lock" | "actualSize"
-  | "collect" | "copy" | "reveal" | "saveGroup" | "openInKinshoko" | `group:${string}` | "edgeHide" | "close";
+  | "flipH"
+  | "flipV"
+  | "rotateCw"
+  | "rotateCcw"
+  | `opacity:${number}`
+  | "lock"
+  | "actualSize"
+  | "collect"
+  | "copy"
+  | "reveal"
+  | "saveGroup"
+  | "openInKinshoko"
+  | `group:${string}`
+  | "edgeHide"
+  | "close";
 
 /** 菜单窗口此刻要显示的钉图菜单（窗口第一次建好时取；之后经 `desktop-menu` 事件到达）。 */
 export function desktopMenu(): Promise<PinMenuOpen | null> {
@@ -148,7 +160,7 @@ export function captureHistory(): Promise<CaptureEntry[]> {
 }
 
 /** 收藏：经资料库的普通导入入口存进当前资料库。 */
-export function collectCapture(id: string, destination:SaveDestination): Promise<CollectedCapture> {
+export function collectCapture(id: string, destination: SaveDestination): Promise<CollectedCapture> {
   return invoke<CollectedCapture>(desk("collect_capture"), { id, destination });
 }
 

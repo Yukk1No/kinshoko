@@ -9,4 +9,7 @@ export const languageName = (lang: string) =>
 
 /** 来源名称可选的语言（#217）：按文字判断错了时由画师改；`und` 是未注明语言。 */
 export const sourceLanguages = (): [string, string][] =>
-  [...NAMED, "ko", "und"].map((lang) => [lang, i18n.t(`tags:language.${lang as (typeof NAMED)[number] | "ko" | "und"}`)]);
+  [...NAMED, "ko", "und"].map((lang) => [
+    lang,
+    i18n.t(`tags:language.${lang as (typeof NAMED)[number] | "ko" | "und"}`),
+  ]);

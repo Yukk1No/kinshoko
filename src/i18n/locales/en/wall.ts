@@ -82,10 +82,14 @@ const wall: Translation<typeof zh> = {
     emptyTrash: "Empty Trash",
     checking: "Checking reference groups…",
     changed: "The Trash or reference groups just changed. The list is up to date again.",
-    confirmCount_one: "Permanently delete this image? The original and everything organized about it are deleted and can't be recovered.",
-    confirmCount_other: "Permanently delete these {{count, number}} images? The originals and everything organized about them are deleted and can't be recovered.",
-    confirmEmptyTrash_one: "Permanently delete {{count, number}} image in the Trash of “{{library}}”? The original and everything organized about it are deleted and can't be recovered.",
-    confirmEmptyTrash_other: "Permanently delete {{count, number}} images in the Trash of “{{library}}”? The originals and everything organized about them are deleted and can't be recovered.",
+    confirmCount_one:
+      "Permanently delete this image? The original and everything organized about it are deleted and can't be recovered.",
+    confirmCount_other:
+      "Permanently delete these {{count, number}} images? The originals and everything organized about them are deleted and can't be recovered.",
+    confirmEmptyTrash_one:
+      "Permanently delete {{count, number}} image in the Trash of “{{library}}”? The original and everything organized about it are deleted and can't be recovered.",
+    confirmEmptyTrash_other:
+      "Permanently delete {{count, number}} images in the Trash of “{{library}}”? The originals and everything organized about them are deleted and can't be recovered.",
     nothing: "None of these images can be deleted right now.",
     libraryUnavailable_one: "{{count, number}} image in “{{library}}” can't be deleted right now: {{reason}}",
     libraryUnavailable_other: "{{count, number}} images in “{{library}}” can't be deleted right now: {{reason}}",

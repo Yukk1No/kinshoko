@@ -100,7 +100,9 @@ describe("设置：更新", () => {
   it("保存通道失败时留在原来的通道，不重新检查", async () => {
     const fake = backend({
       update_status: { state: "upToDate" },
-      set_update_channel: () => { throw { code: "message", message: "读写设置文件失败：磁盘已满" }; },
+      set_update_channel: () => {
+        throw { code: "message", message: "读写设置文件失败：磁盘已满" };
+      },
     });
     render(<SettingsPanel initialTab="update" />);
 
@@ -112,7 +114,10 @@ describe("设置：更新", () => {
   });
 
   it("手动更新与未启用自动更新的构建不显示更新通道", async () => {
-    for (const status of [{ state: "manual", message: { code: "updateManual" } }, { state: "disabled", message: { code: "updateNoPublicKey" } }]) {
+    for (const status of [
+      { state: "manual", message: { code: "updateManual" } },
+      { state: "disabled", message: { code: "updateNoPublicKey" } },
+    ]) {
       backend({ update_status: status });
       render(<SettingsPanel initialTab="update" />);
       expect(await screen.findByText(status.state === "manual" ? "手动更新" : "自动更新")).toBeTruthy();

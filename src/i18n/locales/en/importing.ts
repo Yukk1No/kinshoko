@@ -33,7 +33,8 @@ const importing: Translation<typeof zh> = {
   },
   relocation: {
     title: "Did the Eagle library move?",
-    overlap: "{{percent}}% of the images here were already imported from another location. Nothing is imported until you confirm.",
+    overlap:
+      "{{percent}}% of the images here were already imported from another location. Nothing is imported until you confirm.",
     to: "New location: {{path}}",
     from: "Original location: {{path}}",
     same: "It's the same library",
@@ -129,7 +130,8 @@ const importing: Translation<typeof zh> = {
     summary: ": {{matched, number}} matched automatically, {{remaining, number}} unmatched",
     skipAll: "Skip all",
     done: "Done",
-    noVocabulary: "No external vocabulary is available on this computer yet (auto-tagging isn't ready), so mappings can only be filled in by hand.",
+    noVocabulary:
+      "No external vocabulary is available on this computer yet (auto-tagging isn't ready), so mappings can only be filled in by hand.",
     mergedLabel: "Merged into other tags",
     mergedInto: "{{tag}} merged into {{into}}",
     mergedReason: "Both map to the same external name, so they were the same tag all along",

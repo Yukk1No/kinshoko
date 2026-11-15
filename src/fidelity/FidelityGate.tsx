@@ -175,7 +175,14 @@ interface Manual {
   remarks: string;
 }
 
-function markdown(plan: GatePlan, results: SampleResult[], pins: PinGate, env: object, manual: Manual, passed: boolean) {
+function markdown(
+  plan: GatePlan,
+  results: SampleResult[],
+  pins: PinGate,
+  env: object,
+  manual: Manual,
+  passed: boolean,
+) {
   const lines = [
     t("report.title"),
     "",
@@ -183,7 +190,11 @@ function markdown(plan: GatePlan, results: SampleResult[], pins: PinGate, env: o
     "",
     t("report.environment"),
     "",
-    t("report.display", { hdr: switchText(manual.hdr), autoColour: switchText(manual.autoColour), icc: manual.monitorIcc || t("switch.unset") }),
+    t("report.display", {
+      hdr: switchText(manual.hdr),
+      autoColour: switchText(manual.autoColour),
+      icc: manual.monitorIcc || t("switch.unset"),
+    }),
     t("report.remarks", { remarks: manual.remarks || t("report.none") }),
     "",
     "```json",
@@ -304,19 +315,37 @@ export function FidelityGate() {
           <legend>{t("manualLegend")}</legend>
           <div className="k-field">
             <span className="k-field-label">HDR</span>
-            <Select label="HDR" value={manual.hdr} options={switchOptions} onChange={(hdr) => setManual({ ...manual, hdr })} />
+            <Select
+              label="HDR"
+              value={manual.hdr}
+              options={switchOptions}
+              onChange={(hdr) => setManual({ ...manual, hdr })}
+            />
           </div>
           <div className="k-field">
             <span className="k-field-label">{t("autoColour")}</span>
-            <Select label={t("autoColour")} value={manual.autoColour} options={switchOptions} onChange={(autoColour) => setManual({ ...manual, autoColour })} />
+            <Select
+              label={t("autoColour")}
+              value={manual.autoColour}
+              options={switchOptions}
+              onChange={(autoColour) => setManual({ ...manual, autoColour })}
+            />
           </div>
           <label className="k-field">
             <span className="k-field-label">{t("monitorIcc")}</span>
-            <input className="k-input" value={manual.monitorIcc} onChange={(e) => setManual({ ...manual, monitorIcc: e.target.value })} />
+            <input
+              className="k-input"
+              value={manual.monitorIcc}
+              onChange={(e) => setManual({ ...manual, monitorIcc: e.target.value })}
+            />
           </label>
           <label className="k-field">
             <span className="k-field-label">{t("remarks")}</span>
-            <input className="k-input" value={manual.remarks} onChange={(e) => setManual({ ...manual, remarks: e.target.value })} />
+            <input
+              className="k-input"
+              value={manual.remarks}
+              onChange={(e) => setManual({ ...manual, remarks: e.target.value })}
+            />
           </label>
           <button type="button" className="k-btn is-sm" onClick={() => void save()}>
             {t("save")}

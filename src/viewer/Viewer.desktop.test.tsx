@@ -6,7 +6,12 @@ import { type FakeBackend, fakeBackend, shellSettings } from "../test/backend";
 import { Viewer } from "./Viewer";
 
 const events = vi.hoisted(() => new Map<string, (event: { payload: unknown }) => void>());
-vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async (name, callback) => { events.set(name, callback); return () => events.delete(name); }) }));
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(async (name, callback) => {
+    events.set(name, callback);
+    return () => events.delete(name);
+  }),
+}));
 
 // JSDOM 不做布局；原生冒烟另用 getBoundingClientRect 检查最终设备像素位置。
 /** The crop dock reads the selection size in original pixels (design/ui-system/README.md, Dock 读数). */
@@ -23,7 +28,10 @@ beforeEach(() => {
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.5 });
   mockConvertFileSrc("windows");
 });
-afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 describe("从查看器钉到桌面（#65）", () => {
   const card = { id: "a", width: 800, height: 600, thumbnail: "", adult: false };
@@ -52,12 +60,14 @@ describe("从查看器钉到桌面（#65）", () => {
     await act(async () => {
       fireEvent.keyDown(stage, { key: "Enter" });
     });
-    expect(pins()).toEqual([{
-      libraryId: "L1",
-      imageId: "a",
-      crop: { x: 10, y: 10, width: 200, height: 100 },
-      shown: { x: 110, y: 110, width: 200, height: 100 },
-    }]);
+    expect(pins()).toEqual([
+      {
+        libraryId: "L1",
+        imageId: "a",
+        crop: { x: 10, y: 10, width: 200, height: 100 },
+        shown: { x: 110, y: 110, width: 200, height: 100 },
+      },
+    ]);
     expect(await screen.findByText("已钉住局部")).toBeTruthy();
   });
 
@@ -67,7 +77,9 @@ describe("从查看器钉到桌面（#65）", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /^钉住整图/ }));
     });
-    expect(pins()).toEqual([{ libraryId: "L1", imageId: "a", crop: null, shown: { x: 100, y: 100, width: 800, height: 600 } }]);
+    expect(pins()).toEqual([
+      { libraryId: "L1", imageId: "a", crop: null, shown: { x: 100, y: 100, width: 800, height: 600 } },
+    ]);
 
     const stage = screen.getByAltText("正在查看的参考图").parentElement!;
     fireEvent.click(screen.getByRole("button", { name: /^框选局部/ }));
@@ -84,7 +96,10 @@ describe("从查看器钉到桌面（#65）", () => {
     expect(close).toHaveBeenCalledOnce();
   });
 
-  it.each([["L1", "b"], ["L2", "a"]])("换到同尺寸来源 %s/%s 后，旧选区不可钉住，新框选引用新来源", async (libraryId, imageId) => {
+  it.each([
+    ["L1", "b"],
+    ["L2", "a"],
+  ])("换到同尺寸来源 %s/%s 后，旧选区不可钉住，新框选引用新来源", async (libraryId, imageId) => {
     const { rerender } = render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
     let image = screen.getByAltText("正在查看的参考图");
     fireEvent.load(image);
@@ -105,26 +120,42 @@ describe("从查看器钉到桌面（#65）", () => {
     fireEvent.pointerDown(stage, { pointerId: 2, clientX: 100, clientY: 100, button: 0, shiftKey: true });
     fireEvent.pointerMove(stage, { pointerId: 2, clientX: 150, clientY: 120 });
     fireEvent.pointerUp(stage, { pointerId: 2 });
-    await act(async () => { fireEvent.keyDown(stage, { key: "Enter" }); });
-    expect(pins()).toEqual([{ libraryId, imageId, crop: { x: 0, y: 0, width: 50, height: 20 }, shown: { x: 100, y: 100, width: 50, height: 20 } }]);
+    await act(async () => {
+      fireEvent.keyDown(stage, { key: "Enter" });
+    });
+    expect(pins()).toEqual([
+      {
+        libraryId,
+        imageId,
+        crop: { x: 0, y: 0, width: 50, height: 20 },
+        shown: { x: 100, y: 100, width: 50, height: 20 },
+      },
+    ]);
   });
 });
 
 describe("查看器程序配置", () => {
   const card = { id: "background", width: 800, height: 600, thumbnail: "", adult: false };
-  afterEach(() => { localStorage.clear(); });
+  afterEach(() => {
+    localStorage.clear();
+  });
 
   it("已恢复的背景优先于本机缓存；打开查看器不写设置，选一次背景恰好写一次", async () => {
     localStorage.setItem("kinshoko.viewer.background", "dark");
     const writes: unknown[] = [];
     fakeBackend({
       shell_settings: shellSettings({ viewerBackground: "light" }),
-      "change_setting:viewerBackground": (fields) => { writes.push(fields); return shellSettings({ viewerBackground: fields.background as ViewerBackground }); },
+      "change_setting:viewerBackground": (fields) => {
+        writes.push(fields);
+        return shellSettings({ viewerBackground: fields.background as ViewerBackground });
+      },
     });
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "背景" }));
     const tray = screen.getByRole("group", { name: "背景" });
-    await waitFor(() => expect(within(tray).getByRole("button", { name: "浅灰" }).getAttribute("aria-pressed")).toBe("true"));
+    await waitFor(() =>
+      expect(within(tray).getByRole("button", { name: "浅灰" }).getAttribute("aria-pressed")).toBe("true"),
+    );
     expect(writes).toEqual([]);
     expect(localStorage.getItem("kinshoko.viewer.background")).toBe("light");
     fireEvent.click(within(tray).getByRole("button", { name: "棋盘格" }));
@@ -136,8 +167,13 @@ describe("查看器程序配置", () => {
     localStorage.setItem("kinshoko.viewer.background", "dark");
     const writes: unknown[] = [];
     fakeBackend({
-      shell_settings: () => { throw new Error("temporarily unavailable"); },
-      "change_setting:viewerBackground": (fields) => { writes.push(fields); return shellSettings({ viewerBackground: fields.background as ViewerBackground }); },
+      shell_settings: () => {
+        throw new Error("temporarily unavailable");
+      },
+      "change_setting:viewerBackground": (fields) => {
+        writes.push(fields);
+        return shellSettings({ viewerBackground: fields.background as ViewerBackground });
+      },
     });
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
     await act(async () => {});
@@ -187,7 +223,9 @@ describe("查看器标题行与 dock（#98）", () => {
   it("dock 的名称带快捷键；0 / 1 / P / F1 与点按 dock 执行同一操作", async () => {
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
     const dock = screen.getByRole("toolbar", { name: "查看工具" });
-    const names = within(dock).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
+    const names = within(dock)
+      .getAllByRole("button")
+      .map((b) => b.getAttribute("aria-label"));
     expect(names).toEqual(["适应窗口，0", "原始像素，1", "框选局部，F1", "钉住整图，P", "背景", "显示详情，I"]);
     const stage = screen.getByAltText("正在查看的参考图").parentElement!;
     const pressed = (name: RegExp) => screen.getByRole("button", { name }).getAttribute("aria-pressed");
@@ -201,14 +239,20 @@ describe("查看器标题行与 dock（#98）", () => {
     expect(pressed(/^框选局部/)).toBe("true");
     fireEvent.keyDown(stage, { key: "F1" });
     expect(pressed(/^框选局部/)).toBe("false");
-    await act(async () => { fireEvent.keyDown(stage, { key: "p" }); });
-    expect(pins()).toEqual([{ libraryId: "L1", imageId: "a", crop: null, shown: { x: 100, y: 100, width: 800, height: 600 } }]);
+    await act(async () => {
+      fireEvent.keyDown(stage, { key: "p" });
+    });
+    expect(pins()).toEqual([
+      { libraryId: "L1", imageId: "a", crop: null, shown: { x: 100, y: 100, width: 800, height: 600 } },
+    ]);
     expect(await screen.findByText("已钉住整图")).toBeTruthy();
   });
 
   it("I 键与 dock 的“详情”显示或隐藏旁边的详情侧栏（#179）；查看器自己没有信息浮层", async () => {
     const toggle = vi.fn();
-    const view = render(<Viewer libraryId="L1" card={card} onClose={() => {}} inspectorOpen={false} onToggleInspector={toggle} />);
+    const view = render(
+      <Viewer libraryId="L1" card={card} onClose={() => {}} inspectorOpen={false} onToggleInspector={toggle} />,
+    );
     fireEvent.keyDown(screen.getByAltText("正在查看的参考图").parentElement!, { key: "i" });
     expect(toggle).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("region", { name: "图片信息" })).toBeNull();
@@ -233,7 +277,11 @@ describe("查看器标题行与 dock（#98）", () => {
     };
     drag(1, 310, 210);
     const bar = cropReadout("200 × 100");
-    expect(within(bar).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["钉住局部，Enter", "重选", "取消，Esc"]);
+    expect(
+      within(bar)
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["钉住局部，Enter", "重选", "取消，Esc"]);
     expect(within(bar).getByRole("button", { name: /^钉住局部/ }).className).toContain("is-primary");
     expect(within(bar).getByRole("button", { name: /^取消/ }).className).toContain("is-danger");
 
@@ -245,8 +293,17 @@ describe("查看器标题行与 dock（#98）", () => {
     fireEvent.pointerUp(stage, { pointerId: 2 });
     cropReadout("50 × 20");
 
-    await act(async () => { fireEvent.click(within(screen.getByRole("toolbar", { name: "框选" })).getByRole("button", { name: /^钉住局部/ })); });
-    expect(pins()).toEqual([{ libraryId: "L1", imageId: "a", crop: { x: 0, y: 0, width: 50, height: 20 }, shown: { x: 100, y: 100, width: 50, height: 20 } }]);
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole("toolbar", { name: "框选" })).getByRole("button", { name: /^钉住局部/ }));
+    });
+    expect(pins()).toEqual([
+      {
+        libraryId: "L1",
+        imageId: "a",
+        crop: { x: 0, y: 0, width: 50, height: 20 },
+        shown: { x: 100, y: 100, width: 50, height: 20 },
+      },
+    ]);
 
     fireEvent.click(within(screen.getByRole("toolbar", { name: "框选" })).getByRole("button", { name: /^取消/ }));
     expect(screen.queryByLabelText("选区")).toBeNull();
@@ -265,4 +322,3 @@ describe("从图片墙进入框选（#102 右键“框选局部钉住”）", ()
     expect(pressed()).toBe("false");
   });
 });
-

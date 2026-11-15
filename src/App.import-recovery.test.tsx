@@ -21,7 +21,12 @@ describe("上次导入中断", () => {
 
     await waitFor(() =>
       expect(sent("start_import")).toEqual([
-        { libraryId: "L1", source: { paths: ["D:\\参考\\b.png"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L1",folderId:null} },
+        {
+          libraryId: "L1",
+          source: { paths: ["D:\\参考\\b.png"] },
+          options: { eagleDeletedContent: "skipDeleted" },
+          destination: { libraryId: "L1", folderId: null },
+        },
       ]),
     );
   });
@@ -47,7 +52,10 @@ describe("上次导入中断", () => {
     const other = { id: "L2", name: "私人收藏", root: "E:\\私人收藏" };
     const asked: string[] = [];
     backend(library, clean, {
-      registered_libraries: () => [{ library, unavailable: null }, { library: other, unavailable: null }],
+      registered_libraries: () => [
+        { library, unavailable: null },
+        { library: other, unavailable: null },
+      ],
       recovery: (args: Args) => {
         const { libraryId } = args as { libraryId: string };
         asked.push(libraryId);
@@ -64,7 +72,12 @@ describe("上次导入中断", () => {
 
     await waitFor(() =>
       expect(sent("start_import")).toEqual([
-        { libraryId: "L2", source: { paths: ["E:\\图\\半张.png"] }, options:{eagleDeletedContent:"skipDeleted"}, destination:{libraryId:"L2",folderId:null} },
+        {
+          libraryId: "L2",
+          source: { paths: ["E:\\图\\半张.png"] },
+          options: { eagleDeletedContent: "skipDeleted" },
+          destination: { libraryId: "L2", folderId: null },
+        },
       ]),
     );
   });

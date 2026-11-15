@@ -16,19 +16,29 @@ function backend(status: TaggingStatus) {
 
 const push = (status: TaggingStatus) => act(() => emit("tagging-status", status));
 const mount = () => render(<TaggingActivity onOpenSettings={vi.fn()} />);
-const idle = (tagged: number): TaggingStatus => ({ state: "idle", model: "PixAI", device: "directMl", gpu: "RX 6500 XT", tagged, unknown: 0, failed: { unreadable: 0, crashed: 0 } });
+const idle = (tagged: number): TaggingStatus => ({
+  state: "idle",
+  model: "PixAI",
+  device: "directMl",
+  gpu: "RX 6500 XT",
+  tagged,
+  unknown: 0,
+  failed: { unreadable: 0, crashed: 0 },
+});
 const settled = () => waitFor(() => expect(actions().some((a) => a.command === "tagging_status")).toBe(true));
 
-
 describe("没有完成的图（#475）", () => {
-  const unfinished = (unreadable: number, crashed: number): TaggingStatus => ({ ...idle(0), failed: { unreadable, crashed } } as TaggingStatus);
+  const unfinished = (unreadable: number, crashed: number): TaggingStatus =>
+    ({ ...idle(0), failed: { unreadable, crashed } }) as TaggingStatus;
   const retryIcon = () => screen.queryByRole("button", { name: /重试没有完成的图/ });
   afterEach(() => localStorage.clear());
 
   it("常驻提示图标，写出张数与原因；点击重试", async () => {
     backend(unfinished(2, 1));
     mount();
-    const button = await screen.findByRole("button", { name: "重试没有完成的图：3 张没有完成，2 张无法读取，1 张出错" });
+    const button = await screen.findByRole("button", {
+      name: "重试没有完成的图：3 张没有完成，2 张无法读取，1 张出错",
+    });
     expect(button.dataset.activity).toBe("unfinished");
     fireEvent.click(button);
     await waitFor(() => expect(actions().some((a) => a.command === "tagging_retry_failed")).toBe(true));
@@ -53,7 +63,10 @@ describe("没有完成的图（#475）", () => {
   it("忽略后收起，下次启动也不显示；之后再多出没有完成的图才再显示", async () => {
     backend(unfinished(1, 1));
     const first = mount();
-    fireEvent.contextMenu(await screen.findByRole("button", { name: /重试没有完成的图/ }), { clientX: 10, clientY: 10 });
+    fireEvent.contextMenu(await screen.findByRole("button", { name: /重试没有完成的图/ }), {
+      clientX: 10,
+      clientY: 10,
+    });
     fireEvent.click(await screen.findByRole("menuitem", { name: "忽略" }));
     await waitFor(() => expect(retryIcon()).toBeNull());
     first.unmount();
@@ -69,7 +82,10 @@ describe("没有完成的图（#475）", () => {
   it("重试后张数变少，再出现时照常显示", async () => {
     backend(unfinished(2, 0));
     mount();
-    fireEvent.contextMenu(await screen.findByRole("button", { name: /重试没有完成的图/ }), { clientX: 10, clientY: 10 });
+    fireEvent.contextMenu(await screen.findByRole("button", { name: /重试没有完成的图/ }), {
+      clientX: 10,
+      clientY: 10,
+    });
     fireEvent.click(await screen.findByRole("menuitem", { name: "忽略" }));
     await waitFor(() => expect(retryIcon()).toBeNull());
     await push(unfinished(0, 0));
@@ -77,4 +93,3 @@ describe("没有完成的图（#475）", () => {
     await screen.findByRole("button", { name: /1 张没有完成/ });
   });
 });
-

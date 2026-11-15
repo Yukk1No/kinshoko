@@ -11,7 +11,18 @@ import type { LibraryRecovery } from "./useImportRecovery";
  * 导入的一次性提示走轻提示管线（#388）：结束、出错、上次中断与封印项重复。结束的提示带“查看”，打开结果回执卡；
  * 回执也可从导入菜单的“导入任务”打开。
  */
-export function useImportNotices({ finished, owner, warnings = [], onSelectTask, onShowDestination, recovery, dismissRecovery, reimport, sealedTask, showSealed }: {
+export function useImportNotices({
+  finished,
+  owner,
+  warnings = [],
+  onSelectTask,
+  onShowDestination,
+  recovery,
+  dismissRecovery,
+  reimport,
+  sealedTask,
+  showSealed,
+}: {
   finished: FinishedImport | null;
   owner: string | null;
   warnings?: readonly string[];
@@ -42,21 +53,54 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
     let current = true;
     const id = toast.show({
       title: interrupted.length > 0 ? t("recovery.interrupted") : t("recovery.orphans"),
-      description: t("recovery.inLibrary", { library: recovery.libraryName, summary: [interrupted.length > 0 && t("recovery.withdrawn", { count: interrupted.length }),
-        orphans.length > 0 && t("recovery.kept", { count: orphans.length })].filter(Boolean).join(t("recovery.separator")) }),
+      description: t("recovery.inLibrary", {
+        library: recovery.libraryName,
+        summary: [
+          interrupted.length > 0 && t("recovery.withdrawn", { count: interrupted.length }),
+          orphans.length > 0 && t("recovery.kept", { count: orphans.length }),
+        ]
+          .filter(Boolean)
+          .join(t("recovery.separator")),
+      }),
       timeout: 0,
-      action: interrupted.length > 0 ? { label: t("recovery.reimport"), onClick: () => { if (!current) return; toast.close(id); latest.current.reimport(interrupted, recovery.libraryId); } } : undefined,
-      onClose: () => { if (current) dismissRecovery(recovery); },
+      action:
+        interrupted.length > 0
+          ? {
+              label: t("recovery.reimport"),
+              onClick: () => {
+                if (!current) return;
+                toast.close(id);
+                latest.current.reimport(interrupted, recovery.libraryId);
+              },
+            }
+          : undefined,
+      onClose: () => {
+        if (current) dismissRecovery(recovery);
+      },
     });
-    return () => { current = false; toast.close(id); };
+    return () => {
+      current = false;
+      toast.close(id);
+    };
   }, [toast, recovery, dismissRecovery]);
 
   // 导入结束：每个任务一条轻提示；安全模式或工作区变化收起数字时，已显示的提示原地更新（notice.key 概括了提示内容）。
   const notice = report && finished ? importNotice(report, owner, warnings) : null;
   const shownNotices = useRef(new Map<string, string | null>());
-  const view = (taskId: string, id: string) => () => { toast.close(id); latest.current.onSelectTask?.(taskId); setReceipt(true); };
-  const target = finished?.destination ?? (finished?.libraryId ? { libraryId: finished.libraryId, folderId: null } : null);
-  const show = (id: string) => target && onShowDestination ? () => { toast.close(id); latest.current.onShowDestination?.(target); } : undefined;
+  const view = (taskId: string, id: string) => () => {
+    toast.close(id);
+    latest.current.onSelectTask?.(taskId);
+    setReceipt(true);
+  };
+  const target =
+    finished?.destination ?? (finished?.libraryId ? { libraryId: finished.libraryId, folderId: null } : null);
+  const show = (id: string) =>
+    target && onShowDestination
+      ? () => {
+          toast.close(id);
+          latest.current.onShowDestination?.(target);
+        }
+      : undefined;
   // biome-ignore lint/correctness/useExhaustiveDependencies: 按任务与 notice.key 判断要不要显示或原地更新；notice、view、show 每次渲染都是新的，receipt 只在提示出现那一刻读
   useEffect(() => {
     if (!finished || !notice) return;
@@ -67,27 +111,49 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
       return;
     }
     // 回执正开着时它已显示这个任务，不再另外提示。
-    if (receipt) { shownNotices.current.set(taskId, null); return; }
-    const id: string = toast.show({ ...notice.toast(() => view(taskId, id)(), target && onShowDestination ? () => show(id)?.() : undefined), onClose: () => shownNotices.current.set(taskId, null) });
+    if (receipt) {
+      shownNotices.current.set(taskId, null);
+      return;
+    }
+    const id: string = toast.show({
+      ...notice.toast(() => view(taskId, id)(), target && onShowDestination ? () => show(id)?.() : undefined),
+      onClose: () => shownNotices.current.set(taskId, null),
+    });
     shownNotices.current.set(taskId, id);
   }, [toast, finished?.taskId, notice?.key]);
   // 安全模式或工作区变化时，别的任务留着的提示无法跟着收起数字，直接收起；所选任务的提示由上面原地更新。
   const selectedTask = finished?.taskId ?? null;
   const conceal = useEffectEvent(() => {
     for (const [taskId, id] of shownNotices.current) {
-      if (id && taskId !== selectedTask) { toast.close(id); shownNotices.current.set(taskId, null); }
+      if (id && taskId !== selectedTask) {
+        toast.close(id);
+        shownNotices.current.set(taskId, null);
+      }
     }
   });
   useEffect(() => {
-    const safe = onSafeModeSetting(conceal), workspace = onWorkspaceChanged(conceal);
-    return () => { void safe.then((stop) => stop()); void workspace.then((stop) => stop()); };
+    const safe = onSafeModeSetting(conceal),
+      workspace = onWorkspaceChanged(conceal);
+    return () => {
+      void safe.then((stop) => stop());
+      void workspace.then((stop) => stop());
+    };
   }, []);
 
   // 封印项重复：#78 规定的原文，不点名内容类别，不给数量。错过时可从回执里再展开。
   // biome-ignore lint/correctness/useExhaustiveDependencies(t): 换界面语言不收起重弹这条提示
   useEffect(() => {
     if (sealedTask === null) return;
-    const id = toast.show({ title: t("sealed.prompt"), action: { label: t("sealed.expand"), onClick: () => { toast.close(id); latest.current.showSealed(sealedTask); } } });
+    const id = toast.show({
+      title: t("sealed.prompt"),
+      action: {
+        label: t("sealed.expand"),
+        onClick: () => {
+          toast.close(id);
+          latest.current.showSealed(sealedTask);
+        },
+      },
+    });
     return () => toast.close(id);
   }, [toast, sealedTask]);
 
@@ -95,7 +161,10 @@ export function useImportNotices({ finished, owner, warnings = [], onSelectTask,
   const closeReceipt = (taskId: string | undefined) => {
     setReceipt(false);
     const id = taskId === undefined ? null : shownNotices.current.get(taskId);
-    if (taskId !== undefined && id) { toast.close(id); shownNotices.current.set(taskId, null); }
+    if (taskId !== undefined && id) {
+      toast.close(id);
+      shownNotices.current.set(taskId, null);
+    }
   };
   return { receiptOpen: report !== null && receipt, setReceipt, closeReceipt };
 }

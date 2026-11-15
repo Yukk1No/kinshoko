@@ -12,7 +12,9 @@ const ipc = vi.hoisted(() => ({
   groups: vi.fn(),
   group: vi.fn(),
   remove: vi.fn(() => Promise.resolve({ groupId: "g1", name: "Hair", unlinkedPins: [] })),
-  captures: vi.fn(() => Promise.resolve([{ id: "shot-1", width: 100, height: 80, collected: [{ libraryId: "lib-a" }] }])),
+  captures: vi.fn(() =>
+    Promise.resolve([{ id: "shot-1", width: 100, height: 80, collected: [{ libraryId: "lib-a" }] }]),
+  ),
 }));
 vi.mock("../ipc", () => ({
   saveMemory: () => Promise.resolve({ importDestination: null, newLibraryParent: null }),
@@ -22,23 +24,50 @@ vi.mock("../ipc", () => ({
   deleteReferenceGroup: ipc.remove,
   restoreReferenceGroup: () => Promise.resolve(),
   purgeDeletedReferenceGroup: () => Promise.resolve(),
-  captureHistory: () => Promise.resolve([
-    { id: "c1", width: 412, height: 380, createdAt: Date.now() - 5 * 60_000, pinned: true, collected: [] },
-    { id: "c2", width: 200, height: 100, createdAt: Date.now() - 3 * 86_400_000, pinned: false, collected: [{ libraryId: "lib-a" }] },
-  ]),
+  captureHistory: () =>
+    Promise.resolve([
+      { id: "c1", width: 412, height: 380, createdAt: Date.now() - 5 * 60_000, pinned: true, collected: [] },
+      {
+        id: "c2",
+        width: 200,
+        height: 100,
+        createdAt: Date.now() - 3 * 86_400_000,
+        pinned: false,
+        collected: [{ libraryId: "lib-a" }],
+      },
+    ]),
   onCaptureHistory: () => Promise.resolve(() => {}),
-  shellSettings: () => Promise.resolve({ shortcuts: [{ action: "capture", accelerator: "F1", problem: null }, { action: "pinClipboard", accelerator: "F3", problem: null }] }),
+  shellSettings: () =>
+    Promise.resolve({
+      shortcuts: [
+        { action: "capture", accelerator: "F1", problem: null },
+        { action: "pinClipboard", accelerator: "F3", problem: null },
+      ],
+    }),
   captureUrl: (id: string) => `capture://${id}`,
   thumbnailUrl: (address: string) => `thumb://${address}`,
   onReferenceGroupsChanged: () => Promise.resolve(() => {}),
   onWorkspaceChanged: () => Promise.resolve(() => {}),
-  workspaceDirectories: () => Promise.resolve({ status: { revision: "test", libraries: [] }, providers: [
-    { registration: { library: { id: "lib-a", name: "主库", root: "D:/a" }, unavailable: null }, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} },
-  ] }),
-  registeredLibraries: () => Promise.resolve([
-    { library: { id: "lib-a", name: "主库", root: "D:/a" }, unavailable: null },
-    { library: { id: "lib-b", name: "移动盘库", root: "E:/b" }, unavailable: { code: "system" as const, detail: "unplugged" } },
-  ]),
+  workspaceDirectories: () =>
+    Promise.resolve({
+      status: { revision: "test", libraries: [] },
+      providers: [
+        {
+          registration: { library: { id: "lib-a", name: "主库", root: "D:/a" }, unavailable: null },
+          sidebar: { all: 0, trash: 0, folders: [] },
+          unassigned: 0,
+          descendants: {},
+        },
+      ],
+    }),
+  registeredLibraries: () =>
+    Promise.resolve([
+      { library: { id: "lib-a", name: "主库", root: "D:/a" }, unavailable: null },
+      {
+        library: { id: "lib-b", name: "移动盘库", root: "E:/b" },
+        unavailable: { code: "system" as const, detail: "unplugged" },
+      },
+    ]),
 }));
 
 import { Menu } from "../ui/Menu";
@@ -48,35 +77,78 @@ import { ReferenceGroupsPanel } from "../desktop/ReferenceGroupsPanel";
 import { SaveDestinationProvider } from "../library/SaveDestination";
 import { ago } from "../desktop/relativeTime";
 
-beforeEach(async () => { await act(async () => { await i18n.changeLanguage("en"); }); });
+beforeEach(async () => {
+  await act(async () => {
+    await i18n.changeLanguage("en");
+  });
+});
 afterEach(async () => {
   cleanup();
   vi.clearAllMocks();
-  await act(async () => { await i18n.changeLanguage("zh-CN"); });
+  await act(async () => {
+    await i18n.changeLanguage("zh-CN");
+  });
 });
 
-const settle = () => act(async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); });
+const settle = () =>
+  act(async () => {
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+  });
 const data = ["主库", "移动盘库", "头发参考", "光影"];
 
 const pin = (extra: Partial<PinMenu>): PinMenu => ({
-  pin: "P1", capture: false, opacity: 70, locked: false, actualSize: false, veiled: true, canCollect: false, group: "光影",
-  confirmReveal: false, ...extra,
+  pin: "P1",
+  capture: false,
+  opacity: 70,
+  locked: false,
+  actualSize: false,
+  veiled: true,
+  canCollect: false,
+  group: "光影",
+  confirmReveal: false,
+  ...extra,
 });
 
 function pinMenu(menu: PinMenu) {
-  render(<Menu.Root open><Menu.Portal><Menu.Positioner><Menu.Popup aria-label="menu">
-    <PinMenuItems menu={menu} act={vi.fn()} groups={() => Promise.resolve([])} />
-  </Menu.Popup></Menu.Positioner></Menu.Portal></Menu.Root>);
+  render(
+    <Menu.Root open>
+      <Menu.Portal>
+        <Menu.Positioner>
+          <Menu.Popup aria-label="menu">
+            <PinMenuItems menu={menu} act={vi.fn()} groups={() => Promise.resolve([])} />
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>,
+  );
   return screen.getByRole("menu");
 }
 
-const summary: GroupSummary = { id: "g1", name: "头发参考", memberCount: 2, libraryIds: ["lib-a", "lib-x"], updatedAt: Date.now(), problem: null };
+const summary: GroupSummary = {
+  id: "g1",
+  name: "头发参考",
+  memberCount: 2,
+  libraryIds: ["lib-a", "lib-x"],
+  updatedAt: Date.now(),
+  problem: null,
+};
 const placement = { x: 0, y: 0, scale: 1, flipH: false, flipV: false, rotation: 0 };
 const view: ReferenceGroupView = {
   group: {
-    id: "g1", name: "头发参考", createdAt: 0, updatedAt: summary.updatedAt,
+    id: "g1",
+    name: "头发参考",
+    createdAt: 0,
+    updatedAt: summary.updatedAt,
     members: [
-      { id: "m1", libraryId: "lib-a", imageId: "i1", sourceWidth: 100, sourceHeight: 80, crop: { x: 0, y: 0, width: 40, height: 30 }, placement },
+      {
+        id: "m1",
+        libraryId: "lib-a",
+        imageId: "i1",
+        sourceWidth: 100,
+        sourceHeight: 80,
+        crop: { x: 0, y: 0, width: 40, height: 30 },
+        placement,
+      },
       { id: "m2", libraryId: "lib-a", imageId: "i2", sourceWidth: 100, sourceHeight: 80, crop: null, placement },
     ],
   },
@@ -113,7 +185,11 @@ describe("英文界面：桌面", () => {
   it("参考组：卡片、成员、更多操作、删除可撤销与截图入组", async () => {
     ipc.groups.mockResolvedValue([summary]);
     ipc.group.mockResolvedValue(view);
-    render(<SaveDestinationProvider safe><ReferenceGroupsPanel /></SaveDestinationProvider>);
+    render(
+      <SaveDestinationProvider safe>
+        <ReferenceGroupsPanel />
+      </SaveDestinationProvider>,
+    );
     await settle();
     expect(screen.getByText("2 images")).toBeTruthy();
     expect(screen.getByText("主库, Unregistered library")).toBeTruthy();

@@ -37,13 +37,20 @@ export const ordered = (tags: ImageTag[]) => groupByStanding(tags).flatMap((grou
 // 半角或全角冒号结尾（全角写成转义，免得被当成写死的界面文字）。
 const ENDS_WITH_COLON = new RegExp("[:" + String.fromCharCode(0xff1a) + "]$");
 
-export function parseTyped(text: string, prefixOf: (namespace: TagNamespace) => string): { namespace: TagNamespace | null; name: string } {
+export function parseTyped(
+  text: string,
+  prefixOf: (namespace: TagNamespace) => string,
+): { namespace: TagNamespace | null; name: string } {
   const trimmed = text.trim();
   for (const namespace of NAMESPACES) {
     const prefix = prefixOf(namespace).trim().replace(ENDS_WITH_COLON, "");
     if (!prefix) continue;
     const head = trimmed.slice(0, prefix.length + 1);
-    if (head.length === prefix.length + 1 && ENDS_WITH_COLON.test(head) && head.slice(0, -1).toLocaleLowerCase() === prefix.toLocaleLowerCase())
+    if (
+      head.length === prefix.length + 1 &&
+      ENDS_WITH_COLON.test(head) &&
+      head.slice(0, -1).toLocaleLowerCase() === prefix.toLocaleLowerCase()
+    )
       return { namespace, name: trimmed.slice(prefix.length + 1).trim() };
   }
   return { namespace: null, name: trimmed };
@@ -53,5 +60,15 @@ export function parseTyped(text: string, prefixOf: (namespace: TagNamespace) => 
  * 在候选行上按键或单击做什么：回车 / 单击添加；Alt+回车 / Ctrl+单击排除，与查找框的写法相同；
  * Shift+回车 / Shift+单击改回自动（行尾按钮不可聚焦，键盘靠它）。
  */
-export const decisionOf = (event: { type: string; altKey: boolean; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }): TagEdit["kind"] =>
-  event.shiftKey ? "clear" : (event.type === "keydown" ? event.altKey : event.ctrlKey || event.metaKey) ? "reject" : "add";
+export const decisionOf = (event: {
+  type: string;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  shiftKey: boolean;
+}): TagEdit["kind"] =>
+  event.shiftKey
+    ? "clear"
+    : (event.type === "keydown" ? event.altKey : event.ctrlKey || event.metaKey)
+      ? "reject"
+      : "add";

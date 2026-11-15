@@ -24,7 +24,10 @@ export const browserEnv = (): ProbeEnv => ({
   raf: (cb) => requestAnimationFrame(cb),
   caf: (id) => cancelAnimationFrame(id),
   observe(types, cb) {
-    const supported = typeof PerformanceObserver === "undefined" ? [] : types.filter((t) => PerformanceObserver.supportedEntryTypes?.includes(t));
+    const supported =
+      typeof PerformanceObserver === "undefined"
+        ? []
+        : types.filter((t) => PerformanceObserver.supportedEntryTypes?.includes(t));
     const observers = supported.map((type) => {
       const observer = new PerformanceObserver(cb);
       observer.observe({ type, buffered: false });
@@ -79,7 +82,9 @@ export function createFrameProbe(env: ProbeEnv = browserEnv()) {
   };
 
   return {
-    get running() { return running; },
+    get running() {
+      return running;
+    },
     start() {
       halt();
       stamps = [];

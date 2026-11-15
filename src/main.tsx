@@ -12,10 +12,12 @@ import { blockBrowserMenu } from "./ui/browserMenu";
 import { TipProvider } from "./ui/Tip";
 import "./styles.css";
 import "./ui/ui.css";
+import "./ui/ui-dock.css";
 import "./ui/menu.css";
 import "./ui/toast.css";
 import "./ui/fields.css";
 import "./shell/main-window.css";
+import "./shell/main-window-island.css";
 import "./shell/main-window-panels.css";
 import "./shell/main-window-stacks.css";
 import "./shell/startup-splash.css";
@@ -23,6 +25,7 @@ import "./shell/pane-fit.css";
 // 设置早于 dialogs.css：后者减弱动效的规则要盖过设置页签的过渡。
 import "./ui/settings.css";
 import "./ui/dialogs.css";
+import "./ui/dialogs-tasks.css";
 import "./search/search-bar.css";
 import "./ui/text-select.css";
 import "./subscriptions/subscriptions.css";
@@ -43,18 +46,23 @@ if (view === null) markStartup("scriptStarted");
 
 // #102 T7：开发模式的帧时间探针，只挂在主窗口。启用条件是 Vite 开发服务器，或构建时显式设置
 // VITE_KINSHOKO_PERF=1（用生产构建量帧时间）。条件在构建时折叠为常量，发行构建不含 ./perf。
-if ((import.meta.env.DEV || import.meta.env.VITE_KINSHOKO_PERF === "1") && !view) void import("./perf/install").then((m) => m.installPerfProbe(window));
+if ((import.meta.env.DEV || import.meta.env.VITE_KINSHOKO_PERF === "1") && !view)
+  void import("./perf/install").then((m) => m.installPerfProbe(window));
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode><TipProvider>
-    {view === "capture" ? (
-      <CaptureOverlay />
-    ) : view === "desktop-menu" ? (
-      <DesktopMenuView />
-    ) : view === "fidelity-gate" ? (
-      <FidelityGate />
-    ) : (
-      <RuntimeProvider><App /></RuntimeProvider>
-    )}
-  </TipProvider></StrictMode>,
+  <StrictMode>
+    <TipProvider>
+      {view === "capture" ? (
+        <CaptureOverlay />
+      ) : view === "desktop-menu" ? (
+        <DesktopMenuView />
+      ) : view === "fidelity-gate" ? (
+        <FidelityGate />
+      ) : (
+        <RuntimeProvider>
+          <App />
+        </RuntimeProvider>
+      )}
+    </TipProvider>
+  </StrictMode>,
 );

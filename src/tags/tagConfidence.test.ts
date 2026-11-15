@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_TAG_DISPLAY, confidenceBand, confidencePercent, originLine, tagStanding, thresholdProblem } from "./tagConfidence";
+import {
+  DEFAULT_TAG_DISPLAY,
+  confidenceBand,
+  confidencePercent,
+  originLine,
+  tagStanding,
+  thresholdProblem,
+} from "./tagConfidence";
 
 const defaults = { high: 0.8, low: 0.4 };
 
@@ -30,7 +37,10 @@ describe("标签的出处归类", () => {
   });
 
   it("多个模型来源时取最高分", () => {
-    expect(tagStanding([model(0.42, "model:a"), model(0.86, "model:b"), model(null, "model:c")])).toEqual({ kind: "model", score: 0.86 });
+    expect(tagStanding([model(0.42, "model:a"), model(0.86, "model:b"), model(null, "model:c")])).toEqual({
+      kind: "model",
+      score: 0.86,
+    });
   });
 
   it("没有分数的模型来源仍算模型，档位未知", () => {
@@ -39,14 +49,23 @@ describe("标签的出处归类", () => {
 
   it("Eagle、参考组包、备份等导入来源归为导入", () => {
     expect(tagStanding([{ kind: "source", source: "eagle:lib1", score: null }])).toEqual({ kind: "imported" });
-    expect(tagStanding([{ kind: "source", source: "package:p", score: null }, { kind: "source", source: "restore", score: null }])).toEqual({ kind: "imported" });
+    expect(
+      tagStanding([
+        { kind: "source", source: "package:p", score: null },
+        { kind: "source", source: "restore", score: null },
+      ]),
+    ).toEqual({ kind: "imported" });
   });
 });
 
 describe("悬停浮层里的出处说明", () => {
   it("模型来源写成百分比和档位，导入写明来源", () => {
-    expect(originLine({ kind: "source", source: "model:pixai", score: 0.87 }, defaults)).toBe("自动标签，可信度 87%（高）");
-    expect(originLine({ kind: "source", source: "model:pixai", score: 0.4 }, defaults)).toBe("自动标签，可信度 40%（中）");
+    expect(originLine({ kind: "source", source: "model:pixai", score: 0.87 }, defaults)).toBe(
+      "自动标签，可信度 87%（高）",
+    );
+    expect(originLine({ kind: "source", source: "model:pixai", score: 0.4 }, defaults)).toBe(
+      "自动标签，可信度 40%（中）",
+    );
     expect(originLine({ kind: "source", source: "model:pixai", score: null }, defaults)).toBe("自动标签");
     expect(originLine({ kind: "source", source: "eagle:lib1", score: null }, defaults)).toBe("来源：从 Eagle 导入");
     expect(originLine({ kind: "source", source: "package:x", score: null }, defaults)).toBe("来源：参考组包");
@@ -58,8 +77,12 @@ describe("悬停浮层里的出处说明", () => {
 
 describe("显示的百分比与档位一致", () => {
   it("贴近阈值的分数不进位到下一档的数字", () => {
-    expect(originLine({ kind: "source", source: "model:pixai", score: 0.799 }, defaults)).toBe("自动标签，可信度 79%（中）");
-    expect(originLine({ kind: "source", source: "model:pixai", score: 0.399 }, defaults)).toBe("自动标签，可信度 39%（低）");
+    expect(originLine({ kind: "source", source: "model:pixai", score: 0.799 }, defaults)).toBe(
+      "自动标签，可信度 79%（中）",
+    );
+    expect(originLine({ kind: "source", source: "model:pixai", score: 0.399 }, defaults)).toBe(
+      "自动标签，可信度 39%（低）",
+    );
   });
 
   it("浮点误差内落在阈值上的分数显示阈值本身", () => {

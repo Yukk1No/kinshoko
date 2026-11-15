@@ -3,16 +3,36 @@ import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { App } from "./App";
 import { resize as report } from "./test/platform";
-import { library, page, tags, showApproxSource, keepSelectionOnSafeMode, calls, clean, backend, sent, importAction, expandLibrary, setInspectorOpen, wallPage } from "./App.fixtures";
+import {
+  library,
+  page,
+  tags,
+  showApproxSource,
+  keepSelectionOnSafeMode,
+  calls,
+  clean,
+  backend,
+  sent,
+  importAction,
+  expandLibrary,
+  setInspectorOpen,
+  wallPage,
+} from "./App.fixtures";
 import type { Args } from "./test/backend";
 
 /** 宽度变了：工作区与图片墙各自的 ResizeObserver 报告一次。 */
-const reportResize = () => act(() => { for (const el of document.querySelectorAll(".app-body, .wall")) report(el); });
+const reportResize = () =>
+  act(() => {
+    for (const el of document.querySelectorAll(".app-body, .wall")) report(el);
+  });
 
 describe("主窗口", () => {
   it("查找头部显示真实结果数，图片大小滑块改变布局，导入操作按需展开", async () => {
     backend(library, clean, {
-      workspace_browse: (args: Args) => (args as { query: { scope: { scope?: { kind: string } } } }).query.scope.scope?.kind.startsWith("folder") ? wallPage({ cards: [page.cards[0]], total: 1, nextCursor: null }) : undefined,
+      workspace_browse: (args: Args) =>
+        (args as { query: { scope: { scope?: { kind: string } } } }).query.scope.scope?.kind.startsWith("folder")
+          ? wallPage({ cards: [page.cards[0]], total: 1, nextCursor: null })
+          : undefined,
     });
     render(<App />);
     await screen.findAllByRole("img");
@@ -48,7 +68,11 @@ describe("主窗口", () => {
     expect(parseFloat(wall.querySelector<HTMLElement>(".card")!.style.width)).toBeGreaterThan(before);
     const tier = thumbnailTier(Math.ceil(320 * 1.5 * (window.devicePixelRatio || 1)));
     await waitFor(() => expect(wall.querySelector("img")!.getAttribute("src")).toMatch(new RegExp(`/${tier}$`)));
-    expect(calls().slice(from).some((c) => c.command === "workspace_browse")).toBe(false);
+    expect(
+      calls()
+        .slice(from)
+        .some((c) => c.command === "workspace_browse"),
+    ).toBe(false);
     expect(slider.value).toBe("320");
   });
 
@@ -74,9 +98,16 @@ describe("主窗口", () => {
   });
 
   it("查找区域的标签分组展开后可以添加、取消条件，并保留文件夹范围", async () => {
-    backend(library, clean, { workspace_tag_groups: [{
-      id: "G1", name: "发色", namespace: null, tags: [{ tag: tags.B, count: 1 }],
-    }] });
+    backend(library, clean, {
+      workspace_tag_groups: [
+        {
+          id: "G1",
+          name: "发色",
+          namespace: null,
+          tags: [{ tag: tags.B, count: 1 }],
+        },
+      ],
+    });
     render(<App />);
     await expandLibrary();
     fireEvent.click(await screen.findByRole("button", { name: "人物（1 张）" }));
@@ -107,15 +138,22 @@ describe("主窗口", () => {
     fireEvent.scroll(wall);
     const offset = parseFloat(card.style.top) - wall.scrollTop;
     const initial = parseFloat(card.style.width);
-    const resize = (next: number) => { available = next; reportResize(); };
+    const resize = (next: number) => {
+      available = next;
+      reportResize();
+    };
     fireEvent.click(screen.getByRole("button", { name: "收起侧栏" }));
-    act(() => { sidebar.dispatchEvent(new TransitionEvent("transitionrun", { propertyName: "width" })); });
+    act(() => {
+      sidebar.dispatchEvent(new TransitionEvent("transitionrun", { propertyName: "width" }));
+    });
     const settled = parseFloat(card.style.width);
     expect(settled).toBeGreaterThan(initial);
     expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
     for (const next of [1040, 1100, 1180, 1256]) resize(next);
     expect(parseFloat(card.style.width)).toBe(settled);
-    act(() => { sidebar.dispatchEvent(new TransitionEvent("transitionend", { propertyName: "width" })); });
+    act(() => {
+      sidebar.dispatchEvent(new TransitionEvent("transitionend", { propertyName: "width" }));
+    });
     expect(parseFloat(card.style.width)).toBe(settled);
     expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
   });
@@ -139,18 +177,25 @@ describe("主窗口", () => {
     fireEvent.scroll(wall);
     const offset = parseFloat(card.style.top) - wall.scrollTop;
     const initial = parseFloat(card.style.width);
-    const resize = (next: number) => { available = next; reportResize(); };
+    const resize = (next: number) => {
+      available = next;
+      reportResize();
+    };
     fireEvent.click(screen.getByRole("button", { name: "显示详情" }));
     await waitFor(() => expect(inspector.getAttribute("data-collapsed")).toBe("false"));
     // 过渡开始之前，墙还是原来的布局。
     expect(parseFloat(card.style.width)).toBe(initial);
-    act(() => { inspector.dispatchEvent(new TransitionEvent("transitionrun", { propertyName: "width" })); });
+    act(() => {
+      inspector.dispatchEvent(new TransitionEvent("transitionrun", { propertyName: "width" }));
+    });
     const settled = parseFloat(card.style.width);
     expect(settled).toBeLessThan(initial);
     expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
     for (const next of [960, 880, 760, 680]) resize(next);
     expect(parseFloat(card.style.width)).toBe(settled);
-    act(() => { inspector.dispatchEvent(new TransitionEvent("transitionend", { propertyName: "width" })); });
+    act(() => {
+      inspector.dispatchEvent(new TransitionEvent("transitionend", { propertyName: "width" }));
+    });
     expect(parseFloat(card.style.width)).toBe(settled);
     expect(parseFloat(card.style.top) - wall.scrollTop).toBeCloseTo(offset);
   });
@@ -186,8 +231,25 @@ describe("主窗口", () => {
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1544 });
     let saved: number | undefined;
     backend(library, clean, {
-      "change_setting:inspectorWidth": (args: Args) => { saved = (args as { width: number }).width; return { autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved, inspectorOpen: true }; },
-      shell_settings: () => ({ autostart: true, shortcuts: [], showApproxSource, keepSelectionOnSafeMode, inspectorWidth: saved, inspectorOpen: true }),
+      "change_setting:inspectorWidth": (args: Args) => {
+        saved = (args as { width: number }).width;
+        return {
+          autostart: true,
+          shortcuts: [],
+          showApproxSource,
+          keepSelectionOnSafeMode,
+          inspectorWidth: saved,
+          inspectorOpen: true,
+        };
+      },
+      shell_settings: () => ({
+        autostart: true,
+        shortcuts: [],
+        showApproxSource,
+        keepSelectionOnSafeMode,
+        inspectorWidth: saved,
+        inspectorOpen: true,
+      }),
     });
     const first = render(<App />);
     await screen.findAllByRole("img");
@@ -203,7 +265,9 @@ describe("主窗口", () => {
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.click(document.querySelector<HTMLElement>('[data-id="a"]')!);
-    await waitFor(() => expect(screen.getByRole("separator", { name: "调整详情宽度" }).getAttribute("aria-valuenow")).toBe("450"));
+    await waitFor(() =>
+      expect(screen.getByRole("separator", { name: "调整详情宽度" }).getAttribute("aria-valuenow")).toBe("450"),
+    );
     expect(document.documentElement.style.getPropertyValue("--inspector-width")).toBe("450px");
   });
 
@@ -232,5 +296,4 @@ describe("主窗口", () => {
     expect(screen.getByRole("complementary", { name: "文件夹" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "工作参考 的操作" })).toBeTruthy();
   });
-
 });

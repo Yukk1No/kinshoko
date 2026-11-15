@@ -16,7 +16,11 @@ export type CaptureDestination =
   | { kind: "collect"; destination: SaveDestination };
 
 /** 存参考组前桌面上的截图和每张选的去处。 */
-export type CaptureSaveDraft<T> = { target: T; entries: CaptureEntry[]; destinations: Record<string, CaptureDestination> };
+export type CaptureSaveDraft<T> = {
+  target: T;
+  entries: CaptureEntry[];
+  destinations: Record<string, CaptureDestination>;
+};
 
 /** 一张截图还不能保存的原因：没选去处，或选的保存目标现在用不了。 */
 export type CaptureProblem = { captureId: string; reason: "unselected" | "unavailable" };
@@ -28,13 +32,18 @@ export type CaptureSavePlan<T> = { readonly target: T; readonly choices: Capture
 export type PreparedSave<T> = { ok: true; plan: CaptureSavePlan<T> } | { ok: false; problems: CaptureProblem[] };
 
 /** 新草稿：只收藏进一个图库、且那个图库连着的截图预选收藏回那里，其余等画师选。 */
-export function draftCaptureSave<T>(target: T, entries: CaptureEntry[], libraries: LibraryRegistration[]): CaptureSaveDraft<T> {
+export function draftCaptureSave<T>(
+  target: T,
+  entries: CaptureEntry[],
+  libraries: LibraryRegistration[],
+): CaptureSaveDraft<T> {
   const destinations: Record<string, CaptureDestination> = {};
   for (const entry of entries) {
     const collected = entry.collected.length === 1 ? entry.collected[0] : null;
-    destinations[entry.id] = collected && libraries.some((l) => l.library.id === collected.libraryId && !l.unavailable)
-      ? { kind: "collect", destination: { libraryId: collected.libraryId, folderId: null } }
-      : { kind: "unselected" };
+    destinations[entry.id] =
+      collected && libraries.some((l) => l.library.id === collected.libraryId && !l.unavailable)
+        ? { kind: "collect", destination: { libraryId: collected.libraryId, folderId: null } }
+        : { kind: "unselected" };
   }
   return { target, entries, destinations };
 }
@@ -44,11 +53,17 @@ export function destinationOf<T>(draft: CaptureSaveDraft<T>, captureId: string):
 }
 
 /** 换一张截图的去处；换了图库时文件夹回到未归类，不沿用另一个库的文件夹。 */
-export function chooseDestination<T>(draft: CaptureSaveDraft<T>, captureId: string, next: CaptureDestination): CaptureSaveDraft<T> {
+export function chooseDestination<T>(
+  draft: CaptureSaveDraft<T>,
+  captureId: string,
+  next: CaptureDestination,
+): CaptureSaveDraft<T> {
   const previous = destinationOf(draft, captureId);
-  const chosen = next.kind === "collect" && (previous.kind !== "collect" || previous.destination.libraryId !== next.destination.libraryId)
-    ? { kind: "collect" as const, destination: { libraryId: next.destination.libraryId, folderId: null } }
-    : next;
+  const chosen =
+    next.kind === "collect" &&
+    (previous.kind !== "collect" || previous.destination.libraryId !== next.destination.libraryId)
+      ? { kind: "collect" as const, destination: { libraryId: next.destination.libraryId, folderId: null } }
+      : next;
   return { ...draft, destinations: { ...draft.destinations, [captureId]: chosen } };
 }
 
@@ -71,7 +86,11 @@ export function prepareSave<T>(draft: CaptureSaveDraft<T>, providers: WorkspaceD
         break;
       case "collect":
         if (destinationAvailable(destination.destination, providers))
-          choices.push({ captureId, libraryId: destination.destination.libraryId, folderId: destination.destination.folderId });
+          choices.push({
+            captureId,
+            libraryId: destination.destination.libraryId,
+            folderId: destination.destination.folderId,
+          });
         else problems.push({ captureId, reason: "unavailable" });
     }
   }

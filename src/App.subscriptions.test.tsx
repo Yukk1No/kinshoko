@@ -15,8 +15,12 @@ let openRequest: unknown = null;
 function withSubscriptions(initial: SubscriptionStatus | "unavailable") {
   openRequest = null;
   backend(library, undefined, {
-    take_open_request: () => { const next = openRequest; openRequest = null; return next; },
-    subscription_status: () => initial === "unavailable" ? Promise.reject("unavailable") : initial,
+    take_open_request: () => {
+      const next = openRequest;
+      openRequest = null;
+      return next;
+    },
+    subscription_status: () => (initial === "unavailable" ? Promise.reject("unavailable") : initial),
     subscriptions: [],
     subscription_recent: [],
   });

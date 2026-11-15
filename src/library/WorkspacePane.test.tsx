@@ -42,39 +42,56 @@ it("拖动图片悬停在折起的图库上约 0.6 秒自动展开，离开或�
   const calls = () => fake.calls().filter((call) => call.command !== "workspace_directories");
   await loaded();
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-  const data: Record<string, string> = { [DRAG_IMAGES]: JSON.stringify(["card-1"]), [DRAG_IMAGE_SOURCES]: JSON.stringify({ B: ["b-1"] }) };
+  const data: Record<string, string> = {
+    [DRAG_IMAGES]: JSON.stringify(["card-1"]),
+    [DRAG_IMAGE_SOURCES]: JSON.stringify({ B: ["b-1"] }),
+  };
   const dataTransfer = { types: Object.keys(data), getData: (type: string) => data[type] ?? "" };
   const head = within(section("B")).getByRole("button", { name: "风景参考（3 张）" });
   fireEvent.dragEnter(head, { dataTransfer });
   fireEvent.dragOver(head, { dataTransfer });
-  act(() => { vi.advanceTimersByTime(590); });
+  act(() => {
+    vi.advanceTimersByTime(590);
+  });
   expect(expanded("B")).toBe(false);
-  act(() => { vi.advanceTimersByTime(20); });
+  act(() => {
+    vi.advanceTimersByTime(20);
+  });
   expect(expanded("B")).toBe(true);
   fireEvent.dragLeave(section("B"), { dataTransfer });
   expect(expanded("B")).toBe(false);
 
   // 离开前没到时间：不展开。
   fireEvent.dragEnter(head, { dataTransfer });
-  act(() => { vi.advanceTimersByTime(300); });
+  act(() => {
+    vi.advanceTimersByTime(300);
+  });
   fireEvent.dragLeave(section("B"), { dataTransfer });
-  act(() => { vi.advanceTimersByTime(600); });
+  act(() => {
+    vi.advanceTimersByTime(600);
+  });
   expect(expanded("B")).toBe(false);
 
   fireEvent.dragEnter(head, { dataTransfer });
-  act(() => { vi.advanceTimersByTime(600); });
+  act(() => {
+    vi.advanceTimersByTime(600);
+  });
   const folder = within(section("B")).getByRole("button", { name: "动作（1 张）" });
   fireEvent.dragOver(folder, { dataTransfer });
   fireEvent.drop(folder, { dataTransfer });
   expect(expanded("B")).toBe(false);
   vi.useRealTimers();
   await settle();
-  expect(calls()).toEqual([{ command: "edit", args: { libraryId: "B", ids: ["b-1"], edits: [{ kind: "addToFolder", folderId: "B-child" }] } }]);
+  expect(calls()).toEqual([
+    { command: "edit", args: { libraryId: "B", ids: ["b-1"], edits: [{ kind: "addToFolder", folderId: "B-child" }] } },
+  ]);
 
   // 拖动在别处结束（取消）时也恢复。
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   fireEvent.dragEnter(head, { dataTransfer });
-  act(() => { vi.advanceTimersByTime(600); });
+  act(() => {
+    vi.advanceTimersByTime(600);
+  });
   expect(expanded("B")).toBe(true);
   fireEvent(window, new Event("dragend"));
   expect(expanded("B")).toBe(false);
@@ -85,14 +102,21 @@ it("已展开的图库不受拖动悬停影响，放下后保持展开", async (
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const dataTransfer = { types: [DRAG_IMAGES], getData: () => "[]" };
   fireEvent.dragEnter(within(section("A")).getByRole("button", { name: "人物参考（3 张）" }), { dataTransfer });
-  act(() => { vi.advanceTimersByTime(600); });
+  act(() => {
+    vi.advanceTimersByTime(600);
+  });
   fireEvent.dragLeave(section("A"), { dataTransfer });
   fireEvent(window, new Event("drop"));
   expect(expanded("A")).toBe(true);
 });
 
 it("每个已连接图库的目录都可以直接整理，请求带上该图库的身份（ADR-0008，#112）", async () => {
-  const fake = fakeBackend({ workspace_directories: directories, create_folder: "new-folder", rename_folder: null, move_folder: null });
+  const fake = fakeBackend({
+    workspace_directories: directories,
+    create_folder: "new-folder",
+    rename_folder: null,
+    move_folder: null,
+  });
   const calls = () => fake.calls().filter((call) => call.command !== "workspace_directories");
   await loaded();
   // 新建文件夹在图库标题的 ⋯ 里；折起的图库随之展开。
@@ -110,7 +134,10 @@ it("每个已连接图库的目录都可以直接整理，请求带上该图库�
   fireEvent.keyDown(rename, { key: "Enter" });
   await settle();
   // 把子文件夹拖到图库标题上：移到顶层；另一个图库的文件夹不接受。
-  const folder: Record<string, string> = { "application/x-kinshoko-folder": "A-child", "application/x-kinshoko-folder-library": "A" };
+  const folder: Record<string, string> = {
+    "application/x-kinshoko-folder": "A-child",
+    "application/x-kinshoko-folder-library": "A",
+  };
   const moving = { types: Object.keys(folder), getData: (type: string) => folder[type] ?? "" };
   const headA = within(section("A")).getByRole("button", { name: "人物参考（3 张）" });
   fireEvent.dragOver(headA, { dataTransfer: moving });
@@ -148,16 +175,28 @@ it("每库为独立根展示完整目录，选择目录默认包含子文件夹�
   const a = section("A");
   expect(within(a).getByRole("button", { name: "人物（2 张）" })).toBeTruthy();
   fireEvent.click(within(a).getByRole("button", { name: "动作（1 张）" }));
-  expect(props.onScope).toHaveBeenLastCalledWith({ kind: "library", libraryId: "A", scope: { kind: "folderTree", id: "A-child" } });
+  expect(props.onScope).toHaveBeenLastCalledWith({
+    kind: "library",
+    libraryId: "A",
+    scope: { kind: "folderTree", id: "A-child" },
+  });
   view.rerender(<WorkspacePane {...props} scope={inA({ kind: "folderTree", id: "A-root" })} />);
   const descendants = screen.getByRole("switch", { name: "含子文件夹" });
   expect(descendants.getAttribute("aria-checked")).toBe("true");
   fireEvent.click(descendants);
   expect(within(a).getByRole("button", { name: "人物（1 张）" })).toBeTruthy();
-  expect(props.onScope).toHaveBeenLastCalledWith({ kind: "library", libraryId: "A", scope: { kind: "folder", id: "A-root" } });
+  expect(props.onScope).toHaveBeenLastCalledWith({
+    kind: "library",
+    libraryId: "A",
+    scope: { kind: "folder", id: "A-root" },
+  });
   fireEvent.click(arrow("B"));
   fireEvent.click(within(section("B")).getByRole("button", { name: "动作（1 张）" }));
-  expect(props.onScope).toHaveBeenLastCalledWith({ kind: "library", libraryId: "B", scope: { kind: "folder", id: "B-child" } });
+  expect(props.onScope).toHaveBeenLastCalledWith({
+    kind: "library",
+    libraryId: "B",
+    scope: { kind: "folder", id: "B-child" },
+  });
 });
 
 it("把图拖进任一图库的文件夹，放入的是这张图在那个图库里的来源（#112）", async () => {
@@ -177,4 +216,3 @@ it("把图拖进任一图库的文件夹，放入的是这张图在那个图库�
     { command: "edit", args: { libraryId: "A", ids: ["a-1"], edits: [{ kind: "addToFolder", folderId: "A-child" }] } },
   ]);
 });
-

@@ -28,14 +28,30 @@ function backend(subs: Subscription[] = list, libraries = registered) {
       return { id: "L9", name, root: `${parent}/${name}` };
     },
     subscription_recent: [],
-    workspace_directories: { status: { revision: "t", libraries }, registrationOrder: [], providers: libraries.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} })) },
+    workspace_directories: {
+      status: { revision: "t", libraries },
+      registrationOrder: [],
+      providers: libraries.map((registration) => ({
+        registration,
+        sidebar: { all: 0, trash: 0, folders: [] },
+        unassigned: 0,
+        descendants: {},
+      })),
+    },
     subscription_find_artist: (args) => {
       const input = (args as { input: string }).input;
-      if (input === "slow") return new Promise((resolve) => { finishSlow = () => resolve({ userId: "1", name: "Slow" }); });
+      if (input === "slow")
+        return new Promise((resolve) => {
+          finishSlow = () => resolve({ userId: "1", name: "Slow" });
+        });
       if (input.includes("404")) throw { code: "artistNotFound" };
       return { userId: "777", name: "Nanashi" };
     },
-    subscription_following: [{ userId: "s1", name: "Mika" }, { userId: "21", name: "Akira" }, { userId: "22", name: "もち" }],
+    subscription_following: [
+      { userId: "s1", name: "Mika" },
+      { userId: "21", name: "Akira" },
+      { userId: "22", name: "もち" },
+    ],
     subscription_add: [],
     subscription_set_options: () => subs[0],
     subscription_remove: null,
@@ -45,9 +61,18 @@ function backend(subs: Subscription[] = list, libraries = registered) {
 const sent = (command: string) => fake.calls(command).map((call) => call.args);
 
 function page(s: SubscriptionStatus, safe = false) {
-  return render(<SaveDestinationProvider safe={safe}>
-    <SubscriptionsPage status={s} onStatus={vi.fn()} safe={safe} paneOpen onPaneToggle={vi.fn()} onOpenImage={vi.fn()} />
-  </SaveDestinationProvider>);
+  return render(
+    <SaveDestinationProvider safe={safe}>
+      <SubscriptionsPage
+        status={s}
+        onStatus={vi.fn()}
+        safe={safe}
+        paneOpen
+        onPaneToggle={vi.fn()}
+        onOpenImage={vi.fn()}
+      />
+    </SaveDestinationProvider>,
+  );
 }
 
 async function openArtistDialog() {
@@ -72,7 +97,9 @@ describe("订阅画师", () => {
     const dialog = await openArtistDialog();
     const subscribe = within(dialog).getByRole("button", { name: "订阅" }) as HTMLButtonElement;
     expect(subscribe.disabled).toBe(true);
-    fireEvent.change(within(dialog).getByRole("textbox", { name: "画师主页链接或 ID" }), { target: { value: "https://www.pixiv.net/users/777" } });
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "画师主页链接或 ID" }), {
+      target: { value: "https://www.pixiv.net/users/777" },
+    });
     expect(within(dialog).getByRole("status", { name: "正在查找" })).toBeTruthy();
     expect(await within(dialog).findByText("Nanashi")).toBeTruthy();
     expect(within(dialog).queryByRole("status", { name: "正在查找" })).toBeNull();
@@ -84,10 +111,18 @@ describe("订阅画师", () => {
     await waitFor(() => expect(subscribe.disabled).toBe(false));
     fireEvent.click(subscribe);
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
-    expect(sent("subscription_add")[0]).toEqual({ subscriptions: [{
-      target: { kind: "pixivArtist", userId: "777" }, name: "Nanashi", libraryId: "L1",
-      includeExplicit: true, includeManga: false, backlog: { kind: "recent", count: 5 },
-    }] });
+    expect(sent("subscription_add")[0]).toEqual({
+      subscriptions: [
+        {
+          target: { kind: "pixivArtist", userId: "777" },
+          name: "Nanashi",
+          libraryId: "L1",
+          includeExplicit: true,
+          includeManga: false,
+          backlog: { kind: "recent", count: 5 },
+        },
+      ],
+    });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
@@ -187,10 +222,18 @@ describe("订阅画师", () => {
     fireEvent.click(within(follows).getByRole("switch", { name: "漫画" }));
     fireEvent.click(within(follows).getByRole("button", { name: "订阅 1 位画师" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
-    expect(sent("subscription_add")[0]).toEqual({ subscriptions: [{
-      target: { kind: "pixivArtist", userId: "21" }, name: "Akira", libraryId: "L1",
-      includeExplicit: true, includeManga: true, backlog: { kind: "newOnly" },
-    }] });
+    expect(sent("subscription_add")[0]).toEqual({
+      subscriptions: [
+        {
+          target: { kind: "pixivArtist", userId: "21" },
+          name: "Akira",
+          libraryId: "L1",
+          includeExplicit: true,
+          includeManga: true,
+          backlog: { kind: "newOnly" },
+        },
+      ],
+    });
   });
 
   it("名单行的更多菜单：订阅设置只改漫画与 R-18，退订要确认", async () => {
@@ -202,7 +245,11 @@ describe("订阅画师", () => {
     expect(within(settings).queryByText("旧作")).toBeNull();
     fireEvent.click(within(settings).getByRole("switch", { name: "R-18 作品" }));
     fireEvent.click(within(settings).getByRole("button", { name: "保存" }));
-    await waitFor(() => expect(sent("subscription_set_options")).toEqual([{ id: "s1", includeExplicit: false, includeManga: false, top: null }]));
+    await waitFor(() =>
+      expect(sent("subscription_set_options")).toEqual([
+        { id: "s1", includeExplicit: false, includeManga: false, top: null },
+      ]),
+    );
 
     fireEvent.click(screen.getAllByRole("button", { name: "更多" })[0]);
     fireEvent.click(await screen.findByRole("menuitem", { name: "退订" }));
@@ -238,7 +285,9 @@ describe("订阅画师", () => {
 
     fireEvent.click(within(dialog).getByRole("button", { name: "订阅" }));
     await waitFor(() => expect(sent("subscription_add")).toHaveLength(1));
-    expect(sent("subscription_add")[0]).toMatchObject({ subscriptions: [{ libraryId: "L9", backlog: { kind: "all" } }] });
+    expect(sent("subscription_add")[0]).toMatchObject({
+      subscriptions: [{ libraryId: "L9", backlog: { kind: "all" } }],
+    });
   });
 
   it("取消就地新建时图库下拉回到原来的选项", async () => {

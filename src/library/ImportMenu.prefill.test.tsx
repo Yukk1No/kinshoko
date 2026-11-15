@@ -14,21 +14,59 @@ const libraries = [
 ];
 const folders = [{ id: "fb", name: "人物", count: 0, children: [] }];
 
-function setup({ scope = { kind: "all" }, memory = { importDestination: null, newLibraryParent: null }, listed = libraries }: { scope?: WorkspaceScope; memory?: SaveMemory; listed?: typeof libraries } = {}) {
-  const started: unknown[] = [], remembered: unknown[] = [];
+function setup({
+  scope = { kind: "all" },
+  memory = { importDestination: null, newLibraryParent: null },
+  listed = libraries,
+}: {
+  scope?: WorkspaceScope;
+  memory?: SaveMemory;
+  listed?: typeof libraries;
+} = {}) {
+  const started: unknown[] = [],
+    remembered: unknown[] = [];
   let next = 0;
   fakeBackend({
-    workspace_directories: { status: { revision: "t", libraries }, registrationOrder: libraries.map((entry) => entry.library.id), providers: listed.map((registration) => ({ registration, sidebar: { all: 0, trash: 0, folders }, unassigned: 0, descendants: {} })) },
+    workspace_directories: {
+      status: { revision: "t", libraries },
+      registrationOrder: libraries.map((entry) => entry.library.id),
+      providers: listed.map((registration) => ({
+        registration,
+        sidebar: { all: 0, trash: 0, folders },
+        unassigned: 0,
+        descendants: {},
+      })),
+    },
     save_memory: memory,
-    remember_import_destination: (args) => { remembered.push(args.destination); return null; },
+    remember_import_destination: (args) => {
+      remembered.push(args.destination);
+      return null;
+    },
     import_tasks: [],
     recovery: { interrupted: [], orphans: [] },
     stage_clipboard_import: "C:/data/剪贴板.png",
     import_contains_eagle: false,
-    start_import: (args) => { started.push(args.destination); return `T${++next}`; },
+    start_import: (args) => {
+      started.push(args.destination);
+      return `T${++next}`;
+    },
   });
   const control = createRef<ImportControl>();
-  const ui = (value: WorkspaceScope) => <><SaveDestinationProvider safe={false}><ImportMenu control={control} scope={value} enabled running={null} finished={null} onStarted={() => {}} onDismissReport={() => {}} /></SaveDestinationProvider></>;
+  const ui = (value: WorkspaceScope) => (
+    <>
+      <SaveDestinationProvider safe={false}>
+        <ImportMenu
+          control={control}
+          scope={value}
+          enabled
+          running={null}
+          finished={null}
+          onStarted={() => {}}
+          onDismissReport={() => {}}
+        />
+      </SaveDestinationProvider>
+    </>
+  );
   const view = render(ui(scope));
   const open = async () => {
     await waitFor(() => expect(control.current).not.toBeNull());
@@ -59,7 +97,9 @@ it("登记最早看登记先后，不看目录接口返回的顺序", async () =
 });
 
 it("「全部图片」下用导入上次亲手选的保存目标", async () => {
-  const { open, confirm, started } = setup({ memory: { importDestination: { libraryId: "B", folderId: "fb" }, newLibraryParent: null } });
+  const { open, confirm, started } = setup({
+    memory: { importDestination: { libraryId: "B", folderId: "fb" }, newLibraryParent: null },
+  });
   const dialog = await open();
   await within(dialog).findByText("放到：第二库 / 人物");
   await confirm(dialog);

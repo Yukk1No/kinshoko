@@ -8,13 +8,36 @@ import { LegacyNameEntry, LegacyNameMigrationNotice, LegacyNameWizard } from "./
 
 const view = (): LegacyNameMigrationWorkspace => ({
   libraries: ["a", "b"].map((id) => ({ library: { id, name: `旧库 ${id}`, root: `C:/${id}` }, unavailable: null })),
-  plan: { revision: 7, groups: [{ catalogId: "shared", namespace: "general", lang: "zh-CN", defaultName: "分缝发型", existingPreference: "自然分缝", affectedLibraries: ["a", "b"], sources: [{ libraryId: "a", localTagId: "local-a", legacyName: "分发", currentName: "自然分缝" }, { libraryId: "b", localTagId: "local-b", legacyName: "分开的头发", currentName: "自然分缝" }] }] },
+  plan: {
+    revision: 7,
+    groups: [
+      {
+        catalogId: "shared",
+        namespace: "general",
+        lang: "zh-CN",
+        defaultName: "分缝发型",
+        existingPreference: "自然分缝",
+        affectedLibraries: ["a", "b"],
+        sources: [
+          { libraryId: "a", localTagId: "local-a", legacyName: "分发", currentName: "自然分缝" },
+          { libraryId: "b", localTagId: "local-b", legacyName: "分开的头发", currentName: "自然分缝" },
+        ],
+      },
+    ],
+  },
 });
 
 /** 主窗口里的用法：一个按钮打开向导，关闭时丢弃草稿。 */
 function Host() {
   const [open, setOpen] = useState(false);
-  return <><button type="button" onClick={() => setOpen(true)}>逐个确认</button><LegacyNameWizard open={open} onOpenChange={setOpen} /></>;
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>
+        逐个确认
+      </button>
+      <LegacyNameWizard open={open} onOpenChange={setOpen} />
+    </>
+  );
 }
 const openWizard = async () => {
   fireEvent.click(screen.getByRole("button", { name: "逐个确认" }));
@@ -29,8 +52,14 @@ it("shows one old name at a time with both old names and the existing preference
   const writes: unknown[] = [];
   fakeBackend({
     plan_legacy_names: data,
-    preview_legacy_names: { revision: 7, outcomes: [{ catalogId: "shared", lang: "zh-CN", displayName: "核心预览结果", preferenceName: null }] },
-    confirm_legacy_names: (args) => { writes.push(args); return { ...data, plan: { revision: 8, groups: [] } }; },
+    preview_legacy_names: {
+      revision: 7,
+      outcomes: [{ catalogId: "shared", lang: "zh-CN", displayName: "核心预览结果", preferenceName: null }],
+    },
+    confirm_legacy_names: (args) => {
+      writes.push(args);
+      return { ...data, plan: { revision: 8, groups: [] } };
+    },
   });
   render(<Host />);
   let wizard = await openWizard();
@@ -59,13 +88,33 @@ it("shows one old name at a time with both old names and the existing preference
   await waitFor(() => expect(confirmButton().disabled).toBe(false));
   fireEvent.click(confirmButton());
   await within(wizard).findByText("旧名称已确认。");
-  expect(writes).toEqual([{ revision: 7, decisions: [{ catalogId: "shared", lang: "zh-CN", resolution: { kind: "keepLegacy", libraryId: "b", localTagId: "local-b" } }] }]);
+  expect(writes).toEqual([
+    {
+      revision: 7,
+      decisions: [
+        {
+          catalogId: "shared",
+          lang: "zh-CN",
+          resolution: { kind: "keepLegacy", libraryId: "b", localTagId: "local-b" },
+        },
+      ],
+    },
+  ]);
 });
 
 it("offers the wizard when opening an old library whose name has already adopted a global preference", async () => {
   let opened = false;
   fakeBackend({ plan_legacy_names: () => view() });
-  render(<LegacyNameMigrationNotice safe={true} enabled hidden={false} onOpen={() => { opened = true; }} />);
+  render(
+    <LegacyNameMigrationNotice
+      safe={true}
+      enabled
+      hidden={false}
+      onOpen={() => {
+        opened = true;
+      }}
+    />,
+  );
   expect(await screen.findByText(/旧名称待确认/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "逐个确认" }));
   expect(opened).toBe(true);
@@ -74,7 +123,13 @@ it("offers the wizard when opening an old library whose name has already adopted
 it("counts pending old names in the settings entry", async () => {
   let opened = false;
   fakeBackend({ plan_legacy_names: () => view() });
-  render(<LegacyNameEntry onOpen={() => { opened = true; }} />);
+  render(
+    <LegacyNameEntry
+      onOpen={() => {
+        opened = true;
+      }}
+    />,
+  );
   expect(await screen.findByText("1 个旧名称待确认")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "逐个确认" }));
   expect(opened).toBe(true);
@@ -84,7 +139,10 @@ it("keeps the complete draft after a failed write and allows a single atomic ret
   let fail = true;
   fakeBackend({
     plan_legacy_names: () => view(),
-    preview_legacy_names: { revision: 7, outcomes: [{ catalogId: "shared", lang: "zh-CN", displayName: "核心预览结果", preferenceName: null }] },
+    preview_legacy_names: {
+      revision: 7,
+      outcomes: [{ catalogId: "shared", lang: "zh-CN", displayName: "核心预览结果", preferenceName: null }],
+    },
     confirm_legacy_names: () => {
       if (fail) throw { code: "message", message: "磁盘写入失败" };
       return { ...view(), plan: { revision: 8, groups: [] } };
@@ -99,7 +157,9 @@ it("keeps the complete draft after a failed write and allows a single atomic ret
   fireEvent.click(confirmButton());
   expect((await within(wizard).findByRole("alert")).textContent).toContain("磁盘写入失败");
   fireEvent.click(within(wizard).getByRole("button", { name: "上一个" }));
-  expect(within(wizard).getByRole<HTMLInputElement>("radio", { name: /保留为全局偏好「自然分缝」/ }).checked).toBe(true);
+  expect(within(wizard).getByRole<HTMLInputElement>("radio", { name: /保留为全局偏好「自然分缝」/ }).checked).toBe(
+    true,
+  );
   fail = false;
   next();
   await waitFor(() => expect(confirmButton().disabled).toBe(false));
@@ -109,11 +169,17 @@ it("keeps the complete draft after a failed write and allows a single atomic ret
 
 it("clears migration data on a safe-mode change and discards a late plan", async () => {
   let finish: (value: ReturnType<typeof view>) => void = () => {};
-  const pending = new Promise<ReturnType<typeof view>>((resolve) => { finish = resolve; });
+  const pending = new Promise<ReturnType<typeof view>>((resolve) => {
+    finish = resolve;
+  });
   fakeBackend({ plan_legacy_names: () => pending });
   render(<Host />);
   await openWizard();
-  await act(async () => { await emit("safe-mode-setting", true); finish(view()); await pending; });
+  await act(async () => {
+    await emit("safe-mode-setting", true);
+    finish(view());
+    await pending;
+  });
   expect(screen.queryByText(/分开的头发/)).toBeNull();
   expect(screen.queryByRole("button", { name: "确认名称" })).toBeNull();
 });
@@ -121,14 +187,30 @@ it("clears migration data on a safe-mode change and discards a late plan", async
 it("uses the default only for remaining unchosen names without conflicts, leaves conflicts to be decided one by one and pages the complete preview", async () => {
   const data = view();
   const base = data.plan.groups[0];
-  data.plan.groups = Array.from({ length: 250 }, (_, index) => ({ ...base, catalogId: `simple-${index}`, existingPreference: null, sources: [{ ...base.sources[0], localTagId: `local-${index}`, legacyName: `旧名称 ${index}` }] }));
+  data.plan.groups = Array.from({ length: 250 }, (_, index) => ({
+    ...base,
+    catalogId: `simple-${index}`,
+    existingPreference: null,
+    sources: [{ ...base.sources[0], localTagId: `local-${index}`, legacyName: `旧名称 ${index}` }],
+  }));
   data.plan.groups.push({ ...base, catalogId: "with-preference", sources: [base.sources[0]] });
   data.plan.groups.push({ ...base, catalogId: "old-conflict", existingPreference: null });
   let saved: unknown;
   fakeBackend({
     plan_legacy_names: data,
-    preview_legacy_names: { revision: 7, outcomes: data.plan.groups.map((group, index) => ({ catalogId: group.catalogId, lang: group.lang, displayName: `最终名称 ${index}`, preferenceName: null })) },
-    confirm_legacy_names: (args) => { saved = args; return { ...data, plan: { revision: 8, groups: [] } }; },
+    preview_legacy_names: {
+      revision: 7,
+      outcomes: data.plan.groups.map((group, index) => ({
+        catalogId: group.catalogId,
+        lang: group.lang,
+        displayName: `最终名称 ${index}`,
+        preferenceName: null,
+      })),
+    },
+    confirm_legacy_names: (args) => {
+      saved = args;
+      return { ...data, plan: { revision: 8, groups: [] } };
+    },
   });
   render(<Host />);
   const wizard = await openWizard();
@@ -154,23 +236,38 @@ it("uses the default only for remaining unchosen names without conflicts, leaves
   await waitFor(() => expect(confirmButton().disabled).toBe(false));
   fireEvent.click(confirmButton());
   await within(wizard).findByText("旧名称已确认。");
-  expect(saved).toMatchObject({ revision: 7, decisions: expect.arrayContaining([
-    { catalogId: "simple-0", lang: "zh-CN", resolution: { kind: "followDefault" } },
-    { catalogId: "with-preference", lang: "zh-CN", resolution: { kind: "keepPreference" } },
-    { catalogId: "old-conflict", lang: "zh-CN", resolution: { kind: "keepLegacy", libraryId: "a", localTagId: "local-a" } },
-  ]) });
+  expect(saved).toMatchObject({
+    revision: 7,
+    decisions: expect.arrayContaining([
+      { catalogId: "simple-0", lang: "zh-CN", resolution: { kind: "followDefault" } },
+      { catalogId: "with-preference", lang: "zh-CN", resolution: { kind: "keepPreference" } },
+      {
+        catalogId: "old-conflict",
+        lang: "zh-CN",
+        resolution: { kind: "keepLegacy", libraryId: "a", localTagId: "local-a" },
+      },
+    ]),
+  });
 });
 
 it("requires the preview for the current choices and ignores an earlier preview after the choice changes", async () => {
   let reads = 0;
-  const outcome = (name: string) => ({ revision: 7, outcomes: [{ catalogId: "shared", lang: "zh-CN", displayName: name, preferenceName: null }] });
+  const outcome = (name: string) => ({
+    revision: 7,
+    outcomes: [{ catalogId: "shared", lang: "zh-CN", displayName: name, preferenceName: null }],
+  });
   let finish: (value: ReturnType<typeof outcome>) => void = () => {};
-  const pending = new Promise<ReturnType<typeof outcome>>((resolve) => { finish = resolve; });
+  const pending = new Promise<ReturnType<typeof outcome>>((resolve) => {
+    finish = resolve;
+  });
   const writes: unknown[] = [];
   fakeBackend({
     plan_legacy_names: () => view(),
-    preview_legacy_names: () => ++reads === 1 ? outcome("第一选择的预览") : pending,
-    confirm_legacy_names: (args) => { writes.push(args); return { ...view(), plan: { revision: 8, groups: [] } }; },
+    preview_legacy_names: () => (++reads === 1 ? outcome("第一选择的预览") : pending),
+    confirm_legacy_names: (args) => {
+      writes.push(args);
+      return { ...view(), plan: { revision: 8, groups: [] } };
+    },
   });
   render(<Host />);
   const wizard = await openWizard();
@@ -185,11 +282,25 @@ it("requires the preview for the current choices and ignores an earlier preview 
   expect(confirmButton().disabled).toBe(true);
   fireEvent.click(confirmButton());
   expect(writes).toHaveLength(0);
-  await act(async () => { finish(outcome("第二选择的预览")); await pending; });
+  await act(async () => {
+    finish(outcome("第二选择的预览"));
+    await pending;
+  });
   await within(wizard).findByText("第二选择的预览");
   fireEvent.click(confirmButton());
   await within(wizard).findByText("旧名称已确认。");
-  expect(writes).toEqual([{ revision: 7, decisions: [{ catalogId: "shared", lang: "zh-CN", resolution: { kind: "keepLegacy", libraryId: "b", localTagId: "local-b" } }] }]);
+  expect(writes).toEqual([
+    {
+      revision: 7,
+      decisions: [
+        {
+          catalogId: "shared",
+          lang: "zh-CN",
+          resolution: { kind: "keepLegacy", libraryId: "b", localTagId: "local-b" },
+        },
+      ],
+    },
+  ]);
 });
 
 it("coalesces a burst of vocabulary changes during automatic tagging into one plan in flight at a time and still shows the final state (#142)", async () => {
@@ -205,7 +316,12 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
       peak = Math.max(peak, inFlight);
       // 后端按收到请求时的词表作答，慢于事件间隔。
       const answer = structuredClone(state);
-      return new Promise((resolve) => setTimeout(() => { inFlight--; resolve(answer); }, 25));
+      return new Promise((resolve) =>
+        setTimeout(() => {
+          inFlight--;
+          resolve(answer);
+        }, 25),
+      );
     },
   });
   render(<LegacyNameMigrationNotice safe={true} enabled hidden={false} onOpen={() => {}} />);
@@ -214,14 +330,20 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
   const bursts = 50;
   for (let index = 0; index < bursts; index++) {
     // 最后一次写入后多出一个待确认的旧名称：最终显示要反映它。
-    if (index === bursts - 1) state = { ...state, plan: { ...state.plan, groups: [...state.plan.groups, { ...state.plan.groups[0], catalogId: "later" }] } };
+    if (index === bursts - 1)
+      state = {
+        ...state,
+        plan: { ...state.plan, groups: [...state.plan.groups, { ...state.plan.groups[0], catalogId: "later" }] },
+      };
     await act(async () => {
       await emit("library-event", { kind: "vocabularyChanged", libraryId: "a" });
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
   }
   expect(await screen.findByText(/2 个旧名称待确认/, {}, { timeout: 2000 })).toBeTruthy();
-  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 100)); });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  });
   expect(peak).toBe(1);
   // 后端 25 ms 作答、补读间隔 200 ms：约 3–4 次；留余量给慢机器。
   expect(calls).toBeLessThanOrEqual(10);
@@ -229,11 +351,16 @@ it("coalesces a burst of vocabulary changes during automatic tagging into one pl
 });
 
 describe("登记的资料库变化时刷新旧名称提示（#426）", () => {
-  const registration = (id: string, unavailable: unknown = null) => ({ library: { id, name: id, root: `D:/${id}` }, unavailable });
-  const changed = (revision: string, libraries: unknown[]) => act(() => emit("workspace-changed", { revision, libraries }));
+  const registration = (id: string, unavailable: unknown = null) => ({
+    library: { id, name: id, root: `D:/${id}` },
+    unavailable,
+  });
+  const changed = (revision: string, libraries: unknown[]) =>
+    act(() => emit("workspace-changed", { revision, libraries }));
 
   function backend() {
-    let pending = false, reads = 0;
+    let pending = false,
+      reads = 0;
     fakeBackend({
       plan_legacy_names: () => {
         reads++;
@@ -241,7 +368,12 @@ describe("登记的资料库变化时刷新旧名称提示（#426）", () => {
         return pending ? answer : { ...answer, plan: { ...answer.plan, groups: [] } };
       },
     });
-    return { setPending: (value: boolean) => { pending = value; }, reads: () => reads };
+    return {
+      setPending: (value: boolean) => {
+        pending = value;
+      },
+      reads: () => reads,
+    };
   }
 
   it("打开带旧名称的图库后出现提示，移除后消失", async () => {

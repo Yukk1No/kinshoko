@@ -79,9 +79,9 @@ export function registeredCommands(source) {
     .slice(0, end)
     .replace(/\/\/[^\n]*/g, "")
     .split(",")
-    .map(item => item.trim())
+    .map((item) => item.trim())
     .filter(Boolean)
-    .map(item => item.split("::").pop());
+    .map((item) => item.split("::").pop());
 }
 
 const lineOf = (text, index) => text.slice(0, index).split("\n").length;
@@ -116,7 +116,9 @@ export function findProblems({ registered, calls, exceptions = EXCEPTIONS }) {
     for (const name of names) {
       const isUsed = used[group].has(name);
       if (!isUsed && !(name in excepted)) {
-        problems.push(`${GROUPS[group]}  「${name}」（${group} 组）已注册，但前端没有调用；确认无用就删掉，仅 e2e 等用的写进 EXCEPTIONS`);
+        problems.push(
+          `${GROUPS[group]}  「${name}」（${group} 组）已注册，但前端没有调用；确认无用就删掉，仅 e2e 等用的写进 EXCEPTIONS`,
+        );
       }
     }
     for (const name of Object.keys(excepted)) {
@@ -134,7 +136,7 @@ function* sourceFiles(dir) {
   for (const entry of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
     const path = `${dir}/${entry.name}`;
     if (entry.isDirectory()) yield* sourceFiles(path);
-    else if (/\.tsx?$/.test(entry.name) && !SKIP.some(re => re.test(path))) yield path;
+    else if (/\.tsx?$/.test(entry.name) && !SKIP.some((re) => re.test(path))) yield path;
   }
 }
 

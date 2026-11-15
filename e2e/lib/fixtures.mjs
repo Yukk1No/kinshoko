@@ -32,7 +32,8 @@ export function png(path, width, height, [a, b], { glow = true } = {}) {
       if (glow) {
         const d = Math.hypot(x - width * 0.35, y - height * 0.3) / Math.min(width, height);
         const spot = Math.max(0, 0.45 - d);
-        for (let c = 0; c < 3; c++) row[1 + x * 3 + c] = Math.min(255, Math.round(a[c] * (1 - t) + b[c] * t + spot * 200));
+        for (let c = 0; c < 3; c++)
+          row[1 + x * 3 + c] = Math.min(255, Math.round(a[c] * (1 - t) + b[c] * t + spot * 200));
       } else {
         for (let c = 0; c < 3; c++) row[1 + x * 3 + c] = Math.round(a[c] * (1 - t) + b[c] * t);
       }

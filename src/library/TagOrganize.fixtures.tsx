@@ -96,8 +96,7 @@ export class FakeTags {
   find(namespace: TagNamespace, name: string): string | undefined {
     const text = name.trim();
     for (const [id, t] of this.tags) if (t.namespace === namespace && t.name === text) return id;
-    for (const [id, t] of this.tags)
-      if (t.namespace === namespace && t.aliases.some((a) => a.name === text)) return id;
+    for (const [id, t] of this.tags) if (t.namespace === namespace && t.aliases.some((a) => a.name === text)) return id;
     return undefined;
   }
 
@@ -225,7 +224,12 @@ export function serve() {
     current_library: () => library,
     registered_libraries: () => [{ library, unavailable: null }],
     workspace_status: () => status,
-    workspace_directories: () => ({ status, registrationOrder: [library.id], providers: [{ registration: registrations[0], unassigned: 0, descendants: {}, sidebar }] } satisfies WorkspaceDirectories),
+    workspace_directories: () =>
+      ({
+        status,
+        registrationOrder: [library.id],
+        providers: [{ registration: registrations[0], unassigned: 0, descendants: {}, sidebar }],
+      }) satisfies WorkspaceDirectories,
     workspace_browse: () => wallPage(page, library),
     safe_mode: () => true,
     workspace_sidebar: () => sidebar,
@@ -267,19 +271,41 @@ export function serve() {
       const ord = fake.groups.findIndex((g) => g.id === a.groupId);
       const [group] = fake.groups.splice(ord, 1);
       announce([]);
-      return { id: group.id, name: group.name, namespace: group.namespace, ord, members: [...group.members], migratedFrom: [] };
+      return {
+        id: group.id,
+        name: group.name,
+        namespace: group.namespace,
+        ord,
+        members: [...group.members],
+        migratedFrom: [],
+      };
     },
     restore_shared_tag_group: (a) => {
-      const d = a.deleted as { id: string; name: string; namespace: TagNamespace | null; ord: number; members: string[] };
-      fake.groups.splice(Math.min(d.ord, fake.groups.length), 0, { id: d.id, name: d.name, namespace: d.namespace, members: d.members });
+      const d = a.deleted as {
+        id: string;
+        name: string;
+        namespace: TagNamespace | null;
+        ord: number;
+        members: string[];
+      };
+      fake.groups.splice(Math.min(d.ord, fake.groups.length), 0, {
+        id: d.id,
+        name: d.name,
+        namespace: d.namespace,
+        members: d.members,
+      });
       announce([]);
       return null;
     },
     edit_shared_tag_group: (a) => {
       const edit = a.edit as CatalogGroupEdit;
       switch (edit.kind) {
-        case "rename": fake.groups.find((g) => g.id === edit.groupId)!.name = edit.name; break;
-        case "delete": fake.groups = fake.groups.filter((g) => g.id !== edit.groupId); break;
+        case "rename":
+          fake.groups.find((g) => g.id === edit.groupId)!.name = edit.name;
+          break;
+        case "delete":
+          fake.groups = fake.groups.filter((g) => g.id !== edit.groupId);
+          break;
         case "addMembers": {
           const group = fake.groups.find((g) => g.id === edit.groupId)!;
           for (const id of edit.tagIds) if (!group.members.includes(id)) group.members.push(id);
@@ -287,12 +313,18 @@ export function serve() {
         }
         case "removeMembers": {
           const group = fake.groups.find((g) => g.id === edit.groupId)!;
-          group.members = group.members.filter((id) => !edit.tagIds.includes(id)); break;
+          group.members = group.members.filter((id) => !edit.tagIds.includes(id));
+          break;
         }
-        case "orderMembers": fake.groups.find((g) => g.id === edit.groupId)!.members = edit.tagIds; break;
-        case "orderGroups": fake.groups.sort((a, b) => edit.groupIds.indexOf(a.id) - edit.groupIds.indexOf(b.id)); break;
+        case "orderMembers":
+          fake.groups.find((g) => g.id === edit.groupId)!.members = edit.tagIds;
+          break;
+        case "orderGroups":
+          fake.groups.sort((a, b) => edit.groupIds.indexOf(a.id) - edit.groupIds.indexOf(b.id));
+          break;
       }
-      announce([]); return null;
+      announce([]);
+      return null;
     },
     tagging_status: () => ({ state: "starting" }),
     shell_settings: () => ({ autostart: true, shortcuts: [], showApproxSource: false, inspectorOpen: true }),
@@ -318,18 +350,19 @@ beforeEach(() => {
   serve();
 });
 
-
 export async function selectOnly(id: string) {
   await screen.findAllByRole("img");
   fireEvent.keyDown(card(id), { key: " " });
 }
 
-
 /**
  * 在详情面板的“添加标签”里输入 `name` 并选一行：默认选第一行（匹配的标签，或没有匹配时的新建项）；
  * `create` 选新建项，`kind` 先在新建项上选类别；`reject` 用 Alt+回车排除。
  */
-export async function addTag(name: string, { create, kind, reject }: { create?: boolean; kind?: string; reject?: boolean } = {}) {
+export async function addTag(
+  name: string,
+  { create, kind, reject }: { create?: boolean; kind?: string; reject?: boolean } = {},
+) {
   const input = screen.getByRole("combobox", { name: "标签名" });
   input.focus();
   fireEvent.change(input, { target: { value: name } });

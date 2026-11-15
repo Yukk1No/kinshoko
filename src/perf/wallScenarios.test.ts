@@ -73,16 +73,28 @@ function simulatedDisplay(frameMs = 1000 / 60) {
   setTimeout(pump, 0);
   const env: ProbeEnv & { sleep: (ms: number) => Promise<void> } = {
     now: () => t,
-    raf: (cb) => { const id = next++; queue.push({ id, cb }); return id; },
-    caf: (id) => { queue = queue.filter((f) => f.id !== id); },
+    raf: (cb) => {
+      const id = next++;
+      queue.push({ id, cb });
+      return id;
+    },
+    caf: (id) => {
+      queue = queue.filter((f) => f.id !== id);
+    },
     observe: () => ({ types: [], disconnect() {} }),
-    sleep: (ms) => new Promise((resolve) => {
-      const until = t + ms;
-      const wait = () => (t >= until ? resolve() : env.raf(wait));
-      wait();
-    }),
+    sleep: (ms) =>
+      new Promise((resolve) => {
+        const until = t + ms;
+        const wait = () => (t >= until ? resolve() : env.raf(wait));
+        wait();
+      }),
   };
-  return { env, stop: () => { stopped = true; } };
+  return {
+    env,
+    stop: () => {
+      stopped = true;
+    },
+  };
 }
 
 function mountWall(total: number) {
@@ -92,20 +104,30 @@ function mountWall(total: number) {
   const wall = document.querySelector<HTMLElement>(".wall")!;
   Object.defineProperty(wall, "clientHeight", { value: 1000 });
   Object.defineProperty(wall, "scrollHeight", { value: 100_000 });
-  wall.getBoundingClientRect = () => ({ top: 0, left: 0, width: 2000, height: 1000, bottom: 1000, right: 2000 }) as DOMRect;
+  wall.getBoundingClientRect = () =>
+    ({ top: 0, left: 0, width: 2000, height: 1000, bottom: 1000, right: 2000 }) as DOMRect;
   return wall;
 }
 
 describe("runWallScenarios", () => {
   let display: ReturnType<typeof simulatedDisplay> | null = null;
-  afterEach(() => { display?.stop(); display = null; });
+  afterEach(() => {
+    display?.stop();
+    display = null;
+  });
 
   it("每个场景从顶部开始，按计划驱动滚动并输出帧时间报告", async () => {
     display = simulatedDisplay();
     const wall = mountWall(5000);
     const positions: number[] = [];
     let top = 0;
-    Object.defineProperty(wall, "scrollTop", { get: () => top, set: (v: number) => { top = v; positions.push(v); } });
+    Object.defineProperty(wall, "scrollTop", {
+      get: () => top,
+      set: (v: number) => {
+        top = v;
+        positions.push(v);
+      },
+    });
     const report = await runWallScenarios({
       env: display.env,
       only: ["wheel-steady", "wheel-burst"],
@@ -133,7 +155,12 @@ describe("runWallScenarios", () => {
     const slider = document.querySelector<HTMLInputElement>(".density input")!;
     const seen: string[] = [];
     slider.addEventListener("input", () => seen.push(slider.value));
-    const report = await runWallScenarios({ env: display.env, only: ["ctrl-wheel-zoom"], settleMs: 20, calibrateMs: 100 });
+    const report = await runWallScenarios({
+      env: display.env,
+      only: ["ctrl-wheel-zoom"],
+      settleMs: 20,
+      calibrateMs: 100,
+    });
     const zoom = report.scenarios[0];
     expect(zoom.name).toBe("ctrl-wheel-zoom");
     expect(zoom.driver).toBe("density-slider");
@@ -145,11 +172,21 @@ describe("runWallScenarios", () => {
     display = simulatedDisplay();
     const wall = mountWall(5000);
     const wheels: number[] = [];
-    wall.addEventListener("wheel", (e) => { if (e.ctrlKey) { e.preventDefault(); wheels.push(e.deltaY); } });
+    wall.addEventListener("wheel", (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        wheels.push(e.deltaY);
+      }
+    });
     const slider = document.querySelector<HTMLInputElement>(".density input")!;
     let sliderMoves = 0;
     slider.addEventListener("input", () => sliderMoves++);
-    const report = await runWallScenarios({ env: display.env, only: ["ctrl-wheel-zoom"], settleMs: 20, calibrateMs: 100 });
+    const report = await runWallScenarios({
+      env: display.env,
+      only: ["ctrl-wheel-zoom"],
+      settleMs: 20,
+      calibrateMs: 100,
+    });
     expect(report.scenarios[0].driver).toBe("ctrl-wheel");
     expect(wheels.filter((d) => d < 0)).toHaveLength(SCENARIOS["ctrl-wheel-zoom"].notches);
     expect(wheels.filter((d) => d > 0)).toHaveLength(SCENARIOS["ctrl-wheel-zoom"].notches);

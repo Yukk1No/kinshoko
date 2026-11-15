@@ -43,26 +43,31 @@ export type KindMount = {
 /** 画师的添加流程（#369）：订阅画师，可以转到从 pixiv 关注导入，再返回。 */
 function ArtistAddFlow(props: AddFlowProps) {
   const [step, setStep] = useState<"artist" | "following">("artist");
-  return step === "artist"
-    ? <ArtistDialog {...props} onImport={() => setStep("following")} />
-    : <FollowingDialog {...props} onBack={() => setStep("artist")} />;
+  return step === "artist" ? (
+    <ArtistDialog {...props} onImport={() => setStep("following")} />
+  ) : (
+    <FollowingDialog {...props} onBack={() => setStep("artist")} />
+  );
 }
 
 const icon = (Icon: typeof User) => (size: number) => <Icon size={size} strokeWidth={1.75} aria-hidden="true" />;
 
 export const KINDS: KindMount[] = [
   {
-    kind: "artist", icon: icon(User),
+    kind: "artist",
+    icon: icon(User),
     add: (props) => <ArtistAddFlow {...props} />,
     settings: (props) => <ArtistSettingsDialog {...props} />,
   },
   {
-    kind: "ranking", icon: icon(Trophy),
+    kind: "ranking",
+    icon: icon(Trophy),
     add: (props) => <RankingDialog {...props} />,
     settings: (props) => <RankingSettingsDialog {...props} />,
   },
   {
-    kind: "bookmarks", icon: icon(Heart),
+    kind: "bookmarks",
+    icon: icon(Heart),
     add: (props) => <BookmarksDialog {...props} />,
     full: syncingBookmarks,
     settings: (props) => <ArtistSettingsDialog {...props} />,
@@ -71,9 +76,12 @@ export const KINDS: KindMount[] = [
 
 export function kindOf(target: Target): SubscriptionKind {
   switch (target.kind) {
-    case "pixivArtist": return "artist";
-    case "pixivRanking": return "ranking";
-    case "pixivBookmarks": return "bookmarks";
+    case "pixivArtist":
+      return "artist";
+    case "pixivRanking":
+      return "ranking";
+    case "pixivBookmarks":
+      return "bookmarks";
   }
 }
 

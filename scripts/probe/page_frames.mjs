@@ -14,9 +14,7 @@ setTimeout(() => {
 }, 10000).unref();
 
 const pages = await (await fetch(`http://127.0.0.1:${port}/json`)).json();
-const page = pages.find(
-  (p) => p.type === "page" && p.url.startsWith(prefix) && !(exclude && p.url.includes(exclude)),
-);
+const page = pages.find((p) => p.type === "page" && p.url.startsWith(prefix) && !(exclude && p.url.includes(exclude)));
 if (!page) {
   console.error(`没有以 ${prefix} 开头的页面：${pages.map((p) => p.url).join(" ")}`);
   process.exit(1);
@@ -51,5 +49,9 @@ const expression = `new Promise((resolve) => {
 })`;
 step = `在 ${page.url} 里数帧`;
 ws.send(
-  JSON.stringify({ id: 1, method: "Runtime.evaluate", params: { expression, awaitPromise: true, returnByValue: true } }),
+  JSON.stringify({
+    id: 1,
+    method: "Runtime.evaluate",
+    params: { expression, awaitPromise: true, returnByValue: true },
+  }),
 );

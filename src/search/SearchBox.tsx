@@ -22,7 +22,14 @@ import { RatingName, tagName } from "./tagLabel";
 import { TermView } from "./TermView";
 import { Menu, MenuItem, MenuLabel, MenuPopup } from "../ui/Menu";
 import { useUiLang } from "../i18n";
-import { ratingCandidates, searchCandidates, workspaceCandidates, workspaceLibraryCandidates, setTagApprox, editSharedApprox } from "../ipc";
+import {
+  ratingCandidates,
+  searchCandidates,
+  workspaceCandidates,
+  workspaceLibraryCandidates,
+  setTagApprox,
+  editSharedApprox,
+} from "../ipc";
 
 export { TagMarks, tagName, untranslatedHint } from "./tagLabel";
 
@@ -33,9 +40,16 @@ export const LIMIT = 8;
  * 当前相同时显示；切换安全模式、词表变化或换了资料库后，旧候选这一帧就不再显示，迟到的
  * 响应也写不回来。后端按同一视角核对（`LensChanged`）。
  */
-export type Lens = { libraryId: string; safe: boolean; generation: number; workspace?: boolean; /** 给这个资料库的图挑标签：封印按全部来源算（#425）。 */ picking?: boolean };
+export type Lens = {
+  libraryId: string;
+  safe: boolean;
+  generation: number;
+  workspace?: boolean /** 给这个资料库的图挑标签：封印按全部来源算（#425）。 */;
+  picking?: boolean;
+};
 type Found = { key: string; list: Candidate[] };
-const lensKey = (lens: Lens, text: string) => JSON.stringify([lens.libraryId, lens.safe, lens.generation, lens.workspace, lens.picking, text]);
+const lensKey = (lens: Lens, text: string) =>
+  JSON.stringify([lens.libraryId, lens.safe, lens.generation, lens.workspace, lens.picking, text]);
 
 /** 按 `lens` 与 `text` 取得候选；身份变了的旧结果不返回。标签整理面板挑标签时也用它。 */
 export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true): Candidate[] {
@@ -46,7 +60,12 @@ export function useCandidates(lens: Lens, text: string, keep: (c: Candidate) => 
  * 同 `useCandidates`，另外给出这段文字的候选是否已经取到（`ready`），没取到时不说“没有匹配”。
  * `limit`：最多取几个；调用方之后还要去掉一些（例如已经有的标签）时多取几个补上。
  */
-export function useCandidateState(lens: Lens, text: string, keep: (c: Candidate) => boolean = () => true, limit = LIMIT): { list: Candidate[]; ready: boolean } {
+export function useCandidateState(
+  lens: Lens,
+  text: string,
+  keep: (c: Candidate) => boolean = () => true,
+  limit = LIMIT,
+): { list: Candidate[]; ready: boolean } {
   const [found, setFound] = useState<Found>({ key: "", list: [] });
   const lang = useUiLang();
   const key = lensKey(lens, text) + `#${limit}#${lang}`;
@@ -55,7 +74,12 @@ export function useCandidateState(lens: Lens, text: string, keep: (c: Candidate)
   useEffect(() => {
     let alive = true;
     if (!text.trim()) return;
-    (lens.picking ? workspaceLibraryCandidates(libraryId, text, lang, limit, safe) : lens.workspace ? workspaceCandidates(text, lang, limit, safe) : searchCandidates(libraryId, text, lang, limit, safe)).then(
+    (lens.picking
+      ? workspaceLibraryCandidates(libraryId, text, lang, limit, safe)
+      : lens.workspace
+        ? workspaceCandidates(text, lang, limit, safe)
+        : searchCandidates(libraryId, text, lang, limit, safe)
+    ).then(
       (list) => alive && setFound({ key, list: filterKept(list) }),
       () => alive && setFound({ key, list: [] }),
     );
@@ -139,7 +163,17 @@ type Props = {
  * 近似查找默认开启：标签块里列出展开的相近标签。关掉一个时选“只这次”或“以后都不展开”
  * （记进个人近似对应表）；“＋”从可见标签里挑一个加为相近；“精确查找”一键不展开。
  */
-export function SearchBox({ libraryId, safe, generation, input, tree, showSource, onChange, onError, workspace = false }: Props) {
+export function SearchBox({
+  libraryId,
+  safe,
+  generation,
+  input,
+  tree,
+  showSource,
+  onChange,
+  onError,
+  workspace = false,
+}: Props) {
   const { t } = useTranslation("search");
   const [text, setText] = useState("");
   const lens: Lens = { libraryId, safe, generation, workspace };
@@ -165,13 +199,26 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   const query = text.trim();
   const rows: (ComboboxOption & { term: TermInput })[] = query
     ? [
-        { id: "text", icon: <Search size={14} />, label: t("findText", { text: query }), term: { kind: "text", text: query, dismissed: [] } },
+        {
+          id: "text",
+          icon: <Search size={14} />,
+          label: t("findText", { text: query }),
+          term: { kind: "text", text: query, dismissed: [] },
+        },
         ...ratings.map((r) => ({
-          id: `rating-${r.rating.ratings.join("-")}`, label: <RatingName rating={r.rating} />,
-          via: r.via ? <>{t("ratingVia")} <Highlight text={r.via} query={query} /></> : undefined,
+          id: `rating-${r.rating.ratings.join("-")}`,
+          label: <RatingName rating={r.rating} />,
+          via: r.via ? (
+            <>
+              {t("ratingVia")} <Highlight text={r.via} query={query} />
+            </>
+          ) : undefined,
           term: { kind: "rating" as const, ratings: r.rating.ratings },
         })),
-        ...candidates.map((c) => ({ ...tagOption(c, query), term: { kind: "tag" as const, id: c.tag.id, dismissed: [] } })),
+        ...candidates.map((c) => ({
+          ...tagOption(c, query),
+          term: { kind: "tag" as const, id: c.tag.id, dismissed: [] },
+        })),
       ]
     : [];
 
@@ -193,8 +240,7 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   const pick = (row: (typeof rows)[number], e: KeyboardEvent | MouseEvent) =>
     add(row.term, e.type === "keydown" ? e.altKey : e.ctrlKey || e.metaKey);
 
-  const toggle = (i: number) =>
-    change(input.conditions.map((c, j) => (j === i ? { ...c, negate: !c.negate } : c)));
+  const toggle = (i: number) => change(input.conditions.map((c, j) => (j === i ? { ...c, negate: !c.negate } : c)));
   const remove = (i: number) => change(input.conditions.filter((_, j) => j !== i));
 
   /** “只这次”：只在这一项里不展开这个相近标签。 */
@@ -206,7 +252,9 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
           : {
               ...c,
               any: c.any.map((t, j) =>
-                j === term && (t.kind === "tag" || t.kind === "text") ? { ...t, dismissed: [...t.dismissed, similar.tag.id] } : t,
+                j === term && (t.kind === "tag" || t.kind === "text")
+                  ? { ...t, dismissed: [...t.dismissed, similar.tag.id] }
+                  : t,
               ),
             },
       ),
@@ -215,13 +263,20 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
 
   /** “以后都不展开”：每一对都记为不相近；词表变化后条件会重新解析。 */
   const dismissForever = (similar: SimilarTag) => {
-    (workspace ? editSharedApprox({ kind: "set", rules: similar.of.map((id) => ({ a: id, b: similar.tag.id, relation: "notSimilar" })) }, safe) : Promise.all(similar.of.map((id) => setTagApprox(libraryId, id, similar.tag.id, "notSimilar")))).catch((e) =>
-      onError(e),
-    );
+    (workspace
+      ? editSharedApprox(
+          { kind: "set", rules: similar.of.map((id) => ({ a: id, b: similar.tag.id, relation: "notSimilar" })) },
+          safe,
+        )
+      : Promise.all(similar.of.map((id) => setTagApprox(libraryId, id, similar.tag.id, "notSimilar")))
+    ).catch((e) => onError(e));
   };
 
   const addSimilar = (to: TagLabel, tag: TagLabel) => {
-    (workspace ? editSharedApprox({ kind: "set", rules: [{ a: to.id, b: tag.id, relation: "similar" }] }, safe) : setTagApprox(libraryId, to.id, tag.id, "similar")).catch((e) => onError(e));
+    (workspace
+      ? editSharedApprox({ kind: "set", rules: [{ a: to.id, b: tag.id, relation: "similar" }] }, safe)
+      : setTagApprox(libraryId, to.id, tag.id, "similar")
+    ).catch((e) => onError(e));
   };
 
   /**
@@ -235,29 +290,58 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
     // 几个标签任一（比如按分组的“任一成员”）时只列标签名：相近标签照样参与查找，但列出来太长，读不过来。
     const brief = visible.length > 1;
     return (
-      <li key={i} className="search-chip" data-negate={c.negate || undefined} data-collapsed={collapsed || undefined} aria-hidden={collapsed || undefined} inert={collapsed || undefined}>
+      <li
+        key={i}
+        className="search-chip"
+        data-negate={c.negate || undefined}
+        data-collapsed={collapsed || undefined}
+        aria-hidden={collapsed || undefined}
+        inert={collapsed || undefined}
+      >
         {c.negate && <span className="search-chip-not">{t("not")}</span>}
         {visible.length === 0 ? (
           <span className="search-chip-missing">{t("missingTag")}</span>
         ) : (
           visible.map(({ input, place, term }, k) => (
             <span key={place} className="search-term">
-              {k > 0 && <span className="search-chip-or"><span aria-hidden="true">{t("or")}</span><span className="sr-only">{t("orSpoken")}</span></span>}
+              {k > 0 && (
+                <span className="search-chip-or">
+                  <span aria-hidden="true">{t("or")}</span>
+                  <span className="sr-only">{t("orSpoken")}</span>
+                </span>
+              )}
               {term ? (
                 <TermView
                   term={term}
                   showSource={showSource}
                   brief={brief}
                   // 菜单与浮层随视角（图库、安全模式、词表代次）重建：视角变了就收起。
-                  dismiss={(similar, button) => <Menu.Root key={context} modal={false}>
-                    <Menu.Trigger render={button} />
-                    <MenuPopup label={t("dismiss.label")}>
-                      <MenuLabel>{t("dismiss.prompt", { name: tagName(similar.tag) })}</MenuLabel>
-                      <MenuItem icon={<X size={16} strokeWidth={1.75} />} onClick={() => dismissOnce({ condition: i, term: place, similar })}>{t("dismiss.once")}</MenuItem>
-                      <MenuItem icon={<Ban size={16} strokeWidth={1.75} />} onClick={() => dismissForever(similar)}>{t("dismiss.forever")}</MenuItem>
-                    </MenuPopup>
-                  </Menu.Root>}
-                  add={(to, button) => <AddSimilar key={context} lens={lens} to={to} button={button} onPick={(tag) => addSimilar(to, tag)} />}
+                  dismiss={(similar, button) => (
+                    <Menu.Root key={context} modal={false}>
+                      <Menu.Trigger render={button} />
+                      <MenuPopup label={t("dismiss.label")}>
+                        <MenuLabel>{t("dismiss.prompt", { name: tagName(similar.tag) })}</MenuLabel>
+                        <MenuItem
+                          icon={<X size={16} strokeWidth={1.75} />}
+                          onClick={() => dismissOnce({ condition: i, term: place, similar })}
+                        >
+                          {t("dismiss.once")}
+                        </MenuItem>
+                        <MenuItem icon={<Ban size={16} strokeWidth={1.75} />} onClick={() => dismissForever(similar)}>
+                          {t("dismiss.forever")}
+                        </MenuItem>
+                      </MenuPopup>
+                    </Menu.Root>
+                  )}
+                  add={(to, button) => (
+                    <AddSimilar
+                      key={context}
+                      lens={lens}
+                      to={to}
+                      button={button}
+                      onPick={(tag) => addSimilar(to, tag)}
+                    />
+                  )}
                 />
               ) : (
                 <span>{inputLabel(input)}</span>
@@ -273,7 +357,14 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
         >
           <Ban size={14} strokeWidth={1.75} aria-hidden="true" />
         </button>
-        <button type="button" aria-label={t("remove")} onClick={() => { remove(i); if (last) field.current?.focus(); }}>
+        <button
+          type="button"
+          aria-label={t("remove")}
+          onClick={() => {
+            remove(i);
+            if (last) field.current?.focus();
+          }}
+        >
           <X size={14} strokeWidth={1.75} aria-hidden="true" />
         </button>
       </li>
@@ -287,11 +378,15 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
         {hiddenCount > 0 && (
           <li className="search-more">
             <Popover.Root>
-              <Popover.Trigger className="search-more-btn" aria-label={t("hiddenConditions", { count: hiddenCount })}>+{hiddenCount}</Popover.Trigger>
+              <Popover.Trigger className="search-more-btn" aria-label={t("hiddenConditions", { count: hiddenCount })}>
+                +{hiddenCount}
+              </Popover.Trigger>
               <Popover.Portal>
                 <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={8}>
                   <Popover.Popup className="k-popup search-more-pop" aria-label={t("collapsedConditions")}>
-                    <ul className="search-chips">{input.conditions.slice(0, hiddenCount).map((c, i) => chip(c, i, false, hiddenCount === 1))}</ul>
+                    <ul className="search-chips">
+                      {input.conditions.slice(0, hiddenCount).map((c, i) => chip(c, i, false, hiddenCount === 1))}
+                    </ul>
                   </Popover.Popup>
                 </Popover.Positioner>
               </Popover.Portal>
@@ -313,7 +408,12 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
           onSelect={pick}
           onBackspaceEmpty={() => input.conditions.length && change(input.conditions.slice(0, -1))}
           // Esc 先清掉打了一半的字，再按一次收起。
-          onKeyDown={(e) => { if (e.key === "Escape" && text) { e.preventDefault(); setText(""); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && text) {
+              e.preventDefault();
+              setText("");
+            }
+          }}
         />
       </div>
       <ExactToggle exact={input.exact} onChange={(exact) => onChange({ ...input, exact })} />
@@ -321,7 +421,12 @@ export function SearchBox({ libraryId, safe, generation, input, tree, showSource
   );
 }
 /** “＋”：贴着按钮的浮层，按名称或别名从可见标签里挑一个，加为 `to` 的相近标签。Esc 或点别处收起。 */
-function AddSimilar({ lens, to, button, onPick }: {
+function AddSimilar({
+  lens,
+  to,
+  button,
+  onPick,
+}: {
   lens: Lens;
   to: TagLabel;
   button: ReactElement;
@@ -335,7 +440,17 @@ function AddSimilar({ lens, to, button, onPick }: {
       <Popover.Portal>
         <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={8}>
           <Popover.Popup className="k-popup k-add-similar" aria-label={t("add.label")}>
-            {open && <AddSimilarPicker lens={lens} to={to} onPick={(tag) => { setOpen(false); onPick(tag); }} onCancel={() => setOpen(false)} />}
+            {open && (
+              <AddSimilarPicker
+                lens={lens}
+                to={to}
+                onPick={(tag) => {
+                  setOpen(false);
+                  onPick(tag);
+                }}
+                onCancel={() => setOpen(false)}
+              />
+            )}
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>
@@ -343,7 +458,12 @@ function AddSimilar({ lens, to, button, onPick }: {
   );
 }
 
-function AddSimilarPicker({ lens, to, onPick, onCancel }: {
+function AddSimilarPicker({
+  lens,
+  to,
+  onPick,
+  onCancel,
+}: {
   lens: Lens;
   to: TagLabel;
   onPick: (tag: TagLabel) => void;
@@ -352,18 +472,22 @@ function AddSimilarPicker({ lens, to, onPick, onCancel }: {
   const { t } = useTranslation("search");
   const [text, setText] = useState("");
   const { list: found, ready } = useCandidateState(lens, text, (c) => c.tag.id !== to.id);
-  return <>
-    <p className="k-add-similar-head">{t("add.prompt", { name: tagName(to) })}</p>
-    <Combobox
-      label={lens.workspace ? t("add.pickShared") : t("add.pickLibrary")}
-      autoFocus
-      embedded
-      value={text}
-      options={found.map((c) => tagOption(c, text))}
-      empty={ready && found.length === 0 ? t("add.none") : undefined}
-      onValueChange={setText}
-      onSelect={(option) => onPick(option.tag)}
-      onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
-    />
-  </>;
+  return (
+    <>
+      <p className="k-add-similar-head">{t("add.prompt", { name: tagName(to) })}</p>
+      <Combobox
+        label={lens.workspace ? t("add.pickShared") : t("add.pickLibrary")}
+        autoFocus
+        embedded
+        value={text}
+        options={found.map((c) => tagOption(c, text))}
+        empty={ready && found.length === 0 ? t("add.none") : undefined}
+        onValueChange={setText}
+        onSelect={(option) => onPick(option.tag)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onCancel();
+        }}
+      />
+    </>
+  );
 }

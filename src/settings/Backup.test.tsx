@@ -15,7 +15,14 @@ afterEach(() => {
 const at = { unixMs: 1_791_158_400_000, offsetMinutes: 480 };
 
 const empty: BackupStatus = {
-  plan: { target: null, selection: { kind: "all" }, lastSuccess: null, lastSnapshot: null, lastFailure: null, due: false },
+  plan: {
+    target: null,
+    selection: { kind: "all" },
+    lastSuccess: null,
+    lastSnapshot: null,
+    lastFailure: null,
+    due: false,
+  },
   running: null,
   lastReport: null,
 };
@@ -37,7 +44,13 @@ const narrowed: BackupPreview = {
     steps: [{ kind: "linkedGroup", libraryId: "A", groupId: "g1" }],
     uncovered: [{ kind: "library", group: { id: "g1", name: "眼睛参考" }, libraryId: "B", libraryName: "旧库" }],
   },
-  estimate: { totalBytes: 30 * 1024 * 1024, newBytes: 2 * 1024 * 1024, originals: 12, newOriginals: 1, unavailable: [] },
+  estimate: {
+    totalBytes: 30 * 1024 * 1024,
+    newBytes: 2 * 1024 * 1024,
+    originals: 12,
+    newOriginals: 1,
+    unavailable: [],
+  },
   targetAvailable: true,
 };
 
@@ -110,7 +123,9 @@ describe("设置：备份", () => {
     };
     const report: RestoreReport = {
       snapshotId: snapshot.id,
-      libraries: [{ oldId: "A", library: { id: "A2", name: "主库（恢复）", root: "F:\\恢复\\主库（恢复 2026-10-06）" } }],
+      libraries: [
+        { oldId: "A", library: { id: "A2", name: "主库（恢复）", root: "F:\\恢复\\主库（恢复 2026-10-06）" } },
+      ],
       groups: [{ oldId: "g1", id: "g2", name: "眼睛参考" }],
       check: {
         originals: { checked: 12, problems: [] },
@@ -158,9 +173,16 @@ describe("备份提醒", () => {
 
   it("在窗口里是一条出错轻提示，不再是横幅（#388）", async () => {
     backend({
-      backup_status: { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } },
+      backup_status: {
+        ...withTarget,
+        plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } },
+      },
     });
-    render(<><BackupReminder /></>);
+    render(
+      <>
+        <BackupReminder />
+      </>,
+    );
     const title = (await screen.findAllByText("备份没有完成：备份目标不在")).find((node) => node.closest(".k-toast"))!;
     expect(title.closest(".k-toast")?.getAttribute("data-tone")).toBe("error");
     expect(title.closest(".k-toast")?.textContent).toContain("下次退出或空闲时再试");
@@ -169,11 +191,22 @@ describe("备份提醒", () => {
 
   it("提醒重新挂载时不叠出重复的出错提示", async () => {
     backend({
-      backup_status: { ...withTarget, plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } } },
+      backup_status: {
+        ...withTarget,
+        plan: { ...withTarget.plan, lastFailure: { at, reason: "备份目标不在", targetUnavailable: true } },
+      },
     });
-    const view = render(<><BackupReminder key="a" /></>);
+    const view = render(
+      <>
+        <BackupReminder key="a" />
+      </>,
+    );
     await waitFor(() => expect(document.querySelectorAll(".k-toast")).toHaveLength(1));
-    view.rerender(<><BackupReminder key="b" /></>);
+    view.rerender(
+      <>
+        <BackupReminder key="b" />
+      </>,
+    );
     await new Promise((resolve) => setTimeout(resolve, 50));
     await waitFor(() => expect(document.querySelectorAll(".k-toast:not([data-ending-style])")).toHaveLength(1));
   });

@@ -46,8 +46,10 @@ it("还没排版（宽度为 0）时不动", () => {
 describe("usePaneFold", () => {
   const fold = (body: number, inspector: number, paneOpen: boolean) => {
     const onPaneOpen = vi.fn();
-    const view = renderHook((p: { body: number; inspector: number; paneOpen: boolean }) => usePaneFold({ ...p, onPaneOpen }),
-      { initialProps: { body, inspector, paneOpen } });
+    const view = renderHook(
+      (p: { body: number; inspector: number; paneOpen: boolean }) => usePaneFold({ ...p, onPaneOpen }),
+      { initialProps: { body, inspector, paneOpen } },
+    );
     return { view, onPaneOpen };
   };
 

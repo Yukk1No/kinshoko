@@ -40,7 +40,9 @@ describe("pngImage", () => {
 
 describe("writeFixture", () => {
   let dir = "";
-  afterEach(() => { if (dir) rmSync(dir, { recursive: true, force: true }); });
+  afterEach(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+  });
 
   it("按清单写文件并附上清单，便于核对", () => {
     dir = mkdtempSync(join(tmpdir(), "wall-fixture-"));

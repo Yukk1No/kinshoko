@@ -32,7 +32,10 @@ export function installSealFx() {
         const s = this.style;
         return new DOMRect(parseFloat(s.left), parseFloat(s.top), parseFloat(s.width), parseFloat(s.height));
       }
-      if (this.classList.contains("seal-book")) { fx.bookReads++; return new DOMRect(8, 700, 40, 40); }
+      if (this.classList.contains("seal-book")) {
+        fx.bookReads++;
+        return new DOMRect(8, 700, 40, 40);
+      }
       return new DOMRect(0, 0, 1000, 800);
     });
     fx.book = document.createElement("button");
@@ -47,32 +50,61 @@ export function installSealFx() {
       },
     });
   });
-  afterEach(() => { fx.book.remove();
-    vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers();
+  afterEach(() => {
+    fx.book.remove();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 }
 
 export const card = (id: string, adult = false) => workspaceCard({ id, width: 100, height: 100, adult });
 export const PAGE: FxPage = { cards: [card("a", true), card("g")], total: 2, nextCursor: null };
 export const base = {
-  workspaceScope: { kind: "all" as const }, scope: { kind: "all" as const }, selected: new Set<string>(),
-  onSelectionChange: () => {}, onOpenImage: () => {}, viewerOpen: false,
+  workspaceScope: { kind: "all" as const },
+  scope: { kind: "all" as const },
+  selected: new Set<string>(),
+  onSelectionChange: () => {},
+  onOpenImage: () => {},
+  viewerOpen: false,
 };
-export const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
-export const answer = async (page = PAGE) => { await settle(); await act(async () => fx.resolvers[fx.resolvers.length - 1](page)); await settle(); };
+export const settle = () =>
+  act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
+export const answer = async (page = PAGE) => {
+  await settle();
+  await act(async () => fx.resolvers[fx.resolvers.length - 1](page));
+  await settle();
+};
 export const node = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`)!;
 export const ghosts = () => document.querySelectorAll(".fx-ghost").length;
-export const frames = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
+export const frames = (ms: number) =>
+  act(() => {
+    vi.advanceTimersByTime(ms);
+  });
 
 /** 一次 animate() 调用：目标、关键帧、时间参数与共用的假动画。 */
-export type Started = { el: HTMLElement; id: string; keyframes: Keyframe[]; timing: KeyframeAnimationOptions; animation: FakeAnimation };
+export type Started = {
+  el: HTMLElement;
+  id: string;
+  keyframes: Keyframe[];
+  timing: KeyframeAnimationOptions;
+  animation: FakeAnimation;
+};
 /** 照常用共用的假动画，另外按顺序记下每次 animate()；afterEach 的 restoreAllMocks 撤掉记录。 */
 export function recordAnimations(): Started[] {
   const animate = HTMLElement.prototype.animate;
   const started: Started[] = [];
   vi.spyOn(HTMLElement.prototype, "animate").mockImplementation(function (this: HTMLElement, keyframes, options) {
     const animation = animate.call(this, keyframes, options);
-    started.push({ el: this, id: this.dataset.id!, keyframes: keyframes as Keyframe[], timing: options as KeyframeAnimationOptions, animation: animation as unknown as FakeAnimation });
+    started.push({
+      el: this,
+      id: this.dataset.id!,
+      keyframes: keyframes as Keyframe[],
+      timing: options as KeyframeAnimationOptions,
+      animation: animation as unknown as FakeAnimation,
+    });
     return animation;
   });
   return started;

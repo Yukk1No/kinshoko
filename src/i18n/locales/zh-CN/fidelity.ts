@@ -15,7 +15,8 @@ export default {
   },
   title: "还原度门槛实验",
   /** 原来分三行写在 JSX 里，行间各有一个空格。 */
-  intro: "WebView2 分别解码应用在 1:1 时显示的图（原图，或动图、HDR、查找表型 ICC 与 CMYK 的原尺寸派生图）与缩略图， 在 display-p3 canvas 中读回色块，比较 ΔE2000（阈值 {{threshold}}，假设值）；显示派生图的样本还须与标称值相差 < {{threshold}}。 直接显示原图时“1:1 显示 vs 标称”是 WebView2 自己的解释，只记录。",
+  intro:
+    "WebView2 分别解码应用在 1:1 时显示的图（原图，或动图、HDR、查找表型 ICC 与 CMYK 的原尺寸派生图）与缩略图， 在 display-p3 canvas 中读回色块，比较 ΔE2000（阈值 {{threshold}}，假设值）；显示派生图的样本还须与标称值相差 < {{threshold}}。 直接显示原图时“1:1 显示 vs 标称”是 WebView2 自己的解释，只记录。",
   preparing: "正在生成样本并导入……",
   progress: "{{done}}/{{total}} 个样本",
   canvasSpace: "；注意：canvas 色彩空间为 {{space}}",
@@ -52,7 +53,8 @@ export default {
     remarks: "- 备注：{{remarks}}",
     none: "无",
     samples: "## 样本",
-    header: "| 样本 | 实验 | 1:1 显示 | 门槛 | 最大 ΔE2000（门槛） | 1:1 显示 vs 标称 | 缩略图 vs 标称 | WebView2 直接显示原图 vs 标称（只记录） | 结果 | SHA-256 |",
+    header:
+      "| 样本 | 实验 | 1:1 显示 | 门槛 | 最大 ΔE2000（门槛） | 1:1 显示 vs 标称 | 缩略图 vs 标称 | WebView2 直接显示原图 vs 标称（只记录） | 结果 | SHA-256 |",
     derivative: "派生图",
     original: "原图",
     pinsTitle: "## 钉图离屏渲染 vs 正式派生图",

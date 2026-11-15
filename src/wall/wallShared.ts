@@ -65,8 +65,9 @@ export type CardCommand = "pin" | "crop" | "trash" | "copy";
  * 图片墙上的卡片：工作区的卡片，不带缩略图地址，按来源与档位拼（见 `cardThumbnail`）。
  * 叠成一摞时（#418）带上 `set`，卡片本身是封面。
  */
-export type BrowserCard = Omit<ImageCard, "thumbnail">
-  & Pick<WorkspaceCard, "libraryId" | "imageId"> & Partial<Pick<WorkspaceCard, "sources" | "set">>;
+export type BrowserCard = Omit<ImageCard, "thumbnail"> &
+  Pick<WorkspaceCard, "libraryId" | "imageId"> &
+  Partial<Pick<WorkspaceCard, "sources" | "set">>;
 
 export type WallProps = {
   ref?: Ref<WallHandle>;
@@ -124,11 +125,12 @@ export type WallProps = {
 
 /** 按键落在可输入的地方（输入框、文本框、可编辑区域）：Ctrl+V 是粘贴文字，不是导入。 */
 export const editable = (target: EventTarget | null) =>
-  target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select, [contenteditable='true']") !== null);
+  target instanceof HTMLElement &&
+  (target.isContentEditable || target.closest("input, textarea, select, [contenteditable='true']") !== null);
 
 /** 每个范围各自记住位置。“全部”沿用 #44 的键。 */
 export const scopeKey = (scope: BrowseScope) =>
-  (scope.kind === "folder" || scope.kind === "folderTree") ? `${scope.kind}.${scope.id}` : scope.kind;
+  scope.kind === "folder" || scope.kind === "folderTree" ? `${scope.kind}.${scope.id}` : scope.kind;
 
 /** 卡片旁边的按钮（来源、一摞的张数、托盘页角的勾，#418）：它们是卡片选项的兄弟，点它们不算点空白处。 */
 export const CARD_BUTTONS = ".card-sources, .card-count, .card-check";

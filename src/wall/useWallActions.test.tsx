@@ -7,7 +7,11 @@ setupWallActions();
 
 it("多张钉住从指针位置起错开排列（窗口客户区物理像素）", () => {
   const rects = staggeredPins({ x: 100, y: 50 }, 3, 2);
-  expect(rects.map((r) => [r.x + r.width / 2, r.y + r.height / 2])).toEqual([[200, 100], [256, 156], [312, 212]]);
+  expect(rects.map((r) => [r.x + r.width / 2, r.y + r.height / 2])).toEqual([
+    [200, 100],
+    [256, 156],
+    [312, 212],
+  ]);
   expect(PIN_LIMIT).toBe(20);
 });
 
@@ -17,13 +21,20 @@ it("不超过 20 张时直接钉住，每张按来源钉", async () => {
   render(<Harness />);
   act(() => api.pin([card("1"), card("2", "L2")], { x: 10, y: 10 }));
   await waitFor(() => expect(pins()).toHaveLength(2));
-  expect(pins().map((c) => [c.args.libraryId, c.args.imageId, c.args.crop])).toEqual([["L1", "i1", null], ["L2", "i2", null]]);
+  expect(pins().map((c) => [c.args.libraryId, c.args.imageId, c.args.crop])).toEqual([
+    ["L1", "i1", null],
+    ["L2", "i2", null],
+  ]);
   expect(screen.queryByRole("alertdialog")).toBeNull();
 });
 
 it("超过 20 张不弹确认：直接钉前 20 张，再用轻提示说明", async () => {
   const many = Array.from({ length: 23 }, (_, i) => card(String(i)));
-  render(<><Harness /></>);
+  render(
+    <>
+      <Harness />
+    </>,
+  );
   act(() => api.pin(many, { x: 0, y: 0 }));
   await waitFor(() => expect(pins()).toHaveLength(20));
   expect(screen.queryByRole("alertdialog")).toBeNull();
@@ -32,7 +43,8 @@ it("超过 20 张不弹确认：直接钉前 20 张，再用轻提示说明", as
 });
 
 it("复制图片按卡片显示的来源复制原图，成功后轻提示（#105）", async () => {
-  const onNotice = vi.fn(), onError = vi.fn();
+  const onNotice = vi.fn(),
+    onError = vi.fn();
   render(<Harness onNotice={onNotice} onError={onError} />);
   act(() => api.copy(card("2", "L2")));
   await waitFor(() => expect(onNotice).toHaveBeenCalledWith("已复制图片"));
@@ -41,15 +53,24 @@ it("复制图片按卡片显示的来源复制原图，成功后轻提示（#105
 });
 
 it("复制失败或原文件不在时给出原因，不静默失败", async () => {
-  const missing = () => { throw { code: "message", message: "原文件不在了，可能被移走或删除：C:/lib/originals/a.png" }; };
+  const missing = () => {
+    throw { code: "message", message: "原文件不在了，可能被移走或删除：C:/lib/originals/a.png" };
+  };
   backend.on("copy_reference_image", missing);
   backend.on("reveal_reference_image", missing);
-  const onNotice = vi.fn(), onError = vi.fn();
+  const onNotice = vi.fn(),
+    onError = vi.fn();
   render(<Harness onNotice={onNotice} onError={onError} />);
   act(() => api.copy(card("1")));
-  await waitFor(() => expect(onError).toHaveBeenCalledWith("无法复制图片：原文件不在了，可能被移走或删除：C:/lib/originals/a.png"));
+  await waitFor(() =>
+    expect(onError).toHaveBeenCalledWith("无法复制图片：原文件不在了，可能被移走或删除：C:/lib/originals/a.png"),
+  );
   act(() => api.reveal(card("1")));
-  await waitFor(() => expect(onError).toHaveBeenLastCalledWith("无法在资源管理器中显示：原文件不在了，可能被移走或删除：C:/lib/originals/a.png"));
+  await waitFor(() =>
+    expect(onError).toHaveBeenLastCalledWith(
+      "无法在资源管理器中显示：原文件不在了，可能被移走或删除：C:/lib/originals/a.png",
+    ),
+  );
   expect(onNotice).not.toHaveBeenCalled();
 });
 
@@ -73,7 +94,12 @@ it("从剪贴板导入交给导入入口，剪贴板是否有图片读后端", a
 
 it("从剪贴板导入失败（剪贴板没有图片）时给出原因", async () => {
   const onError = vi.fn();
-  render(<Harness onError={onError} importClipboard={() => Promise.reject({ code: "message", message: "剪贴板里没有图片" })} />);
+  render(
+    <Harness
+      onError={onError}
+      importClipboard={() => Promise.reject({ code: "message", message: "剪贴板里没有图片" })}
+    />,
+  );
   act(() => api.importClipboard());
   await waitFor(() => expect(onError).toHaveBeenCalledWith("剪贴板里没有图片"));
 });
@@ -86,7 +112,6 @@ it("加入参考组按每张图的来源加入", async () => {
   expect(call.args).toMatchObject({ target: { libraryId: "L1", imageId: "i1", contentId: "1" }, groupId: "g1" });
 });
 
-
 it("一张图的彻底删除按它显示的来源预览并确认", async () => {
   backend.on("preview_permanent_delete", { imageIds: ["i1"], groups: [], token: "t" });
   render(<Harness />);
@@ -98,23 +123,36 @@ it("一张图的彻底删除按它显示的来源预览并确认", async () => {
 
 it("跨图库的多张彻底删除：按图库分组预览，列出受影响的参考组，确认后逐组删除（#112）", async () => {
   backend.on("preview_permanent_delete_batch", [
-    { libraryId: "L1", preview: { imageIds: ["i1"], groups: [{ groupId: "g", name: "姿势", imageIds: ["i1"] }], token: "t1" }, error: null },
+    {
+      libraryId: "L1",
+      preview: { imageIds: ["i1"], groups: [{ groupId: "g", name: "姿势", imageIds: ["i1"] }], token: "t1" },
+      error: null,
+    },
     { libraryId: "L2", preview: { imageIds: ["i2", "i3"], groups: [], token: "t2" }, error: null },
   ]);
   backend.on("permanent_delete_batch", []);
-  const onClearSelection = vi.fn(), onChanged = vi.fn(), onError = vi.fn();
+  const onClearSelection = vi.fn(),
+    onChanged = vi.fn(),
+    onError = vi.fn();
   render(<Harness onClearSelection={onClearSelection} onChanged={onChanged} onError={onError} />);
   act(() => api.purge([named("1", "L1", "工作参考"), named("2", "L2", "私人收藏"), named("3", "L2", "私人收藏")]));
   expect(await screen.findByText("永久删除这 3 张图？原图与整理结果都会删除，无法恢复。")).toBeTruthy();
   expect(screen.getByText("姿势（1 张）")).toBeTruthy();
-  expect(calls("preview_permanent_delete_batch")[0]!.args).toEqual({ targets: [
-    { libraryId: "L1", imageId: "i1" }, { libraryId: "L2", imageId: "i2" }, { libraryId: "L2", imageId: "i3" },
-  ] });
+  expect(calls("preview_permanent_delete_batch")[0]!.args).toEqual({
+    targets: [
+      { libraryId: "L1", imageId: "i1" },
+      { libraryId: "L2", imageId: "i2" },
+      { libraryId: "L2", imageId: "i3" },
+    ],
+  });
   fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
   await waitFor(() => expect(onClearSelection).toHaveBeenCalled());
-  expect(calls("permanent_delete_batch")[0]!.args).toEqual({ groups: [
-    { libraryId: "L1", imageIds: ["i1"], token: "t1" }, { libraryId: "L2", imageIds: ["i2", "i3"], token: "t2" },
-  ] });
+  expect(calls("permanent_delete_batch")[0]!.args).toEqual({
+    groups: [
+      { libraryId: "L1", imageIds: ["i1"], token: "t1" },
+      { libraryId: "L2", imageIds: ["i2", "i3"], token: "t2" },
+    ],
+  });
   expect(onChanged).toHaveBeenCalled();
   expect(onError).not.toHaveBeenCalled();
   expect(screen.queryByRole("alertdialog")).toBeNull();
@@ -127,17 +165,23 @@ it("某个图库断连时其他图库照常删除，并按图库报告没完成�
     { libraryId: "L3", preview: { imageIds: ["i3"], groups: [], token: "t3" }, error: null },
   ]);
   backend.on("permanent_delete_batch", [{ libraryId: "L3", error: { code: "message", message: "导入收尾失败" } }]);
-  const onError = vi.fn(), onChanged = vi.fn();
+  const onError = vi.fn(),
+    onChanged = vi.fn();
   render(<Harness onError={onError} onChanged={onChanged} />);
   act(() => api.purge([named("1", "L1", "工作参考"), named("2", "L2", "私人收藏"), named("3", "L3", "移动盘")]));
   expect(await screen.findByText("永久删除这 2 张图？原图与整理结果都会删除，无法恢复。")).toBeTruthy();
   expect(screen.getByText("「私人收藏」的 1 张这次无法删除：图库暂时无法连接：E:\\私人收藏")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "确认永久删除" }));
   await waitFor(() => expect(onError).toHaveBeenCalled());
-  expect(calls("permanent_delete_batch")[0]!.args).toEqual({ groups: [
-    { libraryId: "L1", imageIds: ["i1"], token: "t1" }, { libraryId: "L3", imageIds: ["i3"], token: "t3" },
-  ] });
-  expect(onError).toHaveBeenCalledWith("有图库没有删完。「私人收藏」：图库暂时无法连接：E:\\私人收藏；「移动盘」：导入收尾失败");
+  expect(calls("permanent_delete_batch")[0]!.args).toEqual({
+    groups: [
+      { libraryId: "L1", imageIds: ["i1"], token: "t1" },
+      { libraryId: "L3", imageIds: ["i3"], token: "t3" },
+    ],
+  });
+  expect(onError).toHaveBeenCalledWith(
+    "有图库没有删完。「私人收藏」：图库暂时无法连接：E:\\私人收藏；「移动盘」：导入收尾失败",
+  );
   expect(onChanged).toHaveBeenCalled();
 });
 
@@ -156,13 +200,14 @@ it("部分图库已删除、其他图库预览过期时取消重新列出：已�
     previews += 1;
     return previews === 1
       ? [
-        { libraryId: "L1", preview: { imageIds: ["i1"], groups: [], token: "t1" }, error: null },
-        { libraryId: "L2", preview: { imageIds: ["i2"], groups: [], token: "t2" }, error: null },
-      ]
+          { libraryId: "L1", preview: { imageIds: ["i1"], groups: [], token: "t1" }, error: null },
+          { libraryId: "L2", preview: { imageIds: ["i2"], groups: [], token: "t2" }, error: null },
+        ]
       : [{ libraryId: "L2", preview: { imageIds: ["i2"], groups: [], token: "t2b" }, error: null }];
   });
   backend.on("permanent_delete_batch", [{ libraryId: "L2", error: stale }]);
-  const onClearSelection = vi.fn(), onChanged = vi.fn();
+  const onClearSelection = vi.fn(),
+    onChanged = vi.fn();
   render(<Harness onClearSelection={onClearSelection} onChanged={onChanged} />);
   act(() => api.purge([named("1", "L1", "工作参考"), named("2", "L2", "私人收藏")]));
   fireEvent.click(await screen.findByRole("button", { name: "确认永久删除" }));
@@ -182,9 +227,14 @@ it("跨图库加入参考组：一个图库失败时其他图库照常完成，�
   });
   const onError = vi.fn();
   render(<Harness onError={onError} />);
-  act(() => api.addToGroup([named("1", "L1", "工作参考"), named("2", "L2", "私人收藏"), named("3", "L3", "移动盘")], "g1"));
+  act(() =>
+    api.addToGroup([named("1", "L1", "工作参考"), named("2", "L2", "私人收藏"), named("3", "L3", "移动盘")], "g1"),
+  );
   await waitFor(() => expect(onError).toHaveBeenCalled());
-  expect(calls("workspace_source_group").map((c) => (c.args.target as { libraryId: string }).libraryId)).toEqual(["L1", "L2", "L3"]);
+  expect(calls("workspace_source_group").map((c) => (c.args.target as { libraryId: string }).libraryId)).toEqual([
+    "L1",
+    "L2",
+    "L3",
+  ]);
   expect(onError).toHaveBeenCalledWith("有图库没有加入参考组。「私人收藏」：资料库暂时不可用");
 });
-

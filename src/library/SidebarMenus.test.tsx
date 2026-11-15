@@ -10,13 +10,40 @@ import type { BrowseScope } from "../bindings/BrowseScope";
 
 // 侧栏右键菜单（#102 表“侧栏”三行，#114）：文件夹、图库标题与回收站。
 const names: Record<string, string> = { A: "人物参考", B: "风景参考" };
-const registrations = ["A", "B"].map((id) => ({ library: { id, name: names[id], root: `D:\\${id}\\参考` }, unavailable: null as import("../bindings/CommandError").CommandError | null }));
-const forest = (): WorkspaceDirectories => ({ status: { revision: "r", libraries: registrations }, registrationOrder: ["A", "B"], providers: registrations.map((registration) => ({ registration: { ...registration, library: { ...registration.library } }, unassigned: 1, descendants: {}, sidebar: { all: 3, trash: 2, folders: [{ id: registration.library.id + "-root", name: "人物", count: 1, children: [{ id: registration.library.id + "-child", name: "动作", count: 1, children: [] }] }] } })) });
+const registrations = ["A", "B"].map((id) => ({
+  library: { id, name: names[id], root: `D:\\${id}\\参考` },
+  unavailable: null as import("../bindings/CommandError").CommandError | null,
+}));
+const forest = (): WorkspaceDirectories => ({
+  status: { revision: "r", libraries: registrations },
+  registrationOrder: ["A", "B"],
+  providers: registrations.map((registration) => ({
+    registration: { ...registration, library: { ...registration.library } },
+    unassigned: 1,
+    descendants: {},
+    sidebar: {
+      all: 3,
+      trash: 2,
+      folders: [
+        {
+          id: registration.library.id + "-root",
+          name: "人物",
+          count: 1,
+          children: [{ id: registration.library.id + "-child", name: "动作", count: 1, children: [] }],
+        },
+      ],
+    },
+  })),
+});
 const inA = (local: BrowseScope): WorkspaceScope => ({ kind: "library", libraryId: "A", scope: local });
 const section = (id: string) => document.querySelector<HTMLElement>(`[data-library-id="${id}"]`)!;
-const settle = () => act(async () => { await Promise.resolve(); });
+const settle = () =>
+  act(async () => {
+    await Promise.resolve();
+  });
 const rows = (menu: HTMLElement) => [...menu.querySelectorAll("[role^='menuitem']")].map((row) => row.textContent);
-const enabled = (menu: HTMLElement, name: string) => within(menu).getByRole("menuitem", { name }).getAttribute("aria-disabled") !== "true";
+const enabled = (menu: HTMLElement, name: string) =>
+  within(menu).getByRole("menuitem", { name }).getAttribute("aria-disabled") !== "true";
 
 let calls: { command: string; args: Record<string, unknown> }[];
 let answers: Record<string, unknown>;
@@ -26,21 +53,52 @@ const onMessage = vi.fn();
 beforeEach(() => {
   calls = [];
   answers = {};
-  onScope.mockClear(); onError.mockClear();
+  onScope.mockClear();
+  onError.mockClear();
 });
 /** 侧栏菜单发出的动作命令：默认答 void（`null`）；`answers` 给某条换成别的回答，`Error` 让它失败。 */
-const ACTIONS = ["reveal_library", "unregister_library", "create_folder", "rename_folder", "move_folder", "delete_folder", "restore_folder", "preview_empty_trash", "permanent_delete"];
-const actions = () => Object.fromEntries(ACTIONS.map((command) => [command, (args: Record<string, unknown>) => {
-  calls.push({ command, args });
-  const answer = answers[command];
-  if (answer instanceof Error) throw { code: "message", message: answer.message };
-  return answer ?? null;
-}]));
+const ACTIONS = [
+  "reveal_library",
+  "unregister_library",
+  "create_folder",
+  "rename_folder",
+  "move_folder",
+  "delete_folder",
+  "restore_folder",
+  "preview_empty_trash",
+  "permanent_delete",
+];
+const actions = () =>
+  Object.fromEntries(
+    ACTIONS.map((command) => [
+      command,
+      (args: Record<string, unknown>) => {
+        calls.push({ command, args });
+        const answer = answers[command];
+        if (answer instanceof Error) throw { code: "message", message: answer.message };
+        return answer ?? null;
+      },
+    ]),
+  );
 
 async function show(scope: WorkspaceScope, value = forest(), extra: Partial<Parameters<typeof WorkspacePane>[0]> = {}) {
   fakeBackend({ workspace_directories: value, ...actions() });
-  const view = render(<ToastProvider><WorkspacePane status={{ revision: "r", libraries: registrations }} scope={scope} safeMode reloadKey={0} onScope={onScope} onError={onError} onMessage={onMessage} {...extra} /></ToastProvider>);
-  await settle(); await settle();
+  const view = render(
+    <ToastProvider>
+      <WorkspacePane
+        status={{ revision: "r", libraries: registrations }}
+        scope={scope}
+        safeMode
+        reloadKey={0}
+        onScope={onScope}
+        onError={onError}
+        onMessage={onMessage}
+        {...extra}
+      />
+    </ToastProvider>,
+  );
+  await settle();
+  await settle();
   return view;
 }
 const openOn = async (node: HTMLElement, label: string) => {
@@ -60,7 +118,11 @@ it("图库标题：右键与 ⋯ 是同一组菜单项；未连接时多出“�
   fireEvent.keyDown(viaRightClick, { key: "Escape" });
   await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
   fireEvent.click(within(section("A")).getByRole("button", { name: "人物参考 的操作" }));
-  expect(rows(await screen.findByRole("menu", { name: "人物参考 的操作" }))).toEqual(["新建文件夹", "在资源管理器中显示", "从列表移除"]);
+  expect(rows(await screen.findByRole("menu", { name: "人物参考 的操作" }))).toEqual([
+    "新建文件夹",
+    "在资源管理器中显示",
+    "从列表移除",
+  ]);
   fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
   await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 
@@ -118,9 +180,21 @@ it("移除当前范围所在的图库后回到“全部图片”；移除别的�
 it("从列表移除后轻提示里可撤销：按原位置重新登记", async () => {
   const onRestore = vi.fn(() => Promise.resolve());
   fakeBackend({ workspace_directories: forest(), ...actions() });
-  render(<ToastProvider><WorkspacePane status={{ revision: "r", libraries: registrations }} scope={inA({ kind: "all" })} safeMode reloadKey={0}
-    onScope={onScope} onError={onError} onRestore={onRestore} /></ToastProvider>);
-  await settle(); await settle();
+  render(
+    <ToastProvider>
+      <WorkspacePane
+        status={{ revision: "r", libraries: registrations }}
+        scope={inA({ kind: "all" })}
+        safeMode
+        reloadKey={0}
+        onScope={onScope}
+        onError={onError}
+        onRestore={onRestore}
+      />
+    </ToastProvider>,
+  );
+  await settle();
+  await settle();
   const headB = within(section("B")).getByRole("button", { name: "风景参考（3 张）" });
   fireEvent.click(within(await openOn(headB, "风景参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
   expect(await screen.findByText("已从列表移除")).toBeTruthy();
@@ -135,7 +209,9 @@ it("文件夹：菜单项与表一致，顶层文件夹不能“移到顶层”�
   expect(rows(menu)).toEqual(["新建子文件夹", "重命名F2", "移到顶层", "删除文件夹"]);
   expect(within(menu).getAllByRole("separator")).toHaveLength(2);
   expect(enabled(menu, "移到顶层")).toBe(false);
-  const danger = within(menu).getAllByRole("menuitem").filter((item) => item.className.includes("is-danger"));
+  const danger = within(menu)
+    .getAllByRole("menuitem")
+    .filter((item) => item.className.includes("is-danger"));
   expect(danger.map((item) => item.textContent)).toEqual(["删除文件夹"]);
   fireEvent.keyDown(menu, { key: "Escape" });
   await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
@@ -145,7 +221,9 @@ it("文件夹：菜单项与表一致，顶层文件夹不能“移到顶层”�
   const childMenu = await screen.findByRole("menu", { name: "动作 的操作" });
   fireEvent.click(within(childMenu).getByRole("menuitem", { name: "移到顶层" }));
   await settle();
-  expect(calls).toEqual([{ command: "move_folder", args: { libraryId: "A", folderId: "A-child", parent: null, position: 2 ** 31 } }]);
+  expect(calls).toEqual([
+    { command: "move_folder", args: { libraryId: "A", folderId: "A-child", parent: null, position: 2 ** 31 } },
+  ]);
 });
 
 it("文件夹：新建子文件夹建在它里面；重命名可从菜单或按 F2", async () => {
@@ -177,11 +255,18 @@ it("文件夹：新建子文件夹建在它里面；重命名可从菜单或按 
 
 it("删除文件夹不先确认，直接删并给“撤销”；正在看的文件夹被删后回到该图库的全部；撤销把删除返回的内容原样放回", async () => {
   await show(inA({ kind: "folderTree", id: "A-child" }));
-  const deleted = { folders: [{ id: "A-root", name: "人物", parentId: null, ord: 0, createdAt: 1 }], members: [], decisions: [], eagle: [] };
+  const deleted = {
+    folders: [{ id: "A-root", name: "人物", parentId: null, ord: 0, createdAt: 1 }],
+    members: [],
+    decisions: [],
+    eagle: [],
+  };
   answers["delete_folder"] = deleted;
   const top = within(section("A")).getByRole("button", { name: "人物（1 张）" });
   fireEvent.click(within(await openOn(top, "人物 的操作")).getByRole("menuitem", { name: "删除文件夹" }));
-  await waitFor(() => expect(calls).toEqual([{ command: "delete_folder", args: { libraryId: "A", folderId: "A-root" } }]));
+  await waitFor(() =>
+    expect(calls).toEqual([{ command: "delete_folder", args: { libraryId: "A", folderId: "A-root" } }]),
+  );
   expect(screen.queryByRole("alertdialog")).toBeNull();
   await waitFor(() => expect(onScope).toHaveBeenLastCalledWith(inA({ kind: "all" })));
   expect(await screen.findByText("已删除文件夹")).toBeTruthy();
@@ -195,13 +280,22 @@ it("撤销失败时报错", async () => {
   await show(inA({ kind: "all" }));
   answers["delete_folder"] = { folders: [], members: [], decisions: [], eagle: [] };
   answers["restore_folder"] = new Error("放回失败");
-  fireEvent.click(within(await openOn(within(section("A")).getByRole("button", { name: "动作（1 张）" }), "动作 的操作")).getByRole("menuitem", { name: "删除文件夹" }));
+  fireEvent.click(
+    within(await openOn(within(section("A")).getByRole("button", { name: "动作（1 张）" }), "动作 的操作")).getByRole(
+      "menuitem",
+      { name: "删除文件夹" },
+    ),
+  );
   fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
   await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "放回失败" })));
 });
 
 it("回收站：清空回收站先列出将永久删除的张数，确认后按预览的令牌删除", async () => {
-  answers["preview_empty_trash"] = { imageIds: ["x", "y"], groups: [{ groupId: "g", name: "光影", imageIds: ["x"] }], token: "t" };
+  answers["preview_empty_trash"] = {
+    imageIds: ["x", "y"],
+    groups: [{ groupId: "g", name: "光影", imageIds: ["x"] }],
+    token: "t",
+  };
   await show(inA({ kind: "all" }));
   const trash = screen.getByRole("button", { name: "回收站（人物参考，2 张）" });
   // 同一行既有悬停提示又有右键菜单：提示包在右键菜单的触发器外面。
@@ -215,7 +309,12 @@ it("回收站：清空回收站先列出将永久删除的张数，确认后按�
   expect(within(dialog).getByRole("list", { name: "受影响的参考组" }).textContent).toContain("光影（1 张）");
   expect(calls).toEqual([{ command: "preview_empty_trash", args: { libraryId: "A" } }]);
   fireEvent.click(within(dialog).getByRole("button", { name: "清空回收站" }));
-  await waitFor(() => expect(calls.at(-1)).toEqual({ command: "permanent_delete", args: { libraryId: "A", ids: ["x", "y"], token: "t" } }));
+  await waitFor(() =>
+    expect(calls.at(-1)).toEqual({
+      command: "permanent_delete",
+      args: { libraryId: "A", ids: ["x", "y"], token: "t" },
+    }),
+  );
   await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
 });
 

@@ -21,7 +21,8 @@ export function isNarrow(body: number, inspector: number): boolean {
  */
 export function fitPanes(body: number, inspector: number, sidebar: boolean): { sidebar: number; inspector: number } {
   if (body <= 0) return { sidebar: sidebar ? SIDEBAR_WIDTH.initial : 0, inspector };
-  if (!sidebar) return { sidebar: 0, inspector: inspector && Math.max(INSPECTOR_WIDTH.min, Math.min(inspector, body - MAIN_MIN)) };
+  if (!sidebar)
+    return { sidebar: 0, inspector: inspector && Math.max(INSPECTOR_WIDTH.min, Math.min(inspector, body - MAIN_MIN)) };
   const short = SIDEBAR_WIDTH.initial + inspector + MAIN_MIN - body;
   if (short <= 0) return { sidebar: SIDEBAR_WIDTH.initial, inspector };
   const sidebarSlack = SIDEBAR_WIDTH.initial - SIDEBAR_WIDTH.min;
@@ -48,7 +49,12 @@ export function useWidth(element: HTMLElement | null): number {
  * 工作区侧栏在窄窗口里的样子。变窄到并排放不下时侧栏自动收起，变宽后回到收起前的开合；
  * 收起期间点开（顶栏按钮、栏、Ctrl B）就浮在图片墙上。
  */
-export function usePaneFold({ body, inspector, paneOpen, onPaneOpen }: {
+export function usePaneFold({
+  body,
+  inspector,
+  paneOpen,
+  onPaneOpen,
+}: {
   body: number;
   /** 详情面板的宽度，关着为 0。 */
   inspector: number;
@@ -80,7 +86,12 @@ export function useFloatEscape(floating: boolean, onClose: () => void) {
   const closeFloat = useEffectEvent(onClose);
   useEffect(() => {
     if (!floating) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) { e.preventDefault(); closeFloat(); } };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.defaultPrevented) {
+        e.preventDefault();
+        closeFloat();
+      }
+    };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [floating]);

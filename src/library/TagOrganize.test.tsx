@@ -51,8 +51,16 @@ describe("单张图的标签与人工标签决定", () => {
     await addTag("某某", { create: true });
     await waitFor(() => expect(tagList().textContent).toContain("某某"));
     expect(sent("edit_tags")).toEqual([
-      { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "add", tag: { kind: "named", namespace: "artist", name: "某某", lang: "zh-CN" } }] },
-      { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: "某某", lang: "zh-CN" } }] },
+      {
+        libraryId: "L1",
+        imageIds: ["a"],
+        edits: [{ kind: "add", tag: { kind: "named", namespace: "artist", name: "某某", lang: "zh-CN" } }],
+      },
+      {
+        libraryId: "L1",
+        imageIds: ["a"],
+        edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: "某某", lang: "zh-CN" } }],
+      },
     ]);
     expect(document.querySelectorAll(".k-tag-chip.is-manual")).toHaveLength(2);
     expect((await openChip("某某")).textContent).toContain("来源：你添加的");
@@ -70,9 +78,7 @@ describe("单张图的标签与人工标签决定", () => {
     await selectOnly("a");
     await screen.findByRole("list", { name: "有效标签" });
     fireEvent.click(within(await openChip("蓝发")).getByRole("button", { name: "保留“蓝发”" }));
-    await waitFor(() =>
-      expect(within(tagList()).getByText("蓝发").closest("li")!.className).toContain("is-manual"),
-    );
+    await waitFor(() => expect(within(tagList()).getByText("蓝发").closest("li")!.className).toContain("is-manual"));
     expect(sent("edit_tags")).toEqual([
       { libraryId: "L1", imageIds: ["a"], edits: [{ kind: "add", tag: { kind: "id", id: "T-blue" } }] },
     ]);

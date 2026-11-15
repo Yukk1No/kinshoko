@@ -8,7 +8,14 @@ import type { SaveMemory } from "../bindings/SaveMemory";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import type { FolderNode } from "../bindings/FolderNode";
-import { isCursorExpired, onWorkspaceChanged, rememberImportDestination, rememberNewLibraryParent, saveMemory, workspaceDirectories } from "../ipc";
+import {
+  isCursorExpired,
+  onWorkspaceChanged,
+  rememberImportDestination,
+  rememberNewLibraryParent,
+  saveMemory,
+  workspaceDirectories,
+} from "../ipc";
 import { libraryPathHint } from "./library-path";
 import { Select } from "../ui/Select";
 import { errorText } from "../ipc/commandError";
@@ -27,12 +34,19 @@ type SaveContext = {
 };
 const NOTHING_REMEMBERED: SaveMemory = { importDestination: null, newLibraryParent: null };
 const Context = createContext<SaveContext>({
-  destination: null, setDestination: () => {}, providers: [], problem: null, ready: false,
-  memory: NOTHING_REMEMBERED, rememberImport: () => {}, rememberNewLibraryParent: () => {},
+  destination: null,
+  setDestination: () => {},
+  providers: [],
+  problem: null,
+  ready: false,
+  memory: NOTHING_REMEMBERED,
+  rememberImport: () => {},
+  rememberNewLibraryParent: () => {},
 });
 export const useSaveDestination = () => useContext(Context);
 
-const RETRIES = 3, RETRY_MS = 150;
+const RETRIES = 3,
+  RETRY_MS = 150;
 
 /** 保存入口看到的资料库：登记最早的在前（ADR-0016 的兜底），不跟侧栏的顺序。 */
 function inRegistrationOrder({ providers, registrationOrder }: WorkspaceDirectories) {
@@ -57,34 +71,76 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
     void rememberNewLibraryParent(newLibraryParent).catch(() => {});
   };
   useEffect(() => {
-    let alive = true, sequence = 0, revision = "", retry: ReturnType<typeof setTimeout> | undefined;
+    let alive = true,
+      sequence = 0,
+      revision = "",
+      retry: ReturnType<typeof setTimeout> | undefined;
     setReady(false);
     const refresh = (attempt = 0) => {
       const request = ++sequence;
       clearTimeout(retry);
-      void workspaceDirectories(safe).then(value => {
-        if (!alive || request !== sequence) return;
-        revision = value.status.revision;
-        setProviders(inRegistrationOrder(value)); setProblem(null); setReady(true);
-      }, error => {
-        if (!alive || request !== sequence) return;
-        // 读取期间修订变了：结果已过时，稍后按新修订重读，不当作问题显示（#98）；连续 3 次仍在变才显示。
-        if (isCursorExpired(error) && attempt < RETRIES) { retry = setTimeout(() => refresh(attempt + 1), RETRY_MS); return; }
-        setProblem(errorText(error)); setReady(false);
-      });
+      void workspaceDirectories(safe).then(
+        (value) => {
+          if (!alive || request !== sequence) return;
+          revision = value.status.revision;
+          setProviders(inRegistrationOrder(value));
+          setProblem(null);
+          setReady(true);
+        },
+        (error) => {
+          if (!alive || request !== sequence) return;
+          // 读取期间修订变了：结果已过时，稍后按新修订重读，不当作问题显示（#98）；连续 3 次仍在变才显示。
+          if (isCursorExpired(error) && attempt < RETRIES) {
+            retry = setTimeout(() => refresh(attempt + 1), RETRY_MS);
+            return;
+          }
+          setProblem(errorText(error));
+          setReady(false);
+        },
+      );
     };
     // 取消登记会清掉记住的目标，所以登记变化时一并重读。
-    const readMemory = () => void saveMemory().then(value => { if (alive && value) setMemory(value); }, () => {});
+    const readMemory = () =>
+      void saveMemory().then(
+        (value) => {
+          if (alive && value) setMemory(value);
+        },
+        () => {},
+      );
     refresh();
     readMemory();
-    const stop = onWorkspaceChanged(value => { if (value.revision !== revision) { refresh(); readMemory(); } });
-    return () => { alive = false; clearTimeout(retry); void stop.then(fn => fn()); };
+    const stop = onWorkspaceChanged((value) => {
+      if (value.revision !== revision) {
+        refresh();
+        readMemory();
+      }
+    });
+    return () => {
+      alive = false;
+      clearTimeout(retry);
+      void stop.then((fn) => fn());
+    };
   }, [safe]);
-  return <Context value={{ destination, setDestination, providers, problem, ready, memory, rememberImport, rememberNewLibraryParent: rememberParent }}>{children}</Context>;
+  return (
+    <Context
+      value={{
+        destination,
+        setDestination,
+        providers,
+        problem,
+        ready,
+        memory,
+        rememberImport,
+        rememberNewLibraryParent: rememberParent,
+      }}
+    >
+      {children}
+    </Context>
+  );
 }
 
 export function folderChoices(nodes: FolderNode[], prefix = ""): { id: string; path: string }[] {
-  return nodes.flatMap(node => {
+  return nodes.flatMap((node) => {
     const path = prefix ? `${prefix} / ${node.name}` : node.name;
     return [{ id: node.id, path }, ...folderChoices(node.children, path)];
   });
@@ -92,70 +148,124 @@ export function folderChoices(nodes: FolderNode[], prefix = ""): { id: string; p
 export function destinationLabel(value: SaveDestination | null, providers: WorkspaceDirectory[]) {
   const t = i18n.getFixedT(null, "common", "saveDestination");
   if (!value) return t("chooseBoth");
-  const provider = providers.find(p => p.registration.library.id === value.libraryId);
-  const folder = value.folderId === null ? t("unassigned")
-    : folderChoices(provider?.sidebar?.folders ?? []).find(f => f.id === value.folderId)?.path ?? t("folderGone");
+  const provider = providers.find((p) => p.registration.library.id === value.libraryId);
+  const folder =
+    value.folderId === null
+      ? t("unassigned")
+      : (folderChoices(provider?.sidebar?.folders ?? []).find((f) => f.id === value.folderId)?.path ?? t("folderGone"));
   return t("label", { library: provider?.registration.library.name ?? t("libraryClosed"), folder });
 }
 export function destinationAvailable(value: SaveDestination | null, providers: WorkspaceDirectory[]) {
-  const provider = providers.find(p => p.registration.library.id === value?.libraryId);
-  return !!value && !!provider && !provider.registration.unavailable && !!provider.sidebar
-    && (value.folderId === null || folderChoices(provider.sidebar.folders).some(f => f.id === value.folderId));
+  const provider = providers.find((p) => p.registration.library.id === value?.libraryId);
+  return (
+    !!value &&
+    !!provider &&
+    !provider.registration.unavailable &&
+    !!provider.sidebar &&
+    (value.folderId === null || folderChoices(provider.sidebar.folders).some((f) => f.id === value.folderId))
+  );
 }
 
 /**
  * 保存位置（#98）：并排两个选择——图库与文件夹；写入从不改变浏览范围。
  * 两个选择的读屏名称就是可见标签（`putInLibrary` 时为“放到图库”，否则“图库”，以及“文件夹”）。
  */
-export function SaveDestinationPicker({ value, onChange, disabled = false, putInLibrary = false }: {
-  value: SaveDestination | null; onChange: (value: SaveDestination | null) => void;
-  disabled?: boolean; putInLibrary?: boolean;
+export function SaveDestinationPicker({
+  value,
+  onChange,
+  disabled = false,
+  putInLibrary = false,
+}: {
+  value: SaveDestination | null;
+  onChange: (value: SaveDestination | null) => void;
+  disabled?: boolean;
+  putInLibrary?: boolean;
 }) {
   const { t } = useTranslation("common", { keyPrefix: "saveDestination" });
   const libraryLabel = t(putInLibrary ? "putInLibrary" : "library");
   const { providers, problem, ready } = useSaveDestination();
-  const provider = providers.find(p => p.registration.library.id === value?.libraryId);
-  const paths = providers.map(p => p.registration.library.root);
+  const provider = providers.find((p) => p.registration.library.id === value?.libraryId);
+  const paths = providers.map((p) => p.registration.library.root);
   const folders = folderChoices(provider?.sidebar?.folders ?? []);
-  return <fieldset className="save-destination k-destination" disabled={disabled}>
-    <legend className="sr-only">{t("legend")}</legend>
-    <div className="k-destination-grid">
-      <div className="k-field">
-        <span className="k-field-label">{libraryLabel}</span>
-        <Select label={libraryLabel} icon={<Library size={16} aria-hidden="true" />} disabled={disabled} value={value?.libraryId ?? ""}
-          onChange={id => onChange(id ? { libraryId: id, folderId: null } : null)}
-          options={[
-            { value: "", label: t("chooseLibrary") },
-            ...(value && !provider ? [{ value: value.libraryId, label: t("libraryClosed"), disabled: true }] : []),
-            ...providers.map(p => ({ value: p.registration.library.id, disabled: !!p.registration.unavailable || !p.sidebar,
-              label: t(p.registration.unavailable ? "libraryOptionOffline" : "libraryOption", { name: p.registration.library.name, path: libraryPathHint(p.registration.library.root, paths) }) })),
-          ]} />
+  return (
+    <fieldset className="save-destination k-destination" disabled={disabled}>
+      <legend className="sr-only">{t("legend")}</legend>
+      <div className="k-destination-grid">
+        <div className="k-field">
+          <span className="k-field-label">{libraryLabel}</span>
+          <Select
+            label={libraryLabel}
+            icon={<Library size={16} aria-hidden="true" />}
+            disabled={disabled}
+            value={value?.libraryId ?? ""}
+            onChange={(id) => onChange(id ? { libraryId: id, folderId: null } : null)}
+            options={[
+              { value: "", label: t("chooseLibrary") },
+              ...(value && !provider ? [{ value: value.libraryId, label: t("libraryClosed"), disabled: true }] : []),
+              ...providers.map((p) => ({
+                value: p.registration.library.id,
+                disabled: !!p.registration.unavailable || !p.sidebar,
+                label: t(p.registration.unavailable ? "libraryOptionOffline" : "libraryOption", {
+                  name: p.registration.library.name,
+                  path: libraryPathHint(p.registration.library.root, paths),
+                }),
+              })),
+            ]}
+          />
+        </div>
+        <div className="k-field">
+          <span className="k-field-label">{t("folder")}</span>
+          <Select
+            label={t("folder")}
+            icon={<Folder size={16} aria-hidden="true" />}
+            value={value?.folderId ?? ""}
+            disabled={disabled || !provider || !!provider.registration.unavailable}
+            onChange={(id) => value && onChange({ ...value, folderId: id || null })}
+            options={[
+              { value: "", label: t("unassigned") },
+              ...(value?.folderId && !folders.some((f) => f.id === value.folderId)
+                ? [{ value: value.folderId, label: t("folderGone"), disabled: true }]
+                : []),
+              ...folders.map((folder) => ({ value: folder.id, label: folder.path })),
+            ]}
+          />
+        </div>
       </div>
-      <div className="k-field">
-        <span className="k-field-label">{t("folder")}</span>
-        <Select label={t("folder")} icon={<Folder size={16} aria-hidden="true" />} value={value?.folderId ?? ""}
-          disabled={disabled || !provider || !!provider.registration.unavailable}
-          onChange={id => value && onChange({ ...value, folderId: id || null })}
-          options={[
-            { value: "", label: t("unassigned") },
-            ...(value?.folderId && !folders.some(f => f.id === value.folderId) ? [{ value: value.folderId, label: t("folderGone"), disabled: true }] : []),
-            ...folders.map(folder => ({ value: folder.id, label: folder.path })),
-          ]} />
-      </div>
-    </div>
-    {value && <Tip label={provider?.registration.library.root} align="start"><p className="save-final-position k-set-note">{t("putIn", { place: destinationLabel(value, providers) })}</p></Tip>}
-    {(!ready || problem) && <p className="k-set-note" role="status">{problem ?? t("loading")}</p>}
-    {value && ready && !destinationAvailable(value, providers)
-      && <p className="k-set-error" role="alert">{t("unavailable")}</p>}
-  </fieldset>;
+      {value && (
+        <Tip label={provider?.registration.library.root} align="start">
+          <p className="save-final-position k-set-note">{t("putIn", { place: destinationLabel(value, providers) })}</p>
+        </Tip>
+      )}
+      {(!ready || problem) && (
+        <p className="k-set-note" role="status">
+          {problem ?? t("loading")}
+        </p>
+      )}
+      {value && ready && !destinationAvailable(value, providers) && (
+        <p className="k-set-error" role="alert">
+          {t("unavailable")}
+        </p>
+      )}
+    </fieldset>
+  );
 }
 
 /**
  * 选好保存位置再执行的对话框（收藏截图、复制到、导入参考组包）。`summary`
  * 是标题下要保存的内容（例如截图缩略图与尺寸）。
  */
-export function SaveDestinationDialog({ title, summary, confirmLabel, onConfirm, onClose }: {
-  title: string; summary?: ReactNode; confirmLabel?: string; onConfirm: (value: SaveDestination) => Promise<unknown>; onClose: () => void;
+export function SaveDestinationDialog({
+  title,
+  summary,
+  confirmLabel,
+  onConfirm,
+  onClose,
+}: {
+  title: string;
+  summary?: ReactNode;
+  confirmLabel?: string;
+  onConfirm: (value: SaveDestination) => Promise<unknown>;
+  onClose: () => void;
 }) {
   const { t } = useTranslation("common", { keyPrefix: "saveDestination" });
   const context = useSaveDestination();
@@ -163,29 +273,64 @@ export function SaveDestinationDialog({ title, summary, confirmLabel, onConfirm,
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const alive = useRef(true);
-  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
-  return <Dialog.Root open onOpenChange={(open) => { if (!open && !busy) onClose(); }}>
-    <Dialog.Portal>
-      <Dialog.Backdrop className="k-backdrop" />
-      <Dialog.Popup className="k-dialog k-save-dialog save-destination-dialog">
-        <Dialog.Title className="k-dialog-title">{title}</Dialog.Title>
-        {summary && <div className="k-import-summary">{summary}</div>}
-        <SaveDestinationPicker value={value} onChange={setValue} disabled={busy} />
-        {error && <p className="k-set-error" role="alert">{error}</p>}
-        <div className="k-dialog-foot">
-          <span className="k-grow" />
-          <button type="button" className="k-btn" disabled={busy} onClick={onClose}><span className="k-label">{t("cancel")}</span></button>
-          <button type="button" className="k-btn is-primary" disabled={busy || !context.ready || !destinationAvailable(value, context.providers)}
-            onClick={() => {
-              if (!value || busy) return;
-              const fixed = { ...value };
-              context.setDestination(fixed); setBusy(true); setError(null);
-              void onConfirm(fixed).then(() => { if (alive.current) onClose(); },
-                error => { if (alive.current) setError(errorText(error)); })
-                .finally(() => { if (alive.current) setBusy(false); });
-            }}><span className="k-label">{busy ? t("saving") : confirmLabel ?? t("save")}</span></button>
-        </div>
-      </Dialog.Popup>
-    </Dialog.Portal>
-  </Dialog.Root>;
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  return (
+    <Dialog.Root
+      open
+      onOpenChange={(open) => {
+        if (!open && !busy) onClose();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Backdrop className="k-backdrop" />
+        <Dialog.Popup className="k-dialog k-save-dialog save-destination-dialog">
+          <Dialog.Title className="k-dialog-title">{title}</Dialog.Title>
+          {summary && <div className="k-import-summary">{summary}</div>}
+          <SaveDestinationPicker value={value} onChange={setValue} disabled={busy} />
+          {error && (
+            <p className="k-set-error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="k-dialog-foot">
+            <span className="k-grow" />
+            <button type="button" className="k-btn" disabled={busy} onClick={onClose}>
+              <span className="k-label">{t("cancel")}</span>
+            </button>
+            <button
+              type="button"
+              className="k-btn is-primary"
+              disabled={busy || !context.ready || !destinationAvailable(value, context.providers)}
+              onClick={() => {
+                if (!value || busy) return;
+                const fixed = { ...value };
+                context.setDestination(fixed);
+                setBusy(true);
+                setError(null);
+                void onConfirm(fixed)
+                  .then(
+                    () => {
+                      if (alive.current) onClose();
+                    },
+                    (error) => {
+                      if (alive.current) setError(errorText(error));
+                    },
+                  )
+                  .finally(() => {
+                    if (alive.current) setBusy(false);
+                  });
+              }}
+            >
+              <span className="k-label">{busy ? t("saving") : (confirmLabel ?? t("save"))}</span>
+            </button>
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
 }

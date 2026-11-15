@@ -12,29 +12,70 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  fakeBackend({ workspace_browse: () => workspacePage(Array.from({ length: 6 }, (_, i) => ({ id: String(i), width: 100, height: 100 }))) });
+  fakeBackend({
+    workspace_browse: () =>
+      workspacePage(Array.from({ length: 6 }, (_, i) => ({ id: String(i), width: 100, height: 100 }))),
+  });
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
-function Harness({ initial = [], onSelection, onOpen, onAside }: {
-  initial?: string[]; onSelection?: (ids: string[]) => void; onOpen?: (id: string) => void; onAside?: () => void;
+function Harness({
+  initial = [],
+  onSelection,
+  onOpen,
+  onAside,
+}: {
+  initial?: string[];
+  onSelection?: (ids: string[]) => void;
+  onOpen?: (id: string) => void;
+  onAside?: () => void;
 }) {
   const [selected, setSelected] = useState(new Set(initial));
-  return <>
-    <Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} selected={selected}
-      onSelectionChange={(next) => { onSelection?.([...next]); setSelected(next); }}
-      onOpenImage={(card) => onOpen?.(card.id)} viewerOpen={false} />
-    {/* 正在展开的详情侧栏：第二下可能落在这里。 */}
-    <aside className="inspector"><button type="button" onClick={onAside}>收起详情</button></aside>
-  </>;
+  return (
+    <>
+      <Wall
+        workspaceScope={{ kind: "all" }}
+        scope={{ kind: "all" }}
+        reloadKey={0}
+        selected={selected}
+        onSelectionChange={(next) => {
+          onSelection?.([...next]);
+          setSelected(next);
+        }}
+        onOpenImage={(card) => onOpen?.(card.id)}
+        viewerOpen={false}
+      />
+      {/* 正在展开的详情侧栏：第二下可能落在这里。 */}
+      <aside className="inspector">
+        <button type="button" onClick={onAside}>
+          收起详情
+        </button>
+      </aside>
+    </>
+  );
 }
 const card = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`)!;
 /** 时钟：performance.now 读这里。 */
 let clock = 0;
-beforeEach(() => { clock = 10_000; vi.spyOn(performance, "now").mockImplementation(() => clock); });
-afterEach(() => { vi.restoreAllMocks(); });
+beforeEach(() => {
+  clock = 10_000;
+  vi.spyOn(performance, "now").mockImplementation(() => clock);
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 /** 一次完整的鼠标按下与松开，按浏览器的顺序派发；detail 是浏览器自己数的连击次数。 */
-function press(target: Element, { x = 50, y = 50, detail = 1, ...keys }: { x?: number; y?: number; detail?: number; ctrlKey?: boolean; shiftKey?: boolean } = {}) {
+function press(
+  target: Element,
+  {
+    x = 50,
+    y = 50,
+    detail = 1,
+    ...keys
+  }: { x?: number; y?: number; detail?: number; ctrlKey?: boolean; shiftKey?: boolean } = {},
+) {
   const at = { clientX: x, clientY: y, button: 0, ...keys };
   fireEvent.pointerDown(target, at);
   fireEvent.mouseDown(target, { ...at, detail });

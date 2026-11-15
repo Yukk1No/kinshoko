@@ -56,14 +56,16 @@ export function AliasEditor({
           {entry.aliases.map((a) => (
             <li key={a.name}>
               <span>{a.name}</span>
-              <Tip label={t("alias.removeTitle")}><button
-                type="button"
-                className="k-icon-btn is-xs"
-                aria-label={t("alias.removeLabel", { name: a.name })}
-                onClick={() => removeTagAlias(libraryId, tag.id, a.name).catch((e) => onError(e))}
-              >
-                <X size={12} aria-hidden="true" />
-              </button></Tip>
+              <Tip label={t("alias.removeTitle")}>
+                <button
+                  type="button"
+                  className="k-icon-btn is-xs"
+                  aria-label={t("alias.removeLabel", { name: a.name })}
+                  onClick={() => removeTagAlias(libraryId, tag.id, a.name).catch((e) => onError(e))}
+                >
+                  <X size={12} aria-hidden="true" />
+                </button>
+              </Tip>
             </li>
           ))}
         </ul>

@@ -16,10 +16,24 @@ beforeEach(() => {
   cards = [];
   fakeBackend({ workspace_browse: () => workspacePage(cards) });
 });
-afterEach(() => { vi.unstubAllGlobals(); localStorage.clear(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
 
-const wall = (safeMode = false) => render(<Wall workspaceScope={{ kind: "all" }} scope={{ kind: "all" }} reloadKey={0} safeMode={safeMode}
-  selected={new Set()} onSelectionChange={() => {}} onOpenImage={() => {}} viewerOpen={false} />);
+const wall = (safeMode = false) =>
+  render(
+    <Wall
+      workspaceScope={{ kind: "all" }}
+      scope={{ kind: "all" }}
+      reloadKey={0}
+      safeMode={safeMode}
+      selected={new Set()}
+      onSelectionChange={() => {}}
+      onOpenImage={() => {}}
+      viewerOpen={false}
+    />,
+  );
 const card = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`)!;
 const placeholderOf = (id: string) => card(id).querySelector<HTMLElement>(".card-placeholder");
 
@@ -59,7 +73,7 @@ it("卡片卸载时缩略图还没到就撤掉地址，浏览器放弃这次请�
     { id: "b", width: 100, height: 50, adult: false },
   ];
   const view = wall();
-  const [pending, arrived] = await screen.findAllByRole("img") as HTMLImageElement[];
+  const [pending, arrived] = (await screen.findAllByRole("img")) as HTMLImageElement[];
   Object.defineProperty(pending, "complete", { configurable: true, value: false });
   Object.defineProperty(arrived, "complete", { configurable: true, value: true });
   expect(pending.getAttribute("src")).toContain("L1/a/");

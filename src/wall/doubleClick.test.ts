@@ -1,8 +1,17 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { DEFAULT_DOUBLE_CLICK, doubleClickSettings, isSecondPress, loadDoubleClickSettings, resetDoubleClickSettings } from "./doubleClick";
+import {
+  DEFAULT_DOUBLE_CLICK,
+  doubleClickSettings,
+  isSecondPress,
+  loadDoubleClickSettings,
+  resetDoubleClickSettings,
+} from "./doubleClick";
 import { fakeBackend } from "../test/backend";
 
-afterEach(() => { resetDoubleClickSettings(); vi.restoreAllMocks(); });
+afterEach(() => {
+  resetDoubleClickSettings();
+  vi.restoreAllMocks();
+});
 
 const first = { at: 1000, x: 100, y: 100 };
 

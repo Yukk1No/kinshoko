@@ -65,12 +65,14 @@ export function ReferenceGroupsPanel() {
   const [name, setName] = useState("");
   const toast = useToast();
   const { t } = useTranslation("desktop", { keyPrefix: "groups" });
-  const tell = (text: string | null) => { if (text) toast.show({ title: text, tone: "success" }); };
+  const tell = (text: string | null) => {
+    if (text) toast.show({ title: text, tone: "success" });
+  };
   const [expanded, setExpanded] = useState<ReferenceGroupView | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [removing, setRemoving] = useState<{ groupId: string; memberId: string } | null>(null);
   const [captureSave, setCaptureSave] = useState<CaptureSaveDraft<SaveTarget> | null>(null);
-  const [importing,setImporting]=useState(false);
+  const [importing, setImporting] = useState(false);
   const [naming, setNaming] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   /** 卡片缩略图用的成员状态，按参考组 id 与更新时间缓存。 */
@@ -122,20 +124,30 @@ export function ReferenceGroupsPanel() {
     try {
       const deleted = await deleteReferenceGroup(g.id);
       toast.show({
-        title: t("deleted"), description: g.name, tone: "success",
-        action: { label: t("undo"), onClick: () => {
-          undone = true;
-          restoreReferenceGroup(deleted).catch((e) => { toast.error(errorText(e)); });
-        } },
-        // 忽略失败：删不掉的暂放内容由程序下次启动时清掉，界面上参考组已经删除。
-        onClose: () => { if (!undone) void purgeDeletedReferenceGroup(g.id).catch(() => {}); },
+        title: t("deleted"),
+        description: g.name,
+        tone: "success",
+        action: {
+          label: t("undo"),
+          onClick: () => {
+            undone = true;
+            restoreReferenceGroup(deleted).catch((e) => {
+              toast.error(errorText(e));
+            });
+          },
+        },
+        onClose: () => {
+          // 忽略失败：删不掉的暂放内容由程序下次启动时清掉，界面上参考组已经删除。
+          if (!undone) void purgeDeletedReferenceGroup(g.id).catch(() => {});
+        },
       });
     } catch (e) {
       toast.error(errorText(e));
     }
   };
 
-  const libraries = (ids: string[]) => ids.map((id) => libraryNames.get(id) ?? t("unregisteredLibrary")).join(t("librarySeparator")) || t("notInLibrary");
+  const libraries = (ids: string[]) =>
+    ids.map((id) => libraryNames.get(id) ?? t("unregisteredLibrary")).join(t("librarySeparator")) || t("notInLibrary");
 
   // 卡片缩略图：读一次成员状态；参考组更新后重读。
   // biome-ignore lint/correctness/useExhaustiveDependencies(thumbs.get): 只读它跳过已缓存的；加进依赖会在每张缩略图回来时取消并重发其余请求
@@ -144,14 +156,19 @@ export function ReferenceGroupsPanel() {
     let alive = true;
     for (const g of groups) {
       if (g.problem || thumbs.get(g.id)?.at === g.updatedAt) continue;
-      referenceGroup(g.id).then((v) => {
-        if (alive && v) setThumbs((prev) => new Map(prev).set(g.id, { at: g.updatedAt, members: v.members }));
-      }, () => {});
+      referenceGroup(g.id).then(
+        (v) => {
+          if (alive && v) setThumbs((prev) => new Map(prev).set(g.id, { at: g.updatedAt, members: v.members }));
+        },
+        () => {},
+      );
     }
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [groups]);
 
-  const current = groups?.some((g) => g.id === active) ? active : groups?.[0]?.id ?? null;
+  const current = groups?.some((g) => g.id === active) ? active : (groups?.[0]?.id ?? null);
 
   const toggleMembers = (id: string) =>
     expanded?.group.id === id ? setExpanded(null) : void run(() => referenceGroup(id).then(setExpanded));
@@ -174,97 +191,242 @@ export function ReferenceGroupsPanel() {
     setSaving(true);
     try {
       const entries = await ("groupId" in target ? groupSaveCaptures(target.groupId) : groupSaveCaptures());
-      if (!entries.length) { await save(target, []); return; }
+      if (!entries.length) {
+        await save(target, []);
+        return;
+      }
       setCaptureSave(draftCaptureSave(target, entries, libraryOptions));
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
   const confirmCaptures = async (plan: CaptureSavePlan<SaveTarget>) => {
     setSaving(true);
     try {
       await run(() => save(plan.target, plan.choices));
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <section className="reference-groups" aria-label={t("label")}>
       <header className="reference-groups-bar">
         <h2>{t("label")}</h2>
-        {naming ? <GroupNameForm className="is-new" title={t("newTitle")} label={t("newLabel")} placeholder={t("newPlaceholder")}
-          value={name} onChange={setName} busy={saving} blocked={!!captureSave}
-          onCancel={() => { setNaming(false); setName(""); }} onSubmit={() => void run(() => beginSave({ name }))} /> : <button type="button" className="k-btn is-primary group-save" disabled={!!captureSave || saving} onClick={() => setNaming(true)}>
-          <BookmarkPlus size={15} aria-hidden="true" /><span className="k-label">{t("savePins")}</span>
-        </button>}
+        {naming ? (
+          <GroupNameForm
+            className="is-new"
+            title={t("newTitle")}
+            label={t("newLabel")}
+            placeholder={t("newPlaceholder")}
+            value={name}
+            onChange={setName}
+            busy={saving}
+            blocked={!!captureSave}
+            onCancel={() => {
+              setNaming(false);
+              setName("");
+            }}
+            onSubmit={() => void run(() => beginSave({ name }))}
+          />
+        ) : (
+          <button
+            type="button"
+            className="k-btn is-primary group-save"
+            disabled={!!captureSave || saving}
+            onClick={() => setNaming(true)}
+          >
+            <BookmarkPlus size={15} aria-hidden="true" />
+            <span className="k-label">{t("savePins")}</span>
+          </button>
+        )}
       </header>
-      {importing && <SaveDestinationDialog title={t("importTitle")} confirmLabel={t("importConfirm")} onClose={() => setImporting(false)} onConfirm={async (destination) => {
-        const group = await importReferenceGroupPackage(destination.libraryId, destination);
-        if (group) tell(t("imported", { name: group.name }));
-      }} />}
-      {captureSave && <CaptureGroupSaveDialog value={captureSave} onChange={setCaptureSave} libraries={libraryOptions} saving={saving}
-        onClose={() => setCaptureSave(null)} onConfirm={(plan) => void confirmCaptures(plan)} />}
-      {groups && groups.length === 0 && (
-        <p className="reference-groups-empty">{t("empty")}</p>
+      {importing && (
+        <SaveDestinationDialog
+          title={t("importTitle")}
+          confirmLabel={t("importConfirm")}
+          onClose={() => setImporting(false)}
+          onConfirm={async (destination) => {
+            const group = await importReferenceGroupPackage(destination.libraryId, destination);
+            if (group) tell(t("imported", { name: group.name }));
+          }}
+        />
       )}
+      {captureSave && (
+        <CaptureGroupSaveDialog
+          value={captureSave}
+          onChange={setCaptureSave}
+          libraries={libraryOptions}
+          saving={saving}
+          onClose={() => setCaptureSave(null)}
+          onConfirm={(plan) => void confirmCaptures(plan)}
+        />
+      )}
+      {groups && groups.length === 0 && <p className="reference-groups-empty">{t("empty")}</p>}
       <ul className="reference-groups-list">
         {groups?.map((g) => {
           const on = g.id === current;
           const members = thumbs.get(g.id)?.members ?? [];
           return (
             <li key={g.id} className={`reference-group${on ? " is-on" : ""}`} data-id={g.id}>
-              <button type="button" className="group-card-head" aria-current={on || undefined} onClick={() => setActive(g.id)}>
-                {members.length > 0 && <span className="group-thumbs" aria-hidden="true">
-                  {members.slice(0, 5).map((m) => <span key={m.memberId}
-                    className={`group-thumb${m.state.kind === "available" ? m.state.sealed ? " is-sealed" : "" : " is-missing"}`}>
-                    {m.state.kind === "available" && !m.state.sealed && <img src={"libraryId" in m ? thumbnailUrl(`${m.libraryId}/${m.imageId}/128`) : captureUrl(`group/${g.id}/${m.memberId}`)} alt="" draggable={false} />}
-                  </span>)}
-                </span>}
+              <button
+                type="button"
+                className="group-card-head"
+                aria-current={on || undefined}
+                onClick={() => setActive(g.id)}
+              >
+                {members.length > 0 && (
+                  <span className="group-thumbs" aria-hidden="true">
+                    {members.slice(0, 5).map((m) => (
+                      <span
+                        key={m.memberId}
+                        className={`group-thumb${m.state.kind === "available" ? (m.state.sealed ? " is-sealed" : "") : " is-missing"}`}
+                      >
+                        {m.state.kind === "available" && !m.state.sealed && (
+                          <img
+                            src={
+                              "libraryId" in m
+                                ? thumbnailUrl(`${m.libraryId}/${m.imageId}/128`)
+                                : captureUrl(`group/${g.id}/${m.memberId}`)
+                            }
+                            alt=""
+                            draggable={false}
+                          />
+                        )}
+                      </span>
+                    ))}
+                  </span>
+                )}
                 {renaming?.id !== g.id && <strong className="reference-group-name">{g.name}</strong>}
-                {g.problem
-                  ? <span className="reference-group-problem"><WarnIcon />{describeCommandError(g.problem)}</span>
-                  : <span className="reference-group-meta k-parts"><span>{t("memberCount", { count: g.memberCount })}</span><span>{libraries(g.libraryIds)}</span><span>{ago(g.updatedAt)}</span></span>}
+                {g.problem ? (
+                  <span className="reference-group-problem">
+                    <WarnIcon />
+                    {describeCommandError(g.problem)}
+                  </span>
+                ) : (
+                  <span className="reference-group-meta k-parts">
+                    <span>{t("memberCount", { count: g.memberCount })}</span>
+                    <span>{libraries(g.libraryIds)}</span>
+                    <span>{ago(g.updatedAt)}</span>
+                  </span>
+                )}
               </button>
               {renaming?.id === g.id && (
-                <GroupNameForm title={t("renameTitle")} label={t("nameLabel")} value={renaming.name} primary={false}
-                  onChange={(value) => setRenaming({ id: g.id, name: value })} onCancel={() => setRenaming(null)}
-                  onSubmit={() => void run(() => renameReferenceGroup(g.id, renaming.name), () => (setRenaming(null), null))} />
+                <GroupNameForm
+                  title={t("renameTitle")}
+                  label={t("nameLabel")}
+                  value={renaming.name}
+                  primary={false}
+                  onChange={(value) => setRenaming({ id: g.id, name: value })}
+                  onCancel={() => setRenaming(null)}
+                  onSubmit={() =>
+                    void run(
+                      () => renameReferenceGroup(g.id, renaming.name),
+                      () => (setRenaming(null), null),
+                    )
+                  }
+                />
               )}
-              {on && renaming?.id !== g.id && (g.problem ? (
-                <span className="reference-group-actions">
-                  <button type="button" className="k-btn is-sm" onClick={() => void removeGroup(g)}><Trash2 size={13} aria-hidden="true" /><span className="k-label">{t("delete")}</span></button>
-                </span>
-              ) : (
-                <span className="reference-group-actions">
-                  <button type="button" className="k-btn is-sm" onClick={() => void run(
-                    () => openReferenceGroup(g.id),
-                    (n) => (n === 0 ? t("allOnDesktop") : t("opened", { count: Number(n) })),
-                  )}><Layers size={13} aria-hidden="true" /><span className="k-label">{t("open")}</span></button>
-                  <button type="button" className="k-btn is-sm" onClick={() => setRenaming({ id: g.id, name: g.name })}><span className="k-label">{t("rename")}</span></button>
-                  <Menu.Root>
-                    <Tip label={t("more")}><Menu.Trigger className="k-icon-btn" aria-label={t("more")}><MoreHorizontal size={15} aria-hidden="true" /></Menu.Trigger></Tip>
-                    <MenuPopup label={t("moreLabel", { name: g.name })}>
-                      <MenuItem icon={<BookmarkPlus size={14} />} disabled={!!captureSave || saving}
-                        onClick={() => void run(() => beginSave({ groupId: g.id }))}>{t("saveInto")}</MenuItem>
-                      <MenuItem icon={<ListTree size={14} />} onClick={() => toggleMembers(g.id)}>
-                        {expanded?.group.id === g.id ? t("hideMembers") : t("showMembers")}</MenuItem>
-                      <MenuItem icon={<PackageOpen size={14} />} onClick={() => void run(
-                        () => exportReferenceGroupPackage(g.id),
-                        (path) => (path ? t("exported", { path: String(path) }) : null),
-                      )}>{t("export")}</MenuItem>
-                      <MenuSeparator />
-                      <MenuItem icon={<Trash2 size={14} />} danger onClick={() => void removeGroup(g)}>{t("delete")}</MenuItem>
-                    </MenuPopup>
-                  </Menu.Root>
-                </span>
-              ))}
+              {on &&
+                renaming?.id !== g.id &&
+                (g.problem ? (
+                  <span className="reference-group-actions">
+                    <button type="button" className="k-btn is-sm" onClick={() => void removeGroup(g)}>
+                      <Trash2 size={13} aria-hidden="true" />
+                      <span className="k-label">{t("delete")}</span>
+                    </button>
+                  </span>
+                ) : (
+                  <span className="reference-group-actions">
+                    <button
+                      type="button"
+                      className="k-btn is-sm"
+                      onClick={() =>
+                        void run(
+                          () => openReferenceGroup(g.id),
+                          (n) => (n === 0 ? t("allOnDesktop") : t("opened", { count: Number(n) })),
+                        )
+                      }
+                    >
+                      <Layers size={13} aria-hidden="true" />
+                      <span className="k-label">{t("open")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="k-btn is-sm"
+                      onClick={() => setRenaming({ id: g.id, name: g.name })}
+                    >
+                      <span className="k-label">{t("rename")}</span>
+                    </button>
+                    <Menu.Root>
+                      <Tip label={t("more")}>
+                        <Menu.Trigger className="k-icon-btn" aria-label={t("more")}>
+                          <MoreHorizontal size={15} aria-hidden="true" />
+                        </Menu.Trigger>
+                      </Tip>
+                      <MenuPopup label={t("moreLabel", { name: g.name })}>
+                        <MenuItem
+                          icon={<BookmarkPlus size={14} />}
+                          disabled={!!captureSave || saving}
+                          onClick={() => void run(() => beginSave({ groupId: g.id }))}
+                        >
+                          {t("saveInto")}
+                        </MenuItem>
+                        <MenuItem icon={<ListTree size={14} />} onClick={() => toggleMembers(g.id)}>
+                          {expanded?.group.id === g.id ? t("hideMembers") : t("showMembers")}
+                        </MenuItem>
+                        <MenuItem
+                          icon={<PackageOpen size={14} />}
+                          onClick={() =>
+                            void run(
+                              () => exportReferenceGroupPackage(g.id),
+                              (path) => (path ? t("exported", { path: String(path) }) : null),
+                            )
+                          }
+                        >
+                          {t("export")}
+                        </MenuItem>
+                        <MenuSeparator />
+                        <MenuItem icon={<Trash2 size={14} />} danger onClick={() => void removeGroup(g)}>
+                          {t("delete")}
+                        </MenuItem>
+                      </MenuPopup>
+                    </Menu.Root>
+                  </span>
+                ))}
               {expanded?.group.id === g.id && (
                 <ol className="reference-group-members" aria-label={t("membersLabel", { name: g.name })}>
                   {expanded.members.map((m, i) => {
                     const crop = expanded.group.members[i]?.crop;
                     return (
-                      <li key={m.memberId} className={m.state.kind === "unavailable" ? "reference-group-member-unavailable" : undefined}>
-                        <span className="k-parts"><span>{"libraryId" in m ? libraryNames.get(m.libraryId) ?? t("unregisteredLibrary") : t("captureMember")}</span><span>{crop ? t("crop", { width: crop.width, height: crop.height }) : t("whole")}</span></span>
-                        <span>{m.state.kind === "unavailable" && <WarnIcon />}{memberState(m)}</span>
+                      <li
+                        key={m.memberId}
+                        className={m.state.kind === "unavailable" ? "reference-group-member-unavailable" : undefined}
+                      >
+                        <span className="k-parts">
+                          <span>
+                            {"libraryId" in m
+                              ? (libraryNames.get(m.libraryId) ?? t("unregisteredLibrary"))
+                              : t("captureMember")}
+                          </span>
+                          <span>{crop ? t("crop", { width: crop.width, height: crop.height }) : t("whole")}</span>
+                        </span>
+                        <span>
+                          {m.state.kind === "unavailable" && <WarnIcon />}
+                          {memberState(m)}
+                        </span>
                         {/* 截图只存在参考组里：移出就删掉，先确认；图库里的图直接移出。 */}
-                        <button type="button" className="k-btn is-sm" onClick={() => "libraryId" in m ? void run(() => removeGroupMember(g.id, m.memberId)) : setRemoving({ groupId: g.id, memberId: m.memberId })}><span className="k-label">{t("remove")}</span></button>
+                        <button
+                          type="button"
+                          className="k-btn is-sm"
+                          onClick={() =>
+                            "libraryId" in m
+                              ? void run(() => removeGroupMember(g.id, m.memberId))
+                              : setRemoving({ groupId: g.id, memberId: m.memberId })
+                          }
+                        >
+                          <span className="k-label">{t("remove")}</span>
+                        </button>
                       </li>
                     );
                   })}
@@ -275,9 +437,17 @@ export function ReferenceGroupsPanel() {
         })}
       </ul>
       <footer className="reference-groups-foot">
-        <button type="button" className="k-btn is-sm is-ghost" onClick={() => setImporting(true)}><FolderInput size={13} aria-hidden="true" /><span className="k-label">{t("import")}</span></button>
+        <button type="button" className="k-btn is-sm is-ghost" onClick={() => setImporting(true)}>
+          <FolderInput size={13} aria-hidden="true" />
+          <span className="k-label">{t("import")}</span>
+        </button>
       </footer>
-      <AlertDialog.Root open={!!removing} onOpenChange={(open) => { if (!open) setRemoving(null); }}>
+      <AlertDialog.Root
+        open={!!removing}
+        onOpenChange={(open) => {
+          if (!open) setRemoving(null);
+        }}
+      >
         <AlertDialog.Portal>
           <AlertDialog.Backdrop className="k-backdrop" />
           <AlertDialog.Popup className="k-dialog is-alert">
@@ -285,12 +455,20 @@ export function ReferenceGroupsPanel() {
             <AlertDialog.Description className="k-dialog-desc">{t("removeCaptureDescription")}</AlertDialog.Description>
             <div className="k-dialog-foot">
               <span className="k-grow" />
-              <AlertDialog.Close className="k-btn"><span className="k-label">{t("cancel")}</span></AlertDialog.Close>
-              <button type="button" className="k-btn is-danger" onClick={() => {
-                const { groupId, memberId } = removing!;
-                setRemoving(null);
-                void run(() => removeGroupMember(groupId, memberId));
-              }}><span className="k-label">{t("removeCaptureConfirm")}</span></button>
+              <AlertDialog.Close className="k-btn">
+                <span className="k-label">{t("cancel")}</span>
+              </AlertDialog.Close>
+              <button
+                type="button"
+                className="k-btn is-danger"
+                onClick={() => {
+                  const { groupId, memberId } = removing!;
+                  setRemoving(null);
+                  void run(() => removeGroupMember(groupId, memberId));
+                }}
+              >
+                <span className="k-label">{t("removeCaptureConfirm")}</span>
+              </button>
             </div>
           </AlertDialog.Popup>
         </AlertDialog.Portal>

@@ -36,7 +36,6 @@ export function appInfo(): Promise<AppInfo> {
   return invoke<AppInfo>("app_info");
 }
 
-
 /** 启动时打开本设备上次打开的资料库并装配后端。打开了哪个是后端细节（ADR-0008），界面不留。 */
 export async function openLastLibrary(): Promise<void> {
   await invoke(lib("current_library"));
@@ -162,13 +161,28 @@ export function previewEmptyTrash(libraryId: string): Promise<PermanentDeletePre
 }
 
 /** 把文件夹移到 parent 下（null 为顶层）的第 position 位，超出时放在最后。 */
-export function moveFolder(libraryId: string, folderId: string, parent: string | null, position: number): Promise<void> {
+export function moveFolder(
+  libraryId: string,
+  folderId: string,
+  parent: string | null,
+  position: number,
+): Promise<void> {
   return invoke<void>(lib("move_folder"), { libraryId, folderId, parent, position });
 }
 
 /** 开始导入，立即返回任务 id；进度与结果经 onLibraryEvent 推送。 */
-export function startImport(libraryId: string, paths: string[], options?: ImportOptions, destination?: SaveDestination): Promise<string> {
-  return invoke<string>(lib("start_import"), { libraryId, source: { paths }, ...(options ? { options } : {}), ...(destination ? { destination } : {}) });
+export function startImport(
+  libraryId: string,
+  paths: string[],
+  options?: ImportOptions,
+  destination?: SaveDestination,
+): Promise<string> {
+  return invoke<string>(lib("start_import"), {
+    libraryId,
+    source: { paths },
+    ...(options ? { options } : {}),
+    ...(destination ? { destination } : {}),
+  });
 }
 
 /** 与实际导入相同的只读 Eagle 来源识别；用于手选、父文件夹、拖入及重试的统一选择。 */

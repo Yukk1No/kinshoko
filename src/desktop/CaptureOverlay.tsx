@@ -4,7 +4,17 @@ import type { CaptureAction } from "../bindings/CaptureAction";
 import type { FrozenScreen } from "../bindings/FrozenScreen";
 import type { OriginalPixels } from "../bindings/OriginalPixels";
 import { cancelCapture, captureReadout, captureReady, captureUrl, finishCapture, frozenScreen } from "../ipc";
-import { dragSelection, editSelection, reachEdges, selectionPart, toDevicePx, type Grip, type Point, type Rect, type SelectionPart } from "./pixels";
+import {
+  dragSelection,
+  editSelection,
+  reachEdges,
+  selectionPart,
+  toDevicePx,
+  type Grip,
+  type Point,
+  type Rect,
+  type SelectionPart,
+} from "./pixels";
 import { Copy, Pin, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Dock } from "../ui/Dock";
@@ -56,12 +66,22 @@ export function CaptureOverlay() {
     // 只认最后一次请求的回复：会话结束与下一次开始可能紧挨着到达。
     const refresh = () => {
       const request = ++sequence;
-      setRect(null); setDragging(false); setBusy(null); setReadout(null); setHover("outside"); start.current = null;
-      void frozenScreen().then((next) => { if (alive && request === sequence) setScreen(next); });
+      setRect(null);
+      setDragging(false);
+      setBusy(null);
+      setReadout(null);
+      setHover("outside");
+      start.current = null;
+      void frozenScreen().then((next) => {
+        if (alive && request === sequence) setScreen(next);
+      });
     };
     refresh();
     const off = listen("capture-session", refresh);
-    return () => { alive = false; void off.then((f) => f()); };
+    return () => {
+      alive = false;
+      void off.then((f) => f());
+    };
   }, []);
 
   const usable = rect !== null && rect.width >= MIN_SIZE && rect.height >= MIN_SIZE;
@@ -70,9 +90,13 @@ export function CaptureOverlay() {
   useEffect(() => {
     if (!screen || !rect || !usable) return;
     let alive = true;
-    const settle = (original: OriginalPixels | null) => { if (alive) setReadout({ rect, original }); };
+    const settle = (original: OriginalPixels | null) => {
+      if (alive) setReadout({ rect, original });
+    };
     captureReadout(rect, screen.image.slice("screen/".length)).then(settle, () => settle(null));
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [screen, rect, usable]);
   const same = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
   const original = readout && rect && same(readout.rect, rect) ? readout.original : null;
@@ -89,7 +113,12 @@ export function CaptureOverlay() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       // 聚焦在 dock 按钮上时，Enter／空格只执行那个按钮。
-      if ((e.key === "Enter" || e.key === " ") && e.target instanceof Element && e.target.closest(".capture-tools button")) return;
+      if (
+        (e.key === "Enter" || e.key === " ") &&
+        e.target instanceof Element &&
+        e.target.closest(".capture-tools button")
+      )
+        return;
       if (e.key === "Escape") finish("cancel");
       else if (e.key === "Enter" || e.key === "F3") finish("pin");
       else if (e.ctrlKey && e.key.toLowerCase() === "c") finish("copy");
@@ -126,7 +155,8 @@ export function CaptureOverlay() {
     if (busy || (e.target as HTMLElement).closest(".capture-tools")) return;
     if (e.button === 2) {
       if (!rect) return finish("cancel");
-      setRect(null); setHover("outside");
+      setRect(null);
+      setHover("outside");
       return;
     }
     if (e.button !== 0) return;
@@ -158,7 +188,9 @@ export function CaptureOverlay() {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest(".capture-tools")) finish("pin"); }}
+      onDoubleClick={(e) => {
+        if (!(e.target as HTMLElement).closest(".capture-tools")) finish("pin");
+      }}
       onContextMenu={(e) => e.preventDefault()}
     >
       <img
@@ -182,23 +214,77 @@ export function CaptureOverlay() {
             height: css(rect.height),
           }}
         >
-          {HANDLES.map((grip) => <span key={grip} className={`capture-handle is-${grip}`} aria-hidden="true" />)}
+          {HANDLES.map((grip) => (
+            <span key={grip} className={`capture-handle is-${grip}`} aria-hidden="true" />
+          ))}
         </div>
       )}
       {usable && !dragging && (
-        <FollowDock className="capture-tools" bounds={{ width: innerWidth, height: innerHeight }}
-          anchor={{ x: rect.x / dpr, y: rect.y / dpr, width: rect.width / dpr, height: rect.height / dpr }}>
-          <Dock label={t("label")} onSelect={(id) => finish(id as CaptureAction | "cancel")}
-            readout={busy
-              ? <span role="status">{t(busy === "copy" ? original ? "copyingOriginal" : "copying" : original ? "pinningOriginal" : "pinning")}</span>
-              : original
-              ? <Tip label={t("originalPixels")} side="top"><span className="k-original">{original.width} × {original.height}<span className="sr-only">{t("originalPixels")}</span><OriginalStar /></span></Tip>
-              : <Tip label={t("screenPixels")} side="top"><span>{rect.width} × {rect.height}<span className="sr-only">{t("screenPixels")}</span></span></Tip>} items={[
-              { id: "copy", label: t("copy"), icon: <Copy size={18} strokeWidth={1.75} />, shortcut: "Ctrl C", disabled: !!busy },
-              { id: "pin", label: t("pin"), icon: <Pin size={18} strokeWidth={1.9} />, shortcut: "Enter", tone: "primary", disabled: !!busy },
+        <FollowDock
+          className="capture-tools"
+          bounds={{ width: innerWidth, height: innerHeight }}
+          anchor={{ x: rect.x / dpr, y: rect.y / dpr, width: rect.width / dpr, height: rect.height / dpr }}
+        >
+          <Dock
+            label={t("label")}
+            onSelect={(id) => finish(id as CaptureAction | "cancel")}
+            readout={
+              busy ? (
+                <span role="status">
+                  {t(
+                    busy === "copy"
+                      ? original
+                        ? "copyingOriginal"
+                        : "copying"
+                      : original
+                        ? "pinningOriginal"
+                        : "pinning",
+                  )}
+                </span>
+              ) : original ? (
+                <Tip label={t("originalPixels")} side="top">
+                  <span className="k-original">
+                    {original.width} × {original.height}
+                    <span className="sr-only">{t("originalPixels")}</span>
+                    <OriginalStar />
+                  </span>
+                </Tip>
+              ) : (
+                <Tip label={t("screenPixels")} side="top">
+                  <span>
+                    {rect.width} × {rect.height}
+                    <span className="sr-only">{t("screenPixels")}</span>
+                  </span>
+                </Tip>
+              )
+            }
+            items={[
+              {
+                id: "copy",
+                label: t("copy"),
+                icon: <Copy size={18} strokeWidth={1.75} />,
+                shortcut: "Ctrl C",
+                disabled: !!busy,
+              },
+              {
+                id: "pin",
+                label: t("pin"),
+                icon: <Pin size={18} strokeWidth={1.9} />,
+                shortcut: "Enter",
+                tone: "primary",
+                disabled: !!busy,
+              },
               "sep",
-              { id: "cancel", label: t("cancel"), icon: <X size={18} strokeWidth={1.75} />, shortcut: "Esc", tone: "danger", disabled: !!busy },
-            ]} />
+              {
+                id: "cancel",
+                label: t("cancel"),
+                icon: <X size={18} strokeWidth={1.75} />,
+                shortcut: "Esc",
+                tone: "danger",
+                disabled: !!busy,
+              },
+            ]}
+          />
         </FollowDock>
       )}
       {!rect && <div className="capture-tip">{t("tip")}</div>}
