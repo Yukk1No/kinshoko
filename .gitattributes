@@ -9,6 +9,7 @@ src/bindings/** text eol=lf
 src/** text=auto eol=lf
 scripts/** text=auto eol=lf
 e2e/** text=auto eol=lf
+/biome.json text eol=lf
 # 机器生成或采集的输出，不是 agent 手写的；pre-commit 的 token 上限不检查。
 src/bindings/** linguist-generated
 crates/kinshoko-core/data/builtin-translation-table.json linguist-generated
