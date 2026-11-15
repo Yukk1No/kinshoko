@@ -5,6 +5,10 @@
 src/bindings/** text eol=lf
 # Hooks run under sh; CRLF breaks them.
 .githooks/* text eol=lf
+# Biome 按 LF 检查 src、scripts、e2e 的格式；Windows 上 autocrlf 检出成 CRLF 时，npm run check 会把每个文件都报成格式错误。
+src/** text=auto eol=lf
+scripts/** text=auto eol=lf
+e2e/** text=auto eol=lf
 # 机器生成或采集的输出，不是 agent 手写的；pre-commit 的 token 上限不检查。
 src/bindings/** linguist-generated
 crates/kinshoko-core/data/builtin-translation-table.json linguist-generated

@@ -65,6 +65,8 @@ CI runs the Rust checks (format, Clippy, core crate tests, pin renderer offscree
 
 To make `git blame` skip the one-off formatting commit, run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once (GitHub reads the file by itself).
 
+Files under src/, scripts/ and e2e/ are checked out with LF line endings (see .gitattributes), because Biome checks them for LF. A checkout made before that rule still has CRLF copies, and npm run lint reports every file; with no uncommitted changes, check them out again: `git rm -r -q --cached src scripts e2e && git reset -q --hard`.
+
 ## Layout
 
 | Path | Contents |
