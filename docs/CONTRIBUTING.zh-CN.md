@@ -62,6 +62,8 @@ CI 在 `windows-2022` 上运行 Rust 检查（格式、Clippy、核心 crate 测
 
 想让 `git blame` 跳过那次全量格式化的提交，在本地跑一次 `git config blame.ignoreRevsFile .git-blame-ignore-revs`（GitHub 会自己读这个文件）。
 
+src/、scripts/、e2e/ 下的文件和 biome.json 一律按 LF 换行检出（见 .gitattributes），因为 Biome 按 LF 检查格式。这条规则之前检出的目录里还是 CRLF，npm run lint 会把每个文件都报出来；没有未提交的改动时重新检出一次：`git rm -r -q --cached src scripts e2e biome.json && git reset -q --hard`。
+
 ## 目录
 
 | 路径 | 内容 |
