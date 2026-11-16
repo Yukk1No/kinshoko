@@ -49,6 +49,9 @@ function toggle(li: HTMLElement) {
   const row = rowOf(li), branch = branchOf(li);
   if (!row || !branch) return;
   const id = row.dataset.folderId as string;
+  // 上一次折起或展开还没播完就又点了：从它停下的高度接着走，它的收尾不再算数（见下面 done 里的判断）。
+  const from = branch.offsetHeight;
+  for (const running of branch.getAnimations()) running.cancel();
   if (folded.has(id)) {
     folded.delete(id);
     delete li.dataset.folded;
@@ -56,7 +59,7 @@ function toggle(li: HTMLElement) {
     if (reduced()) return;
     const height = branch.offsetHeight;
     branch.style.overflow = "clip";
-    branch.animate([{ height: "0px" }, { height: `${height}px` }], { duration: 300, easing: settle() }).finished.then(() => { branch.style.overflow = ""; }, () => {});
+    branch.animate([{ height: `${from}px` }, { height: `${height}px` }], { duration: 300, easing: settle() }).finished.then(() => { branch.style.overflow = ""; }, () => {});
     [...branch.querySelectorAll<HTMLElement>(".k-fluid-row")].filter((el) => el.checkVisibility()).forEach((el, index) => {
       el.animate([{ opacity: 0, transform: "translateY(-8px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: settle(), delay: Math.min(index, 14) * 18, fill: "backwards" });
     });
@@ -64,10 +67,10 @@ function toggle(li: HTMLElement) {
   }
   folded.add(id);
   li.setAttribute("aria-expanded", "false");
-  const done = () => { branch.style.overflow = ""; li.dataset.folded = ""; };
+  const done = () => { if (!folded.has(id)) return; branch.style.overflow = ""; li.dataset.folded = ""; };
   if (reduced()) { done(); return; }
   branch.style.overflow = "clip";
-  branch.animate([{ height: `${branch.offsetHeight}px`, opacity: 1 }, { height: "0px", opacity: 0 }], { duration: 200, easing: "cubic-bezier(0.4, 0, 0.6, 1)" }).finished.then(done, done);
+  branch.animate([{ height: `${from}px`, opacity: 1 }, { height: "0px", opacity: 0 }], { duration: 200, easing: "cubic-bezier(0.4, 0, 0.6, 1)" }).finished.then(done, done);
 }
 
 export function mountTree() {
@@ -86,6 +89,7 @@ export function mountTree() {
     if (event.altKey || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
     const li = (document.activeElement as Element | null)?.closest?.<HTMLElement>(".sidebar-slot li[data-parent]");
     if (!li || rowOf(li) !== document.activeElement) return;
-    if ((event.key === "ArrowLeft") !== ("folded" in li.dataset)) { event.preventDefault(); toggle(li); }
+    // 看记下的状态，不看 data-folded：后者要等折起播完才写上。
+    if ((event.key === "ArrowLeft") !== folded.has(rowOf(li)?.dataset.folderId as string)) { event.preventDefault(); toggle(li); }
   }, true);
 }
