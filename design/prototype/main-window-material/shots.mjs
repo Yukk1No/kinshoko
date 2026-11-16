@@ -204,6 +204,29 @@ async function demo() {
   await delay(1200);
 }
 
+/** 一行文件夹图标的中心。 */
+const iconAt = async (text) => { const r = await rowAt(text); return { x: r.x + 15.5, y: r.y + r.height / 2 }; };
+/** 第八轮的一段演示：折起再展开“服装”，折起再展开“发型”，选中“长发”，折起再展开“人物”（折起时图标带强调色，因为选中的在里面）。 */
+async function treeDemo() {
+  hand = { x: 900, y: 600 };
+  const click = async () => { await press(hand.x, hand.y); await release(hand.x, hand.y); };
+  for (const name of ["服装", "发型"]) {
+    const at = await iconAt(name);
+    await glide(at.x, at.y, 550);
+    await delay(550);
+    await click(); await delay(750);
+    await click(); await delay(850);
+  }
+  const pick = await middle("长发");
+  await glide(pick.x, pick.y, 450);
+  await click(); await delay(800);
+  const top = await iconAt("人物");
+  await glide(top.x, top.y, 500);
+  await delay(550);
+  await click(); await delay(1000);
+  await click(); await delay(1000);
+}
+
 /** 整屏用有损 WebP（色块渐变的 PNG 每张近 1 MB）；放大图要看半像素线，用质量 100。 */
 async function shot(name, clip, quality = clip ? 100 : 90) {
   const { data } = await send("Page.captureScreenshot", { format: "webp", quality, ...(clip ? { clip: { ...clip, scale: 1 } } : {}) });
@@ -225,6 +248,24 @@ try {
         await delay(400);
         const side = await rect(".sidebar-slot");
         await shot(`${variant}-folder-${tone}`, { x: side.x - 12, y: 136, width: side.width + 20, height: 252 });
+      }
+      // 第八轮，200%：子文件夹的层级。选中第三层的“长发”、折起“服装”；再把指针停在“人物”的图标上（图标先合上）。另录一段折起与展开。
+      if (["c4f", "c4g"].includes(variant)) {
+        await open(variant, theme, 1280, 800, 2, "&plain=1");
+        const side = await rect(".sidebar-slot");
+        const clip = { x: side.x - 12, y: 136, width: side.width + 20, height: 352 };
+        await clickText(".side-scroll .k-row", "长发");
+        const folding = await iconAt("服装");
+        await moveTo(folding.x, folding.y); await press(folding.x, folding.y); await release(folding.x, folding.y);
+        await moveTo(1000, 700);
+        await delay(800);
+        await shot(`${variant}-tree-${tone}`, clip);
+        const hover = await iconAt("人物");
+        await moveTo(hover.x - 2, hover.y); await moveTo(hover.x, hover.y);
+        await delay(700);
+        await shot(`${variant}-tree-hover-${tone}`, clip);
+        await open(variant, theme, 1280, 800, 1, "&plain=1");
+        await record(`${variant}-tree-motion-${tone}`, { x: 0, y: 100, width: 330, height: 420 }, treeDemo);
       }
       if (process.env.SHOTS_PART === "folder") continue;
       // SHOTS_PART=extra 时只出后面的放大图（调拖动的时候用）。

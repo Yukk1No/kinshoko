@@ -14,11 +14,13 @@ const status = { revision: "prototype", libraries: registrations };
 
 type Folder = { id: string; name: string; count: number; children: Folder[] };
 const folder = (id: string, name: string, count: number, children: Folder[] = []): Folder => ({ id, name, count, children });
+/** 第八轮看层级要有第三层：C4f、C4g 里“发型”下面多两个文件夹。 */
+const deep = ["c4f", "c4g"].includes(new URLSearchParams(location.search).get("variant") ?? "");
 const sidebars: Record<string, { all: number; trash: number; folders: Folder[] }> = {
   L1: {
     all: 1284, trash: 12,
     folders: [
-      folder("F1", "人物", 412, [folder("F11", "发型", 96), folder("F12", "表情", 58), folder("F13", "手", 133)]),
+      folder("F1", "人物", 412, [folder("F11", "发型", 96, deep ? [folder("F111", "长发", 52), folder("F112", "短发", 31)] : []), folder("F12", "表情", 58), folder("F13", "手", 133)]),
       folder("F2", "服装", 207, [folder("F21", "制服", 64), folder("F22", "和服", 41)]),
       folder("F3", "背景", 318),
       folder("F4", "光影", 126),

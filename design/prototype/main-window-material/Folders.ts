@@ -35,7 +35,8 @@ type Row = { id: string; el: HTMLElement; button: HTMLButtonElement; depth: numb
 type Target = { kind: "gap"; gap: number; depth: number; parent: string | null; position: number } | { kind: "into"; row: number };
 
 function readRows(nav: Element): Row[] {
-  return [...nav.querySelectorAll<HTMLButtonElement>("button[data-folder-id]")].map((button) => {
+  // 折起的分支里的行不算（第八轮可以折起文件夹）。
+  return [...nav.querySelectorAll<HTMLButtonElement>("button[data-folder-id]")].filter((button) => button.checkVisibility()).map((button) => {
     const el = button.parentElement as HTMLElement;
     const rect = el.getBoundingClientRect();
     const above = button.closest("li")?.parentElement?.closest("li")?.querySelector<HTMLElement>(":scope > .k-fluid-row > button[data-folder-id]");
