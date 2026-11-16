@@ -351,9 +351,6 @@ body {
   color: var(--ink-2);
   white-space: nowrap;
 }
-.wall {
-  scrollbar-gutter: stable;
-}
 :focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);

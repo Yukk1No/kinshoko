@@ -48,11 +48,13 @@
   position: relative;
 }
 
-/* 图片墙：中性底色，卡片无装饰；占位色先于缩略图出现，滚动时不露白。 */
+/* 图片墙：中性底色，卡片无装饰；占位色先于缩略图出现，滚动时不露白。
+   滚动条的位置一直留着（图少、不用滚动时墙也不变宽），用 overflow-y: scroll 留，不用 scrollbar-gutter：
+   有 scrollbar-gutter 时 Chromium 不给这个滚动容器单独的合成层，每滚一帧都要把整面墙重新绘制、光栅化。 */
 .wall {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   overflow-anchor: none;
   background: var(--wall);
@@ -169,9 +171,11 @@
   pointer-events: none;
 }
 
+/* 用 visibility 隐去，不用 opacity：opacity 的过渡会把带模糊的占位图提成合成层，
+   快速滚动时每张到达的缩略图都让所在的一整条墙重新光栅化。 */
 .card img[data-loaded] + .card-placeholder {
-  opacity: 0;
-  transition: opacity 0s linear 160ms;
+  visibility: hidden;
+  transition: visibility 0s linear 160ms;
 }
 
 /* 设置（#61） */

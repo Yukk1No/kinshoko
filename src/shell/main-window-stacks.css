@@ -33,10 +33,13 @@
 .card.is-stack > .stack-sheet[data-veiled="true"] .card-placeholder {
   visibility: hidden;
 }
+/* will-change：每层纸各自一个合成层，摆正了光栅化、由合成器旋转。旋转着画圆角裁剪和圆角阴影很慢，
+   一屏几十摞时滚动会掉到每秒 50 帧左右。 */
 .card.is-stack > .stack-sheet {
   pointer-events: none;
   transform-origin: 50% 50%;
   transform: var(--rest);
+  will-change: transform;
   box-shadow:
     0 0 0 0.5px var(--sheet-edge),
     0 1px 1.5px var(--sheet-drop);
