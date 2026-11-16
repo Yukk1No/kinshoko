@@ -84,6 +84,12 @@ export function mountTree() {
     event.preventDefault();
     toggle(slot.closest("li") as HTMLElement);
   }, true);
+  // 在图标上连点两下只是折起再展开，不进入改名（正式程序双击一行是改名）；双击名字仍然改名。
+  window.addEventListener("dblclick", (event) => {
+    if (!(event.target as Element | null)?.closest?.(".sidebar-slot li[data-parent] > .k-fluid-row .k-row-icon")) return;
+    event.stopPropagation();
+    event.preventDefault();
+  }, true);
   // 拖动是按下后移动才开始；按在图标上不移动，就只是折起。
   window.addEventListener("keydown", (event) => {
     if (event.altKey || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
