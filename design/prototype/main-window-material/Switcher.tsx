@@ -49,7 +49,9 @@ export function Switcher({ pose }: { pose: Pose }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      if (target?.closest("input, textarea, [contenteditable]")) return;
+      // 焦点在文件夹上时，← → 是折起与展开（Tree.ts），Alt + 方向键是挪位置（Folders.ts），不换方案。
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (target?.closest("input, textarea, [contenteditable], button[data-folder-id]")) return;
       if (event.key === "ArrowLeft") step(-1);
       if (event.key === "ArrowRight") step(1);
     };
