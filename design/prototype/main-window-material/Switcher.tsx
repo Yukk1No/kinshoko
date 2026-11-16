@@ -17,11 +17,12 @@ export const VARIANTS = [
   { key: "c4e", name: "C4e 选中的文件夹" },
   { key: "c4f", name: "C4f 层级：引线" },
   { key: "c4g", name: "C4g 层级：托盘" },
+  { key: "c4h", name: "C4h 层级：折痕" },
 ] as const;
 
 export type Pose = { variant: string; theme: "light" | "dark" | null; specimen: boolean; bar: boolean };
 
-/** 地址栏参数：variant（now / a / b / c / c2 / c3 / c4 / c5 / c4a / c4b / c4c / c4d / c4e / c4f / c4g）、theme（light / dark，不写跟随系统）、specimen=1（材质样本）、bar=0（截图时藏起切换条）。 */
+/** 地址栏参数：variant（now / a / b / c / c2 / c3 / c4 / c5 / c4a / c4b / c4c / c4d / c4e / c4f / c4g / c4h）、theme（light / dark，不写跟随系统）、specimen=1（材质样本）、bar=0（截图时藏起切换条）。 */
 export function readPose(): Pose {
   const params = new URLSearchParams(location.search);
   const variant = params.get("variant") ?? "now";

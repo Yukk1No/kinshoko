@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const [, , outArg, ...only] = process.argv;
 const out = resolve(outArg ?? join(here, "shots"));
-const variants = only.length ? only : ["now", "a", "b", "c", "c2", "c3", "c4", "c5", "c4a", "c4b", "c4c", "c4d", "c4e"];
+const variants = only.length ? only : ["now", "a", "b", "c", "c2", "c3", "c4", "c5", "c4a", "c4b", "c4c", "c4d", "c4e", "c4f", "c4g", "c4h"];
 const page = "http://127.0.0.1:1431/design/prototype/main-window-material/";
 const edge = [process.env.EDGE, "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe"].find((path) => path && existsSync(path));
 if (!edge) throw new Error("找不到 msedge.exe；用环境变量 EDGE 指给它");
@@ -250,7 +250,7 @@ try {
         await shot(`${variant}-folder-${tone}`, { x: side.x - 12, y: 136, width: side.width + 20, height: 252 });
       }
       // 第八轮，200%：子文件夹的层级。选中第三层的“长发”、折起“服装”；再把指针停在“人物”的图标上（图标先合上）。另录一段折起与展开。
-      if (["c4f", "c4g"].includes(variant)) {
+      if (["c4f", "c4g", "c4h"].includes(variant)) {
         await open(variant, theme, 1280, 800, 2, "&plain=1");
         const side = await rect(".sidebar-slot");
         const clip = { x: side.x - 12, y: 136, width: side.width + 20, height: 352 };

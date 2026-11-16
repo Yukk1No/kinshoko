@@ -52,6 +52,6 @@ if (pose.variant === "c4a") mountGroups("panel");
 if (pose.variant === "c4b") mountGroups("side");
 if (pose.variant === "c4c") mountGroups("inline");
 // 第六轮：C4d 在 C4c 上改查找框的选中样子与文件夹视图，并给文件夹加上拖动排序。
-if (["c4d", "c4e", "c4f", "c4g"].includes(pose.variant)) { mountGroups("inline"); mountFolders(); }
+if (["c4d", "c4e", "c4f", "c4g", "c4h"].includes(pose.variant)) { mountGroups("inline"); mountFolders(); }
 // 第八轮：子文件夹的层级。C4f、C4g 在 C4e 上加折叠与新的缩进，见 Tree.ts。
-if (pose.variant === "c4f" || pose.variant === "c4g") mountTree();
+if (["c4f", "c4g", "c4h"].includes(pose.variant)) mountTree();
