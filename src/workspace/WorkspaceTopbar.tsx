@@ -129,7 +129,7 @@ export function WorkspaceTopbar({
               kind: "library",
               libraryId: destination.libraryId,
               // 没选文件夹时打开整个图库：Eagle 导入与合并的重复项会保留原有文件夹，“未归类”可能一张也看不到。
-              scope: destination.folderId === null ? { kind: "all" } : { kind: "folder", id: destination.folderId },
+              scope: destination.folderId === null ? { kind: "all" } : { kind: "folderTree", id: destination.folderId },
             });
             changeSearch((prev) => ({ ...prev, conditions: [] }));
           }}
