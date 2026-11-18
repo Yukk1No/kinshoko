@@ -195,8 +195,7 @@ pub(super) fn open_reference_selection(
     let (x, y) = place_new_pin(origin, monitor, &others, (OFFSET * dpi).round() as i32);
     pin.placement.x = x;
     pin.placement.y = y;
-    let pin = add(app, pin)?;
-    open_pin(app, &pin);
+    let pin = add_and_open(app, pin)?;
     Ok(pin.id)
 }
 

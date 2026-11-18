@@ -23,6 +23,11 @@ use super::{history_changed, lock, menu, pins, state};
 /// 同一时刻只有一次在对齐钉图窗口。不在 `DesktopState` 里：持有它时要调用窗口 API。
 static ALIGNING: Mutex<()> = Mutex::new(());
 
+/// 新钉图从放进钉图状态到开出窗口这段，不能夹进一次对齐（[`super::pins::add_and_open`]）。
+pub(in crate::desktop) fn aligning() -> std::sync::MutexGuard<'static, ()> {
+    ALIGNING.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 fn flag_off() -> CommandError {
     CommandError::new(ErrorKind::DeskGroupsOff, "参考组改成桌面的开关没打开")
 }
