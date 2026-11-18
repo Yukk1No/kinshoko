@@ -293,6 +293,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         if !std::mem::replace(&mut live.closing, true) {
             self.render.detach(id);
         }
+        if self.group.dragged_by(id) {
+            self.end_group_drag();
+        }
     }
 
     /// 没有打开着的钉图了：应用壳可以丢掉整个编排（平台层与渲染层）。

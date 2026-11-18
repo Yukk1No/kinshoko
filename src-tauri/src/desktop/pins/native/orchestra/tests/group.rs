@@ -183,3 +183,42 @@ fn the_menu_arms_one_group_drag_and_escape_cancels_it_without_closing() {
             .any(|e| matches!(e, Effect::CloseRequested(_)))
     );
 }
+
+#[test]
+fn closing_the_pin_that_drags_the_group_ends_the_drag() {
+    let mut r = Rig::two();
+    r.grab((150, 150), PointerEvent::Down(PointerButton::Primary), true);
+    r.grab((250, 200), PointerEvent::Move, true);
+    r.input(PinInput::Alt { held: false });
+    r.key(Key::Escape, false);
+    assert!(!r.o.group.dragging());
+    assert!(!r.o.pins[&B].outlined);
+    // B 的滚轮照常（单张缩放）。
+    let before = r.o.pins[&B].pin.placement.scale;
+    r.input(PinInput::Wheel {
+        pin: B,
+        at: (1200, 300),
+        notches: 1.0,
+        ctrl: false,
+        alt: false,
+    });
+    assert!(r.o.pins[&B].pin.placement.scale > before);
+}
+
+#[test]
+fn a_later_alt_wheel_scales_the_layout_as_it_is_now() {
+    let mut r = Rig::two();
+    let alt_wheel = |alt| PinInput::Wheel {
+        pin: A,
+        at: (600, 475),
+        notches: 1.0,
+        ctrl: false,
+        alt,
+    };
+    r.input(alt_wheel(true));
+    r.input(alt_wheel(false));
+    let a = r.o.pins[&A].pin.placement;
+    r.input(alt_wheel(true));
+    // 从单张缩放之后的样子再乘 1.12，不回到第一次整组缩放的起点。
+    assert!((r.o.pins[&A].pin.placement.scale - a.scale * 1.12).abs() < 1e-9);
+}

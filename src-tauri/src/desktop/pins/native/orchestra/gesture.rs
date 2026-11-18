@@ -68,7 +68,10 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             return;
         }
         match p.event {
-            PointerEvent::Down(_) => self.alt_changed(p.alt),
+            PointerEvent::Down(_) => {
+                self.alt_changed(p.alt);
+                self.group.forget_wheel();
+            }
             PointerEvent::Move => {
                 self.alt_changed(p.alt);
                 self.hovered(Some(p.pin));
@@ -126,7 +129,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 });
                 self.shell.raise(p.pin);
                 if group {
-                    self.start_group_drag(p.at);
+                    self.start_group_drag(p.pin, p.at);
                 }
             }
             PointerEvent::Move => {
@@ -205,6 +208,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             self.group_wheel(at, delta_y);
             return;
         }
+        self.group.forget_wheel();
         let Some(live) = self.live(pin) else { return };
         if ctrl {
             let before = live.pin.opacity;
@@ -237,6 +241,11 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         // 菜单“整组移动”之后：Esc 先取消它，不关钉图。
         if key == Key::Escape && self.live(pin).is_some() && self.disarm_group_move() {
             return;
+        }
+        self.group.forget_wheel();
+        // 关掉的正是拖着整组的那张：整组拖动随之结束（之后的松开到不了它）。
+        if key == Key::Escape && self.group.dragged_by(pin) {
+            self.end_group_drag();
         }
         let Some(live) = self.live(pin) else { return };
         let turn = match (key, shift) {

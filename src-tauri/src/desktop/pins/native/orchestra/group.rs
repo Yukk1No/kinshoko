@@ -22,9 +22,10 @@ pub(super) struct Group {
     hover: Option<PinId>,
     /// 点过菜单“整组移动”，还没按下。
     armed: bool,
-    /// 整组拖动中：开始时的样子。
-    drag: Option<GroupGrab>,
-    /// 整组滚轮缩放：取锚点时的光标、开始时的样子、累计的比例。光标挪了重新取。
+    /// 整组拖动中：按下的那张与开始时的样子。
+    drag: Option<(PinId, GroupGrab)>,
+    /// 整组滚轮缩放：取锚点时的光标、开始时的样子、累计的比例。光标挪了、松开 Alt、别的改动
+    /// （按下、按键、单张滚轮、应用壳推来的帧）之后重新取，免得盖掉中间的改动。
     wheel: Option<((i32, i32), GroupGrab, f64)>,
 }
 
@@ -42,6 +43,16 @@ impl Group {
     pub(super) fn dragging(&self) -> bool {
         self.drag.is_some()
     }
+
+    /// 整组拖动是不是从 `pin` 上按下的。
+    pub(super) fn dragged_by(&self, pin: PinId) -> bool {
+        self.drag.as_ref().is_some_and(|(by, _)| *by == pin)
+    }
+
+    /// 别的改动之后，下一次 Alt+滚轮从此刻的样子重新开始。
+    pub(super) fn forget_wheel(&mut self) {
+        self.wheel = None;
+    }
 }
 
 impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
@@ -49,6 +60,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
     pub(super) fn alt_changed(&mut self, held: bool) {
         if self.group.alt != held {
             self.group.alt = held;
+            if !held {
+                self.group.forget_wheel();
+            }
             self.refresh_outline();
         }
     }
@@ -77,26 +91,26 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         was
     }
 
-    /// 整组拖动开始：记下此刻开着的全部钉图。
-    pub(super) fn start_group_drag(&mut self, at: (i32, i32)) {
+    /// 整组拖动开始（从 `pin` 上按下）：记下此刻开着的全部钉图。
+    pub(super) fn start_group_drag(&mut self, pin: PinId, at: (i32, i32)) {
         let at = (f64::from(at.0), f64::from(at.1));
         let grab = GroupGrab::new(self.members(), at);
         self.group.armed = false;
         self.group.wheel = None;
-        self.group.drag = Some(grab);
+        self.group.drag = Some((pin, grab));
         self.refresh_outline();
     }
 
     /// 整组拖到离按下处 `offset`。
     pub(super) fn group_dragged(&mut self, offset: (i32, i32)) {
-        let Some(grab) = self.group.drag.take() else {
+        let Some((pin, grab)) = self.group.drag.take() else {
             return;
         };
         self.place_group(&grab, offset, 1.0, 0);
-        self.group.drag = Some(grab);
+        self.group.drag = Some((pin, grab));
     }
 
-    /// 整组拖动结束（松开、取消、开了菜单）。
+    /// 整组拖动结束（松开、取消、开了菜单、按下的那张关了）。
     pub(super) fn end_group_drag(&mut self) {
         if self.group.drag.take().is_some() {
             self.refresh_outline();
