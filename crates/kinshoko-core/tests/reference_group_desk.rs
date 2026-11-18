@@ -518,6 +518,30 @@ fn flushing_says_when_the_group_list_would_look_different() {
 }
 
 #[test]
+fn removing_a_member_when_the_desk_state_cannot_be_saved_keeps_it_and_its_pin() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    let c = t.pin_capture("c", 2);
+    t.desk.flush().unwrap();
+    let id = t.desk.group().id.clone();
+    let member = c.member.clone().unwrap().member_id;
+    let pins = t.desk.pins().to_vec();
+
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.remove_member(&id, &member, &mut t.history).is_err());
+    assert_eq!(t.desk.pins(), &pins[..], "钉图还在");
+    assert_eq!(t.desk.group().members.len(), 2, "成员还在");
+
+    std::fs::remove_dir_all(&state).unwrap();
+    t.desk.edit(&pins[0].id, |p| p.move_to(30, 30));
+    t.desk.flush().unwrap();
+    assert_eq!(reread(&t, &id).members.len(), 2, "之后落盘不会把移出写进去");
+}
+
+#[test]
 fn removing_a_member_of_the_group_on_the_desk_closes_its_pin_and_is_kept() {
     let mut t = TestDesk::new();
     let a = t.pin_reference("a", 10);
