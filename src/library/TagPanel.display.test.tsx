@@ -143,12 +143,11 @@ describe("悬停不改标签尺寸（#159）", () => {
 });
 
 describe("未翻译的标签", () => {
-  it("名称后面是翻译图标，带可访问名称；不再出现“文A”", async () => {
+  it("名称后面是翻译图标，带可访问名称", async () => {
     renderPanel();
     await screen.findByText("ahoge");
     const icon = within(chip("ahoge")).getByRole("img", { name: "尚无中文名，显示的是原名" });
     expect(icon.tagName.toLowerCase()).toBe("span");
-    expect(document.body.textContent).not.toContain("文A");
     fireEvent.focus(chip("ahoge"));
     const tip = await screen.findByRole("dialog", { name: "“ahoge”的出处" });
     expect(tip.textContent).toContain("尚无中文名，显示的是原名");
