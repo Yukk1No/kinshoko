@@ -498,12 +498,21 @@ impl Desk {
         target.members.push(member);
         target.updated_at = crate::library::now_ms();
         self.groups.commit(&target, &copies)?;
+        let snapshot = self.snapshot(std::slice::from_ref(&member_id));
         let closed = self.close(pin_id, history);
+        if let Err(e) = self.flush() {
+            // 桌面这边写不进：钉图留在桌面上，目标参考组里刚加的那个成员（连同截图）拿掉，像没移过一样。
+            self.roll_back(snapshot, history);
+            target.members.retain(|m| m.id != moved.member_id);
+            target.updated_at = crate::library::now_ms();
+            let _ = self.groups.commit(&target, &[]);
+            return Err(e);
+        }
+        snapshot.discard();
         if let Some(capture) = closed.as_ref().and_then(SavedPin::capture_id) {
             // 之后从截图历史收藏这张截图，改连的是它在目标参考组里的成员。
             let _ = history.link_member(capture, moved);
         }
-        self.flush()?;
         Ok(closed)
     }
 

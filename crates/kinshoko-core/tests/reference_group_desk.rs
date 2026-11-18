@@ -705,6 +705,34 @@ fn undoing_a_merge_into_an_empty_desk_after_switching_away_leaves_no_empty_group
 }
 
 #[test]
+fn moving_a_pin_when_the_desk_state_cannot_be_saved_moves_nothing() {
+    let mut t = TestDesk::new();
+    t.pin_reference("x", 10);
+    t.desk.flush().unwrap();
+    let target = t.desk.group().id.clone();
+    t.desk.new_desk(&mut t.history).unwrap();
+    t.pin_reference("keep", 30);
+    let c = t.pin_capture("c", 4);
+    t.desk.flush().unwrap();
+    let on_desk = t.desk.group().id.clone();
+    let pins = t.desk.pins().to_vec();
+
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.move_pin(&c.id, &target, &mut t.history).is_err());
+    std::fs::remove_dir_all(&state).unwrap();
+
+    assert_eq!(t.desk.pins(), &pins[..], "钉图还在桌面上");
+    assert_eq!(reread(&t, &target).members.len(), 1, "目标参考组没多出成员");
+    assert!(t.capture_files(&target).is_empty());
+    t.desk.flush().unwrap();
+    assert_eq!(t.capture_files(&on_desk).len(), 1, "桌面上的截图也在");
+    assert_eq!(t.restart().len(), 2);
+}
+
+#[test]
 fn moving_a_pin_takes_it_off_the_desk_into_the_other_group_with_its_capture() {
     let mut t = TestDesk::new();
     t.pin_reference("x", 10);
