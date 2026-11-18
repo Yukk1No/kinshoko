@@ -55,13 +55,15 @@ impl ImageCache {
         let path = self.file(key);
         let tmp = self.dir.join(format!("{}.part", uuid::Uuid::new_v4()));
         fs::write(&tmp, bytes)?;
+        // 换文件和记账在同一把锁里：同一张图被两个请求同时存时，后一次替换前一次，只记一份。
+        let mut size = self.size.lock().unwrap_or_else(|e| e.into_inner());
+        let replaced = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
         if let Err(e) = fs::rename(&tmp, &path) {
             let _ = fs::remove_file(&tmp);
             return Err(e);
         }
-        let mut size = self.size.lock().unwrap_or_else(|e| e.into_inner());
         let total = match *size {
-            Some(total) => total + bytes.len() as u64,
+            Some(total) => (total + bytes.len() as u64).saturating_sub(replaced),
             None => entries(&self.dir).iter().map(|e| e.1).sum(),
         };
         *size = Some(if total > self.cap {
@@ -171,6 +173,22 @@ mod tests {
         assert!(cache.get("b").is_none());
         assert!(cache.get("c").is_none());
         assert!(cache.get("d").is_some());
+    }
+
+    #[test]
+    fn storing_the_same_image_again_is_counted_once() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = ImageCache::new(dir.path(), 100);
+        // 实际 95 字节，没到上限；同一张图重复存时若重复记账，会以为超了上限而删图。
+        for key in ["a", "b", "c", "d", "e", "f", "g", "h"] {
+            cache.put(key, &[0; 10]).unwrap();
+        }
+        cache.put("i", &[0; 15]).unwrap();
+        cache.put("a", &[0; 10]).unwrap();
+        cache.put("a", &[0; 10]).unwrap();
+        for key in ["a", "b", "c", "d", "e", "f", "g", "h", "i"] {
+            assert!(cache.get(key).is_some(), "{key} 不该被删");
+        }
     }
 
     #[test]
