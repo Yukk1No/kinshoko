@@ -403,9 +403,19 @@ impl Desk {
         id: &str,
         history: &mut CaptureHistory,
     ) -> Result<(RelinkReport, Option<Switched>), GroupError> {
-        let report = self.groups.untrash_reconciling(id, history)?;
-        if self.trashed_from_desk.remove(id) {
+        let to_desk = self.trashed_from_desk.contains(id);
+        let report = match self.groups.untrash_reconciling(id, history) {
+            Ok(report) => report,
+            // 上次撤销已把文件放回、没换上桌面就失败了：这次接着把它摆回去。
+            Err(GroupError::UnknownGroup) if to_desk && self.groups.get(id).is_ok() => {
+                RelinkReport::default()
+            }
+            Err(e) => return Err(e),
+        };
+        if to_desk {
+            // 换上桌面成功后才算撤销完：失败时留着记录，可以再撤销一次。
             let switched = self.switch_to(id, history)?;
+            self.trashed_from_desk.remove(id);
             return Ok((report, Some(switched)));
         }
         self.move_to_front(id);
