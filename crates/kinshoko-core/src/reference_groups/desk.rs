@@ -86,7 +86,7 @@ impl Desk {
     pub fn open(
         dir: &Path,
         groups: ReferenceGroups,
-        history: &CaptureHistory,
+        history: &mut CaptureHistory,
     ) -> Result<Desk, GroupError> {
         let state_path = state::path(dir);
         let file = match state::load(&state_path)? {
@@ -247,7 +247,11 @@ impl Desk {
         } else {
             self.groups.commit(&self.group, &self.copies)?;
             self.copies.clear();
-            self.move_to_front(&self.group.id.clone());
+            // 第一次落盘时进切换列表；已经在里面的不挪位置，改钉图不算“用过”，切换顺序不变。
+            let id = self.group.id.clone();
+            if !self.switch_list.contains(&id) {
+                self.switch_list.insert(0, id);
+            }
         }
         self.save_state()?;
         self.dirty = false;
@@ -272,8 +276,15 @@ impl Desk {
         }
         self.flush()?;
         let target = self.groups.get(id)?;
+        let before = self.switch_list.clone();
         self.move_to_front(id);
-        Ok(self.replace(target, history)?)
+        match self.replace(target, history) {
+            Ok(switched) => Ok(switched),
+            Err(e) => {
+                self.switch_list = before;
+                Err(e.into())
+            }
+        }
     }
 
     /// 按切换列表的先后换到下一个（`forward`）或上一个参考组，到头后回到另一头（快捷键，#594）。
@@ -425,13 +436,23 @@ impl Desk {
     }
 
     /// 切换列表（最近用过的在前）与归档（最近保存的在前）。桌面上的参考组按内存里的写。
+    /// 还没落盘的也一样：钉上第一张后就在切换列表里，关掉最后一张后没有名称的就不再列出。
     pub fn lists(&self) -> Result<DeskLists, GroupError> {
         let mut all = self.groups.list()?;
-        if let Some(on_desk) = all.iter_mut().find(|s| s.id == self.group.id) {
-            *on_desk = self.group.summary();
+        let blank = is_blank(&self.group);
+        all.retain(|s| !(blank && s.id == self.group.id));
+        if !blank {
+            match all.iter_mut().find(|s| s.id == self.group.id) {
+                Some(on_desk) => *on_desk = self.group.summary(),
+                None => all.insert(0, self.group.summary()),
+            }
+        }
+        let mut order = self.switch_list.clone();
+        if !blank && !order.contains(&self.group.id) {
+            order.insert(0, self.group.id.clone());
         }
         let mut switch_list = Vec::new();
-        for id in &self.switch_list {
+        for id in &order {
             if let Some(at) = all.iter().position(|s| s.id == *id) {
                 switch_list.push(all.remove(at));
             }
@@ -449,6 +470,12 @@ impl Desk {
         next: ReferenceGroup,
         history: &mut CaptureHistory,
     ) -> io::Result<Switched> {
+        // 先写桌面状态：写不进时内存与钉图都还是原来那一桌，调用方拿到错误、什么都不用改。
+        let on_desk = (!is_blank(&next)).then(|| next.id.clone());
+        state::save(
+            &self.state_path,
+            &DeskFile::new(on_desk, self.switch_list.clone()),
+        )?;
         let closed = std::mem::take(&mut self.pins);
         for capture in closed.iter().filter_map(SavedPin::capture_id) {
             history.unpin(capture);
@@ -458,7 +485,6 @@ impl Desk {
         self.dirty = false;
         let opened = self.open_pins(history);
         self.pins = opened.pins.clone();
-        self.save_state()?;
         Ok(Switched { closed, opened })
     }
 
@@ -469,6 +495,7 @@ impl Desk {
             .iter()
             .filter(|x| **x != self.group.id)
             .find_map(|x| self.groups.get(x).ok());
+        let before = self.switch_list.clone();
         let next = match next {
             Some(group) => {
                 self.move_to_front(&group.id.clone());
@@ -476,7 +503,13 @@ impl Desk {
             }
             None => blank(),
         };
-        Ok(self.replace(next, history)?)
+        match self.replace(next, history) {
+            Ok(switched) => Ok(switched),
+            Err(e) => {
+                self.switch_list = before;
+                Err(e.into())
+            }
+        }
     }
 
     fn open_pins(&self, history: &mut CaptureHistory) -> OpenedPins {

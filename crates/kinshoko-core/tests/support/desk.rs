@@ -26,8 +26,8 @@ impl TestDesk {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path().to_path_buf();
         prepare(&root);
-        let history = CaptureHistory::open(&root.join("captures")).unwrap();
-        let desk = Desk::open(&root, groups(&root), &history).unwrap();
+        let mut history = CaptureHistory::open(&root.join("captures")).unwrap();
+        let desk = Desk::open(&root, groups(&root), &mut history).unwrap();
         TestDesk {
             _dir: dir,
             root,
@@ -44,7 +44,7 @@ impl TestDesk {
     pub fn restart(&mut self) -> Vec<SavedPin> {
         self.desk.flush().unwrap();
         self.history = CaptureHistory::open(&self.root.join("captures")).unwrap();
-        self.desk = Desk::open(&self.root, groups(&self.root), &self.history).unwrap();
+        self.desk = Desk::open(&self.root, groups(&self.root), &mut self.history).unwrap();
         let opened = self.desk.restore(&mut self.history, &[screen()]);
         assert!(opened.problems.is_empty(), "{:?}", opened.problems);
         opened.pins

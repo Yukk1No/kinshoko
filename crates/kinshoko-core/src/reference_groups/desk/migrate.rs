@@ -11,7 +11,7 @@ use super::super::{
     CaptureFiles, GroupError, GroupMember, MemberSource, ReferenceGroup, ReferenceGroups, new_id,
 };
 use super::state::{self, DeskFile};
-use crate::desktop::{CaptureHistory, PinStore};
+use crate::desktop::{CaptureHistory, GroupMemberRef, PinStore};
 
 /// 迁移出的参考组的身份。
 pub(super) const MIGRATED_ID: &str = "desk-from-pins";
@@ -19,7 +19,7 @@ pub(super) const MIGRATED_ID: &str = "desk-from-pins";
 pub(super) fn migrate(
     dir: &Path,
     groups: &ReferenceGroups,
-    history: &CaptureHistory,
+    history: &mut CaptureHistory,
     state_path: &Path,
 ) -> Result<DeskFile, GroupError> {
     // pins.json 读不懂时 PinStore 从空开始：没有钉图可迁。
@@ -35,6 +35,8 @@ pub(super) fn migrate(
         restored_from: None,
     };
     let mut captures: CaptureFiles = Vec::new();
+    // 截图钉图的截图与迁移出的成员：写好参考组后记进截图历史，之后复用同一条截图、收藏能改连。
+    let mut links: Vec<(String, String)> = Vec::new();
     for pin in store.pins() {
         // 钉图原来记着的成员（指向旧参考组）丢弃，旧参考组不受影响。
         let member_id = new_id();
@@ -55,6 +57,7 @@ pub(super) fn migrate(
                 if let MemberSource::Capture { capture_file } = &member.source {
                     captures.push((capture_file.clone(), bytes));
                 }
+                links.push((capture_id.to_owned(), member.id.clone()));
                 member
             }
         };
@@ -70,6 +73,13 @@ pub(super) fn migrate(
             Err(e) => return Err(e),
         }
         super::publish(groups, &group, &captures)?;
+        for (capture_id, member_id) in links {
+            let at = GroupMemberRef {
+                group_id: group.id.clone(),
+                member_id,
+            };
+            let _ = history.link_member(&capture_id, at);
+        }
         Some(group.id.clone())
     };
     let file = DeskFile::new(on_desk.clone(), on_desk.into_iter().collect());
