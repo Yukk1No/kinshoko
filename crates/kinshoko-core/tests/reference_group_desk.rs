@@ -629,3 +629,26 @@ fn editing_pins_between_steps_still_reaches_every_group() {
     }
     assert_eq!(seen, [ids[1].clone(), ids[0].clone(), ids[2].clone()]);
 }
+
+#[test]
+fn deleting_the_group_on_the_desk_when_the_desk_state_cannot_be_saved_keeps_it() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    t.pin_capture("c", 3);
+    t.desk.flush().unwrap();
+    let id = t.desk.group().id.clone();
+    let captures = t.capture_files(&id);
+
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.discard(&id, &mut t.history).is_err());
+    assert_eq!(t.desk.group().id, id);
+    assert!(t.group_file(&id).exists(), "文件放回原处");
+    assert_eq!(t.capture_files(&id), captures, "组内截图也放回");
+
+    std::fs::remove_dir_all(&state).unwrap();
+    let switched = t.desk.discard(&id, &mut t.history).unwrap();
+    assert!(switched.is_some(), "之后照常能删");
+}
