@@ -9,7 +9,8 @@
 //!   `group/<参考组 id>/<成员>`；
 //! - 资料库事件（安全模式开关、分级变化）到达时，资料库钉图重新核对要不要遮蔽；
 //! - 截图历史变化时向所有窗口推送 `capture-history`（截图列表，从新到旧）；
-//! - 参考组（#66）：桌面上的资料库钉图存成参考组、打开参考组把成员钉到桌面（[`groups`]）；
+//! - 参考组（#66、#588）：桌面上始终摆着一个参考组，钉图就是它的成员；切换、归档、并入等见
+//!   [`desk_commands`]，参考组包与成员见 [`groups`]；
 //! - 钉图的右键菜单（#106）：与主窗口同样式，由独立的置顶无边框菜单窗口承载（[`menu`]）；
 //! - 复制图片、在资源管理器中显示、从剪贴板导入（#105，[`image_actions`]）。
 
@@ -38,9 +39,9 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use kinshoko_core::ShortcutAction;
 use kinshoko_core::desktop::{
     CaptureEntry, CaptureHistory, CollectedCapture, EdgeHide, OpenInKinshoko, PinMenuOpen,
-    PinStore, PinVeils,
+    PinVeils,
 };
-use kinshoko_core::reference_groups::ReferenceGroups;
+use kinshoko_core::reference_groups::{Desk, ReferenceGroups};
 use tauri::http::{Response, StatusCode, header};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::plugin::{Builder, TauriPlugin};
@@ -94,7 +95,7 @@ pub struct DesktopState {
     capture_geometry_generation: AtomicU64,
     /// 本次运行中打开着的钉图。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
-    /// 钉图状态（`pins.json`，或开关打开时桌面上的参考组，#591），重新打开后恢复。
+    /// 钉图状态（桌面上的参考组，#588），重新打开后恢复。
     store: Mutex<pin_state::PinState>,
     /// 钉图状态改了还没写回文件。
     dirty: AtomicBool,
@@ -141,6 +142,38 @@ pub fn with_groups<R: tauri::Runtime, T>(
     Some(f(&groups))
 }
 
+/// 桌面插件自己听的事件：参考组在别的插件里改过（图库墙“加入参考组”），让钉图窗口与桌面上的参考组
+/// 对齐，再通知各窗口。
+const DESK_CHANGED_EVENT: &str = "desktop://desk-changed";
+
+/// 图库墙“加入参考组”（`pin` 是资料库里的一张图）：加进参考组 `group_id`，成为它的新成员。
+/// 那个参考组正摆在桌面上时，把图钉到桌面上（主显示器中间）。桌面插件还没装好时为 `None`。
+pub fn add_to_reference_group<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    group_id: &str,
+    mut pin: kinshoko_core::desktop::SavedPin,
+) -> Option<Result<kinshoko_core::reference_groups::ReferenceGroup, CommandError>> {
+    let state = app.try_state::<DesktopState>()?;
+    let result = (|| -> Result<_, kinshoko_core::reference_groups::GroupError> {
+        let _groups = lock(&state.groups);
+        let mut store = lock(&state.store);
+        let desk = store.desk();
+        if let Some(group) = desk.add_member(group_id, &pin)? {
+            return Ok(group);
+        }
+        let others: Vec<_> = desk.pins().iter().map(|p| p.rect()).collect();
+        pins::place_on_primary(&mut pin, &others);
+        desk.pin(pin, &mut lock(&state.history))?;
+        state.dirty.store(true, Ordering::Relaxed);
+        Ok(desk.group().clone())
+    })()
+    .map_err(CommandError::from);
+    if result.is_ok() {
+        let _ = app.emit(DESK_CHANGED_EVENT, ());
+    }
+    Some(result)
+}
+
 /// 通知各窗口参考组成员的状态可能变了（例如成员的图被永久删除），重新读取。
 pub fn reference_groups_changed<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     let _ = app.emit(groups::CHANGED_EVENT, ());
@@ -173,10 +206,6 @@ pub fn init() -> TauriPlugin<Wry> {
             image_actions::stage_clipboard_import,
             groups::reference_groups,
             groups::reference_group,
-            groups::group_save_captures,
-            groups::save_reference_group,
-            groups::save_pins_to_group,
-            groups::open_reference_group,
             groups::rename_reference_group,
             group_trash::delete_reference_group,
             group_trash::restore_reference_group,
@@ -199,9 +228,14 @@ pub fn init() -> TauriPlugin<Wry> {
         ])
         .setup(|app, _api| {
             let dir = crate::data_dirs::app_data(app).device().to_path_buf();
-            let history = CaptureHistory::open(&dir.join(HISTORY_DIR))?;
-            let store = PinStore::open(&dir)?;
+            let mut history = CaptureHistory::open(&dir.join(HISTORY_DIR))?;
             let groups = ReferenceGroups::open(&dir.join(GROUPS_DIR))?;
+            // 桌面上的参考组（#588）。第一次打开时迁移：旧参考组都在归档里，`pins.json` 的钉图成为一个
+            // 没有名称的参考组摆在桌面上。打不开时写运行日志，这次先用一张不写桌面状态的空桌，下次启动再试。
+            let desk = Desk::open(&dir, groups.clone(), &mut history).unwrap_or_else(|e| {
+                crate::run_log::error("无法打开桌面上的参考组", e);
+                Desk::unsaved(&dir, groups.clone())
+            });
             // 上次退出时撤销提示还没过期的已删除参考组，这里清掉。
             let _ = groups.purge_all_trashed();
             // 启动时清掉一天前暂存的剪贴板图片（取消了导入、之后没再粘贴的也不会一直留着）。
@@ -219,7 +253,7 @@ pub fn init() -> TauriPlugin<Wry> {
                 pin_shown: pins::ShownWaiters::default(),
                 capture_geometry_generation: AtomicU64::new(0),
                 pins: Mutex::default(),
-                store: Mutex::new(pin_state::PinState::Legacy(store)),
+                store: Mutex::new(pin_state::PinState::new(desk)),
                 dirty: AtomicBool::new(false),
                 edge: Mutex::default(),
                 // 先按开启处理（主线程上不读应用壳设置）；恢复钉图的线程再按保存的设置核对。
@@ -237,6 +271,11 @@ pub fn init() -> TauriPlugin<Wry> {
                     let app = handle.clone();
                     std::thread::spawn(move || pins::safe_mode_changed(&app, on));
                 }
+            });
+            let handle = app.clone();
+            app.listen_any(DESK_CHANGED_EVENT, move |_| {
+                let app = handle.clone();
+                std::thread::spawn(move || desk_commands::apply(&app, None));
             });
             let settings_handle = app.clone();
             app.listen_any("application-settings-restored", move |_| {

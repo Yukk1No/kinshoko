@@ -38,27 +38,19 @@ pub(super) async fn workspace_edit_sources<R: Runtime>(
     .await
 }
 
+/// 图库墙“加入参考组”：把这张图加进参考组 `group_id`。那个参考组正摆在桌面上时钉到桌面上。
 #[tauri::command]
 pub(super) async fn workspace_source_group<R: Runtime>(
     app: AppHandle<R>,
     target: WorkspaceSourceTarget,
     safe_mode: bool,
-    group_id: Option<String>,
-    name: Option<String>,
+    group_id: String,
 ) -> Result<kinshoko_core::reference_groups::ReferenceGroup, CommandError> {
     blocking(move || {
-        let mut pin = with_lens(&app, safe_mode, Hold::Commit, |w, d, c| {
+        let pin = with_lens(&app, safe_mode, Hold::Commit, |w, d, c| {
             w.source_reference(d, c, &target, safe_mode)
         })?;
-        let group = crate::desktop::with_groups(&app, |groups| match (group_id, name) {
-            (Some(id), None) => groups.save_pins(&id, std::slice::from_mut(&mut pin)),
-            (None, Some(name)) => groups.create(&name, std::slice::from_mut(&mut pin)),
-            _ => Err(kinshoko_core::reference_groups::GroupError::InvalidName),
-        })
-        .ok_or_else(groups_not_ready)?
-        .map_err(CommandError::from)?;
-        crate::desktop::reference_groups_changed(&app);
-        Ok(group)
+        crate::desktop::add_to_reference_group(&app, &group_id, pin).ok_or_else(groups_not_ready)?
     })
     .await
 }

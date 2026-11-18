@@ -3,6 +3,10 @@
 //! 经 `kinshoko_core` 的对外接口，用临时目录里的真文件。资料库 `lib` 不存在：资料库成员一直是
 //! “资料库不可用”，照样要留着。
 
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+use group_fixture::GroupFixture;
+
 #[path = "support/desk.rs"]
 mod desk;
 
@@ -294,7 +298,7 @@ fn the_first_open_turns_old_pins_into_a_group_and_archives_old_groups() {
     let mut t = TestDesk::with(|root| {
         let groups = desk::groups(root);
         let mut pins = vec![reference_pin("old", 10)];
-        let group = groups.create("旧参考组", &mut pins).unwrap();
+        let group = groups.save_group("旧参考组", &mut pins).unwrap();
         old_group = group.id.clone();
         old_bytes =
             std::fs::read(root.join(format!("reference-groups/{}.json", group.id))).unwrap();
@@ -380,21 +384,6 @@ fn a_named_library_only_group_with_default_opacity_and_lock_keeps_format_version
     let member = &json["members"][0];
     assert!(member.get("opacity").is_none(), "{text}");
     assert!(member.get("locked").is_none(), "{text}");
-
-    // 同样的成员由旧入口写出，字段完全相同。
-    let mut pins = vec![t.desk.pins()[0].clone()];
-    pins[0].member = None;
-    let old = t.groups().create("手", &mut pins).unwrap();
-    let old_json: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(t.group_file(&old.id)).unwrap()).unwrap();
-    let keys = |v: &serde_json::Value| {
-        let mut k: Vec<String> = v.as_object().unwrap().keys().cloned().collect();
-        k.sort();
-        k
-    };
-    assert_eq!(keys(&json), keys(&old_json));
-    assert_eq!(keys(member), keys(&old_json["members"][0]));
-    assert_eq!(member["placement"], old_json["members"][0]["placement"]);
 }
 
 #[test]
@@ -492,13 +481,6 @@ fn stepping_walks_the_whole_switch_list_and_wraps_around() {
         one.desk.step(true, &mut one.history).unwrap().is_none(),
         "只有一个时什么都不做"
     );
-}
-
-#[test]
-fn group_shortcuts_exist_only_when_the_desk_switch_is_on() {
-    use kinshoko_core::ShortcutAction;
-    assert!(ShortcutAction::NextGroup.needs_desk_groups());
-    assert!(!ShortcutAction::Capture.needs_desk_groups());
 }
 
 #[test]

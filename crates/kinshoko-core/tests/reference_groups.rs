@@ -1,8 +1,12 @@
 //! 参考组（#66，ADR-0002）：独立于资料库保存的带版本 JSON，成员按“资料库＋参考图”引用，
 //! 各自保存裁切、翻转、旋转、位置、尺寸与缩放。经 `kinshoko_core::reference_groups` 的对外接口，
-//! 用临时目录里的真文件。
+//! 用临时目录里的真文件；参考组经桌面上的参考组存出（`support/group_fixture.rs`）。
 
-use kinshoko_core::desktop::{PinContent, Placement, Region, SavedPin};
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+use group_fixture::GroupFixture;
+
+use kinshoko_core::desktop::{Placement, Region, SavedPin};
 use kinshoko_core::library::ReferenceImage;
 use kinshoko_core::reference_groups::{GroupError, ReferenceGroups};
 
@@ -42,91 +46,16 @@ fn pin(id: &str, library: &str, img: &str, crop: Option<Region>, x: i32) -> Save
     .unwrap()
 }
 
-fn capture_pin() -> SavedPin {
-    SavedPin {
-        id: "cap".into(),
-        content: PinContent::Capture {
-            capture_id: "c1".into(),
-        },
-        crop: None,
-        width: 10,
-        height: 10,
-        placement: Placement::default(),
-        opacity: 1.0,
-        locked: false,
-        member: None,
-    }
-}
-
-#[test]
-fn a_saved_group_reopens_with_each_members_crop_and_layout() {
-    let dir = tempfile::tempdir().unwrap();
-    let mut pins = [
-        pin("p1", "lib-a", "img-1", Some(region(10, 20, 300, 200)), 100),
-        pin("p2", "lib-b", "img-2", None, 700),
-    ];
-    let saved = {
-        let groups = ReferenceGroups::open(dir.path()).unwrap();
-        groups.create("头发参考", &mut pins).unwrap()
-    };
-    assert_eq!(saved.name, "头发参考");
-    assert_eq!(saved.members.len(), 2);
-
-    let groups = ReferenceGroups::open(dir.path()).unwrap();
-    let group = groups.get(&saved.id).unwrap();
-    assert_eq!(group, saved);
-    let reopened = group.pins();
-    assert_eq!(reopened.len(), 2);
-    for (again, before) in reopened.iter().zip(&pins) {
-        assert_eq!(again.content, before.content);
-        assert_eq!(again.crop, before.crop);
-        assert_eq!((again.width, again.height), (before.width, before.height));
-        assert_eq!(again.placement, before.placement);
-        assert_ne!(again.id, before.id, "打开参考组得到新的钉图");
-        let member = again.member.as_ref().expect("钉图记得来自哪个成员");
-        assert_eq!(member.group_id, group.id);
-    }
-}
-
-#[test]
-fn opacity_and_lock_stay_on_the_desktop() {
-    let dir = tempfile::tempdir().unwrap();
-    let groups = ReferenceGroups::open(dir.path()).unwrap();
-    let mut p = pin("p1", "lib-a", "img-1", None, 0);
-    p.opacity = 0.3;
-    p.locked = true;
-    let group = groups.create("组", &mut [p]).unwrap();
-    let again = &group.pins()[0];
-    assert_eq!(again.opacity, 1.0);
-    assert!(!again.locked);
-}
-
-#[test]
-fn screen_captures_are_not_saved_into_a_group() {
-    let dir = tempfile::tempdir().unwrap();
-    let groups = ReferenceGroups::open(dir.path()).unwrap();
-    let group = groups
-        .create(
-            "组",
-            &mut [capture_pin(), pin("p1", "lib-a", "img-1", None, 0)],
-        )
-        .unwrap();
-    assert_eq!(group.members.len(), 1);
-    assert_eq!(
-        groups.create("空", &mut [capture_pin()]),
-        Err(GroupError::NoMembers)
-    );
-}
 
 #[test]
 fn groups_are_listed_renamed_and_deleted() {
     let dir = tempfile::tempdir().unwrap();
     let groups = ReferenceGroups::open(dir.path()).unwrap();
     let a = groups
-        .create("A", &mut [pin("p1", "lib-a", "img-1", None, 0)])
+        .save_group("A", &mut [pin("p1", "lib-a", "img-1", None, 0)])
         .unwrap();
     let b = groups
-        .create(
+        .save_group(
             "B",
             &mut [
                 pin("p2", "lib-a", "img-1", None, 0),
@@ -158,76 +87,11 @@ fn groups_are_listed_renamed_and_deleted() {
 }
 
 #[test]
-fn the_same_image_in_two_groups_keeps_independent_member_state() {
-    let dir = tempfile::tempdir().unwrap();
-    let groups = ReferenceGroups::open(dir.path()).unwrap();
-    let face = groups
-        .create(
-            "脸",
-            &mut [pin("p1", "lib-a", "img-1", Some(region(0, 0, 100, 100)), 0)],
-        )
-        .unwrap();
-    let hand = groups
-        .create(
-            "手",
-            &mut [pin(
-                "p2",
-                "lib-a",
-                "img-1",
-                Some(region(400, 300, 200, 150)),
-                0,
-            )],
-        )
-        .unwrap();
-
-    // 打开“脸”，移动、缩放、旋转它的钉图，存回“脸”。
-    let mut opened = face.pins();
-    opened[0].move_to(900, 900);
-    opened[0].rotate(1);
-    opened[0].flip(false);
-    groups.save_pins(&face.id, &mut opened).unwrap();
-
-    let face_now = groups.get(&face.id).unwrap();
-    assert_eq!(face_now.members.len(), 1, "存回原成员，不另加");
-    assert_eq!(face_now.members[0].id, face.members[0].id);
-    assert_eq!(face_now.members[0].placement, opened[0].placement);
-    assert_eq!(groups.get(&hand.id).unwrap(), hand, "另一个参考组不受影响");
-}
-
-#[test]
-fn saving_pins_into_a_group_adds_new_pins_and_keeps_members_not_on_the_desktop() {
-    let dir = tempfile::tempdir().unwrap();
-    let groups = ReferenceGroups::open(dir.path()).unwrap();
-    let group = groups
-        .create(
-            "组",
-            &mut [
-                pin("p1", "lib-a", "img-1", None, 0),
-                pin("p2", "lib-a", "img-2", None, 0),
-            ],
-        )
-        .unwrap();
-    let opened = group.pins();
-    // 只有第一个成员的钉图还开着，另钉了一张新图；第二个成员不在桌面上也保留。
-    let fresh = pin("p9", "lib-c", "img-9", None, 5);
-    let saved = groups
-        .save_pins(&group.id, &mut [opened[0].clone(), fresh, capture_pin()])
-        .unwrap();
-    assert_eq!(saved.members.len(), 3);
-    assert_eq!(saved.members[1], group.members[1]);
-    assert_eq!(saved.members[2].library_id(), Some("lib-c"));
-    assert_eq!(
-        groups.save_pins("nope", &mut [opened[0].clone()]),
-        Err(GroupError::UnknownGroup)
-    );
-}
-
-#[test]
 fn a_member_can_be_removed_from_a_group() {
     let dir = tempfile::tempdir().unwrap();
     let groups = ReferenceGroups::open(dir.path()).unwrap();
     let group = groups
-        .create(
+        .save_group(
             "组",
             &mut [
                 pin("p1", "lib-a", "img-1", None, 0),
@@ -246,7 +110,7 @@ fn the_group_file_is_versioned_json_independent_of_libraries() {
     let dir = tempfile::tempdir().unwrap();
     let groups = ReferenceGroups::open(dir.path()).unwrap();
     let group = groups
-        .create(
+        .save_group(
             "组",
             &mut [pin("p1", "lib-a", "img-1", Some(region(1, 2, 3, 4)), 0)],
         )
@@ -276,7 +140,7 @@ fn unreadable_or_newer_group_files_are_reported_not_silently_dropped() {
     let dir = tempfile::tempdir().unwrap();
     let groups = ReferenceGroups::open(dir.path()).unwrap();
     let good = groups
-        .create("好", &mut [pin("p1", "lib-a", "img-1", None, 0)])
+        .save_group("好", &mut [pin("p1", "lib-a", "img-1", None, 0)])
         .unwrap();
     std::fs::write(dir.path().join("broken.json"), b"{not json").unwrap();
     let mut newer: serde_json::Value = serde_json::from_slice(
@@ -318,33 +182,6 @@ fn unreadable_or_newer_group_files_are_reported_not_silently_dropped() {
     assert!(matches!(groups.get("badcrop"), Err(GroupError::Invalid(_))));
 }
 
-#[test]
-fn pins_remember_the_member_they_were_saved_as() {
-    let dir = tempfile::tempdir().unwrap();
-    let groups = ReferenceGroups::open(dir.path()).unwrap();
-    let mut pins = [pin("p1", "lib-a", "img-1", None, 0), capture_pin()];
-    let a = groups.create("A", &mut pins).unwrap();
-    let member = pins[0].member.clone().expect("存进参考组后记得成员");
-    assert_eq!(member.group_id, a.id);
-    assert_eq!(member.member_id, a.members[0].id);
-    assert_eq!(pins[1].member, None, "截图不进组");
-
-    // 同一张钉图再存进另一个参考组：加为那边的新成员，之后记得新的成员；A 不变。
-    let b = groups
-        .create("B", &mut [pin("p2", "lib-a", "img-2", None, 0)])
-        .unwrap();
-    let b = groups.save_pins(&b.id, &mut pins).unwrap();
-    assert_eq!(b.members.len(), 2);
-    assert_eq!(pins[0].member.as_ref().unwrap().group_id, b.id);
-    assert_eq!(groups.get(&a.id).unwrap(), a);
-
-    // 再存一次 B：更新那个成员，不重复添加。
-    pins[0].move_to(500, 500);
-    let b = groups.save_pins(&b.id, &mut pins).unwrap();
-    assert_eq!(b.members.len(), 2);
-    assert_eq!(b.members[1].placement.x, 500);
-}
-
 /// 删除参考组可撤销（#480）：先移到回收位置，撤销后名称、成员、每个成员的裁切与摆放、组内截图都与删除前一致；
 /// 回收位置里的不出现在列表中，过期清理或重新打开后不留任何东西。
 #[test]
@@ -352,7 +189,7 @@ fn a_deleted_group_comes_back_exactly_until_it_is_purged() {
     let dir = tempfile::tempdir().unwrap();
     let groups = ReferenceGroups::open(dir.path()).unwrap();
     let made = groups
-        .create(
+        .save_group(
             "手部",
             &mut [
                 pin("p1", "lib-a", "img-1", Some(region(10, 20, 300, 200)), 5),
@@ -361,7 +198,7 @@ fn a_deleted_group_comes_back_exactly_until_it_is_purged() {
         )
         .unwrap();
     let other = groups
-        .create("别的", &mut [pin("p3", "lib-a", "img-3", None, 0)])
+        .save_group("别的", &mut [pin("p3", "lib-a", "img-3", None, 0)])
         .unwrap();
     let captures = dir.path().join(format!("{}.captures", made.id));
     std::fs::create_dir_all(&captures).unwrap();

@@ -119,14 +119,11 @@ pub(in crate::desktop) fn add_and_open(
     Ok(pin)
 }
 
-/// 把新钉图放进钉图状态（开关打开时它成为桌面上参考组的新成员），截图钉图在截图历史里记下钉住。
+/// 把新钉图放进钉图状态（它成为桌面上参考组的新成员），截图钉图在截图历史里记下钉住。
 /// 返回要打开的钉图。先钉图状态、后截图历史。
 pub(in crate::desktop) fn add(app: &AppHandle, pin: SavedPin) -> Result<SavedPin, CommandError> {
-    let mut store = lock(&state(app).store);
-    let added = store.add(pin, &mut lock(&state(app).history))?;
-    if store.is_desk() {
-        state(app).dirty.store(true, Ordering::Relaxed);
-    }
+    let added = lock(&state(app).store).add(pin, &mut lock(&state(app).history))?;
+    state(app).dirty.store(true, Ordering::Relaxed);
     Ok(added)
 }
 
@@ -170,7 +167,7 @@ pub fn reference_file(app: &AppHandle, pin: &str, size: &str) -> Option<std::pat
     file.ok().map(|f| f.path)
 }
 
-/// 打开一个钉图（新钉的、启动时恢复的、参考组里打开的）：交给原生钉图（[`native`]），窗口建好之前
+/// 打开一个钉图（新钉的、启动时恢复的、换到桌面上的）：交给原生钉图（[`native`]），窗口建好之前
 /// 就返回；打不开时原生钉图写运行日志并收掉本次运行的记录，状态留到下次启动。
 /// 截图历史此前已经记下它被钉住。
 pub fn open_pin(app: &AppHandle, pin: &SavedPin) {

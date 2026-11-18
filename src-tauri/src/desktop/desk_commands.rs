@@ -1,8 +1,6 @@
-//! 参考组改成桌面（#588、#591）的命令：切换列表与归档、切换、新建、归档、取出。删除与撤销沿用
-//! [`super::group_trash`] 的命令，开关打开时那边改走桌面上的参考组。规则都在
+//! 桌面上的参考组（#588）的命令：切换列表与归档、切换、新建、归档、取出、并入。删除与撤销沿用
+//! [`super::group_trash`] 的命令，也经桌面上的参考组。规则都在
 //! `kinshoko_core::reference_groups::Desk`，这里只接窗口。
-//!
-//! 开关（设置里界面上没有的 `deskReferenceGroups`）关着时，这些命令报错、什么都不改。
 //!
 //! 换一桌钉图（[`apply`]）：先在锁里让桌面模块换好，放开锁后再动窗口——关掉菜单，旧钉图一起关掉，
 //! 新钉图一起打开，不加转场；之前是收起的（F4），新钉图也直接收起。窗口按桌面模块此刻的钉图对齐，
@@ -12,7 +10,6 @@ use std::collections::HashSet;
 use std::sync::Mutex;
 
 use kinshoko_core::CommandError;
-use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::desktop::SavedPin;
 use kinshoko_core::reference_groups::{Desk, DeskLists, GroupError, MergeUndo, Switched};
 use tauri::AppHandle;
@@ -28,25 +25,16 @@ pub(in crate::desktop) fn realign(app: &AppHandle) {
     align(app);
 }
 
-fn flag_off() -> CommandError {
-    CommandError::new(ErrorKind::DeskGroupsOff, "参考组改成桌面的开关没打开")
-}
-
-/// 在桌面模块上做一件事：先参考组、后钉图状态、再截图历史。开关关着时报错。
+/// 在桌面模块上做一件事：先参考组、后钉图状态、再截图历史。
 pub(super) fn with_desk<T>(
     app: &AppHandle,
     f: impl FnOnce(&mut Desk, &mut kinshoko_core::desktop::CaptureHistory) -> Result<T, GroupError>,
 ) -> Result<T, CommandError> {
     let _groups = lock(&state(app).groups);
     let mut store = lock(&state(app).store);
-    let desk = store.desk().ok_or_else(flag_off)?;
+    let desk = store.desk();
     let mut history = lock(&state(app).history);
     f(desk, &mut history).map_err(CommandError::from)
-}
-
-/// 开关打开着。
-pub(super) fn desk_on(app: &AppHandle) -> bool {
-    lock(&state(app).store).is_desk()
 }
 
 /// 换了一桌：动窗口，再通知各窗口截图历史与参考组变了。成员钉不出来时只写运行日志，
@@ -193,7 +181,7 @@ pub(super) fn move_from_menu(
 }
 
 /// 快捷键“上个参考组”“下个参考组”（#594）：在别的线程上按切换列表的先后换过去，快捷键回调不阻塞。
-/// 换过去后在一张新钉图上写出参考组的名称，焦点交还绘画软件。开关关着时（快捷键本不该注册）什么都不做。
+/// 换过去后在一张新钉图上写出参考组的名称，焦点交还绘画软件。
 pub fn step_in_background(app: &AppHandle, forward: bool) {
     let app = app.clone();
     std::thread::spawn(move || {
@@ -226,9 +214,7 @@ pub fn new_desk_in_background(app: &AppHandle) {
 fn announce(app: &AppHandle) {
     let (pin, label) = {
         let mut store = lock(&state(app).store);
-        let Some(desk) = store.desk() else {
-            return;
-        };
+        let desk = store.desk();
         let group = desk.group();
         let label = crate::ui_text::group_label(&group.name, group.updated_at);
         let Some(pin) = desk.pins().first().map(|p| p.id.clone()) else {
@@ -239,11 +225,9 @@ fn announce(app: &AppHandle) {
     pins::notify(app, &pin, &label);
 }
 
-/// 钉图菜单要显示的桌面上的参考组名称（#593，没有名称为空）；开关关着时为 `None`。
-pub(super) fn desk_name(app: &AppHandle) -> Option<String> {
-    lock(&state(app).store)
-        .desk()
-        .map(|desk| desk.group().name.trim().to_owned())
+/// 钉图菜单要显示的桌面上的参考组名称（#593，没有名称为空）。
+pub(super) fn desk_name(app: &AppHandle) -> String {
+    lock(&state(app).store).desk().group().name.trim().to_owned()
 }
 
 /// 钉图菜单“切换到 ▸”里选了一个（`group_id`）或“新参考组”（`None`，#593）。已在菜单的线程上。
@@ -266,7 +250,7 @@ pub(super) fn switch_from_menu(
     }
 }
 
-/// 托盘菜单里参考组那一段（#593）：切换列表里最近的几个（桌面上的那个打勾）。开关关着时为 `None`。
+/// 托盘菜单里参考组那一段（#593）：切换列表里最近的几个（桌面上的那个打勾）。读不出列表时为 `None`。
 /// 会读参考组文件。
 pub(super) fn tray_groups(app: &AppHandle) -> Option<Vec<(String, String, bool)>> {
     const TRAY_GROUPS: usize = 8;

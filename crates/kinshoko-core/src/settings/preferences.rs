@@ -84,14 +84,6 @@ impl ShortcutAction {
         ShortcutAction::NewGroup,
     ];
 
-    /// 参考组改成桌面（#588）的动作：开关关着时不注册、不在设置里显示。
-    pub fn needs_desk_groups(self) -> bool {
-        matches!(
-            self,
-            ShortcutAction::PreviousGroup | ShortcutAction::NextGroup | ShortcutAction::NewGroup
-        )
-    }
-
     /// 动作名称，只用在快捷键冲突的日志说明里；界面按动作代码从 src/i18n 取名称。
     // 不上界面：只用于 ShortcutError 的 Display（日志）
     pub fn label(self) -> &'static str {

@@ -220,42 +220,23 @@ fn keys_that_would_get_in_the_way_of_typing_or_have_no_main_key_are_refused() {
 }
 
 #[test]
-fn reference_group_shortcuts_appear_only_with_the_desk_switch_and_start_unbound() {
+fn reference_group_shortcuts_start_unbound() {
     let dir = tempfile::tempdir().unwrap();
-    let off = AppSettings::open(dir.path()).unwrap();
-    let shortcuts = GlobalShortcuts::start(FakeHotkeys::default(), &off);
-    let actions: Vec<ShortcutAction> = shortcuts.bindings(&off).iter().map(|b| b.action).collect();
-    assert_eq!(
-        actions,
-        [
-            ShortcutAction::Capture,
-            ShortcutAction::PinClipboard,
-            ShortcutAction::HideAllPins
-        ],
-        "开关关着：设置页与现在一样"
-    );
-
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(
-        dir.path().join("settings.json"),
-        r#"{"version":1,"deskReferenceGroups":true}"#,
-    )
-    .unwrap();
-    let mut on = AppSettings::open(dir.path()).unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
     let hotkeys = FakeHotkeys::default();
-    let mut shortcuts = GlobalShortcuts::start(hotkeys.clone(), &on);
-    let bindings = shortcuts.bindings(&on);
+    let mut shortcuts = GlobalShortcuts::start(hotkeys.clone(), &settings);
+    let bindings = shortcuts.bindings(&settings);
     assert_eq!(bindings.len(), 6);
     assert!(
         bindings[3..].iter().all(|b| b.accelerator.is_none()),
         "拿不准的默认不绑定"
     );
     shortcuts
-        .rebind(&mut on, ShortcutAction::NextGroup, Some("Ctrl+Alt+N"))
+        .rebind(&mut settings, ShortcutAction::NextGroup, Some("Ctrl+Alt+N"))
         .unwrap();
     assert_eq!(hotkeys.press("Ctrl+Alt+N"), Some(ShortcutAction::NextGroup));
     assert!(matches!(
-        shortcuts.rebind(&mut on, ShortcutAction::PreviousGroup, Some("F1")),
+        shortcuts.rebind(&mut settings, ShortcutAction::PreviousGroup, Some("F1")),
         Err(kinshoko_core::ShortcutError::UsedBy(
             ShortcutAction::Capture
         ))

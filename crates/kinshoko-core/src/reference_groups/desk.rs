@@ -96,6 +96,8 @@ pub struct Desk {
     /// 撤销删除时文件已放回、还没写进桌面状态的参考组：再撤销一次时接着做完。
     untrashed: BTreeSet<String>,
     dirty: bool,
+    /// 桌面状态写进 `desk.json`。打不开桌面状态时的临时空桌（[`Self::unsaved`]）为 `false`。
+    persist: bool,
     /// 自上次落盘以来成员有增减：参考组列表上看得出（张数、缩略图）。
     members_changed: bool,
 }
@@ -128,12 +130,31 @@ impl Desk {
             trashed_from_desk: BTreeSet::new(),
             untrashed: BTreeSet::new(),
             dirty: false,
+            persist: true,
             members_changed: false,
         };
         // 切换列表里的参考组文件不在了（例如被别的程序删掉）：不再列出。
         let groups = &desk.groups;
         desk.switch_list.retain(|id| groups.get(id).is_ok());
         Ok(desk)
+    }
+
+    /// 打不开 `dir` 下的桌面状态时（[`Self::open`] 出错）用的一张空桌：切换列表为空，参考组都在归档里，
+    /// 可以照常切换、钉图；参考组文件照常写，`desk.json` 不写，下次启动再试着打开（或迁移）。
+    pub fn unsaved(dir: &Path, groups: ReferenceGroups) -> Desk {
+        Desk {
+            group: blank(),
+            groups,
+            state_path: state::path(dir),
+            pins: Vec::new(),
+            switch_list: Vec::new(),
+            copies: Vec::new(),
+            trashed_from_desk: BTreeSet::new(),
+            untrashed: BTreeSet::new(),
+            dirty: false,
+            persist: false,
+            members_changed: false,
+        }
     }
 
     /// 启动时钉出桌面上的参考组：与 [`Self::switch_to`] 得到的一样，再把离开了所有显示器的拉回屏幕。
@@ -210,6 +231,26 @@ impl Desk {
         self.dirty = true;
         self.members_changed = true;
         Ok(pin)
+    }
+
+    /// 把资料库里的一张图加进参考组 `group_id`（图库墙“加入参考组”），成为它的新成员，返回改好的参考组。
+    /// 那个参考组正摆在桌面上时什么都不改、返回 `None`：调用方把它钉到桌面上（[`Self::pin`]），
+    /// 桌面上参考组的成员就是桌面上的钉图。截图钉图不能这样加（[`GroupError::NoMembers`]）。
+    pub fn add_member(
+        &mut self,
+        group_id: &str,
+        pin: &SavedPin,
+    ) -> Result<Option<ReferenceGroup>, GroupError> {
+        if group_id == self.group.id {
+            return Ok(None);
+        }
+        let mut group = self.groups.get(group_id)?;
+        let mut member = GroupMember::from_pin(new_id(), pin).ok_or(GroupError::NoMembers)?;
+        member.follow(pin);
+        group.members.push(member);
+        group.updated_at = crate::library::now_ms();
+        self.groups.commit(&group, &[])?;
+        Ok(Some(group))
     }
 
     /// 改一张钉图（拖动、缩放、翻转、旋转、透明度、锁定）：成员跟着改。不存在时为 `None`。
@@ -809,11 +850,7 @@ impl Desk {
         history: &mut CaptureHistory,
     ) -> io::Result<Switched> {
         // 先写桌面状态：写不进时内存与钉图都还是原来那一桌，调用方拿到错误、什么都不用改。
-        let on_desk = (!is_blank(&next)).then(|| next.id.clone());
-        state::save(
-            &self.state_path,
-            &DeskFile::new(on_desk, self.switch_list.clone()),
-        )?;
+        self.write_state(&next)?;
         let closed = std::mem::take(&mut self.pins);
         for capture in closed.iter().filter_map(SavedPin::capture_id) {
             history.unpin(capture);
@@ -936,7 +973,15 @@ impl Desk {
     }
 
     fn save_state(&self) -> io::Result<()> {
-        let on_desk = (!is_blank(&self.group)).then(|| self.group.id.clone());
+        self.write_state(&self.group)
+    }
+
+    /// 写桌面状态：`on_desk` 摆在桌面上，切换列表照内存里的。临时空桌不写。
+    fn write_state(&self, on_desk: &ReferenceGroup) -> io::Result<()> {
+        if !self.persist {
+            return Ok(());
+        }
+        let on_desk = (!is_blank(on_desk)).then(|| on_desk.id.clone());
         state::save(
             &self.state_path,
             &DeskFile::new(on_desk, self.switch_list.clone()),

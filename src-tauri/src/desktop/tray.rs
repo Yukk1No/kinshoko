@@ -24,7 +24,7 @@ fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             &item(MENU_EDGE_HIDE, Text::TrayEdgeHide)?,
         ],
     )?;
-    // 参考组那一段（#593），只在开关打开时有：切换列表里最近的几个，桌面上的那个打勾。
+    // 参考组那一段（#593）：切换列表里最近的几个，桌面上的那个打勾。
     if let Some(groups) = desk_commands::tray_groups(app) {
         menu.append(&PredefinedMenuItem::separator(app)?)?;
         for (id, label, on_desk) in groups {

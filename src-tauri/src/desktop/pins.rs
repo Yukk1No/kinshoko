@@ -4,8 +4,8 @@
 //!
 //! 每张钉图是一个原生窗口，用 wgpu 绘制（[`native`]，ADR 0013）：窗口、输入、动画与绘制都在那边，
 //! 这里管钉图状态、截图历史与资料库的核对，几何或外观每次变化都经 [`show`]／[`refresh`] 推给它一帧。
-//! 钉图状态在 [`PinStore`]（`pins.json`）里：画师关闭的钉图从中删除；退出程序时钉图窗口也会销毁，
-//! 但这时不删，下次启动照原样恢复。
+//! 钉图状态是桌面上的参考组（[`super::pin_state`]，#588）：钉图就是它的成员，画师关闭的钉图从中删除；
+//! 退出程序时钉图窗口也会销毁，但这时不删，下次启动照原样恢复。
 //!
 //! 资料库钉图（#65）：从查看器钉整图或框出的局部（原图像素）。图经参考视角读取（[`reference_file`]），
 //! 只给已钉住的图，不按任意 id 给。安全模式开启时
@@ -88,6 +88,34 @@ pub fn monitor_at(x: i32, y: i32) -> Option<(ScreenRect, f64)> {
     ))
 }
 
+/// 主显示器的矩形与缩放比例。
+pub(super) fn primary_monitor() -> Option<(ScreenRect, f64)> {
+    let all = xcap::Monitor::all().ok()?;
+    let m = all
+        .iter()
+        .find(|m| m.is_primary().unwrap_or(false))
+        .or_else(|| all.first())?;
+    monitor_at(m.x().ok()?, m.y().ok()?)
+}
+
+/// 把资料库钉图摆到主显示器中间（略微错开，避开 `others`），按显示器缩小到合适的大小。
+pub(super) fn place_on_primary(pin: &mut SavedPin, others: &[ScreenRect]) {
+    let Some((monitor, dpi)) = primary_monitor() else {
+        return;
+    };
+    pin.placement.scale = initial_scale(pin.width, pin.height, monitor);
+    let (width, height) = pin.window_size();
+    let at = ScreenRect {
+        x: monitor.x + (monitor.width.saturating_sub(width) / 2) as i32,
+        y: monitor.y + (monitor.height.saturating_sub(height) / 2) as i32,
+        width,
+        height,
+    };
+    let (x, y) = place_new_pin(at, monitor, others, (OFFSET * dpi).round() as i32);
+    pin.placement.x = x;
+    pin.placement.y = y;
+}
+
 /// 全部显示器的矩形。
 pub fn monitors() -> Vec<ScreenRect> {
     xcap::Monitor::all()
@@ -104,7 +132,7 @@ pub fn monitors() -> Vec<ScreenRect> {
         .collect()
 }
 
-/// 已打开钉图的状态（按 [`PinStore`] 的先后）。
+/// 已打开钉图的状态（按桌面上参考组的先后）。
 pub fn open_pins(app: &AppHandle) -> Vec<SavedPin> {
     let open: Vec<String> = lock(&state(app).pins).keys().cloned().collect();
     lock(&state(app).store)
@@ -115,25 +143,12 @@ pub fn open_pins(app: &AppHandle) -> Vec<SavedPin> {
         .collect()
 }
 
-/// 入组后记下成员关系；已收藏的截图钉图改连参考图，保持当前几何和窗口状态。
-pub fn remember_group_members(app: &AppHandle, saved: &[SavedPin]) {
-    let converted = lock(&state(app).store).remember_members(saved);
-    converted_to_references(app, &converted, true);
-}
-
-/// 截图钉图收藏后改为显示参考图：本次运行的记录不再记着截图，重画。`unpin` 为真时截图历史不再算它
-/// 钉住（桌面上的参考组已经自己解除了）。
-pub(in crate::desktop) fn converted_to_references(
-    app: &AppHandle,
-    converted: &[String],
-    unpin: bool,
-) {
+/// 截图钉图收藏后改为显示参考图：本次运行的记录不再记着截图，重画。截图历史里的钉住桌面上的参考组
+/// 已经解除了。
+pub(in crate::desktop) fn converted_to_references(app: &AppHandle, converted: &[String]) {
     for id in converted {
-        let capture = lock(&state(app).pins)
-            .get_mut(id)
-            .and_then(|r| r.capture_id.take());
-        if let Some(capture) = capture.filter(|_| unpin) {
-            lock(&state(app).history).unpin(&capture);
+        if let Some(record) = lock(&state(app).pins).get_mut(id) {
+            record.capture_id = None;
         }
         refresh(app, id);
     }
@@ -282,11 +297,6 @@ pub fn restore(app: &AppHandle) {
         veils.set_scope(crate::library::safe_mode_scope(app));
     });
     let monitors = monitors();
-    if desk_reference_groups(app) {
-        use_desk(app);
-        // 托盘建好时还不知道开关：补上参考组那一段（#593）。
-        super::relabel_tray(app);
-    }
     let opened = {
         let mut store = lock(&state(app).store);
         store.restore(&mut lock(&state(app).history), &monitors)
@@ -307,34 +317,5 @@ pub fn restore(app: &AppHandle) {
     }
     for pin in &pins {
         open_pin(app, pin);
-    }
-}
-
-/// 设置里的“参考组改成桌面”开关（#591，界面上没有）；读不到设置时按关闭处理。
-fn desk_reference_groups(app: &AppHandle) -> bool {
-    app.try_state::<crate::shell::ShellState>()
-        .and_then(|shell| {
-            shell
-                .0
-                .lock()
-                .ok()
-                .map(|s| s.settings.desk_reference_groups())
-        })
-        .unwrap_or(false)
-}
-
-/// 开关打开：钉图状态换成桌面上的参考组。第一次时迁移（旧参考组都算归档，`pins.json` 的钉图成为一个
-/// 没有名称的参考组）。打不开时写运行日志，照旧用 `pins.json`。先参考组、后钉图状态。
-fn use_desk(app: &AppHandle) {
-    let dir = crate::data_dirs::app_data(app).device().to_path_buf();
-    let groups = lock(&state(app).groups);
-    let mut store = lock(&state(app).store);
-    let opened = {
-        let mut history = lock(&state(app).history);
-        kinshoko_core::reference_groups::Desk::open(&dir, groups.clone(), &mut history)
-    };
-    match opened {
-        Ok(desk) => *store = super::pin_state::PinState::Desk(Box::new(desk)),
-        Err(e) => crate::run_log::error("无法打开桌面上的参考组", e),
     }
 }

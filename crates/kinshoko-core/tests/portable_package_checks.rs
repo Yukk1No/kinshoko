@@ -2,6 +2,9 @@
 
 #[path = "support/portable_library.rs"]
 mod portable_library;
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+use group_fixture::GroupFixture;
 
 use portable_library::*;
 
@@ -26,7 +29,7 @@ fn one_image_package(dir: &Path) -> std::path::PathBuf {
     )
     .unwrap();
     let groups = ReferenceGroups::open(&dir.join("package-groups")).unwrap();
-    let group = groups.create("包", &mut [pin]).unwrap();
+    let group = groups.save_group("包", &mut [pin]).unwrap();
     let registered = [RegisteredLibrary {
         id: library.info().id.clone(),
         name: "包来源".into(),

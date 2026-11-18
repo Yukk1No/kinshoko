@@ -17,7 +17,7 @@ use crate::desktop::{CaptureHistory, CollectedCapture, GroupMemberRef, PreparedC
 /// 参考组自带的截图：文件名与字节（参考组包、备份用）。
 pub type CaptureFiles = Vec<(String, Vec<u8>)>;
 
-/// 打开参考组得到的钉图（[`ReferenceGroups::open_pins`]）。组内截图文件缺失、放不回截图历史的
+/// 把参考组的成员钉出来得到的钉图（[`Desk`](super::Desk) 摆到桌面上时）。组内截图文件缺失、放不回截图历史的
 /// 成员钉不出来，在 `problems` 里逐个说明。
 #[derive(Debug, Clone, PartialEq)]
 pub struct OpenedPins {
@@ -68,20 +68,10 @@ impl ReferenceGroups {
             .collect()
     }
 
-    /// 打开参考组：每个成员一个新的桌面钉图，按成员的先后，带着各自的局部与摆放；`skip` 为真的
-    /// 成员（例如已在桌面上）不钉。组内截图按字节放回截图历史（不重编码），钉成截图钉图，截图历史
-    /// 知道它正被钉住。资料库成员同 [`ReferenceGroup::pins`]。
-    pub fn open_pins(
-        &self,
-        group: &ReferenceGroup,
-        history: &mut CaptureHistory,
-        skip: impl Fn(&GroupMemberRef) -> bool,
-    ) -> OpenedPins {
-        self.open_members(group, history, skip, false)
-    }
-
-    /// 同 [`Self::open_pins`]；`reuse` 为真时，截图历史里还有与成员关联的条目就直接用它，
-    /// 不再放回一份（桌面上的参考组每次切换、启动都打开，免得截图历史被同一张截图挤满）。
+    /// 把参考组的成员钉出来：每个成员一个新的桌面钉图，按成员的先后，带着各自的局部与摆放；`skip`
+    /// 为真的成员不钉。组内截图按字节放回截图历史（不重编码），钉成截图钉图，截图历史知道它正被
+    /// 钉住。`reuse` 为真时，截图历史里还有与成员关联的条目就直接用它，不再放回一份（桌面上的参考组
+    /// 每次切换、启动都打开，免得截图历史被同一张截图挤满）。
     pub(super) fn open_members(
         &self,
         group: &ReferenceGroup,
@@ -190,19 +180,6 @@ impl ReferenceGroups {
         self.capture_file(id, member)
     }
 
-    /// 存进参考组后：显示截图历史条目、又是组内截图成员的钉图，在截图历史里记下这层关联，
-    /// 之后钉图关掉再从截图历史收藏也能改连（[`Self::relink_collected`]）。记不下时略过。
-    pub fn link_captures(&self, history: &mut CaptureHistory, pins: &[SavedPin]) {
-        for pin in pins {
-            let (Some(capture_id), Some(member)) = (pin.capture_id(), &pin.member) else {
-                continue;
-            };
-            if self.is_capture_member(member) {
-                let _ = history.link_member(capture_id, member.clone());
-            }
-        }
-    }
-
     /// 截图历史条目 `capture_id` 收藏成了 `collected`（截图历史或钉图菜单的“收藏”）：与它关联的
     /// 组内截图成员逐个改为引用那张参考图，组内副本删除。参考组已删除、成员已移出或已改连的关联
     /// 略过。改连了、略过了的关联才从截图历史去掉；参考组读不了、写不进的成员关联留着，下次收藏
@@ -238,15 +215,6 @@ impl ReferenceGroups {
         report
     }
 
-    /// `member` 现在还是组内截图成员。
-    fn is_capture_member(&self, member: &GroupMemberRef) -> bool {
-        self.get(&member.group_id).is_ok_and(|g| {
-            g.members
-                .iter()
-                .any(|m| m.id == member.member_id && m.library_id().is_none())
-        })
-    }
-
     /// 把一个关联的成员改连：改了为真；参考组明确不在、成员已移出或已改连为假；参考组读写失败
     /// 时报错（读不了不当作已删除）。
     fn relink(
@@ -272,18 +240,6 @@ impl ReferenceGroups {
         group.updated_at = crate::library::now_ms();
         self.commit(&group, &[])?;
         Ok(true)
-    }
-
-    /// 组内截图收藏进了资料库：成员改为引用那张参考图（局部与摆放不变），组内那份截图删除。
-    /// 成员已不是组内截图时什么都不改。
-    pub fn collected(
-        &self,
-        member: &GroupMemberRef,
-        collected: &CollectedCapture,
-    ) -> Result<ReferenceGroup, GroupError> {
-        let group = self.get(&member.group_id)?;
-        self.relink(member, collected)?;
-        self.get(&group.id)
     }
 }
 
