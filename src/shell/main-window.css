@@ -2,11 +2,15 @@
    ui/ui.css; overrides the older shell rules where the structure changed. */
 
 /* ---- Frame: the header rows form one 56 px band that is the window's safe area ---- */
+/* 桌面与纸（#608，design/ui-system/main-window-material.md）：图标轨直接放在桌面上；左栏、主区、详情栏是三张纸，
+   之间与窗口边露出 8 px 桌面（左边贴着图标轨）。上沿亮边画在纸的最上一层，免得被里面内容的底色盖住。 */
 .app-shell {
-  background: var(--bg);
+  background: var(--desk);
 }
 .rail {
   padding-top: 6px;
+  background: transparent;
+  border-right-color: transparent;
 }
 .rail .brand {
   height: 44px;
@@ -15,6 +19,7 @@
   flex: 1;
   min-height: 0;
   display: flex;
+  padding: var(--sheet-gap) var(--sheet-gap) var(--sheet-gap) 0;
 }
 .app-main {
   flex: 1;
@@ -22,26 +27,44 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  background: var(--bg);
+  overflow: hidden;
+  border-radius: var(--r);
+  background: var(--sheet-main);
+  box-shadow: var(--sheet-lift);
+}
+:is(.sidebar-slot:not([data-collapsed="true"]), .app-main, .inspector:not([data-collapsed="true"]))::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  border-radius: inherit;
+  box-shadow: var(--sheet-top);
+  pointer-events: none;
 }
 
 /* ---- Sidebar ---- */
 .sidebar-slot {
-  width: 256px;
+  position: relative;
+  width: calc(256px - var(--sheet-gap));
   flex: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin-right: var(--sheet-gap);
+  border-radius: var(--r);
   background: var(--surface);
-  border-right: 1px solid var(--line);
-  transition: width var(--t-slow) var(--ease);
+  box-shadow: var(--sheet-lift);
+  transition:
+    width var(--t-slow) var(--ease),
+    margin var(--t-slow) var(--ease);
 }
 .sidebar-slot[data-collapsed="true"] {
   width: 0;
-  border-right-width: 0;
+  margin-right: 0;
+  box-shadow: none;
 }
 .pane-head {
-  width: 255px;
+  width: calc(256px - var(--sheet-gap));
   height: 56px;
   min-height: 56px;
   flex: none;
@@ -87,22 +110,23 @@
   margin: 0;
   border: 0;
 }
+/* 左栏的间距只有三个值（#608）：同一组里的行之间 0，组与组之间 8 + 分界线 + 8，栏的四边 8。 */
 .side-top {
   flex: none;
-  padding: 0 8px 6px;
+  padding: 0 8px 8px;
   border-bottom: 1px solid var(--line);
 }
 .side-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 4px 8px 12px;
+  padding: 8px;
 }
 .side-foot {
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
   padding: 8px;
   border-top: 1px solid var(--line);
 }
@@ -138,14 +162,49 @@
   font-variant-numeric: tabular-nums;
   opacity: 1;
 }
-.k-row[aria-current="page"] {
-  background: var(--accent-soft);
+/* 选中的一行（#606 C4e）：凸起的小纸片画在 ::before 上；名字是墨色，强调色只留在图标与张数上。 */
+.k-row[aria-current="page"],
+.lib-head-name[aria-current="page"] {
+  isolation: isolate;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 500;
+}
+.k-row[aria-current="page"]::before,
+.lib-head-name[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(var(--sel-tint), var(--sel-tint)), var(--btn-face);
+  box-shadow: var(--sel-lift);
+}
+.k-row[aria-current="page"] .k-row-icon,
+.k-row[aria-current="page"] .sidebar-count,
+.lib-head-name[aria-current="page"] .sidebar-count {
   color: var(--accent-strong);
   font-weight: 500;
 }
-.k-row[aria-current="page"] .k-row-icon,
-.k-row[aria-current="page"] .sidebar-count {
-  color: var(--accent-strong);
+/* 按下缩一点，松开弹回。 */
+.sidebar-slot :is(.k-row, .lib-head-name) {
+  transition: transform var(--t-fast) var(--spring);
+}
+.sidebar-slot :is(.k-row, .lib-head-name):active:not(:disabled) {
+  transform: scale(0.985);
+}
+/* 文件夹图标：牛皮纸的金底（--manual-soft），日间下面半像素投影；选中的是强调色的淡底。 */
+.sidebar-slot .k-row-icon :is(.lucide-folder, .lucide-folder-open) {
+  fill: var(--manual-soft);
+  stroke-width: 1.75;
+  filter: drop-shadow(0 0.5px 0.5px light-dark(rgba(43, 39, 71, 0.22), transparent));
+}
+.sidebar-slot .k-row[aria-current="page"] .k-row-icon :is(.lucide-folder, .lucide-folder-open) {
+  fill: light-dark(
+    color-mix(in srgb, var(--accent) 32%, transparent),
+    color-mix(in srgb, var(--accent) 24%, transparent)
+  );
+  filter: none;
 }
 .k-row:disabled {
   opacity: var(--disabled-opacity);
@@ -169,18 +228,26 @@
 .workspace-provider {
   min-width: 0;
 }
+/* 图库行（#608）：30 高、13 px 加粗墨色，和文件夹行同一种行，只多一个展开箭头。
+   ⋯ 浮在张数的位置上（悬停或菜单开着时张数让出来），张数与别的行成一列。 */
 .lib-head {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
   height: 30px;
-  margin-top: 12px;
+  margin-top: 0;
   padding: 0;
+}
+.lib-group + .lib-group {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
 }
 .workspace-provider-root {
   display: flex;
   grid-template-columns: none;
-  margin-top: 10px;
+  margin-top: 0;
 }
 .workspace-expand {
   width: 18px;
@@ -199,31 +266,40 @@
   background: var(--hover);
   color: var(--ink);
 }
+/* 展开、收起时换的是两个图标：新图标从另一个的角度转过来（#606 C4d）。 */
+.workspace-expand svg {
+  transition: rotate var(--t-slow) var(--spring);
+}
+@starting-style {
+  .workspace-expand[aria-expanded="true"] svg {
+    rotate: -90deg;
+  }
+  .workspace-expand[aria-expanded="false"] svg {
+    rotate: 90deg;
+  }
+}
 /* the library name lines up with the row text below it: both sit 8 px in from the band */
 .lib-head-name {
+  position: relative;
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 26px;
+  height: 30px;
   padding: 0 8px;
   border: 0;
-  border-radius: var(--r-xs);
+  border-radius: var(--r-s);
   background: transparent;
-  color: var(--ink-2);
-  font-size: 12px;
-  line-height: 18px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 20px;
   font-weight: 600;
   text-align: left;
 }
-.lib-head-name:hover:not(:disabled) {
+.lib-head-name:hover:not(:disabled, [aria-current="page"]) {
   background: var(--hover);
-  color: var(--ink);
-}
-.lib-head-name[aria-current="page"] {
-  color: var(--accent-strong);
-  background: var(--accent-soft);
+  box-shadow: var(--row-edge);
 }
 .lib-head-name:disabled {
   opacity: 1;
@@ -234,8 +310,16 @@
   flex: 1;
 }
 .lib-head-name .sidebar-count {
-  font-weight: 500;
-  opacity: 0.85;
+  margin-left: auto;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  opacity: 1;
+  transition: opacity var(--t-fast);
+}
+.lib-head:is(:hover, :has(:focus-visible), :has(.lib-more[data-popup-open])) .lib-head-name .sidebar-count {
+  opacity: 0;
 }
 .workspace-provider > .sidebar {
   padding: 0;
@@ -270,6 +354,9 @@
   color: var(--warn);
 }
 .lib-more {
+  position: absolute;
+  top: 3px;
+  right: 3px;
   width: 24px;
   height: 24px;
   flex: none;
@@ -277,8 +364,7 @@
   opacity: 0;
   transition: opacity var(--t-fast);
 }
-.lib-head:hover .lib-more,
-.lib-more:focus-visible,
+.lib-head:is(:hover, :has(:focus-visible)) .lib-more,
 .lib-more[data-popup-open] {
   opacity: 1;
 }
@@ -329,8 +415,9 @@
   align-items: center;
   gap: 10px;
   padding: 0 8px 0 16px;
-  background: var(--bg);
+  background: var(--sheet-main);
   border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
   z-index: 5;
 }
 .topbar.is-empty {

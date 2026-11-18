@@ -108,6 +108,29 @@
     inset 0 1px 1.5px light-dark(rgba(43, 39, 71, 0.1), transparent),
     inset 0 1px 2px light-dark(transparent, rgba(0, 0, 0, 0.4));
   --btn-lift-disabled: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.24), rgba(0, 0, 0, 0.65));
+  /* 桌面与纸（#606，design/ui-system/main-window-material.md）：窗口底是米黄的桌面，左栏、主区、详情栏是放在上面的三张纸。
+     投影只落在桌面上，图片墙上不画东西。 */
+  --desk: var(--rail);
+  --sheet-gap: 8px;
+  --sheet-main: light-dark(var(--surface), var(--bg));
+  --sheet-lift:
+    0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.22), rgba(0, 0, 0, 0.75)),
+    0 1px 2px light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.45)),
+    0 6px 16px -6px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.4));
+  --sheet-top: inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.09));
+  /* 左栏的行（#606）：悬停滑块的半像素边；选中的一行是凸起的小纸片，面上铺一层很淡的强调色。 */
+  --row-edge: inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.14), rgba(244, 236, 220, 0.14));
+  --sel-tint: light-dark(
+    color-mix(in srgb, var(--accent) 6%, transparent),
+    color-mix(in srgb, var(--accent) 3%, transparent)
+  );
+  --sel-lift:
+    0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.16), rgba(0, 0, 0, 0.6)),
+    0 1px 0 light-dark(rgba(43, 39, 71, 0.06), rgba(0, 0, 0, 0.3)),
+    0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.35)),
+    0 8px 14px -8px light-dark(rgba(43, 39, 71, 0.24), rgba(0, 0, 0, 0.6)),
+    inset 0 1px 0 light-dark(#ffffff, rgba(244, 236, 220, 0.12)),
+    inset 0 -1px 0 light-dark(rgba(43, 39, 71, 0.035), rgba(0, 0, 0, 0.18));
   /* 槽（#606，design/ui-system/main-window-material.md）：查找框、输入框、下拉、备注框是纸上压下去的一道槽。
      日间槽底不变暗，深度只画在槽口；夜间槽底变暗。输入时那一圈线变实，外面一圈很淡的晕，不画强调色的焦点环。 */
   --well-floor: light-dark(var(--surface), var(--sunken));
