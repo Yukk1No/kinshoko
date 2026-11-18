@@ -287,6 +287,7 @@ impl Desk {
             return Ok(false);
         }
         let listed = self.switch_list.clone();
+        let mut copied = Vec::new();
         self.group.updated_at = crate::library::now_ms();
         if is_blank(&self.group) {
             match self.groups.delete(&self.group.id) {
@@ -297,13 +298,7 @@ impl Desk {
             self.switch_list.retain(|x| *x != id);
         } else {
             self.groups.commit(&self.group, &self.copies)?;
-            // 撤回时放回的组内截图已复制进来：备份删掉。
-            let rollback = self.state_path.with_extension("rollback");
-            for (_, from) in self.copies.drain(..) {
-                if from.starts_with(&rollback) {
-                    let _ = fs::remove_file(from);
-                }
-            }
+            copied = std::mem::take(&mut self.copies);
             // 第一次落盘时进切换列表；已经在里面的不挪位置，改钉图不算“用过”，切换顺序不变。
             let id = self.group.id.clone();
             if !self.switch_list.contains(&id) {
@@ -311,6 +306,14 @@ impl Desk {
             }
         }
         self.save_state()?;
+        // 撤回时放回的组内截图已复制进来、桌面状态也写好了：备份才删掉。之前删的话，外层的撤回
+        // 还指着它。
+        let rollback = self.state_path.with_extension("rollback");
+        for (_, from) in copied {
+            if from.starts_with(&rollback) {
+                let _ = fs::remove_file(from);
+            }
+        }
         self.dirty = false;
         let seen = std::mem::take(&mut self.members_changed) || listed != self.switch_list;
         Ok(seen)
