@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DeskLists } from "../bindings/DeskLists";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -132,6 +132,20 @@ async function more(name: string, item: string) {
   await flush();
 }
 
+// jsdom 没有 ResizeObserver；指示块只用它跟随尺寸变化。
+beforeAll(() => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+});
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -259,6 +273,15 @@ describe("参考组面板（参考组改成桌面）", () => {
     });
     expect(ipc.restore).toHaveBeenCalledWith({ groupId: "g1", name: "g1", unlinkedPins: [] });
     expect(ipc.purge).not.toHaveBeenCalled();
+  });
+
+  it("展开的成员与列表对不上时只重读一次，不一直读下去", async () => {
+    await show({ onDesk: "g1", switchList: [group("g1", "头发", { updatedAt: 5 })], archived: [] });
+    await more("头发", "查看成员");
+    await flush();
+    await flush();
+    // 替身读回来的版本是 0，列表里是 5：第一次展开读一次，核对时再读一次，之后不再读。
+    expect(ipc.group.mock.calls.filter(([id]) => id === "g1").length).toBeLessThanOrEqual(3);
   });
 
   it("导出参考组包、查看成员", async () => {

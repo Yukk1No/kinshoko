@@ -236,6 +236,38 @@ impl Desk {
         Some(pin)
     }
 
+    /// 从参考组 `id` 移出成员 `member_id`（面板“查看成员”的“移出”）。是桌面上的参考组时由这里做：
+    /// 钉着它的钉图随之关掉，落盘后返回参考组；不是时返回 `None`，交给 [`ReferenceGroups::remove_member`]
+    /// 改文件（桌面上的参考组以内存里的为准，直接改文件会被下次落盘盖掉）。
+    pub fn remove_member(
+        &mut self,
+        id: &str,
+        member_id: &str,
+        history: &mut CaptureHistory,
+    ) -> Result<Option<ReferenceGroup>, GroupError> {
+        if id != self.group.id {
+            return Ok(None);
+        }
+        let pin = self
+            .pins
+            .iter()
+            .find(|p| p.member.as_ref().is_some_and(|m| m.member_id == member_id))
+            .map(|p| p.id.clone());
+        match pin {
+            Some(pin) => {
+                self.close(&pin, history);
+            }
+            None => {
+                // 钉不出来的成员没有钉图。
+                self.group.members.retain(|m| m.id != member_id);
+                self.dirty = true;
+                self.members_changed = true;
+            }
+        }
+        self.flush()?;
+        Ok(Some(self.group.clone()))
+    }
+
     /// 改名。名称可以为空（回到“未命名”）。
     pub fn rename(&mut self, id: &str, name: &str) -> Result<ReferenceGroup, GroupError> {
         if id != self.group.id {
