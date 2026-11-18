@@ -4,7 +4,7 @@
 use std::sync::atomic::Ordering;
 
 use kinshoko_core::command_error::CommandError;
-use kinshoko_core::library::{SaveDestination, SubscriptionPage};
+use kinshoko_core::library::{ImageEdit, SaveDestination, SubscriptionPage};
 use kinshoko_core::subscription::pixiv::{ArtistsPage, Feed, IMAGE_HOST, PixivWork, WorksPage};
 use kinshoko_core::subscription::{
     CollectedWork, Destination, HandReport, SourceError, SourceId, collect_by_hand,
@@ -103,7 +103,22 @@ impl Destination for Picked {
         bytes: &[u8],
     ) -> Result<String, String> {
         crate::library::with_destination(&self.0, &self.1, |library| {
-            Ok(library.import_from_subscription(page, bytes)?)
+            let image_id = library.import_from_subscription(page, bytes)?;
+            // 画师明确再收一张已在回收站里的图：字节相同只合并来源，图还留在回收站。恢复它，
+            // 再放进选的文件夹（导入时回收站里的图不进文件夹）。
+            let trashed = library
+                .image(&image_id)
+                .is_ok_and(|detail| detail.deleted_at.is_some());
+            if trashed {
+                let mut edits = vec![ImageEdit::Restore];
+                if let Some(folder_id) = &self.1.folder_id {
+                    edits.push(ImageEdit::AddToFolder {
+                        folder_id: folder_id.clone(),
+                    });
+                }
+                library.edit(std::slice::from_ref(&image_id), &edits)?;
+            }
+            Ok(image_id)
         })
         .map_err(|e| e.to_string())
     }
