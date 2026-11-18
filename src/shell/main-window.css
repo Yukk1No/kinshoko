@@ -389,11 +389,34 @@
 }
 .topbar > .search .search-chip {
   height: 28px;
-  padding: 0 4px 0 8px;
+  padding: 0 8px;
   border: 0;
   border-radius: var(--r-s);
   background: var(--surface-2);
   font-weight: 500;
+  transition: padding var(--t) var(--ease);
+}
+/* 条件块平时只有名称；指针移上去、键盘走到或它的菜单开着时，相近（＋、×）、排除、去掉几个按钮才展开（#607）。
+   收起的按钮宽 0、仍可聚焦；负边距抵掉它前面的间距，所以收起时不占位置。chipsThatFit 按收起时的宽度量。 */
+.topbar > .search .search-chip button {
+  width: 0;
+  margin-left: -2px;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    width var(--t) var(--ease),
+    margin var(--t) var(--ease),
+    opacity var(--t-fast) var(--ease),
+    background-color var(--t-fast),
+    color var(--t-fast);
+}
+.topbar > .search .search-chip:is(:hover, :focus-within, :has([data-popup-open])) {
+  padding-right: 4px;
+}
+.topbar > .search .search-chip:is(:hover, :focus-within, :has([data-popup-open])) button {
+  width: 20px;
+  margin-left: 0;
+  opacity: 1;
 }
 .topbar > .search .search-chip[data-negate] {
   background: transparent;
