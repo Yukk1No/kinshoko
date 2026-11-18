@@ -13,19 +13,6 @@ const ipc = vi.hoisted(() => ({
   close: vi.fn((_generation: number) => Promise.resolve()),
   action: vi.fn((_pin: string, _action: string, _generation: number) => Promise.resolve(null as PinNotice | null)),
   notice: vi.fn((_pin: string, _text: string) => Promise.resolve()),
-  groups: vi.fn(() =>
-    Promise.resolve([
-      { id: "g1", name: "光影", memberCount: 2, libraryIds: ["L1"], updatedAt: 0, problem: null },
-      {
-        id: "g2",
-        name: "坏的",
-        memberCount: 0,
-        libraryIds: [],
-        updatedAt: 0,
-        problem: { code: "groupInvalid" as const, cause: { code: "notAGroup" as const } },
-      },
-    ]),
-  ),
 }));
 vi.mock("../ipc", () => ({
   desktopMenu: () => Promise.resolve(ipc.first),
@@ -37,8 +24,7 @@ vi.mock("../ipc", () => ({
   closeDesktopMenu: ipc.close,
   pinMenuAction: ipc.action,
   showPinNotice: ipc.notice,
-  referenceGroups: ipc.groups,
-  deskReferenceGroups: () => Promise.reject(new Error("开关关着")),
+  deskReferenceGroups: () => Promise.resolve({ onDesk: null, switchList: [], archived: [] }),
 }));
 
 import { DesktopMenuView, menuAnchor, PinMenuItems } from "./PinMenu";
@@ -59,8 +45,8 @@ const capture: PinMenu = {
   actualSize: false,
   veiled: false,
   canCollect: true,
-  group: null,
   confirmReveal: false,
+  desk: "",
 };
 const reference: PinMenu = {
   pin: "P2",
@@ -70,8 +56,8 @@ const reference: PinMenu = {
   actualSize: true,
   veiled: true,
   canCollect: false,
-  group: "光影",
   confirmReveal: false,
+  desk: "光影",
 };
 
 function show(menu: PinMenu) {
@@ -81,7 +67,7 @@ function show(menu: PinMenu) {
       <Menu.Portal>
         <Menu.Positioner>
           <Menu.Popup aria-label="钉图菜单">
-            <PinMenuItems menu={menu} act={act} groups={ipc.groups} />
+            <PinMenuItems menu={menu} act={act} />
           </Menu.Popup>
         </Menu.Positioner>
       </Menu.Portal>
@@ -94,7 +80,7 @@ function show(menu: PinMenu) {
 }
 
 describe("钉图菜单项", () => {
-  it("截图钉图：保留原生菜单全部项，再加在 Kinshoko 中打开、加入参考组、收起钉图与关闭钉图", () => {
+  it("截图钉图：保留原生菜单全部项，再加在 Kinshoko 中打开、切换到、移到参考组、收起钉图与关闭钉图", () => {
     const { rows, popup } = show(capture);
     expect(rows()).toEqual([
       "水平翻转H",
@@ -107,14 +93,15 @@ describe("钉图菜单项", () => {
       "收藏到…",
       "复制",
       "在 Kinshoko 中打开",
-      "加入参考组",
+      "切换到",
+      "移到参考组",
       "收起钉图",
       "关闭钉图Esc",
     ]);
     expect(within(popup).getAllByRole("separator")).toHaveLength(4);
   });
 
-  it("资料库钉图：没有收藏；遮蔽时有“显示这张图”、复制不可用，来自参考组时有“更新参考组”", () => {
+  it("资料库钉图：没有收藏；遮蔽时有“显示这张图”、复制不可用；“切换到”旁写着桌面上参考组的名称", () => {
     const { rows } = show(reference);
     expect(rows()).toEqual([
       "水平翻转H",
@@ -126,16 +113,16 @@ describe("钉图菜单项", () => {
       "锁定位置与大小",
       "复制",
       "显示这张图（安全模式下已遮蔽）",
-      "更新参考组「光影」",
       "在 Kinshoko 中打开",
-      "加入参考组",
+      "切换到光影",
+      "移到参考组",
       "收起钉图",
       "关闭钉图Esc",
     ]);
   });
 
-  it("资料库钉图没有遮蔽也不来自参考组时，中间那一段只有能用的“复制”（#289）", () => {
-    const { rows, popup, act } = show({ ...reference, veiled: false, group: null });
+  it("资料库钉图没有遮蔽时，中间那一段只有能用的“复制”（#289）", () => {
+    const { rows, popup, act } = show({ ...reference, veiled: false });
     expect(rows()).not.toContain("显示这张图（安全模式下已遮蔽）");
     expect(within(popup).getAllByRole("separator")).toHaveLength(4);
     const copy = screen.getByRole("menuitem", { name: "复制" });
@@ -157,12 +144,7 @@ describe("钉图菜单项", () => {
         <Menu.Portal>
           <Menu.Positioner>
             <Menu.Popup aria-label="钉图菜单">
-              <PinMenuItems
-                menu={{ ...reference, confirmReveal: true }}
-                act={act}
-                dismiss={dismiss}
-                groups={ipc.groups}
-              />
+              <PinMenuItems menu={{ ...reference, confirmReveal: true }} act={act} dismiss={dismiss} />
             </Menu.Popup>
           </Menu.Positioner>
         </Menu.Portal>
@@ -240,21 +222,7 @@ describe("钉图菜单项", () => {
     expect(act).toHaveBeenCalledWith("opacity:40");
   });
 
-  it("加入参考组：资料库钉图列出可用的参考组；截图钉图说明要先收藏", async () => {
-    const { act } = show(reference);
-    fireEvent.click(screen.getByRole("menuitem", { name: "加入参考组" }));
-    const group = await screen.findByRole("menuitem", { name: "光影" });
-    expect(screen.queryByRole("menuitem", { name: "坏的" })).toBeNull();
-    fireEvent.click(group);
-    expect(act).toHaveBeenCalledWith("group:g1");
-    cleanup();
-    show(capture);
-    fireEvent.click(screen.getByRole("menuitem", { name: "加入参考组" }));
-    expect(await screen.findByText("截图要先收藏进图库，才能加入参考组")).toBeTruthy();
-    expect(ipc.groups).toHaveBeenCalledTimes(1);
-  });
-
-  it("参考组改成桌面（#593）：没有“更新参考组”“加入参考组”，“切换到”列出别的参考组和“新参考组”", async () => {
+  it("“切换到”（#593）列出别的参考组和“新参考组”，没有“更新参考组”“加入参考组”", async () => {
     const deskGroups = vi.fn(() =>
       Promise.resolve({
         onDesk: "g1",
@@ -271,7 +239,7 @@ describe("钉图菜单项", () => {
         <Menu.Portal>
           <Menu.Positioner>
             <Menu.Popup aria-label="钉图菜单">
-              <PinMenuItems menu={{ ...reference, group: null, desk: "光影" }} act={act} deskGroups={deskGroups} />
+              <PinMenuItems menu={reference} act={act} deskGroups={deskGroups} />
             </Menu.Popup>
           </Menu.Positioner>
         </Menu.Portal>
@@ -297,9 +265,6 @@ describe("钉图菜单项", () => {
     expect(screen.queryByRole("menuitem", { name: "新参考组" })).toBeNull();
     fireEvent.click(target);
     expect(act).toHaveBeenCalledWith("moveTo:g2");
-    cleanup();
-    show({ ...reference, group: null }); // 开关关着：仍是“加入参考组”
-    expect(screen.getByRole("menuitem", { name: "加入参考组" })).toBeTruthy();
   });
 });
 
@@ -345,11 +310,11 @@ describe("菜单窗口", () => {
   it("做完一项后按界面语言写好提示，交回钉图显示", async () => {
     render(<DesktopMenuView />);
     await settle();
-    ipc.action.mockResolvedValueOnce({ kind: "addedToGroup", name: "光影" });
+    ipc.action.mockResolvedValueOnce({ kind: "copied" });
     act(() => ipc.next!(open(6)));
     fireEvent.click(await screen.findByRole("menuitem", { name: /水平翻转/ }));
     await settle();
-    expect(ipc.notice).toHaveBeenCalledWith("P1", "已加入参考组「光影」");
+    expect(ipc.notice).toHaveBeenCalledWith("P1", "已复制");
 
     await i18n.changeLanguage("en");
     try {
@@ -405,7 +370,7 @@ describe("菜单窗口", () => {
     render(<DesktopMenuView />);
     await settle();
     act(() => ipc.next!(open(10, reference)));
-    for (const name of [/透明度/, "加入参考组"]) {
+    for (const name of [/透明度/, "移到参考组"]) {
       const trigger = await screen.findByRole("menuitem", { name });
       fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
       fireEvent.mouseEnter(trigger);
@@ -418,7 +383,7 @@ describe("菜单窗口", () => {
       expect(screen.queryByRole("menu", { name: "钉图菜单" })).toBeTruthy();
       expect(ipc.close).not.toHaveBeenCalled();
     }
-    expect(await screen.findByRole("menu", { name: "加入参考组" })).toBeTruthy();
+    expect(await screen.findByRole("menu", { name: "移到参考组" })).toBeTruthy();
   });
 
   it("从触发项移进子菜单再选一档：子菜单与主菜单都不收（#309）", async () => {
@@ -478,7 +443,7 @@ describe("菜单窗口", () => {
     act(() => ipc.next!(open(8)));
     await screen.findByRole("menuitem", { name: "收藏到…" });
     act(() => ipc.next!(open(9, reference)));
-    expect(await screen.findByRole("menuitem", { name: "更新参考组「光影」" })).toBeTruthy();
+    expect(await screen.findByRole("menuitem", { name: "显示这张图（安全模式下已遮蔽）" })).toBeTruthy();
     fireEvent.click(screen.getByRole("menuitem", { name: /关闭钉图/ }));
     expect(ipc.action).toHaveBeenCalledWith("P2", "close", 9);
   });

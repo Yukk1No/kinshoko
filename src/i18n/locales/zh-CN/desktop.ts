@@ -1,4 +1,4 @@
-/** 桌面（`src/desktop/`）：钉图菜单、截图框选、截图历史、参考组面板与截图入组对话框。 */
+/** 桌面（`src/desktop/`）：钉图菜单、截图框选、截图历史与参考组面板。 */
 export default {
   /** 侧栏卡片上的时间（`relativeTime.ts`）。 */
   ago: {
@@ -16,7 +16,6 @@ export default {
   pinMenu: {
     label: "钉图菜单",
     loadingGroups: "正在读取参考组…",
-    noGroups: "还没有参考组，可在主窗口侧栏“参考组”里新建",
     confirmReveal: "显示这张图？",
     reveal: "显示",
     cancel: "取消",
@@ -31,10 +30,7 @@ export default {
     collectNoLibrary: "收藏（还没有图库）",
     copy: "复制",
     revealVeiled: "显示这张图（安全模式下已遮蔽）",
-    saveGroup: "更新参考组「{{name}}」",
     openInKinshoko: "在 Kinshoko 中打开",
-    addToGroup: "加入参考组",
-    collectFirst: "截图要先收藏进图库，才能加入参考组",
     edgeHide: "收起钉图",
     close: "关闭钉图",
     /** 参考组改成桌面（#593）：子菜单与它的条目。 */
@@ -92,20 +88,12 @@ export default {
     collectTitle: "收藏截图",
     collectConfirm: "收藏",
   },
-  /** 参考组面板（`ReferenceGroupsPanel`）。 */
+  /** 参考组面板（`DeskGroupsPanel`）里的成员、改名、导入导出与删除。 */
   groups: {
     label: "参考组",
     sealed: "安全模式下原位遮蔽",
     available: "可用",
     unregisteredLibrary: "未打开的图库",
-    notInLibrary: "不在图库里",
-    librarySeparator: "、",
-    savedNew: "已把桌面钉图存为参考组",
-    savedInto: "已把桌面钉图存进这个参考组",
-    newTitle: "新参考组",
-    newLabel: "新参考组名称",
-    newPlaceholder: "给这组钉图起个名字",
-    savePins: "存下桌面钉图",
     importTitle: "导入参考组包",
     importConfirm: "选择参考组包并导入",
     imported: "已导入参考组「{{name}}」，原图保存到所选图库和文件夹",
@@ -114,13 +102,9 @@ export default {
     renameTitle: "重命名",
     nameLabel: "参考组名称",
     delete: "删除",
-    allOnDesktop: "成员都已在桌面上",
-    opened_other: "已摆到桌面 {{count, number}} 张",
-    open: "摆到桌面",
     rename: "重命名",
     more: "更多操作",
     moreLabel: "{{name}} 的更多操作",
-    saveInto: "存入桌面钉图",
     hideMembers: "收起成员",
     showMembers: "查看成员",
     exported: "已导出参考组包：{{path}}",
@@ -137,33 +121,5 @@ export default {
     removeCaptureDescription: "这张截图只存在这个参考组里，移出后一起删除。",
     removeCaptureConfirm: "移出并删除",
     cancel: "取消",
-  },
-  /** 截图怎样存进参考组（`CaptureGroupSaveDialog`）。 */
-  captureSave: {
-    title: "截图怎样存进参考组",
-    unregisteredLibrary: "未打开的图库",
-    thumbAlt: "截图 {{n}}",
-    name: "截图 {{n}}",
-    collectedTo: "已收藏到 {{libraries}}",
-    librarySeparator: "、",
-    collected: "已收藏",
-    destinationLabel: "截图 {{n}} 存到哪里",
-    choose: "选择位置…",
-    collectTo: "收藏到{{name}}",
-    collectToOffline: "收藏到{{name}}（未连接）",
-    keepInGroup: "只存在参考组里",
-    skip: "不加入参考组",
-    folderLabel: "截图 {{n}} 的文件夹",
-    savesTo: "存到：{{place}}",
-    unassigned: "未归类",
-    folder: "文件夹",
-    unavailable: "这个位置暂时无法使用，请换一个图库或文件夹",
-    cancel: "取消",
-    saving: "正在保存…",
-    confirm: "确认并保存",
-    discardTitle: "放弃选好的去处",
-    discardDescription: "这次选的去处不会保存。",
-    discardConfirm: "放弃并关闭",
-    keepEditing: "继续选择",
   },
 };

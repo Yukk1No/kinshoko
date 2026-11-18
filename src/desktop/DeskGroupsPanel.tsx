@@ -40,7 +40,7 @@ import {
   unarchiveReferenceGroup,
   undoMergeReferenceGroup,
 } from "../ipc";
-import { describeCommandError, errorText, isErrorCode, unavailableReasonText } from "../ipc/commandError";
+import { describeCommandError, errorText, unavailableReasonText } from "../ipc/commandError";
 import { SaveDestinationDialog } from "../library/SaveDestination";
 import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import { useReducedMotion } from "../ui/reducedMotion";
@@ -49,17 +49,13 @@ import { useToast } from "../ui/Toast";
 import { WarnIcon } from "../ui/WarnIcon";
 import { GroupNameForm } from "./GroupNameForm";
 import { groupLabel } from "./groupLabel";
-import { ReferenceGroupsPanel } from "./ReferenceGroupsPanel";
 
 /** 与 tokens.css 的 `--t-slow` 相同：指示块滑动的时长，滑动中尺寸变了照样滑过去。 */
 const SLIDE_MS = 260;
 
-type Desk = { state: "loading" } | { state: "off" } | { state: "on"; lists: DeskLists };
+type Desk = { state: "loading" } | { state: "ready"; lists: DeskLists };
 
-/**
- * 参考组改成桌面（#588）的开关（设置里界面上没有的 `deskReferenceGroups`）开着没有，开着时还有
- * 切换列表与归档。参考组变了（切换、归档、钉上第一张……）时重读。
- */
+/** 切换列表与归档（#588）。参考组变了（切换、归档、钉上第一张……）时重读。 */
 function useDesk(): { desk: Desk; failed: unknown } {
   const [desk, setDesk] = useState<Desk>({ state: "loading" });
   const [failed, setFailed] = useState<unknown>(null);
@@ -69,13 +65,11 @@ function useDesk(): { desk: Desk; failed: unknown } {
       deskReferenceGroups().then(
         (lists) => {
           if (!alive) return;
-          setDesk({ state: "on", lists });
+          setDesk({ state: "ready", lists });
           setFailed(null);
         },
         (e) => {
-          if (!alive) return;
-          if (isErrorCode(e, "deskGroupsOff")) setDesk({ state: "off" });
-          else setFailed(e);
+          if (alive) setFailed(e);
         },
       );
     void load();
@@ -88,27 +82,21 @@ function useDesk(): { desk: Desk; failed: unknown } {
   return { desk, failed };
 }
 
-/**
- * 侧栏“参考组”（图标轨 Ctrl+2）：开关关着时是原来的面板（{@link ReferenceGroupsPanel}），
- * 开着时是切换列表加归档（{@link DeskGroupsPanel}，#592）。
- */
+/** 侧栏“参考组”（图标轨 Ctrl+2）：切换列表加归档（{@link DeskGroupsPanel}，#592）。 */
 export function ReferenceGroups() {
   const { desk, failed } = useDesk();
   const toast = useToast();
   useEffect(() => {
     if (failed) toast.error(errorText(failed));
   }, [failed, toast]);
-  if (desk.state === "off") return <ReferenceGroupsPanel />;
   if (desk.state === "loading") return <section className="reference-groups" aria-busy="true" />;
   return <DeskGroupsPanel lists={desk.lists} />;
 }
 
-/** 侧栏标题行右侧的“新参考组”（#592）：换到一张空桌。开关关着时不出现。 */
+/** 侧栏标题行右侧的“新参考组”（#592）：换到一张空桌。 */
 export function DeskNewGroupButton() {
-  const { desk } = useDesk();
   const toast = useToast();
   const { t } = useTranslation("desktop", { keyPrefix: "deskPanel" });
-  if (desk.state !== "on") return null;
   return (
     <Tip label={t("newGroup")}>
       <button
@@ -302,7 +290,6 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
             title={t("groups.renameTitle")}
             label={t("groups.nameLabel")}
             value={renaming.name}
-            primary={false}
             onChange={(value) => setRenaming({ id: g.id, name: value })}
             onCancel={() => setRenaming(null)}
             onSubmit={() =>

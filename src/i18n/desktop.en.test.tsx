@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { i18n } from "./instance";
 import type { PinMenu } from "../bindings/PinMenu";
+import type { DeskLists } from "../bindings/DeskLists";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
 import { expectNoChinese } from "../test/noChinese";
@@ -11,20 +12,17 @@ import { expectNoChinese } from "../test/noChinese";
 const ipc = vi.hoisted(() => ({
   groups: vi.fn(),
   group: vi.fn(),
-  remove: vi.fn(() => Promise.resolve({ groupId: "g1", name: "Hair", unlinkedPins: [] })),
-  captures: vi.fn(() =>
-    Promise.resolve([{ id: "shot-1", width: 100, height: 80, collected: [{ libraryId: "lib-a" }] }]),
-  ),
+  lists: vi.fn((): Promise<DeskLists> => Promise.resolve({ onDesk: null, switchList: [], archived: [] })),
+  remove: vi.fn(() => Promise.resolve({ groupId: "g1", name: "Hair" })),
 }));
 vi.mock("../ipc", () => ({
   saveMemory: () => Promise.resolve({ importDestination: null, newLibraryParent: null }),
   referenceGroups: ipc.groups,
   referenceGroup: ipc.group,
-  groupSaveCaptures: ipc.captures,
   deleteReferenceGroup: ipc.remove,
   restoreReferenceGroup: () => Promise.resolve(),
   purgeDeletedReferenceGroup: () => Promise.resolve(),
-  deskReferenceGroups: () => Promise.resolve({ onDesk: null, switchList: [], archived: [] }),
+  deskReferenceGroups: ipc.lists,
   captureHistory: () =>
     Promise.resolve([
       { id: "c1", width: 412, height: 380, createdAt: Date.now() - 5 * 60_000, pinned: true, collected: [] },
@@ -74,7 +72,7 @@ vi.mock("../ipc", () => ({
 import { Menu } from "../ui/Menu";
 import { PinMenuItems } from "../desktop/PinMenu";
 import { CaptureHistoryPanel } from "../desktop/CaptureHistoryPanel";
-import { ReferenceGroupsPanel } from "../desktop/ReferenceGroupsPanel";
+import { ReferenceGroups } from "../desktop/DeskGroupsPanel";
 import { SaveDestinationProvider } from "../library/SaveDestination";
 import { ago } from "../desktop/relativeTime";
 
@@ -105,8 +103,8 @@ const pin = (extra: Partial<PinMenu>): PinMenu => ({
   actualSize: false,
   veiled: true,
   canCollect: false,
-  group: "光影",
   confirmReveal: false,
+  desk: "光影",
   ...extra,
 });
 
@@ -116,7 +114,7 @@ function pinMenu(menu: PinMenu) {
       <Menu.Portal>
         <Menu.Positioner>
           <Menu.Popup aria-label="menu">
-            <PinMenuItems menu={menu} act={vi.fn()} groups={() => Promise.resolve([])} />
+            <PinMenuItems menu={menu} act={vi.fn()} />
           </Menu.Popup>
         </Menu.Positioner>
       </Menu.Portal>
@@ -162,11 +160,11 @@ const view: ReferenceGroupView = {
 describe("英文界面：桌面", () => {
   it("钉图菜单：资料库钉图、截图钉图与“显示这张图？”", async () => {
     expectNoChinese(pinMenu(pin({})), data);
-    fireEvent.click(screen.getByRole("menuitem", { name: "Add to reference group" }));
-    expect(await screen.findByText(/No reference groups yet/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("menuitem", { name: /Switch to/ }));
+    expect(await screen.findByText("No other reference groups")).toBeTruthy();
     expectNoChinese(document.body, data);
     cleanup();
-    expectNoChinese(pinMenu(pin({ capture: true, veiled: false, group: null, canCollect: false })));
+    expectNoChinese(pinMenu(pin({ capture: true, veiled: false, desk: "", canCollect: false })));
     cleanup();
     expectNoChinese(pinMenu(pin({ confirmReveal: true })));
     expect(screen.getByRole("menuitem", { name: "Show" })).toBeTruthy();
@@ -183,41 +181,29 @@ describe("英文界面：桌面", () => {
     expectNoChinese(document.body);
   });
 
-  it("参考组：卡片、成员、更多操作、删除可撤销与截图入组", async () => {
-    ipc.groups.mockResolvedValue([summary]);
+  it("参考组：卡片、成员、更多操作与删除可撤销", async () => {
+    ipc.lists.mockResolvedValue({ onDesk: "g1", switchList: [summary], archived: [] });
     ipc.group.mockResolvedValue(view);
     render(
       <SaveDestinationProvider safe>
-        <ReferenceGroupsPanel />
+        <ReferenceGroups />
       </SaveDestinationProvider>,
     );
     await settle();
-    expect(screen.getByText("2 images")).toBeTruthy();
-    expect(screen.getByText("主库, Unregistered library")).toBeTruthy();
     expectNoChinese(document.body, data);
 
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("button", { name: /More actions/ }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Show members" }));
     await settle();
     expect(screen.getByText("Crop 40 × 30")).toBeTruthy();
     expect(screen.getByText("Hidden in place by Safe mode")).toBeTruthy();
     expectNoChinese(document.body, data);
 
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("button", { name: /More actions/ }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
     expect(await screen.findByText("Reference group deleted")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy();
-    expect(screen.queryByRole("alertdialog")).toBeNull();
-    await settle();
-
-    fireEvent.click(screen.getByRole("button", { name: "Save desktop pins" }));
-    fireEvent.change(screen.getByLabelText("New reference group name"), { target: { value: "光影" } });
     expectNoChinese(document.body, data);
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    await settle();
-    const dialog = await screen.findByRole("dialog", { name: "How to save screenshots into the reference group" });
-    expect(within(dialog).getByText("Collected")).toBeTruthy();
-    expectNoChinese(dialog, data);
   });
 
   it("侧栏卡片上的相对时间", () => {

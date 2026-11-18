@@ -17,7 +17,7 @@ const ipc = vi.hoisted(() => ({
   merge: vi.fn(() => Promise.resolve({ groupId: "g1", members: ["n1", "n2"] })),
   undoMerge: vi.fn(() => Promise.resolve()),
   rename: vi.fn(() => Promise.resolve()),
-  remove: vi.fn((id: string) => Promise.resolve({ groupId: id, name: id, unlinkedPins: [] })),
+  remove: vi.fn((id: string) => Promise.resolve({ groupId: id, name: id })),
   restore: vi.fn(() => Promise.resolve()),
   purge: vi.fn(() => Promise.resolve()),
   removeMember: vi.fn(() => Promise.resolve()),
@@ -30,7 +30,6 @@ vi.mock("../ipc", () => ({
   deskReferenceGroups: ipc.lists,
   referenceGroups: ipc.groups,
   referenceGroup: ipc.group,
-  groupSaveCaptures: () => Promise.resolve([]),
   captureUrl: (id: string) => `capture://${id}`,
   thumbnailUrl: (address: string) => `thumb://${address}`,
   switchReferenceGroup: ipc.switchTo,
@@ -46,9 +45,6 @@ vi.mock("../ipc", () => ({
   removeGroupMember: ipc.removeMember,
   exportReferenceGroupPackage: ipc.exportPackage,
   importReferenceGroupPackage: ipc.importPackage,
-  openReferenceGroup: () => Promise.resolve(0),
-  saveReferenceGroup: () => Promise.resolve(),
-  savePinsToGroup: () => Promise.resolve(),
   onReferenceGroupsChanged: (handler: () => void) => {
     ipc.changed.push(handler);
     return Promise.resolve(() => {});
@@ -152,21 +148,7 @@ afterEach(() => {
   ipc.changed.length = 0;
 });
 
-describe("参考组面板（参考组改成桌面）", () => {
-  it("开关关着：还是原来的面板，没有“新参考组”按钮", async () => {
-    ipc.lists.mockRejectedValue({ code: "deskGroupsOff" });
-    render(
-      <SaveDestinationProvider safe>
-        <DeskNewGroupButton />
-        <ReferenceGroups />
-      </SaveDestinationProvider>,
-    );
-    await flush();
-    expect(screen.getByRole("button", { name: "存下桌面钉图" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "新参考组" })).toBeNull();
-    expect(screen.queryByRole("list", { name: "切换到" })).toBeNull();
-  });
-
+describe("参考组面板（桌面上的参考组）", () => {
   it("切换列表在上、归档在下；桌面上的那一项标为当前，没有名称的写“未命名”和时间", async () => {
     await show({ onDesk: "g1", switchList: [hair, hands], archived: [old] });
     const items = within(switchList()).getAllByRole("listitem");
@@ -271,7 +253,7 @@ describe("参考组面板（参考组改成桌面）", () => {
     await act(async () => {
       fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
     });
-    expect(ipc.restore).toHaveBeenCalledWith({ groupId: "g1", name: "g1", unlinkedPins: [] });
+    expect(ipc.restore).toHaveBeenCalledWith({ groupId: "g1", name: "g1" });
     expect(ipc.purge).not.toHaveBeenCalled();
   });
 

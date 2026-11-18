@@ -2,7 +2,6 @@ import type { SaveDestination } from "../bindings/SaveDestination";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { invoke } from "./invoke";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { GatePlan } from "../bindings/GatePlan";
 import type { PinGate } from "../bindings/PinGate";
 import type { DeletedGroup } from "../bindings/DeletedGroup";
@@ -23,31 +22,7 @@ export function referenceGroup(groupId: string): Promise<ReferenceGroupView> {
   return invoke<ReferenceGroupView>(desk("reference_group"), { groupId });
 }
 
-/** 把桌面钉图存成新的参考组；截图按逐张选择收藏后入组、只存在参考组里，或不加入。 */
-export function saveReferenceGroup(
-  name: string,
-  captures: import("../bindings/CaptureChoice").CaptureChoice[] = [],
-): Promise<ReferenceGroup> {
-  return invoke<ReferenceGroup>(desk("save_reference_group"), { name, captures });
-}
-
-/** 把桌面上的资料库钉图存进已有的参考组：来自它的更新原成员，其他的加为新成员。 */
-export function savePinsToGroup(
-  groupId: string,
-  captures: import("../bindings/CaptureChoice").CaptureChoice[] = [],
-): Promise<ReferenceGroup> {
-  return invoke<ReferenceGroup>(desk("save_pins_to_group"), { groupId, captures });
-}
-
-/** 桌面上要决定怎样入组的截图；存进已有的参考组 `groupId` 时，已是它自带截图的不列出。 */
-export function groupSaveCaptures(groupId?: string): Promise<CaptureEntry[]> {
-  return invoke<CaptureEntry[]>(desk("group_save_captures"), groupId ? { groupId } : {});
-}
-
-/**
- * 参考组改成桌面（#588、#591）：切换列表（最近用过的在前）与归档（最近保存的在前）。
- * 设置里界面上没有的开关 `deskReferenceGroups` 关着时报错 `deskGroupsOff`。
- */
+/** 桌面上的参考组（#588）：切换列表（最近用过的在前）与归档（最近保存的在前）。 */
 export function deskReferenceGroups(): Promise<DeskLists> {
   return invoke<DeskLists>(desk("desk_reference_groups"));
 }
@@ -82,11 +57,6 @@ export function undoMergeReferenceGroup(undo: MergeUndo): Promise<void> {
   return invoke<void>(desk("undo_merge_reference_group"), { undo });
 }
 
-/** 打开参考组：成员按保存的局部与摆放钉到桌面；返回新钉出的数量。 */
-export function openReferenceGroup(groupId: string): Promise<number> {
-  return invoke<number>(desk("open_reference_group"), { groupId });
-}
-
 export function renameReferenceGroup(groupId: string, name: string): Promise<ReferenceGroup> {
   return invoke<ReferenceGroup>(desk("rename_reference_group"), { groupId, name });
 }
@@ -96,7 +66,7 @@ export function deleteReferenceGroup(groupId: string): Promise<DeletedGroup> {
   return invoke<DeletedGroup>(desk("delete_reference_group"), { groupId });
 }
 
-/** 撤销 {@link deleteReferenceGroup}：参考组原样放回，桌面上还在的钉图重新记起自己是哪个成员。 */
+/** 撤销 {@link deleteReferenceGroup}：参考组原样放回；删除时摆在桌面上的，放回桌面。 */
 export function restoreReferenceGroup(deleted: DeletedGroup): Promise<void> {
   return invoke<void>(desk("restore_reference_group"), { deleted });
 }
@@ -136,7 +106,7 @@ export function importReferenceGroupPackage(
   });
 }
 
-/** 参考组有变化（保存、重命名、删除）：重新读取。 */
+/** 参考组有变化（切换、重命名、删除……）：重新读取。 */
 export function onReferenceGroupsChanged(handler: () => void): Promise<UnlistenFn> {
   return listen("reference-groups", () => handler());
 }

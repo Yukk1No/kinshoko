@@ -109,17 +109,13 @@ export function workspaceLibraryCandidates(
 ): Promise<Candidate[]> {
   return invoke(lib("workspace_library_candidates"), { libraryId, text, lang, limit, safeMode });
 }
+/** 图库墙“加入参考组”：把这张图加进参考组 `groupId`；那个参考组正摆在桌面上时钉到桌面上。 */
 export function workspaceSourceGroup(
   target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget,
   safeMode: boolean,
-  choice: { groupId: string; name?: never } | { name: string; groupId?: never },
+  groupId: string,
 ): Promise<ReferenceGroup> {
-  return invoke(lib("workspace_source_group"), {
-    target,
-    safeMode,
-    groupId: choice.groupId ?? null,
-    name: choice.name ?? null,
-  });
+  return invoke(lib("workspace_source_group"), { target, safeMode, groupId });
 }
 
 export function workspaceDirectories(safeMode: boolean): Promise<WorkspaceDirectories> {

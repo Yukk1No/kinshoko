@@ -243,7 +243,7 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
       void eachCard(
         cards,
         (failures) => i18n.t("wall:notice.librariesNotAddedToGroup", { failures }),
-        (target) => workspaceSourceGroup(target, safe, { groupId }),
+        (target) => workspaceSourceGroup(target, safe, groupId),
       );
     },
     purge(cards) {
