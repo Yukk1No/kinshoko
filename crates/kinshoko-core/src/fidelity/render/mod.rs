@@ -408,7 +408,9 @@ fn encode(
 ) -> Result<Vec<u8>, String> {
     let channels = if alpha { 4 } else { 3 };
     let samples = pixels
-        .chunks_exact(4)
+        .as_chunks::<4>()
+        .0
+        .iter()
         .flat_map(|p| p[..channels].iter().map(|v| v.clamp(0.0, 1.0)));
     let mut out = Vec::new();
     match container {

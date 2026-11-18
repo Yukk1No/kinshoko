@@ -35,7 +35,7 @@ impl Inner {
     pub(super) fn update_safe(&self, f: impl Fn(SafeMode) -> SafeMode) -> SafeMode {
         let previous = self
             .safe_mode
-            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |byte| {
+            .try_update(Ordering::SeqCst, Ordering::SeqCst, |byte| {
                 SafeMode::decode(byte).map(|mode| f(mode).encode())
             })
             .expect("安全模式按编码写入");
