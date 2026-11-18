@@ -335,16 +335,25 @@ impl Desk {
             self.flush()?;
         }
         self.groups.trash(id)?;
+        let before = self.switch_list.clone();
         self.switch_list.retain(|x| x != id);
         if !on_desk {
             self.save_state()?;
             return Ok(None);
         }
-        self.trashed_from_desk.insert(id.to_owned());
-        // 参考组已在回收位置：换走时不能再把它写回去。
-        self.dirty = false;
-        self.copies.clear();
-        self.leave_desk(history).map(Some)
+        // 参考组已在回收位置：换走时不能再把它写回去（落盘过，内存里没有没写的改动）。
+        match self.leave_desk(history) {
+            Ok(switched) => {
+                self.trashed_from_desk.insert(id.to_owned());
+                Ok(Some(switched))
+            }
+            Err(e) => {
+                // 换不走：桌面还是它，把文件放回原处，像没删过一样。
+                self.switch_list = before;
+                self.groups.untrash(id)?;
+                Err(e)
+            }
+        }
     }
 
     /// 撤销删除：参考组连同自带截图放回原处，补上删除期间的收藏改连，回到切换列表。删除时它摆在
