@@ -88,14 +88,21 @@
 | `--ease` | `cubic-bezier(0.2, 0.8, 0.2, 1)` | 不带回弹的过渡 |
 | `--spring` | `cubic-bezier(0.2, 0.9, 0.25, 1.05)` | 带一点回弹的过渡 |
 
-**脚本里的弹簧**（`motion`）
+**有名字的单项时长**（`tokens.css`，只用在登记的那一处）
 
-| 名称 | 档位 | 现在写在哪里 |
+| 令牌 | 值 | 用在哪里 |
 | --- | --- | --- |
-| `arcSpring` | snappy 260 ms、morph 420 ms、smooth 400 ms | `src/ui/Dock.tsx` |
-| `spring` | 80 / 160 / 240 ms，实际只用 moderate | `src/ui/vendor/fluid/springs.ts` |
+| `--t-progress` | 600 ms | 打标进度环的弧长变化（`src/shell/main-window-island.css`） |
+| `--t-toast` | 400 ms | 轻提示叠放与展开时的位移（`src/ui/toast.css`） |
+| `--t-splash` | 360 ms | 启动画面退场时标志与文字淡出（`src/shell/startup-splash.css`） |
+| `--t-splash-hold` | 250 ms | 启动画面退场前标志多停的一会儿（同上） |
 
-#600 把两者收进 `src/ui/motion.ts`，之后脚本里的过渡都从那里引用，这张表改成指向那个文件。
+**脚本里的过渡**都从 `src/ui/motion.ts` 引用，不另写数值：
+
+| 名称 | 档位 | 用在哪里 |
+| --- | --- | --- |
+| `arcSpring` | snappy 260 ms、morph 420 ms、smooth 400 ms | dock、悬浮栏、图片大小浮岛、对话框高度、查看器飞入 |
+| `spring` | 原版 80 / 160 / 240 ms，只用 moderate | `FluidList` 的悬停高亮 |
 
 **例外**
 
@@ -154,4 +161,5 @@
 - `src/styles/tokens.styles.test.ts`：令牌文件以外的十六进制颜色
 - `src/styles/focus.styles.test.ts`：焦点环以外的焦点写法
 - `src/ui/popup.styles.test.ts`：浮层外形
+- `src/styles/motion.styles.test.ts`：令牌文件以外的 `transition`、`animation` 里写死的时长
 - `src/styles/scales.styles.test.ts`：10 以上的 `z-index` 数字、不可用规则里写死的透明度、写死的 `backdrop-filter`

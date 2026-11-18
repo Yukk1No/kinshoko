@@ -48,7 +48,7 @@ body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-toasts {
     translateY(calc(var(--toast-swipe-movement-y) - var(--toast-index) * var(--peek) - var(--shrink) * var(--height)))
     scale(var(--scale));
   transition:
-    transform 400ms var(--spring),
+    transform var(--t-toast) var(--spring),
     opacity var(--t) var(--ease),
     height var(--t-fast) var(--ease);
 }

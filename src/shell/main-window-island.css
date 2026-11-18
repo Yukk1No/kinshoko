@@ -191,7 +191,7 @@
 .k-tagging-arc {
   stroke: var(--accent);
   stroke-linecap: round;
-  transition: stroke-dasharray 600ms var(--ease);
+  transition: stroke-dasharray var(--t-progress) var(--ease);
 }
 [data-activity="paused"] .k-tagging-arc {
   stroke: var(--ink-3);
@@ -269,7 +269,7 @@
 @media (prefers-reduced-motion: reduce) {
   .k-tagging-glyph > span {
     transform: none !important;
-    transition: opacity 120ms var(--ease);
+    transition: opacity var(--t-fast) var(--ease);
   }
 }
 
