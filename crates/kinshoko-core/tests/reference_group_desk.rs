@@ -611,3 +611,38 @@ fn undoing_a_delete_that_cannot_switch_back_can_be_retried() {
     assert_eq!(t.desk.group().id, id);
     assert_eq!(t.desk.pins().len(), 1);
 }
+
+#[test]
+fn undoing_a_delete_of_another_group_that_cannot_be_saved_can_be_retried() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    t.desk.flush().unwrap();
+    let other = t.desk.group().id.clone();
+    t.desk.new_desk(&mut t.history).unwrap();
+    t.pin_reference("b", 20);
+    t.desk.flush().unwrap();
+    t.desk.discard(&other, &mut t.history).unwrap();
+
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.undo_discard(&other, &mut t.history).is_err());
+    std::fs::remove_dir_all(&state).unwrap();
+
+    let (_, switched) = t.desk.undo_discard(&other, &mut t.history).unwrap();
+    assert!(switched.is_none());
+    t.restart();
+    let listed: Vec<String> = t
+        .desk
+        .lists()
+        .unwrap()
+        .switch_list
+        .into_iter()
+        .map(|s| s.id)
+        .collect();
+    assert!(
+        listed.contains(&other),
+        "再撤销一次就回到切换列表：{listed:?}"
+    );
+}
