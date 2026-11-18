@@ -253,9 +253,20 @@ impl Desk {
             .iter()
             .find(|p| p.member.as_ref().is_some_and(|m| m.member_id == member_id))
             .map(|p| p.id.clone());
+        let before = (
+            self.group.clone(),
+            self.pins.clone(),
+            self.copies.clone(),
+            self.switch_list.clone(),
+            self.dirty,
+            self.members_changed,
+        );
+        let mut unpinned = None;
         match pin {
             Some(pin) => {
-                self.close(&pin, history);
+                unpinned = self
+                    .close(&pin, history)
+                    .and_then(|p| p.capture_id().map(str::to_owned));
             }
             None => {
                 // 钉不出来的成员没有钉图。
@@ -264,7 +275,21 @@ impl Desk {
                 self.members_changed = true;
             }
         }
-        self.flush()?;
+        if let Err(e) = self.flush() {
+            // 写不进：成员和钉图都留着，像没移出过一样（钉图窗口本来就没关）。
+            (
+                self.group,
+                self.pins,
+                self.copies,
+                self.switch_list,
+                self.dirty,
+                self.members_changed,
+            ) = before;
+            if let Some(capture) = unpinned {
+                history.pin(&capture);
+            }
+            return Err(e);
+        }
         Ok(Some(self.group.clone()))
     }
 
