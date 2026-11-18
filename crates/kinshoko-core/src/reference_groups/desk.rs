@@ -20,6 +20,7 @@ mod migrate;
 mod state;
 
 use std::collections::BTreeSet;
+use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -237,20 +238,10 @@ impl Desk {
             .iter()
             .find(|p| p.member.as_ref().is_some_and(|m| m.member_id == member_id))
             .map(|p| p.id.clone());
-        let before = (
-            self.group.clone(),
-            self.pins.clone(),
-            self.copies.clone(),
-            self.switch_list.clone(),
-            self.dirty,
-            self.members_changed,
-        );
-        let mut unpinned = None;
+        let before = self.snapshot(&[member_id.to_owned()]);
         match pin {
             Some(pin) => {
-                unpinned = self
-                    .close(&pin, history)
-                    .and_then(|p| p.capture_id().map(str::to_owned));
+                self.close(&pin, history);
             }
             None => {
                 // 钉不出来的成员没有钉图。
@@ -261,19 +252,10 @@ impl Desk {
         }
         if let Err(e) = self.flush() {
             // 写不进：成员和钉图都留着，像没移出过一样（钉图窗口本来就没关）。
-            (
-                self.group,
-                self.pins,
-                self.copies,
-                self.switch_list,
-                self.dirty,
-                self.members_changed,
-            ) = before;
-            if let Some(capture) = unpinned {
-                history.pin(&capture);
-            }
+            self.roll_back(before, history);
             return Err(e);
         }
+        before.discard();
         Ok(Some(self.group.clone()))
     }
 
@@ -312,7 +294,13 @@ impl Desk {
             self.switch_list.retain(|x| *x != id);
         } else {
             self.groups.commit(&self.group, &self.copies)?;
-            self.copies.clear();
+            // 撤回时放回的组内截图已复制进来：备份删掉。
+            let rollback = self.state_path.with_extension("rollback");
+            for (_, from) in self.copies.drain(..) {
+                if from.starts_with(&rollback) {
+                    let _ = fs::remove_file(from);
+                }
+            }
             // 第一次落盘时进切换列表；已经在里面的不挪位置，改钉图不算“用过”，切换顺序不变。
             let id = self.group.id.clone();
             if !self.switch_list.contains(&id) {
@@ -641,6 +629,60 @@ impl Desk {
         }
     }
 
+    /// 移出成员之前记下桌面：落盘失败时用 [`Self::roll_back`] 回到这里。落盘会删掉移出成员的组内截图，
+    /// 所以先把它们复制一份到桌面状态旁边。
+    fn snapshot(&self, removing: &[String]) -> Snapshot {
+        let mut backups = Vec::new();
+        let dir = self.state_path.with_extension("rollback");
+        if let Ok(from) = self.groups.captures_dir(&self.group.id) {
+            for member in self
+                .group
+                .members
+                .iter()
+                .filter(|m| removing.contains(&m.id))
+            {
+                let MemberSource::Capture { capture_file } = &member.source else {
+                    continue;
+                };
+                // 还没复制进来的截图本来就在截图历史里，留在 copies 中即可。
+                let file = from.join(capture_file);
+                let backup = dir.join(capture_file);
+                if file.is_file()
+                    && fs::create_dir_all(&dir).is_ok()
+                    && fs::copy(&file, &backup).is_ok()
+                {
+                    backups.push((capture_file.clone(), backup));
+                }
+            }
+        }
+        Snapshot {
+            group: self.group.clone(),
+            pins: self.pins.clone(),
+            copies: self.copies.clone(),
+            switch_list: self.switch_list.clone(),
+            members_changed: self.members_changed,
+            backups,
+        }
+    }
+
+    /// 回到 `before`：成员、钉图与截图历史的钉住次数都复原，删掉的组内截图下次落盘时从备份放回。
+    fn roll_back(&mut self, before: Snapshot, history: &mut CaptureHistory) {
+        let now: BTreeSet<&str> = self.pins.iter().map(|p| p.id.as_str()).collect();
+        for pin in before.pins.iter().filter(|p| !now.contains(p.id.as_str())) {
+            if let Some(capture) = pin.capture_id() {
+                history.pin(capture);
+            }
+        }
+        self.group = before.group;
+        self.pins = before.pins;
+        self.copies = before.copies;
+        self.copies.extend(before.backups);
+        self.switch_list = before.switch_list;
+        // 文件可能已经改了一半：标成有改动，下次落盘按内存整个重写。
+        self.dirty = true;
+        self.members_changed = before.members_changed;
+    }
+
     fn move_to_front(&mut self, id: &str) {
         self.switch_list.retain(|x| x != id);
         self.switch_list.insert(0, id.to_owned());
@@ -652,6 +694,26 @@ impl Desk {
             &self.state_path,
             &DeskFile::new(on_desk, self.switch_list.clone()),
         )
+    }
+}
+
+/// 移出成员前的桌面（[`Desk::snapshot`]）。
+struct Snapshot {
+    group: ReferenceGroup,
+    pins: Vec<SavedPin>,
+    copies: Vec<(String, PathBuf)>,
+    switch_list: Vec<String>,
+    members_changed: bool,
+    /// 组内截图的备份：文件名与备份位置。
+    backups: Vec<(String, PathBuf)>,
+}
+
+impl Snapshot {
+    /// 落盘成功、用不着了：删掉备份。
+    fn discard(self) {
+        for (_, backup) in self.backups {
+            let _ = fs::remove_file(backup);
+        }
     }
 }
 
