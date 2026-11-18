@@ -6,7 +6,7 @@ import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import { TagGroupsPane } from "./TagGroupsPane";
 import { SharedTagGroupsSettings } from "./SharedTagGroupsSettings";
 import { emit } from "@tauri-apps/api/event";
-import { TagGroupBar } from "../search/TagGroupBar";
+import { TagGroupPicker } from "../search/TagGroupPicker";
 import { SettingsPanel } from "../settings/SettingsPanel";
 import { ToastProvider } from "../ui/Toast";
 const blue = { id: "shared-blue", namespace: "general" as const, name: "蓝发", untranslated: false, hasExternal: true };
@@ -141,7 +141,7 @@ describe("T05 shared groups", () => {
     backend();
     const change = vi.fn();
     render(
-      <TagGroupBar
+      <TagGroupPicker
         workspace
         libraryId=""
         safe
@@ -151,8 +151,8 @@ describe("T05 shared groups", () => {
         onError={vi.fn()}
       />,
     );
-    fireEvent.click(await screen.findByRole("button", { name: /发色/ }));
-    fireEvent.click(screen.getByRole("button", { name: "按“发色”任一标签查找" }));
+    fireEvent.click(await screen.findByRole("button", { name: "标签分组" }));
+    fireEvent.click(await screen.findByRole("button", { name: "按“发色”任一标签查找" }));
     expect(change).toHaveBeenCalledWith({
       exact: true,
       conditions: [
@@ -171,7 +171,7 @@ describe("T05 shared groups", () => {
     const barError = vi.fn(),
       paneError = vi.fn();
     render(
-      <TagGroupBar
+      <TagGroupPicker
         workspace
         libraryId=""
         safe

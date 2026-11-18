@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { TagGroupBar } from "./TagGroupBar";
+import { TagGroupPicker } from "./TagGroupPicker";
 import { fakeBackend } from "../test/backend";
 
 const tag = (id: string, name: string) => ({
@@ -11,8 +11,8 @@ const hair = { id: "hair", name: "发色", namespace: null, tags: [tag("blue", "
 const eyes = { id: "eyes", name: "瞳色", namespace: null, tags: [tag("red", "红瞳"), tag("green", "绿瞳")] };
 let groups = [hair, eyes];
 
-const bar = (over: Partial<Parameters<typeof TagGroupBar>[0]> = {}) => (
-  <TagGroupBar
+const bar = (over: Partial<Parameters<typeof TagGroupPicker>[0]> = {}) => (
+  <TagGroupPicker
     libraryId="lib"
     safe={false}
     generation={0}
@@ -34,89 +34,80 @@ beforeEach(() => {
   fakeBackend({ tag_groups: () => groups });
 });
 
-describe("标签组下拉（#451）", () => {
-  it("点按钮展开，再点收回", async () => {
-    render(bar());
-    const hairBtn = await button(/发色/);
-    expect(hairBtn.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.click(hairBtn);
-    expect(hairBtn.getAttribute("aria-expanded")).toBe("true");
-    expect(popup()?.getAttribute("aria-label")).toMatch(/发色/);
-    expect(screen.getByRole("button", { name: /蓝发/ })).toBeTruthy();
-    fireEvent.click(hairBtn);
-    expect(hairBtn.getAttribute("aria-expanded")).toBe("false");
-    await waitFor(() => expect(popup()).toBeNull());
-  });
+const open = async () => {
+  const btn = await button(/^标签分组$/);
+  fireEvent.click(btn);
+  await settle();
+  return btn;
+};
 
-  it("开着时切组：同一个弹层换到新按钮，内容换成新组", async () => {
+describe("标签分组面板（#607）", () => {
+  it("点图标展开，所有分组的标签一次摆出来；再点收回", async () => {
     render(bar());
-    const hairBtn = await button(/发色/);
-    const eyesBtn = await button(/瞳色/);
-    fireEvent.click(hairBtn);
-    const first = popup();
-    fireEvent.click(eyesBtn);
-    await settle();
-    expect(popup()).toBe(first);
-    expect(hairBtn.getAttribute("aria-expanded")).toBe("false");
-    expect(eyesBtn.getAttribute("aria-expanded")).toBe("true");
-    expect(first?.getAttribute("aria-label")).toMatch(/瞳色/);
+    const btn = await button(/^标签分组$/);
+    expect(btn.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(btn);
+    expect(btn.getAttribute("aria-expanded")).toBe("true");
+    expect(popup()?.getAttribute("aria-label")).toBe("标签分组");
+    expect(await screen.findByRole("button", { name: /蓝发/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /红瞳/ })).toBeTruthy();
-    await waitFor(() => expect(screen.queryByRole("button", { name: /蓝发/ })).toBeNull());
+    expect(screen.getByRole("region", { name: "发色标签" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "瞳色标签" })).toBeTruthy();
+    fireEvent.click(btn);
+    expect(btn.getAttribute("aria-expanded")).toBe("false");
+    await waitFor(() => expect(popup()).toBeNull());
   });
 
-  it("Esc 关闭后焦点回到按钮，切组后回到新按钮", async () => {
-    render(bar());
-    const hairBtn = await button(/发色/);
-    const eyesBtn = await button(/瞳色/);
-    fireEvent.click(hairBtn);
-    await settle();
-    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
-    await waitFor(() => expect(popup()).toBeNull());
-    expect(document.activeElement).toBe(hairBtn);
-    fireEvent.click(hairBtn);
-    fireEvent.click(eyesBtn);
-    await settle();
-    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
-    await waitFor(() => expect(popup()).toBeNull());
-    expect(document.activeElement).toBe(eyesBtn);
-  });
-
-  it("Esc 只关弹层：不传到文档上关掉浮动侧栏", async () => {
+  it("Esc 只关面板，焦点回到按钮，不传到文档上关掉浮动侧栏", async () => {
     const pane = vi.fn();
-    document.addEventListener("keydown", pane);
     render(bar());
-    const hairBtn = await button(/发色/);
-    fireEvent.click(hairBtn);
-    await settle();
+    const btn = await open();
     expect(popup()?.contains(document.activeElement)).toBe(true);
+    document.addEventListener("keydown", pane);
     fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     await waitFor(() => expect(popup()).toBeNull());
     document.removeEventListener("keydown", pane);
     expect(pane).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(btn);
   });
 
-  it("点弹层外关闭", async () => {
+  it("点面板外关闭", async () => {
     render(bar());
-    fireEvent.click(await button(/发色/));
-    await settle();
+    await open();
     fireEvent.pointerDown(document.body);
     fireEvent.mouseDown(document.body);
     fireEvent.click(document.body);
     await waitFor(() => expect(popup()).toBeNull());
   });
 
-  it("选标签后弹层不关；选“任一”后关闭，焦点回到按钮", async () => {
+  it("跨分组连选：选标签、选“任一”后面板都不关", async () => {
     const change = vi.fn();
     render(bar({ onChange: change }));
-    const hairBtn = await button(/发色/);
-    fireEvent.click(hairBtn);
+    await open();
     fireEvent.click(screen.getByRole("button", { name: /蓝发/ }));
-    expect(change).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: /红瞳/ }));
+    fireEvent.click(screen.getByRole("button", { name: "按“瞳色”任一标签查找" }));
+    expect(change).toHaveBeenCalledTimes(3);
+    await settle();
     expect(popup()).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "按“发色”任一标签查找" }));
-    expect(change).toHaveBeenCalledTimes(2);
-    await waitFor(() => expect(popup()).toBeNull());
-    expect(document.activeElement).toBe(hairBtn);
+  });
+
+  it("右键排除，Ctrl 单击加进上一个条件", async () => {
+    const change = vi.fn();
+    const blue = { kind: "tag" as const, id: "blue", dismissed: [] };
+    const red = { kind: "tag" as const, id: "red", dismissed: [] };
+    render(bar({ onChange: change, input: { conditions: [{ any: [blue], negate: false }], exact: false } }));
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: /红瞳/ }), { ctrlKey: true });
+    expect(change).toHaveBeenLastCalledWith({ conditions: [{ any: [blue, red], negate: false }], exact: false });
+    fireEvent.contextMenu(screen.getByRole("button", { name: /红瞳/ }));
+    expect(change).toHaveBeenLastCalledWith({
+      conditions: [
+        { any: [blue], negate: false },
+        { any: [red], negate: true },
+      ],
+      exact: false,
+    });
   });
 
   it("“任一成员”再点一次是取消，不叠一条一样的条件", async () => {
@@ -128,7 +119,7 @@ describe("标签组下拉（#451）", () => {
       exact: false,
     };
     const view = render(bar({ onChange: change, input: blue }));
-    fireEvent.click(await button(/瞳色/));
+    await open();
     const any = screen.getByRole("button", { name: "按“瞳色”任一标签查找" });
     expect(any.getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(any);
@@ -138,7 +129,6 @@ describe("标签组下拉（#451）", () => {
     });
     const on = { ...blue, conditions: [...blue.conditions, { any: [green, red], negate: false }] };
     view.rerender(bar({ onChange: change, input: on }));
-    fireEvent.click(await button(/瞳色/));
     const pressed = screen.getByRole("button", { name: "按“瞳色”任一标签查找" });
     expect(pressed.getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(pressed);
@@ -148,25 +138,38 @@ describe("标签组下拉（#451）", () => {
   it("条件里重复的同一标签不算整组都选了", async () => {
     const red = { kind: "tag" as const, id: "red", dismissed: [] };
     render(bar({ input: { conditions: [{ any: [red, red], negate: false }], exact: false } }));
-    fireEvent.click(await button(/瞳色/));
+    await open();
     expect(screen.getByRole("button", { name: "按“瞳色”任一标签查找" }).getAttribute("aria-pressed")).toBe("false");
   });
 
-  it("词表刷新时弹层留着并显示新数据；所开的组没了就关闭", async () => {
+  it("“编辑分组”在面板底部，点了打开编辑器并收起面板", async () => {
+    const edit = vi.fn();
+    render(bar({ onEdit: edit }));
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "编辑分组" }));
+    expect(edit).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(popup()).toBeNull());
+  });
+
+  it("没有分组时面板里写“还没有分组”", async () => {
+    groups = [];
+    render(bar());
+    await open();
+    expect(screen.getByText("还没有分组")).toBeTruthy();
+  });
+
+  it("词表刷新时面板留着并显示新数据", async () => {
     const view = render(bar());
-    fireEvent.click(await button(/发色/));
+    await open();
     groups = [{ ...hair, tags: [tag("blue", "蓝发"), tag("pink", "粉发")] }, eyes];
     view.rerender(bar({ generation: 1 }));
     expect(popup()).toBeTruthy();
     expect(await screen.findByRole("button", { name: /粉发/ })).toBeTruthy();
-    groups = [eyes];
-    view.rerender(bar({ generation: 2 }));
-    await waitFor(() => expect(popup()).toBeNull());
   });
 
-  it("安全模式切换立刻收掉弹层，不留旧视角的标签", async () => {
+  it("安全模式切换立刻收掉面板，不留旧视角的标签", async () => {
     const view = render(bar());
-    fireEvent.click(await button(/发色/));
+    await open();
     expect(screen.getByRole("button", { name: /蓝发/ })).toBeTruthy();
     view.rerender(bar({ safe: true }));
     expect(screen.queryByRole("button", { name: /蓝发/ })).toBeNull();

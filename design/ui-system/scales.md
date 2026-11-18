@@ -141,7 +141,7 @@
 - 低强调按钮：`.k-btn.is-quiet`、`.k-btn.is-ghost`、`.k-btn.is-flush`、`.k-link`
 - 16 px 标题：`.pane-title`、`.subs-title`、`.subs-empty-title`、`.k-set-heading`、`.k-set-title`、`.k-dialog-title`
 - 12 px 分组名：`.k-menu-label`、`.k-field-label`、`.k-add-similar-head`、`.k-tag-alias-title`、`.subs-group-head`
-- 空状态：`.subs-empty`、`.wall-empty`、`.app-empty-body`、`.capture-history-empty`、`.reference-groups-empty`、`.k-tags-empty`、`.groupbar-empty`、`.k-option-empty`
+- 空状态：`.subs-empty`、`.wall-empty`、`.app-empty-body`、`.capture-history-empty`、`.reference-groups-empty`、`.k-tags-empty`、`.k-groups-empty`、`.k-option-empty`
 - 说明与报错文字：`.k-set-note`、`.k-set-hint`、`.k-set-error`、`.k-set-load-error`、`.settings-error`、`.k-field-error`、`.create-library-error`、`.selection-note`、`.insp-hint`
 - 订阅页自带的行、标题、空状态、转圈（`src/subscriptions/subscriptions.css` 的 `subs-` 类）
 

@@ -21,16 +21,34 @@ const INPUT_MIN = 80;
 /** “+n”按钮的宽度上限，量之前先按它留位置。 */
 const MORE_WIDTH = 40;
 
+/** 展开的按钮宽 20、前面一个 2 px 间距；收起时宽 0、负边距抵掉间距（#607）。 */
+const TOOL_GAP = 2;
+/** 条件块展开时右内边距从 8 收到 4。 */
+const OPEN_PAD_SHRINK = 4;
+
+/**
+ * 条件块收起按钮时的宽度：指针停在一块上时它的按钮展开，量到的宽度要扣回去，
+ * 否则这时重排会把别的块收进“+n”，指针一移开又放出来。
+ */
+function restWidth(li: HTMLElement): number {
+  const open = [...li.querySelectorAll<HTMLElement>("button")].filter((b) => b.offsetWidth > 0);
+  if (!open.length) return li.offsetWidth;
+  return li.offsetWidth - open.reduce((sum, b) => sum + b.offsetWidth + TOOL_GAP, 0) + OPEN_PAD_SHRINK;
+}
+
 /** 查找框里末尾放得下几个条件标签；还没排版（宽度为 0）时全部显示。 */
 export function chipsThatFit(search: HTMLElement | null): number {
   if (!search || search.clientWidth === 0) return Infinity;
   const px = (v: string) => parseFloat(v) || 0;
   const style = getComputedStyle(search);
   const gap = px(style.columnGap);
-  const exact = search.querySelector<HTMLElement>(".k-exact")?.offsetWidth ?? 0;
-  const room = search.clientWidth - px(style.paddingLeft) - px(style.paddingRight) - exact - INPUT_MIN - gap * 2;
+  const exact = search.querySelector<HTMLElement>(":scope > .k-exact")?.offsetWidth ?? 0;
+  // 精确查找前面的张数与标签分组（#607）也占查找框的宽度。
+  const extras = search.querySelector<HTMLElement>(":scope > .search-extras");
+  const tail = extras ? extras.offsetWidth + gap : 0;
+  const room = search.clientWidth - px(style.paddingLeft) - px(style.paddingRight) - exact - tail - INPUT_MIN - gap * 2;
   const list = search.querySelector<HTMLElement>(":scope > .search-chips");
   if (!list) return Infinity;
-  const widths = [...list.querySelectorAll<HTMLElement>(":scope > .search-chip")].map((li) => li.offsetWidth);
+  const widths = [...list.querySelectorAll<HTMLElement>(":scope > .search-chip")].map(restWidth);
   return fitChips(widths, room, { gap: px(getComputedStyle(list).columnGap), more: MORE_WIDTH });
 }
