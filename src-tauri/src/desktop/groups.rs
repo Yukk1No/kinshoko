@@ -527,6 +527,16 @@ pub async fn remove_group_member(
     member_id: String,
 ) -> Result<ReferenceGroup, CommandError> {
     blocking(move || {
+        // 参考组改成桌面（#591）：桌面上那个参考组的成员由桌面模块移出，钉着它的钉图一起关掉。
+        if super::desk_commands::desk_on(&app) {
+            let on_desk = super::desk_commands::with_desk(&app, |desk, history| {
+                desk.remove_member(&group_id, &member_id, history)
+            })?;
+            if let Some(group) = on_desk {
+                super::desk_commands::apply(&app, None);
+                return Ok(group);
+            }
+        }
         let group = lock(&state(&app).groups)
             .remove_member(&group_id, &member_id)
             .map_err(CommandError::from)?;

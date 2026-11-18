@@ -504,3 +504,35 @@ fn flushing_says_when_the_group_list_would_look_different() {
     t.desk.close(&a.id, &mut t.history);
     assert!(t.desk.flush().unwrap(), "最后一张关掉后不在切换列表里");
 }
+
+#[test]
+fn removing_a_member_of_the_group_on_the_desk_closes_its_pin_and_is_kept() {
+    let mut t = TestDesk::new();
+    let a = t.pin_reference("a", 10);
+    let b = t.pin_reference("b", 20);
+    let id = t.desk.group().id.clone();
+    let member = b.member.clone().unwrap().member_id;
+
+    let group = t
+        .desk
+        .remove_member(&id, &member, &mut t.history)
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(group.members.len(), 1);
+    assert_eq!(
+        t.desk.pins().iter().map(|p| &p.id).collect::<Vec<_>>(),
+        vec![&a.id]
+    );
+    t.desk.flush().unwrap();
+    let file = reread(&t, &id);
+    assert_eq!(file.members.len(), 1, "下次落盘不会把它写回去");
+    assert_eq!(
+        file.updated_at,
+        t.desk.lists().unwrap().switch_list[0].updated_at
+    );
+    assert_eq!(
+        t.desk.remove_member("other", "x", &mut t.history).unwrap(),
+        None
+    );
+}
