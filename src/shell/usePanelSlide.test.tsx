@@ -174,3 +174,14 @@ it("浮起的侧栏自己的过渡不算，详情面板开合时也不算进它�
   fire(container.querySelector("section")!, "transitionrun");
   expect(seen).toMatchObject({ by: 320 });
 });
+
+it("面板两侧的桌面空隙算进它占的宽度（#608）：纸 312 + 左边 8，收起到 0 时墙宽多出 320", () => {
+  widths(248, 312);
+  const { container } = render(<Both sidebar={256} inspector={0} />);
+  const aside = container.querySelector("aside")!,
+    section = container.querySelector("section")!;
+  aside.style.marginRight = "8px";
+  section.style.marginLeft = "8px";
+  fire(section, "transitionrun");
+  expect(seen).toMatchObject({ by: 320 });
+});

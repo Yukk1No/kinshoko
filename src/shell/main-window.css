@@ -386,6 +386,10 @@
 .offline-retry:hover {
   text-decoration: underline;
 }
+/* 未连接的图库行没有张数：“重新连接”之后给 ⋯ 留出自己的位置，不叠在按钮上。 */
+.lib-head:has(.offline-retry) {
+  padding-right: 30px;
+}
 .trash-groups {
   padding-left: 22px;
 }
