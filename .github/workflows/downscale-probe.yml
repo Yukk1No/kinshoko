@@ -30,7 +30,7 @@ jobs:
       # 工具链版本以仓库根目录的 rust-toolchain.toml 为准。
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.100"
+          toolchain: "1.99"
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
         with:

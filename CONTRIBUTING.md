@@ -25,7 +25,7 @@ Contributions are licensed under the repository's [GPL-3.0-or-later](LICENSE), i
 ## Development setup
 
 - Windows 10/11 x64 with the Visual Studio 2022 Build Tools ("Desktop development with C++").
-- Rust 1.100, pinned by `rust-toolchain.toml` (rustup installs it automatically).
+- Rust 1.99, pinned by `rust-toolchain.toml` (rustup installs it automatically).
 - Node.js 22 and npm (the lockfile is `package-lock.json`).
 - WebView2 Runtime (evergreen). Windows 11 includes it. Frontend baseline: Chromium 131 (see "Runtime baseline" in `AGENTS.md`).
 - Python 3, for the pre-commit hook and the probe scripts in `scripts/probe/`.

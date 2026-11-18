@@ -23,7 +23,7 @@
 ## 开发环境
 
 - Windows 10/11 x64，Visual Studio 2022 生成工具（“使用 C++ 的桌面开发”）。
-- Rust 1.100（由 `rust-toolchain.toml` 固定，rustup 会自动安装）。
+- Rust 1.99（由 `rust-toolchain.toml` 固定，rustup 会自动安装）。
 - Node.js 22 与 npm（锁文件为 `package-lock.json`）。
 - WebView2 Runtime（evergreen）。Windows 11 自带。前端基线为 Chromium 131，见 `AGENTS.md` 的 “Runtime baseline”。
 - Python 3：用于 pre-commit 钩子和 `scripts/probe/` 下的探测脚本。

@@ -42,7 +42,7 @@ jobs:
       # 工具链版本以 rust-toolchain.toml 为准，这里只保证组件齐全。
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.100"
+          toolchain: "1.99"
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@v2
@@ -104,7 +104,7 @@ jobs:
       # 工具链版本以 rust-toolchain.toml 为准。
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.100"
+          toolchain: "1.99"
       # 三个分片编译的东西一样，只让第一片保存缓存。
       - uses: Swatinem/rust-cache@v2
         with:
@@ -140,7 +140,7 @@ jobs:
       # 工具链版本以 rust-toolchain.toml 为准。
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.100"
+          toolchain: "1.99"
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@v2
         with:
@@ -255,7 +255,7 @@ jobs:
       # 工具链版本以 rust-toolchain.toml 为准。
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.100"
+          toolchain: "1.99"
       - uses: Swatinem/rust-cache@v2
 
       - uses: actions/setup-node@v4
