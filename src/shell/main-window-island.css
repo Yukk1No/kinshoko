@@ -326,14 +326,6 @@
     transition-duration: 0ms;
   }
 }
-.app-tagbar {
-  flex: none;
-}
-.app-tagbar .groupbar {
-  background: var(--bg);
-  border-bottom: 1px solid var(--line);
-  padding: 4px 12px;
-}
 
 /* ---- Wall source chip: every card with sources; "N 处" when an image lives in two or more libraries.
    A sibling of the card option (no focusable children inside an option), pinned to the card's bottom-right.

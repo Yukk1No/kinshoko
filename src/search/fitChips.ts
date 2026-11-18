@@ -27,8 +27,11 @@ export function chipsThatFit(search: HTMLElement | null): number {
   const px = (v: string) => parseFloat(v) || 0;
   const style = getComputedStyle(search);
   const gap = px(style.columnGap);
-  const exact = search.querySelector<HTMLElement>(".k-exact")?.offsetWidth ?? 0;
-  const room = search.clientWidth - px(style.paddingLeft) - px(style.paddingRight) - exact - INPUT_MIN - gap * 2;
+  const exact = search.querySelector<HTMLElement>(":scope > .k-exact")?.offsetWidth ?? 0;
+  // 精确查找前面的张数与标签分组（#607）也占查找框的宽度。
+  const extras = search.querySelector<HTMLElement>(":scope > .search-extras");
+  const tail = extras ? extras.offsetWidth + gap : 0;
+  const room = search.clientWidth - px(style.paddingLeft) - px(style.paddingRight) - exact - tail - INPUT_MIN - gap * 2;
   const list = search.querySelector<HTMLElement>(":scope > .search-chips");
   if (!list) return Infinity;
   const widths = [...list.querySelectorAll<HTMLElement>(":scope > .search-chip")].map((li) => li.offsetWidth);
