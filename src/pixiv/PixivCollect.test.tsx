@@ -143,6 +143,22 @@ describe("应用内浏览的收图", () => {
     expect(fake.calls("remember_pixiv_destination")).toHaveLength(1);
   });
 
+  it("收到别处时已收的页也再收一次，好放进新选的位置", async () => {
+    setup({ libraryId: "L", folderId: null });
+    renderHome();
+    fireEvent.click(await screen.findByRole("button", { name: "作品1，画师" }));
+    const band = screen.getByRole("region", { name: "作品1，画师" });
+    await waitFor(() => expect(within(band).getByRole("button", { name: "再收一次" })).toBeTruthy());
+    fireEvent.click(within(band).getByRole("button", { name: "收到别处…" }));
+    const dialog = await screen.findByRole("dialog", { name: "收进哪里" });
+    await chooseOption(within(dialog).getByRole("combobox", { name: "文件夹" }), /人体/);
+    fireEvent.click(within(dialog).getByRole("button", { name: "收进资料库" }));
+    await waitFor(() => expect(fake.calls("subscription_collect")).toHaveLength(1));
+    const call = fake.calls("subscription_collect")[0].args;
+    expect(call.again).toBe(true);
+    expect(call.destination).toEqual({ libraryId: "L", folderId: "F" });
+  });
+
   it("看全图时可以只收这一页", async () => {
     setup({ libraryId: "L", folderId: null });
     renderHome();

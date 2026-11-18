@@ -61,6 +61,11 @@ pub async fn subscription_collect(
             pages.as_deref(),
             again,
             &mut |url| {
+                // 关掉订阅（images_cancel）或后台检查遇到频率限制（foreground_cancel）时，
+                // 剩下的页不再请求。
+                if state.foreground_cancel.load(Ordering::SeqCst) {
+                    return Err(SourceError::Cancelled);
+                }
                 let path = url
                     .strip_prefix(IMAGE_HOST)
                     .ok_or(SourceError::Unsupported)?;

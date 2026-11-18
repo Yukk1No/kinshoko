@@ -60,7 +60,9 @@ export function useCollect(works: PixivWork[]) {
       setBusy((s) => new Set(s).add(work.id));
       setNotice(null);
       try {
-        const report = await subscriptionCollect(work, destination, options.pages ?? null, options.again ?? false);
+        // 换了地方收（choose）时已收的页也再收一次：同一个资料库里字节相同的图只合并来源，并放进新选的文件夹。
+        const again = (options.again ?? false) || (options.choose ?? false);
+        const report = await subscriptionCollect(work, destination, options.pages ?? null, again);
         if (report.skipped) setNotice(t("browse.animationSkipped"));
         else if (report.failed) setNotice(t("browse.collectPartly", { count: report.failed }));
       } catch (error) {

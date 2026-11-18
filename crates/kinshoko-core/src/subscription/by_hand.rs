@@ -82,6 +82,11 @@ pub fn collect_by_hand(
             return Err(SourceError::Cancelled);
         }
         let url = &work.pages[page as usize];
+        // 这一页没有原图地址：页序照旧，算没收成。
+        if url.is_empty() {
+            report.failed += 1;
+            continue;
+        }
         let bytes = match download(url) {
             Ok(bytes) => bytes,
             Err(error) if error.stops_check() => return Err(error),
@@ -256,6 +261,15 @@ mod tests {
         )
         .unwrap();
         assert_eq!((report.collected, report.failed), (1, 1));
+        // 没有原图地址的页算没收成，后面的页还是原来的页号。
+        let mut gap = work("3", WorkKind::Manga, 3);
+        gap.pages[1].clear();
+        let report = run(&store, &Shelf::default(), &gap, None, false).unwrap();
+        assert_eq!((report.collected, report.failed), (2, 1));
+        assert_eq!(
+            store.collected(SourceId::Pixiv, &["3".into()]).unwrap()[0].pages,
+            vec![0, 2]
+        );
     }
 
     #[test]

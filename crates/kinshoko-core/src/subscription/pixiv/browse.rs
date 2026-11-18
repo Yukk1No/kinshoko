@@ -79,7 +79,7 @@ pub struct PixivPage {
 
 impl PixivWork {
     /// 收进资料库用的作品（#461 第 3 步）：每页的原图，作者与标签同订阅收进来的图。
-    /// 动图没有原图，页为空。
+    /// 页序不变；没有原图的页（例如动图）地址为空，收的时候算没收成。
     pub fn to_work(&self) -> Work {
         Work {
             id: self.id.clone(),
@@ -91,7 +91,7 @@ impl PixivWork {
             pages: self
                 .pages
                 .iter()
-                .filter_map(|p| p.original.clone())
+                .map(|p| p.original.clone().unwrap_or_default())
                 .collect(),
             posted_at: self.posted_at,
         }
