@@ -41,7 +41,7 @@
 | [Base UI](https://mui.com/base-ui/) `@base-ui/react` 1.6.0 · MIT | **采用：交互基础层** | 37 个无样式组件，来自 Radix / Floating UI / MUI 团队，覆盖菜单、右键菜单、下拉选择、可搜索选择、浮层、对话框、提醒对话框、标签页、开关、滑块、轻提示、提示、滚动区、分段切换。键盘与读屏行为由库负责；不要求 Tailwind，直接套用本项目的设计令牌。 |
 | [motion](https://motion.dev/) 14.1.0 · MIT | **采用：动效** | 驱动上面的弹簧档位与布局过渡（悬停高亮、指示块滑动）。必须遵守“减少动画”。 |
 | [lucide-react](https://lucide.dev/) 1.52.0 · ISC | **沿用** | 原型已用的通用图标；图标轨 20 px / 线宽 1.75，界面内 13–16 px。 |
-| [Fluid Functionalism](https://github.com/mickadesign/fluid-functionalism) · MIT | **采用：交互与动效规范** | 仓库为 MIT（Copyright (c) 2026 Micka Touillaud），底层同样支持 Base UI。移植其无依赖的 `use-fluid-hover`（高亮滑到离指针最近的行，空隙点击落到被高亮的行）与 `springs` 动效档位（fast 0.08 s / moderate 0.16 s / slow 0.24 s，退出用更快一档的补间）；保留原版权声明。组件样式写在 Tailwind 类名里，不直接搬组件，改用本项目令牌重写。原则同样采纳：动效只为传递信息；越大的东西动得越慢。 |
+| [Fluid Functionalism](https://github.com/mickadesign/fluid-functionalism) · MIT | **采用：交互与动效规范** | 仓库为 MIT（Copyright (c) 2026 Micka Touillaud），底层同样支持 Base UI。移植其无依赖的 `use-fluid-hover`（高亮滑到离指针最近的行，空隙点击落到被高亮的行）与 `springs` 动效档位（原版有 fast 0.08 s / moderate 0.16 s / slow 0.24 s 三档；本项目只用 moderate，在 `FluidList` 的悬停高亮上），从 `src/ui/motion.ts` 再导出；保留原版权声明。组件样式写在 Tailwind 类名里，不直接搬组件，改用本项目令牌重写。原则同样采纳：动效只为传递信息；越大的东西动得越慢。 |
 | [Arc Library](https://github.com/kuratlielia/arc-library) · MIT | **采用：按钮与 dock 的参照** | 开源部分（MIT，样式用 CSS Modules，无需 Tailwind）提供 button、split-button、segmented-control 等的写法与动效令牌（snappy / smooth / morph 弹簧）。Arc Pro 的 dock 是付费组件、不在仓库里，本项目按其公开行为说明自行实现，不复制其代码。 |
 | beUI | **只参考动效写法** | Motion + Tailwind 的复制式组件（弹簧、模糊交叉淡入、布局过渡）。官方仓库与许可证未能确认。 |
 | [RareUI](https://github.com/Codewithswappy/RareUI) · MIT | **主界面不用** | 液态、玻璃、3D、WebGL 背景等装饰性组件。与“图片底色保持中性、缩略图不加装饰”冲突：画师要靠眼睛判断参考图颜色。 |

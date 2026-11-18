@@ -4,18 +4,13 @@ import { useTranslation } from "react-i18next";
 import { Keys } from "./Keys";
 import { Menu, MenuPopup } from "./Menu";
 import { useReducedMotion } from "./reducedMotion";
+import { arcSpring } from "./motion";
 
 /* A Kinshoko dock, built from the published behaviour of Arc Pro's dock (uiarc.dev/components/dock):
  * one hairline surface, 40 px slots, a shared selection tint that springs between items, a floating
  * label that glides between items with the shortcut, groups that grow a tray out of the dock, and a
  * short press dip. Springs follow Arc's open motion tokens (MIT, github.com/kuratlielia/arc-library).
  * No Arc Pro code is copied (design/ui-system/buttons-and-dock.md, Dock). */
-export const arcSpring = {
-  snappy: { type: "spring" as const, visualDuration: 0.26, bounce: 0.12 },
-  morph: { type: "spring" as const, visualDuration: 0.42, bounce: 0.16 },
-  smooth: { type: "spring" as const, visualDuration: 0.4, bounce: 0 },
-};
-
 export type DockTrayItem = { id: string; label: string; icon: ReactNode };
 export type DockEntry = {
   id: string;
