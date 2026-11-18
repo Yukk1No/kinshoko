@@ -191,6 +191,29 @@
   --t-pop: 220ms;
   /* 图标轨图标的悬停动作（信抽出来、图扇开）：位移比控件的状态变化大，要多一点时间看清；移出仍用 --t */
   --t-icon: 420ms;
+
+  /* 档位与层级的说明见 design/ui-system/scales.md。 */
+  /* 控件高度：按钮、图标按钮、输入框、下拉、分段项、dock 项、图标轨按钮只取这三档 */
+  --h-sm: 28px;
+  --h: 32px;
+  --h-lg: 40px;
+  /* 跨区域的层，从下往上；组件内部 1–9 的叠放不用令牌 */
+  --z-pane-scrim: 29;
+  --z-pane-float: 30;
+  --z-fx: 38;
+  --z-task: 50;
+  --z-drop: 80;
+  --z-backdrop: 90;
+  --z-dialog: 91;
+  --z-popup: 95;
+  --z-toast: 200;
+  --z-splash: 1000;
+  --z-debug: 9999;
+  /* 不可用只有一种深浅 */
+  --disabled-opacity: 0.5;
+  /* 半透明浮动面板（dock、托盘、浮岛、轻提示、任务卡）：底色与模糊各一种 */
+  --glass-bg: color-mix(in srgb, var(--surface) 86%, transparent);
+  --glass-blur: blur(18px) saturate(1.2);
   color-scheme: light dark;
 }
 /* Dark: ink purple ground, cream text, gold accent (日间樱、夜间金). Each colour token above holds both values in light-dark(), which

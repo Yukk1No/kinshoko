@@ -43,7 +43,7 @@
   align-items: center;
   gap: 8px;
   box-sizing: border-box;
-  height: 32px;
+  height: var(--h);
   min-width: 0;
   padding: 0 10px;
   border: 0;
@@ -87,7 +87,7 @@ input.k-input {
 }
 .k-input[data-disabled],
 .k-input:disabled {
-  opacity: 0.5;
+  opacity: var(--disabled-opacity);
 }
 .k-input::placeholder,
 .k-input input::placeholder {
@@ -250,7 +250,7 @@ input.k-input {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: 32px;
+  min-height: var(--h);
   padding: 4px 8px 4px 10px;
   border: 0;
   border-radius: var(--r);
@@ -274,7 +274,7 @@ input.k-input {
 }
 .k-select:disabled,
 .k-select[data-disabled] {
-  opacity: 0.5;
+  opacity: var(--disabled-opacity);
 }
 .k-select-value {
   flex: 1;

@@ -134,7 +134,7 @@
   white-space: nowrap;
 }
 .viewer-bar .k-icon-btn:disabled {
-  opacity: 0.4;
+  opacity: var(--disabled-opacity);
 }
 .viewer-zoom {
   display: flex;

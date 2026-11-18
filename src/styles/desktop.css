@@ -467,6 +467,6 @@
   color: var(--bg);
   font-family: var(--font);
   font-size: 12px;
-  backdrop-filter: blur(12px);
+  backdrop-filter: var(--glass-blur);
   pointer-events: none;
 }

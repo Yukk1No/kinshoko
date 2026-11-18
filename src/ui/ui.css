@@ -38,7 +38,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 32px;
+  height: var(--h);
   padding: 0 12px;
   border: 0;
   border-radius: var(--r);
@@ -99,7 +99,7 @@
   --k-lift: none;
 }
 .k-btn.is-sm {
-  height: 28px;
+  height: var(--h-sm);
   padding: 0 10px;
   font-size: 12px;
   border-radius: var(--r-s);
@@ -111,8 +111,8 @@
   flex: none;
 }
 .k-icon-btn {
-  width: 32px;
-  height: 32px;
+  width: var(--h);
+  height: var(--h);
   flex: none;
   display: grid;
   place-items: center;
@@ -194,7 +194,7 @@
 /* ---- Popups: menus and popovers (Base UI parts) ---- */
 /* 菜单、小确认、悬停提示常在对话框（.k-dialog 91）里打开，浮层要压在对话框之上。 */
 .k-positioner {
-  z-index: 95;
+  z-index: var(--z-popup);
   outline: 0;
 }
 .k-popup {
@@ -249,7 +249,7 @@
   background: var(--hover);
 }
 .k-item[data-disabled] {
-  opacity: 0.5;
+  opacity: var(--disabled-opacity);
 }
 .k-item-ind {
   width: 16px;
@@ -329,7 +329,7 @@
   align-items: center;
   gap: 2px;
   flex: none;
-  height: 36px;
+  height: var(--h-lg);
   padding: 0 8px 0 10px;
   border: 0;
   border-radius: var(--r);
@@ -403,7 +403,7 @@
   background: var(--accent);
 }
 .k-switch[data-disabled] {
-  opacity: 0.5;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 .k-switch-thumb {
@@ -461,7 +461,7 @@
   position: relative;
   flex: 1;
   min-width: 0;
-  height: 28px;
+  height: var(--h-sm);
   padding: 0 8px;
   border: 0;
   border-radius: var(--r-s);
@@ -486,6 +486,6 @@
   color: var(--ink);
 }
 .k-seg-item[data-disabled] {
-  opacity: 0.5;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }

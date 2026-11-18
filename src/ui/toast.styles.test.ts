@@ -13,8 +13,8 @@ describe("轻提示是磨砂卡片（设计系统 v3）", () => {
   const toast = rule(".k-toast");
 
   it("半透明 surface 加背景模糊，ink 字，圆角取浮层的，阴影用令牌", () => {
-    expect(toast.background).toBe("color-mix(in srgb, var(--surface) 82%, transparent)");
-    expect(toast["backdrop-filter"]).toBe("blur(20px) saturate(1.2)");
+    expect(toast.background).toBe("var(--glass-bg)");
+    expect(toast["backdrop-filter"]).toBe("var(--glass-blur)");
     expect(toast.color).toBe("var(--ink)");
     expect(toast["border-radius"]).toBe(uiRule(".k-popup")["border-radius"]);
     expect(toast["box-shadow"]).toBe("var(--shadow-toast)");
@@ -36,7 +36,7 @@ describe("轻提示是磨砂卡片（设计系统 v3）", () => {
     expect(rule(".k-toast-action").background).toBe("var(--accent-soft)");
     expect(rule(".k-toast-action").color).toBe("var(--accent-strong)");
     expect(rule('.k-toast[data-tone="error"] .k-toast-action').color).toBe("var(--ink)");
-    for (const part of [".k-toast-action", ".k-toast-close"]) expect(rule(part).height).toBe("28px");
+    for (const part of [".k-toast-action", ".k-toast-close"]) expect(rule(part).height).toBe("var(--h-sm)");
   });
 
   it("确认类提示的关闭按钮平时隐去，悬停或聚焦时出现；出错的一直在", () => {
@@ -45,7 +45,7 @@ describe("轻提示是磨砂卡片（设计系统 v3）", () => {
   });
 
   it("隐去的关闭按钮仍占位，悬停不挤窄文字、不让提示换行变高（#388）", () => {
-    expect(rule(".k-toast-close").width).toBe("28px");
+    expect(rule(".k-toast-close").width).toBe("var(--h-sm)");
     for (const state of [
       '.k-toast:not([data-tone="error"]) .k-toast-close',
       '.k-toast:not([data-tone="error"]):is(:hover, :focus-within) .k-toast-close',

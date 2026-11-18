@@ -148,7 +148,7 @@
   color: var(--accent-strong);
 }
 .k-row:disabled {
-  opacity: 0.55;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 .k-row[data-drop] {
@@ -344,7 +344,7 @@
   flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
-  height: 40px;
+  height: var(--h-lg);
   padding: 0 4px 0 12px;
   border-radius: var(--r);
   background: var(--surface);
