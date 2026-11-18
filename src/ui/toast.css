@@ -7,7 +7,7 @@
   position: fixed;
   right: 18px;
   bottom: 18px;
-  z-index: 200;
+  z-index: var(--z-toast);
   width: 340px;
   max-width: calc(100vw - 36px);
   outline: 0;
@@ -36,8 +36,8 @@ body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-toasts {
   z-index: calc(100 - var(--toast-index));
   box-sizing: border-box;
   height: var(--height);
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
-  backdrop-filter: blur(20px) saturate(1.2);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
   color: var(--ink);
   border-radius: var(--r-l);
   box-shadow: var(--shadow-toast);
@@ -161,7 +161,7 @@ body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-toasts {
 }
 .k-toast-action {
   flex: none;
-  height: 28px;
+  height: var(--h-sm);
   padding: 0 10px;
   border: 0;
   border-radius: var(--r-s);
@@ -186,8 +186,8 @@ body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-toasts {
 }
 .k-toast-close {
   flex: none;
-  width: 28px;
-  height: 28px;
+  width: var(--h-sm);
+  height: var(--h-sm);
   padding: 0;
   border: 0;
   display: grid;

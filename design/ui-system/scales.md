@@ -4,7 +4,7 @@
 
 数值的唯一来源是 `src/styles/tokens.css`。这里只写有哪几档、各用在哪里；两边对不上时以 `tokens.css` 为准，并在同一个 PR 里改这份文件。
 
-#598 正在把档位以外的写法收进来。表里标“#59x 加”的令牌还不存在，由那张子工单加上；加上之后把标记删掉。
+#598 正在把档位以外的写法收进来。
 
 ## 字号
 
@@ -36,9 +36,9 @@
 
 | 令牌 | 值 | 用在哪里 |
 | --- | --- | --- |
-| `--h-sm`（#599 加） | 28 | 紧凑的按钮与图标按钮、分段项 |
-| `--h`（#599 加） | 32 | 按钮、输入框、下拉、设置里的查找框 |
-| `--h-lg`（#599 加） | 40 | 顶栏查找框、顶栏导入按钮 |
+| `--h-sm` | 28 | 紧凑的按钮与图标按钮、分段项 |
+| `--h` | 32 | 按钮、输入框、下拉、设置里的查找框 |
+| `--h-lg` | 40 | 顶栏查找框、顶栏导入按钮 |
 
 按钮、图标按钮、输入框、下拉、分段项、dock 项、图标轨按钮的高度只取这三档。胶囊（22）、标签（26 / 28）、侧栏行（30）、角标不是控件，不在此列。
 
@@ -46,7 +46,7 @@
 
 10 以上的 `z-index` 只用下表的令牌，数值从下往上排。组件内部 1–9 的叠放不用令牌，留在组件自己的样式表里。
 
-| 层 | 现在的值 | 令牌（#599 加） | 现在写在哪里 |
+| 层 | 值 | 令牌 | 用在哪里 |
 | --- | --- | --- | --- |
 | 窄窗口浮出侧栏的遮罩 | 29 | `--z-pane-scrim` | `.pane-scrim`（`src/shell/pane-fit.css`） |
 | 窄窗口浮出的侧栏 | 30 | `--z-pane-float` | `.sidebar-slot[data-float]`（同上） |
@@ -64,13 +64,13 @@
 
 ## 不可用
 
-一个值：透明度 0.5，令牌 `--disabled-opacity`（#599 加）。`:disabled`、`[data-disabled]`、`[aria-disabled]` 的规则都用它，不再按地方调深浅。
+一个值：透明度 0.5，令牌 `--disabled-opacity`。`:disabled`、`[data-disabled]`、`[aria-disabled]` 的规则都用它，不再按地方调深浅。
 
 ## 半透明浮动面板
 
-一种配方，取 `.k-dock` 现在的值：底色 `color-mix(in srgb, var(--surface) 86%, transparent)`，`backdrop-filter: blur(18px) saturate(1.2)`。令牌（#599 加）一个管底色、一个管模糊。
+一种配方：底色 `--glass-bg`（`--surface` 的 86%），模糊 `--glass-blur`（`blur(18px) saturate(1.2)`）。
 
-用它的：dock、dock 托盘、图片大小浮岛、轻提示、任务卡、`src/styles/desktop.css` 里的那一处。级联菜单的模糊归“浮层”那一类，由 #601 定。
+用它的：dock、dock 托盘、图片大小浮岛、打标进度、轻提示、任务卡。钉图上的墨色提示条（`src/styles/desktop.css`）只用模糊，底色仍是墨色。级联菜单的模糊归“浮层”那一类，由 #601 定。
 
 ## 动效
 
@@ -154,3 +154,4 @@
 - `src/styles/tokens.styles.test.ts`：令牌文件以外的十六进制颜色
 - `src/styles/focus.styles.test.ts`：焦点环以外的焦点写法
 - `src/ui/popup.styles.test.ts`：浮层外形
+- `src/styles/scales.styles.test.ts`：10 以上的 `z-index` 数字、不可用规则里写死的透明度、写死的 `backdrop-filter`
