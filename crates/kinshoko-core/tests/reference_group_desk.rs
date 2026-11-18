@@ -326,6 +326,7 @@ fn the_first_open_turns_old_pins_into_a_group_and_archives_old_groups() {
     assert_eq!(lists.archived[0].id, old_group);
     assert_eq!(lists.switch_list[0].id, migrated.id);
 
+    let entries_before = t.history.entries().len();
     let opened = t.desk.restore(&mut t.history, &[screen()]);
     assert_eq!(opened.pins.len(), 2);
     for pin in &opened.pins {
@@ -335,6 +336,17 @@ fn the_first_open_turns_old_pins_into_a_group_and_archives_old_groups() {
             "旧的成员关联丢弃"
         );
     }
+    let capture = opened.pins.iter().find_map(|p| p.capture_id()).unwrap();
+    assert_eq!(
+        t.history.entries().len(),
+        entries_before,
+        "复用原来那条截图"
+    );
+    let linked = t.history.linked_members(capture);
+    assert!(
+        linked.iter().any(|m| m.group_id == migrated.id),
+        "截图历史记着迁移出的成员，收藏能改连：{linked:?}"
+    );
 }
 
 #[test]
@@ -702,4 +714,85 @@ fn removing_a_member_of_the_group_on_the_desk_closes_its_pin_and_is_kept() {
         t.desk.remove_member("other", "x", &mut t.history).unwrap(),
         None
     );
+}
+
+#[test]
+fn the_lists_follow_the_desk_before_it_is_saved() {
+    let mut t = TestDesk::new();
+    let a = t.pin_reference("a", 10);
+    let id = t.desk.group().id.clone();
+    let lists = t.desk.lists().unwrap();
+    assert_eq!(lists.on_desk.as_deref(), Some(id.as_str()));
+    assert_eq!(lists.switch_list.len(), 1, "钉上第一张就在切换列表里");
+    assert_eq!(lists.switch_list[0].id, id);
+
+    t.desk.flush().unwrap();
+    t.desk.close(&a.id, &mut t.history);
+    let lists = t.desk.lists().unwrap();
+    assert!(lists.on_desk.is_none());
+    assert!(
+        lists.switch_list.is_empty(),
+        "关掉最后一张，没有名称的不再列出"
+    );
+    assert!(lists.archived.is_empty());
+}
+
+#[test]
+fn a_switch_that_cannot_save_the_desk_state_changes_nothing() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    t.desk.flush().unwrap();
+    let a = t.desk.group().id.clone();
+    t.desk.new_desk(&mut t.history).unwrap();
+    t.pin_reference("b", 20);
+    t.desk.flush().unwrap();
+    let b = t.desk.group().id.clone();
+    let pins = t.desk.pins().to_vec();
+
+    // 桌面状态写不进：desk.json 换成一个非空目录。
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.switch_to(&a, &mut t.history).is_err());
+    assert_eq!(t.desk.group().id, b, "桌面还是原来那一桌");
+    assert_eq!(t.desk.pins(), &pins[..]);
+    let order: Vec<String> = t
+        .desk
+        .lists()
+        .unwrap()
+        .switch_list
+        .into_iter()
+        .map(|s| s.id)
+        .collect();
+    assert_eq!(order, [b.clone(), a.clone()], "切换列表也不变");
+
+    std::fs::remove_dir_all(&state).unwrap();
+    let switched = t.desk.switch_to(&a, &mut t.history).unwrap();
+    assert_eq!(switched.closed.len(), 1);
+    assert_eq!(t.desk.group().id, a);
+}
+
+#[test]
+fn editing_pins_between_steps_still_reaches_every_group() {
+    let mut t = TestDesk::new();
+    let mut ids = Vec::new();
+    for (i, x) in [10, 20, 30].into_iter().enumerate() {
+        if i > 0 {
+            t.desk.new_desk(&mut t.history).unwrap();
+        }
+        t.pin_reference(&format!("p{i}"), x);
+        t.desk.flush().unwrap();
+        ids.push(t.desk.group().id.clone());
+    }
+    // [2, 1, 0]：每到一桌就挪一张钉图再落盘，顺序不变，照样走完一圈。
+    let mut seen = Vec::new();
+    for _ in 0..3 {
+        t.desk.step(true, &mut t.history).unwrap().unwrap();
+        let pin = t.desk.pins()[0].id.clone();
+        t.desk.edit(&pin, |p| p.move_to(50, 50));
+        t.desk.flush().unwrap();
+        seen.push(t.desk.group().id.clone());
+    }
+    assert_eq!(seen, [ids[1].clone(), ids[0].clone(), ids[2].clone()]);
 }
