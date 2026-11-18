@@ -60,7 +60,6 @@ export default {
     reconnect: "重新连接",
     libraryActions: "{{name}} 的操作",
     libraryActionsTitle: "图库操作",
-    descendants: "含子文件夹",
     revealFailed: "无法在资源管理器中显示：{{error}}",
   },
   libraryMenu: {

@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { FluidList, FluidRow } from "../ui/FluidList";
 import { MenuItem } from "../ui/Menu";
 import { PermanentDeleteConfirm } from "./SelectionPanel";
-import { Switch } from "../ui/Switch";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import { errorText } from "../ipc/commandError";
@@ -65,7 +64,8 @@ export function WorkspacePane({
   const generation = JSON.stringify([status?.libraries, safeMode]);
   const key = JSON.stringify([generation, status?.revision, reloadKey]);
   const [loaded, setLoaded] = useState<{ generation: string; forest: WorkspaceDirectories } | null>(null);
-  const [descendants, setDescendants] = useState(!(scope.kind === "library" && scope.scope.kind === "folder"));
+  // 选文件夹总是连同子文件夹一起看（#608 取消了“含子文件夹”开关）。
+  const descendants = true;
   // biome-ignore lint/correctness/useExhaustiveDependencies(key): 目录内容变化与单纯重读（revision、reloadKey）都靠 key 触发
   useEffect(() => {
     let alive = true;
@@ -281,22 +281,6 @@ export function WorkspacePane({
             />
           );
         })}
-        <div className="sub-toggle workspace-descendants">
-          <Switch
-            size="sm"
-            label={t("scope.descendants")}
-            checked={isFolder ? local.kind === "folderTree" : descendants}
-            disabled={!isFolder || !path || Boolean(selected?.registration.unavailable)}
-            onCheckedChange={(checked) => {
-              if (!isFolder || scope.kind !== "library") return;
-              setDescendants(checked);
-              onScope({ ...scope, scope: { kind: checked ? "folderTree" : "folder", id: local.id } });
-            }}
-          />
-          <span className="k-label" aria-hidden="true">
-            {t("scope.descendants")}
-          </span>
-        </div>
         {children}
       </div>
       <div className="side-foot">

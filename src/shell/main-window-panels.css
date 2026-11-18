@@ -72,6 +72,56 @@
   flex-direction: column;
   gap: 16px;
 }
+/* 没选图片时（#608）：一张矢量画的抽象详情栏，下面一句提示。 */
+.insp-empty {
+  margin: 24px auto 0;
+  width: min(200px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.insp-empty-art {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.insp-empty-art .frame {
+  fill: var(--sunken);
+  stroke: var(--line-2);
+  stroke-width: 1;
+}
+.insp-empty-art .sun {
+  fill: var(--manual-soft);
+  stroke: var(--line-2);
+}
+.insp-empty-art .hill {
+  fill: var(--line);
+}
+.insp-empty-art .hill.near {
+  fill: var(--line-2);
+  opacity: 0.7;
+}
+.insp-empty-art :is(.line, .pill) {
+  fill: var(--sunken);
+}
+.insp-empty-art .line.strong {
+  fill: var(--line);
+}
+.insp-empty-art .pill {
+  stroke: var(--line);
+}
+.insp-empty-art .pill.accent {
+  fill: var(--accent-soft);
+  stroke: none;
+}
+.insp-empty-text {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  text-align: center;
+  text-wrap: balance;
+}
 .insp-file-name {
   font-weight: 600;
   font-size: 13px;

@@ -460,3 +460,11 @@ describe("查看器里", () => {
     await shows("L1/m1");
   });
 });
+
+it("开着详情栏、没有选中图片时显示一张矢量画的占位与一句提示；选了图就换成详情（#608）", async () => {
+  await start();
+  expect(within(panel()!).getByRole("note").textContent).toContain("选中图片后");
+  fireEvent.click(tile("a1"));
+  await shows("L1/i1");
+  expect(within(panel()!).queryByRole("note")).toBeNull();
+});

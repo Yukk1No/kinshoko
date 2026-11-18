@@ -62,7 +62,6 @@ const library: Translation<typeof zh> = {
     reconnect: "Reconnect",
     libraryActions: "Actions for {{name}}",
     libraryActionsTitle: "Library actions",
-    descendants: "Include subfolders",
     revealFailed: "Couldn't show in File Explorer: {{error}}",
   },
   libraryMenu: {
