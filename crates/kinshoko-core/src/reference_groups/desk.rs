@@ -332,8 +332,12 @@ impl Desk {
             return self.leave_desk(history).map(Some);
         }
         self.groups.get(id)?;
+        let before = self.switch_list.clone();
         self.switch_list.retain(|x| x != id);
-        self.save_state()?;
+        if let Err(e) = self.save_state() {
+            self.switch_list = before;
+            return Err(e.into());
+        }
         Ok(None)
     }
 
@@ -361,7 +365,12 @@ impl Desk {
         let before = self.switch_list.clone();
         self.switch_list.retain(|x| x != id);
         if !on_desk {
-            self.save_state()?;
+            if let Err(e) = self.save_state() {
+                // 写不进桌面状态：像没删过一样，文件放回原处、留在切换列表里。
+                self.switch_list = before;
+                self.groups.untrash(id)?;
+                return Err(e.into());
+            }
             return Ok(None);
         }
         // 参考组已在回收位置：换走时不能再把它写回去（落盘过，内存里没有没写的改动）。

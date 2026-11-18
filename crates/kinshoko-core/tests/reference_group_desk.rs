@@ -604,3 +604,36 @@ fn deleting_the_group_on_the_desk_when_the_desk_state_cannot_be_saved_keeps_it()
     let switched = t.desk.discard(&id, &mut t.history).unwrap();
     assert!(switched.is_some(), "之后照常能删");
 }
+
+#[test]
+fn deleting_another_group_when_the_desk_state_cannot_be_saved_keeps_it() {
+    let mut t = TestDesk::new();
+    t.pin_capture("c", 3);
+    t.desk.flush().unwrap();
+    let other = t.desk.group().id.clone();
+    let captures = t.capture_files(&other);
+    t.desk.new_desk(&mut t.history).unwrap();
+    t.pin_reference("a", 10);
+    t.desk.flush().unwrap();
+
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.discard(&other, &mut t.history).is_err());
+    assert!(t.group_file(&other).exists(), "文件放回原处");
+    assert_eq!(t.capture_files(&other), captures);
+    let listed = |t: &TestDesk| {
+        t.desk
+            .lists()
+            .unwrap()
+            .switch_list
+            .iter()
+            .any(|s| s.id == other)
+    };
+    assert!(listed(&t), "还在切换列表里");
+
+    std::fs::remove_dir_all(&state).unwrap();
+    assert!(t.desk.discard(&other, &mut t.history).unwrap().is_none());
+    assert!(!listed(&t));
+}
