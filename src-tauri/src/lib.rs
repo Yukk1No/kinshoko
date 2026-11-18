@@ -73,6 +73,14 @@ pub fn run() {
             }
             Ok(())
         })
+        // 应用内浏览的 pixiv 图片（#461）：`i.pximg.net` 要带 Referer，经后端转发并缓存。
+        .register_asynchronous_uri_scheme_protocol("pximg", |ctx, request, responder| {
+            let app = ctx.app_handle().clone();
+            let path = request.uri().path().to_owned();
+            tauri::async_runtime::spawn_blocking(move || {
+                responder.respond(subscription::browse::image_response(&app, &path));
+            });
+        })
         .invoke_handler(tauri::generate_handler![
             commands::app_info,
             commands::shell_settings,
@@ -123,6 +131,8 @@ pub fn run() {
             subscription::roster::subscription_add,
             subscription::roster::subscription_set_options,
             subscription::roster::subscription_remove,
+            subscription::browse::subscription_browse,
+            subscription::browse::subscription_search_artists,
             subscription::login::subscription_login,
             subscription::login::subscription_logout,
             subscription::login::subscription_cancel_login,
