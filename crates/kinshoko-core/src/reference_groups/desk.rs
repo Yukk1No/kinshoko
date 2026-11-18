@@ -402,6 +402,16 @@ impl Desk {
             Err(e) => return Err(e),
         };
         group.members.retain(|m| !members.contains(&m.id));
+        if is_blank(&group) {
+            // 并入的是一张空桌、之后又切走了：撤销后同落盘时一样，没有名称的空参考组连文件一起消失。
+            match self.groups.delete(&group.id) {
+                Ok(()) | Err(GroupError::UnknownGroup) => {}
+                Err(e) => return Err(e),
+            }
+            self.switch_list.retain(|x| *x != group.id);
+            self.save_state()?;
+            return Ok(());
+        }
         group.updated_at = crate::library::now_ms();
         self.groups.commit(&group, &[])
     }

@@ -642,6 +642,41 @@ fn undoing_a_merge_after_switching_away_edits_that_groups_file() {
 }
 
 #[test]
+fn undoing_a_merge_into_an_empty_desk_after_switching_away_leaves_no_empty_group() {
+    let mut t = TestDesk::new();
+    t.pin_reference("other", 10);
+    t.desk.flush().unwrap();
+    let other = t.desk.group().id.clone();
+    let source = archived_group_with_a_capture(&mut t);
+    t.desk.new_desk(&mut t.history).unwrap();
+    let merged = t
+        .desk
+        .merge_in(&source, &mut t.history, &[screen()])
+        .unwrap();
+    t.desk.switch_to(&other, &mut t.history).unwrap();
+
+    t.desk.undo_merge(&merged.undo, &mut t.history).unwrap();
+
+    assert!(
+        !t.group_file(&merged.undo.group_id).exists(),
+        "空参考组连文件一起消失"
+    );
+    let lists = t.desk.lists().unwrap();
+    let ids: Vec<&str> = lists.switch_list.iter().map(|s| s.id.as_str()).collect();
+    assert_eq!(ids, [other.as_str()], "切换列表里不留空的那一项");
+    t.restart();
+    let ids: Vec<String> = t
+        .desk
+        .lists()
+        .unwrap()
+        .switch_list
+        .into_iter()
+        .map(|s| s.id)
+        .collect();
+    assert_eq!(ids, [other], "桌面状态也写了");
+}
+
+#[test]
 fn moving_a_pin_takes_it_off_the_desk_into_the_other_group_with_its_capture() {
     let mut t = TestDesk::new();
     t.pin_reference("x", 10);
