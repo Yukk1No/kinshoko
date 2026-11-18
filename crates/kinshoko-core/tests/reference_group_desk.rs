@@ -741,6 +741,9 @@ fn removing_a_member_when_the_desk_state_cannot_be_saved_keeps_it_and_its_pin() 
     t.desk.edit(&pins[0].id, |p| p.move_to(30, 30));
     t.desk.flush().unwrap();
     assert_eq!(reread(&t, &id).members.len(), 2, "之后落盘不会把移出写进去");
+    assert_eq!(t.capture_files(&id).len(), 1, "组内截图也放回来");
+    let opened = t.restart();
+    assert_eq!(opened.len(), 2, "重新启动后两张都钉得出来");
 }
 
 #[test]
