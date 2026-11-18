@@ -226,6 +226,18 @@ const subscriptions: Translation<typeof zh> = {
     empty: "No works",
     failed: "Couldn't load: {{error}}",
     retry: "Retry",
+    collect: "Add to library",
+    collectWork: "Add “{{title}}” to library",
+    collectPage: "Add only this page",
+    collectAgain: "Add again",
+    collectElsewhere: "Add elsewhere…",
+    collecting: "Adding",
+    collected: "In library",
+    chooseDestination: "Choose where to add it",
+    collectFailed: "Couldn't add to library: {{error}}",
+    collectPartly_one: "{{count}} page wasn't added. You can try again",
+    collectPartly_other: "{{count}} pages weren't added. You can try again",
+    animationSkipped: "Animations aren't added to the library",
   },
 };
 

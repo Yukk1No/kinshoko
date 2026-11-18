@@ -73,7 +73,7 @@ impl From<StoreError> for SourceError {
 
 impl SourceError {
     /// 遇到它时后面的作品也不用再试，整次检查停下。
-    fn stops_check(&self) -> bool {
+    pub(super) fn stops_check(&self) -> bool {
         !matches!(self, SourceError::Status { .. } | SourceError::Unreadable)
     }
 }
@@ -428,7 +428,7 @@ fn collect(
 }
 
 /// 原文件名：沿用下载地址的文件名（pixiv 为 `<作品 id>_p<页>.<扩展名>`）。
-fn original_name(work_id: &str, page: u32, url: &str) -> String {
+pub(super) fn original_name(work_id: &str, page: u32, url: &str) -> String {
     url.rsplit('/')
         .next()
         .map(|name| name.split(['?', '#']).next().unwrap_or(name))

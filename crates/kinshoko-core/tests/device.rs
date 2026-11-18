@@ -128,6 +128,31 @@ mod save_memory {
         assert_eq!(device.save_memory().import_destination, None);
     }
 
+    /// 应用内浏览（#461）的收图目标与导入各记各的。
+    #[test]
+    fn pixiv_browsing_remembers_its_own_destination() {
+        let dir = tempfile::tempdir().unwrap();
+        let app_data = dir.path().join("app");
+        let library = Library::create(&dir.path().join("甲"), "甲").unwrap();
+        let id = library.info().id.clone();
+        let mut device = DeviceRegistry::open(&app_data).unwrap();
+        device.register(library.info()).unwrap();
+        let imported = destination(&id, None);
+        let picked = destination(&id, Some("F1"));
+        device.remember_import_destination(&imported).unwrap();
+        device.remember_pixiv_destination(&picked).unwrap();
+        device
+            .remember_pixiv_destination(&destination("没登记", None))
+            .unwrap();
+        drop(device);
+
+        let mut device = DeviceRegistry::open(&app_data).unwrap();
+        assert_eq!(device.save_memory().import_destination, Some(imported));
+        assert_eq!(device.save_memory().pixiv_destination, Some(picked));
+        device.unregister(&id).unwrap();
+        assert_eq!(device.save_memory().pixiv_destination, None);
+    }
+
     #[test]
     fn a_destination_in_an_unregistered_library_is_not_remembered() {
         let dir = tempfile::tempdir().unwrap();

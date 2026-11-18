@@ -9,7 +9,7 @@ use ts_rs::TS;
 use super::artist::{Artist, Get, next_url, user};
 use super::parse::parse_rfc3339;
 use super::ranking;
-use crate::subscription::{RankingPeriod, SourceError, WorkKind};
+use crate::subscription::{RankingPeriod, SourceError, Work, WorkKind};
 
 /// 一条作品流。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -75,6 +75,27 @@ pub struct PixivPage {
     pub large: String,
     /// 原图。动图没有。
     pub original: Option<String>,
+}
+
+impl PixivWork {
+    /// 收进资料库用的作品（#461 第 3 步）：每页的原图，作者与标签同订阅收进来的图。
+    /// 页序不变；没有原图的页（例如动图）地址为空，收的时候算没收成。
+    pub fn to_work(&self) -> Work {
+        Work {
+            id: self.id.clone(),
+            kind: self.kind,
+            explicit: self.explicit,
+            author: Some(self.artist.name.clone()).filter(|name| !name.trim().is_empty()),
+            tags: self.tags.clone(),
+            page_url: self.page_url.clone(),
+            pages: self
+                .pages
+                .iter()
+                .map(|p| p.original.clone().unwrap_or_default())
+                .collect(),
+            posted_at: self.posted_at,
+        }
+    }
 }
 
 /// 作品流的一页。
