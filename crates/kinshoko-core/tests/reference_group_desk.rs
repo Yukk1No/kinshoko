@@ -737,3 +737,24 @@ fn archiving_the_group_on_the_desk_when_the_desk_state_cannot_be_saved_keeps_it_
         .collect();
     assert_eq!(ids, [id]);
 }
+
+#[test]
+fn undoing_a_delete_that_cannot_switch_back_can_be_retried() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    t.desk.flush().unwrap();
+    let id = t.desk.group().id.clone();
+    t.desk.discard(&id, &mut t.history).unwrap();
+
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.undo_discard(&id, &mut t.history).is_err());
+    std::fs::remove_dir_all(&state).unwrap();
+
+    let (_, switched) = t.desk.undo_discard(&id, &mut t.history).unwrap();
+    assert!(switched.is_some(), "再撤销一次就摆回桌面");
+    assert_eq!(t.desk.group().id, id);
+    assert_eq!(t.desk.pins().len(), 1);
+}
