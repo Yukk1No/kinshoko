@@ -14,7 +14,7 @@ use std::sync::Mutex;
 use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::desktop::SavedPin;
-use kinshoko_core::reference_groups::{Desk, DeskLists, GroupError, Switched};
+use kinshoko_core::reference_groups::{Desk, DeskLists, GroupError, MergeUndo, Switched};
 use tauri::AppHandle;
 
 use super::groups::{blocking, changed};
@@ -133,6 +133,58 @@ pub async fn unarchive_reference_group(
         Ok(())
     })
     .await
+}
+
+/// 并入（#595）：把参考组 `group_id` 的成员复制到桌面上的参考组并钉出来，来源不变。
+/// 返回撤销要用的记录，交给 [`undo_merge_reference_group`]。
+#[tauri::command]
+pub async fn merge_reference_group(
+    app: AppHandle,
+    group_id: String,
+) -> Result<MergeUndo, CommandError> {
+    blocking(move || {
+        let monitors = pins::monitors();
+        let merged = with_desk(&app, |desk, history| {
+            desk.merge_in(&group_id, history, &monitors)
+        })?;
+        for problem in &merged.opened.problems {
+            crate::run_log::warn("并入的参考组有成员钉不出来", problem);
+        }
+        apply(&app, None);
+        Ok(merged.undo)
+    })
+    .await
+}
+
+/// 撤销并入：去掉那次并入的成员和复制来的截图。
+#[tauri::command]
+pub async fn undo_merge_reference_group(
+    app: AppHandle,
+    undo: MergeUndo,
+) -> Result<(), CommandError> {
+    blocking(move || {
+        with_desk(&app, |desk, history| desk.undo_merge(&undo, history))?;
+        apply(&app, None);
+        Ok(())
+    })
+    .await
+}
+
+/// 钉图菜单“移到参考组 ▸”（#595）：钉图 `pin` 移到参考组 `group_id`，桌面上不再显示它。已在菜单的
+/// 线程上。钉图随即消失，旁边没有地方写提示，也不打断画画，所以成功时不提示；失败时在钉图上说原因。
+pub(super) fn move_from_menu(
+    app: &AppHandle,
+    pin: &str,
+    group_id: &str,
+) -> Option<kinshoko_core::desktop::PinNotice> {
+    match with_desk(app, |desk, history| desk.move_pin(pin, group_id, history)) {
+        Ok(_) => {
+            apply(app, None);
+            super::edge::hand_back_focus();
+            None
+        }
+        Err(e) => Some(e.into()),
+    }
 }
 
 /// 快捷键“上个参考组”“下个参考组”（#594）：在别的线程上按切换列表的先后换过去，快捷键回调不阻塞。

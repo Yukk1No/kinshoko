@@ -504,3 +504,170 @@ fn flushing_says_when_the_group_list_would_look_different() {
     t.desk.close(&a.id, &mut t.history);
     assert!(t.desk.flush().unwrap(), "最后一张关掉后不在切换列表里");
 }
+
+/// 一个带自带截图的旧参考组（已归档），桌面换到一张空桌。返回它的 id。
+fn archived_group_with_a_capture(t: &mut TestDesk) -> String {
+    t.pin_reference("a", 10);
+    let c = t.pin_capture("c", 1);
+    t.desk.edit(&c.id, |p| p.move_to(-9000, 70));
+    let source = t.desk.group().id.clone();
+    t.desk.archive(&source, &mut t.history).unwrap();
+    source
+}
+
+#[test]
+fn merging_copies_every_member_onto_the_desk_and_leaves_the_source_alone() {
+    let mut t = TestDesk::new();
+    let source = archived_group_with_a_capture(&mut t);
+    let bytes = std::fs::read(t.group_file(&source)).unwrap();
+    t.pin_reference("own", 2000);
+
+    let merged = t
+        .desk
+        .merge_in(&source, &mut t.history, &[screen()])
+        .unwrap();
+
+    assert!(
+        merged.opened.problems.is_empty(),
+        "{:?}",
+        merged.opened.problems
+    );
+    assert_eq!(merged.opened.pins.len(), 2);
+    assert_eq!(t.desk.pins().len(), 3);
+    let on_desk = t.desk.group().id.clone();
+    assert_eq!(merged.undo.group_id, on_desk);
+    let from = reread(&t, &source);
+    let is_capture = |m: &GroupMember| matches!(m.source, MemberSource::Capture { .. });
+    for original in &from.members {
+        let pin = merged
+            .opened
+            .pins
+            .iter()
+            .find(|p| p.capture_id().is_some() == is_capture(original))
+            .unwrap();
+        assert_eq!(pin.crop, original.crop);
+        if original.placement.x >= 0 {
+            assert_eq!(pin.placement, original.placement, "摆放与来源一致");
+        } else {
+            assert!(pin.placement.x >= 0, "屏幕外的拉回屏幕");
+        }
+    }
+    t.desk.flush().unwrap();
+    assert_matches(t.desk.pins(), &reread(&t, &on_desk));
+    assert_eq!(
+        std::fs::read(t.group_file(&source)).unwrap(),
+        bytes,
+        "来源参考组的文件字节不变"
+    );
+    assert_eq!(t.capture_files(&source).len(), 1);
+    assert_eq!(t.capture_files(&on_desk).len(), 1, "自带截图复制一份");
+}
+
+#[test]
+fn the_merged_capture_is_a_separate_file_from_the_source() {
+    let mut t = TestDesk::new();
+    let source = archived_group_with_a_capture(&mut t);
+    let merged = t
+        .desk
+        .merge_in(&source, &mut t.history, &[screen()])
+        .unwrap();
+    let on_desk = merged.undo.group_id.clone();
+    let capture = merged
+        .opened
+        .pins
+        .iter()
+        .find(|p| p.capture_id().is_some())
+        .unwrap();
+
+    t.desk.close(&capture.id, &mut t.history);
+    t.desk.flush().unwrap();
+    assert!(t.capture_files(&on_desk).is_empty(), "桌面上的那份删了");
+    assert_eq!(t.capture_files(&source).len(), 1, "来源的那份还在");
+    let opened = t.desk.switch_to(&source, &mut t.history).unwrap().opened;
+    assert!(opened.problems.is_empty(), "{:?}", opened.problems);
+    assert_eq!(opened.pins.len(), 2);
+}
+
+#[test]
+fn undoing_a_merge_takes_the_desk_back_and_deletes_the_copied_captures() {
+    let mut t = TestDesk::new();
+    let source = archived_group_with_a_capture(&mut t);
+    let own = t.pin_reference("own", 2000);
+    t.desk.flush().unwrap();
+    let on_desk = t.desk.group().id.clone();
+
+    let merged = t
+        .desk
+        .merge_in(&source, &mut t.history, &[screen()])
+        .unwrap();
+    t.desk.undo_merge(&merged.undo, &mut t.history).unwrap();
+
+    assert_eq!(
+        t.desk.pins().iter().map(|p| &p.id).collect::<Vec<_>>(),
+        vec![&own.id]
+    );
+    let group = reread(&t, &on_desk);
+    assert_eq!(group.members.len(), 1);
+    assert!(t.capture_files(&on_desk).is_empty(), "复制来的截图删除");
+    assert_eq!(t.capture_files(&source).len(), 1);
+}
+
+#[test]
+fn undoing_a_merge_after_switching_away_edits_that_groups_file() {
+    let mut t = TestDesk::new();
+    let source = archived_group_with_a_capture(&mut t);
+    t.pin_reference("own", 2000);
+    let merged = t
+        .desk
+        .merge_in(&source, &mut t.history, &[screen()])
+        .unwrap();
+    t.desk.new_desk(&mut t.history).unwrap();
+
+    t.desk.undo_merge(&merged.undo, &mut t.history).unwrap();
+
+    assert_eq!(reread(&t, &merged.undo.group_id).members.len(), 1);
+    assert!(t.capture_files(&merged.undo.group_id).is_empty());
+}
+
+#[test]
+fn moving_a_pin_takes_it_off_the_desk_into_the_other_group_with_its_capture() {
+    let mut t = TestDesk::new();
+    t.pin_reference("x", 10);
+    t.desk.flush().unwrap();
+    let target = t.desk.group().id.clone();
+    t.desk.new_desk(&mut t.history).unwrap();
+    let keep = t.pin_reference("keep", 30);
+    let c = t.pin_capture("c", 4);
+    t.desk.edit(&c.id, |p| p.move_to(700, 300));
+    let placed = t.desk.get(&c.id).unwrap().placement;
+    let on_desk = t.desk.group().id.clone();
+
+    let moved = t.desk.move_pin(&c.id, &target, &mut t.history).unwrap();
+
+    assert_eq!(moved.map(|p| p.id), Some(c.id.clone()));
+    assert_eq!(
+        t.desk.pins().iter().map(|p| &p.id).collect::<Vec<_>>(),
+        vec![&keep.id]
+    );
+    assert_eq!(reread(&t, &on_desk).members.len(), 1);
+    assert!(t.capture_files(&on_desk).is_empty(), "原参考组里没有");
+    assert_eq!(t.capture_files(&target).len(), 1, "文件在目标参考组里");
+    let opened = t.desk.switch_to(&target, &mut t.history).unwrap().opened;
+    assert!(opened.problems.is_empty(), "{:?}", opened.problems);
+    assert_eq!(opened.pins.len(), 2);
+    let shown = opened
+        .pins
+        .iter()
+        .find(|p| p.capture_id().is_some())
+        .unwrap();
+    assert_eq!(shown.placement, placed, "摆放不变");
+}
+
+#[test]
+fn moving_to_the_group_on_the_desk_does_nothing() {
+    let mut t = TestDesk::new();
+    let a = t.pin_reference("a", 10);
+    let here = t.desk.group().id.clone();
+    assert_eq!(t.desk.move_pin(&a.id, &here, &mut t.history).unwrap(), None);
+    assert_eq!(t.desk.pins().len(), 1);
+}

@@ -7,6 +7,7 @@ import {
   ArchiveRestore,
   FolderInput,
   ListTree,
+  Merge,
   MoreHorizontal,
   PackageOpen,
   Pencil,
@@ -25,6 +26,7 @@ import {
   deskReferenceGroups,
   exportReferenceGroupPackage,
   importReferenceGroupPackage,
+  mergeReferenceGroup,
   newReferenceDesk,
   onReferenceGroupsChanged,
   purgeDeletedReferenceGroup,
@@ -36,6 +38,7 @@ import {
   switchReferenceGroup,
   thumbnailUrl,
   unarchiveReferenceGroup,
+  undoMergeReferenceGroup,
 } from "../ipc";
 import { describeCommandError, errorText, isErrorCode, unavailableReasonText } from "../ipc/commandError";
 import { SaveDestinationDialog } from "../library/SaveDestination";
@@ -218,6 +221,25 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     }
   };
 
+  /** 并入能撤销，所以不先确认：并入后给带“撤销”的轻提示。 */
+  const merge = async (g: GroupSummary) => {
+    try {
+      const undo = await mergeReferenceGroup(g.id);
+      toast.show({
+        title: t("deskPanel.merged", { name: groupLabel(t, g) }),
+        tone: "success",
+        action: {
+          label: t("groups.undo"),
+          onClick: () => {
+            undoMergeReferenceGroup(undo).catch((e) => toast.error(errorText(e)));
+          },
+        },
+      });
+    } catch (e) {
+      toast.error(errorText(e));
+    }
+  };
+
   const toggleMembers = (id: string) =>
     expanded?.group.id === id ? setExpanded(null) : void run(() => referenceGroup(id).then(setExpanded));
 
@@ -321,6 +343,11 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
                   ) : (
                     <MenuItem icon={<Archive size={14} />} onClick={() => void run(() => archiveReferenceGroup(g.id))}>
                       {t("deskPanel.archive")}
+                    </MenuItem>
+                  )}
+                  {!onDesk && (
+                    <MenuItem icon={<Merge size={14} />} onClick={() => void merge(g)}>
+                      {t("deskPanel.merge")}
                     </MenuItem>
                   )}
                   <MenuItem icon={<ListTree size={14} />} onClick={() => toggleMembers(g.id)}>

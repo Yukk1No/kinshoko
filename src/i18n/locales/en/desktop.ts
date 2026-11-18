@@ -41,6 +41,7 @@ const desktop: Translation<typeof zh> = {
     switchTo: "Switch to",
     newGroup: "New reference group",
     noOtherGroups: "No other reference groups",
+    moveTo: "Move to reference group",
   },
   deskGroups: {
     unnamed: "Untitled {{time}}",
@@ -51,6 +52,8 @@ const desktop: Translation<typeof zh> = {
     archived: "Archived",
     archive: "Archive",
     unarchive: "Unarchive",
+    merge: "Merge in",
+    merged: "Merged in “{{name}}”",
   },
   capture: {
     label: "Screenshot",

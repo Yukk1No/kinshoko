@@ -7,6 +7,7 @@ import type { GatePlan } from "../bindings/GatePlan";
 import type { PinGate } from "../bindings/PinGate";
 import type { DeletedGroup } from "../bindings/DeletedGroup";
 import type { DeskLists } from "../bindings/DeskLists";
+import type { MergeUndo } from "../bindings/MergeUndo";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroup } from "../bindings/ReferenceGroup";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -69,6 +70,16 @@ export function archiveReferenceGroup(groupId: string): Promise<void> {
 /** 从归档取出：放回切换列表并摆到桌面上，改的是原件。 */
 export function unarchiveReferenceGroup(groupId: string): Promise<void> {
   return invoke<void>(desk("unarchive_reference_group"), { groupId });
+}
+
+/** 并入（#595）：把参考组 `groupId` 的成员复制到桌面上的参考组并钉出来，来源不变。返回撤销要用的记录。 */
+export function mergeReferenceGroup(groupId: string): Promise<MergeUndo> {
+  return invoke<MergeUndo>(desk("merge_reference_group"), { groupId });
+}
+
+/** 撤销 {@link mergeReferenceGroup}：去掉那次并入的成员和复制来的截图。 */
+export function undoMergeReferenceGroup(undo: MergeUndo): Promise<void> {
+  return invoke<void>(desk("undo_merge_reference_group"), { undo });
 }
 
 /** 打开参考组：成员按保存的局部与摆放钉到桌面；返回新钉出的数量。 */

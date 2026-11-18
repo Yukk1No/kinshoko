@@ -187,6 +187,8 @@ pub fn init() -> TauriPlugin<Wry> {
             desk_commands::new_reference_desk,
             desk_commands::archive_reference_group,
             desk_commands::unarchive_reference_group,
+            desk_commands::merge_reference_group,
+            desk_commands::undo_merge_reference_group,
             groups::export_reference_group_package,
             groups::import_reference_group_package,
             edge_hide,

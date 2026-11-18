@@ -55,6 +55,22 @@ pub struct Switched {
     pub opened: OpenedPins,
 }
 
+/// 并入一个参考组之后（[`Desk::merge_in`]）：钉出的钉图，以及撤销要用的记录。
+#[derive(Debug, Clone, PartialEq)]
+pub struct MergedIn {
+    pub undo: MergeUndo,
+    pub opened: OpenedPins,
+}
+
+/// 撤销一次并入（[`Desk::undo_merge`]）要用的：并入到的参考组与这次加进去的成员。
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct MergeUndo {
+    pub group_id: String,
+    pub members: Vec<String>,
+}
+
 /// 收藏截图后（[`Desk::collected`]）：参考组成员的改连结果，以及桌面上改为显示参考图的钉图。
 #[derive(Debug, Clone, PartialEq)]
 pub struct Collected {
@@ -233,6 +249,188 @@ impl Desk {
         self.dirty = true;
         self.flush()?;
         Ok(self.group.clone())
+    }
+
+    /// 并入参考组 `source_id`（#595）：把它的全部成员复制到桌面上的参考组，按原来的局部与摆放钉出，
+    /// 落在所有显示器外的拉回屏幕。自带截图复制一份，两边各有各的；来源参考组不变。
+    /// 先落盘再钉出（组内截图要先复制进来才能钉）。来源就是桌面上那个时什么都不做。
+    pub fn merge_in(
+        &mut self,
+        source_id: &str,
+        history: &mut CaptureHistory,
+        monitors: &[ScreenRect],
+    ) -> Result<MergedIn, GroupError> {
+        let mut merged = MergedIn {
+            undo: MergeUndo {
+                group_id: self.group.id.clone(),
+                members: Vec::new(),
+            },
+            opened: OpenedPins {
+                pins: Vec::new(),
+                problems: Vec::new(),
+            },
+        };
+        if source_id == self.group.id {
+            return Ok(merged);
+        }
+        let source = self.groups.get(source_id)?;
+        let from = self.groups.captures_dir(source_id)?;
+        for m in &source.members {
+            let mut member = m.clone();
+            member.id = new_id();
+            if let MemberSource::Capture { capture_file } = &mut member.source {
+                let original = from.join(&*capture_file);
+                *capture_file = format!("{}.png", member.id);
+                // 来源里缺了的截图不复制：成员照样并入，钉不出来时写明原因，与切换过去时一样。
+                if original.is_file() {
+                    self.copies.push((capture_file.clone(), original));
+                }
+            }
+            merged.undo.members.push(member.id.clone());
+            self.group.members.push(member);
+        }
+        if merged.undo.members.is_empty() {
+            return Ok(merged);
+        }
+        self.dirty = true;
+        self.members_changed = true;
+        if let Err(e) = self.flush() {
+            // 写不进：这次并入整个不算，桌面上的参考组回到并入前。
+            self.group
+                .members
+                .retain(|m| !merged.undo.members.contains(&m.id));
+            let files: Vec<String> = merged
+                .undo
+                .members
+                .iter()
+                .map(|id| format!("{id}.png"))
+                .collect();
+            self.copies.retain(|(f, _)| !files.contains(f));
+            return Err(e);
+        }
+        let added: BTreeSet<&str> = merged.undo.members.iter().map(String::as_str).collect();
+        let mut opened = self.groups.open_members(
+            &self.group,
+            history,
+            |m| !added.contains(m.member_id.as_str()),
+            true,
+        );
+        for pin in &mut opened.pins {
+            let (x, y) = pull_onto_screen(pin.rect(), monitors);
+            if (x, y) != (pin.placement.x, pin.placement.y) {
+                pin.placement.x = x;
+                pin.placement.y = y;
+                self.dirty = true;
+            }
+        }
+        self.pins.extend(opened.pins.iter().cloned());
+        for pin in opened.pins.clone() {
+            self.sync(&pin);
+        }
+        merged.undo.group_id = self.group.id.clone();
+        merged.opened = opened;
+        Ok(merged)
+    }
+
+    /// 撤销并入：去掉那次并入的成员（桌面上的钉图随之关掉），复制来的截图文件随之删除。
+    /// 之后已经换了一桌的，改的是那个参考组的文件；其中的成员已经不在的略过。
+    pub fn undo_merge(
+        &mut self,
+        undo: &MergeUndo,
+        history: &mut CaptureHistory,
+    ) -> Result<(), GroupError> {
+        let (merged_group, members) = (undo.group_id.as_str(), &undo.members);
+        if merged_group == self.group.id {
+            let pins: Vec<String> = self
+                .pins
+                .iter()
+                .filter(|p| {
+                    p.member
+                        .as_ref()
+                        .is_some_and(|m| members.contains(&m.member_id))
+                })
+                .map(|p| p.id.clone())
+                .collect();
+            for pin in pins {
+                self.close(&pin, history);
+            }
+            // 钉不出来的成员没有钉图，也要去掉。
+            let before = self.group.members.len();
+            self.group.members.retain(|m| !members.contains(&m.id));
+            if self.group.members.len() != before {
+                self.dirty = true;
+                self.members_changed = true;
+            }
+            self.flush()?;
+            return Ok(());
+        }
+        let mut group = match self.groups.get(merged_group) {
+            Ok(group) => group,
+            Err(GroupError::UnknownGroup) => return Ok(()),
+            Err(e) => return Err(e),
+        };
+        group.members.retain(|m| !members.contains(&m.id));
+        group.updated_at = crate::library::now_ms();
+        self.groups.commit(&group, &[])
+    }
+
+    /// 把钉图 `pin_id` 移到参考组 `target_id`（#595）：它成为那个参考组的成员，摆放不变；
+    /// 自带截图的文件跟着移过去。桌面上不再显示它（返回关掉的钉图）。
+    /// 目标就是桌面上那个、或桌面上没有这张钉图时什么都不做（`None`）。
+    pub fn move_pin(
+        &mut self,
+        pin_id: &str,
+        target_id: &str,
+        history: &mut CaptureHistory,
+    ) -> Result<Option<SavedPin>, GroupError> {
+        if target_id == self.group.id {
+            return Ok(None);
+        }
+        let Some(member_id) = self
+            .pins
+            .iter()
+            .find(|p| p.id == pin_id)
+            .and_then(|p| p.member.as_ref())
+            .map(|m| m.member_id.clone())
+        else {
+            return Ok(None);
+        };
+        let mut target = self.groups.get(target_id)?;
+        // 先落盘：刚钉上的截图还没复制进桌面上的参考组。
+        self.flush()?;
+        let Some(mut member) = self
+            .group
+            .members
+            .iter()
+            .find(|m| m.id == member_id)
+            .cloned()
+        else {
+            return Ok(None);
+        };
+        let mut copies = Vec::new();
+        member.id = new_id();
+        if let MemberSource::Capture { capture_file } = &mut member.source {
+            let original = self
+                .groups
+                .captures_dir(&self.group.id)?
+                .join(&*capture_file);
+            *capture_file = format!("{}.png", member.id);
+            copies.push((capture_file.clone(), original));
+        }
+        let moved = GroupMemberRef {
+            group_id: target.id.clone(),
+            member_id: member.id.clone(),
+        };
+        target.members.push(member);
+        target.updated_at = crate::library::now_ms();
+        self.groups.commit(&target, &copies)?;
+        let closed = self.close(pin_id, history);
+        if let Some(capture) = closed.as_ref().and_then(SavedPin::capture_id) {
+            // 之后从截图历史收藏这张截图，改连的是它在目标参考组里的成员。
+            let _ = history.link_member(capture, moved);
+        }
+        self.flush()?;
+        Ok(closed)
     }
 
     /// 把改动落盘：先复制新的组内截图、写参考组文件，再写桌面状态。没有改动时什么都不做。

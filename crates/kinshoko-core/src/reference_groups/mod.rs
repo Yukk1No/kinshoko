@@ -47,7 +47,7 @@ use captures::write_atomically;
 use merge::{assign, merge};
 
 pub use captures::{CaptureFiles, OpenedPins, RelinkFailure, RelinkReport};
-pub use desk::{Collected, Desk, DeskLists, Switched};
+pub use desk::{Collected, Desk, DeskLists, MergeUndo, MergedIn, Switched};
 pub use error::{GroupError, MemberUnavailable};
 pub use member::{GroupCapture, GroupMember, MemberSource};
 pub use package::{

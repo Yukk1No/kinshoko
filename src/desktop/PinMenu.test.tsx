@@ -290,6 +290,13 @@ describe("钉图菜单项", () => {
     fireEvent.click(trigger);
     fireEvent.click(await screen.findByRole("menuitem", { name: "新参考组" }));
     expect(act).toHaveBeenCalledWith("newGroup");
+    // “移到参考组 ▸”（#595）：同样只列别的参考组，没有“新参考组”。
+    const move = screen.getByRole("menuitem", { name: "移到参考组" });
+    fireEvent.click(move);
+    const target = await screen.findByRole("menuitem", { name: /^未命名/ });
+    expect(screen.queryByRole("menuitem", { name: "新参考组" })).toBeNull();
+    fireEvent.click(target);
+    expect(act).toHaveBeenCalledWith("moveTo:g2");
     cleanup();
     show({ ...reference, group: null }); // 开关关着：仍是“加入参考组”
     expect(screen.getByRole("menuitem", { name: "加入参考组" })).toBeTruthy();

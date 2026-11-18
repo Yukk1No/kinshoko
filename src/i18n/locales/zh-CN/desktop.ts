@@ -41,6 +41,7 @@ export default {
     switchTo: "切换到",
     newGroup: "新参考组",
     noOtherGroups: "没有别的参考组",
+    moveTo: "移到参考组",
   },
   /** 参考组改成桌面（#588）里各处共用的叫法。 */
   deskGroups: {
@@ -54,6 +55,8 @@ export default {
     archived: "归档",
     archive: "归档",
     unarchive: "取出",
+    merge: "并入",
+    merged: "已并入「{{name}}」",
   },
   /** 截图框选窗口（`CaptureOverlay`）。 */
   capture: {

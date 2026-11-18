@@ -14,6 +14,8 @@ const ipc = vi.hoisted(() => ({
   newDesk: vi.fn(() => Promise.resolve()),
   archive: vi.fn(() => Promise.resolve()),
   unarchive: vi.fn(() => Promise.resolve()),
+  merge: vi.fn(() => Promise.resolve({ groupId: "g1", members: ["n1", "n2"] })),
+  undoMerge: vi.fn(() => Promise.resolve()),
   rename: vi.fn(() => Promise.resolve()),
   remove: vi.fn((id: string) => Promise.resolve({ groupId: id, name: id, unlinkedPins: [] })),
   restore: vi.fn(() => Promise.resolve()),
@@ -35,6 +37,8 @@ vi.mock("../ipc", () => ({
   newReferenceDesk: ipc.newDesk,
   archiveReferenceGroup: ipc.archive,
   unarchiveReferenceGroup: ipc.unarchive,
+  mergeReferenceGroup: ipc.merge,
+  undoMergeReferenceGroup: ipc.undoMerge,
   renameReferenceGroup: ipc.rename,
   deleteReferenceGroup: ipc.remove,
   restoreReferenceGroup: ipc.restore,
@@ -214,6 +218,24 @@ describe("参考组面板（参考组改成桌面）", () => {
     await changed({ onDesk: "g2", switchList: [group("g2", "手部"), hair], archived: [] });
     expect(screen.queryByRole("list", { name: "归档" })).toBeNull();
     expect(screen.getByRole("button", { name: "手部" }).getAttribute("aria-current")).toBe("true");
+  });
+
+  it("并入（#595）：归档里和切换列表里别的参考组都能并入，桌面上那个不能；提示里能撤销", async () => {
+    await show({ onDesk: "g1", switchList: [hair, group("g2", "手部")], archived: [old] });
+    fireEvent.click(screen.getByRole("button", { name: "头发 的更多操作" }));
+    await screen.findByRole("menuitem", { name: "重命名" });
+    expect(screen.queryByRole("menuitem", { name: "并入" })).toBeNull();
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    await flush();
+    await more("手部", "并入");
+    expect(ipc.merge).toHaveBeenCalledWith("g2");
+    await more("旧的衣褶", "并入");
+    expect(ipc.merge).toHaveBeenCalledWith("g3");
+    expect(await screen.findByText("已并入「旧的衣褶」")).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole("button", { name: "撤销" }).at(-1)!);
+    });
+    expect(ipc.undoMerge).toHaveBeenCalledWith({ groupId: "g1", members: ["n1", "n2"] });
   });
 
   it("重命名：在卡片上改，保存后收起", async () => {

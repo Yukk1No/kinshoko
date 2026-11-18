@@ -6,6 +6,7 @@ import {
   ExternalLink,
   FlipHorizontal2,
   FlipVertical2,
+  FolderInput,
   Layers,
   PanelRightClose,
   Plus,
@@ -85,8 +86,19 @@ function GroupList({ load, act }: { load: () => Promise<GroupSummary[]>; act: (a
   );
 }
 
-/** “切换到 ▸”（#593）：子菜单打开时才读切换列表，列出桌面上那个以外的参考组，最下面是“新参考组”。 */
-function DeskGroupList({ load, act }: { load: () => Promise<DeskLists>; act: (a: PinMenuAction) => void }) {
+/**
+ * “切换到 ▸”（#593）与“移到参考组 ▸”（#595）：子菜单打开时才读切换列表，列出桌面上那个以外的参考组。
+ * 切换的最下面是“新参考组”。
+ */
+function DeskGroupList({
+  load,
+  act,
+  move = false,
+}: {
+  load: () => Promise<DeskLists>;
+  act: (a: PinMenuAction) => void;
+  move?: boolean;
+}) {
   const { t } = useTranslation("desktop");
   const [state, setState] = useState<{ lists: DeskLists | null; problem: string | null }>({
     lists: null,
@@ -111,14 +123,18 @@ function DeskGroupList({ load, act }: { load: () => Promise<DeskLists>; act: (a:
       {!problem && !lists && <MenuTip>{t("pinMenu.loadingGroups")}</MenuTip>}
       {lists && !others.length && <MenuTip>{t("pinMenu.noOtherGroups")}</MenuTip>}
       {others.map((g) => (
-        <MenuItem key={g.id} onClick={() => act(`switch:${g.id}`)}>
+        <MenuItem key={g.id} onClick={() => act(move ? `moveTo:${g.id}` : `switch:${g.id}`)}>
           {groupLabel(t, g)}
         </MenuItem>
       ))}
-      <MenuSeparator />
-      <MenuItem icon={icon(Plus)} onClick={() => act("newGroup")}>
-        {t("pinMenu.newGroup")}
-      </MenuItem>
+      {!move && (
+        <>
+          <MenuSeparator />
+          <MenuItem icon={icon(Plus)} onClick={() => act("newGroup")}>
+            {t("pinMenu.newGroup")}
+          </MenuItem>
+        </>
+      )}
     </>
   );
 }
@@ -212,15 +228,20 @@ export function PinMenuItems({
       </MenuItem>
       {/* 参考组改成桌面（#593）：钉图都属于桌面上的参考组，改动自动记下；“切换到”旁写着它的名称。 */}
       {menu.desk !== undefined ? (
-        <MenuSubmenu
-          icon={icon(Layers)}
-          label={t("switchTo")}
-          meta={menu.desk || undefined}
-          popupLabel={t("switchTo")}
-          width={220}
-        >
-          <DeskGroupList load={deskGroups} act={act} />
-        </MenuSubmenu>
+        <>
+          <MenuSubmenu
+            icon={icon(Layers)}
+            label={t("switchTo")}
+            meta={menu.desk || undefined}
+            popupLabel={t("switchTo")}
+            width={220}
+          >
+            <DeskGroupList load={deskGroups} act={act} />
+          </MenuSubmenu>
+          <MenuSubmenu icon={icon(FolderInput)} label={t("moveTo")} popupLabel={t("moveTo")} width={220}>
+            <DeskGroupList load={deskGroups} act={act} move />
+          </MenuSubmenu>
+        </>
       ) : (
         <MenuSubmenu icon={icon(Layers)} label={t("addToGroup")} popupLabel={t("addToGroup")} width={220}>
           {menu.capture ? <MenuTip>{t("collectFirst")}</MenuTip> : <GroupList load={groups} act={act} />}

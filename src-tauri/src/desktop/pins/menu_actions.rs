@@ -23,6 +23,8 @@ pub(super) const ACTION_EDGE_HIDE: &str = "edgeHide";
 /// #593：切换到参考组（`switch:<参考组 id>`）、新参考组。开关打开时才有。
 pub(super) const ACTION_SWITCH: &str = "switch:";
 pub(super) const ACTION_NEW_GROUP: &str = "newGroup";
+/// #595：把这张钉图移到参考组（`moveTo:<参考组 id>`）。开关打开时才有。
+pub(super) const ACTION_MOVE_TO: &str = "moveTo:";
 
 /// 钉图的右键菜单（#64；#106 起与主窗口同样式）：翻转、旋转、原始大小、透明度、锁定，截图钉图的
 /// 收藏与复制，资料库钉图（#65）被遮蔽时的“显示这张图”与来自参考组时的“存回参考组”，再加上
@@ -116,6 +118,9 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<Pi
     }
     if action == ACTION_NEW_GROUP {
         return super::super::desk_commands::switch_from_menu(app, None);
+    }
+    if let Some(group_id) = action.strip_prefix(ACTION_MOVE_TO) {
+        return super::super::desk_commands::move_from_menu(app, pin, group_id);
     }
     if let Some(group_id) = action.strip_prefix(ACTION_GROUP) {
         return Some(add_to_group(app, pin, group_id));

@@ -133,6 +133,8 @@ fn main() {
                         "new_reference_desk",
                         "archive_reference_group",
                         "unarchive_reference_group",
+                        "merge_reference_group",
+                        "undo_merge_reference_group",
                         "export_reference_group_package",
                         "import_reference_group_package",
                         "edge_hide",
