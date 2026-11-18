@@ -854,3 +854,29 @@ fn deleting_the_group_on_the_desk_when_the_desk_state_cannot_be_saved_keeps_it()
     let switched = t.desk.discard(&id, &mut t.history).unwrap();
     assert!(switched.is_some(), "之后照常能删");
 }
+
+#[test]
+fn a_merged_capture_member_shares_the_source_capture_history_entry() {
+    let mut t = TestDesk::new();
+    let source = archived_group_with_a_capture(&mut t);
+    let entries = t.history.entries().len();
+
+    let merged = t
+        .desk
+        .merge_in(&source, &mut t.history, &[screen()])
+        .unwrap();
+
+    assert_eq!(t.history.entries().len(), entries, "不另建截图历史");
+    let capture = merged
+        .opened
+        .pins
+        .iter()
+        .find_map(|p| p.capture_id())
+        .unwrap();
+    let linked = t.history.linked_members(capture);
+    assert!(linked.iter().any(|m| m.group_id == source), "{linked:?}");
+    assert!(
+        linked.iter().any(|m| m.group_id == t.desk.group().id),
+        "副本也关联这条截图，收藏时一起改连：{linked:?}"
+    );
+}

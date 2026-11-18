@@ -307,10 +307,13 @@ impl Desk {
         }
         let source = self.groups.get(source_id)?;
         let from = self.groups.captures_dir(source_id)?;
+        // 截图成员：来源成员与它的副本，写好后让副本关联同一条截图历史（ADR-0002 收藏改连）。
+        let mut captured: Vec<(String, String)> = Vec::new();
         for m in &source.members {
             let mut member = m.clone();
             member.id = new_id();
             if let MemberSource::Capture { capture_file } = &mut member.source {
+                captured.push((m.id.clone(), member.id.clone()));
                 let original = from.join(&*capture_file);
                 *capture_file = format!("{}.png", member.id);
                 // 来源里缺了的截图不复制：成员照样并入，钉不出来时写明原因，与切换过去时一样。
@@ -339,6 +342,19 @@ impl Desk {
                 .collect();
             self.copies.retain(|(f, _)| !files.contains(f));
             return Err(e);
+        }
+        for (from_member, to_member) in captured {
+            let source_ref = GroupMemberRef {
+                group_id: source_id.to_owned(),
+                member_id: from_member,
+            };
+            if let Some(entry) = history.linked_entry(&source_ref) {
+                let at = GroupMemberRef {
+                    group_id: self.group.id.clone(),
+                    member_id: to_member,
+                };
+                let _ = history.link_member(&entry, at);
+            }
         }
         let added: BTreeSet<&str> = merged.undo.members.iter().map(String::as_str).collect();
         let mut opened = self.groups.open_members(
