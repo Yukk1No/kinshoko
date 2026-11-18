@@ -85,10 +85,8 @@ fn toggle(app: &AppHandle) {
 /// 换了一桌钉图（#591）：之前是收起的，新钉图也直接收起（不带滑动）。
 pub(super) fn tuck_all(app: &AppHandle) {
     let pins: Vec<DeskPin> = open_pins(app).iter().map(desk_pin).collect();
-    let toggle = lock(&state(app).edge).toggle(&pins);
-    if toggle.hidden {
-        apply_with(app, &toggle.moves, PinMotion::Jump);
-    }
+    let moves = lock(&state(app).edge).tuck_rest(&pins);
+    apply_with(app, &moves, PinMotion::Jump);
 }
 
 fn desk_pin(pin: &SavedPin) -> DeskPin {

@@ -79,6 +79,16 @@ impl EdgeHide {
                 moves,
             };
         }
+        Toggle {
+            hidden: true,
+            moves: self.tuck_rest(pins),
+        }
+    }
+
+    /// 换了一桌钉图后保持收起（#591）：`pins` 是当前全部钉图，还没收起的收起，已收起的不动。
+    /// 与 [`Self::toggle`] 不同，全部已收起时什么都不改，不会放回原位。
+    pub fn tuck_rest(&mut self, pins: &[DeskPin]) -> Vec<PinMove> {
+        self.tucked.retain(|id, _| pins.iter().any(|p| &p.id == id));
         let mut moves = Vec::new();
         for p in pins {
             if self.tucked.contains_key(&p.id) {
@@ -92,10 +102,7 @@ impl EdgeHide {
             });
             self.tucked.insert(p.id.clone(), tucked);
         }
-        Toggle {
-            hidden: true,
-            moves,
-        }
+        moves
     }
 
     /// 指针移到了 `cursor`（物理像素）：碰到细边的钉图滑出，指针离开的滑出钉图收回。
