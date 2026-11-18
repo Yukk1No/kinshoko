@@ -48,14 +48,21 @@ pub fn flush(app: &AppHandle) {
         return;
     };
     // 先参考组、后钉图状态：桌面上的参考组落盘时写参考组文件。
-    if desktop.dirty.swap(false, Ordering::Relaxed)
-        && let Err(e) = {
-            let _groups = lock(&desktop.groups);
-            lock(&desktop.store).save()
+    if !desktop.dirty.swap(false, Ordering::Relaxed) {
+        return;
+    }
+    let saved = {
+        let _groups = lock(&desktop.groups);
+        lock(&desktop.store).save()
+    };
+    match saved {
+        // 空桌钉上第一张、成员有增减：参考组面板与托盘跟着变（#592、#593）。放开锁后通知。
+        Ok(true) => super::groups::changed(app),
+        Ok(false) => {}
+        Err(e) => {
+            crate::run_log::error("保存钉图状态失败", e);
+            desktop.dirty.store(true, Ordering::Relaxed);
         }
-    {
-        crate::run_log::error("保存钉图状态失败", e);
-        desktop.dirty.store(true, Ordering::Relaxed);
     }
 }
 

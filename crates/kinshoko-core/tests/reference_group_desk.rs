@@ -824,3 +824,19 @@ fn undoing_a_delete_that_cannot_switch_back_can_be_retried() {
     assert_eq!(t.desk_id(), id);
     assert_eq!(t.desk.pins().len(), 1);
 }
+
+#[test]
+fn flushing_says_when_the_group_list_would_look_different() {
+    let mut t = TestDesk::new();
+    let a = t.pin_reference("a", 100);
+    assert!(t.desk.flush().unwrap(), "空桌钉上第一张后开了新参考组");
+    t.desk.edit(&a.id, |p| p.move_to(120, 260));
+    assert!(!t.desk.flush().unwrap(), "只拖动，列表上看不出");
+    assert!(!t.desk.flush().unwrap(), "没有改动");
+    let b = t.pin_reference("b", 900);
+    assert!(t.desk.flush().unwrap(), "张数变了");
+    t.desk.close(&b.id, &mut t.history);
+    assert!(t.desk.flush().unwrap(), "没钉着的变淡");
+    t.desk.close(&a.id, &mut t.history);
+    assert!(t.desk.flush().unwrap(), "最后一张关掉后桌面空着");
+}

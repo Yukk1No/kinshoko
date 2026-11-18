@@ -39,6 +39,13 @@ const desktop: Translation<typeof zh> = {
     edgeHide: "Hide pins",
     close: "Close pin",
   },
+  deskPanel: {
+    newGroup: "New reference group",
+    switchList: "Switch to",
+    archived: "Archived",
+    archive: "Archive",
+    unarchive: "Unarchive",
+  },
   capture: {
     label: "Screenshot",
     copying: "Copying…",

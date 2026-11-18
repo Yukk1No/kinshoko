@@ -129,6 +129,8 @@ pub struct Desk {
     /// 撤销删除时文件已放回、还没做完的参考组：再撤销一次时接着做完。
     untrashed: BTreeSet<String>,
     dirty: bool,
+    /// 自上次落盘以来成员有增减：参考组列表上看得出（张数、缩略图）。
+    members_changed: bool,
 }
 
 impl Desk {
@@ -167,6 +169,7 @@ impl Desk {
             trashed_from_desk: BTreeSet::new(),
             untrashed: BTreeSet::new(),
             dirty: false,
+            members_changed: false,
         })
     }
 
@@ -278,6 +281,7 @@ impl Desk {
         held.group.members.push(member);
         self.pins.push(pin.clone());
         self.dirty = true;
+        self.members_changed = true;
         Ok(Pinned { pin, fold_into })
     }
 
@@ -310,6 +314,7 @@ impl Desk {
             history.unpin(capture);
         }
         self.dirty = true;
+        self.members_changed = true;
         if self.pins.is_empty()
             && let Some(held) = self.on_desk.take()
         {
@@ -407,10 +412,14 @@ impl Desk {
 
     /// 把改动落盘：先写离开了桌面的参考组，再复制新的组内截图、写桌面上的参考组，最后写桌面状态。
     /// 没有改动时什么都不做。写不进时改动留在内存里，下次再试。
-    pub fn flush(&mut self) -> Result<(), GroupError> {
+    ///
+    /// 返回参考组列表上看不看得出这次落盘：成员有增减、钉着与否变了，或桌面上换了参考组（空桌钉上
+    /// 第一张、关掉最后一张）。只拖动、缩放时为 `false`，界面不必重读参考组列表。
+    pub fn flush(&mut self) -> Result<bool, GroupError> {
         if !self.dirty {
-            return Ok(());
+            return Ok(false);
         }
+        let listed = self.desk_id();
         let now = crate::library::now_ms();
         while let Some(held) = self.left.first_mut() {
             held.group.updated_at = now;
@@ -427,7 +436,8 @@ impl Desk {
         }
         self.save_state()?;
         self.dirty = false;
-        Ok(())
+        let seen = std::mem::take(&mut self.members_changed) || listed != self.desk_id();
+        Ok(seen)
     }
 
     /// 切换到参考组 `id`：先把桌面上的参考组落盘，再整桌换过去，钉出它钉着的成员。原来那一桌原样留着。

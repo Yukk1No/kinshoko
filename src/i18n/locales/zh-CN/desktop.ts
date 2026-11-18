@@ -38,6 +38,14 @@ export default {
     edgeHide: "收起钉图",
     close: "关闭钉图",
   },
+  /** 参考组改成桌面后的侧栏面板（`DeskGroupsPanel`，#592）。 */
+  deskPanel: {
+    newGroup: "新参考组",
+    switchList: "切换到",
+    archived: "归档",
+    archive: "归档",
+    unarchive: "取出",
+  },
   /** 截图框选窗口（`CaptureOverlay`）。 */
   capture: {
     label: "截图",
