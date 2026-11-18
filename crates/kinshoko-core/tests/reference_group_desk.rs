@@ -562,3 +562,31 @@ fn deleting_another_group_when_the_desk_state_cannot_be_saved_keeps_it() {
     assert!(t.desk.discard(&other, &mut t.history).unwrap().is_none());
     assert!(!listed(&t));
 }
+
+#[test]
+fn archiving_the_group_on_the_desk_when_the_desk_state_cannot_be_saved_keeps_it_listed() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    t.desk.flush().unwrap();
+    let id = t.desk.group().id.clone();
+
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.archive(&id, &mut t.history).is_err());
+    std::fs::remove_dir_all(&state).unwrap();
+
+    // 之后什么都没改就换到空桌：它照样留在切换列表里。
+    t.desk.new_desk(&mut t.history).unwrap();
+    t.restart();
+    let ids: Vec<String> = t
+        .desk
+        .lists()
+        .unwrap()
+        .switch_list
+        .into_iter()
+        .map(|s| s.id)
+        .collect();
+    assert_eq!(ids, [id]);
+}
