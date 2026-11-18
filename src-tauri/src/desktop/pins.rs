@@ -329,8 +329,8 @@ fn use_desk(app: &AppHandle) {
     let groups = lock(&state(app).groups);
     let mut store = lock(&state(app).store);
     let opened = {
-        let history = lock(&state(app).history);
-        kinshoko_core::reference_groups::Desk::open(&dir, groups.clone(), &history)
+        let mut history = lock(&state(app).history);
+        kinshoko_core::reference_groups::Desk::open(&dir, groups.clone(), &mut history)
     };
     match opened {
         Ok(desk) => *store = super::pin_state::PinState::Desk(Box::new(desk)),
