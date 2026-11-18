@@ -19,6 +19,8 @@ pin-shell = { path = "crates/pin-shell" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 ts-rs = "12"
+# 日期时间：核心只用 Timestamp/Offset/civil，不带时区数据库；应用壳另开 tz-system 读本地时区。
+jiff = { version = "1.0.1", default-features = false, features = ["std"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
