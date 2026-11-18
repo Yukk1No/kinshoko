@@ -303,8 +303,16 @@ impl Desk {
             if is_blank(&self.group) {
                 return Ok(None);
             }
+            let before = self.switch_list.clone();
             self.switch_list.retain(|x| x != id);
-            return self.leave_desk(history).map(Some);
+            return match self.leave_desk(history) {
+                Ok(switched) => Ok(Some(switched)),
+                Err(e) => {
+                    // 换不走：还摆在桌面上、还在切换列表里，像没归档过一样。
+                    self.switch_list = before;
+                    Err(e)
+                }
+            };
         }
         self.groups.get(id)?;
         let before = self.switch_list.clone();
