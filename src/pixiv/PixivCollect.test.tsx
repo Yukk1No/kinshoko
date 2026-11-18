@@ -110,15 +110,15 @@ describe("应用内浏览的收图", () => {
     renderHome();
     await screen.findByRole("button", { name: "作品1，画师" });
     await waitFor(() => expect(within(card("作品1，画师")).getByText("已收")).toBeTruthy());
-    expect(within(card("作品1，画师")).queryByRole("button", { name: /收进资料库/ })).toBeNull();
-    expect(within(card("作品2，画师")).getByRole("button", { name: "把“作品2”收进资料库" })).toBeTruthy();
-    expect(within(card("作品4，画师")).queryByRole("button", { name: /收进资料库/ })).toBeNull();
+    expect(within(card("作品1，画师")).queryByRole("button", { name: /收进图库/ })).toBeNull();
+    expect(within(card("作品2，画师")).getByRole("button", { name: "把“作品2”收进图库" })).toBeTruthy();
+    expect(within(card("作品4，画师")).queryByRole("button", { name: /收进图库/ })).toBeNull();
   });
 
   it("记得这个入口上次选的保存目标时，点一次就收进去", async () => {
     setup({ libraryId: "L", folderId: "F" });
     renderHome();
-    const collect = await screen.findByRole("button", { name: "把“作品2”收进资料库" });
+    const collect = await screen.findByRole("button", { name: "把“作品2”收进图库" });
     await waitFor(() => expect(fake.calls("save_memory").length).toBeGreaterThan(0));
     // 等资料库列表读进来，记住的目标才能用。
     await waitFor(() => expect(fake.calls("workspace_directories").length).toBeGreaterThan(0));
@@ -134,10 +134,10 @@ describe("应用内浏览的收图", () => {
   it("第一次收图时先选保存目标，之后记住它", async () => {
     setup(null);
     renderHome();
-    fireEvent.click(await screen.findByRole("button", { name: "把“作品2”收进资料库" }));
+    fireEvent.click(await screen.findByRole("button", { name: "把“作品2”收进图库" }));
     const dialog = await screen.findByRole("dialog", { name: "收进哪里" });
     await chooseOption(within(dialog).getByRole("combobox", { name: "图库" }), /参考库/);
-    fireEvent.click(within(dialog).getByRole("button", { name: "收进资料库" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "收进图库" }));
     await waitFor(() => expect(within(card("作品2，画师")).getByText("已收")).toBeTruthy());
     expect(remembered).toEqual({ libraryId: "L", folderId: null });
     expect(fake.calls("remember_pixiv_destination")).toHaveLength(1);
@@ -152,7 +152,7 @@ describe("应用内浏览的收图", () => {
     fireEvent.click(within(band).getByRole("button", { name: "收到别处…" }));
     const dialog = await screen.findByRole("dialog", { name: "收进哪里" });
     await chooseOption(within(dialog).getByRole("combobox", { name: "文件夹" }), /人体/);
-    fireEvent.click(within(dialog).getByRole("button", { name: "收进资料库" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "收进图库" }));
     await waitFor(() => expect(fake.calls("subscription_collect")).toHaveLength(1));
     const call = fake.calls("subscription_collect")[0].args;
     expect(call.again).toBe(true);
@@ -186,10 +186,10 @@ describe("应用内浏览的收图", () => {
       throw { code: "subscriptionSource", reason: { code: "network" } };
     });
     renderHome();
-    const collect = await screen.findByRole("button", { name: "把“作品2”收进资料库" });
+    const collect = await screen.findByRole("button", { name: "把“作品2”收进图库" });
     await waitFor(() => expect(fake.calls("workspace_directories").length).toBeGreaterThan(0));
     await new Promise((r) => setTimeout(r, 0));
     fireEvent.click(collect);
-    expect((await screen.findByRole("alert")).textContent).toContain("没收进资料库");
+    expect((await screen.findByRole("alert")).textContent).toContain("没收进图库");
   });
 });
