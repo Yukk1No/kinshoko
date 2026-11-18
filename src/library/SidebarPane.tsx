@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from "react";
+import { useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { NameInput } from "../ui/NameInput";
 import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
@@ -7,12 +7,15 @@ import type { FolderNode } from "../bindings/FolderNode";
 import type { Sidebar } from "../bindings/Sidebar";
 import { createFolder, deleteFolder, editImages, moveFolder, renameFolder, restoreFolder } from "../ipc";
 import { DRAG_IMAGE_SOURCES, DRAG_IMAGES } from "../wall/Wall";
-import { Folder, FolderOpen, FolderPlus, FolderUp, FolderX, Inbox, Pencil } from "lucide-react";
+import { Folder, FolderPlus, FolderUp, FolderX, Inbox, Pencil } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { FluidList, FluidRow } from "../ui/FluidList";
 import { MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import { useToast } from "../ui/Toast";
+import { FoldIcon } from "./FoldIcon";
+import { useFolded } from "./useFolded";
+import { usePaperSlide } from "./usePaperSlide";
 
 /** 侧栏里拖动文件夹时放进 dataTransfer 的类型，值为文件夹 id。 */
 export const DRAG_FOLDER = "application/x-kinshoko-folder";
@@ -90,6 +93,9 @@ export function SidebarPane({
   /** 右键“新建子文件夹”所在的文件夹。 */
   const [creatingUnder, setCreatingUnder] = useState<string | null>(null);
   const toast = useToast();
+  const [folded, toggleFold] = useFolded(libraryId);
+  const navRef = useRef<HTMLElement>(null);
+  usePaperSlide(navRef);
 
   const run = (p: Promise<unknown>) => p.catch((e) => onError(e));
 
@@ -148,107 +154,147 @@ export function SidebarPane({
 
   const count = (node: FolderNode) => (includeDescendants ? (descendantCounts?.[node.id] ?? node.count) : node.count);
   const current = (target: BrowseScope) => (scopeSelected && same(scope, target) ? ("page" as const) : undefined);
+  /** 选中的文件夹在这一支里（不含它自己）：沿路的文件夹图标带一点强调色，折起时也一样。 */
+  const holdsCurrent = (node: FolderNode): boolean =>
+    node.children.some((child) => current({ kind: "folder", id: child.id }) !== undefined || holdsCurrent(child));
 
   // Rows join one fluid-hover list in visible (pre-order) order.
   let row = 0;
   const tree = (nodes: FolderNode[], depth = 0) => (
-    <ul role="group" className="sidebar-tree">
-      {nodes.map((node) => (
-        <li key={node.id} role="treeitem" aria-label={node.name}>
-          {renaming === node.id ? (
-            <NameInput
-              label={t("folders.name")}
-              initial={node.name}
-              onDone={(name) => {
-                setRenaming(null);
-                if (name && name !== node.name) void run(renameFolder(libraryId, node.id, name));
-              }}
-            />
-          ) : (
-            <FluidRow index={row++}>
-              <ContextMenu.Root>
-                <ContextMenu.Trigger
-                  render={
-                    <button
-                      type="button"
-                      data-folder-id={node.id}
-                      className="sidebar-item k-row"
-                      style={{ paddingLeft: 8 + depth * 16 }}
-                      data-drop={dropTarget === node.id || undefined}
-                      aria-current={current({ kind: "folder", id: node.id })}
-                      aria-label={t("folders.folderCount", { name: node.name, count: count(node) })}
-                      draggable
-                      onClick={() => onScope({ kind: "folder", id: node.id })}
-                      onDoubleClick={() => setRenaming(node.id)}
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData(DRAG_FOLDER, node.id);
-                        e.dataTransfer.setData(DRAG_FOLDER_LIBRARY, libraryId);
-                        e.dataTransfer.effectAllowed = "move";
-                      }}
-                      onDragOver={over(node.id)}
-                      onDragLeave={() => setDropTarget(null)}
-                      onDrop={drop(node.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === "F2") {
-                          e.preventDefault();
-                          setRenaming(node.id);
-                        } else if (isMenuKey(e)) {
-                          e.preventDefault();
-                          openMenuAt(e.currentTarget);
-                        }
-                      }}
-                    />
-                  }
-                >
-                  <span className="k-row-icon" aria-hidden="true">
-                    {node.children.length > 0 ? <FolderOpen size={15} /> : <Folder size={15} />}
-                  </span>
-                  <Name className="sidebar-label k-label">{node.name}</Name>
-                  <span className="sidebar-count k-label">{count(node)}</span>
-                </ContextMenu.Trigger>
-                <MenuPopup label={t("folders.actions", { name: node.name })} width={200}>
-                  <MenuItem
-                    icon={<FolderPlus size={14} />}
-                    onClick={() => {
-                      onCreatingDone();
-                      setCreatingUnder(node.id);
-                    }}
+    <ul role="group" className="sidebar-tree" style={{ "--depth": depth } as CSSProperties}>
+      {nodes.map((node, i) => {
+        const parent = node.children.length > 0;
+        const fold = parent && folded.has(node.id) && newParent !== node.id;
+        return (
+          <li
+            key={node.id}
+            role="treeitem"
+            aria-label={node.name}
+            style={{ "--i": Math.min(i, 14) } as CSSProperties}
+            aria-expanded={parent ? !fold : undefined}
+            data-parent={parent || undefined}
+            data-folded={fold || undefined}
+            data-branch={holdsCurrent(node) || undefined}
+          >
+            {renaming === node.id ? (
+              <NameInput
+                label={t("folders.name")}
+                initial={node.name}
+                onDone={(name) => {
+                  setRenaming(null);
+                  if (name && name !== node.name) void run(renameFolder(libraryId, node.id, name));
+                }}
+              />
+            ) : (
+              <FluidRow index={row++}>
+                <ContextMenu.Root>
+                  <ContextMenu.Trigger
+                    render={
+                      <button
+                        type="button"
+                        data-folder-id={node.id}
+                        className="sidebar-item k-row"
+                        data-drop={dropTarget === node.id || undefined}
+                        aria-current={current({ kind: "folder", id: node.id })}
+                        aria-label={t("folders.folderCount", { name: node.name, count: count(node) })}
+                        draggable
+                        onClick={() => onScope({ kind: "folder", id: node.id })}
+                        onDoubleClick={() => setRenaming(node.id)}
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData(DRAG_FOLDER, node.id);
+                          e.dataTransfer.setData(DRAG_FOLDER_LIBRARY, libraryId);
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                        onDragOver={over(node.id)}
+                        onDragLeave={() => setDropTarget(null)}
+                        onDrop={drop(node.id)}
+                        onKeyDown={(e) => {
+                          if (parent && (e.key === "ArrowLeft" || e.key === "ArrowRight") && !e.altKey) {
+                            // ← 折起、→ 展开；已经是那个样子时不吃掉按键。
+                            if ((e.key === "ArrowLeft") !== fold) {
+                              e.preventDefault();
+                              toggleFold(node.id);
+                            }
+                          } else if (e.key === "F2") {
+                            e.preventDefault();
+                            setRenaming(node.id);
+                          } else if (isMenuKey(e)) {
+                            e.preventDefault();
+                            openMenuAt(e.currentTarget);
+                          }
+                        }}
+                      />
+                    }
                   >
-                    {t("folders.newSubfolder")}
-                  </MenuItem>
-                  <MenuItem icon={<Pencil size={14} />} kbd="F2" onClick={() => setRenaming(node.id)}>
-                    {t("folders.rename")}
-                  </MenuItem>
-                  <MenuSeparator />
-                  <MenuItem
-                    icon={<FolderUp size={14} />}
-                    disabled={depth === 0}
-                    onClick={() => void run(moveFolder(libraryId, node.id, null, LAST))}
-                  >
-                    {t("folders.moveToTop")}
-                  </MenuItem>
-                  <MenuSeparator />
-                  <MenuItem icon={<FolderX size={14} />} danger onClick={() => removeFolder(node)}>
-                    {t("folders.delete")}
-                  </MenuItem>
-                </MenuPopup>
-              </ContextMenu.Root>
-            </FluidRow>
-          )}
-          {(node.children.length > 0 || newParent === node.id) && (
-            <>
-              {node.children.length > 0 && tree(node.children, depth + 1)}
-              {newParent === node.id && newInput}
-            </>
-          )}
-        </li>
-      ))}
+                    {parent ? (
+                      // 点图标折起或展开，不选中这一行；连点两下也不进入改名。
+                      <span
+                        className="k-row-icon k-fold"
+                        aria-hidden="true"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          toggleFold(node.id);
+                        }}
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                        }}
+                      >
+                        <FoldIcon />
+                      </span>
+                    ) : (
+                      <span className="k-row-icon" aria-hidden="true">
+                        <Folder size={15} />
+                      </span>
+                    )}
+                    <Name className="sidebar-label k-label">{node.name}</Name>
+                    <span className="sidebar-count k-label">{count(node)}</span>
+                  </ContextMenu.Trigger>
+                  <MenuPopup label={t("folders.actions", { name: node.name })} width={200}>
+                    <MenuItem
+                      icon={<FolderPlus size={14} />}
+                      onClick={() => {
+                        onCreatingDone();
+                        setCreatingUnder(node.id);
+                      }}
+                    >
+                      {t("folders.newSubfolder")}
+                    </MenuItem>
+                    <MenuItem icon={<Pencil size={14} />} kbd="F2" onClick={() => setRenaming(node.id)}>
+                      {t("folders.rename")}
+                    </MenuItem>
+                    <MenuSeparator />
+                    <MenuItem
+                      icon={<FolderUp size={14} />}
+                      disabled={depth === 0}
+                      onClick={() => void run(moveFolder(libraryId, node.id, null, LAST))}
+                    >
+                      {t("folders.moveToTop")}
+                    </MenuItem>
+                    <MenuSeparator />
+                    <MenuItem icon={<FolderX size={14} />} danger onClick={() => removeFolder(node)}>
+                      {t("folders.delete")}
+                    </MenuItem>
+                  </MenuPopup>
+                </ContextMenu.Root>
+              </FluidRow>
+            )}
+            {(parent || newParent === node.id) && (
+              <>
+                {parent && !fold && tree(node.children, depth + 1)}
+                {newParent === node.id && newInput}
+              </>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 
   return (
-    <nav className="sidebar" aria-label={t("folders.treeOf", { name: libraryName })}>
-      <FluidList>
+    <nav ref={navRef} className="sidebar" aria-label={t("folders.treeOf", { name: libraryName })}>
+      <FluidList indented>
         {unassigned !== undefined && (
           <FluidRow index={row++}>
             <button

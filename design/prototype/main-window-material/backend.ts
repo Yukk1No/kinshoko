@@ -15,7 +15,8 @@ const status = { revision: "prototype", libraries: registrations };
 type Folder = { id: string; name: string; count: number; children: Folder[] };
 const folder = (id: string, name: string, count: number, children: Folder[] = []): Folder => ({ id, name, count, children });
 /** 第八轮看层级要有第三层：C4f、C4g 里“发型”下面多两个文件夹。 */
-const deep = ["c4f", "c4g", "c4h"].includes(new URLSearchParams(location.search).get("variant") ?? "");
+const params = new URLSearchParams(location.search);
+const deep = ["c4f", "c4g", "c4h"].includes(params.get("variant") ?? "") || params.has("deep");
 const sidebars: Record<string, { all: number; trash: number; folders: Folder[] }> = {
   L1: {
     all: 1284, trash: 12,

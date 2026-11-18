@@ -131,6 +131,11 @@
     0 8px 14px -8px light-dark(rgba(43, 39, 71, 0.24), rgba(0, 0, 0, 0.6)),
     inset 0 1px 0 light-dark(#ffffff, rgba(244, 236, 220, 0.12)),
     inset 0 -1px 0 light-dark(rgba(43, 39, 71, 0.035), rgba(0, 0, 0, 0.18));
+  /* 子文件夹的折痕（#608）：每深一层，子文件夹那一块的左边一道纸边（一线暗、一线亮），往右 36 px 渐渐淡掉。 */
+  --crease: linear-gradient(to right, light-dark(rgba(43, 39, 71, 0.045), rgba(0, 0, 0, 0.22)), transparent 36px);
+  --crease-edge:
+    inset 1px 0 0 light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.5)),
+    inset 2px 0 0 light-dark(#ffffff, rgba(244, 236, 220, 0.06));
   /* 槽（#606，design/ui-system/main-window-material.md）：查找框、输入框、下拉、备注框是纸上压下去的一道槽。
      日间槽底不变暗，深度只画在槽口；夜间槽底变暗。输入时那一圈线变实，外面一圈很淡的晕，不画强调色的焦点环。 */
   --well-floor: light-dark(var(--surface), var(--sunken));
@@ -229,6 +234,7 @@
   --t-fast: 120ms;
   --t: 200ms;
   --t-slow: 260ms;
+  --t-stagger: 18ms; /* 展开时各行依次落下，每行晚这么多 */
   --t-pop: 220ms;
   /* 图标轨图标的悬停动作（信抽出来、图扇开）：位移比控件的状态变化大，要多一点时间看清；移出仍用 --t */
   --t-icon: 420ms;
@@ -276,6 +282,7 @@
     --t-fast: 0ms;
     --t: 0ms;
     --t-slow: 0ms;
+    --t-stagger: 0ms;
     --t-pop: 0ms;
     --t-icon: 0ms;
     --t-progress: 0ms;

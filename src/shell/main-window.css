@@ -394,7 +394,126 @@
   padding-left: 22px;
 }
 .sidebar-tree .sidebar-tree {
+  position: relative;
   padding-left: 0;
+}
+/* 子文件夹的层级（#608）：每深一层整行（纸片、悬停的底一起）缩进 16 px，文字左内边距不变。 */
+.sidebar-tree > li > .k-fluid-row,
+.sidebar-tree > li > .k-input {
+  margin-left: calc(var(--depth, 0) * 16px);
+}
+.sidebar-tree > li > .k-input {
+  width: calc(100% - var(--depth, 0) * 16px);
+}
+/* 折痕：子文件夹那一块的左边一道纸边，往右渐渐淡掉；只有左边，不围成框，不多占高度。 */
+.sidebar-tree .sidebar-tree::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: calc(var(--depth) * 16px - 1px);
+  right: 0;
+  border-radius: 8px 0 0 8px;
+  background: var(--crease);
+  box-shadow: var(--crease-edge);
+  pointer-events: none;
+}
+/* 展开时各行依次落下。 */
+.sidebar-tree .sidebar-tree > li {
+  transition:
+    opacity var(--t) var(--ease),
+    translate var(--t-slow) var(--spring);
+  transition-delay: calc(var(--i, 0) * var(--t-stagger));
+}
+@starting-style {
+  .sidebar-tree .sidebar-tree > li {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+}
+/* 有子文件夹的文件夹：两层的图标；点的范围比图标大一圈，到行的左边与上下边。 */
+.k-row-icon.k-fold {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  cursor: default;
+}
+.k-row-icon.k-fold::after {
+  content: "";
+  position: absolute;
+  inset: -7px -4px -8px -8px;
+}
+.k-fold-icon {
+  width: 15px;
+  height: 15px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0.5px 0.5px light-dark(rgba(43, 39, 71, 0.22), transparent));
+  transition: scale var(--t-fast) var(--spring);
+}
+.k-fold-icon :is(.back, .flap) {
+  fill: var(--manual-soft);
+  transition:
+    d var(--t-slow) var(--spring),
+    fill var(--t);
+}
+/* 合上时前面那一页是整面；指针停在图标上时先变成点下去之后的样子。 */
+li[data-folded] > .k-fluid-row .k-fold-icon .flap,
+li:not([data-folded]) > .k-fluid-row .k-fold:hover .k-fold-icon .flap {
+  d: path("M2 10 L21 10 L20.4 19.4 L2.6 19.4 Z");
+}
+li[data-folded] > .k-fluid-row .k-fold:hover .k-fold-icon .flap {
+  d: path("M6.6 11 L22.4 11 L19.8 20 L4 20 Z");
+}
+.k-fold:hover {
+  color: var(--ink-2);
+}
+.k-fold:hover .k-fold-icon {
+  scale: 1.08;
+}
+.k-fold:active .k-fold-icon {
+  scale: 0.92;
+}
+/* 选中的文件夹：后面的夹子是强调色淡底，前面一页更亮，线框是强调色。 */
+.k-row[aria-current="page"] .k-fold-icon {
+  filter: none;
+}
+.k-row[aria-current="page"] .k-fold-icon .back {
+  fill: light-dark(
+    color-mix(in srgb, var(--accent) 32%, transparent),
+    color-mix(in srgb, var(--accent) 24%, transparent)
+  );
+}
+/* 选中的在哪一支：沿路各层的线框强调色 45% 混 --ink-3，后面带一点强调色，前面一页同选中的那一行；折起时也一样。 */
+li[data-branch] > .k-fluid-row .k-row-icon {
+  color: color-mix(in srgb, var(--accent-strong) 45%, var(--ink-3));
+}
+li[data-branch] > .k-fluid-row .k-fold-icon .back {
+  fill: light-dark(
+    color-mix(in srgb, var(--accent) 16%, var(--manual-soft)),
+    color-mix(in srgb, var(--accent) 18%, transparent)
+  );
+}
+:is(li[data-branch] > .k-fluid-row, .k-row[aria-current="page"]) .k-fold-icon .flap {
+  fill: light-dark(var(--surface), color-mix(in srgb, var(--accent) 40%, transparent));
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-fold-icon .flap {
+    transition: fill var(--t);
+  }
+  li:not([data-folded]) > .k-fluid-row .k-fold:hover .k-fold-icon .flap {
+    d: path("M6.6 11 L22.4 11 L19.8 20 L4 20 Z");
+  }
+  li[data-folded] > .k-fluid-row .k-fold:hover .k-fold-icon .flap {
+    d: path("M2 10 L21 10 L20.4 19.4 L2.6 19.4 Z");
+  }
+  .sidebar-tree .sidebar-tree > li {
+    transition: none;
+  }
 }
 .sidebar-folders {
   flex: none;
