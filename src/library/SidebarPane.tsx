@@ -164,7 +164,8 @@ export function SidebarPane({
     <ul role="group" className="sidebar-tree" style={{ "--depth": depth } as CSSProperties}>
       {nodes.map((node, i) => {
         const parent = node.children.length > 0;
-        const fold = parent && folded.has(node.id) && newParent !== node.id;
+        // 要在这一支里新建文件夹时，沿路折起的先展开，名字输入框才看得见。
+        const fold = parent && folded.has(node.id) && !(newParent && inTree([node], newParent));
         return (
           <li
             key={node.id}
