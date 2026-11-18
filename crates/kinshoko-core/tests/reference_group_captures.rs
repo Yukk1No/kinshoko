@@ -12,8 +12,7 @@ use std::path::Path;
 use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::desktop::{
-    CaptureHistory, GroupMemberRef, PinContent, Placement, Region, SavedPin,
-    Screenshot,
+    CaptureHistory, GroupMemberRef, PinContent, Placement, Region, SavedPin, Screenshot,
 };
 use kinshoko_core::library::{BrowseQuery, ReferenceLens};
 use kinshoko_core::reference_groups::{

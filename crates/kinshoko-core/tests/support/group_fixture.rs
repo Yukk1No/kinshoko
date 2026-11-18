@@ -80,9 +80,7 @@ pub fn add_to_group(
     let mut desk = Desk::open(dir.path(), groups.clone(), &mut history)?;
     let mut group = groups.get(id)?;
     for pin in pins {
-        group = desk
-            .add_member(id, pin)?
-            .expect("新桌上摆的不是这个参考组");
+        group = desk.add_member(id, pin)?.expect("新桌上摆的不是这个参考组");
     }
     Ok(group)
 }

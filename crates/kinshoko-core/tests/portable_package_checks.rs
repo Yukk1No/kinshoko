@@ -1,9 +1,9 @@
 //! Portable package checks cross public Library and TagCatalog actions, backed by real files.
 
-#[path = "support/portable_library.rs"]
-mod portable_library;
 #[path = "support/group_fixture.rs"]
 mod group_fixture;
+#[path = "support/portable_library.rs"]
+mod portable_library;
 use group_fixture::GroupFixture;
 
 use portable_library::*;

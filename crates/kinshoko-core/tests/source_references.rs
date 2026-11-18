@@ -1,8 +1,7 @@
-
 #[path = "support/group_fixture.rs"]
 mod group_fixture;
-use group_fixture::GroupFixture;
 use super::source_actions::{same_image_in_two_libraries, source_in, wall_card, write_source};
+use group_fixture::GroupFixture;
 use kinshoko_core::DeviceLibraries;
 use kinshoko_core::Library;
 use kinshoko_core::library::{ImageEdit, ImportSource};

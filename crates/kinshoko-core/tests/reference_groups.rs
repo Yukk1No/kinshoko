@@ -46,7 +46,6 @@ fn pin(id: &str, library: &str, img: &str, crop: Option<Region>, x: i32) -> Save
     .unwrap()
 }
 
-
 #[test]
 fn groups_are_listed_renamed_and_deleted() {
     let dir = tempfile::tempdir().unwrap();

@@ -105,8 +105,7 @@ pub async fn rename_reference_group(
         if name.trim().is_empty() {
             return Err(GroupError::InvalidName.into());
         }
-        let group =
-            super::desk_commands::with_desk(&app, |desk, _| desk.rename(&group_id, &name))?;
+        let group = super::desk_commands::with_desk(&app, |desk, _| desk.rename(&group_id, &name))?;
         changed(&app);
         Ok(group)
     })

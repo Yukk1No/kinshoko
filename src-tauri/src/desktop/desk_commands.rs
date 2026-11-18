@@ -227,7 +227,12 @@ fn announce(app: &AppHandle) {
 
 /// 钉图菜单要显示的桌面上的参考组名称（#593，没有名称为空）。
 pub(super) fn desk_name(app: &AppHandle) -> String {
-    lock(&state(app).store).desk().group().name.trim().to_owned()
+    lock(&state(app).store)
+        .desk()
+        .group()
+        .name
+        .trim()
+        .to_owned()
 }
 
 /// 钉图菜单“切换到 ▸”里选了一个（`group_id`）或“新参考组”（`None`，#593）。已在菜单的线程上。

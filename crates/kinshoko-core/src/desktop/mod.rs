@@ -28,8 +28,8 @@ mod veil;
 pub use capture::{CaptureDraft, CaptureError, CaptureOutcome, CaptureSelection, CaptureSurface};
 pub use edge::{DeskPin, EdgeHide, PEEK_SLACK, PinMove, SLIVER, Toggle};
 pub use history::{
-    CaptureCollection, CaptureEntry, CaptureHistory, CollectedCapture,
-    CollectedCaptureDraft, HISTORY_LIMIT, HistoryError, PreparedCapture,
+    CaptureCollection, CaptureEntry, CaptureHistory, CollectedCapture, CollectedCaptureDraft,
+    HISTORY_LIMIT, HistoryError, PreparedCapture,
 };
 pub use menu::{MenuSurface, OpenInKinshoko, PinMenu, PinMenuOpen, PinNotice, menu_surface};
 pub use motion::{PIN_EDGE, overlay_window, pin_area};

@@ -38,8 +38,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use kinshoko_core::ShortcutAction;
 use kinshoko_core::desktop::{
-    CaptureEntry, CaptureHistory, CollectedCapture, EdgeHide, OpenInKinshoko, PinMenuOpen,
-    PinVeils,
+    CaptureEntry, CaptureHistory, CollectedCapture, EdgeHide, OpenInKinshoko, PinMenuOpen, PinVeils,
 };
 use kinshoko_core::reference_groups::{Desk, ReferenceGroups};
 use tauri::http::{Response, StatusCode, header};
