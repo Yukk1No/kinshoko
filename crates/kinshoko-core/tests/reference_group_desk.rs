@@ -625,6 +625,34 @@ fn undoing_a_merge_takes_the_desk_back_and_deletes_the_copied_captures() {
 }
 
 #[test]
+fn undoing_a_merge_when_the_desk_state_cannot_be_saved_keeps_the_merged_pins() {
+    let mut t = TestDesk::new();
+    let source = archived_group_with_a_capture(&mut t);
+    t.pin_reference("own", 2000);
+    t.desk.flush().unwrap();
+    let on_desk = t.desk.group().id.clone();
+    let merged = t
+        .desk
+        .merge_in(&source, &mut t.history, &[screen()])
+        .unwrap();
+    let pins = t.desk.pins().to_vec();
+
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.undo_merge(&merged.undo, &mut t.history).is_err());
+    assert_eq!(t.desk.pins(), &pins[..], "并入的钉图还在");
+    std::fs::remove_dir_all(&state).unwrap();
+
+    t.desk.flush().unwrap();
+    assert_eq!(reread(&t, &on_desk).members.len(), 3);
+    assert_eq!(t.capture_files(&on_desk).len(), 1, "并入的截图也放回");
+    t.desk.undo_merge(&merged.undo, &mut t.history).unwrap();
+    assert_eq!(t.desk.pins().len(), 1, "再撤销一次就好");
+}
+
+#[test]
 fn undoing_a_merge_after_switching_away_edits_that_groups_file() {
     let mut t = TestDesk::new();
     let source = archived_group_with_a_capture(&mut t);

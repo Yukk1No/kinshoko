@@ -396,6 +396,7 @@ impl Desk {
     ) -> Result<(), GroupError> {
         let (merged_group, members) = (undo.group_id.as_str(), &undo.members);
         if merged_group == self.group.id {
+            let snapshot = self.snapshot(members);
             let pins: Vec<String> = self
                 .pins
                 .iter()
@@ -416,7 +417,12 @@ impl Desk {
                 self.dirty = true;
                 self.members_changed = true;
             }
-            self.flush()?;
+            if let Err(e) = self.flush() {
+                // 写不进：并入的钉图还在（窗口本来就没关），像没撤销过一样，可以再撤销一次。
+                self.roll_back(snapshot, history);
+                return Err(e);
+            }
+            snapshot.discard();
             return Ok(());
         }
         let mut group = match self.groups.get(merged_group) {
