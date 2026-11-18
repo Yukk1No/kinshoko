@@ -199,4 +199,23 @@ export default {
     view: "查看",
     switchFailed: "无法切换订阅功能：{{error}}",
   },
+  /** 应用内浏览（#461，`src/pixiv/`）。界面还没接上；视觉等设计系统定了再做。 */
+  browse: {
+    tabs: "订阅去处",
+    following: "新作",
+    recommended: "推荐",
+    wall: "pixiv 作品",
+    work: "{{title}}，{{artist}}",
+    pages_other: "{{count}} 页",
+    page: "第 {{page}} 页，共 {{count}} 页",
+    openOnPixiv: "在 pixiv 打开",
+    close: "收起",
+    previous: "上一张",
+    next: "下一张",
+    viewFull: "看全图",
+    loading: "正在读取",
+    empty: "没有作品",
+    failed: "读取失败：{{error}}",
+    retry: "重试",
+  },
 };
