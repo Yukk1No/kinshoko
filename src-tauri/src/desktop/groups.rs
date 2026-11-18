@@ -445,19 +445,27 @@ pub async fn rename_reference_group(
     .await
 }
 
-/// 从参考组中去掉一个成员（桌面上的钉图留着）。参考组自带的截图没有成员再用时删除。
+/// 从参考组中去掉一个成员。开关关着时桌面上的钉图留着；打开时是桌面上那组的，钉着它的钉图一起关掉，
+/// 能用 `undo_prune_unpinned` 撤销。参考组自带的截图没有成员再用时删除。
 #[tauri::command]
 pub async fn remove_group_member(
     app: AppHandle,
     group_id: String,
     member_id: String,
-) -> Result<ReferenceGroup, CommandError> {
+) -> Result<Option<ReferenceGroup>, CommandError> {
     blocking(move || {
+        // 参考组改成桌面（#591）：桌面上那个参考组的成员由桌面模块移出，钉着它的钉图一起关掉。
+        // 空的且没有名称的参考组随之消失，这时返回 `None`。
+        if super::desk_commands::desk_on(&app)
+            && super::desk_commands::remove_desk_member(&app, &member_id)?
+        {
+            return Ok(lock(&state(&app).groups).get(&group_id).ok());
+        }
         let group = lock(&state(&app).groups)
             .remove_member(&group_id, &member_id)
             .map_err(CommandError::from)?;
         changed(&app);
-        Ok(group)
+        Ok(Some(group))
     })
     .await
 }

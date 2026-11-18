@@ -173,13 +173,19 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     };
   }, [lists.switchList]);
 
-  // 展开的参考组变了（移出成员、桌面上加了钉图）时重新核对成员；不在了就收起。
+  // 展开的参考组变了（移出成员、桌面上加了钉图）时重新核对成员；不在了就收起。列表里的每个版本只重读一次：
+  // 读回来的与列表对不上（例如桌面上的改动还没落盘）时，不再一遍遍地读。
+  const recheckedAt = useRef<{ id: string; at: number } | null>(null);
   useEffect(() => {
     if (!expanded) return;
     const current = [...lists.switchList, ...lists.archived].find((g) => g.id === expanded.group.id);
     if (!current || current.problem) setExpanded(null);
-    else if (current.updatedAt !== expanded.group.updatedAt)
+    else if (current.updatedAt !== expanded.group.updatedAt) {
+      const asked = recheckedAt.current;
+      if (asked?.id === current.id && asked.at === current.updatedAt) return;
+      recheckedAt.current = { id: current.id, at: current.updatedAt };
       referenceGroup(current.id).then(setExpanded, () => setExpanded(null));
+    }
   }, [lists, expanded]);
 
   const run = async (action: () => Promise<unknown>, done?: (value: unknown) => string | null) => {
@@ -507,7 +513,7 @@ function SwitchList({
   // 卡片随面板宽度、改名、展开成员变高：跟着到位，正在滑时朝新位置滑。
   useEffect(() => {
     const root = list.current;
-    if (!root || typeof ResizeObserver === "undefined") return;
+    if (!root) return;
     const observer = new ResizeObserver(() => place(performance.now() < slidingUntil.current));
     observer.observe(root);
     return () => observer.disconnect();

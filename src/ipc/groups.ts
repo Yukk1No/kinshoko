@@ -131,8 +131,12 @@ export function purgeDeletedReferenceGroup(groupId: string): Promise<void> {
   return invoke<void>(desk("purge_deleted_reference_group"), { groupId });
 }
 
-export function removeGroupMember(groupId: string, memberId: string): Promise<ReferenceGroup> {
-  return invoke<ReferenceGroup>(desk("remove_group_member"), { groupId, memberId });
+/** 移出一个成员。桌面上那组的成员可用 {@link undoPruneUnpinned} 撤销；参考组随之消失时为 `null`。 */
+export function removeGroupMember(
+  groupId: string,
+  memberId: string,
+): Promise<ReferenceGroup | null> {
+  return invoke<ReferenceGroup | null>(desk("remove_group_member"), { groupId, memberId });
 }
 
 /**

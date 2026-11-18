@@ -840,3 +840,50 @@ fn flushing_says_when_the_group_list_would_look_different() {
     t.desk.close(&a.id, &mut t.history);
     assert!(t.desk.flush().unwrap(), "最后一张关掉后桌面空着");
 }
+
+#[test]
+fn removing_a_member_of_the_group_on_the_desk_closes_its_pin_and_can_be_undone() {
+    let mut t = TestDesk::new();
+    let a = t.pin_reference("a", 10);
+    let b = t.pin_reference("b", 20);
+    let id = t.desk_id();
+    let member = b.member.clone().unwrap().member_id;
+
+    let removed = t
+        .desk
+        .remove_member(&member, &mut t.history)
+        .unwrap()
+        .expect("在桌面上的参考组里");
+
+    assert_eq!(removed.count(), 1);
+    assert_eq!(
+        t.desk.pins().iter().map(|p| &p.id).collect::<Vec<_>>(),
+        vec![&a.id]
+    );
+    t.desk.flush().unwrap();
+    assert_eq!(reread(&t, &id).members.len(), 1, "下次落盘不会把它写回去");
+    assert_eq!(t.desk.remove_member("x", &mut t.history).unwrap(), None);
+
+    t.desk.undo_prune(&removed).unwrap();
+    let group = reread(&t, &id);
+    assert_eq!(group.members.len(), 2);
+    assert!(!group.members[1].pinned, "放回时是没钉着的");
+    assert_eq!(t.desk.pins().len(), 1);
+}
+
+#[test]
+fn removing_the_last_pinned_member_leaves_the_desk_empty() {
+    let mut t = TestDesk::new();
+    let a = t.pin_reference("a", 10);
+    let id = t.desk_id();
+    let member = a.member.clone().unwrap().member_id;
+
+    t.desk
+        .remove_member(&member, &mut t.history)
+        .unwrap()
+        .unwrap();
+
+    assert!(t.desk.pins().is_empty());
+    assert!(t.desk.group().is_none(), "没有钉图，桌面空着");
+    assert!(t.groups().get(&id).is_err(), "空的且没有名称：文件随之删掉");
+}

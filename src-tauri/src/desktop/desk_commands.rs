@@ -166,7 +166,19 @@ pub async fn prune_unpinned_members(app: AppHandle) -> Result<usize, CommandErro
     .await
 }
 
-/// 撤销最近一次“移出没钉着的”。没有可撤销的时什么都不做。
+/// 从桌面上的参考组移出成员 `member_id`，钉着它的钉图一起关掉。撤销与“移出没钉着的”共用
+/// [`undo_prune_unpinned`]。成员不在桌面上的参考组里时返回 `false`，什么都不做。
+pub(super) fn remove_desk_member(app: &AppHandle, member_id: &str) -> Result<bool, CommandError> {
+    let removed = with_desk(app, |desk, history| desk.remove_member(member_id, history))?;
+    let Some(removed) = removed else {
+        return Ok(false);
+    };
+    *LAST_PRUNED.lock().unwrap_or_else(|e| e.into_inner()) = Some(removed);
+    apply(app, None);
+    Ok(true)
+}
+
+/// 撤销最近一次“移出没钉着的”或移出一个成员。没有可撤销的时什么都不做。
 #[tauri::command]
 pub async fn undo_prune_unpinned(app: AppHandle) -> Result<(), CommandError> {
     blocking(move || {
