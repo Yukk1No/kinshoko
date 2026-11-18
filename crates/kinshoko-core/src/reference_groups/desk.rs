@@ -93,6 +93,8 @@ pub struct Desk {
     copies: Vec<(String, PathBuf)>,
     /// 删除时摆在桌面上的参考组：撤销后放回桌面。
     trashed_from_desk: BTreeSet<String>,
+    /// 撤销删除时文件已放回、还没写进桌面状态的参考组：再撤销一次时接着做完。
+    untrashed: BTreeSet<String>,
     dirty: bool,
     /// 自上次落盘以来成员有增减：参考组列表上看得出（张数、缩略图）。
     members_changed: bool,
@@ -124,6 +126,7 @@ impl Desk {
             switch_list: file.switch_list,
             copies: Vec::new(),
             trashed_from_desk: BTreeSet::new(),
+            untrashed: BTreeSet::new(),
             dirty: false,
             members_changed: false,
         };
@@ -514,6 +517,7 @@ impl Desk {
             return Ok(false);
         }
         let listed = self.switch_list.clone();
+        let mut copied = Vec::new();
         self.group.updated_at = crate::library::now_ms();
         if is_blank(&self.group) {
             match self.groups.delete(&self.group.id) {
@@ -524,13 +528,7 @@ impl Desk {
             self.switch_list.retain(|x| *x != id);
         } else {
             self.groups.commit(&self.group, &self.copies)?;
-            // 撤回时放回的组内截图已复制进来：备份删掉。
-            let rollback = self.state_path.with_extension("rollback");
-            for (_, from) in self.copies.drain(..) {
-                if from.starts_with(&rollback) {
-                    let _ = fs::remove_file(from);
-                }
-            }
+            copied = std::mem::take(&mut self.copies);
             // 第一次落盘时进切换列表；已经在里面的不挪位置，改钉图不算“用过”，切换顺序不变。
             let id = self.group.id.clone();
             if !self.switch_list.contains(&id) {
@@ -538,6 +536,14 @@ impl Desk {
             }
         }
         self.save_state()?;
+        // 撤回时放回的组内截图已复制进来、桌面状态也写好了：备份才删掉。之前删的话，外层的撤回
+        // 还指着它。
+        let rollback = self.state_path.with_extension("rollback");
+        for (_, from) in copied {
+            if from.starts_with(&rollback) {
+                let _ = fs::remove_file(from);
+            }
+        }
         self.dirty = false;
         let seen = std::mem::take(&mut self.members_changed) || listed != self.switch_list;
         Ok(seen)
@@ -691,26 +697,28 @@ impl Desk {
         let to_desk = self.trashed_from_desk.contains(id);
         let report = match self.groups.untrash_reconciling(id, history) {
             Ok(report) => report,
-            // 上次撤销已把文件放回、没换上桌面就失败了：这次接着把它摆回去。
-            Err(GroupError::UnknownGroup) if to_desk && self.groups.get(id).is_ok() => {
-                RelinkReport::default()
-            }
+            // 上次撤销已把文件放回、桌面状态没写成就失败了：这次接着做完。
+            Err(GroupError::UnknownGroup) if self.untrashed.contains(id) => RelinkReport::default(),
             Err(e) => return Err(e),
         };
+        // 做完（换上桌面或写进切换列表）才算撤销完：失败时留着记录，可以再撤销一次。
+        self.untrashed.insert(id.to_owned());
         if to_desk {
-            // 换上桌面成功后才算撤销完：失败时留着记录，可以再撤销一次。
             let switched = self.switch_to(id, history)?;
             self.trashed_from_desk.remove(id);
+            self.untrashed.remove(id);
             return Ok((report, Some(switched)));
         }
         self.move_to_front(id);
         self.save_state()?;
+        self.untrashed.remove(id);
         Ok((report, None))
     }
 
     /// 撤销提示过期：真正删除回收位置里的参考组 `id`。
     pub fn purge(&mut self, id: &str) -> Result<(), GroupError> {
         self.trashed_from_desk.remove(id);
+        self.untrashed.remove(id);
         self.groups.purge(id)
     }
 
