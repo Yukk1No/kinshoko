@@ -103,15 +103,19 @@ pub(super) fn pin_reference_here(
     Ok(())
 }
 
-/// 放进钉图状态并开出窗口。期间换桌的对齐要等它开完：否则刚放进旧桌的钉图被换走后，窗口才开出来，
-/// 留在新桌上（对齐时还没有这个窗口，关不掉它）。
+/// 放进钉图状态并开出窗口。期间换了桌时，刚放进旧桌的钉图已被换走，对齐时它的窗口可能还没开出来：
+/// 开完再核对一次，不在了就另起线程重新对齐把它关掉。不在这里加锁也不在这里关窗口：截图完成时调用方
+/// 正持有遮蔽的提交锁，对齐关窗口时也要取它。
 pub(in crate::desktop) fn add_and_open(
     app: &AppHandle,
     pin: SavedPin,
 ) -> Result<SavedPin, CommandError> {
-    let _aligning = crate::desktop::desk_commands::aligning();
     let pin = add(app, pin)?;
     open_pin(app, &pin);
+    if lock(&state(app).store).get(&pin.id).is_none() {
+        let app = app.clone();
+        std::thread::spawn(move || crate::desktop::desk_commands::realign(&app));
+    }
     Ok(pin)
 }
 
