@@ -69,6 +69,7 @@ export default {
 
   pinClosed: "The pin is closed",
   pinLocked: "The pin is locked",
+  deskGroupsOff: "This feature is not turned on",
   pinVeiledNoCopy: "This image is veiled in safe mode and can't be copied",
   pinCaptureGone: "The capture is no longer in the capture history",
   captureLeftHistory: "The capture is no longer in the history. Close this pin and try again",

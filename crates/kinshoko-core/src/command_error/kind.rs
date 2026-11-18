@@ -502,6 +502,8 @@ pub enum ErrorKind {
     // 钉图、参考组与剪贴板。
     PinClosed,
     PinLocked,
+    /// 参考组改成桌面（#591）的开关没打开，桌面上的参考组命令不可用。
+    DeskGroupsOff,
     PinVeiledNoCopy,
     /// 截图钉图对应的截图已不在截图历史中。
     PinCaptureGone,

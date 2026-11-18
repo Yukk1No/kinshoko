@@ -36,7 +36,9 @@ use crate::desktop::{
 use state::{DeskFile, Loaded};
 
 /// 切换列表与归档的摘要（[`Desk::lists`]）。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct DeskLists {
     /// 桌面上的参考组（落了盘的话）；空桌为 `None`。
     pub on_desk: Option<String>,

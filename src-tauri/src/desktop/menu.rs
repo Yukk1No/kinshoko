@@ -157,6 +157,14 @@ pub fn close(app: &AppHandle, generation: u32) -> Option<String> {
     Some(pin)
 }
 
+/// 关掉此刻打开着的菜单（换一桌钉图之前，#591）。没有打开的菜单时什么都不做。
+pub fn close_open(app: &AppHandle) {
+    let generation = lock(&state(app).menu).open.as_ref().map(|o| o.generation);
+    if let Some(generation) = generation {
+        close(app, generation);
+    }
+}
+
 /// 一次调用同时改窗口的位置与尺寸（Windows 上），免得合成出只改了一半的一帧。
 fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(), CommandError> {
     #[cfg(windows)]

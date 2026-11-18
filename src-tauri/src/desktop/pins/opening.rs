@@ -44,12 +44,7 @@ pub fn open(
         locked: false,
         member: None,
     };
-    lock(&state(app).history).pin(&capture.id);
-    {
-        let mut store = lock(&state(app).store);
-        store.put(pin.clone());
-        let _ = store.save();
-    }
+    let pin = add(app, pin)?;
     history_changed(app);
     open_pin(app, &pin);
     Ok(pin.id)
@@ -105,13 +100,20 @@ pub(super) fn pin_reference_here(
     let (x, y) = place_new_pin(at, monitor, &others, (OFFSET * dpi).round() as i32);
     pin.placement.x = x;
     pin.placement.y = y;
-    {
-        let mut store = lock(&state(app).store);
-        store.put(pin.clone());
-        let _ = store.save();
-    }
+    let pin = add(app, pin)?;
     open_pin(app, &pin);
     Ok(())
+}
+
+/// 把新钉图放进钉图状态（开关打开时它成为桌面上参考组的新成员），截图钉图在截图历史里记下钉住。
+/// 返回要打开的钉图。先钉图状态、后截图历史。
+pub(in crate::desktop) fn add(app: &AppHandle, pin: SavedPin) -> Result<SavedPin, CommandError> {
+    let mut store = lock(&state(app).store);
+    let added = store.add(pin, &mut lock(&state(app).history))?;
+    if store.is_desk() {
+        state(app).dirty.store(true, Ordering::Relaxed);
+    }
+    Ok(added)
 }
 
 /// 钉图此刻要不要原位遮蔽（模糊并显示小圆锁，见 [`kinshoko_core::desktop::PinVeils`]），以及暂时

@@ -6,6 +6,7 @@ import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { GatePlan } from "../bindings/GatePlan";
 import type { PinGate } from "../bindings/PinGate";
 import type { DeletedGroup } from "../bindings/DeletedGroup";
+import type { DeskLists } from "../bindings/DeskLists";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroup } from "../bindings/ReferenceGroup";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -40,6 +41,34 @@ export function savePinsToGroup(
 /** 桌面上要决定怎样入组的截图；存进已有的参考组 `groupId` 时，已是它自带截图的不列出。 */
 export function groupSaveCaptures(groupId?: string): Promise<CaptureEntry[]> {
   return invoke<CaptureEntry[]>(desk("group_save_captures"), groupId ? { groupId } : {});
+}
+
+/**
+ * 参考组改成桌面（#588、#591）：切换列表（最近用过的在前）与归档（最近保存的在前）。
+ * 设置里界面上没有的开关 `deskReferenceGroups` 关着时报错 `deskGroupsOff`。
+ */
+export function deskReferenceGroups(): Promise<DeskLists> {
+  return invoke<DeskLists>(desk("desk_reference_groups"));
+}
+
+/** 整桌换成参考组 `groupId`，原来那一桌原样留着。 */
+export function switchReferenceGroup(groupId: string): Promise<void> {
+  return invoke<void>(desk("switch_reference_group"), { groupId });
+}
+
+/** 换到一张新的空桌：不起名、不落盘，钉上第一张后才出现在切换列表里。 */
+export function newReferenceDesk(): Promise<void> {
+  return invoke<void>(desk("new_reference_desk"));
+}
+
+/** 归档：收出切换列表。归档的正是桌面上那个时，桌面换到最近用过的另一个，没有就换到空桌。 */
+export function archiveReferenceGroup(groupId: string): Promise<void> {
+  return invoke<void>(desk("archive_reference_group"), { groupId });
+}
+
+/** 从归档取出：放回切换列表并摆到桌面上，改的是原件。 */
+export function unarchiveReferenceGroup(groupId: string): Promise<void> {
+  return invoke<void>(desk("unarchive_reference_group"), { groupId });
 }
 
 /** 打开参考组：成员按保存的局部与摆放钉到桌面；返回新钉出的数量。 */
