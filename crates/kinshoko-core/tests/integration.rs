@@ -129,6 +129,8 @@ mod reference_group_capture_backup;
 mod reference_group_capture_links;
 #[path = "reference_group_captures.rs"]
 mod reference_group_captures;
+#[path = "reference_group_desk.rs"]
+mod reference_group_desk;
 #[path = "reference_group_package.rs"]
 mod reference_group_package;
 #[path = "reference_group_resolve.rs"]

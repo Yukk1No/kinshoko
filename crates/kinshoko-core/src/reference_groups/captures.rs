@@ -77,6 +77,18 @@ impl ReferenceGroups {
         history: &mut CaptureHistory,
         skip: impl Fn(&GroupMemberRef) -> bool,
     ) -> OpenedPins {
+        self.open_members(group, history, skip, false)
+    }
+
+    /// 同 [`Self::open_pins`]；`reuse` 为真时，截图历史里还有与成员关联的条目就直接用它，
+    /// 不再放回一份（桌面上的参考组每次切换、启动都打开，免得截图历史被同一张截图挤满）。
+    pub(super) fn open_members(
+        &self,
+        group: &ReferenceGroup,
+        history: &mut CaptureHistory,
+        skip: impl Fn(&GroupMemberRef) -> bool,
+        reuse: bool,
+    ) -> OpenedPins {
         let mut opened = OpenedPins {
             pins: Vec::new(),
             problems: Vec::new(),
@@ -91,6 +103,11 @@ impl ReferenceGroups {
             }
             let capture_id = match &m.source {
                 MemberSource::Library { .. } => String::new(),
+                MemberSource::Capture { .. }
+                    if reuse && history.linked_entry(&member).is_some() =>
+                {
+                    history.linked_entry(&member).unwrap_or_default()
+                }
                 MemberSource::Capture { .. } => {
                     let added = self
                         .capture_file(&group.id, m)

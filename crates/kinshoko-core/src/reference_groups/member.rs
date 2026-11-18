@@ -58,6 +58,23 @@ pub struct GroupMember {
     pub crop: Option<Region>,
     /// 位置、缩放、翻转与旋转；尺寸由局部与缩放得出。
     pub placement: Placement,
+    /// 透明度，[`MIN_OPACITY`](crate::desktop::MIN_OPACITY)～1（#588 决定 3：随成员保存，修订 Q71）。
+    /// 不透明时不写出，旧文件因此不变；参考组包不带它。
+    #[serde(default = "opaque", skip_serializing_if = "is_opaque")]
+    #[ts(as = "Option<f64>", optional)]
+    pub opacity: f64,
+    /// 锁定后不响应拖动与缩放。不锁定时不写出；参考组包不带它。
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    #[ts(as = "Option<bool>", optional)]
+    pub locked: bool,
+}
+
+fn opaque() -> f64 {
+    1.0
+}
+
+fn is_opaque(opacity: &f64) -> bool {
+    *opacity == 1.0
 }
 
 impl GroupMember {
@@ -92,6 +109,8 @@ impl GroupMember {
             source_height: *source_height,
             crop: pin.crop,
             placement: pin.placement,
+            opacity: 1.0,
+            locked: false,
         })
     }
 
@@ -110,10 +129,29 @@ impl GroupMember {
             source_height: capture.height,
             crop: pin.crop,
             placement: pin.placement,
+            opacity: 1.0,
+            locked: false,
         }
     }
 
-    /// 打开成员得到的钉图（不透明、不锁定）：资料库成员是参考图钉图，组内截图成员是截图历史中
+    /// 桌面上的参考组（#590）：成员跟着钉图的局部、摆放、透明度与锁定。
+    pub(super) fn follow(&mut self, pin: &SavedPin) {
+        self.crop = pin.crop;
+        self.placement = pin.placement;
+        self.opacity = pin.opacity;
+        self.locked = pin.locked;
+    }
+
+    /// 参考组包不带透明度与锁定（#588 决定 3）。
+    pub(super) fn without_desk_state(&self) -> GroupMember {
+        GroupMember {
+            opacity: 1.0,
+            locked: false,
+            ..self.clone()
+        }
+    }
+
+    /// 打开成员得到的钉图，带着成员的透明度与锁定（旧参考组为不透明、不锁定）：资料库成员是参考图钉图，组内截图成员是截图历史中
     /// `capture_id` 这张截图的钉图。局部超出原图等不合法时为 `Err`。
     pub(super) fn pin(
         &self,
@@ -178,6 +216,8 @@ impl GroupMember {
                 capture_id: capture_id.to_owned(),
             };
         }
+        pin.set_opacity(self.opacity);
+        pin.locked = self.locked;
         pin.member = Some(GroupMemberRef {
             group_id: group_id.to_owned(),
             member_id: self.id.clone(),

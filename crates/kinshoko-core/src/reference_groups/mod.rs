@@ -5,7 +5,10 @@
 //! - 参考组成员按“资料库＋参考图”引用，可跨资料库；也可以是参考组自带的截图（#270，
 //!   [`MemberSource::Capture`]）：截图文件复制到 `reference-groups/<参考组>.captures/` 下，不进任何
 //!   资料库，没有成员再用它时删除。各自保存裁切、翻转、旋转、位置、尺寸与缩放
-//!   （[`Placement`](crate::desktop::Placement) 与桌面钉图同义）。透明度、锁定只属于桌面，不进参考组。
+//!   （[`Placement`](crate::desktop::Placement) 与桌面钉图同义），以及透明度与锁定（#588 决定 3；
+//!   旧入口 `create`、`save_pins` 仍不写它们，参考组包不带它们）。
+//! - 桌面上的参考组（#590，[`Desk`]）：桌面上始终摆着一个参考组，钉图就是它的成员，改动直接记下；
+//!   切换、新建、归档、取出、删除。名称可以为空，没有名称的参考组按更新的格式版本写。
 //! - 同一张图在不同参考组里是不同的成员，互不影响；同一参考组里两块局部也是两个成员。
 //! - 打开参考组得到一组新的桌面钉图（[`ReferenceGroups::open_pins`]；组内截图放回截图历史后
 //!   钉成截图钉图），钉图记得来自哪个成员（[`GroupMemberRef`](crate::desktop::GroupMemberRef)），存回时更新那个成员
@@ -19,6 +22,7 @@
 //! 每次改动先写临时文件并落盘，再改名替换，写到一半断电也不会留下半份。
 
 mod captures;
+mod desk;
 mod error;
 mod member;
 mod merge;
@@ -43,6 +47,7 @@ use captures::write_atomically;
 use merge::{assign, merge};
 
 pub use captures::{CaptureFiles, OpenedPins, RelinkFailure, RelinkReport};
+pub use desk::{Collected, Desk, DeskLists, Switched};
 pub use error::{GroupError, MemberUnavailable};
 pub use member::{GroupCapture, GroupMember, MemberSource};
 pub use package::{
@@ -61,6 +66,9 @@ const FORMAT_VERSION: u32 = 1;
 /// 有组内截图成员的参考组按这一版写：旧版本读到时提示升级，而不是“已损坏”。
 /// 只引用资料库的参考组仍按 [`FORMAT_VERSION`] 写，格式不变。
 const CAPTURE_FORMAT_VERSION: u32 = 2;
+/// 没有名称的参考组（#590，桌面上的参考组可以不起名）按这一版写：旧版本读到时提示升级，
+/// 而不是“没有名称”。有名称的仍按上面两版写。
+const UNNAMED_FORMAT_VERSION: u32 = 3;
 const EXTENSION: &str = "json";
 /// 参考组 `<id>` 自带的截图放在 `<id>.captures/` 下。
 const CAPTURES_EXTENSION: &str = "captures";
@@ -130,8 +138,35 @@ impl ReferenceGroup {
             .collect()
     }
 
-    fn validate(&self) -> Result<(), GroupError> {
-        if self.name.trim().is_empty() {
+    /// 还没起名（#590）。界面写“未命名”加时间。
+    pub fn is_unnamed(&self) -> bool {
+        self.name.trim().is_empty()
+    }
+
+    /// 列表里的一项。
+    pub fn summary(&self) -> GroupSummary {
+        GroupSummary {
+            id: self.id.clone(),
+            name: self.name.clone(),
+            member_count: self.members.len(),
+            library_ids: self.library_ids(),
+            updated_at: self.updated_at,
+            problem: None,
+        }
+    }
+
+    /// 导出参考组包时建议的文件名（不含扩展名）：名称；没有名称时用最近保存的时间
+    /// `kinshoko-YYYYMMDD-HHMMSS`（UTC），不依赖界面语言。
+    pub fn package_file_stem(&self) -> String {
+        if !self.is_unnamed() {
+            return self.name.trim().to_owned();
+        }
+        format!("kinshoko-{}", utc_stamp(self.updated_at))
+    }
+
+    /// `unnamed_allowed`：文件的格式版本允许没有名称。
+    fn validate(&self, unnamed_allowed: bool) -> Result<(), GroupError> {
+        if self.is_unnamed() && !unnamed_allowed {
             return Err(GroupError::invalid(ErrorKind::GroupNameMissing, "没有名称"));
         }
         let mut ids = BTreeSet::new();
@@ -234,14 +269,7 @@ impl ReferenceGroups {
                 continue;
             };
             out.push(match self.get(id) {
-                Ok(g) => GroupSummary {
-                    member_count: g.members.len(),
-                    library_ids: g.library_ids(),
-                    id: g.id,
-                    name: g.name,
-                    updated_at: g.updated_at,
-                    problem: None,
-                },
+                Ok(g) => g.summary(),
                 Err(e) => GroupSummary {
                     id: id.to_owned(),
                     name: id.to_owned(),
@@ -414,7 +442,9 @@ impl ReferenceGroups {
         let has_captures = group.members.iter().any(|m| m.library_id().is_none());
         let file = GroupFile {
             format: FORMAT.to_owned(),
-            format_version: if has_captures {
+            format_version: if group.is_unnamed() {
+                UNNAMED_FORMAT_VERSION
+            } else if has_captures {
                 CAPTURE_FORMAT_VERSION
             } else {
                 FORMAT_VERSION
@@ -437,8 +467,8 @@ pub fn parse(bytes: &[u8]) -> Result<ReferenceGroup, GroupError> {
         ));
     }
     match header.format_version {
-        Some(FORMAT_VERSION | CAPTURE_FORMAT_VERSION) => {}
-        Some(v) if v > CAPTURE_FORMAT_VERSION => return Err(GroupError::UnsupportedVersion(v)),
+        Some(FORMAT_VERSION | CAPTURE_FORMAT_VERSION | UNNAMED_FORMAT_VERSION) => {}
+        Some(v) if v > UNNAMED_FORMAT_VERSION => return Err(GroupError::UnsupportedVersion(v)),
         _ => {
             return Err(GroupError::invalid(
                 ErrorKind::WrongFormatVersion,
@@ -448,7 +478,8 @@ pub fn parse(bytes: &[u8]) -> Result<ReferenceGroup, GroupError> {
     }
     let file: GroupFile =
         serde_json::from_slice(bytes).map_err(|e| GroupError::Invalid(Box::new(e.into())))?;
-    file.group.validate()?;
+    file.group
+        .validate(file.format_version >= UNNAMED_FORMAT_VERSION)?;
     Ok(file.group)
 }
 
@@ -462,4 +493,26 @@ fn valid_name(name: &str) -> Result<String, GroupError> {
 
 fn new_id() -> String {
     uuid::Uuid::new_v4().simple().to_string()
+}
+
+/// 毫秒时间戳 → `YYYYMMDD-HHMMSS`（UTC）。
+fn utc_stamp(ms: i64) -> String {
+    let secs = ms.div_euclid(1000);
+    let (days, rest) = (secs.div_euclid(86_400), secs.rem_euclid(86_400));
+    // 公历日期（Howard Hinnant 的 civil_from_days）。
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + i64::from(month <= 2);
+    format!(
+        "{year:04}{month:02}{day:02}-{:02}{:02}{:02}",
+        rest / 3600,
+        rest % 3600 / 60,
+        rest % 60
+    )
 }

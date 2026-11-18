@@ -21,4 +21,13 @@ crop: Region | null,
 /**
  * 位置、缩放、翻转与旋转；尺寸由局部与缩放得出。
  */
-placement: Placement, } & ({ libraryId: string, imageId: string, } | { captureFile: string, });
+placement: Placement, 
+/**
+ * 透明度，[`MIN_OPACITY`](crate::desktop::MIN_OPACITY)～1（#588 决定 3：随成员保存，修订 Q71）。
+ * 不透明时不写出，旧文件因此不变；参考组包不带它。
+ */
+opacity?: number, 
+/**
+ * 锁定后不响应拖动与缩放。不锁定时不写出；参考组包不带它。
+ */
+locked?: boolean, } & ({ libraryId: string, imageId: string, } | { captureFile: string, });
