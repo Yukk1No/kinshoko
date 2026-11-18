@@ -1,0 +1,177 @@
+/* 参考组改成桌面（#592）的侧栏面板：切换列表在上、归档在下。外框沿用 .reference-groups（desktop.css 与
+   pane-fit.css 给侧栏定宽）；卡片的样式都在这里，开关打开后旧面板的卡片样式在 #596 删去。
+   字号只用 16 / 13 / 12；圆角、时长、曲线都取 tokens.css 的变量；层级不超过 10。 */
+
+/* 侧栏标题行：“新参考组”贴着右边的收起按钮。 */
+.pane-head > .desk-new-group {
+  margin-left: auto;
+}
+
+.desk-groups-empty {
+  margin: 0;
+  padding: 0 2px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.desk-groups-switch {
+  position: relative;
+}
+.desk-groups-list {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 桌面上那一项的指示块：surface-2 底、1 px line 内线。只在选择变化时滑。 */
+.desk-groups-mark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  border-radius: var(--r);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  pointer-events: none;
+  transition:
+    transform var(--t-slow) var(--spring),
+    height var(--t-slow) var(--spring);
+}
+
+.desk-groups-heading {
+  margin: 10px 0 0;
+  padding: 0 6px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+/* 一张卡片：头部（缩略图、名称）可点，“更多”浮在右上角。 */
+.desk-group {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: var(--r);
+}
+.desk-group-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 36px 8px 8px;
+  border: 0;
+  border-radius: var(--r-s);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  transition: background var(--t-fast);
+}
+button.desk-group-head:not([aria-current]):hover {
+  background: var(--hover);
+}
+.desk-group-head:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-inset);
+}
+.desk-group-more {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+}
+.desk-group-thumbs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+  max-width: 100%;
+  overflow: hidden;
+}
+.desk-group-thumb {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: var(--r-xs);
+  overflow: hidden;
+  background: var(--card);
+}
+.desk-group-thumb:nth-child(even) {
+  width: 34px;
+}
+.desk-group-thumb img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.desk-group-thumb.is-sealed {
+  background: var(--veil);
+}
+.desk-group-thumb.is-missing {
+  background: repeating-linear-gradient(135deg, var(--card) 0 5px, var(--surface-2) 5px 10px);
+}
+.desk-group-name {
+  min-width: 0;
+  max-width: 100%;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.desk-group.is-archived .desk-group-name {
+  font-weight: 500;
+}
+.desk-group-meta,
+.desk-group-problem {
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.desk-group-problem {
+  color: var(--warn);
+}
+.desk-group .group-name-form {
+  padding: 4px 6px;
+}
+.desk-group-members {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0 6px 6px 22px;
+  font-size: 12px;
+}
+.desk-group-members li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+}
+.desk-group-members span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.desk-group-members .is-unavailable {
+  color: var(--warn);
+}
+.desk-groups-foot {
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  padding-top: 8px;
+}

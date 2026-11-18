@@ -45,6 +45,13 @@ const desktop: Translation<typeof zh> = {
   deskGroups: {
     unnamed: "Untitled {{time}}",
   },
+  deskPanel: {
+    newGroup: "New reference group",
+    switchList: "Switch to",
+    archived: "Archived",
+    archive: "Archive",
+    unarchive: "Unarchive",
+  },
   capture: {
     label: "Screenshot",
     copying: "Copying…",

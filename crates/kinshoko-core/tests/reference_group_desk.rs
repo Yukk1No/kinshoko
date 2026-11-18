@@ -488,3 +488,19 @@ fn group_shortcuts_exist_only_when_the_desk_switch_is_on() {
     assert!(ShortcutAction::NextGroup.needs_desk_groups());
     assert!(!ShortcutAction::Capture.needs_desk_groups());
 }
+
+#[test]
+fn flushing_says_when_the_group_list_would_look_different() {
+    let mut t = TestDesk::new();
+    let a = t.pin_reference("a", 100);
+    assert!(t.desk.flush().unwrap(), "空桌钉上第一张后进了切换列表");
+    t.desk.edit(&a.id, |p| p.move_to(120, 260));
+    assert!(!t.desk.flush().unwrap(), "只拖动，列表上看不出");
+    assert!(!t.desk.flush().unwrap(), "没有改动");
+    let b = t.pin_reference("b", 900);
+    assert!(t.desk.flush().unwrap(), "张数变了");
+    t.desk.close(&b.id, &mut t.history);
+    assert!(t.desk.flush().unwrap(), "张数变了");
+    t.desk.close(&a.id, &mut t.history);
+    assert!(t.desk.flush().unwrap(), "最后一张关掉后不在切换列表里");
+}

@@ -1,7 +1,7 @@
 import { PanelLeftClose } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { CaptureHistoryPanel } from "../desktop/CaptureHistoryPanel";
-import { ReferenceGroupsPanel } from "../desktop/ReferenceGroupsPanel";
+import { DeskNewGroupButton, ReferenceGroups } from "../desktop/DeskGroupsPanel";
 import { CreateLibrary } from "../library/CreateLibrary";
 import { LibraryPicker } from "../library/LibraryPicker";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
@@ -49,6 +49,7 @@ export function EmptyWorkspace({
         >
           <header className="pane-head" data-tauri-drag-region>
             <h2 className="pane-title">{section === "groups" ? t("emptyPane.groups") : t("emptyPane.captures")}</h2>
+            {section === "groups" && <DeskNewGroupButton />}
             <Tip label={t("emptyPane.collapse")} keys="Ctrl+B">
               <button
                 type="button"
@@ -61,7 +62,7 @@ export function EmptyWorkspace({
             </Tip>
           </header>
           {section === "groups" ? (
-            <ReferenceGroupsPanel />
+            <ReferenceGroups />
           ) : (
             <CaptureHistoryPanel request={captureRequest} onRequestHandled={collectionHandled} />
           )}

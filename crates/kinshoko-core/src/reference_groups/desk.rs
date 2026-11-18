@@ -77,6 +77,8 @@ pub struct Desk {
     /// 删除时摆在桌面上的参考组：撤销后放回桌面。
     trashed_from_desk: BTreeSet<String>,
     dirty: bool,
+    /// 自上次落盘以来成员有增减：参考组列表上看得出（张数、缩略图）。
+    members_changed: bool,
 }
 
 impl Desk {
@@ -106,6 +108,7 @@ impl Desk {
             copies: Vec::new(),
             trashed_from_desk: BTreeSet::new(),
             dirty: false,
+            members_changed: false,
         };
         // 切换列表里的参考组文件不在了（例如被别的程序删掉）：不再列出。
         let groups = &desk.groups;
@@ -185,6 +188,7 @@ impl Desk {
         self.group.members.push(member);
         self.pins.push(pin.clone());
         self.dirty = true;
+        self.members_changed = true;
         Ok(pin)
     }
 
@@ -212,6 +216,7 @@ impl Desk {
             history.unpin(capture);
         }
         self.dirty = true;
+        self.members_changed = true;
         Some(pin)
     }
 
@@ -232,10 +237,14 @@ impl Desk {
 
     /// 把改动落盘：先复制新的组内截图、写参考组文件，再写桌面状态。没有改动时什么都不做。
     /// 写不进时改动留在内存里，下次再试。
-    pub fn flush(&mut self) -> Result<(), GroupError> {
+    ///
+    /// 返回参考组列表上看不看得出这次落盘：成员有增减，或切换列表变了（空桌钉上第一张后出现在
+    /// 切换列表里、最后一张关掉后消失）。只拖动、缩放时为 `false`，界面不必重读参考组列表。
+    pub fn flush(&mut self) -> Result<bool, GroupError> {
         if !self.dirty {
-            return Ok(());
+            return Ok(false);
         }
+        let listed = self.switch_list.clone();
         self.group.updated_at = crate::library::now_ms();
         if is_blank(&self.group) {
             match self.groups.delete(&self.group.id) {
@@ -251,7 +260,8 @@ impl Desk {
         }
         self.save_state()?;
         self.dirty = false;
-        Ok(())
+        let seen = std::mem::take(&mut self.members_changed) || listed != self.switch_list;
+        Ok(seen)
     }
 
     /// 切换到参考组 `id`：先把桌面上的参考组落盘，再整桌换过去。原来那一桌原样留着。

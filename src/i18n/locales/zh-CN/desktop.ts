@@ -47,6 +47,14 @@ export default {
     /** 没有名称的参考组，后面跟最近保存的时间。 */
     unnamed: "未命名 {{time}}",
   },
+  /** 参考组改成桌面后的侧栏面板（`DeskGroupsPanel`，#592）。 */
+  deskPanel: {
+    newGroup: "新参考组",
+    switchList: "切换到",
+    archived: "归档",
+    archive: "归档",
+    unarchive: "取出",
+  },
   /** 截图框选窗口（`CaptureOverlay`）。 */
   capture: {
     label: "截图",
