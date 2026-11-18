@@ -106,6 +106,21 @@ impl Outcome {
     }
 }
 
+/// 画师在应用内浏览里亲手收的作品（#461）记在这个“订阅”名下：不属于任何一条订阅，不算新图，
+/// 也不出现在订阅页“最近收进来的图”里。之后自动订阅遇到它时当作已收，不再收第二份。
+pub(super) const BY_HAND: &str = "";
+
+/// 一个作品哪些页已收进了哪个资料库（应用内浏览的“已收”标记，#461）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CollectedWork {
+    pub work_id: String,
+    pub library_id: String,
+    /// 已收的页，从 0 起，从小到大。
+    pub pages: Vec<u32>,
+}
+
 /// 一个已收作品的身份：哪个资料库的哪个来源作品。
 pub(super) struct WorkKey<'a> {
     pub(super) library_id: &'a str,
@@ -411,11 +426,46 @@ impl Store {
                 outcome.as_str(),
                 explicit,
                 now,
-                // 跳过的作品没有新图。
-                outcome != Outcome::Collected
+                // 跳过的作品没有新图；亲手收的图画师已经看过。
+                outcome != Outcome::Collected || subscription_id == BY_HAND
             ],
         )?;
         Ok(())
+    }
+
+    /// 这些作品里已收进资料库的页，按作品与资料库分组。动图跳过的不算。
+    pub fn collected(
+        &self,
+        source: SourceId,
+        work_ids: &[String],
+    ) -> Result<Vec<CollectedWork>, StoreError> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare_cached(
+            "SELECT p.library_id, p.page FROM received_page p
+             JOIN received_work w USING (library_id, source, work_id)
+             WHERE p.source = ?1 AND p.work_id = ?2 AND w.outcome = 'collected'
+             ORDER BY p.library_id, p.page",
+        )?;
+        let mut out: Vec<CollectedWork> = Vec::new();
+        for work_id in work_ids {
+            let rows = stmt.query_map(params![source.as_str(), work_id], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, u32>(1)?))
+            })?;
+            for row in rows {
+                let (library_id, page) = row?;
+                match out.last_mut() {
+                    Some(last) if last.work_id == *work_id && last.library_id == library_id => {
+                        last.pages.push(page)
+                    }
+                    _ => out.push(CollectedWork {
+                        work_id: work_id.clone(),
+                        library_id,
+                        pages: vec![page],
+                    }),
+                }
+            }
+        }
+        Ok(out)
     }
 
     /// 新图数量：收进来、画师还没在订阅页看过的图（按页计）。`include_explicit` 为假时不计成人作品
@@ -445,7 +495,7 @@ impl Store {
                     w.seen = 0, p.received_at
              FROM received_page p
              JOIN received_work w USING (library_id, source, work_id)
-             WHERE w.outcome = 'collected'
+             WHERE w.outcome = 'collected' AND w.subscription_id != ''
              ORDER BY p.received_at DESC, p.work_id DESC, p.page
              LIMIT ?1",
         )?;

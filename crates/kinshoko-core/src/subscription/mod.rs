@@ -8,6 +8,7 @@
 //!
 //! 这一块不依赖 Tauri；登录窗口、定时线程和托盘在应用壳里。
 
+mod by_hand;
 mod check;
 pub mod image_cache;
 pub mod pace;
@@ -18,8 +19,9 @@ mod store;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+pub use by_hand::{HandReport, collect_by_hand};
 pub use check::{CheckReport, Destination, Source, SourceError, Work, WorkKind, check};
-pub use store::{ReceivedImage, Store, StoreError};
+pub use store::{CollectedWork, ReceivedImage, Store, StoreError};
 
 /// 订阅来源。以后加来源时在这里加一项，入口与开关不变。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]

@@ -1,6 +1,10 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { ArtistsPage } from "../bindings/ArtistsPage";
+import type { CollectedWork } from "../bindings/CollectedWork";
 import type { Feed } from "../bindings/Feed";
+import type { HandReport } from "../bindings/HandReport";
+import type { PixivWork } from "../bindings/PixivWork";
+import type { SaveDestination } from "../bindings/SaveDestination";
 import type { WorksPage } from "../bindings/WorksPage";
 import { invoke } from "./invoke";
 
@@ -15,6 +19,24 @@ export function subscriptionBrowse(feed: Feed, next: string | null = null): Prom
 /** 按名字找画师的一页。 */
 export function subscriptionSearchArtists(word: string, next: string | null = null): Promise<ArtistsPage> {
   return invoke<ArtistsPage>("subscription_search_artists", { word, next });
+}
+
+/**
+ * 把一个作品收进资料库：`pages` 为空时收全部页；`again` 为真时已收的页也再收一次（资料库里的图被删掉后）。
+ * 作者、标签、来源链接与成人分级同订阅收进来的图；动图不收。
+ */
+export function subscriptionCollect(
+  work: PixivWork,
+  destination: SaveDestination,
+  pages: number[] | null = null,
+  again = false,
+): Promise<HandReport> {
+  return invoke<HandReport>("subscription_collect", { work, pages, again, destination });
+}
+
+/** 这些作品里已收进资料库的页（“已收”标记）。不联网。 */
+export function subscriptionCollected(workIds: string[]): Promise<CollectedWork[]> {
+  return invoke<CollectedWork[]>("subscription_collected", { workIds });
 }
 
 const IMAGE_HOST = "https://i.pximg.net/";

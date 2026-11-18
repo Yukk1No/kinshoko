@@ -264,7 +264,7 @@ export function backend(
     import_tasks: () => [],
     // 导入面板先问：选中的路径里没有 Eagle 资料库；没记过保存位置。
     import_contains_eagle: () => false,
-    save_memory: () => ({ importDestination: null, newLibraryParent: null }),
+    save_memory: () => ({ importDestination: null, newLibraryParent: null, pixivDestination: null }),
     // 后端每个任务的 id 都不同。
     start_import: () => `T${++tasks}`,
     image: (args) => {
