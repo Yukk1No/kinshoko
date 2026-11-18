@@ -13,7 +13,9 @@ use crate::library::SubscriptionPage;
 mod bookmarks;
 
 /// 作品类型（#366）：插画收全部页；漫画按订阅的设置；动图跳过。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub enum WorkKind {
     Illustration,
     Manga,

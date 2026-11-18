@@ -9,6 +9,7 @@
 //! 这一块不依赖 Tauri；登录窗口、定时线程和托盘在应用壳里。
 
 mod check;
+pub mod image_cache;
 pub mod pace;
 pub mod pixiv;
 pub mod schedule;
