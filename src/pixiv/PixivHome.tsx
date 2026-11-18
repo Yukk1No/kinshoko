@@ -2,8 +2,10 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Feed } from "../bindings/Feed";
 import { errorText } from "../ipc";
+import { SaveDestinationDialog } from "../library/SaveDestination";
 import { Segmented } from "../ui/Segmented";
 import { PixivWall, type PixivWallHandle, type WallSection } from "./PixivWall";
+import { useCollect } from "./useCollect";
 import { usePixivFeed } from "./usePixivFeed";
 import "./pixiv.css";
 
@@ -37,6 +39,8 @@ export function PixivHome({ safe }: { safe: boolean }) {
       { key: "recommended", works: recommended.works.filter((w) => !seen.has(w.id)) },
     ];
   }, [following.works, recommended.works]);
+  const allWorks = useMemo(() => sections.flatMap((s) => s.works), [sections]);
+  const collecting = useCollect(allWorks);
   const onSection = useCallback((key: string) => setTab(key as Tab), []);
   const { more } = recommended;
   const onNearEnd = useCallback(() => more(), [more]);
@@ -62,7 +66,31 @@ export function PixivHome({ safe }: { safe: boolean }) {
           ]}
         />
       </div>
-      <PixivWall sections={sections} safe={safe} onSection={onSection} onNearEnd={onNearEnd} handle={wall} />
+      <PixivWall
+        sections={sections}
+        safe={safe}
+        collected={collecting.collected}
+        busy={collecting.busy}
+        onCollect={collecting.collect}
+        onSection={onSection}
+        onNearEnd={onNearEnd}
+        handle={wall}
+      />
+      {collecting.notice && (
+        <div className="pw-status" role="alert">
+          {collecting.notice}
+        </div>
+      )}
+      {collecting.asking && (
+        <SaveDestinationDialog
+          title={t("browse.chooseDestination")}
+          summary={collecting.asking.work.title}
+          confirmLabel={t("browse.collect")}
+          initial={collecting.remembered}
+          onConfirm={collecting.confirm}
+          onClose={collecting.cancel}
+        />
+      )}
       {(loading || failed || empty) && (
         <div className="pw-status" role="status">
           {failed ? (

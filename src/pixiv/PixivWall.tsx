@@ -13,6 +13,7 @@ import type { PixivWork } from "../bindings/PixivWork";
 import { pixivImageSrc } from "../ipc/pixivBrowse";
 import { CAP_RATIO, GAP, OVERSCAN, PAD, TARGET } from "../wall/wallShared";
 import { pixivMasonry, visibleIn, type PixivLayout } from "./layout";
+import type { CollectedPages, CollectOptions } from "./useCollect";
 import "./pixiv.css";
 
 /** 墙上的一段作品，例如关注的新作、推荐。段与段之间只留一点空隙，不放标题（#461 2026-11-18）。 */
@@ -30,14 +31,23 @@ const NEAR_END = 1200;
 /** 展开的一格占视口高度的比例。 */
 const BAND_SHARE = 0.72;
 
+const NOTHING_COLLECTED: CollectedPages = new Map();
+const NOTHING_BUSY: ReadonlySet<string> = new Set();
+
 /**
  * 应用内浏览的墙（#461 第 2 步，只做骨架）：保留全图的瀑布流，只挂可见范围内的卡片；点图在墙里原地展开一格，
  * 再点大图看全图。安全模式开着时不显示 pixiv 标为 R-18 的作品。
+ *
+ * 收图（第 3 步）：卡片上悬停出现“收进资料库”，已收的常驻“已收”标记；展开的一格与看全图里也能收，
+ * 看全图时可以只收这一页。
  */
 export function PixivWall({
   sections,
   safe,
   density = TARGET,
+  collected = NOTHING_COLLECTED,
+  busy = NOTHING_BUSY,
+  onCollect,
   onSection,
   onNearEnd,
   handle,
@@ -45,6 +55,11 @@ export function PixivWall({
   sections: WallSection[];
   safe: boolean;
   density?: number;
+  /** 已收进资料库的页。 */
+  collected?: CollectedPages;
+  /** 正在收的作品。 */
+  busy?: ReadonlySet<string>;
+  onCollect?: (work: PixivWork, options?: CollectOptions) => void;
   /** 视口顶上是哪一段；滚动时变了才回调。 */
   onSection?: (key: string) => void;
   onNearEnd?: () => void;
@@ -162,7 +177,10 @@ export function PixivWall({
                   work={work}
                   style={{ left: box.x, top: s.top + box.y, width: box.w, height: box.h }}
                   on={current?.section === s.key && current.id === work.id}
+                  collected={(collected.get(work.id)?.size ?? 0) > 0}
+                  busy={busy.has(work.id)}
                   onClick={() => select(s.key, work.id)}
+                  onCollect={onCollect && (() => onCollect(work))}
                 />
               );
             }),
@@ -174,6 +192,9 @@ export function PixivWall({
                 layout={s.layout}
                 top={s.top}
                 work={s.works.find((w) => w.id === current.id)}
+                collected={collected.get(current.id)}
+                busy={busy.has(current.id)}
+                onCollect={onCollect}
                 onClose={() => setSelected(null)}
                 onStep={step}
                 onFull={(work) => setFull({ work, page: 0 })}
@@ -186,6 +207,9 @@ export function PixivWall({
         <FullView
           work={full.work}
           page={full.page}
+          collected={collected.get(full.work.id)?.has(full.page) ?? false}
+          busy={busy.has(full.work.id)}
+          onCollect={onCollect && (() => onCollect(full.work, { pages: [full.page] }))}
           onPage={(page) => setFull({ ...full, page })}
           onClose={() => setFull(null)}
         />
@@ -198,28 +222,52 @@ function Card({
   work,
   style,
   on,
+  collected,
+  busy,
   onClick,
+  onCollect,
 }: {
   work: PixivWork;
   style: React.CSSProperties;
   on: boolean;
+  collected: boolean;
+  busy: boolean;
   onClick: () => void;
+  onCollect?: () => void;
 }) {
   const { t } = useTranslation("subscriptions");
   const src = pixivImageSrc(work.pages[0]?.preview ?? "");
+  // 动图不收，不给收图按钮。
+  const collectable = !!onCollect && work.kind !== "animation";
   return (
-    <button
-      type="button"
-      className="pw-card"
-      data-on={on || undefined}
-      aria-pressed={on}
-      aria-label={t("browse.work", { title: work.title, artist: work.artist.name })}
-      style={style}
-      onClick={onClick}
-    >
-      {src && <img src={src} alt="" loading="lazy" decoding="async" draggable={false} />}
+    <div className="pw-card" data-on={on || undefined} style={style}>
+      <button
+        type="button"
+        className="pw-card-open"
+        aria-pressed={on}
+        aria-label={t("browse.work", { title: work.title, artist: work.artist.name })}
+        onClick={onClick}
+      >
+        {src && <img src={src} alt="" loading="lazy" decoding="async" draggable={false} />}
+      </button>
       {work.pages.length > 1 && <span className="pw-pages">{t("browse.pages", { count: work.pages.length })}</span>}
-    </button>
+      {collected ? (
+        <span className="pw-collected">{t("browse.collected")}</span>
+      ) : busy ? (
+        <span className="pw-collected">{t("browse.collecting")}</span>
+      ) : (
+        collectable && (
+          <button
+            type="button"
+            className="pw-collect k-btn"
+            aria-label={t("browse.collectWork", { title: work.title })}
+            onClick={onCollect}
+          >
+            {t("browse.collect")}
+          </button>
+        )
+      )}
+    </div>
   );
 }
 
@@ -228,6 +276,9 @@ function Band({
   layout,
   top,
   work,
+  collected,
+  busy,
+  onCollect,
   onClose,
   onStep,
   onFull,
@@ -235,6 +286,9 @@ function Band({
   layout: PixivLayout;
   top: number;
   work: PixivWork | undefined;
+  collected: ReadonlySet<number> | undefined;
+  busy: boolean;
+  onCollect?: (work: PixivWork, options?: CollectOptions) => void;
   onClose: () => void;
   onStep: (delta: number) => void;
   onFull: (work: PixivWork) => void;
@@ -243,6 +297,8 @@ function Band({
   const band = layout.band;
   if (!band || !work) return null;
   const src = pixivImageSrc(work.pages[0]?.large ?? "");
+  const all = (collected?.size ?? 0) >= work.pages.length;
+  const collectable = !!onCollect && work.kind !== "animation";
   return (
     <section
       className="pw-band"
@@ -261,6 +317,31 @@ function Band({
             <li key={tag}>{tag}</li>
           ))}
         </ul>
+        {collectable && (
+          <div className="pw-band-actions">
+            {all ? (
+              <>
+                <span className="pw-band-meta">{t("browse.collected")}</span>
+                {/* 资料库里的图被删掉了也能再收（#461）。 */}
+                <button
+                  type="button"
+                  className="k-btn"
+                  disabled={busy}
+                  onClick={() => onCollect(work, { again: true })}
+                >
+                  {t("browse.collectAgain")}
+                </button>
+              </>
+            ) : (
+              <button type="button" className="k-btn is-primary" disabled={busy} onClick={() => onCollect(work)}>
+                {busy ? t("browse.collecting") : t("browse.collect")}
+              </button>
+            )}
+            <button type="button" className="k-btn" disabled={busy} onClick={() => onCollect(work, { choose: true })}>
+              {t("browse.collectElsewhere")}
+            </button>
+          </div>
+        )}
         <div className="pw-band-actions">
           <a className="k-btn" href={work.pageUrl} target="_blank" rel="noreferrer">
             {t("browse.openOnPixiv")}
@@ -284,11 +365,17 @@ function Band({
 function FullView({
   work,
   page,
+  collected,
+  busy,
+  onCollect,
   onPage,
   onClose,
 }: {
   work: PixivWork;
   page: number;
+  collected: boolean;
+  busy: boolean;
+  onCollect?: () => void;
   onPage: (page: number) => void;
   onClose: () => void;
 }) {
@@ -314,6 +401,25 @@ function FullView({
       }}
     >
       {src && <img src={src} alt="" draggable={false} />}
+      {onCollect && work.kind !== "animation" && (
+        <div className="pw-full-actions">
+          {collected ? (
+            <span className="pw-collected">{t("browse.collected")}</span>
+          ) : (
+            <button
+              type="button"
+              className="k-btn"
+              disabled={busy}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCollect();
+              }}
+            >
+              {busy ? t("browse.collecting") : t(count > 1 ? "browse.collectPage" : "browse.collect")}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

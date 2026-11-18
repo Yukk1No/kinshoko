@@ -70,7 +70,9 @@ describe("订阅页主区", () => {
     expect(calls.filter((k) => k === "following")).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "作品1，画师" })).toHaveLength(1);
     // 多页作品标页数。
-    expect(within(screen.getByRole("button", { name: "作品3，画师" })).getByText("2 页")).toBeTruthy();
+    expect(
+      within(screen.getByRole("button", { name: "作品3，画师" }).parentElement as HTMLElement).getByText("2 页"),
+    ).toBeTruthy();
   });
 
   it("安全模式开着时不显示 R-18 作品", async () => {

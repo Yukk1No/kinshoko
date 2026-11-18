@@ -4,4 +4,8 @@ import type { SaveDestination } from "./SaveDestination";
 /**
  * 保存入口各记各的“上次亲手选的”（ADR-0016），不是跨入口的默认资料库。
  */
-export type SaveMemory = { importDestination: SaveDestination | null, newLibraryParent: string | null, };
+export type SaveMemory = { importDestination: SaveDestination | null, newLibraryParent: string | null, 
+/**
+ * 应用内浏览（#461）收进资料库时亲手选的。
+ */
+pixivDestination: SaveDestination | null, };
