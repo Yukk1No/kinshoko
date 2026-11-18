@@ -1,11 +1,12 @@
 //! ONNX Runtime 推理（移植自 `tools/tagger-probe` 的 bench.rs）。
 
 use std::path::Path;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
 use kinshoko_core::tagging::{Device, EngineError, RawTag};
+use ort::environment::Environment;
 use ort::session::{HasSelectedOutputs, OutputSelector, RunOptions, Session};
 use ort::value::Tensor;
 
@@ -98,8 +99,23 @@ fn load_vocab(path: &Path) -> Result<Vec<VocabEntry>, String> {
         .collect()
 }
 
+/// ONNX Runtime 的进程级环境。ort 2.0.0-rc.15 起建会话要传它，且一个进程只能建一个，所有会话共用。
+fn environment() -> ort::Result<&'static Environment> {
+    static ENV: OnceLock<Environment> = OnceLock::new();
+    static BUILDING: Mutex<()> = Mutex::new(());
+    if let Some(env) = ENV.get() {
+        return Ok(env);
+    }
+    let _guard = BUILDING.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(env) = ENV.get() {
+        return Ok(env);
+    }
+    let env = ort::init().build()?;
+    Ok(ENV.get_or_init(|| env))
+}
+
 fn build(onnx: &Path, device: Device) -> ort::Result<Session> {
-    let mut b = Session::builder()?;
+    let mut b = Session::builder(environment()?)?;
     if device == Device::DirectMl {
         let mut ep = ort::ep::DirectML::default();
         if let Some(gpu) = sysinfo::discrete_gpu() {
