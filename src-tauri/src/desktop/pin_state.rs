@@ -111,7 +111,12 @@ impl PinState {
                     problems: Vec::new(),
                 }
             }
-            PinState::Desk(desk) => desk.restore(history, monitors),
+            PinState::Desk(desk) => {
+                let opened = desk.restore(history, monitors);
+                // 拉回屏幕的位置马上写下（同旧路径）：之后不动钉图也不会丢。写不进时留着，下次再写。
+                let _ = desk.flush();
+                opened
+            }
         }
     }
 

@@ -44,9 +44,8 @@ pub fn open(
         locked: false,
         member: None,
     };
-    let pin = add(app, pin)?;
+    let pin = add_and_open(app, pin)?;
     history_changed(app);
-    open_pin(app, &pin);
     Ok(pin.id)
 }
 
@@ -100,9 +99,20 @@ pub(super) fn pin_reference_here(
     let (x, y) = place_new_pin(at, monitor, &others, (OFFSET * dpi).round() as i32);
     pin.placement.x = x;
     pin.placement.y = y;
+    add_and_open(app, pin)?;
+    Ok(())
+}
+
+/// 放进钉图状态并开出窗口。期间换桌的对齐要等它开完：否则刚放进旧桌的钉图被换走后，窗口才开出来，
+/// 留在新桌上（对齐时还没有这个窗口，关不掉它）。
+pub(in crate::desktop) fn add_and_open(
+    app: &AppHandle,
+    pin: SavedPin,
+) -> Result<SavedPin, CommandError> {
+    let _aligning = crate::desktop::desk_commands::aligning();
     let pin = add(app, pin)?;
     open_pin(app, &pin);
-    Ok(())
+    Ok(pin)
 }
 
 /// 把新钉图放进钉图状态（开关打开时它成为桌面上参考组的新成员），截图钉图在截图历史里记下钉住。
