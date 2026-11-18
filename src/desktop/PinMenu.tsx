@@ -8,6 +8,7 @@ import {
   FlipVertical2,
   FolderInput,
   Layers,
+  Move,
   PanelRightClose,
   Plus,
   RotateCcw,
@@ -195,6 +196,10 @@ export function PinMenuItems({
       <MenuSubmenu icon={icon(FolderInput)} label={t("moveTo")} popupLabel={t("moveTo")} width={220}>
         <DeskGroupList load={deskGroups} act={act} move />
       </MenuSubmenu>
+      {/* 整组移动（#198）：下一次拖动时桌面上的钉图一起动，给不方便按 Alt 的笔和触摸用。 */}
+      <MenuItem icon={icon(Move)} kbd="Alt" onClick={() => act("groupMove")}>
+        {t("groupMove")}
+      </MenuItem>
       <MenuItem icon={icon(PanelRightClose)} onClick={() => act("edgeHide")}>
         {t("edgeHide")}
       </MenuItem>

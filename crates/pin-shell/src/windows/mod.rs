@@ -137,6 +137,7 @@ impl WinShell {
                 hook::Messages {
                     key: proc::WM_PIN_KEY,
                     status: proc::WM_HOOK,
+                    alt: proc::WM_PIN_ALT,
                 },
             ),
             clock: clock::Clock::start(host, proc::WM_COMPOSED),

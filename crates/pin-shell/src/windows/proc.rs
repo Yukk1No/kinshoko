@@ -14,7 +14,8 @@ use std::rc::{Rc, Weak};
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM};
 use windows::Win32::UI::Controls::WM_MOUSELEAVE;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetCapture, ReleaseCapture, SetCapture, TME_LEAVE, TRACKMOUSEEVENT, TrackMouseEvent,
+    GetCapture, GetKeyState, ReleaseCapture, SetCapture, TME_LEAVE, TRACKMOUSEEVENT,
+    TrackMouseEvent, VK_MENU,
 };
 use windows::Win32::UI::Input::Pointer::{
     GetPointerInfo, GetPointerPenInfo, GetPointerType, POINTER_INFO, POINTER_PEN_INFO,
@@ -44,6 +45,8 @@ pub(super) const WM_RETIRE: u32 = WM_APP + 0x11;
 pub(super) const WM_PIN_KEY: u32 = WM_APP + 0x12;
 /// 钩子线程的状况。
 pub(super) const WM_HOOK: u32 = WM_APP + 0x13;
+/// 钩子线程看到 Alt 按下（`wParam` 1）或松开（0）。
+pub(super) const WM_PIN_ALT: u32 = WM_APP + 0x15;
 /// 重新看一遍显示器。
 pub(super) const WM_DISPLAYS: u32 = WM_APP + 0x14;
 /// 定时重看显示器（颜色配置文件改了没有系统通知）。
@@ -112,12 +115,24 @@ fn over_same_pin(data: &SlotData) -> bool {
     pin_under_cursor() == Some(data.pin)
 }
 
+/// 这条消息排进队列时 Alt 按着没有。
+fn alt_held() -> bool {
+    // SAFETY：只读本线程的按键状态。最高位为 1 表示按着。
+    let state = unsafe { GetKeyState(i32::from(VK_MENU.0)) };
+    state < 0
+}
+
 fn pointer(data: &SlotData, kind: PointerKind, at: (i32, i32), event: PointerEvent) {
+    let alt = alt_held();
+    if alt && matches!(event, PointerEvent::Down(_)) {
+        super::hook::alt_used();
+    }
     push([PinInput::Pointer(Pointer {
         pin: data.pin,
         kind,
         at,
         event,
+        alt,
     })]);
 }
 
@@ -230,11 +245,16 @@ fn slot_message(hwnd: HWND, data: &SlotData, msg: u32, wp: WPARAM, lp: LPARAM) -
         }
         // 滚轮的坐标已是屏幕坐标。
         WM_MOUSEWHEEL => {
+            let alt = alt_held();
+            if alt {
+                super::hook::alt_used();
+            }
             push([PinInput::Wheel {
                 pin: data.pin,
                 at: lparam_point(lp.0),
                 notches: wheel_notches(wp.0),
                 ctrl: wheel_ctrl(wp.0),
+                alt,
             }]);
             handled
         }
@@ -330,6 +350,10 @@ pub(super) unsafe extern "system" fn host_proc(
                     repeat: c.repeat,
                 }]);
             }
+            return LRESULT(0);
+        }
+        WM_PIN_ALT => {
+            push([PinInput::Alt { held: wp.0 != 0 }]);
             return LRESULT(0);
         }
         WM_HOOK => {

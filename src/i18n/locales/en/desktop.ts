@@ -33,6 +33,7 @@ const desktop: Translation<typeof zh> = {
     revealVeiled: "Show (hidden by Safe mode)",
     openInKinshoko: "Open in Kinshoko",
     edgeHide: "Hide pins",
+    groupMove: "Move all",
     close: "Close pin",
     switchTo: "Switch to",
     newGroup: "New reference group",

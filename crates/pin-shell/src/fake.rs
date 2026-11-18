@@ -357,6 +357,7 @@ mod tests {
             at: (3, 3),
             notches: 1.0,
             ctrl: false,
+            alt: false,
         };
         s.push(wheel.clone());
         assert_eq!(s.pump(), [wheel]);
@@ -380,6 +381,7 @@ mod tests {
             kind: PointerKind::Pen,
             at: (1, 2),
             event: PointerEvent::Down(PointerButton::Secondary),
+            alt: false,
         });
         s.push(down.clone());
         s.set_displays(vec![]);

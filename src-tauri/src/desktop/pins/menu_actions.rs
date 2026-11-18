@@ -18,6 +18,8 @@ pub(super) const ACTION_REVEAL: &str = "reveal";
 /// #106 新增：在 Kinshoko 中打开、贴边隐藏。
 pub(super) const ACTION_OPEN: &str = "openInKinshoko";
 pub(super) const ACTION_EDGE_HIDE: &str = "edgeHide";
+/// 整组移动（#198）：下一次按下拖动时整组移动。
+pub(super) const ACTION_GROUP_MOVE: &str = "groupMove";
 /// #593：切换到参考组（`switch:<参考组 id>`）、新参考组。
 pub(super) const ACTION_SWITCH: &str = "switch:";
 pub(super) const ACTION_NEW_GROUP: &str = "newGroup";
@@ -148,6 +150,10 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<Pi
         }
         ACTION_EDGE_HIDE => {
             super::super::edge::toggle_in_background(app);
+            None
+        }
+        ACTION_GROUP_MOVE => {
+            native::arm_group_move(app);
             None
         }
         ACTION_COLLECT => {

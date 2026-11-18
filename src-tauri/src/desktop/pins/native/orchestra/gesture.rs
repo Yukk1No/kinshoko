@@ -1,7 +1,8 @@
 //! 指针、滚轮与按键（沿用以前钉图层 `PinView` 的规则）：鼠标、笔、触摸走同一套，按住拖动移动，按住右下角
 //! 缩放区拖动缩放（左上角不动），锁定时都不动、只等按住开菜单；滚轮以光标为中心缩放，Ctrl+滚轮调
 //! 透明度；H/V 翻转，R/Shift+R 旋转，Esc 关闭。菜单：鼠标右键、笔的侧键，或笔与触摸按住不动约半秒
-//! （同一次按下只开一次）。按下的钉图到最上层。
+//! （同一次按下只开一次）。按下的钉图到最上层。按着 Alt（或菜单“整组移动”之后）拖动、按着 Alt 滚
+//! 滚轮作用于整组（[`super::group`]，#198）。
 //!
 //! 坐标都是屏幕物理像素；以 CSS 像素定的阈值（按住的容差、缩放区）按光标所在显示器的缩放比例换算。
 
@@ -46,6 +47,8 @@ enum Grab {
     },
     /// 锁定的钉图：只等按住开菜单。
     Hold,
+    /// 整组拖动（[`super::group`]）：按下的这张锁定了也拖得动别的。
+    Group,
 }
 
 impl Gesture {
@@ -61,6 +64,19 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let scale = scale_at(&self.monitors(), (f64::from(p.at.0), f64::from(p.at.1)));
         let at = self.ms(self.now);
         let now = self.now;
+        if self.live(p.pin).is_none() {
+            return;
+        }
+        match p.event {
+            PointerEvent::Down(_) => self.alt_changed(p.alt),
+            PointerEvent::Move => {
+                self.alt_changed(p.alt);
+                self.hovered(Some(p.pin));
+            }
+            PointerEvent::Leave => self.hovered(None),
+            PointerEvent::Up(_) | PointerEvent::Cancel => {}
+        }
+        let group = self.group.wants_drag(p.alt);
         let Some(live) = self.live(p.pin) else { return };
         let shown = live.motion.at(at).snap();
         let place = hit(shown, (f64::from(p.at.0), f64::from(p.at.1)), scale);
@@ -79,7 +95,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                     return;
                 }
                 let target = live.target;
-                let grab = if live.pin.locked {
+                let grab = if group {
+                    Grab::Group
+                } else if live.pin.locked {
                     Grab::Hold
                 } else if place == Hit::ZoomCorner {
                     let (width, height) = live.pin.window_size();
@@ -107,6 +125,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                     grab,
                 });
                 self.shell.raise(p.pin);
+                if group {
+                    self.start_group_drag(p.at);
+                }
             }
             PointerEvent::Move => {
                 let Some(g) = live.gesture.as_mut() else {
@@ -127,6 +148,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 }
                 match g.grab {
                     Grab::Hold => {}
+                    Grab::Group => self.group_dragged((dx, dy)),
                     Grab::Move { origin } => {
                         let to = (origin.0 + dx, origin.1 + dy);
                         self.untuck(p.pin);
@@ -150,23 +172,40 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 }
             }
             PointerEvent::Up(_) | PointerEvent::Cancel => {
-                if live.gesture.take().is_some() && live.gesture_until.is_some() {
+                let g = live.gesture.take();
+                if g.is_some() && live.gesture_until.is_some() {
                     // 松开后重新计时收尾（拖动中途停着不动时不收）。
                     let until = now + Duration::from_millis(SETTLE_MS);
                     live.gesture_until = live.gesture_until.map(|t| t.max(until));
+                }
+                if g.is_some_and(|g| g.grab == Grab::Group) {
+                    self.end_group_drag();
                 }
             }
             PointerEvent::Leave => {}
         }
     }
 
-    pub(super) fn wheel(&mut self, pin: PinId, at: (i32, i32), notches: f64, ctrl: bool) {
+    pub(super) fn wheel(
+        &mut self,
+        pin: PinId,
+        at: (i32, i32),
+        notches: f64,
+        ctrl: bool,
+        alt: bool,
+    ) {
         let Some(live) = self.live(pin) else { return };
         // 前端的 deltaY：向下为正，一格 100。按着指针时不缩放。
         let delta_y = -notches * 100.0;
-        if live.gesture.is_some() || delta_y == 0.0 {
+        if live.gesture.is_some() || self.group.dragging() || delta_y == 0.0 {
             return;
         }
+        if alt && !ctrl {
+            self.alt_changed(true);
+            self.group_wheel(at, delta_y);
+            return;
+        }
+        let Some(live) = self.live(pin) else { return };
         if ctrl {
             let before = live.pin.opacity;
             live.pin.set_opacity(wheel_opacity(before, delta_y));
@@ -195,6 +234,10 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
     }
 
     pub(super) fn key(&mut self, pin: PinId, key: Key, shift: bool) {
+        // 菜单“整组移动”之后：Esc 先取消它，不关钉图。
+        if key == Key::Escape && self.live(pin).is_some() && self.disarm_group_move() {
+            return;
+        }
         let Some(live) = self.live(pin) else { return };
         let turn = match (key, shift) {
             (Key::Escape, _) => {
@@ -226,6 +269,8 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let Some(live) = self.live(pin) else { return };
         live.gesture = None;
         let key = live.key.clone();
+        self.end_group_drag();
+        self.disarm_group_move();
         self.menu_at = Some(now);
         if !std::mem::replace(&mut self.menu_open, true) {
             self.shell.set_keys(PinKeys::none());
