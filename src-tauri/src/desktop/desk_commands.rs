@@ -134,3 +134,114 @@ pub async fn unarchive_reference_group(
     })
     .await
 }
+
+/// 快捷键“上个参考组”“下个参考组”（#594）：在别的线程上按切换列表的先后换过去，快捷键回调不阻塞。
+/// 换过去后在一张新钉图上写出参考组的名称，焦点交还绘画软件。开关关着时（快捷键本不该注册）什么都不做。
+pub fn step_in_background(app: &AppHandle, forward: bool) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        match with_desk(&app, |desk, history| desk.step(forward, history)) {
+            Ok(Some(switched)) => {
+                apply(&app, Some(switched));
+                announce(&app);
+            }
+            Ok(None) => {}
+            Err(e) => crate::run_log::warn("快捷键切换参考组失败", e),
+        }
+        super::edge::hand_back_focus();
+    });
+}
+
+/// 快捷键“新参考组”（#594）：换到空桌。空桌没有钉图，不提示。
+pub fn new_desk_in_background(app: &AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        match with_desk(&app, |desk, history| desk.new_desk(history)) {
+            Ok(switched) => apply(&app, Some(switched)),
+            Err(e) => crate::run_log::warn("快捷键新建参考组失败", e),
+        }
+        super::edge::hand_back_focus();
+    });
+}
+
+/// 在桌面上第一张钉图上写出参考组的名称（没有名称写“未命名”和时间）。只写一张；提示只是文字，
+/// 遮蔽的钉图照样遮蔽。
+fn announce(app: &AppHandle) {
+    let (pin, label) = {
+        let mut store = lock(&state(app).store);
+        let Some(desk) = store.desk() else {
+            return;
+        };
+        let group = desk.group();
+        let label = crate::ui_text::group_label(&group.name, group.updated_at);
+        let Some(pin) = desk.pins().first().map(|p| p.id.clone()) else {
+            return;
+        };
+        (pin, label)
+    };
+    pins::notify(app, &pin, &label);
+}
+
+/// 钉图菜单要显示的桌面上的参考组名称（#593，没有名称为空）；开关关着时为 `None`。
+pub(super) fn desk_name(app: &AppHandle) -> Option<String> {
+    lock(&state(app).store)
+        .desk()
+        .map(|desk| desk.group().name.trim().to_owned())
+}
+
+/// 钉图菜单“切换到 ▸”里选了一个（`group_id`）或“新参考组”（`None`，#593）。已在菜单的线程上。
+/// 返回要在钉图上提示什么：失败时说原因；成功时原来那张钉图已经不在，不提示。
+pub(super) fn switch_from_menu(
+    app: &AppHandle,
+    group_id: Option<&str>,
+) -> Option<kinshoko_core::desktop::PinNotice> {
+    let switched = with_desk(app, |desk, history| match group_id {
+        Some(id) => desk.switch_to(id, history),
+        None => desk.new_desk(history),
+    });
+    match switched {
+        Ok(switched) => {
+            apply(app, Some(switched));
+            super::edge::hand_back_focus();
+            None
+        }
+        Err(e) => Some(e.into()),
+    }
+}
+
+/// 托盘菜单里参考组那一段（#593）：切换列表里最近的几个（桌面上的那个打勾）。开关关着时为 `None`。
+/// 会读参考组文件。
+pub(super) fn tray_groups(app: &AppHandle) -> Option<Vec<(String, String, bool)>> {
+    const TRAY_GROUPS: usize = 8;
+    let lists = with_desk(app, |desk, _| desk.lists()).ok()?;
+    Some(
+        lists
+            .switch_list
+            .iter()
+            .take(TRAY_GROUPS)
+            .map(|g| {
+                let label = crate::ui_text::group_label(&g.name, g.updated_at);
+                (
+                    g.id.clone(),
+                    label,
+                    lists.on_desk.as_deref() == Some(g.id.as_str()),
+                )
+            })
+            .collect(),
+    )
+}
+
+/// 托盘菜单里选了参考组（`group_id`）或“新参考组”（`None`，#593）：在别的线程上换过去。
+pub(super) fn switch_from_tray(app: &AppHandle, group_id: Option<String>) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let switched = with_desk(&app, |desk, history| match &group_id {
+            Some(id) => desk.switch_to(id, history),
+            None => desk.new_desk(history),
+        });
+        match switched {
+            Ok(switched) => apply(&app, Some(switched)),
+            Err(e) => crate::run_log::warn("托盘切换参考组失败", e),
+        }
+    });
+}

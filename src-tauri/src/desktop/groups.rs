@@ -40,6 +40,11 @@ fn capture_left_history() -> CommandError {
 
 pub(super) fn changed(app: &AppHandle) {
     let _ = app.emit(CHANGED_EVENT, ());
+    // 托盘里参考组那一段（#593）跟着变；读参考组文件，不放在调用方的线程上。
+    if super::desk_commands::desk_on(app) {
+        let app = app.clone();
+        std::thread::spawn(move || super::relabel_tray(&app));
+    }
 }
 
 pub(super) async fn blocking<T: Send + 'static>(

@@ -437,3 +437,54 @@ fn a_reference_group_package_leaves_out_opacity_and_lock() {
         (0.3, true)
     );
 }
+
+#[test]
+fn stepping_walks_the_whole_switch_list_and_wraps_around() {
+    let mut t = TestDesk::new();
+    let mut ids = Vec::new();
+    for (i, x) in [10, 20, 30].into_iter().enumerate() {
+        if i > 0 {
+            t.desk.new_desk(&mut t.history).unwrap();
+        }
+        t.pin_reference(&format!("p{i}"), x);
+        t.desk.flush().unwrap();
+        ids.push(t.desk.group().id.clone());
+    }
+    // 切换列表：最近用过的在前 = [2, 1, 0]，桌面上是 2。
+    let order: Vec<String> = t
+        .desk
+        .lists()
+        .unwrap()
+        .switch_list
+        .iter()
+        .map(|s| s.id.clone())
+        .collect();
+    assert_eq!(order, [ids[2].clone(), ids[1].clone(), ids[0].clone()]);
+    let mut seen = Vec::new();
+    for _ in 0..3 {
+        t.desk.step(true, &mut t.history).unwrap().unwrap();
+        seen.push(t.desk.group().id.clone());
+    }
+    assert_eq!(
+        seen,
+        [ids[1].clone(), ids[0].clone(), ids[2].clone()],
+        "走完一圈回到原处"
+    );
+    t.desk.step(false, &mut t.history).unwrap().unwrap();
+    assert_eq!(t.desk.group().id, ids[0], "上一个从头回到尾");
+
+    let mut one = TestDesk::new();
+    one.pin_reference("a", 1);
+    one.desk.flush().unwrap();
+    assert!(
+        one.desk.step(true, &mut one.history).unwrap().is_none(),
+        "只有一个时什么都不做"
+    );
+}
+
+#[test]
+fn group_shortcuts_exist_only_when_the_desk_switch_is_on() {
+    use kinshoko_core::ShortcutAction;
+    assert!(ShortcutAction::NextGroup.needs_desk_groups());
+    assert!(!ShortcutAction::Capture.needs_desk_groups());
+}

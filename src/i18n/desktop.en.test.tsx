@@ -24,6 +24,7 @@ vi.mock("../ipc", () => ({
   deleteReferenceGroup: ipc.remove,
   restoreReferenceGroup: () => Promise.resolve(),
   purgeDeletedReferenceGroup: () => Promise.resolve(),
+  deskReferenceGroups: () => Promise.resolve({ onDesk: null, switchList: [], archived: [] }),
   captureHistory: () =>
     Promise.resolve([
       { id: "c1", width: 412, height: 380, createdAt: Date.now() - 5 * 60_000, pinned: true, collected: [] },

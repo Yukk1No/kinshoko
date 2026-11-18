@@ -38,6 +38,12 @@ const desktop: Translation<typeof zh> = {
     collectFirst: "Collect the screenshot into a library before adding it to a reference group",
     edgeHide: "Hide pins",
     close: "Close pin",
+    switchTo: "Switch to",
+    newGroup: "New reference group",
+    noOtherGroups: "No other reference groups",
+  },
+  deskGroups: {
+    unnamed: "Untitled {{time}}",
   },
   capture: {
     label: "Screenshot",

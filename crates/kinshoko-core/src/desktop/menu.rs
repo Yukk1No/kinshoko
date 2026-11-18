@@ -74,6 +74,11 @@ pub struct PinMenu {
     pub group: Option<String>,
     /// 画师点了遮蔽钉图上的小圆锁：只问“显示这张图？”（原生钉图，#285）。
     pub confirm_reveal: bool,
+    /// 参考组改成桌面（#593）的开关打开时：桌面上那个参考组的名称（没有名称为空）。这时菜单里没有
+    /// “更新参考组”“加入参考组”，有“切换到 ▸”。开关关着时为 `None`。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub desk: Option<String>,
 }
 
 impl PinMenu {
@@ -90,6 +95,7 @@ impl PinMenu {
             can_collect: capture && has_library,
             group,
             confirm_reveal: false,
+            desk: None,
         }
     }
 }

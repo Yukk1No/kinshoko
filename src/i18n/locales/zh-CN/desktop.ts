@@ -37,6 +37,15 @@ export default {
     collectFirst: "截图要先收藏进图库，才能加入参考组",
     edgeHide: "收起钉图",
     close: "关闭钉图",
+    /** 参考组改成桌面（#593）：子菜单与它的条目。 */
+    switchTo: "切换到",
+    newGroup: "新参考组",
+    noOtherGroups: "没有别的参考组",
+  },
+  /** 参考组改成桌面（#588）里各处共用的叫法。 */
+  deskGroups: {
+    /** 没有名称的参考组，后面跟最近保存的时间。 */
+    unnamed: "未命名 {{time}}",
   },
   /** 截图框选窗口（`CaptureOverlay`）。 */
   capture: {

@@ -38,6 +38,7 @@ vi.mock("../ipc", () => ({
   pinMenuAction: ipc.action,
   showPinNotice: ipc.notice,
   referenceGroups: ipc.groups,
+  deskReferenceGroups: () => Promise.reject(new Error("开关关着")),
 }));
 
 import { DesktopMenuView, menuAnchor, PinMenuItems } from "./PinMenu";
@@ -251,6 +252,47 @@ describe("钉图菜单项", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "加入参考组" }));
     expect(await screen.findByText("截图要先收藏进图库，才能加入参考组")).toBeTruthy();
     expect(ipc.groups).toHaveBeenCalledTimes(1);
+  });
+
+  it("参考组改成桌面（#593）：没有“更新参考组”“加入参考组”，“切换到”列出别的参考组和“新参考组”", async () => {
+    const deskGroups = vi.fn(() =>
+      Promise.resolve({
+        onDesk: "g1",
+        switchList: [
+          { id: "g1", name: "光影", memberCount: 2, libraryIds: [], updatedAt: 0, problem: null },
+          { id: "g2", name: "", memberCount: 1, libraryIds: [], updatedAt: 0, problem: null },
+        ],
+        archived: [{ id: "g3", name: "收着的", memberCount: 1, libraryIds: [], updatedAt: 0, problem: null }],
+      }),
+    );
+    const act = vi.fn();
+    render(
+      <Menu.Root open>
+        <Menu.Portal>
+          <Menu.Positioner>
+            <Menu.Popup aria-label="钉图菜单">
+              <PinMenuItems menu={{ ...reference, group: null, desk: "光影" }} act={act} deskGroups={deskGroups} />
+            </Menu.Popup>
+          </Menu.Positioner>
+        </Menu.Portal>
+      </Menu.Root>,
+    );
+    expect(screen.queryByRole("menuitem", { name: /更新参考组/ })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "加入参考组" })).toBeNull();
+    const trigger = screen.getByRole("menuitem", { name: /切换到/ });
+    expect(trigger.textContent).toContain("光影");
+    fireEvent.click(trigger);
+    const unnamed = await screen.findByRole("menuitem", { name: /^未命名/ });
+    expect(screen.queryByRole("menuitem", { name: "收着的" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "光影" })).toBeNull();
+    fireEvent.click(unnamed);
+    expect(act).toHaveBeenCalledWith("switch:g2");
+    fireEvent.click(trigger);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "新参考组" }));
+    expect(act).toHaveBeenCalledWith("newGroup");
+    cleanup();
+    show({ ...reference, group: null }); // 开关关着：仍是“加入参考组”
+    expect(screen.getByRole("menuitem", { name: "加入参考组" })).toBeTruthy();
   });
 });
 

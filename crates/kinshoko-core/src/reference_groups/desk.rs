@@ -276,6 +276,29 @@ impl Desk {
         Ok(self.replace(target, history)?)
     }
 
+    /// 按切换列表的先后换到下一个（`forward`）或上一个参考组，到头后回到另一头（快捷键，#594）。
+    /// 这样走不改切换列表的先后，连按能走完一圈。空桌时下一个是列表的第一个、上一个是最后一个。
+    /// 列表里没有别的参考组时什么都不换（`None`）。
+    pub fn step(
+        &mut self,
+        forward: bool,
+        history: &mut CaptureHistory,
+    ) -> Result<Option<Switched>, GroupError> {
+        self.flush()?;
+        let n = self.switch_list.len();
+        let at = self.switch_list.iter().position(|x| *x == self.group.id);
+        let next = match (at, forward) {
+            (Some(_), _) if n < 2 => return Ok(None),
+            (None, _) if n == 0 => return Ok(None),
+            (Some(i), true) => (i + 1) % n,
+            (Some(i), false) => (i + n - 1) % n,
+            (None, true) => 0,
+            (None, false) => n - 1,
+        };
+        let target = self.groups.get(&self.switch_list[next].clone())?;
+        Ok(Some(self.replace(target, history)?))
+    }
+
     /// 换到一张新的空桌。空桌不落盘、不用起名，钉上第一张后才出现在切换列表里。
     pub fn new_desk(&mut self, history: &mut CaptureHistory) -> Result<Switched, GroupError> {
         self.flush()?;

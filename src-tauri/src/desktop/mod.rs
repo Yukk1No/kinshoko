@@ -424,6 +424,9 @@ pub fn on_shortcut(app: &AppHandle, action: ShortcutAction) {
         ShortcutAction::Capture => capture::start(app),
         ShortcutAction::PinClipboard => pins::pin_clipboard_in_background(app),
         ShortcutAction::HideAllPins => edge::toggle_in_background(app),
+        ShortcutAction::PreviousGroup => desk_commands::step_in_background(app, false),
+        ShortcutAction::NextGroup => desk_commands::step_in_background(app, true),
+        ShortcutAction::NewGroup => desk_commands::new_desk_in_background(app),
     }
 }
 

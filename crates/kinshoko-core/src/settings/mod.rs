@@ -144,7 +144,7 @@ impl SettingsSnapshot {
         for action in ShortcutAction::ALL {
             let accelerator = match self.shortcuts.get(&action) {
                 Some(value) => value.as_deref(),
-                None => Some(action.default_accelerator()),
+                None => action.default_accelerator(),
             };
             if let Some(accelerator) = accelerator {
                 let normalized =
@@ -376,7 +376,7 @@ impl AppSettings {
     pub fn shortcut(&self, action: ShortcutAction) -> Option<&str> {
         match self.file.shortcuts.get(&action) {
             Some(bound) => bound.as_deref(),
-            None => Some(action.default_accelerator()),
+            None => action.default_accelerator(),
         }
     }
 

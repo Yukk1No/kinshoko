@@ -3,4 +3,4 @@
 /**
  * 可以绑定全局快捷键的动作。默认键沿用 Snipaste 的习惯。
  */
-export type ShortcutAction = "capture" | "pinClipboard" | "hideAllPins";
+export type ShortcutAction = "capture" | "pinClipboard" | "hideAllPins" | "previousGroup" | "nextGroup" | "newGroup";
