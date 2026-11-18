@@ -208,6 +208,25 @@ const subscriptions: Translation<typeof zh> = {
     view: "View",
     switchFailed: "Couldn't switch subscriptions: {{error}}",
   },
+  browse: {
+    tabs: "Subscription views",
+    following: "New",
+    recommended: "Recommended",
+    wall: "pixiv works",
+    work: "{{title}}, {{artist}}",
+    pages_one: "{{count}} page",
+    pages_other: "{{count}} pages",
+    page: "Page {{page}} of {{count}}",
+    openOnPixiv: "Open on pixiv",
+    close: "Collapse",
+    previous: "Previous",
+    next: "Next",
+    viewFull: "View full image",
+    loading: "Loading",
+    empty: "No works",
+    failed: "Couldn't load: {{error}}",
+    retry: "Retry",
+  },
 };
 
 export default subscriptions;
