@@ -16,7 +16,7 @@ describe("轻提示是磨砂卡片（设计系统 v3）", () => {
   });
 
   it("隐去的关闭按钮仍占位，悬停不挤窄文字、不让提示换行变高（#388）", () => {
-    expect(rule(".k-toast-close").width).toBe("28px");
+    expect(rule(".k-toast-close").width).toBe("var(--h-sm)");
     for (const state of [
       '.k-toast:not([data-tone="error"]) .k-toast-close',
       '.k-toast:not([data-tone="error"]):is(:hover, :focus-within) .k-toast-close',

@@ -360,7 +360,7 @@
   outline-offset: var(--focus-offset);
 }
 .welcome-choice:disabled {
-  opacity: 0.55;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 .welcome-choice-tile {
@@ -482,7 +482,7 @@
   color: var(--ink);
 }
 .k-btn.is-lg {
-  height: 40px;
+  height: var(--h-lg);
   padding: 0 18px;
   border-radius: var(--r);
 }
@@ -857,6 +857,6 @@
 }
 /* 不可用的“用来源的”明显变淡。 */
 .k-note .k-note-acts .k-btn:disabled {
-  opacity: 0.45;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }

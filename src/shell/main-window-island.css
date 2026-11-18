@@ -21,8 +21,8 @@
   height: 40px;
   padding: 0 var(--density-pad);
   overflow: hidden;
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-pop);
   color: var(--ink-3);
 }
@@ -147,8 +147,8 @@
   padding: 0;
   border: 0;
   border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-pop);
   color: var(--accent-strong);
 }
