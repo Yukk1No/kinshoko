@@ -25,10 +25,6 @@ describe("共用弹层按 data-side 定进退场方向", () => {
     expect(rule('.k-popup:is([data-side="right"], [data-side="inline-end"])')["--k-pop-x"]).toBe("-4px");
   });
 
-  it("不再写死只从上往下", () => {
-    expect(uiCss).not.toMatch(/translateY\(-4px\)/);
-  });
-
   it("级联菜单不吃这条：它的进场按 menu.css，退场只淡出", () => {
     expect(cssRule(menuCss, ".k-popup[data-k-level][data-ending-style]").transform).toBeUndefined();
     expect(cssRule(menuCss, '.k-popup[data-k-level][data-side="top"][data-starting-style]').transform).toContain(

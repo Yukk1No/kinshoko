@@ -51,6 +51,11 @@ export function rememberImportDestination(destination: SaveDestination): Promise
   return invoke<void>(lib("remember_import_destination"), { destination });
 }
 
+/** 应用内浏览（#461）收进资料库时亲手选定了保存目标。 */
+export function rememberPixivDestination(destination: SaveDestination): Promise<void> {
+  return invoke<void>(lib("remember_pixiv_destination"), { destination });
+}
+
 /** 亲手选定了新建资料库的位置。 */
 export function rememberNewLibraryParent(parent: string): Promise<void> {
   return invoke<void>(lib("remember_new_library_parent"), { parent });

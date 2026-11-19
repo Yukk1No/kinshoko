@@ -16,7 +16,7 @@ const ipc = vi.hoisted(() => ({
   remove: vi.fn(() => Promise.resolve({ groupId: "g1", name: "Hair" })),
 }));
 vi.mock("../ipc", () => ({
-  saveMemory: () => Promise.resolve({ importDestination: null, newLibraryParent: null }),
+  saveMemory: () => Promise.resolve({ importDestination: null, newLibraryParent: null, pixivDestination: null }),
   referenceGroups: ipc.groups,
   referenceGroup: ipc.group,
   deleteReferenceGroup: ipc.remove,

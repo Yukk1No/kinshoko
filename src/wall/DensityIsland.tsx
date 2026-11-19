@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import { Image } from "lucide-react";
-import { arcSpring } from "../ui/Dock";
+import { arcSpring } from "../ui/motion";
 import { useReducedMotion } from "../ui/reducedMotion";
 import { DensitySlider } from "./DensitySlider";
 

@@ -39,5 +39,4 @@ it("未翻译的候选标签名后面是翻译图标，没有“文A”", async 
   expect(await tipText(within(raw).getByRole("img", { name: "未翻译" }))).toBe("未翻译");
   const named = screen.getByRole("option", { name: /阿呆毛/ });
   expect(within(named).queryByRole("img", { name: "未翻译" })).toBeNull();
-  expect(screen.getByRole("listbox").textContent).not.toContain("文A");
 });

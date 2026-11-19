@@ -66,7 +66,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         if: steps.check.outputs.bump == 'true'
         with:
-          toolchain: "1.95"
+          toolchain: "1.100"
 
       - name: 改版本号并提交
         if: steps.check.outputs.bump == 'true'

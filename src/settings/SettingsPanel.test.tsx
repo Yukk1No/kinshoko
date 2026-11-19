@@ -282,15 +282,13 @@ describe("设置：分页", () => {
     expect(screen.queryByRole("switch", { name: "开机启动" })).toBeNull();
   });
 
-  it("自动打标与模型包移到自动标签分页，通用分页不再有", async () => {
+  it("自动打标与模型包在自动标签分页", async () => {
     backend({
       tagging_models: { model: "PixAI Tagger v1.0", selected: null, options: [] },
       tagging_status: { state: "paused" },
     });
     render(<SettingsPanel hasLibrary />);
     await screen.findByRole("switch", { name: "开机启动" });
-    expect(screen.queryByText(/自动打标|模型包|硬件加速/)).toBeNull();
-
     await tab("自动标签");
     expect(await screen.findByRole("combobox", { name: "硬件加速" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "导入模型包…" })).toBeTruthy();

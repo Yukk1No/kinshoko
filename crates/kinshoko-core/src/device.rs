@@ -34,6 +34,8 @@ pub struct SaveMemory {
     pub import_destination: Option<SaveDestination>,
     #[ts(type = "string | null")]
     pub new_library_parent: Option<PathBuf>,
+    /// 应用内浏览（#461）收进资料库时亲手选的。
+    pub pixiv_destination: Option<SaveDestination>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -129,12 +131,16 @@ impl DeviceRegistry {
             next.last_opened = None;
         }
         let memory = &mut next.save_memory;
-        if memory
-            .import_destination
-            .as_ref()
-            .is_some_and(|destination| destination.library_id == id)
-        {
-            memory.import_destination = None;
+        for remembered in [
+            &mut memory.import_destination,
+            &mut memory.pixiv_destination,
+        ] {
+            if remembered
+                .as_ref()
+                .is_some_and(|destination| destination.library_id == id)
+            {
+                *remembered = None;
+            }
         }
         self.save(&next)?;
         self.state = next;
@@ -150,6 +156,22 @@ impl DeviceRegistry {
         &mut self,
         destination: &SaveDestination,
     ) -> std::io::Result<()> {
+        self.remember_destination(destination, |memory| &mut memory.import_destination)
+    }
+
+    /// 应用内浏览收进资料库时亲手选定的保存目标（#461）。规则同导入。
+    pub fn remember_pixiv_destination(
+        &mut self,
+        destination: &SaveDestination,
+    ) -> std::io::Result<()> {
+        self.remember_destination(destination, |memory| &mut memory.pixiv_destination)
+    }
+
+    fn remember_destination(
+        &mut self,
+        destination: &SaveDestination,
+        entry: impl FnOnce(&mut SaveMemory) -> &mut Option<SaveDestination>,
+    ) -> std::io::Result<()> {
         if !self
             .state
             .libraries
@@ -159,7 +181,7 @@ impl DeviceRegistry {
             return Ok(());
         }
         let mut next = self.state.clone();
-        next.save_memory.import_destination = Some(destination.clone());
+        *entry(&mut next.save_memory) = Some(destination.clone());
         self.save(&next)?;
         self.state = next;
         Ok(())

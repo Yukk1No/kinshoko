@@ -1,7 +1,7 @@
 // 查看器开合时缩略图与原图之间的共享元素过渡（#449）。
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { motion } from "motion/react";
-import { arcSpring } from "../ui/Dock";
+import { arcSpring } from "../ui/motion";
 import { useReducedMotion } from "../ui/reducedMotion";
 import type { BrowserCard } from "../wall/wallShared";
 

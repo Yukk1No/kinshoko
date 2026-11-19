@@ -80,6 +80,20 @@ pub(super) async fn remember_import_destination<R: Runtime>(
     .await
 }
 
+/// 应用内浏览（#461）收进资料库时亲手选定了保存目标。
+#[tauri::command]
+pub(super) async fn remember_pixiv_destination<R: Runtime>(
+    app: AppHandle<R>,
+    destination: kinshoko_core::library::SaveDestination,
+) -> Result<(), CommandError> {
+    blocking(move || {
+        with_libraries(&app.state::<LibraryState>(), |libraries| {
+            libraries.remember_pixiv_destination(&destination)
+        })
+    })
+    .await
+}
+
 /// 亲手选定了新建资料库的位置。
 #[tauri::command]
 pub(super) async fn remember_new_library_parent<R: Runtime>(

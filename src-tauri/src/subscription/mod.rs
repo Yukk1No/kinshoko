@@ -12,8 +12,11 @@ use std::time::Duration;
 
 use kinshoko_core::command_error::{CommandError, ErrorKind};
 use kinshoko_core::library::{SaveDestination, SubscriptionPage};
+use kinshoko_core::subscription::image_cache::{IMAGE_CACHE_BYTES, ImageCache};
 use kinshoko_core::subscription::pace::Pacers;
-use kinshoko_core::subscription::pixiv::{LoginRequest, LoginState, PixivAccount, PixivSource};
+use kinshoko_core::subscription::pixiv::{
+    LoginRequest, LoginState, PixivAccount, PixivImages, PixivSource,
+};
 use kinshoko_core::subscription::{
     Destination, ReceivedImage, SourceError, SourceId, Store, Subscription, SubscriptionStatus,
     check, schedule,
@@ -24,6 +27,7 @@ use crate::shell::ShellState;
 use crate::sync::lock;
 
 mod badge;
+pub mod browse;
 pub mod login;
 pub mod roster;
 
@@ -60,6 +64,10 @@ pub struct SubscriptionState {
     foreground_cancel: Arc<AtomicBool>,
     checking: AtomicBool,
     login: Mutex<Option<Arc<LoginRequest>>>,
+    /// 应用内浏览的图片转发与磁盘缓存（#461）。
+    images: PixivImages,
+    /// 关掉订阅开关时置位，正在排队的图片请求不再发出；打开时清掉。
+    images_cancel: AtomicBool,
 }
 
 impl SubscriptionState {
@@ -94,6 +102,11 @@ pub fn manage(app: &AppHandle) {
     if dir.join("pixiv-webview.remove").exists() {
         remove_login_profile(&dir);
     }
+    let pacers = Arc::new(Pacers::default());
+    let images = PixivImages::new(
+        pacers.clone(),
+        ImageCache::new(dir.join("browse-images"), IMAGE_CACHE_BYTES),
+    );
     let store = match Store::open(&dir) {
         Ok(store) => Arc::new(store),
         Err(e) => {
@@ -104,7 +117,7 @@ pub fn manage(app: &AppHandle) {
     app.manage(SubscriptionState {
         store,
         account: Arc::new(PixivAccount::open(&dir)),
-        pacers: Arc::new(Pacers::default()),
+        pacers,
         dir,
         wake: Mutex::new(Wake::default()),
         signal: Condvar::new(),
@@ -112,6 +125,8 @@ pub fn manage(app: &AppHandle) {
         foreground_cancel: Arc::new(AtomicBool::new(false)),
         checking: AtomicBool::new(false),
         login: Mutex::new(None),
+        images,
+        images_cancel: AtomicBool::new(false),
     });
     let worker = app.clone();
     std::thread::Builder::new()
@@ -338,6 +353,7 @@ pub async fn set_subscriptions_enabled(
         .map_err(CommandError::system)?
         .settings
         .set_subscriptions(on)?;
+    state.images_cancel.store(!on, Ordering::SeqCst);
     if !on {
         state.cancel.store(true, Ordering::SeqCst);
         state.foreground_cancel.store(true, Ordering::SeqCst);

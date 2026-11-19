@@ -127,8 +127,23 @@ pub fn skipped(model: &LocalModel, ep: Ep, n: usize, reason: String) -> Run {
     Run { report, scores: (0..n).map(|_| None).collect() }
 }
 
+/// The process-wide ONNX Runtime environment. Since ort 2.0.0-rc.15 sessions take one, and a process may build only one.
+fn environment() -> ort::Result<&'static ort::environment::Environment> {
+    static ENV: std::sync::OnceLock<ort::environment::Environment> = std::sync::OnceLock::new();
+    static BUILDING: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    if let Some(env) = ENV.get() {
+        return Ok(env);
+    }
+    let _guard = BUILDING.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(env) = ENV.get() {
+        return Ok(env);
+    }
+    let env = ort::init().build()?;
+    Ok(ENV.get_or_init(|| env))
+}
+
 fn build(model: &LocalModel, ep: Ep, profile: Option<&Path>) -> ort::Result<Session> {
-    let mut b = Session::builder()?;
+    let mut b = Session::builder(environment()?)?;
     if ep == Ep::DirectMl {
         // DirectML requires sequential execution without memory patterns.
         b = b
