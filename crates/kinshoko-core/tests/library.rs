@@ -198,7 +198,7 @@ fn a_folder_import_does_not_follow_a_directory_link_back_into_its_own_ancestry()
     write_png(&src.join("a.png"), 8, 8, 1);
     write_png(&src.join("人物/b.png"), 8, 8, 2);
     // 子文件夹里的链接指回所选文件夹：沿它展开会一层层绕回同一批图。
-    link_dir(&src, &src.join("人物/回到上层"));
+    link_dir(&src, &src.join("人物").join("回到上层"));
 
     let names = |report: &kinshoko_core::library::ImportReport, root: &Path| {
         let mut names: Vec<(String, bool)> = report
@@ -221,7 +221,7 @@ fn a_folder_import_does_not_follow_a_directory_link_back_into_its_own_ancestry()
     );
 
     // 直接选中的链接照常展开，只有绕回它自己的那一层不再进入。
-    let link = src.join("人物/回到上层");
+    let link = src.join("人物").join("回到上层");
     let report = import_all(&library, std::slice::from_ref(&link));
     assert_eq!(
         names(&report, &link),
