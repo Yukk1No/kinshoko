@@ -465,7 +465,7 @@
   opacity: var(--disabled-opacity);
   cursor: default;
 }
-/* 加标签：行内的轻操作，设计系统 Button is-ghost（accent-strong 字，悬停 accent-soft）。 */
+/* 加标签：行内的轻操作，accent-strong 字，悬停 accent-soft。 */
 .k-group-add {
   display: inline-flex;
   align-items: center;

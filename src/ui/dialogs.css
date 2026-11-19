@@ -44,13 +44,8 @@
 .k-btn.is-quiet:hover:not(:disabled) {
   color: var(--ink);
 }
-.k-btn.is-flush {
-  --k-face-hover: transparent;
-  --k-face-press: transparent;
-  padding-left: 0;
-}
-.k-btn.is-flush:hover:not(:disabled) {
-  text-decoration: underline;
+.legacy-name-migration > .k-dialog-foot > .k-link {
+  margin-left: 0;
 }
 .k-btn:disabled {
   opacity: var(--disabled-opacity);

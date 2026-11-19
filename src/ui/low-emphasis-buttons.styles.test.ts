@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { cssRule } from "./cssRule";
 
 const sources = import.meta.glob<string>(["../**/*.{css,ts,tsx}", "!./low-emphasis-buttons.styles.test.ts"], {
   query: "?raw",
@@ -14,6 +15,12 @@ function retiredClasses(text: string): string[] {
 }
 
 describe("低强调按钮", () => {
+  it("迁入页脚的文字链接不带行内链接的左外边距", () => {
+    expect(cssRule(sources["./dialogs.css"], ".legacy-name-migration > .k-dialog-foot > .k-link")).toMatchObject({
+      "margin-left": "0",
+    });
+  });
+
   it("旧类名不再出现在 src/ 的用处或样式定义里", () => {
     const hits = Object.entries(sources).flatMap(([path, text]) =>
       retiredClasses(text)

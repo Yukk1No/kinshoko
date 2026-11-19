@@ -188,7 +188,7 @@ function TaggingStatusRow({
   const act = (f: () => Promise<void>) => () =>
     void f().catch((e) => toast.error(i18n.t("tagging:notice.actionFailed", { error: errorText(e) })));
   const button = (name: string, f: () => Promise<void>, primary = false) => (
-    <button type="button" className={`k-btn is-sm${primary ? "" : " is-ghost"}`} onClick={act(f)}>
+    <button type="button" className={`k-btn is-sm${primary ? "" : " is-quiet"}`} onClick={act(f)}>
       <span className="k-label">{name}</span>
     </button>
   );
@@ -223,7 +223,7 @@ function TaggingStatusRow({
         unfinished > 0 && (
           <>
             {onShowUnfinished && (
-              <button type="button" className="k-btn is-sm is-ghost" onClick={onShowUnfinished}>
+              <button type="button" className="k-btn is-sm is-quiet" onClick={onShowUnfinished}>
                 <span className="k-label">{t("show")}</span>
               </button>
             )}

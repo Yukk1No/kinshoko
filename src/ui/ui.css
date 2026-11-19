@@ -82,15 +82,6 @@
   --k-lift-press: var(--btn-danger-lift-press);
   color: var(--on-solid);
 }
-.k-btn.is-ghost {
-  --k-face: transparent;
-  --k-face-hover: var(--accent-soft);
-  --k-face-press: var(--accent-soft);
-  --k-lift: none;
-  --k-lift-hover: none;
-  --k-lift-press: none;
-  color: var(--accent-strong);
-}
 /* 不可用：留细线、去掉投影，实底按钮直接平掉 */
 .k-btn:disabled {
   --k-lift: var(--btn-lift-disabled);

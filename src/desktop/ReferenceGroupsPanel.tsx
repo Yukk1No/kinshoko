@@ -437,7 +437,7 @@ export function ReferenceGroupsPanel() {
         })}
       </ul>
       <footer className="reference-groups-foot">
-        <button type="button" className="k-btn is-sm is-ghost" onClick={() => setImporting(true)}>
+        <button type="button" className="k-btn is-sm is-quiet" onClick={() => setImporting(true)}>
           <FolderInput size={13} aria-hidden="true" />
           <span className="k-label">{t("import")}</span>
         </button>
