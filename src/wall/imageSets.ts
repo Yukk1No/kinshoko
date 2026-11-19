@@ -30,6 +30,15 @@ export function pagesOf(cards: readonly BrowserCard[]): BrowserCard[] {
   return cards.flatMap((card) => (card.set ? (card.set.pages as BrowserCard[]) : [card]));
 }
 
+export function withoutPages(cards: BrowserCard[], ids: ReadonlySet<string>): BrowserCard[] {
+  return cards.flatMap((card) => {
+    if (!card.set) return ids.has(card.id) ? [] : [card];
+    const pages = card.set.pages.filter((page) => !ids.has(page.id));
+    if (pages.length === card.set.pages.length) return [card];
+    return pages.length ? [{ ...pages[0], set: { ...card.set, pages } }] : [];
+  });
+}
+
 /** 查看器里看的那一张（#418）：从整摞打开时是它的第 1 页，不带 `set`，查看器里的删除因此只作用于这一页。 */
 export function viewedPage(card: BrowserCard): BrowserCard {
   return card.set ? (card.set.pages[0] as BrowserCard) : card;

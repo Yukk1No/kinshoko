@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
@@ -46,6 +46,104 @@ afterEach(() => {
 
 const shown = () => [...document.querySelectorAll<HTMLElement>(".card")].map((node) => node.dataset.id);
 const total = () => document.querySelector<HTMLElement>(".wall")?.dataset.total;
+
+it.each([[], ["missing"], ["p0"], ["p1"], ["p0", "p2"], ["p0", "p1", "p2"]].map((ids) => ({ ids })))(
+  "optimistically removes only addressed stack pages %j and restores failures",
+  async ({ ids }) => {
+    const pages = ["p0", "p1", "p2"].map(card);
+    fakeBackend({
+      workspace_browse: {
+        cards: [{ ...pages[0], set: { key: "pixiv:9", pages } }],
+        total: 1,
+        images: 3,
+        nextCursor: null,
+        status: { revision: "r", libraries: [] },
+      } satisfies WorkspacePage,
+    });
+    const ref = createRef<WallHandle>();
+    const onTotalChange = vi.fn();
+    const onCardsChange = vi.fn();
+    render(
+      <Wall
+        ref={ref}
+        scope={{ kind: "all" }}
+        workspaceScope={{ kind: "all" }}
+        selected={new Set()}
+        onSelectionChange={() => {}}
+        onOpenImage={() => {}}
+        viewerOpen={false}
+        reloadKey={0}
+        stackSets
+        onTotalChange={onTotalChange}
+        onCardsChange={onCardsChange}
+      />,
+    );
+    await settle();
+    fireEvent.click(screen.getByRole("button", { name: "3 张" }));
+    let done!: (failed: string[]) => void;
+    act(() => {
+      done = ref.current!.remove(ids);
+    });
+    const remaining = pages.map((page) => page.id).filter((id) => !ids.includes(id));
+    expect(shown()).toEqual(remaining);
+    expect(total()).toBe(remaining.length ? "1" : "0");
+    expect(onTotalChange).toHaveBeenLastCalledWith(remaining.length);
+    if (remaining.length) expect(document.querySelector(".wall-tray")).not.toBeNull();
+    act(() => done(ids));
+    if (!remaining.length) fireEvent.click(screen.getByRole("button", { name: "3 张" }));
+    expect(shown()).toEqual(["p0", "p1", "p2"]);
+    expect(total()).toBe("1");
+    expect(onTotalChange).toHaveBeenLastCalledWith(3);
+    expect(onCardsChange.mock.lastCall![0]).toEqual(pages);
+    act(() => done(ids));
+    expect(shown()).toEqual(["p0", "p1", "p2"]);
+  },
+);
+
+it("keeps pending page removals across reload and restores only failed pages in order", async () => {
+  const pages = ["p0", "p1", "p2"].map(card);
+  fakeBackend({
+    workspace_browse: {
+      cards: [card("a"), { ...pages[0], set: { key: "pixiv:9", pages } }, card("b")],
+      total: 3,
+      images: 5,
+      nextCursor: null,
+      status: { revision: "r", libraries: [] },
+    } satisfies WorkspacePage,
+  });
+  const ref = createRef<WallHandle>();
+  const onTotalChange = vi.fn();
+  const onCardsChange = vi.fn();
+  const props = {
+    scope: { kind: "all" as const },
+    workspaceScope: { kind: "all" as const },
+    selected: new Set<string>(),
+    onSelectionChange: () => {},
+    onOpenImage: () => {},
+    viewerOpen: false,
+    stackSets: true,
+    onTotalChange,
+    onCardsChange,
+  };
+  const view = render(<Wall ref={ref} {...props} reloadKey={0} />);
+  await settle();
+  let done!: (failed: string[]) => void;
+  act(() => {
+    done = ref.current!.remove(["p0", "p2"]);
+  });
+  expect(shown()).toEqual(["a", "p1", "b"]);
+  expect(onCardsChange.mock.lastCall![0][1]).toEqual({ ...pages[1], set: { key: "pixiv:9", pages: [pages[1]] } });
+  view.rerender(<Wall ref={ref} {...props} reloadKey={1} />);
+  await settle();
+  expect(shown()).toEqual(["a", "p1", "b"]);
+  expect(onTotalChange).toHaveBeenLastCalledWith(3);
+  act(() => done(["p2"]));
+  expect(onCardsChange.mock.lastCall![0][1]).toEqual({
+    ...pages[1],
+    set: { key: "pixiv:9", pages: [pages[1], pages[2]] },
+  });
+  expect(onTotalChange).toHaveBeenLastCalledWith(4);
+});
 
 it("先移走卡片，不等重新浏览；放回的那部分回到原位（#290）", async () => {
   const ref = createRef<WallHandle>();
