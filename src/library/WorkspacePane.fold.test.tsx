@@ -1,13 +1,21 @@
 // 子文件夹的折起（#608）：点有子文件夹的文件夹图标折起或展开，不选中这一行；← 折起、→ 展开；每个图库各记一份。
-import { afterEach, expect, it } from "vitest";
-import { fireEvent, screen, within } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
+import { act, fireEvent, screen, within } from "@testing-library/react";
+import { tipText } from "../test/tip";
 import { WorkspacePane } from "./WorkspacePane";
 import { props, section, inA, loaded } from "./WorkspacePane.fixtures";
 
-afterEach(() => localStorage.clear());
+afterEach(() => {
+  vi.useRealTimers();
+  localStorage.clear();
+});
 
 const parentItem = () => within(section("A")).getByRole("treeitem", { name: "人物" });
-const child = () => within(section("A")).queryByRole("button", { name: "动作（1 张）" });
+/** 看得见、能操作的子文件夹行；正在收起（inert，放收起动画）的不算。 */
+const child = () => {
+  const row = within(section("A")).queryByRole("button", { name: "动作（1 张）" });
+  return row?.closest("[inert]") ? null : row;
+};
 
 it("点图标折起、再点展开，不改正在看的范围；折起的状态记在本机", async () => {
   const view = await loaded();
@@ -45,4 +53,21 @@ it("选中的文件夹在折起的分支里时，从图库菜单新建文件夹�
   fireEvent.click(await screen.findByRole("menuitem", { name: "新建文件夹" }));
   expect(within(section("A")).getByRole("textbox", { name: "新文件夹名称" })).toBeTruthy();
   expect(child()).toBeTruthy();
+});
+
+it("折起时子文件夹那一块先留着放收起动画（不可操作），放完再拿掉；悬停图标写明折起还是展开", async () => {
+  const view = await loaded();
+  view.rerender(<WorkspacePane {...props} scope={inA({ kind: "unassigned" })} />);
+  const icon = parentItem().querySelector<HTMLElement>(".k-fold")!;
+  expect(await tipText(icon)).toBe("折起子文件夹");
+  vi.useFakeTimers();
+  fireEvent.click(icon);
+  const group = parentItem().querySelector<HTMLElement>(":scope > ul")!;
+  expect(group.hasAttribute("data-closing")).toBe(true);
+  expect(group.hasAttribute("inert")).toBe(true);
+  act(() => {
+    vi.advanceTimersByTime(400);
+  });
+  expect(parentItem().querySelector(":scope > ul")).toBeNull();
+  vi.useRealTimers();
 });

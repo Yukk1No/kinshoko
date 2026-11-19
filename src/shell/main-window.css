@@ -439,6 +439,26 @@
 .sidebar-tree .sidebar-tree {
   position: relative;
   padding-left: 0;
+  /* 展开时这一块从 0 高长出来，折起时缩回去再拿掉（SidebarPane 留着它放完）。 */
+  interpolate-size: allow-keywords;
+  height: auto;
+  overflow: clip;
+  overflow-clip-margin: 6px;
+  transition:
+    height var(--t-slow) var(--spring),
+    opacity var(--t) var(--ease);
+}
+@starting-style {
+  .sidebar-tree .sidebar-tree {
+    height: 0;
+  }
+}
+.sidebar-tree .sidebar-tree[data-closing] {
+  height: 0;
+  opacity: 0;
+  transition:
+    height var(--t) var(--ease),
+    opacity var(--t-fast) var(--ease);
 }
 /* 子文件夹的层级（#608）：每深一层整行（纸片、悬停的底一起）缩进 16 px，文字左内边距不变。 */
 .sidebar-tree > li > .k-fluid-row,

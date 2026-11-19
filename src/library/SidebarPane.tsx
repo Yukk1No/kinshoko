@@ -15,6 +15,7 @@ import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import { useToast } from "../ui/Toast";
 import { FoldIcon } from "./FoldIcon";
 import { useFolded } from "./useFolded";
+import { Tip } from "../ui/Tip";
 
 /** 侧栏里拖动文件夹时放进 dataTransfer 的类型，值为文件夹 id。 */
 export const DRAG_FOLDER = "application/x-kinshoko-folder";
@@ -92,7 +93,7 @@ export function SidebarPane({
   /** 右键“新建子文件夹”所在的文件夹。 */
   const [creatingUnder, setCreatingUnder] = useState<string | null>(null);
   const toast = useToast();
-  const [folded, toggleFold] = useFolded(libraryId);
+  const [folded, toggleFold, closing] = useFolded(libraryId);
 
   const run = (p: Promise<unknown>) => p.catch((e) => onError(e));
 
@@ -157,8 +158,14 @@ export function SidebarPane({
 
   // Rows join one fluid-hover list in visible (pre-order) order.
   let row = 0;
-  const tree = (nodes: FolderNode[], depth = 0) => (
-    <ul role="group" className="sidebar-tree" style={{ "--depth": depth } as CSSProperties}>
+  const tree = (nodes: FolderNode[], depth = 0, folding = false) => (
+    <ul
+      role="group"
+      className="sidebar-tree"
+      style={{ "--depth": depth } as CSSProperties}
+      data-closing={folding || undefined}
+      inert={folding}
+    >
       {nodes.map((node, i) => {
         const parent = node.children.length > 0;
         // 要在这一支里新建文件夹时，沿路折起的先展开，名字输入框才看得见。
@@ -225,22 +232,24 @@ export function SidebarPane({
                     }
                   >
                     {parent ? (
-                      // 点图标折起或展开，不选中这一行；连点两下也不进入改名。
-                      <span
-                        className="k-row-icon k-fold"
-                        aria-hidden="true"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          toggleFold(node.id);
-                        }}
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                        }}
-                      >
-                        <FoldIcon />
-                      </span>
+                      // 点图标折起或展开，不选中这一行；连点两下也不进入改名。悬停写明点它做什么。
+                      <Tip label={fold ? t("folders.unfold") : t("folders.fold")} side="right" focus={false}>
+                        <span
+                          className="k-row-icon k-fold"
+                          aria-hidden="true"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            toggleFold(node.id);
+                          }}
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }}
+                        >
+                          <FoldIcon />
+                        </span>
+                      </Tip>
                     ) : (
                       <span className="k-row-icon" aria-hidden="true">
                         <Folder size={15} />
@@ -280,7 +289,7 @@ export function SidebarPane({
             )}
             {(parent || newParent === node.id) && (
               <>
-                {parent && !fold && tree(node.children, depth + 1)}
+                {parent && (!fold || closing.has(node.id)) && tree(node.children, depth + 1, fold)}
                 {newParent === node.id && newInput}
               </>
             )}
