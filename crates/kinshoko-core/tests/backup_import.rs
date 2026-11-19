@@ -143,3 +143,27 @@ fn a_backup_target_without_a_complete_snapshot_has_no_latest() {
         Err(BackupError::TargetUnavailable(_) | BackupError::UnknownSnapshot)
     ));
 }
+
+/// 盘符根目录当备份目标时，Windows 自带的隐藏文件夹（`System Volume Information` 等）不妨碍认出备份。
+#[cfg(windows)]
+#[test]
+fn a_backup_drive_with_windows_hidden_folders_is_still_a_whole_backup() {
+    let device = Device::new();
+    let backups = tempfile::tempdir().unwrap();
+    let target = target(backups.path());
+    assert!(device.backup(&target, at(0, 1)).complete);
+    let drive = backups.path().join("移动盘");
+    let system = drive.join("System Volume Information");
+    std::fs::create_dir(&system).unwrap();
+    assert!(
+        !kinshoko_core::backup::is_whole_backup(&drive),
+        "看得见的文件夹照常导入"
+    );
+    let hidden = std::process::Command::new("attrib")
+        .arg("+h")
+        .arg(&system)
+        .status()
+        .unwrap();
+    assert!(hidden.success());
+    assert!(kinshoko_core::backup::is_whole_backup(&drive));
+}
