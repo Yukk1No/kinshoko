@@ -16,6 +16,7 @@ type Folder = { id: string; name: string; count: number; children: Folder[] };
 const folder = (id: string, name: string, count: number, children: Folder[] = []): Folder => ({ id, name, count, children });
 /** 第八轮看层级要有第三层：C4f、C4g 里“发型”下面多两个文件夹。 */
 const params = new URLSearchParams(location.search);
+const notices = params.has("notices");
 const deep = ["c4f", "c4g", "c4h", "ra", "rb", "rc", "rd", "re"].includes(params.get("variant") ?? "") || params.has("deep");
 const sidebars: Record<string, { all: number; trash: number; folders: Folder[] }> = {
   L1: {
@@ -122,7 +123,8 @@ const replies: Record<string, Reply> = {
   import_contains_eagle: () => false,
   save_memory: () => ({ importDestination: null, newLibraryParent: null }),
   recovery: () => ({ interrupted: [], orphans: [], discardedStaging: 0 }),
-  tagging_status: () => ({ state: "idle", model: "PixAI Tagger v1.0", device: "gpu", gpu: null, tagged: 1640, unknown: 0, failed: { count: 0, sample: [] } }),
+  // ?notices：模型待下载、有新版本，看通知停在哪（#609）。
+  tagging_status: () => notices ? { state: "needsDownload", model: "PixAI Tagger v1.0", size: 992_916_002, downloaded: 0, fallback: null, cancelled: false } : ({ state: "idle", model: "PixAI Tagger v1.0", device: "gpu", gpu: null, tagged: 1640, unknown: 0, failed: { count: 0, sample: [] } }),
   capture_history: () => [],
   take_collection_request: () => null,
   reference_groups: () => [],
@@ -131,7 +133,7 @@ const replies: Record<string, Reply> = {
   take_open_request: () => null,
   double_click: () => null,
   plan_legacy_names: () => ({ plan: { libraries: [], entries: [], groups: [] }, libraries: registrations }),
-  update_status: () => ({ state: "upToDate" }),
+  update_status: () => (notices ? { state: "available", version: "1.2.0" } : { state: "upToDate" }),
   backup_status: () => ({ plan: { target: null, selection: { kind: "all" }, lastSuccess: null, lastSnapshot: null, lastFailure: null, due: false }, running: null, lastReport: null }),
   log_timing: () => null,
   log_frontend: () => null,
