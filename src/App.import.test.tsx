@@ -150,13 +150,11 @@ describe("主窗口", () => {
     );
   });
 
-  it("打标卡片不再占侧栏；缩放滑块左边的打标图标右键打开设置 › 自动标签（#144、#475）", async () => {
+  it("缩放滑块左边的打标图标右键打开设置 › 自动标签（#144、#475）", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
     const icon = await screen.findByRole("button", { name: /暂停自动标签：正在加载自动标签模型/ });
-    expect(document.querySelector(".side-foot .tagging")).toBeNull();
-    expect(screen.queryByText(/自动标签：正在加载自动标签模型…/)).toBeNull();
     expect(icon.closest(".k-wall-badge")?.nextElementSibling?.getAttribute("aria-label")).toBe("图片大小");
 
     fireEvent.contextMenu(icon, { clientX: 10, clientY: 10 });

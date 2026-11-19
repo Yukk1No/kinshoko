@@ -4,13 +4,14 @@ import { PanelLeftOpen, PanelRight } from "lucide-react";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { ImportMenu, type ImportControl } from "../library/ImportMenu";
 import { SearchBox } from "../search/SearchBox";
-import { TagGroupBar } from "../search/TagGroupBar";
+import { TagGroupPicker } from "../search/TagGroupPicker";
 import { WinCtrls } from "../ui/WinCtrls";
 import { Tip } from "../ui/Tip";
 import { TagGroupsDialog } from "./TagGroupsDialog";
 import { useSearchTree } from "./useSearchTree";
 
-// 工作区顶栏、标签分组条与分组编辑对话框，原样从 LibraryWorkspace.tsx 移出。
+// 工作区顶栏与分组编辑对话框（#607）：顶栏只有一行，查找框、导入、详情栏开关、窗口控件。
+// 张数只在有查找条件时出现，与标签分组一起放在查找框尾部（design/ui-system/main-window-material.md“顶栏”）。
 
 type Search = ReturnType<typeof useSearchTree>;
 type MenuProps = ComponentProps<typeof ImportMenu>;
@@ -88,12 +89,26 @@ export function WorkspaceTopbar({
           showSource={showApproxSource}
           onError={onError}
           onChange={changeSearch}
+          extras={
+            <>
+              {search.conditions.length > 0 && (
+                <span className="result-count tabular k-label" role="status" aria-label={t("results")}>
+                  {resultCount === null ? "…" : t("resultCount", { count: resultCount })}
+                </span>
+              )}
+              <TagGroupPicker
+                workspace
+                libraryId="workspace"
+                safe={safe}
+                generation={vocabularyKey}
+                input={search}
+                onChange={changeSearch}
+                onError={onError}
+                onEdit={() => setEditingGroups(true)}
+              />
+            </>
+          }
         />
-        <div className="bar-meta">
-          <span className="result-count tabular k-label" role="status" aria-label={t("results")}>
-            {resultCount === null ? "…" : t("resultCount", { count: resultCount })}
-          </span>
-        </div>
         <ImportMenu
           control={importControl}
           scope={workspaceScope}
@@ -114,7 +129,7 @@ export function WorkspaceTopbar({
               kind: "library",
               libraryId: destination.libraryId,
               // 没选文件夹时打开整个图库：Eagle 导入与合并的重复项会保留原有文件夹，“未归类”可能一张也看不到。
-              scope: destination.folderId === null ? { kind: "all" } : { kind: "folder", id: destination.folderId },
+              scope: destination.folderId === null ? { kind: "all" } : { kind: "folderTree", id: destination.folderId },
             });
             changeSearch((prev) => ({ ...prev, conditions: [] }));
           }}
@@ -135,18 +150,6 @@ export function WorkspaceTopbar({
           </>
         )}
       </header>
-      <div className="app-tagbar">
-        <TagGroupBar
-          workspace
-          libraryId="workspace"
-          safe={safe}
-          generation={vocabularyKey}
-          input={search}
-          onChange={changeSearch}
-          onError={onError}
-          onEdit={() => setEditingGroups(true)}
-        />
-      </div>
       <TagGroupsDialog
         open={editingGroups}
         onOpenChange={setEditingGroups}

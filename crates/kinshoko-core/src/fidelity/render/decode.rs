@@ -191,7 +191,9 @@ pub(super) fn cmyk_linear(
 
     // 存储值（0～255）：YCCK 先把 YCbCr 还原成（反相的）CMY。
     let stored: Vec<[f32; 4]> = raw
-        .chunks_exact(4)
+        .as_chunks::<4>()
+        .0
+        .iter()
         .map(|p| {
             let [a, b, c, k] = [p[0], p[1], p[2], p[3]].map(f32::from);
             if input == ColorSpace::YCCK {
@@ -222,7 +224,12 @@ pub(super) fn cmyk_linear(
                 .map_err(|e| format!("无法建立 CMYK 转换：{e:?}"))?
                 .transform(&ink, &mut rgb)
                 .map_err(|e| format!("CMYK 转换失败：{e:?}"))?;
-            for (o, p) in out.chunks_exact_mut(4).zip(rgb.chunks_exact(3)) {
+            for (o, p) in out
+                .as_chunks_mut::<4>()
+                .0
+                .iter_mut()
+                .zip(rgb.as_chunks::<3>().0)
+            {
                 o.copy_from_slice(&[p[0], p[1], p[2], 1.0]);
             }
         }
@@ -269,7 +276,7 @@ pub(super) fn hdr_linear(
         .max(REFERENCE_WHITE_NITS);
     let source = profiles::linear_of(&cicp_profile(cicp.primaries, 13)?);
     let to_xyz = source.rgb_to_xyz_matrix();
-    for px in rgba.chunks_exact_mut(4) {
+    for px in rgba.as_chunks_mut::<4>().0 {
         let nits: [f32; 3] = if cicp.transfer == 16 {
             [px[0], px[1], px[2]].map(pq_eotf)
         } else {

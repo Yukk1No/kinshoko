@@ -131,7 +131,7 @@ pub async fn export_diagnostics(
         let name = format!(
             "{}-{}.zip",
             ui_text::text(Text::DiagnosticsFileName),
-            chrono::Local::now().format("%Y%m%d-%H%M")
+            jiff::ZonedDateTime::now().strftime("%Y%m%d-%H%M")
         );
         let Some(path) = save_dialog(&app, &name, ui_text::text(Text::FilterZip), "zip") else {
             return Ok(false);

@@ -173,6 +173,63 @@ fn a_folder_import_walks_subfolders_and_lists_each_file_that_did_not_come_in() {
     assert_eq!(all(&library).len(), 3);
 }
 
+/// 在 `link` 建一个指向 `target` 的目录链接：Windows 上是目录联接（不需要权限），其他系统是符号链接。
+fn link_dir(target: &Path, link: &Path) {
+    #[cfg(windows)]
+    {
+        let status = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(link)
+            .arg(target)
+            .stdout(std::process::Stdio::null())
+            .status()
+            .unwrap();
+        assert!(status.success(), "mklink /J 失败");
+    }
+    #[cfg(not(windows))]
+    std::os::unix::fs::symlink(target, link).unwrap();
+}
+
+#[test]
+fn a_folder_import_does_not_follow_a_directory_link_back_into_its_own_ancestry() {
+    let dir = tempfile::tempdir().unwrap();
+    let library = Library::create(&dir.path().join("lib"), "库").unwrap();
+    let src = dir.path().join("参考");
+    write_png(&src.join("a.png"), 8, 8, 1);
+    write_png(&src.join("人物/b.png"), 8, 8, 2);
+    // 子文件夹里的链接指回所选文件夹：沿它展开会一层层绕回同一批图。
+    link_dir(&src, &src.join("人物").join("回到上层"));
+
+    let names = |report: &kinshoko_core::library::ImportReport, root: &Path| {
+        let mut names: Vec<(String, bool)> = report
+            .items
+            .iter()
+            .map(|item| {
+                let name = item.path.strip_prefix(root).unwrap();
+                let merged = matches!(item.outcome, ImportOutcome::Merged { .. });
+                (name.to_string_lossy().replace('\\', "/"), merged)
+            })
+            .collect();
+        names.sort();
+        names
+    };
+
+    let report = import_all(&library, std::slice::from_ref(&src));
+    assert_eq!(
+        names(&report, &src),
+        vec![("a.png".into(), false), ("人物/b.png".into(), false)]
+    );
+
+    // 直接选中的链接照常展开，只有绕回它自己的那一层不再进入。
+    let link = src.join("人物").join("回到上层");
+    let report = import_all(&library, std::slice::from_ref(&link));
+    assert_eq!(
+        names(&report, &link),
+        vec![("a.png".into(), true), ("人物/b.png".into(), true)]
+    );
+    assert_eq!(all(&library).len(), 2);
+}
+
 #[test]
 fn browsing_pages_through_every_image_once_with_a_keyset_cursor() {
     let dir = tempfile::tempdir().unwrap();

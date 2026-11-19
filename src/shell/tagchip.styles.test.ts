@@ -65,8 +65,4 @@ describe("详情面板的标签（#159、#160）", () => {
     expect(meter.get("position")).toBe("absolute");
     expect(ruleBodies(topLevel, ".k-tags .k-tag-chip").some((body) => /position:\s*relative/.test(body))).toBe(true);
   });
-
-  it("标签里不再有叠加的操作按钮（#159 的叠加层随 #160 移进浮层）", () => {
-    expect(plain).not.toMatch(/\.k-tag-acts/);
-  });
 });

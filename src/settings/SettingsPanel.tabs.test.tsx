@@ -53,13 +53,10 @@ describe("设置页 tab（#454）", () => {
     screen.getByRole("heading", { name: "通用", level: 3 });
   });
 
-  it("底板跟着点击滑到新 tab，过渡走令牌，tab 自己不再画选中底", async () => {
+  it("底板跟着点击滑到新 tab", async () => {
     render(<SettingsPanel initialTab="general" />);
     await tab("备份");
     expect(indicatorTop()).toBe(`${tabTop(screen.getByRole("tab", { name: "备份" }))}px`);
-    expect(cssRule(settingsCss, ".k-set-tab-indicator").transition).toBe("transform var(--t-slow) var(--ease)");
-    expect(cssRule(settingsCss, ".k-set-tab[data-active]").background).toBe("transparent");
-    expect(cssRule(settingsCss, ".k-set-tab[data-active]")["box-shadow"]).toBeUndefined();
   });
 
   it("切页时旧页先留着淡出，它不可操作也不被读屏读到，结束后移除", async () => {

@@ -83,7 +83,14 @@ fn a_crop_never_shows_pixels_from_outside_it() {
                 flip_v: false,
             };
             let out = r.render_offscreen(&image, &draw, &identity).unwrap();
-            let red = out.data.chunks_exact(4).map(|p| p[0]).max().unwrap();
+            let red = out
+                .data
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|p| p[0])
+                .max()
+                .unwrap();
             assert_eq!(red, 0, "缩放 {scale}、转 {quarter}：漏出了局部以外的像素");
         }
     }

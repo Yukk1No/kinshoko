@@ -21,9 +21,9 @@ fn source_failed(reason: SourceError) -> CommandError {
     )
 }
 
-/// 界面里向 pixiv 要东西（查找画师、读关注）：要开着订阅、登录着，并且不在退避中。
-/// 和检查线程排同一个节拍；遇到频率限制时整个来源退避，与检查一样。
-async fn ask_pixiv<T: Send + 'static>(
+/// 界面里向 pixiv 要东西（查找画师、读关注、应用内浏览）：要开着订阅、登录着，并且不在退避中。
+/// 和检查线程排同一个节拍，但排在它前面；遇到频率限制时整个来源退避，与检查一样。
+pub(super) async fn ask_pixiv<T: Send + 'static>(
     app: &AppHandle,
     ask: impl FnOnce(&mut PixivSource) -> Result<T, SourceError> + Send + 'static,
 ) -> Result<T, CommandError> {
@@ -41,7 +41,7 @@ async fn ask_pixiv<T: Send + 'static>(
         return Err(source_failed(SourceError::RateLimited));
     }
     state.foreground_cancel.store(false, Ordering::SeqCst);
-    let mut source = PixivSource::new(
+    let mut source = PixivSource::foreground(
         state.account.clone(),
         state.pacers.clone(),
         state.foreground_cancel.clone(),
