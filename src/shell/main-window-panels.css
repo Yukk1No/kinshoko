@@ -711,3 +711,6 @@
   opacity: var(--disabled-opacity);
   cursor: default;
 }
+.k-note .k-note-acts .selection-revert-note:disabled {
+  --k-lift: var(--btn-lift-disabled);
+}

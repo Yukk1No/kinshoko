@@ -190,7 +190,7 @@ function Detail({
             <Tip label={sources.length ? t("note.revertTitle") : t("note.revertEmptyTitle")}>
               <button
                 type="button"
-                className="k-btn is-sm is-quiet"
+                className="k-btn is-sm is-quiet selection-revert-note"
                 aria-label={t("note.revertLabel")}
                 disabled={manual === null}
                 onClick={() => edit([{ kind: "revertNote" }])}
