@@ -12,8 +12,12 @@
   background: transparent;
   border-right-color: transparent;
 }
+/* 书签标的墨迹离窗口上边与左边一样远（22.75 px）：图形在 32 的画布里宽 12、高 21，左右居中时离左边 22.75，
+   上下居中时离上边只有 19.25，往下挪 3.5 px（44 高的框里把居中区下移 7 px）。 */
 .rail .brand {
+  box-sizing: border-box;
   height: 44px;
+  padding-top: 7px;
 }
 .app-body {
   flex: 1;
