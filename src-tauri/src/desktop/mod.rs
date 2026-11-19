@@ -29,7 +29,9 @@ mod pin_state;
 mod pins;
 mod tray;
 
-use events::{capture_response, on_library_event};
+use events::{
+    capture_response, history_changed, on_library_event, request_collection, request_open,
+};
 pub use tray::*;
 #[cfg(windows)]
 pub(crate) mod win32;
@@ -315,20 +317,6 @@ pub fn pin_edge_contrast_changed(app: &AppHandle) {
     pins::refresh_all(app);
 }
 
-/// 截图历史变了：推送给所有窗口（主窗口的截图历史、钉图的收藏状态）。
-fn history_changed(app: &AppHandle) {
-    let entries = lock(&state(app).history).entries();
-    let _ = app.emit(HISTORY_EVENT, entries);
-}
-
-/// 钉图菜单“在 Kinshoko 中打开”（#106）：打开主窗口，请它显示参考图（查看器）或截图历史。
-/// 主窗口可能还没建好，请求先留着，由它用 `take_open_request` 取走。
-fn request_open(app: &AppHandle, request: OpenInKinshoko) {
-    *lock(&state(app).pending_open) = Some(request);
-    shell::open_main_window(app);
-    let _ = app.emit("open-in-kinshoko", ());
-}
-
 #[tauri::command]
 async fn take_open_request(app: AppHandle) -> Option<OpenInKinshoko> {
     lock(&state(&app).pending_open).take()
@@ -358,13 +346,6 @@ async fn copy_capture(app: AppHandle, id: String) -> Result<(), CommandError> {
     tauri::async_runtime::spawn_blocking(move || pins::copy_capture_image(&app, &id))
         .await
         .map_err(CommandError::system)?
-}
-
-/// Native pin menus request a visible destination in the main window before saving.
-fn request_collection(app: &AppHandle, id: &str) {
-    *lock(&state(app).pending_collection) = Some(id.into());
-    shell::open_main_window(app);
-    let _ = app.emit("capture-collection-request", ());
 }
 
 #[tauri::command]
