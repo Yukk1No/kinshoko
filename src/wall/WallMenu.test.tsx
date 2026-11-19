@@ -40,8 +40,16 @@ function actions(): WallMenuActions {
     folders: vi.fn(async () => [{ id: "f1", label: "人物" }]),
     inFolder: vi.fn(async () => false),
     groups: vi.fn(async () => [
-      { id: "g1", name: "光影", memberCount: 1, libraryIds: ["L1"], updatedAt: 0, problem: null },
-      { id: "g2", name: "", memberCount: 2, libraryIds: ["L1"], updatedAt: 0, problem: null },
+      { id: "g1", name: "光影", memberCount: 1, libraryIds: ["L1"], createdAt: 0, updatedAt: 0, problem: null },
+      {
+        id: "g2",
+        name: "",
+        memberCount: 2,
+        libraryIds: ["L1"],
+        createdAt: new Date(2026, 10, 18, 10).getTime(),
+        updatedAt: 0,
+        problem: null,
+      },
     ]),
   };
 }
@@ -234,8 +242,8 @@ it("子菜单：内容分级与加入参考组", async () => {
   cleanup();
   const again = show({ kind: "cards", cards: [one], point });
   fireEvent.click(screen.getByRole("menuitem", { name: "加入参考组" }));
-  // 没有名称的参考组写“未命名”和时间，与侧栏、钉图菜单相同。
-  expect(await screen.findByRole("menuitem", { name: /^未命名/ })).toBeTruthy();
+  // 没有名称的参考组写新建时间，与侧栏相同。
+  expect(await screen.findByRole("menuitem", { name: /^11月18日/ })).toBeTruthy();
   fireEvent.click(await screen.findByRole("menuitem", { name: "光影" }));
   expect(again.a.addToGroup).toHaveBeenCalledWith([one], "g1", point);
 });

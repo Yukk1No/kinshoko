@@ -128,7 +128,7 @@ fn reference_pin() -> SavedPin {
 
 #[test]
 fn a_capture_pin_menu_carries_its_state() {
-    let menu = PinMenu::new(&capture_pin(), false, true, String::new());
+    let menu = PinMenu::new(&capture_pin(), false, true);
     assert_eq!(
         menu,
         PinMenu {
@@ -140,26 +140,24 @@ fn a_capture_pin_menu_carries_its_state() {
             veiled: false,
             can_collect: true,
             confirm_reveal: false,
-            desk: String::new(),
         }
     );
 }
 
 #[test]
-fn a_reference_pin_menu_knows_the_group_on_the_desk_and_its_veil() {
-    let menu = PinMenu::new(&reference_pin(), true, true, "光影".into());
+fn a_reference_pin_menu_knows_its_veil() {
+    let menu = PinMenu::new(&reference_pin(), true, true);
     assert!(!menu.capture);
     assert!(menu.locked);
     assert!(!menu.actual_size);
     assert!(menu.veiled);
-    assert_eq!(menu.desk, "光影");
     // 资料库钉图已在库里，不再收藏。
     assert!(!menu.can_collect);
 }
 
 #[test]
 fn a_capture_cannot_be_collected_without_a_library() {
-    assert!(!PinMenu::new(&capture_pin(), false, false, String::new()).can_collect);
+    assert!(!PinMenu::new(&capture_pin(), false, false).can_collect);
 }
 
 #[test]

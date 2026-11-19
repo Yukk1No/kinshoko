@@ -20,14 +20,9 @@ pub(super) const ACTION_OPEN: &str = "openInKinshoko";
 pub(super) const ACTION_EDGE_HIDE: &str = "edgeHide";
 /// 整组移动（#198）：下一次按下拖动时整组移动。
 pub(super) const ACTION_GROUP_MOVE: &str = "groupMove";
-/// #593：切换到参考组（`switch:<参考组 id>`）、新参考组。
-pub(super) const ACTION_SWITCH: &str = "switch:";
-pub(super) const ACTION_NEW_GROUP: &str = "newGroup";
-/// #595：把这张钉图移到参考组（`moveTo:<参考组 id>`）。
-pub(super) const ACTION_MOVE_TO: &str = "moveTo:";
 
 /// 钉图的右键菜单（#64；#106 起与主窗口同样式）：翻转、旋转、原始大小、透明度、锁定，截图钉图的
-/// 收藏与复制，资料库钉图（#65）被遮蔽时的“显示这张图”，切换参考组、移到别的参考组（#593、#595），
+/// 收藏与复制，资料库钉图（#65）被遮蔽时的“显示这张图”，
 /// 再加上在 Kinshoko 中打开、贴边隐藏与关闭钉图。菜单项在页面里（`src/desktop/PinMenu.tsx`）。
 /// 鼠标右键、笔的侧键或笔与触摸按住不动时打开（[`native_menu`]）；菜单弹在光标（笔尖）处。
 ///
@@ -41,12 +36,7 @@ fn popup_menu(app: &AppHandle, pin: &str, confirm_reveal: bool) -> Result<(), Co
     let has_library = !crate::library::registered(app)?.is_empty();
     let menu = PinMenu {
         confirm_reveal,
-        ..PinMenu::new(
-            &saved,
-            veiled,
-            has_library,
-            super::super::desk_commands::desk_name(app),
-        )
+        ..PinMenu::new(&saved, veiled, has_library)
     };
     super::super::menu::popup(app, menu)
 }
@@ -112,15 +102,6 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<Pi
     };
     if let Some(turn) = turn {
         return turn_here(app, pin, turn).err().map(PinNotice::from);
-    }
-    if let Some(group_id) = action.strip_prefix(ACTION_SWITCH) {
-        return super::super::desk_commands::switch_from_menu(app, Some(group_id));
-    }
-    if action == ACTION_NEW_GROUP {
-        return super::super::desk_commands::switch_from_menu(app, None);
-    }
-    if let Some(group_id) = action.strip_prefix(ACTION_MOVE_TO) {
-        return super::super::desk_commands::move_from_menu(app, pin, group_id);
     }
     if let Some(percent) = action.strip_prefix(ACTION_OPACITY) {
         let percent: f64 = percent.parse().ok()?;

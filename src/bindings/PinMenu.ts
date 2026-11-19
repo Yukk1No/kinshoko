@@ -27,8 +27,4 @@ canCollect: boolean,
 /**
  * 画师点了遮蔽钉图上的小圆锁：只问“显示这张图？”（原生钉图，#285）。
  */
-confirmReveal: boolean, 
-/**
- * 桌面上那个参考组的名称（#593，没有名称为空）：菜单里“切换到 ▸”“移到 ▸”用。
- */
-desk: string, };
+confirmReveal: boolean, };

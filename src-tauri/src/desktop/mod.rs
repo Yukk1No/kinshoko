@@ -166,7 +166,9 @@ pub fn add_to_reference_group<R: tauri::Runtime>(
         pins::place_around(&mut pin, centre, &others);
         desk.pin(pin, &mut lock(&state.history))?;
         state.dirty.store(true, Ordering::Relaxed);
-        Ok(desk.group().clone())
+        desk.group()
+            .cloned()
+            .ok_or(kinshoko_core::reference_groups::GroupError::UnknownGroup)
     })()
     .map_err(CommandError::from);
     if result.is_ok() {
@@ -215,10 +217,14 @@ pub fn init() -> TauriPlugin<Wry> {
             desk_commands::desk_reference_groups,
             desk_commands::switch_reference_group,
             desk_commands::new_reference_desk,
-            desk_commands::archive_reference_group,
-            desk_commands::unarchive_reference_group,
-            desk_commands::merge_reference_group,
-            desk_commands::undo_merge_reference_group,
+            desk_commands::repin_group_member,
+            desk_commands::prune_unpinned_members,
+            desk_commands::undo_prune_unpinned,
+            desk_commands::set_reference_group_favorite,
+            desk_commands::duplicate_reference_group,
+            desk_commands::fold_into_previous,
+            desk_commands::split_off_reference_group,
+            desk_commands::undo_split_off,
             groups::export_reference_group_package,
             groups::import_reference_group_package,
             edge_hide,
@@ -466,9 +472,6 @@ pub fn on_shortcut(app: &AppHandle, action: ShortcutAction) {
         ShortcutAction::Capture => capture::start(app),
         ShortcutAction::PinClipboard => pins::pin_clipboard_in_background(app),
         ShortcutAction::HideAllPins => edge::toggle_in_background(app),
-        ShortcutAction::PreviousGroup => desk_commands::step_in_background(app, false),
-        ShortcutAction::NextGroup => desk_commands::step_in_background(app, true),
-        ShortcutAction::NewGroup => desk_commands::new_desk_in_background(app),
     }
 }
 

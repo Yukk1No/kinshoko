@@ -165,7 +165,6 @@ function GroupList({
   point: { x: number; y: number };
 }) {
   const { t } = useTranslation(["wall", "common"]);
-  const { t: td } = useTranslation("desktop");
   const { items, problem } = useList(actions.groups);
   if (!items) return <MenuTip>{t("menu.loadingGroups")}</MenuTip>;
   if (problem) return <MenuTip>{problem}</MenuTip>;
@@ -175,7 +174,7 @@ function GroupList({
     <>
       {usable.map((g) => (
         <MenuItem key={g.id} onClick={() => actions.addToGroup(cards, g.id, point)}>
-          {groupLabel(td, g)}
+          {groupLabel(g)}
         </MenuItem>
       ))}
     </>

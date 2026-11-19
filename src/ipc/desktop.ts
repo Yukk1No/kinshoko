@@ -91,8 +91,7 @@ export function edgeHide(): Promise<void> {
 // ---------- 钉图菜单窗口（#102 T5，#106） ----------
 
 /**
- * 钉图菜单里的一项（与 Rust `desktop/pins/menu_actions.rs` 的 `ACTION_*` 对应）。`opacity:<百分比>`、
- * `switch:<参考组 id>`、`moveTo:<参考组 id>`。
+ * 钉图菜单里的一项（与 Rust `desktop/pins/menu_actions.rs` 的 `ACTION_*` 对应），透明度写成 `opacity:<百分比>`。
  */
 export type PinMenuAction =
   | "flipH"
@@ -106,9 +105,6 @@ export type PinMenuAction =
   | "copy"
   | "reveal"
   | "openInKinshoko"
-  | `switch:${string}`
-  | `moveTo:${string}`
-  | "newGroup"
   | "edgeHide"
   | "groupMove"
   | "close";

@@ -43,7 +43,7 @@ fn dark_theme(app: &AppHandle) -> bool {
 }
 
 /// 在钉图底部显示一条提示。
-pub(in crate::desktop) fn notify(app: &AppHandle, pin: &str, text: &str) {
+pub(super) fn notify(app: &AppHandle, pin: &str, text: &str) {
     native::notice(app, pin, text);
 }
 

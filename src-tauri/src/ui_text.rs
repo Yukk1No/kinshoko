@@ -41,10 +41,6 @@ pub enum Text {
     PinImageMissing,
     PinOriginalMissing,
     PinCaptureMissing,
-    /// 没有名称的参考组（#588），后面跟时间（[`group_label`]）。
-    GroupUnnamed,
-    /// 托盘与钉图菜单里换到一张空桌（#593）。
-    NewGroup,
 }
 
 /// 当前界面语言下的文字。
@@ -119,8 +115,6 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
             "参考组里的截图文件缺失",
             "The capture file in the reference group is missing",
         ),
-        Text::GroupUnnamed => pick(en, "未命名", "Untitled"),
-        Text::NewGroup => pick(en, "新参考组", "New reference group"),
     }
 }
 
@@ -147,25 +141,6 @@ pub fn fill(key: Text, values: &[(&str, &str)]) -> String {
         .fold(text(key).to_owned(), |text, (name, value)| {
             text.replace(&format!("{{{name}}}"), value)
         })
-}
-
-/// 参考组在托盘、钉图提示里的叫法（#593、#594）：名称；没有名称时写“未命名”和最近保存的本地时间。
-pub fn group_label(name: &str, updated_at_ms: i64) -> String {
-    let name = name.trim();
-    if !name.is_empty() {
-        return name.to_owned();
-    }
-    let at = jiff::Timestamp::from_millisecond(updated_at_ms)
-        .ok()
-        .map(|t| {
-            t.to_zoned_datetime(jiff::tz::TimeZone::system())
-                .strftime("%m-%d %H:%M")
-                .to_string()
-        })
-        .unwrap_or_default();
-    format!("{} {at}", text(Text::GroupUnnamed))
-        .trim_end()
-        .to_owned()
 }
 
 fn pick(en: bool, zh: &'static str, english: &'static str) -> &'static str {

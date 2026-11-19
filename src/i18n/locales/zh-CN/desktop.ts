@@ -15,7 +15,6 @@ export default {
   /** 桌面钉图的右键菜单（`PinMenu.tsx`）。 */
   pinMenu: {
     label: "钉图菜单",
-    loadingGroups: "正在读取参考组…",
     confirmReveal: "显示这张图？",
     reveal: "显示",
     cancel: "取消",
@@ -34,26 +33,28 @@ export default {
     edgeHide: "收起钉图",
     groupMove: "整组移动",
     close: "关闭钉图",
-    /** 参考组改成桌面（#593）：子菜单与它的条目。 */
-    switchTo: "切换到",
-    newGroup: "新参考组",
-    noOtherGroups: "没有别的参考组",
-    moveTo: "移到参考组",
-  },
-  /** 参考组改成桌面（#588）里各处共用的叫法。 */
-  deskGroups: {
-    /** 没有名称的参考组，后面跟最近保存的时间。 */
-    unnamed: "未命名 {{time}}",
   },
   /** 参考组改成桌面后的侧栏面板（`DeskGroupsPanel`，#592）。 */
   deskPanel: {
     newGroup: "新参考组",
-    switchList: "切换到",
-    archived: "归档",
-    archive: "归档",
-    unarchive: "取出",
-    merge: "并入",
-    merged: "已并入「{{name}}」",
+    favorites: "常用",
+    recent: "最近",
+    older: "更早",
+    favorite: "设为常用",
+    unfavorite: "取消常用",
+    copy: "复制",
+    copyName: "{{name}} 副本",
+    copied: "已复制参考组",
+    prune: "移出没钉着的",
+    pruned_other: "已移出 {{count, number}} 张",
+    removed: "已移出",
+    repin: "钉回",
+    repinLabel: "钉回{{name}}",
+    removeLabel: "移出{{name}}",
+    started: "已开新参考组",
+    foldInto: "加进「{{name}}」",
+    split: "移到新参考组",
+    splitDone: "已移到新参考组",
   },
   /** 截图框选窗口（`CaptureOverlay`）。 */
   capture: {

@@ -72,13 +72,11 @@ pub struct PinMenu {
     pub can_collect: bool,
     /// 画师点了遮蔽钉图上的小圆锁：只问“显示这张图？”（原生钉图，#285）。
     pub confirm_reveal: bool,
-    /// 桌面上那个参考组的名称（#593，没有名称为空）：菜单里“切换到 ▸”“移到 ▸”用。
-    pub desk: String,
 }
 
 impl PinMenu {
-    /// `veiled`：钉图此刻被遮蔽；`has_library`：已有登记的资料库；`desk`：桌面上那个参考组的名称。
-    pub fn new(pin: &SavedPin, veiled: bool, has_library: bool, desk: String) -> PinMenu {
+    /// `veiled`：钉图此刻被遮蔽；`has_library`：已有登记的资料库。
+    pub fn new(pin: &SavedPin, veiled: bool, has_library: bool) -> PinMenu {
         let capture = matches!(pin.content, PinContent::Capture { .. });
         PinMenu {
             pin: pin.id.clone(),
@@ -89,7 +87,6 @@ impl PinMenu {
             veiled,
             can_collect: capture && has_library,
             confirm_reveal: false,
-            desk,
         }
     }
 }
