@@ -217,6 +217,8 @@ impl Desk {
             if let Some(held) = self.on_desk.as_mut() {
                 held.group.members = before.members.clone();
             }
+            // 参考组文件可能已写好、组内截图随之删掉：放回去，否则下次落盘时成员找不到它。
+            let _ = self.groups.write_captures(&before.id, &captures);
             if let Some(pin) = pin {
                 if let Some(capture) = pin.capture_id() {
                     history.pin(capture);
