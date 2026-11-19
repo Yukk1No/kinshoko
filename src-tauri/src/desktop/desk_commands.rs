@@ -1,5 +1,5 @@
 //! 参考组改成桌面（#588、#591）的命令，与 `kinshoko_core::reference_groups::Desk` 的操作一一对应：
-//! 侧栏三段（常用、最近、更早）、切换、清空桌面（“新建”）、钉回、移出没钉着的、设为常用、
+//! 侧栏三段（收藏、最近、更早）、切换、清空桌面（“新建”）、钉回、全部钉上、点成员钉出、移出没钉着的、收藏、
 //! 加进上一组、移到新参考组，以及后三者的撤销。删除与撤销沿用 [`super::group_trash`] 的命令，
 //! 改名沿用 [`super::groups`] 的，开关打开时那边改走桌面上的参考组。规则都在 core，这里只接窗口。
 //!
@@ -134,6 +134,50 @@ pub async fn repin_group_member(app: AppHandle, member_id: String) -> Result<(),
             apply(&app, None);
             // 侧栏里它不再变淡。
             changed(&app);
+        }
+        Ok(())
+    })
+    .await
+}
+
+/// 全部钉上：桌面上参考组里已关闭的成员都在原位置钉出（#588 11-19 晚，切到一张都没钉着的组时用）。
+#[tauri::command]
+pub async fn repin_all_group_members(app: AppHandle) -> Result<(), CommandError> {
+    blocking(move || {
+        let opened = with_desk(&app, |desk, history| desk.repin_all(history))?;
+        for problem in &opened.problems {
+            crate::run_log::warn("桌面上的参考组有成员钉不出来", problem);
+        }
+        if !opened.pins.is_empty() {
+            mark_dirty(&app);
+            apply(&app, None);
+        }
+        Ok(())
+    })
+    .await
+}
+
+/// 侧栏里点了参考组 `group_id` 的成员 `member_id`（#588 11-19 晚）：不在桌面上的组先整桌换过去，
+/// 已关闭的在原位置钉回；钉图收起着时先全部显示，再把这一张提到最前（不抢绘画软件的键盘焦点）。
+#[tauri::command]
+pub async fn show_group_member(
+    app: AppHandle,
+    group_id: String,
+    member_id: String,
+) -> Result<(), CommandError> {
+    blocking(move || {
+        let shown = with_desk(&app, |desk, history| {
+            desk.show_member(&group_id, &member_id, history)
+        })?;
+        if shown.opened.is_some() {
+            mark_dirty(&app);
+        }
+        if shown.switched.is_some() || shown.opened.is_some() {
+            apply(&app, shown.switched);
+        }
+        if let Some(pin) = shown.pin_id {
+            super::edge::reveal(&app);
+            pins::raise(&app, &pin);
         }
         Ok(())
     })

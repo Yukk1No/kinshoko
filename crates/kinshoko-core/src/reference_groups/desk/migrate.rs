@@ -80,7 +80,7 @@ pub(super) fn migrate(
             Ok(()) | Err(GroupError::UnknownGroup) => {}
             Err(e) => return Err(e),
         }
-        super::publish(groups, &group, &captures)?;
+        groups.publish_with_captures(&group, &captures)?;
         for (capture_id, member_id) in links {
             let at = GroupMemberRef {
                 group_id: group.id.clone(),

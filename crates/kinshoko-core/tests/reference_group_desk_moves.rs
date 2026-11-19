@@ -56,6 +56,7 @@ fn folding_into_the_previous_group_moves_members_and_captures_and_puts_it_on_the
     let previous = t.desk_id();
     let a = t.desk.pins()[0].id.clone();
     t.desk.close(&a, &mut t.history);
+    t.desk.new_desk(&mut t.history).unwrap();
 
     let pinned = t
         .desk

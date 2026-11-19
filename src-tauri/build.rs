@@ -138,6 +138,8 @@ fn main() {
                         "switch_reference_group",
                         "new_reference_desk",
                         "repin_group_member",
+                        "repin_all_group_members",
+                        "show_group_member",
                         "prune_unpinned_members",
                         "undo_prune_unpinned",
                         "set_reference_group_favorite",
