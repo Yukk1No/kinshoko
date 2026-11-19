@@ -35,6 +35,7 @@ export function withoutPages(cards: BrowserCard[], ids: ReadonlySet<string>): Br
     if (!card.set) return ids.has(card.id) ? [] : [card];
     const pages = card.set.pages.filter((page) => !ids.has(page.id));
     if (pages.length === card.set.pages.length) return [card];
+    if (pages.length === 1) return pages;
     return pages.length ? [{ ...pages[0], set: { ...card.set, pages } }] : [];
   });
 }

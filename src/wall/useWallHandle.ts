@@ -91,11 +91,13 @@ export function useWallHandle({
           const back: BrowserCard[] = [];
           for (const card of original) {
             if (!pagesOf([card]).some((page) => restored.has(page.id))) continue;
-            const current = currentCards.get(card.set?.key ?? card.id);
+            const current =
+              currentCards.get(card.set?.key ?? card.id) ??
+              card.set?.pages.map((page) => currentCards.get(page.id)).find((item) => item !== undefined);
             if (card.set) {
               const present = new Set(current ? pagesOf([current]).map((page) => page.id) : []);
               const pages = card.set.pages.filter((page) => restored.has(page.id) || present.has(page.id));
-              const replacement = { ...pages[0], set: { ...card.set, pages } };
+              const replacement = pages.length === 1 ? pages[0] : { ...pages[0], set: { ...card.set, pages } };
               if (current) replacements.set(current.id, replacement);
               else back.push(replacement);
             } else back.push(card);
