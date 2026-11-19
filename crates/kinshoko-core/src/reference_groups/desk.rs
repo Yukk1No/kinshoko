@@ -225,15 +225,22 @@ impl Desk {
     /// 画师关掉了一张钉图：成员随之移出（组内截图文件落盘时删除）。最后一个成员移出后，
     /// 没有名称的参考组连文件一起消失，有名称的留着、是空的。
     pub fn close(&mut self, pin_id: &str, history: &mut CaptureHistory) -> Option<SavedPin> {
+        let pin = self.detach(pin_id)?;
+        if let Some(capture) = pin.capture_id() {
+            history.unpin(capture);
+        }
+        Some(pin)
+    }
+
+    /// 同 [`Self::close`]，但先不动截图历史：落盘可能失败要回滚，而截图历史里已删掉、只剩这张钉着的截图，
+    /// 关掉最后一张钉图时连文件一起丢掉，回滚找不回来。落盘成功后再用 [`unpin_all`] 补上。
+    fn detach(&mut self, pin_id: &str) -> Option<SavedPin> {
         let at = self.pins.iter().position(|p| p.id == pin_id)?;
         let pin = self.pins.remove(at);
         if let Some(member) = &pin.member {
             self.group.members.retain(|m| m.id != member.member_id);
             let file = format!("{}.png", member.member_id);
             self.copies.retain(|(f, _)| *f != file);
-        }
-        if let Some(capture) = pin.capture_id() {
-            history.unpin(capture);
         }
         self.dirty = true;
         self.members_changed = true;
@@ -259,10 +266,9 @@ impl Desk {
             .map(|p| p.id.clone());
         // 备份不了组内截图时不动：移出后落盘失败就找不回它了。
         let before = self.snapshot(&[member_id.to_owned()])?;
+        let mut closed = Vec::new();
         match pin {
-            Some(pin) => {
-                self.close(&pin, history);
-            }
+            Some(pin) => closed.extend(self.detach(&pin)),
             None => {
                 // 钉不出来的成员没有钉图。
                 self.group.members.retain(|m| m.id != member_id);
@@ -272,10 +278,11 @@ impl Desk {
         }
         if let Err(e) = self.flush() {
             // 写不进：成员和钉图都留着，像没移出过一样（钉图窗口本来就没关）。
-            self.roll_back(before, history);
+            self.roll_back(before);
             return Err(e);
         }
         before.discard();
+        unpin_all(&closed, history);
         Ok(Some(self.group.clone()))
     }
 
@@ -400,7 +407,7 @@ impl Desk {
     ) -> Result<(), GroupError> {
         let (merged_group, members) = (undo.group_id.as_str(), &undo.members);
         if merged_group == self.group.id {
-            let snapshot = self.snapshot(members);
+            let snapshot = self.snapshot(members)?;
             let pins: Vec<String> = self
                 .pins
                 .iter()
@@ -411,9 +418,7 @@ impl Desk {
                 })
                 .map(|p| p.id.clone())
                 .collect();
-            for pin in pins {
-                self.close(&pin, history);
-            }
+            let closed: Vec<SavedPin> = pins.iter().filter_map(|p| self.detach(p)).collect();
             // 钉不出来的成员没有钉图，也要去掉。
             let before = self.group.members.len();
             self.group.members.retain(|m| !members.contains(&m.id));
@@ -423,10 +428,11 @@ impl Desk {
             }
             if let Err(e) = self.flush() {
                 // 写不进：并入的钉图还在（窗口本来就没关），像没撤销过一样，可以再撤销一次。
-                self.roll_back(snapshot, history);
+                self.roll_back(snapshot);
                 return Err(e);
             }
             snapshot.discard();
+            unpin_all(&closed, history);
             return Ok(());
         }
         let mut group = match self.groups.get(merged_group) {
@@ -499,17 +505,26 @@ impl Desk {
         target.members.push(member);
         target.updated_at = crate::library::now_ms();
         self.groups.commit(&target, &copies)?;
-        let snapshot = self.snapshot(std::slice::from_ref(&member_id));
-        let closed = self.close(pin_id, history);
+        let snapshot = match self.snapshot(std::slice::from_ref(&member_id)) {
+            Ok(snapshot) => snapshot,
+            Err(e) => {
+                target.members.retain(|m| m.id != moved.member_id);
+                target.updated_at = crate::library::now_ms();
+                let _ = self.groups.commit(&target, &[]);
+                return Err(e);
+            }
+        };
+        let closed = self.detach(pin_id);
         if let Err(e) = self.flush() {
             // 桌面这边写不进：钉图留在桌面上，目标参考组里刚加的那个成员（连同截图）拿掉，像没移过一样。
-            self.roll_back(snapshot, history);
+            self.roll_back(snapshot);
             target.members.retain(|m| m.id != moved.member_id);
             target.updated_at = crate::library::now_ms();
             let _ = self.groups.commit(&target, &[]);
             return Err(e);
         }
         snapshot.discard();
+        unpin_all(closed.as_slice(), history);
         if let Some(capture) = closed.as_ref().and_then(SavedPin::capture_id) {
             // 之后从截图历史收藏这张截图，改连的是它在目标参考组里的成员。
             let _ = history.link_member(capture, moved);
@@ -912,14 +927,9 @@ impl Desk {
         })
     }
 
-    /// 回到 `before`：成员、钉图与截图历史的钉住次数都复原，删掉的组内截图下次落盘时从备份放回。
-    fn roll_back(&mut self, before: Snapshot, history: &mut CaptureHistory) {
-        let now: BTreeSet<&str> = self.pins.iter().map(|p| p.id.as_str()).collect();
-        for pin in before.pins.iter().filter(|p| !now.contains(p.id.as_str())) {
-            if let Some(capture) = pin.capture_id() {
-                history.pin(capture);
-            }
-        }
+    /// 回到 `before`：成员与钉图都复原（关掉时用的是 [`Self::detach`]，截图历史没动过），
+    /// 删掉的组内截图下次落盘时从备份放回。
+    fn roll_back(&mut self, before: Snapshot) {
         self.group = before.group;
         self.pins = before.pins;
         self.copies = before.copies;
@@ -941,6 +951,13 @@ impl Desk {
             &self.state_path,
             &DeskFile::new(on_desk, self.switch_list.clone()),
         )
+    }
+}
+
+/// [`Desk::detach`] 关掉的钉图落盘成功后，补上截图历史的钉住次数。
+fn unpin_all(closed: &[SavedPin], history: &mut CaptureHistory) {
+    for capture in closed.iter().filter_map(SavedPin::capture_id) {
+        history.unpin(capture);
     }
 }
 

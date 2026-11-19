@@ -733,6 +733,56 @@ fn moving_a_pin_when_the_desk_state_cannot_be_saved_moves_nothing() {
 }
 
 #[test]
+fn a_failed_move_keeps_a_screenshot_deleted_from_history_while_pinned() {
+    let mut t = TestDesk::new();
+    t.pin_reference("x", 10);
+    t.desk.flush().unwrap();
+    let target = t.desk.group().id.clone();
+    t.desk.new_desk(&mut t.history).unwrap();
+    let c = t.pin_capture("c", 4);
+    let capture = c.capture_id().unwrap().to_owned();
+    t.history.delete(&capture).unwrap();
+
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.move_pin(&c.id, &target, &mut t.history).is_err());
+    std::fs::remove_dir_all(&state).unwrap();
+
+    assert!(
+        t.history.entry(&capture).is_some(),
+        "钉图回到桌面上，截图历史里也还在"
+    );
+    t.desk.move_pin(&c.id, &target, &mut t.history).unwrap();
+    assert!(
+        t.history.entry(&capture).is_none(),
+        "移走后没有钉图显示它，照常丢弃"
+    );
+}
+
+#[test]
+fn a_failed_removal_keeps_a_screenshot_deleted_from_history_while_pinned() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    let c = t.pin_capture("c", 2);
+    t.desk.flush().unwrap();
+    let id = t.desk.group().id.clone();
+    let member = c.member.clone().unwrap().member_id;
+    let capture = c.capture_id().unwrap().to_owned();
+    t.history.delete(&capture).unwrap();
+
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.remove_member(&id, &member, &mut t.history).is_err());
+    std::fs::remove_dir_all(&state).unwrap();
+
+    assert!(t.history.entry(&capture).is_some());
+}
+
+#[test]
 fn moving_a_pin_takes_it_off_the_desk_into_the_other_group_with_its_capture() {
     let mut t = TestDesk::new();
     t.pin_reference("x", 10);
