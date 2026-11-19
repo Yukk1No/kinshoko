@@ -715,6 +715,56 @@ fn moving_a_pin_when_the_desk_state_cannot_be_saved_moves_nothing() {
 }
 
 #[test]
+fn a_failed_move_keeps_a_screenshot_deleted_from_history_while_pinned() {
+    let mut t = TestDesk::new();
+    t.pin_reference("x", 10);
+    t.desk.flush().unwrap();
+    let target = t.desk.group().id.clone();
+    t.desk.new_desk(&mut t.history).unwrap();
+    let c = t.pin_capture("c", 4);
+    let capture = c.capture_id().unwrap().to_owned();
+    t.history.delete(&capture).unwrap();
+
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.move_pin(&c.id, &target, &mut t.history).is_err());
+    std::fs::remove_dir_all(&state).unwrap();
+
+    assert!(
+        t.history.entry(&capture).is_some(),
+        "钉图回到桌面上，截图历史里也还在"
+    );
+    t.desk.move_pin(&c.id, &target, &mut t.history).unwrap();
+    assert!(
+        t.history.entry(&capture).is_none(),
+        "移走后没有钉图显示它，照常丢弃"
+    );
+}
+
+#[test]
+fn a_failed_removal_keeps_a_screenshot_deleted_from_history_while_pinned() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    let c = t.pin_capture("c", 2);
+    t.desk.flush().unwrap();
+    let id = t.desk.group().id.clone();
+    let member = c.member.clone().unwrap().member_id;
+    let capture = c.capture_id().unwrap().to_owned();
+    t.history.delete(&capture).unwrap();
+
+    let state = t.root.join("desk.json");
+    std::fs::remove_file(&state).unwrap();
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    assert!(t.desk.remove_member(&id, &member, &mut t.history).is_err());
+    std::fs::remove_dir_all(&state).unwrap();
+
+    assert!(t.history.entry(&capture).is_some());
+}
+
+#[test]
 fn moving_a_pin_takes_it_off_the_desk_into_the_other_group_with_its_capture() {
     let mut t = TestDesk::new();
     t.pin_reference("x", 10);
@@ -782,6 +832,36 @@ fn removing_a_member_when_the_desk_state_cannot_be_saved_keeps_it_and_its_pin() 
     assert_eq!(t.capture_files(&id).len(), 1, "组内截图也放回来");
     let opened = t.restart();
     assert_eq!(opened.len(), 2, "重新启动后两张都钉得出来");
+}
+
+#[test]
+fn removing_a_member_whose_capture_cannot_be_backed_up_changes_nothing() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    let c = t.pin_capture("c", 2);
+    t.desk.flush().unwrap();
+    let id = t.desk.group().id.clone();
+    let member = c.member.clone().unwrap().member_id;
+    let pins = t.desk.pins().to_vec();
+
+    // 备份目录的位置被一个文件占住，组内截图复制不出去。
+    let backup = t.root.join("desk.rollback");
+    std::fs::write(&backup, b"x").unwrap();
+    assert!(t.desk.remove_member(&id, &member, &mut t.history).is_err());
+    assert_eq!(t.desk.pins(), &pins[..], "钉图还在");
+    assert_eq!(t.desk.group().members.len(), 2, "成员还在");
+    assert_eq!(t.capture_files(&id).len(), 1, "组内截图没删");
+
+    std::fs::remove_file(&backup).unwrap();
+    t.desk.flush().unwrap();
+    assert_eq!(reread(&t, &id).members.len(), 2);
+    assert!(
+        t.desk
+            .remove_member(&id, &member, &mut t.history)
+            .unwrap()
+            .is_some(),
+        "能备份后照常移出"
+    );
 }
 
 #[test]
