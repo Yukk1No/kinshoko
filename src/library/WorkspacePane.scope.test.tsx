@@ -36,7 +36,6 @@ it("断连库与失效文件夹保持原范围并禁用旧目录控件", async (
   gone.providers[0].sidebar!.folders = [];
   await act(async () => pending[1].resolve(gone));
   expect(screen.getByText("范围：人物参考 / 文件夹已失效")).toBeTruthy();
-  expect(screen.getByRole("switch", { name: "含子文件夹" }).hasAttribute("data-disabled")).toBe(true);
   view.rerender(<WorkspacePane {...props} scope={selected} reloadKey={2} />);
   const missing = forest("missing");
   missing.providers[0].registration.unavailable = { code: "system", detail: "未连接" };

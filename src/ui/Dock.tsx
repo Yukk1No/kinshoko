@@ -189,7 +189,7 @@ export function Dock({
                     />
                   )}
                   <span className="k-dock-icon">{item.icon}</span>
-                  {!!item.badge && <span className="k-dock-badge">{item.badge}</span>}
+                  {!!item.badge && <span className="k-badge">{item.badge}</span>}
                 </motion.button>
               )}
               <AnimatePresence

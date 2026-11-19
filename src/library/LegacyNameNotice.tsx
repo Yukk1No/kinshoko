@@ -5,7 +5,7 @@ import type { LegacyNameGroup } from "../bindings/LegacyNameGroup";
 import { onLibraryEvent, onSafeModeSetting, onWorkspaceChanged, planLegacyNames } from "../ipc";
 import { logFailure } from "../runLog";
 import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
-import { usePersistentToast } from "../ui/Toast";
+import { NOTICE_ORDER, usePersistentToast } from "../ui/Toast";
 
 // 旧名称待确认的提示条与设置入口，原样从 LegacyNameMigrationPanel.tsx 移出。
 
@@ -115,7 +115,7 @@ export function LegacyNameMigrationNotice({
     enabled && pending.current > 0
       ? { title: t("title", { count: pending.current }), action: { label: t("open"), onClick: onOpen } }
       : null,
-    { hidden, level: pending.current },
+    { hidden, level: pending.current, queue: NOTICE_ORDER.legacyNames },
   );
   return null;
 }

@@ -60,7 +60,6 @@ export default {
     reconnect: "重新连接",
     libraryActions: "{{name}} 的操作",
     libraryActionsTitle: "图库操作",
-    descendants: "含子文件夹",
     revealFailed: "无法在资源管理器中显示：{{error}}",
   },
   libraryMenu: {
@@ -85,6 +84,9 @@ export default {
   folders: {
     tree: "文件夹",
     treeOf: "{{name}}的目录",
+    /** 有子文件夹的文件夹图标（#608）：悬停说明点它做什么。 */
+    fold: "折起子文件夹",
+    unfold: "展开子文件夹",
     unassigned: "未归类",
     unassignedCount_other: "未归类（{{count, number}} 张）",
     folderCount_other: "{{name}}（{{count, number}} 张）",

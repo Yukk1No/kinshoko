@@ -6,7 +6,7 @@ import { probeRuntime } from "./runtime";
 import { CircleCheck, Download, Monitor, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
-import { usePersistentToast } from "./ui/Toast";
+import { NOTICE_ORDER, usePersistentToast } from "./ui/Toast";
 import { errorText } from "./ipc/commandError";
 
 type RuntimeContextValue = {
@@ -79,7 +79,7 @@ export function RuntimeNotice({ hidden, onOpen }: { hidden: boolean; onOpen: () 
   const failed = !!runtime?.status?.assessment.problems.length;
   usePersistentToast(
     failed ? { title: t("failed"), tone: "error", action: { label: t("view"), onClick: onOpen } } : null,
-    { hidden },
+    { hidden, queue: NOTICE_ORDER.runtime },
   );
   return null;
 }

@@ -5,7 +5,7 @@ import type { UpdateProgress } from "./bindings/UpdateProgress";
 import type { UpdateStatus } from "./bindings/UpdateStatus";
 import { CircleCheck, Download, FlaskConical, Info, RefreshCw } from "lucide-react";
 import { Segmented } from "./ui/Segmented";
-import { useToast, type ToastOptions } from "./ui/Toast";
+import { NOTICE_ORDER, useToast, type ToastOptions } from "./ui/Toast";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { checkUpdate, installUpdate, onUpdateChannelChanged, onUpdateProgress, updateStatus } from "./ipc";
 import { CommandFailure, describeCommandError, errorText } from "./ipc/commandError";
@@ -40,6 +40,7 @@ function useInstall() {
   }, [installing]);
 
   const install = async () => {
+    setProgress(null);
     setInstalling(true);
     setError(null);
     try {
@@ -270,6 +271,7 @@ export function UpdateNotice() {
       });
       const id: string = toast.show({
         ...available(),
+        queue: NOTICE_ORDER.update,
         onClose: () => {
           if (shown === id) shown = null;
         },

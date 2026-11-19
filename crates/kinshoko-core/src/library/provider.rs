@@ -10,6 +10,8 @@ pub(crate) struct ProviderImage {
     pub id: String,
     pub sha256: String,
     pub seq: i64,
+    #[serde(default)]
+    pub imported_at: i64,
     pub width: u32,
     pub height: u32,
     /// 有效分级（#223）：是否被封印由工作区按当前的安全模式范围判断，快照不随范围变。
@@ -83,7 +85,7 @@ impl Library {
         let mut names = std::collections::HashMap::<String, String>::new();
         let mut images = {
             let mut stmt = tx.prepare(&format!(
-                "SELECT id,sha256,seq,width,height,{},deleted_at IS NOT NULL,original_name FROM image ORDER BY seq DESC",
+                "SELECT id,sha256,seq,width,height,{},deleted_at IS NOT NULL,original_name,imported_at FROM image ORDER BY seq DESC",
                 rating::effective_rank_sql("image.id")))?;
             stmt.query_map([], |r| {
                 Ok((
@@ -92,6 +94,7 @@ impl Library {
                         id: r.get(0)?,
                         sha256: r.get(1)?,
                         seq: r.get(2)?,
+                        imported_at: r.get(8)?,
                         width: r.get(3)?,
                         height: r.get(4)?,
                         rating: r
