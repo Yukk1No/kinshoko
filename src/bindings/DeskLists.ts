@@ -2,18 +2,22 @@
 import type { GroupSummary } from "./GroupSummary";
 
 /**
- * 切换列表与归档的摘要（[`Desk::lists`]）。
+ * 侧栏的三段（[`Desk::lists`]）。桌面上的参考组在它所属的那段里。
  */
 export type DeskLists = { 
 /**
- * 桌面上的参考组（落了盘的话）；空桌为 `None`。
+ * 桌面上的参考组；桌面空着时为 `None`。
  */
 onDesk: string | null, 
 /**
- * 切换列表，最近用过的在前。
+ * 常用，按画师设的先后。
  */
-switchList: Array<GroupSummary>, 
+favorites: Array<GroupSummary>, 
 /**
- * 归档，最近保存的在前；读不懂的文件也列出并写明原因。
+ * 其余的，新建的在前；读不懂的文件排在最后，写明原因。
  */
-archived: Array<GroupSummary>, };
+recent: Array<GroupSummary>, 
+/**
+ * 没设常用、[`OLDER_AFTER_MS`] 没用过的，新建的在前。只折叠，不删除。
+ */
+older: Array<GroupSummary>, };

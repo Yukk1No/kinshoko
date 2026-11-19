@@ -31,9 +31,9 @@ pub fn save_group_with_history(
     let dir = tempfile::tempdir().unwrap();
     let mut desk = Desk::open(dir.path(), groups.clone(), history)?;
     for pin in pins.iter_mut() {
-        pin.member = desk.pin(pin.clone(), history)?.member;
+        pin.member = desk.pin(pin.clone(), history)?.pin.member;
     }
-    let id = desk.group().id.clone();
+    let id = desk.group().expect("钉过图，桌面上有参考组").id.clone();
     desk.rename(&id, name)?;
     desk.flush()?;
     for capture in pins.iter().filter_map(SavedPin::capture_id) {

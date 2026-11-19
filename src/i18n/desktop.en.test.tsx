@@ -12,7 +12,7 @@ import { expectNoChinese } from "../test/noChinese";
 const ipc = vi.hoisted(() => ({
   groups: vi.fn(),
   group: vi.fn(),
-  lists: vi.fn((): Promise<DeskLists> => Promise.resolve({ onDesk: null, switchList: [], archived: [] })),
+  lists: vi.fn((): Promise<DeskLists> => Promise.resolve({ onDesk: null, favorites: [], recent: [], older: [] })),
   remove: vi.fn(() => Promise.resolve({ groupId: "g1", name: "Hair" })),
 }));
 vi.mock("../ipc", () => ({
@@ -104,7 +104,6 @@ const pin = (extra: Partial<PinMenu>): PinMenu => ({
   veiled: true,
   canCollect: false,
   confirmReveal: false,
-  desk: "光影",
   ...extra,
 });
 
@@ -128,6 +127,7 @@ const summary: GroupSummary = {
   name: "头发参考",
   memberCount: 2,
   libraryIds: ["lib-a", "lib-x"],
+  createdAt: 0,
   updatedAt: Date.now(),
   problem: null,
 };
@@ -160,11 +160,8 @@ const view: ReferenceGroupView = {
 describe("英文界面：桌面", () => {
   it("钉图菜单：资料库钉图、截图钉图与“显示这张图？”", async () => {
     expectNoChinese(pinMenu(pin({})), data);
-    fireEvent.click(screen.getByRole("menuitem", { name: /Switch to/ }));
-    expect(await screen.findByText("No other reference groups")).toBeTruthy();
-    expectNoChinese(document.body, data);
     cleanup();
-    expectNoChinese(pinMenu(pin({ capture: true, veiled: false, desk: "", canCollect: false })));
+    expectNoChinese(pinMenu(pin({ capture: true, veiled: false, canCollect: false })));
     cleanup();
     expectNoChinese(pinMenu(pin({ confirmReveal: true })));
     expect(screen.getByRole("menuitem", { name: "Show" })).toBeTruthy();
@@ -182,7 +179,7 @@ describe("英文界面：桌面", () => {
   });
 
   it("参考组：卡片、成员、更多操作与删除可撤销", async () => {
-    ipc.lists.mockResolvedValue({ onDesk: "g1", switchList: [summary], archived: [] });
+    ipc.lists.mockResolvedValue({ onDesk: "g1", favorites: [], recent: [summary], older: [] });
     ipc.group.mockResolvedValue(view);
     render(
       <SaveDestinationProvider safe>
@@ -192,12 +189,9 @@ describe("英文界面：桌面", () => {
     await settle();
     expectNoChinese(document.body, data);
 
-    fireEvent.click(screen.getByRole("button", { name: /More actions/ }));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Show members" }));
-    await settle();
-    expect(screen.getByText("Crop 40 × 30")).toBeTruthy();
-    expect(screen.getByText("Hidden in place by Safe mode")).toBeTruthy();
-    expectNoChinese(document.body, data);
+    // 桌面上那组展开着成员（#592）。
+    expect(screen.getByRole("group", { name: /members/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Recent" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /More actions/ }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));

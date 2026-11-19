@@ -106,9 +106,6 @@ export type PinMenuAction =
   | "copy"
   | "reveal"
   | "openInKinshoko"
-  | `switch:${string}`
-  | `moveTo:${string}`
-  | "newGroup"
   | "edgeHide"
   | "close";
 

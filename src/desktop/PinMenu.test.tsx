@@ -24,7 +24,6 @@ vi.mock("../ipc", () => ({
   closeDesktopMenu: ipc.close,
   pinMenuAction: ipc.action,
   showPinNotice: ipc.notice,
-  deskReferenceGroups: () => Promise.resolve({ onDesk: null, switchList: [], archived: [] }),
 }));
 
 import { DesktopMenuView, menuAnchor, PinMenuItems } from "./PinMenu";
@@ -46,7 +45,6 @@ const capture: PinMenu = {
   veiled: false,
   canCollect: true,
   confirmReveal: false,
-  desk: "",
 };
 const reference: PinMenu = {
   pin: "P2",
@@ -57,7 +55,6 @@ const reference: PinMenu = {
   veiled: true,
   canCollect: false,
   confirmReveal: false,
-  desk: "光影",
 };
 
 function show(menu: PinMenu) {
@@ -80,7 +77,7 @@ function show(menu: PinMenu) {
 }
 
 describe("钉图菜单项", () => {
-  it("截图钉图：保留原生菜单全部项，再加在 Kinshoko 中打开、切换到、移到参考组、收起钉图与关闭钉图", () => {
+  it("截图钉图：保留原生菜单全部项，再加在 Kinshoko 中打开、收起钉图与关闭钉图（没有“切换到”“移到参考组”，#596）", () => {
     const { rows, popup } = show(capture);
     expect(rows()).toEqual([
       "水平翻转H",
@@ -93,15 +90,13 @@ describe("钉图菜单项", () => {
       "收藏到…",
       "复制",
       "在 Kinshoko 中打开",
-      "切换到",
-      "移到参考组",
       "收起钉图",
       "关闭钉图Esc",
     ]);
     expect(within(popup).getAllByRole("separator")).toHaveLength(4);
   });
 
-  it("资料库钉图：没有收藏；遮蔽时有“显示这张图”、复制不可用；“切换到”旁写着桌面上参考组的名称", () => {
+  it("资料库钉图：没有收藏；遮蔽时有“显示这张图”、复制不可用", () => {
     const { rows } = show(reference);
     expect(rows()).toEqual([
       "水平翻转H",
@@ -114,8 +109,6 @@ describe("钉图菜单项", () => {
       "复制",
       "显示这张图（安全模式下已遮蔽）",
       "在 Kinshoko 中打开",
-      "切换到光影",
-      "移到参考组",
       "收起钉图",
       "关闭钉图Esc",
     ]);
@@ -222,49 +215,11 @@ describe("钉图菜单项", () => {
     expect(act).toHaveBeenCalledWith("opacity:40");
   });
 
-  it("“切换到”（#593）列出别的参考组和“新参考组”，没有“更新参考组”“加入参考组”", async () => {
-    const deskGroups = vi.fn(() =>
-      Promise.resolve({
-        onDesk: "g1",
-        switchList: [
-          { id: "g1", name: "光影", memberCount: 2, libraryIds: [], updatedAt: 0, problem: null },
-          { id: "g2", name: "", memberCount: 1, libraryIds: [], updatedAt: 0, problem: null },
-        ],
-        archived: [{ id: "g3", name: "收着的", memberCount: 1, libraryIds: [], updatedAt: 0, problem: null }],
-      }),
-    );
-    const act = vi.fn();
-    render(
-      <Menu.Root open>
-        <Menu.Portal>
-          <Menu.Positioner>
-            <Menu.Popup aria-label="钉图菜单">
-              <PinMenuItems menu={reference} act={act} deskGroups={deskGroups} />
-            </Menu.Popup>
-          </Menu.Positioner>
-        </Menu.Portal>
-      </Menu.Root>,
-    );
-    expect(screen.queryByRole("menuitem", { name: /更新参考组/ })).toBeNull();
-    expect(screen.queryByRole("menuitem", { name: "加入参考组" })).toBeNull();
-    const trigger = screen.getByRole("menuitem", { name: /切换到/ });
-    expect(trigger.textContent).toContain("光影");
-    fireEvent.click(trigger);
-    const unnamed = await screen.findByRole("menuitem", { name: /^未命名/ });
-    expect(screen.queryByRole("menuitem", { name: "收着的" })).toBeNull();
-    expect(screen.queryByRole("menuitem", { name: "光影" })).toBeNull();
-    fireEvent.click(unnamed);
-    expect(act).toHaveBeenCalledWith("switch:g2");
-    fireEvent.click(trigger);
-    fireEvent.click(await screen.findByRole("menuitem", { name: "新参考组" }));
-    expect(act).toHaveBeenCalledWith("newGroup");
-    // “移到参考组 ▸”（#595）：同样只列别的参考组，没有“新参考组”。
-    const move = screen.getByRole("menuitem", { name: "移到参考组" });
-    fireEvent.click(move);
-    const target = await screen.findByRole("menuitem", { name: /^未命名/ });
-    expect(screen.queryByRole("menuitem", { name: "新参考组" })).toBeNull();
-    fireEvent.click(target);
-    expect(act).toHaveBeenCalledWith("moveTo:g2");
+  it("钉图菜单里没有“切换到”“移到参考组”“加入参考组”（#596）", () => {
+    show(reference);
+    for (const name of [/切换到/, /移到参考组/, /加入参考组/]) {
+      expect(screen.queryByRole("menuitem", { name })).toBeNull();
+    }
   });
 });
 
@@ -370,7 +325,7 @@ describe("菜单窗口", () => {
     render(<DesktopMenuView />);
     await settle();
     act(() => ipc.next!(open(10, reference)));
-    for (const name of [/透明度/, "移到参考组"]) {
+    for (const name of [/透明度/]) {
       const trigger = await screen.findByRole("menuitem", { name });
       fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
       fireEvent.mouseEnter(trigger);
@@ -383,7 +338,7 @@ describe("菜单窗口", () => {
       expect(screen.queryByRole("menu", { name: "钉图菜单" })).toBeTruthy();
       expect(ipc.close).not.toHaveBeenCalled();
     }
-    expect(await screen.findByRole("menu", { name: "移到参考组" })).toBeTruthy();
+    expect(await screen.findByRole("menuitemradio", { name: "40%" })).toBeTruthy();
   });
 
   it("从触发项移进子菜单再选一档：子菜单与主菜单都不收（#309）", async () => {

@@ -1,9 +1,10 @@
-//! 第一次打开桌面状态时的迁移（#590）：现有参考组全部算归档，文件一个字节都不改；
-//! `pins.json` 里的钉图成为一个没有名称的参考组，摆在桌面上。
+//! 第一次打开桌面状态时的迁移（#590）：现有参考组全部算常用（画师当初特意存下的，#588 决定 5），
+//! 文件一个字节都不改；`pins.json` 里的钉图成为一个没有名称的参考组，摆在桌面上。
 //!
 //! 可重复执行：迁移出的参考组用固定的身份 [`MIGRATED_ID`]，先写它、最后写桌面状态。中途断电后
 //! 再启动会从头再迁一次，覆盖上次写了一半的同一个参考组，不产生重复的参考组，也不丢钉图。
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
@@ -22,6 +23,13 @@ pub(super) fn migrate(
     history: &mut CaptureHistory,
     state_path: &Path,
 ) -> Result<DeskFile, GroupError> {
+    // 现有参考组（不含上次迁到一半留下的那个），保存时间新的在前；读不懂的文件也算。
+    let favorites: Vec<String> = groups
+        .list()?
+        .into_iter()
+        .map(|s| s.id)
+        .filter(|id| id != MIGRATED_ID)
+        .collect();
     // pins.json 读不懂时 PinStore 从空开始：没有钉图可迁。
     let store = PinStore::open(dir)?;
     let now = crate::library::now_ms();
@@ -82,7 +90,8 @@ pub(super) fn migrate(
         }
         Some(group.id.clone())
     };
-    let file = DeskFile::new(on_desk.clone(), on_desk.into_iter().collect());
+    let used_at: BTreeMap<String, i64> = on_desk.iter().map(|id| (id.clone(), now)).collect();
+    let file = DeskFile::new(on_desk, favorites, used_at);
     state::save(state_path, &file)?;
     Ok(file)
 }

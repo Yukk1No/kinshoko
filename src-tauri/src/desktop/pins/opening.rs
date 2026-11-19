@@ -121,10 +121,16 @@ pub(in crate::desktop) fn add_and_open(
 
 /// 把新钉图放进钉图状态（它成为桌面上参考组的新成员），截图钉图在截图历史里记下钉住。
 /// 返回要打开的钉图。先钉图状态、后截图历史。
+///
+/// 开关打开、桌面空着时这一张开了新参考组（#588 决定 4）：参考组列表变了；有上一组时推送
+/// [`super::super::desk_commands::STARTED_EVENT`]，界面据此提示“加进上一组”。
 pub(in crate::desktop) fn add(app: &AppHandle, pin: SavedPin) -> Result<SavedPin, CommandError> {
     let added = lock(&state(app).store).add(pin, &mut lock(&state(app).history))?;
     state(app).dirty.store(true, Ordering::Relaxed);
-    Ok(added)
+    if added.started {
+        crate::desktop::desk_commands::started(app, added.fold_into);
+    }
+    Ok(added.pin)
 }
 
 /// 钉图此刻要不要原位遮蔽（模糊并显示小圆锁，见 [`kinshoko_core::desktop::PinVeils`]），以及暂时

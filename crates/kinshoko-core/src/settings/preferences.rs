@@ -66,22 +66,13 @@ pub enum ShortcutAction {
     PinClipboard,
     /// 把全部钉图收到屏幕边缘，再按一次回到原位。
     HideAllPins,
-    /// 桌面换成切换列表里的上一个参考组（#594；只在参考组改成桌面的开关打开时可用）。
-    PreviousGroup,
-    /// 桌面换成切换列表里的下一个参考组（#594）。
-    NextGroup,
-    /// 换到一张新的空桌（#594）。
-    NewGroup,
 }
 
 impl ShortcutAction {
-    pub const ALL: [ShortcutAction; 6] = [
+    pub const ALL: [ShortcutAction; 3] = [
         ShortcutAction::Capture,
         ShortcutAction::PinClipboard,
         ShortcutAction::HideAllPins,
-        ShortcutAction::PreviousGroup,
-        ShortcutAction::NextGroup,
-        ShortcutAction::NewGroup,
     ];
 
     /// 动作名称，只用在快捷键冲突的日志说明里；界面按动作代码从 src/i18n 取名称。
@@ -91,21 +82,14 @@ impl ShortcutAction {
             ShortcutAction::Capture => "截图",
             ShortcutAction::PinClipboard => "钉剪贴板",
             ShortcutAction::HideAllPins => "收起全部钉图",
-            ShortcutAction::PreviousGroup => "上个参考组",
-            ShortcutAction::NextGroup => "下个参考组",
-            ShortcutAction::NewGroup => "新参考组",
         }
     }
 
-    /// 默认键；拿不准的不绑定（#594：参考组的三个动作等维护者定）。
-    pub(super) fn default_accelerator(self) -> Option<&'static str> {
+    pub(super) fn default_accelerator(self) -> &'static str {
         match self {
-            ShortcutAction::Capture => Some("F1"),
-            ShortcutAction::PinClipboard => Some("F3"),
-            ShortcutAction::HideAllPins => Some("F4"),
-            ShortcutAction::PreviousGroup
-            | ShortcutAction::NextGroup
-            | ShortcutAction::NewGroup => None,
+            ShortcutAction::Capture => "F1",
+            ShortcutAction::PinClipboard => "F3",
+            ShortcutAction::HideAllPins => "F4",
         }
     }
 }

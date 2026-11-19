@@ -67,6 +67,24 @@ pub struct GroupMember {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     #[ts(as = "Option<bool>", optional)]
     pub locked: bool,
+    /// 钉着（#588 决定 3）：参考组摆在桌面上时有一张钉图显示它。关掉钉图只标成没钉着，不移出。
+    /// 钉着时不写出，旧文件因此不变；旧参考组的成员都算钉着。
+    #[serde(default = "yes", skip_serializing_if = "is_yes")]
+    #[ts(as = "Option<bool>", optional)]
+    pub pinned: bool,
+    /// 加进参考组的时间（毫秒），侧栏按它的日期分段（#588“按天分段”）。没有时不写出，
+    /// 按参考组的 `created_at` 算（[`super::ReferenceGroup::added_at`]）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(type = "number", optional)]
+    pub added_at: Option<i64>,
+}
+
+fn yes() -> bool {
+    true
+}
+
+fn is_yes(b: &bool) -> bool {
+    *b
 }
 
 fn opaque() -> f64 {
@@ -111,6 +129,8 @@ impl GroupMember {
             placement: pin.placement,
             opacity: 1.0,
             locked: false,
+            pinned: true,
+            added_at: None,
         })
     }
 
@@ -131,6 +151,8 @@ impl GroupMember {
             placement: pin.placement,
             opacity: 1.0,
             locked: false,
+            pinned: true,
+            added_at: None,
         }
     }
 
@@ -142,11 +164,12 @@ impl GroupMember {
         self.locked = pin.locked;
     }
 
-    /// 参考组包不带透明度与锁定（#588 决定 3）。
+    /// 参考组包不带透明度、锁定与钉着（#588 决定 3）：导入后都算钉着。添加日期留着。
     pub(super) fn without_desk_state(&self) -> GroupMember {
         GroupMember {
             opacity: 1.0,
             locked: false,
+            pinned: true,
             ..self.clone()
         }
     }

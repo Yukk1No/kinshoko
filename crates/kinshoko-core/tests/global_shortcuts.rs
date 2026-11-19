@@ -218,27 +218,3 @@ fn keys_that_would_get_in_the_way_of_typing_or_have_no_main_key_are_refused() {
     assert_eq!(hotkeys.press("F1"), Some(ShortcutAction::Capture));
     assert_eq!(settings.shortcut(ShortcutAction::Capture), Some("F1"));
 }
-
-#[test]
-fn reference_group_shortcuts_start_unbound() {
-    let dir = tempfile::tempdir().unwrap();
-    let mut settings = AppSettings::open(dir.path()).unwrap();
-    let hotkeys = FakeHotkeys::default();
-    let mut shortcuts = GlobalShortcuts::start(hotkeys.clone(), &settings);
-    let bindings = shortcuts.bindings(&settings);
-    assert_eq!(bindings.len(), 6);
-    assert!(
-        bindings[3..].iter().all(|b| b.accelerator.is_none()),
-        "拿不准的默认不绑定"
-    );
-    shortcuts
-        .rebind(&mut settings, ShortcutAction::NextGroup, Some("Ctrl+Alt+N"))
-        .unwrap();
-    assert_eq!(hotkeys.press("Ctrl+Alt+N"), Some(ShortcutAction::NextGroup));
-    assert!(matches!(
-        shortcuts.rebind(&mut settings, ShortcutAction::PreviousGroup, Some("F1")),
-        Err(kinshoko_core::ShortcutError::UsedBy(
-            ShortcutAction::Capture
-        ))
-    ));
-}

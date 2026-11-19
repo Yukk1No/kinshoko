@@ -9,6 +9,16 @@ use kinshoko_core::CommandError;
 use kinshoko_core::desktop::{CaptureHistory, SavedPin, ScreenRect};
 use kinshoko_core::reference_groups::{Desk, OpenedPins};
 
+/// 钉上一张新钉图后（[`PinState::add`]）。
+pub struct Added {
+    /// 要打开的钉图（桌面上的参考组里，它记着自己是哪个成员）。
+    pub pin: SavedPin,
+    /// 钉在空桌上、开了一个新参考组。
+    pub started: bool,
+    /// 开了新参考组时的上一组：提示里可以“加进”它（[`Desk::fold_into_previous`]）。
+    pub fold_into: Option<String>,
+}
+
 pub struct PinState(Box<Desk>);
 
 impl PinState {
@@ -29,14 +39,20 @@ impl PinState {
         self.0.edit(id, edit)
     }
 
-    /// 钉上一张新钉图，返回要打开的钉图（它记着自己是哪个成员）。截图钉图在截图历史里记下钉住。
+    /// 钉上一张新钉图。截图钉图在截图历史里记下钉住；桌面空着时开一个新参考组。
     /// 需要再 [`Self::save`]。
     pub fn add(
         &mut self,
         pin: SavedPin,
         history: &mut CaptureHistory,
-    ) -> Result<SavedPin, CommandError> {
-        self.0.pin(pin, history).map_err(CommandError::from)
+    ) -> Result<Added, CommandError> {
+        let started = self.0.group().is_none();
+        let pinned = self.0.pin(pin, history).map_err(CommandError::from)?;
+        Ok(Added {
+            pin: pinned.pin,
+            started,
+            fold_into: pinned.fold_into,
+        })
     }
 
     /// 画师关掉了钉图：它不再是桌面上参考组的成员；截图钉图在截图历史里不再算钉住。

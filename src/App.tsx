@@ -14,6 +14,7 @@ import type { LibraryInfo } from "./bindings/LibraryInfo";
 import type { WorkspaceStatus } from "./bindings/WorkspaceStatus";
 import { appInfo, openLastLibrary, workspaceStatus, onWorkspaceChanged, safeMode, changeSetting, uiScale } from "./ipc";
 import { useOpenInKinshoko } from "./desktop/openInKinshoko";
+import { useDeskGroupStarted } from "./desktop/useDeskGroupStarted";
 import { CreateLibraryDialog } from "./library/CreateLibrary";
 import { LegacyNameMigrationNotice, LegacyNameWizard } from "./library/LegacyNameMigrationPanel";
 import { LibraryPicker } from "./library/LibraryPicker";
@@ -57,6 +58,7 @@ function MainWindow() {
   const { t } = useTranslation("shell");
   useCaptureSources(() => [], -100);
   const toast = useToast();
+  useDeskGroupStarted();
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   /** 设置打开时先显示的分页：状态栏打开通用，打标图标打开自动标签（#144）。 */

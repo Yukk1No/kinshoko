@@ -131,6 +131,10 @@ mod reference_group_capture_links;
 mod reference_group_captures;
 #[path = "reference_group_desk.rs"]
 mod reference_group_desk;
+#[path = "reference_group_desk_migration.rs"]
+mod reference_group_desk_migration;
+#[path = "reference_group_desk_moves.rs"]
+mod reference_group_desk_moves;
 #[path = "reference_group_package.rs"]
 mod reference_group_package;
 #[path = "reference_group_resolve.rs"]
