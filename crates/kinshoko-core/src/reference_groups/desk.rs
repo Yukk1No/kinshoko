@@ -323,8 +323,10 @@ impl Desk {
         member.follow(pin);
         // 加进不在桌面上的组：没钉着，切过去时也不钉出来（#596）。
         member.pinned = false;
+        let now = crate::library::now_ms();
+        member.added_at = Some(now);
         group.members.push(member);
-        group.updated_at = crate::library::now_ms();
+        group.updated_at = now;
         self.groups.commit(&group, &[])?;
         Ok(Some(group))
     }

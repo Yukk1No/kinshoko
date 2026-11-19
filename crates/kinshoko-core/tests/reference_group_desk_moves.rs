@@ -341,6 +341,7 @@ fn adding_from_the_wall_to_another_group_adds_an_unpinned_member_and_leaves_the_
         .expect("不在桌面上的组多一个成员");
     let member = added.members.last().unwrap();
     assert!(!member.pinned, "加进别的组时不钉出来，切过去也不钉");
+    assert!(member.added_at.is_some(), "记下添加日期：成员区按它分段");
     assert_eq!(reread(&t, &other).members.len(), 2);
     assert_eq!(t.desk_id(), on_desk);
     assert_eq!(t.desk.pins().len(), 1, "桌面不变");
