@@ -41,6 +41,8 @@ cosmic-text = { version = "0.19", default-features = false, features = ["std", "
 sys-locale = "0.3.2"
 
 [dev-dependencies]
+# 更新安装的测试用模拟运行时，走真实的 updater 插件下载。
+tauri = { version = "2", features = ["test"] }
 image = { version = "0.25", default-features = false, features = ["bmp"] }
 tempfile = "3.27.0"
 

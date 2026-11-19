@@ -5,6 +5,7 @@ import { arcSpring } from "../ui/motion";
 import { useReducedMotion } from "../ui/reducedMotion";
 import { DensityIsland } from "./DensityIsland";
 import { densityMorphRises, selectionBarCompact, selectionBarPlacement } from "./selectionBarPlacement";
+import { noticeAnchor, rowTopOf } from "./noticeAnchor";
 
 /** 折叠后的圆形按钮宽度。 */
 const KNOB = 40;
@@ -53,6 +54,8 @@ export function WallFloats({
     return () => observer.disconnect();
   }, []);
 
+  useNoticeAnchor(corner, { rising, bar: bar !== null, viewer: density === null });
+
   const collapsed = bar !== null;
   const compact = selectionBarCompact(wallWidth, widths.full);
   const barWidth = compact ? widths.compact : widths.full;
@@ -83,5 +86,71 @@ export function WallFloats({
         {bar && <SelectionBar key="selbar" {...bar} left={place.left} compact={compact} onWidth={onWidth} />}
       </AnimatePresence>
     </>
+  );
+}
+
+/** 通知停靠的位置写到根元素上（--k-notice-right、--k-notice-bottom、--k-notice-max），toast.css 与导入任务卡按它定位。 */
+const NOTICE_VARS = ["--k-notice-right", "--k-notice-bottom", "--k-notice-max"] as const;
+
+/**
+ * 量出通知该停在哪（#609，规则见 noticeAnchor）：图片墙区域、右下角那一组、多选悬浮栏、查看器工具条
+ * 变了就重量。卸载时（离开图库工作区）去掉，通知回到窗口右下角。
+ */
+function useNoticeAnchor(
+  corner: React.RefObject<HTMLDivElement | null>,
+  { rising, bar, viewer }: { rising: boolean; bar: boolean; viewer: boolean },
+) {
+  // biome-ignore lint/correctness/useExhaustiveDependencies(bar): 悬浮栏出现或收起时重量（它不在这个组件的 DOM 引用里，按选择器找）
+  // biome-ignore lint/correctness/useExhaustiveDependencies(viewer): 查看器开合时重量（工具条在查看器里，按选择器找）
+  useLayoutEffect(() => {
+    const own = corner.current;
+    const host = own?.parentElement;
+    if (!own || !host) return;
+    const root = document.documentElement.style;
+    const measure = () => {
+      const rows = [rowTopOf(own, rising ? RISE : 0)];
+      for (const selector of [".selbar-float", ".viewer-dock"]) {
+        const element = host.querySelector<HTMLElement>(selector);
+        if (element)
+          rows.push(
+            selector === ".viewer-dock"
+              ? host.getBoundingClientRect().bottom - element.getBoundingClientRect().top
+              : rowTopOf(element),
+          );
+      }
+      const box = host.getBoundingClientRect();
+      // 图片墙藏起来时（切到订阅页等）通知回到窗口右下角。
+      if (box.width === 0) {
+        for (const name of NOTICE_VARS) root.removeProperty(name);
+        return;
+      }
+      const anchor = noticeAnchor({
+        host: box,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        inset: Number.parseFloat(getComputedStyle(own).right) || 0,
+        rowTop: Math.max(...rows),
+      });
+      root.setProperty("--k-notice-right", `${anchor.right}px`);
+      root.setProperty("--k-notice-bottom", `${anchor.bottom}px`);
+      root.setProperty("--k-notice-max", `${anchor.maxWidth}px`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(host);
+    for (const selector of [".selbar-float", ".viewer-dock"]) {
+      const element = host.querySelector(selector);
+      if (element) observer.observe(element);
+    }
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [corner, rising, bar, viewer]);
+  useLayoutEffect(
+    () => () => {
+      for (const name of NOTICE_VARS) document.documentElement.style.removeProperty(name);
+    },
+    [],
   );
 }

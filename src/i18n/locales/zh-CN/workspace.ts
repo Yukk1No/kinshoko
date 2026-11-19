@@ -21,6 +21,7 @@ export default {
     label: "详情",
     collapse: "收起详情",
     title: "详情",
+    empty: "选中图片后，这里显示它的标签与出处",
   },
   organizeWaiting: {
     title: "导入完成后再整理",

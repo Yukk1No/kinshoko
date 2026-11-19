@@ -23,7 +23,10 @@ export const markCachedThumbnail = (img: HTMLImageElement | null) => {
   if (img.complete && img.naturalWidth > 0) img.dataset.loaded = "instant";
   // 卡片离开挂载范围时缩略图还没到：撤掉地址，浏览器放弃这次请求，不再替已经看不见的卡片取图（#123）。
   return () => {
-    if (!img.complete) img.removeAttribute("src");
+    // 等提交完成，避开 StrictMode 在节点仍挂着时重放 ref。
+    queueMicrotask(() => {
+      if (!img.isConnected && !img.complete) img.removeAttribute("src");
+    });
   };
 };
 export const markThumbnailLoaded = (e: { currentTarget: HTMLImageElement }) => {

@@ -13,7 +13,10 @@ installBackend();
 
 const pose = readPose();
 document.documentElement.dataset.view = "main";
-document.documentElement.dataset.variant = pose.variant;
+// 第十轮：左栏的行（ra–re）叠在 PR #635 的正式样式上，前几轮的方案样式不参与，所以 data-variant 记成 now。
+const rows = /^r[a-e]$/.test(pose.variant);
+document.documentElement.dataset.variant = rows ? "now" : pose.variant;
+if (rows) document.documentElement.dataset.rows = pose.variant;
 if (pose.theme) document.documentElement.dataset.theme = pose.theme;
 
 // 样式表的顺序与 src/main.tsx 相同，方案的样式表排在最后。
@@ -36,6 +39,7 @@ await import("../../../src/search/search-bar.css");
 await import("../../../src/ui/text-select.css");
 await import("../../../src/subscriptions/subscriptions.css");
 await import("./variants.css");
+await import("./rows.css");
 
 const [{ App }, { RuntimeProvider }, { TipProvider }, { followInterfaceLanguage }] = await Promise.all([
   import("../../../src/App"), import("../../../src/RuntimeSupport"), import("../../../src/ui/Tip"), import("../../../src/i18n"),

@@ -11,7 +11,7 @@ import { PAGE, type BrowserCard } from "./wallShared";
 import { startupWallPage } from "../startupGate";
 import { markStartup } from "../startupTiming";
 import { errorText } from "../ipc/commandError";
-import { stackHolding } from "./imageSets";
+import { stackHolding, withoutPages, pagesOf } from "./imageSets";
 
 /** 报上已有占位图时，在原有卡片里往后多看几张：前面新进来几张图时，这一页仍大多报得上。 */
 const KNOWN_MARGIN = 100;
@@ -155,7 +155,8 @@ export function useWallPages({
           }
           const pending = pendingRemoval.current;
           if (pending.size) {
-            const kept = next.filter((card) => !pending.has(card.id));
+            const kept = withoutPages(next, pending);
+            stacked -= pagesOf(next).length - pagesOf(kept).length - (next.length - kept.length);
             count -= next.length - kept.length;
             next.splice(0, next.length, ...kept);
           }

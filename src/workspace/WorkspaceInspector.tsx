@@ -8,6 +8,7 @@ import { InspectorResizer } from "../shell/InspectorResizer";
 import { WinCtrls } from "../ui/WinCtrls";
 import type { WorkspaceInspectorState } from "./useWorkspaceInspector";
 import { Tip } from "../ui/Tip";
+import { InspectorEmpty } from "./InspectorEmpty";
 
 /** 工作区右侧的详情面板：明确打开的来源整理，或当前选择的整理；没有可整理的内容时留空，宽度不变。收起时不读详情。 */
 export function WorkspaceInspector({
@@ -92,9 +93,10 @@ export function WorkspaceInspector({
             reloadKey={reloadKey}
             onClose={closeSources}
           />
+        ) : panelIds.length === 0 ? (
+          <InspectorEmpty />
         ) : (
-          eligible &&
-          panelIds.length > 0 && (
+          eligible && (
             <SelectionPanel
               libraryId={selectionLibrary ?? ""}
               selected={new Set(panelIds)}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { useImportShortcut } from "./useImportShortcut";
 import { useInspectorShortcut } from "./useInspectorShortcut";
@@ -68,7 +68,9 @@ export function LibraryWorkspace({
   const toast = useToast();
   const [sources, setSources] = useState<WorkspaceCard | null>(null);
   const [loadedCards, setLoadedCards] = useState<BrowserCard[]>([]);
-  const [workspaceScope, setWorkspaceScope] = useState<WorkspaceScope>({ kind: "all" });
+  const [workspaceScope, setScopeState] = useState<WorkspaceScope>({ kind: "all" });
+  // 选文件夹总是连同子文件夹一起看（#608 取消了“含子文件夹”开关）：哪里来的文件夹范围都在这里换成整支。
+  const setWorkspaceScope = useCallback((next: WorkspaceScope) => setScopeState(withSubfolders(next)), []);
   const [reloadKey, setReloadKey] = useState(0);
   const [density, setDensity] = useState(240);
   /** 图片墙上 Ctrl+滚轮缩放中的预览值（#111），滑条跟着走。 */
@@ -431,4 +433,11 @@ export function LibraryWorkspace({
       {wallDialogs}
     </>
   );
+}
+
+/** 只看文件夹本身的范围换成连同子文件夹（#608）。 */
+export function withSubfolders(scope: WorkspaceScope): WorkspaceScope {
+  return scope.kind === "library" && scope.scope.kind === "folder"
+    ? { ...scope, scope: { kind: "folderTree", id: scope.scope.id } }
+    : scope;
 }

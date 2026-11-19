@@ -256,7 +256,9 @@ describe("订阅榜单", () => {
     backend([ranking("r1", "day", 50)]);
     page(status());
     expect(await screen.findByRole("button", { name: "日榜 前 50" })).toBeTruthy();
-    fireEvent.click(screen.getAllByRole("button", { name: "更多" })[0]);
+    const more = screen.getAllByRole("button", { name: "更多" })[0];
+    await waitFor(() => expect(more.getAttribute("aria-expanded")).toBe("false"));
+    fireEvent.click(more);
     fireEvent.click(await screen.findByRole("menuitem", { name: "订阅设置…" }));
     const settings = await screen.findByRole("dialog", { name: "订阅设置" });
     expect(within(settings).getByText("日榜 前 50")).toBeTruthy();
