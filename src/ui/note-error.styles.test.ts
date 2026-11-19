@@ -113,17 +113,38 @@ describe("说明与报错文字", () => {
       "overflow-wrap": "anywhere",
     });
     expect(error).not.toHaveProperty("line-height");
-    expect(cssRule(sheets["./ui.css"], ".k-error-text.is-field")).toMatchObject({
+    expect(cssRule(sheets["./ui.css"], ".k-error-text:where(.is-field)")).toMatchObject({
       display: "flex",
       "align-items": "center",
       gap: "6px",
       "line-height": "18px",
+      "overflow-wrap": "normal",
     });
-    expect(cssRule(sheets["./ui.css"], ".k-error-text.is-boxed")).toMatchObject({
+    expect(cssRule(sheets["./ui.css"], ".k-error-text:where(.is-boxed)")).toMatchObject({
       "margin-bottom": "12px",
       padding: "8px 12px",
       "border-radius": "var(--r)",
       background: "var(--surface-2)",
+    });
+  });
+
+  it("共用修饰符保持单类优先级，让区域间距规则覆盖", () => {
+    const selectors = [...sheets["./ui.css"].matchAll(/([^{}]+)\{[^{}]*\}/g)]
+      .map(([, selector]) => selector.trim())
+      .filter((selector) => /^\.k-(?:description|error-text)[.:]/.test(selector));
+    expect(selectors).toEqual([
+      ".k-description:where(.is-spaced)",
+      ".k-error-text:where(.is-boxed)",
+      ".k-error-text:where(.is-field)",
+    ]);
+    expect(cssRule(sheets["../styles/shell-details.css"], ".save-destination p")).toMatchObject({ margin: "0" });
+    expect(
+      cssRule(sheets["./settings.css"], ".k-set-row-below-body > p,\n.k-set-row-below-body > div > p"),
+    ).toMatchObject({
+      margin: "4px 0",
+    });
+    expect(cssRule(sheets["./settings.css"], ".k-set-row-below-body .k-error-text")).toMatchObject({
+      margin: "6px 0 0",
     });
   });
 
@@ -136,7 +157,7 @@ describe("说明与报错文字", () => {
   });
 
   it("区域保留说明的间距、键盘显示和检查器行高", () => {
-    expect(cssRule(sheets["./ui.css"], ".k-description.is-spaced")).toMatchObject({ "margin-top": "8px" });
+    expect(cssRule(sheets["./ui.css"], ".k-description:where(.is-spaced)")).toMatchObject({ "margin-top": "8px" });
     expect(cssRule(sheets["./settings.css"], ".k-set-group > .k-description")).toMatchObject({
       margin: "0",
       padding: "8px 12px 6px",
