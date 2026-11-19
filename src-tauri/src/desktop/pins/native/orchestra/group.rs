@@ -94,7 +94,25 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
     /// 整组拖动开始（从 `pin` 上按下）：记下此刻开着的全部钉图。
     pub(super) fn start_group_drag(&mut self, pin: PinId, at: (i32, i32)) {
         let at = (f64::from(at.0), f64::from(at.1));
-        let grab = GroupGrab::new(self.members(), at);
+        // 从此刻看到的样子拖（缩放动画中途按下时，抓住的点留在指针下，与单张拖动相同）。
+        let ms = self.ms(self.now);
+        let shown: Vec<kinshoko_core::desktop::SavedPin> = self
+            .pins
+            .values()
+            .filter(|l| !l.closing && !l.tucked)
+            .map(|l| {
+                let mut pin = l.pin.clone();
+                let seen = l.motion.at(ms).snap();
+                let home = pin.rect();
+                if home.width > 0 && seen.width > 0 {
+                    pin.placement.scale *= f64::from(seen.width) / f64::from(home.width);
+                }
+                pin.placement.x = seen.x;
+                pin.placement.y = seen.y;
+                pin
+            })
+            .collect();
+        let grab = GroupGrab::new(&shown, at);
         self.group.armed = false;
         self.group.wheel = None;
         self.group.drag = Some((pin, grab));

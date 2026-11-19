@@ -222,3 +222,21 @@ fn a_later_alt_wheel_scales_the_layout_as_it_is_now() {
     // 从单张缩放之后的样子再乘 1.12，不回到第一次整组缩放的起点。
     assert!((r.o.pins[&A].pin.placement.scale - a.scale * 1.12).abs() < 1e-9);
 }
+
+#[test]
+fn a_group_drag_during_a_zoom_animation_starts_from_what_is_shown() {
+    let mut r = Rig::two();
+    r.input(PinInput::Wheel {
+        pin: A,
+        at: (600, 475),
+        notches: 1.0,
+        ctrl: false,
+        alt: true,
+    });
+    // 动画走到一半时按下：抓住的点留在指针下，不先跳到缩放的终点。
+    r.animate(u64::from(ZOOM_MS) / 2);
+    let shown = r.o.shown(A, r.now);
+    r.grab((150, 150), PointerEvent::Down(PointerButton::Primary), true);
+    r.grab((151, 150), PointerEvent::Move, true);
+    assert_eq!(r.at(A), (shown.x + 1, shown.y));
+}
