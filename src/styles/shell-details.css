@@ -48,13 +48,6 @@
   height: 22px;
   margin-bottom: 6px;
 }
-.k-groups-section h3 {
-  margin: 0;
-  color: var(--ink-2);
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 600;
-}
 /* 任一成员：指针移到分组上（或键盘走到、已按下）时才出现在分组名右边。 */
 .group-any {
   height: 22px;

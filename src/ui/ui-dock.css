@@ -212,12 +212,6 @@
   opacity: 0;
   transform: scale(0.97);
 }
-.k-dialog-title {
-  margin: 0;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
-}
 .k-dialog-desc {
   margin: 4px 0 14px;
   color: var(--ink-2);

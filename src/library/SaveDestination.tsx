@@ -202,7 +202,7 @@ export function SaveDestinationPicker({
       <legend className="sr-only">{t("legend")}</legend>
       <div className="k-destination-grid">
         <div className="k-field">
-          <span className="k-field-label">{libraryLabel}</span>
+          <span className="k-section-label">{libraryLabel}</span>
           <Select
             label={libraryLabel}
             icon={<Library size={16} aria-hidden="true" />}
@@ -224,7 +224,7 @@ export function SaveDestinationPicker({
           />
         </div>
         <div className="k-field">
-          <span className="k-field-label">{t("folder")}</span>
+          <span className="k-section-label">{t("folder")}</span>
           <Select
             label={t("folder")}
             icon={<Folder size={16} aria-hidden="true" />}
@@ -302,7 +302,7 @@ export function SaveDestinationDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog k-save-dialog save-destination-dialog">
-          <Dialog.Title className="k-dialog-title">{title}</Dialog.Title>
+          <Dialog.Title className="k-title">{title}</Dialog.Title>
           {summary && <div className="k-import-summary">{summary}</div>}
           <SaveDestinationPicker value={value} onChange={setValue} disabled={busy} />
           {error && (

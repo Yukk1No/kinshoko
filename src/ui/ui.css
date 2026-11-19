@@ -314,13 +314,23 @@
   align-items: center;
   gap: 8px;
 }
-/* the group name lines up with the item text: item padding 8 + indicator 16 + gap 8 */
-.k-menu-label {
-  padding: 6px 10px 2px 32px;
+/* 标题与分组名（design/ui-system/scales.md「共用类」）：外边距与对齐由所在的区域决定。 */
+.k-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.k-section-label {
+  margin: 0;
   font-size: 12px;
   line-height: 18px;
-  color: var(--ink-2);
   font-weight: 600;
+  color: var(--ink-2);
+}
+/* the group name lines up with the item text: item padding 8 + indicator 16 + gap 8 */
+.k-section-label.is-menu {
+  padding: 6px 10px 2px 32px;
 }
 
 /* ---- Import button: one target, the source is chosen in its menu (design system ImportButton) ---- */

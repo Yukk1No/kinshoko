@@ -316,7 +316,7 @@ export function PermanentDeleteConfirm({
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="k-backdrop" />
         <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label={title}>
-          <AlertDialog.Title className="k-dialog-title">{title}</AlertDialog.Title>
+          <AlertDialog.Title className="k-title">{title}</AlertDialog.Title>
           {!preview ? (
             <p className="k-dialog-desc" role="status">
               {t("checking")}

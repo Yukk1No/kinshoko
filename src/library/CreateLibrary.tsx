@@ -65,7 +65,7 @@ export function NewLibraryFields({
   return (
     <>
       <label className="k-field">
-        <span className="k-field-label">{t("name")}</span>
+        <span className="k-section-label">{t("name")}</span>
         <input
           className="k-input"
           value={value.name}
@@ -74,7 +74,7 @@ export function NewLibraryFields({
         />
       </label>
       <div className="k-field" role="group" aria-labelledby={`${ids}-loc`}>
-        <span className="k-field-label" id={`${ids}-loc`}>
+        <span className="k-section-label" id={`${ids}-loc`}>
           {t("location")}
         </span>
         <div className={`create-library-path${value.parent ? " is-set" : ""}`}>
@@ -215,7 +215,9 @@ export function CreateLibrary({
           <ChevronLeft size={14} aria-hidden="true" />
           <span className="k-label">{backLabel}</span>
         </button>
-        <h1 id={`${ids}-title`}>{t("create.title")}</h1>
+        <h1 id={`${ids}-title`} className="k-title">
+          {t("create.title")}
+        </h1>
         <NewLibraryForm
           opens
           onCreated={onCreated}
@@ -256,7 +258,7 @@ export function CreateLibraryDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog create-library-dialog">
-          <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+          <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
           <NewLibraryForm
             opens={opens}
             onCreated={onCreated}

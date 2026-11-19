@@ -451,7 +451,7 @@ export function ReferenceGroupsPanel() {
         <AlertDialog.Portal>
           <AlertDialog.Backdrop className="k-backdrop" />
           <AlertDialog.Popup className="k-dialog is-alert">
-            <AlertDialog.Title className="k-dialog-title">{t("removeCaptureTitle")}</AlertDialog.Title>
+            <AlertDialog.Title className="k-title">{t("removeCaptureTitle")}</AlertDialog.Title>
             <AlertDialog.Description className="k-dialog-desc">{t("removeCaptureDescription")}</AlertDialog.Description>
             <div className="k-dialog-foot">
               <span className="k-grow" />

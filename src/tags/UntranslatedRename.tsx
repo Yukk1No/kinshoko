@@ -98,7 +98,7 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
             >
               <Popover.Title className="k-rename-title">{t("title", { name })}</Popover.Title>
               <label className="k-field">
-                <span className="k-field-label">{t("field")}</span>
+                <span className="k-section-label">{t("field")}</span>
                 <input
                   className="k-input"
                   autoFocus

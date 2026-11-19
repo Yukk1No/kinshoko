@@ -8,12 +8,6 @@
   gap: 6px;
   min-width: 0;
 }
-.k-field-label {
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 600;
-  color: var(--ink-2);
-}
 .k-field-error {
   display: flex;
   align-items: center;

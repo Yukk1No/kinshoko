@@ -211,7 +211,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
           <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("close")}>
             <X size={16} aria-hidden="true" />
           </Dialog.Close>
-          <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+          <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
           <DialogHeight>
             {busy && (
               <p className="k-set-note" role="status">

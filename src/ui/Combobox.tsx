@@ -219,7 +219,7 @@ export function Combobox<T extends ComboboxOption>({
     return (
       <Fragment key={option.id}>
         {heading !== null && (
-          <div className="k-menu-label" role="presentation">
+          <div className="k-section-label is-menu" role="presentation">
             {heading}
           </div>
         )}

@@ -64,7 +64,7 @@ export function FirstRunDialog({
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog subs-first-run">
           <div className="subs-first-run-head">
-            <Dialog.Title className="k-dialog-title">{t("firstRun.title")}</Dialog.Title>
+            <Dialog.Title className="k-title">{t("firstRun.title")}</Dialog.Title>
             <UnofficialMark />
           </div>
           <Dialog.Description className="k-dialog-desc">{t("firstRun.lead")}</Dialog.Description>

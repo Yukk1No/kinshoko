@@ -379,13 +379,8 @@
   flex-direction: column;
   gap: 4px;
 }
-.k-add-similar-head {
-  margin: 0;
+.k-add-similar > .k-section-label {
   padding: 6px 10px 4px;
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 600;
-  color: var(--ink-2);
   overflow-wrap: anywhere;
 }
 .k-add-similar .k-input {

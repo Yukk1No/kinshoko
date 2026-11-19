@@ -19,6 +19,7 @@ import "./ui/fields.css";
 import "./shell/main-window.css";
 import "./shell/main-window-island.css";
 import "./shell/main-window-panels.css";
+import "./shell/main-window-tags.css";
 import "./shell/main-window-stacks.css";
 import "./shell/startup-splash.css";
 import "./shell/pane-fit.css";

@@ -22,7 +22,7 @@ export function SubscriptionsEmpty({ signingIn, account, actions, addMenu, setFi
       </span>
       {signingIn ? (
         <>
-          <h1 className="subs-empty-title">{t("empty.waitingTitle")}</h1>
+          <h1 className="k-title">{t("empty.waitingTitle")}</h1>
           <div className="subs-empty-actions">
             <button type="button" className="k-btn is-quiet" onClick={actions.cancel}>
               <span className="k-label">{t("empty.cancel")}</span>
@@ -34,7 +34,7 @@ export function SubscriptionsEmpty({ signingIn, account, actions, addMenu, setFi
         </>
       ) : account ? (
         <>
-          <h1 className="subs-empty-title">{t("empty.noSubsTitle")}</h1>
+          <h1 className="k-title">{t("empty.noSubsTitle")}</h1>
           <div className="subs-empty-actions">
             {addMenu(
               <button type="button" className="k-btn is-primary">
@@ -46,7 +46,7 @@ export function SubscriptionsEmpty({ signingIn, account, actions, addMenu, setFi
         </>
       ) : (
         <>
-          <h1 className="subs-empty-title">{t("empty.signedOutTitle")}</h1>
+          <h1 className="k-title">{t("empty.signedOutTitle")}</h1>
           <p className="subs-empty-hint">{t("empty.signedOutHint")}</p>
           <div className="subs-empty-actions">
             <button type="button" className="k-btn" onClick={() => setFirstRun(true)}>

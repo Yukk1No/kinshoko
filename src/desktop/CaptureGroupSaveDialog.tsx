@@ -85,7 +85,7 @@ export function CaptureGroupSaveDialog<T>({
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />
           <Dialog.Popup className="k-dialog k-save-dialog capture-group-save">
-            <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+            <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
             <ul className="capture-save-list">
               {value.entries.map((entry, i) => {
                 const current = destinationOf(value, entry.id);
@@ -213,7 +213,7 @@ export function CaptureGroupSaveDialog<T>({
         <AlertDialog.Portal>
           <AlertDialog.Backdrop className="k-backdrop" />
           <AlertDialog.Popup className="k-dialog is-alert">
-            <AlertDialog.Title className="k-dialog-title">{t("discardTitle")}</AlertDialog.Title>
+            <AlertDialog.Title className="k-title">{t("discardTitle")}</AlertDialog.Title>
             <AlertDialog.Description className="k-dialog-desc">{t("discardDescription")}</AlertDialog.Description>
             <div className="k-dialog-foot">
               <span className="k-grow" />
