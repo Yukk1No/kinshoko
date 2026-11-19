@@ -8,41 +8,21 @@ pub(super) const MENU_CAPTURE: &str = "capture";
 pub(super) const MENU_PIN_CLIPBOARD: &str = "pin-clipboard";
 pub(super) const MENU_EDGE_HIDE: &str = "edge-hide";
 pub(super) const MENU_QUIT: &str = "quit";
-/// 参考组改成桌面（#593）：`desk-group:<参考组 id>` 切换过去，`desk-new` 换到空桌。
-const MENU_DESK_GROUP: &str = "desk-group:";
-const MENU_DESK_NEW: &str = "desk-new";
 
 /// 托盘菜单，文字按当前界面语言。
 fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let item = |id: &str, label: Text| MenuItem::with_id(app, id, text(label), true, None::<&str>);
-    let menu = Menu::with_items(
+    Menu::with_items(
         app,
         &[
             &item(MENU_OPEN, Text::TrayOpen)?,
             &item(MENU_CAPTURE, Text::TrayCapture)?,
             &item(MENU_PIN_CLIPBOARD, Text::TrayPinClipboard)?,
             &item(MENU_EDGE_HIDE, Text::TrayEdgeHide)?,
+            &PredefinedMenuItem::separator(app)?,
+            &item(MENU_QUIT, Text::TrayQuit)?,
         ],
-    )?;
-    // 参考组那一段（#593），只在开关打开时有：切换列表里最近的几个，桌面上的那个打勾。
-    if let Some(groups) = desk_commands::tray_groups(app) {
-        menu.append(&PredefinedMenuItem::separator(app)?)?;
-        for (id, label, on_desk) in groups {
-            let entry = tauri::menu::CheckMenuItem::with_id(
-                app,
-                format!("{MENU_DESK_GROUP}{id}"),
-                label,
-                true,
-                on_desk,
-                None::<&str>,
-            )?;
-            menu.append(&entry)?;
-        }
-        menu.append(&item(MENU_DESK_NEW, Text::NewGroup)?)?;
-    }
-    menu.append(&PredefinedMenuItem::separator(app)?)?;
-    menu.append(&item(MENU_QUIT, Text::TrayQuit)?)?;
-    Ok(menu)
+    )
 }
 
 /// 界面语言换了：托盘菜单换成新语言的文字。
@@ -74,12 +54,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
             MENU_EDGE_HIDE => edge::toggle_in_background(app),
             // 今天还没备份时先备份再退出（#69）。
             MENU_QUIT => crate::backup::quit(app),
-            MENU_DESK_NEW => desk_commands::switch_from_tray(app, None),
-            id => {
-                if let Some(group) = id.strip_prefix(MENU_DESK_GROUP) {
-                    desk_commands::switch_from_tray(app, Some(group.to_owned()));
-                }
-            }
+            _ => {}
         })
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {

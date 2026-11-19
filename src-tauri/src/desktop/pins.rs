@@ -284,8 +284,6 @@ pub fn restore(app: &AppHandle) {
     let monitors = monitors();
     if desk_reference_groups(app) {
         use_desk(app);
-        // 托盘建好时还不知道开关：补上参考组那一段（#593）。
-        super::relabel_tray(app);
     }
     let opened = {
         let mut store = lock(&state(app).store);

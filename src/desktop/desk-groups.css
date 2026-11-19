@@ -1,4 +1,4 @@
-/* 参考组改成桌面（#592）的侧栏面板：切换列表在上、归档在下。外框沿用 .reference-groups（desktop.css 与
+/* 参考组改成桌面（#592）的侧栏面板：常用、最近、更早三段。外框沿用 .reference-groups（desktop.css 与
    pane-fit.css 给侧栏定宽）；卡片的样式都在这里，开关打开后旧面板的卡片样式在 #596 删去。
    字号只用 16 / 13 / 12；圆角、时长、曲线都取 tokens.css 的变量；层级不超过 10。 */
 
@@ -45,12 +45,48 @@
 }
 
 .desk-groups-heading {
-  margin: 10px 0 0;
+  position: relative;
+  z-index: 1;
+  margin: 12px 0 4px;
   padding: 0 6px;
   color: var(--ink-2);
   font-size: 12px;
   line-height: 18px;
   font-weight: 600;
+}
+.desk-groups-heading:first-of-type {
+  margin-top: 0;
+}
+
+/* “更早”折起来：标题本身是开关，箭头随展开转 90°。 */
+.desk-groups-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 -4px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  transition: background var(--t-fast);
+}
+.desk-groups-toggle:hover {
+  background: var(--hover);
+}
+.desk-groups-toggle:focus-visible {
+  outline: var(--focus-ring);
+}
+.desk-groups-toggle svg {
+  transition: transform var(--t-fast) var(--ease);
+}
+.desk-groups-toggle[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+.desk-groups-count {
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 一张卡片：头部（缩略图、名称）可点，“更多”浮在右上角。 */
@@ -130,9 +166,6 @@ button.desk-group-head:not([aria-current]):hover {
   font-weight: 600;
   overflow-wrap: anywhere;
 }
-.desk-group.is-archived .desk-group-name {
-  font-weight: 500;
-}
 .desk-group-meta,
 .desk-group-problem {
   color: var(--ink-2);
@@ -147,27 +180,79 @@ button.desk-group-head:not([aria-current]):hover {
 .desk-group .group-name-form {
   padding: 4px 6px;
 }
+/* 桌面上那组的成员：钉着的在前，没钉着的变淡、点一下钉回；悬停时右上角出现“移出”。 */
 .desk-group-members {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin: 0;
-  padding: 0 6px 6px 22px;
-  font-size: 12px;
+  gap: 8px;
+  padding: 0 8px 8px;
 }
-.desk-group-members li {
+.desk-group-day-head {
+  margin: 0 0 4px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.desk-group-tiles {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 8px;
-  min-width: 0;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
-.desk-group-members span {
-  min-width: 0;
-  overflow-wrap: anywhere;
+.desk-group-tile {
+  position: relative;
 }
-.desk-group-members .is-unavailable {
-  color: var(--warn);
+.desk-group-tile-body {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: transparent;
+}
+.desk-group-tile .desk-group-thumb,
+.desk-group-tile .desk-group-thumb:nth-child(even) {
+  display: block;
+  width: 44px;
+  height: 44px;
+}
+.desk-group-tile.is-unpinned .desk-group-thumb {
+  opacity: 0.4;
+  transition: opacity var(--t-fast);
+}
+.desk-group-tile.is-unpinned .desk-group-tile-body:hover .desk-group-thumb {
+  opacity: 0.75;
+}
+.desk-group-tile-body:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+.desk-group-tile-remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow-raise);
+  color: var(--ink);
+  opacity: 0;
+  transition: opacity var(--t-fast);
+}
+.desk-group-tile:hover .desk-group-tile-remove,
+.desk-group-tile-remove:focus-visible {
+  opacity: 1;
+}
+.desk-group-tile-remove:focus-visible {
+  outline: var(--focus-ring);
 }
 .desk-groups-foot {
   display: flex;

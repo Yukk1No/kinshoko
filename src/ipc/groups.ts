@@ -7,7 +7,6 @@ import type { GatePlan } from "../bindings/GatePlan";
 import type { PinGate } from "../bindings/PinGate";
 import type { DeletedGroup } from "../bindings/DeletedGroup";
 import type { DeskLists } from "../bindings/DeskLists";
-import type { MergeUndo } from "../bindings/MergeUndo";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroup } from "../bindings/ReferenceGroup";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -45,41 +44,72 @@ export function groupSaveCaptures(groupId?: string): Promise<CaptureEntry[]> {
 }
 
 /**
- * 参考组改成桌面（#588、#591）：切换列表（最近用过的在前）与归档（最近保存的在前）。
+ * 参考组改成桌面（#588、#591）：侧栏三段，常用（按画师设的先后）、最近（新建的在前）、
+ * 更早（没设常用又一个月没用过的）。`onDesk` 为空时桌面空着。
  * 设置里界面上没有的开关 `deskReferenceGroups` 关着时报错 `deskGroupsOff`。
  */
 export function deskReferenceGroups(): Promise<DeskLists> {
   return invoke<DeskLists>(desk("desk_reference_groups"));
 }
 
+/**
+ * 空桌上钉下第一张、开了新参考组，而且有上一组时推送，载荷是上一组的 id：
+ * 提示里可以“加进「上一组」”（{@link foldIntoPrevious}）。
+ */
+export const DESK_GROUP_STARTED_EVENT = "desk-group-started";
+
 /** 整桌换成参考组 `groupId`，原来那一桌原样留着。 */
 export function switchReferenceGroup(groupId: string): Promise<void> {
   return invoke<void>(desk("switch_reference_group"), { groupId });
 }
 
-/** 换到一张新的空桌：不起名、不落盘，钉上第一张后才出现在切换列表里。 */
+/** 清空桌面（“新建”）：原来那一组原样留着，之后钉下的第一张开一个新参考组。 */
 export function newReferenceDesk(): Promise<void> {
   return invoke<void>(desk("new_reference_desk"));
 }
 
-/** 归档：收出切换列表。归档的正是桌面上那个时，桌面换到最近用过的另一个，没有就换到空桌。 */
-export function archiveReferenceGroup(groupId: string): Promise<void> {
-  return invoke<void>(desk("archive_reference_group"), { groupId });
+/** 钉回桌面上参考组里没钉着的成员，在它原来的位置。 */
+export function repinGroupMember(memberId: string): Promise<void> {
+  return invoke<void>(desk("repin_group_member"), { memberId });
 }
 
-/** 从归档取出：放回切换列表并摆到桌面上，改的是原件。 */
-export function unarchiveReferenceGroup(groupId: string): Promise<void> {
-  return invoke<void>(desk("unarchive_reference_group"), { groupId });
+/** 移出桌面上参考组里没钉着的成员，返回移出了几个。撤销用 {@link undoPruneUnpinned}。 */
+export function pruneUnpinnedMembers(): Promise<number> {
+  return invoke<number>(desk("prune_unpinned_members"));
 }
 
-/** 并入（#595）：把参考组 `groupId` 的成员复制到桌面上的参考组并钉出来，来源不变。返回撤销要用的记录。 */
-export function mergeReferenceGroup(groupId: string): Promise<MergeUndo> {
-  return invoke<MergeUndo>(desk("merge_reference_group"), { groupId });
+/** 撤销最近一次“移出没钉着的”。 */
+export function undoPruneUnpinned(): Promise<void> {
+  return invoke<void>(desk("undo_prune_unpinned"));
 }
 
-/** 撤销 {@link mergeReferenceGroup}：去掉那次并入的成员和复制来的截图。 */
-export function undoMergeReferenceGroup(undo: MergeUndo): Promise<void> {
-  return invoke<void>(desk("undo_merge_reference_group"), { undo });
+/** 设为常用（排在常用的最后）或取消常用。 */
+export function setReferenceGroupFavorite(groupId: string, favorite: boolean): Promise<void> {
+  return invoke<void>(desk("set_reference_group_favorite"), { groupId, favorite });
+}
+
+/** 复制参考组，新参考组叫 `name`，不摆上桌面。返回新参考组的 id。 */
+export function duplicateReferenceGroup(groupId: string, name: string): Promise<string> {
+  return invoke<string>(desk("duplicate_reference_group"), { groupId, name });
+}
+
+/** 加进上一组：桌面上参考组的成员移进 `targetId`，删掉桌面上那个，把 `targetId` 摆上桌面。 */
+export function foldIntoPrevious(targetId: string): Promise<void> {
+  return invoke<void>(desk("fold_into_previous"), { targetId });
+}
+
+/**
+ * 移到新参考组：桌面上参考组里在本地日期 `day`（`YYYY-MM-DD`）添加的成员移到一个新参考组，
+ * 新参考组摆上桌面，原来那组原样留着。
+ * 返回新参考组的 id；这一段为空或就是全部成员时为 `null`。撤销用 {@link undoSplitOff}。
+ */
+export function splitOffReferenceGroup(day: string): Promise<string | null> {
+  return invoke<string | null>(desk("split_off_reference_group"), { day });
+}
+
+/** 撤销最近一次“移到新参考组”。 */
+export function undoSplitOff(): Promise<void> {
+  return invoke<void>(desk("undo_split_off"));
 }
 
 /** 打开参考组：成员按保存的局部与摆放钉到桌面；返回新钉出的数量。 */
@@ -106,8 +136,9 @@ export function purgeDeletedReferenceGroup(groupId: string): Promise<void> {
   return invoke<void>(desk("purge_deleted_reference_group"), { groupId });
 }
 
-export function removeGroupMember(groupId: string, memberId: string): Promise<ReferenceGroup> {
-  return invoke<ReferenceGroup>(desk("remove_group_member"), { groupId, memberId });
+/** 移出一个成员。桌面上那组的成员可用 {@link undoPruneUnpinned} 撤销；参考组随之消失时为 `null`。 */
+export function removeGroupMember(groupId: string, memberId: string): Promise<ReferenceGroup | null> {
+  return invoke<ReferenceGroup | null>(desk("remove_group_member"), { groupId, memberId });
 }
 
 /**

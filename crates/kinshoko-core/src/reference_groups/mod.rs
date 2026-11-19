@@ -7,8 +7,9 @@
 //!   资料库，没有成员再用它时删除。各自保存裁切、翻转、旋转、位置、尺寸与缩放
 //!   （[`Placement`](crate::desktop::Placement) 与桌面钉图同义），以及透明度与锁定（#588 决定 3；
 //!   旧入口 `create`、`save_pins` 仍不写它们，参考组包不带它们）。
-//! - 桌面上的参考组（#590，[`Desk`]）：桌面上始终摆着一个参考组，钉图就是它的成员，改动直接记下；
-//!   切换、新建、归档、取出、删除。名称可以为空，没有名称的参考组按更新的格式版本写。
+//! - 桌面上的参考组（#590，[`Desk`]）：桌面上至多摆着一个参考组，钉图是它钉着的成员，改动直接记下；
+//!   关掉钉图只标成没钉着。切换、新建、钉回、移出没钉着的、加进上一组、按天移到新参考组、常用、删除。
+//!   名称可以为空，没有名称的参考组按更新的格式版本写。
 //! - 同一张图在不同参考组里是不同的成员，互不影响；同一参考组里两块局部也是两个成员。
 //! - 打开参考组得到一组新的桌面钉图（[`ReferenceGroups::open_pins`]；组内截图放回截图历史后
 //!   钉成截图钉图），钉图记得来自哪个成员（[`GroupMemberRef`](crate::desktop::GroupMemberRef)），存回时更新那个成员
@@ -47,7 +48,7 @@ use captures::write_atomically;
 use merge::{assign, merge};
 
 pub use captures::{CaptureFiles, OpenedPins, RelinkFailure, RelinkReport};
-pub use desk::{Collected, Desk, DeskLists, MergeUndo, MergedIn, Switched};
+pub use desk::{Collected, Desk, DeskLists, OLDER_AFTER_MS, Pinned, Pruned, Split, Switched};
 pub use error::{GroupError, MemberUnavailable};
 pub use member::{GroupCapture, GroupMember, MemberSource};
 pub use package::{
@@ -143,11 +144,17 @@ impl ReferenceGroup {
         self.name.trim().is_empty()
     }
 
+    /// 成员 `member` 加进来的时间（毫秒）：没记下时（旧参考组）按参考组的新建时间算。
+    pub fn added_at(&self, member: &GroupMember) -> i64 {
+        member.added_at.unwrap_or(self.created_at)
+    }
+
     /// 列表里的一项。
     pub fn summary(&self) -> GroupSummary {
         GroupSummary {
             id: self.id.clone(),
             name: self.name.clone(),
+            created_at: self.created_at,
             member_count: self.members.len(),
             library_ids: self.library_ids(),
             updated_at: self.updated_at,
@@ -196,6 +203,9 @@ pub struct GroupSummary {
     pub member_count: usize,
     /// 引用到的资料库。
     pub library_ids: Vec<String>,
+    /// 新建时间（#588：“最近”按它排）。读不懂的文件为 0。
+    #[ts(type = "number")]
+    pub created_at: i64,
     #[ts(type = "number")]
     pub updated_at: i64,
     /// 这个文件读不懂时的原因；能打开时为 `None`。
@@ -275,6 +285,7 @@ impl ReferenceGroups {
                     name: id.to_owned(),
                     member_count: 0,
                     library_ids: Vec::new(),
+                    created_at: 0,
                     updated_at: 0,
                     problem: Some(e.into()),
                 },

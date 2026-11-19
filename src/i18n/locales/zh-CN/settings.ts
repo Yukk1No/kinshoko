@@ -34,10 +34,6 @@ export default {
       capture: "截图",
       pinClipboard: "钉住剪贴板",
       hideAllPins: "收起钉图",
-      // 参考组改成桌面（#594）：开关打开时才显示。
-      previousGroup: "上个参考组",
-      nextGroup: "下个参考组",
-      newGroup: "新参考组",
     },
     notRegistered: "无法使用：{{reason}}",
     record: "按下新的组合键",

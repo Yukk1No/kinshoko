@@ -12,6 +12,16 @@ use kinshoko_core::CommandError;
 use kinshoko_core::desktop::{CaptureHistory, PinContent, PinStore, SavedPin, ScreenRect};
 use kinshoko_core::reference_groups::{Desk, OpenedPins};
 
+/// 钉上一张新钉图后（[`PinState::add`]）。
+pub struct Added {
+    /// 要打开的钉图（桌面上的参考组里，它记着自己是哪个成员）。
+    pub pin: SavedPin,
+    /// 钉在空桌上、开了一个新参考组（开关打开时）。
+    pub started: bool,
+    /// 开了新参考组时的上一组：提示里可以“加进”它（[`Desk::fold_into_previous`]）。
+    pub fold_into: Option<String>,
+}
+
 pub enum PinState {
     /// 开关关着：钉图只是工作状态，存在 `pins.json`。
     Legacy(PinStore),
@@ -42,13 +52,13 @@ impl PinState {
         }
     }
 
-    /// 钉上一张新钉图，返回要打开的钉图（桌面上的参考组里，它记着自己是哪个成员）。截图钉图在截图
-    /// 历史里记下钉住。开关关着时立即写回 `pins.json`。
+    /// 钉上一张新钉图。截图钉图在截图历史里记下钉住。开关关着时立即写回 `pins.json`；开关打开、
+    /// 桌面空着时开一个新参考组。
     pub fn add(
         &mut self,
         pin: SavedPin,
         history: &mut CaptureHistory,
-    ) -> Result<SavedPin, CommandError> {
+    ) -> Result<Added, CommandError> {
         match self {
             PinState::Legacy(store) => {
                 if let Some(capture) = pin.capture_id() {
@@ -56,9 +66,21 @@ impl PinState {
                 }
                 store.put(pin.clone());
                 let _ = store.save();
-                Ok(pin)
+                Ok(Added {
+                    pin,
+                    started: false,
+                    fold_into: None,
+                })
             }
-            PinState::Desk(desk) => desk.pin(pin, history).map_err(CommandError::from),
+            PinState::Desk(desk) => {
+                let started = desk.group().is_none();
+                let pinned = desk.pin(pin, history).map_err(CommandError::from)?;
+                Ok(Added {
+                    pin: pinned.pin,
+                    started,
+                    fold_into: pinned.fold_into,
+                })
+            }
         }
     }
 
@@ -72,7 +94,8 @@ impl PinState {
         }
     }
 
-    /// 画师关掉了钉图：不再恢复；截图钉图在截图历史里不再算钉住。`capture` 是本次运行里这张钉图
+    /// 画师关掉了钉图：不再恢复；截图钉图在截图历史里不再算钉住。开关打开时成员留在参考组里、标成
+    /// 没钉着（#588 决定 3），关掉最后一张后桌面空着。`capture` 是本次运行里这张钉图
     /// 记着的截图（旧路径按它解除钉住）。返回截图历史有没有变。
     pub fn close(&mut self, id: &str, capture: Option<&str>, history: &mut CaptureHistory) -> bool {
         match self {

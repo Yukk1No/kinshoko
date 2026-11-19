@@ -354,6 +354,49 @@ impl ReferenceGroups {
         written
     }
 
+    /// 参考组 `id` 里这些成员自带的截图（文件名与字节），移出前留着以便撤销（#590）。读不出来的略过。
+    pub(super) fn read_captures(&self, id: &str, members: &[GroupMember]) -> CaptureFiles {
+        members
+            .iter()
+            .filter_map(|m| {
+                let path = self.capture_file(id, m)?;
+                let bytes = fs::read(path).ok()?;
+                let MemberSource::Capture { capture_file } = &m.source else {
+                    return None;
+                };
+                Some((capture_file.clone(), bytes))
+            })
+            .collect()
+    }
+
+    /// 已有的参考组放回一些自带截图后再写（撤销移出，#590）：先写截图，再同 [`Self::commit`]。
+    /// 写参考组文件失败时，这次放回的截图留到下次改动时清掉，原有的截图不动。
+    pub(super) fn commit_restoring(
+        &self,
+        group: &ReferenceGroup,
+        captures: &CaptureFiles,
+    ) -> Result<(), GroupError> {
+        self.write_captures(&group.id, captures)?;
+        self.commit(group, &[])
+    }
+
+    /// 把 `captures`（[`Self::read_captures`] 读出的字节）写回参考组 `id` 的截图目录，不动参考组文件。
+    pub(super) fn write_captures(
+        &self,
+        id: &str,
+        captures: &CaptureFiles,
+    ) -> Result<(), GroupError> {
+        let dir = self.captures_dir(id)?;
+        for (file, bytes) in captures {
+            if !valid_capture_file(file) {
+                continue;
+            }
+            fs::create_dir_all(&dir)?;
+            write_atomically(&dir.join(file), bytes)?;
+        }
+        Ok(())
+    }
+
     /// 删掉参考组目录下不再被成员用到的截图（和写到一半的临时文件）；一张也不剩时删掉目录。
     /// 删不掉只留下孤立文件，下次改动这个参考组时再删。
     fn sweep(&self, group: &ReferenceGroup) {

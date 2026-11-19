@@ -173,7 +173,7 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
     /// 按设置注册全部快捷键。个别键注册失败不影响其他键，失败原因留给设置界面显示。
     pub fn start(mut registrar: R, settings: &AppSettings) -> Self {
         let mut problems = BTreeMap::new();
-        for action in available(settings) {
+        for action in ShortcutAction::ALL {
             if let Some(accelerator) = settings.shortcut(action)
                 && let Err(why) = registrar.register(action, accelerator)
             {
@@ -188,7 +188,7 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
 
     /// Adopt a complete restored configuration; unavailable OS keys remain visible as problems.
     pub fn reload(&mut self, previous: &AppSettings, next: &AppSettings) {
-        for action in available(previous) {
+        for action in ShortcutAction::ALL {
             if !self.problems.contains_key(&action)
                 && let Some(key) = previous.shortcut(action)
             {
@@ -196,7 +196,7 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
             }
         }
         self.problems.clear();
-        for action in available(next) {
+        for action in ShortcutAction::ALL {
             if let Some(key) = next.shortcut(action)
                 && let Err(why) = self.registrar.register(action, key)
             {
@@ -259,7 +259,8 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
     }
 
     pub fn bindings(&self, settings: &AppSettings) -> Vec<ShortcutBinding> {
-        available(settings)
+        ShortcutAction::ALL
+            .into_iter()
             .map(|action| ShortcutBinding {
                 action,
                 accelerator: settings.shortcut(action).map(str::to_owned),
@@ -267,13 +268,6 @@ impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
             })
             .collect()
     }
-}
-
-/// 这台设备上可用的动作：参考组改成桌面的开关（#588）关着时不含参考组的三个动作。
-fn available(settings: &AppSettings) -> impl Iterator<Item = ShortcutAction> + '_ {
-    ShortcutAction::ALL
-        .into_iter()
-        .filter(|action| !action.needs_desk_groups() || settings.desk_reference_groups())
 }
 
 /// 修饰键的统一写法，按保存时的先后顺序排列。
