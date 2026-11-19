@@ -175,7 +175,9 @@
 .k-tag-alias .k-input {
   flex: none;
 }
+/* 行高跟着检查器正文，与收拢前一样。 */
 .k-tag-alias > .k-section-label {
+  line-height: inherit;
   overflow-wrap: anywhere;
 }
 .k-tag-alias-acts {
