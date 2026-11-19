@@ -74,7 +74,9 @@
   margin: 0 5px;
   background: var(--line-2);
 }
-.k-dock-badge {
+/* 计数角标（#602）：图标按钮右上角的墨色小胶囊，16 高、12 px 等宽数字。图标轨与 Dock 共用；位置由所在按钮定，
+   默认贴右上角 2 px（图标轨的是品牌不变项，右边 1 px，见 shell.css）。 */
+.k-badge {
   position: absolute;
   top: 2px;
   right: 2px;
@@ -87,6 +89,7 @@
   font-size: 12px;
   line-height: 16px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   text-align: center;
 }
 .k-dock-tip {
