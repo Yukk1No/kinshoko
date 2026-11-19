@@ -343,8 +343,6 @@
   .startup-bar,
   .startup-bar *,
   .capture-tip,
-  .badge,
-  .rail-badge,
   .fx-burst,
   .search-chip,
   .k-radio-card input,
@@ -354,7 +352,7 @@
   .k-chip-x,
   .k-switch,
   .k-switch-thumb,
-  .k-dock-badge,
+  .k-badge,
   .k-pill {
     corner-shape: round;
   }
