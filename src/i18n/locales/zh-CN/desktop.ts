@@ -45,7 +45,7 @@ export default {
     copy: "复制",
     copyName: "{{name}} 副本",
     copied: "已复制参考组",
-    prune: "只留钉住的",
+    prune: "移出已关闭",
     pruned_other: "已移出 {{count, number}} 张",
     removed: "已移出",
     repin: "钉住",
