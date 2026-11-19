@@ -174,6 +174,17 @@
 .k-tagging-text {
   font-variant-numeric: tabular-nums;
 }
+/* 图片墙很窄时（详情栏打开、主区只剩 300 多 px）胶囊和图片大小滑条并排放不下：退回圆形图标，文字留在悬停提示与无障碍名称里。 */
+@container main (max-width: 480px) {
+  .k-tagging-activity[data-labelled][data-activity] {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+  .k-tagging-text {
+    display: none;
+  }
+}
 .k-tagging-activity[data-activity="paused"] {
   color: var(--ink-2);
 }
