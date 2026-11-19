@@ -173,6 +173,36 @@ impl Desk {
         }))
     }
 
+    /// 复制参考组 `id`（#588 决定 6：要保持原样先复制）：成员、摆放与自带截图都照搬到一个叫 `name`
+    /// 的新参考组，新参考组不在桌面上、不是常用。返回新参考组。
+    pub fn duplicate(&mut self, id: &str, name: &str) -> Result<ReferenceGroup, GroupError> {
+        self.flush()?;
+        let source = match &self.on_desk {
+            Some(held) if held.group.id == id => held.group.clone(),
+            _ => self.groups.get(id)?,
+        };
+        let now = crate::library::now_ms();
+        let copy = ReferenceGroup {
+            id: new_id(),
+            name: name.trim().to_owned(),
+            created_at: now,
+            updated_at: now,
+            members: source
+                .members
+                .iter()
+                .map(|m| GroupMember {
+                    added_at: Some(source.added_at(m)),
+                    ..m.clone()
+                })
+                .collect(),
+            imported_from_package: None,
+            restored_from: None,
+        };
+        let captures = self.groups.read_captures(id, &source.members);
+        self.groups.publish_with_captures(&copy, &captures)?;
+        Ok(copy)
+    }
+
     /// 从桌面上的参考组移出成员 `member_id`（侧栏成员悬停时的“移出”）：钉着时它的钉图一起关掉。
     /// 返回撤销要用的（[`Self::undo_prune`]，放回时是没钉着的）；成员不在桌面上的参考组里时为 `None`，
     /// 调用方改那组的文件。写不进时什么都不变。

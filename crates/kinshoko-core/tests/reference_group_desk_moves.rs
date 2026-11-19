@@ -283,3 +283,33 @@ fn two_failed_removals_in_a_row_keep_both_captures() {
     assert_eq!(t.capture_files(&id).len(), 2, "两张组内截图都在");
     assert_eq!(t.restart().len(), 2);
 }
+
+#[test]
+fn duplicating_copies_members_and_captures_and_leaves_the_original_alone() {
+    let mut t = TestDesk::new();
+    t.pin_capture("a", 2);
+    t.pin_reference("b", 20);
+    let id = t.desk_id();
+
+    let copy = t.desk.duplicate(&id, "头发 副本").unwrap();
+
+    assert_ne!(copy.id, id);
+    assert_eq!(copy.name, "头发 副本");
+    let original = reread(&t, &id);
+    assert_eq!(reread(&t, &copy.id).members.len(), original.members.len());
+    assert_eq!(
+        t.capture_files(&copy.id),
+        t.capture_files(&id),
+        "自带截图也复制了"
+    );
+    assert_eq!(t.desk_id(), id, "桌面上还是原来那组");
+    let lists = t.desk.lists().unwrap();
+    assert!(
+        lists.favorites.iter().all(|g| g.id != copy.id),
+        "复制出来的不是常用"
+    );
+    assert!(
+        lists.recent.iter().any(|g| g.id == copy.id),
+        "复制出来的进最近"
+    );
+}

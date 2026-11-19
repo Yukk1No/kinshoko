@@ -192,6 +192,21 @@ pub async fn undo_prune_unpinned(app: AppHandle) -> Result<(), CommandError> {
     .await
 }
 
+/// 复制参考组 `group_id`，新参考组叫 `name`（界面给出“某某 副本”），不摆上桌面。返回新参考组的 id。
+#[tauri::command]
+pub async fn duplicate_reference_group(
+    app: AppHandle,
+    group_id: String,
+    name: String,
+) -> Result<String, CommandError> {
+    blocking(move || {
+        let copy = with_desk(&app, |desk, _| desk.duplicate(&group_id, &name))?;
+        changed(&app);
+        Ok(copy.id)
+    })
+    .await
+}
+
 /// 设为常用（排在常用的最后）或取消常用。
 #[tauri::command]
 pub async fn set_reference_group_favorite(

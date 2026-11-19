@@ -88,6 +88,11 @@ export function setReferenceGroupFavorite(groupId: string, favorite: boolean): P
   return invoke<void>(desk("set_reference_group_favorite"), { groupId, favorite });
 }
 
+/** 复制参考组，新参考组叫 `name`，不摆上桌面。返回新参考组的 id。 */
+export function duplicateReferenceGroup(groupId: string, name: string): Promise<string> {
+  return invoke<string>(desk("duplicate_reference_group"), { groupId, name });
+}
+
 /** 加进上一组：桌面上参考组的成员移进 `targetId`，删掉桌面上那个，把 `targetId` 摆上桌面。 */
 export function foldIntoPrevious(targetId: string): Promise<void> {
   return invoke<void>(desk("fold_into_previous"), { targetId });
@@ -132,10 +137,7 @@ export function purgeDeletedReferenceGroup(groupId: string): Promise<void> {
 }
 
 /** 移出一个成员。桌面上那组的成员可用 {@link undoPruneUnpinned} 撤销；参考组随之消失时为 `null`。 */
-export function removeGroupMember(
-  groupId: string,
-  memberId: string,
-): Promise<ReferenceGroup | null> {
+export function removeGroupMember(groupId: string, memberId: string): Promise<ReferenceGroup | null> {
   return invoke<ReferenceGroup | null>(desk("remove_group_member"), { groupId, memberId });
 }
 
