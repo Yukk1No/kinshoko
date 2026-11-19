@@ -6,6 +6,7 @@ import {
   ExternalLink,
   FlipHorizontal2,
   FlipVertical2,
+  Move,
   PanelRightClose,
   RotateCcw,
   RotateCw,
@@ -120,6 +121,10 @@ export function PinMenuItems({
       <MenuSeparator />
       <MenuItem icon={icon(ExternalLink)} onClick={() => act("openInKinshoko")}>
         {t("openInKinshoko")}
+      </MenuItem>
+      {/* 整组移动（#198）：下一次拖动时桌面上的钉图一起动，给不方便按 Alt 的笔和触摸用。 */}
+      <MenuItem icon={icon(Move)} kbd="Alt" onClick={() => act("groupMove")}>
+        {t("groupMove")}
       </MenuItem>
       <MenuItem icon={icon(PanelRightClose)} onClick={() => act("edgeHide")}>
         {t("edgeHide")}

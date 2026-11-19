@@ -77,7 +77,7 @@ function show(menu: PinMenu) {
 }
 
 describe("钉图菜单项", () => {
-  it("截图钉图：保留原生菜单全部项，再加在 Kinshoko 中打开、收起钉图与关闭钉图（没有“切换到”“移到参考组”，#596）", () => {
+  it("截图钉图：保留原生菜单全部项，再加在 Kinshoko 中打开、整组移动、收起钉图与关闭钉图（没有“切换到”“移到参考组”，#596）", () => {
     const { rows, popup } = show(capture);
     expect(rows()).toEqual([
       "水平翻转H",
@@ -90,6 +90,7 @@ describe("钉图菜单项", () => {
       "收藏到…",
       "复制",
       "在 Kinshoko 中打开",
+      "整组移动Alt",
       "收起钉图",
       "关闭钉图Esc",
     ]);
@@ -109,6 +110,7 @@ describe("钉图菜单项", () => {
       "复制",
       "显示这张图（安全模式下已遮蔽）",
       "在 Kinshoko 中打开",
+      "整组移动Alt",
       "收起钉图",
       "关闭钉图Esc",
     ]);
@@ -163,6 +165,7 @@ describe("钉图菜单项", () => {
     click("收藏到…");
     click("复制");
     click("在 Kinshoko 中打开");
+    click(/整组移动/);
     click("收起钉图");
     click(/关闭钉图/);
     expect(act.mock.calls.map(([a]) => a)).toEqual([
@@ -175,6 +178,7 @@ describe("钉图菜单项", () => {
       "collect",
       "copy",
       "openInKinshoko",
+      "groupMove",
       "edgeHide",
       "close",
     ]);

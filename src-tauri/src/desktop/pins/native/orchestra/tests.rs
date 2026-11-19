@@ -16,6 +16,7 @@ mod caption;
 mod device_loss;
 mod failures;
 mod frames;
+mod group;
 mod motion;
 mod pointer;
 
@@ -161,6 +162,7 @@ impl Rig {
             at: (200, 300),
             notches,
             ctrl,
+            alt: false,
         });
     }
 
@@ -179,6 +181,7 @@ impl Rig {
             kind: PointerKind::Mouse,
             at,
             event,
+            alt: false,
         }));
     }
 
@@ -390,6 +393,7 @@ fn a_move_waits_for_a_redraw_still_in_flight() {
         at: (200, 300),
         notches: -1.0,
         ctrl: true,
+        alt: false,
     });
     r.o.pump(r.now);
     assert_eq!(r.o.render().open.len(), 1);
@@ -399,6 +403,7 @@ fn a_move_waits_for_a_redraw_still_in_flight() {
             kind: PointerKind::Mouse,
             at: (150, 150),
             event: PointerEvent::Down(PointerButton::Primary),
+            alt: false,
         }),
         r.now,
     );
@@ -408,6 +413,7 @@ fn a_move_waits_for_a_redraw_still_in_flight() {
             kind: PointerKind::Mouse,
             at: (160, 150),
             event: PointerEvent::Move,
+            alt: false,
         }),
         r.now,
     );
@@ -511,6 +517,7 @@ fn input_for_a_closing_pin_is_ignored() {
             at: (200, 300),
             notches: 1.0,
             ctrl: false,
+            alt: false,
         },
         r.now,
     );

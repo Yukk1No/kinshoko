@@ -92,6 +92,15 @@ pub(super) fn menu_closed(app: &AppHandle) {
     host::post_existing(app, |o| o.menu_closed());
 }
 
+/// 菜单“整组移动”（#198）：下一次按下拖动时整组移动（任意线程）。
+#[cfg(windows)]
+pub(super) fn arm_group_move(app: &AppHandle) {
+    host::post_existing(app, |o| o.arm_group_move(std::time::Instant::now()));
+}
+
+#[cfg(not(windows))]
+pub(super) fn arm_group_move(_: &AppHandle) {}
+
 /// 放到最上面（任意线程）。
 #[cfg(windows)]
 pub(super) fn raise(app: &AppHandle, pin: &str) {

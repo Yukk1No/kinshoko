@@ -3,8 +3,13 @@
 //! 回调只查表（[`KeyGate`]）：光标在某张钉图（含阴影）上、键在拦截表里才拦下，投给界面线程；
 //! 其余放行。表由界面线程发布，回调只在锁里取一个 `Arc`。回调送达得太晚时（系统可能已因超时
 //! 移除钩子）重装，并报给编排写日志。
+//!
+//! Alt（#198）：按下、松开都报给界面线程（同组钉图的细边框），从不拦。这次按着 Alt 时在钉图上
+//! 按下过或滚过（[`alt_used`]），松开时先补一对没有用处的键再松开 Alt：否则前台的程序只看到
+//! “Alt 按下又松开”，会激活它的菜单栏。
 
 use std::cell::{Cell, RefCell};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
@@ -16,11 +21,13 @@ use windows::Win32::UI::HiDpi::{
     DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2, SetThreadDpiAwarenessContext,
 };
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetAsyncKeyState, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT,
+    GetAsyncKeyState, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT,
+    KEYEVENTF_KEYUP, SendInput, VIRTUAL_KEY, VK_CONTROL, VK_LMENU, VK_LWIN, VK_MENU, VK_RMENU,
+    VK_RWIN, VK_SHIFT,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, GetCursorPos, GetMessageW, HC_ACTION, HHOOK, KBDLLHOOKSTRUCT, MSG, PM_NOREMOVE,
-    PeekMessageW, PostMessageW, PostThreadMessageW, SetTimer, SetWindowsHookExW,
+    CallNextHookEx, GetCursorPos, GetMessageW, HC_ACTION, HHOOK, KBDLLHOOKSTRUCT, LLKHF_INJECTED,
+    MSG, PM_NOREMOVE, PeekMessageW, PostMessageW, PostThreadMessageW, SetTimer, SetWindowsHookExW,
     UnhookWindowsHookEx, WH_KEYBOARD_LL, WM_APP, WM_KEYDOWN, WM_QUIT, WM_SYSKEYDOWN, WM_TIMER,
 };
 
@@ -31,6 +38,16 @@ use crate::keys::{HitTable, KeyGate, Mods, Verdict, late_ms};
 const WM_REINSTALL: u32 = WM_APP + 1;
 /// 两次重装至少隔这么久（一阵卡顿里每个按键都会晚）。
 const REINSTALL_GAP: Duration = Duration::from_secs(1);
+/// 松开 Alt 前补的键：没有分配用途的虚拟键码（与 AutoHotkey 的“菜单遮罩”相同）。
+const MASK_KEY: u16 = 0xE8;
+/// 这次按着 Alt 时在钉图上按下过或滚过（界面线程记，钩子线程在松开 Alt 时取走）。
+static ALT_USED: AtomicBool = AtomicBool::new(false);
+
+/// 按着 Alt 在钉图上按下或滚了滚轮（界面线程）：松开 Alt 时不让前台程序激活菜单栏。
+pub(super) fn alt_used() {
+    ALT_USED.store(true, Ordering::Relaxed);
+}
+
 /// 兜底：系统移除钩子之后不再有回调，晚到的回调也就看不到。每隔这么久没有按着的键时悄悄重装一次。
 const REFRESH_MS: u32 = 30_000;
 
@@ -41,6 +58,8 @@ pub(super) struct Messages {
     pub key: u32,
     /// 钩子状况：`wParam` 0 为已重装（`lParam` 晚了多少毫秒），1 为装不上（`lParam` 错误码）。
     pub status: u32,
+    /// Alt 按下（`wParam` 1）或松开（0）。
+    pub alt: u32,
 }
 
 struct Shared {
@@ -53,6 +72,8 @@ thread_local! {
     static SHARED: RefCell<Option<Arc<Shared>>> = const { RefCell::new(None) };
     static GATE: RefCell<KeyGate> = RefCell::new(KeyGate::default());
     static THREAD: Cell<u32> = const { Cell::new(0) };
+    /// 上一次报出的 Alt 状态（按住不放的自动重复不再报）。
+    static ALT: Cell<bool> = const { Cell::new(false) };
 }
 
 pub(super) struct Hook {
@@ -204,12 +225,64 @@ unsafe extern "system" fn callback(code: i32, wp: WPARAM, lp: LPARAM) -> LRESULT
             let _ =
                 unsafe { PostThreadMessageW(me, WM_REINSTALL, WPARAM(late as usize), LPARAM(0)) };
         }
-        if decide(k.vkCode, matches!(wp.0 as u32, WM_KEYDOWN | WM_SYSKEYDOWN)) == Some(true) {
+        let down = matches!(wp.0 as u32, WM_KEYDOWN | WM_SYSKEYDOWN);
+        // 自己补发的键（见 `alt`）原样放行。
+        let injected = k.flags.0 & LLKHF_INJECTED.0 != 0;
+        if is_alt(k.vkCode) && !injected && alt(k.vkCode, down) {
+            return LRESULT(1);
+        }
+        if decide(k.vkCode, down) == Some(true) {
             return LRESULT(1);
         }
     }
     // SAFETY：把没拦的事件交给下一个钩子，参数原样转交。
     unsafe { CallNextHookEx(None, code, wp, lp) }
+}
+
+fn is_alt(vk: u32) -> bool {
+    [VK_MENU, VK_LMENU, VK_RMENU]
+        .iter()
+        .any(|k| u32::from(k.0) == vk)
+}
+
+/// Alt 按下、松开：状态变了报给界面线程。返回要不要拦下这次松开（已改为补发遮罩键再松开）。
+fn alt(vk: u32, down: bool) -> bool {
+    if ALT.with(|a| a.replace(down)) != down {
+        if down {
+            ALT_USED.store(false, Ordering::Relaxed);
+        }
+        if let Some(shared) = SHARED.with(|s| s.borrow().clone()) {
+            post(&shared, shared.messages.alt, usize::from(down), 0);
+        }
+    }
+    if down || !ALT_USED.swap(false, Ordering::Relaxed) {
+        return false;
+    }
+    let key = |vk: u16, up: bool| INPUT {
+        r#type: INPUT_KEYBOARD,
+        Anonymous: INPUT_0 {
+            ki: KEYBDINPUT {
+                wVk: VIRTUAL_KEY(vk),
+                wScan: 0,
+                dwFlags: if up {
+                    KEYEVENTF_KEYUP
+                } else {
+                    KEYBD_EVENT_FLAGS(0)
+                },
+                time: 0,
+                dwExtraInfo: 0,
+            },
+        },
+    };
+    let inputs = [
+        key(MASK_KEY, false),
+        key(MASK_KEY, true),
+        key(vk as u16, true),
+    ];
+    // SAFETY：`inputs` 由本函数持有，大小与 INPUT 一致。补发的键带 LLKHF_INJECTED，回到这里时放行。
+    let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+    // 送不出去时让真的松开过去（菜单栏也许会被激活，但 Alt 不会卡住）。
+    sent as usize == inputs.len()
 }
 
 /// 拦不拦（Some(true) 拦）；不是钉图认的键直接 None，不碰锁也不取光标。

@@ -20,6 +20,8 @@ pub enum PinInput {
         at: (i32, i32),
         notches: f64,
         ctrl: bool,
+        /// Alt 按着：整组缩放（#198）。
+        alt: bool,
     },
     /// 光标在钉图上时按下了 [`PinShell::set_keys`](crate::PinShell::set_keys) 里的键（已拦下，前台程序收不到）。
     /// 按住不放的自动重复 `repeat` 为真。
@@ -38,6 +40,10 @@ pub enum PinInput {
     DisplaysChanged,
     /// 键盘钩子的状况，编排写进运行日志。
     KeyHook(HookEvent),
+    /// Alt 按下或松开了（光标在不在钉图上都报）：按着 Alt 时同组的钉图显示细边框（#198）。
+    Alt {
+        held: bool,
+    },
 }
 
 /// 鼠标、笔、触摸的一个事件。
@@ -47,6 +53,8 @@ pub struct Pointer {
     pub kind: PointerKind,
     pub at: (i32, i32),
     pub event: PointerEvent,
+    /// 事件发生时 Alt 按着：拖动整组（#198）。
+    pub alt: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

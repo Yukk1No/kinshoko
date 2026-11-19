@@ -106,6 +106,7 @@ export type PinMenuAction =
   | "reveal"
   | "openInKinshoko"
   | "edgeHide"
+  | "groupMove"
   | "close";
 
 /** 菜单窗口此刻要显示的钉图菜单（窗口第一次建好时取；之后经 `desktop-menu` 事件到达）。 */

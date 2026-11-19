@@ -31,6 +31,7 @@ export default {
     revealVeiled: "显示这张图（安全模式下已遮蔽）",
     openInKinshoko: "在 Kinshoko 中打开",
     edgeHide: "收起钉图",
+    groupMove: "整组移动",
     close: "关闭钉图",
   },
   /** 参考组改成桌面后的侧栏面板（`DeskGroupsPanel`，#592）。 */
