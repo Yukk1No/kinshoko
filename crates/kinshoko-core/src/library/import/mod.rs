@@ -420,15 +420,17 @@ fn run(
     report
 }
 
-/// 与 collect 相同的 Eagle 识别边界，预检只读取目录，不提前登记或刷新来源。
+mod collect;
 mod commit;
 mod originals;
 mod prepare;
+pub(super) use collect::contains_eagle;
+use collect::*;
 pub(super) use commit::Pending;
 use commit::*;
 pub(super) use originals::{import_package_original, import_subscription_original};
+pub(super) use prepare::sha256_hex;
 use prepare::*;
-pub(super) use prepare::{contains_eagle, sha256_hex};
 
 #[cfg(test)]
 mod tests;
