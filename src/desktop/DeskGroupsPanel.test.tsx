@@ -289,7 +289,7 @@ describe("参考组面板（参考组改成桌面）", () => {
 });
 
 describe("参考组面板的“更多”", () => {
-  it("桌面上那组：改名、收藏、复制、只留钉住的、导出、删除", async () => {
+  it("桌面上那组：改名、收藏、复制、移出已关闭、导出、删除", async () => {
     await show(lists({ recent: [hair] }));
     fireEvent.click(screen.getByRole("button", { name: "头发 的更多操作" }));
     const items = await screen.findAllByRole("menuitem");
@@ -297,7 +297,7 @@ describe("参考组面板的“更多”", () => {
       "重命名",
       "收藏",
       "复制",
-      "只留钉住的",
+      "移出已关闭",
       "导出参考组包",
       "删除",
     ]);
@@ -311,7 +311,7 @@ describe("参考组面板的“更多”", () => {
       "重命名",
       "收藏",
       "复制",
-      "只留钉住的",
+      "移出已关闭",
       "导出参考组包",
       "删除",
     ]);
@@ -331,9 +331,9 @@ describe("参考组面板的“更多”", () => {
     expect(ipc.duplicate).toHaveBeenCalledWith("g1", "头发 副本");
   });
 
-  it("只留钉住的：提示移出了几张，能撤销", async () => {
+  it("移出已关闭：提示移出了几张，能撤销", async () => {
     await show(lists({ recent: [hair] }));
-    await more("头发", "只留钉住的");
+    await more("头发", "移出已关闭");
     expect(ipc.prune).toHaveBeenCalled();
     expect(await screen.findByText("已移出 1 张")).toBeTruthy();
     await act(async () => {

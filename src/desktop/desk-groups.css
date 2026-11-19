@@ -166,7 +166,7 @@
 .desk-group-thumb.is-missing {
   background: repeating-linear-gradient(135deg, var(--card) 0 5px, var(--surface-2) 5px 10px);
 }
-/* 桌面上那组的成员：钉着的在前，没钉着的变淡、点一下钉回；悬停时右上角出现“移出”。 */
+/* 桌面上那组的成员：钉着的在前，已关闭的变淡、点一下钉回；悬停时右上角出现“移出”。 */
 /* 比行深一层，缩进 16（同文件夹行）；四张一排。 */
 .desk-group-members {
   display: flex;
