@@ -387,7 +387,10 @@ export function BackupReminder() {
   useEffect(() => {
     if (shown.current?.at === at) return;
     if (shown.current) toast.close(shown.current.id);
-    shown.current = at === null ? null : { at, id: toast.error(t("title", { reason }), { description: t("retry"), queue: NOTICE_ORDER.backup }) };
+    shown.current =
+      at === null
+        ? null
+        : { at, id: toast.error(t("title", { reason }), { description: t("retry"), queue: NOTICE_ORDER.backup }) };
   }, [toast, at, reason, t]);
   useEffect(
     () => () => {
