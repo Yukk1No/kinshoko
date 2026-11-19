@@ -479,7 +479,7 @@ function AddSimilarPicker({
   const { list: found, ready } = useCandidateState(lens, text, (c) => c.tag.id !== to.id);
   return (
     <>
-      <p className="k-add-similar-head">{t("add.prompt", { name: tagName(to) })}</p>
+      <p className="k-section-label">{t("add.prompt", { name: tagName(to) })}</p>
       <Combobox
         label={lens.workspace ? t("add.pickShared") : t("add.pickLibrary")}
         autoFocus

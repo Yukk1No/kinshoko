@@ -80,12 +80,9 @@
   flex: 1;
   display: flex;
 }
-.pane-title {
-  margin: 0;
+.pane-head .k-title,
+.pane-library-title .k-title {
   padding-left: 6px;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
 }
 .pane-body {
   width: 255px;
@@ -378,7 +375,7 @@
   align-items: center;
   gap: 4px;
 }
-.pane-library-title .pane-title {
+.pane-library-title .k-title {
   flex: 1;
   min-width: 0;
 }

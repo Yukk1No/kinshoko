@@ -121,7 +121,7 @@ export function ArtistDialog({
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog subs-artist-dialog">
           <div className="subs-first-run-head">
-            <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+            <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
             <UnofficialMark />
           </div>
           <form
@@ -132,7 +132,7 @@ export function ArtistDialog({
             }}
           >
             <label className="k-field">
-              <span className="k-field-label">{t("input")}</span>
+              <span className="k-section-label">{t("input")}</span>
               <span className="k-field-row">
                 <span className="k-input" aria-invalid={lookup.kind === "failed" ? true : undefined}>
                   <input
@@ -266,7 +266,7 @@ export function ArtistSettingsDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog subs-artist-dialog">
-          <Dialog.Title className="k-dialog-title">{t("settingsTitle")}</Dialog.Title>
+          <Dialog.Title className="k-title">{t("settingsTitle")}</Dialog.Title>
           <Dialog.Description className="k-dialog-desc">{displayName(ts, subscription)}</Dialog.Description>
           <ArtistOptionFields
             value={choices}

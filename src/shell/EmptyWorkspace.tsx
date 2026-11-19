@@ -48,7 +48,7 @@ export function EmptyWorkspace({
           aria-label={section === "groups" ? t("emptyPane.groups") : t("emptyPane.capturesLabel")}
         >
           <header className="pane-head" data-tauri-drag-region>
-            <h2 className="pane-title">{section === "groups" ? t("emptyPane.groups") : t("emptyPane.captures")}</h2>
+            <h2 className="k-title">{section === "groups" ? t("emptyPane.groups") : t("emptyPane.captures")}</h2>
             <Tip label={t("emptyPane.collapse")} keys="Ctrl+B">
               <button
                 type="button"

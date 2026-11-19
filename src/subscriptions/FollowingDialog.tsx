@@ -111,7 +111,7 @@ export function FollowingDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog subs-artist-dialog">
-          <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+          <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
           <div className="k-field-row">
             <span className="k-input">
               <Search size={16} aria-hidden="true" />

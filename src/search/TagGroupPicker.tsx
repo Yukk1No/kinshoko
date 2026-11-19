@@ -111,7 +111,7 @@ export function TagGroupPicker(p: Props) {
               {groups.map((g) => (
                 <section key={g.id} className="k-groups-section" aria-label={t("groups.tags", { name: g.name })}>
                   <header>
-                    <h3>{g.name}</h3>
+                    <h3 className="k-section-label">{g.name}</h3>
                     <button
                       type="button"
                       className="group-any"

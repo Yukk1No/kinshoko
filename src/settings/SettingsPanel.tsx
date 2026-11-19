@@ -132,7 +132,7 @@ export function SettingsPanel({
     panel(
       value,
       <>
-        <h3 className="k-set-title">{tabName(value)}</h3>
+        <h3 className="k-title">{tabName(value)}</h3>
         {error !== null && (
           <p className="k-set-error" role="alert">
             {error}
@@ -156,7 +156,7 @@ export function SettingsPanel({
         className="k-set-body"
       >
         <nav className="k-set-nav">
-          <h2 className="k-set-heading">{t("heading")}</h2>
+          <h2 className="k-title">{t("heading")}</h2>
           <Tabs.List className="k-set-tabs" aria-label={t("tabsLabel")} activateOnFocus>
             <Tabs.Indicator className="k-set-tab-indicator" />
             {tabsWith(!!subscriptions).map((entry) => (

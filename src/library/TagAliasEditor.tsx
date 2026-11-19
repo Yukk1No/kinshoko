@@ -53,7 +53,7 @@ export function AliasEditor({
 
   return (
     <div className="tag-alias-editor k-tag-alias" role="dialog" aria-label={t("panel.aliasesLabel", { name })}>
-      <p className="k-tag-alias-title">{t("panel.aliasesLabel", { name })}</p>
+      <p className="k-section-label">{t("panel.aliasesLabel", { name })}</p>
       {entry && entry.aliases.length > 0 ? (
         <ul className="tag-aliases k-tag-chips">
           {entry.aliases.map((a) => (
