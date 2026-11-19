@@ -349,6 +349,8 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     );
   };
 
+  const deskLayout = `${lists.onDesk ?? ""}:${(lists.onDesk && views.get(lists.onDesk)?.view.group.members.length) || 0}`;
+
   const section = (key: SectionKey, groups: GroupSummary[]) =>
     groups.length > 0 && (
       <Section
@@ -357,6 +359,7 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
         count={groups.length}
         open={!folded.has(key)}
         onToggle={() => toggleSection(key)}
+        layoutKey={deskLayout}
       >
         {groups.map((g) => item(g, key))}
       </Section>
@@ -409,6 +412,7 @@ function Section({
   count,
   open,
   onToggle,
+  layoutKey,
   children,
 }: {
   id: string;
@@ -416,6 +420,8 @@ function Section({
   count: number;
   open: boolean;
   onToggle: () => void;
+  /** 桌面上换了组、成员读到了：展开的成员挪了行（{@link FluidList} 的 `layoutKey`）。 */
+  layoutKey: string;
   children: ReactNode;
 }) {
   return (
@@ -437,7 +443,7 @@ function Section({
         </button>
       </h3>
       {open && (
-        <FluidList className="desk-groups-tray">
+        <FluidList className="desk-groups-tray" layoutKey={layoutKey}>
           <ul className="desk-groups-list" id={`${id}-list`} aria-label={title}>
             {children}
           </ul>
