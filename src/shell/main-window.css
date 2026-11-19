@@ -148,7 +148,7 @@
   color: var(--accent-strong);
 }
 .k-row:disabled {
-  opacity: 0.55;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 .k-row[data-drop] {
@@ -336,33 +336,87 @@
 .topbar.is-empty {
   justify-content: flex-end;
 }
+/* 查找框（#607，design/ui-system/main-window-material.md“顶栏”）：开头 16 px 放大镜，最宽 640；
+   尾部依次是张数（有查找条件时）、标签分组、精确查找。材质是槽，获得焦点时槽口变实、放大镜变深，不画焦点环。 */
 .topbar > .search {
+  position: relative;
   flex: 1;
   min-width: 0;
-  max-width: 960px;
+  max-width: 640px;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
-  height: 40px;
-  padding: 0 4px 0 12px;
+  height: var(--h-lg);
+  padding: 0 4px 0 36px;
   border-radius: var(--r);
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--line-2);
+  background: var(--well-floor);
+  box-shadow: var(--well-inset);
   border: 0;
   overflow: visible;
+  transition: box-shadow var(--t) var(--ease);
+}
+.topbar > .search:hover:not(:focus-within) {
+  box-shadow: var(--well-inset-hover);
 }
 .topbar > .search:focus-within {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-inset);
+  outline: 0;
+  box-shadow: var(--well-focus);
+}
+.search > .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--ink-3);
+  pointer-events: none;
+  transition: color var(--t) var(--ease);
+}
+.search:focus-within > .search-icon {
+  color: var(--ink);
+}
+.search-extras {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+.search-extras .result-count {
+  padding: 0 4px;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 .topbar > .search .search-chip {
   height: 28px;
-  padding: 0 4px 0 8px;
+  padding: 0 8px;
   border: 0;
   border-radius: var(--r-s);
   background: var(--surface-2);
   font-weight: 500;
+  transition: padding var(--t) var(--ease);
+}
+/* 条件块平时只有名称；指针移上去、键盘走到或它的菜单开着时，相近（＋、×）、排除、去掉几个按钮才展开（#607）。
+   收起的按钮宽 0、仍可聚焦；负边距抵掉它前面的间距，所以收起时不占位置。chipsThatFit 按收起时的宽度量。 */
+.topbar > .search .search-chip button {
+  width: 0;
+  margin-left: -2px;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    width var(--t) var(--ease),
+    margin var(--t) var(--ease),
+    opacity var(--t-fast) var(--ease),
+    background-color var(--t-fast),
+    color var(--t-fast);
+}
+.topbar > .search .search-chip:is(:hover, :focus-within, :has([data-popup-open])) {
+  padding-right: 4px;
+}
+.topbar > .search .search-chip:is(:hover, :focus-within, :has([data-popup-open])) button {
+  width: 20px;
+  margin-left: 0;
+  opacity: 1;
 }
 .topbar > .search .search-chip[data-negate] {
   background: transparent;
@@ -381,25 +435,12 @@
 .topbar > .search .search-field input:focus-visible {
   outline: 0;
 }
-/* 查找框与张数一组靠左，导入与窗口控件一组靠右：导入吃掉余下的宽度，宽屏时两组分开、紧凑时自然相邻。 */
+/* 查找框靠左，导入与窗口控件一组靠右：导入吃掉余下的宽度，宽屏时两组分开、紧凑时自然相邻。 */
 .topbar > .import-menu {
   margin-left: auto;
 }
 .topbar > .k-win-ctrls {
   margin-left: 0;
-}
-.bar-meta {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 10px;
-  height: 36px;
-  padding: 0 6px 0 4px;
-  color: var(--ink-2);
-}
-.bar-meta .result-count {
-  color: var(--ink-2);
-  font-variant-numeric: tabular-nums;
 }
 
 /* 精确查找（#102 方案 C3）：查找框 40 高、圆角 12，开关 32 × 32 内缩 4 → 圆角 8，同心。

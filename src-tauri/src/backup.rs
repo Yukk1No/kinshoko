@@ -43,10 +43,10 @@ pub struct BackupState {
 
 /// 现在，带本地时区偏移。
 fn now() -> Stamp {
-    let local = chrono::Local::now();
+    let local = jiff::ZonedDateTime::now();
     Stamp::new(
-        local.timestamp_millis(),
-        local.offset().local_minus_utc() / 60,
+        local.timestamp().as_millisecond(),
+        local.offset().seconds() / 60,
     )
 }
 

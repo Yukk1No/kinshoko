@@ -127,7 +127,7 @@ pub(super) fn following(get: &mut Get<'_>, self_id: &str) -> Result<Vec<Artist>,
     Ok(out)
 }
 
-fn user(v: &Value) -> Option<Artist> {
+pub(super) fn user(v: &Value) -> Option<Artist> {
     let user_id = match &v["id"] {
         Value::Number(n) => n.to_string(),
         Value::String(s) if !s.is_empty() => s.clone(),

@@ -62,64 +62,15 @@ pub fn work_from_illust(v: &Value) -> Option<Work> {
 
 /// `2024-01-02T03:04:05+09:00` → Unix 毫秒。
 pub(super) fn parse_rfc3339(s: &str) -> Option<i64> {
-    let num = |range: std::ops::Range<usize>| -> Option<i64> { s.get(range)?.parse().ok() };
-    let (y, mo, d) = (num(0..4)?, num(5..7)?, num(8..10)?);
-    let (h, mi, sec) = (num(11..13)?, num(14..16)?, num(17..19)?);
-    let rest = s.get(19..)?;
-    let rest = rest
-        .strip_prefix('.')
-        .map(|r| r.trim_start_matches(|c: char| c.is_ascii_digit()))
-        .unwrap_or(rest);
-    let offset = match rest {
-        "Z" | "z" => 0,
-        _ => {
-            let sign = match rest.get(0..1)? {
-                "+" => 1,
-                "-" => -1,
-                _ => return None,
-            };
-            let oh: i64 = rest.get(1..3)?.parse().ok()?;
-            let om: i64 = rest.get(4..6)?.parse().ok()?;
-            sign * (oh * 3600 + om * 60)
-        }
-    };
-    let secs = days_from_civil(y, mo, d) * 86_400 + h * 3600 + mi * 60 + sec - offset;
-    Some(secs * 1000)
+    s.parse::<jiff::Timestamp>()
+        .ok()
+        .map(|t| t.as_millisecond())
 }
 
 /// Unix 秒 → `2024-01-02T03:04:05+00:00`（pixiv 登录要的 `X-Client-Time`）。
 pub(super) fn format_utc(secs: i64) -> String {
-    let days = secs.div_euclid(86_400);
-    let rem = secs.rem_euclid(86_400);
-    let (y, m, d) = civil_from_days(days);
-    format!(
-        "{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}+00:00",
-        rem / 3600,
-        rem % 3600 / 60,
-        rem % 60
-    )
-}
-
-// Howard Hinnant 的公历日期算法。
-fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = y.div_euclid(400);
-    let yoe = y - era * 400;
-    let doy = (153 * (m + if m > 2 { -3 } else { 9 }) + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
-}
-
-fn civil_from_days(z: i64) -> (i64, i64, i64) {
-    let z = z + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    (yoe + era * 400 + if m <= 2 { 1 } else { 0 }, m, d)
+    let at = jiff::Timestamp::from_second(secs).unwrap_or(jiff::Timestamp::UNIX_EPOCH);
+    at.strftime("%Y-%m-%dT%H:%M:%S+00:00").to_string()
 }
 
 #[cfg(test)]

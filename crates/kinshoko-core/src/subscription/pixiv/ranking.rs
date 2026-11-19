@@ -6,7 +6,7 @@ use super::parse::work_from_illust;
 use crate::subscription::{RankingPeriod, SourceError, Work};
 
 /// 客户端接口的榜单 mode。pixiv 没有 R-18 月榜，这时为空。
-fn mode(period: RankingPeriod, explicit: bool) -> Option<&'static str> {
+pub(super) fn mode(period: RankingPeriod, explicit: bool) -> Option<&'static str> {
     match (period, explicit) {
         (RankingPeriod::Day, false) => Some("day"),
         (RankingPeriod::Week, false) => Some("week"),

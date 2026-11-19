@@ -16,7 +16,7 @@ const folders = [{ id: "fb", name: "人物", count: 0, children: [] }];
 
 function setup({
   scope = { kind: "all" },
-  memory = { importDestination: null, newLibraryParent: null },
+  memory = { importDestination: null, newLibraryParent: null, pixivDestination: null },
   listed = libraries,
 }: {
   scope?: WorkspaceScope;
@@ -98,7 +98,7 @@ it("登记最早看登记先后，不看目录接口返回的顺序", async () =
 
 it("「全部图片」下用导入上次亲手选的保存目标", async () => {
   const { open, confirm, started } = setup({
-    memory: { importDestination: { libraryId: "B", folderId: "fb" }, newLibraryParent: null },
+    memory: { importDestination: { libraryId: "B", folderId: "fb" }, newLibraryParent: null, pixivDestination: null },
   });
   const dialog = await open();
   await within(dialog).findByText("放到：第二库 / 人物");
@@ -118,7 +118,7 @@ it("在对话框里亲手选的写进记忆，下一次导入预填它", async (
 it("在文件夹里导入预填这个文件夹，只用这一次，不写进记忆", async () => {
   const { open, confirm, started, remembered } = setup({
     scope: { kind: "library", libraryId: "B", scope: { kind: "folder", id: "fb" } },
-    memory: { importDestination: { libraryId: "A", folderId: null }, newLibraryParent: null },
+    memory: { importDestination: { libraryId: "A", folderId: null }, newLibraryParent: null, pixivDestination: null },
   });
   const dialog = await open();
   await within(dialog).findByText("放到：第二库 / 人物");

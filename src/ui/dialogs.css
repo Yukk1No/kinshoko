@@ -29,7 +29,7 @@
   text-decoration: underline;
 }
 .k-link:disabled {
-  opacity: 0.5;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 .k-btn.is-quiet {
@@ -53,7 +53,7 @@
   text-decoration: underline;
 }
 .k-btn:disabled {
-  opacity: 0.5;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 .k-pill {
@@ -230,25 +230,6 @@
   border-top: 0;
 }
 
-/* ---- Tag bar: 编辑分组 opens the group editor ---- */
-.groupbar-edit {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: var(--r-s);
-  background: transparent;
-  color: var(--ink-2);
-  font: inherit;
-  font-size: 12px;
-}
-.groupbar-edit:hover {
-  background: var(--hover);
-  color: var(--ink);
-}
 .k-dialog.k-groups-dialog {
   width: min(640px, calc(100vw - 48px));
 }
