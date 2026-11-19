@@ -3,9 +3,7 @@ import { describe, expect, it } from "vitest";
 // 控件高度、层级、不可用、半透明面板只取令牌（design/ui-system/scales.md）。
 const TOKEN_FILE = "./tokens.css";
 // 确有理由写死的地方列在这里，并写明理由。
-const ALLOWED_BACKDROP: Record<string, string> = {
-  "../ui/menu.css": "级联菜单的模糊归浮层一类，由 #601 定（design/ui-system/scales.md「半透明浮动面板」）",
-};
+const ALLOWED_BACKDROP: Record<string, string> = {};
 
 const sheets = import.meta.glob<string>("../**/*.css", { query: "?raw", import: "default", eager: true });
 
@@ -51,6 +49,10 @@ describe("档位令牌", () => {
 
   it("半透明面板的模糊只用令牌", () => {
     expect(offenders(hardBackdrops, ALLOWED_BACKDROP)).toEqual([]);
+  });
+
+  it("菜单收回正文 13 与分组名 12 档，样式表不再有 11 / 14 字号", () => {
+    expect(offenders((css) => stripComments(css).match(/font-size:\s*(?:11|14)px\b/g) ?? [])).toEqual([]);
   });
 
   it("扫描认得出各类写死的写法，跳过注释与例外", () => {

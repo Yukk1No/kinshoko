@@ -159,32 +159,6 @@
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);
 }
-/* 需要下载模型（#609）：图标右边写出“下载标签模型 947 MB”，成一个胶囊；不弹通知。 */
-.k-tagging-activity[data-labelled][data-activity] {
-  width: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 14px 0 12px;
-  color: var(--accent-strong);
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.k-tagging-text {
-  font-variant-numeric: tabular-nums;
-}
-/* 图片墙很窄时（详情栏打开、主区只剩 300 多 px）胶囊和图片大小滑条并排放不下：退回圆形图标，文字留在悬停提示与无障碍名称里。 */
-@container main (max-width: 480px) {
-  .k-tagging-activity[data-labelled][data-activity] {
-    width: 40px;
-    padding: 0;
-    justify-content: center;
-  }
-  .k-tagging-text {
-    display: none;
-  }
-}
 .k-tagging-activity[data-activity="paused"] {
   color: var(--ink-2);
 }
@@ -347,7 +321,6 @@
 @media (prefers-reduced-motion: reduce) {
   .k-exact,
   .k-exact-glyph path,
-  .k-tip,
   .k-range::-webkit-slider-thumb {
     transition-duration: 0ms;
   }
