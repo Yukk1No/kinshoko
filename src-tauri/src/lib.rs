@@ -9,6 +9,8 @@ mod data_dirs;
 mod desktop;
 mod diagnostics;
 mod fidelity_gate;
+#[cfg(windows)]
+mod file_drop;
 mod library;
 #[cfg(test)]
 mod plugin_acl_tests;

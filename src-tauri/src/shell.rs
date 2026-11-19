@@ -156,6 +156,10 @@ pub fn open_main_window(app: &AppHandle) {
             .build()
     }) {
         Ok(window) => {
+            #[cfg(windows)]
+            if let Err(error) = crate::file_drop::install(&window) {
+                crate::run_log::error("file drop bridge", error);
+            }
             crate::run_log::window_created(WindowKind::Main, started);
             apply_ui_scale(app, factor);
             let _ = window.show();
