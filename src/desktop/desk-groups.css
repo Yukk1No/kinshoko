@@ -38,7 +38,8 @@
   gap: 0;
   width: 100%;
   height: 30px;
-  padding: 0 8px 0 0;
+  /* 右边 12 = 托盘内边距 4 + 行的内边距 8：段的张数与托盘里各行的张数成一列。 */
+  padding: 0 12px 0 0;
   border: 0;
   border-radius: var(--r-s);
   background: transparent;
