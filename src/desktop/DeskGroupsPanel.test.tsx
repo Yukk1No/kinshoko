@@ -305,6 +305,20 @@ describe("参考组面板的“更多”", () => {
     ]);
   });
 
+  it("卡片右键与“⋯”是同一组菜单项", async () => {
+    await show(lists({ recent: [hair] }));
+    fireEvent.contextMenu(screen.getByRole("button", { name: /^头发(?! 的更多操作)/ }));
+    const items = await screen.findAllByRole("menuitem");
+    expect(items.map((i) => i.textContent)).toEqual([
+      "重命名",
+      "设为常用",
+      "复制",
+      "移出没钉着的",
+      "导出参考组包",
+      "删除",
+    ]);
+  });
+
   it("设为常用、取消常用", async () => {
     await show(lists({ favorites: [group("g2", "手部")], recent: [hair] }));
     await more("头发", "设为常用");

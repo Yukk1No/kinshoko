@@ -123,12 +123,21 @@ button.desk-group-head:not([aria-current]):hover {
   outline: var(--focus-ring);
   outline-offset: var(--focus-inset);
 }
+/* “⋯”悬停卡片时才出现，与侧栏图库标题的“⋯”相同；键盘聚焦或菜单开着时留着。 */
 .desk-group-more {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-xs);
+  opacity: 0;
+  transition: opacity var(--t-fast);
+}
+.desk-group:hover .desk-group-more,
+.desk-group-more:focus-visible,
+.desk-group-more[data-popup-open] {
+  opacity: 1;
 }
 .desk-group-thumbs {
   display: flex;
