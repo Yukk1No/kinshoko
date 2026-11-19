@@ -73,6 +73,16 @@ export function repinGroupMember(memberId: string): Promise<void> {
   return invoke<void>(desk("repin_group_member"), { memberId });
 }
 
+/** 全部钉上：桌面上参考组里已关闭的成员都在原位置钉出。 */
+export function repinAllGroupMembers(): Promise<void> {
+  return invoke<void>(desk("repin_all_group_members"));
+}
+
+/** 侧栏里点了参考组的一张图：不在桌面上的组先整桌换过去，已关闭的钉回，钉着的提到最前。 */
+export function showGroupMember(groupId: string, memberId: string): Promise<void> {
+  return invoke<void>(desk("show_group_member"), { groupId, memberId });
+}
+
 /** 移出桌面上参考组里没钉着的成员，返回移出了几个。撤销用 {@link undoPruneUnpinned}。 */
 export function pruneUnpinnedMembers(): Promise<number> {
   return invoke<number>(desk("prune_unpinned_members"));

@@ -58,10 +58,18 @@ fn invariant_1_the_desk_holds_at_most_one_group_and_none_when_empty() {
     t.desk.close(&pins[0], &mut t.history);
     assert_eq!(t.desk.group().map(|g| g.id.clone()), Some(a.clone()));
     t.desk.close(&pins[1], &mut t.history);
-    assert!(t.desk.group().is_none(), "关掉最后一张后桌面空着");
-    assert_eq!(t.desk.lists().unwrap().on_desk, None);
+    assert_eq!(
+        t.desk.group().map(|g| g.id.clone()),
+        Some(a.clone()),
+        "关掉最后一张，参考组仍在桌面上（#588 11-19 晚）"
+    );
+    assert_eq!(t.desk.lists().unwrap().on_desk.as_deref(), Some(a.as_str()));
     t.desk.flush().unwrap();
     assert_eq!(reread(&t, &a).members.len(), 2, "成员都留着");
+    t.pin_reference("c0", 25);
+    assert_eq!(t.desk_id(), a, "关掉最后一张后再钉，还加进这组");
+    t.desk.new_desk(&mut t.history).unwrap();
+    assert!(t.desk.group().is_none(), "只有新参考组之后桌面才空着");
 
     let next = t.desk.pin(reference_pin("c", 30), &mut t.history).unwrap();
     let b = t.desk_id();
@@ -453,7 +461,11 @@ fn the_lists_follow_the_desk_before_it_is_saved() {
 
     t.desk.close(&a.id, &mut t.history);
     let lists = t.desk.lists().unwrap();
-    assert!(lists.on_desk.is_none());
+    assert_eq!(
+        lists.on_desk.as_deref(),
+        Some(id.as_str()),
+        "关掉最后一张仍在桌面上"
+    );
     assert_eq!(ids(&lists.recent), [id], "关掉最后一张，成员还在，照样列出");
 }
 

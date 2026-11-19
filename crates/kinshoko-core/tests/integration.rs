@@ -135,6 +135,8 @@ mod reference_group_desk;
 mod reference_group_desk_migration;
 #[path = "reference_group_desk_moves.rs"]
 mod reference_group_desk_moves;
+#[path = "reference_group_desk_reopen.rs"]
+mod reference_group_desk_reopen;
 #[path = "reference_group_package.rs"]
 mod reference_group_package;
 #[path = "reference_group_resolve.rs"]
