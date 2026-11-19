@@ -213,7 +213,12 @@ fn dibv5(image: &RgbaImage) -> Result<Vec<u8>, CommandError> {
         .chunks_exact_mut(row_bytes)
         .zip(image.as_raw().rchunks_exact(row_bytes))
     {
-        for (to, from) in to.chunks_exact_mut(4).zip(from.chunks_exact(4)) {
+        for (to, from) in to
+            .as_chunks_mut::<4>()
+            .0
+            .iter_mut()
+            .zip(from.as_chunks::<4>().0)
+        {
             to.copy_from_slice(&[from[2], from[1], from[0], from[3]]);
         }
     }

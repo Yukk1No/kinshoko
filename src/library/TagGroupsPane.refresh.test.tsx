@@ -66,6 +66,8 @@ beforeEach(() => {
 
 async function openPicker(beforePicker?: () => Promise<void>) {
   render(<App />);
+  // “编辑分组”在查找框尾部标签分组面板的底部（#607）。
+  fireEvent.click(await screen.findByRole("button", { name: "标签分组" }));
   fireEvent.click(await screen.findByRole("button", { name: "编辑分组" }));
   expect(await screen.findByRole("dialog", { name: "编辑分组" })).toBeTruthy();
   const region = await screen.findByRole("region", { name: "标签分组" });

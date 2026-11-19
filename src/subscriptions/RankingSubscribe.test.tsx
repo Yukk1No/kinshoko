@@ -39,7 +39,7 @@ function backend(subs: Subscription[] = [], newLibraryParent: string | null = nu
   mockConvertFileSrc("windows");
   fake = fakeBackend({
     subscriptions: subs,
-    save_memory: { importDestination: null, newLibraryParent },
+    save_memory: { importDestination: null, newLibraryParent, pixivDestination: null },
     subscription_recent: [],
     workspace_directories: {
       status: { revision: "t", libraries },

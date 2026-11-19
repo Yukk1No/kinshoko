@@ -20,10 +20,10 @@ struct LocalClock;
 
 impl Clock for LocalClock {
     fn now(&self) -> Moment {
-        let now = chrono::Local::now();
+        let now = jiff::ZonedDateTime::now();
         Moment {
-            unix_ms: now.timestamp_millis(),
-            utc_offset_secs: now.offset().local_minus_utc(),
+            unix_ms: now.timestamp().as_millisecond(),
+            utc_offset_secs: now.offset().seconds(),
         }
     }
 }

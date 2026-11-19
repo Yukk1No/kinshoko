@@ -1,7 +1,7 @@
 import { createContext, useContext, useRef, type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { useFluidHover, useRegisterFluidHoverItem } from "./vendor/fluid/use-fluid-hover";
-import { spring } from "./vendor/fluid/springs";
+import { spring } from "./motion";
 
 type Register = (index: number, element: HTMLElement | null) => void;
 const Registry = createContext<Register | undefined>(undefined);

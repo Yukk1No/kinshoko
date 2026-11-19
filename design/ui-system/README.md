@@ -9,7 +9,9 @@
 | 文件 | 内容 | 什么时候读 |
 | --- | --- | --- |
 | [tokens-and-components.md](tokens-and-components.md) | 令牌来源、组件库选型与组件对照 | 写样式、选组件 |
+| [scales.md](scales.md) | 字号、圆角、控件高度、层级、不可用、半透明面板、动效的档位，共用类清单，样式写在哪里 | 写样式前取数值；加样式表或共用类 |
 | [brand-invariants.md](brand-invariants.md) | logo、封印书等不能改的部分 | 动到品牌元素 |
+| [main-window-material.md](main-window-material.md) | 桌面与纸、输入框的槽、顶栏、左栏文件夹视图的质感与拖动（#606 定稿） | 改主窗口外观、顶栏、左栏、输入框 |
 | [window-frame-and-sidebar.md](window-frame-and-sidebar.md) | 自绘窗口框架、侧栏布局 | 改窗口外框、标题栏、侧栏 |
 | [buttons-and-dock.md](buttons-and-dock.md) | 按钮、Dock 的样式与放置 | 改按钮、工具条、浮岛 |
 | [visual-and-motion.md](visual-and-motion.md) | 字号、颜色、圆角、动效 | 改视觉或动画 |

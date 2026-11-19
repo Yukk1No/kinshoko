@@ -27,7 +27,7 @@
 
 ## 焦点环
 
-- **只有一种**：`outline: var(--focus-ring)`（2 px 实线 `--accent`，日间樱色、夜间金色），键盘焦点才画（`:focus-visible`）。输入框、下拉、查找框获得焦点时同样画这一圈，不再加光晕，也不用 `box-shadow` 或 `--ink` 描边代替。
+- **只有一种**：`outline: var(--focus-ring)`（2 px 实线 `--accent`，日间樱色、夜间金色），键盘焦点才画（`:focus-visible`）。下拉获得焦点时同样画这一圈。**例外**：查找框、`.k-input`、备注框这些输入类控件获得焦点时不画这一圈，槽口换成 `--well-focus`（#606，见 [main-window-material.md](main-window-material.md)“槽”）。除此之外不用 `box-shadow` 或 `--ink` 描边代替焦点环。
 - **偏移**：默认 `outline-offset: var(--focus-offset)`（2 px，画在元素外面）。只有贴边或外圈会被裁切的地方用 `var(--focus-inset)`（-2 px，画在元素里面）：设置的竖排页签、分组卡片标题、图片大小旋钮、输入框与下拉（在会滚动的对话框里，外圈会被裁掉）、检查器的拖动条。其余不要自己写数字。
 - 对话框打开时的初始焦点不画环：设置的初始焦点落在对话框本身，不落在关闭按钮上；按 Tab 之后才出现环。
 - `src/styles/focus.styles.test.ts` 扫描所有样式表，发现别的焦点写法就失败。
@@ -41,7 +41,7 @@
 | [Base UI](https://mui.com/base-ui/) `@base-ui/react` 1.6.0 · MIT | **采用：交互基础层** | 37 个无样式组件，来自 Radix / Floating UI / MUI 团队，覆盖菜单、右键菜单、下拉选择、可搜索选择、浮层、对话框、提醒对话框、标签页、开关、滑块、轻提示、提示、滚动区、分段切换。键盘与读屏行为由库负责；不要求 Tailwind，直接套用本项目的设计令牌。 |
 | [motion](https://motion.dev/) 14.1.0 · MIT | **采用：动效** | 驱动上面的弹簧档位与布局过渡（悬停高亮、指示块滑动）。必须遵守“减少动画”。 |
 | [lucide-react](https://lucide.dev/) 1.52.0 · ISC | **沿用** | 原型已用的通用图标；图标轨 20 px / 线宽 1.75，界面内 13–16 px。 |
-| [Fluid Functionalism](https://github.com/mickadesign/fluid-functionalism) · MIT | **采用：交互与动效规范** | 仓库为 MIT（Copyright (c) 2026 Micka Touillaud），底层同样支持 Base UI。移植其无依赖的 `use-fluid-hover`（高亮滑到离指针最近的行，空隙点击落到被高亮的行）与 `springs` 动效档位（fast 0.08 s / moderate 0.16 s / slow 0.24 s，退出用更快一档的补间）；保留原版权声明。组件样式写在 Tailwind 类名里，不直接搬组件，改用本项目令牌重写。原则同样采纳：动效只为传递信息；越大的东西动得越慢。 |
+| [Fluid Functionalism](https://github.com/mickadesign/fluid-functionalism) · MIT | **采用：交互与动效规范** | 仓库为 MIT（Copyright (c) 2026 Micka Touillaud），底层同样支持 Base UI。移植其无依赖的 `use-fluid-hover`（高亮滑到离指针最近的行，空隙点击落到被高亮的行）与 `springs` 动效档位（原版有 fast 0.08 s / moderate 0.16 s / slow 0.24 s 三档；本项目只用 moderate，在 `FluidList` 的悬停高亮上），从 `src/ui/motion.ts` 再导出；保留原版权声明。组件样式写在 Tailwind 类名里，不直接搬组件，改用本项目令牌重写。原则同样采纳：动效只为传递信息；越大的东西动得越慢。 |
 | [Arc Library](https://github.com/kuratlielia/arc-library) · MIT | **采用：按钮与 dock 的参照** | 开源部分（MIT，样式用 CSS Modules，无需 Tailwind）提供 button、split-button、segmented-control 等的写法与动效令牌（snappy / smooth / morph 弹簧）。Arc Pro 的 dock 是付费组件、不在仓库里，本项目按其公开行为说明自行实现，不复制其代码。 |
 | beUI | **只参考动效写法** | Motion + Tailwind 的复制式组件（弹簧、模糊交叉淡入、布局过渡）。官方仓库与许可证未能确认。 |
 | [RareUI](https://github.com/Codewithswappy/RareUI) · MIT | **主界面不用** | 液态、玻璃、3D、WebGL 背景等装饰性组件。与“图片底色保持中性、缩略图不加装饰”冲突：画师要靠眼睛判断参考图颜色。 |
@@ -66,7 +66,7 @@
 | 下拉选择 | `Select` / `Combobox` | 标签选择用 `Combobox` |
 | 轻提示 | `Toast` | 替换常驻红字横幅；可撤销、自动消失。一次性的结果与出错都走它（导入结束、导入出错、备份没有完成），不另画卡片或横幅；有事等画师处理的常驻提示也走它（`usePersistentToast`），不自动消失，关掉后设置里还有入口（#433）；导入进度与导入前要回答的问题是右下角的任务卡，停在轻提示上方（#388） |
 | 图标提示 | `Tooltip` | 名称 + 快捷键 |
-| 标签分组栏 | `Popover` | 分组按钮同导入，无底、悬停出 `--hover` 底，已选个数是 `--accent-soft` 底的胶囊；所有分组共用一个浮层，外形同 `.k-popup`（16 圆角、8 内边距、`--shadow-pop`，不另加描边）。浮层里的标签块与查找框里的条件同样子：28 高、8 圆角、`--surface-2` 实心底；选中 `--accent-soft` 底配 `--accent-strong` 字，排除是无底细线加删除线，没有图的标签无底淡字（#487） |
+| 标签分组 | `Popover` | 查找框尾部的 32 × 32 图标按钮，面板挂在查找框正下方、与它同宽（不窄于 420 px），所有分组一次摆出，“编辑分组”在面板底部（#606，见 [main-window-material.md](main-window-material.md)“顶栏”）。浮层外形同 `.k-popup`（16 圆角、8 内边距、`--shadow-pop`，不另加描边）。浮层里的标签块与查找框里的条件同样子：28 高、8 圆角、`--surface-2` 实心底；选中 `--accent-soft` 底配 `--accent-strong` 字，排除是无底细线加删除线，没有图的标签无底淡字（#487） |
 | 详情面板的标签 | `Popover`（出处浮层） | 作者、角色、作品是一级标签（#518）：在属性表里各占一行，行首写类别，标签上不写“作者：”这类前缀（浮层与读屏名仍写全名），比一般标签大一号（28 高、13 px、左右内边距 10）；“标签”区只放一般标签。被排除的不分类别，都列在“标签”区的“已排除”下，写全名：无底细线、名称划掉，末尾是 20 px 的 `Undo2`“改回自动”，悬停它时划线先去掉。名称比面板宽时在标签里折行。一般标签 26 高、8 圆角，只写名称。按准不准分三档（#482），规则日夜一致：人写的（人工、导入）和模型高档是 `--tag-fill` 实心底（日间同 `--surface-2`；夜间 `#48426a`，`--surface-2` 在夜间面板上看不出来）；模型中档和没有分数的模型标签无底、1 px `--line-2` 细线框、`--ink-2` 字；低档无底、1 px `--line-2` 虚线框（`outline`）、`--ink-2` 字。档位只改颜色和线，不改字重和尺寸。人工和导入在标签上不做区分，也不再用金色。排列：人写的在前（你添加的、导入），模型标签按可信度从高到低；按出处分组时依次是“你添加的 / 导入 / 自动标签”。星星代表“智能”：只出现在三处——“自动标签”分组标题前、浮层里打标模型那行前、属性表里模型给的那一档分级前（lucide `Sparkles`，与设置里打标页签同一个图标，跟文字同色；分级被画师改过后是 `--ink-3`，见上一行） |
 | 详情面板的添加标签 | `Combobox` | 只有一个输入框，前面是 16 px `Plus`，不另放按钮行，选几张时也不写说明句。候选行回车或单击添加；排除是高亮行尾的 24 px `Ban` 按钮（替换张数，悬停时名称划掉），Alt+回车 / Ctrl+单击同样排除，与查找框一致；选几张时行尾多一个 `Undo2`“改回自动”，新建项末尾也有一个（按输入的名称），键盘是 Shift+回车。行尾按钮不可聚焦，悬停提示是动作名加快捷键（“排除 Alt+Enter”“改回自动 Shift+Enter”）。没有同名标签时最后一行是“新建“名称””，名称下一行选类别（一般 / 作者 / 角色 / 作品，选中 `--accent-soft` 底配 `--accent-strong` 字），只管这一次；在名称前写“作者：”等同样指定类别，候选也只列这个类别。加上的作者、角色、作品出现在上面的属性表里 |
 | 精确查找 | `Toggle` + `Tooltip` | 查找框尾部的图标开关（#102 方案 C3），见 [buttons-and-dock.md](buttons-and-dock.md)“按钮” |

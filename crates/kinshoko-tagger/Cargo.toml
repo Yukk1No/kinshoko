@@ -11,7 +11,7 @@ license.workspace = true
 kinshoko-core.workspace = true
 # 与 tools/tagger-probe 相同的固定版本（rc 版本 API 常变，精确锁定）。copy-dylibs 把 onnxruntime 与
 # DirectML.dll 放到 exe 旁边，发布时要随 exe 一起分发。
-ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "directml", "download-binaries", "copy-dylibs", "tls-rustls"] }
+ort = { version = "=2.0.0-rc.15", default-features = false, features = ["std", "directml", "download-binaries", "copy-dylibs", "tls-rustls"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 csv = "1"
 
