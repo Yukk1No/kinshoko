@@ -1,19 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LayoutGroup, motion } from "motion/react";
-import {
-  ChevronRight,
-  Copy,
-  Eraser,
-  FolderInput,
-  MoreHorizontal,
-  PackageOpen,
-  Pencil,
-  Plus,
-  Star,
-  StarOff,
-  Trash2,
-} from "lucide-react";
+import { ChevronRight, FolderInput, MoreHorizontal, Plus } from "lucide-react";
 import type { DeskLists } from "../bindings/DeskLists";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
@@ -42,12 +30,14 @@ import {
 } from "../ipc";
 import { describeCommandError, errorText, isErrorCode } from "../ipc/commandError";
 import { SaveDestinationDialog } from "../library/SaveDestination";
-import { Menu, MenuItem, MenuPopup, MenuSeparator } from "../ui/Menu";
+import { ContextMenu } from "@base-ui/react/context-menu";
+import { Menu, MenuPopup } from "../ui/Menu";
 import { useReducedMotion } from "../ui/reducedMotion";
 import { Tip } from "../ui/Tip";
 import { useToast } from "../ui/Toast";
 import { WarnIcon } from "../ui/WarnIcon";
 import { DeskGroupMembers } from "./DeskGroupMembers";
+import { DeskGroupMenuItems } from "./DeskGroupMenu";
 import { GroupNameForm } from "./GroupNameForm";
 import { groupLabel } from "./groupLabel";
 import { ReferenceGroupsPanel } from "./ReferenceGroupsPanel";
@@ -250,6 +240,30 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
         )}
       </>
     );
+    const menuItems = (
+      <DeskGroupMenuItems
+        usable={!g.problem}
+        favorite={section === "favorites"}
+        onDesk={onDesk}
+        canPrune={unpinned}
+        onRename={() => setRenaming({ id: g.id, name: g.name })}
+        onFavorite={(favorite) => void run(() => setReferenceGroupFavorite(g.id, favorite))}
+        onCopy={() =>
+          void run(
+            () => duplicateReferenceGroup(g.id, t("deskPanel.copyName", { name: label })),
+            () => t("deskPanel.copied"),
+          )
+        }
+        onPrune={() => void prune()}
+        onExport={() =>
+          void run(
+            () => exportReferenceGroupPackage(g.id),
+            (path) => (path ? t("groups.exported", { path: String(path) }) : null),
+          )
+        }
+        onDelete={() => void removeGroup(g)}
+      />
+    );
     return (
       <motion.li
         key={g.id}
@@ -275,81 +289,40 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
               )
             }
           />
-        ) : g.problem ? (
-          <div className="desk-group-head">{head}</div>
         ) : (
-          <button
-            type="button"
-            className="desk-group-head"
-            aria-current={onDesk || undefined}
-            onClick={() => {
-              if (!onDesk) void run(() => switchReferenceGroup(g.id));
-            }}
-          >
-            {head}
-          </button>
+          <ContextMenu.Root>
+            <ContextMenu.Trigger
+              render={
+                g.problem ? (
+                  <div className="desk-group-head" />
+                ) : (
+                  <button
+                    type="button"
+                    className="desk-group-head"
+                    aria-current={onDesk || undefined}
+                    onClick={() => {
+                      if (!onDesk) void run(() => switchReferenceGroup(g.id));
+                    }}
+                  />
+                )
+              }
+            >
+              {head}
+            </ContextMenu.Trigger>
+            <MenuPopup width={200} label={t("groups.moreLabel", { name: label })}>
+              {menuItems}
+            </MenuPopup>
+          </ContextMenu.Root>
         )}
         {renaming?.id !== g.id && (
-          <Menu.Root>
+          <Menu.Root modal={false}>
             <Tip label={t("groups.more")}>
               <Menu.Trigger className="k-icon-btn desk-group-more" aria-label={t("groups.moreLabel", { name: label })}>
-                <MoreHorizontal size={15} aria-hidden="true" />
+                <MoreHorizontal size={14} aria-hidden="true" />
               </Menu.Trigger>
             </Tip>
-            <MenuPopup label={t("groups.moreLabel", { name: label })}>
-              {!g.problem && (
-                <>
-                  <MenuItem icon={<Pencil size={14} />} onClick={() => setRenaming({ id: g.id, name: g.name })}>
-                    {t("groups.rename")}
-                  </MenuItem>
-                  {section === "favorites" ? (
-                    <MenuItem
-                      icon={<StarOff size={14} />}
-                      onClick={() => void run(() => setReferenceGroupFavorite(g.id, false))}
-                    >
-                      {t("deskPanel.unfavorite")}
-                    </MenuItem>
-                  ) : (
-                    <MenuItem
-                      icon={<Star size={14} />}
-                      onClick={() => void run(() => setReferenceGroupFavorite(g.id, true))}
-                    >
-                      {t("deskPanel.favorite")}
-                    </MenuItem>
-                  )}
-                  <MenuItem
-                    icon={<Copy size={14} />}
-                    onClick={() =>
-                      void run(
-                        () => duplicateReferenceGroup(g.id, t("deskPanel.copyName", { name: label })),
-                        () => t("deskPanel.copied"),
-                      )
-                    }
-                  >
-                    {t("deskPanel.copy")}
-                  </MenuItem>
-                  {onDesk && (
-                    <MenuItem icon={<Eraser size={14} />} disabled={!unpinned} onClick={() => void prune()}>
-                      {t("deskPanel.prune")}
-                    </MenuItem>
-                  )}
-                  <MenuItem
-                    icon={<PackageOpen size={14} />}
-                    onClick={() =>
-                      void run(
-                        () => exportReferenceGroupPackage(g.id),
-                        (path) => (path ? t("groups.exported", { path: String(path) }) : null),
-                      )
-                    }
-                  >
-                    {t("groups.export")}
-                  </MenuItem>
-                  <MenuSeparator />
-                </>
-              )}
-              <MenuItem icon={<Trash2 size={14} />} danger onClick={() => void removeGroup(g)}>
-                {t("groups.delete")}
-              </MenuItem>
+            <MenuPopup width={200} label={t("groups.moreLabel", { name: label })}>
+              {menuItems}
             </MenuPopup>
           </Menu.Root>
         )}
