@@ -16,7 +16,9 @@ export default {
     etaHours_other: "约 {{count, number}} 小时",
     paused: "已暂停",
     yieldedToFullScreen: "因全屏程序暂停",
-    needsDownload: "需要下载自动标签模型",
+    needsDownload: "需要下载自动标签模型（{{size}}）",
+    clickDownload: "点击开始下载",
+    clickResume: "已下载 {{percent}}%，点击继续",
     failed: "自动标签出错",
     noDevice: "自动标签不可用",
     unfinished_other: "{{count, number}} 张没有完成",
@@ -33,6 +35,7 @@ export default {
     pause: "暂停自动标签：{{text}}",
     resume: "继续自动标签：{{text}}",
     retry: "重试没有完成的图：{{text}}",
+    download: "下载自动标签模型：{{text}}",
   },
   /** 右键图标的菜单。 */
   menu: {
@@ -47,13 +50,9 @@ export default {
     retrying: "稍后会自动重试",
     tagged_other: "自动标签：已完成 {{count, number}} 张",
     unavailable: "自动标签不可用：{{reason}}",
-    downloading: "正在下载自动标签模型",
     downloadFailed: "无法下载自动标签模型：{{error}}",
     /** 暂停、继续、下载、取消下载、重试这些按钮的命令失败。 */
     actionFailed: "自动标签操作没有完成：{{error}}",
-    needsDownload: "需要下载自动标签模型（{{size}}）",
-    resume: "继续下载",
-    download: "下载",
   },
   /** 设置 › 自动标签。 */
   settings: {
