@@ -266,6 +266,7 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
             label={t("groups.nameLabel")}
             value={renaming.name}
             primary={false}
+            allowEmpty
             onChange={(value) => setRenaming({ id: g.id, name: value })}
             onCancel={() => setRenaming(null)}
             onSubmit={() =>
