@@ -14,6 +14,7 @@ export function GroupNameForm({
   onSubmit,
   onCancel,
   busy = false,
+  allowEmpty = false,
 }: {
   title: string;
   label: string;
@@ -23,14 +24,17 @@ export function GroupNameForm({
   onCancel: () => void;
   /** 正在保存：输入框与按钮都不能用。 */
   busy?: boolean;
+  /** 名称可以留空（桌面上的参考组改名：留空回到写新建时间，#588）。 */
+  allowEmpty?: boolean;
 }) {
   const { t } = useTranslation("desktop", { keyPrefix: "nameForm" });
+  const filled = allowEmpty || value.trim() !== "";
   return (
     <form
       className="group-name-form"
       onSubmit={(e) => {
         e.preventDefault();
-        if (value.trim() && !busy) onSubmit();
+        if (filled && !busy) onSubmit();
       }}
       onKeyDown={(e) => {
         if (e.key === "Escape" && !busy) {
@@ -63,7 +67,7 @@ export function GroupNameForm({
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
-        <button type="submit" className="k-btn" disabled={!value.trim() || busy}>
+        <button type="submit" className="k-btn" disabled={!filled || busy}>
           <span className="k-label">{t("save")}</span>
         </button>
       </div>
