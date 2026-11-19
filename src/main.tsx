@@ -22,6 +22,7 @@ import "./shell/main-window-panels.css";
 import "./shell/main-window-stacks.css";
 import "./shell/startup-splash.css";
 import "./shell/pane-fit.css";
+import "./desktop/desk-groups.css";
 // 设置早于 dialogs.css：后者减弱动效的规则要盖过设置页签的过渡。
 import "./ui/settings.css";
 import "./ui/dialogs.css";

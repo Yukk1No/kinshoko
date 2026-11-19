@@ -22,6 +22,21 @@ pub struct DeskLists {
 }
 
 impl Desk {
+    /// 上一组：桌面上那个以外、最近用过的参考组。空桌钉下第一张后提示里“加进”的就是它。
+    pub fn previous(&self) -> Option<String> {
+        let desk = self.desk_id();
+        let mut used: Vec<(&String, &i64)> = self
+            .used_at
+            .iter()
+            .filter(|(id, _)| Some(id.as_str()) != desk.as_deref())
+            .collect();
+        used.sort_by(|a, b| b.1.cmp(a.1).then(a.0.cmp(b.0)));
+        used.into_iter()
+            .map(|(id, _)| id)
+            .find(|id| self.left.iter().any(|h| h.group.id == **id) || self.groups.get(id).is_ok())
+            .cloned()
+    }
+
     /// 侧栏的三段，按现在的时间分“最近”和“更早”。
     pub fn lists(&self) -> Result<DeskLists, GroupError> {
         self.lists_at(crate::library::now_ms())

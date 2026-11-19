@@ -191,6 +191,7 @@ pub fn init() -> TauriPlugin<Wry> {
             desk_commands::prune_unpinned_members,
             desk_commands::undo_prune_unpinned,
             desk_commands::set_reference_group_favorite,
+            desk_commands::duplicate_reference_group,
             desk_commands::fold_into_previous,
             desk_commands::split_off_reference_group,
             desk_commands::undo_split_off,

@@ -115,10 +115,11 @@ impl PinState {
         }
     }
 
-    /// 写回磁盘。写不进时改动留着，下次再写。
-    pub fn save(&mut self) -> Result<(), String> {
+    /// 写回磁盘。写不进时改动留着，下次再写。返回参考组列表上看不看得出（见 [`Desk::flush`]）；
+    /// 开关关着时钉图不在参考组里，总是 `false`。
+    pub fn save(&mut self) -> Result<bool, String> {
         match self {
-            PinState::Legacy(store) => store.save().map_err(|e| e.to_string()),
+            PinState::Legacy(store) => store.save().map(|()| false).map_err(|e| e.to_string()),
             PinState::Desk(desk) => desk.flush().map_err(|e| e.to_string()),
         }
     }
