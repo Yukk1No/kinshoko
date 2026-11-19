@@ -104,7 +104,7 @@ export function SettingsPanel({
             {t("loading")}
           </p>
         ) : (
-          <div className="is-load-failed">
+          <div className="k-set-retry">
             <p className="k-error-text is-boxed" role="alert">
               {t("loadFailed", { error: loadError })}
             </p>

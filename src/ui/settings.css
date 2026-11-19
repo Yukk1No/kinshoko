@@ -26,7 +26,7 @@
   place-items: center;
   padding: 48px;
 }
-.k-settings.is-loading > .is-load-failed {
+.k-set-retry {
   display: grid;
   justify-items: center;
   gap: 12px;
