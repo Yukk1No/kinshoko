@@ -26,7 +26,7 @@
   place-items: center;
   padding: 48px;
 }
-.k-set-load-error {
+.k-settings.is-loading > .is-load-failed {
   display: grid;
   justify-items: center;
   gap: 12px;
@@ -135,7 +135,7 @@
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--line);
 }
-.k-set-group > .k-set-note {
+.k-set-group > .k-description {
   margin: 0;
   padding: 8px 12px 6px;
 }
@@ -177,20 +177,16 @@ section + section {
 .k-set-row-main .k-list-title {
   overflow-wrap: anywhere;
 }
-/* 12px 的说明配 18px 行高（同 .k-set-note）：沿用正文的 20px 时文字块下沉的留白多，整块比图标偏上，有说明的行也高出 2px（#218）。 */
+/* 12px 的说明配 18px 行高（同 .k-description）：沿用正文的 20px 时文字块下沉的留白多，整块比图标偏上，有说明的行也高出 2px（#218）。 */
 .k-set-row .k-list-desc {
   line-height: 18px;
 }
 /* 补充说明：悬停时在整行的提示里；键盘聚焦到这一行的控件时显示在名称下方。 */
-.k-set-hint {
+.k-set-row .k-list-text > .k-description {
   display: none;
-  margin: 0;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--ink-2);
   white-space: normal;
 }
-.k-set-row:has(:focus-visible) .k-set-hint {
+.k-set-row:has(:focus-visible) .k-list-text > .k-description {
   display: block;
 }
 .k-set-row-main > .k-list-end {
@@ -262,22 +258,7 @@ section + section {
   color: var(--ink-2);
   font-size: 12px;
 }
-.k-set-note {
-  margin: 8px 0 0;
-  color: var(--ink-2);
-  font-size: 12px;
-  line-height: 18px;
-}
-.k-set-error {
-  margin: 0 0 12px;
-  padding: 8px 12px;
-  border-radius: var(--r);
-  background: var(--surface-2);
-  color: var(--danger);
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-.k-set-row-below-body .k-set-error {
+.k-set-row-below-body .k-error-text {
   margin: 6px 0 0;
 }
 .k-set-seg {

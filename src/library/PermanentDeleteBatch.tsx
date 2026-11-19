@@ -142,7 +142,7 @@ export function PermanentDeleteBatchConfirm({
           ) : (
             <>
               {changed && (
-                <p className="k-set-note" role="status">
+                <p className="k-description is-spaced" role="status">
                   {t("changed")}
                 </p>
               )}
@@ -150,7 +150,7 @@ export function PermanentDeleteBatchConfirm({
                 {total > 0 ? t("confirmCount", { count: total }) : t("nothing")}
               </AlertDialog.Description>
               {unavailable.map((p) => (
-                <p key={p.libraryId} className="k-set-note" role="status">
+                <p key={p.libraryId} className="k-description is-spaced" role="status">
                   {t("libraryUnavailable", {
                     library: libraryName(p.libraryId),
                     count: count(p.libraryId),

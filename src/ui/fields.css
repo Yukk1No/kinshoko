@@ -8,15 +8,6 @@
   gap: 6px;
   min-width: 0;
 }
-.k-field-error {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--danger);
-}
 .k-field-row {
   display: flex;
   align-items: center;

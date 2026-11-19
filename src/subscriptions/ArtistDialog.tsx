@@ -155,7 +155,7 @@ export function ArtistDialog({
               </span>
             </label>
             {lookup.kind === "failed" && (
-              <p className="k-field-error" role="alert">
+              <p className="k-error-text is-field" role="alert">
                 <CircleAlert size={14} aria-hidden="true" />
                 {lookup.message}
               </p>
@@ -185,7 +185,7 @@ export function ArtistDialog({
             disabled={busy}
           />
           {error && (
-            <p className="k-field-error" role="alert">
+            <p className="k-error-text is-field" role="alert">
               <CircleAlert size={14} aria-hidden="true" />
               {error}
             </p>
@@ -276,7 +276,7 @@ export function ArtistSettingsDialog({
             disabled={busy}
           />
           {error && (
-            <p className="k-field-error" role="alert">
+            <p className="k-error-text is-field" role="alert">
               <CircleAlert size={14} aria-hidden="true" />
               {error}
             </p>

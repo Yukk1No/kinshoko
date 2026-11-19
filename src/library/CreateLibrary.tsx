@@ -172,7 +172,7 @@ function NewLibraryForm({
         }}
       />
       {error && (
-        <p className="create-library-error" role="alert">
+        <p className="k-error-text" role="alert">
           {error}
         </p>
       )}

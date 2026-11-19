@@ -186,7 +186,7 @@
   color: var(--ink-2);
   font-size: 12px;
 }
-.k-wizard .k-dialog-height-inner > .k-set-note[role="status"] {
+.k-wizard .k-dialog-height-inner > .k-description[role="status"] {
   margin: -6px 0 0;
 }
 .k-big-tag {

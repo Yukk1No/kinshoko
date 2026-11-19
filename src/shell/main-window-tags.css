@@ -38,9 +38,9 @@
   font-weight: 600;
   overflow-wrap: anywhere;
 }
-.k-rename .k-set-note,
+.k-rename .k-description,
 .k-rename .k-list-desc,
-.k-rename .k-set-error {
+.k-rename .k-error-text {
   margin: 0;
 }
 .k-rename .k-rename-acts {

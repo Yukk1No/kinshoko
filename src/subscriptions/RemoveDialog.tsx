@@ -47,7 +47,7 @@ export function RemoveDialog({
           <Dialog.Title className="k-title">{t("title", { name: displayName(ts, subscription) })}</Dialog.Title>
           <Dialog.Description className="k-dialog-desc">{t("body")}</Dialog.Description>
           {error && (
-            <p className="k-field-error" role="alert">
+            <p className="k-error-text is-field" role="alert">
               {error}
             </p>
           )}

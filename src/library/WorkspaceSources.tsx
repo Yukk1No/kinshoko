@@ -76,7 +76,7 @@ export function WorkspaceSources({
         />
       )}
       {editing?.unavailable ? (
-        <p className="insp-hint" role="status">
+        <p className="k-description" role="status">
           {describeCommandError(editing.unavailable)}
         </p>
       ) : (

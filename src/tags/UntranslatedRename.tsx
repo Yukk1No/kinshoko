@@ -113,9 +113,9 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
                   {t("duplicate", { name: text })}
                 </p>
               )}
-              <Popover.Description className="k-set-note">{t("hint")}</Popover.Description>
+              <Popover.Description className="k-description is-spaced">{t("hint")}</Popover.Description>
               {error && (
-                <p className="k-set-error" role="alert">
+                <p className="k-error-text is-boxed" role="alert">
                   {error}
                 </p>
               )}

@@ -105,7 +105,7 @@ export function TagIdentityPanel() {
               <Tip label={library.root} align="start">
                 <span className="k-parts">
                   <span>{library.name}</span>
-                  <span className="k-set-note">
+                  <span className="k-description is-spaced">
                     {libraryPathHint(
                       library.root,
                       workspace.libraries.map((entry) => entry.library.root),
@@ -132,7 +132,7 @@ export function TagIdentityPanel() {
               </p>
             ))}
           {workspace.catalog.mappings.length === 0 ? (
-            <p className="k-set-note">{t("noTags")}</p>
+            <p className="k-description is-spaced">{t("noTags")}</p>
           ) : (
             <table className="settings-shortcuts">
               <thead>
@@ -216,7 +216,7 @@ function MappingRow({
           <span>{localName(mapping, lang)}</span>
           <small>{namespaceName(mapping.legacy.namespace)}</small>
         </span>
-        <p className="k-set-note">
+        <p className="k-description is-spaced">
           {mapping.nameProvenance === "pending"
             ? t("identity.pendingName")
             : t("identity.aliases", {
