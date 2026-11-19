@@ -198,10 +198,6 @@
   font-size: 16px;
 }
 
-.settings-error {
-  color: var(--danger);
-}
-
 /* 诊断与更新（#70） */
 .settings-actions {
   display: flex;
@@ -360,14 +356,14 @@
   font-size: 12px;
 }
 
-.selection-note {
+.selection-note-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
 }
 
-.selection-note textarea {
+.selection-note-field textarea {
   font: inherit;
   font-size: 13px;
   resize: vertical;

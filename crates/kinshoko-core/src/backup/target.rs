@@ -45,6 +45,56 @@ const MANIFEST: &str = "manifest.json";
 const FORMAT: &str = "kinshoko.backup";
 const FORMAT_VERSION: u32 = 1;
 
+/// `path` 是备份目标里 Backup 自己的布局（`kinshoko-backup/`）或在它里面时，给出布局所在的文件夹。
+pub(crate) fn layout_containing(path: &Path) -> Option<&Path> {
+    path.ancestors().find(|dir| is_layout(dir))
+}
+
+/// 选中的 `path` 是备份目标、目标里的 `kinshoko-backup/` 或其中的位置时，给出备份目标。
+pub fn target_of(path: &Path) -> Option<PathBuf> {
+    match layout_containing(path) {
+        Some(layout) => layout.parent().map(Path::to_path_buf),
+        None => is_layout(&path.join(ROOT)).then(|| path.to_path_buf()),
+    }
+}
+
+/// 选中的 `path` 整个就是备份：在 `kinshoko-backup/` 里，或是除它以外只有隐藏项的备份目标
+/// （以 `.` 开头，或 Windows 的隐藏属性，如盘符根目录的 `System Volume Information`）。
+/// 备份目标里还有别的内容时不算，那些内容照常导入，导入时跳过其中的备份。
+pub fn is_whole_backup(path: &Path) -> bool {
+    if layout_containing(path).is_some() {
+        return true;
+    }
+    is_layout(&path.join(ROOT))
+        && fs::read_dir(path).is_ok_and(|entries| {
+            entries
+                .flatten()
+                .all(|entry| entry.file_name() == ROOT || is_hidden(&entry))
+        })
+}
+
+fn is_hidden(entry: &fs::DirEntry) -> bool {
+    entry.file_name().to_string_lossy().starts_with('.') || has_hidden_attribute(entry)
+}
+
+#[cfg(windows)]
+fn has_hidden_attribute(entry: &fs::DirEntry) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    const FILE_ATTRIBUTE_HIDDEN: u32 = 0x2;
+    entry
+        .metadata()
+        .is_ok_and(|m| m.file_attributes() & FILE_ATTRIBUTE_HIDDEN != 0)
+}
+
+#[cfg(not(windows))]
+fn has_hidden_attribute(_: &fs::DirEntry) -> bool {
+    false
+}
+
+fn is_layout(dir: &Path) -> bool {
+    dir.file_name().is_some_and(|name| name == ROOT) && dir.join(SNAPSHOTS).is_dir()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Manifest {
@@ -377,6 +427,14 @@ impl BackupTarget {
         report.complete = true;
         report.removed_snapshots = self.prune(&root)?;
         Ok(report)
+    }
+
+    /// 最新的完整快照；没有完整快照时是 [`BackupError::UnknownSnapshot`]。
+    pub fn latest_snapshot(&self) -> Result<SnapshotSummary, BackupError> {
+        self.snapshots()?
+            .into_iter()
+            .next()
+            .ok_or(BackupError::UnknownSnapshot)
     }
 
     /// 备份目标里的完整快照，新的在前。

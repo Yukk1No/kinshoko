@@ -33,7 +33,7 @@ describe("文字选取（#224）", () => {
     '[role="alert"]',
     '.k-toast[data-tone="error"]',
     ".k-list-desc.is-warn",
-    ".settings-error",
+    ".k-error-text",
   ])("%s 仍可选中复制", (selector) => {
     expect(declares(selector, "user-select", "text")).toBe(true);
   });

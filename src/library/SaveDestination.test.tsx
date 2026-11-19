@@ -40,6 +40,7 @@ it("global import shows the prefilled destination, can be changed by hand and do
     },
     pick_files: ["C:/source.png"],
     import_contains_eagle: false,
+    import_backups: [],
     start_import: (args) => {
       submitted = args;
       return "fixed-task";
@@ -92,6 +93,7 @@ it("a late start reply and cancel keep the submitted owner after selecting anoth
     workspace_browse: { cards: [], total: 0, nextCursor: null, status: { revision: "test", libraries } },
     pick_files: ["C:/source.png"],
     import_contains_eagle: false,
+    import_backups: [],
     start_import: () => pendingStart,
     cancel_import: (args) => {
       cancelled = args;
@@ -150,6 +152,7 @@ it("retry starts at its original target and an explicit new choice matches the f
     },
     import_tasks: [receipt],
     import_contains_eagle: false,
+    import_backups: [],
     start_import: (args) => {
       submitted = args;
       return "retry-task";
@@ -188,6 +191,7 @@ it("a concrete folder entry prefills its provider and folder without activating 
     import_tasks: [],
     pick_files: ["C:/source.png"],
     import_contains_eagle: false,
+    import_backups: [],
   });
   render(
     <SaveDestinationProvider safe>

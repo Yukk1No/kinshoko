@@ -129,7 +129,7 @@ export function UpdateSection({
           hint={t("manual.hint")}
           below={
             steps && (
-              <div className="k-set-note">
+              <div className="k-description is-spaced">
                 <p>{describeCommandError(status.message)}</p>
                 <p>{t("manual.steps")}</p>
               </div>
@@ -145,7 +145,7 @@ export function UpdateSection({
           icon={<Download size={16} />}
           title={t("automatic.title")}
           meta={t("automatic.disabled")}
-          below={<p className="k-set-note">{describeCommandError(status.message)}</p>}
+          below={<p className="k-description is-spaced">{describeCommandError(status.message)}</p>}
         />
       ) : (
         <>
@@ -171,7 +171,7 @@ export function UpdateSection({
               icon={<Download size={16} />}
               title={t("install.title", { version: status.version })}
               meta={installing ? progressText(progress) : undefined}
-              below={status.notes && <p className="k-set-note update-notes">{status.notes}</p>}
+              below={status.notes && <p className="k-description is-spaced update-notes">{status.notes}</p>}
             >
               {!installing && (
                 <button type="button" className="k-btn is-sm is-primary" onClick={() => void install()}>
@@ -187,12 +187,12 @@ export function UpdateSection({
               (status.state === "failed" || error !== null) && (
                 <>
                   {status.state === "failed" && (
-                    <p className="k-set-error" role="alert">
+                    <p className="k-error-text is-boxed" role="alert">
                       {describeCommandError(status.message)}
                     </p>
                   )}
                   {error !== null && (
-                    <p className="k-set-error" role="alert">
+                    <p className="k-error-text is-boxed" role="alert">
                       {error}
                     </p>
                   )}

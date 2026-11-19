@@ -285,7 +285,7 @@ export function RankingDialog({
             <Switch label={t("manga")} disabled={busy} checked={manga} onCheckedChange={setManga} />
           </div>
           {error && (
-            <p className="k-field-error" role="alert">
+            <p className="k-error-text is-field" role="alert">
               <CircleAlert size={14} aria-hidden="true" />
               {error}
             </p>
@@ -364,7 +364,7 @@ export function RankingSettingsDialog({
             <Switch label={t("manga")} disabled={busy} checked={manga} onCheckedChange={setManga} />
           </div>
           {error && (
-            <p className="k-field-error" role="alert">
+            <p className="k-error-text is-field" role="alert">
               <CircleAlert size={14} aria-hidden="true" />
               {error}
             </p>

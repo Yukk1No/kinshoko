@@ -195,6 +195,11 @@ export function importContainsEagle(paths: string[]): Promise<boolean> {
   return invoke<boolean>(lib("import_contains_eagle"), { source: { paths } });
 }
 
+/** 选中的路径里哪些是 Kinshoko 备份（原样返回）；它们经恢复还原，不当散图导入。 */
+export function importBackups(paths: string[]): Promise<string[]> {
+  return invoke<string[]>(lib("import_backups"), { source: { paths } });
+}
+
 /** 本机 Eagle 资料库候选；按 images/ 条目数从多到少排列。 */
 export function discoverEagleLibraries(): Promise<EagleLibraryCandidate[]> {
   return invoke<EagleLibraryCandidate[]>(lib("discover_eagle_libraries"));

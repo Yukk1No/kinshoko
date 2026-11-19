@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { formatNumber, percentOf } from "../i18n/format";
 import { useToast } from "../ui/Toast";
 import { Dialog } from "@base-ui/react/dialog";
-import { Download, MapPinned } from "lucide-react";
+import { Download } from "lucide-react";
 import { DialogHeight } from "../ui/DialogHeight";
 import { SealLock } from "../ui/SealLock";
 import type { ImportOptions } from "../bindings/ImportOptions";
@@ -20,6 +20,7 @@ import {
   cancelImport,
   confirmEagleLocation,
   discoverEagleLibraries,
+  importBackups,
   importContainsEagle,
   onFileDrop,
   pickFiles,
@@ -28,6 +29,7 @@ import {
   type FileDrop,
 } from "../ipc";
 import { EagleLibrariesDialog, ImportPlanDialog, ImportResultCard, type ImportPlan } from "./ImportBarParts";
+import { BackupCards, RelocationCard } from "./ImportCards";
 import { useImportNotices } from "./useImportNotices";
 import { useImportRecovery } from "./useImportRecovery";
 import { errorText } from "../ipc/commandError";
@@ -157,6 +159,8 @@ export function ImportBar({
   const [tagStep, setTagStep] = useState(false);
   // 已确认过的搬家提议，不再重复询问。
   const [confirmed, setConfirmed] = useState<string[]>([]);
+  // 选中的路径里认出的备份：不当散图导入，等画师选恢复到哪里。
+  const [backups, setBackups] = useState<string[]>([]);
   // 切换资料库后旧工作区已卸下；新建表单打开时工作区只是隐藏，不接受导入。
   const alive = useRef(true);
   const enabledRef = useRef(enabled);
@@ -194,12 +198,17 @@ export function ImportBar({
     if (fixed) onRetryDestination?.(fixed);
     setPreparing(true);
     try {
-      const isEagle = fromEagle || (await importContainsEagle(paths));
+      const found = fromEagle ? [] : await importBackups(paths);
+      if (!alive.current || !enabledRef.current) return;
+      if (found.length) setBackups((shown) => [...shown, ...found.filter((path) => !shown.includes(path))]);
+      const images = paths.filter((path) => !found.includes(path));
+      if (!images.length) return;
+      const isEagle = fromEagle || (await importContainsEagle(images));
       if (!alive.current || !enabledRef.current) return;
       if (isEagle || destination !== undefined) {
-        setPlan({ paths, options: options ?? { eagleDeletedContent: "skipDeleted" }, eagle: isEagle });
+        setPlan({ paths: images, options: options ?? { eagleDeletedContent: "skipDeleted" }, eagle: isEagle });
       } else {
-        await start(paths, false, options, fixed);
+        await start(images, false, options, fixed);
       }
     } catch (error) {
       if (alive.current) toast.error(t("failed.inspect", { error: errorText(error) }));
@@ -308,6 +317,7 @@ export function ImportBar({
       if (alive.current) toast.error(t("failed.confirmEagle", { error: errorText(error) }));
     }
   };
+  const dismissBackup = (path: string) => setBackups((shown) => shown.filter((p) => p !== path));
   const reimport = (paths: string[], library: string) =>
     begin(paths, false, undefined, { libraryId: library, folderId: null });
 
@@ -338,34 +348,14 @@ export function ImportBar({
 
   const cards = (
     <>
+      <BackupCards paths={backups} onDone={dismissBackup} />
       {relocations.map((relocation) => (
-        <section key={relocation.to} className="k-task" role="alert" aria-label={t("relocation.title")}>
-          <div className="k-task-top">
-            <MapPinned size={16} className="k-task-icon" aria-hidden="true" />
-            <b>{t("relocation.title")}</b>
-          </div>
-          <p className="k-task-sub">{t("relocation.overlap", { percent: relocation.overlapPercent })}</p>
-          <p className="k-task-sub import-report-path">{t("relocation.to", { path: relocation.to })}</p>
-          <p className="k-task-sub import-report-path">{t("relocation.from", { path: relocation.from })}</p>
-          <div className="k-task-acts">
-            <button
-              type="button"
-              className="k-btn is-sm"
-              disabled={busy}
-              onClick={() => void confirm(relocation, { kind: "moved", sourceId: relocation.sourceId })}
-            >
-              <span className="k-label">{t("relocation.same")}</span>
-            </button>
-            <button
-              type="button"
-              className="k-btn is-sm"
-              disabled={busy}
-              onClick={() => void confirm(relocation, { kind: "separate" })}
-            >
-              <span className="k-label">{t("relocation.separate")}</span>
-            </button>
-          </div>
-        </section>
+        <RelocationCard
+          key={relocation.to}
+          relocation={relocation}
+          busy={busy}
+          onConfirm={(choice) => void confirm(relocation, choice)}
+        />
       ))}
       {running && !minimized && (
         <section className="k-task" aria-label={t("progress.label")}>

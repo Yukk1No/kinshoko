@@ -142,10 +142,9 @@
   font-weight: 600;
   color: var(--ink-2);
 }
-.insp-hint {
+.workspace-sources > .k-description {
   margin: 6px 0 0;
-  color: var(--ink-2);
-  font-size: 12px;
+  line-height: inherit;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -239,12 +238,12 @@
   font-size: 12px;
   color: var(--ink-2);
 }
-.inspector .selection-note {
+.inspector .selection-note-field {
   display: flex;
   flex-direction: column;
   gap: 0;
 }
-.inspector .selection-note textarea {
+.inspector .selection-note-field textarea {
   min-height: 60px;
   padding: 8px 10px;
   border: 0;
@@ -257,15 +256,15 @@
   resize: vertical;
   transition: box-shadow var(--t) var(--ease);
 }
-.inspector .selection-note textarea:hover:not(:focus) {
+.inspector .selection-note-field textarea:hover:not(:focus) {
   box-shadow: var(--well-inset-hover);
 }
 /* 输入类控件获得焦点时不画焦点环（#606），同 .k-input。 */
-.inspector .selection-note textarea:focus {
+.inspector .selection-note-field textarea:focus {
   outline: 0;
   box-shadow: var(--well-focus);
 }
-.inspector .selection-note + .selection-actions {
+.inspector .selection-note-field + .selection-actions {
   margin-top: 8px;
 }
 /* 属性表（#518）：文件名下面，作者、角色、作品（一级标签）与分级各占一行，四行同级。左列是类别名，宽度取最长的那个；
@@ -494,12 +493,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;
-}
-.create-library-error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 12px;
-  overflow-wrap: anywhere;
 }
 .create-library-foot {
   display: flex;

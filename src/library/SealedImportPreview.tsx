@@ -100,12 +100,12 @@ export function SealedImportPreview({
           </Dialog.Close>
           <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
           {problem ? (
-            <p className="k-set-error" role="alert">
+            <p className="k-error-text is-boxed" role="alert">
               {t("stopped", { problem })}
             </p>
           ) : (
             images.length === 0 && (
-              <p className="k-set-note" role="status">
+              <p className="k-description is-spaced" role="status">
                 {t("loading")}
               </p>
             )

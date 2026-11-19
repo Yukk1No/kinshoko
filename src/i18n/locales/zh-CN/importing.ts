@@ -18,6 +18,7 @@ export default {
     findEagle: "无法查找 Eagle 库：{{error}}",
     confirmEagle: "无法确认 Eagle 库的位置：{{error}}",
     cancel: "无法取消导入：{{error}}",
+    restore: "无法恢复备份：{{error}}",
   },
   /** 上次导入中断或原文件夹里有无法识别的文件。 */
   recovery: {
@@ -28,6 +29,14 @@ export default {
     separator: "；",
     inLibrary: "{{library}}：{{summary}}",
     reimport: "重新导入",
+  },
+  backup: {
+    title: "这是图库备份",
+    hint: "恢复为新图库，不覆盖现有",
+    restore: "恢复…",
+    busy: "正在恢复并核对…",
+    dismiss: "不恢复",
+    restored: "已恢复为新图库：{{libraries}}，可从图库菜单打开",
   },
   relocation: {
     title: "Eagle 库换了位置？",

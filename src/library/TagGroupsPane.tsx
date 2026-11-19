@@ -157,7 +157,7 @@ export function TagGroupsPane({ safe, generation, onBrowse, onError, label: labe
   return (
     <section ref={section} className="sidebar-tag-groups k-groups" aria-label={label} aria-busy={busy || !fresh}>
       {!fresh && (
-        <p className="k-set-note" role="status">
+        <p className="k-description is-spaced" role="status">
           {t("updating")}
         </p>
       )}

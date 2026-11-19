@@ -450,7 +450,7 @@ export function EagleLibrariesDialog({
                     ))}
                   </ul>
                 ) : (
-                  <p className="k-set-note" role="status">
+                  <p className="k-description is-spaced" role="status">
                     {t("none")}
                   </p>
                 )}
