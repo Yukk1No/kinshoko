@@ -2,8 +2,8 @@
 
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
-use std::sync::Arc;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
+use std::sync::{Arc, Mutex};
 
 use tauri::test::{MockRuntime, mock_builder, mock_context, noop_assets};
 
@@ -16,16 +16,18 @@ struct Endpoint {
 }
 
 impl Endpoint {
-    /// `on_download` 在每次开始下载、断开之前调用。
-    fn start(on_download: impl Fn() + Send + 'static) -> Self {
+    /// `on_download` 在每次开始下载、断开之前调用。每个请求单独一个线程，下载途中也能再请求。
+    fn start(on_download: impl Fn() + Send + Sync + 'static) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let url = format!("http://{}", listener.local_addr().unwrap());
         let downloads = Arc::new(AtomicUsize::new(0));
         let (base, count) = (url.clone(), downloads.clone());
+        let on_download = Arc::new(on_download);
         std::thread::spawn(move || {
             for stream in listener.incoming() {
                 let mut stream = stream.unwrap();
-                match request_path(&stream).as_str() {
+                let (base, count, on_download) = (base.clone(), count.clone(), on_download.clone());
+                std::thread::spawn(move || match request_path(&stream).as_str() {
                     "/latest.json" => respond(&mut stream, &latest(&base)),
                     _ => {
                         count.fetch_add(1, Ordering::SeqCst);
@@ -34,7 +36,7 @@ impl Endpoint {
                             b"HTTP/1.1 200 OK\r\nContent-Length: 1048576\r\n\r\npartial",
                         );
                     }
-                }
+                });
             }
         });
         Endpoint { url, downloads }
@@ -156,4 +158,23 @@ fn a_channel_change_during_the_download_drops_the_update() {
         app.state::<UpdaterState>().status(),
         UpdateStatus::Unchecked
     );
+}
+
+#[test]
+fn a_second_install_during_the_download_is_refused() {
+    let app = app();
+    let during = Arc::new(Mutex::new(None));
+    let (installer, seen, first) = (app.clone(), during.clone(), AtomicBool::new(true));
+    let endpoint = Endpoint::start(move || {
+        if first.swap(false, Ordering::SeqCst) {
+            *seen.lock().unwrap() = Some(install(&installer));
+        }
+    });
+    check(&app, &endpoint);
+
+    assert_eq!(install(&app), ErrorKind::UpdateInstallFailed);
+    assert_eq!(*during.lock().unwrap(), Some(ErrorKind::UpdateInstalling));
+    assert_eq!(endpoint.downloads(), 1, "下载途中的第二次安装没有再下载");
+    assert_eq!(install(&app), ErrorKind::UpdateInstallFailed);
+    assert_eq!(endpoint.downloads(), 2, "失败后可以重试");
 }

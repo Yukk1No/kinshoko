@@ -9,7 +9,7 @@ use crate::sync::lock;
 use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use kinshoko_core::{
     ShellSettingsView, UpdateChannel, UpdatePolicy, UpdateProgress, UpdateStatus, offers_update,
@@ -27,6 +27,17 @@ pub struct UpdaterState {
     /// 换通道时加一。检查开始时记下它，结束时不一致就丢掉结果：旧通道的检查不能留下可安装的更新。
     /// 与 `pending` 在同一把锁下比较和改动。
     generation: AtomicU64,
+    /// 有一次安装正在下载。通知和设置页各有安装按钮，同一时间只让一次进到下载。
+    installing: AtomicBool,
+}
+
+/// 持有期间 `installing` 为真；安装失败返回时放开，之后可以重试。
+struct Installing<'a>(&'a AtomicBool);
+
+impl Drop for Installing<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
 }
 
 impl UpdaterState {
@@ -36,6 +47,7 @@ impl UpdaterState {
             status: Mutex::new(status),
             pending: Mutex::new(None),
             generation: AtomicU64::new(0),
+            installing: AtomicBool::new(false),
         }
     }
 
@@ -192,6 +204,13 @@ async fn install_pending<R: Runtime>(
         state.set(policy.initial_status());
         return Err(message);
     }
+    if state.installing.swap(true, Ordering::SeqCst) {
+        return Err(CommandError::new(
+            ErrorKind::UpdateInstalling,
+            "正在下载更新，请等这次完成。",
+        ));
+    }
+    let _installing = Installing(&state.installing);
     // 留在 `pending` 里：下载或安装失败后可以直接重试；期间换了通道，`channel_changed` 会清掉它。
     let Some(update) = lock(&state.pending).clone() else {
         return Err(CommandError::new(
