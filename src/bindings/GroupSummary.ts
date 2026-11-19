@@ -8,7 +8,11 @@ export type GroupSummary = { id: string, name: string, memberCount: number,
 /**
  * 引用到的资料库。
  */
-libraryIds: Array<string>, updatedAt: number, 
+libraryIds: Array<string>, 
+/**
+ * 新建时间（#588：“最近”按它排）。读不懂的文件为 0。
+ */
+createdAt: number, updatedAt: number, 
 /**
  * 这个文件读不懂时的原因；能打开时为 `None`。
  */

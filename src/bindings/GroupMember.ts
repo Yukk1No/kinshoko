@@ -30,4 +30,14 @@ opacity?: number,
 /**
  * 锁定后不响应拖动与缩放。不锁定时不写出；参考组包不带它。
  */
-locked?: boolean, } & ({ libraryId: string, imageId: string, } | { captureFile: string, });
+locked?: boolean, 
+/**
+ * 钉着（#588 决定 3）：参考组摆在桌面上时有一张钉图显示它。关掉钉图只标成没钉着，不移出。
+ * 钉着时不写出，旧文件因此不变；旧参考组的成员都算钉着。
+ */
+pinned?: boolean, 
+/**
+ * 加进参考组的时间（毫秒），侧栏按它的日期分段（#588“按天分段”）。没有时不写出，
+ * 按参考组的 `created_at` 算（[`super::ReferenceGroup::added_at`]）。
+ */
+addedAt?: number, } & ({ libraryId: string, imageId: string, } | { captureFile: string, });

@@ -55,6 +55,12 @@ impl TestDesk {
         self.desk
             .pin(reference_pin(id, x), &mut self.history)
             .unwrap()
+            .pin
+    }
+
+    /// 桌面上参考组的身份；桌面空着时失败。
+    pub fn desk_id(&self) -> String {
+        self.desk.group().expect("桌面上有参考组").id.clone()
     }
 
     /// 截一张图并钉上。
@@ -63,6 +69,7 @@ impl TestDesk {
         self.desk
             .pin(capture_pin(id, &entry.id), &mut self.history)
             .unwrap()
+            .pin
     }
 
     /// 参考组目录下这个参考组自带截图的文件。
