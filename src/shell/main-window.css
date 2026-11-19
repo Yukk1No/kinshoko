@@ -162,7 +162,8 @@
   font-variant-numeric: tabular-nums;
   opacity: 1;
 }
-/* 选中的一行（#606 C4e）：凸起的小纸片画在 ::before 上；名字是墨色，强调色只留在图标与张数上。 */
+/* 选中的一行（甲 指示条）：平的 --hover 底画在 ::before 上，左边一根 3 × 14 的强调色短条画在 ::after 上；
+   名字墨色，图标强调色，张数不变。换一行时短条从旧的一行滑过来（useIndicatorSlide）。 */
 .k-row[aria-current="page"],
 .lib-head-name[aria-current="page"] {
   isolation: isolate;
@@ -177,34 +178,33 @@
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background: linear-gradient(var(--sel-tint), var(--sel-tint)), var(--btn-face);
-  box-shadow: var(--sel-lift);
+  background: var(--hover);
 }
-.k-row[aria-current="page"] .k-row-icon,
-.k-row[aria-current="page"] .sidebar-count,
-.lib-head-name[aria-current="page"] .sidebar-count {
+.k-row[aria-current="page"]::after,
+.lib-head-name[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.k-row[aria-current="page"] .k-row-icon {
   color: var(--accent-strong);
-  font-weight: 500;
 }
-/* 按下缩一点，松开弹回。 */
-.sidebar-slot :is(.k-row, .lib-head-name) {
-  transition: transform var(--t-fast) var(--spring);
+/* 按下：底色深一档，不缩。没选中的行按下时深的是悬停滑块。 */
+.sidebar-slot :is(.k-row, .lib-head-name)[aria-current="page"]:active:not(:disabled)::before,
+.sidebar-slot .lib-head-name:active:not(:disabled, [aria-current="page"]) {
+  background: var(--row-press);
 }
-.sidebar-slot :is(.k-row, .lib-head-name):active:not(:disabled) {
-  transform: scale(0.985);
+.sidebar-slot .k-fluid:has(.k-row:active:not(:disabled, [aria-current="page"])) > .k-fluid-pill {
+  background: var(--row-press);
 }
-/* 文件夹图标：牛皮纸的金底（--manual-soft），日间下面半像素投影；选中的是强调色的淡底。 */
+/* 文件夹图标：只有线框。 */
 .sidebar-slot .k-row-icon :is(.lucide-folder, .lucide-folder-open) {
-  fill: var(--manual-soft);
   stroke-width: 1.75;
-  filter: drop-shadow(0 0.5px 0.5px light-dark(rgba(43, 39, 71, 0.22), transparent));
-}
-.sidebar-slot .k-row[aria-current="page"] .k-row-icon :is(.lucide-folder, .lucide-folder-open) {
-  fill: light-dark(
-    color-mix(in srgb, var(--accent) 32%, transparent),
-    color-mix(in srgb, var(--accent) 24%, transparent)
-  );
-  filter: none;
 }
 .k-row:disabled {
   opacity: var(--disabled-opacity);
@@ -341,7 +341,6 @@
 }
 .lib-head-name:hover:not(:disabled, [aria-current="page"]) {
   background: var(--hover);
-  box-shadow: var(--row-edge);
 }
 .lib-head-name:disabled {
   opacity: 1;
@@ -460,7 +459,7 @@
     height var(--t) var(--ease),
     opacity var(--t-fast) var(--ease);
 }
-/* 子文件夹的层级（#608）：每深一层整行（纸片、悬停的底一起）缩进 16 px，文字左内边距不变。 */
+/* 子文件夹的层级（#608）：每深一层整行（选中的底与短条、悬停的底一起）缩进 16 px，文字左内边距不变。 */
 .sidebar-tree > li > .k-fluid-row,
 .sidebar-tree > li > .k-input {
   margin-left: calc(var(--depth, 0) * 16px);
@@ -515,14 +514,17 @@
   stroke-width: 1.75;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0.5px 0.5px light-dark(rgba(43, 39, 71, 0.22), transparent));
   transition: scale var(--t-fast) var(--spring);
 }
-.k-fold-icon :is(.back, .flap) {
-  fill: var(--manual-soft);
-  transition:
-    d var(--t-slow) var(--spring),
-    fill var(--t);
+.k-fold-icon .flap {
+  transition: d var(--t-slow) var(--spring);
+}
+/* 后面的夹子被前面一页挡住的线由遮罩挖掉（FoldIcon），图标不填色，放在任何底上都一样。
+   遮罩里的那一页与前面一页同一个类，跟着它一起变形。 */
+.k-fold-icon mask .flap {
+  fill: black;
+  stroke: black;
+  stroke-width: 1.75;
 }
 /* 合上时前面那一页是整面；指针停在图标上时先变成点下去之后的样子。 */
 li[data-folded] > .k-fluid-row .k-fold-icon .flap,
@@ -541,32 +543,13 @@ li[data-folded] > .k-fluid-row .k-fold:hover .k-fold-icon .flap {
 .k-fold:active .k-fold-icon {
   scale: 0.92;
 }
-/* 选中的文件夹：后面的夹子是强调色淡底，前面一页更亮，线框是强调色。 */
-.k-row[aria-current="page"] .k-fold-icon {
-  filter: none;
-}
-.k-row[aria-current="page"] .k-fold-icon .back {
-  fill: light-dark(
-    color-mix(in srgb, var(--accent) 32%, transparent),
-    color-mix(in srgb, var(--accent) 24%, transparent)
-  );
-}
-/* 选中的在哪一支：沿路各层的线框强调色 45% 混 --ink-3，后面带一点强调色，前面一页同选中的那一行；折起时也一样。 */
+/* 选中的在哪一支：沿路各层的线框是强调色 45% 混 --ink-3；折起时也一样。 */
 li[data-branch] > .k-fluid-row .k-row-icon {
   color: color-mix(in srgb, var(--accent-strong) 45%, var(--ink-3));
 }
-li[data-branch] > .k-fluid-row .k-fold-icon .back {
-  fill: light-dark(
-    color-mix(in srgb, var(--accent) 16%, var(--manual-soft)),
-    color-mix(in srgb, var(--accent) 18%, transparent)
-  );
-}
-:is(li[data-branch] > .k-fluid-row, .k-row[aria-current="page"]) .k-fold-icon .flap {
-  fill: light-dark(var(--surface), color-mix(in srgb, var(--accent) 40%, transparent));
-}
 @media (prefers-reduced-motion: reduce) {
   .k-fold-icon .flap {
-    transition: fill var(--t);
+    transition: none;
   }
   li:not([data-folded]) > .k-fluid-row .k-fold:hover .k-fold-icon .flap {
     d: path("M6.6 11 L22.4 11 L19.8 20 L4 20 Z");

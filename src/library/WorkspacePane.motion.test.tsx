@@ -1,4 +1,4 @@
-// 左栏的动画（#608）：图库托盘展开、收起；选中的纸片在整个左栏里滑动。
+// 左栏的动画（#608）：图库托盘展开、收起；选中行的短条在整个左栏里滑动。
 import { act, fireEvent, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { animations, setMedia } from "../test/platform";
@@ -34,11 +34,11 @@ it("减少动态效果时收起直接拿掉", async () => {
   expect(tray("A")).toBeNull();
 });
 
-it("从“全部图片”点到某个图库里的文件夹，纸片滑过去（隔着图库也滑）", async () => {
+it("从“全部图片”点到某个图库里的文件夹，短条滑过去（隔着图库也滑）", async () => {
   const view = await loaded();
   view.rerender(<WorkspacePane {...props} scope={inA({ kind: "unassigned" })} />);
   const row = within(section("A")).getByRole("button", { name: /人物（/ });
   view.rerender(<WorkspacePane {...props} scope={inA({ kind: "folder", id: "A-root" })} />);
-  const slides = animations(row).filter((a) => a.effect.getTiming().pseudoElement === "::before");
+  const slides = animations(row).filter((a) => a.effect.getTiming().pseudoElement === "::after");
   expect(slides).toHaveLength(1);
 });

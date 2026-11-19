@@ -379,7 +379,6 @@
   right: 0;
   border-radius: var(--r-s);
   background: var(--hover);
-  box-shadow: var(--row-edge);
   pointer-events: none;
 }
 .k-fluid-row {

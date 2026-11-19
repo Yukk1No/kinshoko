@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
-import { usePaperSlide } from "./usePaperSlide";
+import { useIndicatorSlide } from "./useIndicatorSlide";
 import { Name } from "../ui/Name";
 import { Images, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -234,7 +234,7 @@ export function WorkspacePane({
   });
 
   const paneRef = useRef<HTMLElement>(null);
-  usePaperSlide(paneRef);
+  useIndicatorSlide(paneRef);
   return (
     <nav ref={paneRef} className="workspace-scope side-bands" aria-label={t("scope.label")}>
       <div className="workspace-current-scope sr-only" role="status">

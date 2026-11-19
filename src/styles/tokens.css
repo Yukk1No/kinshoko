@@ -118,19 +118,8 @@
     0 1px 2px light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.45)),
     0 6px 16px -6px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.4));
   --sheet-top: inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.09));
-  /* 左栏的行（#606）：悬停滑块的半像素边；选中的一行是凸起的小纸片，面上铺一层很淡的强调色。 */
-  --row-edge: inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.14), rgba(244, 236, 220, 0.14));
-  --sel-tint: light-dark(
-    color-mix(in srgb, var(--accent) 6%, transparent),
-    color-mix(in srgb, var(--accent) 3%, transparent)
-  );
-  --sel-lift:
-    0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.16), rgba(0, 0, 0, 0.6)),
-    0 1px 0 light-dark(rgba(43, 39, 71, 0.06), rgba(0, 0, 0, 0.3)),
-    0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.35)),
-    0 8px 14px -8px light-dark(rgba(43, 39, 71, 0.24), rgba(0, 0, 0, 0.6)),
-    inset 0 1px 0 light-dark(#ffffff, rgba(244, 236, 220, 0.12)),
-    inset 0 -1px 0 light-dark(rgba(43, 39, 71, 0.035), rgba(0, 0, 0, 0.18));
+  /* 左栏的行（#635 甲 指示条）：悬停与选中都是平的 --hover 底，按下深一档。 */
+  --row-press: light-dark(rgba(43, 39, 71, 0.11), rgba(244, 236, 220, 0.11));
   /* 子文件夹的折痕（#608）：每深一层，子文件夹那一块的左边一道纸边（一线暗、一线亮），往右 36 px 渐渐淡掉。 */
   --crease: linear-gradient(to right, light-dark(rgba(43, 39, 71, 0.045), rgba(0, 0, 0, 0.22)), transparent 36px);
   --crease-edge:
