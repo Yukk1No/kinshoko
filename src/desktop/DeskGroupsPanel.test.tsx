@@ -235,7 +235,7 @@ describe("参考组面板（桌面上的参考组）", () => {
     const shown = screen.getByRole("group", { name: "头发 的成员" });
     const tiles = within(shown).getAllByRole("listitem");
     expect(tiles.map((li) => li.classList.contains("is-unpinned"))).toEqual([false, true]);
-    fireEvent.click(within(shown).getByRole("button", { name: "钉回主库" }));
+    fireEvent.click(within(shown).getByRole("button", { name: "钉住主库" }));
     await flush();
     expect(ipc.repin).toHaveBeenCalledWith("m1");
   });
@@ -290,7 +290,7 @@ describe("参考组面板：移到新参考组", () => {
 });
 
 describe("参考组面板的“更多”", () => {
-  it("桌面上那组：改名、设为常用、复制、移出没钉着的、导出、删除", async () => {
+  it("桌面上那组：改名、设为常用、复制、只留钉住的、导出、删除", async () => {
     await show(lists({ recent: [hair] }));
     fireEvent.click(screen.getByRole("button", { name: "头发 的更多操作" }));
     const items = await screen.findAllByRole("menuitem");
@@ -298,7 +298,7 @@ describe("参考组面板的“更多”", () => {
       "重命名",
       "设为常用",
       "复制",
-      "移出没钉着的",
+      "只留钉住的",
       "导出参考组包",
       "删除",
     ]);
@@ -312,7 +312,7 @@ describe("参考组面板的“更多”", () => {
       "重命名",
       "设为常用",
       "复制",
-      "移出没钉着的",
+      "只留钉住的",
       "导出参考组包",
       "删除",
     ]);
@@ -332,9 +332,9 @@ describe("参考组面板的“更多”", () => {
     expect(ipc.duplicate).toHaveBeenCalledWith("g1", "头发 副本");
   });
 
-  it("移出没钉着的：提示移出了几张，能撤销", async () => {
+  it("只留钉住的：提示移出了几张，能撤销", async () => {
     await show(lists({ recent: [hair] }));
-    await more("头发", "移出没钉着的");
+    await more("头发", "只留钉住的");
     expect(ipc.prune).toHaveBeenCalled();
     expect(await screen.findByText("已移出 1 张")).toBeTruthy();
     await act(async () => {
