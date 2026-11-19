@@ -191,7 +191,7 @@ describe("英文界面：桌面", () => {
 
     // 桌面上那组展开着成员（#592）。
     expect(screen.getByRole("group", { name: /members/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^Recents*d+$/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Recent\s*\d+$/ })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /More actions/ }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
