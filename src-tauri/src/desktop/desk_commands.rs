@@ -1,6 +1,9 @@
-//! 参考组改成桌面（#588、#591）的命令：切换列表与归档、切换、新建、归档、取出。删除与撤销沿用
-//! [`super::group_trash`] 的命令，开关打开时那边改走桌面上的参考组。规则都在
-//! `kinshoko_core::reference_groups::Desk`，这里只接窗口。
+//! 参考组改成桌面（#588、#591）的命令，与 `kinshoko_core::reference_groups::Desk` 的操作一一对应：
+//! 侧栏三段（常用、最近、更早）、切换、清空桌面（“新建”）、钉回、移出没钉着的、设为常用、
+//! 加进上一组、移到新参考组，以及后三者的撤销。删除与撤销沿用 [`super::group_trash`] 的命令，
+//! 改名沿用 [`super::groups`] 的，开关打开时那边改走桌面上的参考组。规则都在 core，这里只接窗口。
+//!
+//! 桌面可以空着（没有参考组）：钉下的第一张开一个新参考组，推送 [`STARTED_EVENT`]。
 //!
 //! 开关（设置里界面上没有的 `deskReferenceGroups`）关着时，这些命令报错、什么都不改。
 //!
@@ -14,11 +17,21 @@ use std::sync::Mutex;
 use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::desktop::SavedPin;
-use kinshoko_core::reference_groups::{Desk, DeskLists, GroupError, Switched};
-use tauri::AppHandle;
+use kinshoko_core::reference_groups::{Desk, DeskLists, GroupError, Pruned, Split, Switched};
+use tauri::{AppHandle, Emitter};
 
 use super::groups::{blocking, changed};
 use super::{history_changed, lock, menu, pins, state};
+
+/// 空桌上钉下第一张、开了新参考组，而且有上一组时推送；载荷是上一组的 id，界面据此提示
+/// “加进「上一组」”（[`fold_into_previous`]）。
+pub const STARTED_EVENT: &str = "desk-group-started";
+
+/// 最近一次“移出没钉着的”，撤销用（[`undo_prune_unpinned`]）。里面有自带截图的字节，不发给界面。
+static LAST_PRUNED: Mutex<Option<Pruned>> = Mutex::new(None);
+
+/// 最近一次“移到新参考组”，撤销用（[`undo_split_off`]）。
+static LAST_SPLIT: Mutex<Option<Split>> = Mutex::new(None);
 
 /// 同一时刻只有一次在对齐钉图窗口。不在 `DesktopState` 里：持有它时要调用窗口 API。
 static ALIGNING: Mutex<()> = Mutex::new(());
@@ -42,6 +55,14 @@ pub(super) fn with_desk<T>(
     let desk = store.desk().ok_or_else(flag_off)?;
     let mut history = lock(&state(app).history);
     f(desk, &mut history).map_err(CommandError::from)
+}
+
+/// 空桌上开了新参考组（[`super::pins::add`] 调用，不持有锁）：列表变了；有上一组时推送 [`STARTED_EVENT`]。
+pub(in crate::desktop) fn started(app: &AppHandle, fold_into: Option<String>) {
+    if let Some(previous) = fold_into {
+        let _ = app.emit(STARTED_EVENT, previous);
+    }
+    changed(app);
 }
 
 /// 开关打开着。
@@ -87,7 +108,7 @@ fn align(app: &AppHandle) {
     }
 }
 
-/// 切换列表（最近用过的在前）与归档（最近保存的在前）。
+/// 侧栏的三段：常用（按画师设的先后）、最近（新建的在前）、更早（没设常用又一个月没用过的）。
 #[tauri::command]
 pub async fn desk_reference_groups(app: AppHandle) -> Result<DeskLists, CommandError> {
     blocking(move || with_desk(&app, |desk, _| desk.lists())).await
@@ -104,7 +125,7 @@ pub async fn switch_reference_group(app: AppHandle, group_id: String) -> Result<
     .await
 }
 
-/// 换到一张新的空桌（不起名、不落盘）。
+/// 清空桌面（“新建”）：原来那一组原样留着，之后钉下的第一张开一个新参考组。
 #[tauri::command]
 pub async fn new_reference_desk(app: AppHandle) -> Result<(), CommandError> {
     blocking(move || {
@@ -115,27 +136,138 @@ pub async fn new_reference_desk(app: AppHandle) -> Result<(), CommandError> {
     .await
 }
 
-/// 把参考组收出切换列表。收的正是桌面上那个时，桌面换到最近用过的另一个，没有就换到空桌。
+/// 钉回桌面上参考组里没钉着的成员 `member_id`，在它原来的位置。已经钉着时什么都不做。
 #[tauri::command]
-pub async fn archive_reference_group(app: AppHandle, group_id: String) -> Result<(), CommandError> {
+pub async fn repin_group_member(app: AppHandle, member_id: String) -> Result<(), CommandError> {
     blocking(move || {
-        let switched = with_desk(&app, |desk, history| desk.archive(&group_id, history))?;
-        apply(&app, switched);
+        let repinned = with_desk(&app, |desk, history| desk.repin(&member_id, history))?;
+        if repinned.is_some() {
+            mark_dirty(&app);
+            apply(&app, None);
+        }
         Ok(())
     })
     .await
 }
 
-/// 从归档取出：放回切换列表并摆到桌面上，改的是原件。
+/// 移出桌面上参考组里没钉着的成员，返回移出了几个（0 时什么都没做）。撤销用
+/// [`undo_prune_unpinned`]，只撤销最近一次。
 #[tauri::command]
-pub async fn unarchive_reference_group(
+pub async fn prune_unpinned_members(app: AppHandle) -> Result<usize, CommandError> {
+    blocking(move || {
+        let pruned = with_desk(&app, |desk, _| desk.prune_unpinned())?;
+        let count = pruned.as_ref().map_or(0, Pruned::count);
+        if pruned.is_some() {
+            *LAST_PRUNED.lock().unwrap_or_else(|e| e.into_inner()) = pruned;
+            changed(&app);
+        }
+        Ok(count)
+    })
+    .await
+}
+
+/// 撤销最近一次“移出没钉着的”。没有可撤销的时什么都不做。
+#[tauri::command]
+pub async fn undo_prune_unpinned(app: AppHandle) -> Result<(), CommandError> {
+    blocking(move || {
+        let Some(pruned) = LAST_PRUNED.lock().unwrap_or_else(|e| e.into_inner()).take() else {
+            return Ok(());
+        };
+        with_desk(&app, |desk, _| desk.undo_prune(&pruned))?;
+        changed(&app);
+        Ok(())
+    })
+    .await
+}
+
+/// 设为常用（排在常用的最后）或取消常用。
+#[tauri::command]
+pub async fn set_reference_group_favorite(
     app: AppHandle,
     group_id: String,
+    favorite: bool,
 ) -> Result<(), CommandError> {
     blocking(move || {
-        let switched = with_desk(&app, |desk, history| desk.unarchive(&group_id, history))?;
+        with_desk(&app, |desk, _| desk.set_favorite(&group_id, favorite))?;
+        changed(&app);
+        Ok(())
+    })
+    .await
+}
+
+/// 加进上一组：桌面上参考组的成员连同自带截图移进 `target_id`，删掉桌面上那个，把 `target_id`
+/// 摆上桌面。
+#[tauri::command]
+pub async fn fold_into_previous(app: AppHandle, target_id: String) -> Result<(), CommandError> {
+    blocking(move || {
+        let switched = with_desk(&app, |desk, history| {
+            desk.fold_into_previous(&target_id, history)
+        })?;
         apply(&app, Some(switched));
         Ok(())
     })
     .await
+}
+
+/// 移到新参考组：桌面上参考组里在本地日期 `day`（`YYYY-MM-DD`）添加的成员移到一个新参考组，
+/// 新参考组摆上桌面，原来那组原样留着（#595）。返回新参考组的 id；这一段为空或就是全部成员时为
+/// `None`。撤销用 [`undo_split_off`]，只撤销最近一次。
+#[tauri::command]
+pub async fn split_off_reference_group(
+    app: AppHandle,
+    day: String,
+) -> Result<Option<String>, CommandError> {
+    blocking(move || {
+        let added = local_day(&day)?;
+        let moved = with_desk(&app, |desk, history| {
+            let Some(split) = desk.split_off(added, history)? else {
+                return Ok(None);
+            };
+            let switched = desk.switch_to(&split.to, history)?;
+            Ok(Some((split, switched)))
+        })?;
+        let Some((split, switched)) = moved else {
+            return Ok(None);
+        };
+        let to = split.to.clone();
+        *LAST_SPLIT.lock().unwrap_or_else(|e| e.into_inner()) = Some(split);
+        apply(&app, Some(switched));
+        Ok(Some(to))
+    })
+    .await
+}
+
+/// 撤销最近一次“移到新参考组”。没有可撤销的时什么都不做。
+#[tauri::command]
+pub async fn undo_split_off(app: AppHandle) -> Result<(), CommandError> {
+    blocking(move || {
+        let Some(split) = LAST_SPLIT.lock().unwrap_or_else(|e| e.into_inner()).take() else {
+            return Ok(());
+        };
+        let switched = with_desk(&app, |desk, history| desk.undo_split(&split, history))?;
+        apply(&app, Some(switched));
+        Ok(())
+    })
+    .await
+}
+
+/// 有改动要落盘（[`super::edge`] 的后台线程写回）。
+fn mark_dirty(app: &AppHandle) {
+    state(app)
+        .dirty
+        .store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// 本地日期 `day`（`YYYY-MM-DD`）这一天的范围（毫秒，左闭右开）。
+fn local_day(day: &str) -> Result<std::ops::Range<i64>, CommandError> {
+    // 不上界面：界面传来的日期读不懂是程序错误，按系统错误报，界面只显示通用的出错文字。
+    let bad = |e: jiff::Error| CommandError::system(format!("日期读不懂：{e}"));
+    let date: jiff::civil::Date = day.parse().map_err(bad)?;
+    let tz = jiff::tz::TimeZone::system();
+    let start = date.to_zoned_datetime(tz.clone()).map_err(bad)?;
+    let end = date
+        .tomorrow()
+        .and_then(|d| d.to_zoned_datetime(tz))
+        .map_err(bad)?;
+    Ok(start.timestamp().as_millisecond()..end.timestamp().as_millisecond())
 }
