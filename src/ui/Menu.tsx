@@ -41,11 +41,11 @@ const newController = () => {
 
 /**
  * 子菜单的位置：与父层重叠 8 px，首行与父层那一行对齐。浮层的描边 1 + 内边距 6；行在父层里离父层右边 7 px，
- * 所以子菜单相对行右边 −1 px 就是与父层重叠 8 px。标题行 20 px（11 px 字、14 px 行高、上 4 下 2）加行距 4。
+ * 所以子菜单相对行右边 −1 px 就是与父层重叠 8 px。标题行 24 px（12 px 字、18 px 行高、上 4 下 2）加行距 4。
  */
 const SUBMENU_SIDE_OFFSET = -1;
 const LEVEL_INSET = 1 + 6;
-const TITLE_BLOCK = 20 + 4;
+const TITLE_BLOCK = 24 + 4;
 
 const NO_SUBSCRIBE = () => () => {};
 const HOVER = 1,

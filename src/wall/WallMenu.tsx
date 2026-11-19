@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CheckSquare,
@@ -31,6 +31,8 @@ import {
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ContentRating } from "../bindings/ContentRating";
 import type { GroupSummary } from "../bindings/GroupSummary";
+import type { FolderNode } from "../bindings/FolderNode";
+import { Name } from "../ui/Name";
 import type { ImageEdit } from "../bindings/ImageEdit";
 import type { BrowserCard } from "./Wall";
 import { pagesOf } from "./imageSets";
@@ -66,7 +68,7 @@ export type WallMenuActions = {
   clipboardHasImage: () => Promise<boolean>;
   selectAll: () => void;
   setDensity: (value: number) => void;
-  folders: (libraryId: string) => Promise<{ id: string; label: string }[]>;
+  folders: (libraryId: string) => Promise<FolderNode[]>;
   /** 这张图是否直接放在这个文件夹里（不算子文件夹）；“含子文件夹”的范围里据此决定能否“从此文件夹移出”。 */
   inFolder: (card: BrowserCard, folderId: string) => Promise<boolean>;
   groups: () => Promise<GroupSummary[]>;
@@ -128,6 +130,31 @@ function useList<T>(load: () => Promise<T[]>) {
   return state;
 }
 
+/** 同一层菜单里保留文件夹树的顺序与缩进；父文件夹仍可直接选为目的地。 */
+function FolderChoices({
+  folders,
+  onChoose,
+  depth = 0,
+}: {
+  folders: FolderNode[];
+  onChoose: (id: string) => void;
+  depth?: number;
+}) {
+  return folders.map((folder) => (
+    <Fragment key={folder.id}>
+      <MenuItem
+        className="is-folder"
+        icon={<FolderGlyph />}
+        style={{ "--k-folder-depth": depth } as CSSProperties}
+        onClick={() => onChoose(folder.id)}
+      >
+        <Name>{folder.name}</Name>
+      </MenuItem>
+      <FolderChoices folders={folder.children} depth={depth + 1} onChoose={onChoose} />
+    </Fragment>
+  ));
+}
+
 function FolderList({
   libraryId,
   actions,
@@ -143,13 +170,10 @@ function FolderList({
   if (problem) return <MenuTip>{problem}</MenuTip>;
   if (!items.length) return <MenuTip>{t("menu.noFolders")}</MenuTip>;
   return (
-    <>
-      {items.map((f) => (
-        <MenuItem key={f.id} onClick={() => actions.edit(cards, [{ kind: "addToFolder", folderId: f.id }], false)}>
-          {f.label}
-        </MenuItem>
-      ))}
-    </>
+    <FolderChoices
+      folders={items}
+      onChoose={(folderId) => actions.edit(cards, [{ kind: "addToFolder", folderId }], false)}
+    />
   );
 }
 

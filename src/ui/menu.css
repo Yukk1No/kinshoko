@@ -48,7 +48,7 @@
   transition: opacity var(--menu-fade) ease-in;
 }
 .k-menu-title {
-  padding: 4px 8px 2px;
+  padding: 4px 8px 2px 34px;
   user-select: none;
   overflow-wrap: anywhere;
   transition: color var(--menu-theme-fade);
@@ -66,6 +66,12 @@
 [data-k-level] .k-item.is-danger,
 [data-k-level] .k-item.is-danger .k-item-ind {
   color: var(--danger);
+}
+[data-k-level] .k-item.is-folder {
+  padding-inline-start: calc(8px + var(--k-folder-depth) * 16px);
+}
+[data-k-level] .k-item.is-folder .k-name {
+  display: block;
 }
 /* highlight comes from cascade state, not :hover and not Base UI's pointer-following data-highlighted:
    rows the pointer crosses inside the safe zone stay dark */

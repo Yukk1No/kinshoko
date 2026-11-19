@@ -37,7 +37,7 @@ function actions(): WallMenuActions {
     reveal: vi.fn(),
     importClipboard: vi.fn(),
     clipboardHasImage: vi.fn(async () => true),
-    folders: vi.fn(async () => [{ id: "f1", label: "人物" }]),
+    folders: vi.fn(async () => [{ id: "f1", name: "人物", count: 0, children: [] }]),
     inFolder: vi.fn(async () => false),
     groups: vi.fn(async () => [
       { id: "g1", name: "光影", memberCount: 1, libraryIds: ["L1"], updatedAt: 0, problem: null },
@@ -222,6 +222,38 @@ it("子菜单：移到文件夹列出图库的文件夹，内容分级写入分�
   fireEvent.click(await screen.findByRole("menuitem", { name: "人物" }));
   expect(a.folders).toHaveBeenCalledWith("L1");
   expect(a.edit).toHaveBeenCalledWith([one], [{ kind: "addToFolder", folderId: "f1" }], false);
+});
+
+it("文件夹目的地保留真实层级、文件夹图标与完整名称，选择子文件夹仍写入它的 id", async () => {
+  const one = card("1");
+  const a = actions();
+  a.folders = vi.fn(async () => [
+    {
+      id: "mountains",
+      name: "山川",
+      count: 0,
+      children: [{ id: "peaks", name: "雪峰", count: 0, children: [] }],
+    },
+    { id: "forest", name: "林间", count: 0, children: [] },
+  ]);
+  show({ kind: "cards", cards: [one], point }, { kind: "all" }, a);
+  const trigger = screen.getByRole("menuitem", { name: "移到文件夹" });
+  await waitFor(() => expect(trigger.getAttribute("aria-expanded")).toBe("false"));
+  fireEvent.click(trigger);
+  const parent = await screen.findByRole("menuitem", { name: "山川" });
+  const child = screen.getByRole("menuitem", { name: "雪峰" });
+  const sibling = screen.getByRole("menuitem", { name: "林间" });
+  for (const [row, depth] of [
+    [parent, "0"],
+    [child, "1"],
+    [sibling, "0"],
+  ] as const) {
+    expect(row.style.getPropertyValue("--k-folder-depth")).toBe(depth);
+    expect(row.querySelector(".k-item-ind > svg.k-folder")).toBeTruthy();
+    expect(row.querySelector(".k-name")).toBeTruthy();
+  }
+  fireEvent.click(child);
+  expect(a.edit).toHaveBeenCalledWith([one], [{ kind: "addToFolder", folderId: "peaks" }], false);
 });
 
 it("子菜单：内容分级与加入参考组", async () => {
