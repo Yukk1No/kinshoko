@@ -24,5 +24,5 @@ pub(crate) use target::layout_containing;
 pub use target::{
     BackupError, BackupEstimate, BackupProgress, BackupReport, BackupSources, BackupTarget,
     CheckPart, RestoreReport, RestoredGroup, RestoredLibrary, RoundTripCheck, SkippedLibrary,
-    SnapshotSummary, target_of,
+    SnapshotSummary, is_whole_backup, target_of,
 };

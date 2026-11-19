@@ -91,6 +91,17 @@ fn a_backup_folder_chosen_for_import_restores_its_latest_snapshot_with_folders()
     }
     assert_eq!(target_of(&picture), None);
     assert_eq!(target_of(device.dir.path()), None);
+    let mixed = drive.join("移动盘里的图.png");
+    std::fs::copy(&picture, &mixed).unwrap();
+    assert!(
+        ImportSource {
+            paths: vec![drive.clone()]
+        }
+        .backups()
+        .is_empty(),
+        "备份目标里还有别的图时整个文件夹照常导入，导入时跳过其中的备份"
+    );
+    std::fs::remove_file(&mixed).unwrap();
 
     let found = BackupTarget::new(&target_of(&layout.join("originals")).unwrap());
     let latest = found.latest_snapshot().unwrap();

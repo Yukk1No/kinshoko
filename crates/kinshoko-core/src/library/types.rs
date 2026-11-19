@@ -106,12 +106,12 @@ impl ImportSource {
         super::import::contains_eagle(self)
     }
 
-    /// 只读找出选中的路径里哪些是 Kinshoko 备份（备份目标、`kinshoko-backup/` 或其中的位置），
+    /// 只读找出选中的路径里哪些整个就是 Kinshoko 备份（见 [`crate::backup::is_whole_backup`]），
     /// 原样返回这些路径。它们要经恢复还原成新资料库，当散图导入会丢掉文件夹与整理信息。
     pub fn backups(&self) -> Vec<PathBuf> {
         self.paths
             .iter()
-            .filter(|path| crate::backup::target_of(path).is_some())
+            .filter(|path| crate::backup::is_whole_backup(path))
             .cloned()
             .collect()
     }

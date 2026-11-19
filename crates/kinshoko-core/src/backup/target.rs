@@ -58,6 +58,21 @@ pub fn target_of(path: &Path) -> Option<PathBuf> {
     }
 }
 
+/// 选中的 `path` 整个就是备份：在 `kinshoko-backup/` 里，或是除它以外只有隐藏文件的备份目标。
+/// 备份目标里还有别的内容时不算，那些内容照常导入，导入时跳过其中的备份。
+pub fn is_whole_backup(path: &Path) -> bool {
+    if layout_containing(path).is_some() {
+        return true;
+    }
+    is_layout(&path.join(ROOT))
+        && fs::read_dir(path).is_ok_and(|entries| {
+            entries.flatten().all(|entry| {
+                let name = entry.file_name();
+                name == ROOT || name.to_string_lossy().starts_with('.')
+            })
+        })
+}
+
 fn is_layout(dir: &Path) -> bool {
     dir.file_name().is_some_and(|name| name == ROOT) && dir.join(SNAPSHOTS).is_dir()
 }
