@@ -201,6 +201,60 @@ it.each(["p0", "p1"])(
   },
 );
 
+it.each([false, true])("overlapping page removals preserve both rollbacks, reversed: %s", async (reverse) => {
+  const pages = ["p0", "p1", "p2"].map(card);
+  const stack = { ...pages[0], set: { key: "pixiv:9", pages } };
+  fakeBackend({
+    workspace_browse: {
+      cards: [stack],
+      total: 1,
+      images: 3,
+      nextCursor: null,
+      status: { revision: "r", libraries: [] },
+    } satisfies WorkspacePage,
+  });
+  const ref = createRef<WallHandle>();
+  const onCardsChange = vi.fn();
+  const onTotalChange = vi.fn();
+  render(
+    <Wall
+      ref={ref}
+      scope={{ kind: "all" }}
+      workspaceScope={{ kind: "all" }}
+      selected={new Set()}
+      onSelectionChange={() => {}}
+      onOpenImage={() => {}}
+      viewerOpen={false}
+      reloadKey={0}
+      stackSets
+      onCardsChange={onCardsChange}
+      onTotalChange={onTotalChange}
+    />,
+  );
+  await settle();
+  let first!: (failed: string[]) => void;
+  let second!: (failed: string[]) => void;
+  act(() => {
+    first = ref.current!.remove(["p0"]);
+  });
+  act(() => {
+    second = ref.current!.remove(["p1"]);
+  });
+  expect(onCardsChange.mock.lastCall![0]).toEqual([pages[2]]);
+  expect(onTotalChange).toHaveBeenLastCalledWith(1);
+  if (reverse) {
+    act(() => second(["p1"]));
+    act(() => first(["p0"]));
+  } else {
+    act(() => first(["p0"]));
+    act(() => second(["p1"]));
+  }
+  expect(onCardsChange.mock.lastCall![0]).toEqual([stack]);
+  expect(onTotalChange).toHaveBeenLastCalledWith(3);
+  expect(total()).toBe("1");
+  expect(shown()).toEqual(["p0"]);
+});
+
 it("先移走卡片，不等重新浏览；放回的那部分回到原位（#290）", async () => {
   const ref = createRef<WallHandle>();
   render(

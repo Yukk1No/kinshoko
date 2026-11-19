@@ -95,8 +95,18 @@ export function useWallHandle({
               currentCards.get(card.set?.key ?? card.id) ??
               card.set?.pages.map((page) => currentCards.get(page.id)).find((item) => item !== undefined);
             if (card.set) {
-              const present = new Set(current ? pagesOf([current]).map((page) => page.id) : []);
-              const pages = card.set.pages.filter((page) => restored.has(page.id) || present.has(page.id));
+              const present = current ? pagesOf([current]) : [];
+              const order = new Map(card.set.pages.map((page, index) => [page.id, index]));
+              const missing = card.set.pages.filter((page) => restored.has(page.id));
+              const pages: typeof present = [];
+              let i = 0;
+              for (const page of present) {
+                const at = order.get(page.id);
+                if (at !== undefined)
+                  while (i < missing.length && order.get(missing[i].id)! < at) pages.push(missing[i++]);
+                pages.push(page);
+              }
+              pages.push(...missing.slice(i));
               const replacement = pages.length === 1 ? pages[0] : { ...pages[0], set: { ...card.set, pages } };
               if (current) replacements.set(current.id, replacement);
               else back.push(replacement);
