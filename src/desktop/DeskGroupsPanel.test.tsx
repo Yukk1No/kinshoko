@@ -293,28 +293,14 @@ describe("参考组面板的“更多”", () => {
     await show(lists({ recent: [hair] }));
     fireEvent.click(screen.getByRole("button", { name: "头发 的更多操作" }));
     const items = await screen.findAllByRole("menuitem");
-    expect(items.map((i) => i.textContent)).toEqual([
-      "重命名",
-      "收藏",
-      "复制",
-      "移出已关闭",
-      "导出参考组包",
-      "删除",
-    ]);
+    expect(items.map((i) => i.textContent)).toEqual(["重命名", "收藏", "复制", "移出已关闭", "导出参考组包", "删除"]);
   });
 
   it("卡片右键与“⋯”是同一组菜单项", async () => {
     await show(lists({ recent: [hair] }));
     fireEvent.contextMenu(screen.getByRole("button", { name: /^头发(?! 的更多操作)/ }));
     const items = await screen.findAllByRole("menuitem");
-    expect(items.map((i) => i.textContent)).toEqual([
-      "重命名",
-      "收藏",
-      "复制",
-      "移出已关闭",
-      "导出参考组包",
-      "删除",
-    ]);
+    expect(items.map((i) => i.textContent)).toEqual(["重命名", "收藏", "复制", "移出已关闭", "导出参考组包", "删除"]);
   });
 
   it("收藏、取消收藏", async () => {
