@@ -40,7 +40,6 @@ use crate::CommandError;
 use crate::command_error::ErrorKind;
 use crate::desktop::{CaptureHistory, GroupMemberRef, SavedPin, ScreenRect, pull_onto_screen};
 pub use lists::{DeskLists, OLDER_AFTER_MS};
-pub use reopen::ShownMember;
 use state::{DeskFile, Loaded};
 
 pub use moves::{Pruned, Split};
