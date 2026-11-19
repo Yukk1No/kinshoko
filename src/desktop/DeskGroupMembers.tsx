@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { X } from "lucide-react";
+import { FolderPlus, X } from "lucide-react";
 import type { GroupMember } from "../bindings/GroupMember";
 import type { MemberStatus } from "../bindings/MemberStatus";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -38,25 +38,38 @@ export function DeskGroupMembers({
   label,
   onRepin,
   onRemove,
+  onSplit,
 }: {
   view: ReferenceGroupView;
   libraryNames: Map<string, string>;
   label: string;
   onRepin: (memberId: string) => void;
   onRemove: (memberId: string) => void;
+  /** 较新的一段（不是最早那天）移到新参考组；`day` 是本地日期 `YYYY-MM-DD`。 */
+  onSplit: (day: string) => void;
 }) {
   const { t } = useTranslation("desktop");
   const days = memberDays(view);
   const split = days.length > 1;
   return (
     <div className="desk-group-members" aria-label={t("groups.membersLabel", { name: label })} role="group">
-      {days.map(({ day, at, entries }) => (
+      {days.map(({ day, at, entries }, i) => (
         <section
           key={day}
           className="desk-group-day"
           aria-label={split ? formatMoment(at, { time: false }) : undefined}
         >
-          {split && <h4 className="desk-group-day-head">{formatMoment(at, { time: false })}</h4>}
+          {split && (
+            <div className="desk-group-day-head">
+              <h4>{formatMoment(at, { time: false })}</h4>
+              {i > 0 && (
+                <button type="button" className="k-btn is-sm is-ghost desk-group-split" onClick={() => onSplit(day)}>
+                  <FolderPlus size={13} aria-hidden="true" />
+                  <span className="k-label">{t("deskPanel.split")}</span>
+                </button>
+              )}
+            </div>
+          )}
           <ul className="desk-group-tiles">
             {entries.map(({ member, status }) => {
               const name =

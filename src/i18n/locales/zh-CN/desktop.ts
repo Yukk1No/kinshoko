@@ -55,6 +55,10 @@ export default {
     repin: "钉回",
     repinLabel: "钉回{{name}}",
     removeLabel: "移出{{name}}",
+    started: "已开新参考组",
+    foldInto: "加进「{{name}}」",
+    split: "移到新参考组",
+    splitDone: "已移到新参考组",
   },
   /** 截图框选窗口（`CaptureOverlay`）。 */
   capture: {
