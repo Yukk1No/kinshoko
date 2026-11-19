@@ -144,6 +144,8 @@ pub async fn repin_group_member(app: AppHandle, member_id: String) -> Result<(),
         if repinned.is_some() {
             mark_dirty(&app);
             apply(&app, None);
+            // 侧栏里它不再变淡。
+            changed(&app);
         }
         Ok(())
     })

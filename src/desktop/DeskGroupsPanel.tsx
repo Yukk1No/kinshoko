@@ -157,7 +157,8 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
   useEffect(() => {
     let alive = true;
     for (const g of [...lists.favorites, ...lists.recent]) {
-      if (g.problem || views.get(g.id)?.at === g.updatedAt) continue;
+      // 桌面上那组钉回、关掉钉图时更新时间不一定变：每次都重读。
+      if (g.problem || (g.id !== lists.onDesk && views.get(g.id)?.at === g.updatedAt)) continue;
       referenceGroup(g.id).then(
         (view) => {
           if (alive && view) setViews((prev) => new Map(prev).set(g.id, { at: g.updatedAt, view }));
@@ -491,7 +492,11 @@ function Sections({ onDesk, reduced, children }: { onDesk: string | null; reduce
       }
       thumb.style.transition = slide && !reduced ? "" : "none";
       thumb.style.height = `${on.offsetHeight}px`;
-      thumb.style.transform = `translateY(${on.getBoundingClientRect().top - box.getBoundingClientRect().top}px)`;
+      // 按排版位置算，不用 getBoundingClientRect：换段的卡片这时还带着 layout 动画的反向位移。
+      let top = 0;
+      for (let el: HTMLElement | null = on; el && el !== box; el = el.offsetParent as HTMLElement | null)
+        top += el.offsetTop;
+      thumb.style.transform = `translateY(${top}px)`;
       thumb.hidden = false;
     },
     [onDesk, reduced],
@@ -500,7 +505,8 @@ function Sections({ onDesk, reduced, children }: { onDesk: string | null; reduce
   useLayoutEffect(() => {
     const slide = placed.current !== null && onDesk !== null && placed.current !== onDesk;
     if (slide) slidingUntil.current = performance.now() + SLIDE_MS;
-    place(slide);
+    // 滑动中又重排（例如成员读回来了）：照样朝新位置滑。
+    place(slide || performance.now() < slidingUntil.current);
     if (onDesk !== null) placed.current = onDesk;
   });
 
