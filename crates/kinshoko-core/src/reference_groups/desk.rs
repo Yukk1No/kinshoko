@@ -257,7 +257,8 @@ impl Desk {
             .iter()
             .find(|p| p.member.as_ref().is_some_and(|m| m.member_id == member_id))
             .map(|p| p.id.clone());
-        let before = self.snapshot(&[member_id.to_owned()]);
+        // 备份不了组内截图时不动：移出后落盘失败就找不回它了。
+        let before = self.snapshot(&[member_id.to_owned()])?;
         match pin {
             Some(pin) => {
                 self.close(&pin, history);
@@ -877,8 +878,8 @@ impl Desk {
     }
 
     /// 移出成员之前记下桌面：落盘失败时用 [`Self::roll_back`] 回到这里。落盘会删掉移出成员的组内截图，
-    /// 所以先把它们复制一份到桌面状态旁边。
-    fn snapshot(&self, removing: &[String]) -> Snapshot {
+    /// 所以先把它们复制一份到桌面状态旁边；复制不了时报错，调用方什么都不改。
+    fn snapshot(&self, removing: &[String]) -> Result<Snapshot, GroupError> {
         let mut backups = Vec::new();
         let dir = self.state_path.with_extension("rollback");
         if let Ok(from) = self.groups.captures_dir(&self.group.id) {
@@ -894,22 +895,21 @@ impl Desk {
                 // 还没复制进来的截图本来就在截图历史里，留在 copies 中即可。
                 let file = from.join(capture_file);
                 let backup = dir.join(capture_file);
-                if file.is_file()
-                    && fs::create_dir_all(&dir).is_ok()
-                    && fs::copy(&file, &backup).is_ok()
-                {
+                if file.is_file() {
+                    fs::create_dir_all(&dir)?;
+                    fs::copy(&file, &backup)?;
                     backups.push((capture_file.clone(), backup));
                 }
             }
         }
-        Snapshot {
+        Ok(Snapshot {
             group: self.group.clone(),
             pins: self.pins.clone(),
             copies: self.copies.clone(),
             switch_list: self.switch_list.clone(),
             members_changed: self.members_changed,
             backups,
-        }
+        })
     }
 
     /// 回到 `before`：成员、钉图与截图历史的钉住次数都复原，删掉的组内截图下次落盘时从备份放回。
