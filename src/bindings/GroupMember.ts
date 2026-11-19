@@ -40,4 +40,8 @@ pinned?: boolean,
  * 加进参考组的时间（毫秒），侧栏按它的日期分段（#588“按天分段”）。没有时不写出，
  * 按参考组的 `created_at` 算（[`super::ReferenceGroup::added_at`]）。
  */
-addedAt?: number, } & ({ libraryId: string, imageId: string, } | { captureFile: string, });
+addedAt?: number, 
+/**
+ * 关掉的时间（毫秒）：侧栏“已关闭 N 张”按它倒序（#588 11-19 晚 规则 3）。钉着时没有、不写出。
+ */
+closedAt?: number, } & ({ libraryId: string, imageId: string, } | { captureFile: string, });
