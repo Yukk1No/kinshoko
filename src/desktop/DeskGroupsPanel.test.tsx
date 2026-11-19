@@ -252,6 +252,21 @@ describe("参考组面板（参考组改成桌面）", () => {
     expect(ipc.undoMerge).toHaveBeenCalledWith({ groupId: "g1", members: ["n1", "n2"] });
   });
 
+  it("撤销并入写不进时，错误提示上还能再撤销一次", async () => {
+    await show({ onDesk: "g1", switchList: [hair], archived: [old] });
+    await more("旧的衣褶", "并入");
+    await screen.findByText("已并入「旧的衣褶」");
+    ipc.undoMerge.mockImplementationOnce(() => Promise.reject(new Error("disk full")));
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole("button", { name: "撤销" }).at(-1)!);
+    });
+    await act(async () => {
+      fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
+    });
+    expect(ipc.undoMerge).toHaveBeenCalledTimes(2);
+    expect(ipc.undoMerge).toHaveBeenLastCalledWith({ groupId: "g1", members: ["n1", "n2"] });
+  });
+
   it("重命名：在卡片上改，保存后收起", async () => {
     await show({ onDesk: "g1", switchList: [hair], archived: [] });
     await more("头发", "重命名");
