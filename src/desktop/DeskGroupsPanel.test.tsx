@@ -18,6 +18,8 @@ const ipc = vi.hoisted(() => ({
   repin: vi.fn(() => Promise.resolve()),
   prune: vi.fn(() => Promise.resolve(1)),
   undoPrune: vi.fn(() => Promise.resolve()),
+  split: vi.fn((): Promise<string | null> => Promise.resolve("g9")),
+  undoSplit: vi.fn(() => Promise.resolve()),
   rename: vi.fn(() => Promise.resolve()),
   remove: vi.fn((id: string) => Promise.resolve({ groupId: id, name: id, unlinkedPins: [] })),
   restore: vi.fn(() => Promise.resolve()),
@@ -42,6 +44,8 @@ vi.mock("../ipc", () => ({
   repinGroupMember: ipc.repin,
   pruneUnpinnedMembers: ipc.prune,
   undoPruneUnpinned: ipc.undoPrune,
+  splitOffReferenceGroup: ipc.split,
+  undoSplitOff: ipc.undoSplit,
   renameReferenceGroup: ipc.rename,
   deleteReferenceGroup: ipc.remove,
   restoreReferenceGroup: ipc.restore,
@@ -285,6 +289,32 @@ describe("参考组面板（参考组改成桌面）", () => {
       expect.stringMatching(/11月18日/),
       expect.stringMatching(/11月19日/),
     ]);
+  });
+});
+
+describe("参考组面板：移到新参考组", () => {
+  it("较新的一段可以移到新参考组，提示里能撤销；最早那天没有这一项", async () => {
+    members = [member("m1", { addedAt: NOV_18 }), member("m2", { addedAt: NOV_18 + DAY })];
+    await show(lists({ recent: [hair] }));
+    const shown = screen.getByRole("group", { name: "头发 的成员" });
+    const buttons = within(shown).getAllByRole("button", { name: "移到新参考组" });
+    expect(buttons).toHaveLength(1);
+    expect(within(screen.getByRole("region", { name: /11月19日/ })).getByRole("button", { name: "移到新参考组" })).toBe(
+      buttons[0],
+    );
+    await act(async () => {
+      fireEvent.click(buttons[0]);
+    });
+    await flush();
+    const d = new Date(NOV_18 + DAY);
+    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    expect(ipc.split).toHaveBeenCalledWith(day);
+    expect(await screen.findByText("已移到新参考组")).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+    });
+    expect(ipc.undoSplit).toHaveBeenCalled();
+    expect(ipc.undoPrune).not.toHaveBeenCalled();
   });
 });
 

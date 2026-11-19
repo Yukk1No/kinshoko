@@ -59,6 +59,10 @@ export default {
     bringToFrontLabel: "提到最前：{{name}}",
     closedCount: "已关闭 {{count, number}} 张",
     removeLabel: "移出{{name}}",
+    started: "已开新参考组",
+    foldInto: "加进「{{name}}」",
+    split: "移到新参考组",
+    splitDone: "已移到新参考组",
   },
   /** 截图框选窗口（`CaptureOverlay`）。 */
   capture: {

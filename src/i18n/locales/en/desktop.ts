@@ -60,6 +60,10 @@ const desktop: Translation<typeof zh> = {
     bringToFrontLabel: "Bring {{name}} to front",
     closedCount: "{{count, number}} closed",
     removeLabel: "Remove {{name}}",
+    started: "Started a new reference group",
+    foldInto: "Add to “{{name}}”",
+    split: "Move to new reference group",
+    splitDone: "Moved to a new reference group",
   },
   capture: {
     label: "Screenshot",

@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { groupLabel } from "./groupLabel";
 import {
   Menu,
   MenuCheckboxItem,
@@ -74,7 +75,7 @@ function GroupList({ load, act }: { load: () => Promise<GroupSummary[]>; act: (a
     <>
       {usable.map((g) => (
         <MenuItem key={g.id} onClick={() => act(`group:${g.id}`)}>
-          {g.name}
+          {groupLabel(g)}
         </MenuItem>
       ))}
     </>

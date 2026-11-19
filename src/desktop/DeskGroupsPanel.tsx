@@ -22,9 +22,11 @@ import {
   repinGroupMember,
   restoreReferenceGroup,
   setReferenceGroupFavorite,
+  splitOffReferenceGroup,
   showGroupMember,
   switchReferenceGroup,
   undoPruneUnpinned,
+  undoSplitOff,
 } from "../ipc";
 import { describeCommandError, errorText, isErrorCode } from "../ipc/commandError";
 import { SaveDestinationDialog } from "../library/SaveDestination";
@@ -166,8 +168,12 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     }
   };
 
-  /** 移出能撤销，所以不先确认：做完给带“撤销”的轻提示（只撤销最近一次）。`title` 为 `null` 时什么都没做。 */
-  const undoable = async <T,>(action: () => Promise<T>, title: (value: T) => string | null) => {
+  /** 移出、移到新参考组能撤销，所以不先确认：做完给带“撤销”的轻提示（只撤销最近一次）。`title` 为 `null` 时什么都没做。 */
+  const undoable = async <T,>(
+    action: () => Promise<T>,
+    title: (value: T) => string | null,
+    undo: () => Promise<void> = undoPruneUnpinned,
+  ) => {
     try {
       const text = title(await action());
       if (!text) return;
@@ -176,7 +182,7 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
         tone: "success",
         action: {
           label: t("groups.undo"),
-          onClick: () => void undoPruneUnpinned().catch((e) => toast.error(errorText(e))),
+          onClick: () => void undo().catch((e) => toast.error(errorText(e))),
         },
       });
     } catch (e) {
@@ -333,6 +339,13 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
               void undoable(
                 () => removeGroupMember(g.id, memberId),
                 () => t("deskPanel.removed"),
+              )
+            }
+            onSplit={(day) =>
+              void undoable(
+                () => splitOffReferenceGroup(day),
+                (id) => (id ? t("deskPanel.splitDone") : null),
+                undoSplitOff,
               )
             }
           />

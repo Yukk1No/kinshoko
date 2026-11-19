@@ -46,6 +46,7 @@ export function DeskGroupMembers({
   onShow,
   onRepinAll,
   onRemove,
+  onSplit,
 }: {
   view: ReferenceGroupView;
   favorite: boolean;
@@ -55,6 +56,8 @@ export function DeskGroupMembers({
   onShow: (memberId: string) => void;
   onRepinAll: () => void;
   onRemove: (memberId: string) => void;
+  /** 较新的一段（不是最早那天）移到新参考组（#595）。 */
+  onSplit: (day: string) => void;
 }) {
   const { t } = useTranslation("desktop");
   const all = entriesOf(view);
@@ -123,13 +126,22 @@ export function DeskGroupMembers({
           {t("deskPanel.repinAll")}
         </button>
       )}
-      {days.map(({ day, at, entries }) => (
+      {days.map(({ day, at, entries }, index) => (
         <section
           key={day}
           className="desk-group-day"
           aria-label={split ? formatMoment(at, { time: false }) : undefined}
         >
-          {split && <h4 className="desk-group-day-head">{formatMoment(at, { time: false })}</h4>}
+          {split && (
+            <div className="desk-group-day-head">
+              <h4>{formatMoment(at, { time: false })}</h4>
+              {index > 0 && (
+                <button type="button" className="k-btn is-sm is-ghost desk-group-split" onClick={() => onSplit(day)}>
+                  {t("deskPanel.split")}
+                </button>
+              )}
+            </div>
+          )}
           <ul className="desk-group-tiles">{entries.map(tile)}</ul>
         </section>
       ))}
