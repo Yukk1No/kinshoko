@@ -339,6 +339,13 @@ describe("参考组面板的“更多”", () => {
     });
     expect(ipc.rename).toHaveBeenCalledWith("g1", "头发 2");
     await waitFor(() => expect(screen.queryByLabelText("参考组名称")).toBeNull());
+    // 留空也能保存：回到写新建时间（#588）。
+    await more("头发", "重命名");
+    fireEvent.change(screen.getByLabelText("参考组名称"), { target: { value: "" } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    });
+    expect(ipc.rename).toHaveBeenLastCalledWith("g1", "");
   });
 
   it("删除不先确认，给带“撤销”的提示；撤销把参考组放回", async () => {
