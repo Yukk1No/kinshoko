@@ -40,6 +40,7 @@ function useInstall() {
   }, [installing]);
 
   const install = async () => {
+    setProgress(null);
     setInstalling(true);
     setError(null);
     try {
