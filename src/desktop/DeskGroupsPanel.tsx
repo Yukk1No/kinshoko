@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LayoutGroup, motion } from "motion/react";
-import { ChevronRight, FolderInput, MoreHorizontal, Plus } from "lucide-react";
+import { ChevronRight, FolderInput, Layers, MoreHorizontal, Plus } from "lucide-react";
 import type { DeskLists } from "../bindings/DeskLists";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -29,15 +29,17 @@ import {
 } from "../ipc";
 import { describeCommandError, errorText, isErrorCode } from "../ipc/commandError";
 import { SaveDestinationDialog } from "../library/SaveDestination";
+import { useIndicatorSlide } from "../library/useIndicatorSlide";
 import { ContextMenu } from "@base-ui/react/context-menu";
+import { FluidList, FluidRow } from "../ui/FluidList";
 import { Menu, MenuPopup } from "../ui/Menu";
+import { Name } from "../ui/Name";
 import { useReducedMotion } from "../ui/reducedMotion";
 import { Tip } from "../ui/Tip";
 import { useToast } from "../ui/Toast";
 import { WarnIcon } from "../ui/WarnIcon";
 import { DeskGroupMembers } from "./DeskGroupMembers";
 import { DeskGroupMenuItems } from "./DeskGroupMenu";
-import { Section, Sections, Thumbs } from "./DeskGroupSections";
 import { GroupNameForm } from "./GroupNameForm";
 import { groupLabel } from "./groupLabel";
 import { ReferenceGroupsPanel } from "./ReferenceGroupsPanel";
@@ -124,9 +126,11 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
   const reduced = useReducedMotion();
   const [libraryNames, setLibraryNames] = useState<Map<string, string>>(new Map());
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
-  const [olderOpen, setOlderOpen] = useState(false);
+  const [folded, setFolded] = useState<ReadonlySet<SectionKey>>(() => new Set(["older"]));
+  const paneRef = useRef<HTMLElement>(null);
+  useIndicatorSlide(paneRef);
   const [importing, setImporting] = useState(false);
-  /** 卡片缩略图与桌面上那组的成员，按参考组 id 与更新时间缓存。 */
+  /** 桌面上那组的成员，按参考组 id 记下。 */
   const [views, setViews] = useState<Map<string, { at: number; view: ReferenceGroupView }>>(new Map());
 
   const all = [...lists.favorites, ...lists.recent, ...lists.older];
@@ -138,14 +142,11 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     );
   }, [toast]);
 
-  // 常用与最近的缩略图、桌面上那组的成员：每个版本读一次。读回来的版本与列表对不上（例如桌面上的改动
-  // 还没落盘）时也记在列表的版本下，不一遍遍地读。
-  // biome-ignore lint/correctness/useExhaustiveDependencies(views.get): 只读它跳过已缓存的；加进依赖会在每张缩略图回来时取消并重发其余请求
+  // 桌面上那组的成员：桌面一变就重读（钉回、关掉钉图时更新时间不一定变）。
   useEffect(() => {
     let alive = true;
-    for (const g of [...lists.favorites, ...lists.recent]) {
-      // 桌面上那组钉回、关掉钉图时更新时间不一定变：每次都重读。
-      if (g.problem || (g.id !== lists.onDesk && views.get(g.id)?.at === g.updatedAt)) continue;
+    for (const g of [...lists.favorites, ...lists.recent, ...lists.older]) {
+      if (g.problem || g.id !== lists.onDesk) continue;
       referenceGroup(g.id).then(
         (view) => {
           if (alive && view) setViews((prev) => new Map(prev).set(g.id, { at: g.updatedAt, view }));
@@ -218,29 +219,19 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     }
   };
 
-  const item = (g: GroupSummary, section: "favorites" | "recent" | "older") => {
+  const toggleSection = (section: SectionKey) =>
+    setFolded((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(section)) next.add(section);
+      return next;
+    });
+
+  let rowIndex = 0;
+  const item = (g: GroupSummary, section: SectionKey) => {
     const label = groupLabel(g);
     const onDesk = g.id === lists.onDesk;
-    const view = views.get(g.id)?.view;
-    const unpinned = onDesk && !!view?.group.members.some((m) => m.pinned === false);
-    const head = (
-      <>
-        {!onDesk && section !== "older" && view && view.members.length > 0 && (
-          <Thumbs groupId={g.id} members={view.members} />
-        )}
-        <strong className="desk-group-name">{label}</strong>
-        {g.problem ? (
-          <span className="desk-group-problem">
-            <WarnIcon />
-            {describeCommandError(g.problem)}
-          </span>
-        ) : (
-          (onDesk || section === "older") && (
-            <span className="desk-group-meta">{t("groups.memberCount", { count: g.memberCount })}</span>
-          )
-        )}
-      </>
-    );
+    const view = onDesk ? views.get(g.id)?.view : undefined;
+    const unpinned = !!view?.group.members.some((m) => m.pinned === false);
     const menuItems = (
       <DeskGroupMenuItems
         usable={!g.problem}
@@ -265,13 +256,24 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
         onDelete={() => void removeGroup(g)}
       />
     );
+    const rowBody = (
+      <>
+        <span className="k-row-icon" aria-hidden="true">
+          {g.problem ? <WarnIcon /> : <Layers size={15} />}
+        </span>
+        <Name className="sidebar-label k-label">{label}</Name>
+        <span className="sidebar-count k-label" aria-hidden="true">
+          {g.problem ? "" : g.memberCount}
+        </span>
+      </>
+    );
     return (
       <motion.li
         key={g.id}
         layout="position"
         layoutId={g.id}
         transition={reduced ? { duration: 0 } : undefined}
-        className={`desk-group${onDesk ? " is-on" : ""}`}
+        className="desk-group"
         data-id={g.id}
       >
         {renaming?.id === g.id ? (
@@ -291,43 +293,48 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
             }
           />
         ) : (
-          <ContextMenu.Root>
-            <ContextMenu.Trigger
-              render={
-                g.problem ? (
-                  <div className="desk-group-head" />
-                ) : (
-                  <button
-                    type="button"
-                    className="desk-group-head"
-                    aria-current={onDesk || undefined}
-                    onClick={() => {
-                      if (!onDesk) void run(() => switchReferenceGroup(g.id));
-                    }}
-                  />
-                )
-              }
-            >
-              {head}
-            </ContextMenu.Trigger>
-            <MenuPopup width={200} label={t("groups.moreLabel", { name: label })}>
-              {menuItems}
-            </MenuPopup>
-          </ContextMenu.Root>
+          <FluidRow index={rowIndex++} className="desk-group-row">
+            <ContextMenu.Root>
+              <ContextMenu.Trigger
+                render={
+                  g.problem ? (
+                    <div className="k-row desk-group-head" aria-label={label} />
+                  ) : (
+                    <button
+                      type="button"
+                      className="sidebar-item k-row desk-group-head"
+                      aria-label={label}
+                      aria-current={onDesk ? "page" : undefined}
+                      onClick={() => {
+                        if (!onDesk) void run(() => switchReferenceGroup(g.id));
+                      }}
+                    />
+                  )
+                }
+              >
+                {rowBody}
+              </ContextMenu.Trigger>
+              <MenuPopup width={200} label={t("groups.moreLabel", { name: label })}>
+                {menuItems}
+              </MenuPopup>
+            </ContextMenu.Root>
+            <Menu.Root modal={false}>
+              <Tip label={t("groups.more")}>
+                <Menu.Trigger
+                  className="k-icon-btn desk-group-more"
+                  aria-label={t("groups.moreLabel", { name: label })}
+                >
+                  <MoreHorizontal size={14} aria-hidden="true" />
+                </Menu.Trigger>
+              </Tip>
+              <MenuPopup width={200} label={t("groups.moreLabel", { name: label })}>
+                {menuItems}
+              </MenuPopup>
+            </Menu.Root>
+          </FluidRow>
         )}
-        {renaming?.id !== g.id && (
-          <Menu.Root modal={false}>
-            <Tip label={t("groups.more")}>
-              <Menu.Trigger className="k-icon-btn desk-group-more" aria-label={t("groups.moreLabel", { name: label })}>
-                <MoreHorizontal size={14} aria-hidden="true" />
-              </Menu.Trigger>
-            </Tip>
-            <MenuPopup width={200} label={t("groups.moreLabel", { name: label })}>
-              {menuItems}
-            </MenuPopup>
-          </Menu.Root>
-        )}
-        {onDesk && view && renaming?.id !== g.id && (
+        {g.problem && <p className="desk-group-problem">{describeCommandError(g.problem)}</p>}
+        {view && renaming?.id !== g.id && (
           <DeskGroupMembers
             view={view}
             libraryNames={libraryNames}
@@ -352,8 +359,21 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     );
   };
 
+  const section = (key: SectionKey, groups: GroupSummary[]) =>
+    groups.length > 0 && (
+      <Section
+        id={`desk-groups-${key}`}
+        title={t(`deskPanel.${key}`)}
+        count={groups.length}
+        open={!folded.has(key)}
+        onToggle={() => toggleSection(key)}
+      >
+        {groups.map((g) => item(g, key))}
+      </Section>
+    );
+
   return (
-    <section className="reference-groups desk-groups" aria-label={t("groups.label")}>
+    <section ref={paneRef} className="reference-groups desk-groups side-bands" aria-label={t("groups.label")}>
       {importing && (
         <SaveDestinationDialog
           title={t("groups.importTitle")}
@@ -365,49 +385,76 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
           }}
         />
       )}
-      {all.length === 0 && <p className="desk-groups-empty">{t("groups.empty")}</p>}
-      <LayoutGroup>
-        <Sections onDesk={lists.onDesk} reduced={reduced}>
-          {lists.favorites.length > 0 && (
-            <Section id="desk-groups-favorites" title={t("deskPanel.favorites")}>
-              {lists.favorites.map((g) => item(g, "favorites"))}
-            </Section>
-          )}
-          {lists.recent.length > 0 && (
-            <Section id="desk-groups-recent" title={t("deskPanel.recent")}>
-              {lists.recent.map((g) => item(g, "recent"))}
-            </Section>
-          )}
-          {lists.older.length > 0 && (
-            <>
-              <h3 className="desk-groups-heading">
-                <button
-                  type="button"
-                  className="desk-groups-toggle"
-                  aria-expanded={olderOpen}
-                  aria-controls="desk-groups-older"
-                  onClick={() => setOlderOpen((open) => !open)}
-                >
-                  <ChevronRight size={12} aria-hidden="true" />
-                  <span>{t("deskPanel.older")}</span>
-                  <span className="desk-groups-count">{lists.older.length}</span>
-                </button>
-              </h3>
-              {olderOpen && (
-                <ul className="desk-groups-list" id="desk-groups-older" aria-label={t("deskPanel.older")}>
-                  {lists.older.map((g) => item(g, "older"))}
-                </ul>
-              )}
-            </>
-          )}
-        </Sections>
-      </LayoutGroup>
-      <footer className="desk-groups-foot">
-        <button type="button" className="k-btn is-sm is-ghost" onClick={() => setImporting(true)}>
-          <FolderInput size={13} aria-hidden="true" />
-          <span className="k-label">{t("groups.import")}</span>
-        </button>
-      </footer>
+      <div className="side-scroll">
+        {all.length === 0 && <p className="desk-groups-empty">{t("groups.empty")}</p>}
+        <LayoutGroup>
+          {section("favorites", lists.favorites)}
+          {section("recent", lists.recent)}
+          {section("older", lists.older)}
+        </LayoutGroup>
+      </div>
+      <div className="side-foot">
+        <FluidList>
+          <FluidRow index={0}>
+            <button type="button" className="sidebar-item k-row" onClick={() => setImporting(true)}>
+              <span className="k-row-icon" aria-hidden="true">
+                <FolderInput size={15} />
+              </span>
+              <span className="sidebar-label k-label">{t("groups.import")}</span>
+            </button>
+          </FluidRow>
+        </FluidList>
+      </div>
     </section>
+  );
+}
+
+type SectionKey = "favorites" | "recent" | "older";
+
+/**
+ * 一段（#608 的图库行与托盘）：标题行留在纸上，30 高、13 px 加粗，前面是展开箭头，张数与行的张数成一列；
+ * 段里的参考组放进一块浅凹槽，悬停的高亮块在槽里滑。
+ */
+function Section({
+  id,
+  title,
+  count,
+  open,
+  onToggle,
+  children,
+}: {
+  id: string;
+  title: string;
+  count: number;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="desk-groups-section">
+      <h3 className="desk-groups-head">
+        <button
+          type="button"
+          className="desk-groups-toggle"
+          id={id}
+          aria-expanded={open}
+          aria-controls={`${id}-list`}
+          onClick={onToggle}
+        >
+          <span className="desk-groups-chevron" aria-hidden="true">
+            <ChevronRight size={14} />
+          </span>
+          <span className="sidebar-label">{title}</span>
+          <span className="sidebar-count">{count}</span>
+        </button>
+      </h3>
+      {open && (
+        <FluidList className="desk-groups-tray">
+          <ul className="desk-groups-list" id={`${id}-list`} aria-label={title}>
+            {children}
+          </ul>
+        </FluidList>
+      )}
+    </div>
   );
 }

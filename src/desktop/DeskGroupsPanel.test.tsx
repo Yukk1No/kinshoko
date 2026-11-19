@@ -159,12 +159,13 @@ async function more(name: string, item: string) {
   await flush();
 }
 
-// jsdom 没有 ResizeObserver；指示块只用它跟随尺寸变化。
+// jsdom 没有 ResizeObserver；悬停高亮块（FluidList）用它跟随行的尺寸。
 beforeAll(() => {
   vi.stubGlobal(
     "ResizeObserver",
     class {
       observe() {}
+      unobserve() {}
       disconnect() {}
     },
   );
@@ -199,7 +200,7 @@ describe("参考组面板（参考组改成桌面）", () => {
     await show(lists({ favorites: [hair], recent: [hands], older: [old] }));
     expect(ids("常用")).toEqual(["g1"]);
     expect(ids("最近")).toEqual(["g2"]);
-    expect(screen.getByRole("button", { name: /^头发(?! 的更多操作)/ }).getAttribute("aria-current")).toBe("true");
+    expect(screen.getByRole("button", { name: /^头发(?! 的更多操作)/ }).getAttribute("aria-current")).toBe("page");
     expect(
       within(section("最近"))
         .getByRole("button", { name: /^11月18日(?!.*更多操作)/ })
@@ -211,7 +212,7 @@ describe("参考组面板（参考组改成桌面）", () => {
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect(within(section("更早")).getByText("旧的衣褶")).toBeTruthy();
-    expect(within(section("更早")).getByText("7 张")).toBeTruthy();
+    expect(within(section("更早")).getByText("7")).toBeTruthy();
   });
 
   it("单击一项就换过去；桌面上的那一项再点不换", async () => {
@@ -223,18 +224,16 @@ describe("参考组面板（参考组改成桌面）", () => {
     await flush();
     expect(ipc.switchTo).toHaveBeenCalledTimes(1);
     await changed(lists({ onDesk: "g2", recent: [hair, group("g2", "手部")] }));
-    expect(screen.getByRole("button", { name: /^手部(?! 的更多操作)/ }).getAttribute("aria-current")).toBe("true");
+    expect(screen.getByRole("button", { name: /^手部(?! 的更多操作)/ }).getAttribute("aria-current")).toBe("page");
   });
 
-  it("指示块第一次出现直接到位，换一项时才滑；桌面空着时不出现", async () => {
+  it("常用、最近也能折起；折起时段标题还在，张数写在标题上", async () => {
     await show(lists({ favorites: [hair], recent: [group("g2", "手部")] }));
-    const mark = document.querySelector<HTMLElement>(".desk-groups-mark")!;
-    expect(mark.hidden).toBe(false);
-    expect(mark.style.transition).toBe("none");
-    await changed(lists({ onDesk: "g2", favorites: [hair], recent: [group("g2", "手部")] }));
-    expect(mark.style.transition).toBe("");
-    await changed(lists({ onDesk: null, favorites: [hair], recent: [group("g2", "手部")] }));
-    expect(mark.hidden).toBe(true);
+    const toggle = screen.getByRole("button", { name: /^最近\s*1$/ });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(toggle);
+    expect(screen.queryByRole("list", { name: "最近" })).toBeNull();
+    expect(ids("常用")).toEqual(["g1"]);
   });
 
   it("“新参考组”清空桌面；桌面空着时变灰、没有高亮的一项", async () => {
@@ -399,15 +398,14 @@ describe("参考组面板的“更多”", () => {
     expect(await screen.findByText("已导出参考组包：D:/导出/头发.kinshoko-group")).toBeTruthy();
   });
 
-  it("不在桌面上的卡片有缩略图，不显示被遮蔽的图", async () => {
+  it("不在桌面上的参考组只有一行：名字和张数，不读成员", async () => {
     await show(lists({ recent: [hair, group("g2", "手部")] }));
-    const card = within(section("最近"))
+    const row = within(section("最近"))
       .getAllByRole("listitem")
       .find((li) => li.dataset.id === "g2")!;
-    expect([...card.querySelectorAll("img")].map((img) => img.getAttribute("src"))).toEqual([
-      "thumb://lib-a/img-m1/128",
-    ]);
-    expect(card.querySelectorAll(".desk-group-thumb.is-sealed")).toHaveLength(1);
+    expect(row.querySelector(".sidebar-count")?.textContent).toBe("2");
+    expect(row.querySelectorAll("img")).toHaveLength(0);
+    expect(ipc.group).not.toHaveBeenCalledWith("g2");
   });
 
   it("读不懂的参考组照样列出、写明原因，只能删除", async () => {
