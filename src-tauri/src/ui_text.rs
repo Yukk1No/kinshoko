@@ -155,10 +155,11 @@ pub fn group_label(name: &str, updated_at_ms: i64) -> String {
     if !name.is_empty() {
         return name.to_owned();
     }
-    let at = chrono::DateTime::from_timestamp_millis(updated_at_ms)
+    let at = jiff::Timestamp::from_millisecond(updated_at_ms)
+        .ok()
         .map(|t| {
-            t.with_timezone(&chrono::Local)
-                .format("%m-%d %H:%M")
+            t.to_zoned_datetime(jiff::tz::TimeZone::system())
+                .strftime("%m-%d %H:%M")
                 .to_string()
         })
         .unwrap_or_default();
