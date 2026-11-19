@@ -19,43 +19,31 @@
 //! 截图历史的钉住计数也由这里管：钉上、关掉、切换时成对地 `pin` / `unpin`。
 //! 不是线程安全的；应用壳把它放在锁里，持锁时不调用窗口 API。
 
+mod collected;
+mod lists;
 mod migrate;
 mod moves;
+mod naming;
+mod reopen;
 mod state;
+mod trash;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io;
 use std::path::{Path, PathBuf};
 
 use super::{
-    CaptureFiles, GroupError, GroupMember, GroupSummary, MemberSource, OpenedPins, ReferenceGroup,
-    ReferenceGroups, RelinkReport, new_id,
+    GroupError, GroupMember, MemberSource, OpenedPins, ReferenceGroup, ReferenceGroups,
+    RelinkReport, new_id,
 };
 use crate::CommandError;
 use crate::command_error::ErrorKind;
-use crate::desktop::{
-    CaptureHistory, CollectedCapture, GroupMemberRef, PinContent, SavedPin, ScreenRect,
-    pull_onto_screen,
-};
+use crate::desktop::{CaptureHistory, GroupMemberRef, SavedPin, ScreenRect, pull_onto_screen};
+pub use lists::{DeskLists, OLDER_AFTER_MS};
+pub use reopen::ShownMember;
 use state::{DeskFile, Loaded};
 
 pub use moves::{Pruned, Split};
-
-/// 没设常用、这么久没用过的参考组折进“更早”（#588 决定 5；期限试用后再定）。
-pub const OLDER_AFTER_MS: i64 = 30 * 24 * 60 * 60 * 1000;
-
-/// 侧栏的三段（[`Desk::lists`]）。桌面上的参考组在它所属的那段里。
-#[derive(Debug, Clone, PartialEq)]
-pub struct DeskLists {
-    /// 桌面上的参考组；桌面空着时为 `None`。
-    pub on_desk: Option<String>,
-    /// 常用，按画师设的先后。
-    pub favorites: Vec<GroupSummary>,
-    /// 其余的，新建的在前；读不懂的文件排在最后，写明原因。
-    pub recent: Vec<GroupSummary>,
-    /// 没设常用、[`OLDER_AFTER_MS`] 没用过的，新建的在前。只折叠，不删除。
-    pub older: Vec<GroupSummary>,
-}
 
 /// 换了一桌（切换、新建、删除桌面上那个、加进上一组）：先关掉 `closed`，再钉出 `opened`。
 #[derive(Debug, Clone, PartialEq)]
@@ -289,8 +277,8 @@ impl Desk {
         Some(out)
     }
 
-    /// 画师关掉了一张钉图（Esc 或关闭，#588 决定 3）：成员留在参考组里，标成没钉着，组内截图也留着。
-    /// 关掉的是最后一张时桌面空着，这个参考组成为上一组。
+    /// 画师关掉了一张钉图（Esc 或关闭，#588 决定 3）：成员留在参考组里，标成已关闭并记下时间，组内截图也留着。
+    /// 关掉的是最后一张时参考组仍在桌面上（#588 11-19 晚 规则 6），关掉的照样能点回来。
     pub fn close(&mut self, pin_id: &str, history: &mut CaptureHistory) -> Option<SavedPin> {
         let at = self.pins.iter().position(|p| p.id == pin_id)?;
         let pin = self.pins.remove(at);
@@ -303,18 +291,12 @@ impl Desk {
         {
             m.follow(&pin);
             m.pinned = false;
+            m.closed_at = Some(crate::library::now_ms());
         }
         if let Some(capture) = pin.capture_id() {
             history.unpin(capture);
         }
         self.dirty = true;
-        if self.pins.is_empty()
-            && let Some(held) = self.on_desk.take()
-        {
-            self.used_at
-                .insert(held.group.id.clone(), crate::library::now_ms());
-            self.left.push(held);
-        }
         Some(pin)
     }
 
@@ -354,53 +336,11 @@ impl Desk {
             && let Some(m) = held.group.members.iter_mut().find(|m| m.id == member_id)
         {
             m.pinned = true;
+            m.closed_at = None;
         }
         self.pins.push(pin.clone());
         self.dirty = true;
         Ok(Some(pin))
-    }
-
-    /// 改名。名称可以为空（回到“未命名”）。
-    pub fn rename(&mut self, id: &str, name: &str) -> Result<ReferenceGroup, GroupError> {
-        if let Some(held) = self.on_desk.as_mut().filter(|h| h.group.id == id) {
-            held.group.name = name.trim().to_owned();
-            self.dirty = true;
-            self.flush()?;
-            return Ok(self
-                .on_desk
-                .as_ref()
-                .map_or_else(blank, |h| h.group.clone()));
-        }
-        self.flush()?;
-        let mut group = self.groups.get(id)?;
-        group.name = name.trim().to_owned();
-        group.updated_at = crate::library::now_ms();
-        self.groups.commit(&group, &[])?;
-        Ok(group)
-    }
-
-    /// 设为常用（排在常用的最后）或取消常用。参考组不在时报错。
-    pub fn set_favorite(&mut self, id: &str, favorite: bool) -> Result<(), GroupError> {
-        let known = self.desk_id().as_deref() == Some(id)
-            || self.left.iter().any(|h| h.group.id == id)
-            || self.groups.get(id).is_ok();
-        if !known {
-            return Err(GroupError::UnknownGroup);
-        }
-        let before = self.favorites.clone();
-        self.favorites.retain(|x| x != id);
-        if favorite {
-            match before.iter().position(|x| x == id) {
-                // 已经是常用的不挪位置。
-                Some(at) => self.favorites.insert(at, id.to_owned()),
-                None => self.favorites.push(id.to_owned()),
-            }
-        }
-        if let Err(e) = self.save_state() {
-            self.favorites = before;
-            return Err(e.into());
-        }
-        Ok(())
     }
 
     /// 把改动落盘：先写离开了桌面的参考组，再复制新的组内截图、写桌面上的参考组，最后写桌面状态。
@@ -451,165 +391,6 @@ impl Desk {
         }
         self.flush()?;
         Ok(self.replace(None, history)?)
-    }
-
-    /// 删除参考组 `id`（#480 的做法，能撤销，见 [`Self::undo_discard`]）：文件与组内截图暂放到回收位置。
-    /// 删除的正是桌面上那个时桌面空着（返回这次换桌），不替画师换到别的参考组。
-    pub fn discard(
-        &mut self,
-        id: &str,
-        history: &mut CaptureHistory,
-    ) -> Result<Option<Switched>, GroupError> {
-        // 也写掉离开了桌面、还没落盘的参考组：删的可能正是它。
-        self.flush()?;
-        let on_desk = self.desk_id().as_deref() == Some(id);
-        self.groups.trash(id)?;
-        if !on_desk {
-            // 常用与最近用过的时间留着：撤销后回到原来的段。过期时由 purge 清掉。
-            return Ok(None);
-        }
-        // 参考组已在回收位置：换走时不能再把它写回去（落盘过，内存里没有没写的改动）。
-        match self.replace(None, history) {
-            Ok(switched) => {
-                self.trashed_from_desk.insert(id.to_owned());
-                Ok(Some(switched))
-            }
-            Err(e) => {
-                // 写不进桌面状态：桌面还是它，把文件放回原处，像没删过一样。
-                self.groups.untrash(id)?;
-                Err(e.into())
-            }
-        }
-    }
-
-    /// 撤销删除：参考组连同自带截图放回原处，补上删除期间的收藏改连。删除时它摆在桌面上、
-    /// 桌面现在还空着的话，再摆回桌面（返回这次换桌）。
-    pub fn undo_discard(
-        &mut self,
-        id: &str,
-        history: &mut CaptureHistory,
-    ) -> Result<(RelinkReport, Option<Switched>), GroupError> {
-        let to_desk = self.trashed_from_desk.contains(id) && self.on_desk.is_none();
-        let report = match self.groups.untrash_reconciling(id, history) {
-            Ok(report) => report,
-            // 上次撤销已把文件放回、没能摆回桌面就失败了：这次接着做完。
-            Err(GroupError::UnknownGroup) if self.untrashed.contains(id) => RelinkReport::default(),
-            Err(e) => return Err(e),
-        };
-        // 做完才算撤销完：失败时留着记录，可以再撤销一次。
-        self.untrashed.insert(id.to_owned());
-        let switched = if to_desk {
-            Some(self.switch_to(id, history)?)
-        } else {
-            None
-        };
-        self.trashed_from_desk.remove(id);
-        self.untrashed.remove(id);
-        Ok((report, switched))
-    }
-
-    /// 撤销提示过期：真正删除回收位置里的参考组 `id`，不再记它是不是常用、什么时候用过。
-    pub fn purge(&mut self, id: &str) -> Result<(), GroupError> {
-        self.trashed_from_desk.remove(id);
-        self.untrashed.remove(id);
-        self.groups.purge(id)?;
-        self.favorites.retain(|x| x != id);
-        self.used_at.remove(id);
-        // 下次落盘时写进桌面状态；写不进也无妨，打开时会略过不在的参考组。
-        self.dirty = true;
-        Ok(())
-    }
-
-    /// 截图历史条目 `capture_id` 收藏成了 `collected`：与它关联的组内截图成员（包括桌面上的）改为
-    /// 引用那张参考图；桌面上显示它的钉图改为参考图钉图。
-    pub fn collected(
-        &mut self,
-        history: &mut CaptureHistory,
-        capture_id: &str,
-        collected: &CollectedCapture,
-    ) -> Result<Collected, GroupError> {
-        // 先落盘：改连读写的是参考组文件。
-        self.flush()?;
-        let report = self.groups.relink_collected(history, capture_id, collected);
-        let Some(desk) = self.desk_id() else {
-            return Ok(Collected {
-                report,
-                converted: Vec::new(),
-            });
-        };
-        let mine: Vec<&GroupMemberRef> = report
-            .relinked
-            .iter()
-            .filter(|m| m.group_id == desk)
-            .collect();
-        let mut converted = Vec::new();
-        if !mine.is_empty() {
-            let group = self.groups.get(&desk)?;
-            for pin in &mut self.pins {
-                let Some(member) = pin.member.as_ref().filter(|m| mine.contains(m)) else {
-                    continue;
-                };
-                let Some(old) = pin.capture_id().map(str::to_owned) else {
-                    continue;
-                };
-                let Some(m) = group.members.iter().find(|m| m.id == member.member_id) else {
-                    continue;
-                };
-                pin.content = PinContent::Reference {
-                    library_id: collected.library_id.clone(),
-                    image_id: collected.image_id.clone(),
-                    source_width: m.source_width,
-                    source_height: m.source_height,
-                };
-                history.unpin(&old);
-                converted.push(pin.clone());
-            }
-            self.on_desk = Some(Held::saved(group));
-        }
-        Ok(Collected { report, converted })
-    }
-
-    /// 侧栏的三段，按现在的时间分“最近”和“更早”。
-    pub fn lists(&self) -> Result<DeskLists, GroupError> {
-        self.lists_at(crate::library::now_ms())
-    }
-
-    /// 同 [`Self::lists`]，按 `now`（毫秒）算。内存里还没落盘的也算：钉上第一张后新参考组就列出，
-    /// 空的且没有名称的不列出。
-    pub fn lists_at(&self, now: i64) -> Result<DeskLists, GroupError> {
-        let mut all = self.groups.list()?;
-        for held in self.left.iter().chain(self.on_desk.as_ref()) {
-            let at = all.iter().position(|s| s.id == held.group.id);
-            match (is_blank(&held.group), at) {
-                (true, Some(at)) => {
-                    all.remove(at);
-                }
-                (true, None) => {}
-                (false, Some(at)) => all[at] = held.group.summary(),
-                (false, None) => all.push(held.group.summary()),
-            }
-        }
-        let mut favorites = Vec::new();
-        for id in &self.favorites {
-            if let Some(at) = all.iter().position(|s| s.id == *id) {
-                favorites.push(all.remove(at));
-            }
-        }
-        let (mut unreadable, mut rest): (Vec<_>, Vec<_>) =
-            all.into_iter().partition(|s| s.problem.is_some());
-        rest.sort_by(|a, b| b.created_at.cmp(&a.created_at).then(a.name.cmp(&b.name)));
-        let desk = self.desk_id();
-        let (mut recent, older): (Vec<_>, Vec<_>) = rest.into_iter().partition(|s| {
-            let used = self.used_at.get(&s.id).copied().unwrap_or(s.updated_at);
-            Some(&s.id) == desk.as_ref() || now - used <= OLDER_AFTER_MS
-        });
-        recent.append(&mut unreadable);
-        Ok(DeskLists {
-            on_desk: desk,
-            favorites,
-            recent,
-            older,
-        })
     }
 
     fn desk_id(&self) -> Option<String> {
@@ -718,7 +499,7 @@ fn write(groups: &ReferenceGroups, held: &mut Held) -> Result<(), GroupError> {
 }
 
 /// 一个新的参考组：没有成员、没有名称（界面写日期）。
-fn blank() -> ReferenceGroup {
+pub(super) fn blank() -> ReferenceGroup {
     let now = crate::library::now_ms();
     ReferenceGroup {
         id: new_id(),
@@ -732,15 +513,6 @@ fn blank() -> ReferenceGroup {
 }
 
 /// 空的且没有名称：不落盘，已经落了盘的随之消失。
-fn is_blank(group: &ReferenceGroup) -> bool {
+pub(super) fn is_blank(group: &ReferenceGroup) -> bool {
     group.members.is_empty() && group.is_unnamed()
-}
-
-/// 迁移时写参考组用：内容与截图一起发布。
-fn publish(
-    groups: &ReferenceGroups,
-    group: &ReferenceGroup,
-    captures: &CaptureFiles,
-) -> Result<(), GroupError> {
-    groups.publish_with_captures(group, captures)
 }
