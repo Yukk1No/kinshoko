@@ -1,4 +1,4 @@
-/* Shared redesign components (T20, design/ui-system/README.md). Tokens live in src/styles.css :root.
+/* Shared redesign components (T20, design/ui-system/README.md). Tokens live in src/styles/tokens.css.
    Every class is prefixed `k-` so it never collides with the older component styles. */
 
 /* ---- Control label ---- */
@@ -201,11 +201,14 @@
   min-width: 200px;
   max-height: min(var(--available-height, 480px), 480px);
   overflow: auto;
-  padding: 8px;
+  padding: 6px;
+  border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink);
-  border-radius: var(--r-l);
+  font-size: 13px;
+  border-radius: var(--r);
   box-shadow: var(--shadow-pop);
+  backdrop-filter: var(--popup-blur);
   outline: 0;
   --k-pop-x: 0px;
   --k-pop-y: 0px;
@@ -244,6 +247,7 @@
   cursor: default;
   user-select: none;
   color: var(--ink);
+  font-size: 13px;
 }
 .k-item[data-highlighted] {
   background: var(--hover);

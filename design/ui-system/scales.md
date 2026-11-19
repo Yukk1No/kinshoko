@@ -16,7 +16,7 @@
 | 13 | 正文、控件文字、菜单行 |
 | 12 | 分组名、说明、角标、快捷键提示 |
 
-级联菜单的行（14 px）与组名 `.k-menu-title`（11 px）是现在仅有的例外，由 #601 收回三档。
+菜单行与下拉候选都是 13 px，菜单标题与分组名共用 `.k-section-label`（12 px），没有字号例外。
 
 ## 圆角
 
@@ -26,8 +26,8 @@
 | --- | --- | --- |
 | `--r-xs` | 4 | 最内层的小块 |
 | `--r-s` | 8 | 菜单项、分段项、开关 |
-| `--r` | 12 | 输入框、按钮、面板 |
-| `--r-l` | 16 | 浮层 |
+| `--r` | 12 | 输入框、按钮、面板、浮层 |
+| `--r-l` | 16 | 轻提示、任务卡 |
 | `--r-xl` | 20 | dock、设置组 |
 | `--r-2xl` | 32 | 对话框 |
 | `--r-pill` | 999 | 胶囊、圆形 |
@@ -70,7 +70,9 @@
 
 一种配方：底色 `--glass-bg`（`--surface` 的 86%），模糊 `--glass-blur`（`blur(18px) saturate(1.2)`）。
 
-用它的：dock、dock 托盘、图片大小浮岛、打标进度、轻提示、任务卡。钉图上的墨色提示条（`src/styles/desktop.css`）只用模糊，底色仍是墨色。级联菜单的模糊归“浮层”那一类，由 #601 定。
+用它的：dock、dock 托盘、图片大小浮岛、打标进度、轻提示、任务卡。钉图上的墨色提示条（`src/styles/desktop.css`）只用模糊，底色仍是墨色。
+
+菜单、下拉、可搜索下拉与气泡统一用 `.k-popup`：12 圆角、6 内边距、1 px `--line` 描边、`--surface` 底、`--shadow-pop` 投影，模糊取 `--popup-blur`（`blur(18px) saturate(135%)`）。这是 #601 维护者选定的级联菜单外形，与半透明浮动面板分开。
 
 ## 动效
 
@@ -106,7 +108,7 @@
 
 **例外**
 
-- 级联菜单的时间常量留在 `src/ui/menu/timing.ts`（淡入 170、位移 360 ms 与一条回弹曲线）。并不并入通用档位，等 #601 里维护者的回答。
+- 级联菜单保留 `src/ui/menu/timing.ts` 的时间常量与回弹（淡入 170、位移 360 ms），退场只淡出，不并入通用档位（#601 定稿）。
 - 封印与释放演出（`src/styles/library.css`）是品牌不变项，数值不动。
 - 循环播放的动画（呼吸、转圈）有自己的周期。
 
@@ -125,7 +127,7 @@
 | 菜单 | `Menu`（`src/ui/menu/`） | `src/ui/menu.css` |
 | 分段控件 | `Segmented`（`.k-seg`） | `src/ui/` |
 | 开关 | `Switch`（`.k-switch`） | `src/ui/` |
-| 悬停提示 | `Tip`（`.k-tip`） | 规则现在在 `src/shell/main-window.css`，#601 搬进 `src/ui/` |
+| 悬停提示 | `Tip`（`.k-tip`）与 Dock（`.k-dock-tip`）共用纸面、墨字、6 / 10 内边距 | `src/ui/ui-dock.css` |
 | 轻提示 | `Toast`（`.k-toast`） | `src/ui/toast.css` |
 | 对话框 | `.k-dialog`、`DialogHeight` | `src/ui/ui-dock.css` |
 | 设置行 | `SettingsList`（`.k-set-row`） | `src/ui/settings.css` |

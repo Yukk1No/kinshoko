@@ -261,6 +261,8 @@
   /* 半透明浮动面板（dock、托盘、浮岛、轻提示、任务卡）：底色与模糊各一种 */
   --glass-bg: color-mix(in srgb, var(--surface) 86%, transparent);
   --glass-blur: blur(18px) saturate(1.2);
+  /* 浮层沿用级联菜单的模糊；与半透明浮动面板分开（#601，维护者选定 B）。 */
+  --popup-blur: blur(18px) saturate(135%);
   color-scheme: light dark;
 }
 /* Dark: ink purple ground, cream text, gold accent (日间樱、夜间金). Each colour token above holds both values in light-dark(), which
@@ -312,18 +314,6 @@
 }
 :root[data-theme="dark"] {
   --seal-acc: #e3b34f;
-}
-
-/* menus (cascade menus, menu.css `[data-k-level]`): the cascade menu's shape on the V3 palette; each token follows its theme */
-:root {
-  --menu-surface: var(--surface);
-  --menu-border: var(--line);
-  --menu-ink: var(--ink);
-  --menu-hover: var(--hover);
-  --menu-quiet: var(--ink-2);
-  --menu-icon: var(--ink-3);
-  --menu-chevron: var(--ink-3);
-  --menu-shadow: var(--shadow-pop);
 }
 
 /* Continuous corners as progressive enhancement: Chrome and Edge 139+ draw the superellipse, other browsers keep the plain border-radius.

@@ -1,6 +1,5 @@
-/* Cascade menus: every menu level carries data-k-level (src/ui/Menu.tsx). Select and Combobox share
-   .k-popup / .k-item from ui.css and keep that look. Durations come from menuMotionVars (src/ui/menu/timing.ts).
-   Loaded right after ui.css so these rules win over the shared ones. */
+/* Cascade menus share the .k-popup surface and .k-item type from ui.css. Only cascade layout,
+   hover state and motion live here. Durations come from menuMotionVars (src/ui/menu/timing.ts). */
 .k-popup[data-k-level] {
   display: flex;
   flex-direction: column;
@@ -10,13 +9,6 @@
   width: max-content;
   max-height: min(420px, calc(100vh - 24px), var(--available-height, 100vh));
   overflow: auto;
-  padding: 6px;
-  border: 1px solid var(--menu-border);
-  border-radius: var(--r);
-  background: var(--menu-surface);
-  color: var(--menu-ink);
-  box-shadow: var(--menu-shadow);
-  backdrop-filter: blur(18px) saturate(135%);
   transform-origin: var(--transform-origin);
   transition:
     opacity var(--menu-fade) ease-out,
@@ -57,10 +49,6 @@
 }
 .k-menu-title {
   padding: 4px 8px 2px;
-  font-size: 11px;
-  line-height: 14px;
-  font-weight: 600;
-  color: var(--menu-quiet);
   user-select: none;
   overflow-wrap: anywhere;
   transition: color var(--menu-theme-fade);
@@ -72,8 +60,6 @@
   padding: 4px 8px;
   gap: 8px;
   border-radius: var(--r-s);
-  color: var(--menu-ink);
-  font-size: 14px;
   font-weight: 500;
   transition: color var(--menu-theme-fade);
 }
@@ -89,17 +75,17 @@
 [data-k-level][data-k-input="pointer"] .k-item[data-k-hover],
 [data-k-level][data-k-input="keyboard"] .k-item[data-highlighted],
 [data-k-level] .k-item[data-k-active] {
-  background: var(--menu-hover);
+  background: var(--hover);
 }
 [data-k-level] .k-item.is-tip {
   height: auto;
   min-height: 30px;
-  color: var(--menu-quiet);
+  color: var(--ink-2);
   font-weight: 400;
 }
 [data-k-level] .k-item-ind {
   width: 18px;
-  color: var(--menu-icon);
+  color: var(--ink-3);
   transition: color var(--menu-theme-fade);
 }
 [data-k-level] .k-item-ind > svg {
@@ -108,23 +94,23 @@
 }
 [data-k-level] .k-item-meta,
 [data-k-level] .k-kbd {
-  color: var(--menu-quiet);
+  color: var(--ink-2);
   font-weight: 400;
 }
 [data-k-level] .k-item-sub {
   width: 16px;
   height: 16px;
-  color: var(--menu-chevron);
+  color: var(--ink-3);
   transition: color var(--menu-theme-fade);
 }
 [data-k-level] .k-sep {
   flex: none;
   margin: 0 8px;
-  background: var(--menu-border);
+  background: var(--line);
 }
 [data-k-level] .k-section-label.is-menu {
   padding: 4px 8px 0 34px;
-  color: var(--menu-quiet);
+  color: var(--ink-2);
 }
 
 /* a folder row's icon opens while its submenu is open: the two glyphs share their structure, so the paths morph */
