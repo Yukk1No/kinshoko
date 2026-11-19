@@ -47,6 +47,7 @@ image = { version = "0.25", default-features = false, features = ["bmp"] }
 tempfile = "3.27.0"
 
 [target.'cfg(windows)'.dependencies]
+# Match Wry's exact versions so controller() and the bridge share the same COM interface types.
 webview2-com = "=0.39.1"
 windows = "=0.62.2"
 clipboard-win = "5.4.1"

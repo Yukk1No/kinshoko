@@ -1,5 +1,4 @@
 //! WebView2 file paths for HTML5 drops in the main window.
-#![allow(unsafe_code)]
 
 use tauri::{AppHandle, Emitter, Manager, Url, WebviewWindow};
 use webview2_com::Microsoft::Web::WebView2::Win32::{
@@ -25,11 +24,14 @@ fn accepts(message: &str, source: &str, origin: &Url, invoke_key: &str) -> bool 
         })
 }
 
+#[allow(unsafe_code)]
 unsafe fn paths(
     args: &ICoreWebView2WebMessageReceivedEventArgs,
     origin: &Url,
     invoke_key: &str,
 ) -> windows::core::Result<Vec<String>> {
+    // SAFETY: Called on WebView2's UI (STA) thread with COM args valid for the callback.
+    // Successful PWSTR getters transfer ownership to take_pwstr (CoTaskMemFree).
     unsafe {
         let mut source = PWSTR::null();
         args.Source(&mut source)?;
@@ -102,6 +104,9 @@ pub fn install(window: &WebviewWindow) -> tauri::Result<()> {
     let target = window.clone();
     window.with_webview(move |webview| {
         let register = || -> windows::core::Result<()> {
+            // SAFETY: Wry's with_webview runs on WebView2's UI (STA) thread;
+            // its event callback runs there too, with COM args valid for the callback duration.
+            #[allow(unsafe_code)]
             unsafe {
                 let core = webview.controller().CoreWebView2()?;
                 let mut token = 0;
