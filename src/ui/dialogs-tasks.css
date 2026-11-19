@@ -5,7 +5,7 @@
   position: fixed;
   right: 18px;
   bottom: calc(18px + var(--k-toast-stack, 0px));
-  z-index: 50;
+  z-index: var(--z-task);
   width: 340px;
   max-width: calc(100vw - 36px);
   max-height: calc(100vh - 100px - var(--k-toast-stack, 0px));
@@ -26,8 +26,8 @@
   padding: 8px;
   border-radius: var(--r-l);
   color: var(--ink);
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
-  backdrop-filter: blur(20px) saturate(1.2);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-toast);
 }
 .k-task:not(.is-row) {
@@ -68,8 +68,8 @@
   color: var(--danger);
 }
 .k-task-top .k-icon-btn.is-sm {
-  width: 28px;
-  height: 28px;
+  width: var(--h-sm);
+  height: var(--h-sm);
   border-radius: var(--r-s);
   color: var(--ink-3);
 }
@@ -205,7 +205,7 @@
 .k-drop-hint {
   position: fixed;
   inset: 12px;
-  z-index: 80;
+  z-index: var(--z-drop);
   display: grid;
   place-items: center;
   border-radius: var(--r-xl);
@@ -347,7 +347,7 @@
   border-radius: var(--r-xs);
 }
 .k-icon-btn:disabled {
-  opacity: 0.5;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 /* 成员：26 高、r-s、--surface-2 实心底，不加描边；悬停或聚焦时出 1 px line-2 内描边。计数 12 px ink-2。 */
@@ -462,7 +462,7 @@
   outline-offset: var(--focus-offset);
 }
 .k-group-chip-x:disabled {
-  opacity: 0.4;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 /* 加标签：行内的轻操作，设计系统 Button is-ghost（accent-strong 字，悬停 accent-soft）。 */
@@ -489,7 +489,7 @@
   outline-offset: var(--focus-offset);
 }
 .k-group-add:disabled {
-  opacity: 0.5;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 .k-group-pick {
@@ -539,7 +539,7 @@
   border-radius: var(--r-s);
 }
 .k-group-create:disabled {
-  opacity: 0.5;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 .k-group-new {

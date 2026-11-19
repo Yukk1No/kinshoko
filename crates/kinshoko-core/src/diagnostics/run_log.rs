@@ -11,6 +11,9 @@ use std::io::{self, Write as _};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 
+use jiff::civil::Date;
+use jiff::tz::{Offset, TimeZone};
+use jiff::{Timestamp, ToSpan as _, ZonedDateTime};
 use serde::Serialize;
 
 use super::log_event::{Level, LogEvent};
@@ -29,11 +32,7 @@ const REPORT_NAME: &str = "诊断信息.txt";
 /// 画师没选过时运行日志开不开。测试版、候选版构建（版本号带“-”）开启，好让反馈附上日志；
 /// 正式版的默认值还没定（#219），暂时关闭。
 pub fn run_log_default_for_version(version: &str) -> bool {
-    let test_build = version.contains('-');
-    if test_build {
-        return true;
-    }
-    false
+    version.contains('-')
 }
 
 /// 某一时刻与当时所在时区。
@@ -282,64 +281,49 @@ fn prune(dir: &Path, today: &str) -> io::Result<()> {
     Ok(())
 }
 
-fn local_secs(m: Moment) -> i64 {
-    m.unix_ms.div_euclid(1000) + i64::from(m.utc_offset_secs)
+/// 这一时刻按当时的偏移落在本地时间轴上。超出 jiff 范围的时间点按 1970-01-01 UTC 算。
+fn local(m: Moment) -> ZonedDateTime {
+    let at = Timestamp::from_millisecond(m.unix_ms).unwrap_or(Timestamp::UNIX_EPOCH);
+    let offset = Offset::from_seconds(m.utc_offset_secs).unwrap_or(Offset::UTC);
+    at.to_zoned_datetime(TimeZone::fixed(offset))
 }
 
 /// 本地日期 `YYYY-MM-DD`。
 fn date(m: Moment) -> String {
-    day_string(local_secs(m).div_euclid(86_400))
+    local(m).date().to_string()
 }
 
-fn day_string(days: i64) -> String {
-    let (y, mo, d) = civil_from_days(days);
-    format!("{y:04}-{mo:02}-{d:02}")
-}
-
+/// `YYYY-MM-DD` 前后挪 `by` 天；认不出的日期原样返回。
 fn shift_day(day: &str, by: i64) -> String {
-    let parse = |r: std::ops::Range<usize>| day[r].parse::<i64>().unwrap_or(0);
-    day_string(days_from_civil(parse(0..4), parse(5..7), parse(8..10)) + by)
+    day.parse::<Date>()
+        .ok()
+        .and_then(|d| d.checked_add(by.days()).ok())
+        .map_or_else(|| day.to_owned(), |d| d.to_string())
 }
 
 /// 本地时间，例如 `2026-10-21T14:03:05.123+08:00`。
 fn timestamp(m: Moment) -> String {
-    let secs = local_secs(m);
-    let in_day = secs.rem_euclid(86_400);
-    let offset = m.utc_offset_secs;
-    let sign = if offset < 0 { '-' } else { '+' };
-    let offset = offset.unsigned_abs();
-    format!(
-        "{}T{:02}:{:02}:{:02}.{:03}{sign}{:02}:{:02}",
-        day_string(secs.div_euclid(86_400)),
-        in_day / 3600,
-        in_day / 60 % 60,
-        in_day % 60,
-        m.unix_ms.rem_euclid(1000),
-        offset / 3600,
-        offset / 60 % 60,
-    )
+    local(m).strftime("%Y-%m-%dT%H:%M:%S%.3f%:z").to_string()
 }
 
-/// 1970-01-01 起的天数 → 公历年月日（Howard Hinnant 的算法）。
-fn civil_from_days(z: i64) -> (i64, u32, u32) {
-    let z = z + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
-    let y = yoe + era * 400 + i64::from(m <= 2);
-    (y, m, d)
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = y.div_euclid(400);
-    let yoe = y.rem_euclid(400);
-    let mp = (m + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
+    #[test]
+    fn days_shift_across_months_years_and_leap_days() {
+        assert_eq!(shift_day("2024-03-01", -1), "2024-02-29");
+        assert_eq!(shift_day("2026-01-03", -6), "2025-12-28");
+        assert_eq!(shift_day("坏的", -1), "坏的");
+    }
+
+    #[test]
+    fn timestamps_west_of_utc_keep_their_sign() {
+        let m = Moment {
+            unix_ms: 1_709_224_200_007,
+            utc_offset_secs: -(3 * 3600 + 30 * 60),
+        };
+        assert_eq!(timestamp(m), "2024-02-29T13:00:00.007-03:30");
+        assert_eq!(date(m), "2024-02-29");
+    }
 }

@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { SelectionBar } from "../library/SelectionBar";
-import { arcSpring } from "../ui/Dock";
+import { arcSpring } from "../ui/motion";
 import { useReducedMotion } from "../ui/reducedMotion";
 import { DensityIsland } from "./DensityIsland";
 import { densityMorphRises, selectionBarCompact, selectionBarPlacement } from "./selectionBarPlacement";

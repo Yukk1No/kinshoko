@@ -1,6 +1,6 @@
 // #98: a workspace read whose revision moved underneath it is a re-read signal, not a standing problem.
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
@@ -83,6 +83,8 @@ function workspace() {
 async function settled() {
   render(<App />);
   await screen.findByRole("img", { name: "参考图" });
+  // 分组在查找框尾部的面板里（#607）：打开它，后面的检查才看得到分组。
+  fireEvent.click(await screen.findByRole("button", { name: "标签分组" }));
   await screen.findByRole("button", { name: /人物分组/ });
   await screen.findByRole("button", { name: "甲库（1 张）" });
 }

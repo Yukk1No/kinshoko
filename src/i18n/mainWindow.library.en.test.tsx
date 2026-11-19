@@ -4,7 +4,7 @@ import { i18n } from ".";
 import { LibraryPicker } from "../library/LibraryPicker";
 import { CreateLibrary } from "../library/CreateLibrary";
 import { WorkspacePane } from "../library/WorkspacePane";
-import { TagGroupBar } from "../search/TagGroupBar";
+import { TagGroupPicker } from "../search/TagGroupPicker";
 import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
 import { expectNoChinese } from "../test/noChinese";
 import { fakeBackend } from "../test/backend";
@@ -100,7 +100,7 @@ describe("英文界面：资料库与文件夹树", () => {
   });
 });
 
-describe("英文界面：标签分组栏", () => {
+describe("英文界面：标签分组", () => {
   it("分组与任一成员", async () => {
     fakeBackend({
       tag_groups: [
@@ -115,7 +115,7 @@ describe("英文界面：标签分组栏", () => {
       ],
     });
     render(
-      <TagGroupBar
+      <TagGroupPicker
         libraryId="lib"
         safe={false}
         generation={0}
@@ -125,8 +125,9 @@ describe("英文界面：标签分组栏", () => {
         onEdit={vi.fn()}
       />,
     );
-    fireEvent.click(await screen.findByRole("button", { name: /眼睛/ }));
-    expect(screen.getByRole("button", { name: "Search for any tag in “眼睛”" })).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Tag groups" }));
+    expect(await screen.findByRole("button", { name: "Search for any tag in “眼睛”" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Edit groups" })).toBeTruthy();
     expectNoChinese(document.body, data);
   });
 });

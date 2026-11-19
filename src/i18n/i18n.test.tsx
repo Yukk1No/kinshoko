@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import { applyInterfaceLanguage, followInterfaceLanguage, i18n } from ".";
 import { UpdateNotice, UpdateSection } from "../Update";
-import { TagGroupBar } from "../search/TagGroupBar";
+import { TagGroupPicker } from "../search/TagGroupPicker";
 import { fakeBackend } from "../test/backend";
 
 afterEach(async () => {
@@ -31,7 +31,7 @@ const page = () =>
   render(
     <>
       <UpdateSection version="Kinshoko 1.1.0" />
-      <TagGroupBar
+      <TagGroupPicker
         libraryId="lib"
         safe={false}
         generation={0}
@@ -42,12 +42,20 @@ const page = () =>
     </>,
   );
 
+/** 标签分组的名称在面板里：点开查找框尾部的分组按钮再找。 */
+const group = async (name: string) => {
+  await waitFor(() => expect(document.querySelector(".k-groups-btn")).toBeTruthy());
+  const btn = document.querySelector<HTMLElement>(".k-groups-btn")!;
+  if (btn.getAttribute("aria-expanded") !== "true") fireEvent.click(btn);
+  return screen.findByText(name);
+};
+
 describe("界面语言", () => {
   it("没有指定时是简体中文，与 1.0 一致", async () => {
     const asked = backend("zh-CN");
     page();
     expect(await screen.findByText("检查更新", { selector: ".k-label" })).toBeTruthy();
-    expect(await screen.findByText("眼睛")).toBeTruthy();
+    expect(await group("眼睛")).toBeTruthy();
     expect(asked).toEqual(["zh-CN"]);
   });
 
@@ -56,7 +64,7 @@ describe("界面语言", () => {
     const stop = followInterfaceLanguage();
     page();
     expect(await screen.findByText("Check for updates", { selector: ".k-label" })).toBeTruthy();
-    expect(await screen.findByText("Eyes")).toBeTruthy();
+    expect(await group("Eyes")).toBeTruthy();
     expect(asked).toContain("en");
     expect(document.documentElement.lang).toBe("en");
     stop();
@@ -66,19 +74,19 @@ describe("界面语言", () => {
     const asked = backend("zh-CN");
     const stop = followInterfaceLanguage();
     page();
-    expect(await screen.findByText("眼睛")).toBeTruthy();
+    expect(await group("眼睛")).toBeTruthy();
 
     await act(async () => {
       await emit("interface-language", "en");
     });
-    expect(await screen.findByText("Eyes")).toBeTruthy();
+    expect(await group("Eyes")).toBeTruthy();
     expect(screen.getByText("Up to date")).toBeTruthy();
     expect(asked.at(-1)).toBe("en");
 
     await act(async () => {
       await emit("interface-language", "zh-CN");
     });
-    expect(await screen.findByText("眼睛")).toBeTruthy();
+    expect(await group("眼睛")).toBeTruthy();
     expect(screen.getByText("已是最新")).toBeTruthy();
     stop();
   });

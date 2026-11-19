@@ -1,6 +1,9 @@
 //! 时间点：Unix 毫秒加上当时的本地时区偏移。“每天”“每周”都按画师的本地日期算，
 //! 偏移由应用壳取得后传进来，核心不读系统时区。
 
+use jiff::Timestamp;
+use jiff::civil::DateTime;
+use jiff::tz::Offset;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -38,37 +41,35 @@ impl Stamp {
         (self.local_day() + 3).div_euclid(7)
     }
 
-    /// 本地日期与时间：`(年, 月, 日, 时, 分, 秒)`。
-    pub fn local_parts(self) -> (i64, u32, u32, u32, u32, u32) {
-        let (y, m, d) = civil_from_days(self.local_day());
-        let secs = self.local_ms().rem_euclid(DAY_MS) / 1000;
-        (
-            y,
-            m,
-            d,
-            (secs / 3600) as u32,
-            (secs / 60 % 60) as u32,
-            (secs % 60) as u32,
-        )
+    /// 本地日期与时间。超出 jiff 范围（约 ±9999 年）的时间点按 1970-01-01 UTC 算。
+    pub fn local_datetime(self) -> DateTime {
+        let at = Timestamp::from_millisecond(self.unix_ms).unwrap_or(Timestamp::UNIX_EPOCH);
+        let offset =
+            Offset::from_seconds(self.offset_minutes.saturating_mul(60)).unwrap_or(Offset::UTC);
+        offset.to_datetime(at)
     }
 
     /// `YYYY-MM-DD`。
     pub fn local_date(self) -> String {
-        let (y, m, d, ..) = self.local_parts();
-        format!("{y:04}-{m:02}-{d:02}")
+        self.local_datetime().date().to_string()
     }
 }
 
-/// 天数 → 公历日期（Howard Hinnant 的算法）。
-fn civil_from_days(z: i64) -> (i64, u32, u32) {
-    let z = z + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
-    (if m <= 2 { y + 1 } else { y }, m, d)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // 2024-02-29T16:30:00Z
+    const AT: i64 = 1_709_224_200_000;
+
+    #[test]
+    fn the_local_date_and_time_follow_the_offset() {
+        let east = Stamp::new(AT, 480);
+        assert_eq!(east.local_date(), "2024-03-01");
+        assert_eq!(
+            east.local_datetime().strftime("%Y%m%d-%H%M%S").to_string(),
+            "20240301-003000"
+        );
+        assert_eq!(Stamp::new(AT, -300).local_date(), "2024-02-29");
+    }
 }

@@ -6,6 +6,8 @@ import { fake, sent, card, selectOnly, addTag } from "./TagOrganize.fixtures";
 import { chooseValue } from "../test/select";
 
 async function openGroups() {
+  // “编辑分组”在查找框尾部标签分组面板的底部（#607）。
+  fireEvent.click(await screen.findByRole("button", { name: "标签分组" }));
   fireEvent.click(await screen.findByRole("button", { name: "编辑分组" }));
   return screen.findByRole("region", { name: "标签分组" });
 }

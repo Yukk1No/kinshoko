@@ -112,7 +112,9 @@ impl Renderer {
             )));
         }
         let rgba = |rgb: &[f32]| -> Vec<f32> {
-            rgb.chunks_exact(3)
+            rgb.as_chunks::<3>()
+                .0
+                .iter()
                 .flat_map(|c| [c[0], c[1], c[2], 1.0])
                 .collect()
         };
