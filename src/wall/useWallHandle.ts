@@ -95,7 +95,7 @@ export function useWallHandle({
               currentCards.get(card.set?.key ?? card.id) ??
               card.set?.pages.map((page) => currentCards.get(page.id)).find((item) => item !== undefined);
             if (card.set) {
-              const present = current ? pagesOf([current]) : [];
+              const present = current?.set?.pages ?? (current ? [{ ...current, sources: current.sources ?? [] }] : []);
               const order = new Map(card.set.pages.map((page, index) => [page.id, index]));
               const missing = card.set.pages.filter((page) => restored.has(page.id));
               const pages: typeof present = [];
