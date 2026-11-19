@@ -91,10 +91,9 @@ describe("主窗口", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     await chooseDestination();
-    const position = { x: 10, y: 10 };
-    await act(() => emit("tauri://drag-enter", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }));
+    fireEvent.dragEnter(window, { dataTransfer: { types: ["Files"] } });
     expect(screen.getByRole("img", { name: "松开即可导入到 工作参考" })).toBeTruthy();
-    await act(() => emit("tauri://drag-drop", { paths: ["D:\\图\\a.png", "D:\\一批参考"], position }));
+    await act(() => emit("kinshoko-file-drop", ["D:\\图\\a.png", "D:\\一批参考"]));
     await confirmImport();
 
     await waitFor(() =>
@@ -358,7 +357,7 @@ describe("Eagle 迁入完成后的标签外部对应（#77 UI-E）", () => {
       fireEvent.click(importAction("导入文件夹…"));
       await confirmImport();
     } else {
-      await act(() => emit("tauri://drag-drop", { paths, position: { x: 10, y: 10 } }));
+      await act(() => emit("kinshoko-file-drop", paths));
       await confirmImport();
     }
     await waitFor(() => expect(sent("start_import")).toHaveLength(1));

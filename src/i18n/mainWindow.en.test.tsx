@@ -51,7 +51,6 @@ const actions = (): WallMenuActions => ({
   reveal: vi.fn(),
   importClipboard: vi.fn(),
   clipboardHasImage: vi.fn(async () => true),
-  folders: vi.fn(async () => []),
   inFolder: vi.fn(async () => true),
   groups: vi.fn(async () => []),
 });
@@ -82,10 +81,9 @@ describe("英文界面：图片墙", () => {
     expectNoChinese(wallMenu({ kind: "blank", point }));
   });
 
-  it("子菜单：文件夹、参考组、内容分级与图片大小", async () => {
+  it("子菜单：内容分级；不再提供移到文件夹", async () => {
     const menu = wallMenu({ kind: "cards", cards: [card("1")], point });
-    fireEvent.click(screen.getByRole("menuitem", { name: "Move to folder" }));
-    expect(await screen.findByText("This library has no folders yet")).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "Move to folder" })).toBeNull();
     fireEvent.click(screen.getByRole("menuitem", { name: "Content rating" }));
     expect(await screen.findByRole("menuitem", { name: "Adult" })).toBeTruthy();
     expectNoChinese(menu.ownerDocument.body);

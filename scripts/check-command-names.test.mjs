@@ -15,6 +15,11 @@ describe("Rust 一侧", () => {
     const source = "x.invoke_handler(tauri::generate_handler![\n  commands::app_info, // 说明\n  a::b::c,\n]);";
     expect(registeredCommands(source)).toEqual(["app_info", "c"]);
   });
+
+  it("平台属性里的方括号不是命令列表的结尾", () => {
+    const source = "tauri::generate_handler![#[cfg(windows)] file_drop::file_drop_ack, commands::app_info]";
+    expect(registeredCommands(source)).toEqual(["file_drop_ack", "app_info"]);
+  });
 });
 
 describe("前端一侧", () => {

@@ -22,7 +22,9 @@ export const GROUPS = {
 
 /** 注册了却不在前端出现的命令：组 → { 命令名: 理由 }。 */
 export const EXCEPTIONS = {
-  app: {},
+  app: {
+    file_drop_ack: "由主窗口的 WebView2 初始化脚本调用",
+  },
   library: {
     switch_library: "仅 e2e 使用",
   },
@@ -72,7 +74,7 @@ export function registeredCommands(source) {
   const marker = "generate_handler![";
   const start = source.indexOf(marker);
   if (start === -1) throw new Error("没有 generate_handler!");
-  const rest = source.slice(start + marker.length);
+  const rest = source.slice(start + marker.length).replace(/#\[[^\]]*\]/g, "");
   const end = rest.indexOf("]");
   if (end === -1) throw new Error("generate_handler! 没有结束");
   return rest

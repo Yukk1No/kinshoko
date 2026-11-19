@@ -9,8 +9,6 @@ import type { LibraryBatchFailure } from "./bindings/LibraryBatchFailure";
 // 前端调用 Tauri 命令的唯一入口。参数与返回值的类型来自 ts-rs 生成的 ./bindings，
 // 不在这里手写；Rust 侧改了类型，重新生成后这里会在类型检查时报错。
 import { invoke } from "./ipc/invoke";
-import { type UnlistenFn } from "@tauri-apps/api/event";
-import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { AppInfo } from "./bindings/AppInfo";
 import type { EagleLibraryCandidate } from "./bindings/EagleLibraryCandidate";
 import type { EagleTagMapping } from "./bindings/EagleTagMapping";
@@ -31,6 +29,7 @@ export * from "./ipc/desktop";
 export * from "./ipc/groups";
 export * from "./ipc/workspace";
 export * from "./ipc/commandError";
+export { onFileDrop, type FileDrop } from "./ipc/fileDrop";
 
 export function appInfo(): Promise<AppInfo> {
   return invoke<AppInfo>("app_info");
@@ -237,23 +236,4 @@ export function cancelImport(libraryId: string, taskId: string): Promise<void> {
 /** 这个资料库这次打开时的对账结果：撤回的中断导入项与不认识的孤立文件。 */
 export function libraryRecovery(libraryId: string): Promise<RecoveryReport> {
   return invoke<RecoveryReport>(lib("recovery"), { libraryId });
-}
-
-export type FileDrop = { kind: "enter"; paths: string[] } | { kind: "drop"; paths: string[] } | { kind: "leave" };
-
-/** 文件或文件夹拖进主窗口：进入、松开（带路径）、离开。 */
-export function onFileDrop(handler: (drop: FileDrop) => void): Promise<UnlistenFn> {
-  return getCurrentWebview().onDragDropEvent(({ payload }) => {
-    switch (payload.type) {
-      case "enter":
-        handler({ kind: "enter", paths: payload.paths });
-        break;
-      case "drop":
-        handler({ kind: "drop", paths: payload.paths });
-        break;
-      case "leave":
-        handler({ kind: "leave" });
-        break;
-    }
-  });
 }
