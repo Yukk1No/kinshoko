@@ -44,7 +44,7 @@ const desktop: Translation<typeof zh> = {
     copy: "Duplicate",
     copyName: "{{name}} copy",
     copied: "Reference group duplicated",
-    prune: "Keep pinned only",
+    prune: "Remove closed",
     pruned_one: "Removed {{count, number}} image",
     pruned_other: "Removed {{count, number}} images",
     removed: "Removed",
