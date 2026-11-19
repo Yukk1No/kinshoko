@@ -18,10 +18,12 @@ import {
   registeredLibraries,
   removeGroupMember,
   renameReferenceGroup,
+  repinAllGroupMembers,
   repinGroupMember,
   restoreReferenceGroup,
   setReferenceGroupFavorite,
   splitOffReferenceGroup,
+  showGroupMember,
   switchReferenceGroup,
   undoPruneUnpinned,
   undoSplitOff,
@@ -321,7 +323,10 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
             view={view}
             libraryNames={libraryNames}
             label={label}
+            favorite={lists.favorites.some((f) => f.id === g.id)}
             onRepin={(memberId) => void run(() => repinGroupMember(memberId))}
+            onShow={(memberId) => void run(() => showGroupMember(g.id, memberId))}
+            onRepinAll={() => void run(() => repinAllGroupMembers())}
             onRemove={(memberId) =>
               void undoable(
                 () => removeGroupMember(g.id, memberId),

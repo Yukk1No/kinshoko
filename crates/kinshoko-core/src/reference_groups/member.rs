@@ -77,6 +77,10 @@ pub struct GroupMember {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(type = "number", optional)]
     pub added_at: Option<i64>,
+    /// 关掉的时间（毫秒）：侧栏“已关闭 N 张”按它倒序（#588 11-19 晚 规则 3）。钉着时没有、不写出。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(type = "number", optional)]
+    pub closed_at: Option<i64>,
 }
 
 fn yes() -> bool {
@@ -131,6 +135,7 @@ impl GroupMember {
             locked: false,
             pinned: true,
             added_at: None,
+            closed_at: None,
         })
     }
 
@@ -153,6 +158,7 @@ impl GroupMember {
             locked: false,
             pinned: true,
             added_at: None,
+            closed_at: None,
         }
     }
 
@@ -164,12 +170,13 @@ impl GroupMember {
         self.locked = pin.locked;
     }
 
-    /// 参考组包不带透明度、锁定与钉着（#588 决定 3）：导入后都算钉着。添加日期留着。
+    /// 参考组包不带透明度、锁定、钉着与关闭时间（#588 决定 3）：导入后都算钉着。添加日期留着。
     pub(super) fn without_desk_state(&self) -> GroupMember {
         GroupMember {
             opacity: 1.0,
             locked: false,
             pinned: true,
+            closed_at: None,
             ..self.clone()
         }
     }

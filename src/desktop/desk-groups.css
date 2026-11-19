@@ -252,3 +252,31 @@
 .desk-group-tile-remove:focus-visible {
   outline: var(--focus-ring);
 }
+
+/* 一张都没钉着时（#588 11-19 晚）：顶上一个“全部钉上”。 */
+.desk-group-repin-all {
+  align-self: flex-start;
+}
+/* 没收藏的组：已关闭的折成底下一行，和段标题一样的展开箭头。 */
+.desk-group-closed-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  padding: 0 6px 0 0;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.desk-group-closed-toggle:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+.desk-group-closed-toggle[aria-expanded="true"] .desk-groups-chevron {
+  rotate: 90deg;
+}
+.desk-group-closed .desk-group-tiles {
+  margin-top: 4px;
+}
