@@ -19,7 +19,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
 };
 use windows::core::PWSTR;
 
-/// 已投出的“前台换成权限更高的程序”消息各自的程序文件名，按投出的顺序；界面线程每收到一条取走最前面的。
+/// 已投出的“前台换成权限更高的程序”消息各自的程序名，按投出的顺序；界面线程每收到一条取走最前面的。
 static EXE: Mutex<VecDeque<String>> = Mutex::new(VecDeque::new());
 
 thread_local! {
@@ -134,7 +134,7 @@ fn elevated(process: HANDLE) -> Option<bool> {
     Some(e.TokenIsElevated != 0)
 }
 
-/// 程序文件名（不含目录）；查不到时为空。
+/// 程序名（不含目录和扩展名：运行日志把带扩展名的词当文件名抹掉）；查不到时为空。
 fn image_name(process: HANDLE) -> String {
     let mut buf = [0u16; 260];
     let mut len = buf.len() as u32;
@@ -151,5 +151,8 @@ fn image_name(process: HANDLE) -> String {
         return String::new();
     }
     let path = String::from_utf16_lossy(&buf[..len as usize]);
-    path.rsplit('\\').next().unwrap_or_default().to_owned()
+    std::path::Path::new(&path)
+        .file_stem()
+        .map(|stem| stem.to_string_lossy().into_owned())
+        .unwrap_or_default()
 }
