@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { LayoutGroup, motion } from "motion/react";
 import { ChevronRight, FolderInput, Layers, MoreHorizontal, Plus } from "lucide-react";
 import type { DeskLists } from "../bindings/DeskLists";
 import type { GroupSummary } from "../bindings/GroupSummary";
@@ -34,7 +33,6 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { FluidList, FluidRow } from "../ui/FluidList";
 import { Menu, MenuPopup } from "../ui/Menu";
 import { Name } from "../ui/Name";
-import { useReducedMotion } from "../ui/reducedMotion";
 import { Tip } from "../ui/Tip";
 import { useToast } from "../ui/Toast";
 import { WarnIcon } from "../ui/WarnIcon";
@@ -109,14 +107,13 @@ export function DeskNewGroupButton() {
 }
 
 /**
- * 常用、最近、更早三段（#592）。单击一项就整桌换成它；桌面上的那一项由一个指示块标出并展开成员，
- * 换一项时指示块滑过去，第一次出现直接到位。设为常用、取消常用、从更早回到最近时同一张卡片在段之间移动。
+ * 常用、最近、更早三段（#592）。单击一项就整桌换成它；桌面上的那一项由左边的短条标出并展开成员，
+ * 换一项时只有短条滑过去（useIndicatorSlide），行本身不做位置动画：列表重读、成员展开时不整列重排。
  * “更早”默认折起。减弱动效时都直接到终态。
  */
 export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
   const { t } = useTranslation("desktop");
   const toast = useToast();
-  const reduced = useReducedMotion();
   const [libraryNames, setLibraryNames] = useState<Map<string, string>>(new Map());
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [folded, setFolded] = useState<ReadonlySet<SectionKey>>(() => new Set(["older"]));
@@ -261,14 +258,7 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
       </>
     );
     return (
-      <motion.li
-        key={g.id}
-        layout="position"
-        layoutId={g.id}
-        transition={reduced ? { duration: 0 } : undefined}
-        className="desk-group"
-        data-id={g.id}
-      >
+      <li key={g.id} className="desk-group" data-id={g.id}>
         {renaming?.id === g.id ? (
           <GroupNameForm
             title={t("groups.renameTitle")}
@@ -347,7 +337,7 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
             }
           />
         )}
-      </motion.li>
+      </li>
     );
   };
 
@@ -379,11 +369,9 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
       )}
       <div className="side-scroll">
         {all.length === 0 && <p className="desk-groups-empty">{t("groups.empty")}</p>}
-        <LayoutGroup>
-          {section("favorites", lists.favorites)}
-          {section("recent", lists.recent)}
-          {section("older", lists.older)}
-        </LayoutGroup>
+        {section("favorites", lists.favorites)}
+        {section("recent", lists.recent)}
+        {section("older", lists.older)}
       </div>
       <div className="side-foot">
         <FluidList>
