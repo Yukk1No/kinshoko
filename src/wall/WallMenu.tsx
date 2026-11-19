@@ -34,6 +34,7 @@ import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ImageEdit } from "../bindings/ImageEdit";
 import type { BrowserCard } from "./Wall";
 import { pagesOf } from "./imageSets";
+import { groupLabel } from "../desktop/groupLabel";
 import { errorText } from "../ipc/commandError";
 
 /** 右键菜单作用的对象：一组卡片（右键的那张，或它所在的整组选择），或图片墙的空白处。point 为指针位置（CSS 像素，窗口客户区）。 */
@@ -164,6 +165,7 @@ function GroupList({
   point: { x: number; y: number };
 }) {
   const { t } = useTranslation(["wall", "common"]);
+  const { t: td } = useTranslation("desktop");
   const { items, problem } = useList(actions.groups);
   if (!items) return <MenuTip>{t("menu.loadingGroups")}</MenuTip>;
   if (problem) return <MenuTip>{problem}</MenuTip>;
@@ -173,7 +175,7 @@ function GroupList({
     <>
       {usable.map((g) => (
         <MenuItem key={g.id} onClick={() => actions.addToGroup(cards, g.id, point)}>
-          {g.name}
+          {groupLabel(td, g)}
         </MenuItem>
       ))}
     </>
