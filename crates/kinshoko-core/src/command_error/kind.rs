@@ -427,6 +427,8 @@ pub enum ErrorKind {
     },
     NoMonitor,
     UpdateNotPending,
+    /// 已经有一次安装在下载，另一处又点了安装。
+    UpdateInstalling,
     UpdateCheckFailed,
     UpdateManual,
     UpdateNoPublicKey,

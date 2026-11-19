@@ -23,6 +23,7 @@ export default {
   updateUnknownStage:
     "The update stage setting isn't recognized, so automatic updates are off. Update with a new installer.",
   updateNotPending: "There's no update to install. Check for updates first.",
+  updateInstalling: "The update is already downloading. Wait for it to finish.",
   updateSignatureInvalid:
     "The update package didn't pass verification and wasn't installed. Download it again or update manually.",
   updateInstallFailed: "Couldn't download or install the update. Try again later.",

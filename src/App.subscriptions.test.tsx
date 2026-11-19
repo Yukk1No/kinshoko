@@ -39,11 +39,11 @@ describe("订阅入口", () => {
   it("开着时显示入口与新图数，超过 99 写 99+", async () => {
     withSubscriptions(status({ newCount: 12 }));
     render(<App />);
-    await waitFor(() => expect(entry()?.querySelector(".rail-badge")?.textContent).toBe("12"));
+    await waitFor(() => expect(entry()?.querySelector(".k-badge")?.textContent).toBe("12"));
     await push(status({ newCount: 120 }));
-    expect(entry()?.querySelector(".rail-badge")?.textContent).toBe("99+");
+    expect(entry()?.querySelector(".k-badge")?.textContent).toBe("99+");
     await push(status({ newCount: 0 }));
-    expect(entry()?.querySelector(".rail-badge")).toBeNull();
+    expect(entry()?.querySelector(".k-badge")).toBeNull();
   });
 
   it("关掉订阅功能后入口隐藏，开着的订阅页回到图片与文件夹", async () => {

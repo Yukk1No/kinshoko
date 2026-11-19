@@ -131,13 +131,13 @@
 | 设置行 | `SettingsList`（`.k-set-row`） | `src/ui/settings.css` |
 | 胶囊 | `.k-pill` | `src/ui/ui-dock.css` |
 | Dock | `Dock`（`.k-dock`） | `src/ui/ui-dock.css` |
+| 计数角标 | `.k-badge`（图标按钮右上角的墨色数字，图标轨与 Dock 共用） | `src/ui/ui-dock.css` |
 
 ### 还没有共用类
 
 下面这些同一种东西有几个类，#602 各收成一个，收完一类就移进上面的表、从这里删掉：
 
 - 标签块：`.chip`、`.k-chip`、`.k-group-chip`、`.search-chip`、`.k-tag-chip`
-- 计数角标：`.badge`、`.rail-badge`、`.k-dock-badge`
 - 低强调按钮：`.k-btn.is-quiet`、`.k-btn.is-ghost`、`.k-btn.is-flush`、`.k-link`
 - 16 px 标题：`.pane-title`、`.subs-title`、`.subs-empty-title`、`.k-set-heading`、`.k-set-title`、`.k-dialog-title`
 - 12 px 分组名：`.k-menu-label`、`.k-field-label`、`.k-add-similar-head`、`.k-tag-alias-title`、`.subs-group-head`

@@ -15,10 +15,13 @@ export function FluidList({
   children,
   className = "",
   gapClick = true,
+  indented = false,
 }: {
   children: ReactNode;
   className?: string;
   gapClick?: boolean;
+  /** 行按层级缩进（左栏的文件夹树，#608）：高亮块跟着行的左边与宽度，不铺满整个列表。 */
+  indented?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
@@ -31,7 +34,12 @@ export function FluidList({
           className="k-fluid-pill"
           aria-hidden="true"
           initial={false}
-          animate={{ top: rect.top, height: rect.height }}
+          style={indented ? { right: "auto" } : undefined}
+          animate={
+            indented
+              ? { top: rect.top, height: rect.height, left: rect.left, width: rect.width }
+              : { top: rect.top, height: rect.height }
+          }
           transition={reduced ? { duration: 0 } : spring.moderate}
         />
       )}

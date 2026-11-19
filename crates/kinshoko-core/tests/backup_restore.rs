@@ -253,6 +253,42 @@ fn a_later_backup_copies_only_the_new_originals_and_holds_the_originals_lease_wh
     assert_eq!(target.snapshots().unwrap().len(), 2);
 }
 
+#[test]
+fn a_later_backup_replaces_a_damaged_original_of_the_same_size_instead_of_reusing_it() {
+    let device = Device::new();
+    let backups = tempfile::tempdir().unwrap();
+    let target = target(backups.path());
+    let first = device.backup(&target, at(0, 3));
+    assert_eq!((first.copied, first.reused), (5, 0));
+    // 备份目标里的一份原文件坏了一个字节，长度不变。
+    let store = backups.path().join("移动盘/kinshoko-backup/originals");
+    let damaged = std::fs::read_dir(&store)
+        .unwrap()
+        .flat_map(|shard| std::fs::read_dir(shard.unwrap().path()).unwrap())
+        .map(|file| file.unwrap().path())
+        .next()
+        .unwrap();
+    let mut bytes = std::fs::read(&damaged).unwrap();
+    bytes[0] ^= 0xff;
+    std::fs::write(&damaged, &bytes).unwrap();
+
+    let second = device.backup(&target, at(1, 3));
+    assert!(second.complete, "{:?}", second.problems);
+    assert_eq!(
+        (second.copied, second.reused),
+        (1, 4),
+        "坏了的原文件重新复制"
+    );
+    target
+        .restore(
+            &second.snapshot_id,
+            &device.dir.path().join("恢复"),
+            &device.groups,
+            at(2, 1),
+        )
+        .unwrap();
+}
+
 /// 备份期间永久删除（#67）：参考图记录照常删掉，原文件留到租约放下之后再清除，快照完整。
 #[test]
 fn a_permanent_delete_during_a_backup_does_not_remove_the_original_until_the_backup_ends() {

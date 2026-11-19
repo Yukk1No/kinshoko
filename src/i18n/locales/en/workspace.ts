@@ -24,6 +24,7 @@ const workspace: Translation<typeof zh> = {
     label: "Details",
     collapse: "Collapse details",
     title: "Details",
+    empty: "Select an image to see its tags and sources here",
   },
   organizeWaiting: {
     title: "Organizing after the import finishes",
