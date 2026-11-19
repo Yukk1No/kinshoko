@@ -84,7 +84,9 @@ pub async fn reference_group(
         // 桌面上那组以内存为准：钉住、关掉之后侧栏马上重读，这时可能还没落盘。
         let on_desk = lock(&state(&app).store)
             .desk()
-            .and_then(|desk| desk.group().filter(|g| g.id == group_id).cloned());
+            .group()
+            .filter(|g| g.id == group_id)
+            .cloned();
         let group = match on_desk {
             Some(group) => group,
             None => groups.get(&group_id).map_err(CommandError::from)?,
