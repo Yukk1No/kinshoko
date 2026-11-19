@@ -44,14 +44,8 @@ pub fn open(
         locked: false,
         member: None,
     };
-    lock(&state(app).history).pin(&capture.id);
-    {
-        let mut store = lock(&state(app).store);
-        store.put(pin.clone());
-        let _ = store.save();
-    }
+    let pin = add_and_open(app, pin)?;
     history_changed(app);
-    open_pin(app, &pin);
     Ok(pin.id)
 }
 
@@ -105,13 +99,44 @@ pub(super) fn pin_reference_here(
     let (x, y) = place_new_pin(at, monitor, &others, (OFFSET * dpi).round() as i32);
     pin.placement.x = x;
     pin.placement.y = y;
-    {
-        let mut store = lock(&state(app).store);
-        store.put(pin.clone());
-        let _ = store.save();
-    }
-    open_pin(app, &pin);
+    add_and_open(app, pin)?;
     Ok(())
+}
+
+/// 放进钉图状态并开出窗口。期间换了桌时，刚放进旧桌的钉图已被换走，对齐时它的窗口可能还没开出来：
+/// 开完再核对一次，不在了就另起线程重新对齐把它关掉。不在这里加锁也不在这里关窗口：截图完成时调用方
+/// 正持有遮蔽的提交锁，对齐关窗口时也要取它。
+pub(in crate::desktop) fn add_and_open(
+    app: &AppHandle,
+    pin: SavedPin,
+) -> Result<SavedPin, CommandError> {
+    let pin = add(app, pin)?;
+    open_pin(app, &pin);
+    if lock(&state(app).store).get(&pin.id).is_none() {
+        let app = app.clone();
+        std::thread::spawn(move || crate::desktop::desk_commands::realign(&app));
+    }
+    Ok(pin)
+}
+
+/// 把新钉图放进钉图状态（开关打开时它成为桌面上参考组的新成员），截图钉图在截图历史里记下钉住。
+/// 返回要打开的钉图。先钉图状态、后截图历史。
+///
+/// 开关打开、桌面空着时这一张开了新参考组（#588 决定 4）：参考组列表变了；有上一组时推送
+/// [`super::super::desk_commands::STARTED_EVENT`]，界面据此提示“加进上一组”。
+pub(in crate::desktop) fn add(app: &AppHandle, pin: SavedPin) -> Result<SavedPin, CommandError> {
+    let added = {
+        let mut store = lock(&state(app).store);
+        let added = store.add(pin, &mut lock(&state(app).history))?;
+        if store.is_desk() {
+            state(app).dirty.store(true, Ordering::Relaxed);
+        }
+        added
+    };
+    if added.started {
+        crate::desktop::desk_commands::started(app, added.fold_into);
+    }
+    Ok(added.pin)
 }
 
 /// 钉图此刻要不要原位遮蔽（模糊并显示小圆锁，见 [`kinshoko_core::desktop::PinVeils`]），以及暂时

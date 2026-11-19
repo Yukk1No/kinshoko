@@ -1,5 +1,5 @@
 //! 参考组（#66）的命令：把桌面上的资料库钉图存成参考组、存回、打开（成员钉到桌面）、重命名、删除；
-//! 参考组包（#68）的导出与导入。
+//! 参考组包（#68）的导出与导入，见 [`package`]。
 //! 规则与存储在 `kinshoko_core::reference_groups`；参考组是应用数据目录 `reference-groups/` 下
 //! 独立于资料库的 JSON（ADR-0002）。
 //!
@@ -12,21 +12,21 @@
 //!
 //! 参考组变化后向所有窗口推送 `reference-groups`（无载荷），主窗口据此重新读取列表。
 
-use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::desktop::{
     CaptureChoice, CaptureEntry, CollectedCapture, PinContent, SavedPin, pull_onto_screen,
 };
-use std::path::PathBuf;
 
 use kinshoko_core::reference_groups::{
-    GroupCapture, GroupSummary, PACKAGE_EXTENSION, ReferenceGroup, ReferenceGroupView,
+    GroupCapture, GroupSummary, ReferenceGroup, ReferenceGroupView,
 };
 use tauri::{AppHandle, Emitter};
-use tauri_plugin_dialog::DialogExt as _;
 
 use super::{lock, pins, state};
+
+mod package;
+pub use package::*;
 
 pub(super) const CHANGED_EVENT: &str = "reference-groups";
 
@@ -204,6 +204,10 @@ fn prepare_pins(
 /// 也改连，不论它显示的是哪条截图历史条目。
 /// 钉图早已关掉、截图在几个参考组里都一样。只转换这次改连成功的成员的钉图；没改连的写进运行日志。
 pub fn capture_collected(app: &AppHandle, capture_id: &str, collected: &CollectedCapture) {
+    if super::desk_commands::desk_on(app) {
+        desk_capture_collected(app, capture_id, collected);
+        return;
+    }
     let Some(entry) = lock(&state(app).history).entry(capture_id) else {
         return;
     };
@@ -251,6 +255,32 @@ pub fn capture_collected(app: &AppHandle, capture_id: &str, collected: &Collecte
     changed(app);
 }
 
+/// 开关打开时（#591）：桌面模块把关联的成员改连，桌面上显示这张截图的钉图改为参考图钉图。
+fn desk_capture_collected(app: &AppHandle, capture_id: &str, collected: &CollectedCapture) {
+    let done = super::desk_commands::with_desk(app, |desk, history| {
+        desk.collected(history, capture_id, collected)
+    });
+    let done = match done {
+        Ok(done) => done,
+        Err(e) => {
+            crate::run_log::warn("桌面上的参考组未改连到收藏的参考图", e);
+            return;
+        }
+    };
+    for failed in &done.report.failed {
+        crate::run_log::warn(
+            "参考组成员未改连到收藏的参考图",
+            format!(
+                "参考组 {} 成员 {}：{}",
+                failed.member.group_id, failed.member.member_id, failed.reason
+            ),
+        );
+    }
+    let converted: Vec<String> = done.converted.iter().map(|p| p.id.clone()).collect();
+    pins::converted_to_references(app, &converted, false);
+    changed(app);
+}
+
 /// 存进参考组后记下截图历史条目与组内截图成员的关联（[`capture_collected`] 用）。
 fn link_captures(app: &AppHandle, saved: &[SavedPin]) {
     let groups = lock(&state(app).groups);
@@ -259,6 +289,10 @@ fn link_captures(app: &AppHandle, saved: &[SavedPin]) {
 
 /// 参考组的名称；没有或读不懂时为 `None`。钉图菜单用。
 pub fn group_name(app: &AppHandle, group_id: &str) -> Option<String> {
+    // 开关打开时钉图都属于桌面上的参考组，改动自动记下，没有“存回参考组”（#588）。
+    if super::desk_commands::desk_on(app) {
+        return None;
+    }
     lock(&state(app).groups).get(group_id).ok().map(|g| g.name)
 }
 
@@ -348,6 +382,16 @@ pub async fn save_pins_to_group(
 #[tauri::command]
 pub async fn open_reference_group(app: AppHandle, group_id: String) -> Result<usize, CommandError> {
     blocking(move || {
+        // 开关打开时一次只摆一个参考组（#588）：“摆到桌面”就是切换过去。
+        if super::desk_commands::desk_on(&app) {
+            let switched = super::desk_commands::with_desk(&app, |desk, history| {
+                desk.switch_to(&group_id, history)
+            })?;
+            let count = switched.opened.pins.len();
+            let problem = switched.opened.problems.first().cloned();
+            super::desk_commands::apply(&app, Some(switched));
+            return problem.map_or(Ok(count), Err);
+        }
         let groups = lock(&state(&app).groups).clone();
         let group = groups.get(&group_id).map_err(CommandError::from)?;
         let open = pins::open_pins(&app);
@@ -368,13 +412,7 @@ pub async fn open_reference_group(app: AppHandle, group_id: String) -> Result<us
                 p
             })
             .collect();
-        {
-            let mut store = lock(&state(&app).store);
-            for pin in &fresh {
-                store.put(pin.clone());
-            }
-            let _ = store.save();
-        }
+        lock(&state(&app).store).put_opened(&fresh);
         for pin in &fresh {
             pins::open_pin(&app, pin);
         }
@@ -393,77 +431,16 @@ pub async fn rename_reference_group(
     name: String,
 ) -> Result<ReferenceGroup, CommandError> {
     blocking(move || {
-        let group = lock(&state(&app).groups)
-            .rename(&group_id, &name)
-            .map_err(CommandError::from)?;
+        let group = if super::desk_commands::desk_on(&app) {
+            // 桌面上的参考组以内存里的为准，经桌面模块改名。名称可以为空：回到写日期（#588）。
+            super::desk_commands::with_desk(&app, |desk, _| desk.rename(&group_id, &name))?
+        } else {
+            lock(&state(&app).groups)
+                .rename(&group_id, &name)
+                .map_err(CommandError::from)?
+        };
         changed(&app);
         Ok(group)
-    })
-    .await
-}
-
-/// 把参考组导出成参考组包（#68）：带上所用原图与标签、备注、来源、分级的快照。`path` 为空时弹出
-/// 保存对话框；取消时返回 `null`，成功时返回包的位置。有成员取不到原图时不导出并说明。
-#[tauri::command]
-pub async fn export_reference_group_package(
-    app: AppHandle,
-    group_id: String,
-    path: Option<PathBuf>,
-) -> Result<Option<PathBuf>, CommandError> {
-    blocking(move || {
-        let groups = lock(&state(&app).groups).clone();
-        let group = groups.get(&group_id).map_err(CommandError::from)?;
-        let Some(path) = path.or_else(|| {
-            app.dialog()
-                .file()
-                .set_file_name(format!("{}.{PACKAGE_EXTENSION}", group.name))
-                .add_filter(text(Text::FilterReferencePackage), &[PACKAGE_EXTENSION])
-                .blocking_save_file()
-                .and_then(|p| p.into_path().ok())
-        }) else {
-            return Ok(None);
-        };
-        crate::library::export_reference_package(&app, &groups, &group_id, &path)?;
-        Ok(Some(path))
-    })
-    .await
-}
-
-/// 导入参考组包（#68）到明确选择的资料库和文件夹，另存为新的参考组。`path` 为空时
-/// 弹出选择对话框；取消时返回 `null`。包有损坏时什么都不写。
-#[tauri::command]
-pub async fn import_reference_group_package(
-    app: AppHandle,
-    library_id: String,
-    destination: Option<kinshoko_core::library::SaveDestination>,
-    path: Option<PathBuf>,
-) -> Result<Option<ReferenceGroup>, CommandError> {
-    blocking(move || {
-        let destination = destination.unwrap_or(kinshoko_core::library::SaveDestination {
-            library_id: library_id.clone(),
-            folder_id: None,
-        });
-        if destination.library_id != library_id {
-            return Err(CommandError::new(
-                ErrorKind::SaveTargetMismatch,
-                "保存目标资料库与任务归属不一致",
-            ));
-        }
-        let Some(path) = path.or_else(|| {
-            app.dialog()
-                .file()
-                .add_filter(text(Text::FilterReferencePackage), &[PACKAGE_EXTENSION])
-                .blocking_pick_file()
-                .and_then(|p| p.into_path().ok())
-        }) else {
-            return Ok(None);
-        };
-        let groups = lock(&state(&app).groups).clone();
-        let group = crate::library::with_destination(&app, &destination, |library| {
-            crate::library::import_reference_package(&app, &groups, &path, library)
-        })?;
-        changed(&app);
-        Ok(Some(group))
     })
     .await
 }

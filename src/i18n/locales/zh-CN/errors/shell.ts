@@ -65,6 +65,7 @@ export default {
 
   pinClosed: "钉图已关闭",
   pinLocked: "钉图已锁定",
+  deskGroupsOff: "这项功能还没打开",
   pinVeiledNoCopy: "安全模式下已遮蔽，不能复制",
   pinCaptureGone: "这张截图已删除",
   captureLeftHistory: "这张截图已删除，请关闭这张钉图后重试",

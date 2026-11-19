@@ -7,7 +7,9 @@ use crate::reference_groups::{GroupError, GroupSummary};
 pub const OLDER_AFTER_MS: i64 = 30 * 24 * 60 * 60 * 1000;
 
 /// 侧栏的三段（[`Desk::lists`]）。桌面上的参考组在它所属的那段里。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct DeskLists {
     /// 桌面上的参考组；桌面空着时为 `None`。
     pub on_desk: Option<String>,

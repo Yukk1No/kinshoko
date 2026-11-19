@@ -6,6 +6,7 @@ import type { CaptureEntry } from "../bindings/CaptureEntry";
 import type { GatePlan } from "../bindings/GatePlan";
 import type { PinGate } from "../bindings/PinGate";
 import type { DeletedGroup } from "../bindings/DeletedGroup";
+import type { DeskLists } from "../bindings/DeskLists";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroup } from "../bindings/ReferenceGroup";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -40,6 +41,80 @@ export function savePinsToGroup(
 /** 桌面上要决定怎样入组的截图；存进已有的参考组 `groupId` 时，已是它自带截图的不列出。 */
 export function groupSaveCaptures(groupId?: string): Promise<CaptureEntry[]> {
   return invoke<CaptureEntry[]>(desk("group_save_captures"), groupId ? { groupId } : {});
+}
+
+/**
+ * 参考组改成桌面（#588、#591）：侧栏三段，常用（按画师设的先后）、最近（新建的在前）、
+ * 更早（没设常用又一个月没用过的）。`onDesk` 为空时桌面空着。
+ * 设置里界面上没有的开关 `deskReferenceGroups` 关着时报错 `deskGroupsOff`。
+ */
+export function deskReferenceGroups(): Promise<DeskLists> {
+  return invoke<DeskLists>(desk("desk_reference_groups"));
+}
+
+/**
+ * 空桌上钉下第一张、开了新参考组，而且有上一组时推送，载荷是上一组的 id：
+ * 提示里可以“加进「上一组」”（{@link foldIntoPrevious}）。
+ */
+export const DESK_GROUP_STARTED_EVENT = "desk-group-started";
+
+/** 整桌换成参考组 `groupId`，原来那一桌原样留着。 */
+export function switchReferenceGroup(groupId: string): Promise<void> {
+  return invoke<void>(desk("switch_reference_group"), { groupId });
+}
+
+/** 清空桌面（“新建”）：原来那一组原样留着，之后钉下的第一张开一个新参考组。 */
+export function newReferenceDesk(): Promise<void> {
+  return invoke<void>(desk("new_reference_desk"));
+}
+
+/** 钉回桌面上参考组里没钉着的成员，在它原来的位置。 */
+export function repinGroupMember(memberId: string): Promise<void> {
+  return invoke<void>(desk("repin_group_member"), { memberId });
+}
+
+/** 全部钉上：桌面上参考组里已关闭的成员都在原位置钉出。 */
+export function repinAllGroupMembers(): Promise<void> {
+  return invoke<void>(desk("repin_all_group_members"));
+}
+
+/** 侧栏里点了参考组的一张图：不在桌面上的组先整桌换过去，已关闭的钉回，钉着的提到最前。 */
+export function showGroupMember(groupId: string, memberId: string): Promise<void> {
+  return invoke<void>(desk("show_group_member"), { groupId, memberId });
+}
+
+/** 移出桌面上参考组里没钉着的成员，返回移出了几个。撤销用 {@link undoPruneUnpinned}。 */
+export function pruneUnpinnedMembers(): Promise<number> {
+  return invoke<number>(desk("prune_unpinned_members"));
+}
+
+/** 撤销最近一次“移出没钉着的”。 */
+export function undoPruneUnpinned(): Promise<void> {
+  return invoke<void>(desk("undo_prune_unpinned"));
+}
+
+/** 设为常用（排在常用的最后）或取消常用。 */
+export function setReferenceGroupFavorite(groupId: string, favorite: boolean): Promise<void> {
+  return invoke<void>(desk("set_reference_group_favorite"), { groupId, favorite });
+}
+
+/** 加进上一组：桌面上参考组的成员移进 `targetId`，删掉桌面上那个，把 `targetId` 摆上桌面。 */
+export function foldIntoPrevious(targetId: string): Promise<void> {
+  return invoke<void>(desk("fold_into_previous"), { targetId });
+}
+
+/**
+ * 移到新参考组：桌面上参考组里在本地日期 `day`（`YYYY-MM-DD`）添加的成员移到一个新参考组，
+ * 新参考组摆上桌面，原来那组原样留着。
+ * 返回新参考组的 id；这一段为空或就是全部成员时为 `null`。撤销用 {@link undoSplitOff}。
+ */
+export function splitOffReferenceGroup(day: string): Promise<string | null> {
+  return invoke<string | null>(desk("split_off_reference_group"), { day });
+}
+
+/** 撤销最近一次“移到新参考组”。 */
+export function undoSplitOff(): Promise<void> {
+  return invoke<void>(desk("undo_split_off"));
 }
 
 /** 打开参考组：成员按保存的局部与摆放钉到桌面；返回新钉出的数量。 */

@@ -117,25 +117,22 @@ pub fn open_pins(app: &AppHandle) -> Vec<SavedPin> {
 
 /// 入组后记下成员关系；已收藏的截图钉图改连参考图，保持当前几何和窗口状态。
 pub fn remember_group_members(app: &AppHandle, saved: &[SavedPin]) {
-    let mut converted = Vec::new();
-    {
-        let mut store = lock(&state(app).store);
-        for pin in saved {
-            store.edit(&pin.id, |p| {
-                p.member = pin.member.clone();
-                if p.capture_id().is_some() && matches!(pin.content, PinContent::Reference { .. }) {
-                    p.content = pin.content.clone();
-                    converted.push(pin.id.clone());
-                }
-            });
-        }
-        let _ = store.save();
-    }
-    for id in &converted {
+    let converted = lock(&state(app).store).remember_members(saved);
+    converted_to_references(app, &converted, true);
+}
+
+/// 截图钉图收藏后改为显示参考图：本次运行的记录不再记着截图，重画。`unpin` 为真时截图历史不再算它
+/// 钉住（桌面上的参考组已经自己解除了）。
+pub(in crate::desktop) fn converted_to_references(
+    app: &AppHandle,
+    converted: &[String],
+    unpin: bool,
+) {
+    for id in converted {
         let capture = lock(&state(app).pins)
             .get_mut(id)
             .and_then(|r| r.capture_id.take());
-        if let Some(capture) = capture {
+        if let Some(capture) = capture.filter(|_| unpin) {
             lock(&state(app).history).unpin(&capture);
         }
         refresh(app, id);
@@ -198,12 +195,7 @@ pub(super) fn open_reference_selection(
     let (x, y) = place_new_pin(origin, monitor, &others, (OFFSET * dpi).round() as i32);
     pin.placement.x = x;
     pin.placement.y = y;
-    {
-        let mut store = lock(&state(app).store);
-        store.put(pin.clone());
-        let _ = store.save();
-    }
-    open_pin(app, &pin);
+    let pin = add_and_open(app, pin)?;
     Ok(pin.id)
 }
 
@@ -290,13 +282,17 @@ pub fn restore(app: &AppHandle) {
         veils.set_scope(crate::library::safe_mode_scope(app));
     });
     let monitors = monitors();
-    let pins = {
-        let mut history = lock(&state(app).history);
+    if desk_reference_groups(app) {
+        use_desk(app);
+    }
+    let opened = {
         let mut store = lock(&state(app).store);
-        let pins = store.restore(&mut history, &monitors);
-        let _ = store.save();
-        pins
+        store.restore(&mut lock(&state(app).history), &monitors)
     };
+    for problem in &opened.problems {
+        crate::run_log::warn("桌面上的参考组有成员钉不出来", problem);
+    }
+    let pins = opened.pins;
     if pins.is_empty() {
         return;
     }
@@ -309,5 +305,34 @@ pub fn restore(app: &AppHandle) {
     }
     for pin in &pins {
         open_pin(app, pin);
+    }
+}
+
+/// 设置里的“参考组改成桌面”开关（#591，界面上没有）；读不到设置时按关闭处理。
+fn desk_reference_groups(app: &AppHandle) -> bool {
+    app.try_state::<crate::shell::ShellState>()
+        .and_then(|shell| {
+            shell
+                .0
+                .lock()
+                .ok()
+                .map(|s| s.settings.desk_reference_groups())
+        })
+        .unwrap_or(false)
+}
+
+/// 开关打开：钉图状态换成桌面上的参考组。第一次时迁移（旧参考组都算归档，`pins.json` 的钉图成为一个
+/// 没有名称的参考组）。打不开时写运行日志，照旧用 `pins.json`。先参考组、后钉图状态。
+fn use_desk(app: &AppHandle) {
+    let dir = crate::data_dirs::app_data(app).device().to_path_buf();
+    let groups = lock(&state(app).groups);
+    let mut store = lock(&state(app).store);
+    let opened = {
+        let mut history = lock(&state(app).history);
+        kinshoko_core::reference_groups::Desk::open(&dir, groups.clone(), &mut history)
+    };
+    match opened {
+        Ok(desk) => *store = super::pin_state::PinState::Desk(Box::new(desk)),
+        Err(e) => crate::run_log::error("无法打开桌面上的参考组", e),
     }
 }

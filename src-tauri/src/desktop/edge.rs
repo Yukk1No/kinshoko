@@ -47,8 +47,12 @@ pub fn flush(app: &AppHandle) {
     let Some(desktop) = app.try_state::<super::DesktopState>() else {
         return;
     };
+    // 先参考组、后钉图状态：桌面上的参考组落盘时写参考组文件。
     if desktop.dirty.swap(false, Ordering::Relaxed)
-        && let Err(e) = lock(&desktop.store).save()
+        && let Err(e) = {
+            let _groups = lock(&desktop.groups);
+            lock(&desktop.store).save()
+        }
     {
         crate::run_log::error("保存钉图状态失败", e);
         desktop.dirty.store(true, Ordering::Relaxed);
@@ -71,6 +75,20 @@ fn toggle(app: &AppHandle) {
     }
 }
 
+/// 钉图收起着时全部显示出来（侧栏里点了一张图，#588 11-19 晚）；没有收起的什么都不做。
+pub(super) fn reveal(app: &AppHandle) {
+    if lock(&state(app).edge).any_hidden() {
+        toggle(app);
+    }
+}
+
+/// 换了一桌钉图（#591）：之前是收起的，新钉图也直接收起（不带滑动）。
+pub(super) fn tuck_all(app: &AppHandle) {
+    let pins: Vec<DeskPin> = open_pins(app).iter().map(desk_pin).collect();
+    let moves = lock(&state(app).edge).tuck_rest(&pins);
+    apply_with(app, &moves, PinMotion::Jump);
+}
+
 fn desk_pin(pin: &SavedPin) -> DeskPin {
     let home = pin.rect();
     let centre = (
@@ -90,6 +108,10 @@ fn desk_pin(pin: &SavedPin) -> DeskPin {
 /// 让钉图滑到新位置（#64）：内容在窗口里动画，原生窗口不动（窗口就是显示器，#193）。
 /// 收起的钉图只有细边在窗口区域里；没滑出时让点击穿过。
 fn apply(app: &AppHandle, moves: &[PinMove]) {
+    apply_with(app, moves, PinMotion::Slide);
+}
+
+fn apply_with(app: &AppHandle, moves: &[PinMove], motion: PinMotion) {
     for m in moves {
         let Some((width, height)) = lock(&state(app).store)
             .get(&m.pin)
@@ -104,7 +126,7 @@ fn apply(app: &AppHandle, moves: &[PinMove]) {
             height,
         };
         let click_through = lock(&state(app).edge).peeking(&m.pin) == Some(false);
-        show(app, &m.pin, content, PinMotion::Slide, click_through);
+        show(app, &m.pin, content, motion, click_through);
     }
 }
 

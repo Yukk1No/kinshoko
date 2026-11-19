@@ -18,6 +18,9 @@ pub async fn delete_reference_group(
     group_id: String,
 ) -> Result<DeletedGroup, CommandError> {
     blocking(move || {
+        if super::desk_commands::desk_on(&app) {
+            return delete_on_desk(&app, group_id);
+        }
         let groups = lock(&state(&app).groups);
         let name = groups.get(&group_id).map(|g| g.name).unwrap_or_default();
         groups.trash(&group_id).map_err(CommandError::from)?;
@@ -58,6 +61,16 @@ pub async fn restore_reference_group(
     deleted: DeletedGroup,
 ) -> Result<(), CommandError> {
     blocking(move || {
+        if super::desk_commands::desk_on(&app) {
+            let (report, switched) = super::desk_commands::with_desk(&app, |desk, history| {
+                desk.undo_discard(&deleted.group_id, history)
+            })?;
+            for failed in &report.failed {
+                crate::run_log::warn("撤销删除后参考组成员未改连", &failed.reason);
+            }
+            super::desk_commands::apply(&app, switched);
+            return Ok(());
+        }
         // 与其他写参考组的命令一样持着参考组锁；先参考组、后截图历史。
         let report = {
             let groups = lock(&state(&app).groups);
@@ -106,9 +119,29 @@ pub async fn purge_deleted_reference_group(
     group_id: String,
 ) -> Result<(), CommandError> {
     blocking(move || {
+        if super::desk_commands::desk_on(&app) {
+            return super::desk_commands::with_desk(&app, |desk, _| desk.purge(&group_id));
+        }
         lock(&state(&app).groups)
             .purge(&group_id)
             .map_err(CommandError::from)
     })
     .await
+}
+
+/// 开关打开时（#591）删除参考组：经桌面模块，删的正是桌面上那个时桌面换走。钉图只属于桌面上的
+/// 参考组，没有要解除关联的钉图。
+fn delete_on_desk(app: &AppHandle, group_id: String) -> Result<DeletedGroup, CommandError> {
+    let name = lock(&state(app).groups)
+        .get(&group_id)
+        .map(|g| g.name)
+        .unwrap_or_default();
+    let switched =
+        super::desk_commands::with_desk(app, |desk, history| desk.discard(&group_id, history))?;
+    super::desk_commands::apply(app, switched);
+    Ok(DeletedGroup {
+        group_id,
+        name,
+        unlinked_pins: Vec::new(),
+    })
 }

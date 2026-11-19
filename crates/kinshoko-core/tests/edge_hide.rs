@@ -124,3 +124,21 @@ fn a_pin_partly_off_screen_keeps_its_sliver_on_the_screen() {
     let toggle = edge.toggle(&[desk("a", -30, -20, 300, 100)]);
     assert_eq!(toggle.moves, vec![mv("a", -300 + SLIVER as i32, 0)]);
 }
+
+#[test]
+fn keeping_a_new_desk_tucked_leaves_already_tucked_pins_where_they_are() {
+    let s = SLIVER as i32;
+    let a = desk("a", 100, 400, 200, 100);
+    let mut edge = EdgeHide::default();
+    edge.toggle(std::slice::from_ref(&a));
+    assert!(
+        edge.tuck_rest(std::slice::from_ref(&a)).is_empty(),
+        "已收起的不放回原位"
+    );
+    assert!(edge.is_hidden("a"));
+
+    // 换了一桌：旧钉图不在了，新钉图收起。
+    let b = desk("b", 1700, 500, 200, 100);
+    assert_eq!(edge.tuck_rest(&[a, b]), vec![mv("b", 1920 - s, 500)]);
+    assert!(edge.is_hidden("a") && edge.is_hidden("b"));
+}

@@ -72,6 +72,10 @@ pub struct SettingsSnapshot {
     update_channel: Option<UpdateChannel>,
     /// 订阅功能（#368）：关掉后不显示入口、不检查、不联网。新安装默认开。
     subscriptions: bool,
+    /// 参考组改成桌面（#588）的开关：界面上没有，开发与 e2e 在 `settings.json` 里写 `true` 打开；
+    /// 最后一张“露出”工单合并前，应用里看不到这个功能。重启后生效。
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    desk_reference_groups: bool,
     /// 新版本写入、本版本不认识的字段。
     #[serde(flatten)]
     unknown: serde_json::Map<String, serde_json::Value>,
@@ -99,6 +103,7 @@ impl Default for SettingsSnapshot {
             inspector_open: false,
             update_channel: None,
             subscriptions: true,
+            desk_reference_groups: false,
             unknown: serde_json::Map::new(),
         }
     }
@@ -248,6 +253,11 @@ impl AppSettings {
 
     pub fn set_keep_selection_on_safe_mode(&mut self, on: bool) -> Result<(), SettingsError> {
         self.update(|f| f.keep_selection_on_safe_mode = on)
+    }
+
+    /// 参考组改成桌面（#588）：界面上没有的开关，见字段说明。
+    pub fn desk_reference_groups(&self) -> bool {
+        self.file.desk_reference_groups
     }
 
     /// 增强钉图边缘（#239）。
