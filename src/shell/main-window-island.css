@@ -159,6 +159,21 @@
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);
 }
+/* 需要下载模型（#609）：图标右边写出“下载标签模型 947 MB”，成一个胶囊；不弹通知。 */
+.k-tagging-activity[data-labelled][data-activity] {
+  width: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px 0 12px;
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.k-tagging-text {
+  font-variant-numeric: tabular-nums;
+}
 .k-tagging-activity[data-activity="paused"] {
   color: var(--ink-2);
 }

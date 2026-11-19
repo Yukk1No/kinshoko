@@ -340,6 +340,7 @@ export function TaggingActivity({
           type="button"
           className="k-tagging-activity"
           data-activity={activity}
+          data-labelled={status.state === "needsDownload" || undefined}
           data-pending={pending}
           aria-label={act ? i18n.t(`tagging:act.${act}`, { text }) : i18n.t("tagging:openSettings", { text })}
           onClick={click}
@@ -350,11 +351,19 @@ export function TaggingActivity({
             setMenu(e.clientX === 0 && e.clientY === 0 ? { x: box.left, y: box.top } : { x: e.clientX, y: e.clientY });
           }}
         >
-          <Ring className="k-tagging-ring" size={40} radius={18} progress={ring} />
+          {status.state !== "needsDownload" && (
+            <Ring className="k-tagging-ring" size={40} radius={18} progress={ring} />
+          )}
           <span className="k-tagging-glyph" data-morph={next ? true : undefined}>
             <span className="k-tagging-now">{stateIcon(status)}</span>
             {next && <span className="k-tagging-next">{next.icon}</span>}
           </span>
+          {/* 需要下载时写出来（#609）：只有一个图标时画师认不出这是下载模型的入口。 */}
+          {status.state === "needsDownload" && (
+            <span className="k-tagging-text" aria-hidden="true">
+              {i18n.t("tagging:activity.downloadShort", { size: formatBytes(status.size) })}
+            </span>
+          )}
         </button>
       </Tip>
       {menu && (

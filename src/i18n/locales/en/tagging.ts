@@ -23,6 +23,7 @@ const tagging: Translation<typeof zh> = {
     yieldedToFullScreen: "Paused for a full-screen app",
     needsDownload: "The auto-tagging model needs to be downloaded ({{size}})",
     clickDownload: "Click to download",
+    downloadShort: "Get tagging model {{size}}",
     clickResume: "{{percent}}% downloaded, click to resume",
     failed: "Auto-tagging failed",
     noDevice: "Auto-tagging unavailable",
