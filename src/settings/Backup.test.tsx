@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { emit } from "@tauri-apps/api/event";
 import type { BackupPreview } from "../bindings/BackupPreview";
 import type { BackupStatus } from "../bindings/BackupStatus";
 import type { RestoreReport } from "../bindings/RestoreReport";
@@ -58,6 +59,71 @@ const narrowed: BackupPreview = {
 const backend = (replies: Replies) => fakeBackend({ registered_libraries: registrations, ...replies });
 
 describe("设置：备份", () => {
+  it("备份结束后重新估计容量，进度事件不重复估计", async () => {
+    const fake = backend({ backup_status: withTarget, backup_preview: narrowed });
+    render(<BackupSettings />);
+    await screen.findByText(/新原图 1 张/);
+    for (const done of [0, 3, 10]) {
+      await act(() => emit("backup-status", { ...withTarget, running: { done, total: 12 } }));
+    }
+    expect(fake.calls("backup_preview")).toHaveLength(1);
+    let resolve!: (preview: BackupPreview) => void;
+    fake.on(
+      "backup_preview",
+      () =>
+        new Promise<BackupPreview>((r) => {
+          resolve = r;
+        }),
+    );
+    await act(() => emit("backup-status", withTarget));
+    await waitFor(() => expect(fake.calls("backup_preview")).toHaveLength(2));
+    expect(screen.queryByText(/新原图 1 张/)).toBeNull();
+    await act(async () =>
+      resolve({ ...narrowed, estimate: { ...narrowed.estimate, newBytes: 524288, newOriginals: 0 } }),
+    );
+    expect(await screen.findByText(/这次新写入 512 KB（新原图 0 张）/)).toBeTruthy();
+  });
+
+  it.each([null, new Error("preview unavailable")])("备份失败后估计返回 %s 时不保留旧容量", async (reply) => {
+    const fake = backend({ backup_status: withTarget, backup_preview: narrowed });
+    render(<BackupSettings />);
+    await screen.findByText(/新原图 1 张/);
+    await act(() => emit("backup-status", { ...withTarget, running: { done: 1, total: 12 } }));
+    fake.on("backup_preview", () => {
+      if (reply instanceof Error) throw reply;
+      return reply;
+    });
+    await act(() =>
+      emit("backup-status", {
+        ...withTarget,
+        plan: { ...withTarget.plan, lastFailure: { at, reason: "interrupted", targetUnavailable: false } },
+      }),
+    );
+    await waitFor(() => expect(fake.calls("backup_preview")).toHaveLength(2));
+    expect(screen.queryByText(/新原图 1 张/)).toBeNull();
+    if (reply instanceof Error) expect(await screen.findAllByRole("alert")).toHaveLength(2);
+  });
+
+  it("备份前尚未返回的估计不能覆盖结束后的估计", async () => {
+    let resolve!: (preview: BackupPreview) => void;
+    const fake = backend({
+      backup_status: withTarget,
+      backup_preview: () =>
+        new Promise<BackupPreview>((r) => {
+          resolve = r;
+        }),
+    });
+    render(<BackupSettings />);
+    await waitFor(() => expect(fake.calls("backup_preview")).toHaveLength(1));
+    await act(() => emit("backup-status", { ...withTarget, running: { done: 1, total: 12 } }));
+    fake.on("backup_preview", { ...narrowed, estimate: { ...narrowed.estimate, newBytes: 524288, newOriginals: 0 } });
+    await act(() => emit("backup-status", withTarget));
+    await screen.findByText(/新原图 0 张/);
+    await act(async () => resolve(narrowed));
+    expect(screen.queryByText(/新原图 1 张/)).toBeNull();
+    expect(screen.getByText(/新原图 0 张/)).toBeTruthy();
+  });
+
   it("还没有备份目标时提示选择，选好的目录交给核心保存", async () => {
     const fake = backend({
       backup_status: empty,

@@ -80,9 +80,11 @@ export function BackupSettings() {
 
   const selection = status?.plan.selection;
   const selectionKey = JSON.stringify(selection ?? null);
+  const isRunning = status?.running != null;
   // biome-ignore lint/correctness/useExhaustiveDependencies: 按范围的内容（selectionKey）而不是对象身份重新估计，备份目录变了也重估
   useEffect(() => {
-    if (!selection) return;
+    setPreview(null);
+    if (!selection || isRunning) return;
     let alive = true;
     backupPreview(selection).then(
       (p) => {
@@ -94,7 +96,7 @@ export function BackupSettings() {
       alive = false;
     };
     // 按范围的内容（不是对象身份）与备份目录重新估计。
-  }, [selectionKey, status?.plan.target]);
+  }, [selectionKey, status?.plan.target, isRunning]);
 
   const apply = useCallback(
     async (change: Promise<BackupStatus>) => {
