@@ -36,8 +36,8 @@ describe("主窗口", () => {
     });
     render(<App />);
     await screen.findAllByRole("img");
-    const result = screen.getByRole("status", { name: "查找结果" });
-    await waitFor(() => expect(result.textContent).toBe("2 张"));
+    // 没有查找条件时不显示张数：它等于左栏选中那一行的数字（#607）。
+    expect(screen.queryByRole("status", { name: "查找结果" })).toBeNull();
     const card = screen.getByRole("listbox", { name: "图片墙" }).querySelector<HTMLElement>(".card")!;
     const before = parseFloat(card.style.width);
     const slider = screen.getByRole("slider", { name: "图片大小" });
@@ -49,7 +49,9 @@ describe("主窗口", () => {
     fireEvent.keyDown(screen.getByRole("menuitem", { name: /^文件夹/ }), { key: "Escape" });
     await expandLibrary();
     fireEvent.click(screen.getByRole("button", { name: "人物（1 张）" }));
-    await waitFor(() => expect(result.textContent).toBe("1 张"));
+    await waitFor(() =>
+      expect(screen.getByRole("listbox", { name: "图片墙" }).querySelectorAll(".card")).toHaveLength(1),
+    );
   });
 
   it("图片墙上 Ctrl+滚轮：滑条同步移动，停手后提交并按新尺寸取缩略图（#111），不重新浏览（#313）", async () => {
@@ -76,13 +78,15 @@ describe("主窗口", () => {
     expect(slider.value).toBe("320");
   });
 
-  it("顶栏（方案 C3）：张数与精确查找开关在顶栏，图片大小浮在图片墙右下角", async () => {
+  it("顶栏只有一行（#607）：标签分组与精确查找在查找框尾部，图片大小浮在图片墙右下角", async () => {
     backend(library);
     render(<App />);
     await screen.findAllByRole("img");
     const topbar = screen.getByRole("combobox", { name: "查找参考图" }).closest("header")!;
-    expect(topbar.contains(screen.getByRole("status", { name: "查找结果" }))).toBe(true);
-    expect(topbar.contains(screen.getByRole("button", { name: "精确查找" }))).toBe(true);
+    const search = topbar.querySelector(".search")!;
+    expect(search.contains(screen.getByRole("button", { name: "标签分组" }))).toBe(true);
+    expect(search.contains(screen.getByRole("button", { name: "精确查找" }))).toBe(true);
+    expect(screen.queryByRole("toolbar", { name: "标签分组" })).toBeNull();
     expect(topbar.contains(screen.getByRole("button", { name: "导入" }))).toBe(true);
     const island = screen.getByRole("group", { name: "图片大小" });
     expect(topbar.contains(island)).toBe(false);
@@ -97,7 +101,7 @@ describe("主窗口", () => {
     expect(await screen.findByRole("region", { name: "截图" })).toBeTruthy();
   });
 
-  it("查找区域的标签分组展开后可以添加、取消条件，并保留文件夹范围", async () => {
+  it("查找框里的标签分组展开后可以添加、取消条件，并保留文件夹范围", async () => {
     backend(library, clean, {
       workspace_tag_groups: [
         {
@@ -111,14 +115,19 @@ describe("主窗口", () => {
     render(<App />);
     await expandLibrary();
     fireEvent.click(await screen.findByRole("button", { name: "人物（1 张）" }));
-    const bar = await screen.findByRole("toolbar", { name: "标签分组" });
-    fireEvent.click(within(bar).getByRole("button", { name: "发色" }));
-    fireEvent.click(within(screen.getByRole("dialog", { name: /发色/ })).getByRole("button", { name: /蓝发/ }));
+    expect(screen.queryByRole("status", { name: "查找结果" })).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "标签分组" }));
+    const panel = await screen.findByRole("dialog", { name: "标签分组" });
+    fireEvent.click(within(panel).getByRole("button", { name: /蓝发/ }));
     expect(await screen.findByRole("list", { name: "查找条件" })).toBeTruthy();
     await waitFor(() => expect(screen.getByRole("list", { name: "查找条件" }).textContent).toContain("蓝发"));
     expect(screen.getByRole("button", { name: "人物（1 张）" }).getAttribute("aria-current")).toBe("page");
-    fireEvent.click(within(screen.getByRole("dialog", { name: /发色/ })).getByRole("button", { name: /蓝发/ }));
+    // 有查找条件时，张数出现在查找框里（#607）。
+    const count = await screen.findByRole("status", { name: "查找结果" });
+    expect(count.closest(".search")).toBeTruthy();
+    fireEvent.click(within(panel).getByRole("button", { name: /蓝发/ }));
     await waitFor(() => expect(screen.getByRole("list", { name: "查找条件" }).textContent).toBe(""));
+    await waitFor(() => expect(screen.queryByRole("status", { name: "查找结果" })).toBeNull());
   });
 
   it("侧栏开合时图片墙一开始就按终点宽度排好，过渡中与结束时不再重排，并保持阅读偏移", async () => {

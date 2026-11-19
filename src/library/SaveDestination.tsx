@@ -13,6 +13,7 @@ import {
   onWorkspaceChanged,
   rememberImportDestination,
   rememberNewLibraryParent,
+  rememberPixivDestination,
   saveMemory,
   workspaceDirectories,
 } from "../ipc";
@@ -30,9 +31,11 @@ type SaveContext = {
   /** 各入口上次亲手选的（ADR-0016）。 */
   memory: SaveMemory;
   rememberImport: (value: SaveDestination) => void;
+  /** 应用内浏览（#461）收进资料库时亲手选的。 */
+  rememberPixiv: (value: SaveDestination) => void;
   rememberNewLibraryParent: (parent: string) => void;
 };
-const NOTHING_REMEMBERED: SaveMemory = { importDestination: null, newLibraryParent: null };
+const NOTHING_REMEMBERED: SaveMemory = { importDestination: null, newLibraryParent: null, pixivDestination: null };
 const Context = createContext<SaveContext>({
   destination: null,
   setDestination: () => {},
@@ -41,6 +44,7 @@ const Context = createContext<SaveContext>({
   ready: false,
   memory: NOTHING_REMEMBERED,
   rememberImport: () => {},
+  rememberPixiv: () => {},
   rememberNewLibraryParent: () => {},
 });
 export const useSaveDestination = () => useContext(Context);
@@ -64,6 +68,11 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
     setMemory((value) => ({ ...value, importDestination }));
     // 忽略失败：写不进时只是下次不记得，不打扰这次保存。
     void rememberImportDestination(importDestination).catch(() => {});
+  };
+  const rememberPixiv = (pixivDestination: SaveDestination) => {
+    setMemory((value) => ({ ...value, pixivDestination }));
+    // 忽略失败：写不进时只是下次不记得，不打扰这次保存。
+    void rememberPixivDestination(pixivDestination).catch(() => {});
   };
   const rememberParent = (newLibraryParent: string) => {
     setMemory((value) => ({ ...value, newLibraryParent }));
@@ -131,6 +140,7 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
         ready,
         memory,
         rememberImport,
+        rememberPixiv,
         rememberNewLibraryParent: rememberParent,
       }}
     >
@@ -258,18 +268,21 @@ export function SaveDestinationDialog({
   title,
   summary,
   confirmLabel,
+  initial,
   onConfirm,
   onClose,
 }: {
   title: string;
   summary?: ReactNode;
   confirmLabel?: string;
+  /** 预填的保存目标（例如这个入口上次亲手选的）；不给时用上一次在对话框里选的。 */
+  initial?: SaveDestination | null;
   onConfirm: (value: SaveDestination) => Promise<unknown>;
   onClose: () => void;
 }) {
   const { t } = useTranslation("common", { keyPrefix: "saveDestination" });
   const context = useSaveDestination();
-  const [value, setValue] = useState(context.destination);
+  const [value, setValue] = useState(initial ?? context.destination);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const alive = useRef(true);

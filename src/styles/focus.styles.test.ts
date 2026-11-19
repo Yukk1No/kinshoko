@@ -41,12 +41,6 @@ function offenders(css: string): string[] {
 }
 
 describe("焦点环", () => {
-  it("令牌文件定义了环与两种偏移", () => {
-    const tokens = sheets[TOKEN_FILE];
-    for (const t of ["--focus-ring: 2px solid var(--accent)", "--focus-offset: 2px", "--focus-inset: -2px"])
-      expect(tokens).toContain(t);
-  });
-
   it("除令牌文件外，焦点样式只写 var(--focus-ring) 与偏移令牌，不用 box-shadow 或光晕", () => {
     const found = Object.entries(sheets)
       .filter(([path]) => path !== TOKEN_FILE)

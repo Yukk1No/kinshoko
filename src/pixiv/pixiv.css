@@ -1,0 +1,201 @@
+/* 应用内浏览（#461 第 2 步，骨架）。颜色、圆角、阴影只用 tokens.css 的令牌，字号只用 scales.md 的档；
+   间距还没有令牌，只用 4 px 网格上的 4 / 8 / 12。视觉等设计系统（#599–#604）定了以后整体重做。 */
+
+.pw-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: var(--wall);
+}
+
+.pw-frame {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.pw-wall {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pw-canvas {
+  position: relative;
+}
+
+.pw-card {
+  position: absolute;
+  border-radius: var(--r-s);
+  overflow: hidden;
+  background: var(--card);
+}
+
+.pw-card-open {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.pw-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pw-card[data-on] {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.pw-pages {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 0 4px;
+  border-radius: var(--r-xs);
+  background: var(--scrim-label);
+  color: var(--on-solid);
+  font-size: 12px;
+}
+
+/* 收图：悬停或键盘移进卡片时出现；已收的标记常驻（#461）。 */
+.pw-collect {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.pw-card:hover .pw-collect,
+.pw-card:focus-within .pw-collect {
+  opacity: 1;
+}
+
+.pw-collected {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 0 4px;
+  border-radius: var(--r-xs);
+  background: var(--scrim-label);
+  color: var(--on-solid);
+  font-size: 12px;
+}
+
+.pw-band-actions .pw-collected,
+.pw-full-actions .pw-collected {
+  position: static;
+}
+
+.pw-full-actions {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 8px;
+  cursor: default;
+}
+
+.pw-band {
+  position: absolute;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--r);
+  background: var(--sunken);
+  box-shadow: var(--well-inset);
+}
+
+.pw-band-stage {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.pw-band-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.pw-band-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.pw-band-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.pw-band-artist,
+.pw-band-meta {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.pw-band-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.pw-band-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.pw-full {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--ground-dark);
+  cursor: zoom-out;
+}
+
+.pw-full img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.pw-tabs {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+}
+
+.pw-status {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  color: var(--ink-2);
+}

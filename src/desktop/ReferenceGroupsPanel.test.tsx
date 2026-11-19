@@ -38,7 +38,7 @@ const ipc = vi.hoisted(() => ({
 }));
 
 vi.mock("../ipc", () => ({
-  saveMemory: () => Promise.resolve({ importDestination: null, newLibraryParent: null }),
+  saveMemory: () => Promise.resolve({ importDestination: null, newLibraryParent: null, pixivDestination: null }),
   referenceGroups: ipc.groups,
   referenceGroup: ipc.group,
   groupSaveCaptures: ipc.captures,

@@ -47,7 +47,9 @@ pub fn derivative(bytes: &[u8]) -> Result<PinPixels, String> {
     let (width, height) = image.dimensions();
     let rgba = image
         .into_raw()
-        .chunks_exact(4)
+        .as_chunks::<4>()
+        .0
+        .iter()
         .flat_map(|p| {
             let rgb = mul(&m, [p[0], p[1], p[2]].map(f64::from));
             let a = p[3].clamp(0.0, 1.0);
@@ -203,7 +205,9 @@ fn table(source: Option<ColorProfile>, display: ColorProfile) -> Result<PinLut, 
         };
         let m = product(&inverse(to_bt2020(&display)?), &to_wide);
         let clut = linear
-            .chunks_exact(3)
+            .as_chunks::<3>()
+            .0
+            .iter()
             .flat_map(|l| mul(&m, [l[0], l[1], l[2]].map(f64::from)).map(|v| v as f32))
             .collect();
         let ramp: Vec<f32> = steps.iter().flat_map(|&t| [srgb_eotf(t); 3]).collect();

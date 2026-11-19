@@ -26,6 +26,7 @@ fn main() {
                         "create_library_unopened",
                         "save_memory",
                         "remember_import_destination",
+                        "remember_pixiv_destination",
                         "remember_new_library_parent",
                         "pictures_folder",
                         "registered_libraries",

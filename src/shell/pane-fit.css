@@ -17,7 +17,7 @@
 }
 .sidebar-slot[data-float] {
   position: absolute;
-  z-index: 30;
+  z-index: var(--z-pane-float);
   top: 0;
   bottom: 0;
   left: 0;
@@ -27,7 +27,7 @@
 .pane-scrim {
   position: absolute;
   inset: 0;
-  z-index: 29;
+  z-index: var(--z-pane-scrim);
   background: var(--overlay);
   opacity: 0.5;
 }
