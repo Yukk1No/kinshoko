@@ -132,6 +132,8 @@
 | 胶囊 | `.k-pill` | `src/ui/ui-dock.css` |
 | Dock | `Dock`（`.k-dock`） | `src/ui/ui-dock.css` |
 | 计数角标 | `.k-badge`（图标按钮右上角的墨色数字，图标轨与 Dock 共用） | `src/ui/ui-dock.css` |
+| 标题（16 / 24 / 600） | `.k-title`；外边距由所在的地方定（侧栏离左 6、设置页下面 16） | `src/ui/ui.css` |
+| 分组名（12 / 18 / 600，`--ink-2`） | `.k-group-label`；菜单里的组名加 `.is-menu` | `src/ui/ui.css` |
 
 ### 还没有共用类
 
@@ -139,8 +141,6 @@
 
 - 标签块：`.chip`、`.k-chip`、`.k-group-chip`、`.search-chip`、`.k-tag-chip`
 - 低强调按钮：`.k-btn.is-quiet`、`.k-btn.is-ghost`、`.k-btn.is-flush`、`.k-link`
-- 16 px 标题：`.pane-title`、`.subs-title`、`.subs-empty-title`、`.k-set-heading`、`.k-set-title`、`.k-dialog-title`
-- 12 px 分组名：`.k-menu-label`、`.k-field-label`、`.k-add-similar-head`、`.k-tag-alias-title`、`.subs-group-head`
 - 空状态：`.subs-empty`、`.wall-empty`、`.app-empty-body`、`.capture-history-empty`、`.reference-groups-empty`、`.k-tags-empty`、`.k-groups-empty`、`.k-option-empty`
 - 说明与报错文字：`.k-set-note`、`.k-set-hint`、`.k-set-error`、`.k-set-load-error`、`.settings-error`、`.k-field-error`、`.create-library-error`、`.selection-note`、`.insp-hint`
 - 订阅页自带的行、标题、空状态、转圈（`src/subscriptions/subscriptions.css` 的 `subs-` 类）

@@ -314,7 +314,7 @@ export function FidelityGate() {
         <fieldset className="gate-manual">
           <legend>{t("manualLegend")}</legend>
           <div className="k-field">
-            <span className="k-field-label">HDR</span>
+            <span className="k-group-label">HDR</span>
             <Select
               label="HDR"
               value={manual.hdr}
@@ -323,7 +323,7 @@ export function FidelityGate() {
             />
           </div>
           <div className="k-field">
-            <span className="k-field-label">{t("autoColour")}</span>
+            <span className="k-group-label">{t("autoColour")}</span>
             <Select
               label={t("autoColour")}
               value={manual.autoColour}
@@ -332,7 +332,7 @@ export function FidelityGate() {
             />
           </div>
           <label className="k-field">
-            <span className="k-field-label">{t("monitorIcc")}</span>
+            <span className="k-group-label">{t("monitorIcc")}</span>
             <input
               className="k-input"
               value={manual.monitorIcc}
@@ -340,7 +340,7 @@ export function FidelityGate() {
             />
           </label>
           <label className="k-field">
-            <span className="k-field-label">{t("remarks")}</span>
+            <span className="k-group-label">{t("remarks")}</span>
             <input
               className="k-input"
               value={manual.remarks}

@@ -341,7 +341,7 @@ export function FolderGlyph({ size = 18 }: { size?: number }) {
 export const MenuSeparator = () => <BaseMenu.Separator className="k-sep" />;
 export function MenuLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="k-menu-label" role="presentation">
+    <div className="k-group-label is-menu" role="presentation">
       {children}
     </div>
   );

@@ -122,7 +122,7 @@
   margin: 0 8px;
   background: var(--menu-border);
 }
-[data-k-level] .k-menu-label {
+[data-k-level] .k-group-label.is-menu {
   padding: 4px 8px 0 34px;
   color: var(--menu-quiet);
 }

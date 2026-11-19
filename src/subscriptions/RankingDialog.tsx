@@ -198,11 +198,11 @@ export function RankingDialog({
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog subs-artist-dialog subs-rank-dialog">
           <div className="subs-first-run-head">
-            <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+            <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
             <UnofficialMark />
           </div>
           <div className="k-field">
-            <span className="k-field-label" id="subs-rank-list">
+            <span className="k-group-label" id="subs-rank-list">
               {t("list")}
             </span>
             <ul className="subs-rank-list" aria-labelledby="subs-rank-list">
@@ -223,7 +223,7 @@ export function RankingDialog({
             </div>
           )}
           <div className="k-field">
-            <span className="k-field-label" id="subs-rank-library">
+            <span className="k-group-label" id="subs-rank-library">
               {t("library")}
             </span>
             {rankings.length > 0 ? (
@@ -353,10 +353,10 @@ export function RankingSettingsDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog subs-artist-dialog">
-          <Dialog.Title className="k-dialog-title">{t("settingsTitle")}</Dialog.Title>
+          <Dialog.Title className="k-title">{t("settingsTitle")}</Dialog.Title>
           <Dialog.Description className="k-dialog-desc">{displayName(ts, subscription)}</Dialog.Description>
           <div className="k-field">
-            <span className="k-field-label">{t("ranks")}</span>
+            <span className="k-group-label">{t("ranks")}</span>
             <TopPicker label={t("ranks")} value={top} onChange={setTop} />
           </div>
           <div className="subs-option">

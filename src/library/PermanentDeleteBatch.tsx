@@ -134,7 +134,7 @@ export function PermanentDeleteBatchConfirm({
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="k-backdrop" />
         <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label={t("title")}>
-          <AlertDialog.Title className="k-dialog-title">{t("title")}</AlertDialog.Title>
+          <AlertDialog.Title className="k-title">{t("title")}</AlertDialog.Title>
           {!previews ? (
             <p className="k-dialog-desc" role="status">
               {t("checking")}

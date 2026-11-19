@@ -315,12 +315,24 @@
   gap: 8px;
 }
 /* the group name lines up with the item text: item padding 8 + indicator 16 + gap 8 */
-.k-menu-label {
-  padding: 6px 10px 2px 32px;
+/* 标题（#602）：页面、对话框、侧栏、设置页的 16 px 标题，一个类；外边距由所在的地方定。 */
+.k-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+/* 分组名（#602）：表单字段名、菜单里的组名、列表的分组头，12 px 加粗、--ink-2，一个类；位置由所在的地方定。 */
+.k-group-label {
+  margin: 0;
   font-size: 12px;
   line-height: 18px;
-  color: var(--ink-2);
   font-weight: 600;
+  color: var(--ink-2);
+}
+/* 菜单与下拉里的组名：和菜单行的文字对齐。 */
+.k-group-label.is-menu {
+  padding: 6px 10px 2px 32px;
 }
 
 /* ---- Import button: one target, the source is chosen in its menu (design system ImportButton) ---- */

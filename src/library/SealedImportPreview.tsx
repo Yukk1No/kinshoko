@@ -98,7 +98,7 @@ export function SealedImportPreview({
           <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("close")}>
             <X size={16} aria-hidden="true" />
           </Dialog.Close>
-          <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+          <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
           {problem ? (
             <p className="k-set-error" role="alert">
               {t("stopped", { problem })}

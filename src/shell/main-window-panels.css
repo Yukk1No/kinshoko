@@ -893,11 +893,7 @@
 .k-tag-alias .k-input {
   flex: none;
 }
-.k-tag-alias-title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink-2);
+.k-tag-alias > .k-group-label {
   overflow-wrap: anywhere;
 }
 .k-tag-alias-acts {

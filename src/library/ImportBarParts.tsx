@@ -311,7 +311,7 @@ export function ImportPlanDialog({
         <Dialog.Popup className="k-dialog k-import-dialog">
           {plan && (
             <>
-              <Dialog.Title className="k-dialog-title">{plan.eagle ? t("eagleTitle") : t("title")}</Dialog.Title>
+              <Dialog.Title className="k-title">{plan.eagle ? t("eagleTitle") : t("title")}</Dialog.Title>
               <DialogHeight>
                 <div className="k-import-summary">
                   <span className="k-big-tag-icon" aria-hidden="true">
@@ -336,7 +336,7 @@ export function ImportPlanDialog({
                 {picker}
                 {plan.eagle && (
                   <fieldset className="k-fieldset" disabled={preparing || !!running}>
-                    <legend className="k-field-label">{t("deleted")}</legend>
+                    <legend className="k-group-label">{t("deleted")}</legend>
                     <div className="k-radio-cards">
                       {(
                         [
@@ -413,7 +413,7 @@ export function EagleLibrariesDialog({
         <Dialog.Popup className="k-dialog k-import-dialog">
           {eagleLibraries && (
             <>
-              <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+              <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
               <DialogHeight>
                 {eagleLibraries.length ? (
                   <ul className="k-list" aria-label={t("found")}>

@@ -43,17 +43,13 @@
 .subs-group {
   margin-bottom: 8px;
 }
-.subs-group-head {
+/* 名单的分组头（共用 .k-group-label）。 */
+.subs-group > .k-group-label {
   height: 28px;
-  margin: 0;
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 0 10px;
-  color: var(--ink-2);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
 }
 .subs-group-icon {
   display: inline-grid;
@@ -163,14 +159,11 @@
 .subs-topbar {
   padding-left: 24px;
 }
-.subs-title {
-  margin: 0;
+/* 最近更新的标题（共用 .k-title），后面跟着张数。 */
+.subs-recent-head {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
 }
 .subs-title-count {
   color: var(--ink-2);
@@ -303,12 +296,6 @@
   background: var(--sunken);
   color: var(--ink-3);
 }
-.subs-empty-title {
-  margin: 0;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
-}
 .subs-empty-hint {
   margin: 0;
   color: var(--ink-2);
@@ -387,7 +374,7 @@
   gap: 8px;
   margin-bottom: 4px;
 }
-.subs-settings-head .k-set-title {
+.subs-settings-head > .k-title {
   margin: 0;
 }
 
