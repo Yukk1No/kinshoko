@@ -233,6 +233,9 @@
   color: var(--ink-2);
   font-size: 13px;
 }
+.insp-tagging > .k-list-desc {
+  font-size: inherit;
+}
 .inspector .selection-version {
   margin: 0;
   font-size: 12px;
@@ -710,4 +713,7 @@
 .k-note .k-note-acts .k-btn:disabled {
   opacity: var(--disabled-opacity);
   cursor: default;
+}
+.k-note .k-note-acts .selection-revert-note:disabled {
+  --k-lift: var(--btn-lift-disabled);
 }

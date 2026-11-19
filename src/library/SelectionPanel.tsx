@@ -23,6 +23,7 @@ import {
 } from "../ipc";
 import { TagPanel } from "./TagPanel";
 import { Tip } from "../ui/Tip";
+import { WarnIcon } from "../ui/WarnIcon";
 
 type Props = {
   libraryId: string;
@@ -94,9 +95,12 @@ function TaggingUnfinished({ failure, edit }: { failure: TaggingFailure; edit: (
   return (
     <div className="insp-tagging">
       <Tip label={t(`tagging.${failure}`)}>
-        <span>{t("tagging.unfinished")}</span>
+        <span className="k-list-desc is-warn">
+          <WarnIcon size={13} />
+          {t("tagging.unfinished")}
+        </span>
       </Tip>
-      <button type="button" className="k-btn is-ghost is-sm" onClick={() => edit([{ kind: "retryTagging" }])}>
+      <button type="button" className="k-btn is-quiet is-sm is-warn" onClick={() => edit([{ kind: "retryTagging" }])}>
         <span className="k-label">{t("tagging.retry")}</span>
       </button>
     </div>
@@ -190,7 +194,7 @@ function Detail({
             <Tip label={sources.length ? t("note.revertTitle") : t("note.revertEmptyTitle")}>
               <button
                 type="button"
-                className="k-btn is-sm is-ghost"
+                className="k-btn is-sm is-quiet selection-revert-note"
                 aria-label={t("note.revertLabel")}
                 disabled={manual === null}
                 onClick={() => edit([{ kind: "revertNote" }])}

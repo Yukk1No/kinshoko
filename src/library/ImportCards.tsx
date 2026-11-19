@@ -94,7 +94,7 @@ export function BackupCards({ paths, onDone }: { paths: string[]; onDone: (path:
         </Tip>
         <button
           type="button"
-          className="k-btn is-sm is-ghost"
+          className="k-btn is-sm is-quiet import-backup-dismiss"
           disabled={restoring === path}
           onClick={() => onDone(path)}
         >

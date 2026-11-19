@@ -119,6 +119,7 @@
 | 东西 | 类或组件 | 写在哪里 |
 | --- | --- | --- |
 | 按钮（普通、主要、危险） | `.k-btn`、`.k-btn.is-primary`、`.k-btn.is-danger` | `src/ui/ui.css` |
+| 低强调按钮 | `.k-btn.is-quiet`（按钮行里的无底按钮，补救没做成的事加 `.is-warn` 警示语气）、`.k-link`（文字里的操作链接） | `src/ui/dialogs.css`，按钮基础在 `src/ui/ui.css` |
 | 图标按钮 | `.k-icon-btn` | `src/ui/ui.css` |
 | 控件里的单行文字 | `.k-label` | `src/ui/ui.css` |
 | 输入框 | `.k-input` | `src/ui/fields.css` |
@@ -144,7 +145,6 @@
 下面这些同一种东西有几个类，#602 各收成一个，收完一类就移进上面的表、从这里删掉：
 
 - 标签块：`.chip`、`.k-chip`、`.k-group-chip`、`.search-chip`、`.k-tag-chip`
-- 低强调按钮：`.k-btn.is-quiet`、`.k-btn.is-ghost`、`.k-btn.is-flush`、`.k-link`
 - 空状态：`.subs-empty`、`.wall-empty`、`.app-empty-body`、`.capture-history-empty`、`.reference-groups-empty`、`.k-tags-empty`、`.k-groups-empty`、`.k-option-empty`
 - 订阅页自带的行、标题、空状态、转圈（`src/subscriptions/subscriptions.css` 的 `subs-` 类）
 
@@ -168,3 +168,4 @@
 - `src/styles/scales.styles.test.ts`：10 以上的 `z-index` 数字、不可用规则里写死的透明度、写死的 `backdrop-filter`
 - `src/ui/headings.styles.test.ts`：`.k-title`、`.k-section-label` 以外另写的标题、分组名字形，以及收掉的旧类名
 - `src/ui/note-error.styles.test.ts`：`.k-description`、`.k-error-text` 以外另写的说明、报错字形，以及收掉的旧类名
+- `src/ui/low-emphasis-buttons.styles.test.ts`：扫描全部 CSS、TS、TSX，挡住低强调按钮旧类名的用处和样式定义

@@ -394,7 +394,7 @@ export function ImportBar({
             >
               <span className="k-label">{t("progress.cancel")}</span>
             </button>
-            <button type="button" className="k-btn is-sm is-ghost" onClick={() => setBackground(running.taskId ?? "")}>
+            <button type="button" className="k-btn is-sm is-quiet" onClick={() => setBackground(running.taskId ?? "")}>
               <span className="k-label">{t("progress.background")}</span>
             </button>
           </div>

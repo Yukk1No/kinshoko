@@ -369,12 +369,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
           </DialogHeight>
           <div className="k-dialog-foot">
             {groups.length > 0 && !reviewing && !saved && (
-              <button
-                type="button"
-                className="k-btn is-ghost is-flush"
-                disabled={busy || bulk.length === 0}
-                onClick={bulkFollow}
-              >
+              <button type="button" className="k-link" disabled={busy || bulk.length === 0} onClick={bulkFollow}>
                 <span className="k-label">{t("bulk", { count: bulk.length })}</span>
               </button>
             )}
