@@ -129,9 +129,12 @@ pub(super) fn sha256(bytes: &[u8]) -> String {
 }
 
 pub(super) fn snapshot_id(at: Stamp) -> String {
-    let (y, mo, d, h, mi, s) = at.local_parts();
     let tail = uuid::Uuid::new_v4().simple().to_string();
-    format!("{y:04}{mo:02}{d:02}-{h:02}{mi:02}{s:02}-{}", &tail[..6])
+    format!(
+        "{}-{}",
+        at.local_datetime().strftime("%Y%m%d-%H%M%S"),
+        &tail[..6]
+    )
 }
 
 pub(super) fn valid_id(id: &str) -> bool {

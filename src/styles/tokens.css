@@ -108,6 +108,24 @@
     inset 0 1px 1.5px light-dark(rgba(43, 39, 71, 0.1), transparent),
     inset 0 1px 2px light-dark(transparent, rgba(0, 0, 0, 0.4));
   --btn-lift-disabled: 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.24), rgba(0, 0, 0, 0.65));
+  /* 槽（#606，design/ui-system/main-window-material.md）：查找框、输入框、下拉、备注框是纸上压下去的一道槽。
+     日间槽底不变暗，深度只画在槽口；夜间槽底变暗。输入时那一圈线变实，外面一圈很淡的晕，不画强调色的焦点环。 */
+  --well-floor: light-dark(var(--surface), var(--sunken));
+  --well-inset:
+    inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.08), rgba(0, 0, 0, 0.3)),
+    inset 0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.5)),
+    inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.3), rgba(0, 0, 0, 0.7)),
+    0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.07));
+  --well-inset-hover:
+    inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.34)),
+    inset 0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.18), rgba(0, 0, 0, 0.55)),
+    inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.48), rgba(244, 236, 220, 0.24)),
+    0 1px 0 light-dark(rgba(255, 255, 255, 0.9), rgba(244, 236, 220, 0.07));
+  --well-focus:
+    inset 0 1px 0 light-dark(rgba(43, 39, 71, 0.06), rgba(0, 0, 0, 0.3)),
+    inset 0 2px 3px -1px light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.5)),
+    inset 0 0 0 1px light-dark(rgba(43, 39, 71, 0.55), rgba(244, 236, 220, 0.5)),
+    0 0 0 3px light-dark(rgba(43, 39, 71, 0.08), rgba(244, 236, 220, 0.08));
   --btn-primary-face: linear-gradient(light-dark(#3b3661, #fdf9f1), light-dark(#2b2747, #ece3d1));
   --btn-primary-face-hover: linear-gradient(light-dark(#433e6b, #fffcf6), light-dark(#312c50, #f2eadb));
   --btn-primary-face-press: light-dark(#2a2645, #e6dcc8);
@@ -191,6 +209,34 @@
   --t-pop: 220ms;
   /* 图标轨图标的悬停动作（信抽出来、图扇开）：位移比控件的状态变化大，要多一点时间看清；移出仍用 --t */
   --t-icon: 420ms;
+  /* 有名字的单项时长：只用在登记的那一处（design/ui-system/scales.md「动效」） */
+  --t-progress: 600ms; /* 打标进度环的弧长变化 */
+  --t-toast: 400ms; /* 轻提示叠放与展开时的位移 */
+  --t-splash: 360ms; /* 启动画面退场时标志与文字淡出 */
+  --t-splash-hold: 250ms; /* 启动画面退场前标志多停的一会儿 */
+
+  /* 档位与层级的说明见 design/ui-system/scales.md。 */
+  /* 控件高度：按钮、图标按钮、输入框、下拉、分段项、dock 项、图标轨按钮只取这三档 */
+  --h-sm: 28px;
+  --h: 32px;
+  --h-lg: 40px;
+  /* 跨区域的层，从下往上；组件内部 1–9 的叠放不用令牌 */
+  --z-pane-scrim: 29;
+  --z-pane-float: 30;
+  --z-fx: 38;
+  --z-task: 50;
+  --z-drop: 80;
+  --z-backdrop: 90;
+  --z-dialog: 91;
+  --z-popup: 95;
+  --z-toast: 200;
+  --z-splash: 1000;
+  --z-debug: 9999;
+  /* 不可用只有一种深浅 */
+  --disabled-opacity: 0.5;
+  /* 半透明浮动面板（dock、托盘、浮岛、轻提示、任务卡）：底色与模糊各一种 */
+  --glass-bg: color-mix(in srgb, var(--surface) 86%, transparent);
+  --glass-blur: blur(18px) saturate(1.2);
   color-scheme: light dark;
 }
 /* Dark: ink purple ground, cream text, gold accent (日间樱、夜间金). Each colour token above holds both values in light-dark(), which
@@ -209,6 +255,10 @@
     --t-slow: 0ms;
     --t-pop: 0ms;
     --t-icon: 0ms;
+    --t-progress: 0ms;
+    --t-toast: 0ms;
+    --t-splash: 0ms;
+    --t-splash-hold: 0ms;
   }
 }
 /* The one global switch for reduced motion, for rules that hardcode a duration: animations jump to their end state in one frame and

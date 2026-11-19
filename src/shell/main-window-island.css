@@ -21,8 +21,8 @@
   height: 40px;
   padding: 0 var(--density-pad);
   overflow: hidden;
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-pop);
   color: var(--ink-3);
 }
@@ -147,8 +147,8 @@
   padding: 0;
   border: 0;
   border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-pop);
   color: var(--accent-strong);
 }
@@ -191,7 +191,7 @@
 .k-tagging-arc {
   stroke: var(--accent);
   stroke-linecap: round;
-  transition: stroke-dasharray 600ms var(--ease);
+  transition: stroke-dasharray var(--t-progress) var(--ease);
 }
 [data-activity="paused"] .k-tagging-arc {
   stroke: var(--ink-3);
@@ -269,7 +269,7 @@
 @media (prefers-reduced-motion: reduce) {
   .k-tagging-glyph > span {
     transform: none !important;
-    transition: opacity 120ms var(--ease);
+    transition: opacity var(--t-fast) var(--ease);
   }
 }
 
@@ -325,14 +325,6 @@
   .k-range::-webkit-slider-thumb {
     transition-duration: 0ms;
   }
-}
-.app-tagbar {
-  flex: none;
-}
-.app-tagbar .groupbar {
-  background: var(--bg);
-  border-bottom: 1px solid var(--line);
-  padding: 4px 12px;
 }
 
 /* ---- Wall source chip: every card with sources; "N 处" when an image lives in two or more libraries.

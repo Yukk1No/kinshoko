@@ -128,7 +128,7 @@ fn primary_display(app: &AppHandle) -> pins::MainDisplay {
 }
 
 fn prepare(report_dir: &Path, display: pins::MainDisplay) -> Result<Prepared, CommandError> {
-    let stamp = chrono_stamp();
+    let stamp = utc_stamp();
     let dir = report_dir.join(format!("run-{stamp}"));
     let run = gate::prepare(&dir).map_err(CommandError::from)?;
     Ok(Prepared {
@@ -140,29 +140,11 @@ fn prepare(report_dir: &Path, display: pins::MainDisplay) -> Result<Prepared, Co
     })
 }
 
-/// 本地时间戳，用于目录与报告文件名（不依赖时区库：取 UTC）。
-fn chrono_stamp() -> String {
-    let secs = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
-    let (days, rem) = (secs / 86_400, secs % 86_400);
-    // 1970-01-01 起的天数 → 公历日期（Howard Hinnant 的算法）。
-    let z = days as i64 + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = yoe + era * 400 + i64::from(m <= 2);
-    format!(
-        "{y:04}{m:02}{d:02}-{:02}{:02}{:02}Z",
-        rem / 3600,
-        rem % 3600 / 60,
-        rem % 60
-    )
+/// 时间戳，用于目录与报告文件名（取 UTC）。
+fn utc_stamp() -> String {
+    jiff::Timestamp::now()
+        .strftime("%Y%m%d-%H%M%SZ")
+        .to_string()
 }
 
 /// 本机环境：WebView2 版本，以及经 PowerShell 读到的 Windows、GPU 与驱动、显示器 ICC 关联。
@@ -285,7 +267,7 @@ pub async fn gate_save(
     passed: bool,
 ) -> Result<PathBuf, CommandError> {
     let prepared = state.wait()?;
-    let stamp = chrono_stamp();
+    let stamp = utc_stamp();
     let json = prepared
         .report_dir
         .join(format!("fidelity-report-{stamp}.json"));

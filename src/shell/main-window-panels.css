@@ -193,16 +193,21 @@
   padding: 8px 10px;
   border: 0;
   border-radius: var(--r);
-  box-shadow: inset 0 0 0 1px var(--line-2);
-  background: var(--surface);
+  box-shadow: var(--well-inset);
+  background: var(--well-floor);
   color: var(--ink);
   font-size: 12px;
   line-height: 18px;
   resize: vertical;
+  transition: box-shadow var(--t) var(--ease);
 }
+.inspector .selection-note textarea:hover:not(:focus) {
+  box-shadow: var(--well-inset-hover);
+}
+/* 输入类控件获得焦点时不画焦点环（#606），同 .k-input。 */
 .inspector .selection-note textarea:focus {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-inset);
+  outline: 0;
+  box-shadow: var(--well-focus);
 }
 .inspector .selection-note + .selection-actions {
   margin-top: 8px;
@@ -360,7 +365,7 @@
   outline-offset: var(--focus-offset);
 }
 .welcome-choice:disabled {
-  opacity: 0.55;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 .welcome-choice-tile {
@@ -482,7 +487,7 @@
   color: var(--ink);
 }
 .k-btn.is-lg {
-  height: 40px;
+  height: var(--h-lg);
   padding: 0 18px;
   border-radius: var(--r);
 }
@@ -496,7 +501,7 @@
 }
 
 /* 窄主区（例如打开详情面板）：查找框收窄而不换行——条件标签横向滚动，精确查找开关保持在尾部；
-   张数在更窄时收起（#98）。图片大小浮岛一直保留，只缩短滑条（#102）。 */
+   图片大小浮岛一直保留，只缩短滑条（#102）。 */
 .app-main {
   container: main / inline-size;
 }
@@ -528,11 +533,6 @@
   }
   .k-density-island .k-range {
     width: 96px;
-  }
-}
-@container main (max-width: 600px) {
-  .bar-meta {
-    display: none;
   }
 }
 
@@ -857,6 +857,6 @@
 }
 /* 不可用的“用来源的”明显变淡。 */
 .k-note .k-note-acts .k-btn:disabled {
-  opacity: 0.45;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }

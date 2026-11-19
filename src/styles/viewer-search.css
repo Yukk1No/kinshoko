@@ -75,11 +75,11 @@
 }
 /* 图片飞行时墙外的界面（侧栏、顶栏、详情面板）退到背景。主区的容器查询自成层叠上下文，盖不住整个窗口，所以各盖各的。 */
 .app-body > :is(.sidebar-slot:not([data-float]), .inspector),
-.app-main > :is(.topbar, .app-tagbar) {
+.app-main > .topbar {
   position: relative;
 }
 .app-body > :is(.sidebar-slot, .inspector)::after,
-.app-main > :is(.topbar, .app-tagbar)::after {
+.app-main > .topbar::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -90,7 +90,7 @@
   transition: opacity var(--t-slow) var(--ease);
 }
 .app-body[data-viewer-flying] > :is(.sidebar-slot, .inspector)::after,
-.app-body[data-viewer-flying] > .app-main > :is(.topbar, .app-tagbar)::after {
+.app-body[data-viewer-flying] > .app-main > .topbar::after {
   opacity: 0.6;
 }
 .viewer-bar {
@@ -134,7 +134,7 @@
   white-space: nowrap;
 }
 .viewer-bar .k-icon-btn:disabled {
-  opacity: 0.4;
+  opacity: var(--disabled-opacity);
 }
 .viewer-zoom {
   display: flex;
