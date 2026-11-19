@@ -29,7 +29,7 @@ export function usePaperSlide(nav: RefObject<HTMLElement | null>) {
     const now = row ? box(row) : null;
     last.current = row && now ? { row, box: now } : null;
     if (!row || !now || !was || was.row === row || !was.row.isConnected) return;
-    if (typeof row.animate !== "function" || window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const from = was.box;
     row.animate(
       [
