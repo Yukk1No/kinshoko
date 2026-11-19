@@ -98,16 +98,25 @@ pub(super) fn primary_monitor() -> Option<(ScreenRect, f64)> {
     monitor_at(m.x().ok()?, m.y().ok()?)
 }
 
-/// 把资料库钉图摆到主显示器中间（略微错开，避开 `others`），按显示器缩小到合适的大小。
-pub(super) fn place_on_primary(pin: &mut SavedPin, others: &[ScreenRect]) {
-    let Some((monitor, dpi)) = primary_monitor() else {
+/// 把资料库钉图摆到屏幕上的 `centre`（物理像素，例如图库墙右键处）为中心的地方，与“钉住”相同；
+/// 不知道在哪时摆到主显示器中间。略微错开，避开 `others`，按显示器缩小到合适的大小。
+pub(super) fn place_around(pin: &mut SavedPin, centre: Option<(i32, i32)>, others: &[ScreenRect]) {
+    let found = match centre {
+        Some((x, y)) => monitor_at(x, y),
+        None => primary_monitor(),
+    };
+    let Some((monitor, dpi)) = found else {
         return;
     };
     pin.placement.scale = initial_scale(pin.width, pin.height, monitor);
     let (width, height) = pin.window_size();
+    let (cx, cy) = centre.unwrap_or((
+        monitor.x + (monitor.width / 2) as i32,
+        monitor.y + (monitor.height / 2) as i32,
+    ));
     let at = ScreenRect {
-        x: monitor.x + (monitor.width.saturating_sub(width) / 2) as i32,
-        y: monitor.y + (monitor.height.saturating_sub(height) / 2) as i32,
+        x: cx - (width / 2) as i32,
+        y: cy - (height / 2) as i32,
         width,
         height,
     };

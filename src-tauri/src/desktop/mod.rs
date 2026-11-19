@@ -146,11 +146,13 @@ pub fn with_groups<R: tauri::Runtime, T>(
 const DESK_CHANGED_EVENT: &str = "desktop://desk-changed";
 
 /// 图库墙“加入参考组”（`pin` 是资料库里的一张图）：加进参考组 `group_id`，成为它的新成员。
-/// 那个参考组正摆在桌面上时，把图钉到桌面上（主显示器中间）。桌面插件还没装好时为 `None`。
+/// 那个参考组正摆在桌面上时，把图钉到桌面上，以 `centre`（右键处）为中心，没有时在主显示器中间。
+/// 桌面插件还没装好时为 `None`。
 pub fn add_to_reference_group<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
     group_id: &str,
     mut pin: kinshoko_core::desktop::SavedPin,
+    centre: Option<(i32, i32)>,
 ) -> Option<Result<kinshoko_core::reference_groups::ReferenceGroup, CommandError>> {
     let state = app.try_state::<DesktopState>()?;
     let result = (|| -> Result<_, kinshoko_core::reference_groups::GroupError> {
@@ -161,7 +163,7 @@ pub fn add_to_reference_group<R: tauri::Runtime>(
             return Ok(group);
         }
         let others: Vec<_> = desk.pins().iter().map(|p| p.rect()).collect();
-        pins::place_on_primary(&mut pin, &others);
+        pins::place_around(&mut pin, centre, &others);
         desk.pin(pin, &mut lock(&state.history))?;
         state.dirty.store(true, Ordering::Relaxed);
         Ok(desk.group().clone())
