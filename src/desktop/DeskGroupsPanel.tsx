@@ -17,6 +17,7 @@ import {
 import type { DeskLists } from "../bindings/DeskLists";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { MemberStatus } from "../bindings/MemberStatus";
+import type { MergeUndo } from "../bindings/MergeUndo";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
 import { i18n } from "../i18n/instance";
 import {
@@ -215,6 +216,13 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     }
   };
 
+  /** 撤销写不进时桌面还是并入后的样子：错误提示上留着“撤销”，拿同一份记录再试。 */
+  const undoMerge = (undo: MergeUndo) => {
+    undoMergeReferenceGroup(undo).catch((e) =>
+      toast.error(errorText(e), { action: { label: t("groups.undo"), onClick: () => undoMerge(undo) } }),
+    );
+  };
+
   /** 并入能撤销，所以不先确认：并入后给带“撤销”的轻提示。 */
   const merge = async (g: GroupSummary) => {
     try {
@@ -224,9 +232,7 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
         tone: "success",
         action: {
           label: t("groups.undo"),
-          onClick: () => {
-            undoMergeReferenceGroup(undo).catch((e) => toast.error(errorText(e)));
-          },
+          onClick: () => undoMerge(undo),
         },
       });
     } catch (e) {
