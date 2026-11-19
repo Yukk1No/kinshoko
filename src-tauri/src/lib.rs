@@ -110,6 +110,7 @@ pub fn run() {
             backup::start_backup,
             backup::backup_snapshots,
             backup::restore_backup,
+            backup::restore_backup_folder,
             tagging::tagging_status,
             tagging::tagging_download,
             tagging::tagging_cancel_download,

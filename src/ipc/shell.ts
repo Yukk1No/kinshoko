@@ -180,6 +180,11 @@ export function restoreBackup(snapshotId: string, into: string): Promise<Restore
   return invoke<RestoreReport>("restore_backup", { snapshotId, into });
 }
 
+/** 把导入时选中的备份文件夹最新的完整快照恢复成新资料库（放在 `into` 下），不用先设为备份目标。 */
+export function restoreBackupFolder(folder: string, into: string): Promise<RestoreReport> {
+  return invoke<RestoreReport>("restore_backup_folder", { folder, into });
+}
+
 export function onBackupStatus(handler: (status: BackupStatus) => void): Promise<UnlistenFn> {
   return listen<BackupStatus>("backup-status", (e) => handler(e.payload));
 }

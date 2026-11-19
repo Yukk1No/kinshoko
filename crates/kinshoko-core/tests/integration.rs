@@ -25,6 +25,8 @@ mod approx_library;
 mod approx_search;
 #[path = "backup_eagle.rs"]
 mod backup_eagle;
+#[path = "backup_import.rs"]
+mod backup_import;
 #[path = "backup_plan.rs"]
 mod backup_plan;
 #[path = "backup_restore.rs"]
