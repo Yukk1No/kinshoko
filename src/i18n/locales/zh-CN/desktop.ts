@@ -41,11 +41,11 @@ export default {
   /** 参考组改成桌面后的侧栏面板（`DeskGroupsPanel`，#592）。 */
   deskPanel: {
     newGroup: "新参考组",
-    favorites: "常用",
+    favorites: "收藏",
     recent: "最近",
     older: "更早",
-    favorite: "设为常用",
-    unfavorite: "取消常用",
+    favorite: "收藏",
+    unfavorite: "取消收藏",
     copy: "复制",
     copyName: "{{name}} 副本",
     copied: "已复制参考组",
@@ -54,6 +54,10 @@ export default {
     removed: "已移出",
     repin: "钉住",
     repinLabel: "钉住{{name}}",
+    repinAll: "全部钉上",
+    bringToFront: "提到最前",
+    bringToFrontLabel: "提到最前：{{name}}",
+    closedCount: "已关闭 {{count, number}} 张",
     removeLabel: "移出{{name}}",
   },
   /** 截图框选窗口（`CaptureOverlay`）。 */
