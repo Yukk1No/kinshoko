@@ -48,6 +48,8 @@ const FORMAT: &str = "kinshoko.reference-group-package";
 const FORMAT_VERSION: u32 = 2;
 /// 带组内截图的包按这一版写，旧版本读到时提示升级；不带的仍按 [`FORMAT_VERSION`]。
 const CAPTURE_FORMAT_VERSION: u32 = 3;
+/// 没有名称的参考组（#590）的包按这一版写，旧版本读到时提示升级。
+const UNNAMED_FORMAT_VERSION: u32 = 4;
 const MANIFEST: &str = "manifest.json";
 pub(super) const CAPTURES: &str = "captures";
 /// 参考组包文件的扩展名。
@@ -249,7 +251,15 @@ pub(super) fn export(
     let manifest = PackageManifest {
         package_id: new_id(),
         exported_at: crate::library::now_ms(),
-        group: group.clone(),
+        // 透明度与锁定只在本机桌面上有意义，参考组包不带（#588 决定 3）。
+        group: ReferenceGroup {
+            members: group
+                .members
+                .iter()
+                .map(GroupMember::without_desk_state)
+                .collect(),
+            ..group.clone()
+        },
         images,
         captures: capture_bytes
             .iter()
@@ -260,7 +270,9 @@ pub(super) fn export(
             })
             .collect(),
     };
-    let format_version = if manifest.captures.is_empty() {
+    let format_version = if group.is_unnamed() {
+        UNNAMED_FORMAT_VERSION
+    } else if manifest.captures.is_empty() {
         FORMAT_VERSION
     } else {
         CAPTURE_FORMAT_VERSION

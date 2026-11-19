@@ -40,7 +40,7 @@ function actions(): WallMenuActions {
     folders: vi.fn(async () => [{ id: "f1", label: "人物" }]),
     inFolder: vi.fn(async () => false),
     groups: vi.fn(async () => [
-      { id: "g1", name: "光影", memberCount: 1, libraryIds: ["L1"], updatedAt: 0, problem: null },
+      { id: "g1", name: "光影", memberCount: 1, libraryIds: ["L1"], createdAt: 0, updatedAt: 0, problem: null },
     ]),
   };
 }

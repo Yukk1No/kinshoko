@@ -24,6 +24,7 @@ fn group(id: &str, name: &str, libraries: &[&str]) -> GroupSummary {
         name: name.into(),
         member_count: libraries.len(),
         library_ids: libraries.iter().map(|l| l.to_string()).collect(),
+        created_at: 0,
         updated_at: 0,
         problem: None,
     }
