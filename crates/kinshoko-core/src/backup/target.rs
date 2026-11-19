@@ -167,8 +167,9 @@ impl BackupTarget {
     }
 
     /// 按范围备份一次：每个资料库先取原文件租约并做数据库快照，再把快照引用的原文件按哈希
-    /// 增量复制（复制时核对哈希），然后复制参考组、写清单，最后改名为完整快照，按保留策略
-    /// 清理旧快照与不再被引用的原文件。原文件内容与记录不符或缺失时快照不完整。
+    /// 增量复制（新复制的与已有的都核对哈希，已有的坏了就重新复制），然后复制参考组、写清单，
+    /// 最后改名为完整快照，按保留策略清理旧快照与不再被引用的原文件。
+    /// 原文件内容与记录不符或缺失时快照不完整。
     /// 读不到的资料库（移动盘没插）跳过并在结果里列出。
     pub fn run(
         &self,
@@ -316,16 +317,19 @@ impl BackupTarget {
         let total = snaps.iter().map(|s| s.originals.len() as u32).sum();
         let mut done = 0;
         progress(BackupProgress { done, total });
+        // 这次备份里已核对过、可以直接引用的原文件。
+        let mut verified = BTreeSet::new();
         // 整次备份都持有各资料库的原文件租约（`snaps` 活到函数结束）。
         for snap in &snaps {
             for dep in &snap.originals {
                 let target = self.stored(&root, &dep.file.sha256);
-                let have = fs::metadata(&target).is_ok_and(|m| m.len() == dep.file.size);
-                if have {
+                if verified.contains(&dep.file.sha256) || holds(&target, &dep.file) {
                     report.reused += 1;
+                    verified.insert(dep.file.sha256.clone());
                 } else {
                     match store(&dep.source, &target, &dep.file.sha256) {
                         Ok(()) => {
+                            verified.insert(dep.file.sha256.clone());
                             report.copied += 1;
                             report.copied_bytes += dep.file.size;
                             library::fault::hit(library::fault::BACKUP_AFTER_COPY);
