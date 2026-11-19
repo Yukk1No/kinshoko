@@ -92,6 +92,9 @@
 .k-task-sub.is-warn {
   color: var(--warn);
 }
+.k-task-acts .import-backup-dismiss:disabled {
+  --k-lift: var(--btn-lift-disabled);
+}
 .k-task-sub.is-danger,
 .k-task-stats .is-danger,
 .k-task-stats .is-danger b {

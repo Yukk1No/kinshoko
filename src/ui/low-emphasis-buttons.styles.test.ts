@@ -29,6 +29,13 @@ function retiredClasses(text: string): string[] {
 }
 
 describe("低强调按钮", () => {
+  it("不恢复图库备份的按钮不可用时保留细线", () => {
+    expect(cssRule(sheets["./dialogs-tasks.css"], ".k-task-acts .import-backup-dismiss:disabled")).toEqual({
+      "--k-lift": "var(--btn-lift-disabled)",
+    });
+    expect(sources["../library/ImportCards.tsx"]).toContain('className="k-btn is-sm is-quiet import-backup-dismiss"');
+  });
+
   it("警示只是无底按钮的语气，不改变尺寸或焦点", () => {
     const base = ".k-btn.is-quiet.is-warn";
     expect(
