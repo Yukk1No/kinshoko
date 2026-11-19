@@ -105,6 +105,16 @@ impl ImportSource {
     pub fn contains_eagle(&self) -> bool {
         super::import::contains_eagle(self)
     }
+
+    /// 只读找出选中的路径里哪些是 Kinshoko 备份（备份目标、`kinshoko-backup/` 或其中的位置），
+    /// 原样返回这些路径。它们要经恢复还原成新资料库，当散图导入会丢掉文件夹与整理信息。
+    pub fn backups(&self) -> Vec<PathBuf> {
+        self.paths
+            .iter()
+            .filter(|path| crate::backup::target_of(path).is_some())
+            .cloned()
+            .collect()
+    }
 }
 
 /// Eagle 曾永久删除的同一内容在本次任务中的处理方式，不改写长期删除记忆。

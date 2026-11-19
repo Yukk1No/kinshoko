@@ -324,6 +324,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             import_preview::close_import_preview,
             save_destination::dismiss_import,
             import_contains_eagle,
+            import_backups,
             cancel_import,
             pick_folder,
             pick_files,

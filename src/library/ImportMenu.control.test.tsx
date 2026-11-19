@@ -52,6 +52,7 @@ it("从剪贴板导入（#105）：剪贴板图片暂存成文件后走同一导
     recovery: { interrupted: [], orphans: [] },
     stage_clipboard_import: "C:/data/clipboard-import/剪贴板图片-1.png",
     import_contains_eagle: false,
+    import_backups: [],
     start_import: (args) => {
       submitted = args;
       return "clip-task";
