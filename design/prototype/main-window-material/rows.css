@@ -1,0 +1,202 @@
+/* 第十轮（#635 之后）：左栏的行重做五套。叠在 PR #635 的正式样式上，按 <html data-rows> 生效；data-variant 同时是 now，
+   所以前几轮的方案样式都不参与。只换四样东西：选中、悬停滑块、按下、文件夹图标。颜色只取 tokens.css 里已有的色。
+   甲 指示条 · 乙 压槽 · 丙 墨块 · 丁 荧光笔 · 戊 暖纸 */
+
+/* ---- 共用：几套方案都不要文件夹图标的牛皮纸底时，用这一组 ---- */
+:root:is([data-rows="ra"], [data-rows="rc"], [data-rows="re"]) .sidebar-slot .k-row-icon :is(.lucide-folder, .lucide-folder-open) {
+  fill: none;
+  filter: none;
+}
+:root:is([data-rows="ra"], [data-rows="rc"], [data-rows="re"]) .k-fold-icon {
+  filter: none;
+}
+:root:is([data-rows="ra"], [data-rows="rc"], [data-rows="re"]) .k-fold-icon .back {
+  fill: none;
+}
+/* 前面一页要盖住后面一页的线，所以填纸的颜色 */
+:root:is([data-rows="ra"], [data-rows="rc"], [data-rows="re"]) .k-fold-icon .flap {
+  fill: var(--surface);
+}
+
+/* =====================================================================================================
+   甲 指示条：Windows 11 导航栏的做法。选中是平的淡墨底，左边一根 3 × 14 的强调色短条；悬停是平的，没有边。
+   文件夹图标只有线框。按下不缩，底色深一点。
+   ===================================================================================================== */
+:root[data-rows="ra"] .sidebar-slot .k-fluid-pill {
+  box-shadow: none;
+}
+:root[data-rows="ra"] .lib-head-name:hover:not(:disabled, [aria-current="page"]) {
+  box-shadow: none;
+}
+:root[data-rows="ra"] :is(.k-row, .lib-head-name)[aria-current="page"]::before {
+  background: light-dark(rgba(43, 39, 71, 0.06), rgba(244, 236, 220, 0.07));
+  box-shadow: none;
+}
+:root[data-rows="ra"] :is(.k-row, .lib-head-name)[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 14px;
+  translate: 0 -50%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+:root[data-rows="ra"] :is(.k-row, .lib-head-name)[aria-current="page"] .sidebar-count {
+  color: var(--ink-2);
+  font-weight: 400;
+}
+:root[data-rows="ra"] .sidebar-slot :is(.k-row, .lib-head-name):active:not(:disabled) {
+  transform: none;
+}
+:root[data-rows="ra"] .sidebar-slot :is(.k-row, .lib-head-name):active:not(:disabled)::before {
+  background: light-dark(rgba(43, 39, 71, 0.1), rgba(244, 236, 220, 0.11));
+}
+:root[data-rows="ra"] .sidebar-slot .k-row[aria-current="page"] .k-fold-icon .back,
+:root[data-rows="ra"] li[data-branch] > .k-fluid-row .k-fold-icon .back {
+  fill: none;
+}
+:root[data-rows="ra"] :is(li[data-branch] > .k-fluid-row, .k-row[aria-current="page"]) .k-fold-icon .flap {
+  fill: var(--surface);
+}
+
+/* =====================================================================================================
+   乙 压槽：选中的一行压进纸里，与查找框、输入框是同一种槽；状态往下压，不往上浮。
+   悬停是很浅的平底；按下槽再深一点。文件夹图标保留牛皮纸底。
+   ===================================================================================================== */
+:root[data-rows="rb"] .sidebar-slot .k-fluid-pill {
+  background: light-dark(rgba(43, 39, 71, 0.04), rgba(0, 0, 0, 0.14));
+  box-shadow: none;
+}
+:root[data-rows="rb"] .lib-head-name:hover:not(:disabled, [aria-current="page"]) {
+  background: light-dark(rgba(43, 39, 71, 0.04), rgba(0, 0, 0, 0.14));
+  box-shadow: none;
+}
+:root[data-rows="rb"] :is(.k-row, .lib-head-name)[aria-current="page"]::before {
+  background: light-dark(rgba(43, 39, 71, 0.055), rgba(0, 0, 0, 0.26));
+  box-shadow:
+    inset 0 1px 2px light-dark(rgba(43, 39, 71, 0.13), rgba(0, 0, 0, 0.45)),
+    inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.14), rgba(0, 0, 0, 0.5)),
+    0 1px 0 light-dark(#ffffff, rgba(244, 236, 220, 0.06));
+}
+:root[data-rows="rb"] .sidebar-slot :is(.k-row, .lib-head-name):active:not(:disabled) {
+  transform: none;
+}
+:root[data-rows="rb"] .sidebar-slot :is(.k-row, .lib-head-name):active:not(:disabled)::before {
+  box-shadow:
+    inset 0 1.5px 3px light-dark(rgba(43, 39, 71, 0.18), rgba(0, 0, 0, 0.55)),
+    inset 0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.18), rgba(0, 0, 0, 0.55));
+}
+
+/* =====================================================================================================
+   丙 墨块：选中是一块实心的墨色，字翻成纸色；日间是墨紫块上的樱色图标，夜间是奶油块上的深色字。
+   一眼就能找到选中的在哪。悬停平的，没有边；按下仍缩到 98.5%。文件夹图标只有线框。
+   ===================================================================================================== */
+:root[data-rows="rc"] .sidebar-slot .k-fluid-pill {
+  box-shadow: none;
+}
+:root[data-rows="rc"] .lib-head-name:hover:not(:disabled, [aria-current="page"]) {
+  box-shadow: none;
+}
+:root[data-rows="rc"] :is(.k-row, .lib-head-name)[aria-current="page"] {
+  color: var(--surface);
+}
+:root[data-rows="rc"] :is(.k-row, .lib-head-name)[aria-current="page"]::before {
+  background: var(--ink);
+  box-shadow: 0 1px 2px light-dark(rgba(43, 39, 71, 0.22), rgba(0, 0, 0, 0.4));
+}
+:root[data-rows="rc"] .sidebar-slot .k-row[aria-current="page"] .k-row-icon {
+  color: light-dark(var(--accent), color-mix(in srgb, var(--accent-strong) 35%, var(--surface)));
+}
+:root[data-rows="rc"] :is(.k-row, .lib-head-name)[aria-current="page"] .sidebar-count {
+  color: color-mix(in srgb, var(--surface) 72%, transparent);
+  font-weight: 400;
+}
+:root[data-rows="rc"] .sidebar-slot .k-row[aria-current="page"] .k-fold-icon .back {
+  fill: none;
+}
+:root[data-rows="rc"] .k-row[aria-current="page"] .k-fold-icon .flap {
+  fill: var(--ink);
+}
+:root[data-rows="rc"] li[data-branch] > .k-fluid-row .k-fold-icon .back {
+  fill: none;
+}
+:root[data-rows="rc"] li[data-branch] > .k-fluid-row .k-fold-icon .flap {
+  fill: var(--surface);
+}
+
+/* =====================================================================================================
+   丁 荧光笔：选中的一行没有底，名字上涂一道强调色的荧光笔，像在纸上把它圈出来。
+   名字加粗；悬停平的，没有边；按下不缩。文件夹图标保留牛皮纸底。
+   ===================================================================================================== */
+:root[data-rows="rd"] .sidebar-slot .k-fluid-pill {
+  box-shadow: none;
+}
+:root[data-rows="rd"] .lib-head-name:hover:not(:disabled, [aria-current="page"]) {
+  box-shadow: none;
+}
+:root[data-rows="rd"] :is(.k-row, .lib-head-name)[aria-current="page"]::before {
+  display: none;
+}
+:root[data-rows="rd"] :is(.k-row, .lib-head-name)[aria-current="page"] {
+  font-weight: 600;
+}
+:root[data-rows="rd"] :is(.k-row, .lib-head-name)[aria-current="page"] .sidebar-label {
+  /* 下划线画在字的下面：加粗到大半个字高、往上提，就是一道盖在字上的荧光笔，不动标签的盒子。 */
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  text-decoration-thickness: 0.62em;
+  text-underline-offset: -0.42em;
+  text-decoration-skip-ink: none;
+}
+:root[data-rows="rd"] :is(.k-row, .lib-head-name)[aria-current="page"] .sidebar-count {
+  color: var(--ink-2);
+  font-weight: 400;
+}
+:root[data-rows="rd"] .sidebar-slot :is(.k-row, .lib-head-name):active:not(:disabled) {
+  transform: none;
+}
+
+/* =====================================================================================================
+   戊 暖纸：不用强调色。选中是深一档的米黄纸色（夜间是一层淡奶油），平的；名字、图标、张数都是墨色加粗一点。
+   悬停是更浅的一档；按下不缩。文件夹图标只有线框，选中那一支的线框是墨色。
+   ===================================================================================================== */
+:root[data-rows="re"] .sidebar-slot .k-fluid-pill {
+  background: light-dark(rgba(43, 39, 71, 0.04), rgba(244, 236, 220, 0.045));
+  box-shadow: none;
+}
+:root[data-rows="re"] .lib-head-name:hover:not(:disabled, [aria-current="page"]) {
+  background: light-dark(rgba(43, 39, 71, 0.04), rgba(244, 236, 220, 0.045));
+  box-shadow: none;
+}
+:root[data-rows="re"] :is(.k-row, .lib-head-name)[aria-current="page"]::before {
+  background: light-dark(var(--surface-2), rgba(244, 236, 220, 0.1));
+  box-shadow: none;
+}
+:root[data-rows="re"] :is(.k-row, .lib-head-name)[aria-current="page"] {
+  font-weight: 600;
+}
+:root[data-rows="re"] .k-row[aria-current="page"] .k-row-icon,
+:root[data-rows="re"] :is(.k-row, .lib-head-name)[aria-current="page"] .sidebar-count {
+  color: var(--ink);
+}
+:root[data-rows="re"] li[data-branch] > .k-fluid-row .k-row-icon {
+  color: var(--ink-2);
+}
+:root[data-rows="re"] .sidebar-slot :is(.k-row, .lib-head-name):active:not(:disabled) {
+  transform: none;
+}
+:root[data-rows="re"] .sidebar-slot :is(.k-row, .lib-head-name):active:not(:disabled)::before {
+  background: light-dark(color-mix(in srgb, var(--surface-2), rgba(43, 39, 71, 0.06)), rgba(244, 236, 220, 0.14));
+}
+:root[data-rows="re"] .sidebar-slot .k-row[aria-current="page"] .k-fold-icon .back,
+:root[data-rows="re"] li[data-branch] > .k-fluid-row .k-fold-icon .back {
+  fill: none;
+}
+:root[data-rows="re"] .k-row[aria-current="page"] .k-fold-icon .flap {
+  fill: light-dark(var(--surface-2), color-mix(in srgb, var(--surface) 90%, #f4ecdc));
+}
+:root[data-rows="re"] li[data-branch] > .k-fluid-row .k-fold-icon .flap {
+  fill: var(--surface);
+}

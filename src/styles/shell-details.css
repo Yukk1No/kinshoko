@@ -273,13 +273,6 @@
   font-size: 12px;
   overflow-wrap: anywhere;
 }
-.workspace-descendants {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px 12px;
-  font-size: 12px;
-}
 .workspace-provider-root {
   display: grid;
   grid-template-columns: 26px minmax(0, 1fr);

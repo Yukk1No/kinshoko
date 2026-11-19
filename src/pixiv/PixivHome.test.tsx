@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { PixivWork } from "../bindings/PixivWork";
 import type { WorksPage } from "../bindings/WorksPage";
@@ -118,13 +118,15 @@ describe("订阅页主区", () => {
     await screen.findByRole("button", { name: "作品10，画师" });
     const wall = document.querySelector<HTMLElement>(".pw-wall");
     if (!wall) throw new Error("没有墙");
-    for (let i = 0; i < 4; i++) {
+    // 上一页还在读时的滚动不算数，所以一直滚到读满三页，不按固定次数（CI 慢的时候固定四次会少读一页）。
+    for (let i = 0; i < 50 && recommendedPages < 3; i++) {
       await act(async () => {
         wall.scrollTop = 100_000;
         fireEvent.scroll(wall);
+        await new Promise((done) => setTimeout(done, 10));
       });
     }
-    await waitFor(() => expect(recommendedPages).toBe(3));
+    expect(recommendedPages).toBe(3);
     await act(async () => {
       fireEvent.scroll(wall);
     });

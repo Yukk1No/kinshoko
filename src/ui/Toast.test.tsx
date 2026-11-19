@@ -196,3 +196,58 @@ describe("常驻通知", () => {
     await waitFor(() => expect(shown("甲")).toBe(false));
   });
 });
+
+describe("排队的常驻通知（#609）", () => {
+  const titles = () => [...document.querySelectorAll(".k-toast-title")].map((t) => t.textContent);
+
+  it("一次只显示一条，次序小的先出；关掉一条再出下一条，普通提示不排队", async () => {
+    render(
+      <>
+        <Grab />
+      </>,
+    );
+    act(() => {
+      api!.show({ title: "有新版本", timeout: 0, queue: 4 });
+      api!.show({ title: "2 个旧名称待确认", timeout: 0, queue: 5 });
+      api!.show({ title: "运行环境有问题", timeout: 0, queue: 2 });
+      api!.show({ title: "已复制" });
+    });
+    await waitFor(() => expect(titles()).toEqual(expect.arrayContaining(["有新版本", "已复制"])));
+    expect(titles()).toHaveLength(2);
+
+    act(() => {
+      api!.update(api!.show({ title: "占位", timeout: 0, queue: 3 }), { title: "备份没有完成", timeout: 0 });
+    });
+    const close = () =>
+      fireEvent.click(
+        screen
+          .getAllByRole("button", { name: "关闭提示", hidden: true })
+          .find((b) => b.closest(".k-toast")?.textContent?.includes(titles().find((t) => t !== "已复制") ?? ""))!,
+      );
+    for (const next of ["运行环境有问题", "备份没有完成", "2 个旧名称待确认"]) {
+      close();
+      await waitFor(() => expect(titles()).toContain(next));
+    }
+  });
+
+  it("等着的通知被代码收起时不再出现，并通知调用方", async () => {
+    render(
+      <>
+        <Grab />
+      </>,
+    );
+    const onClose = vi.fn();
+    let waiting = "";
+    act(() => {
+      api!.show({ title: "登录已过期", timeout: 0, queue: 1 });
+      waiting = api!.show({ title: "有新版本", timeout: 0, queue: 4, onClose });
+      api!.close(waiting);
+    });
+    expect(onClose).toHaveBeenCalledOnce();
+    fireEvent.click(await screen.findByRole("button", { name: "关闭提示", hidden: true }));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(titles()).not.toContain("有新版本");
+  });
+});

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BackupPreview } from "../bindings/BackupPreview";
-import { useToast } from "../ui/Toast";
+import { NOTICE_ORDER, useToast } from "../ui/Toast";
 import type { BackupStatus } from "../bindings/BackupStatus";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import type { RestoreReport } from "../bindings/RestoreReport";
@@ -387,7 +387,10 @@ export function BackupReminder() {
   useEffect(() => {
     if (shown.current?.at === at) return;
     if (shown.current) toast.close(shown.current.id);
-    shown.current = at === null ? null : { at, id: toast.error(t("title", { reason }), { description: t("retry") }) };
+    shown.current =
+      at === null
+        ? null
+        : { at, id: toast.error(t("title", { reason }), { description: t("retry"), queue: NOTICE_ORDER.backup }) };
   }, [toast, at, reason, t]);
   useEffect(
     () => () => {
