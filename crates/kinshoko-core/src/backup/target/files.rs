@@ -18,6 +18,12 @@ pub(super) fn registered<'a>(
         })
 }
 
+/// 备份目标的原文件区里已有这份原文件，且大小与哈希都和记录相符。
+pub(super) fn holds(stored: &Path, file: &OriginalFile) -> bool {
+    fs::metadata(stored).is_ok_and(|m| m.len() == file.size)
+        && library::hash_file(stored).is_ok_and(|got| got == file.sha256)
+}
+
 /// 复制进备份目标的原文件区：先写临时文件、核对哈希、落盘，再改名。
 pub(super) fn store(source: &Path, target: &Path, sha: &str) -> Result<(), CommandError> {
     let dir = target.parent().expect("原文件区有上级目录");

@@ -110,20 +110,6 @@
   color: var(--ink-2);
   font-size: 12px;
 }
-/* 已选几个：胶囊用 strong 字配 soft 底，与选中的标签块同色。 */
-.badge {
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: var(--r-pill);
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 600;
-  text-align: center;
-}
-
 /* 分组里的标签：点一下加为条件（樱色 / 金色浅底），右键排除（同顶栏里排除的条件：无底细线、删除线），
    一张图也没有的标签无底、淡字。 */
 .chips {
