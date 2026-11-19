@@ -314,7 +314,35 @@
   align-items: center;
   gap: 8px;
 }
-/* 标题与分组名（design/ui-system/scales.md「共用类」）：外边距与对齐由所在的区域决定。 */
+/* 共用文字（design/ui-system/scales.md「共用类」）：外边距与对齐由所在的区域决定。 */
+.k-description {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ink-2);
+}
+.k-description:where(.is-spaced) {
+  margin-top: 8px;
+}
+.k-error-text {
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+.k-error-text:where(.is-boxed) {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
+.k-error-text:where(.is-field) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 18px;
+  overflow-wrap: normal;
+}
 .k-title {
   margin: 0;
   font-size: 16px;

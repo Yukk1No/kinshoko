@@ -161,7 +161,7 @@ function Detail({
       )}
       {/* 备注（#98）：字段用改版样式；有未保存的改动才出现“保存”，有自己写的备注才能“用来源的”。 */}
       <section className="insp-sec k-note">
-        <label className="selection-note">
+        <label className="selection-note-field">
           <span className="insp-h">
             <StickyNote size={13} aria-hidden="true" />
             {manual === null && sources.length > 0 ? t("note.fromSource") : t("note.title")}
@@ -324,7 +324,7 @@ export function PermanentDeleteConfirm({
           ) : (
             <>
               {changed && (
-                <p className="k-set-note" role="status">
+                <p className="k-description is-spaced" role="status">
                   {t("changed")}
                 </p>
               )}

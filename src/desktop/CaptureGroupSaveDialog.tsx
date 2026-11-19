@@ -175,7 +175,7 @@ export function CaptureGroupSaveDialog<T>({
                         />
                       </div>
                       {lost && (
-                        <p className="k-field-error" role="alert">
+                        <p className="k-error-text is-field" role="alert">
                           <CircleAlert size={14} aria-hidden="true" />
                           {t("unavailable")}
                         </p>

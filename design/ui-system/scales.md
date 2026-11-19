@@ -134,6 +134,8 @@
 | 计数角标 | `.k-badge`（图标按钮右上角的墨色数字，图标轨与 Dock 共用） | `src/ui/ui-dock.css` |
 | 16 px 标题 | `.k-title`（页面、侧栏、对话框、设置页的标题；外边距与对齐由所在区域另写） | `src/ui/ui.css` |
 | 12 px 分组名 | `.k-section-label`（菜单、字段、浮层里的分组名；菜单里加 `.is-menu` 与选项文字对齐） | `src/ui/ui.css` |
+| 说明文字 | `.k-description`（12 / 18，次要墨色；段前间距加 `.is-spaced`） | `src/ui/ui.css` |
+| 报错文字 | `.k-error-text`（12 px，危险色，行高继承；底框加 `.is-boxed`，字段图标行加 `.is-field`） | `src/ui/ui.css` |
 
 ### 还没有共用类
 
@@ -142,7 +144,6 @@
 - 标签块：`.chip`、`.k-chip`、`.k-group-chip`、`.search-chip`、`.k-tag-chip`
 - 低强调按钮：`.k-btn.is-quiet`、`.k-btn.is-ghost`、`.k-btn.is-flush`、`.k-link`
 - 空状态：`.subs-empty`、`.wall-empty`、`.app-empty-body`、`.capture-history-empty`、`.reference-groups-empty`、`.k-tags-empty`、`.k-groups-empty`、`.k-option-empty`
-- 说明与报错文字：`.k-set-note`、`.k-set-hint`、`.k-set-error`、`.k-set-load-error`、`.settings-error`、`.k-field-error`、`.create-library-error`、`.selection-note`、`.insp-hint`
 - 订阅页自带的行、标题、空状态、转圈（`src/subscriptions/subscriptions.css` 的 `subs-` 类）
 
 ## 样式写在哪里
@@ -164,3 +165,4 @@
 - `src/styles/motion.styles.test.ts`：令牌文件以外的 `transition`、`animation` 里写死的时长
 - `src/styles/scales.styles.test.ts`：10 以上的 `z-index` 数字、不可用规则里写死的透明度、写死的 `backdrop-filter`
 - `src/ui/headings.styles.test.ts`：`.k-title`、`.k-section-label` 以外另写的标题、分组名字形，以及收掉的旧类名
+- `src/ui/note-error.styles.test.ts`：`.k-description`、`.k-error-text` 以外另写的说明、报错字形，以及收掉的旧类名

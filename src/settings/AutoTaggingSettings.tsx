@@ -150,7 +150,7 @@ export function AutoTaggingSettings({
             meta={busy ? t("importing") : undefined}
             below={
               error !== null && (
-                <p className="k-set-error" role="alert">
+                <p className="k-error-text is-boxed" role="alert">
                   {error}
                 </p>
               )

@@ -137,7 +137,7 @@ export function FollowingDialog({
               </p>
             )}
             {follows.kind === "failed" && (
-              <p className="k-field-error subs-follow-note" role="alert">
+              <p className="k-error-text is-field subs-follow-note" role="alert">
                 <CircleAlert size={14} aria-hidden="true" />
                 {follows.message}
               </p>
@@ -180,7 +180,7 @@ export function FollowingDialog({
             disabled={busy}
           />
           {error && (
-            <p className="k-field-error" role="alert">
+            <p className="k-error-text is-field" role="alert">
               <CircleAlert size={14} aria-hidden="true" />
               {error}
             </p>

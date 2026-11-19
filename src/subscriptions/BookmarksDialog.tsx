@@ -134,7 +134,7 @@ export function BookmarksDialog({
             disabled={busy}
           />
           {error && (
-            <p className="k-field-error" role="alert">
+            <p className="k-error-text is-field" role="alert">
               <CircleAlert size={14} aria-hidden="true" />
               {error}
             </p>
