@@ -18,8 +18,6 @@ export default {
     yieldedToFullScreen: "因全屏程序暂停",
     needsDownload: "需要下载自动标签模型（{{size}}）",
     clickDownload: "点击开始下载",
-    /** 打标图标在需要下载时写出的短文字。 */
-    downloadShort: "下载标签模型 {{size}}",
     clickResume: "已下载 {{percent}}%，点击继续",
     failed: "自动标签出错",
     noDevice: "自动标签不可用",

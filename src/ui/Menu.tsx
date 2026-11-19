@@ -118,7 +118,7 @@ function Level({
       aria-label={label}
     >
       {title && (
-        <div className="k-menu-title" aria-hidden="true">
+        <div className="k-section-label k-menu-title" aria-hidden="true">
           {title}
         </div>
       )}
