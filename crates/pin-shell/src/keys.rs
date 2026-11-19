@@ -174,6 +174,56 @@ pub(crate) fn late_ms(event_ms: u32, now_ms: u32) -> Option<u32> {
     (LATE_MS..u32::MAX / 2).contains(&d).then_some(d)
 }
 
+/// 屏幕上有钉图、Esc 却被放行时的情况（写进运行日志，查 Esc 有时关不掉钉图）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct EscPass {
+    /// 光标在某张钉图（含阴影）上。
+    pub over_pin: bool,
+    /// Esc 在拦截表里（菜单打开时拦截表是空的）。
+    pub esc_enabled: bool,
+    pub ctrl: bool,
+    pub alt: bool,
+    pub win: bool,
+}
+
+impl EscPass {
+    /// 打包成一个整数，经窗口消息从钩子线程投给界面线程。
+    pub(crate) fn pack(self) -> usize {
+        [
+            self.over_pin,
+            self.esc_enabled,
+            self.ctrl,
+            self.alt,
+            self.win,
+        ]
+        .iter()
+        .enumerate()
+        .fold(0, |bits, (i, &on)| bits | (usize::from(on) << i))
+    }
+
+    pub(crate) fn unpack(bits: usize) -> EscPass {
+        let on = |i: u32| bits & (1 << i) != 0;
+        EscPass {
+            over_pin: on(0),
+            esc_enabled: on(1),
+            ctrl: on(2),
+            alt: on(3),
+            win: on(4),
+        }
+    }
+}
+
+/// 放行了一次 Esc 按下：屏幕上有钉图时记下情况；没有钉图时 Esc 本来就不归钉图，返回 None。
+pub(crate) fn esc_pass(table: &HitTable, at: (i32, i32), mods: Mods) -> Option<EscPass> {
+    (!table.pins.is_empty()).then(|| EscPass {
+        over_pin: table.pin_at(at).is_some(),
+        esc_enabled: table.keys.contains(Key::Escape),
+        ctrl: mods.ctrl,
+        alt: mods.alt,
+        win: mods.win,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -394,5 +444,27 @@ mod tests {
         assert_eq!(late_ms(u32::MAX - 100, 400), Some(501));
         // 时间戳比现在新（注入的输入、时钟抖动）：不算晚。
         assert_eq!(late_ms(1005, 1000), None);
+    }
+
+    #[test]
+    fn esc_pass_is_only_reported_while_pins_are_on_screen() {
+        let empty = HitTable::default();
+        assert_eq!(esc_pass(&empty, (10, 10), Mods::default()), None);
+        let t = table();
+        let ctrl = Mods {
+            ctrl: true,
+            ..Mods::default()
+        };
+        let pass = esc_pass(&t, (10, 10), ctrl).expect("有钉图时记下");
+        assert!(pass.over_pin && pass.esc_enabled && pass.ctrl && !pass.alt && !pass.win);
+        let off = esc_pass(&t, (5000, 5000), Mods::default()).expect("有钉图时记下");
+        assert!(!off.over_pin);
+    }
+
+    #[test]
+    fn esc_pass_round_trips_through_a_message_parameter() {
+        for bits in 0..32 {
+            assert_eq!(EscPass::unpack(bits).pack(), bits);
+        }
     }
 }

@@ -493,6 +493,17 @@ fn hook_warning(event: HookEvent) -> Effect {
             "钉图键盘钩子装不上，钉图快捷键不可用",
             format!("错误码 {code}"),
         ),
+        HookEvent::EscPassed(p) => Effect::Warn(
+            "屏幕上有钉图时 Esc 没有拦下",
+            format!(
+                "光标在钉图上 {}，Esc 在拦截表里 {}，按着 Ctrl {} Alt {} Win {}",
+                p.over_pin, p.esc_enabled, p.ctrl, p.alt, p.win
+            ),
+        ),
+        HookEvent::ElevatedForeground { exe } => Effect::Warn(
+            "前台程序的权限比 Kinshoko 高，它在前台时钉图收不到按键",
+            format!("程序 {exe}"),
+        ),
     }
 }
 
