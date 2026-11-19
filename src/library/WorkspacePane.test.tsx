@@ -170,7 +170,7 @@ it("新建文件夹放在所选库当前打开的文件夹里", async () => {
   ]);
 });
 
-it("每库为独立根展示完整目录，选择目录默认包含子文件夹，明确切换直接层级", async () => {
+it("每库为独立根展示完整目录，选文件夹总是连同子文件夹；没有“含子文件夹”开关（#608）", async () => {
   const view = await loaded(render(<WorkspacePane {...props} scope={inA({ kind: "all" })} />));
   const a = section("A");
   expect(within(a).getByRole("button", { name: "人物（2 张）" })).toBeTruthy();
@@ -181,21 +181,13 @@ it("每库为独立根展示完整目录，选择目录默认包含子文件夹�
     scope: { kind: "folderTree", id: "A-child" },
   });
   view.rerender(<WorkspacePane {...props} scope={inA({ kind: "folderTree", id: "A-root" })} />);
-  const descendants = screen.getByRole("switch", { name: "含子文件夹" });
-  expect(descendants.getAttribute("aria-checked")).toBe("true");
-  fireEvent.click(descendants);
-  expect(within(a).getByRole("button", { name: "人物（1 张）" })).toBeTruthy();
-  expect(props.onScope).toHaveBeenLastCalledWith({
-    kind: "library",
-    libraryId: "A",
-    scope: { kind: "folder", id: "A-root" },
-  });
+  expect(screen.queryByRole("switch", { name: "含子文件夹" })).toBeNull();
   fireEvent.click(arrow("B"));
   fireEvent.click(within(section("B")).getByRole("button", { name: "动作（1 张）" }));
   expect(props.onScope).toHaveBeenLastCalledWith({
     kind: "library",
     libraryId: "B",
-    scope: { kind: "folder", id: "B-child" },
+    scope: { kind: "folderTree", id: "B-child" },
   });
 });
 

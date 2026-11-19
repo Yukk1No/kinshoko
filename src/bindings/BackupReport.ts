@@ -15,7 +15,7 @@ complete: boolean,
  */
 copied: number, copiedBytes: number, 
 /**
- * 备份目标里已有、直接引用的原文件。
+ * 备份目标里已有、核对无误后直接引用的原文件。
  */
 reused: number, skipped: Array<SkippedLibrary>, problems: Array<CommandError>, 
 /**

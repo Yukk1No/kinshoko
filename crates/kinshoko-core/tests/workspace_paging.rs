@@ -3,7 +3,8 @@ use image::{Rgba, RgbaImage};
 use kinshoko_core::DeviceLibraries;
 use kinshoko_core::approx::BuiltinApproxTable;
 use kinshoko_core::library::{
-    ContentRating, FactSource, ImageEdit, ImportSource, Library, RatingFact, TaggingOutcome,
+    BrowseScope, ContentRating, FactSource, ImageEdit, ImportSource, Library, RatingFact,
+    TaggingOutcome,
 };
 use kinshoko_core::search::{ConditionInput, SearchInput, TermInput};
 use kinshoko_core::tag_catalog::TagCatalog;
@@ -41,6 +42,88 @@ fn files(dir: &std::path::Path, libraries: &[&Library], red: u8) -> Vec<String> 
         })
         .collect()
 }
+
+#[test]
+fn newest_import_leads_all_images_even_from_a_less_used_library() {
+    let dir = tempfile::tempdir().unwrap();
+    let app = dir.path().join("app");
+    let mut device = DeviceLibraries::open(&app).unwrap();
+    let a = device.create(&dir.path().join("a"), "A").unwrap();
+    let b = device.create(&dir.path().join("b"), "B").unwrap();
+    let a_ids = [11, 22, 33].map(|red| files(dir.path(), &[&a], red).remove(0));
+    let mut catalog = TagCatalog::open(&app).unwrap();
+    let mut workspace = Workspace::open(&app).unwrap();
+    let mut browse = |query| workspace.browse(&device, &mut catalog, &query, false);
+    let old_cursor = browse(query()).unwrap().next_cursor.unwrap();
+
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    let newest = files(dir.path(), &[&b], 44).remove(0);
+    let label = |id: &str| match a_ids.iter().position(|a_id| a_id == id) {
+        Some(0) => "A/11.png",
+        Some(1) => "A/22.png",
+        Some(2) => "A/33.png",
+        _ if id == newest => "B/44.png (newest import)",
+        _ => panic!("unexpected image {id}"),
+    };
+    for library in [&a, &b] {
+        let scoped = browse(WorkspaceQuery {
+            scope: WorkspaceScope::Library {
+                library_id: library.info().id.clone(),
+                scope: BrowseScope::All,
+            },
+            limit: 4,
+            ..query()
+        })
+        .unwrap();
+        let order: Vec<_> = scoped
+            .cards
+            .iter()
+            .map(|card| label(&card.image_id))
+            .collect();
+        println!("Library {}: {}", library.info().name, order.join(", "));
+        if library.info().id == a.info().id {
+            assert_eq!(order, ["A/33.png", "A/22.png", "A/11.png"]);
+        } else {
+            assert_eq!(order, ["B/44.png (newest import)"]);
+        }
+    }
+
+    let mut order = Vec::new();
+    let mut cursor = None;
+    loop {
+        let page = browse(WorkspaceQuery { cursor, ..query() }).unwrap();
+        assert_eq!(page.total, 4);
+        assert_eq!(page.cards.len(), 1);
+        order.push(label(&page.cards[0].image_id));
+        cursor = page.next_cursor;
+        if cursor.is_none() {
+            break;
+        }
+    }
+    println!("All Images (one card per page): {}", order.join(", "));
+    assert_eq!(
+        order,
+        [
+            "B/44.png (newest import)",
+            "A/33.png",
+            "A/22.png",
+            "A/11.png"
+        ]
+    );
+    let expired = browse(WorkspaceQuery {
+        cursor: Some(old_cursor),
+        ..query()
+    })
+    .err()
+    .unwrap();
+    assert!(matches!(
+        expired,
+        kinshoko_core::tag_catalog::CatalogError::Library(
+            kinshoko_core::library::Error::CursorExpired
+        )
+    ));
+}
+
 /// 大图库打开与翻页的分段耗时（#288）：两个资料库各 1000 张，按瀑布流的节奏每页 500 张，
 /// 冷启动取第一页、接着翻到底、再从头重读。耗时，手动以 release 运行：
 /// `cargo test --release --test integration workspace_paging::large_library -- --ignored --nocapture`。

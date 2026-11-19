@@ -18,6 +18,11 @@ export const VARIANTS = [
   { key: "c4f", name: "C4f 层级：引线" },
   { key: "c4g", name: "C4g 层级：托盘" },
   { key: "c4h", name: "C4h 层级：折痕" },
+  { key: "ra", name: "行甲 指示条" },
+  { key: "rb", name: "行乙 压槽" },
+  { key: "rc", name: "行丙 墨块" },
+  { key: "rd", name: "行丁 荧光笔" },
+  { key: "re", name: "行戊 暖纸" },
 ] as const;
 
 export type Pose = { variant: string; theme: "light" | "dark" | null; specimen: boolean; bar: boolean };
