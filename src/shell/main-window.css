@@ -239,10 +239,16 @@
   margin-top: 0;
   padding: 0;
 }
+/* 托盘（#608 甲）：图库之间不画线，留白分开；库里的目录放进一块浅凹槽。 */
 .lib-group + .lib-group {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
+  margin-top: 10px;
+}
+.lib-group nav.sidebar {
+  margin: 2px 0 0;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--tray);
+  box-shadow: var(--tray-edge);
 }
 .workspace-provider-root {
   display: flex;
@@ -308,6 +314,7 @@
 } /* 未连接：右键与悬停提示落在整行（.lib-head）上 */
 .lib-head-name .sidebar-label {
   flex: 1;
+  letter-spacing: 0.02em;
 }
 .lib-head-name .sidebar-count {
   margin-left: auto;
