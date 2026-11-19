@@ -326,7 +326,14 @@ pub async fn reference_group(
 ) -> Result<ReferenceGroupView, CommandError> {
     blocking(move || {
         let groups = lock(&state(&app).groups).clone();
-        let group = groups.get(&group_id).map_err(CommandError::from)?;
+        // 桌面上那组以内存为准：钉住、关掉之后侧栏马上重读，这时可能还没落盘。
+        let on_desk = lock(&state(&app).store)
+            .desk()
+            .and_then(|desk| desk.group().filter(|g| g.id == group_id).cloned());
+        let group = match on_desk {
+            Some(group) => group,
+            None => groups.get(&group_id).map_err(CommandError::from)?,
+        };
         Ok(crate::library::with_references(&app, |refs| {
             groups.view(group, refs)
         }))
