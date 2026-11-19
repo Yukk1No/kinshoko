@@ -30,7 +30,7 @@ pub struct UpdaterState {
 }
 
 impl UpdaterState {
-    pub fn new(app: &AppHandle) -> Self {
+    pub fn new<R: Runtime>(app: &AppHandle<R>) -> Self {
         let status = update_policy(app).initial_status();
         UpdaterState {
             status: Mutex::new(status),
@@ -179,13 +179,21 @@ pub async fn install_update(
     app: AppHandle,
     state: State<'_, UpdaterState>,
 ) -> Result<(), CommandError> {
-    let policy = update_policy(&app);
+    install_pending(&app, &state).await
+}
+
+async fn install_pending<R: Runtime>(
+    app: &AppHandle<R>,
+    state: &UpdaterState,
+) -> Result<(), CommandError> {
+    let policy = update_policy(app);
     if let Err(message) = policy.require_automatic() {
         *lock(&state.pending) = None;
         state.set(policy.initial_status());
         return Err(message);
     }
-    let Some(update) = lock(&state.pending).take() else {
+    // 留在 `pending` 里：下载或安装失败后可以直接重试；期间换了通道，`channel_changed` 会清掉它。
+    let Some(update) = lock(&state.pending).clone() else {
         return Err(CommandError::new(
             ErrorKind::UpdateNotPending,
             "没有可以安装的更新，请先检查更新。",
@@ -218,9 +226,6 @@ pub async fn install_update(
                     "下载或安装更新失败，请稍后重试。",
                 ),
             };
-            state.set(UpdateStatus::Failed {
-                message: error.clone(),
-            });
             Err(error)
         }
     }
@@ -233,3 +238,6 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry, tauri_plugin_updater::
 pub fn manage(app: &AppHandle) {
     app.manage(UpdaterState::new(app));
 }
+
+#[cfg(test)]
+mod tests;

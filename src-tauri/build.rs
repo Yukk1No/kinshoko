@@ -1,6 +1,15 @@
 fn main() {
+    // 不用 tauri-build 的应用清单：它只嵌进可执行文件，而测试二进制用到 Tauri 的托盘与对话框代码，
+    // 没有 Common Controls 6 就加载不了（STATUS_ENTRYPOINT_NOT_FOUND）。改由链接器给每个产物嵌同样的清单。
+    if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
+        println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+        println!(
+            "cargo:rustc-link-arg=/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'"
+        );
+    }
     tauri_build::try_build(
         tauri_build::Attributes::new()
+            .windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest())
             .plugin(
                 // 资料库命令放在应用内联插件里，权限由这里生成（capabilities 中的 `library:default`）。
                 "library",

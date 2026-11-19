@@ -47,7 +47,7 @@ pub enum UpdateStatus {
         /// 发布说明。
         notes: Option<String>,
     },
-    /// 检查或安装失败的原因。
+    /// 检查失败的原因。安装失败只告诉发起安装的一方，查到的更新还可以重试。
     Failed {
         #[ts(as = "crate::command_error::ErrorKind")]
         message: crate::CommandError,
