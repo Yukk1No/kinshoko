@@ -7,6 +7,7 @@ import type { EagleRelocation } from "../bindings/EagleRelocation";
 import { i18n } from "../i18n/instance";
 import { pickFolder, restoreBackupFolder } from "../ipc";
 import { errorText } from "../ipc/commandError";
+import { Tip } from "../ui/Tip";
 import { useToast } from "../ui/Toast";
 
 export function RelocationCard({
@@ -79,12 +80,18 @@ export function BackupCards({ paths, onDone }: { paths: string[]; onDone: (path:
         <ArchiveRestore size={16} className="k-task-icon" aria-hidden="true" />
         <b>{t("backup.title")}</b>
       </div>
-      <p className="k-task-sub">{t("backup.hint")}</p>
       <p className="k-task-sub import-report-path">{path}</p>
       <div className="k-task-acts">
-        <button type="button" className="k-btn is-sm" disabled={restoring !== null} onClick={() => void restore(path)}>
-          <span className="k-label">{restoring === path ? t("backup.busy") : t("backup.restore")}</span>
-        </button>
+        <Tip label={t("backup.hint")} side="top">
+          <button
+            type="button"
+            className="k-btn is-sm"
+            disabled={restoring !== null}
+            onClick={() => void restore(path)}
+          >
+            <span className="k-label">{restoring === path ? t("backup.busy") : t("backup.restore")}</span>
+          </button>
+        </Tip>
         <button
           type="button"
           className="k-btn is-sm is-ghost"
