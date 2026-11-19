@@ -347,7 +347,6 @@
 @media (prefers-reduced-motion: reduce) {
   .k-exact,
   .k-exact-glyph path,
-  .k-tip,
   .k-range::-webkit-slider-thumb {
     transition-duration: 0ms;
   }

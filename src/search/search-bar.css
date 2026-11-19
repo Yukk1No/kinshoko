@@ -52,7 +52,6 @@
 .search-more-pop {
   width: max-content;
   max-width: min(360px, calc(100vw - 32px));
-  padding: 8px;
 }
 .search-more-pop .search-chips {
   display: flex;
