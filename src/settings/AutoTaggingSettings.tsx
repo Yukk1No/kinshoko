@@ -5,6 +5,7 @@ import type { HardwareOption } from "../bindings/HardwareOption";
 import type { ModelChoice } from "../bindings/ModelChoice";
 import type { TaggingStatus } from "../bindings/TaggingStatus";
 import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
+import { WarnIcon } from "../ui/WarnIcon";
 import {
   importModelPackage,
   pickModelPackage,
@@ -187,8 +188,12 @@ function TaggingStatusRow({
   if (!hasLibrary && status.state === "idle") return row(t("noLibrary"));
   const act = (f: () => Promise<void>) => () =>
     void f().catch((e) => toast.error(i18n.t("tagging:notice.actionFailed", { error: errorText(e) })));
-  const button = (name: string, f: () => Promise<void>, primary = false) => (
-    <button type="button" className={`k-btn is-sm${primary ? "" : " is-quiet"}`} onClick={act(f)}>
+  const button = (name: string, f: () => Promise<void>, primary = false, warn = false) => (
+    <button
+      type="button"
+      className={`k-btn is-sm${primary ? "" : " is-quiet"}${warn ? " is-warn" : ""}`}
+      onClick={act(f)}
+    >
       <span className="k-label">{name}</span>
     </button>
   );
@@ -219,7 +224,14 @@ function TaggingStatusRow({
       ].filter(Boolean);
       if (parts.length === 0) return row(t("idle"));
       return row(
-        parts.join(t("separator")),
+        unfinished > 0 ? (
+          <span className="k-list-desc is-warn">
+            <WarnIcon size={13} />
+            {parts.join(t("separator"))}
+          </span>
+        ) : (
+          parts.join(t("separator"))
+        ),
         unfinished > 0 && (
           <>
             {onShowUnfinished && (
@@ -227,7 +239,7 @@ function TaggingStatusRow({
                 <span className="k-label">{t("show")}</span>
               </button>
             )}
-            {button(t("retry"), taggingRetryFailed)}
+            {button(t("retry"), taggingRetryFailed, false, true)}
           </>
         ),
       );

@@ -44,6 +44,18 @@
 .k-btn.is-quiet:hover:not(:disabled) {
   color: var(--ink);
 }
+.k-btn.is-quiet.is-warn {
+  --k-face: transparent;
+  --k-face-hover: var(--warn-soft);
+  --k-face-press: var(--warn-soft);
+  color: var(--warn);
+}
+.k-btn.is-quiet.is-warn:hover:not(:disabled) {
+  color: var(--warn-strong);
+}
+.k-btn.is-quiet.is-warn:active:not(:disabled) {
+  color: var(--warn-strong);
+}
 .legacy-name-migration > .k-dialog-foot > .k-link {
   display: inline-flex;
   align-items: center;

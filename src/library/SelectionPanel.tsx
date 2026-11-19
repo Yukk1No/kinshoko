@@ -23,6 +23,7 @@ import {
 } from "../ipc";
 import { TagPanel } from "./TagPanel";
 import { Tip } from "../ui/Tip";
+import { WarnIcon } from "../ui/WarnIcon";
 
 type Props = {
   libraryId: string;
@@ -94,9 +95,12 @@ function TaggingUnfinished({ failure, edit }: { failure: TaggingFailure; edit: (
   return (
     <div className="insp-tagging">
       <Tip label={t(`tagging.${failure}`)}>
-        <span>{t("tagging.unfinished")}</span>
+        <span className="k-list-desc is-warn">
+          <WarnIcon size={13} />
+          {t("tagging.unfinished")}
+        </span>
       </Tip>
-      <button type="button" className="k-btn is-quiet is-sm" onClick={() => edit([{ kind: "retryTagging" }])}>
+      <button type="button" className="k-btn is-quiet is-sm is-warn" onClick={() => edit([{ kind: "retryTagging" }])}>
         <span className="k-label">{t("tagging.retry")}</span>
       </button>
     </div>

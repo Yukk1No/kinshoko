@@ -117,7 +117,7 @@
 | 东西 | 类或组件 | 写在哪里 |
 | --- | --- | --- |
 | 按钮（普通、主要、危险） | `.k-btn`、`.k-btn.is-primary`、`.k-btn.is-danger` | `src/ui/ui.css` |
-| 低强调按钮 | `.k-btn.is-quiet`（按钮行里的无底按钮）、`.k-link`（文字里的操作链接） | `src/ui/dialogs.css`，按钮基础在 `src/ui/ui.css` |
+| 低强调按钮 | `.k-btn.is-quiet`（按钮行里的无底按钮，补救没做成的事加 `.is-warn` 警示语气）、`.k-link`（文字里的操作链接） | `src/ui/dialogs.css`，按钮基础在 `src/ui/ui.css` |
 | 图标按钮 | `.k-icon-btn` | `src/ui/ui.css` |
 | 控件里的单行文字 | `.k-label` | `src/ui/ui.css` |
 | 输入框 | `.k-input` | `src/ui/fields.css` |

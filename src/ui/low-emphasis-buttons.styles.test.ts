@@ -29,6 +29,28 @@ function retiredClasses(text: string): string[] {
 }
 
 describe("低强调按钮", () => {
+  it("警示只是无底按钮的语气，不改变尺寸或焦点", () => {
+    const base = ".k-btn.is-quiet.is-warn";
+    expect(
+      Object.entries(sheets).flatMap(([path, css]) =>
+        selectors(css)
+          .filter((selector) => selector === base)
+          .map(() => path),
+      ),
+    ).toEqual(["./dialogs.css"]);
+    expect(cssRule(sheets["./dialogs.css"], base)).toEqual({
+      "--k-face": "transparent",
+      "--k-face-hover": "var(--warn-soft)",
+      "--k-face-press": "var(--warn-soft)",
+      color: "var(--warn)",
+    });
+    for (const state of ["hover", "active"]) {
+      expect(cssRule(sheets["./dialogs.css"], `${base}:${state}:not(:disabled)`)).toEqual({
+        color: "var(--warn-strong)",
+      });
+    }
+  });
+
   it("两种共用样式各只有一份，区域调整有理由", () => {
     const shared = [".k-btn.is-quiet", ".k-link"];
     for (const base of shared) {
@@ -50,6 +72,9 @@ describe("低强调按钮", () => {
               [
                 ".k-btn.is-quiet",
                 ".k-btn.is-quiet:hover:not(:disabled)",
+                ".k-btn.is-quiet.is-warn",
+                ".k-btn.is-quiet.is-warn:hover:not(:disabled)",
+                ".k-btn.is-quiet.is-warn:active:not(:disabled)",
                 ".k-link",
                 ".k-link:hover:not(:disabled)",
                 ".k-link:disabled",
