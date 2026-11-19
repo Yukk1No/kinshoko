@@ -1,3 +1,4 @@
+import type { ScreenRect } from "../bindings/ScreenRect";
 import type { ImportTaskSnapshot } from "../bindings/ImportTaskSnapshot";
 import type { CatalogGroupView } from "../bindings/CatalogGroupView";
 import type { CatalogGroupEdit } from "../bindings/CatalogGroupEdit";
@@ -109,13 +110,17 @@ export function workspaceLibraryCandidates(
 ): Promise<Candidate[]> {
   return invoke(lib("workspace_library_candidates"), { libraryId, text, lang, limit, safeMode });
 }
-/** 图库墙“加入参考组”：把这张图加进参考组 `groupId`；那个参考组正摆在桌面上时钉到桌面上。 */
+/**
+ * 图库墙“加入参考组”：把这张图加进参考组 `groupId`；那个参考组正摆在桌面上时钉到桌面上，以 `shown`
+ * （右键处，物理像素，相对窗口客户区，与“钉住”相同）为中心，没有时在主显示器中间。
+ */
 export function workspaceSourceGroup(
   target: import("../bindings/WorkspaceSourceTarget").WorkspaceSourceTarget,
   safeMode: boolean,
   groupId: string,
+  shown: ScreenRect | null = null,
 ): Promise<ReferenceGroup> {
-  return invoke(lib("workspace_source_group"), { target, safeMode, groupId });
+  return invoke(lib("workspace_source_group"), { target, safeMode, groupId, shown });
 }
 
 export function workspaceDirectories(safeMode: boolean): Promise<WorkspaceDirectories> {

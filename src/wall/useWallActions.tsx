@@ -238,12 +238,15 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
         }
       })();
     },
-    addToGroup(cards, groupId) {
+    addToGroup(cards, groupId, point) {
       const { safe } = options.current;
+      // 加进桌面上的参考组就是钉到桌面上：与“钉住”一样钉在右键处、依次错开。
+      const rects = point ? staggeredPins(point, cards.length, window.devicePixelRatio) : [];
+      let i = 0;
       void eachCard(
         cards,
         (failures) => i18n.t("wall:notice.librariesNotAddedToGroup", { failures }),
-        (target) => workspaceSourceGroup(target, safe, groupId),
+        (target) => workspaceSourceGroup(target, safe, groupId, rects[i++] ?? null),
       );
     },
     purge(cards) {

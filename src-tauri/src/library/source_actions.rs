@@ -42,15 +42,26 @@ pub(super) async fn workspace_edit_sources<R: Runtime>(
 #[tauri::command]
 pub(super) async fn workspace_source_group<R: Runtime>(
     app: AppHandle<R>,
+    window: tauri::Window<R>,
     target: WorkspaceSourceTarget,
     safe_mode: bool,
     group_id: String,
+    shown: Option<kinshoko_core::desktop::ScreenRect>,
 ) -> Result<kinshoko_core::reference_groups::ReferenceGroup, CommandError> {
+    // 摆在桌面上的那个参考组：图钉在右键处（`shown`，相对窗口客户区的物理像素），与“钉住”相同。
+    let centre = shown.and_then(|s| {
+        let origin = window.inner_position().ok()?;
+        Some((
+            origin.x + s.x + (s.width / 2) as i32,
+            origin.y + s.y + (s.height / 2) as i32,
+        ))
+    });
     blocking(move || {
         let pin = with_lens(&app, safe_mode, Hold::Commit, |w, d, c| {
             w.source_reference(d, c, &target, safe_mode)
         })?;
-        crate::desktop::add_to_reference_group(&app, &group_id, pin).ok_or_else(groups_not_ready)?
+        crate::desktop::add_to_reference_group(&app, &group_id, pin, centre)
+            .ok_or_else(groups_not_ready)?
     })
     .await
 }

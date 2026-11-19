@@ -234,7 +234,7 @@ it("子菜单：内容分级与加入参考组", async () => {
   const again = show({ kind: "cards", cards: [one], point });
   fireEvent.click(screen.getByRole("menuitem", { name: "加入参考组" }));
   fireEvent.click(await screen.findByRole("menuitem", { name: "光影" }));
-  expect(again.a.addToGroup).toHaveBeenCalledWith([one], "g1");
+  expect(again.a.addToGroup).toHaveBeenCalledWith([one], "g1", point);
 });
 
 it("多张来自不同图库时移到文件夹不可用", () => {
