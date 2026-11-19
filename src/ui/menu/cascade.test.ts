@@ -176,6 +176,27 @@ describe("离开即关（按钮打开的菜单）", () => {
     t.wait(MENU_TIMING.closeDelay);
     expect(t.close).toHaveBeenCalledOnce();
   });
+  it("点开后没有指针离开事件，等超过关闭延时也不关", () => {
+    const t = anchored();
+    t.ctrl.openedFrom(t.ctrl.anchor, true);
+    t.wait(MENU_TIMING.closeDelay * 2);
+    expect(t.close).not.toHaveBeenCalled();
+  });
+  it("触发按钮上的离开事件不算离开窗口，窗口上的 mouseleave 才开始关闭计时", () => {
+    const t = anchored();
+    const anchor = t.ctrl.anchor!;
+    document.body.append(anchor);
+    t.ctrl.openedFrom(anchor, true);
+    anchor.dispatchEvent(new MouseEvent("mouseleave"));
+    anchor.dispatchEvent(new Event("pointerleave"));
+    t.wait(MENU_TIMING.closeDelay * 2);
+    expect(t.close).not.toHaveBeenCalled();
+    document.documentElement.dispatchEvent(new MouseEvent("mouseleave"));
+    t.wait(MENU_TIMING.closeDelay - 1);
+    expect(t.close).not.toHaveBeenCalled();
+    t.wait(1);
+    expect(t.close).toHaveBeenCalledOnce();
+  });
   it("离开后的等待中改用键盘，不再关闭", () => {
     const t = anchored();
     t.move(100, 20, t.a);
