@@ -1,4 +1,4 @@
-/* Shared redesign components, part 2: dock, dialog shell and settings-style lists, selection dock. Loaded right after ui.css. */
+/* Shared redesign components, part 2: dock, shared tooltips and selection dock. Loaded right after ui.css. */
 /* ---- Dock (after Arc Pro dock behaviour) ---- */
 .k-dock {
   position: relative;

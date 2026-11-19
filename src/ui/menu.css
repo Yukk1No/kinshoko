@@ -110,7 +110,6 @@
 }
 [data-k-level] .k-section-label.is-menu {
   padding: 4px 8px 0 34px;
-  color: var(--ink-2);
 }
 
 /* a folder row's icon opens while its submenu is open: the two glyphs share their structure, so the paths morph */

@@ -25,12 +25,13 @@
 }
 .k-rename {
   width: 280px;
-  padding: 14px;
 }
 .k-rename form {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* 表单内容留出呼吸空间；浮层本身仍用共用的 6 px 内边距。 */
+  padding: 8px;
 }
 .k-rename .k-rename-title {
   margin: 0;

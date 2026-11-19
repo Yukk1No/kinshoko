@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import uiCss from "./uiCss";
 import menuCss from "./menu.css?raw";
 import tokensCss from "../styles/tokens.css?raw";
-import frameCss from "../shell/main-window.css?raw";
+import frameCss from "../shell/mainWindowCss";
 import { cssRule } from "./cssRule";
 import { flatCss } from "../test/flatCss";
 
 const rule = (selector: string) => cssRule(uiCss, selector);
+const sheets = import.meta.glob<string>("../**/*.css", { query: "?raw", import: "default", eager: true });
 
 // #601：维护者选定级联菜单外形与 Dock 提示表面；功能样式不能再盖回第二套配方。
 describe("浮层与悬停提示只有一套表面", () => {
@@ -47,6 +48,27 @@ describe("浮层与悬停提示只有一套表面", () => {
   it("浮层模糊用独立令牌，菜单不再给通用颜色和阴影另起别名", () => {
     expect(tokensCss).toContain("--popup-blur: blur(18px) saturate(135%)");
     expect(tokensCss + menuCss).not.toMatch(/--menu-(?:surface|border|ink|hover|quiet|icon|chevron|shadow)\b/);
+  });
+
+  it("各处的气泡与下拉只定布局，不另盖一套表面", () => {
+    const css = Object.values(sheets).join("\n");
+    for (const selector of [
+      ".k-rename",
+      ".search-more-pop",
+      ".k-add-similar",
+      ".k-groups-pop",
+      ".k-select-popup",
+      ".k-listbox",
+    ]) {
+      const own = cssRule(css, selector);
+      for (const key of surfaceKeys) expect(own[key], `${selector} 另写了 ${key}`).toBeUndefined();
+    }
+  });
+
+  it("标签出处提示的分隔线与按钮跟着纸面主题，不再按反色底配色", () => {
+    expect(cssRule(frameCss, ".k-tag-tip .k-tag-tip-acts")["border-top"]).toBe("1px solid var(--line)");
+    expect(cssRule(frameCss, ".k-tag-tip .k-tag-tip-btn").background).toBe("var(--hover)");
+    expect(cssRule(frameCss, ".k-tag-tip .k-tag-tip-btn:hover").background).toBe("var(--press)");
   });
 
   it("一般提示与 Dock 提示共用纸面、墨字和 6 / 10 内边距，规则不再留在主窗口", () => {
