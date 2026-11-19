@@ -186,6 +186,8 @@ pub fn init() -> TauriPlugin<Wry> {
             desk_commands::switch_reference_group,
             desk_commands::new_reference_desk,
             desk_commands::repin_group_member,
+            desk_commands::repin_all_group_members,
+            desk_commands::show_group_member,
             desk_commands::prune_unpinned_members,
             desk_commands::undo_prune_unpinned,
             desk_commands::set_reference_group_favorite,

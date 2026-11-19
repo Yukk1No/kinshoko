@@ -7,7 +7,9 @@ use std::path::{Path, PathBuf};
 use image::RgbaImage;
 use kinshoko_core::desktop::{CaptureHistory, PinContent, Placement, Region, SavedPin, Screenshot};
 use kinshoko_core::library::ReferenceImage;
-use kinshoko_core::reference_groups::{Desk, ReferenceGroups};
+use kinshoko_core::reference_groups::{
+    Desk, GroupMember, GroupSummary, ReferenceGroup, ReferenceGroups,
+};
 
 pub struct TestDesk {
     _dir: tempfile::TempDir,
@@ -160,4 +162,39 @@ pub fn capture_pin(id: &str, capture_id: &str) -> SavedPin {
         locked: false,
         member: None,
     }
+}
+
+pub fn reread(t: &TestDesk, id: &str) -> ReferenceGroup {
+    t.groups().get(id).unwrap()
+}
+
+/// 不变量 2：钉图与钉着的成员一一对应，摆放相同。
+pub fn assert_matches(pins: &[SavedPin], group: &ReferenceGroup) {
+    let pinned: Vec<&GroupMember> = group.members.iter().filter(|m| m.pinned).collect();
+    assert_eq!(pins.len(), pinned.len(), "钉图与钉着的成员一样多");
+    for pin in pins {
+        let member = pin.member.as_ref().expect("钉图记着成员");
+        assert_eq!(member.group_id, group.id);
+        let m = pinned
+            .iter()
+            .find(|m| m.id == member.member_id)
+            .expect("成员在参考组里，钉着");
+        assert_eq!(m.crop, pin.crop);
+        assert_eq!(m.placement, pin.placement);
+        assert_eq!(m.opacity, pin.opacity);
+        assert_eq!(m.locked, pin.locked);
+    }
+}
+
+pub fn ids(list: &[GroupSummary]) -> Vec<String> {
+    list.iter().map(|s| s.id.clone()).collect()
+}
+
+/// 桌面状态写不进：desk.json 换成一个非空目录。返回恢复用的路径。
+pub fn break_state(t: &TestDesk) -> std::path::PathBuf {
+    let state = t.root.join("desk.json");
+    let _ = std::fs::remove_file(&state);
+    std::fs::create_dir(&state).unwrap();
+    std::fs::write(state.join("x"), b"x").unwrap();
+    state
 }
