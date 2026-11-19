@@ -484,6 +484,7 @@ fn to_screens(displays: Vec<Display>) -> Vec<Screen> {
         .collect()
 }
 
+// 不上界面：钩子的状况只写进运行日志。
 fn hook_warning(event: HookEvent) -> Effect {
     match event {
         HookEvent::Reinstalled { late_ms } => {

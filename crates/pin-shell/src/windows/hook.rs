@@ -269,12 +269,13 @@ fn report_esc(shared: &Shared, table: &HitTable, at: (i32, i32), mods: Mods) {
     post(shared, shared.messages.status, 2, pass.pack() as isize);
 }
 
-/// 前台换成权限更高的程序：屏幕上有钉图时报给编排（程序名见 `foreground::take_exe`）。
-fn elevated_foreground() {
+/// 前台换成权限更高的程序：屏幕上有钉图时报给编排，程序名随消息排进 `foreground::queue_exe`。
+fn elevated_foreground(exe: String) {
     let Some(shared) = SHARED.with(|s| s.borrow().clone()) else {
         return;
     };
     if shared.table.lock().is_ok_and(|t| !t.pins.is_empty()) {
+        foreground::queue_exe(exe);
         post(&shared, shared.messages.status, 3, 0);
     }
 }

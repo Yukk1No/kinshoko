@@ -2,6 +2,7 @@
 //! 钩子，钉图的快捷键都收不到（Esc 有时关不掉钉图）。只报给编排写日志，不改行为。
 
 use std::cell::Cell;
+use std::collections::VecDeque;
 use std::ffi::c_void;
 use std::sync::Mutex;
 
@@ -18,20 +19,28 @@ use windows::Win32::UI::WindowsAndMessaging::{
 };
 use windows::core::PWSTR;
 
-/// 最近一次报出的那个程序的文件名，界面线程收到消息后取走。
-static EXE: Mutex<String> = Mutex::new(String::new());
+/// 已投出的“前台换成权限更高的程序”消息各自的程序文件名，按投出的顺序；界面线程每收到一条取走最前面的。
+static EXE: Mutex<VecDeque<String>> = Mutex::new(VecDeque::new());
 
 thread_local! {
-    /// 前台换成权限更高的程序时调它（在装了观察的线程上）。
-    static ON_ELEVATED: Cell<Option<fn()>> = const { Cell::new(None) };
+    /// 前台换成权限更高的程序时调它（在装了观察的线程上），参数是程序文件名。
+    static ON_ELEVATED: Cell<Option<fn(String)>> = const { Cell::new(None) };
     /// 上一次报过的进程，同一个程序反复回到前台不重复报。
     static LAST: Cell<u32> = const { Cell::new(0) };
 }
 
-/// 取走最近一次报出的程序文件名。
+/// 投消息之前记下这条消息的程序文件名。
+pub(super) fn queue_exe(exe: String) {
+    if let Ok(mut q) = EXE.lock() {
+        q.push_back(exe);
+    }
+}
+
+/// 取走最早一条消息的程序文件名。
 pub(super) fn take_exe() -> String {
     EXE.lock()
-        .map(|mut e| std::mem::take(&mut *e))
+        .ok()
+        .and_then(|mut q| q.pop_front())
         .unwrap_or_default()
 }
 
@@ -39,7 +48,7 @@ pub(super) struct Watch(HWINEVENTHOOK);
 
 impl Watch {
     /// 在当前线程（要有消息循环）上看前台切换。本进程自己已提权时不用看，返回 None。
-    pub fn start(on_elevated: fn()) -> Option<Watch> {
+    pub fn start(on_elevated: fn(String)) -> Option<Watch> {
         // SAFETY：当前进程的伪句柄，不用关。
         if elevated(unsafe { GetCurrentProcess() }) != Some(false) {
             return None;
@@ -97,11 +106,8 @@ unsafe extern "system" fn on_foreground(
     if !higher {
         return;
     }
-    if let Ok(mut e) = EXE.lock() {
-        *e = exe;
-    }
     if let Some(f) = ON_ELEVATED.with(Cell::get) {
-        f();
+        f(exe);
     }
 }
 
