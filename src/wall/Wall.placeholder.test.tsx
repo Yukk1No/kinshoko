@@ -89,6 +89,7 @@ it("卡片卸载时缩略图还没到就撤掉地址，浏览器放弃这次请�
   Object.defineProperty(arrived, "complete", { configurable: true, value: true });
   expect(pending.getAttribute("src")).toContain("L1/a/");
   view.unmount();
+  await Promise.resolve();
   expect(pending.hasAttribute("src")).toBe(false);
   expect(arrived.getAttribute("src")).toContain("L1/b/");
 });
