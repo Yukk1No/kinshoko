@@ -54,8 +54,14 @@ function activityLabel(
     case "yieldedToFullScreen":
       return [i18n.t("tagging:activity.yieldedToFullScreen"), null];
     // 停住、要画师处理的状态也留一个静止的图标：关掉通知后仍有地方找回（右键进设置 › 自动标签）。
+    // 需要下载（#609）：不弹通知，图标本身就是下载按钮，悬停写大小，点一下开始或继续下载。
     case "needsDownload":
-      return [i18n.t("tagging:activity.needsDownload"), null];
+      return [
+        i18n.t("tagging:activity.needsDownload", { size: formatBytes(status.size) }),
+        status.downloaded > 0
+          ? i18n.t("tagging:activity.clickResume", { percent: percentOf(status.downloaded, status.size) })
+          : i18n.t("tagging:activity.clickDownload"),
+      ];
     case "failed":
       return [i18n.t("tagging:activity.failed"), null];
     case "noDevice":
@@ -71,8 +77,8 @@ function activityLabel(
   }
 }
 
-/** 点击图标做什么：打标中暂停、暂停时继续、有图没有完成时重试；停住的状态没有动作，打开设置。 */
-type Act = "pause" | "resume" | "retry" | null;
+/** 点击图标做什么：打标中暂停、暂停时继续、有图没有完成时重试、需要下载时下载；别的停住的状态没有动作，打开设置。 */
+type Act = "pause" | "resume" | "retry" | "download" | null;
 
 function actOf(status: TaggingStatus): Act {
   switch (status.state) {
@@ -86,24 +92,30 @@ function actOf(status: TaggingStatus): Act {
       return "resume";
     case "idle":
       return "retry";
+    case "needsDownload":
+      return "download";
     default:
       return null;
   }
 }
 
-const ACT: Record<Exclude<Act, null>, { run: () => Promise<void>; icon: ReactNode }> = {
+const ACT: Record<
+  Exclude<Act, null>,
+  { run: () => Promise<void>; icon: ReactNode; failed?: (error: string) => string }
+> = {
   pause: { run: taggingPause, icon: <Pause size={16} strokeWidth={1.75} aria-hidden="true" /> },
   resume: { run: taggingResume, icon: <Play size={16} strokeWidth={1.75} aria-hidden="true" /> },
   retry: { run: taggingRetryFailed, icon: <RotateCw size={16} strokeWidth={1.75} aria-hidden="true" /> },
+  download: {
+    run: taggingDownload,
+    icon: <Download size={16} strokeWidth={1.75} aria-hidden="true" />,
+    failed: (error) => i18n.t("tagging:notice.downloadFailed", { error }),
+  },
 };
 
 /** 打标状态变化时的右下角通知（#144）。 */
 function useTaggingNotices(status: TaggingStatus | null) {
   const toast = useToast();
-  /** 正在显示的“需要下载”通知。 */
-  const download = useRef<string | null>(null);
-  /** 画师关掉过“需要下载”通知：本次启动内不再弹。 */
-  const declined = useRef(false);
   /** 本次启动内报过的“不可用”原因。 */
   const unavailable = useRef(new Set<string>());
   /** 最近报过的出错原因；重试会经过加载、打标或下载再失败，到打完或暂停才算过去。 */
@@ -147,37 +159,6 @@ function useTaggingNotices(status: TaggingStatus | null) {
       unavailable.current.add(missing);
       toast.show({ title: i18n.t("tagging:notice.unavailable", { reason: missing }), timeout: 0 });
     }
-    // 代码收起的通知先清掉记录，onClose 才不把它当成画师关掉的。
-    const closeDownload = () => {
-      const id = download.current;
-      download.current = null;
-      if (id !== null) toast.close(id);
-    };
-    if (status.state !== "needsDownload") return closeDownload();
-    // 画师取消了下载（#213）：和关掉通知一样，本次启动内不再弹。
-    if (status.cancelled) declined.current = true;
-    if (download.current !== null || declined.current) return;
-    const start = () => {
-      closeDownload();
-      void taggingDownload().then(
-        () => toast.show({ title: i18n.t("tagging:notice.downloading") }),
-        (e) => toast.error(i18n.t("tagging:notice.downloadFailed", { error: errorText(e) })),
-      );
-    };
-    const id = toast.show({
-      title: i18n.t("tagging:notice.needsDownload", { size: formatBytes(status.size) }),
-      timeout: 0,
-      action: {
-        label: status.downloaded > 0 ? i18n.t("tagging:notice.resume") : i18n.t("tagging:notice.download"),
-        onClick: start,
-      },
-      onClose: () => {
-        if (download.current !== id) return;
-        download.current = null;
-        declined.current = true;
-      },
-    });
-    download.current = id;
   }, [toast, status]);
 }
 
@@ -334,7 +315,14 @@ export function TaggingActivity({
   const act = actOf(status);
   const next = act && ACT[act];
   const click = () => {
-    if (next) void next.run().catch((e) => toast.error(i18n.t("tagging:notice.actionFailed", { error: errorText(e) })));
+    if (next)
+      void next
+        .run()
+        .catch((e) =>
+          toast.error(
+            next.failed ? next.failed(errorText(e)) : i18n.t("tagging:notice.actionFailed", { error: errorText(e) }),
+          ),
+        );
     else onOpenSettings();
   };
   return (
@@ -352,6 +340,7 @@ export function TaggingActivity({
           type="button"
           className="k-tagging-activity"
           data-activity={activity}
+          data-labelled={status.state === "needsDownload" || undefined}
           data-pending={pending}
           aria-label={act ? i18n.t(`tagging:act.${act}`, { text }) : i18n.t("tagging:openSettings", { text })}
           onClick={click}
@@ -362,11 +351,19 @@ export function TaggingActivity({
             setMenu(e.clientX === 0 && e.clientY === 0 ? { x: box.left, y: box.top } : { x: e.clientX, y: e.clientY });
           }}
         >
-          <Ring className="k-tagging-ring" size={40} radius={18} progress={ring} />
+          {status.state !== "needsDownload" && (
+            <Ring className="k-tagging-ring" size={40} radius={18} progress={ring} />
+          )}
           <span className="k-tagging-glyph" data-morph={next ? true : undefined}>
             <span className="k-tagging-now">{stateIcon(status)}</span>
             {next && <span className="k-tagging-next">{next.icon}</span>}
           </span>
+          {/* 需要下载时写出来（#609）：只有一个图标时画师认不出这是下载模型的入口。 */}
+          {status.state === "needsDownload" && (
+            <span className="k-tagging-text" aria-hidden="true">
+              {i18n.t("tagging:activity.downloadShort", { size: formatBytes(status.size) })}
+            </span>
+          )}
         </button>
       </Tip>
       {menu && (

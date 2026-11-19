@@ -218,7 +218,6 @@ describe("缩放滑块左边的打标图标", () => {
 
   // 停住、等画师处理的状态留一个静止图标：关掉通知后仍能从这里去设置。
   it.each<[string, TaggingStatus, RegExp]>([
-    ["需要下载", needsDownload(), /需要下载自动标签模型/],
     ["没有可用设备", { state: "noDevice", reasons: [{ code: "system", detail: "没有独立显卡" }] }, /自动标签不可用/],
     ["出错", { state: "failed", reason: { code: "system", detail: "超时" } }, /自动标签出错/],
   ])("%s时留一个静止图标，点开去设置", async (_, status, name) => {
@@ -234,9 +233,9 @@ describe("缩放滑块左边的打标图标", () => {
   });
 
   it("停住的状态没有动作，悬停不变形", async () => {
-    backend(needsDownload());
+    backend({ state: "failed", reason: { code: "system", detail: "超时" } });
     mount();
-    const button = await screen.findByRole("button", { name: /需要下载自动标签模型，打开自动标签设置/ });
+    const button = await screen.findByRole("button", { name: /自动标签出错，打开自动标签设置/ });
     expect(button.querySelector(".k-tagging-next")).toBeNull();
   });
 
@@ -253,60 +252,52 @@ describe("缩放滑块左边的打标图标", () => {
   });
 });
 
-describe("自动标签的右下角通知", () => {
-  it("未下载模型时弹出带“下载”的通知，不自动消失；点下载后开始下载并改为提示去设置看进度", async () => {
+describe("需要下载模型（#609）：不弹通知，打标图标就是下载按钮", () => {
+  it("图标写模型大小，点一下开始下载，不打开设置", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     backend(needsDownload());
-    mount();
-    expect(await screen.findByText("需要下载自动标签模型（947 MB）")).toBeTruthy();
+    const { onOpenSettings } = mount();
+    const button = await screen.findByRole("button", {
+      name: "下载自动标签模型：需要下载自动标签模型（947 MB），点击开始下载",
+    });
+    expect(button.dataset.activity).toBe("stopped");
     await act(async () => {
       vi.advanceTimersByTime(60_000);
     });
-    const download = screen.getByRole("button", { name: "下载" });
+    expect(toasts()).toEqual([]);
     expect(actions().map((a) => a.command)).not.toContain("tagging_download");
 
-    fireEvent.click(download);
+    fireEvent.click(button);
     await waitFor(() => expect(actions().map((a) => a.command)).toContain("tagging_download"));
-    await waitFor(() => expect(screen.queryByText(/需要下载自动标签模型/)).toBeNull());
-    expect(await screen.findByText("正在下载自动标签模型")).toBeTruthy();
-    await act(async () => {
-      vi.advanceTimersByTime(6_000);
-    });
-    await waitFor(() => expect(screen.queryByText("正在下载自动标签模型")).toBeNull());
+    expect(onOpenSettings).not.toHaveBeenCalled();
+    expect(toasts()).toEqual([]);
   });
-});
 
-describe("“需要下载”通知的去重", () => {
-  it("关掉后，本次启动内不再弹出", async () => {
-    backend(needsDownload());
+  it("下载过一部分时写已下载多少，点击继续", async () => {
+    backend(needsDownload(248_229_000));
     mount();
-    await screen.findByText(/需要下载自动标签模型/);
-    await push(needsDownload());
-    expect(shown(/需要下载自动标签模型/)).toBe(1);
-
-    fireEvent.click(screen.getByRole("button", { name: "关闭提示" }));
-    await waitFor(() => expect(screen.queryByText(/需要下载自动标签模型/)).toBeNull());
-    await push(downloading(1));
-    await push(needsDownload(1));
-    expect(screen.queryByText(/需要下载自动标签模型/)).toBeNull();
+    expect(
+      await screen.findByRole("button", { name: /需要下载自动标签模型（947 MB），已下载 25%，点击继续/ }),
+    ).toBeTruthy();
   });
 
-  it("下载中取消（#213）后回到需要下载，本次启动内不再弹出", async () => {
+  it("下载命令失败时提示原因", async () => {
+    backend(needsDownload());
+    fake.on("tagging_download", () => {
+      throw { code: "message", message: "网络不通" };
+    });
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: /下载自动标签模型：/ }));
+    await waitFor(() => expect(toasts()).toContain("无法下载自动标签模型：网络不通"));
+  });
+
+  it("下载中取消（#213）后回到需要下载：不弹通知，图标留着", async () => {
     backend(downloading(100));
     mount();
     await settled();
     await push(needsDownload(500_000_000, true));
-    await push(needsDownload(500_000_000));
-    expect(shown(/需要下载自动标签模型/)).toBe(0);
-    expect(shown(/已下载自动标签模型/)).toBe(0);
-  });
-
-  it("下载过一部分时操作写“继续下载”；从别处开始下载后通知收起", async () => {
-    backend(needsDownload(250_000_000));
-    mount();
-    expect(await screen.findByRole("button", { name: "继续下载" })).toBeTruthy();
-    await push(downloading(300_000_000));
-    await waitFor(() => expect(screen.queryByText(/需要下载自动标签模型/)).toBeNull());
+    expect(await screen.findByRole("button", { name: /需要下载自动标签模型/ })).toBeTruthy();
+    expect(toasts()).toEqual([]);
   });
 });
 
@@ -334,7 +325,7 @@ describe("完成类通知", () => {
     mount();
     await settled();
     await push(next);
-    await waitFor(() => expect(shown(/需要下载自动标签模型|下载失败/)).toBe(1));
+    await screen.findByRole("button", { name: /需要下载自动标签模型|自动标签出错/ });
     expect(shown(/已下载自动标签模型/)).toBe(0);
   });
 

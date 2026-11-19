@@ -21,6 +21,7 @@ export default {
   updateNoEndpoint: "未配置原仓库的公开更新入口，自动更新未启用。请使用新版安装包手动更新。",
   updateUnknownStage: "更新阶段配置无法识别，自动更新未启用。请使用新版安装包手动更新。",
   updateNotPending: "没有可以安装的更新，请先检查更新。",
+  updateInstalling: "正在下载更新，请等这次完成。",
   updateSignatureInvalid: "更新包没有通过验证，没有安装。请重新下载或手动更新。",
   updateInstallFailed: "下载或安装更新失败，请稍后重试。",
 

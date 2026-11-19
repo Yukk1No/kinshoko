@@ -101,7 +101,7 @@ pub struct BackupReport {
     pub copied: u32,
     #[ts(type = "number")]
     pub copied_bytes: u64,
-    /// 备份目标里已有、直接引用的原文件。
+    /// 备份目标里已有、核对无误后直接引用的原文件。
     pub reused: u32,
     pub skipped: Vec<SkippedLibrary>,
     #[ts(as = "Vec<crate::command_error::ErrorKind>")]

@@ -15,7 +15,21 @@ export type ToastOptions = {
   action?: { label: string; onClick: () => void; keepOpen?: boolean };
   /** Called once the toast closes, whether dismissed by the artist or closed by code. */
   onClose?: () => void;
+  /**
+   * 排队的常驻通知（#609）：同一时间只显示一条，关掉或处理完再出下一条；数字小的先出，同级按先来后到。
+   * 次序见 `NOTICE_ORDER` 与 design/ui-system/interaction-flows.md。
+   */
+  queue?: number;
 };
+
+/** 排队通知的次序（#609）：先出影响眼下能不能用的，再出提醒，最后是整理类的。 */
+export const NOTICE_ORDER = {
+  loginExpired: 1,
+  runtime: 2,
+  backup: 3,
+  update: 4,
+  legacyNames: 5,
+} as const;
 export type ToastApi = {
   show: (options: ToastOptions) => string;
   /** A real error: announced urgently, stays until 知道了 or its action is chosen. */
@@ -55,20 +69,58 @@ function Bridge({ children }: { children: ReactNode }) {
           }
         : undefined,
     });
-    const show = ({ onClose, ...options }: ToastOptions): string => {
+    /** 排队通知：正在显示的那一条，与等着的（按次序、先来后到）。 */
+    let active: string | null = null;
+    const waiting: { id: string; queue: number; options: ToastOptions }[] = [];
+    let serial = 0;
+    const present = (id: string, { onClose, queue: _queue, ...options }: ToastOptions) => {
+      active = id;
+      latest.current.add({
+        ...content(options, () => id),
+        id,
+        onClose: () => {
+          if (active === id) {
+            active = null;
+            const next = waiting.shift();
+            if (next) present(next.id, next.options);
+          }
+          onClose?.();
+        },
+      });
+    };
+    const show = (options: ToastOptions): string => {
+      if (options.queue !== undefined) {
+        const id = `notice-${++serial}`;
+        if (active === null) present(id, options);
+        else {
+          const at = waiting.findIndex((w) => w.queue > (options.queue ?? 0));
+          waiting.splice(at === -1 ? waiting.length : at, 0, { id, queue: options.queue, options });
+        }
+        return id;
+      }
+      const { onClose, ...rest } = options;
       let id = "";
-      id = latest.current.add({ ...content(options, () => id), onClose });
+      id = latest.current.add({ ...content(rest, () => id), onClose });
       return id;
     };
     return {
       show,
       error: (message, options = {}) => show({ ...options, title: message, tone: "error" }),
-      update: (id, options) =>
-        latest.current.update(
-          id,
-          content(options, () => id),
-        ),
-      close: (id) => latest.current.close(id),
+      update: (id, options) => {
+        const queued = waiting.find((w) => w.id === id);
+        if (queued) queued.options = { ...options, onClose: queued.options.onClose, queue: queued.queue };
+        else
+          latest.current.update(
+            id,
+            content(options, () => id),
+          );
+      },
+      close: (id) => {
+        const at = waiting.findIndex((w) => w.id === id);
+        if (at === -1) return latest.current.close(id);
+        const [queued] = waiting.splice(at, 1);
+        queued.options.onClose?.();
+      },
     };
   }, []);
   return <Manager value={api}>{children}</Manager>;
@@ -155,7 +207,7 @@ export type PersistentToast = Pick<ToastOptions, "title" | "description" | "tone
  */
 export function usePersistentToast(
   notice: PersistentToast | null,
-  { hidden = false, level }: { hidden?: boolean; level?: number } = {},
+  { hidden = false, level, queue }: { hidden?: boolean; level?: number; queue?: number } = {},
 ) {
   const toast = useToast();
   const latest = useRef({ notice, level });
@@ -194,6 +246,7 @@ export function usePersistentToast(
     }
     const id: string = toast.show({
       ...content,
+      queue,
       onClose: () => {
         if (shown.current !== id) return;
         shown.current = null;

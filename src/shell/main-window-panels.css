@@ -1,21 +1,27 @@
 /* T20 main window, part 2: inspector, empty workspace and detail tags. Loaded right after main-window.css. */
 /* ---- Inspector ---- */
 /* 宽度由主窗口写在 :root 的 --inspector-width 上（#157，280–560，默认 320）；头部与内容区按它定宽，开合过渡中不跟着挤。 */
+/* 320 = 左边 8 px 桌面 + 纸（#608），图片墙的宽度因此与没有桌面时相同。 */
 .inspector {
   position: relative;
-  width: var(--inspector-width, 320px);
+  width: calc(var(--inspector-width, 320px) - var(--sheet-gap));
   flex: none;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  margin-left: var(--sheet-gap);
+  border-radius: var(--r);
   background: var(--surface);
-  border-left: 1px solid var(--line);
-  transition: width var(--t-slow) var(--ease);
+  box-shadow: var(--sheet-lift);
+  transition:
+    width var(--t-slow) var(--ease),
+    margin var(--t-slow) var(--ease);
   overflow: hidden;
 }
 .inspector[data-collapsed="true"] {
   width: 0;
-  border-left-width: 0;
+  margin-left: 0;
+  box-shadow: none;
 }
 /* 拖动中宽度直接跟手，不做过渡。 */
 .inspector[data-resizing="true"] {
@@ -40,7 +46,7 @@
   outline-offset: var(--focus-inset);
 }
 .insp-head {
-  width: calc(var(--inspector-width, 320px) - 1px);
+  width: calc(var(--inspector-width, 320px) - var(--sheet-gap));
   height: 56px;
   flex: none;
   display: flex;
@@ -57,7 +63,7 @@
   font-weight: 500;
 }
 .insp-body {
-  width: calc(var(--inspector-width, 320px) - 1px);
+  width: calc(var(--inspector-width, 320px) - var(--sheet-gap));
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -65,6 +71,56 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+/* 没选图片时（#608）：一张矢量画的抽象详情栏，下面一句提示。 */
+.insp-empty {
+  margin: 24px auto 0;
+  width: min(200px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.insp-empty-art {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.insp-empty-art .frame {
+  fill: var(--sunken);
+  stroke: var(--line-2);
+  stroke-width: 1;
+}
+.insp-empty-art .sun {
+  fill: var(--manual-soft);
+  stroke: var(--line-2);
+}
+.insp-empty-art .hill {
+  fill: var(--line);
+}
+.insp-empty-art .hill.near {
+  fill: var(--line-2);
+  opacity: 0.7;
+}
+.insp-empty-art :is(.line, .pill) {
+  fill: var(--sunken);
+}
+.insp-empty-art .line.strong {
+  fill: var(--line);
+}
+.insp-empty-art .pill {
+  stroke: var(--line);
+}
+.insp-empty-art .pill.accent {
+  fill: var(--accent-soft);
+  stroke: none;
+}
+.insp-empty-text {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  text-align: center;
+  text-wrap: balance;
 }
 .insp-file-name {
   font-weight: 600;

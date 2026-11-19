@@ -3,12 +3,12 @@
 /* They share the corner with the toasts (toast.css) and sit above the collapsed toast stack, whose height Toast.tsx publishes. */
 .k-task-cards {
   position: fixed;
-  right: 18px;
-  bottom: calc(18px + var(--k-toast-stack, 0px));
+  right: var(--k-notice-right, 18px);
+  bottom: calc(var(--k-notice-bottom, 18px) + var(--k-toast-stack, 0px));
   z-index: var(--z-task);
   width: 340px;
-  max-width: calc(100vw - 36px);
-  max-height: calc(100vh - 100px - var(--k-toast-stack, 0px));
+  max-width: min(calc(100vw - 36px), var(--k-notice-max, 100vw));
+  max-height: calc(100vh - 82px - var(--k-notice-bottom, 18px) - var(--k-toast-stack, 0px));
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -563,20 +563,11 @@
   margin-top: 6px;
   overflow: auto;
 }
-/* 详情面板打开时，右下角卡片停在面板左侧，不盖住面板底部的按钮（#98）。 */
+/* 和轻提示同一处停靠（#609）：详情栏开合、悬浮栏出现时跟着滑过去。 */
 .k-task-cards {
   transition:
     right var(--t) var(--spring),
     bottom var(--t) var(--spring);
-}
-/* 有浮动的多选操作条（.selbar-float，浮岛高 56 px）时，卡片抬到操作条上方，同样不遮住它。 */
-body:has(.selbar-float):not(:has(.inspector[data-collapsed="false"])) .k-task-cards {
-  bottom: calc(18px + 66px + var(--k-toast-stack, 0px));
-  max-height: calc(100vh - 100px - 66px - var(--k-toast-stack, 0px));
-}
-body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-task-cards {
-  bottom: calc(18px + 66px + var(--k-toast-stack, 0px));
-  max-height: calc(100vh - 100px - 66px - var(--k-toast-stack, 0px));
 }
 /* 标签外观的分档阈值（#160）：短标签 + 窄数字框，一行放下两个阈值和“恢复默认”。 */
 .k-set-number {

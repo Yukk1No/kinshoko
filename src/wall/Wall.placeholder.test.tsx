@@ -17,11 +17,12 @@ beforeEach(() => {
   fakeBackend({ workspace_browse: () => workspacePage(cards) });
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   localStorage.clear();
 });
 
-const wall = (safeMode = false) =>
+const wall = (safeMode = false, reactStrictMode = false) =>
   render(
     <Wall
       workspaceScope={{ kind: "all" }}
@@ -33,6 +34,7 @@ const wall = (safeMode = false) =>
       onOpenImage={() => {}}
       viewerOpen={false}
     />,
+    { reactStrictMode },
   );
 const card = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`)!;
 const placeholderOf = (id: string) => card(id).querySelector<HTMLElement>(".card-placeholder");
@@ -53,6 +55,15 @@ it("还没有占位图的卡片只留中性底色", async () => {
   wall();
   await screen.findAllByRole("img");
   expect(placeholderOf("a")).toBeNull();
+});
+
+it("StrictMode 重放 ref 后，尚未加载的缩略图仍保留地址", async () => {
+  vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(false);
+  cards = [{ id: "a", width: 100, height: 50, placeholder: PLACEHOLDER, adult: false }];
+  wall(false, true);
+  const [thumbnail] = await screen.findAllByRole("img");
+  expect(thumbnail.getAttribute("src")).toContain("L1/a/");
+  expect(thumbnail.dataset.loaded).toBeUndefined();
 });
 
 it("遮蔽中的成人内容卡片不显示占位色彩", async () => {
@@ -78,6 +89,7 @@ it("卡片卸载时缩略图还没到就撤掉地址，浏览器放弃这次请�
   Object.defineProperty(arrived, "complete", { configurable: true, value: true });
   expect(pending.getAttribute("src")).toContain("L1/a/");
   view.unmount();
+  await Promise.resolve();
   expect(pending.hasAttribute("src")).toBe(false);
   expect(arrived.getAttribute("src")).toContain("L1/b/");
 });

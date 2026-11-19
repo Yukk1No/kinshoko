@@ -110,7 +110,7 @@ export function Rail(p: Props) {
                 onClick={() => p.onSection(id)}
               >
                 <Icon size={20} strokeWidth={1.75} className={`rail-ic rail-ic-${id}`} />
-                {!!badges[id] && <span className="rail-badge tabular">{badgeText(badges[id])}</span>}
+                {!!badges[id] && <span className="k-badge">{badgeText(badges[id])}</span>}
               </button>
             </Tip>
           );
