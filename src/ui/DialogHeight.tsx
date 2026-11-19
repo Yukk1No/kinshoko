@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { AnimatePresence, motion, useIsPresent } from "motion/react";
-import { arcSpring } from "./Dock";
+import { arcSpring } from "./motion";
 import { reducedNow, useReducedMotion } from "./reducedMotion";
 
 /**

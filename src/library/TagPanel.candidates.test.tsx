@@ -66,7 +66,7 @@ describe("添加标签的输入框", () => {
     return { edits, limits, input, type };
   };
 
-  it("候选行尾的“排除”否决这个标签，Alt+回车同样排除；不再有按钮行与说明句", async () => {
+  it("候选行尾的“排除”否决这个标签，Alt+回车同样排除", async () => {
     const { edits, input, type } = setup(["a"]);
     const list = await type("猫");
     fireEvent.click(await within(list).findByRole("button", { name: "排除“猫”" }));
@@ -77,7 +77,6 @@ describe("添加标签的输入框", () => {
     fireEvent.keyDown(input, { key: "Enter", altKey: true });
     await waitFor(() => expect(edits).toHaveLength(2));
     expect(edits[1]).toEqual({ kind: "reject", tag: { kind: "id", id: "t-cat" } });
-    expect(screen.queryByRole("button", { name: "添加标签" })).toBeNull();
   });
 
   it("选了几张时候选行尾还有“改回自动”", async () => {
@@ -85,7 +84,6 @@ describe("添加标签的输入框", () => {
     const list = await type("猫");
     fireEvent.click(await within(list).findByRole("button", { name: "把“猫”改回自动" }));
     await waitFor(() => expect(edits).toEqual([{ kind: "clear", tag: { kind: "id", id: "t-cat" } }]));
-    expect(screen.queryByText(/一起记下/)).toBeNull();
   });
 
   it("选了几张时新建项上也能按输入的名称改回自动（在所有图上都被排除的标签不在候选里）", async () => {

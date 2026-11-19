@@ -2,7 +2,7 @@
 .startup-splash {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--z-splash);
   background: var(--bg);
   overflow: hidden;
 }
@@ -101,12 +101,12 @@
   fill: var(--accent);
 }
 .startup-logo-rest {
-  transition: opacity 360ms var(--ease);
+  transition: opacity var(--t-splash) var(--ease);
 }
 .startup-splash[data-phase="leaving"] .startup-logo-rest,
 .startup-splash[data-phase="leaving"] .startup-head {
   opacity: 0;
-  transition: opacity 360ms var(--ease) 250ms;
+  transition: opacity var(--t-splash) var(--ease) var(--t-splash-hold);
 }
 
 .startup-bar {

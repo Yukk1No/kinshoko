@@ -10,7 +10,7 @@ import type { SimilarTag } from "../bindings/SimilarTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { Term } from "../bindings/Term";
 import type { TermInput } from "../bindings/TermInput";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { Ban, Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -153,6 +153,8 @@ type Props = {
   showSource: boolean;
   onChange: (input: SearchInput) => void;
   onError: (error: unknown) => void;
+  /** 精确查找开关前面的东西（#607）：顶栏放张数与标签分组。 */
+  extras?: ReactNode;
 };
 
 /**
@@ -173,6 +175,7 @@ export function SearchBox({
   onChange,
   onError,
   workspace = false,
+  extras,
 }: Props) {
   const { t } = useTranslation("search");
   const [text, setText] = useState("");
@@ -374,6 +377,7 @@ export function SearchBox({
   const hiddenCount = Math.max(input.conditions.length - fit, 0);
   return (
     <div className="search" ref={root}>
+      <Search className="search-icon" size={16} aria-hidden="true" />
       <ul className="search-chips" aria-label={t("conditions")}>
         {hiddenCount > 0 && (
           <li className="search-more">
@@ -416,6 +420,7 @@ export function SearchBox({
           }}
         />
       </div>
+      {extras && <div className="search-extras">{extras}</div>}
       <ExactToggle exact={input.exact} onChange={(exact) => onChange({ ...input, exact })} />
     </div>
   );

@@ -7,8 +7,8 @@
   gap: 2px;
   padding: 8px;
   border-radius: var(--r-xl);
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  backdrop-filter: blur(18px) saturate(1.2);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-pop);
 }
 .k-dock-cell {
@@ -16,8 +16,8 @@
 }
 .k-dock-item {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: var(--h-lg);
+  height: var(--h-lg);
   padding: 0;
   border: 0;
   border-radius: var(--r);
@@ -50,7 +50,7 @@
 }
 .k-dock-item:disabled,
 .k-import:disabled {
-  opacity: 0.5;
+  opacity: var(--disabled-opacity);
   cursor: default;
 }
 .k-dock-item:focus-visible {
@@ -130,8 +130,8 @@
   gap: 2px;
   padding: 8px;
   border-radius: var(--r-xl);
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  backdrop-filter: blur(18px);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-pop);
   transform-origin: 50% 100%;
 }
@@ -178,7 +178,7 @@
 .k-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: var(--z-backdrop);
   background: var(--overlay);
   transition: opacity var(--t);
 }
@@ -190,7 +190,7 @@
   position: fixed;
   left: 50%;
   top: 50%;
-  z-index: 91;
+  z-index: var(--z-dialog);
   width: min(560px, calc(100vw - 48px));
   max-height: calc(100vh - 48px);
   overflow: auto;

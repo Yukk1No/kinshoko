@@ -607,7 +607,7 @@
   padding: 4px;
 }
 .subs-artist-dialog > .k-field > .subs-rank-seg .k-seg-item {
-  height: 28px;
+  height: var(--h-sm);
   font-size: 13px;
 }
 .subs-rank-hint {

@@ -31,7 +31,7 @@ tauri-plugin-single-instance = "2"
 image = { version = "0.25", default-features = false, features = ["png"] }
 uuid = { version = "1", features = ["v4"] }
 # 自动备份按画师的本地日期算“每天”（#69）：取本地时区偏移。
-chrono = { version = "0.4", default-features = false, features = ["clock"] }
+jiff = { workspace = true, features = ["tz-system", "tzdb-bundle-platform"] }
 # 截图（#62）：抓取光标所在显示器、读写剪贴板图片、读显示器配置文件。
 xcap = "0.9.8"
 arboard = { version = "3.6", default-features = false, features = ["image-data"] }

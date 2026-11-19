@@ -83,7 +83,7 @@ fn srgb_pixels_round_trip_through_the_srgb_lut_to_the_same_8_bit_values() {
     let pixels = derivative(&png(&image, None)).unwrap();
     assert_eq!((pixels.width, pixels.height, pixels.source), (256, 3, None));
     let lut = lut(None, None).unwrap();
-    for (p, want) in pixels.rgba.chunks_exact(4).zip(image.pixels()) {
+    for (p, want) in pixels.rgba.as_chunks::<4>().0.iter().zip(image.pixels()) {
         let rgb = apply(&lut, [p[0], p[1], p[2]].map(f32_of));
         let got = rgb.map(|v| (v * 255.0).round() as u8);
         assert_eq!(got, [want[0], want[1], want[2]]);
@@ -124,7 +124,7 @@ fn the_table_to_an_srgb_icc_keeps_8_bit_values() {
     let srgb = profiles::encode(&ColorProfile::new_srgb()).unwrap();
     let lut = table(None, parse_rgb(&srgb).unwrap()).unwrap();
     assert!(matches!(lut, PinLut::Table { .. }));
-    for (p, want) in pixels.rgba.chunks_exact(4).zip(image.pixels()) {
+    for (p, want) in pixels.rgba.as_chunks::<4>().0.iter().zip(image.pixels()) {
         let rgb = apply(&lut, [p[0], p[1], p[2]].map(f32_of));
         let got = rgb.map(|v| (v * 255.0).round() as u8);
         assert_eq!(got, [want[0], want[1], want[2]]);
@@ -192,7 +192,7 @@ fn a_screenshot_keeps_its_display_values_and_is_tagged_with_that_display() {
     let pixels = screenshot(&png(&shot, Some(p3.clone()))).unwrap();
     assert_eq!(pixels.source.as_deref(), Some(&p3[..]));
     let same = lut(Some(&p3), Some(&p3)).unwrap();
-    for (p, want) in pixels.rgba.chunks_exact(4).zip(shot.pixels()) {
+    for (p, want) in pixels.rgba.as_chunks::<4>().0.iter().zip(shot.pixels()) {
         let rgb = apply(&same, [p[0], p[1], p[2]].map(f32_of));
         assert_eq!(
             rgb.map(|v| (v * 255.0).round() as u8),
