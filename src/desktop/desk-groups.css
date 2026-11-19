@@ -215,7 +215,9 @@ button.desk-group-head:not([aria-current]):hover {
 }
 .desk-group-tile .desk-group-thumb,
 .desk-group-tile .desk-group-thumb:nth-child(even) {
+  display: block;
   width: 44px;
+  height: 44px;
 }
 .desk-group-tile.is-unpinned .desk-group-thumb {
   opacity: 0.4;
@@ -226,7 +228,7 @@ button.desk-group-head:not([aria-current]):hover {
 }
 .desk-group-tile-body:focus-visible {
   outline: var(--focus-ring);
-  outline-offset: 1px;
+  outline-offset: var(--focus-offset);
 }
 .desk-group-tile-remove {
   position: absolute;
