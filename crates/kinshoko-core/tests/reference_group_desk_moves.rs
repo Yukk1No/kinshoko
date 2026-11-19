@@ -3,8 +3,11 @@
 
 #[path = "support/desk.rs"]
 mod desk;
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
 
 use desk::{TestDesk, capture_pin, reference_pin, shot};
+use group_fixture::GroupFixture;
 use kinshoko_core::desktop::SavedPin;
 use kinshoko_core::reference_groups::{GroupMember, ReferenceGroup};
 
@@ -100,7 +103,15 @@ fn splitting_off_a_day_moves_it_to_a_new_group_and_undo_moves_it_back() {
     let mut t = TestDesk::with(|root| {
         let groups = desk::groups(root);
         let mut pins = vec![reference_pin("old", 10)];
-        old = groups.create("旧", &mut pins).unwrap().id;
+        old = groups.save_group("旧", &mut pins).unwrap().id;
+        // 像 #588 之前存的参考组一样：成员没有添加日期。
+        let file = root.join(format!("reference-groups/{old}.json"));
+        let mut json: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
+        for member in json["members"].as_array_mut().unwrap() {
+            member.as_object_mut().unwrap().remove("addedAt");
+        }
+        std::fs::write(&file, serde_json::to_vec(&json).unwrap()).unwrap();
     });
     t.desk.switch_to(&old, &mut t.history).unwrap();
     let created = reread(&t, &old).created_at;
@@ -312,5 +323,35 @@ fn duplicating_copies_members_and_captures_and_leaves_the_original_alone() {
     assert!(
         lists.recent.iter().any(|g| g.id == copy.id),
         "复制出来的进最近"
+    );
+}
+
+#[test]
+fn adding_from_the_wall_to_another_group_adds_an_unpinned_member_and_leaves_the_desk() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    let other = t.desk_id();
+    t.desk.new_desk(&mut t.history).unwrap();
+    t.pin_reference("b", 20);
+    let on_desk = t.desk_id();
+
+    let added = t
+        .desk
+        .add_member(&other, &reference_pin("c", 30))
+        .unwrap()
+        .expect("不在桌面上的组多一个成员");
+    let member = added.members.last().unwrap();
+    assert!(!member.pinned, "加进别的组时不钉出来，切过去也不钉");
+    assert!(member.added_at.is_some(), "记下添加日期：成员区按它分段");
+    assert_eq!(reread(&t, &other).members.len(), 2);
+    assert_eq!(t.desk_id(), on_desk);
+    assert_eq!(t.desk.pins().len(), 1, "桌面不变");
+
+    assert!(
+        t.desk
+            .add_member(&on_desk, &reference_pin("d", 40))
+            .unwrap()
+            .is_none(),
+        "加进桌面上那组：调用方把它钉出来"
     );
 }

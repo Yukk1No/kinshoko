@@ -139,15 +139,8 @@ pub(super) fn closed(app: &AppHandle, pin: &str) {
         if !record.closing {
             return false;
         }
-        let mut store = lock(&state(app).store);
-        let updated = store.close(
-            pin,
-            record.capture_id.as_deref(),
-            &mut lock(&state(app).history),
-        );
-        if store.is_desk() {
-            state(app).dirty.store(true, Ordering::Relaxed);
-        }
+        let updated = lock(&state(app).store).close(pin, &mut lock(&state(app).history));
+        state(app).dirty.store(true, Ordering::Relaxed);
         updated
     });
     if history_updated {

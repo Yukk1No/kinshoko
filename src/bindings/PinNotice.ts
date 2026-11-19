@@ -4,4 +4,4 @@ import type { CommandError } from "./CommandError";
 /**
  * 做完钉图菜单里的一项后在钉图上提示什么（#355）。文字由菜单页面按界面语言取。
  */
-export type PinNotice = { "kind": "locked" } | { "kind": "unlocked" } | { "kind": "copied" } | { "kind": "chooseSaveLocation" } | { "kind": "collectFirst" } | { "kind": "savedToGroup", name: string, } | { "kind": "addedToGroup", name: string, } | { "kind": "failed", error: CommandError, };
+export type PinNotice = { "kind": "locked" } | { "kind": "unlocked" } | { "kind": "copied" } | { "kind": "chooseSaveLocation" } | { "kind": "failed", error: CommandError, };

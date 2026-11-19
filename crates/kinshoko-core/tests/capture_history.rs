@@ -2,6 +2,10 @@
 //! 旧截图按规则丢弃，收藏经资料库的普通导入入口成为参考图。
 //! 全部通过 `kinshoko_core::desktop` 的对外接口，用临时目录里的真文件。
 
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+use group_fixture::GroupFixture;
+
 use std::path::Path;
 
 use image::{ImageDecoder, RgbaImage};
@@ -75,7 +79,7 @@ fn collecting_a_capture_pin_makes_it_a_group_member_without_changing_its_crop_or
     assert_eq!((prepared.opacity, prepared.locked), (0.6, true));
     let groups = ReferenceGroups::open(&dir.path().join("groups")).unwrap();
     let group = groups
-        .create("截图参考", std::slice::from_mut(&mut prepared))
+        .save_group("截图参考", std::slice::from_mut(&mut prepared))
         .unwrap();
     assert_eq!(group.members.len(), 1);
     assert_eq!(

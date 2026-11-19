@@ -3,8 +3,11 @@
 
 #[path = "support/desk.rs"]
 mod desk;
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
 
 use desk::{TestDesk, reference_pin, screen, shot};
+use group_fixture::GroupFixture;
 use kinshoko_core::reference_groups::ReferenceGroup;
 
 fn reread(t: &TestDesk, id: &str) -> ReferenceGroup {
@@ -23,7 +26,7 @@ fn the_first_open_turns_old_pins_into_a_group_and_makes_old_groups_favorites() {
     let mut t = TestDesk::with(|root| {
         let groups = desk::groups(root);
         let mut pins = vec![reference_pin("old", 10)];
-        let group = groups.create("旧参考组", &mut pins).unwrap();
+        let group = groups.save_group("旧参考组", &mut pins).unwrap();
         old_group = group.id.clone();
         old_bytes =
             std::fs::read(root.join(format!("reference-groups/{}.json", group.id))).unwrap();
@@ -86,7 +89,7 @@ fn migrating_twice_after_an_interruption_gives_the_same_result() {
     let mut old_group = String::new();
     let mut t = TestDesk::with(|root| {
         let mut pins = vec![reference_pin("x", 10)];
-        old_group = desk::groups(root).create("旧", &mut pins).unwrap().id;
+        old_group = desk::groups(root).save_group("旧", &mut pins).unwrap().id;
         let mut store = kinshoko_core::desktop::PinStore::open(root).unwrap();
         store.put(reference_pin("a", 10));
         store.put(reference_pin("b", 20));
@@ -111,7 +114,7 @@ fn migrating_twice_after_an_interruption_gives_the_same_result() {
 fn an_old_named_library_only_group_keeps_format_version_one_and_its_fields() {
     let mut t = TestDesk::new();
     let mut pins = vec![reference_pin("a", 10)];
-    let old = t.groups().create("手", &mut pins).unwrap();
+    let old = t.groups().save_group("手", &mut pins).unwrap();
     let old_json: serde_json::Value =
         serde_json::from_slice(&std::fs::read(t.group_file(&old.id)).unwrap()).unwrap();
 

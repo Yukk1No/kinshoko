@@ -70,15 +70,13 @@ pub struct PinMenu {
     pub veiled: bool,
     /// 能收藏：截图钉图，且已有登记的资料库。
     pub can_collect: bool,
-    /// 来自参考组时，那个参考组的名称（“存回参考组”）。
-    pub group: Option<String>,
     /// 画师点了遮蔽钉图上的小圆锁：只问“显示这张图？”（原生钉图，#285）。
     pub confirm_reveal: bool,
 }
 
 impl PinMenu {
-    /// `veiled`：钉图此刻被遮蔽；`has_library`：已有登记的资料库；`group`：来自的参考组的名称。
-    pub fn new(pin: &SavedPin, veiled: bool, has_library: bool, group: Option<String>) -> PinMenu {
+    /// `veiled`：钉图此刻被遮蔽；`has_library`：已有登记的资料库。
+    pub fn new(pin: &SavedPin, veiled: bool, has_library: bool) -> PinMenu {
         let capture = matches!(pin.content, PinContent::Capture { .. });
         PinMenu {
             pin: pin.id.clone(),
@@ -88,7 +86,6 @@ impl PinMenu {
             actual_size: (pin.placement.scale - 1.0).abs() < 1e-9,
             veiled,
             can_collect: capture && has_library,
-            group,
             confirm_reveal: false,
         }
     }
@@ -104,14 +101,6 @@ pub enum PinNotice {
     Copied,
     /// 截图钉图的“收藏”：保存位置在主窗口里选。
     ChooseSaveLocation,
-    /// 截图钉图要先收藏进图库，才能加入参考组。
-    CollectFirst,
-    SavedToGroup {
-        name: String,
-    },
-    AddedToGroup {
-        name: String,
-    },
     Failed {
         #[ts(as = "crate::command_error::ErrorKind")]
         error: crate::CommandError,

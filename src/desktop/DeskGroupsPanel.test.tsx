@@ -182,20 +182,6 @@ afterEach(() => {
 });
 
 describe("参考组面板（参考组改成桌面）", () => {
-  it("开关关着：还是原来的面板，没有“新参考组”按钮", async () => {
-    ipc.lists.mockRejectedValue({ code: "deskGroupsOff" });
-    render(
-      <SaveDestinationProvider safe>
-        <DeskNewGroupButton />
-        <ReferenceGroups />
-      </SaveDestinationProvider>,
-    );
-    await flush();
-    expect(screen.getByRole("button", { name: "存下桌面钉图" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "新参考组" })).toBeNull();
-    expect(screen.queryByRole("list", { name: "收藏" })).toBeNull();
-  });
-
   it("收藏、最近、更早三段；更早折着，点开才列出；没有名称的写新建日期", async () => {
     await show(lists({ favorites: [hair], recent: [hands], older: [old] }));
     expect(ids("收藏")).toEqual(["g1"]);

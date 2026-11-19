@@ -15,15 +15,13 @@ pub(super) const ACTION_COLLECT: &str = "collect";
 pub(super) const ACTION_COPY: &str = "copy";
 pub(super) const ACTION_CLOSE: &str = "close";
 pub(super) const ACTION_REVEAL: &str = "reveal";
-pub(super) const ACTION_SAVE_GROUP: &str = "saveGroup";
-/// #106 新增：在 Kinshoko 中打开、加入参考组（`group:<参考组 id>`）、贴边隐藏。
+/// #106 新增：在 Kinshoko 中打开、贴边隐藏。
 pub(super) const ACTION_OPEN: &str = "openInKinshoko";
-pub(super) const ACTION_GROUP: &str = "group:";
 pub(super) const ACTION_EDGE_HIDE: &str = "edgeHide";
 
 /// 钉图的右键菜单（#64；#106 起与主窗口同样式）：翻转、旋转、原始大小、透明度、锁定，截图钉图的
-/// 收藏与复制，资料库钉图（#65）被遮蔽时的“显示这张图”与来自参考组时的“存回参考组”，再加上
-/// 在 Kinshoko 中打开、加入参考组、贴边隐藏与关闭钉图。菜单项在页面里（`src/desktop/PinMenu.tsx`）。
+/// 收藏与复制，资料库钉图（#65）被遮蔽时的“显示这张图”，
+/// 再加上在 Kinshoko 中打开、贴边隐藏与关闭钉图。菜单项在页面里（`src/desktop/PinMenu.tsx`）。
 /// 鼠标右键、笔的侧键或笔与触摸按住不动时打开（[`native_menu`]）；菜单弹在光标（笔尖）处。
 ///
 /// `confirm_reveal`：只问“显示这张图？”（点了遮蔽钉图上的小圆锁）。
@@ -34,13 +32,9 @@ fn popup_menu(app: &AppHandle, pin: &str, confirm_reveal: bool) -> Result<(), Co
         .ok_or_else(pin_closed)?;
     let (veiled, _) = appearance(app, &saved);
     let has_library = !crate::library::registered(app)?.is_empty();
-    let group = saved
-        .member
-        .as_ref()
-        .and_then(|m| super::super::groups::group_name(app, &m.group_id));
     let menu = PinMenu {
         confirm_reveal,
-        ..PinMenu::new(&saved, veiled, has_library, group)
+        ..PinMenu::new(&saved, veiled, has_library)
     };
     super::super::menu::popup(app, menu)
 }
@@ -107,9 +101,6 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<Pi
     if let Some(turn) = turn {
         return turn_here(app, pin, turn).err().map(PinNotice::from);
     }
-    if let Some(group_id) = action.strip_prefix(ACTION_GROUP) {
-        return Some(add_to_group(app, pin, group_id));
-    }
     if let Some(percent) = action.strip_prefix(ACTION_OPACITY) {
         let percent: f64 = percent.parse().ok()?;
         edit(app, pin, |p| p.set_opacity(percent / 100.0))?;
@@ -139,13 +130,6 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<Pi
         ACTION_EDGE_HIDE => {
             super::super::edge::toggle_in_background(app);
             None
-        }
-        ACTION_SAVE_GROUP => {
-            let group_id = lock(&state(app).store).get(pin)?.member.clone()?.group_id;
-            Some(match super::super::groups::save_back(app, &group_id) {
-                Ok(group) => PinNotice::SavedToGroup { name: group.name },
-                Err(e) => e.into(),
-            })
         }
         ACTION_COLLECT => {
             let capture_id = lock(&state(app).pins)
@@ -217,25 +201,4 @@ fn copy_reference_pin(app: &AppHandle, pin: &str) -> Result<(), CommandError> {
         crate::library::visible_source(app, library_id, image_id)?;
         prepared.commit(app)
     })
-}
-
-/// 把这一个资料库钉图加进参考组 `group_id`（钉图菜单“加入参考组 ▸”）：保留它此刻的局部与摆放，
-/// 参考组的其他成员不变。截图钉图要先收藏进图库。返回要在钉图上提示什么。
-pub(super) fn add_to_group(app: &AppHandle, pin: &str, group_id: &str) -> PinNotice {
-    let Some(saved) = lock(&state(app).store).get(pin).cloned() else {
-        return pin_closed().into();
-    };
-    if saved.capture_id().is_some() {
-        return PinNotice::CollectFirst;
-    }
-    let mut one = [saved];
-    let result = lock(&state(app).groups).save_pins(group_id, &mut one);
-    match result {
-        Ok(group) => {
-            remember_group_members(app, &one);
-            super::super::reference_groups_changed(app);
-            PinNotice::AddedToGroup { name: group.name }
-        }
-        Err(e) => e.into(),
-    }
 }

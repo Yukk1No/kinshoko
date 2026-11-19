@@ -112,6 +112,14 @@ it("加入参考组按每张图的来源加入", async () => {
   expect(call.args).toMatchObject({ target: { libraryId: "L1", imageId: "i1", contentId: "1" }, groupId: "g1" });
 });
 
+it("加入参考组带着右键处：加进的是桌面上那组时图钉在那里，与“钉住”一样依次错开", async () => {
+  render(<Harness />);
+  act(() => api.addToGroup([card("1"), card("2")], "g1", { x: 50, y: 60 }));
+  await waitFor(() => expect(calls("workspace_source_group")).toHaveLength(2));
+  const shown = calls("workspace_source_group").map((c) => (c.args as { shown: unknown }).shown);
+  expect(shown).toEqual(staggeredPins({ x: 50, y: 60 }, 2, window.devicePixelRatio));
+});
+
 it("一张图的彻底删除按它显示的来源预览并确认", async () => {
   backend.on("preview_permanent_delete", { imageIds: ["i1"], groups: [], token: "t" });
   render(<Harness />);

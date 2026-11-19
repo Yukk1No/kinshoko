@@ -2,6 +2,10 @@
 //! 往返检查（#8 的“备份恢复”检查）。全部经 `kinshoko_core::backup` 与 Library、ReferenceGroups 的
 //! 对外接口，用临时目录里的真库与真文件。
 
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+use group_fixture::GroupFixture;
+
 #[path = "support/backup_device.rs"]
 mod backup_device;
 
@@ -20,7 +24,7 @@ fn a_group_that_outgrows_the_computed_scope_cannot_publish_a_complete_backup() {
     let device = Device::new();
     let group = device
         .groups
-        .create(
+        .save_group(
             "范围会变化",
             &mut [device.pin(&device.main, &device.main_images[0], None, 10)],
         )
@@ -34,7 +38,7 @@ fn a_group_that_outgrows_the_computed_scope_cannot_publish_a_complete_backup() {
     assert_eq!(scope.libraries.len(), 1);
     device
         .groups
-        .save_pins(
+        .add_to_group(
             &group.id,
             &mut [device.pin(&device.old, &device.old_images[0], None, 40)],
         )
@@ -68,7 +72,7 @@ fn editing_a_group_while_copying_keeps_the_backup_references_consistent() {
     let device = Device::new();
     let group = device
         .groups
-        .create(
+        .save_group(
             "正在使用",
             &mut [device.pin(&device.main, &device.main_images[0], None, 10)],
         )
@@ -97,7 +101,7 @@ fn editing_a_group_while_copying_keeps_the_backup_references_consistent() {
                 let added = import(&device.main, &device.dir.path().join("later"), &[29]);
                 device
                     .groups
-                    .save_pins(
+                    .add_to_group(
                         &group.id,
                         &mut [device.pin(&device.main, &added[0], None, 200)],
                     )

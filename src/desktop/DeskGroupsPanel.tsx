@@ -28,7 +28,7 @@ import {
   undoPruneUnpinned,
   undoSplitOff,
 } from "../ipc";
-import { describeCommandError, errorText, isErrorCode } from "../ipc/commandError";
+import { describeCommandError, errorText } from "../ipc/commandError";
 import { SaveDestinationDialog } from "../library/SaveDestination";
 import { useIndicatorSlide } from "../library/useIndicatorSlide";
 import { ContextMenu } from "@base-ui/react/context-menu";
@@ -42,9 +42,8 @@ import { DeskGroupMembers } from "./DeskGroupMembers";
 import { DeskGroupMenuItems } from "./DeskGroupMenu";
 import { GroupNameForm } from "./GroupNameForm";
 import { groupLabel } from "./groupLabel";
-import { ReferenceGroupsPanel } from "./ReferenceGroupsPanel";
 
-type Desk = { state: "loading" } | { state: "off" } | { state: "on"; lists: DeskLists };
+type Desk = { state: "loading" } | { state: "ready"; lists: DeskLists };
 
 /**
  * 参考组改成桌面（#588）的开关（设置里界面上没有的 `deskReferenceGroups`）开着没有，开着时还有
@@ -59,13 +58,11 @@ function useDesk(): { desk: Desk; failed: unknown } {
       deskReferenceGroups().then(
         (lists) => {
           if (!alive) return;
-          setDesk({ state: "on", lists });
+          setDesk({ state: "ready", lists });
           setFailed(null);
         },
         (e) => {
-          if (!alive) return;
-          if (isErrorCode(e, "deskGroupsOff")) setDesk({ state: "off" });
-          else setFailed(e);
+          if (alive) setFailed(e);
         },
       );
     void load();
@@ -78,27 +75,23 @@ function useDesk(): { desk: Desk; failed: unknown } {
   return { desk, failed };
 }
 
-/**
- * 侧栏“参考组”（图标轨 Ctrl+2）：开关关着时是原来的面板（{@link ReferenceGroupsPanel}），
- * 开着时是常用、最近、更早三段（{@link DeskGroupsPanel}，#592）。
- */
+/** 侧栏“参考组”（图标轨 Ctrl+2）：常用、最近、更早三段（{@link DeskGroupsPanel}，#592）。 */
 export function ReferenceGroups() {
   const { desk, failed } = useDesk();
   const toast = useToast();
   useEffect(() => {
     if (failed) toast.error(errorText(failed));
   }, [failed, toast]);
-  if (desk.state === "off") return <ReferenceGroupsPanel />;
   if (desk.state === "loading") return <section className="reference-groups" aria-busy="true" />;
   return <DeskGroupsPanel lists={desk.lists} />;
 }
 
-/** 侧栏标题行右侧的“新参考组”（#592）：清空桌面。桌面已经空着时变灰；开关关着时不出现。 */
+/** 侧栏标题行右侧的“新参考组”（#592）：清空桌面。桌面已经空着时变灰。 */
 export function DeskNewGroupButton() {
   const { desk } = useDesk();
   const toast = useToast();
   const { t } = useTranslation("desktop", { keyPrefix: "deskPanel" });
-  if (desk.state !== "on") return null;
+  if (desk.state !== "ready") return null;
   const empty = desk.lists.onDesk === null;
   return (
     <Tip label={t("newGroup")}>
@@ -273,7 +266,6 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
             title={t("groups.renameTitle")}
             label={t("groups.nameLabel")}
             value={renaming.name}
-            primary={false}
             allowEmpty
             onChange={(value) => setRenaming({ id: g.id, name: value })}
             onCancel={() => setRenaming(null)}

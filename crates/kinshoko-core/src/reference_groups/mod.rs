@@ -6,14 +6,13 @@
 //!   [`MemberSource::Capture`]）：截图文件复制到 `reference-groups/<参考组>.captures/` 下，不进任何
 //!   资料库，没有成员再用它时删除。各自保存裁切、翻转、旋转、位置、尺寸与缩放
 //!   （[`Placement`](crate::desktop::Placement) 与桌面钉图同义），以及透明度与锁定（#588 决定 3；
-//!   旧入口 `create`、`save_pins` 仍不写它们，参考组包不带它们）。
+//!   参考组包不带它们）。
 //! - 桌面上的参考组（#590，[`Desk`]）：桌面上至多摆着一个参考组，钉图是它钉着的成员，改动直接记下；
 //!   关掉钉图只标成没钉着。切换、新建、钉回、移出没钉着的、加进上一组、按天移到新参考组、常用、删除。
 //!   名称可以为空，没有名称的参考组按更新的格式版本写。
 //! - 同一张图在不同参考组里是不同的成员，互不影响；同一参考组里两块局部也是两个成员。
-//! - 打开参考组得到一组新的桌面钉图（[`ReferenceGroups::open_pins`]；组内截图放回截图历史后
-//!   钉成截图钉图），钉图记得来自哪个成员（[`GroupMemberRef`](crate::desktop::GroupMemberRef)），存回时更新那个成员
-//!   （[`ReferenceGroups::save_pins`]）。
+//! - 摆到桌面上时每个成员钉成一张钉图（组内截图放回截图历史后钉成截图钉图），钉图记得自己是哪个
+//!   成员（[`GroupMemberRef`](crate::desktop::GroupMemberRef)）。
 //! - 成员能否显示由 [`References`] 跨库核对：资料库没登记、不可用、图已删除时标出原因，
 //!   成员与布局原样保留。
 //! - 永久删除（#67）预览时经参考组用途 port（[`ReferenceGroupUsage`]）查询受影响的参考组。
@@ -26,7 +25,6 @@ mod captures;
 mod desk;
 mod error;
 mod member;
-mod merge;
 mod package;
 mod packages;
 mod resolve;
@@ -42,10 +40,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::desktop::SavedPin;
-
 use captures::write_atomically;
-use merge::{assign, merge};
 
 pub use captures::{CaptureFiles, OpenedPins, RelinkFailure, RelinkReport};
 pub use desk::{Collected, Desk, DeskLists, OLDER_AFTER_MS, Pinned, Pruned, Split, Switched};
@@ -59,7 +54,7 @@ pub use resolve::{
     DetachedLenses, MemberState, MemberStatus, ReferenceGroupView, ReferenceSource, References,
     UnavailableReason, resolve,
 };
-pub use trash::{DeletedGroup, UnlinkedPin};
+pub use trash::DeletedGroup;
 pub use usage::{GroupUsage, ReferenceGroupUsage};
 
 const FORMAT: &str = "kinshoko.reference-group";
@@ -107,16 +102,6 @@ pub struct RestoredFrom {
 }
 
 impl ReferenceGroup {
-    /// 资料库成员的桌面钉图：每个成员一个新钉图，按成员的先后，带着各自的局部与摆放。
-    /// 组内截图要先放回截图历史，见 [`ReferenceGroups::open_pins`]。
-    pub fn pins(&self) -> Vec<SavedPin> {
-        self.members
-            .iter()
-            .filter(|m| m.library_id().is_some())
-            .filter_map(|m| m.pin(&new_id(), &self.id, "").ok())
-            .collect()
-    }
-
     /// 引用到的资料库，按首次出现的先后。
     pub fn library_ids(&self) -> Vec<String> {
         let mut seen = BTreeSet::new();
@@ -346,63 +331,6 @@ impl ReferenceGroups {
             }
         }
         self.write(&group)?;
-        Ok(group)
-    }
-
-    /// 把桌面上的资料库钉图存成新的参考组。截图钉图不进组（要先收藏）；一张也没有时为
-    /// [`GroupError::NoMembers`]。存进去的钉图记下自己成了哪个成员（[`SavedPin::member`]），
-    /// 之后存回时更新那个成员。
-    pub fn create(&self, name: &str, pins: &mut [SavedPin]) -> Result<ReferenceGroup, GroupError> {
-        self.create_with_captures(name, pins, &[])
-    }
-
-    /// 同 [`Self::create`]，`captures` 中的截图钉图只存在参考组里（#270）：截图文件复制进这个参考组。
-    pub fn create_with_captures(
-        &self,
-        name: &str,
-        pins: &mut [SavedPin],
-        captures: &[GroupCapture],
-    ) -> Result<ReferenceGroup, GroupError> {
-        let name = valid_name(name)?;
-        let now = crate::library::now_ms();
-        let mut group = ReferenceGroup {
-            id: new_id(),
-            name,
-            created_at: now,
-            updated_at: now,
-            members: Vec::new(),
-            imported_from_package: None,
-            restored_from: None,
-        };
-        let merged = merge(&mut group, pins, captures);
-        if group.members.is_empty() {
-            return Err(GroupError::NoMembers);
-        }
-        self.commit(&group, &merged.copies)?;
-        assign(pins, merged.assigned);
-        Ok(group)
-    }
-
-    /// 把桌面钉图存进参考组 `id`：来自这个参考组成员的钉图更新那个成员（局部、位置、尺寸、缩放、
-    /// 翻转与旋转）；其他资料库钉图（包括来自别的参考组的）加为新成员；不在桌面上的成员原样保留。
-    /// 来自组内截图成员的截图钉图更新那个成员；其他截图钉图不进组。收藏后改连参考图的钉图让成员
-    /// 改为引用资料库，组内那份截图随之删除。存进去的钉图之后记得这个参考组里的成员。
-    pub fn save_pins(&self, id: &str, pins: &mut [SavedPin]) -> Result<ReferenceGroup, GroupError> {
-        self.save_pins_with_captures(id, pins, &[])
-    }
-
-    /// 同 [`Self::save_pins`]，`captures` 中的截图钉图只存在参考组里（#270），加为新成员。
-    pub fn save_pins_with_captures(
-        &self,
-        id: &str,
-        pins: &mut [SavedPin],
-        captures: &[GroupCapture],
-    ) -> Result<ReferenceGroup, GroupError> {
-        let mut group = self.get(id)?;
-        let merged = merge(&mut group, pins, captures);
-        group.updated_at = crate::library::now_ms();
-        self.commit(&group, &merged.copies)?;
-        assign(pins, merged.assigned);
         Ok(group)
     }
 

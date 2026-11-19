@@ -1,4 +1,7 @@
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
 use super::source_actions::{same_image_in_two_libraries, source_in, wall_card, write_source};
+use group_fixture::GroupFixture;
 use kinshoko_core::DeviceLibraries;
 use kinshoko_core::Library;
 use kinshoko_core::library::{ImageEdit, ImportSource};
@@ -54,7 +57,7 @@ fn pins_and_group_members_keep_the_selected_provider_after_requery_and_disconnec
         .unwrap();
     let groups = ReferenceGroups::open(&temp.path().join("app")).unwrap();
     let group = groups
-        .create("姿势观察", std::slice::from_mut(&mut pin))
+        .save_group("姿势观察", std::slice::from_mut(&mut pin))
         .unwrap();
     query.scope = WorkspaceScope::Library {
         library_id: a.info().id.clone(),

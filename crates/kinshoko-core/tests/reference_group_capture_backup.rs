@@ -2,6 +2,10 @@
 //! 往返检查核对截图；参考组包导入时不接受能跳出参考组目录的截图文件名。
 //! 经 `kinshoko_core` 的对外接口，用临时目录里的真文件。
 
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+use group_fixture::save_group_with_history;
+
 use std::io::{Read, Write};
 use std::path::Path;
 
@@ -39,10 +43,7 @@ fn group_with_capture(root: &Path, groups: &ReferenceGroups) -> (ReferenceGroup,
         locked: false,
         member: None,
     }];
-    let keep = [history.group_capture(&entry.id).unwrap()];
-    let group = groups
-        .create_with_captures("一次性", &mut pins, &keep)
-        .unwrap();
+    let group = save_group_with_history(groups, &mut history, "一次性", &mut pins).unwrap();
     (group, bytes)
 }
 
