@@ -1,70 +1,7 @@
-//! 导入的准备：收集文件、读取、解码、哈希与暂存，按顺序提交前的每一项。
+//! 导入的准备：读取、解码、哈希与暂存，按顺序提交前的每一项。
 use super::*;
 use crate::CommandError;
 use crate::command_error::ErrorKind;
-
-pub(in crate::library) fn contains_eagle(source: &ImportSource) -> bool {
-    fn contains(path: &Path) -> bool {
-        eagle::is_library(path)
-            || eagle::is_item(path)
-            || (path.is_dir()
-                && std::fs::read_dir(path)
-                    .is_ok_and(|entries| entries.flatten().any(|entry| contains(&entry.path()))))
-    }
-    source.paths.iter().any(|path| contains(path))
-}
-
-/// 展开文件夹（含子文件夹，按名称排序）。读不了的位置记为读取失败。
-pub(super) fn collect(
-    inner: &Inner,
-    path: &Path,
-    files: &mut Vec<PathBuf>,
-    report: &mut ImportReport,
-) {
-    let fail = |report: &mut ImportReport, e: std::io::Error| {
-        report.items.push(ImportItem {
-            path: path.to_path_buf(),
-            outcome: ImportOutcome::ReadFailed { reason: e.into() },
-        })
-    };
-    if eagle::is_library(path) {
-        match eagle::collect(inner, path) {
-            Ok(collected) => {
-                report.from_eagle = true;
-                files.extend(collected.items);
-                report.eagle_missing += collected.missing;
-            }
-            Err(eagle::CollectError::Relocation(proposal)) => {
-                report.eagle_relocations.push(proposal);
-            }
-            Err(eagle::CollectError::Failed(reason)) => report.items.push(ImportItem {
-                path: path.to_path_buf(),
-                outcome: ImportOutcome::ReadFailed { reason },
-            }),
-        }
-        return;
-    }
-    if eagle::is_item(path) {
-        report.from_eagle = true;
-        files.push(path.to_path_buf());
-        return;
-    }
-    match std::fs::metadata(path) {
-        Err(e) => fail(report, e),
-        Ok(meta) if meta.is_dir() => match std::fs::read_dir(path) {
-            Err(e) => fail(report, e),
-            Ok(entries) => {
-                let mut children: Vec<PathBuf> =
-                    entries.filter_map(|e| e.ok().map(|e| e.path())).collect();
-                children.sort();
-                for child in children {
-                    collect(inner, &child, files, report);
-                }
-            }
-        },
-        Ok(_) => files.push(path.to_path_buf()),
-    }
-}
 
 pub(super) fn ext(format: ImageFormat) -> &'static str {
     match format {
