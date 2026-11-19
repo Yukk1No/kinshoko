@@ -37,7 +37,6 @@ function actions(): WallMenuActions {
     reveal: vi.fn(),
     importClipboard: vi.fn(),
     clipboardHasImage: vi.fn(async () => true),
-    folders: vi.fn(async () => [{ id: "f1", label: "人物" }]),
     inFolder: vi.fn(async () => false),
     groups: vi.fn(async () => [
       { id: "g1", name: "光影", memberCount: 1, libraryIds: ["L1"], updatedAt: 0, problem: null },
@@ -73,7 +72,6 @@ it("单张：菜单项与 #102 表一致，快捷键提示在右侧，危险项�
     "钉住整图P",
     "钉住局部F1",
     "复制图片Ctrl C",
-    "移到文件夹",
     "加入参考组",
     "内容分级",
     "在资源管理器中显示",
@@ -109,7 +107,6 @@ it("单张：在文件夹范围里多出“移出此文件夹”，多来源时�
     "钉住整图P",
     "钉住局部F1",
     "复制图片Ctrl C",
-    "移到文件夹",
     "移出此文件夹",
     "加入参考组",
     "内容分级",
@@ -158,14 +155,7 @@ it("单张：各项调用对应的动作", () => {
 it("多张：钉住 N 张、复制禁用并提示一次只能复制一张，回收站项带张数", () => {
   const cards = [card("1"), card("2"), card("3")];
   const { menu, rows, a } = show({ kind: "cards", cards, point });
-  expect(rows()).toEqual([
-    "钉住 3 张P",
-    "复制一次只能复制一张",
-    "移到文件夹",
-    "加入参考组",
-    "内容分级",
-    "移到回收站（3 张）Del",
-  ]);
+  expect(rows()).toEqual(["钉住 3 张P", "复制一次只能复制一张", "加入参考组", "内容分级", "移到回收站（3 张）Del"]);
   const copy = within(menu).getByRole("menuitem", { name: /复制/ });
   expect(copy.getAttribute("aria-disabled")).toBe("true");
   fireEvent.click(copy);
@@ -215,13 +205,10 @@ it("空白处：剪贴板没有图片时从剪贴板导入禁用", async () => {
   expect(a.importClipboard).not.toHaveBeenCalled();
 });
 
-it("子菜单：移到文件夹列出图库的文件夹，内容分级写入分级", async () => {
+it("单张右键不再提供移到文件夹", () => {
   const one = card("1");
-  const { a } = show({ kind: "cards", cards: [one], point });
-  fireEvent.click(screen.getByRole("menuitem", { name: "移到文件夹" }));
-  fireEvent.click(await screen.findByRole("menuitem", { name: "人物" }));
-  expect(a.folders).toHaveBeenCalledWith("L1");
-  expect(a.edit).toHaveBeenCalledWith([one], [{ kind: "addToFolder", folderId: "f1" }], false);
+  show({ kind: "cards", cards: [one], point });
+  expect(screen.queryByRole("menuitem", { name: /移到文件夹/ })).toBeNull();
 });
 
 it("子菜单：内容分级与加入参考组", async () => {
@@ -237,10 +224,9 @@ it("子菜单：内容分级与加入参考组", async () => {
   expect(again.a.addToGroup).toHaveBeenCalledWith([one], "g1");
 });
 
-it("多张来自不同图库时移到文件夹不可用", () => {
+it("多张来自不同图库时也没有移到文件夹", () => {
   const { menu } = show({ kind: "cards", cards: [card("1"), card("2", { libraryId: "L2" })], point });
-  const folders = within(menu).getByRole("menuitem", { name: /移到文件夹/ });
-  expect(folders.getAttribute("aria-disabled")).toBe("true");
+  expect(within(menu).queryByRole("menuitem", { name: /移到文件夹/ })).toBeNull();
 });
 
 it("图片大小子菜单：几档预设，当前一档打勾，选中即提交", async () => {
