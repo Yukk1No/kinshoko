@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { useState, type CSSProperties, type DragEvent } from "react";
 import { NameInput } from "../ui/NameInput";
 import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
@@ -15,7 +15,6 @@ import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import { useToast } from "../ui/Toast";
 import { FoldIcon } from "./FoldIcon";
 import { useFolded } from "./useFolded";
-import { usePaperSlide } from "./usePaperSlide";
 
 /** 侧栏里拖动文件夹时放进 dataTransfer 的类型，值为文件夹 id。 */
 export const DRAG_FOLDER = "application/x-kinshoko-folder";
@@ -94,8 +93,6 @@ export function SidebarPane({
   const [creatingUnder, setCreatingUnder] = useState<string | null>(null);
   const toast = useToast();
   const [folded, toggleFold] = useFolded(libraryId);
-  const navRef = useRef<HTMLElement>(null);
-  usePaperSlide(navRef);
 
   const run = (p: Promise<unknown>) => p.catch((e) => onError(e));
 
@@ -294,7 +291,7 @@ export function SidebarPane({
   );
 
   return (
-    <nav ref={navRef} className="sidebar" aria-label={t("folders.treeOf", { name: libraryName })}>
+    <nav className="sidebar" aria-label={t("folders.treeOf", { name: libraryName })}>
       <FluidList indented>
         {unassigned !== undefined && (
           <FluidRow index={row++}>

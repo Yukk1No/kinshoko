@@ -243,12 +243,48 @@
 .lib-group + .lib-group {
   margin-top: 10px;
 }
+/* 托盘展开、收起（#608）：高度从 0 长到原高再缩回（interpolate-size 让 height: auto 能过渡），同时淡入淡出；
+   托盘里第一层的行跟子文件夹展开一样逐行落下。收起时 WorkspaceProviderSection 留着它放完再拿掉。 */
+.lib-fold {
+  interpolate-size: allow-keywords;
+  height: auto;
+  overflow: clip;
+  overflow-clip-margin: 6px;
+  transition:
+    height var(--t-slow) var(--spring),
+    opacity var(--t) var(--ease);
+}
+@starting-style {
+  .lib-fold {
+    height: 0;
+    opacity: 0;
+  }
+}
+.lib-fold[data-closing] {
+  height: 0;
+  opacity: 0;
+  transition:
+    height var(--t) var(--ease),
+    opacity var(--t-fast) var(--ease);
+}
+.lib-fold > nav.sidebar > .sidebar-tree > li {
+  transition:
+    opacity var(--t) var(--ease),
+    translate var(--t-slow) var(--spring);
+  transition-delay: calc(var(--i, 0) * var(--t-stagger));
+}
+@starting-style {
+  .lib-fold > nav.sidebar > .sidebar-tree > li {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+}
 .lib-group nav.sidebar {
   margin: 2px 0 0;
   padding: 4px;
   border-radius: 10px;
-  background: var(--tray);
-  box-shadow: var(--tray-edge);
+  background: var(--lib-tray);
+  box-shadow: var(--lib-tray-edge);
 }
 .workspace-provider-root {
   display: flex;

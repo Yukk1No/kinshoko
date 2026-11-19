@@ -62,6 +62,14 @@
 
 .wall-canvas {
   position: relative;
+  /* 换范围（点文件夹、图库、全部图片）时图片墙整面重建：新的一面淡入、往上浮 8 px（#608）。 */
+  animation: wall-in var(--t-slow) var(--ease) both;
+}
+@keyframes wall-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
 }
 
 .wall-empty {

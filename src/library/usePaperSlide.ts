@@ -2,12 +2,13 @@ import { useLayoutEffect, useRef, type RefObject } from "react";
 
 type Box = { top: number; left: number; right: number; bottom: number };
 
-const SELECTED = '.k-row[aria-current="page"]';
+const SELECTED = ':is(.k-row, .lib-head-name)[aria-current="page"]';
 
 /**
- * 左栏选中的那张小纸片（#608）：在同一个图库的目录里换一行时，纸片从旧的一行滑过来（弹簧约 0.36 秒）。
- * 纸片画在行的 ::before 上，这里只给新的一行的 ::before 补一段从旧位置到原位的动画；
- * 从别的图库或“全部图片”过来的（隔着分界线）不滑，原地浮起。系统设了“减少动态效果”时不滑。
+ * 左栏选中的那张小纸片（#608）：换一行时，纸片从旧的一行滑过来（弹簧约 0.36 秒）。整个左栏一张纸片：
+ * “全部图片”、图库行、各图库的文件夹之间都滑；旧的一行已经收起（换图库时）也从它最后的位置滑过来。
+ * 纸片画在行的 ::before 上，这里只给新的一行的 ::before 补一段从旧位置到原位的动画。
+ * 系统设了“减少动态效果”时不滑。
  */
 export function usePaperSlide(nav: RefObject<HTMLElement | null>) {
   const last = useRef<{ row: Element; box: Box } | null>(null);
@@ -28,7 +29,7 @@ export function usePaperSlide(nav: RefObject<HTMLElement | null>) {
     };
     const now = row ? box(row) : null;
     last.current = row && now ? { row, box: now } : null;
-    if (!row || !now || !was || was.row === row || !was.row.isConnected) return;
+    if (!row || !now || !was || was.row === row) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const from = was.box;
     row.animate(
