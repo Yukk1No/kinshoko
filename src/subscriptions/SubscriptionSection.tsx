@@ -1,6 +1,6 @@
 import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
-import { usePersistentToast, useToast } from "../ui/Toast";
+import { NOTICE_ORDER, usePersistentToast, useToast } from "../ui/Toast";
 import { accountActions } from "./accountActions";
 import type { Section } from "../shell/Rail";
 import { SubscriptionsPage } from "./SubscriptionsPage";
@@ -51,7 +51,7 @@ export function LoginExpiredNotice({
           },
         }
       : null,
-    { hidden: hidden || status?.signingIn === true },
+    { hidden: hidden || status?.signingIn === true, queue: NOTICE_ORDER.loginExpired },
   );
   return null;
 }

@@ -48,8 +48,8 @@ describe("图标轨", () => {
     backend([{ id: "g1" }, { id: "g2" }], [{ id: "c1" }, { id: "c2" }, { id: "c3" }]);
     rail(false);
     await waitFor(() => expect(within(screen.getByRole("button", { name: "参考组" })).getByText("2")).toBeTruthy());
-    expect(within(screen.getByRole("button", { name: "截图" })).getByText("3").className).toContain("rail-badge");
-    expect(screen.getByRole("button", { name: "图片与文件夹" }).querySelector(".rail-badge")).toBeNull();
+    expect(within(screen.getByRole("button", { name: "截图" })).getByText("3").className).toContain("k-badge");
+    expect(screen.getByRole("button", { name: "图片与文件夹" }).querySelector(".k-badge")).toBeNull();
   });
 
   it("选中项只用 aria-current 与 aria-expanded，不同时声明 aria-pressed", () => {

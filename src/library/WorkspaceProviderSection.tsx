@@ -1,4 +1,5 @@
-import { type DragEvent } from "react";
+import { useEffect, useState, type DragEvent } from "react";
+import { useReducedMotion } from "../ui/reducedMotion";
 import { Name } from "../ui/Name";
 import { ChevronDown, ChevronRight, MoreHorizontal } from "lucide-react";
 import { ContextMenu } from "@base-ui/react/context-menu";
@@ -65,6 +66,7 @@ export function ProviderSection({
   const unavailable = offline ? describeCommandError(offline) : null;
   const available = !unavailable && Boolean(sidebar);
   const expanded = available && (openIds.has(library.id) || sprung === library.id);
+  const folding = useFoldingTray(expanded);
   const selectedRoot = scope.kind === "library" && scope.libraryId === library.id;
   const parentForNew =
     selectedRoot && (scope.scope.kind === "folder" || scope.scope.kind === "folderTree") ? scope.scope.id : null;
@@ -182,32 +184,57 @@ export function ProviderSection({
           {libraryItems}
         </MenuPopup>
       </ContextMenu.Root>
-      {expanded && sidebar && (
-        <SidebarPane
-          directory={sidebar}
-          unassigned={unassigned}
-          descendantCounts={counts}
-          includeDescendants={descendants}
-          libraryName={library.name}
-          libraryId={library.id}
-          scopeSelected={selectedRoot}
-          scope={selectedRoot ? scope.scope : { kind: "all" }}
-          creating={creatingIn === library.id}
-          parentForNew={parentForNew}
-          onCreatingDone={() => setCreatingIn(null)}
-          onScope={(next) =>
-            onScope({
-              kind: "library",
-              libraryId: library.id,
-              scope:
-                next.kind === "folder" || next.kind === "folderTree"
-                  ? { kind: descendants ? "folderTree" : "folder", id: next.id }
-                  : next,
-            })
-          }
-          onError={onError}
-        />
+      {(expanded || folding) && sidebar && (
+        <div className="lib-fold" data-closing={folding || undefined} inert={folding}>
+          <SidebarPane
+            directory={sidebar}
+            unassigned={unassigned}
+            descendantCounts={counts}
+            includeDescendants={descendants}
+            libraryName={library.name}
+            libraryId={library.id}
+            scopeSelected={selectedRoot}
+            scope={selectedRoot ? scope.scope : { kind: "all" }}
+            creating={creatingIn === library.id}
+            parentForNew={parentForNew}
+            onCreatingDone={() => setCreatingIn(null)}
+            onScope={(next) =>
+              onScope({
+                kind: "library",
+                libraryId: library.id,
+                scope:
+                  next.kind === "folder" || next.kind === "folderTree"
+                    ? { kind: descendants ? "folderTree" : "folder", id: next.id }
+                    : next,
+              })
+            }
+            onError={onError}
+          />
+        </div>
       )}
     </section>
   );
+}
+
+/** 托盘收起要多久：比 --t-slow（260 ms）略长，收起动画放完再拿掉。 */
+const FOLD_MS = 300;
+
+/**
+ * 图库托盘的展开、收起（#608）：展开时托盘从 0 高长到原高（CSS 的 @starting-style 与 interpolate-size），
+ * 收起时先留着、缩回 0 高再拿掉；返回 true 表示正在收起。减少动态效果时直接拿掉。
+ */
+function useFoldingTray(expanded: boolean) {
+  const reduced = useReducedMotion();
+  const [was, setWas] = useState(expanded);
+  const [folding, setFolding] = useState(false);
+  if (was !== expanded) {
+    setWas(expanded);
+    setFolding(!expanded && !reduced);
+  }
+  useEffect(() => {
+    if (!folding) return;
+    const timer = setTimeout(() => setFolding(false), FOLD_MS);
+    return () => clearTimeout(timer);
+  }, [folding]);
+  return folding;
 }

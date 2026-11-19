@@ -62,7 +62,6 @@ const library: Translation<typeof zh> = {
     reconnect: "Reconnect",
     libraryActions: "Actions for {{name}}",
     libraryActionsTitle: "Library actions",
-    descendants: "Include subfolders",
     revealFailed: "Couldn't show in File Explorer: {{error}}",
   },
   libraryMenu: {
@@ -89,6 +88,8 @@ const library: Translation<typeof zh> = {
   folders: {
     tree: "Folders",
     treeOf: "Folders of {{name}}",
+    fold: "Collapse subfolders",
+    unfold: "Expand subfolders",
     unassigned: "Unsorted",
     unassignedCount_one: "Unsorted ({{count, number}} image)",
     unassignedCount_other: "Unsorted ({{count, number}} images)",

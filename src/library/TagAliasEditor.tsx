@@ -44,8 +44,11 @@ export function AliasEditor({
   const add = () => {
     const alias = draft.trim();
     if (!alias) return;
-    setDraft("");
-    addTagAlias(libraryId, tag.id, { name: alias, lang }).catch((e) => onError(e));
+    const submitted = draft;
+    addTagAlias(libraryId, tag.id, { name: alias, lang }).then(
+      () => setDraft((current) => (current === submitted ? "" : current)),
+      (e) => onError(e),
+    );
   };
 
   return (

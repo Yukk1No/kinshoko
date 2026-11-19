@@ -26,14 +26,15 @@ describe("轻提示是磨砂卡片（设计系统 v3）", () => {
     }
   });
 
-  it("和导入任务卡同一角落：侧栏关着时让开选择栏与工具条；任务卡停在提示上方（#388、#433）", () => {
-    expect(rule('body:has(.selbar-float):not(:has(.inspector[data-collapsed="false"])) .k-toasts').bottom).toBe(
-      "calc(18px + 66px)",
+  it("和导入任务卡同一处停靠，按图片墙量出的位置；不再按 body:has 写死让位（#388、#609）", () => {
+    expect(rule(".k-toasts").right).toBe("var(--k-notice-right, 18px)");
+    expect(rule(".k-toasts").bottom).toBe("var(--k-notice-bottom, 18px)");
+    expect(cssRule(dialogsCss, ".k-task-cards").right).toBe("var(--k-notice-right, 18px)");
+    expect(cssRule(dialogsCss, ".k-task-cards").bottom).toBe(
+      "calc(var(--k-notice-bottom, 18px) + var(--k-toast-stack, 0px))",
     );
-    expect(rule('body:has(.viewer-dock):not(:has(.inspector[data-collapsed="false"])) .k-toasts').bottom).toBe(
-      "calc(18px + 66px)",
-    );
-    expect(cssRule(dialogsCss, ".k-task-cards").bottom).toBe("calc(18px + var(--k-toast-stack, 0px))");
+    expect(css + dialogsCss).not.toContain("body:has(.selbar-float)");
+    expect(css + dialogsCss).not.toContain("body:has(.viewer-dock)");
   });
 
   it("导入任务卡和轻提示同一套外观：磨砂底、圆角、阴影、图标凹槽与标题字号（#388）", () => {

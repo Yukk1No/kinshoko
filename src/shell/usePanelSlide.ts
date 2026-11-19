@@ -14,6 +14,14 @@ export type PanelSlide = {
 /** 图片墙旁边的一个面板。`finalWidth` 是它这次开合的终点宽度；浮在墙上、不占墙的宽度时为 null。 */
 export type SlidingPanel = { element: HTMLElement | null; finalWidth: number | null };
 
+/** 面板在墙边占的宽度：纸本身加上两侧的桌面空隙（#608），与 finalWidth 同一口径。 */
+const occupied = (element: HTMLElement) => {
+  const style = getComputedStyle(element);
+  return (
+    element.getBoundingClientRect().width + (parseFloat(style.marginLeft) || 0) + (parseFloat(style.marginRight) || 0)
+  );
+};
+
 const widthTransition = (element: HTMLElement) =>
   element.getAnimations().find((a) => (a as CSSTransition).transitionProperty === "width");
 
@@ -35,7 +43,7 @@ export function usePanelSlide(panels: readonly SlidingPanel[]): PanelSlide | nul
     return {
       by: panels.reduce(
         (sum, { element: panel, finalWidth }) =>
-          panel && finalWidth !== null ? sum + panel.getBoundingClientRect().width - finalWidth : sum,
+          panel && finalWidth !== null ? sum + occupied(panel) - finalWidth : sum,
         0,
       ),
       duration:
