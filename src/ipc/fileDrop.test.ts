@@ -1,12 +1,21 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { fireEvent } from "@testing-library/react";
 import { onFileDrop } from "../ipc";
+import bridge from "../../src-tauri/src/file_drop.js?raw";
 
 const { listen, unlisten, post } = vi.hoisted(() => ({ listen: vi.fn(), unlisten: vi.fn(), post: vi.fn() }));
 vi.mock("@tauri-apps/api/webview", () => ({ getCurrentWebview: () => ({ listen }) }));
 
 let stop: (() => void) | undefined;
 const handler = vi.fn();
+const transformCallback = vi.fn(() => 42);
+const unregisterCallback = vi.fn();
+const initialize = (origin = location.origin) =>
+  window.eval(
+    bridge
+      .replace('"__KINSHOKO_APP_ORIGIN__"', JSON.stringify(origin))
+      .replace('"__KINSHOKO_INVOKE_KEY__"', '"test-key"'),
+  );
 const files = [new File(["image"], "image.png"), new File([], "folder")];
 const transfer = { types: ["Files"], files };
 const drag = (type: string, dataTransfer: object = transfer) => {
@@ -20,6 +29,9 @@ beforeEach(async () => {
   vi.clearAllMocks();
   listen.mockResolvedValue(unlisten);
   vi.stubGlobal("chrome", { webview: { postMessageWithAdditionalObjects: post } });
+  vi.stubGlobal("__TAURI_INTERNALS__", { transformCallback, unregisterCallback });
+  vi.stubGlobal("__KINSHOKO_FILE_DROP__", undefined);
+  initialize();
   stop = await onFileDrop(handler);
 });
 afterEach(() => {
@@ -55,7 +67,15 @@ it("放下时清理嵌套状态并原样发送对象标记与 FileList，收到�
   drag("dragenter");
   expect(drag("drop").defaultPrevented).toBe(true);
   expect(handler).toHaveBeenLastCalledWith({ kind: "leave" });
-  expect(post).toHaveBeenCalledWith({ kind: "kinshoko-file-drop", version: 1 }, files);
+  expect(JSON.parse(post.mock.calls[0][0])).toEqual({
+    cmd: "file_drop_ack",
+    callback: 42,
+    error: 42,
+    payload: { kind: "kinshoko-file-drop", version: 1 },
+    __TAURI_INVOKE_KEY__: "test-key",
+  });
+  expect(typeof post.mock.calls[0][0]).toBe("string");
+  expect(transformCallback).toHaveBeenCalledWith(expect.any(Function), true);
   expect(post.mock.calls[0][1]).toBe(files);
   expect(listen).toHaveBeenCalledWith("kinshoko-file-drop", expect.any(Function));
   listen.mock.calls[0][1]({ payload: ["D:\\image.png", "D:\\folder"] });
@@ -69,6 +89,22 @@ it("空文件拖放只清理提示，不发送桥接消息", () => {
   drag("drop", { types: ["Files"], files: [] });
   expect(handler).toHaveBeenLastCalledWith({ kind: "leave" });
   expect(post).not.toHaveBeenCalled();
+});
+
+it("桥接不向外部来源暴露发送入口，也不把调用密钥写进函数体", () => {
+  const send = Reflect.get(window, "__KINSHOKO_FILE_DROP__");
+  expect(send.toString()).not.toContain("test-key");
+  Reflect.set(window, "__KINSHOKO_FILE_DROP__", undefined);
+  initialize("https://other.example");
+  expect(Reflect.get(window, "__KINSHOKO_FILE_DROP__")).toBeUndefined();
+});
+
+it("桥接发送失败时释放确认回调", () => {
+  post.mockImplementationOnce(() => {
+    throw new Error("bridge failed");
+  });
+  expect(() => Reflect.get(window, "__KINSHOKO_FILE_DROP__")(files)).toThrow("bridge failed");
+  expect(unregisterCallback).toHaveBeenCalledWith(42);
 });
 
 it.each(["dragend", "Escape", "drop"])("取消或内部放下也清理提示：%s", (cancel) => {

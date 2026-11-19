@@ -84,6 +84,8 @@ pub fn run() {
             });
         })
         .invoke_handler(tauri::generate_handler![
+            #[cfg(windows)]
+            file_drop::file_drop_ack,
             commands::app_info,
             commands::shell_settings,
             commands::change_setting,

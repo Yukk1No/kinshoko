@@ -4,7 +4,7 @@ import type { UnlistenFn } from "@tauri-apps/api/event";
 export type FileDrop = { kind: "enter"; paths: string[] } | { kind: "drop"; paths: string[] } | { kind: "leave" };
 
 type FileBridge = {
-  chrome: { webview: { postMessageWithAdditionalObjects: (marker: object, files: FileList) => void } };
+  __KINSHOKO_FILE_DROP__: (files: FileList) => void;
 };
 
 /** 文件或文件夹拖进主窗口：进入、松开（带路径）、离开。 */
@@ -36,10 +36,7 @@ export async function onFileDrop(handler: (drop: FileDrop) => void): Promise<Unl
     event.preventDefault();
     const dropped = event.dataTransfer!.files;
     if (dropped.length) {
-      (window as unknown as FileBridge).chrome.webview.postMessageWithAdditionalObjects(
-        { kind: "kinshoko-file-drop", version: 1 },
-        dropped,
-      );
+      (window as unknown as FileBridge).__KINSHOKO_FILE_DROP__(dropped);
     }
   };
   const key = (event: KeyboardEvent) => {

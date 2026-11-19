@@ -149,6 +149,8 @@ pub fn open_main_window(app: &AppHandle) {
         scale.as_ref().map_or(100, UiScale::percent),
         interface_lang::current()
     );
+    #[cfg(windows)]
+    let seed = format!("{seed}{}", crate::file_drop::initialization_script(app));
     match WebviewWindowBuilder::from_config(app, config).and_then(|b| {
         b.visible(false)
             .initialization_script(seed)

@@ -1,7 +1,7 @@
 //! WebView2 file paths for HTML5 drops in the main window.
 #![allow(unsafe_code)]
 
-use tauri::{Emitter, Manager, Url, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, Url, WebviewWindow};
 use webview2_com::Microsoft::Web::WebView2::Win32::{
     ICoreWebView2File, ICoreWebView2WebMessageReceivedEventArgs,
     ICoreWebView2WebMessageReceivedEventArgs2,
@@ -11,28 +11,32 @@ use windows::core::{Interface, PWSTR};
 
 const EVENT: &str = "kinshoko-file-drop";
 
-fn accepts(message: &str, source: &str, origin: &Url) -> bool {
+fn accepts(message: &str, source: &str, origin: &Url, invoke_key: &str) -> bool {
     let Ok(source) = Url::parse(source) else {
         return false;
     };
     source.origin() == origin.origin()
         && source.username().is_empty()
         && source.password().is_none()
-        && serde_json::from_str::<serde_json::Value>(message)
-            .is_ok_and(|value| value == serde_json::json!({ "kind": EVENT, "version": 1 }))
+        && serde_json::from_str::<serde_json::Value>(message).is_ok_and(|value| {
+            value["cmd"] == "file_drop_ack"
+                && value["__TAURI_INVOKE_KEY__"] == invoke_key
+                && value["payload"] == serde_json::json!({ "kind": EVENT, "version": 1 })
+        })
 }
 
 unsafe fn paths(
     args: &ICoreWebView2WebMessageReceivedEventArgs,
     origin: &Url,
+    invoke_key: &str,
 ) -> windows::core::Result<Vec<String>> {
     unsafe {
         let mut source = PWSTR::null();
         args.Source(&mut source)?;
         let source = take_pwstr(source);
         let mut message = PWSTR::null();
-        args.WebMessageAsJson(&mut message)?;
-        if !accepts(&take_pwstr(message), &source, origin) {
+        args.TryGetWebMessageAsString(&mut message)?;
+        if !accepts(&take_pwstr(message), &source, origin, invoke_key) {
             return Ok(Vec::new());
         }
         let args: ICoreWebView2WebMessageReceivedEventArgs2 = args.cast()?;
@@ -53,11 +57,7 @@ unsafe fn paths(
     }
 }
 
-pub fn install(window: &WebviewWindow) -> tauri::Result<()> {
-    if window.label() != "main" {
-        return Ok(());
-    }
-    let config = window.config();
+fn app_origin(config: &tauri::utils::config::Config) -> Url {
     let main = config
         .app
         .windows
@@ -68,12 +68,37 @@ pub fn install(window: &WebviewWindow) -> tauri::Result<()> {
     } else {
         "http"
     };
-    let origin = if tauri::is_dev() {
+    if tauri::is_dev() {
         config.build.dev_url.clone()
     } else {
         None
     }
-    .unwrap_or_else(|| Url::parse(&format!("{scheme}://tauri.localhost")).expect("app origin"));
+    .unwrap_or_else(|| Url::parse(&format!("{scheme}://tauri.localhost")).expect("app origin"))
+}
+
+pub fn initialization_script(app: &AppHandle) -> String {
+    include_str!("file_drop.js")
+        .replace(
+            "\"__KINSHOKO_APP_ORIGIN__\"",
+            &serde_json::to_string(&app_origin(app.config()).origin().ascii_serialization())
+                .expect("app origin JSON"),
+        )
+        .replace(
+            "\"__KINSHOKO_INVOKE_KEY__\"",
+            &serde_json::to_string(app.invoke_key()).expect("invoke key JSON"),
+        )
+}
+
+// Wry requires a string; a valid invoke envelope also keeps Tauri's parser quiet.
+#[tauri::command]
+pub fn file_drop_ack() {}
+
+pub fn install(window: &WebviewWindow) -> tauri::Result<()> {
+    if window.label() != "main" {
+        return Ok(());
+    }
+    let origin = app_origin(window.config());
+    let invoke_key = window.app_handle().invoke_key().to_owned();
     let target = window.clone();
     window.with_webview(move |webview| {
         let register = || -> windows::core::Result<()> {
@@ -83,7 +108,7 @@ pub fn install(window: &WebviewWindow) -> tauri::Result<()> {
                 core.add_WebMessageReceived(
                     &WebMessageReceivedEventHandler::create(Box::new(move |_, args| {
                         if let Some(args) = args {
-                            match paths(&args, &origin) {
+                            match paths(&args, &origin, &invoke_key) {
                                 Ok(paths) if !paths.is_empty() => {
                                     if let Err(error) = target.emit_to("main", EVENT, paths) {
                                         crate::run_log::error("file drop event", error);
@@ -112,13 +137,22 @@ mod tests {
 
     #[test]
     fn marker_and_origin_are_required() {
-        let marker = r#"{"kind":"kinshoko-file-drop","version":1}"#;
+        let envelope = |payload: serde_json::Value| {
+            serde_json::json!({
+                "cmd": "file_drop_ack",
+                "__TAURI_INVOKE_KEY__": "test-key",
+                "payload": payload,
+            })
+            .to_string()
+        };
+        let marker = envelope(serde_json::json!({ "kind": EVENT, "version": 1 }));
         for app in ["http://tauri.localhost", "http://127.0.0.1:1420"] {
             let origin = Url::parse(app).unwrap();
             assert!(accepts(
-                marker,
+                &marker,
                 &format!("{app}/index.html?view=main"),
-                &origin
+                &origin,
+                "test-key"
             ));
             for message in [
                 "",
@@ -131,7 +165,10 @@ mod tests {
                 r#"{"kind":"kinshoko-file-drop"}"#,
                 r#"{"kind":"kinshoko-file-drop","version":1,"extra":true}"#,
             ] {
-                assert!(!accepts(message, app, &origin));
+                assert!(!accepts(message, app, &origin, "test-key"));
+                if let Ok(payload) = serde_json::from_str(message) {
+                    assert!(!accepts(&envelope(payload), app, &origin, "test-key"));
+                }
             }
             for source in [
                 "not a url",
@@ -142,8 +179,15 @@ mod tests {
                 "file:///index.html",
                 "about:blank",
             ] {
-                assert!(!accepts(marker, source, &origin));
+                assert!(!accepts(&marker, source, &origin, "test-key"));
             }
+            assert!(!accepts(&marker, app, &origin, "wrong-key"));
+            assert!(!accepts(
+                &marker.replace("file_drop_ack", "other"),
+                app,
+                &origin,
+                "test-key"
+            ));
         }
     }
 }
