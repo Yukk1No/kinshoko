@@ -17,6 +17,7 @@ import { UntranslatedRename } from "../tags/UntranslatedRename";
 import { useTagDisplay } from "../tags/TagDisplayContext";
 import { AtSign, Ban, Check, Plus, Sparkles, Tags, Undo2 } from "lucide-react";
 import { Tip } from "../ui/Tip";
+import { EmptyState } from "../ui/EmptyState";
 import { AliasEditor } from "./TagAliasEditor";
 import { decisionOf, groupByStanding, NAMESPACES, ordered, parseTyped } from "./tagPanelInput";
 
@@ -361,7 +362,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, rating }: 
               : // 只有一级标签时不写“还没有标签”：上面的属性表里已经有了。
                 (general.length > 0 || all.length === 0) && (
                   <ul className="tag-list k-tag-chips" aria-label={t("panel.active")} aria-busy={stale} inert={stale}>
-                    {all.length === 0 && <li className="tag-empty k-tags-empty">{t("panel.empty")}</li>}
+                    {all.length === 0 && <EmptyState as="li" size="list" title={t("panel.empty")} />}
                     {ordered(general).map((entry) => chip(entry, false))}
                   </ul>
                 )}

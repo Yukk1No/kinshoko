@@ -1,4 +1,4 @@
-import { PanelLeftClose } from "lucide-react";
+import { FolderOpen, PanelLeftClose } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { CaptureHistoryPanel } from "../desktop/CaptureHistoryPanel";
 import { ReferenceGroupsPanel } from "../desktop/ReferenceGroupsPanel";
@@ -6,6 +6,7 @@ import { CreateLibrary } from "../library/CreateLibrary";
 import { LibraryPicker } from "../library/LibraryPicker";
 import type { LibraryInfo } from "../bindings/LibraryInfo";
 import { Tip } from "../ui/Tip";
+import { EmptyState } from "../ui/EmptyState";
 import { WinCtrls } from "../ui/WinCtrls";
 import type { Section } from "./Rail";
 
@@ -72,9 +73,9 @@ export function EmptyWorkspace({
           <span className="k-grow" />
           <WinCtrls />
         </header>
-        <div className="app-empty-body">
+        <div className="library-start-content">
           {!opened ? (
-            <p role="status">{t("opening")}</p>
+            <EmptyState size="page" role="status" title={t("opening")} icon={<FolderOpen />} />
           ) : createPage ? (
             <CreateLibrary
               onCreated={changed}
