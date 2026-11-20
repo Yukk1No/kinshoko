@@ -288,11 +288,15 @@ function NameRow({
             </p>
             <div className="k-chips" role="list" aria-label={t("names.aliases")}>
               {aliases.map((entry) => (
-                <span role="listitem" key={`${entry.lang}/${entry.name}`} className="k-chip">
+                <span
+                  role="listitem"
+                  key={`${entry.lang}/${entry.name}`}
+                  className="k-token is-24 is-pill is-surface is-alias"
+                >
                   <span className="k-label">{entry.name}</span>
                   <button
                     type="button"
-                    className="k-chip-x"
+                    className="k-token-action is-18 is-alias-action"
                     disabled={busy}
                     aria-label={t("names.removeAlias", { alias: entry.name })}
                     onClick={() => onEdit({ kind: "removeAlias", alias: entry })}

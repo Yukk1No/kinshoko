@@ -49,6 +49,6 @@ export function chipsThatFit(search: HTMLElement | null): number {
   const room = search.clientWidth - px(style.paddingLeft) - px(style.paddingRight) - exact - tail - INPUT_MIN - gap * 2;
   const list = search.querySelector<HTMLElement>(":scope > .search-chips");
   if (!list) return Infinity;
-  const widths = [...list.querySelectorAll<HTMLElement>(":scope > .search-chip")].map(restWidth);
+  const widths = [...list.querySelectorAll<HTMLElement>(":scope > .k-token.is-condition")].map(restWidth);
   return fitChips(widths, room, { gap: px(getComputedStyle(list).columnGap), more: MORE_WIDTH });
 }
