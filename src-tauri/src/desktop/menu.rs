@@ -55,8 +55,12 @@ pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), CommandError> {
             surface,
             menu,
         };
+        menus.previous_foreground = foreground_for_popup(
+            menus.open.is_some(),
+            menus.previous_foreground,
+            previous_foreground,
+        );
         menus.open = Some(open.clone());
-        menus.previous_foreground = previous_foreground;
         open
     };
     let window = match app.get_webview_window(MENU_WINDOW) {
@@ -66,6 +70,14 @@ pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), CommandError> {
     place(&window, surface.window)?;
     let _ = app.emit_to(MENU_WINDOW, OPEN_EVENT, &open);
     Ok(())
+}
+
+fn foreground_for_popup(
+    replacing: bool,
+    saved: Option<isize>,
+    captured: Option<isize>,
+) -> Option<isize> {
+    if replacing { saved } else { captured }
 }
 
 fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, CommandError> {
@@ -177,4 +189,26 @@ fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(), CommandE
         .set_position(PhysicalPosition::new(rect.x, rect.y))
         .and_then(|_| window.set_size(PhysicalSize::new(rect.width, rect.height)))
         .map_err(CommandError::system)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::foreground_for_popup;
+
+    #[test]
+    fn replacing_a_menu_keeps_the_original_foreground() {
+        assert_eq!(foreground_for_popup(true, Some(10), Some(20)), Some(10));
+        assert_eq!(foreground_for_popup(true, Some(10), None), Some(10));
+    }
+
+    #[test]
+    fn replacing_a_menu_without_a_return_target_keeps_it_empty() {
+        assert_eq!(foreground_for_popup(true, None, Some(20)), None);
+    }
+
+    #[test]
+    fn a_new_menu_records_the_current_foreground() {
+        assert_eq!(foreground_for_popup(false, Some(10), Some(20)), Some(20));
+        assert_eq!(foreground_for_popup(false, None, None), None);
+    }
 }
