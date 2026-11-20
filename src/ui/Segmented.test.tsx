@@ -28,6 +28,18 @@ const panel = (value: string | null, onChange: (value: string) => void = () => {
 );
 
 describe("分段控件的指示块", () => {
+  it("强调色是可选共用档，不改变默认档或按下状态", () => {
+    const props = { label: "档位", value: "b", options: OPTIONS, onChange: () => {} };
+    const { rerender, container } = render(<Segmented {...props} />);
+    expect(container.querySelector(".k-seg.is-accent")).toBeNull();
+    rerender(<Segmented {...props} tone="accent" />);
+    expect(container.querySelector(".k-seg.is-accent")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "乙" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "甲" }).getAttribute("aria-pressed")).toBe("false");
+    rerender(<Segmented {...props} tone="neutral" />);
+    expect(container.querySelector(".k-seg.is-accent")).toBeNull();
+  });
+
   it("没有选中时不出现；选中的那一段按下", () => {
     const view = render(panel(null));
     expect(thumb().hidden).toBe(true);

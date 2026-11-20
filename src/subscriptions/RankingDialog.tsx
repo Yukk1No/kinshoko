@@ -42,6 +42,7 @@ function TopPicker({
   const { t } = useTranslation("subscriptions", { keyPrefix: "ranking" });
   return (
     <Segmented
+      tone="accent"
       className="subs-rank-seg"
       label={label}
       value={String(value) as `${Top}`}

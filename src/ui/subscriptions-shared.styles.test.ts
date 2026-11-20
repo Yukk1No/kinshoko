@@ -62,6 +62,11 @@ describe("订阅页共用部件", () => {
     expect(targets(subs, "k-error-text")).toEqual([]);
     expect(cssRule(sheets["./ui.css"], ".k-seg").padding).toBe("4px");
     expect(cssRule(sheets["./ui.css"], ".k-seg-item").height).toBe("var(--h-sm)");
+    expect(cssRule(sheets["./ui.css"], ".k-seg.is-accent .k-seg-item[data-pressed]")).toEqual({
+      color: "var(--accent-strong)",
+      "font-weight": "600",
+    });
+    expect(sources["../subscriptions/RankingDialog.tsx"]).toMatch(/<Segmented\s+tone="accent"/);
     expect(sources["../subscriptions/FollowingDialog.tsx"]).toContain('className="k-error-text is-field" role="alert"');
   });
 

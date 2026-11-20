@@ -20,11 +20,13 @@ export function Segmented<T extends string>({
   options,
   onChange,
   label,
+  tone = "neutral",
   className = "",
 }: {
   value: T | null;
   onChange: (value: T) => void;
   label: string;
+  tone?: "neutral" | "accent";
   className?: string;
   options: { value: T; label: ReactNode; icon?: ReactNode; disabled?: boolean; tip?: string; ariaLabel?: string }[];
 }) {
@@ -71,7 +73,7 @@ export function Segmented<T extends string>({
   return (
     <ToggleGroup
       ref={group}
-      className={`k-seg ${className}`}
+      className={`k-seg${tone === "accent" ? " is-accent" : ""} ${className}`}
       aria-label={label}
       value={value === null ? [] : [value]}
       onValueChange={(next) => {
