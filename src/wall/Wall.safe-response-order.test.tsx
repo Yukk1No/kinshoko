@@ -69,7 +69,7 @@ it("安全模式开启后，先发的旧浏览响应迟到也不放回成人卡�
 
   expect(wall().dataset.total).toBe("0");
   expect(shown()).toEqual([]);
-  expect(document.querySelector(".wall-empty")).not.toBeNull();
+  expect(document.querySelector(".wall-placeholder.k-empty.is-page")).not.toBeNull();
 });
 
 it("安全模式切换的一刻作废还在路上的请求，即使新的浏览还没发出", async () => {

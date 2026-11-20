@@ -9,6 +9,7 @@ import { CaptureGroupSaveDialog } from "./CaptureGroupSaveDialog";
 import { draftCaptureSave, type CaptureSaveDraft, type CaptureSavePlan } from "./captureSavePlan";
 import { GroupNameForm } from "./GroupNameForm";
 import { useToast } from "../ui/Toast";
+import { EmptyState } from "../ui/EmptyState";
 import { WarnIcon } from "../ui/WarnIcon";
 import { ago } from "./relativeTime";
 import { describeCommandError, errorText, unavailableReasonText } from "../ipc/commandError";
@@ -262,7 +263,7 @@ export function ReferenceGroupsPanel() {
           onConfirm={(plan) => void confirmCaptures(plan)}
         />
       )}
-      {groups && groups.length === 0 && <p className="reference-groups-empty">{t("empty")}</p>}
+      {groups && groups.length === 0 && <EmptyState size="list" title={t("empty")} />}
       <ul className="reference-groups-list">
         {groups?.map((g) => {
           const on = g.id === current;

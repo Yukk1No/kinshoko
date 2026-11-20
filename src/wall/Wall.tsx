@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { FolderOpen, Image, Search, Trash2 } from "lucide-react";
+import { EmptyState } from "../ui/EmptyState";
 import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { MenuPopup } from "../ui/Menu";
@@ -486,10 +488,23 @@ export function Wall({
       >
         {error && <p role="alert">{error}</p>}
         {total === 0 ? (
-          <div className="wall-empty">
-            <p>{searching ? t("empty.searching") : t(`empty.${scope.kind}`)}</p>
-            {emptyAction?.(searching)}
-          </div>
+          <EmptyState
+            size="page"
+            className="wall-placeholder"
+            title={searching ? t("empty.searching") : t(`empty.${scope.kind}`)}
+            icon={
+              searching ? (
+                <Search />
+              ) : scope.kind === "trash" ? (
+                <Trash2 />
+              ) : scope.kind === "folder" || scope.kind === "folderTree" ? (
+                <FolderOpen />
+              ) : (
+                <Image />
+              )
+            }
+            actions={emptyAction?.(searching)}
+          />
         ) : (
           <div className="wall-canvas" style={{ height: layout.height }}>
             {layout.tray && (
