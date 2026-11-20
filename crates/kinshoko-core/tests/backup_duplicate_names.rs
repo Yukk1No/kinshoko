@@ -96,3 +96,66 @@ fn same_name_libraries_restore_after_a_single_library_restore() {
         .recv_timeout(Duration::from_secs(10))
         .expect("restoring three same-name libraries must complete without looping");
 }
+
+#[cfg(windows)]
+#[test]
+fn case_only_library_names_restore_on_windows() {
+    for names in [["Sketches", "sketches"], ["Études", "études"]] {
+        let temp = tempfile::tempdir().unwrap();
+        let libraries = names
+            .iter()
+            .enumerate()
+            .map(|(i, name)| {
+                Library::create(&temp.path().join(format!("source-{i}")), name).unwrap()
+            })
+            .collect::<Vec<_>>();
+        let registry = libraries
+            .iter()
+            .map(|library| RegisteredLibrary {
+                id: library.info().id.clone(),
+                name: library.info().name.clone(),
+                root: library.info().root.clone(),
+            })
+            .collect::<Vec<_>>();
+        let groups = ReferenceGroups::open(&temp.path().join("groups")).unwrap();
+        let backup = target(temp.path());
+        let sources = BackupSources {
+            libraries: &registry,
+            groups: &groups,
+        };
+        let save = |selection, stamp| {
+            let scope = compute_scope(&registry, &[], &selection);
+            backup.run(&scope, &sources, stamp, &mut |_| {}).unwrap()
+        };
+        let single = save(
+            ScopeSelection::Libraries {
+                ids: vec![registry[0].id.clone()],
+                include_linked: false,
+            },
+            at(-1, 1),
+        );
+        let all = save(ScopeSelection::All, at(0, 2));
+        let into = temp.path().join("restore");
+        std::fs::create_dir(&into).unwrap();
+
+        let restored = backup.restore(&all.snapshot_id, &into, &groups, at(0, 3));
+        let library_count = std::fs::read_dir(&into).unwrap().count();
+        let recovered = kinshoko_core::backup::recover_restores(&groups);
+        let follow_up = backup.restore(&single.snapshot_id, &into, &groups, at(0, 4));
+        let restored = restored.unwrap_or_else(|error| {
+            panic!("restoring {names:?} failed: {error}; recovery: {recovered:?}; follow-up: {follow_up:?}")
+        });
+
+        assert!(restored.check.passed(), "{:?}", restored.check);
+        assert_eq!(restored.libraries.len(), 2);
+        assert_eq!(library_count, 2, "only the two published libraries remain");
+        for library in restored.libraries {
+            assert_eq!(
+                Library::inspect(&library.library.root).unwrap().id,
+                library.library.id
+            );
+        }
+        assert_eq!(recovered.unwrap(), 0, "no pending restore journal");
+        assert!(follow_up.unwrap().check.passed());
+    }
+}
