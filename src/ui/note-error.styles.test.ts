@@ -104,6 +104,10 @@ describe("说明与报错文字", () => {
       color: "var(--ink-2)",
     });
     const error = cssRule(sheets["./ui.css"], ".k-error-text");
+    expect(cssRule(sheets["./ui.css"], ".k-description:where(.is-body)")).toEqual({
+      "font-size": "13px",
+      "line-height": "inherit",
+    });
     expect(error).toMatchObject({
       margin: "0",
       "font-size": "12px",
@@ -132,6 +136,7 @@ describe("说明与报错文字", () => {
       .filter((selector) => /^\.k-(?:description|error-text)[.:]/.test(selector));
     expect(selectors).toEqual([
       ".k-description:where(.is-spaced)",
+      ".k-description:where(.is-body)",
       ".k-error-text:where(.is-boxed)",
       ".k-error-text:where(.is-field)",
     ]);

@@ -1,23 +1,5 @@
 /* 订阅页（#368，Claude Design 原型“Kinshoko 订阅界面原型”第 1–15 号画板）。只用 tokens.css 的语义令牌，日夜两版同一套。 */
 
-/* ---- “非官方”标记 ---- */
-.subs-unofficial {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 20px;
-  padding: 0 8px;
-  border-radius: var(--r-pill);
-  background: var(--warn-soft);
-  color: var(--warn-strong);
-  font-size: 12px;
-  line-height: 20px;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: default;
-}
-
 /* ---- 侧栏：标题行、名单、账号行 ---- */
 .subs-pane .pane-head {
   padding: 0 8px 0 12px;
@@ -186,25 +168,6 @@
 .subs-check svg {
   color: var(--ink-3);
 }
-
-.subs-spin {
-  animation: subs-spin 0.9s linear infinite;
-}
-.subs-spin.is-accent,
-.subs-check .subs-spin.is-accent {
-  color: var(--accent);
-}
-@keyframes subs-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .subs-spin {
-    animation-duration: 2.4s;
-  }
-}
-
 /* ---- 最近收到：两段瀑布流 ---- */
 .subs-wall {
   flex: 1;
@@ -292,7 +255,7 @@
   padding: 4px 4px 0;
 }
 /* 标题字形在 24px 行高里偏上约 1px：标记跟着上移，两者中线对齐。 */
-.subs-first-run-head .subs-unofficial {
+.subs-first-run-head .k-pill {
   transform: translateY(-1px);
 }
 .subs-first-run-points {
@@ -474,10 +437,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 0;
   padding: 12px;
-  font-size: 13px;
-  color: var(--ink-2);
 }
 .k-dialog.subs-remove-dialog {
   width: min(400px, calc(100vw - 48px));
@@ -538,25 +498,6 @@
 }
 .k-seg.subs-rank-seg {
   flex: none;
-  padding: 2px;
-}
-.subs-rank-seg .k-seg-item {
-  min-width: 56px;
-  height: 26px;
-  font-size: 12px;
-}
-/* 夜间选中的一档只比底色亮一点：字也换成强调色，日夜都分得清。 */
-.subs-rank-seg .k-seg-item[data-pressed],
-.subs-artist-dialog > .k-field > .subs-rank-seg .k-seg-item[data-pressed] {
-  color: var(--accent-strong);
-  font-weight: 600;
-}
-.subs-artist-dialog > .k-field > .k-seg.subs-rank-seg {
-  padding: 4px;
-}
-.subs-artist-dialog > .k-field > .subs-rank-seg .k-seg-item {
-  height: var(--h-sm);
-  font-size: 13px;
 }
 .subs-rank-hint {
   display: flex;

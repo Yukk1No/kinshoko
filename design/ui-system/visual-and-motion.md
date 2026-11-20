@@ -8,6 +8,12 @@
 - 列表内 `.k-empty.is-list`：12 / 18、`--ink-2`，左对齐，内边距 `0 2px`，无图标。可搜索下拉只保留原有最小 32 px 行高和 32 px 左侧对齐，不另调字形。
 - 没有图库时，只有正在打开的状态用整页档；选择或新建图库的内容容器仍负责滚动、24 px 内边距与安全居中，不属于空状态。
 
+## 转圈
+
+加载图标使用 `src/ui/spinner.css` 的 `.k-spinner`，不改变图标本身的尺寸与形状，默认继承颜色；强调状态加 `.is-accent`，使用 `--accent`。查找画师时仍继承输入框图标的 `--ink-3`。一圈 0.9 秒、匀速循环；系统减弱动效时放慢为 2.4 秒，不停住。`tokens.css` 的全局减弱动效规则排除这个共用类，避免循环被截成一帧。
+
+订阅榜单的名次分段使用共用 28 px 档；非官方标记使用共用警告胶囊。关注列表的加载与空名单使用 `.k-description.is-body`，保留 13 px 正文和继承行高；失败使用 `.k-error-text.is-field`，不由订阅区域覆盖颜色。
+
 ## 标签块
 
 标签块共用 `src/ui/token.css` 的 `.k-token`，保留原生 button、span 或 li 的语义。尺寸用 `.is-24`、`.is-26`、`.is-28`；默认 `--r-s`，胶囊加 `.is-pill`，最内层 4 px 块加 `.is-square`。底色用 `.is-surface`（`--surface-2`）、`.is-tag-fill`（`--tag-fill`）、`.is-paper`（`--surface`）；查找条件 `.is-condition` 默认描边。

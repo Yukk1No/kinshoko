@@ -309,7 +309,7 @@ export function SubscriptionsPage({
           )}
           {check.kind === "checking" && (
             <span className="subs-check" role="status">
-              <LoaderCircle className="subs-spin is-accent" size={14} aria-hidden="true" />
+              <LoaderCircle className="k-spinner is-accent" size={14} aria-hidden="true" />
               {t("check.checking")}
             </span>
           )}
