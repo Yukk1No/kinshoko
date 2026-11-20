@@ -2,6 +2,7 @@ import { SaveDestinationDialog } from "../library/SaveDestination";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../ui/Toast";
+import { EmptyState } from "../ui/EmptyState";
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Tooltip } from "@base-ui/react/tooltip";
 import { BookmarkCheck, BookmarkPlus, Copy, Pin, Trash2, X } from "lucide-react";
@@ -88,7 +89,7 @@ export function CaptureHistoryPanel({
 
   return (
     <section className="capture-history" aria-label={t("label")}>
-      {entries && entries.length === 0 && <p className="capture-history-empty">{t("empty")}</p>}
+      {entries && entries.length === 0 && <EmptyState size="list" title={t("empty")} />}
       <Tooltip.Provider delay={400}>
         <ul className="capture-history-list">
           {entries?.map((entry) => {

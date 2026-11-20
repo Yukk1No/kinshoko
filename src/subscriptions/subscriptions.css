@@ -274,41 +274,6 @@
   height: auto;
 }
 
-/* ---- 空状态 ---- */
-.subs-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 0 24px 80px;
-  text-align: center;
-}
-.subs-empty-icon {
-  width: 56px;
-  height: 56px;
-  margin-bottom: 4px;
-  border-radius: var(--r-l);
-  display: grid;
-  place-items: center;
-  background: var(--sunken);
-  color: var(--ink-3);
-}
-.subs-empty-hint {
-  margin: 0;
-  color: var(--ink-2);
-}
-.subs-empty-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-.subs-empty-actions .k-btn {
-  height: 36px;
-  padding: 0 16px;
-}
-
 /* ---- 首次使用说明 ---- */
 .k-dialog.subs-first-run {
   width: min(460px, calc(100vw - 48px));
