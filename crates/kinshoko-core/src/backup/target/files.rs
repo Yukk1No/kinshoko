@@ -151,8 +151,12 @@ pub(super) fn valid_id(id: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
-/// `into` 下以 `name` 命名、还不存在的文件夹；重名时加序号。
-pub(super) fn unique_dir(into: &Path, name: &str, reserved: &BTreeSet<PathBuf>) -> PathBuf {
+/// Reserve a free destination by creating its namesake in the batch's staging directory.
+pub(super) fn reserve_library_dir(
+    into: &Path,
+    staging: &Path,
+    name: &str,
+) -> std::io::Result<(PathBuf, PathBuf)> {
     let clean: String = name
         .chars()
         .map(|c| match c {
@@ -161,18 +165,27 @@ pub(super) fn unique_dir(into: &Path, name: &str, reserved: &BTreeSet<PathBuf>) 
             c => c,
         })
         .collect();
-    let clean = clean.trim().trim_end_matches('.').to_owned();
-    let mut candidate = into.join(&clean);
+    let clean = clean.trim().trim_end_matches('.');
+    let mut name = clean.to_owned();
     let mut n = 2;
-    while candidate.exists() || reserved.contains(&candidate) {
+    loop {
+        let dest = into.join(&name);
+        if !dest.try_exists()? {
+            let stage = staging.join(&name);
+            // Let the filesystem detect aliases (including Unicode case) within this batch.
+            match fs::create_dir(&stage) {
+                Ok(()) => return Ok((dest, stage)),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+                Err(error) => return Err(error),
+            }
+        }
         let suffix = format!(" {n}");
         // 从名称开头截短，保留恢复日期后缀。
         let start = clean
             .len()
             .saturating_sub(MAX_DIR_NAME_BYTES - suffix.len());
         let base = clean[clean.ceil_char_boundary(start)..].trim_start();
-        candidate = into.join(format!("{base}{suffix}"));
+        name = format!("{base}{suffix}");
         n += 1;
     }
-    candidate
 }
