@@ -32,10 +32,15 @@ const OPEN_EVENT: &str = "desktop-menu";
 pub struct MenuState {
     generation: u32,
     open: Option<PinMenuOpen>,
+    previous_foreground: Option<isize>,
 }
 
 /// 在指针处为钉图弹出菜单。
 pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), CommandError> {
+    #[cfg(windows)]
+    let previous_foreground = super::win32::foreground_window().map(|(hwnd, _)| hwnd);
+    #[cfg(not(windows))]
+    let previous_foreground = None;
     let cursor = app.cursor_position().map_err(CommandError::system)?;
     let surface = menu_surface(
         (cursor.x.floor() as i32, cursor.y.floor() as i32),
@@ -51,6 +56,7 @@ pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), CommandError> {
             menu,
         };
         menus.open = Some(open.clone());
+        menus.previous_foreground = previous_foreground;
         open
     };
     let window = match app.get_webview_window(MENU_WINDOW) {
@@ -136,12 +142,12 @@ pub fn shown(app: &AppHandle, generation: u32) {
 /// 关掉第 `generation` 次菜单，返回它是哪个钉图的；不是此刻打开着的那一次时什么都不做。
 /// 菜单窗口拿着焦点时，焦点交回打开菜单之前的程序。
 pub fn close(app: &AppHandle, generation: u32) -> Option<String> {
-    let open = {
+    let (open, previous_foreground) = {
         let mut menus = lock(&state(app).menu);
         if menus.open.as_ref()?.generation != generation {
             return None;
         }
-        menus.open.take()?
+        (menus.open.take()?, menus.previous_foreground.take())
     };
     let pin = open.menu.pin;
     if let Some(window) = app.get_webview_window(MENU_WINDOW) {
@@ -150,9 +156,10 @@ pub fn close(app: &AppHandle, generation: u32) -> Option<String> {
         crate::run_log::record(LogEvent::WindowHidden {
             window: WindowKind::PinMenu,
         });
-        pins::menu_closed(app, focused);
+        pins::menu_closed(app);
+        super::edge::restore_menu_focus(focused, previous_foreground);
     } else {
-        pins::menu_closed(app, false);
+        pins::menu_closed(app);
     }
     Some(pin)
 }

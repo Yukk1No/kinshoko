@@ -14,6 +14,8 @@ use tauri::{AppHandle, Manager};
 use super::pins::{monitor_at, open_pins, show};
 use super::{lock, state};
 
+mod focus;
+
 const TICK: Duration = Duration::from_millis(60);
 
 /// 最近一个不属于本进程的前台窗口（句柄按整数存）。0 表示还没有。
@@ -123,10 +125,20 @@ fn remember_external_foreground() {
 pub(super) fn hand_back_focus() {
     let ours = super::win32::foreground_window().is_some_and(|(_, pid)| pid == std::process::id());
     let last = LAST_EXTERNAL.load(Ordering::Relaxed);
-    if ours && last != 0 {
-        super::win32::set_foreground(last);
+    if let Some(target) = focus::target(ours, last, focus::ReturnTo::External) {
+        super::win32::set_foreground(target);
     }
 }
+
+#[cfg(windows)]
+pub(super) fn restore_menu_focus(focused: bool, previous: Option<isize>) {
+    if let Some(target) = focus::target(focused, 0, focus::ReturnTo::Previous(previous)) {
+        super::win32::set_foreground(target);
+    }
+}
+
+#[cfg(not(windows))]
+pub(super) fn restore_menu_focus(_: bool, _: Option<isize>) {}
 
 #[cfg(windows)]
 fn cursor_position() -> Option<(i32, i32)> {
