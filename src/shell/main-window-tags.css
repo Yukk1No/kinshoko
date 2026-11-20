@@ -55,11 +55,6 @@
   font-size: 12px;
   text-align: left;
 }
-.k-tags .k-tags-empty {
-  color: var(--ink-2);
-  background: none;
-  padding: 0;
-}
 .k-tags .k-tags-sub {
   margin: 2px 0 -2px;
   color: var(--ink-2);
