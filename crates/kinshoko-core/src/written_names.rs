@@ -11,15 +11,21 @@ fn english(lang: &str) -> bool {
 
 /// 从备份恢复出的资料库的文件夹名；`n` 是同名时附加的序号。
 pub(crate) fn restored_library_dir(lang: &str, name: &str, date: &str, n: Option<usize>) -> String {
-    let base = if english(lang) {
-        format!("{name} (restored {date})")
+    let mut suffix = if english(lang) {
+        format!(" (restored {date})")
     } else {
-        format!("{name}（恢复 {date}）")
+        format!("（恢复 {date}）")
     };
-    match n {
-        Some(n) => format!("{base} {n}"),
-        None => base,
+    if let Some(n) = n {
+        suffix.push_str(&format!(" {n}"));
     }
+    let budget = 255 - suffix.len();
+    let name = if name.len() > budget {
+        name[..name.floor_char_boundary(budget)].trim_end()
+    } else {
+        name
+    };
+    format!("{name}{suffix}")
 }
 
 /// 从备份恢复出的资料库的名称。
@@ -91,6 +97,30 @@ pub(crate) fn migration_note(lang: &str, target: &Path, left: &[&str]) -> String
 mod tests {
     use super::*;
     use crate::interface_lang::{EN, ZH_CN};
+
+    #[test]
+    fn restored_directories_fit_a_utf8_path_segment() {
+        let date = "2026-11-20";
+        for lang in [EN, ZH_CN] {
+            for n in [None, Some(2), Some(usize::MAX)] {
+                let suffix = restored_library_dir(lang, "", date, n);
+                for name in ["a".repeat(250), "\u{5e93}".repeat(83)] {
+                    let folder = restored_library_dir(lang, &name, date, n);
+                    assert!(folder.len() <= 255);
+                    assert!(folder.ends_with(&suffix));
+                    assert!(name.starts_with(folder.strip_suffix(&suffix).unwrap()));
+                }
+                let short = restored_library_dir(lang, "Main", date, n);
+                assert_eq!(short, format!("Main{suffix}"));
+                assert_eq!(restored_library_dir(lang, "", date, n), suffix);
+                let spaced = format!("{} {}", "a".repeat(255 - suffix.len() - 1), "b".repeat(30));
+                assert_eq!(
+                    restored_library_dir(lang, &spaced, date, n),
+                    format!("{}{suffix}", "a".repeat(255 - suffix.len() - 1))
+                );
+            }
+        }
+    }
 
     #[test]
     fn names_follow_the_interface_language_at_write_time() {

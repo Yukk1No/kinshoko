@@ -164,7 +164,11 @@ pub(super) fn unique_dir(into: &Path, name: &str) -> PathBuf {
     let mut candidate = into.join(&clean);
     let mut n = 2;
     while candidate.exists() {
-        candidate = into.join(format!("{clean} {n}"));
+        let suffix = format!(" {n}");
+        // Keep the restored date suffix when making room for a collision number.
+        let start = clean.len().saturating_sub(255 - suffix.len());
+        let base = clean[clean.ceil_char_boundary(start)..].trim_start();
+        candidate = into.join(format!("{base}{suffix}"));
         n += 1;
     }
     candidate
