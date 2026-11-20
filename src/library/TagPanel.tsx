@@ -380,7 +380,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, rating }: 
                     const rename = renameFor(tag);
                     // 已排除的标签：名称划掉，末尾的图标把它改回自动（与候选行尾的“改回自动”同一个图标）；悬停图标时划线先去掉，示意结果。
                     return (
-                      <li key={tag.id} className="tag-row k-tag-chip is-rejected">
+                      <li key={tag.id} className="tag-row k-token is-26 is-tag-fill is-inspector is-rejected">
                         <span className="tag-name">{name}</span>
                         <TagMarks
                           tag={tag}
@@ -393,7 +393,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, rating }: 
                         <Tip label={t("panel.revert")}>
                           <button
                             type="button"
-                            className="k-tag-restore"
+                            className="k-token-action is-20 is-restore"
                             aria-label={t("panel.clearLabel", { name })}
                             onClick={() => decide("clear", byId(tag))}
                           >

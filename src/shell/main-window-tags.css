@@ -60,43 +60,6 @@
   color: var(--ink-2);
   font-size: 12px;
 }
-.k-tags .k-tag-chip.is-rejected {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--line-2);
-  color: var(--ink-2);
-}
-.k-tags .k-tag-chip.is-rejected .tag-name {
-  text-decoration: line-through;
-  opacity: 1;
-  font-weight: 400;
-}
-/* 已排除的标签末尾是“改回自动”的图标；悬停它时名称的划线先去掉，示意结果（候选行尾悬停“排除”时名称划掉，方向相反）。 */
-.k-tags .k-tag-restore {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  margin-right: -4px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--r-xs);
-  background: none;
-  color: var(--ink-3);
-  cursor: pointer;
-}
-.k-tags .k-tag-restore:hover {
-  background: var(--hover);
-  color: var(--ink);
-}
-.k-tags .k-tag-restore:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-.k-tags .k-tag-chip.is-rejected:has(.k-tag-restore:hover) .tag-name {
-  text-decoration: none;
-  color: var(--ink);
-}
 .k-tags .k-tag-add {
   flex-direction: column;
   align-items: stretch;
@@ -158,15 +121,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-}
-.k-tag-alias .k-tag-chips li {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  height: 24px;
-  padding: 0 3px 0 8px;
-  border-radius: var(--r-xs);
-  background: var(--surface);
 }
 .k-tag-alias .k-input {
   flex: none;

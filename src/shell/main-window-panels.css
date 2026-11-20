@@ -297,15 +297,6 @@
   min-width: 0;
   margin: 0;
 }
-/* 一级标签比一般标签大一号：28 高、13 px。三档外观与浮层不变。 */
-.insp-props .k-tag-chip {
-  min-height: 28px;
-  padding-inline: 10px;
-  font-size: 13px;
-}
-.insp-props .k-tag-chip .tag-name {
-  line-height: 20px;
-}
 /* 分级在属性表里比整行窄：各档先按文字占宽，余下的平分，“全年龄”前面加了星也放得下（面板最窄 280）。 */
 .insp-rate .k-seg-item {
   flex: 1 1 auto;
@@ -601,56 +592,13 @@
   flex-wrap: wrap;
   gap: 6px;
 }
-.k-tags .k-tag-chip {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 4px;
-  max-width: 100%;
-  min-height: 26px;
-  padding: 4px 8px;
-  border-radius: var(--r-s);
-  background: var(--tag-fill);
-  color: var(--ink);
-  cursor: default;
-}
-/* 名称比面板还宽时在标签里折行，不撑出面板。 */
-.k-tags .k-tag-chip .tag-name {
-  min-width: 0;
-  font-weight: 500;
-  line-height: 18px;
-  overflow-wrap: anywhere;
-  text-wrap: balance;
-}
-.k-tags .k-tag-chip:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-/* B：按准不准分三档（#482）——人写的（人工、导入）和模型高档有底；模型中档（含没有分数的）无底细线框；
-   低档无底虚线框、字变浅。只改颜色和线，不改尺寸；虚线用 outline，不占排版。 */
-.k-tags .k-tag-chip[data-band="mid"] {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--line-2);
-  color: var(--ink-2);
-}
-.k-tags .k-tag-chip[data-band="low"] {
-  background: transparent;
-  outline: 1px dashed var(--line-2);
-  outline-offset: -1px;
-  color: var(--ink-2);
-}
-.k-tags .k-tag-chip[data-band="low"]:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
 /* C：按出处分组，模型标签底边一条可信度刻度，长度等于可信度。 */
 .k-tags .k-tag-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.k-tags .k-tag-chip:has(.k-tag-meter) {
+.k-tags .k-token.is-inspector:has(.k-tag-meter) {
   overflow: hidden;
 }
 .k-tags .k-tag-meter {

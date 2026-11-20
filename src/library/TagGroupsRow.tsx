@@ -196,24 +196,24 @@ export function GroupRow({
                 <li key={tag.id} className="k-group-member">
                   <button
                     type="button"
-                    className="k-group-chip"
+                    className="k-token is-26 is-member"
                     data-focus-key={`${group.id}:${tag.id}:chip`}
                     aria-label={t("member.count", { name, count })}
                     disabled={!onBrowse}
                     onClick={() => onBrowse?.([tag.id])}
                   >
-                    <span className="k-group-chip-name k-label">
+                    <span className="k-token-name k-label">
                       {name}
                       <TagMarks tag={tag} />
                     </span>
-                    <span className="k-group-chip-count k-label">{formatNumber(count)}</span>
+                    <span className="k-token-count k-label">{formatNumber(count)}</span>
                   </button>
                   {custom && (
                     <span className="k-group-member-acts">
                       <Tip label={t("member.prev")}>
                         <button
                           type="button"
-                          className="k-group-chip-x"
+                          className="k-token-action is-16 is-member-action"
                           data-focus-key={`${group.id}:${tag.id}:prev`}
                           aria-label={t("member.prevLabel", { tag: name, group: group.name })}
                           disabled={busy || memberIndex === 0}
@@ -227,7 +227,7 @@ export function GroupRow({
                       <Tip label={t("member.next")}>
                         <button
                           type="button"
-                          className="k-group-chip-x"
+                          className="k-token-action is-16 is-member-action"
                           data-focus-key={`${group.id}:${tag.id}:next`}
                           aria-label={t("member.nextLabel", { tag: name, group: group.name })}
                           disabled={busy || memberIndex === group.tags.length - 1}
@@ -241,7 +241,7 @@ export function GroupRow({
                       <Tip label={t("member.remove")}>
                         <button
                           type="button"
-                          className="k-group-chip-x"
+                          className="k-token-action is-16 is-member-action"
                           data-focus-key={`${group.id}:${tag.id}:remove`}
                           aria-label={t("member.removeLabel", { tag: name, group: group.name })}
                           disabled={busy}

@@ -13,6 +13,7 @@ import { TipProvider } from "./ui/Tip";
 import "./styles.css";
 import "./ui/ui.css";
 import "./ui/empty-state.css";
+import "./ui/token.css";
 import "./ui/ui-dock.css";
 import "./ui/menu.css";
 import "./ui/toast.css";
