@@ -366,7 +366,6 @@
 .library-start-content > .k-empty.is-page {
   flex: none;
   align-self: stretch;
-  padding: 0 0 80px;
 }
 .wall > .k-empty.is-page {
   min-height: 100%;
