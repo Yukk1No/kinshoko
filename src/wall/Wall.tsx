@@ -490,7 +490,6 @@ export function Wall({
         {total === 0 ? (
           <EmptyState
             size="page"
-            className="wall-placeholder"
             title={searching ? t("empty.searching") : t(`empty.${scope.kind}`)}
             icon={
               searching ? (

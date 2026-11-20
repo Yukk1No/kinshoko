@@ -19,7 +19,7 @@ export function SubscriptionsEmpty({ signingIn, account, actions, addMenu, setFi
       size="page"
       headingAs="h1"
       title={t(signingIn ? "empty.waitingTitle" : account ? "empty.noSubsTitle" : "empty.signedOutTitle")}
-      icon={signingIn ? <LoaderCircle className="subs-spin" /> : <Rss strokeWidth={1.75} />}
+      icon={signingIn ? <LoaderCircle className="subs-spin is-accent" /> : <Rss strokeWidth={1.75} />}
       hint={!signingIn && !account ? t("empty.signedOutHint") : undefined}
       actions={
         signingIn ? (
