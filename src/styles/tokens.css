@@ -334,12 +334,12 @@
   .startup-bar *,
   .capture-tip,
   .fx-burst,
-  .search-chip,
+  .k-token.is-condition,
   .k-radio-card input,
   .k-steps i,
   .k-task-progress,
-  .k-chip,
-  .k-chip-x,
+  .k-token.is-pill,
+  .k-token-action.is-18,
   .k-switch,
   .k-switch-thumb,
   .k-badge,
@@ -347,8 +347,8 @@
     corner-shape: round;
   }
   /* search chips in the top bar and its overflow popover are rounded boxes, not pills */
-  .topbar > .search .search-chip,
-  .search-more-pop .search-chip {
+  .topbar > .search .k-token.is-condition,
+  .search-more-pop .k-token.is-condition {
     corner-shape: superellipse(1.25);
   }
 }
