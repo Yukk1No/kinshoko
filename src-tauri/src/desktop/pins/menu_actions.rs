@@ -57,12 +57,9 @@ pub(super) fn native_menu(app: &AppHandle, pin: &str, confirm_reveal: bool) {
     });
 }
 
-/// 菜单关掉了：键盘钩子恢复拦键；菜单拿着焦点时焦点交回原来的程序（钉图不拿焦点）。
-pub fn menu_closed(app: &AppHandle, focused: bool) {
+/// 菜单关掉了：键盘钩子恢复拦键。
+pub fn menu_closed(app: &AppHandle) {
     native::menu_closed(app);
-    if focused {
-        super::super::edge::hand_back_focus();
-    }
 }
 
 /// 选了钉图菜单里的一项：先收起菜单窗口（焦点交回钉图），再在别的线程上做这件事。
