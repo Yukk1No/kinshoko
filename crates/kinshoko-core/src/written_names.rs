@@ -5,8 +5,19 @@ use std::path::Path;
 
 use crate::interface_lang;
 
-/// 路径单段的字节上限，兼容 ext4（255 字节）和 NTFS（255 个 UTF-16 单元）。
-pub(crate) const MAX_DIR_NAME_BYTES: usize = 255;
+/// 路径单段上限：Windows 按 UTF-16 单元计数，其他平台按字节计数。
+const MAX_DIR_NAME_UNITS: usize = 255;
+
+fn dir_name_units(name: &str) -> usize {
+    #[cfg(windows)]
+    {
+        name.encode_utf16().count()
+    }
+    #[cfg(not(windows))]
+    {
+        name.len()
+    }
+}
 
 fn english(lang: &str) -> bool {
     lang == interface_lang::EN
@@ -22,9 +33,15 @@ pub(crate) fn restored_library_dir(lang: &str, name: &str, date: &str, n: Option
     if let Some(n) = n {
         suffix.push_str(&format!(" {n}"));
     }
-    let budget = MAX_DIR_NAME_BYTES - suffix.len();
-    let name = if name.len() > budget {
-        name[..name.floor_char_boundary(budget)].trim_end()
+    let budget = MAX_DIR_NAME_UNITS - dir_name_units(&suffix);
+    let name = if dir_name_units(name) > budget {
+        let end = name
+            .char_indices()
+            .rev()
+            .map(|(i, _)| i)
+            .find(|&i| dir_name_units(&name[..i]) <= budget)
+            .unwrap_or(0);
+        name[..end].trim_end()
     } else {
         name
     };
@@ -102,30 +119,39 @@ mod tests {
     use crate::interface_lang::{EN, ZH_CN};
 
     #[test]
-    fn restored_directories_fit_a_utf8_path_segment() {
+    fn restored_directories_fit_the_platform_path_segment_limit() {
         let date = "2026-11-20";
         for lang in [EN, ZH_CN] {
             for n in [None, Some(2), Some(usize::MAX)] {
                 let suffix = restored_library_dir(lang, "", date, n);
-                for name in ["a".repeat(250), "\u{5e93}".repeat(83)] {
+                for name in [
+                    "a".repeat(250),
+                    "\u{5e93}".repeat(250),
+                    "\u{1f3a8}".repeat(200),
+                ] {
                     let folder = restored_library_dir(lang, &name, date, n);
-                    assert!(folder.len() <= MAX_DIR_NAME_BYTES);
+                    assert!(dir_name_units(&folder) <= MAX_DIR_NAME_UNITS);
                     assert!(folder.ends_with(&suffix));
                     assert!(name.starts_with(folder.strip_suffix(&suffix).unwrap()));
+                    let fitting = "\u{5e93}".repeat(70);
+                    assert_eq!(
+                        restored_library_dir(lang, &fitting, date, n),
+                        format!("{fitting}{suffix}")
+                    );
                 }
                 let short = restored_library_dir(lang, "Main", date, n);
                 assert_eq!(short, format!("Main{suffix}"));
                 assert_eq!(restored_library_dir(lang, "", date, n), suffix);
                 let spaced = format!(
                     "{} {}",
-                    "a".repeat(MAX_DIR_NAME_BYTES - suffix.len() - 1),
+                    "a".repeat(MAX_DIR_NAME_UNITS - dir_name_units(&suffix) - 1),
                     "b".repeat(30)
                 );
                 assert_eq!(
                     restored_library_dir(lang, &spaced, date, n),
                     format!(
                         "{}{suffix}",
-                        "a".repeat(MAX_DIR_NAME_BYTES - suffix.len() - 1)
+                        "a".repeat(MAX_DIR_NAME_UNITS - dir_name_units(&suffix) - 1)
                     )
                 );
             }

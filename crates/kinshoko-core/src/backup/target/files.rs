@@ -1,7 +1,6 @@
 //! 备份目标里的文件：原图库、快照目录与清单。
 
 use super::*;
-use crate::written_names::MAX_DIR_NAME_BYTES;
 
 pub(super) fn registered<'a>(
     sources: &'a BackupSources,
@@ -155,23 +154,23 @@ pub(super) fn valid_id(id: &str) -> bool {
 pub(super) fn reserve_library_dir(
     into: &Path,
     staging: &Path,
-    name: &str,
+    name: impl Fn(Option<usize>) -> String,
 ) -> std::io::Result<(PathBuf, PathBuf)> {
-    let clean: String = name
-        .chars()
-        .map(|c| match c {
-            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
-            c if c.is_control() => '_',
-            c => c,
-        })
-        .collect();
-    let clean = clean.trim().trim_end_matches('.');
-    let mut name = clean.to_owned();
+    let mut number = None;
     let mut n = 2;
     loop {
-        let dest = into.join(&name);
+        let clean: String = name(number)
+            .chars()
+            .map(|c| match c {
+                '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
+                c if c.is_control() => '_',
+                c => c,
+            })
+            .collect();
+        let clean = clean.trim().trim_end_matches('.');
+        let dest = into.join(clean);
         if !dest.try_exists()? {
-            let stage = staging.join(&name);
+            let stage = staging.join(clean);
             // Let the filesystem detect aliases (including Unicode case) within this batch.
             match fs::create_dir(&stage) {
                 Ok(()) => return Ok((dest, stage)),
@@ -179,13 +178,7 @@ pub(super) fn reserve_library_dir(
                 Err(error) => return Err(error),
             }
         }
-        let suffix = format!(" {n}");
-        // 从名称开头截短，保留恢复日期后缀。
-        let start = clean
-            .len()
-            .saturating_sub(MAX_DIR_NAME_BYTES - suffix.len());
-        let base = clean[clean.ceil_char_boundary(start)..].trim_start();
-        name = format!("{base}{suffix}");
+        number = Some(n);
         n += 1;
     }
 }
