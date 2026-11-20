@@ -29,7 +29,7 @@ export function WallEmptyAction({
   }
   if (scope.kind !== "all") return null;
   return (
-    <div className="wall-empty-actions">
+    <>
       <button type="button" className="k-btn is-primary" onClick={() => importControl.current?.files()}>
         <FileImage size={16} aria-hidden="true" />
         <span className="k-label">{t("empty.importFiles")}</span>
@@ -38,6 +38,6 @@ export function WallEmptyAction({
         <FolderOpen size={16} aria-hidden="true" />
         <span className="k-label">{t("empty.importFolder")}</span>
       </button>
-    </div>
+    </>
   );
 }

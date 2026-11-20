@@ -30,15 +30,6 @@
 .empty-context .reference-groups-bar h2 {
   display: none;
 }
-.capture-history-empty,
-.reference-groups-empty {
-  margin: 0;
-  padding: 0 2px;
-  color: var(--ink-2);
-  font-size: 12px;
-  line-height: 18px;
-}
-
 /* 截图列表 */
 .capture-history-list {
   display: flex;

@@ -139,13 +139,13 @@
 | 12 px 分组名 | `.k-section-label`（菜单、字段、浮层里的分组名；菜单里加 `.is-menu` 与选项文字对齐） | `src/ui/ui.css` |
 | 说明文字 | `.k-description`（12 / 18，次要墨色；段前间距加 `.is-spaced`） | `src/ui/ui.css` |
 | 报错文字 | `.k-error-text`（12 px，危险色，行高继承；底框加 `.is-boxed`，字段图标行加 `.is-field`） | `src/ui/ui.css` |
+| 空状态 | `EmptyState`（`.k-empty.is-page` 整页、`.k-empty.is-list` 列表内；标题必填，说明与操作可选） | `src/ui/EmptyState.tsx`、`src/ui/empty-state.css` |
 
 ### 还没有共用类
 
 下面这些同一种东西有几个类，#602 各收成一个，收完一类就移进上面的表、从这里删掉：
 
 - 标签块：`.chip`、`.k-chip`、`.k-group-chip`、`.search-chip`、`.k-tag-chip`
-- 空状态：`.subs-empty`、`.wall-empty`、`.app-empty-body`、`.capture-history-empty`、`.reference-groups-empty`、`.k-tags-empty`、`.k-groups-empty`、`.k-option-empty`
 - 订阅页自带的行、标题、空状态、转圈（`src/subscriptions/subscriptions.css` 的 `subs-` 类）
 
 ## 样式写在哪里
@@ -169,3 +169,4 @@
 - `src/ui/headings.styles.test.ts`：`.k-title`、`.k-section-label` 以外另写的标题、分组名字形，以及收掉的旧类名
 - `src/ui/note-error.styles.test.ts`：`.k-description`、`.k-error-text` 以外另写的说明、报错字形，以及收掉的旧类名
 - `src/ui/low-emphasis-buttons.styles.test.ts`：扫描全部 CSS、TS、TSX，挡住低强调按钮旧类名的用处和样式定义
+- `src/ui/empty-state.styles.test.ts`：扫描生产 CSS、TS、TSX，挡住空状态旧类名；锁住两档共用样式与可搜索下拉的行布局

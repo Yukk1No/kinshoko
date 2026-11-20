@@ -98,11 +98,6 @@
   outline: var(--focus-ring);
   outline-offset: var(--focus-inset);
 }
-.k-groups-empty {
-  padding: 8px 8px 4px;
-  color: var(--ink-2);
-  font-size: 12px;
-}
 /* 分组里的标签：点一下加为条件（樱色 / 金色浅底），右键排除（同顶栏里排除的条件：无底细线、删除线），
    一张图也没有的标签无底、淡字。 */
 .chips {
