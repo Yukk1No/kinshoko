@@ -1,6 +1,7 @@
 //! 备份目标里的文件：原图库、快照目录与清单。
 
 use super::*;
+use crate::written_names::MAX_DIR_NAME_BYTES;
 
 pub(super) fn registered<'a>(
     sources: &'a BackupSources,
@@ -165,8 +166,10 @@ pub(super) fn unique_dir(into: &Path, name: &str) -> PathBuf {
     let mut n = 2;
     while candidate.exists() {
         let suffix = format!(" {n}");
-        // Keep the restored date suffix when making room for a collision number.
-        let start = clean.len().saturating_sub(255 - suffix.len());
+        // 从名称开头截短，保留恢复日期后缀。
+        let start = clean
+            .len()
+            .saturating_sub(MAX_DIR_NAME_BYTES - suffix.len());
         let base = clean[clean.ceil_char_boundary(start)..].trim_start();
         candidate = into.join(format!("{base}{suffix}"));
         n += 1;

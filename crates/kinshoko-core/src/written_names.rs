@@ -5,6 +5,9 @@ use std::path::Path;
 
 use crate::interface_lang;
 
+/// 路径单段的字节上限，兼容 ext4（255 字节）和 NTFS（255 个 UTF-16 单元）。
+pub(crate) const MAX_DIR_NAME_BYTES: usize = 255;
+
 fn english(lang: &str) -> bool {
     lang == interface_lang::EN
 }
@@ -19,7 +22,7 @@ pub(crate) fn restored_library_dir(lang: &str, name: &str, date: &str, n: Option
     if let Some(n) = n {
         suffix.push_str(&format!(" {n}"));
     }
-    let budget = 255 - suffix.len();
+    let budget = MAX_DIR_NAME_BYTES - suffix.len();
     let name = if name.len() > budget {
         name[..name.floor_char_boundary(budget)].trim_end()
     } else {
@@ -106,17 +109,24 @@ mod tests {
                 let suffix = restored_library_dir(lang, "", date, n);
                 for name in ["a".repeat(250), "\u{5e93}".repeat(83)] {
                     let folder = restored_library_dir(lang, &name, date, n);
-                    assert!(folder.len() <= 255);
+                    assert!(folder.len() <= MAX_DIR_NAME_BYTES);
                     assert!(folder.ends_with(&suffix));
                     assert!(name.starts_with(folder.strip_suffix(&suffix).unwrap()));
                 }
                 let short = restored_library_dir(lang, "Main", date, n);
                 assert_eq!(short, format!("Main{suffix}"));
                 assert_eq!(restored_library_dir(lang, "", date, n), suffix);
-                let spaced = format!("{} {}", "a".repeat(255 - suffix.len() - 1), "b".repeat(30));
+                let spaced = format!(
+                    "{} {}",
+                    "a".repeat(MAX_DIR_NAME_BYTES - suffix.len() - 1),
+                    "b".repeat(30)
+                );
                 assert_eq!(
                     restored_library_dir(lang, &spaced, date, n),
-                    format!("{}{suffix}", "a".repeat(255 - suffix.len() - 1))
+                    format!(
+                        "{}{suffix}",
+                        "a".repeat(MAX_DIR_NAME_BYTES - suffix.len() - 1)
+                    )
                 );
             }
         }
