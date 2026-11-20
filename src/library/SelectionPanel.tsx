@@ -62,7 +62,7 @@ function RatingPicker({ rating, edit }: { rating: ImageRating; edit: (edits: Ima
   const overridden = manual !== null && suggested !== null && manual !== suggested;
   return (
     <Segmented<ContentRating>
-      label={t("rating.label")}
+      label={t("rating.title")}
       className="insp-rate"
       value={effective}
       onChange={(value) =>

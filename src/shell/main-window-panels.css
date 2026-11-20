@@ -290,8 +290,8 @@
   line-height: 28px;
   color: var(--ink-2);
 }
-.insp-prop.is-rating > dt {
-  line-height: 36px;
+.insp-prop.is-rating > dd {
+  grid-column: 1 / -1;
 }
 .insp-prop > dd {
   min-width: 0;

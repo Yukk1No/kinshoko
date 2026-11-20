@@ -54,7 +54,7 @@ describe("选中一张图：内容分级（#518）", () => {
     const edits = backend(detail({}), detail({}));
     renderPanel();
 
-    const rating = await screen.findByRole("group", { name: "内容分级" });
+    const rating = await screen.findByRole("group", { name: "分级" });
     expect(
       within(rating)
         .getAllByRole("button")
@@ -76,7 +76,7 @@ describe("选中一张图：内容分级（#518）", () => {
     const edits = backend(detail({}), detail({ manual: "general", effective: "general" }));
     renderPanel();
 
-    const rating = await screen.findByRole("group", { name: "内容分级" });
+    const rating = await screen.findByRole("group", { name: "分级" });
     fireEvent.click(within(rating).getByRole("button", { name: "全年龄" }));
 
     const revert = await within(rating).findByRole("button", { name: "成人，改回自动" });
@@ -98,7 +98,7 @@ describe("选中一张图：内容分级（#518）", () => {
     );
     renderPanel();
 
-    const rating = await screen.findByRole("group", { name: "内容分级" });
+    const rating = await screen.findByRole("group", { name: "分级" });
     expect(
       within(rating)
         .getAllByRole("button")
@@ -129,7 +129,7 @@ describe("选中一张图：内容分级（#518）", () => {
       />,
     );
 
-    const rating = await screen.findByRole("group", { name: "内容分级" });
+    const rating = await screen.findByRole("group", { name: "分级" });
     fireEvent.click(within(rating).getByRole("button", { name: "成人" }));
 
     await waitFor(() => expect(cleared).toBe(true));
@@ -139,7 +139,7 @@ describe("选中一张图：内容分级（#518）", () => {
     const edits = backend(detail({ manual: "general", effective: "general" }), detail({}));
     renderPanel();
 
-    const rating = await screen.findByRole("group", { name: "内容分级" });
+    const rating = await screen.findByRole("group", { name: "分级" });
     expect(within(rating).getByRole("button", { name: "全年龄" }).getAttribute("aria-pressed")).toBe("true");
     expect(within(rating).getAllByRole("button")).toHaveLength(4);
     fireEvent.click(within(rating).getByRole("button", { name: "成人，改回自动" }));
@@ -153,9 +153,10 @@ describe("选中一张图：内容分级（#518）", () => {
   it("分级是属性表的最后一行，排在文件夹与备注之前；不在任何文件夹里时没有文件夹这一块", async () => {
     backend(detail({}), detail({}));
     renderPanel();
-    const rating = await screen.findByRole("group", { name: "内容分级" });
+    await screen.findByRole("button", { name: "成人，自动" });
+    const rating = screen.getByRole("group", { name: "分级" });
     const row = rating.closest(".insp-prop")!;
-    expect(row.querySelector("dt")!.textContent).toBe("分级");
+    expect(within(row as HTMLElement).queryByText("分级", { selector: ":not([hidden])" })).toBeNull();
     expect(row.parentElement!.lastElementChild).toBe(row);
     expect(screen.queryByRole("region", { name: "所在文件夹" })).toBeNull();
     expect(screen.queryByText("不在任何文件夹里")).toBeNull();
@@ -234,7 +235,7 @@ describe("选中一张图：自动标签未完成（#475）", () => {
       />
     );
     const view = render(panel(0));
-    await screen.findByRole("group", { name: "内容分级" });
+    await screen.findByRole("group", { name: "分级" });
     expect(screen.queryByText("自动标签未完成")).toBeNull();
     failure = "unreadable";
     view.rerender(panel(1));
@@ -244,7 +245,7 @@ describe("选中一张图：自动标签未完成（#475）", () => {
   it("打完了的图没有这一行", async () => {
     backend(detail({}), detail({}));
     renderPanel();
-    await screen.findByRole("group", { name: "内容分级" });
+    await screen.findByRole("group", { name: "分级" });
     expect(screen.queryByText("自动标签未完成")).toBeNull();
   });
 });

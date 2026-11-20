@@ -28,7 +28,6 @@ const inspector: Translation<typeof zh> = {
     crashed: "An error occurred while processing this image",
   },
   rating: {
-    label: "Content rating",
     title: "Rating",
     revert: "Back to automatic",
     autoOption: "{{rating}}, automatic",

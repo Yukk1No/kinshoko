@@ -324,7 +324,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, rating }: 
           ))}
           {rating && (
             <div className="insp-prop is-rating">
-              <dt>{rating.label}</dt>
+              <dt hidden>{rating.label}</dt>
               <dd>{rating.control}</dd>
             </div>
           )}
