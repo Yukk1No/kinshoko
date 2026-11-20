@@ -1,7 +1,9 @@
-import { fireEvent, waitFor } from "@testing-library/react";
+import { act, fireEvent, waitFor } from "@testing-library/react";
 
 /** 打开元素上的悬停提示（`Tip`），返回提示里的文字。先聚焦；聚焦不弹的（`focus={false}`）再模拟悬停。 */
 export async function tipText(el: Element): Promise<string> {
+  // Flush passive effects so Base UI's native mouseenter listener is attached before hovering.
+  await act(async () => {});
   fireEvent.focus(el);
   fireEvent.pointerEnter(el, { pointerType: "mouse" });
   fireEvent.mouseEnter(el);
