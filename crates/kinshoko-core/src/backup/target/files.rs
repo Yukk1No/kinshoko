@@ -151,7 +151,7 @@ pub(super) fn valid_id(id: &str) -> bool {
 }
 
 /// `into` 下以 `name` 命名、还不存在的文件夹；重名时加序号。
-pub(super) fn unique_dir(into: &Path, name: &str) -> PathBuf {
+pub(super) fn unique_dir(into: &Path, name: &str, reserved: &BTreeSet<PathBuf>) -> PathBuf {
     let clean: String = name
         .chars()
         .map(|c| match c {
@@ -163,7 +163,7 @@ pub(super) fn unique_dir(into: &Path, name: &str) -> PathBuf {
     let clean = clean.trim().trim_end_matches('.').to_owned();
     let mut candidate = into.join(&clean);
     let mut n = 2;
-    while candidate.exists() {
+    while candidate.exists() || reserved.contains(&candidate) {
         candidate = into.join(format!("{clean} {n}"));
         n += 1;
     }

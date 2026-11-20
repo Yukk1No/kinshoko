@@ -129,13 +129,14 @@ impl BackupTarget {
             let mut reserved = BTreeSet::new();
             for lib in &manifest.libraries {
                 let lang = crate::interface_lang::current();
-                let dir_name = |n| {
-                    crate::written_names::restored_library_dir(lang, &lib.name, &at.local_date(), n)
-                };
-                let mut dest = unique_dir(into, &dir_name(None));
-                while !reserved.insert(dest.clone()) {
-                    dest = unique_dir(into, &dir_name(Some(reserved.len())));
-                }
+                let dir_name = crate::written_names::restored_library_dir(
+                    lang,
+                    &lib.name,
+                    &at.local_date(),
+                    None,
+                );
+                let dest = unique_dir(into, &dir_name, &reserved);
+                reserved.insert(dest.clone());
                 let stage = batch.stage().join(&lib.id);
                 let provenance = RestoreProvenance {
                     old_library_id: lib.id.clone(),
