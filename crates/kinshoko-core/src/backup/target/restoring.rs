@@ -130,13 +130,10 @@ impl BackupTarget {
             fs::create_dir(&library_staging)?;
             for lib in &manifest.libraries {
                 let lang = crate::interface_lang::current();
-                let dir_name = crate::written_names::restored_library_dir(
-                    lang,
-                    &lib.name,
-                    &at.local_date(),
-                    None,
-                );
-                let (dest, stage) = reserve_library_dir(into, &library_staging, &dir_name)?;
+                let dir_name = |n| {
+                    crate::written_names::restored_library_dir(lang, &lib.name, &at.local_date(), n)
+                };
+                let (dest, stage) = reserve_library_dir(into, &library_staging, dir_name)?;
                 let provenance = RestoreProvenance {
                     old_library_id: lib.id.clone(),
                     backup_id: manifest.id.clone(),

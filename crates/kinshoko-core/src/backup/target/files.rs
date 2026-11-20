@@ -154,23 +154,23 @@ pub(super) fn valid_id(id: &str) -> bool {
 pub(super) fn reserve_library_dir(
     into: &Path,
     staging: &Path,
-    name: &str,
+    name: impl Fn(Option<usize>) -> String,
 ) -> std::io::Result<(PathBuf, PathBuf)> {
-    let clean: String = name
-        .chars()
-        .map(|c| match c {
-            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
-            c if c.is_control() => '_',
-            c => c,
-        })
-        .collect();
-    let clean = clean.trim().trim_end_matches('.');
-    let mut name = clean.to_owned();
+    let mut number = None;
     let mut n = 2;
     loop {
-        let dest = into.join(&name);
+        let clean: String = name(number)
+            .chars()
+            .map(|c| match c {
+                '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
+                c if c.is_control() => '_',
+                c => c,
+            })
+            .collect();
+        let clean = clean.trim().trim_end_matches('.');
+        let dest = into.join(clean);
         if !dest.try_exists()? {
-            let stage = staging.join(&name);
+            let stage = staging.join(clean);
             // Let the filesystem detect aliases (including Unicode case) within this batch.
             match fs::create_dir(&stage) {
                 Ok(()) => return Ok((dest, stage)),
@@ -178,7 +178,7 @@ pub(super) fn reserve_library_dir(
                 Err(error) => return Err(error),
             }
         }
-        name = format!("{clean} {n}");
+        number = Some(n);
         n += 1;
     }
 }
