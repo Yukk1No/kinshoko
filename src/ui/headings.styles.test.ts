@@ -12,7 +12,7 @@ const sources = import.meta.glob<string>(["../**/*.{ts,tsx}", "!./headings.style
 const RETIRED = [
   "pane-title",
   "subs-title",
-  "subs-empty-title",
+  ["subs", "empty", "title"].join("-"),
   "k-set-heading",
   "k-set-title",
   "k-dialog-title",

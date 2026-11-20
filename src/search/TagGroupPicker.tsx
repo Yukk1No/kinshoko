@@ -6,6 +6,7 @@ import { formatNumber } from "../i18n/format";
 import { Popover } from "@base-ui/react/popover";
 import { PenLine, Tags } from "lucide-react";
 import { Tip } from "../ui/Tip";
+import { EmptyState } from "../ui/EmptyState";
 import type { TagGroupView } from "../bindings/TagGroupView";
 import type { SearchInput } from "../bindings/SearchInput";
 import { isLensChanged, tagGroups, workspaceTagGroups } from "../ipc";
@@ -148,7 +149,7 @@ export function TagGroupPicker(p: Props) {
                   </div>
                 </section>
               ))}
-              {!groups.length && <p className="k-groups-empty">{t("groups.empty")}</p>}
+              {!groups.length && <EmptyState size="list" title={t("groups.empty")} />}
             </div>
             {p.onEdit && (
               <>

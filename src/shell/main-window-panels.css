@@ -352,7 +352,7 @@
   align-items: stretch;
 }
 /* safe center：窗口矮到放不下时改为顶端对齐，内容只向下溢出，上面的“返回”和标题始终能滚到（最小高度 480 px）。 */
-.app-empty-body {
+.library-start-content {
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -362,6 +362,14 @@
   justify-content: safe center;
   gap: 12px;
   padding: 24px;
+}
+.library-start-content > .k-empty.is-page {
+  flex: none;
+  align-self: stretch;
+}
+.wall > .k-empty.is-page {
+  min-height: 100%;
+  box-sizing: border-box;
 }
 /* 没有图库时的居中引导（#172 原型 A）：欢迎页先选新建或打开，新建再填表；两屏同宽、同一位置。 */
 .welcome {
