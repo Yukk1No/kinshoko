@@ -44,6 +44,8 @@ it("loads the catalog and saves an equal-default preference explicitly, keeps al
   });
   render(<TagNamePanel />);
   const row = await screen.findByRole("listitem", { name: "分缝发型，默认" });
+  // findByRole can resolve before Base UI's effect attaches the native mouseenter listener.
+  await act(async () => {});
   expect(await tipText(row)).toMatch(/别名 分发/);
   fireEvent.click(within(row).getByRole("button", { name: "重命名“分缝发型”" }));
   expect(within(row).getByRole("listitem").textContent).toBe("分发");
