@@ -173,6 +173,10 @@ describe("订阅榜单", () => {
     backend([ranking("r1", "day", 50, { libraryId: "L2" })]);
     page(status());
     const dialog = await openRankingDialog();
+    expect(within(dialog).queryByRole("textbox", { name: "筛选" })).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: "全选未订阅的" })).toBeNull();
+    expect(within(dialog).queryByRole("checkbox", { name: "日榜" })).toBeNull();
+    fireEvent.click(within(dialog).getByRole("button", { name: "显示已订阅的（1）" }));
     const day = within(dialog).getByRole("checkbox", { name: "日榜" }) as HTMLInputElement;
     expect(day.disabled && day.checked).toBe(true);
     expect(within(dialog).getByText("已订阅，前 50")).toBeTruthy();

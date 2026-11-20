@@ -1,5 +1,16 @@
 /** 主窗口几处共用的文案：参考图的操作与结果、内容分级、按图库报告的失败。 */
 export default {
+  selectableList: {
+    selectAll: "全选未订阅的",
+    clear: "清空",
+    showing: "显示 {{shown, number}} / 共 {{total, number}}",
+    showSubscribed_other: "显示已订阅的（{{count, number}}）",
+    hideSubscribed_other: "隐藏已订阅的（{{count, number}}）",
+    subscribed_other: "已订阅（{{count, number}}）",
+    noMatches: "没有匹配的项目",
+    filter: "筛选",
+    selected_other: "已选 {{count, number}}",
+  },
   image: {
     pinWhole: "钉住整图",
     pinPart: "钉住局部",

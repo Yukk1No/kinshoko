@@ -1,0 +1,115 @@
+.k-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  max-height: min(60vh, 520px);
+}
+.k-choice-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.k-choice-list > .k-input {
+  flex-shrink: 0;
+}
+.k-choice-count {
+  margin-inline-start: auto;
+  white-space: nowrap;
+}
+.k-choice-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  border-radius: var(--r);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.k-choice-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.k-choice-row {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
+  gap: 10px;
+}
+.k-choice-row + .k-choice-row {
+  border-top: 1px solid var(--line);
+}
+.k-choice-row:hover {
+  background: var(--hover);
+}
+.k-choice-row.is-on {
+  background: var(--accent-soft);
+}
+.k-choice-row.is-done {
+  color: var(--ink-2);
+}
+.k-choice-row.is-done:hover {
+  background: none;
+}
+.k-choice-pick {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+  cursor: pointer;
+}
+.k-choice-pick:has(:disabled) {
+  cursor: default;
+}
+.k-choice-pick input {
+  flex: none;
+  margin: 0;
+  accent-color: var(--accent-strong);
+}
+.k-choice-pick input:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+.k-choice-leading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 600;
+}
+.k-choice-name {
+  flex: 1;
+  min-width: 0;
+}
+.k-choice-trailing {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+.k-choice-trailing > .k-seg {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+}
+.k-choice-group {
+  padding: 5px 12px;
+  border-top: 1px solid var(--line);
+}
+.k-choice-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px;
+}

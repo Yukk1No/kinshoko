@@ -76,14 +76,14 @@ describe("订阅页共用部件", () => {
       "font-size": "13px",
       "line-height": "inherit",
     });
-    expect(cssRule(subs, ".subs-follow-note")).toEqual({
+    expect(cssRule(sheets["./selectable-list.css"], ".k-choice-status")).toEqual({
       display: "flex",
       "align-items": "center",
       gap: "6px",
       padding: "12px",
     });
     expect(
-      sources["../subscriptions/FollowingDialog.tsx"].match(/className="k-description is-body subs-follow-note"/g),
+      sources["../subscriptions/FollowingDialog.tsx"].match(/className="k-description is-body k-choice-status"/g),
     ).toHaveLength(2);
   });
 
