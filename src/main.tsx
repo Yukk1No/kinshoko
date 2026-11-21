@@ -19,6 +19,7 @@ import "./ui/ui-dock.css";
 import "./ui/menu.css";
 import "./ui/toast.css";
 import "./ui/fields.css";
+import "./ui/row.css";
 import "./shell/main-window.css";
 import "./shell/main-window-island.css";
 import "./shell/main-window-panels.css";

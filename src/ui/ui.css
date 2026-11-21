@@ -85,9 +85,36 @@
 /* 不可用：留细线、去掉投影，实底按钮直接平掉 */
 .k-btn:disabled {
   --k-lift: var(--btn-lift-disabled);
+  opacity: var(--disabled-opacity);
+  cursor: default;
 }
 .k-btn:is(.is-primary, .is-danger):disabled {
   --k-lift: none;
+}
+/* 安静按钮：没有底色与投影，悬停才出底色；带 .is-warn 是警示色。 */
+.k-btn.is-quiet {
+  --k-face: transparent;
+  --k-face-hover: var(--hover);
+  --k-face-press: var(--press);
+  --k-lift: none;
+  --k-lift-hover: none;
+  --k-lift-press: none;
+  color: var(--ink-2);
+}
+.k-btn.is-quiet:hover:not(:disabled) {
+  color: var(--ink);
+}
+.k-btn.is-quiet.is-warn {
+  --k-face: transparent;
+  --k-face-hover: var(--warn-soft);
+  --k-face-press: var(--warn-soft);
+  color: var(--warn);
+}
+.k-btn.is-quiet.is-warn:hover:not(:disabled) {
+  color: var(--warn-strong);
+}
+.k-btn.is-quiet.is-warn:active:not(:disabled) {
+  color: var(--warn-strong);
 }
 .k-btn.is-sm {
   height: var(--h-sm);
@@ -525,4 +552,35 @@
 .k-seg-item[data-disabled] {
   opacity: var(--disabled-opacity);
   cursor: default;
+}
+
+/* 文字链接与复选框 */
+.k-link {
+  border: 0;
+  border-radius: var(--r-s);
+  padding: 0;
+  margin-left: 10px;
+  background: none;
+  color: var(--accent-strong);
+  font: inherit;
+  font-weight: 500;
+}
+.k-link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.k-link:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: default;
+}
+.k-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.k-check input {
+  accent-color: var(--accent-strong);
+  margin: 0;
 }

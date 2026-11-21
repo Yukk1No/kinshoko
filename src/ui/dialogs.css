@@ -3,59 +3,6 @@
 
 /* ---- Form controls ---- */
 /* 输入框、下拉选择与候选列表在 fields.css。 */
-.k-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ink-2);
-  font-size: 12px;
-  white-space: nowrap;
-}
-.k-check input {
-  accent-color: var(--accent-strong);
-  margin: 0;
-}
-.k-link {
-  border: 0;
-  border-radius: var(--r-s);
-  padding: 0;
-  margin-left: 10px;
-  background: none;
-  color: var(--accent-strong);
-  font: inherit;
-  font-weight: 500;
-}
-.k-link:hover:not(:disabled) {
-  text-decoration: underline;
-}
-.k-link:disabled {
-  opacity: var(--disabled-opacity);
-  cursor: default;
-}
-.k-btn.is-quiet {
-  --k-face: transparent;
-  --k-face-hover: var(--hover);
-  --k-face-press: var(--press);
-  --k-lift: none;
-  --k-lift-hover: none;
-  --k-lift-press: none;
-  color: var(--ink-2);
-}
-.k-btn.is-quiet:hover:not(:disabled) {
-  color: var(--ink);
-}
-.k-btn.is-quiet.is-warn {
-  --k-face: transparent;
-  --k-face-hover: var(--warn-soft);
-  --k-face-press: var(--warn-soft);
-  color: var(--warn);
-}
-.k-btn.is-quiet.is-warn:hover:not(:disabled) {
-  color: var(--warn-strong);
-}
-.k-btn.is-quiet.is-warn:active:not(:disabled) {
-  color: var(--warn-strong);
-}
 .legacy-name-migration > .k-dialog-foot > .k-link {
   display: inline-flex;
   align-items: center;
@@ -77,31 +24,6 @@
 }
 .legacy-name-migration > .k-dialog-foot > .k-link:disabled {
   box-shadow: var(--btn-lift-disabled);
-}
-.k-btn:disabled {
-  opacity: var(--disabled-opacity);
-  cursor: default;
-}
-.k-pill.is-accent {
-  background: var(--accent-soft);
-  color: var(--ink);
-}
-.k-pill.is-mine {
-  background: var(--manual-soft);
-  color: var(--manual-strong);
-}
-.k-keys {
-  display: inline-flex;
-  gap: 4px;
-}
-.k-key {
-  font: 500 12px var(--font);
-  padding: 2px 8px;
-  border-radius: var(--r-xs);
-  border: 0;
-  background: var(--surface-2);
-  box-shadow: inset 0 -1px 0 var(--line-2);
-  color: var(--ink);
 }
 /* 对话框本身是初始焦点的落点（设置：不落在关闭按钮上），不画焦点环；里面的控件照常画。 */
 .k-dialog:focus-visible {
