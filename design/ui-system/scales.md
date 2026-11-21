@@ -1,10 +1,8 @@
 # 档位、层级与共用类
 
-这份文件写样式时取数值的地方：字号、圆角、控件高度、层级、不可用、半透明面板、动效各有哪几档，共用类有哪些，样式写在哪个文件里。颜色令牌见 [tokens-and-components.md](tokens-and-components.md)“令牌来源”。
+这份文件是写样式时取数值的地方：字号、圆角、控件高度、层级、不可用、半透明面板、动效各有哪几档，共用类有哪些，样式写在哪个文件里。颜色令牌见 [tokens.md](tokens.md)。
 
 数值的唯一来源是 `src/styles/tokens.css`。这里只写有哪几档、各用在哪里；两边对不上时以 `tokens.css` 为准，并在同一个 PR 里改这份文件。
-
-#598 正在把档位以外的写法收进来。
 
 ## 字号
 
@@ -64,7 +62,7 @@
 
 ## 不可用
 
-一个值：透明度 0.5，令牌 `--disabled-opacity`。`:disabled`、`[data-disabled]`、`[aria-disabled]` 的规则都用它，不再按地方调深浅。
+一个值：透明度 0.5，令牌 `--disabled-opacity`。`:disabled`、`[data-disabled]`、`[aria-disabled]` 的规则都用它，不按地方另调深浅。
 
 ## 半透明浮动面板
 
@@ -72,7 +70,7 @@
 
 用它的：dock、dock 托盘、图片大小浮岛、打标进度、轻提示、任务卡。钉图上的墨色提示条（`src/styles/desktop.css`）只用模糊，底色仍是墨色。
 
-菜单、下拉、可搜索下拉与气泡统一用 `.k-popup`：12 圆角、6 内边距、1 px `--line` 描边、`--surface` 底、`--shadow-pop` 投影，模糊取 `--popup-blur`（`blur(18px) saturate(135%)`）。这是 #601 维护者选定的级联菜单外形，与半透明浮动面板分开。
+菜单、下拉、可搜索下拉与气泡统一用 `.k-popup`：12 圆角、6 内边距、1 px `--line` 描边、`--surface` 底、`--shadow-pop` 投影，模糊取 `--popup-blur`（`blur(18px) saturate(135%)`）。这一外形与半透明浮动面板分开。
 
 ## 动效
 
@@ -95,6 +93,7 @@
 | 令牌 | 值 | 用在哪里 |
 | --- | --- | --- |
 | `--t-progress` | 600 ms | 打标进度环的弧长变化（`src/shell/main-window-island.css`） |
+| `--t-stagger` | 18 ms | 侧栏目录展开时各行依次落下，每行晚这么多（`src/shell/main-window.css`） |
 | `--t-toast` | 400 ms | 轻提示叠放与展开时的位移（`src/ui/toast.css`） |
 | `--t-splash` | 360 ms | 启动画面退场时标志与文字淡出（`src/shell/startup-splash.css`） |
 | `--t-splash-hold` | 250 ms | 启动画面退场前标志多停的一会儿（同上） |
@@ -104,12 +103,12 @@
 | 名称 | 档位 | 用在哪里 |
 | --- | --- | --- |
 | `arcSpring` | snappy 260 ms、morph 420 ms、smooth 400 ms | dock、悬浮栏、图片大小浮岛、对话框高度、查看器飞入 |
-| `spring` | 原版 80 / 160 / 240 ms，只用 moderate | `FluidList` 的悬停高亮 |
+| `spring` | fast 80、moderate 160、slow 240 ms，只用 moderate | `FluidList` 的悬停高亮 |
 
 **例外**
 
-- 级联菜单保留 `src/ui/menu/timing.ts` 的时间常量与回弹（淡入 170、位移 360 ms），退场只淡出，不并入通用档位（#601 定稿）。
-- 封印与释放演出（`src/styles/library.css`）是品牌不变项，数值不动。
+- 级联菜单用 `src/ui/menu/timing.ts` 的时间常量与回弹（淡入 170、位移 360 ms），退场只淡出，不并入通用档位。
+- 封印与释放演出、安全模式遮蔽是品牌不变项，数值不动：卡片遮蔽的过渡在 `src/styles/library.css`，演出层 `.fx-*` 在 `src/styles/shell.css`。
 - 循环播放的动画（呼吸、转圈）有自己的周期。
 
 ## 共用类
@@ -119,7 +118,8 @@
 | 东西 | 类或组件 | 写在哪里 |
 | --- | --- | --- |
 | 按钮（普通、主要、危险） | `.k-btn`、`.k-btn.is-primary`、`.k-btn.is-danger` | `src/ui/ui.css` |
-| 低强调按钮 | `.k-btn.is-quiet`（按钮行里的无底按钮，补救没做成的事加 `.is-warn` 警示语气）、`.k-link`（文字里的操作链接） | `src/ui/dialogs.css`，按钮基础在 `src/ui/ui.css` |
+| 低强调按钮 | `.k-btn.is-quiet`（按钮行里的无底按钮，补救没做成的事加 `.is-warn` 警示语气）、`.k-link`（文字里的操作链接） | `src/ui/ui.css` |
+| 复选框 | `.k-check` | `src/ui/ui.css` |
 | 图标按钮 | `.k-icon-btn` | `src/ui/ui.css` |
 | 控件里的单行文字 | `.k-label` | `src/ui/ui.css` |
 | 输入框 | `.k-input` | `src/ui/fields.css` |
@@ -132,7 +132,9 @@
 | 轻提示 | `Toast`（`.k-toast`） | `src/ui/toast.css` |
 | 对话框 | `.k-dialog`、`DialogHeight` | `src/ui/ui-dock.css` |
 | 设置行 | `SettingsList`（`.k-set-row`） | `src/ui/settings.css` |
-| 胶囊 | `.k-pill` | `src/ui/ui-dock.css` |
+| 胶囊 | `.k-pill`（`.is-ok`、`.is-warn`、`.is-accent`、`.is-mine`） | `src/ui/ui-dock.css` |
+| 按键名 | `.k-keys`、`.k-key` | `src/ui/ui-dock.css` |
+| 侧栏行 | `.k-row`（30 高，图标、名字、张数；选中是指示条） | `src/ui/row.css` |
 | Dock | `Dock`（`.k-dock`） | `src/ui/ui-dock.css` |
 | 计数角标 | `.k-badge`（图标按钮右上角的墨色数字，图标轨与 Dock 共用） | `src/ui/ui-dock.css` |
 | 16 px 标题 | `.k-title`（页面、侧栏、对话框、设置页的标题；外边距与对齐由所在区域另写） | `src/ui/ui.css` |
@@ -143,26 +145,25 @@
 | 标签块与块内操作 | `.k-token`（24 / 26 / 28 px、圆角与底色修饰类）、`.k-token-action`（16 / 18 / 20 px） | `src/ui/token.css` |
 | 转圈 | `.k-spinner`（颜色继承，强调色加 `.is-accent`；尺寸沿用图标） | `src/ui/spinner.css` |
 
-详情面板一级标签使用 `.is-inspector.is-primary-tag`：最小 28 px、横向内边距 10 px、纵向 4 px、13 px 字与 20 px 名称行高；一般标签最小 26 px、内边距 `4px 8px`、12 px 字与 18 px 名称行高。一级修饰类的优先级高于一般档，避免一般规则覆盖。此次恢复 #602 的一级档位；此前层叠后的一级实际为 26 px、横向 8 px、名称行高 18 px。
+详情面板一级标签使用 `.is-inspector.is-primary-tag`：最小 28 px、横向内边距 10 px、纵向 4 px、13 px 字与 20 px 名称行高；一般标签最小 26 px、内边距 `4px 8px`、12 px 字与 18 px 名称行高。一级修饰类的优先级高于一般档，避免一般规则覆盖。
 
-### 还没有共用类
+### 例外
 
-下面这些同一种东西有几个类，#602 各收成一个，收完一类就移进上面的表、从这里删掉：
-
-- 订阅页其余的行、分区标题、复选名单与布局（`src/subscriptions/subscriptions.css`）：#461 会整页重做订阅页，不再有侧栏和订阅对话框，届时一起换掉，现在不收
+- 旧订阅页（`src/subscriptions/subscriptions.css`）的行、分区标题、复选名单与布局没有用共用类。#461 会整份删掉旧订阅页，所以不收。
 
 ## 样式写在哪里
 
 - **令牌**只写在 `src/styles/tokens.css`，其他样式表只写 `var(--token)`。
 - **共用类**写在 `src/ui/` 的样式表里。
 - **一个区域或一个功能**的样式写在它组件旁边的样式表里（如 `src/shell/`、`src/search/`、`src/subscriptions/`），只管那一块。
-- 一个选择器的基础规则只在一份样式表里。不要在另一份里写同名规则去覆盖它。
+- 一个类的基础规则只写在一份样式表里，不在另一份里写同名规则去覆盖它。`src/styles/single-base-rule.styles.test.ts` 会挡住。
 - 一份样式表保持在 20 KB 以内；超了按职责拆，文件名说明它管什么。
-- `src/styles/` 下是原型留下的样式表，类名不带 `k-`。不往里加新规则；#603 把还生效的规则搬走，被覆盖的删掉。
+- `src/styles.css` 按次序导入 `src/styles/` 下的全局样式，`tokens.css` 最先。其余样式表在 `src/main.tsx` 里按次序导入；后导入的同特异性规则会盖过先导入的，挪动次序前先确认没有靠次序取胜的规则。
+- `src/styles/` 下的样式表类名不带 `k-`。新规则写进组件旁边的样式表，不往 `src/styles/` 里加。
 
 ### 挡住回退的测试
 
-每收一类，加一条样式测试扫描全部样式表，发现档位以外的写法就失败；确有理由的例外列进 `ALLOWED` 并写理由。现有的：
+下面这些样式测试扫描全部样式表，发现档位以外的写法就失败；确有理由的例外列进 `ALLOWED` 并写理由。
 
 - `src/styles/tokens.styles.test.ts`：令牌文件以外的十六进制颜色
 - `src/styles/focus.styles.test.ts`：焦点环以外的焦点写法
@@ -174,3 +175,4 @@
 - `src/ui/low-emphasis-buttons.styles.test.ts`：扫描全部 CSS、TS、TSX，挡住低强调按钮旧类名的用处和样式定义
 - `src/ui/empty-state.styles.test.ts`：扫描生产 CSS、TS、TSX，挡住空状态旧类名；锁住两档共用样式与可搜索下拉的行布局
 - `src/ui/token.styles.test.ts`：挡住标签块旧类名与区域字形、颜色、尺寸覆盖；锁住共用档位、一级标签 28 px 与可信度三档
+- `src/styles/single-base-rule.styles.test.ts`：一个类的基础规则写在两份样式表里；`src/styles.css` 不先导入 `tokens.css`

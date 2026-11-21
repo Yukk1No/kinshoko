@@ -1,4 +1,4 @@
-/* Settings dialog: vertical tabs + rows (split from dialogs.css; design/ui-system/tokens-and-components.md「设置」).
+/* Settings dialog: vertical tabs + rows (split from dialogs.css; design/ui-system/components.md「设置」).
    Built on the shared `.k-dialog` / `.k-list` shell in ui.css and the form controls in dialogs.css. */
 
 /* 起始高度够大多数页面用，切页时容器不动；只有放不下的长页才长高，最高到 --k-settings-max。 */
