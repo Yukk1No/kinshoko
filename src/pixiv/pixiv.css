@@ -194,3 +194,82 @@
   padding: 12px;
   color: var(--ink-2);
 }
+
+/* 去处（#461 第 4 步）。新作与推荐那面墙换走时只是藏起来，保留滚动位置。 */
+.pw-page {
+  position: relative;
+}
+
+.pw-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pw-view[data-away] {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+}
+
+.pw-subbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px 8px;
+}
+
+.pw-subbar-title {
+  margin: 0;
+}
+
+.pw-band-artist {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pw-artists {
+  display: grid;
+  /* 一格和墙上的一列一样宽（`--pw-column`，由墙的密度给）。 */
+  grid-template-columns: repeat(auto-fill, minmax(var(--pw-column), 1fr));
+  align-content: start;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 12px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.pw-artist {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: var(--r-s);
+  background: var(--card);
+  color: var(--ink);
+  text-align: start;
+  cursor: pointer;
+}
+
+.pw-artist:hover {
+  background: var(--sunken);
+}
+
+.pw-artist:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.pw-artist-name {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
