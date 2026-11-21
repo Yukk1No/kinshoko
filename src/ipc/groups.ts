@@ -30,14 +30,20 @@ export function deskReferenceGroups(): Promise<DeskLists> {
 }
 
 /**
- * 空桌上钉下第一张、开了新参考组，而且有上一组时推送，载荷是上一组的 id：
+ * 空桌上钉下第一张、开了新参考组，而且有上一组时推送，载荷是新参考组与上一组的 id（`{ groupId, previousId }`）：
  * 提示里可以“加进「上一组」”（{@link foldIntoPrevious}）。
  */
 export const DESK_GROUP_STARTED_EVENT = "desk-group-started";
 
-/** 见 {@link DESK_GROUP_STARTED_EVENT}：`handler` 收到上一组的 id。 */
-export function onDeskGroupStarted(handler: (previousId: string) => void): Promise<UnlistenFn> {
-  return listen<string>(DESK_GROUP_STARTED_EVENT, (event) => handler(event.payload));
+/** {@link DESK_GROUP_STARTED_EVENT} 的载荷：开出的新参考组与它的上一组。 */
+export interface DeskGroupStarted {
+  groupId: string;
+  previousId: string;
+}
+
+/** 见 {@link DESK_GROUP_STARTED_EVENT}。 */
+export function onDeskGroupStarted(handler: (started: DeskGroupStarted) => void): Promise<UnlistenFn> {
+  return listen<DeskGroupStarted>(DESK_GROUP_STARTED_EVENT, (event) => handler(event.payload));
 }
 
 /** 整桌换成参考组 `groupId`，原来那一桌原样留着。 */
@@ -85,9 +91,12 @@ export function duplicateReferenceGroup(groupId: string, name: string): Promise<
   return invoke<string>(desk("duplicate_reference_group"), { groupId, name });
 }
 
-/** 加进上一组：桌面上参考组的成员移进 `targetId`，删掉桌面上那个，把 `targetId` 摆上桌面。 */
-export function foldIntoPrevious(targetId: string): Promise<void> {
-  return invoke<void>(desk("fold_into_previous"), { targetId });
+/**
+ * 加进上一组：桌面上的参考组 `sourceId`（提示所说的新参考组）的成员移进 `targetId`，删掉 `sourceId`，
+ * 把 `targetId` 摆上桌面。桌面上已不是 `sourceId` 时什么都不做。
+ */
+export function foldIntoPrevious(sourceId: string, targetId: string): Promise<void> {
+  return invoke<void>(desk("fold_into_previous"), { sourceId, targetId });
 }
 
 /**

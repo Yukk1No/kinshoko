@@ -19,6 +19,13 @@ pub struct Added {
     pub fold_into: Option<String>,
 }
 
+impl Added {
+    /// 这张钉进的参考组（开关打开时）。
+    pub fn group_id(&self) -> Option<&str> {
+        self.pin.member.as_ref().map(|m| m.group_id.as_str())
+    }
+}
+
 pub struct PinState(Box<Desk>);
 
 impl PinState {

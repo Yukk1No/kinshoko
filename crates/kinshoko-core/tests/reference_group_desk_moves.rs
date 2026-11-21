@@ -73,7 +73,7 @@ fn folding_into_the_previous_group_moves_members_and_captures_and_puts_it_on_the
 
     let switched = t
         .desk
-        .fold_into_previous(pinned.fold_into.as_deref().unwrap(), &mut t.history)
+        .fold_into_previous(&fresh, pinned.fold_into.as_deref().unwrap(), &mut t.history)
         .unwrap();
     assert_eq!(t.desk_id(), previous, "上一组摆上桌面");
     assert!(!t.group_file(&fresh).exists(), "新参考组删掉");

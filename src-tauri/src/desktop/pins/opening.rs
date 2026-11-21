@@ -128,7 +128,7 @@ pub(in crate::desktop) fn add(app: &AppHandle, pin: SavedPin) -> Result<SavedPin
     let added = lock(&state(app).store).add(pin, &mut lock(&state(app).history))?;
     state(app).dirty.store(true, Ordering::Relaxed);
     if added.started {
-        crate::desktop::desk_commands::started(app, added.fold_into);
+        crate::desktop::desk_commands::started(app, added.group_id(), added.fold_into.clone());
     }
     Ok(added.pin)
 }

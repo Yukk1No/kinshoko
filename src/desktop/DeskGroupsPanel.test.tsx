@@ -302,6 +302,13 @@ describe("参考组面板：移到新参考组", () => {
     expect(ipc.undoSplit).toHaveBeenCalled();
     expect(ipc.undoPrune).not.toHaveBeenCalled();
   });
+
+  it("最早那天的都已关闭、折起来时，较新的一段照样能移到新参考组", async () => {
+    members = [member("m1", { addedAt: NOV_18, pinned: false }), member("m2", { addedAt: NOV_18 + DAY })];
+    await show(lists({ recent: [hair] }));
+    const shown = screen.getByRole("group", { name: "头发 的成员" });
+    expect(within(shown).getAllByRole("button", { name: "移到新参考组" })).toHaveLength(1);
+  });
 });
 
 describe("参考组面板的“更多”", () => {

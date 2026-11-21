@@ -77,7 +77,7 @@ fn folding_renames_a_member_whose_id_cannot_name_a_capture_file() {
 
     t.desk.switch_to(&source, &mut t.history).unwrap();
     t.desk
-        .fold_into_previous(&previous, &mut t.history)
+        .fold_into_previous(&source, &previous, &mut t.history)
         .unwrap();
 
     let escaped = t.root.join("victim.png");
@@ -168,7 +168,7 @@ fn a_fold_that_cannot_save_the_desk_state_keeps_the_source_captures() {
     let state = break_state(&t);
     assert!(
         t.desk
-            .fold_into_previous(&previous, &mut t.history)
+            .fold_into_previous(&source, &previous, &mut t.history)
             .is_err()
     );
     std::fs::remove_dir_all(&state).unwrap();
@@ -212,4 +212,31 @@ fn showing_a_member_that_cannot_be_pinned_after_switching_still_reports_the_swit
     assert!(!switched.opened.problems.is_empty(), "钉不出来的原因在里面");
     assert!(shown.opened.is_none());
     assert_eq!(switched.opened.pins.len(), 1, "那组钉着的照样钉出");
+}
+
+#[test]
+fn folding_after_the_desk_changed_does_nothing() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    t.desk.flush().unwrap();
+    let previous = t.desk_id();
+    t.desk.new_desk(&mut t.history).unwrap();
+    t.pin_reference("b", 20);
+    t.desk.flush().unwrap();
+    let started = t.desk_id();
+    t.desk.new_desk(&mut t.history).unwrap();
+    t.pin_reference("c", 30);
+    t.desk.flush().unwrap();
+    let other = t.desk_id();
+
+    // “已开新参考组”的提示还在，画师已换到别的参考组再点“加进上一组”。
+    let switched = t
+        .desk
+        .fold_into_previous(&started, &previous, &mut t.history)
+        .unwrap();
+    assert!(switched.closed.is_empty() && switched.opened.pins.is_empty());
+    assert_eq!(t.desk_id(), other, "桌面不变");
+    assert_eq!(reread(&t, &other).members.len(), 1, "桌面上那组没被并走");
+    assert_eq!(reread(&t, &started).members.len(), 1);
+    assert_eq!(reread(&t, &previous).members.len(), 1);
 }

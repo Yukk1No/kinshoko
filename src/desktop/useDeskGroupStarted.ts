@@ -7,14 +7,15 @@ import { groupLabel } from "./groupLabel";
 
 /**
  * 空桌上钉下第一张开了新参考组（#595）：提示“已开新参考组”，带“加进「上一组」”，
- * 把这张连同之后钉的并回上一组。上一组读不出来时只提示，不带这一项。
+ * 把这张连同之后钉的并回上一组。上一组读不出来时只提示，不带这一项。提示出来之后换过桌再点，什么都不做
+ * （只并提示所说的那个新参考组）。
  */
 export function useDeskGroupStarted() {
   const { t } = useTranslation("desktop");
   const toast = useToast();
   useEffect(() => {
     let live = true;
-    const unlisten = onDeskGroupStarted((previousId) => {
+    const unlisten = onDeskGroupStarted(({ groupId, previousId }) => {
       void referenceGroup(previousId)
         .then(
           (view) => view.group,
@@ -27,7 +28,7 @@ export function useDeskGroupStarted() {
             action: previous
               ? {
                   label: t("deskPanel.foldInto", { name: groupLabel(previous) }),
-                  onClick: () => void foldIntoPrevious(previousId).catch((e) => toast.error(errorText(e))),
+                  onClick: () => void foldIntoPrevious(groupId, previousId).catch((e) => toast.error(errorText(e))),
                 }
               : undefined,
           });
