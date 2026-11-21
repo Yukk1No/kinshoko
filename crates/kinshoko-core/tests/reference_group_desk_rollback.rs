@@ -39,7 +39,9 @@ fn closing_a_fresh_capture_pin_whose_history_entry_was_deleted_keeps_its_capture
         capture_file_of(&t, &id),
         "截图复制进了参考组"
     );
-    assert!(t.history.entry(&capture).is_none(), "之后截图历史照常放开");
+    assert!(t.history.entry(&capture).is_some(), "落盘前一直钉着");
+    t.pin_reference("b", 20);
+    assert!(t.history.entry(&capture).is_none(), "落了盘之后照常放开");
 }
 
 #[test]

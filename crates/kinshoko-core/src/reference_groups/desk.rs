@@ -113,8 +113,8 @@ pub struct Desk {
     trashed_from_desk: BTreeSet<String>,
     /// 撤销删除时文件已放回、还没做完的参考组：再撤销一次时接着做完。
     untrashed: BTreeSet<String>,
-    /// 关掉时截图还没复制进参考组的截图钉图：落盘后才在截图历史里放开钉住，
-    /// 免得截图在这之前从截图历史删掉时文件跟着没了。
+    /// 关掉时截图还没复制进参考组的截图钉图：落了盘之后，下一次钉上、关掉或换桌时才在截图历史里
+    /// 放开钉住，免得截图在这之前从截图历史删掉时文件跟着没了。
     unpin_after_flush: Vec<String>,
     dirty: bool,
 }
@@ -304,10 +304,9 @@ impl Desk {
         self.dirty = true;
         if let Some(capture) = pin.capture_id() {
             if pending {
-                // 截图还没复制进参考组：先落盘再放开截图历史的钉住，不然截图这时已从截图历史删掉的话
-                // 文件跟着没了。写不进时留到之后落了盘再放开（[`Self::release_unpins`]）。
+                // 截图还没复制进参考组：落了盘之后才放开截图历史的钉住（[`Self::release_unpins`]），
+                // 不然截图这时已从截图历史删掉的话文件跟着没了。
                 self.unpin_after_flush.push(capture.to_owned());
-                let _ = self.flush();
             } else {
                 history.unpin(capture);
             }
