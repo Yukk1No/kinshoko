@@ -64,6 +64,7 @@ const desktop: Translation<typeof zh> = {
     foldInto: "Add to “{{name}}”",
     split: "Move to new reference group",
     splitDone: "Moved to a new reference group",
+    splitNotShown: "Moved to a new reference group, but it could not be put on the desk",
   },
   capture: {
     label: "Screenshot",
