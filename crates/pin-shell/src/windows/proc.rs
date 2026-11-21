@@ -33,6 +33,7 @@ use super::input::{
     buttons_held, client_to_screen, lparam_point, unpack_key, wheel_ctrl, wheel_notches,
 };
 use super::window::{SlotData, any_slot_data, pin_under_cursor, slot_data};
+use crate::keys::EscPass;
 use crate::types::{HookEvent, PinInput, Pointer, PointerEvent};
 use crate::{PointerButton, PointerKind};
 
@@ -333,12 +334,15 @@ pub(super) unsafe extern "system" fn host_proc(
             return LRESULT(0);
         }
         WM_HOOK => {
-            let event = if wp.0 == 0 {
-                HookEvent::Reinstalled {
+            let event = match wp.0 {
+                0 => HookEvent::Reinstalled {
                     late_ms: lp.0 as u32,
-                }
-            } else {
-                HookEvent::Failed { code: lp.0 as u32 }
+                },
+                2 => HookEvent::EscPassed(EscPass::unpack(lp.0 as usize)),
+                3 => HookEvent::ElevatedForeground {
+                    exe: super::foreground::take_exe(),
+                },
+                _ => HookEvent::Failed { code: lp.0 as u32 },
             };
             push([PinInput::KeyHook(event)]);
             return LRESULT(0);

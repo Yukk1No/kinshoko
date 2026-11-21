@@ -6,6 +6,7 @@ import { formatNumber } from "../i18n/format";
 import { Popover } from "@base-ui/react/popover";
 import { PenLine, Tags } from "lucide-react";
 import { Tip } from "../ui/Tip";
+import { EmptyState } from "../ui/EmptyState";
 import type { TagGroupView } from "../bindings/TagGroupView";
 import type { SearchInput } from "../bindings/SearchInput";
 import { isLensChanged, tagGroups, workspaceTagGroups } from "../ipc";
@@ -111,7 +112,7 @@ export function TagGroupPicker(p: Props) {
               {groups.map((g) => (
                 <section key={g.id} className="k-groups-section" aria-label={t("groups.tags", { name: g.name })}>
                   <header>
-                    <h3>{g.name}</h3>
+                    <h3 className="k-section-label">{g.name}</h3>
                     <button
                       type="button"
                       className="group-any"
@@ -130,7 +131,7 @@ export function TagGroupPicker(p: Props) {
                         <button
                           type="button"
                           key={tag.id}
-                          className={`chip pick${c ? (c.negate ? " is-neg" : " is-on") : ""}${!count && !c ? " is-zero" : ""}`}
+                          className={`k-token is-28 is-surface is-pick${c ? (c.negate ? " is-neg" : " is-on") : ""}${!count && !c ? " is-zero" : ""}`}
                           aria-pressed={!!c}
                           onClick={(e) => (c ? remove(tag.id) : add(tag.id, e.ctrlKey || e.metaKey ? "or" : "and"))}
                           onContextMenu={(e) => {
@@ -141,14 +142,14 @@ export function TagGroupPicker(p: Props) {
                         >
                           <span className="k-label">{tagName(tag)}</span>
                           <TagMarks tag={tag} />
-                          <span className="count tabular k-label">{formatNumber(count)}</span>
+                          <span className="k-token-count tabular k-label">{formatNumber(count)}</span>
                         </button>
                       );
                     })}
                   </div>
                 </section>
               ))}
-              {!groups.length && <p className="k-groups-empty">{t("groups.empty")}</p>}
+              {!groups.length && <EmptyState size="list" title={t("groups.empty")} />}
             </div>
             {p.onEdit && (
               <>

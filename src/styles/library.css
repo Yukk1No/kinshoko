@@ -72,26 +72,6 @@
   }
 }
 
-.wall-empty {
-  display: grid;
-  justify-items: center;
-  gap: 16px;
-  margin: 48px auto;
-  text-align: center;
-  color: var(--ink-2);
-}
-
-.wall-empty > p {
-  margin: 0;
-}
-
-.wall-empty-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-}
-
 .card {
   position: absolute;
   background: var(--card);
@@ -196,10 +176,6 @@
 .settings h2 {
   margin: 0 0 8px;
   font-size: 16px;
-}
-
-.settings-error {
-  color: var(--danger);
 }
 
 /* 诊断与更新（#70） */
@@ -360,14 +336,14 @@
   font-size: 12px;
 }
 
-.selection-note {
+.selection-note-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
 }
 
-.selection-note textarea {
+.selection-note-field textarea {
   font: inherit;
   font-size: 13px;
   resize: vertical;

@@ -211,22 +211,22 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
           <Dialog.Close className="k-icon-btn k-dialog-x" aria-label={t("close")}>
             <X size={16} aria-hidden="true" />
           </Dialog.Close>
-          <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+          <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
           <DialogHeight>
             {busy && (
-              <p className="k-set-note" role="status">
+              <p className="k-description is-spaced" role="status">
                 {t("busy")}
               </p>
             )}
             {error && (
-              <p className="k-set-error" role="alert">
+              <p className="k-error-text is-boxed" role="alert">
                 {error}
               </p>
             )}
             {view?.libraries
               .filter((entry) => entry.unavailable)
               .map((entry) => (
-                <p key={entry.library.id} className="k-set-note" role="status">
+                <p key={entry.library.id} className="k-description is-spaced" role="status">
                   {t("libraryOffline", {
                     library: entry.library.name,
                     reason: describeCommandError(entry.unavailable!),
@@ -234,7 +234,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
                 </p>
               ))}
             {saved && <p role="status">{t("saved")}</p>}
-            {view && groups.length === 0 && <p className="k-set-note">{t("none")}</p>}
+            {view && groups.length === 0 && <p className="k-description is-spaced">{t("none")}</p>}
             {groups.length > 0 && (
               <>
                 <div className="k-steps-row">
@@ -254,7 +254,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
                     {reviewing ? t("reviewStep") : t("step", { current: page + 1, total: groups.length })}
                   </span>
                 </div>
-                <p className="k-set-note" role="status">
+                <p className="k-description is-spaced" role="status">
                   {t("chosen", { chosen, total: groups.length })}
                 </p>
               </>
@@ -336,7 +336,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
                         </table>
                         {outcomes.length > PREVIEW_PAGE && (
                           <div className="k-dialog-foot is-tight">
-                            <span className="k-set-note">
+                            <span className="k-description is-spaced">
                               {formatNumber(previewPage * PREVIEW_PAGE + 1)}–
                               {formatNumber(Math.min((previewPage + 1) * PREVIEW_PAGE, outcomes.length))} /{" "}
                               {formatNumber(outcomes.length)}
@@ -369,12 +369,7 @@ export function LegacyNameWizard({ open, onOpenChange }: { open: boolean; onOpen
           </DialogHeight>
           <div className="k-dialog-foot">
             {groups.length > 0 && !reviewing && !saved && (
-              <button
-                type="button"
-                className="k-btn is-ghost is-flush"
-                disabled={busy || bulk.length === 0}
-                onClick={bulkFollow}
-              >
+              <button type="button" className="k-link" disabled={busy || bulk.length === 0} onClick={bulkFollow}>
                 <span className="k-label">{t("bulk", { count: bulk.length })}</span>
               </button>
             )}

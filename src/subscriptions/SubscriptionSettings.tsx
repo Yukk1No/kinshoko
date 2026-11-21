@@ -38,11 +38,11 @@ export function SubscriptionSettings({
   return (
     <>
       <div className="subs-settings-head">
-        <h3 className="k-set-title">{t("settings.tab")}</h3>
+        <h3 className="k-title">{t("settings.tab")}</h3>
         <UnofficialMark />
       </div>
       {error !== null && (
-        <p className="k-set-error" role="alert">
+        <p className="k-error-text is-boxed" role="alert">
           {error}
         </p>
       )}

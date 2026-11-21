@@ -16,7 +16,7 @@
 | 13 | 正文、控件文字、菜单行 |
 | 12 | 分组名、说明、角标、快捷键提示 |
 
-级联菜单的行（14 px）与组名 `.k-menu-title`（11 px）是现在仅有的例外，由 #601 收回三档。
+菜单行与下拉候选都是 13 px，菜单标题与分组名共用 `.k-section-label`（12 px），没有字号例外。
 
 ## 圆角
 
@@ -26,8 +26,8 @@
 | --- | --- | --- |
 | `--r-xs` | 4 | 最内层的小块 |
 | `--r-s` | 8 | 菜单项、分段项、开关 |
-| `--r` | 12 | 输入框、按钮、面板 |
-| `--r-l` | 16 | 浮层 |
+| `--r` | 12 | 输入框、按钮、面板、浮层 |
+| `--r-l` | 16 | 轻提示、任务卡 |
 | `--r-xl` | 20 | dock、设置组 |
 | `--r-2xl` | 32 | 对话框 |
 | `--r-pill` | 999 | 胶囊、圆形 |
@@ -70,7 +70,9 @@
 
 一种配方：底色 `--glass-bg`（`--surface` 的 86%），模糊 `--glass-blur`（`blur(18px) saturate(1.2)`）。
 
-用它的：dock、dock 托盘、图片大小浮岛、打标进度、轻提示、任务卡。钉图上的墨色提示条（`src/styles/desktop.css`）只用模糊，底色仍是墨色。级联菜单的模糊归“浮层”那一类，由 #601 定。
+用它的：dock、dock 托盘、图片大小浮岛、打标进度、轻提示、任务卡。钉图上的墨色提示条（`src/styles/desktop.css`）只用模糊，底色仍是墨色。
+
+菜单、下拉、可搜索下拉与气泡统一用 `.k-popup`：12 圆角、6 内边距、1 px `--line` 描边、`--surface` 底、`--shadow-pop` 投影，模糊取 `--popup-blur`（`blur(18px) saturate(135%)`）。这是 #601 维护者选定的级联菜单外形，与半透明浮动面板分开。
 
 ## 动效
 
@@ -106,7 +108,7 @@
 
 **例外**
 
-- 级联菜单的时间常量留在 `src/ui/menu/timing.ts`（淡入 170、位移 360 ms 与一条回弹曲线）。并不并入通用档位，等 #601 里维护者的回答。
+- 级联菜单保留 `src/ui/menu/timing.ts` 的时间常量与回弹（淡入 170、位移 360 ms），退场只淡出，不并入通用档位（#601 定稿）。
 - 封印与释放演出（`src/styles/library.css`）是品牌不变项，数值不动。
 - 循环播放的动画（呼吸、转圈）有自己的周期。
 
@@ -117,6 +119,7 @@
 | 东西 | 类或组件 | 写在哪里 |
 | --- | --- | --- |
 | 按钮（普通、主要、危险） | `.k-btn`、`.k-btn.is-primary`、`.k-btn.is-danger` | `src/ui/ui.css` |
+| 低强调按钮 | `.k-btn.is-quiet`（按钮行里的无底按钮，补救没做成的事加 `.is-warn` 警示语气）、`.k-link`（文字里的操作链接） | `src/ui/dialogs.css`，按钮基础在 `src/ui/ui.css` |
 | 图标按钮 | `.k-icon-btn` | `src/ui/ui.css` |
 | 控件里的单行文字 | `.k-label` | `src/ui/ui.css` |
 | 输入框 | `.k-input` | `src/ui/fields.css` |
@@ -125,24 +128,26 @@
 | 菜单 | `Menu`（`src/ui/menu/`） | `src/ui/menu.css` |
 | 分段控件 | `Segmented`（`.k-seg`） | `src/ui/` |
 | 开关 | `Switch`（`.k-switch`） | `src/ui/` |
-| 悬停提示 | `Tip`（`.k-tip`） | 规则现在在 `src/shell/main-window.css`，#601 搬进 `src/ui/` |
+| 悬停提示 | `Tip`（`.k-tip`）与 Dock（`.k-dock-tip`）共用纸面、墨字、6 / 10 内边距 | `src/ui/ui-dock.css` |
 | 轻提示 | `Toast`（`.k-toast`） | `src/ui/toast.css` |
 | 对话框 | `.k-dialog`、`DialogHeight` | `src/ui/ui-dock.css` |
 | 设置行 | `SettingsList`（`.k-set-row`） | `src/ui/settings.css` |
 | 胶囊 | `.k-pill` | `src/ui/ui-dock.css` |
 | Dock | `Dock`（`.k-dock`） | `src/ui/ui-dock.css` |
 | 计数角标 | `.k-badge`（图标按钮右上角的墨色数字，图标轨与 Dock 共用） | `src/ui/ui-dock.css` |
+| 16 px 标题 | `.k-title`（页面、侧栏、对话框、设置页的标题；外边距与对齐由所在区域另写） | `src/ui/ui.css` |
+| 12 px 分组名 | `.k-section-label`（菜单、字段、浮层里的分组名；菜单里加 `.is-menu` 与选项文字对齐） | `src/ui/ui.css` |
+| 说明文字 | `.k-description`（12 / 18，次要墨色；段前间距加 `.is-spaced`） | `src/ui/ui.css` |
+| 报错文字 | `.k-error-text`（12 px，危险色，行高继承；底框加 `.is-boxed`，字段图标行加 `.is-field`） | `src/ui/ui.css` |
+| 空状态 | `EmptyState`（`.k-empty.is-page` 整页、`.k-empty.is-list` 列表内；标题必填，说明与操作可选） | `src/ui/EmptyState.tsx`、`src/ui/empty-state.css` |
+| 标签块与块内操作 | `.k-token`（24 / 26 / 28 px、圆角与底色修饰类）、`.k-token-action`（16 / 18 / 20 px） | `src/ui/token.css` |
+
+详情面板一级标签使用 `.is-inspector.is-primary-tag`：最小 28 px、横向内边距 10 px、纵向 4 px、13 px 字与 20 px 名称行高；一般标签最小 26 px、内边距 `4px 8px`、12 px 字与 18 px 名称行高。一级修饰类的优先级高于一般档，避免一般规则覆盖。此次恢复 #602 的一级档位；此前层叠后的一级实际为 26 px、横向 8 px、名称行高 18 px。
 
 ### 还没有共用类
 
 下面这些同一种东西有几个类，#602 各收成一个，收完一类就移进上面的表、从这里删掉：
 
-- 标签块：`.chip`、`.k-chip`、`.k-group-chip`、`.search-chip`、`.k-tag-chip`
-- 低强调按钮：`.k-btn.is-quiet`、`.k-btn.is-ghost`、`.k-btn.is-flush`、`.k-link`
-- 16 px 标题：`.pane-title`、`.subs-title`、`.subs-empty-title`、`.k-set-heading`、`.k-set-title`、`.k-dialog-title`
-- 12 px 分组名：`.k-menu-label`、`.k-field-label`、`.k-add-similar-head`、`.k-tag-alias-title`、`.subs-group-head`
-- 空状态：`.subs-empty`、`.wall-empty`、`.app-empty-body`、`.capture-history-empty`、`.reference-groups-empty`、`.k-tags-empty`、`.k-groups-empty`、`.k-option-empty`
-- 说明与报错文字：`.k-set-note`、`.k-set-hint`、`.k-set-error`、`.k-set-load-error`、`.settings-error`、`.k-field-error`、`.create-library-error`、`.selection-note`、`.insp-hint`
 - 订阅页自带的行、标题、空状态、转圈（`src/subscriptions/subscriptions.css` 的 `subs-` 类）
 
 ## 样式写在哪里
@@ -163,3 +168,8 @@
 - `src/ui/popup.styles.test.ts`：浮层外形
 - `src/styles/motion.styles.test.ts`：令牌文件以外的 `transition`、`animation` 里写死的时长
 - `src/styles/scales.styles.test.ts`：10 以上的 `z-index` 数字、不可用规则里写死的透明度、写死的 `backdrop-filter`
+- `src/ui/headings.styles.test.ts`：`.k-title`、`.k-section-label` 以外另写的标题、分组名字形，以及收掉的旧类名
+- `src/ui/note-error.styles.test.ts`：`.k-description`、`.k-error-text` 以外另写的说明、报错字形，以及收掉的旧类名
+- `src/ui/low-emphasis-buttons.styles.test.ts`：扫描全部 CSS、TS、TSX，挡住低强调按钮旧类名的用处和样式定义
+- `src/ui/empty-state.styles.test.ts`：扫描生产 CSS、TS、TSX，挡住空状态旧类名；锁住两档共用样式与可搜索下拉的行布局
+- `src/ui/token.styles.test.ts`：挡住标签块旧类名与区域字形、颜色、尺寸覆盖；锁住共用档位、一级标签 28 px 与可信度三档

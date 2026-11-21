@@ -1,4 +1,5 @@
-/* Shared redesign components, part 2: dock, dialog shell and settings-style lists, selection dock. Loaded right after ui.css. */
+/* Shared redesign components, part 2: dock, shared tooltips, dialog shell, settings-style lists, pills,
+   badges and selection dock. Loaded right after ui.css. */
 /* ---- Dock (after Arc Pro dock behaviour) ---- */
 .k-dock {
   position: relative;
@@ -92,26 +93,47 @@
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
-.k-dock-tip {
-  position: absolute;
-  bottom: calc(100% + 10px);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* 悬停提示共用 Dock 的表面（#601）；定位、换行与动效仍由各自的触发方式决定。 */
+:is(.k-tip, .k-dock-tip) {
   padding: 6px 10px;
   border-radius: var(--r-s);
   background: var(--surface);
   color: var(--ink);
   font-size: 12px;
   line-height: 18px;
+  box-shadow: var(--shadow-pop);
+}
+.k-tip {
+  max-width: 360px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  transform-origin: var(--transform-origin);
+  transition:
+    transform var(--t-fast) var(--spring),
+    opacity var(--t-fast);
+}
+.k-tip-note {
+  margin-left: 8px;
+  opacity: 0.7;
+}
+.k-tip[data-starting-style],
+.k-tip[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.96);
+}
+.k-dock-tip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
   white-space: nowrap;
   pointer-events: none;
-  box-shadow: var(--shadow-pop);
 }
 .k-dock-tip-note {
   opacity: 0.7;
 }
-/* 墨紫提示里的键帽：设置里 .k-key 的反色版，底色与下沿取前景色的淡色。 */
+/* 纸面提示里的键帽：日夜都用共用的悬停底与细线，不再按反色提示取背景色。 */
 .k-tip-line {
   display: flex;
   align-items: center;
@@ -120,9 +142,9 @@
 :is(.k-tip, .k-dock-tip) .k-key {
   padding: 0 6px;
   line-height: 18px;
-  background: color-mix(in srgb, var(--bg) 16%, transparent);
+  background: var(--hover);
   color: inherit;
-  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--bg) 30%, transparent);
+  box-shadow: inset 0 -1px 0 var(--line-2);
 }
 .k-dock-tray {
   position: absolute;
@@ -211,12 +233,6 @@
 .k-dialog[data-ending-style] {
   opacity: 0;
   transform: scale(0.97);
-}
-.k-dialog-title {
-  margin: 0;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
 }
 .k-dialog-desc {
   margin: 4px 0 14px;

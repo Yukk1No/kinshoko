@@ -259,7 +259,7 @@ try {
     {},
   );
   const librarySelect =
-    "[...document.querySelectorAll('.k-import-dialog select')].find(s=>s.labels?.[0]?.querySelector('.k-field-label')?.textContent.trim()==='放到图库')";
+    "[...document.querySelectorAll('.k-import-dialog select')].find(s=>s.labels?.[0]?.querySelector('.k-section-label')?.textContent.trim()==='放到图库')";
   await until("导入对话框", () => exec(`return !!${librarySelect}?.options[1]`));
   await exec(
     `const s=${librarySelect};s.value=s.options[1].value;s.dispatchEvent(new Event('change',{bubbles:true}));`,

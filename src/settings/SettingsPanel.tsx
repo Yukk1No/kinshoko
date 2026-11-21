@@ -100,12 +100,12 @@ export function SettingsPanel({
     return (
       <section className="k-settings is-loading" aria-label={t("label")}>
         {loadError === null ? (
-          <p className="k-set-note" role="status">
+          <p className="k-description is-spaced" role="status">
             {t("loading")}
           </p>
         ) : (
-          <div className="k-set-load-error">
-            <p className="k-set-error" role="alert">
+          <div className="k-set-retry">
+            <p className="k-error-text is-boxed" role="alert">
               {t("loadFailed", { error: loadError })}
             </p>
             <button type="button" className="k-btn" onClick={settings.retryLoad}>
@@ -132,9 +132,9 @@ export function SettingsPanel({
     panel(
       value,
       <>
-        <h3 className="k-set-title">{tabName(value)}</h3>
+        <h3 className="k-title">{tabName(value)}</h3>
         {error !== null && (
-          <p className="k-set-error" role="alert">
+          <p className="k-error-text is-boxed" role="alert">
             {error}
           </p>
         )}
@@ -156,7 +156,7 @@ export function SettingsPanel({
         className="k-set-body"
       >
         <nav className="k-set-nav">
-          <h2 className="k-set-heading">{t("heading")}</h2>
+          <h2 className="k-title">{t("heading")}</h2>
           <Tabs.List className="k-set-tabs" aria-label={t("tabsLabel")} activateOnFocus>
             <Tabs.Indicator className="k-set-tab-indicator" />
             {tabsWith(!!subscriptions).map((entry) => (

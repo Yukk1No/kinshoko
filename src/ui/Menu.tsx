@@ -118,7 +118,7 @@ function Level({
       aria-label={label}
     >
       {title && (
-        <div className="k-menu-title" aria-hidden="true">
+        <div className="k-section-label k-menu-title" aria-hidden="true">
           {title}
         </div>
       )}
@@ -341,7 +341,7 @@ export function FolderGlyph({ size = 18 }: { size?: number }) {
 export const MenuSeparator = () => <BaseMenu.Separator className="k-sep" />;
 export function MenuLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="k-menu-label" role="presentation">
+    <div className="k-section-label is-menu" role="presentation">
       {children}
     </div>
   );
