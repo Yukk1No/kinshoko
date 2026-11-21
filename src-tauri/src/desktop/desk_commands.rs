@@ -91,9 +91,7 @@ pub(super) fn apply(app: &AppHandle, switched: Option<Switched>) {
         // 钉出的成员存在拔掉的显示器上（或从别的布局导入）时先拉回屏幕，否则窗口出不来、也拖不回来。
         if !switched.opened.pins.is_empty() {
             let monitors = pins::monitors();
-            let pulled = lock(&state(app).store)
-                .desk()
-                .is_some_and(|desk| desk.pull_onto_screen(&monitors));
+            let pulled = lock(&state(app).store).desk().pull_onto_screen(&monitors);
             if pulled {
                 mark_dirty(app);
             }
