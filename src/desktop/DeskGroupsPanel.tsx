@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronRight, FolderInput, Layers, MoreHorizontal, Plus } from "lucide-react";
+import {
+  ChevronRight,
+  FolderInput,
+  Layers,
+  MoreHorizontal,
+  Plus,
+} from "lucide-react";
 import type { DeskLists } from "../bindings/DeskLists";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ReferenceGroupView } from "../bindings/ReferenceGroupView";
@@ -28,7 +34,11 @@ import {
   undoPruneUnpinned,
   undoSplitOff,
 } from "../ipc";
-import { describeCommandError, errorText, isErrorCode } from "../ipc/commandError";
+import {
+  describeCommandError,
+  errorText,
+  isErrorCode,
+} from "../ipc/commandError";
 import { SaveDestinationDialog } from "../library/SaveDestination";
 import { useIndicatorSlide } from "../library/useIndicatorSlide";
 import { ContextMenu } from "@base-ui/react/context-menu";
@@ -44,7 +54,10 @@ import { GroupNameForm } from "./GroupNameForm";
 import { groupLabel } from "./groupLabel";
 import { ReferenceGroupsPanel } from "./ReferenceGroupsPanel";
 
-type Desk = { state: "loading" } | { state: "off" } | { state: "on"; lists: DeskLists };
+type Desk =
+  | { state: "loading" }
+  | { state: "off" }
+  | { state: "on"; lists: DeskLists };
 
 /**
  * 参考组改成桌面（#588）的开关（设置里界面上没有的 `deskReferenceGroups`）开着没有，开着时还有
@@ -89,7 +102,8 @@ export function ReferenceGroups() {
     if (failed) toast.error(errorText(failed));
   }, [failed, toast]);
   if (desk.state === "off") return <ReferenceGroupsPanel />;
-  if (desk.state === "loading") return <section className="reference-groups" aria-busy="true" />;
+  if (desk.state === "loading")
+    return <section className="reference-groups" aria-busy="true" />;
   return <DeskGroupsPanel lists={desk.lists} />;
 }
 
@@ -107,7 +121,9 @@ export function DeskNewGroupButton() {
         className="k-icon-btn desk-new-group"
         aria-label={t("newGroup")}
         disabled={empty}
-        onClick={() => void newReferenceDesk().catch((e) => toast.error(errorText(e)))}
+        onClick={() =>
+          void newReferenceDesk().catch((e) => toast.error(errorText(e)))
+        }
       >
         <Plus size={16} aria-hidden="true" />
       </button>
@@ -123,20 +139,31 @@ export function DeskNewGroupButton() {
 export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
   const { t } = useTranslation("desktop");
   const toast = useToast();
-  const [libraryNames, setLibraryNames] = useState<Map<string, string>>(new Map());
-  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
-  const [folded, setFolded] = useState<ReadonlySet<SectionKey>>(() => new Set(["older"]));
+  const [libraryNames, setLibraryNames] = useState<Map<string, string>>(
+    new Map(),
+  );
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(
+    null,
+  );
+  const [folded, setFolded] = useState<ReadonlySet<SectionKey>>(
+    () => new Set(["older"]),
+  );
   const paneRef = useRef<HTMLElement>(null);
   useIndicatorSlide(paneRef);
   const [importing, setImporting] = useState(false);
   /** 桌面上那组的成员，按参考组 id 记下。 */
-  const [views, setViews] = useState<Map<string, { at: number; view: ReferenceGroupView }>>(new Map());
+  const [views, setViews] = useState<
+    Map<string, { at: number; view: ReferenceGroupView }>
+  >(new Map());
 
   const all = [...lists.favorites, ...lists.recent, ...lists.older];
 
   useEffect(() => {
     registeredLibraries().then(
-      (list) => setLibraryNames(new Map(list.map((r) => [r.library.id, r.library.name]))),
+      (list) =>
+        setLibraryNames(
+          new Map(list.map((r) => [r.library.id, r.library.name])),
+        ),
       (e) => toast.error(errorText(e)),
     );
   }, [toast]);
@@ -148,7 +175,10 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
       if (g.problem || g.id !== lists.onDesk) continue;
       referenceGroup(g.id).then(
         (view) => {
-          if (alive && view) setViews((prev) => new Map(prev).set(g.id, { at: g.updatedAt, view }));
+          if (alive && view)
+            setViews((prev) =>
+              new Map(prev).set(g.id, { at: g.updatedAt, view }),
+            );
         },
         () => {},
       );
@@ -158,7 +188,10 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     };
   }, [lists]);
 
-  const run = async (action: () => Promise<unknown>, done?: (value: unknown) => string | null) => {
+  const run = async (
+    action: () => Promise<unknown>,
+    done?: (value: unknown) => string | null,
+  ) => {
     try {
       const value = await action();
       const text = done?.(value);
@@ -166,6 +199,35 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     } catch (e) {
       toast.error(errorText(e));
     }
+  };
+
+  /**
+   * 撤销记录各只有最近一次那份（移出与“移出没钉着的”共用一份，移到新参考组一份）：新的“撤销”提示出来时
+   * 关掉同一份记录的旧提示，旧提示上的“撤销”不会撤到新的那次上。`retry` 时撤销写不进记录还在，
+   * 错误提示上带“撤销”再试一次。
+   */
+  const undoToasts = useRef(new Map<() => Promise<void>, string>());
+  const offerUndo = (
+    shown: { title: string } | { error: unknown },
+    undo: () => Promise<void>,
+    retry: boolean,
+  ) => {
+    const previous = undoToasts.current.get(undo);
+    if (previous) toast.close(previous);
+    const action = {
+      label: t("groups.undo"),
+      onClick: () =>
+        void undo().catch((error) =>
+          retry
+            ? offerUndo({ error }, undo, retry)
+            : toast.error(errorText(error)),
+        ),
+    };
+    const id =
+      "title" in shown
+        ? toast.show({ title: shown.title, tone: "success", action })
+        : toast.error(errorText(shown.error), { action });
+    undoToasts.current.set(undo, id);
   };
 
   /** 移出、移到新参考组能撤销，所以不先确认：做完给带“撤销”的轻提示（只撤销最近一次）。`title` 为 `null` 时什么都没做。 */
@@ -176,21 +238,17 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
   ) => {
     try {
       const text = title(await action());
-      if (!text) return;
-      toast.show({
-        title: text,
-        tone: "success",
-        action: {
-          label: t("groups.undo"),
-          onClick: () => void undo().catch((e) => toast.error(errorText(e))),
-        },
-      });
+      // 移到新参考组撤销写不进时不留记录（可能已移回一半），不再给“撤销”。
+      if (text) offerUndo({ title: text }, undo, undo === undoPruneUnpinned);
     } catch (e) {
       toast.error(errorText(e));
     }
   };
 
-  const prune = () => undoable(pruneUnpinnedMembers, (count) => (count > 0 ? t("deskPanel.pruned", { count }) : null));
+  const prune = () =>
+    undoable(pruneUnpinnedMembers, (count) =>
+      count > 0 ? t("deskPanel.pruned", { count }) : null,
+    );
 
   /** 删除能撤销，所以不先确认：直接删，再给带“撤销”的轻提示。提示关了还没撤销就真正删除暂放的那份。 */
   const removeGroup = async (g: GroupSummary) => {
@@ -205,7 +263,9 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
           label: t("groups.undo"),
           onClick: () => {
             undone = true;
-            restoreReferenceGroup(deleted).catch((e) => toast.error(errorText(e)));
+            restoreReferenceGroup(deleted).catch((e) =>
+              toast.error(errorText(e)),
+            );
           },
         },
         onClose: () => {
@@ -238,10 +298,16 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
         onDesk={onDesk}
         canPrune={unpinned}
         onRename={() => setRenaming({ id: g.id, name: g.name })}
-        onFavorite={(favorite) => void run(() => setReferenceGroupFavorite(g.id, favorite))}
+        onFavorite={(favorite) =>
+          void run(() => setReferenceGroupFavorite(g.id, favorite))
+        }
         onCopy={() =>
           void run(
-            () => duplicateReferenceGroup(g.id, t("deskPanel.copyName", { name: label })),
+            () =>
+              duplicateReferenceGroup(
+                g.id,
+                t("deskPanel.copyName", { name: label }),
+              ),
             () => t("deskPanel.copied"),
           )
         }
@@ -249,7 +315,8 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
         onExport={() =>
           void run(
             () => exportReferenceGroupPackage(g.id),
-            (path) => (path ? t("groups.exported", { path: String(path) }) : null),
+            (path) =>
+              path ? t("groups.exported", { path: String(path) }) : null,
           )
         }
         onDelete={() => void removeGroup(g)}
@@ -306,7 +373,10 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
               >
                 {rowBody}
               </ContextMenu.Trigger>
-              <MenuPopup width={200} label={t("groups.moreLabel", { name: label })}>
+              <MenuPopup
+                width={200}
+                label={t("groups.moreLabel", { name: label })}
+              >
                 {menuItems}
               </MenuPopup>
             </ContextMenu.Root>
@@ -319,13 +389,20 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
                   <MoreHorizontal size={14} aria-hidden="true" />
                 </Menu.Trigger>
               </Tip>
-              <MenuPopup width={200} label={t("groups.moreLabel", { name: label })}>
+              <MenuPopup
+                width={200}
+                label={t("groups.moreLabel", { name: label })}
+              >
                 {menuItems}
               </MenuPopup>
             </Menu.Root>
           </FluidRow>
         )}
-        {g.problem && <p className="desk-group-problem">{describeCommandError(g.problem)}</p>}
+        {g.problem && (
+          <p className="desk-group-problem">
+            {describeCommandError(g.problem)}
+          </p>
+        )}
         {view && renaming?.id !== g.id && (
           <DeskGroupMembers
             view={view}
@@ -333,7 +410,9 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
             label={label}
             favorite={lists.favorites.some((f) => f.id === g.id)}
             onRepin={(memberId) => void run(() => repinGroupMember(memberId))}
-            onShow={(memberId) => void run(() => showGroupMember(g.id, memberId))}
+            onShow={(memberId) =>
+              void run(() => showGroupMember(g.id, memberId))
+            }
             onRepinAll={() => void run(() => repinAllGroupMembers())}
             onRemove={(memberId) =>
               void undoable(
@@ -371,20 +450,33 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     );
 
   return (
-    <section ref={paneRef} className="reference-groups desk-groups side-bands" aria-label={t("groups.label")}>
+    <section
+      ref={paneRef}
+      className="reference-groups desk-groups side-bands"
+      aria-label={t("groups.label")}
+    >
       {importing && (
         <SaveDestinationDialog
           title={t("groups.importTitle")}
           confirmLabel={t("groups.importConfirm")}
           onClose={() => setImporting(false)}
           onConfirm={async (destination) => {
-            const group = await importReferenceGroupPackage(destination.libraryId, destination);
-            if (group) toast.show({ title: t("groups.imported", { name: group.name }), tone: "success" });
+            const group = await importReferenceGroupPackage(
+              destination.libraryId,
+              destination,
+            );
+            if (group)
+              toast.show({
+                title: t("groups.imported", { name: group.name }),
+                tone: "success",
+              });
           }}
         />
       )}
       <div className="side-scroll">
-        {all.length === 0 && <p className="k-description desk-groups-empty">{t("groups.empty")}</p>}
+        {all.length === 0 && (
+          <p className="k-description desk-groups-empty">{t("groups.empty")}</p>
+        )}
         {section("favorites", lists.favorites)}
         {section("recent", lists.recent)}
         {section("older", lists.older)}
@@ -392,11 +484,17 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
       <div className="side-foot">
         <FluidList>
           <FluidRow index={0}>
-            <button type="button" className="sidebar-item k-row" onClick={() => setImporting(true)}>
+            <button
+              type="button"
+              className="sidebar-item k-row"
+              onClick={() => setImporting(true)}
+            >
               <span className="k-row-icon" aria-hidden="true">
                 <FolderInput size={15} />
               </span>
-              <span className="sidebar-label k-label">{t("groups.import")}</span>
+              <span className="sidebar-label k-label">
+                {t("groups.import")}
+              </span>
             </button>
           </FluidRow>
         </FluidList>
