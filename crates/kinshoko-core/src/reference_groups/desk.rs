@@ -25,6 +25,7 @@ mod migrate;
 mod moves;
 mod naming;
 mod reopen;
+mod screen;
 mod state;
 mod trash;
 
