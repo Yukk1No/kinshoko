@@ -310,3 +310,54 @@ fn undoing_a_split_that_cannot_save_the_desk_state_still_pins_the_members_back()
     t.desk.flush().unwrap();
     assert_eq!(reread(&t, &first).members.len(), 2);
 }
+
+#[test]
+fn pruning_every_member_of_an_unnamed_group_that_cannot_save_keeps_the_group() {
+    let mut t = TestDesk::new();
+    let c = t.pin_capture("c", 2);
+    t.desk.flush().unwrap();
+    t.desk.close(&c.id, &mut t.history);
+    t.desk.flush().unwrap();
+    let id = t.desk_id();
+    let before = t.capture_files(&id);
+
+    let state = break_state(&t);
+    assert!(t.desk.prune_unpinned().is_err());
+    std::fs::remove_dir_all(&state).unwrap();
+    assert_eq!(t.desk_id(), id, "桌面上还是它");
+    t.desk.flush().unwrap();
+
+    assert_eq!(reread(&t, &id).members.len(), 1, "空组没被删掉");
+    assert_eq!(t.capture_files(&id), before);
+}
+
+#[test]
+fn a_fold_that_cannot_save_the_desk_state_leaves_the_target_as_it_was() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    t.desk.flush().unwrap();
+    let previous = t.desk_id();
+    t.desk.new_desk(&mut t.history).unwrap();
+    t.pin_capture("c", 7);
+    t.desk.flush().unwrap();
+    let source = t.desk_id();
+
+    let state = break_state(&t);
+    assert!(
+        t.desk
+            .fold_into_previous(&source, &previous, &mut t.history)
+            .is_err()
+    );
+    std::fs::remove_dir_all(&state).unwrap();
+    assert_eq!(reread(&t, &previous).members.len(), 1, "目标没多出成员");
+    assert!(
+        t.capture_files(&previous).is_empty(),
+        "复制进去的截图清掉了"
+    );
+
+    // 重试只并一次。
+    t.desk
+        .fold_into_previous(&source, &previous, &mut t.history)
+        .unwrap();
+    assert_eq!(reread(&t, &previous).members.len(), 2);
+}
