@@ -166,7 +166,10 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
    * 错误提示上带“撤销”再试一次。
    */
   const undoToasts = useRef(new Map<() => Promise<void>, string>());
-  const offerUndo = (shown: { title: string } | { error: unknown }, undo: () => Promise<void>) => {
+  const offerUndo = (
+    shown: { title: string } | { error: unknown; description?: string },
+    undo: () => Promise<void>,
+  ) => {
     const previous = undoToasts.current.get(undo);
     if (previous) toast.close(previous);
     const action = {
@@ -176,19 +179,22 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     const id =
       "title" in shown
         ? toast.show({ title: shown.title, tone: "success", action })
-        : toast.error(errorText(shown.error), { action });
+        : toast.error(errorText(shown.error), { action, description: shown.description });
     undoToasts.current.set(undo, id);
   };
 
-  /** 移出、移到新参考组能撤销，所以不先确认：做完给带“撤销”的轻提示（只撤销最近一次）。`title` 为 `null` 时什么都没做。 */
+  /**
+   * 移出、移到新参考组能撤销，所以不先确认：做完给带“撤销”的轻提示（只撤销最近一次）。`title` 为 `null` 时什么都没做；
+   * 给出 `error` 时做成了一半（如成员已移走、没能摆上桌面），错误提示上照样带“撤销”。
+   */
   const undoable = async <T,>(
     action: () => Promise<T>,
-    title: (value: T) => string | null,
+    title: (value: T) => string | { error: unknown; description: string } | null,
     undo: () => Promise<void> = undoPruneUnpinned,
   ) => {
     try {
-      const text = title(await action());
-      if (text) offerUndo({ title: text }, undo);
+      const shown = title(await action());
+      if (shown) offerUndo(typeof shown === "string" ? { title: shown } : shown, undo);
     } catch (e) {
       toast.error(errorText(e));
     }
@@ -348,7 +354,12 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
             onSplit={(day) =>
               void undoable(
                 () => splitOffReferenceGroup(day),
-                (id) => (id ? t("deskPanel.splitDone") : null),
+                (split) =>
+                  !split
+                    ? null
+                    : split.switchError
+                      ? { error: split.switchError, description: t("deskPanel.splitNotShown") }
+                      : t("deskPanel.splitDone"),
                 undoSplitOff,
               )
             }
