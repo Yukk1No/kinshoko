@@ -107,6 +107,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   height: 100%;
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .app-workspace {
@@ -118,19 +120,6 @@ button:disabled {
 
 .app-workspace[hidden] {
   display: none;
-}
-
-.app-main {
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.app-main-centered {
-  align-items: center;
-  justify-content: center;
 }
 
 /* Scrollbars: a slim rounded thumb on a transparent track instead of WebView2's grey bar. The transparent border

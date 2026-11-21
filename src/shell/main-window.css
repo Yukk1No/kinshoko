@@ -6,11 +6,18 @@
    之间与窗口边露出 8 px 桌面（左边贴着图标轨）。上沿亮边画在纸的最上一层，免得被里面内容的底色盖住。 */
 .app-shell {
   background: var(--desk);
+  flex-direction: row;
 }
 .rail {
-  padding-top: 6px;
+  width: 56px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0 10px;
   background: transparent;
-  border-right-color: transparent;
+  border-right: 1px solid transparent;
+  z-index: 3;
 }
 /* 书签标离窗口上边与左边一样远：图形在 32 的画布里宽 12、高 21，左右居中时墨迹离左边约 22.25 px，
    上下居中时离上边只有 19.25 px；44 高的框里把居中区下移 6 px（墨迹下移 3 px）。 */
@@ -24,6 +31,8 @@
   min-height: 0;
   display: flex;
   padding: var(--sheet-gap) var(--sheet-gap) var(--sheet-gap) 0;
+  min-width: 0;
+  position: relative;
 }
 .app-main {
   flex: 1;
@@ -35,6 +44,8 @@
   border-radius: var(--r);
   background: var(--sheet-main);
   box-shadow: var(--sheet-lift);
+  min-height: 0;
+  container: main / inline-size;
 }
 :is(.sidebar-slot:not([data-collapsed="true"]), .app-main, .inspector:not([data-collapsed="true"]))::before {
   content: "";
@@ -49,7 +60,7 @@
 /* ---- Sidebar ---- */
 .sidebar-slot {
   position: relative;
-  width: calc(256px - var(--sheet-gap));
+  width: calc(var(--sidebar-width, 256px) - var(--sheet-gap));
   flex: none;
   display: flex;
   flex-direction: column;
@@ -291,6 +302,7 @@
   display: flex;
   grid-template-columns: none;
   margin-top: 0;
+  align-items: center;
 }
 .workspace-expand {
   width: 18px;
@@ -304,6 +316,7 @@
   background: transparent;
   color: var(--ink-3);
   min-height: 0;
+  cursor: pointer;
 }
 .workspace-expand:hover {
   background: var(--hover);

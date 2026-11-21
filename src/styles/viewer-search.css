@@ -231,9 +231,6 @@
     linear-gradient(var(--guide), var(--guide)) 0 33.33% / 100% 1px no-repeat,
     linear-gradient(var(--guide), var(--guide)) 0 66.66% / 100% 1px no-repeat;
 }
-.selection-hint {
-  color: var(--ink-2);
-}
 
 /* 永久删除的确认（#67）：提醒对话框里列出受影响的参考组。 */
 .permanent-delete-groups {

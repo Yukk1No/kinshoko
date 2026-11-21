@@ -369,6 +369,7 @@
   font-weight: 600;
   background: var(--surface-2);
   color: var(--ink-2);
+  gap: 4px;
 }
 /* a pill's text is the `*-strong` colour on its `*-soft` fill */
 .k-pill.is-ok {

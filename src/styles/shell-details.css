@@ -106,11 +106,6 @@
   gap: 6px;
 }
 
-.app-empty-workspace {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-}
 .empty-context {
   width: 248px;
   flex: none;
@@ -119,16 +114,6 @@
 }
 
 /* Accepted browse wall/header details: prototype styles.css and DensitySlider. */
-.app {
-  font-size: 13px;
-  line-height: 20px;
-}
-.card {
-  border-radius: var(--r-s);
-}
-.topbar {
-  z-index: 5;
-}
 .result-count {
   flex: none;
   color: var(--ink-2);
@@ -150,10 +135,6 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
 }
-.import-menu {
-  position: relative;
-  flex: none;
-}
 
 .legacy-name-migration .settings-shortcuts {
   width: 100%;
@@ -173,14 +154,6 @@
 .legacy-name-migration {
   min-width: 0;
 }
-.workspace-scope {
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 8px;
-}
-.workspace-provider {
-  min-width: 0;
-}
 
 .settings .sidebar-tag-groups {
   max-width: 680px;
@@ -191,19 +164,6 @@
   padding: 8px;
   font-size: 12px;
   overflow-wrap: anywhere;
-}
-.workspace-provider-root {
-  display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
-  align-items: center;
-  margin-top: 8px;
-}
-.workspace-expand {
-  border: 0;
-  background: transparent;
-  color: inherit;
-  min-height: 30px;
-  cursor: pointer;
 }
 .workspace-provider > .sidebar {
   padding-left: 16px;

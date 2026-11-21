@@ -15,8 +15,8 @@ textarea,
 .create-library-path-text,
 [role="alert"],
 .k-toast[data-tone="error"],
-.k-list-desc.is-warn,
-.k-error-text {
+.k-error-text,
+.k-list-desc.is-warn {
   user-select: text;
 }
 

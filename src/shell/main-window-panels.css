@@ -341,6 +341,7 @@
 }
 .app-main-centered {
   align-items: stretch;
+  justify-content: center;
 }
 /* safe center：窗口矮到放不下时改为顶端对齐，内容只向下溢出，上面的“返回”和标题始终能滚到（最小高度 480 px）。 */
 .library-start-content {
@@ -543,9 +544,6 @@
 
 /* 窄主区（例如打开详情面板）：查找框收窄而不换行——条件标签横向滚动，精确查找开关保持在尾部；
    图片大小浮岛一直保留，只缩短滑条（#102）。 */
-.app-main {
-  container: main / inline-size;
-}
 .topbar > .search .search-chips {
   display: flex;
   flex: 0 1 auto;
