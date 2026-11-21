@@ -30,7 +30,7 @@ function Harness({
   );
 }
 
-it("筛选姓名与 ID，“全选筛出的”只增加匹配的未订阅项，清空包括筛选外的选择", () => {
+it("筛选姓名与 ID，“全选这 N 个”只增加匹配的未订阅项，清空包括筛选外的选择", () => {
   const changed = vi.fn();
   const { container } = render(<Harness changed={changed} />);
   const filter = screen.getByRole("textbox");
@@ -41,7 +41,7 @@ it("筛选姓名与 ID，“全选筛出的”只增加匹配的未订阅项，�
   expect(scroll.scrollTop).toBe(0);
   expect(screen.queryByRole("checkbox", { name: "Mori" })).toBeNull();
   expect(screen.queryByRole("button", { name: "全选未订阅的" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "全选筛出的" }));
+  fireEvent.click(screen.getByRole("button", { name: "全选这 1 个" }));
   expect([...changed.mock.lastCall![0]]).toEqual(["3", "2"]);
   fireEvent.change(filter, { target: { value: "333" } });
   expect((screen.getByRole("checkbox", { name: "Mori" }) as HTMLInputElement).checked).toBe(true);
@@ -147,7 +147,7 @@ it("筛选时已订阅的匹配项直接列出，只在筛选时写出筛出几�
   const already = screen.getByRole("checkbox", { name: "Already" }) as HTMLInputElement;
   expect(already.disabled && already.checked).toBe(true);
   expect(screen.queryByText("没有匹配的项目")).toBeNull();
-  expect(screen.getByText("筛出 1 个")).toBeTruthy();
+  expect(screen.getByText("筛出 1 个，1 个已订阅")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "显示已订阅的（1）" })).toBeNull();
   fireEvent.change(screen.getByRole("textbox"), { target: { value: "" } });
   expect(screen.queryByRole("checkbox", { name: "Already" })).toBeNull();

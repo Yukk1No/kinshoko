@@ -115,7 +115,9 @@ export function SelectableList({
               onChange(next);
             }}
           >
-            <span className="k-label">{t(filtering ? "selectAllMatches" : "selectAll")}</span>
+            <span className="k-label">
+              {filtering ? t("selectAllMatches", { count: eligible.length }) : t("selectAll")}
+            </span>
           </button>
         )}
         {controls && (
@@ -137,12 +139,24 @@ export function SelectableList({
             disabled={disabled}
             aria-expanded={expanded}
             aria-controls={groupId}
-            onClick={() => setExpanded((value) => !value)}
+            onClick={() => {
+              const next = !expanded;
+              setExpanded(next);
+              // 已订阅的排在名单最后：展开后把它们滚进视野，不然首屏看不出有变化。
+              if (next)
+                requestAnimationFrame(() => document.getElementById(groupId)?.scrollIntoView({ block: "nearest" }));
+            }}
           >
             <span className="k-label">{t(expanded ? "hideSubscribed" : "showSubscribed", { count: doneCount })}</span>
           </button>
         )}
-        {filtering && <span className="k-description k-choice-count">{t("matches", { count: visible })}</span>}
+        {filtering && (
+          <span className="k-description k-choice-count">
+            {done.length > 0
+              ? t("matchesWithDone", { count: visible, done: done.length })
+              : t("matches", { count: visible })}
+          </span>
+        )}
       </div>
       <div className="k-choice-scroll" ref={scroll}>
         {status ?? (

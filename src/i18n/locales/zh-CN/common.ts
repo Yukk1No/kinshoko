@@ -2,9 +2,10 @@
 export default {
   selectableList: {
     selectAll: "全选未订阅的",
-    selectAllMatches: "全选筛出的",
+    selectAllMatches_other: "全选这 {{count, number}} 个",
     clear: "清空",
     matches_other: "筛出 {{count, number}} 个",
+    matchesWithDone_other: "筛出 {{count, number}} 个，{{done, number}} 个已订阅",
     showSubscribed_other: "显示已订阅的（{{count, number}}）",
     hideSubscribed_other: "隐藏已订阅的（{{count, number}}）",
     subscribed_other: "已订阅（{{count, number}}）",
