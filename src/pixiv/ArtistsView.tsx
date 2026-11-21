@@ -6,6 +6,7 @@ import { subscriptions as listSubscriptions } from "../ipc/subscriptions";
 import { Segmented } from "../ui/Segmented";
 import { TARGET } from "../wall/wallShared";
 import { FeedView } from "./FeedView";
+import type { Collecting } from "./useCollect";
 
 type Kind = "illust" | "manga";
 
@@ -15,16 +16,18 @@ type Kind = "illust" | "manga";
  */
 export function ArtistsView({
   safe,
+  collecting,
   artist,
   onArtist,
 }: {
   safe: boolean;
+  collecting: Collecting;
   /** 正在看的画师；为空时显示名单。 */
   artist: Artist | null;
   onArtist: (artist: Artist | null) => void;
 }) {
   return artist ? (
-    <ArtistWorks safe={safe} artist={artist} onBack={() => onArtist(null)} />
+    <ArtistWorks safe={safe} collecting={collecting} artist={artist} onBack={() => onArtist(null)} />
   ) : (
     <ArtistIndex onArtist={onArtist} />
   );
@@ -102,7 +105,17 @@ function ArtistIndex({ onArtist }: { onArtist: (artist: Artist) => void }) {
 }
 
 /** 一位画师在 pixiv 上的作品，从新到旧；插画（含动图）与漫画分开读。 */
-function ArtistWorks({ safe, artist, onBack }: { safe: boolean; artist: Artist; onBack: () => void }) {
+function ArtistWorks({
+  safe,
+  collecting,
+  artist,
+  onBack,
+}: {
+  safe: boolean;
+  collecting: Collecting;
+  artist: Artist;
+  onBack: () => void;
+}) {
   const { t } = useTranslation("subscriptions");
   const [kind, setKind] = useState<Kind>("illust");
   return (
@@ -130,7 +143,11 @@ function ArtistWorks({ safe, artist, onBack }: { safe: boolean; artist: Artist; 
           {t("browse.openOnPixiv")}
         </a>
       </div>
-      <FeedView feed={{ kind: "artist", userId: artist.userId, manga: kind === "manga" }} safe={safe} />
+      <FeedView
+        feed={{ kind: "artist", userId: artist.userId, manga: kind === "manga" }}
+        safe={safe}
+        collecting={collecting}
+      />
     </>
   );
 }

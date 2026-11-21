@@ -66,12 +66,16 @@ function feedId(feed: Feed): string {
 }
 
 let fake: FakeBackend;
+let scrolls: number;
 beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
-  // jsdom 没有 scrollTo；回到新作时墙会滚到那一段的开头。
-  HTMLElement.prototype.scrollTo = () => {};
+  // jsdom 没有 scrollTo；换到另一段时墙会滚到那一段的开头。
+  scrolls = 0;
+  HTMLElement.prototype.scrollTo = () => {
+    scrolls += 1;
+  };
   fake = fakeBackend({
     subscription_browse: (args) => {
       const feed = args.feed as Feed;
@@ -118,6 +122,21 @@ describe("订阅页的去处", () => {
     fireEvent.click(place("新作"));
     expect(screen.getByRole("button", { name: "作品following，小林" })).toBeTruthy();
     expect(feeds().filter((f) => f === "following")).toHaveLength(1);
+    // 回到上次停的那一段时墙不滚，停在原处；换到推荐才滚过去。
+    expect(scrolls).toBe(0);
+    fireEvent.click(place("推荐"));
+    expect(scrolls).toBe(1);
+  });
+
+  it("看全图时换了榜单周期，全图收起，墙换成新的榜单", async () => {
+    render(<PixivHome safe={false} />);
+    fireEvent.click(place("榜单"));
+    fireEvent.click(await screen.findByRole("button", { name: "作品榜day，小林" }));
+    fireEvent.click(screen.getByRole("button", { name: "看全图" }));
+    expect(screen.getByRole("group", { name: "第 1 页，共 1 页" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "周榜" }));
+    await screen.findByRole("button", { name: "作品榜week，小林" });
+    expect(screen.queryByRole("group", { name: "第 1 页，共 1 页" })).toBeNull();
   });
 
   it("我的收藏先看公开的，可以换成非公开", async () => {

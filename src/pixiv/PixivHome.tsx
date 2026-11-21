@@ -8,7 +8,8 @@ import { ArtistsView } from "./ArtistsView";
 import { FeedView } from "./FeedView";
 import type { PixivWallHandle, WallSection } from "./PixivWall";
 import { usePixivFeed } from "./usePixivFeed";
-import { WallView } from "./WallView";
+import { type Collecting, useCollect } from "./useCollect";
+import { CollectPrompts, WallView } from "./WallView";
 import "./pixiv.css";
 
 const FOLLOWING: Feed = { kind: "following" };
@@ -38,18 +39,25 @@ export function PixivHome({ safe }: { safe: boolean }) {
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [artist, setArtist] = useState<Artist | null>(null);
   const wall = useRef<PixivWallHandle>(null);
+  /** 新作与推荐那面墙上次停在哪一段。 */
+  const homeAt = useRef<Home>("following");
+  const collecting = useCollect();
 
   const go = (next: Place) => {
     setPlace(next);
-    if (isHome(next)) wall.current?.scrollToSection(next);
-    // 再点一次“画师”回到名单。
-    if (next === "artists" && place === "artists") setArtist(null);
+    if (!isHome(next)) return;
+    // 从别的去处回到上次停的那一段：墙原样停着，不滚。换到另一段才滚过去。
+    if (isHome(place) || next !== homeAt.current) wall.current?.scrollToSection(next);
+    homeAt.current = next;
   };
   const viewArtist = useCallback((a: Artist) => {
     setArtist(a);
     setPlace("artists");
   }, []);
-  const onSection = useCallback((key: string) => setPlace((p) => (isHome(p) ? (key as Home) : p)), []);
+  const onSection = useCallback((key: string) => {
+    homeAt.current = key as Home;
+    setPlace((p) => (isHome(p) ? (key as Home) : p));
+  }, []);
 
   return (
     <div className="pw-page">
@@ -74,7 +82,7 @@ export function PixivHome({ safe }: { safe: boolean }) {
         aria-hidden={!isHome(place) || undefined}
         inert={!isHome(place)}
       >
-        <HomeWall safe={safe} onSection={onSection} onArtist={viewArtist} handle={wall} />
+        <HomeWall safe={safe} collecting={collecting} onSection={onSection} onArtist={viewArtist} handle={wall} />
       </div>
       {place === "ranking" && (
         <div className="pw-view">
@@ -91,7 +99,12 @@ export function PixivHome({ safe }: { safe: boolean }) {
             />
           </div>
           {/* 只读全年龄榜：R-18 榜不在这里（安全模式也不必再藏一次）。 */}
-          <FeedView feed={{ kind: "ranking", period, explicit: false }} safe={safe} onArtist={viewArtist} />
+          <FeedView
+            feed={{ kind: "ranking", period, explicit: false }}
+            safe={safe}
+            collecting={collecting}
+            onArtist={viewArtist}
+          />
         </div>
       )}
       {place === "bookmarks" && (
@@ -107,14 +120,20 @@ export function PixivHome({ safe }: { safe: boolean }) {
               ]}
             />
           </div>
-          <FeedView feed={{ kind: "bookmarks", private: visibility === "private" }} safe={safe} onArtist={viewArtist} />
+          <FeedView
+            feed={{ kind: "bookmarks", private: visibility === "private" }}
+            safe={safe}
+            collecting={collecting}
+            onArtist={viewArtist}
+          />
         </div>
       )}
       {place === "artists" && (
         <div className="pw-view">
-          <ArtistsView safe={safe} artist={artist} onArtist={setArtist} />
+          <ArtistsView safe={safe} collecting={collecting} artist={artist} onArtist={setArtist} />
         </div>
       )}
+      <CollectPrompts collecting={collecting} />
     </div>
   );
 }
@@ -122,11 +141,13 @@ export function PixivHome({ safe }: { safe: boolean }) {
 /** 新作与推荐：先读关注新作的一页，读完接着读推荐；推荐里与新作重复的作品去掉。 */
 function HomeWall({
   safe,
+  collecting,
   onSection,
   onArtist,
   handle,
 }: {
   safe: boolean;
+  collecting: Collecting;
   onSection: (key: string) => void;
   onArtist: (artist: Artist) => void;
   handle: React.Ref<PixivWallHandle>;
@@ -153,6 +174,7 @@ function HomeWall({
     <WallView
       sections={sections}
       safe={safe}
+      collecting={collecting}
       status={{ loading, failed, retry, empty }}
       onSection={onSection}
       onNearEnd={onNearEnd}
