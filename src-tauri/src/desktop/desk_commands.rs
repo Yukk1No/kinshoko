@@ -58,11 +58,29 @@ pub(super) fn with_desk<T>(
 }
 
 /// 空桌上开了新参考组（[`super::pins::add`] 调用，不持有锁）：列表变了；有上一组时推送 [`STARTED_EVENT`]。
-pub(in crate::desktop) fn started(app: &AppHandle, fold_into: Option<String>) {
-    if let Some(previous) = fold_into {
-        let _ = app.emit(STARTED_EVENT, previous);
+pub(in crate::desktop) fn started(
+    app: &AppHandle,
+    group_id: Option<&str>,
+    fold_into: Option<String>,
+) {
+    if let (Some(group_id), Some(previous_id)) = (group_id, fold_into) {
+        let _ = app.emit(
+            STARTED_EVENT,
+            Started {
+                group_id: group_id.to_owned(),
+                previous_id,
+            },
+        );
     }
     changed(app);
+}
+
+/// [`STARTED_EVENT`] 的载荷：开出的新参考组与它的上一组。“加进上一组”时两个都带上，提示出来之后换过桌就什么都不做。
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Started {
+    group_id: String,
+    previous_id: String,
 }
 
 /// 开关打开着。
@@ -242,10 +260,14 @@ pub async fn set_reference_group_favorite(
 /// 加进上一组：桌面上参考组的成员连同自带截图移进 `target_id`，删掉桌面上那个，把 `target_id`
 /// 摆上桌面。
 #[tauri::command]
-pub async fn fold_into_previous(app: AppHandle, target_id: String) -> Result<(), CommandError> {
+pub async fn fold_into_previous(
+    app: AppHandle,
+    source_id: String,
+    target_id: String,
+) -> Result<(), CommandError> {
     blocking(move || {
         let switched = with_desk(&app, |desk, history| {
-            desk.fold_into_previous(&target_id, history)
+            desk.fold_into_previous(&source_id, &target_id, history)
         })?;
         apply(&app, Some(switched));
         Ok(())

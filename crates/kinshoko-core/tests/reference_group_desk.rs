@@ -231,8 +231,9 @@ fn invariant_4_folding_and_splitting_write_only_the_two_groups_involved() {
     t.desk.new_desk(&mut t.history).unwrap();
     let pinned = t.desk.pin(reference_pin("b", 20), &mut t.history).unwrap();
     assert_eq!(pinned.fold_into.as_deref(), Some(previous.as_str()));
+    let fresh = t.desk_id();
     t.desk
-        .fold_into_previous(&previous, &mut t.history)
+        .fold_into_previous(&fresh, &previous, &mut t.history)
         .unwrap();
     let day = reread(&t, &previous).created_at;
     t.desk.split_off(day..day + 1, &mut t.history).unwrap();
@@ -266,7 +267,7 @@ fn folding_into_the_previous_group_moves_members_and_captures_and_puts_it_on_the
 
     let switched = t
         .desk
-        .fold_into_previous(pinned.fold_into.as_deref().unwrap(), &mut t.history)
+        .fold_into_previous(&fresh, pinned.fold_into.as_deref().unwrap(), &mut t.history)
         .unwrap();
     assert_eq!(t.desk_id(), previous, "上一组摆上桌面");
     assert!(!t.group_file(&fresh).exists(), "新参考组删掉");

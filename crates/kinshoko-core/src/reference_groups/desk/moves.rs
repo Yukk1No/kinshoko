@@ -43,15 +43,19 @@ impl Pruned {
 }
 
 impl Desk {
-    /// 加进上一组（空桌钉下第一张后的提示，#588 决定 4）：桌面上参考组的成员连同自带截图移进 `target_id`，
-    /// 删掉桌面上那个，把 `target_id` 摆上桌面（返回这次换桌）。桌面空着或 `target_id` 就是桌面上那个时
-    /// 什么都不做。
+    /// 加进上一组（空桌钉下第一张后的提示，#588 决定 4）：桌面上的参考组 `source_id`（提示所说的那个新参考组）
+    /// 的成员连同自带截图移进 `target_id`，删掉 `source_id`，把 `target_id` 摆上桌面（返回这次换桌）。
+    /// 桌面上已不是 `source_id`（提示出来之后换过桌）或 `target_id` 就是它时什么都不做。
     pub fn fold_into_previous(
         &mut self,
+        source_id: &str,
         target_id: &str,
         history: &mut CaptureHistory,
     ) -> Result<Switched, GroupError> {
-        let Some(source) = self.desk_id().filter(|id| id != target_id) else {
+        let Some(source) = self
+            .desk_id()
+            .filter(|id| id == source_id && id != target_id)
+        else {
             return Ok(Switched::none());
         };
         self.fold(&source, target_id, history)
