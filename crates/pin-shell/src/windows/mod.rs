@@ -6,6 +6,7 @@
 //! 没有别的消息循环时（工具、测试）调 [`dispatch_pending`]。进程必须是 Per-Monitor V2（Tauri 已设）。
 
 mod clock;
+mod foreground;
 mod hook;
 mod input;
 mod monitors;

@@ -48,13 +48,6 @@
   height: 22px;
   margin-bottom: 6px;
 }
-.k-groups-section h3 {
-  margin: 0;
-  color: var(--ink-2);
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 600;
-}
 /* 任一成员：指针移到分组上（或键盘走到、已按下）时才出现在分组名右边。 */
 .group-any {
   height: 22px;
@@ -105,72 +98,12 @@
   outline: var(--focus-ring);
   outline-offset: var(--focus-inset);
 }
-.k-groups-empty {
-  padding: 8px 8px 4px;
-  color: var(--ink-2);
-  font-size: 12px;
-}
 /* 分组里的标签：点一下加为条件（樱色 / 金色浅底），右键排除（同顶栏里排除的条件：无底细线、删除线），
    一张图也没有的标签无底、淡字。 */
 .chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: var(--r-s);
-  background: var(--surface-2);
-  color: var(--ink);
-  font: inherit;
-  font-weight: 500;
-  white-space: nowrap;
-  transition:
-    background-color var(--t-fast),
-    color var(--t-fast),
-    box-shadow var(--t-fast);
-}
-.chip .count {
-  color: var(--ink-2);
-  font-size: 12px;
-  font-weight: 400;
-  font-variant-numeric: tabular-nums;
-}
-.chip.pick:hover {
-  box-shadow: inset 0 0 0 1px var(--line-2);
-}
-.chip.pick:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-.chip.pick.is-on {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-}
-.chip.pick.is-on .count {
-  color: var(--accent-strong);
-}
-.chip.pick.is-on:hover {
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-.chip.pick.is-neg {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--line-2);
-  color: var(--ink-2);
-  text-decoration: line-through;
-}
-.chip.pick.is-neg:hover {
-  box-shadow: inset 0 0 0 1px var(--ink-3);
-}
-.chip.pick.is-zero {
-  background: transparent;
-  color: var(--ink-2);
-  font-weight: 400;
 }
 
 .app-empty-workspace {

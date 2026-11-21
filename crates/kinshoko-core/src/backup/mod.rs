@@ -20,8 +20,9 @@ mod target;
 pub use plan::{BackupFailure, BackupPlan, BackupPlanView, BackupPreview, BackupStatus};
 pub use scope::{BackupScope, ScopeItem, ScopeSelection, ScopeStep, Uncovered, compute_scope};
 pub use stamp::Stamp;
+pub(crate) use target::layout_containing;
 pub use target::{
     BackupError, BackupEstimate, BackupProgress, BackupReport, BackupSources, BackupTarget,
     CheckPart, RestoreReport, RestoredGroup, RestoredLibrary, RoundTripCheck, SkippedLibrary,
-    SnapshotSummary,
+    SnapshotSummary, is_whole_backup, target_of,
 };

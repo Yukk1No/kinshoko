@@ -24,7 +24,7 @@ mod types;
 pub mod windows;
 
 pub use displays::{Display, scale_from_dpi};
-pub use keys::{Key, PinKeys};
+pub use keys::{EscPass, Key, PinKeys};
 pub use kinshoko_core::desktop::ScreenRect;
 pub use kinshoko_core::desktop::frame::{PointerButton, PointerKind};
 pub use types::{HookEvent, PinCursor, PinId, PinInput, Pointer, PointerEvent, ShellError};

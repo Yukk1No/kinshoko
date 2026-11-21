@@ -23,6 +23,7 @@ import {
 } from "../ipc";
 import { TagPanel } from "./TagPanel";
 import { Tip } from "../ui/Tip";
+import { WarnIcon } from "../ui/WarnIcon";
 
 type Props = {
   libraryId: string;
@@ -94,9 +95,12 @@ function TaggingUnfinished({ failure, edit }: { failure: TaggingFailure; edit: (
   return (
     <div className="insp-tagging">
       <Tip label={t(`tagging.${failure}`)}>
-        <span>{t("tagging.unfinished")}</span>
+        <span className="k-list-desc is-warn">
+          <WarnIcon size={13} />
+          {t("tagging.unfinished")}
+        </span>
       </Tip>
-      <button type="button" className="k-btn is-ghost is-sm" onClick={() => edit([{ kind: "retryTagging" }])}>
+      <button type="button" className="k-btn is-quiet is-sm is-warn" onClick={() => edit([{ kind: "retryTagging" }])}>
         <span className="k-label">{t("tagging.retry")}</span>
       </button>
     </div>
@@ -161,7 +165,7 @@ function Detail({
       )}
       {/* 备注（#98）：字段用改版样式；有未保存的改动才出现“保存”，有自己写的备注才能“用来源的”。 */}
       <section className="insp-sec k-note">
-        <label className="selection-note">
+        <label className="selection-note-field">
           <span className="insp-h">
             <StickyNote size={13} aria-hidden="true" />
             {manual === null && sources.length > 0 ? t("note.fromSource") : t("note.title")}
@@ -190,7 +194,7 @@ function Detail({
             <Tip label={sources.length ? t("note.revertTitle") : t("note.revertEmptyTitle")}>
               <button
                 type="button"
-                className="k-btn is-sm is-ghost"
+                className="k-btn is-sm is-quiet selection-revert-note"
                 aria-label={t("note.revertLabel")}
                 disabled={manual === null}
                 onClick={() => edit([{ kind: "revertNote" }])}
@@ -316,7 +320,7 @@ export function PermanentDeleteConfirm({
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="k-backdrop" />
         <AlertDialog.Popup className="k-dialog is-alert permanent-delete" aria-label={title}>
-          <AlertDialog.Title className="k-dialog-title">{title}</AlertDialog.Title>
+          <AlertDialog.Title className="k-title">{title}</AlertDialog.Title>
           {!preview ? (
             <p className="k-dialog-desc" role="status">
               {t("checking")}
@@ -324,7 +328,7 @@ export function PermanentDeleteConfirm({
           ) : (
             <>
               {changed && (
-                <p className="k-set-note" role="status">
+                <p className="k-description is-spaced" role="status">
                   {t("changed")}
                 </p>
               )}

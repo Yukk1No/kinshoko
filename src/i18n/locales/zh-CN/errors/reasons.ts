@@ -49,6 +49,7 @@ export default {
   importTargetUnavailable: "保存目标不可用：{{cause}}",
   importItemCrashed: "处理这一项时出错",
   importCancelled: "导入已取消",
+  importBackupFolder: "这是图库备份，请在设置 › 备份 › 恢复图库里恢复",
   importUndecodable: "无法解码：{{detail}}",
   stagedFileMismatch: "暂存文件校验不一致",
   originalContentMismatch: "图库中同名原文件内容不符",

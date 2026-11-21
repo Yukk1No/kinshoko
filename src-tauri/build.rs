@@ -62,6 +62,7 @@ fn main() {
                         "close_import_preview",
                         "dismiss_import",
                         "import_contains_eagle",
+                        "import_backups",
                         "cancel_import",
                         "pick_folder",
                         "pick_files",

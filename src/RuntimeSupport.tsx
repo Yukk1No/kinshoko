@@ -139,12 +139,12 @@ export function RuntimeDetails() {
         </SettingsRow>
       </SettingsGroup>
       {error && (
-        <p className="k-set-error" role="alert">
+        <p className="k-error-text is-boxed" role="alert">
           {error}
         </p>
       )}
       {runtime.error && (
-        <p className="k-set-error" role="alert">
+        <p className="k-error-text is-boxed" role="alert">
           {t("checkFailed", { error: runtime.error })}
         </p>
       )}

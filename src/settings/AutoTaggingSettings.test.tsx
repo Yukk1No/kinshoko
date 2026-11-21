@@ -89,6 +89,7 @@ describe("设置 › 自动标签 › 自动打标", () => {
       .queryAllByRole("button")
       .map((b) => b.textContent);
     expect(buttons).toEqual(action === null ? [] : [action]);
+    expect(statusRow().querySelector(".is-warn")).toBeNull();
   });
 
   // 有图没有完成（#475）：不报已全部完成，可以查看与重试；同时有图库打不开时两句都写。
@@ -111,6 +112,14 @@ describe("设置 › 自动标签 › 自动打标", () => {
     const shown: string[] = [];
     render(<AutoTaggingSettings hasLibrary onShowUnfinished={() => shown.push("shown")} />);
     await waitFor(() => expect(within(statusRow()).getByText(text)).toBeTruthy());
+    const retry = within(statusRow()).getByRole("button", { name: "重试" });
+    expect(retry.classList.contains("is-warn")).toBe(true);
+    expect(retry.querySelector("svg")).toBeNull();
+    expect(within(statusRow()).getByRole("button", { name: "查看" }).classList.contains("is-warn")).toBe(false);
+    const warning = within(statusRow()).getByText(text);
+    expect(warning.classList.contains("is-warn")).toBe(true);
+    expect(warning.querySelector("svg.lucide-triangle-alert")?.getAttribute("width")).toBe("13");
+    expect(warning.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
     expect(
       within(statusRow())
         .getAllByRole("button")

@@ -55,7 +55,7 @@ export function GroupNameForm({
       }}
     >
       <div className="group-name-head">
-        <span className="k-field-label">{title}</span>
+        <span className="k-section-label">{title}</span>
         <Tip label={t("cancel")} keys="Esc">
           <button
             type="button"

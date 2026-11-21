@@ -12,6 +12,7 @@
     "windows": [
       {
         "label": "main",
+        "dragDropEnabled": false,
         "create": false,
         "title": "Kinshoko",
         "width": 1280,

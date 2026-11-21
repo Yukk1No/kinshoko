@@ -345,3 +345,52 @@ describe("导入对话框与右下角卡片（#98）", () => {
     expect(screen.queryByText("b.txt")).toBeNull();
   });
 });
+
+describe("选中的路径里有图库备份", () => {
+  it("备份不当散图导入，别的图照常导入；点恢复选好位置后恢复成新图库", async () => {
+    const fake = fakeBackend({
+      import_backups: ["E:/移动盘"],
+      import_contains_eagle: false,
+      start_import: "task-1",
+      pick_folder: "D:/恢复",
+      restore_backup_folder: {
+        snapshotId: "s1",
+        libraries: [{ oldId: "old", library: { id: "new", name: "参考", root: "D:/恢复/参考" } }],
+        groups: [],
+        check: {
+          originals: { checked: 1, problems: [] },
+          curation: { checked: 1, problems: [] },
+          groups: { checked: 0, problems: [] },
+        },
+      },
+    });
+    render(bar({ report: null }));
+    act(() => {
+      actions.current!.paths(["E:/移动盘", "D:/图/a.png"]);
+    });
+
+    const card = await screen.findByRole("alert", { name: "这是图库备份" });
+    expect(within(card).getByText("E:/移动盘")).toBeTruthy();
+    await waitFor(() => expect(fake.calls("start_import")).toHaveLength(1));
+    expect(fake.calls("start_import")[0].args.source).toEqual({ paths: ["D:/图/a.png"] });
+
+    fireEvent.click(within(card).getByRole("button", { name: "恢复…" }));
+    await waitFor(() => expect(screen.queryByRole("alert", { name: "这是图库备份" })).toBeNull());
+    expect(fake.calls("restore_backup_folder").map((c) => c.args)).toEqual([{ folder: "E:/移动盘", into: "D:/恢复" }]);
+  });
+
+  it("只选了备份时不开始导入；选恢复位置时取消就什么都不做", async () => {
+    const fake = fakeBackend({ import_backups: ["E:/移动盘/kinshoko-backup"], pick_folder: null });
+    render(bar({ report: null }));
+    act(() => {
+      actions.current!.paths(["E:/移动盘/kinshoko-backup"]);
+    });
+    const card = await screen.findByRole("alert", { name: "这是图库备份" });
+    fireEvent.click(within(card).getByRole("button", { name: "恢复…" }));
+    await waitFor(() => expect(fake.calls("pick_folder")).toHaveLength(1));
+    expect(fake.calls("restore_backup_folder")).toEqual([]);
+    expect(fake.calls("start_import")).toEqual([]);
+    fireEvent.click(within(card).getByRole("button", { name: "不恢复" }));
+    expect(screen.queryByRole("alert", { name: "这是图库备份" })).toBeNull();
+  });
+});

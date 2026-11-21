@@ -118,7 +118,9 @@ export function LibraryPicker({
         <section className="welcome-card" aria-labelledby="welcome-title">
           <div className="welcome-head">
             <BrandMark size={48} />
-            <h1 id="welcome-title">{t("welcome.title")}</h1>
+            <h1 id="welcome-title" className="k-title">
+              {t("welcome.title")}
+            </h1>
           </div>
           <div className="welcome-choices">
             <button
@@ -160,7 +162,7 @@ export function LibraryPicker({
   return (
     <>
       <div className="pane-library-title">
-        <h2 className="pane-title">{t("picker.title")}</h2>
+        <h2 className="k-title">{t("picker.title")}</h2>
         <Menu.Root
           modal={false}
           onOpenChange={(open) => {
@@ -196,7 +198,7 @@ export function LibraryPicker({
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />
           <Dialog.Popup className="k-dialog library-manage">
-            <Dialog.Title className="k-dialog-title">{t("manage.title")}</Dialog.Title>
+            <Dialog.Title className="k-title">{t("manage.title")}</Dialog.Title>
             {entries.length > 0 ? (
               <ul className="k-list library-list" aria-label={t("manage.listLabel")}>
                 {entries.map(({ library, unavailable }) => (

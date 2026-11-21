@@ -228,7 +228,7 @@ it("顶栏报的是张数，不是格数：一摞里的页都算上", async () =
     />,
   );
   await screen.findAllByRole("option");
-  expect(onTotal).toHaveBeenLastCalledWith(5);
+  await vi.waitFor(() => expect(onTotal).toHaveBeenLastCalledWith(5));
 });
 
 it("从一个托盘直接点另一摞的张数：旧托盘里第 2 页往后的选择随之取消", async () => {

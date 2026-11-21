@@ -309,7 +309,7 @@ function Band({
         {src && <img src={src} alt="" draggable={false} />}
       </button>
       <div className="pw-band-side">
-        <h2 className="pw-band-title">{work.title}</h2>
+        <h2 className="k-title">{work.title}</h2>
         <p className="pw-band-artist">{work.artist.name}</p>
         {work.pages.length > 1 && <p className="pw-band-meta">{t("browse.pages", { count: work.pages.length })}</p>}
         <ul className="pw-band-tags">

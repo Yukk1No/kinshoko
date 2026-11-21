@@ -53,6 +53,12 @@ pub(super) async fn import_contains_eagle(source: ImportSource) -> Result<bool, 
     blocking(move || Ok(source.contains_eagle())).await
 }
 
+/// 来源预检：选中的路径里哪些是 Kinshoko 备份，原样返回；它们经恢复还原，不当散图导入。
+#[tauri::command]
+pub(super) async fn import_backups(source: ImportSource) -> Result<Vec<PathBuf>, CommandError> {
+    blocking(move || Ok(source.backups())).await
+}
+
 #[tauri::command]
 pub(super) async fn cancel_import<R: Runtime>(
     app: AppHandle<R>,
