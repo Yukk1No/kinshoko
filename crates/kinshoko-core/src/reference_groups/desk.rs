@@ -20,6 +20,7 @@
 //! 不是线程安全的；应用壳把它放在锁里，持锁时不调用窗口 API。
 
 mod collected;
+mod copies;
 mod lists;
 mod migrate;
 mod moves;
