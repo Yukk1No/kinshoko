@@ -284,6 +284,8 @@ impl Desk {
     /// 画师关掉了一张钉图（Esc 或关闭，#588 决定 3）：成员留在参考组里，标成已关闭并记下时间，组内截图也留着。
     /// 关掉的是最后一张时参考组仍在桌面上（#588 11-19 晚 规则 6），关掉的照样能点回来。
     pub fn close(&mut self, pin_id: &str, history: &mut CaptureHistory) -> Option<SavedPin> {
+        // 先放开之前已落盘的：下面一改又有没写的改动，就放不开了。
+        self.release_unpins(history);
         let at = self.pins.iter().position(|p| p.id == pin_id)?;
         let pin = self.pins.remove(at);
         let mut pending = false;
@@ -311,7 +313,6 @@ impl Desk {
                 history.unpin(capture);
             }
         }
-        self.release_unpins(history);
         Some(pin)
     }
 

@@ -40,8 +40,12 @@ fn closing_a_fresh_capture_pin_whose_history_entry_was_deleted_keeps_its_capture
         "截图复制进了参考组"
     );
     assert!(t.history.entry(&capture).is_some(), "落盘前一直钉着");
-    t.pin_reference("b", 20);
-    assert!(t.history.entry(&capture).is_none(), "落了盘之后照常放开");
+    let a = t.desk.pins()[0].id.clone();
+    t.desk.close(&a, &mut t.history);
+    assert!(
+        t.history.entry(&capture).is_none(),
+        "落了盘之后下一次关掉别的就放开"
+    );
 }
 
 #[test]
