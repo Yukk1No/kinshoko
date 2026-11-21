@@ -277,6 +277,29 @@ describe("参考组面板（参考组改成桌面）", () => {
     expect(ipc.undoPrune).toHaveBeenCalled();
   });
 
+  it("接连移出两张：只留最近那次的“撤销”，撤销写不进时错误提示上能再撤销", async () => {
+    members = [member("m1"), member("m2")];
+    await show(lists({ recent: [hair] }));
+    fireEvent.click(screen.getAllByRole("button", { name: "移出主库" })[0]);
+    await flush();
+    fireEvent.click(screen.getAllByRole("button", { name: "移出主库" })[1]);
+    await flush();
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "撤销" })).toHaveLength(1));
+    ipc.undoPrune.mockRejectedValueOnce({ code: "io", message: "写不进" });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+    });
+    await flush();
+    // 错误提示在原来那条退场时还被挡在无障碍树外，按按钮本身找。
+    const retry = (await screen.findAllByRole("button", { name: "撤销", hidden: true })).find(
+      (b) => b.getAttribute("data-type") === "error",
+    );
+    await act(async () => {
+      fireEvent.click(retry!);
+    });
+    expect(ipc.undoPrune).toHaveBeenCalledTimes(2);
+  });
+
   it("成员跨几天时按添加日期分段，早的在前", async () => {
     members = [member("m1", { addedAt: NOV_18 + DAY }), member("m2", { addedAt: NOV_18 })];
     await show(lists({ recent: [hair] }));

@@ -166,19 +166,30 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     }
   };
 
+  /**
+   * 撤销记录只有最近一次那份（移出与“移出没钉着的”共用）：新的“撤销”提示出来时关掉同一份记录的旧提示，
+   * 旧提示上的“撤销”不会撤到新的那次上。撤销写不进时记录还在，错误提示上带“撤销”再试一次。
+   */
+  const undoToasts = useRef(new Map<() => Promise<void>, string>());
+  const offerUndo = (shown: { title: string } | { error: unknown }, undo: () => Promise<void>) => {
+    const previous = undoToasts.current.get(undo);
+    if (previous) toast.close(previous);
+    const action = {
+      label: t("groups.undo"),
+      onClick: () => void undo().catch((error) => offerUndo({ error }, undo)),
+    };
+    const id =
+      "title" in shown
+        ? toast.show({ title: shown.title, tone: "success", action })
+        : toast.error(errorText(shown.error), { action });
+    undoToasts.current.set(undo, id);
+  };
+
   /** 移出能撤销，所以不先确认：做完给带“撤销”的轻提示（只撤销最近一次）。`title` 为 `null` 时什么都没做。 */
   const undoable = async <T,>(action: () => Promise<T>, title: (value: T) => string | null) => {
     try {
       const text = title(await action());
-      if (!text) return;
-      toast.show({
-        title: text,
-        tone: "success",
-        action: {
-          label: t("groups.undo"),
-          onClick: () => void undoPruneUnpinned().catch((e) => toast.error(errorText(e))),
-        },
-      });
+      if (text) offerUndo({ title: text }, undoPruneUnpinned);
     } catch (e) {
       toast.error(errorText(e));
     }
