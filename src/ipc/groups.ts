@@ -155,6 +155,14 @@ export function removeGroupMember(groupId: string, memberId: string): Promise<Re
 }
 
 /**
+ * 参考组面板移出一个成员（开关打开时）。桌面上那组的成员可用 {@link undoPruneUnpinned} 撤销，返回 `true`；
+ * 那组已经不在桌面上时从它的文件里移出，返回 `false`，没有撤销。
+ */
+export function removeDeskGroupMember(groupId: string, memberId: string): Promise<boolean> {
+  return invoke<boolean>(desk("remove_desk_group_member"), { groupId, memberId });
+}
+
+/**
  * 把参考组导出成参考组包（#68）：带上所用原图与标签、备注、来源、分级的快照。
  * 弹出保存对话框；取消时为 null，成功时为包的位置。
  */

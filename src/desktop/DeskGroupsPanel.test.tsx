@@ -22,7 +22,7 @@ const ipc = vi.hoisted(() => ({
   remove: vi.fn((id: string) => Promise.resolve({ groupId: id, name: id, unlinkedPins: [] })),
   restore: vi.fn(() => Promise.resolve()),
   purge: vi.fn(() => Promise.resolve()),
-  removeMember: vi.fn(() => Promise.resolve(null)),
+  removeMember: vi.fn((): Promise<boolean> => Promise.resolve(true)),
   exportPackage: vi.fn((): Promise<string | null> => Promise.resolve("D:/导出/头发.kinshoko-group")),
   importPackage: vi.fn(() => Promise.resolve({ name: "别人的参考组" } as unknown)),
 }));
@@ -46,7 +46,7 @@ vi.mock("../ipc", () => ({
   deleteReferenceGroup: ipc.remove,
   restoreReferenceGroup: ipc.restore,
   purgeDeletedReferenceGroup: ipc.purge,
-  removeGroupMember: ipc.removeMember,
+  removeDeskGroupMember: ipc.removeMember,
   exportReferenceGroupPackage: ipc.exportPackage,
   importReferenceGroupPackage: ipc.importPackage,
   openReferenceGroup: () => Promise.resolve(0),
@@ -275,6 +275,15 @@ describe("参考组面板（参考组改成桌面）", () => {
       fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
     });
     expect(ipc.undoPrune).toHaveBeenCalled();
+  });
+
+  it("移出时那组已经不在桌面上：照样移出，不给撤销不了的“撤销”", async () => {
+    ipc.removeMember.mockResolvedValueOnce(false);
+    await show(lists({ recent: [hair] }));
+    fireEvent.click(screen.getAllByRole("button", { name: "移出主库" })[0]);
+    await flush();
+    expect(ipc.removeMember).toHaveBeenCalledWith("g1", "m1");
+    expect(screen.queryByRole("button", { name: "撤销", hidden: true })).toBeNull();
   });
 
   it("接连移出两张：只留最近那次的“撤销”，撤销写不进时错误提示上能再撤销", async () => {
