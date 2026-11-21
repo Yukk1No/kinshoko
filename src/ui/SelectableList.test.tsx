@@ -30,7 +30,7 @@ function Harness({
   );
 }
 
-it("筛选姓名与 ID，全选只增加匹配的未订阅项，清空包括筛选外的选择", () => {
+it("筛选姓名与 ID，“全选筛出的”只增加匹配的未订阅项，清空包括筛选外的选择", () => {
   const changed = vi.fn();
   const { container } = render(<Harness changed={changed} />);
   const filter = screen.getByRole("textbox");
@@ -40,7 +40,8 @@ it("筛选姓名与 ID，全选只增加匹配的未订阅项，清空包括筛�
   fireEvent.change(filter, { target: { value: "aKi" } });
   expect(scroll.scrollTop).toBe(0);
   expect(screen.queryByRole("checkbox", { name: "Mori" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "全选未订阅的" }));
+  expect(screen.queryByRole("button", { name: "全选未订阅的" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "全选筛出的" }));
   expect([...changed.mock.lastCall![0]]).toEqual(["3", "2"]);
   fireEvent.change(filter, { target: { value: "333" } });
   expect((screen.getByRole("checkbox", { name: "Mori" }) as HTMLInputElement).checked).toBe(true);
@@ -51,7 +52,6 @@ it("筛选姓名与 ID，全选只增加匹配的未订阅项，清空包括筛�
 it("已订阅默认折叠，展开后在可选项之后，DOM 顺序相同且禁用勾选", () => {
   const { container } = render(<Harness />);
   expect(screen.queryByRole("checkbox", { name: "Already" })).toBeNull();
-  expect(screen.getByText("显示 2 / 共 3")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "显示已订阅的（1）" }));
   expect(screen.getByText("已订阅（1）")).toBeTruthy();
   const boxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
@@ -138,4 +138,17 @@ it("空结果与失败状态不会渲染可选择的行，尾部控件不是复�
   expect(within(box.closest("label")!).queryByRole("button")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Top" }));
   expect(props.onChange).not.toHaveBeenCalled();
+});
+
+it("筛选时已订阅的匹配项直接列出，只在筛选时写出筛出几个", () => {
+  render(<Harness />);
+  expect(screen.queryByText(/筛出/)).toBeNull();
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: "alr" } });
+  const already = screen.getByRole("checkbox", { name: "Already" }) as HTMLInputElement;
+  expect(already.disabled && already.checked).toBe(true);
+  expect(screen.queryByText("没有匹配的项目")).toBeNull();
+  expect(screen.getByText("筛出 1 个")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "显示已订阅的（1）" })).toBeNull();
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: "" } });
+  expect(screen.queryByRole("checkbox", { name: "Already" })).toBeNull();
 });

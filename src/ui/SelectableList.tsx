@@ -46,7 +46,10 @@ export function SelectableList({
   const eligible = matches.filter((item) => !item.done);
   const done = matches.filter((item) => item.done);
   const doneCount = items.filter((item) => item.done).length;
-  const visible = eligible.length + (expanded ? done.length : 0);
+  // 筛选时已订阅的也列出来：找一位画师时能看到他已经订阅了，而不是“没有匹配的项目”。
+  const filtering = needle !== "";
+  const showDone = expanded || filtering;
+  const visible = eligible.length + (showDone ? done.length : 0);
   const toggle = (id: string) => {
     const next = new Set(selected);
     if (next.has(id)) next.delete(id);
@@ -112,7 +115,7 @@ export function SelectableList({
               onChange(next);
             }}
           >
-            <span className="k-label">{t("selectAll")}</span>
+            <span className="k-label">{t(filtering ? "selectAllMatches" : "selectAll")}</span>
           </button>
         )}
         {controls && (
@@ -126,7 +129,7 @@ export function SelectableList({
             <span className="k-label">{t("clear")}</span>
           </button>
         )}
-        {doneCount > 0 && (
+        {doneCount > 0 && !filtering && (
           <button
             key="subscribed-toggle"
             type="button"
@@ -139,7 +142,7 @@ export function SelectableList({
             <span className="k-label">{t(expanded ? "hideSubscribed" : "showSubscribed", { count: doneCount })}</span>
           </button>
         )}
-        <span className="k-description k-choice-count">{t("showing", { shown: visible, total: items.length })}</span>
+        {filtering && <span className="k-description k-choice-count">{t("matches", { count: visible })}</span>}
       </div>
       <div className="k-choice-scroll" ref={scroll}>
         {status ?? (
@@ -148,7 +151,7 @@ export function SelectableList({
             <ul className="k-choice-items" aria-label={label}>
               {eligible.map(row)}
             </ul>
-            <div id={groupId} hidden={!expanded}>
+            <div id={groupId} hidden={!showDone}>
               {done.length > 0 && (
                 <>
                   <p className="k-section-label k-choice-group">{t("subscribed", { count: done.length })}</p>

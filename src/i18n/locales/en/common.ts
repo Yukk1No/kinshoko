@@ -4,8 +4,10 @@ import type { Translation } from "../../translation";
 const common: Translation<typeof zh> = {
   selectableList: {
     selectAll: "Select all unsubscribed",
+    selectAllMatches: "Select all matches",
     clear: "Clear",
-    showing: "Showing {{shown, number}} / {{total, number}} total",
+    matches_one: "{{count, number}} match",
+    matches_other: "{{count, number}} matches",
     showSubscribed_one: "Show subscribed ({{count, number}})",
     showSubscribed_other: "Show subscribed ({{count, number}})",
     hideSubscribed_one: "Hide subscribed ({{count, number}})",
