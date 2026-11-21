@@ -8,6 +8,7 @@ export default {
     moveToFolder: "移到文件夹",
     noFolders: "还没有文件夹",
     removeFromFolder: "移出此文件夹",
+    notDirectlyInFolder: "选中的图都在子文件夹里，这个文件夹本身没有",
     restore: "恢复",
     purge: "永久删除…",
     trash: "移到回收站",

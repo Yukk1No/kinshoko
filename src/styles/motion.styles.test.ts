@@ -8,7 +8,7 @@ const ALLOWED: Record<string, string> = {
 };
 // 单条例外：“文件: 值”。
 const ALLOWED_VALUES: Record<string, string> = {
-  "../subscriptions/subscriptions.css: 2.4s": "减弱动效下转圈放慢后的周期：转圈是循环动画，有自己的周期",
+  "../ui/spinner.css: 2.4s": "减弱动效下转圈放慢后的周期：转圈是循环动画，有自己的周期",
 };
 
 const sheets = import.meta.glob<string>("../**/*.css", { query: "?raw", import: "default", eager: true });

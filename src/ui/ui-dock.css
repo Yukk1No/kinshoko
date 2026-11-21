@@ -336,11 +336,11 @@
   vertical-align: -0.15em;
   margin-inline-end: 0.3em;
 }
-:is(.k-pill, .subs-unofficial, .subs-rank-hint, .lib-warn) > .k-warn-icon {
+:is(.k-pill, .subs-rank-hint, .lib-warn) > .k-warn-icon {
   margin: 0;
 }
 /* a pill that starts with the icon gives up 2 px on the left, as buttons with a leading icon do */
-:is(.k-pill, .subs-unofficial):has(> .k-warn-icon:first-child) {
+.k-pill:has(> .k-warn-icon:first-child) {
   padding-left: 6px;
 }
 .k-list-end {
