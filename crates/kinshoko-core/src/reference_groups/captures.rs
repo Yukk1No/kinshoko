@@ -77,6 +77,18 @@ impl ReferenceGroups {
         history: &mut CaptureHistory,
         skip: impl Fn(&GroupMemberRef) -> bool,
     ) -> OpenedPins {
+        self.open_members(group, history, skip, false)
+    }
+
+    /// 同 [`Self::open_pins`]；`reuse` 为真时，截图历史里还有与成员关联的条目就直接用它，
+    /// 不再放回一份（桌面上的参考组每次切换、启动都打开，免得截图历史被同一张截图挤满）。
+    pub(super) fn open_members(
+        &self,
+        group: &ReferenceGroup,
+        history: &mut CaptureHistory,
+        skip: impl Fn(&GroupMemberRef) -> bool,
+        reuse: bool,
+    ) -> OpenedPins {
         let mut opened = OpenedPins {
             pins: Vec::new(),
             problems: Vec::new(),
@@ -91,6 +103,11 @@ impl ReferenceGroups {
             }
             let capture_id = match &m.source {
                 MemberSource::Library { .. } => String::new(),
+                MemberSource::Capture { .. }
+                    if reuse && history.linked_entry(&member).is_some() =>
+                {
+                    history.linked_entry(&member).unwrap_or_default()
+                }
                 MemberSource::Capture { .. } => {
                     let added = self
                         .capture_file(&group.id, m)
@@ -288,11 +305,18 @@ impl ReferenceGroups {
 
     /// 先把新的组内截图复制进参考组（`copies`：文件名与截图历史中的文件），再写参考组文件，
     /// 最后删掉不再被成员用到的组内截图。中途失败时删掉这次复制的截图，参考组文件保持原样。
+    /// `copies` 里不合法的文件名（例如由导入的参考组包里的成员身份拼出来的）报错，什么都不写。
     pub(super) fn commit(
         &self,
         group: &ReferenceGroup,
         copies: &[(String, PathBuf)],
     ) -> Result<(), GroupError> {
+        if let Some((file, _)) = copies.iter().find(|(file, _)| !valid_capture_file(file)) {
+            return Err(GroupError::invalid(
+                ErrorKind::CaptureFileInvalid { file: file.clone() },
+                format!("截图文件名 {file} 不合法"),
+            ));
+        }
         let dir = self.captures_dir(&group.id)?;
         let written = (|| -> Result<(), GroupError> {
             for (file, from) in copies {
@@ -335,6 +359,53 @@ impl ReferenceGroups {
             let _ = fs::remove_dir_all(&dir);
         }
         written
+    }
+
+    /// 参考组 `id` 里这些成员自带的截图（文件名与字节），移出前留着以便撤销（#590）。读不出来的略过。
+    pub(super) fn read_captures(&self, id: &str, members: &[GroupMember]) -> CaptureFiles {
+        members
+            .iter()
+            .filter_map(|m| {
+                let path = self.capture_file(id, m)?;
+                let bytes = fs::read(path).ok()?;
+                let MemberSource::Capture { capture_file } = &m.source else {
+                    return None;
+                };
+                Some((capture_file.clone(), bytes))
+            })
+            .collect()
+    }
+
+    /// 已有的参考组放回一些自带截图后再写（撤销移出，#590）：先写截图，再同 [`Self::commit`]。
+    /// 写参考组文件失败时，这次放回的截图留到下次改动时清掉，原有的截图不动。
+    pub(super) fn commit_restoring(
+        &self,
+        group: &ReferenceGroup,
+        captures: &CaptureFiles,
+    ) -> Result<(), GroupError> {
+        let dir = self.captures_dir(&group.id)?;
+        for (file, bytes) in captures {
+            if !valid_capture_file(file) {
+                continue;
+            }
+            fs::create_dir_all(&dir)?;
+            write_atomically(&dir.join(file), bytes)?;
+        }
+        self.commit(group, &[])
+    }
+
+    /// 把自带截图的字节放回参考组 `id` 的截图目录，不写参考组文件（写盘失败后回滚，#590）。
+    /// 不合法的文件名略过；尽力而为，写不进的也略过。
+    pub(super) fn put_captures(&self, id: &str, captures: &CaptureFiles) {
+        let Ok(dir) = self.captures_dir(id) else {
+            return;
+        };
+        for (file, bytes) in captures {
+            if !valid_capture_file(file) || fs::create_dir_all(&dir).is_err() {
+                continue;
+            }
+            let _ = write_atomically(&dir.join(file), bytes);
+        }
     }
 
     /// 删掉参考组目录下不再被成员用到的截图（和写到一半的临时文件）；一张也不剩时删掉目录。

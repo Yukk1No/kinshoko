@@ -17,11 +17,13 @@ use kinshoko_core::CommandError;
 
 mod capture;
 mod clipboard;
+mod desk_commands;
 mod edge;
 mod group_trash;
 mod groups;
 mod image_actions;
 mod menu;
+mod pin_state;
 mod pins;
 mod tray;
 pub use tray::*;
@@ -92,8 +94,8 @@ pub struct DesktopState {
     capture_geometry_generation: AtomicU64,
     /// 本次运行中打开着的钉图。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
-    /// 钉图状态（`pins.json`），重新打开后恢复。
-    store: Mutex<PinStore>,
+    /// 钉图状态（`pins.json`，或开关打开时桌面上的参考组，#591），重新打开后恢复。
+    store: Mutex<pin_state::PinState>,
     /// 钉图状态改了还没写回文件。
     dirty: AtomicBool,
     edge: Mutex<EdgeHide>,
@@ -180,6 +182,18 @@ pub fn init() -> TauriPlugin<Wry> {
             group_trash::restore_reference_group,
             group_trash::purge_deleted_reference_group,
             groups::remove_group_member,
+            desk_commands::desk_reference_groups,
+            desk_commands::switch_reference_group,
+            desk_commands::new_reference_desk,
+            desk_commands::repin_group_member,
+            desk_commands::repin_all_group_members,
+            desk_commands::show_group_member,
+            desk_commands::prune_unpinned_members,
+            desk_commands::undo_prune_unpinned,
+            desk_commands::set_reference_group_favorite,
+            desk_commands::fold_into_previous,
+            desk_commands::split_off_reference_group,
+            desk_commands::undo_split_off,
             groups::export_reference_group_package,
             groups::import_reference_group_package,
             edge_hide,
@@ -210,7 +224,7 @@ pub fn init() -> TauriPlugin<Wry> {
                 pin_shown: pins::ShownWaiters::default(),
                 capture_geometry_generation: AtomicU64::new(0),
                 pins: Mutex::default(),
-                store: Mutex::new(store),
+                store: Mutex::new(pin_state::PinState::Legacy(store)),
                 dirty: AtomicBool::new(false),
                 edge: Mutex::default(),
                 // 先按开启处理（主线程上不读应用壳设置）；恢复钉图的线程再按保存的设置核对。

@@ -129,6 +129,7 @@ const summary: GroupSummary = {
   name: "头发参考",
   memberCount: 2,
   libraryIds: ["lib-a", "lib-x"],
+  createdAt: 0,
   updatedAt: Date.now(),
   problem: null,
 };

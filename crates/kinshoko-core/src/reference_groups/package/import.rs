@@ -23,12 +23,13 @@ fn read_manifest(zip: &mut ZipArchive<fs::File>) -> Result<PackageManifest, Grou
         return Err(GroupError::NotAPackage);
     }
     match header.format_version {
-        Some(1 | FORMAT_VERSION | CAPTURE_FORMAT_VERSION) => {}
-        Some(v) if v > CAPTURE_FORMAT_VERSION => return Err(GroupError::UnsupportedVersion(v)),
+        Some(1 | FORMAT_VERSION | CAPTURE_FORMAT_VERSION | UNNAMED_FORMAT_VERSION) => {}
+        Some(v) if v > UNNAMED_FORMAT_VERSION => return Err(GroupError::UnsupportedVersion(v)),
         _ => return Err(damaged(ErrorKind::WrongFormatVersion, "格式版本不对")),
     }
     // 第 2 版起标签带身份定义与来源本地标签对应。
     let defined_tags = header.format_version >= Some(FORMAT_VERSION);
+    let unnamed_allowed = header.format_version >= Some(UNNAMED_FORMAT_VERSION);
     let file: ManifestFile = serde_json::from_slice(&bytes).map_err(GroupError::damaged)?;
     let manifest = file.manifest;
     let mut definitions = BTreeMap::new();
@@ -70,10 +71,13 @@ fn read_manifest(zip: &mut ZipArchive<fs::File>) -> Result<PackageManifest, Grou
             }
         }
     }
-    manifest.group.validate().map_err(|e| match e {
-        GroupError::Invalid(why) => GroupError::PackageDamaged(why),
-        other => other,
-    })?;
+    manifest
+        .group
+        .validate(unnamed_allowed)
+        .map_err(|e| match e {
+            GroupError::Invalid(why) => GroupError::PackageDamaged(why),
+            other => other,
+        })?;
     // 每个截图文件名都要核对，成员没用到的也一样：导入时按它写进新参考组的目录。
     let mut capture_files = std::collections::BTreeSet::new();
     for capture in &manifest.captures {
@@ -257,6 +261,7 @@ pub(in super::super) fn import(
         }),
         restored_from: None,
     };
-    group.validate()?;
+    // 名称已随清单核对过（read_manifest）：没有名称的包只能是允许它的版本。
+    group.validate(true)?;
     Ok((group, captures))
 }

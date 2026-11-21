@@ -80,6 +80,7 @@ const summary: GroupSummary = {
   name: "头发参考",
   memberCount: 3,
   libraryIds: ["lib-a", "lib-b"],
+  createdAt: 0,
   updatedAt: 0,
   problem: null,
 };
