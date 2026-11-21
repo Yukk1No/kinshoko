@@ -184,8 +184,14 @@ impl Desk {
     }
 
     /// 复制参考组 `id`（#588 决定 6：要保持原样先复制）：成员、摆放与自带截图都照搬到一个叫 `name`
-    /// 的新参考组，新参考组不在桌面上、不是常用。返回新参考组。
-    pub fn duplicate(&mut self, id: &str, name: &str) -> Result<ReferenceGroup, GroupError> {
+    /// 的新参考组，新参考组不在桌面上、不是常用。组内截图成员连到原成员连着的截图历史，之后收藏那张截图
+    /// 时副本也改连到参考图。返回新参考组。
+    pub fn duplicate(
+        &mut self,
+        id: &str,
+        name: &str,
+        history: &mut CaptureHistory,
+    ) -> Result<ReferenceGroup, GroupError> {
         self.flush()?;
         let source = match &self.on_desk {
             Some(held) if held.group.id == id => held.group.clone(),
@@ -210,19 +216,22 @@ impl Desk {
         };
         let captures = self.groups.read_captures(id, &source.members);
         self.groups.publish_with_captures(&copy, &captures)?;
+        let same = copy.members.iter().map(|m| (m.id.clone(), m.id.clone()));
+        link_copies(history, id, &copy.id, same);
         Ok(copy)
     }
 
-    /// 从桌面上的参考组移出成员 `member_id`（侧栏成员悬停时的“移出”）：钉着时它的钉图一起关掉。
-    /// 返回撤销要用的（[`Self::undo_prune`]，放回时是没钉着的）；成员不在桌面上的参考组里时为 `None`，
-    /// 调用方改那组的文件。写不进时什么都不变。
+    /// 从桌面上的参考组 `group_id` 移出成员 `member_id`（侧栏成员悬停时的“移出”）：钉着时它的钉图一起关掉。
+    /// 返回撤销要用的（[`Self::undo_prune`]，放回时是没钉着的）；`group_id` 不在桌面上或成员不在里面时为
+    /// `None`，调用方改那组的文件（复制出的参考组成员身份相同，只看成员身份会移错组）。写不进时什么都不变。
     pub fn remove_member(
         &mut self,
+        group_id: &str,
         member_id: &str,
         history: &mut CaptureHistory,
     ) -> Result<Option<Pruned>, GroupError> {
         self.flush()?;
-        let Some(held) = &self.on_desk else {
+        let Some(held) = self.on_desk.as_ref().filter(|h| h.group.id == group_id) else {
             return Ok(None);
         };
         let before = held.group.clone();
@@ -340,16 +349,23 @@ impl Desk {
         let mut copies = Vec::new();
         let mut moved = BTreeSet::new();
         let mut renamed = Vec::new();
+        // 目标里已用的截图文件名：导入的参考组包里文件名与成员身份可以对不上（成员 `a` 用 `b.png`）。
+        let mut files: BTreeSet<String> = target.members.iter().filter_map(capture_file).collect();
         for m in &source.members {
             let mut m = m.clone();
             m.added_at = Some(source.added_at(&m));
             let old = m.id.clone();
-            // 截图文件名由成员身份拼出：身份重复或拼不出合法的文件名（导入的参考组包里的身份不可信）时换一个。
+            // 截图文件名由成员身份拼出：身份重复、文件名已被占用或拼不出合法的文件名
+            // （导入的参考组包里的身份不可信）时换一个。
+            let is_capture = matches!(m.source, MemberSource::Capture { .. });
+            let file = format!("{}.png", m.id);
             if target.members.iter().any(|x| x.id == m.id)
-                || (matches!(m.source, MemberSource::Capture { .. })
-                    && !valid_capture_file(&format!("{}.png", m.id)))
+                || (is_capture && (!valid_capture_file(&file) || files.contains(&file)))
             {
                 m.id = new_id();
+            }
+            if is_capture {
+                files.insert(format!("{}.png", m.id));
             }
             if let MemberSource::Capture { capture_file } = &mut m.source {
                 let original = dir.join(&*capture_file);
@@ -368,19 +384,7 @@ impl Desk {
         } else {
             Vec::new()
         };
-        for (old, new) in &renamed {
-            let from = GroupMemberRef {
-                group_id: source_id.to_owned(),
-                member_id: old.clone(),
-            };
-            if let Some(entry) = history.linked_entry(&from) {
-                let at = GroupMemberRef {
-                    group_id: target_id.to_owned(),
-                    member_id: new.clone(),
-                };
-                let _ = history.link_member(&entry, at);
-            }
-        }
+        link_copies(history, source_id, target_id, renamed);
         match self.groups.delete(source_id) {
             Ok(()) | Err(GroupError::UnknownGroup) => {}
             Err(e) => return Err(e),
@@ -405,18 +409,52 @@ impl Desk {
                 }
             };
         }
-        if desk.as_deref() == Some(target_id) {
+        // 参考组文件已写好、`source_id` 已删：到这里换桌已经发生。桌面状态写不进时留到下次落盘再写，
+        // 照样把钉出的交给应用壳，不然那些钉图没有窗口。
+        let switched = if desk.as_deref() == Some(target_id) {
             self.on_desk = Some(Held::saved(target));
             let opened = self.open_pinned(history, |m| moved.contains(m));
             self.pins.extend(opened.pins.iter().cloned());
-            self.save_state()?;
-            return Ok(Switched {
+            Switched {
                 closed: Vec::new(),
                 opened,
-            });
+            }
+        } else {
+            Switched::none()
+        };
+        if self.save_state().is_err() {
+            self.dirty = true;
         }
-        self.save_state()?;
-        Ok(Switched::none())
+        Ok(switched)
+    }
+}
+
+/// 复制出的组内截图成员（原成员身份 → 新成员身份）连到原成员连着的截图历史，收藏时一起改连。
+fn link_copies(
+    history: &mut CaptureHistory,
+    from: &str,
+    to: &str,
+    members: impl IntoIterator<Item = (String, String)>,
+) {
+    for (old, new) in members {
+        let source = GroupMemberRef {
+            group_id: from.to_owned(),
+            member_id: old,
+        };
+        if let Some(entry) = history.linked_entry(&source) {
+            let at = GroupMemberRef {
+                group_id: to.to_owned(),
+                member_id: new,
+            };
+            let _ = history.link_member(&entry, at);
+        }
+    }
+}
+
+fn capture_file(m: &GroupMember) -> Option<String> {
+    match &m.source {
+        MemberSource::Capture { capture_file } => Some(capture_file.clone()),
+        _ => None,
     }
 }
 

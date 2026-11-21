@@ -233,10 +233,18 @@ fn removing_a_member_of_the_group_on_the_desk_closes_its_pin_and_can_be_undone()
     let b = t.pin_reference("b", 20);
     let id = t.desk_id();
     let member = b.member.clone().unwrap().member_id;
+    // 复制出的参考组成员身份相同：提到的不是桌面上那组时不动桌面。
+    assert_eq!(
+        t.desk
+            .remove_member("copy", &member, &mut t.history)
+            .unwrap(),
+        None
+    );
+    assert_eq!(t.desk.pins().len(), 2);
 
     let removed = t
         .desk
-        .remove_member(&member, &mut t.history)
+        .remove_member(&t.desk_id(), &member, &mut t.history)
         .unwrap()
         .expect("在桌面上的参考组里");
 
@@ -247,7 +255,12 @@ fn removing_a_member_of_the_group_on_the_desk_closes_its_pin_and_can_be_undone()
     );
     t.desk.flush().unwrap();
     assert_eq!(reread(&t, &id).members.len(), 1, "下次落盘不会把它写回去");
-    assert_eq!(t.desk.remove_member("x", &mut t.history).unwrap(), None);
+    assert_eq!(
+        t.desk
+            .remove_member(&t.desk_id(), "x", &mut t.history)
+            .unwrap(),
+        None
+    );
 
     t.desk.undo_prune(&removed).unwrap();
     let group = reread(&t, &id);
@@ -264,7 +277,7 @@ fn removing_the_last_pinned_member_leaves_the_desk_empty() {
     let member = a.member.clone().unwrap().member_id;
 
     t.desk
-        .remove_member(&member, &mut t.history)
+        .remove_member(&t.desk_id(), &member, &mut t.history)
         .unwrap()
         .unwrap();
 
@@ -287,7 +300,11 @@ fn two_failed_removals_in_a_row_keep_both_captures() {
     std::fs::write(state.join("x"), b"x").unwrap();
     for pin in [&a, &b] {
         let member = pin.member.clone().unwrap().member_id;
-        assert!(t.desk.remove_member(&member, &mut t.history).is_err());
+        assert!(
+            t.desk
+                .remove_member(&t.desk_id(), &member, &mut t.history)
+                .is_err()
+        );
     }
     std::fs::remove_dir_all(&state).unwrap();
 
@@ -299,11 +316,11 @@ fn two_failed_removals_in_a_row_keep_both_captures() {
 #[test]
 fn duplicating_copies_members_and_captures_and_leaves_the_original_alone() {
     let mut t = TestDesk::new();
-    t.pin_capture("a", 2);
+    let capture = t.pin_capture("a", 2).capture_id().unwrap().to_owned();
     t.pin_reference("b", 20);
     let id = t.desk_id();
 
-    let copy = t.desk.duplicate(&id, "头发 副本").unwrap();
+    let copy = t.desk.duplicate(&id, "头发 副本", &mut t.history).unwrap();
 
     assert_ne!(copy.id, id);
     assert_eq!(copy.name, "头发 副本");
@@ -313,6 +330,11 @@ fn duplicating_copies_members_and_captures_and_leaves_the_original_alone() {
         t.capture_files(&copy.id),
         t.capture_files(&id),
         "自带截图也复制了"
+    );
+    let linked = t.history.linked_members(&capture);
+    assert!(
+        linked.iter().any(|m| m.group_id == copy.id) && linked.iter().any(|m| m.group_id == id),
+        "副本的截图成员也连着那张截图，收藏时一起改连：{linked:?}"
     );
     assert_eq!(t.desk_id(), id, "桌面上还是原来那组");
     let lists = t.desk.lists().unwrap();
