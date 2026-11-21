@@ -244,16 +244,23 @@ impl Desk {
         let mut copies = Vec::new();
         let mut moved = BTreeSet::new();
         let mut renamed = Vec::new();
+        // 目标里已用的截图文件名：导入的参考组包里文件名与成员身份可以对不上（成员 `a` 用 `b.png`）。
+        let mut files: BTreeSet<String> = target.members.iter().filter_map(capture_file).collect();
         for m in &source.members {
             let mut m = m.clone();
             m.added_at = Some(source.added_at(&m));
             let old = m.id.clone();
-            // 截图文件名由成员身份拼出：身份重复或拼不出合法的文件名（导入的参考组包里的身份不可信）时换一个。
+            // 截图文件名由成员身份拼出：身份重复、文件名已被占用或拼不出合法的文件名
+            // （导入的参考组包里的身份不可信）时换一个。
+            let is_capture = matches!(m.source, MemberSource::Capture { .. });
+            let file = format!("{}.png", m.id);
             if target.members.iter().any(|x| x.id == m.id)
-                || (matches!(m.source, MemberSource::Capture { .. })
-                    && !valid_capture_file(&format!("{}.png", m.id)))
+                || (is_capture && (!valid_capture_file(&file) || files.contains(&file)))
             {
                 m.id = new_id();
+            }
+            if is_capture {
+                files.insert(format!("{}.png", m.id));
             }
             if let MemberSource::Capture { capture_file } = &mut m.source {
                 let original = dir.join(&*capture_file);
@@ -309,18 +316,30 @@ impl Desk {
                 }
             };
         }
-        if desk.as_deref() == Some(target_id) {
+        // 参考组文件已写好、`source_id` 已删：到这里换桌已经发生。桌面状态写不进时留到下次落盘再写，
+        // 照样把钉出的交给应用壳，不然那些钉图没有窗口。
+        let switched = if desk.as_deref() == Some(target_id) {
             self.on_desk = Some(Held::saved(target));
             let opened = self.open_pinned(history, |m| moved.contains(m));
             self.pins.extend(opened.pins.iter().cloned());
-            self.save_state()?;
-            return Ok(Switched {
+            Switched {
                 closed: Vec::new(),
                 opened,
-            });
+            }
+        } else {
+            Switched::none()
+        };
+        if self.save_state().is_err() {
+            self.dirty = true;
         }
-        self.save_state()?;
-        Ok(Switched::none())
+        Ok(switched)
+    }
+}
+
+fn capture_file(m: &GroupMember) -> Option<String> {
+    match &m.source {
+        MemberSource::Capture { capture_file } => Some(capture_file.clone()),
+        _ => None,
     }
 }
 

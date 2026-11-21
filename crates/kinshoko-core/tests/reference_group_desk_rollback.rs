@@ -5,7 +5,7 @@
 mod desk;
 
 use desk::{TestDesk, break_state, reference_pin, reread};
-use kinshoko_core::reference_groups::MemberSource;
+use kinshoko_core::reference_groups::{MemberSource, Split};
 
 const DAY: i64 = 24 * 60 * 60 * 1000;
 
@@ -228,4 +228,74 @@ fn folding_after_the_desk_changed_does_nothing() {
     assert_eq!(reread(&t, &other).members.len(), 1, "桌面上那组没被并走");
     assert_eq!(reread(&t, &started).members.len(), 1);
     assert_eq!(reread(&t, &previous).members.len(), 1);
+}
+
+#[test]
+fn folding_does_not_overwrite_a_capture_file_whose_name_differs_from_its_member() {
+    let mut t = TestDesk::new();
+    t.pin_capture("p", 3);
+    t.desk.flush().unwrap();
+    let previous = t.desk_id();
+    t.desk.new_desk(&mut t.history).unwrap();
+    t.pin_capture("s", 5);
+    t.desk.flush().unwrap();
+    let source = t.desk_id();
+    t.desk.new_desk(&mut t.history).unwrap();
+
+    // 像导入的参考组包那样：上一组的成员用的截图文件名正好是新参考组那个成员的身份。
+    let taken = format!("{}.png", reread(&t, &source).members[0].id);
+    let old = capture_file_of(&t, &previous).remove(0);
+    let file = t.group_file(&previous);
+    let raw = std::fs::read_to_string(&file)
+        .unwrap()
+        .replace(&old, &taken);
+    std::fs::write(&file, raw).unwrap();
+    let dir = t
+        .root
+        .join("reference-groups")
+        .join(format!("{previous}.captures"));
+    std::fs::rename(dir.join(&old), dir.join(&taken)).unwrap();
+    let bytes = std::fs::read(dir.join(&taken)).unwrap();
+    t.restart();
+
+    t.desk.switch_to(&source, &mut t.history).unwrap();
+    t.desk
+        .fold_into_previous(&source, &previous, &mut t.history)
+        .unwrap();
+
+    let files = capture_file_of(&t, &previous);
+    assert_eq!(files.len(), 2);
+    assert_ne!(files[0], files[1], "两张截图各用各的文件");
+    assert_eq!(
+        std::fs::read(dir.join(&taken)).unwrap(),
+        bytes,
+        "原来那张没被盖掉"
+    );
+}
+
+#[test]
+fn undoing_a_split_that_cannot_save_the_desk_state_still_pins_the_members_back() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    t.desk.flush().unwrap();
+    let first = t.desk_id();
+    t.desk.new_desk(&mut t.history).unwrap();
+    t.pin_reference("b", 20);
+    t.desk.flush().unwrap();
+    let second = t.desk_id();
+    t.desk.switch_to(&first, &mut t.history).unwrap();
+
+    let state = break_state(&t);
+    // 撤销把第二组拆出来：移回桌面上的第一组。参考组文件写得进，桌面状态写不进。
+    let split = Split {
+        from: first.clone(),
+        to: second.clone(),
+        closed: Vec::new(),
+    };
+    let switched = t.desk.undo_split(&split, &mut t.history);
+    std::fs::remove_dir_all(&state).unwrap();
+    let switched = switched.expect("换桌已经发生，交给应用壳");
+    assert_eq!(switched.opened.pins.len(), 1, "移回的钉图有窗口");
+    t.desk.flush().unwrap();
+    assert_eq!(reread(&t, &first).members.len(), 2);
 }
