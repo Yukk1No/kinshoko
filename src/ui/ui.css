@@ -1,5 +1,5 @@
-/* Shared redesign components (T20, design/ui-system/README.md). Tokens live in src/styles/tokens.css.
-   Every class is prefixed `k-` so it never collides with the older component styles. */
+/* 共用组件（design/ui-system/README.md）：按钮、菜单行、开关、分段、滑块式悬停等。令牌在 src/styles/tokens.css。
+   类名都带 `k-` 前缀。 */
 
 /* ---- Control label ---- */
 /* Text in a fixed-height, flex-centred control. Chromium floors the half-leading, so at fractional scales
@@ -124,6 +124,14 @@
 }
 .k-btn.is-sm:has(> svg:first-child) {
   padding-left: 8px;
+}
+.k-btn.is-lg {
+  height: var(--h-lg);
+  padding: 0 18px;
+  border-radius: var(--r);
+}
+.k-btn.is-lg:has(> svg:first-child) {
+  padding-left: 16px;
 }
 .k-btn svg {
   flex: none;

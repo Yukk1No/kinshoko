@@ -140,7 +140,7 @@ describe("说明与报错文字", () => {
       ".k-error-text:where(.is-boxed)",
       ".k-error-text:where(.is-field)",
     ]);
-    expect(cssRule(sheets["../styles/shell-details.css"], ".save-destination p")).toMatchObject({ margin: "0" });
+    expect(cssRule(sheets["../styles/import-dialogs.css"], ".save-destination p")).toMatchObject({ margin: "0" });
     expect(
       cssRule(sheets["./settings.css"], ".k-set-row-below-body > p,\n.k-set-row-below-body > div > p"),
     ).toMatchObject({
@@ -169,7 +169,7 @@ describe("说明与报错文字", () => {
       display: "none",
       "white-space": "normal",
     });
-    expect(cssRule(sheets["../shell/main-window-panels.css"], ".workspace-sources > .k-description")).toMatchObject({
+    expect(cssRule(sheets["../shell/main-window.css"], ".workspace-sources > .k-description")).toMatchObject({
       margin: "6px 0 0",
       "line-height": "inherit",
       display: "flex",

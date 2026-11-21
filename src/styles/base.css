@@ -61,7 +61,7 @@ h5,
 h6 {
   font-weight: 600;
 }
-/* design system v2: three sizes only, title 16 / body 13 / small 12; hierarchy comes from weight and colour */
+/* 字号只有三档：标题 16、正文 13、小字 12；层级靠字重与颜色（design/ui-system/scales.md）。 */
 h1,
 h2,
 h3,

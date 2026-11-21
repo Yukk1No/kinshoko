@@ -1,5 +1,4 @@
-/* T20 main window (design/ui-system/README.md, previews 01/01b/02/03/05). Loaded after styles.css and
-   ui/ui.css; overrides the older shell rules where the structure changed. */
+/* 主窗口的框架（design/ui-system/README.md，预览 01/01b/02/03/05）：桌面、图标轨、侧栏、顶栏与工作区来源。 */
 
 /* ---- Frame: the header rows form one 56 px band that is the window's safe area ---- */
 /* 桌面与纸（#608，design/ui-system/main-window-material.md）：图标轨直接放在桌面上；左栏、主区、详情栏是三张纸，
@@ -280,6 +279,26 @@
 .workspace-expand:hover {
   background: var(--hover);
   color: var(--ink);
+}
+/* 工作区来源（WorkspaceSources、WorkspaceSourceEditor）。 */
+.workspace-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.workspace-source-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+}
+.workspace-sources > .k-description {
+  margin: 6px 0 0;
+  line-height: inherit;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 /* 展开、收起时换的是两个图标：新图标从另一个的角度转过来（#606 C4d）。 */
 .workspace-expand svg {
@@ -707,4 +726,10 @@ li[data-branch] > .k-fluid-row .k-row-icon {
 .k-exact[data-pressed] .k-exact-line {
   opacity: 1;
   transform: none;
+}
+
+/* 导入按钮与它的任务回执浮层。 */
+.import-menu {
+  position: relative;
+  flex: none;
 }

@@ -1,4 +1,4 @@
-/* 标签面板的就地编辑：改名、排除、新建类别与别名（从 main-window-panels.css 拆出，按加载次序紧跟其后）。 */
+/* 标签面板的就地编辑：改名、排除、新建类别与别名（紧跟 inspector.css 与 welcome.css 加载）。 */
 /* 尚未翻译的“文/A”可以点（#182）：就地弹出改名框，保存当前界面语言的名称偏好。 */
 .k-tags .untranslated.is-action {
   display: inline-grid;

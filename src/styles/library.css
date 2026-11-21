@@ -332,3 +332,10 @@
   font-size: 13px;
   resize: vertical;
 }
+
+/* 永久删除的确认（#67）：提醒对话框里列出受影响的参考组。 */
+.permanent-delete-groups {
+  margin: 0 0 4px;
+  padding-left: 1.4em;
+  color: var(--ink-2);
+}

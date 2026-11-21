@@ -143,7 +143,7 @@ describe("低强调按钮", () => {
   });
 
   it("改回来源备注不可用时保留细线，不改其他无底按钮", () => {
-    expect(cssRule(sheets["../shell/main-window-panels.css"], REVERT)).toMatchObject({
+    expect(cssRule(sheets["../shell/inspector.css"], REVERT)).toMatchObject({
       "--k-lift": "var(--btn-lift-disabled)",
     });
     expect(sources["../library/SelectionPanel.tsx"]).toContain(

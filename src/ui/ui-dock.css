@@ -1,5 +1,5 @@
 /* Shared redesign components, part 2: dock, shared tooltips, dialog shell, settings-style lists, pills,
-   badges and selection dock. Loaded right after ui.css. */
+   badges and selection dock. Loaded after ui.css. */
 /* ---- Dock (after Arc Pro dock behaviour) ---- */
 .k-dock {
   position: relative;
@@ -211,7 +211,7 @@
   height: 0.8em;
   overflow: visible;
 }
-/* `.k-dock.is-dark` takes the dark theme's tokens (src/styles.css), so it needs no rules of its own. */
+/* `.k-dock.is-dark` takes the dark theme's tokens (src/styles/tokens.css), so it needs no rules of its own. */
 
 /* ---- Dialog shell (Base UI Dialog / AlertDialog) and settings-style lists ---- */
 .k-backdrop {

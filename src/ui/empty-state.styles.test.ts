@@ -134,12 +134,12 @@ describe("空状态", () => {
       padding: "0 10px 0 32px",
       cursor: "default",
     });
-    expect(cssRule(sheets["../shell/main-window-panels.css"], ".library-start-content")).toMatchObject({
+    expect(cssRule(sheets["../shell/welcome.css"], ".library-start-content")).toMatchObject({
       overflow: "auto",
       "justify-content": "safe center",
       padding: "24px",
     });
-    expect(cssRule(sheets["../shell/main-window-panels.css"], ".library-start-content > .k-empty.is-page")).toEqual({
+    expect(cssRule(sheets["../shell/welcome.css"], ".library-start-content > .k-empty.is-page")).toEqual({
       flex: "none",
       "align-self": "stretch",
     });

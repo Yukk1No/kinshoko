@@ -293,3 +293,47 @@ body {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);
 }
+
+.empty-context {
+  width: 248px;
+  flex: none;
+  overflow: auto;
+  background: var(--surface);
+}
+
+/* 顶栏的结果数与图片大小滑条，读屏专用的隐藏文字。 */
+.result-count {
+  flex: none;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.density {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+.density input {
+  width: 96px;
+  accent-color: var(--accent);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* #78 T08: adapt the accepted folder workspace's separate provider roots and path hints. */
+.workspace-current-scope {
+  padding: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.workspace-provider > .sidebar {
+  padding-left: 16px;
+}
+.workspace-provider .sidebar-item:disabled {
+  cursor: default;
+  opacity: var(--disabled-opacity);
+}

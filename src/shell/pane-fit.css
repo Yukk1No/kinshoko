@@ -1,4 +1,4 @@
-/* 窄窗口里侧栏让位（#274，shell/paneFit.ts）。排在 main-window.css 之后，覆盖那里写死的 256 / 255 px。 */
+/* 窄窗口里侧栏让位（#274，shell/paneFit.ts）。排在 main-window.css 之后，覆盖侧栏标题行与内容区写死的宽度。 */
 
 /* 侧栏宽度由工作区算好写在 .app-body 的 --sidebar-width 上：平时 256，窄时按余量与详情面板一起让到 200。 */
 /* 256 = 纸 + 右边 8 px 桌面（#608）。 */
