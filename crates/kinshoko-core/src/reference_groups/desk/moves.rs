@@ -182,44 +182,6 @@ impl Desk {
         }))
     }
 
-    /// 复制参考组 `id`（#588 决定 6：要保持原样先复制）：成员、摆放与自带截图都照搬到一个叫 `name`
-    /// 的新参考组，新参考组不在桌面上、不是常用。组内截图成员连到原成员连着的截图历史，之后收藏那张截图
-    /// 时副本也改连到参考图。返回新参考组。
-    pub fn duplicate(
-        &mut self,
-        id: &str,
-        name: &str,
-        history: &mut CaptureHistory,
-    ) -> Result<ReferenceGroup, GroupError> {
-        self.flush()?;
-        let source = match &self.on_desk {
-            Some(held) if held.group.id == id => held.group.clone(),
-            _ => self.groups.get(id)?,
-        };
-        let now = crate::library::now_ms();
-        let copy = ReferenceGroup {
-            id: new_id(),
-            name: name.trim().to_owned(),
-            created_at: now,
-            updated_at: now,
-            members: source
-                .members
-                .iter()
-                .map(|m| GroupMember {
-                    added_at: Some(source.added_at(m)),
-                    ..m.clone()
-                })
-                .collect(),
-            imported_from_package: None,
-            restored_from: None,
-        };
-        let captures = self.groups.read_captures(id, &source.members);
-        self.groups.publish_with_captures(&copy, &captures)?;
-        let same = copy.members.iter().map(|m| (m.id.clone(), m.id.clone()));
-        link_copies(history, id, &copy.id, same);
-        Ok(copy)
-    }
-
     /// 从桌面上的参考组 `group_id` 移出成员 `member_id`（侧栏成员悬停时的“移出”）：钉着时它的钉图一起关掉。
     /// 返回撤销要用的（[`Self::undo_prune`]，放回时是没钉着的）；`group_id` 不在桌面上或成员不在里面时为
     /// `None`，调用方改那组的文件（复制出的参考组成员身份相同，只看成员身份会移错组）。写不进时什么都不变。
@@ -385,7 +347,7 @@ impl Desk {
         } else {
             Vec::new()
         };
-        link_copies(history, source_id, target_id, renamed);
+        super::copies::link_copies(history, source_id, target_id, renamed);
         match self.groups.delete(source_id) {
             Ok(()) | Err(GroupError::UnknownGroup) => {}
             Err(e) => {
@@ -431,28 +393,6 @@ impl Desk {
             self.dirty = true;
         }
         Ok(switched)
-    }
-}
-
-/// 复制出的组内截图成员（原成员身份 → 新成员身份）连到原成员连着的截图历史，收藏时一起改连。
-fn link_copies(
-    history: &mut CaptureHistory,
-    from: &str,
-    to: &str,
-    members: impl IntoIterator<Item = (String, String)>,
-) {
-    for (old, new) in members {
-        let source = GroupMemberRef {
-            group_id: from.to_owned(),
-            member_id: old,
-        };
-        if let Some(entry) = history.linked_entry(&source) {
-            let at = GroupMemberRef {
-                group_id: to.to_owned(),
-                member_id: new,
-            };
-            let _ = history.link_member(&entry, at);
-        }
     }
 }
 
