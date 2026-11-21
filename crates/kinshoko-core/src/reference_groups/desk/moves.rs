@@ -170,10 +170,9 @@ impl Desk {
         self.dirty = true;
         if let Err(e) = self.flush() {
             // 参考组写进了、桌面状态没写进时，移出的截图已清掉：连字节一起放回。
+            // 全部移出时落盘已把空组删掉、桌面清空：照原样放回，下次落盘重建。
             self.groups.put_captures(&before.id, &captures);
-            if let Some(held) = self.on_desk.as_mut() {
-                held.group.members = before.members.clone();
-            }
+            self.on_desk = Some(Held::saved(before.clone()));
             return Err(e);
         }
         Ok(Some(Pruned {
@@ -345,6 +344,8 @@ impl Desk {
         };
         let source = held(source_id)?;
         let mut target = held(target_id)?;
+        // 写进目标之后失败时把目标写回原样（多复制进去的截图随之清掉），重试不会并两次。
+        let original = target.clone();
         let dir = self.groups.captures_dir(source_id)?;
         let mut copies = Vec::new();
         let mut moved = BTreeSet::new();
@@ -387,7 +388,10 @@ impl Desk {
         link_copies(history, source_id, target_id, renamed);
         match self.groups.delete(source_id) {
             Ok(()) | Err(GroupError::UnknownGroup) => {}
-            Err(e) => return Err(e),
+            Err(e) => {
+                let _ = self.groups.commit(&original, &[]);
+                return Err(e);
+            }
         }
         self.forget(source_id);
         if desk.as_deref() == Some(source_id) {
@@ -396,7 +400,8 @@ impl Desk {
             return match self.replace(Some(target), history) {
                 Ok(switched) => Ok(switched),
                 Err(e) => {
-                    // 桌面状态写不进：桌面还是它（下次落盘时文件写回来，成员两边都有，不丢）。
+                    // 桌面状态写不进：桌面还是它（下次落盘时文件写回来），目标写回原样。
+                    let _ = self.groups.commit(&original, &[]);
                     if let Some(mut held) = source {
                         self.groups.put_captures(source_id, &source_captures);
                         self.used_at
