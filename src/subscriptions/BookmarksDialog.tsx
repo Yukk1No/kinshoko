@@ -105,7 +105,7 @@ export function BookmarksDialog({
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog subs-artist-dialog">
           <div className="subs-first-run-head">
-            <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+            <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
             <UnofficialMark />
           </div>
           <LibraryField label={t("library")} value={library} onChange={setLibrary} disabled={busy} />
@@ -134,7 +134,7 @@ export function BookmarksDialog({
             disabled={busy}
           />
           {error && (
-            <p className="k-field-error" role="alert">
+            <p className="k-error-text is-field" role="alert">
               <CircleAlert size={14} aria-hidden="true" />
               {error}
             </p>

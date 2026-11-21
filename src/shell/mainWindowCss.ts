@@ -3,5 +3,6 @@ import frame from "./main-window.css?raw";
 import island from "./main-window-island.css?raw";
 import panels from "./main-window-panels.css?raw";
 import stacks from "./main-window-stacks.css?raw";
+import tags from "./main-window-tags.css?raw";
 
-export default [frame, island, panels, stacks].join("\n");
+export default [frame, island, panels, tags, stacks].join("\n");

@@ -111,7 +111,7 @@ export function FollowingDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog subs-artist-dialog">
-          <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+          <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
           <div className="k-field-row">
             <span className="k-input">
               <Search size={16} aria-hidden="true" />
@@ -137,7 +137,7 @@ export function FollowingDialog({
               </p>
             )}
             {follows.kind === "failed" && (
-              <p className="k-field-error subs-follow-note" role="alert">
+              <p className="k-error-text is-field subs-follow-note" role="alert">
                 <CircleAlert size={14} aria-hidden="true" />
                 {follows.message}
               </p>
@@ -180,7 +180,7 @@ export function FollowingDialog({
             disabled={busy}
           />
           {error && (
-            <p className="k-field-error" role="alert">
+            <p className="k-error-text is-field" role="alert">
               <CircleAlert size={14} aria-hidden="true" />
               {error}
             </p>

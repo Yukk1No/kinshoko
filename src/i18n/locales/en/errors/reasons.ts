@@ -48,6 +48,7 @@ export default {
   importTargetUnavailable: "The save location isn't available: {{cause}}",
   importItemCrashed: "Something went wrong while processing this item",
   importCancelled: "The import was cancelled",
+  importBackupFolder: "This is a library backup. Restore it in Settings › Backup › Restore a library",
   importUndecodable: "Couldn't decode it: {{detail}}",
   stagedFileMismatch: "The staged file didn't verify",
   originalContentMismatch: "An original with the same name in the library has different content",

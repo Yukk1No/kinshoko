@@ -46,6 +46,7 @@ function setup({
     recovery: { interrupted: [], orphans: [] },
     stage_clipboard_import: "C:/data/剪贴板.png",
     import_contains_eagle: false,
+    import_backups: [],
     start_import: (args) => {
       started.push(args.destination);
       return `T${++next}`;

@@ -214,7 +214,7 @@ export function wallInteractions({
       pivot.current = id;
       onSelectionChange(new Set(dragged));
     }
-    // 拖的是整摞时（#418）放进文件夹的是它的全部页，与“移到文件夹”相同。
+    // 拖的是整摞时（#418）放进文件夹的是它的全部页。
     const draggedPages = dragged.flatMap((id) => {
       const card = cards.find((c) => c.id === id);
       return card ? pagesOf([card]) : [];

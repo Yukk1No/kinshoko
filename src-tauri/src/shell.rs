@@ -149,6 +149,8 @@ pub fn open_main_window(app: &AppHandle) {
         scale.as_ref().map_or(100, UiScale::percent),
         interface_lang::current()
     );
+    #[cfg(windows)]
+    let seed = format!("{seed}{}", crate::file_drop::initialization_script(app));
     match WebviewWindowBuilder::from_config(app, config).and_then(|b| {
         b.visible(false)
             .initialization_script(seed)
@@ -156,6 +158,10 @@ pub fn open_main_window(app: &AppHandle) {
             .build()
     }) {
         Ok(window) => {
+            #[cfg(windows)]
+            if let Err(error) = crate::file_drop::install(&window) {
+                crate::run_log::error("file drop bridge", error);
+            }
             crate::run_log::window_created(WindowKind::Main, started);
             apply_ui_scale(app, factor);
             let _ = window.show();

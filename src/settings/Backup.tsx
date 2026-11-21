@@ -229,7 +229,7 @@ export function BackupSettings() {
         <RestoreView onError={(e) => setError(errorText(e))} />
       </SettingsGroup>
       {error !== null && (
-        <p className="k-set-error" role="alert">
+        <p className="k-error-text is-boxed" role="alert">
           {error}
         </p>
       )}
@@ -299,7 +299,7 @@ function RestoreView({ onError }: { onError: (error: unknown) => void }) {
       below={
         (snapshots !== null || busy || report !== null) && (
           <>
-            {snapshots !== null && snapshots.length === 0 && <p className="k-set-note">{t("empty")}</p>}
+            {snapshots !== null && snapshots.length === 0 && <p className="k-description is-spaced">{t("empty")}</p>}
             {snapshots !== null && snapshots.length > 0 && (
               <>
                 <ul className="backup-snapshots">

@@ -1,5 +1,6 @@
 //! 接口上的数据：钉图编号、输入、光标、错误。
 
+use crate::keys::EscPass;
 use std::fmt;
 
 use kinshoko_core::desktop::frame::{PointerButton, PointerKind};
@@ -82,12 +83,17 @@ pub enum PinCursor {
 }
 
 /// 键盘钩子的状况。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HookEvent {
     /// 回调送达得太晚（系统可能已把钩子移除），已重新安装。
     Reinstalled { late_ms: u32 },
     /// 装不上钩子：钉图的快捷键不可用。`code` 是系统错误码。
     Failed { code: u32 },
+    /// 屏幕上有钉图时按下的 Esc 被放行了。Esc 关不掉钉图时，日志里能看出是哪种情况。
+    EscPassed(EscPass),
+    /// 前台换成了权限比 Kinshoko 高的程序（例如以管理员身份运行）：它在前台时系统不把按键交给
+    /// 低级键盘钩子，钉图的快捷键都收不到。`exe` 是它的程序文件名，查不到时为空。
+    ElevatedForeground { exe: String },
 }
 
 /// 平台层建窗口、建合成目标失败。

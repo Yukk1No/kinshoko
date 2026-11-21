@@ -136,7 +136,7 @@ export function DeskGroupMembers({
             <div className="desk-group-day-head">
               <h4>{formatMoment(at, { time: false })}</h4>
               {index > 0 && (
-                <button type="button" className="k-btn is-sm is-ghost desk-group-split" onClick={() => onSplit(day)}>
+                <button type="button" className="k-btn is-sm is-quiet desk-group-split" onClick={() => onSplit(day)}>
                   {t("deskPanel.split")}
                 </button>
               )}

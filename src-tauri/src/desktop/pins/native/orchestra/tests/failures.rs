@@ -110,3 +110,14 @@ fn settling_while_a_draw_is_in_flight_still_fits_the_window_back() {
     assert_eq!(r.o.shell().window(A), Some(fit));
     assert_eq!(r.o.next_deadline(), None);
 }
+
+#[test]
+fn elevated_foreground_program_name_survives_log_scrubbing() {
+    let Effect::Warn(_, detail) = hook_warning(HookEvent::ElevatedForeground {
+        exe: "Taskmgr".into(),
+    }) else {
+        panic!("应是警告");
+    };
+    let saved = serde_json::to_string(&kinshoko_core::diagnostics::Detail::new(detail)).unwrap();
+    assert!(saved.contains("Taskmgr"), "{saved}");
+}

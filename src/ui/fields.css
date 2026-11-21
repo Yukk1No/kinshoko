@@ -8,21 +8,6 @@
   gap: 6px;
   min-width: 0;
 }
-.k-field-label {
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 600;
-  color: var(--ink-2);
-}
-.k-field-error {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--danger);
-}
 .k-field-row {
   display: flex;
   align-items: center;
@@ -193,12 +178,11 @@ input.k-input {
   color: var(--ink-3);
 }
 /* 与候选名称左对齐：8 内边距 + 16 指示列 + 8 间距。 */
-.k-option-empty {
+.k-combo-empty > .k-empty.is-list {
   display: flex;
   align-items: center;
   min-height: 32px;
   padding: 0 10px 0 32px;
-  color: var(--ink-2);
   cursor: default;
 }
 .k-option.is-create .k-item-ind {

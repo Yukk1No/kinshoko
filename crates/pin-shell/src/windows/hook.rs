@@ -31,8 +31,9 @@ use windows::Win32::UI::WindowsAndMessaging::{
     UnhookWindowsHookEx, WH_KEYBOARD_LL, WM_APP, WM_KEYDOWN, WM_QUIT, WM_SYSKEYDOWN, WM_TIMER,
 };
 
+use super::foreground;
 use super::input::{key_from_vk, pack_key, vk_from_key};
-use crate::keys::{HitTable, KeyGate, Mods, Verdict, late_ms};
+use crate::keys::{HitTable, Key, KeyGate, Mods, Verdict, esc_pass, late_ms};
 
 /// 钩子线程自己的消息：重装钩子，`wParam` 为晚了多少毫秒。
 const WM_REINSTALL: u32 = WM_APP + 1;
@@ -50,13 +51,16 @@ pub(super) fn alt_used() {
 
 /// 兜底：系统移除钩子之后不再有回调，晚到的回调也就看不到。每隔这么久没有按着的键时悄悄重装一次。
 const REFRESH_MS: u32 = 30_000;
+/// 放行的 Esc 两次记日志至少隔这么久（按住不放的自动重复、连按都只记一次）。
+const ESC_REPORT_GAP: Duration = Duration::from_secs(2);
 
 /// 发给宿主窗口的消息号。
 #[derive(Clone, Copy)]
 pub(super) struct Messages {
     /// 拦下的按键，参数见 [`pack_key`]。
     pub key: u32,
-    /// 钩子状况：`wParam` 0 为已重装（`lParam` 晚了多少毫秒），1 为装不上（`lParam` 错误码）。
+    /// 钩子状况：`wParam` 0 为已重装（`lParam` 晚了多少毫秒），1 为装不上（`lParam` 错误码），
+    /// 2 为放行了 Esc（`lParam` 见 `EscPass::pack`），3 为前台换成权限更高的程序。
     pub status: u32,
     /// Alt 按下（`wParam` 1）或松开（0）。
     pub alt: u32,
@@ -74,6 +78,8 @@ thread_local! {
     static THREAD: Cell<u32> = const { Cell::new(0) };
     /// 上一次报出的 Alt 状态（按住不放的自动重复不再报）。
     static ALT: Cell<bool> = const { Cell::new(false) };
+    /// 上一次记下放行的 Esc 的时间。
+    static ESC_REPORTED: Cell<Option<Instant>> = const { Cell::new(None) };
 }
 
 pub(super) struct Hook {
@@ -171,6 +177,7 @@ fn run(shared: Arc<Shared>, ready: mpsc::Sender<u32>) {
     SHARED.with(|s| *s.borrow_mut() = Some(shared.clone()));
     let _ = ready.send(me);
     let mut hook = install(&shared);
+    let _watch = foreground::Watch::start(elevated_foreground);
     let mut last_reinstall: Option<Instant> = None;
     // SAFETY：线程计时器，到时往本线程的队列放 WM_TIMER。
     unsafe { SetTimer(None, 0, REFRESH_MS, None) };
@@ -300,7 +307,11 @@ fn decide(vk: u32, down: bool) -> Option<bool> {
             alt: held(VK_MENU.0),
             win: held(VK_LWIN.0) || held(VK_RWIN.0),
         };
-        GATE.with(|g| g.borrow_mut().down(&table, Some(key), (p.x, p.y), mods))
+        let verdict = GATE.with(|g| g.borrow_mut().down(&table, Some(key), (p.x, p.y), mods));
+        if key == Key::Escape && verdict == Verdict::Pass {
+            report_esc(&shared, &table, (p.x, p.y), mods);
+        }
+        verdict
     } else {
         GATE.with(|g| g.borrow_mut().up(Some(key)))
     };
@@ -313,5 +324,31 @@ fn decide(vk: u32, down: bool) -> Option<bool> {
             }
             Some(true)
         }
+    }
+}
+
+/// 屏幕上有钉图时放行了 Esc：报给编排写日志（隔 [`ESC_REPORT_GAP`] 才再报）。
+fn report_esc(shared: &Shared, table: &HitTable, at: (i32, i32), mods: Mods) {
+    let Some(pass) = esc_pass(table, at, mods) else {
+        return;
+    };
+    if ESC_REPORTED
+        .with(Cell::get)
+        .is_some_and(|t| t.elapsed() < ESC_REPORT_GAP)
+    {
+        return;
+    }
+    ESC_REPORTED.with(|t| t.set(Some(Instant::now())));
+    post(shared, shared.messages.status, 2, pass.pack() as isize);
+}
+
+/// 前台换成权限更高的程序：屏幕上有钉图时报给编排，程序名随消息排进 `foreground::queue_exe`。
+fn elevated_foreground(exe: String) {
+    let Some(shared) = SHARED.with(|s| s.borrow().clone()) else {
+        return;
+    };
+    if shared.table.lock().is_ok_and(|t| !t.pins.is_empty()) {
+        foreground::queue_exe(exe);
+        post(&shared, shared.messages.status, 3, 0);
     }
 }

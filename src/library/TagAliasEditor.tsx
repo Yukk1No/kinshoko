@@ -53,16 +53,16 @@ export function AliasEditor({
 
   return (
     <div className="tag-alias-editor k-tag-alias" role="dialog" aria-label={t("panel.aliasesLabel", { name })}>
-      <p className="k-tag-alias-title">{t("panel.aliasesLabel", { name })}</p>
+      <p className="k-section-label">{t("panel.aliasesLabel", { name })}</p>
       {entry && entry.aliases.length > 0 ? (
         <ul className="tag-aliases k-tag-chips">
           {entry.aliases.map((a) => (
-            <li key={a.name}>
+            <li key={a.name} className="k-token is-24 is-square is-paper is-alias-editor">
               <span>{a.name}</span>
               <Tip label={t("alias.removeTitle")}>
                 <button
                   type="button"
-                  className="k-icon-btn is-xs"
+                  className="k-token-action is-20 is-editor-action"
                   aria-label={t("alias.removeLabel", { name: a.name })}
                   onClick={() => removeTagAlias(libraryId, tag.id, a.name).catch((e) => onError(e))}
                 >

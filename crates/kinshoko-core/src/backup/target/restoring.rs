@@ -126,17 +126,14 @@ impl BackupTarget {
         let outcome = (|| -> Result<(), BackupError> {
             let mut mapping: HashMap<String, String> = HashMap::new();
             let mut staged_libraries = Vec::new();
-            let mut reserved = BTreeSet::new();
+            let library_staging = batch.stage().join(".libraries");
+            fs::create_dir(&library_staging)?;
             for lib in &manifest.libraries {
                 let lang = crate::interface_lang::current();
                 let dir_name = |n| {
                     crate::written_names::restored_library_dir(lang, &lib.name, &at.local_date(), n)
                 };
-                let mut dest = unique_dir(into, &dir_name(None));
-                while !reserved.insert(dest.clone()) {
-                    dest = unique_dir(into, &dir_name(Some(reserved.len())));
-                }
-                let stage = batch.stage().join(&lib.id);
+                let (dest, stage) = reserve_library_dir(into, &library_staging, dir_name)?;
                 let provenance = RestoreProvenance {
                     old_library_id: lib.id.clone(),
                     backup_id: manifest.id.clone(),

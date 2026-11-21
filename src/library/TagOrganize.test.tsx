@@ -62,7 +62,7 @@ describe("单张图的标签与人工标签决定", () => {
         edits: [{ kind: "add", tag: { kind: "named", namespace: "general", name: "某某", lang: "zh-CN" } }],
       },
     ]);
-    expect(document.querySelectorAll(".k-tag-chip.is-manual")).toHaveLength(2);
+    expect(document.querySelectorAll(".k-token.is-inspector.is-manual")).toHaveLength(2);
     expect((await openChip("某某")).textContent).toContain("来源：你添加的");
 
     // 浮层和读屏名仍写全名“作者：某某”。

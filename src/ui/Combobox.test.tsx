@@ -190,7 +190,7 @@ describe("Combobox", () => {
   it("没有匹配时先写“没有匹配的标签”，新建项照常给出并被高亮", async () => {
     render(<TagAdder />);
     const list = await typeAndOpen("狗");
-    expect(list.querySelector(".k-option-empty")?.textContent).toBe("没有匹配的标签");
+    expect(list.querySelector(".k-combo-empty > .k-empty.is-list")?.textContent).toBe("没有匹配的标签");
     const options = within(list).getAllByRole("option");
     expect(options.map((o) => o.textContent)).toEqual(["新建标签“狗”"]);
     key("Enter");
