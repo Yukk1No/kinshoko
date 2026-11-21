@@ -326,7 +326,7 @@ describe("参考组面板：移到新参考组", () => {
     expect(ipc.undoPrune).not.toHaveBeenCalled();
   });
 
-  it("接连移到新参考组两次：只留最近那次的“撤销”", async () => {
+  it("接连移到新参考组两次：只留最近那次的“撤销”，撤销写不进时错误提示上能再撤销", async () => {
     members = [member("m1", { addedAt: NOV_18 }), member("m2", { addedAt: NOV_18 + DAY })];
     await show(lists({ recent: [hair] }));
     for (let i = 0; i < 2; i++) {
@@ -336,6 +336,18 @@ describe("参考组面板：移到新参考组", () => {
       await flush();
     }
     await waitFor(() => expect(screen.getAllByRole("button", { name: "撤销" })).toHaveLength(1));
+    ipc.undoSplit.mockRejectedValueOnce({ code: "io", message: "写不进" });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+    });
+    await flush();
+    const retry = (await screen.findAllByRole("button", { name: "撤销", hidden: true })).find(
+      (b) => b.getAttribute("data-type") === "error",
+    );
+    await act(async () => {
+      fireEvent.click(retry!);
+    });
+    expect(ipc.undoSplit).toHaveBeenCalledTimes(2);
   });
 
   it("最早那天的都已关闭、折起来时，较新的一段照样能移到新参考组", async () => {
