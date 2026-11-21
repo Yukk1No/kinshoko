@@ -94,11 +94,21 @@ fn switching_to_a_group_saved_on_an_unplugged_monitor_pulls_its_pins_back_onto_t
     t.pin_reference("b", 50);
 
     let back = t.desk.switch_to(&id, &mut t.history).unwrap();
-    assert_eq!(back.opened.pins[0].placement.x, 9000, "换桌只按存下的位置钉出");
+    assert_eq!(
+        back.opened.pins[0].placement.x, 9000,
+        "换桌只按存下的位置钉出"
+    );
     assert!(t.desk.pull_onto_screen(&[screen()]));
     let pin = t.desk.pins()[0].clone();
-    assert!(pin.placement.x < 3840 && pin.placement.y < 2160, "拉回了屏幕");
+    assert!(
+        pin.placement.x < 3840 && pin.placement.y < 2160,
+        "拉回了屏幕"
+    );
     assert!(!t.desk.pull_onto_screen(&[screen()]), "已在屏幕上的不再动");
     t.desk.flush().unwrap();
-    assert_eq!(reread(&t, &id).members[0].placement, pin.placement, "成员的摆放跟着改");
+    assert_eq!(
+        reread(&t, &id).members[0].placement,
+        pin.placement,
+        "成员的摆放跟着改"
+    );
 }
