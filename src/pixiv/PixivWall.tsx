@@ -242,6 +242,7 @@ function Card({
   onCollect?: () => void;
 }) {
   const { t } = useTranslation("subscriptions");
+  const feedback = useFeedbackContext();
   const src = pixivImageSrc(work.pages[0]?.preview ?? "");
   // 动图不收，不给收图按钮。
   const collectable = !!onCollect && work.kind !== "animation";
@@ -267,6 +268,7 @@ function Card({
             type="button"
             className="pw-collect k-btn"
             aria-label={t("browse.favoriteWork", { title: work.title })}
+            disabled={feedback?.bookmarkPending(work.id) ?? false}
             onClick={onCollect}
           >
             {t("browse.favorite")}
@@ -351,7 +353,8 @@ function Band({
               <button
                 type="button"
                 className="k-btn is-primary"
-                disabled={busy}
+                // pixiv 收藏还在写（例如刚点了取消）时不能点：写完之前的“收藏”会只收图、不写收藏。
+                disabled={busy || (feedback?.bookmarkPending(work.id) ?? false)}
                 onClick={() => onCollect(work, { bookmark: true })}
               >
                 {busy ? t("browse.collecting") : t("browse.favorite")}

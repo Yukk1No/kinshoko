@@ -270,4 +270,20 @@ describe("应用内浏览的收图", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("没写进 pixiv 收藏");
     await waitFor(() => expect(within(band).queryByRole("button", { name: "取消 pixiv 收藏" })).toBeNull());
   });
+
+  it("取消 pixiv 收藏还在写时，“收藏”不能点", async () => {
+    setup({ libraryId: "L", folderId: null });
+    fake.on("subscription_browse", (args: { feed?: unknown }) =>
+      (args.feed as { kind: string }).kind === "following"
+        ? { works: [work("1", { bookmarked: true })], next: null }
+        : { works: [], next: null },
+    );
+    fake.on("subscription_set_bookmark", () => new Promise(() => {}));
+    renderHome();
+    fireEvent.click(await screen.findByRole("button", { name: "作品1，画师" }));
+    const band = screen.getByRole("region", { name: "作品1，画师" });
+    await waitFor(() => expect(within(band).getByText("已收藏")).toBeTruthy());
+    fireEvent.click(within(band).getByRole("button", { name: "取消 pixiv 收藏" }));
+    expect(within(band).getByRole("button", { name: "收藏" })).toHaveProperty("disabled", true);
+  });
 });
