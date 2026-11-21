@@ -19,7 +19,6 @@ import {
   removeGroupMember,
   renameReferenceGroup,
   repinAllGroupMembers,
-  repinGroupMember,
   restoreReferenceGroup,
   setReferenceGroupFavorite,
   splitOffReferenceGroup,
@@ -336,7 +335,8 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
             libraryNames={libraryNames}
             label={label}
             favorite={lists.favorites.some((f) => f.id === g.id)}
-            onRepin={(memberId) => void run(() => repinGroupMember(memberId))}
+            // 钉回也带上参考组：复制出的参考组成员身份相同，只给成员身份会钉回桌面上另一组的那张。
+            onRepin={(memberId) => void run(() => showGroupMember(g.id, memberId))}
             onShow={(memberId) => void run(() => showGroupMember(g.id, memberId))}
             onRepinAll={() => void run(() => repinAllGroupMembers())}
             onRemove={(memberId) =>
