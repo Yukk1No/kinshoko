@@ -172,12 +172,24 @@
   padding: 4px 8px 8px 24px;
 }
 .desk-group-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
   margin: 0 0 4px;
   color: var(--ink-2);
   font-size: 12px;
   line-height: 18px;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
+}
+.desk-group-day-head h4 {
+  margin: 0;
+  font: inherit;
+}
+.desk-group-split {
+  margin-right: -6px;
 }
 .desk-group-tiles {
   display: flex;

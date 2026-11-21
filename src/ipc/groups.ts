@@ -58,6 +58,17 @@ export function deskReferenceGroups(): Promise<DeskLists> {
  */
 export const DESK_GROUP_STARTED_EVENT = "desk-group-started";
 
+/** {@link DESK_GROUP_STARTED_EVENT} 的载荷：开出的新参考组与它的上一组。 */
+export interface DeskGroupStarted {
+  groupId: string;
+  previousId: string;
+}
+
+/** 见 {@link DESK_GROUP_STARTED_EVENT}。 */
+export function onDeskGroupStarted(handler: (started: DeskGroupStarted) => void): Promise<UnlistenFn> {
+  return listen<DeskGroupStarted>(DESK_GROUP_STARTED_EVENT, (event) => handler(event.payload));
+}
+
 /** 整桌换成参考组 `groupId`，原来那一桌原样留着。 */
 export function switchReferenceGroup(groupId: string): Promise<void> {
   return invoke<void>(desk("switch_reference_group"), { groupId });
@@ -111,13 +122,16 @@ export function foldIntoPrevious(sourceId: string, targetId: string): Promise<vo
   return invoke<void>(desk("fold_into_previous"), { sourceId, targetId });
 }
 
+/** 移到新参考组的结果：成员已经移到 `to`。`switchError` 是新参考组没能摆上桌面时的错误，这时照样能撤销。 */
+export type SplitOff = { to: string; switchError: unknown | null };
+
 /**
  * 移到新参考组：桌面上参考组里在本地日期 `day`（`YYYY-MM-DD`）添加的成员移到一个新参考组，
  * 新参考组摆上桌面，原来那组原样留着。
- * 返回新参考组的 id；这一段为空或就是全部成员时为 `null`。撤销用 {@link undoSplitOff}。
+ * 这一段为空或就是全部成员时为 `null`。撤销用 {@link undoSplitOff}。
  */
-export function splitOffReferenceGroup(day: string): Promise<string | null> {
-  return invoke<string | null>(desk("split_off_reference_group"), { day });
+export function splitOffReferenceGroup(day: string): Promise<SplitOff | null> {
+  return invoke<SplitOff | null>(desk("split_off_reference_group"), { day });
 }
 
 /** 撤销最近一次“移到新参考组”。 */

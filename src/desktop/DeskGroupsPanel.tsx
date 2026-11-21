@@ -21,9 +21,11 @@ import {
   repinAllGroupMembers,
   restoreReferenceGroup,
   setReferenceGroupFavorite,
+  splitOffReferenceGroup,
   showGroupMember,
   switchReferenceGroup,
   undoPruneUnpinned,
+  undoSplitOff,
 } from "../ipc";
 import { describeCommandError, errorText, isErrorCode } from "../ipc/commandError";
 import { SaveDestinationDialog } from "../library/SaveDestination";
@@ -166,11 +168,15 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
   };
 
   /**
-   * 撤销记录只有最近一次那份（移出与“移出没钉着的”共用）：新的“撤销”提示出来时关掉同一份记录的旧提示，
-   * 旧提示上的“撤销”不会撤到新的那次上。撤销写不进时记录还在，错误提示上带“撤销”再试一次。
+   * 撤销记录各只有最近一次那份（移出与“移出没钉着的”共用一份，移到新参考组一份）：新的“撤销”提示出来时
+   * 关掉同一份记录的旧提示，旧提示上的“撤销”不会撤到新的那次上。撤销写不进时记录还在，
+   * 错误提示上带“撤销”再试一次。
    */
   const undoToasts = useRef(new Map<() => Promise<void>, string>());
-  const offerUndo = (shown: { title: string } | { error: unknown }, undo: () => Promise<void>) => {
+  const offerUndo = (
+    shown: { title: string } | { error: unknown; description?: string },
+    undo: () => Promise<void>,
+  ) => {
     const previous = undoToasts.current.get(undo);
     if (previous) toast.close(previous);
     const action = {
@@ -180,15 +186,22 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
     const id =
       "title" in shown
         ? toast.show({ title: shown.title, tone: "success", action })
-        : toast.error(errorText(shown.error), { action });
+        : toast.error(errorText(shown.error), { action, description: shown.description });
     undoToasts.current.set(undo, id);
   };
 
-  /** 移出能撤销，所以不先确认：做完给带“撤销”的轻提示（只撤销最近一次）。`title` 为 `null` 时什么都没做。 */
-  const undoable = async <T,>(action: () => Promise<T>, title: (value: T) => string | null) => {
+  /**
+   * 移出、移到新参考组能撤销，所以不先确认：做完给带“撤销”的轻提示（只撤销最近一次）。`title` 为 `null` 时什么都没做；
+   * 给出 `error` 时做成了一半（如成员已移走、没能摆上桌面），错误提示上照样带“撤销”。
+   */
+  const undoable = async <T,>(
+    action: () => Promise<T>,
+    title: (value: T) => string | { error: unknown; description: string } | null,
+    undo: () => Promise<void> = undoPruneUnpinned,
+  ) => {
     try {
-      const text = title(await action());
-      if (text) offerUndo({ title: text }, undoPruneUnpinned);
+      const shown = title(await action());
+      if (shown) offerUndo(typeof shown === "string" ? { title: shown } : shown, undo);
     } catch (e) {
       toast.error(errorText(e));
     }
@@ -345,6 +358,18 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
                 () => removeDeskGroupMember(g.id, memberId),
                 // 那组已经不在桌面上时没有撤销记录，不给“撤销”。
                 (undoable) => (undoable ? t("deskPanel.removed") : null),
+              )
+            }
+            onSplit={(day) =>
+              void undoable(
+                () => splitOffReferenceGroup(day),
+                (split) =>
+                  !split
+                    ? null
+                    : split.switchError
+                      ? { error: split.switchError, description: t("deskPanel.splitNotShown") }
+                      : t("deskPanel.splitDone"),
+                undoSplitOff,
               )
             }
           />

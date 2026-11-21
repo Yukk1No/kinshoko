@@ -363,14 +363,23 @@ pub async fn fold_into_previous(
     .await
 }
 
+/// [`split_off_reference_group`] 的结果：成员已经移到 `to`。`switch_error` 是新参考组没能摆上桌面时的错误，
+/// 这时成员照样移过去了，能撤销。
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SplitOff {
+    to: String,
+    switch_error: Option<CommandError>,
+}
+
 /// 移到新参考组：桌面上参考组里在本地日期 `day`（`YYYY-MM-DD`）添加的成员移到一个新参考组，
-/// 新参考组摆上桌面，原来那组原样留着（#595）。返回新参考组的 id；这一段为空或就是全部成员时为
+/// 新参考组摆上桌面，原来那组原样留着（#595）。返回新参考组；这一段为空或就是全部成员时为
 /// `None`。撤销用 [`undo_split_off`]，只撤销最近一次。
 #[tauri::command]
 pub async fn split_off_reference_group(
     app: AppHandle,
     day: String,
-) -> Result<Option<String>, CommandError> {
+) -> Result<Option<SplitOff>, CommandError> {
     blocking(move || {
         let added = local_day(&day)?;
         let moved = with_desk(&app, |desk, history| {
@@ -384,16 +393,20 @@ pub async fn split_off_reference_group(
             return Ok(None);
         };
         let to = split.to.clone();
-        // 拆分已经落盘：换桌失败时也留着撤销记录，让钉图窗口跟上桌面，再报错。
+        // 拆分已经落盘：换桌失败时也留着撤销记录，让钉图窗口跟上桌面，把错误和拆分一起交回去，
+        // 前端照样给“撤销”。
         *LAST_SPLIT.lock().unwrap_or_else(|e| e.into_inner()) = Some(split);
-        match switched {
-            Ok(switched) => apply(&app, Some(switched)),
+        let switch_error = match switched {
+            Ok(switched) => {
+                apply(&app, Some(switched));
+                None
+            }
             Err(e) => {
                 apply(&app, None);
-                return Err(e.into());
+                Some(e.into())
             }
-        }
-        Ok(Some(to))
+        };
+        Ok(Some(SplitOff { to, switch_error }))
     })
     .await
 }
