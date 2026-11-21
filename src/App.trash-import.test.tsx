@@ -7,7 +7,6 @@ import { backend, clean, library, push, sent } from "./App.fixtures";
 /** 回收站里不能发起新的导入，接着之前导入的操作照常（ADR-0016）。 */
 describe("回收站范围下的导入", () => {
   const paths = ["D:\\参考\\a.png"];
-  const position = { x: 10, y: 10 };
   const tick = () =>
     act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 20));
@@ -43,7 +42,7 @@ describe("回收站范围下的导入", () => {
     fireEvent.click(screen.getByRole("button", { name: "导入" }));
     expect(disabled(await screen.findByRole("menuitem", { name: /^图片/ }))).toBe(false);
     fireEvent.keyDown(screen.getByRole("menuitem", { name: /^图片/ }), { key: "Escape" });
-    await act(() => emit("tauri://drag-enter", { paths, position }));
+    fireEvent.dragEnter(window, { dataTransfer: { types: ["Files"] } });
     expect(await screen.findByRole("img", { name: /松开即可导入到/ })).toBeTruthy();
     expect(document.querySelector(".k-drop-hint")!.textContent).toBe("");
   });
@@ -79,10 +78,10 @@ describe("回收站范围下的导入", () => {
 
   it("拖入时不显示松开即可导入；松开后不导入，只发一条不是错误的通知", async () => {
     await inTrash();
-    await act(() => emit("tauri://drag-enter", { paths, position }));
+    fireEvent.dragEnter(window, { dataTransfer: { types: ["Files"] } });
     expect(screen.queryByRole("img", { name: /松开即可导入/ })).toBeNull();
 
-    await act(() => emit("tauri://drag-drop", { paths, position }));
+    await act(() => emit("kinshoko-file-drop", paths));
 
     const notice = await screen.findByText("回收站内无法导入");
     expect(notice.getAttribute("data-type")).not.toBe("error");

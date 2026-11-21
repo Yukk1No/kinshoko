@@ -9,6 +9,7 @@ import { CaptureGroupSaveDialog } from "./CaptureGroupSaveDialog";
 import { draftCaptureSave, type CaptureSaveDraft, type CaptureSavePlan } from "./captureSavePlan";
 import { GroupNameForm } from "./GroupNameForm";
 import { useToast } from "../ui/Toast";
+import { EmptyState } from "../ui/EmptyState";
 import { WarnIcon } from "../ui/WarnIcon";
 import { ago } from "./relativeTime";
 import { describeCommandError, errorText, unavailableReasonText } from "../ipc/commandError";
@@ -262,7 +263,7 @@ export function ReferenceGroupsPanel() {
           onConfirm={(plan) => void confirmCaptures(plan)}
         />
       )}
-      {groups && groups.length === 0 && <p className="reference-groups-empty">{t("empty")}</p>}
+      {groups && groups.length === 0 && <EmptyState size="list" title={t("empty")} />}
       <ul className="reference-groups-list">
         {groups?.map((g) => {
           const on = g.id === current;
@@ -437,7 +438,7 @@ export function ReferenceGroupsPanel() {
         })}
       </ul>
       <footer className="reference-groups-foot">
-        <button type="button" className="k-btn is-sm is-ghost" onClick={() => setImporting(true)}>
+        <button type="button" className="k-btn is-sm is-quiet" onClick={() => setImporting(true)}>
           <FolderInput size={13} aria-hidden="true" />
           <span className="k-label">{t("import")}</span>
         </button>
@@ -451,7 +452,7 @@ export function ReferenceGroupsPanel() {
         <AlertDialog.Portal>
           <AlertDialog.Backdrop className="k-backdrop" />
           <AlertDialog.Popup className="k-dialog is-alert">
-            <AlertDialog.Title className="k-dialog-title">{t("removeCaptureTitle")}</AlertDialog.Title>
+            <AlertDialog.Title className="k-title">{t("removeCaptureTitle")}</AlertDialog.Title>
             <AlertDialog.Description className="k-dialog-desc">{t("removeCaptureDescription")}</AlertDialog.Description>
             <div className="k-dialog-foot">
               <span className="k-grow" />

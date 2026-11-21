@@ -1,0 +1,137 @@
+/* 标签面板的就地编辑：改名、排除、新建类别与别名（从 main-window-panels.css 拆出，按加载次序紧跟其后）。 */
+/* 尚未翻译的“文/A”可以点（#182）：就地弹出改名框，保存当前界面语言的名称偏好。 */
+.k-tags .untranslated.is-action {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-right: -4px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.k-tags .untranslated.is-action:hover,
+.k-tags .untranslated.is-action[data-popup-open] {
+  opacity: 1;
+  background: var(--hover);
+}
+.k-tags .untranslated.is-action:focus-visible {
+  opacity: 1;
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+.k-rename {
+  width: 280px;
+}
+.k-rename form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* 表单内容留出呼吸空间；浮层本身仍用共用的 6 px 内边距。 */
+  padding: 8px;
+}
+.k-rename .k-rename-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.k-rename .k-description,
+.k-rename .k-list-desc,
+.k-rename .k-error-text {
+  margin: 0;
+}
+.k-rename .k-rename-acts {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.k-rename .k-rename-more {
+  margin: 2px 0 0;
+  align-self: flex-start;
+  font-size: 12px;
+  text-align: left;
+}
+.k-tags .k-tags-sub {
+  margin: 2px 0 -2px;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.k-tags .k-tag-add {
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
+}
+/* 添加标签的新建项（在浮层里）：名称下面一行选类别，与名称左对齐（16 指示列 + 8 间距）；四个 24 高的小块，
+   选中的是 accent-soft 底配 accent-strong 字。详情面板最窄 280，排在同一行会把名称挤得折行。 */
+.k-option.is-create:has(.k-tag-kinds) {
+  flex-wrap: wrap;
+  row-gap: 2px;
+  padding-block: 4px;
+}
+.k-option.is-create > .k-option-acts:has(.k-tag-kinds) {
+  flex-basis: 100%;
+  margin: 0 -6px 0 16px;
+  padding-left: 8px;
+  box-sizing: border-box;
+}
+.k-tag-kinds {
+  display: flex;
+  gap: 2px;
+  margin-left: -6px;
+}
+.k-tag-kinds-clear {
+  margin-left: auto;
+}
+.k-tag-kind {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.k-tag-kind:hover {
+  background: var(--press);
+  color: var(--ink);
+}
+.k-tag-kind[aria-checked="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.k-tag-alias {
+  gap: 8px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--r);
+  background: var(--sunken);
+}
+.k-tag-alias .k-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.k-tag-alias .k-input {
+  flex: none;
+}
+/* 行高跟着检查器正文，与收拢前一样。 */
+.k-tag-alias > .k-section-label {
+  line-height: inherit;
+  overflow-wrap: anywhere;
+}
+.k-tag-alias-acts {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}

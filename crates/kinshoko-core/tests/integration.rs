@@ -23,8 +23,12 @@ mod app_settings;
 mod approx_library;
 #[path = "approx_search.rs"]
 mod approx_search;
+#[path = "backup_duplicate_names.rs"]
+mod backup_duplicate_names;
 #[path = "backup_eagle.rs"]
 mod backup_eagle;
+#[path = "backup_import.rs"]
+mod backup_import;
 #[path = "backup_plan.rs"]
 mod backup_plan;
 #[path = "backup_restore.rs"]

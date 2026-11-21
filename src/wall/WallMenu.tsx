@@ -18,16 +18,7 @@ import {
   ShieldCheck,
   Trash2,
 } from "lucide-react";
-import {
-  FolderGlyph,
-  Menu,
-  MenuCheckboxItem,
-  MenuItem,
-  MenuRadioItem,
-  MenuSeparator,
-  MenuSubmenu,
-  MenuTip,
-} from "../ui/Menu";
+import { Menu, MenuCheckboxItem, MenuItem, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuTip } from "../ui/Menu";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ContentRating } from "../bindings/ContentRating";
 import type { GroupSummary } from "../bindings/GroupSummary";
@@ -66,7 +57,6 @@ export type WallMenuActions = {
   clipboardHasImage: () => Promise<boolean>;
   selectAll: () => void;
   setDensity: (value: number) => void;
-  folders: (libraryId: string) => Promise<{ id: string; label: string }[]>;
   /** 这张图是否直接放在这个文件夹里（不算子文件夹）；“含子文件夹”的范围里据此决定能否“从此文件夹移出”。 */
   inFolder: (card: BrowserCard, folderId: string) => Promise<boolean>;
   groups: () => Promise<GroupSummary[]>;
@@ -126,31 +116,6 @@ function useList<T>(load: () => Promise<T[]>) {
     };
   }, []);
   return state;
-}
-
-function FolderList({
-  libraryId,
-  actions,
-  cards,
-}: {
-  libraryId: string;
-  actions: WallMenuActions;
-  cards: BrowserCard[];
-}) {
-  const { t } = useTranslation(["wall", "common"]);
-  const { items, problem } = useList(() => actions.folders(libraryId));
-  if (!items) return <MenuTip>{t("menu.loadingFolders")}</MenuTip>;
-  if (problem) return <MenuTip>{problem}</MenuTip>;
-  if (!items.length) return <MenuTip>{t("menu.noFolders")}</MenuTip>;
-  return (
-    <>
-      {items.map((f) => (
-        <MenuItem key={f.id} onClick={() => actions.edit(cards, [{ kind: "addToFolder", folderId: f.id }], false)}>
-          {f.label}
-        </MenuItem>
-      ))}
-    </>
-  );
 }
 
 function GroupList({ actions, cards }: { actions: WallMenuActions; cards: BrowserCard[] }) {
@@ -223,21 +188,8 @@ function Organize({
   single: boolean;
 }) {
   const { t } = useTranslation(["wall", "common"]);
-  // 移文件夹作用于整摞的全部页（#418）：各页都在同一个图库时才能选那个库的文件夹。
-  const libraries = new Set(pagesOf(cards).map((c) => c.libraryId ?? ""));
-  const libraryId = libraries.size === 1 ? [...libraries][0] : null;
   return (
     <>
-      <MenuSubmenu
-        icon={<FolderGlyph />}
-        label={t("menu.moveToFolder")}
-        disabled={libraryId === null}
-        popupLabel={t("menu.moveToFolder")}
-        width={220}
-        meta={libraryId === null ? t("menu.fromSeveralLibraries") : undefined}
-      >
-        {libraryId !== null && <FolderList libraryId={libraryId} actions={actions} cards={cards} />}
-      </MenuSubmenu>
       {single && (scope.kind === "folder" || scope.kind === "folderTree") && (
         <RemoveFromFolder card={cards[0]} folderId={scope.id} direct={scope.kind === "folder"} actions={actions} />
       )}

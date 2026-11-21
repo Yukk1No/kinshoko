@@ -81,7 +81,6 @@ function menuActions(): WallMenuActions {
     reveal: vi.fn(),
     importClipboard: vi.fn(),
     clipboardHasImage: vi.fn(async () => true),
-    folders: vi.fn(async () => []),
     inFolder: vi.fn(async () => false),
     groups: vi.fn(async () => []),
   };

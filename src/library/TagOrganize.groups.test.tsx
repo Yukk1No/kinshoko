@@ -122,11 +122,13 @@ describe("标签分组", () => {
     // 撤销不带安全模式：提示出现后模式变了也能撤销。
     expect(sent("restore_shared_tag_group")[0]).not.toHaveProperty("safeMode");
     expect((await within(back).findAllByRole("button", { name: /张）/ })).length).toBeGreaterThan(0);
-    expect(
-      within(groups)
-        .getAllByRole("group")
-        .map((g) => g.getAttribute("aria-label"))[0],
-    ).toBe("头发颜色");
+    await waitFor(() =>
+      expect(
+        within(groups)
+          .getAllByRole("group")
+          .map((g) => g.getAttribute("aria-label"))[0],
+      ).toBe("头发颜色"),
+    );
   });
 
   it("安全模式切换后重新取得分组（被封印的图上的标签由资料库藏起）", async () => {

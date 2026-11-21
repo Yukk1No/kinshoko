@@ -139,12 +139,12 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
         </label>
       </div>
       {busy && !workspace && (
-        <p className="k-set-note" role="status">
+        <p className="k-description is-spaced" role="status">
           {t("names.loading")}
         </p>
       )}
       {error && (
-        <p className="k-set-error" role="alert">
+        <p className="k-error-text is-boxed" role="alert">
           {error}
         </p>
       )}
@@ -158,12 +158,14 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
           {workspace.libraries
             .filter((entry) => entry.unavailable)
             .map(({ library, unavailable }) => (
-              <p key={library.id} className="k-set-note" role="status">
+              <p key={library.id} className="k-description is-spaced" role="status">
                 {t("libraryUnavailable", { name: library.name, reason: describeCommandError(unavailable!) })}
               </p>
             ))}
           {shown.length === 0 ? (
-            <p className="k-set-note">{workspace.catalog.tags.length === 0 ? t("noTags") : t("names.noMatch")}</p>
+            <p className="k-description is-spaced">
+              {workspace.catalog.tags.length === 0 ? t("noTags") : t("names.noMatch")}
+            </p>
           ) : (
             <ul className="k-list k-set-list" aria-label={t("names.list")}>
               {shown.map((tag) => (
@@ -191,7 +193,9 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
             </ul>
           )}
           {matches.length > shown.length && (
-            <p className="k-set-note">{t("names.truncated", { total: matches.length, shown: shown.length })}</p>
+            <p className="k-description is-spaced">
+              {t("names.truncated", { total: matches.length, shown: shown.length })}
+            </p>
           )}
         </>
       )}
@@ -279,14 +283,20 @@ function NameRow({
                 <span className="k-label">{t("names.reset")}</span>
               </button>
             </div>
-            <p className="k-set-note">{t("names.langDefault", { name: defaultName ?? t("names.noTranslation") })}</p>
+            <p className="k-description is-spaced">
+              {t("names.langDefault", { name: defaultName ?? t("names.noTranslation") })}
+            </p>
             <div className="k-chips" role="list" aria-label={t("names.aliases")}>
               {aliases.map((entry) => (
-                <span role="listitem" key={`${entry.lang}/${entry.name}`} className="k-chip">
+                <span
+                  role="listitem"
+                  key={`${entry.lang}/${entry.name}`}
+                  className="k-token is-24 is-pill is-surface is-alias"
+                >
                   <span className="k-label">{entry.name}</span>
                   <button
                     type="button"
-                    className="k-chip-x"
+                    className="k-token-action is-18 is-alias-action"
                     disabled={busy}
                     aria-label={t("names.removeAlias", { alias: entry.name })}
                     onClick={() => onEdit({ kind: "removeAlias", alias: entry })}
@@ -324,7 +334,7 @@ function NameRow({
                     <li key={`${mapping.libraryId}/${mapping.localTagId}/${source.name}`} className="k-set-inline">
                       <span className="k-parts">
                         <span>{source.name}</span>
-                        <span className="k-set-note">
+                        <span className="k-description is-spaced">
                           {t("names.from", { library: libraryName(mapping.libraryId) })}
                         </span>
                       </span>

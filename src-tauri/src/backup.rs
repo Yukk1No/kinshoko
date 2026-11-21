@@ -361,34 +361,76 @@ pub async fn restore_backup(
     into: PathBuf,
 ) -> Result<RestoreReport, CommandError> {
     blocking(move || {
-        let state = app.state::<BackupState>();
-        if state.busy.swap(true, Ordering::SeqCst) {
-            return Err(CommandError::new(
-                ErrorKind::BackupOrRestoreRunning,
-                "正在备份或恢复，请等这次完成",
-            ));
-        }
-        let result = (|| {
-            let target =
-                with_plan(&app, |p| Ok(p.target().map(PathBuf::from)))?.ok_or_else(no_target)?;
-            let groups = groups(&app)?;
-            let catalog = crate::library::content_definitions(&app)?;
-            let report = BackupTarget::new(&target)
-                .restore_with_catalog(&snapshot_id, &into, &groups, now(), &catalog)
-                .map_err(CommandError::from)?;
-            let roots: Vec<PathBuf> = report
-                .libraries
-                .iter()
-                .map(|l| l.library.root.clone())
-                .collect();
-            crate::library::register_restored(&app, &roots)?;
-            Ok(report)
-        })();
-        state.busy.store(false, Ordering::SeqCst);
-        let _ = app.emit(GROUPS_EVENT, ());
-        result
+        restore(
+            &app,
+            |app| {
+                let target =
+                    with_plan(app, |p| Ok(p.target().map(PathBuf::from)))?.ok_or_else(no_target)?;
+                Ok((target, snapshot_id))
+            },
+            &into,
+        )
     })
     .await
+}
+
+/// 导入时选中的备份文件夹（备份目标、`kinshoko-backup/` 或其中的位置）：把它最新的完整快照
+/// 恢复成新资料库，与 [`restore_backup`] 相同，不用先把它设为备份目标。
+#[tauri::command]
+pub async fn restore_backup_folder(
+    app: AppHandle,
+    folder: PathBuf,
+    into: PathBuf,
+) -> Result<RestoreReport, CommandError> {
+    blocking(move || {
+        restore(
+            &app,
+            |_| {
+                let target = kinshoko_core::backup::target_of(&folder).ok_or_else(|| {
+                    CommandError::new(ErrorKind::NotABackup, "不是 Kinshoko 备份")
+                })?;
+                let latest = BackupTarget::new(&target)
+                    .latest_snapshot()
+                    .map_err(CommandError::from)?;
+                Ok((target, latest.id))
+            },
+            &into,
+        )
+    })
+    .await
+}
+
+/// 恢复 `source` 给出的备份目标与快照：同一时间只做一次备份或恢复，恢复出的资料库登记到本设备。
+fn restore(
+    app: &AppHandle,
+    source: impl FnOnce(&AppHandle) -> Result<(PathBuf, String), CommandError>,
+    into: &std::path::Path,
+) -> Result<RestoreReport, CommandError> {
+    let state = app.state::<BackupState>();
+    if state.busy.swap(true, Ordering::SeqCst) {
+        return Err(CommandError::new(
+            ErrorKind::BackupOrRestoreRunning,
+            "正在备份或恢复，请等这次完成",
+        ));
+    }
+    let result = (|| {
+        let (target, snapshot_id) = source(app)?;
+        let groups = groups(app)?;
+        let catalog = crate::library::content_definitions(app)?;
+        let report = BackupTarget::new(&target)
+            .restore_with_catalog(&snapshot_id, into, &groups, now(), &catalog)
+            .map_err(CommandError::from)?;
+        let roots: Vec<PathBuf> = report
+            .libraries
+            .iter()
+            .map(|l| l.library.root.clone())
+            .collect();
+        crate::library::register_restored(app, &roots)?;
+        Ok(report)
+    })();
+    state.busy.store(false, Ordering::SeqCst);
+    let _ = app.emit(GROUPS_EVENT, ());
+    result
 }
 
 /// 备份没有完成：逐条列出没能备份的部分。

@@ -19,6 +19,7 @@ const importing: Translation<typeof zh> = {
     findEagle: "Couldn't look for Eagle libraries: {{error}}",
     confirmEagle: "Couldn't confirm the Eagle library's location: {{error}}",
     cancel: "Couldn't cancel the import: {{error}}",
+    restore: "Couldn't restore the backup: {{error}}",
   },
   recovery: {
     interrupted: "Last import was interrupted",
@@ -30,6 +31,14 @@ const importing: Translation<typeof zh> = {
     separator: "; ",
     inLibrary: "{{library}}: {{summary}}",
     reimport: "Import again",
+  },
+  backup: {
+    title: "This is a library backup",
+    hint: "Restores as a new library without overwriting existing ones",
+    restore: "Restore…",
+    busy: "Restoring and checking…",
+    dismiss: "Don't restore",
+    restored: "Restored as a new library: {{libraries}}. Open it from the library menu",
   },
   relocation: {
     title: "Did the Eagle library move?",

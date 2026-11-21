@@ -12,8 +12,12 @@
   background: transparent;
   border-right-color: transparent;
 }
+/* 书签标离窗口上边与左边一样远：图形在 32 的画布里宽 12、高 21，左右居中时墨迹离左边约 22.25 px，
+   上下居中时离上边只有 19.25 px；44 高的框里把居中区下移 6 px（墨迹下移 3 px）。 */
 .rail .brand {
+  box-sizing: border-box;
   height: 44px;
+  padding-top: 6px;
 }
 .app-body {
   flex: 1;
@@ -80,12 +84,9 @@
   flex: 1;
   display: flex;
 }
-.pane-title {
-  margin: 0;
+.pane-head .k-title,
+.pane-library-title .k-title {
   padding-left: 6px;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
 }
 .pane-body {
   width: 255px;
@@ -378,7 +379,7 @@
   align-items: center;
   gap: 4px;
 }
-.pane-library-title .pane-title {
+.pane-library-title .k-title {
   flex: 1;
   min-width: 0;
 }
@@ -633,18 +634,9 @@ li[data-branch] > .k-fluid-row .k-row-icon {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
-.topbar > .search .search-chip {
-  height: 28px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: var(--r-s);
-  background: var(--surface-2);
-  font-weight: 500;
-  transition: padding var(--t) var(--ease);
-}
 /* 条件块平时只有名称；指针移上去、键盘走到或它的菜单开着时，相近（＋、×）、排除、去掉几个按钮才展开（#607）。
    收起的按钮宽 0、仍可聚焦；负边距抵掉它前面的间距，所以收起时不占位置。chipsThatFit 按收起时的宽度量。 */
-.topbar > .search .search-chip button {
+.topbar > .search .k-token.is-condition .k-token-action {
   width: 0;
   margin-left: -2px;
   overflow: hidden;
@@ -656,19 +648,13 @@ li[data-branch] > .k-fluid-row .k-row-icon {
     background-color var(--t-fast),
     color var(--t-fast);
 }
-.topbar > .search .search-chip:is(:hover, :focus-within, :has([data-popup-open])) {
+.topbar > .search .k-token.is-condition:is(:hover, :focus-within, :has([data-popup-open])) {
   padding-right: 4px;
 }
-.topbar > .search .search-chip:is(:hover, :focus-within, :has([data-popup-open])) button {
+.topbar > .search .k-token.is-condition:is(:hover, :focus-within, :has([data-popup-open])) .k-token-action {
   width: 20px;
   margin-left: 0;
   opacity: 1;
-}
-.topbar > .search .search-chip[data-negate] {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--line-2);
-  color: var(--ink-2);
-  text-decoration: line-through;
 }
 .topbar > .search .search-field {
   min-width: 120px;
@@ -749,29 +735,4 @@ li[data-branch] > .k-fluid-row .k-row-icon {
 .k-exact[data-pressed] .k-exact-line {
   opacity: 1;
   transform: none;
-}
-.k-tip {
-  max-width: 360px;
-  white-space: pre-line;
-  overflow-wrap: anywhere;
-  padding: 5px 8px;
-  border-radius: var(--r-s);
-  background: var(--ink);
-  color: var(--bg);
-  font-size: 12px;
-  line-height: 18px;
-  box-shadow: var(--shadow-pop);
-  transform-origin: var(--transform-origin);
-  transition:
-    transform var(--t-fast) var(--spring),
-    opacity var(--t-fast);
-}
-.k-tip-note {
-  margin-left: 8px;
-  opacity: 0.7;
-}
-.k-tip[data-starting-style],
-.k-tip[data-ending-style] {
-  opacity: 0;
-  transform: scale(0.96);
 }

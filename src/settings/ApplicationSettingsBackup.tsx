@@ -130,7 +130,7 @@ export function ApplicationSettingsBackup({
                 </div>
               )}
               {error && (
-                <p className="k-set-error" role="alert">
+                <p className="k-error-text is-boxed" role="alert">
                   {error}
                 </p>
               )}

@@ -16,7 +16,7 @@ textarea,
 [role="alert"],
 .k-toast[data-tone="error"],
 .k-list-desc.is-warn,
-.settings-error {
+.k-error-text {
   user-select: text;
 }
 

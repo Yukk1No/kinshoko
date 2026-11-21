@@ -72,7 +72,7 @@ export function WorkspaceSidebar({
         {section === "browse" ? (
           <div className="pane-library">{libInPane && libraryControls}</div>
         ) : (
-          <h1 className="pane-title">{sectionName}</h1>
+          <h1 className="k-title">{sectionName}</h1>
         )}
         <Tip label={t("collapsePane")} keys="Ctrl+B">
           <button type="button" className="k-icon-btn" aria-label={t("collapsePane")} onClick={onPaneToggle}>
