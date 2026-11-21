@@ -59,6 +59,7 @@ export default {
     foldInto: "加进「{{name}}」",
     split: "移到新参考组",
     splitDone: "已移到新参考组",
+    splitNotShown: "已移到新参考组，但没能摆上桌面",
   },
   /** 截图框选窗口（`CaptureOverlay`）。 */
   capture: {

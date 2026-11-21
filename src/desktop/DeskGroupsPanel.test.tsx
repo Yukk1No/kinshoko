@@ -18,7 +18,9 @@ const ipc = vi.hoisted(() => ({
   repin: vi.fn(() => Promise.resolve()),
   prune: vi.fn(() => Promise.resolve(1)),
   undoPrune: vi.fn(() => Promise.resolve()),
-  split: vi.fn((): Promise<string | null> => Promise.resolve("g9")),
+  split: vi.fn(
+    (): Promise<{ to: string; switchError: unknown } | null> => Promise.resolve({ to: "g9", switchError: null }),
+  ),
   undoSplit: vi.fn(() => Promise.resolve()),
   rename: vi.fn(() => Promise.resolve()),
   remove: vi.fn((id: string) => Promise.resolve({ groupId: id, name: id, unlinkedPins: [] })),
@@ -348,6 +350,25 @@ describe("参考组面板：移到新参考组", () => {
       fireEvent.click(retry!);
     });
     expect(ipc.undoSplit).toHaveBeenCalledTimes(2);
+  });
+
+  it("移到新参考组后没能摆上桌面：错误提示说成员已移过去，上面照样能撤销", async () => {
+    members = [member("m1", { addedAt: NOV_18 }), member("m2", { addedAt: NOV_18 + DAY })];
+    ipc.split.mockResolvedValueOnce({ to: "g9", switchError: { code: "io", message: "换不过去" } });
+    await show(lists({ recent: [hair] }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "移到新参考组" }));
+    });
+    await flush();
+    expect(await screen.findByText("已移到新参考组，但没能摆上桌面")).toBeTruthy();
+    expect(screen.queryByText("已移到新参考组")).toBeNull();
+    const undo = (await screen.findAllByRole("button", { name: "撤销", hidden: true })).find(
+      (b) => b.getAttribute("data-type") === "error",
+    );
+    await act(async () => {
+      fireEvent.click(undo!);
+    });
+    expect(ipc.undoSplit).toHaveBeenCalled();
   });
 
   it("最早那天的都已关闭、折起来时，较新的一段照样能移到新参考组", async () => {

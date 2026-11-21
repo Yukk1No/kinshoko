@@ -99,13 +99,16 @@ export function foldIntoPrevious(sourceId: string, targetId: string): Promise<vo
   return invoke<void>(desk("fold_into_previous"), { sourceId, targetId });
 }
 
+/** 移到新参考组的结果：成员已经移到 `to`。`switchError` 是新参考组没能摆上桌面时的错误，这时照样能撤销。 */
+export type SplitOff = { to: string; switchError: unknown | null };
+
 /**
  * 移到新参考组：桌面上参考组里在本地日期 `day`（`YYYY-MM-DD`）添加的成员移到一个新参考组，
  * 新参考组摆上桌面，原来那组原样留着。
- * 返回新参考组的 id；这一段为空或就是全部成员时为 `null`。撤销用 {@link undoSplitOff}。
+ * 这一段为空或就是全部成员时为 `null`。撤销用 {@link undoSplitOff}。
  */
-export function splitOffReferenceGroup(day: string): Promise<string | null> {
-  return invoke<string | null>(desk("split_off_reference_group"), { day });
+export function splitOffReferenceGroup(day: string): Promise<SplitOff | null> {
+  return invoke<SplitOff | null>(desk("split_off_reference_group"), { day });
 }
 
 /** 撤销最近一次“移到新参考组”。 */
