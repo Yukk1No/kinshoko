@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { SelectableList } from "../ui/SelectableList";
+import { Name } from "../ui/Name";
 import { Dialog } from "@base-ui/react/dialog";
-import { ChevronLeft, CircleAlert, LoaderCircle } from "lucide-react";
+import { ChevronLeft, CircleAlert, LoaderCircle, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Artist } from "../bindings/Artist";
 import type { Subscription } from "../bindings/Subscription";
@@ -42,6 +42,7 @@ export function FollowingDialog({
   const libraries = useLibraryOptions();
   const fallback = libraries.options[0]?.value ?? "";
   const [follows, setFollows] = useState<Follows>({ kind: "loading" });
+  const [filter, setFilter] = useState("");
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
   const [choices, setChoices] = useState<ArtistChoices>(() => initialChoices(""));
   const [busy, setBusy] = useState(false);
@@ -62,8 +63,19 @@ export function FollowingDialog({
   }, [t]);
 
   const artists = follows.kind === "loaded" ? follows.artists : [];
+  const needle = filter.trim().toLowerCase();
+  const shown = needle
+    ? artists.filter((a) => a.name.toLowerCase().includes(needle) || a.userId.includes(needle))
+    : artists;
   const chosenArtists = artists.filter((a) => picked.has(a.userId) && !subscribed.has(a.userId));
   const backlog = backlogOf(chosen);
+  const toggle = (id: string) =>
+    setPicked((now) => {
+      const next = new Set(now);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const subscribe = () => {
     if (chosenArtists.length === 0 || !backlog || !chosen.libraryId) return;
     setBusy(true);
@@ -98,41 +110,70 @@ export function FollowingDialog({
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="k-backdrop" />
-        <Dialog.Popup className="k-dialog subs-artist-dialog subs-following-dialog">
+        <Dialog.Popup className="k-dialog subs-artist-dialog">
           <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
-          <SelectableList
-            label={t("title")}
-            filterLabel={t("filter")}
-            selected={picked}
-            onChange={setPicked}
-            disabled={busy || follows.kind !== "loaded"}
-            items={artists.map((artist) => ({
-              id: artist.userId,
-              name: artist.name,
-              done: subscribed.has(artist.userId),
-              leading: artist.name.slice(0, 1).toUpperCase(),
-              trailing: subscribed.has(artist.userId) ? (
-                <span className="k-pill">
-                  <span className="k-label">{t("subscribed")}</span>
-                </span>
-              ) : undefined,
-            }))}
-            status={
-              follows.kind === "loading" ? (
-                <p className="k-description is-body k-choice-status" role="status">
-                  <LoaderCircle className="k-spinner" size={14} aria-hidden="true" />
-                  {t("loading")}
-                </p>
-              ) : follows.kind === "failed" ? (
-                <p className="k-error-text is-field" role="alert">
-                  <CircleAlert size={14} aria-hidden="true" />
-                  {follows.message}
-                </p>
-              ) : artists.length === 0 ? (
-                <p className="k-description is-body k-choice-status">{t("none")}</p>
-              ) : undefined
-            }
-          />
+          <div className="k-field-row">
+            <span className="k-input">
+              <Search size={16} aria-hidden="true" />
+              <input
+                value={filter}
+                placeholder={t("filter")}
+                aria-label={t("filter")}
+                disabled={follows.kind !== "loaded"}
+                onChange={(e) => setFilter(e.target.value)}
+              />
+            </span>
+            {follows.kind === "loaded" && (
+              <span className="subs-follow-count tabular">
+                {t("selected", { count: chosenArtists.length, total: artists.length })}
+              </span>
+            )}
+          </div>
+          <div className="subs-follow-list">
+            {follows.kind === "loading" && (
+              <p className="k-description is-body subs-follow-note" role="status">
+                <LoaderCircle className="k-spinner" size={14} aria-hidden="true" />
+                {t("loading")}
+              </p>
+            )}
+            {follows.kind === "failed" && (
+              <p className="k-error-text is-field" role="alert">
+                <CircleAlert size={14} aria-hidden="true" />
+                {follows.message}
+              </p>
+            )}
+            {follows.kind === "loaded" && artists.length === 0 && (
+              <p className="k-description is-body subs-follow-note">{t("none")}</p>
+            )}
+            {shown.length > 0 && (
+              <ul>
+                {shown.map((artist) => {
+                  const done = subscribed.has(artist.userId);
+                  return (
+                    <li key={artist.userId}>
+                      <label className={`subs-follow-row${done ? " is-done" : ""}`}>
+                        <input
+                          type="checkbox"
+                          disabled={busy || done}
+                          checked={done || picked.has(artist.userId)}
+                          onChange={() => toggle(artist.userId)}
+                        />
+                        <span className="subs-avatar is-sm" aria-hidden="true">
+                          {artist.name.slice(0, 1).toUpperCase()}
+                        </span>
+                        <Name className="subs-follow-name">{artist.name}</Name>
+                        {done && (
+                          <span className="k-pill">
+                            <span className="k-label">{t("subscribed")}</span>
+                          </span>
+                        )}
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
           <ArtistOptionFields
             value={chosen}
             onChange={setChoices}
@@ -152,9 +193,6 @@ export function FollowingDialog({
               <span className="k-label">{t("back")}</span>
             </button>
             <span className="k-grow" />
-            <span className="k-description" aria-live="polite">
-              {t("selected", { count: chosenArtists.length, total: artists.length })}
-            </span>
             <button type="button" className="k-btn" disabled={busy} onClick={onClose}>
               <span className="k-label">{ta("cancel")}</span>
             </button>

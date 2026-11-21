@@ -382,14 +382,62 @@
   display: flex;
   flex-direction: column;
 }
-/* 窗口很矮时名单缩到三行仍放不下，整个对话框滚动，不把名单压没。 */
-.subs-following-dialog {
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
+.subs-follow-count {
+  flex: none;
+  font-size: 12px;
+  color: var(--ink-2);
 }
-.subs-following-dialog > :not(.k-choice-list),
-.subs-rank-dialog > :not(.k-choice-list) {
-  flex-shrink: 0;
+.subs-follow-list {
+  max-height: 248px;
+  overflow-y: auto;
+  border-radius: var(--r);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.subs-follow-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.subs-follow-list li + li {
+  border-top: 1px solid var(--line);
+}
+.subs-follow-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+.subs-follow-row:hover {
+  background: var(--hover);
+}
+.subs-follow-row input {
+  flex: none;
+  margin: 0;
+  accent-color: var(--accent-strong);
+}
+.subs-follow-row.is-done {
+  cursor: default;
+  color: var(--ink-2);
+}
+.subs-follow-row.is-done:hover {
+  background: none;
+}
+.subs-follow-name {
+  flex: 1;
+  min-width: 0;
+}
+.subs-avatar.is-sm {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+.subs-follow-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px;
 }
 .k-dialog.subs-remove-dialog {
   width: min(400px, calc(100vw - 48px));
@@ -400,8 +448,75 @@
   max-height: calc(100vh - 48px);
   overflow-y: auto;
 }
+.subs-rank-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--r);
+  box-shadow: inset 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+.subs-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 6px 0 12px;
+}
+.subs-rank-row + .subs-rank-row {
+  border-top: 1px solid var(--line);
+}
+.subs-rank-row.is-on {
+  background: var(--accent-soft);
+}
+.subs-rank-row input[type="checkbox"] {
+  flex: none;
+  margin: 0;
+  accent-color: var(--accent-strong);
+}
+.subs-rank-pick {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.subs-rank-name {
+  font-weight: 500;
+}
+.subs-rank-row.is-done {
+  color: var(--ink-2);
+}
+.subs-rank-row.is-done .subs-rank-name {
+  flex: 1;
+}
+.subs-rank-done {
+  padding-right: 6px;
+  font-size: 12px;
+}
 .k-seg.subs-rank-seg {
   flex: none;
+  padding: 2px;
+}
+.subs-rank-seg .k-seg-item {
+  min-width: 56px;
+  height: 26px;
+  font-size: 12px;
+}
+/* 夜间选中的一档只比底色亮一点：字也换成强调色，日夜都分得清。 */
+.subs-rank-seg .k-seg-item[data-pressed],
+.subs-artist-dialog > .k-field > .subs-rank-seg .k-seg-item[data-pressed] {
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+.subs-artist-dialog > .k-field > .k-seg.subs-rank-seg {
+  padding: 4px;
+}
+.subs-artist-dialog > .k-field > .subs-rank-seg .k-seg-item {
+  height: var(--h-sm);
+  font-size: 13px;
 }
 .subs-rank-hint {
   display: flex;

@@ -142,7 +142,6 @@
 | 空状态 | `EmptyState`（`.k-empty.is-page` 整页、`.k-empty.is-list` 列表内；标题必填，说明与操作可选） | `src/ui/EmptyState.tsx`、`src/ui/empty-state.css` |
 | 标签块与块内操作 | `.k-token`（24 / 26 / 28 px、圆角与底色修饰类）、`.k-token-action`（16 / 18 / 20 px） | `src/ui/token.css` |
 | 转圈 | `.k-spinner`（颜色继承，强调色加 `.is-accent`；尺寸沿用图标） | `src/ui/spinner.css` |
-| 复选名单 | `SelectableList`（`.k-choice-*`，40 px 行、筛选、批量选择与已订阅分组） | `src/ui/SelectableList.tsx`、`src/ui/selectable-list.css` |
 
 详情面板一级标签使用 `.is-inspector.is-primary-tag`：最小 28 px、横向内边距 10 px、纵向 4 px、13 px 字与 20 px 名称行高；一般标签最小 26 px、内边距 `4px 8px`、12 px 字与 18 px 名称行高。一级修饰类的优先级高于一般档，避免一般规则覆盖。此次恢复 #602 的一级档位；此前层叠后的一级实际为 26 px、横向 8 px、名称行高 18 px。
 
@@ -150,7 +149,7 @@
 
 下面这些同一种东西有几个类，#602 各收成一个，收完一类就移进上面的表、从这里删掉：
 
-- 订阅页剩余的行、分区标题与区域布局（`src/subscriptions/subscriptions.css`，随 #461 后续收拢）
+- 订阅页其余的行、分区标题、复选名单与布局（`src/subscriptions/subscriptions.css`）：#461 会整页重做订阅页，不再有侧栏和订阅对话框，届时一起换掉，现在不收
 
 ## 样式写在哪里
 

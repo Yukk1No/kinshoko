@@ -214,8 +214,6 @@ describe("订阅画师", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "从 pixiv 关注导入…" }));
     const follows = await screen.findByRole("dialog", { name: "从 pixiv 关注导入" });
     await within(follows).findByText("Akira");
-    expect(within(follows).queryByRole("checkbox", { name: "Mika" })).toBeNull();
-    fireEvent.click(within(follows).getByRole("button", { name: "显示已订阅的（1）" }));
     const mika = within(follows).getByRole("checkbox", { name: /Mika/ }) as HTMLInputElement;
     expect(mika.disabled && mika.checked).toBe(true);
     expect(within(follows).getByText("已订阅")).toBeTruthy();

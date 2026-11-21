@@ -2,26 +2,6 @@ import type zh from "../zh-CN/common";
 import type { Translation } from "../../translation";
 
 const common: Translation<typeof zh> = {
-  selectableList: {
-    selectAll: "Select all unsubscribed",
-    selectAllMatches_one: "Select this {{count, number}}",
-    selectAllMatches_other: "Select these {{count, number}}",
-    clear: "Clear",
-    matches_one: "{{count, number}} match",
-    matches_other: "{{count, number}} matches",
-    matchesWithDone_one: "{{count, number}} match, {{done, number}} subscribed",
-    matchesWithDone_other: "{{count, number}} matches, {{done, number}} subscribed",
-    showSubscribed_one: "Show subscribed ({{count, number}})",
-    showSubscribed_other: "Show subscribed ({{count, number}})",
-    hideSubscribed_one: "Hide subscribed ({{count, number}})",
-    hideSubscribed_other: "Hide subscribed ({{count, number}})",
-    subscribed_one: "Subscribed ({{count, number}})",
-    subscribed_other: "Subscribed ({{count, number}})",
-    noMatches: "No matching items",
-    filter: "Filter",
-    selected_one: "{{count, number}} selected",
-    selected_other: "{{count, number}} selected",
-  },
   image: {
     pinWhole: "Pin whole image",
     pinPart: "Pin a region",

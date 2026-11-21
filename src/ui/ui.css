@@ -522,10 +522,6 @@
 .k-seg-item[data-pressed] {
   color: var(--ink);
 }
-.k-seg.is-accent .k-seg-item[data-pressed] {
-  color: var(--accent-strong);
-  font-weight: 600;
-}
 .k-seg-item[data-disabled] {
   opacity: var(--disabled-opacity);
   cursor: default;
