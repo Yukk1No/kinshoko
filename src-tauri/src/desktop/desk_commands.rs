@@ -255,7 +255,14 @@ pub async fn undo_prune_unpinned(app: AppHandle) -> Result<(), CommandError> {
         let Some(pruned) = LAST_PRUNED.lock().unwrap_or_else(|e| e.into_inner()).take() else {
             return Ok(());
         };
-        with_desk(&app, |desk, _| desk.undo_prune(&pruned))?;
+        // 写不进时留着记录（里面可能有移出的截图仅剩的字节），可以再撤销一次。
+        if let Err(e) = with_desk(&app, |desk, _| desk.undo_prune(&pruned)) {
+            LAST_PRUNED
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .get_or_insert(pruned);
+            return Err(e);
+        }
         changed(&app);
         Ok(())
     })
@@ -326,15 +333,22 @@ pub async fn split_off_reference_group(
             let Some(split) = desk.split_off(added, history)? else {
                 return Ok(None);
             };
-            let switched = desk.switch_to(&split.to, history)?;
+            let switched = desk.switch_to(&split.to, history);
             Ok(Some((split, switched)))
         })?;
         let Some((split, switched)) = moved else {
             return Ok(None);
         };
         let to = split.to.clone();
+        // 拆分已经落盘：换桌失败时也留着撤销记录，让钉图窗口跟上桌面，再报错。
         *LAST_SPLIT.lock().unwrap_or_else(|e| e.into_inner()) = Some(split);
-        apply(&app, Some(switched));
+        match switched {
+            Ok(switched) => apply(&app, Some(switched)),
+            Err(e) => {
+                apply(&app, None);
+                return Err(e.into());
+            }
+        }
         Ok(Some(to))
     })
     .await
