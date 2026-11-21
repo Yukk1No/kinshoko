@@ -255,9 +255,6 @@ pub async fn remove_desk_group_member(
     member_id: String,
 ) -> Result<bool, CommandError> {
     blocking(move || {
-        if !desk_on(&app) {
-            return Err(flag_off());
-        }
         if remove_desk_member(&app, &group_id, &member_id)? {
             return Ok(true);
         }
