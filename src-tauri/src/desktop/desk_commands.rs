@@ -361,7 +361,17 @@ pub async fn undo_split_off(app: AppHandle) -> Result<(), CommandError> {
         let Some(split) = LAST_SPLIT.lock().unwrap_or_else(|e| e.into_inner()).take() else {
             return Ok(());
         };
-        let switched = with_desk(&app, |desk, history| desk.undo_split(&split, history))?;
+        // 并回失败时目标写回原样、什么都没移：留着记录可以再撤销一次。
+        let switched = match with_desk(&app, |desk, history| desk.undo_split(&split, history)) {
+            Ok(switched) => switched,
+            Err(e) => {
+                LAST_SPLIT
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .get_or_insert(split);
+                return Err(e);
+            }
+        };
         apply(&app, Some(switched));
         Ok(())
     })
