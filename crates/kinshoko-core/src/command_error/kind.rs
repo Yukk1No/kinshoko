@@ -620,6 +620,7 @@ pub enum ErrorKind {
     },
     ImportItemCrashed,
     ImportCancelled,
+    ImportBackupFolder,
     ImportUndecodable {
         detail: String,
     },

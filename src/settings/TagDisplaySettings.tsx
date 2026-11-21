@@ -68,7 +68,7 @@ export function TagDisplaySettings({
         hint={t("thresholdsHint")}
         below={
           problem !== null && (
-            <p className="k-set-error" role="alert">
+            <p className="k-error-text is-boxed" role="alert">
               {problem}
             </p>
           )

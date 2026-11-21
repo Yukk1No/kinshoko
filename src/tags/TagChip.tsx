@@ -83,7 +83,7 @@ export function TagChip({ tag, origins, notes = [], actions, meter = false, rena
           <li
             role="listitem"
             tabIndex={0}
-            className={`tag-row k-tag-chip${manual ? " is-manual" : ""}`}
+            className={`tag-row k-token is-26 is-tag-fill is-inspector${bare ? " is-primary-tag" : ""}${manual ? " is-manual" : ""}`}
             data-band={display.style === "bands" ? chipBand(origins, display) : undefined}
             onFocus={() => setOpen(true)}
           />

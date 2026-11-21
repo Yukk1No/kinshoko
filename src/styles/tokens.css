@@ -261,6 +261,8 @@
   /* 半透明浮动面板（dock、托盘、浮岛、轻提示、任务卡）：底色与模糊各一种 */
   --glass-bg: color-mix(in srgb, var(--surface) 86%, transparent);
   --glass-blur: blur(18px) saturate(1.2);
+  /* 浮层沿用级联菜单的模糊；与半透明浮动面板分开（#601，维护者选定 B）。 */
+  --popup-blur: blur(18px) saturate(135%);
   color-scheme: light dark;
 }
 /* Dark: ink purple ground, cream text, gold accent (日间樱、夜间金). Each colour token above holds both values in light-dark(), which
@@ -314,18 +316,6 @@
   --seal-acc: #e3b34f;
 }
 
-/* menus (cascade menus, menu.css `[data-k-level]`): the cascade menu's shape on the V3 palette; each token follows its theme */
-:root {
-  --menu-surface: var(--surface);
-  --menu-border: var(--line);
-  --menu-ink: var(--ink);
-  --menu-hover: var(--hover);
-  --menu-quiet: var(--ink-2);
-  --menu-icon: var(--ink-3);
-  --menu-chevron: var(--ink-3);
-  --menu-shadow: var(--shadow-pop);
-}
-
 /* Continuous corners as progressive enhancement: Chrome and Edge 139+ draw the superellipse, other browsers keep the plain border-radius.
    Pills and circles stay fully round. */
 @supports (corner-shape: superellipse(1.25)) {
@@ -344,12 +334,12 @@
   .startup-bar *,
   .capture-tip,
   .fx-burst,
-  .search-chip,
+  .k-token.is-condition,
   .k-radio-card input,
   .k-steps i,
   .k-task-progress,
-  .k-chip,
-  .k-chip-x,
+  .k-token.is-pill,
+  .k-token-action.is-18,
   .k-switch,
   .k-switch-thumb,
   .k-badge,
@@ -357,8 +347,8 @@
     corner-shape: round;
   }
   /* search chips in the top bar and its overflow popover are rounded boxes, not pills */
-  .topbar > .search .search-chip,
-  .search-more-pop .search-chip {
+  .topbar > .search .k-token.is-condition,
+  .search-more-pop .k-token.is-condition {
     corner-shape: superellipse(1.25);
   }
 }

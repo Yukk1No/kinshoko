@@ -76,7 +76,7 @@ export function SettingsRow({
           <div className="k-list-text">
             <div className="k-list-title">{title}</div>
             {hint && (
-              <p id={hintId} className="k-set-hint">
+              <p id={hintId} className="k-description">
                 {hint}
               </p>
             )}
@@ -124,7 +124,7 @@ export function SettingsGroup({ label, note, children }: { label: string; note?:
       <ul className="k-list k-set-list" aria-label={label}>
         {children}
       </ul>
-      {note && <p className="k-set-note">{note}</p>}
+      {note && <p className="k-description is-spaced">{note}</p>}
     </div>
   );
 }

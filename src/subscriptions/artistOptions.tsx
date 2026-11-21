@@ -89,7 +89,7 @@ export function BacklogCards({
   const invalid = value.backlog === "recent" && !backlogOf({ ...initialChoices(""), ...value });
   return (
     <div className="k-field" role="radiogroup" aria-label={label}>
-      <span className="k-field-label" aria-hidden="true">
+      <span className="k-section-label" aria-hidden="true">
         {label}
       </span>
       <div className={`k-radio-cards${inline ? " subs-backlog-row" : ""}`}>
@@ -220,7 +220,7 @@ export function LibraryField({
 }) {
   return (
     <div className="k-field">
-      <span className="k-field-label">{label}</span>
+      <span className="k-section-label">{label}</span>
       <LibrarySelect label={label} value={value} onChange={onChange} disabled={disabled} />
     </div>
   );
@@ -314,7 +314,7 @@ export function ArtistOptionFields({
       )}
       {backlogAs === "select" && (
         <div className="k-field">
-          <span className="k-field-label">{t("backlog")}</span>
+          <span className="k-section-label">{t("backlog")}</span>
           <Select
             label={t("backlog")}
             disabled={disabled}

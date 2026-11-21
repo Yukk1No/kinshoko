@@ -6,6 +6,7 @@ use std::ops::Range;
 
 use super::{Desk, Held, Switched, blank};
 use crate::desktop::{CaptureHistory, GroupMemberRef, SavedPin};
+use crate::reference_groups::member::valid_capture_file;
 use crate::reference_groups::{
     CaptureFiles, GroupError, GroupMember, MemberSource, ReferenceGroup, new_id,
 };
@@ -105,8 +106,11 @@ impl Desk {
         self.used_at
             .insert(created.id.clone(), crate::library::now_ms());
         self.dirty = true;
+        // 落盘到一半（参考组写进了、桌面状态没写进）时移走的截图已从原来的参考组清掉：先留着字节。
+        let moved_captures = self.groups.read_captures(&from.id, &moving);
         if let Err(e) = self.flush() {
-            // 桌面上那个写不进：像没拆过一样，删掉新参考组，成员与钉图都放回。
+            // 桌面上那个写不进：像没拆过一样，截图放回原来的参考组，删掉新参考组，成员与钉图都放回。
+            self.groups.put_captures(&from.id, &moved_captures);
             let _ = self.groups.delete(&created.id);
             self.used_at.remove(&created.id);
             if let Some(held) = self.on_desk.as_mut() {
@@ -161,6 +165,8 @@ impl Desk {
         }
         self.dirty = true;
         if let Err(e) = self.flush() {
+            // 参考组写进了、桌面状态没写进时，移出的截图已清掉：连字节一起放回。
+            self.groups.put_captures(&before.id, &captures);
             if let Some(held) = self.on_desk.as_mut() {
                 held.group.members = before.members.clone();
             }
@@ -334,7 +340,11 @@ impl Desk {
             let mut m = m.clone();
             m.added_at = Some(source.added_at(&m));
             let old = m.id.clone();
-            if target.members.iter().any(|x| x.id == m.id) {
+            // 截图文件名由成员身份拼出：身份重复或拼不出合法的文件名（导入的参考组包里的身份不可信）时换一个。
+            if target.members.iter().any(|x| x.id == m.id)
+                || (matches!(m.source, MemberSource::Capture { .. })
+                    && !valid_capture_file(&format!("{}.png", m.id)))
+            {
                 m.id = new_id();
             }
             if let MemberSource::Capture { capture_file } = &mut m.source {
@@ -348,6 +358,12 @@ impl Desk {
         }
         target.updated_at = crate::library::now_ms();
         self.groups.commit(&target, &copies)?;
+        // 删掉 `source_id` 会连它的截图目录一起删：之后换桌失败、放回它时要用。
+        let source_captures = if desk.as_deref() == Some(source_id) {
+            self.groups.read_captures(source_id, &source.members)
+        } else {
+            Vec::new()
+        };
         for (old, new) in &renamed {
             let from = GroupMemberRef {
                 group_id: source_id.to_owned(),
@@ -374,6 +390,7 @@ impl Desk {
                 Err(e) => {
                     // 桌面状态写不进：桌面还是它（下次落盘时文件写回来，成员两边都有，不丢）。
                     if let Some(mut held) = source {
+                        self.groups.put_captures(source_id, &source_captures);
                         self.used_at
                             .insert(held.group.id.clone(), crate::library::now_ms());
                         held.copies.clear();

@@ -286,7 +286,7 @@ export function SearchBox({
    * 一个条件的标签块；收起的标签块（`collapsed`）只占位量宽度，看不见也点不到。
    * `last`：“+n”浮层里仅剩的一个，去掉后浮层随之消失，焦点交回输入框。
    */
-  const chip = (c: SearchInput["conditions"][number], i: number, collapsed = false, last = false) => {
+  const chip = (c: SearchInput["conditions"][number], i: number, collapsed = false, last = false, overflow = false) => {
     const resolved: Condition | undefined = tree?.conditions[i];
     const terms = c.any.map((input, j) => ({ input, place: j, term: resolved && resolvedTerm(resolved, input) }));
     const visible = resolved ? terms.filter((x) => x.term) : terms;
@@ -295,20 +295,20 @@ export function SearchBox({
     return (
       <li
         key={i}
-        className="search-chip"
+        className={`k-token is-28 is-condition ${overflow ? "is-multiline" : "is-topbar"}`}
         data-negate={c.negate || undefined}
         data-collapsed={collapsed || undefined}
         aria-hidden={collapsed || undefined}
         inert={collapsed || undefined}
       >
-        {c.negate && <span className="search-chip-not">{t("not")}</span>}
+        {c.negate && <span className="search-condition-not">{t("not")}</span>}
         {visible.length === 0 ? (
-          <span className="search-chip-missing">{t("missingTag")}</span>
+          <span className="search-condition-missing">{t("missingTag")}</span>
         ) : (
           visible.map(({ input, place, term }, k) => (
             <span key={place} className="search-term">
               {k > 0 && (
-                <span className="search-chip-or">
+                <span className="search-condition-or">
                   <span aria-hidden="true">{t("or")}</span>
                   <span className="sr-only">{t("orSpoken")}</span>
                 </span>
@@ -354,6 +354,7 @@ export function SearchBox({
         )}
         <button
           type="button"
+          className="k-token-action is-20 is-condition-action"
           aria-label={c.negate ? t("include") : t("exclude")}
           aria-pressed={c.negate}
           onClick={() => toggle(i)}
@@ -362,6 +363,7 @@ export function SearchBox({
         </button>
         <button
           type="button"
+          className="k-token-action is-20 is-condition-action"
           aria-label={t("remove")}
           onClick={() => {
             remove(i);
@@ -389,7 +391,7 @@ export function SearchBox({
                 <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={8}>
                   <Popover.Popup className="k-popup search-more-pop" aria-label={t("collapsedConditions")}>
                     <ul className="search-chips">
-                      {input.conditions.slice(0, hiddenCount).map((c, i) => chip(c, i, false, hiddenCount === 1))}
+                      {input.conditions.slice(0, hiddenCount).map((c, i) => chip(c, i, false, hiddenCount === 1, true))}
                     </ul>
                   </Popover.Popup>
                 </Popover.Positioner>
@@ -479,7 +481,7 @@ function AddSimilarPicker({
   const { list: found, ready } = useCandidateState(lens, text, (c) => c.tag.id !== to.id);
   return (
     <>
-      <p className="k-add-similar-head">{t("add.prompt", { name: tagName(to) })}</p>
+      <p className="k-section-label">{t("add.prompt", { name: tagName(to) })}</p>
       <Combobox
         label={lens.workspace ? t("add.pickShared") : t("add.pickLibrary")}
         autoFocus

@@ -92,6 +92,9 @@
 .k-task-sub.is-warn {
   color: var(--warn);
 }
+.k-task-acts .import-backup-dismiss:disabled {
+  --k-lift: var(--btn-lift-disabled);
+}
 .k-task-sub.is-danger,
 .k-task-stats .is-danger,
 .k-task-stats .is-danger b {
@@ -377,44 +380,6 @@
 .k-group-member:has(:focus-visible) {
   box-shadow: inset 0 0 0 1px var(--line-2);
 }
-.k-group-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: var(--r-s);
-  background: none;
-  color: var(--ink);
-  font: inherit;
-  cursor: pointer;
-}
-.k-group-chip:disabled {
-  opacity: 1;
-  cursor: default;
-}
-.k-group-chip:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-.k-group-chip-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-}
-.k-group-chip-name .untranslated,
-.k-group-chip-name .no-external {
-  display: inline-flex;
-  color: var(--ink-3);
-}
-.k-group-chip-count {
-  white-space: nowrap;
-  color: var(--ink-2);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
 /* 前移、后移、移出：TagChip 的 chip-x（16 px、ink-3）。收起时宽度为 0 但仍可用 Tab 聚焦；悬停或聚焦时展开。 */
 .k-group-member-acts {
   display: inline-flex;
@@ -440,32 +405,7 @@
     padding-right: 5px;
   }
 }
-.k-group-chip-x {
-  width: 16px;
-  height: 16px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: var(--r-xs);
-  background: none;
-  color: var(--ink-3);
-  cursor: pointer;
-}
-.k-group-chip-x:hover:not(:disabled) {
-  background: var(--hover);
-  color: var(--ink);
-}
-.k-group-chip-x:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-.k-group-chip-x:disabled {
-  opacity: var(--disabled-opacity);
-  cursor: default;
-}
-/* 加标签：行内的轻操作，设计系统 Button is-ghost（accent-strong 字，悬停 accent-soft）。 */
+/* 加标签：行内的轻操作，accent-strong 字，悬停 accent-soft。 */
 .k-group-add {
   display: inline-flex;
   align-items: center;

@@ -10,10 +10,9 @@ import {
   revealReferenceImage,
   workspaceEditSources,
   workspaceImage,
-  workspaceSidebar,
   workspaceSourceGroup,
 } from "../ipc";
-import { flattenFolders, PermanentDeleteConfirm } from "../library/SelectionPanel";
+import { PermanentDeleteConfirm } from "../library/SelectionPanel";
 import { libraryFailures, PermanentDeleteBatchConfirm } from "../library/PermanentDeleteBatch";
 import type { BrowserCard } from "./Wall";
 import { pagesOf } from "./imageSets";
@@ -261,8 +260,6 @@ export function useWallActions(o: WallActionsOptions): { actions: WallMenuAction
         detail.folders.some((folder) => folder.id === folderId),
       );
     },
-    folders: (libraryId) =>
-      workspaceSidebar(libraryId, options.current.safe).then((sidebar) => flattenFolders(sidebar.folders)),
     groups: () => referenceGroups(),
   };
 

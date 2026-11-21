@@ -136,9 +136,9 @@ export function importUi(app, { until }) {
   const importDialog = dialogX("导入图片"),
     eagleDialog = dialogX("从 Eagle 导入");
   const libraryChoice = (prefix) =>
-    `${prefix}//label[span[@class='k-field-label' and contains(normalize-space(),'图库')]]//select`;
+    `${prefix}//label[span[@class='k-section-label' and contains(normalize-space(),'图库')]]//select`;
   const folderChoice = (prefix) =>
-    `${prefix}//label[span[@class='k-field-label' and normalize-space()='文件夹']]//select`;
+    `${prefix}//label[span[@class='k-section-label' and normalize-space()='文件夹']]//select`;
   const shown = (xpath) =>
     app.session.exec(
       "const n=document.evaluate(arguments[0],document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;return !!n&&n.getClientRects().length>0&&!n.disabled;",

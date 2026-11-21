@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import css from "./mainWindowCss";
+import tokens from "../ui/token.css?raw";
 
 // 详情面板标签悬停抽搐（#159）：悬停时操作按钮从宽度 0 展开，把标签撑宽，行尾的标签被挤到下一行、离开鼠标又缩回，
 // 来回循环。jsdom 不做布局，这里锁住“按钮不占排版宽度、悬停与聚焦只改不影响排版的属性”这两条声明。
-const plain = css.replace(/\/\*[\s\S]*?\*\//g, "");
+const plain = [css, tokens].join("\n").replace(/\/\*[\s\S]*?\*\//g, "");
 const topLevel = plain.replace(/@media[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
 const ruleBodies = (source: string, selector: string) =>
   [...source.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
@@ -38,7 +39,9 @@ const rulesMatching = (test: (selector: string) => boolean) =>
 describe("详情面板的标签（#159、#160）", () => {
   it("悬停、聚焦或浮层打开时只改不影响排版的属性：标签尺寸不变", () => {
     const states = rulesMatching((sel) =>
-      /\.k-tag-chip(\[[^\]]*\])*:(hover|focus|focus-visible|focus-within)\b|\.k-tag-chip\[data-popup-open\]/.test(sel),
+      /\.k-token\.is-inspector(\[[^\]]*\])*:(hover|focus|focus-visible|focus-within)\b|\.k-token\.is-inspector\[data-popup-open\]/.test(
+        sel,
+      ),
     );
     expect(states.length).toBeGreaterThan(0);
     for (const { sel, names } of states)
@@ -49,7 +52,7 @@ describe("详情面板的标签（#159、#160）", () => {
   });
 
   it("可信度档位只改颜色、底色和外框线，不改尺寸；高档和人写的一样，不另写规则（#482）", () => {
-    const bands = rulesMatching((sel) => sel.includes("[data-band") && sel.includes(".k-tag-chip"));
+    const bands = rulesMatching((sel) => sel.includes("[data-band") && sel.includes(".k-token.is-inspector"));
     expect(bands.map(({ sel }) => sel).join("\n")).toMatch(/data-band="mid"/);
     expect(bands.map(({ sel }) => sel).join("\n")).toMatch(/data-band="low"/);
     expect(bands.map(({ sel }) => sel).join("\n")).not.toMatch(/data-band="high"/);
@@ -63,6 +66,6 @@ describe("详情面板的标签（#159、#160）", () => {
   it("可信度刻度条绝对定位在标签底边，不占排版", () => {
     const meter = declarations(topLevel, ".k-tags .k-tag-meter");
     expect(meter.get("position")).toBe("absolute");
-    expect(ruleBodies(topLevel, ".k-tags .k-tag-chip").some((body) => /position:\s*relative/.test(body))).toBe(true);
+    expect(ruleBodies(topLevel, ".k-token.is-inspector").some((body) => /position:\s*relative/.test(body))).toBe(true);
   });
 });

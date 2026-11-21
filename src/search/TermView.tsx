@@ -65,7 +65,7 @@ export function TermView({
       )}
       {!brief && term.similar.length > 0 && (
         <span className="search-similar">
-          <span className="search-chip-or">{t("similar.or")}</span>
+          <span className="search-condition-or">{t("similar.or")}</span>
           {term.similar.map((s, k) => (
             <span key={s.tag.id} className="search-similar-tag">
               {k > 0 && t("listSeparator")}
@@ -78,7 +78,11 @@ export function TermView({
               )}
               {dismiss(
                 s,
-                <button type="button" aria-label={t("similar.dismissLabel", { name: tagName(s.tag) })}>
+                <button
+                  type="button"
+                  className="k-token-action is-20 is-condition-action"
+                  aria-label={t("similar.dismissLabel", { name: tagName(s.tag) })}
+                >
                   <X size={12} strokeWidth={2} aria-hidden="true" />
                 </button>,
               )}
@@ -91,7 +95,11 @@ export function TermView({
         !brief &&
         add(
           sole,
-          <button type="button" aria-label={t("similar.addLabel", { name: tagName(sole) })}>
+          <button
+            type="button"
+            className="k-token-action is-20 is-condition-action"
+            aria-label={t("similar.addLabel", { name: tagName(sole) })}
+          >
             <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
           </button>,
         )}

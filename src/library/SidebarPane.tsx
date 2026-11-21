@@ -146,8 +146,12 @@ export function SidebarPane({
       if (folder !== folderId && (!from || from === libraryId)) void run(moveFolder(libraryId, folder, folderId, LAST));
       return;
     }
-    const images = droppedImages(e, libraryId);
-    if (images.length) void run(editImages(libraryId, images, [{ kind: "addToFolder", folderId }]));
+    try {
+      const images = droppedImages(e, libraryId);
+      if (images.length) void run(editImages(libraryId, images, [{ kind: "addToFolder", folderId }]));
+    } catch (error) {
+      onError(error);
+    }
   };
 
   const count = (node: FolderNode) => (includeDescendants ? (descendantCounts?.[node.id] ?? node.count) : node.count);

@@ -376,7 +376,7 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
         />
       )}
       <div className="side-scroll">
-        {all.length === 0 && <p className="desk-groups-empty">{t("groups.empty")}</p>}
+        {all.length === 0 && <p className="k-description desk-groups-empty">{t("groups.empty")}</p>}
         {section("favorites", lists.favorites)}
         {section("recent", lists.recent)}
         {section("older", lists.older)}

@@ -2704,7 +2704,9 @@ dependencies = [
  "tauri-plugin-updater",
  "tempfile",
  "uuid",
+ "webview2-com",
  "wgpu",
+ "windows 0.62.2",
  "windows-sys 0.61.2",
  "xcap",
 ]

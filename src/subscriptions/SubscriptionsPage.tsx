@@ -174,7 +174,7 @@ export function SubscriptionsPage({
         inert={!paneOpen}
       >
         <header className="pane-head" data-tauri-drag-region>
-          <h1 className="pane-title subs-pane-title">{t("title")}</h1>
+          <h1 className="k-title subs-pane-title">{t("title")}</h1>
           {account &&
             addMenu(
               <Tip label={t("add")}>
@@ -213,7 +213,7 @@ export function SubscriptionsPage({
                 if (rows.length === 0) return null;
                 return (
                   <section key={k.kind} className="subs-group" aria-label={t(`groups.${k.kind}`)}>
-                    <h2 className="subs-group-head">
+                    <h2 className="k-section-label">
                       <span className="subs-group-icon">{k.icon(14)}</span>
                       {t(`groups.${k.kind}`)}
                     </h2>
@@ -290,7 +290,7 @@ export function SubscriptionsPage({
             </Tip>
           )}
           {hasList && (
-            <h1 className="subs-title">
+            <h1 className="k-title">
               {t("recent.title")}
               <span className="subs-title-count tabular">{t("recent.count", { count: shown.length })}</span>
               {skipped > 0 && <span className="subs-title-count">{t("recent.skipped", { count: skipped })}</span>}

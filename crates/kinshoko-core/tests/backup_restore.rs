@@ -18,6 +18,8 @@ use kinshoko_core::backup::{
     BackupError, BackupSources, BackupTarget, ScopeSelection, compute_scope,
 };
 use kinshoko_core::library::ImageEdit;
+#[path = "backup_restore_names.rs"]
+mod names;
 
 #[test]
 fn a_group_that_outgrows_the_computed_scope_cannot_publish_a_complete_backup() {

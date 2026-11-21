@@ -17,6 +17,7 @@ import { UntranslatedRename } from "../tags/UntranslatedRename";
 import { useTagDisplay } from "../tags/TagDisplayContext";
 import { AtSign, Ban, Check, Plus, Sparkles, Tags, Undo2 } from "lucide-react";
 import { Tip } from "../ui/Tip";
+import { EmptyState } from "../ui/EmptyState";
 import { AliasEditor } from "./TagAliasEditor";
 import { decisionOf, groupByStanding, NAMESPACES, ordered, parseTyped } from "./tagPanelInput";
 
@@ -361,7 +362,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, rating }: 
               : // 只有一级标签时不写“还没有标签”：上面的属性表里已经有了。
                 (general.length > 0 || all.length === 0) && (
                   <ul className="tag-list k-tag-chips" aria-label={t("panel.active")} aria-busy={stale} inert={stale}>
-                    {all.length === 0 && <li className="tag-empty k-tags-empty">{t("panel.empty")}</li>}
+                    {all.length === 0 && <EmptyState as="li" size="list" title={t("panel.empty")} />}
                     {ordered(general).map((entry) => chip(entry, false))}
                   </ul>
                 )}
@@ -379,7 +380,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, rating }: 
                     const rename = renameFor(tag);
                     // 已排除的标签：名称划掉，末尾的图标把它改回自动（与候选行尾的“改回自动”同一个图标）；悬停图标时划线先去掉，示意结果。
                     return (
-                      <li key={tag.id} className="tag-row k-tag-chip is-rejected">
+                      <li key={tag.id} className="tag-row k-token is-26 is-tag-fill is-inspector is-rejected">
                         <span className="tag-name">{name}</span>
                         <TagMarks
                           tag={tag}
@@ -392,7 +393,7 @@ export function TagPanel({ libraryId, ids, safe, generation, onError, rating }: 
                         <Tip label={t("panel.revert")}>
                           <button
                             type="button"
-                            className="k-tag-restore"
+                            className="k-token-action is-20 is-restore"
                             aria-label={t("panel.clearLabel", { name })}
                             onClick={() => decide("clear", byId(tag))}
                           >

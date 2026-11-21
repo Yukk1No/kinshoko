@@ -208,3 +208,66 @@ it("把图拖进任一图库的文件夹，放入的是这张图在那个图库�
     { command: "edit", args: { libraryId: "A", ids: ["a-1"], edits: [{ kind: "addToFolder", folderId: "A-child" }] } },
   ]);
 });
+
+it.each([{ ids: ["a-1"] }, { ids: ["a-1", "a-2"] }])("把选中的图片 $ids 拖进嵌套文件夹", async ({ ids }) => {
+  const fake = fakeBackend({ workspace_directories: directories, edit: [] });
+  await loaded(render(<WorkspacePane {...props} scope={inA({ kind: "all" })} />));
+  const data: Record<string, string> = {
+    [DRAG_IMAGES]: JSON.stringify(ids),
+    [DRAG_IMAGE_SOURCES]: JSON.stringify({ A: ids }),
+  };
+  const dataTransfer = { types: Object.keys(data), getData: (type: string) => data[type] ?? "" };
+  const folder = within(section("A")).getByRole("button", { name: "动作（1 张）" });
+  fireEvent.dragOver(folder, { dataTransfer });
+  expect(folder.getAttribute("data-drop")).toBe("true");
+  fireEvent.drop(folder, { dataTransfer });
+  await settle();
+  expect(folder.hasAttribute("data-drop")).toBe(false);
+  expect(fake.calls("edit")).toEqual([
+    { command: "edit", args: { libraryId: "A", ids, edits: [{ kind: "addToFolder", folderId: "A-child" }] } },
+  ]);
+});
+
+it.each([{}, { B: ["b-1"] }])("空拖放或只有其他图库的来源时不整理", async (sources) => {
+  const fake = fakeBackend({ workspace_directories: directories, edit: [] });
+  await loaded(render(<WorkspacePane {...props} scope={inA({ kind: "all" })} />));
+  const data: Record<string, string> = {
+    [DRAG_IMAGES]: JSON.stringify(["b-1"]),
+    [DRAG_IMAGE_SOURCES]: JSON.stringify(sources),
+  };
+  const dataTransfer = { types: Object.keys(data), getData: (type: string) => data[type] ?? "" };
+  const folder = within(section("A")).getByRole("button", { name: "动作（1 张）" });
+  fireEvent.dragOver(folder, { dataTransfer });
+  fireEvent.drop(folder, { dataTransfer });
+  await settle();
+  expect(fake.calls("edit")).toEqual([]);
+  expect(props.onError).not.toHaveBeenCalled();
+});
+
+it("拖入文件夹的整理失败交给 onError", async () => {
+  fakeBackend({
+    workspace_directories: directories,
+    edit: () => Promise.reject(new Error("drop failed")),
+  });
+  await loaded(render(<WorkspacePane {...props} scope={inA({ kind: "all" })} />));
+  const data: Record<string, string> = {
+    [DRAG_IMAGES]: JSON.stringify(["a-1"]),
+    [DRAG_IMAGE_SOURCES]: JSON.stringify({ A: ["a-1"] }),
+  };
+  const dataTransfer = { types: Object.keys(data), getData: (type: string) => data[type] ?? "" };
+  fireEvent.drop(within(section("A")).getByRole("button", { name: "动作（1 张）" }), { dataTransfer });
+  await settle();
+  expect(props.onError).toHaveBeenCalledTimes(1);
+});
+
+it("无效的图片拖放数据交给 onError", async () => {
+  const fake = fakeBackend({ workspace_directories: directories, edit: [] });
+  await loaded(render(<WorkspacePane {...props} scope={inA({ kind: "all" })} />));
+  const dataTransfer = {
+    types: [DRAG_IMAGES, DRAG_IMAGE_SOURCES],
+    getData: (type: string) => (type === DRAG_IMAGE_SOURCES ? "{" : ""),
+  };
+  fireEvent.drop(within(section("A")).getByRole("button", { name: "动作（1 张）" }), { dataTransfer });
+  expect(props.onError).toHaveBeenCalledWith(expect.any(SyntaxError));
+  expect(fake.calls("edit")).toEqual([]);
+});

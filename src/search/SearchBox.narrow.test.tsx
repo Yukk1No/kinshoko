@@ -16,7 +16,7 @@ beforeEach(() => {
     return this.classList.contains("search") ? searchWidth : 0;
   });
   vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (this: HTMLElement) {
-    if (this.classList.contains("search-chip")) return 100;
+    if (this.classList.contains("is-condition")) return 100;
     if (this.classList.contains("k-exact")) return 32;
     return 0;
   });

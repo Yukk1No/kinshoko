@@ -203,6 +203,13 @@ describe("选中一张图：自动标签未完成（#475）", () => {
     const edits = backend({ ...detail({}), taggingFailure: failure }, detail({}));
     renderPanel();
     const line = await screen.findByText("自动标签未完成");
+    const retry = screen.getByRole("button", { name: "重试" });
+    expect(retry.classList.contains("is-warn")).toBe(true);
+    expect(retry.querySelector("svg")).toBeNull();
+    const icon = line.querySelector("svg.lucide-triangle-alert");
+    expect(icon?.getAttribute("width")).toBe("13");
+    expect(icon?.getAttribute("aria-hidden")).toBe("true");
+    expect(line.classList.contains("is-warn")).toBe(true);
     expect(await tipText(line)).toBe(reason);
     fireEvent.click(screen.getByRole("button", { name: "重试" }));
     await waitFor(() => expect(edits).toEqual([[{ kind: "retryTagging" }]]));
