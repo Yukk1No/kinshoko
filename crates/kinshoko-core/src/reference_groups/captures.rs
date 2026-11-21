@@ -383,7 +383,17 @@ impl ReferenceGroups {
         group: &ReferenceGroup,
         captures: &CaptureFiles,
     ) -> Result<(), GroupError> {
-        let dir = self.captures_dir(&group.id)?;
+        self.write_captures(&group.id, captures)?;
+        self.commit(group, &[])
+    }
+
+    /// 把 `captures`（[`Self::read_captures`] 读出的字节）写回参考组 `id` 的截图目录，不动参考组文件。
+    pub(super) fn write_captures(
+        &self,
+        id: &str,
+        captures: &CaptureFiles,
+    ) -> Result<(), GroupError> {
+        let dir = self.captures_dir(id)?;
         for (file, bytes) in captures {
             if !valid_capture_file(file) {
                 continue;
@@ -391,7 +401,7 @@ impl ReferenceGroups {
             fs::create_dir_all(&dir)?;
             write_atomically(&dir.join(file), bytes)?;
         }
-        self.commit(group, &[])
+        Ok(())
     }
 
     /// 把自带截图的字节放回参考组 `id` 的截图目录，不写参考组文件（写盘失败后回滚，#590）。

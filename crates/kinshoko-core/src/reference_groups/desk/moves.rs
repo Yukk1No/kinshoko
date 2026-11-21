@@ -182,6 +182,73 @@ impl Desk {
         }))
     }
 
+    /// 从桌面上的参考组 `group_id` 移出成员 `member_id`（侧栏成员悬停时的“移出”）：钉着时它的钉图一起关掉。
+    /// 返回撤销要用的（[`Self::undo_prune`]，放回时是没钉着的）；`group_id` 不在桌面上或成员不在里面时为
+    /// `None`，调用方改那组的文件（复制出的参考组成员身份相同，只看成员身份会移错组）。写不进时什么都不变。
+    pub fn remove_member(
+        &mut self,
+        group_id: &str,
+        member_id: &str,
+        history: &mut CaptureHistory,
+    ) -> Result<Option<Pruned>, GroupError> {
+        self.flush()?;
+        let Some(held) = self.on_desk.as_ref().filter(|h| h.group.id == group_id) else {
+            return Ok(None);
+        };
+        let before = held.group.clone();
+        let Some(at) = before.members.iter().position(|m| m.id == member_id) else {
+            return Ok(None);
+        };
+        let member = before.members[at].clone();
+        let captures = self
+            .groups
+            .read_captures(&before.id, std::slice::from_ref(&member));
+        let pins = self.pins.clone();
+        let pin = pins
+            .iter()
+            .find(|p| p.member.as_ref().is_some_and(|m| m.member_id == member_id));
+        if let Some(pin) = pin {
+            self.close(&pin.id, history);
+        }
+        let group = match self.on_desk.as_mut() {
+            Some(held) => &mut held.group,
+            // 关掉的是最后一张钉图：参考组刚离开桌面。
+            None => match self.left.last_mut() {
+                Some(held) => &mut held.group,
+                None => return Err(GroupError::UnknownGroup),
+            },
+        };
+        group.members.retain(|m| m.id != member_id);
+        self.dirty = true;
+        if let Err(e) = self.flush() {
+            if self.on_desk.is_none() && self.left.last().is_some_and(|h| h.group.id == before.id) {
+                self.on_desk = self.left.pop();
+            }
+            if let Some(held) = self.on_desk.as_mut() {
+                held.group.members = before.members.clone();
+            }
+            // 参考组文件可能已写好、组内截图随之删掉：放回去，否则下次落盘时成员找不到它。
+            let _ = self.groups.write_captures(&before.id, &captures);
+            if let Some(pin) = pin {
+                if let Some(capture) = pin.capture_id() {
+                    history.pin(capture);
+                }
+                self.pins = pins.clone();
+            }
+            return Err(e);
+        }
+        // 钉图已关：放回时是没钉着的（不变量 2）。
+        let member = GroupMember {
+            pinned: false,
+            ..member
+        };
+        Ok(Some(Pruned {
+            before,
+            members: vec![(at, member)],
+            captures,
+        }))
+    }
+
     /// 撤销移出没钉着的：成员按原来的位置放回（仍是没钉着），自带截图写回。参考组已随之消失时按原样重建。
     pub fn undo_prune(&mut self, pruned: &Pruned) -> Result<(), GroupError> {
         self.flush()?;
@@ -280,19 +347,7 @@ impl Desk {
         } else {
             Vec::new()
         };
-        for (old, new) in &renamed {
-            let from = GroupMemberRef {
-                group_id: source_id.to_owned(),
-                member_id: old.clone(),
-            };
-            if let Some(entry) = history.linked_entry(&from) {
-                let at = GroupMemberRef {
-                    group_id: target_id.to_owned(),
-                    member_id: new.clone(),
-                };
-                let _ = history.link_member(&entry, at);
-            }
-        }
+        super::copies::link_copies(history, source_id, target_id, renamed);
         match self.groups.delete(source_id) {
             Ok(()) | Err(GroupError::UnknownGroup) => {}
             Err(e) => {

@@ -17,6 +17,7 @@ export function GroupNameForm({
   busy = false,
   blocked = false,
   primary = true,
+  allowEmpty = false,
   className = "",
 }: {
   title: string;
@@ -32,15 +33,18 @@ export function GroupNameForm({
   blocked?: boolean;
   /** “保存”用 ink 实底：只给侧栏里本屏的主操作（起名），卡片里的改名用普通按钮。 */
   primary?: boolean;
+  /** 名称可以留空（桌面上的参考组改名：留空回到写新建时间，#588）。 */
+  allowEmpty?: boolean;
   className?: string;
 }) {
   const { t } = useTranslation("desktop", { keyPrefix: "nameForm" });
+  const filled = allowEmpty || value.trim() !== "";
   return (
     <form
       className={`group-name-form ${className}`}
       onSubmit={(e) => {
         e.preventDefault();
-        if (value.trim() && !busy && !blocked) onSubmit();
+        if (filled && !busy && !blocked) onSubmit();
       }}
       onKeyDown={(e) => {
         if (e.key === "Escape" && !busy) {
@@ -74,11 +78,7 @@ export function GroupNameForm({
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
-        <button
-          type="submit"
-          className={`k-btn${primary ? " is-primary" : ""}`}
-          disabled={!value.trim() || busy || blocked}
-        >
+        <button type="submit" className={`k-btn${primary ? " is-primary" : ""}`} disabled={!filled || busy || blocked}>
           <span className="k-label">{t("save")}</span>
         </button>
       </div>

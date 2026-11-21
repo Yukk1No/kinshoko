@@ -98,6 +98,11 @@ export function setReferenceGroupFavorite(groupId: string, favorite: boolean): P
   return invoke<void>(desk("set_reference_group_favorite"), { groupId, favorite });
 }
 
+/** 复制参考组，新参考组叫 `name`，不摆上桌面。返回新参考组的 id。 */
+export function duplicateReferenceGroup(groupId: string, name: string): Promise<string> {
+  return invoke<string>(desk("duplicate_reference_group"), { groupId, name });
+}
+
 /**
  * 加进上一组：桌面上的参考组 `sourceId`（提示所说的新参考组）的成员移进 `targetId`，删掉 `sourceId`，
  * 把 `targetId` 摆上桌面。桌面上已不是 `sourceId` 时什么都不做。
@@ -144,8 +149,17 @@ export function purgeDeletedReferenceGroup(groupId: string): Promise<void> {
   return invoke<void>(desk("purge_deleted_reference_group"), { groupId });
 }
 
-export function removeGroupMember(groupId: string, memberId: string): Promise<ReferenceGroup> {
-  return invoke<ReferenceGroup>(desk("remove_group_member"), { groupId, memberId });
+/** 移出一个成员。桌面上那组的成员可用 {@link undoPruneUnpinned} 撤销；参考组随之消失时为 `null`。 */
+export function removeGroupMember(groupId: string, memberId: string): Promise<ReferenceGroup | null> {
+  return invoke<ReferenceGroup | null>(desk("remove_group_member"), { groupId, memberId });
+}
+
+/**
+ * 参考组面板移出一个成员（开关打开时）。桌面上那组的成员可用 {@link undoPruneUnpinned} 撤销，返回 `true`；
+ * 那组已经不在桌面上时从它的文件里移出，返回 `false`，没有撤销。
+ */
+export function removeDeskGroupMember(groupId: string, memberId: string): Promise<boolean> {
+  return invoke<boolean>(desk("remove_desk_group_member"), { groupId, memberId });
 }
 
 /**

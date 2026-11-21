@@ -181,6 +181,8 @@ pub async fn repin_group_member(app: AppHandle, member_id: String) -> Result<(),
         if repinned.is_some() {
             mark_dirty(&app);
             apply(&app, None);
+            // 侧栏里它不再变淡。
+            changed(&app);
         }
         Ok(())
     })
@@ -247,7 +249,50 @@ pub async fn prune_unpinned_members(app: AppHandle) -> Result<usize, CommandErro
     .await
 }
 
-/// 撤销最近一次“移出没钉着的”。没有可撤销的时什么都不做。
+/// 从桌面上的参考组移出成员 `member_id`，钉着它的钉图一起关掉。撤销与“移出没钉着的”共用
+/// [`undo_prune_unpinned`]。成员不在桌面上的参考组里时返回 `false`，什么都不做。
+pub(super) fn remove_desk_member(
+    app: &AppHandle,
+    group_id: &str,
+    member_id: &str,
+) -> Result<bool, CommandError> {
+    let removed = with_desk(app, |desk, history| {
+        desk.remove_member(group_id, member_id, history)
+    })?;
+    let Some(removed) = removed else {
+        return Ok(false);
+    };
+    *LAST_PRUNED.lock().unwrap_or_else(|e| e.into_inner()) = Some(removed);
+    apply(app, None);
+    Ok(true)
+}
+
+/// 参考组面板移出一个成员。是桌面上那组的成员时钉着它的钉图一起关掉，返回 `true`，能用
+/// [`undo_prune_unpinned`] 撤销；那组已经不在桌面上（面板还没跟上换桌）时从它的文件里移出，返回
+/// `false`，没有撤销记录，面板不给“撤销”。
+#[tauri::command]
+pub async fn remove_desk_group_member(
+    app: AppHandle,
+    group_id: String,
+    member_id: String,
+) -> Result<bool, CommandError> {
+    blocking(move || {
+        if !desk_on(&app) {
+            return Err(flag_off());
+        }
+        if remove_desk_member(&app, &group_id, &member_id)? {
+            return Ok(true);
+        }
+        lock(&state(&app).groups)
+            .remove_member(&group_id, &member_id)
+            .map_err(CommandError::from)?;
+        changed(&app);
+        Ok(false)
+    })
+    .await
+}
+
+/// 撤销最近一次“移出没钉着的”或移出一个成员。没有可撤销的时什么都不做。
 #[tauri::command]
 pub async fn undo_prune_unpinned(app: AppHandle) -> Result<(), CommandError> {
     blocking(move || {
@@ -264,6 +309,23 @@ pub async fn undo_prune_unpinned(app: AppHandle) -> Result<(), CommandError> {
         }
         changed(&app);
         Ok(())
+    })
+    .await
+}
+
+/// 复制参考组 `group_id`，新参考组叫 `name`（界面给出“某某 副本”），不摆上桌面。返回新参考组的 id。
+#[tauri::command]
+pub async fn duplicate_reference_group(
+    app: AppHandle,
+    group_id: String,
+    name: String,
+) -> Result<String, CommandError> {
+    blocking(move || {
+        let copy = with_desk(&app, |desk, history| {
+            desk.duplicate(&group_id, &name, history)
+        })?;
+        changed(&app);
+        Ok(copy.id)
     })
     .await
 }
