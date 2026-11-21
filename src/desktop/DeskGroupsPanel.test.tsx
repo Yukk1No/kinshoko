@@ -41,7 +41,7 @@ vi.mock("../ipc", () => ({
   newReferenceDesk: ipc.newDesk,
   setReferenceGroupFavorite: ipc.favorite,
   duplicateReferenceGroup: ipc.duplicate,
-  repinGroupMember: ipc.repin,
+  showGroupMember: ipc.repin,
   pruneUnpinnedMembers: ipc.prune,
   undoPruneUnpinned: ipc.undoPrune,
   splitOffReferenceGroup: ipc.split,
@@ -243,7 +243,7 @@ describe("参考组面板（参考组改成桌面）", () => {
     fireEvent.click(fold);
     fireEvent.click(within(shown).getByRole("button", { name: "钉住主库" }));
     await flush();
-    expect(ipc.repin).toHaveBeenCalledWith("m1");
+    expect(ipc.repin).toHaveBeenCalledWith("g1", "m1");
   });
 
   it("收藏的组：成员留在原位，已关闭的变淡", async () => {
