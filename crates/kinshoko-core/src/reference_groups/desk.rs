@@ -113,6 +113,9 @@ pub struct Desk {
     trashed_from_desk: BTreeSet<String>,
     /// 撤销删除时文件已放回、还没做完的参考组：再撤销一次时接着做完。
     untrashed: BTreeSet<String>,
+    /// 关掉时截图还没复制进参考组的截图钉图：落盘后才在截图历史里放开钉住，
+    /// 免得截图在这之前从截图历史删掉时文件跟着没了。
+    unpin_after_flush: Vec<String>,
     dirty: bool,
 }
 
@@ -151,6 +154,7 @@ impl Desk {
             used_at,
             trashed_from_desk: BTreeSet::new(),
             untrashed: BTreeSet::new(),
+            unpin_after_flush: Vec::new(),
             dirty: false,
         })
     }
@@ -218,6 +222,7 @@ impl Desk {
         mut pin: SavedPin,
         history: &mut CaptureHistory,
     ) -> Result<Pinned, GroupError> {
+        self.release_unpins(history);
         let member_id = new_id();
         let mut copy = None;
         let mut member = match pin.capture_id() {
@@ -281,6 +286,7 @@ impl Desk {
     pub fn close(&mut self, pin_id: &str, history: &mut CaptureHistory) -> Option<SavedPin> {
         let at = self.pins.iter().position(|p| p.id == pin_id)?;
         let pin = self.pins.remove(at);
+        let mut pending = false;
         if let (Some(member), Some(held)) = (&pin.member, self.on_desk.as_mut())
             && let Some(m) = held
                 .group
@@ -291,55 +297,23 @@ impl Desk {
             m.follow(&pin);
             m.pinned = false;
             m.closed_at = Some(crate::library::now_ms());
+            if let MemberSource::Capture { capture_file } = &m.source {
+                pending = held.copies.iter().any(|(file, _)| file == capture_file);
+            }
         }
+        self.dirty = true;
         if let Some(capture) = pin.capture_id() {
-            history.unpin(capture);
+            if pending {
+                // 截图还没复制进参考组：先落盘再放开截图历史的钉住，不然截图这时已从截图历史删掉的话
+                // 文件跟着没了。写不进时留到之后落了盘再放开（[`Self::release_unpins`]）。
+                self.unpin_after_flush.push(capture.to_owned());
+                let _ = self.flush();
+            } else {
+                history.unpin(capture);
+            }
         }
-        self.dirty = true;
+        self.release_unpins(history);
         Some(pin)
-    }
-
-    /// 钉回桌面上参考组里没钉着的成员 `member_id`，在它原来的位置（侧栏里点淡色的那一项）。
-    /// 已经钉着、不在桌面上的参考组里或桌面空着时为 `None`；钉不出来时报错，成员仍是没钉着。
-    pub fn repin(
-        &mut self,
-        member_id: &str,
-        history: &mut CaptureHistory,
-    ) -> Result<Option<SavedPin>, GroupError> {
-        let Some(held) = &self.on_desk else {
-            return Ok(None);
-        };
-        if !held
-            .group
-            .members
-            .iter()
-            .any(|m| m.id == member_id && !m.pinned)
-        {
-            return Ok(None);
-        }
-        // 刚钉上、还没复制进来的截图要先落盘才钉得出。
-        self.flush()?;
-        let Some(held) = &self.on_desk else {
-            return Ok(None);
-        };
-        let mut opened =
-            self.groups
-                .open_members(&held.group, history, |m| m.member_id != member_id, true);
-        let Some(pin) = opened.pins.pop() else {
-            return Err(match opened.problems.pop() {
-                Some(why) => GroupError::Invalid(Box::new(why)),
-                None => GroupError::NoMembers,
-            });
-        };
-        if let Some(held) = self.on_desk.as_mut()
-            && let Some(m) = held.group.members.iter_mut().find(|m| m.id == member_id)
-        {
-            m.pinned = true;
-            m.closed_at = None;
-        }
-        self.pins.push(pin.clone());
-        self.dirty = true;
-        Ok(Some(pin))
     }
 
     /// 把改动落盘：先写离开了桌面的参考组，再复制新的组内截图、写桌面上的参考组，最后写桌面状态。
@@ -392,6 +366,16 @@ impl Desk {
         Ok(self.replace(None, history)?)
     }
 
+    /// 落了盘（没有没写的改动）后，放开 [`Self::close`] 留下的截图历史钉住。
+    fn release_unpins(&mut self, history: &mut CaptureHistory) {
+        if self.dirty {
+            return;
+        }
+        for capture in std::mem::take(&mut self.unpin_after_flush) {
+            history.unpin(&capture);
+        }
+    }
+
     fn desk_id(&self) -> Option<String> {
         self.on_desk.as_ref().map(|h| h.group.id.clone())
     }
@@ -424,6 +408,7 @@ impl Desk {
         }
         self.on_desk = next.map(Held::saved);
         self.dirty = false;
+        self.release_unpins(history);
         let opened = self.open_pinned(history, |_| true);
         self.pins = opened.pins.clone();
         Ok(Switched { closed, opened })

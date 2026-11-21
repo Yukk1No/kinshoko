@@ -305,11 +305,18 @@ impl ReferenceGroups {
 
     /// 先把新的组内截图复制进参考组（`copies`：文件名与截图历史中的文件），再写参考组文件，
     /// 最后删掉不再被成员用到的组内截图。中途失败时删掉这次复制的截图，参考组文件保持原样。
+    /// `copies` 里不合法的文件名（例如由导入的参考组包里的成员身份拼出来的）报错，什么都不写。
     pub(super) fn commit(
         &self,
         group: &ReferenceGroup,
         copies: &[(String, PathBuf)],
     ) -> Result<(), GroupError> {
+        if let Some((file, _)) = copies.iter().find(|(file, _)| !valid_capture_file(file)) {
+            return Err(GroupError::invalid(
+                ErrorKind::CaptureFileInvalid { file: file.clone() },
+                format!("截图文件名 {file} 不合法"),
+            ));
+        }
         let dir = self.captures_dir(&group.id)?;
         let written = (|| -> Result<(), GroupError> {
             for (file, from) in copies {
@@ -385,6 +392,20 @@ impl ReferenceGroups {
             write_atomically(&dir.join(file), bytes)?;
         }
         self.commit(group, &[])
+    }
+
+    /// 把自带截图的字节放回参考组 `id` 的截图目录，不写参考组文件（写盘失败后回滚，#590）。
+    /// 不合法的文件名略过；尽力而为，写不进的也略过。
+    pub(super) fn put_captures(&self, id: &str, captures: &CaptureFiles) {
+        let Ok(dir) = self.captures_dir(id) else {
+            return;
+        };
+        for (file, bytes) in captures {
+            if !valid_capture_file(file) || fs::create_dir_all(&dir).is_err() {
+                continue;
+            }
+            let _ = write_atomically(&dir.join(file), bytes);
+        }
     }
 
     /// 删掉参考组目录下不再被成员用到的截图（和写到一半的临时文件）；一张也不剩时删掉目录。
