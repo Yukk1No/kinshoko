@@ -1,9 +1,12 @@
-/* 主窗口与桌面窗口的全局样式，按区块分在 src/styles/ 下（每个文件保持在 20 KB 以内）。按原来的顺序导入，层叠顺序不变。 */
+/* 全局样式：令牌最先导入，其余按区域分在 src/styles/ 下（每份保持在 20 KB 以内）。 */
+@import "./styles/tokens.css";
 @import "./styles/base.css";
 @import "./styles/library.css";
-@import "./styles/viewer-search.css";
+@import "./styles/viewer.css";
+@import "./styles/search.css";
 @import "./styles/desktop.css";
-@import "./styles/fidelity-tags.css";
-@import "./styles/tokens.css";
+@import "./styles/fidelity-gate.css";
+@import "./styles/tag-panel.css";
 @import "./styles/shell.css";
-@import "./styles/shell-details.css";
+@import "./styles/tag-groups.css";
+@import "./styles/import-dialogs.css";

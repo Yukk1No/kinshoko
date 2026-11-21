@@ -1,4 +1,4 @@
-/* T20 main window, part 1b: size island, tagging icon, wall source chip and the floating multi-select bar. Loaded right after main-window.css. */
+/* T20 main window, part 1b: size island, tagging icon, wall source chip and the floating multi-select bar. Loaded right after main-window.css; the narrow-main container rules at the end must stay after the island's own rules. */
 /* 图片墙右下角：打标图标（#144）在图片大小浮岛左边，两者一起浮在图片墙上。 */
 .k-wall-corner {
   position: absolute;
@@ -377,4 +377,37 @@
   min-width: 0;
   padding: 0 8px 0 4px;
   margin-right: 4px;
+}
+
+/* 窄主区（例如打开详情面板）：查找框收窄而不换行——条件标签横向滚动，精确查找开关保持在尾部；
+   图片大小浮岛一直保留，只缩短滑条（#102）。 */
+.topbar > .search .search-chips {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.topbar > .search .search-field {
+  flex: 1 1 72px;
+  min-width: 72px;
+}
+@container main (max-width: 600px) {
+  .k-wall-corner {
+    right: 16px;
+    bottom: 16px;
+  }
+  .selbar-float {
+    bottom: 16px;
+  }
+  .k-density-slot {
+    --density-gap: 8px;
+    --density-pad: 12px;
+  }
+  .k-density-island .k-range {
+    width: 96px;
+  }
 }
