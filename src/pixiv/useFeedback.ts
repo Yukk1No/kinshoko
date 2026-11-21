@@ -5,6 +5,14 @@ import type { PixivWork } from "../bindings/PixivWork";
 import { errorText } from "../ipc";
 import { subscriptionSetBookmark, subscriptionSetFollow } from "../ipc/pixivBrowse";
 
+/** 改回写之前的样子：之前没有覆盖的就去掉覆盖，回到读到的数据。 */
+function restore(map: ReadonlyMap<string, boolean>, key: string, before: boolean | undefined) {
+  const next = new Map(map);
+  if (before === undefined) next.delete(key);
+  else next.set(key, before);
+  return next;
+}
+
 /**
  * 给画师的反馈（#461 第 5 步，#409）：pixiv 收藏与关注。只由画师亲手点，不做任何自动写入。
  * 整页共用一份：在一面墙上点了，别的墙上同一个作品、同一位画师跟着变。点下去先改界面，写失败再改回来并说明。
@@ -29,13 +37,6 @@ export function useFeedback() {
     writing.current.delete(key);
     setPending(new Set(writing.current));
   }, []);
-  /** 改回写之前的样子：之前没有覆盖的就去掉覆盖，回到读到的数据。 */
-  const restore = (map: ReadonlyMap<string, boolean>, key: string, before: boolean | undefined) => {
-    const next = new Map(map);
-    if (before === undefined) next.delete(key);
-    else next.set(key, before);
-    return next;
-  };
 
   const learn = useCallback((entries: [userId: string, followed: boolean][]) => {
     setKnown((map) => {
