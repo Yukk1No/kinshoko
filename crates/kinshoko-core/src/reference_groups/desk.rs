@@ -27,6 +27,7 @@ mod moves;
 mod naming;
 mod opening;
 mod reopen;
+mod screen;
 mod state;
 mod trash;
 
