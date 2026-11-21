@@ -232,8 +232,14 @@ pub async fn prune_unpinned_members(app: AppHandle) -> Result<usize, CommandErro
 
 /// 从桌面上的参考组移出成员 `member_id`，钉着它的钉图一起关掉。撤销与“移出没钉着的”共用
 /// [`undo_prune_unpinned`]。成员不在桌面上的参考组里时返回 `false`，什么都不做。
-pub(super) fn remove_desk_member(app: &AppHandle, member_id: &str) -> Result<bool, CommandError> {
-    let removed = with_desk(app, |desk, history| desk.remove_member(member_id, history))?;
+pub(super) fn remove_desk_member(
+    app: &AppHandle,
+    group_id: &str,
+    member_id: &str,
+) -> Result<bool, CommandError> {
+    let removed = with_desk(app, |desk, history| {
+        desk.remove_member(group_id, member_id, history)
+    })?;
     let Some(removed) = removed else {
         return Ok(false);
     };
@@ -264,7 +270,9 @@ pub async fn duplicate_reference_group(
     name: String,
 ) -> Result<String, CommandError> {
     blocking(move || {
-        let copy = with_desk(&app, |desk, _| desk.duplicate(&group_id, &name))?;
+        let copy = with_desk(&app, |desk, history| {
+            desk.duplicate(&group_id, &name, history)
+        })?;
         changed(&app);
         Ok(copy.id)
     })
