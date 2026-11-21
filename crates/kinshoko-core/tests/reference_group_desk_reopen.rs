@@ -1,9 +1,9 @@
-//! 把已关闭的成员钉回来（#588 11-19 晚）：关闭时间、全部钉上、点成员钉出。
+//! 把已关闭的成员钉回来（#588 11-19 晚）：关闭时间、全部钉上、点成员钉出；换桌时拉回屏幕。
 
 #[path = "support/desk.rs"]
 mod desk;
 
-use desk::{TestDesk, assert_matches, reread};
+use desk::{TestDesk, assert_matches, reread, screen};
 
 #[test]
 fn closing_records_when_and_reopening_clears_it() {
@@ -82,4 +82,23 @@ fn showing_a_member_of_another_group_switches_and_pins_just_it() {
             .map(|p| p.id.as_str())
     );
     assert_ne!(second, first);
+}
+
+#[test]
+fn switching_to_a_group_saved_on_an_unplugged_monitor_pulls_its_pins_back_onto_the_screen() {
+    let mut t = TestDesk::new();
+    let a = t.pin_reference("a", 100);
+    t.desk.edit(&a.id, |p| p.move_to(9000, 9000));
+    let id = t.desk_id();
+    t.desk.new_desk(&mut t.history).unwrap();
+    t.pin_reference("b", 50);
+
+    let back = t.desk.switch_to(&id, &mut t.history).unwrap();
+    assert_eq!(back.opened.pins[0].placement.x, 9000, "换桌只按存下的位置钉出");
+    assert!(t.desk.pull_onto_screen(&[screen()]));
+    let pin = t.desk.pins()[0].clone();
+    assert!(pin.placement.x < 3840 && pin.placement.y < 2160, "拉回了屏幕");
+    assert!(!t.desk.pull_onto_screen(&[screen()]), "已在屏幕上的不再动");
+    t.desk.flush().unwrap();
+    assert_eq!(reread(&t, &id).members[0].placement, pin.placement, "成员的摆放跟着改");
 }
