@@ -1,24 +1,28 @@
 # 界面系统
 
-**状态：方向已认可 · 2026-10-10；设计系统 v3 · 2026-10-23。** 负责人认可了视觉方向与改版预览（`preview/`）。v2 把字号收为 16 / 13 / 12 三档、圆角改为同心、去掉中点分隔与解释性描述；v3 把颜色从 v2 试用的 Radix Colors 换回原型的米黄纸底与墨紫字，只为文字对比度调深了几个值。颜色、圆角与动效令牌以 `src/styles/tokens.css` 为准（见 [tokens-and-components.md](tokens-and-components.md)“令牌来源”）。本目录各文件与 v3 冲突处以 v3 为准。
+本目录写正式程序现在的界面规则，按主题分文件。体验基线是认可原型 `design/prototype/reference-browser/`（固定提交 `bd8aea44`）及其 [设计说明](../prototype/reference-browser/DESIGN-NOTES.md)；这里只补正式程序需要、原型没有覆盖的部分。
 
-本目录记录正式程序的界面规则，按主题分文件。体验基线仍是认可原型 `design/prototype/reference-browser/`（固定提交 `bd8aea44`）及其 [设计说明](../prototype/reference-browser/DESIGN-NOTES.md)；这些文件只补正式程序需要、原型没有覆盖的部分。
+- 数值的唯一来源是 `src/styles/tokens.css`。文档与它对不上时以 `tokens.css` 为准，并在同一个 PR 里改文档。
+- 文档与代码对不上时，先查清哪边对：代码对就改文档，代码错就开工单，不在文档里留两种说法。
+- 每份文档只写现在的规则，不写改版经过。工单编号只在读者需要去看那个工单时写。
+- 同一样东西只用一个叫法，见 [interface-terms.md](interface-terms.md)“界面部件”。
 
 ## 文件
 
 | 文件 | 内容 | 什么时候读 |
 | --- | --- | --- |
-| [tokens-and-components.md](tokens-and-components.md) | 令牌来源、组件库选型与组件对照 | 写样式、选组件 |
-| [scales.md](scales.md) | 字号、圆角、控件高度、层级、不可用、半透明面板、动效的档位，共用类清单，样式写在哪里 | 写样式前取数值；加样式表或共用类 |
-| [brand-invariants.md](brand-invariants.md) | logo、封印书等不能改的部分 | 动到品牌元素 |
-| [main-window-material.md](main-window-material.md) | 桌面与纸、输入框的槽、顶栏、左栏文件夹视图的质感与拖动（#606 定稿） | 改主窗口外观、顶栏、左栏、输入框 |
-| [window-frame-and-sidebar.md](window-frame-and-sidebar.md) | 自绘窗口框架、侧栏布局 | 改窗口外框、标题栏、侧栏 |
-| [buttons-and-dock.md](buttons-and-dock.md) | 按钮、Dock 的样式与放置 | 改按钮、工具条、浮岛 |
-| [visual-and-motion.md](visual-and-motion.md) | 字号、颜色、圆角、动效 | 改视觉或动画 |
+| [scales.md](scales.md) | 字号、圆角、控件高度、层级、不可用、半透明面板、动效的档位；共用类清单；样式写在哪里 | 写样式前取数值；加样式表或共用类 |
+| [tokens.md](tokens.md) | 令牌来源、日夜写法、强调 / 人工 / 警告三种颜色、焦点环 | 加或改颜色令牌；写焦点样式 |
+| [components.md](components.md) | 组件库的用法、“界面 → 组件”对照、各组件的规格 | 选组件；改菜单、设置、详情面板、轻提示、标签分组 |
+| [visual-and-motion.md](visual-and-motion.md) | 颜色与字、层次、圆角、控件文字居中、图片区、空状态、转圈、标签块、动效 | 改视觉或动画 |
+| [buttons-and-dock.md](buttons-and-dock.md) | 导入、精确查找、图片大小浮岛、滑条、按钮层级与质感、Dock | 改按钮、工具条、浮岛 |
+| [window-frame-and-sidebar.md](window-frame-and-sidebar.md) | 自绘窗口框架、顶栏、侧栏的三段与三种行 | 改窗口外框、标题栏、侧栏 |
+| [main-window-material.md](main-window-material.md) | 桌面与纸、输入框的槽、顶栏、侧栏的文件夹视图、详情面板的空状态 | 改主窗口外观、顶栏、侧栏、输入框 |
+| [interaction-flows.md](interaction-flows.md) | 图库切换、侧栏、导入、提示、设置、图集、图片墙底部的浮动件与通知 | 改这些操作的流程 |
 | [interface-text-rules.md](interface-text-rules.md) | 界面文字的名称、描述与用词规则 | 写或审界面文字 |
-| [interface-terms.md](interface-terms.md) | 该用的词与不再用的词，按主题列 | 给按钮、菜单、提示起名或改词 |
-| [interaction-flows.md](interaction-flows.md) | 图库切换、侧栏、导入、提示、设置等的定型做法 | 改这些操作的流程 |
+| [interface-terms.md](interface-terms.md) | 该用的词与不用的词，按主题列 | 给按钮、菜单、提示起名或改词；写设计文档 |
+| [brand-invariants.md](brand-invariants.md) | logo、封印书等不能改的部分 | 动到品牌元素 |
 
 ## 预览
 
-`preview/` 为改版预览截图（1440 × 900，静态，文案为定稿方向）。预览源码在 T20 工作树的 ignored `work/ui-preview/`，不是正式程序证据。
+`preview/` 是改版预览截图（1440 × 900，静态）。它们是负责人认可视觉方向时的参照，不是正式程序的证据；和现在的规则对不上时以本目录的文档为准。
