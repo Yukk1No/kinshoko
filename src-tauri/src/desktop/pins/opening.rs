@@ -134,7 +134,7 @@ pub(in crate::desktop) fn add(app: &AppHandle, pin: SavedPin) -> Result<SavedPin
         added
     };
     if added.started {
-        crate::desktop::desk_commands::started(app, added.fold_into);
+        crate::desktop::desk_commands::started(app, added.group_id(), added.fold_into.clone());
     }
     Ok(added.pin)
 }

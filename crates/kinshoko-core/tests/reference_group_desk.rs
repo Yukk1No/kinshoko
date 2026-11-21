@@ -257,8 +257,9 @@ fn invariant_4_folding_and_splitting_write_only_the_two_groups_involved() {
     t.desk.new_desk(&mut t.history).unwrap();
     let pinned = t.desk.pin(reference_pin("b", 20), &mut t.history).unwrap();
     assert_eq!(pinned.fold_into.as_deref(), Some(previous.as_str()));
+    let fresh = t.desk_id();
     t.desk
-        .fold_into_previous(&previous, &mut t.history)
+        .fold_into_previous(&fresh, &previous, &mut t.history)
         .unwrap();
     let day = reread(&t, &previous).created_at;
     t.desk.split_off(day..day + 1, &mut t.history).unwrap();
