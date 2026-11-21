@@ -58,9 +58,15 @@ export function deskReferenceGroups(): Promise<DeskLists> {
  */
 export const DESK_GROUP_STARTED_EVENT = "desk-group-started";
 
-/** 见 {@link DESK_GROUP_STARTED_EVENT}：`handler` 收到上一组的 id。 */
-export function onDeskGroupStarted(handler: (previousId: string) => void): Promise<UnlistenFn> {
-  return listen<string>(DESK_GROUP_STARTED_EVENT, (event) => handler(event.payload));
+/** {@link DESK_GROUP_STARTED_EVENT} 的载荷：开出的新参考组与它的上一组。 */
+export interface DeskGroupStarted {
+  groupId: string;
+  previousId: string;
+}
+
+/** 见 {@link DESK_GROUP_STARTED_EVENT}。 */
+export function onDeskGroupStarted(handler: (started: DeskGroupStarted) => void): Promise<UnlistenFn> {
+  return listen<DeskGroupStarted>(DESK_GROUP_STARTED_EVENT, (event) => handler(event.payload));
 }
 
 /** 整桌换成参考组 `groupId`，原来那一桌原样留着。 */

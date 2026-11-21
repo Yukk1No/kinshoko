@@ -67,7 +67,9 @@ export function DeskGroupMembers({
   const folded =
     favorite || none ? [] : all.filter(closed).toSorted((a, b) => (b.member.closedAt ?? 0) - (a.member.closedAt ?? 0));
   const days = memberDays(shown);
-  const split = days.length > 1;
+  // 能不能“移到新参考组”按全部成员的日期算：较早的那天都已关闭（折起来了）时，较新的一段照样能拆。
+  const earliest = memberDays(all)[0]?.day;
+  const split = days.some(({ day }) => day !== earliest);
 
   const tile = ({ member, status }: Entry) => {
     const name =
@@ -126,7 +128,7 @@ export function DeskGroupMembers({
           {t("deskPanel.repinAll")}
         </button>
       )}
-      {days.map(({ day, at, entries }, index) => (
+      {days.map(({ day, at, entries }) => (
         <section
           key={day}
           className="desk-group-day"
@@ -135,8 +137,8 @@ export function DeskGroupMembers({
           {split && (
             <div className="desk-group-day-head">
               <h4>{formatMoment(at, { time: false })}</h4>
-              {index > 0 && (
-                <button type="button" className="k-btn is-sm is-ghost desk-group-split" onClick={() => onSplit(day)}>
+              {day !== earliest && (
+                <button type="button" className="k-btn is-sm is-quiet desk-group-split" onClick={() => onSplit(day)}>
                   {t("deskPanel.split")}
                 </button>
               )}
