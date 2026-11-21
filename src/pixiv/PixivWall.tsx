@@ -9,6 +9,7 @@ import {
   type Ref,
 } from "react";
 import { useTranslation } from "react-i18next";
+import type { Artist } from "../bindings/Artist";
 import type { PixivWork } from "../bindings/PixivWork";
 import { pixivImageSrc } from "../ipc/pixivBrowse";
 import { CAP_RATIO, GAP, OVERSCAN, PAD, TARGET } from "../wall/wallShared";
@@ -50,6 +51,7 @@ export function PixivWall({
   onCollect,
   onSection,
   onNearEnd,
+  onArtist,
   handle,
 }: {
   sections: WallSection[];
@@ -63,6 +65,8 @@ export function PixivWall({
   /** 视口顶上是哪一段；滚动时变了才回调。 */
   onSection?: (key: string) => void;
   onNearEnd?: () => void;
+  /** 展开的一格里点“查看这位画师”。不给时不显示这个按钮。 */
+  onArtist?: (artist: Artist) => void;
   handle?: Ref<PixivWallHandle>;
 }) {
   const { t } = useTranslation("subscriptions");
@@ -195,6 +199,7 @@ export function PixivWall({
                 collected={collected.get(current.id)}
                 busy={busy.has(current.id)}
                 onCollect={onCollect}
+                onArtist={onArtist}
                 onClose={() => setSelected(null)}
                 onStep={step}
                 onFull={(work) => setFull({ work, page: 0 })}
@@ -279,6 +284,7 @@ function Band({
   collected,
   busy,
   onCollect,
+  onArtist,
   onClose,
   onStep,
   onFull,
@@ -289,6 +295,7 @@ function Band({
   collected: ReadonlySet<number> | undefined;
   busy: boolean;
   onCollect?: (work: PixivWork, options?: CollectOptions) => void;
+  onArtist?: (artist: Artist) => void;
   onClose: () => void;
   onStep: (delta: number) => void;
   onFull: (work: PixivWork) => void;
@@ -310,7 +317,14 @@ function Band({
       </button>
       <div className="pw-band-side">
         <h2 className="k-title">{work.title}</h2>
-        <p className="pw-band-artist">{work.artist.name}</p>
+        <p className="pw-band-artist">
+          {work.artist.name}
+          {onArtist && (
+            <button type="button" className="k-btn" onClick={() => onArtist(work.artist)}>
+              {t("browse.viewArtist")}
+            </button>
+          )}
+        </p>
         {work.pages.length > 1 && <p className="pw-band-meta">{t("browse.pages", { count: work.pages.length })}</p>}
         <ul className="pw-band-tags">
           {work.tags.slice(0, 12).map((tag) => (
