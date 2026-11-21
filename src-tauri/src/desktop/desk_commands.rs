@@ -54,7 +54,12 @@ pub(super) fn with_desk<T>(
     let mut store = lock(&state(app).store);
     let desk = store.desk().ok_or_else(flag_off)?;
     let mut history = lock(&state(app).history);
-    f(desk, &mut history).map_err(CommandError::from)
+    let result = f(desk, &mut history);
+    // 失败回滚后可能留着要重写的（例如并入时删掉的那组放回了内存）：交给后台线程与退出前的落盘。
+    if desk.is_dirty() {
+        mark_dirty(app);
+    }
+    result.map_err(CommandError::from)
 }
 
 /// 空桌上开了新参考组（[`super::pins::add`] 调用，不持有锁）：列表变了；有上一组时推送 [`STARTED_EVENT`]。
@@ -110,7 +115,11 @@ fn align(app: &AppHandle) {
     let wanted_ids: HashSet<&str> = wanted.iter().map(|p| p.id.as_str()).collect();
     let open: Vec<String> = lock(&state(app).pins).keys().cloned().collect();
     for id in open.iter().filter(|id| !wanted_ids.contains(id.as_str())) {
-        pins::dismiss(app, id);
+        // 对齐时可能刚钉了一张（不在上面那份快照里）：关之前再看一眼它还在不在桌面上。
+        let still_wanted = lock(&state(app).store).pins().iter().any(|p| &p.id == id);
+        if !still_wanted {
+            pins::dismiss(app, id);
+        }
     }
     let open: HashSet<String> = open.into_iter().collect();
     let fresh: Vec<&SavedPin> = wanted.iter().filter(|p| !open.contains(&p.id)).collect();
