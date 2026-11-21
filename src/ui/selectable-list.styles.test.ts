@@ -31,7 +31,10 @@ it("行的几何与状态只在共用样式表定义", () => {
     outline: "var(--focus-ring)",
     "outline-offset": "var(--focus-offset)",
   });
-  expect(cssRule(css, ".k-choice-list")).toMatchObject({ "min-height": "0", "max-height": "min(60vh, 520px)" });
+  expect(cssRule(css, ".k-choice-list")).toMatchObject({
+    "min-height": "var(--k-choice-floor, 0px)",
+    "max-height": "min(60vh, 520px)",
+  });
   expect(cssRule(css, ".k-choice-name")).toMatchObject({ flex: "1", "min-width": "0" });
   expect(cssRule(sheets["./ui.css"], ".k-name")).toMatchObject({
     "white-space": "nowrap",

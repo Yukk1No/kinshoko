@@ -382,9 +382,10 @@
   display: flex;
   flex-direction: column;
 }
+/* 窗口很矮时名单缩到三行仍放不下，整个对话框滚动，不把名单压没。 */
 .subs-following-dialog {
   max-height: calc(100vh - 48px);
-  overflow: hidden;
+  overflow-y: auto;
 }
 .subs-following-dialog > :not(.k-choice-list),
 .subs-rank-dialog > :not(.k-choice-list) {
@@ -397,7 +398,7 @@
 /* ---- 订阅榜单与榜单的订阅设置（#370，原型「榜单 #370」R1–R6） ---- */
 .subs-rank-dialog {
   max-height: calc(100vh - 48px);
-  overflow: hidden;
+  overflow-y: auto;
 }
 .k-seg.subs-rank-seg {
   flex: none;

@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Name } from "./Name";
@@ -77,7 +77,13 @@ export function SelectableList({
     </li>
   );
   return (
-    <div className="k-choice-list">
+    // 对话框很矮时名单最少留三行（不足三行按实际行数）：筛选框与工具行各 32 px、间距 16 px，加上行高 40 px。再不够由对话框整体滚动。
+    <div
+      className="k-choice-list"
+      style={
+        { "--k-choice-floor": `${(controls ? 96 : 48) + 40 * Math.max(1, Math.min(3, visible))}px` } as CSSProperties
+      }
+    >
       {controls && (
         <span className="k-input" key="filter">
           <Search size={16} aria-hidden="true" />

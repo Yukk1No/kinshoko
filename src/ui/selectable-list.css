@@ -1,8 +1,9 @@
+/* 最小高度由 SelectableList 按“筛选框 + 工具行 + 至多三行”算好放进 --k-choice-floor。 */
 .k-choice-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 0;
+  min-height: var(--k-choice-floor, 0px);
   max-height: min(60vh, 520px);
 }
 .k-choice-tools {
