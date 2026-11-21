@@ -13,6 +13,8 @@ export type CollectedPages = ReadonlyMap<string, ReadonlySet<number>>;
 /** 收图的方式。`pages` 为空时收全部页；`choose` 时先选保存目标；`again` 时已收的页也再收一次。 */
 export type CollectOptions = { pages?: number[] | null; choose?: boolean; again?: boolean };
 
+const NO_WORKS: PixivWork[] = [];
+
 type Asking = { work: PixivWork; options: CollectOptions };
 
 function merge(map: CollectedPages, ids: string[], rows: CollectedWork[]): Map<string, Set<number>> {
@@ -30,7 +32,7 @@ function merge(map: CollectedPages, ids: string[], rows: CollectedWork[]): Map<s
  * 应用内浏览的收图（#461 第 3 步）：墙上作品的“已收”标记，以及把作品收进资料库。保存目标用这个入口
  * 上次亲手选的；第一次使用、记住的目标不在了或画师要换地方时先让画师选（`asking`）。
  */
-export function useCollect(works: PixivWork[]) {
+export function useCollect(works: PixivWork[] = NO_WORKS) {
   const { t } = useTranslation("subscriptions");
   const save = useSaveDestination();
   const [collected, setCollected] = useState<CollectedPages>(new Map());
@@ -50,10 +52,16 @@ export function useCollect(works: PixivWork[]) {
     );
   }, []);
 
-  useEffect(() => {
-    const fresh = works.map((w) => w.id).filter((id) => !asked.current.has(id));
-    if (fresh.length) void refresh(fresh);
-  }, [works, refresh]);
+  /** 读这些作品的“已收”标记；问过的不再问。几面墙共用一份时，各自把自己的作品交进来。 */
+  const track = useCallback(
+    (list: PixivWork[]) => {
+      const fresh = list.map((w) => w.id).filter((id) => !asked.current.has(id));
+      if (fresh.length) void refresh(fresh);
+    },
+    [refresh],
+  );
+
+  useEffect(() => track(works), [works, track]);
 
   const run = useCallback(
     async (work: PixivWork, destination: SaveDestination, options: CollectOptions) => {
@@ -102,6 +110,7 @@ export function useCollect(works: PixivWork[]) {
   );
 
   return {
+    track,
     collected,
     busy,
     notice,
@@ -112,3 +121,6 @@ export function useCollect(works: PixivWork[]) {
     remembered: save.memory.pixivDestination,
   };
 }
+
+/** 订阅页上几面墙共用的收图状态：一面墙里收了，别的墙上的同一个作品也立刻标成已收。 */
+export type Collecting = ReturnType<typeof useCollect>;

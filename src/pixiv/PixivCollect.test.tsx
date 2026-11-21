@@ -76,7 +76,9 @@ function setup(memory: SaveDestination | null) {
             ],
             next: null,
           }
-        : { works: [], next: null },
+        : (args.feed as { kind: string }).kind === "ranking"
+          ? { works: [work("2")], next: null }
+          : { works: [], next: null },
     subscription_collected: (args) => stored.filter((w) => (args.workIds as string[]).includes(w.workId)),
     subscription_collect: (args) => {
       const w = args.work as PixivWork;
@@ -101,6 +103,7 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
+  HTMLElement.prototype.scrollTo = () => {};
 });
 afterEach(cleanup);
 
@@ -113,6 +116,20 @@ describe("应用内浏览的收图", () => {
     expect(within(card("作品1，画师")).queryByRole("button", { name: /收进图库/ })).toBeNull();
     expect(within(card("作品2，画师")).getByRole("button", { name: "把“作品2”收进图库" })).toBeTruthy();
     expect(within(card("作品4，画师")).queryByRole("button", { name: /收进图库/ })).toBeNull();
+  });
+
+  it("在榜单里收了，回到新作时同一个作品也标成已收（几面墙共用一份已收标记）", async () => {
+    setup({ libraryId: "L", folderId: "F" });
+    renderHome();
+    await screen.findByRole("button", { name: "把“作品2”收进图库" });
+    await waitFor(() => expect(fake.calls("workspace_directories").length).toBeGreaterThan(0));
+    await new Promise((r) => setTimeout(r, 0));
+    fireEvent.click(within(screen.getByRole("group", { name: "订阅去处" })).getByRole("button", { name: "榜单" }));
+    await screen.findByRole("button", { name: "作品2，画师" });
+    fireEvent.click(within(card("作品2，画师")).getByRole("button", { name: "把“作品2”收进图库" }));
+    await waitFor(() => expect(within(card("作品2，画师")).getByText("已收")).toBeTruthy());
+    fireEvent.click(within(screen.getByRole("group", { name: "订阅去处" })).getByRole("button", { name: "新作" }));
+    expect(within(card("作品2，画师")).getByText("已收")).toBeTruthy();
   });
 
   it("记得这个入口上次选的保存目标时，点一次就收进去", async () => {
