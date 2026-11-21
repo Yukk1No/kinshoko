@@ -124,7 +124,7 @@ pub async fn remove_group_member(
     blocking(move || {
         // 桌面上那个参考组的成员由桌面模块移出，钉着它的钉图一起关掉。
         // 空的且没有名称的参考组随之消失，这时返回 `None`。
-        if super::desk_commands::remove_desk_member(&app, &member_id)? {
+        if super::desk_commands::remove_desk_member(&app, &group_id, &member_id)? {
             return Ok(lock(&state(&app).groups).get(&group_id).ok());
         }
         let group = lock(&state(&app).groups)

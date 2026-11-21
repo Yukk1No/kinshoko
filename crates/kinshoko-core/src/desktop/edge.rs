@@ -65,24 +65,31 @@ impl EdgeHide {
             };
         }
         if pins.iter().all(|p| self.tucked.contains_key(&p.id)) {
-            self.tucked.clear();
-            let moves = pins
-                .iter()
-                .map(|p| PinMove {
-                    pin: p.id.clone(),
-                    x: p.home.x,
-                    y: p.home.y,
-                })
-                .collect();
             return Toggle {
                 hidden: false,
-                moves,
+                moves: self.reveal(pins),
             };
         }
         Toggle {
             hidden: true,
             moves: self.tuck_rest(pins),
         }
+    }
+
+    /// 收起的钉图全部回到原位，不管还有没有没收起的（侧栏里点了一张图，#588 11-19 晚）。
+    /// `pins` 是当前全部钉图；没收起的不动。
+    pub fn reveal(&mut self, pins: &[DeskPin]) -> Vec<PinMove> {
+        let moves = pins
+            .iter()
+            .filter(|p| self.tucked.contains_key(&p.id))
+            .map(|p| PinMove {
+                pin: p.id.clone(),
+                x: p.home.x,
+                y: p.home.y,
+            })
+            .collect();
+        self.tucked.clear();
+        moves
     }
 
     /// 换了一桌钉图后保持收起（#591）：`pins` 是当前全部钉图，还没收起的收起，已收起的不动。

@@ -84,11 +84,15 @@ fn toggle(app: &AppHandle) {
     }
 }
 
-/// 钉图收起着时全部显示出来（侧栏里点了一张图，#588 11-19 晚）；没有收起的什么都不做。
+/// 收起的钉图全部回到原位（侧栏里点了一张图，#588 11-19 晚），只收起了一部分时也是；
+/// 没有收起的什么都不做。
 pub(super) fn reveal(app: &AppHandle) {
-    if lock(&state(app).edge).any_hidden() {
-        toggle(app);
+    if !lock(&state(app).edge).any_hidden() {
+        return;
     }
+    let pins: Vec<DeskPin> = open_pins(app).iter().map(desk_pin).collect();
+    let moves = lock(&state(app).edge).reveal(&pins);
+    apply(app, &moves);
 }
 
 /// 换了一桌钉图（#591）：之前是收起的，新钉图也直接收起（不带滑动）。
