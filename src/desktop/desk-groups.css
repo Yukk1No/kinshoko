@@ -15,12 +15,9 @@
   overflow: hidden;
 }
 
+/* 字形用共用的 .k-description（#602）。 */
 .desk-groups-empty {
-  margin: 0;
   padding: 6px 8px;
-  color: var(--ink-2);
-  font-size: 12px;
-  line-height: 18px;
 }
 
 /* 段与段之间空 10，不画分界线（同图库与图库之间）。 */

@@ -64,6 +64,9 @@ const ALLOWED: Record<string, string> = {
   ".k-list-meta": "列表行的元数据",
   ".k-item-meta": "菜单元数据，浮层不在本次范围",
   ".k-item.is-tip": "菜单状态行，浮层不在本次范围",
+  ".desk-groups-toggle .sidebar-count": "参考组侧栏段标题的计数，同 .k-row .sidebar-count",
+  ".desk-group-day-head": "成员区按天分段的日期读数",
+  ".desk-group-closed-toggle": "“已关闭 N 张”的展开按钮",
 };
 
 function typeRoleRules(css: string): string[] {
