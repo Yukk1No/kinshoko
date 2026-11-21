@@ -57,7 +57,10 @@ export function PixivHome({ safe }: { safe: boolean }) {
   /** 在“画师”页里打开的搜索是原地筛选名单。 */
   const filtering = place === "artists" && !results;
 
+  /** 每次收起搜索或再按一次回车加一：之前发出的“按 ID 找画师”回来也不再用。 */
+  const lookup = useRef(0);
   const closeSearch = useCallback(() => {
+    lookup.current += 1;
     setSearching(false);
     setText("");
     setResults(null);
@@ -65,16 +68,20 @@ export function PixivHome({ safe }: { safe: boolean }) {
   }, []);
   const submit = () => {
     const word = text.trim();
+    const ask = ++lookup.current;
     setFinding(null);
     // 画师主页链接或数字 ID：直接打开这位画师。
     if (kind === "artists" && /^\d+$|pixiv\.net\//.test(word)) {
       subscriptionFindArtist(word).then(
         (found) => {
+          if (ask !== lookup.current) return;
           closeSearch();
           setArtist(found);
           setPlace("artists");
         },
-        (error: unknown) => setFinding(error),
+        (error: unknown) => {
+          if (ask === lookup.current) setFinding(error);
+        },
       );
       return;
     }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { ArtistsPage } from "../bindings/ArtistsPage";
 import type { Feed } from "../bindings/Feed";
@@ -166,6 +166,52 @@ describe("订阅页的搜索", () => {
   });
 });
 
+describe("搜索的边角", () => {
+  it("输入法选字时的回车和 Esc 不算", async () => {
+    render(<PixivHome safe={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "搜索" }));
+    fireEvent.change(searchBox(), { target: { value: "なつ" } });
+    fireEvent.keyDown(searchBox(), { key: "Enter", keyCode: 229 });
+    fireEvent.keyDown(searchBox(), { key: "Escape", keyCode: 229 });
+    expect(searchBox()).toHaveProperty("value", "なつ");
+    expect(fake.calls("subscription_browse").some((c) => (c.args.feed as Feed).kind === "search")).toBe(false);
+  });
+
+  it("按 ID 找画师还没回来时收起了搜索，回来也不再打开这位画师", async () => {
+    let answer: (artist: { userId: string; name: string }) => void = () => {};
+    fake.on("subscription_find_artist", () => new Promise<{ userId: string; name: string }>((done) => (answer = done)));
+    render(<PixivHome safe={false} />);
+    await screen.findByRole("button", { name: "作品following，小林" });
+    fireEvent.click(screen.getByRole("button", { name: "搜索" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "找什么" })).getByRole("button", { name: "画师" }));
+    fireEvent.change(searchBox(), { target: { value: "12345" } });
+    fireEvent.keyDown(searchBox(), { key: "Enter" });
+    await waitFor(() => expect(fake.calls("subscription_find_artist")).toHaveLength(1));
+    fireEvent.click(screen.getByRole("button", { name: "关闭搜索" }));
+    await act(async () => answer({ userId: "12345", name: "迟到的" }));
+    expect(screen.queryByRole("heading", { name: "迟到的" })).toBeNull();
+    expect(place("新作").getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("搜到的画师一页放不满时接着读下一页", async () => {
+    fake.on("subscription_search_artists", (args) =>
+      args.next === null
+        ? {
+            artists: [{ userId: "31", name: "一号", avatar: null, followed: false, works: [] }],
+            next: "https://app-api.pixiv.net/v1/search/user?word=x&offset=30",
+          }
+        : { artists: [{ userId: "41", name: "二页", avatar: null, followed: false, works: [] }], next: null },
+    );
+    render(<PixivHome safe={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "搜索" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "找什么" })).getByRole("button", { name: "画师" }));
+    fireEvent.change(searchBox(), { target: { value: "x" } });
+    fireEvent.keyDown(searchBox(), { key: "Enter" });
+    await screen.findByRole("button", { name: /二页/ });
+    expect(fake.calls("subscription_search_artists")).toHaveLength(2);
+  });
+});
+
 describe("在 pixiv 上关注", () => {
   it("展开的一格里关注画师；画师页顶上的关注按读到的作品显示", async () => {
     render(<PixivHome safe={false} />);
@@ -181,6 +227,21 @@ describe("在 pixiv 上关注", () => {
     await screen.findByRole("button", { name: "作品画2，x" });
     // 画师 2 的作品里带着“已关注”。
     expect((await screen.findByRole("button", { name: "已关注" })).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("写的时候按钮不能再点；失败时回到写之前的样子", async () => {
+    let fail: (error: unknown) => void = () => {};
+    fake.on("subscription_set_follow", () => new Promise((_, reject) => (fail = reject)));
+    render(<PixivHome safe={false} />);
+    fireEvent.click(await screen.findByRole("button", { name: "作品following，小林" }));
+    const band = screen.getByRole("region", { name: "作品following，小林" });
+    fireEvent.click(within(band).getByRole("button", { name: "关注" }));
+    const button = within(band).getByRole("button", { name: "已关注" });
+    expect(button).toHaveProperty("disabled", true);
+    fireEvent.click(button);
+    expect(fake.calls("subscription_set_follow")).toHaveLength(1);
+    await act(async () => fail({ code: "subscriptionSource", reason: { code: "network" } }));
+    expect(within(band).getByRole("button", { name: "关注" })).toHaveProperty("disabled", false);
   });
 
   it("关注写失败时改回来并说明", async () => {

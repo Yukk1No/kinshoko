@@ -142,7 +142,11 @@ function ArtistWorks({
         </button>
         <h2 className="k-title pw-subbar-title">{artist.name}</h2>
         {feedback && following !== null && (
-          <FollowButton followed={following} onToggle={() => void feedback.setFollow(artist, !following)} />
+          <FollowButton
+            followed={following}
+            busy={feedback.followPending(artist.userId)}
+            onToggle={() => void feedback.setFollow(artist, !following)}
+          />
         )}
         <Segmented<Kind>
           label={t("browse.artistKind")}

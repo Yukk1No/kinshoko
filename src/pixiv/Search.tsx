@@ -5,12 +5,16 @@ import type { Artist } from "../bindings/Artist";
 import type { PixivArtist } from "../bindings/PixivArtist";
 import { errorText } from "../ipc";
 import { subscriptionSearchArtists } from "../ipc/pixivBrowse";
+import { isComposingKey } from "../ui/composing";
 import { Segmented } from "../ui/Segmented";
 import { TARGET } from "../wall/wallShared";
 import { FollowButton } from "./PixivWall";
 import { useFeedbackContext } from "./useFeedback";
 
 export type SearchKind = "works" | "artists";
+
+/** 离底还剩多少像素时读下一页画师。 */
+const NEAR_END = 600;
 
 /**
  * 标题行左端的搜索（#461）：收着时是一个图标，点它或按 Ctrl+F、`/` 向右展开成输入框。按回车交给 `onSubmit`；
@@ -100,6 +104,8 @@ export function SearchBox({
         value={text}
         onChange={(e) => onText(e.target.value)}
         onKeyDown={(e) => {
+          // 输入法选字时的回车、Esc 是给输入法的。
+          if (isComposingKey(e)) return;
           if (e.key === "Escape") {
             e.preventDefault();
             e.stopPropagation();
@@ -173,15 +179,24 @@ export function ArtistResults({ word, onArtist }: { word: string; onArtist: (art
     load(null);
   }, [load]);
 
+  // 一页放不满（窗口大、格子多）时滚不动，滚动就不会要下一页：读完一页后看一眼，还有空就接着读。
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el || loading || done || failed || !artists.length) return;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_END) load(next);
+  }, [artists, loading, done, failed, next, load]);
+
   const learn = feedback?.learn;
   useEffect(() => learn?.(artists.map((a) => [a.userId, a.followed])), [artists, learn]);
 
   return (
     <div
+      ref={scroller}
       className="pw-results"
       onScroll={(e) => {
         const el = e.currentTarget;
-        if (!loading && !done && !failed && el.scrollHeight - el.scrollTop - el.clientHeight < 600) load(next);
+        if (!loading && !done && !failed && el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_END) load(next);
       }}
     >
       {artists.length > 0 && (
@@ -205,6 +220,7 @@ export function ArtistResults({ word, onArtist }: { word: string; onArtist: (art
                 {feedback && (
                   <FollowButton
                     followed={following}
+                    busy={feedback.followPending(a.userId)}
                     onToggle={() => void feedback.setFollow({ userId: a.userId, name: a.name }, !following)}
                   />
                 )}

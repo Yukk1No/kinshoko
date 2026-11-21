@@ -324,7 +324,11 @@ function Band({
         <p className="pw-band-artist">
           {work.artist.name}
           {feedback && following !== null && (
-            <FollowButton followed={following} onToggle={() => void feedback.setFollow(work.artist, !following)} />
+            <FollowButton
+              followed={following}
+              busy={feedback.followPending(work.artist.userId)}
+              onToggle={() => void feedback.setFollow(work.artist, !following)}
+            />
           )}
           {onArtist && (
             <button type="button" className="k-btn" onClick={() => onArtist(work.artist)}>
@@ -364,7 +368,12 @@ function Band({
             </button>
             {/* 取消 pixiv 收藏不动资料库里的图。 */}
             {feedback && bookmarked && (
-              <button type="button" className="k-btn" onClick={() => void feedback.setBookmark(work, false)}>
+              <button
+                type="button"
+                className="k-btn"
+                disabled={feedback.bookmarkPending(work.id)}
+                onClick={() => void feedback.setBookmark(work, false)}
+              >
                 {t("browse.unbookmark")}
               </button>
             )}
@@ -453,10 +462,19 @@ function FullView({
 }
 
 /** 在 pixiv 上关注这位画师；只写 pixiv，不增删订阅（#461 第 5 步）。 */
-export function FollowButton({ followed, onToggle }: { followed: boolean; onToggle: () => void }) {
+export function FollowButton({
+  followed,
+  busy = false,
+  onToggle,
+}: {
+  followed: boolean;
+  /** 正在写：写完之前不再接受点击。 */
+  busy?: boolean;
+  onToggle: () => void;
+}) {
   const { t } = useTranslation("subscriptions");
   return (
-    <button type="button" className="k-btn" aria-pressed={followed} onClick={onToggle}>
+    <button type="button" className="k-btn" aria-pressed={followed} disabled={busy} onClick={onToggle}>
       {followed ? t("browse.followed") : t("browse.follow")}
     </button>
   );

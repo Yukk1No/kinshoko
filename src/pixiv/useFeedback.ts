@@ -16,7 +16,26 @@ export function useFeedback() {
   /** 读回来的作品里带着的关注状态，画师页顶上的“关注”用它。 */
   const [known, setKnown] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [notice, setNotice] = useState<string | null>(null);
-  const bookmarkWrites = useRef(new Map<string, boolean>());
+  /** 正在写的作品与画师：写完之前不再接受第二次点击，失败时才能准确改回写之前的样子。 */
+  const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
+  const writing = useRef(new Set<string>());
+  const begin = useCallback((key: string) => {
+    if (writing.current.has(key)) return false;
+    writing.current.add(key);
+    setPending(new Set(writing.current));
+    return true;
+  }, []);
+  const end = useCallback((key: string) => {
+    writing.current.delete(key);
+    setPending(new Set(writing.current));
+  }, []);
+  /** 改回写之前的样子：之前没有覆盖的就去掉覆盖，回到读到的数据。 */
+  const restore = (map: ReadonlyMap<string, boolean>, key: string, before: boolean | undefined) => {
+    const next = new Map(map);
+    if (before === undefined) next.delete(key);
+    else next.set(key, before);
+    return next;
+  };
 
   const learn = useCallback((entries: [userId: string, followed: boolean][]) => {
     setKnown((map) => {
@@ -35,38 +54,49 @@ export function useFeedback() {
     [follows, known],
   );
 
-  /** pixiv 收藏或取消收藏。R-18 作品收成非公开（#461）。写完才回，失败不抛出，只说明。 */
+  /** pixiv 收藏或取消收藏。R-18 作品收成非公开（#461）。写完才回，失败不抛出，只说明。正在写时再点不算。 */
   const setBookmark = useCallback(
     async (work: PixivWork, on: boolean) => {
-      bookmarkWrites.current.set(work.id, on);
+      const key = `w:${work.id}`;
+      if (!begin(key)) return;
+      const before = bookmarks.get(work.id);
       setBookmarks((map) => new Map(map).set(work.id, on));
       setNotice(null);
       try {
         await subscriptionSetBookmark(work.id, on, work.explicit);
       } catch (error) {
-        // 期间又点了一次的，以后一次为准。
-        if (bookmarkWrites.current.get(work.id) === on) setBookmarks((map) => new Map(map).set(work.id, !on));
+        setBookmarks((map) => restore(map, work.id, before));
         setNotice(t(on ? "browse.bookmarkFailed" : "browse.unbookmarkFailed", { error: errorText(error) }));
+      } finally {
+        end(key);
       }
     },
-    [t],
+    [t, begin, end, bookmarks],
   );
 
   const setFollow = useCallback(
     async (artist: Artist, on: boolean) => {
+      const key = `a:${artist.userId}`;
+      if (!begin(key)) return;
+      const before = follows.get(artist.userId);
       setFollows((map) => new Map(map).set(artist.userId, on));
       setNotice(null);
       try {
         await subscriptionSetFollow(artist.userId, on);
       } catch (error) {
-        setFollows((map) => new Map(map).set(artist.userId, !on));
+        setFollows((map) => restore(map, artist.userId, before));
         setNotice(t(on ? "browse.followFailed" : "browse.unfollowFailed", { error: errorText(error) }));
+      } finally {
+        end(key);
       }
     },
-    [t],
+    [t, begin, end, follows],
   );
 
-  return { bookmarked, followed, learn, setBookmark, setFollow, notice };
+  const bookmarkPending = useCallback((workId: string) => pending.has(`w:${workId}`), [pending]);
+  const followPending = useCallback((userId: string) => pending.has(`a:${userId}`), [pending]);
+
+  return { bookmarked, followed, learn, setBookmark, setFollow, bookmarkPending, followPending, notice };
 }
 
 export type Feedback = ReturnType<typeof useFeedback>;
