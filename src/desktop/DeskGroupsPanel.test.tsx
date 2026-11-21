@@ -57,18 +57,9 @@ vi.mock("../ipc", () => ({
     return Promise.resolve(() => {});
   },
   onWorkspaceChanged: () => Promise.resolve(() => {}),
-  workspaceDirectories: () =>
-    Promise.resolve({
-      status: { revision: "test", libraries: [] },
-      providers: [],
-    }),
+  workspaceDirectories: () => Promise.resolve({ status: { revision: "test", libraries: [] }, providers: [] }),
   registeredLibraries: () =>
-    Promise.resolve([
-      {
-        library: { id: "lib-a", name: "主库", root: "D:/a" },
-        unavailable: null,
-      },
-    ]),
+    Promise.resolve([{ library: { id: "lib-a", name: "主库", root: "D:/a" }, unavailable: null }]),
 }));
 
 import { DeskNewGroupButton, ReferenceGroups } from "./DeskGroupsPanel";
@@ -90,19 +81,9 @@ const group = (id: string, name: string, extra: Partial<GroupSummary> = {}): Gro
 const hair = group("g1", "头发");
 const hands = group("g2", "");
 const old = group("g3", "旧的衣褶", { memberCount: 7 });
-const bad = group("bad", "bad", {
-  memberCount: 0,
-  problem: { code: "groupInvalid", cause: { code: "notAGroup" } },
-});
+const bad = group("bad", "bad", { memberCount: 0, problem: { code: "groupInvalid", cause: { code: "notAGroup" } } });
 
-const placement = {
-  x: 0,
-  y: 0,
-  scale: 1,
-  flipH: false,
-  flipV: false,
-  rotation: 0,
-};
+const placement = { x: 0, y: 0, scale: 1, flipH: false, flipV: false, rotation: 0 };
 const member = (id: string, extra: Partial<GroupMember> = {}): GroupMember => ({
   id,
   libraryId: "lib-a",
@@ -373,9 +354,7 @@ describe("参考组面板的“更多”", () => {
   it("重命名：在卡片上改，保存后收起", async () => {
     await show(lists({ recent: [hair] }));
     await more("头发", "重命名");
-    fireEvent.change(screen.getByLabelText("参考组名称"), {
-      target: { value: "头发 2" },
-    });
+    fireEvent.change(screen.getByLabelText("参考组名称"), { target: { value: "头发 2" } });
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "保存" }));
     });
@@ -383,9 +362,7 @@ describe("参考组面板的“更多”", () => {
     await waitFor(() => expect(screen.queryByLabelText("参考组名称")).toBeNull());
     // 留空也能保存：回到写新建时间（#588）。
     await more("头发", "重命名");
-    fireEvent.change(screen.getByLabelText("参考组名称"), {
-      target: { value: "" },
-    });
+    fireEvent.change(screen.getByLabelText("参考组名称"), { target: { value: "" } });
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "保存" }));
     });
@@ -400,11 +377,7 @@ describe("参考组面板的“更多”", () => {
     await act(async () => {
       fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
     });
-    expect(ipc.restore).toHaveBeenCalledWith({
-      groupId: "g1",
-      name: "g1",
-      unlinkedPins: [],
-    });
+    expect(ipc.restore).toHaveBeenCalledWith({ groupId: "g1", name: "g1", unlinkedPins: [] });
     expect(ipc.purge).not.toHaveBeenCalled();
   });
 

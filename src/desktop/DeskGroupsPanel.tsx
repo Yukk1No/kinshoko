@@ -377,11 +377,7 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
           onClose={() => setImporting(false)}
           onConfirm={async (destination) => {
             const group = await importReferenceGroupPackage(destination.libraryId, destination);
-            if (group)
-              toast.show({
-                title: t("groups.imported", { name: group.name }),
-                tone: "success",
-              });
+            if (group) toast.show({ title: t("groups.imported", { name: group.name }), tone: "success" });
           }}
         />
       )}
