@@ -1,0 +1,16 @@
+.k-spinner {
+  animation: k-spin 0.9s linear infinite;
+}
+.k-spinner.is-accent {
+  color: var(--accent);
+}
+@keyframes k-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-spinner {
+    animation-duration: 2.4s;
+  }
+}

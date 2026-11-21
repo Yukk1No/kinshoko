@@ -319,6 +319,10 @@
 .k-description:where(.is-spaced) {
   margin-top: 8px;
 }
+.k-description:where(.is-body) {
+  font-size: 13px;
+  line-height: inherit;
+}
 .k-error-text {
   margin: 0;
   font-size: 12px;

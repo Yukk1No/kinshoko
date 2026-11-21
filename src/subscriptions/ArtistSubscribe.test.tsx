@@ -239,7 +239,10 @@ describe("订阅画师", () => {
   it("名单行的更多菜单：订阅设置只改漫画与 R-18，退订要确认", async () => {
     backend();
     page(status());
-    fireEvent.click((await screen.findAllByRole("button", { name: "更多" }))[0]);
+    // 菜单根还没发布初始化好的上下文时点触发器，菜单不会打开（同 #639）：等它报出 aria-expanded="false" 再点。
+    const more = (await screen.findAllByRole("button", { name: "更多" }))[0];
+    await waitFor(() => expect(more.getAttribute("aria-expanded")).toBe("false"));
+    fireEvent.click(more);
     fireEvent.click(await screen.findByRole("menuitem", { name: "订阅设置…" }));
     const settings = await screen.findByRole("dialog", { name: "订阅设置" });
     expect(within(settings).queryByText("旧作")).toBeNull();
@@ -251,7 +254,9 @@ describe("订阅画师", () => {
       ]),
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "更多" })[0]);
+    const moreAgain = screen.getAllByRole("button", { name: "更多" })[0];
+    await waitFor(() => expect(moreAgain.getAttribute("aria-expanded")).toBe("false"));
+    fireEvent.click(moreAgain);
     fireEvent.click(await screen.findByRole("menuitem", { name: "退订" }));
     const confirm = await screen.findByRole("dialog", { name: "退订 Mika？" });
     fireEvent.click(within(confirm).getByRole("button", { name: "退订" }));

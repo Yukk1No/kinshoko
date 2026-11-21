@@ -149,7 +149,7 @@ export function ArtistDialog({
                     }}
                   />
                   {lookup.kind === "finding" && (
-                    <LoaderCircle className="subs-spin" size={14} role="status" aria-label={t("finding")} />
+                    <LoaderCircle className="k-spinner" size={14} role="status" aria-label={t("finding")} />
                   )}
                 </span>
               </span>
