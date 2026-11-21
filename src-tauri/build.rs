@@ -147,6 +147,7 @@ fn main() {
                         "show_group_member",
                         "prune_unpinned_members",
                         "undo_prune_unpinned",
+                        "remove_desk_group_member",
                         "set_reference_group_favorite",
                         "duplicate_reference_group",
                         "fold_into_previous",

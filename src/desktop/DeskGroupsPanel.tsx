@@ -16,7 +16,7 @@ import {
   purgeDeletedReferenceGroup,
   referenceGroup,
   registeredLibraries,
-  removeGroupMember,
+  removeDeskGroupMember,
   renameReferenceGroup,
   repinAllGroupMembers,
   restoreReferenceGroup,
@@ -355,8 +355,9 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
             onRepinAll={() => void run(() => repinAllGroupMembers())}
             onRemove={(memberId) =>
               void undoable(
-                () => removeGroupMember(g.id, memberId),
-                () => t("deskPanel.removed"),
+                () => removeDeskGroupMember(g.id, memberId),
+                // 那组已经不在桌面上时没有撤销记录，不给“撤销”。
+                (undoable) => (undoable ? t("deskPanel.removed") : null),
               )
             }
             onSplit={(day) =>
@@ -471,7 +472,8 @@ function Section({
         </button>
       </h3>
       {open && (
-        <FluidList className="desk-groups-tray" layoutKey={layoutKey}>
+        // 展开的成员夹在两行参考组之间：点它们旁边的空处不能转给下一行，换掉整张桌面。
+        <FluidList className="desk-groups-tray" layoutKey={layoutKey} gapClick={false}>
           <ul className="desk-groups-list" id={`${id}-list`} aria-label={title}>
             {children}
           </ul>

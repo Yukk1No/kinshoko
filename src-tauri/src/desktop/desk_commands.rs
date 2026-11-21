@@ -257,6 +257,31 @@ pub(super) fn remove_desk_member(
     Ok(true)
 }
 
+/// 参考组面板移出一个成员。是桌面上那组的成员时钉着它的钉图一起关掉，返回 `true`，能用
+/// [`undo_prune_unpinned`] 撤销；那组已经不在桌面上（面板还没跟上换桌）时从它的文件里移出，返回
+/// `false`，没有撤销记录，面板不给“撤销”。
+#[tauri::command]
+pub async fn remove_desk_group_member(
+    app: AppHandle,
+    group_id: String,
+    member_id: String,
+) -> Result<bool, CommandError> {
+    blocking(move || {
+        if !desk_on(&app) {
+            return Err(flag_off());
+        }
+        if remove_desk_member(&app, &group_id, &member_id)? {
+            return Ok(true);
+        }
+        lock(&state(&app).groups)
+            .remove_member(&group_id, &member_id)
+            .map_err(CommandError::from)?;
+        changed(&app);
+        Ok(false)
+    })
+    .await
+}
+
 /// 撤销最近一次“移出没钉着的”或移出一个成员。没有可撤销的时什么都不做。
 #[tauri::command]
 pub async fn undo_prune_unpinned(app: AppHandle) -> Result<(), CommandError> {
