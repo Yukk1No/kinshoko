@@ -6,6 +6,7 @@ import { errorText } from "../ipc";
 import { SaveDestinationDialog } from "../library/SaveDestination";
 import { PixivWall, type PixivWallHandle, type WallSection } from "./PixivWall";
 import type { Collecting } from "./useCollect";
+import { useFeedbackContext } from "./useFeedback";
 
 /** 墙下方的读取状态。 */
 export type WallStatus = {
@@ -45,6 +46,8 @@ export function WallView({
   const allWorks = useMemo(() => sections.flatMap((s) => s.works), [sections]);
   const { track } = collecting;
   useEffect(() => track(allWorks), [allWorks, track]);
+  const learn = useFeedbackContext()?.learn;
+  useEffect(() => learn?.(allWorks.map((w) => [w.artist.userId, w.followed])), [allWorks, learn]);
   const { loading, failed, retry, empty } = status;
   return (
     <>
@@ -79,14 +82,20 @@ export function WallView({
   );
 }
 
-/** 收图的提示与第一次选保存目标的对话框，整页只放一份。 */
+/** 收图、pixiv 收藏与关注的提示，以及第一次选保存目标的对话框，整页只放一份。 */
 export function CollectPrompts({ collecting }: { collecting: Collecting }) {
   const { t } = useTranslation("subscriptions");
+  const notice = useFeedbackContext()?.notice;
   return (
     <>
       {collecting.notice && (
         <div className="pw-status" role="alert">
           {collecting.notice}
+        </div>
+      )}
+      {notice && (
+        <div className="pw-status" role="alert">
+          {notice}
         </div>
       )}
       {collecting.asking && (

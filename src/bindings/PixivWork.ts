@@ -32,6 +32,10 @@ postedAt: number,
  */
 bookmarked: boolean, 
 /**
+ * 登录账号已经在 pixiv 上关注了这位画师。
+ */
+followed: boolean, 
+/**
  * 作品页链接。
  */
 pageUrl: string, };

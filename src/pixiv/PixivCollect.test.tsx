@@ -29,6 +29,7 @@ function work(id: string, extra: Partial<PixivWork> = {}): PixivWork {
     pages: [page(0)],
     postedAt: 0,
     bookmarked: false,
+    followed: false,
     pageUrl: `https://www.pixiv.net/artworks/${id}`,
     ...extra,
   };
@@ -80,6 +81,7 @@ function setup(memory: SaveDestination | null) {
           ? { works: [work("2")], next: null }
           : { works: [], next: null },
     subscription_collected: (args) => stored.filter((w) => (args.workIds as string[]).includes(w.workId)),
+    subscription_set_bookmark: null,
     subscription_collect: (args) => {
       const w = args.work as PixivWork;
       const pages = (args.pages as number[] | null) ?? w.pages.map((_, i) => i);
@@ -113,20 +115,20 @@ describe("应用内浏览的收图", () => {
     renderHome();
     await screen.findByRole("button", { name: "作品1，画师" });
     await waitFor(() => expect(within(card("作品1，画师")).getByText("已收")).toBeTruthy());
-    expect(within(card("作品1，画师")).queryByRole("button", { name: /收进图库/ })).toBeNull();
-    expect(within(card("作品2，画师")).getByRole("button", { name: "把“作品2”收进图库" })).toBeTruthy();
-    expect(within(card("作品4，画师")).queryByRole("button", { name: /收进图库/ })).toBeNull();
+    expect(within(card("作品1，画师")).queryByRole("button", { name: /^收藏/ })).toBeNull();
+    expect(within(card("作品2，画师")).getByRole("button", { name: "收藏“作品2”" })).toBeTruthy();
+    expect(within(card("作品4，画师")).queryByRole("button", { name: /^收藏/ })).toBeNull();
   });
 
   it("在榜单里收了，回到新作时同一个作品也标成已收（几面墙共用一份已收标记）", async () => {
     setup({ libraryId: "L", folderId: "F" });
     renderHome();
-    await screen.findByRole("button", { name: "把“作品2”收进图库" });
+    await screen.findByRole("button", { name: "收藏“作品2”" });
     await waitFor(() => expect(fake.calls("workspace_directories").length).toBeGreaterThan(0));
     await new Promise((r) => setTimeout(r, 0));
     fireEvent.click(within(screen.getByRole("group", { name: "订阅去处" })).getByRole("button", { name: "榜单" }));
     await screen.findByRole("button", { name: "作品2，画师" });
-    fireEvent.click(within(card("作品2，画师")).getByRole("button", { name: "把“作品2”收进图库" }));
+    fireEvent.click(within(card("作品2，画师")).getByRole("button", { name: "收藏“作品2”" }));
     await waitFor(() => expect(within(card("作品2，画师")).getByText("已收")).toBeTruthy());
     fireEvent.click(within(screen.getByRole("group", { name: "订阅去处" })).getByRole("button", { name: "新作" }));
     expect(within(card("作品2，画师")).getByText("已收")).toBeTruthy();
@@ -135,7 +137,7 @@ describe("应用内浏览的收图", () => {
   it("记得这个入口上次选的保存目标时，点一次就收进去", async () => {
     setup({ libraryId: "L", folderId: "F" });
     renderHome();
-    const collect = await screen.findByRole("button", { name: "把“作品2”收进图库" });
+    const collect = await screen.findByRole("button", { name: "收藏“作品2”" });
     await waitFor(() => expect(fake.calls("save_memory").length).toBeGreaterThan(0));
     // 等资料库列表读进来，记住的目标才能用。
     await waitFor(() => expect(fake.calls("workspace_directories").length).toBeGreaterThan(0));
@@ -151,7 +153,7 @@ describe("应用内浏览的收图", () => {
   it("第一次收图时先选保存目标，之后记住它", async () => {
     setup(null);
     renderHome();
-    fireEvent.click(await screen.findByRole("button", { name: "把“作品2”收进图库" }));
+    fireEvent.click(await screen.findByRole("button", { name: "收藏“作品2”" }));
     const dialog = await screen.findByRole("dialog", { name: "收进哪里" });
     await chooseOption(within(dialog).getByRole("combobox", { name: "图库" }), /参考库/);
     fireEvent.click(within(dialog).getByRole("button", { name: "收进图库" }));
@@ -203,10 +205,69 @@ describe("应用内浏览的收图", () => {
       throw { code: "subscriptionSource", reason: { code: "network" } };
     });
     renderHome();
-    const collect = await screen.findByRole("button", { name: "把“作品2”收进图库" });
+    const collect = await screen.findByRole("button", { name: "收藏“作品2”" });
     await waitFor(() => expect(fake.calls("workspace_directories").length).toBeGreaterThan(0));
     await new Promise((r) => setTimeout(r, 0));
     fireEvent.click(collect);
     expect((await screen.findByRole("alert")).textContent).toContain("没收进图库");
+  });
+
+  it("“收藏”一次就写 pixiv 收藏并收进图库；R-18 作品收成非公开", async () => {
+    setup({ libraryId: "L", folderId: null });
+    fake.on("subscription_browse", (args: { feed?: unknown }) =>
+      (args.feed as { kind: string }).kind === "following"
+        ? { works: [work("2"), work("5", { explicit: true })], next: null }
+        : { works: [], next: null },
+    );
+    renderHome();
+    await screen.findByRole("button", { name: "收藏“作品2”" });
+    await waitFor(() => expect(fake.calls("workspace_directories").length).toBeGreaterThan(0));
+    await new Promise((r) => setTimeout(r, 0));
+    fireEvent.click(screen.getByRole("button", { name: "收藏“作品2”" }));
+    await waitFor(() => expect(within(card("作品2，画师")).getByText("已收")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "收藏“作品5”" }));
+    await waitFor(() => expect(within(card("作品5，画师")).getByText("已收")).toBeTruthy());
+    expect(fake.calls("subscription_set_bookmark").map((c) => c.args)).toEqual([
+      { illustId: "2", on: true, private: false },
+      { illustId: "5", on: true, private: true },
+    ]);
+    expect(fake.calls("subscription_collect").map((c) => (c.args.work as PixivWork).id)).toEqual(["2", "5"]);
+  });
+
+  it("第一次收藏时在保存目标对话框里取消，pixiv 收藏也不写", async () => {
+    setup(null);
+    renderHome();
+    fireEvent.click(await screen.findByRole("button", { name: "收藏“作品2”" }));
+    const dialog = await screen.findByRole("dialog", { name: "收进哪里" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(fake.calls("subscription_set_bookmark")).toHaveLength(0);
+    expect(fake.calls("subscription_collect")).toHaveLength(0);
+  });
+
+  it("取消 pixiv 收藏不动图库里的图；写失败时改回来并说明", async () => {
+    setup({ libraryId: "L", folderId: null });
+    fake.on("subscription_browse", (args: { feed?: unknown }) =>
+      (args.feed as { kind: string }).kind === "following"
+        ? { works: [work("1", { bookmarked: true })], next: null }
+        : { works: [], next: null },
+    );
+    renderHome();
+    fireEvent.click(await screen.findByRole("button", { name: "作品1，画师" }));
+    const band = screen.getByRole("region", { name: "作品1，画师" });
+    await waitFor(() => expect(within(band).getByText("已收藏")).toBeTruthy());
+    fireEvent.click(within(band).getByRole("button", { name: "取消 pixiv 收藏" }));
+    await waitFor(() => expect(fake.calls("subscription_set_bookmark")).toHaveLength(1));
+    expect(fake.calls("subscription_set_bookmark")[0].args).toEqual({ illustId: "1", on: false, private: false });
+    // 没收藏了，又能点“收藏”；图库里那张还在（已收、再收一次）。
+    expect(within(band).getByRole("button", { name: "收藏" })).toBeTruthy();
+    expect(within(band).getByRole("button", { name: "再收一次" })).toBeTruthy();
+
+    fake.on("subscription_set_bookmark", () => {
+      throw { code: "subscriptionSource", reason: { code: "network" } };
+    });
+    fireEvent.click(within(band).getByRole("button", { name: "收藏" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("没写进 pixiv 收藏");
+    await waitFor(() => expect(within(band).queryByRole("button", { name: "取消 pixiv 收藏" })).toBeNull());
   });
 });

@@ -109,6 +109,23 @@ impl PixivSource {
         browse::artists_page(&mut |path| self.get(path), &path)
     }
 
+    /// 应用内浏览（#461 第 5 步）：pixiv 收藏或取消收藏一个作品。只由画师亲手点出（#409）。
+    pub fn set_bookmark(
+        &mut self,
+        illust_id: &str,
+        on: bool,
+        private: bool,
+    ) -> Result<(), SourceError> {
+        let write = browse::bookmark_write(illust_id, on, private)?;
+        self.post(write.path, &write.form).map(|_| ())
+    }
+
+    /// 应用内浏览（#461 第 5 步）：在 pixiv 上关注或取消关注一位画师。只由画师亲手点出（#409）。
+    pub fn set_follow(&mut self, user_id: &str, on: bool) -> Result<(), SourceError> {
+        let write = browse::follow_write(user_id, on)?;
+        self.post(write.path, &write.form).map(|_| ())
+    }
+
     /// 查一位画师。没有这位画师时为空。
     pub fn artist(&mut self, user_id: &str) -> Result<Option<Artist>, SourceError> {
         artist::artist(&mut |path| self.get(path), user_id)
@@ -131,6 +148,15 @@ impl PixivSource {
 
     /// GET 一个客户端接口（`/v1/...` 或接口给的 `next_url`）。access token 被拒时换一次再试。
     pub fn get(&mut self, path: &str) -> Result<Value, SourceError> {
+        self.call(path, None)
+    }
+
+    /// POST 一个写入接口（表单）。和 GET 排同一个节拍。
+    fn post(&mut self, path: &str, form: &[(&str, String)]) -> Result<Value, SourceError> {
+        self.call(path, Some(form))
+    }
+
+    fn call(&mut self, path: &str, form: Option<&[(&str, String)]>) -> Result<Value, SourceError> {
         let url = if path.starts_with("https://") {
             path.to_owned()
         } else {
@@ -141,16 +167,26 @@ impl PixivSource {
                 return Err(SourceError::Cancelled);
             }
             let session = self.account.session()?;
-            let response = self
-                .agent
-                .get(&url)
-                .set("Authorization", &format!("Bearer {}", session.access_token))
-                .set("User-Agent", APP_UA)
-                .set("App-OS", "ios")
-                .set("App-OS-Version", "14.6")
-                .set("Accept-Language", "ja")
-                .call();
+            let request = match form {
+                Some(_) => self.agent.post(&url),
+                None => self.agent.get(&url),
+            }
+            .set("Authorization", &format!("Bearer {}", session.access_token))
+            .set("User-Agent", APP_UA)
+            .set("App-OS", "ios")
+            .set("App-OS-Version", "14.6")
+            .set("Accept-Language", "ja");
+            let response = match form {
+                Some(form) => {
+                    let pairs: Vec<(&str, &str)> =
+                        form.iter().map(|(k, v)| (*k, v.as_str())).collect();
+                    request.send_form(&pairs)
+                }
+                None => request.call(),
+            };
             match response {
+                // 写入接口成功时回空的 JSON 对象；读不懂也算成功。
+                Ok(r) if form.is_some() => return Ok(json(r).unwrap_or_default()),
                 Ok(r) => return json(r).ok_or(SourceError::Unreadable),
                 Err(ureq::Error::Status(status, r)) => {
                     let body = json(r).unwrap_or_default();

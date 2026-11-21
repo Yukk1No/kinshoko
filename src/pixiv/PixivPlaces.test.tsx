@@ -29,6 +29,7 @@ function work(id: string, artist = { userId: "9", name: "画师" }): PixivWork {
     pages: [page],
     postedAt: 0,
     bookmarked: false,
+    followed: false,
     pageUrl: `https://www.pixiv.net/artworks/${id}`,
   };
 }
