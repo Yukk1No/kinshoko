@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { FolderInput, FolderMinus, RotateCcw, Trash2, X } from "lucide-react";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ImageEdit } from "../bindings/ImageEdit";
-import { editImages, workspaceSidebar } from "../ipc";
+import { editImages, workspaceImage, workspaceSidebar } from "../ipc";
 import { Dock, type DockItem } from "../ui/Dock";
 import { arcSpring } from "../ui/motion";
 import { MenuItem } from "../ui/Menu";
@@ -93,13 +93,13 @@ export function SelectionBar({
     // 只在挂上时接上观察；宽度变化由观察者报告。
   }, []);
 
-  const edit = (edits: ImageEdit[], clear: boolean) => {
+  const edit = (edits: ImageEdit[], clear: boolean, only: string[] = ids) => {
     if (libraryId === null) {
       acrossLibraries?.edit(edits, clear);
       return;
     }
     const key = selectionKey,
-      picked = ids;
+      picked = only;
     void editImages(libraryId, picked, edits).then(
       () => {
         if (clear && currentKey.current === key) onClear();
@@ -114,6 +114,27 @@ export function SelectionBar({
               onClick: () => void editImages(libraryId, picked, [{ kind: "restore" }]).catch((e) => onError(e)),
             },
           });
+      },
+      (e) => {
+        if (currentKey.current === key) onError(e);
+      },
+    );
+  };
+
+  const removeFromFolder = (folderId: string) => {
+    if (libraryId === null) return;
+    const remove = (members: string[]) => edit([{ kind: "removeFromFolder", folderId }], true, members);
+    if (scope.kind === "folder") {
+      remove(ids);
+      return;
+    }
+    const key = selectionKey;
+    void Promise.all(ids.map((id) => workspaceImage(libraryId, id))).then(
+      (details) => {
+        if (currentKey.current !== key) return;
+        const members = ids.filter((_, i) => details[i].folders.some((folder) => folder.id === folderId));
+        if (members.length > 0) remove(members);
+        else toast.show({ title: t("selection.notDirectlyInFolder"), tone: "info" });
       },
       (e) => {
         if (currentKey.current === key) onError(e);
@@ -140,7 +161,8 @@ export function SelectionBar({
               </MenuItem>
             )),
           },
-          ...(scope.kind === "folder"
+          // 选文件夹总是连同子文件夹（#608）：范围是 folderTree 时只移出直接在这个文件夹里的图，和右键菜单同一条规则。
+          ...((scope.kind === "folder" || scope.kind === "folderTree") && libraryId !== null
             ? [
                 {
                   id: "remove",
@@ -173,7 +195,7 @@ export function SelectionBar({
     { id: "clear", label: t("selection.clear"), icon: <X size={18} strokeWidth={1.75} /> },
   ];
   const run = (id: string) => {
-    if (id === "remove" && scope.kind === "folder") edit([{ kind: "removeFromFolder", folderId: scope.id }], true);
+    if (id === "remove" && (scope.kind === "folder" || scope.kind === "folderTree")) removeFromFolder(scope.id);
     else if (id === "restore") edit([{ kind: "restore" }], true);
     else if (id === "delete") edit([{ kind: "delete" }], true);
     else if (id === "purge") setPurging(true);
