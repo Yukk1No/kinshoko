@@ -114,6 +114,8 @@ describe("空状态", () => {
     });
     expect(cssRule(sheets["./empty-state.css"], ".k-empty-icon > svg")).toEqual({ width: "24px", height: "24px" });
     expect(cssRule(sheets["./empty-state.css"], ".k-empty-hint")).toEqual({ margin: "0", color: "var(--ink-2)" });
+    // 详情面板没选图时的提示是文字，用 --ink-2；--ink-3 只给图标（design/ui-system/visual-and-motion.md）。
+    expect(cssRule(sheets["../shell/inspector.css"], ".insp-empty-text")).toMatchObject({ color: "var(--ink-2)" });
     expect(cssRule(sheets["./empty-state.css"], ".k-empty.is-list")).toMatchObject({
       margin: "0",
       padding: "0 2px",
