@@ -43,7 +43,11 @@ pub fn draw_of<'a>(
             flip_v: d.flip_v,
         },
         opacity: job.state.opacity as f32,
-        edge: PIN_EDGE as f32,
+        edge: if job.caption_only {
+            0.0
+        } else {
+            PIN_EDGE as f32
+        },
         ring: if job.ring {
             (RING * job.display_scale) as f32
         } else {
@@ -77,7 +81,11 @@ pub fn draw_of<'a>(
                 width: w.width,
                 height: w.height,
             },
-            pin_render::Rect::new(c.x as f32, c.y as f32, c.width as f32, c.height as f32),
+            if job.caption_only {
+                pin_render::Rect::new(0.0, 0.0, 0.0, 0.0)
+            } else {
+                pin_render::Rect::new(c.x as f32, c.y as f32, c.width as f32, c.height as f32)
+            },
             pin_render::Rect::new(
                 src.x as f32,
                 src.y as f32,
@@ -137,6 +145,7 @@ mod tests {
             appear: 0.0,
             dark: false,
             placeholder: false,
+            caption_only: false,
             caption: Default::default(),
         }
     }
@@ -208,6 +217,17 @@ mod tests {
         j.placeholder = true;
         let d = draw_of(&j, (1, 1), None);
         assert_eq!(d.crop, pin_render::Rect::new(0.0, 0.0, 1.0, 1.0));
+    }
+
+    #[test]
+    fn a_caption_only_draw_has_no_image_or_pin_shadow() {
+        let mut j = job(None, 1.0);
+        j.caption_only = true;
+        j.placeholder = true;
+        let d = draw_of(&j, (1, 1), None);
+        assert_eq!(d.content, pin_render::Rect::new(0.0, 0.0, 0.0, 0.0));
+        assert_eq!(d.edge, 0.0);
+        assert_eq!(d.opacity, 0.5);
     }
 
     #[test]

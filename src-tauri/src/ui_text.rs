@@ -36,6 +36,7 @@ pub enum Text {
     MenuWindowTitle,
     /// 钉图读不到图、又没有别的原因时写在钉图上的话。
     PinUnreadable,
+    PinClipboardNoImage,
     /// 钉图上写的参考图取不到的原因（[`UnavailableReason`]）。
     PinLibraryNotRegistered,
     PinLibraryMissing,
@@ -107,6 +108,11 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
             "参考图无法读取：图库没有打开，或原图已缺失",
             "Can't read the reference image: the library isn't open, or the original is missing",
         ),
+        Text::PinClipboardNoImage => pick(
+            en,
+            "剪贴板里没有图片，未能钉住",
+            "Nothing pinned: there's no image in the clipboard",
+        ),
         Text::PinLibraryNotRegistered => pick(en, "这个图库还没有打开", "This library isn't open"),
         Text::PinLibraryMissing => pick(
             en,
@@ -172,6 +178,18 @@ mod tests {
         assert_eq!(
             in_lang(interface_lang::EN, Text::FilterReferencePackage),
             "Reference group package"
+        );
+    }
+
+    #[test]
+    fn the_empty_clipboard_notice_explains_why_nothing_was_pinned_in_both_languages() {
+        assert_eq!(
+            in_lang(interface_lang::ZH_CN, Text::PinClipboardNoImage),
+            "剪贴板里没有图片，未能钉住"
+        );
+        assert_eq!(
+            in_lang(interface_lang::EN, Text::PinClipboardNoImage),
+            "Nothing pinned: there's no image in the clipboard"
         );
     }
 }

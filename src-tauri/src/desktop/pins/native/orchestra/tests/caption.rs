@@ -179,3 +179,132 @@ fn a_notice_shows_for_1_6_seconds() {
     assert_eq!(r.draws().last().unwrap().caption.notice, None);
     assert_eq!(r.o.next_deadline(), None);
 }
+
+#[test]
+fn a_clipboard_notice_needs_no_pin_and_expires_without_pin_effects() {
+    let shell = FakeShell::new(vec![Display {
+        id: "A".into(),
+        rect: SCREEN,
+        scale: 1.0,
+        profile: None,
+    }]);
+    let mut r = Rig {
+        o: Orchestra::new(shell, FakeRender::default()),
+        now: Instant::now(),
+    };
+    r.o.notice_at((2500, 1400), "No image in clipboard".into(), r.now)
+        .unwrap();
+    r.run();
+    let job = r.draws().pop().expect("notice without a pin");
+    assert!(job.caption_only);
+    assert_eq!(job.caption.notice.as_deref(), Some("No image in clipboard"));
+    assert!(job.window.x >= 0 && job.window.x + job.window.width as i32 <= 2560);
+    assert!(job.window.y >= 0 && job.window.y + (job.window.height as i32) < 1440);
+    assert!(r.o.views(r.now).is_empty());
+    assert!(r.o.take_effects().is_empty());
+    assert!(!r.o.is_empty());
+    r.wait(NOTICE_MS);
+    r.run();
+    assert!(r.o.is_empty());
+    assert!(r.o.take_effects().is_empty());
+}
+
+#[test]
+fn an_empty_notice_needs_no_surface_and_a_missing_display_is_an_error() {
+    let mut o = Orchestra::new(FakeShell::default(), FakeRender::default());
+    let now = Instant::now();
+    o.notice_at((0, 0), String::new(), now).unwrap();
+    assert!(o.is_empty());
+    assert!(o.notice_at((0, 0), "No image".into(), now).is_err());
+    assert!(o.render().calls.is_empty());
+}
+
+#[test]
+fn a_failed_notice_draw_releases_the_surface_without_showing_it() {
+    let mut r = Rig::shown();
+    r.o.notice_at((10, 10), "No image".into(), r.now).unwrap();
+    let job = r.draws().pop().unwrap();
+    r.o.render().open.clear();
+    r.o.render_event(
+        RenderEvent::Drawn {
+            pin: job.pin,
+            result: Err("draw failed".into()),
+        },
+        r.now,
+    );
+    r.run();
+    assert!(r.o.notices.is_empty());
+    assert!(
+        !r.shell_calls()
+            .iter()
+            .any(|c| matches!(c, Call::Show(id, _) if *id == job.pin))
+    );
+    assert_eq!(r.o.views(r.now).len(), 1);
+}
+
+#[test]
+fn repeated_notices_replace_even_a_pending_notice_without_changing_open_pins() {
+    let mut r = Rig::shown();
+    r.o.notice_at((10, 10), "First".into(), r.now).unwrap();
+    r.o.notice_at((10, 10), "Second".into(), r.now).unwrap();
+    r.run();
+    assert_eq!(r.o.notices.len(), 1);
+    assert_eq!(r.o.views(r.now).len(), 1);
+    assert!(r.o.take_effects().is_empty());
+    assert_eq!(r.o.pins[&A].notice, None);
+    r.wait(NOTICE_MS);
+    r.run();
+    assert!(r.o.notices.is_empty());
+    assert!(!r.o.is_empty());
+}
+
+#[test]
+fn a_notice_uses_the_cursors_monitor_scale_and_survives_no_device_loss() {
+    let shell = FakeShell::new(vec![Display {
+        id: "left".into(),
+        rect: ScreenRect {
+            x: -2560,
+            y: -1440,
+            ..SCREEN
+        },
+        scale: 2.0,
+        profile: None,
+    }]);
+    let mut r = Rig {
+        o: Orchestra::new(shell, FakeRender::default()),
+        now: Instant::now(),
+    };
+    r.o.notice_at((-10, -10), "No image".into(), r.now).unwrap();
+    let job = r.draws().pop().unwrap();
+    assert_eq!(job.display_scale, 2.0);
+    assert_eq!(job.window.width, 1040);
+    assert!(job.window.x < 0 && job.window.y < 0);
+    assert!(r.shell_calls().contains(&Call::ClickThrough(job.pin, true)));
+    r.o.render_event(RenderEvent::DeviceLost, r.now);
+    assert!(
+        !r.shell_calls().contains(&Call::Close(job.pin)),
+        "notice window must stay alive until the renderer reports Detached"
+    );
+    assert!(!r.o.is_empty());
+    assert_eq!(r.o.next_deadline(), None);
+    r.o.render_event(RenderEvent::DeviceLost, r.now);
+    assert_eq!(
+        r.o.render()
+            .calls
+            .iter()
+            .filter(|call| matches!(call, RCall::Detach(id) if *id == job.pin))
+            .count(),
+        1
+    );
+    r.o.render_event(
+        RenderEvent::Drawn {
+            pin: job.pin,
+            result: Ok(()),
+        },
+        r.now,
+    );
+    assert!(r.shell_calls().is_empty());
+    r.o.render_event(RenderEvent::Detached { pin: job.pin }, r.now);
+    assert!(r.shell_calls().contains(&Call::Close(job.pin)));
+    assert!(r.o.is_empty());
+}
