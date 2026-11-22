@@ -12,11 +12,6 @@ use crate::library;
 /// 暂存剪贴板图片的目录（应用数据目录下）。导入从这里读，进库的是复制。
 pub(super) const CLIPBOARD_IMPORT_DIR: &str = "clipboard-import";
 
-pub(super) fn clean_staged_imports(dir: &std::path::Path) {
-    let staged = dir.join(CLIPBOARD_IMPORT_DIR);
-    std::thread::spawn(move || kinshoko_core::library::forget_staged_clipboard_images(&staged));
-}
-
 /// 复制图片：把参考图的原图像素放进剪贴板（PNG + DIBV5），可直接粘贴到绘画软件。
 /// 经浏览视角：没有这张图、被封印、原文件不在时报错，剪贴板保持原样。
 #[tauri::command]
@@ -198,10 +193,9 @@ pub async fn stage_dropped_image(
         .get("x-file-name")
         .and_then(|name| name.to_str().ok())
         .unwrap_or_default();
-    let name = tauri::Url::parse(&format!("http://localhost/?name={name}"))
-        .ok()
-        .and_then(|url| url.query_pairs().next().map(|(_, name)| name.into_owned()))
-        .unwrap_or_default();
+    let name = percent_encoding::percent_decode_str(name)
+        .decode_utf8_lossy()
+        .into_owned();
     tauri::async_runtime::spawn_blocking(move || {
         let dir = library::data_dir(&app).join(CLIPBOARD_IMPORT_DIR);
         kinshoko_core::library::stage_dropped_image(&dir, &name, &bytes)

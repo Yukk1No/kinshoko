@@ -33,7 +33,13 @@ pub fn stage_dropped_image(dir: &Path, name: &str, bytes: &[u8]) -> Result<PathB
         image::ImageFormat::Jpeg => "jpg",
         image::ImageFormat::Png => "png",
         image::ImageFormat::Gif => "gif",
-        _ => "webp",
+        image::ImageFormat::WebP => "webp",
+        _ => {
+            return Err(CommandError::new(
+                ErrorKind::DroppedImageUnsupported,
+                "Unsupported dropped image format",
+            ));
+        }
     };
     let name = safe_stem(name);
     std::fs::create_dir_all(dir).map_err(CommandError::system)?;
