@@ -169,52 +169,82 @@ pub struct GlobalShortcuts<R: HotkeyRegistrar> {
     registrar: R,
     /// 绑定了但没注册上的动作及原因。
     problems: BTreeMap<ShortcutAction, HotkeyFailure>,
+    /// 设置里正在录新键：所有键都已从系统放掉，按键交给设置界面。
+    paused: bool,
 }
 
 impl<R: HotkeyRegistrar> GlobalShortcuts<R> {
     /// 按设置注册全部快捷键。个别键注册失败不影响其他键，失败原因留给设置界面显示。
-    pub fn start(mut registrar: R, settings: &AppSettings) -> Self {
-        let mut problems = BTreeMap::new();
-        for action in ShortcutAction::ALL {
-            if let Some(accelerator) = settings.shortcut(action)
-                && let Err(why) = registrar.register(action, accelerator)
-            {
-                problems.insert(action, why);
-            }
-        }
-        GlobalShortcuts {
+    pub fn start(registrar: R, settings: &AppSettings) -> Self {
+        let mut shortcuts = GlobalShortcuts {
             registrar,
-            problems,
-        }
+            problems: BTreeMap::new(),
+            paused: false,
+        };
+        shortcuts.register_all(settings);
+        shortcuts
     }
 
     /// Adopt a complete restored configuration; unavailable OS keys remain visible as problems.
     pub fn reload(&mut self, previous: &AppSettings, next: &AppSettings) {
+        self.release_all(previous);
+        self.register_all(next);
+    }
+
+    /// 设置里录新键期间暂停全部快捷键：放掉系统热键，按下已绑定的键时交给设置界面录下，
+    /// 而不是执行原来的动作。[`resume`](Self::resume)、[`rebind`](Self::rebind) 或
+    /// [`reload`](Self::reload) 结束暂停。
+    pub fn pause(&mut self, settings: &AppSettings) {
+        if !self.paused {
+            self.release_all(settings);
+            self.paused = true;
+        }
+    }
+
+    /// 结束暂停，按设置重新注册；暂停期间被别的程序占去的键标出原因。
+    pub fn resume(&mut self, settings: &AppSettings) {
+        if self.paused {
+            self.register_all(settings);
+        }
+    }
+
+    /// 放掉正在生效的键；暂停中的键已经放掉，没注册上的键不算。
+    fn release_all(&mut self, settings: &AppSettings) {
+        if self.paused {
+            return;
+        }
         for action in ShortcutAction::ALL {
             if !self.problems.contains_key(&action)
-                && let Some(key) = previous.shortcut(action)
+                && let Some(key) = settings.shortcut(action)
             {
                 self.registrar.unregister(key);
             }
         }
+    }
+
+    /// 按设置注册全部键（调用前它们都没在生效），记下注册失败的原因。
+    fn register_all(&mut self, settings: &AppSettings) {
+        self.paused = false;
         self.problems.clear();
         for action in ShortcutAction::ALL {
-            if let Some(key) = next.shortcut(action)
+            if let Some(key) = settings.shortcut(action)
                 && let Err(why) = self.registrar.register(action, key)
             {
                 self.problems.insert(action, why);
             }
         }
     }
+
     /// 把 `action` 换成新的快捷键（`None` 为清除），立即生效并写入设置。
     ///
-    /// 新键注册不上时什么都不改，旧键继续生效。
+    /// 新键注册不上时什么都不改，旧键继续生效。录下新键即结束录制，暂停的键先恢复。
     pub fn rebind(
         &mut self,
         settings: &mut AppSettings,
         action: ShortcutAction,
         accelerator: Option<&str>,
     ) -> Result<(), ShortcutError> {
+        self.resume(settings);
         let accelerator = accelerator.map(normalize).transpose()?;
         let accelerator = accelerator.as_deref();
         if let Some(new) = accelerator

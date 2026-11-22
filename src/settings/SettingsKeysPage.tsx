@@ -1,9 +1,9 @@
-import { type KeyboardEvent } from "react";
+import { type KeyboardEvent, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { ShortcutAction } from "../bindings/ShortcutAction";
 import type { ShortcutBinding } from "../bindings/ShortcutBinding";
-import { hotkeyFailureText } from "../ipc";
+import { errorText, hotkeyFailureText } from "../ipc";
 import { type ShellSettingsIntent } from "../shell/useShellSettings";
 import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
 import { Keys } from "../ui/Keys";
@@ -48,10 +48,22 @@ type Props = {
   recording: ShortcutAction | null;
   setRecording: (action: ShortcutAction | null) => void;
   apply: (intent: ShellSettingsIntent) => Promise<boolean>;
+  pauseShortcuts: (paused: boolean) => Promise<void>;
+  onError: (message: string) => void;
 };
 
-export function KeysPage({ view, recording, setRecording, apply }: Props) {
+export function KeysPage({ view, recording, setRecording, apply, pauseShortcuts, onError }: Props) {
   const { t } = useTranslation("settings");
+  const isRecordingAny = recording !== null;
+  // 全局快捷键在系统层先于 WebView 收到按键；录制期间暂停，按到已绑定的键才能录下或提示冲突。
+  useEffect(() => {
+    if (!isRecordingAny) return;
+    const report = (e: unknown) => onError(errorText(e));
+    pauseShortcuts(true).catch(report);
+    return () => {
+      pauseShortcuts(false).catch(report);
+    };
+  }, [isRecordingAny, pauseShortcuts, onError]);
   function onRecordKey(action: ShortcutAction, e: KeyboardEvent<HTMLInputElement>) {
     e.preventDefault();
     // 录制中的 Esc 只取消录制，不关闭设置对话框。

@@ -213,7 +213,17 @@ export function SettingsPanel({
                 </SettingsGroup>
               </>,
             )}
-            {page("keys", <KeysPage view={view} recording={recording} setRecording={setRecording} apply={apply} />)}
+            {page(
+              "keys",
+              <KeysPage
+                view={view}
+                recording={recording}
+                setRecording={setRecording}
+                apply={apply}
+                pauseShortcuts={settings.pauseShortcuts}
+                onError={setError}
+              />,
+            )}
             {page(
               "tags",
               <>
