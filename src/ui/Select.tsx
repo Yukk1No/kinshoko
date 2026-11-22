@@ -19,6 +19,7 @@ export function Select<V extends string>({
   icon,
   className = "",
   tip,
+  fit = false,
 }: {
   value: V;
   options: SelectOption<V>[];
@@ -28,6 +29,8 @@ export function Select<V extends string>({
   icon?: ReactNode;
   className?: string;
   tip?: string;
+  /** 列表按最长一项放宽，不跟触发器一样窄（触发器按当前值收窄时用，例如工具条里的筛选）。 */
+  fit?: boolean;
 }) {
   return (
     <Base.Root<V>
@@ -53,7 +56,7 @@ export function Select<V extends string>({
           align="start"
           sideOffset={4}
         >
-          <Base.Popup className="k-popup k-select-popup">
+          <Base.Popup className={`k-popup k-select-popup${fit ? " is-fit" : ""}`}>
             <Base.List className="k-listbox">
               {options.map((option) => (
                 <Base.Item

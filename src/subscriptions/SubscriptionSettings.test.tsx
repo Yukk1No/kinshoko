@@ -4,6 +4,8 @@ import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { SubscriptionSettings } from "./SubscriptionSettings";
 import { account, status } from "./subscriptions.fixtures";
 import { type FakeBackend, fakeBackend } from "../test/backend";
+import { SaveDestinationProvider } from "../library/SaveDestination";
+import { chooseOption } from "../test/select";
 
 let backend: FakeBackend;
 
@@ -57,5 +59,46 @@ describe("设置 › 订阅", () => {
     await waitFor(() => expect(backend.calls("subscription_login")[0]?.args).toEqual({ title: "登录 pixiv" }));
     fireEvent.click(screen.getByRole("button", { name: "查看" }));
     expect(await screen.findByRole("dialog", { name: /订阅 pixiv 新作/ })).toBeTruthy();
+  });
+
+  it("接上应用内浏览后多一行“新订阅收进”：没选过时是“和同类订阅放一起”，改了记下来", async () => {
+    const libraries = [
+      { library: { id: "L", name: "参考库", root: "C:/l" }, unavailable: null },
+      { library: { id: "P", name: "pixiv", root: "C:/p" }, unavailable: null },
+    ];
+    backend = fakeBackend({
+      workspace_directories: {
+        status: { revision: "test", libraries },
+        registrationOrder: [],
+        providers: libraries.map((registration) => ({
+          registration,
+          sidebar: { all: 0, trash: 0, folders: [] },
+          unassigned: 0,
+          descendants: {},
+        })),
+      },
+      save_memory: {
+        importDestination: null,
+        newLibraryParent: null,
+        pixivDestination: { libraryId: "P", folderId: null },
+        subscriptionDestination: null,
+      },
+      remember_subscription_destination: null,
+    });
+    render(
+      <SaveDestinationProvider safe={false}>
+        <SubscriptionSettings status={status()} onStatus={vi.fn()} error={null} onError={vi.fn()} browse />
+      </SaveDestinationProvider>,
+    );
+    const library = await screen.findByRole("combobox", { name: "新订阅收进" });
+    expect(rows()).toEqual(["订阅功能", "pixiv 账号", "新订阅收进", "风险说明"]);
+    expect(library.textContent).toContain("和同类订阅放一起");
+    await chooseOption(library, "参考库");
+    await waitFor(() =>
+      expect(backend.calls("remember_subscription_destination")[0]?.args).toEqual({
+        destination: { libraryId: "L", folderId: null },
+      }),
+    );
+    expect(library.getAttribute("data-value")).toBe("L");
   });
 });

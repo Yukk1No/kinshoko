@@ -97,13 +97,13 @@ const place = (name: string) => within(screen.getByRole("group", { name: "订阅
 const feeds = () => fake.calls("subscription_browse").map((c) => feedId(c.args.feed as Feed));
 
 describe("订阅页的去处", () => {
-  it("标题行正中依次是新作、推荐、榜单、我的收藏、画师，隔一道线是管理", async () => {
+  it("标题行正中依次是新作、推荐、榜单、我的收藏、画师", async () => {
     render(<PixivHome safe={false} />);
     await screen.findByRole("button", { name: "作品following，小林" });
     const names = within(screen.getByRole("group", { name: "订阅去处" }))
       .getAllByRole("button")
       .map((b) => b.textContent);
-    expect(names).toEqual(["新作", "推荐", "榜单", "我的收藏", "画师", "管理"]);
+    expect(names).toEqual(["新作", "推荐", "榜单", "我的收藏", "画师"]);
   });
 
   it("榜单默认读全年龄日榜，可以换周榜、月榜；回到新作时墙还在，不重读", async () => {
@@ -152,11 +152,9 @@ describe("订阅页的去处", () => {
     render(<PixivHome safe={false} />);
     fireEvent.click(place("画师"));
     const list = await screen.findByRole("list", { name: "画师" });
-    const names = within(list)
-      .getAllByRole("button")
-      .flatMap((b) => b.querySelector(".pw-artist-name")?.textContent ?? []);
+    const names = [...list.querySelectorAll(".pw-artist-name")].map((b) => b.textContent);
     expect(names).toEqual(["阿部", "山田"]);
-    fireEvent.click(within(list).getByRole("button", { name: /^山田/ }));
+    fireEvent.click(within(list).getByRole("button", { name: "看 山田 的作品" }));
     expect(screen.getByRole("heading", { name: "山田" })).toBeTruthy();
     await screen.findByRole("button", { name: "作品2插，小林" });
     expect(screen.getByRole("link", { name: "在 pixiv 打开" }).getAttribute("href")).toBe(

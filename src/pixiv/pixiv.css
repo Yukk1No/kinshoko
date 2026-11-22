@@ -95,24 +95,24 @@
   cursor: pointer;
 }
 
-/* 第六项“管理”和五个去处隔一道线（#461 第 6 步）。 */
-.pw-places > .k-seg-item:last-of-type {
-  overflow: visible;
-  margin-inline-start: 9px;
+/* 标题行右端的“订阅设置”（维护者 2026-11-22：全貌放在设置 › 订阅）。 */
+.pw-settings {
+  grid-column: 3;
+  justify-self: end;
 }
 
-.pw-places > .k-seg-item:last-of-type::before {
-  content: "";
-  position: absolute;
-  left: -6px;
-  top: 6px;
-  bottom: 6px;
-  width: 1px;
-  background: var(--line-2);
+/* 开关旁边的“收进「某库」”：点开换库。 */
+.pw-library-chip {
+  max-width: 220px;
+}
+
+.pw-library-chip > .k-label {
+  flex: none;
 }
 
 /* ---- 去处（#461 第 4 步）。新作与推荐那面墙换走时只是藏起来，保留滚动位置。 ---- */
 .pw-view {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -418,78 +418,212 @@
   overflow-wrap: anywhere;
 }
 
-/* 画师卡片右上角的 ⋯（#461 第 6 步）：收进哪个资料库、收取范围、取消关注。 */
+/* 画师卡片（维护者 2026-11-22）：上面四格最近作品的缩略图，认画风；下面名字、多久没有新图、收进哪个库与 ⋯。
+   选中时一圈强调色，和主墙选中的卡片一样。已取消订阅的变淡。 */
+.pw-artist-tools {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  padding-block: 8px;
+}
+
+.pw-artist-tools .k-select {
+  width: auto;
+  max-width: 240px;
+}
+
+.pw-subbar-gap {
+  flex: 1;
+}
+
 .pw-artist-cell {
   position: relative;
-}
-
-.pw-artist-more {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-}
-
-.pw-artist-cell > .pw-artist {
-  padding-right: 40px;
-}
-
-/* “管理”：同一份订阅的总表，纸面上的几组行，最宽 760。 */
-.pw-manage-view {
-  overflow-y: auto;
-}
-
-.pw-manage {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  width: 100%;
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 16px 16px 24px;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-raise);
+  color: var(--ink);
 }
 
-.pw-manage-head {
+.pw-artist-cell.is-picked {
+  box-shadow:
+    var(--shadow-raise),
+    0 0 0 2px var(--accent);
+}
+
+.pw-artist-cell.is-gone {
+  opacity: var(--disabled-opacity);
+}
+
+.pw-artist-cover {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-s);
+  overflow: hidden;
+  background: none;
+  cursor: pointer;
+}
+
+.pw-artist-cover:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.pw-artist-thumb {
+  aspect-ratio: 3 / 4;
+  background: var(--sunken);
+}
+
+.pw-artist-thumb > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 左上角的勾：悬停或选择中才露出来。 */
+.pw-artist-pick {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-xs);
+  background: var(--overlay);
+  color: var(--on-solid);
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+  cursor: pointer;
+}
+
+.pw-artist-pick > input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.pw-artist-pick > svg {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pw-artist-cell:hover .pw-artist-pick,
+.pw-artists.is-selecting .pw-artist-pick,
+.pw-artist-pick:has(input:focus-visible) {
+  opacity: 1;
+}
+
+.pw-artist-pick:has(input:focus-visible) {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.pw-artist-cell.is-picked .pw-artist-pick {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.pw-artist-cell.is-picked .pw-artist-pick > svg {
+  opacity: 1;
+}
+
+.pw-artist-meta,
+.pw-artist-foot {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  min-width: 0;
 }
 
-.pw-manage-head > .k-section-label {
+.pw-artist-meta > .pw-artist-name {
   flex: 1;
-  margin: 0;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
 }
 
-.pw-rows {
+.pw-artist-meta > .pw-artist-name:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.pw-artist-meta > .k-description,
+.pw-artist-library {
+  flex: none;
+  white-space: nowrap;
+}
+
+.pw-artist-library {
+  display: flex;
+  flex: 1;
+  gap: 0.25em;
+  min-width: 0;
+}
+
+.pw-artist-foot > .k-btn {
+  margin-inline-start: auto;
+}
+
+/* 搜索时名字对得上的已取消订阅的画师，列在卡片下面。 */
+/* 筛选后一位都没有：说一句，给一个回到全部画师的按钮。 */
+.pw-filter-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.pw-gone-matches {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin: 0;
-  padding: 0;
+  padding: 0 16px 16px;
   list-style: none;
+}
+
+.pw-gone-matches > li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 选了画师以后浮在底部的一条：改收进的库、取消订阅。 */
+.pw-bulkbar {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: var(--z-pane-float);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 16px;
   border-radius: var(--r-l);
   background: var(--surface);
-  box-shadow: var(--shadow-raise);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+  transform: translateX(-50%);
 }
 
-.pw-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  min-height: 48px;
-  padding: 8px 12px 8px 16px;
-}
-
-.pw-row + .pw-row {
-  box-shadow: inset 0 1px 0 var(--line);
-}
-
-.pw-row-name {
-  flex: 1;
-  min-width: 120px;
-  overflow-wrap: anywhere;
-}
-
-.pw-manage-foot {
-  margin: 0;
+.pw-bulkbar-count {
+  margin-inline-end: 4px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* 搜索到的画师：一格名字，旁边关注。 */
