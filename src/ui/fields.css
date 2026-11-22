@@ -297,6 +297,11 @@ select.k-select {
   min-width: 0;
   max-height: min(306px, var(--available-height, 306px));
 }
+.k-select-popup.is-fit {
+  width: max-content;
+  min-width: var(--anchor-width);
+  max-width: min(360px, var(--available-width, 360px));
+}
 .k-select-popup .k-listbox {
   width: auto;
   max-height: none;

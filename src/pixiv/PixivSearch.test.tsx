@@ -175,9 +175,9 @@ describe("订阅页的搜索", () => {
     fireEvent.click(screen.getByRole("button", { name: "搜索" }));
     expect(screen.queryByRole("group", { name: "找什么" })).toBeNull();
     fireEvent.change(searchBox(), { target: { value: "山" } });
-    const names = within(screen.getByRole("list", { name: "画师" }))
-      .getAllByRole("button")
-      .flatMap((b) => b.querySelector(".pw-artist-name")?.textContent ?? []);
+    const names = [...screen.getByRole("list", { name: "画师" }).querySelectorAll(".pw-artist-name")].map(
+      (b) => b.textContent,
+    );
     expect(names).toEqual(["山田"]);
     fireEvent.keyDown(searchBox(), { key: "Enter" });
     expect(fake.calls("subscription_browse").some((c) => (c.args.feed as Feed).kind === "search")).toBe(false);

@@ -9,7 +9,7 @@ import { ToastProvider } from "../ui/Toast";
 import { type FakeBackend, fakeBackend } from "../test/backend";
 import { PixivHome } from "./PixivHome";
 
-// 订阅管理（#461 第 6 步）：关注即订阅，榜单与收藏夹的就地开关，画师卡片的 ⋯，第六项“管理”。几处改的是同一份名单。
+// 订阅管理（#461 第 6、7 步）：关注即订阅，榜单与收藏夹的就地开关和收进的库，画师页的卡片、批量改库与退订。几处改的是同一份名单。
 
 function work(id: string, artist = { userId: "77", name: "小林" }): PixivWork {
   const page = {
@@ -95,6 +95,7 @@ beforeEach(() => {
       importDestination: null,
       newLibraryParent: null,
       pixivDestination: { libraryId: "P", folderId: null },
+      subscriptionDestination: null,
     },
     subscriptions: () => list,
     subscription_status: {
@@ -118,6 +119,12 @@ beforeEach(() => {
     subscription_remove: (args) => {
       list = list.filter((s) => s.id !== args.id);
       return null;
+    },
+    subscription_previews: [],
+    subscription_set_library: (args) => {
+      const ids = args.ids as string[];
+      list = list.map((s) => (ids.includes(s.id) ? { ...s, libraryId: args.libraryId as string } : s));
+      return list.filter((s) => ids.includes(s.id));
     },
   });
 });
@@ -219,7 +226,7 @@ describe("关注即订阅", () => {
 });
 
 describe("就地开关", () => {
-  it("榜单页顶上“自动收日榜”订阅全年龄日榜前 50；“管理”里的开关跟着变", async () => {
+  it("榜单页顶上“自动收日榜”订阅全年龄日榜前 50；打开后旁边写着收进哪个库，点开能换", async () => {
     renderHome();
     fireEvent.click(place("榜单"));
     const toggle = await screen.findByRole("switch", { name: "自动收日榜" });
@@ -231,13 +238,17 @@ describe("就地开关", () => {
     // 还没有订阅榜单：收进这个入口上次亲手选的库。
     expect(added.libraryId).toBe("P");
 
-    fireEvent.click(place("管理"));
-    const manageDay = await screen.findByRole("switch", { name: "自动收日榜" });
-    expect(manageDay.getAttribute("aria-checked")).toBe("true");
-    fireEvent.click(manageDay);
-    await waitFor(() => expect(fake.calls("subscription_remove")).toHaveLength(1));
-    fireEvent.click(place("榜单"));
-    expect((await screen.findByRole("switch", { name: "自动收日榜" })).getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(await screen.findByRole("button", { name: "改收进的库，现在收进「pixiv」" }));
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: "参考库" }));
+    await waitFor(() => expect(fake.calls("subscription_set_library")).toHaveLength(1));
+    expect(fake.calls("subscription_set_library")[0].args).toEqual({ ids: ["new-1"], libraryId: "L" });
+    await screen.findByRole("button", { name: "改收进的库，现在收进「参考库」" });
+    // 已收的图不搬：提示里说清楚；能撤销。
+    await screen.findByText("日榜 前 50 以后收进「参考库」，已收的图留在「pixiv」");
+    fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
+    await waitFor(() => expect(fake.calls("subscription_set_library")).toHaveLength(2));
+    expect(fake.calls("subscription_set_library")[1].args).toEqual({ ids: ["new-1"], libraryId: "P" });
+    await screen.findByRole("button", { name: "改收进的库，现在收进「pixiv」" });
   });
 
   it("我的收藏页一个开关：公开和非公开收藏一起同步，只收之后新收藏的", async () => {
@@ -285,51 +296,157 @@ describe("就地开关", () => {
   });
 });
 
-describe("画师卡片与“管理”", () => {
-  it("画师卡片的 ⋯ 写着收进哪个库；“取消关注”在 pixiv 上取消关注并退订", async () => {
+const kobayashi = () => ({
+  ...list[0],
+  id: "s-77",
+  name: "小林",
+  target: { kind: "pixivArtist" as const, userId: "77" },
+});
+
+async function artistCards() {
+  fireEvent.click(place("画师"));
+  return screen.findByRole("list", { name: "画师" });
+}
+
+async function openMore(name: string) {
+  fireEvent.click(
+    within(await screen.findByRole("list", { name: "画师" })).getByRole("button", { name: `更多操作：${name}` }),
+  );
+  return screen.findByRole("menu", { name: `更多操作：${name}` });
+}
+
+describe("画师页", () => {
+  it("卡片上是收过的图、名字、多久没有新图、收进哪个库", async () => {
+    const day = 24 * 60 * 60 * 1000;
+    fake.on("subscription_previews", () => [
+      {
+        subscriptionId: "s-2",
+        received: 12,
+        lastReceivedAt: Date.now() - 3 * day,
+        images: [{ libraryId: "L", imageId: "i1", explicit: false }],
+      },
+    ]);
+    renderHome();
+    const cards = await artistCards();
+    const card = within(cards).getByText("山田").closest("li") as HTMLElement;
+    await within(card).findByText("3 天前有新图");
+    expect(card.querySelector(".pw-artist-library")?.textContent).toBe("新作收进参考库");
+    await waitFor(() => expect(card.querySelectorAll("img")).toHaveLength(1));
+    // 点缩略图看这位画师的作品。
+    fireEvent.click(within(card).getByRole("button", { name: "看 山田 的作品" }));
+    expect(await screen.findByRole("button", { name: "全部画师" })).toBeTruthy();
+    // 作品页上也看得到订阅着、收进哪个库。
+    expect(screen.getByRole("button", { name: "改收进的库，现在收进「参考库」" })).toBeTruthy();
+  });
+
+  it("⋯ 里“在 pixiv 上取消关注”取消关注并退订；撤销重新关注，照原来的库与收取范围", async () => {
     list = [{ ...list[0], includeManga: true, includeExplicit: false }];
     renderHome();
-    fireEvent.click(place("画师"));
-    const cards = await screen.findByRole("list", { name: "画师" });
-    fireEvent.click(within(cards).getByRole("button", { name: "更多操作：山田" }));
-    expect(await screen.findByText("新作收进「参考库」")).toBeTruthy();
-    fireEvent.click(screen.getByRole("menuitem", { name: "在 pixiv 上取消关注，不再自动收" }));
+    await artistCards();
+    fireEvent.click(within(await openMore("山田")).getByRole("menuitem", { name: "在 pixiv 上取消关注，不再自动收" }));
     await waitFor(() => expect(fake.calls("subscription_remove")).toHaveLength(1));
     expect(fake.calls("subscription_set_follow")[0].args).toEqual({ userId: "2", on: false });
     expect(await screen.findByText("还没有订阅画师")).toBeTruthy();
-    // 撤销就是重新关注，也就重新订阅。
     fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
     await waitFor(() => expect(fake.calls("subscription_add")).toHaveLength(1));
     expect(fake.calls("subscription_set_follow")[1].args).toEqual({ userId: "2", on: true });
-    // 照原来那条订阅的库与收取范围。
     const [back] = fake.calls("subscription_add")[0].args.subscriptions as NewSubscription[];
     expect(back).toMatchObject({ libraryId: "L", includeManga: true, includeExplicit: false });
     expect(within(await screen.findByRole("list", { name: "画师" })).getByText("山田")).toBeTruthy();
+    // 订回来了，不再算“已取消订阅的”。
+    expect(screen.queryByText("山田 已取消订阅")).toBeNull();
   });
 
-  it("“管理”里取消订阅只退订，不动 pixiv 上的关注", async () => {
+  it("⋯ 里取消订阅只退订，不动 pixiv 上的关注；退订的能在“已取消订阅的”里找回", async () => {
+    list = [...list, kobayashi()];
     renderHome();
-    fireEvent.click(place("管理"));
-    const artists = await screen.findByRole("list", { name: "画师" });
-    expect(within(artists).getByText("收进「参考库」")).toBeTruthy();
-    fireEvent.click(within(artists).getByRole("button", { name: "取消订阅 山田" }));
-    await screen.findByText("还没有订阅的画师");
+    await artistCards();
+    fireEvent.click(within(await openMore("山田")).getByRole("menuitem", { name: "取消订阅（pixiv 上仍关注）" }));
+    await screen.findByText("不再自动收 山田，pixiv 上仍关注");
     expect(fake.calls("subscription_remove")[0].args).toEqual({ id: "s-2" });
     expect(fake.calls("subscription_set_follow")).toHaveLength(0);
-    // 能撤销的不先确认：做完给带“撤销”的轻提示（说清 pixiv 上还关注着），撤销按原来的库重新订阅，只收之后的新作。
-    await screen.findByText("不再自动收 山田，pixiv 上仍关注");
-    fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
-    await within(artists).findByText("山田");
+
+    fireEvent.click(screen.getByRole("button", { name: "已取消订阅 1 位" }));
+    const gone = await screen.findByRole("list", { name: "画师" });
+    expect(within(gone).queryByText("小林")).toBeNull();
+    fireEvent.click(within(gone).getByRole("button", { name: "重新订阅" }));
+    await waitFor(() => expect(fake.calls("subscription_add")).toHaveLength(1));
     const [back] = fake.calls("subscription_add")[0].args.subscriptions as NewSubscription[];
     expect(back).toMatchObject({
       target: { kind: "pixivArtist", userId: "2" },
       libraryId: "L",
       backlog: { kind: "newOnly" },
     });
+    await screen.findByText("已重新订阅 山田，只收之后的新作");
+    // 最后一位也订回来了：回到全部画师。
+    expect(within(await screen.findByRole("list", { name: "画师" })).getByText("山田")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "已取消订阅 1 位" })).toBeNull();
   });
 
-  it("墙上正在关注一位画师时，“管理”里不能退订他", async () => {
-    list = [...list, { ...list[0], id: "s-77", name: "小林", target: { kind: "pixivArtist", userId: "77" } }];
+  it("搜索时，名字对得上的已取消订阅的画师列在下面，能重新订阅", async () => {
+    list = [...list, kobayashi()];
+    renderHome();
+    await artistCards();
+    fireEvent.click(within(await openMore("山田")).getByRole("menuitem", { name: "取消订阅（pixiv 上仍关注）" }));
+    await screen.findByText("不再自动收 山田，pixiv 上仍关注");
+    fireEvent.click(screen.getByRole("button", { name: "搜索" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "搜索" }), { target: { value: "山" } });
+    const matches = await screen.findByRole("list", { name: "已取消订阅的画师" });
+    expect(within(matches).getByText("山田 已取消订阅")).toBeTruthy();
+    fireEvent.click(within(matches).getByRole("button", { name: "重新订阅" }));
+    await waitFor(() => expect(fake.calls("subscription_add")).toHaveLength(1));
+  });
+
+  it("选择、全选后一起改收进的库；提示说已收的图留在原处，撤销改回原来的库", async () => {
+    list = [...list, { ...kobayashi(), libraryId: "P" }];
+    renderHome();
+    await artistCards();
+    fireEvent.click(screen.getByRole("button", { name: "选择" }));
+    fireEvent.click(screen.getByRole("button", { name: "全选这 2 位" }));
+    const bar = screen.getByRole("toolbar", { name: "已选 2 位" });
+    fireEvent.click(within(bar).getByRole("button", { name: "改收进的库" }));
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: "pixiv" }));
+    // 已经收进 pixiv 的小林不用改。
+    await waitFor(() => expect(fake.calls("subscription_set_library")).toHaveLength(1));
+    expect(fake.calls("subscription_set_library")[0].args).toEqual({ ids: ["s-2"], libraryId: "P" });
+    await screen.findByText("山田 以后收进「pixiv」，已收的图留在「参考库」");
+    fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
+    await waitFor(() => expect(fake.calls("subscription_set_library")).toHaveLength(2));
+    expect(fake.calls("subscription_set_library")[1].args).toEqual({ ids: ["s-2"], libraryId: "L" });
+  });
+
+  it("一起改到新建的图库", async () => {
+    list = [...list, kobayashi()];
+    renderHome();
+    await artistCards();
+    fireEvent.click(screen.getByRole("button", { name: "选择" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "选择 山田" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "选择 小林" }));
+    fireEvent.click(
+      within(screen.getByRole("toolbar", { name: "已选 2 位" })).getByRole("button", { name: "改收进的库" }),
+    );
+    fireEvent.click(await screen.findByRole("menuitem", { name: "新建图库…" }));
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+  });
+
+  it("选几位一起取消订阅：一条提示，撤销一起订回来", async () => {
+    list = [...list, kobayashi()];
+    renderHome();
+    await artistCards();
+    fireEvent.click(screen.getByRole("button", { name: "选择" }));
+    fireEvent.click(screen.getByRole("button", { name: "全选这 2 位" }));
+    fireEvent.click(
+      within(screen.getByRole("toolbar", { name: "已选 2 位" })).getByRole("button", { name: "取消订阅" }),
+    );
+    await screen.findByText("已取消订阅 2 位画师，pixiv 上仍关注");
+    expect(fake.calls("subscription_remove")).toHaveLength(2);
+    fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
+    await waitFor(() => expect(fake.calls("subscription_add")).toHaveLength(1));
+    expect(fake.calls("subscription_add")[0].args.subscriptions).toHaveLength(2);
+  });
+
+  it("墙上正在关注一位画师时，他的卡片上不能退订", async () => {
+    list = [...list, kobayashi()];
     fake.on("subscription_set_follow", () => new Promise(() => {}));
     renderHome();
     fireEvent.click(await screen.findByRole("button", { name: "作品1，小林" }));
@@ -337,28 +454,28 @@ describe("画师卡片与“管理”", () => {
     const follow = within(band).getByRole("button", { name: "关注" });
     await waitFor(() => expect(follow).toHaveProperty("disabled", false));
     fireEvent.click(follow);
-    fireEvent.click(place("管理"));
-    const artists = await screen.findByRole("list", { name: "画师" });
-    expect(within(artists).getByRole("button", { name: "取消订阅 小林" })).toHaveProperty("disabled", true);
-    expect(within(artists).getByRole("button", { name: "取消订阅 山田" })).toHaveProperty("disabled", false);
+    await artistCards();
+    const menu = await openMore("小林");
+    expect(
+      within(menu).getByRole("menuitem", { name: "取消订阅（pixiv 上仍关注）" }).hasAttribute("data-disabled"),
+    ).toBe(true);
   });
 
-  it("“管理”里正在退订一位画师时，墙上不能关注他", async () => {
-    list = [...list, { ...list[0], id: "s-77", name: "小林", target: { kind: "pixivArtist", userId: "77" } }];
+  it("画师页正在退订一位画师时，墙上不能关注他", async () => {
+    list = [...list, kobayashi()];
     fake.on("subscription_remove", () => new Promise(() => {}));
     renderHome();
-    fireEvent.click(place("管理"));
-    const artists = await screen.findByRole("list", { name: "画师" });
-    fireEvent.click(within(artists).getByRole("button", { name: "取消订阅 小林" }));
+    await artistCards();
+    fireEvent.click(within(await openMore("小林")).getByRole("menuitem", { name: "取消订阅（pixiv 上仍关注）" }));
     fireEvent.click(place("新作"));
     fireEvent.click(await screen.findByRole("button", { name: "作品1，小林" }));
     const band = screen.getByRole("region", { name: "作品1，小林" });
     expect(within(band).getByRole("button", { name: "关注" })).toHaveProperty("disabled", true);
   });
 
-  it("“管理”里能订阅画师、从关注导入", async () => {
+  it("画师页能订阅画师、从关注导入", async () => {
     renderHome();
-    fireEvent.click(place("管理"));
+    await artistCards();
     const add = await screen.findByRole("button", { name: "订阅画师" });
     await waitFor(() => expect(add).toHaveProperty("disabled", false));
     fireEvent.click(add);

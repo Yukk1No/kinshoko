@@ -2,6 +2,7 @@ import { useCallback, useId, useMemo, useRef, useState } from "react";
 import { errorText } from "../ipc";
 import { subscriptionFindArtist } from "../ipc/subscriptions";
 import { useTranslation } from "react-i18next";
+import { Settings } from "lucide-react";
 import type { Artist } from "../bindings/Artist";
 import type { Feed } from "../bindings/Feed";
 import type { RankingPeriod } from "../bindings/RankingPeriod";
@@ -10,8 +11,8 @@ import { ArtistSettingsDialog } from "../subscriptions/ArtistDialog";
 import { useSubscriptionStatus } from "../subscriptions/useSubscriptionStatus";
 import { Segmented } from "../ui/Segmented";
 import { Switch } from "../ui/Switch";
-import { ManageView } from "./ManageView";
 import { ArtistsView } from "./ArtistsView";
+import { LibraryChip } from "./LibraryMenu";
 import { FeedView } from "./FeedView";
 import type { PixivWallHandle, WallSection } from "./PixivWall";
 import { usePixivFeed } from "./usePixivFeed";
@@ -31,9 +32,10 @@ const RECOMMENDED: Feed = { kind: "recommended" };
 const FOLLOWING_PAGES = 1;
 
 /**
- * 标题行正中的五个去处（#461 2026-11-18）。新作与推荐是同一面墙上的两段。隔一道线是第六项“管理”（第 6 步）。
+ * 标题行正中的五个去处（#461 2026-11-18）。新作与推荐是同一面墙上的两段。订阅不另设“管理”页（维护者 2026-11-22）：
+ * 画师页管画师，榜单页、我的收藏页顶上有开关，全貌在右上角的“订阅设置”。
  */
-export type Place = "following" | "recommended" | "ranking" | "bookmarks" | "artists" | "manage";
+export type Place = "following" | "recommended" | "ranking" | "bookmarks" | "artists";
 type Home = "following" | "recommended";
 type Visibility = "public" | "private";
 
@@ -45,7 +47,14 @@ const isHome = (place: Place): place is Home => place === "following" || place =
  * 搜索（第 5 步）收在标题行左端，展开时五个去处让开；按回车后墙换成结果，收回时回到原来的去处，结果不保留。
  * 还没挂到应用里：最后一个 PR 换掉现有订阅页时才露出来。
  */
-export function PixivHome({ safe }: { safe: boolean }) {
+export function PixivHome({
+  safe,
+  onOpenSettings,
+}: {
+  safe: boolean;
+  /** 右上角的“订阅设置”：打开设置 › 订阅。 */
+  onOpenSettings?: () => void;
+}) {
   const { t } = useTranslation("subscriptions");
   const [place, setPlace] = useState<Place>("following");
   const [period, setPeriod] = useState<RankingPeriod>("day");
@@ -54,7 +63,7 @@ export function PixivHome({ safe }: { safe: boolean }) {
   const wall = useRef<PixivWallHandle>(null);
   /** 新作与推荐那面墙上次停在哪一段。 */
   const homeAt = useRef<Home>("following");
-  const subs = useSubscriptions();
+  const subs = useSubscriptions(safe);
   const feedback = useFeedback(subs);
   const [status] = useSubscriptionStatus();
   /** 画师页 ⋯ 里打开的“收取范围”。 */
@@ -154,9 +163,14 @@ export function PixivHome({ safe }: { safe: boolean }) {
                   { value: "ranking", label: t("browse.ranking") },
                   { value: "bookmarks", label: t("browse.bookmarks") },
                   { value: "artists", label: t("browse.artists") },
-                  { value: "manage", label: t("browse.manage") },
                 ]}
               />
+            )}
+            {onOpenSettings && (
+              <button type="button" className="k-btn is-sm is-quiet pw-settings" onClick={onOpenSettings}>
+                <Settings size={14} aria-hidden="true" />
+                {t("browse.subscriptionSettings")}
+              </button>
             )}
           </div>
           {finding != null && (
@@ -224,6 +238,7 @@ export function PixivHome({ safe }: { safe: boolean }) {
                   checked={!!subs.bookmarks()}
                   disabled={!subs.ready || subs.pending(subs.bookmarks()?.id ?? "bookmarks")}
                   onChange={(on) => void subs.setBookmarks(on)}
+                  subscription={subs.bookmarks()}
                 />
               </div>
               <FeedView
@@ -239,16 +254,12 @@ export function PixivHome({ safe }: { safe: boolean }) {
               <ArtistsView
                 safe={safe}
                 collecting={collecting}
+                status={status}
                 artist={artist}
                 filter={searching ? text : ""}
                 onArtist={setArtist}
                 onSettings={setSettings}
               />
-            </div>
-          )}
-          {!results && place === "manage" && (
-            <div className="pw-view pw-manage-view">
-              <ManageView status={status} />
             </div>
           )}
           <CollectPrompts collecting={collecting} />
@@ -328,30 +339,33 @@ function RankingSwitch({ subs, period }: { subs: Subscriptions; period: RankingP
       checked={!!sub}
       disabled={!subs.ready || subs.pending(sub?.id ?? `ranking:${period}`)}
       onChange={(on) => void subs.setRanking(period, on)}
+      subscription={sub}
     />
   );
 }
 
-/** 第二行右端的就地订阅开关：开关加一句说明，点文字也能拨。 */
+/** 第二行右端的就地订阅开关：开关加一句说明，点文字也能拨。开着时说明换成“收进「某库」”，点开能换库。 */
 function SubbarSwitch({
   label,
   hint,
   checked,
   disabled,
   onChange,
+  subscription,
 }: {
   label: string;
   hint: string;
   checked: boolean;
   disabled: boolean;
   onChange: (on: boolean) => void;
+  subscription: Subscription | undefined;
 }) {
   const id = useId();
   return (
     <div className="pw-subbar-switch">
       <Switch id={id} checked={checked} disabled={disabled} label={label} onCheckedChange={onChange} />
       <label htmlFor={id}>{label}</label>
-      <span className="k-description">{hint}</span>
+      {subscription ? <LibraryChip subscription={subscription} /> : <span className="k-description">{hint}</span>}
     </div>
   );
 }
