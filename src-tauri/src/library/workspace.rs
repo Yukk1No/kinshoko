@@ -79,12 +79,12 @@ pub(super) async fn workspace_browse<R: Runtime>(
         // 锁里只取当页的行；占位图在锁外读，读完再按修订号复核（#313）。读盘慢时不拖住缩略图请求。
         // 不用 `Hold::Stable`：`confirm` 自己复核修订号，前后再各取一次状态只是多做几遍核对。
         let state = app.state::<LibraryState>();
-        let lens = state.safe_mode.lens();
-        let pending = with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
-            took("浏览：等资源锁", started, None);
-            w.browse_rows(d, c, &query, safe_mode)
-        });
-        let page = pending.and_then(|mut pending| {
+        let browse = || -> Result<WorkspacePage, CommandError> {
+            let lens = state.safe_mode.lens();
+            let mut pending = with_lens(&app, safe_mode, Hold::Read, |w, d, c| {
+                took("浏览：等资源锁", started, None);
+                w.browse_rows(d, c, &query, safe_mode)
+            })?;
             let reading = std::time::Instant::now();
             pending.fill_placeholders(&state.gate);
             took("浏览：读占位图", reading, None);
@@ -93,7 +93,16 @@ pub(super) async fn workspace_browse<R: Runtime>(
             })?;
             lens.confirm(&state.safe_mode)?;
             Ok(page)
-        });
+        };
+        let mut page = browse();
+        // Under a steady stream of import commits, a first page can expire on every attempt.
+        // Let one browse finish between publications. Old cursors still expire normally.
+        if query.cursor.is_none()
+            && matches!(&page, Err(error) if error.kind == ErrorKind::CursorExpired)
+        {
+            let _visibility = lock(&state.visibility_commit);
+            page = browse();
+        }
         match &page {
             Ok(page) => took("浏览：一页", started, Some(page.cards.len())),
             Err(_) => took("浏览：失败", started, None),
@@ -202,17 +211,25 @@ pub(super) fn read_image<R: Runtime>(
 ) -> Result<Arc<Library>, CommandError> {
     let state = app.state::<LibraryState>();
     let lens = state.safe_mode.lens();
-    let mode = saved_mode(app);
-    let library = match state
-        .gate
-        .authorize(library_id, image_id, mode.on, mode.scope)
-    {
-        Some(result) => result.map_err(CommandError::from)?,
+    let authorize = || {
+        let mode = saved_mode(app);
+        state
+            .gate
+            .authorize(library_id, image_id, mode.on, mode.scope)
+    };
+    let library = match authorize() {
+        Some(result) => result?,
         None => {
-            *slow = true;
-            with_lens(app, mode.on, Hold::Read, |workspace, device, catalog| {
-                workspace.image_reader(device, catalog, library_id, image_id, mode.on)
-            })?
+            let _refresh = lock(&state.image_gate_refresh);
+            if let Some(result) = authorize() {
+                result?
+            } else {
+                *slow = true;
+                let safe = saved_safe_mode(app);
+                with_lens(app, safe, Hold::Read, |workspace, device, catalog| {
+                    workspace.image_reader(device, catalog, library_id, image_id, safe)
+                })?
+            }
         }
     };
     lens.confirm(&state.safe_mode)?;

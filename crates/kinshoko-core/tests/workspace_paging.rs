@@ -44,6 +44,59 @@ fn files(dir: &std::path::Path, libraries: &[&Library], red: u8) -> Vec<String> 
 }
 
 #[test]
+fn browse_can_read_a_page_while_file_import_waits_to_publish() {
+    use kinshoko_core::library::LibraryEvent;
+    use std::sync::{Arc, Mutex, mpsc::RecvTimeoutError};
+    use std::time::Duration;
+
+    let dir = tempfile::tempdir().unwrap();
+    let app = dir.path().join("app");
+    let mut device = DeviceLibraries::open(&app).unwrap();
+    let library = device
+        .create(&dir.path().join("library"), "Library")
+        .unwrap();
+    files(dir.path(), &[&library], 11);
+    let mut catalog = TagCatalog::open(&app).unwrap();
+    let mut workspace = Workspace::open(&app).unwrap();
+    let page = |workspace: &mut Workspace, catalog: &mut TagCatalog| {
+        workspace.browse(&device, catalog, &query(), true).unwrap()
+    };
+
+    let path = dir.path().join("next.png");
+    RgbaImage::from_pixel(4, 3, Rgba([22, 34, 56, 255]))
+        .save(&path)
+        .unwrap();
+    let gate = Arc::new(Mutex::new(()));
+    library.use_package_publication_gate(gate.clone());
+    let events = library.events();
+    let browse_guard = gate.lock().unwrap();
+    let task = library.import(ImportSource { paths: vec![path] });
+    assert!(matches!(
+        events.recv_timeout(Duration::from_secs(5)).unwrap(),
+        LibraryEvent::TaskProgress { progress, .. } if progress.done == 0 && progress.total == 1
+    ));
+    // Reaching the final progress event would mean the import published inside the read window.
+    assert!(
+        matches!(
+            events.recv_timeout(Duration::from_secs(1)),
+            Err(RecvTimeoutError::Timeout)
+        ),
+        "file import published while the browse held the publication gate"
+    );
+    let during = page(&mut workspace, &mut catalog);
+    assert_eq!((during.total, during.cards.len()), (1, 1));
+
+    drop(browse_guard);
+    assert!(task.wait().items[0].outcome.image_id().is_some());
+    let after = page(&mut workspace, &mut catalog);
+    assert_eq!((after.total, after.cards.len()), (2, 1));
+    println!(
+        "First-page totals: {} while import waits, {} after commit",
+        during.total, after.total
+    );
+}
+
+#[test]
 fn newest_import_leads_all_images_even_from_a_less_used_library() {
     let dir = tempfile::tempdir().unwrap();
     let app = dir.path().join("app");

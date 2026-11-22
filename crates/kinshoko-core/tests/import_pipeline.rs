@@ -152,6 +152,74 @@ fn cancelling_discards_prepared_items_without_leaving_staging_files() {
     );
 }
 
+#[test]
+fn cancelling_a_waiting_import_keeps_a_concurrent_import_of_the_same_original_intact() {
+    use sha2::{Digest, Sha256};
+    use std::sync::{Arc, Mutex, mpsc::RecvTimeoutError};
+    use std::time::Duration;
+
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("lib");
+    let library = Library::create(&root, "库").unwrap();
+    let path = write_png(&dir.path().join("same.png"), 12, 8, 42);
+    let bytes = std::fs::read(&path).unwrap();
+    let sha = format!("{:x}", Sha256::digest(&bytes));
+    let original = root
+        .join("originals")
+        .join(&sha[..2])
+        .join(format!("{sha}.png"));
+    let gate = Arc::new(Mutex::new(()));
+    library.use_package_publication_gate(gate.clone());
+    let events = library.events();
+    let guard = gate.lock().unwrap();
+    let start = || {
+        library.import(ImportSource {
+            paths: vec![path.clone()],
+        })
+    };
+    let first = start();
+    let second = start();
+    for _ in 0..2 {
+        assert!(matches!(
+            events.recv_timeout(Duration::from_secs(5)).unwrap(),
+            LibraryEvent::TaskProgress { progress, .. } if progress.done == 0 && progress.total == 1
+        ));
+    }
+    assert!(matches!(
+        events.recv_timeout(Duration::from_secs(1)),
+        Err(RecvTimeoutError::Timeout)
+    ));
+    assert!(
+        !original.exists(),
+        "an import published its original before acquiring the gate"
+    );
+
+    first.cancel();
+    let cancelled = loop {
+        if let LibraryEvent::TaskFinished {
+            task_id, report, ..
+        } = events.recv_timeout(Duration::from_secs(5)).unwrap()
+        {
+            assert_eq!(task_id, first.id());
+            break report;
+        }
+    };
+    assert!(
+        cancelled
+            .items
+            .iter()
+            .all(|item| item.outcome.image_id().is_none())
+    );
+    first.wait();
+    drop(guard);
+    let report = second.wait();
+    let id = report.items[0].outcome.image_id().unwrap();
+    assert_eq!(
+        std::fs::read(library.original_path(id).unwrap()).unwrap(),
+        bytes
+    );
+}
+
 /// 缓存目录里以 `-<后缀>.` 结尾命名的派生图（相对路径排序）。
 fn derivatives(root: &Path, suffix: &str) -> Vec<PathBuf> {
     fn walk(dir: &Path, suffix: &str, out: &mut Vec<PathBuf>) {

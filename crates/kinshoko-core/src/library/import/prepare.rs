@@ -379,7 +379,7 @@ pub(super) fn prepare(
     }
 }
 
-/// 按顺序提交准备好的一项，进库后保存占位图与网格缩略图。提交前由 [`commit_record`] 再核对一次保存目标。
+/// 按顺序提交准备好的一项，再保存占位图与网格缩略图。提交前再次核对保存目标。
 pub(super) fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, bool) {
     let (result, derivatives, sha) = match prepared {
         Prepared::Done(outcome, list_changed) => return (outcome, list_changed),
@@ -389,10 +389,7 @@ pub(super) fn complete(inner: &Inner, prepared: Prepared) -> (ImportOutcome, boo
             derivatives,
         } => {
             let sha = record.sha.clone();
-            let (committed, record) = timed(
-                |s| &mut s.commit,
-                || commit_record_returning(inner, record, None),
-            );
+            let (committed, record) = timed(|s| &mut s.commit, || commit_merge(inner, record));
             let result = match committed {
                 Ok(outcome) => outcome,
                 // 准备之后、提交之前同内容的原图被永久删除：按新图重新暂存并发布。

@@ -127,6 +127,8 @@ struct LibraryState {
     /// 缩略图请求的放行（#313）：工作区每次取快照发布到这里，各登记的资料库在这里长期只读打开。
     /// 缩略图请求先问它，不拿上面三把锁；与 [`Self::detached`] 同时清掉，释放数据库文件。
     gate: Arc<kinshoko_core::workspace::ImageGate>,
+    // Only one thumbnail should contend for workspace locks when the fast path expires.
+    image_gate_refresh: Mutex<()>,
     /// 活动资料库参考视角的句柄，装配时取走（每个打开的资料库一次）。只交给参考组（#66）
     /// 与桌面钉图（#65），不经任何命令交给前端。
     reference: Mutex<Option<ReferenceLens>>,
@@ -158,6 +160,7 @@ impl LibraryState {
             visibility_commit: Arc::new(Mutex::new(())),
             workspace: Mutex::default(),
             gate: Arc::default(),
+            image_gate_refresh: Mutex::default(),
             reference: Mutex::new(None),
             detached: DetachedLenses::default(),
             translations: Arc::new(translations),

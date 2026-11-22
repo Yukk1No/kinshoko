@@ -7,9 +7,27 @@ use crate::command_error::ErrorKind;
 pub(super) fn publish_and_commit(
     inner: &Inner,
     record: Record,
-    pending: Pending,
+    mut pending: Pending,
 ) -> (ImportOutcome, bool) {
     let failed = |reason: CommandError| (ImportOutcome::ReadFailed { reason }, false);
+    let write_failed = |e: Error| {
+        failed(CommandError::caused_by(
+            e,
+            |cause| ErrorKind::ImportWriteFailed { cause },
+            |e| format!("写入资料库失败：{e}"),
+        ))
+    };
+    let gate = publication_gate(inner);
+    let _publication = match record.lock_publication(&gate) {
+        Ok(guard) => guard,
+        Err(error) => {
+            let _ = std::fs::remove_file(inner.root.join(&pending.staging_path));
+            return write_failed(error);
+        }
+    };
+    // Serialize publication through commit or rollback: another import must not reuse
+    // an uncommitted original that this item's rollback could still remove.
+    pending.target_existed = inner.root.join(&pending.rel_path).exists();
     let row = pending.clone();
     if let Err(e) = inner.writer.run(move |conn| row.insert(conn)) {
         let _ = std::fs::remove_file(inner.root.join(&pending.staging_path));
@@ -27,7 +45,7 @@ pub(super) fn publish_and_commit(
     }
     fault::hit(fault::IMPORT_AFTER_PUBLISH);
 
-    match commit_record(inner, record, Some(pending.id.clone())) {
+    match commit_record(inner, record, Some(pending.id.clone())).0 {
         Ok(outcome) => {
             if matches!(outcome.0, ImportOutcome::SkippedDeleted) {
                 abandon(inner, pending);
@@ -36,11 +54,7 @@ pub(super) fn publish_and_commit(
         }
         Err(e) => {
             abandon(inner, pending);
-            failed(CommandError::caused_by(
-                e,
-                |cause| ErrorKind::ImportWriteFailed { cause },
-                |e| format!("写入资料库失败：{e}"),
-            ))
+            write_failed(e)
         }
     }
 }
@@ -91,7 +105,7 @@ pub(super) fn stage(inner: &Inner, bytes: &[u8], record: &Record) -> Result<Pend
         sha: record.sha.clone(),
         size: record.size,
         staging_path,
-        target_existed: inner.root.join(&record.rel_path).exists(),
+        target_existed: false,
         rel_path: record.rel_path.clone(),
         location: record.location.clone(),
     })
@@ -194,8 +208,30 @@ pub(super) struct Record {
     pub(super) options: ImportOptions,
     pub(super) destination: SaveDestination,
     pub(super) task_created_images: Arc<Mutex<HashSet<String>>>,
-    /// 任务的取消标记：Eagle 条目等发布锁时据此放弃（见 [`commit_record_returning`]）。
+    /// 任务的取消标记：等发布锁时据此放弃。
     pub(super) cancel: Option<Arc<AtomicBool>>,
+}
+
+fn publication_gate(inner: &Inner) -> Arc<Mutex<()>> {
+    inner
+        .package_publication_gate
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
+}
+
+impl Record {
+    fn lock_publication<'a>(
+        &self,
+        gate: &'a Mutex<()>,
+    ) -> Result<std::sync::MutexGuard<'a, ()>, Error> {
+        // Enter before queuing a writer job to preserve the app's gate -> writer ordering.
+        // Unregister holds the gate while cancelling and settling import tasks.
+        match &self.cancel {
+            Some(cancel) => lock_unless_cancelled(gate, cancel).ok_or(Error::DestinationRevoked),
+            None => Ok(gate.lock().unwrap_or_else(|e| e.into_inner())),
+        }
+    }
 }
 
 /// 等发布锁，任务取消时放弃。
@@ -216,17 +252,21 @@ fn lock_unless_cancelled<'a>(
     }
 }
 
-pub(super) fn commit_record(
+/// 合并时发现原图已被删除（[`Error::MergeTargetGone`]），调用方要用交回的记录重新暂存。
+pub(super) fn commit_merge(
     inner: &Inner,
     record: Record,
-    pending: Option<String>,
-) -> Result<(ImportOutcome, bool), Error> {
-    commit_record_returning(inner, record, pending).0
+) -> (Result<(ImportOutcome, bool), Error>, Record) {
+    let gate = publication_gate(inner);
+    let _publication = match record.lock_publication(&gate) {
+        Ok(guard) => guard,
+        Err(error) => return (Err(error), record),
+    };
+    commit_record(inner, record, None)
 }
 
-/// 与 [`commit_record`] 相同，并把记录交回：合并时发现原图已被删除（[`Error::MergeTargetGone`]），
-/// 调用方要用它重新暂存。
-pub(super) fn commit_record_returning(
+/// 调用方持有发布锁。
+fn commit_record(
     inner: &Inner,
     record: Record,
     pending: Option<String>,
@@ -238,39 +278,11 @@ pub(super) fn commit_record_returning(
     let authority = inner.write_revoked.clone();
     let candidate_id = record.id.clone();
     let task_created_images = record.task_created_images.clone();
-    // Package snapshots (including cross-library copy), subscriptions and Eagle items (R-18
-    // markers) can change an existing image's effective rating. Acquire before queuing the
-    // writer job: acquiring inside that job would invert the scheduler's gate -> writer order.
-    // Eagle items run inside import tasks, which unregister cancels and then settles while
-    // holding this gate, so they only poll it and give up once their task is cancelled.
-    let writes_rating =
-        record.package.is_some() || record.subscription.is_some() || record.eagle.is_some();
-    let gate = writes_rating
-        .then(|| {
-            inner
-                .package_publication_gate
-                .read()
-                .unwrap_or_else(|e| e.into_inner())
-                .clone()
-        })
-        .flatten();
-    let (committed, record) = {
-        let _publication = match (&gate, &record.cancel) {
-            (Some(gate), Some(cancel)) if record.eagle.is_some() => {
-                match lock_unless_cancelled(gate, cancel) {
-                    Some(guard) => Some(guard),
-                    None => return (Err(Error::DestinationRevoked), record),
-                }
-            }
-            (Some(gate), _) => Some(gate.lock().unwrap_or_else(|e| e.into_inner())),
-            (None, _) => None,
-        };
-        inner.writer.run(move |conn| {
-            let committed = save::validate_authority(&authority)
-                .and_then(|()| commit(conn, &record, pending.as_deref(), &translations));
-            (committed, record)
-        })
-    };
+    let (committed, record) = inner.writer.run(move |conn| {
+        let committed = save::validate_authority(&authority)
+            .and_then(|()| commit(conn, &record, pending.as_deref(), &translations));
+        (committed, record)
+    });
     let (outcome, revision) = match committed {
         Ok(committed) => committed,
         Err(error) => return (Err(error), record),
