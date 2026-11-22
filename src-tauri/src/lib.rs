@@ -90,6 +90,7 @@ pub fn run() {
             commands::shell_settings,
             commands::change_setting,
             commands::rebind_shortcut,
+            commands::set_shortcuts_paused,
             run_log::set_run_log,
             run_log::clear_run_log,
             run_log::log_frontend,

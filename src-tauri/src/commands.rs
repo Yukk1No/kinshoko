@@ -77,6 +77,23 @@ pub async fn rebind_shortcut(
     Ok(shell.view())
 }
 
+/// 设置里录新快捷键期间暂停（`paused` 为 `true`）或恢复全部全局快捷键：
+/// 暂停时按下已绑定的键只会被录下，不会执行原来的动作。
+#[tauri::command]
+pub async fn set_shortcuts_paused(
+    state: State<'_, ShellState>,
+    paused: bool,
+) -> Result<(), CommandError> {
+    let mut guard = state.0.lock().map_err(CommandError::system)?;
+    let shell = &mut *guard;
+    if paused {
+        shell.shortcuts.pause(&shell.settings);
+    } else {
+        shell.shortcuts.resume(&shell.settings);
+    }
+    Ok(())
+}
+
 /// 系统的双击设置（#179）：图片墙按“第一下的图”判定双击时用。
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]

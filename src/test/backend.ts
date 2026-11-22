@@ -68,6 +68,7 @@ export function fakeBackend(replies: Replies = {}): FakeBackend {
   on("shell_settings", () => shellSettings());
   on("safe_mode", true);
   on("workspace_status", { revision: "r1", libraries: [] } satisfies WorkspaceStatus);
+  on("set_shortcuts_paused", null);
   for (const [command, reply] of Object.entries(replies)) on(command, reply);
   mockWindows("main");
   mockIPC(

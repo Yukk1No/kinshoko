@@ -129,6 +129,31 @@ describe("设置：常驻与快捷键", () => {
     expect(within(hide).getByText("F4")).toBeTruthy();
   });
 
+  it("录新键期间暂停全局快捷键，按到已绑定的键时提示冲突，录完、取消或关掉设置都恢复", async () => {
+    const fake = backend({
+      rebind_shortcut: () => {
+        throw { code: "message", message: "这个快捷键已用于“截图”" };
+      },
+    });
+    const paused = () => fake.calls("set_shortcuts_paused").map((call) => call.args.paused);
+    const { unmount } = render(<SettingsPanel initialTab="keys" />);
+    const pin = await screen.findByRole("listitem", { name: "钉住剪贴板" });
+
+    fireEvent.click(within(pin).getByRole("button", { name: "更换" }));
+    expect(paused()).toEqual([true]);
+    fireEvent.keyDown(within(pin).getByRole("textbox"), { key: "F1", code: "F1" });
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "这个快捷键已用于“截图”");
+    expect(paused()).toEqual([true, false]);
+
+    fireEvent.click(within(pin).getByRole("button", { name: "更换" }));
+    fireEvent.click(within(pin).getByRole("button", { name: "取消" }));
+    expect(paused()).toEqual([true, false, true, false]);
+
+    fireEvent.click(within(pin).getByRole("button", { name: "更换" }));
+    unmount();
+    expect(paused()).toEqual([true, false, true, false, true, false]);
+  });
+
   it("清除快捷键", async () => {
     const fake = backend({
       rebind_shortcut: {

@@ -218,3 +218,84 @@ fn keys_that_would_get_in_the_way_of_typing_or_have_no_main_key_are_refused() {
     assert_eq!(hotkeys.press("F1"), Some(ShortcutAction::Capture));
     assert_eq!(settings.shortcut(ShortcutAction::Capture), Some("F1"));
 }
+
+#[test]
+fn while_a_new_key_is_being_recorded_no_shortcut_fires_and_all_work_again_afterwards() {
+    let dir = tempfile::tempdir().unwrap();
+    let settings = AppSettings::open(dir.path()).unwrap();
+    let hotkeys = FakeHotkeys::default();
+    let mut shortcuts = GlobalShortcuts::start(hotkeys.clone(), &settings);
+
+    shortcuts.pause(&settings);
+
+    assert_eq!(hotkeys.press("F1"), None);
+    assert_eq!(hotkeys.press("F3"), None);
+    assert_eq!(hotkeys.press("F4"), None);
+
+    shortcuts.resume(&settings);
+
+    assert_eq!(hotkeys.press("F1"), Some(ShortcutAction::Capture));
+    assert_eq!(hotkeys.press("F3"), Some(ShortcutAction::PinClipboard));
+    assert_eq!(hotkeys.press("F4"), Some(ShortcutAction::HideAllPins));
+}
+
+#[test]
+fn recording_a_key_another_action_uses_is_refused_as_a_conflict_and_ends_the_pause() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    let hotkeys = FakeHotkeys::default();
+    let mut shortcuts = GlobalShortcuts::start(hotkeys.clone(), &settings);
+    shortcuts.pause(&settings);
+
+    let err = shortcuts
+        .rebind(&mut settings, ShortcutAction::PinClipboard, Some("F1"))
+        .unwrap_err();
+
+    assert!(err.to_string().contains("截图"), "{err}");
+    assert_eq!(hotkeys.press("F1"), Some(ShortcutAction::Capture));
+    assert_eq!(hotkeys.press("F3"), Some(ShortcutAction::PinClipboard));
+    assert_eq!(hotkeys.press("F4"), Some(ShortcutAction::HideAllPins));
+}
+
+#[test]
+fn a_new_key_recorded_during_the_pause_takes_effect_with_the_other_keys() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    let hotkeys = FakeHotkeys::default();
+    let mut shortcuts = GlobalShortcuts::start(hotkeys.clone(), &settings);
+    shortcuts.pause(&settings);
+
+    shortcuts
+        .rebind(&mut settings, ShortcutAction::PinClipboard, Some("F8"))
+        .unwrap();
+    // 设置界面在录完后还会发一次恢复，不能把键注册第二次。
+    shortcuts.resume(&settings);
+
+    assert_eq!(hotkeys.press("F3"), None);
+    assert_eq!(hotkeys.press("F8"), Some(ShortcutAction::PinClipboard));
+    assert_eq!(hotkeys.press("F1"), Some(ShortcutAction::Capture));
+    assert!(
+        shortcuts
+            .bindings(&settings)
+            .iter()
+            .all(|binding| binding.problem.is_none())
+    );
+}
+
+#[test]
+fn a_key_another_program_takes_during_the_pause_is_reported_after_it() {
+    let dir = tempfile::tempdir().unwrap();
+    let settings = AppSettings::open(dir.path()).unwrap();
+    let hotkeys = FakeHotkeys::default();
+    let mut shortcuts = GlobalShortcuts::start(hotkeys.clone(), &settings);
+    shortcuts.pause(&settings);
+    hotkeys.inner.lock().unwrap().taken.insert("F4".to_owned());
+
+    shortcuts.resume(&settings);
+
+    assert_eq!(hotkeys.press("F1"), Some(ShortcutAction::Capture));
+    assert_eq!(
+        shortcuts.bindings(&settings)[2].problem,
+        Some(HotkeyFailure::Taken)
+    );
+}
