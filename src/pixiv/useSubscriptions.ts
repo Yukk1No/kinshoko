@@ -11,6 +11,18 @@ import { useLibraryOptions } from "../subscriptions/artistOptions";
 import { useOptionalToast } from "../ui/Toast";
 import { rankingName } from "../subscriptions/rankingNames";
 
+/** 就地订阅时同一个目标共用的写入锁：开关、“关注”与撤销提示不会同时给它加两条。 */
+function keyOf(target: Subscription["target"]): string {
+  switch (target.kind) {
+    case "pixivArtist":
+      return `artist:${target.userId}`;
+    case "pixivRanking":
+      return target.explicit ? `ranking:${target.period}:explicit:${target.top}` : `ranking:${target.period}`;
+    case "pixivBookmarks":
+      return "bookmarks";
+  }
+}
+
 /** 就地打开榜单开关时收前几名；和“订阅榜单”对话框的默认一样。 */
 export const RANKING_TOP = 50;
 
@@ -135,8 +147,10 @@ export function useSubscriptions() {
             label: t("browse.undo"),
             onClick: () =>
               void write(
-                `undo:${sub.id}`,
-                async () =>
+                keyOf(sub.target),
+                async () => {
+                  // 撤销前已经用开关或“关注”重新订阅了的，不再加一条。
+                  if (latest.current?.some((s) => keyOf(s.target) === keyOf(sub.target))) return;
                   added(
                     await subscriptionAdd([
                       {
@@ -146,9 +160,11 @@ export function useSubscriptions() {
                         includeExplicit: sub.includeExplicit,
                         includeManga: sub.includeManga,
                         backlog: { kind: "newOnly" },
+                        ...(sub.target.kind === "pixivBookmarks" && { privateBacklog: { kind: "newOnly" } }),
                       },
                     ]),
-                  ),
+                  );
+                },
                 "browse.subscribeFailed",
               ),
           },
@@ -197,7 +213,7 @@ export function useSubscriptions() {
   const setRanking = useCallback(
     async (period: RankingPeriod, on: boolean) => {
       const sub = ranking(period);
-      if (!on) return sub ? unsubscribe(sub) : true;
+      if (!on) return sub ? unsubscribe(sub, true) : true;
       if (sub) return true;
       return subscribe(`ranking:${period}`, (libraryId) => ({
         target: { kind: "pixivRanking", period, top: RANKING_TOP, explicit: false },
@@ -215,7 +231,7 @@ export function useSubscriptions() {
   const setBookmarks = useCallback(
     async (on: boolean) => {
       const sub = bookmarks();
-      if (!on) return sub ? unsubscribe(sub) : true;
+      if (!on) return sub ? unsubscribe(sub, true) : true;
       if (sub) return true;
       return subscribe("bookmarks", (libraryId) => ({
         target: { kind: "pixivBookmarks" },
@@ -230,10 +246,14 @@ export function useSubscriptions() {
     [bookmarks, unsubscribe, subscribe],
   );
 
+  /** 名单和可用的资料库都读到了：之前不能就地订阅，否则会把“还没读到资料库”当成“没有资料库”。 */
+  const ready = !!list && libraries.ready;
+
   const isPending = useCallback((key: string) => pending.has(key), [pending]);
 
   return {
     list,
+    ready,
     failed,
     retry,
     notice,

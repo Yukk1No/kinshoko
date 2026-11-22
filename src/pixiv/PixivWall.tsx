@@ -504,7 +504,7 @@ export function FollowButton({
     busy ||
     !!subs?.pending(`artist:${userId}`) ||
     (!!removing && !!subs?.pending(removing.id)) ||
-    (!!subs && !subs.list);
+    (!!subs && !subs.ready);
   return (
     <button type="button" className="k-btn" aria-pressed={followed} disabled={writing} onClick={onToggle}>
       {subscribed ? t("browse.followedSubscribed") : followed ? t("browse.followed") : t("browse.follow")}

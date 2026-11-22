@@ -7,6 +7,7 @@ import type { PixivWork } from "../bindings/PixivWork";
 import type { Subscription } from "../bindings/Subscription";
 import type { WorksPage } from "../bindings/WorksPage";
 import { type FakeBackend, fakeBackend } from "../test/backend";
+import { SaveDestinationProvider } from "../library/SaveDestination";
 import { PixivHome } from "./PixivHome";
 
 // 应用内浏览（#461 第 5 步）：搜索作品与画师、“画师”页里原地筛选、在 pixiv 上关注。
@@ -53,12 +54,31 @@ function artistSubscription(userId: string, name: string): Subscription {
 }
 
 let fake: FakeBackend;
+const library = { library: { id: "L", name: "参考库", root: "C:/l" }, unavailable: null };
+
+function renderHome() {
+  return render(
+    <SaveDestinationProvider safe={false}>
+      <PixivHome safe={false} />
+    </SaveDestinationProvider>,
+  );
+}
+
 beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
   mockConvertFileSrc("windows");
   HTMLElement.prototype.scrollTo = () => {};
   fake = fakeBackend({
+    // 关注同时订阅，要先读到能收进去的资料库。
+    workspace_directories: {
+      status: { revision: "test", libraries: [library] },
+      registrationOrder: [],
+      providers: [
+        { registration: library, sidebar: { all: 0, trash: 0, folders: [] }, unassigned: 0, descendants: {} },
+      ],
+    },
+    save_memory: { importDestination: null, newLibraryParent: null, pixivDestination: null },
     subscription_browse: (args) => {
       const feed = args.feed as Feed;
       if (feed.kind === "search") return { works: [work(`搜${feed.word}`)], next: null } satisfies WorksPage;
@@ -88,7 +108,7 @@ const searchBox = () => screen.getByRole("searchbox", { name: "搜索" });
 
 describe("订阅页的搜索", () => {
   it("点图标展开搜索，五个去处让开；回车后墙换成结果；Esc 收回，回到原来的去处，结果不保留", async () => {
-    render(<PixivHome safe={false} />);
+    renderHome();
     await screen.findByRole("button", { name: "作品following，小林" });
     fireEvent.click(screen.getByRole("button", { name: "搜索" }));
     expect(places()).toBeNull();
@@ -107,7 +127,7 @@ describe("订阅页的搜索", () => {
   });
 
   it("Ctrl+F 和 / 都能打开搜索；框空着点到别处时收回", async () => {
-    render(<PixivHome safe={false} />);
+    renderHome();
     await screen.findByRole("button", { name: "作品following，小林" });
     fireEvent.keyDown(window, { key: "f", ctrlKey: true });
     expect(searchBox()).toBeTruthy();
@@ -120,7 +140,7 @@ describe("订阅页的搜索", () => {
   });
 
   it("找画师：列出 pixiv 上的画师，可以关注；点一位看作品", async () => {
-    render(<PixivHome safe={false} />);
+    renderHome();
     fireEvent.click(screen.getByRole("button", { name: "搜索" }));
     fireEvent.click(within(screen.getByRole("group", { name: "找什么" })).getByRole("button", { name: "画师" }));
     fireEvent.change(searchBox(), { target: { value: "林" } });
@@ -138,7 +158,7 @@ describe("订阅页的搜索", () => {
   });
 
   it("找画师时输入数字 ID 直接打开这位画师", async () => {
-    render(<PixivHome safe={false} />);
+    renderHome();
     fireEvent.click(screen.getByRole("button", { name: "搜索" }));
     fireEvent.click(within(screen.getByRole("group", { name: "找什么" })).getByRole("button", { name: "画师" }));
     fireEvent.change(searchBox(), { target: { value: "12345" } });
@@ -149,7 +169,7 @@ describe("订阅页的搜索", () => {
   });
 
   it("在“画师”页里搜索是原地按名字筛选名单，没有作品｜画师切换", async () => {
-    render(<PixivHome safe={false} />);
+    renderHome();
     fireEvent.click(place("画师"));
     await screen.findByRole("list", { name: "画师" });
     fireEvent.click(screen.getByRole("button", { name: "搜索" }));
@@ -168,7 +188,7 @@ describe("订阅页的搜索", () => {
 
 describe("搜索的边角", () => {
   it("输入法选字时的回车和 Esc 不算", async () => {
-    render(<PixivHome safe={false} />);
+    renderHome();
     fireEvent.click(screen.getByRole("button", { name: "搜索" }));
     fireEvent.change(searchBox(), { target: { value: "なつ" } });
     fireEvent.keyDown(searchBox(), { key: "Enter", keyCode: 229 });
@@ -180,7 +200,7 @@ describe("搜索的边角", () => {
   it("按 ID 找画师还没回来时收起了搜索，回来也不再打开这位画师", async () => {
     let answer: (artist: { userId: string; name: string }) => void = () => {};
     fake.on("subscription_find_artist", () => new Promise<{ userId: string; name: string }>((done) => (answer = done)));
-    render(<PixivHome safe={false} />);
+    renderHome();
     await screen.findByRole("button", { name: "作品following，小林" });
     fireEvent.click(screen.getByRole("button", { name: "搜索" }));
     fireEvent.click(within(screen.getByRole("group", { name: "找什么" })).getByRole("button", { name: "画师" }));
@@ -202,7 +222,7 @@ describe("搜索的边角", () => {
           }
         : { artists: [{ userId: "41", name: "二页", avatar: null, followed: false, works: [] }], next: null },
     );
-    render(<PixivHome safe={false} />);
+    renderHome();
     fireEvent.click(screen.getByRole("button", { name: "搜索" }));
     fireEvent.click(within(screen.getByRole("group", { name: "找什么" })).getByRole("button", { name: "画师" }));
     fireEvent.change(searchBox(), { target: { value: "x" } });
@@ -214,7 +234,7 @@ describe("搜索的边角", () => {
 
 describe("在 pixiv 上关注", () => {
   it("展开的一格里关注画师；画师页顶上的关注按读到的作品显示", async () => {
-    render(<PixivHome safe={false} />);
+    renderHome();
     fireEvent.click(await screen.findByRole("button", { name: "作品following，小林" }));
     const band = screen.getByRole("region", { name: "作品following，小林" });
     fireEvent.click(within(band).getByRole("button", { name: "关注" }));
@@ -232,7 +252,7 @@ describe("在 pixiv 上关注", () => {
   it("写的时候按钮不能再点；失败时回到写之前的样子", async () => {
     let fail: (error: unknown) => void = () => {};
     fake.on("subscription_set_follow", () => new Promise((_, reject) => (fail = reject)));
-    render(<PixivHome safe={false} />);
+    renderHome();
     fireEvent.click(await screen.findByRole("button", { name: "作品following，小林" }));
     const band = screen.getByRole("region", { name: "作品following，小林" });
     fireEvent.click(within(band).getByRole("button", { name: "关注" }));
@@ -248,7 +268,7 @@ describe("在 pixiv 上关注", () => {
     fake.on("subscription_set_follow", () => {
       throw { code: "subscriptionSource", reason: { code: "network" } };
     });
-    render(<PixivHome safe={false} />);
+    renderHome();
     fireEvent.click(await screen.findByRole("button", { name: "作品following，小林" }));
     const band = screen.getByRole("region", { name: "作品following，小林" });
     fireEvent.click(within(band).getByRole("button", { name: "关注" }));

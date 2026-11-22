@@ -122,7 +122,7 @@ export function ManageView({ status }: { status: SubscriptionStatus | null }) {
                 <Switch
                   label={t("browse.autoRanking", { ranking: name })}
                   checked={!!sub}
-                  disabled={subs.pending(sub?.id ?? `ranking:${period}`)}
+                  disabled={!subs.ready || subs.pending(sub?.id ?? `ranking:${period}`)}
                   onCheckedChange={(on) => void subs.setRanking(period, on)}
                 />
               </li>
@@ -136,7 +136,7 @@ export function ManageView({ status }: { status: SubscriptionStatus | null }) {
                 label={displayName(t, s)}
                 checked
                 disabled={subs.pending(s.id)}
-                onCheckedChange={() => void subs.unsubscribe(s)}
+                onCheckedChange={() => void subs.unsubscribe(s, true)}
               />
             </li>
           ))}
@@ -156,7 +156,7 @@ export function ManageView({ status }: { status: SubscriptionStatus | null }) {
             <Switch
               label={t("browse.syncBookmarks")}
               checked={!!bookmarks}
-              disabled={subs.pending(bookmarks?.id ?? "bookmarks")}
+              disabled={!subs.ready || subs.pending(bookmarks?.id ?? "bookmarks")}
               onCheckedChange={(on) => void subs.setBookmarks(on)}
             />
           </li>

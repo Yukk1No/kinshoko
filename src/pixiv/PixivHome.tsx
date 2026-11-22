@@ -222,7 +222,7 @@ export function PixivHome({ safe }: { safe: boolean }) {
                   label={t("browse.syncBookmarks")}
                   hint={t("browse.syncBookmarksHint")}
                   checked={!!subs.bookmarks()}
-                  disabled={!subs.list || subs.pending(subs.bookmarks()?.id ?? "bookmarks")}
+                  disabled={!subs.ready || subs.pending(subs.bookmarks()?.id ?? "bookmarks")}
                   onChange={(on) => void subs.setBookmarks(on)}
                 />
               </div>
@@ -326,7 +326,7 @@ function RankingSwitch({ subs, period }: { subs: Subscriptions; period: RankingP
       label={t("browse.autoRanking", { ranking: t(`browse.${period}`) })}
       hint={t("browse.autoRankingHint", { count: sub?.target.kind === "pixivRanking" ? sub.target.top : RANKING_TOP })}
       checked={!!sub}
-      disabled={!subs.list || subs.pending(sub?.id ?? `ranking:${period}`)}
+      disabled={!subs.ready || subs.pending(sub?.id ?? `ranking:${period}`)}
       onChange={(on) => void subs.setRanking(period, on)}
     />
   );

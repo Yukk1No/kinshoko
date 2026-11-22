@@ -196,6 +196,15 @@ describe("关注即订阅", () => {
     expect(within(band).getByRole("button", { name: "关注" })).toHaveProperty("disabled", true);
   });
 
+  it("资料库还没读到时关注按钮不能点（否则会当成没有资料库而只关注不订阅）", async () => {
+    fake.on("workspace_directories", () => new Promise(() => {}));
+    renderHome();
+    fireEvent.click(await screen.findByRole("button", { name: "作品1，小林" }));
+    const band = screen.getByRole("region", { name: "作品1，小林" });
+    await waitFor(() => expect(fake.calls("subscriptions")).toHaveLength(1));
+    expect(within(band).getByRole("button", { name: "关注" })).toHaveProperty("disabled", true);
+  });
+
   it("pixiv 上没关注成时不订阅", async () => {
     fake.on("subscription_set_follow", () => {
       throw { code: "subscriptionSource", reason: { code: "network" } };
@@ -244,6 +253,35 @@ describe("就地开关", () => {
       backlog: { kind: "newOnly" },
       privateBacklog: { kind: "newOnly" },
     });
+
+    // 关掉可以撤销：按原来的库重新订阅，公开和非公开都只收之后的新收藏。
+    fireEvent.click(toggle);
+    await waitFor(() => expect(fake.calls("subscription_remove")).toHaveLength(1));
+    fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
+    await waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("true"));
+    const [back] = fake.calls("subscription_add")[1].args.subscriptions as NewSubscription[];
+    expect(back).toMatchObject({
+      target: { kind: "pixivBookmarks" },
+      libraryId: added.libraryId,
+      privateBacklog: { kind: "newOnly" },
+    });
+  });
+
+  it("关掉榜单开关可以撤销，撤销前又打开了就不再加一条", async () => {
+    renderHome();
+    fireEvent.click(place("榜单"));
+    const toggle = await screen.findByRole("switch", { name: "自动收日榜" });
+    await waitFor(() => expect(toggle.hasAttribute("data-disabled")).toBe(false));
+    fireEvent.click(toggle);
+    await waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("true"));
+    fireEvent.click(toggle);
+    await waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("false"));
+    const undo = await screen.findByRole("button", { name: "撤销" });
+    fireEvent.click(toggle);
+    await waitFor(() => expect(toggle.getAttribute("aria-checked")).toBe("true"));
+    fireEvent.click(undo);
+    await waitFor(() => expect(toggle.hasAttribute("data-disabled")).toBe(false));
+    expect(fake.calls("subscription_add")).toHaveLength(2);
   });
 });
 
