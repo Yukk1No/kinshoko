@@ -82,20 +82,24 @@ export function useFeedback(subs: Subscriptions | null = null) {
   const setFollow = useCallback(
     async (artist: Artist, on: boolean) => {
       const key = `a:${artist.userId}`;
-      if (!begin(key)) return;
+      if (!begin(key)) return false;
       const before = follows.get(artist.userId);
       setFollows((map) => new Map(map).set(artist.userId, on));
       setNotice(null);
       try {
-        await subscriptionSetFollow(artist.userId, on);
-      } catch (error) {
-        setFollows((map) => restore(map, artist.userId, before));
-        setNotice(t(on ? "browse.followFailed" : "browse.unfollowFailed", { error: errorText(error) }));
-        return;
+        try {
+          await subscriptionSetFollow(artist.userId, on);
+        } catch (error) {
+          setFollows((map) => restore(map, artist.userId, before));
+          setNotice(t(on ? "browse.followFailed" : "browse.unfollowFailed", { error: errorText(error) }));
+          return false;
+        }
+        // 订阅改完之前这位画师一直锁着：退订还没写完时再点“关注”，会看到旧订阅而不再订阅，退订落地后就成了关注却没订阅。
+        if (subs) await (on ? subs.subscribeArtist(artist) : subs.unsubscribeArtist(artist.userId));
+        return true;
       } finally {
         end(key);
       }
-      if (subs) await (on ? subs.subscribeArtist(artist) : subs.unsubscribeArtist(artist.userId));
     },
     [t, begin, end, follows, subs],
   );

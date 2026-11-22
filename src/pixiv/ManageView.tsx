@@ -8,6 +8,7 @@ import { useLibraryOptions } from "../subscriptions/artistOptions";
 import { FollowingDialog } from "../subscriptions/FollowingDialog";
 import { displayName } from "../subscriptions/rankingNames";
 import { Switch } from "../ui/Switch";
+import { Tip } from "../ui/Tip";
 import { PixivStatus } from "./Status";
 import { RANKING_TOP, useSubscriptionsContext } from "./useSubscriptions";
 
@@ -65,7 +66,6 @@ export function ManageView({ status }: { status: SubscriptionStatus | null }) {
             {t("browse.addArtist")}
           </button>
         </div>
-        <p className="k-description pw-manage-note">{t("browse.unsubscribeNote")}</p>
         <ul className="pw-rows" aria-label={t("browse.artists")}>
           {artists.length === 0 && <li className="pw-row k-description">{t("browse.noSubscribedArtists")}</li>}
           {artists.map((s) => (
@@ -81,15 +81,17 @@ export function ManageView({ status }: { status: SubscriptionStatus | null }) {
               >
                 <SlidersHorizontal size={14} aria-hidden="true" />
               </button>
-              <button
-                type="button"
-                className="k-btn is-sm is-quiet"
-                aria-label={t("browse.unsubscribeNamed", { name: s.name })}
-                disabled={subs.pending(s.id)}
-                onClick={() => void subs.unsubscribe(s)}
-              >
-                {t("browse.unsubscribe")}
-              </button>
+              <Tip label={t("browse.unsubscribeNote")}>
+                <button
+                  type="button"
+                  className="k-btn is-sm is-quiet"
+                  aria-label={t("browse.unsubscribeNamed", { name: s.name })}
+                  disabled={subs.pending(s.id)}
+                  onClick={() => void subs.unsubscribe(s, true)}
+                >
+                  {t("browse.unsubscribe")}
+                </button>
+              </Tip>
             </li>
           ))}
         </ul>

@@ -225,8 +225,8 @@ describe("在 pixiv 上关注", () => {
     fireEvent.click(place("画师"));
     fireEvent.click(within(await screen.findByRole("list", { name: "画师" })).getByRole("button", { name: /^山田/ }));
     await screen.findByRole("button", { name: "作品画2，x" });
-    // 画师 2 的作品里带着“已关注”；他也在订阅里，所以写“已关注 · 自动收”。
-    expect((await screen.findByRole("button", { name: "已关注 · 自动收" })).getAttribute("aria-pressed")).toBe("true");
+    // 画师 2 的作品里带着“已关注”；他也在订阅里，所以写“已关注，自动收”。
+    expect((await screen.findByRole("button", { name: "已关注，自动收" })).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("写的时候按钮不能再点；失败时回到写之前的样子", async () => {

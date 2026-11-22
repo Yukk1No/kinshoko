@@ -5,6 +5,7 @@ import type { Artist } from "../bindings/Artist";
 import type { Subscription } from "../bindings/Subscription";
 import { useLibraryOptions } from "../subscriptions/artistOptions";
 import { Menu, MenuItem, MenuLabel, MenuPopup, MenuSeparator } from "../ui/Menu";
+import { useOptionalToast } from "../ui/Toast";
 import { Segmented } from "../ui/Segmented";
 import { TARGET } from "../wall/wallShared";
 import { FeedView } from "./FeedView";
@@ -58,6 +59,16 @@ function ArtistIndex({
   const subs = useSubscriptionsContext();
   const feedback = useFeedbackContext();
   const libraries = useLibraryOptions();
+  const toast = useOptionalToast();
+  /** ⋯ 里的“在 pixiv 上取消关注”：同时退订；做完给带“撤销”的轻提示，撤销就是重新关注（也就重新订阅）。 */
+  const unfollow = async (a: Artist, subscription: Subscription) => {
+    if (!feedback) return void subs?.unsubscribe(subscription, true);
+    if (!(await feedback.setFollow(a, false))) return;
+    toast?.show({
+      title: t("browse.unfollowedArtist", { name: a.name }),
+      action: { label: t("browse.undo"), onClick: () => void feedback.setFollow(a, true) },
+    });
+  };
   const artists = useMemo(() => {
     if (!subs?.list) return null;
     const seen = new Set<string>();
@@ -115,7 +126,7 @@ function ArtistIndex({
                   icon={<UserMinus size={14} />}
                   danger
                   disabled={!!feedback?.followPending(a.userId) || !!subs?.pending(subscription.id)}
-                  onClick={() => void (feedback ? feedback.setFollow(a, false) : subs?.unsubscribe(subscription))}
+                  onClick={() => void unfollow(a, subscription)}
                 >
                   {t("browse.unfollowArtist")}
                 </MenuItem>

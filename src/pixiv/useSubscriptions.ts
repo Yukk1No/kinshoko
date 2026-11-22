@@ -8,6 +8,7 @@ import { errorText } from "../ipc";
 import { subscriptionAdd, subscriptionRemove, subscriptions as listSubscriptions } from "../ipc/subscriptions";
 import { useSaveDestination } from "../library/SaveDestination";
 import { useLibraryOptions } from "../subscriptions/artistOptions";
+import { useOptionalToast } from "../ui/Toast";
 import { rankingName } from "../subscriptions/rankingNames";
 
 /** 就地打开榜单开关时收前几名；和“订阅榜单”对话框的默认一样。 */
@@ -22,6 +23,7 @@ export const RANKING_TOP = 50;
 export function useSubscriptions() {
   const { t } = useTranslation("subscriptions");
   const { memory } = useSaveDestination();
+  const toast = useOptionalToast();
   const libraries = useLibraryOptions();
   const [list, setList] = useState<Subscription[] | null>(null);
   const [failed, setFailed] = useState<unknown>(null);
@@ -109,17 +111,48 @@ export function useSubscriptions() {
     [libraryFor, write, added, t],
   );
 
+  /**
+   * 退订；`undoable` 时做完给一条带“撤销”的轻提示（界面文字规则：能撤销的不先确认）。撤销按原来的资料库和收取范围
+   * 重新订阅，只收之后的新作，不把退订期间的旧作补回来。
+   */
   const unsubscribe = useCallback(
-    (sub: Subscription) =>
-      write(
+    async (sub: Subscription, undoable = false) => {
+      const done = await write(
         sub.id,
         async () => {
           await subscriptionRemove(sub.id);
           removed(sub.id);
         },
         "browse.unsubscribeFailed",
-      ),
-    [write, removed],
+      );
+      if (done && undoable)
+        toast?.show({
+          title: t("browse.unsubscribed", { name: sub.name }),
+          action: {
+            label: t("browse.undo"),
+            onClick: () =>
+              void write(
+                `undo:${sub.id}`,
+                async () =>
+                  added(
+                    await subscriptionAdd([
+                      {
+                        target: sub.target,
+                        name: sub.name,
+                        libraryId: sub.libraryId,
+                        includeExplicit: sub.includeExplicit,
+                        includeManga: sub.includeManga,
+                        backlog: { kind: "newOnly" },
+                      },
+                    ]),
+                  ),
+                "browse.subscribeFailed",
+              ),
+          },
+        });
+      return done;
+    },
+    [write, removed, added, toast, t],
   );
 
   /** 订阅一位画师：只收之后的新作，漫画不收，R-18 照收（和“订阅画师”对话框的默认一样）。已订阅时什么都不做。 */

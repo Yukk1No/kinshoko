@@ -488,13 +488,8 @@
   overflow-wrap: anywhere;
 }
 
-.pw-manage-foot,
-.pw-manage-note {
+.pw-manage-foot {
   margin: 0;
-}
-
-.pw-manage-note {
-  margin-bottom: 8px;
 }
 
 /* 搜索到的画师：一格名字，旁边关注。 */

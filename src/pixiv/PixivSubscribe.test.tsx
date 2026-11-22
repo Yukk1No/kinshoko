@@ -5,6 +5,7 @@ import type { NewSubscription } from "../bindings/NewSubscription";
 import type { PixivWork } from "../bindings/PixivWork";
 import type { Subscription } from "../bindings/Subscription";
 import { SaveDestinationProvider } from "../library/SaveDestination";
+import { ToastProvider } from "../ui/Toast";
 import { type FakeBackend, fakeBackend } from "../test/backend";
 import { PixivHome } from "./PixivHome";
 
@@ -124,9 +125,11 @@ afterEach(cleanup);
 
 function renderHome() {
   return render(
-    <SaveDestinationProvider safe={false}>
-      <PixivHome safe={false} />
-    </SaveDestinationProvider>,
+    <ToastProvider>
+      <SaveDestinationProvider safe={false}>
+        <PixivHome safe={false} />
+      </SaveDestinationProvider>
+    </ToastProvider>,
   );
 }
 
@@ -139,7 +142,7 @@ describe("关注即订阅", () => {
     fireEvent.click(await screen.findByRole("button", { name: "作品1，小林" }));
     const band = screen.getByRole("region", { name: "作品1，小林" });
     fireEvent.click(within(band).getByRole("button", { name: "关注" }));
-    await within(band).findByRole("button", { name: "已关注 · 自动收" });
+    await within(band).findByRole("button", { name: "已关注，自动收" });
     expect(fake.calls("subscription_set_follow")[0].args).toEqual({ userId: "77", on: true });
     const [added] = fake.calls("subscription_add")[0].args.subscriptions as NewSubscription[];
     expect(added).toMatchObject({
@@ -154,10 +157,35 @@ describe("关注即订阅", () => {
     expect(within(await screen.findByRole("list", { name: "画师" })).getByText("小林")).toBeTruthy();
 
     fireEvent.click(place("新作"));
-    fireEvent.click(within(band).getByRole("button", { name: "已关注 · 自动收" }));
+    fireEvent.click(within(band).getByRole("button", { name: "已关注，自动收" }));
     await within(band).findByRole("button", { name: "关注" });
     expect(fake.calls("subscription_set_follow")[1].args).toEqual({ userId: "77", on: false });
     expect(fake.calls("subscription_remove")[0].args).toEqual({ id: "new-1" });
+  });
+
+  it("取消关注时退订写完之前按钮一直锁着，不会关注了却没订阅", async () => {
+    let finish: () => void = () => {};
+    renderHome();
+    fireEvent.click(await screen.findByRole("button", { name: "作品1，小林" }));
+    const band = screen.getByRole("region", { name: "作品1，小林" });
+    fireEvent.click(within(band).getByRole("button", { name: "关注" }));
+    const followed = await within(band).findByRole("button", { name: "已关注，自动收" });
+    await waitFor(() => expect(followed).toHaveProperty("disabled", false));
+    fake.on(
+      "subscription_remove",
+      () =>
+        new Promise<unknown>((resolve) => {
+          finish = () => {
+            list = list.filter((s) => s.id !== "new-1");
+            resolve(null);
+          };
+        }),
+    );
+    fireEvent.click(followed);
+    await waitFor(() => expect(fake.calls("subscription_remove")).toHaveLength(1));
+    expect(within(band).getByRole("button", { name: /关注/ })).toHaveProperty("disabled", true);
+    finish();
+    await waitFor(() => expect(within(band).getByRole("button", { name: "关注" })).toHaveProperty("disabled", false));
   });
 
   it("pixiv 上没关注成时不订阅", async () => {
@@ -198,7 +226,7 @@ describe("就地开关", () => {
   it("我的收藏页一个开关：公开和非公开收藏一起同步，只收之后新收藏的", async () => {
     renderHome();
     fireEvent.click(place("我的收藏"));
-    const toggle = await screen.findByRole("switch", { name: "同步收藏到资料库" });
+    const toggle = await screen.findByRole("switch", { name: "同步收藏到图库" });
     await waitFor(() => expect(toggle.hasAttribute("data-disabled")).toBe(false));
     fireEvent.click(toggle);
     await waitFor(() => expect(fake.calls("subscription_add")).toHaveLength(1));
@@ -233,6 +261,15 @@ describe("画师卡片与“管理”", () => {
     await screen.findByText("还没有订阅的画师");
     expect(fake.calls("subscription_remove")[0].args).toEqual({ id: "s-2" });
     expect(fake.calls("subscription_set_follow")).toHaveLength(0);
+    // 能撤销的不先确认：做完给带“撤销”的轻提示，撤销按原来的库重新订阅，只收之后的新作。
+    fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
+    await within(artists).findByText("山田");
+    const [back] = fake.calls("subscription_add")[0].args.subscriptions as NewSubscription[];
+    expect(back).toMatchObject({
+      target: { kind: "pixivArtist", userId: "2" },
+      libraryId: "L",
+      backlog: { kind: "newOnly" },
+    });
   });
 
   it("“管理”里能订阅画师、从关注导入", async () => {
