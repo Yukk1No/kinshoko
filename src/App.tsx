@@ -109,7 +109,9 @@ function MainWindow() {
    * 只读的几项直接取已接受的设置，读到之前用默认值：相近标签来源标记（默认不显示）、
    * 切换安全模式时保留选择、标签外观（#160，详情面板与查看器从上下文读取，设置一改立即生效）。
    */
-  const settingsView = useSyncExternalStore(shellSettingsStore.subscribe, shellSettingsStore.state).view;
+  const settingsState = useSyncExternalStore(shellSettingsStore.subscribe, shellSettingsStore.state);
+  const settingsView = settingsState.view;
+  const density = settingsState.densityDraft ?? settingsView?.wallDensity ?? 240;
   const showApproxSource = settingsView?.showApproxSource ?? false;
   const keepSelectionOnSafe = settingsView?.keepSelectionOnSafeMode ?? false;
   const tagDisplay: TagDisplay = settingsView?.tagDisplay ?? DEFAULT_TAG_DISPLAY;
@@ -119,6 +121,12 @@ function MainWindow() {
     // 忽略失败：只是下次不记得。
     void changeSetting({ kind: "inspectorWidth", width }).catch(() => {});
   }, []);
+  const changeDensity = useCallback(
+    (value: number) => {
+      shellSettingsStore.changeWallDensity(value);
+    },
+    [shellSettingsStore],
+  );
   /** 详情面板的开合同样先生效再写设置。 */
   const changeInspectorShown = useCallback((open: boolean) => {
     inspectorChosen.current = true;
@@ -314,6 +322,8 @@ function MainWindow() {
                     showApproxSource={showApproxSource}
                     keepSelectionOnSafe={keepSelectionOnSafe}
                     inspectorWidth={inspectorWidth}
+                    density={density}
+                    onDensity={changeDensity}
                     onInspectorWidth={changeInspectorWidth}
                     inspectorShown={inspectorShown}
                     onInspectorShown={changeInspectorShown}

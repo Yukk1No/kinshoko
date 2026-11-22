@@ -26,7 +26,7 @@ import { createSettingsSubmitter, type SettingsCommand, type SubmitterState } fr
  */
 type SettingSwitch = Exclude<
   SettingChange,
-  { kind: "tagDisplay" | "viewerBackground" | "inspectorWidth" | "inspectorOpen" }
+  { kind: "tagDisplay" | "viewerBackground" | "inspectorWidth" | "inspectorOpen" | "wallDensity" }
 >;
 
 /** 设置页能提交的改动；每种怎样合并见 `shellSettingsCommand`。 */
@@ -92,7 +92,7 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
   const submitter = createSettingsSubmitter<ShellSettingsView>({
     describe: errorText,
     onAccepted: (view, command) => {
-      if (command.key !== LOAD) onChange?.(view);
+      if (command.key !== LOAD && command.key !== "wallDensity") onChange?.(view);
     },
   });
   // 标签外观连着改时，后一项在最后改成的那份之上改。草稿放在这里而不在外观分区里，
@@ -106,14 +106,17 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
   let tagShown: Partial<TagDisplay> | null = null;
   let tagSegment = 0;
   let tagOutstanding = 0;
+  let densityDraft: number | null = null;
+  let densityRevision = 0;
   const tagDraft = () => tagShown && { ...(submitter.state().view?.tagDisplay ?? DEFAULT_TAG_DISPLAY), ...tagShown };
   const listeners = new Set<() => void>();
-  let snapshot: SubmitterState<ShellSettingsView> & { tagDraft: TagDisplay | null } = {
+  let snapshot: SubmitterState<ShellSettingsView> & { tagDraft: TagDisplay | null; densityDraft: number | null } = {
     ...submitter.state(),
     tagDraft: null,
+    densityDraft: null,
   };
   const refresh = () => {
-    snapshot = { ...submitter.state(), tagDraft: tagDraft() };
+    snapshot = { ...submitter.state(), tagDraft: tagDraft(), densityDraft };
     for (const listener of listeners) listener();
   };
   submitter.subscribe(refresh);
@@ -132,6 +135,22 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
     },
     load: () => submitter.submit({ key: LOAD, merge: "keep", quiet: true, run: shellSettings }),
     submit,
+    changeWallDensity(density: number) {
+      const revision = ++densityRevision;
+      densityDraft = density;
+      refresh();
+      void submitter
+        .submit({
+          key: "wallDensity",
+          merge: "latest",
+          quiet: true,
+          run: () => changeSetting({ kind: "wallDensity", density }),
+        })
+        .then((result) => {
+          if (result.ok && revision === densityRevision) densityDraft = null;
+          refresh();
+        });
+    },
     changeTagDisplay(change: Partial<TagDisplay>) {
       tagShown = { ...tagShown, ...change };
       const queued = (tagQueued = { ...tagQueued, ...change });
@@ -160,6 +179,8 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
     /** 用备份整份替换偏好设置；失败时 reject，原因由调用方显示。 */
     async restore(path: string, fingerprint: string) {
       let restored: ApplicationSettingsRestored | undefined;
+      densityDraft = null;
+      densityRevision += 1;
       tagQueued = tagShown = null;
       tagSegment += 1;
       refresh();

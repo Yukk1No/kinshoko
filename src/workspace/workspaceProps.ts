@@ -25,6 +25,8 @@ export type WorkspaceProps = {
   keepSelectionOnSafe: boolean;
   /** 本设备保存的详情面板宽度（#157）；没拖过时为 undefined。 */
   inspectorWidth?: number;
+  density: number;
+  onDensity: (density: number) => void;
   /** 拖动松手、双击或方向键定下的详情面板宽度。 */
   onInspectorWidth: (width: number) => void;
   /** 详情面板是否打开：本设备记住，只由画师亲手开合。 */

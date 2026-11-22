@@ -32,6 +32,7 @@ pub enum SettingChange {
     ViewerBackground { background: ViewerBackground },
     InspectorWidth { width: u32 },
     InspectorOpen { open: bool },
+    WallDensity { density: u32 },
 }
 
 impl AppSettings {
@@ -51,6 +52,7 @@ impl AppSettings {
             }
             SettingChange::InspectorWidth { width } => self.set_inspector_width(width),
             SettingChange::InspectorOpen { open } => self.set_inspector_open(open),
+            SettingChange::WallDensity { density } => self.set_wall_density(density),
         }
     }
 }

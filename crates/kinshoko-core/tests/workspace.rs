@@ -179,6 +179,23 @@ fn adult_in_nonmatching_out_of_scope_source_vetoes_cards_counts_and_candidates_w
             .unwrap()
             .is_empty()
     );
+    let revealed = workspace
+        .candidates(&device, &mut catalog, "private", "en", 20, false, &builtin)
+        .unwrap();
+    let selected = SearchInput {
+        conditions: vec![ConditionInput {
+            any: vec![TermInput::Tag {
+                id: revealed[0].tag.id.clone(),
+                dismissed: vec![],
+            }],
+            negate: false,
+        }],
+        exact: true,
+    };
+    let hidden = workspace
+        .resolve(&device, &mut catalog, &selected, "en", true, &builtin)
+        .unwrap();
+    assert!(hidden.conditions[0].any.is_empty());
     assert!(
         !workspace
             .contains(&device, &mut catalog, &a.info().id, &ids[0], true)
