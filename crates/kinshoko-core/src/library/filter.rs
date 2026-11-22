@@ -8,6 +8,8 @@
 //! - 自动标签未完成：有任一模型来源打不上标的记录（#475）；
 //! - 安全模式（#60）等浏览视角的过滤在调用方另加条件，与条件树无关。
 
+use std::collections::BTreeSet;
+
 use rusqlite::Connection;
 use rusqlite::functions::FunctionFlags;
 use rusqlite::types::Value;
@@ -40,7 +42,18 @@ pub(super) fn sql(tree: &ConditionTree, args: &mut Vec<Value>) -> String {
 }
 
 fn condition(condition: &Condition, args: &mut Vec<Value>) -> String {
-    let terms: Vec<String> = condition.any.iter().map(|t| term(t, args)).collect();
+    let mut tags = BTreeSet::new();
+    let mut terms = Vec::new();
+    for term in &condition.any {
+        if let Term::Tag { tag, similar } = term {
+            tags.insert(tag.id.as_str());
+            tags.extend(similar.iter().map(|s| s.tag.id.as_str()));
+        } else {
+            terms.extend(non_tag_term(term, args));
+        }
+    }
+    // One IN clause keeps large tag groups within SQLite's expression depth limit.
+    terms.extend(has_any_tag(tags.into_iter(), args));
     let any = if terms.is_empty() {
         "0".to_owned()
     } else {
@@ -83,19 +96,13 @@ fn has_any_rating(ratings: &[ContentRating]) -> Option<String> {
     })
 }
 
-fn term(term: &Term, args: &mut Vec<Value>) -> String {
-    match term {
+fn non_tag_term(term: &Term, args: &mut Vec<Value>) -> Option<String> {
+    Some(match term {
         Term::TaggingUnfinished => {
             "image.id IN (SELECT image_id FROM tagging_state WHERE status = 'failed')".to_owned()
         }
-        Term::Rating { rating } => {
-            has_any_rating(&rating.ratings).unwrap_or_else(|| "0".to_owned())
-        }
-        Term::Tag { tag, similar } => has_any_tag(
-            std::iter::once(tag.id.as_str()).chain(similar.iter().map(|s| s.tag.id.as_str())),
-            args,
-        )
-        .unwrap_or_else(|| "0".to_owned()),
+        Term::Rating { rating } => return has_any_rating(&rating.ratings),
+        Term::Tag { .. } => return None,
         Term::Text {
             text,
             tags,
@@ -126,5 +133,5 @@ fn term(term: &Term, args: &mut Vec<Value>) -> String {
             any.extend(has_any_rating(&ratings));
             format!("({})", any.join(" OR "))
         }
-    }
+    })
 }
