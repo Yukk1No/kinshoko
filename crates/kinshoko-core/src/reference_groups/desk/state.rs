@@ -68,8 +68,9 @@ pub(super) fn load(path: &Path) -> io::Result<Loaded> {
             if file.format != FORMAT || file.format_version > FORMAT_VERSION {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
+                    // 与 serde 的解析错误一样只作原因写进说明，界面文字在 `ui_text::DeskUnreadable`。
                     format!(
-                        "不是这个版本的 Kinshoko 能读的桌面状态（{} 第 {} 版）",
+                        "unsupported desk state {} version {}",
                         file.format, file.format_version
                     ),
                 ));
