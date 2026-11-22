@@ -140,7 +140,7 @@ pub(crate) struct Inner {
     hub: Hub,
     recovery: RecoveryReport,
     translations: RwLock<Arc<tags::TranslationIndex>>,
-    package_publication_gate: RwLock<Option<Arc<Mutex<()>>>>,
+    package_publication_gate: RwLock<Arc<Mutex<()>>>,
     /// 安全模式的开关与范围（[`SafeMode::encode`]）；打开资料库时默认开启、默认范围。
     safe_mode: AtomicU8,
     /// 参考视角的句柄是否已经交出。
@@ -298,7 +298,7 @@ impl Library {
         })
     }
 
-    /// Share the app's visibility gate with import transactions, not decoding or hashing.
+    /// Share the app's visibility gate with import publication, not preparation or staging.
     /// Configure before exposing the writer. Never wait for an import under the gate unless
     /// cancelling the task first.
     pub fn use_package_publication_gate(&self, gate: Arc<Mutex<()>>) {
@@ -306,7 +306,7 @@ impl Library {
             .inner
             .package_publication_gate
             .write()
-            .unwrap_or_else(|e| e.into_inner()) = Some(gate);
+            .unwrap_or_else(|e| e.into_inner()) = gate;
     }
 
     pub fn info(&self) -> &LibraryInfo {
