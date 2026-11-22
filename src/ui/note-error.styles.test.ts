@@ -41,6 +41,7 @@ const ALLOWED: Record<string, string> = {
   ".viewer-index": "查看器页码",
   ".subs-account-sub": "订阅账号行的元数据，订阅页行样式另行收拢",
   ".subs-check": "订阅页的复选控件",
+  ".subs-follow-count": "订阅关注列表的计数",
   ".subs-rank-hint": "榜单选项里的描述，订阅页行样式另行收拢",
   ".subs-rank-foot-note": "榜单页脚，订阅页行样式另行收拢",
   ".k-task-count": "任务计数",
@@ -63,6 +64,9 @@ const ALLOWED: Record<string, string> = {
   ".k-list-meta": "列表行的元数据",
   ".k-item-meta": "菜单元数据，浮层不在本次范围",
   ".k-item.is-tip": "菜单状态行，浮层不在本次范围",
+  ".desk-groups-toggle .sidebar-count": "参考组侧栏段标题的计数，同 .k-row .sidebar-count",
+  ".desk-group-day-head": "成员区按天分段的日期读数",
+  ".desk-group-closed-toggle": "“已关闭 N 张”的展开按钮",
 };
 
 function typeRoleRules(css: string): string[] {
@@ -139,7 +143,7 @@ describe("说明与报错文字", () => {
       ".k-error-text:where(.is-boxed)",
       ".k-error-text:where(.is-field)",
     ]);
-    expect(cssRule(sheets["../styles/shell-details.css"], ".save-destination p")).toMatchObject({ margin: "0" });
+    expect(cssRule(sheets["../styles/import-dialogs.css"], ".save-destination p")).toMatchObject({ margin: "0" });
     expect(
       cssRule(sheets["./settings.css"], ".k-set-row-below-body > p,\n.k-set-row-below-body > div > p"),
     ).toMatchObject({
@@ -168,7 +172,7 @@ describe("说明与报错文字", () => {
       display: "none",
       "white-space": "normal",
     });
-    expect(cssRule(sheets["../shell/main-window-panels.css"], ".workspace-sources > .k-description")).toMatchObject({
+    expect(cssRule(sheets["../shell/main-window.css"], ".workspace-sources > .k-description")).toMatchObject({
       margin: "6px 0 0",
       "line-height": "inherit",
       display: "flex",

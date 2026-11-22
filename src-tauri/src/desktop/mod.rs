@@ -9,7 +9,8 @@
 //!   `group/<参考组 id>/<成员>`；
 //! - 资料库事件（安全模式开关、分级变化）到达时，资料库钉图重新核对要不要遮蔽；
 //! - 截图历史变化时向所有窗口推送 `capture-history`（截图列表，从新到旧）；
-//! - 参考组（#66）：桌面上的资料库钉图存成参考组、打开参考组把成员钉到桌面（[`groups`]）；
+//! - 参考组（#66、#588）：桌面上始终摆着一个参考组，钉图就是它的成员；切换、归档、并入等见
+//!   [`desk_commands`]，参考组包与成员见 [`groups`]；
 //! - 钉图的右键菜单（#106）：与主窗口同样式，由独立的置顶无边框菜单窗口承载（[`menu`]）；
 //! - 复制图片、在资源管理器中显示、从剪贴板导入（#105，[`image_actions`]）。
 
@@ -17,13 +18,20 @@ use kinshoko_core::CommandError;
 
 mod capture;
 mod clipboard;
+mod desk_commands;
 mod edge;
+mod events;
 mod group_trash;
 mod groups;
 mod image_actions;
 mod menu;
+mod pin_state;
 mod pins;
 mod tray;
+
+use events::{
+    capture_response, history_changed, on_library_event, request_collection, request_open,
+};
 pub use tray::*;
 #[cfg(windows)]
 pub(crate) mod win32;
@@ -35,10 +43,9 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use kinshoko_core::ShortcutAction;
 use kinshoko_core::desktop::{
-    CaptureEntry, CaptureHistory, CollectedCapture, EdgeHide, OpenInKinshoko, PinMenuOpen,
-    PinStore, PinVeils,
+    CaptureEntry, CaptureHistory, CollectedCapture, EdgeHide, OpenInKinshoko, PinMenuOpen, PinVeils,
 };
-use kinshoko_core::reference_groups::ReferenceGroups;
+use kinshoko_core::reference_groups::{Desk, ReferenceGroups};
 use tauri::http::{Response, StatusCode, header};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::plugin::{Builder, TauriPlugin};
@@ -92,8 +99,8 @@ pub struct DesktopState {
     capture_geometry_generation: AtomicU64,
     /// 本次运行中打开着的钉图。
     pins: Mutex<HashMap<String, pins::PinRecord>>,
-    /// 钉图状态（`pins.json`），重新打开后恢复。
-    store: Mutex<PinStore>,
+    /// 钉图状态（桌面上的参考组，#588），重新打开后恢复。
+    store: Mutex<pin_state::PinState>,
     /// 钉图状态改了还没写回文件。
     dirty: AtomicBool,
     edge: Mutex<EdgeHide>,
@@ -139,6 +146,42 @@ pub fn with_groups<R: tauri::Runtime, T>(
     Some(f(&groups))
 }
 
+/// 桌面插件自己听的事件：参考组在别的插件里改过（图库墙“加入参考组”），让钉图窗口与桌面上的参考组
+/// 对齐，再通知各窗口。
+const DESK_CHANGED_EVENT: &str = "desktop://desk-changed";
+
+/// 图库墙“加入参考组”（`pin` 是资料库里的一张图）：加进参考组 `group_id`，成为它的新成员。
+/// 那个参考组正摆在桌面上时，把图钉到桌面上，以 `centre`（右键处）为中心，没有时在主显示器中间。
+/// 桌面插件还没装好时为 `None`。
+pub fn add_to_reference_group<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    group_id: &str,
+    mut pin: kinshoko_core::desktop::SavedPin,
+    centre: Option<(i32, i32)>,
+) -> Option<Result<kinshoko_core::reference_groups::ReferenceGroup, CommandError>> {
+    let state = app.try_state::<DesktopState>()?;
+    let result = (|| -> Result<_, kinshoko_core::reference_groups::GroupError> {
+        let _groups = lock(&state.groups);
+        let mut store = lock(&state.store);
+        let desk = store.desk();
+        if let Some(group) = desk.add_member(group_id, &pin)? {
+            return Ok(group);
+        }
+        let others: Vec<_> = desk.pins().iter().map(|p| p.rect()).collect();
+        pins::place_around(&mut pin, centre, &others);
+        desk.pin(pin, &mut lock(&state.history))?;
+        state.dirty.store(true, Ordering::Relaxed);
+        desk.group()
+            .cloned()
+            .ok_or(kinshoko_core::reference_groups::GroupError::UnknownGroup)
+    })()
+    .map_err(CommandError::from);
+    if result.is_ok() {
+        let _ = app.emit(DESK_CHANGED_EVENT, ());
+    }
+    Some(result)
+}
+
 /// 通知各窗口参考组成员的状态可能变了（例如成员的图被永久删除），重新读取。
 pub fn reference_groups_changed<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     let _ = app.emit(groups::CHANGED_EVENT, ());
@@ -171,15 +214,25 @@ pub fn init() -> TauriPlugin<Wry> {
             image_actions::stage_clipboard_import,
             groups::reference_groups,
             groups::reference_group,
-            groups::group_save_captures,
-            groups::save_reference_group,
-            groups::save_pins_to_group,
-            groups::open_reference_group,
             groups::rename_reference_group,
             group_trash::delete_reference_group,
             group_trash::restore_reference_group,
             group_trash::purge_deleted_reference_group,
             groups::remove_group_member,
+            desk_commands::desk_reference_groups,
+            desk_commands::switch_reference_group,
+            desk_commands::new_reference_desk,
+            desk_commands::repin_group_member,
+            desk_commands::repin_all_group_members,
+            desk_commands::show_group_member,
+            desk_commands::prune_unpinned_members,
+            desk_commands::undo_prune_unpinned,
+            desk_commands::remove_desk_group_member,
+            desk_commands::set_reference_group_favorite,
+            desk_commands::duplicate_reference_group,
+            desk_commands::fold_into_previous,
+            desk_commands::split_off_reference_group,
+            desk_commands::undo_split_off,
             groups::export_reference_group_package,
             groups::import_reference_group_package,
             edge_hide,
@@ -190,9 +243,30 @@ pub fn init() -> TauriPlugin<Wry> {
         ])
         .setup(|app, _api| {
             let dir = crate::data_dirs::app_data(app).device().to_path_buf();
-            let history = CaptureHistory::open(&dir.join(HISTORY_DIR))?;
-            let store = PinStore::open(&dir)?;
+            let mut history = CaptureHistory::open(&dir.join(HISTORY_DIR))?;
             let groups = ReferenceGroups::open(&dir.join(GROUPS_DIR))?;
+            // 桌面上的参考组（#588）。第一次打开时迁移：旧参考组都算收藏，`pins.json` 的钉图成为一个
+            // 没有名称的参考组摆在桌面上。打不开时不启动（Lou 2026-11-22，#632）：说明原因，文件原样留着。
+            let desk = match Desk::open(&dir, groups.clone(), &mut history) {
+                Ok(desk) => desk,
+                Err(e) => {
+                    crate::run_log::error("无法打开桌面上的参考组", &e);
+                    let message = crate::ui_text::fill(
+                        crate::ui_text::Text::DeskUnreadable,
+                        &[
+                            ("path", &dir.join("desk.json").display().to_string()),
+                            ("error", &e.to_string()),
+                        ],
+                    );
+                    eprintln!("{message}");
+                    #[cfg(windows)]
+                    win32::show_error(
+                        crate::ui_text::text(crate::ui_text::Text::StartupFailed),
+                        &message,
+                    );
+                    std::process::exit(1);
+                }
+            };
             // 上次退出时撤销提示还没过期的已删除参考组，这里清掉。
             let _ = groups.purge_all_trashed();
             // 启动时清掉一天前暂存的剪贴板图片（取消了导入、之后没再粘贴的也不会一直留着）。
@@ -210,7 +284,7 @@ pub fn init() -> TauriPlugin<Wry> {
                 pin_shown: pins::ShownWaiters::default(),
                 capture_geometry_generation: AtomicU64::new(0),
                 pins: Mutex::default(),
-                store: Mutex::new(store),
+                store: Mutex::new(pin_state::PinState::new(desk)),
                 dirty: AtomicBool::new(false),
                 edge: Mutex::default(),
                 // 先按开启处理（主线程上不读应用壳设置）；恢复钉图的线程再按保存的设置核对。
@@ -228,6 +302,11 @@ pub fn init() -> TauriPlugin<Wry> {
                     let app = handle.clone();
                     std::thread::spawn(move || pins::safe_mode_changed(&app, on));
                 }
+            });
+            let handle = app.clone();
+            app.listen_any(DESK_CHANGED_EVENT, move |_| {
+                let app = handle.clone();
+                std::thread::spawn(move || desk_commands::apply(&app, None));
             });
             let settings_handle = app.clone();
             app.listen_any("application-settings-restored", move |_| {
@@ -253,69 +332,6 @@ pub fn init() -> TauriPlugin<Wry> {
 /// 设置里的“增强钉图边缘”开关了（#239）：已经钉着的钉图立即重画。不要持有设置的锁调用。
 pub fn pin_edge_contrast_changed(app: &AppHandle) {
     pins::refresh_all(app);
-}
-
-/// 资料库转发给窗口的事件里，影响钉图遮蔽的几种：安全模式开关、分级变化（列表过期）。
-fn on_library_event(app: &AppHandle, payload: &str) {
-    let Ok(event) = serde_json::from_str::<serde_json::Value>(payload) else {
-        return;
-    };
-    let safe_mode = match event.get("kind").and_then(|k| k.as_str()) {
-        Some("safeModeChanged") => event.get("on").and_then(|on| on.as_bool()),
-        Some("listStale" | "imagesChanged") => None,
-        _ => return,
-    };
-    let app = app.clone();
-    std::thread::spawn(move || match safe_mode {
-        Some(on) => pins::safe_mode_changed(&app, on),
-        None => pins::references_changed(&app),
-    });
-}
-
-/// 冻结屏幕现场编码；历史中的截图与参考组自带的截图直接读文件，都是内嵌显示器配置文件的 PNG。
-fn capture_response(app: &AppHandle, path: &str) -> Response<Vec<u8>> {
-    let body = if let Some(token) = path.strip_prefix("screen/") {
-        timing("png.begin");
-        let png = capture::frozen_png(app, token);
-        timing(&format!(
-            "png.end bytes={}",
-            png.as_ref().map_or(0, Vec::len)
-        ));
-        png
-    } else if let Some((group, member)) =
-        path.strip_prefix("group/").and_then(|p| p.split_once('/'))
-    {
-        // 参考组自带的截图（#270），参考组面板的缩略图用。
-        let file = lock(&state(app).groups).capture_path(group, member);
-        file.and_then(|f| std::fs::read(f).ok())
-    } else {
-        let file = lock(&state(app).history).file(path);
-        file.and_then(|f| std::fs::read(f).ok())
-    };
-    match body {
-        Some(bytes) => Response::builder()
-            .header(header::CONTENT_TYPE, "image/png")
-            .header(header::CACHE_CONTROL, "no-store")
-            .body(bytes),
-        None => Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(Vec::new()),
-    }
-    .expect("响应合法")
-}
-
-/// 截图历史变了：推送给所有窗口（主窗口的截图历史、钉图的收藏状态）。
-fn history_changed(app: &AppHandle) {
-    let entries = lock(&state(app).history).entries();
-    let _ = app.emit(HISTORY_EVENT, entries);
-}
-
-/// 钉图菜单“在 Kinshoko 中打开”（#106）：打开主窗口，请它显示参考图（查看器）或截图历史。
-/// 主窗口可能还没建好，请求先留着，由它用 `take_open_request` 取走。
-fn request_open(app: &AppHandle, request: OpenInKinshoko) {
-    *lock(&state(app).pending_open) = Some(request);
-    shell::open_main_window(app);
-    let _ = app.emit("open-in-kinshoko", ());
 }
 
 #[tauri::command]
@@ -347,13 +363,6 @@ async fn copy_capture(app: AppHandle, id: String) -> Result<(), CommandError> {
     tauri::async_runtime::spawn_blocking(move || pins::copy_capture_image(&app, &id))
         .await
         .map_err(CommandError::system)?
-}
-
-/// Native pin menus request a visible destination in the main window before saving.
-fn request_collection(app: &AppHandle, id: &str) {
-    *lock(&state(app).pending_collection) = Some(id.into());
-    shell::open_main_window(app);
-    let _ = app.emit("capture-collection-request", ());
 }
 
 #[tauri::command]

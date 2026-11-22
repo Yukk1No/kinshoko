@@ -39,6 +39,16 @@ export function subscriptionCollected(workIds: string[]): Promise<CollectedWork[
   return invoke<CollectedWork[]>("subscription_collected", { workIds });
 }
 
+/** pixiv 收藏或取消收藏一个作品（#461 第 5 步）。`private` 只在收藏时有用。取消收藏不动资料库里的图。 */
+export function subscriptionSetBookmark(illustId: string, on: boolean, isPrivate: boolean): Promise<void> {
+  return invoke<void>("subscription_set_bookmark", { illustId, on, private: isPrivate });
+}
+
+/** 在 pixiv 上关注或取消关注一位画师（#461 第 5 步）。只写 pixiv，不增删订阅。 */
+export function subscriptionSetFollow(userId: string, on: boolean): Promise<void> {
+  return invoke<void>("subscription_set_follow", { userId, on });
+}
+
 const IMAGE_HOST = "https://i.pximg.net/";
 
 /** pixiv 图片地址换成后端转发的地址（`pximg` 协议）；不是 pixiv 图片主机上的地址时为空。 */

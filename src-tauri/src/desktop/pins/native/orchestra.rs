@@ -6,6 +6,7 @@
 //! - 这里：打开、关闭、到时的收尾、把输入与渲染层的回报分给下面几块；
 //! - [`screen`]：每一帧怎么上屏（重画、平移、换窗），路上有事时先记下；
 //! - [`gesture`]：指针、滚轮、按键，按住开菜单；
+//! - [`group`]：整组移动与缩放（Alt、菜单“整组移动”，#198），同组的细边框；
 //! - [`frames`]：应用壳推来的帧（菜单动作、贴边隐藏、遮蔽、设置）。
 //!
 //! 内容此刻在哪由 [`ContentMotion`] 按时间求出：缩放（滚轮、拖角、“原始大小”）以 `ZOOM_MS`、贴边以
@@ -28,10 +29,12 @@ use super::port::{RenderEvent, RenderPort};
 mod device;
 mod frames;
 mod gesture;
+mod group;
 mod screen;
 
 pub use frames::{Frame, Look};
 use gesture::Gesture;
+use group::Group;
 use screen::Pending;
 
 /// 停手多久算手势结束（ADR 0005、#281）。
@@ -138,6 +141,8 @@ struct Live {
     restoring: Option<Instant>,
     /// 设备丢失时还在路上的绘制：它的回报随后到，不能当成重建后那一次的。
     stale_draw: bool,
+    /// 画着同组的细边框（按着 Alt 停在钉图上、整组手势中，#198）。
+    outlined: bool,
 }
 
 /// 确认显示之后的遮蔽。
@@ -173,6 +178,8 @@ pub struct Orchestra<S: PinShell, R: RenderPort> {
     menu_open: bool,
     /// 最近一次开菜单的时刻：同一次按下引出的几个事件只开一次。
     menu_at: Option<Instant>,
+    /// 整组操作的状态（#198）。
+    group: Group,
 }
 
 impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
@@ -192,6 +199,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             now,
             menu_open: false,
             menu_at: None,
+            group: Group::default(),
         }
     }
 
@@ -251,6 +259,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 closing: false,
                 restoring: None,
                 stale_draw: false,
+                outlined: self.group.outlined(),
             },
         );
         if placeholder {
@@ -283,6 +292,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let live = self.pins.get_mut(&id).expect("刚找到");
         if !std::mem::replace(&mut live.closing, true) {
             self.render.detach(id);
+        }
+        if self.group.dragged_by(id) {
+            self.end_group_drag();
         }
     }
 
@@ -363,7 +375,8 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 at,
                 notches,
                 ctrl,
-            } => self.wheel(pin, at, notches, ctrl),
+                alt,
+            } => self.wheel(pin, at, notches, ctrl, alt),
             PinInput::Pointer(p) => self.pointer(p),
             PinInput::Key {
                 pin, key, shift, ..
@@ -377,6 +390,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 }
             }
             PinInput::KeyHook(event) => self.effects.push(hook_warning(event)),
+            PinInput::Alt { held } => self.alt_changed(held),
         }
     }
 

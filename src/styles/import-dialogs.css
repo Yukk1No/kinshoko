@@ -1,0 +1,90 @@
+/* 导入时的对话框：旧名迁入（LegacyNameMigrationPanel）、保存位置（SaveDestination）与封印图预览（SealedImportPreview）。 */
+.legacy-name-migration .settings-shortcuts {
+  width: 100%;
+  table-layout: fixed;
+}
+.legacy-name-migration .settings-shortcuts th,
+.legacy-name-migration .settings-shortcuts td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.legacy-name-migration .settings-shortcuts small {
+  display: block;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.legacy-name-migration {
+  min-width: 0;
+}
+
+/* Accepted settings fieldset pattern; a portable backup path can be longer than the window. */
+/* T10: shared explicit save position, adapted from the accepted provider selectors. */
+.save-destination {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  min-width: 0;
+}
+.save-destination legend {
+  padding: 0 5px;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.save-destination label {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.save-destination select {
+  width: 100%;
+  min-width: 0;
+}
+.save-destination p {
+  margin: 0;
+}
+.save-final-position {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.save-destination-dialog {
+  width: min(500px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-2xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-dialog);
+}
+.save-destination-dialog h3 {
+  margin-top: 0;
+}
+.save-destination-dialog > button {
+  margin: 8px 8px 0 0;
+}
+
+/* Approved prototype Dialog structure, with real receipt-backed read-only content. */
+.k-dialog.sealed-import-preview {
+  width: min(880px, calc(100vw - 48px));
+}
+.sealed-import-preview-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.sealed-import-preview-images img {
+  width: 100%;
+  max-height: 58vh;
+  object-fit: contain;
+}
+.sealed-import-prompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}

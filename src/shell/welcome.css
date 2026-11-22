@@ -1,0 +1,200 @@
+/* 主区没有图库或没有内容时（#172）：空工作区、欢迎页与新建图库。 */
+.app-empty-workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.app-main-centered {
+  align-items: stretch;
+  justify-content: center;
+}
+/* safe center：窗口矮到放不下时改为顶端对齐，内容只向下溢出，上面的“返回”和标题始终能滚到（最小高度 480 px）。 */
+.library-start-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  gap: 12px;
+  padding: 24px;
+}
+.library-start-content > .k-empty.is-page {
+  flex: none;
+  align-self: stretch;
+}
+.wall > .k-empty.is-page {
+  min-height: 100%;
+  box-sizing: border-box;
+}
+/* 没有图库时的居中引导（#172 原型 A）：欢迎页先选新建或打开，新建再填表；两屏同宽、同一位置。 */
+.welcome {
+  width: min(460px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-bottom: 56px;
+  animation: welcome-in var(--t) var(--spring);
+}
+@keyframes welcome-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.99);
+  }
+}
+.welcome-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+  text-align: center;
+}
+.welcome-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.welcome-choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+  text-align: left;
+  transition:
+    box-shadow var(--t-fast),
+    transform var(--t-fast) var(--spring);
+}
+.welcome-choice:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.welcome-choice:active:not(:disabled) {
+  transform: scale(0.99);
+}
+.welcome-choice:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+.welcome-choice:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: default;
+}
+.welcome-choice-tile {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-s);
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.welcome-choice.is-main .welcome-choice-tile {
+  background: var(--ink);
+  color: var(--bg);
+}
+.welcome-choice-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.welcome-choice-text b {
+  font-weight: 600;
+}
+.welcome-choice-chev {
+  flex: none;
+  color: var(--ink-3);
+}
+.welcome-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  margin: -6px 0 2px -8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-s);
+  background: none;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.welcome-back:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--ink);
+}
+.create-library {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: var(--r-2xl);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.create-library-path {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 4px 0 12px;
+  border-radius: var(--r);
+  background: var(--sunken);
+  color: var(--ink-2);
+}
+.create-library-path.is-set {
+  color: var(--ink);
+}
+.create-library-path-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.create-library-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+/* 新建图库对话框（#442）：已有图库时从图库切换器打开，或叠在订阅对话框上。 */
+.k-dialog.create-library-dialog {
+  width: min(440px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.create-library-dialog .k-dialog-foot {
+  margin-top: 4px;
+}
+/* 订阅榜单「新建图库」卡片里的紧凑两栏（#370）。 */
+.create-library-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.create-library-path.is-compact {
+  padding-left: 10px;
+  border-radius: var(--r-s);
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+.create-library-path.is-compact .create-library-path-text {
+  font-size: 12px;
+  color: var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome {
+    animation: none;
+  }
+}

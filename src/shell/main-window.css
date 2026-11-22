@@ -1,16 +1,22 @@
-/* T20 main window (design/ui-system/README.md, previews 01/01b/02/03/05). Loaded after styles.css and
-   ui/ui.css; overrides the older shell rules where the structure changed. */
+/* 主窗口的框架（design/ui-system/README.md，预览 01/01b/02/03/05）：桌面、图标轨、侧栏、顶栏与工作区来源。 */
 
 /* ---- Frame: the header rows form one 56 px band that is the window's safe area ---- */
 /* 桌面与纸（#608，design/ui-system/main-window-material.md）：图标轨直接放在桌面上；左栏、主区、详情栏是三张纸，
    之间与窗口边露出 8 px 桌面（左边贴着图标轨）。上沿亮边画在纸的最上一层，免得被里面内容的底色盖住。 */
 .app-shell {
   background: var(--desk);
+  flex-direction: row;
 }
 .rail {
-  padding-top: 6px;
+  width: 56px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0 10px;
   background: transparent;
-  border-right-color: transparent;
+  border-right: 1px solid transparent;
+  z-index: 3;
 }
 /* 书签标离窗口上边与左边一样远：图形在 32 的画布里宽 12、高 21，左右居中时墨迹离左边约 22.25 px，
    上下居中时离上边只有 19.25 px；44 高的框里把居中区下移 6 px（墨迹下移 3 px）。 */
@@ -24,6 +30,8 @@
   min-height: 0;
   display: flex;
   padding: var(--sheet-gap) var(--sheet-gap) var(--sheet-gap) 0;
+  min-width: 0;
+  position: relative;
 }
 .app-main {
   flex: 1;
@@ -35,6 +43,8 @@
   border-radius: var(--r);
   background: var(--sheet-main);
   box-shadow: var(--sheet-lift);
+  min-height: 0;
+  container: main / inline-size;
 }
 :is(.sidebar-slot:not([data-collapsed="true"]), .app-main, .inspector:not([data-collapsed="true"]))::before {
   content: "";
@@ -49,7 +59,7 @@
 /* ---- Sidebar ---- */
 .sidebar-slot {
   position: relative;
-  width: calc(256px - var(--sheet-gap));
+  width: calc(var(--sidebar-width, 256px) - var(--sheet-gap));
   flex: none;
   display: flex;
   flex-direction: column;
@@ -132,27 +142,6 @@
   border-top: 1px solid var(--line);
 }
 
-.k-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 30px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: var(--r-s);
-  background: transparent;
-  color: var(--ink);
-  text-align: left;
-  line-height: 30px;
-}
-.k-row .k-row-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  color: var(--ink-3);
-}
 .k-row .sidebar-label {
   flex: 1;
 }
@@ -163,16 +152,13 @@
   font-variant-numeric: tabular-nums;
   opacity: 1;
 }
-/* 选中的一行（甲 指示条）：平的 --hover 底画在 ::before 上，左边一根 3 × 14 的强调色短条画在 ::after 上；
-   名字墨色，图标强调色，张数不变。换一行时短条从旧的一行滑过来（useIndicatorSlide）。 */
-.k-row[aria-current="page"],
+/* 图库名一行选中时与 .k-row 一样（src/ui/row.css）。 */
 .lib-head-name[aria-current="page"] {
   isolation: isolate;
   background: transparent;
   color: var(--ink);
   font-weight: 500;
 }
-.k-row[aria-current="page"]::before,
 .lib-head-name[aria-current="page"]::before {
   content: "";
   position: absolute;
@@ -181,7 +167,6 @@
   border-radius: inherit;
   background: var(--hover);
 }
-.k-row[aria-current="page"]::after,
 .lib-head-name[aria-current="page"]::after {
   content: "";
   position: absolute;
@@ -191,9 +176,6 @@
   width: 3px;
   border-radius: 2px;
   background: var(--accent);
-}
-.k-row[aria-current="page"] .k-row-icon {
-  color: var(--accent-strong);
 }
 /* 按下：底色深一档，不缩。没选中的行按下时深的是悬停滑块。 */
 .sidebar-slot :is(.k-row, .lib-head-name)[aria-current="page"]:active:not(:disabled)::before,
@@ -206,19 +188,6 @@
 /* 文件夹图标：只有线框。 */
 .sidebar-slot .k-row-icon :is(.lucide-folder, .lucide-folder-open) {
   stroke-width: 1.75;
-}
-.k-row:disabled {
-  opacity: var(--disabled-opacity);
-  cursor: default;
-}
-.k-row[data-drop] {
-  box-shadow: inset 0 0 0 1.5px var(--accent);
-  background: var(--accent-soft);
-  outline: 0;
-}
-/* the fluid pill draws the hover; plain :hover only where it is not running (touch, jsdom) */
-.k-fluid:not([data-fluid-hover-active-index]) .k-row:hover:not(:disabled):not([aria-current="page"]) {
-  background: var(--hover);
 }
 
 .workspace-scope {
@@ -291,6 +260,7 @@
   display: flex;
   grid-template-columns: none;
   margin-top: 0;
+  align-items: center;
 }
 .workspace-expand {
   width: 18px;
@@ -304,10 +274,31 @@
   background: transparent;
   color: var(--ink-3);
   min-height: 0;
+  cursor: pointer;
 }
 .workspace-expand:hover {
   background: var(--hover);
   color: var(--ink);
+}
+/* 工作区来源（WorkspaceSources、WorkspaceSourceEditor）。 */
+.workspace-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.workspace-source-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+}
+.workspace-sources > .k-description {
+  margin: 6px 0 0;
+  line-height: inherit;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 /* 展开、收起时换的是两个图标：新图标从另一个的角度转过来（#606 C4d）。 */
 .workspace-expand svg {
@@ -735,4 +726,10 @@ li[data-branch] > .k-fluid-row .k-row-icon {
 .k-exact[data-pressed] .k-exact-line {
   opacity: 1;
   transform: none;
+}
+
+/* 导入按钮与它的任务回执浮层。 */
+.import-menu {
+  position: relative;
+  flex: none;
 }

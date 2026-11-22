@@ -57,16 +57,9 @@ describe("订阅页共用部件", () => {
     for (const suffix of ["", "::before", "::after"]) expect(tokens).toContain(`*:where(:not(.k-spinner))${suffix}`);
   });
 
-  it("订阅样式不再覆盖分段项或报错文字", () => {
-    expect(targets(subs, "k-seg-item")).toEqual([]);
+  // 榜单的名次分段仍是订阅页自己的 26 px 档：订阅页整页会随 #461 重做，这里不改外观。
+  it("订阅样式不再覆盖报错文字", () => {
     expect(targets(subs, "k-error-text")).toEqual([]);
-    expect(cssRule(sheets["./ui.css"], ".k-seg").padding).toBe("4px");
-    expect(cssRule(sheets["./ui.css"], ".k-seg-item").height).toBe("var(--h-sm)");
-    expect(cssRule(sheets["./ui.css"], ".k-seg.is-accent .k-seg-item[data-pressed]")).toEqual({
-      color: "var(--accent-strong)",
-      "font-weight": "600",
-    });
-    expect(sources["../subscriptions/RankingDialog.tsx"]).toMatch(/<Segmented\s+tone="accent"/);
     expect(sources["../subscriptions/FollowingDialog.tsx"]).toContain('className="k-error-text is-field" role="alert"');
   });
 
@@ -81,19 +74,20 @@ describe("订阅页共用部件", () => {
       "font-size": "13px",
       "line-height": "inherit",
     });
-    expect(cssRule(sheets["./selectable-list.css"], ".k-choice-status")).toEqual({
+    expect(cssRule(subs, ".subs-follow-note")).toEqual({
       display: "flex",
       "align-items": "center",
       gap: "6px",
       padding: "12px",
     });
     expect(
-      sources["../subscriptions/FollowingDialog.tsx"].match(/className="k-description is-body k-choice-status"/g),
+      sources["../subscriptions/FollowingDialog.tsx"].match(/className="k-description is-body subs-follow-note"/g),
     ).toHaveLength(2);
   });
 
   it("扫描能找到分组、上下文和媒体规则，不误认较长类名", () => {
     expect(targets("", "k-seg-item")).toEqual([]);
+    expect(targets(subs, "k-seg-item").length).toBeGreaterThan(0);
     expect(targets(".k-seg-item-icon { color: red }", "k-seg-item")).toEqual([]);
     expect(
       targets("@media (hover: hover) { .other, .context .k-seg-item:hover { height: 26px } }", "k-seg-item"),

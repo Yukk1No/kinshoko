@@ -2,6 +2,10 @@
 
 #![allow(dead_code)]
 
+#[path = "group_fixture.rs"]
+mod group_fixture;
+use group_fixture::GroupFixture;
+
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
@@ -186,7 +190,7 @@ impl Studio {
                 pin(&b_lens, &b_images[0], None, 120),
             ]
         };
-        let group = groups.create("眼睛参考", &mut pins).unwrap();
+        let group = groups.save_group("眼睛参考", &mut pins).unwrap();
         detached.clear();
         Studio {
             dir,

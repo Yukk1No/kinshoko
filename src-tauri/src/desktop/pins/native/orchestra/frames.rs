@@ -64,6 +64,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         let Some(id) = self.id_of(&f.pin.id) else {
             return;
         };
+        self.group.forget_wheel();
         let Some(live) = self.live(id) else { return };
         if !f.geometry {
             f.pin.placement = live.pin.placement;

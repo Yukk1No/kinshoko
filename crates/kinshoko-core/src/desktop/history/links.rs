@@ -29,6 +29,15 @@ impl CaptureHistory {
             .unwrap_or_default()
     }
 
+    /// 与成员 `member` 关联、文件还在的一条截图（不含已删除的），桌面上的参考组打开时复用它（#590）。
+    pub fn linked_entry(&self, member: &GroupMemberRef) -> Option<String> {
+        self.entries
+            .iter()
+            .filter(|s| !s.deleted && s.members.contains(member))
+            .map(|s| s.id.clone())
+            .find(|id| self.path_of(id).is_file())
+    }
+
     /// 与参考组 `group_id` 的成员有关联的截图，包括已从历史列表删掉、但还被钉图显示的。
     pub fn entries_linked_to(&self, group_id: &str) -> Vec<CaptureEntry> {
         self.entries

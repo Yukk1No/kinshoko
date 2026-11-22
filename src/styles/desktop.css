@@ -345,9 +345,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
-.k-dialog.is-alert {
-  width: min(400px, calc(100vw - 48px));
-}
 
 /* 截图框选窗口与钉图菜单窗口（#106）：没有页面底色和边距，禁止系统手势（笔与触摸走 pointer 事件，#7）。 */
 :root[data-view="capture"],

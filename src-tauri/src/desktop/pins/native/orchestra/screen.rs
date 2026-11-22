@@ -152,6 +152,10 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 live.appeared = None;
             }
         }
+        // 同组的细边框（#198）：与出现提示框同一圈，按最浓画。
+        if live.outlined {
+            appear = 1.0;
+        }
         let visible = self.shell.visible_slot(pin);
         let (slot, window, then) = match live.window {
             None => match window_for(content, &monitors) {

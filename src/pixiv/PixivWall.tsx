@@ -9,11 +9,14 @@ import {
   type Ref,
 } from "react";
 import { useTranslation } from "react-i18next";
+import type { Artist } from "../bindings/Artist";
 import type { PixivWork } from "../bindings/PixivWork";
 import { pixivImageSrc } from "../ipc/pixivBrowse";
 import { CAP_RATIO, GAP, OVERSCAN, PAD, TARGET } from "../wall/wallShared";
 import { pixivMasonry, visibleIn, type PixivLayout } from "./layout";
 import type { CollectedPages, CollectOptions } from "./useCollect";
+import { useFeedbackContext } from "./useFeedback";
+import { useSubscriptionsContext } from "./useSubscriptions";
 import "./pixiv.css";
 
 /** 墙上的一段作品，例如关注的新作、推荐。段与段之间只留一点空隙，不放标题（#461 2026-11-18）。 */
@@ -50,6 +53,7 @@ export function PixivWall({
   onCollect,
   onSection,
   onNearEnd,
+  onArtist,
   handle,
 }: {
   sections: WallSection[];
@@ -63,6 +67,8 @@ export function PixivWall({
   /** 视口顶上是哪一段；滚动时变了才回调。 */
   onSection?: (key: string) => void;
   onNearEnd?: () => void;
+  /** 展开的一格里点“查看这位画师”。不给时不显示这个按钮。 */
+  onArtist?: (artist: Artist) => void;
   handle?: Ref<PixivWallHandle>;
 }) {
   const { t } = useTranslation("subscriptions");
@@ -180,7 +186,7 @@ export function PixivWall({
                   collected={(collected.get(work.id)?.size ?? 0) > 0}
                   busy={busy.has(work.id)}
                   onClick={() => select(s.key, work.id)}
-                  onCollect={onCollect && (() => onCollect(work))}
+                  onCollect={onCollect && ((from) => onCollect(work, { bookmark: true, from }))}
                 />
               );
             }),
@@ -195,6 +201,7 @@ export function PixivWall({
                 collected={collected.get(current.id)}
                 busy={busy.has(current.id)}
                 onCollect={onCollect}
+                onArtist={onArtist}
                 onClose={() => setSelected(null)}
                 onStep={step}
                 onFull={(work) => setFull({ work, page: 0 })}
@@ -209,7 +216,7 @@ export function PixivWall({
           page={full.page}
           collected={collected.get(full.work.id)?.has(full.page) ?? false}
           busy={busy.has(full.work.id)}
-          onCollect={onCollect && (() => onCollect(full.work, { pages: [full.page] }))}
+          onCollect={onCollect && ((from) => onCollect(full.work, { pages: [full.page], from }))}
           onPage={(page) => setFull({ ...full, page })}
           onClose={() => setFull(null)}
         />
@@ -233,9 +240,10 @@ function Card({
   collected: boolean;
   busy: boolean;
   onClick: () => void;
-  onCollect?: () => void;
+  onCollect?: (from: Element | null) => void;
 }) {
   const { t } = useTranslation("subscriptions");
+  const feedback = useFeedbackContext();
   const src = pixivImageSrc(work.pages[0]?.preview ?? "");
   // 动图不收，不给收图按钮。
   const collectable = !!onCollect && work.kind !== "animation";
@@ -260,10 +268,11 @@ function Card({
           <button
             type="button"
             className="pw-collect k-btn"
-            aria-label={t("browse.collectWork", { title: work.title })}
-            onClick={onCollect}
+            aria-label={t("browse.favoriteWork", { title: work.title })}
+            disabled={feedback?.bookmarkPending(work.id) ?? false}
+            onClick={(e) => onCollect?.(e.currentTarget.closest(".pw-card"))}
           >
-            {t("browse.collect")}
+            {t("browse.favorite")}
           </button>
         )
       )}
@@ -279,6 +288,7 @@ function Band({
   collected,
   busy,
   onCollect,
+  onArtist,
   onClose,
   onStep,
   onFull,
@@ -289,16 +299,20 @@ function Band({
   collected: ReadonlySet<number> | undefined;
   busy: boolean;
   onCollect?: (work: PixivWork, options?: CollectOptions) => void;
+  onArtist?: (artist: Artist) => void;
   onClose: () => void;
   onStep: (delta: number) => void;
   onFull: (work: PixivWork) => void;
 }) {
   const { t } = useTranslation("subscriptions");
+  const feedback = useFeedbackContext();
   const band = layout.band;
   if (!band || !work) return null;
   const src = pixivImageSrc(work.pages[0]?.large ?? "");
   const all = (collected?.size ?? 0) >= work.pages.length;
   const collectable = !!onCollect && work.kind !== "animation";
+  const bookmarked = feedback?.bookmarked(work) ?? work.bookmarked;
+  const following = feedback ? (feedback.followed(work.artist.userId) ?? work.followed) : null;
   return (
     <section
       className="pw-band"
@@ -310,36 +324,76 @@ function Band({
       </button>
       <div className="pw-band-side">
         <h2 className="k-title">{work.title}</h2>
-        <p className="pw-band-artist">{work.artist.name}</p>
+        <p className="pw-band-artist">
+          {work.artist.name}
+          {feedback && following !== null && (
+            <FollowButton
+              userId={work.artist.userId}
+              followed={following}
+              busy={feedback.followPending(work.artist.userId)}
+              onToggle={() => void feedback.setFollow(work.artist, !following)}
+            />
+          )}
+          {onArtist && (
+            <button type="button" className="k-btn" onClick={() => onArtist(work.artist)}>
+              {t("browse.viewArtist")}
+            </button>
+          )}
+        </p>
         {work.pages.length > 1 && <p className="pw-band-meta">{t("browse.pages", { count: work.pages.length })}</p>}
         <ul className="pw-band-tags">
           {work.tags.slice(0, 12).map((tag) => (
-            <li key={tag}>{tag}</li>
+            <li key={tag} className="k-token is-24 is-pill is-surface">
+              {tag}
+            </li>
           ))}
         </ul>
         {collectable && (
           <div className="pw-band-actions">
-            {all ? (
-              <>
-                <span className="pw-band-meta">{t("browse.collected")}</span>
-                {/* 资料库里的图被删掉了也能再收（#461）。 */}
-                <button
-                  type="button"
-                  className="k-btn"
-                  disabled={busy}
-                  onClick={() => onCollect(work, { again: true })}
-                >
-                  {t("browse.collectAgain")}
-                </button>
-              </>
+            {/* “收藏”一次就写 pixiv 收藏并收进资料库（#461）。都做过了才只显示“已收藏”。 */}
+            {all && bookmarked ? (
+              <span className="pw-band-meta">{t("browse.favorited")}</span>
             ) : (
-              <button type="button" className="k-btn is-primary" disabled={busy} onClick={() => onCollect(work)}>
-                {busy ? t("browse.collecting") : t("browse.collect")}
+              <button
+                type="button"
+                className="k-btn is-primary"
+                // pixiv 收藏还在写（例如刚点了取消）时不能点：写完之前的“收藏”会只收图、不写收藏。
+                disabled={busy || (feedback?.bookmarkPending(work.id) ?? false)}
+                onClick={(e) => onCollect(work, { bookmark: true, from: e.currentTarget.closest(".pw-band") })}
+              >
+                {busy ? t("browse.collecting") : t("browse.favorite")}
               </button>
             )}
-            <button type="button" className="k-btn" disabled={busy} onClick={() => onCollect(work, { choose: true })}>
+            {/* 资料库里的图被删掉了也能再收（#461）。 */}
+            {all && (
+              <button
+                type="button"
+                className="k-btn"
+                disabled={busy}
+                onClick={(e) => onCollect(work, { again: true, from: e.currentTarget.closest(".pw-band") })}
+              >
+                {t("browse.collectAgain")}
+              </button>
+            )}
+            <button
+              type="button"
+              className="k-btn"
+              disabled={busy}
+              onClick={(e) => onCollect(work, { choose: true, from: e.currentTarget.closest(".pw-band") })}
+            >
               {t("browse.collectElsewhere")}
             </button>
+            {/* 取消 pixiv 收藏不动资料库里的图。 */}
+            {feedback && bookmarked && (
+              <button
+                type="button"
+                className="k-btn"
+                disabled={feedback.bookmarkPending(work.id)}
+                onClick={() => void feedback.setBookmark(work, false)}
+              >
+                {t("browse.unbookmark")}
+              </button>
+            )}
           </div>
         )}
         <div className="pw-band-actions">
@@ -375,7 +429,7 @@ function FullView({
   page: number;
   collected: boolean;
   busy: boolean;
-  onCollect?: () => void;
+  onCollect?: (from: Element | null) => void;
   onPage: (page: number) => void;
   onClose: () => void;
 }) {
@@ -412,7 +466,7 @@ function FullView({
               disabled={busy}
               onClick={(e) => {
                 e.stopPropagation();
-                onCollect();
+                onCollect(e.currentTarget.closest(".pw-full"));
               }}
             >
               {busy ? t("browse.collecting") : t(count > 1 ? "browse.collectPage" : "browse.collect")}
@@ -421,5 +475,39 @@ function FullView({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * 在 pixiv 上关注这位画师。关注即订阅（#461 第 6 步）：在订阅页里关注同时订阅，已订阅时写“已关注 · 自动收”。
+ * 订阅名单还没读到或不在订阅页里时只看 pixiv 的关注。
+ */
+export function FollowButton({
+  userId,
+  followed,
+  busy = false,
+  onToggle,
+}: {
+  userId: string;
+  followed: boolean;
+  /** 正在写：写完之前不再接受点击。 */
+  busy?: boolean;
+  onToggle: () => void;
+}) {
+  const { t } = useTranslation("subscriptions");
+  const subs = useSubscriptionsContext();
+  const subscribed = followed && !!subs?.artist(userId);
+  // 订阅名单还没读到时不能点：取消关注时找不到订阅，就会关注取消了却还在自动收。
+  // 这位画师的订阅正在退订（例如在“管理”里）时也不能点：关注会看到还没删掉的订阅而不再订阅。
+  const removing = subs?.artist(userId);
+  const writing =
+    busy ||
+    !!subs?.pending(`artist:${userId}`) ||
+    (!!removing && !!subs?.pending(removing.id)) ||
+    (!!subs && !subs.ready);
+  return (
+    <button type="button" className="k-btn" aria-pressed={followed} disabled={writing} onClick={onToggle}>
+      {subscribed ? t("browse.followedSubscribed") : followed ? t("browse.followed") : t("browse.follow")}
+    </button>
   );
 }

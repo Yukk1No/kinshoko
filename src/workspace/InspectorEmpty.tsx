@@ -26,7 +26,7 @@ export function InspectorEmpty() {
         <rect className="pill" x="50" y="164" width="58" height="16" rx="8" />
         <rect className="pill" x="114" y="164" width="36" height="16" rx="8" />
       </svg>
-      <p className="insp-empty-text">{t("inspector.empty")}</p>
+      <p className="k-description insp-empty-text">{t("inspector.empty")}</p>
     </div>
   );
 }

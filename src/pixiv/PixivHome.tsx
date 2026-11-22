@@ -1,12 +1,25 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
-import type { Feed } from "../bindings/Feed";
+import { useCallback, useId, useMemo, useRef, useState } from "react";
 import { errorText } from "../ipc";
-import { SaveDestinationDialog } from "../library/SaveDestination";
+import { subscriptionFindArtist } from "../ipc/subscriptions";
+import { useTranslation } from "react-i18next";
+import type { Artist } from "../bindings/Artist";
+import type { Feed } from "../bindings/Feed";
+import type { RankingPeriod } from "../bindings/RankingPeriod";
+import type { Subscription } from "../bindings/Subscription";
+import { ArtistSettingsDialog } from "../subscriptions/ArtistDialog";
+import { useSubscriptionStatus } from "../subscriptions/useSubscriptionStatus";
 import { Segmented } from "../ui/Segmented";
-import { PixivWall, type PixivWallHandle, type WallSection } from "./PixivWall";
-import { useCollect } from "./useCollect";
+import { Switch } from "../ui/Switch";
+import { ManageView } from "./ManageView";
+import { ArtistsView } from "./ArtistsView";
+import { FeedView } from "./FeedView";
+import type { PixivWallHandle, WallSection } from "./PixivWall";
 import { usePixivFeed } from "./usePixivFeed";
+import { type Collecting, useCollect } from "./useCollect";
+import { FeedbackContext, useFeedback } from "./useFeedback";
+import { RANKING_TOP, SubscriptionsContext, type Subscriptions, useSubscriptions } from "./useSubscriptions";
+import { ArtistResults, SearchBox, type SearchKind } from "./Search";
+import { CollectPrompts, WallView } from "./WallView";
 import "./pixiv.css";
 
 const FOLLOWING: Feed = { kind: "following" };
@@ -17,20 +30,264 @@ const RECOMMENDED: Feed = { kind: "recommended" };
  */
 const FOLLOWING_PAGES = 1;
 
-type Tab = "following" | "recommended";
+/**
+ * 标题行正中的五个去处（#461 2026-11-18）。新作与推荐是同一面墙上的两段。隔一道线是第六项“管理”（第 6 步）。
+ */
+export type Place = "following" | "recommended" | "ranking" | "bookmarks" | "artists" | "manage";
+type Home = "following" | "recommended";
+type Visibility = "public" | "private";
+
+const isHome = (place: Place): place is Home => place === "following" || place === "recommended";
 
 /**
- * 订阅页的主区（#461 第 2 步，骨架）：墙占满，先新作后推荐，标题行的去处跟着滚动走。
- * 还没挂到应用里：最后一个 PR 换掉现有订阅页时才露出来。榜单、我的收藏、画师、搜索在后面的 PR 加。
+ * 订阅页的主区（#461）：没有侧栏，墙占满，标题行正中是五个去处。新作往下滚到推荐时，选中的一块跟着走。
+ * 榜单、我的收藏、画师各自换一面墙（第 4 步）；离开再回来时，新作与推荐那面墙还停在原处，不重读。
+ * 搜索（第 5 步）收在标题行左端，展开时五个去处让开；按回车后墙换成结果，收回时回到原来的去处，结果不保留。
+ * 还没挂到应用里：最后一个 PR 换掉现有订阅页时才露出来。
  */
 export function PixivHome({ safe }: { safe: boolean }) {
   const { t } = useTranslation("subscriptions");
+  const [place, setPlace] = useState<Place>("following");
+  const [period, setPeriod] = useState<RankingPeriod>("day");
+  const [visibility, setVisibility] = useState<Visibility>("public");
+  const [artist, setArtist] = useState<Artist | null>(null);
+  const wall = useRef<PixivWallHandle>(null);
+  /** 新作与推荐那面墙上次停在哪一段。 */
+  const homeAt = useRef<Home>("following");
+  const subs = useSubscriptions();
+  const feedback = useFeedback(subs);
+  const [status] = useSubscriptionStatus();
+  /** 画师页 ⋯ 里打开的“收取范围”。 */
+  const [settings, setSettings] = useState<Subscription | null>(null);
+  const collecting = useCollect(undefined, feedback);
+  const [searching, setSearching] = useState(false);
+  const [text, setText] = useState("");
+  const [kind, setKind] = useState<SearchKind>("works");
+  /** 按回车后的查找；为空时墙是当前去处。 */
+  const [results, setResults] = useState<{ word: string; kind: SearchKind } | null>(null);
+  const [finding, setFinding] = useState<unknown>(null);
+  /** 在“画师”页里打开的搜索是原地筛选名单。 */
+  const filtering = place === "artists" && !results;
+
+  /** 每次收起搜索或再按一次回车加一：之前发出的“按 ID 找画师”回来也不再用。 */
+  const lookup = useRef(0);
+  const closeSearch = useCallback(() => {
+    lookup.current += 1;
+    setSearching(false);
+    setText("");
+    setResults(null);
+    setFinding(null);
+  }, []);
+  const submit = () => {
+    const word = text.trim();
+    const ask = ++lookup.current;
+    setFinding(null);
+    // 画师主页链接或数字 ID：直接打开这位画师。
+    if (kind === "artists" && /^\d+$|pixiv\.net\//.test(word)) {
+      subscriptionFindArtist(word).then(
+        (found) => {
+          if (ask !== lookup.current) return;
+          closeSearch();
+          setArtist(found);
+          setPlace("artists");
+        },
+        (error: unknown) => {
+          if (ask === lookup.current) setFinding(error);
+        },
+      );
+      return;
+    }
+    setResults({ word, kind });
+  };
+
+  const go = (next: Place) => {
+    setPlace(next);
+    if (!isHome(next)) return;
+    // 从别的去处回到上次停的那一段：墙原样停着，不滚。换到另一段才滚过去。
+    if (isHome(place) || next !== homeAt.current) wall.current?.scrollToSection(next);
+    homeAt.current = next;
+  };
+  const home = isHome(place) && !results;
+  const viewArtist = useCallback(
+    (a: Artist) => {
+      closeSearch();
+      setArtist(a);
+      setPlace("artists");
+    },
+    [closeSearch],
+  );
+  const onSection = useCallback((key: string) => {
+    homeAt.current = key as Home;
+    setPlace((p) => (isHome(p) ? (key as Home) : p));
+  }, []);
+
+  return (
+    <SubscriptionsContext value={subs}>
+      <FeedbackContext value={feedback}>
+        <div className="pw-page">
+          <div className="pw-tabs">
+            <SearchBox
+              open={searching}
+              text={text}
+              kind={kind}
+              filtering={filtering}
+              onOpen={() => setSearching(true)}
+              onText={(next) => {
+                setText(next);
+                // 在“画师”页里一打字就回到名单筛选。
+                if (filtering && next.trim()) setArtist(null);
+              }}
+              onKind={setKind}
+              onSubmit={submit}
+              onClose={closeSearch}
+            />
+            {/* 标题行一次只放一样东西：搜索展开时五个去处让开。 */}
+            {!searching && (
+              <Segmented<Place>
+                className="pw-places"
+                label={t("browse.tabs")}
+                value={place}
+                onChange={go}
+                options={[
+                  { value: "following", label: t("browse.following") },
+                  { value: "recommended", label: t("browse.recommended") },
+                  { value: "ranking", label: t("browse.ranking") },
+                  { value: "bookmarks", label: t("browse.bookmarks") },
+                  { value: "artists", label: t("browse.artists") },
+                  { value: "manage", label: t("browse.manage") },
+                ]}
+              />
+            )}
+          </div>
+          {finding != null && (
+            <div className="pw-status" role="alert">
+              <span className="k-error-text">{t("browse.failed", { error: errorText(finding) })}</span>
+            </div>
+          )}
+          {/* 新作与推荐一直挂着，换到别的去处时只是藏起来（不用 display: none，那样滚动位置会丢），回来时停在原处。 */}
+          <div className="pw-view" data-away={home ? undefined : ""} aria-hidden={!home || undefined} inert={!home}>
+            <HomeWall safe={safe} collecting={collecting} onSection={onSection} onArtist={viewArtist} handle={wall} />
+          </div>
+          {results && (
+            <div className="pw-view">
+              {results.kind === "works" ? (
+                <FeedView
+                  feed={{ kind: "search", word: results.word }}
+                  safe={safe}
+                  collecting={collecting}
+                  onArtist={viewArtist}
+                />
+              ) : (
+                <ArtistResults key={results.word} word={results.word} onArtist={viewArtist} />
+              )}
+            </div>
+          )}
+          {!results && place === "ranking" && (
+            <div className="pw-view">
+              <div className="pw-subbar">
+                <Segmented<RankingPeriod>
+                  label={t("browse.rankingPeriod")}
+                  value={period}
+                  onChange={setPeriod}
+                  options={[
+                    { value: "day", label: t("browse.day") },
+                    { value: "week", label: t("browse.week") },
+                    { value: "month", label: t("browse.month") },
+                  ]}
+                />
+                <RankingSwitch subs={subs} period={period} />
+              </div>
+              {/* 只读全年龄榜：R-18 榜不在这里（安全模式也不必再藏一次）。 */}
+              <FeedView
+                feed={{ kind: "ranking", period, explicit: false }}
+                safe={safe}
+                collecting={collecting}
+                onArtist={viewArtist}
+              />
+            </div>
+          )}
+          {!results && place === "bookmarks" && (
+            <div className="pw-view">
+              <div className="pw-subbar">
+                <Segmented<Visibility>
+                  label={t("browse.bookmarksVisibility")}
+                  value={visibility}
+                  onChange={setVisibility}
+                  options={[
+                    { value: "public", label: t("browse.public") },
+                    { value: "private", label: t("browse.private") },
+                  ]}
+                />
+                <SubbarSwitch
+                  label={t("browse.syncBookmarks")}
+                  hint={t("browse.syncBookmarksHint")}
+                  checked={!!subs.bookmarks()}
+                  disabled={!subs.ready || subs.pending(subs.bookmarks()?.id ?? "bookmarks")}
+                  onChange={(on) => void subs.setBookmarks(on)}
+                />
+              </div>
+              <FeedView
+                feed={{ kind: "bookmarks", private: visibility === "private" }}
+                safe={safe}
+                collecting={collecting}
+                onArtist={viewArtist}
+              />
+            </div>
+          )}
+          {!results && place === "artists" && (
+            <div className="pw-view">
+              <ArtistsView
+                safe={safe}
+                collecting={collecting}
+                artist={artist}
+                filter={searching ? text : ""}
+                onArtist={setArtist}
+                onSettings={setSettings}
+              />
+            </div>
+          )}
+          {!results && place === "manage" && (
+            <div className="pw-view pw-manage-view">
+              <ManageView status={status} />
+            </div>
+          )}
+          <CollectPrompts collecting={collecting} />
+          {subs.notice && (
+            <div className="pw-status" role="alert">
+              <span className="k-error-text">{subs.notice}</span>
+            </div>
+          )}
+          {status && settings && (
+            <ArtistSettingsDialog
+              subscription={settings}
+              status={status}
+              onClose={() => setSettings(null)}
+              onSaved={subs.saved}
+            />
+          )}
+        </div>
+      </FeedbackContext>
+    </SubscriptionsContext>
+  );
+}
+
+/** 新作与推荐：先读关注新作的一页，读完接着读推荐；推荐里与新作重复的作品去掉。 */
+function HomeWall({
+  safe,
+  collecting,
+  onSection,
+  onArtist,
+  handle,
+}: {
+  safe: boolean;
+  collecting: Collecting;
+  onSection: (key: string) => void;
+  onArtist: (artist: Artist) => void;
+  handle: React.Ref<PixivWallHandle>;
+}) {
   const following = usePixivFeed(FOLLOWING, FOLLOWING_PAGES);
   // 新作读完（或读不了）再读推荐，免得两条流同时排队。
   const recommended = usePixivFeed(following.done || following.error ? RECOMMENDED : null);
-  const [tab, setTab] = useState<Tab>("following");
-  const wall = useRef<PixivWallHandle>(null);
-
   const sections = useMemo<WallSection[]>(() => {
     // 推荐里偶尔有新作里已经出现的作品，只留新作里那一份。
     const seen = new Set(following.works.map((w) => w.id));
@@ -39,9 +296,6 @@ export function PixivHome({ safe }: { safe: boolean }) {
       { key: "recommended", works: recommended.works.filter((w) => !seen.has(w.id)) },
     ];
   }, [following.works, recommended.works]);
-  const allWorks = useMemo(() => sections.flatMap((s) => s.works), [sections]);
-  const collecting = useCollect(allWorks);
-  const onSection = useCallback((key: string) => setTab(key as Tab), []);
   const { more } = recommended;
   const onNearEnd = useCallback(() => more(), [more]);
 
@@ -49,64 +303,55 @@ export function PixivHome({ safe }: { safe: boolean }) {
   const retry = following.error ? following.retry : recommended.retry;
   const loading = following.loading || recommended.loading;
   const empty = !loading && !failed && following.done && recommended.done && sections.every((s) => !s.works.length);
-
   return (
-    <div className="pw-page">
-      <div className="pw-tabs">
-        <Segmented<Tab>
-          label={t("browse.tabs")}
-          value={tab}
-          onChange={(key) => {
-            setTab(key);
-            wall.current?.scrollToSection(key);
-          }}
-          options={[
-            { value: "following", label: t("browse.following") },
-            { value: "recommended", label: t("browse.recommended") },
-          ]}
-        />
-      </div>
-      <PixivWall
-        sections={sections}
-        safe={safe}
-        collected={collecting.collected}
-        busy={collecting.busy}
-        onCollect={collecting.collect}
-        onSection={onSection}
-        onNearEnd={onNearEnd}
-        handle={wall}
-      />
-      {collecting.notice && (
-        <div className="pw-status" role="alert">
-          {collecting.notice}
-        </div>
-      )}
-      {collecting.asking && (
-        <SaveDestinationDialog
-          title={t("browse.chooseDestination")}
-          summary={collecting.asking.work.title}
-          confirmLabel={t("browse.collect")}
-          initial={collecting.remembered}
-          onConfirm={collecting.confirm}
-          onClose={collecting.cancel}
-        />
-      )}
-      {(loading || failed || empty) && (
-        <div className="pw-status" role="status">
-          {failed ? (
-            <>
-              <span>{t("browse.failed", { error: errorText(failed) })}</span>
-              <button type="button" className="k-btn" onClick={retry}>
-                {t("browse.retry")}
-              </button>
-            </>
-          ) : loading ? (
-            t("browse.loading")
-          ) : (
-            t("browse.empty")
-          )}
-        </div>
-      )}
+    <WallView
+      sections={sections}
+      safe={safe}
+      collecting={collecting}
+      status={{ loading, failed, retry, empty }}
+      onSection={onSection}
+      onNearEnd={onNearEnd}
+      onArtist={onArtist}
+      handle={handle}
+    />
+  );
+}
+
+/** 榜单页顶上的“自动收日榜 / 周榜 / 月榜”（#461 第 6 步），跟着选中的周期换。 */
+function RankingSwitch({ subs, period }: { subs: Subscriptions; period: RankingPeriod }) {
+  const { t } = useTranslation("subscriptions");
+  const sub = subs.ranking(period);
+  return (
+    <SubbarSwitch
+      label={t("browse.autoRanking", { ranking: t(`browse.${period}`) })}
+      hint={t("browse.autoRankingHint", { count: sub?.target.kind === "pixivRanking" ? sub.target.top : RANKING_TOP })}
+      checked={!!sub}
+      disabled={!subs.ready || subs.pending(sub?.id ?? `ranking:${period}`)}
+      onChange={(on) => void subs.setRanking(period, on)}
+    />
+  );
+}
+
+/** 第二行右端的就地订阅开关：开关加一句说明，点文字也能拨。 */
+function SubbarSwitch({
+  label,
+  hint,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (on: boolean) => void;
+}) {
+  const id = useId();
+  return (
+    <div className="pw-subbar-switch">
+      <Switch id={id} checked={checked} disabled={disabled} label={label} onCheckedChange={onChange} />
+      <label htmlFor={id}>{label}</label>
+      <span className="k-description">{hint}</span>
     </div>
   );
 }

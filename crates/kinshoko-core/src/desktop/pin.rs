@@ -29,7 +29,7 @@ pub const MIN_OPACITY: f64 = 0.1;
 
 /// 钉图在桌面上的摆放：位置、缩放、翻转与旋转。
 ///
-/// 与参考组的成员摆放同义（#66 把它存进参考组）；透明度、锁定只属于桌面，不在这里。
+/// 与参考组的成员摆放同义（#66 把它存进参考组）；透明度、锁定不在这里（桌面上的参考组另存在成员上，#590）。
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase", default)]
 #[ts(export)]

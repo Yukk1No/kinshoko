@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { CaptureHistoryPanel } from "../desktop/CaptureHistoryPanel";
-import { ReferenceGroupsPanel } from "../desktop/ReferenceGroupsPanel";
+import { DeskNewGroupButton, ReferenceGroups } from "../desktop/DeskGroupsPanel";
 import { WorkspacePane } from "../library/WorkspacePane";
 import { useFloatEscape } from "../shell/paneFit";
 import type { Section } from "../shell/Rail";
@@ -74,6 +74,7 @@ export function WorkspaceSidebar({
         ) : (
           <h1 className="k-title">{sectionName}</h1>
         )}
+        {section === "groups" && <DeskNewGroupButton />}
         <Tip label={t("collapsePane")} keys="Ctrl+B">
           <button type="button" className="k-icon-btn" aria-label={t("collapsePane")} onClick={onPaneToggle}>
             <PanelLeftClose size={16} aria-hidden="true" />
@@ -94,7 +95,7 @@ export function WorkspaceSidebar({
           onScope={onScope}
         ></WorkspacePane>
       </div>
-      {section === "groups" && <ReferenceGroupsPanel />}
+      {section === "groups" && <ReferenceGroups />}
       {section === "captures" && (
         <CaptureHistoryPanel request={captureRequest} onRequestHandled={onCaptureRequestHandled} />
       )}

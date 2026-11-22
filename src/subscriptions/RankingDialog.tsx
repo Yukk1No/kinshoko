@@ -10,7 +10,6 @@ import { NewLibraryFields } from "../library/CreateLibrary";
 import { useSaveDestination } from "../library/SaveDestination";
 import { newLibraryParentPrefill } from "../library/savePrefill";
 import { Segmented } from "../ui/Segmented";
-import { SelectableList } from "../ui/SelectableList";
 import { Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
 import { WarnIcon } from "../ui/WarnIcon";
@@ -28,26 +27,15 @@ import {
 import { UnofficialMark } from "./UnofficialMark";
 
 /** 名次分段：前 10／50／100。 */
-function TopPicker({
-  label,
-  value,
-  onChange,
-  disabled = false,
-}: {
-  label: string;
-  value: Top;
-  onChange: (top: Top) => void;
-  disabled?: boolean;
-}) {
+function TopPicker({ label, value, onChange }: { label: string; value: Top; onChange: (top: Top) => void }) {
   const { t } = useTranslation("subscriptions", { keyPrefix: "ranking" });
   return (
     <Segmented
-      tone="accent"
       className="subs-rank-seg"
       label={label}
       value={String(value) as `${Top}`}
       onChange={(v) => onChange(Number(v) as Top)}
-      options={TOPS.map((top) => ({ value: String(top) as `${Top}`, label: t("top", { count: top }), disabled }))}
+      options={TOPS.map((top) => ({ value: String(top) as `${Top}`, label: t("top", { count: top }) }))}
     />
   );
 }
@@ -73,7 +61,6 @@ export function RankingDialog({
 }) {
   const { t } = useTranslation("subscriptions", { keyPrefix: "ranking" });
   const { t: ts } = useTranslation("subscriptions");
-  const { t: tc } = useTranslation("common", { keyPrefix: "selectableList" });
   const libraries = useLibraryOptions();
   const { providers, memory, rememberNewLibraryParent } = useSaveDestination();
   const rankings = list.filter((s) => s.target.kind === "pixivRanking");
@@ -168,25 +155,36 @@ export function RankingDialog({
   const row = (r: Ranking) => {
     const label = t(`period.${r.key}`);
     const done = subscribed.get(r.key);
-    return {
-      id: r.key,
-      name: label,
-      done: done !== undefined,
-      trailing:
-        done !== undefined ? (
-          <span className="k-description">{t("subscribed", { count: done })}</span>
-        ) : (
-          <TopPicker
-            label={t("topLabel", { period: label })}
-            value={tops[r.key]}
+    if (done !== undefined) {
+      return (
+        <li key={r.key} className="subs-rank-row is-done">
+          <input type="checkbox" checked disabled aria-label={label} />
+          <span className="subs-rank-name">{label}</span>
+          <span className="subs-rank-done">{t("subscribed", { count: done })}</span>
+        </li>
+      );
+    }
+    return (
+      <li key={r.key} className={`subs-rank-row${picks[r.key] ? " is-on" : ""}`}>
+        <label className="subs-rank-pick">
+          <input
+            type="checkbox"
+            checked={!!picks[r.key]}
             disabled={busy}
-            onChange={(top) => {
-              setTops((v) => ({ ...v, [r.key]: top }));
-              setPicks((p) => ({ ...p, [r.key]: true }));
-            }}
+            onChange={(e) => setPicks((p) => ({ ...p, [r.key]: e.target.checked }))}
           />
-        ),
-    };
+          <span className="subs-rank-name">{label}</span>
+        </label>
+        <TopPicker
+          label={t("topLabel", { period: label })}
+          value={tops[r.key]}
+          onChange={(top) => {
+            setTops((v) => ({ ...v, [r.key]: top }));
+            setPicks((p) => ({ ...p, [r.key]: true }));
+          }}
+        />
+      </li>
+    );
   };
 
   return (
@@ -203,22 +201,27 @@ export function RankingDialog({
             <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
             <UnofficialMark />
           </div>
+          <div className="k-field">
+            <span className="k-section-label" id="subs-rank-list">
+              {t("list")}
+            </span>
+            <ul className="subs-rank-list" aria-labelledby="subs-rank-list">
+              {RANKINGS.filter((r) => !r.explicit).map(row)}
+            </ul>
+          </div>
           {showExplicit && (
-            <div className="subs-option">
-              <span className="subs-option-text">{t("explicit")}</span>
-              <Switch label={t("explicit")} disabled={busy} checked={explicitOn} onCheckedChange={setExplicitOn} />
+            <div className="k-field">
+              <div className="subs-option">
+                <span className="subs-option-text">{t("explicit")}</span>
+                <Switch label={t("explicit")} disabled={busy} checked={explicitOn} onCheckedChange={setExplicitOn} />
+              </div>
+              {explicitOn && (
+                <ul className="subs-rank-list" aria-label={t("explicitList")}>
+                  {RANKINGS.filter((r) => r.explicit).map(row)}
+                </ul>
+              )}
             </div>
           )}
-          <SelectableList
-            label={t("list")}
-            filterLabel={tc("filter")}
-            controls={shown.length >= 12}
-            items={shown.map(row)}
-            selected={new Set(RANKINGS.filter((r) => picks[r.key]).map((r) => r.key))}
-            onChange={(next) => setPicks(Object.fromEntries([...next].map((key) => [key, true])))}
-            disabled={busy}
-            accentSelection
-          />
           <div className="k-field">
             <span className="k-section-label" id="subs-rank-library">
               {t("library")}
@@ -289,9 +292,6 @@ export function RankingDialog({
           )}
           <div className="k-dialog-foot">
             <span className="k-grow subs-rank-foot-note">{open === 0 ? t("allDone") : ""}</span>
-            <span className="k-description" aria-live="polite">
-              {tc("selected", { count: picked.length })}
-            </span>
             <button type="button" className="k-btn" disabled={busy} onClick={onClose}>
               <span className="k-label">{t("cancel")}</span>
             </button>

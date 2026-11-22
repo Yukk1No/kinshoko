@@ -507,15 +507,6 @@ pub enum ErrorKind {
     PinVeiledNoCopy,
     /// 截图钉图对应的截图已不在截图历史中。
     PinCaptureGone,
-    /// 存进参考组时，截图钉图对应的截图已不在截图历史中。
-    CaptureLeftHistory,
-    CaptureSavePlanChanged,
-    /// 第 `number` 张截图没能收藏；前面 `completed` 张已收藏。
-    CaptureCollectIncomplete {
-        number: usize,
-        completed: usize,
-        cause: Box<ErrorKind>,
-    },
     ClipboardNoImage,
     ClipboardImageUnrecognized,
     CopiedImageEmpty,

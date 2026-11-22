@@ -115,6 +115,18 @@ pub(super) fn close(app: &AppHandle, pin: &str) {
     closed(app, pin);
 }
 
+/// 换了一桌钉图（#591）：关掉这张钉图的窗口和本次运行的记录，钉图状态不动（它已不在桌面上的
+/// 参考组里，或是旧的那一桌）。在别的线程上调用。
+pub(in crate::desktop) fn dismiss(app: &AppHandle, pin: &str) {
+    crate::library::with_visibility_commit(app, |_| {
+        lock(&state(app).pins).remove(pin);
+        lock(&state(app).veils).forget(pin);
+        lock(&state(app).edge).release(pin);
+    });
+    native::close(app, pin);
+    stop_waiting(app, pin);
+}
+
 /// 钉图没了。画师关闭的：不再恢复，截图不再被它钉住，按截图历史的规则丢弃。
 /// 没建起来的：状态留着，下次启动恢复。
 pub(super) fn closed(app: &AppHandle, pin: &str) {
@@ -127,17 +139,9 @@ pub(super) fn closed(app: &AppHandle, pin: &str) {
         if !record.closing {
             return false;
         }
-        {
-            let mut store = lock(&state(app).store);
-            store.remove(pin);
-            let _ = store.save();
-        }
-        if let Some(capture) = &record.capture_id {
-            lock(&state(app).history).unpin(capture);
-            true
-        } else {
-            false
-        }
+        let updated = lock(&state(app).store).close(pin, &mut lock(&state(app).history));
+        state(app).dirty.store(true, Ordering::Relaxed);
+        updated
     });
     if history_updated {
         history_changed(app);

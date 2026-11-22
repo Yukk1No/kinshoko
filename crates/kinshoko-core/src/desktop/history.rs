@@ -59,28 +59,6 @@ pub struct CollectedCapture {
     pub image_id: String,
 }
 
-/// 保存参考组时对一张截图的决定：收藏进 `library_id`（`folder_id`）后入组；`keep_in_group` 为真时
-/// 只存在参考组里，不进任何资料库（#270）；两者都没有表示明确不把它加入参考组。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct CaptureChoice {
-    pub capture_id: String,
-    pub library_id: Option<String>,
-    #[serde(default)]
-    pub folder_id: Option<String>,
-    #[serde(default)]
-    #[ts(optional)]
-    pub keep_in_group: Option<bool>,
-}
-
-impl CaptureChoice {
-    /// 只存在参考组里。
-    pub fn keeps_in_group(&self) -> bool {
-        self.keep_in_group == Some(true) && self.library_id.is_none()
-    }
-}
-
 /// 截图历史保留的张数（#7：5～10 张）。超出的旧截图在没被钉住时丢弃。
 pub const HISTORY_LIMIT: usize = 10;
 

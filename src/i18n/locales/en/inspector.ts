@@ -12,6 +12,7 @@ const inspector: Translation<typeof zh> = {
     moveToFolder: "Move to folder",
     noFolders: "No folders yet",
     removeFromFolder: "Remove from this folder",
+    notDirectlyInFolder: "The selected images are all in subfolders, not in this folder itself",
     restore: "Restore",
     purge: "Delete permanently…",
     trash: "Move to Trash",

@@ -3,6 +3,10 @@
 //! 同一张截图进了几个参考组时都改连；某个参考组读写失败时其他照常改连，失败的关联留着下次再试。
 //! 经 `kinshoko_core` 的对外接口，用临时目录里的真文件。
 
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+use group_fixture::{open_group, save_group_with_history};
+
 use image::RgbaImage;
 use kinshoko_core::Library;
 use std::fs;
@@ -64,13 +68,7 @@ impl Desk {
     /// 把截图历史条目 `capture_id` 钉到桌面，只存在新参考组 `name` 里，然后关掉钉图。
     fn keep_in_new_group(&mut self, name: &str, capture_id: &str) -> ReferenceGroup {
         let mut pins = [capture_pin(capture_id)];
-        let keep = [self.history.group_capture(capture_id).unwrap()];
-        let group = self
-            .groups
-            .create_with_captures(name, &mut pins, &keep)
-            .unwrap();
-        self.groups.link_captures(&mut self.history, &pins);
-        group
+        save_group_with_history(&self.groups, &mut self.history, name, &mut pins).unwrap()
     }
 
     /// 从截图历史收藏（钉图早已关掉），再按关联改连参考组。返回改连了的成员。
@@ -190,8 +188,8 @@ fn a_discarded_history_entry_drops_its_links_and_reopening_the_group_links_the_n
     assert!(desk.history.entry(&entry.id).is_none(), "旧条目已丢弃");
     assert!(matches!(desk.source(&group), MemberSource::Capture { .. }));
 
-    // 打开参考组：截图放回截图历史成为新条目，并记得它来自哪个成员。
-    let opened = desk.groups.open_pins(&group, &mut desk.history, |_| false);
+    // 摆到桌面上：截图放回截图历史成为新条目，并记得它来自哪个成员。
+    let opened = open_group(&desk.groups, &mut desk.history, &group.id).unwrap();
     let reopened = opened.pins[0].capture_id().unwrap().to_owned();
     assert_ne!(reopened, entry.id);
     desk.history.unpin(&reopened);

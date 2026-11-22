@@ -196,6 +196,11 @@ export function useToast(): ToastApi {
   return api;
 }
 
+/** 有 ToastProvider 时同 `useToast`，没有时为空（例如只挂一块界面的单测）。 */
+export function useOptionalToast(): ToastApi | null {
+  return useContext(Manager);
+}
+
 export type PersistentToast = Pick<ToastOptions, "title" | "description" | "tone" | "action">;
 
 /**

@@ -4,8 +4,8 @@
 //!
 //! 每张钉图是一个原生窗口，用 wgpu 绘制（[`native`]，ADR 0013）：窗口、输入、动画与绘制都在那边，
 //! 这里管钉图状态、截图历史与资料库的核对，几何或外观每次变化都经 [`show`]／[`refresh`] 推给它一帧。
-//! 钉图状态在 [`PinStore`]（`pins.json`）里：画师关闭的钉图从中删除；退出程序时钉图窗口也会销毁，
-//! 但这时不删，下次启动照原样恢复。
+//! 钉图状态是桌面上的参考组（[`super::pin_state`]，#588）：钉图就是它的成员，画师关闭的钉图从中删除；
+//! 退出程序时钉图窗口也会销毁，但这时不删，下次启动照原样恢复。
 //!
 //! 资料库钉图（#65）：从查看器钉整图或框出的局部（原图像素）。图经参考视角读取（[`reference_file`]），
 //! 只给已钉住的图，不按任意 id 给。安全模式开启时
@@ -88,6 +88,43 @@ pub fn monitor_at(x: i32, y: i32) -> Option<(ScreenRect, f64)> {
     ))
 }
 
+/// 主显示器的矩形与缩放比例。
+pub(super) fn primary_monitor() -> Option<(ScreenRect, f64)> {
+    let all = xcap::Monitor::all().ok()?;
+    let m = all
+        .iter()
+        .find(|m| m.is_primary().unwrap_or(false))
+        .or_else(|| all.first())?;
+    monitor_at(m.x().ok()?, m.y().ok()?)
+}
+
+/// 把资料库钉图摆到屏幕上的 `centre`（物理像素，例如图库墙右键处）为中心的地方，与“钉住”相同；
+/// 不知道在哪时摆到主显示器中间。略微错开，避开 `others`，按显示器缩小到合适的大小。
+pub(super) fn place_around(pin: &mut SavedPin, centre: Option<(i32, i32)>, others: &[ScreenRect]) {
+    let found = match centre {
+        Some((x, y)) => monitor_at(x, y),
+        None => primary_monitor(),
+    };
+    let Some((monitor, dpi)) = found else {
+        return;
+    };
+    pin.placement.scale = initial_scale(pin.width, pin.height, monitor);
+    let (width, height) = pin.window_size();
+    let (cx, cy) = centre.unwrap_or((
+        monitor.x + (monitor.width / 2) as i32,
+        monitor.y + (monitor.height / 2) as i32,
+    ));
+    let at = ScreenRect {
+        x: cx - (width / 2) as i32,
+        y: cy - (height / 2) as i32,
+        width,
+        height,
+    };
+    let (x, y) = place_new_pin(at, monitor, others, (OFFSET * dpi).round() as i32);
+    pin.placement.x = x;
+    pin.placement.y = y;
+}
+
 /// 全部显示器的矩形。
 pub fn monitors() -> Vec<ScreenRect> {
     xcap::Monitor::all()
@@ -104,7 +141,7 @@ pub fn monitors() -> Vec<ScreenRect> {
         .collect()
 }
 
-/// 已打开钉图的状态（按 [`PinStore`] 的先后）。
+/// 已打开钉图的状态（按桌面上参考组的先后）。
 pub fn open_pins(app: &AppHandle) -> Vec<SavedPin> {
     let open: Vec<String> = lock(&state(app).pins).keys().cloned().collect();
     lock(&state(app).store)
@@ -115,28 +152,12 @@ pub fn open_pins(app: &AppHandle) -> Vec<SavedPin> {
         .collect()
 }
 
-/// 入组后记下成员关系；已收藏的截图钉图改连参考图，保持当前几何和窗口状态。
-pub fn remember_group_members(app: &AppHandle, saved: &[SavedPin]) {
-    let mut converted = Vec::new();
-    {
-        let mut store = lock(&state(app).store);
-        for pin in saved {
-            store.edit(&pin.id, |p| {
-                p.member = pin.member.clone();
-                if p.capture_id().is_some() && matches!(pin.content, PinContent::Reference { .. }) {
-                    p.content = pin.content.clone();
-                    converted.push(pin.id.clone());
-                }
-            });
-        }
-        let _ = store.save();
-    }
-    for id in &converted {
-        let capture = lock(&state(app).pins)
-            .get_mut(id)
-            .and_then(|r| r.capture_id.take());
-        if let Some(capture) = capture {
-            lock(&state(app).history).unpin(&capture);
+/// 截图钉图收藏后改为显示参考图：本次运行的记录不再记着截图，重画。截图历史里的钉住桌面上的参考组
+/// 已经解除了。
+pub(in crate::desktop) fn converted_to_references(app: &AppHandle, converted: &[String]) {
+    for id in converted {
+        if let Some(record) = lock(&state(app).pins).get_mut(id) {
+            record.capture_id = None;
         }
         refresh(app, id);
     }
@@ -198,12 +219,7 @@ pub(super) fn open_reference_selection(
     let (x, y) = place_new_pin(origin, monitor, &others, (OFFSET * dpi).round() as i32);
     pin.placement.x = x;
     pin.placement.y = y;
-    {
-        let mut store = lock(&state(app).store);
-        store.put(pin.clone());
-        let _ = store.save();
-    }
-    open_pin(app, &pin);
+    let pin = add_and_open(app, pin)?;
     Ok(pin.id)
 }
 
@@ -290,13 +306,14 @@ pub fn restore(app: &AppHandle) {
         veils.set_scope(crate::library::safe_mode_scope(app));
     });
     let monitors = monitors();
-    let pins = {
-        let mut history = lock(&state(app).history);
+    let opened = {
         let mut store = lock(&state(app).store);
-        let pins = store.restore(&mut history, &monitors);
-        let _ = store.save();
-        pins
+        store.restore(&mut lock(&state(app).history), &monitors)
     };
+    for problem in &opened.problems {
+        crate::run_log::warn("桌面上的参考组有成员钉不出来", problem);
+    }
+    let pins = opened.pins;
     if pins.is_empty() {
         return;
     }

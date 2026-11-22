@@ -6,11 +6,10 @@ import {
   ExternalLink,
   FlipHorizontal2,
   FlipVertical2,
-  Layers,
+  Move,
   PanelRightClose,
   RotateCcw,
   RotateCw,
-  Save,
   Scan,
   SunDim,
   X,
@@ -26,7 +25,6 @@ import {
   MenuTip,
   PointerMenu,
 } from "../ui/Menu";
-import type { GroupSummary } from "../bindings/GroupSummary";
 import type { PinMenu } from "../bindings/PinMenu";
 import type { PinMenuOpen } from "../bindings/PinMenuOpen";
 import {
@@ -35,7 +33,6 @@ import {
   desktopMenuShown,
   onDesktopMenu,
   pinMenuAction,
-  referenceGroups,
   showPinNotice,
   type PinMenuAction,
 } from "../ipc";
@@ -47,55 +44,19 @@ export const OPACITY_STEPS = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
 
 const icon = (Icon: typeof X) => <Icon size={14} />;
 
-/** 子菜单打开时才读参考组；读不到时显示原因。 */
-function GroupList({ load, act }: { load: () => Promise<GroupSummary[]>; act: (a: PinMenuAction) => void }) {
-  const { t } = useTranslation("desktop", { keyPrefix: "pinMenu" });
-  const [state, setState] = useState<{ items: GroupSummary[] | null; problem: string | null }>({
-    items: null,
-    problem: null,
-  });
-  // biome-ignore lint/correctness/useExhaustiveDependencies(load): 每次打开子菜单只读一次；load 每次渲染都是新函数
-  useEffect(() => {
-    let alive = true;
-    load().then(
-      (items) => alive && setState({ items, problem: null }),
-      (e) => alive && setState({ items: [], problem: errorText(e) }),
-    );
-    return () => {
-      alive = false;
-    };
-  }, []);
-  const { items, problem } = state;
-  if (!items) return <MenuTip>{t("loadingGroups")}</MenuTip>;
-  if (problem) return <MenuTip>{problem}</MenuTip>;
-  const usable = items.filter((g) => !g.problem);
-  if (!usable.length) return <MenuTip>{t("noGroups")}</MenuTip>;
-  return (
-    <>
-      {usable.map((g) => (
-        <MenuItem key={g.id} onClick={() => act(`group:${g.id}`)}>
-          {g.name}
-        </MenuItem>
-      ))}
-    </>
-  );
-}
-
 /**
  * 桌面钉图的右键菜单内容（#102 “右键菜单”表的“桌面钉图”一行）：原生菜单的各项逐项保留——翻转、旋转、
- * 原始大小、透明度、锁定，截图钉图的收藏与复制，资料库钉图的显示遮蔽图与存回参考组——再加上
- * 在 Kinshoko 中打开、加入参考组 ▸、贴边隐藏与关闭钉图。快捷键提示与钉图窗口的按键一致。
+ * 原始大小、透明度、锁定，截图钉图的收藏与复制，资料库钉图的显示遮蔽图——再加上在 Kinshoko 中打开、
+ * 贴边隐藏与关闭钉图。快捷键提示与钉图窗口的按键一致。
  */
 export function PinMenuItems({
   menu,
   act,
   dismiss = () => {},
-  groups = referenceGroups,
 }: {
   menu: PinMenu;
   act: (action: PinMenuAction) => void;
   dismiss?: () => void;
-  groups?: () => Promise<GroupSummary[]>;
 }) {
   const { t } = useTranslation("desktop", { keyPrefix: "pinMenu" });
   // 点了遮蔽钉图上的小圆锁：只问这一句。
@@ -157,18 +118,14 @@ export function PinMenuItems({
           {t("revealVeiled")}
         </MenuItem>
       )}
-      {!menu.capture && menu.group !== null && (
-        <MenuItem icon={icon(Save)} onClick={() => act("saveGroup")}>
-          {t("saveGroup", { name: menu.group })}
-        </MenuItem>
-      )}
       <MenuSeparator />
       <MenuItem icon={icon(ExternalLink)} onClick={() => act("openInKinshoko")}>
         {t("openInKinshoko")}
       </MenuItem>
-      <MenuSubmenu icon={icon(Layers)} label={t("addToGroup")} popupLabel={t("addToGroup")} width={220}>
-        {menu.capture ? <MenuTip>{t("collectFirst")}</MenuTip> : <GroupList load={groups} act={act} />}
-      </MenuSubmenu>
+      {/* 整组移动（#198）：下一次拖动时桌面上的钉图一起动，给不方便按 Alt 的笔和触摸用。 */}
+      <MenuItem icon={icon(Move)} kbd="Alt" onClick={() => act("groupMove")}>
+        {t("groupMove")}
+      </MenuItem>
       <MenuItem icon={icon(PanelRightClose)} onClick={() => act("edgeHide")}>
         {t("edgeHide")}
       </MenuItem>

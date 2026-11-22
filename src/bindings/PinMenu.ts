@@ -25,10 +25,6 @@ veiled: boolean,
  */
 canCollect: boolean, 
 /**
- * 来自参考组时，那个参考组的名称（“存回参考组”）。
- */
-group: string | null, 
-/**
  * 画师点了遮蔽钉图上的小圆锁：只问“显示这张图？”（原生钉图，#285）。
  */
 confirmReveal: boolean, };
