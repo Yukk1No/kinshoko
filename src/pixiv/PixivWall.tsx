@@ -497,7 +497,8 @@ export function FollowButton({
   const { t } = useTranslation("subscriptions");
   const subs = useSubscriptionsContext();
   const subscribed = followed && !!subs?.artist(userId);
-  const writing = busy || !!subs?.pending(`artist:${userId}`);
+  // 订阅名单还没读到时不能点：取消关注时找不到订阅，就会关注取消了却还在自动收。
+  const writing = busy || !!subs?.pending(`artist:${userId}`) || (!!subs && !subs.list);
   return (
     <button type="button" className="k-btn" aria-pressed={followed} disabled={writing} onClick={onToggle}>
       {subscribed ? t("browse.followedSubscribed") : followed ? t("browse.followed") : t("browse.follow")}

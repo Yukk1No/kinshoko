@@ -69,7 +69,7 @@ function ArtistIndex({
     if (!(await feedback.setFollow(a, false))) return;
     toast?.show({
       title: t("browse.unfollowedArtist", { name: a.name }),
-      action: { label: t("browse.undo"), onClick: () => void latestFeedback.current?.setFollow(a, true) },
+      action: { label: t("browse.undo"), onClick: () => void latestFeedback.current?.setFollow(a, true, subscription) },
     });
   };
   const artists = useMemo(() => {

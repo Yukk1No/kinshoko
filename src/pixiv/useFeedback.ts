@@ -4,6 +4,7 @@ import type { Artist } from "../bindings/Artist";
 import type { PixivWork } from "../bindings/PixivWork";
 import { errorText } from "../ipc";
 import { subscriptionSetBookmark, subscriptionSetFollow } from "../ipc/pixivBrowse";
+import type { Subscription } from "../bindings/Subscription";
 import type { Subscriptions } from "./useSubscriptions";
 
 /** 改回写之前的样子：之前没有覆盖的就去掉覆盖，回到读到的数据。 */
@@ -80,7 +81,7 @@ export function useFeedback(subs: Subscriptions | null = null) {
   );
 
   const setFollow = useCallback(
-    async (artist: Artist, on: boolean) => {
+    async (artist: Artist, on: boolean, like?: Subscription) => {
       const key = `a:${artist.userId}`;
       if (!begin(key)) return false;
       const before = follows.get(artist.userId);
@@ -95,7 +96,7 @@ export function useFeedback(subs: Subscriptions | null = null) {
           return false;
         }
         // 订阅改完之前这位画师一直锁着：退订还没写完时再点“关注”，会看到旧订阅而不再订阅，退订落地后就成了关注却没订阅。
-        if (subs) await (on ? subs.subscribeArtist(artist) : subs.unsubscribeArtist(artist.userId));
+        if (subs) await (on ? subs.subscribeArtist(artist, like) : subs.unsubscribeArtist(artist.userId));
         return true;
       } finally {
         end(key);

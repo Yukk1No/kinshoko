@@ -188,6 +188,14 @@ describe("关注即订阅", () => {
     await waitFor(() => expect(within(band).getByRole("button", { name: "关注" })).toHaveProperty("disabled", false));
   });
 
+  it("订阅名单还没读到时关注按钮不能点", async () => {
+    fake.on("subscriptions", () => new Promise(() => {}));
+    renderHome();
+    fireEvent.click(await screen.findByRole("button", { name: "作品1，小林" }));
+    const band = screen.getByRole("region", { name: "作品1，小林" });
+    expect(within(band).getByRole("button", { name: "关注" })).toHaveProperty("disabled", true);
+  });
+
   it("pixiv 上没关注成时不订阅", async () => {
     fake.on("subscription_set_follow", () => {
       throw { code: "subscriptionSource", reason: { code: "network" } };
@@ -241,6 +249,7 @@ describe("就地开关", () => {
 
 describe("画师卡片与“管理”", () => {
   it("画师卡片的 ⋯ 写着收进哪个库；“取消关注”在 pixiv 上取消关注并退订", async () => {
+    list = [{ ...list[0], includeManga: true, includeExplicit: false }];
     renderHome();
     fireEvent.click(place("画师"));
     const cards = await screen.findByRole("list", { name: "画师" });
@@ -254,6 +263,9 @@ describe("画师卡片与“管理”", () => {
     fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
     await waitFor(() => expect(fake.calls("subscription_add")).toHaveLength(1));
     expect(fake.calls("subscription_set_follow")[1].args).toEqual({ userId: "2", on: true });
+    // 照原来那条订阅的库与收取范围。
+    const [back] = fake.calls("subscription_add")[0].args.subscriptions as NewSubscription[];
+    expect(back).toMatchObject({ libraryId: "L", includeManga: true, includeExplicit: false });
     expect(within(await screen.findByRole("list", { name: "画师" })).getByText("山田")).toBeTruthy();
   });
 

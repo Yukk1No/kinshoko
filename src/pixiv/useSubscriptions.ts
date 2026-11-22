@@ -158,28 +158,39 @@ export function useSubscriptions() {
     [write, removed, added, toast, t],
   );
 
-  /** 订阅一位画师：只收之后的新作，漫画不收，R-18 照收（和“订阅画师”对话框的默认一样）。已订阅时什么都不做。 */
+  /**
+   * 订阅一位画师：只收之后的新作，漫画不收，R-18 照收（和“订阅画师”对话框的默认一样）。给了 `like`（撤销取消关注时
+   * 原来那条订阅）就照它的资料库与收取范围。已订阅时什么都不做。
+   */
   const subscribeArtist = useCallback(
-    async (who: Artist) => {
+    async (who: Artist, like?: Subscription) => {
       if (latest.current?.some((s) => s.target.kind === "pixivArtist" && s.target.userId === who.userId)) return true;
-      return subscribe(`artist:${who.userId}`, (libraryId) => ({
+      const make = (libraryId: string): NewSubscription => ({
         target: { kind: "pixivArtist", userId: who.userId },
         name: who.name,
         libraryId,
-        includeExplicit: true,
-        includeManga: false,
+        includeExplicit: like?.includeExplicit ?? true,
+        includeManga: like?.includeManga ?? false,
         backlog: { kind: "newOnly" },
-      }));
+      });
+      if (like)
+        return write(
+          `artist:${who.userId}`,
+          async () => added(await subscriptionAdd([make(like.libraryId)])),
+          "browse.subscribeFailed",
+        );
+      return subscribe(`artist:${who.userId}`, make);
     },
-    [subscribe],
+    [subscribe, write, added],
   );
 
+  /** 退订一位画师；按最新一份名单找（关注的写入发出时名单可能还没读到或已经变了）。 */
   const unsubscribeArtist = useCallback(
     async (userId: string) => {
-      const sub = artist(userId);
+      const sub = latest.current?.find((s) => s.target.kind === "pixivArtist" && s.target.userId === userId);
       return sub ? unsubscribe(sub) : true;
     },
-    [artist, unsubscribe],
+    [unsubscribe],
   );
 
   /** 榜单开关（全年龄）：打开时收前 50 名，榜上已有的也收（和对话框一样）。 */
