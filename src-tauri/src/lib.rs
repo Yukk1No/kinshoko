@@ -158,18 +158,32 @@ pub fn run() {
 
     app.run(|app, event| match event {
         // 最后一个窗口关闭时 code 为 None：留在托盘。`app.exit(code)` 带 code，照常退出。
-        RunEvent::ExitRequested {
-            code: None, api, ..
-        } => api.prevent_exit(),
+        RunEvent::ExitRequested { code, api, .. } => {
+            if code.is_none() {
+                api.prevent_exit();
+            } else {
+                shell::observe_main_window(app, true);
+            }
+        }
         RunEvent::Exit => desktop::on_exit(app),
         RunEvent::WindowEvent {
             label,
             event:
-                tauri::WindowEvent::Moved(_)
+                event @ (tauri::WindowEvent::Moved(_)
                 | tauri::WindowEvent::Resized(_)
-                | tauri::WindowEvent::ScaleFactorChanged { .. },
+                | tauri::WindowEvent::ScaleFactorChanged { .. }),
             ..
-        } => desktop::capture_geometry_changed(app, &label),
+        } => {
+            if label == shell::MAIN_WINDOW && matches!(event, tauri::WindowEvent::Resized(_)) {
+                shell::observe_main_window(app, false);
+            }
+            desktop::capture_geometry_changed(app, &label);
+        }
+        RunEvent::WindowEvent {
+            label,
+            event: tauri::WindowEvent::CloseRequested { .. },
+            ..
+        } if label == shell::MAIN_WINDOW => shell::observe_main_window(app, true),
         // 关闭主窗口是画师眼里的“退出”：今天第一次时在后台自动备份（#69）。
         RunEvent::WindowEvent {
             label,

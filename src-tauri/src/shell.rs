@@ -20,6 +20,9 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt as _, Shortcut, ShortcutSta
 use crate::data_dirs::SharedWebview as _;
 use crate::desktop;
 
+mod window_state;
+use window_state::Placement;
+
 /// 主窗口的标签，与 `tauri.conf.json` 一致。
 pub const MAIN_WINDOW: &str = "main";
 
@@ -40,6 +43,8 @@ pub struct ShellState(pub Mutex<Shell>);
 /// 回调，在主线程上）要读它；改档位的命令不在持锁时调用 WebView。
 pub struct UiScaleState(pub Mutex<UiScale>);
 
+struct MainWindowState(Mutex<Placement>);
+
 impl Shell {
     pub fn view(&self) -> ShellSettingsView {
         self.shortcuts.settings_view(&self.settings)
@@ -57,6 +62,12 @@ pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     crate::diagnostics::start(app, &settings)?;
     let ui_scale = UiScale::open(crate::data_dirs::app_data(app).settings())?;
     app.manage(UiScaleState(Mutex::new(ui_scale)));
+    let placement =
+        Placement::open(crate::data_dirs::app_data(app).settings()).unwrap_or_else(|error| {
+            crate::run_log::warn("read main window placement", error);
+            Placement::default()
+        });
+    app.manage(MainWindowState(Mutex::new(placement)));
     let shortcuts = GlobalShortcuts::start(TauriHotkeys { app: app.clone() }, &settings);
     if let Err(e) = apply_autostart(app, settings.autostart()) {
         crate::run_log::warn("同步开机自启失败", e);
@@ -117,6 +128,35 @@ pub fn apply_ui_scale(app: &AppHandle, factor: f64) {
     }
 }
 
+pub fn observe_main_window(app: &AppHandle, save: bool) {
+    let Some(window) = app.get_webview_window(MAIN_WINDOW) else {
+        return;
+    };
+    let observation = match window.is_minimized() {
+        Ok(false) => window
+            .is_maximized()
+            .and_then(|maximized| {
+                let size = window
+                    .inner_size()?
+                    .to_logical::<f64>(window.scale_factor()?);
+                Ok((maximized, [size.width, size.height]))
+            })
+            .ok(),
+        _ => None,
+    };
+    let state = app.state::<MainWindowState>();
+    let placement = {
+        let mut placement = state.0.lock().unwrap();
+        if let Some((maximized, size)) = observation {
+            placement.observe(maximized, size);
+        }
+        *placement
+    };
+    if save && let Err(error) = placement.save(crate::data_dirs::app_data(app).settings()) {
+        crate::run_log::warn("save main window placement", error);
+    }
+}
+
 /// 打开主窗口；关闭后 WebView 已销毁，这里按配置重新建一个。
 ///
 /// 新建的窗口先不显示，套上界面缩放再显示，首帧就是保存的档位。
@@ -151,8 +191,13 @@ pub fn open_main_window(app: &AppHandle) {
     );
     #[cfg(windows)]
     let seed = format!("{seed}{}", crate::file_drop::initialization_script(app));
-    match WebviewWindowBuilder::from_config(app, config).and_then(|b| {
+    let placement = *app.state::<MainWindowState>().0.lock().unwrap();
+    match WebviewWindowBuilder::from_config(app, config).and_then(|mut b| {
+        if let Some([width, height]) = placement.normal_size {
+            b = b.inner_size(width, height);
+        }
         b.visible(false)
+            .maximized(placement.maximized)
             .initialization_script(seed)
             .shared_webview(app)
             .build()
