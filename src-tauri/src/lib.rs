@@ -180,6 +180,7 @@ pub fn run() {
                 window: kinshoko_core::diagnostics::WindowKind::Main,
             });
             desktop::clear_viewer_reference(app);
+            commands::resume_shortcuts(app);
             library::revoke_import_preview_context(app);
             backup::on_main_window_closed(app);
         }

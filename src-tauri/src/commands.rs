@@ -5,7 +5,7 @@
 use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::{AppInfo, SettingChange, ShellSettingsView, ShortcutAction};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::shell::{self, ShellState, UiScaleState};
 
@@ -92,6 +92,14 @@ pub async fn set_shortcuts_paused(
         shell.shortcuts.resume(&shell.settings);
     }
     Ok(())
+}
+
+/// 主窗口关掉时设置里的录制随之结束，但 WebView 不会跑 React 的卸载清理，在这里恢复全局快捷键。
+pub fn resume_shortcuts(app: &AppHandle) {
+    if let Ok(mut guard) = app.state::<ShellState>().0.lock() {
+        let shell = &mut *guard;
+        shell.shortcuts.resume(&shell.settings);
+    }
 }
 
 /// 系统的双击设置（#179）：图片墙按“第一下的图”判定双击时用。
