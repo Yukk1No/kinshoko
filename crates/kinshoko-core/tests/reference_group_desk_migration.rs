@@ -207,3 +207,21 @@ fn a_reference_group_package_leaves_out_opacity_lock_and_pinned() {
         .unwrap();
     assert_eq!((capture.opacity, capture.locked), (0.3, true));
 }
+
+#[test]
+fn a_desk_state_that_cannot_be_read_stops_opening_and_is_left_as_it_is() {
+    let mut t = TestDesk::new();
+    t.pin_reference("a", 10);
+    t.desk.flush().unwrap();
+    let state = t.root.join("desk.json");
+    for bytes in [
+        &b"{ not json"[..],
+        &br#"{"format":"kinshoko.desk","formatVersion":99}"#[..],
+    ] {
+        std::fs::write(&state, bytes).unwrap();
+        let opened =
+            kinshoko_core::reference_groups::Desk::open(&t.root, t.groups(), &mut t.history);
+        assert!(opened.is_err(), "读不懂的桌面状态不当成空桌");
+        assert_eq!(std::fs::read(&state).unwrap(), bytes, "文件原样留着");
+    }
+}
