@@ -157,7 +157,7 @@ describe("订阅页的搜索", () => {
     fireEvent.change(searchBox(), { target: { value: "山" } });
     const names = within(screen.getByRole("list", { name: "画师" }))
       .getAllByRole("button")
-      .map((b) => b.querySelector(".pw-artist-name")?.textContent);
+      .flatMap((b) => b.querySelector(".pw-artist-name")?.textContent ?? []);
     expect(names).toEqual(["山田"]);
     fireEvent.keyDown(searchBox(), { key: "Enter" });
     expect(fake.calls("subscription_browse").some((c) => (c.args.feed as Feed).kind === "search")).toBe(false);
@@ -223,10 +223,10 @@ describe("在 pixiv 上关注", () => {
     expect(within(band).getByRole("button", { name: "已关注" })).toBeTruthy();
 
     fireEvent.click(place("画师"));
-    fireEvent.click(within(await screen.findByRole("list", { name: "画师" })).getByRole("button", { name: /山田/ }));
+    fireEvent.click(within(await screen.findByRole("list", { name: "画师" })).getByRole("button", { name: /^山田/ }));
     await screen.findByRole("button", { name: "作品画2，x" });
-    // 画师 2 的作品里带着“已关注”。
-    expect((await screen.findByRole("button", { name: "已关注" })).getAttribute("aria-pressed")).toBe("true");
+    // 画师 2 的作品里带着“已关注”；他也在订阅里，所以写“已关注 · 自动收”。
+    expect((await screen.findByRole("button", { name: "已关注 · 自动收" })).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("写的时候按钮不能再点；失败时回到写之前的样子", async () => {

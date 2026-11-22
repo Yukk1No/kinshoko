@@ -4,6 +4,7 @@ import type { Artist } from "../bindings/Artist";
 import type { PixivWork } from "../bindings/PixivWork";
 import { errorText } from "../ipc";
 import { subscriptionSetBookmark, subscriptionSetFollow } from "../ipc/pixivBrowse";
+import type { Subscriptions } from "./useSubscriptions";
 
 /** 改回写之前的样子：之前没有覆盖的就去掉覆盖，回到读到的数据。 */
 function restore(map: ReadonlyMap<string, boolean>, key: string, before: boolean | undefined) {
@@ -16,8 +17,11 @@ function restore(map: ReadonlyMap<string, boolean>, key: string, before: boolean
 /**
  * 给画师的反馈（#461 第 5 步，#409）：pixiv 收藏与关注。只由画师亲手点，不做任何自动写入。
  * 整页共用一份：在一面墙上点了，别的墙上同一个作品、同一位画师跟着变。点下去先改界面，写失败再改回来并说明。
+ *
+ * 关注即订阅（#461 第 6 步）：给了订阅名单（`subs`）时，在 pixiv 关注成功后同时在 Kinshoko 订阅这位画师，
+ * 取消关注成功后同时退订（已收进资料库的图留着）。pixiv 那边没写成时订阅不动。
  */
-export function useFeedback() {
+export function useFeedback(subs: Subscriptions | null = null) {
   const { t } = useTranslation("subscriptions");
   const [bookmarks, setBookmarks] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [follows, setFollows] = useState<ReadonlyMap<string, boolean>>(new Map());
@@ -87,11 +91,13 @@ export function useFeedback() {
       } catch (error) {
         setFollows((map) => restore(map, artist.userId, before));
         setNotice(t(on ? "browse.followFailed" : "browse.unfollowFailed", { error: errorText(error) }));
+        return;
       } finally {
         end(key);
       }
+      if (subs) await (on ? subs.subscribeArtist(artist) : subs.unsubscribeArtist(artist.userId));
     },
-    [t, begin, end, follows],
+    [t, begin, end, follows, subs],
   );
 
   const bookmarkPending = useCallback((workId: string) => pending.has(`w:${workId}`), [pending]);

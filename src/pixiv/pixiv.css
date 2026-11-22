@@ -28,8 +28,8 @@
   justify-self: start;
 }
 
-/* 五个去处按字数各自留宽，不平分（平分时“我的收藏”会被截掉）。 */
-.pw-tabs > .k-seg .k-seg-item {
+/* 订阅页的分段开关按字数各自留宽，不平分（平分时“我的收藏”“非公开”会被截掉）。 */
+.pw-page .k-seg-item {
   flex: 1 0 auto;
 }
 
@@ -68,6 +68,47 @@
 
 .pw-subbar-title {
   margin: 0;
+}
+
+/* 就地订阅开关（#461 第 6 步）：第二行右端，不挤动正中的日 / 周 / 月或公开 / 非公开。 */
+.pw-subbar:has(.pw-subbar-switch) {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+}
+
+.pw-subbar:has(.pw-subbar-switch) > .k-seg {
+  grid-column: 2;
+}
+
+.pw-subbar-switch {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  color: var(--ink);
+}
+
+.pw-subbar-switch > label {
+  cursor: pointer;
+}
+
+/* 第六项“管理”和五个去处隔一道线（#461 第 6 步）。 */
+.pw-places > .k-seg-item:last-of-type {
+  overflow: visible;
+  margin-inline-start: 9px;
+}
+
+.pw-places > .k-seg-item:last-of-type::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--line-2);
 }
 
 /* ---- 去处（#461 第 4 步）。新作与推荐那面墙换走时只是藏起来，保留滚动位置。 ---- */
@@ -375,6 +416,85 @@
   max-width: 100%;
   font-weight: 600;
   overflow-wrap: anywhere;
+}
+
+/* 画师卡片右上角的 ⋯（#461 第 6 步）：收进哪个资料库、收取范围、取消关注。 */
+.pw-artist-cell {
+  position: relative;
+}
+
+.pw-artist-more {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.pw-artist-cell > .pw-artist {
+  padding-right: 40px;
+}
+
+/* “管理”：同一份订阅的总表，纸面上的几组行，最宽 760。 */
+.pw-manage-view {
+  overflow-y: auto;
+}
+
+.pw-manage {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px 16px 24px;
+}
+
+.pw-manage-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pw-manage-head > .k-section-label {
+  flex: 1;
+  margin: 0;
+}
+
+.pw-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--r-l);
+  background: var(--surface);
+  box-shadow: var(--shadow-raise);
+}
+
+.pw-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-height: 48px;
+  padding: 8px 12px 8px 16px;
+}
+
+.pw-row + .pw-row {
+  box-shadow: inset 0 1px 0 var(--line);
+}
+
+.pw-row-name {
+  flex: 1;
+  min-width: 120px;
+  overflow-wrap: anywhere;
+}
+
+.pw-manage-foot,
+.pw-manage-note {
+  margin: 0;
+}
+
+.pw-manage-note {
+  margin-bottom: 8px;
 }
 
 /* 搜索到的画师：一格名字，旁边关注。 */

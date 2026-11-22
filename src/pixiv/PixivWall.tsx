@@ -16,6 +16,7 @@ import { CAP_RATIO, GAP, OVERSCAN, PAD, TARGET } from "../wall/wallShared";
 import { pixivMasonry, visibleIn, type PixivLayout } from "./layout";
 import type { CollectedPages, CollectOptions } from "./useCollect";
 import { useFeedbackContext } from "./useFeedback";
+import { useSubscriptionsContext } from "./useSubscriptions";
 import "./pixiv.css";
 
 /** 墙上的一段作品，例如关注的新作、推荐。段与段之间只留一点空隙，不放标题（#461 2026-11-18）。 */
@@ -327,6 +328,7 @@ function Band({
           {work.artist.name}
           {feedback && following !== null && (
             <FollowButton
+              userId={work.artist.userId}
               followed={following}
               busy={feedback.followPending(work.artist.userId)}
               onToggle={() => void feedback.setFollow(work.artist, !following)}
@@ -476,21 +478,29 @@ function FullView({
   );
 }
 
-/** 在 pixiv 上关注这位画师；只写 pixiv，不增删订阅（#461 第 5 步）。 */
+/**
+ * 在 pixiv 上关注这位画师。关注即订阅（#461 第 6 步）：在订阅页里关注同时订阅，已订阅时写“已关注 · 自动收”。
+ * 订阅名单还没读到或不在订阅页里时只看 pixiv 的关注。
+ */
 export function FollowButton({
+  userId,
   followed,
   busy = false,
   onToggle,
 }: {
+  userId: string;
   followed: boolean;
   /** 正在写：写完之前不再接受点击。 */
   busy?: boolean;
   onToggle: () => void;
 }) {
   const { t } = useTranslation("subscriptions");
+  const subs = useSubscriptionsContext();
+  const subscribed = followed && !!subs?.artist(userId);
+  const writing = busy || !!subs?.pending(`artist:${userId}`);
   return (
-    <button type="button" className="k-btn" aria-pressed={followed} disabled={busy} onClick={onToggle}>
-      {followed ? t("browse.followed") : t("browse.follow")}
+    <button type="button" className="k-btn" aria-pressed={followed} disabled={writing} onClick={onToggle}>
+      {subscribed ? t("browse.followedSubscribed") : followed ? t("browse.followed") : t("browse.follow")}
     </button>
   );
 }
