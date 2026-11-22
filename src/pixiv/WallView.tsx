@@ -2,9 +2,9 @@ import type { Ref } from "react";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Artist } from "../bindings/Artist";
-import { errorText } from "../ipc";
 import { SaveDestinationDialog } from "../library/SaveDestination";
 import { PixivWall, type PixivWallHandle, type WallSection } from "./PixivWall";
+import { PixivStatus } from "./Status";
 import type { Collecting } from "./useCollect";
 import { useFeedbackContext } from "./useFeedback";
 
@@ -62,22 +62,7 @@ export function WallView({
         onArtist={onArtist}
         handle={handle}
       />
-      {(loading || failed || empty) && (
-        <div className="pw-status" role="status">
-          {failed ? (
-            <>
-              <span>{t("browse.failed", { error: errorText(failed) })}</span>
-              <button type="button" className="k-btn" onClick={retry}>
-                {t("browse.retry")}
-              </button>
-            </>
-          ) : loading ? (
-            t("browse.loading")
-          ) : (
-            t("browse.empty")
-          )}
-        </div>
-      )}
+      <PixivStatus loading={loading} failed={failed || null} retry={retry} empty={empty ? t("browse.empty") : null} />
     </>
   );
 }

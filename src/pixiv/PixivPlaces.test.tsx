@@ -172,7 +172,8 @@ describe("订阅页的去处", () => {
     fake.on("subscriptions", []);
     render(<PixivHome safe={false} />);
     fireEvent.click(place("画师"));
-    expect((await screen.findByRole("status")).textContent).toBe("还没有订阅画师");
+    // 先是读取中（转圈），读完才是空状态。
+    expect((await screen.findByText("还没有订阅画师")).closest("[role=status]")).not.toBeNull();
   });
 
   it("展开的一格里“查看这位画师”换到这位画师的作品；画师页里不再给这个按钮", async () => {

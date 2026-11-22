@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Artist } from "../bindings/Artist";
-import { errorText } from "../ipc";
 import { subscriptions as listSubscriptions } from "../ipc/subscriptions";
 import { Segmented } from "../ui/Segmented";
 import { TARGET } from "../wall/wallShared";
 import { FeedView } from "./FeedView";
+import { PixivStatus } from "./Status";
 import { FollowButton } from "./PixivWall";
 import type { Collecting } from "./useCollect";
 import { useFeedbackContext } from "./useFeedback";
@@ -70,35 +70,12 @@ function ArtistIndex({ filter, onArtist }: { filter: string; onArtist: (artist: 
     return artists && [...artists].sort((a, b) => collator.compare(a.name, b.name));
   }, [artists, i18n.language]);
 
-  if (failed)
-    return (
-      <div className="pw-status" role="status">
-        <span>{t("browse.failed", { error: errorText(failed) })}</span>
-        <button type="button" className="k-btn" onClick={() => setAttempt((n) => n + 1)}>
-          {t("browse.retry")}
-        </button>
-      </div>
-    );
-  if (!sorted)
-    return (
-      <div className="pw-status" role="status">
-        {t("browse.loading")}
-      </div>
-    );
-  if (!sorted.length)
-    return (
-      <div className="pw-status" role="status">
-        {t("browse.noArtists")}
-      </div>
-    );
+  if (failed) return <PixivStatus failed={failed} retry={() => setAttempt((n) => n + 1)} />;
+  if (!sorted) return <PixivStatus loading />;
+  if (!sorted.length) return <PixivStatus empty={t("browse.noArtists")} />;
   const word = filter.trim().toLocaleLowerCase();
   const shown = word ? sorted.filter((a) => a.name.toLocaleLowerCase().includes(word) || a.userId === word) : sorted;
-  if (!shown.length)
-    return (
-      <div className="pw-status" role="status">
-        {t("browse.noMatchingArtists")}
-      </div>
-    );
+  if (!shown.length) return <PixivStatus empty={t("browse.noMatchingArtists")} />;
   return (
     <ul
       className="pw-artists"
