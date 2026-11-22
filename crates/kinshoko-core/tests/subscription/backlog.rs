@@ -212,6 +212,47 @@ fn changing_the_library_during_a_check_stops_collecting_into_the_old_one() {
 }
 
 #[test]
+fn a_work_started_before_the_library_changed_is_finished_in_the_old_library() {
+    let f = Fixture::new();
+    let mut source = FakeSource::with(vec![
+        posted(work("1", WorkKind::Illustration, false, 2), 1),
+        posted(work("2", WorkKind::Illustration, false, 1), 2),
+    ]);
+    let result = check(
+        &f.store,
+        &f.subscription,
+        &mut source,
+        &MoveAfterFirst(&f),
+        &|| 5_000,
+        &AtomicBool::new(false),
+    );
+    assert_eq!(result.unwrap_err(), SourceError::Cancelled);
+    // 两页都进了旧库，作品记作收过：改到新库以后不再收它。
+    assert_eq!(
+        source.downloads,
+        [
+            "https://i.pximg.net/img-original/1_p0.png",
+            "https://i.pximg.net/img-original/1_p1.png",
+        ]
+    );
+    let moved = f.store.get(&f.subscription.id).unwrap();
+    let mut again = FakeSource::with(source.works.clone());
+    check(
+        &f.store,
+        &moved,
+        &mut again,
+        &f.libraries,
+        &|| 6_000,
+        &AtomicBool::new(false),
+    )
+    .unwrap();
+    assert_eq!(
+        again.downloads,
+        ["https://i.pximg.net/img-original/2_p0.png"]
+    );
+}
+
+#[test]
 fn works_posted_at_the_cutoff_but_left_out_stay_out() {
     let f = Fixture::with(Backlog::Recent { count: 1 }, 0);
     // 两个作品同一时刻发布：只数进较新列出的那个。

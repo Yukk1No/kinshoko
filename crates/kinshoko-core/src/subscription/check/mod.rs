@@ -401,7 +401,9 @@ fn collect(
         if done.contains(&page) {
             continue;
         }
-        if !store.still_collects_into(&subscription.id, &subscription.library_id)? {
+        // 收到一半改了收进的库：这个作品照旧收完进旧库（已收的页在那里，记下来才不会在新库再收一遍），
+        // 下一个作品前 `receive` 再停下。
+        if !store.exists(&subscription.id)? {
             return Err(SourceError::Cancelled);
         }
         let bytes = match source.download(url) {
