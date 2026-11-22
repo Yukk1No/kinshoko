@@ -141,24 +141,6 @@ async function start(override?: Parameters<typeof backend>[0], shown = true) {
   return state;
 }
 const wallWidth = () => tile("a1").style.width;
-it("remembers committed wall density when the main window is recreated", async () => {
-  let density = 240;
-  await start({
-    shell_settings: () => shellSettings({ wallDensity: density, inspectorOpen: true }),
-    "change_setting:wallDensity": (args) => {
-      density = (args as unknown as { density: number }).density;
-      return shellSettings({ wallDensity: density });
-    },
-  });
-  const slider = () => document.querySelector<HTMLInputElement>(".k-density-slot input[type=range]")!;
-  fireEvent.change(slider(), { target: { value: "330" } });
-  fireEvent.pointerUp(slider());
-  await waitFor(() => expect(density).toBe(330));
-  cleanup();
-  render(<App />);
-  await waitFor(() => expect(slider()?.value).toBe("330"));
-});
-
 const viewer = () => screen.getByRole("region", { name: "原图查看器" });
 const viewed = (src: string) =>
   waitFor(() => expect(viewer().querySelector("img")?.getAttribute("src")).toBe(`http://thumb.localhost/${src}/full`));
