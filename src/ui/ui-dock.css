@@ -1,5 +1,5 @@
 /* Shared redesign components, part 2: dock, shared tooltips, dialog shell, settings-style lists, pills,
-   badges and selection dock. Loaded right after ui.css. */
+   badges and selection dock. Loaded after ui.css. */
 /* ---- Dock (after Arc Pro dock behaviour) ---- */
 .k-dock {
   position: relative;
@@ -139,6 +139,20 @@
   align-items: center;
   gap: 8px;
 }
+/* 按键名（快捷键列表、提示里）。 */
+.k-keys {
+  display: inline-flex;
+  gap: 4px;
+}
+.k-key {
+  font: 500 12px var(--font);
+  padding: 2px 8px;
+  border-radius: var(--r-xs);
+  border: 0;
+  background: var(--surface-2);
+  box-shadow: inset 0 -1px 0 var(--line-2);
+  color: var(--ink);
+}
 :is(.k-tip, .k-dock-tip) .k-key {
   padding: 0 6px;
   line-height: 18px;
@@ -197,7 +211,7 @@
   height: 0.8em;
   overflow: visible;
 }
-/* `.k-dock.is-dark` takes the dark theme's tokens (src/styles.css), so it needs no rules of its own. */
+/* `.k-dock.is-dark` takes the dark theme's tokens (src/styles/tokens.css), so it needs no rules of its own. */
 
 /* ---- Dialog shell (Base UI Dialog / AlertDialog) and settings-style lists ---- */
 .k-backdrop {
@@ -244,6 +258,9 @@
   align-items: center;
   gap: 8px;
   margin-top: 20px;
+}
+.k-dialog.is-alert {
+  width: min(400px, calc(100vw - 48px));
 }
 /* 对话框里会变高的一段（DialogHeight，#453）。外扩 4 px 再用内边距补回，滚动与过渡时的裁切不碰到焦点环。 */
 .k-dialog-height {
@@ -336,11 +353,11 @@
   vertical-align: -0.15em;
   margin-inline-end: 0.3em;
 }
-:is(.k-pill, .subs-unofficial, .subs-rank-hint, .lib-warn) > .k-warn-icon {
+:is(.k-pill, .subs-rank-hint, .lib-warn) > .k-warn-icon {
   margin: 0;
 }
 /* a pill that starts with the icon gives up 2 px on the left, as buttons with a leading icon do */
-:is(.k-pill, .subs-unofficial):has(> .k-warn-icon:first-child) {
+.k-pill:has(> .k-warn-icon:first-child) {
   padding-left: 6px;
 }
 .k-list-end {
@@ -369,6 +386,7 @@
   font-weight: 600;
   background: var(--surface-2);
   color: var(--ink-2);
+  gap: 4px;
 }
 /* a pill's text is the `*-strong` colour on its `*-soft` fill */
 .k-pill.is-ok {
@@ -378,6 +396,14 @@
 .k-pill.is-warn {
   background: var(--warn-soft);
   color: var(--warn-strong);
+}
+.k-pill.is-accent {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.k-pill.is-mine {
+  background: var(--manual-soft);
+  color: var(--manual-strong);
 }
 .k-item-meta .is-warn {
   color: var(--warn);

@@ -6,9 +6,19 @@ import { SelectionBar } from "./SelectionBar";
 
 const FOLDERS = [{ id: "F1", name: "人物", count: 1, children: [{ id: "F2", name: "发型", count: 0, children: [] }] }];
 
+let imageFolders: Record<string, string[]> = {};
+/** 每张图直接在哪些文件夹里（workspace_image 的回答只用到 folders）。 */
+function fakeBackendImages(folders: Record<string, string[]>) {
+  imageFolders = folders;
+}
+
 function backend(folders: unknown[] = FOLDERS) {
   const edits: unknown[] = [];
+  imageFolders = {};
   fakeBackend({
+    image: (args) => ({
+      folders: (imageFolders[args.imageId as string] ?? []).map((id) => ({ id, name: id })),
+    }),
     workspace_sidebar: { all: 2, trash: 0, folders },
     edit: (args) => {
       edits.push(args);
@@ -104,6 +114,25 @@ describe("多选悬浮栏（#180）", () => {
         { libraryId: "L1", ids: ["a", "b"], edits: [{ kind: "removeFromFolder", folderId: "F1" }] },
       ]),
     );
+  });
+
+  it("连同子文件夹的范围（选文件夹的默认，#608）里也有“移出此文件夹”，只移出直接在这个文件夹里的图", async () => {
+    const edits = backend();
+    fakeBackendImages({ a: ["F1"], b: ["F2"] });
+    const { bar } = renderBar({ kind: "folderTree", id: "F1" });
+    fireEvent.click(within(bar).getByRole("button", { name: "移出此文件夹" }));
+    await waitFor(() =>
+      expect(edits).toEqual([{ libraryId: "L1", ids: ["a"], edits: [{ kind: "removeFromFolder", folderId: "F1" }] }]),
+    );
+  });
+
+  it("连同子文件夹的范围里选中的图都在子文件夹里：不写入，给一条说明", async () => {
+    const edits = backend();
+    fakeBackendImages({ a: ["F2"], b: ["F2"] });
+    const { bar } = renderBar({ kind: "folderTree", id: "F1" });
+    fireEvent.click(within(bar).getByRole("button", { name: "移出此文件夹" }));
+    expect(await screen.findByText("选中的图都在子文件夹里，这个文件夹本身没有")).toBeTruthy();
+    expect(edits).toEqual([]);
   });
 
   it("回收站范围是恢复和永久删除…", async () => {

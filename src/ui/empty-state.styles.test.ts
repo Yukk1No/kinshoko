@@ -114,6 +114,11 @@ describe("空状态", () => {
     });
     expect(cssRule(sheets["./empty-state.css"], ".k-empty-icon > svg")).toEqual({ width: "24px", height: "24px" });
     expect(cssRule(sheets["./empty-state.css"], ".k-empty-hint")).toEqual({ margin: "0", color: "var(--ink-2)" });
+    // 详情面板没选图时的提示是说明文字，用共用的 .k-description（--ink-2），不用只给图标的 --ink-3。
+    expect(cssRule(sheets["../shell/inspector.css"], ".insp-empty-text")).toEqual({
+      "text-align": "center",
+      "text-wrap": "balance",
+    });
     expect(cssRule(sheets["./empty-state.css"], ".k-empty.is-list")).toMatchObject({
       margin: "0",
       padding: "0 2px",
@@ -134,12 +139,12 @@ describe("空状态", () => {
       padding: "0 10px 0 32px",
       cursor: "default",
     });
-    expect(cssRule(sheets["../shell/main-window-panels.css"], ".library-start-content")).toMatchObject({
+    expect(cssRule(sheets["../shell/welcome.css"], ".library-start-content")).toMatchObject({
       overflow: "auto",
       "justify-content": "safe center",
       padding: "24px",
     });
-    expect(cssRule(sheets["../shell/main-window-panels.css"], ".library-start-content > .k-empty.is-page")).toEqual({
+    expect(cssRule(sheets["../shell/welcome.css"], ".library-start-content > .k-empty.is-page")).toEqual({
       flex: "none",
       "align-self": "stretch",
     });

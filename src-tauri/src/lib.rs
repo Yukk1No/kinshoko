@@ -140,6 +140,8 @@ pub fn run() {
             subscription::browse::subscription_search_artists,
             subscription::browse::subscription_collect,
             subscription::browse::subscription_collected,
+            subscription::browse::subscription_set_bookmark,
+            subscription::browse::subscription_set_follow,
             subscription::login::subscription_login,
             subscription::login::subscription_logout,
             subscription::login::subscription_cancel_login,

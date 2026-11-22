@@ -24,7 +24,7 @@ export function SubscriptionsAccount({ signingIn, account, login, actions, setFi
       {signingIn ? (
         <>
           <span className="subs-avatar is-empty" aria-hidden="true">
-            <LoaderCircle className="subs-spin" size={16} />
+            <LoaderCircle className="k-spinner" size={16} />
           </span>
           <span className="subs-account-text is-muted">{t("account.signingIn")}</span>
         </>

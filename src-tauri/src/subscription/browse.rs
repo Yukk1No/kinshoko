@@ -38,6 +38,30 @@ pub async fn subscription_search_artists(
     .await
 }
 
+/// pixiv 收藏或取消收藏一个作品（#461 第 5 步）。`private` 只在收藏时有用。取消收藏不动资料库里的图。
+#[tauri::command]
+pub async fn subscription_set_bookmark(
+    app: AppHandle,
+    illust_id: String,
+    on: bool,
+    private: bool,
+) -> Result<(), CommandError> {
+    ask_pixiv(&app, move |source| {
+        source.set_bookmark(&illust_id, on, private)
+    })
+    .await
+}
+
+/// 在 pixiv 上关注或取消关注一位画师（#461 第 5 步）。只写 pixiv，不增删订阅。
+#[tauri::command]
+pub async fn subscription_set_follow(
+    app: AppHandle,
+    user_id: String,
+    on: bool,
+) -> Result<(), CommandError> {
+    ask_pixiv(&app, move |source| source.set_follow(&user_id, on)).await
+}
+
 /// 把一个作品收进资料库（#461 第 3 步）：`pages` 为空时收全部页；`again` 为真时已收的页也再收一次。
 /// 原图经图片转发取，看全图时已经下载过的不再联网。
 #[tauri::command]

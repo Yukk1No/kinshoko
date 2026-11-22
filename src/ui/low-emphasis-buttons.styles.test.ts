@@ -44,15 +44,15 @@ describe("低强调按钮", () => {
           .filter((selector) => selector === base)
           .map(() => path),
       ),
-    ).toEqual(["./dialogs.css"]);
-    expect(cssRule(sheets["./dialogs.css"], base)).toEqual({
+    ).toEqual(["./ui.css"]);
+    expect(cssRule(sheets["./ui.css"], base)).toEqual({
       "--k-face": "transparent",
       "--k-face-hover": "var(--warn-soft)",
       "--k-face-press": "var(--warn-soft)",
       color: "var(--warn)",
     });
     for (const state of ["hover", "active"]) {
-      expect(cssRule(sheets["./dialogs.css"], `${base}:${state}:not(:disabled)`)).toEqual({
+      expect(cssRule(sheets["./ui.css"], `${base}:${state}:not(:disabled)`)).toEqual({
         color: "var(--warn-strong)",
       });
     }
@@ -67,7 +67,7 @@ describe("低强调按钮", () => {
             .filter((selector) => selector === base)
             .map(() => path),
         ),
-      ).toEqual(["./dialogs.css"]);
+      ).toEqual(["./ui.css"]);
     }
     const hits = Object.entries(sheets).flatMap(([path, css]) =>
       selectors(css)
@@ -75,7 +75,7 @@ describe("低强调按钮", () => {
         .filter(
           (selector) =>
             !(
-              path === "./dialogs.css" &&
+              path === "./ui.css" &&
               [
                 ".k-btn.is-quiet",
                 ".k-btn.is-quiet:hover:not(:disabled)",
@@ -95,7 +95,7 @@ describe("低强调按钮", () => {
   });
 
   it("无底按钮和文字链接使用共用颜色与状态，不另画焦点", () => {
-    const css = sheets["./dialogs.css"];
+    const css = sheets["./ui.css"];
     expect(cssRule(css, ".k-btn.is-quiet")).toMatchObject({
       "--k-face": "transparent",
       "--k-face-hover": "var(--hover)",
@@ -143,7 +143,7 @@ describe("低强调按钮", () => {
   });
 
   it("改回来源备注不可用时保留细线，不改其他无底按钮", () => {
-    expect(cssRule(sheets["../shell/main-window-panels.css"], REVERT)).toMatchObject({
+    expect(cssRule(sheets["../shell/inspector.css"], REVERT)).toMatchObject({
       "--k-lift": "var(--btn-lift-disabled)",
     });
     expect(sources["../library/SelectionPanel.tsx"]).toContain(

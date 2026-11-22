@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 // 焦点环只有一种写法（#489）：outline: var(--focus-ring)，偏移只用 var(--focus-offset) / var(--focus-inset)。
-// 令牌在 tokens.css；什么时候用负偏移见 design/ui-system/tokens-and-components.md「焦点环」。
+// 令牌在 tokens.css；什么时候用负偏移见 design/ui-system/tokens.md「焦点环」。
 const TOKEN_FILE = "./tokens.css";
 const sheets = import.meta.glob<string>("../**/*.css", { query: "?raw", import: "default", eager: true });
 
