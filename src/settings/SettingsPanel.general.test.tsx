@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { SettingsPanel } from "./SettingsPanel";
 import { backend, defaults, resetSettingsTest, tab } from "./SettingsPanel.fixtures";
 import { chooseValue, optionNames } from "../test/select";
@@ -143,15 +143,36 @@ describe("设置：常驻与快捷键", () => {
     expect(paused()).toEqual([true]);
     fireEvent.keyDown(within(pin).getByRole("textbox"), { key: "F1", code: "F1" });
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "这个快捷键已用于“截图”");
-    expect(paused()).toEqual([true, false]);
+    await waitFor(() => expect(paused()).toEqual([true, false]));
 
     fireEvent.click(within(pin).getByRole("button", { name: "更换" }));
     fireEvent.click(within(pin).getByRole("button", { name: "取消" }));
-    expect(paused()).toEqual([true, false, true, false]);
+    await waitFor(() => expect(paused()).toEqual([true, false, true, false]));
 
     fireEvent.click(within(pin).getByRole("button", { name: "更换" }));
     unmount();
-    expect(paused()).toEqual([true, false, true, false, true, false]);
+    await waitFor(() => expect(paused()).toEqual([true, false, true, false, true, false]));
+  });
+
+  it("录制期间被别的程序占去的键，取消录制后标出无法使用", async () => {
+    backend({
+      set_shortcuts_paused: ({ paused }) =>
+        paused
+          ? defaults
+          : {
+              ...defaults,
+              shortcuts: defaults.shortcuts.map((binding) =>
+                binding.action === "pinClipboard" ? { ...binding, problem: { kind: "taken" } } : binding,
+              ),
+            },
+    });
+    render(<SettingsPanel initialTab="keys" />);
+    const pin = await screen.findByRole("listitem", { name: "钉住剪贴板" });
+
+    fireEvent.click(within(pin).getByRole("button", { name: "更换" }));
+    fireEvent.keyDown(within(pin).getByRole("textbox"), { key: "Escape", code: "Escape" });
+
+    expect(await within(pin).findByText("无法使用：已被其他程序占用")).toBeTruthy();
   });
 
   it("清除快捷键", async () => {

@@ -91,8 +91,8 @@ export function rebindShortcut(action: ShortcutAction, accelerator: string | nul
 }
 
 /** 设置里录新快捷键期间暂停或恢复全部全局快捷键，让已绑定的键被录下而不是执行原来的动作。 */
-export function setShortcutsPaused(paused: boolean): Promise<void> {
-  return invoke<void>("set_shortcuts_paused", { paused });
+export function setShortcutsPaused(paused: boolean): Promise<ShellSettingsView> {
+  return invoke<ShellSettingsView>("set_shortcuts_paused", { paused });
 }
 
 /** 开关运行日志（只写本机），立即生效。 */

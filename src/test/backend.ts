@@ -58,6 +58,10 @@ export function shellSettings(overrides: Partial<ShellSettingsView> = {}): Shell
   } satisfies ShellSettingsView;
 }
 
+function isSettingsView(value: unknown): value is ShellSettingsView {
+  return typeof value === "object" && value !== null && Array.isArray((value as ShellSettingsView).shortcuts);
+}
+
 /** 测试用的假后端：按命令名登记回答。命令名带不带 `plugin:…|` 前缀都认；改设置的命令见 `route`。 */
 export function fakeBackend(replies: Replies = {}): FakeBackend {
   const table = new Map<string, AnyReply>();
@@ -68,7 +72,9 @@ export function fakeBackend(replies: Replies = {}): FakeBackend {
   on("shell_settings", () => shellSettings());
   on("safe_mode", true);
   on("workspace_status", { revision: "r1", libraries: [] } satisfies WorkspaceStatus);
-  on("set_shortcuts_paused", null);
+  // 暂停、恢复快捷键回的是当前设置：取最近一次回给前端的那份。
+  let settings: unknown;
+  on("set_shortcuts_paused", () => settings);
   for (const [command, reply] of Object.entries(replies)) on(command, reply);
   mockWindows("main");
   mockIPC(
@@ -77,7 +83,9 @@ export function fakeBackend(replies: Replies = {}): FakeBackend {
       log.push({ command: name, args: given });
       if (!table.has(name)) throw new Error(`fake backend: no reply for ${name}`);
       const reply = table.get(name);
-      return typeof reply === "function" ? reply(given) : reply;
+      const result = await (typeof reply === "function" ? reply(given) : reply);
+      if (isSettingsView(result)) settings = result;
+      return result;
     },
     { shouldMockEvents: true },
   );

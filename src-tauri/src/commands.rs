@@ -83,7 +83,7 @@ pub async fn rebind_shortcut(
 pub async fn set_shortcuts_paused(
     state: State<'_, ShellState>,
     paused: bool,
-) -> Result<(), CommandError> {
+) -> Result<ShellSettingsView, CommandError> {
     let mut guard = state.0.lock().map_err(CommandError::system)?;
     let shell = &mut *guard;
     if paused {
@@ -91,7 +91,7 @@ pub async fn set_shortcuts_paused(
     } else {
         shell.shortcuts.resume(&shell.settings);
     }
-    Ok(())
+    Ok(shell.view())
 }
 
 /// 主窗口关掉时设置里的录制随之结束，但 WebView 不会跑 React 的卸载清理，在这里恢复全局快捷键。

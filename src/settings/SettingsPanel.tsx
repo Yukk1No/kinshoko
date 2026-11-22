@@ -220,6 +220,7 @@ export function SettingsPanel({
                 recording={recording}
                 setRecording={setRecording}
                 apply={apply}
+                pauseShortcuts={settings.pauseShortcuts}
                 onError={setError}
               />,
             )}
