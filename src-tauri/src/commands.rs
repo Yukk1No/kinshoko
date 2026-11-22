@@ -95,11 +95,15 @@ pub async fn set_shortcuts_paused(
 }
 
 /// 主窗口关掉时设置里的录制随之结束，但 WebView 不会跑 React 的卸载清理，在这里恢复全局快捷键。
+/// 放到后台线程：注册快捷键要等主线程，正在持锁注册的命令会和在主线程上等锁的这里互相卡住。
 pub fn resume_shortcuts(app: &AppHandle) {
-    if let Ok(mut guard) = app.state::<ShellState>().0.lock() {
-        let shell = &mut *guard;
-        shell.shortcuts.resume(&shell.settings);
-    }
+    let app = app.clone();
+    std::thread::spawn(move || {
+        if let Ok(mut guard) = app.state::<ShellState>().0.lock() {
+            let shell = &mut *guard;
+            shell.shortcuts.resume(&shell.settings);
+        }
+    });
 }
 
 /// 系统的双击设置（#179）：图片墙按“第一下的图”判定双击时用。
