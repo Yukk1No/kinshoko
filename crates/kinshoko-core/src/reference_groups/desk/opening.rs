@@ -39,29 +39,8 @@ impl Desk {
             untrashed: BTreeSet::new(),
             unpin_after_flush: Vec::new(),
             dirty: false,
-            persist: true,
             members_changed: false,
         })
-    }
-
-    /// 打不开 `dir` 下的桌面状态时（[`Self::open`] 出错）用的一张空桌：没有常用，参考组都按用过的时间分段，
-    /// 可以照常切换、钉图；参考组文件照常写，`desk.json` 不写，下次启动再试着打开（或迁移）。
-    pub fn unsaved(dir: &Path, groups: ReferenceGroups) -> Desk {
-        Desk {
-            groups,
-            state_path: state::path(dir),
-            on_desk: None,
-            left: Vec::new(),
-            pins: Vec::new(),
-            favorites: Vec::new(),
-            used_at: Default::default(),
-            trashed_from_desk: BTreeSet::new(),
-            untrashed: BTreeSet::new(),
-            unpin_after_flush: Vec::new(),
-            dirty: false,
-            persist: false,
-            members_changed: false,
-        }
     }
 
     /// 启动时钉出桌面上的参考组：与 [`Self::switch_to`] 得到的一样，再把离开了所有显示器的拉回屏幕。

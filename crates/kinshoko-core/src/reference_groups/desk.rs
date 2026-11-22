@@ -120,8 +120,6 @@ pub struct Desk {
     /// 放开钉住，免得截图在这之前从截图历史删掉时文件跟着没了。
     unpin_after_flush: Vec<String>,
     dirty: bool,
-    /// 桌面状态写进 `desk.json`。打不开桌面状态时的临时空桌（[`Self::unsaved`]）为 `false`。
-    persist: bool,
     /// 自上次落盘以来成员有增减：参考组列表上看得出（张数、缩略图）。
     members_changed: bool,
 }
@@ -420,11 +418,8 @@ impl Desk {
         }
     }
 
-    /// 写 `desk.json`；临时空桌（[`Self::unsaved`]）不写。
+    /// 写 `desk.json`。
     fn write_desk_file(&self, file: &DeskFile) -> io::Result<()> {
-        if !self.persist {
-            return Ok(());
-        }
         state::save(&self.state_path, file)
     }
 
