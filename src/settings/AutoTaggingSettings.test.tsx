@@ -381,7 +381,8 @@ describe("设置 › 自动标签 › 模型", () => {
     render(<AutoTaggingSettings hasLibrary />);
     fireEvent.click(await screen.findByRole("button", { name: "导入模型包…" }));
     expect(await screen.findByText("模型包已导入")).toBeTruthy();
-    expect(await optionNames(await hardware())).toContain("CPU，内存约 4.7 GB，已下载");
+    // 提示与各档的重新读取不在同一次渲染里到：等下拉框里的那一档变成已下载。
+    await waitFor(async () => expect(await optionNames(await hardware())).toContain("CPU，内存约 4.7 GB，已下载"));
     expect(fake.calls("tagging_import_package")[0]?.args).toEqual({ path: "D:\\离线\\pixai.zip" });
   });
 
