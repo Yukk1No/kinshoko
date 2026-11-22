@@ -63,9 +63,10 @@ export function PixivHome({
   const wall = useRef<PixivWallHandle>(null);
   /** 新作与推荐那面墙上次停在哪一段。 */
   const homeAt = useRef<Home>("following");
-  const subs = useSubscriptions(safe);
-  const feedback = useFeedback(subs);
   const [status] = useSubscriptionStatus();
+  // 后台检查完、收了新图时，画师卡片上的收图概况跟着重读。
+  const subs = useSubscriptions(safe, status ? `${status.checking}:${status.newCount}` : null);
+  const feedback = useFeedback(subs);
   /** 画师页 ⋯ 里打开的“收取范围”。 */
   const [settings, setSettings] = useState<Subscription | null>(null);
   const collecting = useCollect(undefined, feedback);

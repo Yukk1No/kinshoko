@@ -33,17 +33,19 @@ function keyOf(target: Subscription["target"]): string {
 /** 就地打开榜单开关时收前几名；和“订阅榜单”对话框的默认一样。 */
 export const RANKING_TOP = 50;
 
+const NO_PREVIEWS: ReadonlyMap<string, SubscriptionPreview> = new Map();
+
 /**
- * 订阅页共用的一份订阅名单（#461 第 6 步，“关注即订阅”与“管理”页）。画师页、榜单与收藏夹的开关、“管理”页改的
+ * 订阅页共用的一份订阅名单（#461 第 6、7 步）。画师页、榜单与收藏夹的开关、画师作品页改的
  * 都是它，任一处改了别处立刻跟着变。只读写本机的订阅记录；pixiv 上的关注由 `useFeedback` 写。
  *
  * 就地订阅不弹对话框，资料库按这个顺序挑：订阅设置里选的“新订阅收进” → 同类订阅已经在用的 → 应用内浏览上次亲手选的
  * 收图目标 → 第一个可用的资料库。
  *
  * 这次打开订阅页以来取消的订阅记在 `gone` 里（不存盘），画师页可以从那里找回来。`safe` 是安全模式：卡片上的缩略图
- * 按它过滤。
+ * 按它过滤。`received` 是后台收图的信号（订阅状态里的新图数、是否在检查），变了就重读收图概况。
  */
-export function useSubscriptions(safe = false) {
+export function useSubscriptions(safe = false, received: unknown = null) {
   const { t } = useTranslation("subscriptions");
   const { memory } = useSaveDestination();
   const toast = useOptionalToast();
@@ -54,7 +56,8 @@ export function useSubscriptions(safe = false) {
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
   const [gone, setGone] = useState<Subscription[]>([]);
-  const [previews, setPreviews] = useState<ReadonlyMap<string, SubscriptionPreview>>(new Map());
+  /** 收图概况，记着是按哪种安全模式读的：换了模式立刻不用旧的（安全模式打开时不能留着成人作品的缩略图）。 */
+  const [loaded, setLoaded] = useState<{ safe: boolean; map: ReadonlyMap<string, SubscriptionPreview> } | null>(null);
   const writing = useRef(new Set<string>());
   /** 名单的最新一份：撤销提示之类晚些才跑的回调拿到的 `artist` 可能是旧的，订阅前按这一份再看一次。 */
   const latest = useRef(list);
@@ -74,19 +77,21 @@ export function useSubscriptions(safe = false) {
   }, [attempt]);
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
-  // 名单里的订阅变了（多了、少了）再读一次概况；只是改了设置不用重读。
+  // 名单里的订阅变了（多了、少了）、后台又收了图（`received` 变了）时再读一次概况；只是改了设置不用重读。
   const ids = list?.map((s) => s.id).join(",") ?? null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies(received): received 是重读信号，effect 里不读它
   useEffect(() => {
     if (ids === null) return;
     let alive = true;
     subscriptionPreviews(safe).then(
-      (found) => alive && setPreviews(new Map(found.map((p) => [p.subscriptionId, p]))),
+      (found) => alive && setLoaded({ safe, map: new Map(found.map((p) => [p.subscriptionId, p])) }),
       () => {},
     );
     return () => {
       alive = false;
     };
-  }, [ids, safe]);
+  }, [ids, safe, received]);
+  const previews = loaded?.safe === safe ? loaded.map : NO_PREVIEWS;
 
   /** 加进名单；又订回来的不再算“已取消订阅的”（不管是撤销、开关还是关注订回来的）。 */
   const added = useCallback((subs: Subscription[]) => {

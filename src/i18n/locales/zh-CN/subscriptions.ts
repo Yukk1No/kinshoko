@@ -199,6 +199,7 @@ export default {
     view: "查看",
     switchFailed: "无法切换订阅功能：{{error}}",
     newSubscriptions: "新订阅收进",
+    newSubscriptionsAuto: "和同类订阅放一起",
   },
   /** 应用内浏览（#461，`src/pixiv/`）。界面还没接上；视觉等设计系统定了再做。 */
   browse: {

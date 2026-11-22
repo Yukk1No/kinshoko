@@ -61,7 +61,7 @@ describe("设置 › 订阅", () => {
     expect(await screen.findByRole("dialog", { name: /订阅 pixiv 新作/ })).toBeTruthy();
   });
 
-  it("接上应用内浏览后多一行“新订阅收进”：没选过时是上次收图用的库，改了记下来", async () => {
+  it("接上应用内浏览后多一行“新订阅收进”：没选过时是“和同类订阅放一起”，改了记下来", async () => {
     const libraries = [
       { library: { id: "L", name: "参考库", root: "C:/l" }, unavailable: null },
       { library: { id: "P", name: "pixiv", root: "C:/p" }, unavailable: null },
@@ -92,7 +92,7 @@ describe("设置 › 订阅", () => {
     );
     const library = await screen.findByRole("combobox", { name: "新订阅收进" });
     expect(rows()).toEqual(["订阅功能", "pixiv 账号", "新订阅收进", "风险说明"]);
-    expect(library.getAttribute("data-value")).toBe("P");
+    expect(library.textContent).toContain("和同类订阅放一起");
     await chooseOption(library, "参考库");
     await waitFor(() =>
       expect(backend.calls("remember_subscription_destination")[0]?.args).toEqual({

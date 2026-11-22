@@ -48,7 +48,9 @@ export function remoteCovers(userId: string, safe: boolean): Promise<string[]> {
  */
 export function useRemoteCovers(userId: string, safe: boolean, wanted: boolean) {
   const ref = useRef<HTMLElement | null>(null);
-  const [covers, setCovers] = useState<string[]>([]);
+  const key = `${userId}:${safe}`;
+  // 读到的地址记着是按哪位画师、哪种安全模式读的：换了就立刻不显示，不等新的读回来（安全模式打开时不能留着成人作品）。
+  const [found, setFound] = useState<{ key: string; covers: string[] } | null>(null);
   useEffect(() => {
     const element = ref.current;
     if (!wanted || !element || typeof IntersectionObserver === "undefined") return;
@@ -57,7 +59,7 @@ export function useRemoteCovers(userId: string, safe: boolean, wanted: boolean) 
       if (!entries.some((e) => e.isIntersecting)) return;
       seen.disconnect();
       remoteCovers(userId, safe).then(
-        (found) => alive && setCovers(found),
+        (covers) => alive && setFound({ key: `${userId}:${safe}`, covers }),
         () => {},
       );
     });
@@ -67,5 +69,5 @@ export function useRemoteCovers(userId: string, safe: boolean, wanted: boolean) 
       seen.disconnect();
     };
   }, [userId, safe, wanted]);
-  return { ref, covers: wanted ? covers : [] };
+  return { ref, covers: wanted && found?.key === key ? found.covers : [] };
 }

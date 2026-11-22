@@ -208,6 +208,7 @@ const subscriptions: Translation<typeof zh> = {
     view: "View",
     switchFailed: "Couldn't switch subscriptions: {{error}}",
     newSubscriptions: "New subscriptions go to",
+    newSubscriptionsAuto: "Same as similar subscriptions",
   },
   browse: {
     tabs: "Subscription views",

@@ -66,6 +66,7 @@ export function ArtistIndex({
 }) {
   const { t, i18n } = useTranslation("subscriptions");
   const subs = useSubscriptionsContext();
+  const feedback = useFeedbackContext();
   const libraries = useLibraryOptions();
   const [library, setLibrary] = useState("");
   const [quiet, setQuiet] = useState<Quiet>("0");
@@ -160,7 +161,9 @@ export function ArtistIndex({
   const goneCount = cards.filter((c) => c.gone).length;
   const live = shown.filter((c) => !c.gone);
   const selected = chosen();
-  const busy = subs.pending("library") || selected.some((s) => subs.pending(s.id));
+  // 有一位正在关注或取消关注时不能批量动它，否则关注写完会把刚退订的又订回来。
+  const busy =
+    subs.pending("library") || selected.some((s) => subs.pending(s.id) || feedback?.followPending(artistId(s)));
 
   return (
     <>

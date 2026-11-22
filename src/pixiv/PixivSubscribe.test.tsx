@@ -461,6 +461,23 @@ describe("画师页", () => {
     ).toBe(true);
   });
 
+  it("墙上正在关注一位画师时，选中他就不能批量改库或退订", async () => {
+    list = [...list, kobayashi()];
+    fake.on("subscription_set_follow", () => new Promise(() => {}));
+    renderHome();
+    fireEvent.click(await screen.findByRole("button", { name: "作品1，小林" }));
+    const band = screen.getByRole("region", { name: "作品1，小林" });
+    const follow = within(band).getByRole("button", { name: "关注" });
+    await waitFor(() => expect(follow).toHaveProperty("disabled", false));
+    fireEvent.click(follow);
+    await artistCards();
+    fireEvent.click(screen.getByRole("button", { name: "选择" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "选择 小林" }));
+    const bar = screen.getByRole("toolbar", { name: "已选 1 位" });
+    expect(within(bar).getByRole("button", { name: "取消订阅" })).toHaveProperty("disabled", true);
+    expect(within(bar).getByRole("button", { name: "改收进的库" })).toHaveProperty("disabled", true);
+  });
+
   it("画师页正在退订一位画师时，墙上不能关注他", async () => {
     list = [...list, kobayashi()];
     fake.on("subscription_remove", () => new Promise(() => {}));
