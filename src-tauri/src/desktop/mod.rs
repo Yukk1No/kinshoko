@@ -243,12 +243,28 @@ pub fn init() -> TauriPlugin<Wry> {
             let dir = crate::data_dirs::app_data(app).device().to_path_buf();
             let mut history = CaptureHistory::open(&dir.join(HISTORY_DIR))?;
             let groups = ReferenceGroups::open(&dir.join(GROUPS_DIR))?;
-            // 桌面上的参考组（#588）。第一次打开时迁移：旧参考组都在归档里，`pins.json` 的钉图成为一个
-            // 没有名称的参考组摆在桌面上。打不开时写运行日志，这次先用一张不写桌面状态的空桌，下次启动再试。
-            let desk = Desk::open(&dir, groups.clone(), &mut history).unwrap_or_else(|e| {
-                crate::run_log::error("无法打开桌面上的参考组", e);
-                Desk::unsaved(&dir, groups.clone())
-            });
+            // 桌面上的参考组（#588）。第一次打开时迁移：旧参考组都算收藏，`pins.json` 的钉图成为一个
+            // 没有名称的参考组摆在桌面上。打不开时不启动（Lou 2026-11-22，#632）：说明原因，文件原样留着。
+            let desk = match Desk::open(&dir, groups.clone(), &mut history) {
+                Ok(desk) => desk,
+                Err(e) => {
+                    crate::run_log::error("无法打开桌面上的参考组", &e);
+                    let message = crate::ui_text::fill(
+                        crate::ui_text::Text::DeskUnreadable,
+                        &[
+                            ("path", &dir.join("desk.json").display().to_string()),
+                            ("error", &e.to_string()),
+                        ],
+                    );
+                    eprintln!("{message}");
+                    #[cfg(windows)]
+                    win32::show_error(
+                        crate::ui_text::text(crate::ui_text::Text::StartupFailed),
+                        &message,
+                    );
+                    std::process::exit(1);
+                }
+            };
             // 上次退出时撤销提示还没过期的已删除参考组，这里清掉。
             let _ = groups.purge_all_trashed();
             // 启动时清掉一天前暂存的剪贴板图片（取消了导入、之后没再粘贴的也不会一直留着）。
