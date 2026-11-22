@@ -123,6 +123,19 @@ pub(super) fn notice(app: &AppHandle, pin: &str, text: &str) {
 #[cfg(not(windows))]
 pub(super) fn notice(_: &AppHandle, _: &str, _: &str) {}
 
+#[cfg(windows)]
+pub(super) fn notice_at(app: &AppHandle, cursor: (i32, i32), text: &str) {
+    let text = text.to_owned();
+    host::post(
+        app,
+        move |o| o.notice_at(cursor, text, std::time::Instant::now()),
+        |e| crate::run_log::warn("无法显示钉图提示", e),
+    );
+}
+
+#[cfg(not(windows))]
+pub(super) fn notice_at(_: &AppHandle, _: (i32, i32), _: &str) {}
+
 /// 别的平台上没有原生钉图：本次运行的记录收掉，状态留到下次启动。
 #[cfg(not(windows))]
 pub(super) fn open(app: &AppHandle, frame: Frame) {

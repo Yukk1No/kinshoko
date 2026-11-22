@@ -35,6 +35,7 @@ pub struct DrawJob {
     pub dark: bool,
     /// 读不到图：画中性灰的占位，不用源图。
     pub placeholder: bool,
+    pub caption_only: bool,
     /// 说明层：小圆锁、原因文字、提示。
     pub caption: Caption,
 }

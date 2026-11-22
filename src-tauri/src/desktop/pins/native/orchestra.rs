@@ -30,6 +30,7 @@ mod device;
 mod frames;
 mod gesture;
 mod group;
+mod notices;
 mod screen;
 
 pub use frames::{Frame, Look};
@@ -180,6 +181,7 @@ pub struct Orchestra<S: PinShell, R: RenderPort> {
     menu_at: Option<Instant>,
     /// 整组操作的状态（#198）。
     group: Group,
+    notices: BTreeMap<PinId, notices::NoticeSurface>,
 }
 
 impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
@@ -200,6 +202,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             menu_open: false,
             menu_at: None,
             group: Group::default(),
+            notices: BTreeMap::new(),
         }
     }
 
@@ -268,17 +271,6 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         Ok(())
     }
 
-    /// 在钉图底部显示一条提示（菜单动作的结果），[`NOTICE_MS`] 后消失。钉图不在时什么都不做。
-    pub fn notice(&mut self, key: &str, text: String, now: Instant) {
-        self.now = now;
-        let Some(id) = self.id_of(key) else { return };
-        let Some(live) = self.live(id) else { return };
-        live.notice = Some((text, now + Duration::from_millis(NOTICE_MS)));
-        live.fresh = false;
-        let gesture = live.gesture_until.is_some();
-        self.update(id, gesture);
-    }
-
     /// 放到最上面（框选窗口关掉后，系统把激活交还的置顶窗口会盖住新钉图）。
     pub fn raise(&mut self, key: &str) {
         if let Some(id) = self.id_of(key) {
@@ -300,7 +292,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
 
     /// 没有打开着的钉图了：应用壳可以丢掉整个编排（平台层与渲染层）。
     pub fn is_empty(&self) -> bool {
-        self.pins.is_empty()
+        self.pins.is_empty() && self.notices.is_empty()
     }
 
     pub fn take_effects(&mut self) -> Vec<Effect> {
@@ -322,6 +314,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 ]
             })
             .flatten()
+            .chain(self.notices.values().filter_map(|n| n.until))
             .min()
     }
 
@@ -335,6 +328,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
     /// 到时的事：按住开菜单、动画的下一帧、手势收尾（窗口收回刚好盖住钉图，按显示尺寸换源图）。
     pub fn tick(&mut self, now: Instant) {
         self.now = now;
+        self.expire_notices(now);
         self.check_holds(now);
         let ids: Vec<PinId> = self.pins.keys().copied().collect();
         for id in ids {
@@ -396,6 +390,9 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
 
     pub fn render_event(&mut self, event: RenderEvent, now: Instant) {
         self.now = now;
+        if self.notice_event(&event, now) {
+            return;
+        }
         match event {
             RenderEvent::Drawn { pin, result } => self.drawn(pin, result),
             RenderEvent::Loaded { pin, size } => {

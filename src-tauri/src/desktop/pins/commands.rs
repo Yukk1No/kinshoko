@@ -50,6 +50,15 @@ pub fn pin_clipboard_in_background(app: &AppHandle) {
     let app = app.clone();
     std::thread::spawn(move || {
         if let Err(e) = logged(PinSource::Clipboard, || pin_from_clipboard(&app)) {
+            if matches!(e.kind, ErrorKind::ClipboardNoImage)
+                && let Ok(cursor) = app.cursor_position()
+            {
+                native::notice_at(
+                    &app,
+                    (cursor.x.floor() as i32, cursor.y.floor() as i32),
+                    crate::ui_text::text(crate::ui_text::Text::PinClipboardNoImage),
+                );
+            }
             crate::run_log::warn("钉剪贴板失败", e);
         }
     });

@@ -208,6 +208,7 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
             appear: appear as f32,
             dark: live.look.dark,
             placeholder: live.placeholder,
+            caption_only: false,
             caption: live.caption(),
         };
         if then != Then::Swap {

@@ -4,10 +4,11 @@
 
 use image::{ImageEncoder, RgbaImage};
 use kinshoko_core::desktop::pin_colour::{self, PinLut};
-use kinshoko_core::desktop::{PinContent, Placement, SavedPin, pin_area};
+use kinshoko_core::desktop::{PinContent, Placement, SavedPin, ScreenRect, pin_area};
 use pin_render::{LutData, Pixels, Renderer};
 use pin_shell::PinId;
 
+use super::caption::{Caption, Painter};
 use super::draw::draw_of;
 use super::port::DrawJob;
 
@@ -107,6 +108,7 @@ fn a_library_pin_at_100_percent_is_the_original_pixel_for_pixel() {
         appear: 0.0,
         dark: false,
         placeholder: false,
+        caption_only: false,
         caption: Default::default(),
     };
     let out = r
@@ -122,4 +124,80 @@ fn a_library_pin_at_100_percent_is_the_original_pixel_for_pixel() {
         }
     }
     assert_eq!(differ, 0, "{differ} 个像素与原图不同");
+}
+
+#[test]
+fn a_standalone_notice_is_exactly_the_pin_caption_on_a_transparent_surface() {
+    let r = Renderer::new().unwrap();
+    let image = r
+        .upload(Pixels {
+            width: 1,
+            height: 1,
+            rgba: &[0x3c00; 4],
+        })
+        .unwrap();
+    let lut = r.lut(LutData::Identity).unwrap();
+    let window = ScreenRect {
+        x: -500,
+        y: 80,
+        width: 520,
+        height: 40,
+    };
+    let caption = Caption {
+        notice: Some("No image in clipboard".into()),
+        ..Caption::default()
+    };
+    let painted = Painter::default()
+        .paint(&caption, (520, 40), 1.0, false)
+        .unwrap();
+    let overlay = r
+        .overlay(painted.width, painted.height, &painted.rgba)
+        .unwrap();
+    let job = DrawJob {
+        pin: PinId(1),
+        slot: 0,
+        window,
+        content: window,
+        state: SavedPin {
+            id: String::new(),
+            content: PinContent::Capture {
+                capture_id: String::new(),
+            },
+            crop: None,
+            width: 520,
+            height: 40,
+            placement: Placement::default(),
+            opacity: 1.0,
+            locked: true,
+            member: None,
+        },
+        display: None,
+        display_scale: 1.0,
+        veil: 0.0,
+        ring: false,
+        appear: 0.0,
+        dark: false,
+        placeholder: true,
+        caption_only: true,
+        caption,
+    };
+    let out = r
+        .render_offscreen(
+            &image,
+            &draw_of(&job, (1, 1), Some((&overlay, painted.at))),
+            &lut,
+        )
+        .unwrap();
+    for y in 0..40 {
+        for x in 0..520 {
+            let px = x as i32 - painted.at.0;
+            let py = y as i32 - painted.at.1;
+            if px >= 0 && py >= 0 && px < painted.width as i32 && py < painted.height as i32 {
+                let i = (py as u32 * painted.width + px as u32) as usize * 4;
+                assert_eq!(out.pixel(x, y), painted.rgba[i..i + 4]);
+            } else {
+                assert_eq!(out.pixel(x, y), [0, 0, 0, 0]);
+            }
+        }
+    }
 }
