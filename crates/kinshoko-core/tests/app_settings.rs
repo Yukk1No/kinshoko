@@ -4,6 +4,47 @@ use kinshoko_core::tagging::Device;
 use kinshoko_core::{AppSettings, ShortcutAction, TagDisplay, TagStyle, UpdateChannel};
 
 #[test]
+fn wall_density_is_remembered_after_restart() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    let change = serde_json::from_value(serde_json::json!({
+        "kind": "wallDensity", "density": 330
+    }))
+    .unwrap();
+    settings.apply(&change).unwrap();
+    drop(settings);
+
+    let mut restarted = AppSettings::open(dir.path()).unwrap();
+    assert_eq!(restarted.wall_density(), 330);
+    restarted.set_autostart(false).unwrap();
+    let saved: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(dir.path().join("settings.json")).unwrap()).unwrap();
+    assert_eq!(saved["wallDensity"], 330);
+}
+
+#[test]
+fn wall_density_defaults_and_bounds_are_safe() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert_eq!(settings.wall_density(), 240);
+    settings.set_wall_density(0).unwrap();
+    assert_eq!(settings.wall_density(), 140);
+    settings.set_wall_density(999).unwrap();
+    assert_eq!(AppSettings::open(dir.path()).unwrap().wall_density(), 420);
+    std::fs::write(dir.path().join("settings.json"), r#"{"version":1}"#).unwrap();
+    assert_eq!(AppSettings::open(dir.path()).unwrap().wall_density(), 240);
+}
+
+#[test]
+fn wall_density_write_failure_keeps_the_accepted_value() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    std::fs::create_dir(dir.path().join("settings.json.tmp")).unwrap();
+    assert!(settings.set_wall_density(330).is_err());
+    assert_eq!(settings.wall_density(), 240);
+}
+
+#[test]
 fn a_fresh_install_starts_at_login_and_uses_snipaste_style_function_keys() {
     let dir = tempfile::tempdir().unwrap();
 

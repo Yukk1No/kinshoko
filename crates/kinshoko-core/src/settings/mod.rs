@@ -31,6 +31,9 @@ const BROKEN_FILE_NAME: &str = "settings.broken.json";
 const FORMAT_VERSION: u32 = 1;
 /// 详情面板可拖到的宽度范围（#157），单位 CSS 像素。没保存过时界面用 320。
 const INSPECTOR_WIDTH: std::ops::RangeInclusive<u32> = 280..=560;
+/// 图片墙缩略图大小范围，与 src/wall/zoom.ts 的 DENSITY_MIN/MAX 保持一致。
+const WALL_DENSITY: std::ops::RangeInclusive<u32> = 140..=420;
+const DEFAULT_WALL_DENSITY: u32 = 240;
 /// 磁盘上的格式。字段都有默认值，缺了就按新安装处理。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -68,6 +71,8 @@ pub struct SettingsSnapshot {
     inspector_width: Option<u32>,
     /// 主窗口详情面板是否打开：画师亲手开合后记住，选择图片不改变它。默认关闭。
     inspector_open: bool,
+    /// 图片墙缩略图大小，单位 CSS 像素；没保存过时用 240。
+    wall_density: u32,
     /// 更新通道（#204）；没选过时为空，按当前构建的版本号决定。
     update_channel: Option<UpdateChannel>,
     /// 订阅功能（#368）：关掉后不显示入口、不检查、不联网。新安装默认开。
@@ -97,6 +102,7 @@ impl Default for SettingsSnapshot {
             tag_display: TagDisplay::default(),
             inspector_width: None,
             inspector_open: false,
+            wall_density: DEFAULT_WALL_DENSITY,
             update_channel: None,
             subscriptions: true,
             unknown: serde_json::Map::new(),
@@ -313,6 +319,19 @@ impl AppSettings {
     /// 主窗口详情面板的宽度；`None` 表示没拖过。
     pub fn inspector_width(&self) -> Option<u32> {
         self.file.inspector_width
+    }
+
+    /// 图片墙缩略图大小，单位 CSS 像素。
+    pub fn wall_density(&self) -> u32 {
+        self.file
+            .wall_density
+            .clamp(*WALL_DENSITY.start(), *WALL_DENSITY.end())
+    }
+
+    /// 保存图片墙缩略图大小，超出 140–420 时停在边界上。
+    pub fn set_wall_density(&mut self, density: u32) -> Result<(), SettingsError> {
+        let density = density.clamp(*WALL_DENSITY.start(), *WALL_DENSITY.end());
+        self.update(|f| f.wall_density = density)
     }
 
     /// 保存详情面板的宽度，超出 280–560 时停在边界上。

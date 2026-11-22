@@ -5,4 +5,4 @@ import type { ViewerBackground } from "./ViewerBackground";
 /**
  * 一项程序设置的改动。
  */
-export type SettingChange = { "kind": "showApproxSource", on: boolean, } | { "kind": "keepSelectionOnSafeMode", on: boolean, } | { "kind": "forceSrgb", on: boolean, } | { "kind": "pinEdgeContrast", on: boolean, } | { "kind": "autostart", on: boolean, } | { "kind": "tagDisplay", display: TagDisplay, } | { "kind": "viewerBackground", background: ViewerBackground, } | { "kind": "inspectorWidth", width: number, } | { "kind": "inspectorOpen", open: boolean, };
+export type SettingChange = { "kind": "showApproxSource", on: boolean, } | { "kind": "keepSelectionOnSafeMode", on: boolean, } | { "kind": "forceSrgb", on: boolean, } | { "kind": "pinEdgeContrast", on: boolean, } | { "kind": "autostart", on: boolean, } | { "kind": "tagDisplay", display: TagDisplay, } | { "kind": "viewerBackground", background: ViewerBackground, } | { "kind": "inspectorWidth", width: number, } | { "kind": "inspectorOpen", open: boolean, } | { "kind": "wallDensity", density: number, };
