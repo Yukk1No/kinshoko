@@ -58,16 +58,25 @@ pub(super) fn path(dir: &Path) -> PathBuf {
     dir.join(DESK_FILE)
 }
 
-/// 读 `desk.json`。读不懂（损坏、新版本写的）时按桌面空着、没有常用处理：参考组文件都还在，
-/// 都列在“最近”或“更早”里，不丢东西；也不再迁移一次，免得把旧钉图又变成一个参考组。
+/// 读 `desk.json`。读不懂（损坏、新版本写的）时报错，文件原样留着：启动时不启动、说明原因
+/// （Lou 2026-11-22，#632），免得把空桌写回去盖掉收藏与桌面上是哪组。
 pub(super) fn load(path: &Path) -> io::Result<Loaded> {
     match fs::read(path) {
-        Ok(bytes) => Ok(Loaded::Found(
-            serde_json::from_slice::<DeskFile>(&bytes)
-                .ok()
-                .filter(|f| f.format == FORMAT && f.format_version <= FORMAT_VERSION)
-                .unwrap_or_else(|| DeskFile::new(None, Vec::new(), BTreeMap::new())),
-        )),
+        Ok(bytes) => {
+            let file = serde_json::from_slice::<DeskFile>(&bytes)
+                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+            if file.format != FORMAT || file.format_version > FORMAT_VERSION {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    // 与 serde 的解析错误一样只作原因写进说明，界面文字在 `ui_text::DeskUnreadable`。
+                    format!(
+                        "unsupported desk state {} version {}",
+                        file.format, file.format_version
+                    ),
+                ));
+            }
+            Ok(Loaded::Found(file))
+        }
         Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Loaded::Missing),
         Err(e) => Err(e),
     }

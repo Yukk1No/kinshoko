@@ -7,9 +7,6 @@ export function pinNoticeText(notice: PinNotice): string {
   switch (notice.kind) {
     case "failed":
       return describeCommandError(notice.error);
-    case "savedToGroup":
-    case "addedToGroup":
-      return i18n.t(`pins:notice.${notice.kind}`, { name: notice.name });
     default:
       return i18n.t(`pins:notice.${notice.kind}`);
   }

@@ -76,7 +76,7 @@ fn imported_package_group_is_usable_elsewhere_with_identical_originals_and_layou
             MemberState::Available { sealed: false },
         ]
     );
-    assert_eq!(reread.pins().len(), 4);
+    assert_eq!(reread.members.len(), 4);
 }
 
 #[test]

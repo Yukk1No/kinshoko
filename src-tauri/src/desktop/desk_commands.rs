@@ -5,8 +5,6 @@
 //!
 //! 桌面可以空着（没有参考组）：钉下的第一张开一个新参考组，推送 [`STARTED_EVENT`]。
 //!
-//! 开关（设置里界面上没有的 `deskReferenceGroups`）关着时，这些命令报错、什么都不改。
-//!
 //! 换一桌钉图（[`apply`]）：先在锁里让桌面模块换好，放开锁后再动窗口——关掉菜单，旧钉图一起关掉，
 //! 新钉图一起打开，不加转场；之前是收起的（F4），新钉图也直接收起。窗口按桌面模块此刻的钉图对齐，
 //! 所以连按几次切换时，最后留在桌面上的只有最后那一次的钉图。
@@ -15,7 +13,6 @@ use std::collections::HashSet;
 use std::sync::Mutex;
 
 use kinshoko_core::CommandError;
-use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::desktop::SavedPin;
 use kinshoko_core::reference_groups::{Desk, DeskLists, GroupError, Pruned, Split, Switched};
 use tauri::{AppHandle, Emitter};
@@ -41,18 +38,14 @@ pub(in crate::desktop) fn realign(app: &AppHandle) {
     align(app);
 }
 
-fn flag_off() -> CommandError {
-    CommandError::new(ErrorKind::DeskGroupsOff, "参考组改成桌面的开关没打开")
-}
-
-/// 在桌面模块上做一件事：先参考组、后钉图状态、再截图历史。开关关着时报错。
+/// 在桌面模块上做一件事：先参考组、后钉图状态、再截图历史。
 pub(super) fn with_desk<T>(
     app: &AppHandle,
     f: impl FnOnce(&mut Desk, &mut kinshoko_core::desktop::CaptureHistory) -> Result<T, GroupError>,
 ) -> Result<T, CommandError> {
     let _groups = lock(&state(app).groups);
     let mut store = lock(&state(app).store);
-    let desk = store.desk().ok_or_else(flag_off)?;
+    let desk = store.desk();
     let mut history = lock(&state(app).history);
     let result = f(desk, &mut history);
     // 失败回滚后可能留着要重写的（例如并入时删掉的那组放回了内存）：交给后台线程与退出前的落盘。
@@ -88,11 +81,6 @@ struct Started {
     previous_id: String,
 }
 
-/// 开关打开着。
-pub(super) fn desk_on(app: &AppHandle) -> bool {
-    lock(&state(app).store).is_desk()
-}
-
 /// 换了一桌：动窗口，再通知各窗口截图历史与参考组变了。成员钉不出来时只写运行日志，
 /// 其余成员照常摆出。不持有任何 `DesktopState` 的锁调用。
 pub(super) fn apply(app: &AppHandle, switched: Option<Switched>) {
@@ -103,9 +91,7 @@ pub(super) fn apply(app: &AppHandle, switched: Option<Switched>) {
         // 钉出的成员存在拔掉的显示器上（或从别的布局导入）时先拉回屏幕，否则窗口出不来、也拖不回来。
         if !switched.opened.pins.is_empty() {
             let monitors = pins::monitors();
-            let pulled = lock(&state(app).store)
-                .desk()
-                .is_some_and(|desk| desk.pull_onto_screen(&monitors));
+            let pulled = lock(&state(app).store).desk().pull_onto_screen(&monitors);
             if pulled {
                 mark_dirty(app);
             }
@@ -277,9 +263,6 @@ pub async fn remove_desk_group_member(
     member_id: String,
 ) -> Result<bool, CommandError> {
     blocking(move || {
-        if !desk_on(&app) {
-            return Err(flag_off());
-        }
         if remove_desk_member(&app, &group_id, &member_id)? {
             return Ok(true);
         }

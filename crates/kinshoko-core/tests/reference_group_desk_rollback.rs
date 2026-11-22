@@ -3,8 +3,11 @@
 
 #[path = "support/desk.rs"]
 mod desk;
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
 
 use desk::{TestDesk, break_state, reference_pin, reread};
+use group_fixture::GroupFixture;
 use kinshoko_core::reference_groups::{MemberSource, Split};
 
 const DAY: i64 = 24 * 60 * 60 * 1000;
@@ -91,7 +94,15 @@ fn a_split_that_cannot_save_the_desk_state_keeps_the_moved_captures() {
     let mut t = TestDesk::with(|root| {
         let groups = desk::groups(root);
         let mut pins = vec![reference_pin("old", 10)];
-        old = groups.create("旧", &mut pins).unwrap().id;
+        old = groups.save_group("旧", &mut pins).unwrap().id;
+        // 像 #588 之前存的参考组一样：成员没有添加日期，按参考组的新建时间算。
+        let file = root.join(format!("reference-groups/{old}.json"));
+        let mut json: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
+        for member in json["members"].as_array_mut().unwrap() {
+            member.as_object_mut().unwrap().remove("addedAt");
+        }
+        std::fs::write(&file, serde_json::to_vec(&json).unwrap()).unwrap();
     });
     t.desk.switch_to(&old, &mut t.history).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(5));

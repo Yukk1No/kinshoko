@@ -25,6 +25,7 @@ mod lists;
 mod migrate;
 mod moves;
 mod naming;
+mod opening;
 mod reopen;
 mod screen;
 mod state;
@@ -124,62 +125,6 @@ pub struct Desk {
 }
 
 impl Desk {
-    /// 打开 `dir`（应用数据目录，与 `pins.json` 同级）下的桌面状态。还没有时迁移：现有参考组都算常用，
-    /// 文件一个字节都不改；`pins.json` 里的钉图成为一个没有名称的参考组，摆在桌面上。
-    /// 钉图要等 [`Self::restore`] 才钉出。
-    pub fn open(
-        dir: &Path,
-        groups: ReferenceGroups,
-        history: &mut CaptureHistory,
-    ) -> Result<Desk, GroupError> {
-        let state_path = state::path(dir);
-        let file = match state::load(&state_path)? {
-            Loaded::Found(file) => file,
-            Loaded::Missing => migrate::migrate(dir, &groups, history, &state_path)?,
-        };
-        let on_desk = file
-            .on_desk
-            .as_ref()
-            .and_then(|id| groups.get(id).ok())
-            .map(Held::saved);
-        // 参考组文件不在了（例如被别的程序删掉）：不再记着。读不懂的文件还在，照样记着。
-        let listed: BTreeSet<String> = groups.list()?.into_iter().map(|s| s.id).collect();
-        let mut favorites = file.favorites;
-        favorites.retain(|id| listed.contains(id));
-        let mut used_at = file.used_at;
-        used_at.retain(|id, _| listed.contains(id));
-        Ok(Desk {
-            groups,
-            state_path,
-            on_desk,
-            left: Vec::new(),
-            pins: Vec::new(),
-            favorites,
-            used_at,
-            trashed_from_desk: BTreeSet::new(),
-            untrashed: BTreeSet::new(),
-            unpin_after_flush: Vec::new(),
-            dirty: false,
-            members_changed: false,
-        })
-    }
-
-    /// 启动时钉出桌面上的参考组：与 [`Self::switch_to`] 得到的一样，再把离开了所有显示器的拉回屏幕。
-    pub fn restore(&mut self, history: &mut CaptureHistory, monitors: &[ScreenRect]) -> OpenedPins {
-        let mut opened = self.open_pinned(history, |_| true);
-        for pin in &mut opened.pins {
-            let (x, y) = pull_onto_screen(pin.rect(), monitors);
-            if (x, y) != (pin.placement.x, pin.placement.y) {
-                pin.placement.x = x;
-                pin.placement.y = y;
-                self.dirty = true;
-            }
-        }
-        self.pins = opened.pins.clone();
-        self.sync_all();
-        opened
-    }
-
     /// 桌面上的参考组；桌面空着时为 `None`。
     pub fn group(&self) -> Option<&ReferenceGroup> {
         self.on_desk.as_ref().map(|h| &h.group)
@@ -260,6 +205,30 @@ impl Desk {
         self.dirty = true;
         self.members_changed = true;
         Ok(Pinned { pin, fold_into })
+    }
+
+    /// 把资料库里的一张图加进参考组 `group_id`（图库墙“加入参考组”），成为它没钉着的新成员，返回改好的参考组。
+    /// 那个参考组正摆在桌面上时什么都不改、返回 `None`：调用方把它钉到桌面上（[`Self::pin`]），
+    /// 桌面上参考组的成员就是桌面上的钉图。截图钉图不能这样加（[`GroupError::NoMembers`]）。
+    pub fn add_member(
+        &mut self,
+        group_id: &str,
+        pin: &SavedPin,
+    ) -> Result<Option<ReferenceGroup>, GroupError> {
+        if self.desk_id().as_deref() == Some(group_id) {
+            return Ok(None);
+        }
+        let mut group = self.groups.get(group_id)?;
+        let mut member = GroupMember::from_pin(new_id(), pin).ok_or(GroupError::NoMembers)?;
+        member.follow(pin);
+        // 加进不在桌面上的组：没钉着，切过去时也不钉出来（#596）。
+        member.pinned = false;
+        let now = crate::library::now_ms();
+        member.added_at = Some(now);
+        group.members.push(member);
+        group.updated_at = now;
+        self.groups.commit(&group, &[])?;
+        Ok(Some(group))
     }
 
     /// 改一张钉图（拖动、缩放、翻转、旋转、透明度、锁定）：成员跟着改。不存在时为 `None`。
@@ -390,14 +359,11 @@ impl Desk {
             used_at.insert(id.clone(), now);
         }
         // 先写桌面状态：写不进时内存与钉图都还是原来那一桌，调用方拿到错误、什么都不用改。
-        state::save(
-            &self.state_path,
-            &DeskFile::new(
-                next.as_ref().map(|g| g.id.clone()),
-                self.favorites.clone(),
-                used_at.clone(),
-            ),
-        )?;
+        self.write_desk_file(&DeskFile::new(
+            next.as_ref().map(|g| g.id.clone()),
+            self.favorites.clone(),
+            used_at.clone(),
+        ))?;
         self.used_at = used_at;
         let closed = std::mem::take(&mut self.pins);
         for capture in closed.iter().filter_map(SavedPin::capture_id) {
@@ -452,11 +418,17 @@ impl Desk {
         }
     }
 
+    /// 写 `desk.json`。
+    fn write_desk_file(&self, file: &DeskFile) -> io::Result<()> {
+        state::save(&self.state_path, file)
+    }
+
     fn save_state(&self) -> io::Result<()> {
-        state::save(
-            &self.state_path,
-            &DeskFile::new(self.desk_id(), self.favorites.clone(), self.used_at.clone()),
-        )
+        self.write_desk_file(&DeskFile::new(
+            self.desk_id(),
+            self.favorites.clone(),
+            self.used_at.clone(),
+        ))
     }
 
     /// 不再记着参考组 `id`（它已删掉，例如并进了别的参考组）。

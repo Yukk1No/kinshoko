@@ -25,6 +25,7 @@ import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ImageEdit } from "../bindings/ImageEdit";
 import type { BrowserCard } from "./Wall";
 import { pagesOf } from "./imageSets";
+import { groupLabel } from "../desktop/groupLabel";
 import { errorText } from "../ipc/commandError";
 
 /** 右键菜单作用的对象：一组卡片（右键的那张，或它所在的整组选择），或图片墙的空白处。point 为指针位置（CSS 像素，窗口客户区）。 */
@@ -42,7 +43,8 @@ export type WallMenuActions = {
   crop: (card: BrowserCard) => void;
   /** clear：整理后这些图会离开当前范围（移出、删除、还原），随之取消选择。 */
   edit: (cards: BrowserCard[], edits: ImageEdit[], clear: boolean) => void;
-  addToGroup: (cards: BrowserCard[], groupId: string) => void;
+  /** `point`：右键处；加进的正是桌面上的参考组时图钉在这里。 */
+  addToGroup: (cards: BrowserCard[], groupId: string, point?: { x: number; y: number }) => void;
   inspectSources: (card: BrowserCard) => void;
   /** 彻底删除（先确认受影响的参考组）。 */
   purge: (cards: BrowserCard[]) => void;
@@ -118,7 +120,15 @@ function useList<T>(load: () => Promise<T[]>) {
   return state;
 }
 
-function GroupList({ actions, cards }: { actions: WallMenuActions; cards: BrowserCard[] }) {
+function GroupList({
+  actions,
+  cards,
+  point,
+}: {
+  actions: WallMenuActions;
+  cards: BrowserCard[];
+  point: { x: number; y: number };
+}) {
   const { t } = useTranslation(["wall", "common"]);
   const { items, problem } = useList(actions.groups);
   if (!items) return <MenuTip>{t("menu.loadingGroups")}</MenuTip>;
@@ -128,8 +138,8 @@ function GroupList({ actions, cards }: { actions: WallMenuActions; cards: Browse
   return (
     <>
       {usable.map((g) => (
-        <MenuItem key={g.id} onClick={() => actions.addToGroup(cards, g.id)}>
-          {g.name}
+        <MenuItem key={g.id} onClick={() => actions.addToGroup(cards, g.id, point)}>
+          {groupLabel(g)}
         </MenuItem>
       ))}
     </>
@@ -181,11 +191,13 @@ function Organize({
   actions,
   scope,
   single,
+  point,
 }: {
   cards: BrowserCard[];
   actions: WallMenuActions;
   scope: BrowseScope;
   single: boolean;
+  point: { x: number; y: number };
 }) {
   const { t } = useTranslation(["wall", "common"]);
   return (
@@ -194,7 +206,7 @@ function Organize({
         <RemoveFromFolder card={cards[0]} folderId={scope.id} direct={scope.kind === "folder"} actions={actions} />
       )}
       <MenuSubmenu icon={icon(Layers)} label={t("menu.addToGroup")} popupLabel={t("menu.addToGroup")} width={220}>
-        <GroupList actions={actions} cards={cards} />
+        <GroupList actions={actions} cards={cards} point={point} />
       </MenuSubmenu>
       <MenuSubmenu icon={icon(ShieldCheck)} label={t("menu.rating")} popupLabel={t("menu.rating")}>
         {RATINGS.map((rating) => (
@@ -318,7 +330,7 @@ export function WallMenu({
           {t("common:image.copy")}
         </MenuItem>
         <MenuSeparator />
-        <Organize cards={cards} actions={actions} scope={scope} single />
+        <Organize cards={cards} actions={actions} scope={scope} single point={point} />
         {sources.length >= 2 && (
           <MenuItem icon={icon(Layers)} onClick={() => actions.inspectSources(card)}>
             {t("menu.inspectSources")}
@@ -346,7 +358,7 @@ export function WallMenu({
         <span className="k-item-meta">{t("menu.copyOneOnly")}</span>
       </MenuItem>
       <MenuSeparator />
-      <Organize cards={cards} actions={actions} scope={scope} single={false} />
+      <Organize cards={cards} actions={actions} scope={scope} single={false} point={point} />
       {inspector}
       <MenuSeparator />
       <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>

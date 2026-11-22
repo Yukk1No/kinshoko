@@ -2,6 +2,10 @@
 
 #![allow(dead_code)]
 
+#[path = "group_fixture.rs"]
+mod group_fixture;
+use group_fixture::GroupFixture;
+
 use std::path::{Path, PathBuf};
 
 use image::RgbaImage;
@@ -179,9 +183,9 @@ impl Device {
             self.pin(&self.main, &self.main_images[0], Some(region()), 10),
             self.pin(&self.old, &self.old_images[0], None, 400),
         ];
-        self.groups.create("眼睛参考", &mut pins).unwrap();
+        self.groups.save_group("眼睛参考", &mut pins).unwrap();
         let mut only_main = [self.pin(&self.main, &self.main_images[1], None, 30)];
-        self.groups.create("光照", &mut only_main).unwrap();
+        self.groups.save_group("光照", &mut only_main).unwrap();
     }
 
     pub fn backup(

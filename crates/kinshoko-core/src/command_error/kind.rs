@@ -504,20 +504,9 @@ pub enum ErrorKind {
     // 钉图、参考组与剪贴板。
     PinClosed,
     PinLocked,
-    /// 参考组改成桌面（#591）的开关没打开，桌面上的参考组命令不可用。
-    DeskGroupsOff,
     PinVeiledNoCopy,
     /// 截图钉图对应的截图已不在截图历史中。
     PinCaptureGone,
-    /// 存进参考组时，截图钉图对应的截图已不在截图历史中。
-    CaptureLeftHistory,
-    CaptureSavePlanChanged,
-    /// 第 `number` 张截图没能收藏；前面 `completed` 张已收藏。
-    CaptureCollectIncomplete {
-        number: usize,
-        completed: usize,
-        cause: Box<ErrorKind>,
-    },
     ClipboardNoImage,
     ClipboardImageUnrecognized,
     CopiedImageEmpty,
