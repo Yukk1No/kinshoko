@@ -21,7 +21,9 @@ use ts_rs::TS;
 
 pub use by_hand::{HandReport, collect_by_hand};
 pub use check::{CheckReport, Destination, Source, SourceError, Work, WorkKind, check};
-pub use store::{CollectedWork, ReceivedImage, Store, StoreError};
+pub use store::{
+    CollectedWork, PreviewImage, ReceivedImage, Store, StoreError, SubscriptionPreview,
+};
 
 /// 订阅来源。以后加来源时在这里加一项，入口与开关不变。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]

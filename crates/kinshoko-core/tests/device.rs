@@ -153,6 +153,29 @@ mod save_memory {
         assert_eq!(device.save_memory().pixiv_destination, None);
     }
 
+    /// 订阅设置里的“新订阅收进”另记一份，取消登记时一起忘掉。
+    #[test]
+    fn subscriptions_remember_their_own_destination() {
+        let dir = tempfile::tempdir().unwrap();
+        let app_data = dir.path().join("app");
+        let library = Library::create(&dir.path().join("甲"), "甲").unwrap();
+        let id = library.info().id.clone();
+        let mut device = DeviceRegistry::open(&app_data).unwrap();
+        device.register(library.info()).unwrap();
+        let picked = destination(&id, None);
+        device.remember_subscription_destination(&picked).unwrap();
+        device
+            .remember_subscription_destination(&destination("没登记", None))
+            .unwrap();
+        drop(device);
+
+        let mut device = DeviceRegistry::open(&app_data).unwrap();
+        assert_eq!(device.save_memory().subscription_destination, Some(picked));
+        assert_eq!(device.save_memory().pixiv_destination, None);
+        device.unregister(&id).unwrap();
+        assert_eq!(device.save_memory().subscription_destination, None);
+    }
+
     #[test]
     fn a_destination_in_an_unregistered_library_is_not_remembered() {
         let dir = tempfile::tempdir().unwrap();

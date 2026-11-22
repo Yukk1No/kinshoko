@@ -89,6 +89,32 @@ pub struct ReceivedImage {
     pub received_at: i64,
 }
 
+/// 一条订阅收进来的图的概况，画师页的卡片用：有几张、最近一次什么时候、最近几个作品的首页。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SubscriptionPreview {
+    pub subscription_id: String,
+    /// 收进来的图（页）一共几张，包括改资料库之前收进旧库的。
+    pub received: u32,
+    /// 最近一次收进图的时间（Unix 毫秒）；还没收过时为空。
+    #[ts(type = "number | null")]
+    pub last_received_at: Option<i64>,
+    /// 最近收进来的几个作品的首页，从新到旧。
+    pub images: Vec<PreviewImage>,
+}
+
+/// 概况里的一张图。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PreviewImage {
+    pub library_id: String,
+    pub image_id: String,
+    /// 来源把作品标为成人内容；安全模式开着时不显示。
+    pub explicit: bool,
+}
+
 /// 一个作品的收取结果。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Outcome {
@@ -312,6 +338,86 @@ impl Store {
         }
     }
 
+    /// 把几条订阅以后收进的资料库改成 `library_id`，一起改或一条都不改。已收的图留在原来的库；
+    /// 改之前收过的作品不会再收进新库（见 [`Store::received_by`]）。
+    pub fn set_library(
+        &self,
+        ids: &[String],
+        library_id: &str,
+    ) -> Result<Vec<Subscription>, StoreError> {
+        {
+            let mut conn = self.conn();
+            let tx = conn.transaction()?;
+            for id in ids {
+                let changed = tx.execute(
+                    "UPDATE subscription SET library_id = ?2 WHERE id = ?1",
+                    params![id, library_id],
+                )?;
+                if changed == 0 {
+                    return Err(StoreError::UnknownSubscription);
+                }
+            }
+            tx.commit()?;
+        }
+        let all = self.list()?;
+        Ok(all.into_iter().filter(|s| ids.contains(&s.id)).collect())
+    }
+
+    /// 每条订阅收进来的图的概况；`per` 是每条最多带几个作品的首页。没收过图的订阅不在里面。
+    pub fn previews(&self, per: u32) -> Result<Vec<SubscriptionPreview>, StoreError> {
+        let conn = self.conn();
+        let mut stats = conn.prepare_cached(
+            "SELECT w.subscription_id, COUNT(*), MAX(p.received_at)
+             FROM received_page p
+             JOIN received_work w USING (library_id, source, work_id)
+             WHERE w.outcome = 'collected' AND w.subscription_id != ''
+             GROUP BY w.subscription_id
+             ORDER BY w.subscription_id",
+        )?;
+        let mut out: Vec<SubscriptionPreview> = stats
+            .query_map([], |r| {
+                Ok(SubscriptionPreview {
+                    subscription_id: r.get(0)?,
+                    received: r.get(1)?,
+                    last_received_at: r.get(2)?,
+                    images: Vec::new(),
+                })
+            })?
+            .collect::<Result<_, _>>()?;
+        let mut firsts = conn.prepare_cached(
+            "SELECT subscription_id, library_id, image_id, explicit FROM (
+                 SELECT w.subscription_id, p.library_id, p.image_id, w.explicit,
+                        ROW_NUMBER() OVER (PARTITION BY w.subscription_id
+                                           ORDER BY w.received_at DESC, p.work_id DESC) AS n
+                 FROM received_page p
+                 JOIN received_work w USING (library_id, source, work_id)
+                 WHERE w.outcome = 'collected' AND w.subscription_id != ''
+                   AND p.page = (SELECT MIN(q.page) FROM received_page q
+                                 WHERE q.library_id = p.library_id AND q.source = p.source
+                                   AND q.work_id = p.work_id)
+             )
+             WHERE n <= ?1
+             ORDER BY subscription_id, n",
+        )?;
+        let rows = firsts.query_map([per], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                PreviewImage {
+                    library_id: r.get(1)?,
+                    image_id: r.get(2)?,
+                    explicit: r.get(3)?,
+                },
+            ))
+        })?;
+        for row in rows {
+            let (id, image) = row?;
+            if let Ok(i) = out.binary_search_by(|p| p.subscription_id.as_str().cmp(&id)) {
+                out[i].images.push(image);
+            }
+        }
+        Ok(out)
+    }
+
     /// 记下一次检查完成的时间。
     pub fn mark_checked(&self, id: &str, at: i64) -> Result<(), StoreError> {
         self.conn().execute(
@@ -347,8 +453,9 @@ impl Store {
             .is_some())
     }
 
-    /// 这条订阅自己收过（或跳过）这个作品：来源可以在这里停止翻页。别的订阅收进同一个资料库的
-    /// 作品不算，免得新订阅一开始就停在别人收过的作品上。
+    /// 这条订阅自己收过（或跳过）这个作品：来源可以在这里停止翻页，收的时候也不再收它。别的订阅
+    /// 收进同一个资料库的作品不算，免得新订阅一开始就停在别人收过的作品上。收进哪个资料库不管：
+    /// 改了资料库以后只收新作，改之前收进旧库的不会再收进新库一遍。
     pub(super) fn received_by(
         &self,
         subscription_id: &str,
@@ -358,13 +465,8 @@ impl Store {
             .conn()
             .query_row(
                 "SELECT 1 FROM received_work
-                 WHERE library_id = ?1 AND source = ?2 AND work_id = ?3 AND subscription_id = ?4",
-                params![
-                    key.library_id,
-                    key.source.as_str(),
-                    key.work_id,
-                    subscription_id
-                ],
+                 WHERE source = ?1 AND work_id = ?2 AND subscription_id = ?3",
+                params![key.source.as_str(), key.work_id, subscription_id],
                 |_| Ok(()),
             )
             .optional()?

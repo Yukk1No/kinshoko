@@ -55,6 +55,11 @@ export function rememberPixivDestination(destination: SaveDestination): Promise<
   return invoke<void>(lib("remember_pixiv_destination"), { destination });
 }
 
+/** 订阅设置里亲手选定了“新订阅收进”（#461）。 */
+export function rememberSubscriptionDestination(destination: SaveDestination): Promise<void> {
+  return invoke<void>(lib("remember_subscription_destination"), { destination });
+}
+
 /** 亲手选定了新建资料库的位置。 */
 export function rememberNewLibraryParent(parent: string): Promise<void> {
   return invoke<void>(lib("remember_new_library_parent"), { parent });

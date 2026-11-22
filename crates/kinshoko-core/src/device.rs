@@ -36,6 +36,8 @@ pub struct SaveMemory {
     pub new_library_parent: Option<PathBuf>,
     /// 应用内浏览（#461）收进资料库时亲手选的。
     pub pixiv_destination: Option<SaveDestination>,
+    /// 订阅设置里亲手选的“新订阅收进”（#461）：关注画师、打开榜单或收藏夹同步时就地订阅，收进它。
+    pub subscription_destination: Option<SaveDestination>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -134,6 +136,7 @@ impl DeviceRegistry {
         for remembered in [
             &mut memory.import_destination,
             &mut memory.pixiv_destination,
+            &mut memory.subscription_destination,
         ] {
             if remembered
                 .as_ref()
@@ -165,6 +168,14 @@ impl DeviceRegistry {
         destination: &SaveDestination,
     ) -> std::io::Result<()> {
         self.remember_destination(destination, |memory| &mut memory.pixiv_destination)
+    }
+
+    /// 订阅设置里亲手选的“新订阅收进”（#461）。规则同导入。
+    pub fn remember_subscription_destination(
+        &mut self,
+        destination: &SaveDestination,
+    ) -> std::io::Result<()> {
+        self.remember_destination(destination, |memory| &mut memory.subscription_destination)
     }
 
     fn remember_destination(

@@ -3,6 +3,7 @@ import type { Artist } from "../bindings/Artist";
 import type { NewSubscription } from "../bindings/NewSubscription";
 import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
+import type { SubscriptionPreview } from "../bindings/SubscriptionPreview";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { invoke } from "./invoke";
 
@@ -35,6 +36,16 @@ export function subscriptions(): Promise<Subscription[]> {
 /** 最近收进来的图。`safeMode` 或设置里的安全模式开着时，后端按图库的有效分级去掉成人作品。 */
 export function subscriptionRecent(safeMode: boolean): Promise<ReceivedImage[]> {
   return invoke<ReceivedImage[]>("subscription_recent", { safeMode });
+}
+
+/** 每条订阅收进来的图的概况：张数、最近一次收图的时间、最近几个作品的首页（画师页的卡片用）。 */
+export function subscriptionPreviews(safeMode: boolean): Promise<SubscriptionPreview[]> {
+  return invoke<SubscriptionPreview[]>("subscription_previews", { safeMode });
+}
+
+/** 把几条订阅以后收进的资料库改成 `libraryId`；已收的图留在原来的库。 */
+export function subscriptionSetLibrary(ids: string[], libraryId: string): Promise<Subscription[]> {
+  return invoke<Subscription[]>("subscription_set_library", { ids, libraryId });
 }
 
 /** 订阅页看过了：新图标为已看，入口与托盘上的数量清零。 */

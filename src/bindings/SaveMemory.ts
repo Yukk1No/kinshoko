@@ -8,4 +8,8 @@ export type SaveMemory = { importDestination: SaveDestination | null, newLibrary
 /**
  * 应用内浏览（#461）收进资料库时亲手选的。
  */
-pixivDestination: SaveDestination | null, };
+pixivDestination: SaveDestination | null, 
+/**
+ * 订阅设置里亲手选的“新订阅收进”（#461）：关注画师、打开榜单或收藏夹同步时就地订阅，收进它。
+ */
+subscriptionDestination: SaveDestination | null, };
