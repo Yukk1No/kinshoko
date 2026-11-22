@@ -27,6 +27,7 @@ fn migrations() -> Migrations<'static> {
         M::up(include_str!("../migrations/0368_subscription.sql")),
         M::up(include_str!("../migrations/0369_backlog.sql")),
         M::up(include_str!("../migrations/0371_bookmarks.sql")),
+        M::up(include_str!("../migrations/0461_received_by.sql")),
     ])
 }
 
@@ -297,6 +298,19 @@ impl Store {
         Ok(self
             .conn()
             .query_row("SELECT 1 FROM subscription WHERE id = ?1", [id], |_| Ok(()))
+            .optional()?
+            .is_some())
+    }
+
+    /// 这条订阅还在、还收进 `library_id`：检查期间退订了或改了收进的库时为假，这次检查不再往旧库里收。
+    pub fn still_collects_into(&self, id: &str, library_id: &str) -> Result<bool, StoreError> {
+        Ok(self
+            .conn()
+            .query_row(
+                "SELECT 1 FROM subscription WHERE id = ?1 AND library_id = ?2",
+                [id, library_id],
+                |_| Ok(()),
+            )
             .optional()?
             .is_some())
     }

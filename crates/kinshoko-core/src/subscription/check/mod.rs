@@ -273,8 +273,10 @@ fn receive(
     report: &mut CheckReport,
 ) -> Result<(), SourceError> {
     let source_id = source.id();
-    // 检查期间画师退订了：剩下的不再收。
-    if cancel.load(Ordering::SeqCst) || !store.exists(&subscription.id)? {
+    // 检查期间退订了或改了收进的库：剩下的这次不再收（改了库的，下一轮按新库收）。
+    if cancel.load(Ordering::SeqCst)
+        || !store.still_collects_into(&subscription.id, &subscription.library_id)?
+    {
         return Err(SourceError::Cancelled);
     }
     let key = WorkKey {
@@ -399,7 +401,7 @@ fn collect(
         if done.contains(&page) {
             continue;
         }
-        if !store.exists(&subscription.id)? {
+        if !store.still_collects_into(&subscription.id, &subscription.library_id)? {
             return Err(SourceError::Cancelled);
         }
         let bytes = match source.download(url) {

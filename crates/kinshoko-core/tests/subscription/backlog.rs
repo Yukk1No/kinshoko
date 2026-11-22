@@ -165,6 +165,52 @@ fn unsubscribing_during_a_check_stops_it() {
     );
 }
 
+/// 收进第一张图后把订阅改收进另一个资料库的资料库。
+struct MoveAfterFirst<'a>(&'a Fixture);
+
+impl Destination for MoveAfterFirst<'_> {
+    fn import(
+        &self,
+        library_id: &str,
+        page: SubscriptionPage,
+        bytes: &[u8],
+    ) -> Result<String, String> {
+        let id = self.0.libraries.import(library_id, page, bytes)?;
+        let _ = self
+            .0
+            .store
+            .set_library(std::slice::from_ref(&self.0.subscription.id), "another");
+        Ok(id)
+    }
+}
+
+#[test]
+fn changing_the_library_during_a_check_stops_collecting_into_the_old_one() {
+    let f = Fixture::new();
+    let mut source = FakeSource::with(vec![
+        posted(work("1", WorkKind::Illustration, false, 1), 1),
+        posted(work("2", WorkKind::Illustration, false, 1), 2),
+    ]);
+    let result = check(
+        &f.store,
+        &f.subscription,
+        &mut source,
+        &MoveAfterFirst(&f),
+        &|| 5_000,
+        &AtomicBool::new(false),
+    );
+    // 这次停下，不算检查过：下一轮按新库收剩下的。
+    assert_eq!(result.unwrap_err(), SourceError::Cancelled);
+    assert_eq!(
+        source.downloads,
+        ["https://i.pximg.net/img-original/1_p0.png"]
+    );
+    assert_eq!(
+        f.store.get(&f.subscription.id).unwrap().last_checked_at,
+        None
+    );
+}
+
 #[test]
 fn works_posted_at_the_cutoff_but_left_out_stay_out() {
     let f = Fixture::with(Backlog::Recent { count: 1 }, 0);
