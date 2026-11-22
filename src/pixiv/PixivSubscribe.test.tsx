@@ -316,7 +316,8 @@ describe("画师卡片与“管理”", () => {
     await screen.findByText("还没有订阅的画师");
     expect(fake.calls("subscription_remove")[0].args).toEqual({ id: "s-2" });
     expect(fake.calls("subscription_set_follow")).toHaveLength(0);
-    // 能撤销的不先确认：做完给带“撤销”的轻提示，撤销按原来的库重新订阅，只收之后的新作。
+    // 能撤销的不先确认：做完给带“撤销”的轻提示（说清 pixiv 上还关注着），撤销按原来的库重新订阅，只收之后的新作。
+    await screen.findByText("不再自动收 山田，pixiv 上仍关注");
     fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
     await within(artists).findByText("山田");
     const [back] = fake.calls("subscription_add")[0].args.subscriptions as NewSubscription[];

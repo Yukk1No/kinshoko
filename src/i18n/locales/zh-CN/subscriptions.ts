@@ -268,6 +268,7 @@ export default {
     rowMeta: "收进「{{library}}」",
     unsubscribeNote: "取消订阅只是不再自动收，pixiv 上的关注不变。",
     unsubscribed: "已取消订阅 {{name}}",
+    unsubscribedArtist: "不再自动收 {{name}}，pixiv 上仍关注",
     unfollowedArtist: "已取消关注 {{name}}",
     undo: "撤销",
     accountHint: "账号与风险说明在 设置 › 订阅。",

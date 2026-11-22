@@ -142,7 +142,10 @@ export function useSubscriptions() {
       );
       if (done && undoable)
         toast?.show({
-          title: t("browse.unsubscribed", { name: sub.name }),
+          // 画师的退订不动 pixiv 上的关注，提示里说清楚，免得以为连关注也取消了。
+          title: t(sub.target.kind === "pixivArtist" ? "browse.unsubscribedArtist" : "browse.unsubscribed", {
+            name: sub.name,
+          }),
           action: {
             label: t("browse.undo"),
             onClick: () =>

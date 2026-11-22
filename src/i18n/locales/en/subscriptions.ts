@@ -276,6 +276,7 @@ const subscriptions: Translation<typeof zh> = {
     rowMeta: "Into “{{library}}”",
     unsubscribeNote: "Unsubscribing only stops auto-collecting; your pixiv follow stays.",
     unsubscribed: "Unsubscribed from {{name}}",
+    unsubscribedArtist: "Stopped auto-collecting {{name}}; still followed on pixiv",
     unfollowedArtist: "Unfollowed {{name}}",
     undo: "Undo",
     accountHint: "Account and risks are in Settings › Subscriptions.",
