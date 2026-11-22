@@ -498,7 +498,13 @@ export function FollowButton({
   const subs = useSubscriptionsContext();
   const subscribed = followed && !!subs?.artist(userId);
   // 订阅名单还没读到时不能点：取消关注时找不到订阅，就会关注取消了却还在自动收。
-  const writing = busy || !!subs?.pending(`artist:${userId}`) || (!!subs && !subs.list);
+  // 这位画师的订阅正在退订（例如在“管理”里）时也不能点：关注会看到还没删掉的订阅而不再订阅。
+  const removing = subs?.artist(userId);
+  const writing =
+    busy ||
+    !!subs?.pending(`artist:${userId}`) ||
+    (!!removing && !!subs?.pending(removing.id)) ||
+    (!!subs && !subs.list);
   return (
     <button type="button" className="k-btn" aria-pressed={followed} disabled={writing} onClick={onToggle}>
       {subscribed ? t("browse.followedSubscribed") : followed ? t("browse.followed") : t("browse.follow")}

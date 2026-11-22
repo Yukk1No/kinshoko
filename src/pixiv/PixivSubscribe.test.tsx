@@ -304,6 +304,19 @@ describe("画师卡片与“管理”", () => {
     expect(within(artists).getByRole("button", { name: "取消订阅 山田" })).toHaveProperty("disabled", false);
   });
 
+  it("“管理”里正在退订一位画师时，墙上不能关注他", async () => {
+    list = [...list, { ...list[0], id: "s-77", name: "小林", target: { kind: "pixivArtist", userId: "77" } }];
+    fake.on("subscription_remove", () => new Promise(() => {}));
+    renderHome();
+    fireEvent.click(place("管理"));
+    const artists = await screen.findByRole("list", { name: "画师" });
+    fireEvent.click(within(artists).getByRole("button", { name: "取消订阅 小林" }));
+    fireEvent.click(place("新作"));
+    fireEvent.click(await screen.findByRole("button", { name: "作品1，小林" }));
+    const band = screen.getByRole("region", { name: "作品1，小林" });
+    expect(within(band).getByRole("button", { name: "关注" })).toHaveProperty("disabled", true);
+  });
+
   it("“管理”里能订阅画师、从关注导入", async () => {
     renderHome();
     fireEvent.click(place("管理"));
