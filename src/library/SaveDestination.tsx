@@ -14,6 +14,7 @@ import {
   rememberImportDestination,
   rememberNewLibraryParent,
   rememberPixivDestination,
+  rememberSubscriptionDestination,
   saveMemory,
   workspaceDirectories,
 } from "../ipc";
@@ -33,9 +34,16 @@ type SaveContext = {
   rememberImport: (value: SaveDestination) => void;
   /** 应用内浏览（#461）收进资料库时亲手选的。 */
   rememberPixiv: (value: SaveDestination) => void;
+  /** 订阅设置里的“新订阅收进”（#461）。 */
+  rememberSubscription: (value: SaveDestination) => void;
   rememberNewLibraryParent: (parent: string) => void;
 };
-const NOTHING_REMEMBERED: SaveMemory = { importDestination: null, newLibraryParent: null, pixivDestination: null };
+const NOTHING_REMEMBERED: SaveMemory = {
+  importDestination: null,
+  newLibraryParent: null,
+  pixivDestination: null,
+  subscriptionDestination: null,
+};
 const Context = createContext<SaveContext>({
   destination: null,
   setDestination: () => {},
@@ -45,6 +53,7 @@ const Context = createContext<SaveContext>({
   memory: NOTHING_REMEMBERED,
   rememberImport: () => {},
   rememberPixiv: () => {},
+  rememberSubscription: () => {},
   rememberNewLibraryParent: () => {},
 });
 export const useSaveDestination = () => useContext(Context);
@@ -73,6 +82,11 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
     setMemory((value) => ({ ...value, pixivDestination }));
     // 忽略失败：写不进时只是下次不记得，不打扰这次保存。
     void rememberPixivDestination(pixivDestination).catch(() => {});
+  };
+  const rememberSubscription = (subscriptionDestination: SaveDestination) => {
+    setMemory((value) => ({ ...value, subscriptionDestination }));
+    // 忽略失败：写不进时只是下次不记得。
+    void rememberSubscriptionDestination(subscriptionDestination).catch(() => {});
   };
   const rememberParent = (newLibraryParent: string) => {
     setMemory((value) => ({ ...value, newLibraryParent }));
@@ -141,6 +155,7 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
         memory,
         rememberImport,
         rememberPixiv,
+        rememberSubscription,
         rememberNewLibraryParent: rememberParent,
       }}
     >

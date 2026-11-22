@@ -165,6 +165,123 @@ fn unsubscribing_during_a_check_stops_it() {
     );
 }
 
+/// 收进第一张图后把订阅改收进另一个资料库的资料库。
+struct MoveAfterFirst<'a>(&'a Fixture);
+
+impl Destination for MoveAfterFirst<'_> {
+    fn import(
+        &self,
+        library_id: &str,
+        page: SubscriptionPage,
+        bytes: &[u8],
+    ) -> Result<String, String> {
+        let id = self.0.libraries.import(library_id, page, bytes)?;
+        let _ = self
+            .0
+            .store
+            .set_library(std::slice::from_ref(&self.0.subscription.id), "another");
+        Ok(id)
+    }
+}
+
+#[test]
+fn changing_the_library_during_a_check_stops_collecting_into_the_old_one() {
+    let f = Fixture::new();
+    let mut source = FakeSource::with(vec![
+        posted(work("1", WorkKind::Illustration, false, 1), 1),
+        posted(work("2", WorkKind::Illustration, false, 1), 2),
+    ]);
+    let result = check(
+        &f.store,
+        &f.subscription,
+        &mut source,
+        &MoveAfterFirst(&f),
+        &|| 5_000,
+        &AtomicBool::new(false),
+    );
+    // 这次停下，不算检查过：下一轮按新库收剩下的。
+    assert_eq!(result.unwrap_err(), SourceError::Cancelled);
+    assert_eq!(
+        source.downloads,
+        ["https://i.pximg.net/img-original/1_p0.png"]
+    );
+    assert_eq!(
+        f.store.get(&f.subscription.id).unwrap().last_checked_at,
+        None
+    );
+}
+
+#[test]
+fn a_work_started_before_the_library_changed_is_finished_in_the_old_library() {
+    let f = Fixture::new();
+    let mut source = FakeSource::with(vec![
+        posted(work("1", WorkKind::Illustration, false, 2), 1),
+        posted(work("2", WorkKind::Illustration, false, 1), 2),
+    ]);
+    let result = check(
+        &f.store,
+        &f.subscription,
+        &mut source,
+        &MoveAfterFirst(&f),
+        &|| 5_000,
+        &AtomicBool::new(false),
+    );
+    assert_eq!(result.unwrap_err(), SourceError::Cancelled);
+    // 两页都进了旧库，作品记作收过：改到新库以后不再收它。
+    assert_eq!(
+        source.downloads,
+        [
+            "https://i.pximg.net/img-original/1_p0.png",
+            "https://i.pximg.net/img-original/1_p1.png",
+        ]
+    );
+    let moved = f.store.get(&f.subscription.id).unwrap();
+    let mut again = FakeSource::with(source.works.clone());
+    check(
+        &f.store,
+        &moved,
+        &mut again,
+        &f.libraries,
+        &|| 6_000,
+        &AtomicBool::new(false),
+    )
+    .unwrap();
+    assert_eq!(
+        again.downloads,
+        ["https://i.pximg.net/img-original/2_p0.png"]
+    );
+}
+
+#[test]
+fn pages_left_unfinished_in_the_old_library_are_not_collected_again_after_the_change() {
+    let f = Fixture::new();
+    let mut source = FakeSource::with(vec![posted(work("1", WorkKind::Illustration, false, 2), 1)]);
+    source.fail.insert(
+        "https://i.pximg.net/img-original/1_p1.png".into(),
+        SourceError::RateLimited,
+    );
+    assert_eq!(f.check(&mut source), Err(SourceError::RateLimited));
+
+    let moved = f
+        .store
+        .set_library(std::slice::from_ref(&f.subscription.id), "another")
+        .unwrap()
+        .remove(0);
+    source.fail.clear();
+    let mut again = FakeSource::with(source.works.clone());
+    check(
+        &f.store,
+        &moved,
+        &mut again,
+        &f.libraries,
+        &|| 6_000,
+        &AtomicBool::new(false),
+    )
+    .unwrap();
+    // 第一页留在旧库，作品记作收过：新库里不再收它。
+    assert!(again.downloads.is_empty(), "{:?}", again.downloads);
+}
+
 #[test]
 fn works_posted_at_the_cutoff_but_left_out_stay_out() {
     let f = Fixture::with(Backlog::Recent { count: 1 }, 0);

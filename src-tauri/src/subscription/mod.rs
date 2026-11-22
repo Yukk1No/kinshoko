@@ -18,8 +18,8 @@ use kinshoko_core::subscription::pixiv::{
     LoginRequest, LoginState, PixivAccount, PixivImages, PixivSource,
 };
 use kinshoko_core::subscription::{
-    Destination, ReceivedImage, SourceError, SourceId, Store, Subscription, SubscriptionStatus,
-    check, schedule,
+    Destination, PreviewImage, ReceivedImage, SourceError, SourceId, Store, Subscription,
+    SubscriptionStatus, check, schedule,
 };
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 
@@ -40,6 +40,8 @@ const STATUS_EVENT: &str = "subscription-status";
 const MAX_SLEEP: Duration = Duration::from_secs(60 * 60);
 /// 订阅页“最近收进来的图”最多列这么多张。
 const RECENT_LIMIT: u32 = 200;
+/// 画师页每张卡片带几个作品的缩略图。
+const PREVIEW_IMAGES: u32 = 4;
 
 #[derive(Default)]
 struct Wake {
@@ -407,6 +409,35 @@ pub async fn subscription_recent(
                         && crate::library::image_shown(&app, &r.library_id, &r.image_id))
             })
             .collect()
+    })
+    .await
+    .map_err(CommandError::system)
+}
+
+/// 每条订阅收进来的图的概况（画师页的卡片用）。安全模式的过滤与 [`subscription_recent`] 一样：
+/// 过滤掉的图不出现在缩略图里，张数照算。
+#[tauri::command]
+pub async fn subscription_previews(
+    app: AppHandle,
+    safe_mode: bool,
+) -> Result<Vec<kinshoko_core::subscription::SubscriptionPreview>, CommandError> {
+    let state = require(&app)?;
+    let safe = safe_mode || crate::library::saved_safe_mode(&app);
+    let mut previews = state
+        .store
+        .previews(PREVIEW_IMAGES)
+        .map_err(CommandError::from)?;
+    if !safe {
+        return Ok(previews);
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        for preview in &mut previews {
+            preview.images.retain(|i: &PreviewImage| {
+                !i.explicit && crate::library::image_shown(&app, &i.library_id, &i.image_id)
+            });
+        }
+        previews
     })
     .await
     .map_err(CommandError::system)

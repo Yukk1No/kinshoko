@@ -28,6 +28,13 @@ impl DeviceLibraries {
         Ok(self.device.remember_pixiv_destination(destination)?)
     }
 
+    pub fn remember_subscription_destination(
+        &mut self,
+        destination: &SaveDestination,
+    ) -> Result<(), DeviceLibraryError> {
+        Ok(self.device.remember_subscription_destination(destination)?)
+    }
+
     pub fn remember_new_library_parent(&mut self, parent: &Path) -> Result<(), DeviceLibraryError> {
         Ok(self.device.remember_new_library_parent(parent)?)
     }

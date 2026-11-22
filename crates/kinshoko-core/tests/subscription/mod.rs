@@ -507,3 +507,92 @@ fn a_failing_check_waits_before_retrying_and_a_failing_work_is_given_up() {
     assert_eq!(f.check(&mut source).unwrap().failed, 0);
     assert!(source.downloads.is_empty());
 }
+
+#[test]
+fn after_changing_the_library_only_new_works_go_into_the_new_one() {
+    let mut f = Fixture::new();
+    let mut source = FakeSource::with(vec![
+        work("1", WorkKind::Illustration, false, 1),
+        work("2", WorkKind::Illustration, false, 2),
+    ]);
+    assert_eq!(f.check(&mut source).unwrap().collected, 3);
+
+    let other = Library::create(&f._dir.path().join("other"), "另一个库").unwrap();
+    other.set_safe_mode(false);
+    let other_id = other.info().id.clone();
+    f.libraries.0.push(other);
+    let changed = f
+        .store
+        .set_library(std::slice::from_ref(&f.subscription.id), &other_id)
+        .unwrap();
+    assert_eq!(changed[0].library_id, other_id);
+
+    // 作品 3 是改库之后发的：只有它收进新库，改之前收进旧库的 1、2 不再下载。
+    let mut works = source.works.clone();
+    works.push(work("3", WorkKind::Illustration, false, 1));
+    let mut source = FakeSource::with(works);
+    let report = f.check(&mut source).unwrap();
+    assert_eq!(report.collected, 1);
+    assert_eq!(
+        source.downloads,
+        ["https://i.pximg.net/img-original/3_p0.png"]
+    );
+    let recent = f.store.recent(10).unwrap();
+    assert_eq!(recent[0].library_id, other_id);
+    assert_eq!(recent[0].work_id, "3");
+}
+
+#[test]
+fn changing_the_library_of_an_unknown_subscription_changes_nothing() {
+    let f = Fixture::new();
+    let before = f.store.get(&f.subscription.id).unwrap().library_id;
+    let ids = [f.subscription.id.clone(), "nope".to_owned()];
+    assert!(f.store.set_library(&ids, "elsewhere").is_err());
+    assert_eq!(f.store.get(&f.subscription.id).unwrap().library_id, before);
+}
+
+#[test]
+fn previews_count_pages_and_show_the_first_page_of_the_newest_works() {
+    let f = Fixture::new();
+    let mut works = vec![
+        work("1", WorkKind::Illustration, false, 1),
+        work("2", WorkKind::Illustration, true, 3),
+        work("3", WorkKind::Illustration, false, 1),
+    ];
+    for (i, w) in works.iter_mut().enumerate() {
+        w.posted_at += i as i64;
+    }
+    let mut source = FakeSource::with(works);
+    f.check(&mut source).unwrap();
+
+    let previews = f.store.previews(2).unwrap();
+    assert_eq!(previews.len(), 1);
+    let p = &previews[0];
+    assert_eq!(p.subscription_id, f.subscription.id);
+    assert_eq!(p.received, 5);
+    assert!(p.last_received_at.is_some());
+    assert_eq!(p.images.len(), 2);
+    let recent = f.store.recent(10).unwrap();
+    let first_page = |work: &str| {
+        recent
+            .iter()
+            .find(|r| r.work_id == work && r.page == 0)
+            .unwrap()
+            .image_id
+            .clone()
+    };
+    // 从新到旧：最后收的作品在前；作品 2 有三页，只带首页。
+    let ids: Vec<_> = p.images.iter().map(|i| i.image_id.clone()).collect();
+    let newest: Vec<_> = recent
+        .iter()
+        .filter(|r| r.page == 0)
+        .take(2)
+        .map(|r| first_page(&r.work_id))
+        .collect();
+    assert_eq!(ids, newest);
+    assert!(
+        p.images
+            .iter()
+            .all(|i| i.explicit == (i.image_id == first_page("2")))
+    );
+}

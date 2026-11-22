@@ -273,8 +273,10 @@ fn receive(
     report: &mut CheckReport,
 ) -> Result<(), SourceError> {
     let source_id = source.id();
-    // 检查期间画师退订了：剩下的不再收。
-    if cancel.load(Ordering::SeqCst) || !store.exists(&subscription.id)? {
+    // 检查期间退订了或改了收进的库：剩下的这次不再收（改了库的，下一轮按新库收）。
+    if cancel.load(Ordering::SeqCst)
+        || !store.still_collects_into(&subscription.id, &subscription.library_id)?
+    {
         return Err(SourceError::Cancelled);
     }
     let key = WorkKey {
@@ -282,8 +284,8 @@ fn receive(
         source: source_id,
         work_id: &work.id,
     };
-    if store.is_received(&key)? {
-        // 别的订阅已把它收进同一个资料库：本条不用再重试它。
+    if store.is_received(&key)? || store.received_by(&subscription.id, &key)? {
+        // 别的订阅已把它收进同一个资料库，或本条改资料库之前已把它收进旧库：本条不用再收它。
         store.clear_failure(&subscription.id, source_id, &work.id)?;
         return Ok(());
     }
@@ -306,7 +308,18 @@ fn receive(
     if store.gave_up(&subscription.id, source_id, &work.id)? {
         return Ok(());
     }
-    match collect(store, subscription, &key, work, source, destination, now)? {
+    let collected = match collect(store, subscription, &key, work, source, destination, now) {
+        Ok(collected) => collected,
+        Err(error) => {
+            // 收了几页时被限流、登录失效等打断：记成待补（不算一次失败，不会因此放弃它），下次照样回来补，
+            // 改收进的库时也认得它。
+            if error != SourceError::Cancelled && !store.received_pages(&key)?.is_empty() {
+                store.add_pending(&subscription.id, source_id, [work.id.as_str()])?;
+            }
+            return Err(error);
+        }
+    };
+    match collected {
         Some(pages) => {
             store.clear_failure(&subscription.id, source_id, &work.id)?;
             store.record_work(
@@ -399,6 +412,8 @@ fn collect(
         if done.contains(&page) {
             continue;
         }
+        // 收到一半改了收进的库：这个作品照旧收完进旧库（已收的页在那里，记下来才不会在新库再收一遍），
+        // 下一个作品前 `receive` 再停下。
         if !store.exists(&subscription.id)? {
             return Err(SourceError::Cancelled);
         }

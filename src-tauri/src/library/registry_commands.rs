@@ -94,6 +94,20 @@ pub(super) async fn remember_pixiv_destination<R: Runtime>(
     .await
 }
 
+/// 订阅设置里亲手选定了“新订阅收进”（#461）。
+#[tauri::command]
+pub(super) async fn remember_subscription_destination<R: Runtime>(
+    app: AppHandle<R>,
+    destination: kinshoko_core::library::SaveDestination,
+) -> Result<(), CommandError> {
+    blocking(move || {
+        with_libraries(&app.state::<LibraryState>(), |libraries| {
+            libraries.remember_subscription_destination(&destination)
+        })
+    })
+    .await
+}
+
 /// 亲手选定了新建资料库的位置。
 #[tauri::command]
 pub(super) async fn remember_new_library_parent<R: Runtime>(
