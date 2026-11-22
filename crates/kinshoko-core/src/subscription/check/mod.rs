@@ -308,7 +308,17 @@ fn receive(
     if store.gave_up(&subscription.id, source_id, &work.id)? {
         return Ok(());
     }
-    match collect(store, subscription, &key, work, source, destination, now)? {
+    let collected = match collect(store, subscription, &key, work, source, destination, now) {
+        Ok(collected) => collected,
+        Err(error) => {
+            // 收了几页时被限流、登录失效等打断：记成待重试，这样下次照样回来补，改收进的库时也认得它。
+            if error != SourceError::Cancelled && !store.received_pages(&key)?.is_empty() {
+                store.record_failure(&subscription.id, source_id, &work.id)?;
+            }
+            return Err(error);
+        }
+    };
+    match collected {
         Some(pages) => {
             store.clear_failure(&subscription.id, source_id, &work.id)?;
             store.record_work(

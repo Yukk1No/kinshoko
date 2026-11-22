@@ -253,6 +253,36 @@ fn a_work_started_before_the_library_changed_is_finished_in_the_old_library() {
 }
 
 #[test]
+fn pages_left_unfinished_in_the_old_library_are_not_collected_again_after_the_change() {
+    let f = Fixture::new();
+    let mut source = FakeSource::with(vec![posted(work("1", WorkKind::Illustration, false, 2), 1)]);
+    source.fail.insert(
+        "https://i.pximg.net/img-original/1_p1.png".into(),
+        SourceError::RateLimited,
+    );
+    assert_eq!(f.check(&mut source), Err(SourceError::RateLimited));
+
+    let moved = f
+        .store
+        .set_library(std::slice::from_ref(&f.subscription.id), "another")
+        .unwrap()
+        .remove(0);
+    source.fail.clear();
+    let mut again = FakeSource::with(source.works.clone());
+    check(
+        &f.store,
+        &moved,
+        &mut again,
+        &f.libraries,
+        &|| 6_000,
+        &AtomicBool::new(false),
+    )
+    .unwrap();
+    // 第一页留在旧库，作品记作收过：新库里不再收它。
+    assert!(again.downloads.is_empty(), "{:?}", again.downloads);
+}
+
+#[test]
 fn works_posted_at_the_cutoff_but_left_out_stay_out() {
     let f = Fixture::with(Backlog::Recent { count: 1 }, 0);
     // 两个作品同一时刻发布：只数进较新列出的那个。

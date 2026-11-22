@@ -363,13 +363,46 @@ impl Store {
             let mut conn = self.conn();
             let tx = conn.transaction()?;
             for id in ids {
-                let changed = tx.execute(
+                let old: Option<String> = tx
+                    .query_row(
+                        "SELECT library_id FROM subscription WHERE id = ?1",
+                        [id],
+                        |row| row.get(0),
+                    )
+                    .optional()?;
+                let Some(old) = old else {
+                    return Err(StoreError::UnknownSubscription);
+                };
+                if old == library_id {
+                    continue;
+                }
+                // 收了几页、剩下的等重试的作品：已收的页留在旧库，把它记作收过（不知道是不是成人作品时
+                // 按成人算，安全模式下不露出），不再重试，免得在新库把已收的页再收一遍。
+                tx.execute(
+                    "INSERT OR IGNORE INTO received_work (library_id, source, work_id, subscription_id,
+                                                         outcome, explicit, received_at, seen)
+                     SELECT ?2, f.source, f.work_id, f.subscription_id, 'collected', 1,
+                            MAX(p.received_at), 1
+                     FROM failed_work f
+                     JOIN received_page p
+                       ON p.library_id = ?2 AND p.source = f.source AND p.work_id = f.work_id
+                     WHERE f.subscription_id = ?1
+                     GROUP BY f.source, f.work_id",
+                    params![id, old],
+                )?;
+                tx.execute(
+                    "DELETE FROM failed_work
+                     WHERE subscription_id = ?1
+                       AND EXISTS (SELECT 1 FROM received_work w
+                                   WHERE w.library_id = ?2 AND w.source = failed_work.source
+                                     AND w.work_id = failed_work.work_id
+                                     AND w.subscription_id = ?1)",
+                    params![id, old],
+                )?;
+                tx.execute(
                     "UPDATE subscription SET library_id = ?2 WHERE id = ?1",
                     params![id, library_id],
                 )?;
-                if changed == 0 {
-                    return Err(StoreError::UnknownSubscription);
-                }
             }
             tx.commit()?;
         }
