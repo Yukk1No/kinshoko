@@ -12,6 +12,7 @@ impl Rig {
             kind,
             at,
             event,
+            alt: false,
         }));
     }
 

@@ -61,6 +61,7 @@ fn a_draw_that_failed_with_the_lost_device_does_not_give_the_pin_up() {
         at: (200, 300),
         notches: 1.0,
         ctrl: false,
+        alt: false,
     });
     r.o.pump(r.now);
     r.o.render().open.clear();

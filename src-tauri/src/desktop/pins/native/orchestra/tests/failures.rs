@@ -98,6 +98,7 @@ fn settling_while_a_draw_is_in_flight_still_fits_the_window_back() {
         at: (200, 300),
         notches: 1.0,
         ctrl: false,
+        alt: false,
     };
     r.o.shell().push(wheel.clone());
     r.o.pump(r.now);

@@ -18,6 +18,8 @@ pub(super) const ACTION_REVEAL: &str = "reveal";
 /// #106 新增：在 Kinshoko 中打开、贴边隐藏。
 pub(super) const ACTION_OPEN: &str = "openInKinshoko";
 pub(super) const ACTION_EDGE_HIDE: &str = "edgeHide";
+/// 整组移动（#198）：下一次按下拖动时整组移动。
+pub(super) const ACTION_GROUP_MOVE: &str = "groupMove";
 
 /// 钉图的右键菜单（#64；#106 起与主窗口同样式）：翻转、旋转、原始大小、透明度、锁定，截图钉图的
 /// 收藏与复制，资料库钉图（#65）被遮蔽时的“显示这张图”，
@@ -126,6 +128,10 @@ pub(super) fn menu_action(app: &AppHandle, pin: &str, action: &str) -> Option<Pi
         }
         ACTION_EDGE_HIDE => {
             super::super::edge::toggle_in_background(app);
+            None
+        }
+        ACTION_GROUP_MOVE => {
+            native::arm_group_move(app);
             None
         }
         ACTION_COLLECT => {
