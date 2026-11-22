@@ -61,7 +61,7 @@ it("先移走整摞时顶栏的张数减去它的全部页，没做成放回时�
   const onTotal = vi.fn();
   render(<Harness wall={wall} onTotal={onTotal} />);
   await screen.findAllByRole("option");
-  expect(onTotal).toHaveBeenLastCalledWith(5);
+  await vi.waitFor(() => expect(onTotal).toHaveBeenLastCalledWith(5));
   let putBack: (failed: string[]) => void = () => {};
   act(() => {
     putBack = wall.current!.remove(["p0", "p1", "p2"]);
