@@ -4,6 +4,40 @@ import { App } from "./App";
 import { backend, clean, library } from "./App.fixtures";
 import { shellSettings, type Args } from "./test/backend";
 
+it("keeps the latest wall size when an earlier settings write returns", async () => {
+  let finishSetting!: () => void;
+  let finishDensity!: () => void;
+  const saveDensity = vi.fn(
+    (args: Args) =>
+      new Promise((resolve) => {
+        finishDensity = () => resolve(shellSettings({ wallDensity: args.density as number }));
+      }),
+  );
+  backend(library, clean, {
+    shell_settings: () => shellSettings(),
+    "change_setting:autostart": () =>
+      new Promise((resolve) => {
+        finishSetting = () => resolve(shellSettings({ autostart: true }));
+      }),
+    "change_setting:wallDensity": saveDensity,
+  });
+  render(<App />);
+  await screen.findAllByRole("img");
+  fireEvent.click(screen.getByRole("button", { name: "设置" }));
+  fireEvent.click(await screen.findByRole("switch", { name: "开机启动" }));
+  await waitFor(() => expect(finishSetting).toBeTypeOf("function"));
+  fireEvent.click(screen.getByRole("button", { name: "关闭设置" }));
+  const slider = () => screen.getByRole("slider", { name: "图片大小" }) as HTMLInputElement;
+  fireEvent.change(slider(), { target: { value: "330" } });
+  fireEvent.pointerUp(slider());
+  expect(saveDensity).not.toHaveBeenCalled();
+  await act(async () => finishSetting());
+  expect(slider().value).toBe("330");
+  await waitFor(() => expect(saveDensity).toHaveBeenCalledTimes(1));
+  await act(async () => finishDensity());
+  expect(slider().value).toBe("330");
+});
+
 it("writes wall density once per drag and remembers it when the main window is recreated", async () => {
   let density = 240;
   const saveDensity = vi.fn((args: Args) => {

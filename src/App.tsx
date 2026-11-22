@@ -97,14 +97,11 @@ function MainWindow() {
   const [openError, setOpenError] = useState<string | null>(null);
   const [inspectorWidth, setInspectorWidthState] = useState<number | undefined>(undefined);
   const [inspectorShown, setInspectorShownState] = useState(false);
-  const [density, setDensity] = useState(240);
-  const densityChosen = useRef(false);
   const inspectorChosen = useRef(false);
   /** `keepInspector`：启动时读到的快照回得晚，画师这次已亲手开合过详情面板，就不拿它盖回去。 */
-  const acceptShellSettings = useCallback((view: ShellSettingsView, keepInspector = false, keepDensity = false) => {
+  const acceptShellSettings = useCallback((view: ShellSettingsView, keepInspector = false) => {
     setInspectorWidthState(view.inspectorWidth);
     if (!keepInspector) setInspectorShownState(view.inspectorOpen);
-    if (!keepDensity) setDensity(view.wallDensity);
   }, []);
   const settingsPopup = useRef<HTMLDivElement>(null);
   const [shellSettingsStore] = useState(() => createShellSettings(acceptShellSettings));
@@ -112,7 +109,9 @@ function MainWindow() {
    * 只读的几项直接取已接受的设置，读到之前用默认值：相近标签来源标记（默认不显示）、
    * 切换安全模式时保留选择、标签外观（#160，详情面板与查看器从上下文读取，设置一改立即生效）。
    */
-  const settingsView = useSyncExternalStore(shellSettingsStore.subscribe, shellSettingsStore.state).view;
+  const settingsState = useSyncExternalStore(shellSettingsStore.subscribe, shellSettingsStore.state);
+  const settingsView = settingsState.view;
+  const density = settingsState.densityDraft ?? settingsView?.wallDensity ?? 240;
   const showApproxSource = settingsView?.showApproxSource ?? false;
   const keepSelectionOnSafe = settingsView?.keepSelectionOnSafeMode ?? false;
   const tagDisplay: TagDisplay = settingsView?.tagDisplay ?? DEFAULT_TAG_DISPLAY;
@@ -122,12 +121,12 @@ function MainWindow() {
     // 忽略失败：只是下次不记得。
     void changeSetting({ kind: "inspectorWidth", width }).catch(() => {});
   }, []);
-  const changeDensity = useCallback((value: number) => {
-    densityChosen.current = true;
-    setDensity(value);
-    // 忽略失败：只是下次不记得。
-    void changeSetting({ kind: "wallDensity", density: value }).catch(() => {});
-  }, []);
+  const changeDensity = useCallback(
+    (value: number) => {
+      shellSettingsStore.changeWallDensity(value);
+    },
+    [shellSettingsStore],
+  );
   /** 详情面板的开合同样先生效再写设置。 */
   const changeInspectorShown = useCallback((open: boolean) => {
     inspectorChosen.current = true;
@@ -188,7 +187,7 @@ function MainWindow() {
     // 读取排在之前提交的写入之后、之后提交的写入之前（settingsSubmitter），所以读回的不会比设置页交来的旧。
     void shellSettingsStore.load().then((result) => {
       const view = shellSettingsStore.state().view;
-      if (alive && result.ok && view) acceptShellSettings(view, inspectorChosen.current, densityChosen.current);
+      if (alive && result.ok && view) acceptShellSettings(view, inspectorChosen.current);
     });
     uiScale().then(
       (saved) => {
