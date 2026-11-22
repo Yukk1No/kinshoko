@@ -114,10 +114,8 @@
   fill: var(--accent-soft);
   stroke: none;
 }
+/* 字形用共用的 .k-description（12 / 18，--ink-2），这里只管居中。 */
 .insp-empty-text {
-  margin: 0;
-  color: var(--ink-3);
-  font-size: 12px;
   text-align: center;
   text-wrap: balance;
 }
