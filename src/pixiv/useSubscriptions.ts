@@ -31,6 +31,9 @@ export function useSubscriptions() {
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
   const writing = useRef(new Set<string>());
+  /** 名单的最新一份：撤销提示之类晚些才跑的回调拿到的 `artist` 可能是旧的，订阅前按这一份再看一次。 */
+  const latest = useRef(list);
+  latest.current = list;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies(attempt): attempt 是重读信号，effect 里不读它
   useEffect(() => {
@@ -158,7 +161,7 @@ export function useSubscriptions() {
   /** 订阅一位画师：只收之后的新作，漫画不收，R-18 照收（和“订阅画师”对话框的默认一样）。已订阅时什么都不做。 */
   const subscribeArtist = useCallback(
     async (who: Artist) => {
-      if (artist(who.userId)) return true;
+      if (latest.current?.some((s) => s.target.kind === "pixivArtist" && s.target.userId === who.userId)) return true;
       return subscribe(`artist:${who.userId}`, (libraryId) => ({
         target: { kind: "pixivArtist", userId: who.userId },
         name: who.name,
@@ -168,7 +171,7 @@ export function useSubscriptions() {
         backlog: { kind: "newOnly" },
       }));
     },
-    [artist, subscribe],
+    [subscribe],
   );
 
   const unsubscribeArtist = useCallback(

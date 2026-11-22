@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { MoreHorizontal, SlidersHorizontal, UserMinus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Artist } from "../bindings/Artist";
@@ -60,13 +60,16 @@ function ArtistIndex({
   const feedback = useFeedbackContext();
   const libraries = useLibraryOptions();
   const toast = useOptionalToast();
+  /** 撤销提示晚些才点：用那时的反馈，不用取消关注那一刻的（那一刻的订阅名单里还有这位画师）。 */
+  const latestFeedback = useRef(feedback);
+  latestFeedback.current = feedback;
   /** ⋯ 里的“在 pixiv 上取消关注”：同时退订；做完给带“撤销”的轻提示，撤销就是重新关注（也就重新订阅）。 */
   const unfollow = async (a: Artist, subscription: Subscription) => {
     if (!feedback) return void subs?.unsubscribe(subscription, true);
     if (!(await feedback.setFollow(a, false))) return;
     toast?.show({
       title: t("browse.unfollowedArtist", { name: a.name }),
-      action: { label: t("browse.undo"), onClick: () => void feedback.setFollow(a, true) },
+      action: { label: t("browse.undo"), onClick: () => void latestFeedback.current?.setFollow(a, true) },
     });
   };
   const artists = useMemo(() => {

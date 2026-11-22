@@ -250,6 +250,11 @@ describe("画师卡片与“管理”", () => {
     await waitFor(() => expect(fake.calls("subscription_remove")).toHaveLength(1));
     expect(fake.calls("subscription_set_follow")[0].args).toEqual({ userId: "2", on: false });
     expect(await screen.findByText("还没有订阅画师")).toBeTruthy();
+    // 撤销就是重新关注，也就重新订阅。
+    fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
+    await waitFor(() => expect(fake.calls("subscription_add")).toHaveLength(1));
+    expect(fake.calls("subscription_set_follow")[1].args).toEqual({ userId: "2", on: true });
+    expect(within(await screen.findByRole("list", { name: "画师" })).getByText("山田")).toBeTruthy();
   });
 
   it("“管理”里取消订阅只退订，不动 pixiv 上的关注", async () => {
