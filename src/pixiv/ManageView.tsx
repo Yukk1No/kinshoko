@@ -10,6 +10,7 @@ import { displayName } from "../subscriptions/rankingNames";
 import { Switch } from "../ui/Switch";
 import { Tip } from "../ui/Tip";
 import { PixivStatus } from "./Status";
+import { useFeedbackContext } from "./useFeedback";
 import { RANKING_TOP, useSubscriptionsContext } from "./useSubscriptions";
 
 type Dialog = { kind: "add" } | { kind: "import" } | { kind: "settings"; subscription: Subscription };
@@ -25,6 +26,7 @@ const PERIODS = ["day", "week", "month"] as const;
 export function ManageView({ status }: { status: SubscriptionStatus | null }) {
   const { t, i18n } = useTranslation("subscriptions");
   const subs = useSubscriptionsContext();
+  const feedback = useFeedbackContext();
   const libraries = useLibraryOptions();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const list = subs?.list;
@@ -86,7 +88,11 @@ export function ManageView({ status }: { status: SubscriptionStatus | null }) {
                   type="button"
                   className="k-btn is-sm is-quiet"
                   aria-label={t("browse.unsubscribeNamed", { name: s.name })}
-                  disabled={subs.pending(s.id)}
+                  // 墙上正在关注这位画师时也不能退订：关注写完会再订阅一次，退订就白做了。
+                  disabled={
+                    subs.pending(s.id) ||
+                    (s.target.kind === "pixivArtist" && !!feedback?.followPending(s.target.userId))
+                  }
                   onClick={() => void subs.unsubscribe(s, true)}
                 >
                   {t("browse.unsubscribe")}
