@@ -19,7 +19,9 @@ use vocabulary::*;
 
 use crate::approx::BuiltinApproxTable;
 use crate::library::provider::ProviderImage;
-use crate::library::{BrowseScope, Error, TagAlias, TagLabel, Vocabulary, VocabularyTag};
+use crate::library::{
+    BrowseScope, Error, TagAlias, TagLabel, Vocabulary, VocabularyTag, display_label,
+};
 use crate::search::{Candidate, Condition, ConditionTree, Search, SearchInput, Term};
 use crate::tag_catalog::{CatalogError, CatalogInspection, TagCatalog, TagCatalogWorkspace};
 use crate::{DeviceLibraries, LibraryRegistration};
@@ -267,7 +269,15 @@ impl Workspace {
                 .into_iter()
                 .filter(|tag| !present.contains(&tag.id)),
         );
-        Ok(Search::new(&vocabulary, builtin).resolve(input, lang))
+        let search = Search::new(&vocabulary, builtin);
+        Ok(search.resolve_with_tag_fallback(input, lang, |id| {
+            // 已点选的标签不因没有活动图片而消失，但仍须遵守安全模式。
+            management_vocabulary(&snapshot, safe)
+                .tags
+                .iter()
+                .find(|tag| tag.id == id)
+                .map(|tag| display_label(id, tag.namespace, &tag.names, &tag.external, lang))
+        }))
     }
     #[allow(clippy::too_many_arguments)]
     pub fn candidates(

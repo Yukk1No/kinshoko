@@ -294,15 +294,30 @@ impl Search {
 
     /// 把搜索框里的条件解析成可见的条件树，标签名按界面语言 `lang`。
     pub fn resolve(&self, input: &SearchInput, lang: &str) -> ConditionTree {
+        self.resolve_with_tag_fallback(input, lang, |_| None)
+    }
+
+    pub(crate) fn resolve_with_tag_fallback(
+        &self,
+        input: &SearchInput,
+        lang: &str,
+        tag_fallback: impl Fn(&str) -> Option<TagLabel>,
+    ) -> ConditionTree {
         let conditions = input
             .conditions
             .iter()
-            .filter_map(|c| self.condition(c, input.exact, lang))
+            .filter_map(|c| self.condition(c, input.exact, lang, &tag_fallback))
             .collect();
         ConditionTree { conditions }
     }
 
-    fn condition(&self, input: &ConditionInput, exact: bool, lang: &str) -> Option<Condition> {
+    fn condition(
+        &self,
+        input: &ConditionInput,
+        exact: bool,
+        lang: &str,
+        tag_fallback: &impl Fn(&str) -> Option<TagLabel>,
+    ) -> Option<Condition> {
         let mut any = Vec::new();
         // An explicitly empty group is false, and its exclusion is true.
         let mut expressed = input.any.is_empty();
@@ -349,6 +364,11 @@ impl Search {
                         any.push(Term::Tag {
                             tag: self.entries[i].label(lang),
                             similar: self.similar(&[i], dismissed, exact, lang),
+                        });
+                    } else if let Some(tag) = tag_fallback(id) {
+                        any.push(Term::Tag {
+                            tag,
+                            similar: Vec::new(),
                         });
                     }
                 }
