@@ -6,6 +6,7 @@ import type { SaveDestination } from "../bindings/SaveDestination";
 import { errorText } from "../ipc";
 import { subscriptionCollect, subscriptionCollected } from "../ipc/pixivBrowse";
 import { destinationAvailable, useSaveDestination } from "../library/SaveDestination";
+import { flyToLibrary } from "./flyToLibrary";
 import type { Feedback } from "./useFeedback";
 
 /** 作品 id → 已收进（任一个）资料库的页。 */
@@ -13,9 +14,16 @@ export type CollectedPages = ReadonlyMap<string, ReadonlySet<number>>;
 
 /**
  * 收图的方式。`pages` 为空时收全部页；`choose` 时先选保存目标；`again` 时已收的页也再收一次；
- * `bookmark` 时同时在 pixiv 收藏（#461 第 5 步：“收藏”是一个动作）。
+ * `bookmark` 时同时在 pixiv 收藏（#461 第 5 步：“收藏”是一个动作）。`from` 是点下去的那张卡（或展开的一格、
+ * 全图），收好后从它飞一张缩略图到图标轨上的图库图标（#448）。
  */
-export type CollectOptions = { pages?: number[] | null; choose?: boolean; again?: boolean; bookmark?: boolean };
+export type CollectOptions = {
+  pages?: number[] | null;
+  choose?: boolean;
+  again?: boolean;
+  bookmark?: boolean;
+  from?: Element | null;
+};
 
 const NO_WORKS: PixivWork[] = [];
 
@@ -79,6 +87,7 @@ export function useCollect(works: PixivWork[] = NO_WORKS, feedback: Feedback | n
         const report = await subscriptionCollect(work, destination, options.pages ?? null, again);
         if (report.skipped) setNotice(t("browse.animationSkipped"));
         else if (report.failed) setNotice(t("browse.collectPartly", { count: report.failed }));
+        if (!report.skipped && report.collected > 0) flyToLibrary(options.from);
       } catch (error) {
         setNotice(t("browse.collectFailed", { error: errorText(error) }));
       } finally {

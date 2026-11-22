@@ -146,7 +146,7 @@ export function PixivHome({ safe }: { safe: boolean }) {
         </div>
         {finding != null && (
           <div className="pw-status" role="alert">
-            {t("browse.failed", { error: errorText(finding) })}
+            <span className="k-error-text">{t("browse.failed", { error: errorText(finding) })}</span>
           </div>
         )}
         {/* 新作与推荐一直挂着，换到别的去处时只是藏起来（不用 display: none，那样滚动位置会丢），回来时停在原处。 */}

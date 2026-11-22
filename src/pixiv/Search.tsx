@@ -3,12 +3,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Artist } from "../bindings/Artist";
 import type { PixivArtist } from "../bindings/PixivArtist";
-import { errorText } from "../ipc";
 import { subscriptionSearchArtists } from "../ipc/pixivBrowse";
 import { isComposingKey } from "../ui/composing";
 import { Segmented } from "../ui/Segmented";
 import { TARGET } from "../wall/wallShared";
 import { FollowButton } from "./PixivWall";
+import { PixivStatus } from "./Status";
 import { useFeedbackContext } from "./useFeedback";
 
 export type SearchKind = "works" | "artists";
@@ -229,22 +229,12 @@ export function ArtistResults({ word, onArtist }: { word: string; onArtist: (art
           })}
         </ul>
       )}
-      {(loading || failed || (done && !artists.length)) && (
-        <div className="pw-status" role="status">
-          {failed ? (
-            <>
-              <span>{t("browse.failed", { error: errorText(failed) })}</span>
-              <button type="button" className="k-btn" onClick={() => load(next)}>
-                {t("browse.retry")}
-              </button>
-            </>
-          ) : loading ? (
-            t("browse.loading")
-          ) : (
-            t("browse.empty")
-          )}
-        </div>
-      )}
+      <PixivStatus
+        loading={loading}
+        failed={failed || null}
+        retry={() => load(next)}
+        empty={done && !artists.length ? t("browse.empty") : null}
+      />
     </div>
   );
 }

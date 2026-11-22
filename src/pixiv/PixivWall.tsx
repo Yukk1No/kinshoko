@@ -185,7 +185,7 @@ export function PixivWall({
                   collected={(collected.get(work.id)?.size ?? 0) > 0}
                   busy={busy.has(work.id)}
                   onClick={() => select(s.key, work.id)}
-                  onCollect={onCollect && (() => onCollect(work, { bookmark: true }))}
+                  onCollect={onCollect && ((from) => onCollect(work, { bookmark: true, from }))}
                 />
               );
             }),
@@ -215,7 +215,7 @@ export function PixivWall({
           page={full.page}
           collected={collected.get(full.work.id)?.has(full.page) ?? false}
           busy={busy.has(full.work.id)}
-          onCollect={onCollect && (() => onCollect(full.work, { pages: [full.page] }))}
+          onCollect={onCollect && ((from) => onCollect(full.work, { pages: [full.page], from }))}
           onPage={(page) => setFull({ ...full, page })}
           onClose={() => setFull(null)}
         />
@@ -239,7 +239,7 @@ function Card({
   collected: boolean;
   busy: boolean;
   onClick: () => void;
-  onCollect?: () => void;
+  onCollect?: (from: Element | null) => void;
 }) {
   const { t } = useTranslation("subscriptions");
   const feedback = useFeedbackContext();
@@ -269,7 +269,7 @@ function Card({
             className="pw-collect k-btn"
             aria-label={t("browse.favoriteWork", { title: work.title })}
             disabled={feedback?.bookmarkPending(work.id) ?? false}
-            onClick={onCollect}
+            onClick={(e) => onCollect?.(e.currentTarget.closest(".pw-card"))}
           >
             {t("browse.favorite")}
           </button>
@@ -341,7 +341,9 @@ function Band({
         {work.pages.length > 1 && <p className="pw-band-meta">{t("browse.pages", { count: work.pages.length })}</p>}
         <ul className="pw-band-tags">
           {work.tags.slice(0, 12).map((tag) => (
-            <li key={tag}>{tag}</li>
+            <li key={tag} className="k-token is-24 is-pill is-surface">
+              {tag}
+            </li>
           ))}
         </ul>
         {collectable && (
@@ -355,18 +357,28 @@ function Band({
                 className="k-btn is-primary"
                 // pixiv 收藏还在写（例如刚点了取消）时不能点：写完之前的“收藏”会只收图、不写收藏。
                 disabled={busy || (feedback?.bookmarkPending(work.id) ?? false)}
-                onClick={() => onCollect(work, { bookmark: true })}
+                onClick={(e) => onCollect(work, { bookmark: true, from: e.currentTarget.closest(".pw-band") })}
               >
                 {busy ? t("browse.collecting") : t("browse.favorite")}
               </button>
             )}
             {/* 资料库里的图被删掉了也能再收（#461）。 */}
             {all && (
-              <button type="button" className="k-btn" disabled={busy} onClick={() => onCollect(work, { again: true })}>
+              <button
+                type="button"
+                className="k-btn"
+                disabled={busy}
+                onClick={(e) => onCollect(work, { again: true, from: e.currentTarget.closest(".pw-band") })}
+              >
                 {t("browse.collectAgain")}
               </button>
             )}
-            <button type="button" className="k-btn" disabled={busy} onClick={() => onCollect(work, { choose: true })}>
+            <button
+              type="button"
+              className="k-btn"
+              disabled={busy}
+              onClick={(e) => onCollect(work, { choose: true, from: e.currentTarget.closest(".pw-band") })}
+            >
               {t("browse.collectElsewhere")}
             </button>
             {/* 取消 pixiv 收藏不动资料库里的图。 */}
@@ -415,7 +427,7 @@ function FullView({
   page: number;
   collected: boolean;
   busy: boolean;
-  onCollect?: () => void;
+  onCollect?: (from: Element | null) => void;
   onPage: (page: number) => void;
   onClose: () => void;
 }) {
@@ -452,7 +464,7 @@ function FullView({
               disabled={busy}
               onClick={(e) => {
                 e.stopPropagation();
-                onCollect();
+                onCollect(e.currentTarget.closest(".pw-full"));
               }}
             >
               {busy ? t("browse.collecting") : t(count > 1 ? "browse.collectPage" : "browse.collect")}
