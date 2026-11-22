@@ -4,6 +4,8 @@ import type { Artist } from "../bindings/Artist";
 import type { PixivWork } from "../bindings/PixivWork";
 import { errorText } from "../ipc";
 import { subscriptionSetBookmark, subscriptionSetFollow } from "../ipc/pixivBrowse";
+import type { Subscription } from "../bindings/Subscription";
+import type { Subscriptions } from "./useSubscriptions";
 
 /** 改回写之前的样子：之前没有覆盖的就去掉覆盖，回到读到的数据。 */
 function restore(map: ReadonlyMap<string, boolean>, key: string, before: boolean | undefined) {
@@ -16,8 +18,11 @@ function restore(map: ReadonlyMap<string, boolean>, key: string, before: boolean
 /**
  * 给画师的反馈（#461 第 5 步，#409）：pixiv 收藏与关注。只由画师亲手点，不做任何自动写入。
  * 整页共用一份：在一面墙上点了，别的墙上同一个作品、同一位画师跟着变。点下去先改界面，写失败再改回来并说明。
+ *
+ * 关注即订阅（#461 第 6 步）：给了订阅名单（`subs`）时，在 pixiv 关注成功后同时在 Kinshoko 订阅这位画师，
+ * 取消关注成功后同时退订（已收进资料库的图留着）。pixiv 那边没写成时订阅不动。
  */
-export function useFeedback() {
+export function useFeedback(subs: Subscriptions | null = null) {
   const { t } = useTranslation("subscriptions");
   const [bookmarks, setBookmarks] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [follows, setFollows] = useState<ReadonlyMap<string, boolean>>(new Map());
@@ -76,22 +81,28 @@ export function useFeedback() {
   );
 
   const setFollow = useCallback(
-    async (artist: Artist, on: boolean) => {
+    async (artist: Artist, on: boolean, like?: Subscription) => {
       const key = `a:${artist.userId}`;
-      if (!begin(key)) return;
+      if (!begin(key)) return false;
       const before = follows.get(artist.userId);
       setFollows((map) => new Map(map).set(artist.userId, on));
       setNotice(null);
       try {
-        await subscriptionSetFollow(artist.userId, on);
-      } catch (error) {
-        setFollows((map) => restore(map, artist.userId, before));
-        setNotice(t(on ? "browse.followFailed" : "browse.unfollowFailed", { error: errorText(error) }));
+        try {
+          await subscriptionSetFollow(artist.userId, on);
+        } catch (error) {
+          setFollows((map) => restore(map, artist.userId, before));
+          setNotice(t(on ? "browse.followFailed" : "browse.unfollowFailed", { error: errorText(error) }));
+          return false;
+        }
+        // 订阅改完之前这位画师一直锁着：退订还没写完时再点“关注”，会看到旧订阅而不再订阅，退订落地后就成了关注却没订阅。
+        if (subs) await (on ? subs.subscribeArtist(artist, like) : subs.unsubscribeArtist(artist.userId));
+        return true;
       } finally {
         end(key);
       }
     },
-    [t, begin, end, follows],
+    [t, begin, end, follows, subs],
   );
 
   const bookmarkPending = useCallback((workId: string) => pending.has(`w:${workId}`), [pending]);

@@ -1,17 +1,23 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useId, useMemo, useRef, useState } from "react";
 import { errorText } from "../ipc";
 import { subscriptionFindArtist } from "../ipc/subscriptions";
 import { useTranslation } from "react-i18next";
 import type { Artist } from "../bindings/Artist";
 import type { Feed } from "../bindings/Feed";
 import type { RankingPeriod } from "../bindings/RankingPeriod";
+import type { Subscription } from "../bindings/Subscription";
+import { ArtistSettingsDialog } from "../subscriptions/ArtistDialog";
+import { useSubscriptionStatus } from "../subscriptions/useSubscriptionStatus";
 import { Segmented } from "../ui/Segmented";
+import { Switch } from "../ui/Switch";
+import { ManageView } from "./ManageView";
 import { ArtistsView } from "./ArtistsView";
 import { FeedView } from "./FeedView";
 import type { PixivWallHandle, WallSection } from "./PixivWall";
 import { usePixivFeed } from "./usePixivFeed";
 import { type Collecting, useCollect } from "./useCollect";
 import { FeedbackContext, useFeedback } from "./useFeedback";
+import { RANKING_TOP, SubscriptionsContext, type Subscriptions, useSubscriptions } from "./useSubscriptions";
 import { ArtistResults, SearchBox, type SearchKind } from "./Search";
 import { CollectPrompts, WallView } from "./WallView";
 import "./pixiv.css";
@@ -24,8 +30,10 @@ const RECOMMENDED: Feed = { kind: "recommended" };
  */
 const FOLLOWING_PAGES = 1;
 
-/** 标题行正中的五个去处（#461 2026-11-18）。新作与推荐是同一面墙上的两段。 */
-export type Place = "following" | "recommended" | "ranking" | "bookmarks" | "artists";
+/**
+ * 标题行正中的五个去处（#461 2026-11-18）。新作与推荐是同一面墙上的两段。隔一道线是第六项“管理”（第 6 步）。
+ */
+export type Place = "following" | "recommended" | "ranking" | "bookmarks" | "artists" | "manage";
 type Home = "following" | "recommended";
 type Visibility = "public" | "private";
 
@@ -46,7 +54,11 @@ export function PixivHome({ safe }: { safe: boolean }) {
   const wall = useRef<PixivWallHandle>(null);
   /** 新作与推荐那面墙上次停在哪一段。 */
   const homeAt = useRef<Home>("following");
-  const feedback = useFeedback();
+  const subs = useSubscriptions();
+  const feedback = useFeedback(subs);
+  const [status] = useSubscriptionStatus();
+  /** 画师页 ⋯ 里打开的“收取范围”。 */
+  const [settings, setSettings] = useState<Subscription | null>(null);
   const collecting = useCollect(undefined, feedback);
   const [searching, setSearching] = useState(false);
   const [text, setText] = useState("");
@@ -110,121 +122,152 @@ export function PixivHome({ safe }: { safe: boolean }) {
   }, []);
 
   return (
-    <FeedbackContext value={feedback}>
-      <div className="pw-page">
-        <div className="pw-tabs">
-          <SearchBox
-            open={searching}
-            text={text}
-            kind={kind}
-            filtering={filtering}
-            onOpen={() => setSearching(true)}
-            onText={(next) => {
-              setText(next);
-              // 在“画师”页里一打字就回到名单筛选。
-              if (filtering && next.trim()) setArtist(null);
-            }}
-            onKind={setKind}
-            onSubmit={submit}
-            onClose={closeSearch}
-          />
-          {/* 标题行一次只放一样东西：搜索展开时五个去处让开。 */}
-          {!searching && (
-            <Segmented<Place>
-              label={t("browse.tabs")}
-              value={place}
-              onChange={go}
-              options={[
-                { value: "following", label: t("browse.following") },
-                { value: "recommended", label: t("browse.recommended") },
-                { value: "ranking", label: t("browse.ranking") },
-                { value: "bookmarks", label: t("browse.bookmarks") },
-                { value: "artists", label: t("browse.artists") },
-              ]}
+    <SubscriptionsContext value={subs}>
+      <FeedbackContext value={feedback}>
+        <div className="pw-page">
+          <div className="pw-tabs">
+            <SearchBox
+              open={searching}
+              text={text}
+              kind={kind}
+              filtering={filtering}
+              onOpen={() => setSearching(true)}
+              onText={(next) => {
+                setText(next);
+                // 在“画师”页里一打字就回到名单筛选。
+                if (filtering && next.trim()) setArtist(null);
+              }}
+              onKind={setKind}
+              onSubmit={submit}
+              onClose={closeSearch}
             />
-          )}
-        </div>
-        {finding != null && (
-          <div className="pw-status" role="alert">
-            <span className="k-error-text">{t("browse.failed", { error: errorText(finding) })}</span>
+            {/* 标题行一次只放一样东西：搜索展开时五个去处让开。 */}
+            {!searching && (
+              <Segmented<Place>
+                className="pw-places"
+                label={t("browse.tabs")}
+                value={place}
+                onChange={go}
+                options={[
+                  { value: "following", label: t("browse.following") },
+                  { value: "recommended", label: t("browse.recommended") },
+                  { value: "ranking", label: t("browse.ranking") },
+                  { value: "bookmarks", label: t("browse.bookmarks") },
+                  { value: "artists", label: t("browse.artists") },
+                  { value: "manage", label: t("browse.manage") },
+                ]}
+              />
+            )}
           </div>
-        )}
-        {/* 新作与推荐一直挂着，换到别的去处时只是藏起来（不用 display: none，那样滚动位置会丢），回来时停在原处。 */}
-        <div className="pw-view" data-away={home ? undefined : ""} aria-hidden={!home || undefined} inert={!home}>
-          <HomeWall safe={safe} collecting={collecting} onSection={onSection} onArtist={viewArtist} handle={wall} />
-        </div>
-        {results && (
-          <div className="pw-view">
-            {results.kind === "works" ? (
+          {finding != null && (
+            <div className="pw-status" role="alert">
+              <span className="k-error-text">{t("browse.failed", { error: errorText(finding) })}</span>
+            </div>
+          )}
+          {/* 新作与推荐一直挂着，换到别的去处时只是藏起来（不用 display: none，那样滚动位置会丢），回来时停在原处。 */}
+          <div className="pw-view" data-away={home ? undefined : ""} aria-hidden={!home || undefined} inert={!home}>
+            <HomeWall safe={safe} collecting={collecting} onSection={onSection} onArtist={viewArtist} handle={wall} />
+          </div>
+          {results && (
+            <div className="pw-view">
+              {results.kind === "works" ? (
+                <FeedView
+                  feed={{ kind: "search", word: results.word }}
+                  safe={safe}
+                  collecting={collecting}
+                  onArtist={viewArtist}
+                />
+              ) : (
+                <ArtistResults key={results.word} word={results.word} onArtist={viewArtist} />
+              )}
+            </div>
+          )}
+          {!results && place === "ranking" && (
+            <div className="pw-view">
+              <div className="pw-subbar">
+                <Segmented<RankingPeriod>
+                  label={t("browse.rankingPeriod")}
+                  value={period}
+                  onChange={setPeriod}
+                  options={[
+                    { value: "day", label: t("browse.day") },
+                    { value: "week", label: t("browse.week") },
+                    { value: "month", label: t("browse.month") },
+                  ]}
+                />
+                <RankingSwitch subs={subs} period={period} />
+              </div>
+              {/* 只读全年龄榜：R-18 榜不在这里（安全模式也不必再藏一次）。 */}
               <FeedView
-                feed={{ kind: "search", word: results.word }}
+                feed={{ kind: "ranking", period, explicit: false }}
                 safe={safe}
                 collecting={collecting}
                 onArtist={viewArtist}
               />
-            ) : (
-              <ArtistResults key={results.word} word={results.word} onArtist={viewArtist} />
-            )}
-          </div>
-        )}
-        {!results && place === "ranking" && (
-          <div className="pw-view">
-            <div className="pw-subbar">
-              <Segmented<RankingPeriod>
-                label={t("browse.rankingPeriod")}
-                value={period}
-                onChange={setPeriod}
-                options={[
-                  { value: "day", label: t("browse.day") },
-                  { value: "week", label: t("browse.week") },
-                  { value: "month", label: t("browse.month") },
-                ]}
+            </div>
+          )}
+          {!results && place === "bookmarks" && (
+            <div className="pw-view">
+              <div className="pw-subbar">
+                <Segmented<Visibility>
+                  label={t("browse.bookmarksVisibility")}
+                  value={visibility}
+                  onChange={setVisibility}
+                  options={[
+                    { value: "public", label: t("browse.public") },
+                    { value: "private", label: t("browse.private") },
+                  ]}
+                />
+                <SubbarSwitch
+                  label={t("browse.syncBookmarks")}
+                  hint={t("browse.syncBookmarksHint")}
+                  checked={!!subs.bookmarks()}
+                  disabled={!subs.ready || subs.pending(subs.bookmarks()?.id ?? "bookmarks")}
+                  onChange={(on) => void subs.setBookmarks(on)}
+                />
+              </div>
+              <FeedView
+                feed={{ kind: "bookmarks", private: visibility === "private" }}
+                safe={safe}
+                collecting={collecting}
+                onArtist={viewArtist}
               />
             </div>
-            {/* 只读全年龄榜：R-18 榜不在这里（安全模式也不必再藏一次）。 */}
-            <FeedView
-              feed={{ kind: "ranking", period, explicit: false }}
-              safe={safe}
-              collecting={collecting}
-              onArtist={viewArtist}
-            />
-          </div>
-        )}
-        {!results && place === "bookmarks" && (
-          <div className="pw-view">
-            <div className="pw-subbar">
-              <Segmented<Visibility>
-                label={t("browse.bookmarksVisibility")}
-                value={visibility}
-                onChange={setVisibility}
-                options={[
-                  { value: "public", label: t("browse.public") },
-                  { value: "private", label: t("browse.private") },
-                ]}
+          )}
+          {!results && place === "artists" && (
+            <div className="pw-view">
+              <ArtistsView
+                safe={safe}
+                collecting={collecting}
+                artist={artist}
+                filter={searching ? text : ""}
+                onArtist={setArtist}
+                onSettings={setSettings}
               />
             </div>
-            <FeedView
-              feed={{ kind: "bookmarks", private: visibility === "private" }}
-              safe={safe}
-              collecting={collecting}
-              onArtist={viewArtist}
+          )}
+          {!results && place === "manage" && (
+            <div className="pw-view pw-manage-view">
+              <ManageView status={status} />
+            </div>
+          )}
+          <CollectPrompts collecting={collecting} />
+          {subs.notice && (
+            <div className="pw-status" role="alert">
+              <span className="k-error-text">{subs.notice}</span>
+            </div>
+          )}
+          {status && settings && (
+            <ArtistSettingsDialog
+              subscription={settings}
+              status={status}
+              onClose={() => setSettings(null)}
+              onSaved={subs.saved}
             />
-          </div>
-        )}
-        {!results && place === "artists" && (
-          <div className="pw-view">
-            <ArtistsView
-              safe={safe}
-              collecting={collecting}
-              artist={artist}
-              filter={searching ? text : ""}
-              onArtist={setArtist}
-            />
-          </div>
-        )}
-        <CollectPrompts collecting={collecting} />
-      </div>
-    </FeedbackContext>
+          )}
+        </div>
+      </FeedbackContext>
+    </SubscriptionsContext>
   );
 }
 
@@ -271,5 +314,44 @@ function HomeWall({
       onArtist={onArtist}
       handle={handle}
     />
+  );
+}
+
+/** 榜单页顶上的“自动收日榜 / 周榜 / 月榜”（#461 第 6 步），跟着选中的周期换。 */
+function RankingSwitch({ subs, period }: { subs: Subscriptions; period: RankingPeriod }) {
+  const { t } = useTranslation("subscriptions");
+  const sub = subs.ranking(period);
+  return (
+    <SubbarSwitch
+      label={t("browse.autoRanking", { ranking: t(`browse.${period}`) })}
+      hint={t("browse.autoRankingHint", { count: sub?.target.kind === "pixivRanking" ? sub.target.top : RANKING_TOP })}
+      checked={!!sub}
+      disabled={!subs.ready || subs.pending(sub?.id ?? `ranking:${period}`)}
+      onChange={(on) => void subs.setRanking(period, on)}
+    />
+  );
+}
+
+/** 第二行右端的就地订阅开关：开关加一句说明，点文字也能拨。 */
+function SubbarSwitch({
+  label,
+  hint,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (on: boolean) => void;
+}) {
+  const id = useId();
+  return (
+    <div className="pw-subbar-switch">
+      <Switch id={id} checked={checked} disabled={disabled} label={label} onCheckedChange={onChange} />
+      <label htmlFor={id}>{label}</label>
+      <span className="k-description">{hint}</span>
+    </div>
   );
 }

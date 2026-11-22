@@ -219,6 +219,7 @@ export function ArtistResults({ word, onArtist }: { word: string; onArtist: (art
                 </button>
                 {feedback && (
                   <FollowButton
+                    userId={a.userId}
                     followed={following}
                     busy={feedback.followPending(a.userId)}
                     onToggle={() => void feedback.setFollow({ userId: a.userId, name: a.name }, !following)}
