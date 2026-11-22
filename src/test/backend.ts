@@ -53,6 +53,7 @@ export function shellSettings(overrides: Partial<ShellSettingsView> = {}): Shell
     safeModeScope: "questionable",
     tagDisplay: { style: "bands", high: 0.8, low: 0.4 },
     inspectorOpen: false,
+    wallDensity: 240,
     updateChannel: "stable",
     ...overrides,
   } satisfies ShellSettingsView;

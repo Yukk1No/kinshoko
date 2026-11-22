@@ -97,11 +97,14 @@ function MainWindow() {
   const [openError, setOpenError] = useState<string | null>(null);
   const [inspectorWidth, setInspectorWidthState] = useState<number | undefined>(undefined);
   const [inspectorShown, setInspectorShownState] = useState(false);
+  const [density, setDensity] = useState(240);
+  const densityChosen = useRef(false);
   const inspectorChosen = useRef(false);
   /** `keepInspector`：启动时读到的快照回得晚，画师这次已亲手开合过详情面板，就不拿它盖回去。 */
-  const acceptShellSettings = useCallback((view: ShellSettingsView, keepInspector = false) => {
+  const acceptShellSettings = useCallback((view: ShellSettingsView, keepInspector = false, keepDensity = false) => {
     setInspectorWidthState(view.inspectorWidth);
     if (!keepInspector) setInspectorShownState(view.inspectorOpen);
+    if (!keepDensity) setDensity(view.wallDensity);
   }, []);
   const settingsPopup = useRef<HTMLDivElement>(null);
   const [shellSettingsStore] = useState(() => createShellSettings(acceptShellSettings));
@@ -118,6 +121,12 @@ function MainWindow() {
     setInspectorWidthState(width);
     // 忽略失败：只是下次不记得。
     void changeSetting({ kind: "inspectorWidth", width }).catch(() => {});
+  }, []);
+  const changeDensity = useCallback((value: number) => {
+    densityChosen.current = true;
+    setDensity(value);
+    // 忽略失败：只是下次不记得。
+    void changeSetting({ kind: "wallDensity", density: value }).catch(() => {});
   }, []);
   /** 详情面板的开合同样先生效再写设置。 */
   const changeInspectorShown = useCallback((open: boolean) => {
@@ -179,7 +188,7 @@ function MainWindow() {
     // 读取排在之前提交的写入之后、之后提交的写入之前（settingsSubmitter），所以读回的不会比设置页交来的旧。
     void shellSettingsStore.load().then((result) => {
       const view = shellSettingsStore.state().view;
-      if (alive && result.ok && view) acceptShellSettings(view, inspectorChosen.current);
+      if (alive && result.ok && view) acceptShellSettings(view, inspectorChosen.current, densityChosen.current);
     });
     uiScale().then(
       (saved) => {
@@ -314,6 +323,8 @@ function MainWindow() {
                     showApproxSource={showApproxSource}
                     keepSelectionOnSafe={keepSelectionOnSafe}
                     inspectorWidth={inspectorWidth}
+                    density={density}
+                    onDensity={changeDensity}
                     onInspectorWidth={changeInspectorWidth}
                     inspectorShown={inspectorShown}
                     onInspectorShown={changeInspectorShown}

@@ -25,7 +25,7 @@ import { createSettingsSubmitter, type SettingsCommand, type SubmitterState } fr
  */
 type SettingSwitch = Exclude<
   SettingChange,
-  { kind: "tagDisplay" | "viewerBackground" | "inspectorWidth" | "inspectorOpen" }
+  { kind: "tagDisplay" | "viewerBackground" | "inspectorWidth" | "inspectorOpen" | "wallDensity" }
 >;
 
 /** 设置页能提交的改动；每种怎样合并见 `shellSettingsCommand`。 */

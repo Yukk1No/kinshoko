@@ -68,6 +68,7 @@ pub struct SettingsSnapshot {
     inspector_width: Option<u32>,
     /// 主窗口详情面板是否打开：画师亲手开合后记住，选择图片不改变它。默认关闭。
     inspector_open: bool,
+    wall_density: u32,
     /// 更新通道（#204）；没选过时为空，按当前构建的版本号决定。
     update_channel: Option<UpdateChannel>,
     /// 订阅功能（#368）：关掉后不显示入口、不检查、不联网。新安装默认开。
@@ -97,6 +98,7 @@ impl Default for SettingsSnapshot {
             tag_display: TagDisplay::default(),
             inspector_width: None,
             inspector_open: false,
+            wall_density: 240,
             update_channel: None,
             subscriptions: true,
             unknown: serde_json::Map::new(),
@@ -313,6 +315,14 @@ impl AppSettings {
     /// 主窗口详情面板的宽度；`None` 表示没拖过。
     pub fn inspector_width(&self) -> Option<u32> {
         self.file.inspector_width
+    }
+
+    pub fn wall_density(&self) -> u32 {
+        self.file.wall_density.clamp(140, 420)
+    }
+
+    pub fn set_wall_density(&mut self, density: u32) -> Result<(), SettingsError> {
+        self.update(|f| f.wall_density = density.clamp(140, 420))
     }
 
     /// 保存详情面板的宽度，超出 280–560 时停在边界上。
