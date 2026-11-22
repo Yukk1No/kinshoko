@@ -13,6 +13,7 @@ import {
   restoreApplicationSettings,
   setRunLog,
   setSafeModeScope,
+  setShortcutsPaused,
   setUpdateChannel,
   shellSettings,
 } from "../ipc";
@@ -193,6 +194,19 @@ export function createShellSettings(onChange?: (view: ShellSettingsView) => void
       if (!result.ok) throw result.reason;
       return restored!;
     },
+    /**
+     * 录新快捷键期间暂停或恢复全局快捷键，排在其余改动之后。恢复时没能重新注册的键随返回的设置显示出来；
+     * 成功不清掉录制冲突的提示，失败时 reject，原因由调用方显示。
+     */
+    async pauseShortcuts(paused: boolean) {
+      const result = await submitter.submit({
+        key: "shortcutsPaused",
+        merge: "keep",
+        quiet: true,
+        run: () => setShortcutsPaused(paused),
+      });
+      if (!result.ok) throw result.reason;
+    },
     showError: submitter.showError,
   };
 }
@@ -237,6 +251,7 @@ export function useShellSettings(shared?: ShellSettings, onChange?: (view: Shell
     retryLoad: () => setLoadAttempt((n) => n + 1),
     submit: store.submit,
     restore: store.restore,
+    pauseShortcuts: store.pauseShortcuts,
     showError: store.showError,
   };
 }

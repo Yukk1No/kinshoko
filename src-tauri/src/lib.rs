@@ -90,6 +90,7 @@ pub fn run() {
             commands::shell_settings,
             commands::change_setting,
             commands::rebind_shortcut,
+            commands::set_shortcuts_paused,
             run_log::set_run_log,
             run_log::clear_run_log,
             run_log::log_frontend,
@@ -179,6 +180,7 @@ pub fn run() {
                 window: kinshoko_core::diagnostics::WindowKind::Main,
             });
             desktop::clear_viewer_reference(app);
+            commands::resume_shortcuts(app);
             library::revoke_import_preview_context(app);
             backup::on_main_window_closed(app);
         }
