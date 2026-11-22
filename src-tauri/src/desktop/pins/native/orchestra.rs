@@ -290,11 +290,6 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
         }
     }
 
-    /// 没有打开着的钉图了：应用壳可以丢掉整个编排（平台层与渲染层）。
-    pub fn is_empty(&self) -> bool {
-        self.pins.is_empty() && self.notices.is_empty()
-    }
-
     pub fn take_effects(&mut self) -> Vec<Effect> {
         std::mem::take(&mut self.effects)
     }

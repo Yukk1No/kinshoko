@@ -13,6 +13,11 @@ pub(super) struct NoticeSurface {
 }
 
 impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
+    /// 没有打开着的钉图了：应用壳可以丢掉整个编排（平台层与渲染层）。
+    pub fn is_empty(&self) -> bool {
+        self.pins.is_empty() && self.notices.is_empty()
+    }
+
     /// 在钉图底部显示一条提示（菜单动作的结果），[`NOTICE_MS`] 后消失。钉图不在时什么都不做。
     pub fn notice(&mut self, key: &str, text: String, now: Instant) {
         self.now = now;
