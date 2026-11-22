@@ -298,11 +298,9 @@ impl Library {
         })
     }
 
-    /// Serialize package/copy metadata publication with the application's final visible commit.
-    /// Only the short import transaction takes this gate; reading, hashing and decoding do not.
-    /// Ordinary and Eagle imports cannot change an existing image's effective content rating.
-    /// Configure writable handles before exposing them to application actions. Do not hold this
-    /// gate while calling package import/copy; those actions acquire it at publication.
+    /// Share the app's visibility gate with import transactions, not decoding or hashing.
+    /// Configure before exposing the writer. Never wait for an import under the gate unless
+    /// cancelling the task first.
     pub fn use_package_publication_gate(&self, gate: Arc<Mutex<()>>) {
         *self
             .inner

@@ -241,11 +241,11 @@ pub(super) fn commit_record_returning(
     // Package snapshots (including cross-library copy), subscriptions and Eagle items (R-18
     // markers) can change an existing image's effective rating. Acquire before queuing the
     // writer job: acquiring inside that job would invert the scheduler's gate -> writer order.
-    // Eagle items run inside import tasks, which unregister cancels and then settles while
-    // holding this gate, so they only poll it and give up once their task is cancelled.
+    // Ordinary task commits also take the gate so a contended first-page browse can finish.
+    // Unregister cancels and settles tasks while holding the gate, so tasks must wait cancellably.
     let writes_rating =
         record.package.is_some() || record.subscription.is_some() || record.eagle.is_some();
-    let gate = writes_rating
+    let gate = (writes_rating || record.cancel.is_some())
         .then(|| {
             inner
                 .package_publication_gate
@@ -256,12 +256,10 @@ pub(super) fn commit_record_returning(
         .flatten();
     let (committed, record) = {
         let _publication = match (&gate, &record.cancel) {
-            (Some(gate), Some(cancel)) if record.eagle.is_some() => {
-                match lock_unless_cancelled(gate, cancel) {
-                    Some(guard) => Some(guard),
-                    None => return (Err(Error::DestinationRevoked), record),
-                }
-            }
+            (Some(gate), Some(cancel)) => match lock_unless_cancelled(gate, cancel) {
+                Some(guard) => Some(guard),
+                None => return (Err(Error::DestinationRevoked), record),
+            },
             (Some(gate), _) => Some(gate.lock().unwrap_or_else(|e| e.into_inner())),
             (None, _) => None,
         };
