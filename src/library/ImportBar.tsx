@@ -278,6 +278,10 @@ export function ImportBar({
   const handleDrop = useEffectEvent((drop: FileDrop) => {
     if (!alive.current || !enabled) return;
     switch (drop.kind) {
+      case "error":
+        setHovering(false);
+        toast.error(t("failed.drop", { error: errorText(drop.error) }));
+        break;
       case "enter":
         setHovering(!busy && !dropBlocked);
         break;

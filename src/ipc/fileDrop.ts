@@ -1,7 +1,13 @@
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { UnlistenFn } from "@tauri-apps/api/event";
+import { invoke } from "./invoke";
+import { desk } from "./plugins";
 
-export type FileDrop = { kind: "enter"; paths: string[] } | { kind: "drop"; paths: string[] } | { kind: "leave" };
+export type FileDrop =
+  | { kind: "enter"; paths: string[] }
+  | { kind: "drop"; paths: string[] }
+  | { kind: "leave" }
+  | { kind: "error"; error: unknown };
 
 type FileBridge = {
   __KINSHOKO_FILE_DROP__: (files: FileList) => void;
@@ -13,6 +19,23 @@ export async function onFileDrop(handler: (drop: FileDrop) => void): Promise<Unl
     handler({ kind: "drop", paths: payload });
   });
   let depth = 0;
+  let active = true;
+  const stage = async (dropped: File[]) => {
+    try {
+      const paths: string[] = [];
+      for (const file of dropped) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        paths.push(
+          await invoke<string>(desk("stage_dropped_image"), bytes, {
+            headers: { "x-file-name": encodeURIComponent(file.name) },
+          }),
+        );
+      }
+      if (active) handler({ kind: "drop", paths });
+    } catch (error) {
+      if (active) handler({ kind: "error", error });
+    }
+  };
   const files = (event: DragEvent) => event.dataTransfer?.types.includes("Files") === true;
   const clear = () => {
     if (depth === 0) return;
@@ -36,7 +59,11 @@ export async function onFileDrop(handler: (drop: FileDrop) => void): Promise<Unl
     event.preventDefault();
     const dropped = event.dataTransfer!.files;
     if (dropped.length) {
-      (window as unknown as FileBridge).__KINSHOKO_FILE_DROP__(dropped);
+      try {
+        (window as unknown as FileBridge).__KINSHOKO_FILE_DROP__(dropped);
+      } catch {
+        void stage(Array.from(dropped));
+      }
     }
   };
   const key = (event: KeyboardEvent) => {
@@ -49,6 +76,7 @@ export async function onFileDrop(handler: (drop: FileDrop) => void): Promise<Unl
   window.addEventListener("dragend", clear, true);
   window.addEventListener("keydown", key, true);
   return () => {
+    active = false;
     window.removeEventListener("dragenter", enter, true);
     window.removeEventListener("dragover", over, true);
     window.removeEventListener("dragleave", leave, true);

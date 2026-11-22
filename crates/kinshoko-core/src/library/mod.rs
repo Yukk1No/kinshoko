@@ -27,6 +27,9 @@ mod backup;
 mod clipboard;
 mod colour;
 mod display;
+mod dropped_image;
+#[cfg(test)]
+mod dropped_image_tests;
 mod eagle;
 mod eagle_discovery;
 mod eagle_tags;
@@ -74,6 +77,7 @@ pub use backup::{
 };
 pub(crate) use backup::{copy_hashed, hash_file};
 pub use clipboard::{forget_staged_clipboard_images, stage_clipboard_image};
+pub use dropped_image::stage_dropped_image;
 pub use eagle::{EagleBinding, EagleRegionNote, EagleSourceSnapshot};
 pub use eagle_discovery::{
     EagleDiscoveryMethod, EagleDiscoveryOptions, EagleLibraryCandidate, discover_eagle_libraries,

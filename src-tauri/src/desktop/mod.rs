@@ -212,6 +212,7 @@ pub fn init() -> TauriPlugin<Wry> {
             image_actions::reveal_library,
             image_actions::clipboard_has_image,
             image_actions::stage_clipboard_import,
+            image_actions::stage_dropped_image,
             groups::reference_groups,
             groups::reference_group,
             groups::rename_reference_group,
@@ -269,11 +270,7 @@ pub fn init() -> TauriPlugin<Wry> {
             };
             // 上次退出时撤销提示还没过期的已删除参考组，这里清掉。
             let _ = groups.purge_all_trashed();
-            // 启动时清掉一天前暂存的剪贴板图片（取消了导入、之后没再粘贴的也不会一直留着）。
-            let staged = dir.join(image_actions::CLIPBOARD_IMPORT_DIR);
-            std::thread::spawn(move || {
-                kinshoko_core::library::forget_staged_clipboard_images(&staged)
-            });
+            image_actions::clean_staged_imports(&dir);
             app.manage(DesktopState {
                 history: Mutex::new(history),
                 pending_collection: Mutex::new(None),

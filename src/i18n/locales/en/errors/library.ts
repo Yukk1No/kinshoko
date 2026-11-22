@@ -1,5 +1,6 @@
 /** Library and device registration errors。 */
 export default {
+  droppedImageUnsupported: "Only PNG, JPEG, GIF and WebP images are supported",
   generic: "Something went wrong. Details are in the run log.",
   unknown: "The operation didn't finish (error code {{code}}): {{raw}}",
 
