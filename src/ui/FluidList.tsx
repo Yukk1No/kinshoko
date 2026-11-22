@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { useFluidHover, useRegisterFluidHoverItem } from "./vendor/fluid/use-fluid-hover";
 import { spring } from "./motion";
@@ -16,16 +16,24 @@ export function FluidList({
   className = "",
   gapClick = true,
   indented = false,
+  layoutKey,
 }: {
   children: ReactNode;
   className?: string;
   gapClick?: boolean;
   /** 行按层级缩进（左栏的文件夹树，#608）：高亮块跟着行的左边与宽度，不铺满整个列表。 */
   indented?: boolean;
+  /**
+   * 行以外的内容（参考组展开的成员）挪动了行、列表总高却没变时，尺寸观察收不到通知：换一个值让高亮重新量各行位置。
+   */
+  layoutKey?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
-  const { activeIndex, itemRects, isMeasured, handlers, registerItem } = useFluidHover(ref, { gapClick });
+  const { activeIndex, itemRects, isMeasured, handlers, registerItem, remeasure } = useFluidHover(ref, { gapClick });
+  useEffect(() => {
+    if (layoutKey !== undefined) remeasure();
+  }, [layoutKey, remeasure]);
   const rect = activeIndex !== null ? itemRects[activeIndex] : undefined;
   return (
     <div ref={ref} className={`k-fluid ${className}`} {...handlers}>

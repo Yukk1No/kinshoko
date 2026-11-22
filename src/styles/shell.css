@@ -1,15 +1,4 @@
 /* The main window's layout and components. Colour, radius and motion tokens live in tokens.css; write var(--token) here, never a hex value. */
-.rail {
-  width: 56px;
-  flex: none;
-  background: var(--rail);
-  border-right: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px 0;
-  z-index: 3;
-}
 .brand {
   height: 44px;
   display: grid;
@@ -236,20 +225,9 @@
 .card.is-arriving::after {
   transition: none;
 }
-.rail-badge {
-  position: absolute;
-  top: 2px;
+/* 图标轨的角标（品牌不变项）：共用 .k-badge，只是离右边 1 px。 */
+.rail-btn > .k-badge {
   right: 1px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: var(--r-pill);
-  background: var(--ink);
-  color: var(--bg);
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 600;
-  text-align: center;
 }
 .rail-foot {
   margin-top: auto;
@@ -265,9 +243,6 @@ body {
 }
 * {
   box-sizing: border-box;
-}
-.app-shell {
-  flex-direction: row;
 }
 .app-column {
   flex: 1;
@@ -287,14 +262,6 @@ body {
   border: 0;
   background: transparent;
 }
-.app-body {
-  min-width: 0;
-}
-.sidebar-slot {
-  width: 248px;
-  background: var(--surface);
-  transition: width var(--t-slow) var(--ease);
-}
 .sidebar-slot[data-collapsed="true"] {
   width: 0;
   border-right-width: 0;
@@ -304,40 +271,11 @@ body {
   flex: none;
   overflow: visible;
 }
-.pane-head {
-  height: 52px;
-  min-height: 52px;
-  width: 247px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0 8px 0 16px;
-  border-bottom: 1px solid var(--line);
-}
 .pane-head h1 {
   overflow-wrap: anywhere;
 }
-.pane-body {
-  width: 247px;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 10px 8px 16px;
-}
 .pane-body[hidden] {
   display: none;
-}
-.topbar {
-  display: flex;
-  align-items: center;
-  min-height: 52px;
-  flex: none;
-  padding: 8px 12px;
-  gap: 8px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
-  z-index: 2;
 }
 .topbar > .search {
   flex: 1;
@@ -354,4 +292,48 @@ body {
 :focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);
+}
+
+.empty-context {
+  width: 248px;
+  flex: none;
+  overflow: auto;
+  background: var(--surface);
+}
+
+/* 顶栏的结果数与图片大小滑条，读屏专用的隐藏文字。 */
+.result-count {
+  flex: none;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.density {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+.density input {
+  width: 96px;
+  accent-color: var(--accent);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* #78 T08: adapt the accepted folder workspace's separate provider roots and path hints. */
+.workspace-current-scope {
+  padding: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.workspace-provider > .sidebar {
+  padding-left: 16px;
+}
+.workspace-provider .sidebar-item:disabled {
+  cursor: default;
+  opacity: var(--disabled-opacity);
 }

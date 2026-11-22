@@ -1,6 +1,15 @@
 fn main() {
+    // 不用 tauri-build 的应用清单：它只嵌进可执行文件，而测试二进制用到 Tauri 的托盘与对话框代码，
+    // 没有 Common Controls 6 就加载不了（STATUS_ENTRYPOINT_NOT_FOUND）。改由链接器给每个产物嵌同样的清单。
+    if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
+        println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+        println!(
+            "cargo:rustc-link-arg=/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'"
+        );
+    }
     tauri_build::try_build(
         tauri_build::Attributes::new()
+            .windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest())
             .plugin(
                 // 资料库命令放在应用内联插件里，权限由这里生成（capabilities 中的 `library:default`）。
                 "library",
@@ -53,6 +62,7 @@ fn main() {
                         "close_import_preview",
                         "dismiss_import",
                         "import_contains_eagle",
+                        "import_backups",
                         "cancel_import",
                         "pick_folder",
                         "pick_files",
@@ -120,15 +130,25 @@ fn main() {
                         "stage_clipboard_import",
                         "reference_groups",
                         "reference_group",
-                        "group_save_captures",
-                        "save_reference_group",
-                        "save_pins_to_group",
-                        "open_reference_group",
                         "rename_reference_group",
                         "delete_reference_group",
                         "restore_reference_group",
                         "purge_deleted_reference_group",
                         "remove_group_member",
+                        "desk_reference_groups",
+                        "switch_reference_group",
+                        "new_reference_desk",
+                        "repin_group_member",
+                        "repin_all_group_members",
+                        "show_group_member",
+                        "prune_unpinned_members",
+                        "undo_prune_unpinned",
+                        "remove_desk_group_member",
+                        "set_reference_group_favorite",
+                        "duplicate_reference_group",
+                        "fold_into_previous",
+                        "split_off_reference_group",
+                        "undo_split_off",
                         "export_reference_group_package",
                         "import_reference_group_package",
                         "edge_hide",

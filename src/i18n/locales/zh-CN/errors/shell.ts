@@ -21,6 +21,7 @@ export default {
   updateNoEndpoint: "未配置原仓库的公开更新入口，自动更新未启用。请使用新版安装包手动更新。",
   updateUnknownStage: "更新阶段配置无法识别，自动更新未启用。请使用新版安装包手动更新。",
   updateNotPending: "没有可以安装的更新，请先检查更新。",
+  updateInstalling: "正在下载更新，请等这次完成。",
   updateSignatureInvalid: "更新包没有通过验证，没有安装。请重新下载或手动更新。",
   updateInstallFailed: "下载或安装更新失败，请稍后重试。",
 
@@ -66,10 +67,6 @@ export default {
   pinLocked: "钉图已锁定",
   pinVeiledNoCopy: "安全模式下已遮蔽，不能复制",
   pinCaptureGone: "这张截图已删除",
-  captureLeftHistory: "这张截图已删除，请关闭这张钉图后重试",
-  captureSavePlanChanged: "桌面截图有变化，请重新选择每张截图存到哪里",
-  captureCollectIncomplete:
-    "第 {{number}} 张截图的收藏未完成：{{cause}}。之前完成的 {{completed}} 张收藏已保留；参考组尚未保存。",
   clipboardNoImage: "剪贴板里没有图片",
   clipboardImageUnrecognized: "剪贴板里的图片无法识别",
   copiedImageEmpty: "复制的图片是空的",

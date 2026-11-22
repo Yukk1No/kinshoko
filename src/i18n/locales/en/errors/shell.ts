@@ -23,6 +23,7 @@ export default {
   updateUnknownStage:
     "The update stage setting isn't recognized, so automatic updates are off. Update with a new installer.",
   updateNotPending: "There's no update to install. Check for updates first.",
+  updateInstalling: "The update is already downloading. Wait for it to finish.",
   updateSignatureInvalid:
     "The update package didn't pass verification and wasn't installed. Download it again or update manually.",
   updateInstallFailed: "Couldn't download or install the update. Try again later.",
@@ -71,10 +72,6 @@ export default {
   pinLocked: "The pin is locked",
   pinVeiledNoCopy: "This image is veiled in safe mode and can't be copied",
   pinCaptureGone: "The capture is no longer in the capture history",
-  captureLeftHistory: "The capture is no longer in the history. Close this pin and try again",
-  captureSavePlanChanged: "The captures on the desktop changed. Choose where to save each capture again",
-  captureCollectIncomplete:
-    "Capture {{number}} wasn't collected: {{cause}}. The {{completed}} captures collected before it are kept; the reference group hasn't been saved.",
   clipboardNoImage: "There's no image on the clipboard",
   clipboardImageUnrecognized: "The image on the clipboard can't be recognized",
   copiedImageEmpty: "The image to copy is empty",

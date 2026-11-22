@@ -2,6 +2,10 @@
 //! 往返检查（#8 的“备份恢复”检查）。全部经 `kinshoko_core::backup` 与 Library、ReferenceGroups 的
 //! 对外接口，用临时目录里的真库与真文件。
 
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+use group_fixture::GroupFixture;
+
 #[path = "support/backup_device.rs"]
 mod backup_device;
 
@@ -14,13 +18,15 @@ use kinshoko_core::backup::{
     BackupError, BackupSources, BackupTarget, ScopeSelection, compute_scope,
 };
 use kinshoko_core::library::ImageEdit;
+#[path = "backup_restore_names.rs"]
+mod names;
 
 #[test]
 fn a_group_that_outgrows_the_computed_scope_cannot_publish_a_complete_backup() {
     let device = Device::new();
     let group = device
         .groups
-        .create(
+        .save_group(
             "范围会变化",
             &mut [device.pin(&device.main, &device.main_images[0], None, 10)],
         )
@@ -34,7 +40,7 @@ fn a_group_that_outgrows_the_computed_scope_cannot_publish_a_complete_backup() {
     assert_eq!(scope.libraries.len(), 1);
     device
         .groups
-        .save_pins(
+        .add_to_group(
             &group.id,
             &mut [device.pin(&device.old, &device.old_images[0], None, 40)],
         )
@@ -68,7 +74,7 @@ fn editing_a_group_while_copying_keeps_the_backup_references_consistent() {
     let device = Device::new();
     let group = device
         .groups
-        .create(
+        .save_group(
             "正在使用",
             &mut [device.pin(&device.main, &device.main_images[0], None, 10)],
         )
@@ -97,7 +103,7 @@ fn editing_a_group_while_copying_keeps_the_backup_references_consistent() {
                 let added = import(&device.main, &device.dir.path().join("later"), &[29]);
                 device
                     .groups
-                    .save_pins(
+                    .add_to_group(
                         &group.id,
                         &mut [device.pin(&device.main, &added[0], None, 200)],
                     )
@@ -251,6 +257,42 @@ fn a_later_backup_copies_only_the_new_originals_and_holds_the_originals_lease_wh
     );
     assert!(!device.main.originals_leased(), "备份结束放下租约");
     assert_eq!(target.snapshots().unwrap().len(), 2);
+}
+
+#[test]
+fn a_later_backup_replaces_a_damaged_original_of_the_same_size_instead_of_reusing_it() {
+    let device = Device::new();
+    let backups = tempfile::tempdir().unwrap();
+    let target = target(backups.path());
+    let first = device.backup(&target, at(0, 3));
+    assert_eq!((first.copied, first.reused), (5, 0));
+    // 备份目标里的一份原文件坏了一个字节，长度不变。
+    let store = backups.path().join("移动盘/kinshoko-backup/originals");
+    let damaged = std::fs::read_dir(&store)
+        .unwrap()
+        .flat_map(|shard| std::fs::read_dir(shard.unwrap().path()).unwrap())
+        .map(|file| file.unwrap().path())
+        .next()
+        .unwrap();
+    let mut bytes = std::fs::read(&damaged).unwrap();
+    bytes[0] ^= 0xff;
+    std::fs::write(&damaged, &bytes).unwrap();
+
+    let second = device.backup(&target, at(1, 3));
+    assert!(second.complete, "{:?}", second.problems);
+    assert_eq!(
+        (second.copied, second.reused),
+        (1, 4),
+        "坏了的原文件重新复制"
+    );
+    target
+        .restore(
+            &second.snapshot_id,
+            &device.dir.path().join("恢复"),
+            &device.groups,
+            at(2, 1),
+        )
+        .unwrap();
 }
 
 /// 备份期间永久删除（#67）：参考图记录照常删掉，原文件留到租约放下之后再清除，快照完整。

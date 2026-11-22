@@ -72,31 +72,12 @@
   }
 }
 
-.wall-empty {
-  display: grid;
-  justify-items: center;
-  gap: 16px;
-  margin: 48px auto;
-  text-align: center;
-  color: var(--ink-2);
-}
-
-.wall-empty > p {
-  margin: 0;
-}
-
-.wall-empty-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-}
-
 .card {
   position: absolute;
   background: var(--card);
   overflow: hidden;
   transform-origin: 0 0;
+  border-radius: var(--r-s);
 }
 
 .card:hover {
@@ -198,10 +179,6 @@
   font-size: 16px;
 }
 
-.settings-error {
-  color: var(--danger);
-}
-
 /* 诊断与更新（#70） */
 .settings-actions {
   display: flex;
@@ -256,11 +233,6 @@
 }
 
 /* 侧栏与整理（#50） */
-.app-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-}
 
 .sidebar {
   width: 220px;
@@ -271,14 +243,6 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-}
-.sidebar-slot {
-  width: 237px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: width var(--t-slow) var(--ease);
 }
 .sidebar-slot[data-collapsed="true"] {
   width: 0;
@@ -322,10 +286,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.sidebar-folders {
-  flex: 1;
-}
-
 .sidebar-tree {
   list-style: none;
   margin: 0;
@@ -360,15 +320,22 @@
   font-size: 12px;
 }
 
-.selection-note {
+.selection-note-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
 }
 
-.selection-note textarea {
+.selection-note-field textarea {
   font: inherit;
   font-size: 13px;
   resize: vertical;
+}
+
+/* 永久删除的确认（#67）：提醒对话框里列出受影响的参考组。 */
+.permanent-delete-groups {
+  margin: 0 0 4px;
+  padding-left: 1.4em;
+  color: var(--ink-2);
 }

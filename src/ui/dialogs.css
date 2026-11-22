@@ -1,85 +1,29 @@
-/* Wizard, import and save dialogs (T20 stream B, design/ui-system/README.md, previews 04–09, 11, 13–17); settings live in settings.css.
-   Built on the shared `.k-dialog` / `.k-list` shell in ui.css; tokens live in src/styles.css :root. */
+/* 向导、导入与保存对话框的内容（design/ui-system/README.md，预览 04–09、11、13–17）；设置页在 settings.css。
+   对话框外壳 `.k-dialog` 与列表 `.k-list` 在 ui-dock.css，令牌在 src/styles/tokens.css。 */
 
 /* ---- Form controls ---- */
 /* 输入框、下拉选择与候选列表在 fields.css。 */
-.k-check {
+.legacy-name-migration > .k-dialog-foot > .k-link {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  color: var(--ink-2);
-  font-size: 12px;
+  height: var(--h);
+  padding: 0 12px 0 0;
+  border-radius: var(--r);
   white-space: nowrap;
+  margin-left: 0;
+  box-shadow: none;
+  transition:
+    background var(--t-fast),
+    box-shadow var(--t-fast),
+    transform var(--t-fast) var(--spring);
 }
-.k-check input {
-  accent-color: var(--accent-strong);
-  margin: 0;
+.legacy-name-migration > .k-dialog-foot > .k-link:active:not(:disabled) {
+  transform: translateY(0.5px);
 }
-.k-link {
-  border: 0;
-  border-radius: var(--r-s);
-  padding: 0;
-  margin-left: 10px;
-  background: none;
-  color: var(--accent-strong);
-  font: inherit;
-  font-weight: 500;
-}
-.k-link:hover {
-  text-decoration: underline;
-}
-.k-link:disabled {
-  opacity: var(--disabled-opacity);
-  cursor: default;
-}
-.k-btn.is-quiet {
-  --k-face: transparent;
-  --k-face-hover: var(--hover);
-  --k-face-press: var(--press);
-  --k-lift: none;
-  --k-lift-hover: none;
-  --k-lift-press: none;
-  color: var(--ink-2);
-}
-.k-btn.is-quiet:hover:not(:disabled) {
-  color: var(--ink);
-}
-.k-btn.is-flush {
-  --k-face-hover: transparent;
-  --k-face-press: transparent;
-  padding-left: 0;
-}
-.k-btn.is-flush:hover:not(:disabled) {
-  text-decoration: underline;
-}
-.k-btn:disabled {
-  opacity: var(--disabled-opacity);
-  cursor: default;
-}
-.k-pill {
-  gap: 4px;
-  white-space: nowrap;
-}
-.k-pill.is-accent {
-  background: var(--accent-soft);
-  color: var(--ink);
-}
-.k-pill.is-mine {
-  background: var(--manual-soft);
-  color: var(--manual-strong);
-}
-.k-keys {
-  display: inline-flex;
-  gap: 4px;
-}
-.k-key {
-  font: 500 12px var(--font);
-  padding: 2px 8px;
-  border-radius: var(--r-xs);
-  border: 0;
-  background: var(--surface-2);
-  box-shadow: inset 0 -1px 0 var(--line-2);
-  color: var(--ink);
+.legacy-name-migration > .k-dialog-foot > .k-link:disabled {
+  box-shadow: var(--btn-lift-disabled);
 }
 /* 对话框本身是初始焦点的落点（设置：不落在关闭按钮上），不画焦点环；里面的控件照常画。 */
 .k-dialog:focus-visible {
@@ -186,7 +130,7 @@
   color: var(--ink-2);
   font-size: 12px;
 }
-.k-wizard .k-dialog-height-inner > .k-set-note[role="status"] {
+.k-wizard .k-dialog-height-inner > .k-description[role="status"] {
   margin: -6px 0 0;
 }
 .k-big-tag {

@@ -48,7 +48,7 @@ export function DiagPage({ view, diagnostics, setError, apply }: Props) {
           title={t("diag.runLog")}
           hint={t("diag.runLogHint")}
           below={
-            <p className="k-set-note">
+            <p className="k-description is-spaced">
               <button
                 type="button"
                 className="k-link"

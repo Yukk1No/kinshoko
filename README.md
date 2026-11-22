@@ -46,7 +46,7 @@ Pins are the original: select part of an image in Kinshoko and you get it at ful
 ## Also
 
 - **Save in a moment**: drag in, paste, take a screenshot, or import a folder.
-- **Reference groups**: keep one piece's references together and bring them back anytime.
+- **Reference groups**: one desk of pins per piece. Switch and the whole desk changes; your edits are kept as you go.
 - **Safe mode**: on by default, so adult images don't pop up on your screen.
 - **All local**: no account, works offline, never changes your originals.
 - **Move over from Eagle**: tags and folders come along.

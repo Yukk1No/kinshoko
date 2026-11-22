@@ -1,6 +1,10 @@
 //! 参考组的跨库核对（#66）：成员可引用当前未激活的资料库；资料库不可用、图已删除时标出原因；
 //! 安全模式下被封印的成员标记需要遮蔽。用临时目录里的真资料库，经 `kinshoko_core` 的对外接口。
 
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+use group_fixture::GroupFixture;
+
 use std::path::Path;
 
 use image::RgbaImage;
@@ -131,7 +135,7 @@ fn a_group_resolves_members_from_the_active_and_an_inactive_library() {
     let detached = DetachedLenses::default();
     let groups = ReferenceGroups::open(&f.dir.path().join("groups")).unwrap();
     let group = groups
-        .create(
+        .save_group(
             "跨库",
             &mut [
                 pin(&f.a_lens, &f.a_images[0], 0),
@@ -183,7 +187,7 @@ fn sealed_members_in_an_inactive_library_follow_the_safe_mode_setting() {
     let detached = DetachedLenses::default();
     let groups = ReferenceGroups::open(&f.dir.path().join("groups")).unwrap();
     let group = groups
-        .create(
+        .save_group(
             "组",
             &mut [f.b_pin(&detached, 1, 0), f.b_pin(&detached, 0, 50)],
         )
@@ -205,7 +209,7 @@ fn sealed_members_in_the_active_library_are_marked_through_its_reference_lens() 
     let detached = DetachedLenses::default();
     let groups = ReferenceGroups::open(&f.dir.path().join("groups")).unwrap();
     let group = groups
-        .create("组", &mut [pin(&f.a_lens, &f.a_images[1], 0)])
+        .save_group("组", &mut [pin(&f.a_lens, &f.a_images[1], 0)])
         .unwrap();
     f.a.set_safe_mode(true);
     let status = resolve(&group, &f.references(&detached, true));
@@ -233,7 +237,7 @@ fn unavailable_members_keep_their_layout_and_say_why() {
         other => other,
     };
     let group = groups
-        .create(
+        .save_group(
             "组",
             &mut [
                 f.b_pin(&detached, 0, 10),
@@ -266,12 +270,11 @@ fn unavailable_members_keep_their_layout_and_say_why() {
     assert_eq!(reasons[2], None);
     assert_eq!(reasons[3], Some(UnavailableReason::OriginalMissing));
 
-    // 成员与布局原样保留，照样能打开成钉图（钉图显示原因）。
+    // 成员与布局原样保留，照样能摆到桌面上（钉图显示原因）。
     let again = groups.get(&group.id).unwrap();
     assert_eq!(again, group);
-    let pins = again.pins();
-    assert_eq!(pins.len(), 4);
-    assert_eq!(pins[0].placement.x, 10);
+    assert_eq!(again.members.len(), 4);
+    assert_eq!(again.members[0].placement.x, 10);
 
     // 移动盘接回后就能用：打不开的不缓存。
     std::fs::rename(f.dir.path().join("elsewhere"), &f.b.root).unwrap();
@@ -328,7 +331,7 @@ fn permanent_delete_preview_finds_the_groups_using_the_images() {
     let detached = DetachedLenses::default();
     let groups = ReferenceGroups::open(&f.dir.path().join("groups")).unwrap();
     let face = groups
-        .create(
+        .save_group(
             "脸",
             &mut [
                 pin(&f.a_lens, &f.a_images[0], 0),
@@ -338,7 +341,7 @@ fn permanent_delete_preview_finds_the_groups_using_the_images() {
         )
         .unwrap();
     groups
-        .create("手", &mut [pin(&f.a_lens, &f.a_images[1], 0)])
+        .save_group("手", &mut [pin(&f.a_lens, &f.a_images[1], 0)])
         .unwrap();
 
     let a = f.a.info().id.clone();
@@ -370,7 +373,7 @@ fn permanently_deleted_members_stay_in_place_and_are_marked_missing() {
     let detached = DetachedLenses::default();
     let groups = ReferenceGroups::open(&f.dir.path().join("groups")).unwrap();
     let face = groups
-        .create(
+        .save_group(
             "脸",
             &mut [
                 pin(&f.a_lens, &f.a_images[0], 0),
@@ -408,8 +411,8 @@ fn permanently_deleted_members_stay_in_place_and_are_marked_missing() {
     ));
     assert_eq!(states[1], MemberState::Available { sealed: false });
     assert_eq!(states[2], MemberState::Available { sealed: false });
-    // 打开参考组时布局原样：被删的成员也还在原位。
-    assert_eq!(face.pins().len(), 3);
+    // 摆到桌面上时布局原样：被删的成员也还在原位。
+    assert_eq!(face.members.len(), 3);
 }
 
 #[test]

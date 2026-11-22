@@ -18,6 +18,12 @@ pub(super) fn registered<'a>(
         })
 }
 
+/// 备份目标的原文件区里已有这份原文件，且大小与哈希都和记录相符。
+pub(super) fn holds(stored: &Path, file: &OriginalFile) -> bool {
+    fs::metadata(stored).is_ok_and(|m| m.len() == file.size)
+        && library::hash_file(stored).is_ok_and(|got| got == file.sha256)
+}
+
 /// 复制进备份目标的原文件区：先写临时文件、核对哈希、落盘，再改名。
 pub(super) fn store(source: &Path, target: &Path, sha: &str) -> Result<(), CommandError> {
     let dir = target.parent().expect("原文件区有上级目录");
@@ -144,22 +150,35 @@ pub(super) fn valid_id(id: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
-/// `into` 下以 `name` 命名、还不存在的文件夹；重名时加序号。
-pub(super) fn unique_dir(into: &Path, name: &str) -> PathBuf {
-    let clean: String = name
-        .chars()
-        .map(|c| match c {
-            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
-            c if c.is_control() => '_',
-            c => c,
-        })
-        .collect();
-    let clean = clean.trim().trim_end_matches('.').to_owned();
-    let mut candidate = into.join(&clean);
+/// Reserve a free destination by creating its namesake in the batch's staging directory.
+pub(super) fn reserve_library_dir(
+    into: &Path,
+    staging: &Path,
+    name: impl Fn(Option<usize>) -> String,
+) -> std::io::Result<(PathBuf, PathBuf)> {
+    let mut number = None;
     let mut n = 2;
-    while candidate.exists() {
-        candidate = into.join(format!("{clean} {n}"));
+    loop {
+        let clean: String = name(number)
+            .chars()
+            .map(|c| match c {
+                '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
+                c if c.is_control() => '_',
+                c => c,
+            })
+            .collect();
+        let clean = clean.trim().trim_end_matches('.');
+        let dest = into.join(clean);
+        if !dest.try_exists()? {
+            let stage = staging.join(clean);
+            // Let the filesystem detect aliases (including Unicode case) within this batch.
+            match fs::create_dir(&stage) {
+                Ok(()) => return Ok((dest, stage)),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+                Err(error) => return Err(error),
+            }
+        }
+        number = Some(n);
         n += 1;
     }
-    candidate
 }

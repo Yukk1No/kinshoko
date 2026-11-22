@@ -18,22 +18,14 @@ import {
   ShieldCheck,
   Trash2,
 } from "lucide-react";
-import {
-  FolderGlyph,
-  Menu,
-  MenuCheckboxItem,
-  MenuItem,
-  MenuRadioItem,
-  MenuSeparator,
-  MenuSubmenu,
-  MenuTip,
-} from "../ui/Menu";
+import { Menu, MenuCheckboxItem, MenuItem, MenuRadioItem, MenuSeparator, MenuSubmenu, MenuTip } from "../ui/Menu";
 import type { BrowseScope } from "../bindings/BrowseScope";
 import type { ContentRating } from "../bindings/ContentRating";
 import type { GroupSummary } from "../bindings/GroupSummary";
 import type { ImageEdit } from "../bindings/ImageEdit";
 import type { BrowserCard } from "./Wall";
 import { pagesOf } from "./imageSets";
+import { groupLabel } from "../desktop/groupLabel";
 import { errorText } from "../ipc/commandError";
 
 /** 右键菜单作用的对象：一组卡片（右键的那张，或它所在的整组选择），或图片墙的空白处。point 为指针位置（CSS 像素，窗口客户区）。 */
@@ -51,7 +43,8 @@ export type WallMenuActions = {
   crop: (card: BrowserCard) => void;
   /** clear：整理后这些图会离开当前范围（移出、删除、还原），随之取消选择。 */
   edit: (cards: BrowserCard[], edits: ImageEdit[], clear: boolean) => void;
-  addToGroup: (cards: BrowserCard[], groupId: string) => void;
+  /** `point`：右键处；加进的正是桌面上的参考组时图钉在这里。 */
+  addToGroup: (cards: BrowserCard[], groupId: string, point?: { x: number; y: number }) => void;
   inspectSources: (card: BrowserCard) => void;
   /** 彻底删除（先确认受影响的参考组）。 */
   purge: (cards: BrowserCard[]) => void;
@@ -66,7 +59,6 @@ export type WallMenuActions = {
   clipboardHasImage: () => Promise<boolean>;
   selectAll: () => void;
   setDensity: (value: number) => void;
-  folders: (libraryId: string) => Promise<{ id: string; label: string }[]>;
   /** 这张图是否直接放在这个文件夹里（不算子文件夹）；“含子文件夹”的范围里据此决定能否“从此文件夹移出”。 */
   inFolder: (card: BrowserCard, folderId: string) => Promise<boolean>;
   groups: () => Promise<GroupSummary[]>;
@@ -128,32 +120,15 @@ function useList<T>(load: () => Promise<T[]>) {
   return state;
 }
 
-function FolderList({
-  libraryId,
+function GroupList({
   actions,
   cards,
+  point,
 }: {
-  libraryId: string;
   actions: WallMenuActions;
   cards: BrowserCard[];
+  point: { x: number; y: number };
 }) {
-  const { t } = useTranslation(["wall", "common"]);
-  const { items, problem } = useList(() => actions.folders(libraryId));
-  if (!items) return <MenuTip>{t("menu.loadingFolders")}</MenuTip>;
-  if (problem) return <MenuTip>{problem}</MenuTip>;
-  if (!items.length) return <MenuTip>{t("menu.noFolders")}</MenuTip>;
-  return (
-    <>
-      {items.map((f) => (
-        <MenuItem key={f.id} onClick={() => actions.edit(cards, [{ kind: "addToFolder", folderId: f.id }], false)}>
-          {f.label}
-        </MenuItem>
-      ))}
-    </>
-  );
-}
-
-function GroupList({ actions, cards }: { actions: WallMenuActions; cards: BrowserCard[] }) {
   const { t } = useTranslation(["wall", "common"]);
   const { items, problem } = useList(actions.groups);
   if (!items) return <MenuTip>{t("menu.loadingGroups")}</MenuTip>;
@@ -163,8 +138,8 @@ function GroupList({ actions, cards }: { actions: WallMenuActions; cards: Browse
   return (
     <>
       {usable.map((g) => (
-        <MenuItem key={g.id} onClick={() => actions.addToGroup(cards, g.id)}>
-          {g.name}
+        <MenuItem key={g.id} onClick={() => actions.addToGroup(cards, g.id, point)}>
+          {groupLabel(g)}
         </MenuItem>
       ))}
     </>
@@ -216,33 +191,22 @@ function Organize({
   actions,
   scope,
   single,
+  point,
 }: {
   cards: BrowserCard[];
   actions: WallMenuActions;
   scope: BrowseScope;
   single: boolean;
+  point: { x: number; y: number };
 }) {
   const { t } = useTranslation(["wall", "common"]);
-  // 移文件夹作用于整摞的全部页（#418）：各页都在同一个图库时才能选那个库的文件夹。
-  const libraries = new Set(pagesOf(cards).map((c) => c.libraryId ?? ""));
-  const libraryId = libraries.size === 1 ? [...libraries][0] : null;
   return (
     <>
-      <MenuSubmenu
-        icon={<FolderGlyph />}
-        label={t("menu.moveToFolder")}
-        disabled={libraryId === null}
-        popupLabel={t("menu.moveToFolder")}
-        width={220}
-        meta={libraryId === null ? t("menu.fromSeveralLibraries") : undefined}
-      >
-        {libraryId !== null && <FolderList libraryId={libraryId} actions={actions} cards={cards} />}
-      </MenuSubmenu>
       {single && (scope.kind === "folder" || scope.kind === "folderTree") && (
         <RemoveFromFolder card={cards[0]} folderId={scope.id} direct={scope.kind === "folder"} actions={actions} />
       )}
       <MenuSubmenu icon={icon(Layers)} label={t("menu.addToGroup")} popupLabel={t("menu.addToGroup")} width={220}>
-        <GroupList actions={actions} cards={cards} />
+        <GroupList actions={actions} cards={cards} point={point} />
       </MenuSubmenu>
       <MenuSubmenu icon={icon(ShieldCheck)} label={t("menu.rating")} popupLabel={t("menu.rating")}>
         {RATINGS.map((rating) => (
@@ -366,7 +330,7 @@ export function WallMenu({
           {t("common:image.copy")}
         </MenuItem>
         <MenuSeparator />
-        <Organize cards={cards} actions={actions} scope={scope} single />
+        <Organize cards={cards} actions={actions} scope={scope} single point={point} />
         {sources.length >= 2 && (
           <MenuItem icon={icon(Layers)} onClick={() => actions.inspectSources(card)}>
             {t("menu.inspectSources")}
@@ -394,7 +358,7 @@ export function WallMenu({
         <span className="k-item-meta">{t("menu.copyOneOnly")}</span>
       </MenuItem>
       <MenuSeparator />
-      <Organize cards={cards} actions={actions} scope={scope} single={false} />
+      <Organize cards={cards} actions={actions} scope={scope} single={false} point={point} />
       {inspector}
       <MenuSeparator />
       <MenuItem icon={icon(Trash2)} kbd="Del" danger onClick={() => actions.edit(cards, [{ kind: "delete" }], true)}>

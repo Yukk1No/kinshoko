@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BackupPreview } from "../bindings/BackupPreview";
-import { useToast } from "../ui/Toast";
+import { NOTICE_ORDER, useToast } from "../ui/Toast";
 import type { BackupStatus } from "../bindings/BackupStatus";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
 import type { RestoreReport } from "../bindings/RestoreReport";
@@ -80,9 +80,11 @@ export function BackupSettings() {
 
   const selection = status?.plan.selection;
   const selectionKey = JSON.stringify(selection ?? null);
+  const isRunning = status?.running != null;
   // biome-ignore lint/correctness/useExhaustiveDependencies: 按范围的内容（selectionKey）而不是对象身份重新估计，备份目录变了也重估
   useEffect(() => {
-    if (!selection) return;
+    setPreview(null);
+    if (!selection || isRunning) return;
     let alive = true;
     backupPreview(selection).then(
       (p) => {
@@ -94,7 +96,7 @@ export function BackupSettings() {
       alive = false;
     };
     // 按范围的内容（不是对象身份）与备份目录重新估计。
-  }, [selectionKey, status?.plan.target]);
+  }, [selectionKey, status?.plan.target, isRunning]);
 
   const apply = useCallback(
     async (change: Promise<BackupStatus>) => {
@@ -227,7 +229,7 @@ export function BackupSettings() {
         <RestoreView onError={(e) => setError(errorText(e))} />
       </SettingsGroup>
       {error !== null && (
-        <p className="k-set-error" role="alert">
+        <p className="k-error-text is-boxed" role="alert">
           {error}
         </p>
       )}
@@ -297,7 +299,7 @@ function RestoreView({ onError }: { onError: (error: unknown) => void }) {
       below={
         (snapshots !== null || busy || report !== null) && (
           <>
-            {snapshots !== null && snapshots.length === 0 && <p className="k-set-note">{t("empty")}</p>}
+            {snapshots !== null && snapshots.length === 0 && <p className="k-description is-spaced">{t("empty")}</p>}
             {snapshots !== null && snapshots.length > 0 && (
               <>
                 <ul className="backup-snapshots">
@@ -387,7 +389,10 @@ export function BackupReminder() {
   useEffect(() => {
     if (shown.current?.at === at) return;
     if (shown.current) toast.close(shown.current.id);
-    shown.current = at === null ? null : { at, id: toast.error(t("title", { reason }), { description: t("retry") }) };
+    shown.current =
+      at === null
+        ? null
+        : { at, id: toast.error(t("title", { reason }), { description: t("retry"), queue: NOTICE_ORDER.backup }) };
   }, [toast, at, reason, t]);
   useEffect(
     () => () => {

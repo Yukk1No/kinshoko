@@ -26,6 +26,7 @@ function work(id: string, extra: Partial<PixivWork> = {}): PixivWork {
     pages: [page],
     postedAt: 0,
     bookmarked: false,
+    followed: false,
     pageUrl: `https://www.pixiv.net/artworks/${id}`,
     ...extra,
   };

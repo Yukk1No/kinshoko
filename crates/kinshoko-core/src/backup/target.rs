@@ -45,6 +45,56 @@ const MANIFEST: &str = "manifest.json";
 const FORMAT: &str = "kinshoko.backup";
 const FORMAT_VERSION: u32 = 1;
 
+/// `path` 是备份目标里 Backup 自己的布局（`kinshoko-backup/`）或在它里面时，给出布局所在的文件夹。
+pub(crate) fn layout_containing(path: &Path) -> Option<&Path> {
+    path.ancestors().find(|dir| is_layout(dir))
+}
+
+/// 选中的 `path` 是备份目标、目标里的 `kinshoko-backup/` 或其中的位置时，给出备份目标。
+pub fn target_of(path: &Path) -> Option<PathBuf> {
+    match layout_containing(path) {
+        Some(layout) => layout.parent().map(Path::to_path_buf),
+        None => is_layout(&path.join(ROOT)).then(|| path.to_path_buf()),
+    }
+}
+
+/// 选中的 `path` 整个就是备份：在 `kinshoko-backup/` 里，或是除它以外只有隐藏项的备份目标
+/// （以 `.` 开头，或 Windows 的隐藏属性，如盘符根目录的 `System Volume Information`）。
+/// 备份目标里还有别的内容时不算，那些内容照常导入，导入时跳过其中的备份。
+pub fn is_whole_backup(path: &Path) -> bool {
+    if layout_containing(path).is_some() {
+        return true;
+    }
+    is_layout(&path.join(ROOT))
+        && fs::read_dir(path).is_ok_and(|entries| {
+            entries
+                .flatten()
+                .all(|entry| entry.file_name() == ROOT || is_hidden(&entry))
+        })
+}
+
+fn is_hidden(entry: &fs::DirEntry) -> bool {
+    entry.file_name().to_string_lossy().starts_with('.') || has_hidden_attribute(entry)
+}
+
+#[cfg(windows)]
+fn has_hidden_attribute(entry: &fs::DirEntry) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    const FILE_ATTRIBUTE_HIDDEN: u32 = 0x2;
+    entry
+        .metadata()
+        .is_ok_and(|m| m.file_attributes() & FILE_ATTRIBUTE_HIDDEN != 0)
+}
+
+#[cfg(not(windows))]
+fn has_hidden_attribute(_: &fs::DirEntry) -> bool {
+    false
+}
+
+fn is_layout(dir: &Path) -> bool {
+    dir.file_name().is_some_and(|name| name == ROOT) && dir.join(SNAPSHOTS).is_dir()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Manifest {
@@ -167,8 +217,9 @@ impl BackupTarget {
     }
 
     /// 按范围备份一次：每个资料库先取原文件租约并做数据库快照，再把快照引用的原文件按哈希
-    /// 增量复制（复制时核对哈希），然后复制参考组、写清单，最后改名为完整快照，按保留策略
-    /// 清理旧快照与不再被引用的原文件。原文件内容与记录不符或缺失时快照不完整。
+    /// 增量复制（新复制的与已有的都核对哈希，已有的坏了就重新复制），然后复制参考组、写清单，
+    /// 最后改名为完整快照，按保留策略清理旧快照与不再被引用的原文件。
+    /// 原文件内容与记录不符或缺失时快照不完整。
     /// 读不到的资料库（移动盘没插）跳过并在结果里列出。
     pub fn run(
         &self,
@@ -316,16 +367,19 @@ impl BackupTarget {
         let total = snaps.iter().map(|s| s.originals.len() as u32).sum();
         let mut done = 0;
         progress(BackupProgress { done, total });
+        // 这次备份里已核对过、可以直接引用的原文件。
+        let mut verified = BTreeSet::new();
         // 整次备份都持有各资料库的原文件租约（`snaps` 活到函数结束）。
         for snap in &snaps {
             for dep in &snap.originals {
                 let target = self.stored(&root, &dep.file.sha256);
-                let have = fs::metadata(&target).is_ok_and(|m| m.len() == dep.file.size);
-                if have {
+                if verified.contains(&dep.file.sha256) || holds(&target, &dep.file) {
                     report.reused += 1;
+                    verified.insert(dep.file.sha256.clone());
                 } else {
                     match store(&dep.source, &target, &dep.file.sha256) {
                         Ok(()) => {
+                            verified.insert(dep.file.sha256.clone());
                             report.copied += 1;
                             report.copied_bytes += dep.file.size;
                             library::fault::hit(library::fault::BACKUP_AFTER_COPY);
@@ -373,6 +427,14 @@ impl BackupTarget {
         report.complete = true;
         report.removed_snapshots = self.prune(&root)?;
         Ok(report)
+    }
+
+    /// 最新的完整快照；没有完整快照时是 [`BackupError::UnknownSnapshot`]。
+    pub fn latest_snapshot(&self) -> Result<SnapshotSummary, BackupError> {
+        self.snapshots()?
+            .into_iter()
+            .next()
+            .ok_or(BackupError::UnknownSnapshot)
     }
 
     /// 备份目标里的完整快照，新的在前。

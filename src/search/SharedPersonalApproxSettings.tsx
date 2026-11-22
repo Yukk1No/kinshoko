@@ -111,7 +111,7 @@ export function SharedPersonalApproxSettings({ onError }: { onError: (error: unk
       ) : (
         <>
           {view.entries.length === 0 ? (
-            <p className="k-set-note">{t("empty")}</p>
+            <p className="k-description is-spaced">{t("empty")}</p>
           ) : (
             <table className="settings-approx" aria-label={t("table")}>
               <tbody>
@@ -166,7 +166,7 @@ export function SharedPersonalApproxSettings({ onError }: { onError: (error: unk
               key={`${conflict.a.id}/${conflict.b.id}`}
             >
               <h3>{t("pair", { a: tagName(conflict.a), b: tagName(conflict.b) })}</h3>
-              <p className="k-set-note">
+              <p className="k-description is-spaced">
                 {conflict.current === null
                   ? t("undecided")
                   : t("current", { relation: relationName(conflict.current) })}

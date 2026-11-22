@@ -30,15 +30,6 @@
 .empty-context .reference-groups-bar h2 {
   display: none;
 }
-.capture-history-empty,
-.reference-groups-empty {
-  margin: 0;
-  padding: 0 2px;
-  color: var(--ink-2);
-  font-size: 12px;
-  line-height: 18px;
-}
-
 /* 截图列表 */
 .capture-history-list {
   display: flex;
@@ -353,9 +344,6 @@
   .capture-save-fields {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-.k-dialog.is-alert {
-  width: min(400px, calc(100vw - 48px));
 }
 
 /* 截图框选窗口与钉图菜单窗口（#106）：没有页面底色和边距，禁止系统手势（笔与触摸走 pointer 事件，#7）。 */

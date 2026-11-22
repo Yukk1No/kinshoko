@@ -1,7 +1,11 @@
 //! 参考组包整理信息回归：经公共接口核对同字节去重后的各来源快照。
 
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+
 #[cfg(test)]
 mod tests {
+    use super::group_fixture::GroupFixture;
     use std::path::Path;
 
     use kinshoko_core::desktop::{Placement, SavedPin};
@@ -104,7 +108,7 @@ mod tests {
         }
         let groups = ReferenceGroups::open(&dir.path().join("groups")).unwrap();
         let group = groups
-            .create(
+            .save_group(
                 "跨库同图",
                 &mut [pin(&a, &a_id, "pin-a", 10), pin(&b, &b_id, "pin-b", 30)],
             )
@@ -175,7 +179,7 @@ mod tests {
             .unwrap();
         let groups = ReferenceGroups::open(&dir.path().join("groups")).unwrap();
         let group = groups
-            .create("自定名", &mut [pin(&source, &id, "pin", 0)])
+            .save_group("自定名", &mut [pin(&source, &id, "pin", 0)])
             .unwrap();
         let registry = vec![registered(&source)];
         let detached = DetachedLenses::default();

@@ -29,6 +29,8 @@ pub enum Text {
     ExeNotFound,
     DataDirUnwritable,
     DataMigrationFailed,
+    /// 桌面上的参考组（`desk.json`）读不出来，用 [`fill`] 填进 `{path}`、`{error}`。
+    DeskUnreadable,
     /// 截图与钉图菜单窗口的标题（任务栏、Alt Tab 里看得到）。
     CaptureWindowTitle,
     MenuWindowTitle,
@@ -89,6 +91,14 @@ fn in_lang(lang: &str, key: Text) -> &'static str {
             en,
             "Kinshoko 迁移数据时出错，未能完成：\n{error}；有些数据还在 {staging}，下次启动时会放回原处再迁移\n\n请重新启动 Kinshoko 再试。",
             "Kinshoko ran into an error while moving its data and couldn't finish:\n{error}. Some data is still in {staging}; the next time Kinshoko starts, it will put it back and move it again\n\nStart Kinshoko again to retry.",
+        ),
+        Text::DeskUnreadable => pick(
+            en,
+            "Kinshoko 读不出桌面上的参考组：\n{path}\n\n原因：{error}\n\n这个文件原样留着，没有改动。\
+             把它挪到别处（或修好）后重新启动 Kinshoko；参考组本身都还在。",
+            "Kinshoko can't read the reference group on the desk:\n{path}\n\nReason: {error}\n\n\
+             The file is left as it is. Move it somewhere else (or fix it), then start Kinshoko again; \
+             your reference groups are all still there.",
         ),
         Text::CaptureWindowTitle => pick(en, "Kinshoko 截图", "Kinshoko capture"),
         Text::MenuWindowTitle => pick(en, "Kinshoko 菜单", "Kinshoko menu"),

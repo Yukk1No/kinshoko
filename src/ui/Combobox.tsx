@@ -4,6 +4,7 @@ import type { InputHTMLAttributes, KeyboardEvent, MouseEvent, ReactNode, RefObje
 import { Popover } from "@base-ui/react/popover";
 import { Languages, Plus } from "lucide-react";
 import { Tip } from "./Tip";
+import { EmptyState } from "./EmptyState";
 import { isComposingKey } from "./composing";
 
 /** 一个候选。`label` 通常用 `Highlight` 标出匹配的字；`create` 是放在最后的新建项。 */
@@ -219,7 +220,7 @@ export function Combobox<T extends ComboboxOption>({
     return (
       <Fragment key={option.id}>
         {heading !== null && (
-          <div className="k-menu-label" role="presentation">
+          <div className="k-section-label is-menu" role="presentation">
             {heading}
           </div>
         )}
@@ -259,7 +260,11 @@ export function Combobox<T extends ComboboxOption>({
   // 收起时浮层还要淡出一会儿：这期间留着收起前的内容，不闪出一个空浮层。
   const content = (
     <>
-      {showEmpty && options.every((o) => o.create) && <div className="k-option-empty">{empty}</div>}
+      {showEmpty && options.every((o) => o.create) && (
+        <div className="k-combo-empty">
+          <EmptyState size="list" title={empty} />
+        </div>
+      )}
       {rows}
     </>
   );

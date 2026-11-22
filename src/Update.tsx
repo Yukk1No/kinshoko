@@ -5,7 +5,7 @@ import type { UpdateProgress } from "./bindings/UpdateProgress";
 import type { UpdateStatus } from "./bindings/UpdateStatus";
 import { CircleCheck, Download, FlaskConical, Info, RefreshCw } from "lucide-react";
 import { Segmented } from "./ui/Segmented";
-import { useToast, type ToastOptions } from "./ui/Toast";
+import { NOTICE_ORDER, useToast, type ToastOptions } from "./ui/Toast";
 import { SettingsGroup, SettingsRow, StatusPill } from "./ui/SettingsList";
 import { checkUpdate, installUpdate, onUpdateChannelChanged, onUpdateProgress, updateStatus } from "./ipc";
 import { CommandFailure, describeCommandError, errorText } from "./ipc/commandError";
@@ -40,6 +40,7 @@ function useInstall() {
   }, [installing]);
 
   const install = async () => {
+    setProgress(null);
     setInstalling(true);
     setError(null);
     try {
@@ -128,7 +129,7 @@ export function UpdateSection({
           hint={t("manual.hint")}
           below={
             steps && (
-              <div className="k-set-note">
+              <div className="k-description is-spaced">
                 <p>{describeCommandError(status.message)}</p>
                 <p>{t("manual.steps")}</p>
               </div>
@@ -144,7 +145,7 @@ export function UpdateSection({
           icon={<Download size={16} />}
           title={t("automatic.title")}
           meta={t("automatic.disabled")}
-          below={<p className="k-set-note">{describeCommandError(status.message)}</p>}
+          below={<p className="k-description is-spaced">{describeCommandError(status.message)}</p>}
         />
       ) : (
         <>
@@ -170,7 +171,7 @@ export function UpdateSection({
               icon={<Download size={16} />}
               title={t("install.title", { version: status.version })}
               meta={installing ? progressText(progress) : undefined}
-              below={status.notes && <p className="k-set-note update-notes">{status.notes}</p>}
+              below={status.notes && <p className="k-description is-spaced update-notes">{status.notes}</p>}
             >
               {!installing && (
                 <button type="button" className="k-btn is-sm is-primary" onClick={() => void install()}>
@@ -186,12 +187,12 @@ export function UpdateSection({
               (status.state === "failed" || error !== null) && (
                 <>
                   {status.state === "failed" && (
-                    <p className="k-set-error" role="alert">
+                    <p className="k-error-text is-boxed" role="alert">
                       {describeCommandError(status.message)}
                     </p>
                   )}
                   {error !== null && (
-                    <p className="k-set-error" role="alert">
+                    <p className="k-error-text is-boxed" role="alert">
                       {error}
                     </p>
                   )}
@@ -270,6 +271,7 @@ export function UpdateNotice() {
       });
       const id: string = toast.show({
         ...available(),
+        queue: NOTICE_ORDER.update,
         onClose: () => {
           if (shown === id) shown = null;
         },

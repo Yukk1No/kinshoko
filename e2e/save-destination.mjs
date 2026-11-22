@@ -321,12 +321,20 @@ try {
   await until("Eagle tag step closed", async () => !(await exists("//*[@aria-label='标签的外部对应']")));
   const bCard = (await local(b.id, bFolder)).cards[0];
   const target = { libraryId: b.id, imageId: bCard.imageId, contentId: bCard.id };
-  const sourceGroup = await session.invoke("workspace_source_group", {
-    target,
-    safeMode: true,
-    name: "T10 原来源包",
-    groupId: null,
+  // 参考组是桌面上的参考组（#588）：换到空桌、钉上这张图，再起名。
+  await session.desktop("new_reference_desk");
+  await session.desktop("pin_reference", {
+    libraryId: target.libraryId,
+    imageId: target.imageId,
+    crop: null,
+    shown: { x: 0, y: 0, width: 200, height: 200 },
   });
+  let onDesk = null;
+  await until("pinned image makes the desk a group", async () => {
+    onDesk = (await session.desktop("desk_reference_groups")).onDesk;
+    return Boolean(onDesk);
+  });
+  const sourceGroup = await session.desktop("rename_reference_group", { groupId: onDesk, name: "T10 原来源包" });
   const packagePath = join(work, "source.kinshoko-group");
   await session.desktop("export_reference_group_package", { groupId: sourceGroup.id, path: packagePath });
   await openPane("参考组");

@@ -1,5 +1,9 @@
 //! Portable content crosses public Library and TagCatalog actions, backed by real files.
 
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+use group_fixture::GroupFixture;
+
 #[path = "support/portable_library.rs"]
 mod portable_library;
 
@@ -145,7 +149,7 @@ fn package_import_preserves_shared_identity_and_target_preferences_without_mergi
     pin.turn(Turn::FlipHorizontal);
     pin.turn(Turn::RotateClockwise);
     let groups = ReferenceGroups::open(&dir.path().join("groups")).unwrap();
-    let group = groups.create("测试参考组", &mut [pin]).unwrap();
+    let group = groups.save_group("测试参考组", &mut [pin]).unwrap();
     let registry = vec![RegisteredLibrary {
         id: library.info().id.clone(),
         name: "source".into(),

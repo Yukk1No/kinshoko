@@ -58,6 +58,45 @@ pub struct GroupMember {
     pub crop: Option<Region>,
     /// 位置、缩放、翻转与旋转；尺寸由局部与缩放得出。
     pub placement: Placement,
+    /// 透明度，[`MIN_OPACITY`](crate::desktop::MIN_OPACITY)～1（#588 决定 3：随成员保存，修订 Q71）。
+    /// 不透明时不写出，旧文件因此不变；参考组包不带它。
+    #[serde(default = "opaque", skip_serializing_if = "is_opaque")]
+    #[ts(as = "Option<f64>", optional)]
+    pub opacity: f64,
+    /// 锁定后不响应拖动与缩放。不锁定时不写出；参考组包不带它。
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    #[ts(as = "Option<bool>", optional)]
+    pub locked: bool,
+    /// 钉着（#588 决定 3）：参考组摆在桌面上时有一张钉图显示它。关掉钉图只标成没钉着，不移出。
+    /// 钉着时不写出，旧文件因此不变；旧参考组的成员都算钉着。
+    #[serde(default = "yes", skip_serializing_if = "is_yes")]
+    #[ts(as = "Option<bool>", optional)]
+    pub pinned: bool,
+    /// 加进参考组的时间（毫秒），侧栏按它的日期分段（#588“按天分段”）。没有时不写出，
+    /// 按参考组的 `created_at` 算（[`super::ReferenceGroup::added_at`]）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(type = "number", optional)]
+    pub added_at: Option<i64>,
+    /// 关掉的时间（毫秒）：侧栏“已关闭 N 张”按它倒序（#588 11-19 晚 规则 3）。钉着时没有、不写出。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(type = "number", optional)]
+    pub closed_at: Option<i64>,
+}
+
+fn yes() -> bool {
+    true
+}
+
+fn is_yes(b: &bool) -> bool {
+    *b
+}
+
+fn opaque() -> f64 {
+    1.0
+}
+
+fn is_opaque(opacity: &f64) -> bool {
+    *opacity == 1.0
 }
 
 impl GroupMember {
@@ -92,6 +131,11 @@ impl GroupMember {
             source_height: *source_height,
             crop: pin.crop,
             placement: pin.placement,
+            opacity: 1.0,
+            locked: false,
+            pinned: true,
+            added_at: None,
+            closed_at: None,
         })
     }
 
@@ -110,10 +154,34 @@ impl GroupMember {
             source_height: capture.height,
             crop: pin.crop,
             placement: pin.placement,
+            opacity: 1.0,
+            locked: false,
+            pinned: true,
+            added_at: None,
+            closed_at: None,
         }
     }
 
-    /// 打开成员得到的钉图（不透明、不锁定）：资料库成员是参考图钉图，组内截图成员是截图历史中
+    /// 桌面上的参考组（#590）：成员跟着钉图的局部、摆放、透明度与锁定。
+    pub(super) fn follow(&mut self, pin: &SavedPin) {
+        self.crop = pin.crop;
+        self.placement = pin.placement;
+        self.opacity = pin.opacity;
+        self.locked = pin.locked;
+    }
+
+    /// 参考组包不带透明度、锁定、钉着与关闭时间（#588 决定 3）：导入后都算钉着。添加日期留着。
+    pub(super) fn without_desk_state(&self) -> GroupMember {
+        GroupMember {
+            opacity: 1.0,
+            locked: false,
+            pinned: true,
+            closed_at: None,
+            ..self.clone()
+        }
+    }
+
+    /// 打开成员得到的钉图，带着成员的透明度与锁定（旧参考组为不透明、不锁定）：资料库成员是参考图钉图，组内截图成员是截图历史中
     /// `capture_id` 这张截图的钉图。局部超出原图等不合法时为 `Err`。
     pub(super) fn pin(
         &self,
@@ -178,6 +246,8 @@ impl GroupMember {
                 capture_id: capture_id.to_owned(),
             };
         }
+        pin.set_opacity(self.opacity);
+        pin.locked = self.locked;
         pin.member = Some(GroupMemberRef {
             group_id: group_id.to_owned(),
             member_id: self.id.clone(),

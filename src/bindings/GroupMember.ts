@@ -21,4 +21,27 @@ crop: Region | null,
 /**
  * 位置、缩放、翻转与旋转；尺寸由局部与缩放得出。
  */
-placement: Placement, } & ({ libraryId: string, imageId: string, } | { captureFile: string, });
+placement: Placement, 
+/**
+ * 透明度，[`MIN_OPACITY`](crate::desktop::MIN_OPACITY)～1（#588 决定 3：随成员保存，修订 Q71）。
+ * 不透明时不写出，旧文件因此不变；参考组包不带它。
+ */
+opacity?: number, 
+/**
+ * 锁定后不响应拖动与缩放。不锁定时不写出；参考组包不带它。
+ */
+locked?: boolean, 
+/**
+ * 钉着（#588 决定 3）：参考组摆在桌面上时有一张钉图显示它。关掉钉图只标成没钉着，不移出。
+ * 钉着时不写出，旧文件因此不变；旧参考组的成员都算钉着。
+ */
+pinned?: boolean, 
+/**
+ * 加进参考组的时间（毫秒），侧栏按它的日期分段（#588“按天分段”）。没有时不写出，
+ * 按参考组的 `created_at` 算（[`super::ReferenceGroup::added_at`]）。
+ */
+addedAt?: number, 
+/**
+ * 关掉的时间（毫秒）：侧栏“已关闭 N 张”按它倒序（#588 11-19 晚 规则 3）。钉着时没有、不写出。
+ */
+closedAt?: number, } & ({ libraryId: string, imageId: string, } | { captureFile: string, });

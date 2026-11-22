@@ -60,6 +60,8 @@ pub struct PixivWork {
     pub posted_at: i64,
     /// 登录账号已经 pixiv 收藏了它。
     pub bookmarked: bool,
+    /// 登录账号已经在 pixiv 上关注了这位画师。
+    pub followed: bool,
     /// 作品页链接。
     pub page_url: String,
 }
@@ -287,7 +289,58 @@ pub(super) fn pixiv_work(v: &Value) -> Option<PixivWork> {
             .and_then(parse_rfc3339)
             .unwrap_or(0),
         bookmarked: v["is_bookmarked"].as_bool().unwrap_or(false),
+        followed: v["user"]["is_followed"].as_bool().unwrap_or(false),
     })
+}
+
+/// 一次写进 pixiv 的请求：接口路径与表单。只由画师亲手点出（#409）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct Write {
+    pub path: &'static str,
+    pub form: Vec<(&'static str, String)>,
+}
+
+/// pixiv 收藏或取消收藏一个作品。`private` 只在收藏时有用（非公开收藏）。
+pub(super) fn bookmark_write(
+    illust_id: &str,
+    on: bool,
+    private: bool,
+) -> Result<Write, SourceError> {
+    let illust_id = id(illust_id)?.to_owned();
+    Ok(if on {
+        Write {
+            path: "/v2/illust/bookmark/add",
+            form: vec![
+                ("illust_id", illust_id),
+                ("restrict", restrict(private).to_owned()),
+            ],
+        }
+    } else {
+        Write {
+            path: "/v1/illust/bookmark/delete",
+            form: vec![("illust_id", illust_id)],
+        }
+    })
+}
+
+/// 在 pixiv 上关注或取消关注一位画师（公开关注）。
+pub(super) fn follow_write(user_id: &str, on: bool) -> Result<Write, SourceError> {
+    let user_id = id(user_id)?.to_owned();
+    Ok(if on {
+        Write {
+            path: "/v1/user/follow/add",
+            form: vec![("user_id", user_id), ("restrict", "public".to_owned())],
+        }
+    } else {
+        Write {
+            path: "/v1/user/follow/delete",
+            form: vec![("user_id", user_id)],
+        }
+    })
+}
+
+fn restrict(private: bool) -> &'static str {
+    if private { "private" } else { "public" }
 }
 
 /// pixiv 图片地址都在这个主机上（`super::images` 只转发这里的图）。
@@ -342,6 +395,53 @@ mod tests {
             "image_urls": urls(id, 0), "meta_pages": [],
             "meta_single_page": { "original_image_url": format!("https://i.pximg.net/img-original/{id}_p0.png") }
         })
+    }
+
+    #[test]
+    fn bookmark_and_follow_writes() {
+        assert_eq!(
+            bookmark_write("5", true, true).unwrap(),
+            Write {
+                path: "/v2/illust/bookmark/add",
+                form: vec![
+                    ("illust_id", "5".to_owned()),
+                    ("restrict", "private".to_owned())
+                ],
+            }
+        );
+        assert_eq!(
+            bookmark_write("5", true, false).unwrap().form[1],
+            ("restrict", "public".to_owned())
+        );
+        assert_eq!(
+            bookmark_write("5", false, true).unwrap(),
+            Write {
+                path: "/v1/illust/bookmark/delete",
+                form: vec![("illust_id", "5".to_owned())],
+            }
+        );
+        assert_eq!(follow_write("9", true).unwrap().path, "/v1/user/follow/add");
+        assert_eq!(
+            follow_write("9", false).unwrap(),
+            Write {
+                path: "/v1/user/follow/delete",
+                form: vec![("user_id", "9".to_owned())],
+            }
+        );
+        // 不是数字 ID 的不发。
+        assert_eq!(
+            bookmark_write("5&x=1", true, false),
+            Err(SourceError::Unsupported)
+        );
+        assert_eq!(follow_write("", true), Err(SourceError::Unsupported));
+    }
+
+    #[test]
+    fn followed_comes_from_the_work_user() {
+        let mut v = single(5);
+        assert!(!pixiv_work(&v).unwrap().followed);
+        v["user"]["is_followed"] = json!(true);
+        assert!(pixiv_work(&v).unwrap().followed);
     }
 
     #[test]

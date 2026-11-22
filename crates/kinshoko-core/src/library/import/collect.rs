@@ -58,6 +58,19 @@ fn walk(
             outcome: ImportOutcome::ReadFailed { reason: e.into() },
         })
     };
+    if let Some(layout) = crate::backup::layout_containing(path) {
+        // 备份里的原图按哈希存放，当散图导入会丢掉文件夹、备注与回收站，只能经恢复还原。
+        report.items.push(ImportItem {
+            path: layout.to_path_buf(),
+            outcome: ImportOutcome::ReadFailed {
+                reason: CommandError::new(
+                    ErrorKind::ImportBackupFolder,
+                    "这是图库备份，要在备份设置里恢复",
+                ),
+            },
+        });
+        return;
+    }
     if eagle::is_library(path) {
         match eagle::collect(inner, path) {
             Ok(collected) => {

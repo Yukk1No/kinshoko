@@ -32,10 +32,15 @@ const OPEN_EVENT: &str = "desktop-menu";
 pub struct MenuState {
     generation: u32,
     open: Option<PinMenuOpen>,
+    previous_foreground: Option<isize>,
 }
 
 /// 在指针处为钉图弹出菜单。
 pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), CommandError> {
+    #[cfg(windows)]
+    let previous_foreground = super::win32::foreground_window().map(|(hwnd, _)| hwnd);
+    #[cfg(not(windows))]
+    let previous_foreground = None;
     let cursor = app.cursor_position().map_err(CommandError::system)?;
     let surface = menu_surface(
         (cursor.x.floor() as i32, cursor.y.floor() as i32),
@@ -50,6 +55,11 @@ pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), CommandError> {
             surface,
             menu,
         };
+        menus.previous_foreground = foreground_for_popup(
+            menus.open.is_some(),
+            menus.previous_foreground,
+            previous_foreground,
+        );
         menus.open = Some(open.clone());
         open
     };
@@ -60,6 +70,14 @@ pub fn popup(app: &AppHandle, menu: PinMenu) -> Result<(), CommandError> {
     place(&window, surface.window)?;
     let _ = app.emit_to(MENU_WINDOW, OPEN_EVENT, &open);
     Ok(())
+}
+
+fn foreground_for_popup(
+    replacing: bool,
+    saved: Option<isize>,
+    captured: Option<isize>,
+) -> Option<isize> {
+    if replacing { saved } else { captured }
 }
 
 fn build(app: &AppHandle) -> Result<tauri::WebviewWindow, CommandError> {
@@ -136,12 +154,12 @@ pub fn shown(app: &AppHandle, generation: u32) {
 /// 关掉第 `generation` 次菜单，返回它是哪个钉图的；不是此刻打开着的那一次时什么都不做。
 /// 菜单窗口拿着焦点时，焦点交回打开菜单之前的程序。
 pub fn close(app: &AppHandle, generation: u32) -> Option<String> {
-    let open = {
+    let (open, previous_foreground) = {
         let mut menus = lock(&state(app).menu);
         if menus.open.as_ref()?.generation != generation {
             return None;
         }
-        menus.open.take()?
+        (menus.open.take()?, menus.previous_foreground.take())
     };
     let pin = open.menu.pin;
     if let Some(window) = app.get_webview_window(MENU_WINDOW) {
@@ -150,11 +168,20 @@ pub fn close(app: &AppHandle, generation: u32) -> Option<String> {
         crate::run_log::record(LogEvent::WindowHidden {
             window: WindowKind::PinMenu,
         });
-        pins::menu_closed(app, focused);
+        pins::menu_closed(app);
+        super::edge::restore_menu_focus(focused, previous_foreground);
     } else {
-        pins::menu_closed(app, false);
+        pins::menu_closed(app);
     }
     Some(pin)
+}
+
+/// 关掉此刻打开着的菜单（换一桌钉图之前，#591）。没有打开的菜单时什么都不做。
+pub fn close_open(app: &AppHandle) {
+    let generation = lock(&state(app).menu).open.as_ref().map(|o| o.generation);
+    if let Some(generation) = generation {
+        close(app, generation);
+    }
 }
 
 /// 一次调用同时改窗口的位置与尺寸（Windows 上），免得合成出只改了一半的一帧。
@@ -170,4 +197,26 @@ fn place(window: &tauri::WebviewWindow, rect: ScreenRect) -> Result<(), CommandE
         .set_position(PhysicalPosition::new(rect.x, rect.y))
         .and_then(|_| window.set_size(PhysicalSize::new(rect.width, rect.height)))
         .map_err(CommandError::system)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::foreground_for_popup;
+
+    #[test]
+    fn replacing_a_menu_keeps_the_original_foreground() {
+        assert_eq!(foreground_for_popup(true, Some(10), Some(20)), Some(10));
+        assert_eq!(foreground_for_popup(true, Some(10), None), Some(10));
+    }
+
+    #[test]
+    fn replacing_a_menu_without_a_return_target_keeps_it_empty() {
+        assert_eq!(foreground_for_popup(true, None, Some(20)), None);
+    }
+
+    #[test]
+    fn a_new_menu_records_the_current_foreground() {
+        assert_eq!(foreground_for_popup(false, Some(10), Some(20)), Some(20));
+        assert_eq!(foreground_for_popup(false, None, None), None);
+    }
 }

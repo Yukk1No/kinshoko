@@ -1,17 +1,20 @@
 //! 参考组自带截图（#270，ADR-0002 修订）：截图可以只存在参考组里，不进任何资料库。
-//! 截图历史清空后重新打开参考组，组内截图照常按原布局钉出；没有成员再用它时文件随之删除；
+//! 截图历史清空后重新摆到桌面上，组内截图照常按原布局钉出；没有成员再用它时文件随之删除；
 //! 参考组包带上组内截图；只引用资料库的旧参考组文件不迁移也照常读写。
 //! 经 `kinshoko_core` 的对外接口，用临时目录里的真文件。
+
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+use group_fixture::{open_group, save_group_with_history};
 
 use std::path::Path;
 
 use image::RgbaImage;
 use kinshoko_core::Library;
 use kinshoko_core::desktop::{
-    CaptureHistory, CollectedCapture, GroupMemberRef, PinContent, Placement, Region, SavedPin,
-    Screenshot,
+    CaptureHistory, GroupMemberRef, PinContent, Placement, Region, SavedPin, Screenshot,
 };
-use kinshoko_core::library::{BrowseQuery, ReferenceImage, ReferenceLens};
+use kinshoko_core::library::{BrowseQuery, ReferenceLens};
 use kinshoko_core::reference_groups::{
     MemberSource, MemberState, ReferenceGroups, ReferenceSource, UnavailableReason,
 };
@@ -49,26 +52,6 @@ fn capture_pin(id: &str, capture_id: &str, x: i32) -> SavedPin {
         locked: false,
         member: None,
     }
-}
-
-fn reference_pin(id: &str, x: i32) -> SavedPin {
-    let image = ReferenceImage {
-        id: "img".into(),
-        width: 800,
-        height: 600,
-        sealed: false,
-    };
-    SavedPin::reference(
-        id,
-        "lib",
-        &image,
-        None,
-        Placement {
-            x,
-            ..Default::default()
-        },
-    )
-    .unwrap()
 }
 
 /// 没有任何资料库：资料库成员都暂时不可用。
@@ -141,11 +124,9 @@ impl Desk {
         let entry = self.history.add(&shot(seed)).unwrap();
         let bytes = std::fs::read(self.history.file(&entry.id).unwrap()).unwrap();
         let mut pins = vec![capture_pin("p1", &entry.id, 300)];
-        let keep = vec![self.history.group_capture(&entry.id).unwrap()];
-        let group = self
-            .groups
-            .create_with_captures("一次性参考", &mut pins, &keep)
-            .unwrap();
+        let group =
+            save_group_with_history(&self.groups, &mut self.history, "一次性参考", &mut pins)
+                .unwrap();
         (group, pins.remove(0), bytes)
     }
 
@@ -181,7 +162,7 @@ fn a_capture_kept_only_in_the_group_never_enters_a_library_and_reopens_after_his
     // 关掉钉图、截图历史清空之后，重新打开参考组。
     desk.clear_history();
     let reread = desk.groups.get(&group.id).unwrap();
-    let opened = desk.groups.open_pins(&reread, &mut desk.history, |_| false);
+    let opened = open_group(&desk.groups, &mut desk.history, &reread.id).unwrap();
     assert!(opened.problems.is_empty(), "{:?}", opened.problems);
     assert_eq!(opened.pins.len(), 1);
     let pin = &opened.pins[0];
@@ -197,12 +178,6 @@ fn a_capture_kept_only_in_the_group_never_enters_a_library_and_reopens_after_his
         bytes,
         "按字节还原，从不重编码"
     );
-
-    // 已在桌面上的成员不再钉一次。
-    let again = desk.groups.open_pins(&reread, &mut desk.history, |m| {
-        Some(m) == pin.member.as_ref()
-    });
-    assert!(again.pins.is_empty());
 }
 
 #[test]
@@ -228,33 +203,11 @@ fn a_group_capture_shows_normally_in_safe_mode_and_reports_a_missing_file() {
             ..
         }
     ));
-    let opened = desk.groups.open_pins(&group, &mut desk.history, |_| false);
+    // 截图历史里也没有了：钉不出来，说明原因。
+    desk.clear_history();
+    let opened = open_group(&desk.groups, &mut desk.history, &group.id).unwrap();
     assert!(opened.pins.is_empty());
     assert_eq!(opened.problems.len(), 1);
-}
-
-#[test]
-fn saving_back_a_reopened_group_capture_updates_its_layout_and_keeps_one_file() {
-    let mut desk = Desk::new();
-    let (group, _, _) = desk.group_with_capture(2);
-    desk.clear_history();
-    let mut pins = desk
-        .groups
-        .open_pins(&group, &mut desk.history, |_| false)
-        .pins;
-    pins[0].placement.x = 999;
-    pins.push(reference_pin("r", 10));
-    let saved = desk.groups.save_pins(&group.id, &mut pins).unwrap();
-
-    assert_eq!(saved.members.len(), 2, "存回原成员，另加资料库钉图");
-    assert_eq!(saved.members[0].id, group.members[0].id);
-    assert_eq!(saved.members[0].placement.x, 999);
-    assert_eq!(saved.members[0].source, group.members[0].source);
-    let stored = files_in(&desk.root.join("reference-groups"))
-        .into_iter()
-        .filter(|f| f.ends_with(".png"))
-        .count();
-    assert_eq!(stored, 1);
 }
 
 #[test]
@@ -285,66 +238,6 @@ fn a_group_capture_file_is_deleted_once_no_member_uses_it() {
             .any(|f| f.ends_with(".png")),
         "没有留下截图文件"
     );
-}
-
-#[test]
-fn collecting_a_group_capture_points_the_member_at_the_library_and_drops_the_group_copy() {
-    let mut desk = Desk::new();
-    let (group, _, _) = desk.group_with_capture(6);
-    let member = GroupMemberRef {
-        group_id: group.id.clone(),
-        member_id: group.members[0].id.clone(),
-    };
-    let file = desk
-        .groups
-        .capture_path(&group.id, &member.member_id)
-        .unwrap();
-    let collected = CollectedCapture {
-        library_id: "lib".into(),
-        image_id: "img".into(),
-    };
-    let after = desk.groups.collected(&member, &collected).unwrap();
-
-    assert_eq!(
-        after.members[0].source,
-        MemberSource::Library {
-            library_id: "lib".into(),
-            image_id: "img".into()
-        }
-    );
-    assert_eq!(after.members[0].placement, group.members[0].placement);
-    assert_eq!(after.members[0].crop, group.members[0].crop);
-    assert!(!file.exists());
-    assert_eq!(desk.groups.get(&group.id).unwrap(), after);
-}
-
-#[test]
-fn a_capture_saved_into_a_library_on_save_replaces_the_group_copy() {
-    let mut desk = Desk::new();
-    let (group, _, _) = desk.group_with_capture(7);
-    let file = desk
-        .groups
-        .capture_path(&group.id, &group.members[0].id)
-        .unwrap();
-    desk.clear_history();
-    let mut pins = desk
-        .groups
-        .open_pins(&group, &mut desk.history, |_| false)
-        .pins;
-    // 保存时选了收藏进资料库：钉图已改连参考图，仍记得原成员。
-    pins[0].content = PinContent::Reference {
-        library_id: "lib".into(),
-        image_id: "img".into(),
-        source_width: 30,
-        source_height: 20,
-    };
-    let saved = desk.groups.save_pins(&group.id, &mut pins).unwrap();
-    assert_eq!(saved.members.len(), 1);
-    assert!(matches!(
-        saved.members[0].source,
-        MemberSource::Library { .. }
-    ));
-    assert!(!file.exists());
 }
 
 #[test]

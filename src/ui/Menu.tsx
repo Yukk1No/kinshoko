@@ -21,7 +21,7 @@ import { CascadeController, menuDebugEnabled } from "./menu/cascade";
 import { menuMotionVars } from "./menu/timing";
 
 /**
- * Shared Base UI menu parts with the project styling (design/ui-system/tokens-and-components.md, 组件对照).
+ * Shared Base UI menu parts with the project styling (design/ui-system/components.md, 菜单).
  * Popups render in a portal; `side`/`align` follow Base UI's positioner.
  *
  * 每棵菜单树有一个 CascadeController（src/ui/menu/cascade.ts）：子菜单悬停 220 ms 才打开，斜着朝子菜单移动时
@@ -118,7 +118,7 @@ function Level({
       aria-label={label}
     >
       {title && (
-        <div className="k-menu-title" aria-hidden="true">
+        <div className="k-section-label k-menu-title" aria-hidden="true">
           {title}
         </div>
       )}
@@ -341,7 +341,7 @@ export function FolderGlyph({ size = 18 }: { size?: number }) {
 export const MenuSeparator = () => <BaseMenu.Separator className="k-sep" />;
 export function MenuLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="k-menu-label" role="presentation">
+    <div className="k-section-label is-menu" role="presentation">
       {children}
     </div>
   );

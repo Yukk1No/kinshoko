@@ -2,6 +2,9 @@
 
 #[path = "support/backup_content.rs"]
 mod backup_content;
+#[path = "support/group_fixture.rs"]
+mod group_fixture;
+use group_fixture::GroupFixture;
 
 use backup_content::*;
 
@@ -98,7 +101,7 @@ fn independent_content_restore_keeps_existing_app_preferences_and_shared_groups(
         .unwrap();
     let source_groups = ReferenceGroups::open(&temp.path().join("source-groups")).unwrap();
     let source_group = source_groups
-        .create(
+        .save_group(
             "跨库参考",
             &mut [pin(&a, &image_a, "A-pin"), pin(&b, &image_b, "B-pin")],
         )
@@ -311,10 +314,10 @@ fn interrupted_and_failed_publication_rolls_back_only_its_batch_then_can_retry()
             let (b, image_b, _) = tagged(temp.path(), "B", 71);
             let source_groups = ReferenceGroups::open(&temp.path().join("source-groups")).unwrap();
             source_groups
-                .create("A-参考", &mut [pin(&a, &image_a, "A-pin")])
+                .save_group("A-参考", &mut [pin(&a, &image_a, "A-pin")])
                 .unwrap();
             source_groups
-                .create("B-参考", &mut [pin(&b, &image_b, "B-pin")])
+                .save_group("B-参考", &mut [pin(&b, &image_b, "B-pin")])
                 .unwrap();
             let registry = [registration(&a), registration(&b)];
             let scope = compute_scope(
@@ -362,7 +365,7 @@ fn interrupted_and_failed_publication_rolls_back_only_its_batch_then_can_retry()
                 .unwrap();
             let groups = ReferenceGroups::open(&temp.path().join("target-groups")).unwrap();
             let old_group = groups
-                .create("保持旧参考组", &mut [pin(&old, &old_image, "old-pin")])
+                .save_group("保持旧参考组", &mut [pin(&old, &old_image, "old-pin")])
                 .unwrap();
             let status = std::process::Command::new(std::env::current_exe().unwrap())
                 .args([

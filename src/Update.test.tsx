@@ -91,6 +91,41 @@ describe("主窗口的更新通知", () => {
 });
 
 describe("设置中的更新方式", () => {
+  it("安装失败后重新检查并安装，不沿用上次的下载进度", async () => {
+    let fail!: (reason: unknown) => void;
+    const available = { state: "available", version: "1.2.0", notes: null };
+    const fake = fakeBackend({
+      update_status: available,
+      check_update: available,
+      install_update: () =>
+        new Promise((_, reject) => {
+          fail = reject;
+        }),
+    });
+    render(<UpdateSection />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "安装并重启" }));
+    expect(await screen.findByText("正在下载更新…")).toBeTruthy();
+    await act(async () => {
+      await emit("update-progress", { downloaded: 8 * 1024 * 1024, total: 10 * 1024 * 1024 });
+    });
+    expect(await screen.findByText("正在下载 8 MB / 10 MB")).toBeTruthy();
+    await act(async () => fail({ code: "updateInstallFailed" }));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "检查更新" }));
+    await waitFor(() => expect(fake.calls("check_update")).toHaveLength(1));
+    fireEvent.click(await screen.findByRole("button", { name: "安装并重启" }));
+    await waitFor(() => expect(fake.calls("install_update")).toHaveLength(2));
+    expect(screen.queryByText("正在下载 8 MB / 10 MB")).toBeNull();
+    expect(screen.getByText("正在下载更新…")).toBeTruthy();
+
+    await act(async () => {
+      await emit("update-progress", { downloaded: 1024 * 1024, total: 10 * 1024 * 1024 });
+    });
+    expect(await screen.findByText("正在下载 1 MB / 10 MB")).toBeTruthy();
+  });
+
   it("手动更新构建说明安装包步骤，并且没有自动检查和安装按钮", async () => {
     const fake = fakeBackend({ update_status: { state: "manual", message: { code: "updateManual" } } });
     render(<UpdateSection />);

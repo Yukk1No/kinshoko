@@ -1,23 +1,5 @@
 /* 订阅页（#368，Claude Design 原型“Kinshoko 订阅界面原型”第 1–15 号画板）。只用 tokens.css 的语义令牌，日夜两版同一套。 */
 
-/* ---- “非官方”标记 ---- */
-.subs-unofficial {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 20px;
-  padding: 0 8px;
-  border-radius: var(--r-pill);
-  background: var(--warn-soft);
-  color: var(--warn-strong);
-  font-size: 12px;
-  line-height: 20px;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: default;
-}
-
 /* ---- 侧栏：标题行、名单、账号行 ---- */
 .subs-pane .pane-head {
   padding: 0 8px 0 12px;
@@ -43,16 +25,12 @@
 .subs-group {
   margin-bottom: 8px;
 }
-.subs-group-head {
+.subs-group > .k-section-label {
   height: 28px;
-  margin: 0;
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 0 10px;
-  color: var(--ink-2);
-  font-size: 12px;
-  font-weight: 600;
   letter-spacing: 0.02em;
 }
 .subs-group-icon {
@@ -163,14 +141,10 @@
 .subs-topbar {
   padding-left: 24px;
 }
-.subs-title {
-  margin: 0;
+.subs-topbar > .k-title {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
 }
 .subs-title-count {
   color: var(--ink-2);
@@ -194,25 +168,6 @@
 .subs-check svg {
   color: var(--ink-3);
 }
-
-.subs-spin {
-  animation: subs-spin 0.9s linear infinite;
-}
-.subs-spin.is-accent,
-.subs-check .subs-spin.is-accent {
-  color: var(--accent);
-}
-@keyframes subs-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .subs-spin {
-    animation-duration: 2.4s;
-  }
-}
-
 /* ---- 最近收到：两段瀑布流 ---- */
 .subs-wall {
   flex: 1;
@@ -282,47 +237,6 @@
   height: auto;
 }
 
-/* ---- 空状态 ---- */
-.subs-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 0 24px 80px;
-  text-align: center;
-}
-.subs-empty-icon {
-  width: 56px;
-  height: 56px;
-  margin-bottom: 4px;
-  border-radius: var(--r-l);
-  display: grid;
-  place-items: center;
-  background: var(--sunken);
-  color: var(--ink-3);
-}
-.subs-empty-title {
-  margin: 0;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
-}
-.subs-empty-hint {
-  margin: 0;
-  color: var(--ink-2);
-}
-.subs-empty-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-.subs-empty-actions .k-btn {
-  height: 36px;
-  padding: 0 16px;
-}
-
 /* ---- 首次使用说明 ---- */
 .k-dialog.subs-first-run {
   width: min(460px, calc(100vw - 48px));
@@ -341,7 +255,7 @@
   padding: 4px 4px 0;
 }
 /* 标题字形在 24px 行高里偏上约 1px：标记跟着上移，两者中线对齐。 */
-.subs-first-run-head .subs-unofficial {
+.subs-first-run-head .k-pill {
   transform: translateY(-1px);
 }
 .subs-first-run-points {
@@ -386,9 +300,6 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
-}
-.subs-settings-head .k-set-title {
-  margin: 0;
 }
 
 /* ---- 名单行的“更多”（#369 草图 C）：悬停、选中或菜单开着时出现 ---- */
@@ -526,10 +437,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 0;
   padding: 12px;
-  font-size: 13px;
-  color: var(--ink-2);
 }
 .k-dialog.subs-remove-dialog {
   width: min(400px, calc(100vw - 48px));

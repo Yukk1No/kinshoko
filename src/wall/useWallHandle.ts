@@ -2,6 +2,7 @@
 import { useImperativeHandle } from "react";
 import type { Dispatch, Ref, MutableRefObject, SetStateAction } from "react";
 import type { BrowserCard, WallHandle } from "./wallShared";
+import { pagesOf, withoutPages } from "./imageSets";
 
 /** 这些格子里叠着、不占格子的页数（#418）。 */
 const stackedIn = (cards: BrowserCard[]) =>
@@ -55,8 +56,11 @@ export function useWallHandle({
       remove(ids) {
         const removing = new Set(ids);
         /** 移走时墙上每张卡片的位置：放回时按它排回原来的先后。 */
-        const rank = new Map(shownCards.current.map((card, index) => [card.id, index]));
-        let removed = shownCards.current.filter((card) => removing.has(card.id));
+        const original = shownCards.current;
+        const rank = new Map(
+          original.flatMap((card, index) => pagesOf([card]).map((page) => [page.id, index] as const)),
+        );
+        let removed = pagesOf(original).filter((card) => removing.has(card.id));
         if (!removed.length) return () => {};
         for (const card of removed) pendingRemoval.current.add(card.id);
         const batch = removed.map((card) => card.id);
@@ -64,14 +68,15 @@ export function useWallHandle({
         generation.current += 1;
         inflight.current = null;
         measureBeforeReflow();
-        setCards((now) => now.filter((card) => !removing.has(card.id)));
-        setTotal((count) => (count === null ? count : count - removed.length));
-        setStacked((count) => count - stackedIn(removed));
+        const kept = withoutPages(original, removing);
+        setCards(kept);
+        setTotal((count) => (count === null ? count : count + kept.length - original.length));
+        setStacked((count) => count + stackedIn(kept) - stackedIn(original));
         return (failedIds) => {
           // 后端做完了：这批不再算“正在移走”，恢复翻页。
           for (const id of batch) pendingRemoval.current.delete(id);
           const failing = new Set(failedIds);
-          const shown = new Set(shownCards.current.map((card) => card.id));
+          const shown = new Set(pagesOf(shownCards.current).map((card) => card.id));
           const returning = removed.filter((card) => failing.has(card.id) && !shown.has(card.id));
           removed = removed.filter((card) => !returning.includes(card));
           if (!returning.length) return;
@@ -79,22 +84,45 @@ export function useWallHandle({
           inflight.current = null;
           measureBeforeReflow();
           // 一次归并：放回的卡片按原来的位置，插到原来排在它后面的第一张墙上卡片之前。
-          const back = [...returning].sort((x, y) => rank.get(x.id)! - rank.get(y.id)!);
-          setCards((now) => {
-            const present = new Set(now.map((card) => card.id));
-            const pending = back.filter((card) => !present.has(card.id));
-            const next: BrowserCard[] = [];
-            let i = 0;
-            for (const card of now) {
-              const at = rank.get(card.id);
-              if (at !== undefined) while (i < pending.length && rank.get(pending[i].id)! < at) next.push(pending[i++]);
-              next.push(card);
-            }
-            next.push(...pending.slice(i));
-            return next;
-          });
-          setTotal((count) => (count === null ? count : count + returning.length));
-          setStacked((count) => count + stackedIn(returning));
+          const now = shownCards.current;
+          const restored = new Set(returning.map((card) => card.id));
+          const currentCards = new Map(now.map((card) => [card.set?.key ?? card.id, card]));
+          const replacements = new Map<string, BrowserCard>();
+          const back: BrowserCard[] = [];
+          for (const card of original) {
+            if (!pagesOf([card]).some((page) => restored.has(page.id))) continue;
+            const current =
+              currentCards.get(card.set?.key ?? card.id) ??
+              card.set?.pages.map((page) => currentCards.get(page.id)).find((item) => item !== undefined);
+            if (card.set) {
+              const present = current?.set?.pages ?? (current ? [{ ...current, sources: current.sources ?? [] }] : []);
+              const order = new Map(card.set.pages.map((page, index) => [page.id, index]));
+              const missing = card.set.pages.filter((page) => restored.has(page.id));
+              const pages: typeof present = [];
+              let i = 0;
+              for (const page of present) {
+                const at = order.get(page.id);
+                if (at !== undefined)
+                  while (i < missing.length && order.get(missing[i].id)! < at) pages.push(missing[i++]);
+                pages.push(page);
+              }
+              pages.push(...missing.slice(i));
+              const replacement = pages.length === 1 ? pages[0] : { ...pages[0], set: { ...card.set, pages } };
+              if (current) replacements.set(current.id, replacement);
+              else back.push(replacement);
+            } else back.push(card);
+          }
+          const next: BrowserCard[] = [];
+          let i = 0;
+          for (const card of now) {
+            const at = rank.get(card.id);
+            if (at !== undefined) while (i < back.length && rank.get(back[i].id)! < at) next.push(back[i++]);
+            next.push(replacements.get(card.id) ?? card);
+          }
+          next.push(...back.slice(i));
+          setCards(next);
+          setTotal((count) => (count === null ? count : count + next.length - now.length));
+          setStacked((count) => count + stackedIn(next) - stackedIn(now));
         };
       },
     }),

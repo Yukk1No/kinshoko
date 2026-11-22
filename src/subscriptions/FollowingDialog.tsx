@@ -111,7 +111,7 @@ export function FollowingDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="k-backdrop" />
         <Dialog.Popup className="k-dialog subs-artist-dialog">
-          <Dialog.Title className="k-dialog-title">{t("title")}</Dialog.Title>
+          <Dialog.Title className="k-title">{t("title")}</Dialog.Title>
           <div className="k-field-row">
             <span className="k-input">
               <Search size={16} aria-hidden="true" />
@@ -131,18 +131,20 @@ export function FollowingDialog({
           </div>
           <div className="subs-follow-list">
             {follows.kind === "loading" && (
-              <p className="subs-follow-note" role="status">
-                <LoaderCircle className="subs-spin" size={14} aria-hidden="true" />
+              <p className="k-description is-body subs-follow-note" role="status">
+                <LoaderCircle className="k-spinner" size={14} aria-hidden="true" />
                 {t("loading")}
               </p>
             )}
             {follows.kind === "failed" && (
-              <p className="k-field-error subs-follow-note" role="alert">
+              <p className="k-error-text is-field" role="alert">
                 <CircleAlert size={14} aria-hidden="true" />
                 {follows.message}
               </p>
             )}
-            {follows.kind === "loaded" && artists.length === 0 && <p className="subs-follow-note">{t("none")}</p>}
+            {follows.kind === "loaded" && artists.length === 0 && (
+              <p className="k-description is-body subs-follow-note">{t("none")}</p>
+            )}
             {shown.length > 0 && (
               <ul>
                 {shown.map((artist) => {
@@ -180,7 +182,7 @@ export function FollowingDialog({
             disabled={busy}
           />
           {error && (
-            <p className="k-field-error" role="alert">
+            <p className="k-error-text is-field" role="alert">
               <CircleAlert size={14} aria-hidden="true" />
               {error}
             </p>

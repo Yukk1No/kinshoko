@@ -294,6 +294,28 @@ fn uncached(tree: &ConditionTree) -> bool {
         })
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct AdditionKey<'a> {
+    imported_at: i64,
+    library_id: &'a str,
+    seq: i64,
+}
+
+fn addition_key<'a>(
+    scope: &WorkspaceScope,
+    provider: &'a Provider,
+    image: &ProviderImage,
+) -> AdditionKey<'a> {
+    AdditionKey {
+        imported_at: match scope {
+            WorkspaceScope::All => image.imported_at,
+            WorkspaceScope::Library { .. } => 0,
+        },
+        library_id: &provider.registration.library.id,
+        seq: image.seq,
+    }
+}
+
 /// 一组浏览结果：每个来源各自跑完整的查找，再按字节身份合并，按最新加入排序。
 fn collect_rows(
     snapshot: &Snapshot,
@@ -342,7 +364,8 @@ fn collect_rows(
         if safe && adult {
             continue;
         }
-        let Some((provider, image)) = sources.iter().find(|(p, i)| matched(p, i)) else {
+        let mut matching = sources.iter().copied().filter(|(p, i)| matched(p, i));
+        let Some((provider, image)) = matching.next() else {
             continue;
         };
         let source_library = &provider.registration.library.id;
@@ -351,16 +374,14 @@ fn collect_rows(
             .set
             .clone()
             .or_else(|| sources.iter().find_map(|(_, i)| i.set.clone()));
-        let newest = sources
-            .iter()
-            .filter(|(p, i)| matched(p, i))
-            .map(|(_, i)| i.seq)
-            .max()
-            .unwrap_or(0);
+        let shown = addition_key(&query.scope, provider, image);
+        let newest = matching
+            .map(|(p, i)| addition_key(&query.scope, p, i))
+            .fold(shown, std::cmp::max);
         rows.push((
             newest,
             set,
-            image.seq,
+            shown,
             BrowseRow {
                 card: WorkspaceCard {
                     id,
@@ -392,33 +413,36 @@ fn collect_rows(
     }
     Ok(stack(
         rows.into_iter()
-            .map(|(_, set, seq, row)| (set, seq, row.card)),
+            .map(|(_, set, shown, row)| (set, shown, row.card)),
     ))
 }
 
 /// 同一图集的卡片合成一格（#418），占最新那一页的位置；封面是页序最前的一页。一次遍历，O(n)
 /// 加各图集内的排序。只剩一页的图集照常是单张。
-fn stack(
+fn stack<'a>(
     rows: impl Iterator<
         Item = (
             Option<crate::library::image_set::ImageSetPage>,
-            i64,
+            AdditionKey<'a>,
             WorkspaceCard,
         ),
     >,
 ) -> Vec<BrowseRow> {
     // 每格：图集键（单张为空）与各页（页码、加入先后、卡片）。
-    type Cell = (Option<String>, Vec<(Option<u32>, i64, WorkspaceCard)>);
-    let mut cells: Vec<Cell> = Vec::new();
+    type Cell<'a> = (
+        Option<String>,
+        Vec<(Option<u32>, AdditionKey<'a>, WorkspaceCard)>,
+    );
+    let mut cells: Vec<Cell<'a>> = Vec::new();
     let mut at = std::collections::HashMap::<String, usize>::new();
-    for (set, seq, card) in rows {
+    for (set, added, card) in rows {
         match set {
-            None => cells.push((None, vec![(None, seq, card)])),
+            None => cells.push((None, vec![(None, added, card)])),
             Some(set) => match at.get(&set.key) {
-                Some(&i) => cells[i].1.push((set.page, seq, card)),
+                Some(&i) => cells[i].1.push((set.page, added, card)),
                 None => {
                     at.insert(set.key.clone(), cells.len());
-                    cells.push((Some(set.key), vec![(set.page, seq, card)]));
+                    cells.push((Some(set.key), vec![(set.page, added, card)]));
                 }
             },
         }
@@ -429,7 +453,7 @@ fn stack(
             let card = match key {
                 Some(key) if pages.len() > 1 => {
                     // 认出页序的在前、按页序；认不出的随后，按加入的先后。
-                    pages.sort_by_key(|(page, seq, _)| (page.is_none(), *page, *seq));
+                    pages.sort_by_key(|(page, added, _)| (page.is_none(), *page, *added));
                     let pages: Vec<WorkspaceCard> =
                         pages.into_iter().map(|(.., card)| card).collect();
                     WorkspaceCard {

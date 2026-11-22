@@ -13,23 +13,14 @@ use crate::desktop::CaptureHistory;
 /// 刚删除、还能撤销的参考组暂放在 `trash/` 下。
 const TRASH_DIR: &str = "trash";
 
-/// 删除参考组（#480）时，桌面上被解除关联的钉图：撤销时据此重新记起自己是哪个成员。
-/// 由应用壳在删除时返回、撤销时带回；参考组本身暂放在回收位置（[`ReferenceGroups::trash`]）。
+/// 删除了的参考组（#480）：由应用壳在删除时返回、撤销时带回；参考组本身暂放在回收位置
+/// （[`ReferenceGroups::trash`]）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct DeletedGroup {
     pub group_id: String,
     pub name: String,
-    pub unlinked_pins: Vec<UnlinkedPin>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct UnlinkedPin {
-    pub pin_id: String,
-    pub member_id: String,
 }
 
 impl ReferenceGroups {

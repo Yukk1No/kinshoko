@@ -9,6 +9,8 @@ mod data_dirs;
 mod desktop;
 mod diagnostics;
 mod fidelity_gate;
+#[cfg(windows)]
+mod file_drop;
 mod library;
 #[cfg(test)]
 mod plugin_acl_tests;
@@ -82,6 +84,8 @@ pub fn run() {
             });
         })
         .invoke_handler(tauri::generate_handler![
+            #[cfg(windows)]
+            file_drop::file_drop_ack,
             commands::app_info,
             commands::shell_settings,
             commands::change_setting,
@@ -110,6 +114,7 @@ pub fn run() {
             backup::start_backup,
             backup::backup_snapshots,
             backup::restore_backup,
+            backup::restore_backup_folder,
             tagging::tagging_status,
             tagging::tagging_download,
             tagging::tagging_cancel_download,
@@ -135,6 +140,8 @@ pub fn run() {
             subscription::browse::subscription_search_artists,
             subscription::browse::subscription_collect,
             subscription::browse::subscription_collected,
+            subscription::browse::subscription_set_bookmark,
+            subscription::browse::subscription_set_follow,
             subscription::login::subscription_login,
             subscription::login::subscription_logout,
             subscription::login::subscription_cancel_login,

@@ -55,14 +55,6 @@ it("中文文案与 1.0 的后端原文一致，参数填进去", () => {
   expect(describeCommandError({ code: "message", message: "原样显示" })).toBe("原样显示");
   expect(describeCommandError({ code: "system", detail: "Access is denied." })).toBe("Access is denied.");
   expect(describeCommandError({ code: "backupTargetMissing", path: "F:\备份" })).toBe("备份位置不在：F:\备份");
-  expect(
-    describeCommandError({
-      code: "captureCollectIncomplete",
-      number: 2,
-      completed: 1,
-      cause: { code: "unknownImage" },
-    }),
-  ).toBe("第 2 张截图的收藏未完成：图库中没有这张参考图。之前完成的 1 张收藏已保留；参考组尚未保存。");
 });
 
 it("备份与往返检查的原因按结构拼出；旧版本写下的原因照原样显示", () => {

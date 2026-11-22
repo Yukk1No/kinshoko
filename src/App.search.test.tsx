@@ -170,11 +170,16 @@ describe("近似查找", () => {
   });
 
   it("关掉一个相近标签时，“只这次”只改本次条件，“以后都不带”记进个人近似对应表", async () => {
+    const openDismissMenu = async () => {
+      const trigger = screen.getByRole("button", { name: "不带“水色发”的相近标签" });
+      await waitFor(() => expect(trigger.getAttribute("aria-expanded")).toBe("false"));
+      fireEvent.click(trigger);
+    };
     backend(library);
     render(<LocalSearchFixture />);
     await pickBlue();
 
-    fireEvent.click(screen.getByRole("button", { name: "不带“水色发”的相近标签" }));
+    await openDismissMenu();
     // 贴着“×”的小菜单：一行说明，两个选项。
     const menu = await screen.findByRole("menu");
     expect(menu.textContent).toContain("不带“水色发”的相近标签：");
@@ -185,7 +190,7 @@ describe("近似查找", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "去掉这个条件" }));
     await pickBlue();
-    fireEvent.click(screen.getByRole("button", { name: "不带“水色发”的相近标签" }));
+    await openDismissMenu();
     fireEvent.click(await screen.findByRole("menuitem", { name: "以后都不带" }));
     await waitFor(() =>
       expect(sent("set_tag_approx")).toEqual([{ libraryId: "L1", a: "B", b: "Q", relation: "notSimilar" }]),
