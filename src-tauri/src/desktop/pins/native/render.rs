@@ -7,6 +7,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, channel};
+use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use kinshoko_core::desktop::frame::SourceSize;
@@ -50,11 +51,13 @@ enum Msg {
     },
     Draw(Box<DrawJob>),
     Detach(PinId),
+    Stop,
 }
 
-/// [`RenderPort`] 的实现：方法只往渲染线程投消息。丢掉它时渲染线程随之退出、释放设备。
+/// [`RenderPort`] 的实现：方法只往渲染线程投消息。丢掉它时等渲染线程退出、释放 Surface 与设备，不等读图线程。
 pub struct RenderThread {
     tx: Sender<Msg>,
+    worker: Option<JoinHandle<()>>,
     read: Arc<ReadSource>,
     notify: Arc<Notify>,
     seq: u64,
@@ -64,7 +67,7 @@ impl RenderThread {
     pub fn start(read: Arc<ReadSource>, notify: Arc<Notify>) -> RenderThread {
         let (tx, rx) = channel();
         let n = notify.clone();
-        std::thread::Builder::new()
+        let worker = std::thread::Builder::new()
             .name("pin-render".into())
             .spawn(move || {
                 let lose_after = std::env::var(LOSE_DEVICE_ENV)
@@ -80,9 +83,19 @@ impl RenderThread {
             .expect("建渲染线程");
         RenderThread {
             tx,
+            worker: Some(worker),
             read,
             notify,
             seq: 0,
+        }
+    }
+}
+
+impl Drop for RenderThread {
+    fn drop(&mut self) {
+        let _ = self.tx.send(Msg::Stop);
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
         }
     }
 }
@@ -193,6 +206,7 @@ impl Worker {
                 Err(RecvTimeoutError::Disconnected) => break,
             };
             match msg {
+                Msg::Stop => break,
                 Msg::Attach(pin, targets) => {
                     if let Err(reason) = self.attach(pin, targets)
                         && !self.recover(notify)
