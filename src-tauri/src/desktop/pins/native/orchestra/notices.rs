@@ -163,9 +163,12 @@ impl<S: PinShell, R: RenderPort> Orchestra<S, R> {
                 true
             }
             RenderEvent::DeviceLost => {
-                for (id, _) in std::mem::take(&mut self.notices) {
-                    self.render.detach(id);
-                    self.shell.close(id);
+                for (id, n) in &mut self.notices {
+                    if !n.closing {
+                        n.closing = true;
+                        n.until = None;
+                        self.render.detach(*id);
+                    }
                 }
                 false
             }

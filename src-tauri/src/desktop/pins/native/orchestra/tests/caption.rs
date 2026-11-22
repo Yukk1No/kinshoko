@@ -275,13 +275,36 @@ fn a_notice_uses_the_cursors_monitor_scale_and_survives_no_device_loss() {
         now: Instant::now(),
     };
     r.o.notice_at((-10, -10), "No image".into(), r.now).unwrap();
-    r.run();
     let job = r.draws().pop().unwrap();
     assert_eq!(job.display_scale, 2.0);
     assert_eq!(job.window.width, 1040);
     assert!(job.window.x < 0 && job.window.y < 0);
     assert!(r.shell_calls().contains(&Call::ClickThrough(job.pin, true)));
     r.o.render_event(RenderEvent::DeviceLost, r.now);
-    r.run();
+    assert!(
+        !r.shell_calls().contains(&Call::Close(job.pin)),
+        "notice window must stay alive until the renderer reports Detached"
+    );
+    assert!(!r.o.is_empty());
+    assert_eq!(r.o.next_deadline(), None);
+    r.o.render_event(RenderEvent::DeviceLost, r.now);
+    assert_eq!(
+        r.o.render()
+            .calls
+            .iter()
+            .filter(|call| matches!(call, RCall::Detach(id) if *id == job.pin))
+            .count(),
+        1
+    );
+    r.o.render_event(
+        RenderEvent::Drawn {
+            pin: job.pin,
+            result: Ok(()),
+        },
+        r.now,
+    );
+    assert!(r.shell_calls().is_empty());
+    r.o.render_event(RenderEvent::Detached { pin: job.pin }, r.now);
+    assert!(r.shell_calls().contains(&Call::Close(job.pin)));
     assert!(r.o.is_empty());
 }
