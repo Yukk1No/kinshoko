@@ -311,9 +311,10 @@ fn receive(
     let collected = match collect(store, subscription, &key, work, source, destination, now) {
         Ok(collected) => collected,
         Err(error) => {
-            // 收了几页时被限流、登录失效等打断：记成待重试，这样下次照样回来补，改收进的库时也认得它。
+            // 收了几页时被限流、登录失效等打断：记成待补（不算一次失败，不会因此放弃它），下次照样回来补，
+            // 改收进的库时也认得它。
             if error != SourceError::Cancelled && !store.received_pages(&key)?.is_empty() {
-                store.record_failure(&subscription.id, source_id, &work.id)?;
+                store.add_pending(&subscription.id, source_id, [work.id.as_str()])?;
             }
             return Err(error);
         }
