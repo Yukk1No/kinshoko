@@ -86,19 +86,18 @@ impl Store {
         )?)
     }
 
-    /// 这个库里记着这个作品（订阅收过它的作品或页）。
-    pub fn work_received(
+    /// 这个库里记着这个作品的这一页。
+    pub fn page_received(
         &self,
         library_id: &str,
         source: &str,
         work_id: &str,
+        page: u32,
     ) -> Result<bool, StoreError> {
         Ok(self.conn().query_row(
-            "SELECT EXISTS (SELECT 1 FROM received_work
-                            WHERE library_id = ?1 AND source = ?2 AND work_id = ?3)
-                 OR EXISTS (SELECT 1 FROM received_page
-                            WHERE library_id = ?1 AND source = ?2 AND work_id = ?3)",
-            params![library_id, source, work_id],
+            "SELECT EXISTS (SELECT 1 FROM received_page
+                            WHERE library_id = ?1 AND source = ?2 AND work_id = ?3 AND page = ?4)",
+            params![library_id, source, work_id, page],
             |row| row.get(0),
         )?)
     }

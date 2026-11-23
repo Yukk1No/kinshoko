@@ -374,7 +374,7 @@ fn place(
 /// （资料库，图）。
 type ImageAt = (String, String);
 
-/// 撤回前看新库的记录：新库已经记着同一个作品（移图期间别处收进来的）时，这个作品的来源层不撤回；
+/// 撤回前看新库的记录：新库已经记着同一个作品的同一页（移图期间别处收进来的）时，这一页不撤回；
 /// 新库的图有订阅记录指着时，图留着看得见（返回这些图），只去掉没人要的来源层。
 fn not_received(
     store: &Store,
@@ -382,15 +382,20 @@ fn not_received(
 ) -> Result<(Vec<MovedWork>, HashSet<ImageAt>), CommandError> {
     let mut out = Vec::new();
     let mut in_use = HashSet::new();
-    for w in works {
+    for mut w in works {
         for p in &w.pages {
             if store.image_in_use(&w.to_library_id, &p.to_image_id)? {
                 in_use.insert((w.to_library_id.clone(), p.to_image_id.clone()));
             }
         }
-        if !store.work_received(&w.to_library_id, &w.source, &w.work_id)? {
-            out.push(w);
+        let mut pages = Vec::new();
+        for p in w.pages {
+            if !store.page_received(&w.to_library_id, &w.source, &w.work_id, p.page)? {
+                pages.push(p);
+            }
         }
+        w.pages = pages;
+        out.push(w);
     }
     Ok((out, in_use))
 }
