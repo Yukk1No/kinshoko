@@ -25,13 +25,14 @@ const padding = (value: string) => {
 describe("settings row horizontal layout", () => {
   it("lets long left-hand text shrink while keeping a readable label width", () => {
     const text = rule(settings, ".k-set-row-main > .k-list-text");
-    expect(text.flex).toBe("1 1 auto");
+    expect(text.flex).toBe("1 1 0");
     expect(text["min-width"]).toBe("12em");
   });
 
-  it("keeps right-hand controls and status at their natural width", () => {
+  it("allows right-hand controls to shrink only when the label floor requires it", () => {
     const end = rule(settings, ".k-set-row-main > .k-list-end");
-    expect(end.flex).toBe("none");
+    expect(end.flex).toBe("0 1 auto");
+    expect(end["min-width"]).toBe("0");
     expect(end["max-width"]).toBe("55%");
   });
 
