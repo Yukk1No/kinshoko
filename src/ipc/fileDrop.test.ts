@@ -91,6 +91,46 @@ it("空文件拖放只清理提示，不发送桥接消息", () => {
   expect(post).not.toHaveBeenCalled();
 });
 
+it("snapshots the sidebar folder at drop, not at the later native path reply", () => {
+  const library = document.createElement("section");
+  library.dataset.libraryId = "other-library";
+  const folder = document.createElement("button");
+  folder.dataset.folderId = "target-folder";
+  const count = document.createElement("span");
+  folder.append(count);
+  library.append(folder);
+  document.body.append(library);
+  fireEvent.drop(count, { dataTransfer: transfer });
+  folder.dataset.folderId = "changed-folder";
+  library.remove();
+  drag("dragenter");
+  drag("dragleave");
+  listen.mock.calls[0][1]({ payload: ["D:\\image.png"] });
+  expect(handler).toHaveBeenLastCalledWith({
+    kind: "drop",
+    paths: ["D:\\image.png"],
+    destination: { libraryId: "other-library", folderId: "target-folder" },
+  });
+  drag("drop");
+  listen.mock.calls[0][1]({ payload: ["D:\\next.png"] });
+  expect(handler).toHaveBeenLastCalledWith({ kind: "drop", paths: ["D:\\next.png"] });
+});
+
+it("empty drops on a folder do not leak its destination to a later drop", () => {
+  const library = document.createElement("section");
+  library.dataset.libraryId = "L";
+  const folder = document.createElement("button");
+  folder.dataset.folderId = "F";
+  library.append(folder);
+  document.body.append(library);
+  fireEvent.drop(folder, { dataTransfer: { types: ["Files"], files: [] } });
+  library.remove();
+  expect(post).not.toHaveBeenCalled();
+  drag("drop");
+  listen.mock.calls[0][1]({ payload: ["D:\\next.png"] });
+  expect(handler).toHaveBeenLastCalledWith({ kind: "drop", paths: ["D:\\next.png"] });
+});
+
 it("桥接不向外部来源暴露发送入口，也不把调用密钥写进函数体", () => {
   const send = Reflect.get(window, "__KINSHOKO_FILE_DROP__");
   expect(send.toString()).not.toContain("test-key");

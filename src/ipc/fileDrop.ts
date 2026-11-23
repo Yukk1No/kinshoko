@@ -1,7 +1,11 @@
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { UnlistenFn } from "@tauri-apps/api/event";
+import type { SaveDestination } from "../bindings/SaveDestination";
 
-export type FileDrop = { kind: "enter"; paths: string[] } | { kind: "drop"; paths: string[] } | { kind: "leave" };
+export type FileDrop =
+  | { kind: "enter"; paths: string[] }
+  | { kind: "drop"; paths: string[]; destination?: SaveDestination }
+  | { kind: "leave" };
 
 type FileBridge = {
   __KINSHOKO_FILE_DROP__: (files: FileList) => void;
@@ -9,8 +13,11 @@ type FileBridge = {
 
 /** 文件或文件夹拖进主窗口：进入、松开（带路径）、离开。 */
 export async function onFileDrop(handler: (drop: FileDrop) => void): Promise<UnlistenFn> {
+  let destination: SaveDestination | undefined;
   const stop = await getCurrentWebview().listen<string[]>("kinshoko-file-drop", ({ payload }) => {
-    handler({ kind: "drop", paths: payload });
+    const target = destination;
+    destination = undefined;
+    handler({ kind: "drop", paths: payload, ...(target ? { destination: target } : {}) });
   });
   let depth = 0;
   const files = (event: DragEvent) => event.dataTransfer?.types.includes("Files") === true;
@@ -36,7 +43,18 @@ export async function onFileDrop(handler: (drop: FileDrop) => void): Promise<Unl
     event.preventDefault();
     const dropped = event.dataTransfer!.files;
     if (dropped.length) {
-      (window as unknown as FileBridge).__KINSHOKO_FILE_DROP__(dropped);
+      const folder = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-folder-id]") : null;
+      const library = folder?.closest<HTMLElement>("[data-library-id]");
+      destination =
+        folder?.dataset.folderId && library?.dataset.libraryId
+          ? { libraryId: library.dataset.libraryId, folderId: folder.dataset.folderId }
+          : undefined;
+      try {
+        (window as unknown as FileBridge).__KINSHOKO_FILE_DROP__(dropped);
+      } catch (error) {
+        destination = undefined;
+        throw error;
+      }
     }
   };
   const key = (event: KeyboardEvent) => {
