@@ -208,7 +208,8 @@ export function neighbour(layout: Layout, from: number, dir: Direction): number 
     const ahead = dir === "up" ? dy < -1 : dir === "down" ? dy > 1 : dir === "left" ? dx < -1 : dx > 1;
     if (!ahead || (vertical && (b.x >= a.x + a.w || a.x >= b.x + b.w))) return;
     const spans = b.y <= ay && ay <= b.y + b.h;
-    const score = vertical ? Math.abs(dy) + Math.abs(dx) * 4 : Math.abs(dx) + (spans ? 0 : 1e4 + Math.abs(dy));
+    const gap = dir === "down" ? b.y - (a.y + a.h) : a.y - (b.y + b.h);
+    const score = vertical ? gap + Math.abs(dx) / 1e3 : Math.abs(dx) + (spans ? 0 : 1e4 + Math.abs(dy));
     if (score < bestScore) {
       bestScore = score;
       best = i;

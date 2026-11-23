@@ -247,6 +247,15 @@ describe("方向键的相邻图", () => {
     expect(neighbour(layout, 0, "down")).toBe(1);
     expect(neighbour(layout, 1, "up")).toBe(0);
   });
+  it("窄的托盘页往下：先到紧挨着的下一行，不越过它到托盘下面的墙", () => {
+    const layout = at([
+      { x: 0, y: 0, w: 80, h: 100 },
+      { x: 0, y: 120, w: 240, h: 100 },
+      { x: 0, y: 400, w: 80, h: 100 },
+    ]);
+    expect(neighbour(layout, 0, "down")).toBe(1);
+    expect(neighbour(layout, 2, "up")).toBe(1);
+  });
   it("隔壁列不算上下", () => {
     const layout = at([
       { x: 0, y: 0, w: 100, h: 100 },
