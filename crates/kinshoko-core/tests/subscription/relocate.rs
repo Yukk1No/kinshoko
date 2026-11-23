@@ -306,3 +306,31 @@ fn undoing_a_move_back_leaves_the_first_library_as_it_was() {
         ["https://www.pixiv.net/artworks/1"]
     );
 }
+
+#[test]
+fn an_outdated_undo_changes_nothing() {
+    let (mut f, _, _) = collected_then_changed(vec![work("1", WorkKind::Illustration, false, 1)]);
+    let groups = Groups::default();
+    let first = relocate::move_old(&f.store, &f.libraries, &groups, &ids(&f)).unwrap();
+    let third = Library::create(&f._dir.path().join("lib3"), "第三个库").unwrap();
+    third.set_safe_mode(false);
+    let third_id = third.info().id.clone();
+    f.libraries.0.push(third);
+    f.store
+        .set_library(std::slice::from_ref(&f.subscription.id), &third_id)
+        .unwrap();
+    let second = relocate::move_old(&f.store, &f.libraries, &groups, &ids(&f)).unwrap();
+    assert_eq!(second.moved, 1);
+    // 先撤第一次：记录已经不在第二个库，什么都不动。
+    assert!(relocate::undo_move(&f.store, &f.libraries, &first.works).is_err());
+    assert_eq!(visible(&f.libraries.0[2], BrowseScope::All), 1);
+    assert_eq!(visible(f.library(), BrowseScope::All), 0);
+    // 再撤第二次：图回到第二个库，带着来源。
+    relocate::undo_move(&f.store, &f.libraries, &second.works).unwrap();
+    let back = &second.works[0].pages[0].from_image_id;
+    assert_eq!(
+        f.libraries.0[1].image(back).unwrap().source_links,
+        ["https://www.pixiv.net/artworks/1"]
+    );
+    assert_eq!(visible(&f.libraries.0[1], BrowseScope::All), 1);
+}

@@ -99,6 +99,19 @@ fn plan(
         }
     }
     let mut movable: HashSet<WorkKey> = pages.iter().map(key).collect();
+    // 几条订阅把同一个作品收进了不同的旧库、现在又收进同一个库：只移第一份，别的留下。
+    let mut first: HashMap<(String, String, String), WorkKey> = HashMap::new();
+    for p in &pages {
+        let at = (
+            p.target_library_id.clone(),
+            p.source.clone(),
+            p.work_id.clone(),
+        );
+        let k = key(p);
+        if first.entry(at).or_insert_with(|| k.clone()) != &k {
+            movable.remove(&k);
+        }
+    }
     loop {
         let stuck: HashSet<(String, String)> = pages
             .iter()
@@ -251,14 +264,10 @@ pub fn move_old(
             });
     }
     // 留下的作品：撤回已收进新库的。
-    for w in undo_only.values() {
-        undo_placed(libraries, w);
-    }
+    undo_placed(libraries, undo_only.values());
     let done: Vec<MovedWork> = works.into_values().collect();
     if let Err(e) = store.move_works(&done) {
-        for w in &done {
-            undo_placed(libraries, w);
-        }
+        undo_placed(libraries, done.iter());
         return Err(e.into());
     }
     report.moved = done.iter().map(|w| w.pages.len() as u32).sum();
@@ -302,22 +311,28 @@ fn place(
     out.ok_or_else(|| library::Error::UnknownImage.into())
 }
 
-/// 撤回这个作品在新库加上的来源层；新库原来的样子（已有的来源、在回收站里）照旧。
-fn undo_placed(libraries: &dyn Libraries, work: &MovedWork) {
-    let layer = FactSource::subscription(&work.source, &work.work_id);
-    let mut seen = HashSet::new();
-    for p in &work.pages {
-        if !seen.insert(p.to_image_id.clone()) {
-            continue;
+/// 撤回这些作品在新库加上的来源层；新库原来的样子（已有的来源、在回收站里）照旧。同一张新库的图
+/// 汇总起来一次撤回：它原来没有（任一页是这次才有的）时，去掉全部加上的来源后才能判断要不要移进回收站。
+fn undo_placed<'a>(libraries: &dyn Libraries, works: impl Iterator<Item = &'a MovedWork>) {
+    // (新库, 新库的图) → (要去掉的来源层, 这次才有, 原来在回收站)
+    let mut by_image: BTreeMap<(String, String), (Vec<FactSource>, bool, bool)> = BTreeMap::new();
+    for work in works {
+        let layer = FactSource::subscription(&work.source, &work.work_id);
+        for p in &work.pages {
+            let entry = by_image
+                .entry((work.to_library_id.clone(), p.to_image_id.clone()))
+                .or_default();
+            if !p.layer_existed && !entry.0.contains(&layer) {
+                entry.0.push(layer.clone());
+            }
+            entry.1 |= p.created;
+            entry.2 |= p.restored;
         }
-        let layers = if p.layer_existed {
-            Vec::new()
-        } else {
-            vec![layer.clone()]
-        };
+    }
+    for ((library_id, image_id), (layers, created, restored)) in by_image {
         // 没能撤回：新库多留一份合并来源的图，不影响记录。
-        let _ = libraries.with(&work.to_library_id, &mut |library| {
-            library.undo_receive_moved(&p.to_image_id, &layers, p.created, p.restored)
+        let _ = libraries.with(&library_id, &mut |library| {
+            library.undo_receive_moved(&image_id, &layers, created, restored)
         });
     }
 }
@@ -337,13 +352,12 @@ pub fn undo_move(
             }
         }
     }
+    // 先改记录：记录已经不在新库（又移过、又改过）时这条撤销作废，什么都不动。
+    let back: Vec<MovedWork> = works.iter().map(MovedWork::reversed).collect();
+    store.move_works(&back)?;
     for (library_id, ids) in &restore {
         libraries.with(library_id, &mut |library| library.restore_moved(ids))?;
     }
-    let back: Vec<MovedWork> = works.iter().map(MovedWork::reversed).collect();
-    store.move_works(&back)?;
-    for w in works {
-        undo_placed(libraries, w);
-    }
+    undo_placed(libraries, works.iter());
     Ok(())
 }

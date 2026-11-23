@@ -118,7 +118,8 @@ impl Store {
     }
 
     /// 把这些作品的记录从旧库改到新库，一起改或都不改。新库里已经记着同一个作品时不改，
-    /// 返回 [`StoreError::AlreadyReceived`]。
+    /// 返回 [`StoreError::AlreadyReceived`]；旧库里已经没有这条记录（又移过）时返回
+    /// [`StoreError::MovedElsewhere`]。
     pub fn move_works(&self, works: &[MovedWork]) -> Result<(), StoreError> {
         let mut conn = self.conn();
         let tx = conn.transaction()?;
@@ -134,6 +135,21 @@ impl Store {
                 .optional()?;
             if taken.is_some() {
                 return Err(StoreError::AlreadyReceived);
+            }
+            let there: bool = tx.query_row(
+                "SELECT EXISTS (SELECT 1 FROM received_work
+                                WHERE library_id = ?1 AND source = ?2 AND work_id = ?3
+                                  AND subscription_id = ?4)",
+                params![
+                    work.from_library_id,
+                    work.source,
+                    work.work_id,
+                    work.subscription_id
+                ],
+                |row| row.get(0),
+            )?;
+            if !there {
+                return Err(StoreError::MovedElsewhere);
             }
             tx.execute(
                 "UPDATE received_work SET library_id = ?4

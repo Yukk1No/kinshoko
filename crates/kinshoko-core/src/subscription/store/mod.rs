@@ -42,6 +42,8 @@ pub enum StoreError {
     UnknownSubscription,
     /// 新库里已经记着这个作品，不能把旧库的记录移过去。
     AlreadyReceived,
+    /// 作品的记录已经不在原来那个库（之后又移过），这次移动或撤销作废。
+    MovedElsewhere,
 }
 
 // 不上界面：领域错误交给界面时转成错误代码（command_error），Display 只进日志
@@ -53,6 +55,7 @@ impl fmt::Display for StoreError {
             StoreError::Migration(e) => write!(f, "订阅记录升级失败：{e}"),
             StoreError::UnknownSubscription => write!(f, "没有这条订阅"),
             StoreError::AlreadyReceived => write!(f, "新库里已经收过这个作品"),
+            StoreError::MovedElsewhere => write!(f, "这个作品的记录已经移到别处"),
         }
     }
 }
