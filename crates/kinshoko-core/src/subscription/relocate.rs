@@ -259,12 +259,14 @@ fn place(
         bytes = Some(std::fs::read(path).map_err(library::Error::Io)?);
         Ok(())
     })?;
+    // 不上界面：只让这一张移不成，作品留在旧库
     let bytes = bytes.ok_or("原图读不到")?;
     let mut out = None;
     libraries.with(to, &mut |library| {
         out = Some(library.receive_moved(image, &bytes)?);
         Ok(())
     })?;
+    // 不上界面：只让这一张移不成，作品留在旧库
     out.ok_or_else(|| "新库没收进".to_owned())
 }
 
