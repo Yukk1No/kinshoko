@@ -218,6 +218,15 @@ function startDrag(button: HTMLButtonElement, down: PointerEvent, first: Pointer
   for (const row of held) row.el.style.opacity = "0";
   const movers = [...lead, ...rest.map((row) => row.el)];
   if (!calm) for (const el of movers) el.style.transition = `transform ${SETTLE_MS}ms ${SETTLE}`;
+  // 子文件夹那一块的折痕画在 <ul> 上，不跟着行走：拖着时它的上下沿跟着这一块里第一行与最后一行挪，
+  // 整块都在手里时隐去。
+  const creases = [...nav.querySelectorAll<HTMLElement>(".sidebar-tree .sidebar-tree")]
+    .filter((ul) => !ul.closest("[inert]"))
+    .map((ul) => ({ ul, rows: rest.filter((row) => ul.contains(row.el)) }));
+  for (const { ul, rows } of creases) {
+    ul.style.setProperty("--crease-ease", `${SETTLE_MS}ms ${SETTLE}`);
+    if (rows.length === 0) ul.dataset.creaseHeld = "";
+  }
 
   let target: DropAim | "top" | null = null;
   let dwell: { row: number; timer: ReturnType<typeof setTimeout> } | null = null;
@@ -252,6 +261,7 @@ function startDrag(button: HTMLButtonElement, down: PointerEvent, first: Pointer
   /** 各行摆到位：原位合上，线两边的让开。 */
   const arrange = () => {
     const gap = target !== null && target !== "top" && target.kind === "gap" ? target.gap : null;
+    const offsets = new Map<Row, number>();
     rest.forEach((row, index) => {
       let lean = 0;
       let steps = 0;
@@ -261,6 +271,7 @@ function startDrag(button: HTMLButtonElement, down: PointerEvent, first: Pointer
       }
       row.el.style.transitionDelay = `${steps * STAGGER_MS}ms`;
       row.el.style.transform = calm ? "" : `translateY(${shift(row) + lean}px)`;
+      offsets.set(row, calm ? 0 : shift(row) + lean);
       row.button.toggleAttribute(
         "data-folder-drop",
         target !== null && target !== "top" && target.kind === "into" && target.row === index,
@@ -272,6 +283,12 @@ function startDrag(button: HTMLButtonElement, down: PointerEvent, first: Pointer
       el.style.transform = gap !== null && !calm ? `translateY(${-LEAN * FALLOFF ** steps}px)` : "";
     });
     head?.toggleAttribute("data-folder-drop", target === "top");
+    for (const { ul, rows } of creases) {
+      if (rows.length === 0) continue;
+      ul.style.setProperty("--crease-top", `${offsets.get(rows[0]) ?? 0}px`);
+      ul.style.setProperty("--crease-bottom", `${offsets.get(rows[rows.length - 1]) ?? 0}px`);
+      ul.style.setProperty("--crease-delay", rows[0].el.style.transitionDelay);
+    }
     drawLine();
   };
 
@@ -368,6 +385,11 @@ function startDrag(button: HTMLButtonElement, down: PointerEvent, first: Pointer
   arrange();
 
   const clear = () => {
+    for (const { ul } of creases) {
+      for (const name of ["--crease-top", "--crease-bottom", "--crease-delay", "--crease-ease"])
+        ul.style.removeProperty(name);
+      delete ul.dataset.creaseHeld;
+    }
     for (const el of movers) {
       el.style.transition = "";
       el.style.transitionDelay = "";
@@ -411,6 +433,12 @@ function startDrag(button: HTMLButtonElement, down: PointerEvent, first: Pointer
     for (const el of lead) {
       el.style.transitionDelay = "0ms";
       el.style.transform = "";
+    }
+    for (const { ul } of creases) {
+      ul.style.setProperty("--crease-top", "0px");
+      ul.style.setProperty("--crease-bottom", "0px");
+      ul.style.setProperty("--crease-delay", "0ms");
+      delete ul.dataset.creaseHeld;
     }
     head?.removeAttribute("data-folder-drop");
     delete face.dataset.held;
