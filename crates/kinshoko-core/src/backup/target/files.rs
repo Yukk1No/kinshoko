@@ -27,20 +27,23 @@ pub(super) fn holds(stored: &Path, file: &OriginalFile) -> bool {
 /// 复制进备份目标的原文件区：先写临时文件、核对哈希、落盘，再改名。
 pub(super) fn store(source: &Path, target: &Path, sha: &str) -> Result<(), CommandError> {
     let dir = target.parent().expect("原文件区有上级目录");
-    fs::create_dir_all(dir)?;
+    fs::create_dir_all(dir).map_err(BackupError::TargetWrite)?;
     let tmp = dir.join(format!(".{sha}.tmp-{}", uuid::Uuid::new_v4().simple()));
     let result = match library::copy_hashed(source, &tmp) {
-        Ok(got) if got == sha => fs::rename(&tmp, target).map_err(CommandError::from),
+        Ok(got) if got == sha => {
+            fs::rename(&tmp, target).map_err(|e| BackupError::TargetWrite(e).into())
+        }
         Ok(_) => Err(CommandError::new(
             ErrorKind::BackupOriginalChanged,
             "原图内容与资料库记录不符（可能被外部改动），这次备份不完整",
         )),
-        Err(e) => Err(CommandError::new(
+        Err(library::CopyError::Read(e)) => Err(CommandError::new(
             ErrorKind::BackupOriginalUnreadable {
                 detail: e.to_string(),
             },
             format!("读不到原图：{e}"),
         )),
+        Err(library::CopyError::Write(e)) => Err(BackupError::TargetWrite(e).into()),
     };
     if result.is_err() {
         let _ = fs::remove_file(&tmp);
@@ -208,5 +211,39 @@ pub(super) fn reserve_library_dir(
         }
         number = Some(n);
         n += 1;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn original_copy_reports_a_blocked_target_as_a_write_failure() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("source");
+        fs::write(&source, b"original").unwrap();
+        let blocked = dir.path().join("blocked");
+        fs::write(&blocked, b"not a directory").unwrap();
+        let err = store(&source, &blocked.join("original"), "hash").unwrap_err();
+        assert_eq!(
+            serde_json::to_value(err).unwrap()["code"],
+            "backupTargetWriteFailed"
+        );
+    }
+
+    #[test]
+    fn missing_source_is_still_an_unreadable_original() {
+        let dir = tempfile::tempdir().unwrap();
+        let err = store(
+            &dir.path().join("source"),
+            &dir.path().join("original"),
+            "hash",
+        )
+        .unwrap_err();
+        assert!(matches!(
+            err.kind,
+            ErrorKind::BackupOriginalUnreadable { .. }
+        ));
     }
 }
