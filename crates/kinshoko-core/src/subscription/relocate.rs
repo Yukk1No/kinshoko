@@ -311,8 +311,11 @@ pub fn move_old(
                 .map(|p| (w.to_library_id.clone(), p.to_image_id.clone()))
         })
         .collect();
-    undo_placed(libraries, undo_only.values(), &kept);
+    let undo_only = not_received(store, undo_only.into_values())?;
+    undo_placed(libraries, undo_only.iter(), &kept);
     if let Err(e) = store.move_works(&done) {
+        // 移图期间别的订阅也把同一个作品收进了新库（又用上了这张图）：这样的图不撤回。
+        let done = not_received(store, done.into_iter())?;
         undo_placed(libraries, done.iter(), &HashSet::new());
         return Err(e.into());
     }
@@ -365,6 +368,25 @@ fn place(
         })?;
     }
     out.ok_or_else(|| library::Error::UnknownImage.into())
+}
+
+/// 去掉新库里已经有订阅记录指着的图的页：那是移图期间别处收进来的，撤回会拿走它们要用的来源与图。
+fn not_received(
+    store: &Store,
+    works: impl Iterator<Item = MovedWork>,
+) -> Result<Vec<MovedWork>, CommandError> {
+    let mut out = Vec::new();
+    for mut w in works {
+        let mut pages = Vec::new();
+        for p in w.pages {
+            if !store.image_in_use(&w.to_library_id, &p.to_image_id)? {
+                pages.push(p);
+            }
+        }
+        w.pages = pages;
+        out.push(w);
+    }
+    Ok(out)
 }
 
 /// 撤回这些作品在新库加上的来源层；新库原来的样子（已有的来源、在回收站里）照旧。同一张新库的图
