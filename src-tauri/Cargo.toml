@@ -51,6 +51,7 @@ tempfile = "3.27.0"
 # Match Wry's exact versions so controller() and the bridge share the same COM interface types.
 webview2-com = "=0.39.1"
 windows = "=0.62.2"
+windows-registry = "0.6"
 clipboard-win = "5.4.1"
 windows-sys = { version = "0.61", features = ["Win32_Devices_Display", "Win32_Graphics_Dwm", "Win32_Graphics_Gdi", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_UI_ColorSystem", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
 

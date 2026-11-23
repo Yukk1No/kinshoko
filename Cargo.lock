@@ -2708,6 +2708,7 @@ dependencies = [
  "webview2-com",
  "wgpu",
  "windows 0.62.2",
+ "windows-registry",
  "windows-sys 0.61.2",
  "xcap",
 ]
