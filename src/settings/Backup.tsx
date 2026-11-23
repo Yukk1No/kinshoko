@@ -74,7 +74,8 @@ export function BackupSettings() {
   const [preview, setPreview] = useState<BackupPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<ScopeSelection | null>(null);
-  const selectionRevision = useRef(0);
+  const nextSelection = useRef<ScopeSelection | null>(null);
+  const selectionSave = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
     registeredLibraries().then(setLibraries, () => {});
@@ -121,20 +122,37 @@ export function BackupSettings() {
   };
 
   const select = (next: ScopeSelection) => {
-    const revision = ++selectionRevision.current;
+    nextSelection.current = next;
     setPendingSelection(next);
-    void setBackupSelection(next).then(
-      (saved) => {
-        if (revision !== selectionRevision.current) return;
-        setStatus(saved);
-        setError(null);
-        setPendingSelection(null);
-      },
-      (e) => {
-        setError(errorText(e));
-        if (revision === selectionRevision.current) setPendingSelection(null);
-      },
-    );
+    if (selectionSave.current) return;
+    const save = async () => {
+      let success = false;
+      while (nextSelection.current) {
+        const selection = nextSelection.current;
+        nextSelection.current = null;
+        try {
+          const saved = await setBackupSelection(selection);
+          setStatus(saved);
+          setError(null);
+          success = true;
+          if (JSON.stringify(nextSelection.current) === JSON.stringify(selection)) nextSelection.current = null;
+        } catch (e) {
+          setError(errorText(e));
+          success = false;
+        }
+      }
+      setPendingSelection(null);
+      return success;
+    };
+    selectionSave.current = save().finally(() => {
+      selectionSave.current = null;
+    });
+  };
+  const start = async () => {
+    while (selectionSave.current) {
+      if (!(await selectionSave.current)) return;
+    }
+    await startBackup();
   };
   const narrowed = selection?.kind === "libraries" ? selection : null;
   const toggleLibrary = (id: string, on: boolean) => {
@@ -194,7 +212,7 @@ export function BackupSettings() {
             type="button"
             className="k-btn is-sm is-primary"
             disabled={plan.target === null || running !== null}
-            onClick={() => void startBackup().catch((e) => setError(errorText(e)))}
+            onClick={() => void start().catch((e) => setError(errorText(e)))}
           >
             <span className="k-label">{t("start")}</span>
           </button>

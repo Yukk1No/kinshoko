@@ -60,8 +60,8 @@ const backend = (replies: Replies) => fakeBackend({ registered_libraries: regist
 
 describe("设置：备份", () => {
   it.each([false, true])(
-    "sends both selections immediately and keeps both libraries (reverse responses: %s)",
-    async (reverse) => {
+    "coalesces rapid selections before starting a manual backup (start requested: %s)",
+    async (startRequested) => {
       const initial: BackupStatus = {
         ...withTarget,
         plan: { ...withTarget.plan, selection: { kind: "libraries", ids: [], includeLinked: true } },
@@ -70,6 +70,7 @@ describe("设置：备份", () => {
       const fake = backend({
         backup_status: initial,
         backup_preview: narrowed,
+        start_backup: null,
         set_backup_selection: (args) =>
           new Promise<BackupStatus>((resolve) => {
             saves.push(() =>
@@ -88,14 +89,19 @@ describe("设置：备份", () => {
       fireEvent.click(b);
       expect(a.checked).toBe(true);
       expect(b.checked).toBe(true);
-      await waitFor(() => expect(saves).toHaveLength(2));
+      if (startRequested) fireEvent.click(screen.getByRole("button", { name: "备份" }));
       await act(() => emit("backup-status", initial));
+      expect(saves).toHaveLength(1);
+      expect(fake.calls("start_backup")).toHaveLength(0);
       expect(a.checked).toBe(true);
       expect(b.checked).toBe(true);
-      await act(async () => saves[reverse ? 1 : 0]());
+      await act(async () => saves[0]());
+      await waitFor(() => expect(saves).toHaveLength(2));
+      expect(fake.calls("start_backup")).toHaveLength(0);
       expect(a.checked).toBe(true);
       expect(b.checked).toBe(true);
-      await act(async () => saves[reverse ? 0 : 1]());
+      await act(async () => saves[1]());
+      if (startRequested) await waitFor(() => expect(fake.calls("start_backup")).toHaveLength(1));
       expect(fake.calls("set_backup_selection").at(-1)?.args).toEqual({
         selection: { kind: "libraries", ids: ["A", "B"], includeLinked: true },
       });
