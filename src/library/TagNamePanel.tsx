@@ -175,6 +175,7 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
                   key={`${tag.id}/${language}`}
                   tag={tag}
                   tags={workspace.catalog.tags}
+                  conflictMappings={workspace.catalog.mappings}
                   lang={language}
                   busy={busy}
                   pending={pending.has(tag.id)}
@@ -209,6 +210,7 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
 function NameRow({
   tag,
   tags,
+  conflictMappings,
   lang,
   busy,
   pending,
@@ -221,6 +223,7 @@ function NameRow({
 }: {
   tag: CatalogTag;
   tags: CatalogTag[];
+  conflictMappings: LibraryTagMapping[];
   lang: string;
   busy: boolean;
   pending: boolean;
@@ -288,7 +291,7 @@ function NameRow({
                 <span className="k-label">{t("names.reset")}</span>
               </button>
             </div>
-            <NameConflictWarning tag={nameConflict(tags, tag, draft)} lang={lang} />
+            <NameConflictWarning tag={nameConflict(tags, tag, draft, conflictMappings)} lang={lang} />
             <p className="k-description is-spaced">
               {t("names.langDefault", { name: defaultName ?? t("names.noTranslation") })}
             </p>
@@ -333,7 +336,7 @@ function NameRow({
                 <span className="k-label">{t("names.addAlias")}</span>
               </button>
             </div>
-            <NameConflictWarning tag={nameConflict(tags, tag, alias)} lang={lang} />
+            <NameConflictWarning tag={nameConflict(tags, tag, alias, conflictMappings)} lang={lang} />
             {mappings.some((mapping) => mapping.sourceNames?.length) && (
               <ul className="k-list" aria-label={t("names.sourceNames")}>
                 {mappings.flatMap((mapping) =>

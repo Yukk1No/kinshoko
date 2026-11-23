@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import type { CatalogTag } from "../bindings/CatalogTag";
+import type { LibraryTagMapping } from "../bindings/LibraryTagMapping";
 import { foldName, nameConflict } from "./nameConflict";
 
 const self: CatalogTag = {
@@ -20,6 +21,30 @@ const other: CatalogTag = {
   sourceNames: [{ lang: "und", name: "Source" }],
   aliases: [{ lang: null, name: "Alias" }],
 };
+
+it("matches retained pending names without treating migrated historical names as current", () => {
+  const mapping: LibraryTagMapping = {
+    libraryId: "L",
+    localTagId: "local",
+    catalogId: "other",
+    nameProvenance: "pending",
+    basis: "external",
+    legacy: {
+      id: "local",
+      namespace: "general",
+      names: [{ lang: "en", name: "Retained" }],
+      aliases: [{ lang: null, name: "Old alias" }],
+      external: [],
+      count: 1,
+    },
+  };
+  expect(nameConflict([other], self, "retained", [mapping])).toBe(other);
+  expect(nameConflict([other], self, "old alias", [mapping])).toBe(other);
+  expect(nameConflict([other], self, "retained", [{ ...mapping, nameProvenance: "catalog" }])).toBeUndefined();
+  expect(nameConflict([other], self, "retained", [])).toBeUndefined();
+  expect(nameConflict([other], other, "retained", [mapping])).toBeUndefined();
+  expect(nameConflict([{ ...other, namespace: "artist" }], self, "retained", [mapping])).toBeUndefined();
+});
 
 it.each(["other", "ＡＬＩＡＳ", "Underlying", "Preference", "Source"])("matches every name layer: %s", (text) => {
   expect(nameConflict([self, other], self, ` ${text} `)).toBe(other);

@@ -28,7 +28,23 @@ const workspace = {
   catalog: {
     revision: 1,
     tags: [tag, other, { ...other, id: "artist", namespace: "artist", names: [{ lang: "en", name: "Artist" }] }],
-    mappings: [],
+    mappings: [
+      {
+        libraryId: "L",
+        localTagId: "local-other",
+        catalogId: "other",
+        nameProvenance: "pending",
+        basis: "external",
+        legacy: {
+          id: "local-other",
+          namespace: "general",
+          names: [{ lang: "en", name: "Retained name" }],
+          aliases: [{ lang: null, name: "Retained alias" }],
+          external: [],
+          count: 1,
+        },
+      },
+    ],
   },
 };
 
@@ -64,7 +80,12 @@ for (const surface of ["settings rename", "settings alias", "popover rename", "d
       input = screen.getByRole("textbox");
       save = screen.getByRole("button", { name: "添加别名" });
     }
-    for (const text of [" Other ", "ＯＴＨＥＲ ＡＬＩＡＳ", "hidden name"]) {
+    for (const text of [
+      " Other ",
+      "ＯＴＨＥＲ ＡＬＩＡＳ",
+      "hidden name",
+      ...(surface === "detail alias" ? [] : ["Retained name", "Retained alias"]),
+    ]) {
       fireEvent.change(input, { target: { value: text } });
       const warning = await screen.findByRole("status");
       expect(warning.className).toBe("k-list-desc is-warn");

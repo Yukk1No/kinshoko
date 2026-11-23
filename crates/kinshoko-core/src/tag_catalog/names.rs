@@ -440,7 +440,25 @@ impl CatalogInspection {
             .tags
             .iter()
             .filter(|other| other.id != tag.id && other.namespace == tag.namespace)
-            .cloned()
+            .map(|other| {
+                let mut other = other.clone();
+                for mapping in self.mappings.iter().filter(|mapping| {
+                    mapping.catalog_id == other.id
+                        && mapping.name_provenance == TagNameProvenance::Pending
+                }) {
+                    for alias in mapping.legacy.aliases.iter().cloned().chain(
+                        mapping.legacy.names.iter().map(|name| TagAlias {
+                            name: name.name.clone(),
+                            lang: Some(name.lang.clone()),
+                        }),
+                    ) {
+                        if !other.aliases.contains(&alias) {
+                            other.aliases.push(alias);
+                        }
+                    }
+                }
+                other
+            })
             .collect())
     }
 

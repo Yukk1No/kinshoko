@@ -4,6 +4,7 @@ import { Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Tip } from "../ui/Tip";
 import type { CatalogTag } from "../bindings/CatalogTag";
+import type { LibraryTagMapping } from "../bindings/LibraryTagMapping";
 import type { TagLabel } from "../bindings/TagLabel";
 import { editTagName, inspectTagCatalog } from "../ipc";
 import { useUiLang } from "../i18n";
@@ -36,6 +37,7 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [others, setOthers] = useState<CatalogTag[]>([]);
+  const [mappings, setMappings] = useState<LibraryTagMapping[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const name = tag.name;
@@ -53,7 +55,12 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
     let alive = true;
     // 只为重名提示读一次目录；读不到时不提示，照样能保存。
     inspectTagCatalog().then(
-      (workspace) => alive && setOthers(workspace.catalog.tags.filter((entry) => entry.id !== catalogId)),
+      (workspace) => {
+        if (alive) {
+          setOthers(workspace.catalog.tags.filter((entry) => entry.id !== catalogId));
+          setMappings(workspace.catalog.mappings);
+        }
+      },
       () => {},
     );
     return () => {
@@ -61,7 +68,7 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
     };
   }, [open, catalogId]);
   const text = draft.trim();
-  const duplicate = nameConflict(others, { id: catalogId, namespace: tag.namespace }, text);
+  const duplicate = nameConflict(others, { id: catalogId, namespace: tag.namespace }, text, mappings);
   const save = () => {
     if (!text || busy) return;
     setBusy(true);
