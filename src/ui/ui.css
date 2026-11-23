@@ -1,6 +1,12 @@
 /* 共用组件（design/ui-system/README.md）：按钮、菜单行、开关、分段、滑块式悬停等。令牌在 src/styles/tokens.css。
    类名都带 `k-` 前缀。 */
 
+/* 焦点环（design/ui-system/tokens.md）。排在 viewer.css、desktop/capture.css 之后：那里同特异性的 outline 不能盖过它。 */
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
 /* ---- Control label ---- */
 /* Text in a fixed-height, flex-centred control. Chromium floors the half-leading, so at fractional scales
    (110%, 125%) a plain line box rides up to 1 device px; trimming it to cap height and baseline centres the

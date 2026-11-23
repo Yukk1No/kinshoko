@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appCss } from "../test/appCss";
 import { cssRule } from "../ui/cssRule";
-import stacks from "../shell/main-window-stacks.css?raw";
+import stacks from "./wall.css?raw";
 
 // 图片墙滚动的开销由这几条声明决定，实测见 PR 说明：窗口最大化、一屏二十多摞时，
 // 少了任何一条，滚动都会从每帧 6 ms 退回到十几、二十毫秒。

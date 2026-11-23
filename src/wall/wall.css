@@ -1,22 +1,196 @@
-/* 图片墙上叠成一摞的图集与原位托盘（#418）。接在 main-window.css 的卡片与来源按钮之后加载。 */
+/* 图片墙与卡片（src/wall/）：墙的容器、卡片的状态、遮蔽与进出，叠成一摞的图集与原位托盘。
+   在 src/main.tsx 里排在主窗口的样式表之后。它的位置决定它和别处同特异性规则的胜负，挪动前先确认没有靠次序取胜的规则。 */
+
+/* 图片墙所在的区域：图片墙、右下角浮岛、多选操作条与查看器（#179）都摆在这里。 */
+
+.wall-host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 图片墙：中性底色，卡片无装饰；占位色先于缩略图出现，滚动时不露白。
+   滚动条的位置一直留着（图少、不用滚动时墙也不变宽），用 overflow-y: scroll 留，不用 scrollbar-gutter：
+   有 scrollbar-gutter 时 Chromium 不给这个滚动容器单独的合成层，每滚一帧都要把整面墙重新绘制、光栅化。 */
+
+.wall {
+  flex: 1;
+  min-height: 0;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  overflow-anchor: none;
+  background: var(--wall);
+}
+
+.wall-canvas {
+  position: relative;
+  /* 换范围（点文件夹、图库、全部图片）时图片墙整面重建：新的一面淡入、往上浮 8 px（#608）。 */
+  animation: wall-in var(--t-slow) var(--ease) both;
+}
+
+@keyframes wall-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+.card {
+  position: absolute;
+  background: var(--card);
+  overflow: hidden;
+  transform-origin: 0 0;
+  border-radius: var(--r-s);
+}
+
+.card:hover {
+  outline: 1px solid var(--line-2);
+  outline-offset: -1px;
+}
+
+.card[aria-selected="true"] {
+  outline: 3px solid var(--accent-strong);
+  outline-offset: -3px;
+}
+
+.card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* 释放：遮蔽慢慢淡出。 */
+  transition: filter 420ms var(--ease);
+}
+
+/* 安全模式（#60）：遮蔽 = 模糊 14px＋92% 墨色。开启时 200ms 内到位（约 170ms 起已无法辨认），
+   释放未播完时开启也从当前样子直接转回遮蔽。 */
+
+.card::after,
+.viewer-flier::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--veil);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 420ms var(--ease);
+}
+
+/* 封印中交给影子的卡片：不显示、不可操作，只占位（#154）。 */
+
+.card[data-leaving="true"],
+.card[data-leaving="true"] + .card-sources {
+  visibility: hidden;
+}
+
+.card[data-veiled="true"] img,
+.viewer-flier[data-veiled="true"] img {
+  filter: blur(14px);
+  transition: filter 200ms ease-out;
+}
+
+.card[data-veiled="true"]::after,
+.viewer-flier[data-veiled="true"]::after {
+  opacity: 0.92;
+  transition: opacity 200ms ease-out;
+}
+
+/* 占位图（#110）：缩略图到达前，极小派生图放大模糊铺满卡片；缩略图到达后淡入盖住它，
+   随后占位图隐去（透明缩略图不透出占位色）。没有占位图时只留卡片的中性底色。 */
+
+.card img {
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+}
+
+.card img[data-loaded] {
+  opacity: 1;
+  transition:
+    filter 420ms var(--ease),
+    opacity 160ms ease-out;
+}
+
+.card img[data-loaded="instant"] {
+  transition: filter 420ms var(--ease);
+}
+
+.card-placeholder {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  filter: blur(12px);
+  transform: scale(1.15);
+  pointer-events: none;
+}
+
+/* 用 visibility 隐去，不用 opacity：opacity 的过渡会把带模糊的占位图提成合成层，
+   快速滚动时每张到达的缩略图都让所在的一整条墙重新光栅化。 */
+
+.card img[data-loaded] + .card-placeholder {
+  visibility: hidden;
+  transition: visibility 0s linear 160ms;
+}
+
+/* 正在飞的那张的卡片：飞行元素代替它。用透明度而不是 visibility，图片墙要把焦点接回它。 */
+
+.card[data-flying],
+.card[data-flying] + .card-sources {
+  opacity: 0;
+}
+
+.card.is-arriving,
+.card.is-arriving + .card-sources {
+  visibility: hidden;
+}
+
+/* 藏着的卡片看不见遮蔽的变化：不跑模糊与墨色的过渡（模糊滤镜的过渡不能交给合成器，会让主线程每帧重绘，#176）。 */
+
+.card[data-leaving="true"] img,
+.card[data-leaving="true"]::after,
+.card.is-arriving img,
+.card.is-arriving::after {
+  transition: none;
+}
+
+.card[aria-selected="true"] {
+  outline: 0;
+  box-shadow:
+    0 0 0 2px var(--wall),
+    0 0 0 4px var(--accent);
+}
+
+/* 图片墙上叠成一摞的图集与原位托盘（#418）。排在上面的卡片规则与 main-window-island.css 的来源按钮之后。 */
+
 /* ---- 一摞与原位托盘（#418 第 5 版原型，纸张摆法见 stackPaper.ts）----
    一摞仍是一个格子：封面摆正、四周留出纸边，下面几层是后面几页的缩略图。质感只来自纸本身：
    细边线、一线顶边高光、底下一块接触阴影；墙的底色和图片都不加装饰。
    悬停停 120 ms 才拿起：纸边散开，封面上移 3 px，阴影变淡、变宽、往下落；放下比拿起快；滚动中不拿起。 */
+
 .card.is-stack {
   background: transparent;
   overflow: visible;
 }
+
 .card.is-stack:hover {
   outline: 0;
   z-index: 2;
 }
+
 .card.is-stack[aria-selected="true"] {
   box-shadow: none;
 }
+
 .card.is-stack::after {
   inset: var(--stack-inset);
-} /* 内缩按最外扩的纸角算，卡片上给出。 */
+}
+
+/* 内缩按最外扩的纸角算，卡片上给出。 */
+
 .card.is-stack > .stack-sheet,
 .card.is-stack > .stack-cover {
   position: absolute;
@@ -24,17 +198,23 @@
   background: var(--card);
   border-radius: var(--r-s);
 }
+
 /* 下面几层的高度按页的比例但有上下限：图铺满这层纸，不露出纸底。 */
+
 .card.is-stack > .stack-sheet img {
   object-fit: cover;
 }
+
 /* 遮住的页（成人内容、还没放出）：纸上只留纸底，不露图。 */
+
 .card.is-stack > .stack-sheet[data-veiled="true"] img,
 .card.is-stack > .stack-sheet[data-veiled="true"] .card-placeholder {
   visibility: hidden;
 }
+
 /* will-change：每层纸各自一个合成层，摆正了光栅化、由合成器旋转。旋转着画圆角裁剪和圆角阴影很慢，
    一屏几十摞时滚动会掉到每秒 50 帧左右。 */
+
 .card.is-stack > .stack-sheet {
   pointer-events: none;
   transform-origin: 50% 50%;
@@ -45,6 +225,7 @@
     0 1px 1.5px var(--sheet-drop);
   transition: transform var(--t) var(--ease);
 }
+
 .card.is-stack > .stack-cover {
   box-shadow:
     0 0 0 0.5px var(--sheet-edge),
@@ -54,7 +235,9 @@
     transform var(--t) var(--ease),
     box-shadow var(--t) var(--ease);
 }
+
 /* 顶边一线高光盖在图上：缩略图在纸里面。 */
+
 .card.is-stack > .stack-sheet::after,
 .card.is-stack > .stack-cover::after {
   content: "";
@@ -64,6 +247,7 @@
   pointer-events: none;
   box-shadow: inset 0 1px 0 var(--sheet-light);
 }
+
 .card.is-stack > .stack-contact {
   position: absolute;
   height: 14px;
@@ -76,10 +260,12 @@
     transform var(--t) var(--ease),
     opacity var(--t) var(--ease);
 }
+
 .card.is-stack:hover > .stack-sheet {
   transform: var(--hot);
   transition: transform var(--t-slow) var(--spring) var(--t-fast);
 }
+
 .card.is-stack:hover > .stack-cover {
   transform: translateY(-3px);
   transition:
@@ -90,56 +276,73 @@
     0 3px 6px var(--sheet-drop),
     0 16px 30px -6px color-mix(in srgb, var(--contact) 40%, transparent);
 }
+
 .card.is-stack:hover > .stack-contact {
   transform: translateY(5px) scaleX(1.06);
   opacity: calc(var(--weight) * 0.6);
   transition-delay: var(--t-fast);
 }
+
 /* 来源按钮在封面右下角：拿起的一摞（z-index 2）不能盖住它。 */
+
 .card.is-stack:hover + .card-count + .card-sources {
   z-index: 3;
 }
+
 .card.is-stack:hover + .card-count {
   transform: translateY(-3px);
   transition: transform var(--t-slow) var(--spring) var(--t-fast);
 }
+
 .wall-canvas > .card-count {
   transition: transform var(--t) var(--ease);
 }
+
 .card.is-stack[aria-selected="true"] > .stack-cover {
   box-shadow:
     0 0 0 2px var(--wall),
     0 0 0 4px var(--accent);
 }
+
 .card.is-stack:focus-visible {
   outline: 0;
 }
+
 .card.is-stack:focus-visible > .stack-cover {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);
 }
+
 /* 滚动中：保持静止的样子。 */
+
 .wall[data-scrolling] .card.is-stack:hover > .stack-sheet {
   transform: var(--rest);
   transition: transform var(--t) var(--ease);
 }
+
 .wall[data-scrolling] .card.is-stack:hover > .stack-cover,
 .wall[data-scrolling] .card.is-stack:hover > .stack-contact,
 .wall[data-scrolling] .card.is-stack:hover + .card-count {
   transform: none;
 }
+
 .wall[data-scrolling] .card.is-stack:hover > .stack-contact {
   opacity: var(--weight);
 }
+
 /* 托盘关上、各页还在飞回时：这一摞的纸边先不显现，第 1 页压在最上面。 */
+
 .card.is-stack[data-gathering] {
   z-index: 2;
 }
+
 .card.is-stack[data-gathering] > .stack-sheet,
 .card.is-stack[data-gathering] > .stack-contact {
   visibility: hidden;
 }
+
 /* 减弱动效：只加深阴影，不拿起。 */
+
 @media (prefers-reduced-motion: reduce) {
   .card.is-stack:hover > .stack-sheet {
     transform: var(--rest);
@@ -152,6 +355,7 @@
 }
 
 /* 张数：封面左上角，样子同右下角的来源按钮。托盘里页角的勾在右上角，悬停或选中时出现。 */
+
 .wall-canvas > .card-count,
 .wall-canvas > .card-check {
   position: absolute;
@@ -173,18 +377,22 @@
   font-variant-numeric: tabular-nums;
   box-shadow: var(--shadow-raise);
 }
+
 .wall-canvas > .card-count {
   width: max-content;
   padding: 0 7px 0 6px;
 }
+
 .wall-canvas > .card-count > svg,
 .wall-canvas > .card-check > svg {
   flex: none;
 }
+
 .wall-canvas > .card-count:hover,
 .wall-canvas > .card-check:hover {
   background: var(--surface);
 }
+
 .wall-canvas > .card-check {
   width: 22px;
   padding: 0;
@@ -192,12 +400,14 @@
   opacity: 0;
   transition: opacity var(--t-fast) var(--ease);
 }
+
 .card.is-tray-page:hover + .card-check,
 .wall-canvas > .card-check:hover,
 .wall-canvas > .card-check:focus-visible,
 .wall-canvas > .card-check[aria-checked="true"] {
   opacity: 1;
 }
+
 .wall-canvas > .card-check[aria-checked="true"] {
   color: var(--on-accent);
   background: var(--accent);
@@ -205,6 +415,7 @@
 
 /* 托盘：墙上压下去的一块浅槽（第 5 版原型），缩在墙的边距里、圆角，仍是中性灰（只压暗，不染色），
    靠顶上落下的内阴影和下沿外侧一道亮边分出深度。 */
+
 .wall-tray {
   position: absolute;
   border-radius: var(--r);
@@ -215,12 +426,14 @@
     inset 0 0 0 0.5px color-mix(in srgb, var(--contact) 8%, transparent),
     0 1px 0 var(--tray-rim);
 }
+
 .wall-ghosts {
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 1;
 }
+
 .tray-ghost {
   position: absolute;
   overflow: hidden;
@@ -231,12 +444,14 @@
     0 0 0 0.5px var(--sheet-edge),
     0 1px 2px var(--sheet-drop);
 }
+
 .tray-ghost > img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
+
 .tray-ghost[data-veiled="true"] > img {
   visibility: hidden;
 }
