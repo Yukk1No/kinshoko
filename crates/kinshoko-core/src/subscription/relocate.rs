@@ -271,7 +271,30 @@ pub fn move_old(
             });
     }
     // 留下的作品：撤回已收进新库的。
-    let done: Vec<MovedWork> = works.into_values().collect();
+    // 新库同一张图原来的样子（原来没有、原来在回收站）按全部收进的页汇总，记在每一页上：哪个作品
+    // 留下撤回了，移成的作品撤销时照样能回到原来的样子。
+    let mut original: HashMap<(String, String), (bool, bool)> = HashMap::new();
+    for w in works.values().chain(undo_only.values()) {
+        for p in &w.pages {
+            let e = original
+                .entry((w.to_library_id.clone(), p.to_image_id.clone()))
+                .or_default();
+            e.0 |= p.created;
+            e.1 |= p.restored;
+        }
+    }
+    let done: Vec<MovedWork> = works
+        .into_values()
+        .map(|mut w| {
+            for p in &mut w.pages {
+                let (created, restored) =
+                    original[&(w.to_library_id.clone(), p.to_image_id.clone())];
+                p.created = created;
+                p.restored = restored;
+            }
+            w
+        })
+        .collect();
     // 新库里还有留下的作品用着的图：撤回时只去掉来源层，不按原来的样子放回回收站。
     let kept: HashSet<(String, String)> = done
         .iter()
