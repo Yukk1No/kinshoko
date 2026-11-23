@@ -117,6 +117,21 @@ export function PixivWall({
   }, [shown, size.width, density, current, bandHeight]);
   const total = placed.reduce((sum, s) => sum + s.layout.height, 0);
 
+  // 展开的一格不在视口里（点的是靠底的图，或用左右键换到下一张）：滚到它刚好露出来。
+  const bandAt = placed.find((s) => s.layout.band && current?.section === s.key);
+  const bandTop = bandAt?.layout.band ? bandAt.top + bandAt.layout.band.y : null;
+  const bandH = bandAt?.layout.band?.h ?? 0;
+  // biome-ignore lint/correctness/useExhaustiveDependencies(current?.id): 同一行里换一张时位置不变，也要再看一次
+  useEffect(() => {
+    const el = scroller.current;
+    if (bandTop === null || !el || !el.clientHeight) return;
+    const view = el.clientHeight;
+    const top = el.scrollTop;
+    if (bandTop >= top && bandTop + bandH <= top + view) return;
+    const target = bandTop + bandH > top + view && bandH <= view ? bandTop + bandH - view + GAP : bandTop - GAP;
+    el.scrollTo?.({ top: Math.max(0, target), behavior: "smooth" });
+  }, [bandTop, bandH, current?.id]);
+
   // 视口顶上是哪一段。
   const topSection = placed.findLast((s) => s.top <= scrollTop + 1)?.key ?? placed[0]?.key;
   const reported = useRef<string | undefined>(undefined);

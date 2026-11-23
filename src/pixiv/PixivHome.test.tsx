@@ -102,6 +102,35 @@ describe("订阅页主区", () => {
     expect(screen.queryByRole("region", { name: "作品1，画师" })).toBeNull();
   });
 
+  it("展开的一格不在视口里时滚到它刚好露出来，已经看得见就不动", async () => {
+    const scrollTo = vi.fn();
+    HTMLElement.prototype.scrollTo = scrollTo as unknown as typeof HTMLElement.prototype.scrollTo;
+    render(<PixivHome safe={false} />);
+    const card = await screen.findByRole("button", { name: "作品1，画师" });
+    const wall = document.querySelector<HTMLElement>(".pw-wall");
+    if (!wall) throw new Error("没有墙");
+    const scrollWall = (top: number) => {
+      wall.scrollTop = top;
+      fireEvent.scroll(wall);
+    };
+    // 第一行下面展开的一格超出视口底边：往下滚到它的底边露出来。
+    fireEvent.click(card);
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    const revealed = scrollTo.mock.calls[0][0].top as number;
+    expect(revealed).toBeGreaterThan(0);
+    // 停在那里再收起、展开：看得见，不滚。
+    fireEvent.click(card);
+    scrollWall(revealed);
+    fireEvent.click(screen.getByRole("button", { name: "作品1，画师" }));
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    // 滚远了再用方向键换一张：往回滚到它。
+    scrollWall(5000);
+    fireEvent.keyDown(screen.getByRole("region", { name: "作品1，画师" }), { key: "ArrowRight" });
+    expect(scrollTo).toHaveBeenCalledTimes(2);
+    expect(scrollTo.mock.calls[1][0].top).toBeLessThan(5000);
+    delete (HTMLElement.prototype as Partial<HTMLElement>).scrollTo;
+  });
+
   it("右键卡片：收藏、在 pixiv 打开、查看这位画师、关注", async () => {
     render(<PixivHome safe={false} />);
     fireEvent.contextMenu(await screen.findByRole("button", { name: "作品1，画师" }));
