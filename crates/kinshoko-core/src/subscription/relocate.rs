@@ -374,7 +374,8 @@ fn place(
 /// （资料库，图）。
 type ImageAt = (String, String);
 
-/// 撤回前看新库的记录：新库已经记着同一个作品的同一页（移图期间别处收进来的）时，这一页不撤回；
+/// 撤回前看新库的记录：新库的这张图上已经记着同一个作品的页（移图期间别处收进来的）时，这张图上
+/// 这个作品的来源层不撤回；
 /// 新库的图有订阅记录指着时，图留着看得见（返回这些图），只去掉没人要的来源层。
 fn not_received(
     store: &Store,
@@ -390,7 +391,7 @@ fn not_received(
         }
         let mut pages = Vec::new();
         for p in w.pages {
-            if !store.page_received(&w.to_library_id, &w.source, &w.work_id, p.page)? {
+            if !store.layer_received(&w.to_library_id, &p.to_image_id, &w.source, &w.work_id)? {
                 pages.push(p);
             }
         }

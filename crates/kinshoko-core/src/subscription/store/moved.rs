@@ -86,18 +86,19 @@ impl Store {
         )?)
     }
 
-    /// 这个库里记着这个作品的这一页。
-    pub fn page_received(
+    /// 这个库里有这个作品的页记在这张图上（这张图上这个作品的来源层还有人要）。
+    pub fn layer_received(
         &self,
         library_id: &str,
+        image_id: &str,
         source: &str,
         work_id: &str,
-        page: u32,
     ) -> Result<bool, StoreError> {
         Ok(self.conn().query_row(
             "SELECT EXISTS (SELECT 1 FROM received_page
-                            WHERE library_id = ?1 AND source = ?2 AND work_id = ?3 AND page = ?4)",
-            params![library_id, source, work_id, page],
+                            WHERE library_id = ?1 AND image_id = ?2 AND source = ?3
+                              AND work_id = ?4)",
+            params![library_id, image_id, source, work_id],
             |row| row.get(0),
         )?)
     }
