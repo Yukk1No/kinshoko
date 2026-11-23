@@ -116,6 +116,8 @@ describe("缩放滑块左边的打标图标", () => {
     backend(running(0, 0, 100));
     mount();
     await screen.findByRole("button", { name: "暂停自动标签：还剩 100 张" });
+    // Flush the ETA baseline effect before advancing the mocked clock.
+    await act(async () => {});
     for (let done = 1; done <= 3; done++) {
       now += 6_000;
       await push(running(done, done, 100 - done));
