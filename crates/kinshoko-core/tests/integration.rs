@@ -35,6 +35,8 @@ mod backup_plan;
 mod backup_restore;
 #[path = "backup_scope.rs"]
 mod backup_scope;
+#[path = "backup_unreadable_manifest.rs"]
+mod backup_unreadable_manifest;
 #[path = "browse_cursor.rs"]
 mod browse_cursor;
 #[path = "browse_search.rs"]
