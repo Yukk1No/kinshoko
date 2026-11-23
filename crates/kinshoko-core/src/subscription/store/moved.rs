@@ -121,6 +121,15 @@ impl Store {
     /// 返回 [`StoreError::AlreadyReceived`]；旧库里已经没有这条记录（又移过）时返回
     /// [`StoreError::MovedElsewhere`]。
     pub fn move_works(&self, works: &[MovedWork]) -> Result<(), StoreError> {
+        self.move_works_in(works, true)
+    }
+
+    /// 核对 [`Store::move_works`] 能不能做，不改记录。
+    pub fn check_move_works(&self, works: &[MovedWork]) -> Result<(), StoreError> {
+        self.move_works_in(works, false)
+    }
+
+    fn move_works_in(&self, works: &[MovedWork], commit: bool) -> Result<(), StoreError> {
         let mut conn = self.conn();
         let tx = conn.transaction()?;
         for work in works {
@@ -176,7 +185,9 @@ impl Store {
                 )?;
             }
         }
-        tx.commit()?;
+        if commit {
+            tx.commit()?;
+        }
         Ok(())
     }
 }

@@ -352,12 +352,30 @@ pub fn undo_move(
             }
         }
     }
-    // 先改记录：记录已经不在新库（又移过、又改过）时这条撤销作废，什么都不动。
+    // 先核对记录：已经不在新库（又移过、又改过）时这条撤销作废，什么都不动。
     let back: Vec<MovedWork> = works.iter().map(MovedWork::reversed).collect();
-    store.move_works(&back)?;
+    store.check_move_works(&back)?;
+    // 再恢复旧库的图；旧库打不开时把已恢复的放回回收站，记录不改，之后还能再撤销。
+    let mut restored: Vec<(&String, &Vec<String>)> = Vec::new();
     for (library_id, ids) in &restore {
-        libraries.with(library_id, &mut |library| library.restore_moved(ids))?;
+        if let Err(e) = libraries.with(library_id, &mut |library| library.restore_moved(ids)) {
+            put_back(libraries, &restored);
+            return Err(e);
+        }
+        restored.push((library_id, ids));
+    }
+    if let Err(e) = store.move_works(&back) {
+        put_back(libraries, &restored);
+        return Err(e.into());
     }
     undo_placed(libraries, works.iter());
     Ok(())
+}
+
+/// 撤销没做成：把已恢复的旧图放回回收站。
+fn put_back(libraries: &dyn Libraries, restored: &[(&String, &Vec<String>)]) {
+    for (library_id, ids) in restored {
+        // 没能放回：旧库多出一份看得见的图，记录仍指向新库。
+        let _ = libraries.with(library_id, &mut |library| library.trash_moved(ids));
+    }
 }
