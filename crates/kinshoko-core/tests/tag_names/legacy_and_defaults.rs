@@ -3,6 +3,98 @@
 use super::*;
 
 #[test]
+fn conflict_warnings_include_visible_retained_names_only_until_migration() {
+    let dir = tempfile::tempdir().unwrap();
+    let (a, image_a) = library(dir.path(), "first");
+    let (b, image_b) = library(dir.path(), "retained");
+    let (editor, image_editor) = library(dir.path(), "editor");
+    attach(&a, &image_a);
+    attach(&b, &image_b);
+    let local_b = b.vocabulary().unwrap().tags[0].id.clone();
+    b.rename_tag(&local_b, "zh-CN", "Retained library name")
+        .unwrap();
+    editor
+        .replace_source_tags(
+            &FactSource::model("test"),
+            &image_editor,
+            &[SourceTag {
+                tag: TagRef::Named {
+                    namespace: TagNamespace::General,
+                    name: "Editor".into(),
+                    lang: "en".into(),
+                },
+                score: None,
+            }],
+        )
+        .unwrap();
+    let mut catalog = TagCatalog::open(&dir.path().join("app")).unwrap();
+    catalog.synchronize(&a).unwrap();
+    let snapshot = catalog.synchronize(&b).unwrap();
+    let shared_id = snapshot.tags[0].id.clone();
+    catalog.synchronize(&editor).unwrap();
+    catalog
+        .update_name_defaults(&table("Default name"))
+        .unwrap();
+    assert_eq!(
+        label(&mut catalog, &b, &image_b, "zh-CN"),
+        "Retained library name"
+    );
+    let snapshot = catalog.inspect().unwrap();
+    let shared = snapshot.tags.iter().find(|t| t.id == shared_id).unwrap();
+    assert!(
+        !shared
+            .names
+            .iter()
+            .chain(&shared.default_names)
+            .chain(&shared.name_preferences)
+            .chain(&shared.source_names)
+            .any(|n| n.name == "Retained library name")
+    );
+    assert!(
+        !shared
+            .aliases
+            .iter()
+            .any(|n| n.name == "Retained library name")
+    );
+    let local_editor = editor.vocabulary().unwrap().tags[0].id.clone();
+    let candidates = snapshot
+        .name_conflict_tags(&editor.info().id, &local_editor)
+        .unwrap();
+    assert!(
+        candidates
+            .iter()
+            .find(|t| t.id == shared_id)
+            .unwrap()
+            .aliases
+            .iter()
+            .any(|n| n.name == "Retained library name")
+    );
+    catalog
+        .set_name_preference(
+            &shared_id,
+            &LocalizedName {
+                lang: "zh-CN".into(),
+                name: "Default name".into(),
+            },
+        )
+        .unwrap();
+    assert_eq!(label(&mut catalog, &b, &image_b, "zh-CN"), "Default name");
+    assert!(
+        !catalog
+            .inspect()
+            .unwrap()
+            .name_conflict_tags(&editor.info().id, &local_editor)
+            .unwrap()
+            .iter()
+            .find(|t| t.id == shared_id)
+            .unwrap()
+            .aliases
+            .iter()
+            .any(|n| n.name == "Retained library name")
+    );
+}
+
+#[test]
 fn legacy_names_remain_pending_until_an_explicit_global_preference_choice() {
     let dir = tempfile::tempdir().unwrap();
     let (a, image_a) = library(dir.path(), "legacy-a");

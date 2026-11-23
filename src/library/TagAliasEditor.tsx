@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { VocabularyTag } from "../bindings/VocabularyTag";
-import { addTagAlias, removeTagAlias, vocabulary } from "../ipc";
+import { addTagAlias, removeTagAlias, vocabulary, tagNameConflictTags } from "../ipc";
+import type { CatalogTag } from "../bindings/CatalogTag";
+import { nameConflict } from "../tags/nameConflict";
+import { NameConflictWarning } from "../tags/NameConflictWarning";
 import { tagName } from "../search/SearchBox";
 import { useUiLang } from "../i18n";
 import { isComposingKey } from "../ui/composing";
@@ -27,11 +30,17 @@ export function AliasEditor({
   const lang = useUiLang();
   const [entry, setEntry] = useState<VocabularyTag | null>(null);
   const [draft, setDraft] = useState("");
+  const [others, setOthers] = useState<CatalogTag[]>([]);
   const name = tagName(tag);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies(generation): 词表代次前进时重读
   useEffect(() => {
     let alive = true;
+    setOthers([]);
+    tagNameConflictTags(libraryId, tag.id).then(
+      (tags) => alive && setOthers(tags),
+      () => {},
+    );
     vocabulary(libraryId).then(
       (v) => alive && setEntry(v.tags.find((t) => t.id === tag.id) ?? null),
       (e) => alive && onError(e),
@@ -88,6 +97,7 @@ export function AliasEditor({
           if (e.key === "Escape") onClose();
         }}
       />
+      <NameConflictWarning tag={nameConflict(others, { namespace: tag.namespace }, draft)} lang={lang} />
       <span className="k-tag-alias-acts">
         <button type="button" className="k-btn is-sm" onClick={onClose}>
           <span className="k-label">{t("alias.done")}</span>

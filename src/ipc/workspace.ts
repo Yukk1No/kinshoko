@@ -12,6 +12,7 @@ import type { WorkspacePage } from "../bindings/WorkspacePage";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import type { CatalogNameEdit } from "../bindings/CatalogNameEdit";
+import type { CatalogTag } from "../bindings/CatalogTag";
 import { Channel } from "@tauri-apps/api/core";
 import { invoke } from "./invoke";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -32,6 +33,10 @@ import { lib, desk } from "./plugins";
 /** Inspect registered content providers and durable application-level tag mappings. */
 export function inspectTagCatalog(): Promise<TagCatalogWorkspace> {
   return invoke<TagCatalogWorkspace>(lib("inspect_tag_catalog"));
+}
+
+export function tagNameConflictTags(libraryId: string, tagId: string): Promise<CatalogTag[]> {
+  return invoke<CatalogTag[]>(lib("tag_name_conflict_tags"), { libraryId, tagId });
 }
 
 export function correctTagMapping(

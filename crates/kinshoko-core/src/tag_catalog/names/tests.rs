@@ -6,6 +6,61 @@ use crate::Library;
 use crate::library::{FactSource, ImportSource, SourceTag, TagNamespace, TagRef};
 use image::{Rgba, RgbaImage};
 
+#[test]
+fn conflict_definitions_exclude_self_and_other_namespaces_but_keep_all_name_layers() {
+    let dir = tempfile::tempdir().unwrap();
+    let library = tagged(dir.path(), "names", &["self", "other", "artist"]);
+    let mut catalog = TagCatalog::open(&dir.path().join("catalog")).unwrap();
+    let mut snapshot = catalog.synchronize(&library).unwrap();
+    let id = catalog_id(&catalog, "self");
+    let other_id = catalog_id(&catalog, "other");
+    let artist_id = catalog_id(&catalog, "artist");
+    let mapping = snapshot
+        .mappings
+        .iter()
+        .find(|m| m.catalog_id == id)
+        .unwrap()
+        .clone();
+    let other = snapshot.tags.iter_mut().find(|t| t.id == other_id).unwrap();
+    other.default_names.push(LocalizedName {
+        lang: "en".into(),
+        name: "hidden".into(),
+    });
+    other.aliases.push(TagAlias {
+        lang: None,
+        name: "alias".into(),
+    });
+    let expected = other.clone();
+    snapshot
+        .tags
+        .iter_mut()
+        .find(|t| t.id == artist_id)
+        .unwrap()
+        .namespace = TagNamespace::Artist;
+    assert_eq!(
+        snapshot
+            .name_conflict_tags(&mapping.library_id, &mapping.local_tag_id)
+            .unwrap(),
+        vec![expected]
+    );
+    snapshot.tags.retain(|t| t.id != other_id);
+    assert!(
+        snapshot
+            .name_conflict_tags(&mapping.library_id, &mapping.local_tag_id)
+            .unwrap()
+            .is_empty()
+    );
+    assert!(matches!(
+        snapshot.name_conflict_tags("missing", &mapping.local_tag_id),
+        Err(CatalogError::UnknownMapping)
+    ));
+    snapshot.tags.retain(|t| t.id != id);
+    assert!(matches!(
+        snapshot.name_conflict_tags(&mapping.library_id, &mapping.local_tag_id),
+        Err(CatalogError::UnknownTag)
+    ));
+}
+
 fn tagged(dir: &std::path::Path, name: &str, externals: &[&str]) -> Library {
     let library = Library::create(&dir.join(name), name).unwrap();
     let path = dir.join(format!("{name}.png"));

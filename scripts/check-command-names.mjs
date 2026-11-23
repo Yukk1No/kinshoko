@@ -86,6 +86,16 @@ export function registeredCommands(source) {
     .map((item) => item.split("::").pop());
 }
 
+export function pluginCommands(source) {
+  return Object.fromEntries(
+    [
+      ...stripComments(source).matchAll(
+        /\.plugin\(\s*"([^"]+)",\s*tauri_build::InlinedPlugin::new\(\)\s*\.commands\(&\[([\s\S]*?)\]\)/g,
+      ),
+    ].map(([, group, commands]) => [group, [...commands.matchAll(/"([^"]+)"/g)].map(([, name]) => name)]),
+  );
+}
+
 const lineOf = (text, index) => text.slice(0, index).split("\n").length;
 
 /** 一个前端文件里的命令调用：[{ group, name, line }]。整个文件当一个字符串匹配，所以跨行的调用也算。 */
@@ -103,8 +113,17 @@ export function frontendCalls(source) {
 /**
  * registered: { 组: 命令名[] }；calls: [{ group, name, file, line }]。返回问题列表（每项一行文字）。
  */
-export function findProblems({ registered, calls, exceptions = EXCEPTIONS }) {
+export function findProblems({ registered, calls, exceptions = EXCEPTIONS, permissions }) {
   const problems = [];
+  if (permissions) {
+    for (const group of ["library", "desktop"]) {
+      for (const name of registered[group] ?? []) {
+        if (!permissions[group]?.includes(name)) {
+          problems.push(`src-tauri/build.rs: ${group}:${name} is registered without plugin permission`);
+        }
+      }
+    }
+  }
   const used = {};
   for (const group of Object.keys(registered)) used[group] = new Set();
   for (const { group, name, file, line } of calls) {
@@ -151,7 +170,8 @@ function main() {
   for (const file of sourceFiles("src")) {
     for (const call of frontendCalls(readFileSync(join(ROOT, file), "utf8"))) calls.push({ ...call, file });
   }
-  const problems = findProblems({ registered, calls });
+  const permissions = pluginCommands(readFileSync(join(ROOT, "src-tauri/build.rs"), "utf8"));
+  const problems = findProblems({ registered, calls, permissions });
   for (const problem of problems) console.error(problem);
   const total = Object.values(registered).reduce((sum, names) => sum + names.length, 0);
   console.log(
