@@ -96,3 +96,33 @@ fn a_file_beside_the_snapshots_does_not_stop_the_cleanup() {
     assert!(second.complete, "{:?}", second.problems);
     assert!(!unreferenced.exists(), "没人引用的原文件照常清掉");
 }
+
+#[test]
+fn a_linked_snapshot_keeps_the_originals_only_it_references() {
+    // 快照目录是指向别处的目录链接：恢复照样认它，清理也得读它的清单。
+    a_snapshot_survives_a_backup_that_could_not_read_its_manifest(
+        |manifest| {
+            let snapshot = manifest.parent().unwrap();
+            let elsewhere = snapshot.parent().unwrap().parent().unwrap().join("别处");
+            std::fs::rename(snapshot, &elsewhere).unwrap();
+            link_dir(&elsewhere, snapshot);
+        },
+        |_| {},
+    );
+}
+
+fn link_dir(target: &Path, link: &Path) {
+    #[cfg(windows)]
+    {
+        let status = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(link)
+            .arg(target)
+            .stdout(std::process::Stdio::null())
+            .status()
+            .unwrap();
+        assert!(status.success(), "mklink /J 失败");
+    }
+    #[cfg(not(windows))]
+    std::os::unix::fs::symlink(target, link).unwrap();
+}

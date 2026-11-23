@@ -80,8 +80,8 @@ pub(super) fn complete_snapshots(root: &Path) -> std::io::Result<CompleteSnapsho
     };
     for entry in fs::read_dir(root.join(SNAPSHOTS))? {
         let entry = entry?;
-        if !entry.file_type()?.is_dir() || entry.file_name().to_string_lossy().ends_with(INCOMPLETE)
-        {
+        // 跟着目录链接走：恢复认链接过去的快照，这里也得读它的清单。
+        if !entry.path().is_dir() || entry.file_name().to_string_lossy().ends_with(INCOMPLETE) {
             continue;
         }
         match read_manifest(&entry.path()) {
