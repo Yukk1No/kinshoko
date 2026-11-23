@@ -21,7 +21,9 @@ use crate::CommandError;
 use crate::command_error::ErrorKind;
 
 mod curation;
+mod snapshot;
 use curation::{NOT_CURATION, curation};
+pub(crate) use snapshot::SnapshotError;
 
 /// 依赖清单里的一个原文件。`key` 只在资料库内部有意义，备份原样记下、恢复时原样交回。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -200,43 +202,6 @@ impl Library {
             database_size: std::fs::metadata(&db)?.len(),
             originals: originals(&conn, &library.root)?,
             library,
-        })
-    }
-
-    /// 取得原文件租约，再用 SQLite Online Backup 把数据库一致地快照到 `into` 下，依赖清单与整理信息
-    /// 摘要都按快照读出。`into` 不存在时建立。
-    pub fn snapshot_at(
-        root: &Path,
-        expected_id: &str,
-        into: &Path,
-    ) -> Result<LibrarySnapshot, Error> {
-        let library = checked_info(root, expected_id)?;
-        let lease = OriginalsLease::take(&library.id);
-        std::fs::create_dir_all(into)?;
-        let database = into.join(DB_FILE);
-        {
-            let source = store::inspect_db(&root.join(DB_FILE))?;
-            let mut copy = Connection::open(store::sqlite_path(&database)?)?;
-            // 一步复制全部页：整个复制期间持有同一个读事务，得到一致的快照。
-            let backup = rusqlite::backup::Backup::new(&source, &mut copy)?;
-            loop {
-                match backup.step(-1)? {
-                    rusqlite::backup::StepResult::Done => break,
-                    rusqlite::backup::StepResult::More => {}
-                    _ => std::thread::sleep(std::time::Duration::from_millis(50)),
-                }
-            }
-            drop(backup);
-            // 快照是一个自足的文件，不带 -wal。
-            copy.pragma_update(None, "journal_mode", "DELETE")?;
-        }
-        let conn = store::inspect_db(&database)?;
-        Ok(LibrarySnapshot {
-            originals: originals(&conn, &library.root)?,
-            curation: curation(&conn, None)?,
-            database,
-            library,
-            _lease: lease,
         })
     }
 

@@ -71,7 +71,7 @@ use rusqlite::{OptionalExtension, params};
 pub use crate::fidelity::{
     Cicp, ColourDeclaration, ColourDescription, ColourModel, HdrKind, IccKind, IccSummary,
 };
-pub(crate) use backup::{CopyError, copy_hashed, hash_file};
+pub(crate) use backup::{CopyError, SnapshotError, copy_hashed, hash_file};
 pub use backup::{
     Dependency, LibraryCheck, LibraryDependencies, LibrarySnapshot, OriginalFile, OriginalsLease,
     RestoreProvenance, TableDigest,

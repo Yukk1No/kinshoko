@@ -63,6 +63,13 @@ function useBackupStatus(): [BackupStatus | null, (s: BackupStatus) => void] {
   return [status, setStatus];
 }
 
+type PreviewResult = {
+  value: BackupPreview;
+  selectionKey: string | null;
+  kind: ScopeSelection["kind"];
+  target: string | null;
+};
+
 /**
  * 设置 › 备份 › 图库（原“资料库备份”）：备份目录、范围（全部或按库缩小，执行前列出带上的参考组、没覆盖的内容与容量）、
  * 上次结果、马上备份，以及从快照恢复（恢复后显示往返检查结果）。
@@ -71,7 +78,7 @@ export function BackupSettings() {
   const { t } = useTranslation("backup");
   const [status, setStatus] = useBackupStatus();
   const [libraries, setLibraries] = useState<LibraryRegistration[]>([]);
-  const [preview, setPreview] = useState<BackupPreview | null>(null);
+  const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<ScopeSelection | null>(null);
   const nextSelection = useRef<ScopeSelection | null>(null);
@@ -83,23 +90,35 @@ export function BackupSettings() {
 
   const selection = pendingSelection ?? status?.plan.selection;
   const selectionKey = JSON.stringify(selection ?? null);
+  const target = status?.plan.target ?? null;
   const isRunning = status?.running != null;
+  const sameContext = !isRunning && preview !== null && preview.kind === selection?.kind && preview.target === target;
+  const currentPreview = sameContext && preview.selectionKey === selectionKey ? preview.value : null;
+  const layoutPreview = currentPreview ?? (sameContext && selection?.kind === "libraries" ? preview.value : null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: 按范围的内容（selectionKey）而不是对象身份重新估计，备份目录变了也重估
   useEffect(() => {
-    setPreview(null);
+    setPreview((previous) =>
+      !isRunning && selection?.kind === "libraries" && previous?.kind === selection.kind && previous.target === target
+        ? { ...previous, selectionKey: null }
+        : null,
+    );
     if (!selection || isRunning) return;
     let alive = true;
     backupPreview(selection).then(
       (p) => {
-        if (alive && p) setPreview(p);
+        if (alive) setPreview(p ? { value: p, selectionKey, kind: selection.kind, target } : null);
       },
-      (e) => alive && setError(errorText(e)),
+      (e) => {
+        if (!alive) return;
+        setPreview(null);
+        setError(errorText(e));
+      },
     );
     return () => {
       alive = false;
     };
     // 按范围的内容（不是对象身份）与备份目录重新估计。
-  }, [selectionKey, status?.plan.target, isRunning]);
+  }, [selectionKey, target, isRunning]);
 
   const apply = useCallback(
     async (change: Promise<BackupStatus>) => {
@@ -220,7 +239,9 @@ export function BackupSettings() {
         <SettingsRow
           icon={<Library size={16} />}
           title={t("scope")}
-          meta={preview ? t("estimate", { size: formatBytes(preview.estimate.totalBytes) }) : t("estimating")}
+          meta={
+            currentPreview ? t("estimate", { size: formatBytes(currentPreview.estimate.totalBytes) }) : t("estimating")
+          }
           below={
             <>
               {narrowed !== null && (
@@ -245,7 +266,7 @@ export function BackupSettings() {
                   </label>
                 </div>
               )}
-              {preview !== null && <PreviewView preview={preview} />}
+              {layoutPreview !== null && <PreviewView preview={layoutPreview} pending={currentPreview === null} />}
             </>
           }
         >
@@ -272,12 +293,14 @@ export function BackupSettings() {
   );
 }
 
-function PreviewView({ preview }: { preview: BackupPreview }) {
+function PreviewView({ preview, pending }: { preview: BackupPreview; pending: boolean }) {
   const { t } = useTranslation("backup");
   const { scope, estimate } = preview;
+  const unavailableKey =
+    estimate.unavailable.length === scope.libraries.length ? "preview.noneReadable" : "preview.unavailable";
   const names = (list: { name: string }[]) => list.map((entry) => entry.name).join(t("separator")) || t("none");
   return (
-    <div className="backup-preview" aria-label={t("preview.label")}>
+    <div className="backup-preview" role="group" aria-label={t("preview.label")} aria-hidden={pending || undefined}>
       <p>{t("preview.scope", { libraries: names(scope.libraries), groups: names(scope.groups) })}</p>
       <p>
         {t("preview.size", {
@@ -294,7 +317,7 @@ function PreviewView({ preview }: { preview: BackupPreview }) {
           ))}
           {estimate.unavailable.map((s) => (
             <li key={s.library.id}>
-              {t("preview.unavailable", { library: s.library.name, reason: storedReasonText(s.reason) })}
+              {t(unavailableKey, { library: s.library.name, reason: storedReasonText(s.reason) })}
             </li>
           ))}
         </ul>

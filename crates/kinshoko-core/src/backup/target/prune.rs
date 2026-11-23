@@ -12,7 +12,31 @@ impl BackupTarget {
             unreadable,
         } = complete_snapshots(root)?;
         let stamps: Vec<Stamp> = manifests.iter().map(|(_, m)| m.created_at).collect();
-        let keep = retention::keep(&stamps);
+        let mut keep = retention::keep(&stamps);
+        if let Some(newest) = manifests
+            .iter()
+            .min_by_key(|(_, m)| std::cmp::Reverse(m.created_at.unix_ms))
+            .map(|(_, m)| m)
+            .filter(|m| !m.skipped.is_empty())
+        {
+            let mut skipped: BTreeSet<_> = newest
+                .skipped
+                .iter()
+                .map(|s| s.library.id.as_str())
+                .collect();
+            let mut order: Vec<_> = (0..manifests.len()).collect();
+            order.sort_by_key(|&i| std::cmp::Reverse(stamps[i].unix_ms));
+            for i in order {
+                for lib in &manifests[i].1.libraries {
+                    if skipped.remove(lib.id.as_str()) {
+                        keep.insert(i);
+                    }
+                }
+                if skipped.is_empty() {
+                    break;
+                }
+            }
+        }
         let mut removed = Vec::new();
         let mut referenced = BTreeSet::new();
         for (i, (dir, m)) in manifests.iter().enumerate() {

@@ -171,7 +171,7 @@ section + section {
 }
 /* 名称与描述允许换行，不让给控件；宽控件（如列出模型的下拉）限宽，选项文字过长时在框里换行。 */
 .k-set-row-main > .k-list-text {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 12em;
 }
 .k-set-row-main .k-list-title {
@@ -358,6 +358,9 @@ section + section {
 .k-settings .backup-preview p,
 .k-settings .backup-result p {
   margin: 4px 0;
+}
+.k-settings .backup-preview[aria-hidden="true"] {
+  color: color-mix(in srgb, var(--ink-2) 90%, var(--bg));
 }
 .k-settings .backup-snapshots {
   list-style: none;

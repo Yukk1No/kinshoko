@@ -202,7 +202,9 @@ export class FakeTags {
 
 export let fake: FakeTags;
 let backend: FakeBackend;
+let notification: Promise<unknown>;
 export const sent = (command: string) => backend.calls(command).map((call) => call.args);
+export const tagEventsDelivered = () => notification;
 
 /** 写入提交后，核心推送的事件（只推送给界面，事件线程先清掉 Search 缓存）。 */
 export function announce(images: string[]) {
@@ -210,7 +212,9 @@ export function announce(images: string[]) {
   const events: LibraryEvent[] = [];
   if (images.length) events.push({ kind: "imagesChanged", libraryId: "L1", imageIds: images });
   events.push({ kind: "vocabularyChanged", libraryId: "L1", revision: fake.revision });
-  setTimeout(() => events.forEach((e) => void emit("library-event", e)), 0);
+  notification = new Promise((resolve) => {
+    setTimeout(() => resolve(Promise.all(events.map((e) => emit("library-event", e)))), 0);
+  });
 }
 
 export function serve() {
@@ -347,6 +351,7 @@ beforeEach(() => {
   mockConvertFileSrc("windows");
   window.__KINSHOKO_TEST_PICKS__ = [];
   fake = new FakeTags();
+  notification = Promise.resolve();
   serve();
 });
 
