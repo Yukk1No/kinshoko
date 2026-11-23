@@ -88,6 +88,26 @@ export function useSubscriptions(safe = false, received: unknown = null) {
   }, [attempt]);
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
+  // 后台检查开始、结束（`received` 变了）时重读名单：每条订阅上次检查的结果（`lastError`）跟着更新。
+  // 正在写的时候不换掉名单，免得盖掉还没写完的改动；下次检查再读。
+  const seenReceived = useRef(received);
+  useEffect(() => {
+    const before = seenReceived.current;
+    seenReceived.current = received;
+    // 第一次读到订阅状态不算：名单刚在上面读过。
+    if (before === received || before === null) return;
+    if (writing.current.size) return;
+    let alive = true;
+    listSubscriptions().then(
+      (next) => alive && !writing.current.size && setList(next),
+      // 忽略失败：名单还是上次读到的，下次检查再读。
+      () => {},
+    );
+    return () => {
+      alive = false;
+    };
+  }, [received]);
+
   // 名单里的订阅变了（多了、少了）、后台又收了图（`received` 变了）时再读一次概况；只是改了设置不用重读。
   const ids = list?.map((s) => s.id).join(",") ?? null;
   // biome-ignore lint/correctness/useExhaustiveDependencies(received): received 与 moves 是重读信号，effect 里不读它们

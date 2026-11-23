@@ -300,6 +300,7 @@ export function SettingsPanel({
                 <SubscriptionSettings
                   status={subscriptions.status}
                   onStatus={subscriptions.onStatus}
+                  safe={safe}
                   error={error}
                   onError={setError}
                 />,
