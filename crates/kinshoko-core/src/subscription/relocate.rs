@@ -180,6 +180,15 @@ fn count_old(plan: &Plan, out: &mut Vec<OldImages>) {
     }
 }
 
+/// 一张旧图收进哪个新库：旧库、旧图、新库。
+fn placement(p: &OldPage) -> (String, String, String) {
+    (
+        p.library_id.clone(),
+        p.image_id.clone(),
+        p.target_library_id.clone(),
+    )
+}
+
 /// 把这几条订阅留在旧库、能移的图移到它们现在收进的库。
 pub fn move_old(
     store: &Store,
@@ -189,17 +198,17 @@ pub fn move_old(
 ) -> Result<MoveReport, CommandError> {
     let plan = plan(store, libraries, usage, ids)?;
     let mut report = MoveReport::default();
-    // 先把要移的图一张张收进新库（同一张图只收一次）。
-    let mut placed: HashMap<(String, String), ReceivedMove> = HashMap::new();
-    let mut failed: HashSet<(String, String)> = HashSet::new();
+    // 先把要移的图一张张收进新库（同一张图收进同一个新库只收一次；几条订阅收进不同的库时各收一份）。
+    let mut placed: HashMap<(String, String, String), ReceivedMove> = HashMap::new();
+    let mut failed: HashSet<(String, String, String)> = HashSet::new();
     for p in &plan.pages {
-        let at = (p.library_id.clone(), p.image_id.clone());
+        let at = placement(p);
         if !plan.movable.contains(&key(p)) || placed.contains_key(&at) || failed.contains(&at) {
             continue;
         }
         match place(
             libraries,
-            &plan.images[&at],
+            &plan.images[&(at.0.clone(), at.1.clone())],
             &p.library_id,
             &p.target_library_id,
         ) {
@@ -217,10 +226,7 @@ pub fn move_old(
         let stuck: HashSet<(String, String)> = plan
             .pages
             .iter()
-            .filter(|p| {
-                let at = (p.library_id.clone(), p.image_id.clone());
-                failed.contains(&at) || !moving.contains(&key(p))
-            })
+            .filter(|p| failed.contains(&placement(p)) || !moving.contains(&key(p)))
             .map(|p| (p.library_id.clone(), p.image_id.clone()))
             .collect();
         let before = moving.len();
@@ -236,8 +242,7 @@ pub fn move_old(
     let mut works: BTreeMap<WorkKey, MovedWork> = BTreeMap::new();
     let mut undo_only: BTreeMap<WorkKey, MovedWork> = BTreeMap::new();
     for p in &plan.pages {
-        let at = (p.library_id.clone(), p.image_id.clone());
-        let Some(to) = placed.get(&at) else {
+        let Some(to) = placed.get(&placement(p)) else {
             if !moving.contains(&key(p)) {
                 report.kept += 1;
             }
@@ -414,13 +419,17 @@ pub fn undo_move(
     let back: Vec<MovedWork> = works.iter().map(MovedWork::reversed).collect();
     store.check_move_works(&back)?;
     // 再恢复旧库的图；旧库打不开时把已恢复的放回回收站，记录不改，之后还能再撤销。
-    let mut restored: Vec<(&String, &Vec<String>)> = Vec::new();
+    let mut restored: Vec<(String, Vec<String>)> = Vec::new();
     for (library_id, ids) in &restore {
-        if let Err(e) = libraries.with(library_id, &mut |library| library.restore_moved(ids)) {
+        let mut out = Vec::new();
+        if let Err(e) = libraries.with(library_id, &mut |library| {
+            out = library.restore_moved(ids)?;
+            Ok(())
+        }) {
             put_back(libraries, &restored);
             return Err(e);
         }
-        restored.push((library_id, ids));
+        restored.push((library_id.clone(), out));
     }
     if let Err(e) = store.move_works(&back) {
         put_back(libraries, &restored);
@@ -439,9 +448,12 @@ pub fn undo_move(
     Ok(())
 }
 
-/// 撤销没做成：把已恢复的旧图放回回收站。
-fn put_back(libraries: &dyn Libraries, restored: &[(&String, &Vec<String>)]) {
+/// 撤销没做成：把这次从回收站里拿出来的旧图放回去。
+fn put_back(libraries: &dyn Libraries, restored: &[(String, Vec<String>)]) {
     for (library_id, ids) in restored {
+        if ids.is_empty() {
+            continue;
+        }
         // 没能放回：旧库多出一份看得见的图，记录仍指向新库。
         let _ = libraries.with(library_id, &mut |library| library.trash_moved(ids));
     }

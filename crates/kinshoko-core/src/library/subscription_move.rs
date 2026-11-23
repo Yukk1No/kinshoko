@@ -187,8 +187,24 @@ impl Library {
     }
 
     /// 从回收站恢复，不经浏览视角。
-    pub fn restore_moved(&self, ids: &[String]) -> Result<(), Error> {
-        edit_in(&self.inner, ids, &[ImageEdit::Restore], true).map(drop)
+    /// 返回这次真从回收站里拿出来的图（原来就看得见的不算），撤销失败时只把这些放回去。
+    pub fn restore_moved(&self, ids: &[String]) -> Result<Vec<String>, Error> {
+        let trashed: Vec<String> = {
+            let conn = self.inner.readers.get();
+            let mut stmt = conn
+                .prepare_cached("SELECT 1 FROM image WHERE id = ?1 AND deleted_at IS NOT NULL")?;
+            let mut out = Vec::new();
+            for id in ids {
+                if stmt.exists([id])? {
+                    out.push(id.clone());
+                }
+            }
+            out
+        };
+        if !trashed.is_empty() {
+            edit_in(&self.inner, &trashed, &[ImageEdit::Restore], true)?;
+        }
+        Ok(trashed)
     }
 
     /// 撤销移进本库：去掉 `layers` 这几层来源；原来在回收站里（`restored`），或这次才有（`created`）且
