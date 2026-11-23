@@ -420,6 +420,48 @@ pub enum CatalogNameEdit {
 }
 
 impl CatalogInspection {
+    /// Only the definitions needed to warn while editing a local tag's names.
+    pub fn name_conflict_tags(
+        &self,
+        library_id: &str,
+        local_tag_id: &str,
+    ) -> Result<Vec<CatalogTag>, CatalogError> {
+        let mapping = self
+            .mappings
+            .iter()
+            .find(|m| m.library_id == library_id && m.local_tag_id == local_tag_id)
+            .ok_or(CatalogError::UnknownMapping)?;
+        let tag = self
+            .tags
+            .iter()
+            .find(|t| t.id == mapping.catalog_id)
+            .ok_or(CatalogError::UnknownTag)?;
+        Ok(self
+            .tags
+            .iter()
+            .filter(|other| other.id != tag.id && other.namespace == tag.namespace)
+            .map(|other| {
+                let mut other = other.clone();
+                for mapping in self.mappings.iter().filter(|mapping| {
+                    mapping.catalog_id == other.id
+                        && mapping.name_provenance == TagNameProvenance::Pending
+                }) {
+                    for alias in mapping.legacy.aliases.iter().cloned().chain(
+                        mapping.legacy.names.iter().map(|name| TagAlias {
+                            name: name.name.clone(),
+                            lang: Some(name.lang.clone()),
+                        }),
+                    ) {
+                        if !other.aliases.contains(&alias) {
+                            other.aliases.push(alias);
+                        }
+                    }
+                }
+                other
+            })
+            .collect())
+    }
+
     /// Resolve a visible provider label without changing its local ID or namespace.
     pub fn display_label(&self, library_id: &str, label: &TagLabel, lang: &str) -> TagLabel {
         let Some(mapping) = self.mappings.iter().find(|mapping| {

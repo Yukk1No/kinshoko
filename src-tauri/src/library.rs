@@ -338,6 +338,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             correct_tag_mapping,
             portable::publish_tag_definitions,
             names::edit_tag_name,
+            names::tag_name_conflict_tags,
             groups::shared_tag_groups,
             approx::shared_personal_approx,
             approx::edit_shared_approx,
