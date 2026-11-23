@@ -106,12 +106,11 @@ describe("订阅页主区", () => {
     render(<PixivHome safe={false} />);
     fireEvent.contextMenu(await screen.findByRole("button", { name: "作品1，画师" }));
     const menu = await screen.findByRole("menu", { name: "作品1，画师" });
-    expect(within(menu).getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
-      "收藏",
-      "在 pixiv 打开",
-      "查看这位画师",
-      "关注",
-    ]);
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item) => item.textContent),
+    ).toEqual(["收藏", "在 pixiv 打开", "查看这位画师", "关注"]);
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     fireEvent.click(within(menu).getByRole("menuitem", { name: "在 pixiv 打开" }));
     expect(open).toHaveBeenCalledWith("https://www.pixiv.net/artworks/1", "_blank", "noreferrer");
