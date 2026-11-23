@@ -80,7 +80,7 @@ impl TaggingLog {
                     reason: PauseReason::FullScreen,
                 })
             }
-            TaggingStatus::Starting
+            TaggingStatus::Starting { .. }
             | TaggingStatus::NeedsDownload { .. }
             | TaggingStatus::Downloading { .. }
             | TaggingStatus::Preparing { .. } => None,

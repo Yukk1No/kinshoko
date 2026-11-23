@@ -35,7 +35,14 @@ fn a_run_is_logged_when_it_starts_and_when_it_runs_out_of_images() {
     let t0 = Instant::now();
     let mut log = TaggingLog::new(Some(LibraryNo::from_index(0)));
 
-    assert_eq!(log.observe(&TaggingStatus::Starting, t0), None);
+    assert_eq!(
+        serde_json::to_value(TaggingStatus::Starting { device: None }).unwrap(),
+        serde_json::json!({ "state": "starting" })
+    );
+    assert_eq!(
+        log.observe(&TaggingStatus::Starting { device: None }, t0),
+        None
+    );
     assert_eq!(
         log.observe(&running(0), t0),
         Some(LogEvent::TaggingStarted {

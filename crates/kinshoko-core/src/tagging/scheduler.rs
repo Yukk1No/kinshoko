@@ -93,7 +93,11 @@ impl TaggingConfig {
 #[serde(tag = "state", rename_all = "camelCase")]
 #[ts(export)]
 pub enum TaggingStatus {
-    Starting,
+    Starting {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        device: Option<Device>,
+    },
     /// 本机条件不满足任何模型。
     #[serde(rename_all = "camelCase")]
     NoDevice {
@@ -124,9 +128,7 @@ pub enum TaggingStatus {
     },
     /// 校验哈希、改写为分块注意力。
     #[serde(rename_all = "camelCase")]
-    Preparing {
-        model: String,
-    },
+    Preparing { model: String },
     /// 正在打标；`tagged` 是本次运行打过的张数，`gpu` 是在用的显卡（CPU 档为空）。
     /// 这一轮（从上次没有待打标的图算起）的进度是 `done / (done + remaining)`：`done` 是这一轮处理过的张数
     /// （含无法读取的图），`remaining` 是各库还没处理的张数合计（含正在打的这张）。
@@ -285,7 +287,7 @@ impl Tagging {
                 ..Control::default()
             }),
             wake: Condvar::new(),
-            status: Mutex::new(TaggingStatus::Starting),
+            status: Mutex::new(TaggingStatus::Starting { device: None }),
             cancel: AtomicBool::new(false),
             stopper: Mutex::new(None),
             tagging: Mutex::new(None),
