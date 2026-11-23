@@ -45,6 +45,10 @@ pub struct MovedPage {
     pub to_image_id: String,
     /// 新库的这张图是这次移过来才有的（不是和新库已有的图合并）。
     pub created: bool,
+    /// 新库的这张图原来在回收站里，这次恢复了；撤销时放回回收站。
+    pub restored: bool,
+    /// 新库的这张图原来就有这个作品的来源；撤销时不去掉。
+    pub layer_existed: bool,
 }
 
 impl MovedWork {
@@ -64,6 +68,8 @@ impl MovedWork {
                     from_image_id: p.to_image_id.clone(),
                     to_image_id: p.from_image_id.clone(),
                     created: p.created,
+                    restored: p.restored,
+                    layer_existed: p.layer_existed,
                 })
                 .collect(),
         }

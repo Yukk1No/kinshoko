@@ -4,6 +4,7 @@
 
 use std::cell::RefCell;
 
+use kinshoko_core::CommandError;
 use kinshoko_core::library::{
     BrowseQuery, BrowseScope, ContentRating, Error, ImageEdit, TagEdit, TagNamespace, TagRef,
 };
@@ -17,13 +18,13 @@ impl relocate::Libraries for Libraries {
         &self,
         library_id: &str,
         f: &mut dyn FnMut(&Library) -> Result<(), Error>,
-    ) -> Result<(), String> {
+    ) -> Result<(), CommandError> {
         let library = self
             .0
             .iter()
             .find(|l| l.info().id == library_id)
-            .ok_or("没有这个资料库")?;
-        f(library).map_err(|e| e.to_string())
+            .ok_or(Error::UnknownImage)?;
+        Ok(f(library)?)
     }
 }
 
@@ -268,4 +269,40 @@ fn sealed_images_move_while_safe_mode_is_on() {
     relocate::undo_move(&f.store, &f.libraries, &report.works).unwrap();
     f.library().set_safe_mode(false);
     assert_eq!(visible(f.library(), BrowseScope::All), 1);
+}
+
+#[test]
+fn undoing_a_move_back_leaves_the_first_library_as_it_was() {
+    let (f, old_id, _) = collected_then_changed(vec![work("1", WorkKind::Illustration, false, 1)]);
+    let groups = Groups::default();
+    relocate::move_old(&f.store, &f.libraries, &groups, &ids(&f)).unwrap();
+    // 改回旧库再移：旧库回收站里的那张恢复出来；撤销后它回到回收站，来源还在。
+    f.store
+        .set_library(std::slice::from_ref(&f.subscription.id), &old_id)
+        .unwrap();
+    let back = relocate::move_old(&f.store, &f.libraries, &groups, &ids(&f)).unwrap();
+    assert_eq!(back.moved, 1);
+    assert!(back.works[0].pages[0].restored && back.works[0].pages[0].layer_existed);
+    assert_eq!(visible(f.library(), BrowseScope::All), 1);
+    relocate::undo_move(&f.store, &f.libraries, &back.works).unwrap();
+    assert_eq!(visible(f.library(), BrowseScope::All), 0);
+    assert_eq!(visible(f.library(), BrowseScope::Trash), 1);
+    assert_eq!(visible(&f.libraries.0[1], BrowseScope::All), 1);
+    let trashed = f
+        .library()
+        .browse(&BrowseQuery {
+            scope: BrowseScope::Trash,
+            conditions: Default::default(),
+            cursor: None,
+            limit: 10,
+            thumbnail_px: 64,
+        })
+        .unwrap()
+        .cards[0]
+        .id
+        .clone();
+    assert_eq!(
+        f.library().image(&trashed).unwrap().source_links,
+        ["https://www.pixiv.net/artworks/1"]
+    );
 }

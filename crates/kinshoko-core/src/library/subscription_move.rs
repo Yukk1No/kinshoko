@@ -32,6 +32,18 @@ pub struct MovableImage {
     pub pages: Vec<SubscriptionPage>,
 }
 
+/// 收进本库的结果，撤销时照它回到原来的样子。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReceivedMove {
+    pub image_id: String,
+    /// 本库原来没有这张图。
+    pub created: bool,
+    /// 本库原来有这张图，在回收站里，这次恢复了。
+    pub restored: bool,
+    /// 本库原来就有的来源层。
+    pub had_layers: Vec<String>,
+}
+
 impl MovableImage {
     /// 这张图在资料库里的来源层，每个作品一层。
     pub fn layers(&self) -> Vec<FactSource> {
@@ -68,11 +80,7 @@ impl Library {
 
     /// 把从别的库移来的图收进本库；返回本库的图 id，以及这张图是不是这次才进本库。本库已有
     /// 字节相同的图时只合并来源；它在回收站里就恢复。
-    pub fn receive_moved(
-        &self,
-        image: &MovableImage,
-        bytes: &[u8],
-    ) -> Result<(String, bool), Error> {
+    pub fn receive_moved(&self, image: &MovableImage, bytes: &[u8]) -> Result<ReceivedMove, Error> {
         let existing: Option<(String, Option<i64>)> = self
             .inner
             .readers
@@ -83,12 +91,26 @@ impl Library {
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()?;
+        let had_layers: Vec<String> = match &existing {
+            Some((id, _)) => {
+                let conn = self.inner.readers.get();
+                let mut stmt = conn.prepare_cached(
+                    "SELECT DISTINCT source FROM image_source WHERE image_id = ?1",
+                )?;
+                let found: Vec<String> = stmt
+                    .query_map([id], |row| row.get(0))?
+                    .collect::<Result<_, _>>()?;
+                found
+            }
+            None => Vec::new(),
+        };
         let mut id = None;
         for page in &image.pages {
             id = Some(self.import_from_subscription(page.clone(), bytes)?);
         }
         let id = id.ok_or(Error::UnknownImage)?;
-        if let Some((_, Some(_))) = existing {
+        let restored = matches!(existing, Some((_, Some(_))));
+        if restored {
             edit_in(
                 &self.inner,
                 std::slice::from_ref(&id),
@@ -96,7 +118,12 @@ impl Library {
                 true,
             )?;
         }
-        Ok((id, existing.is_none()))
+        Ok(ReceivedMove {
+            image_id: id,
+            created: existing.is_none(),
+            restored,
+            had_layers,
+        })
     }
 
     /// 要移走的图的原文件位置，不经浏览视角。
@@ -114,12 +141,14 @@ impl Library {
         edit_in(&self.inner, ids, &[ImageEdit::Restore], true).map(drop)
     }
 
-    /// 撤销移进本库：去掉 `layers` 这几层来源；`created` 且去掉后没有别的来源时移进回收站。
+    /// 撤销移进本库：去掉 `layers` 这几层来源；原来在回收站里（`restored`），或这次才有（`created`）且
+    /// 去掉后没有别的来源时，移进回收站。
     pub fn undo_receive_moved(
         &self,
         image_id: &str,
         layers: &[FactSource],
         created: bool,
+        restored: bool,
     ) -> Result<(), Error> {
         let id = image_id.to_owned();
         let layers: Vec<String> = layers.iter().map(|l| l.as_str().to_owned()).collect();
@@ -154,7 +183,7 @@ impl Library {
             [image_id],
             |row| row.get::<_, bool>(0),
         )?;
-        if created && bare {
+        if restored || (created && bare) {
             self.trash_moved(&[image_id.to_owned()])?;
         }
         Ok(())

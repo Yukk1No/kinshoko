@@ -9,7 +9,8 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::library::{self, FactSource, Library, MovableImage, ReceivedPageRef};
+use crate::CommandError;
+use crate::library::{self, FactSource, Library, MovableImage, ReceivedMove, ReceivedPageRef};
 use crate::reference_groups::ReferenceGroupUsage;
 
 use super::store::{MovedPage, MovedWork, OldPage, Store};
@@ -20,7 +21,7 @@ pub trait Libraries {
         &self,
         library_id: &str,
         f: &mut dyn FnMut(&Library) -> Result<(), library::Error>,
-    ) -> Result<(), String>;
+    ) -> Result<(), CommandError>;
 }
 
 /// 一条订阅留在一个旧库的图：能移的、留下的各几张（按页计）。
@@ -68,8 +69,8 @@ fn plan(
     libraries: &dyn Libraries,
     usage: &dyn ReferenceGroupUsage,
     ids: &[String],
-) -> Result<Plan, String> {
-    let pages = store.old_pages(ids).map_err(|e| e.to_string())?;
+) -> Result<Plan, CommandError> {
+    let pages = store.old_pages(ids)?;
     // 每个旧库的每张图被哪些页指着。
     let mut by_image: BTreeMap<(String, String), Vec<ReceivedPageRef>> = BTreeMap::new();
     for p in &pages {
@@ -131,7 +132,7 @@ pub fn old_images(
     libraries: &dyn Libraries,
     usage: &dyn ReferenceGroupUsage,
     ids: &[String],
-) -> Result<Vec<OldImages>, String> {
+) -> Result<Vec<OldImages>, CommandError> {
     let plan = plan(store, libraries, usage, ids)?;
     let mut out: Vec<OldImages> = Vec::new();
     for p in &plan.pages {
@@ -165,71 +166,103 @@ pub fn move_old(
     libraries: &dyn Libraries,
     usage: &dyn ReferenceGroupUsage,
     ids: &[String],
-) -> Result<MoveReport, String> {
+) -> Result<MoveReport, CommandError> {
     let plan = plan(store, libraries, usage, ids)?;
-    let mut works: BTreeMap<WorkKey, Vec<&OldPage>> = BTreeMap::new();
     let mut report = MoveReport::default();
+    // 先把要移的图一张张收进新库（同一张图只收一次）。
+    let mut placed: HashMap<(String, String), ReceivedMove> = HashMap::new();
+    let mut failed: HashSet<(String, String)> = HashSet::new();
     for p in &plan.pages {
-        if plan.movable.contains(&key(p)) {
-            works.entry(key(p)).or_default().push(p);
-        } else {
-            report.kept += 1;
-        }
-    }
-    // 同一张图只收进新库一次。
-    let mut placed: HashMap<(String, String), (String, bool)> = HashMap::new();
-    let mut done = Vec::new();
-    for (k, pages) in works {
-        let target = pages[0].target_library_id.clone();
-        let mut moved_pages = Vec::new();
-        let mut failed = false;
-        for p in &pages {
-            let at = (p.library_id.clone(), p.image_id.clone());
-            if !placed.contains_key(&at) {
-                match place(libraries, &plan.images[&at], &p.library_id, &target) {
-                    Ok(to) => {
-                        placed.insert(at.clone(), to);
-                    }
-                    Err(_) => {
-                        failed = true;
-                        break;
-                    }
-                }
-            }
-            let (to_image_id, created) = placed[&at].clone();
-            moved_pages.push(MovedPage {
-                page: p.page,
-                from_image_id: p.image_id.clone(),
-                to_image_id,
-                created,
-            });
-        }
-        let work = MovedWork {
-            subscription_id: k.0,
-            source: k.2,
-            work_id: k.3,
-            from_library_id: k.1,
-            to_library_id: target,
-            pages: moved_pages,
-        };
-        if failed {
-            // 这个作品整个留在旧库：已收进新库的页撤回，记录不改。
-            report.kept += pages.len() as u32;
-            undo_placed(libraries, &work);
+        let at = (p.library_id.clone(), p.image_id.clone());
+        if !plan.movable.contains(&key(p)) || placed.contains_key(&at) || failed.contains(&at) {
             continue;
         }
-        match store.move_works(std::slice::from_ref(&work)) {
-            Ok(()) => {
-                report.moved += work.pages.len() as u32;
-                done.push(work);
+        match place(
+            libraries,
+            &plan.images[&at],
+            &p.library_id,
+            &p.target_library_id,
+        ) {
+            Ok(to) => {
+                placed.insert(at, to);
             }
             Err(_) => {
-                report.kept += work.pages.len() as u32;
-                undo_placed(libraries, &work);
+                failed.insert(at);
             }
         }
     }
-    // 记录都改好了，再把旧库的图移进回收站。
+    // 有一张没收成的作品留下；和它共用图的作品也留下（旧库那张图还要用）。
+    let mut moving = plan.movable.clone();
+    loop {
+        let stuck: HashSet<(String, String)> = plan
+            .pages
+            .iter()
+            .filter(|p| {
+                let at = (p.library_id.clone(), p.image_id.clone());
+                failed.contains(&at) || !moving.contains(&key(p))
+            })
+            .map(|p| (p.library_id.clone(), p.image_id.clone()))
+            .collect();
+        let before = moving.len();
+        for p in &plan.pages {
+            if stuck.contains(&(p.library_id.clone(), p.image_id.clone())) {
+                moving.remove(&key(p));
+            }
+        }
+        if moving.len() == before {
+            break;
+        }
+    }
+    let mut works: BTreeMap<WorkKey, MovedWork> = BTreeMap::new();
+    let mut undo_only: BTreeMap<WorkKey, MovedWork> = BTreeMap::new();
+    for p in &plan.pages {
+        let at = (p.library_id.clone(), p.image_id.clone());
+        let Some(to) = placed.get(&at) else {
+            if !moving.contains(&key(p)) {
+                report.kept += 1;
+            }
+            continue;
+        };
+        let k = key(p);
+        let into = if moving.contains(&k) {
+            &mut works
+        } else {
+            report.kept += 1;
+            &mut undo_only
+        };
+        let layer = FactSource::subscription(&p.source, &p.work_id);
+        into.entry(k.clone())
+            .or_insert_with(|| MovedWork {
+                subscription_id: k.0.clone(),
+                source: k.2.clone(),
+                work_id: k.3.clone(),
+                from_library_id: k.1.clone(),
+                to_library_id: p.target_library_id.clone(),
+                pages: Vec::new(),
+            })
+            .pages
+            .push(MovedPage {
+                page: p.page,
+                from_image_id: p.image_id.clone(),
+                to_image_id: to.image_id.clone(),
+                created: to.created,
+                restored: to.restored,
+                layer_existed: to.had_layers.iter().any(|l| l == layer.as_str()),
+            });
+    }
+    // 留下的作品：撤回已收进新库的。
+    for w in undo_only.values() {
+        undo_placed(libraries, w);
+    }
+    let done: Vec<MovedWork> = works.into_values().collect();
+    if let Err(e) = store.move_works(&done) {
+        for w in &done {
+            undo_placed(libraries, w);
+        }
+        return Err(e.into());
+    }
+    report.moved = done.iter().map(|w| w.pages.len() as u32).sum();
+    // 记录都改好了，再把旧库的图移进回收站。这些图只被移走的作品用着。
     let mut trash: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for w in &done {
         let ids = trash.entry(w.from_library_id.clone()).or_default();
@@ -252,25 +285,24 @@ fn place(
     image: &MovableImage,
     from: &str,
     to: &str,
-) -> Result<(String, bool), String> {
+) -> Result<ReceivedMove, CommandError> {
     let mut bytes = None;
     libraries.with(from, &mut |library| {
         let path = library.moved_original(&image.image_id)?;
         bytes = Some(std::fs::read(path).map_err(library::Error::Io)?);
         Ok(())
     })?;
-    // 不上界面：只让这一张移不成，作品留在旧库
-    let bytes = bytes.ok_or("原图读不到")?;
     let mut out = None;
-    libraries.with(to, &mut |library| {
-        out = Some(library.receive_moved(image, &bytes)?);
-        Ok(())
-    })?;
-    // 不上界面：只让这一张移不成，作品留在旧库
-    out.ok_or_else(|| "新库没收进".to_owned())
+    if let Some(bytes) = bytes {
+        libraries.with(to, &mut |library| {
+            out = Some(library.receive_moved(image, &bytes)?);
+            Ok(())
+        })?;
+    }
+    out.ok_or_else(|| library::Error::UnknownImage.into())
 }
 
-/// 去掉这个作品在新库加上的来源层。
+/// 撤回这个作品在新库加上的来源层；新库原来的样子（已有的来源、在回收站里）照旧。
 fn undo_placed(libraries: &dyn Libraries, work: &MovedWork) {
     let layer = FactSource::subscription(&work.source, &work.work_id);
     let mut seen = HashSet::new();
@@ -278,11 +310,15 @@ fn undo_placed(libraries: &dyn Libraries, work: &MovedWork) {
         if !seen.insert(p.to_image_id.clone()) {
             continue;
         }
-        let r = libraries.with(&work.to_library_id, &mut |library| {
-            library.undo_receive_moved(&p.to_image_id, std::slice::from_ref(&layer), p.created)
-        });
+        let layers = if p.layer_existed {
+            Vec::new()
+        } else {
+            vec![layer.clone()]
+        };
         // 没能撤回：新库多留一份合并来源的图，不影响记录。
-        let _ = r;
+        let _ = libraries.with(&work.to_library_id, &mut |library| {
+            library.undo_receive_moved(&p.to_image_id, &layers, p.created, p.restored)
+        });
     }
 }
 
@@ -291,7 +327,7 @@ pub fn undo_move(
     store: &Store,
     libraries: &dyn Libraries,
     works: &[MovedWork],
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     let mut restore: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for w in works {
         let ids = restore.entry(w.from_library_id.clone()).or_default();
@@ -305,7 +341,7 @@ pub fn undo_move(
         libraries.with(library_id, &mut |library| library.restore_moved(ids))?;
     }
     let back: Vec<MovedWork> = works.iter().map(MovedWork::reversed).collect();
-    store.move_works(&back).map_err(|e| e.to_string())?;
+    store.move_works(&back)?;
     for w in works {
         undo_placed(libraries, w);
     }

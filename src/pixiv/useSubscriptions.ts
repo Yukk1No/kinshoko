@@ -90,7 +90,8 @@ export function useSubscriptions(safe = false, received: unknown = null) {
 
   // 名单里的订阅变了（多了、少了）、后台又收了图（`received` 变了）时再读一次概况；只是改了设置不用重读。
   const ids = list?.map((s) => s.id).join(",") ?? null;
-  // biome-ignore lint/correctness/useExhaustiveDependencies(received): received 是重读信号，effect 里不读它
+  // biome-ignore lint/correctness/useExhaustiveDependencies(received): received 与 moves 是重读信号，effect 里不读它们
+  // biome-ignore lint/correctness/useExhaustiveDependencies(moves): 移图、撤销移图后卡片上的图换了库
   useEffect(() => {
     if (ids === null) return;
     let alive = true;
@@ -101,7 +102,7 @@ export function useSubscriptions(safe = false, received: unknown = null) {
     return () => {
       alive = false;
     };
-  }, [ids, safe, received]);
+  }, [ids, safe, received, moves]);
   const previews = loaded?.safe === safe ? loaded.map : NO_PREVIEWS;
 
   // 改了收进的库、移过图、后台又收了图时，再看一次哪些订阅还有图留在旧库。

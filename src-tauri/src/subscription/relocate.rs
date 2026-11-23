@@ -17,13 +17,12 @@ impl relocate::Libraries for Opened {
         &self,
         library_id: &str,
         f: &mut dyn FnMut(&Library) -> Result<(), library::Error>,
-    ) -> Result<(), String> {
+    ) -> Result<(), CommandError> {
         let destination = SaveDestination {
             library_id: library_id.to_owned(),
             folder_id: None,
         };
         crate::library::with_destination(&self.0, &destination, |library| Ok(f(library)?))
-            .map_err(|e| e.to_string())
     }
 }
 
@@ -39,7 +38,6 @@ pub async fn subscription_old_images(
             relocate::old_images(&store, &Opened(app.clone()), groups, &ids)
         })
         .ok_or_else(crate::library::groups_not_ready)?
-        .map_err(CommandError::system)
     })
     .await
     .map_err(CommandError::system)?
@@ -58,7 +56,6 @@ pub async fn subscription_move_old(
             relocate::move_old(&store, &Opened(worker.clone()), groups, &ids)
         })
         .ok_or_else(crate::library::groups_not_ready)?
-        .map_err(CommandError::system)
     })
     .await
     .map_err(CommandError::system)??;
@@ -75,7 +72,7 @@ pub async fn subscription_undo_move(
     let store = require(&app)?.store.clone();
     let worker = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        relocate::undo_move(&store, &Opened(worker), &works).map_err(CommandError::system)
+        relocate::undo_move(&store, &Opened(worker), &works)
     })
     .await
     .map_err(CommandError::system)??;
