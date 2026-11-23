@@ -298,11 +298,7 @@ function PreviewView({ preview, pending }: { preview: BackupPreview; pending: bo
   const { scope, estimate } = preview;
   const names = (list: { name: string }[]) => list.map((entry) => entry.name).join(t("separator")) || t("none");
   return (
-    <div
-      className="backup-preview"
-      aria-label={t("preview.label")}
-      style={pending ? { visibility: "hidden" } : undefined}
-    >
+    <div className="backup-preview" role="group" aria-label={t("preview.label")} aria-busy={pending || undefined}>
       <p>{t("preview.scope", { libraries: names(scope.libraries), groups: names(scope.groups) })}</p>
       <p>
         {t("preview.size", {

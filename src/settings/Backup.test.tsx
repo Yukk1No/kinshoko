@@ -8,6 +8,8 @@ import type { SnapshotSummary } from "../bindings/SnapshotSummary";
 import { BackupReminder, BackupSettings } from "./Backup";
 import { chooseOption } from "../test/select";
 import { fakeBackend, type Replies } from "../test/backend";
+import { cssRule } from "../ui/cssRule";
+import settingsCss from "../ui/settings.css?raw";
 
 afterEach(() => {
   delete window.__KINSHOKO_TEST_PICKS__;
@@ -247,7 +249,7 @@ describe("设置：备份", () => {
     expect(screen.getByText(/约 30 MB，这次新写入 2 MB（新原图 1 张）/)).toBeTruthy();
   });
 
-  it("勾选图库后保留预览的位置，直到新的估算返回", async () => {
+  it("重新估算时保留旧预览并降低文字强调度，直到新结果返回", async () => {
     const selected: BackupStatus = {
       ...withTarget,
       plan: { ...withTarget.plan, selection: { kind: "libraries", ids: ["A"], includeLinked: true } },
@@ -257,8 +259,15 @@ describe("设置：备份", () => {
       set_backup_selection: (args) => ({ ...selected, plan: { ...selected.plan, selection: args.selection } }),
       backup_preview: narrowed,
     });
-    render(<BackupSettings />);
+    render(
+      <div className="k-settings">
+        <BackupSettings />
+      </div>,
+    );
     const oldEstimate = await screen.findByText(/新原图 1 张/);
+    const preview = screen.getByLabelText("备份内容");
+    const previewSelector = ".k-settings .backup-preview";
+    const mutedSelector = `${previewSelector}[aria-busy="true"]`;
     let resolve!: (preview: BackupPreview) => void;
     fake.on(
       "backup_preview",
@@ -274,12 +283,17 @@ describe("设置：备份", () => {
       selection: { kind: "libraries", ids: ["A", "B"], includeLinked: true },
     });
     expect(oldEstimate.isConnected).toBe(true);
-    expect(oldEstimate.parentElement?.style.visibility).toBe("hidden");
+    expect(getComputedStyle(preview).visibility).toBe("visible");
+    expect(preview.getAttribute("aria-busy")).toBe("true");
+    expect(preview.matches(mutedSelector)).toBe(true);
+    expect(cssRule(settingsCss, mutedSelector).color).toBe("var(--ink-2)");
+    expect(cssRule(settingsCss, previewSelector).color).toBe("var(--ink)");
 
     await act(async () => resolve({ ...narrowed, estimate: { ...narrowed.estimate, newOriginals: 2 } }));
     const newEstimate = await screen.findByText(/新原图 2 张/);
-    expect(newEstimate.parentElement).toBe(oldEstimate.parentElement);
-    expect(newEstimate.parentElement?.style.visibility).toBe("");
+    expect(newEstimate.parentElement).toBe(preview);
+    expect(preview.getAttribute("aria-busy")).toBeNull();
+    expect(preview.matches(mutedSelector)).toBe(false);
   });
 
   it("可以马上备份；备份进行中显示进度", async () => {

@@ -359,6 +359,12 @@ section + section {
 .k-settings .backup-result p {
   margin: 4px 0;
 }
+.k-settings .backup-preview {
+  color: var(--ink);
+}
+.k-settings .backup-preview[aria-busy="true"] {
+  color: var(--ink-2);
+}
 .k-settings .backup-snapshots {
   list-style: none;
   margin: 6px 0 0;
