@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "../App";
-import { fake, sent, card, selectOnly, addTag } from "./TagOrganize.fixtures";
+import { fake, sent, card, selectOnly, addTag, tagEventsDelivered } from "./TagOrganize.fixtures";
 import { chooseValue } from "../test/select";
 
 async function openGroups() {
@@ -14,6 +14,14 @@ async function openGroups() {
 async function closeGroups() {
   fireEvent.click(within(screen.getByRole("dialog", { name: "编辑分组" })).getByRole("button", { name: "完成" }));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "编辑分组" })).toBeNull());
+}
+
+async function changeGroups(action: () => void) {
+  await act(async () => {
+    action();
+    // The command response can refresh the rows before the notification invalidates them again.
+    await tagEventsDelivered();
+  });
 }
 
 describe("标签分组", () => {
@@ -29,7 +37,7 @@ describe("标签分组", () => {
     fireEvent.click(create);
     const name = within(groups).getByRole("textbox", { name: "新标签分组名称" });
     fireEvent.change(name, { target: { value: "发色" } });
-    fireEvent.keyDown(name, { key: "Enter" });
+    await changeGroups(() => fireEvent.keyDown(name, { key: "Enter" }));
     await waitFor(() => expect(sent("create_shared_tag_group")).toEqual([{ name: "发色", namespace: null }]));
     const hair = await within(groups).findByRole("group", { name: "发色" });
 
@@ -40,7 +48,8 @@ describe("标签分组", () => {
     });
     fireEvent.click(addMember);
     fireEvent.change(within(hair).getByRole("combobox", { name: "挑一个标签" }), { target: { value: "蓝" } });
-    fireEvent.click(await screen.findByRole("option", { name: /蓝发/ }));
+    const option = await screen.findByRole("option", { name: /蓝发/ });
+    await changeGroups(() => fireEvent.click(option));
     await waitFor(() =>
       expect(sent("edit_shared_tag_group")).toEqual([
         { edit: { kind: "addMembers", groupId: "G1", tagIds: ["T-blue"] }, safeMode: true },
@@ -77,7 +86,7 @@ describe("标签分组", () => {
     const hair = await within(groups).findByRole("group", { name: "发色" });
     await within(hair).findByRole("button", { name: "微笑（1 张）" });
 
-    fireEvent.click(within(hair).getByRole("button", { name: "把“微笑”移出“发色”" }));
+    await changeGroups(() => fireEvent.click(within(hair).getByRole("button", { name: "把“微笑”移出“发色”" })));
     await waitFor(() => expect(within(groups).queryByRole("button", { name: "微笑（1 张）" })).toBeNull());
     expect(sent("edit_shared_tag_group").at(-1)).toEqual({
       edit: { kind: "removeMembers", groupId: "G1", tagIds: ["T-smile"] },
@@ -88,7 +97,7 @@ describe("标签分组", () => {
     fireEvent.doubleClick(within(currentHair).getByRole("button", { name: /^发色/ }));
     const rename = within(groups).getByRole("textbox", { name: "标签分组名称" });
     fireEvent.change(rename, { target: { value: "头发颜色" } });
-    fireEvent.keyDown(rename, { key: "Enter" });
+    await changeGroups(() => fireEvent.keyDown(rename, { key: "Enter" }));
     expect(await within(groups).findByRole("group", { name: "头发颜色" })).toBeTruthy();
     expect(sent("edit_shared_tag_group").at(-1)).toEqual({
       edit: { kind: "rename", groupId: "G1", name: "头发颜色" },
@@ -105,7 +114,7 @@ describe("标签分组", () => {
     await chooseValue(within(groups).getByRole("combobox", { name: "分组内容" }), "general");
     const name = within(groups).getByRole("textbox", { name: "新标签分组名称" });
     fireEvent.change(name, { target: { value: "一般" } });
-    fireEvent.keyDown(name, { key: "Enter" });
+    await changeGroups(() => fireEvent.keyDown(name, { key: "Enter" }));
     const general = await within(groups).findByRole("group", { name: "一般" });
     await within(general).findByRole("button", { name: "微笑（1 张）" });
     expect(within(general).queryByRole("button", { name: "给“一般”添加标签" })).toBeNull();
