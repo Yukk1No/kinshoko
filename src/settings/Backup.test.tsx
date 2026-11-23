@@ -166,6 +166,41 @@ describe("设置：备份", () => {
     expect(screen.getByText(/约 30 MB，这次新写入 2 MB（新原图 1 张）/)).toBeTruthy();
   });
 
+  it("勾选图库后保留预览的位置，直到新的估算返回", async () => {
+    const selected: BackupStatus = {
+      ...withTarget,
+      plan: { ...withTarget.plan, selection: { kind: "libraries", ids: ["A"], includeLinked: true } },
+    };
+    const fake = backend({
+      backup_status: selected,
+      set_backup_selection: (args) => ({ ...selected, plan: { ...selected.plan, selection: args.selection } }),
+      backup_preview: narrowed,
+    });
+    render(<BackupSettings />);
+    const oldEstimate = await screen.findByText(/新原图 1 张/);
+    let resolve!: (preview: BackupPreview) => void;
+    fake.on(
+      "backup_preview",
+      () =>
+        new Promise<BackupPreview>((r) => {
+          resolve = r;
+        }),
+    );
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "旧库" }));
+    await screen.findByText("正在估算…");
+    expect(fake.calls("backup_preview").at(-1)?.args).toEqual({
+      selection: { kind: "libraries", ids: ["A", "B"], includeLinked: true },
+    });
+    expect(oldEstimate.isConnected).toBe(true);
+    expect(oldEstimate.parentElement?.style.visibility).toBe("hidden");
+
+    await act(async () => resolve({ ...narrowed, estimate: { ...narrowed.estimate, newOriginals: 2 } }));
+    const newEstimate = await screen.findByText(/新原图 2 张/);
+    expect(newEstimate.parentElement).toBe(oldEstimate.parentElement);
+    expect(newEstimate.parentElement?.style.visibility).toBe("");
+  });
+
   it("可以马上备份；备份进行中显示进度", async () => {
     const fake = backend({ backup_status: withTarget, backup_preview: narrowed, start_backup: null });
     render(<BackupSettings />);
