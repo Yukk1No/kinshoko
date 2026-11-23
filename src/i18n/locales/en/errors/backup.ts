@@ -7,6 +7,7 @@ export default {
   backupGroupProblem: "Reference group “{{name}}”: {{cause}}",
   backupGroupNewLibrary:
     "Reference group “{{name}}” now refers to another library. Recalculate what to back up and try again",
+  backupLibraryUnreadable: "Couldn't read library “{{name}}”: {{cause}}",
   backupLibraryDefinitions: "Tag definitions of library “{{name}}”: {{cause}}",
   backupOriginalProblem: "Original {{file}} in library “{{name}}”: {{cause}}",
   backupOriginalChanged:

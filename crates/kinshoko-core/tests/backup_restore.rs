@@ -440,7 +440,7 @@ fn a_damaged_backup_is_refused_without_leaving_half_a_library() {
 }
 
 #[test]
-fn a_missing_target_is_reported_and_a_library_on_an_unplugged_drive_is_skipped() {
+fn a_missing_target_or_library_on_an_unplugged_drive_prevents_backup() {
     let device = Device::new();
     let backups = tempfile::tempdir().unwrap();
     let missing = BackupTarget::new(&backups.path().join("没插的移动盘"));
@@ -476,9 +476,52 @@ fn a_missing_target_is_reported_and_a_library_on_an_unplugged_drive_is_skipped()
             &mut |_| {},
         )
         .unwrap();
-    assert!(report.complete);
+    assert!(!report.complete);
     assert_eq!(report.skipped.len(), 1);
     assert_eq!(report.skipped[0].library.name, "旧库");
+    assert_eq!(report.problems.len(), 1);
+}
+
+#[test]
+fn an_unavailable_selected_library_preserves_the_same_day_restore_point() {
+    let device = Device::new();
+    let target = target(device.dir.path());
+    let registry = device.registry();
+    let selection = ScopeSelection::Libraries {
+        ids: vec![device.main.info().id.clone()],
+        include_linked: false,
+    };
+    let scope = compute_scope(&registry, &[], &selection);
+    let sources = BackupSources {
+        libraries: &registry,
+        groups: &device.groups,
+    };
+    let good = target.run(&scope, &sources, at(0, 3), &mut |_| {}).unwrap();
+    assert!(good.complete);
+    assert_eq!(good.copied, 3);
+
+    drop(device.main);
+    std::fs::rename(&registry[0].root, device.dir.path().join("离线")).unwrap();
+    let report = target.run(&scope, &sources, at(0, 4), &mut |_| {}).unwrap();
+    let snapshots = target.snapshots().unwrap();
+    assert!(
+        !report.complete
+            && report.removed_snapshots.is_empty()
+            && snapshots.len() == 1
+            && snapshots[0].id == good.snapshot_id,
+        "failed backup must not publish or prune: {report:?}, snapshots: {snapshots:?}"
+    );
+    assert!(!report.problems.is_empty());
+    let restored = target
+        .restore(
+            &good.snapshot_id,
+            &device.dir.path().join("恢复"),
+            &device.groups,
+            at(1, 1),
+        )
+        .unwrap();
+    assert!(restored.check.passed(), "{:?}", restored.check);
+    assert_eq!(restored.check.originals.checked, good.copied);
 }
 
 #[test]

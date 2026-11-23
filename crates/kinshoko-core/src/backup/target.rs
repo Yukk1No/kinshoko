@@ -359,10 +359,20 @@ impl BackupTarget {
                     }
                     snaps.push(s);
                 }
-                Err(reason) => report.skipped.push(SkippedLibrary {
-                    library: item.clone(),
-                    reason: reason.into(),
-                }),
+                Err(reason) => {
+                    report.skipped.push(SkippedLibrary {
+                        library: item.clone(),
+                        reason: reason.clone().into(),
+                    });
+                    report.problems.push(CommandError::caused_by(
+                        reason,
+                        |cause| ErrorKind::BackupLibraryUnreadable {
+                            name: item.name.clone(),
+                            cause,
+                        },
+                        |e| format!("无法读取资料库“{}”：{e}", item.name),
+                    ));
+                }
             }
         }
         let total = snaps.iter().map(|s| s.originals.len() as u32).sum();
