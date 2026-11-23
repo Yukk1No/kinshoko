@@ -339,11 +339,15 @@ impl BackupTarget {
         let mut snaps = Vec::new();
         let mut unavailable = Vec::new();
         for item in &scope.libraries {
-            let snap = registered(sources, item).and_then(|reg| {
-                Library::snapshot_at(&reg.root, &reg.id, &work.join("libraries").join(&reg.id))
-                    .map_err(CommandError::from)
-            });
-            match snap {
+            let reg = match registered(sources, item) {
+                Ok(reg) => reg,
+                Err(reason) => {
+                    unavailable.push((item, reason));
+                    continue;
+                }
+            };
+            let into = work.join("libraries").join(&reg.id);
+            match Library::snapshot_for_backup(&reg.root, &reg.id, &into) {
                 Ok(mut s) => {
                     if let Some(catalog) = catalog {
                         // Failure enriching a selected library is incomplete, not an unavailable skip.
@@ -361,7 +365,11 @@ impl BackupTarget {
                     }
                     snaps.push(s);
                 }
-                Err(reason) => unavailable.push((item, reason)),
+                Err(library::SnapshotError::Source(e)) => unavailable.push((item, e.into())),
+                Err(library::SnapshotError::WriteCopy(e)) => {
+                    report.problems.push(snapshot_write_problem(e))
+                }
+                Err(library::SnapshotError::ReadCopy(e)) => report.problems.push(e.into()),
             }
         }
         let none_readable = unavailable.len() == scope.libraries.len();

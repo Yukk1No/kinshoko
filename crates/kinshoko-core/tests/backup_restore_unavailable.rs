@@ -1,6 +1,57 @@
 use super::*;
 
 #[test]
+fn a_database_write_failure_cannot_publish_or_prune_a_backup() {
+    let status = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "backup_restore::unavailable::backup_database_write_failure_child",
+            "--ignored",
+            "--nocapture",
+        ])
+        .env("KINSHOKO_FAULT", "backup_database_copy@4")
+        .env("KINSHOKO_FAULT_ACTION", "error")
+        .status()
+        .unwrap();
+    assert!(status.success());
+}
+
+#[test]
+#[ignore = "subprocess with an injected destination database write failure"]
+fn backup_database_write_failure_child() {
+    let device = Device::new();
+    let target = target(device.dir.path());
+    let good = device.backup(&target, at(0, 3));
+    assert!(good.complete);
+
+    let failed = device.backup(&target, at(0, 4));
+    assert!(
+        !failed.complete,
+        "a destination error must not publish: {failed:?}"
+    );
+    assert!(failed.skipped.is_empty());
+    assert!(failed.removed_snapshots.is_empty());
+    assert_eq!(failed.problems.len(), 1);
+    assert_eq!(
+        failed.problems[0].kind,
+        kinshoko_core::command_error::ErrorKind::BackupTargetDiskFull
+    );
+    let snapshots = target.snapshots().unwrap();
+    assert_eq!(snapshots.len(), 1);
+    assert_eq!(snapshots[0].id, good.snapshot_id);
+    let restored = target
+        .restore(
+            &good.snapshot_id,
+            &device.dir.path().join("restore"),
+            &device.groups,
+            at(1, 1),
+        )
+        .unwrap();
+    assert!(restored.check.passed(), "{:?}", restored.check);
+    assert_eq!(restored.check.originals.checked, good.copied);
+}
+
+#[test]
 fn an_unavailable_selected_library_preserves_the_same_day_restore_point() {
     let device = Device::new();
     let target = target(device.dir.path());
