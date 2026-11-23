@@ -187,16 +187,22 @@ impl Library {
     }
 
     /// 从回收站恢复，不经浏览视角。
-    /// 返回这次真从回收站里拿出来的图（原来就看得见的不算），撤销失败时只把这些放回去。
+    /// 返回这次真从回收站里拿出来的图（原来就看得见的不算），撤销失败时只把这些放回去。有一张已经
+    /// 不在本库（从回收站里永久删除了）时什么都不动，返回 [`Error::UnknownImage`]。
     pub fn restore_moved(&self, ids: &[String]) -> Result<Vec<String>, Error> {
         let trashed: Vec<String> = {
             let conn = self.inner.readers.get();
-            let mut stmt = conn
-                .prepare_cached("SELECT 1 FROM image WHERE id = ?1 AND deleted_at IS NOT NULL")?;
+            let mut stmt =
+                conn.prepare_cached("SELECT deleted_at IS NOT NULL FROM image WHERE id = ?1")?;
             let mut out = Vec::new();
             for id in ids {
-                if stmt.exists([id])? {
-                    out.push(id.clone());
+                match stmt
+                    .query_row([id], |row| row.get::<_, bool>(0))
+                    .optional()?
+                {
+                    None => return Err(Error::UnknownImage),
+                    Some(true) => out.push(id.clone()),
+                    Some(false) => {}
                 }
             }
             out

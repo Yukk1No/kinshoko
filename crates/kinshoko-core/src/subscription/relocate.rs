@@ -206,12 +206,14 @@ pub fn move_old(
         if !plan.movable.contains(&key(p)) || placed.contains_key(&at) || failed.contains(&at) {
             continue;
         }
-        match place(
-            libraries,
-            &plan.images[&(at.0.clone(), at.1.clone())],
-            &p.library_id,
-            &p.target_library_id,
-        ) {
+        // 只带收进这个新库的作品的页：别的作品收进别的库，来源层不跟过来。
+        let mut image = plan.images[&(at.0.clone(), at.1.clone())].clone();
+        image.pages.retain(|page| {
+            plan.pages
+                .iter()
+                .any(|o| placement(o) == at && o.source == page.source && o.work_id == page.work_id)
+        });
+        match place(libraries, &image, &p.library_id, &p.target_library_id) {
             Ok(to) => {
                 placed.insert(at, to);
             }
