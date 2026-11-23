@@ -24,6 +24,8 @@ import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n/instance";
 import type { TagNamespace } from "../bindings/TagNamespace";
 import { Tip } from "../ui/Tip";
+import { nameConflict } from "../tags/nameConflict";
+import { NameConflictWarning } from "../tags/NameConflictWarning";
 
 const LIMIT = 80;
 /** 行描述里的类别名；一般标签不写。 */
@@ -172,6 +174,8 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
                 <NameRow
                   key={`${tag.id}/${language}`}
                   tag={tag}
+                  tags={workspace.catalog.tags}
+                  conflictMappings={workspace.catalog.mappings}
                   lang={language}
                   busy={busy}
                   pending={pending.has(tag.id)}
@@ -205,6 +209,8 @@ export function TagNamePanel({ focus }: { focus?: string } = {}) {
 
 function NameRow({
   tag,
+  tags,
+  conflictMappings,
   lang,
   busy,
   pending,
@@ -216,6 +222,8 @@ function NameRow({
   onLocal,
 }: {
   tag: CatalogTag;
+  tags: CatalogTag[];
+  conflictMappings: LibraryTagMapping[];
   lang: string;
   busy: boolean;
   pending: boolean;
@@ -283,6 +291,7 @@ function NameRow({
                 <span className="k-label">{t("names.reset")}</span>
               </button>
             </div>
+            <NameConflictWarning tag={nameConflict(tags, tag, draft, conflictMappings)} lang={lang} />
             <p className="k-description is-spaced">
               {t("names.langDefault", { name: defaultName ?? t("names.noTranslation") })}
             </p>
@@ -327,6 +336,7 @@ function NameRow({
                 <span className="k-label">{t("names.addAlias")}</span>
               </button>
             </div>
+            <NameConflictWarning tag={nameConflict(tags, tag, alias, conflictMappings)} lang={lang} />
             {mappings.some((mapping) => mapping.sourceNames?.length) && (
               <ul className="k-list" aria-label={t("names.sourceNames")}>
                 {mappings.flatMap((mapping) =>

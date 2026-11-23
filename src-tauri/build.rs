@@ -74,6 +74,7 @@ fn main() {
                         "correct_tag_mapping",
                         "publish_tag_definitions",
                         "edit_tag_name",
+                        "tag_name_conflict_tags",
                         "shared_tag_groups",
                         "shared_personal_approx",
                         "edit_shared_approx",
