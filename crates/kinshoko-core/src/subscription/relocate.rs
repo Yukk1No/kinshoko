@@ -310,19 +310,29 @@ pub fn move_old(
         return Err(e.into());
     }
     report.moved = done.iter().map(|w| w.pages.len() as u32).sum();
-    // 记录都改好了，再把旧库的图移进回收站。这些图只被移走的作品用着。
-    let mut trash: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    // 记录都改好了，再把旧库的图移进回收站。移图期间这张图又被收进来、被整理过的，留在原处。
+    let mut trash: BTreeMap<(String, String), Vec<FactSource>> = BTreeMap::new();
     for w in &done {
-        let ids = trash.entry(w.from_library_id.clone()).or_default();
+        let layer = FactSource::subscription(&w.source, &w.work_id);
         for p in &w.pages {
-            if !ids.contains(&p.from_image_id) {
-                ids.push(p.from_image_id.clone());
+            let layers = trash
+                .entry((w.from_library_id.clone(), p.from_image_id.clone()))
+                .or_default();
+            if !layers.contains(&layer) {
+                layers.push(layer.clone());
             }
         }
     }
-    for (library_id, ids) in trash {
+    for ((library_id, image_id), layers) in trash {
+        if store.image_in_use(&library_id, &image_id)? {
+            continue;
+        }
         // 没能移进回收站：旧库多留一份，不影响新库与记录。
-        let _ = libraries.with(&library_id, &mut |library| library.trash_moved(&ids));
+        let _ = libraries.with(&library_id, &mut |library| {
+            library
+                .trash_moved_if_untouched(&image_id, &layers)
+                .map(drop)
+        });
     }
     report.works = done;
     Ok(report)

@@ -131,6 +131,56 @@ impl Library {
         self.inner.original_path(image_id)
     }
 
+    /// 移走以后把旧库的这张图移进回收站：在同一个事务里再看一次它还是没动过的（来源只有 `layers`，
+    /// 不在文件夹里，没有人工标签、备注与分级）才移，返回移了没有。不经浏览视角。
+    pub fn trash_moved_if_untouched(
+        &self,
+        image_id: &str,
+        layers: &[FactSource],
+    ) -> Result<bool, Error> {
+        let id = image_id.to_owned();
+        let allowed: HashSet<String> = layers.iter().map(|l| l.as_str().to_owned()).collect();
+        let done = self.inner.write(move |tx| {
+            let untouched: bool = tx.query_row(
+                "SELECT deleted_at IS NULL AND note_manual IS NULL AND rating_manual IS NULL
+                        AND NOT EXISTS (SELECT 1 FROM folder_member WHERE image_id = ?1)
+                        AND NOT EXISTS (SELECT 1 FROM tag_decision WHERE image_id = ?1)
+                 FROM image WHERE id = ?1",
+                [&id],
+                |row| row.get(0),
+            )?;
+            let sources: Vec<String> = {
+                let mut stmt = tx.prepare_cached(
+                    "SELECT DISTINCT source FROM image_source WHERE image_id = ?1",
+                )?;
+                stmt.query_map([&id], |row| row.get(0))?
+                    .collect::<Result<_, _>>()?
+            };
+            if !untouched || sources.iter().any(|s| !allowed.contains(s)) {
+                return Ok(None);
+            }
+            tx.execute(
+                "UPDATE image SET deleted_at = coalesce(deleted_at, ?1), eagle_initial_trash = 0
+                 WHERE id = ?2",
+                params![super::now_ms(), id],
+            )?;
+            Ok(Some(tags::bump_revision(tx)?))
+        })?;
+        let Some(revision) = done else {
+            return Ok(false);
+        };
+        let library_id = self.inner.info.id.clone();
+        self.inner.hub.publish(LibraryEvent::ImagesChanged {
+            library_id: library_id.clone(),
+            image_ids: vec![image_id.to_owned()],
+        });
+        self.inner.hub.publish(LibraryEvent::VocabularyChanged {
+            library_id,
+            revision,
+        });
+        Ok(true)
+    }
+
     /// 移进回收站，不经浏览视角。
     pub fn trash_moved(&self, ids: &[String]) -> Result<(), Error> {
         edit_in(&self.inner, ids, &[ImageEdit::Delete], true).map(drop)
