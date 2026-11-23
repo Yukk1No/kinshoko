@@ -311,12 +311,13 @@ pub fn move_old(
                 .map(|p| (w.to_library_id.clone(), p.to_image_id.clone()))
         })
         .collect();
-    let undo_only = not_received(store, undo_only.into_values())?;
-    undo_placed(libraries, undo_only.iter(), &kept);
+    let (undo_only, mut keep) = not_received(store, undo_only.into_values())?;
+    keep.extend(kept);
+    undo_placed(libraries, undo_only.iter(), &keep);
     if let Err(e) = store.move_works(&done) {
-        // 移图期间别的订阅也把同一个作品收进了新库（又用上了这张图）：这样的图不撤回。
-        let done = not_received(store, done.into_iter())?;
-        undo_placed(libraries, done.iter(), &HashSet::new());
+        // 移图期间别的订阅也把同一个作品收进了新库：它的来源层与图都留着。
+        let (done, keep) = not_received(store, done.into_iter())?;
+        undo_placed(libraries, done.iter(), &keep);
         return Err(e.into());
     }
     report.moved = done.iter().map(|w| w.pages.len() as u32).sum();
@@ -370,23 +371,28 @@ fn place(
     out.ok_or_else(|| library::Error::UnknownImage.into())
 }
 
-/// 去掉新库里已经有订阅记录指着的图的页：那是移图期间别处收进来的，撤回会拿走它们要用的来源与图。
+/// （资料库，图）。
+type ImageAt = (String, String);
+
+/// 撤回前看新库的记录：新库已经记着同一个作品（移图期间别处收进来的）时，这个作品的来源层不撤回；
+/// 新库的图有订阅记录指着时，图留着看得见（返回这些图），只去掉没人要的来源层。
 fn not_received(
     store: &Store,
     works: impl Iterator<Item = MovedWork>,
-) -> Result<Vec<MovedWork>, CommandError> {
+) -> Result<(Vec<MovedWork>, HashSet<ImageAt>), CommandError> {
     let mut out = Vec::new();
-    for mut w in works {
-        let mut pages = Vec::new();
-        for p in w.pages {
-            if !store.image_in_use(&w.to_library_id, &p.to_image_id)? {
-                pages.push(p);
+    let mut in_use = HashSet::new();
+    for w in works {
+        for p in &w.pages {
+            if store.image_in_use(&w.to_library_id, &p.to_image_id)? {
+                in_use.insert((w.to_library_id.clone(), p.to_image_id.clone()));
             }
         }
-        w.pages = pages;
-        out.push(w);
+        if !store.work_received(&w.to_library_id, &w.source, &w.work_id)? {
+            out.push(w);
+        }
     }
-    Ok(out)
+    Ok((out, in_use))
 }
 
 /// 撤回这些作品在新库加上的来源层；新库原来的样子（已有的来源、在回收站里）照旧。同一张新库的图
