@@ -59,48 +59,50 @@ const narrowed: BackupPreview = {
 const backend = (replies: Replies) => fakeBackend({ registered_libraries: registrations, ...replies });
 
 describe("设置：备份", () => {
-  it("keeps both libraries when the second click precedes the first save response", async () => {
-    const initial: BackupStatus = {
-      ...withTarget,
-      plan: { ...withTarget.plan, selection: { kind: "libraries", ids: [], includeLinked: true } },
-    };
-    const saves: Array<() => void> = [];
-    const fake = backend({
-      backup_status: initial,
-      backup_preview: narrowed,
-      set_backup_selection: (args) =>
-        new Promise<BackupStatus>((resolve) => {
-          saves.push(() =>
-            resolve({
-              ...initial,
-              plan: { ...initial.plan, selection: args.selection as BackupStatus["plan"]["selection"] },
-            }),
-          );
-        }),
-    });
-    render(<BackupSettings />);
-    const a = await screen.findByRole<HTMLInputElement>("checkbox", { name: "主库" });
-    const b = screen.getByRole<HTMLInputElement>("checkbox", { name: "旧库" });
-    fireEvent.click(a);
-    await waitFor(() => expect(saves).toHaveLength(1));
-    fireEvent.click(b);
-    expect(a.checked).toBe(true);
-    expect(b.checked).toBe(true);
-    expect(saves).toHaveLength(1);
-    await act(() => emit("backup-status", initial));
-    expect(a.checked).toBe(true);
-    expect(b.checked).toBe(true);
-    await act(async () => saves[0]());
-    await waitFor(() => expect(saves).toHaveLength(2));
-    expect(a.checked).toBe(true);
-    expect(b.checked).toBe(true);
-    await act(async () => saves[1]());
-    expect(fake.calls("set_backup_selection").at(-1)?.args).toEqual({
-      selection: { kind: "libraries", ids: ["A", "B"], includeLinked: true },
-    });
-    expect(a.checked).toBe(true);
-    expect(b.checked).toBe(true);
-  });
+  it.each([false, true])(
+    "sends both selections immediately and keeps both libraries (reverse responses: %s)",
+    async (reverse) => {
+      const initial: BackupStatus = {
+        ...withTarget,
+        plan: { ...withTarget.plan, selection: { kind: "libraries", ids: [], includeLinked: true } },
+      };
+      const saves: Array<() => void> = [];
+      const fake = backend({
+        backup_status: initial,
+        backup_preview: narrowed,
+        set_backup_selection: (args) =>
+          new Promise<BackupStatus>((resolve) => {
+            saves.push(() =>
+              resolve({
+                ...initial,
+                plan: { ...initial.plan, selection: args.selection as BackupStatus["plan"]["selection"] },
+              }),
+            );
+          }),
+      });
+      render(<BackupSettings />);
+      const a = await screen.findByRole<HTMLInputElement>("checkbox", { name: "主库" });
+      const b = screen.getByRole<HTMLInputElement>("checkbox", { name: "旧库" });
+      fireEvent.click(a);
+      await waitFor(() => expect(saves).toHaveLength(1));
+      fireEvent.click(b);
+      expect(a.checked).toBe(true);
+      expect(b.checked).toBe(true);
+      await waitFor(() => expect(saves).toHaveLength(2));
+      await act(() => emit("backup-status", initial));
+      expect(a.checked).toBe(true);
+      expect(b.checked).toBe(true);
+      await act(async () => saves[reverse ? 1 : 0]());
+      expect(a.checked).toBe(true);
+      expect(b.checked).toBe(true);
+      await act(async () => saves[reverse ? 0 : 1]());
+      expect(fake.calls("set_backup_selection").at(-1)?.args).toEqual({
+        selection: { kind: "libraries", ids: ["A", "B"], includeLinked: true },
+      });
+      expect(a.checked).toBe(true);
+      expect(b.checked).toBe(true);
+    },
+  );
 
   it("rolls back a failed selection save and allows retrying an empty selection", async () => {
     const initial: BackupStatus = {

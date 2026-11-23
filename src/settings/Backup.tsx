@@ -74,7 +74,6 @@ export function BackupSettings() {
   const [preview, setPreview] = useState<BackupPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<ScopeSelection | null>(null);
-  const selectionQueue = useRef(Promise.resolve());
   const selectionRevision = useRef(0);
 
   useEffect(() => {
@@ -124,10 +123,18 @@ export function BackupSettings() {
   const select = (next: ScopeSelection) => {
     const revision = ++selectionRevision.current;
     setPendingSelection(next);
-    selectionQueue.current = selectionQueue.current.then(async () => {
-      await apply(setBackupSelection(next));
-      if (revision === selectionRevision.current) setPendingSelection(null);
-    });
+    void setBackupSelection(next).then(
+      (saved) => {
+        if (revision !== selectionRevision.current) return;
+        setStatus(saved);
+        setError(null);
+        setPendingSelection(null);
+      },
+      (e) => {
+        setError(errorText(e));
+        if (revision === selectionRevision.current) setPendingSelection(null);
+      },
+    );
   };
   const narrowed = selection?.kind === "libraries" ? selection : null;
   const toggleLibrary = (id: string, on: boolean) => {
