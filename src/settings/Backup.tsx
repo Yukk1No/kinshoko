@@ -73,12 +73,15 @@ export function BackupSettings() {
   const [libraries, setLibraries] = useState<LibraryRegistration[]>([]);
   const [preview, setPreview] = useState<BackupPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingSelection, setPendingSelection] = useState<ScopeSelection | null>(null);
+  const selectionQueue = useRef(Promise.resolve());
+  const selectionRevision = useRef(0);
 
   useEffect(() => {
     registeredLibraries().then(setLibraries, () => {});
   }, []);
 
-  const selection = status?.plan.selection;
+  const selection = pendingSelection ?? status?.plan.selection;
   const selectionKey = JSON.stringify(selection ?? null);
   const isRunning = status?.running != null;
   // biome-ignore lint/correctness/useExhaustiveDependencies: 按范围的内容（selectionKey）而不是对象身份重新估计，备份目录变了也重估
@@ -118,7 +121,14 @@ export function BackupSettings() {
     if (dir) await apply(setBackupTarget(dir));
   };
 
-  const select = (next: ScopeSelection) => void apply(setBackupSelection(next));
+  const select = (next: ScopeSelection) => {
+    const revision = ++selectionRevision.current;
+    setPendingSelection(next);
+    selectionQueue.current = selectionQueue.current.then(async () => {
+      await apply(setBackupSelection(next));
+      if (revision === selectionRevision.current) setPendingSelection(null);
+    });
+  };
   const narrowed = selection?.kind === "libraries" ? selection : null;
   const toggleLibrary = (id: string, on: boolean) => {
     const ids = narrowed?.ids ?? [];

@@ -84,14 +84,52 @@ describe("设置：备份", () => {
     fireEvent.click(a);
     await waitFor(() => expect(saves).toHaveLength(1));
     fireEvent.click(b);
+    expect(a.checked).toBe(true);
+    expect(b.checked).toBe(true);
+    expect(saves).toHaveLength(1);
+    await act(() => emit("backup-status", initial));
+    expect(a.checked).toBe(true);
+    expect(b.checked).toBe(true);
     await act(async () => saves[0]());
     await waitFor(() => expect(saves).toHaveLength(2));
+    expect(a.checked).toBe(true);
+    expect(b.checked).toBe(true);
     await act(async () => saves[1]());
     expect(fake.calls("set_backup_selection").at(-1)?.args).toEqual({
       selection: { kind: "libraries", ids: ["A", "B"], includeLinked: true },
     });
     expect(a.checked).toBe(true);
     expect(b.checked).toBe(true);
+  });
+
+  it("rolls back a failed selection save and allows retrying an empty selection", async () => {
+    const initial: BackupStatus = {
+      ...withTarget,
+      plan: { ...withTarget.plan, selection: { kind: "libraries", ids: [], includeLinked: true } },
+    };
+    const fake = backend({
+      backup_status: initial,
+      backup_preview: narrowed,
+      set_backup_selection: () => {
+        throw new Error("save unavailable");
+      },
+    });
+    render(<BackupSettings />);
+    const a = await screen.findByRole<HTMLInputElement>("checkbox", { name: "主库" });
+    fireEvent.click(a);
+    await screen.findByRole("alert");
+    expect(a.checked).toBe(false);
+    fake.on("set_backup_selection", (args) => ({ ...initial, plan: { ...initial.plan, selection: args.selection } }));
+    fireEvent.click(a);
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(a.checked).toBe(true);
+    fireEvent.click(a);
+    await waitFor(() =>
+      expect(fake.calls("set_backup_selection").at(-1)?.args).toEqual({
+        selection: { kind: "libraries", ids: [], includeLinked: true },
+      }),
+    );
+    expect(a.checked).toBe(false);
   });
 
   it("备份结束后重新估计容量，进度事件不重复估计", async () => {
