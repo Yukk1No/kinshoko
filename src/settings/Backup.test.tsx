@@ -266,8 +266,7 @@ describe("设置：备份", () => {
     );
     const oldEstimate = await screen.findByText(/新原图 1 张/);
     const preview = screen.getByLabelText("备份内容");
-    const previewSelector = ".k-settings .backup-preview";
-    const mutedSelector = `${previewSelector}[aria-busy="true"]`;
+    const mutedSelector = '.k-settings .backup-preview[aria-busy="true"]';
     let resolve!: (preview: BackupPreview) => void;
     fake.on(
       "backup_preview",
@@ -286,8 +285,8 @@ describe("设置：备份", () => {
     expect(getComputedStyle(preview).visibility).toBe("visible");
     expect(preview.getAttribute("aria-busy")).toBe("true");
     expect(preview.matches(mutedSelector)).toBe(true);
-    expect(cssRule(settingsCss, mutedSelector).color).toBe("var(--ink-2)");
-    expect(cssRule(settingsCss, previewSelector).color).toBe("var(--ink)");
+    expect(cssRule(settingsCss, mutedSelector).color).toBe("color-mix(in srgb, var(--ink-2) 90%, var(--bg))");
+    expect(settingsCss).not.toMatch(/\.backup-preview\s*\{[^}]*\bcolor\s*:/);
 
     await act(async () => resolve({ ...narrowed, estimate: { ...narrowed.estimate, newOriginals: 2 } }));
     const newEstimate = await screen.findByText(/新原图 2 张/);
