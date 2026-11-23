@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import settings from "./settings.css?raw";
+import settings from "../settings/settings.css?raw";
 import fields from "./fields.css?raw";
 import ui from "./uiCss";
 

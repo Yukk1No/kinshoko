@@ -2,12 +2,16 @@ import { describe, expect, it } from "vitest";
 import uiCss from "./uiCss";
 import menuCss from "./menu.css?raw";
 import tokensCss from "../styles/tokens.css?raw";
-import frameCss from "../shell/mainWindowCss";
 import { cssRule } from "./cssRule";
 import { flatCss } from "../test/flatCss";
 
 const rule = (selector: string) => cssRule(uiCss, selector);
 const sheets = import.meta.glob<string>("../**/*.css", { query: "?raw", import: "default", eager: true });
+/** 主窗口自己的样式表（shell/ 与图片墙）。 */
+const frameCss = Object.entries(sheets)
+  .filter(([path]) => path.startsWith("../shell/") || path.startsWith("../wall/"))
+  .map(([, css]) => css)
+  .join("\n");
 
 // #601：维护者选定级联菜单外形与 Dock 提示表面；功能样式不能再盖回第二套配方。
 describe("浮层与悬停提示只有一套表面", () => {

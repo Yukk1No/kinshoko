@@ -143,13 +143,13 @@ describe("说明与报错文字", () => {
       ".k-error-text:where(.is-boxed)",
       ".k-error-text:where(.is-field)",
     ]);
-    expect(cssRule(sheets["../styles/import-dialogs.css"], ".save-destination p")).toMatchObject({ margin: "0" });
+    expect(cssRule(sheets["../library/import.css"], ".save-destination p")).toMatchObject({ margin: "0" });
     expect(
-      cssRule(sheets["./settings.css"], ".k-set-row-below-body > p,\n.k-set-row-below-body > div > p"),
+      cssRule(sheets["../settings/settings.css"], ".k-set-row-below-body > p,\n.k-set-row-below-body > div > p"),
     ).toMatchObject({
       margin: "4px 0",
     });
-    expect(cssRule(sheets["./settings.css"], ".k-set-row-below-body .k-error-text")).toMatchObject({
+    expect(cssRule(sheets["../settings/settings.css"], ".k-set-row-below-body .k-error-text")).toMatchObject({
       margin: "6px 0 0",
     });
   });
@@ -164,15 +164,15 @@ describe("说明与报错文字", () => {
 
   it("区域保留说明的间距、键盘显示和检查器行高", () => {
     expect(cssRule(sheets["./ui.css"], ".k-description:where(.is-spaced)")).toMatchObject({ "margin-top": "8px" });
-    expect(cssRule(sheets["./settings.css"], ".k-set-group > .k-description")).toMatchObject({
+    expect(cssRule(sheets["../settings/settings.css"], ".k-set-group > .k-description")).toMatchObject({
       margin: "0",
       padding: "8px 12px 6px",
     });
-    expect(cssRule(sheets["./settings.css"], ".k-set-row .k-list-text > .k-description")).toMatchObject({
+    expect(cssRule(sheets["../settings/settings.css"], ".k-set-row .k-list-text > .k-description")).toMatchObject({
       display: "none",
       "white-space": "normal",
     });
-    expect(cssRule(sheets["../shell/main-window.css"], ".workspace-sources > .k-description")).toMatchObject({
+    expect(cssRule(sheets["../shell/sidebar.css"], ".workspace-sources > .k-description")).toMatchObject({
       margin: "6px 0 0",
       "line-height": "inherit",
       display: "flex",

@@ -1,6 +1,7 @@
 /* 标签分组（#607，design/ui-system/main-window-material.md“顶栏”）：查找框尾部一个 32 × 32 的图标按钮，
    与精确查找开关同样大小、同样的悬停与按下。面板挂在查找框正下方、与它同宽（不窄于 420），外形是 .k-popup；
    所有分组一次摆出来，可以跨分组连选，面板不关。里面的标签块与查找框里的条件同样子（#487）。 */
+
 .k-groups-btn {
   flex: none;
   width: 32px;
@@ -18,22 +19,27 @@
     color var(--t) var(--ease),
     transform var(--t-fast) var(--spring);
 }
+
 .k-groups-btn:hover,
 .k-groups-btn[data-popup-open] {
   background-color: var(--hover);
   color: var(--ink);
 }
+
 .k-groups-btn:active {
   transform: scale(0.94);
 }
+
 .k-groups-btn:focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);
 }
+
 .k-groups-pop {
   width: max(var(--anchor-width), 420px);
   max-width: calc(100vw - 32px);
 }
+
 .k-groups-list {
   display: flex;
   flex-direction: column;
@@ -42,13 +48,16 @@
   overflow-y: auto;
   padding: 8px 8px 12px;
 }
+
 .k-groups-section header {
   display: flex;
   align-items: center;
   height: 22px;
   margin-bottom: 6px;
 }
+
 /* 任一成员：指针移到分组上（或键盘走到、已按下）时才出现在分组名右边。 */
+
 .group-any {
   height: 22px;
   margin-left: auto;
@@ -65,25 +74,32 @@
     background-color var(--t-fast),
     color var(--t-fast);
 }
+
 .k-groups-section:hover .group-any,
 .group-any:focus-visible,
 .group-any[aria-pressed="true"] {
   opacity: 1;
 }
+
 .group-any:hover:not(:disabled) {
   background: var(--hover);
   color: var(--ink);
 }
+
 .group-any:focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);
 }
+
 /* 已按“任一成员”查找：同分组里选中的标签（樱色 / 金色浅底），再点取消。 */
+
 .group-any[aria-pressed="true"] {
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
+
 /* 面板底部的“编辑分组”：菜单行的样子。 */
+
 .k-groups-edit {
   width: 100%;
   border: 0;
@@ -91,20 +107,21 @@
   font: inherit;
   text-align: left;
 }
+
 .k-groups-edit:hover {
   background: var(--hover);
 }
+
 .k-groups-edit:focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-inset);
 }
+
 /* 分组里的标签：点一下加为条件（樱色 / 金色浅底），右键排除（同顶栏里排除的条件：无底细线、删除线），
    一张图也没有的标签无底、淡字。 */
+
 .chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-.settings .sidebar-tag-groups {
-  max-width: 680px;
 }

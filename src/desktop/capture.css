@@ -1,0 +1,125 @@
+/* 截图框选窗口与钉图菜单窗口（#106）：没有页面底色和边距，禁止系统手势（笔与触摸走 pointer 事件，#7）。 */
+
+:root[data-view="capture"],
+:root[data-view="capture"] body,
+:root[data-view="desktop-menu"],
+:root[data-view="desktop-menu"] body {
+  background: transparent;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+/* 钉图菜单窗口铺满整台显示器：菜单外的透明处接住点击，用来关闭菜单。 */
+
+.desktop-menu-backdrop {
+  position: fixed;
+  inset: 0;
+}
+
+.capture {
+  position: fixed;
+  inset: 0;
+  cursor: crosshair;
+}
+
+/* 已确认、等结果可用（#127）。 */
+
+.capture.is-busy {
+  cursor: progress;
+}
+
+.capture-screen {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /* 冻结屏幕按物理像素原位显示，不做平滑。 */
+  image-rendering: pixelated;
+}
+
+.capture-shade {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim-capture);
+}
+
+/* 选区外沿用 35% 压暗；没有选区时上面的 25% 遮罩是 T17 冻结像素核对依据，不要改。 */
+
+.capture-selection {
+  position: absolute;
+  box-sizing: border-box;
+  outline: 1.5px solid var(--on-solid);
+  box-shadow: 0 0 0 100000px var(--scrim-capture-out);
+}
+
+/* 四角与四边中点的手柄标出能拖的地方；命中范围比手柄大，由 selectionPart 判断，手柄本身不接指针。 */
+
+.capture-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--on-solid);
+  box-shadow: 0 0 0 1px var(--scrim-capture);
+  pointer-events: none;
+}
+
+.capture-handle.is-nw {
+  left: -4px;
+  top: -4px;
+}
+
+.capture-handle.is-ne {
+  right: -4px;
+  top: -4px;
+}
+
+.capture-handle.is-sw {
+  left: -4px;
+  bottom: -4px;
+}
+
+.capture-handle.is-se {
+  right: -4px;
+  bottom: -4px;
+}
+
+.capture-handle.is-n {
+  left: calc(50% - 4px);
+  top: -4px;
+}
+
+.capture-handle.is-s {
+  left: calc(50% - 4px);
+  bottom: -4px;
+}
+
+.capture-handle.is-w {
+  left: -4px;
+  top: calc(50% - 4px);
+}
+
+.capture-handle.is-e {
+  right: -4px;
+  top: calc(50% - 4px);
+}
+
+.capture-tools {
+  font-family: var(--font);
+  color: var(--ink);
+}
+
+.capture-tip {
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--ink) 80%, transparent);
+  color: var(--bg);
+  font-family: var(--font);
+  font-size: 12px;
+  backdrop-filter: var(--glass-blur);
+  pointer-events: none;
+}

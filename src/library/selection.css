@@ -1,0 +1,46 @@
+/* 多选后的侧栏面板（SelectionPanel）与永久删除的分组列表（PermanentDeleteBatch）。 */
+
+.selection {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.selection-actions select {
+  font: inherit;
+}
+
+.selection-folders {
+  margin: 0;
+  font-size: 12px;
+}
+
+.selection-note-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.selection-note-field textarea {
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+
+/* 永久删除的确认（#67）：提醒对话框里列出受影响的参考组。 */
+
+.permanent-delete-groups {
+  margin: 0 0 4px;
+  padding-left: 1.4em;
+  color: var(--ink-2);
+}

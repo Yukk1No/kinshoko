@@ -46,9 +46,9 @@
 
 | 层 | 值 | 令牌 | 用在哪里 |
 | --- | --- | --- | --- |
-| 窄窗口浮出侧栏的遮罩 | 29 | `--z-pane-scrim` | `.pane-scrim`（`src/shell/pane-fit.css`） |
+| 窄窗口浮出侧栏的遮罩 | 29 | `--z-pane-scrim` | `.pane-scrim`（`src/shell/sidebar.css`） |
 | 窄窗口浮出的侧栏 | 30 | `--z-pane-float` | `.sidebar-slot[data-float]`（同上） |
-| 界面特效层 | 38 | `--z-fx` | `.fx-layer`（`src/styles/shell.css`） |
+| 界面特效层 | 38 | `--z-fx` | `.fx-layer`（`src/shell/seal-fx.css`） |
 | 任务卡 | 50 | `--z-task` | `.k-task-cards`（`src/ui/dialogs-tasks.css`） |
 | 拖入提示 | 80 | `--z-drop` | `.k-drop-hint`（同上） |
 | 对话框遮罩 | 90 | `--z-backdrop` | `.k-backdrop`（`src/ui/ui-dock.css`） |
@@ -68,7 +68,7 @@
 
 一种配方：底色 `--glass-bg`（`--surface` 的 86%），模糊 `--glass-blur`（`blur(18px) saturate(1.2)`）。
 
-用它的：dock、dock 托盘、图片大小浮岛、打标进度、轻提示、任务卡。钉图上的墨色提示条（`src/styles/desktop.css`）只用模糊，底色仍是墨色。
+用它的：dock、dock 托盘、图片大小浮岛、打标进度、轻提示、任务卡。钉图上的墨色提示条（`src/desktop/capture.css`）只用模糊，底色仍是墨色。
 
 菜单、下拉、可搜索下拉与气泡统一用 `.k-popup`：12 圆角、6 内边距、1 px `--line` 描边、`--surface` 底、`--shadow-pop` 投影，模糊取 `--popup-blur`（`blur(18px) saturate(135%)`）。这一外形与半透明浮动面板分开。
 
@@ -108,7 +108,7 @@
 **例外**
 
 - 级联菜单用 `src/ui/menu/timing.ts` 的时间常量与回弹（淡入 170、位移 360 ms），退场只淡出，不并入通用档位。
-- 封印与释放演出、安全模式遮蔽是品牌不变项，数值不动：卡片遮蔽的过渡在 `src/styles/library.css`，演出层 `.fx-*` 在 `src/styles/shell.css`。
+- 封印与释放演出、安全模式遮蔽是品牌不变项，数值不动：卡片遮蔽的过渡在 `src/wall/wall.css`，演出层 `.fx-*` 在 `src/shell/seal-fx.css`。
 - 循环播放的动画（呼吸、转圈）有自己的周期。
 
 ## 共用类
@@ -131,7 +131,7 @@
 | 悬停提示 | `Tip`（`.k-tip`）与 Dock（`.k-dock-tip`）共用纸面、墨字、6 / 10 内边距 | `src/ui/ui-dock.css` |
 | 轻提示 | `Toast`（`.k-toast`） | `src/ui/toast.css` |
 | 对话框 | `.k-dialog`、`DialogHeight` | `src/ui/ui-dock.css` |
-| 设置行 | `SettingsList`（`.k-set-row`） | `src/ui/settings.css` |
+| 设置行 | `SettingsList`（`.k-set-row`） | `src/settings/settings.css` |
 | 胶囊 | `.k-pill`（`.is-ok`、`.is-warn`、`.is-accent`、`.is-mine`） | `src/ui/ui-dock.css` |
 | 按键名 | `.k-keys`、`.k-key` | `src/ui/ui-dock.css` |
 | 侧栏行 | `.k-row`（30 高，图标、名字、张数；选中是指示条） | `src/ui/row.css` |
@@ -155,11 +155,16 @@
 
 - **令牌**只写在 `src/styles/tokens.css`，其他样式表只写 `var(--token)`。
 - **共用类**写在 `src/ui/` 的样式表里。
-- **一个区域或一个功能**的样式写在它组件旁边的样式表里（如 `src/shell/`、`src/search/`、`src/subscriptions/`），只管那一块。
+- **样式表跟着部件走。** 一个部件的规则写在一份样式表里，和它的组件放在同一个文件夹（如 `src/wall/wall.css`、`src/shell/sidebar.css`、`src/settings/settings.css`），只管那一块。`src/styles/` 只放 `tokens.css` 与 `base.css`。
 - 一个类的基础规则只写在一份样式表里，不在另一份里写同名规则去覆盖它。`src/styles/single-base-rule.styles.test.ts` 会挡住。
 - 一份样式表保持在 20 KB 以内；超了按职责拆，文件名说明它管什么。
-- `src/styles.css` 按次序导入 `src/styles/` 下的全局样式，`tokens.css` 最先。其余样式表在 `src/main.tsx` 里按次序导入；后导入的同特异性规则会盖过先导入的，挪动次序前先确认没有靠次序取胜的规则。
-- `src/styles/` 下的样式表类名不带 `k-`。新规则写进组件旁边的样式表，不往 `src/styles/` 里加。
+- `src/styles.css` 导入 `tokens.css` 与 `base.css`，`tokens.css` 最先。其余样式表在 `src/main.tsx` 里按次序导入；后导入的同特异性规则会盖过先导入的，挪动次序或把规则搬到别的文件前，先确认没有靠次序取胜的规则。
+- 已知要保住的次序：
+  - `src/settings/settings.css` 早于 `src/ui/dialogs.css`：后者减弱动效的规则要盖过设置页签的过渡。
+  - 叠成一摞的图集（`src/wall/wall.css` 后半）排在卡片规则与 `src/shell/main-window-island.css` 之后。
+  - `src/shell/sidebar-base.css` 早于 `src/ui/row.css`，`src/shell/sidebar.css` 紧跟 `src/shell/main-window.css`：侧栏的行也带 `.k-row`，前者要让 `.k-row` 盖过，后者要盖过共用类。
+  - `:focus-visible`（`src/ui/ui.css` 开头）排在 `src/viewer/viewer.css` 与 `src/desktop/capture.css` 之后，那里同特异性的 `outline` 不能盖过焦点环。
+- 新规则写进组件旁边的样式表，不往 `src/styles/` 里加。
 
 ### 挡住回退的测试
 
