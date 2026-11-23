@@ -142,6 +142,26 @@ describe("设置：备份", () => {
     expect(a.checked).toBe(false);
   });
 
+  it.each([
+    [false, "会跳过"],
+    [true, "备份无法完成"],
+  ])("预览区分部分图库和全部图库无法读取（全部：%s）", async (allUnavailable, expected) => {
+    const library = { id: "A", name: "主库" };
+    backend({
+      backup_status: withTarget,
+      backup_preview: {
+        ...narrowed,
+        scope: {
+          ...narrowed.scope,
+          libraries: allUnavailable ? [library] : [library, { id: "B", name: "旧库" }],
+        },
+        estimate: { ...narrowed.estimate, unavailable: [{ library, reason: "暂时离线" }] },
+      },
+    });
+    render(<BackupSettings />);
+    expect(await screen.findByText(`「主库」暂时无法读取，${expected}：暂时离线`)).toBeTruthy();
+  });
+
   it("备份结束后重新估计容量，进度事件不重复估计", async () => {
     const fake = backend({ backup_status: withTarget, backup_preview: narrowed });
     render(<BackupSettings />);

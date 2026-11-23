@@ -239,6 +239,10 @@ pub enum ErrorKind {
     BackupGroupNewLibrary {
         name: String,
     },
+    BackupLibraryUnreadable {
+        name: String,
+        cause: Box<ErrorKind>,
+    },
     BackupLibraryDefinitions {
         name: String,
         cause: Box<ErrorKind>,

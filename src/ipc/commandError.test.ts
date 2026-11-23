@@ -75,6 +75,12 @@ it("备份与往返检查的原因按结构拼出；旧版本写下的原因照�
   ).toBe("表 tag：快照 3 行，恢复后 2 行，内容不一致");
   expect(storedReasonText("备份位置不在：E盘")).toBe("备份位置不在：E盘");
   expect(storedReasonText({ code: "backupLibraryNotRegistered" })).toBe("本设备没有打开这个图库");
+  expect(
+    storedReasonText({
+      code: "backupProblems",
+      problems: [{ code: "backupLibraryUnreadable", name: "主库", cause: { code: "notALibrary", path: "D:\\主库" } }],
+    }),
+  ).toBe("无法读取图库“主库”：这里没有 Kinshoko 图库：D:\\主库");
 });
 
 it("按原因合计未备份的原图，不显示文件名或系统错误", async () => {

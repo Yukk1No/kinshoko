@@ -18,6 +18,17 @@ pub(super) fn registered<'a>(
         })
 }
 
+pub(super) fn snapshot_write_problem(error: library::Error) -> CommandError {
+    let io_error = match error {
+        library::Error::Io(e) => e,
+        library::Error::Db(e) if e.sqlite_error_code() == Some(rusqlite::ErrorCode::DiskFull) => {
+            std::io::Error::new(std::io::ErrorKind::StorageFull, e)
+        }
+        e => std::io::Error::other(e),
+    };
+    BackupError::TargetWrite(io_error).into()
+}
+
 /// 备份目标的原文件区里已有这份原文件，且大小与哈希都和记录相符。
 pub(super) fn holds(stored: &Path, file: &OriginalFile) -> bool {
     fs::metadata(stored).is_ok_and(|m| m.len() == file.size)
