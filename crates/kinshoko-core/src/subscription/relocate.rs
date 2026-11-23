@@ -139,15 +139,23 @@ fn plan(
     })
 }
 
-/// 这几条订阅留在旧库的图，每条订阅每个旧库一项。
+/// 这几条订阅留在旧库的图，每条订阅每个旧库一项。每条订阅单独算，和卡片上一条一条地“移过来”
+/// 一致。
 pub fn old_images(
     store: &Store,
     libraries: &dyn Libraries,
     usage: &dyn ReferenceGroupUsage,
     ids: &[String],
 ) -> Result<Vec<OldImages>, CommandError> {
-    let plan = plan(store, libraries, usage, ids)?;
     let mut out: Vec<OldImages> = Vec::new();
+    for id in ids {
+        let plan = plan(store, libraries, usage, std::slice::from_ref(id))?;
+        count_old(&plan, &mut out);
+    }
+    Ok(out)
+}
+
+fn count_old(plan: &Plan, out: &mut Vec<OldImages>) {
     for p in &plan.pages {
         let i = match out
             .iter()
@@ -170,7 +178,6 @@ pub fn old_images(
             out[i].kept += 1;
         }
     }
-    Ok(out)
 }
 
 /// 把这几条订阅留在旧库、能移的图移到它们现在收进的库。
@@ -264,10 +271,19 @@ pub fn move_old(
             });
     }
     // 留下的作品：撤回已收进新库的。
-    undo_placed(libraries, undo_only.values());
     let done: Vec<MovedWork> = works.into_values().collect();
+    // 新库里还有留下的作品用着的图：撤回时只去掉来源层，不按原来的样子放回回收站。
+    let kept: HashSet<(String, String)> = done
+        .iter()
+        .flat_map(|w| {
+            w.pages
+                .iter()
+                .map(|p| (w.to_library_id.clone(), p.to_image_id.clone()))
+        })
+        .collect();
+    undo_placed(libraries, undo_only.values(), &kept);
     if let Err(e) = store.move_works(&done) {
-        undo_placed(libraries, done.iter());
+        undo_placed(libraries, done.iter(), &HashSet::new());
         return Err(e.into());
     }
     report.moved = done.iter().map(|w| w.pages.len() as u32).sum();
@@ -313,7 +329,11 @@ fn place(
 
 /// 撤回这些作品在新库加上的来源层；新库原来的样子（已有的来源、在回收站里）照旧。同一张新库的图
 /// 汇总起来一次撤回：它原来没有（任一页是这次才有的）时，去掉全部加上的来源后才能判断要不要移进回收站。
-fn undo_placed<'a>(libraries: &dyn Libraries, works: impl Iterator<Item = &'a MovedWork>) {
+fn undo_placed<'a>(
+    libraries: &dyn Libraries,
+    works: impl Iterator<Item = &'a MovedWork>,
+    in_use: &HashSet<(String, String)>,
+) {
     // (新库, 新库的图) → (要去掉的来源层, 这次才有, 原来在回收站)
     let mut by_image: BTreeMap<(String, String), (Vec<FactSource>, bool, bool)> = BTreeMap::new();
     for work in works {
@@ -330,6 +350,11 @@ fn undo_placed<'a>(libraries: &dyn Libraries, works: impl Iterator<Item = &'a Mo
         }
     }
     for ((library_id, image_id), (layers, created, restored)) in by_image {
+        let (created, restored) = if in_use.contains(&(library_id.clone(), image_id.clone())) {
+            (false, false)
+        } else {
+            (created, restored)
+        };
         // 没能撤回：新库多留一份合并来源的图，不影响记录。
         let _ = libraries.with(&library_id, &mut |library| {
             library.undo_receive_moved(&image_id, &layers, created, restored)
@@ -368,7 +393,7 @@ pub fn undo_move(
         put_back(libraries, &restored);
         return Err(e.into());
     }
-    undo_placed(libraries, works.iter());
+    undo_placed(libraries, works.iter(), &HashSet::new());
     Ok(())
 }
 
