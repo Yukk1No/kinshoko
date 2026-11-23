@@ -11,6 +11,7 @@ use serde::Serialize;
 
 use crate::backup::BackupError;
 use crate::desktop::{CaptureError, HistoryError, PinError};
+use crate::interface_lang::InterfaceLanguageError;
 use crate::reference_groups::{GroupError, UnavailableReason};
 use crate::subscription::StoreError;
 use crate::tag_catalog::CatalogError;
@@ -132,6 +133,7 @@ from_domain_error!(
     SettingsError,
     ShortcutError,
     UiScaleError,
+    InterfaceLanguageError,
     CaptureError,
     HistoryError,
     PinError,

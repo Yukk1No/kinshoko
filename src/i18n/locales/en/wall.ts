@@ -5,7 +5,7 @@ const wall: Translation<typeof zh> = {
   label: "Image wall",
   empty: {
     searching: "No reference images match.",
-    all: "No reference images yet.",
+    all: "No reference images in the library yet.",
     folder: "This folder has no reference images yet.",
     folderTree: "This folder and its subfolders have no reference images yet.",
     unassigned: "This library has no unsorted reference images.",

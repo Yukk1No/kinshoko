@@ -25,7 +25,7 @@ const backup: Translation<typeof zh> = {
   start: "Back up",
   scope: "Backup scope",
   estimate: "About {{size}}",
-  estimating: "Estimating…",
+  estimating: "Counting…",
   libraries: "Libraries to back up",
   includeLinked: "Include libraries used by reference groups",
   all: "All libraries",

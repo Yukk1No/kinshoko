@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { SettingsPanel } from "./SettingsPanel";
 import { backend, defaults, resetSettingsTest, tab } from "./SettingsPanel.fixtures";
 import { chooseValue, optionNames } from "../test/select";
+import { i18n } from "../i18n";
 
 afterEach(resetSettingsTest);
 
@@ -231,5 +232,52 @@ describe("设置：界面缩放", () => {
       expect(within(row).getByLabelText(keys)).toBeTruthy();
       expect(within(row).queryByRole("button")).toBeNull();
     }
+  });
+});
+
+describe("设置：界面语言", () => {
+  afterEach(async () => {
+    await act(async () => {
+      await i18n.changeLanguage("zh-CN");
+    });
+  });
+
+  it("通用分页列出三档，默认跟随系统；选 English 后保存并立即换成英文", async () => {
+    const fake = backend({
+      set_interface_language: (args) =>
+        (args as { lang: string }).lang === "system" ? "zh-CN" : (args as { lang: string }).lang,
+    });
+    render(<SettingsPanel />);
+
+    const select = await screen.findByRole("combobox", { name: "界面语言" });
+    expect(await optionNames(select)).toEqual(["跟随系统", "简体中文", "English"]);
+    expect(select.dataset.value).toBe("system");
+    await chooseValue(select, "en");
+
+    expect(fake.calls("set_interface_language")[0]?.args).toEqual({ lang: "en" });
+    const english = await screen.findByRole("combobox", { name: "Language" });
+    expect(english.dataset.value).toBe("en");
+    expect(screen.getByRole("switch", { name: "Start at sign-in" })).toBeTruthy();
+
+    await chooseValue(english, "system");
+    expect(await screen.findByRole("combobox", { name: "界面语言" })).toBeTruthy();
+  });
+
+  it("读回上次保存的选择", async () => {
+    backend({ interface_language_choice: "zh-CN" });
+    render(<SettingsPanel />);
+    expect((await screen.findByRole("combobox", { name: "界面语言" })).dataset.value).toBe("zh-CN");
+  });
+
+  it("保存失败时说明原因，选择留在原来的值，界面语言不变", async () => {
+    backend({
+      set_interface_language: () => Promise.reject({ code: "interfaceLanguageIo", detail: "磁盘已满" }),
+    });
+    render(<SettingsPanel />);
+    const select = await screen.findByRole("combobox", { name: "界面语言" });
+    await chooseValue(select, "en");
+
+    expect((await screen.findByRole("alert")).textContent).toContain("保存界面语言失败：磁盘已满");
+    expect(screen.getByRole("combobox", { name: "界面语言" }).dataset.value).toBe("system");
   });
 });

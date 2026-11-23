@@ -5,6 +5,7 @@ export default {
   referenceGroupsNotReady: "参考组还没有准备好",
   saveTargetMismatch: "要保存到的图库与导入任务不一致",
   unknownInterfaceLanguage: "没有这种界面语言：{{lang}}",
+  interfaceLanguageIo: "保存界面语言失败：{{detail}}",
   autostartFailed: "无法更改开机启动：{{cause}}",
   clearRunLogFailed: "清除运行日志失败：{{detail}}",
   runLogNotOpen: "运行日志没有打开",
