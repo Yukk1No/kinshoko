@@ -77,6 +77,15 @@ impl MovedWork {
 }
 
 impl Store {
+    /// 还有订阅记录的页指着这张图。
+    pub fn image_in_use(&self, library_id: &str, image_id: &str) -> Result<bool, StoreError> {
+        Ok(self.conn().query_row(
+            "SELECT EXISTS (SELECT 1 FROM received_page WHERE library_id = ?1 AND image_id = ?2)",
+            params![library_id, image_id],
+            |row| row.get(0),
+        )?)
+    }
+
     /// `ids` 这几条订阅收进别的库（不是现在收进的库）的页，按订阅、库、作品、页排。
     pub fn old_pages(&self, ids: &[String]) -> Result<Vec<OldPage>, StoreError> {
         let conn = self.conn();
@@ -158,6 +167,27 @@ impl Store {
                 |row| row.get(0),
             )?;
             if !there {
+                return Err(StoreError::MovedElsewhere);
+            }
+            // 页也得和记下时一样：之后又收了几页、或页换了图，这条记录作废，免得作品和页分在两个库。
+            let live: Vec<(u32, String)> = {
+                let mut stmt = tx.prepare_cached(
+                    "SELECT page, image_id FROM received_page
+                     WHERE library_id = ?1 AND source = ?2 AND work_id = ?3 ORDER BY page",
+                )?;
+                stmt.query_map(
+                    params![work.from_library_id, work.source, work.work_id],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )?
+                .collect::<Result<_, _>>()?
+            };
+            let mut expected: Vec<(u32, String)> = work
+                .pages
+                .iter()
+                .map(|p| (p.page, p.from_image_id.clone()))
+                .collect();
+            expected.sort();
+            if live != expected {
                 return Err(StoreError::MovedElsewhere);
             }
             tx.execute(

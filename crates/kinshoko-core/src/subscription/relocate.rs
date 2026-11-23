@@ -416,7 +416,16 @@ pub fn undo_move(
         put_back(libraries, &restored);
         return Err(e.into());
     }
-    undo_placed(libraries, works.iter(), &HashSet::new());
+    // 记录改回去以后还有别的页指着的新库图（之后又移来、收来的）：只去掉来源层，不放回回收站。
+    let mut in_use = HashSet::new();
+    for w in works {
+        for p in &w.pages {
+            if store.image_in_use(&w.to_library_id, &p.to_image_id)? {
+                in_use.insert((w.to_library_id.clone(), p.to_image_id.clone()));
+            }
+        }
+    }
+    undo_placed(libraries, works.iter(), &in_use);
     Ok(())
 }
 
