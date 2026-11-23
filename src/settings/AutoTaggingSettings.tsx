@@ -17,7 +17,7 @@ import {
   taggingRetryFailed,
   taggingSetDevice,
 } from "../ipc";
-import { useTaggingStatus } from "../tagging/useTaggingStatus";
+import { forgetTaggingDevice, useTaggingMemory, useTaggingStatus } from "../tagging/useTaggingStatus";
 import { describeCommandError, describeCommandErrors, errorText } from "../ipc/commandError";
 import { Select } from "../ui/Select";
 import { i18n } from "../i18n/instance";
@@ -44,11 +44,11 @@ function describe(option: HardwareOption): string {
 }
 
 /** 选“自动”时，说明实际在用的档。 */
-function automatic(status: TaggingStatus | null): string {
-  if (status?.state === "running" || status?.state === "idle") {
-    return status.device === "directMl"
-      ? status.gpu
-        ? t("autoGpuNamed", { gpu: status.gpu })
+function automatic(status: TaggingStatus | null, device: ReturnType<typeof useTaggingMemory>["device"]): string {
+  if (device) {
+    return device.device === "directMl"
+      ? device.gpu
+        ? t("autoGpuNamed", { gpu: device.gpu })
         : t("autoGpu")
       : t("autoCpu");
   }
@@ -72,6 +72,7 @@ export function AutoTaggingSettings({
   // 随界面语言重新渲染（文案经 `t` 取，不在组件里订阅）。
   useTranslation("tagging");
   const status = useTaggingStatus();
+  const memory = useTaggingMemory();
   const [choice, setChoice] = useState<ModelChoice | null>(null);
   const [busy, setBusy] = useState(false);
   const toast = useToast();
@@ -131,12 +132,15 @@ export function AutoTaggingSettings({
             label={t("hardware")}
             icon={<Cpu size={16} />}
             title={t("hardware")}
-            meta={selected ? describe(selected) : automatic(status)}
+            meta={selected ? describe(selected) : automatic(status, memory.device)}
           >
             <Select
               label={t("hardware")}
               value={choice.selected ?? "auto"}
-              onChange={(value) => void run(() => taggingSetDevice(value === "auto" ? null : (value as Device)), null)}
+              onChange={(value) => {
+                forgetTaggingDevice();
+                void run(() => taggingSetDevice(value === "auto" ? null : (value as Device)), null);
+              }}
               options={[
                 { value: "auto", label: t("auto") },
                 ...choice.options.map((o) => ({ value: o.device, label: describe(o) })),
@@ -178,6 +182,7 @@ function TaggingStatusRow({
   onShowUnfinished?: () => void;
 }) {
   const toast = useToast();
+  const { remaining } = useTaggingMemory();
   const row = (desc: ReactNode, action?: ReactNode, below?: ReactNode) => (
     <SettingsRow label={t("status")} icon={<Sparkles size={16} />} title={t("status")} meta={desc} below={below}>
       {action}
@@ -210,7 +215,10 @@ function TaggingStatusRow({
         pause,
       );
     case "paused":
-      return row(t("paused"), button(t("resume"), taggingResume));
+      return row(
+        remaining === null ? t("paused") : t("pausedRemaining", { count: remaining }),
+        button(t("resume"), taggingResume),
+      );
     // 有全屏程序（游戏）或演示模式时自动让出显卡（#212），不是卡住或出错。系统的通知状态报告不了
     // Windows 设置里的“请勿打扰”开关，所以不提它。
     case "yieldedToFullScreen":

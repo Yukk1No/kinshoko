@@ -85,6 +85,7 @@ export default {
     running_other: "已完成 {{count, number}} 张，还剩 {{remaining, number}} 张（{{device}}）",
     paused: "已暂停",
     resume: "继续",
+    pausedRemaining_other: "已暂停，还剩 {{count, number}} 张",
     yielded: "因全屏程序或演示模式暂停，回到桌面后自动继续",
     idle: "已全部完成",
     unknown_other: "{{count, number}} 个图库暂时无法读取",

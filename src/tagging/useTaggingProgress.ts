@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FailedTagging } from "../bindings/FailedTagging";
 import type { TaggingStatus } from "../bindings/TaggingStatus";
+import { useTaggingMemory } from "./useTaggingStatus";
 
 /** 估算用的最近几张。 */
 const SAMPLES = 8;
@@ -15,6 +16,7 @@ export type TaggingProgress = { remaining: number | null; eta: number | null };
  * 暂停的时间不算进用时；打完或停住时清掉。
  */
 export function useTaggingProgress(status: TaggingStatus | null): TaggingProgress {
+  const { remaining } = useTaggingMemory();
   const samples = useRef<number[]>([]);
   const last = useRef<{ done: number; at: number } | null>(null);
   const [progress, setProgress] = useState<TaggingProgress>({ remaining: null, eta: null });
@@ -42,7 +44,7 @@ export function useTaggingProgress(status: TaggingStatus | null): TaggingProgres
       known.length >= MIN_SAMPLES ? (known.reduce((a, b) => a + b, 0) / known.length) * status.remaining : null;
     setProgress({ remaining: status.remaining, eta });
   }, [status]);
-  return progress;
+  return { ...progress, remaining };
 }
 
 const IGNORED_KEY = "kinshoko.tagging.ignoredUnfinished";
