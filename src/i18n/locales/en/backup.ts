@@ -36,6 +36,7 @@ const backup: Translation<typeof zh> = {
     size_one: "About {{total}} in total, {{fresh}} newly written this time ({{count, number}} new original)",
     size_other: "About {{total}} in total, {{fresh}} newly written this time ({{count, number}} new originals)",
     targetMissing: ". The backup location isn't available now, so this assumes everything needs copying",
+    lowSpace: "Not enough space at the backup location ({{free}} free)",
     uncovered: "Not covered",
     unavailable: "“{{library}}” can't be read right now and will be skipped: {{reason}}",
     noneReadable: "“{{library}}” can't be read right now, so the backup can't finish: {{reason}}",

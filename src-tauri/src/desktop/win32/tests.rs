@@ -11,6 +11,15 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT, WS_POPUP,
 };
 
+#[test]
+fn disk_space_is_known_for_an_existing_directory_only() {
+    let root = tempfile::tempdir().unwrap();
+    let directory = root.path().join("backup target");
+    std::fs::create_dir(&directory).unwrap();
+    assert!(available_disk_bytes(&directory).is_some());
+    assert_eq!(available_disk_bytes(&directory.join("missing")), None);
+}
+
 /// 窗口区域：这些矩形的并集（相对窗口左上角的左、上、右、下，物理像素），只在区域里显示、接点击。
 /// 没有矩形时什么都不显示、不接点击。窗口已经不在时返回 false。
 fn set_window_region(hwnd: isize, rects: &[(i32, i32, i32, i32)]) -> bool {

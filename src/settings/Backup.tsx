@@ -23,6 +23,7 @@ import {
 } from "../ipc";
 import { Archive, CircleCheck, HardDrive, Library, RotateCcw } from "lucide-react";
 import { SettingsGroup, SettingsRow, StatusPill } from "../ui/SettingsList";
+import { WarnIcon } from "../ui/WarnIcon";
 import { Select } from "../ui/Select";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n/instance";
@@ -295,7 +296,7 @@ export function BackupSettings() {
 
 function PreviewView({ preview, pending }: { preview: BackupPreview; pending: boolean }) {
   const { t } = useTranslation("backup");
-  const { scope, estimate } = preview;
+  const { scope, estimate, targetFreeBytes } = preview;
   const unavailableKey =
     estimate.unavailable.length === scope.libraries.length ? "preview.noneReadable" : "preview.unavailable";
   const names = (list: { name: string }[]) => list.map((entry) => entry.name).join(t("separator")) || t("none");
@@ -310,6 +311,12 @@ function PreviewView({ preview, pending }: { preview: BackupPreview; pending: bo
         })}
         {!preview.targetAvailable && t("preview.targetMissing")}
       </p>
+      {targetFreeBytes !== null && estimate.newBytes > targetFreeBytes && (
+        <p className="k-list-desc is-warn" role="status">
+          <WarnIcon />
+          {t("preview.lowSpace", { free: formatBytes(targetFreeBytes) })}
+        </p>
+      )}
       {(scope.uncovered.length > 0 || estimate.unavailable.length > 0) && (
         <ul className="backup-uncovered" aria-label={t("preview.uncovered")}>
           {scope.uncovered.map((u, i) => (
