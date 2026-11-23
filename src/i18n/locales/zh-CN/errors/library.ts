@@ -6,6 +6,7 @@ export default {
   unknown: "操作没有完成（错误代码 {{code}}）：{{raw}}",
 
   invalidLibraryName: "图库名称不能为空",
+  droppedImageUnsupported: "只支持 PNG、JPEG、GIF 和 WebP 图片",
   tagDefinitionsNotSaved: "标签信息未保存：{{cause}}",
   notEmpty: "所选位置不是空文件夹：{{path}}",
   notALibrary: "这里没有 Kinshoko 图库：{{path}}",

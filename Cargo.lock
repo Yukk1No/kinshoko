@@ -2690,6 +2690,7 @@ dependencies = [
  "jiff 1.0.1",
  "kinshoko-core",
  "kinshoko-tagger",
+ "percent-encoding",
  "pin-render",
  "pin-shell",
  "serde",

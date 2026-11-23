@@ -212,6 +212,7 @@ pub fn init() -> TauriPlugin<Wry> {
             image_actions::reveal_library,
             image_actions::clipboard_has_image,
             image_actions::stage_clipboard_import,
+            image_actions::stage_dropped_image,
             groups::reference_groups,
             groups::reference_group,
             groups::rename_reference_group,

@@ -129,6 +129,7 @@ fn main() {
                         "reveal_library",
                         "clipboard_has_image",
                         "stage_clipboard_import",
+                        "stage_dropped_image",
                         "reference_groups",
                         "reference_group",
                         "rename_reference_group",

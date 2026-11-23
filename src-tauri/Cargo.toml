@@ -24,6 +24,7 @@ wgpu = { version = "30", default-features = false, features = ["std"] }
 tauri = { version = "2", features = ["tray-icon"] }
 serde.workspace = true
 serde_json.workspace = true
+percent-encoding = "2.3.2"
 tauri-plugin-dialog = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-autostart = "2"

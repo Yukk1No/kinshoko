@@ -25,7 +25,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: thumb: http://thumb.localhost capture: http://capture.localhost pximg: http://pximg.localhost"
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: thumb: http://thumb.localhost capture: http://capture.localhost pximg: http://pximg.localhost"
     }
   },
   "bundle": {

@@ -173,3 +173,34 @@ pub async fn stage_clipboard_import(app: AppHandle) -> Result<String, CommandErr
     .await
     .map_err(CommandError::system)?
 }
+
+#[tauri::command]
+pub async fn stage_dropped_image(
+    app: AppHandle,
+    request: tauri::ipc::Request<'_>,
+) -> Result<String, CommandError> {
+    let bytes = match request.body() {
+        tauri::ipc::InvokeBody::Raw(bytes) => bytes.clone(),
+        _ => {
+            return Err(CommandError::new(
+                ErrorKind::DroppedImageUnsupported,
+                "Expected raw image bytes",
+            ));
+        }
+    };
+    let name = request
+        .headers()
+        .get("x-file-name")
+        .and_then(|name| name.to_str().ok())
+        .unwrap_or_default();
+    let name = percent_encoding::percent_decode_str(name)
+        .decode_utf8_lossy()
+        .into_owned();
+    tauri::async_runtime::spawn_blocking(move || {
+        let dir = library::data_dir(&app).join(CLIPBOARD_IMPORT_DIR);
+        kinshoko_core::library::stage_dropped_image(&dir, &name, &bytes)
+            .map(|path| path.to_string_lossy().into_owned())
+    })
+    .await
+    .map_err(CommandError::system)?
+}

@@ -14,6 +14,7 @@ const importing: Translation<typeof zh> = {
   taskFinished: "finished",
   taskRunning: "running",
   failed: {
+    drop: "Couldn't read the dropped image: {{error}}",
     start: "Couldn't start the import: {{error}}",
     inspect: "Couldn't check the import source: {{error}}",
     findEagle: "Couldn't look for Eagle libraries: {{error}}",

@@ -13,6 +13,7 @@ export default {
   taskFinished: "已结束",
   taskRunning: "进行中",
   failed: {
+    drop: "无法读取拖入的图片：{{error}}",
     start: "无法开始导入：{{error}}",
     inspect: "无法检查导入来源：{{error}}",
     findEagle: "无法查找 Eagle 库：{{error}}",

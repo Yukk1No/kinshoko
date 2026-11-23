@@ -508,6 +508,7 @@ pub enum ErrorKind {
     /// 截图钉图对应的截图已不在截图历史中。
     PinCaptureGone,
     ClipboardNoImage,
+    DroppedImageUnsupported,
     ClipboardImageUnrecognized,
     CopiedImageEmpty,
     CopiedImageTooWide,

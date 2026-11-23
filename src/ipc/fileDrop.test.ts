@@ -2,9 +2,16 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { fireEvent } from "@testing-library/react";
 import { onFileDrop } from "../ipc";
 import bridge from "../../src-tauri/src/file_drop.js?raw";
+import config from "../../src-tauri/tauri.conf.json";
 
-const { listen, unlisten, post } = vi.hoisted(() => ({ listen: vi.fn(), unlisten: vi.fn(), post: vi.fn() }));
+const { listen, unlisten, post, invoke } = vi.hoisted(() => ({
+  listen: vi.fn(),
+  unlisten: vi.fn(),
+  post: vi.fn(),
+  invoke: vi.fn(),
+}));
 vi.mock("@tauri-apps/api/webview", () => ({ getCurrentWebview: () => ({ listen }) }));
+vi.mock("./invoke", () => ({ invoke }));
 
 let stop: (() => void) | undefined;
 const handler = vi.fn();
@@ -27,6 +34,7 @@ const drag = (type: string, dataTransfer: object = transfer) => {
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  invoke.mockReset();
   listen.mockResolvedValue(unlisten);
   vi.stubGlobal("chrome", { webview: { postMessageWithAdditionalObjects: post } });
   vi.stubGlobal("__TAURI_INTERNALS__", { transformCallback, unregisterCallback });
@@ -89,6 +97,113 @@ it("空文件拖放只清理提示，不发送桥接消息", () => {
   drag("drop", { types: ["Files"], files: [] });
   expect(handler).toHaveBeenLastCalledWith({ kind: "leave" });
   expect(post).not.toHaveBeenCalled();
+  expect(invoke).not.toHaveBeenCalled();
+});
+
+it("stages virtual files as raw bytes after the disk bridge throws", async () => {
+  post.mockImplementationOnce(() => {
+    throw new TypeError("virtual file");
+  });
+  const file = new File([new Uint8Array([1, 2, 3])], "雪 image.jpg");
+  Object.defineProperty(file, "arrayBuffer", { value: async () => new Uint8Array([1, 2, 3]).buffer });
+  invoke.mockResolvedValueOnce("C:\\staged\\image.png");
+  drag("drop", { types: ["text/html", "Files"], files: [file] });
+  await vi.waitFor(() => expect(handler).toHaveBeenCalledWith({ kind: "drop", paths: ["C:\\staged\\image.png"] }));
+  expect(invoke).toHaveBeenCalledWith("plugin:desktop|stage_dropped_image", new Uint8Array([1, 2, 3]), {
+    headers: { "x-file-name": encodeURIComponent(file.name) },
+  });
+});
+
+it.each([false, true])(
+  "snapshots the folder for virtual files without leaking it after failure=%s",
+  async (failure) => {
+    post.mockImplementationOnce(() => {
+      throw new TypeError("virtual file");
+    });
+    const file = new File([], "image.png");
+    Object.defineProperty(file, "arrayBuffer", { value: async () => new ArrayBuffer(0) });
+    const error = new Error("cannot stage image");
+    let finish!: () => void;
+    invoke.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve, reject) => {
+          finish = () => (failure ? reject(error) : resolve("staged.png"));
+        }),
+    );
+    const library = document.createElement("section");
+    library.dataset.libraryId = "L";
+    const folder = document.createElement("button");
+    folder.dataset.folderId = "F";
+    library.append(folder);
+    document.body.append(library);
+    fireEvent.drop(folder, { dataTransfer: { types: ["Files"], files: [file] } });
+    folder.dataset.folderId = "changed";
+    library.remove();
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
+    finish();
+    await vi.waitFor(() =>
+      expect(handler).toHaveBeenLastCalledWith(
+        failure
+          ? { kind: "error", error }
+          : {
+              kind: "drop",
+              paths: ["staged.png"],
+              destination: { libraryId: "L", folderId: "F" },
+            },
+      ),
+    );
+    drag("drop");
+    listen.mock.calls[0][1]({ payload: ["D:\\next.png"] });
+    expect(handler).toHaveBeenLastCalledWith({ kind: "drop", paths: ["D:\\next.png"] });
+  },
+);
+
+it("allows raw IPC requests in the release content security policy", () => {
+  const connect = config.app.security.csp.split(";").find((directive) => directive.trim().startsWith("connect-src "));
+  expect(connect?.trim().split(/\s+/)).toEqual(expect.arrayContaining(["ipc:", "http://ipc.localhost"]));
+});
+
+it.each(["stage", "read"])("reports virtual file %s failures instead of silently dropping them", async (failure) => {
+  post.mockImplementationOnce(() => {
+    throw new TypeError("virtual file");
+  });
+  const error = new Error("cannot read image");
+  const file = new File([], "image.png");
+  Object.defineProperty(file, "arrayBuffer", {
+    value:
+      failure === "read"
+        ? async () => {
+            throw error;
+          }
+        : async () => new ArrayBuffer(0),
+  });
+  invoke.mockRejectedValueOnce(error);
+  drag("drop", { types: ["Files"], files: [file] });
+  await vi.waitFor(() => expect(handler).toHaveBeenCalledWith({ kind: "error", error }));
+  expect(handler).not.toHaveBeenCalledWith(expect.objectContaining({ kind: "drop" }));
+});
+
+it("stages all files before delivering one drop and ignores completion after unsubscribe", async () => {
+  post.mockImplementationOnce(() => {
+    throw new TypeError("virtual file");
+  });
+  const file = new File([], "image.png");
+  Object.defineProperty(file, "arrayBuffer", { value: async () => new ArrayBuffer(0) });
+  let finish!: (path: string) => void;
+  invoke.mockResolvedValueOnce("first.png").mockImplementationOnce(
+    () =>
+      new Promise<string>((resolve) => {
+        finish = resolve;
+      }),
+  );
+  drag("drop", { types: ["Files"], files: [file, file] });
+  await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));
+  expect(handler).not.toHaveBeenCalled();
+  stop?.();
+  stop = undefined;
+  finish("second.png");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(handler).not.toHaveBeenCalled();
 });
 
 it("snapshots the sidebar folder at drop, not at the later native path reply", () => {
