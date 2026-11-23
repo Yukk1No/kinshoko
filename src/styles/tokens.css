@@ -125,6 +125,13 @@
   --crease-edge:
     inset 1px 0 0 light-dark(rgba(43, 39, 71, 0.1), rgba(0, 0, 0, 0.5)),
     inset 2px 0 0 light-dark(#ffffff, rgba(244, 236, 220, 0.06));
+  /* 拖动排顺序（#636）：手里那一行的边与投影；在一行上停住、松手就放进去时那一行的墨色边。 */
+  --held-lift:
+    0 0 0 0.5px light-dark(rgba(43, 39, 71, 0.28), rgba(0, 0, 0, 0.7)),
+    0 2px 4px light-dark(rgba(43, 39, 71, 0.12), rgba(0, 0, 0, 0.45)),
+    0 14px 28px -8px light-dark(rgba(43, 39, 71, 0.3), rgba(0, 0, 0, 0.6)),
+    inset 0 1px 0 light-dark(#ffffff, rgba(244, 236, 220, 0.14));
+  --drop-edge: inset 0 0 0 1.5px light-dark(rgba(43, 39, 71, 0.5), rgba(244, 236, 220, 0.45));
   /* 图库托盘（#608，Lou 选甲）：库里的目录放进一块很浅的凹槽，图库标题行留在纸上。 */
   --lib-tray: light-dark(rgba(43, 39, 71, 0.028), rgba(0, 0, 0, 0.16));
   --lib-tray-edge:
@@ -254,6 +261,9 @@
   --z-dialog: 91;
   --z-popup: 95;
   --z-toast: 200;
+  /* 左栏拖文件夹（#636）：落点线与手里那一张，盖过一切浮层。 */
+  --z-drag-line: 299;
+  --z-drag: 300;
   --z-splash: 1000;
   --z-debug: 9999;
   /* 不可用只有一种深浅 */
