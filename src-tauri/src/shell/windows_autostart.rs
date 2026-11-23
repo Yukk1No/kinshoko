@@ -69,7 +69,12 @@ fn read_scopes<'a>(
             .is_some_and(|value| {
                 value.ty() == Type::Bytes
                     && value.len() == APPROVAL_LEN
-                    && matches!(value[..4], [3 | 7, 0, 0, 0])
+                    && match value[..4] {
+                        [3 | 7, 0, 0, 0] => true,
+                        // Windows can write 01 with a disable timestamp when there was no approval.
+                        [1, 0, 0, 0] => value[4..].iter().any(|&byte| byte != 0),
+                        _ => false,
+                    }
             });
         if registered && !disabled {
             return Ok(Registration::Enabled);
@@ -237,6 +242,34 @@ mod tests {
         assert!(optional(machine.open(RUN)).unwrap().is_none());
         assert_eq!(&*user_approved.get_value(NAME).unwrap(), &ENABLED);
         assert!(read_scopes(NAME, scopes).unwrap().enabled());
+    }
+
+    #[test]
+    fn windows_disable_with_no_previous_approval_shows_off() {
+        let user_hive = TestHive::new();
+        let user = user_hive.key();
+        user.create(RUN)
+            .unwrap()
+            .set_string(NAME, r#""C:\Test\Kinshoko.exe" --autostart"#)
+            .unwrap();
+        let approved = user.create(APPROVED).unwrap();
+        let disabled = [1, 0, 0, 0, 0x74, 0xd3, 0xb6, 0xa2, 0x06, 0x7b, 0xdd, 0x01];
+        approved.set_bytes(NAME, Type::Bytes, &disabled).unwrap();
+
+        let registration = read_scopes(NAME, [(&user, CurrentUser)]).unwrap();
+        assert!(
+            !registration.enabled(),
+            "the native Windows disable must show off"
+        );
+        registration
+            .update(
+                true,
+                false,
+                |_| panic!("passive sync should preserve the veto"),
+                || panic!("passive sync should not remove the entry"),
+            )
+            .unwrap();
+        assert_eq!(&*approved.get_value(NAME).unwrap(), &disabled);
     }
 
     #[test]
