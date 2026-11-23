@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, isInaccessible, render, screen, waitFor, within } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import type { BackupPreview } from "../bindings/BackupPreview";
 import type { BackupStatus } from "../bindings/BackupStatus";
@@ -265,8 +265,8 @@ describe("设置：备份", () => {
       </div>,
     );
     const oldEstimate = await screen.findByText(/新原图 1 张/);
-    const preview = screen.getByLabelText("备份内容");
-    const mutedSelector = '.k-settings .backup-preview[aria-busy="true"]';
+    const preview = screen.getByRole("group", { name: "备份内容" });
+    const mutedSelector = '.k-settings .backup-preview[aria-hidden="true"]';
     let resolve!: (preview: BackupPreview) => void;
     fake.on(
       "backup_preview",
@@ -277,13 +277,16 @@ describe("设置：备份", () => {
     );
 
     fireEvent.click(screen.getByRole("checkbox", { name: "旧库" }));
-    await screen.findByText("正在估算…");
+    const estimating = await screen.findByText("正在估算…");
     expect(fake.calls("backup_preview").at(-1)?.args).toEqual({
       selection: { kind: "libraries", ids: ["A", "B"], includeLinked: true },
     });
     expect(oldEstimate.isConnected).toBe(true);
     expect(getComputedStyle(preview).visibility).toBe("visible");
-    expect(preview.getAttribute("aria-busy")).toBe("true");
+    expect(screen.queryByRole("group", { name: "备份内容" })).toBeNull();
+    expect(isInaccessible(oldEstimate)).toBe(true);
+    expect(isInaccessible(estimating)).toBe(false);
+    expect(preview.getAttribute("aria-hidden")).toBe("true");
     expect(preview.matches(mutedSelector)).toBe(true);
     expect(cssRule(settingsCss, mutedSelector).color).toBe("color-mix(in srgb, var(--ink-2) 90%, var(--bg))");
     expect(settingsCss).not.toMatch(/\.backup-preview\s*\{[^}]*\bcolor\s*:/);
@@ -291,7 +294,9 @@ describe("设置：备份", () => {
     await act(async () => resolve({ ...narrowed, estimate: { ...narrowed.estimate, newOriginals: 2 } }));
     const newEstimate = await screen.findByText(/新原图 2 张/);
     expect(newEstimate.parentElement).toBe(preview);
-    expect(preview.getAttribute("aria-busy")).toBeNull();
+    expect(screen.getByRole("group", { name: "备份内容" })).toBe(preview);
+    expect(isInaccessible(newEstimate)).toBe(false);
+    expect(preview.getAttribute("aria-hidden")).toBeNull();
     expect(preview.matches(mutedSelector)).toBe(false);
   });
 

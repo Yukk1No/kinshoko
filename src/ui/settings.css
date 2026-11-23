@@ -359,7 +359,7 @@ section + section {
 .k-settings .backup-result p {
   margin: 4px 0;
 }
-.k-settings .backup-preview[aria-busy="true"] {
+.k-settings .backup-preview[aria-hidden="true"] {
   color: color-mix(in srgb, var(--ink-2) 90%, var(--bg));
 }
 .k-settings .backup-snapshots {
