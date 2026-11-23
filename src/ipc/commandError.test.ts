@@ -66,9 +66,7 @@ it("备份与往返检查的原因按结构拼出；旧版本写下的原因照�
         { code: "backupOriginalProblem", name: "主库", file: "a.png", cause: { code: "backupOriginalChanged" } },
       ],
     }),
-  ).toBe(
-    "参考组“人体”引用了新的图库，请重新估算备份范围后重试；图库“主库”的原图 a.png：原图内容与图库记录不符（可能被外部改动），这次备份不完整",
-  );
+  ).toBe("参考组“人体”引用了新的图库，请重新估算备份范围后重试；1 张原图未备份：原图内容与记录不符");
   expect(
     describeCommandError({ code: "checkTableMismatch", table: "tag", snapshot: 3, restored: 2, sameContent: true }),
   ).toBe("表 tag：快照 3 行，恢复后 2 行，内容一致");
@@ -77,6 +75,29 @@ it("备份与往返检查的原因按结构拼出；旧版本写下的原因照�
   ).toBe("表 tag：快照 3 行，恢复后 2 行，内容不一致");
   expect(storedReasonText("备份位置不在：E盘")).toBe("备份位置不在：E盘");
   expect(storedReasonText({ code: "backupLibraryNotRegistered" })).toBe("本设备没有打开这个图库");
+});
+
+it("按原因合计未备份的原图，不显示文件名或系统错误", async () => {
+  const original = (file: string, cause: CommandError): CommandError => ({
+    code: "backupOriginalProblem",
+    name: "主库",
+    file,
+    cause,
+  });
+  const diskFull: CommandError = { code: "backupTargetDiskFull" };
+  const reason: CommandError = {
+    code: "backupProblems",
+    problems: [
+      original("hash-1", diskFull),
+      original("hash-2", { code: "backupOriginalUnreadable", detail: "os error 2" }),
+      original("hash-3", diskFull),
+    ],
+  };
+  expect(storedReasonText(reason)).toBe("2 张原图未备份：备份磁盘空间不足；1 张原图未备份：无法读取原图");
+  await i18n.changeLanguage("en");
+  expect(storedReasonText(reason)).toBe(
+    "2 originals not backed up: Not enough space on the backup drive; 1 original not backed up: Couldn't read the original",
+  );
 });
 
 it("不认识的错误代码显示通用说明并附原始信息", () => {

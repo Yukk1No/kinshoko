@@ -71,11 +71,11 @@ use rusqlite::{OptionalExtension, params};
 pub use crate::fidelity::{
     Cicp, ColourDeclaration, ColourDescription, ColourModel, HdrKind, IccKind, IccSummary,
 };
+pub(crate) use backup::{CopyError, copy_hashed, hash_file};
 pub use backup::{
     Dependency, LibraryCheck, LibraryDependencies, LibrarySnapshot, OriginalFile, OriginalsLease,
     RestoreProvenance, TableDigest,
 };
-pub(crate) use backup::{copy_hashed, hash_file};
 pub use clipboard::{forget_staged_clipboard_images, stage_clipboard_image};
 pub use dropped_image::stage_dropped_image;
 pub use eagle::{EagleBinding, EagleRegionNote, EagleSourceSnapshot};

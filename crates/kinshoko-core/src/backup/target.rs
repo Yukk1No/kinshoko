@@ -255,13 +255,13 @@ impl BackupTarget {
     ) -> Result<BackupReport, BackupError> {
         let root = self.root()?;
         let snapshots = root.join(SNAPSHOTS);
-        fs::create_dir_all(&snapshots)?;
-        fs::create_dir_all(root.join(STORE))?;
+        fs::create_dir_all(&snapshots).map_err(BackupError::TargetWrite)?;
+        fs::create_dir_all(root.join(STORE)).map_err(BackupError::TargetWrite)?;
         remove_incomplete(&snapshots);
 
         let id = snapshot_id(at);
         let work = snapshots.join(format!("{id}{INCOMPLETE}"));
-        fs::create_dir_all(&work)?;
+        fs::create_dir_all(&work).map_err(BackupError::TargetWrite)?;
         let mut report = BackupReport {
             snapshot_id: id.clone(),
             complete: false,
@@ -285,7 +285,7 @@ impl BackupTarget {
 
         // 先固定组引用，再取库快照。复制期间保存的新成员不混入本次备份。
         let groups_dir = work.join("groups");
-        fs::create_dir_all(&groups_dir)?;
+        fs::create_dir_all(&groups_dir).map_err(BackupError::TargetWrite)?;
         for g in &scope.groups {
             match sources.groups.snapshot(&g.id) {
                 Ok(bytes) => {
@@ -323,7 +323,8 @@ impl BackupTarget {
                                 continue;
                             }
                         };
-                    write_synced(&groups_dir.join(format!("{}.json", g.id)), &bytes)?;
+                    write_synced(&groups_dir.join(format!("{}.json", g.id)), &bytes)
+                        .map_err(BackupError::TargetWrite)?;
                     manifest.groups.push(ManifestGroup {
                         id: g.id.clone(),
                         name: g.name.clone(),
@@ -418,13 +419,13 @@ impl BackupTarget {
             });
         }
 
-        manifest.skipped = report.skipped.clone();
-        let bytes = serde_json::to_vec_pretty(&manifest).map_err(std::io::Error::other)?;
-        write_synced(&work.join(MANIFEST), &bytes)?;
         if !report.problems.is_empty() {
             return Ok(report);
         }
-        fs::rename(&work, snapshots.join(&id))?;
+        manifest.skipped = report.skipped.clone();
+        let bytes = serde_json::to_vec_pretty(&manifest).map_err(std::io::Error::other)?;
+        write_synced(&work.join(MANIFEST), &bytes).map_err(BackupError::TargetWrite)?;
+        fs::rename(&work, snapshots.join(&id)).map_err(BackupError::TargetWrite)?;
         report.complete = true;
         report.removed_snapshots = self.prune(&root)?;
         Ok(report)
