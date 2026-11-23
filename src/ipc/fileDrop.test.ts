@@ -114,6 +114,50 @@ it("stages virtual files as raw bytes after the disk bridge throws", async () =>
   });
 });
 
+it.each([false, true])(
+  "snapshots the folder for virtual files without leaking it after failure=%s",
+  async (failure) => {
+    post.mockImplementationOnce(() => {
+      throw new TypeError("virtual file");
+    });
+    const file = new File([], "image.png");
+    Object.defineProperty(file, "arrayBuffer", { value: async () => new ArrayBuffer(0) });
+    const error = new Error("cannot stage image");
+    let finish!: () => void;
+    invoke.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve, reject) => {
+          finish = () => (failure ? reject(error) : resolve("staged.png"));
+        }),
+    );
+    const library = document.createElement("section");
+    library.dataset.libraryId = "L";
+    const folder = document.createElement("button");
+    folder.dataset.folderId = "F";
+    library.append(folder);
+    document.body.append(library);
+    fireEvent.drop(folder, { dataTransfer: { types: ["Files"], files: [file] } });
+    folder.dataset.folderId = "changed";
+    library.remove();
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
+    finish();
+    await vi.waitFor(() =>
+      expect(handler).toHaveBeenLastCalledWith(
+        failure
+          ? { kind: "error", error }
+          : {
+              kind: "drop",
+              paths: ["staged.png"],
+              destination: { libraryId: "L", folderId: "F" },
+            },
+      ),
+    );
+    drag("drop");
+    listen.mock.calls[0][1]({ payload: ["D:\\next.png"] });
+    expect(handler).toHaveBeenLastCalledWith({ kind: "drop", paths: ["D:\\next.png"] });
+  },
+);
+
 it("allows raw IPC requests in the release content security policy", () => {
   const connect = config.app.security.csp.split(";").find((directive) => directive.trim().startsWith("connect-src "));
   expect(connect?.trim().split(/\s+/)).toEqual(expect.arrayContaining(["ipc:", "http://ipc.localhost"]));
@@ -160,6 +204,46 @@ it("stages all files before delivering one drop and ignores completion after uns
   finish("second.png");
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(handler).not.toHaveBeenCalled();
+});
+
+it("snapshots the sidebar folder at drop, not at the later native path reply", () => {
+  const library = document.createElement("section");
+  library.dataset.libraryId = "other-library";
+  const folder = document.createElement("button");
+  folder.dataset.folderId = "target-folder";
+  const count = document.createElement("span");
+  folder.append(count);
+  library.append(folder);
+  document.body.append(library);
+  fireEvent.drop(count, { dataTransfer: transfer });
+  folder.dataset.folderId = "changed-folder";
+  library.remove();
+  drag("dragenter");
+  drag("dragleave");
+  listen.mock.calls[0][1]({ payload: ["D:\\image.png"] });
+  expect(handler).toHaveBeenLastCalledWith({
+    kind: "drop",
+    paths: ["D:\\image.png"],
+    destination: { libraryId: "other-library", folderId: "target-folder" },
+  });
+  drag("drop");
+  listen.mock.calls[0][1]({ payload: ["D:\\next.png"] });
+  expect(handler).toHaveBeenLastCalledWith({ kind: "drop", paths: ["D:\\next.png"] });
+});
+
+it("empty drops on a folder do not leak its destination to a later drop", () => {
+  const library = document.createElement("section");
+  library.dataset.libraryId = "L";
+  const folder = document.createElement("button");
+  folder.dataset.folderId = "F";
+  library.append(folder);
+  document.body.append(library);
+  fireEvent.drop(folder, { dataTransfer: { types: ["Files"], files: [] } });
+  library.remove();
+  expect(post).not.toHaveBeenCalled();
+  drag("drop");
+  listen.mock.calls[0][1]({ payload: ["D:\\next.png"] });
+  expect(handler).toHaveBeenLastCalledWith({ kind: "drop", paths: ["D:\\next.png"] });
 });
 
 it("桥接不向外部来源暴露发送入口，也不把调用密钥写进函数体", () => {

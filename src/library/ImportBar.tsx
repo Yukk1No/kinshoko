@@ -290,7 +290,7 @@ export function ImportBar({
         if (dropBlocked) toast.show({ title: t("drop.inTrash") });
         // 正在导入时拖进来的不排队：说一声，免得松手后什么都没发生。
         else if (busy) toast.show({ title: t("drop.busy") });
-        else void begin(drop.paths);
+        else void begin(drop.paths, false, undefined, drop.destination);
         break;
       case "leave":
         setHovering(false);
