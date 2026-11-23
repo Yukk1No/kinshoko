@@ -350,6 +350,41 @@ describe("设置：备份", () => {
 });
 
 describe("备份提醒", () => {
+  it("启动时上次备份和轻提示都只显示磁盘写满的原图合计", async () => {
+    backend({
+      backup_preview: narrowed,
+      backup_status: {
+        ...withTarget,
+        plan: {
+          ...withTarget.plan,
+          lastFailure: {
+            at,
+            reason: {
+              code: "backupProblems",
+              problems: ["hash-1", "hash-2"].map((file) => ({
+                code: "backupOriginalProblem",
+                name: "主库",
+                file,
+                cause: { code: "backupTargetDiskFull" },
+              })),
+            },
+            targetUnavailable: false,
+          },
+        },
+      },
+    });
+    render(
+      <>
+        <BackupReminder />
+        <BackupSettings />
+      </>,
+    );
+    const row = (await screen.findByText("上次备份")).closest("li")!;
+    const title = "备份没有完成：2 张原图未备份：备份磁盘空间不足";
+    await screen.findByText(title, { selector: ".k-toast *" });
+    expect(within(row).getByRole("alert").textContent).toContain("2 张原图未备份：备份磁盘空间不足");
+  });
+
   it("备份目标不在时提醒，下次再试", async () => {
     backend({
       backup_status: {
