@@ -181,6 +181,7 @@ export function wallInteractions({
       e.preventDefault();
       const to = ids[neighbour(layout, ids.indexOf(card.id), dir)];
       if (!to || to === card.id) return;
+      if (e.shiftKey && !(pivot.current && ids.includes(pivot.current))) pivot.current = card.id;
       select(to, e);
       reveal(to);
       return;

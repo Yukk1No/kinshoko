@@ -88,6 +88,16 @@ it("Shift + 方向键从起点选中一段", async () => {
   expect(onSelection).toHaveBeenLastCalledWith(["0", "1", "2"]);
 });
 
+it("没点过任何图（Tab 过来）时 Shift + 方向键从焦点所在的图选起", async () => {
+  const onSelection = vi.fn();
+  render(<Harness onSelection={onSelection} />);
+  await screen.findAllByRole("img");
+  card("0").focus();
+  key("ArrowRight", { shiftKey: true });
+  key("ArrowRight", { shiftKey: true });
+  expect(onSelection).toHaveBeenLastCalledWith(["0", "1", "2"]);
+});
+
 it("移到视口外的图：滚进视口再接过焦点", async () => {
   count = 400;
   height = (i) => 100 + (i % 5) * 40;
