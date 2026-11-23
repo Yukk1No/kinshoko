@@ -337,6 +337,7 @@ impl BackupTarget {
         }
 
         let mut snaps = Vec::new();
+        let mut unavailable = Vec::new();
         for item in &scope.libraries {
             let snap = registered(sources, item).and_then(|reg| {
                 Library::snapshot_at(&reg.root, &reg.id, &work.join("libraries").join(&reg.id))
@@ -360,21 +361,25 @@ impl BackupTarget {
                     }
                     snaps.push(s);
                 }
-                Err(reason) => {
-                    report.skipped.push(SkippedLibrary {
-                        library: item.clone(),
-                        reason: reason.clone().into(),
-                    });
-                    report.problems.push(CommandError::caused_by(
-                        reason,
-                        |cause| ErrorKind::BackupLibraryUnreadable {
-                            name: item.name.clone(),
-                            cause,
-                        },
-                        |e| format!("无法读取资料库“{}”：{e}", item.name),
-                    ));
-                }
+                Err(reason) => unavailable.push((item, reason)),
             }
+        }
+        let none_readable = unavailable.len() == scope.libraries.len();
+        for (item, reason) in unavailable {
+            if none_readable {
+                report.problems.push(CommandError::caused_by(
+                    reason.clone(),
+                    |cause| ErrorKind::BackupLibraryUnreadable {
+                        name: item.name.clone(),
+                        cause,
+                    },
+                    |e| format!("无法读取资料库“{}”：{e}", item.name),
+                ));
+            }
+            report.skipped.push(SkippedLibrary {
+                library: item.clone(),
+                reason: reason.into(),
+            });
         }
         let total = snaps.iter().map(|s| s.originals.len() as u32).sum();
         let mut done = 0;

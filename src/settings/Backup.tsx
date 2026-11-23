@@ -275,6 +275,8 @@ export function BackupSettings() {
 function PreviewView({ preview }: { preview: BackupPreview }) {
   const { t } = useTranslation("backup");
   const { scope, estimate } = preview;
+  const unavailableKey =
+    estimate.unavailable.length === scope.libraries.length ? "preview.noneReadable" : "preview.unavailable";
   const names = (list: { name: string }[]) => list.map((entry) => entry.name).join(t("separator")) || t("none");
   return (
     <div className="backup-preview" aria-label={t("preview.label")}>
@@ -294,7 +296,7 @@ function PreviewView({ preview }: { preview: BackupPreview }) {
           ))}
           {estimate.unavailable.map((s) => (
             <li key={s.library.id}>
-              {t("preview.unavailable", { library: s.library.name, reason: storedReasonText(s.reason) })}
+              {t(unavailableKey, { library: s.library.name, reason: storedReasonText(s.reason) })}
             </li>
           ))}
         </ul>
