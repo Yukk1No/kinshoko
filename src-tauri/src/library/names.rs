@@ -3,6 +3,18 @@
 use super::*;
 use kinshoko_core::CommandError;
 use kinshoko_core::tag_catalog::CatalogNameEdit;
+use kinshoko_core::tag_catalog::CatalogTag;
+
+#[tauri::command]
+pub(super) async fn tag_name_conflict_tags<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+    library_id: String,
+    tag_id: String,
+) -> Result<Vec<CatalogTag>, CommandError> {
+    let workspace = super::tag_commands::inspect_tag_catalog(app, state).await?;
+    Ok(workspace.catalog.name_conflict_tags(&library_id, &tag_id)?)
+}
 
 pub(super) fn refresh_labels<R: Runtime>(
     app: &AppHandle<R>,

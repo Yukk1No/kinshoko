@@ -86,7 +86,7 @@ export default {
     trigger: "尚未翻译",
     title: "重命名“{{name}}”",
     field: "显示名",
-    duplicate: "已有标签叫“{{name}}”，两者仍是不同的标签",
+    duplicate: "与标签“{{name}}”的名称或别名相同，仍会分别保留",
     hint: "词表更新不会替换这个名字，可以在设置里恢复默认",
     cancel: "取消",
     save: "保存显示名",

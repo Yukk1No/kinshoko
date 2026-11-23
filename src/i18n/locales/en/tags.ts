@@ -82,7 +82,7 @@ const tags: Translation<typeof zh> = {
     trigger: "Untranslated",
     title: "Rename “{{name}}”",
     field: "Display name",
-    duplicate: "A tag is already called “{{name}}”; the two stay separate tags",
+    duplicate: "Matches a name or alias of “{{name}}”; the tags stay separate",
     hint: "Vocabulary updates won't replace this name. You can restore the default in Settings",
     cancel: "Cancel",
     save: "Save display name",

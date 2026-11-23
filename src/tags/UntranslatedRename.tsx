@@ -7,9 +7,9 @@ import type { CatalogTag } from "../bindings/CatalogTag";
 import type { TagLabel } from "../bindings/TagLabel";
 import { editTagName, inspectTagCatalog } from "../ipc";
 import { useUiLang } from "../i18n";
-import { currentName } from "./catalogName";
+import { nameConflict } from "./nameConflict";
+import { NameConflictWarning } from "./NameConflictWarning";
 import { useOpenTagNameSettings } from "./TagNameSettings";
-import { WarnIcon } from "../ui/WarnIcon";
 import { errorText } from "../ipc/commandError";
 
 // 改名框在 portal 里，React 事件仍沿组件树冒泡到外层的标签（它本身是出处浮层的触发器）：在这里截住。
@@ -61,8 +61,7 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
     };
   }, [open, catalogId]);
   const text = draft.trim();
-  const duplicate =
-    text !== "" && others.some((entry) => entry.namespace === tag.namespace && currentName(entry, lang) === text);
+  const duplicate = nameConflict(others, { id: catalogId, namespace: tag.namespace }, text);
   const save = () => {
     if (!text || busy) return;
     setBusy(true);
@@ -107,12 +106,7 @@ export function UntranslatedRename({ tag, catalogId, onSaved, onOpenChange }: Pr
                   onChange={(event) => setDraft(event.target.value)}
                 />
               </label>
-              {duplicate && (
-                <p className="k-list-desc is-warn" role="status">
-                  <WarnIcon />
-                  {t("duplicate", { name: text })}
-                </p>
-              )}
+              <NameConflictWarning tag={duplicate} lang={lang} />
               <Popover.Description className="k-description is-spaced">{t("hint")}</Popover.Description>
               {error && (
                 <p className="k-error-text is-boxed" role="alert">
