@@ -1,5 +1,5 @@
 /* 侧栏（左边的纸）：图库、文件夹树、工作区来源、标签分组与窄窗口里的让位（design/ui-system/window-frame-and-sidebar.md）。
-   在 src/main.tsx 里紧跟 main-window.css：这里的规则要盖过 ui/ 的共用类（如 .lib-add 盖过 .k-icon-btn）。
+   在 src/main.tsx 里排在 frame.css、topbar.css 之后：这里的规则要盖过 ui/ 的共用类（如 .lib-add 盖过 .k-icon-btn）。
    盖不过 .k-row 的那几条在 sidebar-base.css。 */
 
 /* 侧栏与整理（#50） */
@@ -719,7 +719,7 @@ li[data-branch] > .k-fluid-row .k-row-icon {
   flex: none;
 }
 
-/* 窄窗口里侧栏让位（#274，shell/paneFit.ts）。排在 main-window.css 之后，覆盖侧栏标题行与内容区写死的宽度。 */
+/* 窄窗口里侧栏让位（#274，shell/paneFit.ts）。排在 frame.css 之后，覆盖侧栏标题行与内容区写死的宽度。 */
 
 /* 侧栏宽度由工作区算好写在 .app-body 的 --sidebar-width 上：平时 256，窄时按余量与详情面板一起让到 200。 */
 

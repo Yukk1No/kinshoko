@@ -92,8 +92,8 @@
 
 | 令牌 | 值 | 用在哪里 |
 | --- | --- | --- |
-| `--t-progress` | 600 ms | 打标进度环的弧长变化（`src/shell/main-window-island.css`） |
-| `--t-stagger` | 18 ms | 侧栏目录展开时各行依次落下，每行晚这么多（`src/shell/main-window.css`） |
+| `--t-progress` | 600 ms | 打标进度环的弧长变化（`src/wall/wall-floats.css`） |
+| `--t-stagger` | 18 ms | 侧栏目录展开时各行依次落下，每行晚这么多（`src/shell/sidebar.css`） |
 | `--t-toast` | 400 ms | 轻提示叠放与展开时的位移（`src/ui/toast.css`） |
 | `--t-splash` | 360 ms | 启动画面退场时标志与文字淡出（`src/shell/startup-splash.css`） |
 | `--t-splash-hold` | 250 ms | 启动画面退场前标志多停的一会儿（同上） |
@@ -161,8 +161,8 @@
 - `src/styles.css` 导入 `tokens.css` 与 `base.css`，`tokens.css` 最先。其余样式表在 `src/main.tsx` 里按次序导入；后导入的同特异性规则会盖过先导入的，挪动次序或把规则搬到别的文件前，先确认没有靠次序取胜的规则。
 - 已知要保住的次序：
   - `src/settings/settings.css` 早于 `src/ui/dialogs.css`：后者减弱动效的规则要盖过设置页签的过渡。
-  - 叠成一摞的图集（`src/wall/wall.css` 后半）排在卡片规则与 `src/shell/main-window-island.css` 之后。
-  - `src/shell/sidebar-base.css` 早于 `src/ui/row.css`，`src/shell/sidebar.css` 紧跟 `src/shell/main-window.css`：侧栏的行也带 `.k-row`，前者要让 `.k-row` 盖过，后者要盖过共用类。
+  - 叠成一摞的图集（`src/wall/wall.css` 后半）排在卡片规则与 `src/wall/wall-floats.css` 之后。
+  - `src/shell/sidebar-base.css` 早于 `src/ui/row.css`，`src/shell/sidebar.css` 排在 `src/shell/frame.css`、`topbar.css` 之后：侧栏的行也带 `.k-row`，前者要让 `.k-row` 盖过，后者要盖过共用类。
   - `:focus-visible`（`src/ui/ui.css` 开头）排在 `src/viewer/viewer.css` 与 `src/desktop/capture.css` 之后，那里同特异性的 `outline` 不能盖过焦点环。
 - 新规则写进组件旁边的样式表，不往 `src/styles/` 里加。
 
