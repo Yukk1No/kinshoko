@@ -34,6 +34,9 @@ use orchestra::Orchestra;
 pub(super) use orchestra::{Frame, Look};
 use render::RenderThread;
 
+#[cfg(windows)]
+pub(in crate::desktop) use host::shutdown;
+
 /// 一张原生钉图此刻的样子：F1 截图冻结时据此把选区映射回原图（界面线程每次用完编排后更新）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct Seen {

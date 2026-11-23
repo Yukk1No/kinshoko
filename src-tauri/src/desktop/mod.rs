@@ -1,9 +1,7 @@
 //! Desktop：截图、截图历史、桌面钉图、贴边隐藏与托盘（内联插件 `desktop`，前端以 `plugin:desktop|<命令>` 调用）。
 //! 规则在 `kinshoko_core::desktop`，这里只接系统：抓屏、剪贴板、窗口、托盘与全局快捷键。
 //!
-//! 线程规则（沿用 #7 钉图原型）：**持有 [`DesktopState`] 里任何一把锁时都不调用窗口 API**。
-//! 窗口调用会派发到主线程，而主线程上的回调（快捷键、窗口事件、菜单）也会来拿这些锁。
-//! 抓屏、读写剪贴板与收藏都在别的线程上做。
+//! 持有 [`DesktopState`] 的锁时不调用窗口 API：主线程回调也要拿锁。抓屏、剪贴板与收藏在后台做。
 //!
 //! - 截图历史、冻结屏幕与参考组自带的截图走自定义协议 `capture`：`screen/<标记>`、`<截图 id>`、
 //!   `group/<参考组 id>/<成员>`；
@@ -21,6 +19,7 @@ mod clipboard;
 mod desk_commands;
 mod edge;
 mod events;
+mod exit;
 mod group_trash;
 mod groups;
 mod image_actions;
@@ -32,6 +31,7 @@ mod tray;
 use events::{
     capture_response, history_changed, on_library_event, request_collection, request_open,
 };
+pub use exit::on_exit;
 pub use tray::*;
 #[cfg(windows)]
 pub(crate) mod win32;
@@ -404,11 +404,6 @@ async fn collect_capture(
 #[tauri::command]
 async fn edge_hide(app: AppHandle) {
     edge::toggle_in_background(&app);
-}
-
-/// 退出前把钉图状态写回文件。
-pub fn on_exit(app: &AppHandle) {
-    edge::flush(app);
 }
 
 #[tauri::command]
