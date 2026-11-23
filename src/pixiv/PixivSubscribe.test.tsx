@@ -121,6 +121,9 @@ beforeEach(() => {
       return null;
     },
     subscription_previews: [],
+    subscription_old_images: [],
+    subscription_move_old: { moved: 0, kept: 0, works: [] },
+    subscription_undo_move: null,
     subscription_set_library: (args) => {
       const ids = args.ids as string[];
       list = list.map((s) => (ids.includes(s.id) ? { ...s, libraryId: args.libraryId as string } : s));
@@ -413,6 +416,49 @@ describe("画师页", () => {
     fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
     await waitFor(() => expect(fake.calls("subscription_set_library")).toHaveLength(2));
     expect(fake.calls("subscription_set_library")[1].args).toEqual({ ids: ["s-2"], libraryId: "L" });
+  });
+
+  it("改收进的库时已收的图默认一起移过去；提示上“留在「旧库」”把图移回去", async () => {
+    const works = [
+      {
+        subscriptionId: "s-2",
+        source: "pixiv",
+        workId: "9",
+        fromLibraryId: "L",
+        toLibraryId: "P",
+        pages: [{ page: 0, fromImageId: "a", toImageId: "b", created: true }],
+      },
+    ];
+    fake.on("subscription_move_old", () => ({ moved: 3, kept: 1, works }));
+    renderHome();
+    await artistCards();
+    const menu = await openMore("山田");
+    fireEvent.click(within(menu).getByRole("menuitem", { name: /改收进的库/ }));
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: "pixiv" }));
+    await waitFor(() => expect(fake.calls("subscription_move_old")).toHaveLength(1));
+    expect(fake.calls("subscription_move_old")[0].args).toEqual({ ids: ["s-2"] });
+    await screen.findByText("山田 以后收进「pixiv」，已收的 3 张也移过去了");
+    fireEvent.click(await screen.findByRole("button", { name: "留在「参考库」" }));
+    await waitFor(() => expect(fake.calls("subscription_undo_move")).toHaveLength(1));
+    expect(fake.calls("subscription_undo_move")[0].args).toEqual({ works });
+    // 只把图移回去，以后还是收进 pixiv。
+    expect(fake.calls("subscription_set_library")).toHaveLength(1);
+  });
+
+  it("还有图留在旧库时卡片上写着在哪、有几张；“移过来”移完能撤销", async () => {
+    list = [{ ...list[0], libraryId: "P" }];
+    fake.on("subscription_old_images", () => [{ subscriptionId: "s-2", libraryId: "L", movable: 2, kept: 0 }]);
+    fake.on("subscription_move_old", () => ({ moved: 2, kept: 0, works: [] }));
+    renderHome();
+    const cards = await artistCards();
+    const card = within(cards).getByText("山田").closest("li") as HTMLElement;
+    await waitFor(() => expect(card.querySelector(".pw-artist-old")?.textContent).toBe("已收的 2 张还在参考库移过来"));
+    fake.on("subscription_old_images", () => []);
+    fireEvent.click(within(card).getByRole("button", { name: "把 山田 已收的 2 张移到「pixiv」" }));
+    await screen.findByText("已把 2 张移到「pixiv」");
+    await waitFor(() => expect(card.querySelector(".pw-artist-old")).toBeNull());
+    fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
+    await waitFor(() => expect(fake.calls("subscription_undo_move")).toHaveLength(1));
   });
 
   it("一起改到新建的图库", async () => {

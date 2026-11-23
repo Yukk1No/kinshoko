@@ -54,6 +54,7 @@ mod sidebar;
 mod source_names;
 mod store;
 mod subscription_import;
+mod subscription_move;
 mod tag_api;
 pub(crate) mod tag_definitions;
 mod tagging_state;
@@ -99,6 +100,7 @@ pub use save::SaveDestination;
 pub use sidebar::Sidebar;
 pub use source_names::{UND, compose as compose_names, detect_lang};
 pub use subscription_import::SubscriptionPage;
+pub use subscription_move::{MovableImage, ReceivedPageRef};
 pub(crate) use tagging_state::CRASHED_REASON;
 pub use tagging_state::{FailedTagging, RetryTagging, TaggingFailure, TaggingOutcome};
 pub use tags::{
