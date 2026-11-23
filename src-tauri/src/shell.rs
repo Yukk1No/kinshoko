@@ -148,7 +148,6 @@ fn update_autostart<R: tauri::Runtime>(
         let name = &app.package_info().name;
         let registration = windows_autostart::read(name).map_err(CommandError::system)?;
         registration.update(
-            name,
             on,
             explicit,
             || launcher.enable().map_err(CommandError::system),
