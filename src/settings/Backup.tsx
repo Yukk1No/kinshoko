@@ -136,7 +136,6 @@ export function BackupSettings() {
           icon={<HardDrive size={16} />}
           title={t("target")}
           meta={plan.target ?? t("noTarget")}
-          truncateMeta={plan.target !== null}
           hint={t("targetHint")}
           label={t("target")}
         >

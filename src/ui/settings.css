@@ -190,30 +190,9 @@ section + section {
   display: block;
 }
 .k-set-row-main > .k-list-end {
-  max-width: 55%;
-  flex: 0 1 auto;
-}
-.k-set-row-main > .k-list-end > .k-list-meta {
-  white-space: nowrap;
-  flex: none;
-}
-.k-set-row-main > .k-list-end:has(> .k-select) > .k-list-meta {
-  white-space: normal;
-  flex: 0 1 auto;
-}
-.k-set-row-main > .k-list-end > .k-btn {
-  white-space: nowrap;
-  flex: none;
-}
-.k-set-row-main > .k-list-end:has(> .is-truncated) {
-  flex-basis: 55%;
-}
-.k-set-row-main > .k-list-end > .k-list-meta.is-truncated {
-  width: 0;
   min-width: 0;
-  flex: 1 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 55%;
+  flex: none;
 }
 .k-set-row-main > .k-list-end > .k-select {
   width: 240px;

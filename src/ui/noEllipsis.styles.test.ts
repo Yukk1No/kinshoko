@@ -9,7 +9,6 @@ const ALLOWED = new Set([
   ".k-name",
   ".viewer-title",
   ".create-library-path-text",
-  ".k-set-row-main > .k-list-end > .k-list-meta.is-truncated",
   ".k-destination .save-final-position",
   ".insp-links a",
   "input.k-input",
