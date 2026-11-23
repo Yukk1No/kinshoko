@@ -28,6 +28,7 @@ use crate::reference_groups::{self, GroupError, ReferenceGroups, RestoredFrom};
 
 mod files;
 mod group_captures;
+mod prune;
 mod report;
 mod restoring;
 
@@ -466,38 +467,6 @@ impl BackupTarget {
             .collect();
         out.sort_by_key(|s| std::cmp::Reverse(s.created_at.unix_ms));
         Ok(out)
-    }
-
-    /// 按保留策略删掉旧快照，再删掉不再被任何快照引用的原文件。返回删掉的快照。
-    fn prune(&self, root: &Path) -> Result<Vec<String>, BackupError> {
-        let manifests = complete_manifests(root);
-        let stamps: Vec<Stamp> = manifests.iter().map(|(_, m)| m.created_at).collect();
-        let keep = retention::keep(&stamps);
-        let mut removed = Vec::new();
-        let mut referenced = BTreeSet::new();
-        for (i, (dir, m)) in manifests.iter().enumerate() {
-            if keep.contains(&i) {
-                for lib in &m.libraries {
-                    referenced.extend(lib.originals.iter().map(|f| f.sha256.clone()));
-                }
-            } else {
-                fs::remove_dir_all(dir)?;
-                removed.push(m.id.clone());
-            }
-        }
-        for shard in fs::read_dir(root.join(STORE))?.flatten() {
-            let Ok(files) = fs::read_dir(shard.path()) else {
-                continue;
-            };
-            for file in files.flatten() {
-                let name = file.file_name().to_string_lossy().into_owned();
-                if !referenced.contains(&name) {
-                    let _ = fs::remove_file(file.path());
-                }
-            }
-        }
-        removed.sort();
-        Ok(removed)
     }
 }
 
