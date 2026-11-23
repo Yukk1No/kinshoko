@@ -37,6 +37,7 @@ import { markStartup } from "./startupTiming";
 import { releaseStartup, startupLibraryOpened } from "./startupGate";
 import { StartupSplash } from "./shell/StartupSplash";
 import { LoginExpiredNotice, SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
+import { usePageSwap } from "./shell/usePageSwap";
 import { errorText } from "./ipc/commandError";
 
 /**
@@ -88,6 +89,7 @@ function MainWindow() {
   const [section, setSection] = useState<Section>("browse");
   const [paneOpen, setPaneOpen] = useState(true);
   const subscriptions = useSubscriptionSection(section, setSection);
+  const swap = usePageSwap(subscriptions.page !== null);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   /** 启动时后端打开上次的资料库（成功或失败）之后才进工作区。打开了哪个是后端细节（ADR-0008）。 */
@@ -308,7 +310,7 @@ function MainWindow() {
                     onCaptureRequestHandled={collectionHandled}
                     referenceRequest={referenceRequest}
                     section={section}
-                    paneOpen={paneOpen}
+                    paneOpen={paneOpen && !swap.paneHeld}
                     onPaneToggle={() => setPaneOpen((open) => !open)}
                     onPaneOpen={setPaneOpen}
                     onOpenBrowse={() => {
@@ -316,7 +318,7 @@ function MainWindow() {
                       setPaneOpen(true);
                     }}
                     libraryControls={libraryControls}
-                    hidden={empty || subscriptions.page !== null}
+                    hidden={empty || (subscriptions.page !== null && swap.phase !== "in")}
                     safe={lensSafe}
                     onSafeChanged={acceptSafe}
                     showApproxSource={showApproxSource}
@@ -335,6 +337,7 @@ function MainWindow() {
                 )}
                 <SubscriptionSection
                   subscriptions={subscriptions}
+                  swap={swap.phase}
                   safe={lensSafe}
                   onOpenSettings={() => openSettings("subscriptions")}
                 />

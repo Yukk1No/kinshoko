@@ -1,4 +1,5 @@
 import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { useTranslation } from "react-i18next";
 import { NOTICE_ORDER, usePersistentToast, useToast } from "../ui/Toast";
 import { accountActions } from "./accountActions";
@@ -56,23 +57,37 @@ export function LoginExpiredNotice({
   return null;
 }
 
-/** 订阅页（#461）：没有侧栏，应用内 pixiv 浏览占满工作区，与图片与文件夹的工作区并排切换。 */
+/**
+ * 订阅页（#461）：没有侧栏，应用内 pixiv 浏览占满工作区，与图片与文件夹的工作区并排切换。
+ * `swap` 是切换的过渡（`usePageSwap`）：过渡中订阅页盖在图片页上淡入或淡出；关掉后淡出时用最后一次的状态。
+ */
 export function SubscriptionSection({
   subscriptions,
+  swap = null,
   safe,
   onOpenSettings,
 }: {
   subscriptions: ReturnType<typeof useSubscriptionSection>;
+  swap?: "in" | "out-start" | "out" | null;
   safe: boolean;
   /** 标题行右端的“订阅设置”：打开设置 › 订阅。 */
   onOpenSettings: () => void;
 }) {
-  if (!subscriptions.page) return null;
+  const last = useRef<SubscriptionStatus | null>(null);
+  if (subscriptions.page) last.current = subscriptions.page;
+  const leaving = !subscriptions.page && (swap === "out-start" || swap === "out");
+  const page = subscriptions.page ?? (leaving ? last.current : null);
+  if (!page) return null;
   return (
-    <div className="app-workspace workspace">
+    <div
+      className="app-workspace workspace"
+      data-swap={swap === "in" ? "in" : leaving ? "out" : undefined}
+      inert={leaving || undefined}
+      aria-hidden={leaving || undefined}
+    >
       <div className="app-body">
         <SubscriptionsMain
-          status={subscriptions.page}
+          status={page}
           onStatus={subscriptions.setStatus}
           safe={safe}
           onOpenSettings={onOpenSettings}
