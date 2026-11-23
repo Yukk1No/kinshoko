@@ -11,6 +11,8 @@ import { ArtistSettingsDialog } from "../subscriptions/ArtistDialog";
 import { useSubscriptionStatus } from "../subscriptions/useSubscriptionStatus";
 import { Segmented } from "../ui/Segmented";
 import { Switch } from "../ui/Switch";
+import { Tip } from "../ui/Tip";
+import { WinCtrls } from "../ui/WinCtrls";
 import { ArtistsView } from "./ArtistsView";
 import { LibraryChip } from "./LibraryMenu";
 import { FeedView } from "./FeedView";
@@ -45,7 +47,6 @@ const isHome = (place: Place): place is Home => place === "following" || place =
  * 订阅页的主区（#461）：没有侧栏，墙占满，标题行正中是五个去处。新作往下滚到推荐时，选中的一块跟着走。
  * 榜单、我的收藏、画师各自换一面墙（第 4 步）；离开再回来时，新作与推荐那面墙还停在原处，不重读。
  * 搜索（第 5 步）收在标题行左端，展开时五个去处让开；按回车后墙换成结果，收回时回到原来的去处，结果不保留。
- * 还没挂到应用里：最后一个 PR 换掉现有订阅页时才露出来。
  */
 export function PixivHome({
   safe,
@@ -135,7 +136,8 @@ export function PixivHome({
     <SubscriptionsContext value={subs}>
       <FeedbackContext value={feedback}>
         <div className="pw-page">
-          <div className="pw-tabs">
+          {/* 标题行就是主窗口顶栏：空白处拖动窗口，右端是窗口按钮。 */}
+          <div className="pw-tabs" data-tauri-drag-region>
             <SearchBox
               open={searching}
               text={text}
@@ -167,12 +169,15 @@ export function PixivHome({
                 ]}
               />
             )}
-            {onOpenSettings && (
-              <button type="button" className="k-btn is-sm is-quiet pw-settings" onClick={onOpenSettings}>
-                <Settings size={14} aria-hidden="true" />
-                {t("browse.subscriptionSettings")}
-              </button>
-            )}
+            <div className="pw-tabs-end" data-tauri-drag-region>
+              {onOpenSettings && (
+                <button type="button" className="k-btn is-sm is-quiet" onClick={onOpenSettings}>
+                  <Settings size={14} aria-hidden="true" />
+                  {t("browse.subscriptionSettings")}
+                </button>
+              )}
+              <WinCtrls />
+            </div>
           </div>
           {finding != null && (
             <div className="pw-status" role="alert">
@@ -345,7 +350,7 @@ function RankingSwitch({ subs, period }: { subs: Subscriptions; period: RankingP
   );
 }
 
-/** 第二行右端的就地订阅开关：开关加一句说明，点文字也能拨。开着时说明换成“收进「某库」”，点开能换库。 */
+/** 第二行右端的就地订阅开关：点文字也能拨。开着时旁边是“收进「某库」”，点开能换库；关着时补充说明在悬停提示里。 */
 function SubbarSwitch({
   label,
   hint,
@@ -362,11 +367,15 @@ function SubbarSwitch({
   subscription: Subscription | undefined;
 }) {
   const id = useId();
+  // 关着时收多少、从哪天收起只在悬停提示里说（interface-text-rules：不写解释性描述）。开着时不弹。
+  // 一直包着 Tip：拨开关时不换掉这一行，焦点留在开关上。
   return (
-    <div className="pw-subbar-switch">
-      <Switch id={id} checked={checked} disabled={disabled} label={label} onCheckedChange={onChange} />
-      <label htmlFor={id}>{label}</label>
-      {subscription ? <LibraryChip subscription={subscription} /> : <span className="k-description">{hint}</span>}
-    </div>
+    <Tip label={subscription ? null : hint} align="end">
+      <div className="pw-subbar-switch">
+        <Switch id={id} checked={checked} disabled={disabled} label={label} onCheckedChange={onChange} />
+        <label htmlFor={id}>{label}</label>
+        {subscription && <LibraryChip subscription={subscription} />}
+      </div>
+    </Tip>
   );
 }

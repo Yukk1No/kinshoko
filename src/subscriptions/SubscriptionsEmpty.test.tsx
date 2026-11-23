@@ -10,9 +10,7 @@ it("取消登录后不把焦点留给同一位置的风险说明按钮", () => {
     return (
       <SubscriptionsEmpty
         signingIn={signingIn}
-        account={null}
         actions={{ cancel: () => setSigningIn(false), signIn: vi.fn(), signOut: vi.fn() }}
-        addMenu={(trigger) => trigger}
         setFirstRun={setFirstRun}
       />
     );

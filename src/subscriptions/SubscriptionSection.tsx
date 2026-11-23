@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { NOTICE_ORDER, usePersistentToast, useToast } from "../ui/Toast";
 import { accountActions } from "./accountActions";
 import type { Section } from "../shell/Rail";
-import { SubscriptionsPage } from "./SubscriptionsPage";
+import { SubscriptionsMain } from "../pixiv/SubscriptionsMain";
 import { useSubscriptionStatus } from "./useSubscriptionStatus";
 
 /**
@@ -56,32 +56,26 @@ export function LoginExpiredNotice({
   return null;
 }
 
-/** 订阅页占满工作区（侧栏与主区），与图片与文件夹的工作区并排切换。 */
+/** 订阅页（#461）：没有侧栏，应用内 pixiv 浏览占满工作区，与图片与文件夹的工作区并排切换。 */
 export function SubscriptionSection({
   subscriptions,
   safe,
-  paneOpen,
-  onPaneToggle,
-  onOpenImage,
+  onOpenSettings,
 }: {
   subscriptions: ReturnType<typeof useSubscriptionSection>;
   safe: boolean;
-  /** 当前打开的资料库：新订阅默认收进这里。 */
-  paneOpen: boolean;
-  onPaneToggle: () => void;
-  onOpenImage: (libraryId: string, imageId: string) => void;
+  /** 标题行右端的“订阅设置”：打开设置 › 订阅。 */
+  onOpenSettings: () => void;
 }) {
   if (!subscriptions.page) return null;
   return (
     <div className="app-workspace workspace">
       <div className="app-body">
-        <SubscriptionsPage
+        <SubscriptionsMain
           status={subscriptions.page}
           onStatus={subscriptions.setStatus}
           safe={safe}
-          paneOpen={paneOpen}
-          onPaneToggle={onPaneToggle}
-          onOpenImage={onOpenImage}
+          onOpenSettings={onOpenSettings}
         />
       </div>
     </div>

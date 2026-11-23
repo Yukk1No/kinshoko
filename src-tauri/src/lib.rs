@@ -130,7 +130,6 @@ pub fn run() {
             subscription::set_subscriptions_enabled,
             subscription::subscription_check_now,
             subscription::subscriptions,
-            subscription::subscription_recent,
             subscription::subscription_previews,
             subscription::subscription_mark_seen,
             subscription::roster::subscription_find_artist,

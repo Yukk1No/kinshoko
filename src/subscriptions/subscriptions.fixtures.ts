@@ -1,4 +1,3 @@
-import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 
@@ -39,24 +38,4 @@ export const list: Subscription[] = [
   subscription("s2", "灯里", { lastError: { code: "network" }, lastFailedAt: NOW - 60_000 }),
   subscription("s3", "日榜 前 50", { target: { kind: "pixivRanking", period: "day", top: 50, explicit: false } }),
   subscription("s4", "我的收藏", { target: { kind: "pixivBookmarks" } }),
-];
-
-export const received = (imageId: string, patch: Partial<ReceivedImage> = {}): ReceivedImage => ({
-  libraryId: "L1",
-  imageId,
-  subscriptionId: "s1",
-  workId: imageId,
-  page: 0,
-  explicit: false,
-  new: false,
-  receivedAt: NOW,
-  ...patch,
-});
-
-export const recent: ReceivedImage[] = [
-  received("n1", { new: true }),
-  received("n2", { new: true, explicit: true }),
-  received("n3", { new: true, subscriptionId: "s3" }),
-  received("o1"),
-  received("o2", { explicit: true, subscriptionId: "s3" }),
 ];

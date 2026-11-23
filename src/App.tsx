@@ -336,13 +336,7 @@ function MainWindow() {
                 <SubscriptionSection
                   subscriptions={subscriptions}
                   safe={lensSafe}
-                  paneOpen={paneOpen}
-                  onPaneToggle={() => setPaneOpen((open) => !open)}
-                  onOpenImage={(libraryId, imageId) => {
-                    setSection("browse");
-                    setPaneOpen(true);
-                    setReferenceRequest((last) => ({ libraryId, imageId, stamp: (last?.stamp ?? 0) + 1 }));
-                  }}
+                  onOpenSettings={() => openSettings("subscriptions")}
                 />
                 {empty && !subscriptions.page && (
                   <EmptyWorkspace

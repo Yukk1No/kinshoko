@@ -87,7 +87,7 @@ describe("设置 › 订阅", () => {
     });
     render(
       <SaveDestinationProvider safe={false}>
-        <SubscriptionSettings status={status()} onStatus={vi.fn()} error={null} onError={vi.fn()} browse />
+        <SubscriptionSettings status={status()} onStatus={vi.fn()} error={null} onError={vi.fn()} />
       </SaveDestinationProvider>,
     );
     const library = await screen.findByRole("combobox", { name: "新订阅收进" });

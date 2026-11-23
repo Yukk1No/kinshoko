@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { PixivWork } from "../bindings/PixivWork";
 import type { WorksPage } from "../bindings/WorksPage";
@@ -100,6 +100,29 @@ describe("订阅页主区", () => {
     fireEvent.click(screen.getByRole("button", { name: "作品1，画师" }));
     fireEvent.click(screen.getByRole("button", { name: "作品1，画师" }));
     expect(screen.queryByRole("region", { name: "作品1，画师" })).toBeNull();
+  });
+
+  it("右键卡片：收藏、在 pixiv 打开、查看这位画师、关注", async () => {
+    render(<PixivHome safe={false} />);
+    fireEvent.contextMenu(await screen.findByRole("button", { name: "作品1，画师" }));
+    const menu = await screen.findByRole("menu", { name: "作品1，画师" });
+    expect(within(menu).getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+      "收藏",
+      "在 pixiv 打开",
+      "查看这位画师",
+      "关注",
+    ]);
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "在 pixiv 打开" }));
+    expect(open).toHaveBeenCalledWith("https://www.pixiv.net/artworks/1", "_blank", "noreferrer");
+    open.mockRestore();
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+    fireEvent.contextMenu(screen.getByRole("button", { name: "作品1，画师" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "查看这位画师" }));
+    const places = screen.getByRole("group", { name: "订阅去处" });
+    await waitFor(() =>
+      expect(within(places).getByRole("button", { name: "画师" }).getAttribute("aria-pressed")).toBe("true"),
+    );
   });
 
   it("点大图看全图，读原图；Esc 回到墙", async () => {

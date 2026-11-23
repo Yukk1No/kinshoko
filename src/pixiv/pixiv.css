@@ -33,8 +33,10 @@
   flex: 1 0 auto;
 }
 
+/* 搜索展开时占去左边与中间两栏，右端的订阅设置与窗口按钮不动。 */
 .pw-search {
-  grid-column: 1 / -1;
+  grid-column: 1 / 3;
+  grid-row: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -96,9 +98,15 @@
 }
 
 /* 标题行右端的“订阅设置”（维护者 2026-11-22：全貌放在设置 › 订阅）。 */
-.pw-settings {
+.pw-tabs-end {
   grid-column: 3;
-  justify-self: end;
+  grid-row: 1;
+  justify-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
 }
 
 /* 开关旁边的“收进「某库」”：点开换库。 */
@@ -563,6 +571,7 @@
 }
 
 .pw-artist-meta > .k-description,
+.pw-artist-meta > .pw-artist-warn,
 .pw-artist-library {
   flex: none;
   white-space: nowrap;
@@ -676,4 +685,16 @@
 /* “在 pixiv 打开”是链接，样子和按钮一样，不画下划线。 */
 .pw-page a.k-btn {
   text-decoration: none;
+}
+
+/* 画师卡片上“上次检查未完成”：警告字带图标，原因在悬停提示里。 */
+.pw-artist-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 窗口按钮紧跟在“订阅设置”后面（共用的 .k-win-ctrls 自带 margin-left: auto，会把两者拉开）。 */
+.pw-tabs-end > .k-win-ctrls {
+  margin-left: 0;
 }

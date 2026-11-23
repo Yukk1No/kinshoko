@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { SourceError } from "../bindings/SourceError";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
@@ -5,8 +6,8 @@ import { i18n } from "../i18n/instance";
 import { formatDateTime } from "../i18n/format";
 
 /**
- * 订阅页主区标题行右侧的检查状态（维护者对原型第 10 号画板的评论）：空闲时“同步于几分钟前”加立即检查，
- * 检查中、退避中只有一句话。登录失效时由横幅说明，这里不显示。
+ * 设置 › 订阅里的检查状态（维护者对原型第 10 号画板的评论）：空闲时“同步于几分钟前”加“检查”，
+ * 检查中、退避中只有一句话。登录失效时由常驻通知说明，这里不显示。
  */
 export type CheckView =
   | { kind: "idle"; lastCheckedAt: number | null }
@@ -49,4 +50,14 @@ export function failureText(error: SourceError): string {
       ? i18n.t("subscriptions:reason.status", { status: error.status })
       : i18n.t(`subscriptions:reason.${error.code}`);
   return i18n.t("subscriptions:lastFailedTip", { reason });
+}
+
+/** 现在的时间，每 30 秒更新一次（“同步于几分钟前”用）。 */
+export function useNow(): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  return now;
 }

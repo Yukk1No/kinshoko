@@ -1,32 +1,36 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FolderInput, Rss, TriangleAlert, User } from "lucide-react";
+import { FolderInput, RefreshCw, Rss, TriangleAlert, User } from "lucide-react";
+import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { errorText } from "../ipc/commandError";
-import { setSubscriptionsEnabled } from "../ipc/subscriptions";
+import {
+  setSubscriptionsEnabled,
+  subscriptionCheckNow,
+  subscriptions as listSubscriptions,
+} from "../ipc/subscriptions";
 import { useSaveDestination } from "../library/SaveDestination";
 import { Select } from "../ui/Select";
 import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
 import { Switch } from "../ui/Switch";
 import { accountActions } from "./accountActions";
+import { checkedText, checkView, retryText, useNow } from "./checkStatus";
 import { useLibraryOptions } from "./artistOptions";
 import { FirstRunDialog } from "./FirstRunDialog";
 import { UnofficialMark } from "./UnofficialMark";
 
 /**
- * 设置 › 订阅（原型第 13–15 号画板）：订阅开关、pixiv 账号与风险说明。关掉开关后侧栏不显示入口、
- * 不检查、不联网；关着时只留开关，已登录的账号仍可退出。`browse` 时（应用内浏览接上以后，#461 第 8 步）多一行
- * “新订阅收进”。
+ * 设置 › 订阅（原型第 13–15 号画板）：订阅开关、pixiv 账号、检查新作、新订阅收进哪个图库与风险说明。
+ * 关掉开关后图标轨不显示入口、不检查、不联网；关着时只留开关，已登录的账号仍可退出。
+ * 订阅页（#461）没有侧栏，检查状态与“检查”从旧订阅页的标题行搬到这里。
  */
 export function SubscriptionSettings({
   status,
   onStatus,
   error,
   onError,
-  browse = false,
 }: {
   status: SubscriptionStatus;
-  browse?: boolean;
   /** 设置页的错误行，排在标题下面。 */
   error: string | null;
   onStatus: (status: SubscriptionStatus) => void;
@@ -79,7 +83,8 @@ export function SubscriptionSettings({
             )}
           </SettingsRow>
         )}
-        {on && browse && <NewSubscriptionsLibrary />}
+        {on && <CheckRow status={status} onError={onError} />}
+        {on && <NewSubscriptionsLibrary />}
         {on && (
           <SettingsRow icon={<TriangleAlert size={16} />} title={t("settings.risks")} hint={t("settings.risksHint")}>
             <button type="button" className="k-btn is-sm" onClick={() => setRisks(true)}>
@@ -98,6 +103,53 @@ export function SubscriptionSettings({
         }}
       />
     </>
+  );
+}
+
+/**
+ * 检查新作：上次什么时候同步、正在检查、限流后什么时候再试。空闲时有“检查”。没登录或还没有订阅时不显示。
+ * 名单跟着检查开始、结束重读，好拿到每条订阅最近一次检查的时间。
+ */
+function CheckRow({ status, onError }: { status: SubscriptionStatus; onError: (message: string | null) => void }) {
+  const { t } = useTranslation("subscriptions");
+  const now = useNow();
+  const [list, setList] = useState<Subscription[]>([]);
+  const signedIn = status.login.state === "loggedIn";
+  // biome-ignore lint/correctness/useExhaustiveDependencies(status.checking): 检查开始、结束是重读信号，effect 里不读它
+  useEffect(() => {
+    if (!signedIn) return;
+    let alive = true;
+    listSubscriptions().then(
+      (next) => alive && setList(next),
+      () => alive && setList([]),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [signedIn, status.checking]);
+  const view = checkView(status, list, now);
+  if (view.kind === "none") return null;
+  const meta =
+    view.kind === "idle"
+      ? checkedText(view.lastCheckedAt, now)
+      : view.kind === "checking"
+        ? t("check.checking")
+        : retryText(view.until);
+  return (
+    <SettingsRow icon={<RefreshCw size={16} />} title={t("settings.check")} meta={<span role="status">{meta}</span>}>
+      {view.kind === "idle" && (
+        <button
+          type="button"
+          className="k-btn is-sm"
+          onClick={() => {
+            onError(null);
+            subscriptionCheckNow().catch((e) => onError(t("check.failed", { error: errorText(e) })));
+          }}
+        >
+          <span className="k-label">{t("check.now")}</span>
+        </button>
+      )}
+    </SettingsRow>
   );
 }
 

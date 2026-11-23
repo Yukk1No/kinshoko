@@ -1,15 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useEffect, useState } from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { SaveDestinationProvider } from "../library/SaveDestination";
-import { SubscriptionsPage } from "./SubscriptionsPage";
+import { subscriptions as listSubscriptions } from "../ipc/subscriptions";
+import { ArtistDialog, ArtistSettingsDialog } from "./ArtistDialog";
+import { FollowingDialog } from "./FollowingDialog";
 import { chooseOption } from "../test/select";
 import { account, list, NOW, status, subscription } from "./subscriptions.fixtures";
 import { type FakeBackend, fakeBackend } from "../test/backend";
 
-// 订阅画师（#369）：添加对话框、从 pixiv 关注导入、订阅设置与退订。
+// 订阅画师（#369）：添加对话框、从 pixiv 关注导入与收取范围。订阅页（#461）在画师页里打开它们，这里直接挂上。
 
 let fake: FakeBackend;
 /** 让“slow”那次查找回来。 */
@@ -27,7 +30,6 @@ function backend(subs: Subscription[] = list, libraries = registered) {
       const { parent, name } = args as { parent: string; name: string };
       return { id: "L9", name, root: `${parent}/${name}` };
     },
-    subscription_recent: [],
     workspace_directories: {
       status: { revision: "t", libraries },
       registrationOrder: [],
@@ -60,24 +62,57 @@ function backend(subs: Subscription[] = list, libraries = registered) {
 
 const sent = (command: string) => fake.calls(command).map((call) => call.args);
 
+/** 画师页里的三个对话框：订阅画师、从关注导入、第一条订阅的收取范围。 */
+function Dialogs({ status: s }: { status: SubscriptionStatus }) {
+  const [list, setList] = useState<Subscription[] | null>(null);
+  const [open, setOpen] = useState<"add" | "import" | "settings" | null>(null);
+  useEffect(() => {
+    void listSubscriptions().then(setList);
+  }, []);
+  if (!list) return null;
+  return (
+    <>
+      <button type="button" onClick={() => setOpen("add")}>
+        打开订阅画师
+      </button>
+      <button type="button" onClick={() => setOpen("settings")}>
+        打开收取范围
+      </button>
+      {open === "add" && (
+        <ArtistDialog
+          status={s}
+          list={list}
+          onClose={() => setOpen(null)}
+          onAdded={() => {}}
+          onImport={() => setOpen("import")}
+        />
+      )}
+      {open === "import" && (
+        <FollowingDialog
+          status={s}
+          list={list}
+          onClose={() => setOpen(null)}
+          onBack={() => setOpen("add")}
+          onAdded={() => {}}
+        />
+      )}
+      {open === "settings" && (
+        <ArtistSettingsDialog subscription={list[0]} status={s} onClose={() => setOpen(null)} onSaved={() => {}} />
+      )}
+    </>
+  );
+}
+
 function page(s: SubscriptionStatus, safe = false) {
   return render(
     <SaveDestinationProvider safe={safe}>
-      <SubscriptionsPage
-        status={s}
-        onStatus={vi.fn()}
-        safe={safe}
-        paneOpen
-        onPaneToggle={vi.fn()}
-        onOpenImage={vi.fn()}
-      />
+      <Dialogs status={s} />
     </SaveDestinationProvider>,
   );
 }
 
 async function openArtistDialog() {
-  fireEvent.click((await screen.findAllByRole("button", { name: "添加订阅" }))[0]);
-  fireEvent.click(await screen.findByRole("menuitem", { name: "画师" }));
+  fireEvent.click(await screen.findByRole("button", { name: "打开订阅画师" }));
   return screen.findByRole("dialog", { name: "订阅画师" });
 }
 
@@ -236,14 +271,10 @@ describe("订阅画师", () => {
     });
   });
 
-  it("名单行的更多菜单：订阅设置只改漫画与 R-18，退订要确认", async () => {
+  it("收取范围只改漫画与 R-18", async () => {
     backend();
     page(status());
-    // 菜单根还没发布初始化好的上下文时点触发器，菜单不会打开（同 #639）：等它报出 aria-expanded="false" 再点。
-    const more = (await screen.findAllByRole("button", { name: "更多" }))[0];
-    await waitFor(() => expect(more.getAttribute("aria-expanded")).toBe("false"));
-    fireEvent.click(more);
-    fireEvent.click(await screen.findByRole("menuitem", { name: "订阅设置…" }));
+    fireEvent.click(await screen.findByRole("button", { name: "打开收取范围" }));
     const settings = await screen.findByRole("dialog", { name: "订阅设置" });
     expect(within(settings).queryByText("旧作")).toBeNull();
     fireEvent.click(within(settings).getByRole("switch", { name: "R-18 作品" }));
@@ -253,14 +284,6 @@ describe("订阅画师", () => {
         { id: "s1", includeExplicit: false, includeManga: false, top: null },
       ]),
     );
-
-    const moreAgain = screen.getAllByRole("button", { name: "更多" })[0];
-    await waitFor(() => expect(moreAgain.getAttribute("aria-expanded")).toBe("false"));
-    fireEvent.click(moreAgain);
-    fireEvent.click(await screen.findByRole("menuitem", { name: "退订" }));
-    const confirm = await screen.findByRole("dialog", { name: "退订 Mika？" });
-    fireEvent.click(within(confirm).getByRole("button", { name: "退订" }));
-    await waitFor(() => expect(sent("subscription_remove")).toEqual([{ id: "s1" }]));
   });
 
   it("图库下拉里就地新建图库：叠一层对话框，建好后回来选中它，已填的都在，不切换主窗口（#442）", async () => {
@@ -328,12 +351,5 @@ describe("订阅画师", () => {
     await waitFor(() => expect(subscribe.disabled).toBe(false));
     fireEvent.click(subscribe);
     await waitFor(() => expect(sent("subscription_add")[0]).toMatchObject({ subscriptions: [{ libraryId: "L9" }] }));
-  });
-
-  it("选中一位画师时标题行写出跳过的动图", async () => {
-    backend([subscription("s1", "Mika", { skipped: 2 })]);
-    page(status());
-    fireEvent.click(await screen.findByRole("button", { name: "Mika" }));
-    expect(await screen.findByText("跳过 2 个动图")).toBeTruthy();
   });
 });

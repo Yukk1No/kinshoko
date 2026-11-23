@@ -22,7 +22,6 @@ function withSubscriptions(initial: SubscriptionStatus | "unavailable") {
     },
     subscription_status: () => (initial === "unavailable" ? Promise.reject("unavailable") : initial),
     subscriptions: [],
-    subscription_recent: [],
   });
 }
 
@@ -33,7 +32,7 @@ describe("订阅入口", () => {
     await screen.findByRole("button", { name: "参考组" });
     expect(entry()).toBeNull();
     fireEvent.keyDown(window, { key: "4", ctrlKey: true });
-    expect(screen.queryByRole("complementary", { name: "订阅" })).toBeNull();
+    expect(screen.queryByRole("main", { name: "订阅" })).toBeNull();
   });
 
   it("开着时显示入口与新图数，超过 99 写 99+", async () => {
@@ -51,16 +50,16 @@ describe("订阅入口", () => {
     render(<App />);
     await waitFor(() => expect(entry()).toBeTruthy());
     fireEvent.click(entry()!);
-    expect(await screen.findByRole("complementary", { name: "订阅" })).toBeTruthy();
+    expect(await screen.findByRole("main", { name: "订阅" })).toBeTruthy();
     await push(status({ enabled: false }));
     expect(entry()).toBeNull();
-    expect(screen.queryByRole("complementary", { name: "订阅" })).toBeNull();
+    expect(screen.queryByRole("main", { name: "订阅" })).toBeNull();
     expect(screen.getByRole("button", { name: "图片与文件夹" }).getAttribute("aria-current")).toBe("page");
     fireEvent.keyDown(window, { key: "4", ctrlKey: true });
-    expect(screen.queryByRole("complementary", { name: "订阅" })).toBeNull();
+    expect(screen.queryByRole("main", { name: "订阅" })).toBeNull();
     await push(status());
     fireEvent.keyDown(window, { key: "4", ctrlKey: true });
-    expect(await screen.findByRole("complementary", { name: "订阅" })).toBeTruthy();
+    expect(await screen.findByRole("main", { name: "订阅" })).toBeTruthy();
   });
 
   it("开着订阅页时从钉图“在 Kinshoko 中打开”参考图，回到图片与文件夹", async () => {
@@ -68,10 +67,10 @@ describe("订阅入口", () => {
     render(<App />);
     await waitFor(() => expect(entry()).toBeTruthy());
     fireEvent.click(entry()!);
-    expect(await screen.findByRole("complementary", { name: "订阅" })).toBeTruthy();
+    expect(await screen.findByRole("main", { name: "订阅" })).toBeTruthy();
     openRequest = { kind: "reference", libraryId: "L1", imageId: "a" };
     await act(() => emit("open-in-kinshoko"));
-    await waitFor(() => expect(screen.queryByRole("complementary", { name: "订阅" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("main", { name: "订阅" })).toBeNull());
     expect(screen.getByRole("button", { name: "图片与文件夹" }).getAttribute("aria-current")).toBe("page");
   });
 });

@@ -44,8 +44,6 @@ describe("订阅页共用部件", () => {
     expect(sources["../main.tsx"]).toContain('import "./ui/spinner.css"');
     expect(sources["../subscriptions/ArtistDialog.tsx"]).toContain('className="k-spinner" size={14}');
     expect(sources["../subscriptions/FollowingDialog.tsx"]).toContain('className="k-spinner" size={14}');
-    expect(sources["../subscriptions/SubscriptionsAccount.tsx"]).toContain('className="k-spinner" size={16}');
-    expect(sources["../subscriptions/SubscriptionsPage.tsx"]).toContain('className="k-spinner is-accent" size={14}');
     expect(sources["../subscriptions/SubscriptionsEmpty.tsx"]).toContain(
       '<LoaderCircle className="k-spinner is-accent" />',
     );
@@ -57,7 +55,6 @@ describe("订阅页共用部件", () => {
     for (const suffix of ["", "::before", "::after"]) expect(tokens).toContain(`*:where(:not(.k-spinner))${suffix}`);
   });
 
-  // 榜单的名次分段仍是订阅页自己的 26 px 档：订阅页整页会随 #461 重做，这里不改外观。
   it("订阅样式不再覆盖报错文字", () => {
     expect(targets(subs, "k-error-text")).toEqual([]);
     expect(sources["../subscriptions/FollowingDialog.tsx"]).toContain('className="k-error-text is-field" role="alert"');
@@ -87,7 +84,7 @@ describe("订阅页共用部件", () => {
 
   it("扫描能找到分组、上下文和媒体规则，不误认较长类名", () => {
     expect(targets("", "k-seg-item")).toEqual([]);
-    expect(targets(subs, "k-seg-item").length).toBeGreaterThan(0);
+    expect(targets(".a .k-seg-item { height: 26px }", "k-seg-item")).toEqual([".a .k-seg-item"]);
     expect(targets(".k-seg-item-icon { color: red }", "k-seg-item")).toEqual([]);
     expect(
       targets("@media (hover: hover) { .other, .context .k-seg-item:hover { height: 26px } }", "k-seg-item"),

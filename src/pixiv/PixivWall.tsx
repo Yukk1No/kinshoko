@@ -9,10 +9,12 @@ import {
   type Ref,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { ExternalLink, Heart, User, UserMinus, UserPlus } from "lucide-react";
 import type { Artist } from "../bindings/Artist";
 import type { PixivWork } from "../bindings/PixivWork";
 import { pixivImageSrc } from "../ipc/pixivBrowse";
 import { CAP_RATIO, GAP, OVERSCAN, PAD, TARGET } from "../wall/wallShared";
+import { MenuItem, MenuSeparator, PointerMenu } from "../ui/Menu";
 import { pixivMasonry, visibleIn, type PixivLayout } from "./layout";
 import type { CollectedPages, CollectOptions } from "./useCollect";
 import { useFeedbackContext } from "./useFeedback";
@@ -77,6 +79,8 @@ export function PixivWall({
   const [scrollTop, setScrollTop] = useState(0);
   const [selected, setSelected] = useState<Selected | null>(null);
   const [full, setFull] = useState<{ work: PixivWork; page: number } | null>(null);
+  /** 右键菜单：哪个作品、在哪里打开。 */
+  const [menu, setMenu] = useState<{ work: PixivWork; x: number; y: number } | null>(null);
 
   useLayoutEffect(() => {
     const el = scroller.current;
@@ -187,6 +191,7 @@ export function PixivWall({
                   busy={busy.has(work.id)}
                   onClick={() => select(s.key, work.id)}
                   onCollect={onCollect && ((from) => onCollect(work, { bookmark: true, from }))}
+                  onMenu={(x, y) => setMenu({ work, x, y })}
                 />
               );
             }),
@@ -210,6 +215,17 @@ export function PixivWall({
           )}
         </div>
       </div>
+      {menu && (
+        <CardMenu
+          work={menu.work}
+          point={menu}
+          collected={collected.get(menu.work.id)}
+          busy={busy.has(menu.work.id)}
+          onCollect={onCollect}
+          onArtist={onArtist}
+          onClose={() => setMenu(null)}
+        />
+      )}
       {full && (
         <FullView
           work={full.work}
@@ -233,6 +249,7 @@ function Card({
   busy,
   onClick,
   onCollect,
+  onMenu,
 }: {
   work: PixivWork;
   style: React.CSSProperties;
@@ -241,6 +258,8 @@ function Card({
   busy: boolean;
   onClick: () => void;
   onCollect?: (from: Element | null) => void;
+  /** 右键或菜单键：在这一点打开作品菜单。 */
+  onMenu: (x: number, y: number) => void;
 }) {
   const { t } = useTranslation("subscriptions");
   const feedback = useFeedbackContext();
@@ -248,7 +267,16 @@ function Card({
   // 动图不收，不给收图按钮。
   const collectable = !!onCollect && work.kind !== "animation";
   return (
-    <div className="pw-card" data-on={on || undefined} style={style}>
+    <div
+      className="pw-card"
+      data-work={work.id}
+      data-on={on || undefined}
+      style={style}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onMenu(e.clientX, e.clientY);
+      }}
+    >
       <button
         type="button"
         className="pw-card-open"
@@ -412,6 +440,86 @@ function Band({
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * 作品卡片的右键菜单（#461“作品卡片”）：收藏（收进图库）、在 pixiv 打开、查看这位画师、关注（同时订阅）。
+ * 和展开的一格里的按钮是同一组动作，不用先点开。
+ */
+function CardMenu({
+  work,
+  point,
+  collected,
+  busy,
+  onCollect,
+  onArtist,
+  onClose,
+}: {
+  work: PixivWork;
+  point: { x: number; y: number };
+  collected: ReadonlySet<number> | undefined;
+  busy: boolean;
+  onCollect?: (work: PixivWork, options?: CollectOptions) => void;
+  onArtist?: (artist: Artist) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation("subscriptions");
+  const feedback = useFeedbackContext();
+  const subs = useSubscriptionsContext();
+  const collectable = !!onCollect && work.kind !== "animation";
+  const all = (collected?.size ?? 0) >= work.pages.length;
+  const bookmarked = feedback?.bookmarked(work) ?? work.bookmarked;
+  const following = feedback ? (feedback.followed(work.artist.userId) ?? work.followed) : null;
+  const userId = work.artist.userId;
+  const removing = subs?.artist(userId);
+  // 与展开的一格里的“关注”同一套锁：订阅名单没读到、这位画师正在关注或退订时不能点。
+  const followLocked =
+    !feedback ||
+    feedback.followPending(userId) ||
+    !!subs?.pending(`artist:${userId}`) ||
+    (!!removing && !!subs?.pending(removing.id)) ||
+    (!!subs && !subs.ready);
+  const card = () => document.querySelector(`.pw-card[data-work="${CSS.escape(work.id)}"]`);
+  return (
+    <PointerMenu
+      point={point}
+      label={t("browse.work", { title: work.title, artist: work.artist.name })}
+      onClose={onClose}
+    >
+      {collectable && (
+        <MenuItem
+          icon={<Heart size={16} strokeWidth={1.75} />}
+          disabled={busy || (all && bookmarked) || (feedback?.bookmarkPending(work.id) ?? false)}
+          onClick={() => onCollect(work, { bookmark: true, from: card() })}
+        >
+          {all && bookmarked ? t("browse.favorited") : t("browse.favorite")}
+        </MenuItem>
+      )}
+      <MenuItem
+        icon={<ExternalLink size={16} strokeWidth={1.75} />}
+        onClick={() => window.open(work.pageUrl, "_blank", "noreferrer")}
+      >
+        {t("browse.openOnPixiv")}
+      </MenuItem>
+      {onArtist && (
+        <MenuItem icon={<User size={16} strokeWidth={1.75} />} onClick={() => onArtist(work.artist)}>
+          {t("browse.viewArtist")}
+        </MenuItem>
+      )}
+      {feedback && following !== null && (
+        <>
+          <MenuSeparator />
+          <MenuItem
+            icon={following ? <UserMinus size={16} strokeWidth={1.75} /> : <UserPlus size={16} strokeWidth={1.75} />}
+            disabled={followLocked}
+            onClick={() => void feedback.setFollow(work.artist, !following)}
+          >
+            {following ? t("browse.unfollow") : t("browse.follow")}
+          </MenuItem>
+        </>
+      )}
+    </PointerMenu>
   );
 }
 
