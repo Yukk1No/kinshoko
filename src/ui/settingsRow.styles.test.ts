@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import settings from "./settings.css?raw";
+import fields from "./fields.css?raw";
 import ui from "./uiCss";
 
 /** 一条规则的声明（选择器须完全相同）。 */
@@ -20,6 +21,31 @@ const padding = (value: string) => {
   const [top, , bottom = top] = value.split(/\s+/).map(px);
   return [top, bottom];
 };
+
+describe("settings row horizontal layout", () => {
+  it("lets long left-hand text shrink while keeping a readable label width", () => {
+    const text = rule(settings, ".k-set-row-main > .k-list-text");
+    expect(text.flex).toBe("1 1 0");
+    expect(text["min-width"]).toBe("12em");
+  });
+
+  it("allows right-hand controls to shrink only when the label floor requires it", () => {
+    const end = rule(settings, ".k-set-row-main > .k-list-end");
+    expect(end.flex).toBe("0 1 auto");
+    expect(end["min-width"]).toBe("0");
+    expect(end["max-width"]).toBe("55%");
+  });
+
+  it("allows wide controls and long status text to wrap within the right-hand width limit", () => {
+    const end = rule(settings, ".k-set-row-main > .k-list-end");
+    const select = rule(settings, ".k-set-row-main > .k-list-end > .k-select");
+    expect(end["white-space"]).toBeUndefined();
+    expect(select.width).toBe("240px");
+    expect(select["max-width"]).toBe("100%");
+    expect(select["min-width"]).toBe("0");
+    expect(rule(fields, ".k-select-value")["overflow-wrap"]).toBe("anywhere");
+  });
+});
 
 // jsdom 不排版，按样式表里的数字算设置行的高度（单位 px）。
 // 设计系统 v2：每行只有图标、名称、控件，没有描述行；补充说明在悬停提示里，状态是控件左边的小字。

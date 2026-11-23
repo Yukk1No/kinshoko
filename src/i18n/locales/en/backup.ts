@@ -38,6 +38,7 @@ const backup: Translation<typeof zh> = {
     targetMissing: ". The backup location isn't available now, so this assumes everything needs copying",
     uncovered: "Not covered",
     unavailable: "“{{library}}” can't be read right now and will be skipped: {{reason}}",
+    noneReadable: "“{{library}}” can't be read right now, so the backup can't finish: {{reason}}",
   },
   restore: {
     title: "Restore a library",

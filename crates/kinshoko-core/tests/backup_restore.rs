@@ -20,6 +20,8 @@ use kinshoko_core::backup::{
 use kinshoko_core::library::ImageEdit;
 #[path = "backup_restore_names.rs"]
 mod names;
+#[path = "backup_restore_unavailable.rs"]
+mod unavailable;
 
 #[test]
 fn a_group_that_outgrows_the_computed_scope_cannot_publish_a_complete_backup() {

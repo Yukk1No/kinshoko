@@ -36,6 +36,7 @@ export default {
     targetMissing: "。备份位置现在不在，按全部需要复制估计",
     uncovered: "没覆盖的内容",
     unavailable: "「{{library}}」暂时无法读取，会跳过：{{reason}}",
+    noneReadable: "「{{library}}」暂时无法读取，备份无法完成：{{reason}}",
   },
   restore: {
     title: "恢复图库",

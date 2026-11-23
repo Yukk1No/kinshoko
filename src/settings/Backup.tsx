@@ -296,6 +296,8 @@ export function BackupSettings() {
 function PreviewView({ preview, pending }: { preview: BackupPreview; pending: boolean }) {
   const { t } = useTranslation("backup");
   const { scope, estimate } = preview;
+  const unavailableKey =
+    estimate.unavailable.length === scope.libraries.length ? "preview.noneReadable" : "preview.unavailable";
   const names = (list: { name: string }[]) => list.map((entry) => entry.name).join(t("separator")) || t("none");
   return (
     <div className="backup-preview" role="group" aria-label={t("preview.label")} aria-hidden={pending || undefined}>
@@ -315,7 +317,7 @@ function PreviewView({ preview, pending }: { preview: BackupPreview; pending: bo
           ))}
           {estimate.unavailable.map((s) => (
             <li key={s.library.id}>
-              {t("preview.unavailable", { library: s.library.name, reason: storedReasonText(s.reason) })}
+              {t(unavailableKey, { library: s.library.name, reason: storedReasonText(s.reason) })}
             </li>
           ))}
         </ul>
