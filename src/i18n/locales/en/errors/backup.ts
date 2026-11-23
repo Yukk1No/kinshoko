@@ -13,6 +13,13 @@ export default {
   backupOriginalChanged:
     "The original doesn't match the library's record (it may have been changed outside Kinshoko), so this backup is incomplete",
   backupOriginalUnreadable: "Couldn't read the original: {{detail}}",
+  backupTargetDiskFull: "Not enough space on the backup drive",
+  backupTargetWriteFailed: "Couldn't write to the backup drive",
+  backupOriginalsNotBackedUp_one: "{{count, number}} original not backed up: {{reason}}",
+  backupOriginalsNotBackedUp_other: "{{count, number}} originals not backed up: {{reason}}",
+  backupOriginalUnreadableSummary: "Couldn't read the original",
+  backupOriginalChangedSummary: "Original doesn't match the library record",
+  backupOriginalUnknownSummary: "Couldn't copy the original",
   backupLibraryNotRegistered: "This library isn't registered on this device",
   checkLibraryProblem: "{{name}}: {{cause}}",
   checkLibraryUnreadable: "Couldn't read the restored library “{{name}}”: {{cause}}",

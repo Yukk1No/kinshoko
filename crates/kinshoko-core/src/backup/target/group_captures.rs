@@ -36,12 +36,13 @@ pub(super) fn save(
 ) -> Result<Vec<ManifestCapture>, BackupError> {
     let files = groups.snapshot_captures(group_id, snapshot)?;
     if !files.is_empty() {
-        fs::create_dir_all(dir(groups_dir, group_id))?;
+        fs::create_dir_all(dir(groups_dir, group_id)).map_err(BackupError::TargetWrite)?;
     }
     files
         .iter()
         .map(|(file, bytes)| {
-            write_synced(&dir(groups_dir, group_id).join(file), bytes)?;
+            write_synced(&dir(groups_dir, group_id).join(file), bytes)
+                .map_err(BackupError::TargetWrite)?;
             Ok(ManifestCapture {
                 file: file.clone(),
                 sha256: sha256(bytes),

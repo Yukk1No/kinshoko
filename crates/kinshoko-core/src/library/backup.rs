@@ -460,20 +460,25 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+pub(crate) enum CopyError {
+    Read(std::io::Error),
+    Write(std::io::Error),
+}
+
 /// 把 `source` 复制到 `target`，边复制边算哈希并落盘；返回写入内容的哈希。备份复制原文件用。
-pub(crate) fn copy_hashed(source: &Path, target: &Path) -> std::io::Result<String> {
-    let mut from = std::fs::File::open(source)?;
-    let mut to = std::fs::File::create(target)?;
+pub(crate) fn copy_hashed(source: &Path, target: &Path) -> Result<String, CopyError> {
+    let mut from = std::fs::File::open(source).map_err(CopyError::Read)?;
+    let mut to = std::fs::File::create(target).map_err(CopyError::Write)?;
     let mut hasher = Sha256::new();
     let mut buf = vec![0u8; 1 << 16];
     loop {
-        let n = from.read(&mut buf)?;
+        let n = from.read(&mut buf).map_err(CopyError::Read)?;
         if n == 0 {
             break;
         }
         hasher.update(&buf[..n]);
-        to.write_all(&buf[..n])?;
+        to.write_all(&buf[..n]).map_err(CopyError::Write)?;
     }
-    to.sync_all()?;
+    to.sync_all().map_err(CopyError::Write)?;
     Ok(hex(&hasher.finalize()))
 }

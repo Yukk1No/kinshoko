@@ -38,6 +38,37 @@ function isCommandError(value: unknown): value is CommandError {
   return typeof value === "object" && value !== null && typeof (value as { code?: unknown }).code === "string";
 }
 
+function originalFailureReason(cause: CommandError): string {
+  switch (cause.code) {
+    case "backupTargetDiskFull":
+    case "backupTargetWriteFailed":
+      return cause.code;
+    case "backupOriginalUnreadable":
+      return "backupOriginalUnreadableSummary";
+    case "backupOriginalChanged":
+      return "backupOriginalChangedSummary";
+    default:
+      return "backupOriginalUnknownSummary";
+  }
+}
+
+function describeBackupProblems(problems: CommandError[]): string {
+  const details: string[] = [];
+  const counts = new Map<string, number>();
+  for (const problem of problems) {
+    if (problem.code === "backupOriginalProblem") {
+      const reason = originalFailureReason(problem.cause);
+      counts.set(reason, (counts.get(reason) ?? 0) + 1);
+    } else {
+      details.push(describeCommandError(problem));
+    }
+  }
+  for (const [reason, count] of counts) {
+    details.push(t("backupOriginalsNotBackedUp", { count, reason: t(reason) }));
+  }
+  return details.join(t("problemSeparator"));
+}
+
 /** 按界面语言写出的说明。前端不认识的代码显示通用说明，并附原始信息便于反馈。 */
 export function describeCommandError(error: CommandError): string {
   switch (error.code) {
@@ -75,7 +106,7 @@ export function describeCommandError(error: CommandError): string {
     case "shortcutUnavailable":
       return t("shortcutUnavailable", { reason: hotkeyFailureText(error.reason) });
     case "backupProblems":
-      return error.problems.map(describeCommandError).join(t("problemSeparator"));
+      return describeBackupProblems(error.problems);
     case "checkTableMismatch":
       return t(error.sameContent ? "checkTableRowCount" : "checkTableMismatch", {
         table: error.table,

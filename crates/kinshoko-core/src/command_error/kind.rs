@@ -256,6 +256,8 @@ pub enum ErrorKind {
     BackupOriginalUnreadable {
         detail: String,
     },
+    BackupTargetDiskFull,
+    BackupTargetWriteFailed,
     BackupLibraryNotRegistered,
     // 恢复后往返检查发现的问题（`RoundTripCheck`）。
     CheckLibraryProblem {
