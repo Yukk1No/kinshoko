@@ -58,15 +58,43 @@ pub(super) fn remove_incomplete(snapshots: &Path) {
     }
 }
 
+/// 读得了清单的完整快照；列不出目录时当成没有快照。
 pub(super) fn complete_manifests(root: &Path) -> Vec<(PathBuf, Manifest)> {
-    let Ok(entries) = fs::read_dir(root.join(SNAPSHOTS)) else {
-        return Vec::new();
+    complete_snapshots(root)
+        .map(|snapshots| snapshots.readable)
+        .unwrap_or_default()
+}
+
+/// 备份目标里的全部完整快照目录。
+pub(super) struct CompleteSnapshots {
+    pub readable: Vec<(PathBuf, Manifest)>,
+    /// 读不了清单的快照目录：确认不了它们引用哪些原文件。
+    pub unreadable: Vec<PathBuf>,
+}
+
+/// 列出全部完整快照目录；列不全目录时出错，不当成没有快照。
+pub(super) fn complete_snapshots(root: &Path) -> std::io::Result<CompleteSnapshots> {
+    let mut snapshots = CompleteSnapshots {
+        readable: Vec::new(),
+        unreadable: Vec::new(),
     };
-    entries
-        .flatten()
-        .filter(|e| !e.file_name().to_string_lossy().ends_with(INCOMPLETE))
-        .filter_map(|e| read_manifest(&e.path()).ok().map(|m| (e.path(), m)))
-        .collect()
+    for entry in fs::read_dir(root.join(SNAPSHOTS))? {
+        let entry = entry?;
+        if entry.file_name().to_string_lossy().ends_with(INCOMPLETE) {
+            continue;
+        }
+        // 跟着目录链接走：恢复认链接过去的快照，这里也得读它的清单。
+        match fs::metadata(entry.path()) {
+            Ok(meta) if !meta.is_dir() => continue,
+            Ok(_) => match read_manifest(&entry.path()) {
+                Ok(m) => snapshots.readable.push((entry.path(), m)),
+                Err(_) => snapshots.unreadable.push(entry.path()),
+            },
+            // 看不清是不是快照目录（比如链接指向的盘不在）：确认不了它引用哪些原文件。
+            Err(_) => snapshots.unreadable.push(entry.path()),
+        }
+    }
+    Ok(snapshots)
 }
 
 pub(super) fn read_manifest(dir: &Path) -> Result<Manifest, CommandError> {
