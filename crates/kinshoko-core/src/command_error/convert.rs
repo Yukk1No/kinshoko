@@ -184,9 +184,26 @@ impl From<BackupError> for ErrorKind {
             BackupError::Io(e) => ErrorKind::BackupIo {
                 detail: e.to_string(),
             },
+            BackupError::TargetWrite(e) if e.kind() == std::io::ErrorKind::StorageFull => {
+                ErrorKind::BackupTargetDiskFull
+            }
+            BackupError::TargetWrite(_) => ErrorKind::BackupTargetWriteFailed,
             BackupError::Library(e) => e.into(),
             BackupError::Group(e) => e.into(),
         }
+    }
+}
+
+#[cfg(all(test, windows))]
+#[test]
+fn backup_reports_windows_disk_full() {
+    for code in [112, 39] {
+        let error = std::io::Error::from_raw_os_error(code);
+        let kind = ErrorKind::from(BackupError::TargetWrite(error));
+        assert_eq!(
+            serde_json::to_value(kind).unwrap()["code"],
+            "backupTargetDiskFull"
+        );
     }
 }
 

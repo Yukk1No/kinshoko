@@ -12,6 +12,7 @@ pub enum BackupError {
     /// 快照没有完成或已损坏，不能恢复。
     Incomplete(Box<crate::CommandError>),
     Io(std::io::Error),
+    TargetWrite(std::io::Error),
     Library(library::Error),
     Group(GroupError),
 }
@@ -28,6 +29,7 @@ impl std::fmt::Display for BackupError {
             BackupError::UnknownSnapshot => write!(f, "备份目标里没有这个快照"),
             BackupError::Incomplete(why) => write!(f, "这个快照不完整或已损坏，不能恢复：{why}"),
             BackupError::Io(e) => write!(f, "读写备份失败：{e}"),
+            BackupError::TargetWrite(e) => write!(f, "写入备份目标失败：{e}"),
             BackupError::Library(e) => e.fmt(f),
             BackupError::Group(e) => e.fmt(f),
         }
