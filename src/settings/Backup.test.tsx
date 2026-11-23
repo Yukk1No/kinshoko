@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, isInaccessible, render, screen, waitFor, within } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
 import type { BackupPreview } from "../bindings/BackupPreview";
 import type { BackupStatus } from "../bindings/BackupStatus";
@@ -8,6 +8,8 @@ import type { SnapshotSummary } from "../bindings/SnapshotSummary";
 import { BackupReminder, BackupSettings } from "./Backup";
 import { chooseOption } from "../test/select";
 import { fakeBackend, type Replies } from "../test/backend";
+import { cssRule } from "../ui/cssRule";
+import settingsCss from "../ui/settings.css?raw";
 
 afterEach(() => {
   delete window.__KINSHOKO_TEST_PICKS__;
@@ -265,6 +267,57 @@ describe("设置：备份", () => {
     );
     expect(await screen.findByText(/参考组「眼睛参考」引用的「旧库」不在这次备份里/)).toBeTruthy();
     expect(screen.getByText(/约 30 MB，这次新写入 2 MB（新原图 1 张）/)).toBeTruthy();
+  });
+
+  it("重新估算时保留旧预览并降低文字强调度，直到新结果返回", async () => {
+    const selected: BackupStatus = {
+      ...withTarget,
+      plan: { ...withTarget.plan, selection: { kind: "libraries", ids: ["A"], includeLinked: true } },
+    };
+    const fake = backend({
+      backup_status: selected,
+      set_backup_selection: (args) => ({ ...selected, plan: { ...selected.plan, selection: args.selection } }),
+      backup_preview: narrowed,
+    });
+    render(
+      <div className="k-settings">
+        <BackupSettings />
+      </div>,
+    );
+    const oldEstimate = await screen.findByText(/新原图 1 张/);
+    const preview = screen.getByRole("group", { name: "备份内容" });
+    const mutedSelector = '.k-settings .backup-preview[aria-hidden="true"]';
+    let resolve!: (preview: BackupPreview) => void;
+    fake.on(
+      "backup_preview",
+      () =>
+        new Promise<BackupPreview>((r) => {
+          resolve = r;
+        }),
+    );
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "旧库" }));
+    const estimating = await screen.findByText("正在估算…");
+    expect(fake.calls("backup_preview").at(-1)?.args).toEqual({
+      selection: { kind: "libraries", ids: ["A", "B"], includeLinked: true },
+    });
+    expect(oldEstimate.isConnected).toBe(true);
+    expect(getComputedStyle(preview).visibility).toBe("visible");
+    expect(screen.queryByRole("group", { name: "备份内容" })).toBeNull();
+    expect(isInaccessible(oldEstimate)).toBe(true);
+    expect(isInaccessible(estimating)).toBe(false);
+    expect(preview.getAttribute("aria-hidden")).toBe("true");
+    expect(preview.matches(mutedSelector)).toBe(true);
+    expect(cssRule(settingsCss, mutedSelector).color).toBe("color-mix(in srgb, var(--ink-2) 90%, var(--bg))");
+    expect(settingsCss).not.toMatch(/\.backup-preview\s*\{[^}]*\bcolor\s*:/);
+
+    await act(async () => resolve({ ...narrowed, estimate: { ...narrowed.estimate, newOriginals: 2 } }));
+    const newEstimate = await screen.findByText(/新原图 2 张/);
+    expect(newEstimate.parentElement).toBe(preview);
+    expect(screen.getByRole("group", { name: "备份内容" })).toBe(preview);
+    expect(isInaccessible(newEstimate)).toBe(false);
+    expect(preview.getAttribute("aria-hidden")).toBeNull();
+    expect(preview.matches(mutedSelector)).toBe(false);
   });
 
   it("可以马上备份；备份进行中显示进度", async () => {
