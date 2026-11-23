@@ -87,10 +87,11 @@ pub(super) async fn restore_application_settings<R: Runtime>(
                 let crate::shell::Shell {
                     settings,
                     shortcuts,
+                    ..
                 } = &mut *shell;
                 shortcuts.reload(&previous, settings);
                 let mut problems = Vec::new();
-                if let Err(error) = crate::shell::apply_autostart(&app, settings.autostart()) {
+                if let Err(error) = crate::shell::sync_autostart(&app, settings.autostart()) {
                     problems.push(CommandError::caused_by(
                         error,
                         |cause| ErrorKind::AutostartNotSynced { cause },
@@ -98,9 +99,9 @@ pub(super) async fn restore_application_settings<R: Runtime>(
                     ));
                 }
                 Ok(Ok((
-                    shortcuts.settings_view(settings),
-                    settings.safe_mode(),
-                    settings.tagging_device(),
+                    shell.view(),
+                    shell.settings.safe_mode(),
+                    shell.settings.tagging_device(),
                     problems,
                 )))
             })??;

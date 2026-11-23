@@ -4,7 +4,7 @@
 
 use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
-use kinshoko_core::{AppInfo, SettingChange, ShellSettingsView, ShortcutAction};
+use kinshoko_core::{AppInfo, AppSettings, SettingChange, ShellSettingsView, ShortcutAction};
 use tauri::{AppHandle, Manager, State};
 
 use crate::shell::{self, ShellState, UiScaleState};
@@ -23,8 +23,8 @@ pub async fn shell_settings(
 
 /// 改一项程序设置（#527），返回改后的整份设置。哪些设置走这里、怎样加一项，见 `SettingChange`。
 ///
-/// 开机自启先改系统，保存失败时把系统改回去；增强钉图边缘保存后让已经钉着的钉图立即重画。
-// 改之前、改之后各一个 `match`，新设置要做系统动作或通知时在里面加一行，所以不写成 `if let`。
+/// 开机自启先保存设置，确保保存失败时不更改系统；增强钉图边缘保存后让已经钉着的钉图立即重画。
+// 新设置要做系统动作或通知时在 `match` 里加一行。
 #[allow(clippy::single_match)]
 #[tauri::command]
 pub async fn change_setting(
@@ -36,21 +36,11 @@ pub async fn change_setting(
         let mut shell = state.0.lock().map_err(CommandError::system)?;
         match change {
             SettingChange::Autostart { on } => {
-                shell::apply_autostart(&app, on).map_err(|e| {
-                    CommandError::caused_by(
-                        e,
-                        |cause| ErrorKind::AutostartFailed { cause },
-                        |e| format!("无法更改开机自启：{e}"),
-                    )
+                change_autostart(&mut shell.settings, on, |on| {
+                    shell::apply_autostart(&app, on)
                 })?;
             }
-            _ => {}
-        }
-        if let Err(e) = shell.settings.apply(&change) {
-            if let SettingChange::Autostart { on } = change {
-                let _ = shell::apply_autostart(&app, !on);
-            }
-            return Err(e.into());
+            _ => shell.settings.apply(&change)?,
         }
         shell.view()
     };
@@ -59,6 +49,64 @@ pub async fn change_setting(
         _ => {}
     }
     Ok(view)
+}
+
+fn change_autostart(
+    settings: &mut AppSettings,
+    on: bool,
+    apply: impl FnOnce(bool) -> Result<(), CommandError>,
+) -> Result<(), CommandError> {
+    let previous = settings.autostart();
+    settings.set_autostart(on)?;
+    if let Err(e) = apply(on) {
+        if previous != on
+            && let Err(error) = settings.set_autostart(previous)
+        {
+            crate::run_log::warn("restore saved startup preference", error);
+        }
+        return Err(CommandError::caused_by(
+            e,
+            |cause| ErrorKind::AutostartFailed { cause },
+            |e| format!("无法更改开机自启：{e}"),
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+#[test]
+fn failed_autostart_save_does_not_touch_system_registration() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    assert!(settings.autostart());
+    std::fs::create_dir(dir.path().join("settings.json")).unwrap();
+
+    let mut called = false;
+    let result = change_autostart(&mut settings, true, |_| {
+        called = true;
+        Ok(())
+    });
+    assert!(result.is_err());
+    assert!(
+        !called,
+        "a settings write failure must not clear Windows approval"
+    );
+}
+
+#[cfg(test)]
+#[test]
+fn failed_system_autostart_change_restores_saved_preference() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut settings = AppSettings::open(dir.path()).unwrap();
+    settings.set_autostart(false).unwrap();
+
+    let result = change_autostart(&mut settings, true, |_| {
+        Err(CommandError::system("registry write failed"))
+    });
+
+    assert!(result.is_err());
+    assert!(!settings.autostart());
+    assert!(!AppSettings::open(dir.path()).unwrap().autostart());
 }
 
 /// 更换（`accelerator` 为 `null` 时清除）一个动作的全局快捷键，立即生效。

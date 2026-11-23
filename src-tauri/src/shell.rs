@@ -22,6 +22,8 @@ use crate::desktop;
 
 mod window_state;
 use window_state::Placement;
+#[cfg(windows)]
+mod windows_autostart;
 
 /// 主窗口的标签，与 `tauri.conf.json` 一致。
 pub const MAIN_WINDOW: &str = "main";
@@ -35,6 +37,8 @@ pub const AUTOSTART_ARG: &str = "--autostart";
 pub struct Shell {
     pub settings: AppSettings,
     pub shortcuts: GlobalShortcuts<TauriHotkeys>,
+    #[cfg(windows)]
+    autostart_name: String,
 }
 
 pub struct ShellState(pub Mutex<Shell>);
@@ -47,7 +51,20 @@ struct MainWindowState(Mutex<Placement>);
 
 impl Shell {
     pub fn view(&self) -> ShellSettingsView {
-        self.shortcuts.settings_view(&self.settings)
+        let view = self.shortcuts.settings_view(&self.settings);
+        #[cfg(windows)]
+        if !skip_autostart() {
+            match windows_autostart::read(&self.autostart_name) {
+                Ok(registration) => {
+                    return ShellSettingsView {
+                        autostart: registration.enabled(),
+                        ..view
+                    };
+                }
+                Err(error) => crate::run_log::warn("read Windows startup registration", error),
+            }
+        }
+        view
     }
 }
 
@@ -69,12 +86,14 @@ pub fn start(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         });
     app.manage(MainWindowState(Mutex::new(placement)));
     let shortcuts = GlobalShortcuts::start(TauriHotkeys { app: app.clone() }, &settings);
-    if let Err(e) = apply_autostart(app, settings.autostart()) {
+    if let Err(e) = sync_autostart(app, settings.autostart()) {
         crate::run_log::warn("同步开机自启失败", e);
     }
     app.manage(ShellState(Mutex::new(Shell {
         settings,
         shortcuts,
+        #[cfg(windows)]
+        autostart_name: app.package_info().name.clone(),
     })));
     Ok(())
 }
@@ -98,25 +117,63 @@ pub fn announce_interface_language(app: &AppHandle, lang: &str) {
     crate::backup::publish(app);
 }
 
-/// 让系统的开机自启与设置一致。
-///
-/// 调试构建与设置了 `KINSHOKO_SKIP_AUTOSTART` 时不写系统，免得把 `target/` 里的开发版
-/// 登记成开机启动；设置本身照常保存。
+/// Apply an explicit change from the startup switch.
 pub fn apply_autostart<R: tauri::Runtime>(
     app: &AppHandle<R>,
     on: bool,
 ) -> Result<(), CommandError> {
-    if cfg!(debug_assertions) || std::env::var_os("KINSHOKO_SKIP_AUTOSTART").is_some() {
+    update_autostart(app, on, true)
+}
+
+/// Sync a saved preference without overriding a Windows startup veto.
+pub fn sync_autostart<R: tauri::Runtime>(app: &AppHandle<R>, on: bool) -> Result<(), CommandError> {
+    update_autostart(app, on, false)
+}
+
+fn skip_autostart() -> bool {
+    cfg!(debug_assertions) || std::env::var_os("KINSHOKO_SKIP_AUTOSTART").is_some()
+}
+
+fn update_autostart<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+    on: bool,
+    explicit: bool,
+) -> Result<(), CommandError> {
+    if skip_autostart() {
         return Ok(());
     }
     let launcher = app.autolaunch();
-    let current = launcher.is_enabled().map_err(CommandError::system)?;
+    #[cfg(windows)]
+    {
+        let name = &app.package_info().name;
+        let registration = windows_autostart::read(name).map_err(CommandError::system)?;
+        registration.update(
+            on,
+            explicit,
+            |mode| windows_autostart::enable(name, mode),
+            || launcher.disable().map_err(CommandError::system),
+        )
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = explicit;
+        let current = launcher.is_enabled().map_err(CommandError::system)?;
+        apply_autostart_change(current, on, || launcher.enable(), || launcher.disable())
+            .map_err(CommandError::system)
+    }
+}
+
+fn apply_autostart_change<E>(
+    current: bool,
+    on: bool,
+    enable: impl FnOnce() -> Result<(), E>,
+    disable: impl FnOnce() -> Result<(), E>,
+) -> Result<(), E> {
     match (current, on) {
-        (false, true) => launcher.enable(),
-        (true, false) => launcher.disable(),
+        (false, true) => enable(),
+        (true, false) => disable(),
         _ => Ok(()),
     }
-    .map_err(CommandError::system)
 }
 
 /// 按本机的界面缩放档位缩放主窗口的 WebView。截图遮罩、钉图等其他窗口不缩放。
