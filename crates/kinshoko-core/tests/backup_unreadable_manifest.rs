@@ -23,7 +23,9 @@ fn a_snapshot_survives_a_backup_that_could_not_read_its_manifest(
     assert!(first.complete, "{:?}", first.problems);
     let manifest = backups
         .path()
-        .join("移动盘/kinshoko-backup/snapshots")
+        .join("移动盘")
+        .join("kinshoko-backup")
+        .join("snapshots")
         .join(&first.snapshot_id)
         .join("manifest.json");
     let saved = std::fs::read(&manifest).unwrap();
