@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, FolderOpen, FolderPlus, Library, Plus, RefreshCw, Settings2 } from "lucide-react";
@@ -38,6 +38,7 @@ export function LibraryPicker({
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
   const [managing, setManaging] = useState(false);
+  const managePopup = useRef<HTMLDivElement>(null);
   const toast = useToast();
   const disabled = busy || blocked || !ready;
 
@@ -197,7 +198,8 @@ export function LibraryPicker({
       <Dialog.Root open={managing} onOpenChange={setManaging}>
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />
-          <Dialog.Popup className="k-dialog library-manage">
+          {/* 焦点落在对话框本身：默认会落到第一行的“移除”，键盘打开时它的提示跟着弹出，第一下 Esc 只关掉提示。 */}
+          <Dialog.Popup ref={managePopup} initialFocus={managePopup} className="k-dialog library-manage">
             <Dialog.Title className="k-title">{t("manage.title")}</Dialog.Title>
             {entries.length > 0 ? (
               <ul className="k-list library-list" aria-label={t("manage.listLabel")}>
