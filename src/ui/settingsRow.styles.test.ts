@@ -23,10 +23,10 @@ const padding = (value: string) => {
 };
 
 describe("settings row horizontal layout", () => {
-  it("lets long left-hand text yield space to controls", () => {
+  it("lets long left-hand text shrink while keeping a readable label width", () => {
     const text = rule(settings, ".k-set-row-main > .k-list-text");
     expect(text.flex).toBe("1 1 auto");
-    expect(text["min-width"]).toBe("0");
+    expect(text["min-width"]).toBe("12em");
   });
 
   it("keeps right-hand controls and status at their natural width", () => {

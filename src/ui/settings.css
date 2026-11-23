@@ -169,10 +169,10 @@ section + section {
   min-height: 48px;
   padding: 8px 12px;
 }
-/* 名称与描述让给控件并换行；宽控件（如列出模型的下拉）限宽，选项文字过长时在框里换行。 */
+/* 名称与描述允许换行，不让给控件；宽控件（如列出模型的下拉）限宽，选项文字过长时在框里换行。 */
 .k-set-row-main > .k-list-text {
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: 12em;
 }
 .k-set-row-main .k-list-title {
   overflow-wrap: anywhere;
