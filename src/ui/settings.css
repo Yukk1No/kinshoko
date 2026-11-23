@@ -193,7 +193,6 @@ section + section {
   min-width: 0;
   max-width: 55%;
   flex: none;
-  white-space: nowrap;
 }
 .k-set-row-main > .k-list-end > .k-select {
   width: 240px;
