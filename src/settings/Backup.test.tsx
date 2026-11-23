@@ -9,7 +9,7 @@ import { BackupReminder, BackupSettings } from "./Backup";
 import { chooseOption } from "../test/select";
 import { fakeBackend, type Replies } from "../test/backend";
 import { cssRule } from "../ui/cssRule";
-import settingsCss from "../ui/settings.css?raw";
+import settingsCss from "./settings.css?raw";
 
 afterEach(() => {
   delete window.__KINSHOKO_TEST_PICKS__;

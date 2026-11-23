@@ -1,0 +1,22 @@
+/* 导入时的旧名迁入（LegacyNameMigrationPanel）。保存位置与封印图预览在 import.css。 */
+
+.legacy-name-migration .settings-shortcuts {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.legacy-name-migration .settings-shortcuts th,
+.legacy-name-migration .settings-shortcuts td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.legacy-name-migration .settings-shortcuts small {
+  display: block;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.legacy-name-migration {
+  min-width: 0;
+}

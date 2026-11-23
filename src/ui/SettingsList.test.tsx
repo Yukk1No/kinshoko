@@ -1,7 +1,7 @@
 import { afterEach, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { SettingsGroup, SettingsRow } from "./SettingsList";
-import settings from "./settings.css?raw";
+import settings from "../settings/settings.css?raw";
 import { flatCss } from "../test/flatCss";
 
 afterEach(cleanup);
