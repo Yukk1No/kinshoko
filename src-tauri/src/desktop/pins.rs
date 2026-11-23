@@ -40,6 +40,8 @@ pub use menu_actions::*;
 mod motion;
 pub use motion::*;
 mod native;
+#[cfg(windows)]
+pub(super) use native::shutdown;
 mod opening;
 pub use opening::*;
 

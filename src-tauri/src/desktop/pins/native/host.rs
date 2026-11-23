@@ -1,6 +1,6 @@
 //! 界面线程上的编排：建在线程局部变量里，第一次要用时建平台层与渲染线程，钉图都关掉后整个丢掉。
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::io::Write as _;
 use std::sync::Arc;
 use std::time::Instant;
@@ -15,10 +15,21 @@ use super::orchestra::Submit;
 use super::{Orchestra, RenderThread};
 use crate::desktop::{lock, state};
 
+#[cfg(test)]
+mod tests;
+
 pub(super) type Native = Orchestra<WinShell, RenderThread>;
 
 thread_local! {
     static NATIVE: RefCell<Option<Native>> = const { RefCell::new(None) };
+    static EXITING: Cell<bool> = const { Cell::new(false) };
+}
+
+pub(in crate::desktop) fn shutdown() {
+    EXITING.set(true);
+    let native = NATIVE.with(|slot| slot.borrow_mut().take());
+    drop(native);
+    super::publish(Default::default());
 }
 
 /// 逐帧核对（`tools/pin-frame-check --app`）读的提交记录：设了这个环境变量时每次提交追加一行。
@@ -60,6 +71,9 @@ fn with(
     create: bool,
     f: impl FnOnce(&mut Native) -> Result<(), String>,
 ) -> Result<(), String> {
+    if EXITING.get() {
+        return Ok(());
+    }
     NATIVE.with(|cell| {
         let Ok(mut slot) = cell.try_borrow_mut() else {
             return Err("编排被重入".to_owned());

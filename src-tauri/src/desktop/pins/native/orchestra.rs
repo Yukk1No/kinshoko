@@ -165,8 +165,9 @@ struct Screen {
 }
 
 pub struct Orchestra<S: PinShell, R: RenderPort> {
-    shell: S,
+    // 渲染层先停下并释放 Surface，平台层才可销毁目标窗口。
     render: R,
+    shell: S,
     pins: BTreeMap<PinId, Live>,
     next: u64,
     screens: Vec<Screen>,
