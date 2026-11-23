@@ -150,7 +150,7 @@ fn update_autostart<R: tauri::Runtime>(
         registration.update(
             on,
             explicit,
-            || launcher.enable().map_err(CommandError::system),
+            |mode| windows_autostart::enable(name, mode),
             || launcher.disable().map_err(CommandError::system),
         )
     }

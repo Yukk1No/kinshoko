@@ -1,11 +1,12 @@
 use std::io;
 
+use auto_launch::{AutoLaunch, WindowsEnableMode};
 use kinshoko_core::CommandError;
 use windows::core::HRESULT;
 use windows_registry::{CURRENT_USER, Key, LOCAL_MACHINE, Type};
 use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND};
 
-use super::apply_autostart_change;
+use super::{AUTOSTART_ARG, apply_autostart_change};
 
 const RUN: &str = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 const APPROVED: &str = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
@@ -15,7 +16,7 @@ pub(super) enum Registration {
     Missing,
     Enabled,
     // The approval can survive removal of its Run entry.
-    Disabled,
+    Disabled(WindowsEnableMode),
 }
 
 impl Registration {
@@ -27,26 +28,42 @@ impl Registration {
         self,
         on: bool,
         explicit: bool,
-        enable: impl FnOnce() -> Result<(), CommandError>,
+        enable: impl FnOnce(WindowsEnableMode) -> Result<(), CommandError>,
         disable: impl FnOnce() -> Result<(), CommandError>,
     ) -> Result<(), CommandError> {
-        if !explicit && matches!(self, Self::Disabled) {
-            return Ok(());
-        }
-        apply_autostart_change(self.enabled(), on, enable, disable)
+        let mode = match self {
+            Self::Disabled(_) if !explicit => return Ok(()),
+            Self::Disabled(mode) => mode,
+            _ => WindowsEnableMode::Dynamic,
+        };
+        apply_autostart_change(self.enabled(), on, || enable(mode), disable)
     }
 }
 
 pub(super) fn read(name: &str) -> io::Result<Registration> {
-    read_scopes(name, [CURRENT_USER, LOCAL_MACHINE])
+    read_scopes(
+        name,
+        [
+            (CURRENT_USER, WindowsEnableMode::CurrentUser),
+            (LOCAL_MACHINE, WindowsEnableMode::Dynamic),
+        ],
+    )
+}
+
+pub(super) fn enable(name: &str, mode: WindowsEnableMode) -> Result<(), CommandError> {
+    let exe = std::env::current_exe().map_err(CommandError::system)?;
+    let path = format!("\"{}\"", exe.display());
+    AutoLaunch::new(name, &path, mode, &[AUTOSTART_ARG])
+        .enable()
+        .map_err(CommandError::system)
 }
 
 fn read_scopes<'a>(
     name: &str,
-    scopes: impl IntoIterator<Item = &'a Key>,
+    scopes: impl IntoIterator<Item = (&'a Key, WindowsEnableMode)>,
 ) -> io::Result<Registration> {
-    let mut has_veto = false;
-    for root in scopes {
+    let mut veto_mode = None;
+    for (root, mode) in scopes {
         let registered = optional(root.open(RUN).and_then(|key| key.get_string(name)))?.is_some();
         let disabled = optional(root.open(APPROVED).and_then(|key| key.get_value(name)))?
             .is_some_and(|value| {
@@ -57,13 +74,11 @@ fn read_scopes<'a>(
         if registered && !disabled {
             return Ok(Registration::Enabled);
         }
-        has_veto |= disabled;
+        if disabled {
+            veto_mode.get_or_insert(mode);
+        }
     }
-    Ok(if has_veto {
-        Registration::Disabled
-    } else {
-        Registration::Missing
-    })
+    Ok(veto_mode.map_or(Registration::Missing, Registration::Disabled))
 }
 
 fn optional<T>(result: windows_registry::Result<T>) -> io::Result<Option<T>> {
@@ -82,6 +97,7 @@ fn optional<T>(result: windows_registry::Result<T>) -> io::Result<Option<T>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use WindowsEnableMode::{CurrentUser, Dynamic};
 
     const NAME: &str = "Kinshoko";
     const ENABLED: [u8; 12] = [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -118,13 +134,13 @@ mod tests {
         run.set_string(NAME, command).unwrap();
         approved.set_bytes(NAME, Type::Bytes, &DISABLED).unwrap();
 
-        let registration = read_scopes(NAME, [&root]).unwrap();
+        let registration = read_scopes(NAME, [(&root, Dynamic)]).unwrap();
         assert!(!registration.enabled());
         registration
             .update(
                 true,
                 false,
-                || panic!("launch tried to enable a Windows-disabled entry"),
+                |_| panic!("launch tried to enable a Windows-disabled entry"),
                 || panic!("launch tried to remove a Windows-disabled entry"),
             )
             .unwrap();
@@ -132,12 +148,13 @@ mod tests {
         assert_eq!(run.get_string(NAME).unwrap(), command);
 
         let moved_command = r#""D:\New Location\Kinshoko.exe" --autostart"#;
-        read_scopes(NAME, [&root])
+        read_scopes(NAME, [(&root, Dynamic)])
             .unwrap()
             .update(
                 true,
                 true,
-                || {
+                |mode| {
+                    assert_eq!(mode, Dynamic);
                     run.set_string(NAME, moved_command).unwrap();
                     approved.set_bytes(NAME, Type::Bytes, &ENABLED).unwrap();
                     Ok(())
@@ -147,7 +164,7 @@ mod tests {
             .unwrap();
         assert_eq!(&*approved.get_value(NAME).unwrap(), &ENABLED);
         assert_eq!(run.get_string(NAME).unwrap(), moved_command);
-        assert!(read_scopes(NAME, [&root]).unwrap().enabled());
+        assert!(read_scopes(NAME, [(&root, Dynamic)]).unwrap().enabled());
     }
 
     #[test]
@@ -167,12 +184,14 @@ mod tests {
             .set_bytes(NAME, Type::Bytes, &DISABLED)
             .unwrap();
 
-        read_scopes(NAME, [&user, &machine])
+        let scopes = [(&user, CurrentUser), (&machine, Dynamic)];
+        read_scopes(NAME, scopes)
             .unwrap()
             .update(
                 true,
                 true,
-                || {
+                |mode| {
+                    assert_eq!(mode, Dynamic);
                     user.create(RUN).unwrap().set_string(NAME, command).unwrap();
                     Ok(())
                 },
@@ -180,9 +199,44 @@ mod tests {
             )
             .unwrap();
 
-        assert!(read_scopes(NAME, [&user, &machine]).unwrap().enabled());
+        assert!(read_scopes(NAME, scopes).unwrap().enabled());
         assert_eq!(&*machine_approved.get_value(NAME).unwrap(), &DISABLED);
         assert_eq!(user.open(RUN).unwrap().get_string(NAME).unwrap(), command);
+    }
+
+    #[test]
+    fn explicit_enable_keeps_a_per_user_veto_in_the_user_hive() {
+        let user_hive = TestHive::new();
+        let machine_hive = TestHive::new();
+        let user = user_hive.key();
+        let machine = machine_hive.key();
+        let command = r#""C:\Test\Kinshoko.exe" --autostart"#;
+        user.create(RUN).unwrap().set_string(NAME, command).unwrap();
+        let user_approved = user.create(APPROVED).unwrap();
+        user_approved
+            .set_bytes(NAME, Type::Bytes, &DISABLED)
+            .unwrap();
+
+        let scopes = [(&user, CurrentUser), (&machine, Dynamic)];
+        read_scopes(NAME, scopes)
+            .unwrap()
+            .update(
+                true,
+                true,
+                |mode| {
+                    assert_eq!(mode, CurrentUser);
+                    user_approved
+                        .set_bytes(NAME, Type::Bytes, &ENABLED)
+                        .unwrap();
+                    Ok(())
+                },
+                || panic!("an explicit enable should not remove the entry"),
+            )
+            .unwrap();
+
+        assert!(optional(machine.open(RUN)).unwrap().is_none());
+        assert_eq!(&*user_approved.get_value(NAME).unwrap(), &ENABLED);
+        assert!(read_scopes(NAME, scopes).unwrap().enabled());
     }
 
     #[test]
@@ -190,12 +244,13 @@ mod tests {
         let hive = TestHive::new();
         let root = hive.key();
         let enabled = std::cell::Cell::new(false);
-        read_scopes(NAME, [&root])
+        read_scopes(NAME, [(&root, Dynamic)])
             .unwrap()
             .update(
                 true,
                 false,
-                || {
+                |mode| {
+                    assert_eq!(mode, Dynamic);
                     enabled.set(true);
                     Ok(())
                 },
@@ -206,13 +261,13 @@ mod tests {
 
         let approved = root.create(APPROVED).unwrap();
         approved.set_bytes(NAME, Type::Bytes, &DISABLED).unwrap();
-        let registration = read_scopes(NAME, [&root]).unwrap();
+        let registration = read_scopes(NAME, [(&root, Dynamic)]).unwrap();
         assert!(!registration.enabled());
         registration
             .update(
                 true,
                 false,
-                || panic!("passive sync should preserve the veto"),
+                |_| panic!("passive sync should preserve the veto"),
                 || panic!("nothing to remove"),
             )
             .unwrap();
