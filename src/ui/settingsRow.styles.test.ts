@@ -21,6 +21,21 @@ const padding = (value: string) => {
   return [top, bottom];
 };
 
+describe("settings row horizontal layout", () => {
+  it("lets long left-hand text yield space to controls", () => {
+    const text = rule(settings, ".k-set-row-main > .k-list-text");
+    expect(text.flex).toBe("1 1 auto");
+    expect(text["min-width"]).toBe("0");
+  });
+
+  it("keeps right-hand controls and status at their natural width without wrapping", () => {
+    const end = rule(settings, ".k-set-row-main > .k-list-end");
+    expect(end.flex).toBe("none");
+    expect(end["white-space"]).toBe("nowrap");
+    expect(end["max-width"]).toBe("55%");
+  });
+});
+
 // jsdom 不排版，按样式表里的数字算设置行的高度（单位 px）。
 // 设计系统 v2：每行只有图标、名称、控件，没有描述行；补充说明在悬停提示里，状态是控件左边的小字。
 describe("设置行垂直居中（#218，设计系统 v2）", () => {
