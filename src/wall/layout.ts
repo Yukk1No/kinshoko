@@ -190,7 +190,7 @@ export function zoomScrollTop(layout: Layout, index: number, pointerY: number, v
 export type Direction = "up" | "down" | "left" | "right";
 
 /**
- * 方向键要移到的图：上下取横向与它重叠、挨着的那张，左右取旁边一列里跨过当前图中线的那张（没有时取最近的）。
+ * 方向键要移到的图：上下取横向与它重叠、跨过当前图竖中线里挨着的那张，左右取旁边一列里跨过当前图横中线的那张（都没有时取最近的）。
  * 这一边没有图时为 `from`。
  */
 export function neighbour(layout: Layout, from: number, dir: Direction): number {
@@ -207,9 +207,9 @@ export function neighbour(layout: Layout, from: number, dir: Direction): number 
     const dy = b.y + b.h / 2 - ay;
     const ahead = dir === "up" ? dy < -1 : dir === "down" ? dy > 1 : dir === "left" ? dx < -1 : dx > 1;
     if (!ahead || (vertical && (b.x >= a.x + a.w || a.x >= b.x + b.w))) return;
-    const spans = b.y <= ay && ay <= b.y + b.h;
+    const spans = vertical ? b.x <= ax && ax <= b.x + b.w : b.y <= ay && ay <= b.y + b.h;
     const gap = dir === "down" ? b.y - (a.y + a.h) : a.y - (b.y + b.h);
-    const score = vertical ? gap + Math.abs(dx) / 1e3 : Math.abs(dx) + (spans ? 0 : 1e4 + Math.abs(dy));
+    const score = vertical ? gap + (spans ? 0 : 1e4 + Math.abs(dx)) : Math.abs(dx) + (spans ? 0 : 1e4 + Math.abs(dy));
     if (score < bestScore) {
       bestScore = score;
       best = i;

@@ -256,6 +256,15 @@ describe("方向键的相邻图", () => {
     expect(neighbour(layout, 0, "down")).toBe(1);
     expect(neighbour(layout, 2, "up")).toBe(1);
   });
+  it("从托盘页往上回到它主要所在的那一列，不跳到只擦边的隔壁列", () => {
+    const layout = at([
+      { x: 0, y: 0, w: 100, h: 200 },
+      { x: 108, y: 0, w: 100, h: 260 },
+      { x: 0, y: 300, w: 120, h: 100 },
+    ]);
+    expect(neighbour(layout, 0, "down")).toBe(2);
+    expect(neighbour(layout, 2, "up")).toBe(0);
+  });
   it("隔壁列不算上下", () => {
     const layout = at([
       { x: 0, y: 0, w: 100, h: 100 },
