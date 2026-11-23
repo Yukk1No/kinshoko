@@ -80,12 +80,17 @@ pub(super) fn complete_snapshots(root: &Path) -> std::io::Result<CompleteSnapsho
     };
     for entry in fs::read_dir(root.join(SNAPSHOTS))? {
         let entry = entry?;
-        // 跟着目录链接走：恢复认链接过去的快照，这里也得读它的清单。
-        if !entry.path().is_dir() || entry.file_name().to_string_lossy().ends_with(INCOMPLETE) {
+        if entry.file_name().to_string_lossy().ends_with(INCOMPLETE) {
             continue;
         }
-        match read_manifest(&entry.path()) {
-            Ok(m) => snapshots.readable.push((entry.path(), m)),
+        // 跟着目录链接走：恢复认链接过去的快照，这里也得读它的清单。
+        match fs::metadata(entry.path()) {
+            Ok(meta) if !meta.is_dir() => continue,
+            Ok(_) => match read_manifest(&entry.path()) {
+                Ok(m) => snapshots.readable.push((entry.path(), m)),
+                Err(_) => snapshots.unreadable.push(entry.path()),
+            },
+            // 看不清是不是快照目录（比如链接指向的盘不在）：确认不了它引用哪些原文件。
             Err(_) => snapshots.unreadable.push(entry.path()),
         }
     }

@@ -111,6 +111,31 @@ fn a_linked_snapshot_keeps_the_originals_only_it_references() {
     );
 }
 
+#[test]
+fn a_snapshot_linked_to_a_missing_folder_keeps_the_originals_only_it_references() {
+    // 链接还在、链接过去的文件夹暂时不在：看不清这份快照，也就确认不了它引用哪些原文件。
+    a_snapshot_survives_a_backup_that_could_not_read_its_manifest(
+        |manifest| {
+            let snapshot = manifest.parent().unwrap();
+            let elsewhere = snapshot.parent().unwrap().parent().unwrap().join("别处");
+            std::fs::rename(snapshot, &elsewhere).unwrap();
+            link_dir(&elsewhere, snapshot);
+            std::fs::rename(&elsewhere, elsewhere.with_file_name("别处-拔掉")).unwrap();
+        },
+        |manifest| {
+            let elsewhere = manifest
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("别处");
+            std::fs::rename(elsewhere.with_file_name("别处-拔掉"), &elsewhere).unwrap();
+        },
+    );
+}
+
 fn link_dir(target: &Path, link: &Path) {
     #[cfg(windows)]
     {
