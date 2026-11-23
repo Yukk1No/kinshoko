@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FailedTagging } from "../bindings/FailedTagging";
 import type { TaggingStatus } from "../bindings/TaggingStatus";
+import { useTaggingMemory } from "./useTaggingStatus";
 
 /** 估算用的最近几张。 */
 const SAMPLES = 8;
@@ -11,13 +12,14 @@ const MIN_SAMPLES = 3;
 export type TaggingProgress = { remaining: number | null; eta: number | null };
 
 /**
- * 按最近几张的用时估算还要多久（#475）。打完几张之前没有估算；暂停时留着暂停前的张数与估算，
- * 暂停的时间不算进用时；打完或停住时清掉。
+ * 剩余张数来自共享打标记忆。按最近几张的用时估算还要多久（#475）：打完几张之前没有估算；
+ * 暂停时留着估算，暂停的时间不算进用时；打完或停住时清掉估算。
  */
 export function useTaggingProgress(status: TaggingStatus | null): TaggingProgress {
+  const { remaining } = useTaggingMemory();
   const samples = useRef<number[]>([]);
   const last = useRef<{ done: number; at: number } | null>(null);
-  const [progress, setProgress] = useState<TaggingProgress>({ remaining: null, eta: null });
+  const [eta, setEta] = useState<number | null>(null);
   useEffect(() => {
     if (!status) return;
     if (status.state === "paused" || status.state === "yieldedToFullScreen") {
@@ -27,7 +29,7 @@ export function useTaggingProgress(status: TaggingStatus | null): TaggingProgres
     if (status.state !== "running") {
       samples.current = [];
       last.current = null;
-      setProgress({ remaining: null, eta: null });
+      setEta(null);
       return;
     }
     const now = performance.now();
@@ -38,11 +40,11 @@ export function useTaggingProgress(status: TaggingStatus | null): TaggingProgres
     }
     last.current = { done: status.done, at: now };
     const known = samples.current;
-    const eta =
+    const estimate =
       known.length >= MIN_SAMPLES ? (known.reduce((a, b) => a + b, 0) / known.length) * status.remaining : null;
-    setProgress({ remaining: status.remaining, eta });
+    setEta(estimate);
   }, [status]);
-  return progress;
+  return { remaining, eta };
 }
 
 const IGNORED_KEY = "kinshoko.tagging.ignoredUnfinished";
