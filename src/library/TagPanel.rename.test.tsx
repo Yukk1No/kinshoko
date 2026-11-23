@@ -86,7 +86,7 @@ it("和另一个标签的显示名相同时提示两者仍是不同的标签，�
   fireEvent.click(await screen.findByRole("button", { name: "重命名“ahoge”" }));
   const dialog = await screen.findByRole("dialog", { name: "重命名“ahoge”" });
   fireEvent.change(within(dialog).getByRole("textbox", { name: "显示名" }), { target: { value: "阿呆毛" } });
-  await within(dialog).findByText("与标签“阿呆毛”的名称或别名相同，仍会分别保留");
+  await within(dialog).findByText("标签“阿呆毛”已用这个名字，两者仍是不同的标签");
   fireEvent.click(within(dialog).getByRole("button", { name: "保存显示名" }));
   await waitFor(() => expect(state.edits).toHaveLength(1));
   expect((state.edits[0] as { catalogId: string }).catalogId).toBe("c-ahoge");
