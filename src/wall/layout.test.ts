@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { captureAnchor, cardAt, masonry, resolveAnchor, visible, zoomScrollTop } from "./layout";
+import {
+  type Box,
+  captureAnchor,
+  cardAt,
+  type Layout,
+  masonry,
+  neighbour,
+  resolveAnchor,
+  visible,
+  zoomScrollTop,
+} from "./layout";
 
 // 瀑布流布局沿用 #13 样稿的纯函数（#9 Q27）：尺寸取自资料库记录，不从 DOM 测量。
 describe("瀑布流布局", () => {
@@ -224,5 +234,25 @@ describe("一摞与托盘", () => {
 
   it("没有打开的托盘时没有托盘盒子", () => {
     expect(masonry([{ w: 1, h: 1 }], opts).tray).toBeNull();
+  });
+});
+
+describe("方向键的相邻图", () => {
+  const at = (boxes: Box[]): Layout => ({ columns: 0, columnWidth: 0, height: 0, boxes, lanes: [], tray: null });
+  it("窄的托盘页往下：中心错开但横向重叠的那张也算正下方", () => {
+    const layout = at([
+      { x: 0, y: 0, w: 80, h: 100 },
+      { x: 0, y: 120, w: 240, h: 100 },
+    ]);
+    expect(neighbour(layout, 0, "down")).toBe(1);
+    expect(neighbour(layout, 1, "up")).toBe(0);
+  });
+  it("隔壁列不算上下", () => {
+    const layout = at([
+      { x: 0, y: 0, w: 100, h: 100 },
+      { x: 108, y: 120, w: 100, h: 100 },
+    ]);
+    expect(neighbour(layout, 0, "down")).toBe(0);
+    expect(neighbour(layout, 0, "right")).toBe(1);
   });
 });
