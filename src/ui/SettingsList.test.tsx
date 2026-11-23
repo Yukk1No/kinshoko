@@ -1,10 +1,45 @@
 import { afterEach, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { SettingsGroup, SettingsRow } from "./SettingsList";
 import settings from "./settings.css?raw";
 import { flatCss } from "../test/flatCss";
 
 afterEach(cleanup);
+
+it("truncated metadata keeps its full text available on focus", async () => {
+  render(
+    <ul>
+      <SettingsRow title="Backup" meta={"C:\\Pictures\\Backups"} truncateMeta />
+    </ul>,
+  );
+  const meta = screen.getByText("C:\\Pictures\\Backups");
+  expect(meta.classList.contains("is-truncated")).toBe(true);
+  expect(meta.tabIndex).toBe(0);
+  fireEvent.focus(meta);
+  expect((await screen.findByText("C:\\Pictures\\Backups", { selector: ".k-tip" })).textContent).toBe(
+    "C:\\Pictures\\Backups",
+  );
+});
+
+it("does not add a truncated metadata trigger for absent metadata", () => {
+  const { container } = render(
+    <ul>
+      <SettingsRow title="Backup" truncateMeta />
+    </ul>,
+  );
+  expect(container.querySelector(".is-truncated")).toBeNull();
+});
+
+it("leaves ordinary metadata outside the truncation variant", () => {
+  render(
+    <ul>
+      <SettingsRow title="Backup" meta="Never" />
+    </ul>,
+  );
+  const meta = screen.getByText("Never");
+  expect(meta.classList.contains("is-truncated")).toBe(false);
+  expect(meta.hasAttribute("tabindex")).toBe(false);
+});
 
 // 补充说明不只在鼠标悬停时可见：读屏软件经 aria-describedby 读到，键盘聚焦到控件时显示在名称下方。
 it("行的补充说明挂到这一行的控件上", () => {

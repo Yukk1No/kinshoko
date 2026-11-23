@@ -31,14 +31,29 @@ describe("settings row horizontal layout", () => {
 
   it("keeps right-hand controls and status at their natural width", () => {
     const end = rule(settings, ".k-set-row-main > .k-list-end");
-    expect(end.flex).toBe("none");
+    expect(end.flex).toBe("0 1 auto");
+    expect(end["min-width"]).toBeUndefined();
     expect(end["max-width"]).toBe("55%");
+    expect(rule(settings, ".k-set-row-main > .k-list-end > .k-list-meta")["white-space"]).toBe("nowrap");
+    expect(rule(settings, ".k-set-row-main > .k-list-end > .k-btn").flex).toBe("none");
+  });
+
+  it("lets truncated metadata yield space while preserving its adjacent control", () => {
+    const meta = rule(settings, ".k-set-row-main > .k-list-end > .k-list-meta.is-truncated");
+    expect(meta.width).toBe("0");
+    expect(meta["min-width"]).toBe("0");
+    expect(meta.flex).toBe("1 1 auto");
+    expect(meta.overflow).toBe("hidden");
+    expect(meta["text-overflow"]).toBe("ellipsis");
   });
 
   it("allows wide controls and long status text to wrap within the right-hand width limit", () => {
     const end = rule(settings, ".k-set-row-main > .k-list-end");
     const select = rule(settings, ".k-set-row-main > .k-list-end > .k-select");
     expect(end["white-space"]).toBeUndefined();
+    expect(rule(settings, ".k-set-row-main > .k-list-end:has(> .k-select) > .k-list-meta")["white-space"]).toBe(
+      "normal",
+    );
     expect(select.width).toBe("240px");
     expect(select["max-width"]).toBe("100%");
     expect(select["min-width"]).toBe("0");

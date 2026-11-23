@@ -14,6 +14,7 @@ export function SettingsRow({
   title,
   hint,
   meta,
+  truncateMeta = false,
   warn,
   children,
   label,
@@ -24,6 +25,7 @@ export function SettingsRow({
   title: ReactNode;
   hint?: string;
   meta?: ReactNode;
+  truncateMeta?: boolean;
   warn?: ReactNode;
   children?: ReactNode;
   label?: string;
@@ -89,7 +91,16 @@ export function SettingsRow({
           </div>
           {(meta !== undefined || children !== undefined) && (
             <div className="k-list-end">
-              {meta !== undefined && <span className="k-list-meta">{meta}</span>}
+              {meta !== undefined &&
+                (truncateMeta ? (
+                  <Tip label={meta}>
+                    <span className="k-list-meta is-truncated" tabIndex={0}>
+                      {meta}
+                    </span>
+                  </Tip>
+                ) : (
+                  <span className="k-list-meta">{meta}</span>
+                ))}
               {children}
             </div>
           )}
