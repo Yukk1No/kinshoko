@@ -59,6 +59,87 @@ const narrowed: BackupPreview = {
 const backend = (replies: Replies) => fakeBackend({ registered_libraries: registrations, ...replies });
 
 describe("设置：备份", () => {
+  it.each([false, true])(
+    "coalesces rapid selections before starting a manual backup (start requested: %s)",
+    async (startRequested) => {
+      const initial: BackupStatus = {
+        ...withTarget,
+        plan: { ...withTarget.plan, selection: { kind: "libraries", ids: [], includeLinked: true } },
+      };
+      const saves: Array<() => void> = [];
+      const fake = backend({
+        backup_status: initial,
+        backup_preview: narrowed,
+        start_backup: null,
+        set_backup_selection: (args) =>
+          new Promise<BackupStatus>((resolve) => {
+            saves.push(() =>
+              resolve({
+                ...initial,
+                plan: { ...initial.plan, selection: args.selection as BackupStatus["plan"]["selection"] },
+              }),
+            );
+          }),
+      });
+      render(<BackupSettings />);
+      const a = await screen.findByRole<HTMLInputElement>("checkbox", { name: "主库" });
+      const b = screen.getByRole<HTMLInputElement>("checkbox", { name: "旧库" });
+      fireEvent.click(a);
+      await waitFor(() => expect(saves).toHaveLength(1));
+      fireEvent.click(b);
+      expect(a.checked).toBe(true);
+      expect(b.checked).toBe(true);
+      if (startRequested) fireEvent.click(screen.getByRole("button", { name: "备份" }));
+      await act(() => emit("backup-status", initial));
+      expect(saves).toHaveLength(1);
+      expect(fake.calls("start_backup")).toHaveLength(0);
+      expect(a.checked).toBe(true);
+      expect(b.checked).toBe(true);
+      await act(async () => saves[0]());
+      await waitFor(() => expect(saves).toHaveLength(2));
+      expect(fake.calls("start_backup")).toHaveLength(0);
+      expect(a.checked).toBe(true);
+      expect(b.checked).toBe(true);
+      await act(async () => saves[1]());
+      if (startRequested) await waitFor(() => expect(fake.calls("start_backup")).toHaveLength(1));
+      expect(fake.calls("set_backup_selection").at(-1)?.args).toEqual({
+        selection: { kind: "libraries", ids: ["A", "B"], includeLinked: true },
+      });
+      expect(a.checked).toBe(true);
+      expect(b.checked).toBe(true);
+    },
+  );
+
+  it("rolls back a failed selection save and allows retrying an empty selection", async () => {
+    const initial: BackupStatus = {
+      ...withTarget,
+      plan: { ...withTarget.plan, selection: { kind: "libraries", ids: [], includeLinked: true } },
+    };
+    const fake = backend({
+      backup_status: initial,
+      backup_preview: narrowed,
+      set_backup_selection: () => {
+        throw new Error("save unavailable");
+      },
+    });
+    render(<BackupSettings />);
+    const a = await screen.findByRole<HTMLInputElement>("checkbox", { name: "主库" });
+    fireEvent.click(a);
+    await screen.findByRole("alert");
+    expect(a.checked).toBe(false);
+    fake.on("set_backup_selection", (args) => ({ ...initial, plan: { ...initial.plan, selection: args.selection } }));
+    fireEvent.click(a);
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(a.checked).toBe(true);
+    fireEvent.click(a);
+    await waitFor(() =>
+      expect(fake.calls("set_backup_selection").at(-1)?.args).toEqual({
+        selection: { kind: "libraries", ids: [], includeLinked: true },
+      }),
+    );
+    expect(a.checked).toBe(false);
+  });
+
   it("备份结束后重新估计容量，进度事件不重复估计", async () => {
     const fake = backend({ backup_status: withTarget, backup_preview: narrowed });
     render(<BackupSettings />);
