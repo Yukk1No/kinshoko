@@ -186,3 +186,33 @@ export function zoomScrollTop(layout: Layout, index: number, pointerY: number, v
   const b = layout.boxes[index];
   return Math.max(0, Math.min(b.y + b.h / 2 - pointerY, layout.height - viewport));
 }
+
+export type Direction = "up" | "down" | "left" | "right";
+
+/**
+ * 方向键要移到的图：上下取同一列里挨着的那张，左右取旁边一列里跨过当前图中线的那张（没有时取最近的）。
+ * 这一边没有图时为 `from`。
+ */
+export function neighbour(layout: Layout, from: number, dir: Direction): number {
+  const a = layout.boxes[from];
+  if (!a) return from;
+  const ax = a.x + a.w / 2;
+  const ay = a.y + a.h / 2;
+  const vertical = dir === "up" || dir === "down";
+  let best = from;
+  let bestScore = Infinity;
+  layout.boxes.forEach((b, i) => {
+    if (i === from) return;
+    const dx = b.x + b.w / 2 - ax;
+    const dy = b.y + b.h / 2 - ay;
+    const ahead = dir === "up" ? dy < -1 : dir === "down" ? dy > 1 : dir === "left" ? dx < -1 : dx > 1;
+    if (!ahead || (vertical && Math.abs(dx) >= a.w * 0.6)) return;
+    const spans = b.y <= ay && ay <= b.y + b.h;
+    const score = vertical ? Math.abs(dy) + Math.abs(dx) * 4 : Math.abs(dx) + (spans ? 0 : 1e4 + Math.abs(dy));
+    if (score < bestScore) {
+      bestScore = score;
+      best = i;
+    }
+  });
+  return best;
+}

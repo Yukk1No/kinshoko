@@ -35,7 +35,7 @@ import { useReleaseLanding, useSealRelease } from "./useSealRelease";
 import { useMeasureBeforeReflow, useReflowAfterLayout, useReflowState, useWidthSync } from "./useReflow";
 import { usePrefetchThumbnails } from "./usePrefetchThumbnails";
 import { thumbnailTier } from "./thumbnailTier";
-import { useReturnFocus, useViewerLeave } from "./useViewerReturn";
+import { useRevealCard, useReturnFocus, useViewerLeave } from "./useViewerReturn";
 import { useWallCaptureSources } from "./useWallCaptureSources";
 import { useWallZoom, type ZoomState } from "./useWallZoom";
 import { useMountedCards } from "./useMountedCards";
@@ -382,6 +382,7 @@ export function Wall({
   });
 
   useReturnFocus({ returnTo, scroller, position, layout, syncMount });
+  const reveal = useRevealCard({ returnTo, scroller, position, layout, syncMount, margin: GAP / uiScale });
 
   /** 上次渲染的卡片元素，按 id；布局、选择、遮蔽都没变的卡片原样沿用。 */
   const renderedCards = useRef<RenderedCards>(new Map());
@@ -428,6 +429,8 @@ export function Wall({
       workspaceScope,
       trayIds,
       closeTray,
+      layout,
+      reveal,
     });
   selectAllRef.current = () => onSelectionChange(new Set(ids));
 
