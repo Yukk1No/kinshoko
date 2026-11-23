@@ -220,6 +220,8 @@ impl From<StoreError> for ErrorKind {
                 detail: e.to_string(),
             },
             StoreError::UnknownSubscription => ErrorKind::SubscriptionUnknown,
+            StoreError::AlreadyReceived => ErrorKind::SubscriptionWorkTaken,
+            StoreError::MovedElsewhere => ErrorKind::SubscriptionRecordsChanged,
         }
     }
 }

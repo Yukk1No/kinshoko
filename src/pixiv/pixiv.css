@@ -579,6 +579,22 @@
   margin-inline-start: auto;
 }
 
+/* 改了收进的库以后还留在旧库、能移过来的图。 */
+.pw-artist-old {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pw-artist-old > .k-description {
+  display: flex;
+  flex: 1;
+  gap: 0.25em;
+  min-width: 0;
+  white-space: nowrap;
+}
+
 /* 搜索时名字对得上的已取消订阅的画师，列在卡片下面。 */
 /* 筛选后一位都没有：说一句，给一个回到全部画师的按钮。 */
 .pw-filter-empty {

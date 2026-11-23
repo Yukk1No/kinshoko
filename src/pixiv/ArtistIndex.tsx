@@ -434,6 +434,9 @@ function ArtistCard({
   };
   const open = (event: React.MouseEvent) => (selecting && !gone ? onPick(event.shiftKey) : onOpen());
   const writing = !!subs?.pending(subscription.id) || !!feedback?.followPending(a.userId);
+  const oldHere = subs?.old.get(subscription.id);
+  const oldCount = oldHere?.reduce((sum, o) => sum + o.movable, 0) ?? 0;
+  const oldLibrary = oldHere && libraries.options.find((o) => o.value === oldHere[0].libraryId)?.label;
 
   return (
     <li className={`pw-artist-cell${picked ? " is-picked" : ""}${gone ? " is-gone" : ""}`}>
@@ -472,6 +475,29 @@ function ArtistCard({
           {gone ? t("browse.unsubscribedShort") : lastNewText(t, preview, subscription.createdAt)}
         </span>
       </div>
+      {!gone && oldHere && (
+        <div className="pw-artist-old">
+          <span className="k-description">
+            {oldHere.length === 1 && oldLibrary ? (
+              <>
+                <span>{t("browse.oldImagesIn", { count: oldCount })}</span>
+                <span className="k-name">{oldLibrary}</span>
+              </>
+            ) : (
+              t("browse.oldImagesElsewhere", { count: oldCount })
+            )}
+          </span>
+          <button
+            type="button"
+            className="k-btn is-sm is-quiet"
+            disabled={writing || !library}
+            aria-label={t("browse.moveHereOf", { name: a.name, count: oldCount, library: library ?? "" })}
+            onClick={() => void subs?.moveOld([subscription])}
+          >
+            {t("browse.moveHere")}
+          </button>
+        </div>
+      )}
       <div className="pw-artist-foot">
         {gone ? (
           <ResubscribeButton subscription={subscription} />

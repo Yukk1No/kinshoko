@@ -29,6 +29,7 @@ use crate::sync::lock;
 mod badge;
 pub mod browse;
 pub mod login;
+pub mod relocate;
 pub mod roster;
 
 pub use badge::badge;

@@ -112,6 +112,16 @@ pub(super) fn edit(
     ids: &[String],
     edits: &[ImageEdit],
 ) -> Result<Vec<ImageDetail>, Error> {
+    edit_in(inner, ids, edits, false)
+}
+
+/// 同 [`edit`]；`unscoped` 时不经浏览视角，安全模式下被封印的图也能改（订阅移图用，#461）。
+pub(super) fn edit_in(
+    inner: &Inner,
+    ids: &[String],
+    edits: &[ImageEdit],
+    unscoped: bool,
+) -> Result<Vec<ImageDetail>, Error> {
     let mut ids = ids.to_vec();
     let mut seen = std::collections::HashSet::new();
     ids.retain(|id| seen.insert(id.clone()));
@@ -124,7 +134,11 @@ pub(super) fn edit(
     let changed = ids.clone();
     // 视角只读一次：过滤条件与判断跨过用的范围一致。
     let mode = inner.safe();
-    let lens = lens::lens_filter(mode);
+    let lens = if unscoped {
+        "1".to_owned()
+    } else {
+        lens::lens_filter(mode)
+    };
     let (details, revision, resealed) = inner.write(move |tx| {
         for id in &ids {
             lens::require_visible(tx, &lens, id)?;

@@ -175,8 +175,8 @@ pub async fn subscription_set_options(
         .map_err(CommandError::system)
 }
 
-/// 把几条订阅以后收进的资料库改成 `library_id`（一起改或都不改）。已收的图留在原来的库，
-/// 改之前收过的作品不会再收进新库。
+/// 把几条订阅以后收进的资料库改成 `library_id`（一起改或都不改）。已收的图这里不动（界面接着调
+/// `subscription_move_old` 把能移的移过去），改之前收过的作品不会再收进新库。
 #[tauri::command]
 pub async fn subscription_set_library(
     app: AppHandle,
