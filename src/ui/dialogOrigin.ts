@@ -18,6 +18,7 @@ const CONTROL =
   'button, a[href], [role="button"], [role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], [role="tab"], [role="option"]';
 const POPUP = ".k-dialog";
 const MENU = '[role="menu"]';
+const GHOST = "is-k-ghost";
 
 type Point = { x: number; y: number };
 type Source = { el: Element; point: Point; at: number; inMenu: boolean };
@@ -45,11 +46,51 @@ function aim(popup: HTMLElement, at: Point) {
   popup.style.transformOrigin = `${at.x - corner.x}px ${at.y - corner.y}px`;
 }
 
+/** 时长与曲线取 tokens.css 的令牌；系统减弱动效时时长为 0。 */
+function motion(el: HTMLElement) {
+  // 令牌在 :root 上；已卸下的弹窗读不到计算样式，所以从所在文档的根元素读。
+  const style = getComputedStyle(el.ownerDocument.documentElement);
+  const ms = (name: string) => Number.parseFloat(style.getPropertyValue(name)) || 0;
+  const curve = (name: string) => style.getPropertyValue(name).trim() || "ease";
+  return {
+    slow: ms("--t-slow"),
+    fast: ms("--t-fast"),
+    base: ms("--t"),
+    spring: curve("--spring"),
+    ease: curve("--ease"),
+  };
+}
+
+/** 与 ui-dock.css 里 `[data-k-from="trigger"]` 的过渡相同的缩放与淡入淡出。 */
+function grow(el: HTMLElement, way: "in" | "out"): Promise<unknown> {
+  const m = motion(el);
+  // jsdom 没有 Web Animations；WebView2 有。
+  if (!m.slow || typeof el.animate !== "function") return Promise.resolve();
+  const small = { transform: "scale(0.2)", opacity: 0 };
+  const full = { transform: "scale(1)", opacity: 1 };
+  const [from, to] = way === "in" ? [small, full] : [full, small];
+  const scale = el.animate([{ transform: from.transform }, { transform: to.transform }], {
+    duration: m.slow,
+    easing: way === "in" ? m.spring : m.ease,
+    // 放大只补起始帧，之后交还给 CSS（关上时的过渡要接得上）；缩小的副本停在终态，随后拿掉。
+    fill: way === "in" ? "backwards" : "forwards",
+  });
+  const fade = el.animate([{ opacity: from.opacity }, { opacity: to.opacity }], {
+    duration: way === "in" ? m.fast : m.slow,
+    easing: m.ease,
+    fill: way === "in" ? "backwards" : "forwards",
+  });
+  // 忽略失败：动画被取消（副本已拿掉、窗口关闭）时没有要做的事。
+  return Promise.all([scale.finished, fade.finished]).catch(() => undefined);
+}
+
 export function installDialogOrigin(win: Window = window): () => void {
   const doc = win.document;
   let pending: Source | null = null;
   let lastFocus: Element | null = null;
   const sources = new WeakMap<HTMLElement, { el: Element; point: Point }>();
+  /** 走了 Base UI 结束态的对话框：缩回由 CSS 过渡负责。 */
+  const closed = new WeakSet<HTMLElement>();
 
   const onPointerDown = (e: Event) => {
     const target = e.target as Element | null;
@@ -88,30 +129,52 @@ export function installDialogOrigin(win: Window = window): () => void {
   };
 
   const opened = (popup: HTMLElement) => {
-    if (sources.has(popup)) return;
+    if (sources.has(popup) || popup.classList.contains(GHOST)) return;
     const source = sourceFor();
     if (!source) return;
     pending = null;
     sources.set(popup, source);
     popup.dataset.kFrom = "trigger";
     aim(popup, source.point);
+    // 一挂上就是打开的对话框（父组件按条件挂载、Root 直接 open）没有起始态，CSS 过渡不会走：这里补上同样的放大。
+    if (!popup.hasAttribute("data-starting-style")) grow(popup, "in");
   };
   const closing = (popup: HTMLElement) => {
     const source = sources.get(popup);
     if (!source) return;
+    closed.add(popup);
     // 弹窗打开后可能变高变宽（DialogHeight），控件也可能挪了位置：按此刻重新算。
     aim(popup, centre(source.el) ?? source.point);
   };
+  /** 父组件直接卸下的对话框没有结束态，一下子就没了：留一个不能操作的副本缩回按钮，再拿掉。 */
+  const removed = (popup: HTMLElement) => {
+    const source = sources.get(popup);
+    if (!source || closed.has(popup) || !motion(popup).slow) return;
+    const ghost = popup.cloneNode(true) as HTMLElement;
+    for (const name of ["id", "role", "data-open", "aria-modal", "aria-labelledby", "aria-describedby", "tabindex"])
+      ghost.removeAttribute(name);
+    for (const el of ghost.querySelectorAll("[id]")) el.removeAttribute("id");
+    ghost.classList.add(GHOST);
+    ghost.setAttribute("aria-hidden", "true");
+    ghost.inert = true;
+    ghost.style.pointerEvents = "none";
+    doc.body.append(ghost);
+    ghost.scrollTop = popup.scrollTop;
+    aim(ghost, centre(source.el) ?? source.point);
+    grow(ghost, "out").then(() => ghost.remove());
+  };
 
-  const scan = (node: Node) => {
+  const scan = (node: Node, each: (popup: HTMLElement) => void) => {
     if (!(node instanceof HTMLElement)) return;
-    if (node.matches(POPUP)) opened(node);
-    for (const popup of node.querySelectorAll<HTMLElement>(POPUP)) opened(popup);
+    if (node.matches(POPUP)) each(node);
+    for (const popup of node.querySelectorAll<HTMLElement>(POPUP)) each(popup);
   };
   const observer = new MutationObserver((records) => {
     for (const record of records) {
-      if (record.type === "childList") record.addedNodes.forEach(scan);
-      else if (record.target instanceof HTMLElement && record.target.matches(POPUP)) {
+      if (record.type === "childList") {
+        for (const node of record.removedNodes) scan(node, removed);
+        for (const node of record.addedNodes) scan(node, opened);
+      } else if (record.target instanceof HTMLElement && record.target.matches(POPUP)) {
         if (record.target.hasAttribute("data-ending-style")) closing(record.target);
       }
     }

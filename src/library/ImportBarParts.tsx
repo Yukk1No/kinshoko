@@ -14,6 +14,7 @@ import type { ToastOptions } from "../ui/Toast";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n/instance";
 import { Tip } from "../ui/Tip";
+import { useLingering } from "../ui/useLingering";
 
 export type ImportPlan = { paths: string[]; options: ImportOptions; eagle: boolean };
 type Begin = (paths: string[], fromEagle?: boolean, options?: ImportOptions, fixed?: SaveDestination) => Promise<void>;
@@ -281,7 +282,7 @@ export function ImportResultCard({
 
 /** 导入前的确认对话框：来源、保存位置，Eagle 另问删过的图。 */
 export function ImportPlanDialog({
-  plan,
+  plan: current,
   setPlan,
   preparing,
   running,
@@ -298,9 +299,11 @@ export function ImportPlanDialog({
   picker?: ReactNode;
 }) {
   const { t } = useTranslation("importing", { keyPrefix: "plan" });
+  // 关闭动画期间内容留着，缩回按钮的是整个对话框而不是空壳。
+  const plan = useLingering(current);
   return (
     <Dialog.Root
-      open={plan !== null}
+      open={current !== null}
       onOpenChange={(open) => {
         if (!open && !preparing) setPlan(null);
       }}
@@ -388,7 +391,7 @@ export function ImportPlanDialog({
 
 /** 找到的 Eagle 库，或手动选择。 */
 export function EagleLibrariesDialog({
-  eagleLibraries,
+  eagleLibraries: current,
   setEagleLibraries,
   busy,
   begin,
@@ -401,9 +404,10 @@ export function EagleLibrariesDialog({
   importFolder: (fromEagle?: boolean) => Promise<void>;
 }) {
   const { t } = useTranslation("importing", { keyPrefix: "eagle" });
+  const eagleLibraries = useLingering(current);
   return (
     <Dialog.Root
-      open={eagleLibraries !== null}
+      open={current !== null}
       onOpenChange={(open) => {
         if (!open) setEagleLibraries(null);
       }}

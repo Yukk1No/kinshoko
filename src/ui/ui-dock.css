@@ -257,10 +257,14 @@
 .k-dialog[data-k-from="trigger"]:is([data-starting-style], [data-ending-style]) {
   transform: scale(0.2);
 }
+/* 标记在弹窗插入后的同一帧里才加上：起始态不过渡，直接落到 0.2，否则会先从 0.97 缩到 0.2。 */
+.k-dialog[data-k-from="trigger"][data-starting-style] {
+  transition: none;
+}
 .k-dialog[data-k-from="trigger"][data-ending-style] {
   transition:
     transform var(--t-slow) var(--ease),
-    opacity var(--t) var(--ease);
+    opacity var(--t-slow) var(--ease);
 }
 .k-dialog-desc {
   margin: 4px 0 14px;
