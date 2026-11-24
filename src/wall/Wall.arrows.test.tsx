@@ -25,12 +25,13 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function Harness({ onSelection }: { onSelection?: (ids: string[]) => void }) {
+function Harness({ onSelection, density }: { onSelection?: (ids: string[]) => void; density?: number }) {
   const [selected, setSelected] = useState(new Set<string>());
   return (
     <Wall
       workspaceScope={{ kind: "all" }}
       scope={{ kind: "all" }}
+      density={density}
       reloadKey={0}
       selected={selected}
       onSelectionChange={(next) => {
@@ -114,4 +115,19 @@ it("移到视口外的图：滚进视口再接过焦点", async () => {
     expect(top + parseFloat(node.style.height)).toBeLessThanOrEqual(wall.scrollTop + 800);
   }
   expect(wall.scrollTop).toBeGreaterThan(1000);
+});
+
+it("移到未挂载的图（跨出挂载余量）：滚过去挂上后再接过焦点", async () => {
+  // 1000 宽、目标 700 排成 1 列（列宽 976），每张按上限高约 2538，超过初始视口 800 + 余量 700，卡片 1 起初未挂载。
+  count = 3;
+  height = () => 300;
+  const onSelection = vi.fn();
+  render(<Harness onSelection={onSelection} density={700} />);
+  await screen.findAllByRole("img");
+  expect(document.querySelector('.card[data-id="1"]')).toBeNull();
+  card("0").focus();
+  key("ArrowDown");
+  expect(document.querySelector('.card[data-id="1"]')).not.toBeNull();
+  expect(focused()).toBe("1");
+  expect(onSelection).toHaveBeenLastCalledWith(["1"]);
 });

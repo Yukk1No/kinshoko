@@ -189,8 +189,17 @@ export function zoomScrollTop(layout: Layout, index: number, pointerY: number, v
 
 export type Direction = "up" | "down" | "left" | "right";
 
+const EPS = 1e-3;
+const overlaps = (a0: number, a1: number, b0: number, b1: number) => a0 < b1 - EPS && b0 < a1 - EPS;
+const better = (d: number, g: number, c: number, bd: number, bg: number, bc: number) =>
+  d < bd - EPS || (Math.abs(d - bd) <= EPS && (g < bg - EPS || (Math.abs(g - bg) <= EPS && c < bc - EPS)));
+
 /**
- * 方向键要移到的图：上下取横向与它重叠、跨过当前图竖中线里挨着的那张，左右取旁边一列里跨过当前图横中线的那张（都没有时取最近的）。
+ * 方向键要移到的图：
+ * - 上下：在方向前方且横向与当前图重叠的图里，只看没被更近的横向重叠图挡住的前沿，
+ *   优先跨过当前图竖中线（或离竖中线最近）的那张，其次纵向更近、水平中心更近。
+ * - 左右：在方向前方的图里，优先纵向与当前图重叠的图，再限定到紧邻的那一列，
+ *   优先跨过当前图横中线（或离横中线最近）的那张，其次横向更近、纵向中心更近。
  * 这一边没有图时为 `from`。
  */
 export function neighbour(layout: Layout, from: number, dir: Direction): number {
@@ -198,22 +207,89 @@ export function neighbour(layout: Layout, from: number, dir: Direction): number 
   if (!a) return from;
   const ax = a.x + a.w / 2;
   const ay = a.y + a.h / 2;
-  const vertical = dir === "up" || dir === "down";
-  let best = from;
-  let bestScore = Infinity;
-  layout.boxes.forEach((b, i) => {
-    if (i === from) return;
-    const dx = b.x + b.w / 2 - ax;
-    const dy = b.y + b.h / 2 - ay;
-    const ahead = dir === "up" ? dy < -1 : dir === "down" ? dy > 1 : dir === "left" ? dx < -1 : dx > 1;
-    if (!ahead || (vertical && (b.x >= a.x + a.w || a.x >= b.x + b.w))) return;
-    const spans = vertical ? b.x <= ax && ax <= b.x + b.w : b.y <= ay && ay <= b.y + b.h;
-    const gap = dir === "down" ? b.y - (a.y + a.h) : a.y - (b.y + b.h);
-    const score = vertical ? gap + (spans ? 0 : 1e4 + Math.abs(dx)) : Math.abs(dx) + (spans ? 0 : 1e4 + Math.abs(dy));
-    if (score < bestScore) {
-      bestScore = score;
-      best = i;
+  if (dir === "up" || dir === "down") {
+    const down = dir === "down";
+    // 同一 (x, w) 槽位只留离当前图最近的一张（同列其余必然被它挡住），把遮挡检查压到常数级。
+    const byX = new Map<number, { w: number; i: number; gap: number }[]>();
+    for (let i = 0; i < layout.boxes.length; i++) {
+      if (i === from) continue;
+      const b = layout.boxes[i];
+      if (!overlaps(a.x, a.x + a.w, b.x, b.x + b.w)) continue;
+      if (!(down ? b.y >= a.y + a.h - 1 : b.y + b.h <= a.y + 1)) continue;
+      const gap = down ? b.y - (a.y + a.h) : a.y - (b.y + b.h);
+      const list = byX.get(b.x);
+      const slot = list?.find((entry) => entry.w === b.w);
+      if (!slot) {
+        const entry = { w: b.w, i, gap };
+        if (list) list.push(entry);
+        else byX.set(b.x, [entry]);
+      } else if (gap < slot.gap) {
+        slot.i = i;
+        slot.gap = gap;
+      }
     }
-  });
+    const pool: number[] = [];
+    for (const list of byX.values()) for (const entry of list) pool.push(entry.i);
+    let best = from;
+    let bestDist = Infinity;
+    let bestGap = Infinity;
+    let bestCenter = Infinity;
+    for (const i of pool) {
+      const b = layout.boxes[i];
+      const blocked = pool.some((j) => {
+        if (j === i) return false;
+        const c = layout.boxes[j];
+        if (!overlaps(b.x, b.x + b.w, c.x, c.x + c.w)) return false;
+        return down ? c.y + c.h <= b.y + 1 : c.y >= b.y + b.h - 1;
+      });
+      if (blocked) continue;
+      const dist = Math.max(b.x - ax, 0, ax - (b.x + b.w));
+      const gap = down ? b.y - (a.y + a.h) : a.y - (b.y + b.h);
+      const center = Math.abs(b.x + b.w / 2 - ax);
+      if (better(dist, gap, center, bestDist, bestGap, bestCenter)) {
+        best = i;
+        bestDist = dist;
+        bestGap = gap;
+        bestCenter = center;
+      }
+    }
+    return best;
+  }
+
+  const right = dir === "right";
+  const allAhead: number[] = [];
+  const aligned: number[] = [];
+  for (let i = 0; i < layout.boxes.length; i++) {
+    if (i === from) continue;
+    const b = layout.boxes[i];
+    if (!(right ? b.x >= a.x + a.w - 1 : b.x + b.w <= a.x + 1)) continue;
+    allAhead.push(i);
+    if (overlaps(a.y, a.y + a.h, b.y, b.y + b.h)) aligned.push(i);
+  }
+  const pool = aligned.length ? aligned : allAhead;
+  if (!pool.length) return from;
+  // 限定到紧邻的那一列：在最近列远缘之前开始的卡片才算相邻列，防止横中线落入缝隙时跳过整列。
+  let stop = right ? Infinity : -Infinity;
+  for (const i of pool) {
+    const b = layout.boxes[i];
+    stop = right ? Math.min(stop, b.x + b.w) : Math.max(stop, b.x);
+  }
+  let best = from;
+  let bestDist = Infinity;
+  let bestGap = Infinity;
+  let bestCenter = Infinity;
+  for (const i of pool) {
+    const b = layout.boxes[i];
+    if (right ? b.x >= stop - EPS : b.x + b.w <= stop + EPS) continue;
+    const dist = Math.max(b.y - ay, 0, ay - (b.y + b.h));
+    const gap = right ? b.x - (a.x + a.w) : a.x - (b.x + b.w);
+    const center = Math.abs(b.y + b.h / 2 - ay);
+    if (better(dist, gap, center, bestDist, bestGap, bestCenter)) {
+      best = i;
+      bestDist = dist;
+      bestGap = gap;
+      bestCenter = center;
+    }
+  }
   return best;
 }

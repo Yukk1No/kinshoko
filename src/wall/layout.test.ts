@@ -273,4 +273,44 @@ describe("方向键的相邻图", () => {
     expect(neighbour(layout, 0, "down")).toBe(0);
     expect(neighbour(layout, 0, "right")).toBe(1);
   });
+  it("横中线落入相邻列缝隙时仍留在旁边一列，不跳过它到第三列", () => {
+    const layout = masonry(
+      [
+        { w: 240, h: 100 },
+        { w: 240, h: 44 },
+        { w: 240, h: 480 },
+        { w: 240, h: 240 },
+      ],
+      { width: 760, target: 240, gap: 8, pad: 12, capRatio: null },
+    );
+    // 第 1 列 0（y 12..112，中线 62），第 2 列 1（12..56）和 3（64..304）缝隙正好盖住 62，第 3 列 2 跨过 62。
+    expect(neighbour(layout, 0, "right")).toBe(3);
+    expect(neighbour(layout, 2, "left")).toBe(3);
+  });
+  it("托盘宽图竖中线落入下一行缝隙时先到下一行，不越过整行跳出托盘", () => {
+    const layout = masonry(
+      [
+        // 托盘 3 页：第 1 行 1 张满宽横图，第 2 行 2 张撑满整行（8px 缝隙正好在竖中线上）
+        { w: 400, h: 100 },
+        { w: 150, h: 100 },
+        { w: 150, h: 100 },
+        // 托盘下面的 3 列瀑布流：中间列 4 跨过第 1 行的竖中线
+        { w: 100, h: 100 },
+        { w: 100, h: 100 },
+        { w: 100, h: 100 },
+      ],
+      { width: 640, target: 200, gap: 8, pad: 12, capRatio: null },
+      { at: 0, count: 3, pad: 12 },
+    );
+    expect([1, 2]).toContain(neighbour(layout, 0, "down"));
+  });
+  it("托盘上方各列高低错开时，从托盘页往上仍回到主列最后一张", () => {
+    const layout = at([
+      { x: 0, y: 0, w: 100, h: 150 },
+      { x: 108, y: 0, w: 100, h: 192 },
+      { x: 108, y: 200, w: 100, h: 150 },
+      { x: 0, y: 362, w: 120, h: 100 },
+    ]);
+    expect(neighbour(layout, 3, "up")).toBe(0);
+  });
 });

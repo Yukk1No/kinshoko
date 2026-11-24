@@ -429,6 +429,7 @@ export function Wall({
       workspaceScope,
       trayIds,
       closeTray,
+      position,
       layout,
       reveal,
     });

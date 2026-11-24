@@ -43,6 +43,7 @@ export function wallInteractions({
   workspaceScope,
   trayIds,
   closeTray,
+  position,
   layout,
   reveal,
 }: {
@@ -65,6 +66,8 @@ export function wallInteractions({
   trayIds: ReadonlySet<string>;
   /** 关上托盘；`keep` 是关上后留在屏幕原处的那一格。 */
   closeTray: (keep?: string) => void;
+  /** 每张卡片在 `ids` / `layout.boxes` 里的下标。 */
+  position: ReadonlyMap<string, number>;
   /** 与 `ids` 同序的格子位置：方向键按它找看到的相邻那张。 */
   layout: Layout;
   /** 把这张滚进视口并接过焦点。 */
@@ -179,7 +182,7 @@ export function wallInteractions({
     if (dir) {
       // 方向键按看到的位置移到相邻的图（资源管理器的习惯）：焦点与选择一起走，Shift 从起点选中一段。
       e.preventDefault();
-      const to = ids[neighbour(layout, ids.indexOf(card.id), dir)];
+      const to = ids[neighbour(layout, position.get(card.id) ?? -1, dir)];
       if (!to || to === card.id) return;
       if (e.shiftKey && !(pivot.current && ids.includes(pivot.current))) pivot.current = card.id;
       select(to, e);
