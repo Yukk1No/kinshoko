@@ -2,7 +2,7 @@
 // 重新浏览取到一半游标过期时从第一页重取。IPC 用受控 Promise 决定响应先后。
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createRef } from "react";
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { WorkspacePage } from "../bindings/WorkspacePage";
@@ -136,4 +136,36 @@ it("重新浏览一直撞上游标过期：重取几次后报错，不无限重�
   }
   expect(calls).toHaveLength(4);
   expect(document.querySelector('[role="alert"]')?.textContent).toBe(EXPIRED_TEXT);
+});
+
+it("加载多页但锚点停在首屏顶部时，重新浏览只拉取首屏所需页数而不全量重拉已加载页", async () => {
+  const wallRef = createRef<WallHandle>();
+  const makePage = (prefix: string) => Array.from({ length: PAGE }, (_, i) => card(`${prefix}${i}`));
+  const view = render(<Wall ref={wallRef} {...base} safeMode={false} reloadKey={0} />);
+  await settle();
+
+  await act(async () => calls[0].resolve(workspacePage(makePage("p0_"), PAGE * 3, "c1")));
+  await settle();
+  const scroller = document.querySelector<HTMLElement>(".wall")!;
+  scroller.scrollTop = 0;
+  fireEvent.scroll(scroller);
+
+  act(() => wallRef.current!.loadMore());
+  await settle();
+  await act(async () => calls[1].resolve(workspacePage(makePage("p1_"), PAGE * 3, "c2")));
+  await settle();
+
+  act(() => wallRef.current!.loadMore());
+  await settle();
+  await act(async () => calls[2].resolve(workspacePage(makePage("p2_"), PAGE * 3, "c3")));
+  await settle();
+  expect(calls).toHaveLength(3);
+
+  // 停在首屏时触发重新浏览：只需要取第 1 页即可满足当前视口锚点。
+  view.rerender(<Wall ref={wallRef} {...base} safeMode={false} reloadKey={1} />);
+  await settle();
+  expect(calls).toHaveLength(4);
+  await act(async () => calls[3].resolve(workspacePage(makePage("new0_"), PAGE * 3, "c1")));
+  await settle();
+  expect(calls).toHaveLength(4);
 });

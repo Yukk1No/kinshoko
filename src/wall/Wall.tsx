@@ -241,7 +241,6 @@ export function Wall({
   }, [shown, onCardsChange]);
   useWallCaptureSources({ viewerOpen, scroller, cards: shown });
   const { loadMore } = useWallPages({
-    cards,
     setCards,
     cursor,
     setCursor,

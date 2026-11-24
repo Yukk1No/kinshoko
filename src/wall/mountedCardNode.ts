@@ -12,6 +12,7 @@ export type RenderedCards = Map<
   {
     card: BrowserCard;
     box: Box;
+    uiScale: number;
     chosen: boolean;
     veiled: boolean;
     leaving: boolean;
@@ -23,6 +24,49 @@ export type RenderedCards = Map<
     node: ReactNode;
   }
 >;
+
+function sameBox(a: Box, b: Box): boolean {
+  return a === b || (a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h);
+}
+
+function sameSources(a: BrowserCard["sources"], b: BrowserCard["sources"]): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  return a.every((s, idx) => {
+    const o = b[idx];
+    return (
+      s.libraryId === o.libraryId &&
+      s.libraryName === o.libraryName &&
+      s.imageId === o.imageId &&
+      s.matches === o.matches &&
+      s.deleted === o.deleted &&
+      (s.unavailable === o.unavailable ||
+        (s.unavailable !== null &&
+          o.unavailable !== null &&
+          s.unavailable.code === o.unavailable.code &&
+          JSON.stringify(s.unavailable) === JSON.stringify(o.unavailable)))
+    );
+  });
+}
+
+function sameCard(a: BrowserCard, b: BrowserCard): boolean {
+  if (a === b) return true;
+  if (
+    a.id !== b.id ||
+    a.width !== b.width ||
+    a.height !== b.height ||
+    a.adult !== b.adult ||
+    a.libraryId !== b.libraryId ||
+    a.imageId !== b.imageId ||
+    a.placeholder !== b.placeholder ||
+    !sameSources(a.sources, b.sources)
+  ) {
+    return false;
+  }
+  if (a.set === b.set) return true;
+  if (!a.set || !b.set || a.set.key !== b.set.key || a.set.pages.length !== b.set.pages.length) return false;
+  return a.set.pages.every((page, idx) => sameCard(page, b.set!.pages[idx]));
+}
 
 type Args = {
   i: number;
@@ -78,8 +122,9 @@ export function mountedCardNode({
   const kept = renderedCards.current.get(card.id);
   if (
     kept &&
-    kept.card === card &&
-    kept.box === b &&
+    sameCard(kept.card, card) &&
+    sameBox(kept.box, b) &&
+    kept.uiScale === uiScale &&
     kept.chosen === chosen &&
     kept.veiled === veiled &&
     kept.leaving === leaving &&
@@ -110,6 +155,7 @@ export function mountedCardNode({
   nextRendered.set(card.id, {
     card,
     box: b,
+    uiScale,
     chosen,
     veiled,
     leaving,

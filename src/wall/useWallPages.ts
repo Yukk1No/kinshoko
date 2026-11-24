@@ -15,9 +15,10 @@ import { stackHolding, withoutPages, pagesOf } from "./imageSets";
 
 /** 报上已有占位图时，在原有卡片里往后多看几张：前面新进来几张图时，这一页仍大多报得上。 */
 const KNOWN_MARGIN = 100;
+/** 修订前进或游标过期重拉时的默认最大拉取张数，避免数千张图串行十几次请求；若视口锚点更靠后则以锚点位置为准。 */
+const MAX_RELOAD = PAGE * 4;
 
 export function useWallPages({
-  cards,
   setCards,
   cursor,
   setCursor,
@@ -40,7 +41,6 @@ export function useWallPages({
   stackSets,
   setStacked,
 }: {
-  cards: BrowserCard[];
   setCards: Dispatch<SetStateAction<BrowserCard[]>>;
   cursor: string | null;
   setCursor: Dispatch<SetStateAction<string | null>>;
@@ -90,8 +90,16 @@ export function useWallPages({
     setTotal(null);
     setCursor(null);
   }, [reloadKey, safeMode, workspaceKey, generation, inflight, restoring, setCards, setTotal, setCursor]);
-  const loaded = useRef(0);
-  loaded.current = cards.length;
+
+  const reloadTarget = useCallback(() => {
+    const shown = shownCards.current;
+    const targetId = anchor.current?.id;
+    if (targetId && shown.length > PAGE) {
+      const idx = shown.findIndex((c) => c.id === targetId || c.set?.pages.some((p) => p.id === targetId));
+      if (idx >= 0) return Math.max(PAGE, Math.min(shown.length, idx + KNOWN_MARGIN));
+    }
+    return Math.min(Math.max(shown.length, PAGE), MAX_RELOAD);
+  }, [shownCards, anchor]);
 
   /** 从头取至少 want 张，一次替换，避免列表闪空。之前还在路上的请求一律作废。 */
   const reload = useCallback(
@@ -219,7 +227,7 @@ export function useWallPages({
         safeMode,
       );
       if (gen !== generation.current) return;
-      const next = [...cards, ...page.cards];
+      const next = [...shownCards.current, ...page.cards];
       onWorkspaceStatus?.(page.status, next);
       // 瀑布流追加时已有卡片的位置不变，不必量旧位置、起重排动画（#109）。
       setCards(next);
@@ -235,9 +243,10 @@ export function useWallPages({
     } finally {
       if (inflight.current === gen) inflight.current = null;
     }
-    if (expired) void reload(Math.max(loaded.current, PAGE));
+    if (expired) void reload(reloadTarget());
   }, [
-    cards,
+    shownCards,
+    reloadTarget,
     cursor,
     reload,
     onWorkspaceStatus,
@@ -258,7 +267,7 @@ export function useWallPages({
   // 布局效果：同一次提交里先于其他组件的刷新（被动效果）发出浏览，后端按到达顺序排队（#183）。
   // biome-ignore lint/correctness/useExhaustiveDependencies(reloadKey): reloadKey 变了就从头重新浏览
   useLayoutEffect(() => {
-    void reload(Math.max(loaded.current, PAGE));
-  }, [reload, reloadKey]);
+    void reload(reloadTarget());
+  }, [reload, reloadTarget, reloadKey]);
   return { loadMore };
 }
