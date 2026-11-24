@@ -128,7 +128,7 @@ export function SubscriptionSettings({
 }
 
 /** 订阅名单：登录着时读，检查开始、结束时重读（拿到每条订阅最近一次检查的时间）。 */
-function useSubscriptionList(signedIn: boolean, checking: boolean) {
+export function useSubscriptionList(signedIn: boolean, checking: boolean) {
   const [list, setList] = useState<Subscription[]>([]);
   // biome-ignore lint/correctness/useExhaustiveDependencies(checking): 检查开始、结束是重读信号，effect 里不读它
   useEffect(() => {
@@ -248,22 +248,29 @@ function CheckRow({
 /**
  * 新订阅（关注、榜单开关、收藏开关、订阅画师）默认收进哪个图库。没选过时是“自动”：和同类订阅放一起，没有同类时
  * 收进应用内浏览上次亲手选的库（与 `useSubscriptions` 的挑法一致）。只管以后新加的订阅；已有的订阅在画师页、开关旁各自改。
+ * 设置 › 订阅与订阅页的头像卡共用。没有图库时为 null。
  */
-function NewSubscriptionsLibrary() {
+export function useNewSubscriptionLibrary() {
   const { t } = useTranslation("subscriptions");
   const { memory, rememberSubscription } = useSaveDestination();
   const { options } = useLibraryOptions();
   if (!options.length) return null;
   const chosen = memory.subscriptionDestination?.libraryId;
   const value = chosen && options.some((o) => o.value === chosen) ? chosen : AUTO;
+  return {
+    value,
+    options: [...(value === AUTO ? [{ value: AUTO, label: t("settings.newSubscriptionsAuto") }] : []), ...options],
+    onChange: (libraryId: string) => libraryId !== AUTO && rememberSubscription({ libraryId, folderId: null }),
+  };
+}
+
+function NewSubscriptionsLibrary() {
+  const { t } = useTranslation("subscriptions");
+  const library = useNewSubscriptionLibrary();
+  if (!library) return null;
   return (
     <SettingsRow icon={<FolderInput size={16} />} title={t("settings.newSubscriptions")}>
-      <Select
-        label={t("settings.newSubscriptions")}
-        value={value}
-        options={[...(value === AUTO ? [{ value: AUTO, label: t("settings.newSubscriptionsAuto") }] : []), ...options]}
-        onChange={(libraryId) => libraryId !== AUTO && rememberSubscription({ libraryId, folderId: null })}
-      />
+      <Select label={t("settings.newSubscriptions")} {...library} />
     </SettingsRow>
   );
 }

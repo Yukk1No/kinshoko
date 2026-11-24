@@ -2,7 +2,6 @@ import { useCallback, useId, useMemo, useRef, useState } from "react";
 import { errorText } from "../ipc";
 import { subscriptionFindArtist } from "../ipc/subscriptions";
 import { useTranslation } from "react-i18next";
-import { Settings } from "lucide-react";
 import type { Artist } from "../bindings/Artist";
 import type { Feed } from "../bindings/Feed";
 import type { RankingPeriod } from "../bindings/RankingPeriod";
@@ -48,14 +47,7 @@ const isHome = (place: Place): place is Home => place === "following" || place =
  * 榜单、我的收藏、画师各自换一面墙（第 4 步）；离开再回来时，新作与推荐那面墙还停在原处，不重读。
  * 搜索（第 5 步）收在标题行左端，展开时五个去处让开；按回车后墙换成结果，收回时回到原来的去处，结果不保留。
  */
-export function PixivHome({
-  safe,
-  onOpenSettings,
-}: {
-  safe: boolean;
-  /** 右上角的“订阅设置”：打开设置 › 订阅。 */
-  onOpenSettings?: () => void;
-}) {
+export function PixivHome({ safe }: { safe: boolean }) {
   const { t } = useTranslation("subscriptions");
   const [place, setPlace] = useState<Place>("following");
   const [period, setPeriod] = useState<RankingPeriod>("day");
@@ -170,12 +162,6 @@ export function PixivHome({
               />
             )}
             <div className="pw-tabs-end" data-tauri-drag-region>
-              {onOpenSettings && (
-                <button type="button" className="k-btn is-sm is-quiet" onClick={onOpenSettings}>
-                  <Settings size={14} aria-hidden="true" />
-                  {t("browse.subscriptionSettings")}
-                </button>
-              )}
               <WinCtrls />
             </div>
           </div>

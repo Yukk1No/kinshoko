@@ -111,6 +111,12 @@ export default {
     signIn: "知道了，去登录",
     close: "知道了",
   },
+  /** 订阅页右下角的 pixiv 头像卡。 */
+  float: {
+    label: "pixiv 账号 {{name}}",
+    density: "图片大小",
+    expired: "登录已失效",
+  },
   settings: {
     tab: "订阅",
     group: "订阅",

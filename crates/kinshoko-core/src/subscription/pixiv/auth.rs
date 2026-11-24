@@ -33,6 +33,10 @@ pub struct Account {
     pub name: String,
     /// 账号打开了 R-18 显示（`user.x_restrict` 大于 0）；没打开时不出现成人内容的选项。
     pub explicit_allowed: bool,
+    /// 头像（`user.profile_image_urls.px_170x170`，`i.pximg.net` 上的地址）。以前存下的登录里没有，下次换会话时补上；
+    /// 没有时为空，界面用名字的首字。
+    #[serde(default)]
+    pub avatar: String,
 }
 
 /// 一次登录的会话：access token 一小时过期，过期前用 refresh token 换新的。
@@ -186,6 +190,10 @@ fn session(v: &Value) -> Result<Session, AuthError> {
             },
             name: user["name"].as_str().unwrap_or_default().to_owned(),
             explicit_allowed: user["x_restrict"].as_i64().unwrap_or(0) > 0,
+            avatar: user["profile_image_urls"]["px_170x170"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned(),
         },
     })
 }
@@ -224,10 +232,15 @@ mod tests {
     fn session_reads_the_account_and_r18_permission() {
         let v = serde_json::json!({
             "access_token": "a", "refresh_token": "r", "expires_in": 3600,
-            "user": { "id": "11", "name": "画师", "x_restrict": 1 }
+            "user": { "id": "11", "name": "画师", "x_restrict": 1,
+                "profile_image_urls": { "px_170x170": "https://i.pximg.net/user-profile/img/a_170.jpg" } }
         });
         let s = session(&v).unwrap();
         assert_eq!(s.account.name, "画师");
+        assert_eq!(
+            s.account.avatar,
+            "https://i.pximg.net/user-profile/img/a_170.jpg"
+        );
         assert_eq!(s.account.user_id, "11");
         assert!(s.account.explicit_allowed);
         assert!(!s.expired());

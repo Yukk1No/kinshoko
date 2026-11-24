@@ -4,7 +4,7 @@ import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 // 订阅页测试共用的数据。
 
 export const NOW = Date.UTC(2026, 9, 31, 6, 0);
-export const account = { userId: "1", name: "yuki_sub", explicitAllowed: true };
+export const account = { userId: "1", name: "yuki_sub", explicitAllowed: true, avatar: "" };
 
 export const status = (patch: Partial<SubscriptionStatus> = {}): SubscriptionStatus => ({
   enabled: true,

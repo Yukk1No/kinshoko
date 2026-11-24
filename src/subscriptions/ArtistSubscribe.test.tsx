@@ -230,7 +230,7 @@ describe("订阅画师", () => {
     cleanup();
 
     backend();
-    page(status({ login: { state: "loggedIn", account: { ...account, explicitAllowed: false } } }));
+    page(status({ login: { state: "loggedIn", account: { ...account, explicitAllowed: false, avatar: "" } } }));
     dialog = await openArtistDialog();
     expect(within(dialog).queryByText(/R-18/)).toBeNull();
     cleanup();

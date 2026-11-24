@@ -1,4 +1,5 @@
 import type { Ref } from "react";
+import { usePixivDensity } from "./density";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Artist } from "../bindings/Artist";
@@ -43,6 +44,7 @@ export function WallView({
   handle?: Ref<PixivWallHandle>;
 }) {
   const { t } = useTranslation("subscriptions");
+  const density = usePixivDensity();
   const allWorks = useMemo(() => sections.flatMap((s) => s.works), [sections]);
   const { track } = collecting;
   useEffect(() => track(allWorks), [allWorks, track]);
@@ -53,6 +55,7 @@ export function WallView({
     <>
       <PixivWall
         sections={sections}
+        density={density ?? undefined}
         safe={safe}
         collected={collecting.collected}
         busy={collecting.busy}

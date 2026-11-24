@@ -7,6 +7,8 @@ import { WinCtrls } from "../ui/WinCtrls";
 import { accountActions } from "../subscriptions/accountActions";
 import { FirstRunDialog, firstRunSeen, markFirstRunSeen } from "../subscriptions/FirstRunDialog";
 import { SubscriptionsEmpty } from "../subscriptions/SubscriptionsEmpty";
+import { AccountFloat } from "./AccountFloat";
+import { PixivDensityContext } from "./density";
 import { PixivHome } from "./PixivHome";
 
 /**
@@ -18,11 +20,15 @@ export function SubscriptionsMain({
   onStatus,
   safe,
   onOpenSettings,
+  density = null,
 }: {
   status: SubscriptionStatus;
   onStatus: (status: SubscriptionStatus) => void;
   safe: boolean;
+  /** 头像卡里的“订阅设置”：打开设置 › 订阅。 */
   onOpenSettings: () => void;
+  /** 图片大小，与图片页共用一个设置；头像卡里调。 */
+  density?: { value: number; onCommit: (value: number) => void } | null;
 }) {
   const { t } = useTranslation("subscriptions");
   const toast = useToast();
@@ -45,7 +51,10 @@ export function SubscriptionsMain({
   return (
     <main className="app-main pw-main" aria-label={t("title")}>
       {signedIn ? (
-        <PixivHome safe={safe} onOpenSettings={onOpenSettings} />
+        <PixivDensityContext value={density?.value ?? null}>
+          <PixivHome safe={safe} />
+          <AccountFloat status={status} onStatus={onStatus} density={density} onOpenSettings={onOpenSettings} />
+        </PixivDensityContext>
       ) : (
         <>
           <header className="topbar is-empty" data-tauri-drag-region>

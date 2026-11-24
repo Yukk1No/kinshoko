@@ -66,12 +66,15 @@ export function SubscriptionSection({
   swap = null,
   safe,
   onOpenSettings,
+  density = null,
 }: {
   subscriptions: ReturnType<typeof useSubscriptionSection>;
   swap?: "in" | "out-start" | "out" | null;
   safe: boolean;
-  /** 标题行右端的“订阅设置”：打开设置 › 订阅。 */
+  /** 头像卡里的“订阅设置”：打开设置 › 订阅。 */
   onOpenSettings: () => void;
+  /** 图片大小（与图片页共用）。 */
+  density?: { value: number; onCommit: (value: number) => void } | null;
 }) {
   const last = useRef<SubscriptionStatus | null>(null);
   if (subscriptions.page) last.current = subscriptions.page;
@@ -91,6 +94,7 @@ export function SubscriptionSection({
           onStatus={subscriptions.setStatus}
           safe={safe}
           onOpenSettings={onOpenSettings}
+          density={density}
         />
       </div>
     </div>

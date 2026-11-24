@@ -340,6 +340,7 @@ function MainWindow() {
                   swap={swap.phase}
                   safe={lensSafe}
                   onOpenSettings={() => openSettings("subscriptions")}
+                  density={{ value: density, onCommit: changeDensity }}
                 />
                 {empty && !subscriptions.page && (
                   <EmptyWorkspace

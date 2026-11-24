@@ -698,3 +698,163 @@
 .pw-tabs-end > .k-win-ctrls {
   margin-left: 0;
 }
+
+/* 订阅页右下角的 pixiv 头像（AccountFloat）：与图片页右下角那一组同一种外形——40 px 圆钮，悬停时就地往左上长成卡片，
+   圆钮留在卡片右下角；材质同图片大小浮岛。占位始终 40 px，周围不动。 */
+.pw-account {
+  position: absolute;
+  right: 24px;
+  bottom: 20px;
+  z-index: 6;
+  width: 40px;
+  height: 40px;
+}
+.pw-account-shape {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  border-radius: var(--r-xl);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-pop);
+  transition:
+    width var(--t-slow) var(--spring),
+    height var(--t-slow) var(--spring),
+    border-radius var(--t-slow) var(--ease);
+}
+.pw-account[data-open] .pw-account-shape {
+  border-radius: var(--r);
+}
+/* 卡片内容按展开后的大小排好，贴右下角；收着时被圆钮的形状裁掉，只淡出不重排。 */
+.pw-account-panel {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 280px;
+  box-sizing: border-box;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+.pw-account[data-open] .pw-account-panel {
+  opacity: 1;
+  transition-delay: var(--t-fast);
+}
+.pw-account-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.pw-account-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-s);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+.pw-account-item > .lucide {
+  flex: none;
+  color: var(--ink-3);
+}
+.pw-account-item > .lucide.is-warn {
+  color: var(--warn);
+}
+button.pw-account-item:hover:not(:disabled) {
+  background: var(--hover);
+}
+button.pw-account-item:disabled {
+  color: var(--ink-2);
+}
+.pw-account-item:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-inset);
+}
+.pw-account-item.is-strong {
+  font-weight: 600;
+}
+.pw-account-item.is-control > span {
+  flex: 1;
+  white-space: nowrap;
+}
+.pw-account-item.is-control .k-range {
+  width: 110px;
+}
+.pw-account-item.is-control .k-select {
+  max-width: 132px;
+}
+.pw-account-meta {
+  margin-left: auto;
+}
+.pw-account-sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--line);
+}
+.pw-account-who {
+  height: 40px;
+  margin-right: 40px;
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+.pw-account-name {
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.pw-account-knob {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+}
+.pw-account-knob:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-inset);
+}
+.pw-account-knob > img,
+.pw-account-initial {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-pill);
+  object-fit: cover;
+}
+.pw-account-initial {
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 600;
+}
+/* 登录失效：圆钮右上角一枚警告色小点，带纸色描边。 */
+.pw-account-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--warn);
+  box-shadow: 0 0 0 2px var(--surface);
+}
