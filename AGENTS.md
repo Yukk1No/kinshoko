@@ -33,7 +33,7 @@ Use the project-local Impeccable skill for UI design, implementation, review, an
 
 ### Agent coordination
 
-Agents in this repository, in the cloud and on the maintainer's computer, coordinate through the maintainer's Vercel Board. Before you claim, hand off or report work that other agents or the maintainer track, read `.agents/skills/board/SKILL.md` and use `vercel board` as it describes, passing `--as` with your harness name (`claude`, `codex`). If `vercel board whoami` fails because the CLI is missing or not signed in, say so once and carry on without the board; do not install the CLI or sign in without asking. Setup and update notes are in `docs/agents/board.md`.
+Agents in this repository, in the cloud and on the maintainer's computer, coordinate through the maintainer's Vercel Board. Before you claim, hand off or report work that other agents or the maintainer track, read `.agents/skills/board/SKILL.md` and use `vercel board` as it describes, passing `--as` with your harness name (`claude`, `codex`). Read, post and queue tasks in the `kinshoko` channel, not `general`. If `vercel board whoami` fails because the CLI is missing or not signed in, say so once and carry on without the board; do not install the CLI or sign in without asking. Setup and update notes are in `docs/agents/board.md`.
 
 ### Issue tracker
 
