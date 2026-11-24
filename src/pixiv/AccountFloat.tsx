@@ -18,7 +18,8 @@ import { NOTICE_VARS } from "../wall/WallFloats";
  * 订阅页右下角的 pixiv 头像（右下角浮钮的一员，与图片页的打标图标、图片大小同一种外形）：平时是 40 px 的圆钮，
  * 悬停或点一下就在原地往左上长成卡片，圆钮留在卡片右下角。卡片里是检查新作、新订阅收进、图片大小、订阅设置、
  * 退出登录；登录失效时圆钮带警告点，卡片第一行是“重新登录”。
- * 移开指针收回；点过、键盘操作着或下拉列表开着时不收，Esc 或点卡片外面收回。
+ * 移开指针收回；点过、键盘操作着或下拉列表开着时不收，Esc 或点卡片外面收回。圆钮排在卡片内容前面，
+ * 打开后按 Tab 进卡片。
  */
 export function AccountFloat({
   status,
@@ -129,6 +130,30 @@ export function AccountFloat({
       }}
     >
       <div className="pw-account-shape" style={{ width: size.width, height: size.height }}>
+        <button
+          ref={knob}
+          type="button"
+          className="pw-account-knob"
+          aria-label={t("float.label", { name: account.name })}
+          aria-expanded={open}
+          onClick={(e) => {
+            // 键盘按的没有按下这一步（detail 为 0）：开着就收回。
+            if (open && (e.detail === 0 || pinnedBefore.current)) close();
+            else {
+              pinned.current = true;
+              setOpen(true);
+            }
+          }}
+        >
+          {avatar ? (
+            <img src={avatar} alt="" draggable={false} />
+          ) : (
+            <span className="pw-account-initial" aria-hidden="true">
+              {Array.from(account.name)[0] ?? "p"}
+            </span>
+          )}
+          {expired && <span className="pw-account-dot" aria-hidden="true" />}
+        </button>
         <div
           ref={panel}
           className="pw-account-panel"
@@ -148,9 +173,10 @@ export function AccountFloat({
                 type="button"
                 className="pw-account-item"
                 disabled={view.kind !== "idle"}
-                onClick={run(() =>
-                  subscriptionCheckNow().catch((e) => toast.error(t("check.failed", { error: errorText(e) }))),
-                )}
+                // 卡片不收：这一行就地变成“正在检查”，检查完写新的同步时间。
+                onClick={() =>
+                  subscriptionCheckNow().catch((e) => toast.error(t("check.failed", { error: errorText(e) })))
+                }
               >
                 <RefreshCw size={16} aria-hidden="true" />
                 {t("settings.check")}
@@ -204,30 +230,6 @@ export function AccountFloat({
             <span className={`k-list-desc${expired ? " is-warn" : ""}`}>{expired ? t("float.expired") : "pixiv"}</span>
           </div>
         </div>
-        <button
-          ref={knob}
-          type="button"
-          className="pw-account-knob"
-          aria-label={t("float.label", { name: account.name })}
-          aria-expanded={open}
-          onClick={(e) => {
-            // 键盘按的没有按下这一步（detail 为 0）：开着就收回。
-            if (open && (e.detail === 0 || pinnedBefore.current)) close();
-            else {
-              pinned.current = true;
-              setOpen(true);
-            }
-          }}
-        >
-          {avatar ? (
-            <img src={avatar} alt="" draggable={false} />
-          ) : (
-            <span className="pw-account-initial" aria-hidden="true">
-              {Array.from(account.name)[0] ?? "p"}
-            </span>
-          )}
-          {expired && <span className="pw-account-dot" aria-hidden="true" />}
-        </button>
       </div>
     </div>
   );

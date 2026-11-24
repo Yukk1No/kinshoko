@@ -818,6 +818,7 @@ button.pw-account-item:disabled {
 }
 .pw-account-knob {
   position: absolute;
+  z-index: 1;
   right: 0;
   bottom: 0;
   width: 40px;

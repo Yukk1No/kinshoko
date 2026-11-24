@@ -83,6 +83,9 @@ describe("订阅页的头像卡", () => {
     fireEvent.click(knob);
     fireEvent.click(await within(card()).findByRole("button", { name: /检查新作/ }));
     await waitFor(() => expect(fake.calls("subscription_check_now")).toHaveLength(1));
+    // 检查后卡片不收，好看到“正在检查”。
+    expect(knob.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.keyDown(knob, { key: "Escape" });
     fireEvent.click(knob);
     fireEvent.click(within(card()).getByRole("button", { name: "订阅设置" }));
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
