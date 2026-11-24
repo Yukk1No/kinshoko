@@ -47,7 +47,7 @@ export function AccountFloat({
   const panel = useRef<HTMLDivElement>(null);
   const knob = useRef<HTMLButtonElement>(null);
   const [size, setSize] = useState({ width: 40, height: 40 });
-  const [list] = useSubscriptionList(open && status.login.state === "loggedIn", status.checking);
+  const [list] = useSubscriptionList(status.login.state === "loggedIn", status.checking);
   const now = useNow();
   const library = useNewSubscriptionLibrary();
   const [preview, setPreview] = useState<number | null>(null);
@@ -59,10 +59,18 @@ export function AccountFloat({
     if (focusKnob) knob.current?.focus();
   };
 
+  // 展开时量卡片内容；内容变了（检查状态、名单读到）跟着量。
   useLayoutEffect(() => {
     const el = panel.current;
-    if (open && el) setSize({ width: el.offsetWidth, height: el.offsetHeight });
-    else setSize({ width: 40, height: 40 });
+    if (!open || !el) {
+      setSize({ width: 40, height: 40 });
+      return;
+    }
+    const measure = () => setSize({ width: el.offsetWidth, height: el.offsetHeight });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [open]);
 
   useNoticeAboveCorner(root, account !== null);
@@ -193,9 +201,7 @@ export function AccountFloat({
           </div>
           <div className="pw-account-who">
             <span className="pw-account-name">{account.name}</span>
-            <span className={`k-list-desc${expired ? " is-warn" : ""}`}>
-              {expired ? t("float.expired") : "pixiv"}
-            </span>
+            <span className={`k-list-desc${expired ? " is-warn" : ""}`}>{expired ? t("float.expired") : "pixiv"}</span>
           </div>
         </div>
         <button
@@ -244,7 +250,11 @@ function useNoticeAboveCorner(corner: React.RefObject<HTMLDivElement | null>, sh
         host: box,
         viewport: { width: window.innerWidth, height: window.innerHeight },
         inset: Number.parseFloat(getComputedStyle(own).right) || 0,
-        rowTop: rowTopOf(own),
+        // 卡片展开时通知让到卡片上面（形状比 40 px 占位高出来的部分）。
+        rowTop: rowTopOf(
+          own,
+          Math.max(0, (own.firstElementChild as HTMLElement | null)?.offsetHeight ?? 0) - own.offsetHeight,
+        ),
       });
       root.style.setProperty("--k-notice-right", `${anchor.right}px`);
       root.style.setProperty("--k-notice-bottom", `${anchor.bottom}px`);
@@ -253,6 +263,7 @@ function useNoticeAboveCorner(corner: React.RefObject<HTMLDivElement | null>, sh
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(host);
+    if (own.firstElementChild) observer.observe(own.firstElementChild);
     window.addEventListener("resize", measure);
     return () => {
       observer.disconnect();
