@@ -621,3 +621,85 @@ fn real_multiple_directories_reuse_visible_safety_facts_and_report_action_timing
         started.elapsed().as_millis()
     );
 }
+
+#[test]
+fn workspace_search_caches_per_snapshot_and_isolates_safe_lens() {
+    let dir = tempfile::tempdir().unwrap();
+    let app = dir.path().join("app");
+    let mut device = DeviceLibraries::open(&app).unwrap();
+    let library = device.create(&dir.path().join("a"), "A").unwrap();
+    let safe_img = files(dir.path(), &[&library], 18);
+    let adult_img = files(dir.path(), &[&library], 19);
+    tag(&library, &safe_img[0], &["safe_tag"]);
+    tag(&library, &adult_img[0], &["adult_only_tag"]);
+    library
+        .edit(
+            &adult_img,
+            &[ImageEdit::SetRating {
+                rating: ContentRating::Explicit,
+            }],
+        )
+        .unwrap();
+
+    let mut catalog = TagCatalog::open(&app).unwrap();
+    let mut workspace = Workspace::open(&app).unwrap();
+    let builtin = BuiltinApproxTable::default();
+
+    let first_adult = workspace
+        .candidates(&device, &mut catalog, "adult", "en", 10, false, &builtin)
+        .unwrap();
+    assert_eq!(first_adult.len(), 1);
+    assert_eq!(first_adult[0].tag.name, "adult only tag");
+    assert_eq!(workspace.search_builds(), 1);
+
+    let first_safe = workspace
+        .candidates(&device, &mut catalog, "safe", "en", 10, false, &builtin)
+        .unwrap();
+    assert_eq!(first_safe.len(), 1);
+    assert_eq!(workspace.search_builds(), 1);
+
+    let hidden_in_safe = workspace
+        .candidates(&device, &mut catalog, "adult", "en", 10, true, &builtin)
+        .unwrap();
+    assert!(hidden_in_safe.is_empty());
+    let visible_in_safe = workspace
+        .candidates(&device, &mut catalog, "safe", "en", 10, true, &builtin)
+        .unwrap();
+    assert_eq!(visible_in_safe.len(), 1);
+    assert_eq!(workspace.search_builds(), 2);
+
+    let back_to_unsafe = workspace
+        .candidates(&device, &mut catalog, "adult", "en", 10, false, &builtin)
+        .unwrap();
+    assert_eq!(back_to_unsafe.len(), 1);
+    assert_eq!(workspace.search_builds(), 2);
+
+    let input = SearchInput {
+        conditions: vec![ConditionInput {
+            any: vec![TermInput::Tag {
+                id: visible_in_safe[0].tag.id.clone(),
+                dismissed: vec![],
+            }],
+            negate: false,
+        }],
+        exact: true,
+    };
+    let resolved_once = workspace
+        .resolve(&device, &mut catalog, &input, "en", true, &builtin)
+        .unwrap();
+    assert_eq!(resolved_once.conditions.len(), 1);
+    let builds_after_first_resolve = workspace.search_builds();
+    let resolved_twice = workspace
+        .resolve(&device, &mut catalog, &input, "en", true, &builtin)
+        .unwrap();
+    assert_eq!(resolved_twice, resolved_once);
+    assert_eq!(workspace.search_builds(), builds_after_first_resolve);
+
+    tag(&library, &safe_img[0], &["safe_tag", "fresh_tag"]);
+    let builds_before_bump = workspace.search_builds();
+    let fresh = workspace
+        .candidates(&device, &mut catalog, "fresh", "en", 10, true, &builtin)
+        .unwrap();
+    assert_eq!(fresh.len(), 1);
+    assert_eq!(workspace.search_builds(), builds_before_bump + 1);
+}

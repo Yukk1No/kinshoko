@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import type { Candidate } from "../bindings/Candidate";
 import type { Condition } from "../bindings/Condition";
@@ -34,6 +34,7 @@ import {
 export { TagMarks, tagName, untranslatedHint } from "./tagLabel";
 
 export const LIMIT = 8;
+const CANDIDATE_DEBOUNCE_MS = 80;
 
 /**
  * 候选的身份（#76）：资料库、浏览视角（安全模式）、词表代次与输入的文字。候选只在身份与
@@ -70,21 +71,34 @@ export function useCandidateState(
   const lang = useUiLang();
   const key = lensKey(lens, text) + `#${limit}#${lang}`;
   const { libraryId, safe } = lens;
+  const prevText = useRef(text);
   const filterKept = useEffectEvent((list: Candidate[]) => list.filter((c) => keep(c)));
   useEffect(() => {
+    const debounced = prevText.current !== text;
+    prevText.current = text;
     let alive = true;
     if (!text.trim()) return;
-    (lens.picking
-      ? workspaceLibraryCandidates(libraryId, text, lang, limit, safe)
-      : lens.workspace
-        ? workspaceCandidates(text, lang, limit, safe)
-        : searchCandidates(libraryId, text, lang, limit, safe)
-    ).then(
-      (list) => alive && setFound({ key, list: filterKept(list) }),
-      () => alive && setFound({ key, list: [] }),
-    );
+    const run = () => {
+      (lens.picking
+        ? workspaceLibraryCandidates(libraryId, text, lang, limit, safe)
+        : lens.workspace
+          ? workspaceCandidates(text, lang, limit, safe)
+          : searchCandidates(libraryId, text, lang, limit, safe)
+      ).then(
+        (list) => alive && setFound({ key, list: filterKept(list) }),
+        () => alive && setFound({ key, list: [] }),
+      );
+    };
+    if (!debounced) {
+      run();
+      return () => {
+        alive = false;
+      };
+    }
+    const timer = setTimeout(run, CANDIDATE_DEBOUNCE_MS);
     return () => {
       alive = false;
+      clearTimeout(timer);
     };
   }, [key, libraryId, safe, text, limit, lang, lens.picking, lens.workspace]);
   const ready = found.key === key && !!text.trim();
@@ -98,15 +112,28 @@ function useRatingCandidates(lens: Lens, text: string): RatingCandidate[] {
   const [found, setFound] = useState<FoundRatings>({ key: "", list: [] });
   const key = lensKey(lens, text);
   const { safe } = lens;
+  const prevText = useRef(text);
   useEffect(() => {
+    const debounced = prevText.current !== text;
+    prevText.current = text;
     let alive = true;
     if (!text.trim()) return;
-    ratingCandidates(text, safe).then(
-      (list) => alive && setFound({ key, list }),
-      () => alive && setFound({ key, list: [] }),
-    );
+    const run = () => {
+      ratingCandidates(text, safe).then(
+        (list) => alive && setFound({ key, list }),
+        () => alive && setFound({ key, list: [] }),
+      );
+    };
+    if (!debounced) {
+      run();
+      return () => {
+        alive = false;
+      };
+    }
+    const timer = setTimeout(run, CANDIDATE_DEBOUNCE_MS);
     return () => {
       alive = false;
+      clearTimeout(timer);
     };
   }, [key, safe, text]);
   return found.key === key && text.trim() ? found.list : [];
@@ -165,7 +192,7 @@ type Props = {
  * 近似查找默认开启：标签块里列出展开的相近标签。关掉一个时选“只这次”或“以后都不展开”
  * （记进个人近似对应表）；“＋”从可见标签里挑一个加为相近；“精确查找”一键不展开。
  */
-export function SearchBox({
+export const SearchBox = memo(function SearchBox({
   libraryId,
   safe,
   generation,
@@ -184,13 +211,16 @@ export function SearchBox({
   const ratings = useRatingCandidates(lens, text);
   const context = lensKey(lens, "");
 
-  // 放不下的条件标签收进“+n”（#222）：每次绘制后和查找框变宽变窄时量一次，个数变了才重绘。
+  // 放不下的条件标签收进“+n”（#222）：只在条件、条件树、附加区或查找框宽度变化时量一次，空条件时直接跳过 DOM 读取。
   const root = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLInputElement>(null);
   const [fit, setFit] = useState(Infinity);
   const measure = useRef(() => {});
-  measure.current = () => setFit(chipsThatFit(root.current));
-  useLayoutEffect(() => measure.current());
+  measure.current = () => setFit(input.conditions.length === 0 ? Infinity : chipsThatFit(root.current));
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在条件、条件树、来源标记或附加区变化时量一次宽度
+  useLayoutEffect(() => {
+    measure.current();
+  }, [input.conditions, tree, showSource, extras]);
   useLayoutEffect(() => {
     if (!root.current) return;
     const observer = new ResizeObserver(() => measure.current());
@@ -426,7 +456,7 @@ export function SearchBox({
       <ExactToggle exact={input.exact} onChange={(exact) => onChange({ ...input, exact })} />
     </div>
   );
-}
+});
 /** “＋”：贴着按钮的浮层，按名称或别名从可见标签里挑一个，加为 `to` 的相近标签。Esc 或点别处收起。 */
 function AddSimilar({
   lens,

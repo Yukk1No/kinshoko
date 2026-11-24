@@ -164,6 +164,10 @@ struct Provider {
     list: i64,
     revision: i64,
 }
+struct CachedSearch {
+    builtin: BuiltinApproxTable,
+    search: std::sync::Arc<Search>,
+}
 struct Snapshot {
     personal_approx: Vec<crate::approx::PersonalApprox>,
     providers: Vec<Provider>,
@@ -178,6 +182,10 @@ struct Snapshot {
     full_vocabulary: std::sync::OnceLock<Vocabulary>,
     safe_management_vocabulary: std::sync::OnceLock<Vocabulary>,
     full_management_vocabulary: std::sync::OnceLock<Vocabulary>,
+    safe_search: std::sync::Mutex<Option<CachedSearch>>,
+    full_search: std::sync::Mutex<Option<CachedSearch>>,
+    safe_resolve_search: std::sync::Mutex<Option<CachedSearch>>,
+    full_resolve_search: std::sync::Mutex<Option<CachedSearch>>,
 }
 impl Snapshot {
     fn status(&self, safe: bool) -> WorkspaceStatus {
@@ -195,6 +203,7 @@ pub struct Workspace {
     cache: Option<std::sync::Arc<Snapshot>>,
     browse_cache: BrowseCache,
     gate: std::sync::Arc<ImageGate>,
+    search_builds: usize,
 }
 impl Workspace {
     pub fn open(dir: &Path) -> Result<Self, CatalogError> {
@@ -214,7 +223,12 @@ impl Workspace {
             cache: None,
             browse_cache: BrowseCache::default(),
             gate,
+            search_builds: 0,
         })
+    }
+    #[doc(hidden)]
+    pub fn search_builds(&self) -> usize {
+        self.search_builds
     }
     /// 放掉长期只读打开的提供方（[`ImageGate::clear`]）。Windows 上握着句柄时资料库文件夹改不了名、
     /// 删不掉；应用壳在切换、登记变化时经它握着的放行清掉，这里给只持有工作区的调用方用。
@@ -258,18 +272,7 @@ impl Workspace {
     ) -> Result<ConditionTree, CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
         // 点分组里还没人用过的预置标签也要解析成它自己（#484），近似对应才能展开。
-        let mut vocabulary = global_vocabulary(&snapshot, safe).clone();
-        let present = vocabulary
-            .tags
-            .iter()
-            .map(|tag| tag.id.clone())
-            .collect::<BTreeSet<_>>();
-        vocabulary.tags.extend(
-            unattached_preset_tags(&snapshot)
-                .into_iter()
-                .filter(|tag| !present.contains(&tag.id)),
-        );
-        let search = Search::new(&vocabulary, builtin);
+        let search = self.resolve_search(&snapshot, safe, builtin);
         Ok(search.resolve_with_tag_fallback(input, lang, |id| {
             // 已点选的标签不因没有活动图片而消失，但仍须遵守安全模式。
             management_vocabulary(&snapshot, safe)
@@ -291,7 +294,72 @@ impl Workspace {
         builtin: &BuiltinApproxTable,
     ) -> Result<Vec<Candidate>, CatalogError> {
         let snapshot = self.snapshot(device, catalog)?;
-        Ok(Search::new(global_vocabulary(&snapshot, safe), builtin).candidates(text, lang, limit))
+        Ok(self
+            .candidate_search(&snapshot, safe, builtin)
+            .candidates(text, lang, limit))
+    }
+    fn candidate_search(
+        &mut self,
+        snapshot: &Snapshot,
+        safe: bool,
+        builtin: &BuiltinApproxTable,
+    ) -> std::sync::Arc<Search> {
+        let slot = if safe {
+            &snapshot.safe_search
+        } else {
+            &snapshot.full_search
+        };
+        if let Some(entry) = slot.lock().unwrap_or_else(|e| e.into_inner()).as_ref()
+            && entry.builtin == *builtin
+        {
+            return entry.search.clone();
+        }
+        let search = std::sync::Arc::new(Search::new(global_vocabulary(snapshot, safe), builtin));
+        self.search_builds += 1;
+        *slot.lock().unwrap_or_else(|e| e.into_inner()) = Some(CachedSearch {
+            builtin: builtin.clone(),
+            search: search.clone(),
+        });
+        search
+    }
+    fn resolve_search(
+        &mut self,
+        snapshot: &Snapshot,
+        safe: bool,
+        builtin: &BuiltinApproxTable,
+    ) -> std::sync::Arc<Search> {
+        let slot = if safe {
+            &snapshot.safe_resolve_search
+        } else {
+            &snapshot.full_resolve_search
+        };
+        if let Some(entry) = slot.lock().unwrap_or_else(|e| e.into_inner()).as_ref()
+            && entry.builtin == *builtin
+        {
+            return entry.search.clone();
+        }
+        let global = global_vocabulary(snapshot, safe);
+        let present = global
+            .tags
+            .iter()
+            .map(|tag| tag.id.as_str())
+            .collect::<BTreeSet<_>>();
+        let extra = unattached_preset_tags(snapshot)
+            .into_iter()
+            .filter(|tag| !present.contains(tag.id.as_str()))
+            .collect::<Vec<_>>();
+        if extra.is_empty() {
+            return self.candidate_search(snapshot, safe, builtin);
+        }
+        let mut vocabulary = global.clone();
+        vocabulary.tags.extend(extra);
+        let search = std::sync::Arc::new(Search::new(&vocabulary, builtin));
+        self.search_builds += 1;
+        *slot.lock().unwrap_or_else(|e| e.into_inner()) = Some(CachedSearch {
+            builtin: builtin.clone(),
+            search: search.clone(),
+        });
+        search
     }
     /// Shared groups use unified identities and the workspace's all-source safety view.
     pub fn tag_groups(
