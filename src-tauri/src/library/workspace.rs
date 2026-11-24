@@ -9,15 +9,52 @@ use kinshoko_core::workspace::{
 
 pub(super) const EVENT: &str = "workspace-changed";
 
-static MONITOR_WAKE: (std::sync::Mutex<u64>, std::sync::Condvar) =
-    (std::sync::Mutex::new(0), std::sync::Condvar::new());
+/// 主窗口不可见或最小化时的兜底重检间隔：平时由窗口恢复/聚焦事件即时唤醒，超时仅防漏发。
+const INACTIVE_RECHECK: std::time::Duration = std::time::Duration::from_secs(10);
 
-/// 唤醒后台工作区监控线程（例如主窗口重新打开或显示时）。
+struct MonitorWake {
+    seq: std::sync::Mutex<u64>,
+    condvar: std::sync::Condvar,
+}
+
+impl MonitorWake {
+    const fn new() -> Self {
+        Self {
+            seq: std::sync::Mutex::new(0),
+            condvar: std::sync::Condvar::new(),
+        }
+    }
+
+    fn wake(&self) {
+        let mut seq = lock(&self.seq);
+        *seq = seq.wrapping_add(1);
+        self.condvar.notify_all();
+    }
+
+    fn snapshot(&self) -> u64 {
+        *lock(&self.seq)
+    }
+
+    fn wait_timeout(&self, seen: &mut u64, timeout: std::time::Duration) -> bool {
+        let guard = lock(&self.seq);
+        let (guard, _) = self
+            .condvar
+            .wait_timeout_while(guard, timeout, |seq| *seq == *seen)
+            .unwrap_or_else(|e| e.into_inner());
+        if *guard != *seen {
+            *seen = *guard;
+            true
+        } else {
+            false
+        }
+    }
+}
+
+static MONITOR_WAKE: MonitorWake = MonitorWake::new();
+
+/// 唤醒后台工作区监控线程（主窗口恢复显示/激活或应用内写路径变更工作区状态时）。
 pub(crate) fn wake_monitor() {
-    let (lock, condvar) = &MONITOR_WAKE;
-    let mut seq = lock.lock().unwrap_or_else(|e| e.into_inner());
-    *seq = seq.wrapping_add(1);
-    condvar.notify_all();
+    MONITOR_WAKE.wake();
 }
 
 /// 后台状态轮询的退避状态机：无变化时逐档退避到上限，收到变化或复位后回到初始间隔。
@@ -59,17 +96,30 @@ fn main_window_active<R: Runtime>(app: &AppHandle<R>) -> bool {
     window.is_visible().unwrap_or(false) && !window.is_minimized().unwrap_or(false)
 }
 
-fn wait_for_wake(seen: &mut u64, timeout: std::time::Duration) -> bool {
-    let (lock, condvar) = &MONITOR_WAKE;
-    let guard = lock.lock().unwrap_or_else(|e| e.into_inner());
-    let (guard, _) = condvar
-        .wait_timeout_while(guard, timeout, |seq| *seq == *seen)
-        .unwrap_or_else(|e| e.into_inner());
-    if *guard != *seen {
-        *seen = *guard;
-        true
+/// 后台监控的一轮步进：主窗口不可见或最小化时跳过轮询、重置退避并等待唤醒（带兜底重检超时）；
+/// 活跃时执行一次状态核对，再按结果退避或等待下一次唤醒。
+fn monitor_step(
+    wake: &MonitorWake,
+    wake_seq: &mut u64,
+    backoff: &mut PollBackoff,
+    active: bool,
+    inactive_wait: std::time::Duration,
+    poll: impl FnOnce() -> bool,
+) {
+    if !active {
+        backoff.reset();
+        // 主窗口关闭、隐藏或最小化时不碰全局锁，等待窗口恢复/聚焦事件即时唤醒；
+        // 保留兜底超时重检窗口状态，防止平台漏发恢复事件时永久沉睡。
+        let _ = wake.wait_timeout(wake_seq, inactive_wait);
+        return;
+    }
+    if poll() {
+        backoff.on_change();
     } else {
-        false
+        backoff.on_unchanged();
+    }
+    if wake.wait_timeout(wake_seq, backoff.current()) {
+        backoff.reset();
     }
 }
 /// Acquire device, catalog, then workspace. Callers retain their lens and visibility guards.
@@ -105,31 +155,28 @@ pub(super) fn monitor<R: Runtime>(app: AppHandle<R>) {
         .spawn(move || {
             let mut previous = String::new();
             let mut backoff = PollBackoff::new();
-            let mut wake_seq = *MONITOR_WAKE.0.lock().unwrap_or_else(|e| e.into_inner());
+            let mut wake_seq = MONITOR_WAKE.snapshot();
             loop {
-                if !main_window_active(&app) {
-                    backoff.reset();
-                    let _ = wait_for_wake(&mut wake_seq, std::time::Duration::from_secs(10));
-                    continue;
-                }
-                let safe = saved_safe_mode(&app);
-                let mut changed = false;
-                if let Ok(status) =
-                    with_lens(&app, safe, Hold::Read, |w, d, c| w.status(d, c, safe))
-                    && status.revision != previous
-                {
-                    previous = status.revision.clone();
-                    let _ = app.emit(EVENT, status);
-                    changed = true;
-                }
-                if changed {
-                    backoff.on_change();
-                } else {
-                    backoff.on_unchanged();
-                }
-                if wait_for_wake(&mut wake_seq, backoff.current()) {
-                    backoff.reset();
-                }
+                monitor_step(
+                    &MONITOR_WAKE,
+                    &mut wake_seq,
+                    &mut backoff,
+                    main_window_active(&app),
+                    INACTIVE_RECHECK,
+                    || {
+                        let safe = saved_safe_mode(&app);
+                        if let Ok(status) =
+                            with_lens(&app, safe, Hold::Read, |w, d, c| w.status(d, c, safe))
+                            && status.revision != previous
+                        {
+                            previous = status.revision.clone();
+                            let _ = app.emit(EVENT, status);
+                            true
+                        } else {
+                            false
+                        }
+                    },
+                );
             }
         })
         .expect("workspace event monitor");
@@ -406,8 +453,9 @@ pub(super) async fn workspace_directories<R: Runtime>(
 
 #[cfg(test)]
 mod tests {
-    use super::PollBackoff;
-    use std::time::Duration;
+    use super::{MonitorWake, PollBackoff, monitor_step};
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
 
     #[test]
     fn poll_backoff_ramps_to_cap_and_resets_on_change_or_wake() {
@@ -430,6 +478,81 @@ mod tests {
         backoff.on_unchanged();
         assert_eq!(backoff.current(), Duration::from_millis(5000));
         backoff.reset();
+        assert_eq!(backoff.current(), Duration::from_millis(1500));
+    }
+
+    #[test]
+    fn monitor_wake_unblocks_waiter_and_preserves_prior_signal() {
+        let wake = Arc::new(MonitorWake::new());
+        let mut seen = wake.snapshot();
+
+        // 先唤醒后等待：序列号已前进，不应丢失信号，也不应阻塞等待超时。
+        wake.wake();
+        let started = Instant::now();
+        assert!(wake.wait_timeout(&mut seen, Duration::from_secs(5)));
+        assert!(started.elapsed() < Duration::from_secs(1));
+
+        // 没有新唤醒时按超时返回 false。
+        assert!(!wake.wait_timeout(&mut seen, Duration::from_millis(15)));
+
+        // 等待期间另一线程唤醒，应立即解除阻塞。
+        let notifier = wake.clone();
+        let handle = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(20));
+            notifier.wake();
+        });
+        let started = Instant::now();
+        assert!(wake.wait_timeout(&mut seen, Duration::from_secs(5)));
+        assert!(started.elapsed() < Duration::from_secs(1));
+        handle.join().unwrap();
+    }
+
+    #[test]
+    fn inactive_window_skips_poll_and_resets_backoff_until_woken() {
+        let wake = Arc::new(MonitorWake::new());
+        let mut seen = wake.snapshot();
+        let mut backoff = PollBackoff::new();
+        backoff.on_unchanged();
+        backoff.on_unchanged();
+        assert_eq!(backoff.current(), Duration::from_millis(5000));
+
+        let notifier = wake.clone();
+        let handle = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(20));
+            notifier.wake();
+        });
+        let mut polled = 0;
+        let started = Instant::now();
+        monitor_step(
+            &wake,
+            &mut seen,
+            &mut backoff,
+            false,
+            Duration::from_secs(5),
+            || {
+                polled += 1;
+                true
+            },
+        );
+        assert_eq!(polled, 0);
+        assert_eq!(backoff.current(), Duration::from_millis(1500));
+        assert!(started.elapsed() < Duration::from_secs(1));
+        handle.join().unwrap();
+
+        // 窗口恢复活跃后立即执行一次状态核对；内部唤醒则直接结束本轮等待并复位退避。
+        wake.wake();
+        monitor_step(
+            &wake,
+            &mut seen,
+            &mut backoff,
+            true,
+            Duration::from_secs(5),
+            || {
+                polled += 1;
+                false
+            },
+        );
+        assert_eq!(polled, 1);
         assert_eq!(backoff.current(), Duration::from_millis(1500));
     }
 }

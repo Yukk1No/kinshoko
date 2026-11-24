@@ -365,7 +365,8 @@ fn collect_rows(
     let by_sha256 = snapshot.by_sha256();
     let mut rows = Vec::new();
     for id in matched_hashes {
-        if safe && snapshot.adult.contains(id) {
+        let adult = snapshot.adult.contains(id);
+        if safe && adult {
             continue;
         }
         let Some(entries) = by_sha256.get(id) else {
@@ -380,7 +381,6 @@ fn collect_rows(
                 )
             })
             .collect();
-        let adult = snapshot.adult.contains(id);
         let mut matching = sources.iter().copied().filter(|(p, i)| matched(p, i));
         let Some((provider, image)) = matching.next() else {
             continue;

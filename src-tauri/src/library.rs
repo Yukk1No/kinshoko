@@ -407,7 +407,7 @@ pub fn start_background<R: Runtime>(app: &AppHandle<R>) {
     workspace::monitor(app.clone());
 }
 
-/// 唤醒工作区后台监控线程，例如主窗口重新打开或从最小化/隐藏恢复显示时。
+/// 唤醒工作区后台监控线程（主窗口恢复显示/激活或应用内写路径修改工作区状态后）。
 pub(crate) fn wake_workspace_monitor() {
     workspace::wake_monitor();
 }

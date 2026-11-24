@@ -24,6 +24,7 @@ pub(super) async fn workspace_edit_sources<R: Runtime>(
         });
         if results.iter().any(|(_, result)| result.is_ok()) {
             app.state::<LibraryState>().search.invalidate();
+            wake_workspace_monitor();
         }
         Ok(results
             .into_iter()

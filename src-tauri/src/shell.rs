@@ -203,7 +203,7 @@ pub fn observe_main_window(app: &AppHandle, save: bool) {
     };
     let state = app.state::<MainWindowState>();
     let placement = {
-        let mut placement = state.0.lock().unwrap_or_else(|e| e.into_inner());
+        let mut placement = crate::sync::lock(&state.0);
         if let Some((maximized, size)) = observation {
             placement.observe(maximized, size);
         }
@@ -249,11 +249,7 @@ pub fn open_main_window(app: &AppHandle) {
     );
     #[cfg(windows)]
     let seed = format!("{seed}{}", crate::file_drop::initialization_script(app));
-    let placement = *app
-        .state::<MainWindowState>()
-        .0
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+    let placement = *crate::sync::lock(&app.state::<MainWindowState>().0);
     match WebviewWindowBuilder::from_config(app, config).and_then(|mut b| {
         if let Some([width, height]) = placement.normal_size {
             b = b.inner_size(width, height);
