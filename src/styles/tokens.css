@@ -343,7 +343,11 @@
   .k-switch,
   .k-switch-thumb,
   .k-badge,
-  .k-pill {
+  .k-pill,
+  .pw-account:not([data-open]) .pw-account-shape,
+  .pw-account-knob,
+  .pw-account-knob *,
+  .pw-account-dot {
     corner-shape: round;
   }
   /* search chips in the top bar and its overflow popover are rounded boxes, not pills */
