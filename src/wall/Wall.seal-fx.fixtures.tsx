@@ -1,0 +1,120 @@
+// 封印／释放动画测试（Wall.seal-fx*.test.tsx）共用的替身与工具。
+import { act, render } from "@testing-library/react";
+import { afterEach, beforeEach, vi } from "vitest";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
+import type { WorkspacePage } from "../bindings/WorkspacePage";
+import type { FakeAnimation } from "../test/platform";
+import { workspaceCard } from "../test/workspacePage";
+import { Wall } from "./Wall";
+import { fakeBackend } from "../test/backend";
+
+/** 用例给出的一页；工作区快照由替身补上。 */
+export type FxPage = Omit<WorkspacePage, "status">;
+
+/** 各用例共用、可改写的状态：每个用例开始时重置。 */
+export const fx = {
+  resolvers: [] as ((page: FxPage) => void)[],
+  bookReads: 0,
+  book: null as unknown as HTMLButtonElement,
+};
+
+/** 在调用它的测试文件里装上 jsdom 排版替身、封印书与浏览应答。 */
+export function installSealFx() {
+  beforeEach(() => {
+    fx.resolvers = [];
+    fx.bookReads = 0;
+    localStorage.clear();
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
+    // jsdom 不排版：卡片按自己的内联位置给矩形，墙占满视口，封印书在左下角。
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains("card")) {
+        const s = this.style;
+        return new DOMRect(parseFloat(s.left), parseFloat(s.top), parseFloat(s.width), parseFloat(s.height));
+      }
+      if (this.classList.contains("seal-book")) {
+        fx.bookReads++;
+        return new DOMRect(8, 700, 40, 40);
+      }
+      return new DOMRect(0, 0, 1000, 800);
+    });
+    fx.book = document.createElement("button");
+    fx.book.className = "rail-btn seal-book";
+    document.body.appendChild(fx.book);
+    mockConvertFileSrc("windows");
+    fakeBackend({
+      workspace_browse: () => {
+        return new Promise<WorkspacePage>((resolve) => {
+          fx.resolvers.push((page) => resolve({ ...page, status: { revision: "r", libraries: [] } }));
+        });
+      },
+    });
+  });
+  afterEach(() => {
+    fx.book.remove();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+}
+
+export const card = (id: string, adult = false) => workspaceCard({ id, width: 100, height: 100, adult });
+export const PAGE: FxPage = { cards: [card("a", true), card("g")], total: 2, nextCursor: null };
+export const base = {
+  workspaceScope: { kind: "all" as const },
+  scope: { kind: "all" as const },
+  selected: new Set<string>(),
+  onSelectionChange: () => {},
+  onOpenImage: () => {},
+  viewerOpen: false,
+};
+export const settle = () =>
+  act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
+export const answer = async (page = PAGE) => {
+  await settle();
+  await act(async () => fx.resolvers[fx.resolvers.length - 1](page));
+  await settle();
+};
+export const node = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`)!;
+export const ghosts = () => document.querySelectorAll(".fx-ghost").length;
+export const frames = (ms: number) =>
+  act(() => {
+    vi.advanceTimersByTime(ms);
+  });
+
+/** 一次 animate() 调用：目标、关键帧、时间参数与共用的假动画。 */
+export type Started = {
+  el: HTMLElement;
+  id: string;
+  keyframes: Keyframe[];
+  timing: KeyframeAnimationOptions;
+  animation: FakeAnimation;
+};
+/** 照常用共用的假动画，另外按顺序记下每次 animate()；afterEach 的 restoreAllMocks 撤掉记录。 */
+export function recordAnimations(): Started[] {
+  const animate = HTMLElement.prototype.animate;
+  const started: Started[] = [];
+  vi.spyOn(HTMLElement.prototype, "animate").mockImplementation(function (this: HTMLElement, keyframes, options) {
+    const animation = animate.call(this, keyframes, options);
+    started.push({
+      el: this,
+      id: this.dataset.id!,
+      keyframes: keyframes as Keyframe[],
+      timing: options as KeyframeAnimationOptions,
+      animation: animation as unknown as FakeAnimation,
+    });
+    return animation;
+  });
+  return started;
+}
+
+export async function wallWith(safeMode: boolean, page = PAGE) {
+  const view = render(<Wall {...base} reloadKey={0} safeMode={safeMode} />);
+  await answer(page);
+  // 关着安全模式时成人图下一帧才放出：等这一帧过去再接管时间。
+  await act(() => new Promise<void>((r) => requestAnimationFrame(() => r())));
+  vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance"] });
+  return view;
+}

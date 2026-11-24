@@ -1,0 +1,40 @@
+/** Parts a backup couldn't back up, and problems the round-trip check found after a restore (#359). */
+export default {
+  problemSeparator: "; ",
+  restorePendingRollback:
+    "The last library restore hasn't been rolled back yet: {{cause}}. It will be rolled back again when you retry the restore",
+  restoredOriginalMismatch: "A restored original doesn't match: {{file}}",
+  backupGroupProblem: "Reference group “{{name}}”: {{cause}}",
+  backupGroupNewLibrary:
+    "Reference group “{{name}}” now refers to another library. Recalculate what to back up and try again",
+  backupLibraryUnreadable: "Couldn't read library “{{name}}”: {{cause}}",
+  backupLibraryDefinitions: "Tag definitions of library “{{name}}”: {{cause}}",
+  backupOriginalProblem: "Original {{file}} in library “{{name}}”: {{cause}}",
+  backupOriginalChanged:
+    "The original doesn't match the library's record (it may have been changed outside Kinshoko), so this backup is incomplete",
+  backupOriginalUnreadable: "Couldn't read the original: {{detail}}",
+  backupTargetDiskFull: "Not enough space on the backup drive",
+  backupTargetWriteFailed: "Couldn't write to the backup drive",
+  backupOriginalsNotBackedUp_one: "{{count, number}} original not backed up: {{reason}}",
+  backupOriginalsNotBackedUp_other: "{{count, number}} originals not backed up: {{reason}}",
+  backupOriginalUnreadableSummary: "Couldn't read the original",
+  backupOriginalChangedSummary: "Original doesn't match the library record",
+  backupOriginalUnknownSummary: "Couldn't copy the original",
+  backupLibraryNotRegistered: "This library isn't registered on this device",
+  checkLibraryProblem: "{{name}}: {{cause}}",
+  checkLibraryUnreadable: "Couldn't read the restored library “{{name}}”: {{cause}}",
+  checkGroupMismatch: "The name or number of members of reference group “{{name}}” doesn't match",
+  checkMemberMismatch: "Member {{member}} of reference group “{{name}}” doesn't match",
+  checkMemberSizeMismatch: "The original of member {{member}} in reference group “{{name}}” has the wrong size",
+  checkMemberUnreadable: "Couldn't get the original of member {{member}} in reference group “{{name}}”: {{cause}}",
+  checkCaptureMismatch: "The capture of member {{member}} in reference group “{{name}}” doesn't match the snapshot",
+  checkOriginalMissing: "Original {{file}} is missing",
+  checkOriginalMismatch: "Original {{file}} doesn't match",
+  checkOriginalUnreadable: "Couldn't read original {{file}}: {{detail}}",
+  checkOriginalCount:
+    "The number of originals doesn't match: {{snapshot, number}} in the snapshot, {{restored, number}} after restoring",
+  checkTableRowCount:
+    "Table {{table}}: {{snapshot, number}} rows in the snapshot, {{restored, number}} after restoring; the contents match",
+  checkTableMismatch:
+    "Table {{table}}: {{snapshot, number}} rows in the snapshot, {{restored, number}} after restoring; the contents differ",
+};

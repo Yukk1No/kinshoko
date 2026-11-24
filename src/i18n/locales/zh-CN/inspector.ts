@@ -1,0 +1,67 @@
+/** 详情侧栏（`src/library/Selection*.tsx`、`WorkspaceSource*.tsx`）：已选参考图的操作、分级、文件夹、备注与多图库来源。 */
+export default {
+  selection: {
+    label: "已选参考图",
+    actions: "已选参考图操作",
+    count_other: "已选 {{count, number}} 张",
+    countShort_other: "{{count, number}} 张",
+    moveToFolder: "移到文件夹",
+    noFolders: "还没有文件夹",
+    removeFromFolder: "移出此文件夹",
+    notDirectlyInFolder: "选中的图都在子文件夹里，这个文件夹本身没有",
+    restore: "恢复",
+    purge: "永久删除…",
+    trash: "移到回收站",
+    clear: "取消选择",
+    trashed: "已移到回收站",
+    trashedCount_other: "{{count, number}} 张",
+    undo: "撤销",
+  },
+  /** 打不上标的图（#475）：一行状态与重试，原因在悬停提示。 */
+  tagging: {
+    unfinished: "自动标签未完成",
+    retry: "重试",
+    unreadable: "无法读取这张图",
+    crashed: "处理这张图时出错",
+  },
+  /** 分级（#518）：星标在模型给的那一档上；画师改过之后，点带星的那一档改回自动。 */
+  rating: {
+    label: "内容分级",
+    title: "分级",
+    revert: "改回自动",
+    /** 带星那一档的读屏名：分级是自动的 / 画师改过，点它改回自动。 */
+    autoOption: "{{rating}}，自动",
+    revertOption: "{{rating}}，改回自动",
+  },
+  file: {
+    collectedAt: "收集于 {{at}}",
+    newVersion: "新版本：Eagle 中这张图的内容变了，旧版本仍保留在图库里",
+    oldVersion: "旧版本：Eagle 中这张图的内容后来变了，新版本另存为一张图",
+  },
+  folders: {
+    label: "所在文件夹",
+    title: "文件夹",
+  },
+  note: {
+    title: "备注",
+    fromSource: "备注（来自来源）",
+    placeholder: "写点什么，例如看哪里",
+    saveLabel: "保存备注",
+    save: "保存",
+    revertLabel: "改回来源备注",
+    revertTitle: "改回来源提供的备注",
+    revertEmptyTitle: "来源没有提供备注，改回后备注为空",
+    revert: "改回来源备注",
+  },
+  links: "来源链接",
+  sources: {
+    label: "图库来源",
+    picker: "所在图库",
+    trash: "回收站",
+    offline: "未连接",
+    titleSeparator: "，",
+  },
+  source: {
+    label: "整理来源",
+  },
+};

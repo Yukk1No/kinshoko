@@ -1,0 +1,255 @@
+//! 查找、安全模式、近似对应与外部词表的命令。
+
+use super::*;
+use kinshoko_core::CommandError;
+
+/// 搜索框打字时的分级候选（#161），与资料库无关。`safe_mode` 是界面当前的视角；应用的安全
+/// 模式设置开着时也按开着处理，切换的这一刻不会露出范围内的分级候选。“R18”与要隐藏的分级
+/// 按设置里的安全模式范围（#223）。
+#[tauri::command]
+pub(super) fn rating_candidates(
+    state: State<'_, LibraryState>,
+    text: String,
+    safe_mode: bool,
+) -> Vec<RatingCandidate> {
+    kinshoko_core::search::rating_candidates(&text, state.safe_mode.effective(safe_mode))
+}
+
+/// 搜索框打字时的候选：按命名空间与别名列出，名称按界面语言 `lang`。`safe_mode` 是界面
+/// 当前的视角；资料库的安全模式不同（刚切换）时返回错误，候选不会落到另一视角上（#76）。
+#[tauri::command]
+pub(super) async fn search_candidates<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+    library_id: String,
+    text: String,
+    lang: String,
+    limit: u32,
+    safe_mode: bool,
+) -> Result<Vec<Candidate>, CommandError> {
+    let catalog = state.search.clone();
+    blocking(move || {
+        let library = readable(&app, &library_id)?;
+        let search = catalog
+            .search(&library, safe_mode)
+            .map_err(CommandError::from)?;
+        Ok(search.candidates(&text, &lang, limit as usize))
+    })
+    .await
+}
+
+/// 安全模式是否开启（全局设置）。
+#[tauri::command]
+pub(super) async fn safe_mode(state: State<'_, LibraryState>) -> Result<bool, CommandError> {
+    Ok(state.safe_mode.current().on)
+}
+
+/// 开关安全模式：先提交给 [`SafeModeState`] 并保存设置（保存不成时退回原值），再设给开着的
+/// 可写资料库；资料库推送 `safeModeChanged`。
+/// 安全模式属于本设备，不随资料库变；之后切换到的资料库按保存的设置打开。
+#[tauri::command]
+pub(super) async fn set_safe_mode<R: Runtime>(
+    app: AppHandle<R>,
+    on: bool,
+) -> Result<bool, CommandError> {
+    lens::commit_safe_mode(
+        &app,
+        format_args!("safe_mode.set on={on}"),
+        |mode| mode.on = on,
+        || {
+            let Some(shell) = app.try_state::<ShellState>() else {
+                return Ok(());
+            };
+            let mut shell = shell.0.lock().map_err(CommandError::system)?;
+            shell.settings.set_safe_mode(on).map_err(CommandError::from)
+        },
+        |state| {
+            // 可写库与导入仍持有的库都跟着设置（ADR-0008：可写句柄会按需切换）。
+            if let Some(libraries) = lock_libraries(state).as_ref() {
+                libraries.set_safe_mode(on);
+            }
+            // Do not let delayed/reordered event workers preserve a reveal across off -> on.
+            crate::desktop::safe_mode_committed(&app, on);
+        },
+    )?;
+    let _ = app.emit(SAFE_MODE_EVENT, on);
+    Ok(on)
+}
+
+/// 调整安全模式范围（#223）：与开关安全模式同一条路——先保存设置，再设给开着的可写资料库
+/// （它们的修订号前进并推送列表与词表变化），钉图随即按新范围重新核对，收紧时清空确认显示；
+/// 之后推送 `safe-mode-setting`（开关不变）与新的工作区状态：工作区修订号随范围变化，界面
+/// 重读浏览、查找与计数，正在查看的图回到图片墙。返回新的设置。
+/// 安全模式关闭时也照此处理（只改变“R18”的含义）。
+#[tauri::command]
+pub(super) async fn set_safe_mode_scope<R: Runtime>(
+    app: AppHandle<R>,
+    state: State<'_, LibraryState>,
+    scope: SafeModeScope,
+) -> Result<kinshoko_core::ShellSettingsView, CommandError> {
+    // 与开关相同：进行中的读取与发送都要按新视角重新核对；保存不成时退回原值。
+    let view = lens::commit_safe_mode(
+        &app,
+        format_args!("safe_mode.scope scope={scope:?}"),
+        |mode| mode.scope = scope,
+        || {
+            let shell = app.state::<ShellState>();
+            let mut shell = shell.0.lock().map_err(CommandError::system)?;
+            shell
+                .settings
+                .set_safe_mode_scope(scope)
+                .map_err(CommandError::from)?;
+            Ok(shell.view())
+        },
+        |state| {
+            state.detached.set_safe_mode_scope(scope);
+            if let Some(libraries) = lock_libraries(state).as_mut()
+                && let Err(error) = libraries.set_safe_mode_scope(scope)
+            {
+                // 视角已换上；只是修订号没写成，游标与工作区快照仍按视角作废。
+                crate::run_log::warn("安全模式范围的修订号未写入", error);
+            }
+            state.search.invalidate();
+            crate::desktop::safe_mode_scope_committed(&app, scope);
+        },
+    )?;
+    let safe = state.safe_mode.current().on;
+    // 与开关同一个通知：钉图重新核对，跟着安全模式重读的界面（词表、分组、导入……）都重读。
+    let _ = app.emit(SAFE_MODE_EVENT, safe);
+    if let Ok(status) = with_lens(&app, safe, Hold::Read, |w, d, c| w.status(d, c, safe)) {
+        let _ = app.emit(workspace::EVENT, status);
+    }
+    Ok(view)
+}
+
+/// 在个人近似对应表中记下两个标签相近或不相近（“＋”与“以后都不展开”）。
+#[tauri::command]
+pub(super) async fn set_tag_approx<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    a: String,
+    b: String,
+    relation: ApproxRelation,
+) -> Result<(), CommandError> {
+    blocking(move || {
+        let library = writable(&app, &library_id)?;
+        library
+            .set_tag_approx(&a, &b, relation)
+            .map_err(CommandError::from)
+    })
+    .await
+}
+
+/// 随软件分发的翻译表（`crates/kinshoko-core/data/builtin-translation-table.json`），启动时取一次。唯一的注入点：
+/// 每个打开的资料库在装配时（[`forward_events`]）装上它，迁入向导的外部词表也按它匹配。
+pub(super) fn bundled_translations() -> TagTranslations {
+    TagTranslations::bundled()
+}
+
+/// 迁入向导的外部词表：内置近似对应表中的名称、本机已就绪模型的词表与翻译表。
+/// 会读文件，不要在主线程上调用。
+pub(super) fn external_vocabulary<R: Runtime>(
+    app: &AppHandle<R>,
+) -> Result<ExternalVocabulary, CommandError> {
+    let state = app.state::<LibraryState>();
+    let csv = crate::tagging::vocabulary_csv(app);
+    let mut cached = lock(&state.external_vocabulary);
+    if let Some((path, vocabulary)) = cached.as_ref()
+        && *path == csv
+    {
+        return Ok(vocabulary.clone());
+    }
+    let mut names = ExternalVocabulary::builtin_names(state.search.builtin_approx());
+    if let Some(path) = &csv {
+        names.extend(ExternalVocabulary::read_tags_csv(path)?);
+    }
+    let vocabulary = ExternalVocabulary::new(names, &state.translations);
+    *cached = Some((csv, vocabulary.clone()));
+    Ok(vocabulary)
+}
+
+/// 迁入向导“标签的外部对应”：自动匹配还没有外部对应的 Eagle 标签，返回对上与没对上的。
+#[tauri::command]
+pub(super) async fn eagle_tag_mapping<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    lang: String,
+) -> Result<EagleTagMapping, CommandError> {
+    let library = save_destination::fixed_library(
+        &app,
+        &kinshoko_core::library::SaveDestination {
+            library_id,
+            folder_id: None,
+        },
+    )?;
+    blocking(move || {
+        let vocabulary = external_vocabulary(&app)?;
+        let mapping = library
+            .map_eagle_tags(&vocabulary, &lang)
+            .map_err(CommandError::from)?;
+        save_destination::publish_saved(&app, &library)?;
+        Ok(mapping)
+    })
+    .await
+}
+
+/// 迁入向导：画师给一个标签补上外部对应。
+#[tauri::command]
+pub(super) async fn map_tag_external<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    tag_id: String,
+    external: String,
+) -> Result<MappedExternal, CommandError> {
+    let library = save_destination::fixed_library(
+        &app,
+        &kinshoko_core::library::SaveDestination {
+            library_id,
+            folder_id: None,
+        },
+    )?;
+    blocking(move || {
+        let vocabulary = external_vocabulary(&app)?;
+        let mapping = library
+            .map_tag_external(&tag_id, &external, &vocabulary)
+            .map_err(CommandError::from)?;
+        save_destination::publish_saved(&app, &library)?;
+        Ok(mapping)
+    })
+    .await
+}
+
+/// 标签管理：改某个来源名称的语言（纠正按文字判断的误判，#217）。
+#[tauri::command]
+pub(super) async fn set_source_name_lang<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    tag_id: String,
+    name: String,
+    lang: String,
+) -> Result<(), CommandError> {
+    let library = save_destination::fixed_library(
+        &app,
+        &kinshoko_core::library::SaveDestination {
+            library_id,
+            folder_id: None,
+        },
+    )?;
+    blocking(move || {
+        library
+            .set_source_name_lang(&tag_id, &name, &lang)
+            .map_err(CommandError::from)?;
+        save_destination::publish_saved(&app, &library)
+    })
+    .await
+}
+
+/// 补外部对应时的联想。外部词表属于本设备，不带资料库身份。
+#[tauri::command]
+pub(super) async fn external_suggestions<R: Runtime>(
+    app: AppHandle<R>,
+    text: String,
+    limit: u32,
+) -> Result<Vec<String>, CommandError> {
+    blocking(move || Ok(external_vocabulary(&app)?.suggest(&text, limit as usize))).await
+}

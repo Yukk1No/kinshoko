@@ -1,0 +1,95 @@
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
+import { Wall } from "./Wall";
+import { type CardSeed, workspacePage } from "../test/workspacePage";
+import { fakeBackend } from "../test/backend";
+
+// #110：缩略图到达前先显示随浏览页带回的占位图，缩略图到达后淡入并盖住它。
+const PLACEHOLDER = "data:image/webp;base64,UklGRg==";
+
+let cards: CardSeed[];
+beforeEach(() => {
+  Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1000 });
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 800 });
+  mockConvertFileSrc("windows");
+  cards = [];
+  fakeBackend({ workspace_browse: () => workspacePage(cards) });
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
+
+const wall = (safeMode = false, reactStrictMode = false) =>
+  render(
+    <Wall
+      workspaceScope={{ kind: "all" }}
+      scope={{ kind: "all" }}
+      reloadKey={0}
+      safeMode={safeMode}
+      selected={new Set()}
+      onSelectionChange={() => {}}
+      onOpenImage={() => {}}
+      viewerOpen={false}
+    />,
+    { reactStrictMode },
+  );
+const card = (id: string) => document.querySelector<HTMLElement>(`.card[data-id="${id}"]`)!;
+const placeholderOf = (id: string) => card(id).querySelector<HTMLElement>(".card-placeholder");
+
+it("缩略图到达前显示同色调的占位图，到达后缩略图淡入", async () => {
+  cards = [{ id: "a", width: 100, height: 50, placeholder: PLACEHOLDER, adult: false }];
+  wall();
+  const [thumbnail] = await screen.findAllByRole("img");
+  expect(placeholderOf("a")?.style.backgroundImage).toContain(PLACEHOLDER);
+  expect(thumbnail.dataset.loaded).toBeUndefined();
+
+  fireEvent.load(thumbnail);
+  expect(thumbnail.dataset.loaded).toBe("fade");
+});
+
+it("还没有占位图的卡片只留中性底色", async () => {
+  cards = [{ id: "a", width: 100, height: 50, adult: false }];
+  wall();
+  await screen.findAllByRole("img");
+  expect(placeholderOf("a")).toBeNull();
+});
+
+it("StrictMode 重放 ref 后，尚未加载的缩略图仍保留地址", async () => {
+  vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(false);
+  cards = [{ id: "a", width: 100, height: 50, placeholder: PLACEHOLDER, adult: false }];
+  wall(false, true);
+  const [thumbnail] = await screen.findAllByRole("img");
+  expect(thumbnail.getAttribute("src")).toContain("L1/a/");
+  expect(thumbnail.dataset.loaded).toBeUndefined();
+});
+
+it("遮蔽中的成人内容卡片不显示占位色彩", async () => {
+  cards = [
+    { id: "a", width: 100, height: 50, placeholder: PLACEHOLDER, adult: true },
+    { id: "b", width: 100, height: 50, placeholder: PLACEHOLDER, adult: false },
+  ];
+  wall(true);
+  await screen.findAllByRole("img");
+  expect(card("a").dataset.veiled).toBe("true");
+  expect(placeholderOf("a")).toBeNull();
+  expect(placeholderOf("b")).not.toBeNull();
+});
+
+it("卡片卸载时缩略图还没到就撤掉地址，浏览器放弃这次请求；已到的不动（#123）", async () => {
+  cards = [
+    { id: "a", width: 100, height: 50, adult: false },
+    { id: "b", width: 100, height: 50, adult: false },
+  ];
+  const view = wall();
+  const [pending, arrived] = (await screen.findAllByRole("img")) as HTMLImageElement[];
+  Object.defineProperty(pending, "complete", { configurable: true, value: false });
+  Object.defineProperty(arrived, "complete", { configurable: true, value: true });
+  expect(pending.getAttribute("src")).toContain("L1/a/");
+  view.unmount();
+  await Promise.resolve();
+  expect(pending.hasAttribute("src")).toBe(false);
+  expect(arrived.getAttribute("src")).toContain("L1/b/");
+});

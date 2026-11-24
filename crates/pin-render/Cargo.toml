@@ -1,0 +1,39 @@
+[package]
+name = "pin-render"
+description = "桌面钉图的 GPU 绘制（ADR 0013）：只依赖 wgpu，不出现平台类型。"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+bytemuck = { version = "1", features = ["derive"] }
+
+# 每个平台只开自己的后端：Windows 用 DX12（DComp visual 目标才有预乘 alpha），
+# macOS 用 Metal，Linux 用 Vulkan。WGSL 由 naga 翻译。
+[target.'cfg(windows)'.dependencies]
+wgpu = { version = "30", default-features = false, features = ["dx12", "wgsl", "std"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+wgpu = { version = "30", default-features = false, features = ["metal", "wgsl", "std"] }
+
+[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
+wgpu = { version = "30", default-features = false, features = ["vulkan", "wgsl", "std"] }
+
+[dev-dependencies]
+kinshoko-core.workspace = true
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+# 内存测量（examples/memory.rs）读进程私有内存与本进程显存，只在 Windows 上有。
+[target.'cfg(windows)'.dev-dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Dxgi",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+] }
+
+# 工作区禁止 unsafe；这里只有建 Surface 一处要用（平台给的窗口目标），在那里单独放开。
+[lints.rust]
+unsafe_code = "deny"

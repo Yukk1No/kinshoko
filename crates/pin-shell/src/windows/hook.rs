@@ -1,0 +1,354 @@
+//! 低级键盘钩子，跑在自己的线程（自带消息循环）上：钉图窗口不激活、拿不到键盘焦点（ADR 0013）。
+//!
+//! 回调只查表（[`KeyGate`]）：光标在某张钉图（含阴影）上、键在拦截表里才拦下，投给界面线程；
+//! 其余放行。表由界面线程发布，回调只在锁里取一个 `Arc`。回调送达得太晚时（系统可能已因超时
+//! 移除钩子）重装，并报给编排写日志。
+//!
+//! Alt（#198）：按下、松开都报给界面线程（同组钉图的细边框），从不拦。这次按着 Alt 时在钉图上
+//! 按下过或滚过（[`alt_used`]），松开时先补一对没有用处的键再松开 Alt：否则前台的程序只看到
+//! “Alt 按下又松开”，会激活它的菜单栏。
+
+use std::cell::{Cell, RefCell};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, mpsc};
+use std::thread::JoinHandle;
+use std::time::{Duration, Instant};
+
+use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, WPARAM};
+use windows::Win32::System::SystemInformation::GetTickCount;
+use windows::Win32::System::Threading::GetCurrentThreadId;
+use windows::Win32::UI::HiDpi::{
+    DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2, SetThreadDpiAwarenessContext,
+};
+use windows::Win32::UI::Input::KeyboardAndMouse::{
+    GetAsyncKeyState, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT,
+    KEYEVENTF_KEYUP, SendInput, VIRTUAL_KEY, VK_CONTROL, VK_LMENU, VK_LWIN, VK_MENU, VK_RMENU,
+    VK_RWIN, VK_SHIFT,
+};
+use windows::Win32::UI::WindowsAndMessaging::{
+    CallNextHookEx, GetCursorPos, GetMessageW, HC_ACTION, HHOOK, KBDLLHOOKSTRUCT, LLKHF_INJECTED,
+    MSG, PM_NOREMOVE, PeekMessageW, PostMessageW, PostThreadMessageW, SetTimer, SetWindowsHookExW,
+    UnhookWindowsHookEx, WH_KEYBOARD_LL, WM_APP, WM_KEYDOWN, WM_QUIT, WM_SYSKEYDOWN, WM_TIMER,
+};
+
+use super::foreground;
+use super::input::{key_from_vk, pack_key, vk_from_key};
+use crate::keys::{HitTable, Key, KeyGate, Mods, Verdict, esc_pass, late_ms};
+
+/// 钩子线程自己的消息：重装钩子，`wParam` 为晚了多少毫秒。
+const WM_REINSTALL: u32 = WM_APP + 1;
+/// 两次重装至少隔这么久（一阵卡顿里每个按键都会晚）。
+const REINSTALL_GAP: Duration = Duration::from_secs(1);
+/// 松开 Alt 前补的键：没有分配用途的虚拟键码（与 AutoHotkey 的“菜单遮罩”相同）。
+const MASK_KEY: u16 = 0xE8;
+/// 这次按着 Alt 时在钉图上按下过或滚过（界面线程记，钩子线程在松开 Alt 时取走）。
+static ALT_USED: AtomicBool = AtomicBool::new(false);
+
+/// 按着 Alt 在钉图上按下或滚了滚轮（界面线程）：松开 Alt 时不让前台程序激活菜单栏。
+pub(super) fn alt_used() {
+    ALT_USED.store(true, Ordering::Relaxed);
+}
+
+/// 兜底：系统移除钩子之后不再有回调，晚到的回调也就看不到。每隔这么久没有按着的键时悄悄重装一次。
+const REFRESH_MS: u32 = 30_000;
+/// 放行的 Esc 两次记日志至少隔这么久（按住不放的自动重复、连按都只记一次）。
+const ESC_REPORT_GAP: Duration = Duration::from_secs(2);
+
+/// 发给宿主窗口的消息号。
+#[derive(Clone, Copy)]
+pub(super) struct Messages {
+    /// 拦下的按键，参数见 [`pack_key`]。
+    pub key: u32,
+    /// 钩子状况：`wParam` 0 为已重装（`lParam` 晚了多少毫秒），1 为装不上（`lParam` 错误码），
+    /// 2 为放行了 Esc（`lParam` 见 `EscPass::pack`），3 为前台换成权限更高的程序。
+    pub status: u32,
+    /// Alt 按下（`wParam` 1）或松开（0）。
+    pub alt: u32,
+}
+
+struct Shared {
+    table: Mutex<Arc<HitTable>>,
+    target: isize,
+    messages: Messages,
+}
+
+thread_local! {
+    static SHARED: RefCell<Option<Arc<Shared>>> = const { RefCell::new(None) };
+    static GATE: RefCell<KeyGate> = RefCell::new(KeyGate::default());
+    static THREAD: Cell<u32> = const { Cell::new(0) };
+    /// 上一次报出的 Alt 状态（按住不放的自动重复不再报）。
+    static ALT: Cell<bool> = const { Cell::new(false) };
+    /// 上一次记下放行的 Esc 的时间。
+    static ESC_REPORTED: Cell<Option<Instant>> = const { Cell::new(None) };
+}
+
+pub(super) struct Hook {
+    shared: Arc<Shared>,
+    thread_id: u32,
+    thread: Option<JoinHandle<()>>,
+}
+
+impl Hook {
+    pub fn start(target: HWND, messages: Messages) -> Hook {
+        let shared = Arc::new(Shared {
+            table: Mutex::new(Arc::new(HitTable::default())),
+            target: target.0 as isize,
+            messages,
+        });
+        let (tx, rx) = mpsc::channel();
+        let s = shared.clone();
+        let thread = std::thread::Builder::new()
+            .name("pin-shell keyboard hook".into())
+            .spawn(move || run(s, tx))
+            .ok();
+        let thread_id = if thread.is_some() {
+            rx.recv().unwrap_or(0)
+        } else {
+            0
+        };
+        Hook {
+            shared,
+            thread_id,
+            thread,
+        }
+    }
+
+    /// 换上新的表（钉图窗口、拦哪些键）。
+    pub fn publish(&self, table: HitTable) {
+        if let Ok(mut t) = self.shared.table.lock() {
+            *t = Arc::new(table);
+        }
+    }
+}
+
+impl Hook {
+    /// 卸下钩子、停下线程并等它退出；之后不再投消息。可以调多次。
+    pub fn stop(&mut self) {
+        if self.thread_id != 0 {
+            // SAFETY：只投递一条线程消息。
+            let _ = unsafe { PostThreadMessageW(self.thread_id, WM_QUIT, WPARAM(0), LPARAM(0)) };
+            self.thread_id = 0;
+        }
+        if let Some(t) = self.thread.take() {
+            let _ = t.join();
+        }
+    }
+}
+
+impl Drop for Hook {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
+fn post(shared: &Shared, msg: u32, wp: usize, lp: isize) {
+    // SAFETY：只投递消息；宿主窗口已销毁时投递失败，忽略。
+    unsafe {
+        let _ = PostMessageW(
+            Some(HWND(shared.target as *mut _)),
+            msg,
+            WPARAM(wp),
+            LPARAM(lp),
+        );
+    }
+}
+
+fn install(shared: &Shared) -> Option<HHOOK> {
+    // SAFETY：回调是本模块的 `extern "system"` 函数；低级钩子不需要模块句柄。
+    match unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(callback), None, 0) } {
+        Ok(h) => Some(h),
+        Err(e) => {
+            post(shared, shared.messages.status, 1, e.code().0 as isize);
+            None
+        }
+    }
+}
+
+fn run(shared: Arc<Shared>, ready: mpsc::Sender<u32>) {
+    // SAFETY：只改本线程的 DPI 感知，让 GetCursorPos 给物理像素；建消息队列。
+    unsafe {
+        let _ = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+        let mut msg = MSG::default();
+        let _ = PeekMessageW(&mut msg, None, 0, 0, PM_NOREMOVE);
+    }
+    // SAFETY：无参数。
+    let me = unsafe { GetCurrentThreadId() };
+    THREAD.with(|t| t.set(me));
+    SHARED.with(|s| *s.borrow_mut() = Some(shared.clone()));
+    let _ = ready.send(me);
+    let mut hook = install(&shared);
+    let _watch = foreground::Watch::start(elevated_foreground);
+    let mut last_reinstall: Option<Instant> = None;
+    // SAFETY：线程计时器，到时往本线程的队列放 WM_TIMER。
+    unsafe { SetTimer(None, 0, REFRESH_MS, None) };
+    let mut msg = MSG::default();
+    // SAFETY：`msg` 由本函数持有；GetMessageW 出错（-1）或收到 WM_QUIT（0）时退出。
+    while unsafe { GetMessageW(&mut msg, None, 0, 0) }.0 > 0 {
+        let report = match msg.message {
+            WM_REINSTALL if last_reinstall.is_none_or(|t| t.elapsed() >= REINSTALL_GAP) => true,
+            WM_TIMER => {
+                // 钩子被移除期间松开的键收不到松开，按物理状态清掉，否则兜底永远等不到空闲。
+                let idle = GATE.with(|g| {
+                    let mut g = g.borrow_mut();
+                    g.forget_released(|key| held(vk_from_key(key) as u16));
+                    g.idle()
+                });
+                if !idle {
+                    continue;
+                }
+                false
+            }
+            _ => continue,
+        };
+        last_reinstall = Some(Instant::now());
+        if let Some(h) = hook.take() {
+            // SAFETY：`h` 是本线程装的钩子；已被系统移除时这里返回失败，忽略。
+            let _ = unsafe { UnhookWindowsHookEx(h) };
+        }
+        hook = install(&shared);
+        if report && hook.is_some() {
+            post(&shared, shared.messages.status, 0, msg.wParam.0 as isize);
+        }
+    }
+    if let Some(h) = hook {
+        // SAFETY：同上。
+        let _ = unsafe { UnhookWindowsHookEx(h) };
+    }
+}
+
+fn held(vk: u16) -> bool {
+    // SAFETY：只读按键状态。最高位为 1 表示按着。
+    (unsafe { GetAsyncKeyState(i32::from(vk)) }) < 0
+}
+
+unsafe extern "system" fn callback(code: i32, wp: WPARAM, lp: LPARAM) -> LRESULT {
+    if code == HC_ACTION as i32 {
+        // SAFETY：HC_ACTION 时 lParam 指向系统给的 KBDLLHOOKSTRUCT，回调期间有效。
+        let k = unsafe { &*(lp.0 as *const KBDLLHOOKSTRUCT) };
+        // SAFETY：无参数。
+        if let Some(late) = late_ms(k.time, unsafe { GetTickCount() }) {
+            let me = THREAD.with(Cell::get);
+            // SAFETY：只投递一条线程消息给本线程。
+            let _ =
+                unsafe { PostThreadMessageW(me, WM_REINSTALL, WPARAM(late as usize), LPARAM(0)) };
+        }
+        let down = matches!(wp.0 as u32, WM_KEYDOWN | WM_SYSKEYDOWN);
+        // 自己补发的键（见 `alt`）原样放行。
+        let injected = k.flags.0 & LLKHF_INJECTED.0 != 0;
+        if is_alt(k.vkCode) && !injected && alt(k.vkCode, down) {
+            return LRESULT(1);
+        }
+        if decide(k.vkCode, down) == Some(true) {
+            return LRESULT(1);
+        }
+    }
+    // SAFETY：把没拦的事件交给下一个钩子，参数原样转交。
+    unsafe { CallNextHookEx(None, code, wp, lp) }
+}
+
+fn is_alt(vk: u32) -> bool {
+    [VK_MENU, VK_LMENU, VK_RMENU]
+        .iter()
+        .any(|k| u32::from(k.0) == vk)
+}
+
+/// Alt 按下、松开：状态变了报给界面线程。返回要不要拦下这次松开（已改为补发遮罩键再松开）。
+fn alt(vk: u32, down: bool) -> bool {
+    if ALT.with(|a| a.replace(down)) != down {
+        if down {
+            ALT_USED.store(false, Ordering::Relaxed);
+        }
+        if let Some(shared) = SHARED.with(|s| s.borrow().clone()) {
+            post(&shared, shared.messages.alt, usize::from(down), 0);
+        }
+    }
+    if down || !ALT_USED.swap(false, Ordering::Relaxed) {
+        return false;
+    }
+    let key = |vk: u16, up: bool| INPUT {
+        r#type: INPUT_KEYBOARD,
+        Anonymous: INPUT_0 {
+            ki: KEYBDINPUT {
+                wVk: VIRTUAL_KEY(vk),
+                wScan: 0,
+                dwFlags: if up {
+                    KEYEVENTF_KEYUP
+                } else {
+                    KEYBD_EVENT_FLAGS(0)
+                },
+                time: 0,
+                dwExtraInfo: 0,
+            },
+        },
+    };
+    let inputs = [
+        key(MASK_KEY, false),
+        key(MASK_KEY, true),
+        key(vk as u16, true),
+    ];
+    // SAFETY：`inputs` 由本函数持有，大小与 INPUT 一致。补发的键带 LLKHF_INJECTED，回到这里时放行。
+    let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+    // 送不出去时让真的松开过去（菜单栏也许会被激活，但 Alt 不会卡住）。
+    sent as usize == inputs.len()
+}
+
+/// 拦不拦（Some(true) 拦）；不是钉图认的键直接 None，不碰锁也不取光标。
+fn decide(vk: u32, down: bool) -> Option<bool> {
+    let key = key_from_vk(vk)?;
+    let shared = SHARED.with(|s| s.borrow().clone())?;
+    let verdict = if down {
+        let table = shared.table.lock().ok()?.clone();
+        let mut p = POINT::default();
+        // SAFETY：`p` 由本函数持有。
+        unsafe { GetCursorPos(&mut p) }.ok()?;
+        let mods = Mods {
+            shift: held(VK_SHIFT.0),
+            ctrl: held(VK_CONTROL.0),
+            alt: held(VK_MENU.0),
+            win: held(VK_LWIN.0) || held(VK_RWIN.0),
+        };
+        let verdict = GATE.with(|g| g.borrow_mut().down(&table, Some(key), (p.x, p.y), mods));
+        if key == Key::Escape && verdict == Verdict::Pass {
+            report_esc(&shared, &table, (p.x, p.y), mods);
+        }
+        verdict
+    } else {
+        GATE.with(|g| g.borrow_mut().up(Some(key)))
+    };
+    match verdict {
+        Verdict::Pass => Some(false),
+        Verdict::Swallow(captured) => {
+            if let Some(c) = captured {
+                let (wp, lp) = pack_key(c);
+                post(&shared, shared.messages.key, wp, lp);
+            }
+            Some(true)
+        }
+    }
+}
+
+/// 屏幕上有钉图时放行了 Esc：报给编排写日志（隔 [`ESC_REPORT_GAP`] 才再报）。
+fn report_esc(shared: &Shared, table: &HitTable, at: (i32, i32), mods: Mods) {
+    let Some(pass) = esc_pass(table, at, mods) else {
+        return;
+    };
+    if ESC_REPORTED
+        .with(Cell::get)
+        .is_some_and(|t| t.elapsed() < ESC_REPORT_GAP)
+    {
+        return;
+    }
+    ESC_REPORTED.with(|t| t.set(Some(Instant::now())));
+    post(shared, shared.messages.status, 2, pass.pack() as isize);
+}
+
+/// 前台换成权限更高的程序：屏幕上有钉图时报给编排，程序名随消息排进 `foreground::queue_exe`。
+fn elevated_foreground(exe: String) {
+    let Some(shared) = SHARED.with(|s| s.borrow().clone()) else {
+        return;
+    };
+    if shared.table.lock().is_ok_and(|t| !t.pins.is_empty()) {
+        foreground::queue_exe(exe);
+        post(&shared, shared.messages.status, 3, 0);
+    }
+}

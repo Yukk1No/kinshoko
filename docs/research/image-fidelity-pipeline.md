@@ -25,7 +25,7 @@
 | 缩略图色彩 | `moxcms` 0.9.1：按与 Chromium 相同的优先级取得来源色彩声明，转到线性光工作空间（f32） | 支持 ICC v2/v4、LUT（mAB/mBA）、CMYK、CICP，含 PQ/HLG 预设；纯 Rust，BSD-3／Apache-2.0；`image` 0.25.10 已依赖它 | 同一库可做 PQ/HLG／BT.2020 转换 |
 | 缩略图缩放 | `fast_image_resize` 6.1.0，F32 像素、预乘 alpha（默认开启）、Lanczos3（默认）；画师对比后可改 Mitchell 等 | `image` 的 `resize` 要求调用方先预乘并处于线性光；直接用会在透明边与细线上出错 | f32 工作区不限制超出 1.0 的 HDR 值 |
 | 缩略图存储 | 无损：sRGB 来源→8 位无损 WebP；广色域→8 位无损 WebP＋ICC（保留来源矩阵型 ICC，或转为 Display P3）；16 位来源→16 位 PNG＋iCCP | 有损 WebP（VP8）只有 4:2:0 色度抽样，会损伤动漫线稿的彩色细线；`image` 的 WebP 编码器只有无损、可写 ICC | HDR 缩略图以后用 16 位 PNG＋cICP（Chromium 优先读 cICP）或增益图；缓存键加“动态范围变体” |
-| 桌面钉图（库内局部） | canvas 2D，按物理像素定尺寸，`colorSpace: 'display-p3'`；缩小时从 Rust 派生图取样，放大时 `imageSmoothingQuality='high'` 或关闭平滑 | 默认 sRGB canvas 会把广色域图裁到 sRGB；`imageSmoothingQuality` 默认 `low` | 渲染层抽象成接口，HDR 时换 WebGPU `rgba16float`＋`toneMapping: 'extended'`（M129 已默认开启） |
+| 桌面钉图（库内局部） | canvas 2D，按物理像素定尺寸，sRGB 色彩空间、`colorType: 'float16'`（原建议 `display-p3`，#62 实测改）；缩小时从 Rust 派生图取样，放大时 `imageSmoothingQuality='high'` 或关闭平滑 | 默认 sRGB canvas 会把广色域图裁到 sRGB；`imageSmoothingQuality` 默认 `low` | 渲染层抽象成接口，HDR 时换 WebGPU `rgba16float`＋`toneMapping: 'extended'`（M129 已默认开启） |
 | 截图钉图 | 截图时记录屏幕颜色状态（普通 SDR＋显示器 ICC／Windows 自动色彩管理／HDR），按采集格式无损保存并标注相应色彩空间，使回显在原屏幕上为恒等变换 | “未缩放时与屏幕像素一致”要求回显不能再做一次 sRGB→显示器转换 | HDR 桌面需 FP16 scRGB 采集＋WebGPU 扩展范围显示 |
 | WebView2 参数 | 默认**不**加 `--force-color-profile`；保留一个需重启生效的诊断开关 | 强制 sRGB 会放弃显示器 ICC 校正；但 WebView2 154 存在显示色彩空间回归（偏黄），需要逃生口 | 同一开关以后可用于强制 scRGB 等诊断 |
 
@@ -153,7 +153,7 @@ HDR 显示路径：WebGPU 的 `toneMapping: { mode: 'extended' }` 已在 M129 �
 | canvas 2D | `drawImage` 可选 `imageSmoothingQuality`（最高为三次采样，缩小有混叠）或关闭平滑；整数平移、90° 旋转与翻转可做到逐像素精确 | 全部转换到 canvas 色彩空间：默认 sRGB 会裁广色域，须用 `display-p3`；float16 待实测 | 需要 float16 与 HDR canvas，尚未就绪 |
 | WebGL／WebGPU | 着色器完全自控：线性光、Lanczos／EWA 旋转、mip 预滤波 | 自己负责：导入纹理时的色彩转换须显式处理 | WebGPU 扩展范围 M129 已默认开启 |
 
-建议：首版钉图用 canvas 2D（物理像素尺寸、`display-p3`），缩小时用 Rust 派生图作为源以避免混叠，放大与旋转交给 canvas；把“钉图渲染器”做成接口，HDR 或更高质量旋转时换 WebGPU 实现。WebGPU 在 WebView2 中可能因 GPU 黑名单不可用，必须保留 canvas 2D 回退（推论，未核实 WebView2 的 WebGPU 启用条件）。
+建议：首版钉图用 canvas 2D（物理像素尺寸、sRGB `float16`；原建议 `display-p3`，#62 实测在 110% 缩放的 sRGB 屏上约一半像素偏 1–8 级，sRGB canvas 与 `<img>` 逐像素一致），缩小时用 Rust 派生图作为源以避免混叠，放大与旋转交给 canvas；把“钉图渲染器”做成接口，HDR 或更高质量旋转时换 WebGPU 实现。WebGPU 在 WebView2 中可能因 GPU 黑名单不可用，必须保留 canvas 2D 回退（推论，未核实 WebView2 的 WebGPU 启用条件）。
 
 ## 尚未验证
 

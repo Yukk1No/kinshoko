@@ -1,0 +1,43 @@
+{
+  "stories": [
+    38,
+    39,
+    40
+  ],
+  "ticket": 93,
+  "windows": "10.0.26300",
+  "sourceRevision": "e4966fafc20295045f05d6719ee45697dc029802",
+  "identifier": "dev.kinshoko.spec78t14test",
+  "ports": [
+    4480,
+    4481
+  ],
+  "checks": [
+    "Created an isolated real target library through the production UI",
+    "Selected parent folder is recognized as Eagle and defaults to skipping deleted content",
+    "Cancelling before start leaves the target library unchanged",
+    "Default wizard imports new Eagle content",
+    "Default reimport reports skipped permanently deleted content",
+    "Explicit allow-this-import recreates the same content",
+    "A later import resets to the default deletion choice",
+    "Normal reimport refreshes Eagle facts while preserving manual notes and folders",
+    "Trash duplicates retain deletion and show a generic restore entry",
+    "The duplicate notice exposes neither image names nor a duplicate count",
+    "The recycle-bin entry restores only after the user's Restore action",
+    "Restart reopens the same target library in the isolated data directory",
+    "Deletion memory survives explicit allow, deletion again, and a real process restart",
+    "New bytes of the same Eagle item import as a new content version",
+    "An allowed import with a missing source reports a retryable read failure",
+    "Failure retry retains this task's explicit allow choice and source",
+    "The repaired source retries successfully through the real wizard"
+  ],
+  "runtime": {
+    "browserName": "webview2",
+    "browserVersion": "154.0.4258.62",
+    "platformName": "windows"
+  },
+  "dpr": 1.1041666269302368,
+  "diagnostics": "Kinshoko 0.1.0 诊断信息\n生成时间：2026-10-08 15:23:18 UTC\n本报告不含文件名、路径与图片。\n\n[系统]\n系统：Windows 11 Professional 26H2（26300.9550）\n处理器：AMD Ryzen 7 5800X 8-Core Processor\n内存：31.9 GB\n显卡：NVIDIA GeForce RTX 4070 SUPER\n显卡：GameViewer Virtual Display Adapter\nWebView2：154.0.4258.62\n\n[显示器]\n1. VG27AQL1A（主显示器）：2560×1440，缩放 110%，SDR（自动色彩管理），每通道 8 位\n   配置文件：sRGB IEC61966-2.1，ICC 2.1，矩阵＋曲线，SHA-256 2b3aa1645779\n\n[Kinshoko 设置]\n强制 sRGB：关闭\n使用日志：关闭\n",
+  "status": "passed",
+  "finishedAt": "2026-10-08T15:23:25.007Z"
+}

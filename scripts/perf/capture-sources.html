@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>capture-sources</title></head>
+<!--
+  #216：截图前后主窗口收集可见参考图（src/desktop/captureSources.ts）的耗时。在真实 Chromium 里搭一面合成图片墙
+  （cards 张已挂载的卡片、rows 行侧栏）和一块浮层，对每张卡片调用 captureImage，比较逐张读取（perImageMs）与
+  一次报告共用矩形（sharedMs，应用实际走的路）的中位数，并核对两者结果相同（same）。hitPerRun 是共用时每次
+  报告的命中测试次数与耗时。
+  用法：npx vite --port 5216，浏览器（视口不小于 1600×1000）打开
+  http://localhost:5216/scripts/perf/capture-sources.html?cards=200&rows=300&runs=9，读 window.result。
+-->
+<body>
+<script type="module">
+import "/src/styles.css";
+import * as sources from "/src/desktop/captureSources.ts";
+const { captureImage } = sources;
+const frame = sources.readCaptureFrame;
+
+const q = new URLSearchParams(location.search);
+const CARDS = Number(q.get("cards") ?? 120);
+const ROWS = Number(q.get("rows") ?? 300);
+const RUNS = Number(q.get("runs") ?? 15);
+// 1×1 PNG：已解码完成，complete 且有自然尺寸。
+const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+const nav = document.createElement("nav");
+nav.style.cssText = "position:fixed;left:0;top:0;width:260px;height:100%;overflow:auto";
+for (let i = 0; i < ROWS; i++) nav.insertAdjacentHTML("beforeend", `<div class="row"><svg width="12" height="12"><path d="M0 0h12v12z"/></svg><span>文件夹 ${i}</span><span>${i}</span></div>`);
+document.body.append(nav);
+
+const wall = document.createElement("div");
+wall.className = "wall";
+wall.style.cssText = "position:fixed;left:260px;top:48px;right:0;bottom:0;overflow:auto";
+const canvas = document.createElement("div");
+canvas.style.cssText = "position:relative";
+wall.append(canvas);
+document.body.append(wall);
+const cols = Math.max(1, Math.floor((innerWidth - 260) / 250));
+for (let i = 0; i < CARDS; i++) {
+  const x = 8 + (i % cols) * 250, y = 8 + Math.floor(i / cols) * 310;
+  canvas.insertAdjacentHTML("beforeend",
+    `<div class="card" data-id="c${i}" role="option" style="left:${x}px;top:${y}px;width:242px;height:302px">` +
+    `<img src="${PNG}" alt="参考图" data-loaded="instant"><div class="card-placeholder" style="background-image:url('${PNG}')"></div></div>` +
+    `<button type="button" class="card-sources is-single" style="left:${x + 234}px;top:${y + 294}px"><svg width="12" height="12"><path d="M0 0h12v12z"/></svg></button>`);
+}
+canvas.style.height = `${8 + Math.ceil(CARDS / cols) * 310}px`;
+// 盖在图片墙上的浮层（选择条、轻提示）：covered 要有内容才能核对结果相同。
+document.body.insertAdjacentHTML("beforeend", `<div style="position:fixed;left:400px;top:300px;width:500px;height:60px;background:#333;z-index:9"><button>复制</button><button>钉住</button></div>`);
+await new Promise((done) => { const t = setInterval(() => { if ([...document.images].every((img) => img.complete)) { clearInterval(t); done(); } }, 20); });
+
+const each = () => [...wall.querySelectorAll(".card img")].flatMap((image) => {
+  const ref = captureImage(image, wall, "L", image.closest(".card").dataset.id, 1000, 1250);
+  return ref ? [ref] : [];
+});
+const time = (read) => {
+  read();
+  const times = [];
+  let refs = [];
+  for (let i = 0; i < RUNS; i++) {
+    const t = performance.now();
+    refs = read();
+    times.push(performance.now() - t);
+  }
+  times.sort((a, b) => a - b);
+  return { refs, median: +times[times.length >> 1].toFixed(1) };
+};
+const hit = { calls: 0, ms: 0 };
+for (const name of ["elementsFromPoint", "elementFromPoint"]) {
+  const original = document[name].bind(document);
+  document[name] = (x, y) => { const t = performance.now(); const r = original(x, y); hit.ms += performance.now() - t; hit.calls++; return r; };
+}
+const perImage = time(each);
+hit.calls = 0; hit.ms = 0;
+const shared = time(() => frame(each));
+const hitPerRun = { calls: hit.calls / (RUNS + 1), ms: +(hit.ms / (RUNS + 1)).toFixed(1) };
+window.result = {
+  cards: CARDS, rows: ROWS, nodes: document.querySelectorAll("body *").length, visible: shared.refs.length,
+  covered: shared.refs.reduce((n, r) => n + r.covered.length, 0),
+  perImageMs: perImage.median, sharedMs: shared.median,
+  hitPerRun,
+  same: JSON.stringify(perImage.refs) === JSON.stringify(shared.refs),
+};
+document.title = "done";
+</script>
+</body>
+</html>

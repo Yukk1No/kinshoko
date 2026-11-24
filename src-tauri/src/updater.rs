@@ -1,0 +1,262 @@
+//! 自动更新（#70）：Tauri updater 从 GitHub Releases 的 `latest.json` 检查新版本，下载安装包、
+//! 用 `tauri.conf.json` 里的公钥校验签名，再以 NSIS 被动模式安装并重启。
+//! 入口按画师的更新通道选（#204）：正式版通道读 GitHub latest，测试版通道读 `channel-beta` Release。
+//!
+//! 私有阶段只用安装包手动更新。公开阶段必须明确声明原仓库已公开，并有原仓库入口与更新公钥。
+//! 签名私钥只在 GitHub 仓库的 Actions secret 里，不进仓库（见 docs/validation/release-checklist.md）。
+
+use crate::sync::lock;
+use kinshoko_core::CommandError;
+use kinshoko_core::command_error::ErrorKind;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+
+use kinshoko_core::{
+    ShellSettingsView, UpdateChannel, UpdatePolicy, UpdateProgress, UpdateStatus, offers_update,
+};
+use tauri::{AppHandle, Emitter, Manager, Runtime, State, Url};
+use tauri_plugin_updater::{Update, UpdaterExt as _};
+
+const PROGRESS_EVENT: &str = "update-progress";
+/// 更新通道换了（设置页切换或恢复程序设置）：之前查到的更新作废，主窗口的更新提示收起。
+const CHANNEL_EVENT: &str = "update-channel-changed";
+
+pub struct UpdaterState {
+    status: Mutex<UpdateStatus>,
+    pending: Mutex<Option<Update>>,
+    /// 换通道时加一。检查开始时记下它，结束时不一致就丢掉结果：旧通道的检查不能留下可安装的更新。
+    /// 与 `pending` 在同一把锁下比较和改动。
+    generation: AtomicU64,
+    /// 有一次安装正在下载。通知和设置页各有安装按钮，同一时间只让一次进到下载。
+    installing: AtomicBool,
+}
+
+/// 持有期间 `installing` 为真；安装失败返回时放开，之后可以重试。
+struct Installing<'a>(&'a AtomicBool);
+
+impl Drop for Installing<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
+}
+
+impl UpdaterState {
+    pub fn new<R: Runtime>(app: &AppHandle<R>) -> Self {
+        let status = update_policy(app).initial_status();
+        UpdaterState {
+            status: Mutex::new(status),
+            pending: Mutex::new(None),
+            generation: AtomicU64::new(0),
+            installing: AtomicBool::new(false),
+        }
+    }
+
+    fn status(&self) -> UpdateStatus {
+        lock(&self.status).clone()
+    }
+
+    fn set(&self, status: UpdateStatus) -> UpdateStatus {
+        *lock(&self.status) = status.clone();
+        status
+    }
+}
+
+/// 每个动作读取当前构建条件；阶段配置与插件的签名、下载配置共用一个入口。
+fn update_policy<R: Runtime>(app: &AppHandle<R>) -> UpdatePolicy {
+    let updater = app.config().plugins.0.get("updater");
+    let stage = updater
+        .and_then(|u| u.get("releaseStage"))
+        .map(|s| s.as_str().unwrap_or_default());
+    let pubkey = updater
+        .and_then(|u| u.get("pubkey"))
+        .and_then(|k| k.as_str());
+    let endpoints = updater
+        .and_then(|u| u.get("endpoints"))
+        .and_then(|e| e.as_array())
+        .map(|e| {
+            e.iter()
+                .map(|url| url.as_str().unwrap_or_default().to_owned())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    UpdatePolicy::for_build(stage, pubkey, &endpoints)
+}
+/// 上次检查的结果；还没检查过时为 `unchecked`。
+#[tauri::command]
+pub async fn update_status(state: State<'_, UpdaterState>) -> Result<UpdateStatus, CommandError> {
+    Ok(state.status())
+}
+
+/// 向 GitHub Releases 检查新版本。
+#[tauri::command]
+pub async fn check_update(
+    app: AppHandle,
+    state: State<'_, UpdaterState>,
+) -> Result<UpdateStatus, CommandError> {
+    let policy = update_policy(&app);
+    if policy.require_automatic().is_err() {
+        *lock(&state.pending) = None;
+        return Ok(state.set(policy.initial_status()));
+    }
+    // 新检查不能留下上一次的可安装对象（例如本次已最新或检查失败）。
+    *lock(&state.pending) = None;
+    // 先记代次再读通道：读完之后换了通道，代次一定变了。
+    let generation = state.generation.load(Ordering::SeqCst);
+    let channel = update_channel(&app)?;
+    // 交给安装程序前收好钉图状态：安装程序会结束本进程与打标子进程。
+    let exiting = app.clone();
+    let checked = match app
+        .updater_builder()
+        .endpoints(vec![
+            Url::parse(channel.endpoint()).expect("通道入口是固定的合法地址"),
+        ])
+        .map(|builder| {
+            builder
+                .version_comparator(|current, release| offers_update(&current, &release.version))
+                .on_before_exit(move || crate::desktop::on_exit(&exiting))
+                .build()
+        }) {
+        Ok(Ok(updater)) => updater.check().await,
+        Ok(Err(e)) | Err(e) => Err(e),
+    };
+    let mut pending = lock(&state.pending);
+    if state.generation.load(Ordering::SeqCst) != generation {
+        // 检查期间换了通道：这是旧通道的结果，不保存。
+        return Ok(state.status());
+    }
+    let status = match checked {
+        Ok(Some(update)) => {
+            let status = UpdateStatus::Available {
+                version: update.version.clone(),
+                notes: update.body.clone().filter(|b| !b.trim().is_empty()),
+            };
+            *pending = Some(update);
+            status
+        }
+        Ok(None) => UpdateStatus::UpToDate,
+        Err(e) => {
+            crate::run_log::warn("检查更新失败", &e);
+            UpdateStatus::Failed {
+                message: CommandError::new(
+                    ErrorKind::UpdateCheckFailed,
+                    "检查更新失败，请检查网络后重试。",
+                ),
+            }
+        }
+    };
+    Ok(state.set(status))
+}
+
+fn update_channel(app: &AppHandle) -> Result<UpdateChannel, CommandError> {
+    let shell = app.state::<crate::shell::ShellState>();
+    let shell = shell.0.lock().map_err(CommandError::system)?;
+    Ok(shell.settings.update_channel())
+}
+
+/// 换更新通道（#204）。上一次检查的结果属于原来的通道，作废；界面随后按新通道重新检查。
+/// 切回正式版通道不降级：只有比已装版本新的版本才算更新（见 [`offers_update`]）。
+#[tauri::command]
+pub async fn set_update_channel(
+    app: AppHandle,
+    shell: State<'_, crate::shell::ShellState>,
+    channel: UpdateChannel,
+) -> Result<ShellSettingsView, CommandError> {
+    let view = {
+        let mut shell = shell.0.lock().map_err(CommandError::system)?;
+        shell
+            .settings
+            .set_update_channel(channel)
+            .map_err(CommandError::from)?;
+        shell.view()
+    };
+    channel_changed(&app);
+    Ok(view)
+}
+
+/// 通道可能变了（设置页切换、恢复程序设置）：作废进行中的检查和已查到的更新，状态回到未检查，
+/// 并通知主窗口收起更新提示。
+pub fn channel_changed<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(state) = app.try_state::<UpdaterState>() {
+        let mut pending = lock(&state.pending);
+        state.generation.fetch_add(1, Ordering::SeqCst);
+        *pending = None;
+        state.set(update_policy(app).initial_status());
+    }
+    let _ = app.emit(CHANNEL_EVENT, ());
+}
+
+/// 下载并安装已检查到的新版本。成功时安装程序接管，本进程退出、装好后重新启动。
+#[tauri::command]
+pub async fn install_update(
+    app: AppHandle,
+    state: State<'_, UpdaterState>,
+) -> Result<(), CommandError> {
+    install_pending(&app, &state).await
+}
+
+async fn install_pending<R: Runtime>(
+    app: &AppHandle<R>,
+    state: &UpdaterState,
+) -> Result<(), CommandError> {
+    let policy = update_policy(app);
+    if let Err(message) = policy.require_automatic() {
+        *lock(&state.pending) = None;
+        state.set(policy.initial_status());
+        return Err(message);
+    }
+    if state.installing.swap(true, Ordering::SeqCst) {
+        return Err(CommandError::new(
+            ErrorKind::UpdateInstalling,
+            "正在下载更新，请等这次完成。",
+        ));
+    }
+    let _installing = Installing(&state.installing);
+    // 留在 `pending` 里：下载或安装失败后可以直接重试；期间换了通道，`channel_changed` 会清掉它。
+    let Some(update) = lock(&state.pending).clone() else {
+        return Err(CommandError::new(
+            ErrorKind::UpdateNotPending,
+            "没有可以安装的更新，请先检查更新。",
+        ));
+    };
+    let mut downloaded = 0u64;
+    let progress_app = app.clone();
+    let result = update
+        .download_and_install(
+            move |chunk, total| {
+                downloaded += chunk as u64;
+                let _ = progress_app.emit(PROGRESS_EVENT, UpdateProgress { downloaded, total });
+            },
+            || {},
+        )
+        .await;
+    // 走到这里说明没有交给安装程序（Windows 上安装成功时进程已退出）。
+    match result {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            crate::run_log::error("安装更新失败", &e);
+            let error = match e {
+                tauri_plugin_updater::Error::Minisign(_)
+                | tauri_plugin_updater::Error::SignatureUtf8(_) => CommandError::new(
+                    ErrorKind::UpdateSignatureInvalid,
+                    "更新包签名不对，已放弃安装。",
+                ),
+                _ => CommandError::new(
+                    ErrorKind::UpdateInstallFailed,
+                    "下载或安装更新失败，请稍后重试。",
+                ),
+            };
+            Err(error)
+        }
+    }
+}
+
+pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry, tauri_plugin_updater::Config> {
+    tauri_plugin_updater::Builder::new().build()
+}
+
+pub fn manage(app: &AppHandle) {
+    app.manage(UpdaterState::new(app));
+}
+
+#[cfg(test)]
+mod tests;

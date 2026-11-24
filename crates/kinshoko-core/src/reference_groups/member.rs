@@ -1,0 +1,277 @@
+//! 参考组成员与它用的是什么：资料库中的参考图，或参考组自带的截图（#270）。
+
+use crate::CommandError;
+use crate::command_error::ErrorKind;
+use std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
+use crate::desktop::{
+    GroupMemberRef, MAX_SCALE, MIN_SCALE, PinContent, Placement, Region, SavedPin,
+};
+use crate::library::ReferenceImage;
+
+/// 成员用的是什么：资料库中的参考图，或参考组自带的截图（#270）。
+/// 磁盘上不带标签，资料库成员仍是旧文件的 `libraryId`、`imageId` 两个字段，旧参考组不迁移也能读。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(untagged)]
+#[ts(export)]
+pub enum MemberSource {
+    /// 按“资料库＋参考图”引用。
+    #[serde(rename_all = "camelCase")]
+    Library {
+        library_id: String,
+        image_id: String,
+    },
+    /// 参考组自带的截图：`<参考组>.captures/` 下的文件名。
+    #[serde(rename_all = "camelCase")]
+    Capture { capture_file: String },
+}
+
+impl MemberSource {
+    /// 引用的“资料库＋参考图”；组内截图为 `None`。
+    pub fn library_image(&self) -> Option<(&str, &str)> {
+        match self {
+            MemberSource::Library {
+                library_id,
+                image_id,
+            } => Some((library_id, image_id)),
+            MemberSource::Capture { .. } => None,
+        }
+    }
+}
+
+/// 参考组成员：参考视图或参考组自带的截图在这个参考组里的一次使用。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct GroupMember {
+    /// 在参考组内唯一。
+    pub id: String,
+    #[serde(flatten)]
+    pub source: MemberSource,
+    /// 原图尺寸：局部总能核对是否在图内，资料库不在时也能按原尺寸保留布局。
+    pub source_width: u32,
+    pub source_height: u32,
+    /// 只显示原图的这一块（原图像素）；`None` 为整图。
+    pub crop: Option<Region>,
+    /// 位置、缩放、翻转与旋转；尺寸由局部与缩放得出。
+    pub placement: Placement,
+    /// 透明度，[`MIN_OPACITY`](crate::desktop::MIN_OPACITY)～1（#588 决定 3：随成员保存，修订 Q71）。
+    /// 不透明时不写出，旧文件因此不变；参考组包不带它。
+    #[serde(default = "opaque", skip_serializing_if = "is_opaque")]
+    #[ts(as = "Option<f64>", optional)]
+    pub opacity: f64,
+    /// 锁定后不响应拖动与缩放。不锁定时不写出；参考组包不带它。
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    #[ts(as = "Option<bool>", optional)]
+    pub locked: bool,
+    /// 钉着（#588 决定 3）：参考组摆在桌面上时有一张钉图显示它。关掉钉图只标成没钉着，不移出。
+    /// 钉着时不写出，旧文件因此不变；旧参考组的成员都算钉着。
+    #[serde(default = "yes", skip_serializing_if = "is_yes")]
+    #[ts(as = "Option<bool>", optional)]
+    pub pinned: bool,
+    /// 加进参考组的时间（毫秒），侧栏按它的日期分段（#588“按天分段”）。没有时不写出，
+    /// 按参考组的 `created_at` 算（[`super::ReferenceGroup::added_at`]）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(type = "number", optional)]
+    pub added_at: Option<i64>,
+    /// 关掉的时间（毫秒）：侧栏“已关闭 N 张”按它倒序（#588 11-19 晚 规则 3）。钉着时没有、不写出。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(type = "number", optional)]
+    pub closed_at: Option<i64>,
+}
+
+fn yes() -> bool {
+    true
+}
+
+fn is_yes(b: &bool) -> bool {
+    *b
+}
+
+fn opaque() -> f64 {
+    1.0
+}
+
+fn is_opaque(opacity: &f64) -> bool {
+    *opacity == 1.0
+}
+
+impl GroupMember {
+    /// 引用的资料库；组内截图为 `None`。
+    pub fn library_id(&self) -> Option<&str> {
+        self.source.library_image().map(|(library, _)| library)
+    }
+
+    /// 引用的参考图；组内截图为 `None`。
+    pub fn image_id(&self) -> Option<&str> {
+        self.source.library_image().map(|(_, image)| image)
+    }
+
+    /// 资料库钉图对应的成员；截图钉图为 `None`。
+    pub(super) fn from_pin(id: String, pin: &SavedPin) -> Option<GroupMember> {
+        let PinContent::Reference {
+            library_id,
+            image_id,
+            source_width,
+            source_height,
+        } = &pin.content
+        else {
+            return None;
+        };
+        Some(GroupMember {
+            id,
+            source: MemberSource::Library {
+                library_id: library_id.clone(),
+                image_id: image_id.clone(),
+            },
+            source_width: *source_width,
+            source_height: *source_height,
+            crop: pin.crop,
+            placement: pin.placement,
+            opacity: 1.0,
+            locked: false,
+            pinned: true,
+            added_at: None,
+            closed_at: None,
+        })
+    }
+
+    /// 截图钉图存成组内截图成员：截图尺寸，文件名由成员身份得出。
+    pub(super) fn from_capture_pin(
+        id: String,
+        pin: &SavedPin,
+        capture: &GroupCapture,
+    ) -> GroupMember {
+        GroupMember {
+            source: MemberSource::Capture {
+                capture_file: format!("{id}.png"),
+            },
+            id,
+            source_width: capture.width,
+            source_height: capture.height,
+            crop: pin.crop,
+            placement: pin.placement,
+            opacity: 1.0,
+            locked: false,
+            pinned: true,
+            added_at: None,
+            closed_at: None,
+        }
+    }
+
+    /// 桌面上的参考组（#590）：成员跟着钉图的局部、摆放、透明度与锁定。
+    pub(super) fn follow(&mut self, pin: &SavedPin) {
+        self.crop = pin.crop;
+        self.placement = pin.placement;
+        self.opacity = pin.opacity;
+        self.locked = pin.locked;
+    }
+
+    /// 参考组包不带透明度、锁定、钉着与关闭时间（#588 决定 3）：导入后都算钉着。添加日期留着。
+    pub(super) fn without_desk_state(&self) -> GroupMember {
+        GroupMember {
+            opacity: 1.0,
+            locked: false,
+            pinned: true,
+            closed_at: None,
+            ..self.clone()
+        }
+    }
+
+    /// 打开成员得到的钉图，带着成员的透明度与锁定（旧参考组为不透明、不锁定）：资料库成员是参考图钉图，组内截图成员是截图历史中
+    /// `capture_id` 这张截图的钉图。局部超出原图等不合法时为 `Err`。
+    pub(super) fn pin(
+        &self,
+        pin_id: &str,
+        group_id: &str,
+        capture_id: &str,
+    ) -> Result<SavedPin, CommandError> {
+        let p = &self.placement;
+        if !(p.scale.is_finite() && (MIN_SCALE..=MAX_SCALE).contains(&p.scale)) {
+            return Err(CommandError::new(
+                ErrorKind::GroupMemberScale {
+                    member: self.id.clone(),
+                },
+                format!("成员 {} 的缩放不合法", self.id),
+            ));
+        }
+        if p.rotation > 3 {
+            return Err(CommandError::new(
+                ErrorKind::GroupMemberRotation {
+                    member: self.id.clone(),
+                },
+                format!("成员 {} 的旋转不合法", self.id),
+            ));
+        }
+        let (library_id, image_id) = match &self.source {
+            MemberSource::Library {
+                library_id,
+                image_id,
+            } => (library_id.as_str(), image_id.clone()),
+            MemberSource::Capture { capture_file } if valid_capture_file(capture_file) => {
+                ("", String::new())
+            }
+            MemberSource::Capture { .. } => {
+                return Err(CommandError::new(
+                    ErrorKind::GroupMemberCaptureFile {
+                        member: self.id.clone(),
+                    },
+                    format!("成员 {} 的截图文件名不合法", self.id),
+                ));
+            }
+        };
+        let image = ReferenceImage {
+            id: image_id,
+            width: self.source_width,
+            height: self.source_height,
+            sealed: false,
+        };
+        // 局部与尺寸的核对和参考图钉图相同；组内截图再换成截图钉图。
+        let mut pin =
+            SavedPin::reference(pin_id, library_id, &image, self.crop, *p).map_err(|e| {
+                CommandError::caused_by(
+                    e,
+                    |cause| ErrorKind::GroupMemberPin {
+                        member: self.id.clone(),
+                        cause,
+                    },
+                    |e| format!("成员 {}：{e}", self.id),
+                )
+            })?;
+        if let MemberSource::Capture { .. } = self.source {
+            pin.content = PinContent::Capture {
+                capture_id: capture_id.to_owned(),
+            };
+        }
+        pin.set_opacity(self.opacity);
+        pin.locked = self.locked;
+        pin.member = Some(GroupMemberRef {
+            group_id: group_id.to_owned(),
+            member_id: self.id.clone(),
+        });
+        Ok(pin)
+    }
+}
+
+/// 组内截图的文件名只用成员身份加 `.png`：不接受能跳出目录的字符。
+pub(super) fn valid_capture_file(name: &str) -> bool {
+    name.strip_suffix(".png").is_some_and(|stem| {
+        !stem.is_empty()
+            && stem
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    })
+}
+
+/// 存参考组时只存在参考组里的一张截图（#270）：截图历史中的文件与截图尺寸。
+/// 由 [`crate::desktop::CaptureHistory::group_capture`] 给出。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GroupCapture {
+    pub capture_id: String,
+    pub file: PathBuf,
+    pub width: u32,
+    pub height: u32,
+}

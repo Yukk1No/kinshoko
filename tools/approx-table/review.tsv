@@ -1,0 +1,312 @@
+# 内置近似对应表审核记录（#55）
+# 审核者：LLM agent（Claude Opus 5.5），2026-10-06，逐条审核 approx_table.py 生成的全部候选。
+# 判断标准：画师查找 a 时，b 的参考图大多也是想要的（两者常被混标，或 b 是 a 的变体），则接受；
+#   画师会有意区分的不同选择（色相明显不同、明暗相反、侧马尾与马尾、不同刘海形状等），则拒绝。
+# 每行一对，a、b 按字母序；verdict 为 accept 或 reject；reason 为一句理由。
+category	a	b	verdict	reason
+bangs	arched_bangs	asymmetrical_bangs	reject	下摆呈拱形与左右长短不对称是不同的刘海形状
+bangs	arched_bangs	blunt_bangs	reject	下摆呈拱形与下摆剪齐是不同的刘海形状
+bangs	arched_bangs	braided_bangs	reject	下摆呈拱形与刘海编成辫是不同的刘海形状
+bangs	arched_bangs	choppy_bangs	reject	下摆呈拱形与下摆参差成束是不同的刘海形状
+bangs	arched_bangs	crossed_bangs	reject	下摆呈拱形与发束交叉是不同的刘海形状
+bangs	arched_bangs	cut_bangs	reject	下摆呈拱形与含义宽泛的“剪过的刘海”是不同的刘海形状
+bangs	arched_bangs	diagonal_bangs	reject	下摆呈拱形与下摆斜切是不同的刘海形状
+bangs	arched_bangs	fanged_bangs	reject	下摆呈拱形与发尖如獠牙是不同的刘海形状
+bangs	arched_bangs	flipped_bangs	reject	下摆呈拱形与发梢外翻是不同的刘海形状
+bangs	arched_bangs	long_bangs	reject	下摆呈拱形与长到遮眼是不同的刘海形状
+bangs	arched_bangs	parted_bangs	reject	下摆呈拱形与中间分缝是不同的刘海形状
+bangs	arched_bangs	short_bangs	reject	下摆呈拱形与短于眉上是不同的刘海形状
+bangs	arched_bangs	single_bang	reject	下摆呈拱形与只有一缕是不同的刘海形状
+bangs	arched_bangs	swept_bangs	reject	下摆呈拱形与整体扫向一侧是不同的刘海形状
+bangs	arched_bangs	uneven_bangs	reject	下摆呈拱形与长短不一是不同的刘海形状
+bangs	arched_bangs	v-bangs	reject	下摆呈拱形与下摆呈 V 字是不同的刘海形状
+bangs	arched_bangs	wispy_bangs	reject	下摆呈拱形与稀疏细碎是不同的刘海形状
+bangs	asymmetrical_bangs	blunt_bangs	reject	左右长短不对称与下摆剪齐是不同的刘海形状
+bangs	asymmetrical_bangs	braided_bangs	reject	左右长短不对称与刘海编成辫是不同的刘海形状
+bangs	asymmetrical_bangs	choppy_bangs	reject	左右长短不对称与下摆参差成束是不同的刘海形状
+bangs	asymmetrical_bangs	crossed_bangs	reject	左右长短不对称与发束交叉是不同的刘海形状
+bangs	asymmetrical_bangs	cut_bangs	reject	左右长短不对称与含义宽泛的“剪过的刘海”是不同的刘海形状
+bangs	asymmetrical_bangs	diagonal_bangs	accept	斜切刘海本身左右不对称，标注常混用
+bangs	asymmetrical_bangs	fanged_bangs	reject	左右长短不对称与发尖如獠牙是不同的刘海形状
+bangs	asymmetrical_bangs	flipped_bangs	reject	左右长短不对称与发梢外翻是不同的刘海形状
+bangs	asymmetrical_bangs	long_bangs	reject	左右长短不对称与长到遮眼是不同的刘海形状
+bangs	asymmetrical_bangs	parted_bangs	reject	左右长短不对称与中间分缝是不同的刘海形状
+bangs	asymmetrical_bangs	short_bangs	reject	左右长短不对称与短于眉上是不同的刘海形状
+bangs	asymmetrical_bangs	single_bang	reject	左右长短不对称与只有一缕是不同的刘海形状
+bangs	asymmetrical_bangs	swept_bangs	reject	左右长短不对称与整体扫向一侧是不同的刘海形状
+bangs	asymmetrical_bangs	uneven_bangs	reject	左右长短不对称与长短不一是不同的刘海形状
+bangs	asymmetrical_bangs	v-bangs	reject	左右长短不对称与下摆呈 V 字是不同的刘海形状
+bangs	asymmetrical_bangs	wispy_bangs	reject	左右长短不对称与稀疏细碎是不同的刘海形状
+bangs	blunt_bangs	braided_bangs	reject	下摆剪齐与刘海编成辫是不同的刘海形状
+bangs	blunt_bangs	choppy_bangs	reject	下摆剪齐与下摆参差成束是不同的刘海形状
+bangs	blunt_bangs	crossed_bangs	reject	下摆剪齐与发束交叉是不同的刘海形状
+bangs	blunt_bangs	cut_bangs	reject	下摆剪齐与含义宽泛的“剪过的刘海”是不同的刘海形状
+bangs	blunt_bangs	diagonal_bangs	reject	下摆剪齐与下摆斜切是不同的刘海形状
+bangs	blunt_bangs	fanged_bangs	reject	下摆剪齐与发尖如獠牙是不同的刘海形状
+bangs	blunt_bangs	flipped_bangs	reject	下摆剪齐与发梢外翻是不同的刘海形状
+bangs	blunt_bangs	long_bangs	reject	下摆剪齐与长到遮眼是不同的刘海形状
+bangs	blunt_bangs	parted_bangs	reject	下摆剪齐与中间分缝是不同的刘海形状
+bangs	blunt_bangs	short_bangs	reject	下摆剪齐与短于眉上是不同的刘海形状
+bangs	blunt_bangs	single_bang	reject	下摆剪齐与只有一缕是不同的刘海形状
+bangs	blunt_bangs	swept_bangs	reject	下摆剪齐与整体扫向一侧是不同的刘海形状
+bangs	blunt_bangs	uneven_bangs	reject	下摆剪齐与长短不一是不同的刘海形状
+bangs	blunt_bangs	v-bangs	reject	下摆剪齐与下摆呈 V 字是不同的刘海形状
+bangs	blunt_bangs	wispy_bangs	reject	下摆剪齐与稀疏细碎是不同的刘海形状
+bangs	braided_bangs	choppy_bangs	reject	刘海编成辫与下摆参差成束是不同的刘海形状
+bangs	braided_bangs	crossed_bangs	reject	刘海编成辫与发束交叉是不同的刘海形状
+bangs	braided_bangs	cut_bangs	reject	刘海编成辫与含义宽泛的“剪过的刘海”是不同的刘海形状
+bangs	braided_bangs	diagonal_bangs	reject	刘海编成辫与下摆斜切是不同的刘海形状
+bangs	braided_bangs	fanged_bangs	reject	刘海编成辫与发尖如獠牙是不同的刘海形状
+bangs	braided_bangs	flipped_bangs	reject	刘海编成辫与发梢外翻是不同的刘海形状
+bangs	braided_bangs	long_bangs	reject	刘海编成辫与长到遮眼是不同的刘海形状
+bangs	braided_bangs	parted_bangs	reject	刘海编成辫与中间分缝是不同的刘海形状
+bangs	braided_bangs	short_bangs	reject	刘海编成辫与短于眉上是不同的刘海形状
+bangs	braided_bangs	single_bang	reject	刘海编成辫与只有一缕是不同的刘海形状
+bangs	braided_bangs	swept_bangs	reject	刘海编成辫与整体扫向一侧是不同的刘海形状
+bangs	braided_bangs	uneven_bangs	reject	刘海编成辫与长短不一是不同的刘海形状
+bangs	braided_bangs	v-bangs	reject	刘海编成辫与下摆呈 V 字是不同的刘海形状
+bangs	braided_bangs	wispy_bangs	reject	刘海编成辫与稀疏细碎是不同的刘海形状
+bangs	choppy_bangs	crossed_bangs	reject	下摆参差成束与发束交叉是不同的刘海形状
+bangs	choppy_bangs	cut_bangs	reject	下摆参差成束与含义宽泛的“剪过的刘海”是不同的刘海形状
+bangs	choppy_bangs	diagonal_bangs	reject	下摆参差成束与下摆斜切是不同的刘海形状
+bangs	choppy_bangs	fanged_bangs	reject	下摆参差成束与发尖如獠牙是不同的刘海形状
+bangs	choppy_bangs	flipped_bangs	reject	下摆参差成束与发梢外翻是不同的刘海形状
+bangs	choppy_bangs	long_bangs	reject	下摆参差成束与长到遮眼是不同的刘海形状
+bangs	choppy_bangs	parted_bangs	reject	下摆参差成束与中间分缝是不同的刘海形状
+bangs	choppy_bangs	short_bangs	reject	下摆参差成束与短于眉上是不同的刘海形状
+bangs	choppy_bangs	single_bang	reject	下摆参差成束与只有一缕是不同的刘海形状
+bangs	choppy_bangs	swept_bangs	reject	下摆参差成束与整体扫向一侧是不同的刘海形状
+bangs	choppy_bangs	uneven_bangs	accept	参差成束与长短不一外观接近
+bangs	choppy_bangs	v-bangs	reject	下摆参差成束与下摆呈 V 字是不同的刘海形状
+bangs	choppy_bangs	wispy_bangs	accept	都是发丝感强、下摆不齐的碎刘海
+bangs	crossed_bangs	cut_bangs	reject	发束交叉与含义宽泛的“剪过的刘海”是不同的刘海形状
+bangs	crossed_bangs	diagonal_bangs	reject	发束交叉与下摆斜切是不同的刘海形状
+bangs	crossed_bangs	fanged_bangs	reject	发束交叉与发尖如獠牙是不同的刘海形状
+bangs	crossed_bangs	flipped_bangs	reject	发束交叉与发梢外翻是不同的刘海形状
+bangs	crossed_bangs	long_bangs	reject	发束交叉与长到遮眼是不同的刘海形状
+bangs	crossed_bangs	parted_bangs	reject	发束交叉与中间分缝是不同的刘海形状
+bangs	crossed_bangs	short_bangs	reject	发束交叉与短于眉上是不同的刘海形状
+bangs	crossed_bangs	single_bang	reject	发束交叉与只有一缕是不同的刘海形状
+bangs	crossed_bangs	swept_bangs	reject	发束交叉与整体扫向一侧是不同的刘海形状
+bangs	crossed_bangs	uneven_bangs	reject	发束交叉与长短不一是不同的刘海形状
+bangs	crossed_bangs	v-bangs	reject	发束交叉与下摆呈 V 字是不同的刘海形状
+bangs	crossed_bangs	wispy_bangs	reject	发束交叉与稀疏细碎是不同的刘海形状
+bangs	cut_bangs	diagonal_bangs	reject	含义宽泛的“剪过的刘海”与下摆斜切是不同的刘海形状
+bangs	cut_bangs	fanged_bangs	reject	含义宽泛的“剪过的刘海”与发尖如獠牙是不同的刘海形状
+bangs	cut_bangs	flipped_bangs	reject	含义宽泛的“剪过的刘海”与发梢外翻是不同的刘海形状
+bangs	cut_bangs	long_bangs	reject	含义宽泛的“剪过的刘海”与长到遮眼是不同的刘海形状
+bangs	cut_bangs	parted_bangs	reject	含义宽泛的“剪过的刘海”与中间分缝是不同的刘海形状
+bangs	cut_bangs	short_bangs	reject	含义宽泛的“剪过的刘海”与短于眉上是不同的刘海形状
+bangs	cut_bangs	single_bang	reject	含义宽泛的“剪过的刘海”与只有一缕是不同的刘海形状
+bangs	cut_bangs	swept_bangs	reject	含义宽泛的“剪过的刘海”与整体扫向一侧是不同的刘海形状
+bangs	cut_bangs	uneven_bangs	reject	含义宽泛的“剪过的刘海”与长短不一是不同的刘海形状
+bangs	cut_bangs	v-bangs	reject	含义宽泛的“剪过的刘海”与下摆呈 V 字是不同的刘海形状
+bangs	cut_bangs	wispy_bangs	reject	含义宽泛的“剪过的刘海”与稀疏细碎是不同的刘海形状
+bangs	diagonal_bangs	fanged_bangs	reject	下摆斜切与发尖如獠牙是不同的刘海形状
+bangs	diagonal_bangs	flipped_bangs	reject	下摆斜切与发梢外翻是不同的刘海形状
+bangs	diagonal_bangs	long_bangs	reject	下摆斜切与长到遮眼是不同的刘海形状
+bangs	diagonal_bangs	parted_bangs	reject	下摆斜切与中间分缝是不同的刘海形状
+bangs	diagonal_bangs	short_bangs	reject	下摆斜切与短于眉上是不同的刘海形状
+bangs	diagonal_bangs	single_bang	reject	下摆斜切与只有一缕是不同的刘海形状
+bangs	diagonal_bangs	swept_bangs	accept	斜切与侧扫外观接近，标注常混用
+bangs	diagonal_bangs	uneven_bangs	reject	下摆斜切与长短不一是不同的刘海形状
+bangs	diagonal_bangs	v-bangs	reject	下摆斜切与下摆呈 V 字是不同的刘海形状
+bangs	diagonal_bangs	wispy_bangs	reject	下摆斜切与稀疏细碎是不同的刘海形状
+bangs	double-parted_bangs	parted_bangs	accept	两处分缝是分缝刘海的变体
+bangs	fanged_bangs	flipped_bangs	reject	发尖如獠牙与发梢外翻是不同的刘海形状
+bangs	fanged_bangs	long_bangs	reject	发尖如獠牙与长到遮眼是不同的刘海形状
+bangs	fanged_bangs	parted_bangs	reject	发尖如獠牙与中间分缝是不同的刘海形状
+bangs	fanged_bangs	short_bangs	reject	发尖如獠牙与短于眉上是不同的刘海形状
+bangs	fanged_bangs	single_bang	reject	发尖如獠牙与只有一缕是不同的刘海形状
+bangs	fanged_bangs	swept_bangs	reject	发尖如獠牙与整体扫向一侧是不同的刘海形状
+bangs	fanged_bangs	uneven_bangs	reject	发尖如獠牙与长短不一是不同的刘海形状
+bangs	fanged_bangs	v-bangs	accept	都是尖角下摆，獠牙刘海常呈 V 字
+bangs	fanged_bangs	wispy_bangs	reject	发尖如獠牙与稀疏细碎是不同的刘海形状
+bangs	flipped_bangs	long_bangs	reject	发梢外翻与长到遮眼是不同的刘海形状
+bangs	flipped_bangs	parted_bangs	reject	发梢外翻与中间分缝是不同的刘海形状
+bangs	flipped_bangs	short_bangs	reject	发梢外翻与短于眉上是不同的刘海形状
+bangs	flipped_bangs	single_bang	reject	发梢外翻与只有一缕是不同的刘海形状
+bangs	flipped_bangs	swept_bangs	reject	发梢外翻与整体扫向一侧是不同的刘海形状
+bangs	flipped_bangs	uneven_bangs	reject	发梢外翻与长短不一是不同的刘海形状
+bangs	flipped_bangs	v-bangs	reject	发梢外翻与下摆呈 V 字是不同的刘海形状
+bangs	flipped_bangs	wispy_bangs	reject	发梢外翻与稀疏细碎是不同的刘海形状
+bangs	long_bangs	parted_bangs	reject	长到遮眼与中间分缝是不同的刘海形状
+bangs	long_bangs	short_bangs	reject	长短相反
+bangs	long_bangs	single_bang	reject	长到遮眼与只有一缕是不同的刘海形状
+bangs	long_bangs	swept_bangs	reject	长到遮眼与整体扫向一侧是不同的刘海形状
+bangs	long_bangs	uneven_bangs	reject	长到遮眼与长短不一是不同的刘海形状
+bangs	long_bangs	v-bangs	reject	长到遮眼与下摆呈 V 字是不同的刘海形状
+bangs	long_bangs	wispy_bangs	reject	长到遮眼与稀疏细碎是不同的刘海形状
+bangs	parted_bangs	short_bangs	reject	中间分缝与短于眉上是不同的刘海形状
+bangs	parted_bangs	single_bang	reject	中间分缝与只有一缕是不同的刘海形状
+bangs	parted_bangs	swept_bangs	reject	中间分缝与整体扫向一侧是不同的刘海形状
+bangs	parted_bangs	uneven_bangs	reject	中间分缝与长短不一是不同的刘海形状
+bangs	parted_bangs	v-bangs	reject	中间分缝与下摆呈 V 字是不同的刘海形状
+bangs	parted_bangs	wispy_bangs	reject	中间分缝与稀疏细碎是不同的刘海形状
+bangs	short_bangs	single_bang	reject	短于眉上与只有一缕是不同的刘海形状
+bangs	short_bangs	swept_bangs	reject	短于眉上与整体扫向一侧是不同的刘海形状
+bangs	short_bangs	uneven_bangs	reject	短于眉上与长短不一是不同的刘海形状
+bangs	short_bangs	v-bangs	reject	短于眉上与下摆呈 V 字是不同的刘海形状
+bangs	short_bangs	wispy_bangs	reject	短于眉上与稀疏细碎是不同的刘海形状
+bangs	single_bang	swept_bangs	reject	只有一缕与整体扫向一侧是不同的刘海形状
+bangs	single_bang	uneven_bangs	reject	只有一缕与长短不一是不同的刘海形状
+bangs	single_bang	v-bangs	reject	只有一缕与下摆呈 V 字是不同的刘海形状
+bangs	single_bang	wispy_bangs	reject	只有一缕与稀疏细碎是不同的刘海形状
+bangs	swept_bangs	uneven_bangs	reject	整体扫向一侧与长短不一是不同的刘海形状
+bangs	swept_bangs	v-bangs	reject	整体扫向一侧与下摆呈 V 字是不同的刘海形状
+bangs	swept_bangs	wispy_bangs	reject	整体扫向一侧与稀疏细碎是不同的刘海形状
+bangs	uneven_bangs	v-bangs	reject	长短不一与下摆呈 V 字是不同的刘海形状
+bangs	uneven_bangs	wispy_bangs	reject	长短不一与稀疏细碎是不同的刘海形状
+bangs	v-bangs	wispy_bangs	reject	下摆呈 V 字与稀疏细碎是不同的刘海形状
+eye_color	aqua_eyes	black_eyes	reject	水色瞳浅而偏青，黑瞳深而无彩
+eye_color	aqua_eyes	blue_eyes	accept	水色瞳与蓝瞳交界模糊，标注常混用（术语表示例）
+eye_color	aqua_eyes	green_eyes	accept	青绿色瞳介于两者之间，常混标
+eye_color	aqua_eyes	grey_eyes	reject	灰瞳无彩，水色瞳色相鲜明
+eye_color	aqua_eyes	white_eyes	reject	白瞳无彩，水色瞳色相鲜明
+eye_color	black_eyes	brown_eyes	accept	深棕瞳与黑瞳在多数画风下难以区分
+eye_color	black_eyes	grey_eyes	reject	灰瞳多为浅灰，与黑瞳明度差距大
+eye_color	black_eyes	white_eyes	reject	黑白两极，视觉上相反
+eye_color	blue_eyes	grey_eyes	reject	灰蓝瞳少见，一般蓝瞳与灰瞳区分明确
+eye_color	blue_eyes	pink_eyes	reject	色相相距远，只是色差计算上明度接近
+eye_color	blue_eyes	purple_eyes	accept	蓝紫瞳介于两者之间，常混标
+eye_color	brown_eyes	grey_eyes	reject	灰瞳无彩，棕瞳暖色
+eye_color	brown_eyes	orange_eyes	accept	琥珀色瞳常在棕瞳与橙瞳之间标注不一
+eye_color	brown_eyes	pink_eyes	reject	粉瞳色调鲜明，与棕瞳不相近
+eye_color	brown_eyes	red_eyes	reject	红瞳是醒目的独立角色设定，找红瞳时不想要棕瞳
+eye_color	brown_eyes	yellow_eyes	accept	琥珀、金棕瞳常在棕瞳与黄瞳之间标注不一
+eye_color	gradient_eyes	heterochromia	reject	异色瞳是两眼不同色，渐变瞳是单眼内过渡
+eye_color	gradient_eyes	multicolored_eyes	accept	渐变瞳是多色瞳的一种
+eye_color	gradient_eyes	rainbow_eyes	reject	彩虹瞳多色，渐变瞳通常是两色过渡
+eye_color	gradient_eyes	two-tone_eyes	reject	渐变过渡与硬分界双色是不同画法
+eye_color	green_eyes	white_eyes	reject	色相与明度都不同
+eye_color	green_eyes	yellow_eyes	reject	黄绿瞳少见，一般绿瞳与黄瞳区分明确
+eye_color	grey_eyes	pink_eyes	reject	粉瞳色调鲜明，与灰瞳区分清楚
+eye_color	grey_eyes	purple_eyes	reject	淡紫灰瞳少见，一般区分明确
+eye_color	grey_eyes	white_eyes	accept	银白瞳在灰瞳与白瞳之间标注不一
+eye_color	heterochromia	multicolored_eyes	reject	异色瞳是两眼各一色，多色瞳指单眼内多色，Danbooru 有意区分
+eye_color	heterochromia	rainbow_eyes	reject	异色瞳与彩虹瞳是不同概念
+eye_color	heterochromia	two-tone_eyes	reject	异色瞳是两眼不同色，双色瞳是单眼内两色
+eye_color	multicolored_eyes	rainbow_eyes	accept	彩虹瞳是多色瞳的一种
+eye_color	multicolored_eyes	two-tone_eyes	accept	双色瞳是多色瞳的一种
+eye_color	orange_eyes	red_eyes	accept	橙红瞳介于两者之间，常混标
+eye_color	orange_eyes	yellow_eyes	accept	金橙瞳介于两者之间，常混标
+eye_color	pink_eyes	purple_eyes	accept	粉紫瞳介于两者之间，常混标
+eye_color	pink_eyes	red_eyes	reject	粉瞳与红瞳都是独立的常见设定，区分明确
+eye_color	pink_eyes	white_eyes	reject	粉瞳色调鲜明，与白瞳不相近
+eye_color	rainbow_eyes	two-tone_eyes	reject	彩虹瞳多色，双色瞳只有两色
+hair_color	aqua_hair	black_hair	reject	水色发浅而偏青，黑发深而无彩，色相明度都不同
+hair_color	aqua_hair	blue_hair	accept	水色与蓝色交界模糊，浅蓝发常被两边混标
+hair_color	aqua_hair	green_hair	accept	青绿色发介于两者之间，标注常混用
+hair_color	aqua_hair	grey_hair	reject	灰发无彩，水色发是明显的有彩色
+hair_color	aqua_hair	white_hair	reject	白发无彩，水色发色相鲜明，画师不会互相替代
+hair_color	black_hair	brown_hair	accept	深棕发与黑发在阴影和低饱和画风下难以区分
+hair_color	black_hair	grey_hair	reject	灰发多为银灰浅色，与黑发明度差距大
+hair_color	black_hair	white_hair	reject	黑白两极，视觉上相反
+hair_color	blonde_hair	brown_hair	accept	浅棕与金发交界模糊（词表没有 light_brown_hair），常混标
+hair_color	blonde_hair	green_hair	reject	黄绿色相相邻但金发与绿发是完全不同的角色设定
+hair_color	blonde_hair	orange_hair	accept	橙金色发常在金发与橙发之间标注不一
+hair_color	blue_hair	grey_hair	reject	蓝灰发少见，一般蓝发与灰发区分明确
+hair_color	blue_hair	pink_hair	reject	色相相距远，只是色差计算上明度接近
+hair_color	blue_hair	purple_hair	accept	靛蓝、蓝紫发在两者之间，常混标
+hair_color	brown_hair	grey_hair	reject	灰发无彩，棕发暖色，画师不会互相替代
+hair_color	brown_hair	orange_hair	accept	橙棕发（姜色）常在两者之间标注不一
+hair_color	brown_hair	pink_hair	reject	粉发是鲜明的独立选择，与棕发不相近
+hair_color	brown_hair	red_hair	accept	红棕发（赤褐）两边都有人标
+hair_color	colored_inner_hair	colored_tips	reject	内层挑染与发梢变色位置不同
+hair_color	colored_inner_hair	gradient_hair	reject	内层挑染是分层配色，渐变是过渡配色
+hair_color	colored_inner_hair	multicolored_hair	accept	colored_inner_hair 是多色发的一种，Danbooru 惯例两者同标
+hair_color	colored_inner_hair	rainbow_hair	reject	彩虹发是多种颜色，内层挑染通常只有两色
+hair_color	colored_inner_hair	split-color_hair	reject	内外分色与左右分色是不同配色方式
+hair_color	colored_inner_hair	streaked_hair	reject	内层整片换色与表层挑染发丝不同
+hair_color	colored_inner_hair	two-tone_hair	reject	双色发泛指两色，内层挑染是具体做法，找内层挑染时双色发多半不相关
+hair_color	colored_tips	gradient_hair	accept	发梢变色与渐变发常难区分，标注常混用
+hair_color	colored_tips	multicolored_hair	accept	colored_tips 是多色发的一种，Danbooru 惯例两者同标
+hair_color	colored_tips	rainbow_hair	reject	彩虹发是多种颜色，发梢变色通常只有两色
+hair_color	colored_tips	split-color_hair	reject	发梢变色与左右分色配色方式不同
+hair_color	colored_tips	streaked_hair	reject	发梢整体变色与挑染发丝不同
+hair_color	colored_tips	two-tone_hair	reject	双色发泛指两色，找发梢变色时双色发多半不相关
+hair_color	gradient_hair	multicolored_hair	accept	gradient_hair 是多色发的一种，Danbooru 惯例两者同标
+hair_color	gradient_hair	rainbow_hair	reject	彩虹发强调多色，渐变发通常是两色过渡
+hair_color	gradient_hair	split-color_hair	reject	渐变过渡与左右硬分界相反
+hair_color	gradient_hair	streaked_hair	reject	渐变过渡与挑染发丝是不同配色方式
+hair_color	gradient_hair	two-tone_hair	reject	渐变过渡与硬分界双色是画师有意区分的两种画法
+hair_color	green_hair	white_hair	reject	色相与明度都不同
+hair_color	grey_hair	pink_hair	reject	淡粉发有彩色调明显，与灰发区分清楚
+hair_color	grey_hair	purple_hair	reject	淡紫灰少见，一般紫发与灰发区分明确
+hair_color	grey_hair	white_hair	accept	银发在词表中并入灰发，与白发标注常混用
+hair_color	multicolored_hair	rainbow_hair	accept	rainbow_hair 是多色发的一种，Danbooru 惯例两者同标
+hair_color	multicolored_hair	split-color_hair	accept	split-color_hair 是多色发的一种，Danbooru 惯例两者同标
+hair_color	multicolored_hair	streaked_hair	accept	streaked_hair 是多色发的一种，Danbooru 惯例两者同标
+hair_color	multicolored_hair	two-tone_hair	accept	two-tone_hair 是多色发的一种，Danbooru 惯例两者同标
+hair_color	orange_hair	red_hair	accept	橙红发介于两者之间，常混标
+hair_color	pink_hair	purple_hair	accept	淡紫与粉紫发常在两者之间标注不一
+hair_color	pink_hair	red_hair	reject	粉发是常见的独立发色设定，与红发区分明确
+hair_color	pink_hair	white_hair	reject	淡粉发仍带明显色调，画师找白发不想要粉发
+hair_color	rainbow_hair	split-color_hair	reject	彩虹发多色，左右分色只有两色
+hair_color	rainbow_hair	streaked_hair	reject	彩虹发整体多色，挑染只是局部发丝
+hair_color	rainbow_hair	two-tone_hair	reject	彩虹发多色，双色发只有两色
+hair_color	split-color_hair	streaked_hair	reject	左右分色与挑染发丝配色方式不同
+hair_color	split-color_hair	two-tone_hair	accept	左右分色是双色发的一种
+hair_color	streaked_hair	two-tone_hair	reject	挑染是局部发丝，双色发是大面积两色
+hairstyle	afro	afro_puffs	reject	爆炸头是整体蓬发，afro puffs 是扎起的两团，轮廓不同
+hairstyle	bob_cut	inverted_bob	accept	前长后短的波波头是波波头的一种
+hairstyle	braid	braided_bun	reject	主体是发髻，辫子只是盘成发髻的方式
+hairstyle	braid	braided_hair_rings	reject	主体是发环，轮廓与垂下的辫子不同
+hairstyle	braid	braided_ponytail	accept	编起的马尾本身就是辫子
+hairstyle	braid	braided_twintails	accept	编起的双马尾本身就是辫子
+hairstyle	braid	crown_braid	accept	皇冠编发是辫子的一种
+hairstyle	braid	flower_braid	accept	编入花朵的辫子仍是辫子
+hairstyle	braid	long_braid	accept	长辫是辫子的一种
+hairstyle	braid	multiple_braids	accept	多条辫子仍是辫子
+hairstyle	braid	nape_braid	accept	颈后的辫子是辫子的一种
+hairstyle	braid	quad_braids	accept	四条辫子仍是辫子
+hairstyle	braid	ribbon_braid	accept	编入缎带的辫子仍是辫子
+hairstyle	braid	short_braid	accept	短辫是辫子的一种
+hairstyle	braid	side_braid	accept	侧辫是辫子的一种
+hairstyle	braid	side_braids	accept	两侧的辫子仍是辫子
+hairstyle	braid	single_braid	accept	单辫是辫子的一种
+hairstyle	braid	tri_braids	accept	三条辫子仍是辫子
+hairstyle	braid	twin_braids	accept	双辫是辫子的一种
+hairstyle	braided_bun	bun_with_braided_base	accept	都是带编发的发髻，差别只在编发位置
+hairstyle	braided_bun	hair_bun	accept	编发髻是发髻的一种
+hairstyle	braided_ponytail	ponytail	accept	编起的马尾仍是马尾
+hairstyle	braided_ponytail	ponytail_with_braided_base	accept	都是带编发的马尾，差别只在编发位置
+hairstyle	braided_twintails	twintails	accept	编起的双马尾仍是双马尾
+hairstyle	cone_hair_bun	hair_bun	accept	锥形发髻是发髻的一种
+hairstyle	crown_braid	half_crown_braid	accept	半皇冠编发与皇冠编发外观接近
+hairstyle	donut_hair_bun	hair_bun	accept	甜甜圈发髻是发髻的一种
+hairstyle	double_bun	hair_bun	accept	双发髻是发髻的变体，找发髻时也想看到
+hairstyle	drill_hair	drill_ponytail	accept	卷成钻头的马尾仍是钻头卷
+hairstyle	drill_hair	low_drills	accept	低位钻头卷是钻头卷的一种
+hairstyle	drill_hair	quad_drills	accept	四条钻头卷仍是钻头卷
+hairstyle	drill_hair	side_drill	accept	侧边钻头卷是钻头卷的一种
+hairstyle	drill_hair	single_drill	accept	单条钻头卷是钻头卷的一种
+hairstyle	drill_hair	twin_drills	accept	双钻头卷是钻头卷最常见的形式
+hairstyle	drill_ponytail	ponytail	accept	卷成钻头的马尾仍是马尾
+hairstyle	folded_ponytail	ponytail	accept	折起的马尾仍是马尾
+hairstyle	folded_twintails	twintails	accept	折起的双马尾仍是双马尾
+hairstyle	front_ponytail	ponytail	accept	垂在身前的马尾仍是马尾
+hairstyle	hair_bun	heart_hair_bun	accept	心形发髻是发髻的一种
+hairstyle	hair_bun	single_hair_bun	accept	单发髻是发髻的基本形式
+hairstyle	half_up_braid	half_up_half_down_braid	accept	同一发型的两种叫法
+hairstyle	half_updo	updo	reject	半披发与全盘发轮廓不同，画师会有意区分
+hairstyle	high_ponytail	high_side_ponytail	reject	侧马尾偏一侧，与居中的马尾是不同发型
+hairstyle	high_ponytail	ponytail	accept	高马尾是马尾的一种
+hairstyle	high_side_ponytail	side_ponytail	accept	高位侧马尾是侧马尾的一种
+hairstyle	long_braid	low-braided_long_hair	accept	低位编起的长发外观就是一条长辫
+hairstyle	low_ponytail	low_side_ponytail	reject	侧马尾偏一侧，与居中的马尾是不同发型
+hairstyle	low_ponytail	ponytail	accept	低马尾是马尾的一种
+hairstyle	low_side_ponytail	side_ponytail	accept	低位侧马尾是侧马尾的一种
+hairstyle	low_twin_braids	twin_braids	accept	低位双辫是双辫的一种
+hairstyle	low_twintails	twintails	accept	低双马尾是双马尾的一种
+hairstyle	ponytail	short_ponytail	accept	短马尾是马尾的一种
+hairstyle	ponytail	side_ponytail	reject	侧马尾偏一侧，Danbooru 与马尾分开标注，画师也有意区分
+hairstyle	ponytail	split_ponytail	accept	分股的马尾仍是马尾
+hairstyle	ponytail	wide_ponytail	accept	蓬开的马尾仍是马尾
+hairstyle	ponytail_with_braided_base	side_ponytail_with_braided_base	reject	侧马尾偏一侧，与居中的马尾是不同发型
+hairstyle	short_ponytail	short_side_ponytail	reject	侧马尾偏一侧，与居中的马尾是不同发型
+hairstyle	short_side_ponytail	side_ponytail	accept	短侧马尾是侧马尾的一种
+hairstyle	short_twintails	twintails	accept	短双马尾是双马尾的一种
+hairstyle	single_hair_bun	single_side_bun	reject	偏一侧的发髻与头顶发髻轮廓不同，与侧马尾同理
+hairstyle	twintails	twintails_with_hair_base	accept	带发根造型的双马尾仍是双马尾
+hairstyle	twintails	uneven_twintails	accept	左右不对称的双马尾仍是双马尾

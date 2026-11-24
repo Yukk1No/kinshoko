@@ -1,0 +1,500 @@
+import { SealedImportPreview } from "./SealedImportPreview";
+import type { SaveDestination } from "../bindings/SaveDestination";
+import { useEffect, useEffectEvent, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
+import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
+import { formatNumber, percentOf } from "../i18n/format";
+import { useToast } from "../ui/Toast";
+import { Dialog } from "@base-ui/react/dialog";
+import { Download } from "lucide-react";
+import { DialogHeight } from "../ui/DialogHeight";
+import { SealLock } from "../ui/SealLock";
+import type { ImportOptions } from "../bindings/ImportOptions";
+import type { ImportProgress } from "../bindings/ImportProgress";
+import type { ImportReport } from "../bindings/ImportReport";
+import type { EagleLibraryCandidate } from "../bindings/EagleLibraryCandidate";
+import { EagleTagStep } from "./EagleTagStep";
+import type { EagleLocationChoice } from "../bindings/EagleLocationChoice";
+import type { EagleRelocation } from "../bindings/EagleRelocation";
+import {
+  cancelImport,
+  confirmEagleLocation,
+  discoverEagleLibraries,
+  importBackups,
+  importContainsEagle,
+  onFileDrop,
+  pickFiles,
+  pickFolder,
+  startImport,
+  type FileDrop,
+} from "../ipc";
+import { EagleLibrariesDialog, ImportPlanDialog, ImportResultCard, type ImportPlan } from "./ImportBarParts";
+import { BackupCards, RelocationCard } from "./ImportCards";
+import { useImportNotices } from "./useImportNotices";
+import { useImportRecovery } from "./useImportRecovery";
+import { errorText } from "../ipc/commandError";
+
+export type RunningImport = {
+  taskId: string | null;
+  progress: ImportProgress;
+  libraryId?: string;
+  destination?: SaveDestination;
+  libraryName?: string;
+  folderName?: string;
+};
+/** 已结束的导入任务与它的报告。 */
+export type FinishedImport = {
+  taskId: string;
+  report: ImportReport;
+  libraryId?: string;
+  destination?: SaveDestination;
+  libraryName?: string;
+  folderName?: string;
+};
+
+type Props = {
+  enabled: boolean;
+  previewContextKey?: string;
+  /** 拖入窗口不开始导入（回收站范围）：悬停不提示，松开后只发一条通知。 */
+  dropBlocked?: boolean;
+  libraryId: string;
+  libraryName: string;
+  destination?: SaveDestination | null;
+  destinationReady?: boolean;
+  running: RunningImport | null;
+  finished: FinishedImport | null;
+  onStarted: (taskId: string, destination?: SaveDestination) => void;
+  onRetryDestination?: (destination: SaveDestination) => void;
+  onDismissReport: () => void;
+  /** 到现有、受安全模式筛选的回收站，由画师决定恢复。 */
+  onOpenTrash?: (libraryId: string) => void;
+  /** 到导入的位置看结果（结束提示的“打开”）。 */
+  onShowDestination?: (destination: SaveDestination) => void;
+  /** 导入入口是顶栏的分体按钮（#98），经 `actionsRef` 调用这里的流程。 */
+  actionsRef?: Ref<ImportActions>;
+  /** 能否开始新的导入（与入口按钮的可用状态一致），以及是否正在查找 Eagle 资料库。 */
+  onBusyChange?: (busy: boolean, lookingForEagle: boolean) => void;
+  /** 导入确认对话框里的保存位置选择（图库 + 文件夹）。 */
+  picker?: ReactNode;
+  /** 进度卡与结果卡里的任务切换（同时有多个任务回执时）。 */
+  taskSwitcher?: ReactNode;
+  /** 卡片里的附加说明（任务警告、正在发布标签定义）。 */
+  cardNotes?: ReactNode;
+  /** 所选任务的警告（如标签定义没存进图库），结束的轻提示据此带“查看”。 */
+  warnings?: readonly string[];
+  /** 让导入菜单选中某个任务，以便打开它的回执。 */
+  onSelectTask?: (taskId: string) => void;
+  /** 卡片上的保存位置，例如“角色参考 / 人物 / 发型”。 */
+  ownerLabel?: string | null;
+};
+
+/** 导入入口（图片文件、整个文件夹、Eagle，以及已准备好的文件，如暂存的剪贴板图片）与找回任务卡片。 */
+export type ImportActions = {
+  files: () => void;
+  folder: () => void;
+  eagle: () => void;
+  paths: (paths: string[]) => void;
+  showTasks: () => void;
+};
+
+/**
+ * 导入（#98）：选择文件或文件夹，或把它们拖进主窗口；先在对话框里选图库和文件夹（Eagle 另问删过的图），
+ * 进度是右下角的卡片，可取消或后台进行。结束、出错、上次中断与封印项重复走轻提示（#388）；结束的提示带“查看”，
+ * 打开结果回执卡：列出没有进来的文件并可只重试读取失败的项。
+ */
+export function ImportBar({
+  previewContextKey,
+  dropBlocked = false,
+  enabled,
+  libraryId,
+  libraryName,
+  destination,
+  destinationReady = true,
+  running,
+  finished,
+  onStarted,
+  onRetryDestination,
+  onDismissReport,
+  onOpenTrash,
+  onShowDestination,
+  actionsRef,
+  onBusyChange,
+  picker,
+  taskSwitcher,
+  cardNotes,
+  ownerLabel,
+  warnings,
+  onSelectTask,
+}: Props) {
+  const { t } = useTranslation("importing");
+  /** “后台进行”收起的进度卡（按任务 id）；新任务或从导入菜单“查看导入任务”时重新显示。 */
+  const [background, setBackground] = useState<string | null>(null);
+  const report = finished?.report ?? null;
+  const contextKey = previewContextKey ?? libraryId;
+  const [preview, setPreview] = useState<{ taskId: string; contextKey: string } | null>(null);
+  // 换了任务、预览范围或可用状态就收起预览；在渲染中比较，这一帧就不显示旧的预览。
+  const previewScope = JSON.stringify([finished?.taskId, contextKey, enabled]);
+  const [previewFor, setPreviewFor] = useState(previewScope);
+  if (previewFor !== previewScope) {
+    setPreviewFor(previewScope);
+    setPreview(null);
+  }
+  const [hovering, setHovering] = useState(false);
+  // 停用时不显示拖入的高亮。
+  if (!enabled && hovering) setHovering(false);
+  const { recovery, dismiss: dismissRecovery } = useImportRecovery();
+  const [eagleLibraries, setEagleLibraries] = useState<EagleLibraryCandidate[] | null>(null);
+  const [lookingForEagle, setLookingForEagle] = useState(false);
+  const toast = useToast();
+  const [preparing, setPreparing] = useState(false);
+  const [plan, setPlan] = useState<ImportPlan | null>(null);
+  const optionsByTask = useRef(new Map<string, ImportOptions>());
+  const busy = !!running || preparing || plan !== null;
+  /**
+   * 从 Eagle 迁入的任务 id；它结束后进入“标签的外部对应”一步。结束事件可能先于启动命令的
+   * 响应到达，所以按 task id 把来源与终态对上，哪个先到都只打开一次（#77 UI-E）。
+   */
+  const [eagleTasks, setEagleTasks] = useState<ReadonlySet<string>>(() => new Set());
+  const stepShown = useRef(new Set<string>());
+  const [tagStep, setTagStep] = useState(false);
+  // 已确认过的搬家提议，不再重复询问。
+  const [confirmed, setConfirmed] = useState<string[]>([]);
+  // 选中的路径里认出的备份：不当散图导入，等画师选恢复到哪里。
+  const [backups, setBackups] = useState<string[]>([]);
+  // 切换资料库后旧工作区已卸下；新建表单打开时工作区只是隐藏，不接受导入。
+  const alive = useRef(true);
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+
+  const start = async (paths: string[], fromEagle = false, options?: ImportOptions, fixed?: SaveDestination) => {
+    if (!alive.current || !enabledRef.current || !paths.length) return;
+    try {
+      setTagStep(false);
+      const taskId = await startImport(
+        fixed?.libraryId ?? libraryId,
+        paths,
+        options,
+        fixed ?? destination ?? undefined,
+      );
+      if (!alive.current) return;
+      if (options) optionsByTask.current.set(taskId, options);
+      if (fromEagle) setEagleTasks((tasks) => new Set(tasks).add(taskId));
+      onStarted(taskId, fixed ?? destination ?? { libraryId, folderId: null });
+      setPlan(null);
+      setEagleLibraries(null);
+    } catch (error) {
+      if (alive.current) toast.error(t("failed.start", { error: errorText(error) }));
+    }
+  };
+  // 手选、拖入、恢复中断与失败重试都经过同一只读预检；取消选择不会启动任务或写入来源。
+  const begin = async (paths: string[], fromEagle = false, options?: ImportOptions, fixed?: SaveDestination) => {
+    if (!alive.current || !enabledRef.current || !paths.length) return;
+    if (fixed) onRetryDestination?.(fixed);
+    setPreparing(true);
+    try {
+      const found = fromEagle ? [] : await importBackups(paths);
+      if (!alive.current || !enabledRef.current) return;
+      if (found.length) setBackups((shown) => [...shown, ...found.filter((path) => !shown.includes(path))]);
+      const images = paths.filter((path) => !found.includes(path));
+      if (!images.length) return;
+      const isEagle = fromEagle || (await importContainsEagle(images));
+      if (!alive.current || !enabledRef.current) return;
+      if (isEagle || destination !== undefined) {
+        setPlan({ paths: images, options: options ?? { eagleDeletedContent: "skipDeleted" }, eagle: isEagle });
+      } else {
+        await start(images, false, options, fixed);
+      }
+    } catch (error) {
+      if (alive.current) toast.error(t("failed.inspect", { error: errorText(error) }));
+    } finally {
+      if (alive.current) setPreparing(false);
+    }
+  };
+  const startPlan = async () => {
+    if (!plan || running || preparing || !destinationReady) return;
+    setPreparing(true);
+    await start(plan.paths, plan.eagle, plan.options, destination ?? undefined);
+    if (alive.current) setPreparing(false);
+  };
+  const importFiles = async () => begin(await pickFiles());
+  const importFolder = async (fromEagle = false) => {
+    const folder = await pickFolder();
+    await begin(folder ? [folder] : [], fromEagle);
+  };
+
+  useImperativeHandle(actionsRef, () => ({
+    files: () => {
+      if (!busy) void importFiles();
+    },
+    folder: () => {
+      if (!busy) void importFolder();
+    },
+    eagle: () => {
+      if (!busy && !lookingForEagle) void findEagle();
+    },
+    paths: (paths) => {
+      if (!busy) void begin(paths);
+    },
+    showTasks: () => {
+      setBackground(null);
+      setReceipt(true);
+    },
+  }));
+  useEffect(() => {
+    onBusyChange?.(busy, lookingForEagle);
+  }, [busy, lookingForEagle, onBusyChange]);
+
+  const finishedTask = finished?.taskId ?? null;
+  const detectedEagle = finished?.report.fromEagle ?? false;
+  useEffect(() => {
+    if (
+      finishedTask === null ||
+      (!detectedEagle && !eagleTasks.has(finishedTask)) ||
+      stepShown.current.has(finishedTask)
+    )
+      return;
+    stepShown.current.add(finishedTask);
+    setTagStep(true);
+  }, [finishedTask, detectedEagle, eagleTasks]);
+  const findEagle = async () => {
+    setLookingForEagle(true);
+    try {
+      const found = await discoverEagleLibraries();
+      if (alive.current) setEagleLibraries(found);
+    } catch (error) {
+      if (alive.current) toast.error(t("failed.findEagle", { error: errorText(error) }));
+    } finally {
+      if (alive.current) setLookingForEagle(false);
+    }
+  };
+
+  // 拖放的回调只注册一次，处理时读这次渲染的状态。
+  const handleDrop = useEffectEvent((drop: FileDrop) => {
+    if (!alive.current || !enabled) return;
+    switch (drop.kind) {
+      case "error":
+        setHovering(false);
+        toast.error(t("failed.drop", { error: errorText(drop.error) }));
+        break;
+      case "enter":
+        setHovering(!busy && !dropBlocked);
+        break;
+      case "drop":
+        setHovering(false);
+        if (dropBlocked) toast.show({ title: t("drop.inTrash") });
+        // 正在导入时拖进来的不排队：说一声，免得松手后什么都没发生。
+        else if (busy) toast.show({ title: t("drop.busy") });
+        else void begin(drop.paths, false, undefined, drop.destination);
+        break;
+      case "leave":
+        setHovering(false);
+        break;
+    }
+  });
+  useEffect(() => {
+    const unlisten = onFileDrop(handleDrop);
+    return () => {
+      void unlisten.then((stop) => stop());
+    };
+  }, []);
+
+  const { done = 0, total = 0 } = running?.progress ?? {};
+  const relocations = (report?.eagleRelocations ?? []).filter((r) => !confirmed.includes(r.to));
+  const confirm = async (relocation: EagleRelocation, choice: EagleLocationChoice) => {
+    try {
+      await confirmEagleLocation(finished?.libraryId ?? libraryId, relocation.to, choice);
+      if (!alive.current) return;
+      setConfirmed((done) => [...done, relocation.to]);
+      await begin(
+        [relocation.to],
+        true,
+        finished ? optionsByTask.current.get(finished.taskId) : undefined,
+        finished?.destination,
+      );
+    } catch (error) {
+      if (alive.current) toast.error(t("failed.confirmEagle", { error: errorText(error) }));
+    }
+  };
+  const dismissBackup = (path: string) => setBackups((shown) => shown.filter((p) => p !== path));
+  const reimport = (paths: string[], library: string) =>
+    begin(paths, false, undefined, { libraryId: library, folderId: null });
+
+  const minimized = running !== null && background === (running.taskId ?? "");
+  const owner =
+    ownerLabel ??
+    (finished?.libraryName
+      ? t("owner", { library: finished.libraryName, folder: finished.folderName ?? t("unassigned") })
+      : running?.libraryName
+        ? t("owner", { library: running.libraryName, folder: running.folderName ?? t("unassigned") })
+        : null);
+  // 扫描阶段总数还是 0，进度条停在 0；数到的比总数多时也不超过 100%。
+  const percent = percentOf(done, total);
+  const sealed = report?.sealedDuplicates && finished;
+
+  const { receiptOpen, setReceipt, closeReceipt } = useImportNotices({
+    finished,
+    owner,
+    warnings,
+    onSelectTask,
+    onShowDestination,
+    recovery,
+    dismissRecovery,
+    reimport: (paths, library) => void reimport(paths, library),
+    sealedTask: sealed ? sealed.taskId : null,
+    showSealed: (taskId) => setPreview({ taskId, contextKey }),
+  });
+
+  const cards = (
+    <>
+      <BackupCards paths={backups} onDone={dismissBackup} />
+      {relocations.map((relocation) => (
+        <RelocationCard
+          key={relocation.to}
+          relocation={relocation}
+          busy={busy}
+          onConfirm={(choice) => void confirm(relocation, choice)}
+        />
+      ))}
+      {running && !minimized && (
+        <section className="k-task" aria-label={t("progress.label")}>
+          <div className="k-task-top">
+            <Download size={16} className="k-task-icon" aria-hidden="true" />
+            <b>{t("progress.title")}</b>
+            <span className="k-task-count tabular">
+              {formatNumber(done)} / {formatNumber(total)}
+            </span>
+          </div>
+          {owner && <p className="k-task-sub">{t("ownerLine", { owner })}</p>}
+          {taskSwitcher}
+          <progress
+            className="k-task-progress"
+            max={Math.max(total, 1)}
+            value={Math.min(done, Math.max(total, 1))}
+            aria-label={t("progress.label")}
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-valuenow={Math.min(done, total)}
+            style={{ ["--p" as string]: `${percent}%` }}
+          />
+          {cardNotes}
+          <div className="k-task-acts">
+            <button
+              type="button"
+              className="k-btn is-sm"
+              aria-label={t("progress.cancelLabel")}
+              disabled={!running.taskId}
+              onClick={() =>
+                running.taskId &&
+                cancelImport(running.libraryId ?? libraryId, running.taskId).catch(
+                  (e) => alive.current && toast.error(t("failed.cancel", { error: errorText(e) })),
+                )
+              }
+            >
+              <span className="k-label">{t("progress.cancel")}</span>
+            </button>
+            <button type="button" className="k-btn is-sm is-quiet" onClick={() => setBackground(running.taskId ?? "")}>
+              <span className="k-label">{t("progress.background")}</span>
+            </button>
+          </div>
+        </section>
+      )}
+      {report && receiptOpen && (
+        <ImportResultCard
+          report={report}
+          finished={finished}
+          owner={owner}
+          taskSwitcher={taskSwitcher}
+          cardNotes={cardNotes}
+          busy={busy}
+          begin={begin}
+          optionsByTask={optionsByTask}
+          libraryId={libraryId}
+          onOpenTrash={onOpenTrash}
+          onDismissReport={() => {
+            closeReceipt(finished?.taskId);
+            onDismissReport();
+          }}
+        />
+      )}
+      {sealed && receiptOpen && (
+        <section className="k-task is-row sealed-import-prompt" aria-label={t("sealed.label")}>
+          {/* #78 规定的原文：不点名内容类别，不给数量。 */}
+          <SealLock size={10} />
+          <span className="k-grow">{t("sealed.prompt")}</span>
+          <button
+            type="button"
+            className="k-btn is-sm"
+            aria-label={t("sealed.expandLabel")}
+            onClick={() => setPreview({ taskId: sealed.taskId, contextKey })}
+          >
+            <span className="k-label">{t("sealed.expand")}</span>
+          </button>
+        </section>
+      )}
+    </>
+  );
+
+  return (
+    <div className="import-bar">
+      {/* 右下角的进度与结果卡片挂在 body 上。 */}
+      {createPortal(<div className="k-task-cards">{cards}</div>, document.body)}
+      <ImportPlanDialog
+        plan={plan}
+        setPlan={setPlan}
+        preparing={preparing}
+        running={running}
+        destinationReady={destinationReady}
+        startPlan={startPlan}
+        picker={picker}
+      />
+      <EagleLibrariesDialog
+        eagleLibraries={eagleLibraries}
+        setEagleLibraries={setEagleLibraries}
+        busy={busy}
+        begin={begin}
+        importFolder={importFolder}
+      />
+      {hovering && (
+        <div className="k-drop-hint" aria-live="polite">
+          <span
+            className="k-drop-hint-icon"
+            role="img"
+            aria-label={destination === null ? t("drop.choose") : t("drop.into", { library: libraryName })}
+          >
+            <Download size={32} strokeWidth={1.75} aria-hidden="true" />
+          </span>
+        </div>
+      )}
+      {finished && preview?.taskId === finished.taskId && preview.contextKey === contextKey && enabled && (
+        <SealedImportPreview
+          key={finished.taskId}
+          libraryId={finished.libraryId ?? libraryId}
+          taskId={finished.taskId}
+          onClose={() => setPreview(null)}
+        />
+      )}
+      <Dialog.Root
+        open={tagStep}
+        onOpenChange={(open) => {
+          if (!open) setTagStep(false);
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop className="k-backdrop" />
+          <Dialog.Popup className="k-dialog k-import-dialog is-wide" aria-label={t("tagStepLabel")}>
+            {/* 关上后 Popup 自己卸下；不跟 tagStep 一起清掉内容，关闭动画缩回去的才是整个对话框（#448）。 */}
+            <DialogHeight>
+              <EagleTagStep libraryId={finished?.libraryId ?? libraryId} onClose={() => setTagStep(false)} />
+            </DialogHeight>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </div>
+  );
+}

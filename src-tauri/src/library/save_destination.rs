@@ -1,0 +1,161 @@
+//! Save actions resolve one identity-checked provider under a short registry lock.
+//! The returned Arc stays with the work; browsing never selects its destination.
+
+use super::*;
+use kinshoko_core::CommandError;
+use kinshoko_core::{ImportTaskSnapshot, library::SaveDestination};
+
+pub(super) fn fixed_library<R: Runtime>(
+    app: &AppHandle<R>,
+    destination: &SaveDestination,
+) -> Result<Arc<Library>, CommandError> {
+    let state = app.state::<LibraryState>();
+    let _transition = lock(&state.transition);
+    let library = with_libraries(&state, |device| device.write(&destination.library_id))?;
+    library
+        .validate_destination(destination)
+        .map_err(CommandError::from)?;
+    state.configure_library(&library);
+    library.set_safe_mode(saved_safe_mode(app));
+    Ok(library)
+}
+
+/// A fixed owner is retained through content writes and optional definition publication.
+fn save<R: Runtime, T>(
+    app: &AppHandle<R>,
+    destination: &SaveDestination,
+    publish: bool,
+    f: impl FnOnce(&Library) -> Result<T, CommandError>,
+) -> Result<T, CommandError> {
+    let library = fixed_library(app, destination)?;
+    let bound = library
+        .for_destination(destination)
+        .map_err(CommandError::from)?;
+    let value = f(&bound)?;
+    if publish {
+        publish_saved(app, &library)?;
+    }
+    Ok(value)
+}
+pub fn with_destination<R: Runtime, T>(
+    app: &AppHandle<R>,
+    destination: &SaveDestination,
+    f: impl FnOnce(&Library) -> Result<T, CommandError>,
+) -> Result<T, CommandError> {
+    save(app, destination, false, f)
+}
+pub fn with_destination_published<R: Runtime, T>(
+    app: &AppHandle<R>,
+    destination: &SaveDestination,
+    f: impl FnOnce(&Library) -> Result<T, CommandError>,
+) -> Result<T, CommandError> {
+    save(app, destination, true, f)
+}
+pub(super) fn publish_saved<R: Runtime>(
+    app: &AppHandle<R>,
+    library: &Library,
+) -> Result<(), CommandError> {
+    let state = app.state::<LibraryState>();
+    library
+        .validate_destination(&SaveDestination {
+            library_id: library.info().id.clone(),
+            folder_id: None,
+        })
+        .map_err(|error| {
+            CommandError::caused_by(
+                error,
+                |cause| ErrorKind::ProcessedDefinitionsNotSaved { cause },
+                |error| format!("内容处理结果已保留，资料库标签定义未更新：{error}。可在统一标签目录重试保存定义。"),
+            )
+        })?;
+    with_catalog(&state.search, |catalog| {
+        catalog.publish_library_definitions(library)
+    })
+    .map_err(|e| {
+        CommandError::caused_by(
+            e,
+            |cause| ErrorKind::SavedDefinitionsNotSaved { cause },
+            |e| format!("内容已保存，资料库标签定义未更新：{e}。可在统一标签目录重试保存定义。"),
+        )
+    })
+}
+fn complete<R: Runtime>(app: &AppHandle<R>, owner: &str, id: &str, warning: Option<CommandError>) {
+    let state = app.state::<LibraryState>();
+    if let Err(error) = with_libraries(&state, |device| {
+        device.complete_import_publication(owner, id, warning)
+    }) {
+        crate::run_log::error("无法记录原导入任务的收尾结果", error);
+    }
+}
+pub(super) fn begin<R: Runtime>(
+    app: &AppHandle<R>,
+    destination: SaveDestination,
+    source: ImportSource,
+    options: ImportOptions,
+) -> Result<String, CommandError> {
+    let library = fixed_library(app, &destination)?;
+    let events = library.events();
+    let state = app.state::<LibraryState>();
+    let id = with_libraries(&state, |device| {
+        let id = device.start_import_to(destination.clone(), source, options)?;
+        device.defer_import_completion(&id)?;
+        Ok(id)
+    })?;
+    // Subscribe before starting, so even a one-item task cannot finish before observation.
+    let (worker, task_id) = (app.clone(), id.clone());
+    if let Err(error) = std::thread::Builder::new()
+        .name("kinshoko-import-owner".into())
+        .spawn(move || {
+            for event in events {
+                if let LibraryEvent::TaskFinished { task_id: id, .. } = event
+                    && id == task_id
+                {
+                    let warning = publish_saved(&worker, &library).err();
+                    complete(&worker, &library.info().id, &task_id, warning);
+                    break;
+                }
+            }
+        })
+    {
+        // Content work has already started. Return its real ID and record the unavailable follow-up.
+        complete(
+            app,
+            &destination.library_id,
+            &id,
+            Some(CommandError::caused_by(
+                error,
+                |cause| ErrorKind::ImportPublicationNotStarted { cause },
+                |error| {
+                    format!(
+                        "导入任务已启动，标签定义发布未启动：{error}。内容处理完毕后，可在统一标签目录重试保存定义。"
+                    )
+                },
+            )),
+        );
+    }
+    Ok(id)
+}
+
+#[tauri::command]
+pub(super) async fn import_tasks<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<Vec<ImportTaskSnapshot>, CommandError> {
+    blocking(move || import_preview::receipts(&app)).await
+}
+#[tauri::command]
+pub(super) async fn dismiss_import<R: Runtime>(
+    app: AppHandle<R>,
+    library_id: String,
+    task_id: String,
+) -> Result<(), CommandError> {
+    blocking(move || {
+        with_visibility_commit(&app, |_| {
+            import_preview::revoke(&app);
+            let state = app.state::<LibraryState>();
+            with_libraries(&state, |device| {
+                device.dismiss_import(&library_id, &task_id)
+            })
+        })
+    })
+    .await
+}

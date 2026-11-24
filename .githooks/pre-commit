@@ -1,0 +1,15 @@
+#!/bin/sh
+# Enable with: git config core.hooksPath .githooks
+set -e
+root=$(git rev-parse --show-toplevel)
+script="$root/scripts/hooks/check_file_tokens.py"
+
+for py in python3 python py; do
+  # Skip the Windows Store "python3" stub, which exits non-zero without a real install.
+  if command -v "$py" >/dev/null 2>&1 && "$py" -c "" >/dev/null 2>&1; then
+    exec "$py" "$script"
+  fi
+done
+
+echo "pre-commit: Python 3 not found; cannot run $script" >&2
+exit 1

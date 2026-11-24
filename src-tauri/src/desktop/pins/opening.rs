@@ -1,0 +1,192 @@
+//! 打开钉图：从截图历史、参考图或选区开出钉图，以及钉图的外观。
+
+use super::*;
+use kinshoko_core::CommandError;
+
+/// 改一个钉图的状态并安排保存。钉图不在时为 `None`。
+pub(super) fn edit<T>(app: &AppHandle, pin: &str, f: impl FnOnce(&mut SavedPin) -> T) -> Option<T> {
+    let out = lock(&state(app).store).edit(pin, f);
+    if out.is_some() {
+        state(app).dirty.store(true, Ordering::Relaxed);
+    }
+    out
+}
+
+/// 把截图历史中的一张截图钉到桌面，返回新钉图的 id。`at` 是图片原本在屏幕上的位置（物理像素）；
+/// 新钉图略微偏离它，并避开已有钉图（[`place_new_pin`]）。
+pub fn open(
+    app: &AppHandle,
+    capture: &CaptureEntry,
+    at: ScreenRect,
+) -> Result<String, CommandError> {
+    let center = (at.x + (at.width / 2) as i32, at.y + (at.height / 2) as i32);
+    let (monitor, scale) = monitor_at(center.0, center.1)
+        .or_else(|| monitor_at(at.x, at.y))
+        .unwrap_or((at, 1.0));
+    let step = (OFFSET * scale).round() as i32;
+    let others: Vec<ScreenRect> = open_pins(app).iter().map(SavedPin::rect).collect();
+    let (x, y) = place_new_pin(at, monitor, &others, step);
+
+    let pin = SavedPin {
+        id: uuid::Uuid::new_v4().simple().to_string(),
+        content: PinContent::Capture {
+            capture_id: capture.id.clone(),
+        },
+        crop: None,
+        width: capture.width,
+        height: capture.height,
+        placement: Placement {
+            x,
+            y,
+            ..Placement::default()
+        },
+        opacity: 1.0,
+        locked: false,
+        member: None,
+    };
+    let pin = add_and_open(app, pin)?;
+    history_changed(app);
+    Ok(pin.id)
+}
+
+/// 从查看器把资料库中的一张参考图钉到桌面：整图（`crop` 为 `None`）或局部（原图像素）。
+/// `shown` 是这块在查看器里此刻的位置（物理像素，相对查看器窗口客户区）；新钉图以它为中心、
+/// 略微错开，放不下时缩到显示器的五分之三。只钉浏览视角下看得见的图。
+pub(super) fn pin_reference_here(
+    app: &AppHandle,
+    window: &tauri::Window,
+    library_id: &str,
+    image_id: &str,
+    crop: Option<Region>,
+    shown: ScreenRect,
+) -> Result<(), CommandError> {
+    crate::library::visible_source(app, library_id, image_id)?
+        .image(image_id)
+        .map_err(CommandError::from)?;
+    let image = crate::library::with_references(app, |refs| refs.image(library_id, image_id))
+        .map_err(CommandError::from)?;
+    let origin = window.inner_position().map_err(CommandError::system)?;
+    let centre = (
+        origin.x + shown.x + (shown.width / 2) as i32,
+        origin.y + shown.y + (shown.height / 2) as i32,
+    );
+    let (monitor, dpi) = monitor_at(centre.0, centre.1).unwrap_or((
+        ScreenRect {
+            x: centre.0,
+            y: centre.1,
+            width: shown.width.max(1),
+            height: shown.height.max(1),
+        },
+        1.0,
+    ));
+    let mut pin = SavedPin::reference(
+        &uuid::Uuid::new_v4().simple().to_string(),
+        library_id,
+        &image,
+        crop,
+        Placement::default(),
+    )
+    .map_err(CommandError::from)?;
+    pin.placement.scale = initial_scale(pin.width, pin.height, monitor);
+    let (width, height) = pin.window_size();
+    let at = ScreenRect {
+        x: centre.0 - (width / 2) as i32,
+        y: centre.1 - (height / 2) as i32,
+        width,
+        height,
+    };
+    let others: Vec<ScreenRect> = open_pins(app).iter().map(SavedPin::rect).collect();
+    let (x, y) = place_new_pin(at, monitor, &others, (OFFSET * dpi).round() as i32);
+    pin.placement.x = x;
+    pin.placement.y = y;
+    add_and_open(app, pin)?;
+    Ok(())
+}
+
+/// 放进钉图状态并开出窗口。期间换了桌时，刚放进旧桌的钉图已被换走，对齐时它的窗口可能还没开出来：
+/// 开完再核对一次，不在了就另起线程重新对齐把它关掉。不在这里加锁也不在这里关窗口：截图完成时调用方
+/// 正持有遮蔽的提交锁，对齐关窗口时也要取它。
+pub(in crate::desktop) fn add_and_open(
+    app: &AppHandle,
+    pin: SavedPin,
+) -> Result<SavedPin, CommandError> {
+    let pin = add(app, pin)?;
+    open_pin(app, &pin);
+    if lock(&state(app).store).get(&pin.id).is_none() {
+        let app = app.clone();
+        std::thread::spawn(move || crate::desktop::desk_commands::realign(&app));
+    }
+    Ok(pin)
+}
+
+/// 把新钉图放进钉图状态（它成为桌面上参考组的新成员），截图钉图在截图历史里记下钉住。
+/// 返回要打开的钉图。先钉图状态、后截图历史。
+///
+/// 开关打开、桌面空着时这一张开了新参考组（#588 决定 4）：参考组列表变了；有上一组时推送
+/// [`super::super::desk_commands::STARTED_EVENT`]，界面据此提示“加进上一组”。
+pub(in crate::desktop) fn add(app: &AppHandle, pin: SavedPin) -> Result<SavedPin, CommandError> {
+    let added = lock(&state(app).store).add(pin, &mut lock(&state(app).history))?;
+    state(app).dirty.store(true, Ordering::Relaxed);
+    if added.started {
+        crate::desktop::desk_commands::started(app, added.group_id(), added.fold_into.clone());
+    }
+    Ok(added.pin)
+}
+
+/// 钉图此刻要不要原位遮蔽（模糊并显示小圆锁，见 [`kinshoko_core::desktop::PinVeils`]），以及暂时
+/// 不能显示的原因（资料库没登记、不可用、图已删除、原图缺失，#66）。资料库钉图经参考视角核对：活动资料库现取句柄，
+/// 未激活的已登记资料库只读打开（#66）。会查资料库，不要持有桌面状态的锁调用。
+pub(super) fn appearance(app: &AppHandle, pin: &SavedPin) -> (bool, Option<String>) {
+    // 核对不了（资料库没登记、不可用、图已不在）时 sealed 为 None，安全模式开启时按被封印处理。
+    let (sealed, unavailable) = match &pin.content {
+        PinContent::Reference {
+            library_id,
+            image_id,
+            ..
+        } => match crate::library::with_references(app, |refs| refs.image(library_id, image_id)) {
+            Ok(image) => (Some(image.sealed), None),
+            Err(reason) => (None, Some(crate::ui_text::unavailable(&reason))),
+        },
+        PinContent::Capture { .. } => (Some(false), None),
+    };
+    (lock(&state(app).veils).veiled(pin, sealed), unavailable)
+}
+
+/// 资料库钉图要显示的文件：`size` 为 `full`（1:1）或 `fit-<像素>`（整张缩到的宽度）。经参考视角读取；
+/// 资料库没有激活时只读打开它（不切换活动库，#66）。会读文件，不要在主线程上调用。
+pub fn reference_file(app: &AppHandle, pin: &str, size: &str) -> Option<std::path::PathBuf> {
+    let saved = lock(&state(app).store).get(pin).cloned()?;
+    let PinContent::Reference {
+        library_id,
+        image_id,
+        ..
+    } = &saved.content
+    else {
+        return None;
+    };
+    let lens = crate::library::with_references(app, |refs| refs.lens(library_id)).ok()?;
+    let file = if size == "full" {
+        lens.display(image_id)
+    } else {
+        lens.display_scaled(image_id, size.strip_prefix("fit-")?.parse().ok()?)
+    };
+    file.ok().map(|f| f.path)
+}
+
+/// 打开一个钉图（新钉的、启动时恢复的、换到桌面上的）：交给原生钉图（[`native`]），窗口建好之前
+/// 就返回；打不开时原生钉图写运行日志并收掉本次运行的记录，状态留到下次启动。
+/// 截图历史此前已经记下它被钉住。
+pub fn open_pin(app: &AppHandle, pin: &SavedPin) {
+    super::super::timing("pin.window.begin");
+    lock(&state(app).pins).insert(
+        pin.id.clone(),
+        PinRecord {
+            capture_id: pin.capture_id().map(str::to_owned),
+            closing: false,
+            content: pin.rect(),
+            click_through: false,
+            shown: false,
+        },
+    );
+    native::open(app, native::Frame::at_home(pin.clone(), look(app, pin)));
+}

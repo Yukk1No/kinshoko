@@ -1,0 +1,95 @@
+/** 标签的显示（`src/tags/`、`src/search/tagLabel.tsx`）与详情侧栏的标签面板（`src/library/TagPanel.tsx`）。 */
+export default {
+  /** 标签名前的命名空间；一般标签不加。键是 `TagNamespace`。 */
+  namespace: {
+    general: "",
+    artist: "作者：",
+    character: "角色：",
+    work: "作品：",
+  },
+  /** 加标签时选的命名空间。 */
+  namespaceOption: {
+    general: "一般",
+    artist: "作者",
+    character: "角色",
+    work: "作品",
+  },
+  untranslated: "尚无中文名，显示的是原名",
+  untranslatedFlag: "未翻译",
+  unnamed: "未命名标签",
+  /** 标签名称的语言，用各语言的自称；`und` 是未注明语言。 */
+  language: {
+    "zh-CN": "简体中文",
+    "zh-TW": "繁體中文",
+    en: "English",
+    ja: "日本語",
+    ko: "한국어",
+    und: "未注明语言",
+  },
+  noExternal: "没有外部对应，不参与内置相近标签",
+  panel: {
+    label: "标签",
+    title: "标签",
+    /** 按出处分组；键是 `TagStanding` 的 `kind`。 */
+    group: {
+      manual: "你添加的",
+      model: "自动标签",
+      imported: "导入",
+    },
+    active: "有效标签",
+    empty: "还没有标签",
+    /** 画师排除的标签：小标题与列表的读屏名。“改回自动”清除画师的决定（`clearLabel`、`revert`）。 */
+    excluded: "已排除",
+    create: "新建“{{name}}”",
+    unifiedAs: "对应到：{{name}}",
+    clearLabel: "把“{{name}}”改回自动",
+    revert: "改回自动",
+    keepLabel: "保留“{{name}}”",
+    keep: "保留",
+    rejectLabel: "排除“{{name}}”",
+    reject: "排除",
+    aliasesLabel: "“{{name}}”的别名",
+    aliases: "别名",
+    field: "标签名",
+    placeholder: "添加标签…",
+    namespaceLabel: "类别",
+    noMatch: "没有匹配的标签",
+  },
+  alias: {
+    removeLabel: "去掉别名“{{name}}”",
+    removeTitle: "去掉",
+    none: "还没有别名",
+    placeholder: "新别名",
+    done: "完成",
+    add: "添加别名",
+  },
+  /** 标签浮层里的出处。 */
+  origin: {
+    label: "“{{name}}”的出处",
+    confidence: "可信度",
+    manual: "来源：你添加的",
+    conflict: "来源：合并时的决定冲突，暂按添加处理",
+    model: "自动标签",
+    modelScore: "自动标签，可信度 {{percent}}%（{{band}}）",
+    band: {
+      high: "高",
+      mid: "中",
+      low: "低",
+    },
+    eagle: "来源：从 Eagle 导入",
+    package: "来源：参考组包",
+    restore: "来源：备份",
+    imported: "来源：导入",
+  },
+  rename: {
+    label: "重命名“{{name}}”",
+    trigger: "尚未翻译",
+    title: "重命名“{{name}}”",
+    field: "显示名",
+    duplicate: "标签“{{name}}”已用这个名字，两者仍是不同的标签",
+    hint: "词表更新不会替换这个名字，可以在设置里恢复默认",
+    cancel: "取消",
+    save: "保存显示名",
+    manage: "在设置中管理“{{name}}”的名称和别名",
+  },
+};

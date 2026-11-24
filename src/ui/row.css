@@ -1,0 +1,64 @@
+/* 侧栏里的一行（图库范围、文件夹树）：30 高，图标、名字、张数。悬停底色由 .k-fluid 的滑块画（ui.css）。 */
+.k-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-s);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  line-height: 30px;
+}
+.k-row .k-row-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+/* 选中的一行（甲 指示条）：平的 --hover 底画在 ::before 上，左边一根 3 × 14 的强调色短条画在 ::after 上；
+   名字墨色，图标强调色，张数不变。换一行时短条从旧的一行滑过来（useIndicatorSlide）。 */
+.k-row[aria-current="page"] {
+  isolation: isolate;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 500;
+}
+.k-row[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--hover);
+}
+.k-row[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.k-row[aria-current="page"] .k-row-icon {
+  color: var(--accent-strong);
+}
+.k-row:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: default;
+}
+.k-row[data-drop] {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  background: var(--accent-soft);
+  outline: 0;
+}
+/* the fluid pill draws the hover; plain :hover only where it is not running (touch, jsdom) */
+.k-fluid:not([data-fluid-hover-active-index]) .k-row:hover:not(:disabled):not([aria-current="page"]) {
+  background: var(--hover);
+}

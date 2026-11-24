@@ -1,0 +1,108 @@
+import type { ReactElement, ReactNode } from "react";
+import type { SimilarTag } from "../bindings/SimilarTag";
+import type { TagLabel } from "../bindings/TagLabel";
+import type { Term } from "../bindings/Term";
+import { RatingName, ratingName, TagMarks, tagName } from "./tagLabel";
+import { i18n } from "../i18n";
+import { useTranslation } from "react-i18next";
+import { Tip } from "../ui/Tip";
+import { Plus, X } from "lucide-react";
+
+/** 文字项也匹配的标签与分级，鼠标悬停时显示，画师能看见文字查到了什么。 */
+function termTitle(term: Term) {
+  if (term.kind !== "text") return undefined;
+  const lines = [
+    term.tags.length > 0 &&
+      i18n.t("search:alsoTags", { tags: term.tags.map(tagName).join(i18n.t("search:listSeparator")) }),
+    term.ratings.length > 0 &&
+      i18n.t("search:alsoRatings", { ratings: term.ratings.map(ratingName).join(i18n.t("search:listSeparator")) }),
+  ].filter(Boolean);
+  return lines.length ? lines.join("\n") : undefined;
+}
+
+/** 这一项只有一个标签时是它：“＋”加的相近标签以它为另一端。分级项没有。 */
+export function soleTag(term: Term): TagLabel | null {
+  if (term.kind === "tag") return term.tag;
+  if (term.kind === "rating" || term.kind === "taggingUnfinished") return null;
+  return term.tags.length === 1 ? term.tags[0] : null;
+}
+
+/**
+ * 条件里的一项，及其展开的相近标签。相近标签后的“×”和末尾的“＋”交给调用方包成菜单或浮层的触发器
+ * （`dismiss` / `add` 收到按钮本身），弹出的东西贴着按钮。
+ */
+export function TermView({
+  term,
+  showSource,
+  personal = true,
+  brief = false,
+  dismiss,
+  add,
+}: {
+  term: Term;
+  showSource: boolean;
+  personal?: boolean;
+  /** 只显示这一项本身，不列相近标签、不给“＋”。 */
+  brief?: boolean;
+  dismiss: (similar: SimilarTag, button: ReactElement) => ReactNode;
+  add: (to: TagLabel, button: ReactElement) => ReactNode;
+}) {
+  const { t } = useTranslation("search");
+  const sole = soleTag(term);
+  if (term.kind === "rating") return <RatingName rating={term.rating} />;
+  if (term.kind === "taggingUnfinished") return <span>{t("taggingUnfinished")}</span>;
+  return (
+    <>
+      {term.kind === "tag" ? (
+        <>
+          <span>{tagName(term.tag)}</span>
+          <TagMarks tag={term.tag} />
+        </>
+      ) : (
+        <Tip label={termTitle(term)}>
+          <span>{t("quoted", { text: term.text })}</span>
+        </Tip>
+      )}
+      {!brief && term.similar.length > 0 && (
+        <span className="search-similar">
+          <span className="search-condition-or">{t("similar.or")}</span>
+          {term.similar.map((s, k) => (
+            <span key={s.tag.id} className="search-similar-tag">
+              {k > 0 && t("listSeparator")}
+              <span>{tagName(s.tag)}</span>
+              <TagMarks tag={s.tag} />
+              {showSource && (
+                <span className="search-similar-source">
+                  {s.source === "builtin" ? t("similar.builtin") : t("similar.personal")}
+                </span>
+              )}
+              {dismiss(
+                s,
+                <button
+                  type="button"
+                  className="k-token-action is-20 is-condition-action"
+                  aria-label={t("similar.dismissLabel", { name: tagName(s.tag) })}
+                >
+                  <X size={12} strokeWidth={2} aria-hidden="true" />
+                </button>,
+              )}
+            </span>
+          ))}
+        </span>
+      )}
+      {sole &&
+        personal &&
+        !brief &&
+        add(
+          sole,
+          <button
+            type="button"
+            className="k-token-action is-20 is-condition-action"
+            aria-label={t("similar.addLabel", { name: tagName(sole) })}
+          >
+            <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
+          </button>,
+        )}
+    </>
+  );
+}

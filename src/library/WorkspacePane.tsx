@@ -1,0 +1,356 @@
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { useIndicatorSlide } from "./useIndicatorSlide";
+import { Name } from "../ui/Name";
+import { Images, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { FluidList, FluidRow } from "../ui/FluidList";
+import { MenuItem } from "../ui/Menu";
+import { PermanentDeleteConfirm } from "./SelectionPanel";
+import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
+import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
+import { errorText } from "../ipc/commandError";
+import { isCursorExpired, isLensChanged, revealLibrary, unregisterLibrary, workspaceDirectories } from "../ipc";
+import { acceptsDrag } from "./SidebarPane";
+import type { WorkspaceScope } from "../bindings/WorkspaceScope";
+import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
+import { ProviderSection } from "./WorkspaceProviderSection";
+import { folderPath, TrashRow } from "./WorkspacePaneRows";
+import type { LibraryRegistration } from "../bindings/LibraryRegistration";
+import { useToast } from "../ui/Toast";
+import { Tip } from "../ui/Tip";
+import { offerUndoRemoval } from "./undoRemoval";
+// 来源整理拆到 WorkspaceSources.tsx；从这里导入的调用方照旧可用。
+export { WorkspaceSources } from "./WorkspaceSources";
+
+/** 拖动悬停在折起的图库上多久后自动展开（弹簧加载，方案 D）。 */
+export const SPRING_OPEN_MS = 600;
+
+/**
+ * 侧栏（方案 D，#113；design/ui-system/window-frame-and-sidebar.md 侧栏布局）：顶部固定“全部图片”与跨库合计；中间是
+ * Finder 式的图库分组，选中哪个图库内的范围就只展开哪个，选“全部图片”时全部折起，箭头可临时多展开；
+ * 拖动图片或文件夹悬停在折起的图库上约 0.6 秒自动展开，放下或离开后恢复。每个已连接图库的目录都能
+ * 直接整理（ADR-0008）；未连接的图库只占一行并可就地重新连接。底部固定跟随所选图库的回收站。
+ */
+export function WorkspacePane({
+  status,
+  scope,
+  onScope,
+  safeMode,
+  reloadKey,
+  onError,
+  onMessage,
+  onRecheck,
+  onRemoved,
+  onRestore,
+  children,
+}: {
+  status: WorkspaceStatus | null;
+  scope: WorkspaceScope;
+  onScope: (scope: WorkspaceScope) => void;
+  safeMode: boolean;
+  reloadKey: number;
+  onError: (error: unknown) => void;
+  onMessage?: (message: string) => void;
+  /** 重新检查未连接的图库（移动盘接回后）。 */
+  onRecheck?: () => void;
+  /** 图库标题菜单“从列表移除”完成后（取消登记，文件不删）。 */
+  onRemoved?: (libraryId: string) => void;
+  /** 移除后点“撤销”：按原位置重新登记。 */
+  onRestore?: (root: string) => Promise<void>;
+  children?: ReactNode;
+}) {
+  // 代次（登记了哪些图库、各自是否可用、安全模式）变了，旧目录在新结果到达前就不再显示。内容变化
+  // （status.revision 随每次进库前进，导入期间约每 1.5 秒一次）与单纯重读（reloadKey，每次列表过期加一）
+  // 只重读：沿用上一份目录直到新结果到达，资料库行不因计数刷新整行变成不可用（#121）。
+  const generation = JSON.stringify([status?.libraries, safeMode]);
+  const key = JSON.stringify([generation, status?.revision, reloadKey]);
+  const [loaded, setLoaded] = useState<{ generation: string; forest: WorkspaceDirectories } | null>(null);
+  // 选文件夹总是连同子文件夹一起看（#608 取消了“含子文件夹”开关）。
+  const descendants = true;
+  // biome-ignore lint/correctness/useExhaustiveDependencies(key): 目录内容变化与单纯重读（revision、reloadKey）都靠 key 触发
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      for (let attempt = 0; alive; attempt++) {
+        try {
+          const forest = await workspaceDirectories(safeMode);
+          if (alive) setLoaded({ generation, forest });
+          return;
+        } catch (error) {
+          if (!alive || isLensChanged(error)) return;
+          if (isCursorExpired(error) && attempt < 3) continue;
+          onError(error);
+          return;
+        }
+      }
+    };
+    void load();
+    return () => {
+      alive = false;
+    };
+  }, [key, generation, safeMode, onError]);
+
+  // 展开规则：选中某库内的范围时只展开该库，选“全部图片”时全部折起；所选图库变了才重置，
+  // 期间点箭头的临时展开保留。在渲染中比较而不用 effect，换库的这一帧就不闪出旧的展开。
+  const selectedLibrary = scope.kind === "library" ? scope.libraryId : null;
+  const [opened, setOpened] = useState(() => ({
+    for: selectedLibrary,
+    ids: new Set(selectedLibrary ? [selectedLibrary] : []),
+  }));
+  let openIds = opened.ids;
+  if (opened.for !== selectedLibrary) {
+    openIds = new Set(selectedLibrary ? [selectedLibrary] : []);
+    setOpened({ for: selectedLibrary, ids: openIds });
+  }
+  const toggle = (id: string, open: boolean) =>
+    setOpened((previous) => {
+      const ids = new Set(previous.ids);
+      if (open) ids.add(id);
+      else ids.delete(id);
+      return { ...previous, ids };
+    });
+
+  // 弹簧加载：拖动悬停在折起的图库上 SPRING_OPEN_MS 后临时展开；离开该图库、放下或拖动结束时收回。
+  // 进出用计数而不用 relatedTarget：子元素之间移动时 dragenter 先于 dragleave。
+  const [sprung, setSprung] = useState<string | null>(null);
+  const spring = useRef<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const depth = useRef(new Map<string, number>());
+  const stopSpring = () => {
+    if (spring.current) clearTimeout(spring.current.timer);
+    spring.current = null;
+  };
+  useEffect(() => {
+    const end = () => {
+      if (spring.current) clearTimeout(spring.current.timer);
+      spring.current = null;
+      depth.current.clear();
+      setSprung(null);
+    };
+    window.addEventListener("drop", end);
+    window.addEventListener("dragend", end);
+    return () => {
+      window.removeEventListener("drop", end);
+      window.removeEventListener("dragend", end);
+      if (spring.current) clearTimeout(spring.current.timer);
+    };
+  }, []);
+
+  const { t } = useTranslation("library");
+  const [creatingIn, setCreatingIn] = useState<string | null>(null);
+  const [trashList, setTrashList] = useState(false);
+  /** 正在确认清空回收站的图库。 */
+  const [emptying, setEmptying] = useState<{ libraryId: string; name: string } | null>(null);
+  const reveal = (libraryId: string) => {
+    revealLibrary(libraryId).catch((e) => onMessage?.(t("scope.revealFailed", { error: errorText(e) })));
+  };
+  // 移除完成时按那时的范围判断：正浏览这个图库（任一范围）就回到“全部图片”（同时清掉选择），
+  // 不再向已取消登记的图库请求浏览。
+  const latestScope = useRef(scope);
+  latestScope.current = scope;
+  const toast = useToast();
+  const remove = ({ library, unavailable }: LibraryRegistration) => {
+    unregisterLibrary(library.id).then(
+      () => {
+        const current = latestScope.current;
+        if (current.kind === "library" && current.libraryId === library.id) onScope({ kind: "all" });
+        onRemoved?.(library.id);
+        if (!unavailable && onRestore) offerUndoRemoval(toast, library, onRestore, (message) => onMessage?.(message));
+      },
+      (e) => onError(e),
+    );
+  };
+  const emptyItem = (p: WorkspaceDirectory, label: string) => (
+    <MenuItem
+      key={p.registration.library.id}
+      icon={<Trash2 size={14} />}
+      danger
+      disabled={!p.sidebar || p.sidebar.trash === 0}
+      onClick={() => setEmptying({ libraryId: p.registration.library.id, name: p.registration.library.name })}
+    >
+      {label}
+    </MenuItem>
+  );
+
+  // A changed safety/provider revision hides old controls before a new request can complete.
+  const forest = loaded?.generation === generation ? loaded.forest : null;
+  const providers =
+    forest?.providers ??
+    status?.libraries.map((registration) => ({ registration, sidebar: null, unassigned: 0, descendants: {} })) ??
+    [];
+  const connected = providers.filter((p) => !p.registration.unavailable && p.sidebar);
+  const selected =
+    scope.kind === "library" ? providers.find((p) => p.registration.library.id === scope.libraryId) : undefined;
+  const local = scope.kind === "library" ? scope.scope : null;
+  const isFolder = local?.kind === "folder" || local?.kind === "folderTree";
+  const path = isFolder && selected?.sidebar ? folderPath(selected.sidebar.folders, local.id) : null;
+  const range =
+    scope.kind === "all"
+      ? t("scope.allLibraries")
+      : selected
+        ? t("scope.path", {
+            library: selected.registration.library.name,
+            place: selected.registration.unavailable
+              ? t("scope.offline")
+              : isFolder
+                ? (path?.join(" / ") ?? (forest ? t("scope.folderGone") : t("scope.loadingFolders")))
+                : local?.kind === "trash"
+                  ? t("scope.trash")
+                  : local?.kind === "unassigned"
+                    ? t("scope.unassigned")
+                    : t("scope.allImages"),
+          })
+        : forest
+          ? t("scope.libraryGone")
+          : t("scope.loadingLibraries");
+  const total = forest ? connected.reduce((sum, p) => sum + (p.sidebar?.all ?? 0), 0) : undefined;
+  const trashTotal = forest ? connected.reduce((sum, p) => sum + (p.sidebar?.trash ?? 0), 0) : undefined;
+  const trashOf = (id: string): WorkspaceScope => ({ kind: "library", libraryId: id, scope: { kind: "trash" } });
+
+  const springHandlers = (id: string, closed: boolean) => ({
+    onDragEnter: (e: DragEvent) => {
+      if (!acceptsDrag(e)) return;
+      depth.current.set(id, (depth.current.get(id) ?? 0) + 1);
+      if (!closed || spring.current?.id === id) return;
+      stopSpring();
+      spring.current = {
+        id,
+        timer: setTimeout(() => {
+          spring.current = null;
+          setSprung(id);
+        }, SPRING_OPEN_MS),
+      };
+    },
+    onDragLeave: () => {
+      const left = (depth.current.get(id) ?? 1) - 1;
+      if (left > 0) {
+        depth.current.set(id, left);
+        return;
+      }
+      depth.current.delete(id);
+      if (spring.current?.id === id) stopSpring();
+      setSprung((current) => (current === id ? null : current));
+    },
+  });
+
+  const paneRef = useRef<HTMLElement>(null);
+  useIndicatorSlide(paneRef);
+  return (
+    <nav ref={paneRef} className="workspace-scope side-bands" aria-label={t("scope.label")}>
+      <div className="workspace-current-scope sr-only" role="status">
+        {t("scope.current", { range })}
+      </div>
+      <div className="side-top">
+        <FluidList>
+          <FluidRow index={0}>
+            <button
+              type="button"
+              className="sidebar-item k-row"
+              aria-current={scope.kind === "all" ? "page" : undefined}
+              aria-label={total === undefined ? t("scope.allImages") : t("scope.allImagesCount", { count: total })}
+              onClick={() => onScope({ kind: "all" })}
+            >
+              <span className="k-row-icon" aria-hidden="true">
+                <Images size={15} />
+              </span>
+              <span className="sidebar-label k-label">{t("scope.allImages")}</span>
+              <span className="sidebar-count k-label">{total ?? ""}</span>
+            </button>
+          </FluidRow>
+        </FluidList>
+      </div>
+      <div className="side-scroll">
+        {providers.map((provider) => {
+          return (
+            <ProviderSection
+              key={provider.registration.library.id}
+              provider={provider}
+              scope={scope}
+              openIds={openIds}
+              sprung={sprung}
+              setSprung={setSprung}
+              toggle={toggle}
+              creatingIn={creatingIn}
+              setCreatingIn={setCreatingIn}
+              descendants={descendants}
+              springHandlers={springHandlers}
+              reveal={reveal}
+              remove={remove}
+              onScope={onScope}
+              onRecheck={onRecheck}
+              onError={onError}
+            />
+          );
+        })}
+        {children}
+      </div>
+      <div className="side-foot">
+        {scope.kind === "library" ? (
+          selected && (
+            <TrashRow
+              label={selected.registration.library.name}
+              count={selected.sidebar?.trash}
+              current={scope.scope.kind === "trash"}
+              disabled={!selected.sidebar}
+              onClick={() => onScope(trashOf(selected.registration.library.id))}
+              menu={emptyItem(selected, t("trash.empty"))}
+            />
+          )
+        ) : (
+          <>
+            <TrashRow
+              label={t("trash.allLibraries")}
+              count={trashTotal}
+              disabled={connected.length === 0}
+              expanded={connected.length > 1 ? trashList : undefined}
+              onClick={() =>
+                connected.length === 1
+                  ? onScope(trashOf(connected[0].registration.library.id))
+                  : setTrashList((open) => !open)
+              }
+              menu={connected.map((p) =>
+                emptyItem(
+                  p,
+                  connected.length === 1 ? t("trash.empty") : t("trash.emptyOf", { name: p.registration.library.name }),
+                ),
+              )}
+            />
+            {trashList && connected.length > 1 && (
+              <div role="group" aria-label={t("trash.perLibrary")} className="trash-groups">
+                <FluidList>
+                  {connected.map((p, index) => (
+                    <FluidRow key={p.registration.library.id} index={index}>
+                      <Tip label={p.registration.library.root} align="start">
+                        <button
+                          type="button"
+                          className="sidebar-item k-row trash-group-row"
+                          aria-label={t("trash.libraryCount", {
+                            name: p.registration.library.name,
+                            count: p.sidebar?.trash ?? 0,
+                          })}
+                          onClick={() => onScope(trashOf(p.registration.library.id))}
+                        >
+                          <Name className="sidebar-label k-label">{p.registration.library.name}</Name>
+                          <span className="sidebar-count k-label">{p.sidebar?.trash ?? 0}</span>
+                        </button>
+                      </Tip>
+                    </FluidRow>
+                  ))}
+                </FluidList>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      {emptying && (
+        <PermanentDeleteConfirm
+          libraryId={emptying.libraryId}
+          ids={[]}
+          emptyTrash={{ libraryName: emptying.name }}
+          onDone={() => setEmptying(null)}
+          onCancel={() => setEmptying(null)}
+          onError={(message) => onMessage?.(message)}
+        />
+      )}
+    </nav>
+  );
+}

@@ -1,0 +1,63 @@
+/** 查找与条件栏（`src/search/`）：查找框、条件、相近标签、精确查找与标签分组栏。 */
+export default {
+  label: "查找参考图",
+  placeholder: "查找标签或文字",
+  findText: "查找“{{text}}”",
+  /** 内容分级候选的另一种叫法。 */
+  ratingVia: "别名",
+  /** 标签候选匹配到的别名。 */
+  tagVia: "别名",
+  ratingMark: "分级",
+  r18: "R18",
+  conditions: "查找条件",
+  hiddenConditions_other: "还有 {{count, number}} 个条件",
+  collapsedConditions: "收起的查找条件",
+  not: "不要",
+  missingTag: "已删除的标签",
+  /** 一个条件里几项任一之间的分隔；读屏读 `orSpoken`。 */
+  or: "、",
+  orSpoken: "或",
+  exclude: "排除这个条件",
+  include: "不再排除这个条件",
+  remove: "去掉这个条件",
+  quoted: "“{{text}}”",
+  /** 查找条件：没有完成自动标签的图（#475），从自动标签的状态进来。 */
+  taggingUnfinished: "自动标签未完成",
+  alsoTags: "也匹配标签：{{tags}}",
+  alsoRatings: "也匹配分级：{{ratings}}",
+  listSeparator: "、",
+  exact: "精确查找",
+  similar: {
+    or: "或相近：",
+    builtin: "内置",
+    personal: "个人",
+    dismissLabel: "不带“{{name}}”的相近标签",
+    addLabel: "给“{{name}}”加相近标签",
+  },
+  dismiss: {
+    label: "不带相近标签",
+    prompt: "不带“{{name}}”的相近标签：",
+    once: "只这次",
+    forever: "以后都不带",
+    cancel: "取消",
+  },
+  add: {
+    label: "加相近标签",
+    prompt: "查“{{name}}”时也找：",
+    pickShared: "挑一个标签",
+    pickLibrary: "挑本图库的标签",
+    none: "没有匹配的标签",
+    cancel: "取消",
+  },
+  groups: {
+    label: "标签分组",
+    tags: "{{name}}标签",
+    anyLabel: "按“{{name}}”任一标签查找",
+    any: "任一成员",
+    empty: "还没有分组",
+    edit: "编辑分组",
+    dialogTitle: "编辑分组",
+    close: "关闭",
+    done: "完成",
+  },
+};

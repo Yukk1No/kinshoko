@@ -1,0 +1,119 @@
+import { useState } from "react";
+import { Gauge, Palette, RotateCcw } from "lucide-react";
+import type { TagDisplay } from "../bindings/TagDisplay";
+import type { TagStyle } from "../bindings/TagStyle";
+import { DEFAULT_TAG_DISPLAY, thresholdProblem } from "../tags/tagConfidence";
+import { Segmented } from "../ui/Segmented";
+import { SettingsGroup, SettingsRow } from "../ui/SettingsList";
+import { useTranslation } from "react-i18next";
+
+// 输入框按整数百分比（0–100）写，和标签上的“可信度 87%”一致；存的仍是 0–1 的小数。
+const STEP = 5;
+const shown = (value: number) => String(Math.round(value * 100));
+/** 输入框里的百分数取整后除以 100，0.1 + 0.05 这类浮点尾数不进设置。 */
+const parse = (text: string) => (text.trim() === "" ? Number.NaN : Math.round(Number(text)) / 100);
+
+/**
+ * 设置 › 标签 › 外观（#160）：标签风格（B 按准不准分三档，默认；C 按出处分组加刻度）与可信度分档阈值。本设备设置，改了立即保存并生效，不需要重新打标。低档上限必须小于高档下限，不满足时不保存。
+ */
+export function TagDisplaySettings({
+  display,
+  onChange,
+}: {
+  /** 还有没回来的保存时是最后改成的那份，否则是已接受的设置。 */
+  display: TagDisplay;
+  /** 在 `display` 之上改几项并保存；次序、合并与失败作废归设置页的提交模型（#321）。 */
+  onChange: (change: Partial<TagDisplay>) => void;
+}) {
+  const { t } = useTranslation("tagSettings", { keyPrefix: "appearance" });
+  const [high, setHigh] = useState(shown(display.high));
+  const [low, setLow] = useState(shown(display.low));
+  const [problem, setProblem] = useState<string | null>(null);
+  // 阈值变了（包括保存失败后回到已接受的设置）时跟着改输入框；在渲染中比较，这一帧就显示新的数。
+  const [followed, setFollowed] = useState({ high: display.high, low: display.low });
+  if (followed.high !== display.high || followed.low !== display.low) {
+    setFollowed({ high: display.high, low: display.low });
+    // 自己刚保存的阈值与输入框里的数相同时不改写输入框，免得正在输入的“0.7”变成“0.70”。
+    setHigh((text) => (parse(text) === display.high ? text : shown(display.high)));
+    setLow((text) => (parse(text) === display.low ? text : shown(display.low)));
+    setProblem(null);
+  }
+
+  const changeThresholds = (nextHigh: string, nextLow: string) => {
+    setHigh(nextHigh);
+    setLow(nextLow);
+    const thresholds = { high: parse(nextHigh), low: parse(nextLow) };
+    const why = thresholdProblem(thresholds);
+    setProblem(why);
+    if (why === null && (thresholds.high !== display.high || thresholds.low !== display.low)) onChange(thresholds);
+  };
+
+  return (
+    <SettingsGroup label={t("group")}>
+      <SettingsRow icon={<Palette size={16} />} title={t("style")} hint={t("styleHint")}>
+        <Segmented<TagStyle>
+          label={t("style")}
+          value={display.style}
+          onChange={(style) => onChange({ style })}
+          options={[
+            { value: "bands", label: t("bands") },
+            { value: "grouped", label: t("grouped") },
+          ]}
+        />
+      </SettingsRow>
+      <SettingsRow
+        className="is-thresholds"
+        icon={<Gauge size={16} />}
+        title={t("thresholds")}
+        hint={t("thresholdsHint")}
+        below={
+          problem !== null && (
+            <p className="k-error-text is-boxed" role="alert">
+              {problem}
+            </p>
+          )
+        }
+      >
+        <label className="k-set-number">
+          {t("high")}
+          <input
+            className="k-input is-num"
+            type="number"
+            aria-label={t("highLabel")}
+            min={STEP}
+            max={100}
+            step={STEP}
+            value={high}
+            onChange={(e) => changeThresholds(e.target.value, low)}
+          />
+        </label>
+        <label className="k-set-number">
+          {t("low")}
+          <input
+            className="k-input is-num"
+            type="number"
+            aria-label={t("lowLabel")}
+            min={0}
+            max={100 - STEP}
+            step={STEP}
+            value={low}
+            onChange={(e) => changeThresholds(high, e.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className="k-btn is-sm is-quiet"
+          onClick={() => {
+            setProblem(null);
+            setHigh(shown(DEFAULT_TAG_DISPLAY.high));
+            setLow(shown(DEFAULT_TAG_DISPLAY.low));
+            onChange({ high: DEFAULT_TAG_DISPLAY.high, low: DEFAULT_TAG_DISPLAY.low });
+          }}
+        >
+          <RotateCcw size={12} aria-hidden="true" />
+          <span className="k-label">{t("reset")}</span>
+        </button>
+      </SettingsRow>
+    </SettingsGroup>
+  );
+}

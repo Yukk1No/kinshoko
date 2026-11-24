@@ -1,0 +1,183 @@
+//! 写进画师数据的默认名（#359）：恢复出的资料库、剪贴板图片的文件名、另存的参考组名、迁移后留下的说明。
+//! 调用方传写入时的界面语言（[`interface_lang::current`]）；写进去以后不随界面语言再变。
+
+use std::path::Path;
+
+use crate::interface_lang;
+
+/// 路径单段上限：Windows 按 UTF-16 单元计数，其他平台按字节计数。
+const MAX_DIR_NAME_UNITS: usize = 255;
+
+fn dir_name_units(name: &str) -> usize {
+    #[cfg(windows)]
+    {
+        name.encode_utf16().count()
+    }
+    #[cfg(not(windows))]
+    {
+        name.len()
+    }
+}
+
+fn english(lang: &str) -> bool {
+    lang == interface_lang::EN
+}
+
+/// 从备份恢复出的资料库的文件夹名；`n` 是同名时附加的序号。
+pub(crate) fn restored_library_dir(lang: &str, name: &str, date: &str, n: Option<usize>) -> String {
+    let mut suffix = if english(lang) {
+        format!(" (restored {date})")
+    } else {
+        format!("（恢复 {date}）")
+    };
+    if let Some(n) = n {
+        suffix.push_str(&format!(" {n}"));
+    }
+    let budget = MAX_DIR_NAME_UNITS - dir_name_units(&suffix);
+    let name = if dir_name_units(name) > budget {
+        let end = name
+            .char_indices()
+            .rev()
+            .map(|(i, _)| i)
+            .find(|&i| dir_name_units(&name[..i]) <= budget)
+            .unwrap_or(0);
+        name[..end].trim_end()
+    } else {
+        name
+    };
+    format!("{name}{suffix}")
+}
+
+/// 从备份恢复出的资料库的名称。
+pub(crate) fn restored_library_name(lang: &str, name: &str) -> String {
+    if english(lang) {
+        format!("{name} (restored)")
+    } else {
+        format!("{name}（恢复）")
+    }
+}
+
+/// 暂存的剪贴板图片的文件名；`attempt` 是同一时刻重名时附加的序号。
+pub(crate) fn clipboard_image(lang: &str, stamp: u128, attempt: u32) -> String {
+    let base = if english(lang) {
+        format!("clipboard-image-{stamp}")
+    } else {
+        format!("剪贴板图片-{stamp}")
+    };
+    if attempt == 0 {
+        format!("{base}.png")
+    } else {
+        format!("{base}-{attempt}.png")
+    }
+}
+
+/// 首次预置的标签分组的名称：发色、瞳色（#484）。
+pub(crate) fn preset_group_names(lang: &str) -> [&'static str; 2] {
+    if english(lang) {
+        ["Hair color", "Eye color"]
+    } else {
+        ["发色", "瞳色"]
+    }
+}
+
+/// 数据迁到新位置后，旧文件夹里留下的说明；`left` 是没有迁移的条目。
+pub(crate) fn migration_note(lang: &str, target: &Path, left: &[&str]) -> String {
+    let en = english(lang);
+    let mut note = if en {
+        format!(
+            "Kinshoko's settings, tagging models and other data have moved to:\r\n{}\r\n",
+            target.display()
+        )
+    } else {
+        format!(
+            "Kinshoko 的设置、打标模型等数据已移到：\r\n{}\r\n",
+            target.display()
+        )
+    };
+    if left.is_empty() {
+        note.push_str(if en {
+            "This folder can be deleted.\r\n"
+        } else {
+            "这个文件夹可以删除。\r\n"
+        });
+    } else {
+        note.push_str(if en {
+            "These items weren't moved (another item has the same name, or the name couldn't be recorded). Check them before deleting:\r\n"
+        } else {
+            "下面这些没有迁移（与别处同名或名字无法记录），请先确认再删除：\r\n"
+        });
+        for name in left {
+            note.push_str(&format!("  {name}\r\n"));
+        }
+    }
+    note
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::interface_lang::{EN, ZH_CN};
+
+    #[test]
+    fn restored_directories_fit_the_platform_path_segment_limit() {
+        let date = "2026-11-20";
+        for lang in [EN, ZH_CN] {
+            for n in [None, Some(2), Some(usize::MAX)] {
+                let suffix = restored_library_dir(lang, "", date, n);
+                for name in [
+                    "a".repeat(250),
+                    "\u{5e93}".repeat(250),
+                    "\u{1f3a8}".repeat(200),
+                ] {
+                    let folder = restored_library_dir(lang, &name, date, n);
+                    assert!(dir_name_units(&folder) <= MAX_DIR_NAME_UNITS);
+                    assert!(folder.ends_with(&suffix));
+                    assert!(name.starts_with(folder.strip_suffix(&suffix).unwrap()));
+                    let fitting = "\u{5e93}".repeat(70);
+                    assert_eq!(
+                        restored_library_dir(lang, &fitting, date, n),
+                        format!("{fitting}{suffix}")
+                    );
+                }
+                let short = restored_library_dir(lang, "Main", date, n);
+                assert_eq!(short, format!("Main{suffix}"));
+                assert_eq!(restored_library_dir(lang, "", date, n), suffix);
+                let spaced = format!(
+                    "{} {}",
+                    "a".repeat(MAX_DIR_NAME_UNITS - dir_name_units(&suffix) - 1),
+                    "b".repeat(30)
+                );
+                assert_eq!(
+                    restored_library_dir(lang, &spaced, date, n),
+                    format!(
+                        "{}{suffix}",
+                        "a".repeat(MAX_DIR_NAME_UNITS - dir_name_units(&suffix) - 1)
+                    )
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn names_follow_the_interface_language_at_write_time() {
+        assert_eq!(
+            restored_library_dir(ZH_CN, "主库", "2026-11-01", None),
+            "主库（恢复 2026-11-01）"
+        );
+        assert_eq!(
+            restored_library_dir(EN, "Main", "2026-11-01", Some(2)),
+            "Main (restored 2026-11-01) 2"
+        );
+        assert_eq!(restored_library_name(EN, "Main"), "Main (restored)");
+        assert_eq!(preset_group_names(ZH_CN), ["发色", "瞳色"]);
+        assert_eq!(preset_group_names(EN), ["Hair color", "Eye color"]);
+        assert_eq!(clipboard_image(ZH_CN, 7, 0), "剪贴板图片-7.png");
+        assert_eq!(clipboard_image(EN, 7, 1), "clipboard-image-7-1.png");
+        let note = migration_note(EN, Path::new("D:/data"), &["x"]);
+        assert!(note.starts_with("Kinshoko's settings"));
+        assert!(note.ends_with("  x\r\n"));
+        assert!(
+            migration_note(ZH_CN, Path::new("D:/data"), &[]).ends_with("这个文件夹可以删除。\r\n")
+        );
+    }
+}

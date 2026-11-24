@@ -1,0 +1,310 @@
+//! 说明层与视觉（#285）：出现提示框、小圆锁与确认显示、读不到图的占位与原因、提示、主题。
+
+use kinshoko_core::desktop::frame::APPEAR_MS;
+
+use super::*;
+
+/// 开一张钉图（`look`），渲染层把能做的都做完。
+fn open_with(look: Look) -> Rig {
+    let shell = FakeShell::new(vec![Display {
+        id: "A".into(),
+        rect: SCREEN,
+        scale: 1.0,
+        profile: None,
+    }]);
+    let mut r = Rig {
+        o: Orchestra::new(shell, FakeRender::default()),
+        now: Instant::now(),
+    };
+    r.o.open(Frame::at_home(marker(), look), r.now).unwrap();
+    r.run();
+    r
+}
+
+#[test]
+fn a_new_pin_shows_an_accent_ring_that_fades_over_appear_ms() {
+    let mut r = open_with(Look::default());
+    let first = r.draws();
+    assert_eq!(first.last().unwrap().appear, 1.0);
+    r.animate(u64::from(APPEAR_MS) / 2);
+    let mid = r.draws().last().unwrap().appear;
+    assert!(mid > 0.0 && mid < 1.0, "{mid}");
+    r.animate(u64::from(APPEAR_MS) / 2);
+    assert_eq!(r.draws().last().unwrap().appear, 0.0);
+    r.animate(40);
+    assert_eq!(r.draws(), [], "渐隐完了不再重画");
+}
+
+#[test]
+fn the_theme_reaches_the_draw() {
+    let mut r = open_with(Look {
+        dark: true,
+        ..Look::default()
+    });
+    assert!(r.draws().last().unwrap().dark);
+}
+
+#[test]
+fn a_veiled_pin_carries_the_lock() {
+    let mut r = open_with(Look {
+        veiled: true,
+        ..Look::default()
+    });
+    let job = r.draws().pop().unwrap();
+    assert!(job.caption.lock);
+    assert_eq!(job.caption.reason, None);
+}
+
+#[test]
+fn pressing_the_lock_asks_to_reveal_instead_of_dragging() {
+    let mut r = open_with(Look {
+        veiled: true,
+        ..Look::default()
+    });
+    r.o.take_effects();
+    r.shell_calls();
+    let c = r.o.pins[&A].pin.rect();
+    let centre = (c.x + c.width as i32 / 2, c.y + c.height as i32 / 2);
+    r.pointer(centre, PointerEvent::Down(PointerButton::Primary));
+    assert_eq!(r.o.take_effects(), [Effect::RevealAsked("marker".into())]);
+    assert_eq!(r.o.pins[&A].gesture, None);
+    // 确认是一个菜单：钩子不再拦键，Esc 交给菜单而不是关掉钉图。
+    assert_eq!(r.shell_calls(), [Call::Keys(PinKeys::none())]);
+    r.o.menu_closed();
+    // 小圆锁以外照常拖动。
+    r.pointer(
+        (c.x + 20, c.y + 20),
+        PointerEvent::Down(PointerButton::Primary),
+    );
+    assert!(r.o.pins[&A].gesture.is_some());
+}
+
+#[test]
+fn an_unavailable_pin_shows_a_grey_stand_in_with_the_reason() {
+    let reason = "本设备没有登记这个资料库".to_owned();
+    let mut r = open_with(Look {
+        unavailable: Some(reason.clone()),
+        ..Look::default()
+    });
+    assert!(
+        !r.o.render()
+            .calls
+            .iter()
+            .any(|c| matches!(c, RCall::Load(..))),
+        "不读图"
+    );
+    let job = r.draws().pop().expect("照样显示");
+    assert!(job.placeholder);
+    assert_eq!(job.caption.reason, Some(reason));
+    assert!(r.o.take_effects().contains(&Effect::Shown("marker".into())));
+}
+
+#[test]
+fn a_stand_in_is_not_a_capture_source() {
+    // F1 框在占位上取的应是屏幕像素，不是原图。
+    let r = open_with(Look {
+        unavailable: Some("资料库不可用".into()),
+        ..Look::default()
+    });
+    assert!(!r.o.views(r.now)[0].still);
+}
+
+#[test]
+fn a_failed_read_shows_the_stand_in_instead_of_giving_up() {
+    let shell = FakeShell::new(vec![Display {
+        id: "A".into(),
+        rect: SCREEN,
+        scale: 1.0,
+        profile: None,
+    }]);
+    let mut o: O = Orchestra::new(shell, FakeRender::default());
+    let now = Instant::now();
+    o.open(Frame::at_home(marker(), Look::default()), now)
+        .unwrap();
+    o.render_event(
+        RenderEvent::LoadFailed {
+            pin: A,
+            reason: "读不了".into(),
+        },
+        now,
+    );
+    let RCall::Draw(job) = o.render().calls.last().cloned().unwrap() else {
+        panic!("应当画占位")
+    };
+    assert!(job.placeholder);
+    assert_eq!(
+        job.caption.reason.as_deref(),
+        Some(super::super::missing().as_str())
+    );
+    assert!(
+        !o.take_effects()
+            .iter()
+            .any(|e| matches!(e, Effect::Failed(_)))
+    );
+}
+
+#[test]
+fn the_stand_in_stays_until_the_image_arrives_once_the_library_is_back() {
+    let mut r = open_with(Look {
+        unavailable: Some("资料库不可用".into()),
+        ..Look::default()
+    });
+    r.draws();
+    let f = r.home_frame(PinMotion::Jump);
+    r.o.frame(f, r.now);
+    let open = std::mem::take(&mut r.o.render().open);
+    assert!(open.contains(&RCall::Load(A, SourceSize::Width(500))));
+    for c in &open {
+        if let RCall::Draw(j) = c {
+            assert!(j.placeholder, "图到之前仍是占位");
+        }
+    }
+    r.o.render().open = open;
+    r.run();
+    assert!(!r.draws().last().unwrap().placeholder);
+}
+
+#[test]
+fn a_notice_shows_for_1_6_seconds() {
+    let mut r = Rig::shown();
+    r.o.notice("marker", "已锁定".into(), r.now);
+    r.run();
+    assert_eq!(
+        r.draws().last().unwrap().caption.notice.as_deref(),
+        Some("已锁定")
+    );
+    r.wait(NOTICE_MS - 1);
+    assert_eq!(r.draws(), []);
+    r.wait(1);
+    assert_eq!(r.draws().last().unwrap().caption.notice, None);
+    assert_eq!(r.o.next_deadline(), None);
+}
+
+#[test]
+fn a_clipboard_notice_needs_no_pin_and_expires_without_pin_effects() {
+    let shell = FakeShell::new(vec![Display {
+        id: "A".into(),
+        rect: SCREEN,
+        scale: 1.0,
+        profile: None,
+    }]);
+    let mut r = Rig {
+        o: Orchestra::new(shell, FakeRender::default()),
+        now: Instant::now(),
+    };
+    r.o.notice_at((2500, 1400), "No image in clipboard".into(), r.now)
+        .unwrap();
+    r.run();
+    let job = r.draws().pop().expect("notice without a pin");
+    assert!(job.caption_only);
+    assert_eq!(job.caption.notice.as_deref(), Some("No image in clipboard"));
+    assert!(job.window.x >= 0 && job.window.x + job.window.width as i32 <= 2560);
+    assert!(job.window.y >= 0 && job.window.y + (job.window.height as i32) < 1440);
+    assert!(r.o.views(r.now).is_empty());
+    assert!(r.o.take_effects().is_empty());
+    assert!(!r.o.is_empty());
+    r.wait(NOTICE_MS);
+    r.run();
+    assert!(r.o.is_empty());
+    assert!(r.o.take_effects().is_empty());
+}
+
+#[test]
+fn an_empty_notice_needs_no_surface_and_a_missing_display_is_an_error() {
+    let mut o = Orchestra::new(FakeShell::default(), FakeRender::default());
+    let now = Instant::now();
+    o.notice_at((0, 0), String::new(), now).unwrap();
+    assert!(o.is_empty());
+    assert!(o.notice_at((0, 0), "No image".into(), now).is_err());
+    assert!(o.render().calls.is_empty());
+}
+
+#[test]
+fn a_failed_notice_draw_releases_the_surface_without_showing_it() {
+    let mut r = Rig::shown();
+    r.o.notice_at((10, 10), "No image".into(), r.now).unwrap();
+    let job = r.draws().pop().unwrap();
+    r.o.render().open.clear();
+    r.o.render_event(
+        RenderEvent::Drawn {
+            pin: job.pin,
+            result: Err("draw failed".into()),
+        },
+        r.now,
+    );
+    r.run();
+    assert!(r.o.notices.is_empty());
+    assert!(
+        !r.shell_calls()
+            .iter()
+            .any(|c| matches!(c, Call::Show(id, _) if *id == job.pin))
+    );
+    assert_eq!(r.o.views(r.now).len(), 1);
+}
+
+#[test]
+fn repeated_notices_replace_even_a_pending_notice_without_changing_open_pins() {
+    let mut r = Rig::shown();
+    r.o.notice_at((10, 10), "First".into(), r.now).unwrap();
+    r.o.notice_at((10, 10), "Second".into(), r.now).unwrap();
+    r.run();
+    assert_eq!(r.o.notices.len(), 1);
+    assert_eq!(r.o.views(r.now).len(), 1);
+    assert!(r.o.take_effects().is_empty());
+    assert_eq!(r.o.pins[&A].notice, None);
+    r.wait(NOTICE_MS);
+    r.run();
+    assert!(r.o.notices.is_empty());
+    assert!(!r.o.is_empty());
+}
+
+#[test]
+fn a_notice_uses_the_cursors_monitor_scale_and_survives_no_device_loss() {
+    let shell = FakeShell::new(vec![Display {
+        id: "left".into(),
+        rect: ScreenRect {
+            x: -2560,
+            y: -1440,
+            ..SCREEN
+        },
+        scale: 2.0,
+        profile: None,
+    }]);
+    let mut r = Rig {
+        o: Orchestra::new(shell, FakeRender::default()),
+        now: Instant::now(),
+    };
+    r.o.notice_at((-10, -10), "No image".into(), r.now).unwrap();
+    let job = r.draws().pop().unwrap();
+    assert_eq!(job.display_scale, 2.0);
+    assert_eq!(job.window.width, 1040);
+    assert!(job.window.x < 0 && job.window.y < 0);
+    assert!(r.shell_calls().contains(&Call::ClickThrough(job.pin, true)));
+    r.o.render_event(RenderEvent::DeviceLost, r.now);
+    assert!(
+        !r.shell_calls().contains(&Call::Close(job.pin)),
+        "notice window must stay alive until the renderer reports Detached"
+    );
+    assert!(!r.o.is_empty());
+    assert_eq!(r.o.next_deadline(), None);
+    r.o.render_event(RenderEvent::DeviceLost, r.now);
+    assert_eq!(
+        r.o.render()
+            .calls
+            .iter()
+            .filter(|call| matches!(call, RCall::Detach(id) if *id == job.pin))
+            .count(),
+        1
+    );
+    r.o.render_event(
+        RenderEvent::Drawn {
+            pin: job.pin,
+            result: Ok(()),
+        },
+        r.now,
+    );
+    assert!(r.shell_calls().is_empty());
+    r.o.render_event(RenderEvent::Detached { pin: job.pin }, r.now);
+    assert!(r.shell_calls().contains(&Call::Close(job.pin)));
+    assert!(r.o.is_empty());
+}

@@ -1,0 +1,329 @@
+import { beforeEach, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { WorkspacePane } from "./WorkspacePane";
+import { ToastProvider } from "../ui/Toast";
+import { fakeBackend } from "../test/backend";
+import { tipText } from "../test/tip";
+import type { WorkspaceDirectories } from "../bindings/WorkspaceDirectories";
+import type { WorkspaceScope } from "../bindings/WorkspaceScope";
+import type { BrowseScope } from "../bindings/BrowseScope";
+
+// 侧栏右键菜单（#102 表“侧栏”三行，#114）：文件夹、图库标题与回收站。
+const names: Record<string, string> = { A: "人物参考", B: "风景参考" };
+const registrations = ["A", "B"].map((id) => ({
+  library: { id, name: names[id], root: `D:\\${id}\\参考` },
+  unavailable: null as import("../bindings/CommandError").CommandError | null,
+}));
+const forest = (): WorkspaceDirectories => ({
+  status: { revision: "r", libraries: registrations },
+  registrationOrder: ["A", "B"],
+  providers: registrations.map((registration) => ({
+    registration: { ...registration, library: { ...registration.library } },
+    unassigned: 1,
+    descendants: {},
+    sidebar: {
+      all: 3,
+      trash: 2,
+      folders: [
+        {
+          id: registration.library.id + "-root",
+          name: "人物",
+          count: 1,
+          children: [{ id: registration.library.id + "-child", name: "动作", count: 1, children: [] }],
+        },
+      ],
+    },
+  })),
+});
+const inA = (local: BrowseScope): WorkspaceScope => ({ kind: "library", libraryId: "A", scope: local });
+const section = (id: string) => document.querySelector<HTMLElement>(`[data-library-id="${id}"]`)!;
+const settle = () =>
+  act(async () => {
+    await Promise.resolve();
+  });
+const rows = (menu: HTMLElement) => [...menu.querySelectorAll("[role^='menuitem']")].map((row) => row.textContent);
+const enabled = (menu: HTMLElement, name: string) =>
+  within(menu).getByRole("menuitem", { name }).getAttribute("aria-disabled") !== "true";
+
+let calls: { command: string; args: Record<string, unknown> }[];
+let answers: Record<string, unknown>;
+const onScope = vi.fn();
+const onError = vi.fn();
+const onMessage = vi.fn();
+beforeEach(() => {
+  calls = [];
+  answers = {};
+  onScope.mockClear();
+  onError.mockClear();
+});
+/** 侧栏菜单发出的动作命令：默认答 void（`null`）；`answers` 给某条换成别的回答，`Error` 让它失败。 */
+const ACTIONS = [
+  "reveal_library",
+  "unregister_library",
+  "create_folder",
+  "rename_folder",
+  "move_folder",
+  "delete_folder",
+  "restore_folder",
+  "preview_empty_trash",
+  "permanent_delete",
+];
+const actions = () =>
+  Object.fromEntries(
+    ACTIONS.map((command) => [
+      command,
+      (args: Record<string, unknown>) => {
+        calls.push({ command, args });
+        const answer = answers[command];
+        if (answer instanceof Error) throw { code: "message", message: answer.message };
+        return answer ?? null;
+      },
+    ]),
+  );
+
+async function show(scope: WorkspaceScope, value = forest(), extra: Partial<Parameters<typeof WorkspacePane>[0]> = {}) {
+  fakeBackend({ workspace_directories: value, ...actions() });
+  const view = render(
+    <ToastProvider>
+      <WorkspacePane
+        status={{ revision: "r", libraries: registrations }}
+        scope={scope}
+        safeMode
+        reloadKey={0}
+        onScope={onScope}
+        onError={onError}
+        onMessage={onMessage}
+        {...extra}
+      />
+    </ToastProvider>,
+  );
+  await settle();
+  await settle();
+  return view;
+}
+const openOn = async (node: HTMLElement, label: string) => {
+  fireEvent.contextMenu(node, { clientX: 20, clientY: 20 });
+  return screen.findByRole("menu", { name: label });
+};
+
+it("图库标题：右键与 ⋯ 是同一组菜单项；未连接时多出“重新连接”", async () => {
+  const offline = forest();
+  offline.providers[1].registration.unavailable = { code: "system", detail: "图库暂时无法连接：移动盘没插" };
+  offline.providers[1].sidebar = null;
+  await show({ kind: "all" }, offline, { onRecheck: vi.fn() });
+  const head = within(section("A")).getByRole("button", { name: "人物参考（3 张）" });
+  const viaRightClick = await openOn(head, "人物参考 的操作");
+  expect(rows(viaRightClick)).toEqual(["新建文件夹", "在资源管理器中显示", "从列表移除"]);
+  expect(within(viaRightClick).getAllByRole("separator")).toHaveLength(1);
+  fireEvent.keyDown(viaRightClick, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+  fireEvent.click(within(section("A")).getByRole("button", { name: "人物参考 的操作" }));
+  expect(rows(await screen.findByRole("menu", { name: "人物参考 的操作" }))).toEqual([
+    "新建文件夹",
+    "在资源管理器中显示",
+    "从列表移除",
+  ]);
+  fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+
+  const off = await openOn(within(section("B")).getByRole("button", { name: "风景参考（未连接）" }), "风景参考 的操作");
+  expect(rows(off)).toEqual(["新建文件夹", "在资源管理器中显示", "重新连接", "从列表移除"]);
+  expect(enabled(off, "新建文件夹")).toBe(false);
+});
+
+it("图库标题：在资源管理器中显示、重新连接与从列表移除", async () => {
+  const offline = forest();
+  offline.providers[1].registration.unavailable = { code: "system", detail: "未连接" };
+  offline.providers[1].sidebar = null;
+  const onRecheck = vi.fn();
+  const onRemoved = vi.fn();
+  await show({ kind: "all" }, offline, { onRecheck, onRemoved });
+  const headA = within(section("A")).getByRole("button", { name: "人物参考（3 张）" });
+  fireEvent.click(within(await openOn(headA, "人物参考 的操作")).getByRole("menuitem", { name: "在资源管理器中显示" }));
+  await settle();
+  expect(calls).toEqual([{ command: "reveal_library", args: { libraryId: "A" } }]);
+
+  answers["reveal_library"] = new Error("图库暂时无法连接：D:\\A\\参考");
+  fireEvent.click(within(await openOn(headA, "人物参考 的操作")).getByRole("menuitem", { name: "在资源管理器中显示" }));
+  await waitFor(() => expect(onMessage).toHaveBeenCalledWith("无法在资源管理器中显示：图库暂时无法连接：D:\\A\\参考"));
+
+  const headB = within(section("B")).getByRole("button", { name: "风景参考（未连接）" });
+  fireEvent.click(within(await openOn(headB, "风景参考 的操作")).getByRole("menuitem", { name: "重新连接" }));
+  expect(onRecheck).toHaveBeenCalledTimes(1);
+
+  calls = [];
+  fireEvent.click(within(await openOn(headB, "风景参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
+  await waitFor(() => expect(onRemoved).toHaveBeenCalledWith("B"));
+  expect(calls).toEqual([{ command: "unregister_library", args: { libraryId: "B" } }]);
+});
+
+it("移除当前范围所在的图库后回到“全部图片”；移除别的图库或移除失败时范围不变", async () => {
+  const onRemoved = vi.fn();
+  await show(inA({ kind: "folderTree", id: "A-root" }), forest(), { onRemoved });
+  const headB = within(section("B")).getByRole("button", { name: "风景参考（3 张）" });
+  fireEvent.click(within(await openOn(headB, "风景参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
+  await waitFor(() => expect(onRemoved).toHaveBeenCalledWith("B"));
+  expect(onScope).not.toHaveBeenCalled();
+
+  const headA = within(section("A")).getByRole("button", { name: "人物参考（3 张）" });
+  answers["unregister_library"] = new Error("还有导入在进行");
+  fireEvent.click(within(await openOn(headA, "人物参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
+  await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "还有导入在进行" })));
+  expect(onScope).not.toHaveBeenCalled();
+
+  delete answers["unregister_library"];
+  fireEvent.click(within(await openOn(headA, "人物参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
+  await waitFor(() => expect(onRemoved).toHaveBeenCalledWith("A"));
+  expect(onScope).toHaveBeenCalledWith({ kind: "all" });
+});
+
+it("从列表移除后轻提示里可撤销：按原位置重新登记", async () => {
+  const onRestore = vi.fn(() => Promise.resolve());
+  fakeBackend({ workspace_directories: forest(), ...actions() });
+  render(
+    <ToastProvider>
+      <WorkspacePane
+        status={{ revision: "r", libraries: registrations }}
+        scope={inA({ kind: "all" })}
+        safeMode
+        reloadKey={0}
+        onScope={onScope}
+        onError={onError}
+        onRestore={onRestore}
+      />
+    </ToastProvider>,
+  );
+  await settle();
+  await settle();
+  const headB = within(section("B")).getByRole("button", { name: "风景参考（3 张）" });
+  fireEvent.click(within(await openOn(headB, "风景参考 的操作")).getByRole("menuitem", { name: "从列表移除" }));
+  expect(await screen.findByText("已从列表移除")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+  expect(onRestore).toHaveBeenCalledWith(registrations[1].library.root);
+});
+
+it("文件夹：菜单项与表一致，顶层文件夹不能“移到顶层”；菜单键打开同一菜单", async () => {
+  await show(inA({ kind: "all" }));
+  const top = within(section("A")).getByRole("button", { name: "人物（1 张）" });
+  const menu = await openOn(top, "人物 的操作");
+  expect(rows(menu)).toEqual(["新建子文件夹", "重命名F2", "移到顶层", "删除文件夹"]);
+  expect(within(menu).getAllByRole("separator")).toHaveLength(2);
+  expect(enabled(menu, "移到顶层")).toBe(false);
+  const danger = within(menu)
+    .getAllByRole("menuitem")
+    .filter((item) => item.className.includes("is-danger"));
+  expect(danger.map((item) => item.textContent)).toEqual(["删除文件夹"]);
+  fireEvent.keyDown(menu, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+
+  const child = within(section("A")).getByRole("button", { name: "动作（1 张）" });
+  fireEvent.keyDown(child, { key: "F10", shiftKey: true });
+  const childMenu = await screen.findByRole("menu", { name: "动作 的操作" });
+  fireEvent.click(within(childMenu).getByRole("menuitem", { name: "移到顶层" }));
+  await settle();
+  expect(calls).toEqual([
+    { command: "move_folder", args: { libraryId: "A", folderId: "A-child", parent: null, position: 2 ** 31 } },
+  ]);
+});
+
+it("文件夹：新建子文件夹建在它里面；重命名可从菜单或按 F2", async () => {
+  await show(inA({ kind: "all" }));
+  const top = () => within(section("A")).getByRole("button", { name: "人物（1 张）" });
+  fireEvent.click(within(await openOn(top(), "人物 的操作")).getByRole("menuitem", { name: "新建子文件夹" }));
+  const input = await within(section("A")).findByRole("textbox", { name: "新文件夹名称" });
+  fireEvent.change(input, { target: { value: "姿势" } });
+  fireEvent.keyDown(input, { key: "Enter" });
+  await settle();
+
+  fireEvent.click(within(await openOn(top(), "人物 的操作")).getByRole("menuitem", { name: /^重命名/ }));
+  const rename = await within(section("A")).findByRole("textbox", { name: "文件夹名称" });
+  fireEvent.change(rename, { target: { value: "角色" } });
+  fireEvent.keyDown(rename, { key: "Enter" });
+  await settle();
+
+  fireEvent.keyDown(within(section("A")).getByRole("button", { name: "动作（1 张）" }), { key: "F2" });
+  const again = within(section("A")).getByRole("textbox", { name: "文件夹名称" });
+  fireEvent.change(again, { target: { value: "跑跳" } });
+  fireEvent.keyDown(again, { key: "Enter" });
+  await settle();
+  expect(calls).toEqual([
+    { command: "create_folder", args: { libraryId: "A", name: "姿势", parent: "A-root" } },
+    { command: "rename_folder", args: { libraryId: "A", folderId: "A-root", name: "角色" } },
+    { command: "rename_folder", args: { libraryId: "A", folderId: "A-child", name: "跑跳" } },
+  ]);
+});
+
+it("删除文件夹不先确认，直接删并给“撤销”；正在看的文件夹被删后回到该图库的全部；撤销把删除返回的内容原样放回", async () => {
+  await show(inA({ kind: "folderTree", id: "A-child" }));
+  const deleted = {
+    folders: [{ id: "A-root", name: "人物", parentId: null, ord: 0, createdAt: 1 }],
+    members: [],
+    decisions: [],
+    eagle: [],
+  };
+  answers["delete_folder"] = deleted;
+  const top = within(section("A")).getByRole("button", { name: "人物（1 张）" });
+  fireEvent.click(within(await openOn(top, "人物 的操作")).getByRole("menuitem", { name: "删除文件夹" }));
+  await waitFor(() =>
+    expect(calls).toEqual([{ command: "delete_folder", args: { libraryId: "A", folderId: "A-root" } }]),
+  );
+  expect(screen.queryByRole("alertdialog")).toBeNull();
+  await waitFor(() => expect(onScope).toHaveBeenLastCalledWith(inA({ kind: "all" })));
+  expect(await screen.findByText("已删除文件夹")).toBeTruthy();
+
+  calls.length = 0;
+  fireEvent.click(screen.getByRole("button", { name: "撤销" }));
+  await waitFor(() => expect(calls).toEqual([{ command: "restore_folder", args: { libraryId: "A", deleted } }]));
+});
+
+it("撤销失败时报错", async () => {
+  await show(inA({ kind: "all" }));
+  answers["delete_folder"] = { folders: [], members: [], decisions: [], eagle: [] };
+  answers["restore_folder"] = new Error("放回失败");
+  fireEvent.click(
+    within(await openOn(within(section("A")).getByRole("button", { name: "动作（1 张）" }), "动作 的操作")).getByRole(
+      "menuitem",
+      { name: "删除文件夹" },
+    ),
+  );
+  fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
+  await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "放回失败" })));
+});
+
+it("回收站：清空回收站先列出将永久删除的张数，确认后按预览的令牌删除", async () => {
+  answers["preview_empty_trash"] = {
+    imageIds: ["x", "y"],
+    groups: [{ groupId: "g", name: "光影", imageIds: ["x"] }],
+    token: "t",
+  };
+  await show(inA({ kind: "all" }));
+  const trash = screen.getByRole("button", { name: "回收站（人物参考，2 张）" });
+  // 同一行既有悬停提示又有右键菜单：提示包在右键菜单的触发器外面。
+  expect(await tipText(trash)).toBe("人物参考");
+  const menu = await openOn(trash, "回收站的操作");
+  expect(rows(menu)).toEqual(["清空回收站…"]);
+  expect(within(menu).getByRole("menuitem").className).toContain("is-danger");
+  fireEvent.click(within(menu).getByRole("menuitem"));
+  const dialog = await screen.findByRole("alertdialog", { name: "清空回收站" });
+  await waitFor(() => expect(dialog.textContent).toContain("永久删除「人物参考」回收站里的 2 张图？"));
+  expect(within(dialog).getByRole("list", { name: "受影响的参考组" }).textContent).toContain("光影（1 张）");
+  expect(calls).toEqual([{ command: "preview_empty_trash", args: { libraryId: "A" } }]);
+  fireEvent.click(within(dialog).getByRole("button", { name: "清空回收站" }));
+  await waitFor(() =>
+    expect(calls.at(-1)).toEqual({
+      command: "permanent_delete",
+      args: { libraryId: "A", ids: ["x", "y"], token: "t" },
+    }),
+  );
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+});
+
+it("回收站：空的回收站不能清空；“全部图片”下按图库各给一项", async () => {
+  const value = forest();
+  value.providers[1].sidebar!.trash = 0;
+  await show({ kind: "all" }, value);
+  const menu = await openOn(screen.getByRole("button", { name: "回收站（全部图库，2 张）" }), "回收站的操作");
+  expect(rows(menu)).toEqual(["清空「人物参考」的回收站…", "清空「风景参考」的回收站…"]);
+  expect(enabled(menu, "清空「人物参考」的回收站…")).toBe(true);
+  expect(enabled(menu, "清空「风景参考」的回收站…")).toBe(false);
+});

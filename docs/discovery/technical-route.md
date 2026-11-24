@@ -6,13 +6,13 @@
 
 | 项目 | 决定 | 已验证依据 | 剩余风险 |
 |---|---|---|---|
-| 框架 | Tauri 2 + Rust；React 19＋TS＋Vite；瀑布流用 TanStack Virtual 的 `lanes` | #7 钉图原型（[PR #21](https://github.com/Yukk1No/kinshoko/pull/21)）；#13 浏览样稿（[PR #25](https://github.com/Yukk1No/kinshoko/pull/25)、[PR #35](https://github.com/Yukk1No/kinshoko/pull/35)）；[#28](https://github.com/Yukk1No/kinshoko/pull/28) 字体 | release 包离线安装、无独显机器内存未实测；缩放与贴边动画不能逐帧调原生窗口，需另行设计 |
+| 框架 | Tauri 2 + Rust；React 19＋TS＋Vite；瀑布流沿用 #13 样稿自写的纯函数布局（尺寸取自资料库记录、最短列放置、二分查找可见范围加 overscan），不用 TanStack Virtual（#9 Q27：尺寸已知，TanStack 的测量与锚点修正只增加复杂度） | #7 钉图原型（[PR #21](https://github.com/Yukk1No/kinshoko/pull/21)）；#13 浏览样稿（[PR #25](https://github.com/Yukk1No/kinshoko/pull/25)、[PR #35](https://github.com/Yukk1No/kinshoko/pull/35)）；[#28](https://github.com/Yukk1No/kinshoko/pull/28) 字体 | release 包离线安装、无独显机器内存未实测；缩放与贴边动画不能逐帧调原生窗口，需另行设计 |
 | 进程 | 单进程常驻托盘，开机自启默认开、可关；关闭主窗口时销毁 WebView | #7 原型做通托盘、全局键、截图与贴边 | 常驻内存占用 |
 | 自动标签 | 同一 exe 以子命令启动打标子进程，主进程调度；画师绘画时可结束子进程释放显存 | #6：PixAI v1.0 FP16 分块版经 DirectML 在 RX 6500 XT 4 GB 上约 2.75 秒一张，显存峰值约 1.6 GB | 打标期间优动漫是否卡顿（#6 暂缓项） |
 | 模型分发 | 首次使用时下载，固定版本、校验哈希、本机改写为分块注意力，进度与断点续传；另可从文件导入模型包 | #6 探测程序已跑通同一流程 | 下载约 3 GB；打标完成前导入、浏览、钉图照常可用 |
 | 持久化 | 每库一个 SQLite（`rusqlite`＋迁移）＋按 SHA-256 命名的原文件＋可重建缓存；参考组为带版本的 JSON，独立于资料库保存 | #8 在画师真实 Eagle 1.8.2 库 300 张样本上 44/44 通过（Python 原型，[PR #37](https://github.com/Yukk1No/kinshoko/pull/37)） | Rust 重写后须重新通过同一套检查 |
-| 图片管线 | 原图由 WebView2 直接显示；缩略图与缩小显示由 Rust 生成：`image` 解码与方向、`moxcms` 色彩、`fast_image_resize` f32 预乘缩放，无损保存；钉图用物理像素尺寸的 `display-p3` canvas 2D。动图（GIF、动态 WebP、APNG）与带 HDR 标记的原图（增益图、PQ/HLG）首版不走直接显示，任何缩放都用 Rust 生成的 SDR 派生图：动图取首帧，HDR 取增益图的基础图或色调映射 | [图片还原度管线核查](../research/image-fidelity-pipeline.md)（仅文献与源码） | WebView2 154 偏黄回归（WebView2Feedback #5734）；moxcms 与 skcms 的残差；CMYK JPEG 原始采样的取得方式；PQ/HLG 到 SDR 的色调映射由谁实现 |
-| 安装与更新 | 按用户安装的 NSIS 包，WebView2 evergreen bootstrapper；Tauri updater 从 GitHub Releases 检查更新；暂不购买代码签名证书 | — | SmartScreen 提示；updater 签名密钥的保管 |
+| 图片管线 | 原图由 WebView2 直接显示；缩略图与缩小显示由 Rust 生成：`image` 解码与方向、`moxcms` 色彩、`fast_image_resize` f32 预乘缩放，无损保存；钉图用物理像素尺寸的 sRGB（`float16`）canvas 2D（#62 实测：`display-p3` canvas 在 110% 缩放的 sRGB 屏上约一半像素偏 1–8 级，sRGB canvas 与 `<img>` 逐像素一致）。动图（GIF、动态 WebP、APNG）与带 HDR 标记的原图（增益图、PQ/HLG）首版不走直接显示，任何缩放都用 Rust 生成的 SDR 派生图：动图取首帧，HDR 取增益图的基础图或色调映射 | [图片还原度管线核查](../research/image-fidelity-pipeline.md)（仅文献与源码） | WebView2 154 偏黄回归（WebView2Feedback #5734）；moxcms 与 skcms 的残差；CMYK JPEG 原始采样的取得方式；PQ/HLG 到 SDR 的色调映射由谁实现 |
+| 安装与更新 | 按用户安装的 NSIS 包，WebView2 evergreen bootstrapper；Tauri updater 从 GitHub Releases 检查更新；暂不购买代码签名证书 | — | SmartScreen 提示（[安装说明](../install.md)）；updater 签名私钥只放在 Actions secret，公钥在 `tauri.conf.json`（[发布检查清单](../validation/release-checklist.md)）；私有仓库的 Release 不能匿名下载，自动更新要求发布地址公开 |
 
 ## 模块
 
@@ -24,9 +24,10 @@ Rust 侧六个模块加应用壳。用 codebase-design 的删除测试筛过，L
   - 安全模式在 Library 内部执行。`Lens` 分浏览与参考两种视角：浏览视角不返回被封印的图，也不计入计数和候选；参考视角返回并标记需要遮蔽。只有参考组与钉图在装配时拿到参考视角的句柄。
   - 永久删除两步：预览返回受影响的参考组（经由参考组用途 port，由参考组模块实现）和一个令牌，数据变化后令牌失效。
   - 修订号用于分页游标与令牌过期；内部留故障注入点，测试在各写入步骤模拟崩溃。SQLite 与文件系统不设接缝，测试用临时目录里的真库。
-  - 不预留尚不存在功能的枚举变体（按颜色找图、相似图等），到时再加。
+  - 不预留尚不存在功能的枚举变体（按颜色找图、以图搜图等），到时再加。
 - **Search**：纯计算。输入、标签词表快照、内置与个人近似对应表 → 可见的条件树（别名、命名空间候选、近似展开）；Library 执行。
 - **Tagging**：调度打标子进程，写入自动标签建议与内容分级建议。子进程与测试假实现是同一接缝上的两个 adapter；画师绘画时暂停等调度策略藏在内部。
+  - 例外的预留：打标推理时顺带把模型的池化图像特征存为可清理的缓存，供 roadmap 的以图搜图使用，首版不提供任何依赖它的功能。理由是以后补算要对全库重新推理，在画师电脑上 GPU 约 2.75 秒、CPU 约 29 秒一张，大库要数天到数月。前提是多暴露这个输出不改变打标结果、不抬高显存峰值；实测不满足就不存。特征缓存以产生它的模型、修订、预处理、维数与精度为指纹，切换打标模型（例如 PixAI 与 WD）或升级后，不同指纹的特征不混用，以图搜图在当前指纹覆盖全库之前不提供结果（2026-10-16，[本地向量检索调研](../research/local-embedding-search.md)）。
 - **ReferenceGroups**：独立保存的参考组与参考组成员、参考组包的导出与导入（[ADR-0002](../adr/0002-independent-reference-groups.md)）。
 - **Backup**：范围计算、容量估计、快照、历史保留与恢复编排；只通过 Library 与 ReferenceGroups 提供的依赖清单与快照入口接触其存储，不认识磁盘布局。
 - **Desktop**：截图、截图历史、桌面钉图窗口与状态、贴边隐藏、全局快捷键、托盘。钉图渲染器是可替换模块，HDR 时换 WebGPU。
@@ -57,7 +58,7 @@ Rust 侧六个模块加应用壳。用 codebase-design 的删除测试筛过，L
   - 历史：保留最近 7 份每日快照和 4 份每周快照。
   - 验收：恢复后跑 #8 的往返检查。
 
-**留在 roadmap**：资料库合并（含标签决定冲突向导）、JEV 与 LLM 辅助查找、智能文件夹、按颜色找图、HDR 显示与采集、远端备份与持续同步、超分、网页收集与动态参考。
+**留在 roadmap**：资料库合并（含标签决定冲突向导）、JEV 与 LLM 辅助查找、智能文件夹、按颜色找图、以图搜图与语义搜索、HDR 显示与采集、远端备份与持续同步、超分、网页收集与动态参考。
 
 ## #8 交下来的工程约束
 

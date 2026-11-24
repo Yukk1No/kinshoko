@@ -1,2 +1,26 @@
 * text=auto
 *.md text eol=lf
+*.sh text eol=lf
+# ts-rs 生成物按 LF 写出；固定换行，CI 的生成物差异检查才不受 autocrlf 影响。
+src/bindings/** text eol=lf
+# Hooks run under sh; CRLF breaks them.
+.githooks/* text eol=lf
+# Biome 按 LF 检查 src、scripts、e2e 的格式；Windows 上 autocrlf 检出成 CRLF 时，npm run check 会把每个文件都报成格式错误。
+src/** text=auto eol=lf
+scripts/** text=auto eol=lf
+e2e/** text=auto eol=lf
+/biome.json text eol=lf
+# 机器生成或采集的输出，不是 agent 手写的；pre-commit 的 token 上限不检查。
+src/bindings/** linguist-generated
+crates/kinshoko-core/data/builtin-translation-table.json linguist-generated
+# 许可证原文照搬自 GNU，不是手写的。
+LICENSE linguist-vendored
+# Impeccable 技能原样取自上游，不是手写的；更新方法见 docs/agents/impeccable.md。
+.agents/skills/impeccable/** linguist-vendored
+.agents/skills/impeccable/scripts/impeccable text eol=lf
+# 认可原型从固定提交 bd8aea44 原样恢复，只作体验对照，不是手写维护的代码。
+design/prototype/** linguist-vendored
+
+# 第三方技能（modern-web-guidance），由安装器生成，不手工拆分
+.agents/skills/modern-web-guidance/** linguist-generated
+.claude/skills/modern-web-guidance/** linguist-generated

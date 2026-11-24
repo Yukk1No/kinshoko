@@ -1,0 +1,507 @@
+//! 备份目标：画师选的本地目录。目录下的 `kinshoko-backup/` 是 Backup 自己的布局：
+//!
+//! - `originals/<sha 前两位>/<sha>`：按哈希存的原文件，全部快照共用，只复制新增的；
+//! - `snapshots/<快照 id>/`：`manifest.json`（格式 `kinshoko.backup`）、`libraries/<资料库 id>/`
+//!   下的数据库快照、`groups/<参考组 id>.json` 与参考组自带的截图 `groups/<参考组 id>.captures/`。写到一半的快照在 `<快照 id>.incomplete/`，
+//!   不会被当成完整备份，下次备份时清掉。
+//!
+//! 资料库与参考组只经它们的依赖清单与快照入口接触（[`Library::snapshot_at`]、
+//! [`Library::restore_at`]、[`ReferenceGroups::snapshot`]、[`ReferenceGroups::restore`]）。
+
+use crate::CommandError;
+use crate::command_error::ErrorKind;
+use std::collections::{BTreeSet, HashMap};
+use std::fs;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
+use super::retention;
+use super::{BackupScope, ScopeItem, Stamp, Uncovered};
+use crate::RegisteredLibrary;
+use crate::library::{
+    self, Library, LibraryInfo, OriginalFile, ReferenceLens, RestoreProvenance, TableDigest,
+};
+use crate::reference_groups::{self, GroupError, ReferenceGroups, RestoredFrom};
+
+mod files;
+mod group_captures;
+mod prune;
+mod report;
+mod restoring;
+
+pub use report::*;
+
+pub(super) use files::write_synced;
+use files::*;
+use group_captures::ManifestGroup;
+
+const ROOT: &str = "kinshoko-backup";
+const STORE: &str = "originals";
+const SNAPSHOTS: &str = "snapshots";
+const INCOMPLETE: &str = ".incomplete";
+const MANIFEST: &str = "manifest.json";
+const FORMAT: &str = "kinshoko.backup";
+const FORMAT_VERSION: u32 = 1;
+
+/// `path` 是备份目标里 Backup 自己的布局（`kinshoko-backup/`）或在它里面时，给出布局所在的文件夹。
+pub(crate) fn layout_containing(path: &Path) -> Option<&Path> {
+    path.ancestors().find(|dir| is_layout(dir))
+}
+
+/// 选中的 `path` 是备份目标、目标里的 `kinshoko-backup/` 或其中的位置时，给出备份目标。
+pub fn target_of(path: &Path) -> Option<PathBuf> {
+    match layout_containing(path) {
+        Some(layout) => layout.parent().map(Path::to_path_buf),
+        None => is_layout(&path.join(ROOT)).then(|| path.to_path_buf()),
+    }
+}
+
+/// 选中的 `path` 整个就是备份：在 `kinshoko-backup/` 里，或是除它以外只有隐藏项的备份目标
+/// （以 `.` 开头，或 Windows 的隐藏属性，如盘符根目录的 `System Volume Information`）。
+/// 备份目标里还有别的内容时不算，那些内容照常导入，导入时跳过其中的备份。
+pub fn is_whole_backup(path: &Path) -> bool {
+    if layout_containing(path).is_some() {
+        return true;
+    }
+    is_layout(&path.join(ROOT))
+        && fs::read_dir(path).is_ok_and(|entries| {
+            entries
+                .flatten()
+                .all(|entry| entry.file_name() == ROOT || is_hidden(&entry))
+        })
+}
+
+fn is_hidden(entry: &fs::DirEntry) -> bool {
+    entry.file_name().to_string_lossy().starts_with('.') || has_hidden_attribute(entry)
+}
+
+#[cfg(windows)]
+fn has_hidden_attribute(entry: &fs::DirEntry) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    const FILE_ATTRIBUTE_HIDDEN: u32 = 0x2;
+    entry
+        .metadata()
+        .is_ok_and(|m| m.file_attributes() & FILE_ATTRIBUTE_HIDDEN != 0)
+}
+
+#[cfg(not(windows))]
+fn has_hidden_attribute(_: &fs::DirEntry) -> bool {
+    false
+}
+
+fn is_layout(dir: &Path) -> bool {
+    dir.file_name().is_some_and(|name| name == ROOT) && dir.join(SNAPSHOTS).is_dir()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Manifest {
+    format: String,
+    format_version: u32,
+    id: String,
+    created_at: Stamp,
+    scope: BackupScope,
+    libraries: Vec<ManifestLibrary>,
+    groups: Vec<ManifestGroup>,
+    skipped: Vec<SkippedLibrary>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ManifestLibrary {
+    id: String,
+    name: String,
+    /// Library 返回的快照文件键，Backup 不推断资料库的磁盘布局。
+    #[serde(default = "legacy_database_key")]
+    database_key: PathBuf,
+    database_sha256: String,
+    originals: Vec<OriginalFile>,
+    curation: Vec<TableDigest>,
+}
+
+// 早期格式 v1 清单没有记录文件键；这是旧备份格式的固定值，不用于新快照。
+fn legacy_database_key() -> PathBuf {
+    "library.sqlite".into()
+}
+
+/// 画师选的备份目标目录。
+#[derive(Debug, Clone)]
+pub struct BackupTarget {
+    dir: PathBuf,
+}
+
+impl BackupTarget {
+    pub fn new(dir: &Path) -> BackupTarget {
+        BackupTarget {
+            dir: dir.to_path_buf(),
+        }
+    }
+
+    pub fn dir(&self) -> &Path {
+        &self.dir
+    }
+
+    /// 备份目标在不在。选好的目录不会被自动建立：移动盘没插时不往别处写。
+    pub fn available(&self) -> bool {
+        self.dir.is_dir()
+    }
+
+    fn root(&self) -> Result<PathBuf, BackupError> {
+        if !self.available() {
+            return Err(BackupError::TargetUnavailable(self.dir.clone()));
+        }
+        Ok(self.dir.join(ROOT))
+    }
+
+    fn stored(&self, root: &Path, sha: &str) -> PathBuf {
+        root.join(STORE).join(&sha[..2.min(sha.len())]).join(sha)
+    }
+
+    /// 执行前的容量估计：范围内的全部内容，以及备份目标里还没有、这次要复制的部分。
+    /// 备份目标不在时按全部需要复制估计。
+    pub fn estimate(
+        &self,
+        scope: &BackupScope,
+        sources: &BackupSources,
+    ) -> Result<BackupEstimate, BackupError> {
+        let root = self.root().ok();
+        let mut est = BackupEstimate {
+            total_bytes: 0,
+            new_bytes: 0,
+            originals: 0,
+            new_originals: 0,
+            unavailable: Vec::new(),
+        };
+        let mut seen = BTreeSet::new();
+        for item in &scope.libraries {
+            let deps = registered(sources, item).and_then(|reg| {
+                Library::dependencies_at(&reg.root, &reg.id).map_err(CommandError::from)
+            });
+            let deps = match deps {
+                Ok(d) => d,
+                Err(reason) => {
+                    est.unavailable.push(SkippedLibrary {
+                        library: item.clone(),
+                        reason: reason.into(),
+                    });
+                    continue;
+                }
+            };
+            est.total_bytes += deps.database_size;
+            est.new_bytes += deps.database_size;
+            for dep in deps.originals {
+                est.originals += 1;
+                est.total_bytes += dep.file.size;
+                if !seen.insert(dep.file.sha256.clone()) {
+                    continue;
+                }
+                let have = root.as_ref().is_some_and(|r| {
+                    fs::metadata(self.stored(r, &dep.file.sha256))
+                        .is_ok_and(|m| m.len() == dep.file.size)
+                });
+                if !have {
+                    est.new_originals += 1;
+                    est.new_bytes += dep.file.size;
+                }
+            }
+        }
+        for g in &scope.groups {
+            if let Some(n) = group_captures::size(sources.groups, &g.id) {
+                est.total_bytes += n;
+                est.new_bytes += n;
+            }
+        }
+        Ok(est)
+    }
+
+    /// 按范围备份一次：每个资料库先取原文件租约并做数据库快照，再把快照引用的原文件按哈希
+    /// 增量复制（新复制的与已有的都核对哈希，已有的坏了就重新复制），然后复制参考组、写清单，
+    /// 最后改名为完整快照，按保留策略清理旧快照与不再被引用的原文件。
+    /// 原文件内容与记录不符或缺失时快照不完整。
+    /// 读不到的资料库（移动盘没插）跳过并在结果里列出。
+    pub fn run(
+        &self,
+        scope: &BackupScope,
+        sources: &BackupSources,
+        at: Stamp,
+        progress: &mut dyn FnMut(BackupProgress),
+    ) -> Result<BackupReport, BackupError> {
+        self.run_content(scope, sources, None, at, progress)
+    }
+
+    /// Content backup with current application definitions, excluding display preferences.
+    /// The shared scope, snapshot, lease and retention pipeline is unchanged.
+    pub fn run_with_catalog(
+        &self,
+        scope: &BackupScope,
+        sources: &BackupSources,
+        catalog: &crate::tag_catalog::CatalogInspection,
+        at: Stamp,
+        progress: &mut dyn FnMut(BackupProgress),
+    ) -> Result<BackupReport, BackupError> {
+        self.run_content(scope, sources, Some(catalog), at, progress)
+    }
+
+    fn run_content(
+        &self,
+        scope: &BackupScope,
+        sources: &BackupSources,
+        catalog: Option<&crate::tag_catalog::CatalogInspection>,
+        at: Stamp,
+        progress: &mut dyn FnMut(BackupProgress),
+    ) -> Result<BackupReport, BackupError> {
+        let root = self.root()?;
+        let snapshots = root.join(SNAPSHOTS);
+        fs::create_dir_all(&snapshots).map_err(BackupError::TargetWrite)?;
+        fs::create_dir_all(root.join(STORE)).map_err(BackupError::TargetWrite)?;
+        remove_incomplete(&snapshots);
+
+        let id = snapshot_id(at);
+        let work = snapshots.join(format!("{id}{INCOMPLETE}"));
+        fs::create_dir_all(&work).map_err(BackupError::TargetWrite)?;
+        let mut report = BackupReport {
+            snapshot_id: id.clone(),
+            complete: false,
+            copied: 0,
+            copied_bytes: 0,
+            reused: 0,
+            skipped: Vec::new(),
+            problems: Vec::new(),
+            removed_snapshots: Vec::new(),
+        };
+        let mut manifest = Manifest {
+            format: FORMAT.into(),
+            format_version: FORMAT_VERSION,
+            id: id.clone(),
+            created_at: at,
+            scope: scope.clone(),
+            libraries: Vec::new(),
+            groups: Vec::new(),
+            skipped: Vec::new(),
+        };
+
+        // 先固定组引用，再取库快照。复制期间保存的新成员不混入本次备份。
+        let groups_dir = work.join("groups");
+        fs::create_dir_all(&groups_dir).map_err(BackupError::TargetWrite)?;
+        for g in &scope.groups {
+            match sources.groups.snapshot(&g.id) {
+                Ok(bytes) => {
+                    let libraries = match ReferenceGroups::snapshot_libraries(&bytes) {
+                        Ok(libraries) => libraries,
+                        Err(e) => {
+                            report.problems.push(group_problem(&g.name, e.into()));
+                            continue;
+                        }
+                    };
+                    if libraries.iter().any(|id| {
+                        !scope.libraries.iter().any(|l| &l.id == id)
+                            && !scope.uncovered.iter().any(|u| {
+                                matches!(u,
+                                Uncovered::Library { group, library_id, .. }
+                                    if group.id == g.id && library_id == id)
+                            })
+                    }) {
+                        report.problems.push(CommandError::new(
+                            ErrorKind::BackupGroupNewLibrary {
+                                name: g.name.clone(),
+                            },
+                            format!(
+                                "参考组“{}”有新的资料库引用，请重新计算备份范围后重试",
+                                g.name
+                            ),
+                        ));
+                        continue;
+                    }
+                    let captures =
+                        match group_captures::save(sources.groups, &g.id, &bytes, &groups_dir) {
+                            Ok(captures) => captures,
+                            Err(e) => {
+                                report.problems.push(group_problem(&g.name, e.into()));
+                                continue;
+                            }
+                        };
+                    write_synced(&groups_dir.join(format!("{}.json", g.id)), &bytes)
+                        .map_err(BackupError::TargetWrite)?;
+                    manifest.groups.push(ManifestGroup {
+                        id: g.id.clone(),
+                        name: g.name.clone(),
+                        sha256: sha256(&bytes),
+                        captures,
+                    });
+                }
+                Err(e) => report.problems.push(group_problem(&g.name, e.into())),
+            }
+        }
+
+        let mut snaps = Vec::new();
+        let mut unavailable = Vec::new();
+        for item in &scope.libraries {
+            let reg = match registered(sources, item) {
+                Ok(reg) => reg,
+                Err(reason) => {
+                    unavailable.push((item, reason));
+                    continue;
+                }
+            };
+            let into = work.join("libraries").join(&reg.id);
+            match Library::snapshot_for_backup(&reg.root, &reg.id, &into) {
+                Ok(mut s) => {
+                    if let Some(catalog) = catalog {
+                        // Failure enriching a selected library is incomplete, not an unavailable skip.
+                        if let Err(e) = s.apply_content_definitions(catalog) {
+                            report.problems.push(CommandError::caused_by(
+                                e,
+                                |cause| ErrorKind::BackupLibraryDefinitions {
+                                    name: item.name.clone(),
+                                    cause,
+                                },
+                                |e| format!("资料库“{}”的标签定义：{e}", item.name),
+                            ));
+                            continue;
+                        }
+                    }
+                    snaps.push(s);
+                }
+                Err(library::SnapshotError::Source(e)) => unavailable.push((item, e.into())),
+                Err(library::SnapshotError::WriteCopy(e)) => {
+                    report.problems.push(snapshot_write_problem(e))
+                }
+                Err(library::SnapshotError::ReadCopy(e)) => report.problems.push(e.into()),
+            }
+        }
+        let none_readable = unavailable.len() == scope.libraries.len();
+        for (item, reason) in unavailable {
+            if none_readable {
+                report.problems.push(CommandError::caused_by(
+                    reason.clone(),
+                    |cause| ErrorKind::BackupLibraryUnreadable {
+                        name: item.name.clone(),
+                        cause,
+                    },
+                    |e| format!("无法读取资料库“{}”：{e}", item.name),
+                ));
+            }
+            report.skipped.push(SkippedLibrary {
+                library: item.clone(),
+                reason: reason.into(),
+            });
+        }
+        let total = snaps.iter().map(|s| s.originals.len() as u32).sum();
+        let mut done = 0;
+        progress(BackupProgress { done, total });
+        // 这次备份里已核对过、可以直接引用的原文件。
+        let mut verified = BTreeSet::new();
+        // 整次备份都持有各资料库的原文件租约（`snaps` 活到函数结束）。
+        for snap in &snaps {
+            for dep in &snap.originals {
+                let target = self.stored(&root, &dep.file.sha256);
+                if verified.contains(&dep.file.sha256) || holds(&target, &dep.file) {
+                    report.reused += 1;
+                    verified.insert(dep.file.sha256.clone());
+                } else {
+                    match store(&dep.source, &target, &dep.file.sha256) {
+                        Ok(()) => {
+                            verified.insert(dep.file.sha256.clone());
+                            report.copied += 1;
+                            report.copied_bytes += dep.file.size;
+                            library::fault::hit(library::fault::BACKUP_AFTER_COPY);
+                        }
+                        Err(why) => report.problems.push(CommandError::caused_by(
+                            why,
+                            |cause| ErrorKind::BackupOriginalProblem {
+                                name: snap.library.name.clone(),
+                                file: dep.file.key.clone(),
+                                cause,
+                            },
+                            |why| {
+                                format!(
+                                    "资料库“{}”的原图 {}：{why}",
+                                    snap.library.name, dep.file.key
+                                )
+                            },
+                        )),
+                    }
+                }
+                done += 1;
+                progress(BackupProgress { done, total });
+            }
+            manifest.libraries.push(ManifestLibrary {
+                id: snap.library.id.clone(),
+                name: snap.library.name.clone(),
+                database_key: snap
+                    .database
+                    .strip_prefix(work.join("libraries").join(&snap.library.id))
+                    .map_err(std::io::Error::other)?
+                    .to_path_buf(),
+                database_sha256: library::hash_file(&snap.database)?,
+                originals: snap.originals.iter().map(|d| d.file.clone()).collect(),
+                curation: snap.curation.clone(),
+            });
+        }
+
+        if !report.problems.is_empty() {
+            return Ok(report);
+        }
+        manifest.skipped = report.skipped.clone();
+        let bytes = serde_json::to_vec_pretty(&manifest).map_err(std::io::Error::other)?;
+        write_synced(&work.join(MANIFEST), &bytes).map_err(BackupError::TargetWrite)?;
+        fs::rename(&work, snapshots.join(&id)).map_err(BackupError::TargetWrite)?;
+        report.complete = true;
+        report.removed_snapshots = self.prune(&root)?;
+        Ok(report)
+    }
+
+    /// 最新的完整快照；没有完整快照时是 [`BackupError::UnknownSnapshot`]。
+    pub fn latest_snapshot(&self) -> Result<SnapshotSummary, BackupError> {
+        self.snapshots()?
+            .into_iter()
+            .next()
+            .ok_or(BackupError::UnknownSnapshot)
+    }
+
+    /// 备份目标里的完整快照，新的在前。
+    pub fn snapshots(&self) -> Result<Vec<SnapshotSummary>, BackupError> {
+        let root = self.root()?;
+        let mut out: Vec<SnapshotSummary> = complete_manifests(&root)
+            .into_iter()
+            .map(|(_, m)| SnapshotSummary {
+                libraries: m
+                    .libraries
+                    .iter()
+                    .map(|l| ScopeItem {
+                        id: l.id.clone(),
+                        name: l.name.clone(),
+                    })
+                    .collect(),
+                groups: m
+                    .groups
+                    .iter()
+                    .map(|g| ScopeItem {
+                        id: g.id.clone(),
+                        name: g.name.clone(),
+                    })
+                    .collect(),
+                skipped: m.skipped,
+                created_at: m.created_at,
+                id: m.id,
+            })
+            .collect();
+        out.sort_by_key(|s| std::cmp::Reverse(s.created_at.unix_ms));
+        Ok(out)
+    }
+}
+
+/// 参考组 `name` 的一个问题：备份时读不了，或恢复后核对不了。
+fn group_problem(name: &str, problem: CommandError) -> CommandError {
+    CommandError::caused_by(
+        problem,
+        |cause| ErrorKind::BackupGroupProblem {
+            name: name.to_owned(),
+            cause,
+        },
+        |p| format!("参考组“{name}”：{p}"),
+    )
+}

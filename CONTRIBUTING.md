@@ -1,0 +1,109 @@
+# Contributing to Kinshoko
+
+**English** · [简体中文](docs/CONTRIBUTING.zh-CN.md)
+
+Thanks for helping out. Kinshoko is led by a single maintainer, and v1.0 shipped in October 2026. This page explains how to contribute without wasting anyone's time.
+
+Most project docs, issues and code comments are in Chinese. Writing in English is fine.
+
+## Feedback and bug reports
+
+You can help a lot without writing code. Use the [issue templates](https://github.com/Yukk1No/kinshoko/issues/new/choose) for UX feedback, tag errors and compatibility results. For a bug, include the output of **设置 → 诊断 → 显示诊断信息** (Settings → Diagnostics → Show diagnostics) (it contains no file names, paths or images) and the steps to reproduce it.
+
+Search existing issues first. Do not report security issues in public; see [SECURITY.md](.github/SECURITY.md).
+
+## Contributing code
+
+1. **Open an issue, or comment on an existing one, before you start.** Describe what you want to change and how, and wait for the maintainer to reply. Much of Kinshoko's behavior rests on acceptance testing with illustrators and on recorded decisions (see [docs/adr/](docs/adr/)), so agreeing first avoids wasted work. Issues labelled `ready-for-human` are open to pick up.
+2. Small fixes such as typos and broken doc links can go straight to a PR.
+3. **Target the `main` branch.** If your fix also needs to go into an already released version, the maintainer will carry it over to a maintenance branch; you don't need to do anything for that.
+4. Keep each PR to one change. Link the issue (`Closes #123`) and say how you verified it. For UI changes, attach a screenshot of the app window.
+5. The maintainer merges once CI is green.
+
+Contributions are licensed under the repository's [GPL-3.0-or-later](LICENSE), including the additional permission in [LICENSE-EXCEPTION](LICENSE-EXCEPTION).
+
+## Development setup
+
+- Windows 10/11 x64 with the Visual Studio 2022 Build Tools ("Desktop development with C++").
+- Rust 1.100, pinned by `rust-toolchain.toml` (rustup installs it automatically).
+- Node.js 22 and npm (the lockfile is `package-lock.json`).
+- WebView2 Runtime (evergreen). Windows 11 includes it. Frontend baseline: Chromium 131 (see "Runtime baseline" in `AGENTS.md`).
+- Python 3, for the pre-commit hook and the probe scripts in `scripts/probe/`.
+
+After cloning, enable the repository's git hooks (pre-commit rejects staged files over 5,000 tokens; pre-push runs `cargo fmt --check` and `npm run typecheck`, about 10 seconds):
+
+```sh
+git config core.hooksPath .githooks
+```
+
+## Common commands
+
+```sh
+npm ci                  # install frontend dependencies
+npm run dev             # run the app in dev mode (Vite dev server + debug build)
+npm run build           # release build; the NSIS installer lands in target/release/bundle/nsis/
+npm test                # frontend tests (Vitest)
+npm run typecheck       # TypeScript type check
+npm run lint            # Biome check: lint (hook dependencies, hooks at top level, unused imports) and formatting of src/, scripts/ and e2e/
+npm run format          # format src/, scripts/ and e2e/ with Biome (what npm run lint complains about)
+npm run check           # type check + Biome check + frontend tests; prints only failures and a summary, exit code covers every step
+npm run check -- --rust # also cargo fmt --check, Clippy and the core crate tests
+npm run check -- App.import   # only Vitest, arguments passed through
+npm run check -- --rust-only --test integration writer_switch::   # only nextest, arguments passed through
+npm run bindings        # regenerate src/bindings/ (runs the core crate's unit tests)
+cargo nextest run -p kinshoko-core   # core crate tests (what CI runs; needs cargo-nextest)
+cargo test -p kinshoko-core --doc    # core crate doctests (nextest skips them)
+cargo nextest run -p pin-render      # pin renderer offscreen tests (GPU, or WARP without one)
+cargo fmt --all
+cargo clippy --workspace --all-targets -- -D warnings   # run npm run vite:build first to produce dist/
+node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # needs tauri-driver and an msedgedriver matching WebView2
+```
+
+The core crate sets `autotests = false`, and most files in `crates/kinshoko-core/tests/` are modules of the `integration` target, not targets of their own. To run one module, name the target and filter by module path: `cargo nextest run -p kinshoko-core --test integration writer_switch::`. `--test writer_switch` fails with "no test target named"; the available targets are the `[[test]]` entries in its `Cargo.toml`.
+
+CI runs the Rust checks (format, Clippy, core crate tests, pin renderer offscreen tests on WARP, generated-file check) and the native app build with the WebDriver smoke test on `windows-2022`, and the TypeScript type check, Biome check (lint and formatting), frontend tests and workflow lint on `ubuntu-latest`. The app job is pinned to `windows-2022` because the smoke test does not yet pass on `windows-latest`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run the relevant checks locally before opening a PR.
+
+To make `git blame` skip the one-off formatting commit, run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once (GitHub reads the file by itself).
+
+Files under src/, scripts/, e2e/ and biome.json are checked out with LF line endings (see .gitattributes), because Biome checks them for LF. A checkout made before that rule still has CRLF copies, and npm run lint reports every file; with no uncommitted changes, check them out again: `git rm -r -q --cached src scripts e2e biome.json && git reset -q --hard`.
+
+## Layout
+
+| Path | Contents |
+| --- | --- |
+| `crates/kinshoko-core/` | Domain core crate, independent of Tauri. Domain logic lives here; tests go through its public interface with real SQLite and real files in a temp directory. |
+| `crates/pin-render/` | Desktop pin GPU drawing on wgpu (ADR 0013); no platform types, no dependency on the core crate. |
+| `crates/kinshoko-tagger/` | Tagging subprocess: ONNX Runtime inference on DirectML, or on the CPU without a dedicated GPU. |
+| `src-tauri/` | Tauri 2 app shell (crate `kinshoko`). Commands only forward, convert types and push events. |
+| `src/` | React 19 + TypeScript + Vite frontend. `src/ipc.ts` is the only place that calls Tauri commands. Only entry and startup files sit at the root; feature code goes in its own folder. |
+| `src/bindings/` | Frontend/backend contract types generated by ts-rs from the core crate. **Do not edit by hand**; regenerate and commit. |
+| `e2e/` | Native WebDriver scripts: the CI smoke test and gate, plus a few manual acceptance scripts; see [`e2e/README.md`](e2e/README.md). A new one-off acceptance script goes in the git-ignored `work/`, or ships with its PR and is deleted once its issue is closed; only a script that `docs/validation/` or CI names stays in `e2e/`. |
+| `tools/` | Standalone tools with their own dependencies or lockfile (probes, the generators for the bundled tables), outside the Cargo workspace. |
+| `scripts/` | Single-file scripts, grouped by purpose: `release/`, `perf/`, `probe/`, `hooks/`, `samples/`. |
+| `design/` | Logo, UI system, design explorations and the approved prototype (`design/prototype/`). Take assets only from `design/logo-kit/` and `design/ui-system/`. |
+| `docs/` | Domain discussion (`discovery/`), research (`research/`), ADRs (`adr/`) and acceptance (`validation/`). |
+
+## Things to know while developing
+
+- **The app lives in the tray.** Closing the main window only destroys the WebView; choose **退出** (Exit) from the tray menu to end the process.
+- **App data lives in `data\` next to the executable.** Settings, tagging models and so on go there; in development that is `target\debug\data\` ([ADR-0009](docs/adr/0009-portable-data-root.md)). Set `KINSHOKO_DATA_DIR` to point tests elsewhere.
+- **Autostart.** Debug builds never register for autostart. When testing a release build by hand, set `KINSHOKO_SKIP_AUTOSTART=1` for the same effect.
+- **Frontend/backend contract.** After changing a Rust type marked `#[ts(export)]`, run `npm run bindings` and commit the output. CI checks that the generated files match.
+- **Never rewrite originals.** No change may alter the bytes of an original image in a library.
+
+## Conventions
+
+- **Terms.** Code, UI copy and docs use the words defined in [GLOSSARY.md](GLOSSARY.md). Add or update an entry before introducing a new concept or changing a meaning.
+- **Decisions.** Decisions that are hard to reverse are recorded as ADRs in [docs/adr/](docs/adr/).
+- **UI.** UI changes follow the components, tokens and copy rules in [`design/ui-system/`](design/ui-system/README.md). The logo and the seal book are kept as they are.
+- **Commit messages.** Use `type(scope): summary`, with types such as `feat`, `fix`, `docs`, `ci` and `chore`. The summary may be in Chinese.
+- **Privacy.** The repository is public. Do not commit full-desktop screenshots, logs containing personal paths or user names, or a real illustrator's library. Capture only the app window, and test with synthetic images or images that may be redistributed publicly.
+
+## How Kinshoko is built
+
+Kinshoko is developed mainly by AI coding agents (Claude Code and Codex). The maintainer decides what to build and how it should feel, and tests it on illustrators' machines. Agents write most of the code, docs, issues and PR descriptions, and review PRs. Text an agent wrote on its own is marked as such.
+
+What this means for you:
+
+- Your PR will usually get a first review from an agent; the maintainer makes the final call.
+- PRs written with an AI assistant are welcome. They still need an agreed issue first, and you are responsible for reviewing the change and running the checks yourself. The instructions and skills the project's agents use start at [AGENTS.md](AGENTS.md).

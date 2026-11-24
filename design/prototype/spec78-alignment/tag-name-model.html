@@ -1,0 +1,271 @@
+<div id="kinshoko-name-model" lang="zh-CN">
+  <div class="knm-title">
+    <h3>标签身份与名称</h3>
+    <span class="text-small">建议方案 · 未确认 · 示例数据</span>
+  </div>
+  <div class="viz-controls">
+    <label class="form-label" for="knm-view">查看
+      <select class="form-select" id="knm-view">
+        <option value="identity">资料库与统一标签</option>
+        <option value="names">名称优先级与词表更新</option>
+        <option value="migration">旧资料库迁移</option>
+      </select>
+    </label>
+  </div>
+
+  <section id="knm-identity" aria-label="资料库与统一标签">
+    <div class="viz-controls">
+      <label class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="knm-connected" checked>
+        <span class="form-check-label">资料库 B 可用</span>
+      </label>
+    </div>
+    <svg id="knm-identity-graph" role="img" aria-label="两个资料库的来源编号对应同一个应用标签编号"></svg>
+    <div id="knm-identity-detail" class="text-small knm-detail" aria-live="polite"></div>
+    <table class="table table-sm">
+      <thead><tr><th scope="col">保存位置</th><th scope="col">数据职责</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">资料库 provider</th><td>原图、来源记录、图片整理信息</td></tr>
+        <tr><th scope="row">应用共享标签目录</th><td>统一标签编号、标签含义、跨来源对应</td></tr>
+        <tr><th scope="row">内置词表</th><td>默认名称、内置别名</td></tr>
+        <tr><th scope="row">用户偏好记录</th><td>统一标签编号＋语言 → 偏好名称</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="knm-names" aria-label="名称优先级与词表更新" hidden>
+    <div class="viz-controls">
+      <label class="form-label" for="knm-default">词表
+        <select class="form-select" id="knm-default">
+          <option value="old">更新前：分发</option>
+          <option value="new">更新后：分缝发型</option>
+        </select>
+      </label>
+      <label class="form-label" for="knm-preference">用户偏好
+        <select class="form-select" id="knm-preference">
+          <option value="">没有偏好</option>
+          <option value="分开的头发">分开的头发</option>
+          <option value="分发">分发</option>
+          <option value="分缝发型">分缝发型</option>
+        </select>
+      </label>
+    </div>
+    <svg id="knm-name-graph" role="img" aria-label="用户偏好优先于词表默认，两个资料库共用结果"></svg>
+    <div id="knm-name-detail" class="text-small knm-detail" aria-live="polite"></div>
+    <table class="table table-sm">
+      <tbody>
+        <tr><th scope="row">标签身份</th><td><code>T37</code></td></tr>
+        <tr><th scope="row">外部对应</th><td><code>parted_hair</code></td></tr>
+        <tr><th scope="row">显示名称</th><td id="knm-current-name"></td></tr>
+        <tr><th scope="row">其他叫法</th><td id="knm-current-aliases"></td></tr>
+        <tr><th scope="row">别名职责</th><td>查找同一标签；用户选中后才成为显示偏好</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="knm-migration" aria-label="旧资料库迁移" hidden>
+    <table class="table table-sm">
+      <thead><tr><th scope="col">同一标签的旧记录</th><th scope="col">现有名称</th><th scope="col">名称来源</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">资料库 A</th><td>分发</td><td>未确认</td></tr>
+        <tr><th scope="row">资料库 B</th><td>分开的头发</td><td>未确认</td></tr>
+      </tbody>
+    </table>
+    <div class="viz-controls">
+      <label class="form-label" for="knm-migration-choice">用户决定
+        <select class="form-select" id="knm-migration-choice">
+          <option value="pending">未选择：保留各库现有名称</option>
+          <option value="default">跟随默认：分缝发型</option>
+          <option value="a">设为共享偏好：分发</option>
+          <option value="b">设为共享偏好：分开的头发</option>
+        </select>
+      </label>
+    </div>
+    <svg id="knm-migration-graph" role="img" aria-label="旧名称缺少来源记录，用户决定后形成跨库一致的名称规则"></svg>
+    <div id="knm-migration-detail" class="text-small knm-detail" aria-live="polite"></div>
+    <table class="table table-sm">
+      <tbody>
+        <tr><th scope="row">迁移后的偏好记录</th><td id="knm-migration-record"></td></tr>
+        <tr><th scope="row">迁移后的其他叫法</th><td id="knm-migration-aliases"></td></tr>
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<style>
+  #kinshoko-name-model { color: var(--foreground); }
+  #kinshoko-name-model .knm-title { padding-right: 96px; margin-bottom: 16px; }
+  #kinshoko-name-model .knm-title h3 { margin: 0 0 6px; }
+  #kinshoko-name-model section { margin-top: 16px; }
+  #kinshoko-name-model svg { display: block; width: 100%; overflow: visible; }
+  #kinshoko-name-model svg text { fill: var(--foreground); font-size: 12px; font-weight: 400; }
+  #kinshoko-name-model svg .knm-strong { font-weight: 500; }
+  #kinshoko-name-model svg .knm-node { fill: color-mix(in srgb, var(--foreground) 4%, transparent); stroke: var(--border); stroke-width: 1; }
+  #kinshoko-name-model svg .knm-active { fill: color-mix(in srgb, var(--viz-series-1) 13%, transparent); }
+  #kinshoko-name-model svg .knm-path { stroke: var(--border); stroke-width: 1.5; fill: none; }
+  #kinshoko-name-model svg .knm-path-active { stroke: var(--viz-series-1); }
+  #kinshoko-name-model .knm-detail { margin: 10px 0 16px; color: var(--foreground); }
+  #kinshoko-name-model table { width: 100%; table-layout: fixed; }
+  #kinshoko-name-model td, #kinshoko-name-model th { overflow-wrap: anywhere; }
+  #kinshoko-name-model [hidden] { display: none; }
+</style>
+
+<script>
+(() => {
+  const root = document.getElementById('kinshoko-name-model');
+  const get = id => root.querySelector('#knm-' + id);
+  const ns = 'http://www.w3.org/2000/svg';
+  const validViews = ['identity', 'names', 'migration'];
+  const validPreferences = ['', '分开的头发', '分发', '分缝发型'];
+  const validMigrations = ['pending', 'default', 'a', 'b'];
+  let state = { view: 'identity', connected: true, updated: false, preference: '', migration: 'pending', previousNames: ['分发'] };
+
+  function restore(saved) {
+    const data = saved && saved.privateContent;
+    if (!data || data.schema !== 'kinshoko-name-model-1') return;
+    const source = data.state || {};
+    state = {
+      view: validViews.includes(source.view) ? source.view : 'identity',
+      connected: source.connected !== false,
+      updated: source.updated === true,
+      preference: validPreferences.includes(source.preference) ? source.preference : '',
+      migration: validMigrations.includes(source.migration) ? source.migration : 'pending',
+      previousNames: Array.isArray(source.previousNames) ? source.previousNames.filter(x => validPreferences.includes(x) && x) : ['分发']
+    };
+  }
+
+  function remember() {
+    if (!window.openai || typeof window.openai.setWidgetState !== 'function') return;
+    const snapshot = {
+      modelContent: { visualization: '名称规则方案演示', view: state.view, defaultName: state.updated ? '分缝发型' : '分发', preferredName: state.preference || null, migrationChoice: state.migration },
+      privateContent: { schema: 'kinshoko-name-model-1', state: JSON.parse(JSON.stringify(state)) }
+    };
+    Promise.resolve(window.openai.setWidgetState(snapshot)).catch(() => {});
+  }
+
+  function mark(svg, kind, attributes, text) {
+    const element = document.createElementNS(ns, kind);
+    for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
+    if (text !== undefined) element.textContent = text;
+    svg.appendChild(element);
+    return element;
+  }
+
+  function start(svg, height, description) {
+    const width = Math.max(260, Math.round(svg.getBoundingClientRect().width));
+    svg.replaceChildren();
+    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+    svg.style.height = height + 'px';
+    mark(svg, 'title', {}, description);
+    return width;
+  }
+
+  function node(svg, x, y, width, lines, active = false, height = 84) {
+    mark(svg, 'rect', { x, y, width, height, rx: 5, class: 'knm-node' + (active ? ' knm-active' : '') });
+    lines.forEach((line, index) => {
+      mark(svg, 'text', { x: x + width / 2, y: y + 24 + index * 20, 'text-anchor': 'middle', class: index === 0 ? 'knm-strong' : '' }, line);
+    });
+    return { x: x + width / 2, top: y, bottom: y + height };
+  }
+
+  function connect(svg, from, to, active = false) {
+    const middle = (from.bottom + to.top) / 2;
+    mark(svg, 'path', { d: 'M ' + from.x + ' ' + from.bottom + ' V ' + middle + ' H ' + to.x + ' V ' + (to.top - 5), class: 'knm-path' + (active ? ' knm-path-active' : '') });
+    mark(svg, 'path', { d: 'M ' + (to.x - 4) + ' ' + (to.top - 10) + ' L ' + to.x + ' ' + (to.top - 5) + ' L ' + (to.x + 4) + ' ' + (to.top - 10), class: 'knm-path' + (active ? ' knm-path-active' : '') });
+  }
+
+  function drawIdentity() {
+    const svg = get('identity-graph');
+    const w = start(svg, 350, '资料库 A 和 B 各自提供来源编号，通过对应记录连接应用共享标签 T37。资料库不可用时，共享目录与偏好仍保留。');
+    const half = (w - 20) / 2;
+    const a = node(svg, 0, 4, half, ['资料库 A', '来源编号 A17', 'parted_hair']);
+    const b = node(svg, half + 20, 4, half, ['资料库 B', '来源编号 B93', state.connected ? 'parted_hair' : '当前不可用']);
+    const centerWidth = Math.min(w, 340);
+    const center = node(svg, (w - centerWidth) / 2, 134, centerWidth, ['标签对应记录', 'A17 → T37 · B93 → T37'], false, 66);
+    connect(svg, a, center, true);
+    connect(svg, b, center, state.connected);
+    const catalog = node(svg, (w - centerWidth) / 2, 244, centerWidth, ['应用共享标签 T37', '命名空间：一般', '外部对应：parted_hair'], true);
+    connect(svg, center, catalog, true);
+    get('identity-detail').textContent = state.connected ? '来源编号定位来源记录；统一标签编号定位标签含义。' : '资料库 B 暂时不可用；标签对应记录与用户偏好继续保留。';
+  }
+
+  function currentName() { return state.preference || (state.updated ? '分缝发型' : '分发'); }
+
+  function drawNames() {
+    const svg = get('name-graph');
+    const w = start(svg, 350, '显示名称优先读取用户偏好，没有偏好时读取内置默认。资料库 A 与 B 显示相同结果。');
+    const half = (w - 20) / 2;
+    const preference = node(svg, 0, 4, half, ['第一优先：用户偏好', state.preference || '没有偏好'], !!state.preference, 66);
+    const base = node(svg, half + 20, 4, half, ['第二优先：词表默认', state.updated ? '分缝发型' : '分发'], !state.preference, 66);
+    const resultWidth = Math.min(w, 300);
+    const result = node(svg, (w - resultWidth) / 2, 124, resultWidth, ['名称解析结果', currentName(), '标签编号：T37'], true);
+    connect(svg, preference, result, !!state.preference);
+    connect(svg, base, result, !state.preference);
+    const a = node(svg, 0, 260, half, ['资料库 A 的显示', currentName()], true, 66);
+    const b = node(svg, half + 20, 260, half, ['资料库 B 的显示', currentName()], true, 66);
+    connect(svg, result, a, true);
+    connect(svg, result, b, true);
+    const aliases = new Set(['分开的头发', ...state.previousNames]);
+    if (state.updated) aliases.add('分发');
+    aliases.delete(currentName());
+    get('current-name').textContent = currentName();
+    get('current-aliases').textContent = [...aliases].join('、') || '无';
+    get('name-detail').textContent = state.preference ? '显示来源：用户偏好。词表更新保留这份偏好。' : '显示来源：词表默认。词表更新改变显示名称。';
+  }
+
+  function drawMigration() {
+    const svg = get('migration-graph');
+    const w = start(svg, 270, '旧名称缺少来源记录。用户可以跟随默认，或选一份旧名称作为共享偏好。未选择时保留原有名称。');
+    const choice = state.migration;
+    const chosenName = choice === 'default' ? '分缝发型' : choice === 'a' ? '分发' : choice === 'b' ? '分开的头发' : null;
+    const centerWidth = Math.min(w, 340);
+    const recordLabel = choice === 'pending' ? '名称规则：未确认' : choice === 'default' ? '偏好记录：无' : '偏好记录：T37 → ' + chosenName;
+    const record = node(svg, (w - centerWidth) / 2, 4, centerWidth, ['用户迁移决定', recordLabel, choice === 'pending' ? '保留各库现有名称' : '两库采用同一名称规则'], choice !== 'pending');
+    const half = (w - 20) / 2;
+    const a = node(svg, 0, 154, half, ['资料库 A 的显示', chosenName || '分发'], choice !== 'pending', 66);
+    const b = node(svg, half + 20, 154, half, ['资料库 B 的显示', chosenName || '分开的头发'], choice !== 'pending', 66);
+    connect(svg, record, a, choice !== 'pending');
+    connect(svg, record, b, choice !== 'pending');
+    get('migration-record').textContent = choice === 'pending' ? '不新增共享偏好记录' : choice === 'default' ? '无；后续跟随词表默认' : 'T37 / zh-CN → ' + chosenName;
+    get('migration-aliases').textContent = chosenName ? ['分发', '分开的头发'].filter(x => x !== chosenName).join('、') || '无' : '保留现有记录';
+    get('migration-detail').textContent = choice === 'pending' ? '旧名称等于旧默认，仍不足以证明用户没有偏好。' : '显示规则跨资料库共用；原名称保留为其他叫法。';
+  }
+
+  function render() {
+    get('view').value = state.view;
+    get('connected').checked = state.connected;
+    get('default').value = state.updated ? 'new' : 'old';
+    get('preference').value = state.preference;
+    get('migration-choice').value = state.migration;
+    validViews.forEach(view => { get(view).hidden = view !== state.view; });
+    if (state.view === 'identity') drawIdentity();
+    if (state.view === 'names') drawNames();
+    if (state.view === 'migration') drawMigration();
+  }
+
+  get('view').addEventListener('change', () => { state.view = get('view').value; render(); remember(); });
+  get('connected').addEventListener('change', () => { state.connected = get('connected').checked; render(); remember(); });
+  get('default').addEventListener('change', () => {
+    state.previousNames = [...new Set([...state.previousNames, currentName()])];
+    state.updated = get('default').value === 'new';
+    render(); remember();
+  });
+  get('preference').addEventListener('change', () => {
+    state.previousNames = [...new Set([...state.previousNames, currentName()])];
+    state.preference = get('preference').value;
+    render(); remember();
+  });
+  get('migration-choice').addEventListener('change', () => { state.migration = get('migration-choice').value; render(); remember(); });
+  window.addEventListener('openai:set_globals', event => {
+    const globals = event.detail && event.detail.globals;
+    if (globals && Object.prototype.hasOwnProperty.call(globals, 'widgetState')) { restore(globals.widgetState); render(); }
+  });
+  restore(window.openai && window.openai.widgetState);
+  render();
+  let observedWidth = 0;
+  new ResizeObserver(entries => {
+    const width = Math.round(entries[0].contentRect.width);
+    if (width !== observedWidth) { observedWidth = width; render(); }
+  }).observe(root);
+})();
+</script>

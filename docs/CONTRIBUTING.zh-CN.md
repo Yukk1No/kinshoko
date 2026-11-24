@@ -1,0 +1,105 @@
+# 参与 Kinshoko
+
+[English](../CONTRIBUTING.md) · **简体中文**
+
+谢谢你愿意帮忙。Kinshoko 由一位维护者主导，v1.0 已于 2026 年 10 月发布。下面说明怎样参与最省双方的时间。
+
+## 反馈与问题
+
+不写代码也能帮上大忙。使用中遇到的问题，请用 [issue 模板](https://github.com/Yukk1No/kinshoko/issues/new/choose)提交：交互反馈、标签识别错误、兼容性结果。报告 bug 时请附上“设置 → 诊断 → 显示诊断信息”的内容（不含文件名、路径和图片），并写清复现步骤。
+
+提交前先搜一下已有 issue。中文或英文都可以。安全问题不要公开提交，见 [SECURITY.md](../.github/SECURITY.md)。
+
+## 提交代码
+
+1. **先开 issue 或在已有 issue 下留言**，说明你想改什么、打算怎么改，等维护者回复后再动手。Kinshoko 的很多行为背后有画师验收和已定的设计决定（见 [docs/adr/](adr/)），先对齐能避免白做。打上 `ready-for-human` 的 issue 适合直接认领。
+2. 错字、文档链接坏了这类小修改可以直接提 PR。
+3. **PR 的目标分支是 `main`。** 如果修复也要进已发布的版本，由维护者转到维护分支，你不用额外操作。
+4. 一个 PR 只做一件事，在描述里链接对应 issue（`Closes #123`），并写明怎样验证的。改了界面请附应用窗口的截图。
+5. CI 全绿后由维护者合并。
+
+提交的代码按本仓库的 [GPL-3.0-or-later](../LICENSE) 授权，并适用 [LICENSE-EXCEPTION](../LICENSE-EXCEPTION) 中的附加许可。
+
+## 开发环境
+
+- Windows 10/11 x64，Visual Studio 2022 生成工具（“使用 C++ 的桌面开发”）。
+- Rust 1.100（由 `rust-toolchain.toml` 固定，rustup 会自动安装）。
+- Node.js 22 与 npm（锁文件为 `package-lock.json`）。
+- WebView2 Runtime（evergreen）。Windows 11 自带。前端基线为 Chromium 131，见 `AGENTS.md` 的 “Runtime baseline”。
+- Python 3：用于 pre-commit 钩子和 `scripts/probe/` 下的探测脚本。
+
+克隆后启用仓库的 git 钩子（pre-commit 拦截超过 5,000 token 的暂存文件；pre-push 跑 `cargo fmt --check` 和 `npm run typecheck`，约 10 秒）：
+
+```sh
+git config core.hooksPath .githooks
+```
+
+## 常用命令
+
+```sh
+npm ci                  # 安装前端依赖
+npm run dev             # 开发模式启动应用（Vite 开发服务器 + 调试版应用）
+npm run build           # release 构建，生成 NSIS 安装包到 target/release/bundle/nsis/
+npm test                # 前端测试（Vitest）
+npm run typecheck       # TS 类型检查
+npm run lint            # Biome 检查：lint（hooks 依赖、hooks 在顶层、未使用的 import）和 src/、scripts/、e2e/ 的格式
+npm run format          # 用 Biome 格式化 src/、scripts/、e2e/（npm run lint 报格式问题时跑它）
+npm run check           # 类型检查 + Biome 检查（含格式）+ 前端测试；只输出失败详情和汇总，退出码涵盖每一步
+npm run check -- --rust # 再加 cargo fmt --check、Clippy 和核心 crate 测试
+npm run check -- App.import   # 只跑 Vitest，参数原样透传
+npm run check -- --rust-only --test integration writer_switch::   # 只跑 nextest，参数原样透传
+npm run bindings        # 重新生成 src/bindings/（跑核心 crate 的单元测试）
+cargo nextest run -p kinshoko-core   # 核心 crate 测试（与 CI 相同；需要 cargo-nextest）
+cargo test -p kinshoko-core --doc    # 核心 crate 文档测试（nextest 不跑）
+cargo fmt --all
+cargo clippy --workspace --all-targets -- -D warnings   # 需先 npm run vite:build 产出 dist/
+node e2e/smoke.mjs target/release/kinshoko.exe msedgedriver.exe   # 需 tauri-driver 与匹配 WebView2 版本的 msedgedriver
+```
+
+核心 crate 设了 `autotests = false`，`crates/kinshoko-core/tests/` 下的文件大多是 `integration` 目标的模块，不是单独的目标。单跑一个模块要写目标名，再按模块路径过滤：`cargo nextest run -p kinshoko-core --test integration writer_switch::`。写成 `--test writer_switch` 会报 “no test target named”；可用的目标见它 `Cargo.toml` 里的 `[[test]]`。
+
+CI 在 `windows-2022` 上运行 Rust 检查（格式、Clippy、核心 crate 测试、生成物检查）以及原生应用构建与 WebDriver 冒烟测试，在 `ubuntu-latest` 上运行 TS 类型检查、Biome 检查、前端测试与工作流检查；应用这一组固定在 `windows-2022`，因为冒烟测试在 `windows-latest` 上还过不了，见 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)。提 PR 前请在本地跑过对应的检查。
+
+想让 `git blame` 跳过那次全量格式化的提交，在本地跑一次 `git config blame.ignoreRevsFile .git-blame-ignore-revs`（GitHub 会自己读这个文件）。
+
+src/、scripts/、e2e/ 下的文件和 biome.json 一律按 LF 换行检出（见 .gitattributes），因为 Biome 按 LF 检查格式。这条规则之前检出的目录里还是 CRLF，npm run lint 会把每个文件都报出来；没有未提交的改动时重新检出一次：`git rm -r -q --cached src scripts e2e biome.json && git reset -q --hard`。
+
+## 目录
+
+| 路径 | 内容 |
+| --- | --- |
+| `crates/kinshoko-core/` | 领域核心 crate，不依赖 Tauri。领域逻辑都放这里，测试在它的对外接口上用临时目录里的真 SQLite 与真文件。 |
+| `crates/kinshoko-tagger/` | 打标子进程：ONNX Runtime + DirectML 推理，没有独显时走 CPU。 |
+| `src-tauri/` | Tauri 2 应用壳（crate `kinshoko`）。命令层只做转发、类型转换和事件推送。 |
+| `src/` | React 19＋TS＋Vite 前端；`src/ipc.ts` 是调用 Tauri 命令的唯一入口。`src/` 根目录只放入口与启动相关的文件，功能代码进各自的文件夹。 |
+| `src/bindings/` | ts-rs 从核心 crate 生成的前后端契约类型，**不要手改**，生成后提交。 |
+| `e2e/` | Tauri WebDriver 冒烟测试（建库、导入、浏览、重开），只用 Node 自带模块。 |
+| `tools/` | 自带依赖或锁文件的独立工具（探针、内置表格的生成器），不在 Cargo 工作区内。 |
+| `scripts/` | 单文件脚本，按用途分子目录：`release/`、`perf/`、`probe/`、`hooks/`、`samples/`。 |
+| `design/` | Logo、界面系统、设计探索与认可原型（`design/prototype/`）；取用资产只从 `design/logo-kit/` 与 `design/ui-system/`。 |
+| `docs/` | 领域讨论（`discovery/`）、调研（`research/`）、ADR（`adr/`）与验收（`validation/`）。 |
+
+## 开发时要知道的事
+
+- **应用常驻托盘。** 关闭主窗口只销毁 WebView，从托盘菜单“退出”才结束进程。
+- **程序数据在程序目录下的 `data\`。** 设置、打标模型等都在这里，开发时是 `target\debug\data\`（[ADR-0009](adr/0009-portable-data-root.md)）。测试时用环境变量 `KINSHOKO_DATA_DIR` 换到别的目录。
+- **开机自启。** 调试构建不写系统的开机自启登记；手动测试 release 构建时设置 `KINSHOKO_SKIP_AUTOSTART=1` 达到同样效果。
+- **前后端契约。** 改了带 `#[ts(export)]` 的 Rust 类型后运行 `npm run bindings` 并提交生成物；CI 会检查生成物与提交内容一致。
+- **从不改写原图。** 任何改动都不能修改资料库里原图的字节。
+
+## 约定
+
+- **术语。** 代码、界面文案与文档使用 [GLOSSARY.md](../GLOSSARY.md) 里的词。新概念或改了含义的词先更新词条。
+- **决定。** 难以回退的决定写成 ADR，放在 [docs/adr/](adr/)。
+- **界面。** 界面改动遵循 [`design/ui-system/`](../design/ui-system/README.md) 的组件、令牌与文案规则；logo 与封印书沿用原样。
+- **提交信息。** 用 `类型(范围): 说明` 的格式，类型如 `feat`、`fix`、`docs`、`ci`、`chore`；说明可以用中文。
+- **隐私。** 仓库是公开的。不要提交整个桌面的截图、带个人路径或用户名的日志、真实画师的图库内容。截图只截应用窗口，测试素材用合成图或可以公开再分发的图片。
+
+## 这个项目怎样开发
+
+Kinshoko 主要由 AI 编程 agent（Claude Code 与 Codex）开发。维护者决定做什么、做成什么样，并在画师的电脑上验收；代码、文档、issue、PR 说明和 PR 评审大多由 agent 完成。agent 自行写的文字会注明。
+
+这对你意味着：
+
+- 你的 PR 通常先由 agent 评审，最后由维护者决定。
+- 欢迎用 AI 助手写的 PR。同样要先对齐 issue，并由你本人确认改动、跑过检查。项目里 agent 用的说明和 skills 入口是 [AGENTS.md](../AGENTS.md)。

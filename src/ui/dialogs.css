@@ -1,0 +1,252 @@
+/* 向导、导入与保存对话框的内容（design/ui-system/README.md，预览 04–09、11、13–17）；设置页在 settings.css。
+   对话框外壳 `.k-dialog` 与列表 `.k-list` 在 ui-dock.css，令牌在 src/styles/tokens.css。 */
+
+/* ---- Form controls ---- */
+/* 输入框、下拉选择与候选列表在 fields.css。 */
+.legacy-name-migration > .k-dialog-foot > .k-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--h);
+  padding: 0 12px 0 0;
+  border-radius: var(--r);
+  white-space: nowrap;
+  margin-left: 0;
+  box-shadow: none;
+  transition:
+    background var(--t-fast),
+    box-shadow var(--t-fast),
+    transform var(--t-fast) var(--spring);
+}
+.legacy-name-migration > .k-dialog-foot > .k-link:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+.legacy-name-migration > .k-dialog-foot > .k-link:disabled {
+  box-shadow: var(--btn-lift-disabled);
+}
+/* 对话框本身是初始焦点的落点（设置：不落在关闭按钮上），不画焦点环；里面的控件照常画。 */
+.k-dialog:focus-visible {
+  outline: 0;
+}
+.k-dialog-x {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+} /* 32 px button centred on the 24 px title line inside the 20 px inset */
+
+/* ---- Radio cards (import target, old-name wizard) ---- */
+.k-radio-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.k-radio-card {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--r);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  cursor: pointer;
+  transition:
+    background var(--t-fast),
+    box-shadow var(--t-fast);
+}
+.k-radio-card:hover {
+  background: var(--hover);
+}
+.k-radio-card.is-on {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  background: var(--accent-soft);
+}
+.k-radio-card input[type="radio"] {
+  appearance: none;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--line-2);
+  background: var(--surface);
+}
+.k-radio-card input[type="radio"]:checked {
+  box-shadow: inset 0 0 0 5px var(--accent-strong);
+}
+.k-radio-card input[type="radio"]:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+.k-radio-title {
+  display: block;
+  font-weight: 500;
+}
+.k-radio-desc {
+  display: block;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+/* ---- Old-name wizard ---- */
+.k-dialog.k-wizard {
+  width: min(520px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.k-wizard .k-dialog-desc {
+  margin: -8px 0 2px;
+}
+.k-wizard .k-dialog-foot {
+  margin-top: 4px;
+}
+.k-dialog-foot.is-tight {
+  margin-top: 0;
+}
+.k-steps-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.k-steps {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+}
+.k-steps i {
+  height: 4px;
+  flex: 1;
+  border-radius: var(--r-pill);
+  background: var(--line);
+}
+.k-steps i.is-done {
+  background: var(--accent);
+}
+.k-steps i.is-current {
+  background: var(--accent-strong);
+}
+.k-steps-count {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.k-wizard .k-dialog-height-inner > .k-description[role="status"] {
+  margin: -6px 0 0;
+}
+.k-big-tag {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
+.k-big-tag-icon {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: var(--r-xs);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+.k-big-tag-name {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.k-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.k-preview-table th,
+.k-preview-table td {
+  padding: 5px 8px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.k-preview-table th {
+  color: var(--ink-2);
+  font-weight: 600;
+  border-top: 0;
+}
+
+.k-dialog.k-groups-dialog {
+  width: min(640px, calc(100vw - 48px));
+}
+
+/* ---- Save destination: 图库 + 文件夹 side by side ---- */
+.k-destination {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+.k-destination-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.k-destination .k-field {
+  display: grid;
+  grid-template-columns: none;
+  gap: 6px;
+  min-width: 0;
+  align-items: stretch;
+}
+.k-destination .save-final-position {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.k-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+/* ---- Import / save dialogs ---- */
+.k-dialog.k-import-dialog,
+.k-dialog.k-save-dialog {
+  width: min(480px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.k-dialog.k-import-dialog.is-wide {
+  width: min(640px, calc(100vw - 48px));
+}
+.k-import-dialog .k-dialog-desc,
+.k-save-dialog .k-dialog-desc {
+  margin: -10px 0 0;
+}
+.k-import-dialog .k-dialog-foot,
+.k-save-dialog .k-dialog-foot {
+  margin-top: 2px;
+}
+.k-import-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--r);
+  background: var(--surface-2);
+  min-width: 0;
+}
+.k-import-summary .k-big-tag-icon {
+  width: 40px;
+  height: 40px;
+}
+.k-import-dialog .k-list {
+  max-height: 260px;
+  overflow: auto;
+}
