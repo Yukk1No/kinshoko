@@ -137,37 +137,63 @@ export function useCaptureSources(read: Provider["read"], priority: number) {
   }, [priority]);
 }
 let stop: (() => void) | null = null;
+const WATCH_IDLE_MS = 5000;
+const DOM_DIRTY_EVENTS = [
+  "scroll",
+  "resize",
+  "load",
+  "error",
+  "transitionrun",
+  "transitionend",
+  "animationstart",
+  "animationend",
+] as const;
+
 function install() {
   const version = ++installation;
   let unlisten: UnlistenFn | null = null;
   let requestGeneration = 0;
+  let observer: MutationObserver | null = null;
+  let resize: ResizeObserver | null = null;
+  let idleTimer: ReturnType<typeof setTimeout> | null = null;
   const dirty = () => {
     generation += 1;
   };
-  const observer = new MutationObserver(dirty);
-  observer.observe(document.documentElement, { subtree: true, attributes: true, childList: true });
-  const resize = new ResizeObserver(dirty);
-  resize.observe(document.documentElement);
-  for (const name of [
-    "scroll",
-    "resize",
-    "load",
-    "error",
-    "transitionrun",
-    "transitionend",
-    "animationstart",
-    "animationend",
-  ])
-    window.addEventListener(name, dirty, true);
+  const stopWatching = () => {
+    if (idleTimer !== null) {
+      clearTimeout(idleTimer);
+      idleTimer = null;
+    }
+    if (!observer && !resize) return;
+    observer?.disconnect();
+    observer = null;
+    resize?.disconnect();
+    resize = null;
+    for (const name of DOM_DIRTY_EVENTS) window.removeEventListener(name, dirty, true);
+  };
+  const touchWatch = () => {
+    if (!observer) {
+      // 新一轮截图采样开始：标记一次基准变化，再在采样窗口内按需观察 DOM 变动，平时不常驻。
+      dirty();
+      observer = new MutationObserver(dirty);
+      observer.observe(document.documentElement, { subtree: true, attributes: true, childList: true });
+      resize = new ResizeObserver(dirty);
+      resize.observe(document.documentElement);
+      for (const name of DOM_DIRTY_EVENTS) window.addEventListener(name, dirty, true);
+    }
+    if (idleTimer !== null) clearTimeout(idleTimer);
+    idleTimer = setTimeout(stopWatching, WATCH_IDLE_MS);
+  };
   const frame = () => new Promise<void>((done) => requestAnimationFrame(() => done()));
   void listen<{ request: string }>("capture-reference-request", async ({ payload }) => {
     const request = ++requestGeneration;
+    touchWatch();
     // Let committed layout and image paint reach the compositor before the native grab.
     await frame();
     await frame();
     if (version !== installation || request !== requestGeneration || !providers.size) return;
     if (
-      observer.takeRecords().length ||
+      observer?.takeRecords().length ||
       document
         .getAnimations()
         .some(
@@ -199,19 +225,7 @@ function install() {
     installation += 1;
     requestGeneration += 1;
     unlisten?.();
-    observer.disconnect();
-    resize.disconnect();
-    for (const name of [
-      "scroll",
-      "resize",
-      "load",
-      "error",
-      "transitionrun",
-      "transitionend",
-      "animationstart",
-      "animationend",
-    ])
-      window.removeEventListener(name, dirty, true);
+    stopWatching();
     stop = null;
   };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import type { ImageCard } from "../bindings/ImageCard";
 import type { Region } from "../bindings/Region";
 import { copyReferenceImage, workspaceImage, isUnknownImage, pinReference, revealReferenceImage } from "../ipc";
@@ -87,6 +87,14 @@ export function Viewer({
   const [name, setName] = useState<string | null>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
+  const activeCardRef = useRef<{ libraryId: string; id: string } | null>({ libraryId, id: card.id });
+  activeCardRef.current = { libraryId, id: card.id };
+  useEffect(
+    () => () => {
+      activeCardRef.current = null;
+    },
+    [],
+  );
   const fitWidth = Math.min(
     card.width,
     Math.floor(viewport.width * dpr),
@@ -118,21 +126,24 @@ export function Viewer({
       y: y - ((y - top) / height) * (nextHeight / dpr) - (viewport.height - nextHeight / dpr) / 2,
     });
   };
+  const onWheel = useEffectEvent((event: WheelEvent) => {
+    const el = stage.current;
+    if (!el) return;
+    event.preventDefault();
+    const rect = el.getBoundingClientRect();
+    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.height : 1;
+    zoomAt(
+      Math.exp(-Math.max(-600, Math.min(600, event.deltaY * unit)) * 0.002),
+      event.clientX - rect.left,
+      event.clientY - rect.top,
+    );
+  });
   useEffect(() => {
     const el = stage.current!;
-    const wheel = (event: WheelEvent) => {
-      event.preventDefault();
-      const rect = el.getBoundingClientRect();
-      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.height : 1;
-      zoomAt(
-        Math.exp(-Math.max(-600, Math.min(600, event.deltaY * unit)) * 0.002),
-        event.clientX - rect.left,
-        event.clientY - rect.top,
-      );
-    };
+    const wheel = (event: WheelEvent) => onWheel(event);
     el.addEventListener("wheel", wheel, { passive: false });
     return () => el.removeEventListener("wheel", wheel);
-  });
+  }, []);
   const {
     loadedSrc,
     setLoadedSrc,
@@ -212,31 +223,49 @@ export function Viewer({
     const rect = stage.current!.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
+  const isCurrentCard = (target: { libraryId: string; id: string }) =>
+    activeCardRef.current?.libraryId === target.libraryId && activeCardRef.current?.id === target.id;
   /** 钉到桌面：整图（crop 为 null）或选区；钉图以它此刻在查看器里的位置为中心出现。 */
   const pin = (region: Region | null) => {
+    const target = { libraryId, id: card.id };
     const rect: CssRect = region ? cropOnScreen(region, shown, natural) : { x: left, y: top, width, height };
-    pinReference(libraryId, card.id, region, toScreenRect(rect, viewport, dpr)).then(
-      () => toast.show({ title: region ? t("pinnedPart") : t("pinnedWhole"), tone: "success" }),
+    pinReference(target.libraryId, target.id, region, toScreenRect(rect, viewport, dpr)).then(
+      () => {
+        if (activeCardRef.current) toast.show({ title: region ? t("pinnedPart") : t("pinnedWhole"), tone: "success" });
+      },
       (e) => {
-        if (isUnknownImage(e)) closeRef.current();
-        else toast.error(t("common:image.pinFailed", { error: errorText(e) }));
+        if (isUnknownImage(e)) {
+          if (isCurrentCard(target)) closeRef.current();
+        } else if (activeCardRef.current) {
+          toast.error(t("common:image.pinFailed", { error: errorText(e) }));
+        }
       },
     );
   };
   /** 复制图片、在资源管理器中显示（#105 的命令，#114 的查看器菜单）。 */
   const copy = () => {
-    copyReferenceImage(libraryId, card.id).then(
-      () => toast.show({ title: t("common:image.copied"), tone: "success" }),
+    const target = { libraryId, id: card.id };
+    copyReferenceImage(target.libraryId, target.id).then(
+      () => {
+        if (activeCardRef.current) toast.show({ title: t("common:image.copied"), tone: "success" });
+      },
       (e) => {
-        if (isUnknownImage(e)) closeRef.current();
-        else toast.error(t("common:image.copyFailed", { error: errorText(e) }));
+        if (isUnknownImage(e)) {
+          if (isCurrentCard(target)) closeRef.current();
+        } else if (activeCardRef.current) {
+          toast.error(t("common:image.copyFailed", { error: errorText(e) }));
+        }
       },
     );
   };
   const reveal = () => {
-    revealReferenceImage(libraryId, card.id).catch((e) => {
-      if (isUnknownImage(e)) closeRef.current();
-      else toast.error(t("common:image.revealFailed", { error: errorText(e) }));
+    const target = { libraryId, id: card.id };
+    revealReferenceImage(target.libraryId, target.id).catch((e) => {
+      if (isUnknownImage(e)) {
+        if (isCurrentCard(target)) closeRef.current();
+      } else if (activeCardRef.current) {
+        toast.error(t("common:image.revealFailed", { error: errorText(e) }));
+      }
     });
   };
   /** 钉住局部：已有选区就钉住它，否则进入框选。 */

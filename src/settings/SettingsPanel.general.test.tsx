@@ -10,7 +10,7 @@ afterEach(resetSettingsTest);
 describe("设置：读取", () => {
   it("读取中显示状态；读取失败显示原因与重试，重试成功后显示设置", async () => {
     let attempts = 0;
-    let fail!: (reason: string) => void;
+    let fail!: (reason: unknown) => void;
     backend({
       shell_settings: () => {
         attempts += 1;
@@ -24,7 +24,7 @@ describe("设置：读取", () => {
     render(<SettingsPanel />);
     expect(await screen.findByRole("status")).toHaveProperty("textContent", "正在读取设置…");
     await act(async () => {
-      fail("设置文件被占用");
+      fail({ code: "io", detail: "设置文件被占用" });
     });
     expect((await screen.findByRole("alert")).textContent).toContain("设置文件被占用");
     fireEvent.click(screen.getByRole("button", { name: "重试" }));

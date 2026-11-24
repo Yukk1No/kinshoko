@@ -11,7 +11,7 @@ const SKIP = [
   /(^|\/)bindings\//,
   /(^|\/)test\//,
 ];
-const CAUGHT = /\bString\(\s*(?:e|err|error|reason|cause|failure|exception)\s*\)/;
+const CAUGHT = /\bString\(\s*(?:\w+\.)?(?:e|err|error|reason|cause|failure|exception)\s*\)/;
 
 it("界面代码不用 String(e) 之类的写法显示错误，改用 errorText", () => {
   const hits = Object.entries(files).flatMap(([path, source]) =>

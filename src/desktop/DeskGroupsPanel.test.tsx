@@ -488,4 +488,11 @@ describe("参考组面板的“更多”", () => {
     expect(screen.getByText("还没有参考组。")).toBeTruthy();
     expect(screen.getByRole("button", { name: "导入参考组包" })).toBeTruthy();
   });
+
+  it("ReferenceGroups 与 DeskNewGroupButton 同屏渲染时共享订阅，只发一次读取与监听（#716）", async () => {
+    await show(lists({ recent: [hair] }));
+    expect(screen.getByText("头发")).toBeTruthy();
+    expect(ipc.lists).toHaveBeenCalledTimes(1);
+    expect(ipc.changed).toHaveLength(1);
+  });
 });

@@ -1,13 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { CollectedWork } from "../bindings/CollectedWork";
+import type { HandReport } from "../bindings/HandReport";
 import type { PixivWork } from "../bindings/PixivWork";
 import type { SaveDestination } from "../bindings/SaveDestination";
 import { SaveDestinationProvider } from "../library/SaveDestination";
 import { type FakeBackend, fakeBackend } from "../test/backend";
 import { chooseOption } from "../test/select";
 import { PixivHome } from "./PixivHome";
+import { useCollect } from "./useCollect";
 
 // 应用内浏览的收图（#461 第 3 步）：已收标记、单击就收、第一次先选保存目标、看全图时只收这一页。
 
@@ -285,5 +287,57 @@ describe("应用内浏览的收图", () => {
     await waitFor(() => expect(within(band).getByText("已收藏")).toBeTruthy());
     fireEvent.click(within(band).getByRole("button", { name: "取消 pixiv 收藏" }));
     expect(within(band).getByRole("button", { name: "收藏" })).toHaveProperty("disabled", true);
+  });
+
+  it("同一作品同步连续点击收藏不并发重复收图；乱序 refresh 不覆写最新已收标记（#716）", async () => {
+    setup({ libraryId: "L", folderId: "F" });
+    let finishCollect: () => void = () => {};
+    fake.on(
+      "subscription_collect",
+      () =>
+        new Promise<HandReport>((resolve) => {
+          finishCollect = () => resolve({ collected: 1, already: 0, failed: 0, skipped: false });
+        }),
+    );
+    const { result } = renderHook(() => useCollect([], null), {
+      wrapper: ({ children }) => <SaveDestinationProvider safe={false}>{children}</SaveDestinationProvider>,
+    });
+    await waitFor(() => expect(fake.calls("workspace_directories").length).toBeGreaterThan(0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    const w2 = work("2");
+    act(() => {
+      result.current.collect(w2);
+      result.current.collect(w2);
+    });
+    await waitFor(() => expect(fake.calls("subscription_collect")).toHaveLength(1));
+
+    // 在收图完成后的刷新前先制造一个迟到的旧 subscription_collected 响应，不应覆写最新状态。
+    const collectedReplies: Array<(rows: CollectedWork[]) => void> = [];
+    fake.on(
+      "subscription_collected",
+      () =>
+        new Promise<CollectedWork[]>((resolve) => {
+          collectedReplies.push(resolve);
+        }),
+    );
+    act(() => {
+      result.current.track([work("9")]);
+    });
+    await act(async () => {
+      finishCollect();
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(collectedReplies).toHaveLength(2));
+    // 先让后发的（含已收）返回，再让先发的（未收空列表）迟到返回。
+    await act(async () => {
+      collectedReplies[1]([{ workId: "2", libraryId: "L", pages: [0] }]);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      collectedReplies[0]([]);
+      await Promise.resolve();
+    });
+    expect(result.current.collected.get("2")?.has(0)).toBe(true);
   });
 });

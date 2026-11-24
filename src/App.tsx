@@ -36,6 +36,7 @@ import { OpenTagNameSettings } from "./tags/TagNameSettings";
 import { LibraryWorkspace } from "./workspace/LibraryWorkspace";
 import { markStartup } from "./startupTiming";
 import { releaseStartup, startupLibraryOpened } from "./startupGate";
+import { logFailure } from "./runLog";
 import { StartupSplash } from "./shell/StartupSplash";
 import { LoginExpiredNotice, SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
 import { errorText } from "./ipc/commandError";
@@ -161,13 +162,16 @@ function MainWindow() {
       sequence = 0;
     const accept = () => {
       const request = ++sequence;
-      void takeCollectionRequest().then((id) => {
-        if (alive && request === sequence && id) {
-          setCaptureRequest({ id, stamp: ++stamp });
-          setSection("captures");
-          setPaneOpen(true);
-        }
-      });
+      void takeCollectionRequest().then(
+        (id) => {
+          if (alive && request === sequence && id) {
+            setCaptureRequest({ id, stamp: ++stamp });
+            setSection("captures");
+            setPaneOpen(true);
+          }
+        },
+        (e) => logFailure("takeCollectionRequest", e),
+      );
     };
     const stop = onCollectionRequest(accept).then((fn) => {
       if (alive) accept();
@@ -181,7 +185,10 @@ function MainWindow() {
 
   useEffect(() => {
     let alive = true;
-    appInfo().then((value) => alive && setInfo(value));
+    appInfo().then(
+      (value) => alive && setInfo(value),
+      (e) => logFailure("appInfo", e),
+    );
     safeMode().then(
       (on) => alive && acceptSafe(on !== false),
       () => {},
@@ -256,11 +263,24 @@ function MainWindow() {
     return () => window.removeEventListener("keydown", onKey);
   }, [subscriptions.onRef]);
 
+  const appAlive = useRef(true);
+  useEffect(() => {
+    appAlive.current = true;
+    return () => {
+      appAlive.current = false;
+    };
+  }, []);
+  const changedSeq = useRef(0);
   const changed = (added: LibraryInfo | null) => {
     if (added) setHasProviders(true);
+    const request = ++changedSeq.current;
     workspaceStatus(lensSafe).then(
-      (status) => setHasProviders(status.libraries.length > 0),
-      () => {},
+      (status) => {
+        if (appAlive.current && request === changedSeq.current) setHasProviders(status.libraries.length > 0);
+      },
+      () => {
+        // 忽略失败：工作区状态稍后由工作区自身重读。
+      },
     );
     setOpenError(null);
     setShowCreate(false);

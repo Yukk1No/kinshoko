@@ -168,6 +168,7 @@ export function SidebarPane({
   const drop = (folderId: string) => (e: DragEvent) => {
     e.preventDefault();
     setDropTarget(null);
+    if (typeof e.dataTransfer?.getData !== "function") return;
     try {
       const images = droppedImages(e, libraryId);
       if (images.length) void run(editImages(libraryId, images, [{ kind: "addToFolder", folderId }]));

@@ -52,14 +52,43 @@ export function useCollect(works: PixivWork[] = NO_WORKS, feedback: Feedback | n
   const [notice, setNotice] = useState<string | null>(null);
   const [asking, setAsking] = useState<Asking | null>(null);
   const asked = useRef(new Set<string>());
+  const writing = useRef(new Set<string>());
+  const refreshSeq = useRef(new Map<string, number>());
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const refresh = useCallback((ids: string[]) => {
-    for (const id of ids) asked.current.add(id);
+    const tokens = new Map<string, number>();
+    for (const id of ids) {
+      asked.current.add(id);
+      const next = (refreshSeq.current.get(id) ?? 0) + 1;
+      refreshSeq.current.set(id, next);
+      tokens.set(id, next);
+    }
     return subscriptionCollected(ids).then(
-      (rows) => setCollected((map) => merge(map, ids, rows)),
+      (rows) => {
+        if (!alive.current) return;
+        const freshIds = ids.filter((id) => refreshSeq.current.get(id) === tokens.get(id));
+        if (!freshIds.length) return;
+        const freshSet = new Set(freshIds);
+        setCollected((map) =>
+          merge(
+            map,
+            freshIds,
+            rows.filter((r) => freshSet.has(r.workId)),
+          ),
+        );
+      },
       () => {
         // 读不到标记时下次再问；不挡浏览。
-        for (const id of ids) asked.current.delete(id);
+        for (const id of ids) {
+          if (refreshSeq.current.get(id) === tokens.get(id)) asked.current.delete(id);
+        }
       },
     );
   }, []);
@@ -77,25 +106,32 @@ export function useCollect(works: PixivWork[] = NO_WORKS, feedback: Feedback | n
 
   const run = useCallback(
     async (work: PixivWork, destination: SaveDestination, options: CollectOptions) => {
+      if (writing.current.has(work.id)) return;
+      writing.current.add(work.id);
       setBusy((s) => new Set(s).add(work.id));
       setNotice(null);
-      // 选定了保存目标才写 pixiv 收藏：在对话框里取消时两样都不做。写失败另有说明，图照收。
-      if (options.bookmark && feedback && !feedback.bookmarked(work)) await feedback.setBookmark(work, true);
       try {
+        // 选定了保存目标才写 pixiv 收藏：在对话框里取消时两样都不做。写失败另有说明，图照收。
+        if (options.bookmark && feedback && !feedback.bookmarked(work)) await feedback.setBookmark(work, true);
         // 换了地方收（choose）时已收的页也再收一次：同一个资料库里字节相同的图只合并来源，并放进新选的文件夹。
         const again = (options.again ?? false) || (options.choose ?? false);
         const report = await subscriptionCollect(work, destination, options.pages ?? null, again);
-        if (report.skipped) setNotice(t("browse.animationSkipped"));
-        else if (report.failed) setNotice(t("browse.collectPartly", { count: report.failed }));
+        if (alive.current) {
+          if (report.skipped) setNotice(t("browse.animationSkipped"));
+          else if (report.failed) setNotice(t("browse.collectPartly", { count: report.failed }));
+        }
         if (!report.skipped && report.collected > 0) flyToLibrary(options.from);
       } catch (error) {
-        setNotice(t("browse.collectFailed", { error: errorText(error) }));
+        if (alive.current) setNotice(t("browse.collectFailed", { error: errorText(error) }));
       } finally {
-        setBusy((s) => {
-          const next = new Set(s);
-          next.delete(work.id);
-          return next;
-        });
+        writing.current.delete(work.id);
+        if (alive.current) {
+          setBusy((s) => {
+            const next = new Set(s);
+            next.delete(work.id);
+            return next;
+          });
+        }
         await refresh([work.id]);
       }
     },

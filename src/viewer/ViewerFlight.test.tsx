@@ -4,7 +4,8 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
 import type { BrowserCard } from "../wall/wallShared";
 import { Viewer } from "./Viewer";
-import { useViewerFlight } from "./ViewerFlight";
+import { flightCard, useViewerFlight } from "./ViewerFlight";
+import { findCardElement } from "../wall/wallShared";
 import { setMedia } from "../test/platform";
 import { fakeBackend } from "../test/backend";
 
@@ -403,5 +404,19 @@ describe("安全模式", () => {
     expect(viewer()!.dataset.flight).toBe("fade-out");
     rerender(<Harness safe />);
     expect(viewer()).toBeNull();
+  });
+
+  it("findCardElement 对含引号、反斜杠与方括号的 id 正常查找且不抛 SyntaxError（#716）", () => {
+    const host = document.createElement("div");
+    const wall = document.createElement("div");
+    wall.className = "wall";
+    const card = document.createElement("div");
+    card.className = "card";
+    const weirdId = 'a"b\\c[1]';
+    card.dataset.id = weirdId;
+    wall.appendChild(card);
+    host.appendChild(wall);
+    expect(findCardElement(host, weirdId)).toBe(card);
+    expect(flightCard(weirdId, host)?.el).toBe(card);
   });
 });

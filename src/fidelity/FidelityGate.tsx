@@ -63,7 +63,10 @@ interface Canvas {
   colorSpace: string;
 }
 
-async function decode(bytes: Uint8Array<ArrayBuffer>): Promise<{ image: ImageData; url: string; canvas: Canvas }> {
+async function decode(
+  bytes: Uint8Array<ArrayBuffer>,
+  needUrl = true,
+): Promise<{ image: ImageData; url?: string; canvas: Canvas }> {
   const blob = new Blob([bytes]);
   const bitmap = await createImageBitmap(blob).catch((e: unknown) => {
     const head = Array.from(bytes.subarray(0, 8), (b) => b.toString(16).padStart(2, "0")).join(" ");
@@ -79,7 +82,7 @@ async function decode(bytes: Uint8Array<ArrayBuffer>): Promise<{ image: ImageDat
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height, { colorSpace: "display-p3" });
   return {
     image,
-    url: URL.createObjectURL(blob),
+    url: needUrl ? URL.createObjectURL(blob) : undefined,
     canvas: { colorSpace: ctx.getContextAttributes().colorSpace ?? "srgb" },
   };
 }
@@ -87,9 +90,9 @@ async function decode(bytes: Uint8Array<ArrayBuffer>): Promise<{ image: ImageDat
 async function measure(item: GateItem): Promise<SampleResult & { canvas: Canvas }> {
   const derivative = item.display === "sdrDerivative";
   const [original, shownOrNull, thumbnail] = await Promise.all([
-    gateImage(item.imageId, "original").then(decode),
-    derivative ? gateImage(item.imageId, "display").then(decode) : Promise.resolve(null),
-    gateImage(item.imageId, { thumbnail: THUMB_PX }).then(decode),
+    gateImage(item.imageId, "original").then((bytes) => decode(bytes, !derivative)),
+    derivative ? gateImage(item.imageId, "display").then((bytes) => decode(bytes, true)) : Promise.resolve(null),
+    gateImage(item.imageId, { thumbnail: THUMB_PX }).then((bytes) => decode(bytes, true)),
   ]);
   // 应用在 1:1 时显示的图：派生图，或交给 WebView2 的原图。
   const shown = shownOrNull ?? original;
@@ -237,6 +240,12 @@ export function FidelityGate() {
 
   useEffect(() => {
     let cancelled = false;
+    const createdUrls: string[] = [];
+    const track = (url?: string) => {
+      if (!url) return;
+      if (cancelled) URL.revokeObjectURL(url);
+      else createdUrls.push(url);
+    };
     (async () => {
       const p = await gatePlan();
       if (cancelled) return;
@@ -245,6 +254,9 @@ export function FidelityGate() {
         let result: SampleResult;
         try {
           const { canvas, ...r } = await measure(item);
+          track(r.originalUrl);
+          track(r.thumbnailUrl);
+          if (cancelled) return;
           setCanvasSpace(canvas.colorSpace);
           result = r;
         } catch (e) {
@@ -270,6 +282,7 @@ export function FidelityGate() {
     })().catch((e) => setError(String(e)));
     return () => {
       cancelled = true;
+      for (const url of createdUrls) URL.revokeObjectURL(url);
     };
   }, []);
 

@@ -5,7 +5,7 @@ import { MAX_GHOSTS, SEAL, SealFx, type FxArrival, type FxSource } from "../shel
 import { safeTiming } from "../shell/safeTiming";
 import { reducedNow, useReducedMotion } from "../ui/reducedMotion";
 import type { masonry } from "./layout";
-import { RELEASE_WAIT, type BrowserCard, type LayoutSnapshot } from "./wallShared";
+import { findCardElement, RELEASE_WAIT, type BrowserCard, type LayoutSnapshot } from "./wallShared";
 
 type SafeReflow = {
   rects: Map<string, DOMRect>;
@@ -78,7 +78,7 @@ export function useSealRelease({
     (id: string) => {
       // 影子在这一帧移走：卡片同一帧就得显示，不能等 React 下一次提交，否则中间空出一帧，落地时闪一下。
       // React 随后按 arriving 把类名设成同样的值。
-      scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.classList.remove("is-arriving");
+      findCardElement(scroller.current, id)?.classList.remove("is-arriving");
       setArriving((s) => {
         if (!s.has(id)) return s;
         const n = new Set(s);
@@ -139,7 +139,7 @@ export function useSealRelease({
         w: rect.width,
         h: rect.height,
         target: () => {
-          const r = scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.getBoundingClientRect();
+          const r = findCardElement(scroller.current, id)?.getBoundingClientRect();
           return r && r.width > 0 ? r : null;
         },
       }));
