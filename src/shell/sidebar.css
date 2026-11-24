@@ -752,3 +752,116 @@ li[data-branch] > .k-fluid-row .k-row-icon {
   background: var(--overlay);
   opacity: 0.5;
 }
+
+/* 文件夹拖动排顺序（#636，main-window-material.md“拖动排顺序”；做法在 src/library/folderDrag.ts）。 */
+.sidebar button[data-folder-id] {
+  cursor: pointer;
+}
+:root[data-folder-dragging],
+:root[data-folder-dragging] * {
+  cursor: grabbing !important;
+}
+:root[data-folder-dragging] .k-fluid-pill {
+  opacity: 0;
+}
+:root[data-folder-dragging] .sidebar .k-fluid-row {
+  will-change: transform;
+}
+/* 拖着时各行会挪出自己那一块：子文件夹那一块不裁，折痕先隐去。 */
+:root[data-folder-dragging] .sidebar-tree .sidebar-tree {
+  overflow: visible;
+}
+/* 折痕跟着这一块的第一行与最后一行挪（folderDrag.ts 给出两个偏移）；整块都在手里时隐去。 */
+:root[data-folder-dragging] .sidebar-tree .sidebar-tree::before {
+  top: calc(2px + var(--crease-top, 0px));
+  bottom: calc(2px - var(--crease-bottom, 0px));
+  transition:
+    top var(--crease-ease, 0s) var(--crease-delay, 0ms),
+    bottom var(--crease-ease, 0s) var(--crease-delay, 0ms),
+    opacity var(--t-fast);
+}
+:root[data-folder-dragging] .sidebar-tree .sidebar-tree[data-crease-held]::before {
+  opacity: 0;
+}
+/* 停在一行上，松手就放进去。 */
+.sidebar-slot [data-folder-drop] {
+  background: var(--hover);
+  box-shadow: var(--drop-edge);
+}
+/* 手里的那一张：行的副本，缩到 90%，挂在指针右边。 */
+.folder-drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: var(--z-drag);
+  pointer-events: none;
+  transform-origin: 0 50%;
+  will-change: transform;
+}
+.folder-drag-ghost > .k-row {
+  transform-origin: 0 50%;
+  background: transparent;
+  box-shadow: none;
+  transition: transform var(--t) var(--held-pop, var(--spring));
+}
+.folder-drag-ghost > .k-row::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--btn-face);
+  box-shadow: var(--btn-lift);
+  transition: box-shadow var(--t);
+}
+.folder-drag-ghost > .k-row[data-held] {
+  transform: scale(0.9);
+}
+.folder-drag-ghost > .k-row[data-held]::before {
+  box-shadow: var(--held-lift);
+}
+/* 里面还有子文件夹：下面垫一张，看得出拿的是一摞。 */
+.folder-drag-ghost > .k-row[data-pile]::after {
+  content: "";
+  position: absolute;
+  inset: 4px 5px -4px;
+  z-index: -2;
+  border-radius: inherit;
+  background: var(--btn-face);
+  box-shadow: var(--btn-lift);
+}
+/* 落点：两行之间一道 2 px 的线，文字色 15%，从中间长出来，换位置时滑过去。 */
+.folder-drag-line {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: var(--z-drag-line);
+  height: 2px;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform var(--t-fast) var(--ease),
+    width var(--t-fast) var(--ease),
+    opacity var(--t-fast);
+}
+.folder-drag-line[data-on] {
+  opacity: 1;
+}
+.folder-drag-line > i {
+  display: block;
+  height: 100%;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--ink) 15%, transparent);
+  transform: scaleX(0);
+  transition: transform var(--t-slow) var(--spring);
+}
+.folder-drag-line[data-on] > i {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .folder-drag-line,
+  .folder-drag-line > i,
+  .folder-drag-ghost > .k-row {
+    transition: none;
+  }
+}
