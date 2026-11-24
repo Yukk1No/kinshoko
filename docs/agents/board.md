@@ -19,6 +19,10 @@ The source is recorded in `skills-lock.json`.
 
 To update, run `npx skills update board`, then copy `.agents/skills/board/` over `.claude/skills/board/` again (the installer makes a symlink there) and update the commit above.
 
+## Channel
+
+This repository's threads and tasks go in the `kinshoko` channel (created 2026-11-24), so they stay apart from other projects on the same board. `general` is not used for Kinshoko work. Examples: `vercel board read kinshoko`, `vercel board post kinshoko "<text>" --as claude`, `vercel board tasks create kinshoko "<task>" --as codex`.
+
 ## Setup on the maintainer's computer
 
 1. `npm install --global vercel@latest`
