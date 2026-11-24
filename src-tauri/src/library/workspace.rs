@@ -8,6 +8,70 @@ use kinshoko_core::workspace::{
 };
 
 pub(super) const EVENT: &str = "workspace-changed";
+
+static MONITOR_WAKE: (std::sync::Mutex<u64>, std::sync::Condvar) =
+    (std::sync::Mutex::new(0), std::sync::Condvar::new());
+
+/// 唤醒后台工作区监控线程（例如主窗口重新打开或显示时）。
+pub(crate) fn wake_monitor() {
+    let (lock, condvar) = &MONITOR_WAKE;
+    let mut seq = lock.lock().unwrap_or_else(|e| e.into_inner());
+    *seq = seq.wrapping_add(1);
+    condvar.notify_all();
+}
+
+/// 后台状态轮询的退避状态机：无变化时逐档退避到上限，收到变化或复位后回到初始间隔。
+#[derive(Debug, Clone, Copy)]
+struct PollBackoff {
+    step: usize,
+}
+
+impl PollBackoff {
+    const STEPS_MS: [u64; 4] = [1500, 3000, 5000, 10_000];
+
+    fn new() -> Self {
+        Self { step: 0 }
+    }
+
+    fn current(self) -> std::time::Duration {
+        std::time::Duration::from_millis(Self::STEPS_MS[self.step])
+    }
+
+    fn on_change(&mut self) {
+        self.step = 0;
+    }
+
+    fn on_unchanged(&mut self) {
+        if self.step + 1 < Self::STEPS_MS.len() {
+            self.step += 1;
+        }
+    }
+
+    fn reset(&mut self) {
+        self.step = 0;
+    }
+}
+
+fn main_window_active<R: Runtime>(app: &AppHandle<R>) -> bool {
+    let Some(window) = app.get_webview_window(crate::shell::MAIN_WINDOW) else {
+        return false;
+    };
+    window.is_visible().unwrap_or(false) && !window.is_minimized().unwrap_or(false)
+}
+
+fn wait_for_wake(seen: &mut u64, timeout: std::time::Duration) -> bool {
+    let (lock, condvar) = &MONITOR_WAKE;
+    let guard = lock.lock().unwrap_or_else(|e| e.into_inner());
+    let (guard, _) = condvar
+        .wait_timeout_while(guard, timeout, |seq| *seq == *seen)
+        .unwrap_or_else(|e| e.into_inner());
+    if *guard != *seen {
+        *seen = *guard;
+        true
+    } else {
+        false
+    }
+}
 /// Acquire device, catalog, then workspace. Callers retain their lens and visibility guards.
 #[track_caller]
 pub(super) fn with_resources<T>(
@@ -40,15 +104,31 @@ pub(super) fn monitor<R: Runtime>(app: AppHandle<R>) {
         .name("kinshoko-workspace-events".into())
         .spawn(move || {
             let mut previous = String::new();
+            let mut backoff = PollBackoff::new();
+            let mut wake_seq = *MONITOR_WAKE.0.lock().unwrap_or_else(|e| e.into_inner());
             loop {
-                std::thread::sleep(std::time::Duration::from_millis(1500));
+                if !main_window_active(&app) {
+                    backoff.reset();
+                    let _ = wait_for_wake(&mut wake_seq, std::time::Duration::from_secs(10));
+                    continue;
+                }
                 let safe = saved_safe_mode(&app);
+                let mut changed = false;
                 if let Ok(status) =
                     with_lens(&app, safe, Hold::Read, |w, d, c| w.status(d, c, safe))
                     && status.revision != previous
                 {
                     previous = status.revision.clone();
                     let _ = app.emit(EVENT, status);
+                    changed = true;
+                }
+                if changed {
+                    backoff.on_change();
+                } else {
+                    backoff.on_unchanged();
+                }
+                if wait_for_wake(&mut wake_seq, backoff.current()) {
+                    backoff.reset();
                 }
             }
         })
@@ -322,4 +402,34 @@ pub(super) async fn workspace_directories<R: Runtime>(
         })
     })
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PollBackoff;
+    use std::time::Duration;
+
+    #[test]
+    fn poll_backoff_ramps_to_cap_and_resets_on_change_or_wake() {
+        let mut backoff = PollBackoff::new();
+        assert_eq!(backoff.current(), Duration::from_millis(1500));
+
+        backoff.on_unchanged();
+        assert_eq!(backoff.current(), Duration::from_millis(3000));
+        backoff.on_unchanged();
+        assert_eq!(backoff.current(), Duration::from_millis(5000));
+        backoff.on_unchanged();
+        assert_eq!(backoff.current(), Duration::from_millis(10_000));
+        backoff.on_unchanged();
+        assert_eq!(backoff.current(), Duration::from_millis(10_000));
+
+        backoff.on_change();
+        assert_eq!(backoff.current(), Duration::from_millis(1500));
+
+        backoff.on_unchanged();
+        backoff.on_unchanged();
+        assert_eq!(backoff.current(), Duration::from_millis(5000));
+        backoff.reset();
+        assert_eq!(backoff.current(), Duration::from_millis(1500));
+    }
 }

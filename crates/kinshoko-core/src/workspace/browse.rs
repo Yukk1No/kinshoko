@@ -189,8 +189,10 @@ impl Workspace {
         }
         let mut shown = None;
         let mut sources = Vec::new();
-        for provider in &snapshot.providers {
-            for image in provider.images.iter().filter(|i| i.sha256 == hash) {
+        if let Some(entries) = snapshot.by_sha256().get(&hash) {
+            for &(provider_index, image_index) in entries {
+                let provider = &snapshot.providers[provider_index];
+                let image = &provider.images[image_index];
                 let requested =
                     provider.registration.library.id == library_id && image.id == image_id;
                 if requested {
@@ -349,21 +351,36 @@ fn collect_rows(
             .get(&provider.registration.library.id)
             .is_some_and(|ids| ids.contains(&image.id))
     };
-    let mut groups = BTreeMap::<String, Vec<(&Provider, &ProviderImage)>>::new();
-    for provider in &snapshot.providers {
-        for image in &provider.images {
-            groups
-                .entry(image.sha256.clone())
-                .or_default()
-                .push((provider, image));
+    let mut matched_hashes = std::collections::HashSet::<&str>::new();
+    for (library_id, image_ids) in &matches {
+        for image_id in image_ids {
+            if let Some(hash) = snapshot
+                .identities
+                .get(&(library_id.clone(), image_id.clone()))
+            {
+                matched_hashes.insert(hash.as_str());
+            }
         }
     }
+    let by_sha256 = snapshot.by_sha256();
     let mut rows = Vec::new();
-    for (id, sources) in groups {
-        let adult = snapshot.adult.contains(&id);
-        if safe && adult {
+    for id in matched_hashes {
+        if safe && snapshot.adult.contains(id) {
             continue;
         }
+        let Some(entries) = by_sha256.get(id) else {
+            continue;
+        };
+        let sources: Vec<(&Provider, &ProviderImage)> = entries
+            .iter()
+            .map(|&(p_idx, i_idx)| {
+                (
+                    &snapshot.providers[p_idx],
+                    &snapshot.providers[p_idx].images[i_idx],
+                )
+            })
+            .collect();
+        let adult = snapshot.adult.contains(id);
         let mut matching = sources.iter().copied().filter(|(p, i)| matched(p, i));
         let Some((provider, image)) = matching.next() else {
             continue;
@@ -384,7 +401,7 @@ fn collect_rows(
             shown,
             BrowseRow {
                 card: WorkspaceCard {
-                    id,
+                    id: id.to_owned(),
                     width: image.width,
                     height: image.height,
                     adult,

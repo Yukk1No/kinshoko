@@ -407,6 +407,11 @@ pub fn start_background<R: Runtime>(app: &AppHandle<R>) {
     workspace::monitor(app.clone());
 }
 
+/// 唤醒工作区后台监控线程，例如主窗口重新打开或从最小化/隐藏恢复显示时。
+pub(crate) fn wake_workspace_monitor() {
+    workspace::wake_monitor();
+}
+
 fn saved_mode<R: Runtime>(app: &AppHandle<R>) -> SafeMode {
     app.try_state::<LibraryState>().map_or_else(
         || SafeModeState::default().current(),

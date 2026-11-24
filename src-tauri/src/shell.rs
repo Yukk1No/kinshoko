@@ -203,7 +203,7 @@ pub fn observe_main_window(app: &AppHandle, save: bool) {
     };
     let state = app.state::<MainWindowState>();
     let placement = {
-        let mut placement = state.0.lock().unwrap();
+        let mut placement = state.0.lock().unwrap_or_else(|e| e.into_inner());
         if let Some((maximized, size)) = observation {
             placement.observe(maximized, size);
         }
@@ -222,6 +222,7 @@ pub fn open_main_window(app: &AppHandle) {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
+        crate::library::wake_workspace_monitor();
         return;
     }
     let Some(config) = app
@@ -248,7 +249,11 @@ pub fn open_main_window(app: &AppHandle) {
     );
     #[cfg(windows)]
     let seed = format!("{seed}{}", crate::file_drop::initialization_script(app));
-    let placement = *app.state::<MainWindowState>().0.lock().unwrap();
+    let placement = *app
+        .state::<MainWindowState>()
+        .0
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     match WebviewWindowBuilder::from_config(app, config).and_then(|mut b| {
         if let Some([width, height]) = placement.normal_size {
             b = b.inner_size(width, height);
@@ -268,6 +273,7 @@ pub fn open_main_window(app: &AppHandle) {
             apply_ui_scale(app, factor);
             let _ = window.show();
             let _ = window.set_focus();
+            crate::library::wake_workspace_monitor();
         }
         Err(e) => crate::run_log::error("打开主窗口失败", e),
     }
