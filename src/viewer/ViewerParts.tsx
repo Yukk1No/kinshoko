@@ -4,7 +4,17 @@ import { i18n } from "../i18n";
 import type { Region } from "../bindings/Region";
 import { changeSetting, shellSettings } from "../ipc";
 import { cachedViewerBackground, rememberViewerBackground } from "./background";
-import { Copy, Crop as CropIcon, FolderSearch, PanelRight, Palette, Pin, Scan, Trash2 } from "lucide-react";
+import {
+  Copy,
+  Crop as CropIcon,
+  FlipHorizontal2,
+  FolderSearch,
+  PanelRight,
+  Palette,
+  Pin,
+  Scan,
+  Trash2,
+} from "lucide-react";
 import { Menu, MenuCheckboxItem, MenuItem, MenuPopup, MenuRadioItem, MenuSeparator, MenuSubmenu } from "../ui/Menu";
 import type { DockItem } from "../ui/Dock";
 import type { CSSProperties, Dispatch, SetStateAction } from "react";
@@ -66,10 +76,17 @@ export function useViewerBackground() {
 }
 
 /** 查看器 dock 的工具。 */
-export function viewerDockItems(background: Background, inspectorOpen: boolean): DockItem[] {
+export function viewerDockItems(background: Background, inspectorOpen: boolean, flipped = false): DockItem[] {
   return [
     { id: "fit", label: i18n.t("viewer:tools.fit"), icon: <Scan size={19} strokeWidth={1.75} />, shortcut: "0" },
     { id: "pixels", label: i18n.t("viewer:originalPixels"), icon: <OneToOne />, shortcut: "1" },
+    {
+      id: "flip",
+      label: i18n.t("viewer:tools.flipHorizontal"),
+      icon: <FlipHorizontal2 size={19} strokeWidth={1.75} />,
+      shortcut: "H",
+      pressed: flipped,
+    },
     "sep",
     { id: "crop", label: i18n.t("viewer:tools.crop"), icon: <CropIcon size={19} strokeWidth={1.75} />, shortcut: "F1" },
     { id: "pin", label: i18n.t("common:image.pinWhole"), icon: <Pin size={19} strokeWidth={1.75} />, shortcut: "P" },
@@ -108,6 +125,7 @@ export function ViewerImages({
   failed,
   setRetry,
   hidden = false,
+  flipped = false,
 }: {
   viewport: { width: number };
   src: string;
@@ -125,6 +143,7 @@ export function ViewerImages({
   failed: boolean;
   setRetry: Dispatch<SetStateAction<number>>;
   hidden?: boolean;
+  flipped?: boolean;
 }) {
   const { t } = useTranslation("viewer");
   return (
@@ -136,6 +155,7 @@ export function ViewerImages({
           src={src}
           alt={t("imageAlt")}
           draggable={false}
+          data-flipped={flipped || undefined}
           onLoad={(e) => swapIn(e.currentTarget, src)}
           onError={() => setFailedSrc(src)}
           style={{
@@ -196,6 +216,8 @@ export function ViewerMenu({
   copy,
   reveal,
   reset,
+  flipped = false,
+  onToggleFlip,
   background,
   setBackground,
   inspectorOpen,
@@ -207,6 +229,8 @@ export function ViewerMenu({
   copy: () => void;
   reveal: () => void;
   reset: (next: "fit" | "pixels") => void;
+  flipped?: boolean;
+  onToggleFlip?: () => void;
   background: Background;
   setBackground: (background: Background) => void;
   inspectorOpen: boolean;
@@ -222,7 +246,7 @@ export function ViewerMenu({
       <MenuItem icon={<CropIcon size={14} />} kbd="F1" onClick={pinPart}>
         {t("common:image.pinPart")}
       </MenuItem>
-      <MenuItem icon={<Copy size={14} />} onClick={copy}>
+      <MenuItem icon={<Copy size={14} />} kbd="Ctrl+C" onClick={copy}>
         {t("common:image.copy")}
       </MenuItem>
       <MenuSeparator />
@@ -232,6 +256,9 @@ export function ViewerMenu({
       <MenuItem icon={<OneToOne size={14} />} kbd="1" onClick={() => reset("pixels")}>
         {t("originalPixels")}
       </MenuItem>
+      <MenuCheckboxItem checked={flipped} onCheckedChange={() => onToggleFlip?.()} kbd="H">
+        {t("tools.flipHorizontal")}
+      </MenuCheckboxItem>
       <MenuSubmenu icon={<Palette size={14} />} label={t("tools.background")} popupLabel={t("tools.background")}>
         <Menu.RadioGroup value={background} onValueChange={(value) => setBackground(value as Background)}>
           {grounds.map((ground) => (

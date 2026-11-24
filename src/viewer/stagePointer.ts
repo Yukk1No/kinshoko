@@ -1,13 +1,14 @@
-import { type MutableRefObject, type PointerEvent } from "react";
+import { type MouseEvent, type MutableRefObject, type PointerEvent } from "react";
 import type { Region } from "../bindings/Region";
 import { cropFromDrag, type Point } from "./crop";
 
-// 舞台上的指针手势（拖动平移、Shift+拖动框选），原样从 Viewer.tsx 移出。
+// 舞台上的指针手势（拖动平移、Shift+拖动框选、双击切换缩放），原样从 Viewer.tsx 移出。
 
 type Args = {
   drag: MutableRefObject<{ id: number; x: number; y: number; offset: { x: number; y: number } } | null>;
   select: MutableRefObject<{ id: number; start: Point } | null>;
   selecting: boolean;
+  flipped?: boolean;
   stagePoint: (e: { clientX: number; clientY: number }) => Point;
   setDragging: (dragging: boolean) => void;
   setSelecting: (selecting: boolean) => void;
@@ -16,12 +17,14 @@ type Args = {
   setCrop: (crop: Region | null) => void;
   offset: { x: number; y: number };
   setOffset: (offset: { x: number; y: number }) => void;
+  onDoubleClick?: (point: Point) => void;
 };
 
 export function stagePointerHandlers({
   drag,
   select,
   selecting,
+  flipped = false,
   stagePoint,
   setDragging,
   setSelecting,
@@ -30,6 +33,7 @@ export function stagePointerHandlers({
   setCrop,
   offset,
   setOffset,
+  onDoubleClick,
 }: Args) {
   return {
     onPointerDown: (e: PointerEvent<HTMLDivElement>) => {
@@ -46,7 +50,7 @@ export function stagePointerHandlers({
     onPointerMove: (e: PointerEvent<HTMLDivElement>) => {
       const s = select.current;
       if (s && s.id === e.pointerId) {
-        const next = cropFromDrag(s.start, stagePoint(e), shown, natural);
+        const next = cropFromDrag(s.start, stagePoint(e), shown, natural, flipped);
         if (next) setCrop(next);
         return;
       }
@@ -71,6 +75,10 @@ export function stagePointerHandlers({
       drag.current = null;
       select.current = null;
       setDragging(false);
+    },
+    onDoubleClick: (e: MouseEvent<HTMLDivElement>) => {
+      if (selecting || (e.target as Element).closest("button, .k-dock")) return;
+      onDoubleClick?.(stagePoint(e));
     },
   };
 }

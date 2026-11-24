@@ -226,7 +226,15 @@ describe("查看器标题行与 dock（#98）", () => {
     const names = within(dock)
       .getAllByRole("button")
       .map((b) => b.getAttribute("aria-label"));
-    expect(names).toEqual(["适应窗口，0", "原始像素，1", "框选局部，F1", "钉住整图，P", "背景", "显示详情，I"]);
+    expect(names).toEqual([
+      "适应窗口，0",
+      "原始像素，1",
+      "水平翻转，H",
+      "框选局部，F1",
+      "钉住整图，P",
+      "背景",
+      "显示详情，I",
+    ]);
     const stage = screen.getByAltText("正在查看的参考图").parentElement!;
     const pressed = (name: RegExp) => screen.getByRole("button", { name }).getAttribute("aria-pressed");
     expect(pressed(/^适应窗口/)).toBe("true");

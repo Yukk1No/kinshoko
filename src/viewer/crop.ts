@@ -33,11 +33,13 @@ export interface CssRect {
  * 拖动起点与当前点（舞台上的 CSS 像素）围成的选区，换成原图像素：向外取整到整像素，
  * 超出原图的部分截掉。为空（没拖动、完全在图外）时为 null。
  */
-export function cropFromDrag(a: Point, b: Point, shown: Shown, natural: Size): Region | null {
-  const toImage = (v: number, start: number, css: number, px: number) => ((v - start) / css) * px;
+export function cropFromDrag(a: Point, b: Point, shown: Shown, natural: Size, flipped = false): Region | null {
+  const toImageX = (v: number) =>
+    ((flipped ? shown.left + shown.width - v : v - shown.left) / shown.width) * natural.width;
+  const toImageY = (v: number) => ((v - shown.top) / shown.height) * natural.height;
   const clamp = (v: number, max: number) => Math.min(max, Math.max(0, v));
-  const xs = [a.x, b.x].map((v) => toImage(v, shown.left, shown.width, natural.width));
-  const ys = [a.y, b.y].map((v) => toImage(v, shown.top, shown.height, natural.height));
+  const xs = [a.x, b.x].map(toImageX);
+  const ys = [a.y, b.y].map(toImageY);
   const left = clamp(Math.floor(Math.min(...xs)), natural.width);
   const right = clamp(Math.ceil(Math.max(...xs)), natural.width);
   const top = clamp(Math.floor(Math.min(...ys)), natural.height);
@@ -47,10 +49,15 @@ export function cropFromDrag(a: Point, b: Point, shown: Shown, natural: Size): R
 }
 
 /** 选区（原图像素）此刻在舞台上的位置（CSS 像素）。 */
-export function cropOnScreen(crop: Region, shown: Shown, natural: Size): CssRect {
+export function cropOnScreen(crop: Region, shown: Shown, natural: Size, flipped = false): CssRect {
   const sx = shown.width / natural.width;
   const sy = shown.height / natural.height;
-  return { x: shown.left + crop.x * sx, y: shown.top + crop.y * sy, width: crop.width * sx, height: crop.height * sy };
+  return {
+    x: flipped ? shown.left + (natural.width - crop.x - crop.width) * sx : shown.left + crop.x * sx,
+    y: shown.top + crop.y * sy,
+    width: crop.width * sx,
+    height: crop.height * sy,
+  };
 }
 
 /** 舞台上的矩形换成相对窗口客户区的物理像素（钉图以它为中心出现）。 */

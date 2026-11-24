@@ -76,6 +76,7 @@ export function Viewer({
   const [mode, setMode] = useState<"fit" | "pixels" | "zoom">("fit");
   const [zoomScale, setZoomScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [flipped, setFlipped] = useState(false);
   const [background, setBackground] = useViewerBackground();
   const drag = useRef<{ id: number; x: number; y: number; offset: typeof offset } | null>(null);
   /** 框选局部：选区（原图像素）、是否在框选模式、拖动中的起点（舞台上的 CSS 像素）。 */
@@ -159,6 +160,7 @@ export function Viewer({
     setCrop(null);
     setSelecting(false);
     setDragging(false);
+    setFlipped(false);
     setLoadedSrc(null);
     setDerived(null);
     select.current = null;
@@ -171,7 +173,7 @@ export function Viewer({
   }, []);
   useCaptureSources(() => {
     const image = stage.current?.querySelector<HTMLImageElement>("img.viewer-image");
-    if (!image || hideImage || !exactSource || loadedSrc !== src || failedSrc === src) return [];
+    if (!image || hideImage || flipped || !exactSource || loadedSrc !== src || failedSrc === src) return [];
     const reference = captureImage(image, stage.current!, libraryId, card.id, card.width, card.height);
     return reference ? [reference] : [];
   }, 100);
@@ -204,9 +206,15 @@ export function Viewer({
       });
   }, [viewport.width, viewport.left, viewport.top, left, top, width, height, src, ready, settled, manual, onPlaced]);
   const shown = { left, top, width, height };
-  const placed = { width, height, left: 0, top: 0, transform: `translate(${left}px, ${top}px)` };
+  const placed = {
+    width,
+    height,
+    left: 0,
+    top: 0,
+    transform: flipped ? `translate(${left}px, ${top}px) scaleX(-1)` : `translate(${left}px, ${top}px)`,
+  };
   const natural = { width: card.width, height: card.height };
-  const cropRect = crop && cropOnScreen(crop, shown, natural);
+  const cropRect = crop && cropOnScreen(crop, shown, natural, flipped);
   /** 舞台上的点（CSS 像素）。 */
   const stagePoint = (e: { clientX: number; clientY: number }): Point => {
     const rect = stage.current!.getBoundingClientRect();
@@ -214,7 +222,7 @@ export function Viewer({
   };
   /** 钉到桌面：整图（crop 为 null）或选区；钉图以它此刻在查看器里的位置为中心出现。 */
   const pin = (region: Region | null) => {
-    const rect: CssRect = region ? cropOnScreen(region, shown, natural) : { x: left, y: top, width, height };
+    const rect: CssRect = region ? cropOnScreen(region, shown, natural, flipped) : { x: left, y: top, width, height };
     pinReference(libraryId, card.id, region, toScreenRect(rect, viewport, dpr)).then(
       () => toast.show({ title: region ? t("pinnedPart") : t("pinnedWhole"), tone: "success" }),
       (e) => {
@@ -251,6 +259,21 @@ export function Viewer({
     select.current = null;
   };
   const toggleSelecting = () => setSelecting((on) => !on);
+  const toggleFlip = () => setFlipped((on) => !on);
+  const toggleFitPixelsAt = (point: Point) => {
+    if (selecting || crop !== null) return;
+    if (mode === "fit") {
+      const nextWidth = card.width;
+      const nextHeight = card.height;
+      setMode("pixels");
+      setOffset({
+        x: point.x - ((point.x - left) / width) * (nextWidth / dpr) - (viewport.width - nextWidth / dpr) / 2,
+        y: point.y - ((point.y - top) / height) * (nextHeight / dpr) - (viewport.height - nextHeight / dpr) / 2,
+      });
+    } else {
+      reset("fit");
+    }
+  };
   const keyDown = (e: KeyboardEvent<HTMLElement>) => {
     // 右键菜单渲染在 portal 里，按键仍沿 React 树冒泡到这里：菜单里的按键归菜单处理。
     if (e.target instanceof Element && e.target.closest("[role='menu']")) return;
@@ -268,12 +291,30 @@ export function Viewer({
       else onBack();
       return;
     }
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      !e.altKey &&
+      !e.shiftKey &&
+      e.key.toLowerCase() === "c" &&
+      !(e.target instanceof Element && e.target.closest("input, textarea, [contenteditable]")) &&
+      !window.getSelection()?.toString()
+    ) {
+      e.preventDefault();
+      copy();
+      return;
+    }
     // dock 的快捷键与点按 dock 走同一处理；方向键在 dock 内只移动焦点。
     if (!e.ctrlKey && !e.altKey && !e.metaKey) {
       const inDock = e.target instanceof Element && !!e.target.closest(".k-dock");
       const shortcut: Record<string, () => void> = {
         "0": () => reset("fit"),
         "1": () => reset("pixels"),
+        h: toggleFlip,
+        H: toggleFlip,
+        "=": () => zoomAt(1.25),
+        "+": () => zoomAt(1.25),
+        "-": () => zoomAt(0.8),
+        _: () => zoomAt(0.8),
         F1: toggleSelecting,
         p: () => pin(null),
         P: () => pin(null),
@@ -300,9 +341,10 @@ export function Viewer({
     }
   };
   const shownCropRect = cropRect && crop && !dragging ? cropRect : null;
-  const viewerTools = viewerDockItems(background, inspectorOpen);
+  const viewerTools = viewerDockItems(background, inspectorOpen, flipped);
   const tool = (id: string, member?: string) => {
     if (id === "fit" || id === "pixels") reset(id);
+    else if (id === "flip") toggleFlip();
     else if (id === "crop") toggleSelecting();
     else if (id === "pin") pin(null);
     else if (id === "ground" && member) setBackground(member as Background);
@@ -347,6 +389,7 @@ export function Viewer({
                 drag,
                 select,
                 selecting,
+                flipped,
                 stagePoint,
                 setDragging,
                 setSelecting,
@@ -355,6 +398,7 @@ export function Viewer({
                 setCrop,
                 offset,
                 setOffset,
+                onDoubleClick: toggleFitPixelsAt,
               })}
             />
           }
@@ -376,6 +420,7 @@ export function Viewer({
             failed={failed}
             setRetry={setRetry}
             hidden={hideImage}
+            flipped={flipped}
           />
           {cropRect && crop && (
             <div
@@ -398,6 +443,8 @@ export function Viewer({
           copy={copy}
           reveal={reveal}
           reset={reset}
+          flipped={flipped}
+          onToggleFlip={toggleFlip}
           background={background}
           setBackground={setBackground}
           inspectorOpen={inspectorOpen}

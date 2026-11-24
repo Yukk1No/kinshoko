@@ -57,13 +57,13 @@ export function ViewerBar({ name, position, onBack, onStep, zoomAt, physicalWidt
       )}
       <span className="k-grow" />
       <div className="viewer-zoom">
-        <Tip label={t("zoomOut")}>
+        <Tip label={t("zoomOut")} keys="-">
           <button type="button" className="k-icon-btn" aria-label={t("zoomOut")} onClick={() => zoomAt(0.8)}>
             <Minus size={15} />
           </button>
         </Tip>
         <output aria-label={t("zoomLevel")}>{Math.round((physicalWidth / card.width) * 100)}%</output>
-        <Tip label={t("zoomIn")}>
+        <Tip label={t("zoomIn")} keys="+">
           <button type="button" className="k-icon-btn" aria-label={t("zoomIn")} onClick={() => zoomAt(1.25)}>
             <Plus size={15} />
           </button>

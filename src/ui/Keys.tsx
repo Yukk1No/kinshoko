@@ -6,7 +6,7 @@ export function Keys({ accelerator }: { accelerator: string }) {
   return (
     <span className="k-keys" aria-label={accelerator}>
       {accelerator
-        .split(/\+| /)
+        .split(/\+(?=.)| /)
         .filter(Boolean)
         .map((key, index) => (
           <kbd key={index} className="k-key" aria-hidden="true">

@@ -1,5 +1,5 @@
 import { errorText } from "../ipc/commandError";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
 import { formatMoment } from "../i18n/format";
@@ -109,12 +109,16 @@ function TaggingUnfinished({ failure, edit }: { failure: TaggingFailure; edit: (
 
 /** 只选中一张时：文件名、所在文件夹与备注。分级在标签面板的属性表里（见 SelectionPanel）。 */
 function Detail({
+  libraryId,
   detail,
   edit,
+  saveNote,
   stale = false,
 }: {
+  libraryId: string;
   detail: ImageDetail;
   edit: (edits: ImageEdit[]) => void;
+  saveNote: (targetLibraryId: string, targetImageId: string, text: string, silentOnUnmount?: boolean) => Promise<void>;
   /** 已选中别的图、它的详情还没到：先留着这张的，但不能操作。 */
   stale?: boolean;
 }) {
@@ -123,13 +127,39 @@ function Detail({
   const sourceText = sources.map((s) => s.text).join("\n");
   const saved = manual ?? sourceText;
   const [draft, setDraft] = useState(saved);
+  const noteSectionRef = useRef<HTMLElement>(null);
+  const draftRef = useRef(draft);
+  const savedRef = useRef(saved);
+  savedRef.current = saved;
+  const lastSubmittedRef = useRef(saved);
+  const saveNoteRef = useRef(saveNote);
+  saveNoteRef.current = saveNote;
   // 保存或退回后备注变了，草稿跟着换。在渲染中比较而不用 effect：effect 晚一拍执行时
   // 会冲掉刚打的字。
   const [shown, setShown] = useState(saved);
   if (shown !== saved) {
     setShown(saved);
     setDraft(saved);
+    draftRef.current = saved;
+    lastSubmittedRef.current = saved;
+  } else {
+    draftRef.current = draft;
   }
+
+  const flushNote = useCallback(
+    (text: string, onUnmount = false) => {
+      if (text === savedRef.current || text === lastSubmittedRef.current) return;
+      lastSubmittedRef.current = text;
+      void saveNoteRef.current(libraryId, detail.id, text, onUnmount);
+    },
+    [libraryId, detail.id],
+  );
+
+  // 切换选中图使当前详情立即失效时、或卸载前兜底提交未保存草稿（按发起时的 libraryId 与 detail.id）。
+  useEffect(() => {
+    if (stale) flushNote(draftRef.current, false);
+  }, [stale, flushNote]);
+  useEffect(() => () => flushNote(draftRef.current, true), [flushNote]);
 
   return (
     <div className="selection-detail" aria-busy={stale} inert={stale}>
@@ -164,7 +194,7 @@ function Detail({
         </section>
       )}
       {/* 备注（#98）：字段用改版样式；有未保存的改动才出现“保存”，有自己写的备注才能“用来源的”。 */}
-      <section className="insp-sec k-note">
+      <section className="insp-sec k-note" ref={noteSectionRef}>
         <label className="selection-note-field">
           <span className="insp-h">
             <StickyNote size={13} aria-hidden="true" />
@@ -176,7 +206,20 @@ function Detail({
             placeholder={t("note.placeholder")}
             value={draft}
             rows={3}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              draftRef.current = e.target.value;
+              setDraft(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                flushNote(draftRef.current);
+              }
+            }}
+            onBlur={(e) => {
+              if (e.relatedTarget instanceof Node && noteSectionRef.current?.contains(e.relatedTarget)) return;
+              flushNote(draftRef.current);
+            }}
           />
         </label>
         {(draft !== saved || manual !== null) && (
@@ -186,7 +229,7 @@ function Detail({
                 type="button"
                 className="k-btn is-sm is-quiet"
                 aria-label={t("note.saveLabel")}
-                onClick={() => edit([{ kind: "setNote", text: draft }])}
+                onClick={() => flushNote(draft)}
               >
                 <span className="k-label">{t("note.save")}</span>
               </button>
@@ -197,7 +240,10 @@ function Detail({
                 className="k-btn is-sm is-quiet selection-revert-note"
                 aria-label={t("note.revertLabel")}
                 disabled={manual === null}
-                onClick={() => edit([{ kind: "revertNote" }])}
+                onClick={() => {
+                  lastSubmittedRef.current = draftRef.current;
+                  edit([{ kind: "revertNote" }]);
+                }}
               >
                 <span className="k-label">{t("note.revert")}</span>
               </button>
@@ -424,6 +470,14 @@ export function SelectionPanel({
   const detail = loaded?.detail ?? null;
   const stale = loaded?.key !== detailKey;
 
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const edit = (edits: ImageEdit[]) =>
     editImages(libraryId, ids, edits).then(
       (details) => {
@@ -433,6 +487,23 @@ export function SelectionPanel({
       },
       (e) => {
         if (currentKey.current === requestKey) onError(e);
+      },
+    );
+
+  const saveNoteFor = (targetLibraryId: string, targetImageId: string, text: string, silentOnUnmount = false) =>
+    editImages(targetLibraryId, [targetImageId], [{ kind: "setNote", text }]).then(
+      (details) => {
+        if (
+          mountedRef.current &&
+          currentKey.current === JSON.stringify([targetLibraryId, targetImageId, safeMode]) &&
+          details[0]
+        ) {
+          setLoaded({ key: detailKey, detail: details[0] });
+        }
+      },
+      (e) => {
+        if (!silentOnUnmount && mountedRef.current) onError(e);
+        // 忽略失败：面板卸载时的兜底提交，不再向已卸载界面报错。
       },
     );
 
@@ -461,7 +532,16 @@ export function SelectionPanel({
           }
         />
       )}
-      {detail && <Detail key={detail.id} detail={detail} stale={stale} edit={(e) => void edit(e)} />}
+      {detail && (
+        <Detail
+          key={`${libraryId}\n${detail.id}`}
+          libraryId={libraryId}
+          detail={detail}
+          stale={stale}
+          edit={(e) => void edit(e)}
+          saveNote={saveNoteFor}
+        />
+      )}
     </div>
   );
 }

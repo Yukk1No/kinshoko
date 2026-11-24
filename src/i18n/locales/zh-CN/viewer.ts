@@ -24,6 +24,7 @@ export default {
   tools: {
     label: "查看工具",
     fit: "适应窗口",
+    flipHorizontal: "水平翻转",
     crop: "框选局部",
     background: "背景",
     showInspector: "显示详情",

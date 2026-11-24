@@ -56,9 +56,10 @@ describe("查看器右键菜单（#114）", () => {
     expect(rows(menu)).toEqual([
       "钉住整图P",
       "钉住局部F1",
-      "复制图片",
+      "复制图片Ctrl+C",
       "适应窗口0",
       "原始像素1",
+      "水平翻转H",
       "背景",
       "详情I",
       "在资源管理器中显示",
@@ -80,7 +81,7 @@ describe("查看器右键菜单（#114）", () => {
 
   it("复制图片与在资源管理器中显示作用于正在看的这张；失败时说明原因", async () => {
     render(<Viewer libraryId="L1" card={card} onClose={() => {}} />);
-    fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: "复制图片" }));
+    fireEvent.click(within(await openMenu()).getByRole("menuitem", { name: /^复制图片/ }));
     await waitFor(() =>
       expect(backend.calls("copy_reference_image")[0]?.args).toEqual({ libraryId: "L1", imageId: "a" }),
     );
