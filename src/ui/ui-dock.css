@@ -248,6 +248,24 @@
   opacity: 0;
   transform: scale(0.97);
 }
+/* 从打开它的按钮处长出来、缩回那里（#448，src/ui/dialogOrigin.ts 设 transform-origin）。认不出按钮时仍从中间出现。 */
+.k-dialog[data-k-from="trigger"] {
+  transition:
+    transform var(--t-slow) var(--spring),
+    opacity var(--t-fast) var(--ease);
+}
+.k-dialog[data-k-from="trigger"]:is([data-starting-style], [data-ending-style]) {
+  transform: scale(0.2);
+}
+/* 标记在弹窗插入后的同一帧里才加上：起始态不过渡，直接落到 0.2，否则会先从 0.97 缩到 0.2。 */
+.k-dialog[data-k-from="trigger"][data-starting-style] {
+  transition: none;
+}
+.k-dialog[data-k-from="trigger"][data-ending-style] {
+  transition:
+    transform var(--t-slow) var(--ease),
+    opacity var(--t-slow) var(--ease);
+}
 .k-dialog-desc {
   margin: 4px 0 14px;
   color: var(--ink-2);

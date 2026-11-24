@@ -9,6 +9,7 @@ import { RuntimeProvider } from "./RuntimeSupport";
 import { recordUncaughtErrors } from "./runLog";
 import { markStartup } from "./startupTiming";
 import { blockBrowserMenu } from "./ui/browserMenu";
+import { installDialogOrigin } from "./ui/dialogOrigin";
 import { TipProvider } from "./ui/Tip";
 import "./styles.css";
 import "./library/selection.css";
@@ -62,6 +63,8 @@ blockBrowserMenu(window);
 followInterfaceLanguage();
 // 没有接住的错误记进运行日志（#219）。
 recordUncaughtErrors(window);
+// 对话框从打开它的按钮处长出来（#448）。
+if (view === null) installDialogOrigin(window);
 // 首屏耗时（#313）：页面脚本开始执行。
 if (view === null) markStartup("scriptStarted");
 
