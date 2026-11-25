@@ -436,6 +436,9 @@ section + section {
 .k-settings .backup-preview[aria-hidden="true"] {
   color: color-mix(in srgb, var(--ink-2) 90%, var(--bg));
 }
+.k-settings .backup-preview[aria-hidden="true"] .is-warn {
+  color: inherit;
+}
 .k-settings .backup-snapshots {
   list-style: none;
   margin: 6px 0 0;

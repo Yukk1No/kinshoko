@@ -95,6 +95,9 @@ pub struct BackupPreview {
     pub estimate: BackupEstimate,
     /// 备份目标现在在不在；不在时容量按全部需要复制估计。
     pub target_available: bool,
+    /// 备份位置可用的剩余空间；没有目标或无法读取时为 None。
+    #[ts(type = "number | null")]
+    pub target_free_bytes: Option<u64>,
 }
 
 /// 本设备的自动备份计划。每次修改都立即写回磁盘。
