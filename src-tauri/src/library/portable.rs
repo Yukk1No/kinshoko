@@ -45,6 +45,7 @@ pub(super) async fn publish_tag_definitions<R: Runtime>(
                 |error| format!("标签定义未保存到资料库：{error}。程序中的对应和名称选择已保留；资料库可写后，请重试保存标签定义。"),
             )
         })?;
+        wake_workspace_monitor();
         let state = worker.state::<LibraryState>();
         workspace::with_resources(&state, |workspace, libraries, catalog| {
             workspace.inspect_catalog(libraries, catalog, lens.on())

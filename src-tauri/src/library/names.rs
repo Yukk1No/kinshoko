@@ -30,6 +30,7 @@ pub(super) fn refresh_labels<R: Runtime>(
             },
         );
     }
+    wake_workspace_monitor();
     Ok(())
 }
 

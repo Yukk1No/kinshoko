@@ -137,7 +137,6 @@ export function WorkspacePane({
 
   const { t } = useTranslation("library");
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
-  const [headDrop, setHeadDrop] = useState<string | null>(null);
   const [trashList, setTrashList] = useState(false);
   /** 正在确认清空回收站的图库。 */
   const [emptying, setEmptying] = useState<{ libraryId: string; name: string } | null>(null);
@@ -272,8 +271,6 @@ export function WorkspacePane({
               toggle={toggle}
               creatingIn={creatingIn}
               setCreatingIn={setCreatingIn}
-              headDrop={headDrop}
-              setHeadDrop={setHeadDrop}
               descendants={descendants}
               springHandlers={springHandlers}
               reveal={reveal}

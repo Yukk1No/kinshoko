@@ -97,5 +97,5 @@ Kinshoko 是自由软件，按 [GNU 通用公共许可证第 3 版或更新版�
 
 - [`public/fonts/`](../../public/fonts/) 里的 Inter 与思源黑体（Source Han Sans SC）字体按 SIL Open Font License 1.1 授权。
 - [`src/ui/vendor/fluid/`](../../src/ui/vendor/fluid/) 里的 Fluid Functionalism 代码按 MIT 许可证授权，见其 [`LICENSE`](../../src/ui/vendor/fluid/LICENSE)。
-- [`.claude/skills/`](../../.claude/skills/) 里的 agent skills 按 MIT 许可证授权，见 [`LICENSE-mattpocock-skills`](../../.claude/skills/LICENSE-mattpocock-skills)。
+- [`.claude/skills/`](../../.claude/skills/) 里的 agent skills 按 MIT 许可证授权，见 [`LICENSE-mattpocock-skills`](../../.claude/skills/LICENSE-mattpocock-skills)。其中 `board` skill（`.claude/skills/board/` 和 `.agents/skills/board/`）来自 Vercel，按 Apache License 2.0 授权，见 [`LICENSE-vercel-board`](../../.agents/skills/LICENSE-vercel-board)。
 - 打标模型不随 Kinshoko 分发，在运行时下载，适用各自模型卡上写明的许可证。

@@ -362,5 +362,9 @@ fn unavailable_known_adult_source_keeps_veto_after_restart_until_refresh_or_expl
     );
 }
 
-#[path = "workspace_queries.rs"]
-mod queries;
+#[path = "workspace_queries/offline_sources.rs"]
+mod query_offline_sources;
+#[path = "workspace_queries/paging.rs"]
+mod query_paging;
+#[path = "workspace_queries/tag_conditions.rs"]
+mod query_tag_conditions;

@@ -9,8 +9,22 @@ import { RuntimeProvider } from "./RuntimeSupport";
 import { recordUncaughtErrors } from "./runLog";
 import { markStartup } from "./startupTiming";
 import { blockBrowserMenu } from "./ui/browserMenu";
+import { installDialogOrigin } from "./ui/dialogOrigin";
 import { TipProvider } from "./ui/Tip";
 import "./styles.css";
+import "./library/selection.css";
+import "./viewer/viewer.css";
+import "./search/search.css";
+import "./desktop/capture-history.css";
+import "./desktop/capture.css";
+import "./fidelity/fidelity-gate.css";
+import "./library/tag-panel.css";
+import "./shell/sidebar-base.css";
+import "./shell/rail.css";
+import "./shell/seal-fx.css";
+import "./search/tag-groups.css";
+import "./library/import.css";
+import "./library/legacy-name-migration.css";
 import "./ui/ui.css";
 import "./ui/empty-state.css";
 import "./ui/token.css";
@@ -20,17 +34,18 @@ import "./ui/menu.css";
 import "./ui/toast.css";
 import "./ui/fields.css";
 import "./ui/row.css";
-import "./shell/main-window.css";
-import "./shell/main-window-island.css";
+import "./shell/frame.css";
+import "./shell/topbar.css";
+import "./shell/sidebar.css";
+import "./wall/wall-floats.css";
 import "./shell/inspector.css";
 import "./shell/welcome.css";
-import "./shell/main-window-tags.css";
-import "./shell/main-window-stacks.css";
+import "./shell/inspector-tags.css";
+import "./wall/wall.css";
 import "./shell/startup-splash.css";
-import "./shell/pane-fit.css";
 import "./desktop/desk-groups.css";
 // 设置早于 dialogs.css：后者减弱动效的规则要盖过设置页签的过渡。
-import "./ui/settings.css";
+import "./settings/settings.css";
 import "./ui/dialogs.css";
 import "./ui/dialogs-tasks.css";
 import "./search/search-bar.css";
@@ -48,6 +63,8 @@ blockBrowserMenu(window);
 followInterfaceLanguage();
 // 没有接住的错误记进运行日志（#219）。
 recordUncaughtErrors(window);
+// 对话框从打开它的按钮处长出来（#448）。
+if (view === null) installDialogOrigin(window);
 // 首屏耗时（#313）：页面脚本开始执行。
 if (view === null) markStartup("scriptStarted");
 

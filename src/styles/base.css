@@ -176,3 +176,21 @@ button:disabled {
     opacity: 0;
   }
 }
+
+body {
+  font-size: 13px;
+  line-height: 20px;
+  overflow: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

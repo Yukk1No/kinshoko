@@ -61,3 +61,13 @@ it("其他入口登记的新资料库随工作区变化出现在“管理图库�
   expect(within(dialog).getByText("同名资料库（恢复）")).toBeTruthy();
   expect(within(dialog).getByText("移动盘没插")).toBeTruthy();
 });
+
+it("“管理图库”打开时焦点落在对话框本身，不落到“移除”上：第一下 Esc 就能关上", async () => {
+  render(<LibraryPicker onChanged={() => {}} onCreate={() => {}} />);
+  await act(async () => {});
+  fireEvent.click(screen.getByRole("button", { name: "打开、新建或管理图库" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "管理图库" }));
+  const dialog = await screen.findByRole("dialog", { name: "管理图库" });
+  await act(async () => {});
+  await vi.waitFor(() => expect(document.activeElement).toBe(dialog));
+});

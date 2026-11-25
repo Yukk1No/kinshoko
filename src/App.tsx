@@ -1,5 +1,6 @@
 import { useCaptureSources } from "./desktop/captureSources";
 import { EmptyWorkspace } from "./shell/EmptyWorkspace";
+import { DEFAULT_SAFE_MODE_SCOPE } from "./shell/safeLens";
 import { useSafeMode } from "./shell/useSafeMode";
 import { onCollectionRequest, registerLibrary, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
@@ -116,6 +117,7 @@ function MainWindow() {
   const density = settingsState.densityDraft ?? settingsView?.wallDensity ?? 240;
   const showApproxSource = settingsView?.showApproxSource ?? false;
   const keepSelectionOnSafe = settingsView?.keepSelectionOnSafeMode ?? false;
+  const safeModeScope = settingsView?.safeModeScope ?? DEFAULT_SAFE_MODE_SCOPE;
   const tagDisplay: TagDisplay = settingsView?.tagDisplay ?? DEFAULT_TAG_DISPLAY;
   /** 详情面板宽度先在界面上生效，再写进本设备设置。 */
   const changeInspectorWidth = useCallback((width: number) => {
@@ -320,6 +322,7 @@ function MainWindow() {
                     libraryControls={libraryControls}
                     hidden={empty || (subscriptions.page !== null && swap.phase !== "in")}
                     safe={lensSafe}
+                    safeModeScope={safeModeScope}
                     onSafeChanged={acceptSafe}
                     showApproxSource={showApproxSource}
                     keepSelectionOnSafe={keepSelectionOnSafe}

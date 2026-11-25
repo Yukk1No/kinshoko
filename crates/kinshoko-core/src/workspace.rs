@@ -14,147 +14,26 @@ mod gate;
 mod image_read;
 pub use gate::ImageGate;
 mod snapshot;
+mod types;
+pub use types::{
+    STACK_PLACEHOLDER_PAGES, WorkspaceCard, WorkspaceDirectories, WorkspaceDirectory,
+    WorkspaceImageSet, WorkspacePage, WorkspaceQuery, WorkspaceScope, WorkspaceSource,
+    WorkspaceStatus,
+};
 mod vocabulary;
 use vocabulary::*;
 
 use crate::approx::BuiltinApproxTable;
 use crate::library::provider::ProviderImage;
-use crate::library::{
-    BrowseScope, Error, TagAlias, TagLabel, Vocabulary, VocabularyTag, display_label,
-};
+use crate::library::{Error, TagAlias, TagLabel, Vocabulary, VocabularyTag, display_label};
 use crate::search::{Candidate, Condition, ConditionTree, Search, SearchInput, Term};
 use crate::tag_catalog::{CatalogError, CatalogInspection, TagCatalog, TagCatalogWorkspace};
 use crate::{DeviceLibraries, LibraryRegistration};
 use rusqlite::{Connection, params};
-use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
-use ts_rs::TS;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(
-    tag = "kind",
-    rename_all = "camelCase",
-    rename_all_fields = "camelCase"
-)]
-#[ts(export)]
-pub enum WorkspaceScope {
-    #[default]
-    All,
-    Library {
-        library_id: String,
-        #[serde(default)]
-        scope: BrowseScope,
-    },
-}
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct WorkspaceQuery {
-    #[serde(default)]
-    pub scope: WorkspaceScope,
-    #[serde(default)]
-    pub conditions: ConditionTree,
-    #[serde(default)]
-    pub cursor: Option<String>,
-    pub limit: u32,
-    /// 调用方已经有占位图的卡片 id（#313）：占位图按内容寻址、永远不变，这些卡片不再带它。
-    #[serde(default)]
-    pub known_placeholders: Vec<String>,
-    /// 同一图集叠成一摞（#418）：每个图集只占一格，各页放进卡片的 [`WorkspaceCard::set`]。
-    #[serde(default)]
-    pub stack_sets: bool,
-}
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct WorkspaceSource {
-    pub library_id: String,
-    pub library_name: String,
-    pub image_id: String,
-    #[ts(as = "Option<crate::command_error::ErrorKind>")]
-    pub unavailable: Option<crate::CommandError>,
-    pub matches: bool,
-    pub deleted: bool,
-}
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct WorkspaceCard {
-    /// Stable byte identity, also used for scroll anchors.
-    pub id: String,
-    pub width: u32,
-    pub height: u32,
-    /// 占位图（#110）的 `data:` 地址，取自显示用的来源；还没生成时、或请求时报为已有的
-    /// （[`WorkspaceQuery::known_placeholders`]）为空。缩略图地址由界面按 `libraryId`、`imageId`
-    /// 与档位拼出（#313），与 `thumb` 协议的路径相同。
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[ts(optional)]
-    pub placeholder: Option<String>,
-    pub adult: bool,
-    /// Explicit available matching source used for display; browsing never activates it.
-    pub library_id: String,
-    pub image_id: String,
-    pub sources: Vec<WorkspaceSource>,
-    /// 叠成一摞时（[`WorkspaceQuery::stack_sets`]）这一格的图集：至少两页，卡片本身是封面，即第一页。
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[ts(optional)]
-    pub set: Option<WorkspaceImageSet>,
-}
-/// 图片墙上叠成一摞的图集（#418）：只含这次浏览能显示的页（符合查找、不被安全模式封印），按页序排。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct WorkspaceImageSet {
-    /// 图集键，例如 `pixiv:123`。
-    pub key: String,
-    /// 各页的卡片，第一页是封面。只有前 [`STACK_PLACEHOLDER_PAGES`] 页带占位图。
-    pub pages: Vec<WorkspaceCard>,
-}
-/// 一摞里带占位图的页数：封面与露在下面的三层。
-pub const STACK_PLACEHOLDER_PAGES: usize = 4;
-#[derive(Debug, Clone, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct WorkspaceStatus {
-    pub revision: String,
-    pub libraries: Vec<LibraryRegistration>,
-}
-#[derive(Debug, Clone, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct WorkspacePage {
-    pub cards: Vec<WorkspaceCard>,
-    pub next_cursor: Option<String>,
-    /// 结果的格数：叠成一摞时一摞算一格。
-    pub total: u32,
-    /// 叠成一摞时（[`WorkspaceQuery::stack_sets`]）结果里的张数；不叠放时与 `total` 相同，省略。
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[ts(optional)]
-    pub images: Option<u32>,
-    pub status: WorkspaceStatus,
-}
-/// One provider root. Missing providers keep their identity and reason, without stale folders/counts.
-/// `descendants` counts live visible images per subtree, deduplicated across folder memberships.
-#[derive(Debug, Clone, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct WorkspaceDirectory {
-    pub registration: LibraryRegistration,
-    pub sidebar: Option<crate::library::Sidebar>,
-    pub unassigned: u32,
-    pub descendants: BTreeMap<String, u32>,
-}
-#[derive(Debug, Clone, Serialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct WorkspaceDirectories {
-    pub status: WorkspaceStatus,
-    pub providers: Vec<WorkspaceDirectory>,
-    /// 资料库 id，登记最早的在前。`providers` 按 id 排，保存入口的兜底按这个（ADR-0016）。
-    pub registration_order: Vec<String>,
-}
 #[derive(Clone)]
 struct Provider {
     registration: LibraryRegistration,
@@ -178,6 +57,8 @@ struct Snapshot {
     full_vocabulary: std::sync::OnceLock<Vocabulary>,
     safe_management_vocabulary: std::sync::OnceLock<Vocabulary>,
     full_management_vocabulary: std::sync::OnceLock<Vocabulary>,
+    /// 按原图字节 SHA-256 索引全部来源：`(providers 下标, provider.images 下标)`，按需构建并缓存。
+    by_sha256: std::sync::OnceLock<std::collections::HashMap<String, Vec<(usize, usize)>>>,
 }
 impl Snapshot {
     fn status(&self, safe: bool) -> WorkspaceStatus {
@@ -185,6 +66,21 @@ impl Snapshot {
             revision: digest(format!("{}:{safe}", self.status.revision).as_bytes()),
             libraries: self.status.libraries.clone(),
         }
+    }
+
+    pub(super) fn by_sha256(&self) -> &std::collections::HashMap<String, Vec<(usize, usize)>> {
+        self.by_sha256.get_or_init(|| {
+            let mut map: std::collections::HashMap<String, Vec<(usize, usize)>> =
+                std::collections::HashMap::new();
+            for (provider_index, provider) in self.providers.iter().enumerate() {
+                for (image_index, image) in provider.images.iter().enumerate() {
+                    map.entry(image.sha256.clone())
+                        .or_default()
+                        .push((provider_index, image_index));
+                }
+            }
+            map
+        })
     }
 }
 /// Durable known-source facts retain an Adult veto across a disconnected provider.

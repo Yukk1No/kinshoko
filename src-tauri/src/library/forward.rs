@@ -76,11 +76,13 @@ pub(super) fn forward_events<R: Runtime>(
                         | LibraryEvent::SafeModeChanged { .. }
                 ) {
                     search.invalidate();
+                    wake_workspace_monitor();
                 }
                 // Task-finished events may race the all-provider projection. Raw success details
                 // stay in the fixed task owner; polling returns the checked ordinary receipt.
                 if let LibraryEvent::TaskFinished { report, .. } = &mut event {
                     *report = report.clone().without_content_details();
+                    wake_workspace_monitor();
                 }
                 let _ = app.emit(EVENT, event);
             });

@@ -35,6 +35,7 @@ fn save<R: Runtime, T>(
     if publish {
         publish_saved(app, &library)?;
     }
+    wake_workspace_monitor();
     Ok(value)
 }
 pub fn with_destination<R: Runtime, T>(
@@ -77,7 +78,9 @@ pub(super) fn publish_saved<R: Runtime>(
             |cause| ErrorKind::SavedDefinitionsNotSaved { cause },
             |e| format!("内容已保存，资料库标签定义未更新：{e}。可在统一标签目录重试保存定义。"),
         )
-    })
+    })?;
+    wake_workspace_monitor();
+    Ok(())
 }
 fn complete<R: Runtime>(app: &AppHandle<R>, owner: &str, id: &str, warning: Option<CommandError>) {
     let state = app.state::<LibraryState>();
@@ -86,6 +89,7 @@ fn complete<R: Runtime>(app: &AppHandle<R>, owner: &str, id: &str, warning: Opti
     }) {
         crate::run_log::error("无法记录原导入任务的收尾结果", error);
     }
+    wake_workspace_monitor();
 }
 pub(super) fn begin<R: Runtime>(
     app: &AppHandle<R>,

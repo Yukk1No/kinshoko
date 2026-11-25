@@ -8,8 +8,7 @@ import { Menu, MenuPopup } from "../ui/Menu";
 import { WarnIcon } from "../ui/WarnIcon";
 import type { WorkspaceDirectory } from "../bindings/WorkspaceDirectory";
 import { describeCommandError } from "../ipc/commandError";
-import { moveFolder } from "../ipc";
-import { DRAG_FOLDER, DRAG_FOLDER_LIBRARY, LAST, SidebarPane } from "./SidebarPane";
+import { SidebarPane } from "./SidebarPane";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
 import { LibraryMenuItems } from "./WorkspacePaneRows";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
@@ -26,8 +25,6 @@ type Props = {
   toggle: (id: string, open: boolean) => void;
   creatingIn: string | null;
   setCreatingIn: (id: string | null) => void;
-  headDrop: string | null;
-  setHeadDrop: (id: string | null) => void;
   descendants: boolean;
   springHandlers: (id: string, closed: boolean) => { onDragEnter: (e: DragEvent) => void; onDragLeave: () => void };
   reveal: (libraryId: string) => void;
@@ -46,8 +43,6 @@ export function ProviderSection({
   toggle,
   creatingIn,
   setCreatingIn,
-  headDrop,
-  setHeadDrop,
   descendants,
   springHandlers,
   reveal,
@@ -82,12 +77,6 @@ export function ProviderSection({
       onRemove={() => remove(provider.registration)}
     />
   );
-  const dropFolderHere = (e: DragEvent) => {
-    const folder = e.dataTransfer.getData(DRAG_FOLDER);
-    const from = e.dataTransfer.getData(DRAG_FOLDER_LIBRARY);
-    if (!folder || (from && from !== library.id)) return;
-    void moveFolder(library.id, folder, null, LAST).catch((error) => onError(error));
-  };
   return (
     <section
       key={library.id}
@@ -135,19 +124,6 @@ export function ProviderSection({
                       : t("scope.libraryCountLoading", { name: library.name })
                 }
                 aria-current={selectedRoot && scope.scope.kind === "all" ? "page" : undefined}
-                data-drop={headDrop === library.id || undefined}
-                onDragOver={(e) => {
-                  if (available && e.dataTransfer.types.includes(DRAG_FOLDER)) {
-                    e.preventDefault();
-                    setHeadDrop(library.id);
-                  }
-                }}
-                onDragLeave={() => setHeadDrop(null)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setHeadDrop(null);
-                  dropFolderHere(e);
-                }}
                 onClick={() => onScope({ kind: "library", libraryId: library.id, scope: { kind: "all" } })}
               >
                 <Name className="sidebar-label k-label">{library.name}</Name>

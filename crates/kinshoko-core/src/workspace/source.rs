@@ -1,7 +1,9 @@
 //! Explicit aggregate-source actions. Byte identity is a guard, never a fallback lookup.
 use super::*;
 use crate::Library;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use ts_rs::TS;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]

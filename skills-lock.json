@@ -1,6 +1,13 @@
 {
-  "version": 1,
+  "version": 2,
   "skills": {
+    "board": {
+      "source": "vercel/board",
+      "commit": "8dd1fc496be46890ce171f28011f44dc7549fb99",
+      "sourceType": "github",
+      "skillPath": "skills/board/SKILL.md",
+      "computedHash": "cf05186402a38d7f04daa0fef050bc6769ec31783c82a8ab1d04297cd32d46d4"
+    },
     "modern-web-guidance": {
       "source": "GoogleChrome/modern-web-guidance",
       "sourceType": "github",

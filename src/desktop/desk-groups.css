@@ -3,6 +3,208 @@
    参考组是 30 高的行（.k-row），放进段下面的浅凹槽；桌面上那组是选中的行，成员展开在它下面。
    字号只用 13 / 12；圆角、时长、曲线都取 tokens.css 的变量。 */
 
+.reference-groups-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reference-groups-bar h2 {
+  display: none;
+}
+
+.empty-context .reference-groups-bar h2 {
+  display: none;
+}
+
+/* 参考组卡片 */
+
+.group-save {
+  width: 100%;
+  height: 36px;
+  border-radius: var(--r);
+}
+
+/* 起名与改名（GroupNameForm）：字段名与关闭按钮一行，输入框与“保存”同高 32 并排、间距 8。
+   新参考组的表单替换“存下桌面钉图”按钮，用 1 px line-2 圈出，不铺底色，免得和选中的参考组卡片混在一起；
+   同心圆角：输入框 r（10）+ 内边距 8 = 外框 r-xl（18）。 */
+
+.group-name-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.group-name-form.is-new {
+  padding: 8px;
+  border-radius: var(--r-xl);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+
+.group-name-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+  padding-left: 2px;
+}
+
+.group-name-form .k-field-row > .k-btn {
+  flex: none;
+}
+
+.reference-groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reference-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: var(--r);
+  transition: background var(--t-fast);
+}
+
+.reference-group.is-on {
+  padding-bottom: 10px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.group-card-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--r-s);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+}
+
+.reference-group:not(.is-on) .group-card-head:hover {
+  background: var(--hover);
+}
+
+.group-card-head:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-inset);
+}
+
+.group-thumbs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.group-thumb {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: var(--r-xs);
+  overflow: hidden;
+  background: var(--card);
+}
+
+.group-thumb:nth-child(even) {
+  width: 34px;
+}
+
+.group-thumb img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.group-thumb.is-sealed {
+  background: var(--veil);
+}
+
+.group-thumb.is-missing {
+  background: repeating-linear-gradient(135deg, var(--card) 0 5px, var(--surface-2) 5px 10px);
+}
+
+.reference-group-name {
+  font-weight: 600;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.reference-group-meta,
+.reference-group-problem {
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.reference-group-problem {
+  color: var(--warn);
+}
+
+.reference-group-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+}
+
+.reference-group .group-name-form {
+  padding: 0 6px 4px;
+}
+
+.reference-group-members {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0 6px 0 22px;
+  font-size: 12px;
+}
+
+.reference-group-members li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.reference-group-members span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.reference-group-member-unavailable {
+  color: var(--warn);
+}
+
+.reference-groups-foot {
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
 /* 侧栏标题行：“新参考组”贴着右边的收起按钮。 */
 .pane-head > .desk-new-group {
   margin-left: auto;

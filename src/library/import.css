@@ -1,0 +1,135 @@
+/* 导入：导入条与回执、保存位置（SaveDestination）、封印图预览（SealedImportPreview）、导入按钮的菜单（ImportMenu）。 */
+
+/* 导入 */
+
+.import-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.import-report header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.import-report ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 160px;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.import-report li {
+  display: flex;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.import-report-path {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.import-report-reason {
+  white-space: nowrap;
+  color: var(--accent-strong);
+}
+
+/* Accepted settings fieldset pattern; a portable backup path can be longer than the window. */
+
+/* T10: shared explicit save position, adapted from the accepted provider selectors. */
+
+.save-destination {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  min-width: 0;
+}
+
+.save-destination legend {
+  padding: 0 5px;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.save-destination label {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.save-destination select {
+  width: 100%;
+  min-width: 0;
+}
+
+.save-destination p {
+  margin: 0;
+}
+
+.save-final-position {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.save-destination-dialog {
+  width: min(500px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-2xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-dialog);
+}
+
+.save-destination-dialog h3 {
+  margin-top: 0;
+}
+
+.save-destination-dialog > button {
+  margin: 8px 8px 0 0;
+}
+
+/* Approved prototype Dialog structure, with real receipt-backed read-only content. */
+
+.k-dialog.sealed-import-preview {
+  width: min(880px, calc(100vw - 48px));
+}
+
+.sealed-import-preview-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.sealed-import-preview-images img {
+  width: 100%;
+  max-height: 58vh;
+  object-fit: contain;
+}
+
+.sealed-import-prompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* 导入按钮与它的任务回执浮层。 */
+
+.import-menu {
+  position: relative;
+  flex: none;
+}

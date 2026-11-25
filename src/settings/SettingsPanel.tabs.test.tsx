@@ -4,7 +4,7 @@ import { backend, resetSettingsTest, tab } from "./SettingsPanel.fixtures";
 import { SettingsPanel } from "./SettingsPanel";
 import { setMedia } from "../test/platform";
 import { cssRule } from "../ui/cssRule";
-import settingsCss from "../ui/settings.css?raw";
+import settingsCss from "./settings.css?raw";
 
 // jsdom 不排版：每个 tab 给一个按顺序排列的矩形，指示读到的就是它在列表里的位置。
 const TAB_HEIGHT = 36;

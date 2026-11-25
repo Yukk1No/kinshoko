@@ -97,5 +97,5 @@ Bundled third-party material keeps its own license:
 
 - The Inter and Source Han Sans SC fonts in [`public/fonts/`](public/fonts/) are under the SIL Open Font License 1.1.
 - The Fluid Functionalism code in [`src/ui/vendor/fluid/`](src/ui/vendor/fluid/) is under the MIT License; see its [`LICENSE`](src/ui/vendor/fluid/LICENSE).
-- The agent skills in [`.claude/skills/`](.claude/skills/) are under the MIT License; see [`LICENSE-mattpocock-skills`](.claude/skills/LICENSE-mattpocock-skills).
+- The agent skills in [`.claude/skills/`](.claude/skills/) are under the MIT License; see [`LICENSE-mattpocock-skills`](.claude/skills/LICENSE-mattpocock-skills). The `board` skill (in `.claude/skills/board/` and `.agents/skills/board/`) is from Vercel under the Apache License 2.0; see [`LICENSE-vercel-board`](.agents/skills/LICENSE-vercel-board).
 - The tagging models are not distributed with Kinshoko. They are downloaded at runtime and remain under the licenses stated on their model cards.
