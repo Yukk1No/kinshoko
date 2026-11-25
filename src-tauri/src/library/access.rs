@@ -225,6 +225,7 @@ pub fn register_restored<R: Runtime>(
         })
     })?;
     state.release_readers();
+    wake_workspace_monitor();
     Ok(())
 }
 

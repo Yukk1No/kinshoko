@@ -177,6 +177,7 @@ impl Workspace {
             full_vocabulary: std::sync::OnceLock::new(),
             safe_management_vocabulary: std::sync::OnceLock::new(),
             full_management_vocabulary: std::sync::OnceLock::new(),
+            by_sha256: std::sync::OnceLock::new(),
         });
         self.cache = Some(snapshot.clone());
         Ok(snapshot)
