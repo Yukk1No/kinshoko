@@ -1,4 +1,13 @@
-import { useEffect, useLayoutEffect, useRef, useState, type Dispatch, type SetStateAction, useMemo } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+  useMemo,
+} from "react";
 import type { WorkspaceCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceCard as SourcesCard } from "../bindings/WorkspaceCard";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
@@ -141,10 +150,10 @@ export function useWorkspaceInspector({
     [],
   );
   /** 收起面板。墙外那张图的来源整理留着：再打开时还是它，不露出图片墙上的选择。 */
-  const closeInspector = () => {
+  const closeInspector = useCallback(() => {
     if (!viewingOutside) setSources(null);
     onInspectorShown(false);
-  };
+  }, [viewingOutside, setSources, onInspectorShown]);
   /** 卡片的来源按钮与右键“查看来源”：明确要看，面板随之打开并留着。 */
   const openSources = (card: WorkspaceCard) => {
     setSources(card);
@@ -157,10 +166,10 @@ export function useWorkspaceInspector({
     else setSelected(new Set());
   };
   /** 顶栏按钮、I 键、查看器 dock 与右键菜单：显示或隐藏详情面板。 */
-  const toggleInspector = () => {
+  const toggleInspector = useCallback(() => {
     if (inspectorOpen) closeInspector();
     else onInspectorShown(true);
-  };
+  }, [inspectorOpen, closeInspector, onInspectorShown]);
 
   return {
     selectionKey,

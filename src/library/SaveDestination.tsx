@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Folder, Library } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -73,26 +73,26 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
   const [problem, setProblem] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [memory, setMemory] = useState(NOTHING_REMEMBERED);
-  const rememberImport = (importDestination: SaveDestination) => {
+  const rememberImport = useCallback((importDestination: SaveDestination) => {
     setMemory((value) => ({ ...value, importDestination }));
     // 忽略失败：写不进时只是下次不记得，不打扰这次保存。
     void rememberImportDestination(importDestination).catch(() => {});
-  };
-  const rememberPixiv = (pixivDestination: SaveDestination) => {
+  }, []);
+  const rememberPixiv = useCallback((pixivDestination: SaveDestination) => {
     setMemory((value) => ({ ...value, pixivDestination }));
     // 忽略失败：写不进时只是下次不记得，不打扰这次保存。
     void rememberPixivDestination(pixivDestination).catch(() => {});
-  };
-  const rememberSubscription = (subscriptionDestination: SaveDestination) => {
+  }, []);
+  const rememberSubscription = useCallback((subscriptionDestination: SaveDestination) => {
     setMemory((value) => ({ ...value, subscriptionDestination }));
     // 忽略失败：写不进时只是下次不记得。
     void rememberSubscriptionDestination(subscriptionDestination).catch(() => {});
-  };
-  const rememberParent = (newLibraryParent: string) => {
+  }, []);
+  const rememberParent = useCallback((newLibraryParent: string) => {
     setMemory((value) => ({ ...value, newLibraryParent }));
     // 忽略失败：写不进时只是下次不记得，不打扰这次保存。
     void rememberNewLibraryParent(newLibraryParent).catch(() => {});
-  };
+  }, []);
   useEffect(() => {
     let alive = true,
       sequence = 0,
@@ -144,24 +144,32 @@ export function SaveDestinationProvider({ safe, children }: { safe: boolean; chi
       void stop.then((fn) => fn());
     };
   }, [safe]);
-  return (
-    <Context
-      value={{
-        destination,
-        setDestination,
-        providers,
-        problem,
-        ready,
-        memory,
-        rememberImport,
-        rememberPixiv,
-        rememberSubscription,
-        rememberNewLibraryParent: rememberParent,
-      }}
-    >
-      {children}
-    </Context>
+  const contextValue = useMemo(
+    () => ({
+      destination,
+      setDestination,
+      providers,
+      problem,
+      ready,
+      memory,
+      rememberImport,
+      rememberPixiv,
+      rememberSubscription,
+      rememberNewLibraryParent: rememberParent,
+    }),
+    [
+      destination,
+      providers,
+      problem,
+      ready,
+      memory,
+      rememberImport,
+      rememberPixiv,
+      rememberSubscription,
+      rememberParent,
+    ],
   );
+  return <Context value={contextValue}>{children}</Context>;
 }
 
 export function folderChoices(nodes: FolderNode[], prefix = ""): { id: string; path: string }[] {

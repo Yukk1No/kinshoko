@@ -4,22 +4,9 @@
 // 把图片从图片墙拖到文件夹上仍是浏览器的拖放，不经过这里。
 import { reducedNow } from "../ui/reducedMotion";
 import { gapAim, INTO_BAND, LAST, rowAt, sameAim, type DragRow, type DropAim, type FolderMove } from "./folderMove";
+import { moveAndSettle, SETTLE, SETTLE_MS, spring, type Place } from "./folderDragMotion";
+import { readRows, type Row } from "./folderDragRows";
 
-/** 弹簧曲线，写成 CSS 的 linear()。damping 越小回弹越多：0.78 几乎不过冲，0.6 是一个小的“啵”。 */
-function spring(damping: number) {
-  const decay = 5.3; // 到终点时余量 0.5%
-  const wd = (decay / damping) * Math.sqrt(1 - damping * damping);
-  const points = Array.from({ length: 33 }, (_, i) => {
-    const t = i / 32;
-    return (1 - Math.exp(-decay * t) * (Math.cos(wd * t) + (decay / wd) * Math.sin(wd * t))).toFixed(4);
-  });
-  points[32] = "1";
-  return `linear(${points.join(", ")})`;
-}
-const SETTLE = spring(0.78);
-const SETTLE_MS = 280; // 行让开、合上、弹回
-const LAND = spring(0.7);
-const LAND_MS = 360; // 松手后落到新位置
 const FOLLOW_MS = 42; // 手里那一张跟手的迟滞（指数趋近的时间常数）
 const LEAN = 6; // 线两边最近的一行让开 6 px，往外每行是前一行的 0.7 倍、晚 24 ms 出发
 const FALLOFF = 0.7;
@@ -37,99 +24,6 @@ export type FolderDragHost = {
 
 /** 拖着的时候 <html> 上有这个属性：悬停高亮隐去，指针是抓住的手。 */
 const DRAGGING = "folderDragging";
-
-const folderButtons = (nav: Element) =>
-  [...nav.querySelectorAll<HTMLButtonElement>("button[data-folder-id]")].filter((button) => !button.closest("[inert]"));
-
-type Row = DragRow & { el: HTMLElement; button: HTMLButtonElement; left: number; width: number };
-
-function readRows(nav: Element): Row[] {
-  return folderButtons(nav).map((button) => {
-    const el = (button.closest(".k-fluid-row") as HTMLElement | null) ?? button;
-    const rect = el.getBoundingClientRect();
-    return {
-      id: button.dataset.folderId as string,
-      depth: Number(button.dataset.depth ?? 0),
-      parent: button.dataset.parentFolder || null,
-      el,
-      button,
-      top: rect.top,
-      left: rect.left,
-      width: rect.width,
-      height: rect.height,
-    };
-  });
-}
-
-type Place = { top: number; left: number; scale: number };
-
-/**
- * 跑一次移动，再让每一行从移动前在屏幕上的位置（from，按文件夹 id）弹到新位置；移动后焦点落在挪过去的文件夹上。
- * cleanup 在目录重画之后、量新位置之前调用：拖动留下的 transform 在这时拿掉。
- */
-export async function moveAndSettle(
-  nav: Element,
-  folderId: string,
-  run: () => Promise<unknown>,
-  from: Map<string, Place>,
-  cleanup: () => void = () => {},
-) {
-  const changed = new Promise<void>((done) => {
-    const observer = new MutationObserver(() => {
-      observer.disconnect();
-      done();
-    });
-    observer.observe(nav, { childList: true, subtree: true });
-    setTimeout(() => {
-      observer.disconnect();
-      done();
-    }, 800);
-  });
-  try {
-    await run();
-  } catch {
-    cleanup();
-    return;
-  }
-  await changed;
-  // 放进刚展开的文件夹时，子文件夹那一块要再画一帧才出来。
-  await new Promise((done) => requestAnimationFrame(done));
-  cleanup();
-  const rows = readRows(nav);
-  const landed = rows.find((row) => row.id === folderId);
-  landed?.button.focus({ preventScroll: true });
-  landed?.button.scrollIntoView({ block: "nearest" });
-  if (reducedNow() || !landed) return;
-  const at = rows.indexOf(landed);
-  for (const [index, row] of rows.entries()) {
-    const was = from.get(row.id);
-    if (!was) continue;
-    const dx = was.left - row.left;
-    const dy = was.top - row.top;
-    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && was.scale === 1) continue;
-    // 离落点越远的行越晚出发，像水波一样散出去。
-    const mine = row.id === folderId;
-    row.el.style.zIndex = mine ? "2" : "";
-    row.el
-      .animate([{ transform: `translate(${dx}px, ${dy}px) scale(${was.scale})` }, { transform: "none" }], {
-        duration: LAND_MS,
-        easing: LAND,
-        delay: mine ? 0 : Math.min(Math.abs(index - at), 8) * 16,
-        fill: "backwards",
-      })
-      .finished.then(
-        () => {
-          row.el.style.zIndex = "";
-        },
-        () => {},
-      );
-  }
-}
-
-/** 各行此刻在屏幕上的位置，给 {@link moveAndSettle} 用。 */
-export function placesNow(nav: Element): Map<string, Place> {
-  return new Map(readRows(nav).map((row) => [row.id, { top: row.top, left: row.left, scale: 1 }]));
-}
 
 /**
  * 在文件夹行上按下：移动超过几像素才开始拖，之前松开就是普通的点击。

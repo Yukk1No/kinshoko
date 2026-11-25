@@ -11,7 +11,7 @@ import {
   sharedTagGroups,
   isLensChanged,
 } from "../ipc";
-import { type Lens } from "../search/SearchBox";
+import type { Lens } from "../search/useCandidates";
 import { useUiLang } from "../i18n";
 import { useToast } from "../ui/Toast";
 

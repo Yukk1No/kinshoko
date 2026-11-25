@@ -16,7 +16,8 @@ import { useToast } from "../ui/Toast";
 import { FoldIcon } from "./FoldIcon";
 import { useFolded } from "./useFolded";
 import { Tip } from "../ui/Tip";
-import { armFolderDrag, moveAndSettle, placesNow, type FolderDragHost } from "./folderDrag";
+import { armFolderDrag, type FolderDragHost } from "./folderDrag";
+import { moveAndSettle, placesNow } from "./folderDragMotion";
 import { keyMove, LAST, locate, placeAfter, type FolderMove } from "./folderMove";
 
 export { LAST };
