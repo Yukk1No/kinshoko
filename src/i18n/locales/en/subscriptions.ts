@@ -72,7 +72,7 @@ const subscriptions: Translation<typeof zh> = {
     filter: "Filter artists",
     loading: "Reading your follows…",
     loadFailed: "Couldn't read your follows: {{error}}",
-    none: "You don't follow anyone on pixiv yet",
+    none: "You don't follow any artists on pixiv yet",
     selected: "{{count, number}} of {{total, number}} selected",
     subscribed: "Subscribed",
     back: "Back",
@@ -96,7 +96,7 @@ const subscriptions: Translation<typeof zh> = {
     notice: "pixiv sign-in expired, checks paused",
   },
   empty: {
-    signedOutTitle: "Sign in to pixiv to start",
+    signedOutTitle: "Sign in to pixiv to start subscribing",
     signedOutHint: "Unofficial feature, use a spare account",
     signIn: "Sign in to pixiv",
     waitingTitle: "Sign in in the window that opened",
@@ -291,8 +291,8 @@ const subscriptions: Translation<typeof zh> = {
     collected: "In library",
     chooseDestination: "Choose where to add it",
     collectFailed: "Couldn't add to library: {{error}}",
-    collectPartly_one: "{{count}} page wasn't added. You can try again",
-    collectPartly_other: "{{count}} pages weren't added",
+    collectPartly_one: "{{count}} page wasn't added to the library",
+    collectPartly_other: "{{count}} pages weren't added to the library",
     animationSkipped: "Animations aren't added to the library",
   },
 };

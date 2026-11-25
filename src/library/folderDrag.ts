@@ -4,25 +4,18 @@
 // 把图片从图片墙拖到文件夹上仍是浏览器的拖放，不经过这里。
 import { reducedNow } from "../ui/reducedMotion";
 import { gapAim, INTO_BAND, LAST, rowAt, sameAim, type DragRow, type DropAim, type FolderMove } from "./folderMove";
-import {
-  EDGE,
-  FALLOFF,
-  FOLLOW_MS,
-  INDENT,
-  INTO_MS,
-  LEAN,
-  SCROLL_MAX,
-  SETTLE,
-  SETTLE_MS,
-  STAGGER_MS,
-  START_PX,
-  spring,
-} from "./folderDragMotion";
-import { readRows, type Place, type Row } from "./folderDragRows";
-import { moveAndSettle } from "./folderDragSettle";
+import { moveAndSettle, SETTLE, SETTLE_MS, spring, type Place } from "./folderDragMotion";
+import { readRows, type Row } from "./folderDragRows";
 
-export { moveAndSettle } from "./folderDragSettle";
-export { placesNow } from "./folderDragRows";
+const FOLLOW_MS = 42; // 手里那一张跟手的迟滞（指数趋近的时间常数）
+const LEAN = 6; // 线两边最近的一行让开 6 px，往外每行是前一行的 0.7 倍、晚 24 ms 出发
+const FALLOFF = 0.7;
+const STAGGER_MS = 24;
+const INTO_MS = 320; // 在一行中段停这么久算“放进去”
+const START_PX = 4; // 按下后移动这么远才算开始拖
+const INDENT = 16; // 每深一层缩进
+const EDGE = 32; // 指针离滚动区上下边这么近时自动滚动
+const SCROLL_MAX = 14; // 自动滚动每帧最多滚这么多
 
 export type FolderDragHost = {
   /** 把文件夹移过去；成功时 resolve。 */

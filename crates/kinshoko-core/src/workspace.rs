@@ -15,24 +15,28 @@ mod image_read;
 pub use gate::ImageGate;
 mod snapshot;
 mod types;
-pub use types::{
-    STACK_PLACEHOLDER_PAGES, WorkspaceCard, WorkspaceDirectories, WorkspaceDirectory,
-    WorkspaceImageSet, WorkspacePage, WorkspaceQuery, WorkspaceScope, WorkspaceSource,
-    WorkspaceStatus,
-};
+pub use types::*;
+mod catalog_views;
+mod directories;
+mod image_access;
+mod search_index;
 mod vocabulary;
 use vocabulary::*;
 
 use crate::approx::BuiltinApproxTable;
 use crate::library::provider::ProviderImage;
-use crate::library::{Error, TagAlias, TagLabel, Vocabulary, VocabularyTag, display_label};
+use crate::library::{
+    BrowseScope, Error, TagAlias, TagLabel, Vocabulary, VocabularyTag, display_label,
+};
 use crate::search::{Candidate, Condition, ConditionTree, Search, SearchInput, Term};
 use crate::tag_catalog::{CatalogError, CatalogInspection, TagCatalog, TagCatalogWorkspace};
 use crate::{DeviceLibraries, LibraryRegistration};
 use rusqlite::{Connection, params};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use ts_rs::TS;
 
 #[derive(Clone)]
 struct Provider {
@@ -57,6 +61,10 @@ struct Snapshot {
     full_vocabulary: std::sync::OnceLock<Vocabulary>,
     safe_management_vocabulary: std::sync::OnceLock<Vocabulary>,
     full_management_vocabulary: std::sync::OnceLock<Vocabulary>,
+    safe_search: std::sync::Mutex<Option<search_index::CachedSearch>>,
+    full_search: std::sync::Mutex<Option<search_index::CachedSearch>>,
+    safe_resolve_search: std::sync::Mutex<Option<search_index::CachedSearch>>,
+    full_resolve_search: std::sync::Mutex<Option<search_index::CachedSearch>>,
     /// 按原图字节 SHA-256 索引全部来源：`(providers 下标, provider.images 下标)`，按需构建并缓存。
     by_sha256: std::sync::OnceLock<std::collections::HashMap<String, Vec<(usize, usize)>>>,
 }
@@ -91,6 +99,7 @@ pub struct Workspace {
     cache: Option<std::sync::Arc<Snapshot>>,
     browse_cache: BrowseCache,
     gate: std::sync::Arc<ImageGate>,
+    search_builds: usize,
 }
 impl Workspace {
     pub fn open(dir: &Path) -> Result<Self, CatalogError> {
@@ -110,272 +119,18 @@ impl Workspace {
             cache: None,
             browse_cache: BrowseCache::default(),
             gate,
+            search_builds: 0,
         })
+    }
+    #[doc(hidden)]
+    pub fn search_builds(&self) -> usize {
+        self.search_builds
     }
     /// 放掉长期只读打开的提供方（[`ImageGate::clear`]）。Windows 上握着句柄时资料库文件夹改不了名、
     /// 删不掉；应用壳在切换、登记变化时经它握着的放行清掉，这里给只持有工作区的调用方用。
     pub fn release_readers(&self) {
         self.gate.clear();
     }
-    /// Names and group management share browse safety, while unused definitions remain manageable.
-    /// 复用这个工作区的快照（#337）：应用壳经共享的工作区读，不必每次从头装配各提供方。
-    pub fn inspect_catalog(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        safe: bool,
-    ) -> Result<TagCatalogWorkspace, CatalogError> {
-        let snapshot = self.snapshot(device, catalog)?;
-        let visible = visible_catalog(&snapshot, safe);
-        if self.snapshot(device, catalog)?.status.revision != snapshot.status.revision {
-            return Err(Error::CursorExpired.into());
-        }
-        Ok(TagCatalogWorkspace {
-            catalog: visible,
-            libraries: snapshot.status.libraries.clone(),
-        })
-    }
-    pub fn status(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        safe: bool,
-    ) -> Result<WorkspaceStatus, CatalogError> {
-        Ok(self.snapshot(device, catalog)?.status(safe))
-    }
-    pub fn resolve(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        input: &SearchInput,
-        lang: &str,
-        safe: bool,
-        builtin: &BuiltinApproxTable,
-    ) -> Result<ConditionTree, CatalogError> {
-        let snapshot = self.snapshot(device, catalog)?;
-        // 点分组里还没人用过的预置标签也要解析成它自己（#484），近似对应才能展开。
-        let mut vocabulary = global_vocabulary(&snapshot, safe).clone();
-        let present = vocabulary
-            .tags
-            .iter()
-            .map(|tag| tag.id.clone())
-            .collect::<BTreeSet<_>>();
-        vocabulary.tags.extend(
-            unattached_preset_tags(&snapshot)
-                .into_iter()
-                .filter(|tag| !present.contains(&tag.id)),
-        );
-        let search = Search::new(&vocabulary, builtin);
-        Ok(search.resolve_with_tag_fallback(input, lang, |id| {
-            // 已点选的标签不因没有活动图片而消失，但仍须遵守安全模式。
-            management_vocabulary(&snapshot, safe)
-                .tags
-                .iter()
-                .find(|tag| tag.id == id)
-                .map(|tag| display_label(id, tag.namespace, &tag.names, &tag.external, lang))
-        }))
-    }
-    #[allow(clippy::too_many_arguments)]
-    pub fn candidates(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        text: &str,
-        lang: &str,
-        limit: usize,
-        safe: bool,
-        builtin: &BuiltinApproxTable,
-    ) -> Result<Vec<Candidate>, CatalogError> {
-        let snapshot = self.snapshot(device, catalog)?;
-        Ok(Search::new(global_vocabulary(&snapshot, safe), builtin).candidates(text, lang, limit))
-    }
-    /// Shared groups use unified identities and the workspace's all-source safety view.
-    pub fn tag_groups(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        _library_id: &str,
-        lang: &str,
-        safe: bool,
-    ) -> Result<Vec<crate::library::TagGroupView>, CatalogError> {
-        let snapshot = self.snapshot(device, catalog)?;
-        catalog.groups(management_vocabulary(&snapshot, safe), lang)
-    }
-    pub fn shared_tag_groups(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        lang: &str,
-        safe: bool,
-    ) -> Result<Vec<crate::tag_catalog::CatalogGroupView>, CatalogError> {
-        let snapshot = self.snapshot(device, catalog)?;
-        catalog.group_views(management_vocabulary(&snapshot, safe), lang)
-    }
-    /// Every registered root and its complete directory tree share one safety/revision snapshot.
-    pub fn directories(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        safe: bool,
-    ) -> Result<WorkspaceDirectories, CatalogError> {
-        let snapshot = self.snapshot(device, catalog)?;
-        let mut providers = Vec::new();
-        for provider in &snapshot.providers {
-            let (sidebar, unassigned, descendants) = if provider.registration.unavailable.is_none()
-            {
-                let library = self.provider(device, &provider.registration.library)?;
-                let (sidebar, descendants) =
-                    directory_sidebar(&snapshot, provider, &library, safe)?;
-                if library.provider_revision()? != (provider.list, provider.revision) {
-                    return Err(Error::CursorExpired.into());
-                }
-                let unassigned = provider
-                    .images
-                    .iter()
-                    .filter(|i| {
-                        !i.deleted
-                            && i.folders.is_empty()
-                            && (!safe || !snapshot.adult.contains(&i.sha256))
-                    })
-                    .count() as u32;
-                (Some(sidebar), unassigned, descendants)
-            } else {
-                (None, 0, BTreeMap::new())
-            };
-            providers.push(WorkspaceDirectory {
-                registration: provider.registration.clone(),
-                sidebar,
-                unassigned,
-                descendants,
-            });
-        }
-        if self.snapshot(device, catalog)?.status.revision != snapshot.status.revision {
-            return Err(Error::CursorExpired.into());
-        }
-        Ok(WorkspaceDirectories {
-            status: snapshot.status(safe),
-            providers,
-            registration_order: device.libraries().iter().map(|r| r.id.clone()).collect(),
-        })
-    }
-    /// Compatibility projection of one provider; forest reads use `directories`.
-    pub fn sidebar(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        library_id: &str,
-        safe: bool,
-    ) -> Result<crate::library::Sidebar, CatalogError> {
-        let snapshot = self.snapshot(device, catalog)?;
-        let provider = snapshot
-            .providers
-            .iter()
-            .find(|p| p.registration.library.id == library_id)
-            .ok_or(CatalogError::UnknownMapping)?;
-        // 与 `directories` 一样经长期打开的只读句柄读（#337）：不再每次重新打开资料库。
-        let library = self.provider(device, &provider.registration.library)?;
-        Ok(directory_sidebar(&snapshot, provider, &library, safe)?.0)
-    }
-    /// Authorize one image read for a thumbnail or display request (#123) and return its provider
-    /// reader: the slow path behind [`ImageGate::authorize`]. Same checks as `contains` bracketed by
-    /// an unchanged revision; the snapshot it takes is published to the gate, so the next requests
-    /// take the fast path again. The reader is the shared unfiltered one (see `ImageGate`).
-    pub fn image_reader(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        library_id: &str,
-        image_id: &str,
-        safe: bool,
-    ) -> Result<std::sync::Arc<crate::library::Library>, CatalogError> {
-        let snapshot = self.snapshot(device, catalog)?;
-        let allowed = snapshot
-            .identities
-            .get(&(library_id.into(), image_id.into()))
-            .is_some_and(|hash| !safe || !snapshot.adult.contains(hash));
-        if !allowed {
-            return Err(Error::UnknownImage.into());
-        }
-        let registration = device
-            .libraries()
-            .iter()
-            .find(|r| r.id == library_id)
-            .ok_or(Error::UnknownImage)?
-            .clone();
-        let library = self.provider(device, &registration)?;
-        if self.snapshot(device, catalog)?.status.revision != snapshot.status.revision {
-            return Err(Error::CursorExpired.into());
-        }
-        Ok(library)
-    }
-    /// 登记的提供方的长期只读句柄（[`ImageGate`]）：不按安全模式过滤，调用方按快照判断封印。
-    fn provider(
-        &self,
-        device: &DeviceLibraries,
-        registration: &crate::RegisteredLibrary,
-    ) -> Result<std::sync::Arc<crate::library::Library>, CatalogError> {
-        self.gate
-            .reader(registration, device.safe_mode_scope())
-            .map_err(|e| CatalogError::Command(Box::new(e)))
-    }
-    /// O(log n) authorization after bounded provider/catalog revision checks, including trash views.
-    pub fn contains(
-        &mut self,
-        device: &DeviceLibraries,
-        catalog: &mut TagCatalog,
-        library_id: &str,
-        image_id: &str,
-        safe: bool,
-    ) -> Result<bool, CatalogError> {
-        let snapshot = self.snapshot(device, catalog)?;
-        let Some(hash) = snapshot
-            .identities
-            .get(&(library_id.into(), image_id.into()))
-        else {
-            return Ok(false);
-        };
-        Ok(!safe || !snapshot.adult.contains(hash))
-    }
-}
-fn directory_sidebar(
-    snapshot: &Snapshot,
-    provider: &Provider,
-    library: &crate::Library,
-    safe: bool,
-) -> Result<(crate::library::Sidebar, BTreeMap<String, u32>), CatalogError> {
-    // Folder structure is independent of local safety; every count is replaced from the global snapshot.
-    let mut sidebar = library.sidebar()?;
-    let visible = provider
-        .images
-        .iter()
-        .filter(|i| !safe || !snapshot.adult.contains(&i.sha256))
-        .collect::<Vec<_>>();
-    sidebar.all = visible.iter().filter(|i| !i.deleted).count() as u32;
-    sidebar.trash = visible.iter().filter(|i| i.deleted).count() as u32;
-    let mut direct: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
-    for image in visible.iter().filter(|i| !i.deleted) {
-        for folder in &image.folders {
-            direct.entry(folder).or_default().insert(&image.id);
-        }
-    }
-    fn folders<'a>(
-        nodes: &mut [crate::library::FolderNode],
-        direct: &BTreeMap<&str, BTreeSet<&'a str>>,
-        counts: &mut BTreeMap<String, u32>,
-    ) -> BTreeSet<&'a str> {
-        let mut all = BTreeSet::new();
-        for node in nodes {
-            let mut images = direct.get(node.id.as_str()).cloned().unwrap_or_default();
-            node.count = images.len() as u32;
-            images.extend(folders(&mut node.children, direct, counts));
-            counts.insert(node.id.clone(), images.len() as u32);
-            all.extend(images);
-        }
-        all
-    }
-    let mut descendants = BTreeMap::new();
-    folders(&mut sidebar.folders, &direct, &mut descendants);
-    Ok((sidebar, descendants))
 }
 fn digest(bytes: &[u8]) -> String {
     Sha256::digest(bytes)[..16]

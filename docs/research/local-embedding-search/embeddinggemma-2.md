@@ -1,5 +1,7 @@
 # 2. EmbeddingGemma 2：一手资料能确认什么
 
+[← 返回索引](../local-embedding-search.md)
+
 | 项目 | 来源陈述 |
 |---|---|
 | 身份与日期 | Google DeepMind 博客 2026-10-06 发布，作者 Sahil Dua、Henrique Schechter Vera；基于 Gemma 4 架构。[官方博客](https://blog.google/innovation-and-ai/technology/developers-tools/embeddinggemma-2)。HF 仓库 `google/embeddinggemma-2` 当前修订为 `914f7f8`，未设门禁。[HF API](https://huggingface.co/api/models/google/embeddinggemma-2) |
@@ -15,10 +17,6 @@
 
 **矛盾需要实测：** 官方模型卡说 float16 会出 NaN 或悄悄变差，ONNX 转换方却报告 fp16 最差余弦 0.9998；DigUp 也因溢出问题不用 F16。两者可能在不同的图上保留了 fp32 计算，无法从文档判断。在 DirectML 上用 fp16，必须按 DigUp 的做法与 CPU fp32 的参考向量逐项比较。（适配推论）
 
-**查询前缀（来源陈述）。** 模型卡建议文字查询加前缀 `task: search result | query: `，文字文档加 `title: {title} | text: {content}`（无标题时 `title: none`）；图片、视频、音频不加前缀。省略前缀“仍可用，但会降低精度”。[模型卡](https://huggingface.co/google/embeddinggemma-2/blob/914f7f89142e33e77833254d9c9b90c3cef7303b/README.md)。直接调用 ONNX 图时没有任何库会代为加前缀，所以前缀必须由 Kinshoko 写入，并计入向量指纹（第 1 节“模型版本记录”）。
+**查询前缀（来源陈述）。** 模型卡建议文字查询加前缀 `task: search result | query: `，文字文档加 `title: {title} | text: {content}`（无标题时 `title: none`）；图片、视频、音频不加前缀。省略前缀“仍可用，但会降低精度”。[模型卡](https://huggingface.co/google/embeddinggemma-2/blob/914f7f89142e33e77833254d9c9b90c3cef7303b/README.md)。直接调用 ONNX 图时没有任何库会代为加前缀，所以前缀必须由 Kinshoko 写入，并计入向量指纹（见[DigUp 设计参照](digup.md)中的“模型版本记录”）。
 
 Kinshoko 通过 ort 在 Rust 中运行时，还要自己实现 Gemma 分词（`tokenizer.json`）、Gemma 4 图像预处理（按软 token 预算缩放，每边取 48 px 的整数倍；DigUp 的 [ImageSizing.swift](https://github.com/ARahim3/DigUp/blob/ec28973268b81f836be72187ff23b3a16ef4fd97/Sources/LlamaRuntime/ImageSizing.swift) 移植了这一算法），以及把视觉编码器的输出接入文字图的方式。最后一项的张量契约**未核实**。（适配推论）
-
----
-
-返回：[《本地多模态向量检索在高级检索中的位置》索引](../local-embedding-search.md)。

@@ -147,7 +147,7 @@ const importing: Translation<typeof zh> = {
     mergedReason: "Both map to the same external name, so they were the same tag all along",
     mappedLabel: "Mappings filled in",
     mappedMerged: "Merged into the tag that maps to this external name",
-    unknown: "This name isn't in the vocabulary; the built-in approximate-match table probably doesn't know it",
+    unknown: "This name isn't in the vocabulary; built-in similar tags probably won't recognize it",
     unmatchedLabel: "Tags without an external mapping",
     matchFailed: "Couldn't match tags to external names: {{error}}",
     mapFailed: "Couldn't fill in the external mapping for {{name}}: {{error}}",

@@ -1,6 +1,5 @@
 //! 工作区的图片墙浏览与单张卡片。
 use super::*;
-use crate::library::BrowseScope;
 
 /// 一组浏览结果里的一张卡片。占位图不属于结果，按页现取，所以这里的 `card` 不带它
 /// （`placeholder` 为 `None`）。

@@ -153,3 +153,12 @@ export function saveAnchor(key: string, anchor: Anchor | null) {
     // 忽略失败：本地存储不可用时只是不记住位置。
   }
 }
+
+/** 按 `data-id` 查找墙上卡片节点：不拼属性选择器，避免 id 含特殊字符时 `querySelector` 抛错（#716）。 */
+export function findCardElement(root: ParentNode | null | undefined, id: string): HTMLElement | null {
+  if (!root) return null;
+  for (const node of root.querySelectorAll<HTMLElement>(".card")) {
+    if (node.dataset.id === id) return node;
+  }
+  return null;
+}

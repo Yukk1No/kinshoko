@@ -32,6 +32,13 @@ const sidebars: Record<string, { all: number; trash: number; folders: Folder[] }
   L2: { all: 356, trash: 0, folders: [folder("G1", "色彩", 120), folder("G2", "质感", 77)] },
 };
 
+const language = {
+  choice: "system",
+  current() {
+    return this.choice === "system" ? (params.get("lang") === "en" ? "en" : "zh-CN") : this.choice;
+  },
+};
+
 /** 样张的宽高；编号决定色块的颜色（见 vite.config.ts）。 */
 const shapes = [[3, 4], [4, 3], [1, 1], [2, 3], [16, 9], [3, 5], [5, 4], [3, 4], [9, 16], [4, 5], [1, 1], [7, 5]];
 const cards = Array.from({ length: 96 }, (_, index) => {
@@ -128,7 +135,15 @@ const replies: Record<string, Reply> = {
   capture_history: () => [],
   take_collection_request: () => null,
   reference_groups: () => [],
-  interface_language: () => "zh-CN",
+  // 界面语言（#358）：?lang=en 当作英文系统；改选后像核心一样发 `interface-language`。
+  interface_language: () => language.current(),
+  interface_language_choice: () => language.choice,
+  set_interface_language: (args) => {
+    language.choice = String(args.lang);
+    const lang = language.current();
+    void emit("interface-language", lang);
+    return lang;
+  },
   subscription_status: () => ({ enabled: true, login: { state: "loggedOut" }, signingIn: false, checking: false, newCount: 0, backoffUntil: null }),
   take_open_request: () => null,
   double_click: () => null,

@@ -16,7 +16,8 @@ import { useToast } from "../ui/Toast";
 import { FoldIcon } from "./FoldIcon";
 import { useFolded } from "./useFolded";
 import { Tip } from "../ui/Tip";
-import { armFolderDrag, moveAndSettle, placesNow, type FolderDragHost } from "./folderDrag";
+import { armFolderDrag, type FolderDragHost } from "./folderDrag";
+import { moveAndSettle, placesNow } from "./folderDragMotion";
 import { keyMove, LAST, locate, placeAfter, type FolderMove } from "./folderMove";
 
 export { LAST };
@@ -168,6 +169,7 @@ export function SidebarPane({
   const drop = (folderId: string) => (e: DragEvent) => {
     e.preventDefault();
     setDropTarget(null);
+    if (typeof e.dataTransfer?.getData !== "function") return;
     try {
       const images = droppedImages(e, libraryId);
       if (images.length) void run(editImages(libraryId, images, [{ kind: "addToFolder", folderId }]));

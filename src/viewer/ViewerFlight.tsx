@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObje
 import { motion } from "motion/react";
 import { arcSpring } from "../ui/motion";
 import { useReducedMotion } from "../ui/reducedMotion";
-import type { BrowserCard } from "../wall/wallShared";
+import { findCardElement, type BrowserCard } from "../wall/wallShared";
 
 export type FlightRect = { x: number; y: number; width: number; height: number };
 /** 查看器此刻把图放在哪（窗口坐标），以及位图读到了哪一步。 */
@@ -55,7 +55,7 @@ export const tokenMs = (name: string) => {
  * 找不到时（墙外的图、被移走的图）退回淡入淡出。
  */
 export function flightCard(id: string, host: HTMLElement | null): { el: HTMLElement; rect: FlightRect } | null {
-  const el = host?.querySelector<HTMLElement>(`.card[data-id="${id}"]`);
+  const el = findCardElement(host, id);
   const wall = el?.closest<HTMLElement>(".wall");
   if (!el || !wall || el.dataset.leaving === "true" || el.classList.contains("is-arriving")) return null;
   const rect = el.getBoundingClientRect();

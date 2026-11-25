@@ -216,7 +216,7 @@ describe("主窗口", () => {
   });
 
   it("设置读不出来时，设置对话框仍有关闭按钮，并显示原因与重试", async () => {
-    backend(library, clean, { shell_settings: () => Promise.reject("设置文件被占用") });
+    backend(library, clean, { shell_settings: () => Promise.reject({ code: "io", detail: "设置文件被占用" }) });
     render(<App />);
     await screen.findAllByRole("img");
     fireEvent.click(screen.getByRole("button", { name: "设置" }));

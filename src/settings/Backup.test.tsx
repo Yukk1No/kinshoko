@@ -6,59 +6,14 @@ import type { BackupStatus } from "../bindings/BackupStatus";
 import type { RestoreReport } from "../bindings/RestoreReport";
 import type { SnapshotSummary } from "../bindings/SnapshotSummary";
 import { BackupReminder, BackupSettings } from "./Backup";
+import { at, backend, empty, narrowed, withTarget } from "./Backup.fixtures";
 import { chooseOption } from "../test/select";
-import { fakeBackend, type Replies } from "../test/backend";
 import { cssRule } from "../ui/cssRule";
 import settingsCss from "./settings.css?raw";
 
 afterEach(() => {
   delete window.__KINSHOKO_TEST_PICKS__;
 });
-
-const at = { unixMs: 1_791_158_400_000, offsetMinutes: 480 };
-
-const empty: BackupStatus = {
-  plan: {
-    target: null,
-    selection: { kind: "all" },
-    lastSuccess: null,
-    lastSnapshot: null,
-    lastFailure: null,
-    due: false,
-  },
-  running: null,
-  lastReport: null,
-};
-
-const withTarget: BackupStatus = {
-  ...empty,
-  plan: { ...empty.plan, target: "E:\\备份", lastSuccess: at, lastSnapshot: "20261005-080000-abcdef" },
-};
-
-const registrations = [
-  { library: { id: "A", name: "主库", root: "D:\\主库" }, unavailable: null },
-  { library: { id: "B", name: "旧库", root: "D:\\旧库" }, unavailable: null },
-];
-
-const narrowed: BackupPreview = {
-  scope: {
-    libraries: [{ id: "A", name: "主库" }],
-    groups: [{ id: "g1", name: "眼睛参考" }],
-    steps: [{ kind: "linkedGroup", libraryId: "A", groupId: "g1" }],
-    uncovered: [{ kind: "library", group: { id: "g1", name: "眼睛参考" }, libraryId: "B", libraryName: "旧库" }],
-  },
-  estimate: {
-    totalBytes: 30 * 1024 * 1024,
-    newBytes: 2 * 1024 * 1024,
-    originals: 12,
-    newOriginals: 1,
-    unavailable: [],
-  },
-  targetAvailable: true,
-};
-
-/** 备份设置的假后端：两个已登记的图库，其余照 `replies`。 */
-const backend = (replies: Replies) => fakeBackend({ registered_libraries: registrations, ...replies });
 
 describe("设置：备份", () => {
   it.each([false, true])(
@@ -277,7 +232,7 @@ describe("设置：备份", () => {
     const fake = backend({
       backup_status: selected,
       set_backup_selection: (args) => ({ ...selected, plan: { ...selected.plan, selection: args.selection } }),
-      backup_preview: narrowed,
+      backup_preview: { ...narrowed, targetFreeBytes: 1 },
     });
     render(
       <div className="k-settings">
@@ -285,6 +240,7 @@ describe("设置：备份", () => {
       </div>,
     );
     const oldEstimate = await screen.findByText(/新原图 1 张/);
+    const oldWarning = screen.getByText(/备份位置空间不足/);
     const preview = screen.getByRole("group", { name: "备份内容" });
     const mutedSelector = '.k-settings .backup-preview[aria-hidden="true"]';
     let resolve!: (preview: BackupPreview) => void;
@@ -305,10 +261,12 @@ describe("设置：备份", () => {
     expect(getComputedStyle(preview).visibility).toBe("visible");
     expect(screen.queryByRole("group", { name: "备份内容" })).toBeNull();
     expect(isInaccessible(oldEstimate)).toBe(true);
+    expect(isInaccessible(oldWarning)).toBe(true);
     expect(isInaccessible(estimating)).toBe(false);
     expect(preview.getAttribute("aria-hidden")).toBe("true");
     expect(preview.matches(mutedSelector)).toBe(true);
     expect(cssRule(settingsCss, mutedSelector).color).toBe("color-mix(in srgb, var(--ink-2) 90%, var(--bg))");
+    expect(cssRule(settingsCss, `${mutedSelector} .is-warn`).color).toBe("inherit");
     expect(settingsCss).not.toMatch(/\.backup-preview\s*\{[^}]*\bcolor\s*:/);
 
     await act(async () => resolve({ ...narrowed, estimate: { ...narrowed.estimate, newOriginals: 2 } }));
@@ -316,6 +274,7 @@ describe("设置：备份", () => {
     expect(newEstimate.parentElement).toBe(preview);
     expect(screen.getByRole("group", { name: "备份内容" })).toBe(preview);
     expect(isInaccessible(newEstimate)).toBe(false);
+    expect(screen.queryByText(/备份位置空间不足/)).toBeNull();
     expect(preview.getAttribute("aria-hidden")).toBeNull();
     expect(preview.matches(mutedSelector)).toBe(false);
   });

@@ -232,7 +232,7 @@ export function useShellSettings(shared?: ShellSettings, onChange?: (view: Shell
     let alive = true;
     setLoadError(null);
     void store.load().then((result) => {
-      if (alive && !result.ok) setLoadError(String(result.reason));
+      if (alive && !result.ok) setLoadError(errorText(result.reason));
     });
     return () => {
       alive = false;

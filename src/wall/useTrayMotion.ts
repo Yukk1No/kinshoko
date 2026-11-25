@@ -7,7 +7,7 @@ import { reducedNow } from "../ui/reducedMotion";
 import { tokenMs } from "../viewer/ViewerFlight";
 import type { Anchor, Layout } from "./layout";
 import { cardThumbnail } from "./thumbnailTier";
-import type { BrowserCard } from "./wallShared";
+import { findCardElement, type BrowserCard } from "./wallShared";
 
 /** 托盘开合这一次重排的节奏：飞的那几页用弹簧，其余格子用缓动，时长都是 `--t-slow`。 */
 export type TrayMotion = { flights: ReadonlySet<string> };
@@ -15,10 +15,6 @@ export type TrayMotion = { flights: ReadonlySet<string> };
 /** 读动效令牌的曲线；读不到时（测试环境）为线性。 */
 export const tokenEasing = (name: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "linear";
-
-/** 墙上这一格的节点（id 不经转义，逐个比对）。 */
-const cardNode = (el: HTMLElement | null, id: string) =>
-  [...(el?.querySelectorAll<HTMLElement>(".card") ?? [])].find((node) => node.dataset.id === id) ?? null;
 
 type Ghost = { card: BrowserCard; from: { x: number; y: number; w: number; h: number } };
 
@@ -80,7 +76,7 @@ export function useTrayMotion({
         settledTop.current = null;
       }
       // 各页从封面的位置飞出：封面就是第一页，其余各页的起点也设在封面上。
-      const cover = cardNode(scroller.current, card.id)?.querySelector<HTMLElement>(".stack-cover");
+      const cover = findCardElement(scroller.current, card.id)?.querySelector<HTMLElement>(".stack-cover");
       const from = cover?.getBoundingClientRect();
       if (from && from.width > 0) for (const page of set.pages) beforeReflow.current.set(page.id, from);
       trayMotion.current = { flights: new Set(set.pages.map((page) => page.id)) };
@@ -138,11 +134,11 @@ export function useTrayMotion({
     const first = openSet !== null ? focusFirst.current : focusStack.current;
     focusFirst.current = null;
     focusStack.current = null;
-    if (first && el) cardNode(el, first)?.focus({ preventScroll: true });
+    if (first && el) findCardElement(el, first)?.focus({ preventScroll: true });
     const pending = gather.current;
     gather.current = null;
     if (!pending || openSet !== null || !el) return;
-    const node = cardNode(el, pending.stack);
+    const node = findCardElement(el, pending.stack);
     const host = el.querySelector<HTMLElement>(".wall-ghosts");
     const index = ids.indexOf(pending.stack);
     if (!node || !host || index < 0) return;

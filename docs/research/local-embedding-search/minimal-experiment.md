@@ -1,5 +1,7 @@
 # 8. 最小实验计划（未执行）
 
+[← 返回索引](../local-embedding-search.md)
+
 样本使用现有清单：[`sample-manifest.pixiv.json`](../../validation/sample-manifest.pixiv.json) 共 238 张（evaluation 185 张，calibration 53 张），覆盖维度包括 `hair:*`、`style:twintails／ponytail`、`bangs:blunt／hime／middle-part`、`length:*`、`lineart`、`grayscale`、`thick-paint`、`backlight`、`multi-person`、`full-body`、`very-tall` 等；[`sample-manifest.pixiv-r18.json`](../../validation/sample-manifest.pixiv-r18.json) 共 14 张。覆盖维度和作者标签都只是弱真值（[验收约定](../../validation/acceptance.md)）。
 
 1. **文字找图。** 从覆盖维度生成查询，每个维度分别写中文、日文和英文版本，例如“双马尾”“ツインテール”“twintails”“逆光”“黑白线稿”；所有带该维度的 evaluation 样本都视为期望结果。仿照 DigUp `evals` 的格式记为 `{q, expect, tag}`。文字查询一律加模型卡建议的查询前缀，另做一组不加前缀的对照，单独报告差异。**这一组只衡量“像标签的概念”能否跨语言找到，不能代表语义搜索。** 另需一组由画师写的复合描述，例如“逆光下的侧脸”“低头整理头发的背影”“冷色调的雨夜氛围”，每条对候选图逐张做独立的分级相关性判断（相关、部分相关、不相关）；是否保留模型以这一组为准。比较四种做法：(a) PixAI 标签＋翻译表的精确条件；(b) 只用 EmbeddingGemma 2 的文字查询；(c) 先按标签筛选再用向量排序；(d) 用 RRF 或 z 分加分做融合。记录 R@10、MRR，并按语言分别统计。分级判断用 NDCG@10 计分，增益定为相关 2、部分相关 1、不相关 0；R@10、MRR 等二值指标把“部分相关”同时按相关与不相关各算一遍，两种口径都报告，避免一种口径单独决定比较结论。
@@ -10,7 +12,3 @@
 6. **全量暴力查询。** “不需要 ANN”这一判断依赖暴力检索在目标规模上够快，必须单独测：用 20 万条合成向量（768 维 float16 与 PixAI 的 1024 维各一套），在两台验收机器上分别测冷启动（向量未在内存中，从 SQLite 读入）与热查询，完整走一遍“限定可见 id 集合 → 计算余弦 → 在集合内归一化与统计 → 对完整结果排序与折叠”，记录查询 p50／p95 与常驻内存。超出交互响应预算时，再考虑常驻内存矩阵、分块或 ANN。
 
 **记录与判定：** 按[验收约定](../../validation/acceptance.md)的方式保存首版与修正版两份数字。是否保留某个方案，看“这一屏值得刷吗”的画师反馈和召回指标，而不是看模型榜单。
-
----
-
-返回：[《本地多模态向量检索在高级检索中的位置》索引](../local-embedding-search.md)。

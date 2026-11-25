@@ -354,4 +354,46 @@ describe("查看器设备像素", () => {
     fireEvent.keyDown(first, { key: "Escape" });
     expect(close).toHaveBeenCalledOnce();
   });
+
+  it("切到下一张图后，上一张图迟到的 unknownImage 不关闭当前查看器；拖动时不重复绑定 wheel（#716）", async () => {
+    let rejectPin: (reason?: unknown) => void = () => {};
+    fakeBackend({
+      image: {},
+      pin_reference: () =>
+        new Promise((_, reject) => {
+          rejectPin = reject;
+        }),
+    });
+    const close = vi.fn();
+    const view = render(
+      <Viewer
+        libraryId="L1"
+        card={{ id: "a", width: 2400, height: 1600, thumbnail: "", adult: false }}
+        onClose={close}
+      />,
+    );
+    const stage = screen.getByAltText("正在查看的参考图").parentElement!;
+    const addSpy = vi.spyOn(stage, "addEventListener");
+    const initialWheelCalls = addSpy.mock.calls.filter(([type]) => type === "wheel").length;
+
+    // 触发图 a 的钉图并立刻切到图 b，然后平移拖动。
+    fireEvent.keyDown(stage, { key: "p" });
+    view.rerender(
+      <Viewer
+        libraryId="L1"
+        card={{ id: "b", width: 2400, height: 1600, thumbnail: "", adult: false }}
+        onClose={close}
+      />,
+    );
+    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 200, clientY: 200, button: 0 });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 240, clientY: 230 });
+    fireEvent.pointerUp(stage, { pointerId: 1 });
+    expect(addSpy.mock.calls.filter(([type]) => type === "wheel").length).toBe(initialWheelCalls);
+
+    await act(async () => {
+      rejectPin({ code: "unknownImage" });
+      await Promise.resolve();
+    });
+    expect(close).not.toHaveBeenCalled();
+  });
 });

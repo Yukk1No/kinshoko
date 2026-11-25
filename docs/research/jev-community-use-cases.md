@@ -8,7 +8,7 @@
 
 **按发起者反馈修正评估标准：Jev 应承担需要及时响应的局部语义判断，处在纯机械规则与较重模型之间。** 不能以高正确率为设计前提；价值要来自缩短等待，以及误判后仍容易继续操作。上一版优先推荐批量分类、审核和整理，只考虑了“能否表达为结构化判断”，没有说明这些任务为何需要这种响应速度，现撤回该优先级。
 
-按这一标准，最值得借鉴的是 jev-canvas 的命令与完整性判断、wakegate 的语义唤醒判断，以及 skillbox 在有限目录中的即时建议。具体能否用于 Kinshoko，取决于是否出现规则处理不了、用户又等不起复杂推理的交互点。下文七个项目的源码事实保留；对应的 Kinshoko 用途都是提案，其适用性以下方修订后的优先顺序为准。模型端和网络端的实际延迟、中文误判率尚未实测。
+按这一标准，最值得借鉴的是 jev-canvas 的命令与完整性判断、wakegate 的语义唤醒判断，以及 skillbox 在有限目录中的即时建议。具体能否用于 Kinshoko，取决于是否出现规则处理不了、用户又等不起复杂推理的交互点。七个项目的源码事实保留在下方两份样例文档；对应的 Kinshoko 用途都是提案，其适用性以[修订后的优先顺序](jev-community-use-cases/kinshoko-priorities.md)为准。模型端和网络端的实际延迟、中文误判率尚未实测。
 
 | 项目 | 核查提交 | 真实 Jev 输出原语 | 输出参与的流程 |
 | --- | --- | --- | --- |
@@ -20,20 +20,8 @@
 | [skillbox](https://github.com/kitze/skillbox) | `cda64ad3` | Score，对有限技能目录逐项评分 | 按任务推荐既有技能，无匹配与模型不可用分别处理 |
 | [wakegate](https://github.com/shitianfang/wakegate) | `3a50a9e9` | Choice：wake、not_yet、unrelated | 判断事件是否值得唤醒等待中的代理，减少无关事件打断 |
 
-## 分篇
+## 目录
 
-### 社区项目核查
-
-- [zod-jev：把结构合法与语义合理分开](jev-community-use-cases/zod-jev.md)：结构校验、语义规则与待复核流程。
-- [jev-tree：在已定义的分类层级里选择](jev-community-use-cases/jev-tree.md)：沿固定分类树逐层选择的实现。
-- [jev-curate：把多个小判断组合成批量筛选](jev-community-use-cases/jev-curate.md)：Noul / Score 组合与批量数据筛选。
-- [jev-canvas：自然语言选操作，应用计算布局](jev-community-use-cases/jev-canvas.md)：命令理解、对象选择与布局计算分工。
-- [Vibe Check for X：按多个标准评价，视觉证据另行提供](jev-community-use-cases/vibe-check-for-x.md)：分项评价与视觉描述串行链路。
-- [skillbox：根据当前任务推荐已有工具](jev-community-use-cases/skillbox.md)：有限目录内的即时工具推荐。
-- [wakegate：决定事件是否值得打断当前工作](jev-community-use-cases/wakegate.md)：事件分流与语义唤醒判断。
-
-### 对 Kinshoko 的判断
-
-- [在 Kinshoko 中的优先顺序](jev-community-use-cases/kinshoko-priorities.md)：修订后的用途优先级与原因。
-- [对当前建模的具体启发](jev-community-use-cases/modeling-implications.md)：职责边界、状态保存与错误处理启发。
-- [如何以小实验验证，而不是凭社区热度选型](jev-community-use-cases/small-experiments.md)：小样本、延迟与误判成本验证方法。
+- [结构化选择与批量筛选样例](jev-community-use-cases/structured-selection.md)：zod-jev、jev-tree、jev-curate、jev-canvas 怎样把狭窄语义判断嵌进明确结构。
+- [评价、推荐与打断样例](jev-community-use-cases/ranking-and-interruption.md)：Vibe Check、skillbox、wakegate 怎样处理多标准评价、工具推荐和是否打断。
+- [Kinshoko 的取舍与验证](jev-community-use-cases/kinshoko-priorities.md)：哪些用途优先、对判断有效期与人工优先的建模启发，以及怎样用小实验验证。

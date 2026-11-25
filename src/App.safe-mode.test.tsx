@@ -12,8 +12,8 @@ import {
   selectionPanel,
   selectionBar,
 } from "./App.fixtures";
+import { book, cardOf, changed } from "./App.safe-mode.fixtures";
 import type { Args } from "./test/backend";
-import { cardOf, safeModeButton as book, safeModeChanged as changed } from "./App.safe-mode.fixtures";
 
 describe("安全模式", () => {
   it("新装默认开启；点封印书或按 Ctrl+Shift+S 切换", async () => {

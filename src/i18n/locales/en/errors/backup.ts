@@ -27,7 +27,7 @@ export default {
   checkMemberMismatch: "Member {{member}} of reference group “{{name}}” doesn't match",
   checkMemberSizeMismatch: "The original of member {{member}} in reference group “{{name}}” has the wrong size",
   checkMemberUnreadable: "Couldn't get the original of member {{member}} in reference group “{{name}}”: {{cause}}",
-  checkCaptureMismatch: "The capture of member {{member}} in reference group “{{name}}” doesn't match the snapshot",
+  checkCaptureMismatch: "The screenshot of member {{member}} in reference group “{{name}}” doesn't match the snapshot",
   checkOriginalMissing: "Original {{file}} is missing",
   checkOriginalMismatch: "Original {{file}} doesn't match",
   checkOriginalUnreadable: "Couldn't read original {{file}}: {{detail}}",

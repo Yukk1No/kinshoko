@@ -1,12 +1,10 @@
 //! Receipt projection uses the same all-known-provider inventory as ordinary browsing.
 use super::*;
 use crate::{ImportTaskSnapshot, library::ImportOutcome};
-use serde::Serialize;
 use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
 };
-use ts_rs::TS;
 
 #[derive(Clone)]
 struct PreviewEntry {

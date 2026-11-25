@@ -5,7 +5,7 @@ import { MAX_GHOSTS, SEAL, SealFx, type FxArrival, type FxSource } from "../shel
 import { safeTiming } from "../shell/safeTiming";
 import { reducedNow, useReducedMotion } from "../ui/reducedMotion";
 import type { masonry } from "./layout";
-import { RELEASE_WAIT, type BrowserCard, type LayoutSnapshot } from "./wallShared";
+import { findCardElement, RELEASE_WAIT, type BrowserCard, type LayoutSnapshot } from "./wallShared";
 
 type SafeReflow = {
   rects: Map<string, DOMRect>;
@@ -44,23 +44,36 @@ export function useSealRelease({
 }) {
   /** 已经放出（不再遮蔽）的含成人内容的图。 */
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
+  const revealedRef = useRef(revealed);
+  revealedRef.current = revealed;
   useEffect(() => {
     if (safeMode) {
-      setRevealed(new Set());
+      setRevealed((prev) => (prev.size === 0 ? prev : new Set()));
       return;
     }
     // 先以遮蔽的样子出现，下一帧再放出，遮蔽才有过渡可以淡出。
     // 一摞里的各页（#418）也算：托盘里的页与纸张按自己的 adult 放出，不只看封面。
-    const frame = requestAnimationFrame(() =>
-      setRevealed(
-        new Set(
-          cards
-            .flatMap((c) => [c, ...(c.set?.pages ?? [])])
-            .filter((c) => c.adult)
-            .map((c) => c.id),
-        ),
-      ),
-    );
+    const adultIds = new Set<string>();
+    for (const c of cards) {
+      if (c.adult) adultIds.add(c.id);
+      if (c.set) {
+        for (const page of c.set.pages) {
+          if (page.adult) adultIds.add(page.id);
+        }
+      }
+    }
+    const prev = revealedRef.current;
+    let unchanged = adultIds.size === prev.size;
+    if (unchanged) {
+      for (const id of adultIds) {
+        if (!prev.has(id)) {
+          unchanged = false;
+          break;
+        }
+      }
+    }
+    if (unchanged) return;
+    const frame = requestAnimationFrame(() => setRevealed(adultIds));
     return () => cancelAnimationFrame(frame);
   }, [cards, safeMode]);
   // ------------------------------------------------------------ 封印与释放（#27，原型 sealfx）
@@ -78,7 +91,7 @@ export function useSealRelease({
     (id: string) => {
       // 影子在这一帧移走：卡片同一帧就得显示，不能等 React 下一次提交，否则中间空出一帧，落地时闪一下。
       // React 随后按 arriving 把类名设成同样的值。
-      scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.classList.remove("is-arriving");
+      findCardElement(scroller.current, id)?.classList.remove("is-arriving");
       setArriving((s) => {
         if (!s.has(id)) return s;
         const n = new Set(s);
@@ -139,7 +152,7 @@ export function useSealRelease({
         w: rect.width,
         h: rect.height,
         target: () => {
-          const r = scroller.current?.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.getBoundingClientRect();
+          const r = findCardElement(scroller.current, id)?.getBoundingClientRect();
           return r && r.width > 0 ? r : null;
         },
       }));

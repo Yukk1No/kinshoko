@@ -23,8 +23,7 @@ export default {
   catalogUnknownMapping: "This tag mapping isn't in the library",
   catalogNamespaceMismatch: "Tags in different namespaces can't share an identity",
   catalogInvalidName: "The name and language can't be empty",
-  catalogStaleApproxConflict:
-    "Your personal similarity rules or sources have changed. Review the conflicts again and choose",
+  catalogStaleApproxConflict: "Similar tags have changed. Review the conflicts again and choose",
   catalogStaleNameMigration: "Names or tag mappings have changed. Open the migration assistant again",
   catalogIncompleteNameMigration: "Choose where each name in this batch belongs before confirming",
   catalogUnsupportedFormat: "The unified tag catalog was created by a newer version. Update Kinshoko",
@@ -33,7 +32,7 @@ export default {
   unknownGroup: "This reference group doesn't exist. It may have been deleted",
   invalidGroupName: "The reference group name can't be empty",
   groupNoMembers:
-    "There are no pins on the desktop that can be saved to a reference group. Collect captures into a library, or choose to keep them only in the reference group",
+    "There are no pins on the desktop that can be saved to a reference group. Collect screenshots into a library, or choose to keep them only in the reference group",
   groupUnsupportedVersion:
     "This reference group was saved by a newer version of Kinshoko (format version {{version}}). Upgrade to open it",
   groupInvalid: "The reference group file is damaged: {{cause}}",
@@ -46,7 +45,7 @@ export default {
   backupTargetUnavailable:
     "The backup destination isn't available: {{path}}. Connect the removable drive or choose another backup folder. Kinshoko will try again next time",
   unknownSnapshot: "This snapshot isn't in the backup destination",
-  snapshotIncomplete: "This snapshot is incomplete or damaged and can't be restored: {{cause}}",
+  snapshotIncomplete: "This backup is incomplete or damaged and can't be restored: {{cause}}",
   backupIo: "Couldn't read or write the backup: {{detail}}",
 
   backupUnfinished: "The backup didn't finish",
@@ -59,7 +58,7 @@ export default {
   snapshotDefinitionsConflict: "Tag definitions conflict with this app, so the content wasn't restored: {{cause}}",
   snapshotGroupUnreadable: "Reference group “{{name}}”: {{detail}}",
   snapshotGroupMismatch: "The snapshot of reference group “{{name}}” doesn't match",
-  snapshotCapturesMismatch: "The capture snapshot of reference group “{{name}}” doesn't match",
+  snapshotCapturesMismatch: "The screenshots in reference group “{{name}}” don't match its snapshot",
   restoreRoundTripMismatch:
     "The round-trip check after restoring didn't match. This batch was undone; you can try again",
   restoreRollbackIncomplete:
@@ -112,7 +111,7 @@ export default {
   subscriptionWorkTaken: "The new library already has this work",
   subscriptionRecordsChanged: "The collected images changed. Nothing was changed",
   shortcutAction: {
-    capture: "Capture",
+    capture: "Screenshot",
     pinClipboard: "Pin clipboard",
     hideAllPins: "Hide all pins",
   },
@@ -121,10 +120,10 @@ export default {
   captureSourceChanged: "The reference image source has changed. Select again",
   captureSealed: "The reference image is covered. Select again",
   capturePixels: "Couldn't read the reference image: {{detail}}",
-  captureUnknown: "This capture is no longer in the capture history",
+  captureUnknown: "This screenshot is no longer in the screenshot history",
   collectFailed: "Couldn't collect: {{cause}}",
-  captureIo: "Couldn't read or write the capture: {{detail}}",
-  captureSave: "Couldn't save the capture: {{detail}}",
+  captureIo: "Couldn't read or write the screenshot: {{detail}}",
+  captureSave: "Couldn't save the screenshot: {{detail}}",
   cropOutsideImage: "The selected area is empty or outside the original",
   system: "{{detail}}",
 };

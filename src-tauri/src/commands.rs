@@ -7,7 +7,7 @@ use kinshoko_core::command_error::ErrorKind;
 use kinshoko_core::{AppInfo, AppSettings, SettingChange, ShellSettingsView, ShortcutAction};
 use tauri::{AppHandle, Manager, State};
 
-use crate::shell::{self, ShellState, UiScaleState};
+use crate::shell::{self, InterfaceLanguageState, ShellState, UiScaleState};
 
 #[tauri::command]
 pub fn app_info() -> AppInfo {
@@ -188,15 +188,30 @@ pub fn interface_language() -> &'static str {
     kinshoko_core::interface_lang::current()
 }
 
-/// 换界面语言：主窗口、钉图菜单与截图窗口随即更新，不需要重启。设置里的选项随 #358 上线。
+/// 设置里选的界面语言（#358）：`system`（跟随系统）、`zh-CN` 或 `en`。
 #[tauri::command]
-pub fn set_interface_language(app: AppHandle, lang: String) -> Result<&'static str, CommandError> {
-    let lang = kinshoko_core::interface_lang::set(&lang).ok_or_else(|| {
-        CommandError::new(
-            ErrorKind::UnknownInterfaceLanguage { lang: lang.clone() },
-            format!("没有这种界面语言：{lang}"),
-        )
-    })?;
+pub async fn interface_language_choice(
+    state: State<'_, InterfaceLanguageState>,
+) -> Result<&'static str, CommandError> {
+    Ok(state.0.lock().map_err(CommandError::system)?.choice())
+}
+
+/// 改选界面语言（`system`、`zh-CN` 或 `en`）并保存，返回实际采用的界面语言。
+/// 主窗口、钉图菜单与截图窗口随即更新，不需要重启。
+#[tauri::command]
+pub async fn set_interface_language(
+    app: AppHandle,
+    state: State<'_, InterfaceLanguageState>,
+    lang: String,
+) -> Result<&'static str, CommandError> {
+    let choice = state
+        .0
+        .lock()
+        .map_err(CommandError::system)?
+        .set(&lang)
+        .map_err(CommandError::from)?;
+    let lang = shell::choose_interface_language(choice);
+    kinshoko_core::interface_lang::set(lang);
     shell::announce_interface_language(&app, lang);
     Ok(lang)
 }

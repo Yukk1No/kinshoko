@@ -1,3 +1,4 @@
+// 文件夹行在 DOM 里的读法：拖动会话与落定动画共用这一份测量。
 import type { DragRow } from "./folderMove";
 
 const folderButtons = (nav: Element) =>
@@ -21,11 +22,4 @@ export function readRows(nav: Element): Row[] {
       height: rect.height,
     };
   });
-}
-
-export type Place = { top: number; left: number; scale: number };
-
-/** 各行此刻在屏幕上的位置，给 {@link moveAndSettle} 用。 */
-export function placesNow(nav: Element): Map<string, Place> {
-  return new Map(readRows(nav).map((row) => [row.id, { top: row.top, left: row.left, scale: 1 }]));
 }

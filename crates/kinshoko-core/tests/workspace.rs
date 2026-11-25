@@ -362,9 +362,17 @@ fn unavailable_known_adult_source_keeps_veto_after_restart_until_refresh_or_expl
     );
 }
 
-#[path = "workspace_queries/offline_sources.rs"]
-mod query_offline_sources;
-#[path = "workspace_queries/paging.rs"]
-mod query_paging;
-#[path = "workspace_queries/tag_conditions.rs"]
-mod query_tag_conditions;
+#[path = "workspace_tag_labels.rs"]
+mod tag_labels;
+
+#[path = "workspace_synonym_queries.rs"]
+mod synonym_queries;
+
+#[path = "workspace_query_contracts.rs"]
+mod query_contracts;
+
+#[path = "workspace_source_identity.rs"]
+mod source_identity;
+
+#[path = "workspace_search_cache.rs"]
+mod search_cache;

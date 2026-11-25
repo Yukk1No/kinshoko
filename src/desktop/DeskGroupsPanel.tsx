@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, FolderInput, Layers, MoreHorizontal, Plus } from "lucide-react";
 import type { DeskLists } from "../bindings/DeskLists";
@@ -43,35 +43,70 @@ import { GroupNameForm } from "./GroupNameForm";
 import { groupLabel } from "./groupLabel";
 
 type Desk = { state: "loading" } | { state: "ready"; lists: DeskLists };
+type DeskSnapshot = { desk: Desk; failed: unknown };
+
+const INITIAL_DESK: DeskSnapshot = { desk: { state: "loading" }, failed: null };
+let deskSnapshot: DeskSnapshot = INITIAL_DESK;
+let deskSession = 0;
+let deskSequence = 0;
+let deskStop: (() => void) | null = null;
+const deskListeners = new Set<() => void>();
+
+function notifyDesk() {
+  for (const listener of [...deskListeners]) listener();
+}
+
+function loadDesk(session: number) {
+  const request = ++deskSequence;
+  void deskReferenceGroups().then(
+    (lists) => {
+      if (session !== deskSession || request !== deskSequence) return;
+      deskSnapshot = { desk: { state: "ready", lists }, failed: null };
+      notifyDesk();
+    },
+    (failed) => {
+      if (session !== deskSession || request !== deskSequence) return;
+      deskSnapshot = { ...deskSnapshot, failed };
+      notifyDesk();
+    },
+  );
+}
+
+function subscribeDesk(listener: () => void) {
+  if (deskListeners.size === 0) {
+    const session = ++deskSession;
+    loadDesk(session);
+    void onReferenceGroupsChanged(() => {
+      if (session === deskSession) loadDesk(session);
+    }).then(
+      (stop) => {
+        if (session === deskSession) deskStop = stop;
+        else stop();
+      },
+      () => {
+        // 忽略失败：监听建立失败时界面仍保留当前已知快照。
+      },
+    );
+  }
+  deskListeners.add(listener);
+  return () => {
+    deskListeners.delete(listener);
+    if (deskListeners.size === 0) {
+      deskSession += 1;
+      deskSequence += 1;
+      deskStop?.();
+      deskStop = null;
+      deskSnapshot = INITIAL_DESK;
+    }
+  };
+}
 
 /**
  * 参考组改成桌面（#588）的开关（设置里界面上没有的 `deskReferenceGroups`）开着没有，开着时还有
- * 常用、最近、更早三段。参考组变了（切换、设为常用、钉上第一张……）时重读。
+ * 常用、最近、更早三段。多个挂载点（列表与新建按钮）共享同一份订阅与快照，参考组变了时重读。
  */
-function useDesk(): { desk: Desk; failed: unknown } {
-  const [desk, setDesk] = useState<Desk>({ state: "loading" });
-  const [failed, setFailed] = useState<unknown>(null);
-  useEffect(() => {
-    let alive = true;
-    const load = () =>
-      deskReferenceGroups().then(
-        (lists) => {
-          if (!alive) return;
-          setDesk({ state: "ready", lists });
-          setFailed(null);
-        },
-        (e) => {
-          if (alive) setFailed(e);
-        },
-      );
-    void load();
-    const unlisten = onReferenceGroupsChanged(() => void load());
-    return () => {
-      alive = false;
-      void unlisten.then((stop) => stop());
-    };
-  }, []);
-  return { desk, failed };
+function useDesk(): DeskSnapshot {
+  return useSyncExternalStore(subscribeDesk, () => deskSnapshot);
 }
 
 /** 侧栏“参考组”（图标轨 Ctrl+2）：常用、最近、更早三段（{@link DeskGroupsPanel}，#592）。 */
@@ -127,22 +162,48 @@ export function DeskGroupsPanel({ lists }: { lists: DeskLists }) {
   const all = [...lists.favorites, ...lists.recent, ...lists.older];
 
   useEffect(() => {
+    let alive = true;
     registeredLibraries().then(
-      (list) => setLibraryNames(new Map(list.map((r) => [r.library.id, r.library.name]))),
-      (e) => toast.error(errorText(e)),
+      (list) => {
+        if (alive) setLibraryNames(new Map(list.map((r) => [r.library.id, r.library.name])));
+      },
+      (e) => {
+        if (alive) toast.error(errorText(e));
+      },
     );
+    return () => {
+      alive = false;
+    };
   }, [toast]);
 
-  // 桌面上那组的成员：桌面一变就重读（钉回、关掉钉图时更新时间不一定变）。
+  // 桌面上那组的成员：桌面一变就重读（钉回、关掉钉图时更新时间不一定变）；同时清理已不存在的旧组缓存。
   useEffect(() => {
     let alive = true;
+    const liveIds = new Set([...lists.favorites, ...lists.recent, ...lists.older].map((g) => g.id));
+    setViews((prev) => {
+      let stale = false;
+      for (const id of prev.keys()) {
+        if (!liveIds.has(id)) {
+          stale = true;
+          break;
+        }
+      }
+      if (!stale) return prev;
+      const next = new Map<string, { at: number; view: ReferenceGroupView }>();
+      for (const [id, entry] of prev) {
+        if (liveIds.has(id)) next.set(id, entry);
+      }
+      return next;
+    });
     for (const g of [...lists.favorites, ...lists.recent, ...lists.older]) {
       if (g.problem || g.id !== lists.onDesk) continue;
       referenceGroup(g.id).then(
         (view) => {
           if (alive && view) setViews((prev) => new Map(prev).set(g.id, { at: g.updatedAt, view }));
         },
-        () => {},
+        () => {
+          // 忽略失败：读不到成员时保持折叠行本身可切换。
+        },
       );
     }
     return () => {

@@ -1,5 +1,7 @@
-//! 诊断日志（#70）：只读系统信息，不写任何东西。
+//! 诊断日志（#70）与备份预览：只读系统信息。
 
+use std::os::windows::ffi::OsStrExt;
+use std::path::Path;
 use std::ptr;
 
 use windows_sys::Win32::Devices::Display::{
@@ -12,12 +14,34 @@ use windows_sys::Win32::Devices::Display::{
 use windows_sys::Win32::Graphics::Gdi::{
     DISPLAY_DEVICE_MIRRORING_DRIVER, DISPLAY_DEVICEW, EnumDisplayDevicesW,
 };
+use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
 use windows_sys::Win32::System::Registry::{
     HKEY_LOCAL_MACHINE, RRF_RT_REG_DWORD, RRF_RT_REG_SZ, RegGetValueW,
 };
 use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
 
 use kinshoko_core::diagnostics::DisplayColourMode;
+
+pub fn available_disk_bytes(dir: &Path) -> Option<u64> {
+    // UNC 目录需要以反斜杠结尾。
+    let dir: Vec<u16> = dir
+        .join("")
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect();
+    let mut available = 0;
+    // SAFETY：路径缓冲区以 0 结尾，输出指针指向本地 u64；其余输出可以为空。
+    let ok = unsafe {
+        GetDiskFreeSpaceExW(
+            dir.as_ptr(),
+            &mut available,
+            ptr::null_mut(),
+            ptr::null_mut(),
+        )
+    };
+    (ok != 0).then_some(available)
+}
 
 fn wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(Some(0)).collect()
