@@ -795,8 +795,22 @@ button.pw-account-item:disabled {
 .pw-account-item.is-control .k-range {
   width: 110px;
 }
+/* 卡片里的下拉框不要白底的输入框：和同步时间一样靠右只留文字与小箭头，悬停时整行同样的浅底。 */
 .pw-account-item.is-control .k-select {
+  width: auto;
+  min-height: 28px;
+  margin-right: -6px;
+  padding: 0 6px;
+  border-radius: var(--r-s);
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-2);
   white-space: nowrap;
+}
+.pw-account-item.is-control .k-select:hover:not([data-popup-open]) {
+  background: var(--hover);
+  box-shadow: none;
+  color: var(--ink);
 }
 .pw-account-item > .pw-account-meta {
   margin-left: auto;
