@@ -9,7 +9,7 @@ import { Select, type SelectOption } from "../ui/Select";
 import { tagOption } from "../search/tagOptions";
 import type { TagLabel } from "../bindings/TagLabel";
 import type { TagNamespace } from "../bindings/TagNamespace";
-import { LIMIT, useCandidateState, type Lens } from "../search/SearchBox";
+import { LIMIT, useCandidateState, type Lens } from "../search/useCandidates";
 import { Tip } from "../ui/Tip";
 
 // 标签分组页的行内编辑部件，原样从 TagGroupsPane.tsx 移出。

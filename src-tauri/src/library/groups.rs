@@ -31,11 +31,13 @@ pub(super) async fn create_shared_tag_group<R: Runtime>(
 ) -> Result<String, CommandError> {
     blocking(move || {
         let safe = saved_safe_mode(&app);
-        with_lens(&app, safe, Hold::Read, |workspace, device, catalog| {
+        let id = with_lens(&app, safe, Hold::Read, |workspace, device, catalog| {
             // Existing source groups enroll before a new group is appended.
             workspace.status(device, catalog, safe)?;
             catalog.create_group(&name, namespace)
-        })
+        })?;
+        wake_workspace_monitor();
+        Ok(id)
     })
     .await
 }
@@ -54,6 +56,7 @@ pub(super) async fn edit_shared_tag_group<R: Runtime>(
         with_lens(&app, safe_mode, Hold::Read, |workspace, device, catalog| {
             workspace.edit_group(device, catalog, &edit, safe_mode)
         })?;
+        wake_workspace_monitor();
         Ok(lens.confirm(&app.state::<LibraryState>().safe_mode)?)
     })
     .await
@@ -71,9 +74,11 @@ pub(super) async fn delete_shared_tag_group<R: Runtime>(
             .safe_mode
             .lens_expecting(safe_mode)?;
         // 删除一提交就把快照交回界面：这之后即使安全模式变了也不再报错，否则撤销就丢了。
-        with_lens(&app, safe_mode, Hold::Read, |_, _, catalog| {
+        let deleted = with_lens(&app, safe_mode, Hold::Read, |_, _, catalog| {
             catalog.delete_group(&group_id)
-        })
+        })?;
+        wake_workspace_monitor();
+        Ok(deleted)
     })
     .await
 }
@@ -89,7 +94,9 @@ pub(super) async fn restore_shared_tag_group<R: Runtime>(
         let safe = saved_safe_mode(&app);
         with_lens(&app, safe, Hold::Read, |_, _, catalog| {
             catalog.restore_group(deleted)
-        })
+        })?;
+        wake_workspace_monitor();
+        Ok(())
     })
     .await
 }

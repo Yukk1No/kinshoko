@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { captureAnchor, cardAt, masonry, resolveAnchor, visible, zoomScrollTop } from "./layout";
+import {
+  type Box,
+  captureAnchor,
+  cardAt,
+  type Layout,
+  masonry,
+  neighbour,
+  resolveAnchor,
+  visible,
+  zoomScrollTop,
+} from "./layout";
 
 // 瀑布流布局沿用 #13 样稿的纯函数（#9 Q27）：尺寸取自资料库记录，不从 DOM 测量。
 describe("瀑布流布局", () => {
@@ -224,5 +234,127 @@ describe("一摞与托盘", () => {
 
   it("没有打开的托盘时没有托盘盒子", () => {
     expect(masonry([{ w: 1, h: 1 }], opts).tray).toBeNull();
+  });
+});
+
+describe("方向键的相邻图", () => {
+  const at = (boxes: Box[]): Layout => ({ columns: 0, columnWidth: 0, height: 0, boxes, lanes: [], tray: null });
+  it("窄的托盘页往下：中心错开但横向重叠的那张也算正下方", () => {
+    const layout = at([
+      { x: 0, y: 0, w: 80, h: 100 },
+      { x: 0, y: 120, w: 240, h: 100 },
+    ]);
+    expect(neighbour(layout, 0, "down")).toBe(1);
+    expect(neighbour(layout, 1, "up")).toBe(0);
+  });
+  it("窄的托盘页往下：先到紧挨着的下一行，不越过它到托盘下面的墙", () => {
+    const layout = at([
+      { x: 0, y: 0, w: 80, h: 100 },
+      { x: 0, y: 120, w: 240, h: 100 },
+      { x: 0, y: 400, w: 80, h: 100 },
+    ]);
+    expect(neighbour(layout, 0, "down")).toBe(1);
+    expect(neighbour(layout, 2, "up")).toBe(1);
+  });
+  it("从托盘页往上回到它主要所在的那一列，不跳到只擦边的隔壁列", () => {
+    const layout = at([
+      { x: 0, y: 0, w: 100, h: 200 },
+      { x: 108, y: 0, w: 100, h: 260 },
+      { x: 0, y: 300, w: 120, h: 100 },
+    ]);
+    expect(neighbour(layout, 0, "down")).toBe(2);
+    expect(neighbour(layout, 2, "up")).toBe(0);
+  });
+  it("隔壁列不算上下", () => {
+    const layout = at([
+      { x: 0, y: 0, w: 100, h: 100 },
+      { x: 108, y: 120, w: 100, h: 100 },
+    ]);
+    expect(neighbour(layout, 0, "down")).toBe(0);
+    expect(neighbour(layout, 0, "right")).toBe(1);
+  });
+  it("横中线落入相邻列缝隙时仍留在旁边一列，不跳过它到第三列", () => {
+    const layout = masonry(
+      [
+        { w: 240, h: 100 },
+        { w: 240, h: 44 },
+        { w: 240, h: 480 },
+        { w: 240, h: 240 },
+      ],
+      { width: 760, target: 240, gap: 8, pad: 12, capRatio: null },
+    );
+    // 第 1 列 0（y 12..112，中线 62），第 2 列 1（12..56）和 3（64..304）缝隙正好盖住 62，第 3 列 2 跨过 62。
+    expect(neighbour(layout, 0, "right")).toBe(3);
+    expect(neighbour(layout, 2, "left")).toBe(3);
+  });
+  it("托盘宽图竖中线落入下一行缝隙时先到下一行，不越过整行跳出托盘", () => {
+    const layout = masonry(
+      [
+        // 托盘 3 页：第 1 行 1 张满宽横图，第 2 行 2 张撑满整行（8px 缝隙正好在竖中线上）
+        { w: 400, h: 100 },
+        { w: 150, h: 100 },
+        { w: 150, h: 100 },
+        // 托盘下面的 3 列瀑布流：中间列 4 跨过第 1 行的竖中线
+        { w: 100, h: 100 },
+        { w: 100, h: 100 },
+        { w: 100, h: 100 },
+      ],
+      { width: 640, target: 200, gap: 8, pad: 12, capRatio: null },
+      { at: 0, count: 3, pad: 12 },
+    );
+    expect([1, 2]).toContain(neighbour(layout, 0, "down"));
+  });
+  it("托盘上方各列高低错开时，从托盘页往上仍回到主列最后一张", () => {
+    const layout = at([
+      { x: 0, y: 0, w: 100, h: 150 },
+      { x: 108, y: 0, w: 100, h: 192 },
+      { x: 108, y: 200, w: 100, h: 150 },
+      { x: 0, y: 362, w: 120, h: 100 },
+    ]);
+    expect(neighbour(layout, 3, "up")).toBe(0);
+  });
+  it("托盘末行未铺满时，往下先落到末行重叠页，不跳过它直接落到下方墙体", () => {
+    const layout = masonry(
+      [
+        // 托盘 3 页：第 1 行 380×200 与 200×200 撑满，第 2 行（末行）只有 60×100（宽 120）偏左，
+        // 与第 1 页重叠且仅在下方 8px，但偏离第 1 页竖中线 70px。
+        { w: 380, h: 200 },
+        { w: 200, h: 200 },
+        { w: 60, h: 100 },
+        // 托盘下面的 3 列瀑布流：中间列 4 在下方 230px、未被第 3 页挡住，且仅偏离第 1 页竖中线 4px。
+        { w: 100, h: 100 },
+        { w: 100, h: 100 },
+        { w: 100, h: 100 },
+      ],
+      { width: 640, target: 200, gap: 8, pad: 12, capRatio: null },
+      { at: 0, count: 3, pad: 14 },
+    );
+    expect(neighbour(layout, 0, "down")).toBe(2);
+    expect(neighbour(layout, 2, "up")).toBe(0);
+    expect(neighbour(layout, 2, "down")).toBe(3);
+    expect(neighbour(layout, 3, "up")).toBe(2);
+    // 右侧第 2 页下方在托盘内已无重叠页，直接落到下方墙体。
+    expect(neighbour(layout, 1, "down")).toBe(5);
+    expect(neighbour(layout, 4, "up")).toBe(0);
+  });
+  it("从托盘下方墙体往上进入末行未铺满的托盘时，先落到末行重叠页，不越过它跳到上一行", () => {
+    const layout: Layout = {
+      columns: 3,
+      columnWidth: 200,
+      height: 560,
+      lanes: [],
+      tray: { x: 12, y: 12, w: 616, h: 330 },
+      boxes: [
+        // 托盘第 1 行两页，缝隙在 [80, 88]
+        { x: 24, y: 24, w: 56, h: 100 },
+        { x: 88, y: 24, w: 212, h: 100 },
+        // 托盘第 2 行（末行）偏左窄页 [24, 80]
+        { x: 24, y: 132, w: 56, h: 200 },
+        // 托盘下方第 1 列墙体卡片 [12, 212]，竖中线 112 落在第 1 行第 2 页下，同时与末行页重叠
+        { x: 12, y: 350, w: 200, h: 200 },
+      ],
+    };
+    expect(neighbour(layout, 2, "down")).toBe(3);
+    expect(neighbour(layout, 3, "up")).toBe(2);
   });
 });

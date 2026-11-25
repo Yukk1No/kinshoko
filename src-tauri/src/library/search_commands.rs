@@ -73,6 +73,7 @@ pub(super) async fn set_safe_mode<R: Runtime>(
         },
     )?;
     let _ = app.emit(SAFE_MODE_EVENT, on);
+    wake_workspace_monitor();
     Ok(on)
 }
 

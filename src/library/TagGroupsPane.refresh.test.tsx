@@ -148,6 +148,7 @@ it("keeps the focused input while withholding stale labels and ignoring a late o
       finishOld = resolve;
     });
   fireEvent.change(input, { target: { value: "蓝发" } });
+  await waitFor(() => expect(finishOld).toBeTypeOf("function"));
   let finishNew!: (value: Candidate[]) => void;
   let finishGroups!: (value: CatalogGroupView[]) => void;
   readCandidates = () =>

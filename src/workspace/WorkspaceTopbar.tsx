@@ -1,4 +1,4 @@
-import { useState, type ComponentProps, type RefObject } from "react";
+import { memo, useMemo, useState, type ComponentProps, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { PanelLeftOpen, PanelRight } from "lucide-react";
 import type { WorkspaceScope } from "../bindings/WorkspaceScope";
@@ -42,7 +42,7 @@ type Props = {
   toggleInspector: () => void;
 };
 
-export function WorkspaceTopbar({
+export const WorkspaceTopbar = memo(function WorkspaceTopbar({
   paneOpen,
   onPaneToggle,
   safe,
@@ -69,6 +69,28 @@ export function WorkspaceTopbar({
 }: Props) {
   const { t } = useTranslation(["workspace", "viewer"]);
   const [editingGroups, setEditingGroups] = useState(false);
+  const searchExtras = useMemo(
+    () => (
+      <>
+        {search.conditions.length > 0 && (
+          <span className="result-count tabular k-label" role="status" aria-label={t("results")}>
+            {resultCount === null ? "…" : t("resultCount", { count: resultCount })}
+          </span>
+        )}
+        <TagGroupPicker
+          workspace
+          libraryId="workspace"
+          safe={safe}
+          generation={vocabularyKey}
+          input={search}
+          onChange={changeSearch}
+          onError={onError}
+          onEdit={() => setEditingGroups(true)}
+        />
+      </>
+    ),
+    [search, resultCount, safe, vocabularyKey, changeSearch, onError, t],
+  );
   return (
     <>
       <header className="topbar" data-tauri-drag-region>
@@ -89,25 +111,7 @@ export function WorkspaceTopbar({
           showSource={showApproxSource}
           onError={onError}
           onChange={changeSearch}
-          extras={
-            <>
-              {search.conditions.length > 0 && (
-                <span className="result-count tabular k-label" role="status" aria-label={t("results")}>
-                  {resultCount === null ? "…" : t("resultCount", { count: resultCount })}
-                </span>
-              )}
-              <TagGroupPicker
-                workspace
-                libraryId="workspace"
-                safe={safe}
-                generation={vocabularyKey}
-                input={search}
-                onChange={changeSearch}
-                onError={onError}
-                onEdit={() => setEditingGroups(true)}
-              />
-            </>
-          }
+          extras={searchExtras}
         />
         <ImportMenu
           control={importControl}
@@ -166,4 +170,4 @@ export function WorkspaceTopbar({
       />
     </>
   );
-}
+});

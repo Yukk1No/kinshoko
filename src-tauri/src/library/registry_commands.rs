@@ -27,7 +27,9 @@ pub(super) async fn create_library<R: Runtime>(
                 libraries.create(&parent.join(name.trim()), &name)
             })
         })?;
-        Ok(forward_events(&app, &state, library))
+        let info = forward_events(&app, &state, library);
+        wake_workspace_monitor();
+        Ok(info)
     })
     .await
 }
@@ -48,6 +50,7 @@ pub(super) async fn create_library_unopened<R: Runtime>(
             with_libraries(&state, |libraries| libraries.add_registration(&root))
         })?;
         state.release_readers();
+        wake_workspace_monitor();
         Ok(registered)
     })
     .await
@@ -156,7 +159,9 @@ pub(super) async fn register_library<R: Runtime>(
         let library = with_visibility_commit(&app, |_| {
             with_libraries(&state, |libraries| libraries.register(&root))
         })?;
-        Ok(forward_events(&app, &state, library))
+        let info = forward_events(&app, &state, library);
+        wake_workspace_monitor();
+        Ok(info)
     })
     .await
 }
@@ -174,7 +179,9 @@ pub(super) async fn switch_library<R: Runtime>(
         let library = with_visibility_commit(&app, |_| {
             with_libraries(&state, |libraries| libraries.switch(&library_id))
         })?;
-        Ok(forward_events(&app, &state, library))
+        let info = forward_events(&app, &state, library);
+        wake_workspace_monitor();
+        Ok(info)
     })
     .await
 }
@@ -205,6 +212,7 @@ pub(super) async fn unregister_library<R: Runtime>(
         state.release_readers();
         // 打标正在打这个库时中止那一批并等它放下句柄（#414）；发布闸门已放开。
         crate::tagging::release(&app, &library_id);
+        wake_workspace_monitor();
         Ok(())
     })
     .await

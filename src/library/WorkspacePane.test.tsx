@@ -127,27 +127,21 @@ it("每个已连接图库的目录都可以直接整理，请求带上该图库�
   fireEvent.change(input, { target: { value: "姿势" } });
   fireEvent.keyDown(input, { key: "Enter" });
   await settle();
-  expect(within(section("A")).getByRole("button", { name: "人物（2 张）" }).getAttribute("draggable")).toBe("true");
   fireEvent.doubleClick(within(section("A")).getByRole("button", { name: "动作（1 张）" }));
   const rename = within(section("A")).getByRole("textbox", { name: "文件夹名称" });
   fireEvent.change(rename, { target: { value: "跑跳" } });
   fireEvent.keyDown(rename, { key: "Enter" });
   await settle();
-  // 把子文件夹拖到图库标题上：移到顶层；另一个图库的文件夹不接受。
-  const folder: Record<string, string> = {
-    "application/x-kinshoko-folder": "A-child",
-    "application/x-kinshoko-folder-library": "A",
-  };
-  const moving = { types: Object.keys(folder), getData: (type: string) => folder[type] ?? "" };
-  const headA = within(section("A")).getByRole("button", { name: "人物参考（3 张）" });
-  fireEvent.dragOver(headA, { dataTransfer: moving });
-  fireEvent.drop(headA, { dataTransfer: moving });
-  fireEvent.drop(within(section("B")).getByRole("button", { name: "风景参考（3 张）" }), { dataTransfer: moving });
+  // Alt + ← 把子文件夹移到外面一层，排在原来那个父文件夹后面（#636）。
+  fireEvent.keyDown(within(section("A")).getByRole("button", { name: "动作（1 张）" }), {
+    key: "ArrowLeft",
+    altKey: true,
+  });
   await settle();
   expect(calls()).toEqual([
     { command: "create_folder", args: { libraryId: "A", name: "姿势", parent: null } },
     { command: "rename_folder", args: { libraryId: "A", folderId: "A-child", name: "跑跳" } },
-    { command: "move_folder", args: { libraryId: "A", folderId: "A-child", parent: null, position: 2 ** 31 } },
+    { command: "move_folder", args: { libraryId: "A", folderId: "A-child", parent: null, position: 1 } },
   ]);
   expect(props.onError).not.toHaveBeenCalled();
 });

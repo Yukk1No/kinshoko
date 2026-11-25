@@ -72,6 +72,7 @@ export function fakeBackend(replies: Replies = {}): FakeBackend {
   };
   on("shell_settings", () => shellSettings());
   on("safe_mode", true);
+  on("interface_language_choice", "system");
   on("workspace_status", { revision: "r1", libraries: [] } satisfies WorkspaceStatus);
   // 暂停、恢复快捷键回的是当前设置：取最近一次回给前端的那份。
   let settings: unknown;

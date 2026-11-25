@@ -64,6 +64,7 @@ pub(super) async fn correct_tag_mapping<R: Runtime>(
             },
         );
     }
+    wake_workspace_monitor();
     lens.confirm(&state.safe_mode)
         .map_err(|_| mapping_safe_mode_changed())?;
     publication.map_err(|error| {
@@ -94,7 +95,9 @@ pub(super) async fn edit_tags<R: Runtime>(
                 |cause| ErrorKind::TagEditDefinitionsNotSaved { cause },
                 |error| format!("标签整理已保存，但资料库定义尚未更新：{error}。请在统一标签目录中重试保存标签定义。"),
             )
-        })
+        })?;
+        wake_workspace_monitor();
+        Ok(())
     })
     .await
 }

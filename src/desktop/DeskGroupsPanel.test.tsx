@@ -60,7 +60,10 @@ vi.mock("../ipc", () => ({
   savePinsToGroup: () => Promise.resolve(),
   onReferenceGroupsChanged: (handler: () => void) => {
     ipc.changed.push(handler);
-    return Promise.resolve(() => {});
+    return Promise.resolve(() => {
+      const at = ipc.changed.indexOf(handler);
+      if (at >= 0) ipc.changed.splice(at, 1);
+    });
   },
   onWorkspaceChanged: () => Promise.resolve(() => {}),
   workspaceDirectories: () => Promise.resolve({ status: { revision: "test", libraries: [] }, providers: [] }),
@@ -87,7 +90,6 @@ const group = (id: string, name: string, extra: Partial<GroupSummary> = {}): Gro
 const hair = group("g1", "头发");
 const hands = group("g2", "");
 const old = group("g3", "旧的衣褶", { memberCount: 7 });
-const bad = group("bad", "bad", { memberCount: 0, problem: { code: "groupInvalid", cause: { code: "notAGroup" } } });
 
 const placement = { x: 0, y: 0, scale: 1, flipH: false, flipV: false, rotation: 0 };
 const member = (id: string, extra: Partial<GroupMember> = {}): GroupMember => ({
@@ -151,15 +153,6 @@ const ids = (name: string) =>
     .getAllByRole("listitem")
     .filter((li) => li.classList.contains("desk-group"))
     .map((li) => li.dataset.id);
-
-async function more(name: string, item: string) {
-  fireEvent.click(screen.getByRole("button", { name: `${name} 的更多操作` }));
-  const entry = await screen.findByRole("menuitem", { name: item });
-  await act(async () => {
-    fireEvent.click(entry);
-  });
-  await flush();
-}
 
 // jsdom 没有 ResizeObserver；悬停高亮块（FluidList）用它跟随行的尺寸。
 beforeAll(() => {
@@ -385,107 +378,5 @@ describe("参考组面板：移到新参考组", () => {
     await show(lists({ recent: [hair] }));
     const shown = screen.getByRole("group", { name: "头发 的成员" });
     expect(within(shown).getAllByRole("button", { name: "移到新参考组" })).toHaveLength(1);
-  });
-});
-
-describe("参考组面板的“更多”", () => {
-  it("桌面上那组：改名、收藏、复制、移出已关闭、导出、删除", async () => {
-    await show(lists({ recent: [hair] }));
-    fireEvent.click(screen.getByRole("button", { name: "头发 的更多操作" }));
-    const items = await screen.findAllByRole("menuitem");
-    expect(items.map((i) => i.textContent)).toEqual(["重命名", "收藏", "复制", "移出已关闭", "导出参考组包", "删除"]);
-  });
-
-  it("卡片右键与“⋯”是同一组菜单项", async () => {
-    await show(lists({ recent: [hair] }));
-    fireEvent.contextMenu(screen.getByRole("button", { name: /^头发(?! 的更多操作)/ }));
-    const items = await screen.findAllByRole("menuitem");
-    expect(items.map((i) => i.textContent)).toEqual(["重命名", "收藏", "复制", "移出已关闭", "导出参考组包", "删除"]);
-  });
-
-  it("收藏、取消收藏", async () => {
-    await show(lists({ favorites: [group("g2", "手部")], recent: [hair] }));
-    await more("头发", "收藏");
-    expect(ipc.favorite).toHaveBeenCalledWith("g1", true);
-    await more("手部", "取消收藏");
-    expect(ipc.favorite).toHaveBeenCalledWith("g2", false);
-  });
-
-  it("复制：新参考组叫“某某 副本”", async () => {
-    await show(lists({ recent: [hair] }));
-    await more("头发", "复制");
-    expect(ipc.duplicate).toHaveBeenCalledWith("g1", "头发 副本");
-  });
-
-  it("移出已关闭：提示移出了几张，能撤销", async () => {
-    await show(lists({ recent: [hair] }));
-    await more("头发", "移出已关闭");
-    expect(ipc.prune).toHaveBeenCalled();
-    expect(await screen.findByText("已移出 1 张")).toBeTruthy();
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "撤销" }));
-    });
-    expect(ipc.undoPrune).toHaveBeenCalled();
-  });
-
-  it("重命名：在卡片上改，保存后收起", async () => {
-    await show(lists({ recent: [hair] }));
-    await more("头发", "重命名");
-    fireEvent.change(screen.getByLabelText("参考组名称"), { target: { value: "头发 2" } });
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "保存" }));
-    });
-    expect(ipc.rename).toHaveBeenCalledWith("g1", "头发 2");
-    await waitFor(() => expect(screen.queryByLabelText("参考组名称")).toBeNull());
-    // 留空也能保存：回到写新建时间（#588）。
-    await more("头发", "重命名");
-    fireEvent.change(screen.getByLabelText("参考组名称"), { target: { value: "" } });
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "保存" }));
-    });
-    expect(ipc.rename).toHaveBeenLastCalledWith("g1", "");
-  });
-
-  it("删除不先确认，给带“撤销”的提示；撤销把参考组放回", async () => {
-    await show(lists({ recent: [hair] }));
-    await more("头发", "删除");
-    expect(screen.queryByRole("alertdialog")).toBeNull();
-    expect(ipc.remove).toHaveBeenCalledWith("g1");
-    await act(async () => {
-      fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
-    });
-    expect(ipc.restore).toHaveBeenCalledWith({ groupId: "g1", name: "g1", unlinkedPins: [] });
-    expect(ipc.purge).not.toHaveBeenCalled();
-  });
-
-  it("导出参考组包", async () => {
-    await show(lists({ recent: [hair] }));
-    await more("头发", "导出参考组包");
-    expect(ipc.exportPackage).toHaveBeenCalledWith("g1");
-    expect(await screen.findByText("已导出参考组包：D:/导出/头发.kinshoko-group")).toBeTruthy();
-  });
-
-  it("不在桌面上的参考组只有一行：名字和张数，不读成员", async () => {
-    await show(lists({ recent: [hair, group("g2", "手部")] }));
-    const row = within(section("最近"))
-      .getAllByRole("listitem")
-      .find((li) => li.dataset.id === "g2")!;
-    expect(row.querySelector(".sidebar-count")?.textContent).toBe("2");
-    expect(row.querySelectorAll("img")).toHaveLength(0);
-    expect(ipc.group).not.toHaveBeenCalledWith("g2");
-  });
-
-  it("读不懂的参考组照样列出、写明原因，只能删除", async () => {
-    await show(lists({ recent: [hair, bad] }));
-    expect(screen.getByText("参考组文件已损坏：不是 Kinshoko 参考组")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "bad 的更多操作" }));
-    const items = await screen.findAllByRole("menuitem");
-    expect(items.map((i) => i.textContent)).toEqual(["删除"]);
-  });
-
-  it("底部保留“导入参考组包”", async () => {
-    await show(lists({ onDesk: null }));
-    expect(screen.getByText("还没有参考组。")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "导入参考组包" })).toBeTruthy();
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type PointerEvent } from "react";
 import { listen } from "@tauri-apps/api/event";
 import type { CaptureAction } from "../bindings/CaptureAction";
 import type { FrozenScreen } from "../bindings/FrozenScreen";
@@ -86,18 +86,29 @@ export function CaptureOverlay() {
 
   const usable = rect !== null && rect.width >= MIN_SIZE && rect.height >= MIN_SIZE;
 
-  // 选区每次变化都问一次读数（拖动中也问，松手时答案已到）；只认与当前选区相同的回复。
+  // 选区每次变化都问一次读数（拖动中按帧合并，松手时立即问一次）；只认与当前选区相同的回复。
   useEffect(() => {
     if (!screen || !rect || !usable) return;
     let alive = true;
     const settle = (original: OriginalPixels | null) => {
       if (alive) setReadout({ rect, original });
     };
-    captureReadout(rect, screen.image.slice("screen/".length)).then(settle, () => settle(null));
+    const token = screen.image.slice("screen/".length);
+    const ask = () => {
+      captureReadout(rect, token).then(settle, () => settle(null));
+    };
+    if (!dragging) {
+      ask();
+      return () => {
+        alive = false;
+      };
+    }
+    const frame = requestAnimationFrame(ask);
     return () => {
       alive = false;
+      cancelAnimationFrame(frame);
     };
-  }, [screen, rect, usable]);
+  }, [screen, rect, usable, dragging]);
   const same = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
   const original = readout && rect && same(readout.rect, rect) ? readout.original : null;
 
@@ -110,24 +121,25 @@ export function CaptureOverlay() {
     finishCapture(rect, action, screen.image.slice("screen/".length)).catch(() => setBusy(null));
   };
 
+  const handleKey = useEffectEvent((e: KeyboardEvent) => {
+    // 聚焦在 dock 按钮上时，Enter／空格只执行那个按钮。
+    if (
+      (e.key === "Enter" || e.key === " ") &&
+      e.target instanceof Element &&
+      e.target.closest(".capture-tools button")
+    )
+      return;
+    if (e.key === "Escape") finish("cancel");
+    else if (e.key === "Enter" || e.key === "F3") finish("pin");
+    else if (e.ctrlKey && e.key.toLowerCase() === "c") finish("copy");
+    else return;
+    e.preventDefault();
+  });
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // 聚焦在 dock 按钮上时，Enter／空格只执行那个按钮。
-      if (
-        (e.key === "Enter" || e.key === " ") &&
-        e.target instanceof Element &&
-        e.target.closest(".capture-tools button")
-      )
-        return;
-      if (e.key === "Escape") finish("cancel");
-      else if (e.key === "Enter" || e.key === "F3") finish("pin");
-      else if (e.ctrlKey && e.key.toLowerCase() === "c") finish("copy");
-      else return;
-      e.preventDefault();
-    };
+    const onKey = (e: KeyboardEvent) => handleKey(e);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
+  }, []);
 
   const at = (e: PointerEvent): Point => ({
     x: toDevicePx(e.clientX, dpr),

@@ -1,9 +1,10 @@
 // 应用壳设置（#321）：标签外观草稿跨恢复时怎样叠在已接受的设置上。
 import { describe, expect, it } from "vitest";
+import { renderHook, waitFor } from "@testing-library/react";
 import type { ShellSettingsView } from "../bindings/ShellSettingsView";
 import type { TagDisplay } from "../bindings/TagDisplay";
 import { backend, defaults } from "../settings/SettingsPanel.fixtures";
-import { createShellSettings } from "./useShellSettings";
+import { createShellSettings, useShellSettings } from "./useShellSettings";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -47,5 +48,17 @@ describe("标签外观草稿", () => {
     expect(sent.at(-1)).toEqual({ style: "grouped", high: 0.9, low: 0.2 });
     expect(settings.state().tagDraft).toBeNull();
     expect(settings.state().view?.tagDisplay).toEqual({ style: "grouped", high: 0.9, low: 0.2 });
+  });
+});
+
+describe("useShellSettings 加载失败文案", () => {
+  it("读取设置失败时经过 errorText 翻译，不直接显示 [object Object]（#716）", async () => {
+    backend({
+      shell_settings: () => Promise.reject({ code: "io", detail: "disk error" }),
+    });
+    const { result } = renderHook(() => useShellSettings());
+    await waitFor(() => expect(result.current.loadError).not.toBeNull());
+    expect(result.current.loadError).not.toContain("[object Object]");
+    expect(result.current.loadError).toContain("disk error");
   });
 });

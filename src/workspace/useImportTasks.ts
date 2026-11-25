@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { FinishedImport, RunningImport } from "../library/ImportBar";
 
 /** 导入任务按 id 记下的终态（#76）。 */
@@ -26,7 +26,7 @@ export function useImportTasks() {
     },
   });
 
-  const started = (taskId: string) => {
+  const started = useCallback((taskId: string) => {
     const task = imports.current;
     // 结束事件可能先于命令返回到达：任务已有终态，迟到的响应不再复活它（#76）。
     if (task.finished.has(taskId)) return;
@@ -34,7 +34,7 @@ export function useImportTasks() {
     setReport(null);
     // 进度事件可能先于命令返回到达，那时已经有了任务。
     setRunning((r) => (r?.taskId === taskId ? r : { taskId, progress: { done: 0, total: 0 } }));
-  };
+  }, []);
 
   return { imports, running, setRunning, report, setReport, started };
 }

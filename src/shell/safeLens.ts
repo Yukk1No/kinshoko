@@ -1,3 +1,6 @@
+import type { ContentRating } from "../bindings/ContentRating";
+import type { SafeModeScope } from "../bindings/SafeModeScope";
+
 /**
  * 主窗口的安全模式：开关上显示的状态（`shown`）与查询资料库用的视角（`lens`）分开（#183）。
  *
@@ -56,4 +59,21 @@ export function reduceSafeLens(state: SafeLens, action: SafeLensAction): SafeLen
 /** 一次切换返回后是否要重新读取设置：返回的状态与最后一次点击不一致（返回乱序）。 */
 export function needsRecheck(state: SafeLens, settledOn: boolean): boolean {
   return state.pending === 0 && settledOn !== state.shown;
+}
+
+export const DEFAULT_SAFE_MODE_SCOPE: SafeModeScope = "questionable";
+
+const RATING_RANK: Record<ContentRating, number> = {
+  general: 0,
+  sensitive: 1,
+  questionable: 2,
+  explicit: 3,
+};
+
+/** 有效分级是否在当前安全模式范围内（与后端 `SafeModeScope` 对齐，#223 / #711）。 */
+export function ratingInSafeScope(
+  rating: ContentRating | null,
+  scope: SafeModeScope = DEFAULT_SAFE_MODE_SCOPE,
+): boolean {
+  return rating !== null && RATING_RANK[rating] >= RATING_RANK[scope];
 }

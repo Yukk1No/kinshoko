@@ -5,6 +5,7 @@ use std::path::Path;
 use super::ErrorKind;
 use crate::backup::BackupError;
 use crate::desktop::{CaptureError, HistoryError, PinError};
+use crate::interface_lang::InterfaceLanguageError;
 use crate::reference_groups::GroupError;
 use crate::shortcuts::ShortcutProblem;
 use crate::subscription::StoreError;
@@ -257,6 +258,19 @@ impl From<UiScaleError> for ErrorKind {
         match e {
             UiScaleError::Unsupported(percent) => ErrorKind::UiScaleUnsupported { percent },
             UiScaleError::Io(e) => ErrorKind::UiScaleIo {
+                detail: e.to_string(),
+            },
+        }
+    }
+}
+
+impl From<InterfaceLanguageError> for ErrorKind {
+    fn from(e: InterfaceLanguageError) -> Self {
+        match e {
+            InterfaceLanguageError::Unsupported(lang) => {
+                ErrorKind::UnknownInterfaceLanguage { lang }
+            }
+            InterfaceLanguageError::Io(e) => ErrorKind::InterfaceLanguageIo {
                 detail: e.to_string(),
             },
         }

@@ -21,6 +21,14 @@ export default {
     group: "通用",
     autostart: "开机启动",
     autostartHint: "在托盘里待命",
+    language: "界面语言",
+    languageHint: "跟随系统时，中文系统用简体中文，其他用英文",
+    /** 选项名，键是 `InterfaceLanguageChoice`；语言名用它自己的文字写，两种界面里一样。 */
+    languages: {
+      system: "跟随系统",
+      "zh-CN": "简体中文",
+      en: "English",
+    },
     uiScale: "界面缩放",
     uiScaleHint: "只放大主窗口，钉图和截图不变",
     pinsGroup: "桌面钉图",

@@ -200,6 +200,8 @@ async function startSession() {
         APPDATA: join(work, "roaming"),
         LOCALAPPDATA: join(work, "local"),
         KINSHOKO_DATA_DIR: join(work, "app-data"),
+        // 测试按中文界面写；没有这项时界面跟随系统，CI 的英文 Windows 上会是英文（#358）。
+        KINSHOKO_INTERFACE_LANG: "zh-CN",
         KINSHOKO_SKIP_AUTOSTART: "1",
       },
       stdio: ["ignore", "inherit", "inherit"],

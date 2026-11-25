@@ -1,4 +1,5 @@
 import type { WorkspaceSource } from "../bindings/WorkspaceSource";
+import type { SafeModeScope } from "../bindings/SafeModeScope";
 import { useTranslation } from "react-i18next";
 import { describeCommandError } from "../ipc/commandError";
 import type { LibraryRegistration } from "../bindings/LibraryRegistration";
@@ -28,12 +29,14 @@ export function WorkspaceSources({
   card,
   onClose,
   safe = true,
+  safeModeScope,
   reloadKey = 0,
   registrations = [],
 }: {
   card: WorkspaceCard;
   onClose: () => void;
   safe?: boolean;
+  safeModeScope?: SafeModeScope;
   reloadKey?: number;
   registrations?: LibraryRegistration[];
 }) {
@@ -85,6 +88,7 @@ export function WorkspaceSources({
             key={keyOf(editing)}
             source={editing}
             safe={safe}
+            safeModeScope={safeModeScope}
             reloadKey={reloadKey}
             onClose={onClose}
           />

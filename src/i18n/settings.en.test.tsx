@@ -76,7 +76,7 @@ describe("英文界面：设置", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Change" })[0]!);
     expectNoChinese(document.body);
     await tab("Safety");
-    expect(screen.getByText("Sensitive and up")).toBeTruthy();
+    expect(screen.getByText("Sensitive+")).toBeTruthy();
     expectNoChinese(document.body);
     await tab("Diagnostics");
     expectNoChinese(document.body);
@@ -93,7 +93,7 @@ describe("英文界面：设置", () => {
     }
     fireEvent.click(await screen.findByRole("button", { name: /^Rename/ }));
     expectNoChinese(document.body, data);
-    for (const view of ["Mapping", "Similar", "Appearance"]) {
+    for (const view of ["Mapping", "Similar", "Style"]) {
       fireEvent.click(screen.getByRole("button", { name: view }));
       await settle();
       if (view === "Mapping") {

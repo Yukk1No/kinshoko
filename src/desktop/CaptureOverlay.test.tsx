@@ -216,6 +216,45 @@ describe("调整已有选区（与常见截图工具相同）", () => {
     fireEvent.keyDown(copy, { key: "Enter" });
     expect(sent("finish_capture")).toEqual([]);
   });
+
+  it("拖动中读数按帧合并，松手立即再问一次；键盘监听不随拖动重装（#716）", async () => {
+    const frames = new Map<number, FrameRequestCallback>();
+    let nextFrame = 1;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      const id = nextFrame++;
+      frames.set(id, callback);
+      return id;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => {
+      frames.delete(id);
+    });
+    const addSpy = vi.spyOn(window, "addEventListener");
+    try {
+      const { root } = await open();
+      const keydownListeners = () => addSpy.mock.calls.filter(([type]) => type === "keydown").length;
+      const before = keydownListeners();
+
+      fireEvent.pointerDown(root, { pointerId: 1, button: 0, clientX: 100, clientY: 80 });
+      fireEvent.pointerMove(root, { pointerId: 1, clientX: 140, clientY: 120 });
+      await act(async () => {});
+      fireEvent.pointerMove(root, { pointerId: 1, clientX: 180, clientY: 150 });
+      await act(async () => {});
+      expect(frames.size).toBe(1);
+      expect(sent("capture_readout")).toEqual([]);
+      expect(keydownListeners()).toBe(before);
+
+      await act(async () => {
+        for (const callback of [...frames.values()]) callback(0);
+      });
+      expect(sent("capture_readout")).toHaveLength(1);
+      fireEvent.pointerUp(root, { pointerId: 1, clientX: 180, clientY: 150 });
+      await act(async () => {});
+      expect(sent("capture_readout")).toHaveLength(2);
+      expect(keydownListeners()).toBe(before);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
 });
 
 describe("截图读数区分原始像素（#103）", () => {

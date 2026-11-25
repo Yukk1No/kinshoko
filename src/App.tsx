@@ -1,5 +1,6 @@
 import { useCaptureSources } from "./desktop/captureSources";
 import { EmptyWorkspace } from "./shell/EmptyWorkspace";
+import { DEFAULT_SAFE_MODE_SCOPE } from "./shell/safeLens";
 import { useSafeMode } from "./shell/useSafeMode";
 import { onCollectionRequest, registerLibrary, takeCollectionRequest } from "./ipc";
 import { SaveDestinationProvider } from "./library/SaveDestination";
@@ -35,6 +36,7 @@ import { OpenTagNameSettings } from "./tags/TagNameSettings";
 import { LibraryWorkspace } from "./workspace/LibraryWorkspace";
 import { markStartup } from "./startupTiming";
 import { releaseStartup, startupLibraryOpened } from "./startupGate";
+import { logFailure } from "./runLog";
 import { StartupSplash } from "./shell/StartupSplash";
 import { LoginExpiredNotice, SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
 import { errorText } from "./ipc/commandError";
@@ -87,6 +89,11 @@ function MainWindow() {
   const [unfinishedRequest, setUnfinishedRequest] = useState(0);
   const [section, setSection] = useState<Section>("browse");
   const [paneOpen, setPaneOpen] = useState(true);
+  const togglePane = useCallback(() => setPaneOpen((open) => !open), []);
+  const openBrowse = useCallback(() => {
+    setSection("browse");
+    setPaneOpen(true);
+  }, []);
   const subscriptions = useSubscriptionSection(section, setSection);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -114,6 +121,7 @@ function MainWindow() {
   const density = settingsState.densityDraft ?? settingsView?.wallDensity ?? 240;
   const showApproxSource = settingsView?.showApproxSource ?? false;
   const keepSelectionOnSafe = settingsView?.keepSelectionOnSafeMode ?? false;
+  const safeModeScope = settingsView?.safeModeScope ?? DEFAULT_SAFE_MODE_SCOPE;
   const tagDisplay: TagDisplay = settingsView?.tagDisplay ?? DEFAULT_TAG_DISPLAY;
   /** 详情面板宽度先在界面上生效，再写进本设备设置。 */
   const changeInspectorWidth = useCallback((width: number) => {
@@ -159,13 +167,16 @@ function MainWindow() {
       sequence = 0;
     const accept = () => {
       const request = ++sequence;
-      void takeCollectionRequest().then((id) => {
-        if (alive && request === sequence && id) {
-          setCaptureRequest({ id, stamp: ++stamp });
-          setSection("captures");
-          setPaneOpen(true);
-        }
-      });
+      void takeCollectionRequest().then(
+        (id) => {
+          if (alive && request === sequence && id) {
+            setCaptureRequest({ id, stamp: ++stamp });
+            setSection("captures");
+            setPaneOpen(true);
+          }
+        },
+        (e) => logFailure("takeCollectionRequest", e),
+      );
     };
     const stop = onCollectionRequest(accept).then((fn) => {
       if (alive) accept();
@@ -179,7 +190,10 @@ function MainWindow() {
 
   useEffect(() => {
     let alive = true;
-    appInfo().then((value) => alive && setInfo(value));
+    appInfo().then(
+      (value) => alive && setInfo(value),
+      (e) => logFailure("appInfo", e),
+    );
     safeMode().then(
       (on) => alive && acceptSafe(on !== false),
       () => {},
@@ -254,11 +268,24 @@ function MainWindow() {
     return () => window.removeEventListener("keydown", onKey);
   }, [subscriptions.onRef]);
 
+  const appAlive = useRef(true);
+  useEffect(() => {
+    appAlive.current = true;
+    return () => {
+      appAlive.current = false;
+    };
+  }, []);
+  const changedSeq = useRef(0);
   const changed = (added: LibraryInfo | null) => {
     if (added) setHasProviders(true);
+    const request = ++changedSeq.current;
     workspaceStatus(lensSafe).then(
-      (status) => setHasProviders(status.libraries.length > 0),
-      () => {},
+      (status) => {
+        if (appAlive.current && request === changedSeq.current) setHasProviders(status.libraries.length > 0);
+      },
+      () => {
+        // 忽略失败：工作区状态稍后由工作区自身重读。
+      },
     );
     setOpenError(null);
     setShowCreate(false);
@@ -309,15 +336,13 @@ function MainWindow() {
                     referenceRequest={referenceRequest}
                     section={section}
                     paneOpen={paneOpen}
-                    onPaneToggle={() => setPaneOpen((open) => !open)}
+                    onPaneToggle={togglePane}
                     onPaneOpen={setPaneOpen}
-                    onOpenBrowse={() => {
-                      setSection("browse");
-                      setPaneOpen(true);
-                    }}
+                    onOpenBrowse={openBrowse}
                     libraryControls={libraryControls}
                     hidden={empty || subscriptions.page !== null}
                     safe={lensSafe}
+                    safeModeScope={safeModeScope}
                     onSafeChanged={acceptSafe}
                     showApproxSource={showApproxSource}
                     keepSelectionOnSafe={keepSelectionOnSafe}
@@ -337,7 +362,7 @@ function MainWindow() {
                   subscriptions={subscriptions}
                   safe={lensSafe}
                   paneOpen={paneOpen}
-                  onPaneToggle={() => setPaneOpen((open) => !open)}
+                  onPaneToggle={togglePane}
                   onOpenImage={(libraryId, imageId) => {
                     setSection("browse");
                     setPaneOpen(true);
