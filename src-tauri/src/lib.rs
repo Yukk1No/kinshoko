@@ -22,7 +22,7 @@ mod tagging;
 mod ui_text;
 mod updater;
 
-use tauri::RunEvent;
+use tauri::{Manager as _, RunEvent};
 
 pub fn run() {
     shell::start_interface_language();
@@ -139,6 +139,9 @@ pub fn run() {
             subscription::roster::subscription_set_options,
             subscription::roster::subscription_set_library,
             subscription::roster::subscription_remove,
+            subscription::relocate::subscription_old_images,
+            subscription::relocate::subscription_move_old,
+            subscription::relocate::subscription_undo_move,
             subscription::browse::subscription_browse,
             subscription::browse::subscription_search_artists,
             subscription::browse::subscription_collect,
@@ -176,9 +179,23 @@ pub fn run() {
         } => {
             if label == shell::MAIN_WINDOW && matches!(event, tauri::WindowEvent::Resized(_)) {
                 shell::observe_main_window(app, false);
+                if app
+                    .get_webview_window(shell::MAIN_WINDOW)
+                    .is_some_and(|window| {
+                        window.is_visible().unwrap_or(false)
+                            && !window.is_minimized().unwrap_or(false)
+                    })
+                {
+                    library::wake_workspace_monitor();
+                }
             }
             desktop::capture_geometry_changed(app, &label);
         }
+        RunEvent::WindowEvent {
+            label,
+            event: tauri::WindowEvent::Focused(true),
+            ..
+        } if label == shell::MAIN_WINDOW => library::wake_workspace_monitor(),
         RunEvent::WindowEvent {
             label,
             event: tauri::WindowEvent::CloseRequested { .. },

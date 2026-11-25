@@ -1,6 +1,80 @@
 /* Settings dialog: vertical tabs + rows (split from dialogs.css; design/ui-system/components.md「设置」).
    Built on the shared `.k-dialog` / `.k-list` shell in ui.css and the form controls in dialogs.css. */
 
+/* 设置（#61） */
+
+.settings {
+  padding: 12px 16px;
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.settings h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+/* 诊断与更新（#70） */
+
+.settings-actions {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+.settings-diagnostics {
+  max-height: 240px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  white-space: pre-wrap;
+  user-select: text;
+}
+
+.update-notes {
+  white-space: pre-wrap;
+}
+
+.runtime-details {
+  margin: 10px 0;
+}
+
+/* 本地备份与恢复（#69） */
+
+.backup-libraries {
+  padding-left: 20px;
+}
+
+.backup-preview,
+.backup-result {
+  font-size: 13px;
+}
+
+.backup-uncovered,
+.backup-snapshots {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+  font-size: 13px;
+}
+
+.settings-shortcuts th {
+  padding-right: 16px;
+  font-weight: normal;
+  text-align: left;
+}
+
+.settings-shortcuts td {
+  padding: 2px 8px 2px 0;
+}
+
+.settings-approx td {
+  padding: 2px 8px 2px 0;
+}
+
+.settings .sidebar-tag-groups {
+  max-width: 680px;
+}
+
 /* 起始高度够大多数页面用，切页时容器不动；只有放不下的长页才长高，最高到 --k-settings-max。 */
 .k-dialog.k-settings-dialog {
   --k-settings-max: min(620px, calc(100vh - 48px));

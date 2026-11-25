@@ -11,6 +11,7 @@ import type { ImageRating } from "../bindings/ImageRating";
 import type { FolderNode } from "../bindings/FolderNode";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageEdit } from "../bindings/ImageEdit";
+import type { SafeModeScope } from "../bindings/SafeModeScope";
 import type { TaggingFailure } from "../bindings/TaggingFailure";
 import type { PermanentDeletePreview } from "../bindings/PermanentDeletePreview";
 import {
@@ -22,6 +23,7 @@ import {
   workspaceImage,
 } from "../ipc";
 import { TagPanel } from "./TagPanel";
+import { DEFAULT_SAFE_MODE_SCOPE, ratingInSafeScope } from "../shell/safeLens";
 import { Tip } from "../ui/Tip";
 import { WarnIcon } from "../ui/WarnIcon";
 
@@ -32,13 +34,13 @@ type Props = {
   /** 资料库报告列表过期时递增：重新取文件夹列表与详情。 */
   reloadKey: number;
   onError: (error: unknown) => void;
-  /** 安全模式开启时，改成含成人内容的分级会让图被封印：随即取消选择。 */
+  /** 安全模式开启时，改成安全模式范围内的分级会让图被封印：随即取消选择。 */
   safeMode?: boolean;
+  /** 安全模式范围（#223 / #711）：从哪一档开始封印。 */
+  safeModeScope?: SafeModeScope;
   /** 词表代次（词表、图片或安全模式变化时递增）：标签面板随之刷新。 */
   generation?: number;
 };
-
-const isAdult = (rating: ContentRating | null) => rating === "questionable" || rating === "explicit";
 
 /** 文件夹树摊平成带缩进的选项。 */
 export function flattenFolders(nodes: FolderNode[], depth = 0): { id: string; label: string }[] {
@@ -377,6 +379,7 @@ export function SelectionPanel({
   reloadKey,
   onError,
   safeMode = false,
+  safeModeScope = DEFAULT_SAFE_MODE_SCOPE,
   generation = 0,
 }: Props) {
   const { t } = useTranslation("inspector");
@@ -429,7 +432,7 @@ export function SelectionPanel({
       (details) => {
         if (currentKey.current !== requestKey) return;
         if (single && details[0]) setLoaded({ key: detailKey, detail: details[0] });
-        if (safeMode && details.some((d) => isAdult(d.rating.effective))) onClear();
+        if (safeMode && details.some((d) => ratingInSafeScope(d.rating.effective, safeModeScope))) onClear();
       },
       (e) => {
         if (currentKey.current === requestKey) onError(e);

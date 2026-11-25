@@ -1,0 +1,47 @@
+/* seal and release ghosts (src/shell/sealfx.ts), verbatim from the prototype: above the wall, the viewer and the rail */
+
+.fx-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-fx);
+  overflow: hidden;
+}
+
+.fx-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 50% 50%;
+  border-radius: var(--r-s);
+  overflow: hidden;
+  background: var(--card);
+  box-shadow: var(--shadow-pin);
+  will-change: transform, opacity;
+}
+
+.fx-ghost img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.fx-wash {
+  position: absolute;
+  inset: 0;
+  background: var(--veil);
+  opacity: 0;
+}
+
+.fx-burst {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--seal-acc);
+  box-shadow: 0 0 24px var(--seal-acc);
+  opacity: 0;
+}

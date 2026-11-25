@@ -3,12 +3,22 @@ import { describe, expect, it } from "vitest";
 // 时长只取令牌（design/ui-system/scales.md「动效」）：样式里的 transition、animation 不写数字时长。
 const TOKEN_FILE = "./tokens.css";
 // 确有理由写死的地方列在这里，并写明理由。
-const ALLOWED: Record<string, string> = {
-  "./library.css": "封印与释放演出、安全模式遮蔽是品牌不变项，数值不动（design/ui-system/brand-invariants.md）",
-};
+const ALLOWED: Record<string, string> = {};
 // 单条例外：“文件: 值”。
 const ALLOWED_VALUES: Record<string, string> = {
   "../ui/spinner.css: 2.4s": "减弱动效下转圈放慢后的周期：转圈是循环动画，有自己的周期",
+  "../wall/wall.css: filter 420ms var(--ease)":
+    "封印与释放演出、安全模式遮蔽是品牌不变项，数值不动（design/ui-system/brand-invariants.md）",
+  "../wall/wall.css: opacity 420ms var(--ease)":
+    "封印与释放演出、安全模式遮蔽是品牌不变项，数值不动（design/ui-system/brand-invariants.md）",
+  "../wall/wall.css: filter 200ms ease-out":
+    "封印与释放演出、安全模式遮蔽是品牌不变项，数值不动（design/ui-system/brand-invariants.md）",
+  "../wall/wall.css: opacity 200ms ease-out":
+    "封印与释放演出、安全模式遮蔽是品牌不变项，数值不动（design/ui-system/brand-invariants.md）",
+  "../wall/wall.css: filter 420ms var(--ease), opacity 160ms ease-out":
+    "封印与释放演出、安全模式遮蔽是品牌不变项，数值不动（design/ui-system/brand-invariants.md）",
+  "../wall/wall.css: visibility 0s linear 160ms":
+    "封印与释放演出、安全模式遮蔽是品牌不变项，数值不动（design/ui-system/brand-invariants.md）",
 };
 
 const sheets = import.meta.glob<string>("../**/*.css", { query: "?raw", import: "default", eager: true });

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cssRule } from "./cssRule";
 import ui from "./uiCss";
 import dialogs from "./dialogsCss";
-import shell from "../shell/mainWindowCss";
+import { appCss as shell } from "../test/appCss";
 
 // jsdom 不排版：这里锁住让文字按字形居中的声明。110% 缩放下实测见 PR 说明。
 describe("控件文字垂直居中", () => {

@@ -377,6 +377,10 @@ pub enum ErrorKind {
         detail: String,
     },
     SubscriptionUnknown,
+    /// 要移到的库已经收过这个作品（`StoreError::AlreadyReceived`）。
+    SubscriptionWorkTaken,
+    /// 已收作品的记录在这之后又变过（`StoreError::MovedElsewhere`）。
+    SubscriptionRecordsChanged,
 
     // 截图与钉图（`CaptureError`、`HistoryError`、`PinError`）。
     EmptySelection,

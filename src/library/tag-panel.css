@@ -1,4 +1,5 @@
-/* 标签整理（#77 UI-B）：整理面板里的标签与人工标签决定，侧栏的标签分组。 */
+/* 标签整理（#77 UI-B）：整理面板里的标签与人工标签决定。侧栏的标签分组在 shell/sidebar.css。 */
+
 .tag-panel {
   display: flex;
   flex-direction: column;
@@ -72,33 +73,4 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px 8px;
-}
-
-.sidebar-slot .sidebar-tag-groups {
-  box-sizing: border-box;
-  width: 237px;
-  max-height: 40%;
-  overflow: auto;
-  flex-shrink: 0;
-  padding: 0 8px 8px;
-  border-top: 1px solid var(--line);
-  border-right: 1px solid var(--line);
-}
-
-.sidebar-tag-group-head,
-.sidebar-tag {
-  display: flex;
-  align-items: center;
-}
-
-.sidebar-tag .sidebar-item {
-  padding-left: 18px;
-}
-
-.sidebar-new-group,
-.sidebar-pick-tag {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 4px;
 }

@@ -1,32 +1,79 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { emit } from "@tauri-apps/api/event";
-import type { ModelChoice } from "../bindings/ModelChoice";
 import type { TaggingStatus } from "../bindings/TaggingStatus";
 import { AutoTaggingSettings } from "./AutoTaggingSettings";
+import { useTaggingStatus } from "../tagging/useTaggingStatus";
 import { chooseOption, optionNames } from "../test/select";
-import { fakeBackend, type Replies } from "../test/backend";
+import { backend, choice, hardware, running, statusRow } from "./AutoTaggingSettings.fixtures";
 
 afterEach(() => {
   delete window.__KINSHOKO_TEST_PICKS__;
 });
 
-const choice: ModelChoice = {
-  model: "PixAI Tagger v1.0",
-  selected: null,
-  options: [
-    { device: "directMl", vramNeed: 1_800_000_000, ramNeed: 0, size: 992_916_002, downloaded: true },
-    { device: "cpu", vramNeed: 0, ramNeed: 5_000_000_000, size: 1_984_062_544, downloaded: false },
-  ],
-};
-
-/** 自动标签设置的假后端：读回 `status` 与 `models`，其余命令照 `replies`。 */
-function backend({ status = { state: "paused" } as TaggingStatus, models = choice, replies = {} as Replies } = {}) {
-  return fakeBackend({ tagging_models: models, tagging_status: status, ...replies });
+function StatusObserver() {
+  useTaggingStatus();
+  return null;
 }
 
-const statusRow = () => screen.getByRole("listitem", { name: "状态" });
-const hardware = () => screen.findByRole("combobox", { name: "硬件加速" });
+describe("remembered tagging status", () => {
+  it.each([
+    { state: "needsDownload", model: "x", size: 10, downloaded: 0, fallback: null, cancelled: false },
+    { state: "noDevice", reasons: [] },
+    { state: "failed", reason: { code: "downloadFailed", detail: "timeout" } },
+    { state: "downloading", model: "x", downloaded: 0, total: 10 },
+  ] satisfies TaggingStatus[])("forgets a device invalidated by $state", async (status) => {
+    backend({ status: running });
+    render(<AutoTaggingSettings hasLibrary />);
+    await screen.findByText("自动：当前用 CPU");
+    await act(async () => {});
+    await act(() => emit("tagging-status", status));
+    await act(() => emit("tagging-status", { state: "paused" }));
+    expect(screen.getByText("自动：有独显时用显卡")).toBeTruthy();
+    expect(within(statusRow()).getByText("已暂停")).toBeTruthy();
+  });
+
+  it("keeps CPU and remaining through pause and model loading", async () => {
+    backend({ status: running });
+    render(<AutoTaggingSettings hasLibrary />);
+    await screen.findByText("自动：当前用 CPU");
+    await act(async () => {});
+    await act(() => emit("tagging-status", { state: "paused" }));
+    expect(screen.getByText("自动：当前用 CPU")).toBeTruthy();
+    expect(within(statusRow()).getByText("已暂停，还剩 138 张")).toBeTruthy();
+    for (const status of [
+      { state: "starting" },
+      { state: "preparing", model: "x" },
+      { state: "yieldedToFullScreen" },
+    ]) {
+      await act(() => emit("tagging-status", status));
+      expect(screen.getByText("自动：当前用 CPU")).toBeTruthy();
+    }
+  });
+
+  it("remembers before settings mounts", async () => {
+    const fake = backend({ status: running });
+    render(<StatusObserver />);
+    await act(async () => {});
+    await act(() => emit("tagging-status", { state: "paused" }));
+    fake.on("tagging_status", { state: "paused" });
+    render(<AutoTaggingSettings hasLibrary />);
+    await screen.findByText("自动：当前用 CPU");
+    expect(within(statusRow()).getByText("已暂停，还剩 138 张")).toBeTruthy();
+  });
+
+  it("forgets the device after changing hardware selection", async () => {
+    backend({ status: running, replies: { tagging_set_device: ({ device }) => ({ ...choice, selected: device }) } });
+    render(<AutoTaggingSettings hasLibrary />);
+    await screen.findByText("自动：当前用 CPU");
+    await act(async () => {});
+    await act(() => emit("tagging-status", { state: "paused" }));
+    expect(within(statusRow()).getByText("已暂停，还剩 138 张")).toBeTruthy();
+    await chooseOption(await hardware(), /CPU，/);
+    await chooseOption(await hardware(), "自动");
+    await waitFor(() => expect(screen.getByText("自动：有独显时用显卡")).toBeTruthy());
+  });
+});
 
 describe("设置 › 自动标签 › 自动打标", () => {
   it.each<[string, TaggingStatus, RegExp, string | null]>([

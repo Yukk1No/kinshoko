@@ -34,10 +34,11 @@ const protectedProperty =
   /^(?:font(?:-.+)?|line-height|color|background(?:-.+)?|border(?:-.+)?|padding(?:-.+)?|(?:min-|max-)?(?:width|height)|box-shadow)$/;
 const contexts: Record<string, Record<string, string>> = {
   // Reveal actions without changing the condition's resting measurement.
-  "../shell/main-window.css: .topbar > .search .k-token.is-condition:is(:hover, :focus-within, :has([data-popup-open]))":
-    { "padding-right": "4px" },
-  "../shell/main-window.css: .topbar > .search .k-token.is-condition .k-token-action": { width: "0" },
-  "../shell/main-window.css: .topbar > .search .k-token.is-condition:is(:hover, :focus-within, :has([data-popup-open])) .k-token-action":
+  "../shell/topbar.css: .topbar > .search .k-token.is-condition:is(:hover, :focus-within, :has([data-popup-open]))": {
+    "padding-right": "4px",
+  },
+  "../shell/topbar.css: .topbar > .search .k-token.is-condition .k-token-action": { width: "0" },
+  "../shell/topbar.css: .topbar > .search .k-token.is-condition:is(:hover, :focus-within, :has([data-popup-open])) .k-token-action":
     { width: "20px" },
 };
 function overrides(path: string, css: string) {
@@ -131,7 +132,7 @@ describe("shared tag tokens", () => {
     expect(overrides("./probe.css", ".k-tokenizer { color: red; }")).toEqual([]);
     expect(overrides("./probe.css", "")).toEqual([]);
     expect(
-      overrides("../shell/main-window.css", ".topbar > .search .k-token.is-condition .k-token-action { width: 21px; }"),
+      overrides("../shell/topbar.css", ".topbar > .search .k-token.is-condition .k-token-action { width: 21px; }"),
     ).toHaveLength(1);
   });
   it("preserves the issue's 26/28 sizes and all three confidence levels", () => {

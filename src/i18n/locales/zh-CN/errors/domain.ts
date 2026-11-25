@@ -102,6 +102,8 @@ export default {
   subscriptionStore: "订阅记录读写失败：{{detail}}",
   subscriptionStoreUpgrade: "订阅记录升级失败：{{detail}}",
   subscriptionUnknown: "没有这条订阅",
+  subscriptionWorkTaken: "新的库里已经收过这个作品",
+  subscriptionRecordsChanged: "已收的图又变过，没有改动",
   /** 快捷键动作的名称，与设置里一致。 */
   shortcutAction: {
     capture: "截图",

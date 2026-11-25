@@ -1,62 +1,130 @@
-/* 主窗口的框架（design/ui-system/README.md，预览 01/01b/02/03/05）：桌面、图标轨、侧栏、顶栏与工作区来源。 */
+/* 侧栏（左边的纸）：图库、文件夹树、工作区来源、标签分组与窄窗口里的让位（design/ui-system/window-frame-and-sidebar.md）。
+   在 src/main.tsx 里排在 frame.css、topbar.css 之后：这里的规则要盖过 ui/ 的共用类（如 .lib-add 盖过 .k-icon-btn）。
+   盖不过 .k-row 的那几条在 sidebar-base.css。 */
 
-/* ---- Frame: the header rows form one 56 px band that is the window's safe area ---- */
-/* 桌面与纸（#608，design/ui-system/main-window-material.md）：图标轨直接放在桌面上；左栏、主区、详情栏是三张纸，
-   之间与窗口边露出 8 px 桌面（左边贴着图标轨）。上沿亮边画在纸的最上一层，免得被里面内容的底色盖住。 */
-.app-shell {
-  background: var(--desk);
-  flex-direction: row;
-}
-.rail {
-  width: 56px;
-  flex: none;
+/* 侧栏与整理（#50） */
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 8px;
+  border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 6px 0 10px;
-  background: transparent;
-  border-right: 1px solid transparent;
-  z-index: 3;
+  gap: 2px;
 }
-/* 书签标离窗口上边与左边一样远：图形在 32 的画布里宽 12、高 21，左右居中时墨迹离左边约 22.25 px，
-   上下居中时离上边只有 19.25 px；44 高的框里把居中区下移 6 px（墨迹下移 3 px）。 */
-.rail .brand {
+
+.sidebar-slot[data-collapsed="true"] {
+  width: 0;
+}
+
+.sidebar-slot .sidebar {
   box-sizing: border-box;
-  height: 44px;
-  padding-top: 6px;
-}
-.app-body {
+  width: 237px;
   flex: 1;
   min-height: 0;
-  display: flex;
-  padding: var(--sheet-gap) var(--sheet-gap) var(--sheet-gap) 0;
-  min-width: 0;
-  position: relative;
 }
-.app-main {
+
+.sidebar-slot .selection {
+  box-sizing: border-box;
+  width: 237px;
+  max-height: 50%;
+  overflow: auto;
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+
+.sidebar-count {
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+
+.sidebar-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-tree .sidebar-tree {
+  padding-left: 14px;
+}
+
+.sidebar-slot > .capture-history,
+.sidebar-slot > .reference-groups {
+  width: 255px;
   flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-  border-radius: var(--r);
-  background: var(--sheet-main);
-  box-shadow: var(--sheet-lift);
   min-height: 0;
-  container: main / inline-size;
 }
-:is(.sidebar-slot:not([data-collapsed="true"]), .app-main, .inspector:not([data-collapsed="true"]))::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 9;
-  border-radius: inherit;
-  box-shadow: var(--sheet-top);
-  pointer-events: none;
+
+.sidebar-slot .sidebar-tag-groups {
+  box-sizing: border-box;
+  width: 237px;
+  max-height: 40%;
+  overflow: auto;
+  flex-shrink: 0;
+  padding: 0 8px 8px;
+  border-top: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+
+.sidebar-tag-group-head,
+.sidebar-tag {
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-tag .sidebar-item {
+  padding-left: 18px;
+}
+
+.sidebar-new-group,
+.sidebar-pick-tag {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+}
+
+.sidebar-slot[data-collapsed="true"] {
+  width: 0;
+  border-right-width: 0;
+}
+
+.sidebar-slot .sidebar {
+  width: auto;
+  flex: none;
+  overflow: visible;
+}
+
+.pane-head h1 {
+  overflow-wrap: anywhere;
+}
+
+.pane-body[hidden] {
+  display: none;
+}
+
+/* #78 T08: adapt the accepted folder workspace's separate provider roots and path hints. */
+
+.workspace-current-scope {
+  padding: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.workspace-provider > .sidebar {
+  padding-left: 16px;
+}
+
+.workspace-provider .sidebar-item:disabled {
+  cursor: default;
+  opacity: var(--disabled-opacity);
 }
 
 /* ---- Sidebar ---- */
+
 .sidebar-slot {
   position: relative;
   width: calc(var(--sidebar-width, 256px) - var(--sheet-gap));
@@ -72,11 +140,13 @@
     width var(--t-slow) var(--ease),
     margin var(--t-slow) var(--ease);
 }
+
 .sidebar-slot[data-collapsed="true"] {
   width: 0;
   margin-right: 0;
   box-shadow: none;
 }
+
 .pane-head {
   width: calc(256px - var(--sheet-gap));
   height: 56px;
@@ -89,15 +159,18 @@
   padding: 0 10px;
   border-bottom: 0;
 }
+
 .pane-library {
   min-width: 0;
   flex: 1;
   display: flex;
 }
+
 .pane-head .k-title,
 .pane-library-title .k-title {
   padding-left: 6px;
 }
+
 .pane-body {
   width: 255px;
   flex: 1;
@@ -107,11 +180,13 @@
   overflow: hidden;
   padding: 0;
 }
+
 .pane-body[hidden] {
   display: none;
 }
 
 /* three bands: fixed top, scrolling libraries, fixed foot */
+
 .side-bands {
   flex: 1;
   min-height: 0;
@@ -121,18 +196,22 @@
   margin: 0;
   border: 0;
 }
+
 /* 左栏的间距只有三个值（#608）：同一组里的行之间 0，组与组之间 8 + 分界线 + 8，栏的四边 8。 */
+
 .side-top {
   flex: none;
   padding: 0 8px 8px;
   border-bottom: 1px solid var(--line);
 }
+
 .side-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding: 8px;
 }
+
 .side-foot {
   flex: none;
   display: flex;
@@ -145,6 +224,7 @@
 .k-row .sidebar-label {
   flex: 1;
 }
+
 .k-row .sidebar-count {
   margin-left: auto;
   color: var(--ink-2);
@@ -152,13 +232,16 @@
   font-variant-numeric: tabular-nums;
   opacity: 1;
 }
+
 /* 图库名一行选中时与 .k-row 一样（src/ui/row.css）。 */
+
 .lib-head-name[aria-current="page"] {
   isolation: isolate;
   background: transparent;
   color: var(--ink);
   font-weight: 500;
 }
+
 .lib-head-name[aria-current="page"]::before {
   content: "";
   position: absolute;
@@ -167,6 +250,7 @@
   border-radius: inherit;
   background: var(--hover);
 }
+
 .lib-head-name[aria-current="page"]::after {
   content: "";
   position: absolute;
@@ -177,15 +261,20 @@
   border-radius: 2px;
   background: var(--accent);
 }
+
 /* 按下：底色深一档，不缩。没选中的行按下时深的是悬停滑块。 */
+
 .sidebar-slot :is(.k-row, .lib-head-name)[aria-current="page"]:active:not(:disabled)::before,
 .sidebar-slot .lib-head-name:active:not(:disabled, [aria-current="page"]) {
   background: var(--row-press);
 }
+
 .sidebar-slot .k-fluid:has(.k-row:active:not(:disabled, [aria-current="page"])) > .k-fluid-pill {
   background: var(--row-press);
 }
+
 /* 文件夹图标：只有线框。 */
+
 .sidebar-slot .k-row-icon :is(.lucide-folder, .lucide-folder-open) {
   stroke-width: 1.75;
 }
@@ -195,11 +284,14 @@
   border: 0;
   margin: 0;
 }
+
 .workspace-provider {
   min-width: 0;
 }
+
 /* 图库行（#608）：30 高、13 px 加粗墨色，和文件夹行同一种行，只多一个展开箭头。
    ⋯ 浮在张数的位置上（悬停或菜单开着时张数让出来），张数与别的行成一列。 */
+
 .lib-head {
   position: relative;
   display: flex;
@@ -209,12 +301,16 @@
   margin-top: 0;
   padding: 0;
 }
+
 /* 托盘（#608 甲）：图库之间不画线，留白分开；库里的目录放进一块浅凹槽。 */
+
 .lib-group + .lib-group {
   margin-top: 10px;
 }
+
 /* 托盘展开、收起（#608）：高度从 0 长到原高再缩回（interpolate-size 让 height: auto 能过渡），同时淡入淡出；
    托盘里第一层的行跟子文件夹展开一样逐行落下。收起时 WorkspaceProviderSection 留着它放完再拿掉。 */
+
 .lib-fold {
   interpolate-size: allow-keywords;
   height: auto;
@@ -224,12 +320,14 @@
     height var(--t-slow) var(--spring),
     opacity var(--t) var(--ease);
 }
+
 @starting-style {
   .lib-fold {
     height: 0;
     opacity: 0;
   }
 }
+
 .lib-fold[data-closing] {
   height: 0;
   opacity: 0;
@@ -237,18 +335,21 @@
     height var(--t) var(--ease),
     opacity var(--t-fast) var(--ease);
 }
+
 .lib-fold > nav.sidebar > .sidebar-tree > li {
   transition:
     opacity var(--t) var(--ease),
     translate var(--t-slow) var(--spring);
   transition-delay: calc(var(--i, 0) * var(--t-stagger));
 }
+
 @starting-style {
   .lib-fold > nav.sidebar > .sidebar-tree > li {
     opacity: 0;
     translate: 0 -8px;
   }
 }
+
 .lib-group nav.sidebar {
   margin: 2px 0 0;
   padding: 4px;
@@ -256,12 +357,14 @@
   background: var(--lib-tray);
   box-shadow: var(--lib-tray-edge);
 }
+
 .workspace-provider-root {
   display: flex;
   grid-template-columns: none;
   margin-top: 0;
   align-items: center;
 }
+
 .workspace-expand {
   width: 18px;
   height: 22px;
@@ -276,22 +379,27 @@
   min-height: 0;
   cursor: pointer;
 }
+
 .workspace-expand:hover {
   background: var(--hover);
   color: var(--ink);
 }
+
 /* 工作区来源（WorkspaceSources、WorkspaceSourceEditor）。 */
+
 .workspace-sources {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
+
 .workspace-source-editor {
   display: flex;
   flex-direction: column;
   gap: 16px;
   margin: 0;
 }
+
 .workspace-sources > .k-description {
   margin: 6px 0 0;
   line-height: inherit;
@@ -300,10 +408,13 @@
   align-items: center;
   gap: 6px;
 }
+
 /* 展开、收起时换的是两个图标：新图标从另一个的角度转过来（#606 C4d）。 */
+
 .workspace-expand svg {
   transition: rotate var(--t-slow) var(--spring);
 }
+
 @starting-style {
   .workspace-expand[aria-expanded="true"] svg {
     rotate: -90deg;
@@ -312,7 +423,9 @@
     rotate: 90deg;
   }
 }
+
 /* the library name lines up with the row text below it: both sit 8 px in from the band */
+
 .lib-head-name {
   position: relative;
   flex: 1;
@@ -331,18 +444,24 @@
   font-weight: 600;
   text-align: left;
 }
+
 .lib-head-name:hover:not(:disabled, [aria-current="page"]) {
   background: var(--hover);
 }
+
 .lib-head-name:disabled {
   opacity: 1;
   cursor: default;
   pointer-events: none;
-} /* 未连接：右键与悬停提示落在整行（.lib-head）上 */
+}
+
+/* 未连接：右键与悬停提示落在整行（.lib-head）上 */
+
 .lib-head-name .sidebar-label {
   flex: 1;
   letter-spacing: 0.02em;
 }
+
 .lib-head-name .sidebar-count {
   margin-left: auto;
   color: var(--ink-2);
@@ -352,9 +471,11 @@
   opacity: 1;
   transition: opacity var(--t-fast);
 }
+
 .lib-head:is(:hover, :has(:focus-visible), :has(.lib-more[data-popup-open])) .lib-head-name .sidebar-count {
   opacity: 0;
 }
+
 .workspace-provider > .sidebar {
   padding: 0;
   border: 0;
@@ -362,7 +483,9 @@
   overflow: visible;
   gap: 0;
 }
+
 /* 方案 D（#113）：标题行“图库 ＋”；图库是 Finder 式分组，⋯ 悬停出现；未连接的图库名称变淡、带警告图标，同一行末尾是“重新连接”。 */
+
 .pane-library-title {
   flex: 1;
   min-width: 0;
@@ -370,23 +493,28 @@
   align-items: center;
   gap: 4px;
 }
+
 .pane-library-title .k-title {
   flex: 1;
   min-width: 0;
 }
+
 .lib-add {
   width: 28px;
   height: 28px;
   border-radius: var(--r-s);
 }
+
 .lib-head-name.is-off .sidebar-label {
   opacity: 0.6;
 }
+
 .lib-warn {
   flex: none;
   display: grid;
   color: var(--warn);
 }
+
 .lib-more {
   position: absolute;
   top: 3px;
@@ -398,10 +526,12 @@
   opacity: 0;
   transition: opacity var(--t-fast);
 }
+
 .lib-head:is(:hover, :has(:focus-visible)) .lib-more,
 .lib-more[data-popup-open] {
   opacity: 1;
 }
+
 .offline-retry {
   flex: none;
   display: inline-flex;
@@ -417,16 +547,21 @@
   font-weight: 500;
   cursor: pointer;
 }
+
 .offline-retry:hover {
   text-decoration: underline;
 }
+
 /* 未连接的图库行没有张数：“重新连接”之后给 ⋯ 留出自己的位置，不叠在按钮上。 */
+
 .lib-head:has(.offline-retry) {
   padding-right: 30px;
 }
+
 .trash-groups {
   padding-left: 22px;
 }
+
 .sidebar-tree .sidebar-tree {
   position: relative;
   padding-left: 0;
@@ -439,11 +574,13 @@
     height var(--t-slow) var(--spring),
     opacity var(--t) var(--ease);
 }
+
 @starting-style {
   .sidebar-tree .sidebar-tree {
     height: 0;
   }
 }
+
 .sidebar-tree .sidebar-tree[data-closing] {
   height: 0;
   opacity: 0;
@@ -451,15 +588,20 @@
     height var(--t) var(--ease),
     opacity var(--t-fast) var(--ease);
 }
+
 /* 子文件夹的层级（#608）：每深一层整行（选中的底与短条、悬停的底一起）缩进 16 px，文字左内边距不变。 */
+
 .sidebar-tree > li > .k-fluid-row,
 .sidebar-tree > li > .k-input {
   margin-left: calc(var(--depth, 0) * 16px);
 }
+
 .sidebar-tree > li > .k-input {
   width: calc(100% - var(--depth, 0) * 16px);
 }
+
 /* 折痕：子文件夹那一块的左边一道纸边，往右渐渐淡掉；只有左边，不围成框，不多占高度。 */
+
 .sidebar-tree .sidebar-tree::before {
   content: "";
   position: absolute;
@@ -472,31 +614,38 @@
   box-shadow: var(--crease-edge);
   pointer-events: none;
 }
+
 /* 展开时各行依次落下。 */
+
 .sidebar-tree .sidebar-tree > li {
   transition:
     opacity var(--t) var(--ease),
     translate var(--t-slow) var(--spring);
   transition-delay: calc(var(--i, 0) * var(--t-stagger));
 }
+
 @starting-style {
   .sidebar-tree .sidebar-tree > li {
     opacity: 0;
     translate: 0 -8px;
   }
 }
+
 /* 有子文件夹的文件夹：两层的图标；点的范围比图标大一圈，到行的左边与上下边。 */
+
 .k-row-icon.k-fold {
   position: relative;
   width: 15px;
   height: 15px;
   cursor: default;
 }
+
 .k-row-icon.k-fold::after {
   content: "";
   position: absolute;
   inset: -7px -4px -8px -8px;
 }
+
 .k-fold-icon {
   width: 15px;
   height: 15px;
@@ -508,37 +657,49 @@
   stroke-linejoin: round;
   transition: scale var(--t-fast) var(--spring);
 }
+
 .k-fold-icon .flap {
   transition: d var(--t-slow) var(--spring);
 }
+
 /* 后面的夹子被前面一页挡住的线由遮罩挖掉（FoldIcon），图标不填色，放在任何底上都一样。
    遮罩里的那一页与前面一页同一个类，跟着它一起变形。 */
+
 .k-fold-icon mask .flap {
   fill: black;
   stroke: black;
   stroke-width: 1.75;
 }
+
 /* 合上时前面那一页是整面；指针停在图标上时先变成点下去之后的样子。 */
+
 li[data-folded] > .k-fluid-row .k-fold-icon .flap,
 li:not([data-folded]) > .k-fluid-row .k-fold:hover .k-fold-icon .flap {
   d: path("M2 10 L21 10 L20.4 19.4 L2.6 19.4 Z");
 }
+
 li[data-folded] > .k-fluid-row .k-fold:hover .k-fold-icon .flap {
   d: path("M6.6 11 L22.4 11 L19.8 20 L4 20 Z");
 }
+
 .k-fold:hover {
   color: var(--ink-2);
 }
+
 .k-fold:hover .k-fold-icon {
   scale: 1.08;
 }
+
 .k-fold:active .k-fold-icon {
   scale: 0.92;
 }
+
 /* 选中的在哪一支：沿路各层的线框是强调色 45% 混 --ink-3；折起时也一样。 */
+
 li[data-branch] > .k-fluid-row .k-row-icon {
   color: color-mix(in srgb, var(--accent-strong) 45%, var(--ink-3));
 }
+
 @media (prefers-reduced-motion: reduce) {
   .k-fold-icon .flap {
     transition: none;
@@ -553,183 +714,154 @@ li[data-branch] > .k-fluid-row .k-row-icon {
     transition: none;
   }
 }
+
 .sidebar-folders {
   flex: none;
 }
 
-/* ---- Main header ---- */
-.topbar {
-  height: 56px;
-  min-height: 56px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 8px 0 16px;
-  background: var(--sheet-main);
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
-  z-index: 5;
-}
-.topbar.is-empty {
-  justify-content: flex-end;
-}
-/* 查找框（#607，design/ui-system/main-window-material.md“顶栏”）：开头 16 px 放大镜，最宽 640；
-   尾部依次是张数（有查找条件时）、标签分组、精确查找。材质是槽，获得焦点时槽口变实、放大镜变深，不画焦点环。 */
-.topbar > .search {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  max-width: 640px;
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 6px;
-  height: var(--h-lg);
-  padding: 0 4px 0 36px;
-  border-radius: var(--r);
-  background: var(--well-floor);
-  box-shadow: var(--well-inset);
-  border: 0;
-  overflow: visible;
-  transition: box-shadow var(--t) var(--ease);
-}
-.topbar > .search:hover:not(:focus-within) {
-  box-shadow: var(--well-inset-hover);
-}
-.topbar > .search:focus-within {
-  outline: 0;
-  box-shadow: var(--well-focus);
-}
-.search > .search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  translate: 0 -50%;
-  color: var(--ink-3);
-  pointer-events: none;
-  transition: color var(--t) var(--ease);
-}
-.search:focus-within > .search-icon {
-  color: var(--ink);
-}
-.search-extras {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-}
-.search-extras .result-count {
-  padding: 0 4px;
-  color: var(--ink-2);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-/* 条件块平时只有名称；指针移上去、键盘走到或它的菜单开着时，相近（＋、×）、排除、去掉几个按钮才展开（#607）。
-   收起的按钮宽 0、仍可聚焦；负边距抵掉它前面的间距，所以收起时不占位置。chipsThatFit 按收起时的宽度量。 */
-.topbar > .search .k-token.is-condition .k-token-action {
-  width: 0;
-  margin-left: -2px;
-  overflow: hidden;
-  opacity: 0;
-  transition:
-    width var(--t) var(--ease),
-    margin var(--t) var(--ease),
-    opacity var(--t-fast) var(--ease),
-    background-color var(--t-fast),
-    color var(--t-fast);
-}
-.topbar > .search .k-token.is-condition:is(:hover, :focus-within, :has([data-popup-open])) {
-  padding-right: 4px;
-}
-.topbar > .search .k-token.is-condition:is(:hover, :focus-within, :has([data-popup-open])) .k-token-action {
-  width: 20px;
-  margin-left: 0;
-  opacity: 1;
-}
-.topbar > .search .search-field {
-  min-width: 120px;
-}
-.topbar > .search .search-field input {
-  border: 0;
-  padding: 4px 2px;
-  outline: 0;
-}
-.topbar > .search .search-field input:focus-visible {
-  outline: 0;
-}
-/* 查找框靠左，导入与窗口控件一组靠右：导入吃掉余下的宽度，宽屏时两组分开、紧凑时自然相邻。 */
-.topbar > .import-menu {
-  margin-left: auto;
-}
-.topbar > .k-win-ctrls {
-  margin-left: 0;
+/* 窄窗口里侧栏让位（#274，shell/paneFit.ts）。排在 frame.css 之后，覆盖侧栏标题行与内容区写死的宽度。 */
+
+/* 侧栏宽度由工作区算好写在 .app-body 的 --sidebar-width 上：平时 256，窄时按余量与详情面板一起让到 200。 */
+
+/* 256 = 纸 + 右边 8 px 桌面（#608）。 */
+
+.sidebar-slot .pane-head,
+.sidebar-slot .pane-body,
+.sidebar-slot > .capture-history,
+.sidebar-slot > .reference-groups {
+  width: calc(var(--sidebar-width, 256px) - var(--sheet-gap));
 }
 
-/* 精确查找（#102 方案 C3）：查找框 40 高、圆角 12，开关 32 × 32 内缩 4 → 圆角 8，同心。
-   关 = 与查找框同平面，只有灰色字形，悬停浮出 --hover；开 = 轻轻凹进的金色浅槽。 */
-.k-exact {
-  position: relative;
-  flex: none;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: var(--r-s);
-  background: transparent;
-  color: var(--ink-3);
-  box-shadow: none;
+/* 再窄就收起；收起期间点开，浮在图片墙上，点空白处、Esc 或选好范围后收回。 */
+
+.sidebar-slot[data-float] {
+  position: absolute;
+  z-index: var(--z-pane-float);
+  top: var(--sheet-gap);
+  bottom: var(--sheet-gap);
+  left: 0;
+  margin-right: 0;
+  --sidebar-width: 256px;
+  box-shadow: var(--shadow-pop);
+}
+
+.pane-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-pane-scrim);
+  background: var(--overlay);
+  opacity: 0.5;
+}
+
+/* 文件夹拖动排顺序（#636，main-window-material.md“拖动排顺序”；做法在 src/library/folderDrag.ts）。 */
+.sidebar button[data-folder-id] {
   cursor: pointer;
-  transition:
-    box-shadow var(--t) var(--ease),
-    background-color var(--t) var(--ease),
-    color var(--t) var(--ease),
-    transform var(--t-fast) var(--spring);
 }
-.k-exact:hover {
-  background-color: var(--hover);
-  color: var(--ink);
+:root[data-folder-dragging],
+:root[data-folder-dragging] * {
+  cursor: grabbing !important;
 }
-.k-exact:active {
-  transform: scale(0.94);
+:root[data-folder-dragging] .k-fluid-pill {
+  opacity: 0;
 }
-.k-exact:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
+:root[data-folder-dragging] .sidebar .k-fluid-row {
+  will-change: transform;
 }
-.k-exact[data-pressed] {
-  background-color: var(--exact-on-bg);
-  color: var(--exact-on-ink);
-  box-shadow: var(--exact-on-inset);
-}
-.k-exact-glyph {
-  display: block;
+/* 拖着时各行会挪出自己那一块：子文件夹那一块不裁，折痕先隐去。 */
+:root[data-folder-dragging] .sidebar-tree .sidebar-tree {
   overflow: visible;
 }
-.k-exact-glyph path {
-  transform-box: view-box;
-  transform-origin: 8px 8px;
+/* 折痕跟着这一块的第一行与最后一行挪（folderDrag.ts 给出两个偏移）；整块都在手里时隐去。 */
+:root[data-folder-dragging] .sidebar-tree .sidebar-tree::before {
+  top: calc(2px + var(--crease-top, 0px));
+  bottom: calc(2px - var(--crease-bottom, 0px));
   transition:
-    opacity var(--t-fast) var(--ease),
-    transform var(--t-pop) var(--spring);
+    top var(--crease-ease, 0s) var(--crease-delay, 0ms),
+    bottom var(--crease-ease, 0s) var(--crease-delay, 0ms),
+    opacity var(--t-fast);
 }
-.k-exact .k-exact-line {
+:root[data-folder-dragging] .sidebar-tree .sidebar-tree[data-crease-held]::before {
   opacity: 0;
-  transform: scaleX(0.6);
 }
-.k-exact[data-pressed] .k-exact-wave {
+/* 停在一行上，松手就放进去。 */
+.sidebar-slot [data-folder-drop] {
+  background: var(--hover);
+  box-shadow: var(--drop-edge);
+}
+/* 手里的那一张：行的副本，缩到 90%，挂在指针右边。 */
+.folder-drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: var(--z-drag);
+  pointer-events: none;
+  transform-origin: 0 50%;
+  will-change: transform;
+}
+.folder-drag-ghost > .k-row {
+  transform-origin: 0 50%;
+  background: transparent;
+  box-shadow: none;
+  transition: transform var(--t) var(--held-pop, var(--spring));
+}
+.folder-drag-ghost > .k-row::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--btn-face);
+  box-shadow: var(--btn-lift);
+  transition: box-shadow var(--t);
+}
+.folder-drag-ghost > .k-row[data-held] {
+  transform: scale(0.9);
+}
+.folder-drag-ghost > .k-row[data-held]::before {
+  box-shadow: var(--held-lift);
+}
+/* 里面还有子文件夹：下面垫一张，看得出拿的是一摞。 */
+.folder-drag-ghost > .k-row[data-pile]::after {
+  content: "";
+  position: absolute;
+  inset: 4px 5px -4px;
+  z-index: -2;
+  border-radius: inherit;
+  background: var(--btn-face);
+  box-shadow: var(--btn-lift);
+}
+/* 落点：两行之间一道 2 px 的线，文字色 15%，从中间长出来，换位置时滑过去。 */
+.folder-drag-line {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: var(--z-drag-line);
+  height: 2px;
+  pointer-events: none;
   opacity: 0;
-  transform: scaleY(0.4);
+  transition:
+    transform var(--t-fast) var(--ease),
+    width var(--t-fast) var(--ease),
+    opacity var(--t-fast);
 }
-.k-exact[data-pressed] .k-exact-line {
+.folder-drag-line[data-on] {
   opacity: 1;
+}
+.folder-drag-line > i {
+  display: block;
+  height: 100%;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--ink) 15%, transparent);
+  transform: scaleX(0);
+  transition: transform var(--t-slow) var(--spring);
+}
+.folder-drag-line[data-on] > i {
   transform: none;
 }
-
-/* 导入按钮与它的任务回执浮层。 */
-.import-menu {
-  position: relative;
-  flex: none;
+@media (prefers-reduced-motion: reduce) {
+  .folder-drag-line,
+  .folder-drag-line > i,
+  .folder-drag-ghost > .k-row {
+    transition: none;
+  }
 }

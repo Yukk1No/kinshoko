@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { errorText } from "../ipc";
 import { useCallback } from "react";
+import type { SafeModeScope } from "../bindings/SafeModeScope";
 import type { WorkspaceSource } from "../bindings/WorkspaceSource";
 import { useToast } from "../ui/Toast";
 import { SelectionPanel } from "./SelectionPanel";
@@ -9,11 +10,13 @@ import { SelectionPanel } from "./SelectionPanel";
 export function WorkspaceSourceEditor({
   source,
   safe,
+  safeModeScope,
   reloadKey,
   onClose,
 }: {
   source: WorkspaceSource;
   safe: boolean;
+  safeModeScope?: SafeModeScope;
   reloadKey: number;
   onClose: () => void;
 }) {
@@ -31,6 +34,7 @@ export function WorkspaceSourceEditor({
         libraryId={source.libraryId}
         selected={new Set([source.imageId])}
         safeMode={safe}
+        safeModeScope={safeModeScope}
         reloadKey={reloadKey}
         generation={reloadKey}
         onError={onError}

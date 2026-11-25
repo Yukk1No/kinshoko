@@ -337,7 +337,9 @@ impl Worker {
         {
             self.end_session();
             // 加载可能要几分钟：不留着上一个状态，那可能是“已全部打完”“已暂停”或“出错”。
-            self.shared.set(TaggingStatus::Starting);
+            self.shared.set(TaggingStatus::Starting {
+                device: Some(spec.device),
+            });
             let loading = std::time::Instant::now();
             let shared = self.shared.clone();
             let watch = self.watch_foreground_while_loading();

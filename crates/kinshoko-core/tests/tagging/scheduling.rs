@@ -297,7 +297,7 @@ fn a_ready_that_arrives_after_pausing_does_not_restart_tagging() {
     assert!(
         matches!(
             loading,
-            TaggingStatus::Starting | TaggingStatus::Preparing { .. }
+            TaggingStatus::Starting { .. } | TaggingStatus::Preparing { .. }
         ),
         "加载中：{loading:?}"
     );
@@ -353,7 +353,17 @@ fn a_new_image_is_not_reported_all_done_while_its_model_loads() {
         wake.notify_all();
     }
 
-    assert_eq!(loading, TaggingStatus::Starting, "有图没打时不算全部打完");
+    assert_eq!(
+        serde_json::to_value(&loading).unwrap()["device"],
+        "directMl"
+    );
+    assert_eq!(
+        loading,
+        TaggingStatus::Starting {
+            device: Some(Device::DirectMl)
+        },
+        "有图没打时不算全部打完"
+    );
     idle(&tagging);
     assert_eq!(f.fake.tagged().len(), 1, "加载完照常打完");
 }

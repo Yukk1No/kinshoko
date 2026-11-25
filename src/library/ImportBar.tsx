@@ -488,11 +488,10 @@ export function ImportBar({
         <Dialog.Portal>
           <Dialog.Backdrop className="k-backdrop" />
           <Dialog.Popup className="k-dialog k-import-dialog is-wide" aria-label={t("tagStepLabel")}>
-            {tagStep && (
-              <DialogHeight>
-                <EagleTagStep libraryId={finished?.libraryId ?? libraryId} onClose={() => setTagStep(false)} />
-              </DialogHeight>
-            )}
+            {/* 关上后 Popup 自己卸下；不跟 tagStep 一起清掉内容，关闭动画缩回去的才是整个对话框（#448）。 */}
+            <DialogHeight>
+              <EagleTagStep libraryId={finished?.libraryId ?? libraryId} onClose={() => setTagStep(false)} />
+            </DialogHeight>
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>

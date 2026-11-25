@@ -18,6 +18,7 @@ use kinshoko_core::subscription::{
 mod backlog;
 mod bookmarks;
 mod ranking;
+mod relocate;
 
 fn png(seed: u8) -> Vec<u8> {
     let mut bytes = Vec::new();

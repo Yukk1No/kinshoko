@@ -116,6 +116,9 @@ pub fn setup<R: Runtime>(app: &AppHandle<R>, models_dir: PathBuf, preferred: Opt
                 }
                 if last.as_ref() != Some(&status) {
                     let _ = app.emit(EVENT, &status);
+                    if last.is_some() {
+                        crate::library::wake_workspace_monitor();
+                    }
                     last = Some(status);
                 }
                 std::thread::sleep(Duration::from_millis(300));

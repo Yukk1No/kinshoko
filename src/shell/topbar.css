@@ -1,0 +1,235 @@
+/* 顶栏（design/ui-system/main-window-material.md“顶栏”）：结果数、图片大小、查找框与精确查找开关、导入按钮与窗口按钮。紧跟 frame.css；窄顶栏在 search/search-bar.css。 */
+
+.topbar > .search {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+
+.selection-hint {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+/* 顶栏的结果数与图片大小滑条，读屏专用的隐藏文字。 */
+
+.result-count {
+  flex: none;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.density {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.density input {
+  width: 96px;
+  accent-color: var(--accent);
+}
+
+/* ---- Main header ---- */
+
+.topbar {
+  height: 56px;
+  min-height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 0 16px;
+  background: var(--sheet-main);
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+  z-index: 5;
+}
+
+.topbar.is-empty {
+  justify-content: flex-end;
+}
+
+/* 查找框（#607，design/ui-system/main-window-material.md“顶栏”）：开头 16 px 放大镜，最宽 640；
+   尾部依次是张数（有查找条件时）、标签分组、精确查找。材质是槽，获得焦点时槽口变实、放大镜变深，不画焦点环。 */
+
+.topbar > .search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  max-width: 640px;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  height: var(--h-lg);
+  padding: 0 4px 0 36px;
+  border-radius: var(--r);
+  background: var(--well-floor);
+  box-shadow: var(--well-inset);
+  border: 0;
+  overflow: visible;
+  transition: box-shadow var(--t) var(--ease);
+}
+
+.topbar > .search:hover:not(:focus-within) {
+  box-shadow: var(--well-inset-hover);
+}
+
+.topbar > .search:focus-within {
+  outline: 0;
+  box-shadow: var(--well-focus);
+}
+
+.search > .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--ink-3);
+  pointer-events: none;
+  transition: color var(--t) var(--ease);
+}
+
+.search:focus-within > .search-icon {
+  color: var(--ink);
+}
+
+.search-extras {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.search-extras .result-count {
+  padding: 0 4px;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 条件块平时只有名称；指针移上去、键盘走到或它的菜单开着时，相近（＋、×）、排除、去掉几个按钮才展开（#607）。
+   收起的按钮宽 0、仍可聚焦；负边距抵掉它前面的间距，所以收起时不占位置。chipsThatFit 按收起时的宽度量。 */
+
+.topbar > .search .k-token.is-condition .k-token-action {
+  width: 0;
+  margin-left: -2px;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    width var(--t) var(--ease),
+    margin var(--t) var(--ease),
+    opacity var(--t-fast) var(--ease),
+    background-color var(--t-fast),
+    color var(--t-fast);
+}
+
+.topbar > .search .k-token.is-condition:is(:hover, :focus-within, :has([data-popup-open])) {
+  padding-right: 4px;
+}
+
+.topbar > .search .k-token.is-condition:is(:hover, :focus-within, :has([data-popup-open])) .k-token-action {
+  width: 20px;
+  margin-left: 0;
+  opacity: 1;
+}
+
+.topbar > .search .search-field {
+  min-width: 120px;
+}
+
+.topbar > .search .search-field input {
+  border: 0;
+  padding: 4px 2px;
+  outline: 0;
+}
+
+.topbar > .search .search-field input:focus-visible {
+  outline: 0;
+}
+
+/* 查找框靠左，导入与窗口控件一组靠右：导入吃掉余下的宽度，宽屏时两组分开、紧凑时自然相邻。 */
+
+.topbar > .import-menu {
+  margin-left: auto;
+}
+
+.topbar > .k-win-ctrls {
+  margin-left: 0;
+}
+
+/* 精确查找（#102 方案 C3）：查找框 40 高、圆角 12，开关 32 × 32 内缩 4 → 圆角 8，同心。
+   关 = 与查找框同平面，只有灰色字形，悬停浮出 --hover；开 = 轻轻凹进的金色浅槽。 */
+
+.k-exact {
+  position: relative;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-s);
+  background: transparent;
+  color: var(--ink-3);
+  box-shadow: none;
+  cursor: pointer;
+  transition:
+    box-shadow var(--t) var(--ease),
+    background-color var(--t) var(--ease),
+    color var(--t) var(--ease),
+    transform var(--t-fast) var(--spring);
+}
+
+.k-exact:hover {
+  background-color: var(--hover);
+  color: var(--ink);
+}
+
+.k-exact:active {
+  transform: scale(0.94);
+}
+
+.k-exact:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.k-exact[data-pressed] {
+  background-color: var(--exact-on-bg);
+  color: var(--exact-on-ink);
+  box-shadow: var(--exact-on-inset);
+}
+
+.k-exact-glyph {
+  display: block;
+  overflow: visible;
+}
+
+.k-exact-glyph path {
+  transform-box: view-box;
+  transform-origin: 8px 8px;
+  transition:
+    opacity var(--t-fast) var(--ease),
+    transform var(--t-pop) var(--spring);
+}
+
+.k-exact .k-exact-line {
+  opacity: 0;
+  transform: scaleX(0.6);
+}
+
+.k-exact[data-pressed] .k-exact-wave {
+  opacity: 0;
+  transform: scaleY(0.4);
+}
+
+.k-exact[data-pressed] .k-exact-line {
+  opacity: 1;
+  transform: none;
+}

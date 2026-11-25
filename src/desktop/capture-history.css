@@ -1,0 +1,200 @@
+/* 截图（#62）与参考组（#66）侧栏面板（#98，预览 10 / 11）。标题在侧栏标题行，面板只放内容。 */
+
+.capture-history,
+.reference-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 10px 16px;
+  overflow-y: auto;
+  color: var(--ink);
+}
+
+.empty-context > .capture-history,
+.empty-context > .reference-groups {
+  width: 100%;
+}
+
+/* 截图列表 */
+
+.capture-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.capture-history-item {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px;
+  border-radius: var(--r);
+}
+
+.capture-history-item:hover,
+.capture-history-item:focus-within {
+  background: var(--hover);
+}
+
+.capture-history-item img {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: var(--r-xs);
+  object-fit: cover;
+  background: var(--card);
+}
+
+.capture-history-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.capture-history-name {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.capture-history-meta {
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.capture-collect-thumb {
+  width: 64px;
+  height: 48px;
+  flex: none;
+  border-radius: var(--r-xs);
+  object-fit: cover;
+  background: var(--card);
+}
+
+/* 左移 5px：图标与上面的文字对齐，而不是透明的按钮框。 */
+
+.capture-history-actions {
+  display: flex;
+  gap: 2px;
+  margin: 2px 0 0 -5px;
+}
+
+.capture-history-actions .k-icon-btn.is-done,
+.capture-history-actions .k-icon-btn.is-done:hover:not(:disabled) {
+  color: var(--accent-strong);
+}
+
+.capture-history-delete {
+  position: absolute;
+  top: 6px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  opacity: 0;
+}
+
+.capture-history-item:hover .capture-history-delete,
+.capture-history-delete:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .capture-history-delete {
+    opacity: 1;
+  }
+}
+
+/* 收藏截图并保存参考组：沿用保存对话框（.k-save-dialog，宽 480）。截图列表同 .k-list：surface 底、1 px line 圈出、行间 1 px line。
+   每张截图一行：缩略图在左，名称、尺寸与“已收藏”在上，图库与文件夹两个 Select 并排。 */
+
+.capture-save-list {
+  display: flex;
+  flex-direction: column;
+  max-height: min(360px, calc(100vh - 260px));
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.capture-save-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 12px;
+}
+
+.capture-save-row + .capture-save-row {
+  border-top: 1px solid var(--line);
+}
+
+.capture-save-thumb {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: var(--r-xs);
+  object-fit: cover;
+  background: var(--card);
+  transition: opacity var(--t-fast);
+}
+
+.capture-save-row.is-skipped .capture-save-thumb {
+  opacity: 0.5;
+}
+
+.capture-save-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.capture-save-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  margin: 0;
+  min-width: 0;
+}
+
+.capture-save-head .k-pill {
+  margin-left: auto;
+}
+
+.capture-save-head strong {
+  font-weight: 600;
+}
+
+.capture-save-head span {
+  color: var(--ink-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.capture-save-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .capture-save-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

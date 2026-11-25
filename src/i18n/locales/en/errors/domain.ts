@@ -109,6 +109,8 @@ export default {
   subscriptionStore: "Couldn't read or write the subscription records: {{detail}}",
   subscriptionStoreUpgrade: "Couldn't upgrade the subscription records: {{detail}}",
   subscriptionUnknown: "This subscription doesn't exist",
+  subscriptionWorkTaken: "The new library already has this work",
+  subscriptionRecordsChanged: "The collected images changed. Nothing was changed",
   shortcutAction: {
     capture: "Capture",
     pinClipboard: "Pin clipboard",

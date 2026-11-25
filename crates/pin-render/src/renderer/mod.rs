@@ -13,6 +13,13 @@ mod upload;
 /// 每个设备一个编号；句柄记下自己属于哪个设备，重建后旧句柄报 [`Error::Stale`]。
 static GENERATION: AtomicU64 = AtomicU64::new(1);
 
+/// 每个上传的资源句柄一个唯一编号，用于在绘制槽位缓存中辨认绑定组是否可复用（#715）。
+static NEXT_RESOURCE_ID: AtomicU64 = AtomicU64::new(1);
+
+pub(super) fn next_resource_id() -> u64 {
+    NEXT_RESOURCE_ID.fetch_add(1, Ordering::Relaxed)
+}
+
 /// 建设备一次只建一个：几个线程同时建 WARP 设备时进程会崩（访问冲突，本机实测）。
 static CREATING: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
@@ -38,10 +45,13 @@ pub struct Renderer {
     empty_lut: wgpu::TextureView,
     empty_curve: wgpu::TextureView,
     empty_overlay: wgpu::TextureView,
+    /// 离屏读回路径共用的 Uniform 与绑定组缓存。
+    offscreen_cache: std::sync::Mutex<DrawCache>,
 }
 
 /// 一张钉图的源图：带完整 mip 链的纹理。
 pub struct Image {
+    id: u64,
     generation: u64,
     view: wgpu::TextureView,
     width: u32,
@@ -62,6 +72,7 @@ impl Image {
 /// 到某台显示器的查找表。
 #[derive(Debug)]
 pub struct Lut {
+    id: u64,
     generation: u64,
     /// `None` 为恒等。
     tables: Option<(wgpu::TextureView, wgpu::TextureView)>,
@@ -72,10 +83,41 @@ pub struct Lut {
 /// 说明层：预乘 alpha 的 RGBA8，sRGB 编码。
 #[derive(Debug)]
 pub struct Overlay {
+    id: u64,
     generation: u64,
     view: wgpu::TextureView,
     width: u32,
     height: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct BindKey {
+    pub(super) image: u64,
+    pub(super) lut: u64,
+    pub(super) ui_lut: u64,
+    pub(super) overlay: Option<u64>,
+}
+
+pub(super) struct DrawCache {
+    pub(super) uniform: wgpu::Buffer,
+    pub(super) bound: Option<(BindKey, wgpu::BindGroup)>,
+    pub(super) rebuilds: u64,
+}
+
+impl DrawCache {
+    pub(super) fn new(device: &wgpu::Device) -> Self {
+        let uniform = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("pin uniform"),
+            size: std::mem::size_of::<PinUniform>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        Self {
+            uniform,
+            bound: None,
+            rebuilds: 0,
+        }
+    }
 }
 
 /// 一个窗口槽的上屏面。
@@ -84,6 +126,7 @@ pub struct Surface {
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
     configured: bool,
+    cache: DrawCache,
 }
 
 /// wgpu 的显存分配器报告（字节）：已分配给资源的与向驱动申请的。
@@ -205,6 +248,7 @@ impl Renderer {
         let empty_lut = empty(wgpu::TextureDimension::D3, wgpu::TextureFormat::Rgba32Float);
         let empty_curve = empty(wgpu::TextureDimension::D2, wgpu::TextureFormat::Rgba32Float);
         let empty_overlay = empty(wgpu::TextureDimension::D2, OFFSCREEN_FORMAT);
+        let offscreen_cache = std::sync::Mutex::new(DrawCache::new(&device));
 
         Ok(Renderer {
             generation: GENERATION.fetch_add(1, Ordering::Relaxed),
@@ -222,6 +266,7 @@ impl Renderer {
             empty_lut,
             empty_curve,
             empty_overlay,
+            offscreen_cache,
         })
     }
 
@@ -265,6 +310,15 @@ impl Renderer {
                 allocated: r.total_allocated_bytes,
                 reserved: r.total_reserved_bytes,
             })
+    }
+
+    /// 离屏绘制重建绑定组的次数（#715），只供测试观察缓存复用。
+    #[doc(hidden)]
+    pub fn offscreen_bind_rebuilds(&self) -> u64 {
+        self.offscreen_cache
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .rebuilds
     }
 
     /// 等 GPU 做完已提交的工作。

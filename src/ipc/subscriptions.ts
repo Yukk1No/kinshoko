@@ -1,6 +1,9 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { Artist } from "../bindings/Artist";
+import type { MovedWork } from "../bindings/MovedWork";
+import type { MoveReport } from "../bindings/MoveReport";
 import type { NewSubscription } from "../bindings/NewSubscription";
+import type { OldImages } from "../bindings/OldImages";
 import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionPreview } from "../bindings/SubscriptionPreview";
@@ -46,6 +49,21 @@ export function subscriptionPreviews(safeMode: boolean): Promise<SubscriptionPre
 /** 把几条订阅以后收进的资料库改成 `libraryId`；已收的图留在原来的库。 */
 export function subscriptionSetLibrary(ids: string[], libraryId: string): Promise<Subscription[]> {
   return invoke<Subscription[]>("subscription_set_library", { ids, libraryId });
+}
+
+/** 这几条订阅留在旧库的图：每条订阅每个旧库能移几张、留下几张（整理过的留下）。 */
+export function subscriptionOldImages(ids: string[]): Promise<OldImages[]> {
+  return invoke<OldImages[]>("subscription_old_images", { ids });
+}
+
+/** 把这几条订阅留在旧库、没整理过的图移到它们现在收进的库。 */
+export function subscriptionMoveOld(ids: string[]): Promise<MoveReport> {
+  return invoke<MoveReport>("subscription_move_old", { ids });
+}
+
+/** 撤销 {@link subscriptionMoveOld}。 */
+export function subscriptionUndoMove(works: MovedWork[]): Promise<void> {
+  return invoke<void>("subscription_undo_move", { works });
 }
 
 /** 订阅页看过了：新图标为已看，入口与托盘上的数量清零。 */

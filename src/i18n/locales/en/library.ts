@@ -101,6 +101,8 @@ const library: Translation<typeof zh> = {
     newSubfolder: "New subfolder",
     rename: "Rename",
     moveToTop: "Move to top level",
+    movedInto: "Moved {{name}} into {{parent}}, position {{place}}",
+    movedTop: "Moved {{name}} to the top level, position {{place}}",
     delete: "Delete folder",
   },
   deleteFolder: {

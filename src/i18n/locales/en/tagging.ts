@@ -90,6 +90,8 @@ const tagging: Translation<typeof zh> = {
     running_other: "Tagged {{count, number}} images, {{remaining, number}} left ({{device}})",
     paused: "Paused",
     resume: "Resume",
+    pausedRemaining_one: "Paused, {{count, number}} image left",
+    pausedRemaining_other: "Paused, {{count, number}} images left",
     yielded: "Paused for a full-screen app or presentation mode; resumes when you're back on the desktop",
     idle: "All done",
     unknown_one: "{{count, number}} library unavailable",

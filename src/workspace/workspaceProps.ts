@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { SafeModeScope } from "../bindings/SafeModeScope";
 import type { Section } from "../shell/Rail";
 
 /** 工作区（LibraryWorkspace）的属性。 */
@@ -18,6 +19,8 @@ export type WorkspaceProps = {
   hidden: boolean;
   /** 查询资料库用的安全模式视角：开启当即生效，关闭等后端确认（#183）。 */
   safe: boolean;
+  /** 安全模式作用的分级起点（#223 / #711）；读到设置前默认 `questionable`。 */
+  safeModeScope?: SafeModeScope;
   /** 资料库确认安全模式已切换（`safeModeChanged`）。 */
   onSafeChanged: (on: boolean) => void;
   showApproxSource: boolean;
