@@ -18,10 +18,13 @@ import type { SubscriptionPreview } from "../bindings/SubscriptionPreview";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { thumbnailUrl } from "../ipc";
 import { ArtistDialog } from "../subscriptions/ArtistDialog";
+import { failureText } from "../subscriptions/checkStatus";
 import { useLibraryOptions } from "../subscriptions/artistOptions";
 import { FollowingDialog } from "../subscriptions/FollowingDialog";
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuSubmenu } from "../ui/Menu";
 import { Select } from "../ui/Select";
+import { Tip } from "../ui/Tip";
+import { WarnIcon } from "../ui/WarnIcon";
 import { useOptionalToast } from "../ui/Toast";
 import { TARGET } from "../wall/wallShared";
 import { COVERS, useRemoteCovers } from "./artistCovers";
@@ -471,9 +474,19 @@ function ArtistCard({
         <button type="button" className="pw-artist-name k-name" onClick={open}>
           {a.name}
         </button>
-        <span className="k-description">
-          {gone ? t("browse.unsubscribedShort") : lastNewText(t, preview, subscription.createdAt)}
-        </span>
+        {/* 上次检查没完成（例如被限流）时先说这件事，原因在悬停提示里。 */}
+        {!gone && subscription.lastError ? (
+          <Tip label={failureText(subscription.lastError)}>
+            <span className="k-list-desc is-warn pw-artist-warn" tabIndex={0}>
+              <WarnIcon />
+              {t("lastFailed")}
+            </span>
+          </Tip>
+        ) : (
+          <span className="k-description">
+            {gone ? t("browse.unsubscribedShort") : lastNewText(t, preview, subscription.createdAt)}
+          </span>
+        )}
       </div>
       {!gone && oldHere && (
         <div className="pw-artist-old">

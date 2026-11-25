@@ -1,9 +1,12 @@
 import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { useTranslation } from "react-i18next";
 import { NOTICE_ORDER, usePersistentToast, useToast } from "../ui/Toast";
 import { accountActions } from "./accountActions";
 import type { Section } from "../shell/Rail";
-import { SubscriptionsPage } from "./SubscriptionsPage";
+import type { PageSwapPhase } from "../shell/usePageSwap";
+import { SubscriptionsMain } from "../pixiv/SubscriptionsMain";
+import type { DensityControl } from "../pixiv/density";
 import { useSubscriptionStatus } from "./useSubscriptionStatus";
 
 /**
@@ -56,32 +59,45 @@ export function LoginExpiredNotice({
   return null;
 }
 
-/** 订阅页占满工作区（侧栏与主区），与图片与文件夹的工作区并排切换。 */
+/**
+ * 订阅页（#461）：没有侧栏，应用内 pixiv 浏览占满工作区，与图片与文件夹的工作区并排切换。
+ * `swap` 是切换的过渡（`usePageSwap`）：过渡中订阅页盖在图片页上淡入或淡出；关掉后淡出时用最后一次的状态。
+ */
 export function SubscriptionSection({
   subscriptions,
+  swap = null,
   safe,
-  paneOpen,
-  onPaneToggle,
-  onOpenImage,
+  onOpenSettings,
+  density = null,
 }: {
   subscriptions: ReturnType<typeof useSubscriptionSection>;
+  swap?: PageSwapPhase | null;
   safe: boolean;
-  /** 当前打开的资料库：新订阅默认收进这里。 */
-  paneOpen: boolean;
-  onPaneToggle: () => void;
-  onOpenImage: (libraryId: string, imageId: string) => void;
+  /** 头像卡里的“订阅设置”：打开设置 › 订阅。 */
+  onOpenSettings: () => void;
+  /** 图片大小（与图片页共用）。 */
+  density?: DensityControl | null;
 }) {
-  if (!subscriptions.page) return null;
+  const last = useRef<SubscriptionStatus | null>(null);
+  if (subscriptions.page) last.current = subscriptions.page;
+  const leaving = !subscriptions.page && (swap === "out-start" || swap === "out");
+  const page = subscriptions.page ?? (leaving ? last.current : null);
+  if (!page) return null;
   return (
-    <div className="app-workspace workspace">
+    <div
+      className="app-workspace workspace"
+      data-swap={swap === "in" ? "in" : leaving ? "out" : undefined}
+      inert={leaving || undefined}
+      aria-hidden={leaving || undefined}
+    >
       <div className="app-body">
-        <SubscriptionsPage
-          status={subscriptions.page}
+        <SubscriptionsMain
+          status={page}
           onStatus={subscriptions.setStatus}
           safe={safe}
-          paneOpen={paneOpen}
-          onPaneToggle={onPaneToggle}
-          onOpenImage={onOpenImage}
+          onOpenSettings={onOpenSettings}
+          density={density}
+          leaving={leaving}
         />
       </div>
     </div>

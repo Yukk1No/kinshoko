@@ -182,6 +182,7 @@ mod tests {
                 user_id: "11".into(),
                 name: "画师".into(),
                 explicit_allowed: false,
+                avatar: String::new(),
             },
         };
         account.logged_in(session).unwrap();
@@ -208,6 +209,7 @@ mod tests {
                 user_id: "11".into(),
                 name: "画师".into(),
                 explicit_allowed: true,
+                avatar: String::new(),
             },
             expired: true,
         };

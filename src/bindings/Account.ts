@@ -15,4 +15,9 @@ name: string,
 /**
  * 账号打开了 R-18 显示（`user.x_restrict` 大于 0）；没打开时不出现成人内容的选项。
  */
-explicitAllowed: boolean, };
+explicitAllowed: boolean, 
+/**
+ * 头像（`user.profile_image_urls.px_170x170`，`i.pximg.net` 上的地址）。以前存下的登录里没有，下次换会话时补上；
+ * 没有时为空，界面用名字的首字。
+ */
+avatar: string, };

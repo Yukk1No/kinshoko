@@ -39,6 +39,7 @@ import { releaseStartup, startupLibraryOpened } from "./startupGate";
 import { logFailure } from "./runLog";
 import { StartupSplash } from "./shell/StartupSplash";
 import { LoginExpiredNotice, SubscriptionSection, useSubscriptionSection } from "./subscriptions/SubscriptionSection";
+import { usePageSwap } from "./shell/usePageSwap";
 import { errorText } from "./ipc/commandError";
 
 /**
@@ -95,6 +96,7 @@ function MainWindow() {
     setPaneOpen(true);
   }, []);
   const subscriptions = useSubscriptionSection(section, setSection);
+  const swap = usePageSwap(subscriptions.page !== null);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   /** 启动时后端打开上次的资料库（成功或失败）之后才进工作区。打开了哪个是后端细节（ADR-0008）。 */
@@ -335,12 +337,12 @@ function MainWindow() {
                     onCaptureRequestHandled={collectionHandled}
                     referenceRequest={referenceRequest}
                     section={section}
-                    paneOpen={paneOpen}
+                    paneOpen={paneOpen && !swap.paneHeld}
                     onPaneToggle={togglePane}
                     onPaneOpen={setPaneOpen}
                     onOpenBrowse={openBrowse}
                     libraryControls={libraryControls}
-                    hidden={empty || subscriptions.page !== null}
+                    hidden={empty || (subscriptions.page !== null && swap.phase !== "in")}
                     safe={lensSafe}
                     safeModeScope={safeModeScope}
                     onSafeChanged={acceptSafe}
@@ -360,14 +362,10 @@ function MainWindow() {
                 )}
                 <SubscriptionSection
                   subscriptions={subscriptions}
+                  swap={swap.phase}
                   safe={lensSafe}
-                  paneOpen={paneOpen}
-                  onPaneToggle={togglePane}
-                  onOpenImage={(libraryId, imageId) => {
-                    setSection("browse");
-                    setPaneOpen(true);
-                    setReferenceRequest((last) => ({ libraryId, imageId, stamp: (last?.stamp ?? 0) + 1 }));
-                  }}
+                  onOpenSettings={() => openSettings("subscriptions")}
+                  density={{ value: density, onCommit: changeDensity }}
                 />
                 {empty && !subscriptions.page && (
                   <EmptyWorkspace

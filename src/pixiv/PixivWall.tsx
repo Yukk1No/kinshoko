@@ -10,11 +10,13 @@ import {
   type UIEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { ExternalLink, Heart, User, UserMinus, UserPlus } from "lucide-react";
 import type { Artist } from "../bindings/Artist";
 import type { PixivWork } from "../bindings/PixivWork";
 import { pixivImageSrc } from "../ipc/pixivBrowse";
 import { mountWindow, type MountWindow } from "../wall/prefetch";
 import { CAP_RATIO, GAP, OVERSCAN, PAD, TARGET } from "../wall/wallShared";
+import { MenuItem, MenuSeparator, PointerMenu } from "../ui/Menu";
 import { pixivMasonry, visibleIn, type PixivLayout } from "./layout";
 import { PixivWallCard as Card } from "./PixivWallCard";
 import type { CollectedPages, CollectOptions } from "./useCollect";
@@ -88,6 +90,9 @@ export function PixivWall({
   }, []);
   const [selected, setSelected] = useState<Selected | null>(null);
   const [full, setFull] = useState<{ work: PixivWork; page: number } | null>(null);
+  /** 右键菜单：哪个作品、在哪里打开。 */
+  const [menu, setMenu] = useState<{ work: PixivWork; x: number; y: number } | null>(null);
+  const openMenu = useCallback((work: PixivWork, x: number, y: number) => setMenu({ work, x, y }), []);
 
   useLayoutEffect(() => {
     const el = scroller.current;
@@ -130,6 +135,21 @@ export function PixivWall({
     });
   }, [shown, size.width, density, current, bandHeight]);
   const total = placed.reduce((sum, s) => sum + s.layout.height, 0);
+
+  // 展开的一格不在视口里（点的是靠底的图，或用左右键换到下一张）：滚到它刚好露出来。
+  const bandAt = placed.find((s) => s.layout.band && current?.section === s.key);
+  const bandTop = bandAt?.layout.band ? bandAt.top + bandAt.layout.band.y : null;
+  const bandH = bandAt?.layout.band?.h ?? 0;
+  // biome-ignore lint/correctness/useExhaustiveDependencies(current?.id): 同一行里换一张时位置不变，也要再看一次
+  useEffect(() => {
+    const el = scroller.current;
+    if (bandTop === null || !el || !el.clientHeight) return;
+    const view = el.clientHeight;
+    const top = el.scrollTop;
+    if (bandTop >= top && bandTop + bandH <= top + view) return;
+    const target = bandTop + bandH > top + view && bandH <= view ? bandTop + bandH - view + GAP : bandTop - GAP;
+    el.scrollTo?.({ top: Math.max(0, target), behavior: "smooth" });
+  }, [bandTop, bandH, current?.id]);
 
   // 画布变矮时浏览器会先把 scrollTop 夹回去，这个变化不一定经过 scroll 事件：按真实位置同步挂载窗口。
   // biome-ignore lint/correctness/useExhaustiveDependencies(total): 画布高度变了就按真实 scrollTop 重新同步
@@ -250,6 +270,7 @@ export function PixivWall({
                   busy={busy.has(work.id)}
                   onSelect={select}
                   onCollect={onCollect}
+                  onMenu={openMenu}
                 />
               );
             }),
@@ -273,6 +294,17 @@ export function PixivWall({
           )}
         </div>
       </div>
+      {menu && (
+        <CardMenu
+          work={menu.work}
+          point={menu}
+          collected={collected.get(menu.work.id)}
+          busy={busy.has(menu.work.id)}
+          onCollect={onCollect}
+          onArtist={onArtist}
+          onClose={() => setMenu(null)}
+        />
+      )}
       {full && (
         <FullView
           work={full.work}
@@ -420,6 +452,86 @@ function Band({
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * 作品卡片的右键菜单（#461“作品卡片”）：收藏（收进图库）、在 pixiv 打开、查看这位画师、关注（同时订阅）。
+ * 和展开的一格里的按钮是同一组动作，不用先点开。
+ */
+function CardMenu({
+  work,
+  point,
+  collected,
+  busy,
+  onCollect,
+  onArtist,
+  onClose,
+}: {
+  work: PixivWork;
+  point: { x: number; y: number };
+  collected: ReadonlySet<number> | undefined;
+  busy: boolean;
+  onCollect?: (work: PixivWork, options?: CollectOptions) => void;
+  onArtist?: (artist: Artist) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation("subscriptions");
+  const feedback = useFeedbackContext();
+  const subs = useSubscriptionsContext();
+  const collectable = !!onCollect && work.kind !== "animation";
+  const all = (collected?.size ?? 0) >= work.pages.length;
+  const bookmarked = feedback?.bookmarked(work) ?? work.bookmarked;
+  const following = feedback ? (feedback.followed(work.artist.userId) ?? work.followed) : null;
+  const userId = work.artist.userId;
+  const removing = subs?.artist(userId);
+  // 与展开的一格里的“关注”同一套锁：订阅名单没读到、这位画师正在关注或退订时不能点。
+  const followLocked =
+    !feedback ||
+    feedback.followPending(userId) ||
+    !!subs?.pending(`artist:${userId}`) ||
+    (!!removing && !!subs?.pending(removing.id)) ||
+    (!!subs && !subs.ready);
+  const card = () => document.querySelector(`.pw-card[data-work="${CSS.escape(work.id)}"]`);
+  return (
+    <PointerMenu
+      point={point}
+      label={t("browse.work", { title: work.title, artist: work.artist.name })}
+      onClose={onClose}
+    >
+      {collectable && (
+        <MenuItem
+          icon={<Heart size={16} strokeWidth={1.75} />}
+          disabled={busy || (all && bookmarked) || (feedback?.bookmarkPending(work.id) ?? false)}
+          onClick={() => onCollect(work, { bookmark: true, from: card() })}
+        >
+          {all && bookmarked ? t("browse.favorited") : t("browse.favorite")}
+        </MenuItem>
+      )}
+      <MenuItem
+        icon={<ExternalLink size={16} strokeWidth={1.75} />}
+        onClick={() => window.open(work.pageUrl, "_blank", "noreferrer")}
+      >
+        {t("browse.openOnPixiv")}
+      </MenuItem>
+      {onArtist && (
+        <MenuItem icon={<User size={16} strokeWidth={1.75} />} onClick={() => onArtist(work.artist)}>
+          {t("browse.viewArtist")}
+        </MenuItem>
+      )}
+      {feedback && following !== null && (
+        <>
+          <MenuSeparator />
+          <MenuItem
+            icon={following ? <UserMinus size={16} strokeWidth={1.75} /> : <UserPlus size={16} strokeWidth={1.75} />}
+            disabled={followLocked}
+            onClick={() => void feedback.setFollow(work.artist, !following)}
+          >
+            {following ? t("browse.unfollow") : t("browse.follow")}
+          </MenuItem>
+        </>
+      )}
+    </PointerMenu>
   );
 }
 

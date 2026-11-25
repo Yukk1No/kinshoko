@@ -17,6 +17,7 @@ export const PixivWallCard = memo(function PixivWallCard({
   busy,
   onSelect,
   onCollect,
+  onMenu,
 }: {
   sectionKey: string;
   work: PixivWork;
@@ -29,6 +30,8 @@ export const PixivWallCard = memo(function PixivWallCard({
   busy: boolean;
   onSelect: (section: string, id: string) => void;
   onCollect?: (work: PixivWork, options?: CollectOptions) => void;
+  /** 右键或菜单键：在这一点打开作品菜单。 */
+  onMenu: (work: PixivWork, x: number, y: number) => void;
 }) {
   const { t } = useTranslation("subscriptions");
   const feedback = useFeedbackContext();
@@ -36,7 +39,16 @@ export const PixivWallCard = memo(function PixivWallCard({
   // 动图不收，不给收图按钮。
   const collectable = !!onCollect && work.kind !== "animation";
   return (
-    <div className="pw-card" data-on={on || undefined} style={{ left, top, width, height }}>
+    <div
+      className="pw-card"
+      data-work={work.id}
+      data-on={on || undefined}
+      style={{ left, top, width, height }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onMenu(work, e.clientX, e.clientY);
+      }}
+    >
       <button
         type="button"
         className="pw-card-open"

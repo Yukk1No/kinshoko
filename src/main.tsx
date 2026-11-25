@@ -21,6 +21,7 @@ import "./fidelity/fidelity-gate.css";
 import "./library/tag-panel.css";
 import "./shell/sidebar-base.css";
 import "./shell/rail.css";
+import "./shell/page-swap.css";
 import "./shell/seal-fx.css";
 import "./search/tag-groups.css";
 import "./library/import.css";

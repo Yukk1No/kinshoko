@@ -149,7 +149,7 @@
 
 ### 例外
 
-- 旧订阅页（`src/subscriptions/subscriptions.css`）的行、分区标题、复选名单与布局没有用共用类。#461 会整份删掉旧订阅页，所以不收。
+- 订阅对话框（`src/subscriptions/subscriptions.css`）里从关注导入的复选名单与画师行没有用共用类：只有这两处用，等第三处出现再收。
 
 ## 样式写在哪里
 

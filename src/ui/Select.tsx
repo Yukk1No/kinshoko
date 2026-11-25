@@ -20,6 +20,7 @@ export function Select<V extends string>({
   className = "",
   tip,
   fit = false,
+  onOpenChange,
 }: {
   value: V;
   options: SelectOption<V>[];
@@ -31,12 +32,15 @@ export function Select<V extends string>({
   tip?: string;
   /** 列表按最长一项放宽，不跟触发器一样窄（触发器按当前值收窄时用，例如工具条里的筛选）。 */
   fit?: boolean;
+  /** 列表打开、关上时告诉外面（例如悬停展开的卡片，列表开着时不收回）。 */
+  onOpenChange?: (open: boolean) => void;
 }) {
   return (
     <Base.Root<V>
       value={value}
       disabled={disabled}
       items={options}
+      onOpenChange={onOpenChange && ((open) => onOpenChange(open))}
       onValueChange={(next) => {
         if (next !== null && next !== value) onChange(next);
       }}

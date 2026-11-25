@@ -18,8 +18,8 @@ use kinshoko_core::subscription::pixiv::{
     LoginRequest, LoginState, PixivAccount, PixivImages, PixivSource,
 };
 use kinshoko_core::subscription::{
-    Destination, PreviewImage, ReceivedImage, SourceError, SourceId, Store, Subscription,
-    SubscriptionStatus, check, schedule,
+    Destination, PreviewImage, SourceError, SourceId, Store, Subscription, SubscriptionStatus,
+    check, schedule,
 };
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 
@@ -39,8 +39,6 @@ use login::{LOGIN_WINDOW, remove_login_profile};
 const STATUS_EVENT: &str = "subscription-status";
 /// 没有更早到期的订阅时也隔这么久醒一次，防止系统休眠或改时间后睡过头。
 const MAX_SLEEP: Duration = Duration::from_secs(60 * 60);
-/// 订阅页“最近收进来的图”最多列这么多张。
-const RECENT_LIMIT: u32 = 200;
 /// 画师页每张卡片带几个作品的缩略图。
 const PREVIEW_IMAGES: u32 = 4;
 
@@ -385,38 +383,9 @@ pub async fn subscriptions(app: AppHandle) -> Result<Vec<Subscription>, CommandE
     require(&app)?.store.list().map_err(CommandError::from)
 }
 
-/// 最近收进来的图。安全模式开着时不含成人作品：来源标为成人的，以及在图库里按有效分级
-/// 落在安全模式范围内的（例如收进来以后画师手动改了分级），与缩略图的放行规则一致。
-/// `safe_mode` 是界面这次读取用的视角；它与设置里的安全模式有一个开着就按开着过滤，
-/// 界面把结果当作“已按安全模式过滤”时，它一定过滤过。
-#[tauri::command]
-pub async fn subscription_recent(
-    app: AppHandle,
-    safe_mode: bool,
-) -> Result<Vec<ReceivedImage>, CommandError> {
-    let state = require(&app)?;
-    let safe = safe_mode || crate::library::saved_safe_mode(&app);
-    let recent = state
-        .store
-        .recent(RECENT_LIMIT)
-        .map_err(CommandError::from)?;
-    let app = app.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        recent
-            .into_iter()
-            .filter(|r| {
-                !safe
-                    || (!r.explicit
-                        && crate::library::image_shown(&app, &r.library_id, &r.image_id))
-            })
-            .collect()
-    })
-    .await
-    .map_err(CommandError::system)
-}
-
-/// 每条订阅收进来的图的概况（画师页的卡片用）。安全模式的过滤与 [`subscription_recent`] 一样：
-/// 过滤掉的图不出现在缩略图里，张数照算。
+/// 每条订阅收进来的图的概况（画师页的卡片用）。安全模式开着时不含成人作品：来源标为成人的，
+/// 以及在图库里按有效分级落在安全模式范围内的（与缩略图的放行规则一致）。过滤掉的图不出现在
+/// 缩略图里，张数照算。`safe_mode` 与设置里的安全模式有一个开着就按开着过滤。
 #[tauri::command]
 pub async fn subscription_previews(
     app: AppHandle,

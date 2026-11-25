@@ -90,7 +90,10 @@ export function WallFloats({
 }
 
 /** 通知停靠的位置写到根元素上（--k-notice-right、--k-notice-bottom、--k-notice-max），toast.css 与导入任务卡按它定位。 */
-const NOTICE_VARS = ["--k-notice-right", "--k-notice-bottom", "--k-notice-max"] as const;
+export const NOTICE_VARS = ["--k-notice-right", "--k-notice-bottom", "--k-notice-max"] as const;
+
+/** 订阅页的头像卡占着通知的位置时为真（它自己量、自己摆，图片墙藏起来时不去掉）。 */
+const otherHost = () => document.documentElement.dataset.noticeHost !== undefined;
 
 /**
  * 量出通知该停在哪（#609，规则见 noticeAnchor）：图片墙区域、右下角那一组、多选悬浮栏、查看器工具条
@@ -119,9 +122,9 @@ function useNoticeAnchor(
           );
       }
       const box = host.getBoundingClientRect();
-      // 图片墙藏起来时（切到订阅页等）通知回到窗口右下角。
+      // 图片墙藏起来时（切到订阅页等）通知回到窗口右下角；订阅页的头像卡另外摆。
       if (box.width === 0) {
-        for (const name of NOTICE_VARS) root.removeProperty(name);
+        if (!otherHost()) for (const name of NOTICE_VARS) root.removeProperty(name);
         return;
       }
       const anchor = noticeAnchor({
@@ -149,7 +152,7 @@ function useNoticeAnchor(
   }, [corner, rising, bar, viewer]);
   useLayoutEffect(
     () => () => {
-      for (const name of NOTICE_VARS) document.documentElement.style.removeProperty(name);
+      if (!otherHost()) for (const name of NOTICE_VARS) document.documentElement.style.removeProperty(name);
     },
     [],
   );

@@ -4,7 +4,6 @@ import type { MovedWork } from "../bindings/MovedWork";
 import type { MoveReport } from "../bindings/MoveReport";
 import type { NewSubscription } from "../bindings/NewSubscription";
 import type { OldImages } from "../bindings/OldImages";
-import type { ReceivedImage } from "../bindings/ReceivedImage";
 import type { Subscription } from "../bindings/Subscription";
 import type { SubscriptionPreview } from "../bindings/SubscriptionPreview";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
@@ -34,11 +33,6 @@ export function subscriptionCheckNow(): Promise<void> {
 
 export function subscriptions(): Promise<Subscription[]> {
   return invoke<Subscription[]>("subscriptions");
-}
-
-/** 最近收进来的图。`safeMode` 或设置里的安全模式开着时，后端按图库的有效分级去掉成人作品。 */
-export function subscriptionRecent(safeMode: boolean): Promise<ReceivedImage[]> {
-  return invoke<ReceivedImage[]>("subscription_recent", { safeMode });
 }
 
 /** 每条订阅收进来的图的概况：张数、最近一次收图的时间、最近几个作品的首页（画师页的卡片用）。 */

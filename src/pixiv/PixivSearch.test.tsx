@@ -182,7 +182,7 @@ describe("订阅页的搜索", () => {
     fireEvent.keyDown(searchBox(), { key: "Enter" });
     expect(fake.calls("subscription_browse").some((c) => (c.args.feed as Feed).kind === "search")).toBe(false);
     fireEvent.change(searchBox(), { target: { value: "没有这个人" } });
-    expect(screen.getByRole("status").textContent).toBe("没有名字对得上的画师");
+    expect(screen.getByRole("status").textContent).toBe("没有匹配的画师");
   });
 });
 
@@ -272,7 +272,7 @@ describe("在 pixiv 上关注", () => {
     fireEvent.click(await screen.findByRole("button", { name: "作品following，小林" }));
     const band = screen.getByRole("region", { name: "作品following，小林" });
     fireEvent.click(within(band).getByRole("button", { name: "关注" }));
-    expect((await screen.findByRole("alert")).textContent).toContain("没关注上");
+    expect((await screen.findByRole("alert")).textContent).toContain("无法关注");
     expect(within(band).getByRole("button", { name: "关注" }).getAttribute("aria-pressed")).toBe("false");
   });
 });

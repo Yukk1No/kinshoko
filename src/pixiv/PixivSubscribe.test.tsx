@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { mockConvertFileSrc } from "@tauri-apps/api/mocks";
+import { emit } from "@tauri-apps/api/event";
+import { tipText } from "../test/tip";
 import type { NewSubscription } from "../bindings/NewSubscription";
 import type { PixivWork } from "../bindings/PixivWork";
 import type { Subscription } from "../bindings/Subscription";
@@ -340,6 +342,19 @@ describe("画师页", () => {
     expect(await screen.findByRole("button", { name: "全部画师" })).toBeTruthy();
     // 作品页上也看得到订阅着、收进哪个库。
     expect(screen.getByRole("button", { name: "改收进的库，现在收进「参考库」" })).toBeTruthy();
+  });
+
+  it("后台检查结束后重读名单：上次检查没完成的画师卡片上写出来，原因在悬停提示里", async () => {
+    renderHome();
+    const cards = await artistCards();
+    const card = () => within(cards).getByText("山田").closest("li") as HTMLElement;
+    expect(within(card()).queryByText("上次检查未完成")).toBeNull();
+    list = list.map((s) => ({ ...s, lastError: { code: "rateLimited" }, lastFailedAt: Date.now() }));
+    const status = { enabled: true, login: { state: "loggedIn", account: { userId: "1", name: "me" } }, newCount: 0 };
+    await act(() => emit("subscription-status", { ...status, checking: true }));
+    await act(() => emit("subscription-status", { ...status, checking: false }));
+    const warn = await within(card()).findByText("上次检查未完成");
+    expect(await tipText(warn)).toBe("上次检查未完成：pixiv 限制了请求次数");
   });
 
   it("⋯ 里“在 pixiv 上取消关注”取消关注并退订；撤销重新关注，照原来的库与收取范围", async () => {

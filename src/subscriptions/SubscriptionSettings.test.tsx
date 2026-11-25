@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
-import { SubscriptionSettings } from "./SubscriptionSettings";
-import { account, status } from "./subscriptions.fixtures";
+import { SubscriptionSettings, useSubscriptionList } from "./SubscriptionSettings";
+import { account, list, status, subscription } from "./subscriptions.fixtures";
+import { ToastProvider } from "../ui/Toast";
 import { type FakeBackend, fakeBackend } from "../test/backend";
 import { SaveDestinationProvider } from "../library/SaveDestination";
 import { chooseOption } from "../test/select";
@@ -22,6 +23,16 @@ const settings = (s: SubscriptionStatus, onStatus = vi.fn()) =>
 const rows = () => screen.getAllByRole("listitem").map((row) => row.querySelector(".k-list-title")?.textContent);
 
 describe("设置 › 订阅", () => {
+  it("退出或登录失效时清空已读到的订阅名单", async () => {
+    fakeBackend({ subscriptions: list });
+    const { result, rerender } = renderHook(({ signedIn }) => useSubscriptionList(signedIn, false), {
+      initialProps: { signedIn: true },
+    });
+    await waitFor(() => expect(result.current[0]).toHaveLength(list.length));
+    rerender({ signedIn: false });
+    expect(result.current[0]).toEqual([]);
+  });
+
   it("开着时：订阅功能、pixiv 账号与风险说明，标题旁标明非官方", () => {
     serve();
     settings(status());
@@ -87,7 +98,7 @@ describe("设置 › 订阅", () => {
     });
     render(
       <SaveDestinationProvider safe={false}>
-        <SubscriptionSettings status={status()} onStatus={vi.fn()} error={null} onError={vi.fn()} browse />
+        <SubscriptionSettings status={status()} onStatus={vi.fn()} error={null} onError={vi.fn()} />
       </SaveDestinationProvider>,
     );
     const library = await screen.findByRole("combobox", { name: "新订阅收进" });
@@ -100,5 +111,46 @@ describe("设置 › 订阅", () => {
       }),
     );
     expect(library.getAttribute("data-value")).toBe("L");
+  });
+
+  it("以前订阅的 R-18 榜单列在这里，能取消订阅、撤销；安全模式开着时不列", async () => {
+    const r18 = subscription("r1", "R-18 日榜 前 50", {
+      target: { kind: "pixivRanking", period: "day", top: 50, explicit: true },
+    });
+    backend = fakeBackend({
+      subscriptions: [subscription("s1", "Mika"), r18],
+      subscription_remove: null,
+      subscription_add: [r18],
+    });
+    const ui = render(
+      <ToastProvider>
+        <SubscriptionSettings status={status()} onStatus={vi.fn()} error={null} onError={vi.fn()} />
+      </ToastProvider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "取消订阅" }));
+    await waitFor(() => expect(backend.calls("subscription_remove")[0]?.args).toEqual({ id: "r1" }));
+    expect(screen.queryByText("R-18 日榜 前 50")).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "撤销" }));
+    await waitFor(() =>
+      expect(backend.calls("subscription_add")[0]?.args).toEqual({
+        subscriptions: [
+          {
+            target: r18.target,
+            name: r18.name,
+            libraryId: "L1",
+            includeExplicit: true,
+            includeManga: false,
+            backlog: { kind: "newOnly" },
+          },
+        ],
+      }),
+    );
+    expect(await screen.findByRole("button", { name: "取消订阅" })).toBeTruthy();
+    ui.rerender(
+      <ToastProvider>
+        <SubscriptionSettings status={status()} onStatus={vi.fn()} error={null} onError={vi.fn()} safe />
+      </ToastProvider>,
+    );
+    expect(screen.queryByRole("button", { name: "取消订阅" })).toBeNull();
   });
 });
