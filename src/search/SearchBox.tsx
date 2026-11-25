@@ -1,14 +1,12 @@
 import { memo, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import type { Condition } from "../bindings/Condition";
-import type { ContentRating } from "../bindings/ContentRating";
 import type { ConditionTree } from "../bindings/ConditionTree";
 import type { SearchInput } from "../bindings/SearchInput";
 import type { SimilarTag } from "../bindings/SimilarTag";
 import type { TagLabel } from "../bindings/TagLabel";
-import type { Term } from "../bindings/Term";
 import type { TermInput } from "../bindings/TermInput";
-import type { ReactElement, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { Ban, Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -20,36 +18,12 @@ import { RatingName, tagName } from "./tagLabel";
 import { TermView } from "./TermView";
 import { Menu, MenuItem, MenuLabel, MenuPopup } from "../ui/Menu";
 import { useUiLang } from "../i18n";
-import { lensKey, useCandidateState, useCandidates, useRatingCandidates, type Lens } from "./useCandidates";
+import { lensKey, useCandidates, useRatingCandidates, type Lens } from "./useCandidates";
 import { setTagApprox, editSharedApprox } from "../ipc";
+import { AddSimilar } from "./AddSimilar";
+import { inputLabel, resolvedTerm } from "./termResolution";
 
 export { TagMarks, tagName, untranslatedHint } from "./tagLabel";
-export { LIMIT, useCandidateState, useCandidates, type Lens } from "./useCandidates";
-
-const sameRatings = (a: ContentRating[], b: ContentRating[]) => a.length === b.length && a.every((r, i) => r === b[i]);
-
-function inputLabel(term: TermInput) {
-  return term.kind === "text" ? `“${term.text}”` : "…";
-}
-
-/** 条件树里与搜索框中这一项对应的项；点选的标签已被删除时没有。 */
-function resolvedTerm(condition: Condition, term: TermInput): Term | undefined {
-  return condition.any.find((t) => {
-    switch (term.kind) {
-      case "tag":
-        return t.kind === "tag" && t.tag.id === term.id;
-      case "text":
-        return t.kind === "text" && t.text === term.text;
-      case "rating":
-        return t.kind === "rating" && sameRatings(t.rating.ratings, [...term.ratings].sort(byRank));
-      case "taggingUnfinished":
-        return t.kind === "taggingUnfinished";
-    }
-  });
-}
-
-const RANK: ContentRating[] = ["general", "sensitive", "questionable", "explicit"];
-const byRank = (a: ContentRating, b: ContentRating) => RANK.indexOf(a) - RANK.indexOf(b);
 
 type Place = { condition: number; term: number };
 
@@ -345,74 +319,3 @@ export const SearchBox = memo(function SearchBox({
     </div>
   );
 });
-/** “＋”：贴着按钮的浮层，按名称或别名从可见标签里挑一个，加为 `to` 的相近标签。Esc 或点别处收起。 */
-function AddSimilar({
-  lens,
-  to,
-  button,
-  onPick,
-}: {
-  lens: Lens;
-  to: TagLabel;
-  button: ReactElement;
-  onPick: (tag: TagLabel) => void;
-}) {
-  const { t } = useTranslation("search");
-  const [open, setOpen] = useState(false);
-  return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger render={button} />
-      <Popover.Portal>
-        <Popover.Positioner className="k-positioner" side="bottom" align="start" sideOffset={8}>
-          <Popover.Popup className="k-popup k-add-similar" aria-label={t("add.label")}>
-            {open && (
-              <AddSimilarPicker
-                lens={lens}
-                to={to}
-                onPick={(tag) => {
-                  setOpen(false);
-                  onPick(tag);
-                }}
-                onCancel={() => setOpen(false)}
-              />
-            )}
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-}
-
-function AddSimilarPicker({
-  lens,
-  to,
-  onPick,
-  onCancel,
-}: {
-  lens: Lens;
-  to: TagLabel;
-  onPick: (tag: TagLabel) => void;
-  onCancel: () => void;
-}) {
-  const { t } = useTranslation("search");
-  const [text, setText] = useState("");
-  const { list: found, ready } = useCandidateState(lens, text, (c) => c.tag.id !== to.id);
-  return (
-    <>
-      <p className="k-section-label">{t("add.prompt", { name: tagName(to) })}</p>
-      <Combobox
-        label={lens.workspace ? t("add.pickShared") : t("add.pickLibrary")}
-        autoFocus
-        embedded
-        value={text}
-        options={found.map((c) => tagOption(c, text))}
-        empty={ready && found.length === 0 ? t("add.none") : undefined}
-        onValueChange={setText}
-        onSelect={(option) => onPick(option.tag)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") onCancel();
-        }}
-      />
-    </>
-  );
-}
