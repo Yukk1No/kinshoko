@@ -10,6 +10,7 @@ import { SubscriptionsEmpty } from "../subscriptions/SubscriptionsEmpty";
 import { AccountFloat } from "./AccountFloat";
 import { PixivDensityContext } from "./density";
 import { PixivHome } from "./PixivHome";
+import { useSubscriptions } from "./useSubscriptions";
 
 /**
  * 订阅页的主区（#461 第 8 步）：登录着（含登录失效，检查暂停时仍能逛）就是应用内 pixiv 浏览；没登录时只有
@@ -21,6 +22,7 @@ export function SubscriptionsMain({
   safe,
   onOpenSettings,
   density = null,
+  leaving = false,
 }: {
   status: SubscriptionStatus;
   onStatus: (status: SubscriptionStatus) => void;
@@ -29,6 +31,8 @@ export function SubscriptionsMain({
   onOpenSettings: () => void;
   /** 图片大小，与图片页共用一个设置；头像卡里调。 */
   density?: { value: number; onCommit: (value: number) => void } | null;
+  /** 页面正在淡出：头像卡先放开通知锚点。 */
+  leaving?: boolean;
 }) {
   const { t } = useTranslation("subscriptions");
   const toast = useToast();
@@ -51,10 +55,14 @@ export function SubscriptionsMain({
   return (
     <main className="app-main pw-main" aria-label={t("title")}>
       {signedIn ? (
-        <PixivDensityContext value={density?.value ?? null}>
-          <PixivHome safe={safe} />
-          <AccountFloat status={status} onStatus={onStatus} density={density} onOpenSettings={onOpenSettings} />
-        </PixivDensityContext>
+        <SignedInPixiv
+          status={status}
+          onStatus={onStatus}
+          safe={safe}
+          density={density}
+          onOpenSettings={onOpenSettings}
+          leaving={leaving}
+        />
       ) : (
         <>
           <header className="topbar is-empty" data-tauri-drag-region>
@@ -74,5 +82,36 @@ export function SubscriptionsMain({
         }}
       />
     </main>
+  );
+}
+/** 登录后的那一半单独成组件：订阅名单只在需要时读，并由墙与头像卡共用。 */
+function SignedInPixiv({
+  status,
+  onStatus,
+  safe,
+  density,
+  onOpenSettings,
+  leaving,
+}: {
+  status: SubscriptionStatus;
+  onStatus: (status: SubscriptionStatus) => void;
+  safe: boolean;
+  density: { value: number; onCommit: (value: number) => void } | null;
+  onOpenSettings: () => void;
+  leaving: boolean;
+}) {
+  const subs = useSubscriptions(safe, `${status.checking}:${status.newCount}`);
+  return (
+    <PixivDensityContext value={density?.value ?? null}>
+      <PixivHome safe={safe} status={status} subs={subs} />
+      <AccountFloat
+        status={status}
+        onStatus={onStatus}
+        density={density}
+        onOpenSettings={onOpenSettings}
+        subscriptions={subs}
+        leaving={leaving}
+      />
+    </PixivDensityContext>
   );
 }

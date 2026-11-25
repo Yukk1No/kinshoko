@@ -3,7 +3,18 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import type { Candidate } from "./bindings/Candidate";
 import type { SearchInput } from "./bindings/SearchInput";
 import { App } from "./App";
-import { library, label, candidates, resolved, clean, safeOn, backend, LocalSearchFixture, sent } from "./App.fixtures";
+import {
+  library,
+  label,
+  candidates,
+  resolved,
+  clean,
+  safeOn,
+  backend,
+  LocalSearchFixture,
+  sent,
+  push,
+} from "./App.fixtures";
 import type { Args } from "./test/backend";
 import { cardOf, safeModeButton as book, safeModeChanged as changed } from "./App.safe-mode.fixtures";
 

@@ -30,6 +30,18 @@ describe("图片页与订阅页之间的过渡", () => {
     expect(result.current.phase).toBeNull();
   });
 
+  it("淡出第一帧后立刻切回订阅页时，内层帧不会再把阶段改回 out", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "requestAnimationFrame", "cancelAnimationFrame"] });
+    const { result, rerender } = renderHook(({ shown }) => usePageSwap(shown), { initialProps: { shown: true } });
+    rerender({ shown: false });
+    expect(result.current.phase).toBe("out-start");
+    // 外层帧已经跑进、内层帧已经排上；这一刻又切回去，内层帧也必须取消。
+    act(() => vi.advanceTimersByTime(16));
+    rerender({ shown: true });
+    act(() => vi.advanceTimersByTime(32));
+    expect(result.current.phase).toBe("in");
+  });
+
   it("减弱动效时直接换", () => {
     setMedia("(prefers-reduced-motion: reduce)", true);
     const { result, rerender } = renderHook(({ shown }) => usePageSwap(shown), { initialProps: { shown: false } });

@@ -42,7 +42,6 @@ const ALLOWED: Record<string, string> = {
   ".subs-account-sub": "订阅账号行的元数据，订阅页行样式另行收拢",
   ".subs-check": "订阅页的复选控件",
   ".subs-follow-count": "订阅关注列表的计数",
-  ".subs-rank-hint": "榜单选项里的描述，订阅页行样式另行收拢",
   ".subs-rank-foot-note": "榜单页脚，订阅页行样式另行收拢",
   ".k-task-count": "任务计数",
   ".k-task-sub": "任务状态行，任务区域另行收拢",

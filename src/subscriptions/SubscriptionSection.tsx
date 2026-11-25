@@ -95,6 +95,7 @@ export function SubscriptionSection({
           safe={safe}
           onOpenSettings={onOpenSettings}
           density={density}
+          leaving={leaving}
         />
       </div>
     </div>

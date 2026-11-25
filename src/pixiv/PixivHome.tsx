@@ -6,6 +6,7 @@ import type { Artist } from "../bindings/Artist";
 import type { Feed } from "../bindings/Feed";
 import type { RankingPeriod } from "../bindings/RankingPeriod";
 import type { Subscription } from "../bindings/Subscription";
+import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
 import { ArtistSettingsDialog } from "../subscriptions/ArtistDialog";
 import { useSubscriptionStatus } from "../subscriptions/useSubscriptionStatus";
 import { Segmented } from "../ui/Segmented";
@@ -34,7 +35,7 @@ const FOLLOWING_PAGES = 1;
 
 /**
  * 标题行正中的五个去处（#461 2026-11-18）。新作与推荐是同一面墙上的两段。订阅不另设“管理”页（维护者 2026-11-22）：
- * 画师页管画师，榜单页、我的收藏页顶上有开关，全貌在右上角的“订阅设置”。
+ * 画师页管画师，榜单页、我的收藏页顶上有开关，全貌在头像卡打开的设置 › 订阅。
  */
 export type Place = "following" | "recommended" | "ranking" | "bookmarks" | "artists";
 type Home = "following" | "recommended";
@@ -47,7 +48,22 @@ const isHome = (place: Place): place is Home => place === "following" || place =
  * 榜单、我的收藏、画师各自换一面墙（第 4 步）；离开再回来时，新作与推荐那面墙还停在原处，不重读。
  * 搜索（第 5 步）收在标题行左端，展开时五个去处让开；按回车后墙换成结果，收回时回到原来的去处，结果不保留。
  */
-export function PixivHome({ safe }: { safe: boolean }) {
+type SharedHome = { safe: boolean; status: SubscriptionStatus | null; subs: Subscriptions };
+
+/**
+ * 生产里由 `SubscriptionsMain` 注入共享名单；独立渲染仍可只给 `safe`，这时按原样自己读。
+ */
+export function PixivHome(props: { safe: boolean } | SharedHome) {
+  return "subs" in props ? <PixivHomeView {...props} /> : <StandalonePixivHome safe={props.safe} />;
+}
+
+function StandalonePixivHome({ safe }: { safe: boolean }) {
+  const [status] = useSubscriptionStatus();
+  const subs = useSubscriptions(safe, status ? `${status.checking}:${status.newCount}` : null);
+  return <PixivHomeView safe={safe} status={status} subs={subs} />;
+}
+
+function PixivHomeView({ safe, status, subs }: SharedHome) {
   const { t } = useTranslation("subscriptions");
   const [place, setPlace] = useState<Place>("following");
   const [period, setPeriod] = useState<RankingPeriod>("day");
@@ -56,9 +72,6 @@ export function PixivHome({ safe }: { safe: boolean }) {
   const wall = useRef<PixivWallHandle>(null);
   /** 新作与推荐那面墙上次停在哪一段。 */
   const homeAt = useRef<Home>("following");
-  const [status] = useSubscriptionStatus();
-  // 后台检查完、收了新图时，画师卡片上的收图概况跟着重读。
-  const subs = useSubscriptions(safe, status ? `${status.checking}:${status.newCount}` : null);
   const feedback = useFeedback(subs);
   /** 画师页 ⋯ 里打开的“收取范围”。 */
   const [settings, setSettings] = useState<Subscription | null>(null);

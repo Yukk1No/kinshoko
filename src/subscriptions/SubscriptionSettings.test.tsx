@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import type { SubscriptionStatus } from "../bindings/SubscriptionStatus";
-import { SubscriptionSettings } from "./SubscriptionSettings";
-import { account, status, subscription } from "./subscriptions.fixtures";
+import { SubscriptionSettings, useSubscriptionList } from "./SubscriptionSettings";
+import { account, list, status, subscription } from "./subscriptions.fixtures";
 import { ToastProvider } from "../ui/Toast";
 import { type FakeBackend, fakeBackend } from "../test/backend";
 import { SaveDestinationProvider } from "../library/SaveDestination";
@@ -23,6 +23,16 @@ const settings = (s: SubscriptionStatus, onStatus = vi.fn()) =>
 const rows = () => screen.getAllByRole("listitem").map((row) => row.querySelector(".k-list-title")?.textContent);
 
 describe("设置 › 订阅", () => {
+  it("退出或登录失效时清空已读到的订阅名单", async () => {
+    fakeBackend({ subscriptions: list });
+    const { result, rerender } = renderHook(({ signedIn }) => useSubscriptionList(signedIn, false), {
+      initialProps: { signedIn: true },
+    });
+    await waitFor(() => expect(result.current[0]).toHaveLength(list.length));
+    rerender({ signedIn: false });
+    expect(result.current[0]).toEqual([]);
+  });
+
   it("开着时：订阅功能、pixiv 账号与风险说明，标题旁标明非官方", () => {
     serve();
     settings(status());

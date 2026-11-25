@@ -7,6 +7,7 @@ import { ToastProvider } from "../ui/Toast";
 import { type FakeBackend, fakeBackend } from "../test/backend";
 import { account, list, NOW, status } from "../subscriptions/subscriptions.fixtures";
 import { AccountFloat } from "./AccountFloat";
+import type { Subscriptions } from "./useSubscriptions";
 
 // 订阅页右下角的 pixiv 头像卡：悬停长成卡片，检查新作、新订阅收进、图片大小、订阅设置、退出登录。
 
@@ -36,6 +37,7 @@ function show(s: SubscriptionStatus, extra: { onOpenSettings?: () => void; onCom
             onStatus={onStatus}
             density={{ value: 240, onCommit: extra.onCommit ?? vi.fn() }}
             onOpenSettings={extra.onOpenSettings ?? vi.fn()}
+            subscriptions={{ list } as unknown as Subscriptions}
           />
         </main>
       </SaveDestinationProvider>
@@ -107,9 +109,46 @@ describe("订阅页的头像卡", () => {
     expect(within(card()).getByText("登录已失效")).toBeTruthy();
   });
 
-  it("有头像时显示头像", () => {
+  it("有头像时显示头像；头像加载失败时回到首字", () => {
     const withAvatar = { ...account, avatar: "https://i.pximg.net/user-profile/img/a_170.jpg" };
     const { knob } = show(status({ login: { state: "loggedIn", account: withAvatar } }));
-    expect(knob.querySelector("img")?.getAttribute("src")).toContain("user-profile/img/a_170.jpg");
+    const img = knob.querySelector("img");
+    expect(img?.getAttribute("src")).toContain("user-profile/img/a_170.jpg");
+    fireEvent.error(img!);
+    expect(knob.querySelector("img")).toBeNull();
+    expect(within(knob).getByText("y")).toBeTruthy();
+  });
+
+  it("淡出开始就释放通知锚点，卸载不再擦掉图片页刚写入的锚点", () => {
+    const host = (leaving: boolean) => (
+      <ToastProvider>
+        <SaveDestinationProvider safe={false}>
+          <main>
+            <AccountFloat
+              status={status()}
+              onStatus={vi.fn()}
+              density={null}
+              onOpenSettings={vi.fn()}
+              subscriptions={{ list } as unknown as Subscriptions}
+              leaving={leaving}
+            />
+          </main>
+        </SaveDestinationProvider>
+      </ToastProvider>
+    );
+    const ui = render(host(false));
+    const root = document.documentElement;
+    expect(root.dataset.noticeHost).toBe("subscriptions");
+    ui.rerender(host(true));
+    expect(root.dataset.noticeHost).toBeUndefined();
+    // 图片页接管后写入自己的锚点；旧的头像卡卸载时不能把它擦掉。
+    root.style.setProperty("--k-notice-right", "24px");
+    root.style.setProperty("--k-notice-bottom", "72px");
+    root.style.setProperty("--k-notice-max", "320px");
+    ui.unmount();
+    expect(root.style.getPropertyValue("--k-notice-right")).toBe("24px");
+    expect(root.style.getPropertyValue("--k-notice-bottom")).toBe("72px");
+    expect(root.style.getPropertyValue("--k-notice-max")).toBe("320px");
+    for (const name of ["--k-notice-right", "--k-notice-bottom", "--k-notice-max"]) root.style.removeProperty(name);
   });
 });

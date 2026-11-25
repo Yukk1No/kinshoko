@@ -132,7 +132,10 @@ export function useSubscriptionList(signedIn: boolean, checking: boolean) {
   const [list, setList] = useState<Subscription[]>([]);
   // biome-ignore lint/correctness/useExhaustiveDependencies(checking): 检查开始、结束是重读信号，effect 里不读它
   useEffect(() => {
-    if (!signedIn) return;
+    if (!signedIn) {
+      setList([]);
+      return;
+    }
     let alive = true;
     listSubscriptions().then(
       (next) => alive && setList(next),

@@ -10,9 +10,10 @@ import { Select } from "../ui/Select";
 import { useToast } from "../ui/Toast";
 import { accountActions } from "../subscriptions/accountActions";
 import { checkedText, checkView, retryText, useNow } from "../subscriptions/checkStatus";
-import { useNewSubscriptionLibrary, useSubscriptionList } from "../subscriptions/SubscriptionSettings";
+import { useNewSubscriptionLibrary } from "../subscriptions/SubscriptionSettings";
 import { noticeAnchor, rowTopOf } from "../wall/noticeAnchor";
 import { NOTICE_VARS } from "../wall/WallFloats";
+import type { Subscriptions } from "./useSubscriptions";
 
 /**
  * 订阅页右下角的 pixiv 头像（右下角浮钮的一员，与图片页的打标图标、图片大小同一种外形）：平时是 40 px 的圆钮，
@@ -26,11 +27,16 @@ export function AccountFloat({
   onStatus,
   density,
   onOpenSettings,
+  subscriptions,
+  leaving = false,
 }: {
   status: SubscriptionStatus;
   onStatus: (status: SubscriptionStatus) => void;
   density: { value: number; onCommit: (value: number) => void } | null;
   onOpenSettings: () => void;
+  subscriptions: Subscriptions;
+  /** 页面正在淡出：通知锚点立刻交还图片页，不等组件卸载。 */
+  leaving?: boolean;
 }) {
   const { t } = useTranslation("subscriptions");
   const toast = useToast();
@@ -48,10 +54,10 @@ export function AccountFloat({
   const panel = useRef<HTMLDivElement>(null);
   const knob = useRef<HTMLButtonElement>(null);
   const [size, setSize] = useState({ width: 40, height: 40 });
-  const [list] = useSubscriptionList(status.login.state === "loggedIn", status.checking);
   const now = useNow();
   const library = useNewSubscriptionLibrary();
   const [preview, setPreview] = useState<number | null>(null);
+  const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
 
   const close = (focusKnob = false) => {
     pinned.current = false;
@@ -74,7 +80,7 @@ export function AccountFloat({
     return () => observer.disconnect();
   }, [open]);
 
-  useNoticeAboveCorner(root, account !== null);
+  useNoticeAboveCorner(root, account !== null && !leaving);
 
   // 点卡片外面收回；下拉列表开着时那一下是在选列表，不算。
   useEffect(() => {
@@ -89,7 +95,7 @@ export function AccountFloat({
   }, [open]);
 
   if (!account) return null;
-  const view = checkView(status, list, now);
+  const view = checkView(status, subscriptions.list ?? [], now);
   const checkMeta =
     view.kind === "idle"
       ? checkedText(view.lastCheckedAt, now)
@@ -99,6 +105,7 @@ export function AccountFloat({
           ? retryText(view.until)
           : null;
   const avatar = pixivImageSrc(account.avatar);
+  const showAvatar = avatar && failedAvatar !== avatar;
   const run = (action: () => void) => () => {
     close();
     action();
@@ -145,8 +152,8 @@ export function AccountFloat({
             }
           }}
         >
-          {avatar ? (
-            <img src={avatar} alt="" draggable={false} />
+          {showAvatar ? (
+            <img src={avatar} alt="" draggable={false} onError={() => setFailedAvatar(avatar)} />
           ) : (
             <span className="pw-account-initial" aria-hidden="true">
               {Array.from(account.name)[0] ?? "p"}

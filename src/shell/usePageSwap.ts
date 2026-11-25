@@ -25,8 +25,14 @@ export function usePageSwap(subscriptionsShown: boolean) {
   useEffect(() => {
     if (phase === null) return;
     if (phase === "out-start") {
-      const frame = requestAnimationFrame(() => requestAnimationFrame(() => setPhase("out")));
-      return () => cancelAnimationFrame(frame);
+      let inner = 0;
+      const outer = requestAnimationFrame(() => {
+        inner = requestAnimationFrame(() => setPhase("out"));
+      });
+      return () => {
+        cancelAnimationFrame(outer);
+        cancelAnimationFrame(inner);
+      };
     }
     const timer = setTimeout(() => setPhase(null), PAGE_SWAP_MS);
     return () => clearTimeout(timer);
