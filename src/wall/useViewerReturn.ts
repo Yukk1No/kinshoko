@@ -66,3 +66,38 @@ export function useReturnFocus({
     el.querySelector<HTMLElement>(`.card[data-id="${id}"]`)?.focus({ preventScroll: true });
   });
 }
+
+/**
+ * 方向键移到的图：不完全在视口里就滚到刚好露全，再接过焦点；没挂载时等下一次渲染挂上它
+ * （由上面的 useReturnFocus 接过焦点）。
+ */
+export function useRevealCard({
+  returnTo,
+  scroller,
+  position,
+  layout,
+  syncMount,
+  margin,
+}: {
+  returnTo: MutableRefObject<string | null>;
+  scroller: MutableRefObject<HTMLDivElement | null>;
+  position: Map<string, number>;
+  layout: ReturnType<typeof masonry>;
+  syncMount: (el: HTMLElement) => void;
+  margin: number;
+}) {
+  return (id: string) => {
+    const el = scroller.current;
+    const i = position.get(id);
+    const box = i === undefined ? undefined : layout.boxes[i];
+    if (!el || !box) return;
+    if (box.y < el.scrollTop + margin || box.h + 2 * margin > el.clientHeight)
+      el.scrollTop = Math.max(0, box.y - margin);
+    else if (box.y + box.h > el.scrollTop + el.clientHeight - margin)
+      el.scrollTop = box.y + box.h + margin - el.clientHeight;
+    syncMount(el);
+    const node = el.querySelector<HTMLElement>(`.card[data-id="${id}"]`);
+    if (node) node.focus({ preventScroll: true });
+    else returnTo.current = id;
+  };
+}

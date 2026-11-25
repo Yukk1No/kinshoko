@@ -7,6 +7,7 @@ import { modalOpen } from "../ui/modal";
 import { isMenuKey, openMenuAt } from "../ui/menuKey";
 import type { Press } from "./doubleClick";
 import type { WallMenuTarget } from "./WallMenu";
+import { neighbour, type Direction, type Layout } from "./layout";
 import { pagesOf } from "./imageSets";
 import {
   CARD_BUTTONS,
@@ -16,6 +17,13 @@ import {
   type BrowserCard,
   type CardCommand,
 } from "./wallShared";
+
+const ARROWS: Partial<Record<string, Direction>> = {
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
+};
 
 export function wallInteractions({
   ids,
@@ -35,6 +43,9 @@ export function wallInteractions({
   workspaceScope,
   trayIds,
   closeTray,
+  position,
+  layout,
+  reveal,
 }: {
   ids: string[];
   cards: BrowserCard[];
@@ -55,6 +66,12 @@ export function wallInteractions({
   trayIds: ReadonlySet<string>;
   /** 关上托盘；`keep` 是关上后留在屏幕原处的那一格。 */
   closeTray: (keep?: string) => void;
+  /** 每张卡片在 `ids` / `layout.boxes` 里的下标。 */
+  position: ReadonlyMap<string, number>;
+  /** 与 `ids` 同序的格子位置：方向键按它找看到的相邻那张。 */
+  layout: Layout;
+  /** 把这张滚进视口并接过焦点。 */
+  reveal: (id: string) => void;
 }) {
   /** 托盘的第 1 页：关上后它就是这一摞，仍在墙上。 */
   const trayCover = trayIds.values().next().value;
@@ -161,6 +178,17 @@ export function wallInteractions({
       return;
     }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const dir = ARROWS[e.key];
+    if (dir) {
+      // 方向键按看到的位置移到相邻的图（资源管理器的习惯）：焦点与选择一起走，Shift 从起点选中一段。
+      e.preventDefault();
+      const to = ids[neighbour(layout, position.get(card.id) ?? -1, dir)];
+      if (!to || to === card.id) return;
+      if (e.shiftKey && !(pivot.current && ids.includes(pivot.current))) pivot.current = card.id;
+      select(to, e);
+      reveal(to);
+      return;
+    }
     const command: CardCommand | null =
       e.key === "p" || e.key === "P"
         ? "pin"
