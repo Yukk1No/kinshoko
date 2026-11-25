@@ -62,6 +62,7 @@ function backend() {
         unavailable: [],
       },
       targetAvailable: false,
+      targetFreeBytes: null,
     },
     backup_snapshots: [
       {

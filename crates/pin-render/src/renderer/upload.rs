@@ -77,6 +77,7 @@ impl Renderer {
             }
             self.queue.submit([encoder.finish()]);
             Image {
+                id: next_resource_id(),
                 generation: self.generation,
                 view: texture.create_view(&Default::default()),
                 width,
@@ -91,6 +92,7 @@ impl Renderer {
         let (clut, curve, linear) = match data {
             LutData::Identity => {
                 return Ok(Lut {
+                    id: next_resource_id(),
                     generation: self.generation,
                     tables: None,
                     bits: uniform::LUT_IDENTITY,
@@ -139,6 +141,7 @@ impl Renderer {
                 &rgba(curve),
             );
             Lut {
+                id: next_resource_id(),
                 generation: self.generation,
                 tables: Some((clut, curve)),
                 bits: if linear { uniform::LUT_LINEAR } else { 0 },
@@ -211,6 +214,7 @@ impl Renderer {
                 size,
             );
             Overlay {
+                id: next_resource_id(),
                 generation: self.generation,
                 view: texture.create_view(&Default::default()),
                 width,

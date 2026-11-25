@@ -50,6 +50,7 @@ export function LibraryWorkspace({
   libraryControls,
   hidden,
   safe,
+  safeModeScope,
   onSafeChanged,
   showApproxSource,
   keepSelectionOnSafe,
@@ -422,6 +423,7 @@ export function LibraryWorkspace({
               inspector={inspector}
               status={status}
               safe={safe}
+              safeModeScope={safeModeScope}
               reloadKey={reloadKey}
               vocabularyKey={vocabularyKey}
               setSelected={setSelected}

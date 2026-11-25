@@ -1,4 +1,4 @@
-/* T20 main window, part 1b: size island, tagging icon, wall source chip and the floating multi-select bar. Loaded after main-window.css and sidebar.css; the narrow-main container rules at the end must stay after the island's own rules. */
+/* 图片墙上的浮动件（WallFloats）：右下角的打标图标与图片大小浮岛、墙上的来源按钮、多选悬浮栏。末尾的窄主区容器规则要排在浮动件自己的规则之后。 */
 /* 图片墙右下角：打标图标（#144）在图片大小浮岛左边，两者一起浮在图片墙上。 */
 .k-wall-corner {
   position: absolute;

@@ -181,6 +181,7 @@ impl Workspace {
             full_search: std::sync::Mutex::new(None),
             safe_resolve_search: std::sync::Mutex::new(None),
             full_resolve_search: std::sync::Mutex::new(None),
+            by_sha256: std::sync::OnceLock::new(),
         });
         self.cache = Some(snapshot.clone());
         Ok(snapshot)

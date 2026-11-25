@@ -46,6 +46,7 @@ impl Renderer {
                 view_formats: vec![],
             },
             configured: false,
+            cache: DrawCache::new(&self.device),
         })
     }
 
@@ -60,7 +61,7 @@ impl Renderer {
         if surface.generation != self.generation {
             return Err(Error::Stale);
         }
-        let bind = self.bind(image, draw, lut)?;
+        let (key, packed) = self.validate_and_pack(image, draw, lut)?;
         let (width, height) = (draw.window.width.max(1), draw.window.height.max(1));
         if !surface.configured || surface.config.width != width || surface.config.height != height {
             surface.config.width = width;
@@ -83,7 +84,10 @@ impl Renderer {
             other => return Err(self.surface_error(other)),
         };
         let target = frame.texture.create_view(&Default::default());
-        self.guarded(|| self.render(&target, surface.config.format, &bind))?;
+        self.guarded(|| {
+            let bind = self.ensure_bind_group(&mut surface.cache, key, &packed, image, draw, lut);
+            self.render(&target, surface.config.format, bind);
+        })?;
         self.queue.present(frame);
         Ok(())
     }
@@ -104,7 +108,7 @@ impl Renderer {
         draw: &Draw<'_>,
         lut: &Lut,
     ) -> Result<RgbaImage, Error> {
-        let bind = self.bind(image, draw, lut)?;
+        let (key, packed) = self.validate_and_pack(image, draw, lut)?;
         let (width, height) = (draw.window.width.max(1), draw.window.height.max(1));
         let row = (width * 4).div_ceil(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
             * wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
@@ -123,11 +127,18 @@ impl Renderer {
                 usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
                 view_formats: &[],
             });
-            self.render(
-                &texture.create_view(&Default::default()),
-                OFFSCREEN_FORMAT,
-                &bind,
-            );
+            {
+                let mut cache = self
+                    .offscreen_cache
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                let bind = self.ensure_bind_group(&mut cache, key, &packed, image, draw, lut);
+                self.render(
+                    &texture.create_view(&Default::default()),
+                    OFFSCREEN_FORMAT,
+                    bind,
+                );
+            }
             let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("pin readback"),
                 size: u64::from(row) * u64::from(height),
@@ -183,8 +194,13 @@ impl Renderer {
         })
     }
 
-    /// 核对句柄、打包统一变量，建绑定组。
-    fn bind(&self, image: &Image, draw: &Draw<'_>, lut: &Lut) -> Result<wgpu::BindGroup, Error> {
+    /// 核对句柄、打包统一变量，返回绑定键与 uniform 数据。
+    fn validate_and_pack(
+        &self,
+        image: &Image,
+        draw: &Draw<'_>,
+        lut: &Lut,
+    ) -> Result<(BindKey, PinUniform), Error> {
         let overlay = draw.overlay.map(|(o, _)| o);
         let ui = draw.ui_lut.unwrap_or(lut);
         if image.generation != self.generation
@@ -197,7 +213,13 @@ impl Renderer {
         if self.is_lost() {
             return Err(Error::DeviceLost);
         }
-        let packed: PinUniform = uniform::pack(
+        let key = BindKey {
+            image: image.id,
+            lut: lut.id,
+            ui_lut: ui.id,
+            overlay: overlay.map(|o| o.id),
+        };
+        let packed = uniform::pack(
             draw,
             Source {
                 width: image.width,
@@ -207,28 +229,38 @@ impl Renderer {
             overlay.map(|o| (o.width, o.height)),
             lut.bits | ui.bits << uniform::UI_SHIFT,
         );
-        self.guarded(|| {
-            let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("pin uniform"),
-                size: std::mem::size_of::<PinUniform>() as u64,
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            });
-            self.queue
-                .write_buffer(&buffer, 0, bytemuck::bytes_of(&packed));
+        Ok((key, packed))
+    }
+
+    /// 写入最新的 Uniform 变量，并在资源句柄变化时重建 BindGroup。
+    fn ensure_bind_group<'a>(
+        &self,
+        cache: &'a mut DrawCache,
+        key: BindKey,
+        packed: &PinUniform,
+        image: &Image,
+        draw: &Draw<'_>,
+        lut: &Lut,
+    ) -> &'a wgpu::BindGroup {
+        self.queue
+            .write_buffer(&cache.uniform, 0, bytemuck::bytes_of(packed));
+        let hit = cache.bound.as_ref().is_some_and(|(k, _)| *k == key);
+        if !hit {
+            let overlay = draw.overlay.map(|(o, _)| o);
+            let ui = draw.ui_lut.unwrap_or(lut);
             let (clut, curve) = self.tables(lut);
             let (ui_clut, ui_curve) = self.tables(ui);
             let view = |binding, view| wgpu::BindGroupEntry {
                 binding,
                 resource: wgpu::BindingResource::TextureView(view),
             };
-            self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            let group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("pin"),
                 layout: &self.pin_layout,
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: buffer.as_entire_binding(),
+                        resource: cache.uniform.as_entire_binding(),
                     },
                     view(1, &image.view),
                     view(2, clut),
@@ -237,8 +269,11 @@ impl Renderer {
                     view(5, ui_clut),
                     view(6, ui_curve),
                 ],
-            })
-        })
+            });
+            cache.bound = Some((key, group));
+            cache.rebuilds += 1;
+        }
+        &cache.bound.as_ref().expect("bind group populated").1
     }
 
     /// 查找表的两张纹理；恒等时绑空纹理（着色器不读）。

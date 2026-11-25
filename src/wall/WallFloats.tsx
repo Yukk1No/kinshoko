@@ -11,7 +11,7 @@ import { noticeAnchor, rowTopOf } from "./noticeAnchor";
 const KNOB = 40;
 /** 圆形按钮形变成滑条后的宽度（宽窗口下的值，窄窗口下实际更窄，只会更早改为向上）。 */
 const SLIDER = 214;
-/** 向上展开时升起的高度：越过悬浮栏（高 56 px）再隔开 8 px，与 main-window.css 的 --density-rise 相同。 */
+/** 向上展开时升起的高度：越过悬浮栏（高 56 px）再隔开 8 px，与 wall/wall-floats.css 的 --density-rise 相同。 */
 const RISE = 64;
 
 /**

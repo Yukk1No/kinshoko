@@ -96,6 +96,9 @@ export default {
     newSubfolder: "新建子文件夹",
     rename: "重命名",
     moveToTop: "移到顶层",
+    /** 拖动或 Alt + 方向键挪完以后读给读屏用户（#636）。 */
+    movedInto: "{{name}}移到了{{parent}}里的第 {{place}} 个",
+    movedTop: "{{name}}移到了顶层的第 {{place}} 个",
     delete: "删除文件夹",
   },
   deleteFolder: {

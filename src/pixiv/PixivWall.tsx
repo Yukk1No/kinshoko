@@ -7,13 +7,16 @@ import {
   useRef,
   useState,
   type Ref,
+  type UIEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
 import type { Artist } from "../bindings/Artist";
 import type { PixivWork } from "../bindings/PixivWork";
 import { pixivImageSrc } from "../ipc/pixivBrowse";
+import { mountWindow, type MountWindow } from "../wall/prefetch";
 import { CAP_RATIO, GAP, OVERSCAN, PAD, TARGET } from "../wall/wallShared";
 import { pixivMasonry, visibleIn, type PixivLayout } from "./layout";
+import { PixivWallCard as Card } from "./PixivWallCard";
 import type { CollectedPages, CollectOptions } from "./useCollect";
 import { useFeedbackContext } from "./useFeedback";
 import { useSubscriptionsContext } from "./useSubscriptions";
@@ -74,19 +77,34 @@ export function PixivWall({
   const { t } = useTranslation("subscriptions");
   const scroller = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const [scrollTop, setScrollTop] = useState(0);
+  const scrollTopRef = useRef(0);
+  const mountRef = useRef<MountWindow | null>(null);
+  const [mount, setMount] = useState<MountWindow>({ top: 0, bottom: 0 });
+  const syncMount = useCallback((top: number, height: number) => {
+    const next = mountWindow(mountRef.current, top, height, OVERSCAN);
+    if (next === mountRef.current) return;
+    mountRef.current = next;
+    setMount(next);
+  }, []);
   const [selected, setSelected] = useState<Selected | null>(null);
   const [full, setFull] = useState<{ work: PixivWork; page: number } | null>(null);
 
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    const measure = () => setSize({ width: el.clientWidth, height: el.clientHeight });
+    const measure = () => {
+      const width = el.clientWidth;
+      const height = el.clientHeight;
+      const top = el.scrollTop;
+      scrollTopRef.current = top;
+      setSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
+      syncMount(top, height);
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [syncMount]);
 
   const shown = useMemo(
     () => sections.map((s) => ({ key: s.key, works: safe ? s.works.filter((w) => !w.explicit) : s.works })),
@@ -113,19 +131,61 @@ export function PixivWall({
   }, [shown, size.width, density, current, bandHeight]);
   const total = placed.reduce((sum, s) => sum + s.layout.height, 0);
 
-  // 视口顶上是哪一段。
-  const topSection = placed.findLast((s) => s.top <= scrollTop + 1)?.key ?? placed[0]?.key;
+  // 画布变矮时浏览器会先把 scrollTop 夹回去，这个变化不一定经过 scroll 事件：按真实位置同步挂载窗口。
+  // biome-ignore lint/correctness/useExhaustiveDependencies(total): 画布高度变了就按真实 scrollTop 重新同步
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const top = el.scrollTop;
+    scrollTopRef.current = top;
+    syncMount(top, el.clientHeight);
+  }, [total, syncMount]);
+
+  // 视口顶上是哪一段，以及接近墙底时边沿触发（不逐像素重渲染）。
   const reported = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    if (topSection && topSection !== reported.current) {
-      reported.current = topSection;
-      onSection?.(topSection);
-    }
-  }, [topSection, onSection]);
+  const nearEndFor = useRef<{ sections: WallSection[]; total: number } | null>(null);
+  const onSectionRef = useRef(onSection);
+  onSectionRef.current = onSection;
+  const onNearEndRef = useRef(onNearEnd);
+  onNearEndRef.current = onNearEnd;
+  const latestScrollRef = useRef({ placed, total, sections });
+  latestScrollRef.current = { placed, total, sections };
+
+  const checkEdges = useCallback(
+    (top: number, curPlaced: typeof placed, curTotal: number, viewportHeight: number, curSections: WallSection[]) => {
+      const topSection = curPlaced.findLast((s) => s.top <= top + 1)?.key ?? curPlaced[0]?.key;
+      if (topSection && topSection !== reported.current) {
+        reported.current = topSection;
+        onSectionRef.current?.(topSection);
+      }
+      if (!viewportHeight) return;
+      if (curTotal - (top + viewportHeight) >= NEAR_END) {
+        nearEndFor.current = null;
+        return;
+      }
+      if (nearEndFor.current?.sections !== curSections || nearEndFor.current.total !== curTotal) {
+        nearEndFor.current = { sections: curSections, total: curTotal };
+        onNearEndRef.current?.();
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
-    if (size.height && total - (scrollTop + size.height) < NEAR_END) onNearEnd?.();
-  }, [scrollTop, size.height, total, onNearEnd]);
+    checkEdges(scrollTopRef.current, placed, total, size.height, sections);
+  }, [checkEdges, placed, total, size.height, sections]);
+
+  const onScroll = useCallback(
+    (e: UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      const top = el.scrollTop;
+      scrollTopRef.current = top;
+      syncMount(top, el.clientHeight);
+      const cur = latestScrollRef.current;
+      checkEdges(top, cur.placed, cur.total, el.clientHeight, cur.sections);
+    },
+    [checkEdges, syncMount],
+  );
 
   useImperativeHandle(
     handle,
@@ -161,7 +221,6 @@ export function PixivWall({
     }
   };
 
-  const bottom = scrollTop + size.height + OVERSCAN;
   return (
     <div className="pw-frame">
       <div
@@ -169,24 +228,28 @@ export function PixivWall({
         className="pw-wall"
         role="region"
         aria-label={t("browse.wall")}
-        onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+        onScroll={onScroll}
         onKeyDown={onKeyDown}
       >
         <div className="pw-canvas" style={{ height: total }}>
           {placed.map((s) =>
-            visibleIn(s.layout, scrollTop - OVERSCAN - s.top, bottom - s.top).map((i) => {
+            visibleIn(s.layout, mount.top - s.top, mount.bottom - s.top).map((i) => {
               const work = s.works[i];
               const box = s.layout.boxes[i];
               return (
                 <Card
                   key={`${s.key}:${work.id}`}
+                  sectionKey={s.key}
                   work={work}
-                  style={{ left: box.x, top: s.top + box.y, width: box.w, height: box.h }}
+                  left={box.x}
+                  top={s.top + box.y}
+                  width={box.w}
+                  height={box.h}
                   on={current?.section === s.key && current.id === work.id}
                   collected={(collected.get(work.id)?.size ?? 0) > 0}
                   busy={busy.has(work.id)}
-                  onClick={() => select(s.key, work.id)}
-                  onCollect={onCollect && ((from) => onCollect(work, { bookmark: true, from }))}
+                  onSelect={select}
+                  onCollect={onCollect}
                 />
               );
             }),
@@ -220,61 +283,6 @@ export function PixivWall({
           onPage={(page) => setFull({ ...full, page })}
           onClose={() => setFull(null)}
         />
-      )}
-    </div>
-  );
-}
-
-function Card({
-  work,
-  style,
-  on,
-  collected,
-  busy,
-  onClick,
-  onCollect,
-}: {
-  work: PixivWork;
-  style: React.CSSProperties;
-  on: boolean;
-  collected: boolean;
-  busy: boolean;
-  onClick: () => void;
-  onCollect?: (from: Element | null) => void;
-}) {
-  const { t } = useTranslation("subscriptions");
-  const feedback = useFeedbackContext();
-  const src = pixivImageSrc(work.pages[0]?.preview ?? "");
-  // 动图不收，不给收图按钮。
-  const collectable = !!onCollect && work.kind !== "animation";
-  return (
-    <div className="pw-card" data-on={on || undefined} style={style}>
-      <button
-        type="button"
-        className="pw-card-open"
-        aria-pressed={on}
-        aria-label={t("browse.work", { title: work.title, artist: work.artist.name })}
-        onClick={onClick}
-      >
-        {src && <img src={src} alt="" loading="lazy" decoding="async" draggable={false} />}
-      </button>
-      {work.pages.length > 1 && <span className="pw-pages">{t("browse.pages", { count: work.pages.length })}</span>}
-      {collected ? (
-        <span className="pw-collected">{t("browse.collected")}</span>
-      ) : busy ? (
-        <span className="pw-collected">{t("browse.collecting")}</span>
-      ) : (
-        collectable && (
-          <button
-            type="button"
-            className="pw-collect k-btn"
-            aria-label={t("browse.favoriteWork", { title: work.title })}
-            disabled={feedback?.bookmarkPending(work.id) ?? false}
-            onClick={(e) => onCollect?.(e.currentTarget.closest(".pw-card"))}
-          >
-            {t("browse.favorite")}
-          </button>
-        )
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { PanelRightClose } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useRef, type Dispatch, type SetStateAction } from "react";
+import type { SafeModeScope } from "../bindings/SafeModeScope";
 import type { WorkspaceStatus } from "../bindings/WorkspaceStatus";
 import { SelectionPanel } from "../library/SelectionPanel";
 import { WorkspaceSources } from "../library/WorkspacePane";
@@ -15,6 +16,7 @@ export function WorkspaceInspector({
   inspector,
   status,
   safe,
+  safeModeScope,
   reloadKey,
   vocabularyKey,
   setSelected,
@@ -24,6 +26,7 @@ export function WorkspaceInspector({
   inspector: WorkspaceInspectorState;
   status: WorkspaceStatus | null;
   safe: boolean;
+  safeModeScope?: SafeModeScope;
   reloadKey: number;
   vocabularyKey: number;
   setSelected: Dispatch<SetStateAction<Set<string>>>;
@@ -90,6 +93,7 @@ export function WorkspaceInspector({
             card={inspected}
             registrations={status?.libraries ?? []}
             safe={safe}
+            safeModeScope={safeModeScope}
             reloadKey={reloadKey}
             onClose={closeSources}
           />
@@ -104,6 +108,7 @@ export function WorkspaceInspector({
               reloadKey={reloadKey}
               onError={onError}
               safeMode={safe}
+              safeModeScope={safeModeScope}
               generation={vocabularyKey}
             />
           )

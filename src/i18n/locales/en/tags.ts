@@ -25,13 +25,13 @@ const tags: Translation<typeof zh> = {
     ko: "한국어",
     und: "Language not specified",
   },
-  noExternal: "No external mapping; not in the built-in approximate match table",
+  noExternal: "No external mapping; not covered by built-in similar tags",
   panel: {
     label: "Tags",
     title: "Tags",
     group: {
       manual: "Added by you",
-      model: "Auto tags",
+      model: "Auto-tags",
       imported: "Imported",
     },
     active: "Active tags",
@@ -65,8 +65,8 @@ const tags: Translation<typeof zh> = {
     confidence: "Confidence",
     manual: "Source: added by you",
     conflict: "Source: conflicting decisions from a merge, treated as added for now",
-    model: "Auto tag",
-    modelScore: "Auto tag, confidence {{percent}}% ({{band}})",
+    model: "Auto-tag",
+    modelScore: "Auto-tag, confidence {{percent}}% ({{band}})",
     band: {
       high: "high",
       mid: "medium",

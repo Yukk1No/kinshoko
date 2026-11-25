@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type DragEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { NameInput } from "../ui/NameInput";
 import { Name } from "../ui/Name";
 import { useTranslation } from "react-i18next";
@@ -16,13 +16,11 @@ import { useToast } from "../ui/Toast";
 import { FoldIcon } from "./FoldIcon";
 import { useFolded } from "./useFolded";
 import { Tip } from "../ui/Tip";
+import { armFolderDrag, type FolderDragHost } from "./folderDrag";
+import { moveAndSettle, placesNow } from "./folderDragMotion";
+import { keyMove, LAST, locate, placeAfter, type FolderMove } from "./folderMove";
 
-/** 侧栏里拖动文件夹时放进 dataTransfer 的类型，值为文件夹 id。 */
-export const DRAG_FOLDER = "application/x-kinshoko-folder";
-/** 与 {@link DRAG_FOLDER} 同时放入：文件夹所属图库的 id。文件夹只能在本库内移动。 */
-export const DRAG_FOLDER_LIBRARY = "application/x-kinshoko-folder-library";
-/** 移动文件夹时放到新位置的最后。 */
-export const LAST = 2 ** 31;
+export { LAST };
 
 type Props = {
   directory: Sidebar;
@@ -64,12 +62,12 @@ export function droppedImages(e: DragEvent, libraryId: string): string[] {
 const inTree = (nodes: FolderNode[], id: string): boolean =>
   nodes.some((node) => node.id === id || inTree(node.children, id));
 
-export const acceptsDrag = (e: DragEvent) =>
-  e.dataTransfer.types.includes(DRAG_IMAGES) || e.dataTransfer.types.includes(DRAG_FOLDER);
+/** 图片墙上的图拖过来（文件夹自己的拖动用指针事件，见 folderDrag.ts）。 */
+export const acceptsDrag = (e: DragEvent) => e.dataTransfer.types.includes(DRAG_IMAGES);
 
 /**
  * 一个图库在侧栏里展开后的内容（方案 D）：未归类与文件夹树，计数只算可见的图。
- * 双击或 F2 改名；把文件夹拖到同库的另一个文件夹上移进去；把图片墙上选中的图拖到文件夹上放进去。
+ * 双击或 F2 改名；拖动文件夹排顺序或放进另一个文件夹（#636，folderDrag.ts），Alt + 方向键同样能挪；把图片墙上选中的图拖到文件夹上放进去。
  * 文件夹的右键菜单（#102 表“侧栏 · 文件夹”，#114）：新建子文件夹 · 重命名 · ─ · 移到顶层 · ─ · 删除文件夹。
  */
 export function SidebarPane({
@@ -131,6 +129,37 @@ export function SidebarPane({
     );
   };
 
+  /** 挪完读给读屏用户听的一句。 */
+  const [moved, setMoved] = useState("");
+  /** 挪文件夹（拖动或 Alt + 方向键）：放进折起的文件夹时先展开它，挪过去的那一行才看得见。 */
+  const moveTo = (folderId: string, to: FolderMove) => {
+    const node = locate(directory.folders, folderId)?.siblings.find((n) => n.id === folderId);
+    const inside =
+      to.parent === null ? null : locate(directory.folders, to.parent)?.siblings.find((n) => n.id === to.parent);
+    const place = placeAfter(directory.folders, folderId, to);
+    return moveFolder(libraryId, folderId, to.parent, to.position).then(
+      () => {
+        if (inside && folded.has(inside.id)) toggleFold(inside.id);
+        if (node)
+          setMoved(
+            inside
+              ? t("folders.movedInto", { name: node.name, parent: inside.name, place })
+              : t("folders.movedTop", { name: node.name, place }),
+          );
+      },
+      (e: unknown) => {
+        onError(e);
+        throw e;
+      },
+    );
+  };
+  // 拖动跨好几帧，期间目录可能重画：拖动拿到的是这个转接，调用时总用最新的 moveTo。
+  const latest = useRef(moveTo);
+  latest.current = moveTo;
+  const host = useRef<FolderDragHost>({ move: (id, to) => latest.current(id, to) }).current;
+  const disarm = useRef<() => void>(() => {});
+  useEffect(() => () => disarm.current(), []);
+
   const over = (target: string) => (e: DragEvent) => {
     if (!acceptsDrag(e)) return;
     e.preventDefault();
@@ -140,12 +169,6 @@ export function SidebarPane({
   const drop = (folderId: string) => (e: DragEvent) => {
     e.preventDefault();
     setDropTarget(null);
-    const folder = e.dataTransfer.getData(DRAG_FOLDER);
-    if (folder) {
-      const from = e.dataTransfer.getData(DRAG_FOLDER_LIBRARY);
-      if (folder !== folderId && (!from || from === libraryId)) void run(moveFolder(libraryId, folder, folderId, LAST));
-      return;
-    }
     try {
       const images = droppedImages(e, libraryId);
       if (images.length) void run(editImages(libraryId, images, [{ kind: "addToFolder", folderId }]));
@@ -162,7 +185,7 @@ export function SidebarPane({
 
   // Rows join one fluid-hover list in visible (pre-order) order.
   let row = 0;
-  const tree = (nodes: FolderNode[], depth = 0, folding = false) => (
+  const tree = (nodes: FolderNode[], depth = 0, folding = false, parentId: string | null = null) => (
     <ul
       role="group"
       className="sidebar-tree"
@@ -203,22 +226,34 @@ export function SidebarPane({
                         type="button"
                         data-folder-id={node.id}
                         className="sidebar-item k-row"
+                        data-depth={depth}
+                        data-parent-folder={parentId ?? undefined}
                         data-drop={dropTarget === node.id || undefined}
                         aria-current={current({ kind: "folder", id: node.id })}
                         aria-label={t("folders.folderCount", { name: node.name, count: count(node) })}
-                        draggable
                         onClick={() => onScope({ kind: "folder", id: node.id })}
                         onDoubleClick={() => setRenaming(node.id)}
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData(DRAG_FOLDER, node.id);
-                          e.dataTransfer.setData(DRAG_FOLDER_LIBRARY, libraryId);
-                          e.dataTransfer.effectAllowed = "move";
+                        onPointerDown={(e) => {
+                          disarm.current();
+                          disarm.current = armFolderDrag(e.currentTarget, e.nativeEvent, host);
                         }}
                         onDragOver={over(node.id)}
                         onDragLeave={() => setDropTarget(null)}
                         onDrop={drop(node.id)}
                         onKeyDown={(e) => {
-                          if (parent && (e.key === "ArrowLeft" || e.key === "ArrowRight") && !e.altKey) {
+                          const step =
+                            e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey
+                              ? keyMove(directory.folders, node.id, e.key)
+                              : null;
+                          if (e.altKey && e.key.startsWith("Arrow")) {
+                            // Alt + 方向键挪文件夹；挪不动时也不让按键做别的事。
+                            e.preventDefault();
+                            const nav = e.currentTarget.closest("nav.sidebar");
+                            if (step && nav) {
+                              const from = placesNow(nav);
+                              void moveAndSettle(nav, node.id, () => moveTo(node.id, step), from);
+                            }
+                          } else if (parent && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
                             // ← 折起、→ 展开；已经是那个样子时不吃掉按键。
                             if ((e.key === "ArrowLeft") !== fold) {
                               e.preventDefault();
@@ -293,7 +328,7 @@ export function SidebarPane({
             )}
             {(parent || newParent === node.id) && (
               <>
-                {parent && (!fold || closing.has(node.id)) && tree(node.children, depth + 1, fold)}
+                {parent && (!fold || closing.has(node.id)) && tree(node.children, depth + 1, fold, node.id)}
                 {newParent === node.id && newInput}
               </>
             )}
@@ -329,6 +364,9 @@ export function SidebarPane({
           {newParent !== undefined && (newParent === null || !inTree(directory.folders, newParent)) && newInput}
         </div>
       </FluidList>
+      <div className="sr-only" role="status">
+        {moved}
+      </div>
     </nav>
   );
 }

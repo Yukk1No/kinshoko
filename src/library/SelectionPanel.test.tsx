@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ImageDetail } from "../bindings/ImageDetail";
 import type { ImageRating } from "../bindings/ImageRating";
 import { SelectionPanel } from "./SelectionPanel";
@@ -133,6 +133,100 @@ describe("选中一张图：内容分级（#518）", () => {
     fireEvent.click(within(rating).getByRole("button", { name: "成人" }));
 
     await waitFor(() => expect(cleared).toBe(true));
+  });
+
+  it("安全模式范围为轻度及以上（sensitive）时，改为轻度即取消选择；改为全年龄保持选中", async () => {
+    let current = detail({ suggested: "general", effective: "general" });
+    fakeBackend({
+      catalog_image_tags: NO_TAGS,
+      image: () => current,
+      edit: (args) => {
+        const rating = (args.edits as { kind: string; rating?: ImageRating["effective"] }[])[0]?.rating ?? null;
+        current = detail({ suggested: "general", manual: rating, effective: rating });
+        return [current];
+      },
+    });
+    let clears = 0;
+    render(
+      <SelectionPanel
+        libraryId="L1"
+        selected={new Set(["img"])}
+        onClear={() => (clears += 1)}
+        reloadKey={0}
+        onError={() => {}}
+        safeMode
+        safeModeScope="sensitive"
+      />,
+    );
+
+    const rating = await screen.findByRole("group", { name: "内容分级" });
+    fireEvent.click(within(rating).getByRole("button", { name: "全年龄，自动" }));
+    await act(async () => {});
+    expect(clears).toBe(0);
+
+    fireEvent.click(within(rating).getByRole("button", { name: "轻度" }));
+    await waitFor(() => expect(clears).toBe(1));
+  });
+
+  it("安全模式范围为仅成人（explicit）时，改为敏感保持选中；改为成人才取消选择", async () => {
+    let current = detail({ suggested: "general", effective: "general" });
+    fakeBackend({
+      catalog_image_tags: NO_TAGS,
+      image: () => current,
+      edit: (args) => {
+        const rating = (args.edits as { kind: string; rating?: ImageRating["effective"] }[])[0]?.rating ?? null;
+        current = detail({ suggested: "general", manual: rating, effective: rating });
+        return [current];
+      },
+    });
+    let clears = 0;
+    render(
+      <SelectionPanel
+        libraryId="L1"
+        selected={new Set(["img"])}
+        onClear={() => (clears += 1)}
+        reloadKey={0}
+        onError={() => {}}
+        safeMode
+        safeModeScope="explicit"
+      />,
+    );
+
+    const rating = await screen.findByRole("group", { name: "内容分级" });
+    fireEvent.click(within(rating).getByRole("button", { name: "敏感" }));
+    await waitFor(() =>
+      expect(within(rating).getByRole("button", { name: "敏感" }).getAttribute("aria-pressed")).toBe("true"),
+    );
+    expect(clears).toBe(0);
+
+    fireEvent.click(within(rating).getByRole("button", { name: "成人" }));
+    await waitFor(() => expect(clears).toBe(1));
+  });
+
+  it("安全模式关闭时，即使范围为轻度及以上、改为成人也不取消选择", async () => {
+    backend(
+      detail({ suggested: "general", effective: "general" }),
+      detail({ suggested: "general", manual: "explicit", effective: "explicit" }),
+    );
+    let cleared = false;
+    render(
+      <SelectionPanel
+        libraryId="L1"
+        selected={new Set(["img"])}
+        onClear={() => (cleared = true)}
+        reloadKey={0}
+        onError={() => {}}
+        safeMode={false}
+        safeModeScope="sensitive"
+      />,
+    );
+
+    const rating = await screen.findByRole("group", { name: "内容分级" });
+    fireEvent.click(within(rating).getByRole("button", { name: "成人" }));
+    await waitFor(() =>
+      expect(within(rating).getByRole("button", { name: "成人" }).getAttribute("aria-pressed")).toBe("true"),
+    );
+    expect(cleared).toBe(false);
   });
 
   it("点带星的那一档就是改回自动，不另放按钮", async () => {

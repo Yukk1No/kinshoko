@@ -65,6 +65,8 @@ struct Snapshot {
     full_search: std::sync::Mutex<Option<search_index::CachedSearch>>,
     safe_resolve_search: std::sync::Mutex<Option<search_index::CachedSearch>>,
     full_resolve_search: std::sync::Mutex<Option<search_index::CachedSearch>>,
+    /// 按原图字节 SHA-256 索引全部来源：`(providers 下标, provider.images 下标)`，按需构建并缓存。
+    by_sha256: std::sync::OnceLock<std::collections::HashMap<String, Vec<(usize, usize)>>>,
 }
 impl Snapshot {
     fn status(&self, safe: bool) -> WorkspaceStatus {
@@ -72,6 +74,21 @@ impl Snapshot {
             revision: digest(format!("{}:{safe}", self.status.revision).as_bytes()),
             libraries: self.status.libraries.clone(),
         }
+    }
+
+    pub(super) fn by_sha256(&self) -> &std::collections::HashMap<String, Vec<(usize, usize)>> {
+        self.by_sha256.get_or_init(|| {
+            let mut map: std::collections::HashMap<String, Vec<(usize, usize)>> =
+                std::collections::HashMap::new();
+            for (provider_index, provider) in self.providers.iter().enumerate() {
+                for (image_index, image) in provider.images.iter().enumerate() {
+                    map.entry(image.sha256.clone())
+                        .or_default()
+                        .push((provider_index, image_index));
+                }
+            }
+            map
+        })
     }
 }
 /// Durable known-source facts retain an Adult veto across a disconnected provider.

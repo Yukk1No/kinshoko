@@ -12,7 +12,7 @@ use crate::sync::lock;
 use crate::ui_text::{Text, text};
 use kinshoko_core::CommandError;
 use kinshoko_core::command_error::ErrorKind;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -304,11 +304,10 @@ pub async fn backup_preview(
             &groups.list().map_err(CommandError::from)?,
             &selection,
         );
-        let target =
-            with_plan(&app, |p| Ok(p.target().map(PathBuf::from)))?.map(|t| BackupTarget::new(&t));
-        let available = target.as_ref().is_some_and(BackupTarget::available);
+        let destination = with_plan(&app, |p| Ok(p.target().map(PathBuf::from)))?;
+        let target = BackupTarget::new(destination.as_deref().unwrap_or_else(|| Path::new("")));
+        let available = destination.is_some() && target.available();
         let estimate = target
-            .unwrap_or_else(|| BackupTarget::new(std::path::Path::new("")))
             .estimate(
                 &scope,
                 &BackupSources {
@@ -317,10 +316,19 @@ pub async fn backup_preview(
                 },
             )
             .map_err(CommandError::from)?;
+        #[cfg(windows)]
+        let target_free_bytes = if available {
+            crate::desktop::win32::available_disk_bytes(target.dir())
+        } else {
+            None
+        };
+        #[cfg(not(windows))]
+        let target_free_bytes = None;
         Ok(BackupPreview {
             scope,
             estimate,
             target_available: available,
+            target_free_bytes,
         })
     })
     .await

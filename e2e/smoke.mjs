@@ -218,6 +218,8 @@ const driver = spawn(process.argv[4] ?? "tauri-driver", driverArgs, {
   env: {
     ...process.env,
     KINSHOKO_DATA_DIR: dataDir,
+    // 测试按中文界面写；没有这项时界面跟随系统，CI 的英文 Windows 上会是英文（#358）。
+    KINSHOKO_INTERFACE_LANG: "zh-CN",
     KINSHOKO_SKIP_AUTOSTART: "1",
     WEBVIEW2_USER_DATA_FOLDER: join(work, "webview"),
   },

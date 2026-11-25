@@ -223,9 +223,17 @@ export function interfaceLanguage(): Promise<string> {
   return invoke<string>("interface_language");
 }
 
-/** 换界面语言；各窗口随即收到 `onInterfaceLanguage`。设置里的选项随 #358 上线。 */
-export function setInterfaceLanguage(lang: string): Promise<string> {
-  return invoke<string>("set_interface_language", { lang });
+/** 设置里「界面语言」可选的值（#358）：跟随系统或某种界面语言。 */
+export type InterfaceLanguageChoice = "system" | "zh-CN" | "en";
+
+/** 设置里选的界面语言。 */
+export function interfaceLanguageChoice(): Promise<InterfaceLanguageChoice> {
+  return invoke<InterfaceLanguageChoice>("interface_language_choice");
+}
+
+/** 改选界面语言并保存，回实际采用的界面语言；各窗口随即收到 `onInterfaceLanguage`。 */
+export function setInterfaceLanguage(choice: InterfaceLanguageChoice): Promise<string> {
+  return invoke<string>("set_interface_language", { lang: choice });
 }
 
 /** 界面语言改了。 */
